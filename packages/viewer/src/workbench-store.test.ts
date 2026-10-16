@@ -386,6 +386,7 @@ describe("run-tagged experiment cohorts", () => {
     const v1 = `experiment:bundle-v-control-dryrun@${C1.slice(0, 12)}`, v2 = `experiment:bundle-v-control-dryrun@${C2.slice(0, 12)}`;
     expect(["2026-10-15T19-42-50_qwen36-gpu1_ab75", "2026-10-15T19-42-51_qwen36-gpu0_c205"].map(id => of(id)?.cohort)).toEqual([v1, v1]);
     expect(of("2026-10-16T02-32-40_qwen36-gpu1_ad45")?.cohort).toBe(v2);
+    expect(["2026-10-15T19-42-50_qwen36-gpu1_ab75", "2026-10-15T19-42-51_qwen36-gpu0_c205"].map(id => of(id)?.arm)).toEqual(["control", "bundle"]);
     expect(of("2026-10-16T03-43-30_qwen36-gpu1_cook")?.cohort).toBe(`experiment:bundle-v-control-dryrun-cook@${C2.slice(0, 12)}`);
     expect(of("2026-10-16T05-00-00_qwen36-gpu1_main")?.cohort).toBe(`experiment:bundle-v-control@${C2.slice(0, 12)}`);
     expect(of("2026-10-16T06-00-00_qwen36-gpu1_loose")?.cohort).toBe(`experiment:checkpoint-start-check@${C3.slice(0, 12)}`);
@@ -418,7 +419,7 @@ describe("run-tagged experiment cohorts", () => {
     expect(of(died)?.cohort).toBe(dry); expect(of(died)?.excluded).toContain("died mid-run");
     expect(of(erred)?.cohort).toBe(`experiment:full-map-navigation@${C3.slice(0, 12)}`); expect(of(erred)?.excluded).toContain("play exited with 1");
     expect(of(exited)?.cohort).toBe(`experiment:factorial-2x2@${C3.slice(0, 12)}`); expect(of(exited)?.excluded).toContain("exit 1");
-    expect(of(legacy)).toMatchObject({ cohort: "experiment:full-map-navigation", excluded: null });
+    expect(of(legacy)).toMatchObject({ cohort: "experiment:full-map-navigation", arm: null, excluded: null });
     expect(of(finals)?.cohort).toBe("experiment:full-map-navigation:finals");
     const label = (id: string) => d.cohorts?.find(c => c.id === id)?.label;
     expect(label(`experiment:factorial-2x2@${C3.slice(0, 12)}`)).toBe("Whole-map × memory");

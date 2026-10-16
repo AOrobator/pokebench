@@ -5,6 +5,7 @@ import { RUN_ID_PATTERN, parseEvent, type RunEvent } from "@pokebench/agent/even
 import { locateRunDir } from "@pokebench/agent/run";
 import type { Baseline } from "./panels.js";
 import { RunView, MILESTONE_ORDER } from "./model.js";
+import type { BaselineStore } from "./baseline-store.js";
 
 export class RunsError extends Error {
   override readonly name = "RunsError";
@@ -213,7 +214,6 @@ export type BaselineOutcome =
   | { readonly error: { readonly kind: "baseline" | "runs"; readonly message: string } };
 export type BaselineCompute = (runsRoot: string, runId: string) => Promise<BaselineOutcome>;
 export type BaselineReader = (runId: string) => Promise<Baseline>;
-export const BASELINE_CACHE_LIMIT = 256;
 
 export function computeBaseline(runsRoot: string, runId: string): BaselineOutcome {
   try {
@@ -228,12 +228,11 @@ export function computeBaseline(runsRoot: string, runId: string): BaselineOutcom
 export interface BaselineReaderOptions {
   // Where validation runs; the viewer passes a worker pool so the event loop stays free.
   readonly compute?: BaselineCompute;
-  readonly maxEntries?: number;
+  // Outcomes persisted by earlier viewers of the same code.
+  readonly store?: BaselineStore;
 }
 
 export function createBaselineReader(runsRoot: string, options: BaselineReaderOptions = {}): BaselineReader {
-  const maxEntries = options.maxEntries ?? BASELINE_CACHE_LIMIT;
-  if (!Number.isSafeInteger(maxEntries) || maxEntries < 1) throw new RangeError("baseline cache limit must be a positive integer");
   const compute = options.compute ?? ((root: string, id: string): Promise<BaselineOutcome> => Promise.resolve().then(() => computeBaseline(root, id)));
   const cache = new Map<string, { readonly fingerprint: string; readonly outcome: BaselineOutcome }>();
   const inflight = new Map<string, { readonly fingerprint: string; readonly outcome: Promise<BaselineOutcome> }>();
@@ -251,29 +250,27 @@ export function createBaselineReader(runsRoot: string, options: BaselineReaderOp
     if ("baseline" in outcome) return structuredClone(outcome.baseline);
     throw outcome.error.kind === "baseline" ? new BaselineError(outcome.error.message) : new RunsError(outcome.error.message);
   };
+  // Entries are a few hundred bytes, so every run stays cached for the viewer's lifetime.
   const load = async (runId: string, before: string): Promise<BaselineOutcome> => {
+    const stored = options.store?.get(runId, before) ?? null;
+    if (stored !== null) {
+      cache.set(runId, { fingerprint: before, outcome: stored });
+      return stored;
+    }
     const outcome = await compute(runsRoot, runId);
     // A changed file may finish validation, but its result cannot become a cache hit.
     let after: string | null = null;
     try { after = fingerprint(runId); } catch { /* deleted while computing: keep nothing */ }
     if (after === before) {
-      cache.delete(runId);
       cache.set(runId, { fingerprint: before, outcome });
-      if (cache.size > maxEntries) {
-        const oldest = cache.keys().next().value;
-        if (oldest !== undefined) cache.delete(oldest);
-      }
+      options.store?.put(runId, before, outcome);
     }
     return outcome;
   };
   return async (runId) => {
     const before = fingerprint(runId);
     const cached = cache.get(runId);
-    if (cached?.fingerprint === before) {
-      cache.delete(runId);
-      cache.set(runId, cached);
-      return settle(cached.outcome);
-    }
+    if (cached?.fingerprint === before) return settle(cached.outcome);
     cache.delete(runId);
     let pending = inflight.get(runId);
     if (pending?.fingerprint !== before) {

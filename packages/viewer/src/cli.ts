@@ -7,6 +7,7 @@ import { existsSync } from "node:fs";
 import { availableParallelism, homedir } from "node:os";
 import { Worker } from "node:worker_threads";
 import { createBaselinePool, defaultPoolSize } from "./baseline-pool.js";
+import { baselineCacheDir, codeIdentity, createBaselineStore, pruneBaselineCaches } from "./baseline-store.js";
 import { dirname, join } from "node:path";
 import { ExperimentAutoRun } from "./experiment-autorun.js";
 import { winnerGateOn } from "./experiment-store.js";
@@ -153,9 +154,12 @@ if (import.meta.main) {
       const source = recordedRuns(runsRoot);
       return new ExperimentAutoRun({ paths, source, now: () => Date.now(), host: productionHost({ root, runsRoot, git, fetchFn: fetch, node: process.execPath, env: process.env, log: (line) => { console.log(`experiments: ${line}`); } }) });
     },
-    baselines: () => {
-      const pool = createBaselinePool(() => new Worker(new URL("./baseline-worker.js", import.meta.url)), defaultPoolSize(availableParallelism()));
-      return { compute: pool.compute, warm: true, close: () => pool.close() };
+    // Baselines validate on worker threads and persist per code identity beside the runs.
+    baselines: (runsRoot) => {
+      const worker = new URL("./baseline-worker.js", import.meta.url), codeId = codeIdentity(fileURLToPath(worker));
+      pruneBaselineCaches(runsRoot, codeId, Date.now());
+      const pool = createBaselinePool(() => new Worker(worker), defaultPoolSize(availableParallelism()));
+      return { compute: pool.compute, store: createBaselineStore(baselineCacheDir(runsRoot, codeId)), warm: true, close: () => pool.close() };
     },
     print: (line) => {
       console.log(line);

@@ -13,6 +13,7 @@ import { Value } from "typebox/value";
 import { FEATURES } from "@pokebench/agent/features";
 import { CONTROL_ACTIONS } from "@pokebench/agent/events";
 import { finalsRunLabels } from "./experiment-gate-store.js";
+import type { BaselineStore } from "./baseline-store.js";
 import { BaselineError, RunsError, createBaselineReader, comparisonsOf, type BaselineCompute, eventsPath, listRuns, liveScreenPort, readStart, readFrom, runDir, type BaselineReader } from "./runs.js";
 import { featureHistory } from "./history.js";
 import { localModels } from "./models.js";
@@ -61,7 +62,7 @@ export interface ViewerOptions {
   readonly autorun?: ExperimentAutoRun;
   // Where baseline validation runs (default: in process), whether to warm every ended run
   // at startup, and what to close with the viewer.
-  readonly baselines?: { readonly compute?: BaselineCompute; readonly warm?: boolean; readonly close?: () => Promise<void> };
+  readonly baselines?: { readonly compute?: BaselineCompute; readonly store?: BaselineStore; readonly warm?: boolean; readonly close?: () => Promise<void> };
 }
 
 const MAX_BODY = 64 * 1024;
@@ -431,7 +432,7 @@ async function route(req: IncomingMessage, res: ServerResponse, options: ViewerO
 export async function startViewer(options: ViewerOptions): Promise<Viewer> {
   let port = 0;
   let origins: ReadonlyMap<string, string> = new Map();
-  const readBaseline = createBaselineReader(options.runsRoot, options.baselines?.compute === undefined ? {} : { compute: options.baselines.compute });
+  const readBaseline = createBaselineReader(options.runsRoot, { ...(options.baselines?.compute === undefined ? {} : { compute: options.baselines.compute }), ...(options.baselines?.store === undefined ? {} : { store: options.baselines.store }) });
   let snapshot: { until: number; result: Promise<WorkbenchData> } | null = null;
   const readWorkbench = (): Promise<WorkbenchData> => {
     const now = (options.now?.() ?? new Date()).getTime();

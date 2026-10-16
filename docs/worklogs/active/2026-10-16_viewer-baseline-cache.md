@@ -53,12 +53,13 @@ The 2026-10-14 worklog named both persistent caching and worker threads as non-g
 
 **M2 — Persisted baselines keyed on log and code**
 - [x] Write tests: disk hit across readers, fingerprint and `codeId` invalidation, corrupt entries ignored, mid-compute change not persisted, import-closure identity on a fixture tree, no 256 cap, unwritable cache, run-id guard, week-old pruning, restarted viewer served from disk. LRU eviction and limit tests removed with the cap.
-- [x] COMMIT: `test(viewer): RED baselines persist across restarts keyed on log and code` (pending sha)
+- [x] COMMIT: `test(viewer): RED baselines persist across restarts keyed on log and code` (f707fdf4)
   - RED: baseline-store.test.ts fails to import (no baseline-store module); baseline-cache 7/7 pass.
-- [ ] Implement store, code identity, wiring.
-- [ ] Gates
-- [ ] COMMIT: `feat(viewer): GREEN ...`
-- [ ] Guard deletions recorded
+- [x] Implement store, code identity, wiring (cli prunes other-code caches unused for 7 days, opens `runs/.viewer-cache/baselines/<codeId>/`).
+- [x] Gates: viewer 845 tests, agent 1426, Python 2130 passed / 2 skipped. Coverage viewer 95.16 / 90.68 / 93.41, agent 97.73 / 94.58 / 97.98, Python 96%. `pnpm -r lint`, ruff, ruff format, mypy (main venv) clean.
+- [x] COMMIT: `feat(viewer): GREEN baselines persist across restarts keyed on log and code` (pending sha)
+- [x] Guard deletions: no `store.put` → 3 store tests fail; no fingerprint check on read → 2 fail; relative imports left out of the closure → identity test fails; no after-compute fingerprint check → 2 fail (store + cache). Restored, 18/18 pass.
+- Real catalog with built dist and a scratch cache dir: cold 77.9 s (235 computed), second start 0.11 s (0 computed), cache 940 KB. 20 sampled cached outcomes identical to main's in-process `baselineOf` (12 baselines and errors mixed).
 
 **M3 — Review and live receipt**
 - [ ] Principles self-review (PB1–PB13), Claude CLI, Codex, Grok reviews until clean

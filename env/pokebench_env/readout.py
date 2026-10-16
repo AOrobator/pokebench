@@ -62,6 +62,7 @@ SERVER_FEATURES = (
     "battle-message-waiting-v1",
     "offscreen-objects-v1",
     "levelup-box-v1",
+    "transition-coherence-v1",
     "readout-truth-v1",
     "birch-speech-pages-v1",
     "blackout-readout-v1",
@@ -78,6 +79,7 @@ def features_off_from_env(env: Mapping[str, str]) -> frozenset[str]:
         "battle-message-waiting-v1,"
         "offscreen-objects-v1,"
         "levelup-box-v1,"
+        "transition-coherence-v1,"
         "readout-truth-v1,birch-speech-pages-v1,blackout-readout-v1",
     )
     if raw == "":

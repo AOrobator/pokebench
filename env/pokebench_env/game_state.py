@@ -29,6 +29,7 @@ from pokebench_env.running import RunningPermission, read_running_permission
 from pokebench_env.story import StoryState, read_story
 from pokebench_env.topology import Topology, read_topology
 from pokebench_env.trainer_opponent import TrainerOpponent, read_trainer_opponent
+from pokebench_env.transition_coherence import CB2_HANDLE_START_BATTLE, main_loop_idle
 from pokebench_env.ui_state import (
     ActiveUi,
     Menu,
@@ -196,15 +197,27 @@ def read_game_state(
     connection_edges_enabled: bool = False,
     in_game_naming_enabled: bool = False,
     offscreen_objects_enabled: bool = False,
+    transition_coherence_enabled: bool = False,
     readout_truth_enabled: bool = False,
     birch_pages_enabled: bool = False,
 ) -> GameState:
     screen = read_screen(read)
+    coherent = transition_coherence_enabled
+    # transition-coherence-v1: CB2_HandleStartBattle is the battle start, not an unknown screen.
+    label = (
+        "battle_transition"
+        if coherent and screen.kind == "unknown" and screen.callback2 == CB2_HANDLE_START_BATTLE
+        else screen.label
+    )
     in_battle = bool(read(IN_BATTLE, 1)[0] & 0x02)
-    battle = read_battle_state(read) if in_battle else None
+    battle = read_battle_state(read, current_battle_only=coherent) if in_battle else None
     dialog, menu = read_dialog(read, screen.kind), read_menu(read)
     native_ui = read_active_ui(
-        read, screen, truth=readout_truth_enabled, birch_pages=birch_pages_enabled
+        read,
+        screen,
+        truth=readout_truth_enabled,
+        birch_pages=birch_pages_enabled,
+        transition_coherence=coherent,
     )
     active_ui = native_ui if active_ui_enabled else None
     truth_read = readout_truth_enabled and active_ui_enabled
@@ -227,7 +240,10 @@ def read_game_state(
         and native_ui.details.get("naming_owner") in ("box", "caught_mon", "nickname", "walda")
     )
     save1, save2 = (0, 0)
-    if not pregame and screen.kind != "field_transition" and field_initialized:
+    # transition-coherence-v1: a frame that ends mid-callback can hold a half-moved save block
+    # (MoveSaveBlocks_ResetHeap) or a half re-keyed bag and money; read none of it.
+    torn = coherent and main_loop_idle(read) is False
+    if not pregame and screen.kind != "field_transition" and field_initialized and not torn:
         save1, save2 = struct.unpack("<II", read(SAVE_BLOCK_PTRS, 8))
     valid_saves = (
         0x02000000 <= save1 <= 0x02040000 - 0x1A9C
@@ -237,7 +253,7 @@ def read_game_state(
     )
     if pregame or not field_initialized or not valid_saves:
         return GameState(
-            screen.label,
+            label,
             field_initialized and not pregame,
             None,
             None,
@@ -309,7 +325,7 @@ def read_game_state(
         if battle_details_enabled
         else None,
         running=read_running_permission(read),
-        screen=screen.label,
+        screen=label,
         started=True,
         story=read_story(read, screen, save1),
         route103_rival=read_route103_rival(read, save1, in_battle),

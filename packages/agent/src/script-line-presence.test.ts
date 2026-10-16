@@ -254,6 +254,15 @@ describe("script-line-presence-v1: the instruction ledger re-shows the tag (revi
   expect(text).toContain(`#5845 turn 259 · ROUTE101 (map 0/16) · ${TAG23}: "In my BAG!\nThere's a POKé BALL!"`);
   expect(sent?.at(-1)).toMatchObject({role:"user",content:text});
  });
+ it("ON: a room's last-heard page carries the tag when it is an unattributed auto-advance page",()=>{
+  const ledger=new InstructionLedger(LEDGER);
+  const state=stateAt(5845);
+  const page={state_seq:5845,map:"ROUTE101",map_id:[0,16] as [number,number],position:{x:11,y:15},speaker:null,speaker_source:null,text:"In my BAG!",on_screen:onScreen(state,true)};
+  ledger.observe({v:1,run:"r",seq:5851,t:"2026-10-16T02:43:52.264-04:00",turn:259,type:"dialogue_auto_advance",tool_call_id:"c",tool:"press",requested:["UP"],sent:["UP"],dropped:[],auto_presses:1,pages:[page],stop:"field_free",detail:"x",duration_ms:1});
+  ledger.observe(state);
+  ledger.observe({v:1,run:"r",seq:5853,t:"2026-10-16T02:43:52.300-04:00",turn:259,type:"tool_result",id:"c",name:"press",text:"pressed UP",is_error:false,frames:[],duration_ms:1,state_seq:5845});
+  expect(ledger.text()).toContain(`ROUTE101 (map 0/16) (first turn 259): last heard ${TAG23}: "In my BAG!"`);
+ });
  it("OFF: the ledger text is today's",()=>{
   const ledger=new InstructionLedger({...OFF,"instruction-ledger-v1":true});
   for(const e of EVENTS)ledger.observe(e);

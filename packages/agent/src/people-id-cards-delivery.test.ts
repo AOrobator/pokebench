@@ -108,6 +108,23 @@ describe("people-id-cards-v1 delivery",()=>{
  });
 });
 
+describe("people-id-cards-v1 rehearsal",()=>{
+ it("the production wrapper over the whole recorded 4caa run records the same 38 cards, in order",async()=>{
+  const rec=recorder();
+  const states=new Map<number,GameStateSnapshot>();
+  let current:GameStateSnapshot|undefined;
+  const tool:AgentTool={name:"press",label:"p",description:"d",parameters:Type.Object({}),execute:()=>Promise.resolve({content:[{type:"text",text:"Location: X\nPosition: X=0, Y=0, facing up"}],details:{state:current}})};
+  const [wrapped]=withPeopleIdCards([tool],{...OFF,"character-presence-v1":true,"people-ledger-v1":true,"people-id-cards-v1":true},rec.api);
+  for(const e of RUN){
+   if(e.type==="state"&&"started" in e)states.set(e.seq,snapshot(e));
+   if(e.type==="tool_result"&&e.state_seq!==undefined&&states.has(e.state_seq)){current=states.get(e.state_seq);await wrapped?.execute(e.id,{});}
+   rec.feed([e]);
+  }
+  expect(rec.cards).toHaveLength(38);
+  expect(rec.cards.filter(c=>c.card.key==="name:MAY").map(c=>c.card.reason)).toEqual(["first","changed","changed","changed"]);
+ });
+});
+
 describe("people-id-cards-v1 prompt line",()=>{
  it("ON appends exactly the one line after untaken exits; OFF leaves the prompt byte-identical; it names no person, place or step",()=>{
   const off={...ALL_ON,"state-only-decisions-v1":false,"objective-tracking-v1":false,"navigate-first-prompt-v1":false,"people-id-cards-v1":false};

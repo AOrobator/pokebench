@@ -147,9 +147,9 @@ No new network surface: the server field rides the existing state endpoint on 12
 - [x] COMMIT: `feat(people-id-cards): GREEN delivery after the people ledger, people_id_card event, Activity History` (see Session Log)
 
 **M3 — Explainer, pending experiment, review**
-- [ ] Explainer `docs/explainers/people-id-cards-v1.html`, README index, `FEATURE_EXPLAINERS` mapping (+ panels/server tests); `just pages-check` silent
-- [ ] `experiments/people-id-cards.json` pending (no `queuePosition`), readiness line
-- [ ] Fake-data rehearsal: replay 4caa through the production wrapper, 38 `people_id_card` events
+- [x] Explainer `docs/explainers/people-id-cards-v1.html` (trigger states, provenance table, recorded T211/T184/T551 cards, wiring), README index, `FEATURE_EXPLAINERS` mapping, panels + server tests; `just pages-check` silent
+- [x] `experiments/people-id-cards.json` pending (no `queuePosition`; finals incumbent + dialogue auto-advance, people ledger, character presence ON; activation PLAYER_NAME_CONFIRMED, primary RIVAL_BATTLE_WON; provisional source.commit = main cefacbf1), readiness line; validated by a test with parseExperiment + experimentArms (`just experiments-check` reads the main checkout's directory)
+- [x] Fake-data rehearsal (test): the production wrapper over the whole recorded 4caa run records 38 `people_id_card` events, MAY first/changed×3
 - [ ] `git merge main`, gates, frozen packet; Claude, Codex, Grok `VERDICT: LGTM`
 - [ ] Report to the coordinator; no merge
 
@@ -176,6 +176,7 @@ No new network surface: the server field rides the existing state endpoint on 12
 - 2026-10-16 4:50 PM EDT: worklog with operator decisions committed. COMMIT: `docs(worklog): people-id-cards-v1 design with the operator's decisions (approved 4:47 PM EDT)` (66b6dc0d)
 - M1 COMMITS: RED `test(people-id-cards): RED card model, triggers and registration on runs 4caa and f551` (c1c398b7); GREEN `feat(people-id-cards): GREEN card model, switch registration and prompt line` (2d1169d6).
 - M2 RED: `test(people-id-cards): RED delivery, event and Activity History` (e382a068).
+- M2 GREEN: `feat(people-id-cards): GREEN delivery after the people ledger, people_id_card event, Activity History` (a6dca2a0). Naming fix (22c13495).
 - 2026-10-16 ~5:05 PM EDT: synced with main cefacbf1 (fast-forward). RED: card model tests on recorded runs; module absent, suite fails to import.
 
 - 2026-10-16 (EDT): discovery and design only; worklog drafted in the worktree, not committed. Card prototype run over 4caa in the session scratchpad (not tracked).

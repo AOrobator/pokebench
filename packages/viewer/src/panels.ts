@@ -421,6 +421,7 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "navigation-truth-v1":"navigation-truth-v1.html",
  "navigation-refusal-reasons-v2":"navigation-refusal-reasons-v2.html",
  "cross-map-goal-v1":"cross-map-goal-v1.html",
+ "people-id-cards-v1":"people-id-cards-v1.html",
 });
 
 export function harnessConfig(view:RunView,registry:readonly FeatureInfo[]=[]):string {

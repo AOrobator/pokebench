@@ -327,3 +327,16 @@ describe("people-id-cards-v1 without character presence",()=>{
   expect(plain.annotate(`Location: ROUTE103\n${PEOPLE_HEADER}\n- object 2, MAY (sprite RIVAL_MAY_NORMAL), at (5,4): not talked to this run`,map([may]),"b").text).toContain("at (5,4): not talked to this run; ID card: no name shown; has not spoken to you; battles: none");
  });
 });
+
+describe("people-id-cards-v1 pending experiment",()=>{
+ it("names every switch explicitly, needs nothing it lacks, and flips only people-id-cards-v1",async()=>{
+  const {experimentArms,parseExperiment}=await import("./experiments.js");
+  const raw=JSON.parse(readFileSync(new URL("../../../experiments/people-id-cards.json",import.meta.url),"utf8")) as {incumbent:{features:Record<string,boolean>};queuePosition?:number};
+  expect(Object.keys(raw.incumbent.features).sort()).toEqual([...SWITCHABLE_FEATURES].sort());
+  expect(raw.queuePosition).toBeUndefined();
+  const {incumbent,candidate}=experimentArms(parseExperiment(raw));
+  expect(incumbent.features["people-ledger-v1"]).toBe(true);expect(incumbent.features["character-presence-v1"]).toBe(true);
+  expect(SWITCHABLE_FEATURES.filter(id=>incumbent.features[id]!==candidate.features[id])).toEqual(["people-id-cards-v1"]);
+  expect(dependencyProblems(candidate.features)).toEqual([]);
+ });
+});

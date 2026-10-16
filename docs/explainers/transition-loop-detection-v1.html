@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Transition Loop Detection</title>
+<style>
+:root{
+ --bg:#f7f6f2; --fg:#1c1d1f; --soft:#5b5d61; --rule:#dedcd5; --panel:#ffffff;
+ --game:#1a7f5a; --game-bg:#e3f4ec; --prior:#c2432f; --prior-bg:#fbe7e2; --nav:#2a62c9; --nav-bg:#e4edfb; --hot:#c2432f;
+ --body:system-ui,-apple-system,"Segoe UI",sans-serif; --mono:ui-monospace,"SF Mono",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+ --bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; --hot:#ff7a63; color-scheme:dark}}
+:root[data-theme="dark"]{
+ --bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; --hot:#ff7a63; color-scheme:dark}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.6 var(--body);padding:0 16px}
+main{max-width:740px;margin:0 auto;padding:40px 0 64px;display:flex;flex-direction:column;gap:34px}
+h1{font-size:2.2rem;line-height:1.15;margin:0}
+h2{font-size:1.3rem;margin:0}
+p{margin:0;max-width:66ch}
+.eyebrow{font:500 .75rem var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--soft)}
+.lede{font-size:1.08rem;color:var(--soft)}
+section{display:flex;flex-direction:column;gap:12px}
+figure{margin:0;display:flex;flex-direction:column;gap:8px}
+.scroll{overflow-x:auto}
+svg{display:block;max-width:100%;height:auto}
+figcaption{font-size:.88rem;color:var(--soft)}
+svg text{font-family:var(--body);font-size:12px;fill:var(--fg)}
+svg .s{fill:var(--soft);font-size:11px}
+svg .t{font-weight:600;font-size:13px}
+.box{fill:var(--panel);stroke:var(--rule)}
+.game{fill:var(--game-bg);stroke:var(--game)}
+.prior{fill:var(--prior-bg);stroke:var(--prior)}
+.navb{fill:var(--nav-bg);stroke:var(--nav)}
+.hot{stroke:var(--hot);stroke-width:2.2}
+.arr{stroke:var(--soft);stroke-width:1.5;fill:none}
+.arr.g{stroke:var(--game)} .arr.p{stroke:var(--prior);stroke-dasharray:5 4}
+pre{background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:14px;white-space:pre-wrap;font:13px/1.5 var(--mono);margin:0}
+code{font:500 .88em var(--mono);background:var(--panel);border:1px solid var(--rule);border-radius:4px;padding:0 4px}
+table{border-collapse:collapse;width:100%;font-size:.92rem}
+th,td{text-align:left;padding:7px 9px;border-bottom:1px solid var(--rule);vertical-align:top}
+th{font:500 .75rem var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--soft)}
+.tag{display:inline-block;font:500 .72rem var(--mono);border-radius:99px;padding:1px 8px;border:1px solid var(--rule);color:var(--soft)}
+</style>
+</head>
+<body>
+<main>
+<div class="eyebrow">Harness switch · guard · <code>transition-loop-detection-v1</code> · no dependency · off by default · ON in both arms of bundle-v-control</div>
+<h1>Transition loop detection</h1>
+<p class="lede">The loop guard could not see a player bouncing through a door or up and down stairs. With this switch on, a press that lands mid-animation no longer wipes the guard's memory, and walking back and forth between the same maps with no progress counts as a cycle. The guard then warns and briefs through its usual path. Off: any locked step clears the cycle history and map changes are not counted.</p>
+
+<section>
+<h2>Why</h2>
+<table>
+<tr><th>Run</th><th>Window</th><th>What happened</th><th>Loop guard (today)</th></tr>
+<tr><td><code>2919</code> (control, 2026-10-15)</td><td>T200–T247, seq 3097–4239</td><td>In and out of PROF. BIRCH's lab 18 times: <code>DOWN×5</code> out, <code>A×5</code> at a lock that was only the door closing, <code>UP×7</code> back in</td><td>silent after seq 2752</td></tr>
+<tr><td><code>d6bb</code> (think-fast, 2026-10-13)</td><td>from T223</td><td>House 1F ↔ Littleroot, one step each way; 38 map changes after its last milestone</td><td>no event in the whole run</td></tr>
+</table>
+<p>Cause: <code>semanticState</code> gives no fingerprint while field controls are locked, and any press with no fingerprint before or after it cleared the history. A door or stairs arrival is locked for the animation, so the history was cleared twice per round trip and no repeat was ever seen.</p>
+</section>
+
+<section>
+<h2>Off and on, one bounce</h2>
+<figure>
+<div class="scroll">
+<svg viewBox="0 0 700 270" width="700" role="img" aria-label="One door bounce with the switch off and on">
+<text x="10" y="18" class="t">The 2919 cycle (T202–T204), one model turn per box</text>
+<rect x="10" y="30" width="200" height="54" rx="6" class="navb"/><text x="110" y="50" text-anchor="middle">DOWN×5: lab → town</text><text x="110" y="68" text-anchor="middle" class="s">after: (7,17) locked, door closing</text>
+<rect x="250" y="30" width="200" height="54" rx="6" class="navb"/><text x="350" y="50" text-anchor="middle">A×5 in town</text><text x="350" y="68" text-anchor="middle" class="s">before: locked · after: unlocked</text>
+<rect x="490" y="30" width="200" height="54" rx="6" class="navb"/><text x="590" y="50" text-anchor="middle">UP×7: town → lab</text><text x="590" y="68" text-anchor="middle" class="s">after: lab (6,12)</text>
+<path d="M210 57 H248" class="arr"/><path d="M450 57 H488" class="arr"/>
+<text x="10" y="114" class="t">OFF</text>
+<rect x="50" y="100" width="160" height="28" rx="4" class="prior"/><text x="130" y="119" text-anchor="middle">history cleared</text>
+<rect x="290" y="100" width="160" height="28" rx="4" class="prior"/><text x="370" y="119" text-anchor="middle">history cleared</text>
+<rect x="530" y="100" width="160" height="28" rx="4" class="box"/><text x="610" y="119" text-anchor="middle">1 entry</text>
+<text x="50" y="146" class="s">Never more than one entry, so the 3-repeat check never matches. No map moves are counted.</text>
+<text x="10" y="186" class="t">ON</text>
+<rect x="50" y="172" width="160" height="28" rx="4" class="game"/><text x="130" y="191" text-anchor="middle">skipped · move lab&gt;town</text>
+<rect x="290" y="172" width="160" height="28" rx="4" class="game"/><text x="370" y="191" text-anchor="middle">skipped</text>
+<rect x="530" y="172" width="160" height="28" rx="4" class="game"/><text x="610" y="191" text-anchor="middle">entry · move town&gt;lab</text>
+<text x="50" y="220" class="s">Map moves: lab&gt;town, town&gt;lab, lab&gt;town, town&gt;lab, lab&gt;town, town&gt;lab. The third repeat of the</text>
+<text x="50" y="236" class="s">2-move pattern (6 moves) is a cycle. Moves reset on story, party, money, badge, bag or PC item change,</text>
+<text x="50" y="252" class="s">and on a newly observed milestone. Patterns of 2 to 4 map moves count; 12 moves are kept.</text>
+</svg>
+</div>
+<figcaption>Recorded states from run 2919. The town arrival is locked for the door animation (state seq 3165–3167); the same tile is unlocked at seq 3174, before the next press.</figcaption>
+</figure>
+</section>
+
+<section>
+<h2>Which locks are skipped</h2>
+<p>Only a lock the game's own script engine is not behind. The readout already carries the global script context (read at <code>0x03000E40</code> and <code>0x03000E38</code> by <code>env/pokebench_env/resources.py</code>). In pokeemerald <code>src/script.c</code>, mode 0 is <code>SCRIPT_MODE_STOPPED</code> and status 2 is <code>CONTEXT_SHUTDOWN</code>.</p>
+<table>
+<tr><th>Locked state</th><th>Example</th><th>ON</th></tr>
+<tr><td>no dialogue, no message, no active UI, script mode 0 and status 2</td><td>door, stairs or warp animation (2919 seq 3165–3167: mode 0, status 2)</td><td>skipped, history kept</td></tr>
+<tr><td>a script running (mode 1 or 2)</td><td>a cutscene before its message opens (2919 seq 1824: mode 2, status 0)</td><td>history cleared, as today</td></tr>
+<tr><td>dialogue or a message open</td><td>MOM's conversation (2919 seq 1849–1886)</td><td>history cleared, as today (a qualified message still has its own fingerprint)</td></tr>
+<tr><td>script state unknown (no resources read)</td><td>older runs such as d6bb</td><td>history cleared, as today</td></tr>
+</table>
+<p>The map-move count does not depend on locks at all: it compares the map before and after each press, <code>navigate_to</code> or observation.</p>
+</section>
+
+<section>
+<h2>What the model reads</h2>
+<p>Off, during the 2919 bounce: no loop-guard text at all from T180 to T247.</p>
+<p>On, replaying the recorded events through <code>attachLoopGuard</code>: the warning fires at T205 (seq 3244), after the third lab entry. With <code>loop-guard-supervisor-v1</code> on, as in both arms, the next model call gets the supervisor briefing (kind <code>cycle</code>). Its headline:</p>
+<pre>SUPERVISOR: You are currently looping. You keep repeating the same short cycle of actions, and the game is not moving forward (loop guard, 205 calls into the run). What you have been trying is not working, so do not try it again.
+Stop and get your bearings:
+- Where you are: LITTLEROOT TOWN PROFESSOR BIRCHS LAB (map 1/4) at 6,12 facing up
+…</pre>
+<p>The recorded <code>loop_guard</code> warning, and the note the model sees when the supervisor is off:</p>
+<pre>LOOP GUARD (cycle): Moving back and forth between the same maps is repeating with no new story, party, money, badge or item change. Reassess the objective and choose a different exit or target using observed evidence. Recovery is bounded; objective wording and new evidence IDs alone do not establish progress.</pre>
+</section>
+
+<section>
+<h2>Replay receipts</h2>
+<table>
+<tr><th>Run</th><th>OFF</th><th>ON</th></tr>
+<tr><td><code>2919</code></td><td>last notice T179 seq 2751 (recovered)</td><td>warning + supervisor T205 seq 3244; re-brief T211; recovered T215 (the <code>A×5</code> step reached a new state); warning + supervisor T216 seq 3516, then every 6 calls to T246. No stop. Notices before T200 unchanged.</td></tr>
+<tr><td><code>d6bb</code></td><td>no notice</td><td>warning T230 seq 2566; that run had no loop supervisor, so the guard stopped it at T236 seq 2626, as it would for any other loop</td></tr>
+</table>
+<p>A sweep of 60 recent runs found 13 with a new ping-pong warning; the ones checked by hand (ad45 T43, 817d T43, 2f46 T209) were all stairs or door bounces with no progress.</p>
+</section>
+
+<section>
+<h2>Interaction with other switches</h2>
+<p><code>stall-briefing-v1</code> (bundle only) briefs on the second round trip between two maps, earlier than this guard's third. A stall note does not block the guard, but an open guard episode refuses a stall note, as before. Recovery, thresholds and the other loop kinds are unchanged.</p>
+</section>
+
+<section>
+<h2>Status</h2>
+<p>Branch <code>claude/transition-loop-detection</code>, not merged. RED and GREEN tests in <code>packages/agent/src/transition-loop-detection.test.ts</code> (recorded 2919 events, synthetic stairs bounce, script and dialogue locks, OFF silence) and a <code>live.ts</code> factory test. No measured runs.</p>
+</section>
+</main>
+</body>
+</html>

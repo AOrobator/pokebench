@@ -21,11 +21,11 @@ OFF: no skip, no map moves; byte-identical to today.
 
 **M1 — F2 transition loop detection**
 - [x] RED: 2919 seq 3090–4239 replay fires a cycle within a bounded number of bounces (ON) and stays silent (OFF); synthetic stairs bounce; real MOM conversation (2919 seq 1800–1900) and a script lock produce no new notice; progress resets the ping-pong; production factory honors the switch
-- [ ] GREEN: switch registered, LoopDetector + attachLoopGuard + live/decision-probe wiring
-- [ ] Wiring-deletion check (red once, restored)
-- [ ] Replay receipts on 2919 and d6bb
-- [ ] Explainer + FEATURE_EXPLAINERS mapping
-- [ ] Gates: test, lint, build, coverage (90), verify-vendor
+- [x] GREEN: switch registered, LoopDetector + attachLoopGuard + live/decision-probe wiring
+- [x] Wiring-deletion check (red once, restored)
+- [x] Replay receipts on 2919 and d6bb
+- [x] Explainer + FEATURE_EXPLAINERS mapping
+- [x] Gates: test, lint, build, coverage (90), verify-vendor
 - [ ] Review: Codex + grok
 
 ## Progress Log
@@ -33,7 +33,14 @@ OFF: no skip, no map moves; byte-identical to today.
 - 2026-10-16: Worktree `/private/tmp/pokebench-m1-loop` from main fa09dbe6. Baseline replay (dp-replay.mjs): 2919 last notice T179 seq 2751; d6bb zero notices.
 
 - 2026-10-16: RED committed: transition-loop-detection.test.ts (5 of 12 fail: no notice ON on 2919/stairs/skip; OFF silence, conversation equality and lock-clearing cases pass today) and the live.ts factory test (fails: preset does not know the switch). Fixtures: trimmed 2919 events (seq 3090–4239, 1800–1900), gzipped.
+- 2026-10-16: GREEN. `LoopDetector` gets `transitions` (constructor + `attachLoopGuard` 7th arg), wired from `features["transition-loop-detection-v1"]` in live.ts and decision-probe.ts. Registry: guard, needs null, recorded last; presets/flagFeatures/next-run default false. Explainer docs/explainers/transition-loop-detection-v1.html, mapped in FEATURE_EXPLAINERS.
+  - Wiring deletion: dropping the live.ts argument turns the factory test red (1 failed); disabling the skip turns "transient lock is skipped" red. Both restored.
+  - Replay (dp-replay with the switch): 2919 OFF last notice T179 seq 2751; ON warning+supervisor T205 seq 3244 (third lab entry), recovered T215, warning T216 seq 3516, supervisor every 6 calls to T246, no stop; pre-T200 notices identical. d6bb OFF none; ON warning T230 seq 2566, stop T236 seq 2626 (run had no supervisor). 60-run sweep: 13 runs gain a ping-pong warning; ad45/817d/2f46 checked by hand, all real bounces.
+  - Gates: agent 1281 passed, viewer 786 passed, pytest 1960 passed/2 skipped; build OK; verify-vendor OK; lint OK except mypy mgba._pylib (worktree has no native binding). Coverage: agent lines 99.03 / branches 94.28 / functions 97.87; viewer 97.6 / 90.39 / 93.55; python lines 97.03 / branches 92.57 / functions 100.
+  - Not done here by brief: experiments/<id>.json pending entry and bundle-v-control wiring belong to the M6 integrator.
 
 ## Surprises
+
+- The ping-pong episode recovers once in 2919 (T215): the `A×5` step at the town door reaches a state outside the 16-state visited window, which counts as novel. The next bounce re-warns at T216. Recovery semantics are unchanged by design.
 
 ## Multi-Model Review Log

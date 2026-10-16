@@ -1,6 +1,7 @@
 import { locateRunDir } from "./run.js";
 import { existsSync, readdirSync } from "node:fs";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { RUN_ID_PATTERN } from "./events.js";
 import { FRAME_CAP_BYTES, FrameStore, START_LIMIT } from "./frames.js";
 import { formatBytes } from "./format.js";
@@ -60,7 +61,9 @@ export function runsCli(argv: readonly string[], runsRoot: string, capBytes: num
   return 2;
 }
 
-export const RUNS_ROOT = new URL("../../../runs/", import.meta.url).pathname;
+// fileURLToPath decodes escapes such as %20, which URL.pathname keeps.
+export const runsRootFor = (moduleUrl: string): string => fileURLToPath(new URL("../../../runs/", moduleUrl));
+export const RUNS_ROOT = runsRootFor(import.meta.url);
 
 export function main(argv: readonly string[], print: (line: string) => void, runsRoot: string = RUNS_ROOT): number {
   return runsCli(argv, runsRoot, FRAME_CAP_BYTES, print);

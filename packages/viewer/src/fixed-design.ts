@@ -44,6 +44,8 @@ const draftShape = {
   }, closed),
   switches: Type.Array(Type.String({ minLength: 1 }), { minItems: 1, uniqueItems: true }),
   offInBoth: Type.Array(Type.String({ minLength: 1 }), { uniqueItems: true }),
+  // Fixes on in both arms: the only features allowed to differ from the control base outside the switches.
+  onInBoth: Type.Array(Type.String({ minLength: 1 }), { uniqueItems: true }),
   phases: Type.Array(PhaseSchema, { minItems: 1 }),
   lanes: Type.Array(LaneSchema, { minItems: 1 }),
   serving: Type.Object({ model: Type.String({ minLength: 1 }), build: Type.String({ minLength: 1 }), contextTokens: positive, slots: positive }, closed),
@@ -97,7 +99,7 @@ export function armFeatures(def: Pick<FixedDefinition, "base" | "switches">, arm
 
 // The bits that tell the arms apart, and the flags off in both, as each arm should record them.
 export function armFeatureBits(def: FixedDefinition, arm: FixedArm): Record<string, boolean> {
-  return Object.fromEntries([...def.switches.map((s) => [s, arm === "bundle"] as const), ...def.offInBoth.map((s) => [s, false] as const)]);
+  return Object.fromEntries([...def.switches.map((s) => [s, arm === "bundle"] as const), ...def.offInBoth.map((s) => [s, false] as const), ...def.onInBoth.map((s) => [s, true] as const)]);
 }
 
 export function armPreset(def: FixedDefinition, phaseId: string, arm: FixedArm): PlayPresetV2 {
@@ -135,13 +137,18 @@ function phaseProblems(def: FixedDefinition): string[] {
 function featureProblems(def: FixedDefinition): string[] {
   const problems: string[] = [];
   const known = new Set(Object.keys(FeatureSetSchema.properties));
-  for (const s of [...def.switches, ...def.offInBoth, ...Object.keys(def.base.features)]) if (!known.has(s)) problems.push(`unknown feature ${s}`);
+  for (const s of [...def.switches, ...def.offInBoth, ...def.onInBoth, ...Object.keys(def.base.features)]) if (!known.has(s)) problems.push(`unknown feature ${s}`);
   // Without the enforced guard's supervisor the loop guard's stop notice ends a run "stuck"; only the wall cap may end a trial.
   if (def.base.features["deterministic-loop-guard-v1"] !== true || def.base.features["loop-guard-supervisor-v1"] !== true) problems.push("deterministic-loop-guard-v1 and loop-guard-supervisor-v1 must both be on: otherwise the loop guard can end a trial stuck before its wall cap");
   for (const s of def.switches) if (def.base.features[s] === true) problems.push(`bundle switch ${s} must be off in the base (control) features`);
   for (const s of def.offInBoth) {
     if (def.switches.includes(s)) problems.push(`${s} is both a bundle switch and off in both arms`);
     else if (def.base.features[s] !== false) problems.push(`${s} must be off in both arms`);
+  }
+  for (const s of def.onInBoth) {
+    if (def.switches.includes(s)) problems.push(`${s} is both a bundle switch and on in both arms`);
+    else if (def.offInBoth.includes(s)) problems.push(`${s} is both off in both arms and on in both arms`);
+    else if (def.base.features[s] !== true) problems.push(`${s} must be on in both arms`);
   }
   for (const phase of def.phases) {
     for (const arm of FIXED_ARMS) {
@@ -177,7 +184,7 @@ export function controlBaseProblems(def: FixedDefinition, presetText: string): s
     if (preset.limits?.[key] !== def.base.limits[key]) problems.push(`base limits.${key} is ${String(def.base.limits[key])}, the control base has ${shown(preset.limits?.[key])}`);
   }
   const features = preset.features ?? {};
-  const designed = new Set([...def.switches, ...def.offInBoth]);
+  const designed = new Set([...def.switches, ...def.offInBoth, ...def.onInBoth]);
   for (const key of [...new Set([...Object.keys(def.base.features), ...Object.keys(features)])].sort()) {
     if (designed.has(key) || def.base.features[key] === features[key]) continue;
     problems.push(`base feature ${key} is ${shown(def.base.features[key])}, the control base has ${shown(features[key])}`);

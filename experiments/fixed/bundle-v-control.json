@@ -91,6 +91,7 @@
   "battle-details-v2",
   "expanded-menu-battle-information-v1"
  ],
+ "onInBoth": [],
  "phases": [
   {
    "id": "confirmatory",

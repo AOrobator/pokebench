@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { RUN_START, SAMPLES } from "../test-support/events.js";
-import { EventError, eventsJsonSchema, parseEvent, renderEventsJsonSchema } from "./events.js";
+import { EventError, eventEnvelope, eventProblem, eventsJsonSchema, parseEvent, renderEventsJsonSchema } from "./events.js";
 
 const ENVELOPE = { v: 1, run: "2026-10-11T21-40-05_think-swarm_a1b2", seq: 0, t: "2026-10-11T21:40:05.123-04:00" };
 
@@ -98,4 +98,56 @@ it("carries typed field context and rejects malformed trigger conditions", () =>
   const body = { ...ENVELOPE, ...SAMPLES[11], world_context: { objects: [], triggers: [{x:10,y:1,elevation:3,variable:0x4050,required_value:0,current_value:0,condition_met:true,script_pointer:0x08100000}], dialogue:null } };
   expect(parseEvent(JSON.stringify(body))).toMatchObject({world_context:{triggers:[{condition_met:true}]}});
   expect(() => parseEvent(JSON.stringify({...body,world_context:{...body.world_context,dialogue:1}}))).toThrow(EventError);
+});
+
+describe("event problems name the event's own type", () => {
+  const sample = (type: string): Record<string, unknown> => {
+    const body = SAMPLES.find((s) => s.type === type);
+    if (body === undefined) throw new Error(`no ${type} sample`);
+    return { ...ENVELOPE, seq: 5, ...body };
+  };
+  it("reports an unexpected nested property of a state event at its path", () => {
+    const state = sample("state");
+    expect(eventProblem({ ...state, position: { x: 5, y: 8, battler_0_ready: true } })).toBe("invalid state event at /position: unexpected property battler_0_ready");
+  });
+  it("reports an unexpected top-level property with the root path", () => {
+    expect(eventProblem({ ...sample("compaction"), surprise: 1 })).toBe("invalid compaction event at /: unexpected property surprise");
+  });
+  it("reports a missing field of the event's own type, not another member's", () => {
+    const { to_tokens: _gone, ...rest } = sample("compaction");
+    const problem = eventProblem(rest);
+    expect(problem).toMatch(/^invalid compaction event at \/: .*to_tokens/);
+    expect(problem).not.toContain("action, status, request");
+  });
+  it("reports a bad value inside a type with several schema members (tool_call)", () => {
+    expect(eventProblem({ ...sample("tool_call"), name: 7 })).toMatch(/^invalid tool_call event at \/name: /);
+  });
+  it("names an unknown type and a value without a type", () => {
+    expect(eventProblem({ ...ENVELOPE, type: "telemetry", turn: 0 })).toBe('unknown event type "telemetry": this build of the schema does not know it');
+    expect(eventProblem({ ...ENVELOPE, turn: 0 })).toBe("invalid event: no string type field");
+    expect(eventProblem([1])).toBe("invalid event: not a JSON object");
+    expect(eventProblem(null)).toBe("invalid event: not a JSON object");
+  });
+  it("decodes JSON pointer escapes in property names", () => {
+    expect(eventProblem({ ...sample("compaction"), "a/b~c": 1 })).toBe("invalid compaction event at /: unexpected property a/b~c");
+  });
+  it("returns null for a valid event and keeps the message on parseEvent", () => {
+    expect(eventProblem(sample("state"))).toBeNull();
+    expect(() => parseEvent(JSON.stringify({ ...sample("compaction"), surprise: 1 }))).toThrow("invalid compaction event at /: unexpected property surprise");
+  });
+});
+
+describe("event envelope", () => {
+  it("reads the envelope of an event the schema rejects", () => {
+    expect(eventEnvelope({ ...ENVELOPE, seq: 4, turn: 2, type: "state", battle: { message: {} } })).toEqual({ run: ENVELOPE.run, seq: 4, t: ENVELOPE.t, turn: 2, type: "state" });
+  });
+  it.each([
+    ["a non-object", 3],
+    ["a missing seq", { ...ENVELOPE, seq: undefined, turn: 0, type: "state" }],
+    ["a UTC timestamp", { ...ENVELOPE, t: "2026-10-12T01:40:05.123Z", turn: 0, type: "state" }],
+    ["a missing type", { ...ENVELOPE, turn: 0 }],
+    ["another schema version", { ...ENVELOPE, v: 2, turn: 0, type: "state" }],
+  ])("refuses %s", (_label, value) => {
+    expect(eventEnvelope(value)).toBeNull();
+  });
 });

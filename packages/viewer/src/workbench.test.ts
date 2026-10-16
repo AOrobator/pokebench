@@ -98,3 +98,28 @@ it("keeps the plate link and keyboard focus stable through clock ticks, lane joi
   fetch.mockResolvedValue({ ...data(), at: 39001, runs: [run({ status: "live", elapsedMs: 160000, splits }), run({ id: "second", status: "live" })] }); await wb.refresh();
   expect(ui("current").querySelectorAll(".wb-plate")).toHaveLength(2); expect(ui("current").querySelector(".wb-party .wb-kicker")?.textContent).toContain("2 CURRENT RUNS"); wb.destroy();
 });
+
+it("keeps the focused plate when other runs join or leave the party, reconciling plates by run id", async () => {
+  const { wb, fetch } = mount({ ...data(), runs: [run({ status: "live" })] }); await wb.refresh();
+  const link = ui("current").querySelector<HTMLAnchorElement>('.wb-plate[href="/#run=run_01"]'); if (link === null) throw Error("missing plate"); link.focus();
+  fetch.mockResolvedValue({ ...data(), at: 2000, runs: [run({ id: "first", status: "live" }), run({ status: "live" }), run({ id: "third", status: "live" })] }); await wb.refresh();
+  expect([...ui("current").querySelectorAll(".wb-plate")].map(p => p.getAttribute("href"))).toEqual(["/#run=first", "/#run=run_01", "/#run=third"]);
+  expect(ui("current").querySelector('.wb-plate[href="/#run=run_01"]')).toBe(link); expect(document.activeElement).toBe(link); expect(ui("current").querySelector(".wb-party .wb-kicker")?.textContent).toContain("3 CURRENT RUNS");
+  fetch.mockResolvedValue({ ...data(), at: 3000, runs: [run({ id: "third", status: "live" }), run({ status: "paused" })] }); await wb.refresh();
+  expect([...ui("current").querySelectorAll(".wb-plate")].map(p => p.getAttribute("href"))).toEqual(["/#run=third", "/#run=run_01"]);
+  expect(ui("current").querySelector('.wb-plate[href="/#run=run_01"]')).toBe(link); expect(document.activeElement).toBe(link); expect(link.querySelector(".wb-plate-l1")?.textContent).toContain("PAUSED");
+  const saved = run({ status: "paused" }); if (saved.config === null) throw new Error("config"); saved.config = { ...saved.config, resume: "CLOCK_SET" };
+  fetch.mockResolvedValue({ ...data(), at: 4000, runs: [saved] }); await wb.refresh();
+  expect(ui("current").querySelectorAll(".wb-plate")).toHaveLength(1); expect(ui("current").querySelector(".wb-plate")).toBe(link); expect(document.activeElement).toBe(link); expect(link.textContent).toContain("NOT FROM ZERO");
+  fetch.mockResolvedValue({ ...data(), at: 5000, runs: [] }); await wb.refresh(); expect(ui("current").textContent).toContain("BACK TO VIEWER"); wb.destroy();
+});
+
+it("shows lanes as unknown until the experiment poll verifies them, unavailable after it fails, and recovers", async () => {
+  const { wb } = mount({ ...data(), runs: [run({ status: "live" })] }); await wb.refresh();
+  const link = ui("current").querySelector<HTMLAnchorElement>(".wb-plate"); if (link === null) throw Error("missing plate"); link.focus();
+  expect(link.querySelector(".wb-plate-l1")?.textContent).toBe("LANE …Lv2"); expect(link.textContent).not.toContain("HAND RUN"); expect(link.querySelector(".wb-ty em")).toBeNull();
+  wb.lanes(new Map([["run_01", { lane: "B", gpu: "GPU0", arm: "control" }]])); expect(link.querySelector(".wb-plate-l1")?.textContent).toBe("LANE B · GPU0Lv2"); expect(link.querySelector(".wb-ty em")?.getAttribute("style")).toBe("--tyc:#2f6fb0");
+  wb.lanes("unavailable"); expect(link.querySelector(".wb-plate-l1")?.textContent).toBe("LANE ?Lv2"); expect(link.querySelector(".wb-ty")?.textContent).toBe("TYPE/lane data unavailable"); expect(link.querySelector(".wb-ty em")).toBeNull(); expect(link.textContent).not.toContain("HAND RUN");
+  wb.lanes(new Map()); expect(link.querySelector(".wb-plate-l1")?.textContent).toBe("HAND RUNLv2"); expect(link.querySelector(".wb-ty em")?.getAttribute("style")).toBe("--tyc:#a08020");
+  expect(ui("current").querySelector(".wb-plate")).toBe(link); expect(document.activeElement).toBe(link); wb.destroy();
+});

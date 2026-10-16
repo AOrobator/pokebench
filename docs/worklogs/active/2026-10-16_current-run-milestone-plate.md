@@ -53,6 +53,16 @@ already polls it for the queue, so QueuePanel hands each parsed snapshot to the 
   long arm wraps. Real click on the lane A plate lands on `/#run=<id>`.
   Screenshots: `runs/mockups/current-run-milestone/impl-check/{desktop-1200,mobile-375}.jpg` (main checkout).
   Not checked: the real viewer server on 8790 (off limits) or a real running cohort.
-- [ ] Multi-model review loop (not run in this session)
+- [ ] Multi-model review loop: Codex BLOCKING, grok LGTM with nits
+  (`runs/reviews/stats-page-fixes/plate-codex.log`, `plate-grok.log`). Fixes as M3:
+- [x] M3 RED: review findings
+  1. focus lost when runs join/leave (replaceChildren) → reconcile plates by run id;
+  2. lanes unknown (before /api/experiments loads, or after it fails) shown as HAND RUN / TYPE none →
+     "loading" (LANE … / TYPE/ …) and "unavailable" (LANE ? / lane data unavailable) distinct from a verified
+     empty map (HAND RUN); QueuePanel calls `loaded` after act()/finals() too and `unavailable` on a failed load;
+  3. derived (recovered) furthest split shows "≤ time · ≤ turn N · recovered" and never goes gold;
+  nits: NEW only for 0 ≤ age < 30 s; hostile lane/GPU/arm strings test (passes already: escaping was in
+  place, kept as a regression test); `&& Array.isArray` spacing.
+  - viewer: 6 failing (workbench-view 3, workbench 2, queue-view 1), 807 pass.
 
 ## Log

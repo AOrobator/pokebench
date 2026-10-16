@@ -244,6 +244,23 @@ describe("experiment queue view", () => {
     reply = { nonsense: true }; await panel.load(); expect(seen).toHaveLength(1);
   });
 
+  it("tells the listener when a load fails, and hands it the snapshots that approve, revoke and finals actions return", async () => {
+    document.body.innerHTML = readFileSync(join(import.meta.dirname, "../static/index.html"), "utf8").replace(/<script[^>]*><\/script>|<link[^>]*>/g, "");
+    const root = document.querySelector<HTMLElement>('[data-ui="experiment-queue"]');
+    if (root === null) throw new Error("page is missing the queue");
+    const gate: GateView = { experiment: "full", title: "Gate", state: "held", reason: "", source: "cohort", finals: { runsPerArm: 1, maxWallMs: 1, target: null }, finalists: [], ranking: [], trials: [], winner: null, decision: null };
+    const withGate = { ...SNAPSHOT, gate: [gate] }, events: string[] = []; let fail = true;
+    const panel = new QueuePanel(root, {
+      fetchJson: () => fail ? Promise.reject(new Error("offline")) : Promise.resolve(withGate), problem: () => undefined,
+      sendJson: (_method, url) => Promise.resolve({ ...withGate, problems: [url] }), confirm: () => true,
+      loaded: (s) => { events.push(`loaded ${s.problems.join("")}`); }, unavailable: () => { events.push("unavailable"); },
+    });
+    await panel.load(); expect(events).toEqual(["unavailable"]);
+    fail = false; await panel.load(); expect(events.at(-1)).toBe("loaded ");
+    await panel.act("elev", "approve"); expect(events.at(-1)).toBe("loaded /api/experiments/elev/approve");
+    await panel.finals("full", true); expect(events.at(-1)).toBe("loaded /api/experiments/full/finals-withdraw");
+  });
+
   it("explains a failed load inside the queue instead of loading forever", async () => {
     document.body.innerHTML = readFileSync(join(import.meta.dirname, "../static/index.html"), "utf8").replace(/<script[^>]*><\/script>|<link[^>]*>/g, "");
     const root = document.querySelector<HTMLElement>('[data-ui="experiment-queue"]');

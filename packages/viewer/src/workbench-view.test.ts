@@ -60,6 +60,32 @@ describe("workbench visual contract", () => {
     const map = runLanes([status([lane("A", "r1", "bundle"), lane("B", null, null)]), status([lane("C", "r2", null)])]);
     expect([...map.entries()]).toEqual([["r1", { lane: "A", gpu: "GPUA", arm: "bundle" }], ["r2", { lane: "C", gpu: "GPUC", arm: null }]]);
   });
+  it("qualifies a recovered (derived) furthest milestone as an upper bound and never turns it gold", () => {
+    const base = run({ status: "live" }), splits = base.splits.map(s => s.name === "PLAYER_NAME_CONFIRMED" ? { ...s, derived: true } : s);
+    const doc = parse(currentRunHtml([{ ...base, splits }], 1000, 2000, null));
+    expect(doc.querySelector(".wb-ms small")?.textContent).toBe("≤ 2:00 · ≤ turn 20 · recovered");
+    expect(doc.querySelector(".wb-plate")?.className).toBe("wb-plate"); expect(doc.body.innerHTML).not.toContain("NEW MILESTONE!");
+  });
+  it("only counts a milestone as new for an age from 0 up to 30 s, never one ahead of the live clock", () => {
+    const ahead = run({ status: "live", elapsedMs: 100000 });
+    expect(currentRunHtml([ahead], 1000, 1000, null)).not.toContain("NEW MILESTONE!");
+    expect(currentRunHtml([run({ status: "live" })], 1000, 1000, null)).toContain("NEW MILESTONE!");
+  });
+  it("tells unknown lane data apart from a verified hand run", () => {
+    const loading = parse(currentRunHtml([run({ status: "live" })], 0, 0, null, "loading"));
+    expect(loading.querySelector(".wb-plate-l1")?.textContent).toBe("LANE …Lv2"); expect(loading.querySelector(".wb-ty")?.textContent).toBe("TYPE/…"); expect(loading.querySelector(".wb-ty em")).toBeNull();
+    expect(loading.body.textContent).not.toContain("HAND RUN"); expect(loading.body.textContent).not.toContain("none");
+    const failed = parse(currentRunHtml([run({ status: "live" })], 0, 0, null, "unavailable"));
+    expect(failed.querySelector(".wb-plate-l1")?.textContent).toBe("LANE ?Lv2"); expect(failed.querySelector(".wb-ty")?.textContent).toBe("TYPE/lane data unavailable"); expect(failed.body.textContent).not.toContain("HAND RUN");
+    expect(parse(currentRunHtml([run({ status: "live" })], 0, 0, null, new Map())).querySelector(".wb-plate-l1")?.textContent).toBe("HAND RUNLv2");
+  });
+  it("escapes hostile lane, GPU and arm text", () => {
+    const lanes = new Map([["run_01", { lane: '<b id="l">', gpu: '"><script>x</script>', arm: "<img src=x onerror=alert(1)>" }]]);
+    const html = currentRunHtml([run({ status: "live" })], 0, 0, null, lanes), doc = parse(html);
+    expect(html).not.toContain("<img"); expect(html).not.toContain("<script"); expect(html).not.toContain('<b id="l">'); expect(doc.querySelector("#l")).toBeNull();
+    expect(doc.querySelector(".wb-plate-l1")?.textContent).toBe('LANE <b id="l"> · "><script>x</script>Lv2'); expect(doc.querySelector(".wb-ty em")?.textContent).toBe("<img src=x onerror=alert(1)>");
+    expect(doc.querySelector(".wb-ty em")?.getAttribute("style")).toMatch(/^--tyc:hsl\(\d+ 45% 36%\)$/);
+  });
   it("renders truthful recorded configuration and feature tri-states, checkpoint evidence, and a replay link", () => {
     const html = runDetails(run(), "PLAYER_NAME_CONFIRMED"); expect(html).toContain("OFF"); expect(html).toContain("UNKNOWN"); expect(html).toContain("ON"); expect(html).toContain("#19"); expect(html).toContain("65,536"); expect(html).toContain("objectives-on"); expect(html).toContain("&lt;img"); expect(runDetails(run({ config: null }), null)).toContain("not recorded");
   });

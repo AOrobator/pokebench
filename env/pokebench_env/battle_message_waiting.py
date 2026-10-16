@@ -42,7 +42,11 @@ def message_clause(battle: BattleState) -> str | None:
     printed while another screen owns the callback (evolution, bag, party) says nothing.
     """
     message, prompt, phase = battle.message, battle.prompt, battle.text_phase
+    if phase in ("screen", "input"):
+        # Another screen or a ready battle menu owns input; a reader error stays in the state.
+        return None
     if message is not None and message.diagnostic is not None:
+        # Phase None means the detector itself failed: ownership unknown, so stay loud.
         return f"battle message unreadable ({message.diagnostic})"
     if phase == "prompt" and prompt is not None and prompt.ready:
         return (

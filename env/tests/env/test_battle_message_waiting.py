@@ -398,3 +398,6 @@ def test_a_reader_diagnostic_is_shown_unless_another_owner_holds_the_battle() ->
     unread = "battle message unreadable (harness bug: battle text: x)"
     assert input_clause(replace(BASE, message=broken, text_phase=None)) == unread
     assert input_clause(replace(BASE, message=broken, text_phase="busy")) == unread
+    # A printing page while the detector reads a wait (or a prompt still drawing) says nothing.
+    printing = bt.BattleMessage("printing", "printing", "x", 3, "i", None, "Hi!")
+    assert message_clause(replace(BASE, message=printing, text_phase="message_waiting")) is None

@@ -136,7 +136,7 @@ Battle input: battle message waiting: &quot;Wild WINGULL fainted!&quot; — pres
    <text class="m" x="342" y="330">resolving (the game is playing animations or a message</text>
    <text class="m" x="342" y="346">that closes on its own; no input until the game asks)</text>
 
-   <text class="s" x="10" y="380">Another screen over the battle (bag, party, evolution) keeps the OFF text. A reader error reads "battle message unreadable (…)".</text>
+   <text class="s" x="10" y="380">Another screen over the battle (bag, party, evolution) keeps the OFF text. A reader error reads "battle message unreadable (…)" unless another screen or a ready menu owns input.</text>
   </svg>
   </div>
   <figcaption>Checked top to bottom; a reader diagnostic comes first. The clause replaces only OFF's "resolving (no input until the game asks)". Each case follows the detector's phase: a page printed while another screen owns the battle callback (evolution, bag, party) keeps the OFF text. Under auto-scroll (link and recorded battles) a held page reads "battle message shown: … it moves on by itself".</figcaption>
@@ -151,7 +151,7 @@ Battle input: battle message waiting: &quot;Wild WINGULL fainted!&quot; — pres
   <tr><td>Battle messages print in window <code>B_WIN_MSG</code> (0) through printer 0</td><td><code>src/battle_message.c</code> BattlePutTextOnWindow</td><td><code>sTextPrinters[0]</code> at 0x020201B0: active +0x1B, window +4, cursor +0, state +0x1C</td></tr>
   <tr><td><code>\p</code> waits, then clears the window; <code>\l</code> waits, then scrolls; FC 09 waits in place</td><td><code>src/text.c</code> RenderText: RENDER_STATE_CLEAR, _SCROLL_START, _WAIT</td><td>state 2, 3, 1</td></tr>
   <tr><td>Those waits end on <code>JOY_NEW(A_BUTTON | B_BUTTON)</code> unless autoScroll (link and recorded battles)</td><td><code>src/text.c</code> TextPrinterWait, TextPrinterWaitWithDownArrow</td><td><code>gTextFlags</code> 0x03003014 bit 2</td></tr>
-  <tr><td>"Wild WINGULL fainted!" ends in <code>\p</code></td><td><code>src/battle_message.c</code> sText_WildPkmnFainted</td><td>buffer <code>d1dde0d800…abfb</code>, cursor 22, state 2</td></tr>
+  <tr><td>"Wild WINGULL fainted!" ends in <code>\p</code></td><td><code>src/battle_message.c</code> sText_TargetFainted (<code>{B_DEF_NAME_WITH_PREFIX}\nfainted!\p</code>)</td><td>buffer <code>d1dde0d800…abfb</code>, cursor 22, state 2</td></tr>
   <tr><td>A battle-script YES/NO box: UP/DOWN move, A answers, B answers NO</td><td><code>src/battle_script_commands.c</code> Cmd_yesnobox</td><td><code>gBattleCommunication</code> 0x02024332</td></tr>
   <tr><td>The buffer also holds healthbox names; that is not a message</td><td><code>src/battle_interface.c</code> UpdateNickInHealthbox (speed 0, printer stays idle)</td><td>text is read only while printer 0 is active on the buffer</td></tr>
  </table></div>

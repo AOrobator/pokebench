@@ -148,3 +148,15 @@ describe("recorded event",()=>{
   expect(formatEvent(event)).toBe("05:27:04 t500 SUPERVISOR story battle warning · TEAM AQUA grunt · TORCHIC 3/21");
  });
 });
+
+describe("pending experiment",()=>{
+ it("lists every switch registered up to v2 in its raw incumbent, with v1 on (v2 needs it), and flips only v2",()=>{
+  const raw=JSON.parse(readFileSync(new URL("../../../experiments/low-hp-trainer-warning-v2.json",import.meta.url),"utf8")) as {changedFeature:string;activationMilestone:string;queuePosition?:number;incumbent:{features:Record<string,boolean>}};
+  expect(Object.keys(raw.incumbent.features)).toEqual(SWITCHABLE_FEATURES.slice(0,SWITCHABLE_FEATURES.indexOf(ID)+1));
+  expect(raw.changedFeature).toBe(ID);
+  expect(raw.incumbent.features[ID]).toBe(false);
+  expect(raw.incumbent.features["low-hp-trainer-warning-v1"]).toBe(true);
+  expect(raw.activationMilestone).toBe("ROUTE_103");
+  expect(raw.queuePosition).toBeUndefined();
+ });
+});

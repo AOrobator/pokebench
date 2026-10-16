@@ -409,6 +409,7 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "people-ledger-v1":"people-ledger-v1.html",
  "trainer-heal-guidance-v1":"trainer-heal-guidance-v1.html",
  "low-hp-trainer-warning-v1":"low-hp-trainer-warning-v1.html",
+ "low-hp-trainer-warning-v2":"low-hp-trainer-warning-v2.html",
  "briefing-battle-outcomes-v1":"briefing-battle-outcomes-v1.html",
  "trainer-opponent-v1":"briefing-battle-outcomes-v1.html",
  "blocked-exit-fact-v1":"blocked-exit-fact-v1.html",

@@ -40,7 +40,7 @@ Condition: free field (overworld, not in battle, field controls unlocked), playe
 - [x] COMMIT GREEN: `feat: low-hp-trainer-warning-v2 ...`
 
 **M2 — explainer, pending experiment, gates, review, land**
-- [ ] Explainer + FEATURE_EXPLAINERS + README; pending experiment + readiness
+- [x] Explainer `docs/explainers/low-hp-trainer-warning-v2.html` (pages-check clean) + FEATURE_EXPLAINERS + README + link test; pending `experiments/low-hp-trainer-warning-v2.json` (incumbent = finals incumbent with v1 ON; raw-key test) + readiness row; experiments-check ok (79).
 - [ ] Gates; live viewer proof (isolated viewer)
 - [ ] Claude, Grok, GPT LGTM on one frozen packet; merge slot; ff-only merge; report SHA
 

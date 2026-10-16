@@ -66,6 +66,7 @@ The original ignored runs/explainers copies remain for existing links. Make futu
 - [Untaken exits](untaken-exits-v1.html)
 - [Trainer heal guidance](trainer-heal-guidance-v1.html)
 - [Low-HP trainer warning](low-hp-trainer-warning-v1.html)
+- [Story battle heal warning (low-HP warning v2)](low-hp-trainer-warning-v2.html)
 - [Briefing battle outcomes and the trainer opponent reading](briefing-battle-outcomes-v1.html)
 - [Blocked exit fact](blocked-exit-fact-v1.html)
 - [Battle loss recap](battle-loss-recap-v1.html)

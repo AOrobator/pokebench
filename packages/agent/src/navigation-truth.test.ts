@@ -77,6 +77,27 @@ describe("navigation-truth-v1: talk offers only for objects with a script (sh02 
   expect(off).toContain("(2,1) is a person or object, which navigate_to cannot stand on; to talk to it or use it, walk to one of these free tiles, face it and press A: ");
   expect((await walk(state,{x:2,y:1},TRUTH)).status).toBe(off);
  });
+ it("stacked objects: A reaches only the object at the player's elevation (Route 120 Kecleon (12,16): scripted at 4, a scriptless shadow at 3)",async()=>{
+  const base=ascii(["...","@..","..."]);
+  const kecleon={kind:"object",x:2,y:1,elevation:4,activation:"A",availability:"available",facing:null,local_id:1,destination:null,name:"KECLEON"};
+  const live=[{local_id:1,map_id:[0,9] as [number,number],graphics_id:180,sprite_kind:"KECLEON",x:2,y:1},{local_id:2,map_id:[0,9] as [number,number],graphics_id:180,sprite_kind:"KECLEON",x:2,y:1}];
+  const state:GameStateSnapshot={...base,navigation_grid:{...gridOf(base),objects:[{x:2,y:1}]},world_context:{...contextOf(base),objects:live},interaction_targets:[kecleon]};
+  const OFFER="(2,1) is KECLEON (person or object), which navigate_to cannot stand on; to talk to it or use it, walk to one of these free tiles, face it and press A: (2,0) facing DOWN; (2,2) facing UP; (1,1) facing RIGHT";
+  expect((await walk(state,{x:2,y:1},CONTROL)).status).toBe(OFFER);
+  expect((await walk(state,{x:2,y:1},TRUTH)).status).toBe("(2,1) is KECLEON (person or object), which navigate_to cannot stand on; it is at elevation 4, and every free neighbouring tile navigate_to can reach puts you at another elevation, where facing it and pressing A does not reach it; choose a waypoint at its elevation");
+  // At the player's elevation, or at elevation 0 (matches any), the offer stays.
+  expect((await walk({...state,interaction_targets:[{...kecleon,elevation:3}]},{x:2,y:1},TRUTH)).status).toBe(OFFER);
+  expect((await walk({...state,interaction_targets:[{...kecleon,elevation:0}]},{x:2,y:1},TRUTH)).status).toBe(OFFER);
+ });
+ it("stacked objects behind a counter: no talk offer to a scripted person at another elevation",async()=>{
+  const counter:GameStateSnapshot={...ascii(["...","...","@.."]),navigation_grid:{elevation:3,tiles:[0,1,2].flatMap(y=>[0,1,2].map(x=>({x,y,collision:y===1?1:0,behavior:y===1?0x80:0,elevation:3}))),objects:[{x:1,y:0}],warps:[]},position:{x:0,y:2}};
+  const clerk={kind:"object",x:1,y:0,elevation:4,activation:"A",availability:"available",facing:null,local_id:1,destination:null,name:"MART_EMPLOYEE"};
+  const TALK="target is behind a counter; walk to (1,2), face UP toward the counter at (1,1) and press A to talk across it";
+  expect((await walk({...counter,interaction_targets:[clerk]},{x:1,y:0},{...CONTROL,counters:true})).status).toBe(TALK);
+  expect((await walk({...counter,interaction_targets:[clerk]},{x:1,y:0},{...TRUTH,counters:true})).status).not.toContain("press A");
+  expect((await walk({...counter,interaction_targets:[clerk]},{x:1,y:1},{...TRUTH,counters:true})).status).not.toContain("press A");
+  expect((await walk({...counter,interaction_targets:[{...clerk,elevation:3}]},{x:1,y:0},{...TRUTH,counters:true})).status).toBe(TALK);
+ });
  it("an object with a script keeps the offer",async()=>{
   const bag=await walk(birch,{x:7,y:14},TRUTH);
   expect(bag.status).toContain("(7,14) is BIRCHS_BAG (person or object), which navigate_to cannot stand on; to talk to it or use it, walk to one of these free tiles, face it and press A: ");
@@ -172,6 +193,21 @@ describe("navigation-truth-v1: matching coordinate triggers are not walked acros
  });
 });
 
+describe("navigation-truth-v1: a trigger on a multi-level tile matches the elevation the route brings",()=>{
+ it("3 -> 0 -> 4 -> 15: the elevation-4 trigger on the multi-level tile (3,2) is not suggested as the nearest walkable tile",async()=>{
+  // Row 2 only; walls around. (4,2) is a wall goal; (3,2) is multi-level (15) with an elevation-4 trigger.
+  const elevations=[3,0,4,15];
+  const tiles=[1,2,3].flatMap(y=>[0,1,2,3,4,5].map(x=>({x,y,collision:y===2&&x<4?0:1,behavior:0,elevation:y===2&&x<4?elevations[x]??3:3})));
+  const trigger={x:3,y:2,elevation:4,variable:0x4002,required_value:0,current_value:0,condition_met:true,script_pointer:0x08100000};
+  const base=ascii(["@"]);
+  const state:GameStateSnapshot={...base,position:{x:0,y:2},navigation_grid:{elevation:3,tiles,objects:[],warps:[]},world_context:{...contextOf(base),triggers:[trigger]}};
+  expect((await walk(state,{x:4,y:2},CONTROL)).status).toBe("(4,2) is a wall or other solid tile, not a walkable tile; the nearest walkable tile navigate_to can reach is (3,2)");
+  const on=(await walk(state,{x:4,y:2},TRUTH)).status;
+  expect(on).toContain("the nearest walkable tile navigate_to can reach is (2,2)");
+  expect(on).toContain("(3,2) is closer, but it is (3,2), a script-trigger tile whose condition matches now");
+ });
+});
+
 describe("navigation-truth-v1: a blocked step names who now stands on the route (54a7 T169 seq 3790)",()=>{
  it("FAT_MAN stepped from (13,14) to (14,14), directly below the player",async()=>{
   const plan=recorded("54a7:3784"),after=recorded("54a7:3788");
@@ -259,6 +295,15 @@ describe("navigation-refusal-reasons-v2: a route that leaves the 15x15 local map
   expect(planNavigation(state,{x:6,y:7},{ledges:true})).toEqual(["DOWN"]);
   expect(planNavigation(state,{x:6,y:7},{})).toBeNull();
   expect((await walk(state,{x:6,y:7},{windowReasons:true,elevation:"game"})).status).toBe("no supported local path; choose a reachable local waypoint");
+ });
+ it("a route inside the window that only the legacy elevation rule misses (elevation-transitions-v1 off) keeps the generic text",async()=>{
+  // Corridor y=0: (0,0) elevation 3 (player), (1,0) 0, (2,0) 4, (3,0) 4 (goal); walls below; map 20x20.
+  const elevations=[3,0,4,4];
+  const tiles=[0,1].flatMap(y=>[0,1,2,3].map(x=>({x,y,collision:y===0?0:1,behavior:0,elevation:elevations[x]??3})));
+  const state:GameStateSnapshot={...ascii(["@"],{width:20,height:20}),position:{x:0,y:0},navigation_grid:{elevation:3,tiles,objects:[],warps:[]}};
+  expect(planNavigation(state,{x:3,y:0},{elevation:"game"})).toEqual(["RIGHT","RIGHT","RIGHT"]);
+  expect(planNavigation(state,{x:3,y:0},{elevation:"legacy"})).toBeNull();
+  expect((await walk(state,{x:3,y:0},{windowReasons:true,elevation:"legacy"})).status).toBe("no supported local path; choose a reachable local waypoint");
  });
  it("off keeps the generic text; full-map mode and unknown map bounds keep it too",async()=>{
   const state=recorded("e588:21334");

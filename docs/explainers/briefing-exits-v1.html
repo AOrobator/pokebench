@@ -96,7 +96,7 @@ del{color:var(--prior)} ins{color:var(--game);text-decoration:none;font-weight:6
 
 <section>
 <h2>Names come from the readout itself</h2>
-<p>The briefing collects the names the model's own readouts gave to maps: the Location line for the map it describes, and destinations written <code>-&gt; NAME (map g/n)</code> or <code>Warp to NAME (map g/n)</code> (named-warp-destinations-v1, world-destinations-v1). A map no readout named keeps its bare id. So in a control arm without named warps, the briefing does not show a destination name the model's readout never showed. Room headers keep their current name (the unmerged <code>claude/displayed-names-everywhere</code> branch renames those through <code>roomOf</code>; this switch does not touch it).</p>
+<p>The briefing collects the names the model's own readouts gave to maps: the Location line for the map it describes, and destinations written <code>-&gt; NAME (map g/n)</code> or <code>Warp to NAME (map g/n)</code> (named-warp-destinations-v1, world-destinations-v1). A map no readout named keeps its bare id. So in a control arm without named warps, the briefing does not show a destination name the model's readout never showed. Room headers are not this switch's: since <code>claude/displayed-names-everywhere</code> landed, <code>roomOf</code> shows the state's <code>location_display</code> (the Location line's name), so in new runs both read the same. The sh02 excerpts below predate that, so their headers still show source names.</p>
 </section>
 
 <section>

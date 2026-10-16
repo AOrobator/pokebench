@@ -165,7 +165,14 @@ describe("trainer-opponent-v1 through the production schema (review round 1)",()
   expect(outcomes.briefingLines()).toContain("you battled MAY (trainer 535) on LITTLEROOT TOWN (map 0/9) at turn 2");
  });
  it("the loop guard's fingerprint is the same with and without the field",()=>{
-  expect(semanticState({...IN_GAME,trainer_opponent:opponent})).toBe(semanticState(IN_GAME));
-  expect(semanticState({...IN_GAME,trainer_opponent:{...opponent,defeated:true}})).toBe(semanticState(IN_GAME));
+  // Free field controls, so the fingerprint is a real value, not null (review round 2).
+  const free={...IN_GAME,field_controls_locked:false};
+  for(const interactions of [false,true]){
+   const plain=semanticState(free,interactions);
+   expect(plain).not.toBeNull();
+   expect(semanticState({...free,trainer_opponent:opponent},interactions)).toBe(plain);
+   expect(semanticState({...free,trainer_opponent:{...opponent,defeated:true}},interactions)).toBe(plain);
+   expect(semanticState({...free,money:1},interactions)).not.toBe(plain);
+  }
  });
 });

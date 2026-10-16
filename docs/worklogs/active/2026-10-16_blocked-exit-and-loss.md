@@ -129,6 +129,9 @@ Report per item: switch id, before/after excerpts, measurements, tests and cover
   - Gates after the fixes: agent 1752, viewer 915, pytest 2313 passed; coverage agent 98.00 / 94.57 / 98.49 / 99.12, viewer 95.32 / 91.12 / 93.63 / 97.62, Python 97.37 / 93.23 / 100; lint clean; pages-check silent.
   - COMMIT: `fix: review round 1 …` (8c6ad305). Merged main 9e27986a (viewer workbench store only, no conflicts) as 4816d24e. Gates on the merge: agent 1752, viewer 925, pytest 2313 passed; coverage agent 98.00 / 94.57 / 98.49 / 99.12, viewer 95.32 / 91.09 / 93.68 / 97.63, Python 97.37 / 93.23 / 100; lint clean.
 - Round 2: the full packet main 9e27986a..head and the round-1 fix delta 3282f175..head, to all three lanes.
+  - Round 2 (frozen 9e27986a..742a1fc8, packet sha256 a4fc0539…3247, readable decca81a…ff88, fix delta a8d6b473…78bd): Grok **VERDICT: LGTM**; Codex **VERDICT: LGTM**; Claude sub-agent **VERDICT: BLOCKING** (required-evidence gap): the INV-5 fingerprint test compared null with null, because `IN_GAME` has no `field_controls_locked` and semanticState returns null for it. Taken: the test now uses free field controls, asserts a non-null fingerprint, runs with interactions off and on, and checks a money change does change it; receipt `del8-fingerprint-ignores-field.log` (adding the field to semanticState turns it red; restored hash equal; green). Not taken (non-blocking notes): a stale pending after an evicted before state; a press batch starting on a trigger tile with A then a step.
+  - Gates: agent 1752, viewer 925, pytest 2313 passed; lint clean.
+- Round 3: full packet main 9e27986a..head and the round-2 fix delta, to all three lanes.
 
 ## Boy Scout Log
 

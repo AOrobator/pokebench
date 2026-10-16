@@ -11,7 +11,7 @@ import {isCheckedPress,submittedButtons,type BeforePressCheck,type CheckedPressT
 import {toolSwitches} from "./play-config.js";
 import {speakerLabel} from "./dialogue-log.js";
 import {onScreen,type OnScreenObject} from "./script-line-presence.js";
-import {MESSAGE_WAITING} from "./navigation.js";
+import {MESSAGE_WAITING,elevationsMatch} from "./navigation.js";
 import {OPENED_LOCK_NOTE,STILL_LOCKED_NOTE,STILL_OPEN_NOTE,ignoredSteps,pressResult,pushbackPressResult,scriptMove} from "./press-result.js";
 import {BattleJournal,advanceBattle,battleEngaged,battlePage,levelUpListedPage,type BattleTextEntry,type BattleTextSource} from "./battle-text-auto-advance.js";
 
@@ -76,13 +76,21 @@ const WAIT_STOP:Readonly<Record<Wait,{stop:Stop;detail:string}>>={
 };
 
 interface Speaker {readonly name:string;readonly source:"name_prefix"|"faced_sprite"|"faced_target"}
-function faced(s:GameStateSnapshot):Speaker|null {
+// navigation-truth-v1: map-local ids of listed objects on (x,y) at an elevation the player's does not match
+// (GetObjectEventIdByPosition skips them, so pressing A there does not face them).
+function elsewhere(s:GameStateSnapshot,x:number,y:number):ReadonlySet<number> {
+ const elevation=s.navigation_grid?.elevation??s.map_grid?.elevation;
+ if(elevation==null)return new Set();
+ return new Set((s.interaction_targets??[]).filter(t=>t.kind==="object"&&t.x===x&&t.y===y&&t.local_id!=null&&!elevationsMatch(t.elevation,elevation)).flatMap(t=>t.local_id==null?[]:[t.local_id]));
+}
+function faced(s:GameStateSnapshot,truth=false):Speaker|null {
  const step=s.facing===null?undefined:STEP[s.facing.toLowerCase()];
  if(s.position===null||step===undefined)return null;
  const x=s.position.x+step[0],y=s.position.y+step[1];
- const target=(s.interaction_targets??[]).find(t=>t.x===x&&t.y===y&&t.name!=null);
+ const skip=truth?elsewhere(s,x,y):new Set<number>();
+ const target=(s.interaction_targets??[]).find(t=>t.x===x&&t.y===y&&t.name!=null&&!(t.kind==="object"&&t.local_id!=null&&skip.has(t.local_id)));
  if(target?.name!=null)return {name:target.name,source:target.kind==="object"?"faced_sprite":"faced_target"};
- const sprite=s.world_context?.objects.find(o=>o.x===x&&o.y===y)?.sprite_kind;
+ const sprite=s.world_context?.objects.find(o=>o.x===x&&o.y===y&&!skip.has(o.local_id))?.sprite_kind;
  return sprite==null?null:{name:sprite,source:"faced_sprite"};
 }
 function speakerOf(text:string,s:GameStateSnapshot):Speaker|null {
@@ -95,9 +103,10 @@ function facedKey(s:GameStateSnapshot):string|null {
  const step=s.facing===null?undefined:STEP[s.facing.toLowerCase()];
  if(s.position===null||step===undefined)return null;
  const x=s.position.x+step[0],y=s.position.y+step[1];
- const live=s.world_context?.objects.find(o=>o.x===x&&o.y===y);
+ const skip=elsewhere(s,x,y);
+ const live=s.world_context?.objects.find(o=>o.x===x&&o.y===y&&!skip.has(o.local_id));
  if(live!==undefined)return `object ${String(live.local_id)} on ${live.map_id.join("/")}`;
- const target=(s.interaction_targets??[]).find(t=>t.x===x&&t.y===y);
+ const target=(s.interaction_targets??[]).find(t=>t.x===x&&t.y===y&&!(t.kind==="object"&&t.local_id!=null&&skip.has(t.local_id)));
  if(target===undefined)return null;
  return target.kind==="object"&&target.local_id!==null&&s.map_id!==null?`object ${String(target.local_id)} on ${s.map_id.join("/")}`:`${target.kind} at ${String(x)},${String(y)}`;
 }
@@ -141,8 +150,8 @@ class Pages {
  private speakerFor(text:string,s:GameStateSnapshot):Speaker|null {
   const named=NAME_PREFIX.exec(text)?.[1],face=facedKey(s);
   if(named!==undefined){this.namedFace=face;return {name:named,source:"name_prefix"};}
-  if(this.speaker?.source==="name_prefix")return face!==null&&face===this.namedFace?this.speaker:faced(s);
-  return faced(s)??this.speaker;
+  if(this.speaker?.source==="name_prefix")return face!==null&&face===this.namedFace?this.speaker:faced(s,true);
+  return faced(s,true)??this.speaker;
  }
  openAt(s:GameStateSnapshot):OpenMessage|null {
   return this.opened&&s.world_context?.dialogue===this.text?{text:this.text,offset:this.offset,cursor:this.cursor}:null;

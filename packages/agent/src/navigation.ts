@@ -58,7 +58,7 @@ export function matchingTriggers(state:GameStateSnapshot):MatchingTrigger[] {
  return (state.world_context?.triggers??[]).filter(t=>t.condition_met===true&&t.variable!==0).map(t=>({x:t.x,y:t.y,elevation:t.elevation,variable:t.variable,required:t.required_value,current:t.current_value}));
 }
 // pokeemerald ObjectEventDoesElevationMatch: elevation 0 (transition) matches any; otherwise they must be equal.
-const elevationsMatch=(a:number,b:number):boolean=>a===0||b===0||a===b;
+export const elevationsMatch=(a:number,b:number):boolean=>a===0||b===0||a===b;
 const triggerAt=(triggers:readonly MatchingTrigger[]|undefined,p:Point,elevation:number):MatchingTrigger|undefined=>triggers?.find(t=>t.x===p.x&&t.y===p.y&&(t.elevation===0||t.elevation===elevation));
 const condition=(t:MatchingTrigger):string=>`variable 0x${t.variable.toString(16).toUpperCase().padStart(4,"0")}=${t.current===null?"unknown":String(t.current)}, needs ${String(t.required)}`;
 const triggerText=(t:MatchingTrigger):string=>`(${String(t.x)},${String(t.y)}), a script-trigger tile whose condition matches now (${condition(t)})`;
@@ -108,7 +108,10 @@ function counterHint(state:GameStateSnapshot,goal:Point,options:NavigationOption
   const stand={x:across.counter.x-dx,y:across.counter.y-dy};
   const path=geometry.tile(stand)===undefined?null:planNavigation(state,stand,options);
   if(path===null)continue;
-  if(scripted!==null){const arrived=walked(state,path,options)?.elevation??geometry.elevation;if(!scripted.some(t=>elevationsMatch(t.elevation,arrived)))continue;}
+  const arrived=scripted!==null||options.triggers!==undefined?walked(state,path,options)?.elevation??geometry.elevation:geometry.elevation;
+  if(scripted!==null&&!scripted.some(t=>elevationsMatch(t.elevation,arrived)))continue;
+  // navigation-truth-v1: a stand tile is never a matching trigger.
+  if(triggerAt(options.triggers,stand,arrived)!==undefined)continue;
   return `target is behind a counter; walk to (${String(stand.x)},${String(stand.y)}), face ${direction} toward the counter at (${String(across.counter.x)},${String(across.counter.y)}) and press A to talk across it`;
  }
  return involved?"target is a counter or behind one; you cannot stand on a counter, but you can face it from a reachable adjacent tile and press A to talk to someone behind it":null;
@@ -161,11 +164,14 @@ function targetReason(state:GameStateSnapshot,goal:Point,options:NavigationOptio
   const reachable=DIRECTIONS.flatMap(([side,dx,dy])=>{const stand={x:goal.x+dx,y:goal.y+dy};return free(stand)?[{stand,side}]:[];});
   const usable=scripted===null||scripted.length===0||thing?.kind!=="object"?reachable:reachable.filter(({stand})=>talker(stand)!==undefined);
   if(scripted!==null&&scripted.length>0&&reachable.length>0&&usable.length===0)return `${at(goal)} is ${label}, which navigate_to cannot stand on; it is at elevation ${[...new Set(scripted.map(t=>String(t.elevation)))].join(" or ")}, and every free neighbouring tile navigate_to can reach puts you at another elevation, where facing it and pressing A does not reach it; choose a waypoint at its elevation`;
-  const first=usable[0];
-  const spoken=scripted!==null&&scripted.length>0&&thing?.kind==="object"&&first!==undefined?talker(first.stand):undefined;
-  const named=spoken===undefined?label:spoken.name!=null?`${spoken.name} (person or object)`:"a person or object";
-  const stands=usable.map(({stand,side})=>`${at(stand)} facing ${OPPOSITE[side]}`);
-  return stands.length===0?`${at(goal)} is ${label}, which navigate_to cannot stand on, and none of its free neighbouring tiles can be reached from here; choose a reachable waypoint nearer to it`:`${at(goal)} is ${named}, which navigate_to cannot stand on; to talk to it or use it, walk to one of these free tiles, face it and press A: ${stands.join("; ")}`;
+  // Each usable stand reaches the scripted object at its arrival elevation; stacked objects can differ per stand.
+  const reached=scripted!==null&&scripted.length>0&&thing?.kind==="object"?usable.map(({stand})=>talker(stand)):[];
+  const call=(t:typeof person):string=>t?.name??"an unnamed person or object";
+  const several=new Set(reached.map(t=>t?.local_id)).size>1;
+  const first=reached[0];
+  const named=several?`${[...new Set(reached.map(call))].join(" or ")} (persons or objects stacked at different elevations)`:first===undefined?label:first.name!=null?`${first.name} (person or object)`:"a person or object";
+  const stands=usable.map(({stand,side},i)=>`${at(stand)} facing ${OPPOSITE[side]}${several?` (reaches ${call(reached[i])})`:""}`);
+  return stands.length===0?`${at(goal)} is ${label}, which navigate_to cannot stand on, and none of its free neighbouring tiles can be reached from here; choose a reachable waypoint nearer to it`:`${at(goal)} is ${named}, which navigate_to cannot stand on; to talk to ${several?"one":"it or use it"}, walk to one of these free tiles, face it and press A: ${stands.join("; ")}`;
  }
  if(standable(tile))return null;
  const what=LEDGES.has(tile.behavior)?"a ledge, which you can only hop over in its arrow direction":WATER.has(tile.behavior)?"water":tile.collision!==0?"a wall or other solid tile":`terrain navigate_to does not walk on (metatile behavior 0x${tile.behavior.toString(16).padStart(2,"0")})`;
@@ -254,9 +260,14 @@ function blocker(state:GameStateSnapshot,mode:NavigationMode,tiles:readonly Poin
  const geometry=mode==="full"?fullGeometry(state):localGeometry(state);
  for(const p of tiles){
   const same=(o:Point):boolean=>o.x===p.x&&o.y===p.y;
-  const named=(state.interaction_targets??[]).find(t=>t.kind==="object"&&same(t))?.name;
-  const live=(state.world_context?.objects??[]).find(o=>same(o)&&o.map_id[0]===state.map_id?.[0]&&o.map_id[1]===state.map_id[1]);
-  const who=named!=null?`${named} (person or object)`:live?.sprite_kind!=null?`a person or object (sprite ${live.sprite_kind})`:live!==undefined||geometry?.objects.some(same)===true?"a person or object":null;
+  // Collision compares the player's and the object's elevations (DoesObjectCollideWithObjectAt): a listed object at
+  // another elevation is not the one in the way.
+  const listed=(state.interaction_targets??[]).filter(t=>t.kind==="object"&&same(t));
+  const elsewhere=new Set(geometry===null?[]:listed.filter(t=>!elevationsMatch(t.elevation,geometry.elevation)).map(t=>t.local_id));
+  const named=listed.find(t=>!elsewhere.has(t.local_id))?.name;
+  const here=(state.world_context?.objects??[]).filter(o=>same(o)&&o.map_id[0]===state.map_id?.[0]&&o.map_id[1]===state.map_id[1]);
+  const live=here.find(o=>!elsewhere.has(o.local_id));
+  const who=named!=null?`${named} (person or object)`:live?.sprite_kind!=null?`a person or object (sprite ${live.sprite_kind})`:live!==undefined||(here.length===0&&geometry?.objects.some(same)===true)?"a person or object":null;
   if(who!==null)return `blocked: ${who} is now on ${at(p)}, the next tile of the route; wait for it to move or choose another approach`;
  }
  return null;

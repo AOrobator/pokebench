@@ -32,7 +32,7 @@ The contract is `~/dev/local-inference-stack/.claude/skills/multi-model-review/S
 1. Principles self-review against `docs/agent-principles.md`. Score every ID; zero FAIL rows.
 2. Seal the frozen packet: `git diff --binary BASE HEAD`, its SHA-256, the frozen boundary file, and the principles file.
 3. Claude-family lane: Claude CLI (`CLAUDE_CONFIG_DIR=~/.claude-review`, `--permission-mode plan`), or Cursor Claude.
-4. `think_fast` + `think_swarm` endpoints in parallel. Discover the model id from `/v1/models` and send `chat_template_kwargs.enable_thinking=false`.
+4. No local inference reviewers. PokeBench does not run the contract's `think_fast` / `think_swarm` endpoint lanes or anything on `inference.example`. Operator decision 2026-10-13: "dont use local reviews cuz they're noisy", recorded in `docs/worklogs/active/2026-10-13_viewer-controls.md`. The roster is the three cloud lanes in steps 3 and 5.
 5. Independent lanes: a Grok family (Cursor) and a GPT family (Cursor or isolated Codex).
 6. If an equivalent harness is unavailable, switch to the other one. Once every harness for a lane is exhausted, use the standing subagent fallback: two fresh read-only subagents on distinct models. Record reduced diversity honestly. A subagent fallback never counts as a cloud lane for landing.
 7. Write the review synthesis. Fix accepted findings in one batch, then re-review the cumulative delta.
@@ -50,7 +50,7 @@ An agent may merge its own branch into local `main` without asking per merge (op
 
 Rules:
 
-- The review loop above still runs in full, local endpoint lanes included. Self-merge approval, though, comes only from the three cloud lanes. A local inference lane (`think_fast`, `think_swarm`, anything on `inference.example`) or a subagent fallback never stands in for a cloud lane.
+- Self-merge approval comes only from the three cloud lanes. A local inference reviewer (step 4) or a subagent fallback (step 6) never stands in for one.
 - If a cloud lane is unavailable (usage limit, auth, model rejected), there is no self-merge. Record it in the worklog and ask the operator.
 - After landing, `just test` on `main` must pass. If it fails, stop, report it to the operator and fix it on a new branch through the full loop.
 - The one exception to re-review: after landing, record the verdicts and merge SHA in one evidence-only commit on `main` that touches only `docs/worklogs/` (check with `git diff --name-only HEAD~1`). It needs no review. Report the merge SHA in the thread.

@@ -64,3 +64,18 @@ explainers/low-hp-trainer-warning-v2.html served=3f1a80a72241d9b8dd21279e4597609
 ```
 
 **Round 1** (base 4070e250, head a4afae39, sha 817dfcc3…4208). Grok: LGTM (non-blocking: PB11 mis-tagged; duplicate v2 ids in features.test off() calls). Claude: BLOCKING (the grunt is not hidden before his scene: FLAG_HIDE_PETALBURG_WOODS_AQUA_GRUNT is never set before the battle; his object is loaded with no talk script and coord events at (26,23)/(27,23) start it; wording only). GPT (Codex): BLOCKING (an unreadable party, hp/max_hp null, counted as full and re-armed the warning). Fixes: fullParty() requires every non-egg HP read and at max (new test: unreadable and partly unreadable parties do not re-arm; deletion receipt: the old expression turns it red); grunt wording fixed in the code comment, registry copy, explainer, test name and worklog; PB11 re-scored N/A (grounding under PB1); stray blank line and duplicate test ids removed.
+
+- Synced main 4c805958 (viewer story-frontier colors; no registry change). Gates on 944c04f2: build, lint, test (vitest 1896 + 996, pytest 2465), coverage (agent 99.13/94.61/98.3, viewer 97.74/91.3/93.9, Python 97.52/93.55/100), verify-vendor, experiments-check (79). One earlier coverage run hit an unrelated flake in viewer server-stream.test.ts (passed 3/3 alone and in the rerun).
+- Live proof on clean 944c04f2 (isolated built viewer 8794, stopped after): woods run SUP row + raw event, timeline errors lane empty, READ EXPLAINER opened the v2 explainer with the corrected grunt wording. Receipts at `runs/reviews/story-battle-heal/proof-r2/`. Digests:
+```
+head 944c04f28aeb0bb7d2c11f7c345f23a51861d8ec clean=yes
+rival run_start.harness {"commit":"944c04f28aeb0bb7d2c11f7c345f23a51861d8ec","dirty":false} events.jsonl 97a11fab6651c51b3ea01f856b31bd3acd3f6ceec5f34e397227c6929971dcea
+woods run_start.harness {"commit":"944c04f28aeb0bb7d2c11f7c345f23a51861d8ec","dirty":false} events.jsonl a03d47fb72da60e7f9f70422efec6ae33d850f1c85723a738b1afd00ad5a1a69
+app/app.js served=7f3ba73f8e01f22bb868636c818470039d52582ba05bcdf1debec5c8f3a00e2c built=7f3ba73f8e01f22bb868636c818470039d52582ba05bcdf1debec5c8f3a00e2c
+app/model.js served=0f4f3e3f7cd6e25c70064534c95b75c5dc58f6dfaa83069657f2b5ac4a9f7ee3 built=0f4f3e3f7cd6e25c70064534c95b75c5dc58f6dfaa83069657f2b5ac4a9f7ee3
+app/trace.js served=5a80bc1689f19dc79daf4db6896fa368ecb0f377d757ea5fc7cde29ffce2b067 built=5a80bc1689f19dc79daf4db6896fa368ecb0f377d757ea5fc7cde29ffce2b067
+app/panels.js served=a0b0f80cb7569bf10ff11b1c30ff46c5e2e16d6360905066092e421d8b9c134c built=a0b0f80cb7569bf10ff11b1c30ff46c5e2e16d6360905066092e421d8b9c134c
+app/timeline.js served=967784b1ff61f46b37399e356b52b797c2115670ed7e97907c1d27900ad1a854 built=967784b1ff61f46b37399e356b52b797c2115670ed7e97907c1d27900ad1a854
+app/main.js served=3f2f343764ef68a1ebc9daf52d611383203b8094e98245202f554ef487a34c9d built=3f2f343764ef68a1ebc9daf52d611383203b8094e98245202f554ef487a34c9d
+explainers/low-hp-trainer-warning-v2.html served=ad3ca69d4c46cc46c368f6ec3c32f0f369f315b40eb5a11061d1ba79b3202f7d tracked=ad3ca69d4c46cc46c368f6ec3c32f0f369f315b40eb5a11061d1ba79b3202f7d
+```

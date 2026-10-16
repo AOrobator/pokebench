@@ -54,6 +54,7 @@ export class SupervisorBriefing {
  // the map names the readout itself showed.
  private readonly exits:ExitHistory|null;
  private readonly pendingTouches:{readonly room:string;readonly tile:string}[]=[];
+ private shown:State|null=null;
  private stepFrom:{readonly room:string;readonly x:number;readonly y:number}|null=null;
  private readonly names=new Map<string,string>();
  constructor(private readonly features:FeatureSet){this.dialogue=new DialogueLog(features);this.hint=features["next-milestone-hint-v1"]?new NextMilestoneHint():null;this.exits=features["briefing-exits-v1"]?new ExitHistory():null;}
@@ -95,6 +96,8 @@ export class SupervisorBriefing {
   const auto=this.advanced.get(event.id);this.advanced.delete(event.id);
   if(!event.is_error&&GAME_TOOLS.has(event.name)){this.readStory(event.text);if(this.exits!==null)readoutNames(event.text,after.map_id,this.names);}
   this.flushTouches();
+  // briefing-exits-v1: where the player is now, whatever the screen (a battle keeps the overworld snapshot stale).
+  if(this.exits!==null&&after.started&&after.map_id!==null)this.shown=after;
   if(!after.started||after.screen!=="overworld")return;
   this.latest=after;
   const key=this.room(after);this.path.delete(key);this.path.set(key,after);
@@ -222,7 +225,12 @@ export class SupervisorBriefing {
   return this.story??"not recorded";
  }
  private where():string {
-  const s=this.latest;if(s===null)return "no observation yet";
+  const now=this.shown;
+  if(now!==null&&(now.in_battle||now.screen==="battle")){
+   const tile=this.features["live-player-position-v1"]&&now.position!==null?` at ${at(now.position.x,now.position.y)}`:"";
+   return `${roomOf(now,this.features)} in battle${tile}`;
+  }
+  const s=now??this.latest;if(s===null)return "no observation yet";
   const position=this.features["live-player-position-v1"]&&s.position!==null?` at ${at(s.position.x,s.position.y)}${s.facing===null?"":` facing ${s.facing.toLowerCase()}`}`:"";
   return `${roomOf(s,this.features)}${position}`;
  }

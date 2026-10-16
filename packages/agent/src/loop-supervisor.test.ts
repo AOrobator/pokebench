@@ -119,7 +119,8 @@ it("registers the switch as a guard that needs the loop guard, with a prompt lin
 });
 
 it("labels odd calls and outcomes truthfully",()=>{
- const b=new SupervisorBriefing(ALL_ON);
+ // The synthetic menu state below keeps the fixture default room; briefing-exits-v1 would place the player there (the latest state).
+ const b=new SupervisorBriefing({...ALL_ON,"briefing-exits-v1":false});
  b.observe(ev({type:"tool_call",id:"early",name:"press",args:{buttons:["B"]}},0));
  delivered(b,1,{},"early");
  b.observe(ev({type:"tool_call",id:"bad",name:"navigate_to",args:{x:"5",y:1}},3));delivered(b,4,{},"bad");

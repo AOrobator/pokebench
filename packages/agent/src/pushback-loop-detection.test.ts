@@ -126,7 +126,17 @@ function rig(pushback:boolean,interactions=true){
   emit({type:"tool_result",id,name,is_error:false,duration_ms:1,text:"ok",frames:[],state_seq:s.seq});
  };
  const press=(buttons:readonly string[],before:Record<string,unknown>,during:readonly Record<string,unknown>[],after:Record<string,unknown>)=>{turnOf("press",{buttons},before,during,after);};
- return {press,turnOf,notices,detector,emit,state};
+ // An observe call: the state before it and the state its result reports.
+ const observe=(before:Record<string,unknown>,after:Record<string,unknown>):void=>{
+  turn++;
+  emit({type:"turn_start",context:{messages:1,images:0,est_tokens:10}});
+  state(before);
+  const id=`c${String(++call)}`;
+  emit({type:"tool_call",id,name:"observe",args:{}});
+  const s=state(after);
+  emit({type:"tool_result",id,name:"observe",is_error:false,duration_ms:1,text:"ok",frames:[],state_seq:s.seq});
+ };
+ return {press,turnOf,observe,notices,detector,emit,state};
 }
 const BATCH=["LEFT","LEFT","LEFT","UP","UP","UP"];
 const pushedBack=(r:ReturnType<typeof rig>,buttons:readonly string[]=BATCH)=>{r.press(buttons,HOME,[{...WEST,...BIRCH}],HOME);};
@@ -165,6 +175,16 @@ describe("pushback-loop-detection-v1 synthetic push-backs",()=>{
   pushedBack(on);
   expect(on.notices.map(n=>n.phase)).toEqual(["warning"]);
  });
+ it("ON: a push-back seen only in the states recorded during the call counts from the very first call",()=>{
+  // No auto-advance: the call's before state is the free start tile; only the recorded states show the script.
+  const on=rig(true);
+  // UP push-backs in between keep the existing same-input check (consecutive) from firing first.
+  const back=(b:string)=>{on.press([b],HOME,[{...WEST,...SCRIPT}],HOME);};
+  back("LEFT");back("UP");back("LEFT");back("UP");
+  expect(on.notices).toEqual([]);
+  back("LEFT");
+  expect(on.notices.map(n=>[n.kind,n.phase,n.message])).toEqual([["cycle","warning",PUSHBACK_MESSAGE]]);
+ });
  it("ON: reaching a new state recovers the episode",()=>{
   const on=rig(true);
   for(let i=0;i<3;i++)pushedBack(on);
@@ -202,6 +222,16 @@ describe("pushback-loop-detection-v1 adds nothing where nothing pushed the playe
  });
  it("story, party, money, badge or item progress between attempts (the state differs, so it is not a return)",()=>{
   same(r=>{for(let i=0;i<5;i++)r.press(BATCH,{...HOME,money:3000+i},[{...WEST,...BIRCH,money:3000+i}],{...HOME,money:3001+i});});
+ });
+ it("a return that takes more than eight calls without a settled state, observes included",()=>{
+  same(r=>{
+   for(let i=0;i<3;i++){
+    r.press(["LEFT"],HOME,[],{...WEST,...SCRIPT});
+    // Alternating pages, so the existing observation check never opens an episode that would mask a push-back.
+    for(let k=0;k<8;k++){const page=k%2===0?BIRCH:message("Page two.");r.observe({...WEST,...page},{...WEST,...page});}
+    r.press(["B"],{...WEST,...BIRCH},[],HOME);
+   }
+  });
  });
  it("a return that takes more than eight calls without a settled state",()=>{
   same(r=>{
@@ -251,7 +281,7 @@ function checkState(body:Record<string,unknown>){
 }
 
 describe("pushback-loop-detection-v1 registry",()=>{
- it("is a default-off guard with no dependency, recorded after the press-result switch",()=>{
+ it("is a default-off guard with no dependency, recorded third to last (before the press-result and battle switches)",()=>{
   expect(featureInfo("pushback-loop-detection-v1")).toMatchObject({group:"guard",needs:null,switchable:true});
   expect(featureInfo("pushback-loop-detection-v1").description).toContain(" Off: ");
   expect(playHarnessFeatures(ALL_ON,null).slice(-3,-1)).toEqual(["pushback-loop-detection-v1","pushback-press-result-v1"]);

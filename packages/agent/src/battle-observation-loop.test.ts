@@ -39,7 +39,8 @@ function replay(events:readonly RunEvent[],battle:boolean):{seen:Seen[];contexts
 }
 
 const events=recorded("battle-observe-sh02.jsonl.gz");
-const staticBattle=():State=>{const s=events.find(e=>e.type==="state"&&e.seq===10056);if(s?.type!=="state"||!("started"in s))throw new Error("no battle state at seq 10056");return s;};
+const STATIC_BATTLE=(()=>{const s=events.find(e=>e.type==="state"&&e.seq===10056);if(s?.type!=="state"||!("started"in s))throw new Error("no battle state at seq 10056");return s;})();
+const staticBattle=():State=>STATIC_BATTLE;
 
 describe("battle-observation-loop-v1 on recorded run sh02: 270 observes in a wild battle waiting for A (T445-T716)",()=>{
  it("the fixture is the loop: the battle state never changes between the observes",()=>{

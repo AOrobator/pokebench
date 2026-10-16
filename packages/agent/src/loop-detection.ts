@@ -53,6 +53,9 @@ export interface CompletedCall {
   readonly seq?: number;
   // The tool call's own arguments, before any recorded press replaced its buttons (auto-advance's B presses).
   readonly requested?: Record<string, unknown> | undefined;
+  // The state the call's first input started from (later presses of the same call, such as auto-advance's B,
+  // replace beforeState but not this).
+  readonly startState?: GameStateSnapshot | undefined;
 }
 export type LoopPolicy = { readonly [K in keyof typeof LOOP_POLICY]: number };
 const PLANNING = new Set([
@@ -230,7 +233,7 @@ export class LoopDetector {
   private readonly messageVisits: string[] = [];
   // pushback-loop-detection-v1: the last settled result, the model's inputs since it, whether the player left its
   // tile and whether a script or message held the controls since; and the recent push-backs.
-  private trip: { anchor: string; place: string | null; actions: string[]; left: boolean; scripted: boolean } | null = null;
+  private trip: { anchor: string; place: string | null; actions: string[]; calls: number; left: boolean; scripted: boolean } | null = null;
   private readonly pushbacks: { key: string; seq: number }[] = [];
   // battle-observation-loop-v1: the previous game call's battle readout and the recent ones.
   private previousBattle: string | null = null;
@@ -262,6 +265,7 @@ export class LoopDetector {
     {
       args: Record<string, unknown>;
       requested: Record<string, unknown>;
+      start?: GameStateSnapshot | undefined;
       seq: number;
       before?: GameStateSnapshot | undefined;
       beforeSeq?: number | undefined;
@@ -305,9 +309,15 @@ export class LoopDetector {
     else if (event.type === "tool_call") {
       const args = typeof event.args==="object"&&event.args!==null&&!Array.isArray(event.args)?event.args as Record<string,unknown>:{};
       this.calls.set(event.id, { args, requested: args, seq: event.seq, ...(event.name === "navigate_to" ? {navigation:true,before:this.latest,beforeSeq:this.latestSeq} : {}) });
+      // pushback-loop-detection-v1: with no trip under way, the state a call starts from can start one.
+      if (this.pushback && this.trip === null && event.name === "navigate_to" && this.latest !== undefined) this.seed(this.latest);
     } else if (event.type === "button_press") {
       const pending = this.calls.get(event.tool_call_id);
       if (pending !== undefined && (!pending.navigation || !pending.pressed)) {
+        if (pending.pressed !== true) {
+          pending.start = event.before_state_seq === this.latestSeq ? this.latest : undefined;
+          if (this.pushback && this.trip === null && !pending.navigation && pending.start !== undefined) this.seed(pending.start);
+        }
         pending.pressed = true;
         if (!pending.navigation && this.interactions) pending.args = {...pending.args, buttons: event.buttons};
         pending.before =
@@ -322,6 +332,7 @@ export class LoopDetector {
         name,
         args: pending?.args ?? {},
         requested: pending?.requested,
+        startState: pending?.navigation === true ? pending.before : pending?.start,
         isError: event.is_error,
         text: event.text,
         seq: event.seq,
@@ -567,10 +578,7 @@ export class LoopDetector {
   // pushback-loop-detection-v1: what a state since the last settled result says about the trip away from it.
   private tripState(state: GameStateSnapshot): void {
     const trip = this.trip;
-    if (trip === null) {
-      this.seed(state);
-      return;
-    }
+    if (trip === null) return;
     if (state.field_controls_locked === true && !transientLock(state)) trip.scripted = true;
     const place = placeOf(state);
     if (place !== null && place !== trip.place) trip.left = true;
@@ -582,10 +590,10 @@ export class LoopDetector {
       state.world_context?.message == null ? semanticState(state, this.interactions) : null;
   }
 
-  // With no trip under way, a settled state starts one.
+  // A settled state starts a trip (a call's settled result, or the state a call's first input started from).
   private seed(state: GameStateSnapshot): void {
     const anchor = this.settled(state);
-    if (anchor !== null) this.trip = { anchor, place: placeOf(state), actions: [], left: false, scripted: false };
+    if (anchor !== null) this.trip = { anchor, place: placeOf(state), actions: [], calls: 0, left: false, scripted: false };
   }
 
   // A press or navigate_to whose settled result is where the player last stood settled, after the player left that
@@ -596,17 +604,21 @@ export class LoopDetector {
     const settled = this.settled(state);
     if (call.name === "observe") {
       if (state !== undefined && settled !== null && settled !== this.trip?.anchor) this.seed(state);
+      // Every completed game call counts toward the bound, observes included.
+      else if (this.trip !== null && ++this.trip.calls > 8) this.trip = null;
       return null;
     }
-    if (this.trip === null && call.beforeState !== undefined) this.seed(call.beforeState);
+    const start = call.startState ?? call.beforeState;
+    if (this.trip === null && start !== undefined) this.seed(start);
     const trip = this.trip;
     if (trip !== null) {
       const asked = call.requested ?? call.args;
       trip.actions.push(JSON.stringify(call.name === "navigate_to" ? [asked["map_id"], asked["x"], asked["y"]] : asked["buttons"] ?? null));
+      trip.calls++;
       if (call.beforeState !== undefined) this.tripState(call.beforeState);
     }
     if (state === undefined || settled === null) {
-      if (trip !== null && trip.actions.length > 8) this.trip = null;
+      if (trip !== null && trip.calls > 8) this.trip = null;
       return null;
     }
     this.seed(state);

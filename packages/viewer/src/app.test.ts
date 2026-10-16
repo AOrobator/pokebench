@@ -793,6 +793,27 @@ it("mounts state-input and host-wait history, timeline, selected inspector and f
  expect(ui("trace").querySelector(`[data-seqs~="${String(wait.seq)}"]`)?.textContent).toContain("WAIT 60 ms (host time)");
 
 });
+it("mounts the push-back and battle observation guard notices in the timeline, Activity History and inspector, and follows the replay cursor",async()=>{
+ const {PUSHBACK_MESSAGE}=await import("../../agent/src/loop-detection.js");
+ const {app,streams}=await harness(`#run=${M4_ID}`);const stream=must(streams[0]);const log=new Log();log.add(0,START);
+ log.add(1000,{type:"tool_call",turn:146,id:"c146",name:"press",args:{buttons:["UP"]}});
+ // The sh02 receipts (pushback-loop-detection-v1 T146, battle-observation-loop-v1 T452) as the recorder writes them.
+ const warning=log.add(2000,{type:"loop_guard",turn:146,kind:"cycle",mode:"enforced",phase:"warning",message:PUSHBACK_MESSAGE,calls:11,evidence:[2973,3062]});
+ const supervisor=log.add(2000,{type:"loop_guard",turn:146,kind:"cycle",mode:"enforced",phase:"supervisor",message:"SUPERVISOR: You are currently looping. You keep repeating the same short cycle of actions.",calls:11,evidence:[2973,3062]});
+ const battle=log.add(9000,{type:"loop_guard",turn:452,kind:"observation",mode:"enforced",phase:"warning",message:"Repeated observations contain no new reliable game information.",calls:24,evidence:[10079]});
+ log.add(70000,{type:"run_end",turn:452,reason:"budget",furthest_milestone:null,turns:452,wall_ms:70000,tokens:{input:0,output:0},frames:{saved:0,bytes:0}});
+ feed(stream,log.events.map(e=>parseEvent(JSON.stringify(e))));stream.send("done",{});
+ app.tick(1999);
+ expect(ui("trace").querySelector(`[data-seqs~="${String(warning.seq)}"]`)).toBeNull();
+ app.tick(9000);
+ const row=must(ui("trace").querySelector<HTMLElement>(`[data-seqs~="${String(warning.seq)}"]`));
+ expect(row.textContent).toContain("Loop guard · cycle warning");expect(row.textContent).toContain("A game script keeps returning the player");
+ expect(must(ui("trace").querySelector<HTMLElement>(`[data-seqs~="${String(supervisor.seq)}"]`)).textContent).toContain("SUPERVISOR: You are currently looping.");
+ expect(must(ui("trace").querySelector<HTMLElement>(`[data-seqs~="${String(battle.seq)}"]`)).textContent).toContain("Repeated observations contain no new reliable game information.");
+ expect(ui("lanes").querySelectorAll('[aria-label*="A game script keeps returning the player"]').length).toBeGreaterThan(0);
+ row.click();expect(ui("inspector").textContent).toContain('"type": "loop_guard"');expect(ui("inspector").textContent).toContain('"kind": "cycle"');expect(ui("inspector").textContent).toContain("2973");expect(row.classList.contains("sel")).toBe(true);
+});
+
 it('labels human comparison candidates with unverified ROM provenance',async()=>{
  document.body.innerHTML=PAGE.slice(PAGE.indexOf('<body>')+6,PAGE.indexOf('</body>'));
  const app=await mountApp(document,{fetchJson:url=>nextRunReply(url) ?? Promise.resolve(url==='/api/runs'?RUNS:{candidates:[{run:'human-unknown',milestones:[],controller:{kind:'human',name:'Operator'},romIdentity:'unverified'},{run:'human-verified',milestones:[],controller:{kind:'human',name:'Operator'},romIdentity:'verified'}],baseline:null,best:null}),sendJson:noWrites,openStream:url=>new FakeStream(url),now:()=>BASE_MS,hash:''});

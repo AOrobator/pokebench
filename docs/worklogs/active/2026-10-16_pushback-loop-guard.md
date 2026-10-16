@@ -56,23 +56,23 @@ No new inputs, files, processes or network. Fixtures are trimmed copies of a loc
 
 **M1 — Push-back loop guard + press result**
 - [x] RED: replay tests for both fixtures (ON fires; OFF silent), synthetic negative cases, press-result tests, registry/factory tests
-- [x] COMMIT RED (SHA in the session log)
+- [x] COMMIT RED: `test(loop-guard): RED push-back loops and push-back press results (sh02 twin and Birch)` (d89716cc)
 - [x] GREEN: switches registered, LoopDetector tracker, auto-advance press result, wiring (live, decision-probe, play-config)
 - [x] Wiring-deletion checks
-- [x] COMMIT GREEN (SHA in the session log)
+- [x] COMMIT GREEN: `feat(loop-guard): push-back loop detection and push-back press results behind two switches` (d17b71dc)
 
 **M2 — Battle observation loop (scope addition 3, own switch `battle-observation-loop-v1`)**
-- [ ] RED: replay of sh02 seq 9850–11960 (270 observes in a static wild battle) fires an observation warning ON, silent OFF; a battle that advances on its own between observes never counts; registry/factory
-- [ ] COMMIT RED
-- [ ] GREEN
-- [ ] COMMIT GREEN
+- [x] RED: replay of sh02 seq 9850–11960 (270 observes in a static wild battle) fires an observation warning ON, silent OFF; a battle that advances on its own between observes never counts; registry/factory
+- [x] COMMIT RED: `test(loop-guard): RED battle observation loop (sh02 T445-T716, 270 observes)` (e86af861)
+- [x] GREEN (receipt T452 seq 10079; recovered T717 seq 11945)
+- [x] COMMIT GREEN: `feat(loop-guard): battle-observation-loop-v1 counts unchanged in-battle observes` (a0cb78b5)
 
 **M3 — Close**
-- [ ] Observability: loop_guard recorded, delivered via context(), visible in timeline/replay
-- [ ] Explainer(s) + FEATURE_EXPLAINERS mapping
-- [ ] Gates: test, lint, build, coverage (90), verify-vendor
-- [ ] Principles self-review
-- [ ] Review: Claude, Codex, Grok — LGTM each
+- [x] Observability: loop_guard recorded, delivered via context(), visible in timeline/Activity History/inspector (mounted test + isolated built-viewer replay)
+- [x] Explainer(s) + FEATURE_EXPLAINERS mapping (bf04fe56)
+- [x] Gates: test, lint, build, coverage (90), verify-vendor (05142168; lint's mypy with the main checkout's mGBA venv)
+- [x] Principles self-review (zero FAIL)
+- [ ] Review: Claude, Codex, Grok — LGTM each (round 1: Grok LGTM, Codex BLOCKING, Claude unavailable via Cursor; fixes below)
 - [ ] Merge main, re-run gates, local merge into main
 
 ## Closing the Loop
@@ -118,6 +118,15 @@ Merge locally after all lanes LGTM. No pending experiment entry (amendment 2). R
   - `just coverage` OK: agent lines 99.1 / branches 94.73 / functions 98 (loop-detection.ts 98.49 / 97.57 / 100; press-result.ts 100 / 99.22 / 100); viewer lines 97.62 / branches 90.47 / functions 93.6; python lines 97.09 / branches 92.70 / functions 100.
   - `just lint`: tsc, eslint, ruff and ruff format clean; mypy fails only on `pokebench_env/memory_reader.py:83` (`mgba._pylib` not found: this worktree has no native mGBA binding; the same known worktree gap as the transition-loop worklog). Re-run in the main checkout after the merge.
   - Principles self-review: all 13 rows scored, zero FAIL (review packet artifact).
+
+- Gates commit 05142168.
+- 2026-10-16 04:55 AM EDT: review round 1 (frozen 917fd9a1..05142168, diff SHA-256 a663828f…9689). Grok (cursor-grok-4.5-high) LGTM with hardening notes. Codex (gpt-5.6-sol, xhigh, read-only; the configured default gpt-6.1-sol is refused for a ChatGPT account) BLOCKING, four findings. Claude lane: Cursor claude-opus-5-thinking-high and claude-sonnet-5-thinking-high both refused (Cursor usage limit until 10/17); the `~/.claude-review` CLI profile is logged out; next harness: Claude CLI on the default profile (logged in).
+- Fix batch for round 1 (all accepted):
+  - Codex 1 (trip bound ignored observes): every completed game call now counts toward the 8-call bound. Writing the test exposed a second bug: a trip seeded from a state event in the middle of a call (the result state) took that call's earlier before-state as evidence, giving a false push-back. Trips now start only from the state a call's first input started from (first `button_press`, or the state at a `navigate_to` call), or from a call's settled result; state events alone never start one. Tests: "observes included" bound (alternating pages so the existing observation check cannot mask it) and "push-back seen only in the states recorded during the call counts from the very first call". Deletions: dropping the observe count → bound test red; dropping first-input seeding → first-call test red; dropping the navigate_to seeding → both navigate_to and first-call tests red; restored. Replay receipts unchanged (T146 seq 3062, T265 seq 6011, T452 seq 10079).
+  - Codex 2 (viewer proof): mounted `app.test.ts` case feeds the sh02 records through the stream: Activity History rows, timeline lane label, inspector raw JSON, and hidden before the replay cursor reaches them; deleting the `Loop guard ·` title in trace.ts turns it red (restored). Isolated built-viewer replay: `scratchpad/viewer-replay/build.mjs` writes a labelled copy of sh02 (to seq 3700 and to seq 10200; assistant_delta dropped to free seqs; notices from the real detector with the three switches inserted after their calls; README in the copy says it is not benchmark history) and `serve.mjs` starts `startViewer` on 127.0.0.1:8797/8798 with no run queue, no autorun, no human restarts. Browser: Activity History shows "Loop guard · cycle warning" #3064 (turn 146, evidence #2973, #3062), supervisor notes #3065/#3199/#3334/#3469/#3604, "cycle recovered" #3695; inspector shows the raw loop_guard JSON; the 10200 copy shows "Loop guard · observation warning" #10081 (turn 452, evidence #10079) and its supervisor notes, frame "Wild WINGULL fainted!". Served main.js/trace.js/model.js/panels.js/style.css SHA-256 equal the built dist/static files. Both isolated viewers stopped; the operator's viewer (8790) untouched. The live-run timeline window (last 60 s) did not reach these notices, and the scrub control does not move a run with no run_end; timeline lane rendering is covered by the mounted test.
+  - Codex 3 (lint): `mypy` on this worktree's env with the main checkout's venv (which has the mGBA binding): "Success: no issues found in 73 source files". tsc, eslint, ruff, ruff format were already green.
+  - Codex 4 (worklog checkboxes): milestone boxes and commit receipts updated above.
+  - Grok hardening: the battle fixture state is cached once; the push-back registry test title now names its real position.
 
 ## Surprises
 

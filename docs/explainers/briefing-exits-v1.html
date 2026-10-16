@@ -90,6 +90,7 @@ del{color:var(--prior)} ins{color:var(--game);text-decoration:none;font-weight:6
 </div>
 <figcaption>Recorded states 2304 (town, 14,8) and 2305 (house, 2,8). Taking the door marks town (14,8) and both door-mat tiles (1,8),(2,8); the trigger at (2,8) shares that tile, so it leaves the list too. The stairs stay untried.</figcaption>
 </figure>
+<p>A warp can lead to its own map (the teleporter pads in pokeemerald <code>AquaHideout_B1F</code>, the Trick House puzzles). Two states on the same map more than two tiles apart (a ledge hop is two) with a warp to this map next to the start count as using that warp and the one next to the arrival.</p>
 <p>Warp destinations are read from the game's own warp events (<code>env/pokebench_env/world.py</code> <code>read_targets</code>: group, number and destination warp id). A door arrival captured one step out of the door (a door exit walks the player down a tile) still finds the door within one tile.</p>
 <p>Step triggers: one now counts as tried when the recorded states show the player walking onto it at any step of a batch, not only where the batch ends. Arriving on a trigger through a warp, or standing on one, still does not count (the 2026-10-15 finals rule: a coordinate event runs when the player steps onto its tile, not on a warp arrival). Tried lists still start over when the readout's Story line changes; the exits of the call that changed it stay tried.</p>
 </section>

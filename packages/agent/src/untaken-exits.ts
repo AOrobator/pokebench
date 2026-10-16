@@ -49,6 +49,8 @@ export class UntakenExits {
  }
  // The readout with the line inserted after its Position line (or Location line when position is off).
  annotate(text:string,state:Snapshot):string {
+  // A live result's own state is recorded only after the tool returns; it may hold the map change this line needs.
+  this.history.observe(state);
   const anchor=/^Location: .*$(?:\nPosition: .*$)?/m.exec(text);
   if(anchor===null)return text;
   const line=this.line(state,text);

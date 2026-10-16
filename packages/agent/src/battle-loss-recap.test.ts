@@ -80,6 +80,13 @@ describe("battle-loss-recap-v1 rules",()=>{
   const after=state(21,opponent(1,"SAWYER",false,false));
   expect(o.recap(after)).toBe("Battle recap: you lost to SAWYER (trainer 1) on ROUTE101 (map 0/16) at turn 20. The game shows SAWYER (trainer 1) has not been defeated.");
  });
+ it("a trainer battle whose first state is still initializing (no battle type yet) is a trainer battle once a later state or the opponent reading says so (review round 4)",()=>{
+  const init={screen:"battle",in_battle:true,battle:{active:false,outcome:null,outcome_code:null,battle_type:null,battlers:null}};
+  const o=fold([state(20,{...init,...opponent(1,"SAWYER",false,true)}),state(20,{...battle("lost",8),...opponent(1,"SAWYER",false,true)})]);
+  expect(o.recap(state(21,opponent(1,"SAWYER",false,false)))).toBe("Battle recap: you lost to SAWYER (trainer 1) on ROUTE101 (map 0/16) at turn 20. The game shows SAWYER (trainer 1) has not been defeated.");
+  const p=fold([state(30,{...init,...opponent(1,"SAWYER",false,false)}),state(30,battle("lost",8))]);
+  expect(p.recap(state(31,{}))).toBe("Battle recap: you lost to a trainer on ROUTE101 (map 0/16) at turn 30.");
+ });
  it("a won battle and a wild battle the player ran from pin nothing; a later loss replaces the earlier one",()=>{
   const o=fold([state(30,battle("won",4)),state(31,{}),state(40,battle("ran",4)),state(41,{})]);
   expect(o.recap(state(42,{}))).toBeNull();

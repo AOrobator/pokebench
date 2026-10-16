@@ -14,7 +14,7 @@ const BATTLE_TYPE_TRAINER=1<<3;
 const STORY=new Set(STORY_CHARACTERS.map(c=>c.name));
 
 interface Running {
- readonly trainerBattle:boolean;readonly key:string;readonly place:string;
+ trainerBattle:boolean;readonly key:string;readonly place:string;
  trainer:{readonly id:number;readonly name:string|null}|null;foe:string|null;turn:number;
  // The trainer's defeated flag as the battle showed it: a win is the flag turning set afterwards.
  unbeaten:boolean;
@@ -56,9 +56,11 @@ export class BattleOutcomes {
   if(inBattle(s)){
    if(!commit)return null;
    const b=s.battle??null;
-   const run=this.running??{trainerBattle:((b?.battle_type??0)&BATTLE_TYPE_TRAINER)!==0,key:roomKey(s),place:roomOf(s,this.features),trainer:null,foe:null,turn,outcome:null,blackout:false,unbeaten:false};
+   const run=this.running??{trainerBattle:false,key:roomKey(s),place:roomOf(s,this.features),trainer:null,foe:null,turn,outcome:null,blackout:false,unbeaten:false};
    this.running=run;
    run.turn=turn;
+   // An initializing state can lack the battle type; a later state, or the opponent reading, settles it (review round 4).
+   if(((b?.battle_type??0)&BATTLE_TYPE_TRAINER)!==0||s.trainer_opponent?.battle_active===true)run.trainerBattle=true;
    const opponent=s.trainer_opponent;
    if(opponent?.battle_active===true){
     if(run.trainer?.id!==opponent.trainer_id)run.unbeaten=!opponent.defeated;

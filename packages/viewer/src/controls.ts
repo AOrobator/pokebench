@@ -151,7 +151,7 @@ const splitLabel = (name: string): string => (FRONTIER_LABELS.get(name) ?? name.
 const storyIndex = (name: string): number => { const at = STORY_ORDER.indexOf(name); return at < 0 ? STORY_ORDER.length : at; };
 
 // Every split this run recorded, in story order, then the next required checkpoint.
-function runSplits(view: RunView): { splits: { name: string; label: string; at: number | null }[]; next: string | undefined } {
+function runSplits(view: RunView): { name: string; label: string; at: number | null }[] {
   const startMs = view.startMs;
   const reached = startMs === null ? [] : view.milestones.filter((m) => m.origin !== "present_at_start").map((m, i) => ({ m, i }))
     .sort((a, b) => storyIndex(a.m.name) - storyIndex(b.m.name) || a.i - b.i)
@@ -159,17 +159,17 @@ function runSplits(view: RunView): { splits: { name: string; label: string; at: 
   const recorded = new Set(view.milestones.map((m) => m.name));
   const deepest = Math.max(-1, ...FRONTIER_MILESTONES.map((m, i) => (recorded.has(m.id) ? i : -1)));
   const next = FRONTIER_MILESTONES[deepest + 1]?.id;
-  return { splits: next === undefined ? reached : [...reached, { name: next, label: splitLabel(next), at: null }], next };
+  return next === undefined ? reached : [...reached, { name: next, label: splitLabel(next), at: null }];
 }
 
 export function splitStrip(view: RunView): string {
-  const { splits } = runSplits(view);
+  const splits = runSplits(view);
   return `<div class="mspl">${splits.map(({ label, at }) => `<span class="${at === null ? "next" : "done"}">${esc(label)}${at === null ? "" : " ✔"}</span>`).join("")}</div>`;
 }
 
 // This run's split times against the best comparable run.
 export function splitTimes(view: RunView, best: BestSplits | null): string {
-  const { splits } = runSplits(view);
+  const splits = runSplits(view);
   const bests = new Map(best?.milestones.map((m) => [m.name, m.offsetMs / 1000]) ?? []);
   const rows = splits.map(({ name, label, at }) => {
     const ref = bests.get(name);

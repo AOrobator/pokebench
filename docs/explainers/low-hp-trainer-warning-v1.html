@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Low-HP Trainer Warning</title>
+<style>
+:root{
+ --bg:#f7f6f2; --fg:#1c1d1f; --soft:#5b5d61; --rule:#dedcd5; --panel:#ffffff;
+ --game:#1a7f5a; --game-bg:#e3f4ec; --prior:#c2432f; --prior-bg:#fbe7e2; --nav:#2a62c9; --nav-bg:#e4edfb; --hot:#c2432f;
+ --body:system-ui,-apple-system,"Segoe UI",sans-serif; --mono:ui-monospace,"SF Mono",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+ --bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; --hot:#ff7a63; color-scheme:dark}}
+:root[data-theme="dark"]{
+ --bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; --hot:#ff7a63; color-scheme:dark}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.6 var(--body);padding:0 16px}
+main{max-width:740px;margin:0 auto;padding:40px 0 64px;display:flex;flex-direction:column;gap:34px}
+h1{font-size:2.2rem;line-height:1.15;margin:0}
+h2{font-size:1.3rem;margin:0}
+p{margin:0;max-width:66ch}
+ul{margin:0;padding-left:20px}
+.eyebrow{font:500 .75rem var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--soft)}
+.lede{font-size:1.08rem;color:var(--soft)}
+section{display:flex;flex-direction:column;gap:12px}
+figure{margin:0;display:flex;flex-direction:column;gap:8px}
+.scroll{overflow-x:auto}
+svg{display:block;max-width:100%;height:auto}
+figcaption{font-size:.88rem;color:var(--soft)}
+svg text{font-family:var(--body);font-size:12px;fill:var(--fg)}
+svg .s{fill:var(--soft);font-size:11px}
+svg .t{font-weight:600;font-size:13px}
+svg .m{font-family:var(--mono);font-size:11px}
+svg .big{font-family:var(--mono);font-size:15px;font-weight:600}
+.box{fill:var(--panel);stroke:var(--rule)}
+.game{fill:var(--game-bg);stroke:var(--game)}
+.prior{fill:var(--prior-bg);stroke:var(--prior)}
+.nav{fill:var(--nav-bg);stroke:var(--nav)}
+.hot{stroke:var(--hot);stroke-width:2.2}
+.arr{stroke:var(--soft);stroke-width:1.5;fill:none}
+.arr.g{stroke:var(--game);stroke-width:2.4}
+pre{background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:14px;white-space:pre-wrap;font:13px/1.5 var(--mono);margin:0}
+code{font:500 .88em var(--mono);background:var(--panel);border:1px solid var(--rule);border-radius:4px;padding:0 4px}
+table{border-collapse:collapse;width:100%;font-size:.92rem}
+th,td{text-align:left;padding:7px 9px;border-bottom:1px solid var(--rule);vertical-align:top}
+th{font:500 .75rem var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--soft)}
+.tablewrap{overflow-x:auto}
+.yes{color:var(--game);font-weight:600}
+.no{color:var(--prior);font-weight:600}
+
+</style>
+</head>
+<body>
+<main>
+<div>
+<div class="eyebrow">Harness switch · guard · <code>low-hp-trainer-warning-v1</code> · needs nothing · off by default</div>
+<h1>Low-HP trainer warning</h1>
+</div>
+<p class="lede">A one-time SUPERVISOR paragraph on a game-tool result when the lead Pokémon is below half HP and the Route 103 rival, not yet beaten, is on the map. It fires from the result's own game state, at the moment the model is choosing to walk over. Option B from the May whiteout options page; ships with <code>trainer-heal-guidance-v1</code>.</p>
+<section>
+<h2>Why: run 54a7, turn 363 to 371</h2>
+<p>Round 2 bundle run <code>2026-10-16T04-51-03_qwen36-gpu0_54a7</code>. Every field readout from turn 362 to 368 showed TORCHIC at 3/21 HP and the battle-triage line "below half". On turn 363 the model wrote "Torchic has 3/21 HP, which is below half. I need to find May." It talked to MAY at 5:27 AM, fainted on the first Tackle, woke up in BRENDANS HOUSE 2F with ₽1500 of its ₽3000 left, then dropped the rival goal. The Oldale POKéMON CENTER was about 27 tiles away.</p>
+</section>
+<section>
+<h2>What run 54a7 would have read on turn 363</h2>
+<p>The navigate_to result that first showed MAY loaded at (10,3) ends with this paragraph (exact text from the test on the recorded state):</p>
+<pre>SUPERVISOR: Your TORCHIC has 3/21 HP (below half), and your rival MAY is on this map at (10,3). Talking to her starts a trainer battle you cannot run from. If your party faints, you black out: you lose half your money (₽1500 of ₽3000) and wake up back at the last POKéMON CENTER you entered, or at home. Heal before you talk to her: the nurse at a POKéMON CENTER heals your whole party, and so does MOM at home.</pre>
+<p>When the bag holds HP-restoring items, it adds them: <code>Your BAG has POTION ×2; using one on TORCHIC restores HP.</code> When money is unreadable it leaves the amounts out. 54a7's bag was empty.</p>
+</section>
+<section>
+<h2>When it fires</h2>
+<figure><div class="scroll"><svg viewBox="0 0 680 250" width="680" role="img" aria-label="Conditions read from the tool result's state">
+<rect x="10" y="14" width="210" height="34" rx="5" class="box"/><text x="20" y="36">Field: overworld, not in battle</text>
+<rect x="10" y="56" width="210" height="34" rx="5" class="box"/><text x="20" y="78">Player's party (not tutorial)</text>
+<rect x="10" y="98" width="210" height="34" rx="5" class="box"/><text x="20" y="120">Lead below half HP (3/21)</text>
+<rect x="10" y="140" width="210" height="34" rx="5" class="box"/><text x="20" y="162">Map ROUTE 103, rival battle not won</text>
+<rect x="10" y="182" width="210" height="34" rx="5" class="box"/><text x="20" y="204">RIVAL_MAY_* / RIVAL_BRENDAN_* loaded</text>
+<path class="arr" d="M220 31 C260 31 260 110 290 112"/><path class="arr" d="M220 73 C255 73 255 112 290 114"/><path class="arr" d="M220 115 L290 115"/><path class="arr" d="M220 157 C255 157 255 118 290 116"/><path class="arr" d="M220 199 C260 199 260 120 290 118"/>
+<rect x="292" y="92" width="120" height="46" rx="5" class="nav"/><text x="304" y="112" class="t">all true</text><text x="304" y="128" class="s">and armed</text>
+<path class="arr g" d="M412 115 L452 115"/>
+<rect x="454" y="70" width="210" height="34" rx="5" class="game hot"/><text x="464" y="92">Paragraph appended to the result</text>
+<rect x="454" y="126" width="210" height="34" rx="5" class="game"/><text x="464" y="148">low_hp_trainer_warning event</text>
+<text x="10" y="238" class="s">Every input is the state the tool result already carries: no timers, no sleeps, no polling.</text>
+</svg></div>
+<figcaption>All five must hold on the same state. 54a7's turn 362 state did not fire (MAY not yet loaded); turn 363 did.</figcaption></figure>
+</section>
+<section>
+<h2>Once, then re-armed by a lasting change</h2>
+<figure><div class="scroll"><svg viewBox="0 0 640 170" width="640" role="img" aria-label="Arm state machine">
+<rect x="20" y="60" width="140" height="44" rx="22" class="nav"/><text x="54" y="87" class="t">ARMED</text>
+<rect x="440" y="60" width="160" height="44" rx="22" class="prior"/><text x="476" y="87" class="t">QUIET</text>
+<path class="arr g" d="M160 70 C260 30 340 30 440 70"/><text x="210" y="34">fires once (paragraph + event)</text>
+<path class="arr" d="M440 96 C340 140 260 140 160 96"/><text x="176" y="150" class="s">lead at half HP or more · another map · rival battle won</text>
+<text x="452" y="126" class="s">battles, unreadable states:</text><text x="452" y="140" class="s">no change</text>
+</svg></div>
+<figcaption>One arm shared by observe, press and navigate_to. A wild battle on Route 103 does not re-arm it; healing or leaving the route does.</figcaption></figure>
+</section>
+<section>
+<h2>Where you see it</h2>
+<ul>
+<li>The model: appended to that tool result, so it is in the recorded <code>tool_result</code> text too.</li>
+<li>Activity History: a SUPERVISOR row, "Low-HP trainer warning added to the navigate_to result · TORCHIC 3/21 HP · rival MAY at (10,3) · …", from the <code>low_hp_trainer_warning</code> event (tool, species, HP, rival, tile, map, money, bag items, text).</li>
+<li>The timeline: nothing. It is closed to new marks (operator decision 2026-10-16); a test checks the lanes are identical with and without the event.</li>
+</ul>
+</section>
+<section>
+<h2>Game grounding (pret/pokeemerald)</h2>
+<div class="tablewrap"><table>
+<tr><th>Fact</th><th>Source</th><th>Seen in 54a7</th></tr>
+<tr><td>Talking to the Route 103 rival runs a trainer battle; RUN is refused in trainer battles</td><td><code>data/maps/Route103/scripts.inc</code> <code>trainerbattle_no_intro TRAINER_MAY_ROUTE_103_*</code></td><td>T369 readout: <code>RUN REFUSED — "No! There's no running from a TRAINER battle!"</code></td></tr>
+<tr><td>A blackout halves money, heals the party and warps to the last heal location</td><td><code>src/overworld.c</code> <code>DoWhiteOut</code>: <code>SetMoney(…, GetMoney(…) / 2)</code>, <code>SetWarpDestinationToLastHealLocation</code></td><td>₽3000 → ₽1500, TORCHIC 21/21, BRENDANS HOUSE 2F</td></tr>
+<tr><td>Entering a POKéMON CENTER sets that heal location; before that it is home</td><td><code>data/maps/OldaleTown_PokemonCenter_1F/scripts.inc</code> <code>setrespawn HEAL_LOCATION_OLDALE_TOWN</code></td><td>No center entered before T371</td></tr>
+<tr><td>Rival battle won</td><td><code>FLAG_DEFEATED_RIVAL_ROUTE103</code> (0x82), our <code>story.rival_battle_won</code></td><td><code>false</code> through T371</td></tr>
+</table></div>
+</section>
+<section>
+<h2>Scope and status</h2>
+<ul>
+<li>v1 covers the Route 103 rival only, using state PokeBench already reads. Ordinary trainers (Route 102, 104, Petalburg Woods, the gym) would need their trainer flags tied to their objects; not in this switch.</li>
+<li>Branch <code>claude/trainer-heal-warning</code>. Tests on run 54a7's recorded states; removing the wiring from <code>playGameTools</code> turns the factory test red. Not yet measured; joins the bundle arm of bundle-v-control by operator decision (2026-10-16).</li>
+</ul>
+</section>
+</main>
+</body>
+</html>

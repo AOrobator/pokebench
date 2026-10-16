@@ -396,6 +396,8 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "offscreen-objects-v1":"offscreen-objects-v1.html",
  "navigate-first-prompt-v1":"navigate-first-prompt-v1.html",
  "presence-penalty-v1":"presence-penalty-v1.html",
+ "trainer-heal-guidance-v1":"trainer-heal-guidance-v1.html",
+ "low-hp-trainer-warning-v1":"low-hp-trainer-warning-v1.html",
 });
 
 export function harnessConfig(view:RunView,registry:readonly FeatureInfo[]=[]):string {

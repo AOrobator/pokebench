@@ -65,3 +65,4 @@ Game grounding (pret/pokeemerald 731ad5bf): Route 103 rival script `data/maps/Ro
 - Accepted and fixed in one batch: amount lost is m - floor(m/2); tests for odd money and re-arm after the rival battle is won. Gates re-run green (vitest 1643 + 907, pytest 2270, coverage ≥90). Round 2 re-reviews the cumulative packet on all three lanes.
 
 - Synced with main 411e097d (levelup-box-v1): registry re-applied after levelup-box-v1, legacy tests reset to main and re-bumped (guidance 34, guard 14, switchboard rows 75).
+- Fixed the levelup sync merge, which had brought back the 98 worklogs main archived (b0310914): docs/worklogs now matches main except this worklog.

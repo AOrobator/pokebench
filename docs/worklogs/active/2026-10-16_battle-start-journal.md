@@ -189,6 +189,14 @@ Zero FAIL.
 - GPT (isolated Codex `gpt-5.6-sol`, read-only; first attempt exited rc 1 with no verdict, rerun): `VERDICT: LGTM`. No blocker, scope expansion or hardening; speculation only (a blind interval spanning a whole battle; archives show at most 9 busy frames).
 - Synthesis: all three LGTM on the same packet. Main then moved to 6603d64f; see the delta round.
 
+**Round 4 (delta after merging main 6603d64f)** — packet `git diff --binary 6603d64f 7334cfda`, SHA-256 `112bfca22b692bb1792961c228d361fac8cff8214573179a0421e52d981415d8` (artifacts `/tmp/review-bsj-r4/`).
+- Claude (`claude -p`, default login): `VERDICT: LGTM`.
+- Grok (Cursor `cursor-grok-4.5-high`): `VERDICT: LGTM`.
+- GPT (isolated Codex `gpt-5.6-sol`; Cursor GPT usage-limited until 10/17): `VERDICT: LGTM`.
+- Gates on 7334cfda (ROM set): agent 1871, viewer 933, Python 2372 passed; coverage Python 97.42/93.35/100, agent 97.99/94.69/98.4/99.14, viewer 95.33/91.09/93.68/97.63; lint green except the known mypy `mgba._pylib` error; verify-vendor, pages-check, experiments-check (75) clean.
+
+**Landed** 2026-10-16 1:25 PM New York time: `git merge --ff-only 7334cfda` on main 6603d64f (operator standing approval, the operator 5:34 AM). Post-merge on main after `just build`: viewer 933 passed, Python 2372 passed (ROM set), agent 1870/1871: `runs-cli.test.ts` "uses the repo runs/ directory and the 500 MB cap" timed out at 5 s while walking the 25 GB main-checkout runs/ under load average ~13; it passes alone (16/16, 719 ms) and this merge does not touch it. `experiments/transition-coherence.json` repinned to 7334cfda. Switch `transition-coherence-v1` intended ON in both arms of bundle-v-control (handed to the bundle owner).
+
 ## Boy Scout Log
 
 (none yet)

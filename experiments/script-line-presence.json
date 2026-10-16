@@ -86,6 +86,8 @@
    "readout-rules-in-prompt-v1": false,
    "explorer-guidance-v1": false,
    "connection-edge-tiles-v1": false,
+   "in-game-naming-readout-v1": false,
+   "no-nickname-guidance-v1": false,
    "script-line-presence-v1": false
   }
  },

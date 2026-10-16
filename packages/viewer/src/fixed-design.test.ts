@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
 
-import { armPreset, controlBaseProblems, definitionProblems, dryRunDefinition, FixedDesignError, generatePlan, parseFixedDefinition, planOrder } from "./fixed-design.js";
+import { armPreset, controlBaseProblems, definitionProblems, dryRunDefinition, FixedDesignError, generatePlan, parseFixedDefinition, planOrder, armFeatureBits } from "./fixed-design.js";
 import { CONTROL_BASE_SHA256, controlBaseText, definition, draftDefinition, INCUMBENT_FEATURES, CLOCK_START, MENU_START } from "../test-support/fixed.js";
 
 const sha = (text: string): string => createHash("sha256").update(text).digest("hex");
@@ -101,6 +101,27 @@ describe("parseFixedDefinition", () => {
     expect(() => parseFixedDefinition("{")).toThrow(FixedDesignError);
     expect(() => parseFixedDefinition(JSON.stringify({ ...definition(), extra: 1 }))).toThrow(/not a fixed-run definition/);
     expect(() => parseFixedDefinition(JSON.stringify(definition({ primaryMilestone: "NOPE" })))).toThrow(/unknown primary milestone NOPE/);
+  });
+});
+
+describe("on-in-both fixes", () => {
+  const withFix = (on: boolean) => definition({ onInBoth: ["fresh-retry-v1"], base: { ...definition().base, features: { ...definition().base.features, "fresh-retry-v1": on } } });
+  it("lets exactly the listed on-in-both flags differ from the control base, on in both arms", () => {
+    expect(controlBaseProblems(withFix(true), controlBaseText())).toEqual([]);
+    expect(controlBaseProblems(definition({ base: { ...definition().base, features: { ...definition().base.features, "fresh-retry-v1": true } } }), controlBaseText())).toEqual(["base feature fresh-retry-v1 is true, the control base has false"]);
+    expect(armFeatureBits(withFix(true), "control")["fresh-retry-v1"]).toBe(true);
+    expect(armFeatureBits(withFix(true), "bundle")["fresh-retry-v1"]).toBe(true);
+    expect(armPreset(withFix(true), "confirmatory", "control").features["fresh-retry-v1"]).toBe(true);
+  });
+  it("refuses an on-in-both flag that is off in the base, unknown, a bundle switch or also off in both", () => {
+    expect(definitionProblems(withFix(false))).toContain("fresh-retry-v1 must be on in both arms");
+    expect(definitionProblems(definition({ onInBoth: ["no-such-flag-v1"] }))).toContain("unknown feature no-such-flag-v1");
+    expect(definitionProblems(definition({ onInBoth: ["world-destinations-v1"] }))).toContain("world-destinations-v1 is both a bundle switch and on in both arms");
+    expect(definitionProblems(definition({ onInBoth: ["milestone-stall-stop-v1"] }))).toContain("milestone-stall-stop-v1 is both off in both arms and on in both arms");
+  });
+  it("needs the on-in-both list in every definition", () => {
+    const noList = Object.fromEntries(Object.entries(definition()).filter(([k]) => k !== "onInBoth"));
+    expect(() => parseFixedDefinition(JSON.stringify(noList))).toThrow(FixedDesignError);
   });
 });
 

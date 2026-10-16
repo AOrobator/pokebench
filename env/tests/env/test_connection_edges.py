@@ -239,7 +239,7 @@ ROM_START = 0x08000000
 
 
 # Server switches registered after the showcase run was recorded were not in it.
-RECORDED_OFF = [*FIXTURE["recorded_off"], "displayed-place-names-v1"]
+RECORDED_OFF = [*FIXTURE["recorded_off"], "displayed-place-names-v1", "warp-arrival-settle-v1"]
 
 
 def operator_rom() -> bytes:

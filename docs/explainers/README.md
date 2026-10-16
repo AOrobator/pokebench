@@ -35,6 +35,7 @@ Tracked, local HTML documentation. Open an explainer directly; no server or exte
 - [Talk to people v1](explorer-guidance-v1.html)
 - [Stall briefing v1](stall-briefing-v1.html)
 - [Leave bedroom split v1](bedroom-exit-v1.html)
+- [Route 103 rival splits v1](route103-rival-splits-v1.html)
 - [Battle details v2](battle-details-v2.html)
 - [Warp arrival settle v1](warp-arrival-settle-v1.html)
 - [Displayed place names v1](displayed-place-names-v1.html)

@@ -782,6 +782,13 @@ it("links the readout rules card to its tracked explainer, which shows the real-
  expect(html).toContain("3,196");
 });
 
+it("links the Route 103 rival measurement card to its explainer in Harness Config",()=>{
+ const log=new Log();log.add(0,{...START,harness_features:["route103-rival-splits-v1"]});
+ const registry=(["route103-rival-splits-v1"] as const).map(id=>({id,title:"ROUTE 103 RIVAL",description:"d",group:"measurement" as const,switchable:false,needs:null}));
+ const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),registry);
+ expect(doc.querySelector('[data-feature="route103-rival-splits-v1"] a')?.getAttribute("href")).toBe("/explainers/route103-rival-splits-v1.html");
+});
+
 it("links the battle message waiting card to its tracked explainer, which quotes the cook run's WINGULL readout before and after",()=>{
  expect(FEATURE_EXPLAINERS["battle-message-waiting-v1"]).toBe("battle-message-waiting-v1.html");
  const log=new Log();log.add(0,{...START,harness_features:["battle-message-waiting-v1"]});

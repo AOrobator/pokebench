@@ -145,7 +145,14 @@ def test_off_is_todays_readout_byte_for_byte() -> None:
             json_golden = json.loads(
                 (FIXTURES / f"displayed-names-off-{room}-{gender}-fa09dbe6.json").read_text()
             )
-            assert json.loads(json.dumps(state_json(state))) == json_golden
+            # route103_rival (measurement only, added after fa09dbe6) is the only new key.
+            current = json.loads(json.dumps(state_json(state)))
+            assert current.pop("route103_rival") == {
+                "battle_active": False,
+                "defeated": False,
+                "oldale_stage": 0,
+            }
+            assert current == json_golden
 
 
 def test_unknown_gender_or_missing_name_keeps_todays_labels() -> None:

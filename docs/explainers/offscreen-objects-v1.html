@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Off-screen Objects</title>
+<style>
+:root{
+ --bg:#f7f6f2; --fg:#1c1d1f; --soft:#5b5d61; --rule:#dedcd5; --panel:#ffffff;
+ --game:#1a7f5a; --game-bg:#e3f4ec; --prior:#c2432f; --prior-bg:#fbe7e2; --nav:#2a62c9; --nav-bg:#e4edfb; --hot:#c2432f;
+ --dot:#8a857a;
+ --body:system-ui,-apple-system,"Segoe UI",sans-serif; --mono:ui-monospace,"SF Mono",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+ --bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; --hot:#ff7a63;
+ --dot:#8d9096; color-scheme:dark}}
+:root[data-theme="dark"]{
+ --bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; --hot:#ff7a63;
+ --dot:#8d9096; color-scheme:dark}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.6 var(--body);padding:0 16px}
+main{max-width:760px;margin:0 auto;padding:40px 0 64px;display:flex;flex-direction:column;gap:34px}
+h1{font-size:2.2rem;line-height:1.15;margin:0}
+h2{font-size:1.3rem;margin:0}
+p{margin:0;max-width:68ch}
+ul{margin:0;padding-left:20px}
+.eyebrow{font:500 .75rem var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--soft)}
+.lede{font-size:1.08rem;color:var(--soft)}
+section{display:flex;flex-direction:column;gap:12px}
+figure{margin:0;display:flex;flex-direction:column;gap:8px}
+.scroll{overflow-x:auto}
+svg{display:block;max-width:100%;height:auto}
+figcaption{font-size:.88rem;color:var(--soft)}
+svg text{font-family:var(--body);font-size:12px;fill:var(--fg)}
+svg .s{fill:var(--soft);font-size:11px}
+svg .t{font-weight:600;font-size:13px}
+svg .m{font-family:var(--mono);font-size:11px}
+.box{fill:var(--panel);stroke:var(--rule)}
+.game{fill:var(--game-bg);stroke:var(--game)}
+.prior{fill:var(--prior-bg);stroke:var(--prior)}
+.navb{fill:var(--nav-bg);stroke:var(--nav)}
+.hot{stroke:var(--hot);stroke-width:2.4}
+.win{fill:var(--nav-bg);stroke:var(--nav);stroke-width:2}
+.dot{fill:var(--dot)}
+.may{fill:var(--prior)}
+.me{fill:var(--nav)}
+.grid{stroke:var(--rule);stroke-width:1}
+.arr{stroke:var(--soft);stroke-width:1.5;fill:none}
+.arr.g{stroke:var(--game);stroke-width:2}
+.arr.p{stroke:var(--prior);stroke-width:2}
+.bar0{fill:var(--rule)}
+.bar1{fill:var(--game)}
+.bar2{fill:var(--nav)}
+pre{background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:14px;white-space:pre;overflow-x:auto;font:12.5px/1.45 var(--mono);margin:0}
+pre .add{background:var(--game-bg);color:var(--game);font-weight:600}
+pre .del{background:var(--prior-bg);color:var(--prior);text-decoration:line-through}
+code{font:500 .88em var(--mono);background:var(--panel);border:1px solid var(--rule);border-radius:4px;padding:0 4px}
+table{border-collapse:collapse;width:100%;font-size:.9rem}
+th,td{text-align:left;padding:7px 9px;border-bottom:1px solid var(--rule);vertical-align:top}
+th{font:500 .75rem var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--soft)}
+.tablewrap{overflow-x:auto}
+.pair{display:grid;grid-template-columns:1fr;gap:12px}
+.tag{font:600 .75rem var(--mono);letter-spacing:.06em;text-transform:uppercase}
+.tag.off{color:var(--prior)}
+.tag.on{color:var(--game)}
+</style>
+</head>
+<body>
+<main id="offscreen-objects-v1">
+<div>
+<div class="eyebrow">Harness switch · observation · <code>offscreen-objects-v1</code> · needs <code>live-object-sprites-v1</code> · off by default</div>
+<h1>Off-screen people and objects</h1>
+</div>
+<p class="lede">The readout shows only a 15×15 window around the player. With the switch on, a new block lists every person and object the current map places outside that window, each with its sprite kind and tile. With story character presence on, an out-of-view story character such as MAY gets her tile too.</p>
+
+<section>
+<h2>1. The problem in cook run #2</h2>
+<p>Run <code>2026-10-16T02-23-17_qwen36-gpu1_sh02</code> spent 540 turns on Route 103 (turns 415 to 955). At turn 416 the player stood at (11,21). The local map and the Field objects list cover the player's tile ±7, so x 4..18 and y 14..28. MAY's object sits at (10,3), 18 rows north of the player and outside that box.</p>
+<p>The readout said only <code>MAY (on this map, out of view)</code>. It named no tile. The model pursued an east exit. MAY was first named with coordinates at turn 754, when she was inside the window.</p>
+<figure><div class="scroll">
+<svg viewBox="0 0 720 320" width="720" role="img" aria-label="Route 103 sketch: the 15 by 15 readout window around the player at (11,21) and MAY's template at (10,3) outside it, with the other 18 listed objects">
+<defs>
+<marker id="ap" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="var(--prior)"/></marker>
+</defs>
+<text class="s" x="46" y="20">0</text><text class="s" x="124" y="20">10</text><text class="s" x="204" y="20">20</text><text class="s" x="284" y="20">30</text><text class="s" x="364" y="20">40</text><text class="s" x="444" y="20">50</text><text class="s" x="524" y="20">60</text><text class="s" x="604" y="20">70</text>
+<text class="s" x="30" y="34">0</text><text class="s" x="24" y="114">10</text><text class="s" x="24" y="194">20</text>
+<line class="grid" x1="50" y1="30" x2="650" y2="30"/><line class="grid" x1="50" y1="30" x2="50" y2="270"/>
+<rect class="win" x="82" y="142" width="120" height="120" rx="2"/>
+<text class="t" x="210" y="230">Readout window</text>
+<text class="m" x="210" y="246">x 4..18, y 14..28</text>
+<text class="s" x="210" y="262">local map + Field objects</text>
+<circle class="me" cx="142" cy="202" r="6"/>
+<text class="t" x="152" y="198">@ (11,21)</text>
+<circle class="may" cx="134" cy="58" r="7"/>
+<text class="t" x="146" y="54">MAY, object 2</text>
+<text class="m" x="146" y="70">template (10,3)</text>
+<path class="arr p" d="M140,192 L135,70" marker-end="url(#ap)"/>
+<text class="s" x="64" y="132">18 rows</text>
+<g>
+<circle class="dot" cx="446" cy="130" r="4"/><circle class="dot" cx="622" cy="122" r="4"/><circle class="dot" cx="574" cy="130" r="4"/><circle class="dot" cx="566" cy="130" r="4"/><circle class="dot" cx="454" cy="98" r="4"/><circle class="dot" cx="518" cy="74" r="4"/><circle class="dot" cx="526" cy="74" r="4"/><circle class="dot" cx="534" cy="74" r="4"/><circle class="dot" cx="214" cy="114" r="4"/><circle class="dot" cx="502" cy="138" r="4"/><circle class="dot" cx="454" cy="74" r="4"/><circle class="dot" cx="590" cy="90" r="4"/><circle class="dot" cx="630" cy="98" r="4"/><circle class="dot" cx="590" cy="74" r="4"/><circle class="dot" cx="590" cy="106" r="4"/><circle class="dot" cx="342" cy="82" r="4"/><circle class="dot" cx="342" cy="138" r="4"/><circle class="dot" cx="566" cy="90" r="4"/>
+</g>
+<text class="s" x="222" y="110">BOY_1 (20,10)</text>
+<text class="s" x="420" y="170">18 other objects of map 0/18, grey dots</text>
+<text class="s" x="420" y="186">(trainers, berry trees, item balls, cuttable trees)</text>
+<text class="s" x="50" y="300">Drawn to scale in tiles (8 px per tile) from the turn 416 ON readout. Terrain and the map border are not drawn.</text>
+</svg></div>
+<figcaption>Turn 416 (raw RAM 00004588). Blue box: what the local map and Field objects list can show. Red: MAY's template tile, which the OFF readout never gave. Grey: the other objects the ON block lists. Object positions are template tiles; none was loaded at this turn.</figcaption></figure>
+</section>
+
+<section>
+<h2>2. Off and on, same turn</h2>
+<p>Both readouts are re-rendered from the run's recorded RAM and the real ROM with that run's switches. OFF equals what the model got. ON removes one line and adds the block plus a new story line. Nothing else changes.</p>
+<div class="pair">
+<figure>
+<div class="tag off">Off (what the model got at turn 416)</div>
+<pre>Field objects (ids are map-local, not globally unique; sprite kinds are not personal names):
+…
+<span class="del">Story characters here (from this map's own object list): MAY (on this map, out of view). Not on this map: PROF. BIRCH, BRENDAN, MOM, NORMAN, WALLY, ROXANNE, STEVEN. …</span></pre>
+</figure>
+<figure>
+<div class="tag on">On</div>
+<pre>Field objects (ids are map-local, not globally unique; sprite kinds are not personal names):
+…
+<span class="add">Off-screen people and objects on this map (from the map's own object list; the local map above does not show them):</span>
+<span class="add">- map 0/18 object 1: sprite MAN_3 (graphics 33) at (49,12), not loaded; where the map places it, it may have moved</span>
+<span class="add">- map 0/18 object 2: sprite RIVAL_MAY_NORMAL (graphics 105) at (10,3), not loaded; where the map places it, it may have moved</span>
+<span class="add">- map 0/18 object 3: sprite WOMAN_2 (graphics 20) at (71,11), not loaded; where the map places it, it may have moved</span>
+<span class="add">  … objects 4 to 10 and 12 to 20, same form (19 entries in all; no object 11)</span>
+<span class="add">Story characters here (from this map's own object list): MAY at 10,3 (out of view; where the map places this character, it may have moved). Not on this map: PROF. BIRCH, BRENDAN, MOM, NORMAN, WALLY, ROXANNE, STEVEN. …</span></pre>
+</figure>
+<figure>
+<div class="tag on">On, nothing outside the window</div>
+<pre><span class="add">Off-screen people and objects on this map: none.</span></pre>
+</figure>
+</div>
+<p>A loaded object that is off the window ends <code>loaded off screen, its tile now</code> instead of <code>not loaded; where the map places it, it may have moved</code>. A loaded story character's line reads <code>MAY at x,y (out of view)</code>.</p>
+<p>At turn 754 (raw RAM 00005144) MAY is inside the window. Field objects already lists her at (10,3), and the story line already reads <code>MAY at 10,3</code>, so the ON block leaves her out.</p>
+<p>Placement: the block goes after Field objects and the other world-context lines, and before Story characters. It appears only when <code>live-object-sprites-v1</code> is also on.</p>
+</section>
+
+<section>
+<h2>3. How each object is decided</h2>
+<p>The reader walks the map's 64 object template slots in the save block. For each slot it asks the questions below in order.</p>
+<figure><div class="scroll">
+<svg viewBox="0 0 720 470" width="720" role="img" aria-label="Decision chain per object template">
+<defs><marker id="aw" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="var(--soft)"/></marker></defs>
+<rect class="box" x="20" y="10" width="300" height="44" rx="6"/><text class="t" x="32" y="30">Template slot empty?</text><text class="m" x="32" y="46">localId 0 and graphicsId 0</text>
+<rect class="prior" x="440" y="10" width="260" height="44" rx="6"/><text class="t" x="452" y="37">skip</text>
+<path class="arr" d="M320,32 L438,32" marker-end="url(#aw)"/><text class="s" x="360" y="26">yes</text>
+
+<rect class="box" x="20" y="84" width="300" height="44" rx="6"/><text class="t" x="32" y="104">Flag set? (hidden by the story)</text><text class="m" x="32" y="120">flagId at +0x14 ≠ 0 and FlagGet</text>
+<rect class="prior" x="440" y="84" width="260" height="44" rx="6"/><text class="t" x="452" y="104">skip</text><text class="s" x="452" y="120">e.g. PROF. BIRCH, Route 103 object 11</text>
+<path class="arr" d="M320,106 L438,106" marker-end="url(#aw)"/><text class="s" x="360" y="100">yes</text>
+<path class="arr" d="M170,54 L170,82" marker-end="url(#aw)"/><text class="s" x="178" y="72">no</text>
+
+<rect class="box" x="20" y="158" width="300" height="44" rx="6"/><text class="t" x="32" y="178">Loaded in gObjectEvents?</text><text class="m" x="32" y="194">active, this map, same local id</text>
+<path class="arr" d="M170,128 L170,156" marker-end="url(#aw)"/><text class="s" x="178" y="146">no</text>
+
+<rect class="box" x="440" y="158" width="260" height="44" rx="6"/><text class="t" x="452" y="178">Invisible?</text><text class="m" x="452" y="194">object body byte 1, bit 0x20</text>
+<path class="arr" d="M320,180 L438,180" marker-end="url(#aw)"/><text class="s" x="360" y="174">yes</text>
+<rect class="prior" x="560" y="232" width="140" height="40" rx="6"/><text class="t" x="572" y="257">skip</text>
+<path class="arr" d="M630,202 L630,230" marker-end="url(#aw)"/><text class="s" x="638" y="220">yes</text>
+<rect class="navb" x="380" y="232" width="160" height="58" rx="6"/><text class="t" x="392" y="252">its live tile</text><text class="m" x="392" y="268">"loaded off screen,</text><text class="m" x="392" y="282">its tile now"</text>
+<path class="arr" d="M500,202 L470,230" marker-end="url(#aw)"/><text class="s" x="494" y="222">no</text>
+
+<rect class="navb" x="20" y="232" width="300" height="58" rx="6"/><text class="t" x="32" y="252">template x,y (s16 at +4/+6)</text><text class="m" x="32" y="268">"not loaded; where the map</text><text class="m" x="32" y="282">places it, it may have moved"</text>
+<path class="arr" d="M170,202 L170,230" marker-end="url(#aw)"/><text class="s" x="178" y="220">no</text>
+
+<rect class="box" x="20" y="330" width="300" height="44" rx="6"/><text class="t" x="32" y="350">Inside the window?</text><text class="m" x="32" y="366">|x−px| ≤ 7 and |y−py| ≤ 7</text>
+<path class="arr" d="M170,290 L170,328" marker-end="url(#aw)"/>
+<path class="arr" d="M460,290 L460,310 L190,310 L190,328" marker-end="url(#aw)"/>
+<rect class="prior" x="440" y="330" width="260" height="44" rx="6"/><text class="t" x="452" y="350">skip</text><text class="s" x="452" y="366">Field objects already lists it</text>
+<path class="arr" d="M320,352 L438,352" marker-end="url(#aw)"/><text class="s" x="360" y="346">yes</text>
+
+<rect class="game" x="20" y="404" width="300" height="50" rx="6"/><text class="t" x="32" y="424">List it</text><text class="m" x="32" y="442">map g/n object id, sprite, graphics, tile</text>
+<path class="arr" d="M170,374 L170,402" marker-end="url(#aw)"/><text class="s" x="178" y="392">no</text>
+</svg></div>
+<figcaption>One pass per template slot. Red boxes drop the object. Blue boxes pick the tile. Only objects that survive to the green box are listed. The window test uses the same ±7 as the local map and Field objects list.</figcaption></figure>
+<div class="tablewrap"><table>
+<tr><th>Game data</th><th>Where</th><th>What is read</th></tr>
+<tr><td><code>SaveBlock1.objectEventTemplates</code></td><td>offset <code>0xC70</code>, 64 slots × 24 bytes</td><td>localId +0, graphicsId +1, x and y as s16 at +4/+6 (map coordinates, same frame as Position), flagId at +0x14</td></tr>
+<tr><td>Event flags</td><td><code>SaveBlock1</code> + <code>0x1270</code></td><td>a set flag hides the template (as <code>TrySpawnObjectEvents</code> does with <code>FlagGet</code>)</td></tr>
+<tr><td><code>gObjectEvents</code></td><td>16 bodies × 0x24 bytes</td><td>active bit, map group/num, local id, invisible bit, current coords at +0x10 (minus the map offset of 7)</td></tr>
+</table></div>
+<p>Grounding: pret/pokeemerald <code>include/global.fieldmap.h</code> (<code>struct ObjectEventTemplate</code>) and <code>include/global.h</code> (<code>SaveBlock1</code>). Scripts that move an object for good call <code>SetObjectEventTemplateCoords</code>, so a template's x,y is where the map places it now. A moving NPC can still wander from it, which is why the text says it may have moved. Graphics ids that use a variable (<code>VAR_OBJ_GFX_ID_0</code>…) are resolved first, as Story characters does.</p>
+</section>
+
+<section>
+<h2>4. Proof on the recorded run</h2>
+<p>Every cook run #2 tool result from turn 415 to 960 that has raw RAM (546 of them) was re-rendered with the switch off and on.</p>
+<figure><div class="scroll">
+<svg viewBox="0 0 720 170" width="720" role="img" aria-label="Bars: 546 of 546 OFF matches, 137 results gain the block, 105 give MAY's tile out of view">
+<text class="t" x="10" y="30">OFF equals what the model got</text>
+<rect class="bar1" x="250" y="16" width="400" height="20" rx="3"/><text class="m" x="658" y="31">546/546</text>
+<text class="t" x="10" y="80">ON adds the block</text>
+<rect class="bar0" x="250" y="66" width="400" height="20" rx="3"/><rect class="bar2" x="250" y="66" width="100.4" height="20" rx="3"/><text class="m" x="658" y="81">137/546</text>
+<text class="t" x="10" y="130">ON gives MAY's tile out of view</text>
+<rect class="bar0" x="250" y="116" width="400" height="20" rx="3"/><rect class="may" x="250" y="116" width="76.9" height="20" rx="3"/><text class="m" x="658" y="131">105/546</text>
+<text class="s" x="250" y="160">first at turn 415; PROF. BIRCH's Route 103 template (object 11) is flag-hidden and never listed</text>
+</svg></div>
+<figcaption>Bar length is the share of the 546 re-rendered results. The block is read only on overworld turns outside battle, so many results (battles, menus, dialogue) never carry it.</figcaption></figure>
+<p>The tests (<code>env/tests/env/test_offscreen_objects.py</code>, fixture <code>offscreen-objects-sh02.json</code>) pin the two turns: at turn 416 OFF is contained in the received text and ON changes only the story line and the new block; BIRCH's object 11 is absent; at turn 754 MAY is not repeated. Synthetic RAM tests cover loaded, invisible, flagged, variable-graphics and invalid-pointer cases.</p>
+</section>
+
+<section>
+<h2>5. Wiring</h2>
+<figure><div class="scroll">
+<svg viewBox="0 0 720 220" width="720" role="img" aria-label="Switch wiring from preset to the readout block">
+<defs><marker id="ax" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="var(--soft)"/></marker></defs>
+<rect class="box" x="10" y="20" width="150" height="56" rx="6"/><text class="t" x="22" y="42">Preset / switchboard</text><text class="m" x="22" y="62">offscreen-objects-v1</text>
+<rect class="box" x="190" y="20" width="160" height="56" rx="6"/><text class="t" x="202" y="42">serverFeatureEnv</text><text class="m" x="202" y="62">POKEBENCH_FEATURES_OFF</text>
+<rect class="box" x="380" y="20" width="150" height="56" rx="6"/><text class="t" x="392" y="42">rerender.read_state</text><text class="m" x="392" y="62">offscreen_objects_enabled</text>
+<rect class="box" x="560" y="20" width="150" height="56" rx="6"/><text class="t" x="572" y="42">GameState</text><text class="m" x="572" y="62">.offscreen_objects</text>
+<path class="arr" d="M160,48 L188,48" marker-end="url(#ax)"/><path class="arr" d="M350,48 L378,48" marker-end="url(#ax)"/><path class="arr" d="M530,48 L558,48" marker-end="url(#ax)"/>
+<path class="arr" d="M635,76 L635,128" marker-end="url(#ax)"/><text class="s" x="545" y="100">on, overworld, not in battle;</text><text class="s" x="545" y="114">else None (not read)</text>
+<rect class="game hot" x="380" y="130" width="330" height="72" rx="6"/><text class="t" x="392" y="152">format_readout</text><text class="m" x="392" y="172">offscreen_text(...) after Field objects</text><text class="m" x="392" y="188">needs live-object-sprites-v1</text>
+<rect class="box" x="10" y="130" width="330" height="72" rx="6"/><text class="t" x="22" y="152">StoryCharacters.text(placed)</text><text class="m" x="22" y="172">placed = {local id: object}</text><text class="m" x="22" y="188">OUT_OF_VIEW → "MAY at 10,3 (…)"</text>
+<path class="arr" d="M378,166 L342,166" marker-end="url(#ax)"/><text class="s" x="346" y="124">passes tiles</text>
+</svg></div>
+<figcaption>The highlighted box is the one that changes what the model sees. With the switch off, <code>GameState.offscreen_objects</code> is <code>None</code>, the RAM is never read and the story line keeps "(on this map, out of view)". The field is not added to the state JSON, so recorded state is unchanged.</figcaption></figure>
+</section>
+
+<section>
+<h2>6. Status</h2>
+<ul>
+<li>Branch <code>claude/nav-guidance</code>, milestone M1. Registered in <code>packages/agent/src/features.ts</code> as an observation switch that needs <code>live-object-sprites-v1</code>. Default off in both stacks.</li>
+<li>Gates at M1 GREEN: agent, viewer and Python tests pass with the ROM; <code>offscreen_objects</code>, <code>character_presence</code> and <code>readout</code> at 100% Python coverage.</li>
+<li>The operator wants it in the bundle-v-control bundle arm. The readiness thread edits the bundle file; this branch does not.</li>
+<li>Not done: multi-model review, viewer card link, measured runs. No claim that it helps.</li>
+</ul>
+</section>
+</main>
+</body>
+</html>

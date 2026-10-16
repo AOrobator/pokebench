@@ -65,6 +65,8 @@ Read-only RAM reads already used by character presence. No new network, file or 
 
 **M4 — explainers, pending experiments, review**
 - [x] RED: explainer links and serving
+- [x] Explainers, README, FEATURE_EXPLAINERS, pages-check
+- [x] Pending experiments and readiness rows
 - [ ] Explainers (`docs/explainers/offscreen-objects-v1.html`, `navigate-first-prompt-v1.html`), README, FEATURE_EXPLAINERS, pages-check
 - [ ] Pending `experiments/offscreen-objects.json`, `experiments/navigate-first-prompt.json`; readiness rows
 - [ ] Principles self-review; Claude CLI, think_fast/think_swarm, Grok and GPT lanes until LGTM
@@ -106,8 +108,34 @@ Done when both switches are merged after review, explainers link from Harness Co
 
 - The served Qwen3.6 template puts tool JSON before the system prompt, not after.
 - Serving uses presence_penalty 0.0; the card recommends 1.5 for thinking. Out of scope (serving config), reported to the operator.
+- 2026-10-16 04:35 AM EDT: M4 GREEN. Explainers `docs/explainers/offscreen-objects-v1.html`, `navigate-first-prompt-v1.html`, `presence-penalty-v1.html` (written by three read-only-scoped helper agents from the code, tests, fixture and this worklog; `just pages-check` prints nothing); README entries; FEATURE_EXPLAINERS mappings. Pending `experiments/offscreen-objects.json`, `navigate-first-prompt.json`, `presence-penalty.json` (finals incumbent with every switch key, the three new ones off; primary RIVAL_BATTLE_WON; provisional source.commit = branch head) parse with `parseExperiment`/`experimentArms` (incumbent OFF, candidate ON); readiness rows PENDING. Gates: agent 1451, viewer 822, Python 2147; lint green except the known mypy `mgba._pylib`.
+  COMMIT: `docs: explainers, harness-config links and pending experiments for the three navigation-guidance switches`
+
+## Surprises (M4)
+
+- Helper agents were told not to touch GPU lanes; the offscreen explainer agent re-rendered locally from the fixture and ROM only.
 
 ## Multi-Model Review Log
+
+### Principles self-review (docs/agent-principles.md, PB1–PB13), cumulative diff main..claude/nav-guidance
+
+| ID | Score | Evidence |
+|---|---|---|
+| PB1 | PASS | No result is claimed; proofs cite run ids, turns and seqs from event logs and raw RAM. |
+| PB2 | N/A | No runs launched. |
+| PB3 | PASS | No improvement claimed; the three entries are pending experiments with trialsPerArm 8. |
+| PB4 | PASS | Each advantage is a named, recorded switch (`harness_features`, run_start sampling records presence_penalty); vendor untouched (`just verify-vendor` OK). |
+| PB5 | PASS | One switch per behavior, each with a pending experiment and hypothesis; bundle membership is the readiness thread's file. |
+| PB6 | PASS | Off-screen block adds one line per object (about 20 on Route 103), never truncated (INV-3); prompt grows by one section. |
+| PB7 | PASS | No new unlogged behavior: the reminder is part of the recorded tool result; presence_penalty is recorded in run_start. |
+| PB8 | N/A | Tool schemas unchanged. |
+| PB9 | PASS | Prompt wording shown to and approved by the operator (03:41 AM EDT); defaults picked where unspecified (reminder every 3rd press; block after Field objects) are recorded here. |
+| PB10 | PASS | No skipped tests, no excludes widened, floor 90 kept, hook never bypassed. |
+| PB11 | PASS | `onPayload` checked in pinned pi-ai `providers/openai-completions.js` (params replaced before the request) and proven by the fake-gateway wire test; llama-server b10236 accepted presence_penalty (see M3; that probe's timing mistake is recorded there). |
+| PB12 | PASS | ROM read only via POKEBENCH_ROM for re-render tests; fixtures hold RAM windows only, never ROM bytes. |
+| PB13 | PASS | RED/GREEN/gates per milestone recorded; review loop below. |
+
+Lanes: the think_fast/think_swarm endpoint lanes are not used while overnight trials run on the GPU lanes (coordinator instruction 04:09 AM EDT); project practice for this repo is Claude, Codex (GPT family) and Grok.
 
 ## Boy Scout Log
 

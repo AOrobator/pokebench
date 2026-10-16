@@ -1,0 +1,289 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Navigate_to First</title>
+<style>
+:root{
+ --bg:#f7f6f2; --fg:#1c1d1f; --soft:#5b5d61; --rule:#dedcd5; --panel:#ffffff;
+ --game:#1a7f5a; --game-bg:#e3f4ec; --prior:#c2432f; --prior-bg:#fbe7e2; --nav:#2a62c9; --nav-bg:#e4edfb;
+ --warn:#9a6b00; --warn-bg:#fbf1d6;
+ --body:system-ui,-apple-system,"Segoe UI",sans-serif; --mono:ui-monospace,"SF Mono",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+ --bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740;
+ --warn:#e8b84a; --warn-bg:#352b14; color-scheme:dark}}
+:root[data-theme="dark"]{
+ --bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740;
+ --warn:#e8b84a; --warn-bg:#352b14; color-scheme:dark}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.6 var(--body);padding:0 16px}
+main{max-width:760px;margin:0 auto;padding:40px 0 64px;display:flex;flex-direction:column;gap:34px}
+h1{font-size:2.2rem;line-height:1.15;margin:0}
+h2{font-size:1.3rem;margin:0}
+h3{font-size:1rem;margin:0}
+p{margin:0;max-width:68ch}
+ul{margin:0;padding-left:20px}
+.eyebrow{font:500 .75rem var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--soft)}
+.lede{font-size:1.08rem;color:var(--soft)}
+section{display:flex;flex-direction:column;gap:12px}
+figure{margin:0;display:flex;flex-direction:column;gap:8px}
+.scroll{overflow-x:auto}
+svg{display:block;max-width:100%;height:auto}
+figcaption{font-size:.88rem;color:var(--soft)}
+svg text{font-family:var(--body);font-size:12px;fill:var(--fg)}
+svg .s{fill:var(--soft);font-size:11px}
+svg .t{font-weight:600;font-size:13px}
+svg .m{font-family:var(--mono);font-size:11px}
+.box{fill:var(--panel);stroke:var(--rule)}
+.game{fill:var(--game-bg);stroke:var(--game)}
+.prior{fill:var(--prior-bg);stroke:var(--prior)}
+.navb{fill:var(--nav-bg);stroke:var(--nav)}
+.warnb{fill:var(--warn-bg);stroke:var(--warn)}
+.arr{stroke:var(--soft);stroke-width:1.5;fill:none}
+.arr.g{stroke:var(--game);stroke-width:2}
+.arr.p{stroke:var(--prior);stroke-width:2}
+pre{background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:14px;white-space:pre-wrap;overflow-wrap:anywhere;font:12.5px/1.5 var(--mono);margin:0}
+pre .add{background:var(--game-bg);color:var(--game);font-weight:600}
+pre .del{background:var(--prior-bg);color:var(--prior);text-decoration:line-through}
+code{font:500 .88em var(--mono);background:var(--panel);border:1px solid var(--rule);border-radius:4px;padding:0 4px;overflow-wrap:anywhere}
+.pair{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:640px){.pair{grid-template-columns:1fr}}
+.tag{font:600 .72rem var(--mono);letter-spacing:.06em;text-transform:uppercase}
+.tag.off{color:var(--prior)}
+.tag.on{color:var(--game)}
+table{border-collapse:collapse;width:100%;font-size:.9rem}
+th,td{text-align:left;padding:7px 9px;border-bottom:1px solid var(--rule);vertical-align:top}
+th{font:500 .75rem var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--soft)}
+.tablewrap{overflow-x:auto}
+</style>
+</head>
+<body>
+<main>
+<div>
+<div class="eyebrow">Harness switch · guidance · <code>navigate-first-prompt-v1</code> · needs <code>bounded-navigation-v1</code> · off by default</div>
+<h1>Navigate_to first</h1>
+</div>
+<p class="lede">With the switch on, the model is told in three places that <code>navigate_to</code> is how it moves: the tool list in the system prompt, a new last section of the prompt, and the start of the <code>navigate_to</code> description. A short reminder is added to every third direction-only press in a row. The game, the tools and their behavior do not change.</p>
+
+<section>
+<h2>1. Why: cook run #2 walked by hand</h2>
+<p>Run <code>2026-10-16T02-23-17_qwen36-gpu1_sh02</code>, Route 103. On that route the model walked by <code>press</code> for 76 overworld turns and by <code>navigate_to</code> for 56.</p>
+<figure><div class="scroll">
+<svg viewBox="0 0 720 120" width="720" role="img" aria-label="Route 103 overworld walking turns: 76 by press, 56 by navigate_to">
+<text class="t" x="0" y="30">Walking by press</text>
+<rect class="prior" x="170" y="14" width="456" height="24" rx="3"/>
+<text class="t" x="636" y="31">76 turns</text>
+<text class="t" x="0" y="80">navigate_to</text>
+<rect class="navb" x="170" y="64" width="336" height="24" rx="3"/>
+<text class="t" x="516" y="81">56 turns</text>
+<text class="s" x="170" y="112">bar length is proportional to turns (6 px per turn)</text>
+</svg></div>
+<figcaption>Overworld turns on Route 103 in cook run #2, by how the model walked. Source: forensics report <code>runs/reports/cook2-navigation.html</code>.</figcaption></figure>
+
+<p>The decisive stretch came when the readout already held what was needed. Quotes of the model's thinking are its stated belief, not what the game did.</p>
+<figure><div class="scroll">
+<svg viewBox="0 0 720 360" width="720" role="img" aria-label="Timeline of turns 888 to 920 on Route 103">
+<defs>
+<marker id="ad" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="var(--soft)"/></marker>
+</defs>
+<path class="arr" d="M60,20 L60,340"/>
+<g>
+<circle cx="60" cy="40" r="6" fill="var(--game)"/>
+<text class="t" x="80" y="36">Turn 888 · readout</text>
+<text x="80" y="54">MAY at (10,3). The ledge row and an open route around it are on the map.</text>
+<text class="s" x="80" y="70">navigate_to(9,6) had just arrived in 2 presses.</text>
+</g>
+<g>
+<rect class="warnb" x="76" y="86" width="560" height="44" rx="5"/>
+<text class="t" x="88" y="104">Turns 887–893 · model thinking (stated belief only)</text>
+<text x="88" y="121">A tile-by-tile search over the ASCII map. It misreads the ledge glyphs.</text>
+</g>
+<g>
+<circle cx="60" cy="160" r="6" fill="var(--prior)"/>
+<text class="t" x="80" y="156">Turns 889–894 · hand presses</text>
+<text x="80" y="174">UP into the ledge (no net movement), then LEFT/UP to (7,6), into grass.</text>
+<text class="s" x="80" y="190">It never gave navigate_to a tile near MAY.</text>
+</g>
+<g>
+<circle cx="60" cy="220" r="6" fill="var(--soft)"/>
+<text class="t" x="80" y="216">Turns 895–918 · wild battle</text>
+<text class="s" x="80" y="234">24 turns spent because of the step into grass.</text>
+</g>
+<g>
+<circle cx="60" cy="270" r="6" fill="var(--nav)"/>
+<text class="t" x="80" y="266">Turn 920 · navigate_to(9,3)</text>
+<text x="80" y="284">Walked 8 presses, stopped at (8,3), one tile short: "command limit".</text>
+<text class="s" x="80" y="300">The local tool's cap is 8 presses (MAX_NAVIGATION_COMMANDS=8).</text>
+</g>
+<g>
+<circle cx="60" cy="330" r="6" fill="var(--soft)"/>
+<text x="80" y="334">The model finished with one RIGHT press by hand.</text>
+</g>
+</svg></div>
+<figcaption>Cook run #2, Route 103, turns 888–920. Green: the readout had the route. Red: hand walking. Blue: navigate_to stopping at its cap. Nothing told the model it could simply call again with the same destination.</figcaption></figure>
+</section>
+
+<section>
+<h2>2. Where the model reads each change</h2>
+<p>The Qwen3.6-35B-A3B model card has no system-prompt style guide. Qwen's function-calling docs say to give each tool a description that says when to use it. The chat template served by llama-server (seen at <code>/props</code>) renders the <code># Tools</code> JSON first, then the system prompt, then the conversation. So the tool list inside the system prompt is the model's own summary of what it can do, and the prompt's last section sits nearest the conversation.</p>
+<figure><div class="scroll">
+<svg viewBox="0 0 720 420" width="720" role="img" aria-label="Order of the rendered prompt and where each change lands">
+<text class="s" x="0" y="14">rendered first</text>
+<rect class="box" x="0" y="24" width="400" height="90" rx="6"/>
+<text class="t" x="14" y="46"># Tools (JSON)</text>
+<text class="m" x="14" y="66">observe · press · get_dialogue</text>
+<rect class="game" x="10" y="76" width="380" height="28" rx="4"/>
+<text class="m" x="20" y="94">navigate_to: description gains a prefix</text>
+
+<rect class="box" x="0" y="128" width="400" height="190" rx="6"/>
+<text class="t" x="14" y="150">System prompt</text>
+<text class="m" x="14" y="170">goal sentence</text>
+<rect class="game" x="10" y="180" width="380" height="28" rx="4"/>
+<text class="m" x="20" y="198">tool list: navigate_to line, press line</text>
+<text class="m" x="14" y="228">controls, naming, warps, evidence, ...</text>
+<text class="s" x="14" y="246">(one-line NAVIGATE_TO_USAGE removed)</text>
+<rect class="game" x="10" y="258" width="380" height="28" rx="4"/>
+<text class="m" x="20" y="276">Moving around (last section)</text>
+<text class="s" x="14" y="306">objective text, if on, still follows it</text>
+
+<rect class="box" x="0" y="332" width="400" height="80" rx="6"/>
+<text class="t" x="14" y="354">Conversation</text>
+<rect class="game" x="10" y="364" width="380" height="28" rx="4"/>
+<text class="m" x="20" y="382">press result + Reminder (every 3rd)</text>
+<text class="s" x="0" y="418">nearest the model's next turn</text>
+
+<path class="arr g" d="M396,90 L470,90" marker-end="url(#ag2)"/>
+<path class="arr g" d="M396,194 L470,194" marker-end="url(#ag2)"/>
+<path class="arr g" d="M396,272 L470,272" marker-end="url(#ag2)"/>
+<path class="arr g" d="M396,378 L470,378" marker-end="url(#ag2)"/>
+<defs><marker id="ag2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="var(--game)"/></marker></defs>
+<text class="t" x="480" y="86">A. "The main way to move"</text>
+<text class="s" x="480" y="102">plus the command-limit hint (local)</text>
+<text class="t" x="480" y="190">B. navigate_to before press</text>
+<text class="s" x="480" y="206">press: "not for walking"</text>
+<text class="t" x="480" y="268">C. When and how to walk</text>
+<text class="s" x="480" y="284">replaces the one-line usage rule</text>
+<text class="t" x="480" y="374">D. Reminder line</text>
+<text class="s" x="480" y="390">only on the free field</text>
+</svg></div>
+<figcaption>The order the served chat template renders. Green boxes are the four places the switch changes text. Everything else is unchanged.</figcaption></figure>
+</section>
+
+<section>
+<h2>3. The tool list, off and on</h2>
+<div class="pair">
+<div><div class="tag off">Off (cook run #2)</div>
+<pre>You act through game tools:
+- observe: shows the current screen and a text readout of the game state read from memory (location, coordinates, party, and an ASCII map of the surroundings).
+- press: presses up to 8 buttons in order (A, B, START, SELECT, UP, DOWN, LEFT, RIGHT), then shows the new screen and state.</pre></div>
+<div><div class="tag on">On</div>
+<pre>You act through game tools:
+- observe: shows the current screen and a text readout of the game state read from memory (location, coordinates, party, and an ASCII map of the surroundings).
+<span class="add">- navigate_to: walks you to a tile on the current map. This is how you move: give it the destination and it finds the route around walls, ledges, water and people.</span>
+- press: presses up to 8 buttons in order (A, B, START, SELECT, UP, DOWN, LEFT, RIGHT), then shows the new screen and state.<span class="add"> Use press for A, B, menus, dialogue, battles and single-tile steps or turns, not for walking.</span></pre></div>
+</div>
+<p>Off, the tool list names only observe and press. <code>navigate_to</code> appears later, in its own bullet. With the RAM readout off, the screen-only press line gets the same suffix.</p>
+
+<h3>The usage rule, off and on</h3>
+<div class="pair">
+<div><div class="tag off">Off: NAVIGATE_TO_USAGE (after game evidence)</div>
+<pre>Use navigate_to for any walk of two or more tiles on the current map, using coordinates from the readout. To go through a door or stairs, give the warp's own coordinates as the destination; at a directional exit, arrive on its tile, then press the direction its activation describes. When navigate_to stops early, read its reason and pick a reachable tile or a different listed exit instead of falling back to long runs of single presses. Use press for talking, menus, dialogue and short adjustments.</pre></div>
+<div><div class="tag on">On: MOVING_AROUND_LOCAL (last section)</div>
+<pre>Moving around: to go anywhere two or more tiles away on the current map, call navigate_to with that tile. Do not trace routes tile by tile in your thinking, and do not walk with runs of direction presses: navigate_to plans the route from the game's memory, which is more reliable than reading the ASCII map.
+- To talk to someone, target a free tile next to them, then press the direction that faces them and press A.
+- For a door, stairs or another listed warp, target the warp's own tile. At a directional exit, arrive on its tile, then press the direction its activation describes.
+- If it refuses a tile (a ledge, wall, water or a person), choose a walkable tile beside the place you want, or the tile its reason names.
+- If it stops with "command limit", call it again with the same destination; it carries on from where it stopped.
+- A destination outside the local map is fine: it walks toward it as far as the local map allows. If it reports no path, choose a reachable tile in that direction.</pre></div>
+</div>
+<p>With <code>full-map-navigation-v1</code> on, the section is <code>MOVING_AROUND_FULL</code>. It shares the first four lines. Its last two bullets are replaced by one:</p>
+<pre>- If it stops early, read its reason, then call it again or choose a reachable tile near the place you want.</pre>
+<p>On, the section is appended even when <code>game-evidence-priority-v1</code> is off. When <code>objective-tracking-v1</code> is on, its objective text still comes after Moving around.</p>
+
+<h3>The navigate_to description</h3>
+<pre><span class="add">The main way to move: use it for every walk of two or more tiles; give the destination and it finds the route around walls, ledges, water and people.</span> Walk toward a coordinate on the current map using bounded A*. ... (today's description, unchanged) ...<span class="add"> After "command limit", call it again with the same destination to continue.</span></pre>
+<p>The command-limit hint is added only in local mode. The whole-map description gets the prefix only.</p>
+</section>
+
+<section>
+<h2>4. The reminder rule</h2>
+<p>The wrapped <code>press</code> keeps a count of direction-only presses in a row. A press counts only when its buttons are all UP, DOWN, LEFT or RIGHT and the state it returns is the free field: started, screen <code>overworld</code>, not in battle, <code>field_controls_locked</code> exactly false, and no dialogue or message open.</p>
+<figure><div class="scroll">
+<svg viewBox="0 0 720 300" width="720" role="img" aria-label="Reminder counter state diagram">
+<defs>
+<marker id="aa" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="var(--soft)"/></marker>
+<marker id="agg" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="var(--game)"/></marker>
+<marker id="app" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="var(--prior)"/></marker>
+</defs>
+<rect class="box" x="20" y="100" width="100" height="56" rx="28"/>
+<text class="t" x="44" y="133">count 0</text>
+<rect class="box" x="180" y="100" width="100" height="56" rx="28"/>
+<text class="t" x="204" y="133">count 1</text>
+<rect class="box" x="340" y="100" width="100" height="56" rx="28"/>
+<text class="t" x="364" y="133">count 2</text>
+<rect class="game" x="500" y="92" width="200" height="72" rx="10"/>
+<text class="t" x="514" y="116">count 3, 6, 9 ...</text>
+<text x="514" y="134">press result gets</text>
+<text x="514" y="150">the Reminder line</text>
+
+<path class="arr g" d="M120,128 L178,128" marker-end="url(#agg)"/>
+<path class="arr g" d="M280,128 L338,128" marker-end="url(#agg)"/>
+<path class="arr g" d="M440,128 L498,128" marker-end="url(#agg)"/>
+<text class="s" x="124" y="88">counting press</text>
+<text class="s" x="290" y="88">counting press</text>
+<text class="s" x="446" y="88">counting press</text>
+<path class="arr g" d="M600,92 C600,40 230,40 230,98" marker-end="url(#agg)"/>
+<text class="s" x="330" y="36">next counting presses continue the count (4, 5, 6 ...)</text>
+
+<path class="arr p" d="M230,158 C230,220 70,220 70,160" marker-end="url(#app)"/>
+<path class="arr p" d="M390,158 C390,240 70,240 70,160" marker-end="url(#app)"/>
+<path class="arr p" d="M600,166 C600,262 70,262 70,160" marker-end="url(#app)"/>
+<text class="t" x="20" y="286" style="fill:var(--prior)">Reset to 0:</text>
+<text x="100" y="286">navigate_to · a press with any non-direction button · a press that ends off the free field</text>
+<text class="s" x="460" y="210">observe: no change</text>
+</svg></div>
+<figcaption>The counter in <code>withNavigateFirst</code>, with <code>REMINDER_EVERY=3</code>. Green: a direction-only press ending on the free field. Red: resets. A result without a readable state, or a press without buttons, also resets. <code>observe</code> leaves the count alone.</figcaption></figure>
+<p>The line appended to the press result:</p>
+<pre>Reminder: to walk two or more tiles, call navigate_to with the destination; it finds the route for you.</pre>
+<p>None of the new text names a destination, a character or a story step. A test checks this for MAY, BRENDAN, BIRCH, ROUTE, Rustboro, Oldale and Littleroot.</p>
+</section>
+
+<section>
+<h2>5. Off is the old behavior</h2>
+<figure><div class="scroll">
+<svg viewBox="0 0 720 150" width="720" role="img" aria-label="Off guarantee">
+<rect class="box" x="0" y="20" width="220" height="60" rx="6"/>
+<text class="t" x="14" y="44">navigate-first-sh02.json</text>
+<text class="s" x="14" y="64">cook run #2 run_start, seq 0</text>
+<rect class="box" x="250" y="20" width="220" height="60" rx="6"/>
+<text class="t" x="264" y="44">playSystemPrompt(off)</text>
+<text class="s" x="264" y="64">that run's features, switch off</text>
+<rect class="game" x="500" y="20" width="220" height="60" rx="6"/>
+<text class="t" x="514" y="44">byte for byte equal</text>
+<text class="s" x="514" y="64">vitest: toBe(system_prompt)</text>
+<path class="arr" d="M220,50 L248,50"/>
+<path class="arr" d="M470,50 L498,50" marker-end="url(#aa)"/>
+<rect class="game" x="0" y="100" width="720" height="40" rx="6"/>
+<text x="14" y="125">Off, withNavigateFirst returns the same tool array object; navigate_to keeps today's description.</text>
+</svg></div>
+<figcaption>What the tests in <code>packages/agent/src/navigate-first.test.ts</code> pin for the off state. A further test strips the three additions from the on prompt and gets cook run #2's prompt minus <code>NAVIGATE_TO_USAGE</code>.</figcaption></figure>
+<p>The prompt change needs <code>bounded-navigation-v1</code>; the registry records that dependency. The switch is agent side only and is not sent to the game server. <code>playGameTools</code> applies the wrapper last, around navigation and dialogue auto-advance.</p>
+</section>
+
+<section>
+<h2>6. Status</h2>
+<div class="tablewrap"><table>
+<tr><th>Item</th><th>State</th></tr>
+<tr><td>Branch</td><td><code>claude/nav-guidance</code>, RED <code>67117ff6</code>, GREEN <code>b4156299</code></td></tr>
+<tr><td>Default</td><td>Off</td></tr>
+<tr><td>Bundle</td><td>The operator wants it in the <code>bundle-v-control</code> bundle arm. The readiness thread edits the bundle file; this branch does not.</td></tr>
+<tr><td>Review</td><td>Multi-model review pending</td></tr>
+<tr><td>Measured runs</td><td>None. Nothing here shows it helps.</td></tr>
+</table></div>
+</section>
+</main>
+</body>
+</html>

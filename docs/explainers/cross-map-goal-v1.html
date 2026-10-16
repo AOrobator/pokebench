@@ -45,7 +45,7 @@ code{font:13px ui-monospace,Menlo,monospace;overflow-wrap:anywhere}
 
 <h2>Where the check sits in the walk loop</h2>
 <div class="card scroll">
-<svg viewBox="0 0 900 300" role="img" aria-label="Walk loop decision: read state, compare map_id, then branch on whether any press has been made">
+<svg viewBox="0 0 900 300" style="min-width:640px" role="img" aria-label="Walk loop decision: read state, compare map_id, then branch on whether any press has been made">
 <g class="node"><rect x="20" y="120" width="150" height="56" rx="10"/><text class="nt" x="95" y="144">read state</text><text class="ns" x="95" y="162">start of each step</text></g>
 <g class="node"><rect x="220" y="120" width="170" height="56" rx="10"/><text class="nt" x="305" y="144">map_id = goal map?</text><text class="ns" x="305" y="162">sameMap()</text></g>
 <g class="node hot"><rect x="440" y="120" width="170" height="56" rx="10"/><text class="nt" x="525" y="144">any press yet?</text><text class="ns" x="525" y="162">ON only: commands = 0</text></g>
@@ -55,7 +55,7 @@ code{font:13px ui-monospace,Menlo,monospace;overflow-wrap:anywhere}
 <path class="flow" d="M170 148 H218" marker-end="url(#a)"/>
 <path class="flow" d="M390 148 H438" marker-end="url(#a)"/><text class="fl" x="404" y="140">no</text>
 <path class="flow" d="M305 176 V228" marker-end="url(#a)"/><text class="fl" x="312" y="206">yes</text>
-<path class="flow" d="M610 140 L668 70" marker-end="url(#a)"/><text class="fl" x="560" y="96">yes, or switch OFF</text>
+<path class="flow" d="M610 140 L668 70" marker-end="url(#a)"/><text class="fl" x="520" y="104">yes, or switch OFF</text>
 <path class="flow" d="M610 156 L668 226" marker-end="url(#a)"/><text class="fl" x="652" y="196">no (ON)</text>
 </svg>
 <p class="cap">Only the highlighted boxes are new. OFF goes straight from "no" to <code>map changed</code>, as before. After a press, a different map is a real change, ON or OFF. If the current map is unknown (<code>map_id</code> null), ON skips to the readiness check, which already says why it cannot walk.</p></div>

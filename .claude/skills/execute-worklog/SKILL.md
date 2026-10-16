@@ -12,7 +12,7 @@ For each remaining milestone:
   1. RED     write failing tests, run them, see them fail, commit, update worklog
   2. GREEN   implement, run gates, commit, update worklog (test counts + gate status)
   3. SMOKE   real ROM / real gateway / browser evidence when the milestone touches them
-  4. REVIEW  multi-model review loop until every required lane returns LGTM (required lanes: see "Landing on main")
+  4. REVIEW  multi-model review loop until every lane returns LGTM
   5. advance; STOP at any milestone marked operator-in-the-loop or "STOP"
   6. LAND    merge into local main once the cloud lanes approve (see "Landing on main")
 ```
@@ -32,12 +32,12 @@ The contract is `~/dev/local-inference-stack/.claude/skills/multi-model-review/S
 1. Principles self-review against `docs/agent-principles.md`. Score every ID; zero FAIL rows.
 2. Seal the frozen packet: `git diff --binary BASE HEAD`, its SHA-256, the frozen boundary file, and the principles file.
 3. Claude-family lane: Claude CLI (`CLAUDE_CONFIG_DIR=~/.claude-review`, `--permission-mode plan`), or Cursor Claude.
-4. Optional: `think_fast` + `think_swarm` endpoints in parallel. Discover the model id from `/v1/models` and send `chat_template_kwargs.enable_thinking=false`. In PokeBench these local lanes are not required lanes (operator decision 2026-10-16); an unavailable local lane blocks nothing, but a BLOCKING finding from one that ran is adjudicated like any other.
+4. `think_fast` + `think_swarm` endpoints in parallel. Discover the model id from `/v1/models` and send `chat_template_kwargs.enable_thinking=false`.
 5. Independent lanes: a Grok family (Cursor) and a GPT family (Cursor or isolated Codex).
 6. If an equivalent harness is unavailable, switch to the other one. Once every harness for a lane is exhausted, use the standing subagent fallback: two fresh read-only subagents on distinct models. Record reduced diversity honestly. A subagent fallback never counts as a cloud lane for landing.
 7. Write the review synthesis. Fix accepted findings in one batch, then re-review the cumulative delta.
 
-Record every round in the worklog's Multi-Model Review Log. A broken required lane is never a clean review. The required lanes are the three cloud lanes: Claude, Grok and GPT.
+Record every round in the worklog's Multi-Model Review Log. A broken lane is never a clean review.
 
 ## Landing on main
 
@@ -50,7 +50,7 @@ An agent may merge its own branch into local `main` without asking per merge (op
 
 Rules:
 
-- Merge approval comes only from the three cloud lanes. The local inference lanes in the contract (`think_fast`, `think_swarm`, anything on `inference.example`) are not required for landing in PokeBench and never stand in for a cloud lane (operator decision 2026-10-16). If one runs and returns BLOCKING, address the finding like any other before merging.
+- The review loop above still runs in full, local endpoint lanes included. Self-merge approval, though, comes only from the three cloud lanes. A local inference lane (`think_fast`, `think_swarm`, anything on `inference.example`) or a subagent fallback never stands in for a cloud lane.
 - If a cloud lane is unavailable (usage limit, auth, model rejected), there is no self-merge. Record it in the worklog and ask the operator.
 - After landing, `just test` on `main` must pass. If it fails, stop, report it to the operator and fix it on a new branch through the full loop.
 - The one exception to re-review: after landing, record the verdicts and merge SHA in one evidence-only commit on `main` that touches only `docs/worklogs/` (check with `git diff --name-only HEAD~1`). It needs no review. Report the merge SHA in the thread.

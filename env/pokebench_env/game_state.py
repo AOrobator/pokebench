@@ -17,7 +17,7 @@ from pokebench_env.character_presence import StoryCharacters, read_story_charact
 from pokebench_env.game_screen import ReadMemory, read_screen
 from pokebench_env.gba_text import GBA_TEXT, decode_text
 from pokebench_env.live_map import MAP_OFFSET, FullMap, LocalMap, read_full_map, read_local_map
-from pokebench_env.naming import NamingState, read_naming
+from pokebench_env.naming import NamingState, editor_open, read_naming
 from pokebench_env.party_ownership import PartyOwnership, read_party_ownership
 from pokebench_env.pokemon import SPECIES_NAMES as SPECIES_NAMES
 from pokebench_env.pokemon import PartyMon, decode_party_mon, pokemon_cpu_context
@@ -290,7 +290,7 @@ def read_game_state(
         active_ui=active_ui,
         # in-game-naming-readout-v1: nickname, box, caught-mon and Walda naming in the field.
         naming=read_naming(read, decode_text)
-        if in_game_naming_enabled and screen.callback2 == 0x080E4F59
+        if in_game_naming_enabled and screen.callback2 == 0x080E4F59 and editor_open(read)
         else None,
         local_map=None if nearby is None else nearby.text(),
         nearby=nearby,

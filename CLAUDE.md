@@ -72,7 +72,7 @@ An agent may merge its own branch into local `main` once cloud code review appro
 
 - Gates pass, and the Claude, Grok and GPT/Codex lanes of the review loop (`~/dev/local-inference-stack/.claude/skills/multi-model-review/SKILL.md`) each return `VERDICT: LGTM` on the frozen packet that is merged.
 - The branch is synced with `main` before review and lands fast-forward only (`git merge --ff-only`), so `main` becomes exactly the reviewed tree.
-- Local inference reviewers (`think_fast`, `think_swarm`, anything on `inference.example`) are not used at all (operator decision 2026-10-13: too noisy) and never count toward merge approval.
+- Local inference reviewers (`think_fast`, `think_swarm`, anything on `inference.example`) are never used in PokeBench reviews (operator decision 2026-10-16: they are the models under benchmark, and noisy as reviewers) and never count toward merge approval.
 - A missing or blocked cloud lane means no self-merge; ask the operator.
 - Report each merge SHA in the thread.
 

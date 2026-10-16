@@ -151,8 +151,10 @@ describe("script-line-presence-v1: on screen and names",()=>{
  });
 });
 
+const png=(()=>{const b=Buffer.alloc(33);Buffer.from([137,80,78,71,13,10,26,10]).copy(b);b.writeUInt32BE(13,8);b.write("IHDR",12);b.writeUInt32BE(240,16);b.writeUInt32BE(160,20);return b.toString("base64");})();
 // A Route 101 entrance: stepping UP onto the trigger opens a map-script line with no faced object.
 class ScriptGame {
+ constructor(private readonly text="H-help me!"){}
  posts:Button[]=[];
  private mode:"free"|"printing"|"waiting"="free";
  private readonly objects=[
@@ -169,14 +171,14 @@ class ScriptGame {
  state():GameStateSnapshot{
   const base:GameStateSnapshot={...IN_GAME,location:"ROUTE101",map_id:[0,16],position:{x:11,y:19},facing:"up",active_ui:null,naming:null,field_controls_locked:false,interaction_targets:[],world_context:{objects:this.objects,triggers:[],dialogue:null,message:null}};
   if(this.mode==="free")return base;
-  const text="H-help me!";
+  const text=this.text;
   return {...base,field_controls_locked:true,world_context:{objects:this.objects,triggers:[],dialogue:text,message:{phase:this.mode==="printing"?"printing":"button_wait",cursor:this.mode==="printing"?3:text.length,ready:this.mode==="waiting",identity:"a".repeat(64)}}};
  }
  fetch:typeof fetch=(input,init)=>{
   const url=typeof input==="string"?input:input instanceof URL?input.href:input.url;let body:unknown;
   if(url.endsWith("/action")){if(typeof init?.body!=="string")throw new Error("body");for(const b of (JSON.parse(init.body) as {buttons:Button[]}).buttons)this.press(b);body={status:"success"};}
   else if(url.endsWith("/queue_status"))body={queue_empty:true};
-  else if(url.endsWith("/pokebench/observation")){this.tick();const s=this.state();body={state_text:`Location: ${s.location??""}`,screenshot_base64:"",state:s};}
+  else if(url.endsWith("/pokebench/observation")){this.tick();const s=this.state();body={state_text:`Location: ${s.location??""}`,screenshot_base64:png,state:s};}
   else if(url.endsWith("/pokebench/state")){this.tick();body=this.state();}
   else throw new Error(`Unexpected request ${url}`);
   return Promise.resolve(new Response(JSON.stringify(body)));
@@ -190,8 +192,8 @@ function recorder(){
  return {api,advances:()=>events.filter((e):e is Advance=>e.type==="dialogue_auto_advance")};
 }
 const textOf=(r:AgentToolResult<unknown>)=>r.content.flatMap(p=>p.type==="text"?[p.text]:[]).join("\n");
-async function play(features:FeatureSet){
- const game=new ScriptGame();const rec=recorder();
+async function play(features:FeatureSet,text?:string){
+ const game=new ScriptGame(text);const rec=recorder();
  const clock={now:()=>0,sleep:()=>Promise.resolve()};
  const base=[observeTool("http://127.0.0.1",game.fetch),pressTool("http://127.0.0.1",{beforePress:()=>undefined,afterPress:()=>Promise.resolve()},game.fetch,clock)];
  const tools=playGameTools(base,features,game.read,rec.api);
@@ -206,6 +208,11 @@ describe("script-line-presence-v1: the production factory honors the switch",()=
   const {text,pages}=await play({...BASE,"script-line-presence-v1":true});
   expect(text).toContain(`1. turn 7 · ROUTE101 (map 0/16) · at 11,19 · ${TAG1}: "H-help me!"`);
   expect(pages.map(p=>p.on_screen)).toEqual([[{local_id:3,graphics_id:97,sprite_kind:"BIRCHS_BAG",x:7,y:14,character:null}]]);
+ });
+ it("ON: a page with a speaker is unchanged and records nothing extra",async()=>{
+  const {text,pages}=await play({...BASE,"script-line-presence-v1":true},"MOM: Hi!");
+  expect(text).toContain(`1. turn 7 · ROUTE101 (map 0/16) · at 11,19 · MOM: "MOM: Hi!"`);
+  expect(pages.map(p=>Object.keys(p))).toEqual([["state_seq","map","map_id","position","speaker","speaker_source","text"]]);
  });
  it("OFF: no field is recorded and the line is today's",async()=>{
   const {text,pages}=await play({...BASE,"script-line-presence-v1":false});

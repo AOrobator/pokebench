@@ -3,15 +3,18 @@ import {Type} from "typebox";
 import type {RunEvent} from "./events.js";
 import type {FeatureSet} from "./features.js";
 import type {RunRecorder} from "./recorder.js";
+import {presenceTag} from "./script-line-presence.js";
 
 type State=Extract<RunEvent,{type:"state";started:boolean}>;
-export interface DialogueEntry {readonly seq:number;readonly turn:number;readonly key:string;readonly room:string;readonly position:string|null;readonly facing:string|null;readonly text:string}
+// presence: script-line-presence-v1's tag, on an auto-advance page recorded with no speaker.
+export interface DialogueEntry {readonly seq:number;readonly turn:number;readonly key:string;readonly room:string;readonly position:string|null;readonly facing:string|null;readonly text:string;readonly presence?:string}
 
 const DEFAULT_LAST=8;
 type Page=Extract<RunEvent,{type:"dialogue_auto_advance"}>["pages"][number];
 // dialogue-auto-advance-v1's speaker label: the game's NAME: prefix, else the faced sprite kind or object, labelled as such.
-export function speakerLabel(page:Pick<Page,"speaker"|"speaker_source">):string|null {
- return page.speaker===null?null:page.speaker_source==="faced_sprite"?`${page.speaker} (sprite kind, not a name)`:page.speaker_source==="faced_target"?`${page.speaker} (faced object)`:page.speaker;
+// A page with neither carries script-line-presence-v1's on-screen tag when it was recorded with one.
+export function speakerLabel(page:Pick<Page,"speaker"|"speaker_source"|"on_screen">):string|null {
+ return page.speaker===null?page.on_screen===undefined?null:presenceTag(page.on_screen):page.speaker_source==="faced_sprite"?`${page.speaker} (sprite kind, not a name)`:page.speaker_source==="faced_target"?`${page.speaker} (faced object)`:page.speaker;
 }
 type Place={location:string|null;map_id:readonly number[]|null};
 // Location labels can repeat or be missing across maps, so identity always includes the map id.
@@ -40,7 +43,8 @@ export class DialogueLog {
   if(event.type==="dialogue_auto_advance"){
    this.pending.set(event.tool_call_id,event.pages.map(page=>{
     const place={location:page.map,map_id:page.map_id};
-    return {seq:page.state_seq??event.seq,turn:event.turn,key:roomKey(place),room:roomOf(place,this.features),position:this.features["live-player-position-v1"]&&page.position!==null?`${String(page.position.x)},${String(page.position.y)}`:null,facing:null,text:page.text};
+    const entry:DialogueEntry={seq:page.state_seq??event.seq,turn:event.turn,key:roomKey(place),room:roomOf(place,this.features),position:this.features["live-player-position-v1"]&&page.position!==null?`${String(page.position.x)},${String(page.position.y)}`:null,facing:null,text:page.text};
+    return page.speaker===null&&page.on_screen!==undefined?{...entry,presence:presenceTag(page.on_screen)}:entry;
    }));
    if(this.pending.size>16)this.pending.delete(this.pending.keys().next().value??"");
    return;
@@ -83,7 +87,7 @@ export class DialogueLog {
   if(matches.length===0)return `No recorded dialogue matches (${String(this.log.length)} pages recorded this run).`;
   const chosen=matches.slice(-last).reverse();
   let text=`DIALOGUE LOG: quoted game text you were shown, newest first. Past text; the current screen overrides it. ${String(matches.length)} of ${String(this.log.length)} entries match.`;
-  for(const e of chosen)text+=`\n#${String(e.seq)} turn ${String(e.turn)} · ${e.room}${e.position===null?"":` · at ${e.position}`}${e.facing===null?"":` · facing ${e.facing}`}: "${e.text}"`;
+  for(const e of chosen)text+=`\n#${String(e.seq)} turn ${String(e.turn)} · ${e.room}${e.position===null?"":` · at ${e.position}`}${e.facing===null?"":` · facing ${e.facing}`}${e.presence===undefined?"":` · ${e.presence}`}: "${e.text}"`;
   return `${text}\n${String(chosen.length)} shown.`;
  }
  tool():AgentTool<typeof Args> {

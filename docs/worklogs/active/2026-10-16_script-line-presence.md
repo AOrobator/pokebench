@@ -38,10 +38,10 @@ M1: RED, GREEN, gates. M2: explainer, pending experiment, review (Claude, Codex,
 
 ### M1
 - [x] RED: `script-line-presence.test.ts` (T259 replay from `test-support/script-line-presence-sh02.json`, screen window, names rule, OFF identity, factory wiring through `playGameTools`, stall briefing replay), story-character golden fixture (TS + Python), registry counts and OFF lists. Fails: module `./script-line-presence.js` missing (whole file red). The Python golden test passes at RED by design (it pins the fixture to today's `CHARACTERS`).
-  COMMIT: `test: RED script-line-presence-v1 names who is on screen for a dialogue page with no speaker` (pending)
-- [ ] GREEN: `script-line-presence.ts`; page schema + `just schema`; `Pages` records `on_screen`; `speakerLabel`, DialogueLog, `quote`; registry, presets, `DEFAULT_NEXT_RUN`
-- [ ] Wiring-removal check recorded
-- [ ] Gates: test, coverage (90 floor), lint, build, verify-vendor
+  COMMIT: `test: RED script-line-presence-v1 names who is on screen for a dialogue page with no speaker` (f1225d3d)
+- [x] GREEN: `script-line-presence.ts` (screen window, character mirror, tag); page schema `on_screen` (optional, ON only, pages with no speaker) + `just schema`; `Pages` records it from the page's own state (`withDialogueAutoAdvance` builds the reader from the FeatureSet); `pageLines` exported from the summary; `speakerLabel` renders the tag (stall briefing story-step pages, page list, get_dialogue); DialogueLog entries carry `presence` (recall_dialogue, supervisors' `quote`, one-line edit in loop-supervisor.ts); registry (`SWITCHABLE_FEATURES`, `FEATURES` observation entry needing dialogue-auto-advance-v1, `...when()` last), presets optional/default false, `flagFeatures` false, `DEFAULT_NEXT_RUN` false. Registry test positions shifted by one; OFF lists gained the id; switchboard counts 21/21 and 60 rows. Added an ON test that a page with a speaker records nothing extra (the speaker-gate deletion below was first undetected).
+- [x] Wiring-removal checks (each restored, all green after): `present` forced null in `withDialogueAutoAdvance` → factory ON test red (1 failed / 16); `speakerLabel` tag → 4 red; DialogueLog `presence` → 2 red; recall render → 1 red; briefing `quote` → 1 red; Pages speaker gate → 0 red at first, then 1 red after the added test. Logs in the session scratchpad (`break-*.log`, `wiring-removal-1.log`).
+- [x] Gates: `just test` agent 90 files / 1428, viewer 60 / 803, pytest 2119 passed. `just coverage` agent 97.74 stmts / 94.61 branches / 98 functions / 99.09 lines, viewer 95.15 / 90.52 / 93.61 / 97.62, Python lines 97.12 / branches 92.77 / functions 100 (floor 90); `script-line-presence.ts` 25/25 statements, 27/27 branches, 10/10 functions. `just lint`: tsc + eslint clean both packages, ruff clean; mypy fails only on the known `mgba._pylib` import in this worktree's venv, and `mypy` run from this tree with the main checkout's venv (binding built) reports no issues in 74 files. `just build` ok; `just verify-vendor` OK.
 
 ### M2
 - [ ] Explainer `docs/explainers/script-line-presence-v1.html`, README, `FEATURE_EXPLAINERS`
@@ -53,3 +53,4 @@ M1: RED, GREEN, gates. M2: explainer, pending experiment, review (Claude, Codex,
 ## Session Log
 - 2026-10-16 03:05 AM EDT: worklog drafted; fixture extracted from the live run (read-only).
 - 2026-10-16 03:06 AM EDT: main fast-forwarded to bebb98c3 (adjacent-tiles) before RED.
+- 2026-10-16 03:15 AM EDT: GREEN and gates.

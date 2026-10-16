@@ -58,6 +58,8 @@ function gateOk(g: unknown): boolean {
     (g["winner"] === null || typeof g["winner"] === "string") &&
     (decision === null || (isRecord(decision) && Array.isArray(decision["verdicts"]) && decision["verdicts"].every((v) => isRecord(v) && typeof v["arm"] === "string" && typeof v["pass"] === "boolean" && isStrings(v["reasons"]) && isNum(v["wins"]) && isNum(v["ties"]) && isNum(v["pairs"]))));
 }
+const strOrNull = (v: unknown): boolean => v === null || typeof v === "string";
+const laneOk = (l: unknown): boolean => isRecord(l) && typeof l["id"] === "string" && typeof l["gpu"] === "string" && strOrNull(l["arm"]) && strOrNull(l["run"]);
 // JSON from /api/experiments into a typed snapshot.
 export function queueSnapshotOf(value: unknown): QueuePayload {
   if (!isRecord(value)) throw new Error("malformed /api/experiments payload");
@@ -73,7 +75,7 @@ export function queueSnapshotOf(value: unknown): QueuePayload {
   const autorun = value["autorun"];
   if (autorun !== undefined && autorun !== null && !(isRecord(autorun) && oneOf(autorun["state"], ["idle", "running", "error"]) && typeof autorun["message"] === "string")) throw new Error("malformed /api/experiments autorun");
   const fixedRuns = value["fixedRuns"];
-  if (fixedRuns !== undefined && !(Array.isArray(fixedRuns) && fixedRuns.every((f) => isRecord(f) && typeof f["experiment"] === "string" && typeof f["title"] === "string" && isNum(f["valid"]) && isNum(f["total"]) && Array.isArray(f["lanes"]) && Array.isArray(f["invalidTrials"]) && isRecord(f["reserve"])))) throw new Error("malformed /api/experiments fixedRuns");
+  if (fixedRuns !== undefined && !(Array.isArray(fixedRuns) && fixedRuns.every((f) => isRecord(f) && typeof f["experiment"] === "string" && typeof f["title"] === "string" && isNum(f["valid"]) && isNum(f["total"]) && Array.isArray(f["lanes"]) && f["lanes"].every(laneOk) && Array.isArray(f["invalidTrials"]) && isRecord(f["reserve"])))) throw new Error("malformed /api/experiments fixedRuns");
   const runner = value["runner"];
   if (runner !== null && !(isRecord(runner) && typeof runner["experiment"] === "string" && isNum(runner["trial"]))) throw new Error("malformed /api/experiments runner");
   return value as unknown as QueuePayload;
@@ -223,6 +225,10 @@ export interface QueueDeps {
   // Present on pages that may approve: POST and a confirmation prompt.
   sendJson?(method: "POST", url: string, body: unknown): Promise<unknown>;
   confirm?(text: string): boolean;
+  // Present where another part of the page reads the same snapshot (the stats page's current-run plates).
+  loaded?(snapshot: QueuePayload): void;
+  // Called when a load fails, so that reader stops trusting the last snapshot.
+  unavailable?(): void;
 }
 // Binds one rendering to a container holding [data-eq=chips], [data-eq=queue] and [data-eq=pending].
 export class QueuePanel {
@@ -277,6 +283,7 @@ export class QueuePanel {
     try {
       this.snapshot = queueSnapshotOf(await this.deps.sendJson("POST", `/api/experiments/${encodeURIComponent(id)}/${action}`, {}));
       this.notice = null;
+      this.deps.loaded?.(this.snapshot);
     } catch (error) {
       this.notice = error instanceof Error ? error.message : String(error);
     }
@@ -291,6 +298,7 @@ export class QueuePanel {
     try {
       this.snapshot = queueSnapshotOf(await this.deps.sendJson("POST", `/api/experiments/${encodeURIComponent(id)}/${withdraw ? "finals-withdraw" : "finals-resume"}`, {}));
       this.notice = null;
+      this.deps.loaded?.(this.snapshot);
     } catch (error) {
       this.notice = error instanceof Error ? error.message : String(error);
     }
@@ -303,10 +311,12 @@ export class QueuePanel {
     try {
       this.snapshot = queueSnapshotOf(await this.deps.fetchJson("/api/experiments"));
       this.notice = null;
+      this.deps.loaded?.(this.snapshot);
       this.render();
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       this.deps.problem(`experiment queue: ${message}`);
+      this.deps.unavailable?.();
       this.notice = `Could not load the experiment queue (${message}).${/\b404\b/.test(message) ? " This viewer was started before the queue existed: restart the viewer." : ""}`;
       if (this.snapshot === null) {
         const queue = this.part("queue");

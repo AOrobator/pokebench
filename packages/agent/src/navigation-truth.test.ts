@@ -543,7 +543,7 @@ describe("production wiring",()=>{
   expect(await status({"navigation-truth-v1":true,"coordinate-script-conditions-v1":false},{x:4,y:12})).not.toContain("crosses");
   state=recorded("show:19866");
   expect(await status({"navigation-refusal-reasons-v2":true},{x:6,y:4})).toContain("so any route leaves it");
-  expect(await status({"navigation-refusal-reasons-v2":false,"low-hp-trainer-warning-v2":false},{x:6,y:4})).toBe("no supported local path; choose a reachable local waypoint");
+  expect(await status({"navigation-refusal-reasons-v2":false},{x:6,y:4})).toBe("no supported local path; choose a reachable local waypoint");
  });
 });
 

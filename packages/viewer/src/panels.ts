@@ -368,6 +368,8 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "named-warp-destinations-v1":"named-warp-destinations-v1.html",
  "character-presence-v1":"character-presence-v1.html",
  "dialogue-auto-advance-v1":"dialogue-auto-advance-v1.html",
+ "dialogue-context-kept-v1":"dialogue-context-kept-v1.html",
+ "transition-loop-detection-v1":"transition-loop-detection-v1.html",
  "connection-edge-tiles-v1":"connection-edge-tiles-v1.html",
  "milestone-stall-stop-v1":"milestone-stall-stop-v1.html",
  "text-only-supervisor-v1":"text-only-supervisor-v1.html",
@@ -377,6 +379,7 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "stall-briefing-v1":"stall-briefing-v1.html",
  "bedroom-exit-v1":"bedroom-exit-v1.html",
  "battle-details-v2":"battle-details-v2.html",
+ "displayed-place-names-v1":"displayed-place-names-v1.html",
 });
 
 export function harnessConfig(view:RunView,registry:readonly FeatureInfo[]=[]):string {

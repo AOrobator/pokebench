@@ -238,6 +238,10 @@ def test_reader_threads_the_switch() -> None:
 ROM_START = 0x08000000
 
 
+# Server switches registered after the showcase run was recorded were not in it.
+RECORDED_OFF = [*FIXTURE["recorded_off"], "displayed-place-names-v1"]
+
+
 def operator_rom() -> bytes:
     try:
         return resolve_rom(os.environ, EMERALD_SHA1).read_bytes()
@@ -274,11 +278,11 @@ def showcase(off: list[str]) -> str:
 
 def test_showcase_off_reproduces_the_recorded_readout_byte_for_byte() -> None:
     assert OFF_NORTH in FIXTURE["readout"].split("\n")
-    assert showcase([*FIXTURE["recorded_off"], ID]) == FIXTURE["readout"]
+    assert showcase([*RECORDED_OFF, ID]) == FIXTURE["readout"]
 
 
 def test_showcase_on_names_the_north_exit_tiles_and_changes_nothing_else() -> None:
-    on = showcase(FIXTURE["recorded_off"])
+    on = showcase(RECORDED_OFF)
     before, after = FIXTURE["readout"].split("\n"), on.split("\n")
     assert len(before) == len(after)
     assert [(a, b) for a, b in zip(before, after, strict=True) if a != b] == [(OFF_NORTH, ON_NORTH)]

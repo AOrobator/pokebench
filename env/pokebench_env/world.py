@@ -5,7 +5,7 @@ are candidates, not proof a flag, elevation, script or facing permits use now.
 """
 
 import struct
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from dataclasses import asdict, dataclass
 
 from pokebench_env.game_screen import ReadMemory
@@ -78,8 +78,26 @@ class InteractionTarget:
         )
 
 
-def read_targets(read: ReadMemory, map_id: tuple[int, int]) -> tuple[InteractionTarget, ...] | None:
-    """All event records in this map; object positions come only from live RAM."""
+def _background_name(
+    read: ReadMemory, script: int, sign_label: Callable[[int], str | None] | None
+) -> str | None:
+    # A verified non-sign identity (Notebook, GameCube) keeps its name; signs take their text.
+    known = script_name(read, script)
+    if sign_label is None or (known is not None and "Sign" not in known.split()):
+        return known
+    return sign_label(script) or known
+
+
+def read_targets(
+    read: ReadMemory,
+    map_id: tuple[int, int],
+    *,
+    sign_label: Callable[[int], str | None] | None = None,
+) -> tuple[InteractionTarget, ...] | None:
+    """All event records in this map; object positions come only from live RAM.
+
+    sign_label (displayed-place-names-v1) names a background event by the text its script prints.
+    """
     events = int.from_bytes(read(MAP_HEADER + 4, 4), "little")
     if not _pointer(events):
         return None
@@ -161,7 +179,7 @@ def read_targets(read: ReadMemory, map_id: tuple[int, int]) -> tuple[Interaction
                 elevation,
                 "A",
                 facing=facing,
-                name=script_name(read, script) if kind <= 4 else None,
+                name=_background_name(read, script, sign_label) if kind <= 4 else None,
             )
         )
     terrain = read_metatile_targets(read)

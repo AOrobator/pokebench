@@ -15,7 +15,8 @@ import {observeTool,pressTool} from "./game-tools.js";
 interface Fixture {readonly features:Record<string,boolean>;readonly state:Record<string,unknown>;readonly refusal:string;readonly supervisor:string;readonly events:readonly Record<string,unknown>[]}
 const FIXTURE=JSON.parse(readFileSync(new URL("../test-support/connection-edges-show.json",import.meta.url),"utf8")) as Fixture;
 const ID="connection-edge-tiles-v1";
-const RUN:FeatureSet={...ALL_ON,...FIXTURE.features,[ID]:false};
+// Switches registered after the run was recorded were not in it, so they start off here.
+const RUN:FeatureSet={...Object.fromEntries(Object.keys(ALL_ON).map(k=>[k,false])) as FeatureSet,...FIXTURE.features,[ID]:false};
 const EDGES=[{x:10,y:0},{x:11,y:0}];
 // What the server sends with the switch on: the same topology plus the crossable edge tiles.
 const withEdges=(state:Record<string,unknown>):Record<string,unknown>=>{

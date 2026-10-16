@@ -86,6 +86,11 @@ function duringPress(before: GameStateSnapshot, after: GameStateSnapshot, button
   return dialogueChange(before, after, show) ?? basePressResult(before, after, buttons, show);
 }
 
+// Box-state notes that describe the state right after this press; dialogue-auto-advance-v1 replaces them with the state after it advanced.
+export const OPENED_LOCK_NOTE = " (the message box locks field controls until it closes)";
+export const STILL_OPEN_NOTE = " (message box still open; it locks field controls until it closes)";
+export const STILL_LOCKED_NOTE = "; field controls are still locked";
+
 // A message box opening, moving on or closing in place is what the press did; the field lock it
 // causes is a consequence, so it is named as the box's and never as the press being locked out.
 function dialogueChange(before: GameStateSnapshot, after: GameStateSnapshot, show: PressFacts): string | null {
@@ -93,10 +98,10 @@ function dialogueChange(before: GameStateSnapshot, after: GameStateSnapshot, sho
   if (before.position.x !== after.position.x || before.position.y !== after.position.y) return null;
   const was = dialogueOf(before), now = dialogueOf(after);
   const lock = (state: GameStateSnapshot): boolean | null => show.fieldLock ? state.field_controls_locked ?? null : null;
-  if (was === null && now !== null) return `dialogue opened${lock(after) === true ? " (the message box locks field controls until it closes)" : ""}`;
-  if (was !== null && now === null) return `dialogue closed${lock(after) === false ? "; field controls are free now" : lock(after) === true ? "; field controls are still locked" : ""}`;
+  if (was === null && now !== null) return `dialogue opened${lock(after) === true ? OPENED_LOCK_NOTE : ""}`;
+  if (was !== null && now === null) return `dialogue closed${lock(after) === false ? "; field controls are free now" : lock(after) === true ? STILL_LOCKED_NOTE : ""}`;
   if (was !== null && now !== null && (was !== now || cursorOf(before) !== cursorOf(after) || before.world_context?.message?.phase !== after.world_context?.message?.phase)) {
-    return `dialogue advanced${lock(after) === true ? " (message box still open; it locks field controls until it closes)" : ""}`;
+    return `dialogue advanced${lock(after) === true ? STILL_OPEN_NOTE : ""}`;
   }
   return null;
 }

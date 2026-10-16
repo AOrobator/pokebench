@@ -35,6 +35,12 @@ build-mgba:
 verify-rom:
     cd env && uv run python -c 'import os; from pokebench_env.rom import resolve_rom; print("ROM OK:", resolve_rom(os.environ))'
 
+# Trainer-card art for the viewer (cards, trainer sprites, font, party icons) from ~/dev/pokeemerald
+# ($POKEEMERALD), every asset verified against $POKEBENCH_ROM. ROM-derived: output stays under runs/.
+[positional-arguments]
+trainer-card-art out="runs/sprites/trainer-card-v1":
+    python3 scripts/trainer-card/build_art.py "$1"
+
 verify-vendor:
     cd env && uv run python -c 'from pokebench_env.launcher import VENDOR_DIR; from pokebench_env.vendor import check_vendor; check_vendor(VENDOR_DIR); print("vendor OK:", VENDOR_DIR)'
 

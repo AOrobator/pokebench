@@ -116,6 +116,9 @@ export function parseLoadedRun(value: unknown): LoadedRun | null {
 }
 export interface WorkbenchLoader {
   load(root: string, id: string): Promise<Loaded>;
+  // Without waiting: the record for the log as it is now, else the previous record of a log that
+  // has since grown, else null. Either way a load of the current log is under way.
+  current(root: string, id: string): Loaded | null;
   forget(keep: (path: string) => boolean): void;
 }
 // Caches each run by its log signature, shares a load already in flight, and persists ended
@@ -128,36 +131,48 @@ export function createWorkbenchLoader(options: { compute?: WorkbenchCompute; sto
   const stamp: BuildIdentity | null = build === null ? null : { commit: build.commit, dirty: build.dirty };
   const buildKey = `:viewer=${stamp === null ? "unknown" : `${stamp.commit}${stamp.dirty ? "+dirty" : ""}`}`;
   const cache = new Map<string, Loaded>(), inflight = new Map<string, Promise<Loaded>>();
+  const signatureOf = (path: string, id: string): { signature: string } | { invalid: Loaded } => {
+    try { return { signature: runSignature(path) + buildKey }; } catch (error) {
+      const entry: Loaded = { signature: "", run: invalidRun(id, errorText(error)), port: null, tag: null, timing: null, skew: null };
+      cache.set(path, entry); return { invalid: entry };
+    }
+  };
+  const start = (root: string, id: string, path: string, signature: string): Promise<Loaded> => {
+    const key = `${path}\0${signature}`;
+    let pending = inflight.get(key);
+    if (pending === undefined) {
+      pending = (async (): Promise<Loaded> => {
+        const stored = options.store?.get(id, signature) ?? null;
+        const loaded = stored ?? await compute(root, id, stamp);
+        const entry: Loaded = { ...settleSkew(loaded, build), signature };
+        let after: string | null = null; try { after = runSignature(path) + buildKey; } catch { /* removed while loading */ }
+        if (after === signature) {
+          cache.set(path, entry);
+          if (stored === null && loaded.run.status === "ended") options.store?.put(id, signature, loaded);
+        }
+        return entry;
+      })();
+      const settled = pending;
+      inflight.set(key, settled);
+      const clear = (): void => { if (inflight.get(key) === settled) inflight.delete(key); };
+      settled.then(clear, clear);
+    }
+    return pending;
+  };
   return {
     load: async (root, id) => {
-      const path = eventsPath(root, id);
-      let signature: string;
-      try { signature = runSignature(path) + buildKey; } catch (error) {
-        const entry: Loaded = { signature: "", run: invalidRun(id, errorText(error)), port: null, tag: null, timing: null, skew: null };
-        cache.set(path, entry); return entry;
-      }
+      const path = eventsPath(root, id), sig = signatureOf(path, id);
+      if ("invalid" in sig) return sig.invalid;
       const prior = cache.get(path);
-      if (prior?.signature === signature) return prior;
-      const key = `${path}\0${signature}`;
-      let pending = inflight.get(key);
-      if (pending === undefined) {
-        pending = (async (): Promise<Loaded> => {
-          const stored = options.store?.get(id, signature) ?? null;
-          const loaded = stored ?? await compute(root, id, stamp);
-          const entry: Loaded = { ...settleSkew(loaded, build), signature };
-          let after: string | null = null; try { after = runSignature(path) + buildKey; } catch { /* removed while loading */ }
-          if (after === signature) {
-            cache.set(path, entry);
-            if (stored === null && loaded.run.status === "ended") options.store?.put(id, signature, loaded);
-          }
-          return entry;
-        })();
-        const settled = pending;
-        inflight.set(key, settled);
-        const clear = (): void => { if (inflight.get(key) === settled) inflight.delete(key); };
-        settled.then(clear, clear);
-      }
-      return pending;
+      if (prior?.signature === sig.signature) return prior;
+      return start(root, id, path, sig.signature);
+    },
+    current: (root, id) => {
+      const path = eventsPath(root, id), sig = signatureOf(path, id);
+      if ("invalid" in sig) return sig.invalid;
+      const prior = cache.get(path) ?? null;
+      if (prior?.signature !== sig.signature) start(root, id, path, sig.signature).catch(() => undefined);
+      return prior;
     },
     forget: (keep) => { for (const path of cache.keys()) if (!keep(path)) cache.delete(path); },
   };
@@ -413,9 +428,12 @@ export async function cohortIndex(root: string, experimentsDir: string = join(di
   return { runs: ids.map(id => ({ id, cohort: tagged.membership.get(id) ?? cohorts.membership.get(id) ?? null, problem: problems.get(id) ?? null })) };
 }
 // experimentsDir holds the definitions that label the EXPERIMENT dropdown (the repo's experiments/ next to runs/).
-export async function workbenchSnapshot(root: string, healthy: HealthProbe, now: number, experimentsDir: string = join(dirname(root), "experiments"), loader: WorkbenchLoader = defaultLoader): Promise<WorkbenchData> {
+// partial: serve what is loaded now (a grown log keeps its previous record until its reload lands)
+// and report the rest as still loading, instead of waiting for a cold cache.
+export async function workbenchSnapshot(root: string, healthy: HealthProbe, now: number, experimentsDir: string = join(dirname(root), "experiments"), loader: WorkbenchLoader = defaultLoader, mode: { partial?: boolean } = {}): Promise<WorkbenchData> {
   const cohorts = await cohortMembership(root); const summaries = listRuns(root);
-  const loadedRuns = await Promise.all(summaries.map(s => loader.load(root, s.id))), definitions = experimentDefinitions(experimentsDir, root);
+  const found = mode.partial === true ? summaries.map(s => loader.current(root, s.id)) : await Promise.all(summaries.map(s => loader.load(root, s.id)));
+  const loadedRuns = found.filter((l): l is Loaded => l !== null), waiting = found.length - loadedRuns.length, definitions = experimentDefinitions(experimentsDir, root);
   const tagged = taggedCohorts(loadedRuns.flatMap(l => l.tag === null ? [] : [{ run: l.run.id, experiment: l.tag.experiment, commit: l.tag.commit, started: l.run.started }]), definitions);
   const newest = new Map<number, { id: string; at: number }>();
   for (const loaded of loadedRuns) if (loaded.port !== null && loaded.run.status === "unresponsive") {
@@ -442,7 +460,7 @@ export async function workbenchSnapshot(root: string, healthy: HealthProbe, now:
   }));
   loader.forget(path => summaries.some(s => eventsPath(root, s.id) === path) || !path.startsWith(root + "/"));
   runs.sort((a, b) => Date.parse(b.started ?? "") - Date.parse(a.started ?? "") || b.id.localeCompare(a.id));
-  const problems = [...cohorts.problems, ...runs.flatMap(run => run.status !== "invalid" && run.problem !== null ? [`Run ${run.id}: ${run.problem}`] : [])], taggedValues = new Set(tagged.cohorts.map(c => c.id)), legacy = new Map<string, WorkbenchCohort>();
+  const problems = [...(waiting > 0 ? [`Still loading ${String(waiting)} of ${String(found.length)} recorded runs; this page fills in as they finish.`] : []), ...cohorts.problems, ...runs.flatMap(run => run.status !== "invalid" && run.problem !== null ? [`Run ${run.id}: ${run.problem}`] : [])], taggedValues = new Set(tagged.cohorts.map(c => c.id)), legacy = new Map<string, WorkbenchCohort>();
   for (const run of runs) {
     if (run.cohort === null || tagged.membership.has(run.id)) continue;
     if (taggedValues.has(run.cohort)) problems.push(`Legacy cohort ${run.cohort} has the value of a run-tagged cohort; run ${run.id} is not tagged`);

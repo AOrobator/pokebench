@@ -255,7 +255,7 @@ it("retries a background load that failed instead of leaving the run pending for
 it("runs workbench jobs before queued baseline jobs", async () => {
   const workers: FakeWorker[] = [];
   const pool = createBaselinePool(() => { const w = new FakeWorker(); workers.push(w); return w; }, 1);
-  const jobs = [pool.compute("/r", "a"), pool.compute("/r", "b"), pool.load("/r", "c")];
+  const jobs = [pool.compute("/r", "a"), pool.compute("/r", "b"), pool.load("/r", "c", null)];
   for (const job of jobs) job.catch(() => undefined);
   expect(workers[0]?.posted.map((p) => p.runId)).toEqual(["a"]);
   workers[0]?.emit("message", { id: workers[0].posted[0]?.id, outcome: { baseline: { run: "a", milestones: [] } } });

@@ -33,6 +33,8 @@ export interface FixedCliDeps {
   readonly user: string;
   readonly head: () => string;
   readonly sha1File: (path: string) => string | null;
+  // POKEBENCH_ROM as the runner sees it; `just` loads it from the gitignored .env.
+  readonly rom: string | undefined;
   readonly run: (options: FixedRunOptions) => Promise<"finished" | "stopped">;
   readonly host: () => FixedHost;
   readonly stopRequested?: () => boolean;
@@ -137,7 +139,14 @@ async function approve(deps: FixedCliDeps, id: string): Promise<void> {
   deps.out(`approved ${id}`);
 }
 
+// Every trial inherits the runner's environment, so a runner without the ROM would only produce invalid trials.
+function requireRom(deps: FixedCliDeps): void {
+  if (deps.rom === undefined || deps.rom === "") throw new CliError("POKEBENCH_ROM is not set; launch with `just fixed-run`, which loads .env");
+  if (deps.sha1File(deps.rom) === null) throw new CliError(`cannot read POKEBENCH_ROM ${deps.rom}`);
+}
+
 async function run(deps: FixedCliDeps, id: string): Promise<void> {
+  requireRom(deps);
   const { definition: def, sha256: digest } = load(deps, id);
   const approval = readApproval(deps, id);
   if (approval === null) throw new CliError(`${id} is not approved; run \`just fixed-run approve ${id}\` in a terminal`);
@@ -148,6 +157,7 @@ async function run(deps: FixedCliDeps, id: string): Promise<void> {
 
 async function dryRun(argv: readonly string[], deps: FixedCliDeps, id: string): Promise<void> {
   const wallMs = msInt(flag(argv, "--wall-ms"), 120_000, "--wall-ms");
+  requireRom(deps);
   const { definition: def } = load(deps, id);
   const dry = dryRunDefinition(def, wallMs);
   if (existsSync(join(experimentDir(deps, dry.id), "trials.jsonl"))) throw new CliError(`${dry.id} already has a ledger; move runs/experiments/${dry.id} aside first`);
@@ -297,6 +307,7 @@ if (import.meta.main) {
     randomSeed: () => randomBytes(8).toString("hex"), interactive: rl !== null, prompt: (q) => rl?.question(q) ?? Promise.resolve(""),
     now: () => new Date(), user: userInfo().username, head: () => git(["rev-parse", "HEAD"]).trim(),
     sha1File: (path) => (existsSync(path) ? createHash("sha1").update(readFileSync(path)).digest("hex") : null),
+    rom: process.env["POKEBENCH_ROM"],
     run: runFixed, host: () => productionFixedHost({ root, runsRoot, git, fetchFn: fetch, node: process.execPath, env: process.env, log }),
     stopRequested: () => stop,
   }).then((code) => { process.exitCode = code; }, (error: unknown) => {

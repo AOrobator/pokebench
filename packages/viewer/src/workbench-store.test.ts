@@ -192,6 +192,29 @@ describe("durable cohort membership and metadata boundaries", () => {
     expect(fixed.runs.find(x => x.id === "2026-10-14T20-00-00_think-fast_aaaa")?.cohort).toBe("experiment:full-map");
     expect(fixed.runs.find(x => x.id === "2026-10-14T20-30-00_think-fast_bbbb")?.cohort).toBeNull();
   });
+  it("assigns fixed-run trials to their experiment and excludes the invalid ones", async () => {
+    const r = root(), ids = ["2026-10-15T21-45-05_qwen36-gpu1_7b2a", "2026-10-15T21-45-05_qwen36-gpu0_a753", "2026-10-15T22-00-05_qwen36-gpu1_9999"];
+    for (const id of ids) write(r, id, named());
+    mkdirSync(join(r, "experiments", "bundle-v-control"), { recursive: true });
+    const launch = (slot: number, lane: string, arm: string, run: string): Record<string, unknown> => ({ kind: "launch", slot, lane, phase: "confirmatory", arm, run, at: "t", commit: "c", sources: "s", presetSha256: "p", serving: "f" });
+    const outcome = (slot: number, run: string, valid: boolean, reason: string): Record<string, unknown> => ({ kind: "outcome", slot, run, at: "t", valid, reason, endReason: valid ? "budget" : null, primaryReached: false, primaryMs: null, furthest: null, furthestDepth: -1, furthestMs: null, wallMs: null, turns: null });
+    const ledger = [
+      launch(1, "A", "control", ids[0] ?? ""), { kind: "started", slot: 1, run: ids[0], pid: 10, at: "t" }, outcome(1, ids[0] ?? "", true, "wall cap"),
+      launch(2, "B", "bundle", ids[1] ?? ""), { kind: "started", slot: 2, run: ids[1], pid: 11, at: "t" }, outcome(2, ids[1] ?? "", false, "no run_end: the play process died mid-run"),
+      launch(3, "A", "bundle", ids[2] ?? ""), { kind: "started", slot: 3, run: ids[2], pid: 12, at: "t" },
+    ];
+    writeFileSync(join(r, "experiments", "bundle-v-control", "trials.jsonl"), ledger.map(e => JSON.stringify(e)).join("\n") + "\n");
+    const d = parseWorkbench(await workbenchSnapshot(r, () => Promise.resolve(false), 2000000000000));
+    expect(d.problems).toEqual([]);
+    expect(ids.map(id => d.runs.find(x => x.id === id)?.cohort)).toEqual(Array(3).fill("experiment:bundle-v-control"));
+    expect(d.runs.find(x => x.id === ids[0])?.excluded).toBeNull();
+    expect(d.runs.find(x => x.id === ids[1])?.excluded).toContain("died mid-run");
+    expect(d.runs.find(x => x.id === ids[2])?.excluded).toBeNull();
+    writeFileSync(join(r, "experiments", "bundle-v-control", "trials.jsonl"), ledger.map(e => JSON.stringify(e)).join("\n") + "\n" + JSON.stringify({ kind: "outcome", slot: 9 }) + "\n");
+    const broken = parseWorkbench(await workbenchSnapshot(r, () => Promise.resolve(false), 2000000000000));
+    expect(broken.runs.filter(x => x.cohort !== null)).toEqual([]);
+    expect(broken.problems.some(p => p.includes("Experiment bundle-v-control ledger"))).toBe(true);
+  });
   it("puts every finals arm, the incumbent and each finalist, in the experiment's finals cohort", async () => {
     const r = root(), ids = ["2026-10-15T11-03-44_think-fast_ab87", "2026-10-15T11-08-31_think-fast_504f", "2026-10-15T11-38-31_think-fast_c0de"];
     for (const id of ids) write(r, id, named());

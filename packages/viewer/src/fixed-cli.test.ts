@@ -27,6 +27,7 @@ function setup(over: Partial<FixedCliDeps> = {}) {
     user: "operator",
     head: () => "0123456789abcdef0123456789abcdef01234567",
     sha1File: () => START_SHA1,
+    rom: "/roms/pokemon-emerald.gba",
     run: (options) => { runs.push(options); return Promise.resolve("finished"); },
     host: () => ({}) as never,
     ...over,
@@ -112,6 +113,20 @@ describe("fixed-run check, approve, run, dry-run", () => {
     expect(err.at(-1)).toBe(`control base ${CONTROL_BASE_PATH} is missing`);
   });
 
+  it("refuses to run or dry-run without a readable POKEBENCH_ROM, before any trial launches", async () => {
+    for (const command of [["run", "bundle-v-control"], ["dry-run", "bundle-v-control"]]) {
+      const unset = setup({ rom: undefined });
+      writeFileSync(unset.path, JSON.stringify(definition()));
+      expect(await main(command, unset.deps)).toBe(1);
+      expect(unset.runs).toEqual([]);
+      expect(unset.err.join("\n")).toContain("POKEBENCH_ROM is not set");
+      const missing = setup({ sha1File: (path) => (path === "/roms/pokemon-emerald.gba" ? null : START_SHA1) });
+      writeFileSync(missing.path, JSON.stringify(definition()));
+      expect(await main(command, missing.deps)).toBe(1);
+      expect(missing.runs).toEqual([]);
+      expect(missing.err.join("\n")).toContain("cannot read POKEBENCH_ROM /roms/pokemon-emerald.gba");
+    }
+  });
   it("dry-runs one trial per arm per lane under its own id, with no approval", async () => {
     const { deps, runs, path } = setup();
     writeFileSync(path, JSON.stringify(definition()));

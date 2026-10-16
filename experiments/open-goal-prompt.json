@@ -8,7 +8,7 @@
  "primaryMilestone": "RECEIVED_POKEDEX",
  "source": {
   "checkout": "main",
-  "commit": "4f2834b01fc387f31f743562c9d597f931ec6b3f"
+  "commit": "302b8c07969a4695cb32bf5576280a57e04ad525"
  },
  "trialsPerArm": 8,
  "modelLane": "think-fast",
@@ -127,7 +127,12 @@
    "birch-speech-pages-v1": true,
    "blackout-readout-v1": true,
    "open-goal-prompt-v1": false
+  },
+  "start": {
+   "kind": "save_state",
+   "path": "runs/launch-receipts/fast-text/MAIN_MENU.state",
+   "sha1": "b3a6cc1c19836600a15febf41b8f8b19661ce5d4"
   }
  },
- "notes": "Operator decision (the operator via coordinator, 2026-10-16 ~2:55 PM New York): this switch goes in the BUNDLE ARM of bundle-v-control; this entry is the pending record the feature-switch skill requires, not a standalone experiment to queue. Incumbent = the bundle-v-control bundle arm at main 4070e250 (base features from control base frontier-incumbent-4caa plus the bundle switches on; cook-phase 60-minute cap, maxTurns 20000); the candidate flips only open-goal-prompt-v1. Activation: the prompt changes from the first request. Primary RECEIVED_POKEDEX: the recorded misplacement (4caa T273, 0875) comes after the rival battle, when the game sends the player back to Birch's lab. Pre-registered diagnostic (mechanism, not grading): turns whose assistant reasoning names Rustboro before any tool result or dialogue page did; scan in docs/worklogs/active/2026-10-16_open-goal-prompt.md. Grading reads native game flags only, never the prompt. Provisional source.commit; repinned to the merge SHA with `just experiment-pin` when it lands."
+ "notes": "Operator decision (the operator via coordinator, 2026-10-16 ~2:55 PM New York): this switch goes in the BUNDLE ARM of bundle-v-control; this entry is the pending record the feature-switch skill requires, not a standalone experiment to queue. Incumbent = the bundle-v-control bundle cook arm (armPreset(bundle-v-control, cook, bundle): base features from control base frontier-incumbent-4caa plus the bundle switches on, MAIN_MENU save start b3a6cc1c, 60-minute cap, maxTurns 20000); the candidate flips only open-goal-prompt-v1. The queue runs boot starts only, so a measured comparison runs as the bundle arm or an external cohort, not from this entry. Activation: the prompt changes from the first request. Primary RECEIVED_POKEDEX: the recorded misplacement (4caa T273, 0875) comes after the rival battle, when the game sends the player back to Birch's lab. Pre-registered diagnostic (mechanism, not grading): turns whose assistant reasoning names Rustboro before any tool result or dialogue page did; scan in docs/worklogs/active/2026-10-16_open-goal-prompt.md. Grading reads native game flags only, never the prompt. source.commit is the branch's implementation commit 302b8c07 (it contains this entry and the switch wiring); repinned to the merge SHA with `just experiment-pin` when it lands."
 }

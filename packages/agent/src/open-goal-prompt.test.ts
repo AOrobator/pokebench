@@ -54,7 +54,7 @@ it("ON replaces exactly the goal sentence and nothing else; tools are unchanged"
   const off=playSystemPrompt(base,null),on=playSystemPrompt(with_(base,true),null);
   expect(off.split(GOAL_SENTENCE)).toHaveLength(2);
   expect(on).toBe(off.replace(GOAL_SENTENCE,OPEN_GOAL_SENTENCE));
-  expect(on).not.toMatch(/rustboro|gym leader/i);
+  expect(on).not.toMatch(/\b(rustboro|gym|gyms|leader|badge)\b/i);
   expect(playTools(with_(base,true))).toEqual(playTools(base));
   expect(toolSwitches(with_(base,true))).toEqual(toolSwitches(base));
   expect(objectiveSwitches(with_(base,true))).toEqual(objectiveSwitches(base));

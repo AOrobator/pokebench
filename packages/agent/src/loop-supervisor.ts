@@ -8,7 +8,27 @@ import type {LoopKind} from "./loop-detection.js";
 
 export type Stall=
  | {readonly kind:"map_cycle";readonly from:string;readonly to:string;readonly roundTrips:number;readonly consecutive:boolean}
- | {readonly kind:"milestone_drought";readonly minutes:number};
+ | {readonly kind:"milestone_drought";readonly minutes:number}
+ | {readonly kind:"interface_dwell";readonly name:string;readonly calls:number};
+
+// An interface the game owns input for: a naming editor (any phase), or a ready menu or prompt outside battle.
+export interface OwnedInterface {readonly key:string;readonly name:string;readonly owner:string|null;readonly phase:string;readonly naming:boolean;readonly text:string|null;readonly selected:string|null;readonly controls:string|null}
+// pokeemerald naming_screen.c templates' maxChars (PLAYER_NAME_LENGTH, BOX_NAME_LENGTH, POKEMON_NAME_LENGTH, WALDA_PHRASE_LENGTH).
+const NAME_LIMIT:Readonly<Record<string,number>>={player:7,box:8,caught_mon:10,nickname:10,walda:15};
+type Screen=Pick<Extract<RunEvent,{type:"state";started:boolean}>,"started"|"screen"|"in_battle"|"active_ui"|"naming">;
+export function interfaceOf(s:Screen):OwnedInterface|null {
+ if(!s.started||s.in_battle||s.screen==="battle")return null;
+ const ui=s.active_ui??null;
+ const owner=ui?.details?.["naming_owner"];
+ const who=typeof owner==="string"?owner:null;
+ if(s.screen==="naming"||s.naming!=null){
+  const name=who===null?"naming editor":`${who.replaceAll("_"," ")} naming editor`;
+  // In-game naming fields when the state has them; else the interface's own value and selection.
+  return {key:`naming:${who??""}`,name,owner:who,phase:ui?.phase??"naming",naming:true,text:s.naming?.text??ui?.value??null,selected:s.naming?.key??ui?.selected??null,controls:ui?.controls??null};
+ }
+ if(ui===null||ui.ready!==true||ui.diagnostic!==null)return null;
+ return {key:`ui:${ui.phase}`,name:`${ui.phase.replaceAll("_"," ")} interface`,owner:who,phase:ui.phase,naming:false,text:ui.value??null,selected:ui.selected,controls:ui.controls};
+}
 
 type State=Extract<RunEvent,{type:"state";started:boolean}>;
 interface Call {readonly name:string;readonly args:Record<string,unknown>;before:State|null;pressed:boolean}
@@ -50,6 +70,9 @@ export class SupervisorBriefing {
  private instruction:Instruction|null=null;
  private readonly path=new Map<string,State>();
  private readonly entered=new Set<string>();
+ // stall-briefing-v1: the owned interface the latest result showed, and the presses made in it.
+ private screenNow:{readonly state:State;readonly ui:OwnedInterface}|null=null;
+ private readonly uiTried:Tried[]=[];
  constructor(private readonly features:FeatureSet){this.dialogue=new DialogueLog(features);this.hint=features["next-milestone-hint-v1"]?new NextMilestoneHint():null;}
  observe(event:RunEvent):void {
   this.dialogue.observe(event);
@@ -87,6 +110,7 @@ export class SupervisorBriefing {
   const after=this.measured;this.measured=null;
   const auto=this.advanced.get(event.id);this.advanced.delete(event.id);
   if(!event.is_error&&GAME_TOOLS.has(event.name))this.readStory(event.text);
+  this.seeInterface(after,this.calls.get(event.id));
   if(!after.started||after.screen!=="overworld")return;
   this.latest=after;
   const key=this.room(after);this.path.delete(key);this.path.set(key,after);
@@ -101,6 +125,21 @@ export class SupervisorBriefing {
   for(const page of auto?.pages??[])this.heard.add(this.pageOpening(page));
   const dialogue=after.world_context?.dialogue;
   if(dialogue)this.heard.add(this.opening(after,dialogue));
+ }
+ private seeInterface(after:State,call:Call|undefined):void {
+  const ui=interfaceOf(after);
+  if(ui===null){this.screenNow=null;this.uiTried.length=0;return;}
+  if(this.screenNow?.ui.key!==ui.key)this.uiTried.length=0;
+  this.screenNow={state:after,ui};
+  const buttons=call?.name==="press"?call.args["buttons"]:undefined;
+  if(!Array.isArray(buttons)||buttons.length===0)return;
+  const label=`press ${buttons.map(String).join(",")}`;
+  const outcome=[...(ui.naming&&ui.text!==null?[`text "${ui.text}"`]:[]),...(ui.selected===null?[]:[`highlighted ${ui.selected}`])].join(", ")||`phase ${ui.phase}`;
+  // The same input repeated is one entry with its latest result: the text churns, the input does not.
+  const index=this.uiTried.findIndex(t=>t.label===label);
+  const existing=index>=0?this.uiTried.splice(index,1)[0]:undefined;
+  this.uiTried.push({key:ui.key,room:`the ${ui.name}`,label,count:(existing?.count??0)+1,outcome:`latest: ${outcome}`});
+  if(this.uiTried.length>MAX_TRIED)this.uiTried.shift();
  }
  // The pages delivered in the call that earned a story milestone, up to the state that proved it.
  private storyPages(id:string,error:boolean):void {
@@ -277,11 +316,12 @@ export class SupervisorBriefing {
  // stall-briefing-v1: the same facts, headed by which stall it is, plus the dialogue of the last story step
  // and what lies on the maps walked since the last progress.
  stallText(stall:Stall,calls:number):string {
-  const what=stall.kind==="map_cycle"?`You have walked between ${stall.from} and ${stall.to} ${String(stall.roundTrips)} times${stall.consecutive?", out and back,":" (with other maps in between),"} with no new story milestone`:`There has been no new story milestone for ${String(stall.minutes)} minutes of play`;
+  const what=stall.kind==="map_cycle"?`You have walked between ${stall.from} and ${stall.to} ${String(stall.roundTrips)} times${stall.consecutive?", out and back,":" (with other maps in between),"} with no new story milestone`:stall.kind==="interface_dwell"?`You have made ${String(stall.calls)} calls in the ${stall.name} without leaving it, with no new story milestone`:`There has been no new story milestone for ${String(stall.minutes)} minutes of play`;
   return this.bearings(`SUPERVISOR: You are stalling. ${what}, and the game is not moving forward (stall briefing, ${String(calls)} calls into the run).`,true);
  }
 
  private bearings(headline:string,stall=false):string {
+  if(stall&&this.screenNow!==null)return this.interfaceBearings(headline,this.screenNow.ui);
   const tried=this.tried.length===0?"nothing recorded":this.tried.slice().reverse().map(t=>`${t.label}${t.count>1?` ×${String(t.count)}`:""} in ${t.room} → ${t.outcome}`).join("; ");
   const recall=this.features["dialogue-log-v1"]?" (use recall_dialogue to check exactly what characters said)":"";
   return `${headline} What you have been trying is not working, so do not try it again.
@@ -294,6 +334,31 @@ ${this.kept()}- Recent dialogue you were shown, newest first: ${this.told()}
 ${stall?`- Dialogue shown with your latest story step that came with dialogue${this.instructionText()}\n`:""}- What you tried recently, newest first: ${tried}
 - Listed here that you have not tried yet: ${this.untried()}
 ${stall?`- Not tried yet on other maps you have been on since your last story progress: ${this.untriedElsewhere()}\n- Exits to maps you have not entered since your last story progress: ${this.unentered()}\n`:""}${this.edges()}Before your next action, look back at your goal and at what the game has told you${recall}. If anything you believe disagrees with the dialogue or the readout above, believe the game. Make a new plan that is different from what you have been trying, and say which untried option you will try first. The run continues.`;
+ }
+
+ // stall-briefing-v1 inside an owned interface: what the interface shows and how the game lets you finish it.
+ private interfaceBearings(headline:string,ui:OwnedInterface):string {
+  const tries=[...this.uiTried.slice().reverse(),...this.tried.slice().reverse()];
+  const tried=tries.length===0?"nothing recorded":tries.map(t=>`${t.label}${t.count>1?` ×${String(t.count)}`:""} in ${t.room} → ${t.outcome}`).join("; ");
+  const recall=this.features["dialogue-log-v1"]?" (use recall_dialogue to check exactly what characters said)":"";
+  const limit=ui.owner===null?undefined:NAME_LIMIT[ui.owner];
+  const shows=[`${ui.name} (phase ${ui.phase})`,
+   ...(ui.naming&&ui.text!==null?[`text entered so far: "${ui.text}"${limit===undefined?"":` (at most ${String(limit)} characters)`}`]:[]),
+   ...(ui.selected===null?[]:[`highlighted ${ui.naming?"key":"choice"}: ${ui.selected}`]),
+   ...(ui.controls===null||ui.controls===""?[]:[`controls the game shows: ${ui.controls}`])].join("; ");
+  // pokeemerald naming_screen.c: START moves the cursor to OK and A on OK saves; SaveInputText keeps the
+  // destination unchanged when the text is empty, and ChangePokemonNickname preloads it with the current name.
+  const finish=ui.naming?`- How to finish: press START to move the cursor to OK, then press A on OK${ui.owner==="nickname"?"; with no text entered the Pokémon keeps its current name":""}\n`:"";
+  return `${headline} What you have been trying is not working, so do not try it again.
+Stop and get your bearings:
+- Where you are: in the ${ui.name} (screen ${this.screenNow?.state.screen??"unknown"}); your last field position was ${this.where()}
+- Open interface: ${shows}
+${finish}- Last story progress: ${this.lastProgress()}
+${this.hint===null?"":`- Next milestone (hint): ${this.hint.describe()}\n`}- Story steps the game confirms are done: ${this.done()}
+- Recent dialogue you were shown, newest first: ${this.told()}
+- Dialogue shown with your last story step${this.instructionText()}
+- What you tried recently, newest first: ${tried}
+Before your next action, look back at your goal and at what the game has told you${recall}. If anything you believe disagrees with the dialogue or the readout above, believe the game. Make a new plan that is different from what you have been trying, and say how you will finish or leave this interface first. The run continues.`;
  }
 
  textOnly(replies:number,note:number,limit:number):string {

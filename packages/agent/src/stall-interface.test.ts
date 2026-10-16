@@ -24,7 +24,9 @@ describe("F12 stall-briefing-v1 in an owned interface (showcase nickname editor)
   expect(text).toContain("\n- Where you are: in the nickname naming editor (screen naming); your last field position was LITTLEROOT TOWN PROFESSOR BIRCHS LAB (map 1/4) at 6,5 facing up\n");
   expect(text).toContain(`\n- Open interface: nickname naming editor (phase naming_editor); text entered so far: "MP.4" (at most 10 characters); highlighted key: 4; controls the game shows: A selects key; B deletes; SELECT changes page; START moves to OK\n`);
   expect(text).toContain("\n- How to finish: press START to move the cursor to OK, then press A on OK; with no text entered the Pokémon keeps its current name\n");
-  expect(text).toMatch(/\n- What you tried recently, newest first: press B,RIGHT,RIGHT,RIGHT,RIGHT,A ×6 in the nickname naming editor → text "MP\.4", highlighted 4; /);
+  const repeated=/\n- What you tried recently, newest first: press B,RIGHT,RIGHT,RIGHT,RIGHT,A ×(\d+) in the nickname naming editor → latest: text "MP\.4", highlighted 4; /.exec(text);
+  // The recorded batch B,RIGHT×4,A was sent 24 times from turn 273 to 302 (seq 5858–7205), each result a different text.
+  expect(Number(repeated?.[1])).toBe(24);
   expect(text).not.toMatch(FIELD_LISTS);
   expect(text).not.toContain("Characters the readout names here");
   expect(text).toMatch(/say how you will finish or leave this interface first\. The run continues\.$/);

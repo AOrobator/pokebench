@@ -16,8 +16,11 @@ Re-land of the readiness thread's F12 (RED 51006938, GREEN 7261cdd6, reverted th
 - [x] `packages/agent/src/stall-interface.test.ts` red on main (3 failing: briefing still names the field; no interface_dwell stall; headline)
 
 **M2 — GREEN, gates, review, land**
-- [ ] Port 7261cdd6 onto current main; gates; Claude + Codex + Grok LGTM on the sealed packet; fast-forward land
+- [x] Port 7261cdd6 onto current main (one features.ts copy conflict: merged the F5 wording with the dwell wording); gates: agent 1450 (97.79/94.36/98.1), viewer 824, pytest 2162 (97.15/92.87/100), lint, schema, vendor clean; delete-the-wiring: dropping the interface_dwell stall call turns the dwell test red; explainer section added to stall-briefing-v1.html
+- [ ] Claude + Codex + Grok LGTM on the sealed packet; fast-forward land
 
 ## Session Log
+
+- 2026-10-16 04:20 AM EDT: branch cut from main 3c51c547 in the freed edge-tiles worktree; RED 487d11d5 (cherry-picked test + trimmed showcase events).
 
 ## Multi-Model Review Log

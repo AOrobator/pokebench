@@ -102,6 +102,21 @@ describe("condition, from the state alone",()=>{
   expect(storyBattleWarning({...T363,map_id:[0,10],location:"OLDALE TOWN"})).toBeNull();
   expect(storyBattleWarning({...T363,story:null})).toBeNull();
  });
+ it("does not fire while any party Pokémon cannot be read, since the paragraph lists every hurt one",()=>{
+  const lead=must(T363.party[0]);
+  expect(storyBattleWarning({...T363,party:[lead,{...lead,species:"WURMPLE",hp:null,max_hp:null}]})).toBeNull();
+  expect(storyBattleWarning({...T363,party:[lead,{...lead,species:null,hp:5,max_hp:15}]})).toBeNull();
+  expect(storyBattleWarning({...T363,party:[lead,{...lead,species:"EGG",is_egg:true,hp:null,max_hp:null}]})?.party).toEqual([{species:"TORCHIC",hp:3,max_hp:21}]);
+ });
+ it("names revival medicine too, for fainted Pokémon (v1's item list is unchanged)",()=>{
+  const lead=must(T363.party[0]);
+  const bag=[{slot:0,item_id:24,quantity:1,pocket:"items",name:"REVIVE"},{slot:1,item_id:13,quantity:2,pocket:"items",name:"POTION"}];
+  const state={...T363,party:[lead,{...lead,species:"WURMPLE",hp:0,max_hp:15}],resources:{...must(T363.resources),bag}};
+  const facts=must(storyBattleWarning(state));
+  expect(facts.items).toEqual([{name:"REVIVE",quantity:1},{name:"POTION",quantity:2}]);
+  expect(storyBattleText(facts)).toMatch(/ Your BAG has REVIVE ×1 and POTION ×2; using one restores HP\.$/);
+  expect(must(lowHpTrainerWarning(state)).items).toEqual([{name:"POTION",quantity:2}]);
+ });
  it("names healing items in the bag",()=>{
   const bag=[{slot:0,item_id:13,quantity:2,pocket:"items",name:"POTION"}];
   expect(storyBattleText(must(storyBattleWarning({...T363,resources:{...must(T363.resources),bag}})))).toMatch(/ Your BAG has POTION ×2; using one restores HP\.$/);

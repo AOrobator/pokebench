@@ -97,8 +97,11 @@ const STORY_BATTLES:readonly StoryBattle[]=[
 const onMap=(id:readonly number[]|null|undefined,map:readonly [number,number]):boolean=>id?.[0]===map[0]&&id[1]===map[1];
 const hurt=(s:GameStateSnapshot):StoryBattleWarningFacts["party"]=>s.party.flatMap(m=>m.is_egg!==true&&m.species!==null&&m.hp!=null&&m.max_hp!=null&&m.hp<m.max_hp?[{species:m.species,hp:m.hp,max_hp:m.max_hp}]:[]);
 // Positive evidence only: every Pokémon (not an egg) reads its HP and max HP, and each is at max.
-const fullParty=(s:GameStateSnapshot):boolean=>{const mons=s.party.filter(m=>m.is_egg!==true);return mons.length>0&&mons.every(m=>m.hp!=null&&m.max_hp!=null&&m.hp>=m.max_hp);};
-const bagItems=(s:GameStateSnapshot):StoryBattleWarningFacts["items"]=>(s.resources?.bag??[]).flatMap(i=>i.name!=null&&HEALING_ITEMS.has(i.name)&&i.quantity>0?[{name:i.name,quantity:i.quantity}]:[]);
+const fullParty=(s:GameStateSnapshot):boolean=>{const mons=s.party.filter(m=>m.is_egg!==true);return mons.length>0&&mons.every(m=>m.species!==null&&m.hp!=null&&m.max_hp!=null&&m.hp===m.max_hp);};
+// v2 also lists fainted Pokémon, so it names the field revival medicine too (pokeemerald src/data/items.h:
+// REVIVE, MAX REVIVE, REVIVAL HERB use ItemUseOutOfBattle_Medicine). v1's list is unchanged.
+const STORY_HEALING_ITEMS=new Set([...HEALING_ITEMS,"REVIVE","MAX REVIVE","REVIVAL HERB"]);
+const bagItems=(s:GameStateSnapshot):StoryBattleWarningFacts["items"]=>(s.resources?.bag??[]).flatMap(i=>i.name!=null&&STORY_HEALING_ITEMS.has(i.name)&&i.quantity>0?[{name:i.name,quantity:i.quantity}]:[]);
 
 // The unbeaten story battle on this map, if the state shows one (its won flag explicitly false and, where the game
 // shows the opponent before the battle, the opponent's object loaded on this map).
@@ -121,6 +124,8 @@ export function storyBattleWarning(state:GameStateSnapshot):StoryBattleWarningFa
  if(state.party_owner!=="player")return null;
  const here=storyBattleHere(state);
  if(here===null)return null;
+ // The paragraph lists every hurt Pokémon, so every Pokémon (not an egg) must be readable.
+ if(state.party.some(m=>m.is_egg!==true&&(m.species===null||m.hp==null||m.max_hp==null)))return null;
  const party=hurt(state);
  if(party.length===0)return null;
  return {kind:here.battle.kind,opponent:here.opponent,x:here.x,y:here.y,map_id:here.battle.map,party,money:state.money,items:bagItems(state)};

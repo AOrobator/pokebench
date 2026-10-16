@@ -62,14 +62,18 @@ function blocker(state: GameStateSnapshot, here: Point, direction: Direction, sh
     }
     return { text: `${named} is outside the readout's map window; what stopped you is not known.`, kind: "unknown" };
   }
-  const ledge = show.ledges === true ? LEDGES.get(tile.behavior) : undefined;
-  if (ledge !== undefined) {
-    return ledge === direction
-      ? { text: `The readout shows nothing blocking ${plain}; what stopped you is not known.`, kind: "unknown" }
-      : { text: `${named} is a ledge you can only hop over moving ${ledge}`, kind: "terrain" };
+  // The game hops a ledge pressed in its own direction (ShouldJumpLedge), whatever its collision bits.
+  const ledge = LEDGES.get(tile.behavior);
+  if (ledge === direction) {
+    return { text: show.ledges === true ? `${named} is a ledge you can hop over moving ${ledge}; what stopped you is not known.` : `${named} is drawn as # on the local map; what stopped you is not known.`, kind: "unknown" };
   }
+  if (ledge !== undefined && show.ledges === true) return { text: `${named} is a ledge you can only hop over moving ${ledge}`, kind: "terrain" };
   if (tile.collision !== 0) return { text: show.counters === true && tile.behavior === COUNTER ? `${named} is a counter (collision)` : `${named} is a collision tile (# on the local map)`, kind: "terrain" };
-  if (tile.behavior >= 0x10 && tile.behavior <= 0x15 && onFoot(state)) return { text: `${named} is water (~ on the local map); you cannot walk onto it`, kind: "terrain" };
+  if (tile.behavior >= 0x10 && tile.behavior <= 0x15) {
+    return onFoot(state)
+      ? { text: `${named} is water (~ on the local map); you cannot walk onto it`, kind: "terrain" }
+      : { text: `${named} is water (~ on the local map); what stopped you is not known.`, kind: "unknown" };
+  }
   if (show.edgeWalls === true && (EDGE_WALLS.get(tile.behavior)?.includes(OPPOSITE[direction]) ?? false)) return { text: `${named} has an edge wall on its ${SIDE[OPPOSITE[direction]]} side`, kind: "terrain" };
   return { text: `The readout shows nothing blocking ${plain}; what stopped you is not known.`, kind: "unknown" };
 }

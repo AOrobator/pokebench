@@ -39,4 +39,6 @@ Branch `claude/blocked-batch-result` in `/private/tmp/pokebench-blocked-batch`. 
 
 - [x] Grok: BLOCKING. A `~` tile while surfing, biking or with unknown avatar flags fell through to "The readout shows nothing blocking", which contradicts the map. Round 1 fixes confirmed.
 - [x] Codex: BLOCKING. With ledge-hops-v1 off, a ledge pressed in its own hop direction fell through to "collision tile … cannot move you", but the game hops it (`ShouldJumpLedge`).
-- [x] Taken both. RED: 3 tests (ledge own direction with ledges on and off; water not verified on foot).
+- [x] Taken both. RED: 3 tests (ledge own direction with ledges on and off; water not verified on foot). COMMIT (5862bfbf).
+- [x] GREEN: a ledge pressed in its own hop direction is "no movement" (named as a ledge with ledge hops on, "drawn as #" with it off); a ledge against its arrow with ledge hops off falls to the collision wording the # glyph shows; ~ water when not verified on foot says "is water (~ on the local map); what stopped you is not known". Explainer table updated.
+  - Gates: agent 82 / 1318, viewer 60 / 786, pytest 1960 passed 2 skipped; lint clean except the known mypy `mgba._pylib`; build clean; coverage agent 97.63 / 94.28 / 97.89 / 99.04, viewer 95.08 / 90.39 / 93.55 / 97.6, Python 97.03 / 92.57 / 100; `blocked-batch.ts` 100 lines, 96.85 branches.

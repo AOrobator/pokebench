@@ -188,7 +188,8 @@ function fixedCohort(text: string, cohort: string, name: string, failures: Map<s
 function archivedDryRuns(root: string, failures: Map<string, string>, membership: Map<string, string>, problems: string[]): void {
   const base = join(root, "dryruns");
   if (!existsSync(base)) return;
-  for (const entry of readdirSync(base, { withFileTypes: true })) {
+  const source = new Map<string, string>();
+  for (const entry of readdirSync(base, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name))) {
     const path = join(base, entry.name, "trials.jsonl");
     if (!entry.isDirectory() || !existsSync(path)) continue;
     try {
@@ -197,7 +198,13 @@ function archivedDryRuns(root: string, failures: Map<string, string>, membership
       if (!isFixedLedgerText(text)) continue;
       const found = new Map<string, string>(), invalid = new Map<string, string>();
       fixedCohort(text, `experiment:${entry.name}`, `dry run ${entry.name}`, invalid, found, problems);
-      for (const [run, cohort] of found) if (!membership.has(run)) { membership.set(run, cohort); const why = invalid.get(run); if (why !== undefined) failures.set(run, why); }
+      for (const [run, cohort] of found) {
+        const prior = source.get(run);
+        if (prior !== undefined) { problems.push(`Dry runs ${prior} and ${entry.name} both name run ${run}; it stays in ${prior}`); continue; }
+        if (membership.has(run)) continue;
+        membership.set(run, cohort); source.set(run, entry.name);
+        const why = invalid.get(run); if (why !== undefined) failures.set(run, why);
+      }
     } catch (error) { problems.push(`Dry run ${entry.name}: ${errorText(error)}`); }
   }
 }

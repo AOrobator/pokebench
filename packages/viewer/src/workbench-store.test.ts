@@ -1,4 +1,4 @@
-import { appendFileSync, mkdirSync, mkdtempSync, symlinkSync, truncateSync, writeFileSync } from "node:fs";
+import { appendFileSync, mkdirSync, mkdtempSync, rmSync, symlinkSync, truncateSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -220,6 +220,11 @@ describe("durable cohort membership and metadata boundaries", () => {
     mkdirSync(join(r, "dryruns", "linked")); symlinkSync(join(r, "dryruns", "bundle-v-control-dryrun-20261016-ca37a39", "trials.jsonl"), join(r, "dryruns", "linked", "trials.jsonl"));
     const linked = parseWorkbench(await workbenchSnapshot(r, () => Promise.resolve(false), 2000000000000));
     expect(linked.problems).toEqual(["Dry run linked: ledger exceeds metadata bounds"]);
+    rmSync(join(r, "dryruns", "linked"), { recursive: true });
+    mkdirSync(join(r, "dryruns", "aa-copy")); writeFileSync(join(r, "dryruns", "aa-copy", "trials.jsonl"), [launch(1, ids[2] ?? "")].map(e => JSON.stringify(e)).join("\n") + "\n");
+    const duplicate = parseWorkbench(await workbenchSnapshot(r, () => Promise.resolve(false), 2000000000000));
+    expect(duplicate.runs.find(x => x.id === ids[2])?.cohort).toBe("experiment:aa-copy");
+    expect(duplicate.problems).toEqual([`Dry runs aa-copy and bundle-v-control-dryrun-20261016-ca37a39 both name run ${ids[2] ?? ""}; it stays in aa-copy`]);
   });
   it("lets a live experiment ledger keep a run that an archived dry run also names", async () => {
     const r = root(), id = "2026-10-15T23-47-41_qwen36-gpu1_3f21";

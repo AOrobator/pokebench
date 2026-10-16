@@ -42,6 +42,7 @@ def read_state(
         dynamic_warp_enabled="named-warp-destinations-v1" not in off,
         displayed_names_enabled="displayed-place-names-v1" not in off,
         connection_edges_enabled="connection-edge-tiles-v1" not in off,
+        in_game_naming_enabled="in-game-naming-readout-v1" not in off,
     )
 
 

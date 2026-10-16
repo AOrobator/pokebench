@@ -674,6 +674,8 @@ it("shows the experiment, arm and trial strip, the preset, or just the model and
 it("links the transition press results card to its explainer",()=>{
  expect(FEATURE_EXPLAINERS["transition-press-result-v1"]).toBe("transition-press-result-v1.html");
  expect(FEATURE_EXPLAINERS["blocked-batch-result-v1"]).toBe("blocked-batch-result-v1.html");
+ expect(FEATURE_EXPLAINERS["in-game-naming-readout-v1"]).toBe("in-game-naming-readout-v1.html");
+ expect(FEATURE_EXPLAINERS["no-nickname-guidance-v1"]).toBe("no-nickname-guidance-v1.html");
  expect(FEATURE_EXPLAINERS["explorer-guidance-v1"]).toBe("explorer-guidance-v1.html");
 });
 

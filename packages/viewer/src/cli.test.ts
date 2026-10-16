@@ -76,6 +76,15 @@ describe("main", () => {
     expect(lines.at(-1)).toBe("next runs: no local model endpoint file; queueing is disabled");
   });
 
+  it("hands the viewer the baseline workers built for its runs directory", async () => {
+    const start = vi.fn().mockResolvedValue({ url: "http://127.0.0.1:8790/", port: 8790, address: "127.0.0.1", close: () => Promise.resolve() });
+    const baselines = { warm: true, close: () => Promise.resolve() };
+    const roots: string[] = [];
+    await main(["--runs", "/x/runs"], { repoRunsRoot: "/repo/runs", defaultEndpoint: null, liveJs: "/l.js", staticDir: "/s", appDir: "/a", start, print: () => undefined, baselines: (root) => { roots.push(root); return baselines; } });
+    expect(roots).toEqual(["/x/runs"]);
+    expect(start).toHaveBeenCalledWith(expect.objectContaining({ baselines }));
+  });
+
   it("prints each public origin with the run in the hash", async () => {
     const start = vi.fn().mockResolvedValue({ url: "http://127.0.0.1:8790/", port: 8790, address: "127.0.0.1", close: () => Promise.resolve() });
     const lines: string[] = [];

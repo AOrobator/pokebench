@@ -45,3 +45,14 @@ Operator ask (the operator, 2026-10-16 02:55 and 03:13 EDT; plan OK 03:44 EDT): 
 - [x] Fix (branch claude/route103-fixture-windows): append the missing windows (opponent id, battle type flags, the rival trainer-flag bytes, the Oldale rival var) to the 11 window fixtures, copied from each fixture's own source raw-RAM archive (SHA-256 checked where the fixture records it). No code change. With `.env` present: agent 1555, viewer 884, pytest 2270 passed, 0 skipped. COMMIT: `test(fixtures): RAM windows for the Route 103 rival reader in real-ROM fixtures` (3c237922). Gates: lint/ruff/mypy clean; coverage agent 97.89/94.56/98.2, viewer 95.34/91.02/93.62, Python 97.33/93.17/100; verify-vendor OK.
 - Lesson: copy `.env` into a worktree before running gates so real-ROM tests run.
 - Fix review (packet 9ac04a6c, base 1f4ac74e, head beb9bff1): Claude (fresh read-only subagent) LGTM; Codex gpt-5.6-sol LGTM; grok LGTM on round 2 after round 1 blocked only for lacking shell (verify.py/verify.txt: 24 groups, archive SHA match, old windows an unchanged prefix, 0 byte mismatches). Re-synced with main; `git diff --binary main HEAD` stayed byte-identical (9ac04a6c). MERGE: fast-forward of main to `2cb0e316`. On main: pytest 2270 passed with POKEBENCH_ROM set (0 failed), viewer 904 passed, agent 1618/1619 with one runs-cli timeout under load that passes alone (16/16).
+
+## Review notes follow-up (operator OK 2026-10-16 13:16 EDT)
+
+Branch claude/route103-review-notes. Claude-lane low/info notes from final round 1:
+- [x] Tracker witness requires a location, like the viewer (RED: route103-rival.test.ts null-location witness, 1 failing; GREEN: agent 1868 passed).
+- [x] Explainer: "Rival battle starts" also counts a battle the player then loses; a rematch after a loss gives no second credit; furthest_milestone can now name these splits (the two battle splits between ROUTE_103 and RIVAL_BATTLE_WON, the other three between RIVAL_BATTLE_WON and RECEIVED_POKEDEX); status updated to landed.
+- [x] Feature blurb names the defeat split "rival beaten" so it is not confused with RIVAL_BATTLE_WON.
+- Decision (PB9): crediting RIVAL_BATTLE_STARTED for a battle later lost is intended; it marks reaching the battle, and RIVAL_BATTLE_DEFEATED marks winning it.
+- Principles evidence (PB11): the opponent address rests on the sh02 raw-RAM transition (frame 148,843, 0→535 with the trainer bit), the ROM literal-pool count is supporting only.
+- Gates (with .env): agent 1868, viewer 932, pytest 2313 passed; coverage agent 97.99/94.69/98.4, viewer 95.33/91.09/93.68, Python 97.37/93.23/100; lint, ruff, mypy clean; pages-check clean.
+- Review round 1: Claude subagent BLOCKING (medium): the explainer put all five splits after RIVAL_BATTLE_WON; the two battle splits come before it. Fixed in the explainer and this note; code unchanged.

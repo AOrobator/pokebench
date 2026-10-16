@@ -412,6 +412,7 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "trainer-opponent-v1":"briefing-battle-outcomes-v1.html",
  "blocked-exit-fact-v1":"blocked-exit-fact-v1.html",
  "battle-loss-recap-v1":"battle-loss-recap-v1.html",
+ "transition-coherence-v1":"transition-coherence-v1.html",
 });
 
 export function harnessConfig(view:RunView,registry:readonly FeatureInfo[]=[]):string {

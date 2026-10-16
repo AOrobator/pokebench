@@ -144,3 +144,4 @@ Not here: loop-detection.ts and press-result text (claude/pushback-loop-guard).
 - 2026-10-16 06:37 AM EDT GREEN: with the switch on and world-destinations-v1 on, the unentered-exits line also lists each walked map's connections to maps not entered since the last progress, named as the readout named them (NORTH edge -> ROUTE103 (map 0/18)). sh02 T134 now also shows NORTH edge -> ROUTE101 (map 0/16) for Littleroot (expectation updated). Agent 1682/1682.
 - 2026-10-16 06:39 AM EDT: merged main b0310914 (worklog archive, levelup-box pin), no conflicts.
 - 06:35 AM EDT (actual clock; earlier stamps in this round ran ahead): merged main 8c98cb7c (viewer only), no conflicts.
+- 06:36 AM EDT: merged main 45db59c1 (worklog only).

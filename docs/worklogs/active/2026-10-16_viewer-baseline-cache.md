@@ -68,6 +68,21 @@ The 2026-10-14 worklog named both persistent caching and worker threads as non-g
 - [ ] ASK USER: merge approval (not a bundle-v-control fix)
 - [ ] After merge: `just viewer-main`, record time to first answer, cold and warm `/comparisons`, and that live runs survived
 
+**M4 — Workbench run loads off the request thread, persisted (the operator "yes", 4:34 AM)**
+
+Cause (live receipt below): `workbench-store.ts` `load()` reduces every run's full log (`readNativeRecording` → `parseEvent` per line) on the main thread for `/api/workbench`, in memory only, and re-reduces a live run's whole log whenever it grows.
+
+Design: `load()` splits into `runSignature` (main thread: stat + visual-evidence signature, unchanged) and a pure `loadRun(root, id)` returning a plain `LoadedRun` (`run`, `port`, `tag`, and `timing` replacing the `RunView`: startMs, ended, lastMs, paused, pauses). `runSeconds` on a view becomes `timingSeconds` on that record. A `createWorkbenchLoader({ compute, store })` keeps the in-memory cache by signature, shares in-flight loads, and persists ended runs at `runs/.viewer-cache/workbench/<codeId>/`. The worker pool becomes generic (`kind: "baseline" | "workbench"`); the worker validates nothing new, the main thread validates every workbench reply through `parseWorkbench`. Live runs are recomputed on the workers when their log grows (no main-thread parse); incremental live reads are deferred (needs a resumable `readNativeRecording`).
+
+- [x] Write tests: `loadRun`/`timingSeconds` parity with the in-process snapshot; a held compute leaves other routes answering; store reuse for ended runs only; signature change recomputes; corrupt store entries ignored; worker `kind` routing; in-flight sharing.
+- [x] COMMIT RED: `test(viewer): RED workbench runs load off the request thread and persist` (10 new tests fail: missing exports; pool posts gain `kind`)
+- [x] Implement: `loadRun`/`timingSeconds`/`parseLoadedRun`/`createWorkbenchLoader` in `workbench-store.ts`; generic `RunStore` with `createWorkbenchStore`/`workbenchCacheDir` and pruning of both cache kinds; pool requests carry `kind`, `pool.load` validates workbench replies; worker routes by kind; server `workbench` option; CLI `offload` builds one pool for both. Fixture note: the paused run needs its own port, since only the newest run per port is probed.
+- [x] Guard deletions: persist live runs too → 2 tests fail; no in-flight sharing → 1 fails; server ignores the loader → 1 fails; no after-load signature check → new race test fails. Restored, 10/10 pass.
+- [x] Gates: build, `pnpm -r lint`, ruff, ruff format, mypy (main venv), coverage (viewer 875 tests 95.32 / 90.99 / 93.61; agent 1489 tests 97.82 / 94.56 / 98.14; Python 96%), verify-vendor green.
+- [x] Real catalog (240 runs, built dist, pool of 4, scratch cache dir): cold workbench snapshot 86.0 s with max event-loop lag 84 ms (in process today: 277.0 s, all on the loop); restart from disk 8.96 s, only the 3 unended runs recomputed, max lag 216 ms. Parity against main 5fd00072 built in a throwaway worktree: 237 ended/invalid rows byte-identical, cohorts/problems envelope identical, 3 live rows skipped (their logs grow between snapshots).
+- [x] COMMIT: `feat(viewer): GREEN workbench runs load on worker threads and persist when finished` (327b20a8)
+- [ ] Review (Claude, Codex, Grok in a throwaway worktree), merge on the operator's word, live restart receipt
+
 ## Closing the Loop
 
 Done when a restart answers `/api/runs` within seconds, a restart without baseline-code changes serves comparisons from disk, and the live receipt is recorded.
@@ -84,6 +99,7 @@ Done when a restart answers `/api/runs` within seconds, a restart without baseli
 
 - Round 1 (3:52 AM), packet `git diff --binary da8993aa d5c1a0b3`, SHA-256 d8c70696…04da. Claude CLI (default profile; `~/.claude-review` reports loggedIn false), plan mode: BLOCKING, B1 the 258-run retention test validates real logs (fixture runtime). Codex gpt-5.6-sol read-only: BLOCKING, B1 `pruneBaselineCaches` throws on a vanished/unreadable entry and stops startup; B2 same 258-run test. Grok cursor-grok-4.5-high (ask mode): no verdict; it wrote three scratch files into the worktree (`.tmp_hash_git.sh`, `src/__emit-cmd-out.test.ts`, `runs/_emit.mjs`, all hashing the packet), which made one coverage run fail on a missing `runs/.cmd-out.txt`. Stopped after 25 min, files removed, round discarded for Grok.
 - Fix batch: retention test uses empty logs and a canned compute; prune tolerates per-entry stat/rm failures (new test with a dangling 64-hex symlink and a throwing `rmSync`); a worker reply with another request's id now rejects the job instead of leaving it pending (Claude speculation, cheap to close). Guard deletions: 256 eviction re-added → retention test fails; prune try removed → prune test fails; restored. Viewer 848 tests, coverage 95.16 / 90.69 / 93.41, lint clean.
+- Round 2 (4:05 AM), packet `git diff --binary da8993aa 3ad975e4`, SHA-256 91148101…95c2; fix delta d5c1a0b3..3ad975e4 SHA-256 49f018bc…2929. Claude CLI: VERDICT: LGTM (both round-1 blockers resolved; new non-blocking: a missing built worker makes `codeIdentity` throw at startup, a broken-build condition). Codex gpt-5.6-sol: VERDICT: LGTM. Grok (ask mode): VERDICT: LGTM, but it again wrote untracked scratch files (`_compute-out.mjs`, `src/__emit-cmd-out.test.ts`) despite the read-only instruction, so the worktree status changed and the result fails the frozen-packet check; discarded, files removed. Grok rerun with `--mode plan --sandbox enabled`.
 - Deferred follow-ups (Claude, non-blocking): warm queue is FIFO, so a cold-cache single-run request waits behind it (no regression); `codeIdentity` hashes bare packages by name only, so a typebox upgrade would not invalidate (lockfile hash would close it); import regex could over-match non-import text (only widens the hash).
 
 ## Boy Scout Log
@@ -91,3 +107,12 @@ Done when a restart answers `/api/runs` within seconds, a restart without baseli
 ## Archive Milestone (user-gated)
 
 - [ ] ASK USER: archive
+- Grok round 2 rerun in a throwaway worktree of 3ad975e4: `--mode plan` produced empty output (discarded); `--mode ask` produced VERDICT: LGTM, exit 0, empty stderr; candidate worktree status and HEAD unchanged, packet SHA-256 unchanged (911481015fd7…).
+- Landing: merged main into the branch (1e1feec9); `git diff --binary main 1e1feec9` SHA-256 equals the reviewed packet (911481015fd7…). Gates on that tip: build, lint, mypy, ruff, coverage (viewer 849, agent 1451, Python 96%), verify-vendor green. Auto-mode check blocked the merge until the operator's "yes" (4:12 AM); `git merge --ff-only 1e1feec9` on main.
+
+## Live receipt (2026-10-16)
+
+- 4:13 AM `just viewer-main` at 1e1feec9: script 14 s, 2 live gameplay processes kept. Cold cache (new code id 73495147…): 235 baselines filled in the background; feature history 109 s, comparisons for the live run 0.08 s cold and warm afterwards. But `/api/runs` and `/api/experiments` timed out at 120 s during the fill.
+- 4:24 AM restart by another thread (viewer at 308ddd3e, includes this fix, same code id, warm baseline cache): `/api/runs` still unanswered until 4:29:46, about 4 min 50 s.
+- Cause: a second full-log scan on the main thread. `workbench-store.ts` `load()` reduces every run's whole log through `readNativeRecording` / `readWorkbenchSnapshot` (`parseEvent` per line) for `/api/workbench` (EXPERIMENT dropdown, comparisons page), cached only in memory, and re-reads a live run's whole log whenever its signature changes. The baseline fix removed one of two scans; restart downtime is not yet fixed.
+- NOT DONE: restart outage. Proposed next milestone (awaiting the operator): workbench `load()` on the worker pool, ended runs persisted per code identity, live logs read incrementally.

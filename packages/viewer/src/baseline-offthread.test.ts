@@ -162,7 +162,7 @@ it("runs at most one job per worker, queues the rest and spawns lazily up to its
   workers[1]?.reply(0, { baseline: { run: "b", milestones: [] } });
   expect(await jobs[1]).toEqual({ baseline: { run: "b", milestones: [] } });
   expect(workers[1]?.posted.map((p) => p.runId)).toEqual(["b", "c"]);
-  expect(workers[1]?.posted[1]).toEqual({ id: expect.any(Number) as unknown, runsRoot: "/runs", runId: "c" });
+  expect(workers[1]?.posted[1]).toEqual({ id: expect.any(Number) as unknown, kind: "baseline", runsRoot: "/runs", runId: "c" });
   workers[0]?.reply(0, { error: { kind: "runs", message: "gone" } });
   workers[1]?.reply(1, OK);
   expect(await jobs[0]).toEqual({ error: { kind: "runs", message: "gone" } });
@@ -230,10 +230,10 @@ it("sizes the pool to leave cores free, between one and four workers", () => {
 it("answers worker requests with outcomes, and reports bad requests and unexpected failures", () => {
   const dir = root();
   write(dir, "reference");
-  expect(handleBaselineRequest({ id: 4, runsRoot: dir, runId: "reference" })).toEqual({ id: 4, outcome: computeBaseline(dir, "reference") });
-  expect(handleBaselineRequest({ id: 5, runsRoot: dir, runId: "missing" })).toEqual({ id: 5, outcome: { error: { kind: "runs", message: expect.any(String) as unknown } } });
+  expect(handleBaselineRequest({ id: 4, kind: "baseline", runsRoot: dir, runId: "reference" })).toEqual({ id: 4, outcome: computeBaseline(dir, "reference") });
+  expect(handleBaselineRequest({ id: 5, kind: "baseline", runsRoot: dir, runId: "missing" })).toEqual({ id: 5, outcome: { error: { kind: "runs", message: expect.any(String) as unknown } } });
   expect(handleBaselineRequest({ runsRoot: dir })).toEqual({ id: -1, failure: expect.stringMatching(/invalid baseline request/) as unknown });
-  expect(handleBaselineRequest({ id: 6, runsRoot: dir, runId: "reference" }, () => { throw new TypeError("boom"); })).toEqual({ id: 6, failure: "TypeError: boom" });
+  expect(handleBaselineRequest({ id: 6, kind: "baseline", runsRoot: dir, runId: "reference" }, () => { throw new TypeError("boom"); })).toEqual({ id: 6, failure: "TypeError: boom" });
 });
 
 it("speaks the same protocol through a real worker thread", async () => {

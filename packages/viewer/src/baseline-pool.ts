@@ -4,14 +4,19 @@
 import { Type } from "typebox";
 import { Value } from "typebox/value";
 import type { BaselineCompute, BaselineOutcome } from "./runs.js";
+import { parseLoadedRun, type WorkbenchCompute } from "./workbench-store.js";
+
+// What a worker computes for one run: its comparison baseline, or its workbench record.
+export type WorkerKind = "baseline" | "workbench";
 
 export interface BaselineRequest {
   readonly id: number;
+  readonly kind: WorkerKind;
   readonly runsRoot: string;
   readonly runId: string;
 }
 
-export type BaselineReply = { readonly id: number; readonly outcome: BaselineOutcome } | { readonly id: number; readonly failure: string };
+export type BaselineReply = { readonly id: number; readonly outcome: unknown } | { readonly id: number; readonly failure: string };
 
 // The part of node:worker_threads' Worker the pool uses.
 export interface BaselineWorkerLike {
@@ -25,6 +30,7 @@ export interface BaselineWorkerLike {
 
 export interface BaselinePool {
   readonly compute: BaselineCompute;
+  readonly load: WorkbenchCompute;
   close(): Promise<void>;
 }
 
@@ -33,7 +39,7 @@ const OutcomeSchema = Type.Union([
   Type.Object({ error: Type.Object({ kind: Type.Union([Type.Literal("baseline"), Type.Literal("runs")]), message: Type.String() }, { additionalProperties: false }) }, { additionalProperties: false }),
 ]);
 const ReplySchema = Type.Union([
-  Type.Object({ id: Type.Integer(), outcome: OutcomeSchema }, { additionalProperties: false }),
+  Type.Object({ id: Type.Integer(), outcome: Type.Unknown() }, { additionalProperties: false }),
   Type.Object({ id: Type.Integer(), failure: Type.String() }, { additionalProperties: false }),
 ]);
 
@@ -48,7 +54,7 @@ export function defaultPoolSize(cpus: number): number {
 
 interface Job {
   readonly request: BaselineRequest;
-  readonly resolve: (outcome: BaselineOutcome) => void;
+  readonly resolve: (outcome: unknown) => void;
   readonly reject: (error: Error) => void;
 }
 
@@ -106,13 +112,17 @@ export function createBaselinePool(spawn: () => BaselineWorkerLike, size: number
     }
   };
 
+  const call = (kind: WorkerKind, runsRoot: string, runId: string): Promise<unknown> => new Promise<unknown>((resolve, reject) => {
+    if (closed) { reject(new Error("baseline pool closed")); return; }
+    nextId += 1;
+    queue.push({ request: { id: nextId, kind, runsRoot, runId }, resolve, reject });
+    pump();
+  });
+  const invalid = (runId: string): Error => new Error(`baseline worker sent an invalid reply for ${runId}`);
+
   return {
-    compute: (runsRoot, runId) => new Promise<BaselineOutcome>((resolve, reject) => {
-      if (closed) { reject(new Error("baseline pool closed")); return; }
-      nextId += 1;
-      queue.push({ request: { id: nextId, runsRoot, runId }, resolve, reject });
-      pump();
-    }),
+    compute: async (runsRoot, runId) => parseBaselineOutcome(await call("baseline", runsRoot, runId)) ?? Promise.reject(invalid(runId)),
+    load: async (runsRoot, runId) => parseLoadedRun(await call("workbench", runsRoot, runId)) ?? Promise.reject(invalid(runId)),
     close: async () => {
       closed = true;
       const workers = [...busy];

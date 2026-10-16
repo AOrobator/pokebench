@@ -1,0 +1,231 @@
+import {describe,expect,it} from "vitest";
+import {readFileSync} from "node:fs";
+import {gunzipSync} from "node:zlib";
+import {fileURLToPath} from "node:url";
+import {attachLoopGuard,Governor} from "./harness.js";
+import {ALL_ON,dependencyProblems,featureInfo,featuresOf,playHarnessFeatures} from "./features.js";
+import {flagFeatures} from "./play-preset.js";
+import {checkEvent,type RunEvent} from "./events.js";
+import * as loops from "./loop-detection.js";
+import {LOOP_POLICY,LoopDetector,type CompletedCall,type LoopNotice} from "./loop-detection.js";
+import type {GameStateSnapshot} from "./game-state.js";
+
+// Recorded events of runs 2026-10-16T12-42-29_qwen36-gpu0_4caa, 2026-10-16T07-53-43_qwen36-gpu0_7ccf and
+// 2026-10-15T23-28-28_probe_b41f, as the recorder wrote them, trimmed only where the event schema leaves a field optional
+// (navigation grid, interaction targets, local map, raw RAM, topology, map grid, game stats, berry/storage resources,
+// map triggers; tool result text cut at its first blank line). Every row passes checkEvent.
+function recorded(name:string):RunEvent[]{
+ const path=fileURLToPath(new URL(`./fixtures/${name}`,import.meta.url));
+ return gunzipSync(readFileSync(path)).toString("utf8").trim().split("\n").map(line=>checkEvent(JSON.parse(line)));
+}
+type State=Extract<RunEvent,{type:"state";started:boolean}>;
+interface Seen {readonly turn:number;readonly seq:number;readonly kind:string;readonly phase:string;readonly message:string;readonly evidence:readonly number[]}
+
+const ID="ineffective-loops-v1";
+const MESSAGE=():string=>{
+ const message=(loops as Record<string,unknown>)["REVISIT_MESSAGE"];
+ if(typeof message!=="string")throw new Error("loop-detection.ts exports no REVISIT_MESSAGE");
+ return message;
+};
+const WAITING=():string=>{
+ const message=(loops as Record<string,unknown>)["WAITING_MESSAGE"];
+ if(typeof message!=="string")throw new Error("loop-detection.ts exports no WAITING_MESSAGE");
+ return message;
+};
+
+// The production path: attachLoopGuard on a recorder fan-out with the run's own switches and a supervisor; only this
+// switch is set by the test.
+function replay(events:readonly RunEvent[],on:boolean):{seen:Seen[];contexts:{turn:number;text:string|null}[]}{
+ const observers:((e:RunEvent)=>void)[]=[];const seen:Seen[]=[];const contexts:{turn:number;text:string|null}[]=[];
+ let current:RunEvent|undefined;
+ const start=events.find(e=>e.type==="run_start");
+ if(start?.type!=="run_start")throw new Error("fixture has no run_start");
+ const features=featuresOf(start.harness_features);
+ const recorder={subscribe:(o:(e:RunEvent)=>void)=>{observers.push(o);},recordLoopGuard:(n:LoopNotice)=>{checkEvent({v:1,run:"replay",seq:current?.seq??0,t:"2026-10-16T15:00:00.000-04:00",turn:current?.turn??0,type:"loop_guard",...n,evidence:[...n.evidence]});seen.push({turn:current?.turn??-1,seq:current?.seq??-1,kind:n.kind,phase:n.phase,message:n.message,evidence:n.evidence});}};
+ const governor=new Governor({limits:{maxTurns:5000,maxWallMs:6*3_600_000,failureLimit:3},retry:()=>undefined,abort:()=>undefined,now:()=>0});
+ const guard=attachLoopGuard as (...args:unknown[])=>LoopDetector;
+ const detector=guard(recorder,governor,undefined,"enforced",features["interaction-loop-detection-v1"],(kind:string,calls:number)=>`SUPERVISOR: ${kind} at ${String(calls)} calls`,features["transition-loop-detection-v1"],features["pushback-loop-detection-v1"],features["battle-observation-loop-v1"],on);
+ for(const e of events){
+  if(e.type==="loop_guard")continue;
+  current=e;
+  for(const o of observers)o(e);
+  if(e.type==="turn_start")contexts.push({turn:e.turn,text:detector.context()});
+ }
+ return {seen,contexts};
+}
+const warnings=(seen:readonly Seen[])=>seen.filter(n=>n.phase==="warning").map(n=>({turn:n.turn,kind:n.kind}));
+const recordedWarnings=(events:readonly RunEvent[])=>events.filter(e=>e.type==="loop_guard"&&e.phase==="warning").map(e=>({turn:e.turn,kind:e.type==="loop_guard"?e.kind:""}));
+
+describe("ineffective-loops-v1 on recorded run 4caa: navigate_to targets across the Route 103 water, ending on (23,12)/(23,13)/(21,8) (T199-T248)",()=>{
+ const events=recorded("revisit-route103-4caa.jsonl.gz");
+ it("the fixture is the loop: five different targets in a row (T202-T206) all end on (23,12) or (23,13)",()=>{
+  const calls=events.filter(e=>e.type==="tool_call"&&e.name==="navigate_to"&&e.turn>=202&&e.turn<=206);
+  expect(new Set(calls.map(c=>c.type==="tool_call"?JSON.stringify(c.args):"")).size).toBe(5);
+  const start=events.find(e=>e.type==="run_start");
+  expect(start?.type==="run_start"&&start.harness_features).toEqual(expect.arrayContaining(["deterministic-loop-guard-v1","loop-guard-supervisor-v1","pushback-loop-detection-v1","battle-observation-loop-v1"]));
+ });
+ it("OFF: reproduces today's notices (one warning at T219, the same target (45,6) four times)",()=>{
+  const {seen}=replay(events,false);
+  expect(warnings(seen)).toEqual(recordedWarnings(events).filter(w=>w.kind!=="milestone_drought"));
+  expect(warnings(seen)).toEqual([{turn:219,kind:"ineffective"}]);
+ });
+ it("ON: the third return to (23,12) with different targets raises a cycle warning and the supervisor briefing at T206, 13 turns before today's",()=>{
+  const {seen,contexts}=replay(events,true);
+  const warning=seen.find(n=>n.phase==="warning");
+  expect(warning).toMatchObject({kind:"cycle",turn:206,message:MESSAGE()});
+  expect(seen.find(n=>n.phase==="supervisor")).toMatchObject({kind:"cycle",seq:warning?.seq});
+  expect(contexts.find(c=>c.turn>(warning?.turn??Infinity))?.text).toMatch(/^SUPERVISOR: cycle at \d+ calls$/);
+  expect(seen.some(n=>n.phase==="stop")).toBe(false);
+ });
+ it("ON: a new facing or a nudge onto a tile already seen does not end the episode; the briefing repeats while it lasts",()=>{
+  const {seen}=replay(events,true);
+  const warning=seen.find(n=>n.phase==="warning");
+  const recovered=seen.find(n=>n.phase==="recovered");
+  expect(recovered?.turn).toBeGreaterThan((warning?.turn??0)+1);
+  expect(seen.filter(n=>n.phase==="supervisor"&&n.turn>(warning?.turn??0)&&n.turn<(recovered?.turn??0)).length).toBeGreaterThanOrEqual(1);
+ });
+});
+
+describe("ineffective-loops-v1 on recorded run 4caa: alternating presses at the Route 102 ledge (T550-T571)",()=>{
+ const events=recorded("revisit-ledge-4caa.jsonl.gz");
+ it("OFF: reproduces today's silence (no loop_guard event; only the same-plan note at T571)",()=>{
+  expect(replay(events,false).seen).toEqual([]);
+ });
+ it("ON: warns at T555 (the third end on (35,9)) and again at T571 (the third end on (34,9) from DOWN,LEFT / RIGHT,DOWN)",()=>{
+  const {seen}=replay(events,true);
+  expect(warnings(seen)).toEqual([{turn:555,kind:"cycle"},{turn:571,kind:"cycle"}]);
+  const second=seen.filter(n=>n.phase==="warning")[1];
+  expect(second?.evidence).toEqual([15264,15298,15332]);
+ });
+});
+
+describe("ineffective-loops-v1 on recorded run 7ccf: the Oldale Maniac stops the player at (1,10) and the model walks back (T198-T244)",()=>{
+ const events=recorded("revisit-maniac-7ccf.jsonl.gz");
+ it("OFF: reproduces today's notices (one warning at T244), with push-back detection on as replayed",()=>{
+  expect(warnings(replay(events,false).seen)).toEqual([{turn:244,kind:"ineffective"}]);
+ });
+ it("ON: warns at T202, the third end on (1,10) after navigate_to (0,10) twice and DOWN, 42 turns before today's",()=>{
+  const {seen}=replay(events,true);
+  expect(seen.find(n=>n.phase==="warning")).toMatchObject({kind:"cycle",turn:202,message:MESSAGE()});
+ });
+});
+
+// Direct completions built from recorded states.
+const route103=recorded("revisit-route103-4caa.jsonl.gz");
+const FREE=(()=>{const s=route103.find(e=>e.type==="state"&&e.seq===4954);if(s?.type!=="state"||!("started"in s))throw new Error("no state at seq 4954");return s;})();
+const at=(x:number,y:number,more:Partial<State>={}):State=>({...FREE,position:{x,y},...more});
+function detector(on:boolean,interactions=true){
+ const notices:LoopNotice[]=[];
+ const make=LoopDetector as unknown as new (...args:unknown[])=>LoopDetector;
+ const d=new make((n:LoopNotice)=>notices.push(n),LOOP_POLICY,"enforced",interactions,undefined,true,true,true,on);
+ let seq=0;
+ const nav=(x:number,y:number,end:GameStateSnapshot,extra:Partial<CompletedCall>={})=>{d.complete({name:"navigate_to",args:{map_id:[0,18],x,y},isError:false,text:"ok",acted:true,beforeState:end,startState:FREE,state:end,seq:++seq,...extra});};
+ const press=(buttons:string[],end:GameStateSnapshot,extra:Partial<CompletedCall>={})=>{d.complete({name:"press",args:{buttons},isError:false,text:"ok",acted:true,beforeState:FREE,startState:FREE,state:end,seq:++seq,...extra});};
+ const observe=(state:GameStateSnapshot)=>{d.complete({name:"observe",args:{},isError:false,text:"ok",state,seq:++seq});};
+ return {d,notices,nav,press,observe};
+}
+const kinds=(notices:readonly LoopNotice[])=>notices.map(n=>[n.kind,n.phase]);
+
+describe("ineffective-loops-v1 few-target loops versus progress",()=>{
+ it("ON: two targets ending on one tile three times warn; OFF never",()=>{
+  for(const on of [true,false]){
+   const t=detector(on);
+   t.nav(79,9,at(23,12));t.nav(40,12,at(23,13));t.nav(79,9,at(23,12));t.nav(40,12,at(23,13));t.nav(79,9,at(23,12));
+   expect(kinds(t.notices)).toEqual(on?[["cycle","warning"]]:[]);
+   if(on)expect(t.notices[0]?.evidence).toEqual([1,3,5]);
+  }
+ });
+ it("ON: one target repeated never counts here (the existing check owns it)",()=>{
+  const t=detector(true);
+  for(let i=0;i<3;i++){t.nav(79,9,at(23,12));t.nav(79,9,at(23,13));}
+  expect(t.notices.filter(n=>n.message===MESSAGE())).toEqual([]);
+ });
+ it("ON: exploring out of a hub tile (three or more end tiles) never counts",()=>{
+  const t=detector(true);
+  t.nav(10,10,at(20,10));t.nav(30,10,at(25,10));t.nav(10,10,at(20,10));t.nav(20,5,at(20,6));t.nav(10,10,at(20,10));t.nav(20,15,at(20,14));t.nav(10,10,at(20,10));
+  expect(t.notices.filter(n=>n.message===MESSAGE())).toEqual([]);
+ });
+ it("ON: a walk that keeps reaching new tiles never counts",()=>{
+  const t=detector(true);
+  for(let x=10;x<30;x++)t.nav(x+5,9,at(x,9));
+  expect(t.notices.filter(n=>n.message===MESSAGE())).toEqual([]);
+ });
+ it("ON: A or B presses, menu cursor presses and conversations are not moves",()=>{
+  const t=detector(true);
+  const menu={...FREE,active_ui:{phase:"start_menu",selected:"BAG",ready:true,controls:null,diagnostic:null,value:null,details:null}} as State;
+  t.nav(79,9,at(23,12));
+  for(let i=0;i<4;i++){t.press(["A"],at(23,12));t.press(["DOWN"],at(23,12),{startState:menu});t.press(["UP"],at(23,12),{talked:true} as Partial<CompletedCall>);}
+  t.press(["DOWN"],menu);
+  expect(t.notices.filter(n=>n.message===MESSAGE())).toEqual([]);
+ });
+ it("ON: a map change, a battle or an errored call breaks the count",()=>{
+  const t=detector(true);
+  t.nav(79,9,at(23,12));t.nav(40,12,at(23,13));
+  t.nav(5,5,{...at(23,12),map_id:[0,10]});
+  t.nav(79,9,at(23,12));t.nav(40,12,at(23,13));
+  t.observe({...at(23,12),in_battle:true,screen:"battle"});
+  t.nav(79,9,at(23,12));t.nav(40,12,at(23,13));
+  t.d.complete({name:"navigate_to",args:{map_id:[0,18],x:1,y:1},isError:true,text:"Game tool did not return",state:at(23,12)});
+  t.nav(1,2,at(23,12));
+  expect(t.notices.filter(n=>n.message===MESSAGE())).toEqual([]);
+ });
+ it("ON: after the warning a turn on the same tiles keeps the episode; a tile not seen in the last 16 results recovers it",()=>{
+  const t=detector(true);
+  t.nav(79,9,at(23,12));t.nav(40,12,at(23,13));t.nav(79,9,at(23,12));t.nav(40,12,at(23,13));t.nav(79,9,at(23,12));
+  t.press(["LEFT"],at(23,12,{facing:"LEFT"}));
+  t.press(["UP"],at(23,13,{facing:"UP"}));
+  expect(kinds(t.notices)).toEqual([["cycle","warning"]]);
+  t.nav(10,10,at(10,10));
+  expect(kinds(t.notices)).toEqual([["cycle","warning"],["cycle","recovered"]]);
+ });
+});
+
+// (a) The one recorded observe of an open START menu (b41f T16, state seq 144).
+const MENU=(()=>{const s=recorded("waiting-start-menu-b41f.jsonl.gz").find(e=>e.type==="state"&&e.seq===144);if(s?.type!=="state"||!("started"in s))throw new Error("no state at seq 144");return s;})();
+describe("ineffective-loops-v1 unchanged observes while the game waits for input",()=>{
+ it("the fixture is an open START menu waiting for input, which today's field fingerprint cannot see",()=>{
+  expect(MENU.active_ui).toMatchObject({phase:"start_menu",ready:true,diagnostic:null});
+  expect(loops.semanticState(MENU,true)).toBeNull();
+ });
+ it("ON: the fourth identical observe of the open menu raises an observation warning; OFF never",()=>{
+  for(const on of [true,false]){
+   const t=detector(on);
+   for(let i=0;i<6;i++)t.observe(MENU);
+   expect(kinds(t.notices)).toEqual(on?[["observation","warning"]]:[]);
+   if(on)expect(t.notices[0]?.message).toBe(WAITING());
+  }
+ });
+ it("ON: a ready message counts with interaction detection off (today it has no fingerprint then)",()=>{
+  const message={...FREE,field_controls_locked:true,world_context:{...FREE.world_context,dialogue:"MAY: Hi!",message:{phase:"dismiss_wait",cursor:9,ready:true}}} as State;
+  const t=detector(true,false);
+  for(let i=0;i<4;i++)t.observe(message);
+  expect(kinds(t.notices)).toEqual([["observation","warning"]]);
+ });
+ it("ON: the game acting (truck ride, script with no message), printing text and a moving menu cursor never count",()=>{
+  const t=detector(true);
+  const acting={...FREE,field_controls_locked:true} as State;
+  const printing={...FREE,field_controls_locked:true,world_context:{...FREE.world_context,dialogue:"MAY: Hi!",message:{phase:"printing",cursor:3,ready:false}}} as State;
+  for(let i=0;i<6;i++)t.observe(acting);
+  for(let i=0;i<6;i++)t.observe(printing);
+  const options=["BAG","PLAYER","SAVE","OPTIONS","EXIT"];
+  for(let i=0;i<6;i++)t.observe({...MENU,active_ui:{...MENU.active_ui,selected:options[i%5]??"BAG"}} as State);
+  expect(t.notices).toEqual([]);
+ });
+ it("ON: a menu not seen recently recovers the episode",()=>{
+  const t=detector(true);
+  for(let i=0;i<4;i++)t.observe(MENU);
+  t.observe({...MENU,active_ui:{...MENU.active_ui,selected:"EXIT"}} as State);
+  expect(kinds(t.notices)).toEqual([["observation","warning"],["observation","recovered"]]);
+ });
+});
+
+describe("ineffective-loops-v1 registry",()=>{
+ it("is a default-off guard with no dependency, recorded last",()=>{
+  expect(featureInfo(ID as never)).toMatchObject({group:"guard",needs:null,switchable:true});
+  expect(featureInfo(ID as never).description).toContain(" Off: ");
+  expect(playHarnessFeatures(ALL_ON,null).at(-1)).toBe(ID);
+  expect(playHarnessFeatures({...ALL_ON,[ID]:false},null)).not.toContain(ID);
+  expect(dependencyProblems({...ALL_ON,"deterministic-loop-guard-v1":false})).not.toContainEqual(expect.stringContaining(ID));
+  expect((flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:true}) as Record<string,boolean>)[ID]).toBe(false);
+ });
+});

@@ -10,6 +10,7 @@ import { join } from "node:path";
 import { createInterface } from "node:readline/promises";
 import { fileURLToPath } from "node:url";
 import { Value } from "typebox/value";
+import { RUN_ID_PATTERN } from "@pokebench/agent/events";
 import { newRunId } from "@pokebench/agent/run";
 import { spawnDetached } from "./detached.js";
 import { mainCheckout, sourceIdentity } from "./experiment-cli.js";
@@ -198,8 +199,13 @@ function analyzeLedger(argv: readonly string[], deps: FixedCliDeps, id: string):
   } catch {
     throw new CliError(`no phase ${phaseId}`);
   }
-  const logOf = (run: string): string | null => { const path = join(deps.runsRoot, run, "events.jsonl"); return existsSync(path) ? readFileSync(path, "utf8") : null; };
-  const trials = rescoreTrials(trialsFromLedger(def, readLedger(join(experimentDir(deps, id), "trials.jsonl")), phase.id), logOf, def.primaryMilestone);
+  const logOf = (run: string): string | null => {
+    if (!new RegExp(RUN_ID_PATTERN).test(run)) return null;
+    const path = join(deps.runsRoot, run, "events.jsonl");
+    return existsSync(path) ? readFileSync(path, "utf8") : null;
+  };
+  const { trials, unscored } = rescoreTrials(trialsFromLedger(def, readLedger(join(experimentDir(deps, id), "trials.jsonl")), phase.id), logOf);
+  if (unscored.length > 0) deps.err(`depth not re-graded (no usable log, stored furthest is an optional activity): ${unscored.join(", ")}`);
   deps.out(renderAnalysis(analyze(trials, def.lanes.map((l) => l.id)), `${def.id} ${phase.id}${phase.primary ? "" : " (exploratory)"}`));
 }
 

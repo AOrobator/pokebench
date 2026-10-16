@@ -115,7 +115,7 @@ describe("trialsFromLedger", () => {
       { kind: "outcome", slot: cook.slot, run: "r2", at: "x", valid: true, reason: "wall cap", endReason: "budget", primaryReached: false, primaryMs: null, furthest: null, furthestDepth: -1, furthestMs: null, wallMs: 3_600_000, turns: 3 },
       { kind: "launch", slot: 99, lane: "A", phase: "confirmatory", arm: "bundle", run: "r3", at: "x", commit: "c", sources: "s", presetSha256: "p", serving: "f" },
     ];
-    expect(trialsFromLedger(def, entries, "confirmatory")).toEqual([{ slot: slot.slot, lane: slot.lane, arm: slot.arm, run: "r1", valid: true, reason: "wall cap", primaryReached: true, primaryMs: 5, capMs: 900_000, furthestDepth: 9, furthestMs: 5 }]);
+    expect(trialsFromLedger(def, entries, "confirmatory")).toEqual([{ slot: slot.slot, lane: slot.lane, arm: slot.arm, run: "r1", valid: true, reason: "wall cap", primaryReached: true, primaryMs: 5, capMs: 900_000, furthest: "RIVAL_MET", furthestDepth: 9, furthestMs: 5 }]);
     expect(trialsFromLedger(def, entries, "cook")).toHaveLength(1);
   });
 });

@@ -2,6 +2,7 @@
 // primary milestone, log-rank on time to it (censored at the wall cap), and Mann-Whitney on
 // furthest milestone depth then time; pooled and per lane, over valid trials only.
 import { phaseOf, type FixedArm, type FixedDefinition } from "./fixed-design.js";
+import { DEPTH_ORDER } from "@pokebench/agent/milestones";
 import { classifyTrial, queueState, WALL_CAP, type FixedLedgerEntry } from "./fixed-ledger.js";
 
 export interface AnalysisTrial {
@@ -14,6 +15,7 @@ export interface AnalysisTrial {
   readonly primaryReached: boolean;
   readonly primaryMs: number | null;
   readonly capMs: number;
+  readonly furthest?: string | null;
   readonly furthestDepth: number;
   readonly furthestMs: number | null;
 }
@@ -188,15 +190,32 @@ export function renderAnalysis(report: AnalysisReport, title: string): string {
   return lines.join("\n");
 }
 
-// Ledger entries keep the depth they were graded with. Re-score each trial from its own events so
-// older entries use today's depth order; validity and its reason stay as the ledger recorded them.
-export function rescoreTrials(trials: readonly AnalysisTrial[], events: (run: string) => string | null, primary: string): AnalysisTrial[] {
-  return trials.map((t) => {
+// Ledger entries keep the depth index they were graded with, on the order of their day. Re-grade
+// depth from the trial's own complete log (run_start first, run_end last); otherwise re-map the
+// stored furthest name onto DEPTH_ORDER. A stored activity name with no usable log cannot be
+// re-graded, so it is listed. The primary outcome and validity always stay as the ledger has them.
+export function rescoreTrials(trials: readonly AnalysisTrial[], events: (run: string) => string | null): { trials: AnalysisTrial[]; unscored: string[] } {
+  const unscored: string[] = [];
+  const rescored = trials.map((t) => {
     const text = events(t.run);
-    if (text === null) return t;
-    const o = classifyTrial(text, { maxWallMs: t.capMs, primary }, undefined);
-    return { ...t, primaryReached: o.primaryReached, primaryMs: o.primaryMs, furthestDepth: o.furthestDepth, furthestMs: o.furthestMs };
+    if (text !== null && completeLog(text)) {
+      const o = classifyTrial(text, { maxWallMs: t.capMs, primary: "" }, undefined);
+      return { ...t, furthest: o.furthest, furthestDepth: o.furthestDepth, furthestMs: o.furthestMs };
+    }
+    if (t.furthest === undefined || t.furthest === null) return t;
+    const depth = DEPTH_ORDER.indexOf(t.furthest);
+    if (depth < 0) { unscored.push(t.run); return t; }
+    return { ...t, furthestDepth: depth };
   });
+  return { trials: rescored, unscored };
+}
+
+function completeLog(text: string): boolean {
+  const lines = text.split("\n").filter((line) => line.trim() !== "");
+  const type = (line: string | undefined): unknown => {
+    try { const e: unknown = JSON.parse(line ?? ""); return typeof e === "object" && e !== null && "type" in e ? e.type : null; } catch { return null; }
+  };
+  return type(lines[0]) === "run_start" && type(lines.at(-1)) === "run_end";
 }
 
 export function trialsFromLedger(def: FixedDefinition, entries: readonly FixedLedgerEntry[], phase: string): AnalysisTrial[] {
@@ -205,6 +224,6 @@ export function trialsFromLedger(def: FixedDefinition, entries: readonly FixedLe
   return state.slots.filter((s) => s.phase === phase).flatMap((s) => {
     const o = state.outcomes.get(s.slot);
     if (o === undefined) return [];
-    return [{ slot: s.slot, lane: s.lane, arm: s.arm, run: o.run, valid: o.valid, reason: o.reason, primaryReached: o.primaryReached, primaryMs: o.primaryMs, capMs, furthestDepth: o.furthestDepth, furthestMs: o.furthestMs }];
+    return [{ slot: s.slot, lane: s.lane, arm: s.arm, run: o.run, valid: o.valid, reason: o.reason, primaryReached: o.primaryReached, primaryMs: o.primaryMs, capMs, furthest: o.furthest, furthestDepth: o.furthestDepth, furthestMs: o.furthestMs }];
   });
 }

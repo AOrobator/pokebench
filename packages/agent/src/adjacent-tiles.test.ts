@@ -23,10 +23,13 @@ it("hands the switch to the game server, which draws the map", () => {
 });
 
 it("defaults OFF for presets that omit it and for legacy flag presets", () => {
-  const { [ID]: _omitted, ...older } = ALL_ON;
+  const without = (features: FeatureSet): Omit<FeatureSet, typeof ID> => Object.fromEntries(Object.entries(features).filter(([id]) => id !== ID)) as Omit<FeatureSet, typeof ID>;
+  const older = without(ALL_ON);
   expect(normalizeFeatures(older)[ID]).toBe(false);
   expect(normalizeFeatures({ ...older, [ID]: true })[ID]).toBe(true);
-  expect(flagFeatures({ loopGuard: true, activeUi: true, interfaceDocs: true, objectives: true })[ID]).toBe(false);
-  const preset = parsePlayPreset({ version: 2, id: "p", target: null, limits: { maxTurns: 1, maxWallMs: 1, failureLimit: 1 }, sampling: { thinkingLevel: "medium", maxTokens: 1 }, features: older });
+  const legacy = flagFeatures({ loopGuard: true, activeUi: true, interfaceDocs: true, objectives: true });
+  expect(legacy[ID]).toBe(false);
+  const recorded = without(legacy);
+  const preset = parsePlayPreset({ version: 2, id: "p", target: null, limits: { maxTurns: 1, maxWallMs: 1, failureLimit: 1 }, sampling: { thinkingLevel: "medium", maxTokens: 1 }, features: recorded });
   expect(presetFeatures(preset)[ID]).toBe(false);
 });

@@ -8,6 +8,7 @@ The one addition is full-map-navigation-v1, which adds `map_grid` when on.
 from collections.abc import Mapping
 from dataclasses import asdict, replace
 
+from pokebench_env.adjacent_tiles import next_tiles, walking
 from pokebench_env.game_state import GameState
 
 SERVER_FEATURES = (
@@ -37,13 +38,14 @@ SERVER_FEATURES = (
     "battle-details-v2",
     "warp-arrival-settle-v1",
     "displayed-place-names-v1",
+    "adjacent-tiles-v1",
 )
 
 
 def features_off_from_env(env: Mapping[str, str]) -> frozenset[str]:
     raw = env.get(
         "POKEBENCH_FEATURES_OFF",
-        "named-interactions-v1,world-destinations-v1,bounded-navigation-v1,expanded-menu-battle-information-v1,field-dialogue-phase-v1,full-map-navigation-v1,named-warp-destinations-v1,character-presence-v1,battle-details-v2,warp-arrival-settle-v1,displayed-place-names-v1",
+        "named-interactions-v1,world-destinations-v1,bounded-navigation-v1,expanded-menu-battle-information-v1,field-dialogue-phase-v1,full-map-navigation-v1,named-warp-destinations-v1,character-presence-v1,battle-details-v2,warp-arrival-settle-v1,displayed-place-names-v1,adjacent-tiles-v1",
     )
     if raw == "":
         return frozenset()
@@ -92,6 +94,7 @@ def format_readout(
     message_phase: bool = False,
     named_warps: bool = False,
     warp_animation: bool = False,
+    adjacent_tiles: bool = False,
 ) -> str:
     if "ram-state-v1" in off:
         return ""
@@ -282,15 +285,38 @@ def format_readout(
             if state.full_map is not None and "full-map-navigation-v1" not in off
             else state.nearby
         )
+        warp_guidance = "warp-activation-guidance-v1" not in off
+        ledges = "ledge-hops-v1" not in off
+        edge_walls = "one-way-tiles-v1" not in off
+        counters = "counter-talk-v1" not in off
+        # adjacent-tiles-v1: the four neighbours in words, from the same cells the map draws.
+        neighbours = (
+            next_tiles(
+                shown,
+                state.position,
+                coordinates="live-player-position-v1" not in off,
+                ledges=ledges,
+                edge_walls=edge_walls,
+                counters=counters,
+                warp_guidance=warp_guidance,
+                topology=state.topology
+                if world_destinations and "world-destinations-v1" not in off
+                else None,
+                on_foot=walking(None if state.running is None else state.running.avatar_flags),
+            )
+            if shown is not None and adjacent_tiles and "adjacent-tiles-v1" not in off
+            else None
+        )
         lines.append(
             shown.text(
                 grid="world-coordinate-grid-v1" not in off,
-                warp_guidance="warp-activation-guidance-v1" not in off,
-                ledges="ledge-hops-v1" not in off,
-                edge_walls="one-way-tiles-v1" not in off,
-                counters="counter-talk-v1" not in off,
+                warp_guidance=warp_guidance,
+                ledges=ledges,
+                edge_walls=edge_walls,
+                counters=counters,
                 destinations=destinations,
                 dynamic=dynamic,
+                next_tiles=neighbours,
             )
             if shown is not None
             else state.local_map

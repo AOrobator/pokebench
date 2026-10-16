@@ -15,12 +15,12 @@ Branch `claude/adjacent-tiles` in `/private/tmp/pokebench-adjacent-tiles`. Defau
 ## Milestones
 
 **M1 — switch, RED, GREEN**
-- [ ] Switch registered (observation, needs live-map-v1, default OFF), server feature in features.ts and readout.py, presets, DEFAULT_NEXT_RUN
-- [ ] RED: OFF readout byte-identical; ON line for the showcase ledge pocket (seq of T457: up ledge, cannot enter), grass, collision, water, edge walls, warps, objects, map edge; glyph-switch parity; factory/wiring test; wiring-removal check
-- [ ] GREEN, gates (test, lint, build, coverage ≥90, verify-vendor)
+- [x] Switch registered (observation, needs live-map-v1, default OFF), server feature in features.ts and readout.py, presets, DEFAULT_NEXT_RUN
+- [x] RED: OFF readout byte-identical; ON line for the showcase ledge pocket (seq of T457: up ledge, cannot enter), grass, collision, water, edge walls, warps, objects, map edge; glyph-switch parity; factory/wiring test; wiring-removal check
+- [x] GREEN, gates (test, lint, build, coverage ≥90, verify-vendor)
 
 **M2 — explainer and review**
-- [ ] Real-ROM readout from a Route 101 save
+- [x] Real-ROM readout: no Route 101 save exists (runs/launch-receipts has only MAIN_MENU/CLOCK_SET/truck states; no checkpoints/ dir), so proven with the server's own `pokebench_env.rerender` on the real ROM ($POKEBENCH_ROM) and the showcase run's recorded raw RAM
 - [ ] Explainer, FEATURE_EXPLAINERS mapping, pending `experiments/adjacent-tiles.json`
 - [ ] Review: Claude CLI, Codex (gpt-5.6-sol), Grok (cursor-grok-4.5-high) until LGTM
 - [ ] ASK USER: "merge it"
@@ -29,3 +29,9 @@ Branch `claude/adjacent-tiles` in `/private/tmp/pokebench-adjacent-tiles`. Defau
 
 - 2026-10-16 02:00 AM EDT: worklog drafted, awaiting the operator's OK.
 - 2026-10-16 02:12 AM EDT: approved by the parent session (the operator's ask relayed). RED: `env/tests/env/test_adjacent_tiles.py` (showcase pocket fixture `fixtures/route101-ledge-pocket-t457.json` from events seq 13496 `navigation_grid`; reproduces the recorded local map byte for byte), OFF goldens `adjacent-tiles-off-t457-ead18377.txt` (default switches) and `adjacent-tiles-off-all-on-t457-ead18377.txt` (every server switch on) rendered by main ead18377, and `packages/agent/src/adjacent-tiles.test.ts` (registry, server env, preset defaults). Both fail: no `pokebench_env.adjacent_tiles`, no registry entry.
+- 2026-10-16 02:12 AM EDT: COMMIT: `test: RED adjacent-tiles-v1 names the four neighbouring tiles under the map, from the glyphs the map draws` (cbf665c1)
+- 2026-10-16 02:31 AM EDT: GREEN. `env/pokebench_env/adjacent_tiles.py` (`next_tiles`, `walking`); `LocalMap`/`FullMap` gain `cells()` (the existing `_cells`, now shared by `text()` and the line) and `text(next_tiles=...)`, which puts the line after the grid's last row; `FullMap.origin` property (0,0). `format_readout(adjacent_tiles=...)`, `rerender.render` passes `"adjacent-tiles-v1" not in off` (the observation route and the re-render probe both use `render`). Registry: `SWITCHABLE_FEATURES`/`FEATURES` (observation, needs live-map-v1)/`SERVER_FEATURES`/`playHarnessFeatures` appended last; Python `SERVER_FEATURES` and the default-off env list; `FeatureSetSchema` optional, `normalizeFeatures`/`flagFeatures` false; `DEFAULT_NEXT_RUN` false. Positional and count tests shifted by one (observation 19→20, server 26→27, `.at(-N)`→`.at(-N-1)`, switchboard 57→58 rows).
+  - Wiring-removal check: deleting `adjacent_tiles=` from `rerender.render` turns `test_render_is_the_production_path_and_honors_the_switch` and `test_read_state_and_render_pass_every_server_switch_through` red; deleting the id from TS `SERVER_FEATURES` turns `hands the switch to the game server` red. Both restored, green.
+  - Real ROM: `pokebench_env.rerender` with the run's own server switches on raw-ram/00006198 (the state the T457 tool_result showed, events seq 13510) reproduces the delivered readout byte for byte with the switch OFF (4693 bytes), and ON adds exactly one line: `Next tiles: up (8,6) ledge (v), hops down only, cannot be entered from here; down (8,8) clear (.); left (7,7) clear (.); right (9,7) clear (.)`. Across all 85 tool-result states of T447–500 and T800–830 the line names every ledge the model pressed into (e.g. T447 (9,14): up (9,13) ledge (v); T459/T806 (10,6)), collisions to the side, and at T822/T823 the map edges with the Littleroot/Route 101 connections (world-destinations-v1 was on in that run).
+  - Tests: pytest 2088 passed, 2 skipped (ROM-gated rerender); vitest agent 1403, viewer 794.
+  - Gates: `just test` green; `just lint` green except mypy `mgba._pylib` import-not-found in the worktree venv (known, unrelated); `just build` green; `just verify-vendor` OK (submodule initialised in this worktree); `just coverage`: agent 97.73% stmts / 94.55% branches / 97.98% funcs / 99.08% lines, viewer 95.1 / 90.45 / 93.59 / 97.6, Python lines 97.11% branches 92.73% functions 100% (`adjacent_tiles.py` 100%).

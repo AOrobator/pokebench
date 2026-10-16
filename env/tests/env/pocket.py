@@ -1,4 +1,4 @@
-"""The Route 101 ledge pocket from the showcase run (turn 457), as recorded navigation_grid tiles."""
+"""The Route 101 ledge pocket from the showcase run (turn 457), from its navigation_grid."""
 
 import json
 from pathlib import Path
@@ -28,7 +28,12 @@ def pocket_map(position: tuple[int, int] = (8, 7), radius: int = 7) -> LocalMap:
                 continue
             shown.append(tile)
             row += _symbol(
-                (x, y), position, {(a, b) for _, a, b in objects}, set(), tile.collision, tile.behavior
+                (x, y),
+                position,
+                {(a, b) for _, a, b in objects},
+                set(),
+                tile.collision,
+                tile.behavior,
             )
         rows.append(row)
     return LocalMap(origin, tuple(rows), tuple(shown), objects, ())

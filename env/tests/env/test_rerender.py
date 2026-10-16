@@ -108,6 +108,7 @@ def test_read_state_and_render_pass_every_server_switch_through(monkeypatch):
         "fmt_message_phase": False,
         "fmt_named_warps": False,
         "fmt_warp_animation": False,
+        "fmt_adjacent_tiles": False,
     }
     rerender.render(
         rerender.read_state(lambda a, n: b"", MapNames({}), active_ui=True, off=frozenset()),

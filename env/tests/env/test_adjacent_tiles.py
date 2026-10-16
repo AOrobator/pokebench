@@ -125,7 +125,9 @@ def test_no_line_when_the_map_is_only_the_recorded_text() -> None:
 
 
 def test_position_hidden_names_directions_without_coordinates() -> None:
-    text = format_readout(pocket_state(), frozenset({"live-player-position-v1"}), adjacent_tiles=True)
+    text = format_readout(
+        pocket_state(), frozenset({"live-player-position-v1"}), adjacent_tiles=True
+    )
     assert (
         "Next tiles: up ledge (v), hops down only, cannot be entered from here;"
         " down clear (.); left clear (.); right clear (.)"
@@ -183,7 +185,12 @@ def test_water_is_called_unwalkable_only_when_on_foot_is_verified() -> None:
 
 @pytest.mark.parametrize(
     ("flags", "expected"),
-    [(1, "water (~), not walkable on foot"), (8, "water (~)"), (9, "water (~)"), (None, "water (~)")],
+    [
+        (1, "water (~), not walkable on foot"),
+        (8, "water (~)"),
+        (9, "water (~)"),
+        (None, "water (~)"),
+    ],
 )
 def test_readout_reads_on_foot_from_the_avatar_flags(flags: int | None, expected: str) -> None:
     shown = grid({(5, 4): (0, 0x11)})
@@ -205,7 +212,7 @@ def test_readout_without_running_state_does_not_claim_on_foot() -> None:
 def test_counter_follows_counter_talk() -> None:
     shown = grid({(5, 4): (1, 0x80)})
     assert part(line(shown, (5, 5)), "up") == (
-        "up (5,4) counter (=), cannot be walked onto; face it and press A to talk to someone"
+        "up (5,4) counter (=), cannot be walked onto, face it and press A to talk to someone"
         " behind it"
     )
     assert part(line(shown, (5, 5), counters=False), "up") == (
@@ -267,7 +274,7 @@ def test_map_edge_names_a_connection_only_when_topology_is_shown() -> None:
     north = Topology(20, 20, (Connection("NORTH", 0, (0, 10), "OLDALE TOWN"),))
     shown_topology = line(shown, (0, 0), topology=north)
     assert part(shown_topology, "up") == (
-        "up (0,-1) outside this map (?); this map's north connection is OLDALE TOWN (map 0/10)"
+        "up (0,-1) outside this map (?), this map's north connection is OLDALE TOWN (map 0/10)"
     )
     assert part(shown_topology, "left") == (
         "left (-1,0) outside this map (?), no connection west, cannot be entered from here"
@@ -281,7 +288,7 @@ def test_two_connections_on_one_side_are_both_named() -> None:
         (Connection("NORTH", 0, (0, 10), "A"), Connection("NORTH", 10, (0, 11), "B")),
     )
     assert part(line(grid({}, position=(0, 0)), (0, 0), topology=both), "up") == (
-        "up (0,-1) outside this map (?); this map's north connections are A (map 0/10)"
+        "up (0,-1) outside this map (?), this map's north connections are A (map 0/10)"
         " and B (map 0/11)"
     )
 
@@ -301,7 +308,7 @@ def test_readout_passes_topology_only_with_world_destinations() -> None:
 def test_pocket_up_edge_with_topology_names_oldale() -> None:
     shown = pocket_map((8, 0))
     assert part(line(shown, (8, 0), topology=pocket_topology()), "up") == (
-        "up (8,-1) outside this map (?); this map's north connection is OLDALE TOWN (map 0/10)"
+        "up (8,-1) outside this map (?), this map's north connection is OLDALE TOWN (map 0/10)"
     )
 
 

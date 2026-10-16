@@ -1,6 +1,16 @@
 {
  "source": "cook runs (read-only); RAM windows only, never ROM bytes",
  "rom_sha1": "f3ae088181bf583e55daf962a92bb46f4f1d07b7",
+ "maps": {
+  "0/10": "OLDALE TOWN",
+  "0/16": "ROUTE101",
+  "0/9": "LITTLEROOT TOWN",
+  "1/0": "LITTLEROOT TOWN BRENDANS HOUSE 1F",
+  "1/2": "LITTLEROOT TOWN MAYS HOUSE 1F",
+  "1/3": "LITTLEROOT TOWN MAYS HOUSE 2F",
+  "1/4": "LITTLEROOT TOWN PROFESSOR BIRCHS LAB",
+  "25/40": "INSIDE OF TRUCK"
+ },
  "frames": [
   {
    "run": "2026-10-16T02-23-17_qwen36-gpu1_sh02",
@@ -18,6 +28,7 @@
     "counter-talk-v1",
     "full-map-navigation-v1",
     "in-game-naming-readout-v1",
+    "levelup-box-v1",
     "offscreen-objects-v1",
     "readout-rules-in-prompt-v1"
    ],
@@ -173,6 +184,7 @@
     "counter-talk-v1",
     "full-map-navigation-v1",
     "in-game-naming-readout-v1",
+    "levelup-box-v1",
     "offscreen-objects-v1",
     "readout-rules-in-prompt-v1"
    ],
@@ -332,6 +344,7 @@
     "counter-talk-v1",
     "full-map-navigation-v1",
     "in-game-naming-readout-v1",
+    "levelup-box-v1",
     "offscreen-objects-v1",
     "readout-rules-in-prompt-v1"
    ],
@@ -535,6 +548,7 @@
     "counter-talk-v1",
     "full-map-navigation-v1",
     "in-game-naming-readout-v1",
+    "levelup-box-v1",
     "offscreen-objects-v1",
     "readout-rules-in-prompt-v1"
    ],
@@ -602,6 +616,7 @@
     "counter-talk-v1",
     "full-map-navigation-v1",
     "in-game-naming-readout-v1",
+    "levelup-box-v1",
     "offscreen-objects-v1",
     "readout-rules-in-prompt-v1"
    ],
@@ -665,6 +680,7 @@
     "counter-talk-v1",
     "full-map-navigation-v1",
     "in-game-naming-readout-v1",
+    "levelup-box-v1",
     "offscreen-objects-v1",
     "readout-rules-in-prompt-v1"
    ],
@@ -820,6 +836,7 @@
     "expanded-menu-battle-information-v1",
     "full-map-navigation-v1",
     "in-game-naming-readout-v1",
+    "levelup-box-v1",
     "named-warp-destinations-v1",
     "offscreen-objects-v1",
     "readout-rules-in-prompt-v1",
@@ -978,6 +995,7 @@
     "battle-message-waiting-v1",
     "counter-talk-v1",
     "full-map-navigation-v1",
+    "levelup-box-v1",
     "offscreen-objects-v1"
    ],
    "active_ui": true,
@@ -1135,6 +1153,7 @@
     "expanded-menu-battle-information-v1",
     "full-map-navigation-v1",
     "in-game-naming-readout-v1",
+    "levelup-box-v1",
     "offscreen-objects-v1",
     "readout-rules-in-prompt-v1",
     "warp-arrival-settle-v1"
@@ -1306,6 +1325,7 @@
     "expanded-menu-battle-information-v1",
     "full-map-navigation-v1",
     "in-game-naming-readout-v1",
+    "levelup-box-v1",
     "offscreen-objects-v1",
     "readout-rules-in-prompt-v1",
     "warp-arrival-settle-v1"

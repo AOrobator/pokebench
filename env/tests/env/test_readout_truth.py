@@ -15,6 +15,7 @@ re-rendering them with each new switch off and on, plus the tool result the mode
 """
 
 import functools
+from collections import Counter
 import json
 import os
 import struct
@@ -79,13 +80,23 @@ def operator_rom() -> bytes:
         pytest.skip("POKEBENCH_ROM is not set to the Emerald ROM")
 
 
-@functools.cache
+# The map names these frames look up, recorded with the fixture: no porymap reads here
+# (MapNames.load has its own tests).
+MAP_NAMES = MapNames(
+    {
+        (int(key.split("/")[0]), int(key.split("/")[1])): name
+        for key, name in FIXTURE["maps"].items()
+    }
+)
+FRAMES = {f["state_seq"]: f for f in FIXTURE["frames"]}
+
+
 def map_names() -> MapNames:
-    return MapNames.load(rerender.PORYMAP_MAPS)
+    return MAP_NAMES
 
 
 def frame(seq: int) -> dict[str, object]:
-    return next(f for f in FIXTURE["frames"] if f["state_seq"] == seq)
+    return FRAMES[seq]  # type: ignore[no-any-return]
 
 
 @functools.cache
@@ -126,8 +137,30 @@ def render(seq: int, on: frozenset[str] = frozenset()) -> str:
 
 
 def changed(seq: int, on: frozenset[str]) -> tuple[list[str], list[str]]:
-    old, new = render(seq).split("\n"), render(seq, on).split("\n")
-    return [line for line in old if line not in new], [line for line in new if line not in old]
+    """Lines removed and added, counting repeats (a duplicate line dropped is a change)."""
+    return diff_lines(render(seq).split("\n"), render(seq, on).split("\n"))
+
+
+def diff_lines(old: list[str], new: list[str]) -> tuple[list[str], list[str]]:
+    left, right = Counter(new), Counter(old)
+    removed = []
+    for line in old:
+        if left[line] > 0:
+            left[line] -= 1
+        else:
+            removed.append(line)
+    added = []
+    for line in new:
+        if right[line] > 0:
+            right[line] -= 1
+        else:
+            added.append(line)
+    return removed, added
+
+
+def test_diff_lines_counts_repeated_lines() -> None:
+    assert diff_lines(["a", "b", "b"], ["a", "b"]) == (["b"], [])
+    assert diff_lines(["a"], ["b", "a", "a"]) == ([], ["b", "a"])
 
 
 TRUTH = frozenset({SWITCH})
@@ -396,34 +429,39 @@ def test_menu_line_says_none_open_only_when_the_game_state_proves_it() -> None:
     assert menu_line(field(active_ui_read=True, active_ui=ui)) == MENU_OTHER
     unknown = ActiveUi("unsupported", None, None, "x", "callback2 0x08085F59; active tasks")
     assert menu_line(field(active_ui_read=True, active_ui=unknown)) is None
-    assert menu_line(field(active_ui_read=True, field_controls_locked=False, menu=menu)) == (
-        MENU_NONE
+    drawn = {"active_ui_read": True, "menu_window_drawn": True}
+    assert menu_line(field(**drawn, field_controls_locked=False, menu=menu)) == MENU_NONE
+    assert (
+        menu_line(field(active_ui_read=True, field_controls_locked=True, menu_window_drawn=False))
+        == MENU_NONE
     )
-    assert menu_line(field(active_ui_read=True, field_controls_locked=True, menu=None)) == (
-        MENU_NONE
-    )
-    # Locked controls and a drawn menu window with no owner: an unsupported menu may be open.
-    assert menu_line(field(active_ui_read=True, field_controls_locked=True, menu=menu)) is None
-    assert menu_line(field(active_ui_read=True, field_controls_locked=None, menu=menu)) is None
+    # Locked controls and a drawn menu window with no owner: an unsupported menu may be open,
+    # also when its cursor does not decode (menu None).
+    assert menu_line(field(**drawn, field_controls_locked=True, menu=menu)) is None
+    assert menu_line(field(**drawn, field_controls_locked=True, menu=None)) is None
+    assert menu_line(field(**drawn, field_controls_locked=None, menu=menu)) is None
+    assert menu_line(field(active_ui_read=True, field_controls_locked=True)) is None
 
 
 def test_lock_line_needs_no_message_no_owner_and_no_menu_window() -> None:
     script = WorldContext((), (), None, no_message=NoMessage("movement_wait"))
     task = WorldContext((), (), None, no_message=NoMessage(None))
-    ok = {"active_ui_read": True, "field_controls_locked": True, "menu": None}
+    ok = {"active_ui_read": True, "field_controls_locked": True, "menu_window_drawn": False}
     assert lock_line(field(world_context=script, **ok)) == LOCK_SCRIPT
     assert lock_line(field(world_context=task, **ok)) == LOCK_TASK
     assert lock_line(field(world_context=WorldContext((), (), None), **ok)) is None
     assert lock_line(field(world_context=None, **ok)) is None
     ui = ActiveUi("field_yes_no", "YES", True, "x")
     assert lock_line(field(world_context=task, **{**ok, "active_ui": ui})) is None
-    assert lock_line(field(world_context=task, **{**ok, "menu": Menu(1, 2)})) is None
+    assert lock_line(field(world_context=task, **{**ok, "menu_window_drawn": True})) is None
+    assert lock_line(field(world_context=task, **{**ok, "menu_window_drawn": None})) is None
     assert lock_line(field(world_context=task, **{**ok, "active_ui_read": False})) is None
 
 
 def test_format_readout_uses_the_lines_only_with_the_switch() -> None:
     current = field(
         active_ui_read=True,
+        menu_window_drawn=False,
         field_controls_locked=True,
         world_context=WorldContext((), (), None, no_message=NoMessage("movement_wait")),
     )
@@ -583,3 +621,36 @@ def test_live_object_wins_over_a_set_hide_flag() -> None:
     assert off is not None and "MAY" in off.absent
     assert on is not None and on.here == ("MAY at 1,3",)
     assert hidden is not None and "MAY" in hidden.absent
+
+
+def test_drawn_menu_window_with_an_invalid_cursor_keeps_the_old_menu_line() -> None:
+    from tests.env.test_ui_state import menu as put_menu
+    from tests.env.test_ui_state import window
+
+    m = game(OVERWORLD)
+    m.put(0x03000F2C, b"\x01")  # field controls locked
+    put_menu(m, 9, 3, 2)  # cursor past the last option: read_menu gives None
+    window(m, 2, 0, 5, 8, True)
+    current = read_game_state(m.read, MAPS, readout_truth_enabled=True)
+    assert current.menu is None and current.menu_window_drawn is True
+    assert "Menu: unavailable (active owner not verified)" in format_readout(current).split("\n")
+    window(m, 2, 0, 5, 8, False)
+    undrawn = read_game_state(m.read, MAPS, readout_truth_enabled=True)
+    assert undrawn.menu_window_drawn is False
+    assert MENU_NONE in format_readout(undrawn).split("\n")
+    m.put(0x0203CD90 + 5, b"\xff")  # no window at all
+    assert read_game_state(m.read, MAPS, readout_truth_enabled=True).menu_window_drawn is False
+    assert read_game_state(m.read, MAPS).menu_window_drawn is None
+
+
+@pytest.mark.parametrize(
+    "short",
+    [FIELD_MESSAGE_MODE, FIELD_PRINTER + 0x1B, 0x03005E00, GLOBAL_SCRIPT_STATUS, GLOBAL_SCRIPT],
+)
+def test_a_short_read_is_a_failure_not_an_absence(short: int) -> None:
+    m = quiet()
+
+    def read(address: int, length: int) -> bytes:
+        return b"" if address == short else m.read(address, length)
+
+    assert read_no_message(read) is None

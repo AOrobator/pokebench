@@ -48,20 +48,45 @@ def test_latch_keeps_the_money_of_the_first_whiteout_frame_and_reports_once() ->
     latch = WhiteoutLatch(m.read)
     field = read_game_state(m.read, MAPS)
     latch.on_frame()
-    assert latch.take(field) is None
+    assert latch.take(field, latch.mark()) is None
     callback(m, CB2_WHITE_OUT)
     latch.on_frame()
     set_money(m, 1500)  # DoWhiteOut runs on the last CB2_WhiteOut frame
     latch.on_frame()
     whiting = read_game_state(m.read, MAPS)
-    assert whiting.screen != "overworld" and latch.take(whiting) is None, "still whiting out"
+    assert whiting.screen != "overworld" and latch.take(whiting, latch.mark()) is None
     callback(m, OVERWORLD[1])
     latch.on_frame()
-    assert latch.take(replace(field, screen="battle")) is None
-    assert latch.take(replace(field, in_battle=True)) is None
-    assert latch.take(replace(field, position=None)) is None
-    assert latch.take(field) == Whiteout(3000)
-    assert latch.take(field) is None
+    seen = latch.mark()
+    assert latch.take(replace(field, screen="battle"), seen) is None
+    assert latch.take(replace(field, in_battle=True), seen) is None
+    assert latch.take(replace(field, position=None), seen) is None
+    assert latch.take(field, seen) == Whiteout(3000, 2)
+    assert latch.take(field, seen) is None
+
+
+def test_a_whiteout_that_began_after_the_snapshot_waits_for_a_later_observation() -> None:
+    # Field poison (field_poison.inc EventScript_FieldWhiteOut) starts CB2_WhiteOut from
+    # the field: a field state read on the frame before must not carry the line.
+    m = game(OVERWORLD)
+    latch = WhiteoutLatch(m.read)
+    latch.on_frame()
+    before, seen = read_game_state(m.read, MAPS), latch.mark()
+    callback(m, CB2_WHITE_OUT)
+    latch.on_frame()
+    callback(m, OVERWORLD[1])
+    latch.on_frame()
+    assert latch.take(before, seen) is None
+    after = read_game_state(m.read, MAPS)
+    assert latch.take(after, latch.mark()) == Whiteout(3000, 2)
+
+
+def test_put_back_keeps_one_pending_event() -> None:
+    latch = WhiteoutLatch(game(OVERWORLD).read)
+    latch.put_back(Whiteout(10, 1))
+    latch.put_back(Whiteout(20, 2))
+    field = read_game_state(game(OVERWORLD).read, MAPS)
+    assert latch.take(field, 5) == Whiteout(10, 1)
 
 
 def test_unreadable_save_pointers_keep_the_money_unknown() -> None:
@@ -74,8 +99,8 @@ def test_unreadable_save_pointers_keep_the_money_unknown() -> None:
     callback(m, OVERWORLD[1])
     latch.on_frame()
     field = read_game_state(game(OVERWORLD).read, MAPS)
-    event = latch.take(field)
-    assert event == Whiteout(None)
+    event = latch.take(field, latch.mark())
+    assert event == Whiteout(None, 1)
     assert whiteout_line(event, field).endswith("healed your party and halved your money.")
     assert "the last place you healed (the last" in whiteout_line(
         event, replace(field, location=None)
@@ -222,6 +247,32 @@ def test_the_latch_sees_a_frame_before_a_settle_capture_on_that_frame(
     status, _, body = result["r"]  # type: ignore[misc]
     assert status == 200
     assert LINE in json.loads(body)["state_text"].split("\n")
+
+
+def test_a_render_failure_puts_the_whiteout_back(monkeypatch: pytest.MonkeyPatch) -> None:
+    from pokebench_env import observation as observation_module
+    from pokebench_env.observation import install_observation
+
+    monkeypatch.setenv("POKEBENCH_FEATURES_OFF", "")
+    m = game(OVERWORLD)
+    latch = WhiteoutLatch(m.read)
+    latch.put_back(Whiteout(3000, 0))
+    set_money(m, 1500)
+    real = observation_module.render
+    calls = iter([True, False])
+
+    def flaky(*args, **kwargs):  # type: ignore[no-untyped-def]
+        if next(calls):
+            raise RuntimeError("render failed")
+        return real(*args, **kwargs)
+
+    monkeypatch.setattr(observation_module, "render", flaky)
+    app = FastAPI()
+    install_observation(app, lambda: _Shot(), m.read, MAPS, whiteout=latch)
+    with pytest.raises(RuntimeError):
+        get(app, "/pokebench/observation")
+    status, _, body = get(app, "/pokebench/observation")
+    assert status == 200 and LINE in json.loads(body)["state_text"].split("\n")
 
 
 def test_switch_is_a_default_off_server_feature() -> None:

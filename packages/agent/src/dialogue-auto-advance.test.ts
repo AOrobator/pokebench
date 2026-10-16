@@ -104,7 +104,7 @@ function fakeClock():Clock&{t:number}{const c={t:0,now:()=>c.t,sleep:(ms:number)
 function memoryRecorder(){
  const events:RunEvent[]=[];const subs:((e:RunEvent)=>void)[]=[];let seq=0;
  const push=(body:Record<string,unknown>)=>{const e={v:1,run:"r",seq:++seq,t:"2026-10-15T12:00:00.000-04:00",turn:7,...body} as RunEvent;events.push(e);for(const s of subs)s(e);return {seq:e.seq,turn:7};};
- const api:AutoAdvanceRecorder={recordState:s=>push({type:"state",...s}),recordDialogueAutoAdvance:b=>push({type:"dialogue_auto_advance",...b}),subscribe:o=>{subs.push(o);}};
+ const api:AutoAdvanceRecorder&{lowHpTrainerWarning:()=>void}={lowHpTrainerWarning:()=>undefined,recordState:s=>push({type:"state",...s}),recordDialogueAutoAdvance:b=>push({type:"dialogue_auto_advance",...b}),subscribe:o=>{subs.push(o);}};
  return {events,api,advances:()=>events.filter((e):e is Extract<RunEvent,{type:"dialogue_auto_advance"}>=>e.type==="dialogue_auto_advance")};
 }
 function wire(game:FakeGame,features:FeatureSet=ON,clock=fakeClock()){
@@ -443,7 +443,7 @@ describe("dialogue-auto-advance-v1 registry and production wiring",()=>{
  it("is a default-off guidance switch recorded last that needs the message buffer and phase",()=>{
   expect(featureInfo("dialogue-auto-advance-v1")).toMatchObject({group:"guidance",needs:"active-field-message-buffer-v1",switchable:true});
   expect(featureInfo("dialogue-auto-advance-v1").description).toContain(" Off: ");
-  expect(playHarnessFeatures(ALL_ON,null).at(-20)).toBe("dialogue-auto-advance-v1");
+  expect(playHarnessFeatures(ALL_ON,null).at(-21)).toBe("dialogue-auto-advance-v1");
   expect(dependencyProblems({...ON,"field-dialogue-phase-v1":false})).toEqual(["dialogue-auto-advance-v1 needs field-dialogue-phase-v1"]);
   expect(dependencyProblems({...ON,"active-field-message-buffer-v1":false})).toContain("dialogue-auto-advance-v1 needs active-field-message-buffer-v1");
   expect(dependencyProblems({...ON,"dialogue-safe-batches-v1":true})).toEqual([]);

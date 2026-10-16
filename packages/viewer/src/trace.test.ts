@@ -61,6 +61,7 @@ const SAMPLES: { [K in RunEvent["type"]]: Extract<Body, { type: K }> } = {
   loop_guard: { type: "loop_guard", turn: 1, kind: "cycle", phase: "supervisor", mode: "enforced", calls: 3, message: X, evidence: [1] },
   retry: { type: "retry", turn: 1, reason: X, attempt: 1, limit: 3 },
   text_only_supervisor: { type: "text_only_supervisor", turn: 1, replies: 3, note: 1, limit: 3, text: X },
+  low_hp_trainer_warning: { type: "low_hp_trainer_warning", turn: 1, tool: X, species: X, hp: 3, max_hp: 21, rival: "MAY", x: 10, y: 3, map_id: [0, 18], money: 3000, items: [{ name: X, quantity: 1 }], text: X },
   dialogue_auto_advance: { type: "dialogue_auto_advance", turn: 1, tool_call_id: "c1", tool: "press", requested: ["A", "A"], sent: ["A"], dropped: ["A"], auto_presses: 2, pages: [{ state_seq: 3, map: X, map_id: [1, 4], position: { x: 1, y: 2 }, speaker: X, speaker_source: "faced_sprite", text: X }], stop: "field_free", detail: X, duration_ms: 400 },
   telemetry_error: { type: "telemetry_error", turn: 1, source: "state", message: X },
   compaction: { type: "compaction", turn: 1, from_tokens: 9000, to_tokens: 1000 },
@@ -421,5 +422,18 @@ describe("sideTraceHtml", () => {
     log.add(0, START);
     log.add(1, state());
     expect(sideTraceHtml(build(log.events).turns, 20)).toContain("nodata");
+  });
+});
+
+describe("low-hp-trainer-warning-v1 in Activity History", () => {
+  it("is a SUPERVISOR step titled for the warning, naming the tool, HP, rival and tile, with the whole paragraph", () => {
+    const log = new Log();
+    log.add(0, START);
+    const text = "SUPERVISOR: Your TORCHIC has 3/21 HP (below half), and your rival MAY is on this map at (10,3).";
+    log.add(100, { type: "low_hp_trainer_warning", turn: 363, tool: "navigate_to", species: "TORCHIC", hp: 3, max_hp: 21, rival: "MAY", x: 10, y: 3, map_id: [0, 18], money: 3000, items: [], text });
+    const step = must(steps(build(log.events)).find((s) => s.kind === "low_hp_trainer_warning"));
+    expect(step.category).toBe("sup");
+    expect(step.titleHtml).toContain("Low-HP trainer warning");
+    expect(eventText(must(log.events.at(-1)))).toBe(`Low-HP trainer warning added to the navigate_to result · TORCHIC 3/21 HP · rival MAY at (10,3) · ${text}`);
   });
 });

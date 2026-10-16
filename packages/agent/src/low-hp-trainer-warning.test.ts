@@ -11,7 +11,8 @@ import {parseGameState,type GameStateSnapshot} from "./game-state.js";
 import {eventProblem} from "./events.js";
 import {LowHpTrainerWarning,lowHpTrainerWarning,warningText,withLowHpTrainerWarning,type WarningRecorder} from "./low-hp-trainer-warning.js";
 import {playGameTools} from "./play-wiring.js";
-import {playSystemPrompt,playTools} from "./play-config.js";
+import {playSystemPrompt,playTools,toolSwitches} from "./play-config.js";
+import {gameTools} from "./game-tools.js";
 
 const ID="low-hp-trainer-warning-v1";
 const PREVIOUS="trainer-heal-guidance-v1";
@@ -147,14 +148,20 @@ describe("delivery on game-tool results",()=>{
   expect(eventProblem(event)).toBeNull();
   expect(eventProblem({...event,hp:-1})).not.toBeNull();
  });
- it("the production tool factory honors the switch (playGameTools)",async()=>{
-  const rec:Parameters<typeof playGameTools>[3]={...recorder(),recordState:()=>({seq:0,turn:0}),recordDialogueAutoAdvance:()=>({seq:0,turn:0}),subscribe:()=>{}};
-  const base=():AgentTool[]=>[replay("observe",[T363])];
-  const state={read:()=>Promise.resolve(T363)};
-  const on=playGameTools(base(),{...BUNDLE,[ID]:true},state,rec);
-  const off=playGameTools(base(),{...BUNDLE,[ID]:false},state,rec);
-  const find=(tools:AgentTool[])=>tools.find(t=>t.name==="observe")!;
-  expect(textOf(await find(on).execute("a",{}))).toContain(T363_TEXT);
-  expect(textOf(await find(off).execute("a",{}))).not.toContain("SUPERVISOR:");
+ it("the production tool factory honors the switch (playGameTools, real observe over the game server API)",async()=>{
+  const png=(()=>{const b=Buffer.alloc(33);Buffer.from([137,80,78,71,13,10,26,10]).copy(b);b.writeUInt32BE(13,8);b.write("IHDR",12);b.writeUInt32BE(240,16);b.writeUInt32BE(160,20);return b.toString("base64");})();
+  const fetchFn:typeof fetch=(input)=>{
+   const url=typeof input==="string"?input:input instanceof URL?input.href:input.url;
+   const body=url.endsWith("/action")?{status:"success"}:url.endsWith("/queue_status")?{queue_empty:true}:url.endsWith("/pokebench/observation")?{state_text:"field",screenshot_base64:png,state:T363}:T363;
+   return Promise.resolve(new Response(JSON.stringify(body)));
+  };
+  const build=(features:FeatureSet,rec:WarningRecorder)=>playGameTools(gameTools("http://127.0.0.1",{beforePress:()=>undefined,afterPress:()=>Promise.resolve()},fetchFn,toolSwitches(features),{now:()=>0,sleep:()=>Promise.resolve()}),features,{read:()=>Promise.resolve(T363)},{...rec,recordState:()=>({seq:1,turn:1}),recordDialogueAutoAdvance:()=>({seq:1,turn:1}),subscribe:()=>undefined});
+  // Battle text auto-advance needs the game server's battle journal, which this fake server does not serve.
+  const onRec=recorder(),offRec=recorder();
+  const observe=(tools:AgentTool[])=>tools.find(t=>t.name==="observe")!.execute("a",{});
+  expect(textOf(await observe(build({...BUNDLE,"battle-text-auto-advance-v1":false,[ID]:true},onRec)))).toContain(`\n${T363_TEXT}`);
+  expect(onRec.calls).toHaveLength(1);
+  expect(textOf(await observe(build({...BUNDLE,"battle-text-auto-advance-v1":false,[ID]:false},offRec)))).not.toContain("SUPERVISOR:");
+  expect(offRec.calls).toHaveLength(0);
  });
 });

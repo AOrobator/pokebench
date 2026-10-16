@@ -2804,6 +2804,133 @@
         "t",
         "turn",
         "type",
+        "tool",
+        "species",
+        "hp",
+        "max_hp",
+        "rival",
+        "x",
+        "y",
+        "map_id",
+        "money",
+        "items",
+        "text"
+      ],
+      "properties": {
+        "v": {
+          "type": "number",
+          "const": 1
+        },
+        "run": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "t": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}-0[45]:00$"
+        },
+        "turn": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "type": {
+          "type": "string",
+          "const": "low_hp_trainer_warning"
+        },
+        "tool": {
+          "type": "string",
+          "minLength": 1
+        },
+        "species": {
+          "type": "string",
+          "minLength": 1
+        },
+        "hp": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "max_hp": {
+          "type": "integer",
+          "minimum": 2
+        },
+        "rival": {
+          "enum": [
+            "MAY",
+            "BRENDAN"
+          ]
+        },
+        "x": {
+          "type": "integer"
+        },
+        "y": {
+          "type": "integer"
+        },
+        "map_id": {
+          "type": "array",
+          "additionalItems": false,
+          "items": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "integer"
+            }
+          ],
+          "minItems": 2
+        },
+        "money": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "name",
+              "quantity"
+            ],
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1
+              },
+              "quantity": {
+                "type": "integer",
+                "minimum": 1
+              }
+            },
+            "additionalProperties": false
+          },
+          "maxItems": 186
+        },
+        "text": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "v",
+        "run",
+        "seq",
+        "t",
+        "turn",
+        "type",
         "tool_call_id",
         "tool",
         "requested",

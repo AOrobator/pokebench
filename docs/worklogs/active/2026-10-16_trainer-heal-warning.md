@@ -43,8 +43,9 @@ Game grounding (pret/pokeemerald 731ad5bf): Route 103 rival script `data/maps/Ro
 **M2 — low-hp-trainer-warning-v1 (B)**
 - [x] RED: wrapper fires on 54a7-shaped state (T363), not when HP ≥ half, not off Route 103, not after rival won, not in battle, not twice, re-arms after heal / map change; bag items; recorded event; viewer Activity History row and SUP chip, no timeline mark; factory path through playGameTools
 - [x] RED written (module missing). COMMIT RED: `test(RED): low-hp-trainer-warning-v1 ...`
-- [ ] GREEN, schema regenerated
-- [ ] COMMIT GREEN; deletion receipts
+- [x] GREEN, schema regenerated (`just schema`). Module `low-hp-trainer-warning.ts`; event `low_hp_trainer_warning`; recorder method; `playGameTools` wraps outermost; viewer: model KNOWN, Activity History row (panels), SUPERVISOR chip (trace), tail; no timeline mark (test compares lanes SVG with and without the event). vitest agent 1577 passed, viewer 887 passed.
+- [x] Deletion receipts: dropping `withLowHpTrainerWarning` from `playGameTools` turns the factory test red (1/16); dropping the panels row turns 2 trace tests red; both restored green.
+- [x] COMMIT GREEN: `feat: low-hp-trainer-warning-v1 ...` (sha in git log)
 
 **M3 — explainers, pending experiments, review, land**
 - [ ] Explainers `docs/explainers/<id>.html` + FEATURE_EXPLAINERS + README

@@ -189,7 +189,7 @@ describe("production wiring",()=>{
  };
  const build=(features:FeatureSet)=>{
   const base=gameTools("http://127.0.0.1",{beforePress:()=>undefined,afterPress:()=>Promise.resolve()},fetchFn,toolSwitches(features),{now:()=>0,sleep:()=>Promise.resolve()});
-  return playGameTools(base,features,{read:()=>Promise.resolve(FIELD)},{recordState:()=>({seq:1,turn:1}),recordDialogueAutoAdvance:()=>({seq:1,turn:1}),subscribe:()=>undefined});
+  return playGameTools(base,features,{read:()=>Promise.resolve(FIELD)},{lowHpTrainerWarning:()=>undefined,recordState:()=>({seq:1,turn:1}),recordDialogueAutoAdvance:()=>({seq:1,turn:1}),subscribe:()=>undefined});
  };
  it("playGameTools hands the model the reminder and the new navigate_to description only when the switch is on",async()=>{
   const on=build(ON),offTools=build({...ON,[ID]:false});
@@ -200,7 +200,7 @@ describe("production wiring",()=>{
   expect(on.find(t=>t.name==="navigate_to")?.description.startsWith(NAVIGATE_FIRST_DESCRIPTION)).toBe(true);
   // The run's context tools (recall/get_dialogue) come last, unchanged in order when off, and reset the count when on.
   const recall:AgentTool={name:"get_dialogue",label:"get_dialogue",description:"d",parameters:{},execute:()=>Promise.resolve({content:[{type:"text",text:"pages"}],details:undefined})};
-  const withExtra=(features:FeatureSet)=>{const base=gameTools("http://127.0.0.1",{beforePress:()=>undefined,afterPress:()=>Promise.resolve()},fetchFn,toolSwitches(features),{now:()=>0,sleep:()=>Promise.resolve()});return playGameTools(base,features,{read:()=>Promise.resolve(FIELD)},{recordState:()=>({seq:1,turn:1}),recordDialogueAutoAdvance:()=>({seq:1,turn:1}),subscribe:()=>undefined},undefined,[recall]);};
+  const withExtra=(features:FeatureSet)=>{const base=gameTools("http://127.0.0.1",{beforePress:()=>undefined,afterPress:()=>Promise.resolve()},fetchFn,toolSwitches(features),{now:()=>0,sleep:()=>Promise.resolve()});return playGameTools(base,features,{read:()=>Promise.resolve(FIELD)},{lowHpTrainerWarning:()=>undefined,recordState:()=>({seq:1,turn:1}),recordDialogueAutoAdvance:()=>({seq:1,turn:1}),subscribe:()=>undefined},undefined,[recall]);};
   const offExtra=withExtra({...ON,[ID]:false});
   expect(offExtra.map(t=>t.name)).toEqual([...offTools.map(t=>t.name),"get_dialogue"]);
   expect(offExtra.at(-1)).toBe(recall);

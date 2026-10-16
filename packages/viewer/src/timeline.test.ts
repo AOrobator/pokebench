@@ -128,3 +128,11 @@ it('draws loop errors red on the errors lane and gives every presses-lane mark a
  expect(css.indexOf('.lanes .m-press {')).toBeLessThan(css.indexOf('.lanes .b-UP'));
  expect(css.indexOf('.lanes .m-error {')).toBeLessThan(css.indexOf('.lanes .k-compaction'));
 });
+
+it("leaves low-HP trainer warnings off the timeline (closed to new marks, operator decision 2026-10-16)",()=>{
+ const log=new Log();log.add(0,START);
+ log.add(1000,{type:"low_hp_trainer_warning",turn:2,tool:"press",species:"TORCHIC",hp:3,max_hp:21,rival:"MAY",x:10,y:3,map_id:[0,18],money:3000,items:[],text:"SUPERVISOR: heal first"});
+ const without=new Log();without.add(0,START);
+ expect(lanesSvg(view(log),BASE_MS+2000)).toBe(lanesSvg(view(without),BASE_MS+2000));
+ expect(view(log).errors).toEqual([]);
+});

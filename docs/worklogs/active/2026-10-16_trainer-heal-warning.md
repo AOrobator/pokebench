@@ -52,7 +52,7 @@ Game grounding (pret/pokeemerald 731ad5bf): Route 103 rival script `data/maps/Ro
 - [x] Explainers `docs/explainers/<id>.html` + FEATURE_EXPLAINERS + README; `just pages-check` prints nothing; viewer 888 passed.
 - [x] `experiments/<id>.json` pending entries (activation ROUTE_103, primary RIVAL_BATTLE_WON, finals incumbent) + readiness.md; `just experiments-check`: ok, 64 experiments. COMMIT GREEN.
 - [x] Merged main twice (9e84ba4d, then a21c24db with disproved-beliefs-v1 and same-plan-breaker-v1): registry re-applied after same-plan-breaker-v1; legacy tests reset to main and re-bumped by script (+2 positions, lists, guidance 34, guard 14, switchboard rows 74).
-- [ ] Gates on main-merged tip: test, lint, build, coverage ≥90, verify-vendor
+- [x] Gates on main-merged tip (main 154d905e, Route 103 fixture fix included): `just build` ok; `just lint` ok (tsc, eslint, ruff, mypy); `just test` vitest agent 1641 passed, viewer 907 passed, pytest 2270 passed (with POKEBENCH_ROM from .env); `just coverage` agent lines 99.09 / branches 94.49 / functions 98.18, viewer 97.62 / 91.1 / 93.62, Python 97.33 / 93.17 / 100 (floor 90); low-hp-trainer-warning.ts 100% lines, 96.3% branches, 100% functions; `just verify-vendor` ok; `just experiments-check` ok (66). Before the fixture fix, main itself failed 34 real-ROM Python tests (owned by another thread; coordinator 10:11 UTC).
 - [ ] Cloud review lanes: Claude (subagent), Grok (Cursor), GPT (Cursor/Codex) all LGTM on one frozen packet
 - [ ] Merge slot from coordinator, `git merge --ff-only`, `just test` on main, report SHA
 

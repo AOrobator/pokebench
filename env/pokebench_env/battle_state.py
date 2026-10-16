@@ -25,9 +25,11 @@ from pokebench_env.battle_choices import (
 from pokebench_env.battle_text import (
     BattleMessage,
     BattlePrompt,
+    LevelUpBox,
     battle_text_phase,
     read_battle_message,
     read_battle_prompt,
+    read_levelup_box,
 )
 from pokebench_env.game_screen import GMAIN, ReadMemory
 from pokebench_env.gba_text import decode_text
@@ -188,17 +190,27 @@ class BattleState:
     message: BattleMessage | None = None
     prompt: BattlePrompt | None = None
     text_phase: str | None = None
+    # The level-up stats box (battle_text.read_levelup_box); recorded, shown only by levelup-box-v1.
+    levelup_box: LevelUpBox | None = None
 
     def json(self) -> dict[str, object]:
         return asdict(self)
 
 
-def _text_fields(read: ReadMemory) -> tuple[BattleMessage, BattlePrompt | None, str | None]:
-    """Message window, YES/NO prompt and advance phase; a failed read stays local."""
+def _text_fields(
+    read: ReadMemory,
+) -> tuple[BattleMessage, BattlePrompt | None, str | None, LevelUpBox | None]:
+    """Message window, YES/NO prompt, advance phase and level-up box; a failed read stays local."""
     try:
-        return read_battle_message(read), read_battle_prompt(read), battle_text_phase(read)
+        return (
+            read_battle_message(read),
+            read_battle_prompt(read),
+            battle_text_phase(read),
+            read_levelup_box(read),
+        )
     except (ValueError, OSError, IndexError) as error:
-        return BattleMessage("idle", diagnostic=f"harness bug: battle text: {error}"), None, None
+        failed = BattleMessage("idle", diagnostic=f"harness bug: battle text: {error}")
+        return failed, None, None, None
 
 
 def _move(read: ReadMemory, slot: int, move: int, pp: int, bonuses: int) -> BattleMove:
@@ -277,7 +289,7 @@ def _battler(
 
 
 def _initializing(read: ReadMemory, main: int) -> BattleState:
-    message, prompt, text_phase = _text_fields(read)
+    message, prompt, text_phase, levelup_box = _text_fields(read)
     return BattleState(
         True,
         phase="initializing",
@@ -286,6 +298,7 @@ def _initializing(read: ReadMemory, main: int) -> BattleState:
         message=message,
         prompt=prompt,
         text_phase=text_phase,
+        levelup_box=levelup_box,
     )
 
 

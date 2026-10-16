@@ -128,7 +128,9 @@ Report: branch, frozen head SHA, sha256 of `git diff --binary main HEAD`, three 
   COMMIT: `docs(worklog): battle-start-journal gates on merged tip, principles self-review`
 
 - 2026-10-16 07:40 AM EDT: review round 1 (see log). Fix B1: phase renamed to `starter_choice_transition`. transition-coherence tests 58 passed, registry tests green, panels green, pages-check clean.
-  COMMIT: `fix: review round 1: the starter bag handoff phase is starter_choice_transition, as the frozen table names it`
+  COMMIT: `fix: review round 1: the starter bag handoff phase is starter_choice_transition, as the frozen table names it` (1a7cacc6)
+- 2026-10-16 07:55 AM EDT: merged main a46f94bf (levelup-box-v1 server switch after offscreen-objects-v1; briefing-exits-v1, untaken-exits-v1 after same-plan-breaker-v1). Same resolution: main's side of each conflicted file, then this switch re-appended last (SWITCHABLE after untaken-exits-v1, SERVER/Python lists after levelup-box-v1), presets, defaults, explainer map, readiness row; indices +1 (also levelup-box.test.ts), auto-advance `slice(-12,-6)`/`at(-12)`, observation 29, switchboard 76, Python `SERVER_FEATURES[-4]`/`[-2]`, `len == 35`. No new read_battle_state/read_active_ui callers on main. Gates: agent 1686, viewer 908, Python 2355 passed; coverage agent 97.95/94.49/98.46/99.1, viewer 95.32/91.10/93.63/97.62, Python 97.41/93.34/100; experiments-check ok 69; lint known mypy only; verify-vendor OK.
+  COMMIT: `Merge branch 'main' into claude/battle-start-journal (levelup-box, briefing-exits, untaken-exits)`
 
 ## Surprises
 

@@ -31,8 +31,8 @@ it("hands the switch to the game server, which owns the decoding", () => {
   expect(serverFeatureEnv(off(ID)).POKEBENCH_FEATURES_OFF).toBe(ID);
   expect(serverFeatureEnv(ALL_ON).POKEBENCH_FEATURES_OFF).toBe("");
   const readout = readFileSync(new URL("../../../env/pokebench_env/readout.py", import.meta.url), "utf8");
-  expect(readout).toContain(`"offscreen-objects-v1",\n    "${ID}",\n)`);
-  expect(readout).toContain(`"offscreen-objects-v1,"\n        "${ID}",\n    )`);
+  expect(readout).toContain(`"levelup-box-v1",\n    "${ID}",\n)`);
+  expect(readout).toContain(`"levelup-box-v1,"\n        "${ID}",\n    )`);
 });
 
 it("defaults OFF for presets that omit it and for legacy flag presets", () => {

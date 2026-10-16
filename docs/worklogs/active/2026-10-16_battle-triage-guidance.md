@@ -29,6 +29,7 @@ Branch `claude/battle-triage-guidance` in `/private/tmp/pokebench-battle-triage`
 - [x] RED: OFF prompt and results byte-identical; ON prompt section; battle line only when below half and RUN allowed (not trainer, not the Birch rescue, from battle RAM); overworld line below half; factory tests; wiring-removal check
   COMMIT: `test(battle-triage): RED own-HP run and heal guidance (switch battle-triage-guidance-v1, default off)` (3c5a147a)
 - [x] GREEN, gates (test, lint, build, coverage ≥90, verify-vendor)
+  COMMIT: `feat(battle-triage): own-HP run and heal guidance from the shared RUN verdict (switch battle-triage-guidance-v1, default off)` (9496dc96)
 
 **M2 — explainer and review**
 - [ ] Explainer `docs/explainers/battle-triage-guidance-v1.html`, FEATURE_EXPLAINERS mapping, pending `experiments/battle-triage-guidance.json`
@@ -43,3 +44,4 @@ Branch `claude/battle-triage-guidance` in `/private/tmp/pokebench-battle-triage`
   - Wiring-removal checks: deleting the `playSystemPrompt` line → 2 TS tests red; deleting the readout battle-line call → 5 Python tests red; reverting `rerender` to battle-details-only → 2 red (route + rerender); restored → green.
   - Tests: agent 1406 passed (88 files), viewer 794 passed (60 files), Python 2040 passed / 2 skipped (test_rerender needs POKEBENCH_ROM; the worktree has no `.env`, and running it with the ROM path was refused by the permission system: unverified here).
   - Gates: `just test` green; `just lint` green except mypy `mgba._pylib` import-not-found in the worktree venv (known); `just build` green; `just coverage` agent stmts 97.73 / branches 94.56 / funcs 97.98 / lines 99.08, viewer 95.10 / 90.45 / 93.59 / 97.60, Python lines 97.09 / branches 92.70 / functions 100 (battle_triage.py and battle_details.py 100%); `just verify-vendor` OK (submodule initialised from the local main checkout's copy, pin bbab97ad).
+- 2026-10-16 02:40 AM EDT: M2 RED: `panels.test.ts` (FEATURE_EXPLAINERS mapping and the explainer quoting the exact battle line, field line and menu presses) and `server.test.ts` (allowlist serves `battle-triage-guidance-v1.html`): 2 failing.

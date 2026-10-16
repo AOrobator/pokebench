@@ -164,7 +164,7 @@ Report per switch: id, model-facing before/after excerpts from this run, precisi
 
 - Grok: LGTM. Claude CLI: LGTM.
 - Codex: BLOCKING: a retracted claim whose reply walks to a neighbouring tile for another reason ("Professor Birch is at (8,7). Scratch that… The scientist is at (8,8), so I'll walk there." + navigate_to (8,8)) still counts.
-- Accepted: the navigate_to target must equal the claimed tile. On sh02 every counted claim (T82–T88) names the exact tile it walks to. 2026-10-16 12:45 PM EDT round-9 RED: 1 failing test. COMMIT (b89b73eb). 12:55 PM EDT GREEN: exact-tile match; full-run replay unchanged (4 entries, all true; 205 deliveries); agent 1606 tests 97.96/94.46/98.37/99.14, viewer 888 tests 95.34/91.01/93.62/97.64, Python (no ROM) 2236 passed 34 skipped 97.31/93.08/100; lint clean; pages-check silent. If round 10 still blocks on this class, stop and ask the operator (the review skill's scope checkpoint is long past).
+- Accepted: the navigate_to target must equal the claimed tile. On sh02 every counted claim (T82–T88) names the exact tile it walks to. 2026-10-16 12:45 PM EDT round-9 RED: 1 failing test. COMMIT (b89b73eb). 12:55 PM EDT GREEN: exact-tile match; full-run replay unchanged (4 entries, all true; 205 deliveries); agent 1606 tests 97.96/94.46/98.37/99.14, viewer 888 tests 95.34/91.01/93.62/97.64, Python (no ROM) 2236 passed 34 skipped 97.31/93.08/100; lint clean; pages-check silent. COMMIT (3aef0c7a). 1:05 PM EDT: merged main 9e84ba4d (viewer event skew; no conflicts): agent 1619, viewer 904 pass; lint clean. If round 10 still blocks on this class, stop and ask the operator (the review skill's scope checkpoint is long past).
 
 ## Surprises
 

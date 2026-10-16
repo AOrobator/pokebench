@@ -25,9 +25,9 @@ Showcase bundle run `2026-10-16T00-34-26_qwen36-gpu1_show`: PROF. BIRCH offered 
 - [x] TS: registry/presets/defaults/server env for both; prompt ON/OFF; factory path; explainer mappings
 
 **M2 — GREEN, gates, review**
-- [ ] Implement; gates; delete-the-wiring checks
-- [ ] Real-ROM probe from `runs/auto-advance-qualify/states/lab-yesno.state`: ON readout in the editor; START then A keeps TORCHIC
-- [ ] Explainers, pending experiment entries, readiness rows
+- [x] Implement; gates (agent 1331 97.64/94.31/97.89; viewer 793 95.1/90.45/93.59; pytest 1970 97.04/92.60/100; lint, build, schema, verify-vendor clean); delete-the-wiring checks: dropping `in_game_naming_enabled` from rerender turns 3 ON tests red; dropping the prompt line turns 2 prompt tests red; both restored
+- [x] Real-ROM probe from `runs/auto-advance-qualify/states/lab-yesno.state`: ON readout in the editor; START then A keeps TORCHIC
+- [x] Explainers (`docs/explainers/in-game-naming-readout-v1.html`, `no-nickname-guidance-v1.html`, README, FEATURE_EXPLAINERS), pending `experiments/in-game-naming-readout.json` and `no-nickname-guidance.json` (activation BIRCH_RESCUE_COMPLETE, primary ROUTE_103), readiness rows (likely BLOCKED, 0 of 4 think-fast runs reached BIRCH_RESCUE_COMPLETE)
 - [ ] Multi-model review
 
 ## Session Log
@@ -38,3 +38,5 @@ Showcase bundle run `2026-10-16T00-34-26_qwen36-gpu1_show`: PROF. BIRCH offered 
 
 ## Multi-Model Review Log
 - 2026-10-16 01:55 AM EDT: RED. `env/tests/env/test_in_game_naming.py` 8 failing (unknown switch in POKEBENCH_FEATURES_OFF; reader has no `in_game_naming_enabled`); expected ON lines checked against the run's own active_ui values (4993 transition, 5043 'AAAAAAA' key A, 8548 ' ,VQ' key B). `packages/agent/src/nickname-naming.test.ts` 5 failing (unknown features); viewer explainer mapping/allowlist/defaults red.
+- 2026-10-16 02:05 AM EDT: Real-ROM probe, live servers 8463 (ON) / 8464 (OFF) from `lab-yesno.state` (Birch's nickname YES/NO, YES highlighted): A opens the editor; ON readout adds `Name being edited: ''` / `Naming keyboard: uppercase; cursor column 0, row 0 (zero-based); selected key 'A'` / `Naming input: ready` / hint after the Story line, state JSON naming filled; OFF has neither. START then A on ON with nothing typed returns to the field with party nickname `TORCHIC`; A, START, A on the other server sets nickname `A`. So the guidance's "START then A keeps the species name" is game behavior, not an assumption.
+- 2026-10-16 02:15 AM EDT: GREEN. Test-position updates for the two appended switches (features.test, blocked-batch-result.test, dialogue-auto-advance.test, battle-details-v2 server position now a membership check; controls observation counter derived from FEATURES).

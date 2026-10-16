@@ -171,6 +171,7 @@ def read_game_state(
     story_characters_enabled: bool = True,
     battle_details_enabled: bool = True,
     dynamic_warp_enabled: bool = True,
+    in_game_naming_enabled: bool = False,
 ) -> GameState:
     screen = read_screen(read)
     in_battle = bool(read(IN_BATTLE, 1)[0] & 0x02)
@@ -287,6 +288,10 @@ def read_game_state(
         dialog=dialog,
         menu=menu,
         active_ui=active_ui,
+        # in-game-naming-readout-v1: nickname, box, caught-mon and Walda naming in the field.
+        naming=read_naming(read, decode_text)
+        if in_game_naming_enabled and screen.callback2 == 0x080E4F59
+        else None,
         local_map=None if nearby is None else nearby.text(),
         nearby=nearby,
         full_map=read_full_map(read, (x, y), map_id)

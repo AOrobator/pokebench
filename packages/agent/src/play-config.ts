@@ -60,6 +60,8 @@ export const GAME_EVIDENCE_SECTION = `Game evidence first: this game, as observe
 
 export const DIALOGUE_AUTO_ADVANCE_SECTION = `Dialogue auto-advance: once a press or navigate_to opens or continues a field message, the harness advances it with B itself, page by page, until the next decision point: field control returns, a YES/NO or other menu opens, the naming screen, a battle, a screen change, or a cutscene that keeps controls locked. The result lists every page shown, whole, with speaker, map, position and turn. Buttons left in your batch once the conversation opens are not sent, so you never need A or B to read dialogue; decide your next action from the returned state. A menu is left for you to choose. get_dialogue searches every page recorded this run by speaker, words, map or recency.`;
 
+export const NO_NICKNAME_SECTION = "Nicknames: this is a speed run, and naming a Pokémon only costs time. When the game offers to give a Pokémon a nickname, answer NO. If you are already on the naming screen for a Pokémon's nickname, do not type or fix letters: press START to move the cursor to OK, then A. Any nickname is fine, and with nothing typed the Pokémon keeps its own name.";
+
 export const NAVIGATE_TO_USAGE = `Use navigate_to for any walk of two or more tiles on the current map, using coordinates from the readout. To go through a door or stairs, give the warp's own coordinates as the destination; at a directional exit, arrive on its tile, then press the direction its activation describes. When navigate_to stops early, read its reason and pick a reachable tile or a different listed exit instead of falling back to long runs of single presses. Use press for talking, menus, dialogue and short adjustments.`;
 
 const GOAL_SENTENCE = "Your goal is to make as much story progress as you can: start a new game, get your first Pokémon, and work toward defeating the first Gym Leader in Rustboro City.";
@@ -89,6 +91,7 @@ export function playSystemPrompt(features: FeatureSet, target: string | null): s
   if (features["loop-guard-supervisor-v1"]) prompt += "\n\nLoop supervisor: if you repeat a pattern without new game information, a SUPERVISOR note summarizes where you are, the last dialogue you were shown, what you tried and what is listed here that you have not tried. The run continues; use the note to change strategy.";
   if (features["dialogue-auto-advance-v1"]) prompt += `\n\n${DIALOGUE_AUTO_ADVANCE_SECTION}`;
   if (features["game-evidence-priority-v1"]) prompt += `\n\n${GAME_EVIDENCE_SECTION}${features["bounded-navigation-v1"] ? `\n\n${NAVIGATE_TO_USAGE}` : ""}`;
+  if (features["no-nickname-guidance-v1"]) prompt += `\n\n${NO_NICKNAME_SECTION}`;
   return features["objective-tracking-v1"]
     ? `${prompt}\n\n${objectivePrompt(objectiveSwitches(features))}`
     : prompt;

@@ -1,7 +1,8 @@
 import {describe,expect,it} from "vitest";
 import {ALL_ON,dependencyProblems,featureInfo,playHarnessFeatures,SERVER_FEATURES,serverFeatureEnv,type FeatureSet} from "./features.js";
 import {flagFeatures,parsePlayPreset,presetFeatures} from "./play-preset.js";
-import {NO_NICKNAME_SECTION,playSystemPrompt} from "./play-config.js";
+import {NO_NICKNAME_SECTION,objectiveSwitches,playSystemPrompt} from "./play-config.js";
+import {objectivePrompt} from "./objective-tools.js";
 
 // Showcase bundle run 2026-10-16T00-34-26_qwen36-gpu1_show: PROF. BIRCH offered a nickname at
 // turn 252, the model said YES and was still in the editor 78 turns later, typing "MOM" from the
@@ -11,7 +12,7 @@ const NAMING="in-game-naming-readout-v1";
 const GUIDANCE="no-nickname-guidance-v1";
 const OFF:FeatureSet={...ALL_ON,[NAMING]:false,[GUIDANCE]:false};
 const base={version:2,id:"nick",target:null,limits:{maxTurns:10,maxWallMs:60000,failureLimit:3},sampling:{thinkingLevel:"medium",maxTokens:4096}};
-const without=(features:FeatureSet,...ids:string[])=>Object.fromEntries(Object.entries(features).filter(([k])=>!ids.includes(k)));
+const without=(features:Record<string,boolean>,...ids:string[])=>Object.fromEntries(Object.entries(features).filter(([k])=>!ids.includes(k)));
 
 describe("in-game-naming-readout-v1",()=>{
  it("is a default-off server observation switch that needs the naming readout, with OFF copy",()=>{
@@ -35,15 +36,16 @@ describe("no-nickname-guidance-v1",()=>{
   expect(playHarnessFeatures(OFF,null)).not.toContain(GUIDANCE);
  });
  it("OFF leaves the system prompt unchanged; ON appends one paragraph",()=>{
-  const off=playSystemPrompt(OFF,null),on=playSystemPrompt({...OFF,[GUIDANCE]:true},null);
+  const plain:FeatureSet={...OFF,"objective-tracking-v1":false};
+  const off=playSystemPrompt(plain,null),on=playSystemPrompt({...plain,[GUIDANCE]:true},null);
   expect(off).not.toContain("nickname only costs time");
   expect(on).toBe(`${off}\n\n${NO_NICKNAME_SECTION}`);
   expect(NO_NICKNAME_SECTION).toBe("Nicknames: this is a speed run, and naming a Pokémon only costs time. When the game offers to give a Pokémon a nickname, answer NO. If you are already on the naming screen for a Pokémon's nickname, do not type or fix letters: press START to move the cursor to OK, then A. Any nickname is fine, and with nothing typed the Pokémon keeps its own name.");
  });
  it("the objective record still follows the guidance paragraph",()=>{
-  const on=playSystemPrompt({...OFF,[GUIDANCE]:true,"objective-tracking-v1":true},null);
-  expect(on.indexOf(NO_NICKNAME_SECTION)).toBeGreaterThan(0);
-  expect(on.indexOf(NO_NICKNAME_SECTION)).toBeLessThan(on.indexOf("objective"));
+  const features:FeatureSet={...OFF,[GUIDANCE]:true,"objective-tracking-v1":true};
+  expect(playSystemPrompt(features,null)).toBe(`${playSystemPrompt({...features,"objective-tracking-v1":false},null)}\n\n${objectivePrompt(objectiveSwitches(features))}`);
+  expect(playSystemPrompt({...features,"objective-tracking-v1":false},null).endsWith(NO_NICKNAME_SECTION)).toBe(true);
  });
 });
 
@@ -51,7 +53,7 @@ describe("presets",()=>{
  it("presets and flag presets that omit them run with both off",()=>{
   const flags=flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false});
   expect([flags[NAMING],flags[GUIDANCE]]).toEqual([false,false]);
-  const rest=without(OFF,NAMING,GUIDANCE);
+  const rest=without({...ALL_ON,...flags},NAMING,GUIDANCE);
   const omitted=presetFeatures(parsePlayPreset({...base,features:rest}));
   expect([omitted[NAMING],omitted[GUIDANCE]]).toEqual([false,false]);
   const on=presetFeatures(parsePlayPreset({...base,features:{...rest,[NAMING]:true,[GUIDANCE]:true}}));

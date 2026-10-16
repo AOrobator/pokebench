@@ -59,6 +59,8 @@ export const SWITCHABLE_FEATURES = [
   "battle-details-v2",
   "dialogue-auto-advance-v1",
   "blocked-batch-result-v1",
+  "in-game-naming-readout-v1",
+  "no-nickname-guidance-v1",
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
 
@@ -195,6 +197,8 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("battle-details-v2", "observation", "BATTLE DETAILS V2", "expanded-menu-battle-information-v1", "In battle, replaces the raw battler lines with what each action allows, from game RAM and ROM tables: the battle kind (wild or trainer, PROF. BIRCH rescue), the 2x2 FIGHT/BAG/POKéMON/RUN menu with the highlighted option, and an allowed/REFUSED verdict with the game's own message only for actions the game can refuse (RUN in trainer battles, the Birch rescue, trapping abilities, MEAN LOOK/wrap/INGRAIN; BAG in link and Frontier battles; switching while trapped). RUN also says whether escape is guaranteed by speed (the odds are not computed). The foe gets everything a talented player would remember: types, exact HP, status, ability, held item, stats, non-neutral stat stages, volatile conditions and every move with type, physical/special/status, power, accuracy and PP. Your active Pokémon gets the same plus its moves in menu order with the highlighted move and 0-PP refusals; every party member gets types, ability, item, HP, status, whether it can switch in, and its full moveset. Usable, unusable and ball items are separated (balls are blocked and lost in trainer battles). An empty bag reads \"Bag: empty\". Disable, Taunt, Torment, Imprison, Encore, Choice Band locks, the escape-try counter and battle text are not read. Off: today's expanded battle lines (Battle state, Battler, Battle input) and a bare \"Bag: \" for an empty bag."),
   on("dialogue-auto-advance-v1", "guidance", "DIALOGUE AUTO-ADVANCE", "active-field-message-buffer-v1", "As soon as a press or navigate_to opens or continues a field message, the harness itself advances it with B, waiting for each page to finish printing, until the next decision point: free field control, a YES/NO or other menu (named with its options and highlighted choice), the naming screen, a battle, a screen change, or a cutscene that keeps controls locked with no message (waited out for up to 10 s). Buttons left in the model's batch once the conversation opens are not sent, so extra A presses cannot restart it. At most 50 automatic presses and 90 s per call, and a stop at either cap says so. The result lists every page shown, whole and in order, with speaker (the game's NAME: prefix, else the faced sprite kind, labelled as such), map, position and turn; get_dialogue searches every recorded page by speaker, words, map or recency. Each advance is recorded as a dialogue_auto_advance event. Needs the dialogue phase readout. Off: every requested button is sent and the model advances dialogue itself, one batch per turn; no get_dialogue."),
   on("blocked-batch-result-v1", "guidance", "BLOCKED BATCH RESULTS", "press-result-v1", "When a press batch of one repeated direction (two or more presses) leaves the player on the same tile with field controls free before and after, and the player ends facing that direction, the press result says so: \"blocked: LEFT ×3 did not move you; you are still at (10,16) facing left\" (or \"turned down -> left but did not move\"), then names what the model's own local map shows on the next tile. Terrain that cannot be entered from here (a collision tile, a counter, a ledge that only hops another way, ~ water while on foot, an edge wall, the map edge with no connection that way) reads \"blocked\" and says the direction cannot move the player from here. A person, object or warp on the next tile is described, but the result reads \"no movement\", because object height is not read and a warp is not an obstacle. Anything else reads \"no movement\" with the cause not known; height differences are never named. Each fact follows the switch that draws it: tiles only with the live map, ledges with ledge hops, edge walls with one-way tiles, counters with counter talk, map connections with world destinations, coordinates and facing with player position. Single presses, mixed or non-direction batches and locked or unverified states keep their usual text. Off: the batch reads \"unchanged world position/facing (batch or non-direction input; intermediate effects unknown)\", and a batch that only turned reads \"turned <from> -> <to>; no net movement\"."),
+  on("in-game-naming-readout-v1", "observation", "IN-GAME NAMING READOUT", "naming-cursor-v1", "Naming screens opened during play (a Pokémon nickname, a box name, a caught Pokémon's name) get the same readout the player-name screen has, read from game RAM: the name being edited, the keyboard page, the cursor column and row with the selected key, and whether input is ready. Off: only the player-name screen before the game starts has it; during play the readout shows no naming lines."),
+  on("no-nickname-guidance-v1", "guidance", "NO NICKNAMES", null, "Adds one system-prompt paragraph for a speed run: when the game offers to nickname a Pokémon, answer NO; if already on a Pokémon's nickname screen, do not edit it but press START (cursor to OK) then A, since any nickname is fine and an empty one keeps the Pokémon's own name. Off: no nickname guidance."),
   measured("story-milestones-v2", "STORY MILESTONES",
     "Records each story milestone the game's own state confirms, with its turn and time. This feeds splits and the score."),
   measured("clock-milestone-v1", "CLOCK MILESTONE",
@@ -247,7 +251,7 @@ export const SERVER_FEATURES: readonly SwitchableFeature[] = [
   "world-targets-v1", "named-interactions-v1", "world-destinations-v1", "bounded-navigation-v1", "field-dialogue-phase-v1", "active-field-message-buffer-v1", "naming-cursor-v1", "story-state-v1",
   "coordinate-script-conditions-v1", "field-control-lock", "warp-activation-guidance-v1", "ledge-hops-v1", "one-way-tiles-v1",
   "full-map-navigation-v1", "counter-talk-v1", "named-warp-destinations-v1", "character-presence-v1",
-  "battle-details-v2",
+  "battle-details-v2", "in-game-naming-readout-v1",
 ];
 
 export function serverFeatureEnv(features: FeatureSet): { POKEBENCH_ACTIVE_UI: "0" | "1"; POKEBENCH_FEATURES_OFF: string } {
@@ -291,6 +295,8 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("battle-details-v2"),
     ...when("dialogue-auto-advance-v1"),
     ...when("blocked-batch-result-v1"),
+    ...when("in-game-naming-readout-v1"),
+    ...when("no-nickname-guidance-v1"),
   ];
 }
 

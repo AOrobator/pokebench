@@ -38,6 +38,7 @@ def read_state(
         story_characters_enabled="character-presence-v1" not in off,
         battle_details_enabled="battle-details-v2" not in off,
         dynamic_warp_enabled="named-warp-destinations-v1" not in off,
+        in_game_naming_enabled="in-game-naming-readout-v1" not in off,
     )
 
 

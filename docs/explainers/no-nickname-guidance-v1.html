@@ -1,0 +1,75 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>No Nickname Guidance</title><style>
+:root{--bg:#f6f4ee;--fg:#1f2421;--muted:#6b6f68;--card:#ffffff;--line:#e3dfd3;--accent:#2f6fde;--accent2:#e0802a;--bad:#d2493a;--good:#2e9d63;
+--floor:#f3ead6;--wall:#7d776d;--water:#8cc3ea;--npc:#8c8f86;--obj:#b08a5a;--shadow:rgba(30,30,20,.10)}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#121512;--fg:#e9ece6;--muted:#9ba196;--card:#1b1f1b;--line:#2d332d;--accent:#78a8ff;--accent2:#f0a050;--bad:#ff7a6a;--good:#58cf8d;
+--floor:#3a362c;--wall:#5b5750;--water:#3f78a8;--npc:#6d7068;--obj:#8a6a3a;--shadow:rgba(0,0,0,.35)}}
+:root[data-theme=dark]{--bg:#121512;--fg:#e9ece6;--muted:#9ba196;--card:#1b1f1b;--line:#2d332d;--accent:#78a8ff;--accent2:#f0a050;--bad:#ff7a6a;--good:#58cf8d;
+--floor:#3a362c;--wall:#5b5750;--water:#3f78a8;--npc:#6d7068;--obj:#8a6a3a;--shadow:rgba(0,0,0,.35)}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.55 -apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Helvetica,Arial,sans-serif}
+main{max-width:960px;margin:0 auto;padding:32px 16px 72px}
+.eyebrow{font:600 12px/1 ui-monospace,Menlo,monospace;letter-spacing:.12em;color:var(--accent2);text-transform:uppercase}
+h1{font-size:34px;line-height:1.15;margin:10px 0 8px;letter-spacing:-.02em}h2{font-size:21px;margin:44px 0 6px}h3{margin:0 0 6px;font-size:16px}
+.lead{font-size:18px;color:var(--muted);max-width:720px}.cap{color:var(--muted);font-size:14px;margin:10px 2px 0}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;box-shadow:0 1px 2px var(--shadow),0 8px 24px var(--shadow)}
+.scroll{overflow-x:auto}svg{display:block;max-width:100%;height:auto}
+.vs{display:grid;grid-template-columns:1fr 1fr;gap:16px}@media (max-width:760px){.vs{grid-template-columns:1fr}}.vs>*{min-width:0}
+.tag{display:inline-block;font:600 11px/1 ui-monospace,Menlo,monospace;padding:4px 8px;border-radius:6px;margin-right:6px;vertical-align:2px}.tag.off{background:var(--line);color:var(--muted)}.tag.on{background:var(--accent);color:#fff}
+table{border-collapse:collapse;width:100%;font-size:14.5px}td,th{padding:9px 10px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top;overflow-wrap:anywhere}th{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}tr:last-child td{border-bottom:0}
+code{font:13px ui-monospace,Menlo,monospace;overflow-wrap:anywhere}
+.floor{fill:var(--floor);stroke:var(--line)}.wall{fill:var(--wall);stroke:var(--line)}.water{fill:var(--water);stroke:var(--line)}.obj{fill:var(--obj);stroke:var(--line)}
+.npc{fill:var(--npc);stroke:#fff;stroke-width:2.5}.player{fill:var(--accent);stroke:#fff;stroke-width:3}
+.goal{fill:none;stroke:var(--bad);stroke-width:3;stroke-dasharray:5 4}.stand{fill:none;stroke:var(--good);stroke-width:3}
+.t{font:12px -apple-system,Helvetica,sans-serif;fill:var(--fg)}.tm{font:11px ui-monospace,Menlo,monospace;fill:var(--muted)}.tg{font:700 12px -apple-system,Helvetica,sans-serif;fill:var(--good)}
+.node rect{fill:var(--card);stroke:var(--line);stroke-width:1.5}.node.hot rect{fill:color-mix(in srgb,var(--accent2) 22%,var(--card));stroke:var(--accent2);stroke-width:2}
+.nt{font:600 13px -apple-system,Helvetica,sans-serif;fill:var(--fg);text-anchor:middle}.ns{font:11.5px -apple-system,Helvetica,sans-serif;fill:var(--muted);text-anchor:middle}
+.flow{fill:none;stroke:var(--muted);stroke-width:2}.fl{font:11px -apple-system,Helvetica,sans-serif;fill:var(--muted)}
+.kb rect{fill:var(--card);stroke:var(--line)}.kb .sel{fill:color-mix(in srgb,var(--accent) 30%,var(--card));stroke:var(--accent);stroke-width:2.5}
+.kt{font:600 14px ui-monospace,Menlo,monospace;fill:var(--fg);text-anchor:middle}
+pre{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px;overflow-x:auto;font:13px/1.5 ui-monospace,Menlo,monospace;margin:0;white-space:pre-wrap}
+.add{background:color-mix(in srgb,var(--good) 18%,transparent);display:block}
+</style></head><body><main>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<marker id="a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/></marker>
+</defs></svg>
+
+<div class="eyebrow">Harness switch · no-nickname-guidance-v1 · bundle · default OFF</div>
+<h1>Speed runs skip nicknames</h1>
+<p class="lead">One system-prompt paragraph: a nickname only costs time, so answer NO when the game offers one, and if the naming screen is already open, leave it with START then A.</p>
+
+<h2>What went wrong</h2>
+<p>Showcase bundle run <code>2026-10-16T00-34-26_qwen36-gpu1_show</code>: PROF. BIRCH asked "why not give a nickname to that TORCHIC?" at turn 252. The model answered YES and spent the next 78+ turns (more than seven minutes) trying to spell "MOM". Nothing in the prompt said a nickname does nothing for progress.</p>
+
+<h2>The two ways out</h2>
+<div class="card scroll"><svg viewBox="0 0 900 250" role="img" aria-label="Two ways through Birch's nickname offer">
+<g class="node"><rect x="10" y="95" width="190" height="60" rx="10"/><text x="105" y="120" class="nt">"why not give a</text><text x="105" y="138" class="nt">nickname to TORCHIC?"</text></g>
+<g class="node hot"><rect x="290" y="20" width="200" height="50" rx="10"/><text x="390" y="42" class="nt">NO</text><text x="390" y="59" class="ns">(DOWN to NO, then A)</text></g>
+<g class="node"><rect x="290" y="170" width="200" height="50" rx="10"/><text x="390" y="192" class="nt">YES → naming screen</text><text x="390" y="209" class="ns">already answered</text></g>
+<g class="node hot"><rect x="560" y="170" width="160" height="50" rx="10"/><text x="640" y="192" class="nt">START, then A</text><text x="640" y="209" class="ns">cursor to OK, accept</text></g>
+<g class="node"><rect x="740" y="95" width="150" height="60" rx="10"/><text x="815" y="120" class="nt">back in the lab</text><text x="815" y="138" class="ns">name: TORCHIC</text></g>
+<path class="flow" d="M200 115 L288 50" marker-end="url(#a)"/><text x="215" y="70" class="fl">guidance</text>
+<path class="flow" d="M200 140 L288 190" marker-end="url(#a)"/><text x="215" y="185" class="fl">if it said YES</text>
+<path class="flow" d="M490 195 L558 195" marker-end="url(#a)"/>
+<path class="flow" d="M490 45 L738 115" marker-end="url(#a)"/>
+<path class="flow" d="M720 195 L760 157" marker-end="url(#a)"/>
+</svg></div>
+<p class="cap">Orange is what the paragraph asks for. Either path ends back in the lab with the Pokémon still called TORCHIC.</p>
+
+<h2>The exact paragraph (ON)</h2>
+<div class="card"><pre>Nicknames: this is a speed run, and naming a Pokémon only costs time. When the game offers to give a Pokémon a nickname, answer NO. If you are already on the naming screen for a Pokémon's nickname, do not type or fix letters: press START to move the cursor to OK, then A. Any nickname is fine, and with nothing typed the Pokémon keeps its own name.</pre></div>
+<p class="cap">Appended after the other guidance paragraphs and before the objective record. OFF: the prompt is unchanged.</p>
+
+<h2>Checked on the real game</h2>
+<div class="card"><table>
+<tr><th>From Birch's question, YES</th><th>Result in the party</th></tr>
+<tr><td>START, A (nothing typed)</td><td>nickname <code>TORCHIC</code></td></tr>
+<tr><td>A, START, A (one letter typed)</td><td>nickname <code>A</code></td></tr>
+</table></div>
+<p class="cap">Live game server loaded at Birch's nickname question. An empty name keeps the Pokémon's own name because the game copies the typed text only when it has a non-space character (pret/pokeemerald <code>naming_screen.c</code>, <code>SaveInputText</code>).</p>
+
+<h2>Status</h2>
+<div class="card"><table>
+<tr><td style="white-space:nowrap">Branch</td><td><code>claude/nickname-naming</code>, pre-launch fix F11, a bundle switch (operator decision 2026-10-16)</td></tr>
+<tr><td style="white-space:nowrap">Not done</td><td>No measured runs. The experiment entry is pending, not queued.</td></tr>
+</table></div>
+</main></body></html>

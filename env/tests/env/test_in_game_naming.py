@@ -40,9 +40,7 @@ def operator_rom() -> bytes:
 def fixture_reader(seq: int):
     rom = operator_rom()
     cells: dict[int, int] = {}
-    for window in json.loads((FIXTURES / f"in-game-naming-show-{seq}.json").read_text())[
-        "windows"
-    ]:
+    for window in json.loads((FIXTURES / f"in-game-naming-show-{seq}.json").read_text())["windows"]:
         start = int(window["address"], 16)
         for offset, value in enumerate(bytes.fromhex(window["hex"])):
             cells[start + offset] = value

@@ -97,6 +97,9 @@
    "disproved-beliefs-v1": false,
    "same-plan-breaker-v1": false,
    "levelup-box-v1": false,
+   "briefing-exits-v1": false,
+   "untaken-exits-v1": false,
+   "people-ledger-v1": false,
    "trainer-heal-guidance-v1": false,
    "low-hp-trainer-warning-v1": false
   }

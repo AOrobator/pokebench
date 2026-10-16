@@ -839,17 +839,19 @@ it("links the script line presence card to its tracked explainer, which shows th
  expect(html).toContain("(no speaker shown by the game; on screen: PROF. BIRCH (sprite PROF_BIRCH) at 4,13; ZIGZAGOON_1 at 5,13; BIRCHS_BAG at 7,14)");
 });
 it("links the trainer heal guidance and low-HP trainer warning cards to their tracked explainers",()=>{
- const cases:readonly(readonly[string,readonly string[]])[]=[
-  ["trainer-heal-guidance-v1",["Trainer battles and your rival: a battle against a trainer, including your rival, cannot be run from.","3/21"]],
-  ["low-hp-trainer-warning-v1",["SUPERVISOR: Your TORCHIC has 3/21 HP (below half), and your rival MAY is on this map at (10,3).","low_hp_trainer_warning"]],
- ];
- for(const [id,quotes] of cases){
+ const ids=["trainer-heal-guidance-v1","low-hp-trainer-warning-v1"] as const;
+ const quotes:Readonly<Record<(typeof ids)[number],readonly string[]>>={
+  "trainer-heal-guidance-v1":["Trainer battles and your rival: a battle against a trainer, including your rival, cannot be run from.","3/21"],
+  "low-hp-trainer-warning-v1":["SUPERVISOR: Your TORCHIC has 3/21 HP (below half), and your rival MAY is on this map at (10,3).","low_hp_trainer_warning"],
+ };
+ // One render of just these two cards, then one read per document.
+ const log=new Log();log.add(0,{...START,harness_features:[...ids]});
+ const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES.filter(f=>(ids as readonly string[]).includes(f.id)));
+ for(const id of ids){
   expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
-  const log=new Log();log.add(0,{...START,harness_features:[id]});
-  const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
   expect(doc.querySelector(`[data-feature="${id}"] a`)?.getAttribute("href")).toBe(`/explainers/${id}.html`);
   const html=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)),"utf8");
   expect(html).toContain(id);
-  for(const quote of quotes)expect(html).toContain(quote);
+  for(const quote of quotes[id])expect(html).toContain(quote);
  }
 });

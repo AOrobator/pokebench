@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Battle Observation Loop</title>
+<style>
+:root{
+ --bg:#f7f6f2; --fg:#1c1d1f; --soft:#5b5d61; --rule:#dedcd5; --panel:#ffffff;
+ --game:#1a7f5a; --game-bg:#e3f4ec; --prior:#c2432f; --prior-bg:#fbe7e2; --nav:#2a62c9; --nav-bg:#e4edfb; --hot:#c2432f;
+ --body:system-ui,-apple-system,"Segoe UI",sans-serif; --mono:ui-monospace,"SF Mono",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+ --bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; --hot:#ff7a63; color-scheme:dark}}
+:root[data-theme="dark"]{
+ --bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; --hot:#ff7a63; color-scheme:dark}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.6 var(--body);padding:0 16px}
+main{max-width:740px;margin:0 auto;padding:40px 0 64px;display:flex;flex-direction:column;gap:34px}
+h1{font-size:2.2rem;line-height:1.15;margin:0}
+h2{font-size:1.3rem;margin:0}
+p{margin:0;max-width:66ch}
+.eyebrow{font:500 .75rem var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--soft)}
+.lede{font-size:1.08rem;color:var(--soft)}
+section{display:flex;flex-direction:column;gap:12px}
+figure{margin:0;display:flex;flex-direction:column;gap:8px}
+.scroll{overflow-x:auto}
+svg{display:block;max-width:100%;height:auto}
+figcaption{font-size:.88rem;color:var(--soft)}
+svg text{font-family:var(--body);font-size:12px;fill:var(--fg)}
+svg .s{fill:var(--soft);font-size:11px}
+svg .t{font-weight:600;font-size:13px}
+.box{fill:var(--panel);stroke:var(--rule)}
+.game{fill:var(--game-bg);stroke:var(--game)}
+.prior{fill:var(--prior-bg);stroke:var(--prior)}
+.navb{fill:var(--nav-bg);stroke:var(--nav)}
+.hot{stroke:var(--hot);stroke-width:2.2}
+.arr{stroke:var(--soft);stroke-width:1.5;fill:none}
+.arr.g{stroke:var(--game)} .arr.p{stroke:var(--prior);stroke-dasharray:5 4}
+pre{background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:14px;white-space:pre-wrap;font:13px/1.5 var(--mono);margin:0}
+code{font:500 .88em var(--mono);background:var(--panel);border:1px solid var(--rule);border-radius:4px;padding:0 4px}
+table{border-collapse:collapse;width:100%;font-size:.92rem}
+th,td{text-align:left;padding:7px 9px;border-bottom:1px solid var(--rule);vertical-align:top}
+th{font:500 .75rem var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--soft)}
+.tag{display:inline-block;font:500 .72rem var(--mono);border-radius:99px;padding:1px 8px;border:1px solid var(--rule);color:var(--soft)}
+</style>
+</head>
+<body>
+<main>
+<div class="eyebrow">Harness switch · guard · <code>battle-observation-loop-v1</code> · no dependency · off by default · bug fix: ON in both arms</div>
+<h1>Battle observation loop</h1>
+<p class="lede">In sh02 the model called <code>observe</code> 270 times in a row during a wild battle while the game waited for a button, and the loop guard never fired. With this switch on, an observe that finds the battle exactly as the previous call left it counts toward the observation guard, so the fourth identical observe warns. Off: observes in battle never count.</p>
+
+<section>
+<h2>Why</h2>
+<table>
+<tr><th>Run</th><th>Window</th><th>What happened</th><th>Loop guard (today)</th></tr>
+<tr><td><code>sh02</code> (2026-10-16)</td><td>T445–T716, seq ~9950–11928</td><td>WINGULL at 0/13 HP; the battle waits for A. The model observes 270 times.</td><td>silent; only <code>milestone_drought</code> at T716 (seq 11928)</td></tr>
+</table>
+<p>Cause, confirmed by replay: <code>semanticState</code> returns no fingerprint in battle, and the observation counter only counts an observe whose fingerprint equals the previous one, so it reset to 0 on every observe. The decoded battle was byte-identical in all 268 state snapshots from seq 10056 to 11928.</p>
+</section>
+
+<section>
+<h2>Unchanged versus advancing</h2>
+<figure>
+<div class="scroll">
+<svg viewBox="0 0 700 200" width="700" role="img" aria-label="Observe counts while the battle is unchanged and resets when it advances">
+<text x="10" y="18" class="t">Each box is one observe; the number is the observation count</text>
+<g>
+<rect x="10" y="30" width="70" height="44" rx="4" class="box"/><text x="45" y="56" text-anchor="middle">T449 · 0</text>
+<rect x="90" y="30" width="70" height="44" rx="4" class="box"/><text x="125" y="56" text-anchor="middle">T450 · 1</text>
+<rect x="170" y="30" width="70" height="44" rx="4" class="box"/><text x="205" y="56" text-anchor="middle">T451 · 2</text>
+<rect x="250" y="30" width="70" height="44" rx="4" class="prior hot"/><text x="285" y="56" text-anchor="middle">T452 · 3</text>
+<text x="335" y="48">warning + supervisor (seq 10079)</text>
+<text x="335" y="66" class="s">same battle: phase, turn, HP, PP, inputs, script pointer, signals</text>
+</g>
+<text x="10" y="110" class="t">A battle moving on by itself never counts</text>
+<rect x="10" y="122" width="70" height="44" rx="4" class="box"/><text x="45" y="148" text-anchor="middle">0</text>
+<rect x="90" y="122" width="70" height="44" rx="4" class="game"/><text x="125" y="148" text-anchor="middle">0</text>
+<rect x="170" y="122" width="70" height="44" rx="4" class="game"/><text x="205" y="148" text-anchor="middle">0</text>
+<rect x="250" y="122" width="70" height="44" rx="4" class="game"/><text x="285" y="148" text-anchor="middle">0</text>
+<text x="335" y="140">script pointer, HP bar, turn or controller flags changed</text>
+<text x="335" y="158" class="s">between observes: the count restarts each time</text>
+</svg>
+</div>
+<figcaption>Top: the recorded sh02 observes (the counter needs 3 repeats, <code>LOOP_POLICY.observation</code>). Bottom: the synthetic cases in the tests, built from the recorded battle state.</figcaption>
+</figure>
+<table>
+<tr><th>Compared between consecutive game calls</th><th>Why</th></tr>
+<tr><td>the whole decoded battle: phase, ready, turn, outcome, every battler (HP, PP, status, stat stages), input phases and cursors, controller flags, main function, script pointer, signals, current move execution</td><td>any change means the game moved on without the model</td></tr>
+<tr><td>the active menu, the party, the field message</td><td>a menu or message change is progress too</td></tr>
+<tr><td>a battle decoder diagnostic, or no battle readout</td><td>unknown: never counts</td></tr>
+</table>
+<p>A press resets the count as today. A battle state not seen in the last 16 calls is new and recovers the episode. The rule uses game state only, never time.</p>
+</section>
+
+<section>
+<h2>What the model reads</h2>
+<pre>LOOP GUARD (observation): Repeated observations contain no new reliable game information. Reassess whether an interaction is needed; unchanged observations are not recovery. Recovery is bounded; objective wording and new evidence IDs alone do not establish progress.</pre>
+<p>With the supervisor on, as in both arms, the next call gets the supervisor briefing for observation ("You keep repeating observing without acting…"), re-posted every 6 calls. The battle readout text itself is unchanged here; the "resolving" wording is handled on <code>claude/battle-text-auto-advance</code>.</p>
+</section>
+
+<section>
+<h2>Replay receipts</h2>
+<table>
+<tr><th>Window</th><th>OFF</th><th>ON</th></tr>
+<tr><td>sh02 T445–T718</td><td>no notice</td><td>warning + supervisor T452 seq 10079; 45 supervisor briefings to T716; recovered T717 seq 11945 when a press moved the battle on</td></tr>
+</table>
+<p>In a sweep of the 60 most recent runs only sh02 gains a battle warning. Only sh02 (284) and one other run (1) observe in battle at all, so the evidence for the no-false-positive rule is the synthetic cases plus sh02's 15 in-battle observes where the battle had changed.</p>
+</section>
+
+<section>
+<h2>Status</h2>
+<p>Branch <code>claude/pushback-loop-guard</code>. Tests in <code>packages/agent/src/battle-observation-loop.test.ts</code> and a <code>live.ts</code> factory test. Ships with <a href="pushback-loop-detection-v1.html">push-back loop detection</a>. No measured runs.</p>
+</section>
+</main>
+</body>
+</html>

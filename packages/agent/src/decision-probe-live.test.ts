@@ -212,6 +212,7 @@ it.each([
     const last = turns.at(-1)?.turn ?? 0;
     const recorded = probe.recordedFeatures(run);
     await expect(probe.decisionContext(run, last, probe.withSwitches(recorded, [{ id: "transition-press-result-v1", on: false }]), ports)).rejects.toThrow(/was auto-advanced through dialogue; its text cannot be re-derived/);
+    await expect(probe.decisionContext(run, last, probe.withSwitches(recorded, [{ id: "pushback-press-result-v1", on: !recorded["pushback-press-result-v1"] }]), ports)).rejects.toThrow(/was auto-advanced through dialogue; its text cannot be re-derived/);
     await expect(probe.decisionContext(run, last, recorded, ports, "replayed", true)).rejects.toThrow(/was auto-advanced through dialogue/);
     await expect(probe.decisionContext(run, last, probe.withSwitches(recorded, [{ id: "fresh-retry-v1", on: !recorded["fresh-retry-v1"] }]), ports)).resolves.toBeDefined();
   }

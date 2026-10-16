@@ -154,13 +154,15 @@ def test_off_is_todays_readout_byte_for_byte() -> None:
             json_golden = json.loads(
                 (FIXTURES / f"displayed-names-off-{room}-{gender}-fa09dbe6.json").read_text()
             )
-            # route103_rival (measurement only, added after fa09dbe6) is the only new key.
+            # route103_rival and trainer_opponent (measurement only, added after fa09dbe6) are
+            # the only new keys.
             current = json.loads(json.dumps(state_json(state)))
             assert current.pop("route103_rival") == {
                 "battle_active": False,
                 "defeated": False,
                 "oldale_stage": 0,
             }
+            assert current.pop("trainer_opponent") is None
             assert current == json_golden
 
 

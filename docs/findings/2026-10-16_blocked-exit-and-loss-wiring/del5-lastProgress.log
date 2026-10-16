@@ -1,0 +1,22 @@
+attempt del5-lastProgress
+file src/loop-supervisor.ts sha256 before fefe1ecfb3ddd2c9b7c8e55df0d11777391d6f5ea985caa09e5afce905d6cac7
+mutation: replace
+  return this.battles===null?progress:`${progress}\n${this.battles.briefingLines().trimEnd()}`;
+with
+  return progress;
+333c333
+<   return this.battles===null?progress:`${progress}\n${this.battles.briefingLines().trimEnd()}`;
+---
+>   return progress;
+--- broken run
+     × ON states the lost rival battle and the whiteout right after the last story progress, and nothing else changes 9ms
+     × ON before any battle with a story character says none were recorded (T277, seq 6785) 3ms
+     × ON: the loop-guard and text-only supervisors state the loss and the whiteout; OFF: they do not 19ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+AssertionError: expected 'SUPERVISOR: You are stalling. There h…' to be 'SUPERVISOR: You are stalling. There h…' // Object.is equality
+AssertionError: expected 'SUPERVISOR: You are stalling. There h…' to be 'SUPERVISOR: You are stalling. There h…' // Object.is equality
+AssertionError: expected 'SUPERVISOR: You are currently looping…' to contain '- Latest battle against a story chara…'
++ - What you tried recently, newest first: press LEFT ×11 in OLDALE TOWN (map 0/10) → restarted a conversation already shown (3 pages, advanced automatically); press LEFT ×5 in OLDALE TOWN (map 0/10) → no change; press LEFT ×6 in OLDALE TOWN (map 0/10) → moved to 0,10; press B in OLDALE TOWN (map 0/10) → restarted a conversation already shown (3 pages, advanced automatically); press LEFT,LEFT in OLDALE TOWN (map 0/10) → moved to 1,10; press LEFT in OLDALE TOWN (map 0/10) → moved to 2,10; navigate_to 0,10 in OLDALE TOWN (map 0/10) → moved to 3,10; navigate_to 0,10 in OLDALE TOWN (map 0/10) → moved to 10,11
+      Tests  3 failed | 14 passed (17)
+--- restored sha256 fefe1ecfb3ddd2c9b7c8e55df0d11777391d6f5ea985caa09e5afce905d6cac7 (equal: yes)
+restored run:       Tests  17 passed (17)

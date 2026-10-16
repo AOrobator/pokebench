@@ -5,8 +5,9 @@ frames, then DoWhiteOut halves SaveBlock1.money, heals the party and warps to th
 heal location (SetWarpDestinationToLastHealLocation). No field text follows
 (FieldCB_WarpExitFadeFromBlack), so without this line the model sees only a new room.
 
-The latch watches gMain.callback2 after every game-loop frame (run_frame_with_buttons, under
-its memory lock; frames the vendor advances directly, tick and load_state, are out of scope) and keeps the money read on the first whiteout frame. The first
+The latch watches gMain.callback2 after every game-loop frame (run_frame_with_buttons,
+under its memory lock; frames the vendor advances directly, tick and load_state, are out
+of scope) and keeps the money read on the first whiteout frame. The first
 observation back on the field reports it and clears it. While CB2_WhiteOut runs, the
 readout says so from that observation's own state.
 """

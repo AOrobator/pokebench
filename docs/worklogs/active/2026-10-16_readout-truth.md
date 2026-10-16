@@ -70,7 +70,7 @@ Read-only RAM decoding and text. No subprocesses, no network, no new endpoints. 
 - [x] COMMIT
 
 **M3 — review**
-- [ ] Merge main, gates
+- [x] Merge main, gates
 - [ ] Principles self-review PB1–PB13, zero FAIL
 - [ ] Claude, Grok, GPT lanes `VERDICT: LGTM` on one frozen packet
 - [ ] STOP: report to the thread owner (no self-merge)
@@ -138,6 +138,8 @@ Report branch, frozen head, packet SHA-256, verdict lines, gate counts and cover
   COMMIT: `test(RED): operator amendment — whiteout frame scope, birch speech pages ON in both arms`
 - 2026-10-16 01:16 PM EDT: Amendment GREEN. birch-speech-pages-v1 copy opens "Correctness fix, meant to be ON in both arms of a comparison."; its experiment notes, readiness row and explainer (eyebrow, wiring) say ON in both arms (onInBoth, wired by the bundle owner), no "bundle arm only". blackout-readout-v1 copy, experiment notes, explainer (frame-loop caption and a Limits item "Operator amendment (the operator, 2026-10-16)") and the `blackout_readout.py` docstring state the frame scope: game-loop frames through `run_frame_with_buttons`; `tick` and the frame `load_state` runs are out of scope. No behavior change. Mockup copies refreshed; pages-check clean; agent 1706 passed.
   COMMIT: `docs: operator amendment — whiteout frame scope, birch speech pages ON in both arms`
+- 2026-10-16 01:35 PM EDT: Merged local main 6603d64f (trainer-heal-guidance-v1, low-hp-trainer-warning-v1, briefing-battle-outcomes-v1, trainer-opponent-v1, blocked-exit-fact-v1, battle-loss-recap-v1, pushback-loop-detection-v1, pushback-press-result-v1, battle-observation-loop-v1). Registries: this branch's three ids follow battle-observation-loop-v1 in SWITCHABLE/FEATURES/playHarnessFeatures and after battle-loss-recap-v1 in the preset, flag, normalize and DEFAULT_NEXT_RUN literals; SERVER_FEATURES unchanged (main's are agent-side); FEATURE_EXPLAINERS, README and readiness rows after main's. game_state imports both `read_trainer_opponent` and `menu_window_drawn`. Test hunks take main's version, then every end-relative registry index recomputed from the built registry (19 files), this branch's ids added to features.test's off() lists and the flag-preset expectations; observation count 34; switchboard rows 87. Also rewrapped the `blackout_readout.py` docstring from dd23552a (ruff E501). Gates (ROM set): agent 1873, viewer 933, Python 2396 passed, 0 skipped; coverage agent 97.99/94.68/98.4/99.14 (stmts/branches/funcs/lines), viewer 95.33/91.09/93.68/97.63, Python lines 97.46 branches 93.44 functions 100; lint, build, verify-vendor OK; pages-check clean; experiments-check ok (75). OFF sweep on the merged code: 5,642 of 5,642 identical (sh02 1100, show 864, 2919 247, 3f21 198, 54a7 655, 687e 1036, e588 1542; 0 errors).
+  COMMIT: `Merge branch 'main' into claude/readout-truth`
 
 ## Surprises
 

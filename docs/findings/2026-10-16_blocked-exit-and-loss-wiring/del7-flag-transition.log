@@ -1,0 +1,17 @@
+attempt del7-flag-transition
+file src/battle-outcomes.ts sha256 before 4983bf3367a2512466406aad7b233c1458b5b6e87a41ea8bf32a47b47e316865
+mutation: replace
+  const won=!blackout&&run.unbeaten&&
+with
+  const won=!blackout&&
+79c79
+<   const won=!blackout&&run.unbeaten&&opponent!=null&&opponent.trainer_id===run.trainer?.id&&opponent.defeated;
+---
+>   const won=!blackout&&opponent!=null&&opponent.trainer_id===run.trainer?.id&&opponent.defeated;
+--- broken run
+     × a win is the trainer's flag turning set: a flag already set before the battle, or a blackout, is never a win (review round 1) 4ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+AssertionError: expected '- Latest battle against a story chara…' to contain 'you battled MAY (trainer 535) on ROUT…'
+      Tests  1 failed | 16 passed (17)
+--- restored sha256 4983bf3367a2512466406aad7b233c1458b5b6e87a41ea8bf32a47b47e316865 (equal: yes)
+restored run:       Tests  17 passed (17)

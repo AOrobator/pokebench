@@ -28,6 +28,7 @@ from pokebench_env.route103_rival import Route103Rival, read_route103_rival
 from pokebench_env.running import RunningPermission, read_running_permission
 from pokebench_env.story import StoryState, read_story
 from pokebench_env.topology import Topology, read_topology
+from pokebench_env.trainer_opponent import TrainerOpponent, read_trainer_opponent
 from pokebench_env.ui_state import (
     ActiveUi,
     Menu,
@@ -110,6 +111,7 @@ class GameState:
     destination_names: tuple[tuple[int, int, str], ...] = ()
     story_characters: StoryCharacters | None = None
     route103_rival: Route103Rival | None = None
+    trainer_opponent: TrainerOpponent | None = None
     battle_details: BattleDetails | None = None
     # SaveBlock1.dynamicWarp (group, number, map name) when this map has a MAP_DYNAMIC warp.
     dynamic_warp: tuple[int, int, str] | None = None
@@ -311,6 +313,7 @@ def read_game_state(
         started=True,
         story=read_story(read, screen, save1),
         route103_rival=read_route103_rival(read, save1, in_battle),
+        trainer_opponent=read_trainer_opponent(read, save1, in_battle),
         name=player,
         location=maps.name(map_id) or f"unknown map {map_id}",
         map_id=map_id,

@@ -1,0 +1,19 @@
+attempt del2-playGameTools-wrapper
+file src/play-wiring.ts sha256 before 18a25378937f73d4200d9558213f7df5936ee2ec7e1e86da054139fb63c72d98
+mutation: replace
+   return [...withResultFacts(withNavigateFirst(
+with
+   return [...((t:readonly AgentTool[])=>t)(withNavigateFirst(
+79c79
+<  return [...withResultFacts(withNavigateFirst([...withUntakenExits(withPeopleLedger(withDialogueAutoAdvance(withNavigation(base,features,state,gate),features,{state,recorder}),features,recorder),features,recorder),...extra],features),features,recorder)];
+---
+>  return [...((t:readonly AgentTool[])=>t)(withNavigateFirst([...withUntakenExits(withPeopleLedger(withDialogueAutoAdvance(withNavigation(base,features,state,gate),features,{state,recorder}),features,recorder),features,recorder),...extra],features),features,recorder)];
+--- broken run
+     × ON appends the recap to the whiteout result; OFF leaves the tool untouched 5ms
+     × ON appends the line as its own text part at T247; OFF leaves the press tool untouched 4ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+AssertionError: expected false to be true // Object.is equality
+AssertionError: expected false to be true // Object.is equality
+      Tests  2 failed | 28 passed (30)
+--- restored sha256 18a25378937f73d4200d9558213f7df5936ee2ec7e1e86da054139fb63c72d98 (equal: yes)
+restored run:       Tests  30 passed (30)

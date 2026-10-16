@@ -305,8 +305,8 @@ describe("people-id-cards-v1 registration",()=>{
   expect(info).toMatchObject({group:"observation",title:"PEOPLE ID CARDS",needs:"people-ledger-v1",switchable:true});
   expect(info.description).toContain(" Off: no cards, no row summaries, no prompt section and no event");
   expect(dependencyProblems({...OFF,"people-id-cards-v1":true})).toContain("people-id-cards-v1 needs people-ledger-v1");
-  expect(playHarnessFeatures({...OFF,"people-id-cards-v1":true}).at(-1)).toBe("people-id-cards-v1");
-  expect(playHarnessFeatures(OFF)).not.toContain("people-id-cards-v1");
+  expect(playHarnessFeatures({...OFF,"people-id-cards-v1":true},null).at(-1)).toBe("people-id-cards-v1");
+  expect(playHarnessFeatures(OFF,null)).not.toContain("people-id-cards-v1");
   expect(stateOnlyProblems({...ALL_ON,"state-only-decisions-v1":true})).toContain("state-only-decisions-v1 requires people-id-cards-v1 OFF");
   expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false})["people-id-cards-v1"]).toBe(false);
   const preset=parsePlayPreset({version:2,id:"p",target:null,limits:{maxTurns:1,maxWallMs:1,failureLimit:1},sampling:{thinkingLevel:"medium",maxTokens:1},features:{...OFF}});

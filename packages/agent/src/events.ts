@@ -214,6 +214,12 @@ const DialoguePageSchema = Type.Object({
   text: Type.String({ minLength: 1 }),
   battle_turn: Type.Optional(Type.Integer({ minimum: 1, maximum: 256 })),
   battle_message_id: Type.Optional(Type.Integer({ minimum: 1 })),
+  // script-line-presence-v1 ON only, on a page with no speaker: the live objects on screen at state_seq
+  // (null when that state did not say), with the story character character-presence-v1 names, if any.
+  on_screen: Type.Optional(Type.Union([Type.Array(Type.Object({
+    local_id: NonNegativeInt, graphics_id: NonNegativeInt, sprite_kind: Type.Union([Type.String(), Type.Null()]),
+    x: Type.Integer(), y: Type.Integer(), character: Type.Union([Type.String({ minLength: 1 }), Type.Null()]),
+  }, closed), { maxItems: 16 }), Type.Null()])),
 }, closed);
 const DialogueAutoAdvance = event("dialogue_auto_advance", {
   tool_call_id: Type.String(),

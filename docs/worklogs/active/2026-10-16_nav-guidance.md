@@ -201,3 +201,8 @@ Lanes: the think_fast/think_swarm endpoint lanes are not used while overnight tr
 - Gates: agent 1547, viewer 868, Python 2250; lint green except known mypy; pages-check clean.
   COMMIT: `Merge branch 'main' into claude/nav-guidance (script-line-presence-v1)`
 - Merge-resolution review of 310b9d21: Codex LGTM, Grok LGTM. Coverage rerun after reviewers finished: agent 97.88/94.5/98.19/99.14, viewer 95.36/90.98/93.57/97.7, Python 96% (one viewer timing test had timed out under reviewer load; passes alone in 6 s and in the rerun). Landing.
+
+## Landed
+
+- 2026-10-16 05:15 AM EDT: merged into main at 164d7a79 (`Merge branch 'claude/nav-guidance'`). Pending experiments offscreen-objects, navigate-first-prompt, presence-penalty pinned to 164d7a79 (`just experiment-pin`). Switch names and SHA sent to the coordinator for the readiness thread (owner of experiments/fixed/bundle-v-control.json). Viewer 8790 restart left to the stats thread (coordinator instruction 05:17 AM).
+  COMMIT: `experiments: pin offscreen-objects, navigate-first-prompt and presence-penalty to their merge`

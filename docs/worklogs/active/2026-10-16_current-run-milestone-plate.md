@@ -45,6 +45,14 @@ already polls it for the queue, so QueuePanel hands each parsed snapshot to the 
   - queue-view: 1 failing ("puts fixed-run status cards above the queue and validates them"), 12 pass. RED commit: af7af947
 - [x] M2 GREEN: `laneOk` in `queueSnapshotOf`
   - viewer tests 806/806; coverage 95.14 / 90.48 / 93.59 / 97.62 (stmts/branches/funcs/lines); lint clean.
-- [ ] Browser check against a scratch runs copy (desktop + 375 px)
+  - GREEN commit: 47240333
+- [x] Browser check (built dist + static served by a scratch fixture server on 127.0.0.1:8831; 4 live/paused
+  runs, 3 lanes incl. a 51-char arm, one hand run). Desktop 1200 px and phone 375 px: plates render, gold plate
+  with chip (computed `3.6s steps(2) infinite wb-new-blink`), gold → cream after the 30 s window on the same
+  focused element, scrollWidth = clientWidth (0 elements past the edge), plates stack in one column at 375 px,
+  long arm wraps. Real click on the lane A plate lands on `/#run=<id>`.
+  Screenshots: `runs/mockups/current-run-milestone/impl-check/{desktop-1200,mobile-375}.jpg` (main checkout).
+  Not checked: the real viewer server on 8790 (off limits) or a real running cohort.
+- [ ] Multi-model review loop (not run in this session)
 
 ## Log

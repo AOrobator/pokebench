@@ -69,13 +69,13 @@ describe("navigation-truth-v1: talk offers only for objects with a script (sh02 
   expect((await walk({...counter,interaction_targets:[]},{x:1,y:1},{...TRUTH,counters:true})).status).not.toContain("press A");
   expect((await walk({...counter,interaction_targets:[clerk]},{x:1,y:1},{...TRUTH,counters:true})).status).toBe(TALK);
  });
- it("a scriptless object on a tile with another A target (a hidden item) keeps today's offer: A falls through to the background event",async()=>{
+ it("a scriptless object on a tile with another A target (a hidden item): A falls through to the background event, which may be used up",async()=>{
   // pokeemerald GetInteractionScript: the object script first, then GetInteractedBackgroundEventScript when it is null.
   const item=ascii(["...","@..","..."]);
   const state:GameStateSnapshot={...item,navigation_grid:{...gridOf(item),objects:[{x:2,y:1}]},world_context:{...contextOf(item),objects:[{local_id:2,map_id:[0,9],graphics_id:7,sprite_kind:"BOY_1",x:2,y:1}]},interaction_targets:[{kind:"hidden_item",x:2,y:1,elevation:3,activation:"A",availability:"available",facing:null,local_id:null,destination:null,name:null}]};
   const off=(await walk(state,{x:2,y:1},CONTROL)).status;
   expect(off).toContain("(2,1) is a person or object, which navigate_to cannot stand on; to talk to it or use it, walk to one of these free tiles, face it and press A: ");
-  expect((await walk(state,{x:2,y:1},TRUTH)).status).toBe(off);
+  expect((await walk(state,{x:2,y:1},TRUTH)).status).toBe("(2,1) is a person or object (sprite BOY_1), which navigate_to cannot stand on; it has no script, but a hidden item on its tile may answer A instead (the state does not show whether it is still there or usable): to try it, walk to one of these free tiles, face it and press A: (2,0) facing DOWN; (2,2) facing UP; (1,1) facing RIGHT");
  });
  it("the background event under a scriptless object answers only at its elevation and facing (GetBackgroundEventAtPosition, GetInteractedBackgroundEventScript)",async()=>{
   const item=ascii(["...","@..","..."]);
@@ -86,10 +86,15 @@ describe("navigation-truth-v1: talk offers only for objects with a script (sh02 
   expect((await walk(bg("hidden_item",4,null),{x:2,y:1},CONTROL)).status).toBe(OFFER);
   expect((await walk(bg("hidden_item",4,null),{x:2,y:1},TRUTH)).status).toBe(NONE);
   // Elevation 0 answers any elevation.
-  expect((await walk(bg("hidden_item",0,null),{x:2,y:1},TRUTH)).status).toBe(OFFER);
+  expect((await walk(bg("hidden_item",0,null),{x:2,y:1},TRUTH)).status).toBe("(2,1) is a person or object (sprite BOY_1), which navigate_to cannot stand on; it has no script, but a hidden item on its tile may answer A instead (the state does not show whether it is still there or usable): to try it, walk to one of these free tiles, face it and press A: (2,0) facing DOWN; (2,2) facing UP; (1,1) facing RIGHT");
   // A sign read facing up: only the stand below it.
   expect((await walk(bg("background",3,"up"),{x:2,y:1},CONTROL)).status).toBe(OFFER);
-  expect((await walk(bg("background",3,"up"),{x:2,y:1},TRUTH)).status).toBe("(2,1) is a person or object, which navigate_to cannot stand on; to talk to it or use it, walk to one of these free tiles, face it and press A: (2,2) facing UP");
+  expect((await walk(bg("background",3,"up"),{x:2,y:1},TRUTH)).status).toBe("(2,1) is a person or object (sprite BOY_1), which navigate_to cannot stand on; it has no script, but a background on its tile may answer A instead (the state does not show whether it is still there or usable): to try it, walk to one of these free tiles, face it and press A: (2,2) facing UP");
+  // The same on a solid tile (the background event is then the A target navigate_to lists).
+  const solid=(state:GameStateSnapshot):GameStateSnapshot=>({...state,navigation_grid:{...gridOf(state),tiles:gridOf(state).tiles.map(t=>t.x===2&&t.y===1?{...t,collision:1}:t)}});
+  expect((await walk(solid(bg("background",3,"up")),{x:2,y:1},CONTROL)).status).toBe("(2,1) is a background, which navigate_to cannot stand on; to talk to it or use it, walk to one of these free tiles, face it and press A: (2,0) facing DOWN; (2,2) facing UP; (1,1) facing RIGHT");
+  expect((await walk(solid(bg("background",3,"up")),{x:2,y:1},TRUTH)).status).toBe("(2,1) is a person or object (sprite BOY_1), which navigate_to cannot stand on; it has no script, but a background on its tile may answer A instead (the state does not show whether it is still there or usable): to try it, walk to one of these free tiles, face it and press A: (2,2) facing UP");
+  expect((await walk(solid(bg("hidden_item",4,null)),{x:2,y:1},TRUTH)).status).toBe(NONE);
  });
  it("stacked objects: A reaches only the object at the player's elevation (Route 120 Kecleon (12,16): scripted at 4, a scriptless shadow at 3)",async()=>{
   const base=ascii(["...","@..","..."]);

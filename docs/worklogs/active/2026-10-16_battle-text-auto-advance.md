@@ -26,9 +26,12 @@ Branch `claude/battle-text-auto-advance` in `/private/tmp/pokebench-battle-text`
   - The state JSON gains the fields; the model-facing readout text is unchanged (readout.py reads named fields only), so no SERVER_FEATURES entry: the server records, only the agent switch shows.
 
 **M2 — battle-text-auto-advance-v1 (agent)**
-- [ ] Switch registered (guidance, needs `dialogue-auto-advance-v1`, default OFF), presets, DEFAULT_NEXT_RUN, toolSwitches
-- [ ] RED: OFF byte-identical; ON advances the recorded showcase battle sequences to the action menu, stops at YES/NO, naming, bag/party, battle end, caps; dropped buttons; pages whole; factory test; wiring-removal check
-- [ ] GREEN, gates (test, lint, build, coverage ≥90, verify-vendor)
+- [x] Switch registered (guidance, needs `dialogue-auto-advance-v1`, default OFF), presets, DEFAULT_NEXT_RUN; no server switch (the server always records, only the agent switch shows); system-prompt section and tool-description sentence only when ON
+- [x] RED: OFF byte-identical; ON advances the recorded showcase battle sequences to the action menu, stops at YES/NO, naming, bag/party, battle end, caps; dropped buttons; pages whole; factory test; wiring-removal check
+  - COMMIT: `test(RED): battle-text-auto-advance-v1 on the recorded showcase battle, hand-offs, stops, caps and wiring` (a7729741)
+- [x] GREEN, gates (test, lint, build, coverage ≥90, verify-vendor)
+  - COMMIT: `feat: battle-text-auto-advance-v1 advances battle messages to the next decision point and lists every page` (see next entry)
+  - Tests: agent 1434, viewer 795, Python 2048 (2 ROM-gated skips). Coverage: agent L 99.11 / B 94.53 / F 98.03; viewer L 97.60 / B 90.50 / F 93.59; Python L 97.19 / B 92.81 / F 100. `battle-text-auto-advance.ts` 100% lines/functions. lint (incl. mypy) clean, build, verify-vendor green.
 
 **M3 — proof, explainer, review**
 - [ ] Real-ROM proof from a wild battle and from the Birch rescue battle

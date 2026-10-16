@@ -38,7 +38,8 @@ export class DialogueLog {
   if(event.type==="state"&&"started"in event){this.measured=event;return;}
   // dialogue-auto-advance-v1 hands the model its pages in the result; each page cites its own recorded state (else the event).
   if(event.type==="dialogue_auto_advance"){
-   this.pending.set(event.tool_call_id,event.pages.map(page=>{
+   // battle-text-auto-advance-v1's battle messages are not dialogue for the log, ledger or supervisors.
+   this.pending.set(event.tool_call_id,event.pages.filter(page=>page.battle_turn===undefined).map(page=>{
     const place={location:page.map,map_id:page.map_id};
     return {seq:page.state_seq??event.seq,turn:event.turn,key:roomKey(place),room:roomOf(place,this.features),position:this.features["live-player-position-v1"]&&page.position!==null?`${String(page.position.x)},${String(page.position.y)}`:null,facing:null,text:page.text};
    }));

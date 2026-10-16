@@ -2892,6 +2892,10 @@
           "type": "integer",
           "minimum": 0
         },
+        "battle_auto_presses": {
+          "type": "integer",
+          "minimum": 0
+        },
         "pages": {
           "type": "array",
           "items": {
@@ -2997,6 +3001,15 @@
               "text": {
                 "type": "string",
                 "minLength": 1
+              },
+              "battle_turn": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 256
+              },
+              "battle_message_id": {
+                "type": "integer",
+                "minimum": 1
               }
             },
             "additionalProperties": false
@@ -3014,7 +3027,12 @@
             "message_not_ready",
             "press_cap",
             "time_cap",
-            "error"
+            "error",
+            "battle_input",
+            "battle_prompt",
+            "battle_busy",
+            "battle_unreadable",
+            "paused"
           ]
         },
         "detail": {

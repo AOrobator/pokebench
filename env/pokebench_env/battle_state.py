@@ -275,6 +275,19 @@ def _battler(
     )
 
 
+def _initializing(read: ReadMemory, main: int) -> BattleState:
+    message, prompt, text_phase = _text_fields(read)
+    return BattleState(
+        True,
+        phase="initializing",
+        ready=False,
+        main_func=main,
+        message=message,
+        prompt=prompt,
+        text_phase=text_phase,
+    )
+
+
 def read_battle_state(read: ReadMemory) -> BattleState:
     active = bool(number(read, IN_BATTLE, 1) & 2)
     if not active:
@@ -286,7 +299,7 @@ def read_battle_state(read: ReadMemory) -> BattleState:
         # Before BattleIntro has copied party/enemy data, an empty battle is a
         # genuine initialization phase, not a decoded Pokémon with species0.
         if count == 0 or main == 0:
-            return BattleState(True, phase="initializing", ready=False, main_func=main)
+            return _initializing(read, main)
         if count not in (2, 4) or not 0x08000001 <= main < 0x0A000000 or not main & 1:
             raise ValueError("invalid battle count or main owner")
         battle_type = number(read, TYPE_FLAGS)
@@ -309,7 +322,7 @@ def read_battle_state(read: ReadMemory) -> BattleState:
             if index not in trainer_banks
         ):
             if main not in (SELECT_ACTION, 0x0803D2E9, 0x0803D819, *SCRIPT_OWNERS):
-                return BattleState(True, phase="initializing", ready=False, main_func=main)
+                return _initializing(read, main)
         absent = number(read, 0x02024210, 1)
         battlers = tuple(
             _battler(read, index, position, raw[index * 0x58 : (index + 1) * 0x58], absent)

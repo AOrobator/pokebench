@@ -1,5 +1,6 @@
 import type { Button } from "./events.js";
 import type { GameStateSnapshot } from "./game-state.js";
+import { blockedBatchResult } from "./blocked-batch.js";
 
 
 function interfaceProjection(state: GameStateSnapshot): string | undefined {
@@ -12,7 +13,8 @@ function interfaceProjection(state: GameStateSnapshot): string | undefined {
 // Endpoint snapshots prove net changes. They cannot prove every frame accepted
 // input or that a temporary script lock did not occur between the snapshots.
 // Facts the run's observation switches hide from the model are left out here too.
-export interface PressFacts { readonly position: boolean; readonly fieldLock: boolean; readonly transitions?: boolean }
+// blockedBatch (blocked-batch-result-v1) names blocked direction batches; liveMap says whether the model sees the local map.
+export interface PressFacts { readonly position: boolean; readonly fieldLock: boolean; readonly transitions?: boolean; readonly blockedBatch?: boolean; readonly liveMap?: boolean }
 export const ALL_PRESS_FACTS: PressFacts = { position: true, fieldLock: true };
 
 const dialogueOf = (state: GameStateSnapshot | undefined): string | null => state?.world_context?.dialogue ?? null;
@@ -127,6 +129,8 @@ function basePressResult(before: GameStateSnapshot | undefined, after: GameState
     return show.position ? `moved (${String(before.position.x)},${String(before.position.y)}) -> (${String(after.position.x)},${String(after.position.y)})` : "moved";
   }
   if (before.facing !== after.facing && before.facing !== null && after.facing !== null) {
+    const blocked = show.blockedBatch === true && show.fieldLock ? blockedBatchResult(before, after, buttons, show) : null;
+    if (blocked !== null) return blocked;
     return show.position ? `turned ${before.facing} -> ${after.facing}; no net movement` : "turned; no net movement";
   }
   if (!show.fieldLock) return "no movement or turn observed (cause not reported)";
@@ -138,6 +142,8 @@ function basePressResult(before: GameStateSnapshot | undefined, after: GameState
     return "unavailable/transitioning (field input readiness unverified)";
   }
   if (buttons.length !== 1 || !["UP", "DOWN", "LEFT", "RIGHT"].includes(buttons[0] ?? "")) {
+    const blocked = show.blockedBatch === true ? blockedBatchResult(before, after, buttons, show) : null;
+    if (blocked !== null) return blocked;
     return "unchanged world position/facing (batch or non-direction input; intermediate effects unknown)";
   }
   return "blocked or unavailable (no movement/turn observed; snapshots cannot distinguish collision from ignored input)";

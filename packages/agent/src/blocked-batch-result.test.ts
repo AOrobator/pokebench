@@ -161,13 +161,13 @@ describe("registry, presets and production wiring", () => {
   it("is a registered guidance switch that needs press results, last in the run record", () => {
     expect(featureInfo(ID)).toMatchObject({ group: "guidance", needs: "press-result-v1", switchable: true });
     expect(featureInfo(ID).description).toContain(" Off: ");
-    expect(FEATURES.at(-1)?.id).toBe(ID);
+    expect(FEATURES.filter(f => f.switchable).at(-1)?.id).toBe(ID);
     expect(playHarnessFeatures(ALL_ON, null).at(-1)).toBe(ID);
     expect(playHarnessFeatures({ ...ALL_ON, [ID]: false }, null)).not.toContain(ID);
     expect(dependencyProblems({ ...ALL_ON, "press-result-v1": false })).toContain(`${ID} needs press-result-v1`);
   });
   it("defaults OFF in presets that omit it and in legacy flag presets", () => {
-    const { [ID]: _omitted, ...rest } = { ...ALL_ON };
+    const rest = Object.fromEntries(Object.entries(ALL_ON).filter(([id]) => id !== ID)) as Omit<FeatureSet, typeof ID>;
     expect(normalizeFeatures(rest)[ID]).toBe(false);
     expect(normalizeFeatures({ ...rest, [ID]: true })[ID]).toBe(true);
     expect(flagFeatures({ loopGuard: true, activeUi: true, interfaceDocs: true, objectives: true })[ID]).toBe(false);

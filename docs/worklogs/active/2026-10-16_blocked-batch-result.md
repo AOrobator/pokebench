@@ -11,12 +11,13 @@ Branch `claude/blocked-batch-result` in `/private/tmp/pokebench-blocked-batch`. 
 
 ## M1: switch, RED, GREEN, gates
 
-- [ ] Switch `blocked-batch-result-v1` (guidance, needs `press-result-v1`, default OFF) registered; presets, defaults, wiring through `toolSwitches`.
+- [x] Switch `blocked-batch-result-v1` (guidance, needs `press-result-v1`, default OFF) appended to `SWITCHABLE_FEATURES`, `FEATURES` and `playHarnessFeatures`; optional in `FeatureSetSchema`, `normalizeFeatures` and `flagFeatures` default false; `DEFAULT_NEXT_RUN` false; `toolSwitches` adds `blockedBatch` and `liveMap` (the press tool, dialogue auto-advance and the decision probe all build switches there). Not a server feature.
 - [x] RED tests written (`packages/agent/src/blocked-batch-result.test.ts`, fixture `packages/agent/test-support/blocked-batch-2919.json` = the 12 recorded pure-direction batches that left the player on its tile, before/after states trimmed to the fields the press result reads): OFF reproduces today's text byte-for-byte; ON names direction, count, stayed tile and facing, and the blocker (collision tile, object, ledge, water, edge wall, elevation) only from the state's own grid/objects; unknown blocker says so; mixed/non-direction batches and single presses unchanged; factory-level wiring test. Registry counts, `toolSwitches`, explainer mapping and viewer default tests updated. 33 of 49 new tests fail (switch unknown).
-  - RED COMMIT: `test: RED blocked-batch-result-v1 says a blocked direction batch was blocked, by what, from game state` (pending SHA)
-- [ ] GREEN.
-- [ ] Gates: just test, just lint, just build, just coverage (≥90 per metric), just verify-vendor.
-- [ ] Wiring removed once and the factory test goes red; restored.
+  - RED COMMIT: `test: RED blocked-batch-result-v1 says a blocked direction batch was blocked, by what, from game state` (9799a362)
+- [x] GREEN: `packages/agent/src/blocked-batch.ts` (`blockedBatchResult`), called from `basePressResult` at the batch branch and at the turned branch (turned only when field-lock facts are shown). Game tile tables (ledges, edge walls, water, counter, opposite, `GAME_RULE`) moved unchanged from `navigation.ts` to `tile-rules.ts`; navigation tests unchanged and green. Explainer `docs/explainers/blocked-batch-result-v1.html`, README entry, `FEATURE_EXPLAINERS` mapping.
+  - Test fix during GREEN: the RED registry test asserted `FEATURES.at(-1)`, which is the last measured feature; it now asserts the last switchable feature. Other suites gained the new id in their explicit OFF lists (features, play-preset, experiment-gate, state-runtime) and the switchboard row count (controls.test 52 -> 53).
+- [x] Gates: `just test` agent 82 files / 1315 tests, viewer 60 / 786, pytest 1960 passed 2 skipped. `just lint`: tsc + eslint clean both packages, ruff clean; mypy fails only on `mgba._pylib` (native binding not built in this worktree venv), as expected. `just build` clean. `just coverage`: agent 97.63 stmts / 94.26 branches / 97.89 functions / 99.04 lines; viewer 95.08 / 90.39 / 93.55 / 97.6; Python lines 97.03 / branches 92.57 / functions 100 (floor 90). `blocked-batch.ts` 100 lines, 96.39 branches. `just verify-vendor` OK.
+- [x] Wiring removed once (`blockedBatch` dropped from `toolSwitches`): 7 tests red, including both factory press-tool tests' ON arm and the 2919 replays; restored, 49/49 green.
 
 ## M2: review and explainer
 

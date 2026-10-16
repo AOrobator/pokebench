@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Blocked Batch Results</title>
+<style>
+:root{
+ --bg:#f7f6f2; --fg:#1c1d1f; --soft:#5b5d61; --rule:#dedcd5; --panel:#ffffff;
+ --game:#1a7f5a; --game-bg:#e3f4ec; --prior:#c2432f; --prior-bg:#fbe7e2; --nav:#2a62c9; --nav-bg:#e4edfb; --hot:#c2432f;
+ --wall:#9b968a; --ground:#eef0e6;
+ --body:system-ui,-apple-system,"Segoe UI",sans-serif; --mono:ui-monospace,"SF Mono",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+ --bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; --hot:#ff7a63;
+ --wall:#55585e; --ground:#1f2420; color-scheme:dark}}
+:root[data-theme="dark"]{
+ --bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; --hot:#ff7a63;
+ --wall:#55585e; --ground:#1f2420; color-scheme:dark}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.6 var(--body);padding:0 16px}
+main{max-width:740px;margin:0 auto;padding:40px 0 64px;display:flex;flex-direction:column;gap:34px}
+h1{font-size:2.2rem;line-height:1.15;margin:0}
+h2{font-size:1.3rem;margin:0}
+p{margin:0;max-width:66ch}
+ul{margin:0;padding-left:20px}
+.eyebrow{font:500 .75rem var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--soft)}
+.lede{font-size:1.08rem;color:var(--soft)}
+section{display:flex;flex-direction:column;gap:12px}
+figure{margin:0;display:flex;flex-direction:column;gap:8px}
+.scroll{overflow-x:auto}
+svg{display:block;max-width:100%;height:auto}
+figcaption{font-size:.88rem;color:var(--soft)}
+svg text{font-family:var(--body);font-size:12px;fill:var(--fg)}
+svg .s{fill:var(--soft);font-size:11px}
+svg .t{font-weight:600;font-size:13px}
+svg .m{font-family:var(--mono);font-size:11px}
+svg .big{font-family:var(--mono);font-size:15px;font-weight:600}
+.box{fill:var(--panel);stroke:var(--rule)}
+.game{fill:var(--game-bg);stroke:var(--game)}
+.prior{fill:var(--prior-bg);stroke:var(--prior)}
+.hot{stroke:var(--hot);stroke-width:2.2}
+.wall{fill:var(--wall);stroke:var(--rule)}
+.ground{fill:var(--ground);stroke:var(--rule)}
+.arr{stroke:var(--soft);stroke-width:1.5;fill:none}
+.arr.p{stroke:var(--prior);stroke-width:2.2}
+pre{background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:14px;white-space:pre-wrap;font:13px/1.5 var(--mono);margin:0}
+code{font:500 .88em var(--mono);background:var(--panel);border:1px solid var(--rule);border-radius:4px;padding:0 4px}
+table{border-collapse:collapse;width:100%;font-size:.92rem}
+th,td{text-align:left;padding:7px 9px;border-bottom:1px solid var(--rule);vertical-align:top}
+th{font:500 .75rem var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--soft)}
+.tablewrap{overflow-x:auto}
+</style>
+</head>
+<body>
+<main>
+<div>
+<div class="eyebrow">Harness switch · guidance · <code>blocked-batch-result-v1</code> · needs <code>press-result-v1</code> · off by default</div>
+<h1>Blocked batch results</h1>
+</div>
+<p class="lede">When the model presses one direction several times and the player does not move, the press result now says the player was blocked, where it is standing, which way it faces, and what the readout shows on the next tile. Today the same press reads as "batch or non-direction input", which names no cause.</p>
+
+<section>
+<h2>1. What happened in control run 2919</h2>
+<p>Recorded in <code>2026-10-15T23-47-41_qwen36-gpu0_2919</code> (forensics bug 5). The player stood at (10,16) in Littleroot Town, facing left. The lab door warp is at (7,16), and (9,16) and (8,16) are wall. The model pressed <code>LEFT, LEFT, LEFT</code> to "walk left to (7,16)". Nothing moved. It got the same unhelpful result, and sent the same batch again: nine LEFT batches from (10,16) in turns 163–183, plus three DOWN×3 batches into the house row at turns 146–151.</p>
+<figure><div class="scroll">
+<svg viewBox="0 0 700 250" width="700" role="img" aria-label="Local map row 15 to 17, x 6 to 12, with the player at (10,16) pressing left into the wall at (9,16)">
+<defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="var(--prior)"/></marker></defs>
+<g transform="translate(40,30)">
+<text class="s" x="22" y="-8">6</text><text class="s" x="72" y="-8">7</text><text class="s" x="122" y="-8">8</text><text class="s" x="172" y="-8">9</text><text class="s" x="218" y="-8">10</text><text class="s" x="268" y="-8">11</text><text class="s" x="318" y="-8">12</text>
+<text class="s" x="-26" y="30">15</text><text class="s" x="-26" y="80">16</text><text class="s" x="-26" y="130">17</text>
+<rect class="wall" x="0" y="0" width="50" height="50"/><rect class="wall" x="50" y="0" width="50" height="50"/><rect class="wall" x="100" y="0" width="50" height="50"/><rect class="wall" x="150" y="0" width="50" height="50"/><rect class="ground" x="200" y="0" width="50" height="50"/><rect class="ground" x="250" y="0" width="50" height="50"/><rect class="ground" x="300" y="0" width="50" height="50"/>
+<rect class="wall" x="0" y="50" width="50" height="50"/><rect class="box" x="50" y="50" width="50" height="50"/><rect class="wall" x="100" y="50" width="50" height="50"/><rect class="wall hot" x="150" y="50" width="50" height="50"/><rect class="game" x="200" y="50" width="50" height="50"/><rect class="ground" x="250" y="50" width="50" height="50"/><rect class="ground" x="300" y="50" width="50" height="50"/>
+<rect class="ground" x="0" y="100" width="50" height="50"/><rect class="ground" x="50" y="100" width="50" height="50"/><rect class="ground" x="100" y="100" width="50" height="50"/><rect class="ground" x="150" y="100" width="50" height="50"/><rect class="ground" x="200" y="100" width="50" height="50"/><rect class="ground" x="250" y="100" width="50" height="50"/><rect class="ground" x="300" y="100" width="50" height="50"/>
+<text class="big" x="20" y="30">#</text><text class="big" x="70" y="30">#</text><text class="big" x="120" y="30">#</text><text class="big" x="170" y="30">#</text>
+<text class="big" x="20" y="80">#</text><text class="big" x="69" y="80">W</text><text class="big" x="120" y="80">#</text><text class="big" x="170" y="80">#</text><text class="big" x="219" y="80">@</text>
+<text class="big" x="20" y="130">.</text>
+<path class="arr p" d="M212,92 C195,118 185,118 178,100" marker-end="url(#a)"/>
+<text class="s" x="360" y="70">@ = player (10,16), facing left</text>
+<text class="s" x="360" y="88">(9,16): collision 1, behavior 0x00</text>
+<text class="s" x="360" y="106">W (7,16): door warp, entered from below</text>
+<text class="s" x="360" y="124">red arrow: LEFT ×3 stops at the wall</text>
+</g>
+</svg></div>
+<figcaption>The delivered local map at seq 2431 (the after-state of the turn-164 press), cropped to x 6–12, y 15–17. The readout's <code>navigation_grid</code> lists (9,16) with collision 1, the same tile the map draws as <code>#</code>.</figcaption></figure>
+</section>
+
+<section>
+<h2>2. Off and on, word for word</h2>
+<p>Both lines are produced by replaying the recorded before and after states of seq 2432 (button_press before_state_seq 2422, tool_result state_seq 2431) through <code>pressResult</code> with the run's own switches, and with this switch added.</p>
+<pre>Off: unchanged world position/facing (batch or non-direction input; intermediate effects unknown)
+
+On:  blocked: LEFT ×3 did not move you; you are still at (10,16) facing left. The tile to the left, (9,16), is a collision tile (# on the local map), so LEFT cannot move you from here.</pre>
+<p>Turn 163 (seq 2416) started facing down, so the batch turned the player and then went nowhere. Off said <code>turned down -&gt; left; no net movement</code>. On says:</p>
+<pre>turned down -&gt; left but did not move: LEFT ×3 left you at (10,16), now facing left. The tile to the left, (9,16), is a collision tile (# on the local map), so LEFT cannot move you from here.</pre>
+<p>All twelve recorded cases reproduce their delivered text byte for byte with the switch off, and all twelve change with it on. The tests replay them from <code>packages/agent/test-support/blocked-batch-2919.json</code>.</p>
+</section>
+
+<section>
+<h2>3. When it applies</h2>
+<figure><div class="scroll">
+<svg viewBox="0 0 700 300" width="700" role="img" aria-label="Decision steps from the press to the blocked result">
+<defs><marker id="b" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="var(--soft)"/></marker></defs>
+<rect class="box" x="10" y="10" width="330" height="40" rx="8"/><text x="22" y="35">One direction, 2 or more presses (LEFT, LEFT, …)</text>
+<rect class="box" x="10" y="70" width="330" height="40" rx="8"/><text x="22" y="95">Same map, same tile before and after</text>
+<rect class="box" x="10" y="130" width="330" height="40" rx="8"/><text x="22" y="155">Overworld, no battle, no menu, controls free in both</text>
+<rect class="box" x="10" y="190" width="330" height="40" rx="8"/><text x="22" y="215">Player ends facing the pressed direction</text>
+<rect class="game hot" x="10" y="250" width="330" height="40" rx="8"/><text class="t" x="22" y="275">blocked / turned … but did not move / no movement</text>
+<path class="arr" d="M175,50 L175,68" marker-end="url(#b)"/><path class="arr" d="M175,110 L175,128" marker-end="url(#b)"/><path class="arr" d="M175,170 L175,188" marker-end="url(#b)"/><path class="arr" d="M175,230 L175,248" marker-end="url(#b)"/>
+<rect class="prior" x="390" y="70" width="300" height="160" rx="8"/>
+<text class="t" x="402" y="94">Any step fails → today's text</text>
+<text class="s" x="402" y="116">single press: "blocked or unavailable (…)"</text>
+<text class="s" x="402" y="136">LEFT, UP or A, A: "unchanged … batch or …"</text>
+<text class="s" x="402" y="156">moved, warped, locked, unready: unchanged</text>
+<text class="s" x="402" y="176">facing unknown or another way: unchanged</text>
+<text class="s" x="402" y="196">field lock hidden: "cause not reported"</text>
+<path class="arr" d="M340,90 L388,110" marker-end="url(#b)"/><path class="arr" d="M340,150 L388,150" marker-end="url(#b)"/><path class="arr" d="M340,210 L388,190" marker-end="url(#b)"/>
+</svg></div>
+<figcaption>Every check reads the same before and after snapshots the press result already uses. Field controls must be read as free (not unknown) in both, so a cutscene or message cannot be mistaken for a wall.</figcaption></figure>
+</section>
+
+<section>
+<h2>4. What it names, and in what order</h2>
+<p>The blocker comes only from the before-state's <code>navigation_grid</code> (the tiles the local map is drawn from), its object and warp lists, <code>world_context.objects</code> on the same map, and <code>topology</code>. The first match wins. Terrain causes end with "so LEFT cannot move you from here". A person, object or warp can change, so those say only what is there. With nothing shown, the head word is <code>no movement</code>, not <code>blocked</code>.</p>
+<div class="tablewrap"><table>
+<tr><th>#</th><th>Readout shows</th><th>Text after "you are still at (x,y) facing …."</th></tr>
+<tr><td>1</td><td>an object on the next tile (same map)</td><td><code>The tile to the left, (x,y), has a person or object on it (object id N).</code></td></tr>
+<tr><td>2</td><td>a warp on the next tile</td><td><code>… is a warp (W on the local map) that did not activate from this side.</code></td></tr>
+<tr><td>3</td><td>an edge wall on the player's own tile, on the pressed side</td><td><code>Your tile, (x,y), has an edge wall on its left side, so LEFT cannot move you from here.</code></td></tr>
+<tr><td>4</td><td>next tile past the map edge, no connection that way</td><td><code>You are at the west edge of this map and it has no connection to the west, so LEFT …</code></td></tr>
+<tr><td>5</td><td>a ledge that hops another way</td><td><code>… is a ledge you can only hop over moving DOWN, so UP …</code></td></tr>
+<tr><td>6</td><td>collision ≠ 0 (counter behavior 0x80 named as a counter)</td><td><code>… is a collision tile (# on the local map), so LEFT …</code></td></tr>
+<tr><td>7</td><td>water behavior, no collision</td><td><code>… is water; you cannot walk onto it, so LEFT …</code></td></tr>
+<tr><td>8</td><td>an edge wall on the next tile's facing side</td><td><code>… has an edge wall on its right side, so LEFT …</code></td></tr>
+<tr><td>9</td><td>a different elevation the game refuses</td><td><code>… is at elevation 4 and you are at elevation 3; the game does not let you step between them, so RIGHT …</code></td></tr>
+<tr><td>–</td><td>tile not in the window, ledge in the pressed direction, or nothing</td><td><code>no movement: …</code> then <code>… is outside the readout's map window</code> or <code>The readout shows nothing blocking …</code>, ending <code>what stopped you is not known.</code></td></tr>
+</table></div>
+<p>Facts the model is not shown stay out. With <code>live-map-v1</code> off no tile is named, and the result is just <code>no movement: LEFT ×3 did not move you; you are still at (10,16) facing left.</code> With <code>live-player-position-v1</code> off, coordinates and facing are dropped (<code>you are still on the same tile</code>, <code>The tile to the left is …</code>).</p>
+</section>
+
+<section>
+<h2>5. Game grounding</h2>
+<ul>
+<li>Collision: pokeemerald <code>GetCollisionAtCoords</code> refuses a step onto a tile whose collision bits are set, onto an object (<code>CheckForObjectEventCollision</code>), or across an elevation mismatch.</li>
+<li>Elevation: <code>IsElevationMismatchAt</code>. Elevation 0 (stairs) and 15 (bridges) never mismatch; any other pair of different heights does. The player's height is <code>navigation_grid.elevation</code>. This is the same rule navigation uses (<code>GAME_RULE</code>, now in <code>tile-rules.ts</code>).</li>
+<li>Ledges: <code>MB_JUMP_EAST/WEST/NORTH/SOUTH</code> (0x38–0x3B) hop only in their own direction. Edge walls: <code>MetatileBehavior_Is*Blocked</code> (0x30–0x37, 0xBE, 0xC0, 0xC1). Water: the surfable behaviors navigation already treats as water.</li>
+<li>These tables moved unchanged from <code>navigation.ts</code> to <code>tile-rules.ts</code> so both features read one copy; navigation behavior is unchanged (all its tests pass unmodified).</li>
+</ul>
+</section>
+
+<section>
+<h2>Wiring</h2>
+<figure><div class="scroll">
+<svg viewBox="0 0 700 140" width="700" role="img" aria-label="Wiring from FeatureSet to the blocked batch result">
+<defs><marker id="c" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="var(--soft)"/></marker></defs>
+<rect class="box" x="10" y="40" width="120" height="56" rx="8"/><text class="t" x="22" y="62">FeatureSet</text><text class="s" x="22" y="82">run preset</text>
+<rect class="box" x="160" y="40" width="150" height="56" rx="8"/><text class="t" x="172" y="62">toolSwitches</text><text class="s" x="172" y="82">blockedBatch, liveMap</text>
+<rect class="box" x="340" y="10" width="150" height="40" rx="8"/><text class="s" x="352" y="34">press tool</text>
+<rect class="box" x="340" y="55" width="150" height="40" rx="8"/><text class="s" x="352" y="79">dialogue auto-advance</text>
+<rect class="box" x="340" y="100" width="150" height="40" rx="8"/><text class="s" x="352" y="124">decision probe replay</text>
+<rect class="hot game" x="520" y="40" width="170" height="56" rx="8"/><text class="t" x="532" y="62">blockedBatchResult</text><text class="s" x="532" y="82">inside pressResult</text>
+<path class="arr" d="M130,68 L158,68" marker-end="url(#c)"/>
+<path class="arr" d="M310,68 L338,30" marker-end="url(#c)"/><path class="arr" d="M310,68 L338,75" marker-end="url(#c)"/><path class="arr" d="M310,68 L338,120" marker-end="url(#c)"/>
+<path class="arr" d="M490,30 L518,60" marker-end="url(#c)"/><path class="arr" d="M490,75 L518,70" marker-end="url(#c)"/><path class="arr" d="M490,120 L518,80" marker-end="url(#c)"/>
+</svg></div>
+<figcaption>All three callers build their switches with <code>toolSwitches(features)</code>. The highlighted box is the only new behavior; it is reached only when <code>blockedBatch</code> is true. Removing the switch from <code>toolSwitches</code> turns the factory tests red (checked once, then restored).</figcaption></figure>
+</section>
+
+<section id="status">
+<h2>Status</h2>
+<ul>
+<li>Branch <code>claude/blocked-batch-result</code>, not merged.</li>
+<li>Checks: see the worklog <code>docs/worklogs/active/2026-10-16_blocked-batch-result.md</code> for test counts, coverage and review verdicts.</li>
+<li>Not done: no experiment entry was registered on this branch. It is meant to join the bundle-v-control bundle arm later. No measured runs.</li>
+</ul>
+</section>
+</main>
+</body>
+</html>

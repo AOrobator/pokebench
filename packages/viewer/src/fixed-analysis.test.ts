@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { DEPTH_ORDER } from "@pokebench/agent/milestones";
+import { DEPTH_ORDER, MILESTONE_ORDER } from "@pokebench/agent/milestones";
 import { analyze, depthThenTime, fisherExact, logRank, mannWhitney, renderAnalysis, rescoreTrials, trialsFromLedger, type AnalysisTrial } from "./fixed-analysis.js";
 import { definition } from "../test-support/fixed.js";
 import type { FixedLedgerEntry } from "./fixed-ledger.js";
@@ -121,16 +121,31 @@ describe("trialsFromLedger", () => {
 });
 
 describe("rescoreTrials", () => {
-  const trial = (run: string): AnalysisTrial => ({ slot: 1, lane: "A", arm: "bundle", run, valid: true, reason: "wall cap", primaryReached: false, primaryMs: null, capMs: 900_000, furthestDepth: 999, furthestMs: 7 });
+  const trial = (run: string, furthest: string | null, furthestDepth: number): AnalysisTrial => ({ slot: 1, lane: "A", arm: "bundle", run, valid: true, reason: "wall cap", primaryReached: true, primaryMs: 5, capMs: 900_000, furthest, furthestDepth, furthestMs: 7 });
   const t0 = "2026-10-16T10:00:00.000-04:00";
   const at = (ms: number) => new Date(Date.parse(t0) + ms).toISOString();
-  const events = [
-    { v: 1, run: "old", seq: 1, turn: 0, t: t0, type: "run_start" },
-    ...[[1000, "ROUTE_103"], [2000, "FIRST_POKECENTER_HEAL"], [3000, "RIVAL_MET"]].map(([ms, name], i) => ({ v: 1, run: "old", seq: i + 2, turn: 1, t: at(Number(ms)), type: "milestone", name, kind: "story", origin: "observed", server_timestamp: 1, evidence: [1] })),
+  const log = (run: string, ended: boolean) => [
+    { v: 1, run, seq: 1, turn: 0, t: t0, type: "run_start" },
+    ...[[1000, "ROUTE_103"], [2000, "FIRST_POKECENTER_HEAL"]].map(([ms, name], i) => ({ v: 1, run, seq: i + 2, turn: 1, t: at(Number(ms)), type: "milestone", name, kind: "story", origin: "observed", server_timestamp: 1, evidence: [1] })),
+    ...(ended ? [{ v: 1, run, seq: 9, turn: 1, t: at(5000), type: "run_end", reason: "budget", furthest_milestone: "FIRST_POKECENTER_HEAL", turns: 1, wall_ms: 5000, tokens: { input: 0, output: 0 }, frames: { saved: 0, bytes: 0 } }] : []),
   ].map((e) => JSON.stringify(e)).join("\n") + "\n";
-  it("re-scores a ledger trial from its own events with the story-depth order, and keeps ledger values without them", () => {
-    const [rescored, kept] = rescoreTrials([trial("old"), trial("missing")], (run) => (run === "old" ? events : null), "RIVAL_MET");
-    expect(rescored).toMatchObject({ run: "old", valid: true, reason: "wall cap", furthestDepth: DEPTH_ORDER.indexOf("ROUTE_103"), furthestMs: 1000, primaryReached: true, primaryMs: 3000 });
-    expect(kept).toEqual(trial("missing"));
+  const logs: Record<string, string> = { complete: log("complete", true), truncated: log("truncated", false), corrupt: "not json\n" };
+  const read = (run: string) => logs[run] ?? null;
+  const oldDepth = (name: string) => MILESTONE_ORDER.indexOf(name);
+  it("re-grades only depth, and only from a complete log, so the primary outcome stays as the ledger recorded it", () => {
+    const { trials, unscored } = rescoreTrials([trial("complete", "FIRST_POKECENTER_HEAL", oldDepth("FIRST_POKECENTER_HEAL"))], read);
+    expect(trials).toEqual([{ ...trial("complete", "ROUTE_103", DEPTH_ORDER.indexOf("ROUTE_103")), furthestMs: 1000 }]);
+    expect(unscored).toEqual([]);
+  });
+  it("re-maps a stored name onto the depth order when the log is missing, truncated or corrupt, and lists what it cannot re-grade", () => {
+    const { trials, unscored } = rescoreTrials([trial("missing", "ROUTE_102", oldDepth("ROUTE_102")), trial("truncated", "RIVAL_MET", oldDepth("RIVAL_MET")), trial("corrupt", "FIRST_POKECENTER_HEAL", oldDepth("FIRST_POKECENTER_HEAL")), trial("../escape", "ROUTE_102", 1), trial("nothing", null, -1)], read);
+    expect(trials.map((t) => [t.run, t.furthest, t.furthestDepth, t.primaryReached])).toEqual([
+      ["missing", "ROUTE_102", DEPTH_ORDER.indexOf("ROUTE_102"), true],
+      ["truncated", "RIVAL_MET", DEPTH_ORDER.indexOf("RIVAL_MET"), true],
+      ["corrupt", "FIRST_POKECENTER_HEAL", oldDepth("FIRST_POKECENTER_HEAL"), true],
+      ["../escape", "ROUTE_102", DEPTH_ORDER.indexOf("ROUTE_102"), true],
+      ["nothing", null, -1, true],
+    ]);
+    expect(unscored).toEqual(["corrupt"]);
   });
 });

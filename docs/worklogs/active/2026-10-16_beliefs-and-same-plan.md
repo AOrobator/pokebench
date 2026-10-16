@@ -104,7 +104,8 @@ Report per switch: id, model-facing before/after excerpts from this run, precisi
 - Claude CLI: LGTM.
 - Codex (gpt-5.6-sol): BLOCKING. (1) capitalized hedges ("Could Professor Birch be at (7,7)") and questions ("Is Professor Birch at (7,7)?") still make claims; (2) a push-back direction is accepted when it appears anywhere in a batch, not bound to the input that met the script. Non-blocking: experiments still name c33cb859 (repin at landing); retained conversations survive a story change.
 - Grok: BLOCKING, same as Codex (1) for "Could". Non-blocking: stale comment ("no negation between"); "Cannot" missed by `\bnot\b`; soft dependencies.
-- Accepted: all; plus the conversation clearing and the comment. 2026-10-16 06:05 AM EDT round-2 RED: 3 failing tests (capitalized hedges/questions/cannot; first-direction binding; conversations dropped on story change).
+- Accepted: all; plus the conversation clearing and the comment. 2026-10-16 06:05 AM EDT round-2 RED: 3 failing tests (capitalized hedges/questions/cannot; first-direction binding; conversations dropped on story change). COMMIT (f606c67b).
+- 2026-10-16 06:15 AM EDT round-2 GREEN: NEGATION is case-insensitive and adds cannot, could, would, should and "?"; MODAL is lower-case "may" only; a press push-back is bound to the call's first direction, with the pages beginning on the starting tile or one step from it in that direction; a story change also clears retained conversations; comment, description and explainer updated. Full-run replay unchanged (4 entries, all true). Gates: agent 1491 tests 97.85/94.45/98.27/99.09; viewer 852 tests 95.16/90.68/93.41/97.61; Python 2180 passed 97.16/92.88/100; lint clean (TS/eslint); pages-check silent.
 
 ## Surprises
 

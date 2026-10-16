@@ -24,8 +24,9 @@ const GAME_TOOLS=new Set(["observe","press","navigate_to"]);
 const STEP:Readonly<Record<string,Point>>={UP:{x:0,y:-1},DOWN:{x:0,y:1},LEFT:{x:-1,y:0},RIGHT:{x:1,y:0}};
 const CHARACTERS=/^Story characters here \(from this map's own object list\): .*\. Not on this map: (.*?)\. Sprite kinds .*$/m;
 // A sentence that negates or hedges anywhere is not a claim the model is acting on.
-const NEGATION=/\b(?:not|never|no longer|away|might|maybe|perhaps|probably|possibly|likely|if|whether|unsure|unclear)\b|n't/i;
-const MODAL=/\b(?:may|could)\b/;
+const NEGATION=/\b(?:not|cannot|never|no longer|away|might|maybe|perhaps|probably|possibly|likely|if|whether|unsure|unclear|could|would|should)\b|n't|\?/i;
+// "may" is a hedge only in lower case: May and MAY are the rival's name.
+const MODAL=/\bmay\b/;
 const at=(p:Point):string=>`(${String(p.x)},${String(p.y)})`;
 const same=(a:Point,b:Point):boolean=>a.x===b.x&&a.y===b.y;
 const distance=(a:Point,b:Point):number=>Math.abs(a.x-b.x)+Math.abs(a.y-b.y);
@@ -46,7 +47,7 @@ export function nameMatcher(name:string):RegExp {
 }
 
 // The model's sentences that place `name` on a tile: the name, not in parentheses, then "at (x,y)" in the same
-// sentence with no negation between. Returns each whole sentence.
+// sentence, and no negation, hedge or question mark anywhere in that sentence. Returns each whole sentence.
 export function locatingClaims(text:string,name:string):string[] {
  const claims:string[]=[];
  // Where each sentence ends: after . ! or ? followed by a space (not the "." of "Prof."), or before a line break.
@@ -127,7 +128,11 @@ export class DisprovedBeliefs {
  private restory(state:State):void {
   const story=storyKey(state);
   if(story===null)return;
-  if(this.story!==null&&story!==this.story)for(const entry of this.entries.values())if(entry.story!==story)this.entries.delete(entry.key);
+  if(this.story!==null&&story!==this.story){
+   for(const entry of this.entries.values())if(entry.story!==story)this.entries.delete(entry.key);
+   // Dialogue shown under the old story is not evidence for an entry made under the new one.
+   this.conversations.clear();
+  }
   this.story=story;
  }
 
@@ -161,7 +166,12 @@ export class DisprovedBeliefs {
   let action:string;
   if(call.name==="press"){
    const buttons=Array.isArray(call.args["buttons"])?call.args["buttons"].map(String):[];
-   if(!buttons.includes(direction))return;
+   // Bound to the call's first direction, taken from where the call began: either the script met that first step
+   // on the starting tile, or the first step landed on the tile where the script began.
+   const first=buttons.find(b=>STEP[b]!==undefined);
+   const start=call.before?.position??null,step=STEP[direction];
+   if(first!==direction||step===undefined||start===null||call.before?.map_id?.join("/")!==state.map_id.join("/"))return;
+   if(!same(start,from)&&!same({x:start.x+step.x,y:start.y+step.y},from))return;
    action=`press ${buttons.join(",")}`;
   } else {
    const start=call.before?.position??null;

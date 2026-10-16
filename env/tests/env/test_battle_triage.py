@@ -63,8 +63,9 @@ def test_off_is_byte_identical() -> None:
     assert off == "\n".join(line for line in format_readout(current).split("\n") if line != LOW)
     golden = (FIXTURES / "battle-details-v2-off-c406-00001266.txt").read_text()
     birch = state(recorded("battle-c406-00001266.json"))
-    assert format_readout(birch, frozenset({"battle-details-v2", SWITCH})) == golden
-    assert format_readout(birch, frozenset({"battle-details-v2"})) == golden
+    later = {"readout-truth-v1", "birch-speech-pages-v1", "blackout-readout-v1"}
+    assert format_readout(birch, frozenset({"battle-details-v2", SWITCH, *later})) == golden
+    assert format_readout(birch, frozenset({"battle-details-v2", *later})) == golden
     field = replace(IN_GAME, party=(PartyMon("TORCHIC", 5, 9, 20),))
     assert format_readout(field, OFF) == format_readout(field).replace(f"\n{FIELD}", "")
     assert FIELD in format_readout(field)

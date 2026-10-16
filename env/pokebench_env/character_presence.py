@@ -169,11 +169,12 @@ def read_story_characters(
     live: Sequence[LiveObject],
     *,
     location: str | None,
+    live_wins: bool = False,
 ) -> StoryCharacters | None:
     if not 0x02000000 <= save1 < 0x02040000 - TEMPLATES - TEMPLATE_COUNT * 24:
         return None
     try:
-        present = _present(read, save1, map_id, live, location)
+        present = _present(read, save1, map_id, live, location, live_wins)
     except (ValueError, OSError, struct.error, IndexError):
         return None
     return StoryCharacters(
@@ -193,6 +194,7 @@ def _present(
     map_id: tuple[int, int],
     live: Sequence[LiveObject],
     location: str | None,
+    live_wins: bool = False,
 ) -> dict[str, tuple[str, int]]:
     raw = read(save1 + TEMPLATES, TEMPLATE_COUNT * 24)
     if len(raw) != TEMPLATE_COUNT * 24:
@@ -203,14 +205,14 @@ def _present(
         if local_id == 0 and graphics == 0:
             continue
         flag = struct.unpack_from("<H", raw, slot * 24 + 0x14)[0]
-        if flag != 0 and _flag(read, save1, flag):
+        seen = next((o for o in live if o.local_id == local_id and o.map_id == map_id), None)
+        # readout-truth-v1: a live object with this local id is on the map whatever the
+        # template's hide flag says (a script can add it before clearing the flag).
+        if flag != 0 and _flag(read, save1, flag) and not (live_wins and seen is not None):
             continue
         resolved = _graphics(read, save1, graphics)
         for name, ids, maps in CHARACTERS:
             if resolved in ids and location in maps and name not in present:
-                seen = next(
-                    (o for o in live if o.local_id == local_id and o.map_id == map_id), None
-                )
                 present[name] = (
                     f"{name} at {seen.x},{seen.y}" if seen is not None else name + OUT_OF_VIEW,
                     local_id,

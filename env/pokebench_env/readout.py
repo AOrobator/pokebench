@@ -14,12 +14,18 @@ from pokebench_env.battle_message_waiting import SWITCH as MESSAGE_WAITING
 from pokebench_env.battle_message_waiting import message_clause
 from pokebench_env.battle_triage import SWITCH as TRIAGE
 from pokebench_env.battle_triage import battle_triage_lines, field_triage_line
+from pokebench_env.birch_pages import PHASE as BIRCH_PAGE
+from pokebench_env.birch_pages import SWITCH as BIRCH_PAGES
+from pokebench_env.blackout_readout import SWITCH as BLACKOUT
+from pokebench_env.blackout_readout import WHITING_OUT, Whiteout, whiteout_line
 from pokebench_env.game_state import GameState
 from pokebench_env.levelup_box import SWITCH as LEVELUP_BOX
 from pokebench_env.levelup_box import levelup_clause
 from pokebench_env.map_rules import FEATURE as RULES_FEATURE
 from pokebench_env.offscreen_objects import SWITCH as OFFSCREEN
 from pokebench_env.offscreen_objects import offscreen_text
+from pokebench_env.readout_truth import SWITCH as TRUTH
+from pokebench_env.readout_truth import lock_line, menu_line
 
 SERVER_FEATURES = (
     "expanded-menu-battle-information-v1",
@@ -57,6 +63,9 @@ SERVER_FEATURES = (
     "offscreen-objects-v1",
     "levelup-box-v1",
     "transition-coherence-v1",
+    "readout-truth-v1",
+    "birch-speech-pages-v1",
+    "blackout-readout-v1",
 )
 
 
@@ -70,7 +79,8 @@ def features_off_from_env(env: Mapping[str, str]) -> frozenset[str]:
         "battle-message-waiting-v1,"
         "offscreen-objects-v1,"
         "levelup-box-v1,"
-        "transition-coherence-v1",
+        "transition-coherence-v1,"
+        "readout-truth-v1,birch-speech-pages-v1,blackout-readout-v1",
     )
     if raw == "":
         return frozenset()
@@ -98,9 +108,13 @@ def _play_seconds(state: GameState) -> int | None:
     return hours * 3600 + minutes * 60 + seconds
 
 
-def _menu(state: GameState) -> str:
+def _menu(state: GameState, truth: bool = False) -> str:
     if state.active_ui is not None and state.active_ui.selected is not None:
         return f"Menu: {state.active_ui.phase}; selected {state.active_ui.selected}"
+    # readout-truth-v1: no menu is open, or a non-menu interface owns input.
+    line = menu_line(state) if truth else None
+    if line is not None:
+        return line
     if state.menu is None:
         return "Menu: unavailable (active owner not verified)"
     return (
@@ -121,9 +135,11 @@ def format_readout(
     warp_animation: bool = False,
     adjacent_tiles: bool = False,
     rules_in_prompt: bool = False,
+    whiteout: Whiteout | None = None,
 ) -> str:
     if "ram-state-v1" in off:
         return ""
+    truth = TRUTH not in off
     # readout-rules-in-prompt-v1: the fixed map rules are in the system prompt instead.
     rules = rules_in_prompt and RULES_FEATURE not in off
     # displayed-place-names-v1: buildings the game names on their signs, for this save's player.
@@ -159,6 +175,8 @@ def format_readout(
         "unsupported",
         "naming_transition",
         "field_transition",
+        # birch-speech-pages-v1: a Birch page is shown wherever the Birch phases are.
+        *((BIRCH_PAGE,) if BIRCH_PAGES not in off else ()),
     }
     omitted_ui = not expanded and ui is not None and ui.phase not in incumbent_phases
     if omitted_ui:
@@ -171,14 +189,15 @@ def format_readout(
             lines.append(f"STATE COVERAGE ERROR: {ui.diagnostic}")
     else:
         dialog = "none" if state.dialog is None else f'"{state.dialog}"'
-        lines = [f"Screen: {state.screen}", f"Dialog: {dialog}", _menu(state)]
+        lines = [f"Screen: {state.screen}", f"Dialog: {dialog}", _menu(state, truth)]
         if ui is not None:
             lines.append((ui if expanded else replace(ui, details=None)).text())
     if state.resources is not None:
         if expanded and state.resources.bag is not None:
             lines.append(
                 "Bag: "
-                + ("empty" if details is not None and not state.resources.bag else "")
+                # readout-truth-v1: the field says "empty" as the battle does.
+                + ("empty" if (details is not None or truth) and not state.resources.bag else "")
                 + "; ".join(
                     f"{item.name or 'item #' + str(item.item_id)} ×{item.quantity}"
                     for item in state.resources.bag
@@ -272,8 +291,11 @@ def format_readout(
             lines += own_line
         if TRIAGE not in off:
             lines += battle_triage_lines(battle, state.battle_details)
+    # blackout-readout-v1: CB2_WhiteOut is running in this observation's own state.
+    if state.blackout_active and BLACKOUT not in off:
+        lines.append(WHITING_OUT)
     if state.story is not None and "story-state-v1" not in off:
-        lines.append(state.story.text())
+        lines.append(state.story.text(truth=truth))
     if state.naming is not None and "naming-cursor-v1" not in off:
         lines.append(state.naming.readout())
     if state.screen == "field_transition":
@@ -326,12 +348,19 @@ def format_readout(
         f"In battle: {'yes' if state.in_battle else 'no'}",
         f"Play time: {_clock(_play_seconds(state) or 0)}",
     ]
+    # blackout-readout-v1: the first observation back on the field after CB2_WhiteOut.
+    if whiteout is not None and BLACKOUT not in off:
+        lines.append(whiteout_line(whiteout, state))
     if state.field_controls_locked is not None and "field-control-lock" not in off:
         # warp-arrival-settle-v1: a lock held by the game's door/warp task is the animation.
         animation = warp_animation and "warp-arrival-settle-v1" not in off
+        # readout-truth-v1: no message or menu explains the lock; say what holds it.
+        truth_lock = lock_line(state) if truth and state.field_controls_locked else None
         lines.append(
             WARP_ANIMATION_LOCK
             if state.field_controls_locked and animation
+            else truth_lock
+            if truth_lock is not None
             else "Field controls: locked (dialog, menu, or script; direction presses cannot move)"
             if state.field_controls_locked
             else "Field controls: available (terrain and objects can still block a direction)"

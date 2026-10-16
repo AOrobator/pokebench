@@ -40,6 +40,8 @@ TYPE_FLAGS = 0x02022FEC
 MONS = 0x02024084
 STATUSES3 = 0x020242AC
 OFF = frozenset({"battle-details-v2"})
+# Switches registered after the c406 golden; OFF is their previous behavior.
+LATER = frozenset({"readout-truth-v1", "birch-speech-pages-v1", "blackout-readout-v1"})
 # pokeemerald src/data/pokemon/species_info.h: (types, abilities)
 SPECIES = {
     280: ("TORCHIC", (10, 10), (66, 0)),
@@ -167,8 +169,8 @@ def test_birch_rescue_action_select_from_recorded_raw_ram() -> None:
 def test_off_is_byte_identical_to_the_recorded_golden_readout() -> None:
     current = state(recorded("battle-c406-00001266.json"))
     golden = (FIXTURES / "battle-details-v2-off-c406-00001266.txt").read_text()
-    assert format_readout(current, OFF) == golden
-    assert format_readout(replace(current, battle_details=None)) == golden
+    assert format_readout(current, OFF | LATER) == golden
+    assert format_readout(replace(current, battle_details=None), LATER) == golden
     hidden = frozenset({"battle-details-v2", "expanded-menu-battle-information-v1"})
     assert format_readout(current, hidden) == format_readout(
         replace(current, battle_details=None), frozenset({"expanded-menu-battle-information-v1"})
@@ -460,8 +462,9 @@ def test_production_observation_route_honours_the_switch(monkeypatch: pytest.Mon
         m.put(int(window["address"], 16), bytes.fromhex(window["hex"]))
     rom(m)
     payloads = {}
+    later = ",".join(sorted(LATER))
     for off in ("", "battle-details-v2"):
-        monkeypatch.setenv("POKEBENCH_FEATURES_OFF", off)
+        monkeypatch.setenv("POKEBENCH_FEATURES_OFF", ",".join(filter(None, (off, later))))
         app = FastAPI()
         install_observation(app, lambda: _Shot(), m.read, MAPS)
         status, _, body = get(app, "/pokebench/observation")

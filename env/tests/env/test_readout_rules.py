@@ -91,7 +91,16 @@ GENERATED = Path(__file__).resolve().parents[3] / "packages/agent/src/map-rules.
 LEGEND = "@ player; N live object; "
 # Switches registered after the goldens were rendered at ef9244e2; OFF is their previous behavior.
 ADJACENT = "adjacent-tiles-v1"
-LATER = frozenset({"battle-triage-guidance-v1", ADJACENT, "offscreen-objects-v1"})
+LATER = frozenset(
+    {
+        "battle-triage-guidance-v1",
+        ADJACENT,
+        "offscreen-objects-v1",
+        "readout-truth-v1",
+        "birch-speech-pages-v1",
+        "blackout-readout-v1",
+    }
+)
 
 
 def golden() -> list[tuple[str, frozenset[str], str]]:

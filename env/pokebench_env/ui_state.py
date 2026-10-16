@@ -179,6 +179,35 @@ def read_dialog(read: ReadMemory, screen_kind: str) -> str | None:
     return decode_message(read(STRING_VAR4, STRING_VAR4_SIZE)) or None
 
 
+WINDOWS_MAX = 32
+
+
+def window_drawn_strict(read: ReadMemory, window_id: int) -> bool | None:
+    """readout-truth-v1: `_window_drawn`, but a short read is unknown (None), never undrawn."""
+    header = read(WINDOWS + WINDOW_SIZE * window_id, WINDOW_SIZE)
+    if len(header) != WINDOW_SIZE:
+        return None
+    bg, _left, _top, width, height, _pal, _base, pixels = struct.unpack("<BBBBBBHI", header)
+    size = width * height * 32
+    if bg == WINDOW_REMOVED or size == 0 or pixels not in EWRAM or pixels + size > EWRAM.stop:
+        return False
+    body = read(pixels, size)
+    if len(body) != size:
+        return None
+    return len(set(body)) > 1
+
+
+def menu_window_drawn(read: ReadMemory) -> bool | None:
+    """readout-truth-v1: whether sMenu's window is drawn, whatever its cursor says.
+
+    None when a read is short: the readout then keeps its old menu text.
+    """
+    header = read(MENU + 5, 1)
+    if len(header) != 1:
+        return None
+    return header[0] < WINDOWS_MAX and window_drawn_strict(read, header[0])
+
+
 def read_menu(read: ReadMemory, *, allow_single: bool = False) -> Menu | None:
     cursor, _minimum, maximum, window_id = struct.unpack("<bbbB", read(MENU + 2, 4))
     if (
@@ -326,7 +355,12 @@ BIRCH_PHASES = {
 
 
 def read_active_ui(
-    read: ReadMemory, screen: "Screen", *, transition_coherence: bool = True
+    read: ReadMemory,
+    screen: "Screen",
+    *,
+    truth: bool = False,
+    birch_pages: bool = False,
+    transition_coherence: bool = True,
 ) -> ActiveUi | None:
     """transition_coherence: transition-coherence-v1's battle-start and handoff rules."""
     from pokebench_env.game_screen import TASKS
@@ -455,7 +489,7 @@ def read_active_ui(
     corner_ui = read_corner_ui(read, screen.callback2)
     if corner_ui is not None:
         return corner_ui
-    menu_family = read_menu_family(read, screen.callback2)
+    menu_family = read_menu_family(read, screen.callback2, truth=truth)
     if menu_family is not None:
         return menu_family
     field_widget_ui = read_field_widget_ui(read, screen.callback2)
@@ -607,6 +641,17 @@ def read_active_ui(
                 "B declines and returns to gender selection"
             )
             return ActiveUi(phase, labels[menu.selected - 1], True, controls)
+        if birch_pages:
+            from pokebench_env.birch_pages import read_birch_page
+
+            task = next(
+                tasks[i : i + 0x28]
+                for i in range(0, len(tasks), 0x28)
+                if tasks[i + 4] == 1 and int.from_bytes(tasks[i : i + 4], "little") == owners[0]
+            )
+            page = read_birch_page(read, task)
+            if page is not None:
+                return page
         ready = phase == "name_entry_prompt"
         return ActiveUi(
             phase,

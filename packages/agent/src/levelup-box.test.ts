@@ -180,19 +180,19 @@ describe("levelup-box-v1 on the recorded T357 level-up (run 54a7)",()=>{
 
 describe("levelup-box-v1 registry, presets and server wiring",()=>{
  it("is the last switch: a default-off observation the game server applies, with OFF copy and no dependency",()=>{
-  expect(SWITCHABLE_FEATURES.at(-15)).toBe(ID);
-  expect(FEATURES.filter(f=>f.switchable).at(-15)?.id).toBe(ID);
-  expect(playHarnessFeatures(ALL_ON,null).at(-15)).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-18)).toBe(ID);
+  expect(FEATURES.filter(f=>f.switchable).at(-18)?.id).toBe(ID);
+  expect(playHarnessFeatures(ALL_ON,null).at(-18)).toBe(ID);
   const info=featureInfo(ID);
   expect([info.group,info.needs,info.title]).toEqual(["observation",null,"LEVEL-UP STATS BOX"]);
   expect(info.description).toContain(" Off: the readout says resolving (no input until the game asks) while the box waits");
-  expect(SERVER_FEATURES.at(-2)).toBe(ID);
+  expect(SERVER_FEATURES.at(-5)).toBe(ID);
   expect(serverFeatureEnv({...ALL_ON,[ID]:false}).POKEBENCH_FEATURES_OFF).toBe(ID);
   expect(serverFeatureEnv(ALL_ON).POKEBENCH_FEATURES_OFF).toBe("");
   expect(dependencyProblems({...ALL_ON,"battle-text-auto-advance-v1":false,"battle-message-waiting-v1":false,"battle-details-v2":false})).toEqual([]);
   const readout=readFileSync(new URL("../../../env/pokebench_env/readout.py",import.meta.url),"utf8");
-  expect(readout).toContain(`"offscreen-objects-v1",\n    "${ID}",\n    "transition-coherence-v1",\n)`);
-  expect(readout).toContain(`"offscreen-objects-v1,"\n        "${ID},"\n        "transition-coherence-v1",\n    )`);
+  expect(readout).toContain(`"offscreen-objects-v1",\n    "${ID}",\n    "transition-coherence-v1",\n    "readout-truth-v1",`);
+  expect(readout).toContain(`"offscreen-objects-v1,"\n        "${ID},"\n        "transition-coherence-v1,"\n        "readout-truth-v1,`);
  });
 
  it("defaults OFF for presets that omit it and for legacy flag presets",()=>{

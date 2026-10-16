@@ -26,12 +26,12 @@ URGENT live-cohort fix asked by the coordinator (2026-10-16). Branch `claude/lev
 ## Milestones
 
 **M1 — RED, GREEN, gates**
-- [ ] RED: Python detector/readout/wait tests incl. real-ROM re-render of raw 5093/5108; TS registry/schema/auto-advance tests
-- [ ] GREEN + gates
+- [x] RED: Python detector/readout/wait tests incl. real-ROM re-render of raw 5093/5108; TS registry/schema/auto-advance tests
+- [x] GREEN + gates
 
 **M2 — proof, explainer, pending entry, review**
-- [ ] Real-ROM re-render and auto-advance replay through the box
-- [ ] Explainer, FEATURE_EXPLAINERS, `experiments/levelup-box.json`, readiness row
+- [x] Real-ROM re-render and auto-advance replay through the box
+- [x] Explainer, FEATURE_EXPLAINERS, `experiments/levelup-box.json`, readiness row
 - [ ] Principles self-review, Claude, Codex, Grok
 
 ## Session Log
@@ -41,3 +41,8 @@ URGENT live-cohort fix asked by the coordinator (2026-10-16). Branch `claude/lev
   COMMIT: `test(RED): levelup-box-v1 names the level-up stats box and ends the battle wait on it`
 - 2026-10-16 06:10 AM EDT: TS RED + registry shifts. `packages/agent/src/levelup-box.test.ts` with fixture `src/fixtures/levelup-box-54a7.json.gz` (raw RAM 5073–5130 decoded by the production `read_state`/`state_json`, battle text journal run over the same samples): ON replay presses B through fainted, EXP, grew to LV. 6!, box page 1, box page 2 and ends field_free; page-2 drawing state waited out with the wait ending on `levelup_box`; OFF stops `battle_busy` after 3 presses as the run did; a server wait on the box with the agent switch OFF counts as busy (no loop); classify/page helpers; schema; registry last/observation/needs null/Off copy/SERVER_FEATURES/default off. End-relative registry indices +1 in adjacent-tiles, battle-message-waiting, battle-text-auto-advance (slices -7), battle-triage, blocked-batch-result, connection-edge-tiles, dialogue-auto-advance, dialogue-context-kept, explorer-guidance, features (observation count 27), readout-rules, script-line-presence, transition-loop-detection; play-preset/next-run literals; switchboard rows 71; Python SERVER_FEATURES 34 and default-off set, battle-message-waiting `[-3]`. Without the implementation: agent 29 failed / 1526 passed, viewer 2 failed / 882 passed.
   COMMIT: `test(RED): levelup-box-v1 auto-advance presses through the box; registry shifts`
+- 2026-10-16 06:25 AM EDT: GREEN. `battle_text.read_levelup_box`/`LevelUpBox` (script owner + opcode 0x6C + drawlvlupboxState; stats from beforeLvlUp and the exp getter's party slot; row names from ROM `sLvlUpStatStrings`; diagnostics instead of guesses), `battle.levelup_box` always recorded; `wait_phase(levelup_box=)` and `BattleWait(levelup_box=)` (serve.py passes `levelup-box-v1 not in off`), wait reason `levelup_box`; `levelup_box.py` clause; battle-details-v2 input clause and the control-arm `Battle input:` line (box clause before the message clause); SERVER_FEATURES + default-off both stacks; TS registry (observation, needs null), presets/flags/DEFAULT_NEXT_RUN false, `LevelUpBoxSchema`, wait reason, schema regenerated; agent `classifyBattle(s, levelupBox)` presses a waiting box page, `advanceBattle` lists it once before its B press (`levelUpListedPage`), and a server box wait the agent does not handle counts as busy (found when the wiring-removal run looped: without it a mixed build would spin until the time cap). Explainer `docs/explainers/levelup-box-v1.html` + README + FEATURE_EXPLAINERS + panels test; pending `experiments/levelup-box.json` (finals incumbent, STARTER_CHOSEN, ROUTE_103, provisional source.commit 3307db77) and readiness row.
+  - Real-ROM proof (scratch re-render over the run's raw RAM with its recorded switches): T357–T361 states 8618/8627/8640/8648/8656, OFF equals each tool result's tail; ON changes only the Battle details line (page 1 at 8618/8627, page 2 at 8640/8648/8656). Replay (raw 5073–5130, production auto-advance): B ×5, pages fainted / 27 EXP / grew to LV. 6! / box page 1 / box page 2, stop field_free; OFF B ×3, battle_busy.
+  - Wiring removal: agent `levelupBox:false` → 3 replay tests red (first attempt hung instead, receipt `receipt-wiring-ts-1` empty, which exposed the loop fixed above; second attempt `receipt-wiring-ts-2`: 3 failed / 6 passed); serve.py without `levelup_box=` → `test_production_battle_wait_honours_the_switch` red; readout.py without `levelup_box=levelup` → 4 red; restored → green.
+  - Gates (ROM via `--dotenv-path`): agent 1564 passed, viewer 885 passed, Python 2262 passed / 34 failed (exactly the 34 pre-existing main failures above) / 0 skipped. Coverage agent 97.89/94.59/98.2/99.15, viewer 95.34/91.02/93.62/97.64, Python lines 97.36 branches 93.22 functions 100 (battle_text.py, levelup_box.py, battle_details.py, battle_state.py, readout.py 100%). lint green except the known mypy `mgba._pylib`; build, verify-vendor, pages-check, experiments-check (64) OK.
+  COMMIT: `feat: levelup-box-v1 names the level-up stats box and presses through it (default off)`

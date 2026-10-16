@@ -76,6 +76,7 @@ export const SWITCHABLE_FEATURES = [
   "offscreen-objects-v1",
   "navigate-first-prompt-v1",
   "presence-penalty-v1",
+  "levelup-box-v1",
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
 
@@ -230,6 +231,7 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("offscreen-objects-v1", "observation", "OFF-SCREEN PEOPLE AND OBJECTS", "live-object-sprites-v1", "Adds a block after Field objects listing every person and object the current map's own object list places on this map that the local map and Field objects list leave out because they are more than 7 tiles from the player, each with its sprite kind and tile: the tile it is on now when the game has it loaded, otherwise where the map places it (it may have moved). Objects the game hides with a story flag or makes invisible are left out. With story character presence on, an out-of-view story character gets the same tile, for example \"MAY at 10,3 (out of view; where the map places this character, it may have moved)\". Off: no such block, and out-of-view story characters read \"(on this map, out of view)\" with no tile."),
   on("navigate-first-prompt-v1", "guidance", "NAVIGATE_TO FIRST", "bounded-navigation-v1", "Steers walking to navigate_to in three places. The system prompt's tool list names navigate_to, before press, as how you move (it finds the route around walls, ledges, water and people), and says press is for A, B, menus, dialogue, battles and single-tile steps or turns, not for walking. A Moving around section, the prompt's last, replaces the one-line navigate_to usage rule: use navigate_to for any walk of two or more tiles, do not trace routes tile by tile or walk with runs of direction presses, how to reach a person, a door or a directional exit, what to do after a refusal, and (local navigation) to call again after \"command limit\" and that a destination outside the local map is fine. The navigate_to description starts \"The main way to move\". On every third direction-only press in a row that ends on the free field (any other tool call, navigate_to and observe included, any other press, or a press that errors resets the count), the press result adds: \"Reminder: to walk two or more tiles, call navigate_to with the destination; it finds the route for you.\" Names no destination or story step. Off: today's tool list, the one-line usage rule (with game evidence priority on), today's navigate_to description and no reminder."),
   on("presence-penalty-v1", "guidance", "PRESENCE PENALTY 1.5", null, "Adds presence_penalty 1.5 to every chat request the agent sends the model, the value the Qwen3.6-35B-A3B model card recommends for thinking mode on general tasks (the serving lane's own default is 0). A presence penalty lowers the odds of tokens that already appeared in the reply, which discourages repeating the same reasoning word for word. run_start records it under sampling. Nothing the model reads changes. Off: requests carry no presence_penalty, so the server default applies, and run_start sampling has no such field."),
+  on("levelup-box-v1", "observation", "LEVEL-UP STATS BOX", null, "In a battle, names the level-up stats box the game draws after <POKéMON> grew to LV. <n>! (Cmd_drawlvlupbox, its own window, not the battle message printer) while it waits for a button, with the stats it shows read from RAM, whole: page 1 the increases, page 2 the new totals, e.g. level-up stats box open, page 1 of 2 (stat increases): MAX. HP +2, ATTACK +2, DEFENSE +1, SP. ATK +1, SP. DEF +1, SPEED +1 — waiting for a button: press A or B to continue (the game takes any new button press). With BATTLE DETAILS V2 this replaces the details line's input text; without it, a Battle input: line follows the battle block. It takes precedence over the battle message clause. With BATTLE TEXT AUTO-ADVANCE the game server's battle wait also ends on the first emulated frame the box waits, and the harness lists each page (the stat increases, then the new totals) and presses B through both, then carries on to the next decision point. The box is always recorded in the state JSON. Off: the readout says resolving (no input until the game asks) while the box waits, and battle text auto-advance waits out the box (600-frame waits) and stops with the battle busy, as before."),
   measured("story-milestones-v2", "STORY MILESTONES",
     "Records each story milestone the game's own state confirms, with its turn and time. This feeds splits and the score."),
   measured("clock-milestone-v1", "CLOCK MILESTONE",
@@ -287,6 +289,7 @@ export const SERVER_FEATURES: readonly SwitchableFeature[] = [
   "adjacent-tiles-v1", "readout-rules-in-prompt-v1", "connection-edge-tiles-v1", "in-game-naming-readout-v1",
   "battle-message-waiting-v1",
   "offscreen-objects-v1",
+  "levelup-box-v1",
 ];
 
 export function serverFeatureEnv(features: FeatureSet): { POKEBENCH_ACTIVE_UI: "0" | "1"; POKEBENCH_FEATURES_OFF: string } {
@@ -347,6 +350,7 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("offscreen-objects-v1"),
     ...when("navigate-first-prompt-v1"),
     ...when("presence-penalty-v1"),
+    ...when("levelup-box-v1"),
   ];
 }
 

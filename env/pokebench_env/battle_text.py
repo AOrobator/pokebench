@@ -21,6 +21,11 @@ script's waitmessage advances them without input.
 Battle-script YES/NO boxes (Cmd_yesnoboxlearnmove, Cmd_yesnoboxstoplearningmove,
 Cmd_yesnobox, Cmd_trygivecaughtmonnick) wait for input in their state 1, with
 the cursor at gBattleCommunication[CURSOR_POSITION]; B answers NO.
+
+The level-up stats box (Cmd_drawlvlupbox, opcode 0x6C) is its own window, B_WIN_LEVEL_UP_BOX,
+not printer 0. gBattleScripting.drawlvlupboxState 6 shows page 1 (the stat increases,
+DrawLevelUpWindowPg1) and 8 page 2 (the new totals, DrawLevelUpWindowPg2); both wait for
+gMain.newKeys != 0, any new button. Findings: docs/worklogs/active/2026-10-16_levelup-box.md.
 """
 
 import threading
@@ -28,7 +33,7 @@ import time
 from collections import deque
 from collections.abc import Callable
 from contextlib import AbstractContextManager
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from hashlib import sha256
 from typing import Literal, Protocol, TypeVar, cast
 
@@ -81,8 +86,26 @@ BATTLE_HANDOFFS = frozenset({0x08036FAD, 0x080A933D})
 # CB2_InitBattle) and exit (CB2_ReturnToField*, CB2_WhiteOut) run other callbacks.
 CB2_OVERWORLD = 0x08085E5D
 
+# Cmd_drawlvlupbox (battle_script_commands.c:5924). Stats: Cmd_getexp stores the stats before the
+# level-up in gBattleResources->beforeLvlUp (STAT_HP, ATK, DEF, SPEED, SPATK, SPDEF); the box reads
+# gPlayerParty[gBattleStruct->expGetterMonId] for the new ones (GetMonLevelUpWindowStats).
+LEVELUP_BOX_OP = 0x6C
+LEVELUP_BOX_STATE = 0x02024474 + 0x1E  # gBattleScripting.drawlvlupboxState (sLVLBOX_STATE)
+BATTLE_RESOURCES = 0x020244A8
+BATTLE_STRUCT = 0x0202449C
+EXP_GETTER = 0x10  # BattleStruct.expGetterMonId
+BEFORE_LEVEL_UP = 0x10  # BattleResources.beforeLvlUp
+PARTY = 0x020244EC
+PARTY_SIZE = 6
+PARTY_STATS = 0x58  # max HP, ATK, DEF, SPEED, SPATK, SPDEF: u16 each, the STAT_* order
+LEVELUP_STAT_NAMES = 0x08625B54  # sLvlUpStatStrings (menu_specialized.c:1503), the rows' order
+# Box rows (DrawLevelUpWindowPg1/2): MAX. HP, ATTACK, DEFENSE, SP. ATK, SP. DEF, SPEED.
+ROW_STATS = (0, 1, 2, 4, 5, 3)
+LEVELUP_PAGES: dict[int, Literal[1, 2]] = {4: 1, 5: 1, 6: 1, 7: 2, 8: 2}
+LEVELUP_WAITS = frozenset({6, 8})
+
 TextPhase = Literal["message_waiting", "input", "prompt", "busy", "screen"]
-WaitPhase = Literal["message_waiting", "input", "prompt", "busy", "screen", "field"]
+WaitPhase = Literal["message_waiting", "input", "prompt", "busy", "screen", "field", "levelup_box"]
 
 
 @dataclass(frozen=True)
@@ -107,6 +130,27 @@ class BattlePrompt:
     kind: str
     ready: bool
     selected: Literal["YES", "NO"] | None
+
+
+@dataclass(frozen=True)
+class LevelUpBox:
+    """The level-up stats box while the battle script runs Cmd_drawlvlupbox.
+
+    `page` is the page drawn or shown (1 stat increases, 2 new totals; None while the banner
+    slides or the box closes); `waiting` while it waits for a button (states 6 and 8).
+    `before`/`after` are in the box's row order, `labels` its row names from the ROM, and
+    `text` the shown page's rows, whole.
+    """
+
+    state: int
+    page: Literal[1, 2] | None
+    waiting: bool
+    party_slot: int | None = None
+    labels: tuple[str, ...] = ()
+    before: tuple[int, ...] = ()
+    after: tuple[int, ...] = ()
+    text: str | None = None
+    diagnostic: str | None = None
 
 
 def _u32(raw: bytes) -> int:
@@ -225,6 +269,64 @@ def read_battle_prompt(read: ReadMemory) -> BattlePrompt | None:
     return BattlePrompt(kind, ready, selected)
 
 
+def _ewram_pointer(read: ReadMemory, address: int, what: str) -> int:
+    pointer = _u32(_exact(read, address, 4))
+    if not 0x02000000 <= pointer < 0x02040000:
+        raise ValueError(f"{what} pointer {pointer:#x} is outside EWRAM")
+    return pointer
+
+
+def _u16s(read: ReadMemory, address: int) -> tuple[int, ...]:
+    raw = _exact(read, address, 12)
+    return tuple(int.from_bytes(raw[i : i + 2], "little") for i in range(0, 12, 2))
+
+
+def _levelup_stats(
+    read: ReadMemory, page: Literal[1, 2]
+) -> tuple[int, tuple[str, ...], tuple[int, ...], tuple[int, ...], str]:
+    slot = _exact(read, _ewram_pointer(read, BATTLE_STRUCT, "gBattleStruct") + EXP_GETTER, 1)[0]
+    if slot >= PARTY_SIZE:
+        raise ValueError(f"exp getter party slot {slot} is out of range")
+    stored = _ewram_pointer(read, BATTLE_RESOURCES, "gBattleResources") + BEFORE_LEVEL_UP
+    before_all = _u16s(read, _ewram_pointer(read, stored, "beforeLvlUp"))
+    after_all = _u16s(read, PARTY + 100 * slot + PARTY_STATS)
+    labels = []
+    for row in range(len(ROW_STATS)):
+        name = _u32(_exact(read, LEVELUP_STAT_NAMES + 4 * row, 4))
+        if not 0x08000000 <= name < 0x0A000000:
+            raise ValueError(f"stat name pointer {name:#x} is outside the ROM")
+        labels.append(decode_native_text(_exact(read, name, 12), require_terminator=True))
+    before = tuple(before_all[i] for i in ROW_STATS)
+    after = tuple(after_all[i] for i in ROW_STATS)
+    if page == 1:
+        # DrawLevelUpWindowPg1: "+" for a difference >= 0, else "-", then its absolute value.
+        rows = [
+            f"{label} {'+' if a - b >= 0 else '-'}{abs(a - b)}"
+            for label, b, a in zip(labels, before, after, strict=True)
+        ]
+    else:
+        rows = [f"{label} {a}" for label, a in zip(labels, after, strict=True)]
+    return slot, tuple(labels), before, after, ", ".join(rows)
+
+
+def read_levelup_box(read: ReadMemory) -> LevelUpBox | None:
+    if _u32(_exact(read, MAIN_FUNC, 4)) not in SCRIPT_OWNERS:
+        return None
+    script = _u32(_exact(read, SCRIPT_PC, 4))
+    if not 0x08000000 <= script < 0x0A000000 or _exact(read, script, 1)[0] != LEVELUP_BOX_OP:
+        return None
+    state = _exact(read, LEVELUP_BOX_STATE, 1)[0]
+    page = LEVELUP_PAGES.get(state)
+    box = LevelUpBox(state, page, state in LEVELUP_WAITS)
+    if page is None:
+        return box
+    try:
+        slot, labels, before, after, text = _levelup_stats(read, page)
+    except (ValueError, IndexError, KeyError) as error:
+        return replace(box, diagnostic=f"harness bug: level-up box: {error}")
+    return replace(box, party_slot=slot, labels=labels, before=before, after=after, text=text)
+
+
 def battle_input_ready(read: ReadMemory) -> bool:
     count = _exact(read, COUNT, 1)[0]
     if count not in (2, 4):
@@ -256,10 +358,18 @@ def battle_text_phase(read: ReadMemory) -> TextPhase:
     return "busy"
 
 
-def wait_phase(read: ReadMemory) -> WaitPhase:
-    """Any screen: "busy" while a battle (or its entry or exit) runs on its own."""
+def wait_phase(read: ReadMemory, *, levelup_box: bool = False) -> WaitPhase:
+    """Any screen: "busy" while a battle (or its entry or exit) runs on its own.
+
+    levelup-box-v1 (`levelup_box`): a level-up stats box waiting for a button ends the wait.
+    """
     if _exact(read, IN_BATTLE, 1)[0] & 2:
-        return battle_text_phase(read)
+        phase: WaitPhase = battle_text_phase(read)
+        if phase == "busy" and levelup_box:
+            box = read_levelup_box(read)
+            if box is not None and box.waiting:
+                return "levelup_box"
+        return phase
     if _exact(read, PALETTE_FADE + 7, 1)[0] & 0x80:
         return "busy"
     return "field" if _u32(_exact(read, GMAIN + 4, 4)) == CB2_OVERWORLD else "busy"
@@ -378,7 +488,9 @@ class BattleTextJournal:
 
 
 T = TypeVar("T")
-WaitReason = Literal["message_waiting", "input", "prompt", "screen", "field", "bound", "paused"]
+WaitReason = Literal[
+    "message_waiting", "input", "prompt", "screen", "field", "levelup_box", "bound", "paused"
+]
 # About 10 s at 60 frames/s; the agent fetches with a longer timeout.
 WAIT_BOUND_FRAMES = 600
 
@@ -398,10 +510,12 @@ class _Waiter:
 class BattleWait:
     """Hold a state capture until the first emulated frame where the battle needs
     input (a waiting message, an input or YES/NO owner), leaves the battle screen,
-    or returns to the field; or until a frame bound."""
+    or returns to the field; or until a frame bound. With levelup-box-v1 a level-up stats box
+    waiting for a button also ends it."""
 
-    def __init__(self, read: ReadMemory) -> None:
+    def __init__(self, read: ReadMemory, *, levelup_box: bool = False) -> None:
         self.read = read
+        self.levelup_box = levelup_box
         self._lock = threading.Lock()
         self._waiters: list[_Waiter] = []
         self._parked = False
@@ -413,7 +527,7 @@ class BattleWait:
             if not self._waiters:
                 return
             try:
-                phase: WaitPhase = wait_phase(self.read)
+                phase: WaitPhase = wait_phase(self.read, levelup_box=self.levelup_box)
             except (ValueError, IndexError) as error:
                 for waiter in self._waiters:
                     waiter.error = error
@@ -456,7 +570,7 @@ class BattleWait:
             with self._lock:
                 if self._parked:
                     return capture(), "paused", 0
-                phase = wait_phase(self.read)
+                phase = wait_phase(self.read, levelup_box=self.levelup_box)
                 if phase != "busy":
                     return capture(), phase, 0
                 waiter = _Waiter(capture, bound_frames)

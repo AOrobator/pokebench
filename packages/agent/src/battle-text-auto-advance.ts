@@ -60,8 +60,16 @@ function menuDetail(ui:Ui):string {
  return `menu ${ui.phase} is open${listed}`;
 }
 
-type Decision={kind:"press"}|{kind:"wait"}|{kind:"over"}|{kind:"stop";stop:AdvanceStop;detail:string};
-export function classifyBattle(s:GameStateSnapshot):Decision {
+// levelup-box-v1: the level-up stats box page waiting for a button, as a listed page.
+const LEVELUP_PAGES={1:"stat increases",2:"new totals"} as const;
+export function levelUpPage(b:Battle|null|undefined):string|null {
+ const box=b?.levelup_box;
+ if(b?.text_phase!=="busy"||box==null||!box.waiting||box.page===null)return null;
+ return `Level-up stats box, page ${String(box.page)} of 2 (${LEVELUP_PAGES[box.page]}): ${box.text??`the stats it shows could not be read (${box.diagnostic??"unknown"})`}`;
+}
+
+type Decision={kind:"press";levelUp?:string}|{kind:"wait"}|{kind:"over"}|{kind:"stop";stop:AdvanceStop;detail:string};
+export function classifyBattle(s:GameStateSnapshot,levelupBox=false):Decision {
  // The game server holds a wait until CB2_Overworld with no fade, so any other screen here is the way back.
  if(!s.in_battle)return s.screen==="overworld"?{kind:"over"}:{kind:"wait"};
  const b=s.battle;
@@ -73,6 +81,8 @@ export function classifyBattle(s:GameStateSnapshot):Decision {
  if(phase==="prompt")return {kind:"stop",stop:"battle_prompt",detail:promptDetail(b?.prompt)};
  if(phase==="input")return {kind:"stop",stop:"battle_input",detail:b===undefined||b===null?"the battle is waiting for input":inputDetail(b)};
  if(phase==="message_waiting")return {kind:"press"};
+ const levelUp=levelupBox?levelUpPage(b):null;
+ if(levelUp!==null)return {kind:"press",levelUp};
  if(phase==="busy")return {kind:"wait"};
  if(s.naming!=null)return {kind:"stop",stop:"naming",detail:"the naming screen is open"};
  const ui=s.active_ui;
@@ -121,15 +131,18 @@ export interface BattleRun {
  readonly stateOf:(result:Result)=>GameStateSnapshot;
  readonly extraText:(result:Result)=>TextContent[];
  readonly addPages:(entries:readonly BattleTextEntry[],s:GameStateSnapshot)=>void;
+ // levelup-box-v1: press through the level-up stats box and list its pages.
+ readonly levelupBox?:boolean;
+ readonly addLevelUp?:(text:string,s:GameStateSnapshot)=>void;
 }
 
 export async function advanceBattle(start:GameStateSnapshot,run:BattleRun,signal?:AbortSignal):Promise<BattleOutcome> {
- let s=start,presses=0,bounds=0;
+ let s=start,presses=0,bounds=0,listed:string|null=null;
  const extras:TextContent[]=[];
  const done=async(stop:AdvanceStop,detail:string,over=false):Promise<BattleOutcome>=>{run.addPages(await run.journal.collect(run.known,signal),s);return {state:s,over,stop,detail,presses,extras};};
  const failed=(error:unknown):Promise<BattleOutcome>=>{if(signal?.aborted===true)throw error;return done("error",`battle text auto-advance stopped: ${error instanceof Error?error.message:String(error)}`);};
  for(;;){
-  const decision=classifyBattle(s);
+  const decision=classifyBattle(s,run.levelupBox===true);
   if(decision.kind==="over")return done("field_free","the battle ended",true);
   if(decision.kind==="stop")return done(decision.stop,decision.detail);
   if(run.clock.now()-run.began>=run.limits.callMs)return done("time_cap",`AUTO-ADVANCE CAP: stopped after ${String(run.limits.callMs/1000)} s of automatic advancing; the battle is still running`);
@@ -137,6 +150,9 @@ export async function advanceBattle(start:GameStateSnapshot,run:BattleRun,signal
    if(run.used+presses>=run.limits.presses)return done("press_cap",`AUTO-ADVANCE CAP: stopped after ${String(run.limits.presses)} automatic presses; a battle message is still waiting`);
    signal?.throwIfAborted();
    run.addPages(await run.journal.collect(run.known,signal),s);
+   // A page the last press did not move on is listed once.
+   if(decision.levelUp!==undefined&&decision.levelUp!==listed)run.addLevelUp?.(decision.levelUp,s);
+   listed=decision.levelUp??null;
    try{const result=await run.press(signal);presses++;s=run.stateOf(result);extras.push(...run.extraText(result));}
    catch(error){return failed(error);}
    bounds=0;continue;
@@ -146,9 +162,17 @@ export async function advanceBattle(start:GameStateSnapshot,run:BattleRun,signal
   try{waited=await run.source.battleWait(signal);}catch(error){return failed(error);}
   s=waited.state;
   if(waited.reason==="paused")return done("paused","the game is paused, so the battle did not advance; observe after the pause ends");
-  if(waited.reason!=="bound"){bounds=0;continue;}
+  // A box wait from a server running levelup-box-v1 that this agent does not press through counts as busy.
+  const busy=waited.reason==="bound"||(waited.reason==="levelup_box"&&run.levelupBox!==true);
+  if(!busy){bounds=0;continue;}
   if(++bounds>=BATTLE_BUSY_BOUNDS)return done("battle_busy",`the battle kept running on its own for ${String(BATTLE_BUSY_BOUNDS)} waits of 600 emulated frames with no message waiting and no input open; inspect before acting`);
  }
+}
+
+// A level-up stats box page as a listed page, like a journal entry but with no message id.
+export function levelUpListedPage(text:string,s:GameStateSnapshot,stateSeq:number):BattlePage {
+ const turn=s.battle?.turn;
+ return {state_seq:stateSeq,map:s.location,...(s.location_display===undefined?{}:{map_display:s.location_display}),map_id:s.map_id,position:null,speaker:null,speaker_source:null,text,...(turn!=null&&turn>=1&&turn<=256?{battle_turn:turn}:{})};
 }
 
 // A journal entry as a listed page: the map from the state it was read with; no speaker or position.

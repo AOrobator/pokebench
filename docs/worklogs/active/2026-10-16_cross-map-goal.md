@@ -52,4 +52,8 @@ Text only. No subprocesses, network, files or new endpoints.
 - [ ] Review: Claude, Grok, GPT lanes LGTM on the frozen packet
 
 ## Multi-Model Review Log
-
+- Round 1, packet `git diff --binary 4070e250 3ab4c88e` (SHA-256 `ad352fa3…b3627`), artifacts `/tmp/review-cross-map-goal-r1{,b}`:
+  - Claude: `~/.claude-review` login expired ("OAuth session expired"); default-login `claude -p --permission-mode plan` → `VERDICT: LGTM`.
+  - Grok (Cursor `cursor-grok-4.5-high`) → `VERDICT: LGTM`.
+  - GPT: Cursor `gpt-5.6-sol-xhigh` hit its usage limit; isolated `codex exec` gpt-5.6-sol xhigh → `VERDICT: BLOCKING`: (1) no exact-head `just build` receipt; (2) no real-browser READ EXPLAINER click in a candidate viewer. Hardening: trailing blank line in this worklog.
+  - Synthesis: both accepted. `just build` on 3ab4c88e exit 0, tree unchanged. Candidate viewer (worktree dist, `--port 8796 --runs <scratchpad probe root>` holding one probe run whose run_start is 4caa's with `cross-map-goal-v1` added): Harness Config shows CROSS-MAP GOAL REFUSAL ON; clicking READ EXPLAINER opened `http://127.0.0.1:8796/explainers/cross-map-goal-v1.html` (heading "A goal on another map is not a map change"), no console errors; at 375 px no page-level horizontal scroll, but the evidence table was cramped, so it now scrolls inside its card (min-width 620 px), and two diagram labels moved off their arrows. Claude's count note: 7 of 4caa's 8 zero-press cases are on ROUTE101 (seq 2136 is map 1/3), so the hypothesis text stands.

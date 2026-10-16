@@ -220,6 +220,7 @@ Any valid trial that still ends before the wall cap is listed in a WARNING table
 - 2026-10-15 23:35 EDT: Gates at `ca2db1f`: agent 80 / 1263 (97.61 / 94.18 / 97.85 / 99.02), viewer 59 / 772 (95.07 / 90.42 / 93.52 / 97.58), env 1960 passed 2 skipped; build 0; pnpm lint and ruff clean, mypy only the worktree's missing `mgba._pylib`; verify-vendor OK. Review of `main..ca2db1f`: grok `VERDICT: BLOCKING`, and Codex reached the same finding: the stamp `<tree>/.fixed-tree` is an untracked file, so `harness.dirty` (`git status --porcelain`) would be true on every trial; and the skill still said `harness.commit` is main. RED: stamp under ignored `packages/agent/dist/`, and preparation refuses a checkout that is not fully clean (untracked included) before stamping.
 - 2026-10-15 23:45 EDT: GREEN for `b1ceb72`: stamp at `packages/agent/dist/.fixed-tree`; final `git status --porcelain` check before stamping; skill says `harness.commit` equals the pinned launch commit.
 - 2026-10-15 23:55 EDT: Delta re-review of `ca2db1f..1601a5d`: grok `VERDICT: LGTM`; Codex `VERDICT: BLOCKING`: the reuse fast path checks status with `--untracked-files=no`, so a stamped checkout that later gains an untracked file would launch trials recording dirty: true. RED: a stamped checkout with an untracked file is refused; every status check includes untracked files.
+- 2026-10-16 00:00 EDT: GREEN for `465489d`: both status checks in `prepareFixedTree` use full `git status --porcelain`.
 
 ## Deferred
 

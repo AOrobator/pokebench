@@ -41,7 +41,9 @@ export async function prepareFixedTree(d: FixedTreeDeps, commit: string): Promis
   }
   const head = d.git(tree, ["rev-parse", "HEAD"]).trim();
   if (head !== commit) return `the experiment checkout ${tree} is at ${head.slice(0, 7)}, not the pinned ${commit.slice(0, 7)}`;
-  if (d.git(tree, ["status", "--porcelain", "--untracked-files=no"]).trim() !== "") return `the experiment checkout ${tree} has uncommitted changes`;
+  // A trial records `git status --porcelain` (untracked included) as harness.dirty.
+  const changes = d.git(tree, ["status", "--porcelain"]).trim();
+  if (changes !== "") return `the experiment checkout ${tree} has changes (trials would record dirty: true): ${changes.split("\n").join(", ")}`;
   // Under the ignored dist/, so the checkout stays clean and trials record dirty: false.
   const stamp = join(tree, "packages", "agent", "dist", ".fixed-tree");
   const expected = `${commit} ${sources}\n`;
@@ -67,7 +69,6 @@ export async function prepareFixedTree(d: FixedTreeDeps, commit: string): Promis
   const built = await d.exec(d.node, [join(agent, "node_modules", "typescript", "bin", "tsc"), "-p", "tsconfig.build.json", "--noEmitOnError"], agent);
   if (built !== null) return `the agent build failed in the experiment checkout: ${built}`;
   if (!d.exists(liveJs)) return "the agent build produced no packages/agent/dist/live.js in the experiment checkout";
-  // A trial records `git status --porcelain` (untracked included) as harness.dirty.
   const residue = d.git(tree, ["status", "--porcelain"]).trim();
   if (residue !== "") return `the experiment checkout ${tree} is not clean after preparing it (trials would record dirty: true): ${residue.split("\n").join(", ")}`;
   d.write(stamp, expected);

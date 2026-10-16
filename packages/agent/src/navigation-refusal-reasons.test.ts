@@ -164,3 +164,27 @@ describe("navigation-refusal-reasons-v1 production wiring",()=>{
   expect(navigationTool({...ports,refusalReasons:true}).description).toBe(navigationTool(ports).description);
  });
 });
+
+// Bundle 3f21 fix F7: a warp target gets its own reason (pokeemerald TryDoorWarp: a door is entered only walking north).
+describe("navigation-refusal-reasons-v1: warp targets",()=>{
+ const door=(x:number,y:number,override:(x:number,y:number)=>ReturnType<typeof tile>|null=()=>null,objects:Goal[]=[],targets:Target[]=[]):GameStateSnapshot=>({...field,interaction_targets:targets,navigation_grid:{elevation:3,tiles:square(3,(tx,ty)=>tx===x&&ty===y?tile(x,y,1,0x69):override(tx,ty)),objects,warps:[{x,y}]}});
+ const warp=(x:number,y:number,destination:[number,number,number]|null):Target=>({...target("warp",x,y,`Warp to map ${destination===null?"?":`${String(destination[0])}/${String(destination[1])}`}`),destination});
+ it("names who stands on the door's entry tile",async()=>{
+  expect(await status(door(1,1,()=>null,[{x:1,y:2}],[warp(1,1,[1,4,0])]),{x:1,y:1},on)).toBe("(1,1) is a door to map 1/4; the game enters a door only when you walk UP into it from the tile below, (1,2), and a person or object is standing on (1,2); wait for it to move");
+ });
+ it("says a door on the map's bottom row cannot be entered from this map",async()=>{
+  expect(await status({...door(1,2),topology:{width:3,height:3,connections:[]}},{x:1,y:2},on)).toBe("(1,2) is a door; the game enters a door only when you walk UP into it from the tile below, (1,3), which is outside this map, so this door cannot be entered from this map");
+ });
+ it("says when the entry tile is not walkable or not reachable",async()=>{
+  expect(await status(door(1,1,(x,y)=>x===1&&y===2?tile(1,2,1):null),{x:1,y:1},on)).toBe("(1,1) is a door; the game enters a door only when you walk UP into it from the tile below, (1,2), which is not a tile navigate_to can stand on, so this door cannot be entered from here");
+  expect(await status(door(1,1,(x,y)=>y===1?tile(x,y,1):null),{x:1,y:1},on)).toBe("(1,1) is a door; the game enters a door only when you walk UP into it from the tile below, (1,2), which navigate_to cannot reach from here; choose a reachable waypoint nearer it");
+ });
+ it("says when no route toward an entry tile outside the local map is known",async()=>{
+  expect(await status(door(1,2,(x,y)=>y===1?tile(x,y,1):null),{x:1,y:2},on)).toBe("(1,2) is a door; the game enters a door only when you walk UP into it from the tile below, (1,3), which is outside the local map navigate_to can see from here; no route toward (1,3) is known from here; choose a reachable waypoint nearer it");
+ });
+ it("names an occupied warp's occupant only when listed, and offers other warps only to the same map",async()=>{
+  const stairs=(targets:Target[]):GameStateSnapshot=>({...field,interaction_targets:targets,navigation_grid:{elevation:3,tiles:square(3,(x,y)=>x===2&&y===2?tile(2,2,0,0x60):null),objects:[{x:2,y:2}],warps:[{x:2,y:2}]}});
+  expect(await status(stairs([]),{x:2,y:2},on)).toBe("(2,2) is a warp, but a person or object is standing on it, so navigate_to cannot walk onto it; wait for it to move");
+  expect(await status(stairs([warp(2,2,[1,0,0]),warp(0,2,[1,1,0])]),{x:2,y:2},on)).toBe("(2,2) is a warp to map 1/0, but a person or object is standing on it, so navigate_to cannot walk onto it; wait for it to move");
+ });
+});

@@ -11,7 +11,8 @@ import {toolSwitches} from "./play-config.js";
 import {SWITCHABLE_FEATURES,type FeatureSet} from "./features.js";
 import {SupervisorBriefing} from "./loop-supervisor.js";
 import type {Button,RunEvent} from "./events.js";
-import type {AutoAdvanceRecorder} from "./dialogue-auto-advance.js";
+import {afterAdvance,navigationAfter,type AutoAdvanceRecorder} from "./dialogue-auto-advance.js";
+import {MESSAGE_WAITING} from "./navigation.js";
 import type {GameStateSnapshot} from "./game-state.js";
 
 const URL_BASE="http://127.0.0.1";
@@ -134,5 +135,67 @@ describe("F5 stall-briefing-v1: the stall briefing cites the last story instruct
   expect(b.text("ineffective",65)).toBe(note(1010));
   expect(b.textOnly(3,1,3)).not.toMatch(/last story step|Exits to maps|other maps/);
   expect(upTo(3310).text("cycle",166)).not.toMatch(/last story step|Exits to maps|other maps/);
+ });
+});
+
+describe("F6 restated text, every case",()=>{
+ const nav=(status:string,commands:number,unready=true)=>({navigation:{status,commands,unready}});
+ const FREE={stop:"field_free" as const,detail:"the conversation closed and field controls are free"};
+ it("restates navigate_to only when it stopped because field input was not ready",()=>{
+  expect(navigationAfter(null,FREE)).toBeNull();
+  expect(navigationAfter({},FREE)).toBeNull();
+  expect(navigationAfter({navigation:null},FREE)).toBeNull();
+  expect(navigationAfter(nav("arrived at requested coordinate",3,false),FREE)).toBeNull();
+  expect(navigationAfter({navigation:{status:1,commands:0,unready:true}},FREE)).toBeNull();
+  expect(navigationAfter({navigation:{status:"x",unready:true}},FREE)).toBeNull();
+  expect(navigationAfter(nav(`walk interrupted: ${MESSAGE_WAITING}`,3),FREE)).toBe("Navigation: walk interrupted: a message opened; after auto-advance: the conversation closed and field controls are free; call navigate_to again; 3 ordinary button attempts.");
+  expect(navigationAfter(nav("walk interrupted: field controls are locked by a script and no message is open; the game is acting on its own, so inspect the new state before calling navigate_to again",2),{stop:"menu",detail:"menu field_yes_no is open: options YES, NO; highlighted YES"})).toBe("Navigation: walk interrupted: field controls were locked; after auto-advance: menu field_yes_no is open: options YES, NO; highlighted YES; 2 ordinary button attempts.");
+  expect(navigationAfter(nav("field input or navigation geometry unavailable",0),FREE)).toBe("Navigation: field controls were not free, so navigate_to did not walk; after auto-advance: the conversation closed and field controls are free; call navigate_to again; 0 ordinary button attempts.");
+ });
+ it("replaces only box-state notes the advance made stale",()=>{
+  expect(afterAdvance("dialogue closed; field controls are still locked","the conversation closed and field controls are free")).toBe("dialogue closed; after auto-advance: the conversation closed and field controls are free");
+  expect(afterAdvance("conversation restarted: this text was already shown (2nd time)","x")).toBe("conversation restarted: this text was already shown (2nd time)");
+ });
+});
+
+describe("F5 stall briefing additions, every case",()=>{
+ const ALL=Object.fromEntries(SWITCHABLE_FEATURES.map(id=>[id,true])) as FeatureSet;
+ function run(features:FeatureSet){
+  const b=new SupervisorBriefing(features);let seq=0,turn=0;
+  const emit=(body:Record<string,unknown>):RunEvent=>{const e={v:1,run:"r",t:"2026-10-16T00:00:00.000-04:00",seq:++seq,turn,...body} as RunEvent;b.observe(e);return e;};
+  const state=(extra:Record<string,unknown>)=>emit({type:"state",screen:"overworld",started:true,location:"HOUSE",map_id:[1,0],position:{x:1,y:1},facing:"up",in_battle:false,field_controls_locked:false,active_ui:null,interaction_targets:[],world_context:{objects:[],triggers:[],dialogue:null},...extra});
+  const call=(extra:Record<string,unknown>,error=false,milestone?:{name:string;kind:string;origin?:string},pages?:Record<string,unknown>[])=>{
+   turn++;const id=`c${String(turn)}`;emit({type:"tool_call",id,name:"press",args:{buttons:["A"]}});
+   if(pages!==undefined)emit({type:"dialogue_auto_advance",tool_call_id:id,tool:"press",requested:["A"],sent:["A"],dropped:[],auto_presses:1,pages,stop:"field_free",detail:"x",duration_ms:1});
+   const s=state(extra);
+   if(milestone!==undefined)emit({type:"milestone",server_timestamp:0,origin:"observed",evidence:[s.seq],...milestone});
+   emit({type:"tool_result",id,name:"press",is_error:error,duration_ms:1,text:"ok",frames:[],state_seq:s.seq});
+  };
+  return {b,call};
+ }
+ const line=(text:string,prefix:string)=>text.split("\n").find(l=>l.startsWith(prefix));
+ it("quotes readout dialogue without a speaker, skips errored calls and start milestones, and lists exits with no destination as none",()=>{
+  const {b,call}=run(ALL);
+  call({world_context:{objects:[],triggers:[],dialogue:"Go next door."}},false,{name:"MOM_RIVAL_INSTRUCTION",kind:"story"});
+  call({world_context:{objects:[],triggers:[],dialogue:"Ignored."}},true,{name:"CLOCK_SET",kind:"story"});
+  call({},false,{name:"GAME_RUNNING",kind:"legacy"});
+  call({map_id:null,location:null,interaction_targets:[{kind:"warp",x:2,y:2,elevation:0,activation:"step",availability:"conditional",facing:null,local_id:null,destination:null,name:null}]});
+  const text=b.stallText({kind:"milestone_drought",minutes:5},4);
+  expect(line(text,"- Dialogue shown with your last story step")).toBe(`- Dialogue shown with your last story step (mom rival instruction at turn 1), whole, in order: "Go next door."`);
+  expect(line(text,"- Exits to maps")).toBe("- Exits to maps you have not entered since your last story progress: none");
+ });
+ it("takes a page's own state, else its event, and keeps the earlier instruction when a story milestone came with no pages",()=>{
+  const {b,call}=run(ALL);
+  call({},false,{name:"MOM_CLOCK_INSTRUCTION",kind:"story"},[{state_seq:null,map:"HOUSE",map_id:[1,0],position:null,speaker:"MOM",speaker_source:"name_prefix",text:"MOM: Set the clock."}]);
+  call({},false,{name:"CLOCK_SET",kind:"story"});
+  expect(line(b.stallText({kind:"milestone_drought",minutes:5},2),"- Dialogue shown")).toBe(`- Dialogue shown with your last story step (mom clock instruction at turn 1), whole, in order: MOM: "MOM: Set the clock."`);
+ });
+ it("says what is not available when the readout lacks dialogue text or targets",()=>{
+  const {b,call}=run({...ALL,"active-field-message-buffer-v1":false,"world-targets-v1":false});
+  call({});
+  const text=b.stallText({kind:"milestone_drought",minutes:5},1);
+  expect(line(text,"- Dialogue shown")).toBe("- Dialogue shown with your last story step: not available (dialogue text is off)");
+  expect(line(text,"- Not tried yet on other maps")).toBe("- Not tried yet on other maps you have been on since your last story progress: not available (world targets are off)");
+  expect(line(text,"- Exits to maps")).toBe("- Exits to maps you have not entered since your last story progress: not available (world targets are off)");
  });
 });

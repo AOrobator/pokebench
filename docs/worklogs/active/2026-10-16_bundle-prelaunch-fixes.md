@@ -42,6 +42,8 @@ Forensics of bundle qualification run `2026-10-15T23-47-41_qwen36-gpu1_3f21` (`r
 
 ## Commits
 
+- COMMIT: `test(bundle): cover every F5–F7 branch; stall-briefing registry text` — agent 1288 tests
+
 - COMMIT: `revert(bundle): drop F12` (scope change; removes RED 51006938 and GREEN 7261cdd6)
 - COMMIT: `fix(bundle): F12 stall briefing knows the naming editor and briefs an interface dwell` (7261cdd6)
 - COMMIT: `test(bundle): RED for F12 stall briefing in an owned interface` (51006938)

@@ -186,12 +186,12 @@ function textAppeared(previous:GameStateSnapshot|undefined,now:GameStateSnapshot
 }
 // Notes on the box that were true right after the press but not after auto-advance moved on.
 const STALE_NOTES=[OPENED_LOCK_NOTE,STILL_OPEN_NOTE,STILL_LOCKED_NOTE];
-function afterAdvance(line:string,detail:string):string {
+export function afterAdvance(line:string,detail:string):string {
  const kept=STALE_NOTES.reduce((text,note)=>text.replaceAll(note,""),line);
  return kept===line?line:`${kept}; after auto-advance: ${detail}`;
 }
 // navigate_to's status was read before auto-advance ran; restate why it stopped and what is true now.
-function navigationAfter(raw:unknown,outcome:Outcome):string|null {
+export function navigationAfter(raw:unknown,outcome:Pick<Outcome,"stop"|"detail">):string|null {
  if(typeof raw!=="object"||raw===null||!("navigation" in raw))return null;
  const nav=raw.navigation;
  if(typeof nav!=="object"||nav===null||!("unready" in nav)||nav.unready!==true||!("status" in nav)||typeof nav.status!=="string"||!("commands" in nav)||typeof nav.commands!=="number")return null;

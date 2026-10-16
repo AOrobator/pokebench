@@ -2,6 +2,7 @@
 import { closeSync, existsSync, fstatSync, openSync, readSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { RUN_ID_PATTERN, parseEvent, type RunEvent } from "@pokebench/agent/events";
+import { DEPTH_ORDER } from "@pokebench/agent/milestones";
 import { locateRunDir } from "@pokebench/agent/run";
 import type { Baseline } from "./panels.js";
 import { RunView, MILESTONE_ORDER } from "./model.js";
@@ -390,8 +391,8 @@ export async function comparisonsOf(runsRoot: string, runId: string, readBaselin
   const previous = models.filter((c) => Date.parse(c.started) < Date.parse(current.t));
   const baseline = previous.find((c) => c.model === current.model.id) ?? previous[0] ?? null;
   const score = (run: ComparisonRun) => {
-    const deepest = run.milestones.reduce((depth, m) => Math.max(depth, MILESTONE_ORDER.indexOf(m.name as typeof MILESTONE_ORDER[number])), -1);
-    const time = run.milestones.find((m) => m.name === MILESTONE_ORDER[deepest])?.offsetMs ?? Infinity;
+    const deepest = run.milestones.reduce((depth, m) => Math.max(depth, DEPTH_ORDER.indexOf(m.name)), -1);
+    const time = run.milestones.find((m) => m.name === DEPTH_ORDER[deepest])?.offsetMs ?? Infinity;
     return { deepest, time };
   };
   const best = models.slice().sort((a, b) => score(b).deepest - score(a).deepest || score(a).time - score(b).time || a.run.localeCompare(b.run))[0] ?? null;

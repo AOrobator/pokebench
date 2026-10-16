@@ -9,7 +9,7 @@ import type { LoopNotice } from "./loop-detection.js";
 import type { BodyOf, Button, RunEndReason, RunEvent, EventBody } from "./events.js";
 import type { FrameRef, FrameStore } from "./frames.js";
 import { parseGameState, type GameStateSnapshot, type StateSource } from "./game-state.js";
-import { MILESTONE_ORDER, type MilestoneSource, type SeenMilestone } from "./milestones.js";
+import { deeperMilestone, type MilestoneSource, type SeenMilestone } from "./milestones.js";
 import type { RunLog } from "./run-log.js";
 
 export class RecorderError extends Error {
@@ -424,7 +424,7 @@ export class RunRecorder {
 
   private recordMilestones(milestones: readonly SeenMilestone[]): void {
     for (const milestone of milestones) {
-      if (milestone.origin !== "present_at_start" && (this.furthest === null || MILESTONE_ORDER.indexOf(milestone.name) >= MILESTONE_ORDER.indexOf(this.furthest))) this.furthest = milestone.name;
+      if (milestone.origin !== "present_at_start") this.furthest = deeperMilestone(this.furthest, milestone.name);
       this.append({ type: "milestone", turn: this.turn, ...(this.humanSamplingFrame===undefined?{}:{emulator_frame:this.humanSamplingFrame,emulator_frame_kind:"sample_upper_bound"}), name: milestone.name, server_timestamp: milestone.serverTimestamp,
         ...(milestone.kind === undefined ? {} : {kind:milestone.kind}),
         ...(milestone.origin === undefined ? {} : {origin:milestone.origin}),

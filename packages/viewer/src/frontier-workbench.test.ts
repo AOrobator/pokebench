@@ -121,9 +121,12 @@ it("highlights a version on hover or focus, isolates it on click or Enter, and s
   const item = (name: string): HTMLElement => { const el = Array.from(legend.querySelectorAll<HTMLElement>(".wb-ver")).find(li => li.dataset.verName === `${NAME} · ${name}`); if (el === undefined) throw new Error(name); return el; };
   const on = (): string[] => Array.from(plot.querySelectorAll<SVGGElement>(".wb-series.wb-on")).flatMap(g => g.querySelector("[data-run]")?.getAttribute("data-run") ?? []);
   const dim = (): boolean => plot.querySelector(".wb-frontier-chart")?.classList.contains("wb-dim") ?? false;
-  expect(legend.querySelector(".wb-vlegend")?.classList.contains("wb-open")).toBe(true);
-  expect(legend.querySelector<HTMLDetailsElement>("details.wb-marks")?.open).toBe(true);
+  // Operator 2026-10-16: on every width the version legend, the mark key and the how-to start closed.
+  expect(legend.querySelector(".wb-vlegend")?.classList.contains("wb-open")).toBe(false);
+  expect(legend.querySelector<HTMLDetailsElement>("details.wb-marks")?.open).toBe(false);
   expect(legend.querySelector<HTMLDetailsElement>("details.wb-how")?.open).toBe(false);
+  legend.querySelector<HTMLElement>("[data-legend-toggle]")?.click();
+  expect(legend.querySelector(".wb-vlegend")?.classList.contains("wb-open")).toBe(true);
   item("bundle v1").dispatchEvent(new MouseEvent("mouseover", { bubbles: true }));
   expect(dim()).toBe(true); expect(on()).toEqual(["b1"]);
   item("bundle v1").dispatchEvent(new MouseEvent("mouseout", { bubbles: true, relatedTarget: document.body }));
@@ -167,7 +170,7 @@ it("keeps what the operator opened or closed across polls, and folds everything 
   const base = run().config as NonNullable<ReturnType<typeof run>["config"]>;
   const runs = [Object.assign(run({ id: "c1", arm: "control" }), { measurement }), Object.assign(run({ id: "b1", arm: "bundle", started: "2026-10-14T13:00:00.000-04:00", config: { ...base, features: [{ id: "live-map-v1", label: "LIVE MAP", on: true }] } }), { measurement })];
   let at = 1000;
-  const wb = new Workbench(document, { fetchSnapshot: () => Promise.resolve({ version: 1, at, milestones: [], runs, problems: [] }), now: () => 1000, width: () => 375, wide: () => false });
+  const wb = new Workbench(document, { fetchSnapshot: () => Promise.resolve({ version: 1, at, milestones: [], runs, problems: [] }), now: () => 1000, width: () => 375 });
   await wb.refresh();
   const legend = ui("frontier-legend"), poll = async (): Promise<void> => { at += 1000; await wb.refresh(); };
   const toggle = (selector: string, open: boolean): void => { const d = legend.querySelector<HTMLDetailsElement>(selector); if (d === null) throw new Error(selector); d.open = open; d.dispatchEvent(new Event("toggle")); };

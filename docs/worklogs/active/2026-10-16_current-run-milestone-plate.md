@@ -75,3 +75,4 @@ already polls it for the queue, so QueuePanel hands each parsed snapshot to the 
   - Rebuilt dist, rechecked on the scratch server: all four plates render with lanes joined, gold plate intact.
 
 ## Log
+- [x] Re-review of 7350dbb7..ddd836e3: Codex `VERDICT: LGTM`, grok `VERDICT: LGTM` (nit: no bootWorkbench integration test for the two hooks). Merging to main (operator OK 2026-10-16 2:28 AM EDT).

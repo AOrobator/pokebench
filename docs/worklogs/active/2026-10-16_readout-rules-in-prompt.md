@@ -51,4 +51,6 @@ State-only decisions get no system-prompt section, so `state-only-decisions-v1` 
 - 2026-10-16 02:37 AM EDT: GREEN and gates.
 - 2026-10-16 02:41 AM EDT: real-ROM proof and measurement.
 - 2026-10-16 02:50 AM EDT: explainer and pending experiment.
+  COMMIT: `docs(readout-rules): explainer, harness-config link and pending experiment entry` (1fe18aa6)
+- 2026-10-16 02:53 AM EDT: with $POKEBENCH_ROM set, the two ROM-gated rerender tests (recorded truck readout byte-for-byte) failed because their recorded run predates this switch; `env_with` now marks it off like warp-arrival-settle-v1, and the recorded readout reproduces byte-for-byte (real-ROM OFF identity). pytest with ROM: 2031 passed.
 - 2026-10-16 02:18 AM EDT: worklog drafted (the operator's proposal).

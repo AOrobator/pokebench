@@ -1,7 +1,7 @@
 import {createHash} from "node:crypto";
 import {readFileSync} from "node:fs";
 import {expect,it} from "vitest";
-import {ALL_ON,dependencyProblems,featureInfo,playHarnessFeatures,serverFeatureEnv,stateOnlyProblems,type FeatureSet,type SwitchableFeature} from "./features.js";
+import {ALL_ON,FEATURES,dependencyProblems,featureInfo,playHarnessFeatures,serverFeatureEnv,stateOnlyProblems,type FeatureSet,type SwitchableFeature} from "./features.js";
 import {EXPLORER_GUIDANCE_SECTION,EXPLORER_TALK_IS_CHEAP,GAME_EVIDENCE_SECTION,NAVIGATE_TO_USAGE,playSystemPrompt} from "./play-config.js";
 import {objectivePrompt} from "./objective-tools.js";
 import {objectiveSwitches} from "./play-config.js";
@@ -69,6 +69,7 @@ it("is a default-off standalone guidance switch, recorded last, that state-only 
  expect(featureInfo(ID)).toMatchObject({group:"guidance",needs:null,switchable:true,title:"TALK TO PEOPLE"});
  expect(featureInfo(ID).description).toContain(" Off: ");
  expect(playHarnessFeatures(ALL_ON,null).at(-1)).toBe(ID);
+ expect(FEATURES.filter(f=>f.switchable).at(-1)?.id).toBe(ID);
  expect(serverFeatureEnv({...ALL_ON,[ID]:false}).POKEBENCH_FEATURES_OFF).toBe("");
  expect(dependencyProblems({...ALL_ON,"dialogue-auto-advance-v1":false,[ID]:true})).not.toContain(expect.stringContaining(ID));
  expect(stateOnlyProblems({...INCUMBENT,"state-only-decisions-v1":true,[ID]:true})).toContain(`state-only-decisions-v1 requires ${ID} OFF`);

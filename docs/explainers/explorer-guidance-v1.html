@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Talk To People</title>
+<style>
+:root{
+ --bg:#f7f6f2; --fg:#1c1d1f; --soft:#5b5d61; --rule:#dedcd5; --panel:#ffffff;
+ --game:#1a7f5a; --game-bg:#e3f4ec; --prior:#c2432f; --prior-bg:#fbe7e2; --nav:#2a62c9; --nav-bg:#e4edfb; --hot:#c2432f;
+ --body:system-ui,-apple-system,"Segoe UI",sans-serif; --mono:ui-monospace,"SF Mono",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+ --bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; --hot:#ff7a63; color-scheme:dark}}
+:root[data-theme="dark"]{
+ --bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; --hot:#ff7a63; color-scheme:dark}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.6 var(--body);padding:0 16px}
+main{max-width:740px;margin:0 auto;padding:40px 0 64px;display:flex;flex-direction:column;gap:34px}
+h1{font-size:2.2rem;line-height:1.15;margin:0}
+h2{font-size:1.3rem;margin:0}
+p{margin:0;max-width:66ch}
+.eyebrow{font:500 .75rem var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--soft)}
+.lede{font-size:1.08rem;color:var(--soft)}
+section{display:flex;flex-direction:column;gap:12px}
+figure{margin:0;display:flex;flex-direction:column;gap:8px}
+.scroll{overflow-x:auto}
+svg{display:block;max-width:100%;height:auto}
+figcaption{font-size:.88rem;color:var(--soft)}
+svg text{font-family:var(--body);font-size:12px;fill:var(--fg)}
+svg .s{fill:var(--soft);font-size:11px}
+svg .t{font-weight:600;font-size:13px}
+.box{fill:var(--panel);stroke:var(--rule)}
+.game{fill:var(--game-bg);stroke:var(--game)}
+.prior{fill:var(--prior-bg);stroke:var(--prior)}
+.navb{fill:var(--nav-bg);stroke:var(--nav)}
+.hot{stroke:var(--hot);stroke-width:2.2}
+.arr{stroke:var(--soft);stroke-width:1.5;fill:none}
+.arr.g{stroke:var(--game)} .arr.p{stroke:var(--prior);stroke-dasharray:5 4}
+pre{background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:14px;white-space:pre-wrap;font:13px/1.5 var(--mono);margin:0}
+code{font:500 .88em var(--mono);background:var(--panel);border:1px solid var(--rule);border-radius:4px;padding:0 4px}
+table{border-collapse:collapse;width:100%;font-size:.92rem}
+th,td{text-align:left;padding:7px 9px;border-bottom:1px solid var(--rule);vertical-align:top}
+th{font:500 .75rem var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--soft)}
+.tag{display:inline-block;font:500 .72rem var(--mono);border-radius:99px;padding:1px 8px;border:1px solid var(--rule);color:var(--soft)}
+</style>
+</head>
+<body>
+<main>
+<div>
+<div class="eyebrow">Harness switch · guidance · <code>explorer-guidance-v1</code></div>
+<h1>Talk to people</h1>
+</div>
+<p class="lede">A short system-prompt section saying that in this game, people tell you where to go next. After each story event, and whenever the model is unsure where to go, it should talk to everyone in the room before leaving, talk again to people it met before, and treat a short remark as a direction. It names no character, place or story step. Off by default.</p>
+
+<section>
+<h2>Why</h2>
+<p>The operator, 2026-10-16: the point of Pokémon is exploring, talking to people and finding things out, and then those hints help you move forward. The model was doing the opposite: it moved on after one conversation and treated hints as small talk.</p>
+</section>
+
+<section>
+<h2>The failure it targets</h2>
+<p>Recorded run <code>2026-10-16T00-34-26_qwen36-gpu1_show</code>, with dialogue auto-advance on, so every conversation cost one press.</p>
+<table>
+<tr><th>Turn</th><th>What the game showed</th><th>What the model did</th></tr>
+<tr><td>407</td><td>PROF. BIRCH: "…don't you think it might be a good idea to go see MAY?"</td><td>Went to MAYS HOUSE 1F (turn 417).</td></tr>
+<tr><td>418–425</td><td>Two people on the map. One (NINJA_BOY sprite at 10,5) said "Hi, neighbor! Do you already have your own POKéMON?"</td><td>Talked to that one person at turn 424, then walked out at 425. It never spoke to the second person. The forensics identify her as May's mom, the only source of where May went next.</td></tr>
+<tr><td>580</td><td>OLDALE TOWN milestone.</td><td>Last story progress for the rest of the run.</td></tr>
+<tr><td>655–656</td><td>PROF. BIRCH: "MAY? Gone home, I think."</td><td>Called it "generic advice" and headed off by memory toward Rustboro. It spent 15+ minutes with no goal the game had given it.</td></tr>
+</table>
+</section>
+
+<section>
+<h2>Before and after</h2>
+<figure>
+<div class="scroll">
+<svg viewBox="0 0 700 270" role="img" aria-label="Off: story event then memory plan. On: story event, talk to everyone, follow the hint.">
+ <text x="10" y="22" class="t">Off</text>
+ <rect x="10" y="34" width="150" height="58" rx="10" class="box"/>
+ <text x="22" y="58" class="t">Story event</text>
+ <text x="22" y="76" class="s">e.g. a milestone</text>
+ <rect x="200" y="34" width="170" height="58" rx="10" class="prior"/>
+ <text x="212" y="58" class="t">One conversation</text>
+ <text x="212" y="76" class="s">then leave the room</text>
+ <rect x="410" y="34" width="280" height="58" rx="10" class="prior"/>
+ <text x="422" y="58" class="t">Plan from memory of the series</text>
+ <text x="422" y="76" class="s">hints called "generic advice"; wandering</text>
+ <path d="M160 63 H198" class="arr p" marker-end="url(#ap)"/>
+ <path d="M370 63 H408" class="arr p" marker-end="url(#ap)"/>
+ <text x="10" y="142" class="t">On</text>
+ <rect x="10" y="154" width="150" height="58" rx="10" class="box"/>
+ <text x="22" y="178" class="t">Story event</text>
+ <text x="22" y="196" class="s">or unsure where to go</text>
+ <rect x="200" y="154" width="170" height="58" rx="10" class="game hot"/>
+ <text x="212" y="178" class="t">Talk to everyone here</text>
+ <text x="212" y="196" class="s">and again to people met</text>
+ <rect x="410" y="154" width="280" height="58" rx="10" class="game"/>
+ <text x="422" y="178" class="t">Follow what they said</text>
+ <text x="422" y="196" class="s">a short remark is a direction</text>
+ <path d="M160 183 H198" class="arr g" marker-end="url(#ag)"/>
+ <path d="M370 183 H408" class="arr g" marker-end="url(#ag)"/>
+ <path d="M550 212 C550 250 285 250 285 214" class="arr" marker-end="url(#an)"/>
+ <text x="330" y="262" class="s">the story moves on, so people may say something new</text>
+ <defs>
+  <marker id="ag" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" style="fill:var(--game)"/></marker>
+  <marker id="ap" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" style="fill:var(--prior)"/></marker>
+  <marker id="an" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" style="fill:var(--soft)"/></marker>
+ </defs>
+</svg>
+</div>
+<figcaption><b>What the section asks for.</b> With the switch on, the habit is to talk to people before moving on, return to people after the story moves, and act on what they say. The section does not say who to talk to or where anyone is; the game's own dialogue supplies that.</figcaption>
+</figure>
+</section>
+
+<section>
+<h2>Where it plugs in</h2>
+<figure>
+<div class="scroll">
+<svg viewBox="0 0 700 230" role="img" aria-label="Wiring from preset to the system prompt">
+ <rect x="10" y="80" width="140" height="60" rx="10" class="box"/>
+ <text x="24" y="106" class="t">Run preset</text>
+ <text x="24" y="124" class="s">feature set, v2</text>
+ <rect x="190" y="80" width="170" height="60" rx="10" class="box"/>
+ <text x="204" y="106" class="t">playSystemPrompt()</text>
+ <text x="204" y="124" class="s">play-config.ts</text>
+ <rect x="400" y="10" width="290" height="50" rx="10" class="box"/>
+ <text x="414" y="31" class="t">earlier sections</text>
+ <text x="414" y="48" class="s">tools, memory, game evidence first, navigate_to use</text>
+ <rect x="400" y="72" width="290" height="62" rx="10" class="game hot"/>
+ <text x="414" y="95" class="t">EXPLORER_GUIDANCE_SECTION</text>
+ <text x="414" y="114" class="s">added when explorer-guidance-v1 is ON</text>
+ <rect x="400" y="146" width="290" height="40" rx="10" class="navb"/>
+ <text x="414" y="171" class="s">+ "Talking is cheap…" only if dialogue-auto-advance-v1 is ON</text>
+ <rect x="400" y="196" width="290" height="30" rx="10" class="box"/>
+ <text x="414" y="216" class="s">objective rules, if objective tracking is on</text>
+ <path d="M150 110 H188" class="arr" marker-end="url(#an2)"/>
+ <path d="M360 110 C380 110 380 103 398 103" class="arr" marker-end="url(#an2)"/>
+ <defs><marker id="an2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" style="fill:var(--soft)"/></marker></defs>
+</svg>
+</div>
+<figcaption><b>Prompt-only change.</b> The game server, readout, tools and loop guard are untouched. The section goes after every other prompt section and before the objective rules. The "talking is cheap" sentence is added only when dialogue auto-advance is on, because only then does one A press read a whole conversation. Off reproduces main's prompt byte for byte: a test hashes every prompt main built from the shared incumbent, and from the incumbent with each of main's 57 switches flipped, for no target and for RIVAL_HOUSE_ENTERED. State-only decisions, which use their own prompt, refuse the switch ON. It is recorded last in <code>harness_features</code> on <code>run_start</code>.</figcaption>
+</figure>
+</section>
+
+<section>
+<h2>Exact text added</h2>
+<p>Copied from <code>packages/agent/src/play-config.ts</code>. A test checks it names no character, place or story step. It does say "families and neighbours", as the approved design asked.</p>
+<pre>Talk to people: in this game, people tell you where to go next. After each story event, and whenever you are unsure where to go, talk to everyone in the room you are in before you leave, including the families and neighbours of characters you have met. People often say something new once the story has moved on, so talk again to people you spoke to before. A short remark, such as where someone has gone, is a direction to follow, not small talk.</pre>
+<p>With dialogue auto-advance also on, the same paragraph ends with:</p>
+<pre>Talking is cheap: face the person and press A; the harness reads the conversation to its end.</pre>
+<p>It agrees with <code>game-evidence-priority-v1</code>: that section says what people told you outranks memory; this one says to go and ask them.</p>
+</section>
+
+<section>
+<h2>Status</h2>
+<table>
+<tr><th>Item</th><th>State</th></tr>
+<tr><td>Branch</td><td><code>claude/explorer-guidance</code>, worktree <code>/private/tmp/pokebench-explorer-guidance</code></td></tr>
+<tr><td>Default</td><td>OFF in v1 flag presets, in v2 presets that omit it, and in the viewer's next-run draft</td></tr>
+<tr><td>Tests</td><td>OFF golden over main's prompts, ON placement, auto-advance sentence, no story names, preset factory path, registry entry, state-only refusal, explainer link</td></tr>
+<tr><td>Experiment</td><td><code>experiments/explorer-guidance.json</code>, pending, no queue position. Bundle membership is decided by the readiness thread.</td></tr>
+<tr><td>Measured runs</td><td><span class="tag">none yet</span></td></tr>
+</table>
+</section>
+</main>
+</body>
+</html>

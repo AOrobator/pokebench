@@ -28,8 +28,7 @@ function replaceKeepingFocus(root: HTMLElement, html: string): void {
   const next = root.querySelector<HTMLElement>(selector);
   (next?.tagName === "DETAILS" ? next.querySelector<HTMLElement>("summary") : next)?.focus({ preventScroll: true });
 }
-// wide: the page is at least 760px wide, where the version legend and mark key start open.
-export interface WorkbenchDeps { fetchSnapshot(): Promise<unknown>; now(): number; width(): number; wide?(): boolean }
+export interface WorkbenchDeps { fetchSnapshot(): Promise<unknown>; now(): number; width(): number }
 const HOVER_EVENTS = ["mouseover", "mouseout", "focusin", "focusout"] as const;
 export class Workbench {
   private data: WorkbenchData = { version: 1, at: 0, milestones: [], runs: [], problems: [] };
@@ -125,10 +124,10 @@ export class Workbench {
     return this.data.runs.filter(r => (this.scope === "all" || r.cohort === this.scope) && (this.model === "all" || r.model === this.model) && (this.preset === "all" || r.config?.preset === this.preset));
   }
   private renderCharts(): void {
-    const runs = this.filtered(), width = this.deps.width(), wide = this.deps.wide?.() ?? true;
+    const runs = this.filtered(), width = this.deps.width();
     const refs = frontierReferences(this.data.runs), overlays = this.overlay === "none" ? [] : this.overlay === "all" ? runs : runs.filter(r => r.id === this.overlay);
     const current = this.verified ? runs.filter(r => r.status === "live" || r.status === "paused") : [], status = this.verified && (refs.best?.status === "live" || refs.best?.status === "paused") ? refs.best.status : null;
-    const state = { isolated: this.isolated, legendOpen: this.legendOpen ?? wide, marksOpen: this.marksOpen ?? wide, howOpen: this.howOpen, changed: this.changed, all: this.allOn, expanded: this.expanded };
+    const state = { isolated: this.isolated, legendOpen: this.legendOpen ?? false, marksOpen: this.marksOpen ?? false, howOpen: this.howOpen, changed: this.changed, all: this.allOn, expanded: this.expanded };
     const host = this.ui("frontier-legend");
     replaceKeepingFocus(host, frontierLegend(refs, [...overlays, ...current], this.versions, state, status));
     if (this.hovered !== null && host.querySelector(`[data-ver="${this.hovered}"]`) === null) this.hovered = null;
@@ -186,7 +185,7 @@ export class Workbench {
     const target = event.target as Element | null; if (target?.nodeType !== 1) return;
     if (target.closest("[data-close-detail]") !== null || target === this.ui("detail")) { this.close(); return; }
     if (target.closest("[data-show-all]") !== null) { this.isolate(null); return; }
-    if (target.closest("[data-legend-toggle]") !== null) { this.legendOpen = !(this.legendOpen ?? this.deps.wide?.() ?? true); this.renderCharts(); return; }
+    if (target.closest("[data-legend-toggle]") !== null) { this.legendOpen = !(this.legendOpen ?? false); this.renderCharts(); return; }
     const more = target.closest<HTMLElement>("[data-ver-more]");
     if (more !== null) { const id = more.dataset.verMore ?? ""; if (!this.expanded.delete(id)) this.expanded.add(id); this.renderCharts(); return; }
     const version = target.closest<HTMLElement>("[data-ver]");
@@ -236,7 +235,7 @@ export function bootWorkbench(win: Window): Workbench {
   const from = new URL(win.location.href).searchParams.get("from");
   const wb = new Workbench(win.document, {
     fetchSnapshot: async () => { const response = await win.fetch("/api/workbench", { signal: AbortSignal.timeout(180000) }); if (!response.ok) throw new Error(`Workbench request failed (${String(response.status)})`); return response.json() as Promise<unknown>; },
-    now: () => Date.now(), wide: () => win.matchMedia("(min-width: 760px)").matches, width: () => win.document.querySelector('[data-wb="frontier-full"]')?.getBoundingClientRect().width || win.document.documentElement.clientWidth || 640,
+    now: () => Date.now(), width: () => win.document.querySelector('[data-wb="frontier-full"]')?.getBoundingClientRect().width || win.document.documentElement.clientWidth || 640,
   }, from);
   const queueRoot = win.document.querySelector<HTMLElement>('[data-ui="experiment-queue"]');
   const experiments = queueRoot === null ? null : new QueuePanel(queueRoot, { fetchJson: async (url) => { const response = await win.fetch(url); if (!response.ok) throw new Error(`GET ${url} returned HTTP ${String(response.status)}`); return response.json() as Promise<unknown>; }, sendJson: async (method, url, body) => { const response = await win.fetch(url, { method, headers: { "content-type": "application/json" }, body: JSON.stringify(body) }); const reply: unknown = await response.json(); if (!response.ok) throw new Error(typeof reply === "object" && reply !== null && "error" in reply ? String(reply.error) : `${method} ${url} returned HTTP ${String(response.status)}`); return reply; }, confirm: (text) => win.confirm(text), loaded: (snapshot) => { wb.lanes(runLanes(snapshot.fixedRuns ?? [])); }, unavailable: () => { wb.lanes("unavailable"); }, problem: (text) => { const el = queueRoot.querySelector('[data-eq="queue"]'); if (el !== null) el.innerHTML = `<pre class="eq-problems">${esc(text)}</pre>`; } });

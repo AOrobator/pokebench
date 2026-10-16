@@ -15,6 +15,8 @@ A benchmark harness that measures how far local vision-language models get in Po
 
 Read the active worklog first: `WORKLOG.md` (a gitignored pointer) → `docs/worklogs/active/<date>_<slug>.md`.
 
+Before saying any change is done, fixed, merged, live, launched or ready to pick, prove it at the surface the operator will use with `.claude/skills/close-the-loop/SKILL.md`: tests for code, real-browser clicks and opened desktop and phone screenshots for viewer pages and mockups, a fake-data rehearsal for runners, schedules and launches, and a live check after every merge.
+
 When adding or changing agent diagnostics, loop guards, recovery feedback or completion evidence, use `.claude/skills/agent-observability/SKILL.md` to verify recorded events, model delivery where relevant, timeline, Activity History and replay.
 
 Before registering, queueing or driving an experiment cohort, design it with `.claude/skills/pokebench-experiment-design/SKILL.md`. It sets the tier, a checkpoint start, a power-sized fixed N within the operator's GPU-hour budget, and writes an HTML overview at `docs/experiments/<id>.html`. To explain why recorded runs stalled or failed, use `.claude/skills/pokebench-trace-forensics/SKILL.md`, which is read-only.

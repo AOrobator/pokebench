@@ -376,6 +376,7 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "navigation-refusal-reasons-v1":"navigation-refusal-reasons-v1.html",
  "transition-press-result-v1":"transition-press-result-v1.html",
  "blocked-batch-result-v1":"blocked-batch-result-v1.html",
+ "people-ledger-v1":"people-ledger-v1.html",
  "stall-briefing-v1":"stall-briefing-v1.html",
  "bedroom-exit-v1":"bedroom-exit-v1.html",
  "battle-details-v2":"battle-details-v2.html",

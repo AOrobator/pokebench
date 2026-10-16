@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>People Ledger</title>
+<style>
+:root{
+ --bg:#f7f6f2; --fg:#1c1d1f; --soft:#5b5d61; --rule:#dedcd5; --panel:#ffffff;
+ --game:#1a7f5a; --game-bg:#e3f4ec; --prior:#c2432f; --prior-bg:#fbe7e2; --nav:#2a62c9; --nav-bg:#e4edfb; --hot:#c2432f;
+ --wall:#9b968a; --ground:#eef0e6;
+ --body:system-ui,-apple-system,"Segoe UI",sans-serif; --mono:ui-monospace,"SF Mono",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+ --bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; --hot:#ff7a63;
+ --wall:#55585e; --ground:#1f2420; color-scheme:dark}}
+:root[data-theme="dark"]{
+ --bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; --hot:#ff7a63;
+ --wall:#55585e; --ground:#1f2420; color-scheme:dark}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.6 var(--body);padding:0 16px}
+main{max-width:740px;margin:0 auto;padding:40px 0 64px;display:flex;flex-direction:column;gap:34px}
+h1{font-size:2.2rem;line-height:1.15;margin:0}
+h2{font-size:1.3rem;margin:0}
+p{margin:0;max-width:66ch}
+ul{margin:0;padding-left:20px}
+.eyebrow{font:500 .75rem var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--soft)}
+.lede{font-size:1.08rem;color:var(--soft)}
+section{display:flex;flex-direction:column;gap:12px}
+figure{margin:0;display:flex;flex-direction:column;gap:8px}
+.scroll{overflow-x:auto}
+svg{display:block;max-width:100%;height:auto}
+figcaption{font-size:.88rem;color:var(--soft)}
+svg text{font-family:var(--body);font-size:12px;fill:var(--fg)}
+svg .s{fill:var(--soft);font-size:11px}
+svg .t{font-weight:600;font-size:13px}
+svg .m{font-family:var(--mono);font-size:11px}
+.box{fill:var(--panel);stroke:var(--rule)}
+.game{fill:var(--game-bg);stroke:var(--game)}
+.prior{fill:var(--prior-bg);stroke:var(--prior)}
+.navf{fill:var(--nav-bg);stroke:var(--nav)}
+.hot{stroke:var(--hot);stroke-width:2.2}
+.wall{fill:var(--wall);stroke:var(--rule)}
+.ground{fill:var(--ground);stroke:var(--rule)}
+.arr{stroke:var(--soft);stroke-width:1.5;fill:none}
+pre{background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:14px;white-space:pre-wrap;font:13px/1.5 var(--mono);margin:0}
+code{font:500 .88em var(--mono);background:var(--panel);border:1px solid var(--rule);border-radius:4px;padding:0 4px}
+table{border-collapse:collapse;width:100%;font-size:.92rem}
+th,td{text-align:left;padding:7px 9px;border-bottom:1px solid var(--rule);vertical-align:top}
+th{font:500 .75rem var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--soft)}
+.tablewrap{overflow-x:auto}
+</style>
+</head>
+<body>
+<main>
+<div>
+<div class="eyebrow">Harness switch · observation · <code>people-ledger-v1</code> · needs <code>dialogue-auto-advance-v1</code> · off by default</div>
+<h1>People ledger</h1>
+</div>
+<p class="lede">Right under the readout's Location and Position lines, the model sees every live object on the current map, by its map-local object id, sprite kind and position, and when it last talked to that object: the turn, how many turns ago, and how many story milestones the game has confirmed since. Story characters are named where character presence places them. Facts only, nothing clipped.</p>
+
+<section>
+<h2>Why</h2>
+<p>In run <code>2026-10-16T00-34-26_qwen36-gpu1_show</code>, after Birch's starter handoff (turn 408) the model entered May's house (turn 418), took the boy there (sprite <code>NINJA_BOY</code>) for May, and never went back to May's mom (sprite <code>WOMAN_4</code>), whom it had last spoken to on turn 145, before the starter. She is the only source of "ROUTE 103" at that point: her post-starter line is gated on <code>FLAG_SYS_POKEMON_GET</code> (pokeemerald 731ad5bf <code>data/maps/LittlerootTown_MaysHouse_1F/scripts.inc</code>). The readout already said "Not on this map: … MAY", but that line sat at line 49 of 67, and the model cited it once in 869 turns.</p>
+</section>
+
+<section>
+<h2>Where it goes</h2>
+<figure>
+<div class="scroll">
+<svg viewBox="0 0 700 300" width="700" role="img" aria-label="Readout layout off and on">
+<text x="20" y="22" class="t">Off (today)</text>
+<text x="370" y="22" class="t">On</text>
+<g>
+<rect x="20" y="34" width="300" height="250" class="box" rx="6"/>
+<text x="32" y="56" class="m">1  Navigation: …</text>
+<text x="32" y="74" class="m">2  Screen: overworld</text>
+<text x="32" y="92" class="m">7  Location: …MAYS HOUSE 1F</text>
+<text x="32" y="110" class="m">8  Position: X=2, Y=6, facing up</text>
+<text x="32" y="128" class="m">9  Party (player): TORCHIC Lv5 …</text>
+<text x="32" y="150" class="s">… local map, warps, field objects …</text>
+<rect x="28" y="196" width="284" height="22" class="prior" rx="3"/>
+<text x="32" y="211" class="m">49 Story characters here: none. Not on…</text>
+<text x="32" y="246" class="s">… interaction candidates, connections …</text>
+<text x="32" y="270" class="m">67 Warp destination at (2,2): …</text>
+</g>
+<g>
+<rect x="370" y="34" width="310" height="250" class="box" rx="6"/>
+<text x="382" y="56" class="m">1  Navigation: …</text>
+<text x="382" y="74" class="m">7  Location: …MAYS HOUSE 1F</text>
+<text x="382" y="92" class="m">8  Position: X=2, Y=6, facing up</text>
+<rect x="378" y="100" width="294" height="78" class="game" rx="3"/>
+<text x="382" y="116" class="m">9  People and objects here (…):</text>
+<text x="382" y="134" class="m">10 - object 4, sprite WOMAN_4 … turn 145</text>
+<text x="382" y="152" class="m">11 - object 6, sprite NINJA_BOY … not talked</text>
+<text x="382" y="170" class="m">12 Story characters here: none. Not on…</text>
+<text x="382" y="196" class="m">13 Party (player): TORCHIC Lv5 …</text>
+<text x="382" y="230" class="s">… the rest is byte-for-byte unchanged,</text>
+<text x="382" y="246" class="s">including the presence line, now at 53</text>
+</g>
+</svg>
+</div>
+<figcaption>The T418 readout with the switch off and on. Line numbers are the real ones from the recorded tool result. On adds four lines after Position; nothing else moves except by those four lines.</figcaption>
+</figure>
+</section>
+
+<section>
+<h2>What the model sees at T418</h2>
+<p>This is the exact block for the recorded turn 418 state, produced by the production code from the recorded events (it is the fixture assertion in <code>people-ledger.test.ts</code>):</p>
+<pre>People and objects here (this map's live objects; a sprite kind is a graphic, not a name):
+- object 4, sprite WOMAN_4, at (8,7): last talked to on turn 145 (273 turns ago; 5 story milestones since)
+- object 6, sprite NINJA_BOY, at (8,5): not talked to this run
+Story characters here: none. Not on this map: PROF. BIRCH, MAY, BRENDAN, MOM, NORMAN, WALLY, ROXANNE, STEVEN.</pre>
+<p>On turn 424 the model talked to the boy. That call's own result already reads <code>- object 6, sprite NINJA_BOY, at (10,5): last talked to on turn 424 (this turn; 0 story milestones since)</code>.</p>
+</section>
+
+<section>
+<h2>How "last talked to" is counted</h2>
+<figure>
+<div class="scroll">
+<svg viewBox="0 0 700 170" width="700" role="img" aria-label="Talk and milestone timeline">
+<line x1="30" y1="80" x2="680" y2="80" class="arr"/>
+<g><circle cx="60" cy="80" r="7" class="game"/><text x="60" y="58" text-anchor="middle" class="m">T145</text><text x="60" y="108" text-anchor="middle" class="s">talk: WOMAN_4</text><text x="60" y="122" text-anchor="middle" class="s">map 1/2 object 4</text></g>
+<g><rect x="130" y="72" width="16" height="16" class="navf"/><text x="138" y="58" text-anchor="middle" class="m">161</text><text x="138" y="108" text-anchor="middle" class="s">RIVAL_MET</text></g>
+<g><rect x="205" y="72" width="16" height="16" class="navf"/><text x="213" y="58" text-anchor="middle" class="m">174</text><text x="213" y="122" text-anchor="middle" class="s">BIRCH_RESCUE_REQUESTED</text></g>
+<g><rect x="290" y="72" width="16" height="16" class="navf"/><text x="298" y="58" text-anchor="middle" class="m">217</text><text x="298" y="108" text-anchor="middle" class="s">STARTER_CHOSEN</text></g>
+<g><rect x="375" y="72" width="16" height="16" class="navf"/><text x="383" y="58" text-anchor="middle" class="m">252</text><text x="383" y="122" text-anchor="middle" class="s">BIRCH_RESCUE_COMPLETE</text></g>
+<g><rect x="500" y="72" width="16" height="16" class="navf"/><text x="508" y="58" text-anchor="middle" class="m">408</text><text x="508" y="108" text-anchor="middle" class="s">BIRCH_STARTER_HANDOFF_COMPLETE</text></g>
+<g><circle cx="620" cy="80" r="7" class="prior"/><text x="620" y="58" text-anchor="middle" class="m">T418</text><text x="620" y="142" text-anchor="middle" class="s">readout: 273 turns, 5 story milestones</text></g>
+<text x="30" y="24" class="s">● talk (dialogue_auto_advance, delivered)   ■ story milestone (milestone event, kind story)</text>
+</svg>
+</div>
+<figcaption>Recorded events of the evidence run. Navigation milestones (RIVAL_HOUSE_EXITED, ROUTE_101, …) are not counted; only milestones the recorder marks <code>kind: story</code>, after the talk's event.</figcaption>
+</figure>
+<div class="tablewrap"><table>
+<tr><th>Rule</th><th>What the code does</th></tr>
+<tr><td>Who was talked to</td><td>The object the player faces in the state recorded with the conversation's first page: the next tile in the facing direction, or, when that tile is empty and is a counter (<code>MB_COUNTER</code> 0x80), the tile beyond it. This is how pokeemerald 731ad5bf <code>GetInteractedObjectEventScript</code> (<code>src/field_control_avatar.c</code>) picks whom A talks to.</td></tr>
+<tr><td>What counts as a talk</td><td>A <code>dialogue_auto_advance</code> event with a faced object, where the model's press ended in A, or the page record already attributes the first page to that faced sprite (<code>speaker_source: faced_sprite</code>, e.g. the rival walking up to the player). A navigate_to that ends in a message from someone the player does not face counts for no one.</td></tr>
+<tr><td>When it counts</td><td>Once its tool result reaches the model; an error result drops it. The call that shows the conversation already lists it as "this turn".</td></tr>
+<tr><td>Identity</td><td>The object's own map id plus its map-local object id, from the typed <code>world_context.objects</code>. Several people share a sprite kind; the same local id on another map is someone else, and an object from a connected map is labelled <code>object N of map G/N</code>.</td></tr>
+<tr><td>Story characters</td><td>Only from character-presence-v1's own line: a character it places at <code>x,y</code> names the object on that tile (<code>MAY (sprite RIVAL_MAY_NORMAL)</code>), and its here and not-on-this-map lists are repeated under the block. With character presence off, nobody is named and the line is absent.</td></tr>
+<tr><td>Scope</td><td>Started overworld readouts only (no battle, menu-only or pre-game screens). All live objects, never clipped. "Not talked to this run" means since this run started, including a checkpoint start.</td></tr>
+</table></div>
+</section>
+
+<section>
+<h2>Who A talks to</h2>
+<figure>
+<div class="scroll">
+<svg viewBox="0 0 640 170" width="640" role="img" aria-label="Faced object and counter rule">
+<g transform="translate(20,30)">
+<text x="0" y="-10" class="t">Adjacent (T145)</text>
+<rect x="0" y="20" width="40" height="40" class="ground"/><text x="20" y="45" text-anchor="middle" class="m">@ →</text>
+<rect x="40" y="20" width="40" height="40" class="game"/><text x="60" y="45" text-anchor="middle" class="m">4</text>
+<text x="0" y="85" class="s">player (2,8) facing right;</text>
+<text x="0" y="100" class="s">object 4 WOMAN_4 at (3,8)</text>
+</g>
+<g transform="translate(230,30)">
+<text x="0" y="-10" class="t">Across a counter</text>
+<rect x="0" y="20" width="40" height="40" class="ground"/><text x="20" y="45" text-anchor="middle" class="m">@ ↑</text>
+<rect x="40" y="20" width="40" height="40" class="wall"/><text x="60" y="45" text-anchor="middle" class="m">0x80</text>
+<rect x="80" y="20" width="40" height="40" class="game"/><text x="100" y="45" text-anchor="middle" class="m">3</text>
+<text x="0" y="85" class="s">empty counter tile, so the clerk</text>
+<text x="0" y="100" class="s">one tile beyond is the one talked to</text>
+</g>
+<g transform="translate(450,30)">
+<text x="0" y="-10" class="t">Not a talk</text>
+<rect x="0" y="20" width="40" height="40" class="ground"/><text x="20" y="45" text-anchor="middle" class="m">@ ↑</text>
+<rect x="40" y="20" width="40" height="40" class="wall"/><text x="60" y="45" text-anchor="middle" class="m">#</text>
+<rect x="80" y="20" width="40" height="40" class="prior"/><text x="100" y="45" text-anchor="middle" class="m">3</text>
+<text x="0" y="85" class="s">a plain wall is not a counter:</text>
+<text x="0" y="100" class="s">nobody is faced</text>
+</g>
+</svg>
+</div>
+<figcaption>The counter row is drawn left to right for space; the rule is the same for every facing. Cases from the unit tests.</figcaption>
+</figure>
+</section>
+
+<section>
+<h2>Wiring</h2>
+<figure>
+<div class="scroll">
+<svg viewBox="0 0 700 140" width="700" role="img" aria-label="Wiring">
+<rect x="10" y="40" width="130" height="50" class="box" rx="6"/><text x="75" y="62" text-anchor="middle" class="t">FeatureSet</text><text x="75" y="80" text-anchor="middle" class="s">preset / switchboard</text>
+<rect x="175" y="40" width="140" height="50" class="box" rx="6"/><text x="245" y="62" text-anchor="middle" class="t">playGameTools</text><text x="245" y="80" text-anchor="middle" class="s">play-wiring.ts</text>
+<rect x="350" y="40" width="160" height="50" class="game" rx="6"/><text x="430" y="62" text-anchor="middle" class="t">withPeopleLedger</text><text x="430" y="80" text-anchor="middle" class="s">observe · press · navigate_to</text>
+<rect x="545" y="40" width="140" height="50" class="box" rx="6"/><text x="615" y="62" text-anchor="middle" class="t">tool result</text><text x="615" y="80" text-anchor="middle" class="s">recorded as tool_result</text>
+<path d="M140 65 H175" class="arr"/><path d="M315 65 H350" class="arr"/><path d="M510 65 H545" class="arr"/>
+<path d="M430 120 V90" class="arr"/><text x="430" y="134" text-anchor="middle" class="s">recorder.subscribe: state, dialogue_auto_advance, milestone, tool_result, turn</text>
+</svg>
+</div>
+<figcaption>The ledger wraps the outermost game tools and reads only recorded events, so it is agent-side: the game server and its readout are unchanged. Off, <code>withPeopleLedger</code> hands back the same tool objects and subscribes to nothing.</figcaption>
+</figure>
+<p>Replay: the block is part of the tool result text, which is recorded verbatim as the <code>tool_result</code> event and shown in the viewer's turn detail. It is also deterministic from the recorded events it reads.</p>
+</section>
+
+<section>
+<h2>Off</h2>
+<p>The readout and every tool result are byte-for-byte today's. The test suite proves this with the same tool objects returned and an unchanged readout.</p>
+</section>
+
+<section>
+<h2>Status</h2>
+<ul>
+<li>Branch <code>claude/people-ledger</code>; default off; pending experiment <code>experiments/people-ledger.json</code>.</li>
+<li>Not yet measured. Its readiness depends on runs reaching BIRCH_STARTER_HANDOFF_COMPLETE, where the evidence failure happened.</li>
+</ul>
+</section>
+</main>
+</body>
+</html>

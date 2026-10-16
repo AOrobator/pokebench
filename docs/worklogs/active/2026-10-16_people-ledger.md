@@ -22,10 +22,22 @@ Branch `claude/people-ledger` in `/private/tmp/pokebench-people-ledger`. Default
 
 ### M1
 - [x] RED: `people-ledger.test.ts` (T418/T424 replay from `test-support/people-ledger-show.json`, ledger rules, OFF identity, factory, registry) + explainer mapping test
-- [ ] GREEN: module, registry, presets, defaults, wiring
-- [ ] Wiring-removal check
-- [ ] Gates
+  COMMIT: `test: RED people-ledger-v1 lists people on the map with when the model last talked to them` (3be1f4c4)
+- [x] GREEN: `people-ledger.ts`; registry (`SWITCHABLE_FEATURES`, `FEATURES` observation entry with `needs: dialogue-auto-advance-v1`, `...when()` last); presets (optional, default false; `flagFeatures`); `DEFAULT_NEXT_RUN` false; `playGameTools` wraps the outermost tools; registry index tests shifted by one
+- [x] Wiring-removal check: replaced `withPeopleLedger(...)` in `playGameTools` with the bare inner call → "the production factory honors the switch" FAILED (`expected '|Screen: overworld\nLocation: ROOM\nP…' to contain 'People and objects here'`), 1 failed / 10 passed; restored → 11 passed.
+- [x] Exact T418 block (fixture assertion):
+```
+People and objects here (this map's live objects; a sprite kind is a graphic, not a name):
+- object 4, sprite WOMAN_4, at (8,7): last talked to on turn 145 (273 turns ago; 5 story milestones since)
+- object 6, sprite NINJA_BOY, at (8,5): not talked to this run
+Story characters here: none. Not on this map: PROF. BIRCH, MAY, BRENDAN, MOM, NORMAN, WALLY, ROXANNE, STEVEN.
+```
+- [x] Explainer `docs/explainers/people-ledger-v1.html` (`just pages-check` silent), README index, `FEATURE_EXPLAINERS` mapping
+- [x] Pending `experiments/people-ledger.json` (finals incumbent + `dialogue-auto-advance-v1` ON, which this switch needs) and readiness line; `just experiments-check` reads main's directory (ok: 51), so the entry was validated with `parseExperiment` + `experimentArms` from the branch build
+- [x] Gates: `just test` agent 1411 / viewer 797 / pytest 2017 passed (2 ROM skips); `just lint` TS clean, ruff clean, mypy fails only on the known `mgba._pylib` worktree import; `just build` ok; `just coverage` agent 97.76 lines / 94.54 branches / 98.02 functions, viewer 95.11 / 90.43 / 93.59, Python 97.08 / 92.67 / 100 (floor 90); `just verify-vendor` OK (submodule initialised in the worktree at the pin bbab97ad)
 
 
 ## Session Log
 - 2026-10-16 02:10 AM EDT: worklog drafted (approved by the operator).
+- 2026-10-16 02:18 AM EDT: RED committed.
+- 2026-10-16 02:45 AM EDT: GREEN, explainer, pending experiment, gates green; review next.

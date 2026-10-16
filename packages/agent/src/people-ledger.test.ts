@@ -17,8 +17,8 @@ const EVENTS:RunEvent[]=SHOW.events.map(e=>checkEvent(e));
 type StateEvent=Extract<RunEvent,{type:"state";started:boolean}>;
 type ToolResultEvent=Extract<RunEvent,{type:"tool_result"}>;
 function snapshot(e:StateEvent):GameStateSnapshot {
- const {v:_v,run:_run,seq:_seq,t:_t,type:_type,turn:_turn,...body}=e;
- return parseGameState(body);
+ const envelope=new Set(["v","run","seq","t","type","turn"]);
+ return parseGameState(Object.fromEntries(Object.entries(e).filter(([key])=>!envelope.has(key))));
 }
 const stateAt=(seq:number)=>{const e=EVENTS.find(x=>x.seq===seq);if(e?.type!=="state"||!("started" in e))throw Error(`no state ${String(seq)}`);return snapshot(e);};
 const resultAt=(turn:number)=>{const e=EVENTS.find((x):x is ToolResultEvent=>x.type==="tool_result"&&x.turn===turn);if(e===undefined)throw Error(`no result ${String(turn)}`);return e;};
@@ -69,7 +69,7 @@ let seq=0;
 const ev=(body:Record<string,unknown>):RunEvent=>checkEvent({v:1,run:"r",t:"2026-10-16T02:00:00.000-04:00",turn:1,seq:++seq,...body});
 const stateEvent=(s:GameStateSnapshot,turn:number):RunEvent=>ev({type:"state",turn,...s});
 const talk=(state:RunEvent,turn:number,id:string,body:Partial<{tool:"press"|"navigate_to";sent:string[];speaker_source:"name_prefix"|"faced_sprite"|"faced_target"|null}>={}):RunEvent=>ev({type:"dialogue_auto_advance",turn,tool_call_id:id,tool:body.tool??"press",requested:body.sent??["A"],sent:body.sent??["A"],dropped:[],auto_presses:1,pages:[{state_seq:state.seq,map:"ROOM",map_id:[1,2],position:{x:2,y:2},speaker:"X",speaker_source:body.speaker_source===undefined?"name_prefix":body.speaker_source,text:"Hi."}],stop:"field_free",detail:"closed",duration_ms:1});
-const delivered=(id:string,turn:number,is_error=false):RunEvent=>ev({type:"tool_result",turn,id,name:"press",is_error,duration_ms:1,text:"ok"});
+const delivered=(id:string,turn:number,is_error=false):RunEvent=>ev({type:"tool_result",turn,id,name:"press",is_error,duration_ms:1,text:"ok",frames:[]});
 const story=(name:string,turn:number):RunEvent=>ev({type:"milestone",turn,name,server_timestamp:1,kind:"story",origin:"observed"});
 const nav=(name:string,turn:number):RunEvent=>ev({type:"milestone",turn,name,server_timestamp:1,kind:"navigation",origin:"observed"});
 
@@ -130,6 +130,7 @@ describe("people-ledger-v1 ledger rules",()=>{
   const s=world([{local_id:1,x:2,y:1,sprite_kind:"MAN"}]);
   for(const state of [{...s,screen:"battle"},{...s,in_battle:true},{...s,started:false},{...s,map_id:null},{...s,world_context:null}])expect(ledger.block(state,"Location: ROOM","a")).toBeNull();
   expect(ledger.annotate("Screen: battle",s,"a")).toBe("Screen: battle");
+  expect(ledger.annotate("Location: ROOM\nIn battle: yes",{...s,in_battle:true},"a")).toBe("Location: ROOM\nIn battle: yes");
   expect(ledger.annotate("Location: ROOM\nParty: x",s,"a")).toBe(`Location: ROOM\n${ledger.block(s,"","a") ?? ""}\nParty: x`);
   expect(ledger.annotate("Location: ROOM\nPosition: X=2, Y=2, facing up\nParty: x",s,"a")).toBe(`Location: ROOM\nPosition: X=2, Y=2, facing up\n${ledger.block(s,"","a") ?? ""}\nParty: x`);
  });
@@ -167,6 +168,15 @@ describe("people-ledger-v1 switch",()=>{
   expect(textOf(await press.execute("p",{buttons:["A"]}))).toContain("- object 1, sprite MAN");
   expect(textOf(await press.executeChecked("p",{buttons:["A"]},()=>undefined))).toContain("- object 1, sprite MAN");
   expect(out[2]).toBe(other);
+  // A result without state, or without a readout, passes through untouched.
+  const bare:AgentTool={...other,name:"observe",execute:()=>Promise.resolve({content:[{type:"text",text:"Location: ROOM"}],details:undefined})};
+  const noReadout:AgentTool={...other,name:"navigate_to",execute:()=>Promise.resolve({content:[{type:"text",text:"Navigation: refused"}],details:{state}})};
+  const [b,n]=withPeopleLedger([bare,noReadout],ON,{subscribe:()=>undefined});
+  expect(textOf(await b?.execute("b",{}) ?? {content:[],details:undefined})).toBe("Location: ROOM");
+  expect(textOf(await n?.execute("n",{}) ?? {content:[],details:undefined})).toBe("Navigation: refused");
+  // One turn and one story milestone later, in the singular.
+  const s1=ev({type:"state",turn:20,...state});subs[0]?.(s1);subs[0]?.(talk(s1,20,"t"));subs[0]?.(delivered("t",20));subs[0]?.(story("ONE",20));subs[0]?.(ev({type:"turn_start",turn:21,context:{messages:1,images:0,est_tokens:1}}));
+  expect(textOf(await out[0]?.execute("o2",{}) ?? {content:[],details:undefined})).toContain("- object 1, sprite MAN, at (2,1): last talked to on turn 20 (1 turn ago; 1 story milestone since)");
  });
  it("the production factory honors the switch",async()=>{
   const subs:unknown[]=[];const recorder={subscribe:(fn:unknown)=>{subs.push(fn);},recordState:()=>({seq:1,turn:1}),recordDialogueAutoAdvance:()=>({seq:1,turn:1})} as unknown as Parameters<typeof playGameTools>[3];

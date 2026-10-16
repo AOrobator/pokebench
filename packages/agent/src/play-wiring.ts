@@ -10,6 +10,7 @@ import type {LoopDetector,LoopKind} from "./loop-detection.js";
 import {SupervisorBriefing} from "./loop-supervisor.js";
 import {StallBriefing} from "./stall-briefing.js";
 import {navigationMemory} from "./navigation-memory.js";
+import {withPeopleLedger} from "./people-ledger.js";
 import type {RunRecorder} from "./recorder.js";
 import {STALL_STOP_MS,StallStop,type RunControl} from "./run-control.js";
 import {TEXT_ONLY_NOTE_LIMIT,contextWindow,withoutTextOnlyReplies,type Window} from "./harness.js";
@@ -63,7 +64,7 @@ export function stallStop(features:FeatureSet,recorder:Pick<RunRecorder,"subscri
  return stop;
 }
 
-// The game tools a play run hands the model: ordinary tools, navigate_to and dialogue auto-advance per switch.
+// The game tools a play run hands the model: ordinary tools, navigate_to, dialogue auto-advance and the people ledger per switch.
 export function playGameTools(base:readonly AgentTool[],features:FeatureSet,state:StateSource,recorder:AutoAdvanceRecorder,gate?:NavigationPorts["gate"]):AgentTool[]{
- return withDialogueAutoAdvance(withNavigation(base,features,state,gate),features,{state,recorder});
+ return withPeopleLedger(withDialogueAutoAdvance(withNavigation(base,features,state,gate),features,{state,recorder}),features,recorder);
 }

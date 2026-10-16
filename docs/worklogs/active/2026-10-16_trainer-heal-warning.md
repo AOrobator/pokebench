@@ -66,3 +66,4 @@ Game grounding (pret/pokeemerald 731ad5bf): Route 103 rival script `data/maps/Ro
 
 - Synced with main 411e097d (levelup-box-v1): registry re-applied after levelup-box-v1, legacy tests reset to main and re-bumped (guidance 34, guard 14, switchboard rows 75).
 - Fixed the levelup sync merge, which had brought back the 98 worklogs main archived (b0310914): docs/worklogs now matches main except this worklog.
+- Gates on main 8c98cb7c-merged tip: build, lint, test (vitest agent 1653, viewer 909; pytest 2297), coverage (agent 99.09/94.53/98.18, viewer 97.62/91.1/93.63, Python 97.36/93.22/100), verify-vendor, experiments-check (67) all green. Round 2 packet sealed next.

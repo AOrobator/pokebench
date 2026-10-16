@@ -48,16 +48,13 @@ export function nameMatcher(name:string):RegExp {
 
 // The model's sentences that place `name` on a tile, as a plain present-tense assertion: the sentence opens with the
 // name (or "The" and the name) as its subject, then is/stands/sits/waits (optionally "standing", "sitting" or
-// "waiting"), then directly "at (x,y)", and the sentence ends there; nothing in it negates, hedges or asks; and no other
-// sentence of the same reply names the character with a negation or hedge (a later "he isn't here" retracts it).
-// Returns each whole sentence.
+// "waiting"), then directly "at (x,y)", and the sentence ends there; and no sentence of the reply negates, hedges or
+// asks (a later "he isn't here" may retract it, so such a reply yields no claim at all). Returns each whole sentence.
 export function locatingClaims(text:string,name:string):string[] {
  const claims:string[]=[];
  // Where each sentence ends: after . ! or ? followed by a space (not the "." of "Prof."), or before a line break.
  const ends=[...text.matchAll(/(?<!\bprof)[.!?](?=\s|$)|\n/gi)].map(m=>m[0]==="\n"?m.index:m.index+1);
- const sentenceOf=(at:number):string=>text.slice(Math.max(0,...ends.filter(e=>e<=at)),ends.find(e=>e>at)??text.length);
- const mentions=[...text.matchAll(nameMatcher(name))].map(m=>sentenceOf(m.index));
- if(mentions.some(m=>NEGATION.test(m)||MODAL.test(m)))return claims;
+ if(NEGATION.test(text)||MODAL.test(text))return claims;
  for(const match of text.matchAll(nameMatcher(name))){
   const start=match.index,after=start+match[0].length;
   const opened=text.lastIndexOf("(",start),closed=text.lastIndexOf(")",start);

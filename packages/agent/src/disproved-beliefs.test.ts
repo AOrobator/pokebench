@@ -116,7 +116,8 @@ environment, like fields and mountains," | SCIENTIST_1 (sprite kind, not a name)
 He's the type of person who would" | SCIENTIST_1 (sprite kind, not a name): "rather go outside and experience" | SCIENTIST_1 (sprite kind, not a name): "things than read about them here."`);
   // It stays pinned through the second lab trip (T117-T126) and adds the new claims there.
   for(let turn=99;turn<=124;turn++)expect(byTurn.get(turn)).toBe(t117);
-  expect(byTurn.get(126)).toContain(`you wrote at turn 125: "Professor Birch is at (9,7)." (you placed PROF. BIRCH on this map at turns 82, 83, 84, 85, 86, 87, 88, 125)`);
+  // T124 goes on past the tile ("and the scientist is at …", round 6) and T125 hedges ("Or I can …", round 7): no new claim.
+  expect(byTurn.get(126)).toBe(t117);
   // Not before the first claim: the readout alone is not a belief.
   expect(byTurn.has(82)).toBe(false);
  });

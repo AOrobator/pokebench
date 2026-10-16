@@ -79,7 +79,8 @@ it("calls the same text at another tile or map a new conversation, not a restart
 });
 
 it("counts only actions as tried: standing on a door mat leaves that exit untried, and story progress clears the list",()=>{
- const b=new SupervisorBriefing(ALL_ON);
+ // Today's rule; briefing-exits-v1 keeps tried things across a story step (briefing-exits.test.ts).
+ const b=new SupervisorBriefing({...ALL_ON,"briefing-exits-v1":false});
  result(b,1,{position:{x:8,y:8}});
  const untried=(t:string)=>t.slice(t.indexOf("not tried yet"));
  expect(untried(b.text("cycle",3))).toContain("warp at 8,8");

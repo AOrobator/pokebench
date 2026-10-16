@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Briefing Exit Facts</title>
+<style>
+:root{
+ --bg:#f7f6f2; --fg:#1c1d1f; --soft:#5b5d61; --rule:#dedcd5; --panel:#ffffff;
+ --game:#1a7f5a; --game-bg:#e3f4ec; --prior:#c2432f; --prior-bg:#fbe7e2; --nav:#2a62c9; --nav-bg:#e4edfb;
+ --body:system-ui,-apple-system,"Segoe UI",sans-serif; --mono:ui-monospace,"SF Mono",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+ --bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; color-scheme:dark}}
+:root[data-theme="dark"]{
+ --bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; color-scheme:dark}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.6 var(--body);padding:0 16px}
+main{max-width:740px;margin:0 auto;padding:40px 0 64px;display:flex;flex-direction:column;gap:34px}
+h1{font-size:2.2rem;line-height:1.15;margin:0}
+h2{font-size:1.3rem;margin:0}
+p{margin:0;max-width:66ch}
+.eyebrow{font:500 .75rem var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--soft)}
+.lede{font-size:1.08rem;color:var(--soft)}
+section{display:flex;flex-direction:column;gap:12px}
+figure{margin:0;display:flex;flex-direction:column;gap:8px}
+.scroll{overflow-x:auto}
+svg{display:block;max-width:100%;height:auto}
+figcaption{font-size:.88rem;color:var(--soft)}
+svg text{font-family:var(--body);font-size:12px;fill:var(--fg)}
+svg .s{fill:var(--soft);font-size:11px}
+svg .t{font-weight:600;font-size:13px}
+.box{fill:var(--panel);stroke:var(--rule)}
+.game{fill:var(--game-bg);stroke:var(--game)}
+.prior{fill:var(--prior-bg);stroke:var(--prior)}
+.navb{fill:var(--nav-bg);stroke:var(--nav)}
+.arr{stroke:var(--soft);stroke-width:1.5;fill:none}
+pre{background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:14px;white-space:pre-wrap;font:13px/1.5 var(--mono);margin:0}
+code{font:500 .88em var(--mono);background:var(--panel);border:1px solid var(--rule);border-radius:4px;padding:0 4px}
+table{border-collapse:collapse;width:100%;font-size:.92rem}
+th,td{text-align:left;padding:7px 9px;border-bottom:1px solid var(--rule);vertical-align:top}
+th{font:500 .75rem var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--soft)}
+del{color:var(--prior)} ins{color:var(--game);text-decoration:none;font-weight:600}
+</style>
+</head>
+<body>
+<main>
+<div class="eyebrow">Harness switch · guard · <code>briefing-exits-v1</code> · no dependency · off by default · a bug fix meant to be ON in both arms of bundle-v-control</div>
+<h1>Briefing exit facts</h1>
+<p class="lede">The supervisor briefings told the model that exits it had just used were untried, and they put the one exit that mattered last, under a bare map number. With this switch on, used exits and triggers the player walked over leave the untried lists, the stall briefing leads with the exits to maps not yet entered and the dialogue of the latest story step, and warp destinations carry the name the readout itself gave them. Off: every briefing is byte-identical to today.</p>
+
+<section>
+<h2>Why: cook #2 (bundle arm, run <code>2026-10-16T02-23-17_qwen36-gpu1_sh02</code>)</h2>
+<table>
+<tr><th>Turn</th><th>Seq</th><th>What happened</th></tr>
+<tr><td>T113</td><td>2305</td><td>Entered PROF. BIRCH'S HOUSE 1F (map 1/2) by the door, arriving on (2,8). Last progress of the run (RIVAL_HOUSE_ENTERED).</td></tr>
+<tr><td>T115</td><td>2376</td><td>The woman there said <q>Our daughter is upstairs, I think.</q> The readout listed <code>(2,2) -&gt; PROF. BIRCH'S HOUSE 2F (map 1/3)</code>.</td></tr>
+<tr><td>T116</td><td>2384–2394</td><td>Pressed DOWN on the door mat (2,8) and left. Never took the stairs.</td></tr>
+<tr><td>T134, T171</td><td>2783, 3616</td><td>Stall briefings listed the door warps (1,8)/(2,8) and the trigger at (2,8) as "not tried yet", and the stairs came last, after 14 PCs and bookshelves, as <code>Warp to map 1/3</code>.</td></tr>
+</table>
+<p>Cause: the briefing marked a target tried only when the model aimed <code>navigate_to</code> at it, pressed A facing it, or ended a press on a step trigger in the same room. Leaving or arriving through a warp changed the room, so nothing was marked.</p>
+</section>
+
+<section>
+<h2>Which exit a map change used</h2>
+<figure>
+<div class="scroll">
+<svg viewBox="0 0 700 250" width="700" role="img" aria-label="Exit marking on a door arrival">
+<text x="10" y="18" class="t">Map change A → B, from the recorded states alone</text>
+<rect x="10" y="32" width="300" height="150" rx="8" class="box"/>
+<text x="20" y="52" class="t">A: LITTLEROOT TOWN (0/9)</text>
+<rect x="150" y="90" width="34" height="30" class="game"/><text x="167" y="110" text-anchor="middle">W</text>
+<text x="196" y="102" class="s">(14,8) → map 1/2</text>
+<rect x="150" y="122" width="34" height="30" class="navb"/><text x="167" y="142" text-anchor="middle">@</text>
+<text x="196" y="142" class="s">last tile on A (14,9)</text>
+<text x="20" y="172" class="s">warps to B within 1 tile of A's last tile</text>
+<rect x="390" y="32" width="300" height="150" rx="8" class="box"/>
+<text x="400" y="52" class="t">B: PROF. BIRCH'S HOUSE 1F (1/2)</text>
+<rect x="430" y="122" width="34" height="30" class="game"/><text x="447" y="142" text-anchor="middle">W</text>
+<rect x="466" y="122" width="34" height="30" class="game"/><text x="483" y="142" text-anchor="middle">@</text>
+<text x="430" y="114" class="s">(1,8) (2,8) → map 0/9 warp 0</text>
+<rect x="466" y="70" width="34" height="30" class="prior"/><text x="483" y="90" text-anchor="middle">W</text>
+<text x="506" y="90" class="s">(2,2) → map 1/3: untaken</text>
+<text x="400" y="172" class="s">warps back to A within 1 tile of B's first tile, plus same-destination siblings</text>
+<path d="M310 107 H388" class="arr"/><text x="320" y="100" class="s">door</text>
+<text x="10" y="210" class="s">No warp that close: the warps to the other map count only if they all share one destination (else none).</text>
+<text x="10" y="228" class="s">No warp either way: the map connection between A and B counts as crossed (used by untaken-exits-v1).</text>
+</svg>
+</div>
+<figcaption>Recorded states 2304 (town, 14,8) and 2305 (house, 2,8). Taking the door marks town (14,8) and both door-mat tiles (1,8),(2,8); the trigger at (2,8) shares that tile, so it leaves the list too. The stairs stay untried.</figcaption>
+</figure>
+<p>A warp can lead to its own map (the teleporter pads in pokeemerald <code>AquaHideout_B1F</code>, the Trick House puzzles). It counts as used only when the player, from on or next to it, lands exactly on the warp it leads to: a destination warp id indexes the map's own warp events in order. Distance alone cannot tell a teleport from a walk, because a press batch is recorded only at its start and end, and AquaHideout_B1F's pad at (45,5) leads to (45,3), one tile away. The whole doorway left from counts (PetalburgCity_Gym (7,85)/(6,85) both lead to warp 2). The landing warp counts too only when it leads back into that doorway, like a door back; AquaHideout_B1F's warp 12, landed on from warp 14, leads to warp 9, so it stays untaken.</p>
+<p>Exits are marked as whole doorways: warps that share one destination (a two-tile door), and side-by-side warps whose destination warps are side by side on the other map (a two-tile gate whose tiles name different warp ids: Route104 (10,30)/(11,30) lead to PetalburgWoods warps 0 and 1, which sit at (14,5)/(15,5)). Two warps next to the player that are different doorways (MtPyre_4F stairs at (12,10) and (12,12), whose 5F ends are two tiles apart): only the one whose destination warp lies next to where the player then stood on the other map counts. With no such evidence, neither is marked.</p>
+<p>Warp destinations are read from the game's own warp events (<code>env/pokebench_env/world.py</code> <code>read_targets</code>: group, number and destination warp id). A door arrival captured one step out of the door (a door exit walks the player down a tile) still finds the door within one tile.</p>
+<p>Step triggers: one now counts as tried when two consecutive recorded states on the map show the player moving onto it. Each navigate_to step is recorded; a press batch is recorded at its start and end, so a trigger crossed inside one batch is not seen. Arriving on a trigger through a warp, or standing on one, still does not count (the 2026-10-15 finals rule: a coordinate event runs when the player steps onto its tile, not on a warp arrival). Tried lists still start over when the readout's Story line changes; the exits of the call that changed it stay tried.</p>
+</section>
+
+<section>
+<h2>Names come from the readout itself</h2>
+<p>The briefing collects the names the model's own readouts gave to maps: the Location line for the map it describes, and destinations written <code>-&gt; NAME (map g/n)</code> or <code>Warp to NAME (map g/n)</code> (named-warp-destinations-v1, world-destinations-v1). A map no readout named keeps its bare id. So in a control arm without named warps, the briefing does not show a destination name the model's readout never showed. Room headers are not this switch's: since <code>claude/displayed-names-everywhere</code> landed, <code>roomOf</code> shows the state's <code>location_display</code> (the Location line's name), so in new runs both read the same. The sh02 excerpts below predate that, so their headers still show source names.</p>
+</section>
+
+<section>
+<h2>What the model reads at T134 (seq 2783), replayed</h2>
+<p>Off, as recorded (the replay reproduces both recorded messages byte for byte):</p>
+<pre>- Where you are: LITTLEROOT TOWN (map 0/9) at 7,17 facing down
+- Last story progress: rival house entered at turn 113 (21 turns ago)
+…
+- Not tried yet on other maps …: LITTLEROOT TOWN PROFESSOR BIRCHS LAB (map 1/4): Machine at 10,7 (A); … PC at 11,9 (A) | LITTLEROOT TOWN MAYS HOUSE 1F (map 1/2): <del>Warp to map 0/9 at 1,8 (…); Warp to map 0/9 at 2,8 (…);</del> Warp to map 1/3 at 2,2 (…); WOMAN_4 at 3,8 (A); NINJA_BOY at 9,5 (A); <del>coordinate_trigger at 2,8 (step);</del> coordinate_trigger at 1,3 (step); …
+- Exits to maps you have not entered since your last story progress: LITTLEROOT TOWN (map 0/9): Warp to map 1/0 at 5,8 | LITTLEROOT TOWN MAYS HOUSE 1F (map 1/2): Warp to map 1/3 at 2,2
+Before your next action, …</pre>
+<p>On:</p>
+<pre>- Where you are: LITTLEROOT TOWN (map 0/9) at 7,17 facing down
+<ins>- Exits to maps you have not entered since your last story progress: LITTLEROOT TOWN (map 0/9): Warp to GMREEN's HOUSE 1F (map 1/0) at 5,8 | LITTLEROOT TOWN MAYS HOUSE 1F (map 1/2): Warp to PROF. BIRCH'S HOUSE 2F (map 1/3) at 2,2</ins>
+<ins>- Dialogue shown with your latest story step that came with dialogue (mom rival instruction at turn 74), whole, in order: … MOM (sprite kind, not a name): "He lives right next door, so you should go over and introduce yourself."</ins>
+- Last story progress: rival house entered at turn 113 (21 turns ago)
+…
+- Listed here that you have not tried yet: FAT_MAN at 12,13 (A); BOY_2 at 14,17 (A); coordinate_trigger at 10,1 (step); … (the triggers at 8,9 to 11,9, which recorded steps show the player walking onto, are gone)
+- Not tried yet on other maps …: LITTLEROOT TOWN PROFESSOR BIRCHS LAB (map 1/4): Machine at 10,7 (A); … | LITTLEROOT TOWN MAYS HOUSE 1F (map 1/2): Warp to PROF. BIRCH'S HOUSE 2F (map 1/3) at 2,2 (…); WOMAN_4 at 3,8 (A); NINJA_BOY at 9,5 (A); coordinate_trigger at 1,3 (step); coordinate_trigger at 2,4 (step); coordinate_trigger at 3,3 (step); television at 6,4 (A)
+Before your next action, …</pre>
+<p>Same lines, same count. Only the order of the stall briefing and the three exit/untried lists change. The loop-guard briefing and the text-only supervisor get the same list fixes and names, in their usual order.</p>
+</section>
+
+<section>
+<h2>Where you are, during a battle</h2>
+<p>The same run, later: the last overworld result was T417 (seq 9644, ROUTE103 at 11,21). The player then walked through grass into a wild battle at (11,13) and every result from T417 to T716 showed the battle. The briefing kept the last overworld snapshot.</p>
+<table>
+<tr><th></th><th>milestone_drought briefing, seq 11928 (T716)</th></tr>
+<tr><td>Off (recorded)</td><td><code>- Where you are: ROUTE103 (map 0/18) at 11,21 facing right</code></td></tr>
+<tr><td>On</td><td><code>- Where you are: ROUTE103 (map 0/18) in battle at 11,13</code> (state seq 11926)</td></tr>
+</table>
+<p>On, when the latest state shown to the model is a battle, every briefing places the player from that state and says so, without facing; otherwise where you are is the last overworld result, as before. Source: <code>runs/reports/cook2-navigation.html</code>.</p>
+</section>
+
+<section>
+<h2>Cook harness audit fixes (2026-10-16)</h2>
+<p>From <code>runs/reports/2026-10-16-cook-harness-audit/</code>; each one has a test replaying the recorded run (<code>briefing-audit.test.ts</code>).</p>
+<table>
+<tr><th>Problem (run, seq)</th><th>Off (recorded)</th><th>On</th></tr>
+<tr><td>Push-back trigger never tried: Oldale (0,10), BlockedPath steps the player back (live 54a7, seq 6785)</td><td><code>coordinate_trigger at 0,10 (step)</code> listed after about 30 LEFT presses</td><td>tried: the buttons sent were directions only, the first LEFT faced (0,10) from (1,10), the call locked the field or showed dialogue, and the player ended back on (1,10)</td></tr>
+<tr><td>Dead triggers offered (live 54a7, seq 3091)</td><td><code>coordinate_trigger at 11,2 (step)</code></td><td>listed last as <code>coordinate_trigger at 11,2 (step; its condition did not match when the readout last showed it, so stepping on it then did nothing)</code>; walking onto it while unmet does not count as trying it, so it is still listed after the story step that enables it</td></tr>
+<tr><td>People keyed by tile: the MANIAC talked to at (2,10) (sh02, seq 18599, 18701)</td><td><code>MANIAC at 1,10 (A)</code>, <code>MANIAC at 1,11 (A)</code></td><td>not listed: people are tracked by object id; a conversation counts for the person faced at its first page when the press ended in A or the page is attributed to that faced sprite</td></tr>
+<tr><td>Menu inputs (show, seq 15203)</td><td><code>press START … → no change</code>, <code>press B … → no change</code>, <code>press RIGHT … → no change</code></td><td><code>→ opened the start menu (highlighted POKEMON)</code>, <code>→ closed the start menu</code>, <code>→ turned up -> right</code></td></tr>
+<tr><td>Tried list wiped by a story change (687e, seq 1494)</td><td><code>Wall clock at 5,1 (A); … television at 4,1 (A)</code>, used at t87/t92</td><td>not listed; only people are listed again after a story change</td></tr>
+<tr><td>Unentered map connection missing (7a95 T375, seq 8935): only Oldale house warps listed</td><td><code>OLDALE TOWN (map 0/10): Warp to map 2/0 at 5,7; … Warp to map 2/4 at 14,6</code></td><td>the same warps, then <code>NORTH edge -&gt; ROUTE103 (map 0/18)</code> (with world destinations on)</td></tr>
+<tr><td>Sprite-kind caveat dropped (live 54a7, seq 3091)</td><td><code>- Characters the readout names here: FAT_MAN at 12,13; BOY_2 at 14,17</code></td><td><code>- Characters the readout names here, by sprite kind (a sprite kind is a graphic, not a personal name): …</code></td></tr>
+</table>
+<p>The push-back rule keeps the finals rule for everything else: arriving on a trigger through a warp, or standing on it while a page shows, is not trying it. A press mixing A or B with directions is never read as a push-back, because the dialogue may be the A. Press-result text and loop detection are not changed here (another branch owns them).</p>
+</section>
+
+<section>
+<h2>Wiring</h2>
+<figure>
+<div class="scroll">
+<svg viewBox="0 0 700 120" width="700" role="img" aria-label="Wiring">
+<rect x="10" y="40" width="140" height="40" rx="6" class="box"/><text x="80" y="64" text-anchor="middle">run preset</text>
+<rect x="190" y="40" width="160" height="40" rx="6" class="box"/><text x="270" y="58" text-anchor="middle">play-wiring factories</text><text x="270" y="74" text-anchor="middle" class="s">loop · stall · text-only</text>
+<rect x="390" y="40" width="160" height="40" rx="6" class="game"/><text x="470" y="58" text-anchor="middle">SupervisorBriefing</text><text x="470" y="74" text-anchor="middle" class="s">+ ExitHistory, names</text>
+<rect x="590" y="40" width="100" height="40" rx="6" class="box"/><text x="640" y="64" text-anchor="middle">loop_guard</text>
+<path d="M150 60 H188" class="arr"/><path d="M350 60 H388" class="arr"/><path d="M550 60 H588" class="arr"/>
+<text x="10" y="106" class="s">features["briefing-exits-v1"] is read once, in the SupervisorBriefing constructor. Off: no ExitHistory, no names, today's order.</text>
+</svg>
+</div>
+</figure>
+</section>
+
+<section>
+<h2>Status</h2>
+<p>Branch <code>claude/briefing-and-rooms</code>. Tests: <code>packages/agent/src/briefing-exits.test.ts</code> (sh02 replay OFF byte-identical and ON, exit-history units, production factories, registry). Pending experiment <code>experiments/briefing-exits.json</code>. Meant to be ON in both arms of bundle-v-control as a bug fix; that file belongs to another thread and is not changed here. No measured runs.</p>
+</section>
+</main>
+</body>
+</html>

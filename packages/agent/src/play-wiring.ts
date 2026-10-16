@@ -13,6 +13,8 @@ import type {LoopDetector,LoopKind} from "./loop-detection.js";
 import {SupervisorBriefing} from "./loop-supervisor.js";
 import {StallBriefing} from "./stall-briefing.js";
 import {navigationMemory} from "./navigation-memory.js";
+import {withPeopleLedger} from "./people-ledger.js";
+import {withUntakenExits} from "./untaken-exits.js";
 import type {RunRecorder} from "./recorder.js";
 import {STALL_STOP_MS,StallStop,type RunControl} from "./run-control.js";
 import {TEXT_ONLY_NOTE_LIMIT,contextWindow,withoutTextOnlyReplies,type Window} from "./harness.js";
@@ -69,8 +71,9 @@ export function stallStop(features:FeatureSet,recorder:Pick<RunRecorder,"subscri
  return stop;
 }
 
-// The game tools a play run hands the model: ordinary tools, navigate_to and dialogue auto-advance per switch.
+// The game tools a play run hands the model: ordinary tools, navigate_to, dialogue auto-advance, the people ledger and untaken exits per switch.
+// The ledger is inside untaken exits, so a readout with both reads Position, the Untaken exits line, then the people block.
 // extra: the run's other model tools (context tools), wrapped too so any call between presses is seen.
 export function playGameTools(base:readonly AgentTool[],features:FeatureSet,state:StateSource,recorder:AutoAdvanceRecorder,gate?:NavigationPorts["gate"],extra:readonly AgentTool[]=[]):AgentTool[]{
- return [...withNavigateFirst([...withDialogueAutoAdvance(withNavigation(base,features,state,gate),features,{state,recorder}),...extra],features)];
+ return [...withNavigateFirst([...withUntakenExits(withPeopleLedger(withDialogueAutoAdvance(withNavigation(base,features,state,gate),features,{state,recorder}),features,recorder),features,recorder),...extra],features)];
 }

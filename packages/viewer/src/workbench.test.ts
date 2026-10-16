@@ -152,3 +152,10 @@ it("shows lanes as unknown until the experiment poll verifies them, unavailable 
   wb.lanes(new Map()); expect(link.querySelector(".wb-plate-l1")?.textContent).toBe("HAND RUNLv2"); expect(link.querySelector(".wb-ty em")?.getAttribute("style")).toBe("--tyc:#a08020");
   expect(ui("current").querySelector(".wb-plate")).toBe(link); expect(document.activeElement).toBe(link); wb.destroy();
 });
+describe("switch catalog for the frontier legend", () => {
+  it("validates /api/features into id → description and rejects anything else", async () => {
+    const { parseFeatureDescriptions } = await import("./workbench-data.js");
+    expect([...parseFeatureDescriptions({ features: [{ id: "a-v1", title: "A", description: "Does a." }, { id: "b-v1", title: "B", description: "" }], milestones: [] })]).toEqual([["a-v1", "Does a."]]);
+    for (const bad of [null, [], { features: "x" }, { features: [null] }, { features: [{ id: 1, description: "x" }] }, { features: [{ id: "a", description: null }] }]) expect(() => parseFeatureDescriptions(bad)).toThrow("Invalid feature catalog");
+  });
+});

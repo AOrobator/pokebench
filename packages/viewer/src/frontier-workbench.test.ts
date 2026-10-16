@@ -233,3 +233,34 @@ it("isolates the human baseline and the agent frontier from the mark key, the fr
   expect(legend.querySelector(".wb-sel")).not.toBeNull();
   wb.destroy();
 });
+
+it("fetches the switch catalog once, describes each switch in the legend and keeps a focused switch focused across polls", async () => {
+  const measurement = { controller: "agent" as const, features: ["story-milestones-v2"], logSha256: "a".repeat(64), pausedMs: 0, rawSplits: [] };
+  const base = run().config as NonNullable<ReturnType<typeof run>["config"]>;
+  const runs = [Object.assign(run({ id: "c1", arm: "control" }), { measurement }), Object.assign(run({ id: "b1", arm: "bundle", started: "2026-10-14T13:00:00.000-04:00", config: { ...base, features: [{ id: "live-map-v1", label: "LIVE MAP", on: true }] } }), { measurement })];
+  let at = 1000, catalog: unknown = { features: [{ id: "live-map-v1", title: "LIVE MAP", description: "Draws a <b>map</b>." }], milestones: [] }, fetches = 0;
+  const deps = { fetchSnapshot: () => Promise.resolve({ version: 1, at, milestones: [], runs, problems: [] }), fetchFeatures: () => { fetches++; return Promise.resolve(catalog); }, now: () => 1000, width: () => 1280 };
+  const wb = new Workbench(document, deps);
+  await wb.refresh(); await wb.features();
+  const legend = ui("frontier-legend"), id = legend.querySelector<HTMLElement>("[data-ver-more]")?.dataset.verMore ?? "";
+  const what = legend.querySelector<HTMLDetailsElement>(`[data-what="${id}"]`); if (what === null) throw new Error("what"); what.open = true; what.dispatchEvent(new Event("toggle"));
+  const row = (): HTMLElement | null => legend.querySelector<HTMLElement>(`[data-what="${id}"] .wb-ver-sets li[data-sw]`);
+  expect(row()?.getAttribute("title")).toBe("Draws a <b>map</b>.");
+  expect(row()?.querySelector(".wb-sw-desc")?.textContent).toBe("Draws a <b>map</b>.");
+  row()?.focus(); const key = row()?.dataset.sw;
+  row()?.click(); expect(legend.querySelector(".wb-sel")).toBeNull();
+  runs.push(Object.assign(run({ id: "b1b", arm: "bundle", started: "2026-10-14T14:00:00.000-04:00", config: { ...base, features: [{ id: "live-map-v1", label: "LIVE MAP", on: true }] } }), { measurement }));
+  at += 1000; await wb.refresh();
+  expect(legend.querySelector(`[data-ver="${id}"] .wb-ver-count`)?.textContent).toBe("2 runs");
+  expect(document.activeElement?.getAttribute("data-sw")).toBe(key);
+  await wb.features(); expect(fetches).toBe(1);
+  wb.destroy();
+  const quiet = new Workbench(document, { ...deps, fetchFeatures: () => { fetches++; return Promise.resolve(catalog); } }); quiet.destroy(); await quiet.features();
+  catalog = { features: [{ id: "live-map-v1", description: 3 }] };
+  const bad = new Workbench(document, deps); await bad.features(); await bad.refresh();
+  expect(legend.querySelector(".wb-sw-desc")).toBeNull(); expect(ui("problem").hidden).toBe(true); bad.destroy();
+  const offline = new Workbench(document, { ...deps, fetchFeatures: () => Promise.reject(new Error("offline")) }); await offline.features(); await offline.refresh();
+  expect(legend.querySelector(".wb-sw-desc")).toBeNull(); offline.destroy();
+  const none = new Workbench(document, { fetchSnapshot: deps.fetchSnapshot, now: deps.now, width: deps.width }); await none.features(); await none.refresh();
+  expect(legend.querySelector(".wb-sw-desc")).toBeNull(); none.destroy();
+});

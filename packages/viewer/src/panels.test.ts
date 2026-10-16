@@ -781,6 +781,8 @@ it("links the three navigation-guidance cards to their tracked explainers",()=>{
   ["offscreen-objects-v1",["MAY at 10,3 (out of view; where the map places this character, it may have moved)","546"]],
   ["navigate-first-prompt-v1",["Reminder: to walk two or more tiles, call navigate_to with the destination; it finds the route for you.","# Tools"]],
   ["presence-penalty-v1",["presence_penalty","1.5"]],
+  ["navigation-truth-v1",["it is not listed as something you can talk to or use, so navigate_to offers no tile to talk to it from","RENDER_STATE_SCROLL_START","TryRunCoordEventScript"]],
+  ["navigation-refusal-reasons-v2",["no route to (6,4) lies inside the 15x15 local map navigate_to plans over","(14,9) on the east edge"]],
  ];
  for(const [id,quotes] of cases){
   expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
@@ -807,6 +809,16 @@ it("links the three readout-truth cards to their tracked explainers, which quote
   expect(html).toContain(id);
   for(const quote of quotes)expect(html).toContain(quote);
  }
+});
+it("links the Surf-gated exits card to its tracked explainer, which quotes the 4caa lines before and after",()=>{
+ const id="surf-gated-exits-v1";
+ expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
+ const log=new Log();log.add(0,{...START,harness_features:["ram-state-v1",id]});
+ const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
+ expect(doc.querySelector(`[data-feature="${id}"] a`)?.getAttribute("href")).toBe(`/explainers/${id}.html`);
+ const html=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)),"utf8");
+ for(const quote of [id,"bundle arm only","pending experiment","FLAG_BADGE05_GET","PartyHasMonWithSurf","Exits here you have not taken: none (you have taken every exit you can walk to on this map this run)","Warp destination at (45,6): ALTERING CAVE (not an exit you can use now: across water, needs Surf)"])expect(html).toContain(quote);
+ expect(html).not.toContain("both arms");
 });
 it("links the coherent transition readouts card to its tracked explainer, which quotes the cook runs' battle-start readouts before and after",()=>{
  expect(FEATURE_EXPLAINERS["transition-coherence-v1"]).toBe("transition-coherence-v1.html");

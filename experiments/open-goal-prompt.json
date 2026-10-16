@@ -2,6 +2,7 @@
  "version": 1,
  "id": "open-goal-prompt",
  "title": "Goal sentence without a town, gym or leader",
+ "blocked": "measured in the bundle arm of bundle-v-control (operator decision, the operator, 2026-10-16), not as a standalone queue experiment",
  "changedFeature": "open-goal-prompt-v1",
  "hypothesis": "A goal sentence that names no town, gym or leader (\"play the game and make as much story progress as you can; the people in the game will tell you what to do next\") stops the model from steering by a Rustboro City no game text has named yet (run qwen36-gpu0_4caa at turn 273 read \"the LAB\" as being in Rustboro after beating MAY), so fewer runs walk away from the story after the rival battle and more reach RECEIVED_POKEDEX; the pre-registered mechanism diagnostic is the count of turns whose reasoning names Rustboro before any game source did (bundle cook runs 2026-10-15/16: 11 of 12 runs, 736 turns; per-run counts in docs/experiments/open-goal-prompt/manifest.json).",
  "activationMilestone": "NEW_GAME_CREATED",

@@ -33,3 +33,5 @@ Branch `claude/battle-message-waiting` in `/private/tmp/pokebench-battle-waiting
 - 2026-10-16 03:05 AM EDT: worklog created; bug confirmed from cook run #2 events and frames (seqs above).
 - 2026-10-16 03:08 AM EDT: cherry-picked `91acc0d8` (RED tests + raw-RAM fixture for the battle message window) without its battle-text worklog file.
   COMMIT: `test(RED): battle message window, page journal and frame-driven battle wait` (cherry-pick of 91acc0d8)
+- 2026-10-16 03:11 AM EDT: cherry-picked `c754f612` (detector `battle_text.py`, `battle.message/prompt/text_phase` in the state JSON, page journal `/pokebench/battle/messages`, frame-driven `/pokebench/battle/wait`) without its worklog hunk; `docs/findings/2026-10-16_battle-text.md` kept. `test_battle_text.py` 27 passed, `game-state.test.ts` 16 passed. The journal and wait endpoint are not needed by this fix; kept because they record state only and change no model text, so the detector lands once and `claude/battle-text-auto-advance` merges main later.
+  COMMIT: `feat(env): battle message window, page journal and frame-driven battle wait` (cherry-pick of c754f612)

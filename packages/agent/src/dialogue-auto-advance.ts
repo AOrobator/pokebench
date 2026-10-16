@@ -116,8 +116,10 @@ function narrates(text:string,player:string|null):boolean {
  if(player===null||player===""||!text.startsWith(`${player} `))return false;
  // A page in a character's own voice is not narration ("{PLAYER} turned me down…", apprentice.inc). None of the
  // 104 pokeemerald pages that start with {PLAYER} and one of these verbs uses first or second person.
- if(PERSONAL.test(text))return false;
- return NARRATION.has(text.slice(player.length+1).split(/[\s!.,]/,1)[0]??"");
+ const body=text.slice(player.length+1);
+ // Only the page after the name: a player may be named "I" or "ME".
+ if(PERSONAL.test(body))return false;
+ return NARRATION.has(body.split(/[\s!.,]/,1)[0]??"");
 }
 const PERSONAL=/\b(?:I|I'm|I've|I'll|I'd|me|my|mine|myself|we|we're|us|our|you|you're|your|yours)\b/i;
 

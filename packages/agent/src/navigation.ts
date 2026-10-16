@@ -58,8 +58,6 @@ export function matchingTriggers(state:GameStateSnapshot):MatchingTrigger[] {
  return (state.world_context?.triggers??[]).filter(t=>t.condition_met===true&&t.variable!==0).map(t=>({x:t.x,y:t.y,elevation:t.elevation,variable:t.variable,required:t.required_value,current:t.current_value}));
 }
 // pokeemerald ObjectEventDoesElevationMatch: elevation 0 (transition) matches any; otherwise they must be equal.
-// world.py's labels for background events (signs, hidden items, secret bases).
-const BACKGROUND=new Set(["background","hidden_item","secret_base","background_unknown"]);
 export const elevationsMatch=(a:number,b:number):boolean=>a===0||b===0||a===b;
 const triggerAt=(triggers:readonly MatchingTrigger[]|undefined,p:Point,elevation:number):MatchingTrigger|undefined=>triggers?.find(t=>t.x===p.x&&t.y===p.y&&(t.elevation===0||t.elevation===elevation));
 const condition=(t:MatchingTrigger):string=>`variable 0x${t.variable.toString(16).toUpperCase().padStart(4,"0")}=${t.current===null?"unknown":String(t.current)}, needs ${String(t.required)}`;
@@ -158,26 +156,18 @@ function targetReason(state:GameStateSnapshot,goal:Point,options:NavigationOptio
  const thing=person??(standable(tile)?undefined:targets.find(t=>t.activation==="A"&&t.kind!=="warp"));
  if(occupied||thing!==undefined){
   const reachable=DIRECTIONS.flatMap(([side,dx,dy])=>{const stand={x:goal.x+dx,y:goal.y+dy};return free(stand)?[{stand,side}]:[];});
-  // navigation-truth-v1: an object with no script (absent from the listed interaction targets) cannot be talked to,
-  // unless another A target on its tile answers instead: GetInteractionScript falls through to the background event,
-  // which GetBackgroundEventAtPosition finds only at the player's elevation (or its own elevation 0) and
-  // GetInteractedBackgroundEventScript runs for a facing-bound kind only when the player faces that way.
-  // A scriptless object stands on the tile (on a walkable or a solid tile alike).
-  const scriptless=truth&&state.interaction_targets!=null&&person===undefined&&(live!==undefined||geometry.objects.some(same));
-  const fallthrough=scriptless?targets.filter(t=>t.activation==="A"&&t.kind!=="warp"&&t.kind!=="object"):null;
-  type Stand={readonly stand:Point;readonly side:Direction};
-  const answering=({stand,side}:Stand):typeof person=>(fallthrough??[]).find(t=>{
-   const facing=t.facing==null||t.facing.toUpperCase()===OPPOSITE[side];
-   if(!BACKGROUND.has(t.kind))return facing;
-   const elevation=arrival(stand);
-   return facing&&elevation!==null&&(t.elevation===0||t.elevation===elevation);
-  });
-  const answers=(s:Stand):boolean=>answering(s)!==undefined;
-  if(fallthrough!==null&&!reachable.some(answers))return `${at(goal)} is a person or object${live?.sprite_kind!=null?` (sprite ${live.sprite_kind})`:""}, which navigate_to cannot stand on; it has no script, so facing it and pressing A does not talk to it or use it`;
+  // navigation-truth-v1: an object with no script (absent from the listed interaction targets) cannot be talked to.
+  // GetInteractionScript then tries the tile's background event or metatile, each under its own conditions
+  // (elevation, facing, a hidden item's flag, a secret base's check); those are named as listed, not promised.
+  if(truth&&state.interaction_targets!=null&&person===undefined&&(live!==undefined||geometry.objects.some(same))){
+   const others=targets.filter(t=>t.activation==="A"&&t.kind!=="warp"&&t.kind!=="object").map(t=>{const kind=t.kind.replaceAll("_"," ");return t.name!=null?`${t.name} (${kind})`:`a ${kind}`;});
+   const sprite=live?.sprite_kind!=null?` (sprite ${live.sprite_kind})`:"";
+   return others.length===0?`${at(goal)} is a person or object${sprite}, which navigate_to cannot stand on; it has no script, so facing it and pressing A does not talk to it or use it`:`${at(goal)} is a person or object${sprite}, which navigate_to cannot stand on; it has no script, so facing it and pressing A does not talk to it; the state also lists ${others.join(" and ")} on that tile, which pressing A may use if the game's own conditions for it are met`;
+  }
   const kind=thing===undefined||thing.kind==="object"?"person or object":thing.kind.replaceAll("_"," ");
   const name=thing?.name;
   const label=name!=null?`${name} (${kind})`:`a ${kind}`;
-  const usable=fallthrough!==null?reachable.filter(answers):scripted===null||scripted.length===0||thing?.kind!=="object"?reachable:reachable.filter(({stand})=>talker(stand)!==undefined);
+  const usable=scripted===null||scripted.length===0||thing?.kind!=="object"?reachable:reachable.filter(({stand})=>talker(stand)!==undefined);
   if(scripted!==null&&scripted.length>0&&reachable.length>0&&usable.length===0)return `${at(goal)} is ${label}, which navigate_to cannot stand on; it is at elevation ${[...new Set(scripted.map(t=>String(t.elevation)))].join(" or ")}, and every free neighbouring tile navigate_to can reach puts you at another elevation, where facing it and pressing A does not reach it; choose a waypoint at its elevation`;
   // Each usable stand reaches the scripted object at its arrival elevation; stacked objects can differ per stand.
   const reached=scripted!==null&&scripted.length>0&&thing?.kind==="object"?usable.map(({stand})=>talker(stand)):[];
@@ -186,10 +176,6 @@ function targetReason(state:GameStateSnapshot,goal:Point,options:NavigationOptio
   const first=reached[0];
   const named=several?`${[...new Set(reached.map(call))].join(" or ")} (persons or objects stacked at different elevations)`:first===undefined?label:first.name!=null?`${first.name} (person or object)`:"a person or object";
   const stands=usable.map(({stand,side},i)=>`${at(stand)} facing ${OPPOSITE[side]}${several?` (reaches ${call(reached[i])})`:""}`);
-  // The background event's flag (a hidden item already taken) or a secret base's check is not in the state, so the
-  // offer says it may answer, not that it will.
-  const fallback=fallthrough!==null&&usable[0]!==undefined?answering(usable[0]):undefined;
-  if(fallback!==undefined)return `${at(goal)} is a person or object${live?.sprite_kind!=null?` (sprite ${live.sprite_kind})`:""}, which navigate_to cannot stand on; it has no script, but ${fallback.name!=null?`${fallback.name} (${fallback.kind.replaceAll("_"," ")})`:`a ${fallback.kind.replaceAll("_"," ")}`} on its tile may answer A instead (the state does not show whether it is still there or usable): to try it, walk to one of these free tiles, face it and press A: ${stands.join("; ")}`;
   return stands.length===0?`${at(goal)} is ${label}, which navigate_to cannot stand on, and none of its free neighbouring tiles can be reached from here; choose a reachable waypoint nearer to it`:`${at(goal)} is ${named}, which navigate_to cannot stand on; to talk to ${several?"one":"it or use it"}, walk to one of these free tiles, face it and press A: ${stands.join("; ")}`;
  }
  if(standable(tile))return null;

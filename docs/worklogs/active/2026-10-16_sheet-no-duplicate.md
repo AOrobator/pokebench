@@ -12,5 +12,5 @@ Viewer only, no feature switch. `run-head.ts` `sheetHtml`: an other-run card who
 
 **M1**
 - [x] RED: same-experiment card has no experiment title and leads with the arm; different-experiment card keeps it; CSS hides the label in the sheet
-- [ ] GREEN, gates, browser proof
+- [x] GREEN, gates (viewer 954 tests, 95.38 / 91.16 / 93.77 / 97.66), browser proof: `runs/reviews/2026-10-16-sheet-dedup/receipt.md`
 - [ ] Review: Claude, Grok, GPT; land ff-only; live check

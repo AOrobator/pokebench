@@ -152,8 +152,8 @@ No new network surface: the server field rides the existing state endpoint on 12
 - [x] Fake-data rehearsal (test): the production wrapper over the whole recorded 4caa run records 38 `people_id_card` events, MAY first/changed×3
 - [x] Browser proof (candidate viewer from this worktree's dist, `node packages/viewer/dist/cli.js --port 8796 --runs <scratchpad>/idc-viewer-runs`, probe run `2026-10-16T17-30-00_idcards-probe_1dc0` = 4caa run_start with people-id-cards-v1 added, turns 209–212, one recorded people_id_card for T211): Harness Config lists PEOPLE ID CARDS; a real click on READ EXPLAINER opened `/explainers/people-id-cards-v1.html` (heading "An ID card for each person who comes into view"), no console errors; at 375×812 scrollWidth 375 and every card block wraps inside its width. Agent Trace at the end of the replay shows the row "ID card shown · ID card added to the press result (back in view, card changed) · name:MAY …" and selecting it shows the whole card in the raw-event panel; the timeline lanes show no new mark. Viewer stopped; 8790 untouched.
 - [x] Principles self-review PB1–PB13: 0 FAIL (below)
-- [ ] `git merge main`, gates, frozen packet; Claude, Codex, Grok `VERDICT: LGTM`
-- [ ] Report to the coordinator; no merge
+- [x] `git merge main`, gates, frozen packet; Claude, Codex, Grok `VERDICT: LGTM` (round 2)
+- [ ] Report to the coordinator; no merge (operator/coordinator lands)
 
 ## Closing the Loop
 
@@ -221,6 +221,12 @@ No new network surface: the server field rides the existing state endpoint on 12
   - Gates on d90e4b52 (main 6db26e44 an ancestor) with the ROM: build 0; agent 2052, viewer 1032, pytest 2498 passed; TS lint clean, ruff clean, mypy only mgba._pylib; coverage agent 98.06/94.57/98.29, viewer 95.55/91.39/93.91, Python 97.55/93.60/100; verify-vendor ok; pages-check silent. Pin commit d90e4b52 records source.commit 198a9a97.
   - Synthesis: all three Codex blockers accepted. (1) experiment pinned to the reviewed fix commit (pinned to 198a9a97, which contains the switch, the entry and every fix); (2) activation `NEW_GAME_CREATED`, asserted in the experiment test, readiness line updated; (3) new tests: the whole recorded 4caa run passes through the production factory unchanged with the switch off (548+ results, no events), and `pageLines` reproduces the recorded T107 dialogue list byte for byte (fixture now keeps T107's text); guard deletion del4 (extra space in `pageLine`) turns it red. Hardening taken: delivered pages kept in one flat list, ledger-row summaries recomputed only after a new delivery.
 
+
+- Round 2, packet `git diff --binary 6db26e44 4ed3e084` (SHA-256 `ef8655b65d6dbff2be50984e1f800937b17685027bd16ec083c6f99e1b5fddd1`), artifacts `/tmp/review-people-id-cards-r2`, main 6db26e44 still the base:
+  - Claude (`claude -p --permission-mode plan`, default login, after its 5:40 PM reset): `VERDICT: LGTM`. Hardening: INV-2 test strips sprite kinds before its word check; `card()` rescans delivered history per visible person; `facing`/`pending` maps never pruned. Speculation: speakerless page after A in a cutscene credited to the faced person (same rule as the ledger); two trainers with one class and name.
+  - Codex (`codex exec -m gpt-5.6-sol -s read-only`): `VERDICT: LGTM`. Hardening: per-card history rescans; the milestone list still carries the superseded activation/source wording (the synthesis and JSON are authoritative).
+  - Grok (`cursor-agent --mode ask --model cursor-grok-4.5-high`): `VERDICT: LGTM`. Same hardening notes as round 1; worklog Architecture still describes the dropped RAM reader (D1 supersedes; do not reintroduce).
+  - This commit records the verdicts only; code, tests, fixtures, experiment and explainer are byte-identical to the reviewed packet. Not merged (coordinator instruction).
 
 ## Boy Scout Log
 

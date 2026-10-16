@@ -20,9 +20,9 @@ it("describes every switchable and measurement feature exactly once", () => {
 });
 
 it("retains the legacy information list while adding mandatory raw recording", () => {
-  const recorded = [...LEGACY_DEFAULT.slice(0,25), "full-raw-ram-v1", ...LEGACY_DEFAULT.slice(25,26), "birch-rescue-requested-v1", "rival-house-exit-v1", "route-101-after-handoff-v1", ...LEGACY_DEFAULT.slice(26)];
+  const recorded = [...LEGACY_DEFAULT.slice(0,25), "full-raw-ram-v1", ...LEGACY_DEFAULT.slice(25,26), "birch-rescue-requested-v1", "rival-house-exit-v1", "route-101-after-handoff-v1", "bedroom-exit-v1", ...LEGACY_DEFAULT.slice(26)];
   expect(playHarnessFeatures(off("blocked-batch-result-v1","navigation-evidence-memory-v1","game-evidence-priority-v1","dialogue-log-v1","loop-guard-supervisor-v1","instruction-ledger-v1","next-milestone-hint-v1","double-context-window-v1","fresh-retry-v1","named-warp-destinations-v1","milestone-stall-stop-v1","text-only-supervisor-v1","character-presence-v1","navigation-refusal-reasons-v1","transition-press-result-v1","stall-briefing-v1","battle-details-v2","dialogue-auto-advance-v1","field-dialogue-phase-v1","dialogue-safe-batches-v1","interaction-loop-detection-v1","automatic-running-v1","expanded-menu-battle-information-v1","state-only-decisions-v1","named-interactions-v1","world-destinations-v1","bounded-navigation-v1","ledge-hops-v1","one-way-tiles-v1","counter-talk-v1","walkable-floor-v1","full-map-navigation-v1","grass-cost-navigation-v1","elevation-transitions-v1"), null)).toEqual(recorded);
-  expect(playHarnessFeatures(off("blocked-batch-result-v1","navigation-evidence-memory-v1","game-evidence-priority-v1","dialogue-log-v1","loop-guard-supervisor-v1","instruction-ledger-v1","next-milestone-hint-v1","double-context-window-v1","fresh-retry-v1","named-warp-destinations-v1","milestone-stall-stop-v1","text-only-supervisor-v1","character-presence-v1","navigation-refusal-reasons-v1","transition-press-result-v1","stall-briefing-v1","battle-details-v2","dialogue-auto-advance-v1","field-dialogue-phase-v1","dialogue-safe-batches-v1","interaction-loop-detection-v1","automatic-running-v1","expanded-menu-battle-information-v1","state-only-decisions-v1","named-interactions-v1","world-destinations-v1","bounded-navigation-v1","ledge-hops-v1","one-way-tiles-v1","counter-talk-v1","walkable-floor-v1","full-map-navigation-v1","grass-cost-navigation-v1","elevation-transitions-v1"), "PLAYER_NAME_CONFIRMED")).toEqual([...recorded.slice(0, 30), "native-target-stop-v1", ...recorded.slice(30)]);
+  expect(playHarnessFeatures(off("blocked-batch-result-v1","navigation-evidence-memory-v1","game-evidence-priority-v1","dialogue-log-v1","loop-guard-supervisor-v1","instruction-ledger-v1","next-milestone-hint-v1","double-context-window-v1","fresh-retry-v1","named-warp-destinations-v1","milestone-stall-stop-v1","text-only-supervisor-v1","character-presence-v1","navigation-refusal-reasons-v1","transition-press-result-v1","stall-briefing-v1","battle-details-v2","dialogue-auto-advance-v1","field-dialogue-phase-v1","dialogue-safe-batches-v1","interaction-loop-detection-v1","automatic-running-v1","expanded-menu-battle-information-v1","state-only-decisions-v1","named-interactions-v1","world-destinations-v1","bounded-navigation-v1","ledge-hops-v1","one-way-tiles-v1","counter-talk-v1","walkable-floor-v1","full-map-navigation-v1","grass-cost-navigation-v1","elevation-transitions-v1"), "PLAYER_NAME_CONFIRMED")).toEqual([...recorded.slice(0, 31), "native-target-stop-v1", ...recorded.slice(31)]);
 });
 
 it("drops exactly the switched-off id and round-trips through recorded features", () => {
@@ -141,6 +141,13 @@ it("registers the milestone stall stop as a default-off agent-side guard recorde
  expect(playHarnessFeatures(ALL_ON,null).at(-9)).toBe("milestone-stall-stop-v1");
  expect(playHarnessFeatures(off("milestone-stall-stop-v1"),null)).not.toContain("milestone-stall-stop-v1");
  expect(serverFeatureEnv(off("milestone-stall-stop-v1")).POKEBENCH_FEATURES_OFF).toBe("");
+});
+
+it("registers the bedroom exit split as a measured feature recorded after the Route 101 split",()=>{
+ expect(featureInfo("bedroom-exit-v1")).toMatchObject({switchable:false,needs:null});
+ expect(featureInfo("bedroom-exit-v1").description).toMatch(/bedroom/);
+ const recorded=playHarnessFeatures(ALL_ON,null);
+ expect(recorded.indexOf("bedroom-exit-v1")).toBe(recorded.indexOf("route-101-after-handoff-v1")+1);
 });
 
 it("registers the post-handoff Route 101 split as a measured feature recorded after the rival-house exit",()=>{

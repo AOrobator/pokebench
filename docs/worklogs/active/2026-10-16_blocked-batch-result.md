@@ -51,3 +51,4 @@ Branch `claude/blocked-batch-result` in `/private/tmp/pokebench-blocked-batch`. 
 - [ ] Before merge (operator): pending `experiments/blocked-batch-result.json` entry and readiness line, or adding the switch to the bundle-v-control bundle arm; `just viewer-main` after merge.
 
 - 2026-10-16 01:25 AM EDT (integrator): registered `experiments/blocked-batch-result.json` as pending (finals incumbent, activation PLAYER_NAME_CONFIRMED, provisional source = branch head) and the readiness line; `just experiments-check` ok (46 experiments).
+- 2026-10-16 01:30 AM EDT (integrator): merged main (bedroom-exit split) into the branch; resolved features.test.ts (main's recorded list with bedroom-exit-v1 plus blocked-batch-result-v1 in the off list). Agent and viewer suites re-run.

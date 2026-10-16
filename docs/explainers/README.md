@@ -29,6 +29,7 @@ Tracked, local HTML documentation. Open an explainer directly; no server or exte
 - [Transition press results v1](transition-press-result-v1.html)
 - [Blocked batch results v1](blocked-batch-result-v1.html)
 - [Stall briefing v1](stall-briefing-v1.html)
+- [Leave bedroom split v1](bedroom-exit-v1.html)
 - [Battle details v2](battle-details-v2.html)
 - [Experiment queue](experiment-queue.html)
 - [Runs survive viewer restarts](run-survives-viewer.html)

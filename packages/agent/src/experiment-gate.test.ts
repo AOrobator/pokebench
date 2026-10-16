@@ -54,6 +54,7 @@ it("reads an experiment's finals settings, defaulting to 8 runs of 45 minutes wi
  expect(finalsConfig(parseExperiment({...base,finals:{runsPerArm:4,maxWallMs:1_200_000,target:"RIVAL_MET"}}))).toEqual({runsPerArm:4,maxWallMs:1_200_000,target:"RIVAL_MET"});
  expect(finalsConfig(parseExperiment({...base,finals:{maxWallMs:1_200_000}}))).toEqual({...DEFAULT_FINALS,maxWallMs:1_200_000});
  expect(()=>parseExperiment({...base,finals:{target:"NOT_A_MILESTONE"}})).toThrow(/finals target NOT_A_MILESTONE is not a native milestone/);
+ expect(()=>parseExperiment({...base,finals:{target:"PLAYER_BEDROOM_EXITED_AFTER_CLOCK"}})).toThrow(/finals target PLAYER_BEDROOM_EXITED_AFTER_CLOCK is measurement-only/);
  expect(()=>parseExperiment({...base,finals:{runsPerArm:2}})).toThrow(/Invalid experiment/);
 });
 

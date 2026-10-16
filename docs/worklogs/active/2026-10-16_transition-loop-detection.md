@@ -39,6 +39,7 @@ OFF: no skip, no map moves; byte-identical to today.
   - Gates: agent 1281 passed, viewer 786 passed, pytest 1960 passed/2 skipped; build OK; verify-vendor OK; lint OK except mypy mgba._pylib (worktree has no native binding). Coverage: agent lines 99.03 / branches 94.28 / functions 97.87; viewer 97.6 / 90.39 / 93.55; python lines 97.03 / branches 92.57 / functions 100.
   - Not done here by brief: experiments/<id>.json pending entry and bundle-v-control wiring belong to the M6 integrator.
 - 2026-10-16: RED (self-review): a press result that still shows the old map mid-door (2919 T185) loses the map change, because the next call's before state is already on the new map. Test: unsettled arrivals.
+- 2026-10-16: GREEN: map moves walk last map → before map → after map. Replay now: 2919 ON warning+supervisor T204 seq 3219 (T185 entry + T200–T204), re-brief T210, recovered T215, warning T216 seq 3516, supervisor every 6 calls to T246; pre-T200 notices byte-identical to OFF. d6bb unchanged (T230 seq 2566, stop T236). Explainer receipts updated.
 
 ## Surprises
 

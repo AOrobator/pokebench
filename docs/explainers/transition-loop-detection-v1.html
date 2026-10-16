@@ -100,16 +100,16 @@ th{font:500 .75rem var(--mono);letter-spacing:.06em;text-transform:uppercase;col
 <tr><td>dialogue or a message open</td><td>MOM's conversation (2919 seq 1849–1886)</td><td>history cleared, as today (a qualified message still has its own fingerprint)</td></tr>
 <tr><td>script state unknown (no resources read)</td><td>older runs such as d6bb</td><td>history cleared, as today</td></tr>
 </table>
-<p>The map-move count does not depend on locks at all: it compares the map before and after each press, <code>navigate_to</code> or observation.</p>
+<p>The map-move count does not depend on locks at all: it compares the last known map, the map before the call and the map after it, for each press, <code>navigate_to</code> or observation. A result that still shows the old map mid-door is caught by the next call's before state.</p>
 </section>
 
 <section>
 <h2>What the model reads</h2>
 <p>Off, during the 2919 bounce: no loop-guard text at all from T180 to T247.</p>
-<p>On, replaying the recorded events through <code>attachLoopGuard</code>: the warning fires at T205 (seq 3244), after the third lab entry. With <code>loop-guard-supervisor-v1</code> on, as in both arms, the next model call gets the supervisor briefing (kind <code>cycle</code>). Its headline:</p>
-<pre>SUPERVISOR: You are currently looping. You keep repeating the same short cycle of actions, and the game is not moving forward (loop guard, 205 calls into the run). What you have been trying is not working, so do not try it again.
+<p>On, replaying the recorded events through <code>attachLoopGuard</code>: the warning fires at T204 (seq 3219), after six door crossings with no progress: the T185 entry (counted late, because that result still showed the town) and T200–T204. With <code>loop-guard-supervisor-v1</code> on, as in both arms, the next model call gets the supervisor briefing (kind <code>cycle</code>). Its headline:</p>
+<pre>SUPERVISOR: You are currently looping. You keep repeating the same short cycle of actions, and the game is not moving forward (loop guard, 204 calls into the run). What you have been trying is not working, so do not try it again.
 Stop and get your bearings:
-- Where you are: LITTLEROOT TOWN PROFESSOR BIRCHS LAB (map 1/4) at 6,12 facing up
+- Where you are: LITTLEROOT TOWN (map 0/9) at 7,17 facing down
 …</pre>
 <p>The recorded <code>loop_guard</code> warning, and the note the model sees when the supervisor is off:</p>
 <pre>LOOP GUARD (cycle): Moving back and forth between the same maps is repeating with no new story, party, money, badge or item change. Reassess the objective and choose a different exit or target using observed evidence. Recovery is bounded; objective wording and new evidence IDs alone do not establish progress.</pre>
@@ -119,7 +119,7 @@ Stop and get your bearings:
 <h2>Replay receipts</h2>
 <table>
 <tr><th>Run</th><th>OFF</th><th>ON</th></tr>
-<tr><td><code>2919</code></td><td>last notice T179 seq 2751 (recovered)</td><td>warning + supervisor T205 seq 3244; re-brief T211; recovered T215 (the <code>A×5</code> step reached a new state); warning + supervisor T216 seq 3516, then every 6 calls to T246. No stop. Notices before T200 unchanged.</td></tr>
+<tr><td><code>2919</code></td><td>last notice T179 seq 2751 (recovered)</td><td>warning + supervisor T204 seq 3219; re-brief T210; recovered T215 (the <code>A×5</code> step reached a new state); warning + supervisor T216 seq 3516, then every 6 calls to T246. No stop. Notices before T200 unchanged.</td></tr>
 <tr><td><code>d6bb</code></td><td>no notice</td><td>warning T230 seq 2566; that run had no loop supervisor, so the guard stopped it at T236 seq 2626, as it would for any other loop</td></tr>
 </table>
 <p>A sweep of 60 recent runs found 13 with a new ping-pong warning; the ones checked by hand (ad45 T43, 817d T43, 2f46 T209) were all stairs or door bounces with no progress.</p>

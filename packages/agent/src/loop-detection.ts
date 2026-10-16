@@ -527,12 +527,18 @@ export class LoopDetector {
       this.mapMoves.length = 0;
       this.progress = progress;
     }
-    const from = mapOf(call.beforeState) ?? this.lastMap;
+    // A result can still show the old map mid-door; the change then first appears in the next call's before state.
+    const before = mapOf(call.beforeState);
+    const stops = [this.lastMap, before, to].filter((map): map is string => map !== null);
     this.lastMap = to;
-    if (from === null || from === to) return false;
-    this.mapMoves.push(`${from}>${to}`);
-    if (this.mapMoves.length > 12) this.mapMoves.shift();
-    return repeating(this.mapMoves, this.policy.cycleRepeats);
+    let moved = false;
+    for (let i = 1; i < stops.length; i++) {
+      if (stops[i] === stops[i - 1]) continue;
+      this.mapMoves.push(`${stops[i - 1] ?? ""}>${stops[i] ?? ""}`);
+      if (this.mapMoves.length > 12) this.mapMoves.shift();
+      moved = true;
+    }
+    return moved && repeating(this.mapMoves, this.policy.cycleRepeats);
   }
   private recover(seq: number, novel: boolean): void {
     if (this.episode !== null) this.notice("recovered", seq);

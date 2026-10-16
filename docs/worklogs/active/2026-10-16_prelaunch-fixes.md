@@ -10,11 +10,11 @@ feature-switch, feature-explainer, pokebench-game-state, agent-observability, po
 
 ## Architecture
 
-Every behavior change is a registered switch whose OFF state reproduces today. Fixes F1–F4 change what both arms see, so their switches are ON in both arms and listed in the definition as `onInBoth`; the control-base check (`controlBaseProblems`) accepts exactly those flags as differing from the finals incumbent and nothing else. F5–F8 change bundle-only behavior inside existing bundle switches before the treatment is frozen (no new switch where the change is a bug fix inside a default-off switch that has never run in a measured cohort; recorded here).
+Every behavior change is a registered switch whose OFF state reproduces today. Fixes F2–F4 change what both arms see, so their switches are ON in both arms and listed in the definition as `onInBoth`; the control-base check (`controlBaseProblems`) accepts exactly those flags as differing from the finals incumbent and nothing else. F5–F8 change bundle-only behavior inside existing bundle switches before the treatment is frozen (no new switch where the change is a bug fix inside a default-off switch that has never run in a measured cohort; recorded here).
 
 | Fix | Arms | Where | Switch |
 |---|---|---|---|
-| F1 Door/stairs/warp animation: never report a mid-animation snapshot as "Field controls: locked (dialog, menu, or script)" and never hide a completed warp | both | post-press / post-navigate settle, readout text | `transition-settle-v1` (design pending the harness engineer view, `runs/reviews/2026-10-16-qualification-forensics/harness-engineer-animation.md`) |
+| F1 Door/stairs/warp animation: settle while the game's door/warp exit task runs (per emulated frame), report the warp, label a bound hit truthfully | **bundle** (operator decision 2026-10-16 12:46 AM EDT: measured as part of the treatment) | env observation settle (`screen_settle.py`, `observation.py`), press result | `warp-arrival-settle-v1` (design: `runs/reviews/2026-10-16-qualification-forensics/harness-engineer-animation.md`) |
 | F2 Loop guard sees door/stairs bounces: a transient lock must not clear the cycle history; map-to-map ping-pong counts as a cycle | both | `packages/agent/src/loop-detection.ts` `semanticState` (~l.118–140), history reset (~l.381) | `transition-loop-detection-v1` |
 | F3 Name signs and warp destinations by the text the game shows for this save (Littleroot (12,8) reads "PROF. BIRCH'S HOUSE" for a male player, pokeemerald `data/maps/LittlerootTown/scripts.inc` 402–412) | both (named-interactions) + bundle (named-warp-destinations) | `env/pokebench_env/interaction-names.json` script-symbol names, warp destination names | `displayed-place-names-v1` |
 | F4 Story dialogue stays in context: collapsed tool results keep every dialogue page whole (no model-facing truncation) | both | `packages/agent/src/harness.ts` `collapsed`/`summary` | `dialogue-context-kept-v1` |
@@ -49,8 +49,9 @@ Local only. No new network, file or subprocess surface beyond existing argv-only
 - [ ] RED: a collapsed result that contained MOM's T98 pages still carries them whole; non-dialogue results collapse as today
 - [ ] GREEN, gates, review
 
-**M4 — F1 animation snapshots** (both arms; design gated on the harness engineer view and the operator's pick)
-- [ ] ASK USER: settle-until-idle vs explicit "animation in progress" notice
+**M4 — F1 warp arrival settle** (bundle switch `warp-arrival-settle-v1`)
+- [x] ASK USER: settle on the game's warp task with a truthful bound-hit label; switch in the bundle (the operator, 12:46 AM EDT)
+- [ ] Receipt of the task function addresses on the real ROM; measure the exit length on the 2F stairs and the lab door
 - [ ] RED/GREEN, real-ROM proof on the 2919 door cases
 
 **M5 — F5–F8 bundle fixes**
@@ -72,6 +73,7 @@ Done when every milestone is merged, qualification shows none of F1–F8, the fo
 
 ## Session Log
 
+- 2026-10-16 12:46 AM EDT: Approved by the operator. F1 goes in the bundle as `warp-arrival-settle-v1`; F2–F4 switches ON in both arms; `blocked-batch-result-v1` (branch `claude/blocked-batch-result`) joins the bundle. M1–M5 run in parallel worktrees, one branch each; M6 integrates.
 - 2026-10-16 12:45 AM EDT: Worklog drafted from the two forensics reports; awaiting operator approval. Estimate: about a day of work for M1–M6, then qualification and review.
 
 ## Surprises

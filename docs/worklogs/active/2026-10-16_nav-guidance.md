@@ -54,7 +54,7 @@ Read-only RAM reads already used by character presence. No new network, file or 
 - [x] Real-ROM re-render over cook #2 Route 103 states, OFF equal to recorded
 
 **M2 — navigate-first-prompt-v1**
-- [ ] RED: prompt OFF byte-identical, ON sections; navigate_to description ON/OFF; press reminder on the third direction-only press, not after navigate_to, not in battle/menus/dialogue; factory wiring; registry counts
+- [x] RED: prompt OFF byte-identical, ON sections; navigate_to description ON/OFF; press reminder on the third direction-only press, not after navigate_to, not in battle/menus/dialogue; factory wiring; registry counts
 - [ ] COMMIT: `test(RED): ...`
 - [ ] GREEN + gates
 - [ ] COMMIT: `feat: ...`
@@ -85,6 +85,8 @@ Done when both switches are merged after review, explainers link from Harness Co
   - Proof over cook #2 T415–T960 (546 tool results with raw RAM): OFF re-render contained in what the model got 546/546; ON adds the block on 137 and gives MAY's tile while out of view on 105, first at T415.
   - Gates: agent 1429, viewer 821, Python 2147 passed (ROM); coverage agent 97.73/94.58/97.98/99.08, viewer 95.19/90.64/93.55/97.65, Python total 96% (offscreen_objects, character_presence, readout 100%); lint green except the known mypy `mgba._pylib`; build green.
   COMMIT: `feat: offscreen-objects-v1 lists the map's people and objects outside the local map, with their tiles (default off)`
+- 2026-10-16 04:00 AM EDT: M2 RED. `packages/agent/src/navigate-first.test.ts` + `test-support/navigate-first-sh02.json` (cook #2 run_start: harness_features and system_prompt; `playSystemPrompt(featuresOf(...))` reproduces it byte for byte today). Cases: registry/presets; OFF prompt equals cook #2's; ON tool list order and press suffix; Moving around replaces NAVIGATE_TO_USAGE and is the last section; full-map wording; screen-only press line; objective text still last; no story names; navigate_to description OFF unchanged / ON prefix and local suffix; reminder every 3rd direction-only free-field press, reset by navigate_to and non-direction presses, not by observe, not counted off the free field; OFF returns tools untouched; playGameTools wiring. Fails: module missing.
+  COMMIT: `test(RED): navigate-first-prompt-v1 steers walking to navigate_to (cook run #2 prompt)`
 
 ## Surprises
 

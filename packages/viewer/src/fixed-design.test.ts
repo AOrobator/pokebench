@@ -31,12 +31,14 @@ describe("generatePlan", () => {
 });
 
 describe("armPreset", () => {
-  it("turns exactly the bundle switches on in the bundle arm and sets the phase's wall cap and the shared start", () => {
+  it("turns exactly the bundle switches on in the bundle arm and sets the phase's wall cap and start", () => {
     const def = definition();
     const control = armPreset(def, "confirmatory", "control");
     const bundle = armPreset(def, "cook", "bundle");
     expect(control).toMatchObject({ version: 2, id: "bundle-v-control-confirmatory-control", target: null, limits: { maxTurns: 20000, maxWallMs: 900_000, failureLimit: 3, replyFailuresEndRun: false }, start: def.start });
     expect(bundle.limits.maxWallMs).toBe(3_600_000);
+    // A New Game phase has no start save: the preset boots.
+    expect("start" in bundle).toBe(false);
     const differing = Object.keys(INCUMBENT_FEATURES).filter((k) => (control.features as Record<string, boolean>)[k] !== (bundle.features as Record<string, boolean>)[k]);
     expect(differing.sort()).toEqual([...def.switches].sort());
     expect((bundle.features as Record<string, boolean>)["milestone-stall-stop-v1"]).toBe(false);
@@ -70,15 +72,15 @@ describe("definitionProblems", () => {
   it("names lanes that share a port, a model URL or an id, and a per-arm count that lanes cannot split", () => {
     const lane = draftDefinition().lanes[0];
     if (lane === undefined) throw new Error("fixture lane");
-    const problems = definitionProblems(definition({ lanes: [lane, { ...lane }], phases: [{ id: "confirmatory", perArm: 3, maxWallMs: 900_000, primary: true }] }));
+    const problems = definitionProblems(definition({ lanes: [lane, { ...lane }], phases: [{ id: "confirmatory", perArm: 3, maxWallMs: 900_000, primary: true, start: "save" }] }));
     expect(problems).toEqual(expect.arrayContaining([
       "lane ids must be unique",
       "lanes must use distinct game ports",
       "lanes must use distinct model URLs",
       "phase confirmatory: perArm 3 is not a multiple of 2 lanes",
     ]));
-    expect(definitionProblems(definition({ phases: [{ id: "a", perArm: 2, maxWallMs: 900_000, primary: true }, { id: "b", perArm: 2, maxWallMs: 900_000, primary: true }] }))).toContain("at most one phase may be primary");
-    expect(definitionProblems(definition({ phases: [{ id: "a", perArm: 2, maxWallMs: 900_000, primary: true }, { id: "a", perArm: 2, maxWallMs: 900_000, primary: false }] }))).toContain("phase ids must be unique");
+    expect(definitionProblems(definition({ phases: [{ id: "a", perArm: 2, maxWallMs: 900_000, primary: true, start: "save" }, { id: "b", perArm: 2, maxWallMs: 900_000, primary: true, start: "save" }] }))).toContain("at most one phase may be primary");
+    expect(definitionProblems(definition({ phases: [{ id: "a", perArm: 2, maxWallMs: 900_000, primary: true, start: "save" }, { id: "a", perArm: 2, maxWallMs: 900_000, primary: false, start: "save" }] }))).toContain("phase ids must be unique");
     expect(definitionProblems(definition({ primaryMilestone: "NOT_A_MILESTONE" }))).toContain("unknown primary milestone NOT_A_MILESTONE");
     expect(definitionProblems(definition({ lanes: [{ ...lane, modelUrl: "http://10.0.0.1:8091/" }] }))).toContain("lane A: modelUrl must be http://127.0.0.1:<port> with no path");
   });
@@ -99,11 +101,25 @@ describe("parseFixedDefinition", () => {
   });
 });
 
+describe("phase starts", () => {
+  it("needs every phase to name its start and the definition to pin the ROM", () => {
+    const def = definition();
+    const noStart = def.phases.map((p) => Object.fromEntries(Object.entries(p).filter(([k]) => k !== "start")));
+    expect(() => parseFixedDefinition(JSON.stringify({ ...def, phases: noStart }))).toThrow(FixedDesignError);
+    const noRom = Object.fromEntries(Object.entries(def).filter(([k]) => k !== "romSha1"));
+    expect(() => parseFixedDefinition(JSON.stringify(noRom))).toThrow(FixedDesignError);
+  });
+});
+
 describe("dryRunDefinition", () => {
   it("plans one trial per arm per lane at the dry-run cap, under its own id and with no replacements", () => {
     const dry = dryRunDefinition(definition(), 120_000);
-    expect(dry.id).toBe("bundle-v-control-dryrun");
-    expect(dry.phases).toEqual([{ id: "dry-run", perArm: 2, maxWallMs: 120_000, primary: false }]);
+    expect(dry.id).toBe("bundle-v-control-dryrun-confirmatory");
+    expect(dry.phases).toEqual([{ id: "dry-run", perArm: 2, maxWallMs: 120_000, primary: false, start: "save" }]);
+    const boot = dryRunDefinition(definition(), 720_000, "cook");
+    expect(boot.id).toBe("bundle-v-control-dryrun-cook");
+    expect(boot.phases).toEqual([{ id: "dry-run", perArm: 2, maxWallMs: 720_000, primary: false, start: "boot" }]);
+    expect(() => dryRunDefinition(definition(), 720_000, "nope")).toThrow(FixedDesignError);
     expect(dry.plan).toHaveLength(4);
     expect(dry.replacementReserveMs).toBe(0);
     expect(definitionProblems(dry)).toEqual([]);

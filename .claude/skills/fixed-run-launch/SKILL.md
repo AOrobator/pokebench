@@ -39,7 +39,7 @@ A launch is not done until every check below passes. A check that fails means st
 
 An operator-caused or launch-procedure fault (wrong environment, wrong command, wrong viewer) taints the cohort. It is not an infrastructure invalid trial to be replaced from the reserve.
 
-- `kill -TERM` the runner, then every `live.js play` child and its `pokebench_env` server; confirm the ports are free and `runner.json` is gone.
+- `kill -TERM` the runner (it stops starting trials), then `kill -TERM` each `live.js play` child. A play process ends its run as `operator_abort` on SIGTERM or SIGINT and stops its own game server. Never kill the `pokebench_env` server or use SIGKILL first: a killed server is recorded as a crash. Confirm the ports are free and `runner.json` is gone.
 - Move `runs/experiments/<id>/` and every run dir it launched to `runs/aborted/<id>-<UTC timestamp>/` (outside `runs/experiments/` and the run list). Never delete them.
 - Record what happened and the operator's decision in the experiment worklog, fix the cause with RED/GREEN, then relaunch from step 1 with a fresh approval.
 

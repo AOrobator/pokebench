@@ -269,7 +269,7 @@ class Runner {
   }
 
   private expectation(lane: FixedLane, slot: QueueSlot) {
-    return { maxWallMs: phaseOf(this.o.def, slot.phase).maxWallMs, primary: this.o.def.primaryMilestone, presetId: armPreset(this.o.def, slot.phase, slot.arm).id, features: armFeatureBits(this.o.def, slot.arm), startSha1: this.o.def.start.sha1, port: lane.gamePort, model: this.o.def.serving.model };
+    return { maxWallMs: phaseOf(this.o.def, slot.phase).maxWallMs, primary: this.o.def.primaryMilestone, presetId: armPreset(this.o.def, slot.phase, slot.arm).id, features: armFeatureBits(this.o.def, slot.arm), start: phaseOf(this.o.def, slot.phase).start === "save" ? { kind: "save_state" as const, sha1: this.o.def.start.sha1 } : { kind: "boot" as const }, romSha1: this.o.def.romSha1, port: lane.gamePort, model: this.o.def.serving.model };
   }
 
   private events(run: string): string | null {

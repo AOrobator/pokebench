@@ -161,7 +161,7 @@ if (import.meta.main) {
       const pool = createBaselinePool(() => new Worker(worker), defaultPoolSize(availableParallelism()));
       return {
         baselines: { compute: pool.compute, store: createBaselineStore(baselineCacheDir(runsRoot, codeId)), warm: true, close: () => pool.close() },
-        workbench: { compute: pool.load, store: createWorkbenchStore(workbenchCacheDir(runsRoot, codeId)) },
+        workbench: { compute: pool.load, store: createWorkbenchStore(workbenchCacheDir(runsRoot, codeId)), partial: true },
       };
     },
     print: (line) => {

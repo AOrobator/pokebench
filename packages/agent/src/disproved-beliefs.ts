@@ -18,7 +18,7 @@ interface Base {readonly key:string;readonly map:string;readonly room:string;rea
 interface PushBack extends Base {readonly kind:"push_back";readonly from:Point;readonly to:Point;readonly direction:string;action:string;conversation:Conversation}
 interface Absent extends Base {readonly kind:"absent";readonly name:string;claim:Shown&{readonly action:string};readout:Readout;conversation:Conversation|null}
 type Entry=PushBack|Absent;
-interface Readout {readonly turn:number;readonly seq:number;readonly map:string;readonly room:string;readonly absent:readonly string[];readonly line:string}
+interface Readout {readonly turn:number;readonly seq:number;readonly map:string;readonly mapId:string;readonly room:string;readonly absent:readonly string[];readonly line:string}
 
 const GAME_TOOLS=new Set(["observe","press","navigate_to"]);
 const STEP:Readonly<Record<string,Point>>={UP:{x:0,y:-1},DOWN:{x:0,y:1},LEFT:{x:-1,y:0},RIGHT:{x:1,y:0}};
@@ -125,7 +125,7 @@ export class DisprovedBeliefs {
   const presence=CHARACTERS.exec(event.text);
   if(presence!==null){
    const absent=(presence[1]??"").split(",").map(n=>n.trim()).filter(n=>n!==""&&n!=="none");
-   this.readout={turn:event.turn,seq:event.seq,map,room:roomOf(state,this.features),absent,line:presence[0]};
+   this.readout={turn:event.turn,seq:event.seq,map,mapId:state.map_id?.join("/")??"",room:roomOf(state,this.features),absent,line:presence[0]};
    for(const entry of this.entries.values())if(entry.kind==="absent"&&entry.map===map&&!absent.includes(entry.name))this.entries.delete(entry.key);
   } else if(this.readout?.map!==map)this.readout=null;
   if(state.position!==null)for(const entry of this.entries.values())if(entry.kind==="push_back"&&entry.map===map&&same(state.position,{x:entry.from.x+(STEP[entry.direction]?.x??0),y:entry.from.y+(STEP[entry.direction]?.y??0)}))this.entries.delete(entry.key);
@@ -196,15 +196,17 @@ export class DisprovedBeliefs {
   this.entries.set(key,{kind:"push_back",key,map,room:roomOf(state,this.features),story:storyKey(state),order:this.order++,turns:[event.turn],seqs:[call.seq,...call.presses,event.seq],from,to,direction,action,conversation});
  }
 
- // A claim counts only when the same reply acts on it: a navigate_to to exactly the claimed tile. Words
+ // A claim counts only when the same reply acts on it: a navigate_to to exactly the claimed tile on this map. Words
  // alone (which a later sentence may retract) are never the pursuit.
  private claims(turn:number,seq:number,text:string,calls:readonly {readonly name:string;readonly args:unknown}[]):void {
   const readout=this.readout;
   if(readout===null||text==="")return;
   const walks=calls.flatMap(c=>{
    if(c.name!=="navigate_to"||typeof c.args!=="object"||c.args===null)return [];
-   const args=c.args as Record<string,unknown>,x=args["x"],y=args["y"];
-   return typeof x==="number"&&typeof y==="number"?[{x,y}]:[];
+   const args=c.args as Record<string,unknown>,x=args["x"],y=args["y"],mapId=args["map_id"];
+   // The same coordinates on another map are another tile.
+   const onMap=Array.isArray(mapId)&&mapId.join("/")===readout.mapId;
+   return onMap&&typeof x==="number"&&typeof y==="number"?[{x,y}]:[];
   });
   for(const name of readout.absent){
    const pursued=locatingClaims(text,name).flatMap(sentence=>{

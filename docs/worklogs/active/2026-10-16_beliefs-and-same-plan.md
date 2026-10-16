@@ -170,7 +170,7 @@ Report per switch: id, model-facing before/after excerpts from this run, precisi
 
 - Grok: LGTM. Claude CLI: LGTM.
 - Codex: BLOCKING: the walk check ignores navigate_to's map_id.
-- Accepted: the walk's map_id must equal the readout's map. 2026-10-16 1:30 PM EDT round-10 RED: 1 failing test.
+- Accepted: the walk's map_id must equal the readout's map. 2026-10-16 1:30 PM EDT round-10 RED: 1 failing test. COMMIT (60b34c50). 1:40 PM EDT GREEN: map_id checked; full-run replay unchanged (4 entries, all true; 205 deliveries); agent 1619 tests 97.96/94.47/98.38/99.15, viewer 904 tests 95.32/91.10/93.62/97.62; lint clean; pages-check silent; Python unchanged (no Python edits).
 
 ## Surprises
 

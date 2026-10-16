@@ -98,3 +98,4 @@ explainers/low-hp-trainer-warning-v2.html served=ad3ca69d4c46cc46c368f6ec3c32f0f
 - Synced main f7ee1bae (ineffective-loops-v1): positional tests from the registry; explorer-guidance-v2's main-switch filter also excludes v2; cross-map-goal.json and ineffective-loops.json incumbents gain low-hp-trainer-warning-v2 OFF; v2 incumbent gains ineffective-loops-v1 OFF. agent 2043/2043.
 - Synced main 6db26e44 (ineffective-loops pin, bundle membership): clean merge.
 - Switchboard 95 rows; viewer 1031/1031.
+- Codex r8 (only blocker; Claude and Grok LGTM): features.test round-trip now uses 2·ceil(log2 N) bit groups instead of N rows; every switch is off in a distinct set of groups. features 26/26. Next: pipeline r9, proof, review round 9.

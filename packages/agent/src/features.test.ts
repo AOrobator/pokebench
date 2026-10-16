@@ -29,13 +29,21 @@ it("retains the legacy information list while adding mandatory raw recording", (
   expect(playHarnessFeatures(off("explorer-guidance-v2","ineffective-loops-v1","cross-map-goal-v1","surf-gated-exits-v1","readout-truth-v1","birch-speech-pages-v1","blackout-readout-v1","transition-coherence-v1","pushback-loop-detection-v1","pushback-press-result-v1","battle-observation-loop-v1","briefing-battle-outcomes-v1","blocked-exit-fact-v1","battle-loss-recap-v1","people-ledger-v1","trainer-heal-guidance-v1","low-hp-trainer-warning-v1","low-hp-trainer-warning-v2","briefing-exits-v1","untaken-exits-v1","levelup-box-v1","disproved-beliefs-v1","same-plan-breaker-v1","navigation-truth-v1","navigation-refusal-reasons-v2","script-line-presence-v1","battle-message-waiting-v1","battle-text-auto-advance-v1","offscreen-objects-v1","navigate-first-prompt-v1","presence-penalty-v1","in-game-naming-readout-v1","no-nickname-guidance-v1","connection-edge-tiles-v1","explorer-guidance-v1","readout-rules-in-prompt-v1","adjacent-tiles-v1","battle-triage-guidance-v1","warp-arrival-settle-v1","dialogue-context-kept-v1","displayed-place-names-v1","transition-loop-detection-v1","blocked-batch-result-v1","navigation-evidence-memory-v1","game-evidence-priority-v1","dialogue-log-v1","loop-guard-supervisor-v1","instruction-ledger-v1","next-milestone-hint-v1","double-context-window-v1","fresh-retry-v1","named-warp-destinations-v1","milestone-stall-stop-v1","text-only-supervisor-v1","character-presence-v1","navigation-refusal-reasons-v1","transition-press-result-v1","stall-briefing-v1","battle-details-v2","dialogue-auto-advance-v1","field-dialogue-phase-v1","dialogue-safe-batches-v1","interaction-loop-detection-v1","automatic-running-v1","expanded-menu-battle-information-v1","state-only-decisions-v1","named-interactions-v1","world-destinations-v1","bounded-navigation-v1","ledge-hops-v1","one-way-tiles-v1","counter-talk-v1","walkable-floor-v1","full-map-navigation-v1","grass-cost-navigation-v1","elevation-transitions-v1"), "PLAYER_NAME_CONFIRMED")).toEqual([...recorded.slice(0, 33), "native-target-stop-v1", ...recorded.slice(33)]);
 });
 
-it("drops exactly the switched-off id and round-trips through recorded features", () => {
+it("drops exactly the switched-off ids and round-trips through recorded features", () => {
+  // Each switch is off in a distinct set of these groups (by the bits of its index, and their complements), so a switch that
+  // dropped or recorded the wrong id fails a group; the number of round trips grows with log N, not N.
   const all = playHarnessFeatures(ALL_ON, null);
-  for (const id of SWITCHABLE_FEATURES) {
-    const list = playHarnessFeatures(off(id), null);
+  const groups: (typeof SWITCHABLE_FEATURES)[number][][] = [];
+  for (let bit = 1; bit < SWITCHABLE_FEATURES.length; bit *= 2) {
+    groups.push(SWITCHABLE_FEATURES.filter((_, i) => (i & bit) !== 0), SWITCHABLE_FEATURES.filter((_, i) => (i & bit) === 0));
+  }
+  expect(groups.length).toBeLessThanOrEqual(2 * Math.ceil(Math.log2(SWITCHABLE_FEATURES.length)));
+  for (const id of SWITCHABLE_FEATURES) expect(groups.filter((g) => g.includes(id)).length).toBeGreaterThan(0);
+  for (const ids of groups) {
+    const list = playHarnessFeatures(off(...ids), null);
     const kept = new Set(list);
-    expect(all.filter((item) => !kept.has(item))).toEqual([id]);
-    expect(featuresOf(list)).toEqual(off(id));
+    expect(all.filter((item) => !kept.has(item)).sort()).toEqual([...ids].sort());
+    expect(featuresOf(list)).toEqual(off(...ids));
   }
 });
 

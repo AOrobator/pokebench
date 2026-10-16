@@ -388,6 +388,14 @@ describe("battle-text-auto-advance-v1 registry and production wiring",()=>{
   expect(normalizeFeatures({...rest,[ID]:true})[ID]).toBe(true);
  });
 
+ it("is the last key wherever a preset or default lists switches, after readout-rules-in-prompt-v1 as in the registry",()=>{
+  const later=new Set<string>(["battle-triage-guidance-v1","adjacent-tiles-v1","readout-rules-in-prompt-v1",ID]);
+  const old=Object.fromEntries(Object.entries(ALL_ON).filter(([id])=>!later.has(id))) as Omit<FeatureSet,"battle-triage-guidance-v1"|"adjacent-tiles-v1"|"readout-rules-in-prompt-v1"|typeof ID>;
+  expect(Object.keys(normalizeFeatures(old)).at(-1)).toBe(ID);
+  expect(Object.keys(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:true})).at(-1)).toBe(ID);
+  expect(SWITCHABLE_FEATURES.indexOf(ID)).toBe(SWITCHABLE_FEATURES.indexOf("readout-rules-in-prompt-v1")+1);
+ });
+
  it("tells the model only when ON",()=>{
   expect(playSystemPrompt(ON,null)).toContain("Battle text auto-advance: in a battle the harness also advances the battle messages itself");
   expect(playSystemPrompt(OFF,null)).not.toContain("Battle text auto-advance");

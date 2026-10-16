@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Briefing battle outcomes</title>
+<style>
+:root{
+ --bg:#f7f6f2; --fg:#1c1d1f; --soft:#5b5d61; --rule:#dedcd5; --panel:#ffffff;
+ --game:#1a7f5a; --game-bg:#e3f4ec; --prior:#c2432f; --prior-bg:#fbe7e2; --nav:#2a62c9; --nav-bg:#e4edfb; --hot:#c2432f;
+ --wall:#9b968a; --ground:#eef0e6; --grass:#cfe6c0;
+ --body:system-ui,-apple-system,"Segoe UI",sans-serif; --mono:ui-monospace,"SF Mono",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+ --bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; --hot:#ff7a63;
+ --wall:#55585e; --ground:#1f2420; --grass:#24361f; color-scheme:dark}}
+:root[data-theme="dark"]{
+ --bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; --hot:#ff7a63;
+ --wall:#55585e; --ground:#1f2420; --grass:#24361f; color-scheme:dark}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.6 var(--body);padding:0 16px}
+main{max-width:760px;margin:0 auto;padding:40px 0 64px;display:flex;flex-direction:column;gap:34px}
+h1{font-size:2.2rem;line-height:1.15;margin:0}
+h2{font-size:1.3rem;margin:0}
+p{margin:0;max-width:68ch}
+ul{margin:0;padding-left:20px}
+.eyebrow{font:500 .75rem var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--soft)}
+.lede{font-size:1.08rem;color:var(--soft)}
+section{display:flex;flex-direction:column;gap:12px}
+figure{margin:0;display:flex;flex-direction:column;gap:8px}
+.scroll{overflow-x:auto}
+svg{display:block;max-width:100%;height:auto}
+figcaption{font-size:.88rem;color:var(--soft)}
+svg text{font-family:var(--body);font-size:12px;fill:var(--fg)}
+svg .s{fill:var(--soft);font-size:11px}
+svg .t{font-weight:600;font-size:13px}
+svg .m{font-family:var(--mono);font-size:11px}
+svg .big{font-family:var(--mono);font-size:16px;font-weight:600}
+.box{fill:var(--panel);stroke:var(--rule)}
+.game{fill:var(--game-bg);stroke:var(--game)}
+.prior{fill:var(--prior-bg);stroke:var(--prior)}
+.navb{fill:var(--nav-bg);stroke:var(--nav)}
+.hot{stroke:var(--hot);stroke-width:2.4}
+.wall{fill:var(--wall);stroke:var(--rule)}
+.ground{fill:var(--ground);stroke:var(--rule)}
+.grass{fill:var(--grass);stroke:var(--rule)}
+.arr{stroke:var(--soft);stroke-width:1.5;fill:none}
+.arr.p{stroke:var(--prior);stroke-width:2.2}
+.arr.g{stroke:var(--game);stroke-width:2.2}
+pre{background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:14px;white-space:pre;overflow-x:auto;font:12.5px/1.45 var(--mono);margin:0}
+pre .add{background:var(--game-bg);color:var(--game);font-weight:600}
+code{font:500 .88em var(--mono);background:var(--panel);border:1px solid var(--rule);border-radius:4px;padding:0 4px}
+table{border-collapse:collapse;width:100%;font-size:.9rem}
+th,td{text-align:left;padding:7px 9px;border-bottom:1px solid var(--rule);vertical-align:top}
+th{font:500 .75rem var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--soft)}
+.tablewrap{overflow-x:auto}
+</style>
+</head>
+<body>
+<main>
+<header style="display:flex;flex-direction:column;gap:10px">
+<div class="eyebrow">Harness switch · briefing-battle-outcomes-v1 · guard · default off, meant ON in both arms</div>
+<h1>Briefing battle outcomes</h1>
+<p class="lede">The supervisor briefings now say whether the last battle against a story character was won or lost, and whether the player whited out, from recorded game state.</p>
+</header>
+<section><h2>What it fixes</h2>
+<p>In run 54a7 the model lost to MAY on ROUTE103 at turn 371 (TORCHIC at 3/21 HP), whited out and woke in its house. The stall briefings at T418 and T484 then said only "Last story progress: route 103 at turn 347". Nothing in them said a story battle had been lost. This switch is a briefing bug fix: it is meant ON in both arms, like transition-loop-detection-v1.</p></section>
+<figure><div class="scroll"><svg viewBox="0 0 720 150" role="img" aria-label="Turns of run 54a7 with the last story progress, the lost battle and the briefings">
+<line x1="30" y1="70" x2="700" y2="70" class="arr"/>
+<g><rect x="220" y="55" width="8" height="30" class="game"/><text x="224" y="105" text-anchor="middle" class="s">T347</text><text x="224" y="45" text-anchor="middle">ROUTE 103 (last progress)</text></g>
+<g><rect x="262" y="55" width="8" height="30" class="prior"/><text x="266" y="120" text-anchor="middle" class="s">T371</text><text x="300" y="30" text-anchor="middle">lost to MAY, whited out</text></g>
+<g><rect x="320" y="60" width="6" height="20" class="navb"/><text x="323" y="105" text-anchor="middle" class="s">T418</text></g>
+<g><rect x="400" y="60" width="6" height="20" class="navb"/><text x="403" y="105" text-anchor="middle" class="s">T484</text></g>
+<g><rect x="497" y="60" width="6" height="20" class="navb"/><text x="500" y="105" text-anchor="middle" class="s">T563</text></g>
+<g><rect x="553" y="60" width="6" height="20" class="navb"/><text x="556" y="105" text-anchor="middle" class="s">T609</text></g>
+<text x="440" y="140" text-anchor="middle" class="s">blue: stall briefings; OFF they all say only "Last story progress: route 103 at turn 347"</text>
+</svg></div><figcaption>Run 54a7. The four briefings after T371 gain the loss and the whiteout. Before T371 the lines say none were recorded.</figcaption></figure>
+<section><h2>Before and after (54a7, stall briefing seq 11729, T484)</h2>
+<p>OFF (the recorded message, first lines):</p><pre>SUPERVISOR: You are stalling. There has been no new story milestone for 15 minutes of play, and the game is not moving forward (stall briefing, 484 calls into the run). What you have been trying is not working, so do not try it again.
+Stop and get your bearings:
+- Where you are: OLDALE TOWN (map 0/10) at 1,10 facing right
+- Last story progress: route 103 at turn 347 (137 turns ago)
+- Characters the readout names here: MANIAC at 1,11
+- Story steps the game confirms are done: player name confirmed; Mom clock instruction received; clock set; Mom rival instruction received; rival met; sent to save Birch; Birch rescue complete; Birch starter handoff complete</pre>
+<p>ON (the two added lines are highlighted; the rest is byte-identical):</p><pre>SUPERVISOR: You are stalling. There has been no new story milestone for 15 minutes of play, and the game is not moving forward (stall briefing, 484 calls into the run). What you have been trying is not working, so do not try it again.
+Stop and get your bearings:
+- Where you are: OLDALE TOWN (map 0/10) at 1,10 facing right
+- Last story progress: route 103 at turn 347 (137 turns ago)
+<span class="add">- Latest battle against a story character: you lost to MAY (trainer 535) on ROUTE103 (map 0/18) at turn 371</span>
+<span class="add">- Latest whiteout: at turn 371, after losing to MAY (trainer 535) on ROUTE103 (map 0/18); the game returned you to GREE&#x27;s HOUSE 2F (map 1/1)</span>
+- Characters the readout names here: MANIAC at 1,11
+- Story steps the game confirms are done: player name confirmed; Mom clock instruction received; clock set; Mom rival instruction received; rival met; sent to save Birch; Birch rescue complete; Birch starter handoff complete</pre></section>
+<section><h2>Where the facts come from</h2>
+<ul>
+<li><b>Outcome</b>: <code>battle.outcome</code> as the game wrote it (<code>gBattleOutcome</code>; 54a7 state seq 8967 reads "lost", code 2). When no recorded state caught the outcome, a trainer battle is a win once that trainer's defeated flag reads set afterwards; otherwise the line says the outcome was not read.</li>
+<li><b>Who</b>: <code>trainer_opponent</code> (measurement <code>trainer-opponent-v1</code>, below). A story character is a trainer whose ROM name is in the character-presence list (PROF. BIRCH, MAY, BRENDAN, MOM, NORMAN, WALLY, ROXANNE, STEVEN).</li>
+<li><b>Whiteout</b>: a lost or drawn battle followed by the overworld on another map; the place is the room name the readout uses (displayed names: GREE's HOUSE 2F).</li>
+<li>Reused, not duplicated: <code>RIVAL_BATTLE_STARTED</code> / <code>RIVAL_BATTLE_DEFEATED</code> (route103-rival-splits-v1) stay measurement-only milestones and are not counted as story progress. They name no trainer and cover only the Route 103 rival, so the briefing reads the general reading.</li>
+</ul></section>
+<section><h2>trainer-opponent-v1 (measurement)</h2>
+<p>Every state records the trainer the game last set up a battle against. pokeemerald 731ad5bf: <code>gTrainerBattleOpponent_A</code> (0x02038BCA, the address route103_rival.py already verified) is set by the trainerbattle command and reset only by trainer_see.c, so it still names the opponent after the battle and the whiteout. Its <code>gTrainers</code> entry (ROM 0x08310030, 0x28 bytes; class at +1, <code>trainerName</code> at +4) was checked on the real ROM against opponents.h: 1 SAWYER, 265 ROXANNE, 520 BRENDAN, 529 and 535 MAY. The defeated flag is <code>TRAINER_FLAGS_START + id</code>. The readout text and the loop guard do not read it. 54a7 and sh02 predate it, so their replays use the same reading reparsed offline from each state's own raw RAM archive.</p>
+<pre>{&quot;trainer_id&quot;: 535, &quot;trainer_class&quot;: 50, &quot;name&quot;: &quot;MAY&quot;, &quot;defeated&quot;: false, &quot;battle_active&quot;: true}</pre></section>
+<figure><div class="scroll"><svg viewBox="0 0 720 170" role="img" aria-label="Wiring from recorded state events to the briefing lines">
+<rect x="10" y="20" width="160" height="56" rx="6" class="box"/><text x="90" y="42" text-anchor="middle" class="t">game server state</text><text x="90" y="60" text-anchor="middle" class="s">battle.outcome, trainer_opponent</text>
+<rect x="200" y="20" width="150" height="56" rx="6" class="box"/><text x="275" y="42" text-anchor="middle" class="t">recorded state events</text><text x="275" y="60" text-anchor="middle" class="s">events.jsonl</text>
+<rect x="380" y="20" width="150" height="56" rx="6" class="game"/><text x="455" y="42" text-anchor="middle" class="t">BattleOutcomes</text><text x="455" y="60" text-anchor="middle" class="s">battle-outcomes.ts</text>
+<rect x="560" y="20" width="150" height="56" rx="6" class="box"/><text x="635" y="42" text-anchor="middle" class="t">SupervisorBriefing</text><text x="635" y="60" text-anchor="middle" class="s">lastProgress() + 2 lines</text>
+<line x1="170" y1="48" x2="200" y2="48" class="arr g"/><line x1="350" y1="48" x2="380" y2="48" class="arr g"/><line x1="530" y1="48" x2="560" y2="48" class="arr g"/>
+<rect x="380" y="100" width="330" height="50" rx="6" class="navb"/><text x="545" y="122" text-anchor="middle">loop guard · stall briefing · text-only supervisor</text><text x="545" y="140" text-anchor="middle" class="s">every briefing that shows "Last story progress"</text>
+<line x1="635" y1="76" x2="635" y2="100" class="arr g"/>
+</svg></div><figcaption>Only the green box is new behaviour. The switch is read once, in the SupervisorBriefing constructor, from the run's FeatureSet.</figcaption></figure>
+<section><h2>Every supervisor note on the two runs</h2>
+<p>OFF must equal the recorded message; ON adds two lines. 22 of 22 notes reproduce byte for byte with the switch off.</p>
+<div class="tablewrap"><table><tr><th>seq</th><th>turn</th><th>kind</th><th>OFF identical</th><th>story battle line</th><th>whiteout line</th></tr><tr><td>2491</td><td>T114</td><td>milestone_drought</td><td>yes</td><td>none recorded in this run</td><td>none recorded in this run</td></tr><tr><td>2746</td><td>T125</td><td>ineffective</td><td>yes</td><td>none recorded in this run</td><td>none recorded in this run</td></tr><tr><td>3091</td><td>T143</td><td>map_cycle</td><td>yes</td><td>none recorded in this run</td><td>none recorded in this run</td></tr><tr><td>5243</td><td>T216</td><td>ineffective</td><td>yes</td><td>none recorded in this run</td><td>none recorded in this run</td></tr><tr><td>6785</td><td>T277</td><td>milestone_drought</td><td>yes</td><td>none recorded in this run</td><td>none recorded in this run</td></tr><tr><td>8157</td><td>T343</td><td>milestone_drought</td><td>yes</td><td>none recorded in this run</td><td>none recorded in this run</td></tr><tr><td>8827</td><td>T366</td><td>milestone_drought</td><td>yes</td><td>none recorded in this run</td><td>none recorded in this run</td></tr><tr><td>10226</td><td>T418</td><td>milestone_drought</td><td>yes</td><td>you lost to MAY (trainer 535) on ROUTE103 (map 0/18) at turn 371</td><td>at turn 371, after losing to MAY (trainer 535) on ROUTE103 (map 0/18); the game returned you to GREE&#x27;s HOUSE 2F (map 1/1)</td></tr><tr><td>11729</td><td>T484</td><td>milestone_drought</td><td>yes</td><td>you lost to MAY (trainer 535) on ROUTE103 (map 0/18) at turn 371</td><td>at turn 371, after losing to MAY (trainer 535) on ROUTE103 (map 0/18); the game returned you to GREE&#x27;s HOUSE 2F (map 1/1)</td></tr><tr><td>12904</td><td>T563</td><td>milestone_drought</td><td>yes</td><td>you lost to MAY (trainer 535) on ROUTE103 (map 0/18) at turn 371</td><td>at turn 371, after losing to MAY (trainer 535) on ROUTE103 (map 0/18); the game returned you to GREE&#x27;s HOUSE 2F (map 1/1)</td></tr><tr><td>14273</td><td>T609</td><td>milestone_drought</td><td>yes</td><td>you lost to MAY (trainer 535) on ROUTE103 (map 0/18) at turn 371</td><td>at turn 371, after losing to MAY (trainer 535) on ROUTE103 (map 0/18); the game returned you to GREE&#x27;s HOUSE 2F (map 1/1)</td></tr><tr><td>2783</td><td>T134</td><td>map_cycle</td><td>yes</td><td>none recorded in this run</td><td>none recorded in this run</td></tr><tr><td>3616</td><td>T171</td><td>milestone_drought</td><td>yes</td><td>none recorded in this run</td><td>none recorded in this run</td></tr><tr><td>7272</td><td>T307</td><td>milestone_drought</td><td>yes</td><td>none recorded in this run</td><td>none recorded in this run</td></tr><tr><td>11928</td><td>T716</td><td>milestone_drought</td><td>yes</td><td>none recorded in this run</td><td>none recorded in this run</td></tr><tr><td>13429</td><td>T810</td><td>ineffective</td><td>yes</td><td>none recorded in this run</td><td>none recorded in this run</td></tr><tr><td>13516</td><td>T814</td><td>milestone_drought</td><td>yes</td><td>none recorded in this run</td><td>none recorded in this run</td></tr><tr><td>14264</td><td>T862</td><td>ineffective</td><td>yes</td><td>none recorded in this run</td><td>none recorded in this run</td></tr><tr><td>15000</td><td>T887</td><td>milestone_drought</td><td>yes</td><td>none recorded in this run</td><td>none recorded in this run</td></tr><tr><td>18028</td><td>T1061</td><td>cycle</td><td>yes</td><td>you won against MAY (trainer 535) on ROUTE103 (map 0/18) at turn 954</td><td>none recorded in this run</td></tr><tr><td>18599</td><td>T1086</td><td>milestone_drought</td><td>yes</td><td>you won against MAY (trainer 535) on ROUTE103 (map 0/18) at turn 954</td><td>none recorded in this run</td></tr><tr><td>18701</td><td>T1091</td><td>ineffective</td><td>yes</td><td>you won against MAY (trainer 535) on ROUTE103 (map 0/18) at turn 954</td><td>none recorded in this run</td></tr></table></div>
+<p>The first eleven rows are 54a7, the last eleven sh02 (which beat MAY at T954).</p></section>
+<section><h2>Status</h2>
+<p>Branch <code>claude/blocked-exit-and-loss</code>. Gates: <code>just test</code>, <code>just lint</code>, <code>just build</code>, <code>just coverage</code> (90% floor). Replays on recorded runs 54a7 and sh02 only; no measured runs, no live probe (lane freeze until 10 AM). The pending experiment entry is registered, not queued; only the operator approves runs.</p></section>
+</main>
+</body>
+</html>

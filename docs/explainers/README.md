@@ -57,3 +57,6 @@ The original ignored runs/explainers copies remain for existing links. Make futu
 - [Off-screen people and objects](offscreen-objects-v1.html)
 - [navigate_to first prompting](navigate-first-prompt-v1.html)
 - [Presence penalty 1.5](presence-penalty-v1.html)
+- [Briefing battle outcomes and the trainer opponent reading](briefing-battle-outcomes-v1.html)
+- [Blocked exit fact](blocked-exit-fact-v1.html)
+- [Battle loss recap](battle-loss-recap-v1.html)

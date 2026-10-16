@@ -796,3 +796,21 @@ it("links the script line presence card to its tracked explainer, which shows th
  expect(html).toContain("1. turn 259 · ROUTE101 (map 0/16) · at 11,19: \"H-help me!\"");
  expect(html).toContain("(no speaker shown by the game; on screen: PROF. BIRCH (sprite PROF_BIRCH) at 4,13; ZIGZAGOON_1 at 5,13; BIRCHS_BAG at 7,14)");
 });
+
+it("links the blocked exit, battle loss recap, briefing battle outcomes and trainer opponent cards to their tracked explainers",()=>{
+ const cases:readonly(readonly[string,string,readonly string[]])[]=[
+  ["blocked-exit-fact-v1","blocked-exit-fact-v1.html",["Blocked exit: WEST -&gt; ROUTE102 (map 0/17). When you last tried it, at turn 247","0x081E903F"]],
+  ["battle-loss-recap-v1","battle-loss-recap-v1.html",["Battle recap: you lost to MAY (trainer 535) on ROUTE103 (map 0/18) at turn 371 and whited out"]],
+  ["briefing-battle-outcomes-v1","briefing-battle-outcomes-v1.html",["- Latest battle against a story character: you lost to MAY (trainer 535) on ROUTE103 (map 0/18) at turn 371"]],
+  ["trainer-opponent-v1","briefing-battle-outcomes-v1.html",["0x08310030","gTrainerBattleOpponent_A"]],
+ ];
+ for(const [id,file,quotes] of cases){
+  expect(FEATURE_EXPLAINERS[id]).toBe(file);
+  const log=new Log();log.add(0,{...START,harness_features:["ram-state-v1","coordinate-script-conditions-v1",id]});
+  const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
+  expect(doc.querySelector(`[data-feature="${id}"] a`)?.getAttribute("href")).toBe(`/explainers/${file}`);
+  const html=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${file}`,import.meta.url)),"utf8");
+  expect(html).toContain(id);
+  for(const quote of quotes)expect(html).toContain(quote);
+ }
+});

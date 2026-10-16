@@ -395,6 +395,10 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "offscreen-objects-v1":"offscreen-objects-v1.html",
  "navigate-first-prompt-v1":"navigate-first-prompt-v1.html",
  "presence-penalty-v1":"presence-penalty-v1.html",
+ "briefing-battle-outcomes-v1":"briefing-battle-outcomes-v1.html",
+ "trainer-opponent-v1":"briefing-battle-outcomes-v1.html",
+ "blocked-exit-fact-v1":"blocked-exit-fact-v1.html",
+ "battle-loss-recap-v1":"battle-loss-recap-v1.html",
 });
 
 export function harnessConfig(view:RunView,registry:readonly FeatureInfo[]=[]):string {

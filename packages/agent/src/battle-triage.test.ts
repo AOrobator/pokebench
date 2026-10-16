@@ -7,6 +7,7 @@ import { flagFeatures, parsePlayPreset, presetFeatures } from "./play-preset.js"
 const ID = "battle-triage-guidance-v1";
 const sha = (text: string): string => createHash("sha256").update(text).digest("hex");
 const with_ = (features: FeatureSet, value: boolean): FeatureSet => ({ ...features, [ID]: value });
+const PLAYABLE: FeatureSet = { ...ALL_ON, "state-only-decisions-v1": false };
 
 // run_start of 2026-10-16T00-34-26_qwen36-gpu1_show (7 wild battles, 0 fled, blackout at turn 768).
 const SHOW_FEATURES = ["ram-state-v1", "live-map-v1", "field-control-lock", "naming-cursor-v1", "live-object-sprites-v1", "coordinate-script-conditions-v1", "active-field-message-buffer-v1", "world-targets-v1", "named-interactions-v1", "world-destinations-v1", "bounded-navigation-v1", "live-player-position-v1", "world-coordinate-grid-v1", "field-dialogue-phase-v1", "interaction-loop-detection-v1", "press-result-v1", "warp-activation-guidance-v1", "ledge-hops-v1", "one-way-tiles-v1", "clock-milestone-v1", "story-state-v1", "active-ui-ownership-v1", "story-milestones-v2", "new-game-created-v1", "post-clock-navigation-milestones-v1", "rustboro-gym-trainer-milestones-v1", "native-progress-activity-v1", "battle-choices-v1", "continuous-battle-state-v1", "validated-pokemon-v1", "menu-observability-v1", "native-action-history-v1", "full-raw-ram-v1", "remaining-native-milestones-v1", "birch-rescue-requested-v1", "rival-house-exit-v1", "route-101-after-handoff-v1", "deterministic-loop-diagnostics-v1", "deterministic-loop-policy-v1:p6:o3:a3:c3:r2:recovery6", "deterministic-loop-guard-v1", "contextual-interface-docs-v1", "elevation-transitions-v1", "game-evidence-priority-v1", "loop-guard-supervisor-v1", "named-warp-destinations-v1", "text-only-supervisor-v1", "character-presence-v1", "navigation-refusal-reasons-v1", "transition-press-result-v1", "stall-briefing-v1", "dialogue-auto-advance-v1"];
@@ -28,8 +29,8 @@ it("registers a default-off guidance switch the game server applies, recorded la
 });
 
 it("reads presets and legacy flags without the switch as OFF and keeps an explicit ON", () => {
-  const v2 = { version: 2, id: "triage", target: null, limits: { maxTurns: 300, maxWallMs: 1800000, failureLimit: 3 }, sampling: { thinkingLevel: "medium", maxTokens: 4096 }, features: { ...ALL_ON } as Record<string, boolean> };
-  delete v2.features[ID];
+  const v2 = { version: 2, id: "triage", target: null, limits: { maxTurns: 300, maxWallMs: 1800000, failureLimit: 3 }, sampling: { thinkingLevel: "medium", maxTokens: 4096 }, features: Object.fromEntries(Object.entries(PLAYABLE).filter(([id]) => id !== ID)) };
+  expect(ID in v2.features).toBe(false);
   expect(presetFeatures(parsePlayPreset(v2))[ID]).toBe(false);
   expect(presetFeatures(parsePlayPreset({ ...v2, features: { ...v2.features, [ID]: true } }))[ID]).toBe(true);
   expect(flagFeatures({ loopGuard: true, activeUi: true, interfaceDocs: true, objectives: true })[ID]).toBe(false);
@@ -66,11 +67,11 @@ it("states the battle menu, when to run and how to heal, without destinations or
 });
 
 it("a v2 preset reaches the production prompt and server env (factory path)", () => {
-  const preset = parsePlayPreset({ version: 2, id: "triage-on", target: null, limits: { maxTurns: 300, maxWallMs: 1800000, failureLimit: 3 }, sampling: { thinkingLevel: "medium", maxTokens: 4096 }, features: { ...ALL_ON } });
+  const preset = parsePlayPreset({ version: 2, id: "triage-on", target: null, limits: { maxTurns: 300, maxWallMs: 1800000, failureLimit: 3 }, sampling: { thinkingLevel: "medium", maxTokens: 4096 }, features: { ...PLAYABLE } });
   const on = presetFeatures(preset);
   expect(playSystemPrompt(on, null)).toContain(BATTLE_TRIAGE_SECTION);
   expect(serverFeatureEnv(on).POKEBENCH_FEATURES_OFF.split(",")).not.toContain(ID);
-  const off = presetFeatures(parsePlayPreset({ ...preset, features: with_(ALL_ON, false) }));
+  const off = presetFeatures(parsePlayPreset({ ...preset, features: with_(PLAYABLE, false) }));
   expect(playSystemPrompt(off, null)).not.toContain("Battles and healing");
   expect(serverFeatureEnv(off).POKEBENCH_FEATURES_OFF.split(",")).toContain(ID);
 });

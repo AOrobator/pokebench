@@ -25,9 +25,10 @@ Branch `claude/battle-triage-guidance` in `/private/tmp/pokebench-battle-triage`
 ## Milestones
 
 **M1 — switch, RED, GREEN**
-- [ ] Switch registered (guidance, default OFF), presets, DEFAULT_NEXT_RUN, prompt wiring through playSystemPrompt, result wiring through toolSwitches
+- [x] Switch registered (guidance, default OFF), presets, DEFAULT_NEXT_RUN, prompt wiring through playSystemPrompt, result wiring through toolSwitches
 - [x] RED: OFF prompt and results byte-identical; ON prompt section; battle line only when below half and RUN allowed (not trainer, not the Birch rescue, from battle RAM); overworld line below half; factory tests; wiring-removal check
-- [ ] GREEN, gates (test, lint, build, coverage ≥90, verify-vendor)
+  COMMIT: `test(battle-triage): RED own-HP run and heal guidance (switch battle-triage-guidance-v1, default off)` (3c5a147a)
+- [x] GREEN, gates (test, lint, build, coverage ≥90, verify-vendor)
 
 **M2 — explainer and review**
 - [ ] Explainer `docs/explainers/battle-triage-guidance-v1.html`, FEATURE_EXPLAINERS mapping, pending `experiments/battle-triage-guidance.json`
@@ -38,3 +39,7 @@ Branch `claude/battle-triage-guidance` in `/private/tmp/pokebench-battle-triage`
 
 - 2026-10-16 01:59 AM EDT: worklog drafted, awaiting the operator's OK.
 - 2026-10-16 02:10 AM EDT: approved by the parent session; M1 started. RED: `env/tests/env/test_battle_triage.py` (import of `run_verdict` / `battle_triage` fails), `packages/agent/src/battle-triage.test.ts` (6 failing: registry, presets, OFF prompt sha of the showcase run, ON section, copy, preset→prompt/server-env factory path), `packages/viewer/src/next-run.test.ts` (DEFAULT_NEXT_RUN off: 1 failing).
+- 2026-10-16 02:35 AM EDT: GREEN. `run_verdict`/`RunVerdict` factored out of battle-details-v2's `_run` (text byte-identical; all battle-details-v2 tests unchanged and green); `env/pokebench_env/battle_triage.py` owns threshold and copy; readout wiring under `battle-triage-guidance-v1`; `rerender.read_state` reads battle details when either switch is on; registry/presets/DEFAULT_NEXT_RUN/SERVER_FEATURES (both stacks, Python default-off); `BATTLE_TRIAGE_SECTION` via `playSystemPrompt`. Two RED test bugs fixed in GREEN: the placement assertion compared against the world `Party (player)` line instead of the battle-details `Party (game party slots):` block; presets built from bare `ALL_ON` tripped the state-only dependency check (now `state-only-decisions-v1` off). Registry-position churn: `.at(-N)` shifted by one in features/blocked-batch/transition-loop/dialogue-context-kept/dialogue-auto-advance tests; legacy off-lists, guidance count 27, switchboard row count 58, v1-flag expectations, next-run preset literals, Python SERVER_FEATURES length 27 and default-off set, character-presence OFF route test now also turns triage off (the battle-details reader is called while triage is on), rerender dc0e fixture records triage off (run predates it).
+  - Wiring-removal checks: deleting the `playSystemPrompt` line → 2 TS tests red; deleting the readout battle-line call → 5 Python tests red; reverting `rerender` to battle-details-only → 2 red (route + rerender); restored → green.
+  - Tests: agent 1406 passed (88 files), viewer 794 passed (60 files), Python 2040 passed / 2 skipped (test_rerender needs POKEBENCH_ROM; the worktree has no `.env`, and running it with the ROM path was refused by the permission system: unverified here).
+  - Gates: `just test` green; `just lint` green except mypy `mgba._pylib` import-not-found in the worktree venv (known); `just build` green; `just coverage` agent stmts 97.73 / branches 94.56 / funcs 97.98 / lines 99.08, viewer 95.10 / 90.45 / 93.59 / 97.60, Python lines 97.09 / branches 92.70 / functions 100 (battle_triage.py and battle_details.py 100%); `just verify-vendor` OK (submodule initialised from the local main checkout's copy, pin bbab97ad).

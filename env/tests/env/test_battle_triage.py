@@ -16,8 +16,8 @@ from pokebench_env import rerender
 from pokebench_env.battle_details import run_verdict
 from pokebench_env.battle_triage import (
     SWITCH,
-    below_half,
     battle_triage_lines,
+    below_half,
     field_triage_line,
 )
 from pokebench_env.pokemon import PartyMon
@@ -52,7 +52,7 @@ def test_wild_battle_below_half_names_run_and_where_it_is() -> None:
     lines = text.split("\n")
     assert LOW in lines
     assert lines.index(LOW) < lines.index("Player: MAY")
-    assert lines.index(LOW) > max(i for i, line in enumerate(lines) if line.startswith("Party ("))
+    assert lines.index(LOW) > lines.index("Party (game party slots):")
     assert "Talking to the nurse" not in text
 
 
@@ -134,10 +134,15 @@ def test_needs_an_open_battle_menu_and_readable_details() -> None:
     assert battle_triage_lines(replace(battle, player_inputs=(), phase="resolving"), details) == []
     assert battle_triage_lines(replace(battle, player_inputs=None), details) == []
     (choice,) = battle.player_inputs or ()
-    assert battle_triage_lines(replace(battle, player_inputs=(replace(choice, ready=False),)), details) == []
+    assert (
+        battle_triage_lines(replace(battle, player_inputs=(replace(choice, ready=False),)), details)
+        == []
+    )
     for phase, shown in (("move", True), ("yes_no", False), ("target", False)):
         inputs = (replace(choice, phase=phase),)
-        assert (battle_triage_lines(replace(battle, player_inputs=inputs), details) == [LOW]) is shown
+        assert (
+            battle_triage_lines(replace(battle, player_inputs=inputs), details) == [LOW]
+        ) is shown
     gone = tuple(replace(b, absent=True) for b in battle.battlers or ())
     assert battle_triage_lines(replace(battle, battlers=gone), details) == []
     assert battle_triage_lines(replace(battle, battlers=None), details) == []
@@ -232,4 +237,6 @@ def test_production_observation_route_honours_the_switch(monkeypatch: pytest.Mon
         texts[off] = json.loads(body)["state_text"]
     assert LOW in texts["battle-details-v2"].split("\n")
     assert LOW not in texts[f"battle-details-v2,{SWITCH}"]
-    assert texts[f"battle-details-v2,{SWITCH}"] == texts["battle-details-v2"].replace(f"\n{LOW}", "")
+    assert texts[f"battle-details-v2,{SWITCH}"] == texts["battle-details-v2"].replace(
+        f"\n{LOW}", ""
+    )

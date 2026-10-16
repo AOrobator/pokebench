@@ -9,24 +9,25 @@ import {roomKey} from "./dialogue-log.js";
 type Place=Pick<GameStateSnapshot,"started"|"screen"|"location"|"map_id"|"position"|"interaction_targets"|"topology">;
 type Target=NonNullable<GameStateSnapshot["interaction_targets"]>[number];
 type Connection=NonNullable<GameStateSnapshot["topology"]>["connections"][number];
-interface Seen {readonly room:string;readonly map:string;readonly x:number;readonly y:number;readonly warps:readonly Target[];readonly connections:readonly Connection[]}
+interface Seen {readonly room:string;readonly map:string;readonly x:number;readonly y:number;readonly warps:readonly Warp[];readonly connections:readonly Connection[]}
 export interface ExitMark {readonly room:string;readonly map:string;readonly tile:string}
 
 export const mapKey=(id:readonly number[]):string=>id.slice(0,2).join("/");
 export const tileKey=(x:number,y:number):string=>`${String(x)},${String(y)}`;
 // MAP_DYNAMIC (127/127): the destination is the game's own dynamic warp, so it may lead to any map.
 const DYNAMIC="127/127";
-const destinationOf=(warp:Target):string=>JSON.stringify(warp.destination);
+const destinationOf=(warp:Warp):string=>JSON.stringify(warp.destination);
 
-export function warpsOf(state:Pick<GameStateSnapshot,"interaction_targets">):Target[] {
- return (state.interaction_targets??[]).filter(t=>t.kind==="warp"&&t.destination!==null);
+export type Warp=Target&{readonly destination:NonNullable<Target["destination"]>};
+export function warpsOf(state:Pick<GameStateSnapshot,"interaction_targets">):Warp[] {
+ return (state.interaction_targets??[]).filter((t):t is Warp=>t.kind==="warp"&&t.destination!==null);
 }
 
 // The warps on a map that lead to `to` and were used from (x,y), with their same-destination siblings.
-export function usedWarps(warps:readonly Target[],x:number,y:number,to:string):Target[] {
- const toward=warps.filter(w=>w.destination!==null&&(mapKey(w.destination)===to||mapKey(w.destination)===DYNAMIC));
+export function usedWarps(warps:readonly Warp[],x:number,y:number,to:string):Warp[] {
+ const toward=warps.filter(w=>mapKey(w.destination)===to||mapKey(w.destination)===DYNAMIC);
  const near=toward.filter(w=>Math.abs(w.x-x)+Math.abs(w.y-y)<=1);
- const exact=toward.filter(w=>w.destination!==null&&mapKey(w.destination)===to);
+ const exact=toward.filter(w=>mapKey(w.destination)===to);
  const chosen=near.length>0?near:new Set(exact.map(destinationOf)).size===1?exact:[];
  const destinations=new Set(chosen.map(destinationOf));
  return toward.filter(w=>destinations.has(destinationOf(w)));

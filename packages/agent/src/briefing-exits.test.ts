@@ -6,7 +6,7 @@ import {ALL_ON,FEATURES,dependencyProblems,featureInfo,featuresOf,playHarnessFea
 import {flagFeatures,normalizeFeatures} from "./play-preset.js";
 import {SupervisorBriefing,type Stall} from "./loop-supervisor.js";
 import {loopSupervisor,stallBriefing,textOnlySupervisor} from "./play-wiring.js";
-import {ExitHistory,readoutNames,usedWarps} from "./exit-history.js";
+import {ExitHistory,readoutNames,usedWarps,type Warp} from "./exit-history.js";
 import {checkEvent,type RunEvent} from "./events.js";
 import {IN_GAME} from "../test-support/events.js";
 
@@ -85,9 +85,8 @@ describe("briefing-exits-v1 on cook #2 (sh02): the recorded stall briefings at s
 });
 
 describe("exit history",()=>{
- type Target=NonNullable<Extract<RunEvent,{type:"state";started:boolean}>["interaction_targets"]>[number];
- const warp=(x:number,y:number,destination:[number,number,number]):Target=>({kind:"warp",x,y,elevation:0,activation:"movement",availability:"conditional",facing:null,local_id:null,destination,name:`Warp to map ${String(destination[0])}/${String(destination[1])}`});
- const place=(map:[number,number],x:number,y:number,warps:Target[],extra:Record<string,unknown>={})=>({started:true,screen:"overworld" as const,location:`MAP ${map.join("/")}`,map_id:map,position:{x,y},interaction_targets:warps,topology:null,...extra});
+ const warp=(x:number,y:number,destination:[number,number,number]):Warp=>({kind:"warp",x,y,elevation:0,activation:"movement",availability:"conditional",facing:null,local_id:null,destination,name:`Warp to map ${String(destination[0])}/${String(destination[1])}`});
+ const place=(map:[number,number],x:number,y:number,warps:Warp[],extra:Record<string,unknown>={})=>({started:true,screen:"overworld" as const,location:`MAP ${map.join("/")}`,map_id:map,position:{x,y},interaction_targets:warps,topology:null,...extra});
  const TOWN=[warp(14,8,[1,2,1]),warp(7,16,[1,4,0]),warp(5,8,[1,0,1])];
  const HOUSE=[warp(1,8,[0,9,0]),warp(2,8,[0,9,0]),warp(2,2,[1,3,0])];
 
@@ -226,5 +225,29 @@ describe("briefing-exits-v1 registry and presets",()=>{
   const {[ID]:omitted,...rest}=ALL_ON;expect(omitted).toBe(true);
   expect(normalizeFeatures(rest as Parameters<typeof normalizeFeatures>[0])[ID]).toBe(false);
   expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false})[ID]).toBe(false);
+ });
+});
+
+describe("briefing-exits-v1: where you are during a battle (sh02 T417-T716)",()=>{
+ // Same run, seq 9630-11928, trimmed the same way. The last overworld result was seq 9644 (T417, at 11,21); from then on
+ // every result showed the wild battle on ROUTE103 with the player at (11,13) (state seq 11926), and the
+ // milestone_drought briefing at seq 11928 (T716) said "at 11,21".
+ const events=gunzipSync(readFileSync(fileURLToPath(new URL("./fixtures/briefing-battle-sh02.jsonl.gz",import.meta.url)))).toString("utf8").trim().split("\n").map(l=>JSON.parse(l) as RunEvent);
+ const where=(features:FeatureSet)=>{
+  const b=new SupervisorBriefing(features);let recorded="",text="";
+  for(const e of events){
+   if(e.type==="loop_guard"&&e.seq===11928){recorded=line(e.message,"- Where you are");text=line(b.stallText({kind:"milestone_drought",minutes:5},e.calls),"- Where you are");continue;}
+   b.observe(e);
+  }
+  return {recorded,text,loop:line(b.text("cycle",713),"- Where you are"),textOnly:line(b.textOnly(2,1,3),"- Where you are")};
+ };
+ it("OFF keeps today's stale line, as recorded",()=>{
+  const off=where(RECORDED);
+  expect(off.recorded).toBe("- Where you are: ROUTE103 (map 0/18) at 11,21 facing right");
+  expect(off.text).toBe(off.recorded);
+ });
+ it("ON uses the position the game shows now and says the player is in a battle",()=>{
+  const on=where({...RECORDED,[ID]:true});
+  for(const l of [on.text,on.loop,on.textOnly])expect(l).toBe("- Where you are: ROUTE103 (map 0/18) in battle at 11,13");
  });
 });

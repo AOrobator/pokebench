@@ -32,7 +32,6 @@ export class UntakenExits {
   const map=mapKey(state.map_id);
   const groups=new Map<string,{tiles:string[];destination:readonly number[];taken:boolean}>();
   for(const warp of warpsOf(state)){
-   if(warp.destination===null)continue;
    const key=JSON.stringify(warp.destination);
    const group=groups.get(key)??{tiles:[],destination:warp.destination,taken:false};
    group.tiles.push(`(${tileKey(warp.x,warp.y)})`);

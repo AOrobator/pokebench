@@ -114,6 +114,18 @@ describe("untaken-exits-v1 production wiring",()=>{
   expect(await text(tools,"observe")).toBe(readout);
   expect(withUntakenExits(base,OFF,r)).toEqual(base);
  });
+ it("ON leaves other tools, results without a state and results without a Location line alone; annotates navigate_to",async()=>{
+  const r=recorder();
+  const other=tool("get_dialogue");
+  const bare:AgentTool={...tool("observe"),execute:()=>Promise.resolve({content:[{type:"text",text:readout}],details:{}})};
+  const noLocation:AgentTool={...tool("press"),execute:()=>Promise.resolve({content:[{type:"text",text:"Screen: overworld"}],details:{state:snapshot}})};
+  const [o,b,p,n]=withUntakenExits([other,bare,noLocation,tool("navigate_to")],{...OFF,[ID]:true},r);
+  expect(o).toBe(other);
+  expect(await text([b as AgentTool],"observe")).toBe(readout);
+  expect(await text([p as AgentTool],"press")).toBe("Screen: overworld");
+  expect(await text([n as AgentTool],"navigate_to")).toContain("Exits here you have not taken: (1,0) -> map 4/4");
+  expect(new UntakenExits(ALL_ON).line({...snapshot,topology:null},"")).toBe("Exits here you have not taken: (1,0) -> map 4/4");
+ });
  it("ON annotates observe and press results through playGameTools and learns history from the recorder",async()=>{
   const r=recorder();
   const tools=playGameTools([tool("observe"),checked()],{...OFF,[ID]:true},{read:()=>Promise.resolve(snapshot)},r);

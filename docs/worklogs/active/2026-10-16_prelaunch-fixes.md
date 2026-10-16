@@ -77,6 +77,7 @@ Done when every milestone is merged, qualification shows none of F1–F8, the fo
 
 ## Session Log
 
+- 2026-10-16 04:09 AM EDT: displayed names everywhere merged on main (4b8a37d1, Codex/grok approved by the "Long runs vs significance review" thread), under displayed-place-names-v1 (on in both arms; no definition change). Incoming on-in-both fixes: battle-message-waiting-v1, a loop-guard fix for observes in battle and pushbacks.
 - 2026-10-16 04:00 AM EDT: adjacent-tiles-v1 merged on main (a100eda5, Claude/Codex/grok approved by its thread); added to the bundle switches (off in base).
 - 2026-10-16 03:50 AM EDT: The operator put walkable-floor-v1 (existing switch; cook #2 had navigate_to call rug tiles unwalkable 13 times) in the bundle; the "Cook run 2 rival house exit" thread builds more bundle fixes (pushback press result, briefings that stop listing used exits, room exploration, a loop-guard fix).
 - 2026-10-16 03:45 AM EDT: battle-triage-guidance-v1 merged on main (9f744e40, Claude/Codex/grok approved by its thread); added to bundle-v-control switches (off in base).

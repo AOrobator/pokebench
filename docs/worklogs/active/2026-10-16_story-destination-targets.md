@@ -71,3 +71,5 @@ Read-only GET on the loopback game server; reads ROM and the save block under th
 
 ## Archive Milestone (user-gated)
 - [ ] ASK USER
+- 2026-10-16 ~3:35 PM EDT: merged main e349269c (depth order, frontier versions; no conflicts) into the branch (8225d35d). Gates with the ROM: agent 1903, viewer 1002, pytest 2485 passed, 0 skipped; coverage agent 98.00/94.47/98.46/99.15, viewer 95.56/91.32/93.91/97.75, Python 97.55/93.61/100; tsc, eslint, ruff, mypy clean. Main then moved to 986cb496 (viewer legend only); merging that before sealing the review packet.
+- 2026-10-16 ~3:45 PM EDT: merged main 986cb496 (viewer legend only, clean). Gates with the ROM: agent 1903, viewer 1003, pytest 2485 passed, 0 skipped; coverage agent 98.00/94.47/98.46/99.15, viewer 95.57/91.33/93.97/97.75, Python 97.55/93.61/100; lint clean; build ok. Principles self-review r1 (PB1–PB13): zero FAIL (PB1, PB2 N/A; the rest PASS; artifact .cache/review/principles-r1.md). Sealing the round-1 packet: git diff --binary main HEAD.

@@ -139,8 +139,8 @@ No new network surface: the server field rides the existing state endpoint on 12
 - [x] COMMIT: `feat(people-id-cards): GREEN card model, switch registration and prompt line` (see Session Log)
 
 **M2 — Delivery: readout block, ledger row, prompt, event, viewer**
-- [ ] Write tests: factory test through `playGameTools` (block after the ledger block, compact suffix on the row, composition with untaken-exits and the navigate-first reminder part); prompt section ON/absent OFF; `people_id_card` event per card; viewer Activity History text and trace label; OFF byte-identity (INV-1)
-- [ ] COMMIT: RED
+- [x] Write tests (`people-id-cards-delivery.test.ts`, viewer `trace.test.ts`, `timeline.test.ts`): factory test through `playGameTools` (block after the ledger block, compact suffix on the row, composition with untaken-exits and the navigate-first reminder part); prompt section ON/absent OFF; `people_id_card` event per card; viewer Activity History text and trace label; OFF byte-identity (INV-1)
+- [x] COMMIT: `test(people-id-cards): RED delivery, event and Activity History` (see Session Log)
 - [ ] Implement wrapper, prompt section, event + `just schema`, recorder, tail, viewer model/panels/trace
 - [ ] Wiring-removal check: drop the wrapper from `playGameTools`, factory test red, restore; receipt recorded
 - [ ] Gates as M1
@@ -174,6 +174,7 @@ No new network surface: the server field rides the existing state endpoint on 12
 ## Session Log
 
 - 2026-10-16 4:50 PM EDT: worklog with operator decisions committed. COMMIT: `docs(worklog): people-id-cards-v1 design with the operator's decisions (approved 4:47 PM EDT)` (66b6dc0d)
+- M1 COMMITS: RED `test(people-id-cards): RED card model, triggers and registration on runs 4caa and f551` (c1c398b7); GREEN `feat(people-id-cards): GREEN card model, switch registration and prompt line` (2d1169d6).
 - 2026-10-16 ~5:05 PM EDT: synced with main cefacbf1 (fast-forward). RED: card model tests on recorded runs; module absent, suite fails to import.
 
 - 2026-10-16 (EDT): discovery and design only; worklog drafted in the worktree, not committed. Card prototype run over 4caa in the session scratchpad (not tracked).

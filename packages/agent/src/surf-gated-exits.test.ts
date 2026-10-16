@@ -171,7 +171,7 @@ describe("surf-gated-exits-v1 production wiring",()=>{
  const snapshot={...ROUTE,surf_gate:GATED} satisfies GameStateSnapshot;
  const readout="Screen: overworld\nLocation: ROUTE103\nPosition: X=10, Y=21, facing up\nMoney: 1";
  const tool=(name:string):AgentTool=>({name,label:name,description:name,parameters:{},execute:()=>Promise.resolve({content:[{type:"text",text:readout}],details:{state:snapshot}})});
- const recorder=()=>{const observers:((e:RunEvent)=>void)[]=[];return {observers,lowHpTrainerWarning:()=>undefined,recordState:()=>({seq:1,turn:1}),recordDialogueAutoAdvance:()=>({seq:1,turn:1}),textOnlySupervisor:()=>undefined,subscribe:(fn:(e:RunEvent)=>void)=>{observers.push(fn);}};};
+ const recorder=()=>{const observers:((e:RunEvent)=>void)[]=[];return {observers,lowHpTrainerWarning:()=>undefined,peopleIdCard:()=>undefined,recordState:()=>({seq:1,turn:1}),recordDialogueAutoAdvance:()=>({seq:1,turn:1}),textOnlySupervisor:()=>undefined,subscribe:(fn:(e:RunEvent)=>void)=>{observers.push(fn);}};};
  const text=async(tools:readonly AgentTool[])=>{const r=await tools.find(t=>t.name==="observe")?.execute("id",{});const part=r?.content[0];return part?.type==="text"?part.text:"";};
  it("playGameTools passes the switch to the untaken-exits line",async()=>{
   expect(await text(playGameTools([tool("observe")],{...BASE,[ID]:true},{read:()=>Promise.resolve(snapshot)},recorder()))).toContain("Exits here you have not taken: (3,3) -> map 2/2; SOUTH edge -> map 0/10\n");

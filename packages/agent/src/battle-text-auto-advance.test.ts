@@ -90,7 +90,7 @@ function fakeClock():Clock&{t:number}{const c={t:0,now:()=>c.t,sleep:(ms:number)
 function memoryRecorder(){
  const events:RunEvent[]=[];const subs:((e:RunEvent)=>void)[]=[];let seq=0;
  const push=(body:Record<string,unknown>)=>{const e={v:1,run:"r",seq:++seq,t:"2026-10-16T02:00:00.000-04:00",turn:722,...body} as RunEvent;events.push(e);for(const s of subs)s(e);return {seq:e.seq,turn:722};};
- const api:AutoAdvanceRecorder&{lowHpTrainerWarning:()=>void}={lowHpTrainerWarning:()=>undefined,recordState:s=>push({type:"state",...s}),recordDialogueAutoAdvance:b=>push({type:"dialogue_auto_advance",...b}),subscribe:o=>{subs.push(o);}};
+ const api:AutoAdvanceRecorder&{lowHpTrainerWarning:()=>void;peopleIdCard:()=>void}={lowHpTrainerWarning:()=>undefined,peopleIdCard:()=>undefined,recordState:s=>push({type:"state",...s}),recordDialogueAutoAdvance:b=>push({type:"dialogue_auto_advance",...b}),subscribe:o=>{subs.push(o);}};
  return {events,api,advances:()=>events.filter((e):e is Extract<RunEvent,{type:"dialogue_auto_advance"}>=>e.type==="dialogue_auto_advance")};
 }
 function wire(server:ScriptServer,features:FeatureSet=ON,extra:AgentTool[]=[],clock=fakeClock()){

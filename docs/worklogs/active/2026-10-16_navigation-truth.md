@@ -90,6 +90,8 @@ Report branch, frozen head, packet sha256, verdicts, gates, switch ids and inten
 
 - 2026-10-16: merged main 4070e250 (bundle-v-control control base, experiments only), clean. experiments-check OK; agent and viewer tests pass (no code changed).
 
+- 2026-10-16: merged main 4c805958 (viewer harness-version colors), clean. Gates: lint, build, experiments-check OK; agent 1933 passed; viewer 994 passed with coverage 97.74/91.30/93.89; python unchanged from the prior gate (env untouched by the merge).
+
 ## Principles Adherence (rounds 1-2; round 2 packet base main be428cdb)
 
 | ID | Score | Evidence |

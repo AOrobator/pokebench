@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Warp Arrival Settle</title>
+<style>
+:root{
+ --bg:#f7f6f2; --fg:#1c1d1f; --soft:#5b5d61; --rule:#dedcd5; --panel:#ffffff;
+ --game:#1a7f5a; --game-bg:#e3f4ec; --prior:#c2432f; --prior-bg:#fbe7e2; --nav:#2a62c9; --nav-bg:#e4edfb;
+ --fade:#b7791f; --fade-bg:#fbf0dc; --black:#3a3c40;
+ --body:system-ui,-apple-system,"Segoe UI",sans-serif; --mono:ui-monospace,"SF Mono",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+ --bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740;
+ --fade:#f0b35a; --fade-bg:#3a2c14; --black:#8a8d93; color-scheme:dark}}
+:root[data-theme="dark"]{
+ --bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740;
+ --fade:#f0b35a; --fade-bg:#3a2c14; --black:#8a8d93; color-scheme:dark}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.6 var(--body);padding:0 16px}
+main{max-width:760px;margin:0 auto;padding:40px 0 64px;display:flex;flex-direction:column;gap:34px}
+h1{font-size:2.2rem;line-height:1.15;margin:0}
+h2{font-size:1.3rem;margin:0}
+p{margin:0;max-width:68ch}
+.eyebrow{font:500 .75rem var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--soft)}
+.lede{font-size:1.08rem;color:var(--soft)}
+section{display:flex;flex-direction:column;gap:12px}
+figure{margin:0;display:flex;flex-direction:column;gap:8px}
+.scroll{overflow-x:auto}
+svg{display:block;max-width:100%;height:auto}
+figcaption{font-size:.88rem;color:var(--soft)}
+svg text{font-family:var(--body);font-size:12px;fill:var(--fg)}
+svg .s{fill:var(--soft);font-size:11px}
+svg .t{font-weight:600;font-size:13px}
+.box{fill:var(--panel);stroke:var(--rule)}
+.warp{fill:var(--nav-bg);stroke:var(--nav)}
+.fade{fill:var(--fade-bg);stroke:var(--fade)}
+.blk{fill:var(--black);stroke:var(--black)}
+.game{fill:var(--game-bg);stroke:var(--game)}
+.prior{fill:var(--prior-bg);stroke:var(--prior)}
+.mark-off{stroke:var(--prior);stroke-width:2.5}
+.mark-on{stroke:var(--game);stroke-width:2.5}
+.arr{stroke:var(--soft);stroke-width:1.5;fill:none}
+pre{background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:14px;white-space:pre-wrap;font:13px/1.5 var(--mono);margin:0}
+code{font:500 .88em var(--mono);background:var(--panel);border:1px solid var(--rule);border-radius:4px;padding:0 4px}
+table{border-collapse:collapse;width:100%;font-size:.92rem}
+th,td{text-align:left;padding:7px 9px;border-bottom:1px solid var(--rule);vertical-align:top}
+th{font:500 .75rem var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--soft)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:640px){.two{grid-template-columns:1fr}}
+.lbl{font:500 .75rem var(--mono);letter-spacing:.06em;text-transform:uppercase}
+.lbl.off{color:var(--prior)} .lbl.on{color:var(--game)}
+</style>
+</head>
+<body>
+<main>
+<div>
+<div class="eyebrow">Harness switch · observation · <code>warp-arrival-settle-v1</code> · server side · off by default · bundle arm only</div>
+<h1>Warp arrival settle</h1>
+</div>
+<p class="lede">After a door, stairs or warp, the observation now waits, one emulated frame at a time, until the game's own door/warp task lets go of the player. The model then sees the arrival tile on the new map with field controls free, instead of a frame from the middle of the animation labelled as a dialog, menu or script lock.</p>
+
+<section>
+<h2>Why: today's settle stops at the wrong moment</h2>
+<p>The fade settle waits only while the palette is fading or all black. A door has long stretches where neither is true but the game still holds the player: the door opens and the player walks in before any fade starts, and after the fade-in the player walks out and the door closes. A capture there reads <code>Field controls: locked (dialog, menu, or script; direction presses cannot move)</code>. In control-2919 this happened at T100 (2F stairs), T143 (house door), T185 (lab door, the model was never told it entered) and T200–T247 (lab exit).</p>
+<figure>
+<div class="scroll">
+<svg viewBox="0 0 720 250" width="720" role="img" aria-label="Lab door entry timeline in emulated frames">
+ <text x="10" y="18" class="t">Littleroot → Birch's lab door, measured on the real ROM (frames after the lock is set)</text>
+ <text x="10" y="58">warp task + lock</text>
+ <rect x="150" y="44" width="253" height="20" class="warp"/><text x="156" y="58" class="s">Task_DoDoorWarp 0–57</text>
+ <rect x="403" y="44" width="151" height="20" class="warp"/><text x="408" y="58" class="s">WarpAndLoadMap 57–91</text>
+ <rect x="554" y="44" width="40" height="20" class="box"/><text x="557" y="58" class="s">none</text>
+ <rect x="594" y="44" width="106" height="20" class="warp"/><text x="598" y="58" class="s">ExitNonDoor</text><text x="598" y="38" class="s">100–124</text>
+ <text x="10" y="98">palette fading</text>
+ <rect x="403" y="84" width="93" height="20" class="fade"/><text x="408" y="98" class="s">57–78</text>
+ <rect x="594" y="84" width="97" height="20" class="fade"/><text x="598" y="98" class="s">100–122</text>
+ <text x="10" y="138">palette all black</text>
+ <rect x="478" y="124" width="129" height="20" class="blk"/><text x="520" y="138" class="s" style="fill:var(--bg)">74–103</text>
+ <line x1="150" y1="170" x2="700" y2="170" class="arr"/>
+ <text x="146" y="186" class="s">0</text><text x="397" y="186" class="s">57</text><text x="548" y="186" class="s">91</text><text x="690" y="186" class="s">124</text>
+ <line x1="290" y1="36" x2="290" y2="200" class="mark-off"/>
+ <text x="196" y="216" style="fill:var(--prior)">OFF: settled at once here</text>
+ <text x="196" y="232" class="s">(no fade, not black; the lock is the door)</text>
+ <line x1="700" y1="36" x2="700" y2="200" class="mark-on"/>
+ <text x="560" y="232" style="fill:var(--game)">ON: captured at 124</text>
+</svg>
+</div>
+<figcaption>Per-frame trace on the real ROM from the CLOCK_SET save (scratch tracer, read-only). OFF captures anywhere in 0–57 (and in 122–124) because neither the fade nor the black-palette rule holds. ON keeps waiting while a warp task is live with the lock set, and the black frames between the load task and the exit task are already covered by the fade rule.</figcaption>
+</figure>
+</section>
+
+<section>
+<h2>The rule, per emulated frame</h2>
+<figure>
+<div class="scroll">
+<svg viewBox="0 0 720 230" width="720" role="img" aria-label="Settle decision per emulated frame">
+ <rect x="10" y="20" width="200" height="56" class="box" rx="6"/>
+ <text x="22" y="42" class="t">field controls locked</text><text x="22" y="62" class="s">0x03000F2C ≠ 0, and</text>
+ <rect x="10" y="90" width="200" height="74" class="warp" rx="6"/>
+ <text x="22" y="112" class="t">a warp task is live</text><text x="22" y="130" class="s">gTasks 0x03005E00, 16 × 0x28,</text><text x="22" y="146" class="s">func in the five addresses below</text>
+ <text x="230" y="100" class="t">OR</text>
+ <rect x="270" y="20" width="200" height="56" class="fade" rx="6"/>
+ <text x="282" y="42" class="t">palette fade active</text><text x="282" y="62" class="s">gPaletteFade byte 7 bit 7</text>
+ <rect x="270" y="90" width="200" height="56" class="fade" rx="6"/>
+ <text x="282" y="112" class="t">palette RAM all zero</text><text x="282" y="132" class="s">0x05000000, 0x400 bytes</text>
+ <path d="M470 90 H520" class="arr"/>
+ <rect x="520" y="20" width="190" height="72" class="prior" rx="6"/>
+ <text x="532" y="42" class="t">hold the observation</text><text x="532" y="62" class="s">until the bound: 300 frames once</text><text x="532" y="78" class="s">a warp task was seen, else 146</text>
+ <rect x="520" y="110" width="190" height="56" class="game" rx="6"/>
+ <text x="532" y="132" class="t">otherwise capture now</text><text x="532" y="152" class="s">and record settle frames/reason</text>
+ <text x="10" y="196" class="s">A script, message or menu lock with no warp task fails the left box, so it is captured at once and keeps today's label.</text>
+ <text x="10" y="214" class="s">OFF evaluates only the two fade boxes, exactly as before.</text>
+</svg>
+</div>
+<figcaption>The hook runs after each emulated frame under the vendor memory lock and only while an observation waits. No wall-clock sleeps. An operator pause still releases a waiting observation at once.</figcaption>
+</figure>
+<table>
+<tr><th>Task (pret <code>field_screen_effect.c</code>)</th><th>Address</th><th>When</th></tr>
+<tr><td><code>Task_DoDoorWarp</code> (677)</td><td><code>0x080AFA89</code></td><td>door opens, player walks in, door closes</td></tr>
+<tr><td><code>Task_WarpAndLoadMap</code> (646)</td><td><code>0x080AFA0D</code></td><td>fade out, music stop, map load</td></tr>
+<tr><td><code>Task_ExitDoor</code> (317)</td><td><code>0x080AF439</code></td><td>fade in, walk out of a door, door closes</td></tr>
+<tr><td><code>Task_ExitNonAnimDoor</code> (366)</td><td><code>0x080AF551</code></td><td>fade in, one step off stairs</td></tr>
+<tr><td><code>Task_ExitNonDoor</code> (404)</td><td><code>0x080AF611</code></td><td>fade in on a mat or other arrival</td></tr>
+</table>
+<p>Receipt: each address is the only value referenced from the matching ROM literal pools (US ROM <code>f3ae0881…</code>; <code>Task_WarpAndLoadMap</code> has exactly the 8 references the source predicts), each starts with a Thumb <code>push {…, lr}</code>, they appear in source order, and the live trace sees each one at the expected moment. Details: <code>docs/findings/2026-10-16_warp-arrival-settle.md</code>.</p>
+</section>
+
+<section>
+<h2>Bound</h2>
+<table>
+<tr><th>Warp (real ROM)</th><th>Frames, lock to unlock</th></tr>
+<tr><td>2F → 1F stairs</td><td>75</td></tr>
+<tr><td>1F → 2F stairs</td><td>74</td></tr>
+<tr><td>House door → Littleroot</td><td>95</td></tr>
+<tr><td>Littleroot → Birch's lab</td><td>124</td></tr>
+<tr><td>Birch's lab → Littleroot</td><td>137</td></tr>
+</table>
+<p>The warp bound is 300 frames, about 2.2 times the longest measured chain. The slowest recorded lane ran at 42.8 frames/s, so a bound hit costs at most about 7 s, under the agent's 15 s observation timeout. If the bound is hit, the observation is returned anyway with the lock line <code>Field controls: locked (door/stairs/warp animation still running; observe again)</code>. Fade-only waits keep their 146-frame bound.</p>
+</section>
+
+<section>
+<h2>What the model reads (real ROM probe, same press, switch off and on)</h2>
+<p>The probe replays control-2919 T185: <code>LEFT, LEFT, UP</code> from Littleroot (9,17) into the lab door, through the production press tool and game server on port 8041.</p>
+<div class="two">
+<figure>
+<div class="lbl off">Off · probe 2026-10-16T01-24-17_probe_f982 seq 28</div>
+<pre>pressed LEFT, LEFT, UP
+Press result: moved (9,17) -> (7,16)
+…
+Location: LITTLEROOT TOWN
+Position: X=7, Y=16, facing up
+…
+Field controls: locked (dialog, menu, or script; direction presses cannot move)</pre>
+</figure>
+<figure>
+<div class="lbl on">On · probe 2026-10-16T01-24-07_probe_cc89 seq 28</div>
+<pre>pressed LEFT, LEFT, UP
+Press result: transitioned (map or screen changed)
+…
+Location: LITTLEROOT TOWN PROFESSOR BIRCHS LAB
+Position: X=6, Y=12, facing up
+…
+Field controls: available (terrain and objects can still block a direction)</pre>
+</figure>
+</div>
+<figcaption>The off text is identical to what control-2919 recorded at T185. On, the observation waited 82 emulated frames (<code>settle: {frames: 82, reason: "warp"}</code>). The lab exit waited 90 frames and arrived at (7,17) with controls available; the 1F→2F stairs waited 22 frames and arrived at 2F (7,2); 2F→1F waited 36 and arrived at (8,3). With the switch off, the 2F→1F capture was taken at 1F (8,2), locked, mid step.</figcaption>
+<p>The probe's press tool has transition press results off. In the bundle arm, <code>transition-press-result-v1</code> is on as well, so the same press reads <code>warped during this press: LITTLEROOT TOWN [map 0/9] (9,17) -> LITTLEROOT TOWN PROFESSOR BIRCHS LAB [map 1/4] (6,12)</code>. This switch also stops an interface owner in either snapshot from hiding a warp (bundle-3f21 T157, where the press began mid map load): <code>warped during this press (the map change was already under way when it began): LITTLEROOT TOWN [map 0/9] (7,16) -> LITTLEROOT TOWN PROFESSOR BIRCHS LAB [map 1/4] (6,12)</code>.</p>
+</section>
+
+<section>
+<h2>Recorded fields</h2>
+<p>With the switch on, every observation's state carries <code>settle: {frames, reason}</code>, recorded in the run's <code>state</code> events. Reasons: <code>immediate</code> (nothing to wait for), <code>fade</code>, <code>warp</code> (waited and the screen settled), <code>fade_bound</code>, <code>warp_bound</code> (captured at the bound), <code>paused</code> (released by an operator pause). Off, the field is absent and the payload is unchanged.</p>
+</section>
+
+<section>
+<h2>Limits</h2>
+<p>Escalators, spin warps, falls, the Lavaridge gym and link rooms use other tasks and are only held by the fade rule. An arrival that starts a cutscene is held until the exit task ends; the cutscene's lock then reads as today's script lock. The human server has no settle; its readout still names a warp animation lock truthfully.</p>
+</section>
+
+<section>
+<h2>Status</h2>
+<p>Branch <code>claude/warp-arrival-settle</code>. Tests on control-2919 archived RAM (seq 1383, 2010, 2884, 3165/3166 held until the unlocked arrival; MOM's dialogue lock at seq 1126 captured at once), the bound, pause release, the observation route, the press results and the production wiring; real-ROM probes on the lab door and the house stairs with the switch on and off. ON in the bundle arm of bundle-v-control only (operator decision 2026-10-16). No measured runs yet.</p>
+</section>
+</main>
+</body>
+</html>

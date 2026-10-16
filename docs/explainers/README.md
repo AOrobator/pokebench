@@ -29,6 +29,7 @@ Tracked, local HTML documentation. Open an explainer directly; no server or exte
 - [Transition press results v1](transition-press-result-v1.html)
 - [Stall briefing v1](stall-briefing-v1.html)
 - [Battle details v2](battle-details-v2.html)
+- [Warp arrival settle v1](warp-arrival-settle-v1.html)
 - [Experiment queue](experiment-queue.html)
 - [Runs survive viewer restarts](run-survives-viewer.html)
 

@@ -10,6 +10,11 @@ docs/findings/2026-10-15_fade-settle.md.
 The settle is driven by the vendor's own frame stepping: the hook runs after
 each emulated frame (under the vendor memory lock) and only does work while an
 observation is waiting. The bound is in emulated frames.
+
+warp-arrival-settle-v1 (ON only) also waits while field controls are locked and
+one of the game's door/warp tasks is live in gTasks (pret
+src/field_screen_effect.c: Task_DoDoorWarp, Task_WarpAndLoadMap and the three
+warp-exit tasks). Address receipt: docs/findings/2026-10-16_warp-arrival-settle.md.
 """
 
 import base64
@@ -17,13 +22,15 @@ import binascii
 import threading
 from collections.abc import Callable
 from contextlib import AbstractContextManager
+from dataclasses import dataclass
 from io import BytesIO
-from typing import Generic, Protocol, TypeVar
+from typing import Generic, Literal, Protocol, TypeVar
 
 from PIL import Image, UnidentifiedImageError
 
 from pokebench_env.game_screen import ReadMemory
-from pokebench_env.menus import PALETTE_FADE
+from pokebench_env.game_state import FIELD_CONTROLS_LOCK
+from pokebench_env.menus import PALETTE_FADE, task_snapshot
 
 PALETTE_RAM = 0x05000000
 PALETTE_SIZE = 0x400
@@ -32,6 +39,23 @@ PALETTE_SIZE = 0x400
 # Bound: a full fade at delay 15. Longer fades (delayCounter is 6 bits) hit
 # the bound and the readout says the capture was still fading.
 SETTLE_BOUND_FRAMES = (15 + 1) * 9 + 2
+
+WARP_FEATURE = "warp-arrival-settle-v1"
+# Thumb task functions, US ROM f3ae0881 (ROM literal pools + live probe).
+WARP_TASKS = {
+    0x080AF439: "Task_ExitDoor",
+    0x080AF551: "Task_ExitNonAnimDoor",
+    0x080AF611: "Task_ExitNonDoor",
+    0x080AFA0D: "Task_WarpAndLoadMap",
+    0x080AFA89: "Task_DoDoorWarp",
+}
+# Longest measured chain, first locked frame to unlocked: 137 frames (Birch's
+# lab -> Littleroot). About 2.2x that, for longer music fades and weather
+# fade-ins; at the slowest recorded lane speed (42.8 frames/s) about 7 s, under
+# the agent's 15 s observation fetch timeout.
+WARP_SETTLE_BOUND_FRAMES = 300
+
+SettleReason = Literal["immediate", "paused", "fade", "warp", "fade_bound", "warp_bound"]
 
 FADING_NOTE = (
     "Frame: captured while the screen was still fading (palette fade active); "
@@ -57,6 +81,21 @@ def transitioning(read: ReadMemory) -> bool:
     return palette_fade_active(read) or palette_black(read)
 
 
+def warp_task_live(read: ReadMemory) -> bool:
+    return any(func in WARP_TASKS for _, func, _ in task_snapshot(read))
+
+
+def warp_animating(read: ReadMemory) -> bool:
+    """Field controls locked while a door/stairs/warp task holds the player."""
+    return bool(read(FIELD_CONTROLS_LOCK, 1)[0]) and warp_task_live(read)
+
+
+@dataclass(frozen=True)
+class Settled:
+    frames: int
+    reason: SettleReason
+
+
 def frame_is_black(screenshot_base64: str) -> bool:
     try:
         raw = base64.b64decode(screenshot_base64, validate=True)
@@ -77,6 +116,8 @@ class _Waiter(Generic[T]):
     def __init__(self, capture: Callable[[], T]) -> None:
         self.capture = capture
         self.frames = 0
+        self.warp = False
+        self.reason: SettleReason = "fade"
         self.done = threading.Event()
         self.released = False
         self.result: T | None = None
@@ -84,9 +125,18 @@ class _Waiter(Generic[T]):
 
 
 class FrameSettle:
-    def __init__(self, read: ReadMemory, bound_frames: int = SETTLE_BOUND_FRAMES) -> None:
+    def __init__(
+        self,
+        read: ReadMemory,
+        bound_frames: int = SETTLE_BOUND_FRAMES,
+        *,
+        warp: bool = False,
+        warp_bound_frames: int = WARP_SETTLE_BOUND_FRAMES,
+    ) -> None:
         self.read = read
         self.bound_frames = bound_frames
+        self.warp = warp
+        self.warp_bound_frames = warp_bound_frames
         self._lock = threading.Lock()
         self._waiters: list[_Waiter[object]] = []
         self._parked = False
@@ -98,7 +148,7 @@ class FrameSettle:
             if not self._waiters:
                 return
             try:
-                moving = transitioning(self.read)
+                motion = self._motion()
             except Exception as error:  # noqa: BLE001 - re-raised on the callers' threads
                 for waiter in self._waiters:
                     waiter.error = error
@@ -108,15 +158,26 @@ class FrameSettle:
             waiting: list[_Waiter[object]] = []
             for waiter in self._waiters:
                 waiter.frames += 1
-                if moving and waiter.frames < self.bound_frames:
+                waiter.warp = waiter.warp or motion == "warp"
+                bound = self.warp_bound_frames if waiter.warp else self.bound_frames
+                if motion is not None and waiter.frames < bound:
                     waiting.append(waiter)
                     continue
+                if motion is None:
+                    waiter.reason = "warp" if waiter.warp else "fade"
+                else:
+                    waiter.reason = "warp_bound" if waiter.warp else "fade_bound"
                 try:
                     waiter.result = waiter.capture()
                 except Exception as error:  # noqa: BLE001 - re-raised on the caller's thread
                     waiter.error = error
                 waiter.done.set()
             self._waiters = waiting
+
+    def _motion(self) -> Literal["warp", "fade"] | None:
+        if self.warp and warp_animating(self.read):
+            return "warp"
+        return "fade" if transitioning(self.read) else None
 
     def park(self) -> None:
         """The frame loop is parking (operator pause): no frames will come."""
@@ -140,21 +201,34 @@ class FrameSettle:
     ) -> T:
         """Run `capture` (memory lock held) now if the screen is settled,
         else on the first settled emulated frame or at the frame bound."""
+        return self.settle_traced(capture, memory_lock, on_wait)[0]
+
+    def settle_traced(
+        self,
+        capture: Callable[[], T],
+        memory_lock: AbstractContextManager[object],
+        on_wait: Callable[[], None] | None = None,
+    ) -> tuple[T, Settled]:
+        """`settle`, plus the emulated frames waited and why the wait ended."""
         with memory_lock:
             with self._lock:
-                if self._parked or not transitioning(self.read):
-                    return capture()
+                if self._parked:
+                    return capture(), Settled(0, "paused")
+                motion = self._motion()
+                if motion is None:
+                    return capture(), Settled(0, "immediate")
                 waiter: _Waiter[T] = _Waiter(capture)
+                waiter.warp = motion == "warp"
                 self._waiters.append(waiter)  # type: ignore[arg-type]
         if on_wait is not None:
             on_wait()
         waiter.done.wait()
         if waiter.released:
             with memory_lock:
-                return capture()
+                return capture(), Settled(waiter.frames, "paused")
         if waiter.error is not None:
             raise waiter.error
-        return waiter.result  # type: ignore[return-value]
+        return waiter.result, Settled(waiter.frames, waiter.reason)  # type: ignore[return-value]
 
 
 class SteppedEmulator(Protocol):

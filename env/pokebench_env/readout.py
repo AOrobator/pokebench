@@ -35,13 +35,14 @@ SERVER_FEATURES = (
     "named-warp-destinations-v1",
     "character-presence-v1",
     "battle-details-v2",
+    "warp-arrival-settle-v1",
 )
 
 
 def features_off_from_env(env: Mapping[str, str]) -> frozenset[str]:
     raw = env.get(
         "POKEBENCH_FEATURES_OFF",
-        "named-interactions-v1,world-destinations-v1,bounded-navigation-v1,expanded-menu-battle-information-v1,field-dialogue-phase-v1,full-map-navigation-v1,named-warp-destinations-v1,character-presence-v1,battle-details-v2",
+        "named-interactions-v1,world-destinations-v1,bounded-navigation-v1,expanded-menu-battle-information-v1,field-dialogue-phase-v1,full-map-navigation-v1,named-warp-destinations-v1,character-presence-v1,battle-details-v2,warp-arrival-settle-v1",
     )
     if raw == "":
         return frozenset()
@@ -50,6 +51,10 @@ def features_off_from_env(env: Mapping[str, str]) -> frozenset[str]:
         raise ValueError(f"POKEBENCH_FEATURES_OFF names an unknown observation feature: {raw!r}")
     return frozenset(ids)
 
+
+WARP_ANIMATION_LOCK = (
+    "Field controls: locked (door/stairs/warp animation still running; observe again)"
+)
 
 PRE_GAME_TEXT = "Game not started: no save data (player, location, party) exists yet."
 
@@ -85,6 +90,7 @@ def format_readout(
     bounded_navigation: bool = False,
     message_phase: bool = False,
     named_warps: bool = False,
+    warp_animation: bool = False,
 ) -> str:
     if "ram-state-v1" in off:
         return ""
@@ -249,8 +255,12 @@ def format_readout(
         f"Play time: {_clock(_play_seconds(state) or 0)}",
     ]
     if state.field_controls_locked is not None and "field-control-lock" not in off:
+        # warp-arrival-settle-v1: a lock held by the game's door/warp task is the animation.
+        animation = warp_animation and "warp-arrival-settle-v1" not in off
         lines.append(
-            "Field controls: locked (dialog, menu, or script; direction presses cannot move)"
+            WARP_ANIMATION_LOCK
+            if state.field_controls_locked and animation
+            else "Field controls: locked (dialog, menu, or script; direction presses cannot move)"
             if state.field_controls_locked
             else "Field controls: available (terrain and objects can still block a direction)"
         )

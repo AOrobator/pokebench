@@ -12,7 +12,7 @@ function interfaceProjection(state: GameStateSnapshot): string | undefined {
 // Endpoint snapshots prove net changes. They cannot prove every frame accepted
 // input or that a temporary script lock did not occur between the snapshots.
 // Facts the run's observation switches hide from the model are left out here too.
-export interface PressFacts { readonly position: boolean; readonly fieldLock: boolean; readonly transitions?: boolean }
+export interface PressFacts { readonly position: boolean; readonly fieldLock: boolean; readonly transitions?: boolean; readonly warpArrival?: boolean }
 export const ALL_PRESS_FACTS: PressFacts = { position: true, fieldLock: true };
 
 const dialogueOf = (state: GameStateSnapshot | undefined): string | null => state?.world_context?.dialogue ?? null;
@@ -61,10 +61,22 @@ const tile = (state: Placed, show: PressFacts): string => show.position ? ` (${S
 const place = (state: Placed, show: PressFacts): string => `${state.location ?? "unknown location"} [map ${String(state.map_id[0])}/${String(state.map_id[1])}]${tile(state, show)}`;
 const DIRECTIONS: readonly Button[] = ["UP", "DOWN", "LEFT", "RIGHT"];
 
+// warp-arrival-settle-v1: a map change is reported whatever interface owner a snapshot had. A before
+// snapshot taken mid map load (field_transition) is not placed, so the warp starts from the last state shown.
+function arrivalWarp(before: GameStateSnapshot, after: GameStateSnapshot, show: PressFacts, shown: ShownStates): string | null {
+  if (show.warpArrival !== true || !placed(after)) return null;
+  if (placed(before)) return sameMap(before, after) ? null : `warped during this press: ${place(before, show)} -> ${place(after, show)}`;
+  const last = shown.lastShown;
+  if (before.screen !== "field_transition" || !placed(last) || sameMap(last, after)) return null;
+  return `warped during this press (the map change was already under way when it began): ${place(last, show)} -> ${place(after, show)}`;
+}
+
 function duringPress(before: GameStateSnapshot, after: GameStateSnapshot, buttons: readonly Button[], show: PressFacts, shown: ShownStates): string {
   if ((dialogueOf(before) === null || reprinted(before, after)) && shown.timesShown(after) > 0) {
     return `conversation restarted: this text was already shown (${ordinal(shown.timesShown(after) + 1)} time)`;
   }
+  const warped = arrivalWarp(before, after, show, shown);
+  if (warped !== null) return warped;
   if (placed(before) && placed(after) && before.active_ui == null && after.active_ui == null && before.naming == null && after.naming == null) {
     if (!sameMap(before, after)) return `warped during this press: ${place(before, show)} -> ${place(after, show)}`;
     const moved = before.position.x !== after.position.x || before.position.y !== after.position.y;

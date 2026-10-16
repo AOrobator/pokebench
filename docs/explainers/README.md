@@ -75,3 +75,4 @@ The original ignored runs/explainers copies remain for existing links. Make futu
 - [Readout truth](readout-truth-v1.html)
 - [Birch speech pages](birch-speech-pages-v1.html)
 - [Whiteout notice](blackout-readout-v1.html)
+- [Cross-map goal refusal](cross-map-goal-v1.html)

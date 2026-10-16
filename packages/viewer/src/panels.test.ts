@@ -808,6 +808,14 @@ it("links the three readout-truth cards to their tracked explainers, which quote
   for(const quote of quotes)expect(html).toContain(quote);
  }
 });
+it("links the cross-map goal card to its tracked explainer, which quotes the recorded 4caa result and the new refusal",()=>{
+ expect(FEATURE_EXPLAINERS["cross-map-goal-v1"]).toBe("cross-map-goal-v1.html");
+ const log=new Log();log.add(0,{...START,harness_features:["ram-state-v1","cross-map-goal-v1"]});
+ const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
+ expect(doc.querySelector('[data-feature="cross-map-goal-v1"] a')?.getAttribute("href")).toBe("/explainers/cross-map-goal-v1.html");
+ const html=readFileSync(fileURLToPath(new URL("../../../docs/explainers/cross-map-goal-v1.html",import.meta.url)),"utf8");
+ for(const quote of ["cross-map-goal-v1","Navigation: map changed; inspect destination; 0 ordinary button attempts.","(8,0) on map 0/9 is on another map; you are on map 0/16 (ROUTE101) and navigate_to only walks within the current map","bundle arm"])expect(html).toContain(quote);
+});
 it("links the coherent transition readouts card to its tracked explainer, which quotes the cook runs' battle-start readouts before and after",()=>{
  expect(FEATURE_EXPLAINERS["transition-coherence-v1"]).toBe("transition-coherence-v1.html");
  const log=new Log();log.add(0,{...START,harness_features:["transition-coherence-v1"]});

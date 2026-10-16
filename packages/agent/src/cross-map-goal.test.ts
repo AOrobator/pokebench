@@ -17,9 +17,9 @@ interface Recorded {readonly type:string;readonly args?:Goal;readonly text?:stri
 const rows=gunzipSync(readFileSync(new URL("./fixtures/cross-map-goal-4caa.jsonl.gz",import.meta.url))).toString("utf8").trim().split("\n").map(line=>JSON.parse(line) as Recorded&Record<string,unknown>);
 const call=rows.find(r=>r.type==="tool_call"),recordedState=rows.find(r=>r.type==="state"),received=rows.find(r=>r.type==="tool_result");
 if(call?.args===undefined||recordedState===undefined||received?.text===undefined)throw new Error("fixture incomplete");
-const goal=call.args;
-const {v:_v,run:_run,seq:_seq,t:_t,type:_type,turn:_turn,...snapshot}=recordedState;
-const state=parseGameState(snapshot);
+const goal=call.args,receivedFirst=received.text.split("\n")[0];
+const ENVELOPE=new Set(["v","run","seq","t","type","turn"]);
+const state=parseGameState(Object.fromEntries(Object.entries(recordedState).filter(([k])=>!ENVELOPE.has(k))));
 
 async function walk(read:()=>GameStateSnapshot,target:Goal,extra:Partial<NavigationPorts>,press:()=>GameStateSnapshot=()=>{throw new Error("pressed");}):Promise<{text:string;status:string;presses:number}> {
  let presses=0;
@@ -33,11 +33,11 @@ describe("cross-map-goal-v1: recorded 4caa case",()=>{
  it("is the recorded false report: on ROUTE101 (0/16), goal (8,0) on map 0/9",()=>{
   expect(state.map_id).toEqual([0,16]);expect(state.location).toBe("ROUTE101");
   expect(goal).toEqual({x:8,y:0,map_id:[0,9]});
-  expect(received.text.split("\n")[0]).toBe("Navigation: map changed; inspect destination; 0 ordinary button attempts.");
+  expect(receivedFirst).toBe("Navigation: map changed; inspect destination; 0 ordinary button attempts.");
  });
  it("OFF reproduces the bytes the model received",async()=>{
   const off=await walk(()=>state,goal,{refusalReasons:true});
-  expect(off.text).toBe(received.text?.split("\n")[0]);expect(off.presses).toBe(0);
+  expect(off.text).toBe(receivedFirst);expect(off.presses).toBe(0);
  });
  it("ON says the target is on another map and presses nothing",async()=>{
   const on=await walk(()=>state,goal,{refusalReasons:true,crossMapGoal:true});
@@ -71,6 +71,9 @@ describe("cross-map-goal-v1: real map changes and unknown maps",()=>{
  });
  it("names the map without a location when the location is unknown",async()=>{
   expect((await walk(()=>({...field,location:null}),{...target,map_id:[0,10]},{crossMapGoal:true})).status).toBe("(2,0) on map 0/10 is on another map; you are on map 0/9 and navigate_to only walks within the current map; to walk on this map, pass map_id [0,9]; to reach map 0/10, use a listed warp or a map connection");
+ });
+ it("names the current map as the readout shows it when displayed place names are on",async()=>{
+  expect((await walk(()=>({...field,location_display:"LITTLEROOT TOWN (display)"}),{...target,map_id:[0,10]},{crossMapGoal:true})).status).toContain("you are on map 0/9 (LITTLEROOT TOWN (display)) and");
  });
  it("the tool description is unchanged by the switch",()=>{
   const ports={read:()=>Promise.resolve(field),press:()=>Promise.reject(new Error("unused")),observe:()=>Promise.reject(new Error("unused"))};

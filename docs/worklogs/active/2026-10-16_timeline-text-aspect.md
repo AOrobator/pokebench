@@ -11,4 +11,6 @@ Cause: `lanesSvg` draws everything in one SVG with `viewBox="0 0 1000 H"` and `p
 - [x] Browser check on real cook-run events (check page under `runs/mockups/timeline-text-check/`, deleted after): at 2400px wide the "presses" label measured 89.7×12.6px before (stretched) and 38.5×12.5px after (natural), centered on its lane (label mid 137.0 vs lane mid 137.0), SVG has 0 `<text>`, "now" stays inside the panel. At 375px: no sideways scroll; long labels such as "milestones" run up to 12px past the plot start, where before they were squeezed to fit.
 - [x] COMMIT: `fix(viewer): GREEN timeline text renders in an HTML overlay ...` (2a88f8cb)
 - [x] Review round 1 on 2a88f8cb (base 154d905e): Grok LGTM; Claude BLOCKING (the 9px phone rule came before the press-label `font` shorthand, so press labels stayed 11px); Codex BLOCKING (press-label spans lost `aria-hidden`, so screen readers would announce presses twice; PB13 row worded as if landing had happened). All three taken; tests assert both. Left as a note: `labelPress` clamps its centre in viewBox units, exact only at 1000px.
-- [ ] Review round 2; land; restart via the coordinator.
+- [x] COMMIT: `fix(viewer): press labels stay aria-hidden and shrink on phones` (e74a8040)
+- [x] Review round 2 on e74a8040 (base 154d905e): Claude LGTM, Grok LGTM, Codex LGTM. Landed fast-forward: main = e74a8040; viewer 905 tests pass on main.
+- [ ] 8790 restart (scheduled by the coordinator), live check.

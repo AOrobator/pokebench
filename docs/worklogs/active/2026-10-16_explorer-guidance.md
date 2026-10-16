@@ -18,7 +18,7 @@ Branch `claude/explorer-guidance` in `/private/tmp/pokebench-explorer-guidance`.
 **M2 — explainer, pending experiment, review (Claude CLI, Codex, Grok) until LGTM.**
 - [x] `docs/explainers/explorer-guidance-v1.html`, README, `FEATURE_EXPLAINERS`, `just pages-check`.
 - [x] `experiments/explorer-guidance.json` (pending), readiness line, `just experiments-check`.
-- [ ] Principles self-review (PB1–PB13), Claude CLI, Codex, Grok: LGTM.
+- [x] Principles self-review (PB1–PB13), Claude-family (subagent fallback), Codex, Grok: LGTM.
 
 ## Session Log
 - 2026-10-16 02:10 AM EDT: worklog drafted (approved by the operator).
@@ -36,4 +36,6 @@ COMMIT: `experiments: register explorer-guidance as pending` (c49e9845)
 - Accepted hardening follow-ups (fix delta): cheap-talk sentence now "…the harness reads the conversation until your next decision." (auto-advance stops at menus, battles, locked cutscenes; "to its end" overstated); explainer turn-425 row says it headed for the door and was outside by turn 429; explainer wording about auto-advance; `Exclude<>` cast in FeatureSetSchema lists the new id like every earlier optional switch; state-runtime refusal loop lists the new id; fixture trailing newline. Note: `just lint` is green for TS/eslint/ruff; mypy fails only on the known worktree `mgba._pylib` import. PB6 note: section is 84 words, 101 with the cheap-talk sentence.
 - Process note: while restarting round 1 (wrong base SHA typed in the first prompt) I ran `pkill -f "cursor-agent -p --trust"` and `pkill -f "codex exec --ephemeral"`, which would also have stopped any reviewer processes another parallel branch had running at that moment.
 - Gates after fixes: agent 1407/1407, viewer 797/797, pytest 2017 passed 2 skipped; coverage unchanged (agent 97.73/94.56/97.98/99.08, viewer 95.11/90.43/93.59/97.61, Python 97.08/92.67/100); pages-check silent; lint as above.
+COMMIT: `fix: explorer-guidance-v1 review round 1 hardening: exact cheap-talk wording, explainer turn facts, schema cast` (3339fe5e)
+- 2026-10-16 02:49 AM EDT review round 2 (fix delta c49e9845..3339fe5e, sha256 dae294cc…9fd1b): Codex `VERDICT: LGTM`, Grok `VERDICT: LGTM`, Claude-family fallback subagents (opus, fable) both `VERDICT: LGTM`. No blockers in either round. Remaining notes are cosmetic (this file's trailing blank line, fixed here). M1 and M2 complete; ready for operator merge (standing pre-launch merge OK applies only to bundle-v-control fix branches; bundle membership owned by the readiness thread).
 

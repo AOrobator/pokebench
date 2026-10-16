@@ -254,3 +254,52 @@ it("does not recover a Route 101 return for a run whose recorder declares route-
   expect(native.splits.filter(s => s.name === "ROUTE_101_AFTER_HANDOFF")).toMatchObject([{ seq: log.events.at(-1)?.seq }]);
   expect(native.splits.find(s => s.name === "ROUTE_101_AFTER_HANDOFF")?.derived).toBeUndefined();
 });
+const justSet = { ...clocked, intro_stage: 6 as const };
+it("recovers the first bedroom exit after the clock from a Clock set log that predates the split, matching the tracker", () => {
+  for (const home of ["BRENDANS", "MAYS"] as const) {
+    const log = new Log();
+    log.add(0, { ...START, start_state: { kind: "save_state", path: "/saves/CLOCK_SET.state", sha1: "a".repeat(40) }, harness_features: ["post-clock-navigation-milestones-v1"] });
+    const bedroom = log.add(1000, state({ ...quiet, location: `LITTLEROOT TOWN ${home} HOUSE 2F`, story: justSet }));
+    log.add(1500, state({ ...quiet, location: `LITTLEROOT TOWN ${home} HOUSE 1F`, screen: "field_transition", story: justSet }));
+    const downstairs = log.add(2000, state({ ...quiet, location: `LITTLEROOT TOWN ${home} HOUSE 1F`, story: justSet }));
+    log.add(2500, state({ ...quiet, location: `LITTLEROOT TOWN ${home} HOUSE 1F`, story: clocked }));
+    log.add(3000, state({ ...quiet, location: `LITTLEROOT TOWN ${home} HOUSE 2F`, story: clocked }));
+    log.add(3500, state({ ...quiet, location: `LITTLEROOT TOWN ${home} HOUSE 1F`, story: clocked }));
+    const result = readNativeRecording(write(log.events.map(e => JSON.stringify(e)).join("\n") + "\n"), bedroom.run, qualifiedNativeMilestone);
+    expect(result.splits.filter(s => s.name === "PLAYER_BEDROOM_EXITED_AFTER_CLOCK")).toMatchObject([{ derived: true, seq: downstairs.seq, elapsedMs: 2000 }]);
+    expect(result.measurement.rawSplits.find(s => s.name === "PLAYER_BEDROOM_EXITED_AFTER_CLOCK")?.evidence).toEqual([bedroom.seq, downstairs.seq]);
+    const tracker = new StateMilestones({ read: () => Promise.resolve(state({ location: "LITTLEROOT TOWN" }) as never) });
+    tracker.initialize("save_state");
+    const detected: { name: string; evidence?: readonly number[] }[] = [];
+    for (const event of log.events) if (event.type === "state" && "started" in event) detected.push(...tracker.observe(event, event.seq));
+    expect(detected.filter(m => m.name === "PLAYER_BEDROOM_EXITED_AFTER_CLOCK").map(m => m.evidence)).toEqual([[bedroom.seq, downstairs.seq]]);
+  }
+});
+it("does not recover a bedroom exit after Mom's rival instruction, from the rival's bedroom, or for a run that records the split natively", () => {
+  const cases: [string, typeof clocked | typeof justSet, string[]][][] = [
+    [["LITTLEROOT TOWN BRENDANS HOUSE 2F", clocked, []], ["LITTLEROOT TOWN BRENDANS HOUSE 1F", clocked, []]],
+    [["LITTLEROOT TOWN MAYS HOUSE 2F", justSet, []], ["LITTLEROOT TOWN BRENDANS HOUSE 1F", justSet, []]],
+    [["LITTLEROOT TOWN BRENDANS HOUSE 2F", justSet, ["bedroom-exit-v1"]], ["LITTLEROOT TOWN BRENDANS HOUSE 1F", justSet, []]],
+  ];
+  for (const rows of cases) {
+    const log = new Log();
+    log.add(0, { ...START, start_state: { kind: "save_state", path: "/saves/CLOCK_SET.state", sha1: "a".repeat(40) }, harness_features: rows[0]?.[2] ?? [] });
+    rows.forEach(([location, story], i) => log.add(1000 * (i + 1), state({ ...quiet, location, story })));
+    const view = new RunView();
+    for (const event of log.events) view.apply(event);
+    expect(view.milestones.some(m => m.name === "PLAYER_BEDROOM_EXITED_AFTER_CLOCK")).toBe(false);
+  }
+});
+it("does not recover leave-home for a save inside home after the rival bedroom visit", () => {
+  for (const rival_stage of [2, 3, 4] as const) {
+    const later = { ...clocked, rival_stage: rival_stage as 0 };
+    const log = new Log();
+    log.add(0, { ...START, start_state: { kind: "save_state", path: "/saves/LATER.state", sha1: "a".repeat(40) }, harness_features: ["post-clock-navigation-milestones-v1"] });
+    log.add(1000, state({ ...quiet, location: "LITTLEROOT TOWN BRENDANS HOUSE 2F", story: later }));
+    log.add(2000, state({ ...quiet, location: "LITTLEROOT TOWN BRENDANS HOUSE 1F", story: later }));
+    log.add(3000, state({ ...quiet, location: "LITTLEROOT TOWN", story: later }));
+    const view = new RunView();
+    for (const event of log.events) view.apply(event);
+    expect(view.milestones.some(m => m.name === "PLAYER_HOUSE_EXITED_AFTER_CLOCK")).toBe(false);
+  }
+});

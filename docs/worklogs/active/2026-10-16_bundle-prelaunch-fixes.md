@@ -64,3 +64,5 @@ Forensics of bundle qualification run `2026-10-15T23-47-41_qwen36-gpu1_3f21` (`r
 - COMMIT: `fix(bundle): F5–F8 inside stall-briefing, auto-advance and refusal-reason switches` (47aa276c); agent 1278 tests pass
 
 - COMMIT: `test(bundle): RED for F5–F8 replayed from bundle run 3f21` (b718b137)
+
+- 2026-10-16 02:00 AM EDT (integrator): merged main (blocked-batch-result, transition-loop-detection, displayed-place-names, bedroom-exit split); one conflict in features.ts (this branch's dialogue-auto-advance description edit next to main's new registry lines), resolved keeping both. Agent 1372, viewer 794, pytest 1986 passed (2 skipped); lint clean apart from the worktree mypy binding.

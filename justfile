@@ -95,6 +95,18 @@ view run_id="": build
 viewer-main:
     scripts/viewer-main.sh
 
+# Serve local HTML deliverables (runs/mockups, plus reports, reviews, explainers) on 127.0.0.1:8791.
+pages:
+    scripts/pages.sh serve
+
+# Fail if any given HTML page would make a network request when it loads.
+pages-check +files:
+    scripts/pages.sh check {{files}}
+
+# Replace viewer font URLs in the given pages with inline data: URIs.
+pages-inline-fonts +files:
+    scripts/pages.sh inline-fonts {{files}}
+
 # Experiment queue: list the queue, pending and closed experiments.
 experiments: build
     node packages/viewer/dist/experiment-cli.js list

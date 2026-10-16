@@ -803,6 +803,17 @@ it("links the battle message waiting card to its tracked explainer, which quotes
  expect(html).toContain("Battle details: WILD single · turn 3 · battle message waiting: &quot;Wild WINGULL fainted!&quot; — press A or B to continue");
 });
 
+it("links the level-up stats box card to its tracked explainer, which quotes the T357 readout before and after",()=>{
+ expect(FEATURE_EXPLAINERS["levelup-box-v1"]).toBe("levelup-box-v1.html");
+ const log=new Log();log.add(0,{...START,harness_features:["levelup-box-v1"]});
+ const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
+ expect(doc.querySelector('[data-feature="levelup-box-v1"] a')?.getAttribute("href")).toBe("/explainers/levelup-box-v1.html");
+ const html=readFileSync(fileURLToPath(new URL("../../../docs/explainers/levelup-box-v1.html",import.meta.url)),"utf8");
+ expect(html).toContain("levelup-box-v1");
+ expect(html).toContain("Battle details: WILD single · turn 6 · resolving (no input until the game asks)");
+ expect(html).toContain("Battle details: WILD single · turn 6 · level-up stats box open, page 1 of 2 (stat increases): MAX. HP +2, ATTACK +2, DEFENSE +1, SP. ATK +1, SP. DEF +1, SPEED +1 — waiting for a button: press A or B to continue (the game takes any new button press)");
+});
+
 it("links the script line presence card to its tracked explainer, which shows the T259 pages off and on",()=>{
  expect(FEATURE_EXPLAINERS["script-line-presence-v1"]).toBe("script-line-presence-v1.html");
  const log=new Log();log.add(0,{...START,harness_features:["dialogue-auto-advance-v1","script-line-presence-v1"]});

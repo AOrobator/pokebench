@@ -59,6 +59,7 @@ The original ignored runs/explainers copies remain for existing links. Make futu
 - [Off-screen people and objects](offscreen-objects-v1.html)
 - [navigate_to first prompting](navigate-first-prompt-v1.html)
 - [Presence penalty 1.5](presence-penalty-v1.html)
+- [Level-up stats box](levelup-box-v1.html)
 - [Push-back loop detection](pushback-loop-detection-v1.html)
 - [Push-back press results](pushback-press-result-v1.html)
 - [Battle observation loop](battle-observation-loop-v1.html)

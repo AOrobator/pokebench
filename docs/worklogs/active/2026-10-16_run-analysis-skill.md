@@ -14,6 +14,6 @@ Branch `claude/run-analysis-skill`, worktree `/private/tmp/pokebench-run-analysi
 - [x] Round 6 at d439d349: Claude LGTM, Grok LGTM, Codex BLOCKING (no visual QA of the HTML per close-the-loop). Fixed.
 - [x] Round 7 at 0577a90e: Claude LGTM, Grok LGTM, Codex BLOCKING (chart rule contradicted itself on CLOCK_SET runs). Fixed to match frontier.ts shownAgent.
 - [x] Round 8 at cdd4b25d: Claude LGTM; Grok and Codex superseded by operator feedback (mechanism check from recorded thinking, 2026-10-16 2:28 PM NY).
-- [ ] GPT lane: Cursor GPT hit its usage limit; Codex CLI with -m gpt-5.6-sol (standing-authorized harness switch).
-- [ ] Claude, Grok and GPT lanes `VERDICT: LGTM` on the frozen packet.
+- [x] GPT lane: Cursor GPT hit its usage limit; Codex CLI with -m gpt-5.6-sol (standing-authorized harness switch).
+- [x] Claude, Grok and GPT (Codex gpt-5.6-sol) lanes `VERDICT: LGTM` on the frozen packet at 06e3f9ba (round 9, scoped diff sha256 73c436ba…); main synced, scoped diff unchanged.
 - [ ] Fast-forward merge to local main; report the SHA in the thread.

@@ -49,7 +49,7 @@ describe("experiments audit", () => {
     recorded(r, "2026-10-16T05-00-04_qwen36-gpu1_twin", { id: "bundle-v-control", arm: "control", trial: 1, of: 2 });
     writeFileSync(join(r, "2026-10-16T05-00-04_qwen36-gpu1_twin", "events.jsonl"), readFileSync(join(r, "2026-10-16T05-00-00_qwen36-gpu1_main", "events.jsonl")));
     mkdirSync(join(r, "2026-10-16T05-00-05_qwen36-gpu1_link")); symlinkSync(join(r, long, "events.jsonl"), join(r, "2026-10-16T05-00-05_qwen36-gpu1_link", "events.jsonl"));
-    const fast = cohortIndex(r), full = await workbenchSnapshot(r, () => Promise.resolve(false), 2000000000000);
+    const fast = await cohortIndex(r), full = await workbenchSnapshot(r, () => Promise.resolve(false), 2000000000000);
     const tagged = (runs: readonly { id: string; cohort: string | null }[]) => runs.map(x => [x.id, x.cohort]).sort();
     expect(tagged(fast.runs)).toEqual(tagged(full.runs));
     expect(experimentsAudit(r, fast).map(f => f.run)).toEqual(["2026-10-16T05-00-02_qwen36-gpu1_bad", "2026-10-16T05-00-04_qwen36-gpu1_twin", "2026-10-16T05-00-05_qwen36-gpu1_link"]);

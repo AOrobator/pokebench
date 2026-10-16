@@ -1,18 +1,25 @@
+import { execFileSync } from "node:child_process";
 import { closeSync, existsSync, openSync, readSync, readdirSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import type { WorkbenchData } from "./workbench-data.js";
 // Completeness check for the EXPERIMENT dropdown: every run whose run_start names an experiment
-// (evaluation.experiment) must be in some dropdown cohort of the workbench snapshot.
+// (evaluation.experiment) must be in some dropdown cohort.
 export interface AuditFinding { readonly run: string; readonly experiment: string; readonly problem: string }
-const FIRST_LINE_BYTES = 8 * 1024 * 1024;
+export interface AuditRuns { readonly runs: readonly { readonly id: string; readonly cohort: string | null; readonly problem: string | null }[] }
+const CHUNK = 64 * 1024, MAX_FIRST_LINE = 16 * 1024 * 1024, chunk = Buffer.alloc(CHUNK);
 const record = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
+// The first line only, read in small chunks through one reused buffer.
 function firstLine(path: string): string {
-  const fd = openSync(path, "r");
+  const fd = openSync(path, "r"), parts: Buffer[] = [];
   try {
-    const buffer = Buffer.alloc(FIRST_LINE_BYTES), read = readSync(fd, buffer, 0, FIRST_LINE_BYTES, 0), text = buffer.subarray(0, read).toString("utf8");
-    const cut = text.indexOf("\n"); return cut < 0 ? text : text.slice(0, cut);
+    for (let at = 0; at < MAX_FIRST_LINE;) {
+      const read = readSync(fd, chunk, 0, CHUNK, at); if (read === 0) break;
+      const cut = chunk.subarray(0, read).indexOf(0x0a);
+      parts.push(Buffer.from(chunk.subarray(0, cut < 0 ? read : cut))); if (cut >= 0) break;
+      at += read;
+    }
   } finally { closeSync(fd); }
+  return Buffer.concat(parts).toString("utf8");
 }
 // The experiment id a run's own first line names, read without the viewer's schema so a run the
 // viewer cannot parse is still found.
@@ -23,7 +30,7 @@ function namedExperiment(path: string): string | null {
   const id = start.evaluation.experiment.id;
   return typeof id === "string" && id !== "" ? id : null;
 }
-export function experimentsAudit(runsRoot: string, data: Pick<WorkbenchData, "runs">): AuditFinding[] {
+export function experimentsAudit(runsRoot: string, data: AuditRuns): AuditFinding[] {
   const findings: AuditFinding[] = [], byId = new Map(data.runs.map(r => [r.id, r]));
   for (const base of [runsRoot, join(runsRoot, "human")]) {
     if (!existsSync(base)) continue;
@@ -38,7 +45,7 @@ export function experimentsAudit(runsRoot: string, data: Pick<WorkbenchData, "ru
   }
   return findings.sort((a, b) => a.run.localeCompare(b.run));
 }
-export interface AuditDeps { readonly runsRoot: string; snapshot(runsRoot: string): Promise<WorkbenchData>; out(line: string): void; err(line: string): void }
+export interface AuditDeps { readonly runsRoot: string; snapshot(runsRoot: string): Promise<AuditRuns>; out(line: string): void; err(line: string): void }
 // Prints nothing and returns 0 when every tagged run is in a cohort; one line per finding and 1 otherwise.
 export async function auditMain(argv: readonly string[], deps: AuditDeps): Promise<number> {
   if (argv.length > 1) { deps.err("usage: experiments-audit [runs-root]"); return 2; }
@@ -52,8 +59,9 @@ export async function auditMain(argv: readonly string[], deps: AuditDeps): Promi
 }
 /* v8 ignore start -- process wiring */
 if (import.meta.main) {
-  const { workbenchSnapshot } = await import("./workbench-store.js");
-  const runsRoot = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..", "runs");
-  process.exitCode = await auditMain(process.argv.slice(2), { runsRoot, snapshot: root => workbenchSnapshot(root, () => Promise.resolve(false), Date.now()), out: line => { console.log(line); }, err: line => { console.error(line); } });
+  const { cohortIndex } = await import("./workbench-store.js"), { mainCheckout } = await import("./experiment-cli.js");
+  const here = fileURLToPath(new URL(".", import.meta.url));
+  const runsRoot = join(mainCheckout(here, (cwd, args) => execFileSync("git", [...args], { cwd, encoding: "utf8" })), "runs");
+  process.exitCode = await auditMain(process.argv.slice(2), { runsRoot, snapshot: root => cohortIndex(root), out: line => { console.log(line); }, err: line => { console.error(line); } });
 }
 /* v8 ignore stop */

@@ -76,8 +76,13 @@ export function legacyCohort(value: string, definitions: Definitions): Workbench
   if (!resolved.known) return { id: value, label: value, experiment: null, build: null, dryRun: false };
   return { id: value, label: finals ? `${resolved.title} — finals` : resolved.title, experiment: resolved.experiment, build: null, dryRun: resolved.dryRun };
 }
-// Earlier entries keep their label; a later entry with the same label is told apart by its value.
+// Earlier entries keep their label; a later entry whose label is taken is told apart by its value
+// (and a counter if even that is taken), so every final label is unique.
 export function distinctLabels(cohorts: readonly WorkbenchCohort[]): WorkbenchCohort[] {
-  const seen = new Set<string>();
-  return cohorts.map(c => { const label = seen.has(c.label) ? `${c.label} (${c.id})` : c.label; seen.add(c.label); return { ...c, label }; });
+  const taken = new Set<string>();
+  return cohorts.map(c => {
+    let label = c.label;
+    for (let n = 1; taken.has(label); n++) label = n === 1 ? `${c.label} (${c.id})` : `${c.label} (${c.id}, ${String(n)})`;
+    taken.add(label); return { ...c, label };
+  });
 }

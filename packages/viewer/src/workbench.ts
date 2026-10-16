@@ -102,7 +102,11 @@ export class Workbench {
   }
   private pressed(): void { for (const button of this.ui("frontier-view").querySelectorAll("button")) button.setAttribute("aria-pressed", String((button.dataset.frontierView === "zoom") === this.zoom)); }
   private render(): void {
-    const cohorts = Array.from(new Set(this.data.runs.flatMap(r => r.cohort === null ? [] : [r.cohort])));
+    // Newest experiment first: each entry is placed by its first trial; undated entries go last.
+    const first = new Map<string, number>();
+    for (const r of this.data.runs) if (r.cohort !== null) { const at = Date.parse(r.started ?? ""), prior = first.get(r.cohort); first.set(r.cohort, prior === undefined || Number.isNaN(prior) || at < prior ? at : prior); }
+    const when = (id: string): number => { const at = first.get(id) ?? Number.NaN; return Number.isNaN(at) ? -Infinity : at; };
+    const cohorts = [...first.keys()].sort((a, b) => when(b) - when(a) || a.localeCompare(b));
     const labels = new Map((this.data.cohorts ?? []).map(c => [c.id, c.label]));
     this.options("cohort", [{ id: "all", label: "All recorded runs" }, ...cohorts.map(id => ({ id, label: labels.get(id) ?? id }))], this.scope);
     this.options("model", [{ id: "all", label: "All models" }, ...Array.from(new Set(this.data.runs.flatMap(r => r.model === null ? [] : [r.model]))).map(id => ({ id, label: id }))], this.model);

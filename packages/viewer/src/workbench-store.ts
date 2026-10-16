@@ -1,6 +1,6 @@
 import { visualEvidenceSignature } from "./frontier-visual.js";
 import { existsSync, lstatSync, readFileSync, readdirSync, realpathSync, statSync } from "node:fs";
-import { join } from "node:path";
+import { join, relative } from "node:path";
 import { FEATURES } from "@pokebench/agent/features";
 import { MILESTONES, qualifiedNativeMilestone } from "@pokebench/agent/milestones";
 import { filesystemComparisonHost, prepareComparison, sha256 } from "@pokebench/agent/serial-comparison";
@@ -18,7 +18,7 @@ import { parseFinalsLedger } from "@pokebench/agent/experiment-gate";
 import { isFixedLedgerText, parseFixedLedger } from "./fixed-ledger.js";
 import type { HealthProbe } from "./next-run.js";
 import type { WorkbenchCohort, WorkbenchConfig, WorkbenchData, WorkbenchRun } from "./workbench-data.js";
-import { distinctLabels, experimentDefinitions, legacyCohort, taggedCohorts } from "./experiment-cohorts.js";
+import { distinctLabels, experimentDefinitions, legacyCohort, taggedCohorts, type TaggedRun } from "./experiment-cohorts.js";
 const MAX_PLAN_BYTES = 1024 * 1024;
 interface Loaded { signature: string; run: WorkbenchRun; port: number | null; view: RunView | null; tag: { experiment: string; commit: string } | null }
 const cache = new Map<string, Loaded>();
@@ -45,6 +45,13 @@ function configuration(start: Extract<RunEvent, { type: "run_start" }>): Workben
     features: FEATURES.filter(f => f.switchable).map(f => ({ id: f.id, label: f.title, on: known === null ? (start.harness_features.includes(f.id) ? true : null) : known.features[f.id as keyof typeof known.features] })),
   };
 }
+// The run_start the workbench trusts: the log is not symlinked and names this run.
+function startOf(root: string, id: string): Extract<RunEvent, { type: "run_start" }> {
+  if (lstatSync(eventsPath(root, id)).isSymbolicLink()) throw new Error("Run log is symlinked; no split graded");
+  const start = readStart(root, id);
+  if (start.run !== id) throw new Error("Run identity is invalid; no split graded");
+  return start;
+}
 function load(root: string, id: string): Loaded {
   const path = eventsPath(root, id), stat = statSync(path); let signature = `${String(stat.size)}:${String(stat.mtimeMs)}:${String(stat.ino)}`;
   const prior = cache.get(path);
@@ -53,9 +60,7 @@ function load(root: string, id: string): Loaded {
   try {
     signature += visualEvidenceSignature(path);
     if (prior?.signature === signature) return prior;
-    if (lstatSync(path).isSymbolicLink()) throw new Error("Run log is symlinked; no split graded");
-    const start = readStart(root, id);
-    if (start.run !== id) throw new Error("Run identity is invalid; no split graded");
+    const start = startOf(root, id);
     run = { ...run, model: start.controller?.kind === "human" ? `Human · ${start.controller.name}` : start.model.id, started: start.t, config: configuration(start), excluded: start.harness_features.includes("probe") ? "Excluded probe session" : null };
     port = start.isolation.port;
     const experiment = start.evaluation?.experiment; if (experiment !== undefined) tag = { experiment: experiment.id, commit: start.harness.commit };
@@ -72,6 +77,16 @@ function boundedLedger(path: string): unknown[] {
   return readFileSync(path, "utf8").split("\n").filter(line => line.trim() !== "").map((line): unknown => JSON.parse(line));
 }
 const RUN_ID = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
+const LEDGER_RUN = /"(?:run|run_id|runId)"\s*:\s*"([A-Za-z0-9][A-Za-z0-9._-]*)"/g;
+// A ledger that fails its all-or-nothing parse cannot vouch for any trial it names. Every run id its
+// text mentions is marked unverified, which excludes a run-tagged run (legacy membership is unchanged).
+function unreadable(root: string, path: string, unverified: Map<string, string>): void {
+  try {
+    if (lstatSync(path).isSymbolicLink() || statSync(path).size > MAX_PLAN_BYTES) return;
+    const why = `Unverified: ledger ${relative(root, path)} is unreadable, so this trial's validity is unknown`;
+    for (const match of readFileSync(path, "utf8").matchAll(LEDGER_RUN)) { const run = match[1] ?? ""; if (!run.includes("..") && !unverified.has(run)) unverified.set(run, why); }
+  } catch { /* A ledger that vanished names nothing. */ }
+}
 // The runner may be mid-append: an unterminated last line that is not JSON yet is not read.
 function untorn(text: string): string {
   const cut = text.lastIndexOf("\n") + 1, last = text.slice(cut);
@@ -94,15 +109,18 @@ function plans(root: string): string[] {
   }; visit(join(root, "launch-receipts"), 0); return found;
 }
 // membership and failures are the legacy ledger readers' verdicts. named holds the infrastructure failure
-// any ledger records for a run, even one another ledger owns, so a run-tagged run is excluded wherever its ledger lives.
-async function cohortMembership(root: string): Promise<{ failures: Map<string, string>; named: Map<string, string>; membership: Map<string, string>; problems: string[] }> {
-  const named = new Map<string, string>(), failures = new Map<string, string>(), membership = new Map<string, string>(), problems: string[] = [], accepted = new Set<string>(), claimed = new Set<string>(), reserved = new Set<string>();
+// any ledger records for a run, even one another ledger owns, so a run-tagged run is excluded wherever its
+// ledger lives; unverified holds the runs an unreadable ledger names.
+interface Membership { failures: Map<string, string>; named: Map<string, string>; unverified: Map<string, string>; membership: Map<string, string>; problems: string[] }
+async function cohortMembership(root: string): Promise<Membership> {
+  const unverified = new Map<string, string>(), named = new Map<string, string>(), failures = new Map<string, string>(), membership = new Map<string, string>(), problems: string[] = [], accepted = new Set<string>(), claimed = new Set<string>(), reserved = new Set<string>();
   for (const path of plans(root)) {
+    let ledgerPath: string | null = null;
     try {
       const receipt = metadata(path), raw = receipt.value;
       if (record(raw) && raw.id === "navigation-memory-think-fast-n4" && Array.isArray(raw.order)) {
         claimed.add(dirname(path)); reserved.add(raw.id);
-        const ledgerPath = join(dirname(path), "trials.jsonl");
+        ledgerPath = join(dirname(path), "trials.jsonl");
         const rows: unknown[] = existsSync(ledgerPath) ? boundedLedger(ledgerPath) : [];
         if (typeof raw.root !== "string" || realpathSync(join(raw.root, "runs")) !== realpathSync(root)) throw new Error("Navigation receipt root does not own this run store");
         const custom = parseNavigationReceipt(raw, rows, receipt.digest, raw.root);
@@ -117,7 +135,7 @@ async function cohortMembership(root: string): Promise<{ failures: Map<string, s
       if (!record(raw) || !Array.isArray(raw.trials) || !Array.isArray(raw.lanes)) continue;
       claimed.add(dirname(path));
       if (typeof raw.id === "string") { reserved.add(raw.id); if (RUN_ID.test(raw.id) && !raw.id.includes("..")) claimed.add(join(root, "launch-receipts", raw.id)); }
-      const m = prepareComparison(raw), ledgerPath = join(root, "launch-receipts", m.id, "trials.jsonl");
+      const m = prepareComparison(raw); ledgerPath = join(root, "launch-receipts", m.id, "trials.jsonl");
       if (join(m.repoRoot, "runs") !== root || !existsSync(ledgerPath)) continue;
       if (lstatSync(ledgerPath).isSymbolicLink() || statSync(ledgerPath).size > MAX_PLAN_BYTES) throw new Error("Cohort ledger exceeds metadata bounds");
       const rows = await filesystemComparisonHost(m).readLedger();
@@ -136,17 +154,18 @@ async function cohortMembership(root: string): Promise<{ failures: Map<string, s
       accepted.add(m.id);
       for (const trial of m.trials) membership.set(trial.runId, m.id);
       for (const [id, failure] of receiptFailures) failures.set(id, failure);
-    } catch (error) { problems.push(`Comparison receipt: ${errorText(error)}`); }
+    } catch (error) { problems.push(`Comparison receipt: ${errorText(error)}`); if (ledgerPath !== null && existsSync(ledgerPath)) unreadable(root, ledgerPath, unverified); }
   }
-  experimentCohorts(root, failures, membership, problems);
-  archivedDryRuns(root, failures, named, membership, problems);
-  handRunCohorts(root, claimed, reserved, failures, named, membership, problems);
-  return { failures, named, membership, problems };
+  experimentCohorts(root, failures, unverified, membership, problems);
+  archivedDryRuns(root, failures, named, unverified, membership, problems);
+  receiptValidity(root, claimed, named, unverified);
+  handRunCohorts(root, claimed, reserved, failures, membership, problems);
+  return { failures, named, unverified, membership, problems };
 }
 // Experiment-queue ledgers under runs/experiments/<id>/: trials.jsonl joins cohort experiment:<id>
 // and finals.jsonl (every finals arm: the incumbent and each finalist) joins experiment:<id>:finals.
 // Every launched run joins its cohort and launcher errors are excluded.
-function experimentCohorts(root: string, failures: Map<string, string>, membership: Map<string, string>, problems: string[]): void {
+function experimentCohorts(root: string, failures: Map<string, string>, unverified: Map<string, string>, membership: Map<string, string>, problems: string[]): void {
   const base = join(root, "experiments");
   if (!existsSync(base)) return;
   for (const entry of readdirSync(base, { withFileTypes: true })) {
@@ -157,10 +176,10 @@ function experimentCohorts(root: string, failures: Map<string, string>, membersh
       try {
         if (lstatSync(path).isSymbolicLink() || statSync(path).size > MAX_PLAN_BYTES) throw new Error("Experiment ledger exceeds metadata bounds");
         const text = untorn(readFileSync(path, "utf8"));
-        if (file === "trials.jsonl" && isFixedLedgerText(text)) { fixedCohort(text, cohort, entry.name, failures, membership, problems); continue; }
+        if (file === "trials.jsonl" && isFixedLedgerText(text)) { if (!fixedCohort(text, cohort, entry.name, failures, membership, problems)) unreadable(root, path, unverified); continue; }
         const { entries, problems: bad } = file === "trials.jsonl" ? parseLedger(text) : parseFinalsLedger(text);
         // All or nothing: a ledger with any unreadable row contributes no cohort annotations.
-        if (bad.length > 0) { problems.push(...bad.map(p => `Experiment ${entry.name} ${label} ${p}`)); continue; }
+        if (bad.length > 0) { problems.push(...bad.map(p => `Experiment ${entry.name} ${label} ${p}`)); unreadable(root, path, unverified); continue; }
         const launched = new Set<string>(), errors = new Map<string, string>();
         for (const e of entries) {
           if (e.type === "launch") launched.add(e.run);
@@ -169,28 +188,30 @@ function experimentCohorts(root: string, failures: Map<string, string>, membersh
         }
         for (const run of launched) membership.set(run, cohort);
         for (const [run, message] of errors) failures.set(run, message);
-      } catch (error) { problems.push(`Experiment ${entry.name} ${label}: ${errorText(error)}`); }
+      } catch (error) { problems.push(`Experiment ${entry.name} ${label}: ${errorText(error)}`); unreadable(root, path, unverified); }
     }
   }
 }
 // A fixed-run ledger (the fixed-N two-arm driver) joins experiment:<id> the same way: all or nothing,
 // every launched run is a member, and a trial the driver judged invalid is excluded with its reason.
-function fixedCohort(text: string, cohort: string, name: string, failures: Map<string, string>, membership: Map<string, string>, problems: string[]): void {
+// False when the ledger is unreadable and contributed nothing.
+function fixedCohort(text: string, cohort: string, name: string, failures: Map<string, string>, membership: Map<string, string>, problems: string[]): boolean {
   const { entries, problems: bad } = parseFixedLedger(text);
-  if (bad.length > 0) { problems.push(...bad.map(p => `Experiment ${name} ledger line ${p}`)); return; }
+  if (bad.length > 0) { problems.push(...bad.map(p => `Experiment ${name} ledger line ${p}`)); return false; }
   const launched = new Set<string>(), invalid = new Map<string, string>();
   for (const e of entries) {
     if (e.kind === "launch") launched.add(e.run);
-    else if (!launched.has(e.run)) { problems.push(`Experiment ${name} ledger: run ${e.run} has a ${e.kind} without a launch`); return; }
+    else if (!launched.has(e.run)) { problems.push(`Experiment ${name} ledger: run ${e.run} has a ${e.kind} without a launch`); return false; }
     else if (e.kind === "outcome" && !e.valid) invalid.set(e.run, `Invalid fixed-run trial: ${e.reason}`);
   }
   for (const run of launched) membership.set(run, cohort);
   for (const [run, message] of invalid) failures.set(run, message);
+  return true;
 }
 // A finished dry run's ledger is moved aside to runs/dryruns/<dir>/ before the next dry run of the
 // same id (fixed-cli refuses otherwise). Its trials stay filterable as experiment:<dir>; a run a
 // live ledger already claims keeps that cohort.
-function archivedDryRuns(root: string, failures: Map<string, string>, named: Map<string, string>, membership: Map<string, string>, problems: string[]): void {
+function archivedDryRuns(root: string, failures: Map<string, string>, named: Map<string, string>, unverified: Map<string, string>, membership: Map<string, string>, problems: string[]): void {
   const base = join(root, "dryruns");
   if (!existsSync(base)) return;
   const source = new Map<string, string>();
@@ -202,7 +223,7 @@ function archivedDryRuns(root: string, failures: Map<string, string>, named: Map
       const text = untorn(readFileSync(path, "utf8"));
       if (!isFixedLedgerText(text)) continue;
       const found = new Map<string, string>(), invalid = new Map<string, string>();
-      fixedCohort(text, `experiment:${entry.name}`, `dry run ${entry.name}`, invalid, found, problems);
+      if (!fixedCohort(text, `experiment:${entry.name}`, `dry run ${entry.name}`, invalid, found, problems)) unreadable(root, path, unverified);
       for (const [run, why] of invalid) if (!named.has(run)) named.set(run, why);
       for (const [run, cohort] of found) {
         const prior = source.get(run);
@@ -211,7 +232,7 @@ function archivedDryRuns(root: string, failures: Map<string, string>, named: Map
         membership.set(run, cohort); source.set(run, entry.name);
         const why = invalid.get(run); if (why !== undefined) failures.set(run, why);
       }
-    } catch (error) { problems.push(`Dry run ${entry.name}: ${errorText(error)}`); }
+    } catch (error) { problems.push(`Dry run ${entry.name}: ${errorText(error)}`); unreadable(root, path, unverified); }
   }
 }
 function runOf(row: Record<string, unknown>): string | null {
@@ -249,7 +270,21 @@ function jsonRows(path: string): Record<string, unknown>[] {
 // trials.jsonl rows or manifest.json attempts join the manifest's id (else the directory name).
 // They never relabel a run that a verified receipt or the experiment queue already owns, never take
 // a verified cohort's name, and a directory whose plan.json historical provenance can use is left to it.
-function handRunCohorts(root: string, claimed: ReadonlySet<string>, reserved: ReadonlySet<string>, failures: Map<string, string>, named: Map<string, string>, membership: Map<string, string>, problems: string[]): void {
+// Validity only, for run-tagged runs: every launch-receipt directory that no verified receipt reader
+// claimed, including plan.json provenance cohorts and directories whose cohort name is refused below.
+function receiptValidity(root: string, claimed: ReadonlySet<string>, named: Map<string, string>, unverified: Map<string, string>): void {
+  const base = join(root, "launch-receipts");
+  if (!existsSync(base)) return;
+  for (const entry of readdirSync(base, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name))) {
+    const here = join(base, entry.name), manifestPath = join(here, "manifest.json"), ledgerPath = join(here, "trials.jsonl");
+    if (!entry.isDirectory() || claimed.has(here)) continue;
+    const rows: Record<string, unknown>[] = [];
+    if (existsSync(ledgerPath)) { try { rows.push(...jsonRows(ledgerPath)); } catch { unreadable(root, ledgerPath, unverified); } }
+    try { const manifest = existsSync(manifestPath) ? metadata(manifestPath).value : null; if (record(manifest) && Array.isArray(manifest.attempts)) rows.push(...manifest.attempts.filter(record)); } catch { /* handRunCohorts reports the manifest. */ }
+    for (const row of rows) { const run = runOf(row), failure = rowFailure(row); if (run !== null && failure !== null && !named.has(run)) named.set(run, failure); }
+  }
+}
+function handRunCohorts(root: string, claimed: ReadonlySet<string>, reserved: ReadonlySet<string>, failures: Map<string, string>, membership: Map<string, string>, problems: string[]): void {
   const base = join(root, "launch-receipts");
   if (!existsSync(base)) return;
   const owned = new Set(membership.keys()), verified = new Set([...reserved, ...membership.values()]), source = new Map<string, string>();
@@ -265,7 +300,6 @@ function handRunCohorts(root: string, claimed: ReadonlySet<string>, reserved: Re
       if (verified.has(cohort) || cohort.startsWith("experiment:")) throw new Error(`cohort id ${cohort} belongs to a verified receipt or the experiment queue`);
       for (const row of rows) {
         const run = runOf(row), failure = rowFailure(row);
-        if (run !== null && failure !== null && !named.has(run)) named.set(run, failure);
         if (run === null || owned.has(run)) continue;
         const prior = source.get(run);
         if (prior !== undefined && prior !== entry.name) { problems.push(`Launch receipts ${prior} and ${entry.name} both name run ${run}; it stays in ${membership.get(run) ?? prior}`); continue; }
@@ -275,6 +309,17 @@ function handRunCohorts(root: string, claimed: ReadonlySet<string>, reserved: Re
       }
     } catch (error) { problems.push(`Launch receipt ${entry.name}: ${errorText(error)}`); }
   }
+}
+// Each run's dropdown cohort without loading recordings: the fast path for just experiments-audit. A
+// run-tagged run's cohort is exactly the snapshot's; an untagged run's omits plan.json provenance.
+export async function cohortIndex(root: string, experimentsDir: string = join(dirname(root), "experiments")): Promise<{ runs: { id: string; cohort: string | null; problem: string | null }[] }> {
+  const cohorts = await cohortMembership(root), definitions = experimentDefinitions(experimentsDir, root), tags: TaggedRun[] = [], problems = new Map<string, string>();
+  const ids = listRuns(root).map(s => s.id);
+  for (const id of ids) {
+    try { const start = startOf(root, id), experiment = start.evaluation?.experiment; if (experiment !== undefined) tags.push({ run: id, experiment: experiment.id, commit: start.harness.commit, started: start.t }); } catch (error) { problems.set(id, errorText(error)); }
+  }
+  const tagged = taggedCohorts(tags, definitions);
+  return { runs: ids.map(id => ({ id, cohort: tagged.membership.get(id) ?? cohorts.membership.get(id) ?? null, problem: problems.get(id) ?? null })) };
 }
 // experimentsDir holds the definitions that label the EXPERIMENT dropdown (the repo's experiments/ next to runs/).
 export async function workbenchSnapshot(root: string, healthy: HealthProbe, now: number, experimentsDir: string = join(dirname(root), "experiments")): Promise<WorkbenchData> {
@@ -301,7 +346,7 @@ export async function workbenchSnapshot(root: string, healthy: HealthProbe, now:
     run.cohort = cohorts.membership.get(run.id) ?? null;
     applyHistoricalProvenance(root, run);
     const own = tagged.membership.get(run.id); if (own !== undefined) run.cohort = own;
-    const failure = cohorts.failures.get(run.id) ?? (own === undefined ? undefined : cohorts.named.get(run.id)); if (failure !== undefined) run.excluded = failure;
+    const failure = cohorts.failures.get(run.id) ?? (own === undefined ? undefined : cohorts.named.get(run.id) ?? cohorts.unverified.get(run.id)); if (failure !== undefined) run.excluded = failure;
     return run;
   }));
   for (const path of cache.keys()) if (!summaries.some(s => eventsPath(root, s.id) === path) && path.startsWith(root + "/")) cache.delete(path);

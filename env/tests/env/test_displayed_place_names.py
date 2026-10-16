@@ -283,3 +283,12 @@ def test_text_controls_inside_a_sign_are_skipped_whole() -> None:
     # FC 01 <color> is a text-color control: it prints nothing, and its argument may be any byte.
     m.put(0x08006500, text("ROUTE") + b"\xfc\x01\xfd" + text(" 101") + b"\xff")
     assert read_sign_text(m.read, SIGN, 0, "RED") == "ROUTE 101"
+
+
+def test_state_json_carries_the_displayed_location_only_when_the_switch_names_this_map() -> None:
+    house = state_json(on_state(0, player_map=(1, 2), warp_to=(0, 9)))
+    assert house["location"] == "LITTLEROOT TOWN MAYS HOUSE 1F"
+    assert house["location_display"] == "PROF. BIRCH'S HOUSE 1F"
+    assert "location_display" not in state_json(on_state(0))
+    off = read_game_state(littleroot(0, player_map=(1, 2), warp_to=(0, 9)).read, MAPS)
+    assert "location_display" not in state_json(off)

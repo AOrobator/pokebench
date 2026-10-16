@@ -1,7 +1,7 @@
 # Displayed place names everywhere (completes `displayed-place-names-v1`)
 
 Parent: `docs/worklogs/active/2026-10-16_prelaunch-fixes.md` (bundle-v-control pre-launch fixes, operator-approved).
-Branch `claude/displayed-names-everywhere`, worktree `/private/tmp/pokebench-names-everywhere`. Left unmerged for the integrator.
+Branch `claude/displayed-names-everywhere`, worktree `/private/tmp/pokebench-names-everywhere`. Owned by the long-run-loop review thread from 2026-10-16 02:45 EDT; The operator: "fix the harness bug and you can merge it to main when you get approvals from ... the cloud models".
 No new switch: this finishes `displayed-place-names-v1` (default off, ON in both arms of bundle-v-control).
 
 ## Problem
@@ -26,10 +26,16 @@ and LITTLEROOT TOWN PROFESSOR BIRCHS LAB (map 1/4)", dialogue quotes "turn 68, L
 
 ## Milestones
 
-- [ ] RED: Python state_json test; TS tests from the showcase run's recorded state/pages (seq 995/997, 1037, 1494, 2783) + OFF byte-identity
+- [x] RED: Python state_json test; TS tests from cook #2's recorded state/pages (seq 2314 press result, seq 2376/2378 pages) + OFF paths (OFF state JSON byte-identity is the existing golden test)
 - [ ] GREEN: implementation, schema regen, explainer update
 - [ ] Gates: test, lint, build, coverage, verify-vendor
 - [ ] Review: Codex + grok
 - [ ] Merge main into branch, re-run suites
 
+## Deferred
+
+- Objective record facts keep the JSON `location`: `objective-tracking-v1` conditions match that raw value, so showing the displayed name there would let the model set a location condition that never matches. Off in bundle-v-control.
+
 ## Log
+
+- 2026-10-16 02:55 EDT RED: `test_state_json_carries_the_displayed_location_only_when_the_switch_names_this_map` fails (KeyError); TS `displayed-names-everywhere.test.ts` 4 fail, `dialogue-auto-advance.test.ts` 1 fails.

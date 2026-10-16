@@ -36,7 +36,7 @@ const plural=(n:number,word:string)=>`${String(n)} ${word}${n===1?"":"s"}`;
 
 // The person a page's state shows the player facing: the object the game would talk to (people ledger's
 // rule), else an unscripted live person on the faced tile (a cutscene object such as May walking up).
-function faced(s:GameStateSnapshot):Person|null {
+function faced(s:GameStateSnapshot,named:boolean):Person|null {
  if(!s.started||s.map_id===null||s.position===null)return null;
  const live=(s.world_context?.objects??[]).filter(o=>o.map_id[0]===s.map_id?.[0]&&o.map_id[1]===s.map_id[1]);
  const target=facedObject(s);
@@ -47,14 +47,16 @@ function faced(s:GameStateSnapshot):Person|null {
   return {key:`obj:${s.map_id.join("/")}#${String(target.local_id)}`,name:null};
  }
  if(!isPerson(object.sprite_kind))return null;
- return identity(object.graphics_id,object.local_id,s);
+ return identity(object.graphics_id,object.local_id,s,named);
 }
-function identity(graphics:number,local:number,s:Pick<GameStateSnapshot,"location"|"map_id">):Person {
- const name=storyCharacter(graphics,s.location);
+// A story character is named only with character-presence-v1 on, by that switch's own rule.
+function identity(graphics:number,local:number,s:Pick<GameStateSnapshot,"location"|"map_id">,named:boolean):Person {
+ const name=named?storyCharacter(graphics,s.location):null;
  return name===null?{key:`obj:${(s.map_id??[]).join("/")}#${String(local)}`,name:null}:{key:`name:${name}`,name};
 }
 
 export class PeopleIdCards {
+ constructor(private readonly named=true){}
  private turn=0;
  private readonly facing=new Map<number,Person|null>();
  private readonly pending=new Map<string,Shown[]>();
@@ -65,7 +67,7 @@ export class PeopleIdCards {
 
  observe(event:RunEvent):void {
   this.turn=Math.max(this.turn,event.turn);
-  if(event.type==="state"&&"started" in event){this.facing.set(event.seq,faced(event));return;}
+  if(event.type==="state"&&"started" in event){this.facing.set(event.seq,faced(event,this.named));return;}
   if(event.type==="dialogue_auto_advance"){this.pending.set(event.tool_call_id,this.attribute(event));return;}
   if(event.type!=="tool_result")return;
   const pages=this.pending.get(event.id);this.pending.delete(event.id);
@@ -90,7 +92,7 @@ export class PeopleIdCards {
   return event.pages.map(page=>{
    let person:Person|null=null;
    if(page.battle_message_id===undefined&&page.position!==null){
-    if(page.speaker_source==="name_prefix"&&page.speaker!==null&&STORY_NAMES.has(page.speaker))person={key:`name:${page.speaker}`,name:page.speaker};
+    if(this.named&&page.speaker_source==="name_prefix"&&page.speaker!==null&&STORY_NAMES.has(page.speaker))person={key:`name:${page.speaker}`,name:page.speaker};
     else if(page.speaker_source==="faced_sprite")person=page.state_seq===null?null:this.facing.get(page.state_seq)??null;
     else if(page.speaker===null)person=owner;
    }
@@ -149,12 +151,12 @@ export class PeopleIdCards {
  // started overworld readout with a position and live objects. Each call updates who is in view.
  cards(s:GameStateSnapshot,callId:string):{cards:IdCard[];summaries:ReadonlyMap<string,string>}|null {
   if(!s.started||s.screen!=="overworld"||s.in_battle)return null;
-  const on=onScreen(s,true);
+  const on=onScreen(s,this.named);
   if(on===null)return null;
   const now=new Set<string>();const cards:IdCard[]=[];const summaries=new Map<string,string>();
   for(const o of on){
    if(!isPerson(o.sprite_kind))continue;
-   const person=o.character===null?identity(o.graphics_id,o.local_id,s):{key:`name:${o.character}`,name:o.character};
+   const person=o.character===null?identity(o.graphics_id,o.local_id,s,this.named):{key:`name:${o.character}`,name:o.character};
    if(now.has(person.key))continue;
    now.add(person.key);
    const h=this.history.get(person.key)??{first:this.turn,maps:new Map<string,number>(),fingerprint:null};
@@ -194,7 +196,7 @@ export class PeopleIdCards {
     const line=lines[i]??"";
     if(line.startsWith("- object ")){
      const row=/^- object (\d+), (?:(.+?) \(sprite \S+\)|sprite \S+), at /.exec(line);
-     const key=row===null?undefined:row[2]!==undefined&&STORY_NAMES.has(row[2])?`name:${row[2]}`:s.map_id===null?undefined:`obj:${s.map_id.join("/")}#${row[1]??""}`;
+     const key=row===null?undefined:this.named&&row[2]!==undefined&&STORY_NAMES.has(row[2])?`name:${row[2]}`:s.map_id===null?undefined:`obj:${s.map_id.join("/")}#${row[1]??""}`;
      const summary=key===undefined?undefined:out.summaries.get(key);
      if(summary!==undefined)lines[i]=`${line}; ID card: ${summary}`;
      end=i;continue;
@@ -217,7 +219,7 @@ function stateOf(details:unknown):GameStateSnapshot|null {
 
 export function withPeopleIdCards(tools:readonly AgentTool[],features:FeatureSet,recorder:Pick<RunRecorder,"subscribe">&IdCardRecorder):AgentTool[] {
  if(!features["people-id-cards-v1"])return [...tools];
- const model=new PeopleIdCards();recorder.subscribe(event=>{model.observe(event);});
+ const model=new PeopleIdCards(features["character-presence-v1"]);recorder.subscribe(event=>{model.observe(event);});
  const annotate=<T>(tool:string,id:string,result:AgentToolResult<T>):AgentToolResult<T>=>{
   const state=stateOf(result.details);
   if(state===null)return result;

@@ -50,7 +50,7 @@ describe("people-id-cards-v1 delivery",()=>{
  });
  it("T211 through the production factory: the card follows the people-ledger block, MAY's row carries her summary, one event is recorded",async()=>{
   const rec=recorder();
-  const features={...OFF,"people-ledger-v1":true,"people-id-cards-v1":true};
+  const features={...OFF,"character-presence-v1":true,"people-ledger-v1":true,"people-id-cards-v1":true};
   // The run's own T211 readout already carries the ledger block, so the inner ledger stays off here
   // and the card wrapper is checked against the bytes the model received.
   const tools=playGameTools([observe(T211.text,T211_STATE)],{...features,"people-ledger-v1":false,"people-id-cards-v1":false},{read:()=>Promise.resolve(T211_STATE)},rec.api);

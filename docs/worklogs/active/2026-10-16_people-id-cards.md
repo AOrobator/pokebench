@@ -182,6 +182,8 @@ No new network surface: the server field rides the existing state endpoint on 12
 
 ## Surprises
 
+- The card model named story characters from the shared table even with character-presence-v1 off, while the people ledger names them only from that switch's line. Fixed: names (and NAME: page attribution) only with character-presence-v1 on; test added. COMMIT: `fix(people-id-cards): story names only with character-presence-v1 on` (see Session Log)
+
 - In 4caa, "MAY at 10,3" was on screen in only 8 of the T199–T266 results; the other 47 mentions were the out-of-view template entry (offscreen-objects-v1 / character-presence).
 - The readout names MAY at T105, two turns before the game shows "Um… I'm MAY." (T107).
 - `TRAINER_TYPE_SEE_ALL_DIRECTIONS` is never used in Emerald maps and the game never checks it (`trainer_see.c:204`).

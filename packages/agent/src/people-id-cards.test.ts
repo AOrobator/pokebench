@@ -313,3 +313,17 @@ describe("people-id-cards-v1 registration",()=>{
   expect(presetFeatures(preset)["people-id-cards-v1"]).toBe(false);
  });
 });
+
+describe("people-id-cards-v1 without character presence",()=>{
+ it("names no story character: MAY is her sprite kind on her own map object, and her NAME: pages belong to no one",()=>{
+  const plain=new PeopleIdCards(false);
+  const map=(objects:readonly Obj[])=>parseGameState({...room([]),location:"ROUTE103",map_id:[0,18],world_context:{objects:objects.map(o=>({local_id:o.local_id,map_id:[0,18],graphics_id:o.graphics??7,sprite_kind:o.sprite,x:o.x,y:o.y})),triggers:[],dialogue:null},interaction_targets:[]});
+  const may:Obj={local_id:2,x:5,y:4,sprite:"RIVAL_MAY_NORMAL",graphics:105};
+  const s1=stateEv(map([may]),1);plain.observe(s1);
+  plain.observe(talk(1,"t",[page(s1,"MAY: Hi!","MAY","name_prefix")]));plain.observe(result("t",1));
+  const card=plain.cards(map([may]),"a")?.cards[0];
+  expect(card?.key).toBe("obj:0/18#2");
+  expect(card?.text).toBe(["ID card: sprite RIVAL_MAY_NORMAL, map object 2, at 5,4 on ROUTE103 (map 0/18)","- Name: none shown by the game (a sprite kind is a graphic, not a name).","- First seen: turn 1, here.","- Has not spoken to you in this run.","- Battles with you: none recorded in this run."].join("\n"));
+  expect(plain.annotate(`Location: ROUTE103\n${PEOPLE_HEADER}\n- object 2, MAY (sprite RIVAL_MAY_NORMAL), at (5,4): not talked to this run`,map([may]),"b").text).toContain("at (5,4): not talked to this run; ID card: no name shown; has not spoken to you; battles: none");
+ });
+});

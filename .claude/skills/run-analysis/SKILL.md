@@ -75,6 +75,7 @@ Never call `chat-thread` tools from this skill or its subagents. Quote every tim
      - a decision probe (`just probe-decision <run> <turn> --switch <id>=on|off`), for switches that change what the model reads;
      - a correctness fix and test, for false messages and wrong observations;
      - an experiment designed with `pokebench-experiment-design`, behind a switch per `feature-switch`.
+   - **Mechanism check.** For each switch the analysis calls helpful, harmful or unproven, state the effect it was supposed to have and measure that effect in the recorded data before judging outcomes. For example, presence penalty should reduce repetition, which shows in the `thinking` text of `assistant` events; a guard should end loops, which shows in what followed its `loop_guard` events. Compare each arm with its same-round twin before and after the switch arrived, and name the other switches that arrived on the same pin.
    - Mark what the evidence cannot show (confounded pins, N of 1, CLOCK_SET minutes, live runs not finished).
    - Report grading blind spots to `pokebench-story-milestones`, and harness bugs as **harness bug** with trigger and evidence.
 
@@ -124,6 +125,7 @@ Operator feedback on a run-analysis report is folded back into this skill. When 
 - events.jsonl always streamed, never loaded whole.
 - Every claim cites run id plus turn or seq; every hypothesis labelled with evidence and a cheapest test.
 - Mistakes ranked by both frequency and summed minutes.
+- Each judged switch had its predicted mechanism measured in recorded data, with co-arriving switches named.
 - N per arm per round stated; nothing called significant.
 - Promotion recommendation given (all, some or hold), with the switches named and what would change it; nothing promoted.
 - PokeBench review ran with four parallel personas on one packet, and answered helping or hurting and top-N confidence.

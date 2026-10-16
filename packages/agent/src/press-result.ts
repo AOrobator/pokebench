@@ -1,5 +1,6 @@
 import type { Button } from "./events.js";
 import type { GameStateSnapshot } from "./game-state.js";
+import { blockedBatchResult } from "./blocked-batch.js";
 
 
 function interfaceProjection(state: GameStateSnapshot): string | undefined {
@@ -12,7 +13,9 @@ function interfaceProjection(state: GameStateSnapshot): string | undefined {
 // Endpoint snapshots prove net changes. They cannot prove every frame accepted
 // input or that a temporary script lock did not occur between the snapshots.
 // Facts the run's observation switches hide from the model are left out here too.
-export interface PressFacts { readonly position: boolean; readonly fieldLock: boolean; readonly transitions?: boolean; readonly warpArrival?: boolean }
+// blockedBatch (blocked-batch-result-v1) names blocked direction batches; liveMap, ledges, edgeWalls, counters and
+// topology say which map facts the model is shown.
+export interface PressFacts { readonly position: boolean; readonly fieldLock: boolean; readonly transitions?: boolean; readonly warpArrival?: boolean; readonly blockedBatch?: boolean; readonly liveMap?: boolean; readonly ledges?: boolean; readonly edgeWalls?: boolean; readonly counters?: boolean; readonly topology?: boolean }
 export const ALL_PRESS_FACTS: PressFacts = { position: true, fieldLock: true };
 
 const dialogueOf = (state: GameStateSnapshot | undefined): string | null => state?.world_context?.dialogue ?? null;
@@ -95,6 +98,11 @@ function duringPress(before: GameStateSnapshot, after: GameStateSnapshot, button
   return dialogueChange(before, after, show) ?? basePressResult(before, after, buttons, show);
 }
 
+// Box-state notes that describe the state right after this press; dialogue-auto-advance-v1 replaces them with the state after it advanced.
+export const OPENED_LOCK_NOTE = " (the message box locks field controls until it closes)";
+export const STILL_OPEN_NOTE = " (message box still open; it locks field controls until it closes)";
+export const STILL_LOCKED_NOTE = "; field controls are still locked";
+
 // A message box opening, moving on or closing in place is what the press did; the field lock it
 // causes is a consequence, so it is named as the box's and never as the press being locked out.
 function dialogueChange(before: GameStateSnapshot, after: GameStateSnapshot, show: PressFacts): string | null {
@@ -102,10 +110,10 @@ function dialogueChange(before: GameStateSnapshot, after: GameStateSnapshot, sho
   if (before.position.x !== after.position.x || before.position.y !== after.position.y) return null;
   const was = dialogueOf(before), now = dialogueOf(after);
   const lock = (state: GameStateSnapshot): boolean | null => show.fieldLock ? state.field_controls_locked ?? null : null;
-  if (was === null && now !== null) return `dialogue opened${lock(after) === true ? " (the message box locks field controls until it closes)" : ""}`;
-  if (was !== null && now === null) return `dialogue closed${lock(after) === false ? "; field controls are free now" : lock(after) === true ? "; field controls are still locked" : ""}`;
+  if (was === null && now !== null) return `dialogue opened${lock(after) === true ? OPENED_LOCK_NOTE : ""}`;
+  if (was !== null && now === null) return `dialogue closed${lock(after) === false ? "; field controls are free now" : lock(after) === true ? STILL_LOCKED_NOTE : ""}`;
   if (was !== null && now !== null && (was !== now || cursorOf(before) !== cursorOf(after) || before.world_context?.message?.phase !== after.world_context?.message?.phase)) {
-    return `dialogue advanced${lock(after) === true ? " (message box still open; it locks field controls until it closes)" : ""}`;
+    return `dialogue advanced${lock(after) === true ? STILL_OPEN_NOTE : ""}`;
   }
   return null;
 }
@@ -139,6 +147,8 @@ function basePressResult(before: GameStateSnapshot | undefined, after: GameState
     return show.position ? `moved (${String(before.position.x)},${String(before.position.y)}) -> (${String(after.position.x)},${String(after.position.y)})` : "moved";
   }
   if (before.facing !== after.facing && before.facing !== null && after.facing !== null) {
+    const blocked = show.blockedBatch === true && show.fieldLock ? blockedBatchResult(before, after, buttons, show) : null;
+    if (blocked !== null) return blocked;
     return show.position ? `turned ${before.facing} -> ${after.facing}; no net movement` : "turned; no net movement";
   }
   if (!show.fieldLock) return "no movement or turn observed (cause not reported)";
@@ -150,6 +160,8 @@ function basePressResult(before: GameStateSnapshot | undefined, after: GameState
     return "unavailable/transitioning (field input readiness unverified)";
   }
   if (buttons.length !== 1 || !["UP", "DOWN", "LEFT", "RIGHT"].includes(buttons[0] ?? "")) {
+    const blocked = show.blockedBatch === true ? blockedBatchResult(before, after, buttons, show) : null;
+    if (blocked !== null) return blocked;
     return "unchanged world position/facing (batch or non-direction input; intermediate effects unknown)";
   }
   return "blocked or unavailable (no movement/turn observed; snapshots cannot distinguish collision from ignored input)";

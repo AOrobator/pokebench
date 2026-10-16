@@ -1,4 +1,4 @@
-import {DialogueLog,roomKey,roomOf} from "./dialogue-log.js";
+import {DialogueLog,roomKey,roomOf,type DialogueEntry,speakerLabel} from "./dialogue-log.js";
 import {NextMilestoneHint} from "./milestone-hint.js";
 import {MEASUREMENT_ONLY_MILESTONES} from "./milestones.js";
 import type {RunEvent} from "./events.js";
@@ -14,6 +14,7 @@ interface Call {readonly name:string;readonly args:Record<string,unknown>;before
 type Advance=Extract<RunEvent,{type:"dialogue_auto_advance"}>;
 type Page=Advance["pages"][number];
 interface Tried {readonly key:string;readonly room:string;readonly label:string;count:number;outcome:string}
+interface Instruction {readonly name:string;readonly turn:number;readonly pages:readonly {readonly speaker:string|null;readonly text:string}[]}
 
 const MAX_TRIED=8;
 // Only these tools return the game readout; any other text could only quote it.
@@ -21,12 +22,17 @@ const GAME_TOOLS=new Set(["observe","press","navigate_to"]);
 const STEP:Readonly<Record<string,readonly[number,number]>>={up:[0,-1],down:[0,1],left:[-1,0],right:[1,0]};
 const PATTERN:Readonly<Record<LoopKind,string>>={cycle:"the same short cycle of actions",ineffective:"the same input with no effect",planning:"planning without acting",observation:"observing without acting",rejection:"the same rejected tool call"};
 const at=(x:number,y:number)=>`${String(x)},${String(y)}`;
+const quote=(e:DialogueEntry)=>`turn ${String(e.turn)}, ${e.room}${e.facing===null?"":`, facing ${e.facing}`}: "${e.text.replace(/\s+/g," ")}"`;
+const mapOf=(state:{map_id:readonly number[]|null}):string|null=>state.map_id===null?null:state.map_id.join("/");
+const counted=(event:Extract<RunEvent,{type:"milestone"}>):boolean=>event.origin!=="present_at_start"&&event.name!=="GAME_RUNNING"&&!MEASUREMENT_ONLY_MILESTONES.has(event.name);
 
 // A deterministic summary for a looping agent: facts it was shown, never a route or story goal.
 export class SupervisorBriefing {
  private measured:State|null=null;
  private latest:State|null=null;
  private progress:{turn:number;name:string}|null=null;
+ // dialogue-context-kept-v1: story milestones the game confirmed during this run, in order.
+ private readonly stories:{seq:number;turn:number;name:string}[]=[];
  private turn=0;
  private readonly dialogue:DialogueLog;
  private readonly calls=new Map<string,Call>();
@@ -37,12 +43,26 @@ export class SupervisorBriefing {
  private readonly heard=new Set<string>();
  // dialogue-auto-advance-v1: the pages of each auto-advanced call, recorded before its result.
  private readonly advanced=new Map<string,Advance>();
+ // stall-briefing-v1: the pages shown in the call that earned the latest story milestone, and the rooms
+ // and maps the player has been on since the latest counted milestone.
+ private pendingStory:{readonly name:string;readonly turn:number;readonly evidence:number}|null=null;
+ private instruction:Instruction|null=null;
+ private readonly path=new Map<string,State>();
+ private readonly entered=new Set<string>();
  constructor(private readonly features:FeatureSet){this.dialogue=new DialogueLog(features);this.hint=features["next-milestone-hint-v1"]?new NextMilestoneHint():null;}
  observe(event:RunEvent):void {
   this.dialogue.observe(event);
   this.hint?.observe(event);
   this.turn=Math.max(this.turn,event.turn);
-  if(event.type==="milestone"){if(event.origin!=="present_at_start"&&event.name!=="GAME_RUNNING"&&!MEASUREMENT_ONLY_MILESTONES.has(event.name))this.progress={turn:event.turn,name:event.name};return;}
+  if(event.type==="milestone"){
+   if(!counted(event))return;
+   this.progress={turn:event.turn,name:event.name};this.path.clear();this.entered.clear();
+   if(event.kind==="story"){
+    this.pendingStory={name:event.name,turn:event.turn,evidence:Math.max(...(event.evidence??[event.seq]))};
+    this.stories.push({seq:event.seq,turn:event.turn,name:event.name});
+   }
+   return;
+  }
   if(event.type==="state"&&"started"in event){this.measured=event;return;}
   if(event.type==="dialogue_auto_advance"){
    this.advanced.set(event.tool_call_id,event);
@@ -61,12 +81,15 @@ export class SupervisorBriefing {
    if(call!==undefined&&!call.pressed&&pre!==null&&pre.seq===event.before_state_seq&&pre.started&&pre.screen==="overworld"){call.before=pre;call.pressed=true;}
    return;
   }
+  if(event.type==="tool_result"&&this.pendingStory!==null)this.storyPages(event.id,event.is_error);
   if(event.type!=="tool_result"||event.state_seq===undefined||this.measured?.seq!==event.state_seq)return;
   const after=this.measured;this.measured=null;
   const auto=this.advanced.get(event.id);this.advanced.delete(event.id);
   if(!event.is_error&&GAME_TOOLS.has(event.name))this.readStory(event.text);
   if(!after.started||after.screen!=="overworld")return;
   this.latest=after;
+  const key=this.room(after);this.path.delete(key);this.path.set(key,after);
+  const map=mapOf(after);if(map!==null)this.entered.add(map);
   const call=this.calls.get(event.id);this.calls.delete(event.id);
   const label=call===undefined?null:this.label(call);
   if(call!==undefined&&label!==null){
@@ -77,6 +100,16 @@ export class SupervisorBriefing {
   for(const page of auto?.pages??[])this.heard.add(this.pageOpening(page));
   const dialogue=after.world_context?.dialogue;
   if(dialogue)this.heard.add(this.opening(after,dialogue));
+ }
+ // The pages delivered in the call that earned a story milestone, up to the state that proved it.
+ private storyPages(id:string,error:boolean):void {
+  const story=this.pendingStory;this.pendingStory=null;
+  if(story===null||error)return;
+  const auto=this.advanced.get(id);
+  const pages=auto!==undefined
+   ?auto.pages.filter(p=>(p.state_seq??auto.seq)<=story.evidence).map(p=>({speaker:speakerLabel(p),text:p.text}))
+   :this.dialogue.entries().filter(e=>e.turn===story.turn&&e.seq<=story.evidence).map(e=>({speaker:null,text:e.text}));
+  if(pages.length>0)this.instruction={name:story.name,turn:story.turn,pages};
  }
  // The readout's own Story line, so the briefing never disagrees with it. A reload gap keeps the last known line.
  private readStory(text:string):void {
@@ -173,30 +206,76 @@ export class SupervisorBriefing {
  private told():string {
   if(!this.features["active-field-message-buffer-v1"])return "not available (dialogue text is off)";
   const recent=this.dialogue.entries().slice(-3).reverse();
-  return recent.length===0?"none recorded":recent.map(e=>`turn ${String(e.turn)}, ${e.room}${e.facing===null?"":`, facing ${e.facing}`}: "${e.text.replace(/\s+/g," ")}"`).join(" | ");
+  return recent.length===0?"none recorded":recent.map(quote).join(" | ");
  }
+ // dialogue-context-kept-v1: the pages recorded between the previous story milestone and the latest one that has any,
+ // bounded by event order (seq), not turn: a turn can hold pages on both sides of a milestone.
+ private storyContext():string {
+  const head="- Dialogue you were shown leading up to the last story step the game confirmed";
+  if(!this.features["active-field-message-buffer-v1"])return `${head}: not available (dialogue text is off)\n`;
+  const entries=this.dialogue.entries();
+  for(const [i,step] of [...this.stories.entries()].reverse()){
+   const before=this.stories[i-1]?.seq??-Infinity;
+   const pages=entries.filter(e=>e.seq>before&&e.seq<step.seq);
+   if(pages.length>0)return `${head} (${step.name.replaceAll("_"," ").toLowerCase()} at turn ${String(step.turn)}), oldest first: ${pages.map(quote).join(" | ")}\n`;
+  }
+  return `${head}: none recorded\n`;
+ }
+ private kept():string {return this.features["dialogue-context-kept-v1"]?this.storyContext():"";}
 
  private untried():string {
   const s=this.latest;
   if(!this.features["world-targets-v1"])return "not available (world targets are off)";
   if(s===null)return "no observation yet";
+  const open=this.open(s);
+  if(open.length===0)return "none: every listed target here has been tried";
+  return open.join("; ");
+ }
+ private open(s:State):string[] {
   const done=this.touched.get(this.room(s))??new Set<string>();
   // Exits first: ordering only, so a briefing never buries the way out under room furniture.
   const open=(s.interaction_targets??[]).filter(t=>!done.has(at(t.x,t.y))).sort((a,b)=>Number(b.kind==="warp")-Number(a.kind==="warp"));
-  if(open.length===0)return "none: every listed target here has been tried";
-  return open.map(t=>`${this.features["named-interactions-v1"]&&t.name!=null?t.name:t.kind} at ${at(t.x,t.y)} (${t.activation})`).join("; ");
+  return open.map(t=>`${this.target(t)} at ${at(t.x,t.y)} (${t.activation})`);
+ }
+ private target(t:{readonly kind:string;readonly name?:string|null}):string {return this.features["named-interactions-v1"]&&t.name!=null?t.name:t.kind;}
+ private instructionText():string {
+  if(!this.features["active-field-message-buffer-v1"])return ": not available (dialogue text is off)";
+  const story=this.instruction;
+  if(story===null)return ": none recorded";
+  return ` (${story.name.replaceAll("_"," ").toLowerCase()} at turn ${String(story.turn)}), whole, in order: ${story.pages.map(p=>`${p.speaker===null?"":`${p.speaker}: `}"${p.text.replace(/\s+/g," ")}"`).join(" | ")}`;
+ }
+ // Warps listed on the maps walked since the last progress whose destination map has not been entered since.
+ private unentered():string {
+  if(!this.features["world-targets-v1"])return "not available (world targets are off)";
+  const rooms=[...this.path.values()].reverse().flatMap(s=>{
+   const exits=(s.interaction_targets??[]).filter(t=>t.kind==="warp"&&t.destination!==null&&!this.entered.has(`${String(t.destination[0])}/${String(t.destination[1])}`));
+   return exits.length===0?[]:[`${roomOf(s,this.features)}: ${exits.map(t=>`${this.target(t)} at ${at(t.x,t.y)}`).join("; ")}`];
+  });
+  return rooms.length===0?"none":rooms.join(" | ");
+ }
+ // The same untried list as for the current map, for the other maps walked since the last progress.
+ private untriedElsewhere():string {
+  if(!this.features["world-targets-v1"])return "not available (world targets are off)";
+  const here=this.latest===null?null:this.room(this.latest);
+  const rooms=[...this.path.entries()].reverse().flatMap(([key,s])=>{
+   if(key===here)return [];
+   const open=this.open(s);
+   return open.length===0?[]:[`${roomOf(s,this.features)}: ${open.join("; ")}`];
+  });
+  return rooms.length===0?"none":rooms.join(" | ");
  }
  text(kind:LoopKind,calls:number):string {
   return this.bearings(`SUPERVISOR: You are currently looping. You keep repeating ${PATTERN[kind]}, and the game is not moving forward (loop guard, ${String(calls)} calls into the run).`);
  }
 
- // stall-briefing-v1: the same facts, headed by which stall it is.
+ // stall-briefing-v1: the same facts, headed by which stall it is, plus the dialogue of the last story step
+ // and what lies on the maps walked since the last progress.
  stallText(stall:Stall,calls:number):string {
   const what=stall.kind==="map_cycle"?`You have walked between ${stall.from} and ${stall.to} ${String(stall.roundTrips)} times${stall.consecutive?", out and back,":" (with other maps in between),"} with no new story milestone`:`There has been no new story milestone for ${String(stall.minutes)} minutes of play`;
-  return this.bearings(`SUPERVISOR: You are stalling. ${what}, and the game is not moving forward (stall briefing, ${String(calls)} calls into the run).`);
+  return this.bearings(`SUPERVISOR: You are stalling. ${what}, and the game is not moving forward (stall briefing, ${String(calls)} calls into the run).`,true);
  }
 
- private bearings(headline:string):string {
+ private bearings(headline:string,stall=false):string {
   const tried=this.tried.length===0?"nothing recorded":this.tried.slice().reverse().map(t=>`${t.label}${t.count>1?` ×${String(t.count)}`:""} in ${t.room} → ${t.outcome}`).join("; ");
   const recall=this.features["dialogue-log-v1"]?" (use recall_dialogue to check exactly what characters said)":"";
   return `${headline} What you have been trying is not working, so do not try it again.
@@ -205,10 +284,10 @@ Stop and get your bearings:
 - Last story progress: ${this.lastProgress()}
 ${this.hint===null?"":`- Next milestone (hint): ${this.hint.describe()}\n`}- Characters the readout names here: ${this.characters()}
 - Story steps the game confirms are done: ${this.done()}
-- Recent dialogue you were shown, newest first: ${this.told()}
-- What you tried recently, newest first: ${tried}
+${this.kept()}- Recent dialogue you were shown, newest first: ${this.told()}
+${stall?`- Dialogue shown with your latest story step that came with dialogue${this.instructionText()}\n`:""}- What you tried recently, newest first: ${tried}
 - Listed here that you have not tried yet: ${this.untried()}
-Before your next action, look back at your goal and at what the game has told you${recall}. If anything you believe disagrees with the dialogue or the readout above, believe the game. Make a new plan that is different from what you have been trying, and say which untried option you will try first. The run continues.`;
+${stall?`- Not tried yet on other maps you have been on since your last story progress: ${this.untriedElsewhere()}\n- Exits to maps you have not entered since your last story progress: ${this.unentered()}\n`:""}Before your next action, look back at your goal and at what the game has told you${recall}. If anything you believe disagrees with the dialogue or the readout above, believe the game. Make a new plan that is different from what you have been trying, and say which untried option you will try first. The run continues.`;
  }
 
  textOnly(replies:number,note:number,limit:number):string {
@@ -217,7 +296,7 @@ Get your bearings:
 - Where you are: ${this.where()}
 - Last story progress: ${this.lastProgress()}
 - Story steps the game confirms are done: ${this.done()}
-- Recent dialogue you were shown, newest first: ${this.told()}
+${this.kept()}- Recent dialogue you were shown, newest first: ${this.told()}
 - Listed here that you have not tried yet: ${this.untried()}
 Keep your thinking short and end this reply with one tool call: observe to look again, or press, navigate_to or another listed tool to act. If replies keep calling no tool after note ${String(limit)} of ${String(limit)}, the run ends.`;
   return text;

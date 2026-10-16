@@ -36,13 +36,14 @@ SERVER_FEATURES = (
     "character-presence-v1",
     "battle-details-v2",
     "warp-arrival-settle-v1",
+    "displayed-place-names-v1",
 )
 
 
 def features_off_from_env(env: Mapping[str, str]) -> frozenset[str]:
     raw = env.get(
         "POKEBENCH_FEATURES_OFF",
-        "named-interactions-v1,world-destinations-v1,bounded-navigation-v1,expanded-menu-battle-information-v1,field-dialogue-phase-v1,full-map-navigation-v1,named-warp-destinations-v1,character-presence-v1,battle-details-v2,warp-arrival-settle-v1",
+        "named-interactions-v1,world-destinations-v1,bounded-navigation-v1,expanded-menu-battle-information-v1,field-dialogue-phase-v1,full-map-navigation-v1,named-warp-destinations-v1,character-presence-v1,battle-details-v2,warp-arrival-settle-v1,displayed-place-names-v1",
     )
     if raw == "":
         return frozenset()
@@ -94,9 +95,19 @@ def format_readout(
 ) -> str:
     if "ram-state-v1" in off:
         return ""
+    # displayed-place-names-v1: buildings the game names on their signs, for this save's player.
+    places = (
+        {(g, n): name for g, n, name in state.displayed_places}
+        if "displayed-place-names-v1" not in off
+        else {}
+    )
     # Only names the game's map table resolved; the "unknown map" fallback keeps the bare ID.
     destinations = (
-        {(g, n): name for g, n, name in state.destination_names if name != f"unknown map {g}/{n}"}
+        {
+            (g, n): places.get((g, n), name)
+            for g, n, name in state.destination_names
+            if name != f"unknown map {g}/{n}"
+        }
         if named_warps and "named-warp-destinations-v1" not in off
         else None
     )
@@ -244,7 +255,8 @@ def format_readout(
         + (f" · HARNESS BUG: {m.nickname_diagnostic}" if m.nickname_diagnostic else "")
         for m in state.party or ()
     )
-    lines += [f"Player: {state.name}", f"Location: {state.location}"]
+    location = places.get(state.map_id) if state.map_id is not None else None
+    lines += [f"Player: {state.name}", f"Location: {location or state.location}"]
     if "live-player-position-v1" not in off:
         lines.append(f"Position: X={x}, Y={y}{facing}")
     lines += [
@@ -311,7 +323,7 @@ def format_readout(
             "Map topology: unavailable" if state.topology is None else state.topology.text()
         )
         if state.interaction_targets is not None:
-            names = {(g, n): name for g, n, name in state.destination_names}
+            names = {(g, n): places.get((g, n), name) for g, n, name in state.destination_names}
             for target in state.interaction_targets:
                 if target.destination is not None:
                     g, n, _ = target.destination

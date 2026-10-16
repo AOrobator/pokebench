@@ -21,6 +21,8 @@ export interface Chunked {
 export interface Window {
   readonly turns: Chunked;
   readonly results: Chunked;
+  // dialogue-context-kept-v1: a collapsed result keeps every dialogue page it showed.
+  readonly keepDialogue?: boolean;
 }
 
 // Boundaries move in whole chunks so the start of the prompt stays identical
@@ -29,7 +31,8 @@ export const WINDOW: Window = { turns: { max: 20, chunk: 10 }, results: { max: 6
 export const DOUBLE_WINDOW: Window = { turns: { max: 40, chunk: 20 }, results: { max: 12, chunk: 6 } };
 
 export function contextWindow(features: FeatureSet): Window {
-  return features["double-context-window-v1"] ? DOUBLE_WINDOW : WINDOW;
+  const window = features["double-context-window-v1"] ? DOUBLE_WINDOW : WINDOW;
+  return features["dialogue-context-kept-v1"] ? { ...window, keepDialogue: true } : window;
 }
 export const OMITTED_FRAME = "[older screenshot omitted]";
 export const NUDGE = "Keep playing: call observe or press. Only tool calls advance the game.";
@@ -51,10 +54,34 @@ function summary(text: string): string {
   return `${action} · ${location}${position === undefined ? "" : ` (${position})`}`;
 }
 
-function collapsed(message: ToolResultMessage): ToolResultMessage {
+// Tools whose whole result is quoted dialogue.
+const DIALOGUE_TOOLS = new Set(["get_dialogue", "recall_dialogue"]);
+const PAGE_LIST = /^Dialogue shown during this call \((\d+) pages?, in order, whole\):$/gm;
+
+// Every dialogue unit a result showed, byte for byte and in order: an auto-advance page list (header and
+// every numbered page, which can span lines) and each readout `Dialog: "…"` line (one line; the server
+// joins pages with " | ").
+export function dialogueUnits(text: string): string[] {
+  const units: { at: number; text: string }[] = [];
+  for (const header of text.matchAll(PAGE_LIST)) {
+    const count = Number(header[1]);
+    const lastPage = text.indexOf(`\n${String(count)}. turn `, header.index);
+    const close = lastPage < 0 ? -1 : text.indexOf('"\n\n', lastPage);
+    const end = close < 0 ? text.length : close + 1;
+    units.push({ at: header.index, text: text.slice(header.index, end) });
+  }
+  for (const line of text.matchAll(/^Dialog: ".*"$/gm)) units.push({ at: line.index, text: line[0] });
+  return units.sort((a, b) => a.at - b.at).map((unit) => unit.text);
+}
+
+function collapsed(message: ToolResultMessage, keepDialogue: boolean): ToolResultMessage {
   const text = message.content.flatMap((part) => (part.type === "text" ? [part.text] : [])).join("\n");
   const hadImage = message.content.some((part) => part.type === "image");
-  return { ...message, content: [{ type: "text", text: hadImage ? `${summary(text)} ${OMITTED_FRAME}` : summary(text) }] };
+  const line = hadImage ? `${summary(text)} ${OMITTED_FRAME}` : summary(text);
+  if (!keepDialogue) return { ...message, content: [{ type: "text", text: line }] };
+  if (DIALOGUE_TOOLS.has(message.toolName)) return { ...message, content: [{ type: "text", text }] };
+  const kept = dialogueUnits(text);
+  return { ...message, content: [{ type: "text", text: kept.length === 0 ? line : [line, ...kept].join("\n") }] };
 }
 
 export function slideWindow(messages: AgentMessage[], window: Window = WINDOW): AgentMessage[] {
@@ -65,7 +92,7 @@ export function slideWindow(messages: AgentMessage[], window: Window = WINDOW): 
   const shown = rest.map((message) => {
     if (message.role !== "toolResult" || collapse <= 0) return message;
     collapse -= 1;
-    return collapsed(message);
+    return collapsed(message, window.keepDialogue === true);
   });
   const starts = shown.flatMap((message, i) => (message.role === "assistant" ? [i] : []));
   const from = starts[starts.length - keepCount(starts.length, window.turns)] ?? 0;
@@ -192,11 +219,11 @@ function firstText(result: ToolResultMessage | undefined): string {
   return part?.type === "text" ? part.text : "";
 }
 
-export function attachLoopGuard(recorder: Pick<RunRecorder, "subscribe" | "recordLoopGuard">, governor: Governor, policy?: LoopPolicy, mode:LoopMode="enforced", interactions=false, supervisor?: (kind: LoopKind, calls: number) => string): LoopDetector {
+export function attachLoopGuard(recorder: Pick<RunRecorder, "subscribe" | "recordLoopGuard">, governor: Governor, policy?: LoopPolicy, mode:LoopMode="enforced", interactions=false, supervisor?: (kind: LoopKind, calls: number) => string, transitions=false): LoopDetector {
   const detector = new LoopDetector((notice) => {
     recorder.recordLoopGuard({...notice,evidence:[...notice.evidence]});
     if (notice.phase === "stop") governor.abort("stuck");
-  }, policy, mode, interactions, supervisor);
+  }, policy, mode, interactions, supervisor, transitions);
   recorder.subscribe((event) => { detector.observe(event); });
   return detector;
 }

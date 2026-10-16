@@ -16,7 +16,7 @@ it("sits between the Birch handoff and Oldale as a navigation split that the mod
   expect(MILESTONE_ORDER.indexOf(NAME)).toBe(MILESTONE_ORDER.indexOf("BIRCH_STARTER_HANDOFF_COMPLETE") + 1);
   expect(MILESTONE_ORDER.indexOf("OLDALE_TOWN")).toBe(MILESTONE_ORDER.indexOf(NAME) + 1);
   expect(MILESTONES.find(m => m.name === NAME)?.kind).toBe("navigation");
-  expect([...MEASUREMENT_ONLY_MILESTONES]).toEqual([NAME]);
+  expect([...MEASUREMENT_ONLY_MILESTONES]).toEqual(["PLAYER_BEDROOM_EXITED_AFTER_CLOCK", NAME]);
 });
 
 it("records the first stable Route 101 state after the lab handoff, with pre-handoff, town and route evidence", () => {

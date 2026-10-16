@@ -4,8 +4,8 @@ import type {Button} from "./events.js";
 import {isCheckedPress,type BeforePressCheck} from "./game-tools.js";
 import type {FeatureSet} from "./features.js";
 import {parseGameState,type StateSource,type GameStateSnapshot} from "./game-state.js";
+import {COUNTER,EDGE_WALLS,GAME_RULE,LEDGES,OPPOSITE,WATER,type Direction,type ElevationRule} from "./tile-rules.js";
 
-type Direction="UP"|"DOWN"|"LEFT"|"RIGHT";
 type Point={readonly x:number;readonly y:number};
 type Tile={readonly collision:number;readonly behavior:number;readonly elevation:number};
 export type NavigationMode="local"|"full";
@@ -25,29 +25,9 @@ const UNWALKABLE=new Set([
 const FLOOR=new Set(Array.from({length:0xf0},(_,behavior)=>behavior).filter(behavior=>!UNWALKABLE.has(behavior)));
 // Before walkable-floor-v1: plain ground, grass and doors/warps only.
 const LEGACY_WALKING=new Set([0,2,3,0x60,0x61,0x62,0x63,0x64,0x65,0x67,0x68,0x69,0x6a,0x6b,0x6c,0x6d,0x6e]);
-// pokeemerald 731ad5b MB_JUMP_EAST/WEST/NORTH/SOUTH: collision tiles that one press
-// in their direction jumps over, landing two tiles on (GetLedgeJumpDirection).
-const LEDGES:ReadonlyMap<number,Direction>=new Map([[0x38,"RIGHT"],[0x39,"LEFT"],[0x3a,"UP"],[0x3b,"DOWN"]]);
-// pokeemerald 731ad5b MetatileBehavior_Is*Blocked: collision-free tiles whose listed sides
-// IsMetatileDirectionallyImpassable refuses to cross, leaving the current tile or entering the next.
-const EDGE_WALLS:ReadonlyMap<number,readonly Direction[]>=new Map([[0x30,["RIGHT"]],[0x31,["LEFT"]],[0x32,["UP"]],[0x33,["DOWN"]],[0x34,["UP","RIGHT"]],[0x35,["UP","LEFT"]],[0x36,["DOWN","RIGHT"]],[0x37,["DOWN","LEFT"]],[0xbe,["LEFT","RIGHT"]],[0xc0,["UP","DOWN"]],[0xc1,["LEFT","RIGHT"]]]);
-const COUNTER=0x80;
-const OPPOSITE:Readonly<Record<Direction,Direction>>={UP:"DOWN",DOWN:"UP",LEFT:"RIGHT",RIGHT:"LEFT"};
 const walled=(tile:Tile|undefined,side:Direction):boolean=>tile!==undefined&&(EDGE_WALLS.get(tile.behavior)?.includes(side)??false);
 const key=(p:Point):string=>`${String(p.x)},${String(p.y)}`;
 const distance=(a:Point,b:Point):number=>Math.abs(a.x-b.x)+Math.abs(a.y-b.y);
-// pokeemerald IsElevationMismatchAt / ObjectEventUpdateElevation: 0 is a
-// transition (stairs) and 15 is multi-level (bridges); neither ever mismatches.
-// A finished step or jump re-reads only its final tile, which sets the walker's
-// height unless that tile is 15. A jump also updates mid-air on the ledge tile
-// (InitJump, then JUMP_HALFWAY), and a 15 landing keeps that update.
-const MULTI_LEVEL=15;
-interface ElevationRule {readonly mismatch:(walker:number,tile:number)=>boolean;readonly entered:(walker:number,tile:number)=>number;readonly jumped:(walker:number,takeoff:number,ledge:number,landing:number)=>number}
-const GAME_RULE:ElevationRule={
- mismatch:(walker,tile)=>walker!==0&&tile!==0&&tile!==MULTI_LEVEL&&tile!==walker,
- entered:(walker,tile)=>tile===MULTI_LEVEL?walker:tile,
- jumped:(walker,takeoff,ledge,landing)=>landing!==MULTI_LEVEL?landing:takeoff===MULTI_LEVEL?walker:GAME_RULE.entered(walker,ledge),
-};
 // The rule before elevation-transitions-v1: 0 keeps the walker's layer, 15 is an ordinary layer.
 const LEGACY_RULE:ElevationRule={
  mismatch:(walker,tile)=>walker!==0&&tile!==0&&tile!==walker,
@@ -108,15 +88,15 @@ function counterHint(state:GameStateSnapshot,goal:Point,options:NavigationOption
  return involved?"target is a counter or behind one; you cannot stand on a counter, but you can face it from a reachable adjacent tile and press A to talk to someone behind it":null;
 }
 // navigation-refusal-reasons-v1: say why navigate_to cannot walk, from the same state and grid the planner uses.
-const WATER=new Set([0x10,0x11,0x12,0x13,0x14,0x15,0x19,0x22,0x2a,0x50,0x51,0x52,0x53,0x6c,0x6d,0x6f]);
 const NEAREST_RADIUS=3;
+export const MESSAGE_WAITING="a message is waiting for A or B; dismiss it with B, then call navigate_to again";
 const at=(p:Point):string=>`(${String(p.x)},${String(p.y)})`;
 function unreadyReason(state:GameStateSnapshot):string {
  if(state.in_battle)return "a battle is in progress; navigate_to walks only on the field";
  if(!state.started)return "the game has not started yet; navigate_to walks only on the field";
  if(state.screen!=="overworld")return `the game is not on the field (screen: ${state.screen}); navigate_to walks only on the field`;
  const context=state.world_context;
- if(context!=null&&(context.message!=null||Boolean(context.dialogue)))return "a message is waiting for A or B; dismiss it with B, then call navigate_to again";
+ if(context!=null&&(context.message!=null||Boolean(context.dialogue)))return MESSAGE_WAITING;
  const ui=state.active_ui;
  if(ui!=null)return `a menu or other interface is open (${ui.phase}); close it before calling navigate_to`;
  if(state.field_controls_locked===true)return "field controls are locked by a script and no message is open; the game is acting on its own, so inspect the new state before calling navigate_to again";
@@ -128,7 +108,7 @@ function targetReason(state:GameStateSnapshot,goal:Point,options:NavigationOptio
  const bounds=geometry.bounds;
  if(bounds!==null&&(goal.x>=bounds.width||goal.y>=bounds.height))return `${at(goal)} is outside this map; its tiles run from (0,0) to (${String(bounds.width-1)},${String(bounds.height-1)}); to reach another map, use a listed warp or a map connection`;
  const same=(p:Point):boolean=>p.x===goal.x&&p.y===goal.y;
- if(geometry.warps.some(same))return null;
+ if(geometry.warps.some(same))return warpReason(state,geometry,goal,options);
  const tile=geometry.tile(goal);if(tile===undefined)return null;
  const walkable=options.floor===true?FLOOR:LEGACY_WALKING;
  const standable=(t:Tile|undefined):boolean=>t!==undefined&&t.collision===0&&t.behavior!==0x69&&(walkable.has(t.behavior)||(options.oneWay===true&&EDGE_WALLS.has(t.behavior)));
@@ -151,6 +131,34 @@ function targetReason(state:GameStateSnapshot,goal:Point,options:NavigationOptio
  const sorted=candidates.sort((a,b)=>distance(a,goal)-distance(b,goal)||a.y-b.y||a.x-b.x);
  const nearest=sorted.find(free);
  return `${at(goal)} is ${what}, not a walkable tile; ${nearest===undefined?`no walkable tile navigate_to can reach lies within ${String(NEAREST_RADIUS)} steps of it`:`the nearest walkable tile navigate_to can reach is ${at(nearest)}`}`;
+}
+// A warp the planner cannot reach: someone stands on it, or (pokeemerald TryDoorWarp) a door is
+// entered only by walking north into it from the tile below, and that tile is not usable from here.
+function warpReason(state:GameStateSnapshot,geometry:Geometry,goal:Point,options:NavigationOptions):string|null {
+ const walkable=options.floor===true?FLOOR:LEGACY_WALKING;
+ const same=(p:Point)=>(t:Point):boolean=>t.x===p.x&&t.y===p.y;
+ const listed=(state.interaction_targets??[]).filter(t=>t.kind==="warp");
+ const destination=listed.find(same(goal))?.destination??null;
+ const map=destination===null?null:`map ${String(destination[0])}/${String(destination[1])}`;
+ const tile=geometry.tile(goal);
+ const door=tile?.behavior===0x69;
+ const what=`${at(goal)} is ${door?"a door":"a warp"}${map===null?"":` to ${map}`}`;
+ const onMap=(p:Point):boolean=>geometry.objects.some(same(p))||(state.world_context?.objects??[]).some(o=>same(p)(o)&&o.map_id[0]===state.map_id?.[0]&&o.map_id[1]===state.map_id[1]);
+ const occupant=(p:Point):string=>{const name=(state.interaction_targets??[]).find(t=>t.kind==="object"&&same(p)(t))?.name;return name!=null?`${name} (person or object)`:"a person or object";};
+ if(onMap(goal)){
+  const others=destination===null?[]:listed.filter(t=>!same(goal)(t)&&t.destination?.[0]===destination[0]&&t.destination[1]===destination[1]).map(at);
+  return `${what}, but ${occupant(goal)} is standing on it, so navigate_to cannot walk onto it; wait for it to move${others.length===0||map===null?"":`, or use another listed warp to ${map}: ${others.join(", ")}`}`;
+ }
+ if(!door)return null;
+ const from={x:goal.x,y:goal.y+1};
+ const entry=`${what}; the game enters a door only when you walk UP into it from the tile below, ${at(from)}`;
+ const bounds=geometry.bounds;
+ if(bounds!==null&&from.y>=bounds.height)return `${entry}, which is outside this map, so this door cannot be entered from this map`;
+ if(onMap(from))return `${entry}, and ${occupant(from)} is standing on ${at(from)}; wait for it to move`;
+ const below=geometry.tile(from);
+ if(below!==undefined&&(below.collision!==0||!walkable.has(below.behavior)))return `${entry}, which is not a tile navigate_to can stand on, so this door cannot be entered from here`;
+ if(below===undefined)return `${entry}, which is outside the local map navigate_to can see from here; ${planNavigation(state,from,options)===null?`no route toward ${at(from)} is known from here; choose a reachable waypoint nearer it`:`call navigate_to ${at(from)} first, then navigate_to ${at(goal)} again`}`;
+ return planNavigation(state,from,options)===null?`${entry}, which navigate_to cannot reach from here; choose a reachable waypoint nearer it`:null;
 }
 const hopAhead=(state:GameStateSnapshot,mode:NavigationMode,from:Point,direction:Direction,dx:number,dy:number):boolean=>{
  const tile=(mode==="full"?fullGeometry(state):localGeometry(state))?.tile({x:from.x+dx,y:from.y+dy});
@@ -269,13 +277,13 @@ export function navigationTool(ports:NavigationPorts):AgentTool<typeof Args> {
  execute:async(id,goal,signal)=>{
   signal?.throwIfAborted();await ports.gate?.(signal);signal?.throwIfAborted();
   let state=await ports.read(signal),commands=0,status="command limit",last:AgentToolResult<unknown>|undefined;
-  let shortest=Infinity,stalled=0;
+  let shortest=Infinity,stalled=0,unready=false;
   const sameMap=():boolean=>state.map_id?.[0]===goal.map_id[0]&&state.map_id[1]===goal.map_id[1];
   while(commands<bound){
    signal?.throwIfAborted();await ports.gate?.(signal);signal?.throwIfAborted();
    state=await ports.read(signal);signal?.throwIfAborted();
    if(!sameMap()){status="map changed; inspect destination";break;}
-   if(!ready(state,mode)){status=ports.refusalReasons===true?unreadyReason(state):"field input or navigation geometry unavailable";break;}
+   if(!ready(state,mode)){status=ports.refusalReasons===true?unreadyReason(state):"field input or navigation geometry unavailable";unready=true;break;}
    const options:NavigationOptions={mode,ledges:ports.ledges===true,oneWay:ports.oneWay===true,grassCost:ports.grassCost===true,floor:ports.floor===true,elevation:ports.elevation??"game"};
    const path=planNavigation(state,goal,options);
    if(path===null){status=(ports.counters===true?counterHint(state,goal,options):null)??(ports.refusalReasons===true?targetReason(state,goal,options):null)??(mode==="full"?"no supported path on the current map; choose a reachable waypoint":"no supported local path; choose a reachable local waypoint");break;}
@@ -289,7 +297,7 @@ export function navigationTool(ports:NavigationPorts):AgentTool<typeof Args> {
    } catch(error){if(!(error instanceof NavigationPreconditionError))throw error;status=error.message;break;}
    commands++;state=resultState(last);
    if(!sameMap()){status="map changed; inspect destination";break;}
-   if(!ready(state,mode)){status=ports.refusalReasons===true?`walk interrupted: ${unreadyReason(state)}`:"field input locked or unavailable; inspect new state";break;}
+   if(!ready(state,mode)){status=ports.refusalReasons===true?`walk interrupted: ${unreadyReason(state)}`:"field input locked or unavailable; inspect new state";unready=true;break;}
    const after=state.position;if(after===null)throw new Error("Navigation position unavailable");
    const delta=DIRECTIONS.find(([d])=>d===direction);if(delta===undefined)throw new Error("Unknown navigation direction");
    const span=ports.ledges===true&&hopAhead(planned,mode,before,direction,delta[1],delta[2])?2:1;
@@ -301,7 +309,7 @@ export function navigationTool(ports:NavigationPorts):AgentTool<typeof Args> {
    if(distance(after,goal)===0){status="arrived at requested coordinate";break;}
   }
   last=await ports.observe(id,signal);state=resultState(last);
-  return {content:[{type:"text",text:`Navigation: ${status}; ${String(commands)} ordinary button attempts.`},...last.content],details:{state,navigation:{status,commands,target:goal}}};
+  return {content:[{type:"text",text:`Navigation: ${status}; ${String(commands)} ordinary button attempts.`},...last.content],details:{state,navigation:{status,commands,target:goal,unready}}};
  }};
 }
 

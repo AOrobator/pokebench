@@ -84,11 +84,16 @@ const routeProof = (name: string, states: readonly GameStateSnapshot[]): boolean
     const previous = states[1];
     return states.length === 3 && previous !== undefined && beforeHandoff(first) && route101Neighbor(previous) && onRoute101(last);
   }
+  if (name === "PLAYER_BEDROOM_EXITED_AFTER_CLOCK") {
+    const room = house(first.location, "2F");
+    return states.length === 2 && settled(first) && room !== null && stage("intro_stage", [6])(first) === true && clockSet(first) === true
+      && settled(last) && house(last.location, "1F") === room && clockSet(last) === true;
+  }
   const home = routeHome(first);
   if (name === "PLAYER_HOUSE_EXITED_AFTER_CLOCK") {
     const previous = states[1];
     return states.length === 3 && home !== null && previous !== undefined && stableRoute(previous)
-      && house(previous.location, "1F") === home && clockSet(previous) === true
+      && house(previous.location, "1F") === home && clockSet(previous) === true && stage("rival_stage", [2, 3, 4])(previous) !== true
       && stableRoute(last) && last.location === "LITTLEROOT TOWN" && clockSet(last) === true;
   }
   if (name === "RIVAL_HOUSE_EXITED") {
@@ -101,9 +106,9 @@ const routeProof = (name: string, states: readonly GameStateSnapshot[]): boolean
   return states.length === 2 && home !== null && stableRoute(last) && clockSet(last) === true
     && house(last.location, "1F") !== null && house(last.location, "1F") !== home;
 };
-const routeNames = new Set(["PLAYER_HOUSE_EXITED_AFTER_CLOCK", "RIVAL_HOUSE_ENTERED", "RIVAL_HOUSE_EXITED", "ROUTE_101_AFTER_HANDOFF"]);
+const routeNames = new Set(["PLAYER_BEDROOM_EXITED_AFTER_CLOCK", "PLAYER_HOUSE_EXITED_AFTER_CLOCK", "RIVAL_HOUSE_ENTERED", "RIVAL_HOUSE_EXITED", "ROUTE_101_AFTER_HANDOFF"]);
 // Recorded and graded, but never reported to the model or used to reset its stall clocks.
-export const MEASUREMENT_ONLY_MILESTONES: ReadonlySet<string> = new Set(["ROUTE_101_AFTER_HANDOFF"]);
+export const MEASUREMENT_ONLY_MILESTONES: ReadonlySet<string> = new Set(["PLAYER_BEDROOM_EXITED_AFTER_CLOCK", "ROUTE_101_AFTER_HANDOFF"]);
 
 // Legacy names retain their old meaning; exact confirmation/exit have new IDs.
 // Flags and stage meanings are traced in docs/findings/story-milestones.md.
@@ -121,6 +126,9 @@ export const MILESTONES: readonly Milestone[] = [
   { name: "MOM_CLOCK_INSTRUCTION", kind: "story", reached: stage("intro_stage", [4, 5, 6, 7]) },
   { name: "PLAYER_BEDROOM", kind: "navigation", reached: (s) => place(s, (location) => /^LITTLEROOT TOWN (BRENDANS|MAYS) HOUSE 2F$/.test(location)) },
   { name: "CLOCK_SET", kind: "story", reached: clockSet },
+  // Intro state 6 lasts only until the 1F map script sends Mom to the TV (state 7), so a 2F state at 6
+  // proves the room has not been left since the clock; routeProof needs that 2F state, then the same 1F.
+  { name: "PLAYER_BEDROOM_EXITED_AFTER_CLOCK", kind: "navigation", reached: (s) => clockSet(s) === true ? place(s, (location) => house(location, "1F") !== null) : null },
   { name: "MOM_RIVAL_INSTRUCTION", kind: "story", reached: stage("intro_stage", [7]) },
   { name: "PLAYER_HOUSE_EXITED_AFTER_CLOCK", kind: "navigation", reached: (s) => clockSet(s) === true ? at("LITTLEROOT TOWN")(s) : null },
   { name: "RIVAL_HOUSE_ENTERED", kind: "navigation", reached: (s) => clockSet(s) === true ? place(s, (location) => house(location, "1F") !== null) : null },
@@ -223,6 +231,7 @@ export class StateMilestones implements MilestoneSource {
       if (this.previous !== null && routeProof("PLAYER_HOUSE_EXITED_AFTER_CLOCK", [this.home.state, this.previous.state, state])) routeEvidence.set("PLAYER_HOUSE_EXITED_AFTER_CLOCK", [this.home.seq, this.previous.seq, seq]);
       if (this.previous !== null && routeProof("RIVAL_HOUSE_EXITED", [this.home.state, this.previous.state, state])) routeEvidence.set("RIVAL_HOUSE_EXITED", [this.home.seq, this.previous.seq, seq]);
     }
+    if (seq !== undefined && this.lastStable !== null && routeProof("PLAYER_BEDROOM_EXITED_AFTER_CLOCK", [this.lastStable.state, state])) routeEvidence.set("PLAYER_BEDROOM_EXITED_AFTER_CLOCK", [this.lastStable.seq, seq]);
     if (seq !== undefined && this.labWitness !== null && this.lastStable !== null && routeProof("ROUTE_101_AFTER_HANDOFF", [this.labWitness.state, this.lastStable.state, state])) routeEvidence.set("ROUTE_101_AFTER_HANDOFF", [this.labWitness.seq, this.lastStable.seq, seq]);
     const fresh = MILESTONES.filter((m) => {
       if (this.seen.has(m.name)) return false;

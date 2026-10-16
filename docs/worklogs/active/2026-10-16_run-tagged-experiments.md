@@ -46,3 +46,4 @@ Operator, 2026-10-16: the stats page's EXPERIMENT dropdown keeps losing runs. `c
 | `experiment:full-map-navigation:finals` | unchanged | Whole-map navigation — finals | 7 (2) |
 
 Unchanged legacy entries (same value and run count): bundle-showcase 2, dialogue-information-think-fast-n4 12, interface-docs-experiment 2 (1), interface-docs-resumed 12, loop-guard-name-main-n4 20 (1), loop-guard-name-n4 2 (1), loop-guard-name-n4-corrected 5 (1), named-interactions-think-fast-clock-n4 3 (1), named-interactions-think-fast-full-n4 8, navigation-memory-think-fast-n4 6 (1), navigation-topology-astar-think-fast-n4 16, think-fast-objectives-off-30m 2 (1).
+- [x] Delta re-review of 71dd44dc..HEAD: Codex `VERDICT: LGTM`, grok `VERDICT: LGTM`. Merging to main 2026-10-16 4:25 AM EDT (operator OK; timed after overnight round 1 with the coordinator).

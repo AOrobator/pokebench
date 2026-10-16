@@ -1,0 +1,8 @@
+Guard: a card re-shows only on re-entry into view (!this.visible.has(key)). Deleted: re-show on any change while in view. Restored afterwards: 20 passed.
+$ npx vitest run src/people-id-cards.test.ts
+     × shows 38 cards in the run: first sight, and re-entry into view after the card changed 5ms
+     × T184 and T297: the nurse has no name; after the T185–T186 talk across the counter her words are quoted whole 0ms
+     × labels a trainer's battle text from the intro right after their field lines, and quotes only the game's battle text 2ms
+     × re-shows a card only on re-entry into view after a change; a change in view goes to the row summary 1ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+      Tests  4 failed | 16 passed (20)

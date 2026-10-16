@@ -141,10 +141,10 @@ No new network surface: the server field rides the existing state endpoint on 12
 **M2 — Delivery: readout block, ledger row, prompt, event, viewer**
 - [x] Write tests (`people-id-cards-delivery.test.ts`, viewer `trace.test.ts`, `timeline.test.ts`): factory test through `playGameTools` (block after the ledger block, compact suffix on the row, composition with untaken-exits and the navigate-first reminder part); prompt section ON/absent OFF; `people_id_card` event per card; viewer Activity History text and trace label; OFF byte-identity (INV-1)
 - [x] COMMIT: `test(people-id-cards): RED delivery, event and Activity History` (see Session Log)
-- [ ] Implement wrapper, prompt section, event + `just schema`, recorder, tail, viewer model/panels/trace
-- [ ] Wiring-removal check: drop the wrapper from `playGameTools`, factory test red, restore; receipt recorded
-- [ ] Gates as M1
-- [ ] COMMIT: GREEN
+- [x] Implement wrapper (`withPeopleIdCards` outside untaken exits, inside navigate-first), `people_id_card` event + `just schema`, recorder, tail, decision-probe stub, viewer model/panels/trace (Activity History, category act; no timeline)
+- [x] Guard deletions, receipts in `docs/findings/2026-10-16_people-id-cards-guards/`: del1 factory wiring (2 failed / 3 passed, restored 5 passed); del2 re-entry-only rule (4 failed / 16, restored 20); del3 page-position check (1 failed / 19, restored 20)
+- [x] Gates with the ROM (`--dotenv-path ~/dev/pokebench/.env`): agent 2000, viewer 1026, pytest 2498 passed; `pnpm -r lint` clean, ruff clean, mypy only the known worktree `mgba._pylib` import; build ok; coverage agent 98.05 lines / 94.53 branches / 98.28 functions (people-id-cards.ts 99.33/90.72/100), viewer 95.55/91.39/93.91, Python 97.55/93.60/100 (floor 90)
+- [x] COMMIT: `feat(people-id-cards): GREEN delivery after the people ledger, people_id_card event, Activity History` (see Session Log)
 
 **M3 — Explainer, pending experiment, review**
 - [ ] Explainer `docs/explainers/people-id-cards-v1.html`, README index, `FEATURE_EXPLAINERS` mapping (+ panels/server tests); `just pages-check` silent
@@ -175,6 +175,7 @@ No new network surface: the server field rides the existing state endpoint on 12
 
 - 2026-10-16 4:50 PM EDT: worklog with operator decisions committed. COMMIT: `docs(worklog): people-id-cards-v1 design with the operator's decisions (approved 4:47 PM EDT)` (66b6dc0d)
 - M1 COMMITS: RED `test(people-id-cards): RED card model, triggers and registration on runs 4caa and f551` (c1c398b7); GREEN `feat(people-id-cards): GREEN card model, switch registration and prompt line` (2d1169d6).
+- M2 RED: `test(people-id-cards): RED delivery, event and Activity History` (e382a068).
 - 2026-10-16 ~5:05 PM EDT: synced with main cefacbf1 (fast-forward). RED: card model tests on recorded runs; module absent, suite fails to import.
 
 - 2026-10-16 (EDT): discovery and design only; worklog drafted in the worktree, not committed. Card prototype run over 4caa in the session scratchpad (not tracked).

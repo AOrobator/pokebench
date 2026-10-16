@@ -1,4 +1,5 @@
 import type { LowHpTrainerWarningFacts } from "./low-hp-trainer-warning.js";
+import type { IdCard } from "./people-id-cards.js";
 import type { PressModifiers } from "./game-tools.js";
 import {StateActivities} from "./activity.js";
 import type {DecisionSnapshot} from "./state-decision.js";
@@ -446,6 +447,11 @@ export class RunRecorder {
   // low-hp-trainer-warning-v1: recorded as the paragraph is added to the tool result.
   lowHpTrainerWarning(tool: string, facts: LowHpTrainerWarningFacts, text: string): void {
     this.append({ type: "low_hp_trainer_warning", turn: this.turn, tool, ...facts, map_id: [facts.map_id[0], facts.map_id[1]], items: facts.items.map((i) => ({ ...i })), text });
+  }
+
+  // people-id-cards-v1: recorded as each card is added to the tool result.
+  peopleIdCard(tool: string, toolCallId: string, card: IdCard): void {
+    this.append({ type: "people_id_card", turn: this.turn, tool, tool_call_id: toolCallId, key: card.key, reason: card.reason, text: card.text });
   }
 
   end(reason: RunEndReason): void {

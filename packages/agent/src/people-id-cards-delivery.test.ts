@@ -32,7 +32,7 @@ function press(text:string,state:GameStateSnapshot):CheckedPressTool {
  const result=():Promise<AgentToolResult<Details>>=>Promise.resolve({content:[{type:"text",text:`pressed UP\n\n${text}`}],details:{state}});
  return {name:"press",label:"Press",description:"d",parameters:Type.Object({buttons:Type.Array(Type.String())}),execute:result,executeChecked:result} as unknown as CheckedPressTool;
 }
-const textOf=(r:AgentToolResult<unknown>)=>r.content.map(c=>c.type==="text"?c.text:"").join("|");
+const textOf=(r:Pick<AgentToolResult<unknown>,"content">)=>r.content.map(c=>c.type==="text"?c.text:"").join("|");
 interface Recorded {readonly tool:string;readonly id:string;readonly card:IdCard}
 function recorder(){
  const observers:((e:RunEvent)=>void)[]=[];const cards:Recorded[]=[];
@@ -93,7 +93,7 @@ describe("people-id-cards-v1 delivery",()=>{
   expect(rec.cards.map(c=>c.card.reason)).toEqual(["first"]);
   // The checked press path is wrapped too.
   const checked=tools.find((t):t is CheckedPressTool=>t.name==="press"&&"executeChecked" in t);
-  expect(textOf(await checked?.executeChecked("c",{buttons:["UP"]},()=>Promise.resolve(null)) ?? {content:[]})).toContain("; ID card: no name shown");
+  expect(textOf(await checked?.executeChecked("c",{buttons:["UP"]},()=>undefined) ?? {content:[]})).toContain("; ID card: no name shown");
  });
  it("leaves results without a readout or a state untouched",async()=>{
   const rec=recorder();

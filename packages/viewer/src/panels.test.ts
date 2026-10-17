@@ -879,7 +879,9 @@ it("links the No exit here card to its tracked explainer, which quotes the recor
  const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
  expect(doc.querySelector(`[data-feature="${id}"] a`)?.getAttribute("href")).toBe(`/explainers/${id}.html`);
  const html=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)),"utf8");
- for(const quote of [id,"bundle arm only","pending experiment","There is no way off OLDALE TOWN to the east; the ways off this map are: NORTH edge -&gt; ROUTE103 (map 0/18)","There is no way off ROUTE103 to the north;","MapGridGetCollisionAt","PlayerNotOnBikeCollide"])expect(html).toContain(quote);
+ for(const quote of [id,"bundle arm only","pending experiment","There is no way off OLDALE TOWN to the east; the ways off this map are: NORTH edge -&gt; ROUTE103 (map 0/18)","There is no way off ROUTE103 to the north;","MapGridGetCollisionAt","PlayerNotOnBikeCollide","GetCollisionAtCoords","MAPGRID_UNDEFINED","InitMapLayoutData"])expect(html).toContain(quote);
+ // Review round 2: the step lands in the padded layout's undefined cells, not on the border block.
+ expect(html).not.toContain("border block");
  expect(html).not.toContain("both arms");
 });
 it("links the cross-map goal card to its tracked explainer, which quotes the recorded 4caa result and the new refusal",()=>{

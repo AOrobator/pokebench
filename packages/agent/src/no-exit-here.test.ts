@@ -98,6 +98,36 @@ describe("no-exit-here-v1 on a map edge with a warp (review round 1)",()=>{
  });
 });
 
+// Review round 2: warps are named as the readout's own "Warp destination at (x,y): NAME" lines name them, which the readout
+// prints with world destinations whether or not world targets adds the "Warp to" lines, and which name a dynamic warp.
+// The truck readout is cook #2 (2026-10-16T02-23-17_qwen36-gpu1_sh02) tool result seq 761 on state seq 760.
+describe("no-exit-here-v1 warp names from the readout's Warp destination lines (review round 2)",()=>{
+ it("keeps OLDALE TOWN HOUSE1 when the readout has only its Warp destination line (world targets off)",()=>{
+  const oldale=recorded("e046:18731");
+  const only=text("e046:18731").split("\n").filter(l=>!l.startsWith("Warp to ")&&!l.startsWith("Warps: ")&&!l.startsWith("Exits here")).join("\n");
+  expect(only).toContain("Warp destination at (5,7): OLDALE TOWN HOUSE1");
+  expect(only).not.toContain("-> OLDALE TOWN HOUSE1");
+  expect(noExitLine(runFeatures("e046:18731"),oldale,only,["EAST"])).toBe(OLDALE_EAST);
+ });
+ it("names the truck's dynamic warp as the readout does, not as dynamic destination (sh02 s761)",()=>{
+  const events=gunzipSync(readFileSync(new URL("./fixtures/briefing-sh02.jsonl.gz",import.meta.url))).toString("utf8").trim().split("\n").map(l=>JSON.parse(l) as {seq:number;type:string;text?:string;harness_features?:string[]});
+  const start=must(events.find(e=>e.type==="run_start")?.harness_features,"run_start");
+  // The fixture keeps only the fields its suites read; the rest come from the shared in-game snapshot.
+  const truck=parseGameState({...IN_GAME,...Object.fromEntries(Object.entries(must(events.find(e=>e.seq===760&&e.type==="state"),"760")).filter(([k])=>!["v","run","seq","t","type","turn","raw_ram","settle"].includes(k)))});
+  const readout=must(events.find(e=>e.seq===761&&e.type==="tool_result")?.text,"761");
+  const features={...featuresOf(start),[ID]:true,"world-destinations-v1":true};
+  expect(goalSides(truck,{x:2,y:0,map_id:must(truck.map_id??undefined,"map")})).toEqual(["NORTH"]);
+  expect(goalSides(truck,{x:4,y:2,map_id:must(truck.map_id??undefined,"map")})).toEqual([]);
+  expect(noExitLine(features,truck,readout,["NORTH"])).toBe("There is no way off INSIDE OF TRUCK to the north; the ways off this map are: (4,1) or (4,2) or (4,3) -> PETALBURG CITY (dynamic warp; map 0/0)");
+ });
+ it("drops the readout's own reach notes from a name and skips unknown maps, marking cuts its own way",()=>{
+  const warp=(x:number,y:number,destination:[number,number,number])=>({kind:"warp" as const,x,y,elevation:0,activation:"movement",availability:"conditional" as const,facing:null,local_id:null,destination,name:"w"});
+  const state:GameStateSnapshot={...IN_GAME,started:true,screen:"overworld",in_battle:false,location:"CAVE",map_id:[3,3],position:{x:5,y:5},facing:"up",interaction_targets:[warp(5,5,[4,4,0]),warp(6,6,[8,8,0])],topology:{width:10,height:10,connections:[]},surf_gate:{can_surf:false,balance_badge:false,party_surf:false,surfing:false,warps:[{x:5,y:5}],connections:[]}};
+  const readout="Warp destination at (5,5): DEEP HALL (not an exit you can use now: across water, needs Surf)\nWarp destination at (6,6): unknown map 8/8";
+  expect(noExitLine({...ALL_ON,"surf-gated-exits-v1":true},state,readout,["NORTH"])).toBe("There is no way off CAVE to the north; the ways off this map are: (5,5) -> DEEP HALL (map 4/4) (crosses water you cannot cross yet); (6,6) -> map 8/8");
+ });
+});
+
 describe("no-exit-here-v1 sides",()=>{
  const oldale=recorded("e046:18731"),littleroot=recorded("9439:14790");
  it("a press counts only when its last button is a direction pointing off the map from the tile it ends on, facing it",()=>{

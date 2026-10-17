@@ -70,3 +70,12 @@ Grok and GPT LGTM. Claude BLOCKING on one real bug: the line fires on indoor exi
   - COMMIT: `fix(no-exit-here): no line on a side whose edge holds a warp (indoor exit mats leave the map), nor without the warp list (review round 1)` (ec06e744)
 - [x] Merged main a04de386 (readout-truth-fixes 8cdf6cd1, harness-trust-v2, battle-move-tool-v1). Registry tails: no-exit-here-v1 appended after surf-gated-exits-v2 in SWITCHABLE_FEATURES, FEATURES, playHarnessFeatures, presets, DEFAULT_NEXT_RUN, FEATURE_EXPLAINERS, README and readiness. Wiring: withBattleAction(withNoExitHere(withNavigation(...))). Count tests on main's versions shifted by one; heal-before-trainers' entry check now runs through surf-gated-exits-v2.
   - Gates on the merge: `just build` ok; `just test` agent 2306/2306, viewer 1131/1131, pytest passed; `just lint` clean; `just coverage` agent 98.00 / 94.10 / 98.22 (no-exit-here.ts 100 / 91.22 / 100), viewer 95.36 / 91.38 / 93.79, Python 97.48 / 93.42 / 99.43; `just experiments-check` ok, 100 experiments.
+
+## Review round 2 (coordinator relay)
+
+Claude and Grok LGTM; GPT BLOCKING on two items, both fixed (operator rule: fix small real issues and land without another round):
+1. Warp names: the line dropped names the readout gives in its "Warp destination at (x,y): NAME" lines (world targets off; the truck's dynamic warp). Fix: name each doorway from those lines first (minus the readout's own reach notes; "unknown map g/n" is no name), then the map-id names, then the map id.
+2. Grounding: the step off the grid lands inside the padded backup layout (width + MAP_OFFSET_W), which InitMapLayoutData fills with MAPGRID_UNDEFINED and only connections overwrite; MapGridGetCollisionAt returns 1 for it, so GetCollisionAtCoords (src/event_object_movement.c, also GetMapBorderIdAt == CONNECTION_INVALID) gives COLLISION_IMPASSABLE and CheckForPlayerAvatarCollision leads to PlayerNotOnBikeCollide. Not the border block. Explainer, comments and worklog corrected.
+Follow-ups (not in this branch): classify the submitted buttons rather than requested ones under dialogue-safe batches; facing null; mixed per-tile reach in one doorway.
+
+- [x] RED: three name tests (Oldale with only Warp destination lines, sh02 s761 truck dynamic warp, reach note and unknown map) and the explainer grounding quotes in panels.test.ts; 3 agent tests and 1 viewer test fail.

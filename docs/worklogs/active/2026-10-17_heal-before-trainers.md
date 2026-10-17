@@ -58,7 +58,9 @@ feature-switch, feature-explainer, agent-observability, pokebench-game-state (pl
 - [x] Live proof (isolated built viewer on 127.0.0.1:8796, scratch runs root, stopped after): `test-support/live-heal-before-trainers.ts` recorded a run through the production playGameTools + RunRecorder + pinned pi loop over e046's states: 2 `heal_before_trainers_warning` events (#8 RICH_BOY, #21 LASS). Agent Trace showed both as SUP "Heal before trainers warning" rows; expanding #21 showed the whole paragraph and the inspector "#21 · heal_before_trainers_warning · turn 0"; the timeline lanes showed no new mark; Harness Config lists HEAL BEFORE TRAINERS with "Read explainer" → `/explainers/heal-before-trainers-v1.html`, served 200; explainer checked at 1280 and 375 (figures scroll inside their containers at phone width, no page-level horizontal scroll).
 - [x] Gates after M3: `just lint` clean; `just test` agent 2136, viewer 1105, pytest 2548; `just coverage` agent 98.06 stmts / 94.28 branches / 98.25 funcs / 99.23 lines, viewer 95.35/91.39/93.79/97.62, Python lines 97.62 branches 93.73 functions 100; low-hp-trainer-warning.ts 99.12/92.59/100/100; heal_trainers.py 100%.
 - [x] COMMIT M3 docs/experiment/measurement
-- [ ] Sync main; principles self-review; review (Claude, Grok, GPT), at most 2 rounds; sync main before the final round.
+- [x] 3:45 PM EDT: synced with main f5742c00 (game-wording rule; skill docs only) in merge 1d516b33. Gates on that tip: verify-vendor OK, lint clean, test agent 2136 / viewer 1105 / pytest 2548, coverage agent 98.06/94.29/98.25/99.23, viewer 95.35/91.39/93.79/97.62, Python lines 97.62 branches 93.73 functions 100, experiments-check ok 89.
+- [x] Principles self-review PB1–PB13: 0 FAIL (PB8 N/A). Table in the review packet (scratch `hbt-review/principles.md`), boundary `hbt-review/boundary.md`.
+- [ ] Review; review (Claude, Grok, GPT), at most 2 rounds; sync main before the final round.
 - [ ] Report reviewed head; LANDING HOLD until exit-reachability-v1.
 
 ## Multi-Model Review Log

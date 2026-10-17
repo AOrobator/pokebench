@@ -8,6 +8,7 @@ import { Workbench } from "./workbench.js";
 function run(overrides: Partial<WorkbenchRun> = {}): WorkbenchRun { return { measurement: { controller: "agent", features: [], logSha256: "a".repeat(64), pausedMs: 0, rawSplits: [] }, ...recorded(overrides) }; }
 const html = readFileSync(join(process.cwd(), "static/workbench.html"), "utf8");
 function data(): WorkbenchData { return { version: 1, at: 1000, milestones: [{ id: "NEW_GAME_CREATED", label: "New game" }, { id: "PLAYER_NAME_CONFIRMED", label: "Accepted name" }], runs: [run()], problems: [] }; }
+function must<T>(v: T | null | undefined): T { if (v == null) throw new Error("fixture"); return v; }
 function ui(name: string): HTMLElement { const element = document.querySelector<HTMLElement>(`[data-wb="${name}"]`); if (element === null) throw new Error(name); return element; }
 function change(name: string, value: string): void { (ui(name) as HTMLSelectElement).value = value; ui(name).dispatchEvent(new Event("change", { bubbles: true })); }
 function open(): void { ui("frontier-full").querySelector('[data-run="run_01"]')?.dispatchEvent(new MouseEvent("click", { bubbles: true })); }
@@ -163,7 +164,7 @@ describe("live runs as trainer cards on the comparisons page", () => {
   const MANIFEST = { version: 1, tiers: ["green", "bronze", "copper", "silver", "gold"], trainers: ["brendan", "may", "birch", "wally", "roxanne", "brawly", "wattson", "flannery", "norman", "winona", "sidney", "phoebe", "glacia", "drake"], icons: [280], egg: 412, proof: {}, source: {} };
   const exp = (arm: string, trial: number) => ({ id: "bundle-v-control-dryrun-cook", arm, trial, of: 4 });
   function live(): WorkbenchData {
-    return { ...data(), runs: [run({ id: "run_live", status: "live", elapsedMs: 60_000, experiment: exp("bundle", 2), card: { name: "RED", location: "OLDALE TOWN", party: [{ speciesId: 280, level: 7, egg: false }] }, config: { ...run().config!, resume: "CLOCK_SET" } }), run({ id: "run_other", status: "paused", experiment: exp("control", 1) }), run()] };
+    return { ...data(), runs: [run({ id: "run_live", status: "live", elapsedMs: 60_000, experiment: exp("bundle", 2), card: { name: "RED", location: "OLDALE TOWN", party: [{ speciesId: 280, level: 7, egg: false }] }, config: { ...must(run().config), resume: "CLOCK_SET" } }), run({ id: "run_other", status: "paused", experiment: exp("control", 1) }), run()] };
   }
   function mountCards(art = true): { wb: Workbench; now: { t: number } } {
     const now = { t: 6000 };

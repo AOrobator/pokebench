@@ -2,8 +2,8 @@
 // option 1, picked by the operator 2026-10-16). The art comes from runs/sprites/trainer-card-v1, built from
 // the ROM by `just trainer-card-art`; positions below are in the card art's own pixels.
 import { esc } from "./format.js";
-import type { WorkbenchCard } from "./workbench-data.js";
-import { armColor, clockText, type PlateFacts } from "./workbench-view.js";
+import type { WorkbenchCard, WorkbenchRun } from "./workbench-data.js";
+import { armColor, clockText, plateFacts, type PlateFacts } from "./workbench-view.js";
 
 export const TIERS = ["green", "bronze", "copper", "silver", "gold"] as const;
 export type Tier = (typeof TIERS)[number];
@@ -55,6 +55,15 @@ export function trainerFor(experiment: string, arm: string, arms: readonly strin
   return trainers[0] ?? "";
 }
 
+// One run's card from the workbench snapshot; runs: every run the snapshot has, so the trainer pick sees
+// all of the experiment's arms the same way on every page.
+export function cardInputFor(run: WorkbenchRun, at: number, now: number, status: CardInput["status"], runs: readonly WorkbenchRun[], art: CardArt): CardInput {
+  const experiment = run.experiment ?? null, title = experiment?.id ?? run.model ?? run.id;
+  const arms = experiment === null ? [] : runs.flatMap((other) => (other.experiment?.id === experiment.id ? [other.experiment.arm] : []));
+  return { runId: run.id, title, arm: experiment?.arm ?? null, trial: experiment === null ? null : `trial ${String(experiment.trial)}/${String(experiment.of)}`,
+    card: run.card ?? null, facts: plateFacts(run, at, now), status, trainer: trainerFor(title, experiment?.arm ?? "", arms, art.trainers) };
+}
+
 export function placeText(location: string | null): string {
   if (location === null) return "";
   return location.replace(/^ROUTE ?(\d+)/, "ROUTE $1").toLowerCase().replace(/\b[a-z]/g, ch => ch.toUpperCase()).replace(/\b(\d+)f\b/gi, "$1F");
@@ -96,7 +105,8 @@ function bar(label: string, fill: string, width: string, value: string, clock: b
   return `<span class="tc-bar"><span class="tc-bl">${label}</span><span class="tc-track"><i style="width:${width};--fill:${fill}"${clock ? " data-time-bar" : ""}></i></span><span class="tc-bv"${clock ? " data-clock" : ""}>${esc(value)}</span></span>`;
 }
 
-export function cardHtml(input: CardInput, art: CardArt, kind: CardKind): string {
+// href: the card is a link there (the comparisons page links to the viewer); without it, a button that watches the run.
+export function cardHtml(input: CardInput, art: CardArt, kind: CardKind, href: string | null = null): string {
   const { facts } = input, wide = kind === "wide", ribbon = !wide && facts.fresh;
   const g: Geometry = wide ? { w: 388, h: 180 } : { w: 288, h: ribbon ? 94 : 76 };
   const image = `/sprites/card/${wide ? "wide" : ribbon ? "mini-ribbon" : "mini"}-${tierOf(facts.level, facts.total)}.png`;
@@ -116,6 +126,8 @@ export function cardHtml(input: CardInput, art: CardArt, kind: CardKind): string
     + mons
     + (ribbon ? box(g, 8, 72, 272, 16, `<span class="tc-ribbon">${badge()}</span>`) : "");
   const label = `Watch run ${input.runId}: ${input.title}${input.arm === null ? "" : `, ${input.arm}`}`;
-  return `<button type="button" class="tc tc-${kind}${facts.fresh ? " tc-new" : ""}" data-watch="${esc(input.runId)}" aria-pressed="${String(input.status === "watching")}" aria-label="${esc(label)}">`
-    + `<span class="tc-art" style="--gw:${String(g.w)};aspect-ratio:${String(g.w)}/${String(g.h)};background-image:url(${image})">${body}</span></button>`;
+  const cls = `tc tc-${kind}${facts.fresh ? " tc-new" : ""}`, frame = `<span class="tc-art" style="--gw:${String(g.w)};aspect-ratio:${String(g.w)}/${String(g.h)};background-image:url(${image})">${body}</span>`;
+  return href === null
+    ? `<button type="button" class="${cls}" data-watch="${esc(input.runId)}" aria-pressed="${String(input.status === "watching")}" aria-label="${esc(label)}">${frame}</button>`
+    : `<a class="${cls}" href="${esc(href)}" data-watch="${esc(input.runId)}" aria-label="${esc(label)}">${frame}</a>`;
 }

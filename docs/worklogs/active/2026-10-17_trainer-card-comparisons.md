@@ -22,7 +22,6 @@ No harness behavior change, so no feature switch.
 ## Milestones
 
 **M1: cards on the comparisons page**
-- [ ] RED/GREEN: experiment on workbench runs; cardInputFor; link cards; shared card-dom; comparisons party as cards with notes, clock in place, per-card reconcile, fallback to plates
+- [x] RED 5bdef504 / GREEN: experiment on workbench runs; cardInputFor; link cards; shared card-dom (app.ts moved onto it; focus restore now keyed by run, closing the trainer-card-header follow-up); comparisons party as cards with lane and notes, clock in place, per-card sync, plates without art. Gates: viewer 1080 (95.39/91.41/93.73/97.61), agent 2084, Python 2398
 - [ ] Gates, browser proof at 1280/1440/375
 - [ ] Review (round cap 2), land ff-only, restart, live check
-- RED: workbench experiment field, cardInputFor, link cards, card-dom, comparisons cards

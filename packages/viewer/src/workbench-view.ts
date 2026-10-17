@@ -55,23 +55,35 @@ export function plateFacts(run: WorkbenchRun, at: number, now: number): PlateFac
   return { live, elapsed, reached, level, total, recovered, fresh, cap: run.config?.maxWallMs ?? null };
 }
 function plateHtml(run: WorkbenchRun, at: number, now: number, lanes: RunLanes | LaneUnknown): string {
-  const { elapsed, reached, level, total, recovered, fresh, cap } = plateFacts(run, at, now), parts = laneParts(run, lanes), where = `${parts.where}${run.status === "paused" ? " · PAUSED" : ""}`;
+  const { elapsed, reached, level, total, recovered, fresh, cap } = plateFacts(run, at, now), parts = laneParts(run, lanes), where = plateWhere(run, lanes);
   const when = reached === null ? "" : recovered ? `≤ ${clockText(reached.split.elapsedMs)} · ≤ turn ${String(reached.split.turn)} · recovered` : `${clockText(reached.split.elapsedMs)} · turn ${String(reached.split.turn)}`;
   const milestone = reached === null ? '<b class="none">No milestone yet</b><small>waiting for New game</small>' : `<b>${esc(reached.label)}</b>${fresh ? '<span class="wb-new-chip">NEW MILESTONE!</span>' : ""}<small>${when}</small>`;
-  const resumed = (run.config?.resume === "CLOCK_SET" ? '<small class="wb-plate-note" data-current-field="note">NOT FROM ZERO · Clock set save</small>' : "")
-    + (run.problem === null ? "" : `<small class="wb-plate-note wb-plate-problem" role="alert" data-current-field="problem">⚠ ${esc(run.problem)}</small>`);
+  const resumed = plateNotes(run);
   return `<a class="wb-plate${fresh ? " new" : ""}" href="${viewerUrl(run.id)}" aria-label="Watch run ${esc(run.id)}"><span class="wb-plate-l1"><span data-current-field="where">${where}</span><span data-current-field="level">Lv${String(level)}</span></span>`
     + `<span class="wb-ty" data-current-field="type"><i>TYPE/</i>${parts.type}</span>`
     + `<span class="wb-br"><span class="wb-lab"><span class="lf">MILESTONE</span><span class="ls">MI</span></span><span class="wb-hp"><span><i data-current-field="milestone-bar" style="width:${pct(level, total)}"></i></span></span><span class="wb-n" data-current-field="milestone-count">${String(level)}/ ${String(total)}</span></span>`
     + `<span class="wb-ms" data-current-field="milestone">${milestone}</span>`
     + `<span class="wb-br"><span class="wb-lab">TIME</span><span class="wb-tb"><span><i data-current-field="time-bar" style="width:${pct(cap === null ? 0 : elapsed, cap ?? 0)}"></i></span></span><span class="wb-n" data-current-field="time">${clockText(elapsed)}/ ${cap === null ? "no cap" : clockText(cap)}</span></span>${resumed}</a>`;
 }
+// Where the run is playing (lane and GPU, or a hand run), shown on its plate or under its trainer card.
+export function plateWhere(run: WorkbenchRun, lanes: RunLanes | LaneUnknown): string {
+  return `${laneParts(run, lanes).where}${run.status === "paused" ? " · PAUSED" : ""}`;
+}
+// Warnings a plate or trainer card carries: a run that did not start from zero, and the run's problem.
+export function plateNotes(run: WorkbenchRun): string {
+  return (run.config?.resume === "CLOCK_SET" ? '<small class="wb-plate-note" data-current-field="note">NOT FROM ZERO · Clock set save</small>' : "")
+    + (run.problem === null ? "" : `<small class="wb-plate-note wb-plate-problem" role="alert" data-current-field="problem">⚠ ${esc(run.problem)}</small>`);
+}
+export function partyHead(live: readonly WorkbenchRun[]): string {
+  const models = Array.from(new Set(live.map(r => r.model ?? "Model not recorded"))).map(esc).join(" · ");
+  return `<div class="wb-party-head"><span class="wb-kicker" data-current-field="summary">● ${String(live.length)} CURRENT RUN${live.length === 1 ? "" : "S"} · ${models}</span><span class="wb-kicker">CHOOSE A RUN</span></div>`;
+}
+export const liveOrPaused = (runs: readonly WorkbenchRun[]): WorkbenchRun[] => runs.filter(r => r.status === "live" || r.status === "paused");
 // One party card holding a name plate per live or paused run (design: current-run-milestone variant 36).
 export function currentRunHtml(runs: readonly WorkbenchRun[], at: number, now: number, back: string | null, lanes: RunLanes | LaneUnknown = new Map()): string {
-  const live = runs.filter(r => r.status === "live" || r.status === "paused");
+  const live = liveOrPaused(runs);
   if (live.length === 0) return `<a class="wb-button" href="${viewerUrl(back)}">← BACK TO VIEWER</a>`;
-  const models = Array.from(new Set(live.map(r => r.model ?? "Model not recorded"))).map(esc).join(" · ");
-  return `<div class="wb-party"><div class="wb-party-head"><span class="wb-kicker" data-current-field="summary">● ${String(live.length)} CURRENT RUN${live.length === 1 ? "" : "S"} · ${models}</span><span class="wb-kicker">CHOOSE A RUN</span></div>`
+  return `<div class="wb-party">${partyHead(live)}`
     + `<div class="wb-plates">${live.map(run => plateHtml(run, at, now, lanes)).join("")}</div></div>`;
 }
 function pairs(rows: readonly (readonly [string, string])[]): string { return `<dl class="wb-pairs">${rows.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join("")}</dl>`; }

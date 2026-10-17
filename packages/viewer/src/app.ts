@@ -13,10 +13,10 @@ import { NextRunPanel } from "./nextpanel.js";
 import { QueuePanel } from "./queue-view.js";
 import { headHtml, sheetHtml } from "./run-head.js";
 import type { Cohort } from "./runs.js";
-import { cardHtml, clockParts, parseCardArt, trainerFor, type CardArt, type CardInput } from "./trainer-card.js";
-import { paintGameText, parseGameFont, type GameFont, type GlyphPixels, type GlyphSheet } from "./game-font.js";
+import { cardHtml, cardInputFor, type CardInput } from "./trainer-card.js";
+import type { GlyphPixels, GlyphSheet } from "./game-font.js";
+import { browserGlyphSheet, drawGlyphs, fillCards, loadCardArt, syncCards, type LoadedArt } from "./card-dom.js";
 import { WORKBENCH_POLL_MS, parseWorkbench, type WorkbenchData } from "./workbench-data.js";
-import { plateFacts } from "./workbench-view.js";
 
 export interface StreamLike {
   addEventListener(type: string, listener: (message: { data: string }) => void): void;
@@ -170,9 +170,7 @@ export class App {
   private shown = new RunView();
   private runs: RunChoice[] = [];
   // Trainer cards: the ROM art (null until `just trainer-card-art` has built it) and the latest workbench snapshot.
-  private art: CardArt | null = null;
-  private font: GameFont | null = null;
-  private glyphs: GlyphSheet | null = null;
+  private art: LoadedArt | null = null;
   private artLoad: Promise<void> | null = null;
   private workbench: WorkbenchData | null = null;
   private cardsBusy = false;
@@ -345,14 +343,7 @@ export class App {
   }
 
   private loadArt(): Promise<void> {
-    this.artLoad ??= (async () => {
-      try { this.art = parseCardArt(await this.deps.fetchJson("/sprites/manifest.json")); } catch { this.art = null; }
-      if (this.art === null) return;
-      try {
-        this.font = parseGameFont(await this.deps.fetchJson("/sprites/font/glyphs.json"));
-        this.glyphs = this.font === null ? null : (await this.deps.loadGlyphSheet?.("/sprites/font/glyphs.png")) ?? null;
-      } catch { this.font = null; this.glyphs = null; }
-    })();
+    this.artLoad ??= loadCardArt((url) => this.deps.fetchJson(url), (url) => this.deps.loadGlyphSheet?.(url) ?? Promise.resolve(null)).then((loaded) => { this.art = loaded; });
     return this.artLoad;
   }
 
@@ -372,45 +363,8 @@ export class App {
     return this.runs.filter(isLive).flatMap((run): CardInput[] => {
       const recorded = workbench.runs.find((r) => r.id === run.id);
       if (recorded === undefined || (recorded.status !== "live" && recorded.status !== "paused")) return [];
-      const cohort = run.cohort, title = cohort?.id ?? run.experiment ?? run.model ?? run.id;
-      const arms = cohort === undefined ? [] : this.runs.flatMap((other) => (other.cohort?.id === cohort.id ? [other.cohort.arm] : []));
-      return [{ runId: run.id, title, arm: cohort?.arm ?? null, trial: cohort === undefined ? null : `trial ${String(cohort.trial)}/${String(cohort.of)}`, card: recorded.card ?? null,
-        facts: plateFacts(recorded, workbench.at, now), status: run.id === this.runId ? "watching" : recorded.status === "paused" ? "paused" : "live", trainer: trainerFor(title, cohort?.arm ?? "", arms, art.trainers) }];
+      return [cardInputFor(recorded, workbench.at, now, run.id === this.runId ? "watching" : recorded.status === "paused" ? "paused" : "live", workbench.runs, art.art)];
     });
-  }
-
-  // One card per live run; a card is replaced only when its own markup changes, so the others keep
-  // their animations and stay put under the pointer.
-  private setCards(htmls: readonly string[]): void {
-    const row = this.ui("run-cards"), kept = Array.from(row.children);
-    htmls.forEach((html, i) => {
-      const current = kept[i];
-      if (current !== undefined && this.cardHtml.get(current) === html) return;
-      const holder = this.doc.createElement("div");
-      holder.innerHTML = html;
-      const next = holder.firstElementChild;
-      if (next === null) return;
-      this.cardHtml.set(next, html);
-      const focused = current !== undefined && current === this.doc.activeElement;
-      if (current === undefined) row.append(next); else current.replaceWith(next);
-      if (focused && next instanceof HTMLElement) next.focus();
-    });
-    for (const extra of kept.slice(htmls.length)) extra.remove();
-  }
-
-  // Paints the game-font text of newly drawn cards and fills each card's clock in place.
-  private fillCards(cards: readonly CardInput[]): void {
-    for (const root of [this.ui("run-cards"), this.ui("run-sheet-body")]) {
-      if (this.font !== null && this.glyphs !== null) paintGameText(root, this.font, this.glyphs, (canvas, pixels) => { this.deps.drawGlyphs?.(canvas, pixels); });
-      for (const element of root.querySelectorAll<HTMLElement>(".tc[data-watch]")) {
-        const input = cards.find((c) => c.runId === element.dataset.watch);
-        if (input === undefined) continue;
-        const parts = clockParts(input.facts, element.classList.contains("tc-wide") ? "wide" : "mini");
-        const clock = element.querySelector<HTMLElement>("[data-clock]"), bar = element.querySelector<HTMLElement>("[data-time-bar]");
-        if (clock !== null && clock.textContent !== parts.text) clock.textContent = parts.text;
-        if (bar !== null) bar.style.width = parts.width;
-      }
-    }
   }
 
   private listRuns(runs: RunChoice[]): void {
@@ -977,14 +931,14 @@ export class App {
     const head = { view, runId: this.runId, label, running: live && view.control.state === "running", time, others: this.runs.filter((run) => isLive(run) && run.id !== this.runId) };
     this.setHtml("run-head", headHtml(head));
     // The time ticks every render; rebuilding the sheet for it would remount the WATCH buttons under the pointer.
-    const cards = this.cardInputs(), art = this.art;
+    const cards = this.cardInputs(), art = this.art?.art ?? null;
     const watched = cards.filter((c) => c.status === "watching"), mini = art === null || cards.length === 0 ? null : [...watched, ...cards.filter((c) => c.status !== "watching")].map((c) => cardHtml(c, art, "mini")).join("");
     this.setHtml("run-sheet-body", sheetHtml({ ...head, time: "" }, startedAt, mini === null ? null : { html: mini, watched: watched.length > 0 }));
-    this.setCards(art === null ? [] : cards.map((c) => cardHtml(c, art, "wide")));
+    syncCards(this.ui("run-cards"), art === null ? [] : cards.map((c) => cardHtml(c, art, "wide")), this.cardHtml);
     this.cardsShown = mini !== null;
     this.ui("run-cards").hidden = !this.cardsShown;
     this.ui("live-runs").hidden = this.cardsShown || !this.runs.some(isLive);
-    this.fillCards(cards);
+    fillCards([this.ui("run-cards"), this.ui("run-sheet-body")], cards, this.art, (canvas, pixels) => { this.deps.drawGlyphs?.(canvas, pixels); });
     for (const slot of this.ui("run-sheet-body").querySelectorAll(".rh-time")) slot.textContent = time;
     if (clock !== null) {
       scrub.value = String(Math.round(clock.fraction * 1000));
@@ -1026,20 +980,8 @@ export async function boot(win: BootWindow): Promise<App> {
     openStream: (url) => new win.EventSource(url),
     now: () => Date.now(),
     hash: win.location.hash,
-    loadGlyphSheet: (url) => new Promise((resolve) => {
-      const image = new Image();
-      image.onload = () => {
-        const canvas = win.document.createElement("canvas");
-        canvas.width = image.naturalWidth; canvas.height = image.naturalHeight;
-        const context = canvas.getContext("2d");
-        if (context === null) { resolve(null); return; }
-        context.drawImage(image, 0, 0);
-        resolve(context.getImageData(0, 0, canvas.width, canvas.height));
-      };
-      image.onerror = () => { resolve(null); };
-      image.src = url;
-    }),
-    drawGlyphs: (canvas, pixels) => { canvas.getContext("2d")?.putImageData(new ImageData(new Uint8ClampedArray(pixels.data), pixels.width, pixels.height), 0, 0); },
+    loadGlyphSheet: browserGlyphSheet(win.document),
+    drawGlyphs,
   });
   let last = win.performance.now();
   win.setInterval(() => {

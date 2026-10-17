@@ -84,7 +84,7 @@ describe("one card per workbench run, shared by the viewer and the comparisons p
     const control = recorded({ id: "c", status: "live", experiment: exp("control", 1) });
     const input = cardInputFor(bundle, 1000, 1000, "live", [bundle, control, recorded({ id: "z", experiment: null })], { ...ART, trainers: ["brendan", "may", "birch", "wally", "roxanne", "brawly", "wattson", "flannery", "norman", "winona", "sidney", "phoebe", "glacia", "drake"] });
     expect(input).toMatchObject({ runId: "b", title: "bundle-v-control-dryrun-cook", arm: "bundle", trial: "trial 2/4", status: "live", trainer: "norman", card: { name: "RED" } });
-    const plain = cardInputFor(recorded({ id: "p", experiment: null, card: undefined }), 1000, 1000, "paused", [], ART);
+    const plain = cardInputFor(recorded({ id: "p", experiment: null }), 1000, 1000, "paused", [], ART);
     expect(plain).toMatchObject({ title: "Model <img onerror=x>", arm: null, trial: null, card: null, status: "paused" });
     expect(cardInputFor(recorded({ id: "q", experiment: null, model: null }), 1000, 1000, "live", [], ART).title).toBe("q");
   });

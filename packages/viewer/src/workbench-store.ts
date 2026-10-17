@@ -84,6 +84,7 @@ export function loadRun(root: string, id: string, viewer: BuildIdentity | null =
   try { start = startOf(root, id); } catch (error) { return startlessRun(root, id, viewer, errorText(error)); }
   try {
     run ={ ...run, arm: start.evaluation?.experiment?.arm ?? null, model: start.controller?.kind === "human" ? `Human · ${start.controller.name}` : start.model.id, started: start.t, config: configuration(start), excluded: start.harness_features.includes("probe") ? "Excluded probe session" : null };
+    const tagged = start.evaluation?.experiment; run.experiment = tagged === undefined ? null : { id: tagged.id, arm: tagged.arm, trial: tagged.trial, of: tagged.of };
     port = start.isolation.port;
     const experiment = start.evaluation?.experiment; if (experiment !== undefined) tag = { experiment: experiment.id, commit: start.harness.commit };
     const tolerate = viewer !== null && !(viewer.commit === start.harness.commit && !viewer.dirty && !start.harness.dirty);

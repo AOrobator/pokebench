@@ -187,7 +187,8 @@ describe("exit-reachability-v1: exit lists on ROUTE104 (0e05 seq 22579)",()=>{
   expect(new UntakenExits(features).line(noEast,"")).toBe("Exits here you have not taken: none you can walk to (every exit listed on this map is across water you cannot Surf yet or cannot be reached on foot from where you stand)");
  });
  it("surf-gated-exits-v2 rewords only the water part; the on-foot part is exit-reachability-v1's own",()=>{
-  // EventScript_UseSurf (data/scripts/surf.inc) ends with no message without a Surf user: v2 states only the fact.
+  // GetInteractedWaterScript (src/field_control_avatar.c) returns no script, so the game shows nothing, unless badge 5
+  // and a party Surf user both hold: v2 states only the fact.
   const features={...runFeatures("0e05"),[ID]:true,"surf-gated-exits-v2":true};
   const north={...s,interaction_targets:(s.interaction_targets??[]).filter(t=>t.kind!=="warp"||t.x===5),topology:s.topology==null?null:{...s.topology,connections:s.topology.connections.filter(c=>c.direction==="NORTH")}} as GameStateSnapshot;
   expect(new UntakenExits(features).line(north,"")).toBe("Exits here you have not taken: none you can walk to (no exit listed on this map can be reached on foot from where you stand)");

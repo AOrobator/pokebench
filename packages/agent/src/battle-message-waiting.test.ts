@@ -22,7 +22,7 @@ it("registers a default-off observation switch with no dependency, recorded last
   expect(playHarnessFeatures(off(ID), null)).not.toContain(ID);
   expect(featuresOf(playHarnessFeatures(off(ID), null))[ID]).toBe(false);
   // Works whatever the battle readout switches are: the control arm has battle-details-v2 off.
-  expect(dependencyProblems(off("battle-details-v2", "expanded-menu-battle-information-v1"))).toEqual([]);
+  expect(dependencyProblems(off("battle-details-v2", "expanded-menu-battle-information-v1", "status-names-v1"))).toEqual([]);
 });
 
 it("hands the switch to the game server, which writes the battle readout", () => {

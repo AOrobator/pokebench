@@ -18,7 +18,7 @@ it("registers three default-off observation switches with no dependency, recorde
     expect(featuresOf(playHarnessFeatures(off(id), null))[id]).toBe(false);
   }
   // No dependency: the control arm of bundle-v-control has expanded menu text off.
-  expect(dependencyProblems(off("expanded-menu-battle-information-v1", "battle-details-v2", "battle-triage-guidance-v1"))).toEqual([]);
+  expect(dependencyProblems(off("expanded-menu-battle-information-v1", "battle-details-v2", "battle-triage-guidance-v1", "status-names-v1"))).toEqual([]);
 });
 
 it("describes each switch with the exact lines the game server writes", () => {

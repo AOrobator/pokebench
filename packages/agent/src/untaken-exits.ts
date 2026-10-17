@@ -46,7 +46,7 @@ export class UntakenExits {
   const warps=all.filter(g=>!g.warps.every(w=>block.warp(w.x,w.y))),connections=listed.filter(c=>!block.connection(c));
   const across=all.length-warps.length+listed.length-connections.length;
   const cuts=new Set<Cut|null>([...all.filter(g=>!warps.includes(g)).flatMap(g=>g.warps.map(w=>block.warpCut(w.x,w.y))),...listed.filter(c=>!connections.includes(c)).map(c=>block.connectionCut(c))]);
-  // surf-gated-exits-v2: the water part names no badge or move (EventScript_UseSurf ends silently without a Surf user).
+  // surf-gated-exits-v2: the water part names no badge or move (GetInteractedWaterScript returns no script, so no message, without badge 5 and a party Surf user).
   const plain=this.features["surf-gated-exits-v2"];
   const why=!cuts.has("none")?(plain?"every exit listed on this map is across water you cannot cross yet":"every exit listed on this map is across water, and you cannot use Surf yet"):cuts.has("water")?(plain?"every exit listed on this map is across water you cannot cross yet or cannot be reached on foot from where you stand":"every exit listed on this map is across water you cannot Surf yet or cannot be reached on foot from where you stand"):"no exit listed on this map can be reached on foot from where you stand";
   // exit-reachability-v1: a doorway prints only its tiles not labelled none; off, every tile as before.

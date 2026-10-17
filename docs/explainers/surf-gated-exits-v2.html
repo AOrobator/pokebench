@@ -58,7 +58,7 @@ th{font-weight:600}
 
 <section>
  <h2>Why</h2>
- <p>Operator decision (the operator, 2026-10-17 1:59 PM): on Route 103 the player has not been told about the Balance Badge or SURF, so naming them is route foreknowledge (PB4). Operator rule (2:17 PM): say what the game would show. Facing water without a SURF user, <code>EventScript_UseSurf</code> (data/scripts/surf.inc) jumps to <code>EventScript_EndUseSurf</code> and ends with no message, so the readout states only the observable fact.</p>
+ <p>Operator decision (the operator, 2026-10-17 1:59 PM): on Route 103 the player has not been told about the Balance Badge or SURF, so naming them is route foreknowledge (PB4). Operator rule (2:17 PM): say what the game would show. Pressing A at surfable water starts <code>EventScript_UseSurf</code> (and its <code>gText_WantToUseSurf</code> prompt) only from <code>GetInteractedWaterScript</code> (src/field_control_avatar.c:448-461), and only when <code>FLAG_BADGE05_GET</code> is set, <code>PartyHasMonWithSurf()</code> is true and the player faces surfable water. Otherwise, away from a waterfall, it returns no script and the game shows nothing, so the readout states only the observable fact.</p>
 </section>
 
 <section>
@@ -89,13 +89,13 @@ Exits here you have not taken: none you can walk to (every exit listed on this m
  <h2>Game grounding (pret/pokeemerald 731ad5bf, US ROM f3ae0881)</h2>
  <div class="tw"><table>
   <tr><th>Fact</th><th>Source</th><th>Value</th></tr>
-  <tr><td>No Surf user</td><td><code>EventScript_UseSurf</code>: <code>checkpartymove MOVE_SURF</code>, <code>goto_if_eq VAR_RESULT, PARTY_SIZE, EventScript_EndUseSurf</code> (data/scripts/surf.inc:1-14)</td><td>ends with no message</td></tr><tr><td>When Surf works</td><td><code>GetInteractedWaterScript</code> (field_control_avatar.c:448-452)</td><td>unchanged from v1</td></tr>
+  <tr><td>Silent owner</td><td><code>GetInteractedWaterScript</code> (src/field_control_avatar.c:448-461): returns <code>EventScript_UseSurf</code> only if <code>FlagGet(FLAG_BADGE05_GET)</code>, <code>PartyHasMonWithSurf()</code> and <code>IsPlayerFacingSurfableFishableWater()</code> all hold; a waterfall has its own scripts; else <code>NULL</code></td><td>no script, no message</td></tr><tr><td>When Surf works</td><td>the same condition; which exits are gated is unchanged from v1</td><td>unchanged from v1</td></tr>
  </table></div>
 </section>
 
 <section>
  <h2>Limits</h2>
- <ul><li>With the Balance Badge but no SURF user the game also shows nothing, so v2 reads the same.</li><li>With exit-reachability-v1 on, its notes for exits reachable neither on foot nor across water ("not reachable on foot from where you stand") win for those exits and are unchanged; v2 replaces only the Surf wording on water-only exits. When both kinds are cut, the untaken-exits line reads "none you can walk to (every exit listed on this map is across water you cannot cross yet or cannot be reached on foot from where you stand)".</li></ul>
+ <ul><li>With only one of the badge and a Surf user the game also shows nothing (the same condition fails), so v2 reads the same.</li><li>With exit-reachability-v1 on, its notes for exits reachable neither on foot nor across water ("not reachable on foot from where you stand") win for those exits and are unchanged; v2 replaces only the Surf wording on water-only exits. When both kinds are cut, the untaken-exits line reads "none you can walk to (every exit listed on this map is across water you cannot cross yet or cannot be reached on foot from where you stand)".</li></ul>
 </section>
 
 <section>

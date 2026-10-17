@@ -91,7 +91,7 @@ Save-backed world state (player, location, party) not read in this snapshot: the
 
 <section>
  <h2>Limits</h2>
- <ul><li>The readout still has no position or party on that snapshot; the model has to observe again. Capturing at the next idle frame instead would change emulated timing and is left as a follow-up.</li></ul>
+ <ul><li>Needs <code>transition-coherence-v1</code>: without it no snapshot is skipped, so there is nothing to explain.</li><li>The readout still has no position or party on that snapshot; the model has to observe again. Capturing at the next idle frame instead would change emulated timing and is left as a follow-up.</li></ul>
 </section>
 
 <section>

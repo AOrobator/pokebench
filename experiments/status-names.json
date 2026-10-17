@@ -26,7 +26,7 @@
   "features": {
    "navigation-evidence-memory-v1": false,
    "automatic-running-v1": false,
-   "expanded-menu-battle-information-v1": false,
+   "expanded-menu-battle-information-v1": true,
    "ram-state-v1": true,
    "live-map-v1": true,
    "live-player-position-v1": true,
@@ -119,5 +119,5 @@
   "window": 4,
   "minReached": 3
  },
- "notes": "Uses the finals incumbent. Bug fix from the 2026-10-17 top-50 run analysis (runs/reviews/2026-10-17-run-analysis-top50/ram-audit.md) that goes in the bundle arm of bundle-v-control only, default off (operator decision 2026-10-17, the operator: \"They should each be under their own switch, and all the fixes need to be included in the bundle\"); the bundle owner adds it to that experiment's switches. Pending, not queued. Provisional source.commit is the branch's implementation commit; repinned to the merge SHA with `just experiment-pin` when it lands. Activation: a status needs a party Pokémon; the first is the starter."
+ "notes": "Uses the finals incumbent with the change named below. Bug fix from the 2026-10-17 top-50 run analysis (runs/reviews/2026-10-17-run-analysis-top50/ram-audit.md) that goes in the bundle arm of bundle-v-control only, default off (operator decision 2026-10-17, the operator: \"They should each be under their own switch, and all the fixes need to be included in the bundle\"); the bundle owner adds it to that experiment's switches. Pending, not queued. Provisional source.commit is the branch's implementation commit; repinned to the merge SHA with `just experiment-pin` when it lands. Activation: a status needs a party Pokémon; the first is the starter. The finals incumbent has expanded-menu-battle-information-v1 off, which this switch needs (it shows the Party line's STATUS part), so both arms set it on."
 }

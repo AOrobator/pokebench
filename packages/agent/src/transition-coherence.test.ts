@@ -23,7 +23,7 @@ it("registers a default-off observation switch with no dependency, recorded last
   expect(playHarnessFeatures(off(ID), null)).not.toContain(ID);
   expect(featuresOf(playHarnessFeatures(off(ID), null))[ID]).toBe(false);
   // A correctness fix meant for both arms of the bundle, whatever their battle readout switches.
-  expect(dependencyProblems(off("battle-details-v2", "expanded-menu-battle-information-v1"))).toEqual([]);
+  expect(dependencyProblems(off("battle-details-v2", "expanded-menu-battle-information-v1", "status-names-v1"))).toEqual([]);
 });
 
 it("hands the switch to the game server, which owns the decoding", () => {

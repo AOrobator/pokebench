@@ -18,6 +18,7 @@ from pokebench_env.displayed_names import place_name, player_gender, sign_labele
 from pokebench_env.exit_reach import ExitReach, build_exit_reach
 from pokebench_env.game_screen import ReadMemory, read_screen
 from pokebench_env.gba_text import GBA_TEXT, decode_text
+from pokebench_env.heal_trainers import HealFacts, read_heal_facts
 from pokebench_env.live_map import MAP_OFFSET, FullMap, LocalMap, read_full_map, read_local_map
 from pokebench_env.naming import NamingState, editor_open, read_naming
 from pokebench_env.offscreen_objects import MapObject, read_offscreen_objects
@@ -133,6 +134,8 @@ class GameState:
     surf_gate: SurfGate | None = None
     # exit-reachability-v1: each exit labelled foot, water or none, and the foot area; off: None.
     exit_reach: ExitReach | None = None
+    # heal-before-trainers-v1: present only with the switch, on the field.
+    heal_trainers: HealFacts | None = None
 
 
 DYNAMIC_WARP = 0x14
@@ -211,6 +214,7 @@ def read_game_state(
     birch_pages_enabled: bool = False,
     surf_gate_enabled: bool = False,
     exit_reach_enabled: bool = False,
+    heal_trainers_enabled: bool = False,
 ) -> GameState:
     screen = read_screen(read)
     coherent = transition_coherence_enabled
@@ -435,4 +439,7 @@ def read_game_state(
         menu_window_drawn=window_drawn,
         surf_gate=surf_gate,
         exit_reach=exit_reach,
+        heal_trainers=read_heal_facts(read, save1, save2, map_id, party)
+        if heal_trainers_enabled and screen.kind == "overworld" and not in_battle
+        else None,
     )

@@ -36,6 +36,7 @@ RECORDED_OFF = frozenset(FIXTURE["recorded_off"]) | {
     "blackout-readout-v1",
     "surf-gated-exits-v1",
     "exit-reachability-v1",
+    "heal-before-trainers-v1",
 }
 OFF_TEXT = "Battle details: WILD single · turn 3 · resolving (no input until the game asks)"
 WAITING = 'battle message waiting: "Wild WINGULL fainted!" — press A or B to continue'
@@ -310,7 +311,7 @@ def test_format_readout_off_is_unchanged_without_a_battle() -> None:
 
 
 def test_switch_is_registered_server_side_last_and_default_off() -> None:
-    assert SERVER_FEATURES[-9] == SWITCH
+    assert SERVER_FEATURES[-10] == SWITCH
     assert SWITCH in features_off_from_env({})
     assert features_off_from_env({"POKEBENCH_FEATURES_OFF": SWITCH}) == frozenset({SWITCH})
 

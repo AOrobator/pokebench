@@ -34,6 +34,7 @@ RECORDED_OFF = [
     "blackout-readout-v1",
     "surf-gated-exits-v1",
     "exit-reachability-v1",
+    "heal-before-trainers-v1",
 ]
 
 
@@ -125,6 +126,7 @@ def test_read_state_and_render_pass_every_server_switch_through(monkeypatch):
         "birch_pages_enabled": False,
         "surf_gate_enabled": False,
         "exit_reach_enabled": False,
+        "heal_trainers_enabled": False,
         "fmt_named_interactions": False,
         "fmt_world_destinations": False,
         "fmt_bounded_navigation": False,

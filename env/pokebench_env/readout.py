@@ -74,6 +74,7 @@ SERVER_FEATURES = (
     "blackout-readout-v1",
     "surf-gated-exits-v1",
     "exit-reachability-v1",
+    "heal-before-trainers-v1",
 )
 
 
@@ -90,7 +91,8 @@ def features_off_from_env(env: Mapping[str, str]) -> frozenset[str]:
         "transition-coherence-v1,"
         "readout-truth-v1,birch-speech-pages-v1,blackout-readout-v1,"
         "surf-gated-exits-v1,"
-        "exit-reachability-v1",
+        "exit-reachability-v1,"
+        "heal-before-trainers-v1",
     )
     if raw == "":
         return frozenset()
@@ -591,4 +593,10 @@ def state_json(state: GameState) -> dict[str, object]:
         **({} if state.surf_gate is None else {"surf_gate": state.surf_gate.json()}),
         # exit-reachability-v1: present only with the switch, so switch-off state is unchanged.
         **({} if state.exit_reach is None else {"exit_reach": state.exit_reach.json()}),
+        # heal-before-trainers-v1: present only with the switch, so switch-off state is unchanged.
+        **(
+            {}
+            if state.heal_trainers is None
+            else {"heal_before_trainers": state.heal_trainers.json()}
+        ),
     }

@@ -166,3 +166,11 @@ it("leaves story battle warnings off the timeline (closed to new marks, operator
  expect(lanesSvg(view(log),BASE_MS+2000)).toBe(lanesSvg(view(without),BASE_MS+2000));
  expect(view(log).errors).toEqual([]);
 });
+
+it("leaves heal-before-trainers warnings off the timeline (closed to new marks, operator decision 2026-10-16)",()=>{
+ const log=new Log();log.add(0,START);
+ log.add(1000,{type:"heal_before_trainers_warning",turn:2,tool:"press",map_id:[0,19],trainers:[{local_id:3,x:31,y:24,sprite_kind:"LASS"}],weak:[{kind:"lead_below_half",species:"TORCHIC",hp:14,max_hp:38}],heal:null,mom_heals:true,money:5168,text:"SUPERVISOR: heal first"});
+ const without=new Log();without.add(0,START);
+ expect(lanesSvg(view(log),BASE_MS+2000)).toBe(lanesSvg(view(without),BASE_MS+2000));
+ expect(view(log).errors).toEqual([]);
+});

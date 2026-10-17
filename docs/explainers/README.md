@@ -86,5 +86,6 @@ The original ignored runs/explainers copies remain for existing links. Make futu
 - [Open goal prompt](open-goal-prompt-v1.html)
 - [Story destinations](story-destinations-v1.html)
 - [Exit reachability](exit-reachability-v1.html)
+- [Heal before trainers](heal-before-trainers-v1.html)
 - [Harness trust](harness-trust-v1.html)
 - [Cited destination](cited-destination-v1.html)

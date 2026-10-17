@@ -84,10 +84,11 @@ export function stallStop(features:FeatureSet,recorder:Pick<RunRecorder,"subscri
 // extra: the run's other model tools (context tools), wrapped too so any call between presses is seen.
 // low-hp-trainer-warning-v1 wraps everything else, so its paragraph follows any other text the result gained; only
 // withResultFacts (blocked-exit-fact-v1, battle-loss-recap-v1) is outside it, adding its lines after that paragraph.
+// heal-before-trainers-v1 reads the game's map table from the same state source (GET /pokebench/places).
 // cited-destination-v1 wraps all of that, so its line sits right under harness-trust-v1's header, which is outermost and
 // therefore the first thing in every result.
 export function playGameTools(base:readonly AgentTool[],features:FeatureSet,state:StateSource,recorder:AutoAdvanceRecorder&WarningRecorder&IdCardRecorder&TrustRecorder&Pick<CitationRecorder,"destinationCitation">,gate?:NavigationPorts["gate"],extra:readonly AgentTool[]=[]):AgentTool[]{
- const facts=[...withResultFacts(withLowHpTrainerWarning(withNavigateFirst([...withStoryDestinations(withPeopleIdCards(withUntakenExits(withPeopleLedger(withDialogueAutoAdvance(withNavigation(base,features,state,gate),features,{state,recorder}),features,recorder),features,recorder),features,recorder),features,recorder,state),...extra],features),features,recorder),features,recorder)];
+ const facts=[...withResultFacts(withLowHpTrainerWarning(withNavigateFirst([...withStoryDestinations(withPeopleIdCards(withUntakenExits(withPeopleLedger(withDialogueAutoAdvance(withNavigation(base,features,state,gate),features,{state,recorder}),features,recorder),features,recorder),features,recorder),features,recorder,state),...extra],features),features,recorder,state),features,recorder)];
  const cited=withCitedDestination(facts,features["cited-destination-v1"],recorder,{fullMap:features["full-map-navigation-v1"],exitReach:features["exit-reachability-v1"]});
  return withHarnessTrust(cited,features["harness-trust-v1"],recorder,state);
 }

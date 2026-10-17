@@ -1,5 +1,5 @@
 import type { IdCard } from "./people-id-cards.js";
-import type { LowHpTrainerWarningFacts, StoryBattleWarningFacts } from "./low-hp-trainer-warning.js";
+import type { HealBeforeTrainersFacts, LowHpTrainerWarningFacts, StoryBattleWarningFacts } from "./low-hp-trainer-warning.js";
 import type { StoryGoalAwayFacts } from "./harness-trust.js";
 import type { DestinationCitationFacts } from "./cited-destination.js";
 import type { PressModifiers } from "./game-tools.js";
@@ -453,6 +453,10 @@ export class RunRecorder {
   // low-hp-trainer-warning-v2: recorded as the story-battle paragraph is added to the tool result.
   storyBattleWarning(tool: string, facts: StoryBattleWarningFacts, text: string): void {
     this.append({ type: "story_battle_warning", turn: this.turn, tool, ...facts, map_id: [facts.map_id[0], facts.map_id[1]], party: facts.party.map((p) => ({ ...p })), items: facts.items.map((i) => ({ ...i })), text });
+  }
+  // heal-before-trainers-v1: recorded as the paragraph is added to the tool result.
+  healBeforeTrainersWarning(tool: string, facts: HealBeforeTrainersFacts, text: string): void {
+    this.append({ type: "heal_before_trainers_warning", turn: this.turn, tool, map_id: [facts.map_id[0], facts.map_id[1]], trainers: facts.trainers.map((t) => ({ ...t })), weak: facts.weak.map((w) => (w.kind === "lead_no_pp" ? { ...w, moves: [...w.moves] } : { ...w })), heal: facts.heal === null ? null : { ...facts.heal, map_id: [facts.heal.map_id[0], facts.heal.map_id[1]] }, mom_heals: facts.mom_heals, money: facts.money, text });
   }
 
   // harness-trust-v1: recorded as the walk-away note is added under the result's header.

@@ -40,6 +40,7 @@ RECORDED_OFF = frozenset(FIXTURE["recorded_off"]) | {
     "blackout-readout-v1",
     "surf-gated-exits-v1",
     "exit-reachability-v1",
+    "heal-before-trainers-v1",
 }
 T416 = "raw-ram/00004588.json.gz"
 T754 = "raw-ram/00005144.json.gz"

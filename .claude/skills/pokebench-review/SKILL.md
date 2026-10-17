@@ -24,9 +24,9 @@ All four personas share this base. The coordinator (you) collects it once, befor
    ```
 
    It reads `http://127.0.0.1:8790/api/workbench`, validates it with the viewer's `parseWorkbench`, and ranks runs by the viewer's `FRONTIER_MILESTONES` (required story checkpoints, not optional catches or trainers). Screenshot-only splits never count, and excluded, invalid, probe, synthetic and replay runs are dropped. Each row gives milestone, minutes, model, preset, start, status and run id. It prints:
-   - **Best valid fresh-boot run**: exactly what the viewer's `frontierReferences` picks.
-   - **Fresh-boot frontier**: the top ended boot runs, in active minutes since New game. Only these count for readiness and records.
-   - **Checkpoint frontier**: ended runs resumed at `CLOCK_SET`, the only checkpoint series the viewer plots. Ranking starts after the resume point, as on the viewer chart. Times are minutes since the save loaded, so never compare them with fresh-boot times or call a checkpoint run faster.
+   - **Best valid new-game run**: exactly what the viewer's `frontierReferences` picks, from boot or the shared fast-text `MAIN_MENU` save. Say which: a `MAIN_MENU` start is not a fresh boot, and its minutes never compare with boot runs or the human boot reference.
+   - **Boot frontier**: the top ended power-on boot runs, in active minutes since New game. Only these count for readiness and records.
+   - **Checkpoint frontier**: ended runs resumed at `CLOCK_SET`, the only checkpoint series the viewer plots. Ranking starts after the resume point, as on the viewer chart. Times are minutes since the save loaded, so never compare them with boot or `MAIN_MENU` times or call a checkpoint run faster.
    - **In progress** (live or paused) and **stalled** (unresponsive): shown so a run passing the frontier right now is not missed, but never counted.
    - **Human reference**: what `frontierReferences` picks, or "unavailable".
 
@@ -80,7 +80,7 @@ Then the four persona sections, then the synthesis from step 4.
 
 ## 6. Check yourself before sending
 
-- The frontier came from `frontier.mjs`, fresh-boot, checkpoint and in-progress runs are kept separate, and no checkpoint time is compared with a boot time.
+- The frontier came from `frontier.mjs`, boot, `MAIN_MENU`, checkpoint and in-progress runs are kept separate, and no checkpoint time is compared with a boot time.
 - Every concern has evidence or is marked as inference.
 - No persona recommends launching or approving runs as if it were already decided; those are the operator's calls.
 - Readiness was checked fresh, not copied from an old row.

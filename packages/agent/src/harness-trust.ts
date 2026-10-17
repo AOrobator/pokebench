@@ -233,7 +233,10 @@ export function withHarnessTrust(tools:readonly AgentTool[],on:boolean,recorder:
   const index=result.content.findIndex(part=>part.type==="text");
   const part=result.content[index];
   if(part?.type!=="text")return result;
-  const {header,away}=trust.lines(part.text,state,id,await places(state.name ?? ""),tool==="press"||tool==="navigate_to");
+  // battle_action (harness-trust-v2) puts its status first and the readout after the screenshot, so its readout lines are
+  // read from every text part; the other tools keep harness-trust-v1's first-part read.
+  const readout=tool==="battle_action"?result.content.flatMap(c=>c.type==="text"?[c.text]:[]).join("\n"):part.text;
+  const {header,away}=trust.lines(readout,state,id,await places(state.name ?? ""),tool==="press"||tool==="navigate_to");
   const note=away===null?null:awayText(away);
   if(away!==null&&note!==null)record?.(tool,away,note);
   const content=[...result.content];content[index]={...part,text:`${header}\n${note===null?"":`${note}\n`}\n${part.text}`};

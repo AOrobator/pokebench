@@ -41,14 +41,16 @@ Factory test through the production playGameTools.
 
 ## Session Log
 
-- 2026-10-17 5:05 PM New York: worktree from main f7923b5c.
+- 2026-10-17 4:55 PM New York: worktree from main f7923b5c.
 
 ## Surprises
 
 ## Multi-Model Review Log
 
-- Round 1 (5:20-5:35 PM New York): base main 44652551, head e637d113. Claude LGTM, Grok LGTM, Codex BLOCKING: battle_action puts its status in the first text part and the readout in a later one, so the characters line was not found (charactersLine read only the first text part). Fix: on battle_action results the characters line is read from every text part; observe/press/navigate_to keep v1's first-part read, so harness-trust-v1 stays byte-identical.
-- [x] RED: multi-part battle_action result (status, screenshot, T272 readout) must carry the characters line. 5:37 PM New York: fails.
+- Round 1 (5:00-5:10 PM New York): base main 44652551, head e637d113. Claude LGTM, Grok LGTM, Codex BLOCKING: battle_action puts its status in the first text part and the readout in a later one, so the characters line was not found (charactersLine read only the first text part). Fix: on battle_action results the characters line is read from every text part; observe/press/navigate_to keep v1's first-part read, so harness-trust-v1 stays byte-identical.
+- [x] RED: multi-part battle_action result (status, screenshot, T272 readout) must carry the characters line. 5:12 PM New York: fails.
+- [x] GREEN: battle_action results read readout lines from every text part. Gates: agent 2258, viewer 1118, pytest 2564; lint clean; coverage agent 99.2 / 94.1 / 98.2, viewer 97.62 / 91.38 / 93.79, Python 97.65 / 93.78 / 100.
+- [ ] Round 2 on the fix delta.
 
 ## Boy Scout Log
 

@@ -53,6 +53,8 @@ OUTCOME = 0x0202433A
 CURRENT_ACTION = 0x02024083
 CURRENT_TURN_ACTION = 0x02024082
 SCRIPT_OWNERS = frozenset({0x0803E019, 0x0803E08D})
+# pret include/battle.h MOVE_TARGET_SELECTED 0 and the single flags DEPENDS 1 .. OPPONENTS_FIELD 64.
+TARGETS = frozenset({0, 1, 2, 4, 8, 16, 32, 64})
 INPUT_OWNERS = {
     0x08057589: "action",
     0x08057BFD: "move",
@@ -87,6 +89,9 @@ class BattleMove:
     power: int | None
     accuracy: int | None
     effect: int | None
+    # struct BattleMove byte 6 (pret include/pokemon.h): MOVE_TARGET_* flags.
+    # battle-move-tool-v1 reads it.
+    target: int | None = None
 
 
 @dataclass(frozen=True)
@@ -223,9 +228,9 @@ def _move(read: ReadMemory, slot: int, move: int, pp: int, bonuses: int) -> Batt
     data = exact(read, BATTLE_MOVES + move * 12, 12)
     name = decode_text(exact(read, MOVE_NAMES + move * 13, 13))
     maximum = data[4] + data[4] * 20 * ((bonuses >> (slot * 2)) & 3) // 100
-    if not name or "?" in name or not data[4] or pp > 64 or data[2] >= 18:
+    if not name or "?" in name or not data[4] or pp > 64 or data[2] >= 18 or data[6] not in TARGETS:
         raise ValueError("invalid battle move table or PP")
-    return BattleMove(slot, move, name, pp, maximum, data[2], data[1], data[3], data[0])
+    return BattleMove(slot, move, name, pp, maximum, data[2], data[1], data[3], data[0], data[6])
 
 
 def _battler(

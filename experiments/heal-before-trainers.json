@@ -126,6 +126,8 @@
    "heal-before-trainers-v1": false,
    "harness-trust-v1": false,
    "cited-destination-v1": false,
+   "battle-move-tool-v1": false,
+   "harness-trust-v2": false,
    "tutorial-party-owner-v1": false,
    "mid-frame-readout-v1": false,
    "unset-dynamic-warp-v1": false,

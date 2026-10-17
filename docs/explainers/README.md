@@ -89,6 +89,7 @@ The original ignored runs/explainers copies remain for existing links. Make futu
 - [Heal before trainers](heal-before-trainers-v1.html)
 - [Harness trust](harness-trust-v1.html)
 - [Cited destination](cited-destination-v1.html)
+- [Battle action tool](battle-move-tool-v1.html)
 - [Tutorial party owner](tutorial-party-owner-v1.html)
 - [Mid-frame readout](mid-frame-readout-v1.html)
 - [Unset dynamic warp](unset-dynamic-warp-v1.html)

@@ -197,6 +197,23 @@ describe("battle-text-auto-advance-v1 hand-offs",()=>{
   expect(tool("navigate_to").description).toContain("If it ends in dialogue or a battle, the text advances automatically");
  });
 
+ it("battle-move-tool-v1: a battle_action that chose a move has the turn's text advanced and listed after its own status line",async()=>{
+  const busy=SHOW_STATES.findIndex((s,i)=>i>at(7789)&&phaseOf(s)==="busy");
+  const server=new ScriptServer(SHOW_STATES,SHOW.journal.entries,busy);
+  const chosen=SHOW_STATES[busy];if(chosen===undefined)throw new Error("no busy state");
+  const act:AgentTool={name:"battle_action",label:"b",description:"choose",parameters:Type.Object({}),execute:()=>Promise.resolve({content:[{type:"text" as const,text:"Battle action: chose FIGHT, then SCRATCH; buttons pressed: A, A; the battle is running its own text or animation."}],details:{state:chosen,battle_action:{refused:false}}})};
+  const {tool,rec}=wire(server,ON,[act]);
+  const result=await tool("battle_action").execute("b1",{});
+  const [event]=rec.advances();
+  expect(event).toMatchObject({tool:"battle_action",stop:"battle_input",requested:[],sent:[],dropped:[]});
+  expect(()=>checkEvent(event)).not.toThrow();
+  expect(result.content[0]).toEqual({type:"text",text:"Battle action: chose FIGHT, then SCRATCH; buttons pressed: A, A; the battle is running its own text or animation."});
+  expect(textOf(result)).toContain(`"Wild WURMPLE used\nTACKLE!"`);
+  expect(tool("battle_action").description).toBe("choose If the battle then runs its own text, the text advances automatically to the next decision point and its pages are listed.");
+  const off=wire(new ScriptServer(SHOW_STATES,SHOW.journal.entries,busy),{...ON,[ID]:false},[act]);
+  expect(off.tool("battle_action")).toBe(act);
+ });
+
  it("a trainer's field challenge, the battle, then Birch's field thanks, all in one call and in order",async()=>{
   const states=[fieldMessage("YOUNGSTER: Let's battle!",true),TRANSITION,BUSY,page("YOUNGSTER sent out POOCHYENA!",1),BUSY,page("POOCHYENA fainted!",2),BUSY,show(7835),fieldMessage("PROF. BIRCH: You saved me!",false,0),fieldMessage("PROF. BIRCH: You saved me!",true),FIELD,FIELD];
   const server=new ScriptServer(states,[entry(1,4,"YOUNGSTER sent out POOCHYENA!"),entry(2,6,"POOCHYENA fainted!",2)]);

@@ -113,6 +113,11 @@ def recorded(name: str, run: str, raw: int) -> tuple[dict[str, object], frozense
         "birch-speech-pages-v1",
         "blackout-readout-v1",
         "surf-gated-exits-v1",
+        "tutorial-party-owner-v1",
+        "mid-frame-readout-v1",
+        "unset-dynamic-warp-v1",
+        "status-names-v1",
+        "surf-gated-exits-v2",
     }
     return frame, frozenset(frame["recorded_off"]) | later  # type: ignore[arg-type]
 
@@ -140,7 +145,7 @@ def world_block(text: str) -> list[str]:
 
 def test_switch_is_a_default_off_server_observation_switch() -> None:
     assert SWITCH == "transition-coherence-v1"
-    assert SERVER_FEATURES[-5] == SWITCH
+    assert SERVER_FEATURES[-10] == SWITCH
     assert SWITCH in features_off_from_env({})
     assert SWITCH not in features_off_from_env({"POKEBENCH_FEATURES_OFF": ""})
 

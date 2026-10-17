@@ -27,7 +27,8 @@ feature-switch, execute-worklog (stop before the review loop), feature-explainer
 - Bug 1 agent side: the server, with the switch ON, leaves `party_owner` out of the state JSON when ownership cannot be established (the field is already optional in `StateBodySchema`), and keeps `party_ownership` (owner null, source) as evidence. The agent schema and its parse paths are unchanged, so OFF is byte-identical on both stacks and no state is dropped ON. Considered and rejected: widening the TS enum to "unknown" (it would change OFF, since the OFF server already emits "unknown"), or gating every parse path on the switch (many entry points).
 - Bug 2: option (a), a true readout line when the only reason the save was not read is the mid-frame snapshot. Option (b), settling to the next idle frame, changes emulated timing; left as a follow-up.
 - Bug 3: an all-zero WarpData (8 bytes) is unset; the readout then uses its existing "dynamic destination" fallback.
-- Bug 4: status names from the STATUS1 bits (include/constants/battle.h:114-125); poison adds what the field does (field_control_avatar.c:637-660 UpdatePoisonStepCounter: every 4th step; field_poison.c:120 DoPoisonFieldEffect: -1 HP, can faint).
+- Bug 4: status names are the game's own labels (gText_Psn/Par/Slp/Frz/Brn "PSN" "PAR" "SLP" "FRZ" "BRN", src/strings.c:627-631) for the one ailment GetAilmentFromStatus (src/party_menu.c:1909-1922) picks, as the party and summary status icons show it; no sleep turns or field-poison note, which the game does not show (operator rule, the operator 2:17 PM, via the coordinator: model-facing text says what the game would show, else only the observable fact). A status with no ailment keeps its number.
+- Item 5: EventScript_UseSurf (data/scripts/surf.inc) jumps to EventScript_EndUseSurf and ends silently when no party Pokémon knows SURF, so v2 says only "crosses water you cannot cross yet" (cited in test_readout_truth_fixes.py). The mid-frame line names nothing the game has not shown.
 
 ## Invariants
 
@@ -40,12 +41,12 @@ feature-switch, execute-worklog (stop before the review loop), feature-explainer
 **M1 - RED** (all five switches)
 - [x] Fixture `env/tests/env/fixtures/readout-truth-fixes.json.gz` from dc5a 10618/11525, f551 8716, 93eb 16529/758, b671 8838/11566, e962 9904, fe15 9631, 0e05 693/798, bd60 18617/19141 (OFF golden text at base)
 - [x] RED tests (Python and TS) for each switch, failing for the right reason
-- [ ] COMMIT RED
+- [x] COMMIT RED: `test(readout-truth-fixes): RED for tutorial-party-owner-v1, mid-frame-readout-v1, unset-dynamic-warp-v1, status-names-v1, surf-gated-exits-v2` (0bb139d2)
 
 **M2 - GREEN**
-- [ ] Implementation per switch, registry, presets, DEFAULT_NEXT_RUN, SERVER_FEATURES (TS and Python), default-off env list
-- [ ] Wiring deletion receipts
-- [ ] Gates: just test, just lint, just build, just coverage (>=90)
+- [x] Implementation per switch, registry, presets, DEFAULT_NEXT_RUN, SERVER_FEATURES (TS and Python), default-off env list
+- [x] Wiring deletion receipts
+- [x] Gates: just test, just lint, just build, just coverage (>=90)
 - [ ] COMMIT GREEN
 
 **M3 - explainers and pending experiments**
@@ -58,3 +59,6 @@ feature-switch, execute-worklog (stop before the review loop), feature-explainer
 ## Log
 
 - RED (M1): reproduced every bug at base 00b2b317 from the recorded archives: dc5a raw 10618/11525 and f551 raw 8716 decode party_owner "unknown" with "invalid move or PP" (moves 33,0,0,0 / PP 35,40,30,0); 93eb seq 16529 "Party (tutorial): UNKNOWN LvNone"; b671 8838/11566, e962 9904, fe15 9631 end in "save data is not initialized or valid"; 0e05 693 and 93eb 758 read "PETALBURG CITY (dynamic warp; map 0/0)" (0e05 798 reads LITTLEROOT TOWN); bd60 18617/19141 "STATUS 8". The golden OFF readouts are an ordered subsequence of the 10 recorded tool results (the agent inserts its own lines). None is already fixed on main. RED runs: pytest 50 failed / 114 passed in test_readout_truth_fixes.py + test_surf_gate.py; vitest agent readout-truth-fixes.test.ts 15 failed / 2 passed (the two passing are OFF characterizations); viewer readout-truth-fixes.test.ts 5 failed.
+- GREEN (M2): implementation in pokemon.py (`empty_move_pp`), game_state.py (three reader switches, `mid_frame`, `party_owner: str | None`), readout.py (Party owner, PSN labels, mid-frame line, `party_owner` omitted when None, SERVER_FEATURES and default-off list), surf_gate.py (`SWITCH_V2`, plain notes), rerender.py, new readout_fixes.py and status_names.py; agent features.ts (registry, server list, run record), play-preset.ts, untaken-exits.ts (v2 line); viewer next-run.ts. Positional registry assertions in older tests shifted by 5 and the later-switch-off lists extended (no behavior change). surf-gated-exits-v2 also rewords a real recorded line: bd60 T706 (seq 19141) ROUTE104 SOUTH edge.
+- Wiring deletion receipts: rerender without `tutorial_owner_enabled` -> 10 failed; without `mid_frame_enabled` -> 9 failed; without `unset_warp_enabled` -> 5 failed; readout `named_status = False` -> 4 failed; `plain = False` -> 4 failed; untaken-exits v2 conditional forced off -> 1 failed; SERVER_FEATURES entries removed -> 6 failed; `...when("status-names-v1")` removed -> 1 failed. All restored.
+- Gates on the GREEN tree: just test (vitest agent 2122 passed, viewer 1106 passed; pytest 2667 passed), just lint clean (tsc, eslint, ruff, ruff format, mypy), just build ok, just coverage: agent lines 99.23 / branches 94.42 / functions 98.27; viewer lines 97.62 / branches 91.39 / functions 93.78; Python lines 97.62 / branches 93.77 / functions 100 (floor 90). New modules status_names.py, readout_fixes.py 100%.

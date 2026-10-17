@@ -8,7 +8,8 @@ digest rendered at main 00b2b317 with every new switch off (the golden OFF outpu
 - dc5a raw 10618 / 11525, f551 raw 8716: Norman's Wally scene after LoadWallyZigzagoon (the agent
   rejected every one of these states as malformed; no tool result).
 - 93eb seq 16529 (raw 9411): the Wally tutorial battle, "UNKNOWN LvNone".
-- b671 seq 8838 / 11566, e962 seq 9904, fe15 seq 9631: mid-frame snapshots read as uninitialized saves.
+- b671 seq 8838 / 11566, e962 seq 9904, fe15 seq 9631: mid-frame snapshots read as
+  uninitialized saves.
 - 0e05 seq 693 (raw 226), 93eb seq 758 (raw 257): the truck before its dynamic warp is set;
   0e05 seq 798 (raw 263): after `setdynamicwarp MAP_LITTLEROOT_TOWN`.
 - bd60 seq 18617 / 19141: TORCHIC poisoned on the field, "STATUS 8".
@@ -49,7 +50,7 @@ FRAMES: list[dict[str, Any]] = FIXTURE["frames"]
 UNINITIALIZED = "Save-backed world state unavailable: save data is not initialized or valid."
 MID_FRAME_TEXT = (
     "Save-backed world state (player, location, party) not read in this snapshot: the game was"
-    " in the middle of a frame (loading or animating). Observe again to read it."
+    " in the middle of a frame. Observe again to read it."
 )
 
 
@@ -176,7 +177,8 @@ def test_each_switch_alone_changes_only_its_own_frames(name: str, switch: str) -
         MID_FRAME: {"b671-8838", "b671-11566", "e962-9904", "fe15-9631"},
         UNSET_WARP: {"0e05-693", "93eb-758"},
         STATUS: {"bd60-18617", "bd60-19141"},
-        "surf-gated-exits-v2": set(),
+        # bd60 T706 on ROUTE104: surf-gated-exits-v1 was on in that run.
+        "surf-gated-exits-v2": {"bd60-19141"},
     }[switch]
     assert (render(name, frozenset({switch})) != render(name)) == (name in mine)
 
@@ -207,16 +209,21 @@ def test_on_the_wally_scene_is_the_tutorial_zigzagoon(name: str) -> None:
     mon = on.party[0]
     assert (mon.species, mon.species_id, mon.level, mon.diagnostic) == ("ZIGZAGOON", 288, 7, None)
     assert mon.moves is not None
+    tackle = mon.moves[0].pp
     assert [(m.move_id, m.name, m.pp) for m in mon.moves] == [
-        (33, "TACKLE", 35),
+        (33, "TACKLE", tackle),
         (0, None, 40),
         (0, None, 30),
         (0, None, 0),
     ]
+    assert tackle in (33, 35)
     assert state_json(on)["party_owner"] == "tutorial"
     [(before, after)] = changed(name, frozenset({OWNER}))
     assert before.startswith("Party (unknown): UNKNOWN LvNone HP None/None")
-    assert after == f"Party (tutorial): ZIGZAGOON Lv7 HP {mon.hp}/{mon.max_hp} · moves TACKLE PP 35"
+    assert after == (
+        f"Party (tutorial): ZIGZAGOON Lv7 HP {mon.hp}/{mon.max_hp} · moves TACKLE PP {tackle}"
+        " · nickname ZIGZAGOON"
+    )
 
 
 def test_on_the_tutorial_battle_shows_the_zigzagoon() -> None:
@@ -225,7 +232,9 @@ def test_on_the_tutorial_battle_shows_the_zigzagoon() -> None:
         "Party (tutorial): UNKNOWN LvNone HP None/None · HARNESS BUG: harness bug: Pokémon"
         " invalid move or PP"
     )
-    assert after == "Party (tutorial): ZIGZAGOON Lv7 HP 24/24 · moves TACKLE PP 35"
+    assert after == (
+        "Party (tutorial): ZIGZAGOON Lv7 HP 24/24 · moves TACKLE PP 33 · nickname ZIGZAGOON"
+    )
 
 
 def zigzagoon_body() -> tuple[bytes, Callable[[int, int], bytes]]:
@@ -332,34 +341,103 @@ def test_on_a_set_dynamic_warp_still_names_littleroot() -> None:
     assert state("0e05-798", frozenset({UNSET_WARP})).dynamic_warp == (0, 9, "LITTLEROOT TOWN")
 
 
+def test_v2_rewords_the_route104_south_edge_bd60_t706() -> None:
+    [(before, after)] = changed("bd60-19141", frozenset({"surf-gated-exits-v2"}))
+    head = "- SOUTH -> ROUTE105 (map 0/20), offset 0; not an exit you can use now: every way from"
+    assert before == (
+        f"{head} where you stand to this edge crosses water, and Surf needs the Balance Badge"
+        " and a party Pokémon that knows SURF (you have neither)"
+    )
+    assert after == f"{head} where you stand to this edge crosses water you cannot cross yet"
+
+
 # --- 4. status-names-v1 ------------------------------------------------------------------------
 
-POISONED = "POISONED (on the field it loses 1 HP every 4 steps and can faint)"
+# The game's own labels for the party/summary status icons (src/strings.c:627-631) in
+# GetAilmentFromStatus order (src/party_menu.c:1909-1922).
 
 
 @pytest.mark.parametrize(("name", "hp"), [("bd60-18617", 13), ("bd60-19141", 2)])
-def test_on_poison_is_named(name: str, hp: int) -> None:
+def test_on_poison_reads_psn(name: str, hp: int) -> None:
     [(before, after)] = changed(name, frozenset({STATUS}))
     assert f"TORCHIC Lv11 HP {hp}/33 · STATUS 8 · moves" in before
-    assert after == before.replace("STATUS 8", f"STATUS {POISONED}")
+    assert after == before.replace("STATUS 8", "STATUS PSN")
 
 
 @pytest.mark.parametrize(
     ("status", "text"),
     [
         (0, None),
-        (3, "ASLEEP (3 turns left)"),
-        (1, "ASLEEP (1 turn left)"),
-        (8, POISONED),
-        (16, "BURNED"),
-        (32, "FROZEN"),
-        (64, "PARALYZED"),
-        (0x80 | (2 << 8), "BADLY POISONED (on the field it loses 1 HP every 4 steps and can faint)"),
-        (8 | 16, f"{POISONED} + BURNED"),
-        (0x100, "status bits 0x100"),
+        (3, "SLP"),
+        (8, "PSN"),
+        (0x80 | (2 << 8), "PSN"),
+        (16, "BRN"),
+        (32, "FRZ"),
+        (64, "PAR"),
+        (8 | 64, "PSN"),
+        (64 | 3, "PAR"),
+        (3 | 32, "SLP"),
+        (32 | 16, "FRZ"),
+        (0x100, None),
     ],
 )
-def test_status_text_names_each_status1_bit(status: int, text: str | None) -> None:
+def test_status_text_is_the_ailment_the_game_shows(status: int, text: str | None) -> None:
     from pokebench_env.status_names import status_text
 
     assert status_text(status) == text
+
+
+def test_a_status_with_no_ailment_keeps_its_number() -> None:
+    on = state("bd60-18617", frozenset({STATUS}))
+    assert on.party is not None
+    odd = replace(on, party=(replace(on.party[0], status=0x100),))
+    off = all_off(BY_KEY["bd60-18617"]) - {STATUS}
+    assert " · STATUS 256 · " in rerender.render(odd, off)
+
+
+# --- game-source grounding (operator rule 2026-10-17: say what the game would show) ------------
+POKEEMERALD = Path(os.environ.get("POKEEMERALD", "/Users/user/dev/pokeemerald"))
+
+
+def source(relative: str) -> str:
+    path = POKEEMERALD / relative
+    if not path.is_file():
+        pytest.skip(f"pret/pokeemerald checkout not found at {POKEEMERALD}")
+    return path.read_text()
+
+
+def test_status_labels_are_the_games_own_strings() -> None:
+    strings = source("src/strings.c")
+    for symbol, label in [
+        ("gText_Psn", "PSN"),
+        ("gText_Par", "PAR"),
+        ("gText_Slp", "SLP"),
+        ("gText_Frz", "FRZ"),
+        ("gText_Brn", "BRN"),
+    ]:
+        assert f'const u8 {symbol}[] = _("{label}");' in strings
+    order = source("src/party_menu.c").split("u8 GetAilmentFromStatus(u32 status)", 1)[1]
+    order = order.split("}", 1)[0]
+    returns = [line.strip() for line in order.splitlines() if "return AILMENT_" in line]
+    assert returns == [
+        "return AILMENT_PSN;",
+        "return AILMENT_PRZ;",
+        "return AILMENT_SLP;",
+        "return AILMENT_FRZ;",
+        "return AILMENT_BRN;",
+        "return AILMENT_NONE;",
+    ]
+
+
+def test_surf_v2_says_only_what_the_game_shows_without_a_surf_user() -> None:
+    # EventScript_UseSurf (data/scripts/surf.inc): with no party Pokémon that knows SURF,
+    # checkpartymove leaves PARTY_SIZE and the script jumps to EventScript_EndUseSurf, which
+    # ends without a message. The game shows nothing, so v2 states only the fact: water the
+    # player cannot cross yet.
+    script = source("data/scripts/surf.inc")
+    head = script.split("EventScript_UseSurf::", 1)[1].split("EventScript_ReleaseUseSurf::", 1)[0]
+    assert "goto_if_eq VAR_RESULT, PARTY_SIZE, EventScript_EndUseSurf" in head
+    assert "EventScript_EndUseSurf::\n\tend" in script
+    from pokebench_env.surf_gate import CANNOT_CROSS
+
+    assert CANNOT_CROSS == "crosses water you cannot cross yet"

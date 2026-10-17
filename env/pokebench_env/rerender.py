@@ -21,6 +21,7 @@ from pokebench_env.game_screen import ReadMemory
 from pokebench_env.game_state import GameState, MapNames, read_game_state
 from pokebench_env.raw_ram import load_raw_ram
 from pokebench_env.readout import features_off_from_env, format_readout
+from pokebench_env.readout_fixes import MID_FRAME, OWNER, UNSET_WARP
 from pokebench_env.rom import resolve_rom
 from pokebench_env.screen_settle import WARP_FEATURE, warp_animating
 from pokebench_env.surf_gate import SWITCH as SURF_GATE
@@ -52,6 +53,9 @@ def read_state(
         readout_truth_enabled="readout-truth-v1" not in off,
         birch_pages_enabled="birch-speech-pages-v1" not in off,
         surf_gate_enabled=SURF_GATE not in off,
+        tutorial_owner_enabled=OWNER not in off,
+        mid_frame_enabled=MID_FRAME not in off,
+        unset_warp_enabled=UNSET_WARP not in off,
     )
 
 

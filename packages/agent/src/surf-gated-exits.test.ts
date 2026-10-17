@@ -148,7 +148,7 @@ describe("surf-gated-exits-v1 rules",()=>{
   expect(new UntakenExits(features).line({...ROUTE,surf_gate:GATED},text)).toBe("Exits here you have not taken: (3,3) -> map 2/2; SOUTH edge -> OLDALE TOWN (map 0/10)");
  });
  it("says how many it left out only when no other exit is left: none to walk to at all, or every walkable one taken",()=>{
-  const features={...ALL_ON,[ID]:true};
+  const features={...ALL_ON,[ID]:true,"surf-gated-exits-v2":false};
   const island={...ROUTE,interaction_targets:[warp(45,6,[24,106,0])],topology:{...ROUTE.topology,connections:[EAST]},surf_gate:GATED} satisfies GameStateSnapshot;
   expect(new UntakenExits(features).line(island,"")).toBe("Exits here you have not taken: none you can walk to (every exit listed on this map is across water, and you cannot use Surf yet)");
   expect(new UntakenExits({...features,[ID]:false}).line(island,"")).toBe("Exits here you have not taken: (45,6) -> map 24/106; EAST edge -> map 0/25");
@@ -201,8 +201,8 @@ describe("surf-gated-exits-v1 registry and presets",()=>{
   expect(description).toContain("bundle arm only");
   expect(description).not.toContain("both arms");
   const ids=FEATURES.filter(f=>f.switchable).map(f=>f.id);
-  expect(ids.at(-10)).toBe(ID);
-  expect(playHarnessFeatures(ALL_ON,null).at(-10)).toBe(ID);
+  expect(ids.at(-15)).toBe(ID);
+  expect(playHarnessFeatures(ALL_ON,null).at(-15)).toBe(ID);
   expect(SERVER_FEATURES).toContain(ID);
   expect(serverFeatureEnv({...ALL_ON,[ID]:false}).POKEBENCH_FEATURES_OFF.split(",")).toContain(ID);
   expect(serverFeatureEnv(ALL_ON).POKEBENCH_FEATURES_OFF.split(",")).not.toContain(ID);

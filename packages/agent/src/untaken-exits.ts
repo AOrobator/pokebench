@@ -39,7 +39,8 @@ export class UntakenExits {
    group.taken||=this.history.taken(map,warp.x,warp.y);
    groups.set(key,group);
   }
-  // surf-gated-exits-v1: an exit reachable only across water is not listed while Surf cannot be used; a doorway is
+  // surf-gated-exits-v1: an exit reachable only across water is not listed while Surf cannot be used (v2: the line
+  // names no badge or move); a doorway is
   // across water only when every one of its tiles is.
   const block=surfBlock(this.features,state);
   const all=[...groups.values()],listed=this.features["world-destinations-v1"]?state.topology?.connections??[]:[];
@@ -49,7 +50,7 @@ export class UntakenExits {
    ...warps.filter(g=>!g.taken).map(g=>`${g.tiles.join(" or ")} -> ${mapKey(g.destination)==="127/127"?"dynamic destination":this.place(g.destination)}`),
    ...connections.filter(c=>!this.history.crossed(map,mapKey(c.destination))).map(c=>`${c.direction}${EDGES.has(c.direction)?" edge":""} -> ${this.place(c.destination)}`),
   ];
-  const none=warps.length+connections.length>0?`none (you have taken every exit ${across>0?"you can walk to ":""}on this map this run)`:across>0?"none you can walk to (every exit listed on this map is across water, and you cannot use Surf yet)":"none (no exits are listed on this map)";
+  const none=warps.length+connections.length>0?`none (you have taken every exit ${across>0?"you can walk to ":""}on this map this run)`:across>0?`none you can walk to (every exit listed on this map is across water${this.features["surf-gated-exits-v2"]?" you cannot cross yet":", and you cannot use Surf yet"})`:"none (no exits are listed on this map)";
   return `${UNTAKEN_HEADER}: ${open.length===0?none:open.join("; ")}`;
  }
  // The readout with the line inserted after its Position line (or Location line when position is off).

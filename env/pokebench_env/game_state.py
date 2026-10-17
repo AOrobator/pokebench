@@ -106,7 +106,8 @@ class GameState:
     full_map: FullMap | None = None
     topology: Topology | None = None
     player_elevation: int = 0
-    party_owner: str = "player"
+    # tutorial-party-owner-v1: None when ownership cannot be established (state JSON omits it).
+    party_owner: str | None = "player"
     party_ownership: PartyOwnership | None = None
     resources: Resources | None = None
     battle: BattleState | None = None
@@ -130,14 +131,22 @@ class GameState:
     menu_window_drawn: bool | None = None
     # surf-gated-exits-v1: exits reachable only across water and whether Surf works; None when off.
     surf_gate: SurfGate | None = None
+    # mid-frame-readout-v1: the save was not read only because the snapshot was mid-frame.
+    mid_frame: bool = False
 
 
 DYNAMIC_WARP = 0x14
 
 
-def _dynamic_warp(read: ReadMemory, save1: int, maps: MapNames) -> tuple[int, int, str] | None:
-    # struct WarpData {s8 mapGroup; s8 mapNum; s8 warpId; ...} (include/global.h), set by
+def _dynamic_warp(
+    read: ReadMemory, save1: int, maps: MapNames, *, zero_unset: bool = False
+) -> tuple[int, int, str] | None:
+    # struct WarpData {s8 mapGroup; s8 mapNum; s8 warpId; s16 x, y} (include/global.h), set by
     # setdynamicwarp / SetDynamicWarp and used by SetWarpDestinationToDynamicWarp (overworld.c).
+    # unset-dynamic-warp-v1: the new game's zeroed save holds all-zero WarpData until a script
+    # sets it (the truck's InsideOfTruck_EventScript_SetIntroFlags); that is not map 0/0.
+    if zero_unset and read(save1 + DYNAMIC_WARP, 8) == bytes(8):
+        return None
     group, number = struct.unpack("<bb", read(save1 + DYNAMIC_WARP, 2))
     name = maps.name((group, number)) if (group, number) != (127, 127) else None
     return None if name is None else (group, number, name)
@@ -147,7 +156,7 @@ def _u32(read: ReadMemory, address: int) -> int:
     return int.from_bytes(read(address, 4), "little")
 
 
-def _party(read: ReadMemory) -> tuple[PartyMon, ...]:
+def _party(read: ReadMemory, *, empty_move_pp: bool = False) -> tuple[PartyMon, ...]:
     count = read(PARTY_COUNT, 1)[0]
     if count > 6:
         raise ValueError(f"party count {count} is not a party")
@@ -156,7 +165,11 @@ def _party(read: ReadMemory) -> tuple[PartyMon, ...]:
     cpu = pokemon_cpu_context(read)
     return tuple(
         decode_party_mon(
-            body[100 * slot : 100 * (slot + 1)], read, address=PARTY + 100 * slot, cpu=cpu
+            body[100 * slot : 100 * (slot + 1)],
+            read,
+            address=PARTY + 100 * slot,
+            cpu=cpu,
+            empty_move_pp=empty_move_pp,
         )
         for slot in range(count)
     )
@@ -207,6 +220,9 @@ def read_game_state(
     readout_truth_enabled: bool = False,
     birch_pages_enabled: bool = False,
     surf_gate_enabled: bool = False,
+    tutorial_owner_enabled: bool = False,
+    mid_frame_enabled: bool = False,
+    unset_warp_enabled: bool = False,
 ) -> GameState:
     screen = read_screen(read)
     coherent = transition_coherence_enabled
@@ -250,7 +266,8 @@ def read_game_state(
     # transition-coherence-v1: a frame that ends mid-callback can hold a half-moved save block
     # (MoveSaveBlocks_ResetHeap) or a half re-keyed bag and money; read none of it.
     torn = coherent and main_loop_idle(read) is False
-    if not pregame and screen.kind != "field_transition" and field_initialized and not torn:
+    readable = not pregame and screen.kind != "field_transition" and field_initialized
+    if readable and not torn:
         save1, save2 = struct.unpack("<II", read(SAVE_BLOCK_PTRS, 8))
     valid_saves = (
         0x02000000 <= save1 <= 0x02040000 - 0x1A9C
@@ -281,6 +298,7 @@ def read_game_state(
             active_ui=active_ui,
             active_ui_read=truth_read,
             menu_window_drawn=window_drawn,
+            mid_frame=mid_frame_enabled and readable and torn,
         )
     _, _, group, number = struct.unpack("<hhBB", read(save1, 6))
     body = read(OBJECT_EVENTS + 0x24 * player_object, 0x24)
@@ -306,7 +324,7 @@ def read_game_state(
         if nearby is not None
         else None
     )
-    party = _party(read)
+    party = _party(read, empty_move_pp=tutorial_owner_enabled)
     resources = read_resources(read, save1, save2)
     ownership = read_party_ownership(read, party)
     context = (
@@ -357,6 +375,8 @@ def read_game_state(
         party_owner=(
             "tutorial"
             if in_battle and _u32(read, 0x02022FEC) & (1 << 9)
+            else ownership.owner
+            if tutorial_owner_enabled
             else ownership.owner or "unknown"
         ),
         money=_u32(read, save1 + 0x490) ^ _u32(read, save2 + 0xAC),
@@ -401,7 +421,7 @@ def read_game_state(
         if offscreen_objects_enabled and screen.kind == "overworld" and not in_battle
         else None,
         # named-warp-destinations-v1 OFF never reads SaveBlock1.dynamicWarp.
-        dynamic_warp=_dynamic_warp(read, save1, maps)
+        dynamic_warp=_dynamic_warp(read, save1, maps, zero_unset=unset_warp_enabled)
         if dynamic_warp_enabled
         and any(
             t.destination is not None and t.destination[:2] == (127, 127) for t in targets or ()

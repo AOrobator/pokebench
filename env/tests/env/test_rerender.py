@@ -33,6 +33,11 @@ RECORDED_OFF = [
     "birch-speech-pages-v1",
     "blackout-readout-v1",
     "surf-gated-exits-v1",
+    "tutorial-party-owner-v1",
+    "mid-frame-readout-v1",
+    "unset-dynamic-warp-v1",
+    "status-names-v1",
+    "surf-gated-exits-v2",
 ]
 
 
@@ -123,6 +128,9 @@ def test_read_state_and_render_pass_every_server_switch_through(monkeypatch):
         "readout_truth_enabled": False,
         "birch_pages_enabled": False,
         "surf_gate_enabled": False,
+        "tutorial_owner_enabled": False,
+        "mid_frame_enabled": False,
+        "unset_warp_enabled": False,
         "fmt_named_interactions": False,
         "fmt_world_destinations": False,
         "fmt_bounded_navigation": False,

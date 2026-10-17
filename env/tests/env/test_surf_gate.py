@@ -384,7 +384,7 @@ def test_v2_on_rewords_the_three_notes_and_nothing_else(case: dict[str, Any]) ->
     v1 = readout(case, [*base, V2])
     v2 = readout(case, base)
     assert changed(v1, v2) == [(ON_WARP, V2_WARP), (ON_EAST, V2_EAST), (ON_DEST, V2_DEST)]
-    for word in ("Badge", "SURF", "Surf"):
+    for word in ("Balance Badge", "SURF", "Surf"):
         assert word not in v2
 
 

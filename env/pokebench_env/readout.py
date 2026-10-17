@@ -19,6 +19,7 @@ from pokebench_env.birch_pages import SWITCH as BIRCH_PAGES
 from pokebench_env.blackout_readout import SWITCH as BLACKOUT
 from pokebench_env.blackout_readout import WHITING_OUT, Whiteout, whiteout_line
 from pokebench_env.exit_reach import SWITCH as EXIT_REACH
+from pokebench_env.exit_reach import ExitReach
 from pokebench_env.game_state import GameState
 from pokebench_env.levelup_box import SWITCH as LEVELUP_BOX
 from pokebench_env.levelup_box import levelup_clause
@@ -28,6 +29,8 @@ from pokebench_env.offscreen_objects import offscreen_text
 from pokebench_env.readout_truth import SWITCH as TRUTH
 from pokebench_env.readout_truth import lock_line, menu_line
 from pokebench_env.surf_gate import SWITCH as SURF_GATE
+from pokebench_env.surf_gate import SurfGate
+from pokebench_env.topology import Topology
 from pokebench_env.world import InteractionTarget
 
 SERVER_FEATURES = (
@@ -473,12 +476,7 @@ def format_readout(
     if bounded_navigation and "bounded-navigation-v1" not in off and state.map_id is not None:
         lines.append(f"Navigation map_id: [{state.map_id[0]},{state.map_id[1]}] (current map only)")
     if world_destinations and "world-destinations-v1" not in off:
-        notes: dict[str, str] = {}
-        for c in () if state.topology is None else state.topology.connections:
-            if gate is not None and gate.blocks_connection(c.direction):
-                notes[c.direction] = gate.connection_note()
-            elif reach is not None and reach.blocks_connection(c.direction):
-                notes[c.direction] = reach.connection_note()
+        notes = {} if state.topology is None else connection_notes(state.topology, gate, reach)
         lines.append(
             "Map topology: unavailable"
             if state.topology is None
@@ -505,6 +503,22 @@ def format_readout(
                         )
                     )
     return "\n".join(lines)
+
+
+def connection_notes(
+    topology: Topology, gate: SurfGate | None, reach: ExitReach | None
+) -> dict[int, str]:
+    """The note each map connection line carries instead of its walk-off instruction, by index.
+
+    surf-gated-exits-v1 by direction, as before; exit-reachability-v1 per connection.
+    """
+    notes: dict[int, str] = {}
+    for i, c in enumerate(topology.connections):
+        if gate is not None and gate.blocks_connection(c.direction):
+            notes[i] = gate.connection_note()
+        elif reach is not None and reach.blocks_connection(c.direction, c.destination, c.offset):
+            notes[i] = reach.connection_note()
+    return notes
 
 
 def _location_display(state: GameState) -> dict[str, str]:

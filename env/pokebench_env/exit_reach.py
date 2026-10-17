@@ -13,7 +13,7 @@ significant bit the leftmost tile, so the agent can test any tile without the wh
 
 from dataclasses import dataclass
 
-from pokebench_env.surf_gate import NONE, FloodInputs, Tile, classify
+from pokebench_env.surf_gate import NONE, ConnectionKey, FloodInputs, Tile, classify
 
 SWITCH = "exit-reachability-v1"
 NOTE = "not reachable on foot from where you stand"
@@ -25,7 +25,7 @@ class ExitReach:
     height: int
     foot: frozenset[Tile]
     warps: tuple[tuple[Tile, str], ...]
-    connections: tuple[tuple[str, str], ...]
+    connections: tuple[tuple[ConnectionKey, str], ...]
 
     def rows(self) -> tuple[str, ...]:
         digits = (self.width + 3) // 4
@@ -40,15 +40,18 @@ class ExitReach:
     def json(self) -> dict[str, object]:
         return {
             "warps": [{"x": x, "y": y, "reach": how} for (x, y), how in self.warps],
-            "connections": [{"direction": d, "reach": how} for d, how in self.connections],
+            "connections": [
+                {"direction": d, "destination": list(to), "offset": offset, "reach": how}
+                for (d, to, offset), how in self.connections
+            ],
             "foot": {"width": self.width, "height": self.height, "rows": list(self.rows())},
         }
 
     def blocks_warp(self, x: int, y: int) -> bool:
         return ((x, y), NONE) in self.warps
 
-    def blocks_connection(self, direction: str) -> bool:
-        return (direction, NONE) in self.connections
+    def blocks_connection(self, direction: str, destination: tuple[int, int], offset: int) -> bool:
+        return ((direction, destination, offset), NONE) in self.connections
 
     def connection_note(self) -> str:
         return (

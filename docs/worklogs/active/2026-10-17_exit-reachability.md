@@ -68,4 +68,6 @@ Scope note (coordinator, during M1): full-map-navigation-v1 is in the bundle on 
 ## Round 1 fixes
 
 - [x] RED (Python): `test_two_same_direction_connections_are_labelled_and_noted_separately` (two WEST connections, one walkable, one cut off: labelled and noted separately; notes keyed per connection) and the connection JSON/labels keyed by direction, destination and offset in the 4caa/0e05 tests. Fails at collection (no `readout.connection_notes`).
-  - COMMIT: `test(exit-reachability): RED same-direction connections labelled separately (Python)` (sha in the next entry)
+  - COMMIT: `test(exit-reachability): RED same-direction connections labelled separately (Python)` (83267727)
+- [x] GREEN (Python): `classify` is generic over the connection key; `FloodInputs.connections` is keyed (direction, destination, offset); `ExitReach` labels and JSON carry destination and offset, `blocks_connection(direction, destination, offset)`; `Topology.text` takes notes by connection index; `readout.connection_notes` builds them (surf gate by direction as before, reach per connection). surf-gated-exits-v1 still keys by direction with the later connection on a side winning, exactly as before (`surf_gate_from` rebuilds that map). pytest 2544 passed; ruff and mypy clean.
+  - COMMIT: `fix(exit-reachability): label each map connection by direction, destination and offset (Python)` (sha in the next entry)

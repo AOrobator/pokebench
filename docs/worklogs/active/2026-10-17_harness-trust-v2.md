@@ -51,7 +51,7 @@ Factory test through the production playGameTools.
 - [x] RED: multi-part battle_action result (status, screenshot, T272 readout) must carry the characters line. 5:12 PM New York: fails.
 - [x] GREEN: battle_action results read readout lines from every text part. Gates: agent 2258, viewer 1118, pytest 2564; lint clean; coverage agent 99.2 / 94.1 / 98.2, viewer 97.62 / 91.38 / 93.79, Python 97.65 / 93.78 / 100.
 - [x] Round 2 (5:17-5:30 PM New York): base main 643f588e, head 8280b57a (after merging main). Claude, Grok and Codex all LGTM.
-- [ ] Merge slot from the coordinator, sync, land.
+- [x] Merge slot granted by the coordinator (5:19 PM New York); LANDED `git merge --ff-only 8280b57a` on local main; worklog evidence 18486504; experiment repinned to 8280b57a.
 
 ## Boy Scout Log
 

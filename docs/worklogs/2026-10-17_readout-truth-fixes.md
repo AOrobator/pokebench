@@ -54,7 +54,7 @@ feature-switch, execute-worklog (stop before the review loop), feature-explainer
 - [x] Five pending `experiments/<id>.json`, `just experiments-check`, readiness rows
 - [x] COMMIT: `docs(readout-truth-fixes): explainers, Harness Config links and pending experiments for the five switches` (3a441333)
 
-**M4 - STOP** before the review loop; report to the thread. (Reached: head 3a441333 plus this worklog commit; no review run, no merge.)
+**M4 - STOP** before the review loop; report to the thread. (Reached at 3c28ea68; review then run by the thread, see the Multi-Model Review Log.)
 
 ## Log
 
@@ -83,3 +83,15 @@ feature-switch, execute-worklog (stop before the review loop), feature-explainer
 - Merge main 3d9581c6 (harness-trust-v1, cited-destination-v1, heal-before-trainers-v1). Same resolution: main's order, the five appended after cited-destination-v1 (switchable) and heal-before-trainers-v1 (server). Test files took main and re-applied this branch's edits; harness-trust-wire.test.ts registry slices shifted by 5; experiments/heal-before-trainers.json incumbent gains the five switches explicit false (its test requires every switch listed in registry order); my five incumbents gain main's three new switches explicit false; the v2 playGameTools test turns cited-destination-v1 and harness-trust-v1 off (they need recorder hooks the stub lacks). Gates: just test (agent 2233, viewer 1126, pytest 2705), lint, build, verify-vendor green; just coverage failed only on two server-stream.test.ts timing tests (slow-reader/drain), which passed under just test; rerun after the next merge.
 - Merge main 43ebeda9 (battle-move-tool-v1, harness-trust-v2). Same resolution; the five follow harness-trust-v2 in the switchable lists (server lists unchanged by main). experiments/heal-before-trainers.json keeps every switch in registry order; my five incumbents gain battle-move-tool-v1 and harness-trust-v2 explicit false; the v2 playGameTools test turns both off. main's battle-move-tool (f27d34f0) added a `target` field to battle moves in the state JSON, so the golden OFF state digests of the two battle frames (b671 raw 4400, e962 raw 5304) were re-taken from main 43ebeda9's own code (git archive of its env, same fixture, same switches): every frame's OFF readout and state digest under this branch equals main's. Gates: just test (agent 2281, viewer 1129, pytest 2707 passed), just lint clean, just build ok, just verify-vendor ok, just coverage rc 0 on the rerun (agent stmts 97.98 / branches 94.12 / functions 98.2 / lines 99.2; viewer 95.36 / 91.38 / 93.79 / 97.62; Python lines 97.66 / branches 93.82 / functions 100). The first two coverage runs timed out one viewer server-stream.test.ts stream test under machine load 15-20 (the file passes alone with and without coverage; this branch does not touch server.ts or that test).
 - Merge main 1da4be69 (bundle-v-control config and open-goal-prompt entry only; experiments/fixed/bundle-v-control.json untouched by this branch).
+
+## Multi-Model Review Log
+
+- Round 1 (head 545c2038): Grok LGTM; Claude BLOCKING and GPT BLOCKING on (1) `needs` for mid-frame-readout-v1, unset-dynamic-warp-v1 and status-names-v1 and experiment arms that did not turn the prerequisite on, (2) the Surf citation (EventScript_UseSurf instead of GetInteractedWaterScript), (3) no factory-level test of v2's untaken-exits line. Fixed RED 329b964f, GREEN 0673944e.
+- Round 2 (head 0673944e): Claude LGTM, Grok LGTM, GPT BLOCKING only on ROM-gated skips (tests skip when POKEBENCH_ROM is unset); rebutted as the pre-existing `operator_rom` pattern every real-RAM fixture test in env/tests uses (not changed by this diff). The coordinator cleared the branch to land.
+
+## Landing
+
+- Synced with main 3d9581c6 (e368012a), 43ebeda9 (49dc29c6) and 1da4be69 (ecb8e4c3); gates on ecb8e4c3: just test (agent 2281, viewer 1129, pytest 2707 passed), just lint clean, just build ok, just verify-vendor ok, just coverage rc 0 (agent stmts 97.98 / branches 94.12 / functions 98.2 / lines 99.2; viewer 95.36 / 91.38 / 93.79 / 97.62; Python lines 97.66 / branches 93.82 / functions 100).
+- The five pending experiments' source.commit set to ecb8e4c3942c72e5f2dfad681408de6b2f4c5ede (edited directly; `just experiment-pin` reads the main checkout).
+- Worklog archived to docs/worklogs/2026-10-17_readout-truth-fixes.md and the root WORKLOG.md pointer removed in the archive commit. The coordinator fast-forwards main to the archive commit; this branch does not merge into main.
+- After landing (coordinator/operator): `just viewer-main`, re-check the readiness rows with `just experiments`, copy the five explainers for the 8791 link and click READ EXPLAINER on each Harness Config card; the bundle owner adds the five switches to experiments/fixed/bundle-v-control.json.

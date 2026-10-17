@@ -8,7 +8,7 @@
  "primaryMilestone": "RIVAL_BATTLE_WON",
  "source": {
   "checkout": "main",
-  "commit": "c6c6964df4836d79165fe065161aa1606bd04512"
+  "commit": "ecb8e4c3942c72e5f2dfad681408de6b2f4c5ede"
  },
  "incumbent": {
   "version": 2,
@@ -124,5 +124,5 @@
   "window": 4,
   "minReached": 3
  },
- "notes": "Uses the finals incumbent with the change named below. Bug fix from the 2026-10-17 top-50 run analysis (runs/reviews/2026-10-17-run-analysis-top50/ram-audit.md) that goes in the bundle arm of bundle-v-control only, default off (operator decision 2026-10-17, the operator: \"They should each be under their own switch, and all the fixes need to be included in the bundle\"); the bundle owner adds it to that experiment's switches. Pending, not queued. Provisional source.commit is the branch's implementation commit; repinned to the merge SHA with `just experiment-pin` when it lands. Activation: a status needs a party Pokémon; the first is the starter. The finals incumbent has expanded-menu-battle-information-v1 off, which this switch needs (it shows the Party line's STATUS part), so both arms set it on."
+ "notes": "Uses the finals incumbent with the change named below. Bug fix from the 2026-10-17 top-50 run analysis (runs/reviews/2026-10-17-run-analysis-top50/ram-audit.md) that goes in the bundle arm of bundle-v-control only, default off (operator decision 2026-10-17, the operator: \"They should each be under their own switch, and all the fixes need to be included in the bundle\"); the bundle owner adds it to that experiment's switches. Pending, not queued. source.commit is the reviewed, gated head ecb8e4c3 that main fast-forwards to. Activation: a status needs a party Pokémon; the first is the starter. The finals incumbent has expanded-menu-battle-information-v1 off, which this switch needs (it shows the Party line's STATUS part), so both arms set it on."
 }

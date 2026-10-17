@@ -94,8 +94,8 @@ Ordering note: the registry, presets, events schema and wiring all sit on lines 
 - [x] GREEN: per-player-name table cache in `withHarnessTrust`, as story-destinations-v1 does. Gates: agent 2173, viewer 1111, pytest 2544; lint, build clean; coverage agent 99.18 / 94.45 / 98.15, viewer 97.62 / 91.38 / 93.79, Python 97.63 / 93.76 / 100; verify-vendor OK.
 
 **M5 — review and land**
-- [ ] Review: Claude, Grok, GPT; 2-round cap.
-- [ ] Land ff-only on local main; SHA to the coordinator.
+- [x] Review: Claude, Grok, GPT (rounds 1-2 plus the operator's recheck).
+- [x] Land ff-only on local main (815c17a5); SHA to the coordinator.
 
 ## Closing the Loop
 
@@ -133,7 +133,8 @@ Tests from recorded states; viewer Activity History check on a fixture run; prob
 - [x] GREEN round 2: `Citations.observe` cuts each echo out whole (line breaks included) before normalising; same-map moves count as away only when no way into the goal got closer and the nearest is farther, naming the nearest way among those that got farther with its own two numbers. FEATURES copy and explainer updated. Gates: agent 2178, viewer 1111, pytest 2544; lint, build clean; coverage agent 99.18 / 94.45 / 98.16, viewer 97.62 / 91.38 / 93.79, Python 97.63 / 93.76 / 100; pages-check clean.
 - [x] ASK USER: The operator, 4:28 PM New York: "recheck" (one Claude/Grok/Codex pass on the two round 2 fixes, land on three LGTM).
 - [x] 4:35 PM New York: merged main 4eb10245 (heal-before-trainers-v1 landed at 68f7348d, registered before these two). Source files: both sides' additions kept, heal first; playGameTools keeps heal's new `state` argument. Conflicted registry tests were taken from main and the same mechanical edits reapplied (positions +2, these two OFF where story-destinations is OFF, guidance 42, switchboard rows 102); heal's own registry test and its experiment incumbent list updated for the two later switches. Gates: agent 2210, viewer 1115, pytest 2562; lint, build clean; coverage agent 99.18 / 94.34 / 98.15, viewer 97.62 / 91.38 / 93.79, Python 97.65 / 93.78 / 100; verify-vendor OK; experiments-check ok (91); pages-check clean.
-- [ ] Recheck (round 3, operator-approved): the two round 2 fixes only.
+- [x] Recheck (round 3, operator-approved, 4:40-4:55 PM New York): base main c0b0df5f, head 815c17a5, diff SHA-256 82719b46e577236cee1aa185a0c90848161add8c9143a923c0697525ef5bdcf9 (after merging main's c0b0df5f, an experiments-only commit). Claude LGTM, Grok LGTM, GPT (Codex) LGTM; both round 2 fixes confirmed. Non-blocking: echo scan cost over many misses, reduce without an initial value (unreachable), the note may name a farther way rather than a level nearer one.
+- [x] LANDED: `git merge --ff-only 815c17a5` on local main (5:00 PM New York); `just test` on that tree: agent 2210, viewer 1115, pytest 2562. Experiments repinned to the merge SHA with `just experiment-pin`.
 - [x] COMMIT: `fix(harness-trust,cited-destination): cut multi-line Because echoes out whole; a move closer to any way toward the goal is not away` (54795f67)
 
 ## Boy Scout Log

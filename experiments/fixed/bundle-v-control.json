@@ -123,7 +123,8 @@
    "exit-reachability-v1": false,
    "heal-before-trainers-v1": false,
    "harness-trust-v1": false,
-   "cited-destination-v1": false
+   "cited-destination-v1": false,
+   "battle-move-tool-v1": false
   }
  },
  "switches": [
@@ -135,7 +136,8 @@
   "exit-reachability-v1",
   "heal-before-trainers-v1",
   "harness-trust-v1",
-  "cited-destination-v1"
+  "cited-destination-v1",
+  "battle-move-tool-v1"
  ],
  "offInBoth": [
   "milestone-stall-stop-v1",

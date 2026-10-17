@@ -17,6 +17,7 @@ import {navigationMemory} from "./navigation-memory.js";
 import {withPeopleLedger} from "./people-ledger.js";
 import {withPeopleIdCards,type IdCardRecorder} from "./people-id-cards.js";
 import {withStoryDestinations} from "./story-destinations.js";
+import {withBattleAction} from "./battle-action.js";
 import {withUntakenExits} from "./untaken-exits.js";
 import {withResultFacts} from "./result-facts.js";
 import type {RunRecorder} from "./recorder.js";
@@ -79,9 +80,10 @@ export function stallStop(features:FeatureSet,recorder:Pick<RunRecorder,"subscri
 // The ledger is inside untaken exits, so a readout with both reads Position, the Untaken exits line, then the people block.
 // people-id-cards-v1 wraps both, so its cards follow the finished people block.
 // story-destinations-v1 adds its block under the Story line, which none of those touches.
+// battle-move-tool-v1: battle_action is built beside navigate_to from the ordinary press and observe, inside dialogue auto-advance.
 // extra: the run's other model tools (context tools), wrapped too so any call between presses is seen.
 // low-hp-trainer-warning-v1 wraps everything else, so its paragraph follows any other text the result gained; only
 // withResultFacts (blocked-exit-fact-v1, battle-loss-recap-v1) is outside it, adding its lines after that paragraph.
 export function playGameTools(base:readonly AgentTool[],features:FeatureSet,state:StateSource,recorder:AutoAdvanceRecorder&WarningRecorder&IdCardRecorder,gate?:NavigationPorts["gate"],extra:readonly AgentTool[]=[]):AgentTool[]{
- return [...withResultFacts(withLowHpTrainerWarning(withNavigateFirst([...withStoryDestinations(withPeopleIdCards(withUntakenExits(withPeopleLedger(withDialogueAutoAdvance(withNavigation(base,features,state,gate),features,{state,recorder}),features,recorder),features,recorder),features,recorder),features,recorder,state),...extra],features),features,recorder),features,recorder)];
+ return [...withResultFacts(withLowHpTrainerWarning(withNavigateFirst([...withStoryDestinations(withPeopleIdCards(withUntakenExits(withPeopleLedger(withDialogueAutoAdvance(withBattleAction(withNavigation(base,features,state,gate),features,state,gate),features,{state,recorder}),features,recorder),features,recorder),features,recorder),features,recorder,state),...extra],features),features,recorder),features,recorder)];
 }

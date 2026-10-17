@@ -8,7 +8,7 @@ import type {RunEvent} from "./events.js";
 import type {FeatureSet} from "./features.js";
 import type {GameStateSnapshot} from "./game-state.js";
 
-const GAME=new Set(["observe","press","navigate_to"]);
+const GAME=new Set(["observe","press","navigate_to","battle_action"]);
 
 // The observe, press and navigate_to results carry the state the game server returned, already checked
 // against StateBodySchema where it was read (game-tools observation(), the state source).

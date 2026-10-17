@@ -360,7 +360,7 @@ export function withDialogueAutoAdvance(tools:readonly AgentTool[],features:Feat
  const battleSource=features["battle-text-auto-advance-v1"]?battleTextSource(full.state):null;
  const known={last:0};
  const openBattle=async(signal?:AbortSignal):Promise<BattleCall|null>=>battleSource===null?null:{journal:await BattleJournal.open(battleSource,known,signal),source:battleSource,known,levelupBox:features["levelup-box-v1"]};
- const finish=async(id:string,tool:"press"|"navigate_to",outcome:Outcome,pages:Pages,requested:readonly Button[],sent:readonly Button[],dropped:readonly Button[],began:number,signal?:AbortSignal,ignored:readonly Button[]=[])=>{
+ const finish=async(id:string,tool:"press"|"navigate_to"|"battle_action",outcome:Outcome,pages:Pages,requested:readonly Button[],sent:readonly Button[],dropped:readonly Button[],began:number,signal?:AbortSignal,ignored:readonly Button[]=[])=>{
   // pushback-press-result-v1: inputs the game ignored under the message's lock count as dropped, not sent.
   const event=full.recorder.recordDialogueAutoAdvance({tool_call_id:id,tool,requested:[...requested],sent:sent.slice(0,sent.length-ignored.length),dropped:[...ignored,...dropped],auto_presses:outcome.presses,...(outcome.battlePresses===undefined?{}:{battle_auto_presses:outcome.battlePresses}),pages:pages.pages,stop:outcome.stop,detail:outcome.detail,duration_ms:Math.max(0,Math.round(full.clock.now()-began))});
   const seen=await observe.execute(id,{},signal);
@@ -423,8 +423,11 @@ export function withDialogueAutoAdvance(tools:readonly AgentTool[],features:Feat
  const wrappedPress:CheckedPressTool={...press,description:`${press.description} Field dialogue advances automatically: once a conversation opens, the harness presses B through every page until the next decision point and lists the pages; inputs left in your batch are not sent.${battleSource===null?"":" Battle text advances the same way: while a battle runs its own messages, the harness presses B through each waiting message until a battle menu, a YES/NO question, another screen or the battle's end, and lists every battle message shown."}`,execute:(id,params,signal,update)=>execute(id,params,signal,update),executeChecked:(id,params,check,signal,update)=>execute(id,params,signal,update,check)};
  const out=tools.map(tool=>{
   if(tool===press)return wrappedPress;
-  if(tool.name!=="navigate_to")return tool;
-  return {...tool,description:`${tool.description} If it ends in dialogue${battleSource===null?"":" or a battle"}, the ${battleSource===null?"dialogue advances":"text advances"} automatically to the next decision point and its pages are listed.`,execute:async(id:string,params:unknown,signal?:AbortSignal,update?:Parameters<AgentTool["execute"]>[3])=>{
+  // battle-move-tool-v1: a battle_action result hands the turn's battle text over the way navigate_to's does.
+  const battleAction=tool.name==="battle_action"&&battleSource!==null;
+  if(tool.name!=="navigate_to"&&!battleAction)return tool;
+  const name=battleAction?"battle_action":"navigate_to";
+  return {...tool,description:battleAction?`${tool.description} If the battle then runs its own text, the text advances automatically to the next decision point and its pages are listed.`:`${tool.description} If it ends in dialogue${battleSource===null?"":" or a battle"}, the ${battleSource===null?"dialogue advances":"text advances"} automatically to the next decision point and its pages are listed.`,execute:async(id:string,params:unknown,signal?:AbortSignal,update?:Parameters<AgentTool["execute"]>[3])=>{
    const began=full.clock.now();
    const battle=await openBattle(signal);
    const result=await tool.execute(id,params,signal,update);
@@ -433,7 +436,7 @@ export function withDialogueAutoAdvance(tools:readonly AgentTool[],features:Feat
    const pages=new Pages(record,open,present,truth);
    const outcome=await drive(state,pages,autoPress(id),full,battle,signal);
    open=pages.openAt(outcome.state);
-   const done=await finish(id,"navigate_to",outcome,pages,[],[],[],began,signal);
+   const done=await finish(id,name,outcome,pages,[],[],[],began,signal);
    const seen=observation(done.seen);
    // navigate_to's own status line comes first; its last frame is replaced by the fresh observation.
    const raw:unknown=result.details;

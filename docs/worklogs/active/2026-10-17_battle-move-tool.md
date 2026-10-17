@@ -32,14 +32,16 @@ Evidence:
 **M1: RED**
 - [x] Fixture from e046 seq 16609/16616/16622/16634 and 0e05 seq 18877/18934/18947; a simulated battle input that follows the pret cursor rules
 - [x] RED tests (battle-action.test.ts fails to import; the battle_action hand-off test in battle-text-auto-advance.test.ts fails): EMBER from e046's action menu ends on slot 3; 0e05's POKéMON/RUN cursor reaches FIGHT; no-PP refusal; unknown move; input not ready; outside battle; bag/pokemon open and stop; registry/OFF byte-identity
+- COMMIT: `test(red): battle-move-tool-v1 battle_action from the e046 EMBER/GROWL and 0e05 menu-loop states` (5940d584)
 
 **M2: GREEN**
-- [ ] battle-action.ts, wiring, registry/presets/defaults, auto-advance integration, recorder, schema
-- [ ] Gates: just test, just coverage (90), just lint
+- [x] battle-action.ts (withBattleAction beside withNavigation), registry/presets/next-run default (off), playTools, dialogue auto-advance hand-off (event tool `battle_action`, schema regenerated), recorder state pairing, result-facts GAME set; mechanical registry-position test updates (.at(-N) +1, counts, off lists)
+- [x] Wiring deletion receipt: removing withBattleAction from playGameTools turns "OFF: tools and prompt are byte-identical; ON adds battle_action" red (1 failed / 30); restored, 31 pass
+- [x] Gates: just test (agent 2139, viewer 1103, Python 2530), just coverage (agent 98.02/94.27/98.3/99.25 stmts/branches/funcs/lines; viewer 95.35/91.39/93.78/97.62; Python lines 97.60 branches 93.71 functions 100), just lint clean. battle-action.ts 96.1/87.6/100/100. Worktree setup: vendor submodule initialized from the local clone (--reference); mgba binding copied into the worktree venv (Python unchanged by this branch)
 
 **M3: explainer, experiment, review**
-- [ ] Explainer docs/explainers/battle-move-tool-v1.html, FEATURE_EXPLAINERS link, pages-check
-- [ ] Pending experiment experiments/battle-move-tool.json (no queuePosition) + readiness row
+- [x] Explainer docs/explainers/battle-move-tool-v1.html, FEATURE_EXPLAINERS link, panels/server tests, pages-check prints nothing
+- [x] Pending experiment experiments/battle-move-tool.json (no queuePosition; provisional source.commit = RED commit) + readiness row; parse/arms test in battle-action.test.ts
 - [ ] Principles self-review
 - [ ] Review: Claude, Grok cursor-grok-4.5-high, Codex gpt-5.6-sol (max 2 rounds), sync with main before the final round
 - [ ] LANDING HOLD until exit-reachability-v1 lands; final sync on ping

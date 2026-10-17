@@ -3259,7 +3259,8 @@
         "tool": {
           "enum": [
             "press",
-            "navigate_to"
+            "navigate_to",
+            "battle_action"
           ]
         },
         "requested": {

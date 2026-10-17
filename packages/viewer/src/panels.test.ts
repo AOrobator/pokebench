@@ -955,3 +955,14 @@ it("links the story destinations card to its tracked explainer, which quotes the
  expect(html).toContain(id);
  expect(html).toContain("- \"LAB\" = PROF. BIRCH'S POKéMON LAB (map 1/4). Way in: door in LITTLEROOT TOWN (map 0/9) at (7,16).");
 });
+
+it("links the battle action tool card to its tracked explainer, which quotes the tool's recorded-state result",()=>{
+ const id="battle-move-tool-v1";
+ expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
+ const log=new Log();log.add(0,{...START,harness_features:["ram-state-v1",id]});
+ const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
+ expect(doc.querySelector(`[data-feature="${id}"] a`)?.getAttribute("href")).toBe(`/explainers/${id}.html`);
+ const html=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)),"utf8");
+ expect(html).toContain(id);
+ expect(html).toContain("Battle action: chose FIGHT, then EMBER; buttons pressed:\nA, RIGHT, DOWN, A; the battle is running its own text\nor animation.");
+});

@@ -46,8 +46,8 @@ it("states the objective rules the guards actually enforce", () => {
 
 it("names the goal and the tools for the selected switches", () => {
   expect(playGoal("RIVAL_MET", ALL_ON)).toBe("Reach the native game milestone RIVAL MET.");
-  expect(playTools(ALL_ON)).toEqual(["observe", "press", "get_objectives", "set_objective", "update_objective"]);
-  expect(playTools(off("objective-tracking-v1"))).toEqual(["observe", "press"]);
+  expect(playTools(ALL_ON)).toEqual(["observe", "press", "get_objectives", "set_objective", "update_objective", "battle_action"]);
+  expect(playTools(off("objective-tracking-v1"))).toEqual(["observe", "press", "battle_action"]);
 });
 
 it("hides objective-record facts whose observation switch is off", () => {

@@ -115,7 +115,9 @@
    "navigation-refusal-reasons-v2": false,
    "cross-map-goal-v1": false,
    "explorer-guidance-v2": true,
-   "ineffective-loops-v1": false
+   "ineffective-loops-v1": false,
+   "people-id-cards-v1": false,
+   "open-goal-prompt-v1": false
   }
  },
  "switches": [
@@ -123,7 +125,9 @@
   "surf-gated-exits-v1",
   "navigation-refusal-reasons-v2",
   "cross-map-goal-v1",
-  "ineffective-loops-v1"
+  "ineffective-loops-v1",
+  "people-id-cards-v1",
+  "open-goal-prompt-v1"
  ],
  "offInBoth": [
   "milestone-stall-stop-v1",
@@ -148,7 +152,7 @@
   {
    "id": "cook",
    "perArm": 20,
-   "maxWallMs": 3600000,
+   "maxWallMs": 7200000,
    "primary": false,
    "start": {
     "kind": "save_state",

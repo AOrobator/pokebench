@@ -62,6 +62,7 @@ const SAMPLES: { [K in RunEvent["type"]]: Extract<Body, { type: K }> } = {
   loop_guard: { type: "loop_guard", turn: 1, kind: "cycle", phase: "supervisor", mode: "enforced", calls: 3, message: X, evidence: [1] },
   retry: { type: "retry", turn: 1, reason: X, attempt: 1, limit: 3 },
   text_only_supervisor: { type: "text_only_supervisor", turn: 1, replies: 3, note: 1, limit: 3, text: X },
+  people_id_card: { type: "people_id_card", turn: 1, tool: X, tool_call_id: X, key: "name:MAY", reason: "first", text: X },
   low_hp_trainer_warning: { type: "low_hp_trainer_warning", turn: 1, tool: X, species: X, hp: 3, max_hp: 21, rival: "MAY", x: 10, y: 3, map_id: [0, 18], money: 3000, items: [{ name: X, quantity: 1 }], text: X },
   story_battle_warning: { type: "story_battle_warning", turn: 1, tool: X, kind: "aqua_grunt", opponent: X, x: null, y: null, map_id: [24, 11], party: [{ species: X, hp: 3, max_hp: 21 }], money: 3000, items: [{ name: X, quantity: 1 }], text: X },
   dialogue_auto_advance: { type: "dialogue_auto_advance", turn: 1, tool_call_id: "c1", tool: "press", requested: ["A", "A"], sent: ["A"], dropped: ["A"], auto_presses: 2, pages: [{ state_seq: 3, map: X, map_id: [1, 4], position: { x: 1, y: 2 }, speaker: X, speaker_source: "faced_sprite", text: X }], stop: "field_free", detail: X, duration_ms: 400 },
@@ -424,6 +425,21 @@ describe("sideTraceHtml", () => {
     log.add(0, START);
     log.add(1, state());
     expect(sideTraceHtml(build(log.events).turns, 20)).toContain("nodata");
+  });
+});
+
+describe("people-id-cards-v1 in Activity History", () => {
+  it("is an action step titled for the card, naming the tool, why it was shown, the person and the whole card", () => {
+    const log = new Log();
+    log.add(0, START);
+    const text = "ID card: MAY (sprite RIVAL_MAY_NORMAL), map object 2, at 10,3 on ROUTE103 (map 0/18)\n- Name: MAY. The game first showed this name on turn 107.";
+    log.add(100, { type: "people_id_card", turn: 211, tool: "press", tool_call_id: "c1", key: "name:MAY", reason: "changed", text });
+    const step = must(steps(build(log.events)).find((s) => s.kind === "people_id_card"));
+    expect(step.category).toBe("act");
+    expect(step.titleHtml).toContain("ID card shown");
+    expect(eventText(must(log.events.at(-1)))).toBe(`ID card added to the press result (back in view, card changed) · name:MAY · ${text}`);
+    log.add(200, { type: "people_id_card", turn: 212, tool: "observe", tool_call_id: "c2", key: "obj:0/18#10", reason: "first", text: "ID card: sprite BOY_1" });
+    expect(eventText(must(log.events.at(-1)))).toBe("ID card added to the observe result (first sight) · obj:0/18#10 · ID card: sprite BOY_1");
   });
 });
 

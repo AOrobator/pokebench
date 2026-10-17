@@ -88,7 +88,7 @@ describe("untaken-exits-v1 lines",()=>{
 
 describe("untaken-exits-v1 prompt",()=>{
  it("ON adds one sentence that names no character, place or story step; OFF leaves the prompt byte-identical",()=>{
-  const off={...ALL_ON,[ID]:false,"objective-tracking-v1":false,"navigate-first-prompt-v1":false};
+  const off={...ALL_ON,[ID]:false,"objective-tracking-v1":false,"navigate-first-prompt-v1":false,"people-id-cards-v1":false};
   const on={...off,[ID]:true};
   expect(playSystemPrompt(on,null)).toBe(`${playSystemPrompt(off,null)}\n\n${UNTAKEN_EXITS_SECTION}`);
   expect(UNTAKEN_EXITS_SECTION).not.toMatch(FORBIDDEN);
@@ -103,9 +103,9 @@ describe("untaken-exits-v1 production wiring",()=>{
  const snapshot:GameStateSnapshot={...IN_GAME,started:true,screen:"overworld",location:"HALL",map_id:[3,3],position:{x:1,y:1},facing:"up",interaction_targets:[{kind:"warp",x:1,y:0,elevation:0,activation:"movement",availability:"conditional",facing:null,local_id:null,destination:[4,4,0],name:"w"}],topology:null};
  const tool=(name:string):AgentTool=>({name,label:name,description:name,parameters:{},execute:()=>Promise.resolve({content:[{type:"text",text:readout}],details:{state:snapshot}})});
  const checked=():AgentTool=>({...tool("press"),executeChecked:()=>Promise.resolve({content:[{type:"text",text:readout}],details:{state:snapshot}})} as AgentTool);
- const recorder=()=>{const observers:((e:RunEvent)=>void)[]=[];return {observers,lowHpTrainerWarning:()=>undefined,recordState:()=>({seq:1,turn:1}),recordDialogueAutoAdvance:()=>({seq:1,turn:1}),subscribe:(fn:(e:RunEvent)=>void)=>{observers.push(fn);}};};
+ const recorder=()=>{const observers:((e:RunEvent)=>void)[]=[];return {observers,lowHpTrainerWarning:()=>undefined,peopleIdCard:()=>undefined,recordState:()=>({seq:1,turn:1}),recordDialogueAutoAdvance:()=>({seq:1,turn:1}),subscribe:(fn:(e:RunEvent)=>void)=>{observers.push(fn);}};};
  const text=async(tools:readonly AgentTool[],name:string)=>{const r=await tools.find(t=>t.name===name)?.execute("id",{});const part=r?.content[0];return part?.type==="text"?part.text:"";};
- const OFF:FeatureSet={...ALL_ON,[ID]:false,"people-ledger-v1":false,"trainer-heal-guidance-v1":false,"low-hp-trainer-warning-v1":false,"low-hp-trainer-warning-v2":false,"dialogue-auto-advance-v1":false,"bounded-navigation-v1":false,"navigate-first-prompt-v1":false,"blocked-exit-fact-v1":false,"battle-loss-recap-v1":false};
+ const OFF:FeatureSet={...ALL_ON,[ID]:false,"people-ledger-v1":false,"people-id-cards-v1":false,"trainer-heal-guidance-v1":false,"low-hp-trainer-warning-v1":false,"low-hp-trainer-warning-v2":false,"dialogue-auto-advance-v1":false,"bounded-navigation-v1":false,"navigate-first-prompt-v1":false,"blocked-exit-fact-v1":false,"battle-loss-recap-v1":false};
 
  it("OFF hands the model the very same tools and adds no subscriber",async()=>{
   const r=recorder();const base=[tool("observe"),checked()];

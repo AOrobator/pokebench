@@ -17,12 +17,12 @@ vi.mock("./frames.js", async (load) => {
 const { RUNS_ROOT, main, runsRootFor } = await import("./runs-cli.js");
 const { FRAME_CAP_BYTES } = await import("./frames.js");
 
-it("defaults the CLI to the repo runs/ directory and the 500 MB cap without scanning it", () => {
+it("defaults the CLI to the repo runs/ directory and the 10 GB cap without scanning it", () => {
   const out: string[] = [];
   expect(main(["disk"], (line) => out.push(line))).toBe(0);
   expect(made).toEqual([{ runsRoot: RUNS_ROOT, capBytes: FRAME_CAP_BYTES }]);
-  expect(FRAME_CAP_BYTES).toBe(500 * 1024 * 1024);
-  expect(out).toEqual(["frames on disk: 0 B of 500.0 MB cap (0%); runs may start at or below 75%"]);
+  expect(FRAME_CAP_BYTES).toBe(10 * 1024 * 1024 * 1024);
+  expect(out).toEqual(["frames on disk: 0 B of 10240.0 MB cap (0%); runs may start at or below 75%"]);
 });
 
 it("resolves the runs root as a filesystem path, so escaped characters such as spaces survive", () => {

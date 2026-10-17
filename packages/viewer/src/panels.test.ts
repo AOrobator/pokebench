@@ -845,6 +845,14 @@ it("links the cross-map goal card to its tracked explainer, which quotes the rec
  const html=readFileSync(fileURLToPath(new URL("../../../docs/explainers/cross-map-goal-v1.html",import.meta.url)),"utf8");
  for(const quote of ["cross-map-goal-v1","Navigation: map changed; inspect destination; 0 ordinary button attempts.","(8,0) on map 0/9 is on another map; you are on map 0/16 (ROUTE101) and navigate_to only walks within the current map","bundle arm"])expect(html).toContain(quote);
 });
+it("links the people ID cards card to its tracked explainer, which quotes the recorded 4caa T211 card and the prompt line",()=>{
+ expect(FEATURE_EXPLAINERS["people-id-cards-v1"]).toBe("people-id-cards-v1.html");
+ const log=new Log();log.add(0,{...START,harness_features:["ram-state-v1","people-ledger-v1","people-id-cards-v1"]});
+ const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
+ expect(doc.querySelector('[data-feature="people-id-cards-v1"] a')?.getAttribute("href")).toBe("/explainers/people-id-cards-v1.html");
+ const html=readFileSync(fileURLToPath(new URL("../../../docs/explainers/people-id-cards-v1.html",import.meta.url)),"utf8");
+ for(const quote of ["people-id-cards-v1","ID card: MAY (sprite RIVAL_MAY_NORMAL), map object 2, at 10,3 on ROUTE103 (map 0/18)","- Name: MAY. The game first showed this name on turn 107.","consider who this person is to you and where they fit in the story so far","38 cards"])expect(html).toContain(quote);
+});
 it("links the coherent transition readouts card to its tracked explainer, which quotes the cook runs' battle-start readouts before and after",()=>{
  expect(FEATURE_EXPLAINERS["transition-coherence-v1"]).toBe("transition-coherence-v1.html");
  const log=new Log();log.add(0,{...START,harness_features:["transition-coherence-v1"]});

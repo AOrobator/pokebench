@@ -209,6 +209,13 @@ const LowHpTrainerWarning = event("low_hp_trainer_warning", {
   text: Type.String({ minLength: 1 }),
 });
 
+// people-id-cards-v1: one ID card added to a game-tool result, with the person's identity and why it was shown.
+const PeopleIdCard = event("people_id_card", {
+  tool: Type.String({ minLength: 1 }), tool_call_id: Type.String({ minLength: 1 }),
+  key: Type.String({ pattern: "^(name:.+|obj:-?\\d+/-?\\d+#\\d+)$" }), reason: Type.Enum(["first", "changed"] as const),
+  text: Type.String({ minLength: 1 }),
+});
+
 // low-hp-trainer-warning-v2: the story-battle SUPERVISOR paragraph a game-tool result gained, with the facts it states.
 const StoryBattleWarningEvent = event("story_battle_warning", {
   tool: Type.String({ minLength: 1 }), kind: Type.Enum(["rival", "aqua_grunt", "gym_leader"]), opponent: Type.String({ minLength: 1 }),
@@ -545,6 +552,7 @@ export const RunEventSchema = Type.Union([
   Retry,
   TextOnlySupervisor,
   LowHpTrainerWarning,
+  PeopleIdCard,
   StoryBattleWarningEvent,
   DialogueAutoAdvance,
   DiskUsage,

@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { formatBytes } from "./format.js";
 import { easternTimestamp, type RunLog } from "./run-log.js";
 
-export const FRAME_CAP_BYTES = 500 * 1024 * 1024;
+export const FRAME_CAP_BYTES = 10 * 1024 * 1024 * 1024;
 export const START_LIMIT = 0.75;
 // Evicting down to slightly under the cap amortizes the directory scan over
 // many saves instead of rescanning on every save once the cap is reached.

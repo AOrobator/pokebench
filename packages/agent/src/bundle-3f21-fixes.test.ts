@@ -43,7 +43,7 @@ class Recorded {
 function memoryRecorder(){
  const events:RunEvent[]=[];const subs:((e:RunEvent)=>void)[]=[];let seq=0;
  const push=(body:Record<string,unknown>)=>{const e={v:1,run:"r",seq:++seq,t:"2026-10-16T00:00:00.000-04:00",turn:1,...body} as RunEvent;events.push(e);for(const s of subs)s(e);return {seq:e.seq,turn:1};};
- const api:AutoAdvanceRecorder&{lowHpTrainerWarning:()=>void}={lowHpTrainerWarning:()=>undefined,recordState:s=>push({type:"state",...s}),recordDialogueAutoAdvance:b=>push({type:"dialogue_auto_advance",...b}),subscribe:o=>{subs.push(o);}};
+ const api:AutoAdvanceRecorder&{lowHpTrainerWarning:()=>void;peopleIdCard:()=>void}={lowHpTrainerWarning:()=>undefined,peopleIdCard:()=>undefined,recordState:s=>push({type:"state",...s}),recordDialogueAutoAdvance:b=>push({type:"dialogue_auto_advance",...b}),subscribe:o=>{subs.push(o);}};
  return {api,advances:()=>events.filter((e):e is Advance=>e.type==="dialogue_auto_advance")};
 }
 // The production composition: shared observe/press tracker, navigate_to and dialogue auto-advance per switch.

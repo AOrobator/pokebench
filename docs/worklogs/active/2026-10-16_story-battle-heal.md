@@ -99,3 +99,4 @@ explainers/low-hp-trainer-warning-v2.html served=ad3ca69d4c46cc46c368f6ec3c32f0f
 - Synced main 6db26e44 (ineffective-loops pin, bundle membership): clean merge.
 - Switchboard 95 rows; viewer 1031/1031.
 - Codex r8 (only blocker; Claude and Grok LGTM): features.test round-trip now uses 2·ceil(log2 N) bit groups instead of N rows; every switch is off in a distinct set of groups. features 26/26. Next: pipeline r9, proof, review round 9.
+- Synced main c5637ffb (people-id-cards-v1, open-goal-prompt-v1). agent 2084/2084; viewer 1039/1040, the one failure (open-goal-prompt.test incumbent maxWallMs 1h vs bundle 2h) fails identically on main c5637ffb. Operator (2026-10-17 11:28 AM): merge without another review round.

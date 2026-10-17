@@ -228,7 +228,7 @@ async function playAgent(): Promise<void> {
   const thinking=preset?.sampling.thinkingLevel??PLAY_THINKING;
   const loopMode=features["deterministic-loop-guard-v1"]?"enforced":"diagnostic";
   const target=preset?.target??null;
-  const goal=playGoal(target);
+  const goal=playGoal(target,features);
   const stateMode=features["state-only-decisions-v1"];
   const incompatible=stateOnlyProblems(features);if(incompatible.length)throw new Error(incompatible.join("; "));
   const systemPrompt=stateMode?stateOnlyPrompt(features,target):playSystemPrompt(features,target);

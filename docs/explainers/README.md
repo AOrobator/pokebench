@@ -82,3 +82,5 @@ The original ignored runs/explainers copies remain for existing links. Make futu
 - [Navigation truth](navigation-truth-v1.html)
 - [Off-window route reasons](navigation-refusal-reasons-v2.html)
 - [Cross-map goal refusal](cross-map-goal-v1.html)
+- [People ID cards](people-id-cards-v1.html)
+- [Open goal prompt](open-goal-prompt-v1.html)

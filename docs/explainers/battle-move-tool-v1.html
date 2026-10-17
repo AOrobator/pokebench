@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Battle Action Tool</title>
+<style>
+:root{
+ --bg:#f7f6f2; --fg:#1c1d1f; --soft:#5b5d61; --rule:#dedcd5; --panel:#ffffff;
+ --game:#1a7f5a; --game-bg:#e3f4ec; --prior:#c2432f; --prior-bg:#fbe7e2; --nav:#2a62c9; --nav-bg:#e4edfb; --hot:#c2432f;
+ --wall:#9b968a; --ground:#eef0e6;
+ --body:system-ui,-apple-system,"Segoe UI",sans-serif; --mono:ui-monospace,"SF Mono",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+ --bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; --hot:#ff7a63;
+ --wall:#55585e; --ground:#1f2420; color-scheme:dark}}
+:root[data-theme="dark"]{
+ --bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; --hot:#ff7a63;
+ --wall:#55585e; --ground:#1f2420; color-scheme:dark}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.6 var(--body);padding:0 16px}
+main{max-width:760px;margin:0 auto;padding:40px 0 64px;display:flex;flex-direction:column;gap:34px}
+h1{font-size:2.2rem;line-height:1.15;margin:0}
+h2{font-size:1.3rem;margin:0}
+p{margin:0;max-width:66ch}
+ul{margin:0;padding-left:20px}
+.eyebrow{font:500 .75rem var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--soft)}
+.lede{font-size:1.08rem;color:var(--soft)}
+section{display:flex;flex-direction:column;gap:12px}
+figure{margin:0;display:flex;flex-direction:column;gap:8px}
+.scroll{overflow-x:auto}
+svg{display:block;max-width:100%;height:auto}
+.scroll svg{min-width:520px}
+figcaption{font-size:.88rem;color:var(--soft)}
+svg text{font-family:var(--body);font-size:12px;fill:var(--fg)}
+svg .s{fill:var(--soft);font-size:11px}
+svg .t{font-weight:600;font-size:13px}
+svg .m{font-family:var(--mono);font-size:11px}
+.box{fill:var(--panel);stroke:var(--rule)}
+.game{fill:var(--game-bg);stroke:var(--game)}
+.prior{fill:var(--prior-bg);stroke:var(--prior)}
+.navf{fill:var(--nav-bg);stroke:var(--nav)}
+.hot{stroke:var(--hot);stroke-width:2.2}
+.wall{fill:var(--wall);stroke:var(--rule)}
+.ground{fill:var(--ground);stroke:var(--rule)}
+.arr{stroke:var(--soft);stroke-width:1.5;fill:none}
+pre{background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:14px;white-space:pre-wrap;font:13px/1.5 var(--mono);margin:0}
+code{font:500 .88em var(--mono);background:var(--panel);border:1px solid var(--rule);border-radius:4px;padding:0 4px}
+table{border-collapse:collapse;width:100%;font-size:.92rem}
+th,td{text-align:left;padding:7px 9px;border-bottom:1px solid var(--rule);vertical-align:top}
+th{font:500 .75rem var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--soft)}
+.tablewrap{overflow-x:auto}
+.pair{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:640px){.pair{grid-template-columns:1fr}}
+.tag{font:600 .72rem var(--mono);letter-spacing:.06em;text-transform:uppercase}
+.off{color:var(--prior)} .on{color:var(--game)}
+</style>
+</head>
+<body>
+<main>
+<div>
+<div class="eyebrow">Harness switch · guidance · <code>battle-move-tool-v1</code> · needs nothing · off by default · bundle arm only</div>
+<h1>Battle action tool</h1>
+</div>
+<p class="lede">A tool call for the battle menu instead of a button path. The model calls <code>battle_action</code> with what it wants (FIGHT with a move name, BAG, POKéMON or RUN) and the harness presses the buttons one at a time from the cursor the game holds in memory, checking each step, the way <code>navigate_to</code> walks. It never presses blindly: when anything is not as planned it stops and says what the game shows. The operator, 2026-10-17: "have tool calls for the battle … pass in the appropriate arguments … Maybe that'll be more reliable."</p>
+
+<section>
+<h2>The misses it targets</h2>
+<p>Run <code>2026-10-17T13-15-36_qwen36-gpu1_e046</code>, turns 593–597 (seq 16607–16772): five turns in a row the model thought "I will use Ember" and pressed <code>A, RIGHT, A, A</code>. The move menu opened on SCRATCH (top left, 0 PP), so RIGHT highlighted GROWL; the battle journal recorded GROWL five times while TORCHIC fell from 8 to 2 HP. EMBER is the bottom-right slot.</p>
+<p>Run <code>2026-10-17T11-15-07_qwen36-gpu0_0e05</code>, turns 770–861, a trainer battle: from RUN the model pressed <code>LEFT, LEFT, DOWN, DOWN, A</code> to reach FIGHT and EMBER. The first LEFT reaches POKéMON, the rest do nothing, and A opened the party screen. It backed out with B and repeated the same two batches for 92 turns.</p>
+</section>
+
+<section>
+<h2>The move menu at e046 turn 593</h2>
+<figure>
+<div class="scroll">
+<svg viewBox="0 0 700 250" width="700" role="img" aria-label="The 2x2 move menu with the model's path to GROWL and the tool's path to EMBER">
+<defs><marker id="r" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0L10,5L0,10z" fill="var(--prior)"/></marker>
+<marker id="g" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0L10,5L0,10z" fill="var(--game)"/></marker></defs>
+<rect class="box" x="20" y="30" width="190" height="70" rx="6"/><text class="t" x="34" y="60">▶ SCRATCH</text><text class="s" x="34" y="80">slot 0 · PP 0/35 · cursor here</text>
+<rect class="prior" x="230" y="30" width="190" height="70" rx="6"/><text class="t" x="244" y="60">GROWL</text><text class="s" x="244" y="80">slot 1 · PP 38/40</text>
+<rect class="box" x="20" y="120" width="190" height="70" rx="6"/><text class="t" x="34" y="150">FOCUS ENERGY</text><text class="s" x="34" y="170">slot 2 · PP 30/30</text>
+<rect class="game" x="230" y="120" width="190" height="70" rx="6"/><text class="t" x="244" y="150">EMBER</text><text class="s" x="244" y="170">slot 3 · PP 13/25</text>
+<path d="M150,44H226" stroke="var(--prior)" stroke-width="2" stroke-dasharray="5 4" fill="none" marker-end="url(#r)"/>
+<path d="M160,86H300V116" stroke="var(--game)" stroke-width="2.2" fill="none" marker-end="url(#g)"/>
+<text x="440" y="50" class="t">Model (recorded)</text>
+<text x="440" y="68" class="s">A, RIGHT, A, A: RIGHT lands on GROWL,</text>
+<text x="440" y="84" class="s">A chooses it ("TORCHIC used GROWL!")</text>
+<text x="440" y="130" class="t">battle_action fight EMBER</text>
+<text x="440" y="148" class="s">A on FIGHT, then RIGHT (cursor 0→1, checked),</text>
+<text x="440" y="164" class="s">DOWN (1→3, checked), A on EMBER</text>
+<text x="20" y="220" class="s">Grid rule (pret HandleInputChooseMove): LEFT if cursor&amp;1, RIGHT if !(cursor&amp;1) and (cursor^1) &lt; moves,</text>
+<text x="20" y="236" class="s">UP if cursor&amp;2, DOWN if !(cursor&amp;2) and (cursor^2) &lt; moves. The action menu is the same 2x2 without the move count.</text>
+</svg>
+</div>
+<figcaption>Red dashed: the recorded path. Green: the path battle_action presses, one button per press, columns first. The moves, PP and cursor are the recorded state at seq 16616.</figcaption>
+</figure>
+</section>
+
+<section>
+<h2>Before and after</h2>
+<div class="pair">
+<figure>
+<div class="tag off">Off (recorded, e046 turn 593)</div>
+<pre>tool call: press {"buttons":["A","RIGHT","A","A"]}
+
+pressed A, RIGHT, A
+…
+1. turn 593 · battle turn 6: "TORCHIC used
+GROWL!"
+2. turn 593 · battle turn 6: "Foe SHROOMISH's ATTACK
+fell!"</pre>
+</figure>
+<figure>
+<div class="tag on">On (same state, replayed in the test)</div>
+<pre>tool call: battle_action {"action":"fight","move":"Ember"}
+
+Battle action: chose FIGHT, then EMBER; buttons pressed:
+A, RIGHT, DOWN, A; the battle is running its own text
+or animation.
+(then the screen, the readout and, with battle text
+auto-advance, the turn's battle messages)</pre>
+</figure>
+</div>
+<p>The ON text is the tool's actual first line from the e046 test, which starts at the recorded state (seq 16609) and simulates the menu with the game's cursor rules. The simulated move menu is checked against the recorded move-menu states (seq 16616 and 16622) field for field. No real-ROM probe has driven the tool yet: the offline probe (the tool against mGBA on a saved battle, no server) was refused by this session's permissions, so the cursor rules rest on the pret source and the recorded states above.</p>
+</section>
+
+<section>
+<h2>One call, step by step</h2>
+<figure>
+<div class="scroll">
+<svg viewBox="0 0 740 300" width="740" role="img" aria-label="battle_action flow">
+<defs><marker id="b" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0L10,5L0,10z" fill="var(--soft)"/></marker></defs>
+<rect class="box" x="10" y="20" width="160" height="80" rx="8"/><text class="t" x="22" y="42">read the state</text><text class="s" x="22" y="60">battle input ready?</text><text class="s" x="22" y="74">active POKéMON's moves</text><text class="s" x="22" y="88">and PP from RAM</text>
+<rect class="prior" x="200" y="20" width="210" height="80" rx="8"/><text class="t" x="212" y="42">refuse, nothing pressed</text><text class="s" x="212" y="60">no battle · not waiting for a choice</text><text class="s" x="212" y="74">not its move · no PP · target,</text><text class="s" x="212" y="88">YES/NO or Safari choice open</text>
+<rect class="navf" x="440" y="20" width="290" height="80" rx="8"/><text class="t" x="452" y="42">one button, through press</text><text class="s" x="452" y="60">executeChecked: just before sending, the battle</text><text class="s" x="452" y="74">input, menu and cursor must still be the ones</text><text class="s" x="452" y="88">this step was planned from, else nothing is sent</text>
+<path class="arr" d="M170,60H196" marker-end="url(#b)"/>
+<path class="arr" d="M300,100V130H585V104" marker-end="url(#b)"/>
+<text class="s" x="320" y="124">valid</text>
+<rect class="game" x="10" y="170" width="220" height="100" rx="8"/><text class="t" x="22" y="192">check the cursor</text><text class="s" x="22" y="210">after LEFT/RIGHT/UP/DOWN the cursor</text><text class="s" x="22" y="224">must be where the game moves it,</text><text class="s" x="22" y="238">else stop: "the highlight stayed</text><text class="s" x="22" y="252">on FIGHT"</text>
+<rect class="game" x="260" y="170" width="220" height="100" rx="8"/><text class="t" x="272" y="192">between menus</text><text class="s" x="272" y="210">after A on FIGHT or B out of the</text><text class="s" x="272" y="224">move menu: the game server's battle</text><text class="s" x="272" y="238">wait, held to the first emulated</text><text class="s" x="272" y="252">frame with input (at most 3 waits)</text>
+<rect class="box" x="510" y="170" width="220" height="100" rx="8"/><text class="t" x="522" y="192">A, then the result</text><text class="s" x="522" y="210">"Battle action: chose …; buttons</text><text class="s" x="522" y="224">pressed: …; " + what the battle</text><text class="s" x="522" y="238">shows now, then a fresh observe</text><text class="s" x="522" y="252">(battle text auto-advance after)</text>
+<path class="arr" d="M585,140H120V166" marker-end="url(#b)"/>
+<path class="arr" d="M230,220H256" marker-end="url(#b)"/>
+<path class="arr" d="M480,220H506" marker-end="url(#b)"/>
+</svg>
+</div>
+<figcaption>At most 12 presses per call (the longest path is B, then two cursor moves and A, two cursor moves and A, then three target moves and A). No sleeps or polling inside the tool: every press is the ordinary press tool, and the only waits are the server's frame-counted battle wait.</figcaption>
+</figure>
+</section>
+
+<section>
+<h2>The tool the model gets</h2>
+<pre>battle_action(action: "fight" | "bag" | "pokemon" | "run", move?: string, target?: string)
+
+move: with fight, the move name as the battle shows it (EMBER). Case, spaces and
+hyphens do not matter ("focus energy" = FOCUS ENERGY); otherwise it must match one
+of the active POKéMON's moves.
+target: with fight in a double battle, the POKéMON the move hits: its name as the
+battle shows it, or foe left / foe right (as on the screen), ally, self.</pre>
+<div class="tablewrap"><table>
+<tr><th>Situation</th><th>Pressed</th><th>First line of the result</th></tr>
+<tr><td>Move with no PP</td><td>nothing</td><td>Battle action: nothing pressed: There's no PP left for this move! (SCRATCH has 0/35 PP)</td></tr>
+<tr><td>Move the POKéMON does not know</td><td>nothing</td><td>… TORCHIC does not know TACKLE; its moves: SCRATCH (PP 0/35), GROWL (PP 38/40), FOCUS ENERGY (PP 30/30), EMBER (PP 13/25).</td></tr>
+<tr><td>fight with no move</td><td>nothing</td><td>… name the move to use; TORCHIC's moves: …</td></tr>
+<tr><td>Message waiting (0e05 seq 18947)</td><td>nothing</td><td>… the battle is not waiting for a choice; a battle message is waiting for A or B: "No! There's no running from a TRAINER battle!"</td></tr>
+<tr><td>Not in a battle</td><td>nothing</td><td>… no battle is in progress.</td></tr>
+<tr><td>run in a trainer battle</td><td>A</td><td>Battle action: chose RUN; buttons pressed: A; a battle message is waiting for A or B: "No! There's no running from a TRAINER battle!"</td></tr>
+<tr><td>bag / pokemon</td><td>to BAG or POKéMON, then A</td><td>… chose BAG; buttons pressed: RIGHT, A; the game is showing another screen (bag_menu); choosing an item there is up to you.</td></tr>
+<tr><td>Every move at 0 PP</td><td>A on FIGHT</td><td>… chose FIGHT (every move has 0 PP; the game picks what TORCHIC does); …</td></tr>
+<tr><td>Double battle, single-target move, no target</td><td>nothing</td><td>… EMBER needs a target in this double battle; name one of: WURMPLE (ally, screen right), ZIGZAGOON (foe, screen left).</td></tr>
+<tr><td>Double battle with target</td><td>A, RIGHT, DOWN, A, RIGHT, RIGHT, A</td><td>Battle action: chose FIGHT, then EMBER for TORCHIC, at ZIGZAGOON (foe, screen left); …; the battle menu (FIGHT, BAG, POKéMON, RUN) is open for WURMPLE; highlighted FIGHT.</td></tr>
+<tr><td>Spread move with a target</td><td>A, RIGHT, A</td><td>… chose FIGHT, then GROWL for TORCHIC; buttons pressed: A, RIGHT, A; target ignored: GROWL hits both foes; …</td></tr>
+<tr><td>Input changed before a press</td><td>nothing more</td><td>… stopped; the battle input changed before the press, so no button was sent; inspect the new state.</td></tr>
+</table></div>
+<p>Game words: "There's no PP left for this move!" is <code>sText_NoPPLeft</code> and the menu labels are <code>gText_BattleMenu</code> ("FIGHT BAG / POKéMON RUN"), both in pret <code>src/battle_message.c</code>. Where the game shows nothing (a move the POKéMON does not know, a battle still busy), the line says only the observable fact. Messages the game shows after a press (no running from a trainer battle, a disabled move) are quoted from the battle message window.</p>
+</section>
+
+<section>
+<h2>How much it would prevent</h2>
+<div class="tablewrap"><table>
+<tr><th>Recorded failure (all 288 runs, read-only count)</th><th>Count</th><th>With battle_action</th></tr>
+<tr><td>Model text names one of its moves ("use EMBER"), the committed move is another</td><td>34 of 797 such choices (4.3%), in 9 runs: 0e05 8, e046 7, f551 4, 4495 4, eae2 4, 230d 3, 7a95 2, c497 1, 93eb 1</td><td>all 34, when the model passes the move it names: the cursor is driven from RAM and checked</td></tr>
+<tr><td>5+ press calls while the action or move menu waited, no choice committed</td><td>8 stretches, 108 calls; longest 0e05 T768–863 (64 calls)</td><td>one call reaches the move; a call that cannot says why</td></tr>
+<tr><td>"There's no PP left for this move!" shown</td><td>5 (all 0e05)</td><td>refused before pressing</td></tr>
+<tr><td>Items or party POKéMON chosen in battle</td><td>0 (move 1227, run 93)</td><td>not needed in v1: bag and pokemon only open the screen</td></tr>
+</table></div>
+<p>The counts are an upper bound on what the tool can fix: it helps only when the model calls it. Whether models do, and whether that moves milestones, is what the pending experiment measures.</p>
+</section>
+
+<section>
+<h2>Scope in v1, from the evidence</h2>
+<ul>
+<li><b>BAG and POKéMON open the screen and stop.</b> No recorded run has ever chosen an item or a party POKéMON in battle; the bag and party screens have their own cursors, lists and confirmations, which press still drives.</li>
+<li><b>Double battles</b> (the operator, 2026-10-17 4:18 PM: "the battle tool needs to be able to select which pokemon should be attacked"): the game asks for each of your POKéMON in turn: the right one only after the left one has chosen (pret <code>HandleTurnActionSelectionState</code>). One call acts for the POKéMON being asked and names it ("chose FIGHT, then EMBER for TORCHIC, at ZIGZAGOON (foe, screen left)"), and its result says who is asked next ("the battle menu … is open for WURMPLE"). Two inputs ready at once does not happen in these battles; if it ever does, the tool presses nothing, because one button reaches both.</li>
+<li><b>Targets:</b> a move whose target type (ROM move table, byte 6 of <code>struct BattleMove</code>) is MOVE_TARGET_SELECTED needs <code>target</code> while more than one other POKéMON is present. The choices are every present battler but the user, labelled by side and by where the screen draws it (pret <code>sBattlerCoords</code>: your POKéMON left and right, foes left and right). A missing, unmatched or ambiguous target is refused with the list. The highlight is moved with RIGHT only (forward through <code>sTargetIdentities</code>; the retail LEFT wrap reads past the array) and checked after each press. Spread moves (both foes, everyone), self moves, CURSE for a non-GHOST user, random-target moves, a battle with one other POKéMON left and single battles ignore <code>target</code> and say so. No recorded run has reached a double battle yet, so the tests use synthetic double-battle states built from recorded rows.</li>
+<li><b>Not read:</b> Disable, Taunt, Torment, Imprison and Choice Band locks. If the game refuses such a move after A, the result quotes the game's message.</li>
+<li><b>Not handled:</b> the Safari Zone menu, battle YES/NO choices and the move reorder (SELECT) choice. The tool refuses and names what is open.</li>
+<li><b>Field-only blocks</b> (untaken exits, people ledger, ID cards, story destinations) are not added to a battle_action result; battle-loss recap and blocked-exit facts are.</li>
+</ul>
+</section>
+
+<section>
+<h2>Wiring</h2>
+<figure>
+<div class="scroll">
+<svg viewBox="0 0 740 130" width="740" role="img" aria-label="Wiring from preset to tool">
+<defs><marker id="c" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0L10,5L0,10z" fill="var(--soft)"/></marker></defs>
+<rect class="box" x="10" y="30" width="140" height="64" rx="8"/><text class="t" x="22" y="54">preset / switch</text><text class="s" x="22" y="72">battle-move-tool-v1</text>
+<rect class="box" x="180" y="30" width="150" height="64" rx="8"/><text class="t" x="192" y="54">withNavigation</text><text class="s" x="192" y="72">ordinary press, observe</text>
+<rect class="game hot" x="360" y="30" width="170" height="64" rx="8"/><text class="t" x="372" y="54">withBattleAction</text><text class="s" x="372" y="72">adds battle_action</text>
+<rect class="box" x="560" y="30" width="170" height="64" rx="8"/><text class="t" x="572" y="54">dialogue auto-advance</text><text class="s" x="572" y="72">battle text after the call</text>
+<path class="arr" d="M150,62H176" marker-end="url(#c)"/><path class="arr" d="M330,62H356" marker-end="url(#c)"/><path class="arr" d="M530,62H556" marker-end="url(#c)"/>
+</svg>
+</div>
+<figcaption>Only the highlighted box changes behavior. Off: withBattleAction returns the tools unchanged, so the tool list, every tool description and the system prompt are byte-for-byte today's (tested). The recorder pairs each battle_action result with its state; button presses carry the battle_action call id; the game's own battle_choice journal records what was committed.</figcaption>
+</figure>
+</section>
+
+<section>
+<h2>Status</h2>
+<ul>
+<li>Branch <code>claude/battle-move-tool</code>. Default off; registered as the pending experiment <code>experiments/battle-move-tool.json</code> (not queued). Bundle arm only; the bundle file is owned elsewhere and not edited here.</li>
+<li>Tests: recorded e046 and 0e05 states, every refusal, precondition and cursor-check stop, production factory over HTTP, auto-advance hand-off, OFF byte-identity.</li>
+<li>Not done: a real-ROM probe (refused by the session's permissions; see above) and measured runs. Whether this helps is for the experiment to show.</li>
+</ul>
+</section>
+</main>
+</body>
+</html>

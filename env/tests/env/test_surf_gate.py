@@ -339,3 +339,73 @@ def test_reader_skips_dive_and_unreadable_connections_and_needs_a_map() -> None:
     gate = read_surf_gate(m.read, (0, 0), (0, 1), None, topology, ("BALANCE",), (mon(57),))
     assert gate is not None
     assert (gate.can_surf, gate.warps, gate.connections) == (True, (), ())
+
+
+# --- surf-gated-exits-v2: the notes name no badge and no move ------------------------------------
+# Operator decision (the operator, 2026-10-17 1:59 PM): on Route 103 the player has not been told about the
+# Balance Badge or SURF, so naming them is route foreknowledge (PB4).
+
+V2 = "surf-gated-exits-v2"
+V2_EAST = (
+    "- EAST -> ROUTE110 (map 0/25), offset -60; not an exit you can use now: every way from"
+    " where you stand to this edge crosses water you cannot cross yet"
+)
+V2_WARP = (
+    f"{OFF_WARP}; not an exit you can use now: every way from where you stand to it crosses"
+    " water you cannot cross yet"
+)
+V2_DEST = (
+    "Warp destination at (45,6): ALTERING CAVE"
+    " (not an exit you can use now: across water you cannot cross yet)"
+)
+
+
+def test_v2_is_a_registered_default_off_server_switch() -> None:
+    from pokebench_env.surf_gate import SWITCH_V2
+
+    assert SWITCH_V2 == V2
+    assert V2 in SERVER_FEATURES
+    assert V2 in features_off_from_env({})
+
+
+@pytest.mark.parametrize("case", CASES, ids=lambda c: str(c["tool_result_seq"]))
+def test_v2_off_keeps_the_v1_notes_byte_for_byte(case: dict[str, Any]) -> None:
+    v1 = readout(case, [f for f in RECORDED_OFF if f != V2] + [V2])
+    assert changed(case["readout"], v1) == [
+        (OFF_WARP, ON_WARP),
+        (OFF_EAST, ON_EAST),
+        (OFF_DEST, ON_DEST),
+    ]
+
+
+@pytest.mark.parametrize("case", CASES, ids=lambda c: str(c["tool_result_seq"]))
+def test_v2_on_rewords_the_three_notes_and_nothing_else(case: dict[str, Any]) -> None:
+    base = [f for f in RECORDED_OFF if f != V2]
+    v1 = readout(case, [*base, V2])
+    v2 = readout(case, base)
+    assert changed(v1, v2) == [(ON_WARP, V2_WARP), (ON_EAST, V2_EAST), (ON_DEST, V2_DEST)]
+    for word in ("Balance Badge", "SURF", "Surf"):
+        assert word not in v2
+
+
+@pytest.mark.parametrize("case", CASES, ids=lambda c: str(c["tool_result_seq"]))
+def test_v2_without_v1_changes_nothing(case: dict[str, Any]) -> None:
+    base = [f for f in RECORDED_OFF if f not in (V2, ID)]
+    assert readout(case, [*base, ID]) == readout(case, [*base, ID, V2]) == case["readout"]
+
+
+def test_v2_experiment_arms_differ_only_in_the_notes() -> None:
+    # Review round 1: the candidate arm (incumbent with v2 flipped) must show the v2 wording, so
+    # both arms have surf-gated-exits-v1 on. Rendered from the 4caa ROUTE103 RAM.
+    body = json.loads(
+        (Path(__file__).resolve().parents[3] / "experiments/surf-gated-exits-v2.json").read_text()
+    )
+    features: dict[str, bool] = body["incumbent"]["features"]
+    assert body["changedFeature"] == V2 and features[V2] is False
+    control = [f for f in SERVER_FEATURES if not features.get(f, False)]
+    candidate = [f for f in control if f != V2]
+    for case in CASES:
+        before, after = readout(case, control), readout(case, candidate)
+        pairs = changed(before, after)
+        assert pairs and all("Balance Badge" in a and "cannot cross yet" in b for a, b in pairs)
+        assert any("at (45,6)" in b for _, b in pairs)

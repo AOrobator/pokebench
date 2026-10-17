@@ -3824,7 +3824,8 @@
         "tool": {
           "enum": [
             "press",
-            "navigate_to"
+            "navigate_to",
+            "battle_action"
           ]
         },
         "requested": {
@@ -5859,6 +5860,17 @@
                                   ]
                                 },
                                 "effect": {
+                                  "anyOf": [
+                                    {
+                                      "type": "integer",
+                                      "minimum": 0
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "target": {
                                   "anyOf": [
                                     {
                                       "type": "integer",

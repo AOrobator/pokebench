@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mid-frame readout</title>
+<style>
+:root{
+ --bg:#f7f6f2; --fg:#1c1d1f; --soft:#5b5d61; --rule:#dedcd5; --panel:#ffffff;
+ --game:#1a7f5a; --game-bg:#e3f4ec; --prior:#c2432f; --prior-bg:#fbe7e2; --nav:#2a62c9; --nav-bg:#e4edfb;
+ --body:system-ui,-apple-system,"Segoe UI",sans-serif; --mono:ui-monospace,"SF Mono",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+ --bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; color-scheme:dark}}
+:root[data-theme="dark"]{
+ --bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; color-scheme:dark}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.6 var(--body);padding:0 16px}
+main{max-width:760px;margin:0 auto;padding:40px 0 64px;display:flex;flex-direction:column;gap:34px}
+h1{font-size:2.1rem;line-height:1.15;margin:0}
+h2{font-size:1.3rem;margin:0}
+p{margin:0;max-width:66ch}
+ul{margin:0;padding-left:20px}
+code{font-family:var(--mono);font-size:.88em}
+.eyebrow{font:500 .75rem var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--soft)}
+.lede{font-size:1.08rem;color:var(--soft)}
+section{display:flex;flex-direction:column;gap:12px}
+figure{margin:0;display:flex;flex-direction:column;gap:8px}
+.scroll{overflow-x:auto}
+svg{display:block;max-width:100%;height:auto}
+figcaption{font-size:.88rem;color:var(--soft)}
+svg text{font-family:var(--body);font-size:12px;fill:var(--fg)}
+svg .s{fill:var(--soft);font-size:11px}
+svg .t{font-weight:600;font-size:13px}
+svg .m{font-family:var(--mono);font-size:11px}
+.box{fill:var(--panel);stroke:var(--rule)}
+.game{fill:var(--game-bg);stroke:var(--game)}
+.prior{fill:var(--prior-bg);stroke:var(--prior)}
+.nav{fill:var(--nav-bg);stroke:var(--nav)}
+.arrow{stroke:var(--soft);fill:none;stroke-width:1.4}
+pre{margin:0;padding:12px 14px;background:var(--panel);border:1px solid var(--rule);border-radius:6px;overflow-x:auto;font:12px/1.5 var(--mono);white-space:pre}
+.off{border-left:4px solid var(--prior)}
+.on{border-left:4px solid var(--game)}
+table{border-collapse:collapse;font-size:.9rem;width:100%}
+th,td{border-bottom:1px solid var(--rule);padding:6px 8px;text-align:left;vertical-align:top}
+th{font-weight:600}
+.tw{overflow-x:auto}
+</style>
+</head>
+<body>
+<main>
+<header>
+ <p class="eyebrow">Feature switch · observation · <code>mid-frame-readout-v1</code> · default OFF · bundle arm only · pending experiment</p>
+ <h1>Mid-frame readout</h1>
+ <p class="lede">A snapshot taken while the game is in the middle of a frame says so, instead of claiming the save data is not initialized.</p>
+</header>
+
+<section>
+ <h2>Why</h2>
+ <p>98 readouts in 10 runs (0e05 17, dc5a 14, 93eb 12, bd60 11, 4495 10, f551 10, fe15 9, defa 7, b671 4, e962 4) ended <code>Save-backed world state unavailable: save data is not initialized or valid.</code> Every one was a snapshot whose CPU was not waiting in <code>WaitForVBlank</code>; transition-coherence-v1 skips the save reads then, because a save block can be half-moved. The save pointers were the same in the archives before and after, so the message was false.</p>
+</section>
+
+<section>
+ <h2>What the model reads</h2>
+ <figure>
+  <pre class="off">OFF, fe15 seq 9631 (last line)
+Save-backed world state unavailable: save data is not initialized or valid.</pre><pre class="on">ON, fe15 seq 9631
+Save-backed world state (player, location, party) not read in this snapshot: the game was in the middle of a frame. Observe again to read it.</pre>
+  <figcaption>Recorded RAM re-rendered on the real ROM with the switch off and on (env/tests/env/test_readout_truth_fixes.py). Nothing else in the readout changes.</figcaption>
+ </figure>
+</section>
+
+<section>
+ <h2>How it decides</h2>
+ <figure>
+  <div class="scroll">
+  <svg viewBox="0 0 720 130" role="img" aria-label="decision flow"><rect class="box" x="20" y="30" width="147" height="60" rx="6"/><text class="t" x="30" y="55">snapshot</text><text class="s" x="30" y="75">CPU registers archived</text><line class="arrow" x1="167" y1="60" x2="197" y2="60"/><text class="s" x="171" y="52">→</text><rect class="nav" x="197" y="30" width="147" height="60" rx="6"/><text class="t" x="207" y="55">main loop idle?</text><text class="s" x="207" y="75">PC in WaitForVBlank</text><line class="arrow" x1="344" y1="60" x2="374" y2="60"/><text class="s" x="348" y="52">→</text><rect class="prior" x="374" y="30" width="147" height="60" rx="6"/><text class="t" x="384" y="55">no: reads skipped</text><text class="s" x="384" y="75">transition-coherence-v1</text><line class="arrow" x1="521" y1="60" x2="551" y2="60"/><text class="s" x="525" y="52">→</text><rect class="game" x="551" y="30" width="147" height="60" rx="6"/><text class="t" x="561" y="55">ON: mid-frame line</text><text class="s" x="561" y="75">OFF: uninitialized line</text></svg>
+  </div>
+  <figcaption>Only the reason changes. A snapshot on an idle frame whose save pointers really are invalid keeps the old line, and with transition-coherence-v1 off no snapshot is skipped, so nothing changes.</figcaption>
+ </figure>
+</section>
+
+<section>
+ <h2>Game grounding (pret/pokeemerald 731ad5bf, US ROM f3ae0881)</h2>
+ <div class="tw"><table>
+  <tr><th>Fact</th><th>Source</th><th>Value</th></tr>
+  <tr><td>Idle main loop</td><td><code>WaitForVBlank</code> (src/main.c), checked by <code>main_loop_idle</code></td><td>b671 raw 5998 PC 0x08002DD6 (not idle)</td></tr><tr><td>Save pointers</td><td><code>gSaveBlock1Ptr</code>/<code>gSaveBlock2Ptr</code> 0x03005D8C</td><td>stable across neighbouring archives</td></tr><tr><td>Why reads are skipped</td><td><code>MoveSaveBlocks_ResetHeap</code> (src/load_save.c) on warps and battles</td><td>a half-moved block reads as garbage</td></tr>
+ </table></div>
+</section>
+
+<section>
+ <h2>Limits</h2>
+ <ul><li>Needs <code>transition-coherence-v1</code>: without it no snapshot is skipped, so there is nothing to explain.</li><li>The readout still has no position or party on that snapshot; the model has to observe again. Capturing at the next idle frame instead would change emulated timing and is left as a follow-up.</li></ul>
+</section>
+
+<section>
+ <h2>Status</h2>
+ <p>Branch <code>claude/readout-truth-fixes</code> (2026-10-17 top-50 run analysis, Group A); gates in <code>docs/worklogs/active/2026-10-17_readout-truth-fixes.md</code>. Server switch, default off, bundle arm only; registered as a pending experiment, not queued. Not reviewed or measured yet.</p>
+</section>
+</main>
+</body>
+</html>

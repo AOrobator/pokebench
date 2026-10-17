@@ -150,6 +150,11 @@ def test_off_is_todays_readout_byte_for_byte() -> None:
                     "surf-gated-exits-v1",
                     "exit-reachability-v1",
                     "heal-before-trainers-v1",
+                    "tutorial-party-owner-v1",
+                    "mid-frame-readout-v1",
+                    "unset-dynamic-warp-v1",
+                    "status-names-v1",
+                    "surf-gated-exits-v2",
                 }
             )
             state = read_state(memory.read, MAPS, active_ui=True, off=off)

@@ -21,6 +21,7 @@ describe("harness-trust-v1 and cited-destination-v1 in the viewer", () => {
   it("both treatments start OFF in the next-run defaults", () => {
     expect(DEFAULT_NEXT_RUN.features["harness-trust-v1"]).toBe(false);
     expect(DEFAULT_NEXT_RUN.features["cited-destination-v1"]).toBe(false);
+    expect(DEFAULT_NEXT_RUN.features["harness-trust-v2"]).toBe(false);
   });
   it("the walk-away note is a SUPERVISOR step with the tool, the line, both moves and the whole note", () => {
     const log = new Log(); log.add(0, START); log.add(100, AWAY);

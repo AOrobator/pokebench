@@ -180,13 +180,13 @@ describe("levelup-box-v1 on the recorded T357 level-up (run 54a7)",()=>{
 
 describe("levelup-box-v1 registry, presets and server wiring",()=>{
  it("is the last switch: a default-off observation the game server applies, with OFF copy and no dependency",()=>{
-  expect(SWITCHABLE_FEATURES.at(-31)).toBe(ID);
-  expect(FEATURES.filter(f=>f.switchable).at(-31)?.id).toBe(ID);
-  expect(playHarnessFeatures(ALL_ON,null).at(-31)).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-38)).toBe(ID);
+  expect(FEATURES.filter(f=>f.switchable).at(-38)?.id).toBe(ID);
+  expect(playHarnessFeatures(ALL_ON,null).at(-38)).toBe(ID);
   const info=featureInfo(ID);
   expect([info.group,info.needs,info.title]).toEqual(["observation",null,"LEVEL-UP STATS BOX"]);
   expect(info.description).toContain(" Off: the readout says resolving (no input until the game asks) while the box waits");
-  expect(SERVER_FEATURES.at(-8)).toBe(ID);
+  expect(SERVER_FEATURES.at(-13)).toBe(ID);
   expect(serverFeatureEnv({...ALL_ON,[ID]:false}).POKEBENCH_FEATURES_OFF).toBe(ID);
   expect(serverFeatureEnv(ALL_ON).POKEBENCH_FEATURES_OFF).toBe("");
   expect(dependencyProblems({...ALL_ON,"battle-text-auto-advance-v1":false,"battle-message-waiting-v1":false,"battle-details-v2":false})).toEqual([]);

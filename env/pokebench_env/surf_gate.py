@@ -25,6 +25,7 @@ from pokebench_env.topology import STEPS, SURFABLE, Topology, _edges
 from pokebench_env.world import InteractionTarget
 
 SWITCH = "surf-gated-exits-v1"
+SWITCH_V2 = "surf-gated-exits-v2"
 MOVE_SURF = 57
 PLAYER_AVATAR = 0x02037590
 SURFING = 1 << 3
@@ -32,6 +33,7 @@ SURFING = 1 << 3
 LEDGES = {0x38: (1, 0), 0x39: (-1, 0), 0x3A: (0, -1), 0x3B: (0, 1)}
 STEP = ((1, 0), (-1, 0), (0, 1), (0, -1))
 NOT_NOW = "not an exit you can use now"
+CANNOT_CROSS = "crosses water you cannot cross yet"
 
 Tile = tuple[int, int]
 # (collision, behavior) per tile of the current map.
@@ -234,18 +236,26 @@ class SurfGate:
         )
         return f"Surf needs the Balance Badge and a party Pokémon that knows SURF ({missing})"
 
-    def connection_note(self) -> str:
+    # surf-gated-exits-v2 (plain): no Balance Badge or SURF named, which the player has not been
+    # told about on Route 103 (operator decision 2026-10-17).
+    def connection_note(self, *, plain: bool = False) -> str:
+        if plain:
+            return f"{NOT_NOW}: every way from where you stand to this edge {CANNOT_CROSS}"
         return (
             f"{NOT_NOW}: every way from where you stand to this edge crosses water,"
             f" and {self.reason()}"
         )
 
-    def warp_note(self) -> str:
+    def warp_note(self, *, plain: bool = False) -> str:
+        if plain:
+            return f"; {NOT_NOW}: every way from where you stand to it {CANNOT_CROSS}"
         return (
             f"; {NOT_NOW}: every way from where you stand to it crosses water, and {self.reason()}"
         )
 
-    def destination_note(self) -> str:
+    def destination_note(self, *, plain: bool = False) -> str:
+        if plain:
+            return f" ({NOT_NOW}: across water you cannot cross yet)"
         return f" ({NOT_NOW}: across water, needs Surf)"
 
 

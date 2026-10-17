@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tutorial party owner</title>
+<style>
+:root{
+ --bg:#f7f6f2; --fg:#1c1d1f; --soft:#5b5d61; --rule:#dedcd5; --panel:#ffffff;
+ --game:#1a7f5a; --game-bg:#e3f4ec; --prior:#c2432f; --prior-bg:#fbe7e2; --nav:#2a62c9; --nav-bg:#e4edfb;
+ --body:system-ui,-apple-system,"Segoe UI",sans-serif; --mono:ui-monospace,"SF Mono",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+ --bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; color-scheme:dark}}
+:root[data-theme="dark"]{
+ --bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; color-scheme:dark}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.6 var(--body);padding:0 16px}
+main{max-width:760px;margin:0 auto;padding:40px 0 64px;display:flex;flex-direction:column;gap:34px}
+h1{font-size:2.1rem;line-height:1.15;margin:0}
+h2{font-size:1.3rem;margin:0}
+p{margin:0;max-width:66ch}
+ul{margin:0;padding-left:20px}
+code{font-family:var(--mono);font-size:.88em}
+.eyebrow{font:500 .75rem var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--soft)}
+.lede{font-size:1.08rem;color:var(--soft)}
+section{display:flex;flex-direction:column;gap:12px}
+figure{margin:0;display:flex;flex-direction:column;gap:8px}
+.scroll{overflow-x:auto}
+svg{display:block;max-width:100%;height:auto}
+figcaption{font-size:.88rem;color:var(--soft)}
+svg text{font-family:var(--body);font-size:12px;fill:var(--fg)}
+svg .s{fill:var(--soft);font-size:11px}
+svg .t{font-weight:600;font-size:13px}
+svg .m{font-family:var(--mono);font-size:11px}
+.box{fill:var(--panel);stroke:var(--rule)}
+.game{fill:var(--game-bg);stroke:var(--game)}
+.prior{fill:var(--prior-bg);stroke:var(--prior)}
+.nav{fill:var(--nav-bg);stroke:var(--nav)}
+.arrow{stroke:var(--soft);fill:none;stroke-width:1.4}
+pre{margin:0;padding:12px 14px;background:var(--panel);border:1px solid var(--rule);border-radius:6px;overflow-x:auto;font:12px/1.5 var(--mono);white-space:pre}
+.off{border-left:4px solid var(--prior)}
+.on{border-left:4px solid var(--game)}
+table{border-collapse:collapse;font-size:.9rem;width:100%}
+th,td{border-bottom:1px solid var(--rule);padding:6px 8px;text-align:left;vertical-align:top}
+th{font-weight:600}
+.tw{overflow-x:auto}
+</style>
+</head>
+<body>
+<main>
+<header>
+ <p class="eyebrow">Feature switch · observation · <code>tutorial-party-owner-v1</code> · default OFF · bundle arm only · pending experiment</p>
+ <h1>Tutorial party owner</h1>
+ <p class="lede">In Norman's Wally scene the readout shows the ZIGZAGOON the game lends the player, and a party whose owner cannot be established no longer makes the agent throw away the whole observation.</p>
+</header>
+
+<section>
+ <h2>Why</h2>
+ <p>Run dc5a (T687-885, about 5 minutes) and f551 (T566-586): every observe, press and navigate_to in Petalburg Gym returned only <code>malformed /pokebench/observation payload</code>. The game server sent <code>party_owner: "unknown"</code>, which the agent's state schema does not allow (<code>player | tutorial | rental</code>), so the agent rejected the whole state. In the tutorial battle (93eb seq 16529) the party read <code>UNKNOWN LvNone</code>.</p><p>Cause: <code>LoadWallyZigzagoon</code> builds the ZIGZAGOON with <code>CreateMon</code> (TACKLE, GROWL, TAIL WHIP at full PP), then sets moves 2-4 to MOVE_NONE without clearing their PP. The decoder treated a PP on an empty slot as corruption.</p>
+</section>
+
+<section>
+ <h2>What the model reads</h2>
+ <figure>
+  <pre class="off">OFF, dc5a raw 10618 (the state the agent rejected)
+Party (unknown): UNKNOWN LvNone HP None/None · HARNESS BUG: harness bug: Pokémon invalid move or PP
+state JSON: party_owner "unknown"  -&gt; agent: malformed payload</pre><pre class="on">ON, dc5a raw 10618
+Party (tutorial): ZIGZAGOON Lv7 HP 23/23 · moves TACKLE PP 35 · nickname ZIGZAGOON
+state JSON: party_owner "tutorial" (source native_wally_tutorial_script)</pre><pre class="off">OFF, 93eb seq 16529 (tutorial battle)
+Party (tutorial): UNKNOWN LvNone HP None/None · HARNESS BUG: harness bug: Pokémon invalid move or PP</pre><pre class="on">ON, 93eb seq 16529
+Party (tutorial): ZIGZAGOON Lv7 HP 24/24 · moves TACKLE PP 33 · nickname ZIGZAGOON</pre>
+  <figcaption>Recorded RAM re-rendered on the real ROM with the switch off and on (env/tests/env/test_readout_truth_fixes.py). Nothing else in the readout changes.</figcaption>
+ </figure>
+</section>
+
+<section>
+ <h2>How it decides</h2>
+ <figure>
+  <div class="scroll">
+  <svg viewBox="0 0 720 130" role="img" aria-label="decision flow"><rect class="box" x="20" y="30" width="147" height="60" rx="6"/><text class="t" x="30" y="55">party slot</text><text class="s" x="30" y="75">moves 33,0,0,0 · PP 35,40,30,0</text><line class="arrow" x1="167" y1="60" x2="197" y2="60"/><text class="s" x="171" y="52">→</text><rect class="game" x="197" y="30" width="147" height="60" rx="6"/><text class="t" x="207" y="55">decode (ON)</text><text class="s" x="207" y="75">PP on MOVE_NONE ignored</text><line class="arrow" x1="344" y1="60" x2="374" y2="60"/><text class="s" x="348" y="52">→</text><rect class="game" x="374" y="30" width="147" height="60" rx="6"/><text class="t" x="384" y="55">ownership</text><text class="s" x="384" y="75">Wally script + Lv7 ZIGZAGOON</text><line class="arrow" x1="521" y1="60" x2="551" y2="60"/><text class="s" x="525" y="52">→</text><rect class="nav" x="551" y="30" width="147" height="60" rx="6"/><text class="t" x="561" y="55">state JSON</text><text class="s" x="561" y="75">owner, or party_owner left out</text></svg>
+  </div>
+  <figcaption>ON keeps every other check (move ids below 355, PP at most 64, a real move's PP within its maximum). If ownership still cannot be established, the readout says <code>Party (unknown)</code> and the state leaves out the optional <code>party_owner</code> field; <code>party_ownership</code> keeps the reason, and the agent keeps the observation.</figcaption>
+ </figure>
+</section>
+
+<section>
+ <h2>Game grounding (pret/pokeemerald 731ad5bf, US ROM f3ae0881)</h2>
+ <div class="tw"><table>
+  <tr><th>Fact</th><th>Source</th><th>Value</th></tr>
+  <tr><td>Zigzagoon built</td><td><code>LoadWallyZigzagoon</code> (src/field_specials.c:1423-1435)</td><td>CreateMon(SPECIES_ZIGZAGOON, 7), MOVE1 TACKLE, MOVE2-4 MOVE_NONE</td></tr><tr><td>Party</td><td><code>gPlayerParty</code> 0x020244EC, slot 0</td><td>species 288, Lv7, HP 23/23 (dc5a)</td></tr><tr><td>Saved original party</td><td>SaveBlock1 + 0x234 / + 0x238</td><td>TORCHIC b7441706:761f35ea</td></tr>
+ </table></div>
+</section>
+
+<section>
+ <h2>Limits</h2>
+ <ul><li>An owner that cannot be established still reads <code>Party (unknown)</code>; the switch only stops the agent losing the observation.</li><li>Measurement decoders other than the readout's party read (menus, action history) are unchanged.</li></ul>
+</section>
+
+<section>
+ <h2>Status</h2>
+ <p>Branch <code>claude/readout-truth-fixes</code> (2026-10-17 top-50 run analysis, Group A); gates in <code>docs/worklogs/active/2026-10-17_readout-truth-fixes.md</code>. Server switch, default off, bundle arm only; registered as a pending experiment, not queued. Not reviewed or measured yet.</p>
+</section>
+</main>
+</body>
+</html>

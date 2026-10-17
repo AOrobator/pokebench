@@ -77,6 +77,9 @@ Done when every milestone is merged, qualification shows none of F1–F8, the fo
 
 ## Session Log
 
+- 2026-10-17 05:38 PM EDT: readout-truth-fixes (landed 8cdf6cd1): tutorial-party-owner-v1, mid-frame-readout-v1, unset-dynamic-warp-v1, status-names-v1 and surf-gated-exits-v2 join the bundle-v-control bundle arm (all dependencies already on in both arms; control keeps surf-gated-exits v1). open-goal-prompt.json incumbent follows. Previous commit 1da4be69.
+- 2026-10-17 05:22 PM EDT: harness-trust-v2 (landed 8280b57a, main 43ebeda9; needs harness-trust-v1, with battle-move-tool-v1, both in the bundle) joins the bundle-v-control bundle arm; open-goal-prompt.json incumbent follows. Previous commit 44652551.
+- 2026-10-17 05:03 PM EDT: battle-move-tool-v1 (landed f7923b5c, repin feb3ad83; no dependency) joins the bundle-v-control bundle arm; open-goal-prompt.json incumbent follows. Previous commit 3d9581c6.
 - 2026-10-17 04:46 PM EDT: harness-trust-v1 (needs dialogue-auto-advance-v1) and cited-destination-v1 (needs bounded-navigation-v1), landed 815c17a5 / b9216bc7, join the bundle-v-control bundle arm; open-goal-prompt.json incumbent follows. Previous commit b5c6c5a6.
 - 2026-10-17 04:42 PM EDT: full-map-navigation-v1 leaves the bundle, off in both (the operator 4:41 PM EDT; v2 to be built and decision-probed first). open-goal-prompt.json incumbent follows. On top of 815c17a5: agent 2210, viewer 1115 pass after a rebuild (a stale dist gave 14 unrelated viewer failures).
 - 2026-10-17 04:29 PM EDT: heal-before-trainers-v1 (landed 68f7348d, repin 4eb10245; server+agent; needs low-hp-trainer-warning-v1, on in both) joins the bundle-v-control bundle arm; open-goal-prompt.json incumbent follows.

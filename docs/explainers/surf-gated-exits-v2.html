@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Surf-gated exits v2</title>
+<style>
+:root{
+ --bg:#f7f6f2; --fg:#1c1d1f; --soft:#5b5d61; --rule:#dedcd5; --panel:#ffffff;
+ --game:#1a7f5a; --game-bg:#e3f4ec; --prior:#c2432f; --prior-bg:#fbe7e2; --nav:#2a62c9; --nav-bg:#e4edfb;
+ --body:system-ui,-apple-system,"Segoe UI",sans-serif; --mono:ui-monospace,"SF Mono",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+ --bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; color-scheme:dark}}
+:root[data-theme="dark"]{
+ --bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; color-scheme:dark}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.6 var(--body);padding:0 16px}
+main{max-width:760px;margin:0 auto;padding:40px 0 64px;display:flex;flex-direction:column;gap:34px}
+h1{font-size:2.1rem;line-height:1.15;margin:0}
+h2{font-size:1.3rem;margin:0}
+p{margin:0;max-width:66ch}
+ul{margin:0;padding-left:20px}
+code{font-family:var(--mono);font-size:.88em}
+.eyebrow{font:500 .75rem var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--soft)}
+.lede{font-size:1.08rem;color:var(--soft)}
+section{display:flex;flex-direction:column;gap:12px}
+figure{margin:0;display:flex;flex-direction:column;gap:8px}
+.scroll{overflow-x:auto}
+svg{display:block;max-width:100%;height:auto}
+figcaption{font-size:.88rem;color:var(--soft)}
+svg text{font-family:var(--body);font-size:12px;fill:var(--fg)}
+svg .s{fill:var(--soft);font-size:11px}
+svg .t{font-weight:600;font-size:13px}
+svg .m{font-family:var(--mono);font-size:11px}
+.box{fill:var(--panel);stroke:var(--rule)}
+.game{fill:var(--game-bg);stroke:var(--game)}
+.prior{fill:var(--prior-bg);stroke:var(--prior)}
+.nav{fill:var(--nav-bg);stroke:var(--nav)}
+.arrow{stroke:var(--soft);fill:none;stroke-width:1.4}
+pre{margin:0;padding:12px 14px;background:var(--panel);border:1px solid var(--rule);border-radius:6px;overflow-x:auto;font:12px/1.5 var(--mono);white-space:pre}
+.off{border-left:4px solid var(--prior)}
+.on{border-left:4px solid var(--game)}
+table{border-collapse:collapse;font-size:.9rem;width:100%}
+th,td{border-bottom:1px solid var(--rule);padding:6px 8px;text-align:left;vertical-align:top}
+th{font-weight:600}
+.tw{overflow-x:auto}
+</style>
+</head>
+<body>
+<main>
+<header>
+ <p class="eyebrow">Feature switch · observation · <code>surf-gated-exits-v2</code> · default OFF · bundle arm only · pending experiment</p>
+ <h1>Surf-gated exits v2</h1>
+ <p class="lede">The notes surf-gated-exits-v1 adds to water-only exits say only that the water cannot be crossed yet; they no longer name the Balance Badge or SURF.</p>
+</header>
+
+<section>
+ <h2>Why</h2>
+ <p>Operator decision (the operator, 2026-10-17 1:59 PM): on Route 103 the player has not been told about the Balance Badge or SURF, so naming them is route foreknowledge (PB4). Operator rule (2:17 PM): say what the game would show. Facing water without a SURF user, <code>EventScript_UseSurf</code> (data/scripts/surf.inc) jumps to <code>EventScript_EndUseSurf</code> and ends with no message, so the readout states only the observable fact.</p>
+</section>
+
+<section>
+ <h2>What the model reads</h2>
+ <figure>
+  <pre class="off">OFF (v1), 4caa T198 ROUTE103
+- EAST -&gt; ROUTE110 (map 0/25), offset -60; not an exit you can use now: every way from where you stand to this edge crosses water, and Surf needs the Balance Badge and a party Pokémon that knows SURF (you have neither)
+Warp destination at (45,6): ALTERING CAVE (not an exit you can use now: across water, needs Surf)</pre><pre class="on">ON (v2), 4caa T198
+- EAST -&gt; ROUTE110 (map 0/25), offset -60; not an exit you can use now: every way from where you stand to this edge crosses water you cannot cross yet
+Warp destination at (45,6): ALTERING CAVE (not an exit you can use now: across water you cannot cross yet)</pre><pre class="on">ON (v2), bd60 T706 ROUTE104
+- SOUTH -&gt; ROUTE105 (map 0/20), offset 0; not an exit you can use now: every way from where you stand to this edge crosses water you cannot cross yet</pre><pre class="on">ON (v2), untaken-exits line when every exit is across water
+Exits here you have not taken: none you can walk to (every exit listed on this map is across water you cannot cross yet)</pre>
+  <figcaption>Recorded RAM re-rendered on the real ROM with the switch off and on (env/tests/env/test_readout_truth_fixes.py). Nothing else in the readout changes.</figcaption>
+ </figure>
+</section>
+
+<section>
+ <h2>How it decides</h2>
+ <figure>
+  <div class="scroll">
+  <svg viewBox="0 0 720 130" role="img" aria-label="decision flow"><rect class="box" x="20" y="30" width="206" height="60" rx="6"/><text class="t" x="30" y="55">surf-gated-exits-v1</text><text class="s" x="30" y="75">which exits are across water</text><line class="arrow" x1="226" y1="60" x2="256" y2="60"/><text class="s" x="230" y="52">→</text><rect class="nav" x="256" y="30" width="206" height="60" rx="6"/><text class="t" x="266" y="55">v2 off</text><text class="s" x="266" y="75">v1 wording (badge, SURF)</text><line class="arrow" x1="462" y1="60" x2="492" y2="60"/><text class="s" x="466" y="52">→</text><rect class="game" x="492" y="30" width="206" height="60" rx="6"/><text class="t" x="502" y="55">v2 on</text><text class="s" x="502" y="75">crosses water you cannot cross yet</text></svg>
+  </div>
+  <figcaption>v2 changes wording only: which exits are gated, and when Surf opens them again, is still surf-gated-exits-v1. v2 needs v1; with v1 off it does nothing.</figcaption>
+ </figure>
+</section>
+
+<section>
+ <h2>Game grounding (pret/pokeemerald 731ad5bf, US ROM f3ae0881)</h2>
+ <div class="tw"><table>
+  <tr><th>Fact</th><th>Source</th><th>Value</th></tr>
+  <tr><td>No Surf user</td><td><code>EventScript_UseSurf</code>: <code>checkpartymove MOVE_SURF</code>, <code>goto_if_eq VAR_RESULT, PARTY_SIZE, EventScript_EndUseSurf</code> (data/scripts/surf.inc:1-14)</td><td>ends with no message</td></tr><tr><td>When Surf works</td><td><code>GetInteractedWaterScript</code> (field_control_avatar.c:448-452)</td><td>unchanged from v1</td></tr>
+ </table></div>
+</section>
+
+<section>
+ <h2>Limits</h2>
+ <ul><li>With the Balance Badge but no SURF user the game also shows nothing, so v2 reads the same.</li></ul>
+</section>
+
+<section>
+ <h2>Status</h2>
+ <p>Branch <code>claude/readout-truth-fixes</code> (2026-10-17 top-50 run analysis, Group A); gates in <code>docs/worklogs/active/2026-10-17_readout-truth-fixes.md</code>. Server switch, default off, bundle arm only; registered as a pending experiment, not queued. Not reviewed or measured yet.</p>
+</section>
+</main>
+</body>
+</html>

@@ -837,6 +837,21 @@ it("links the Surf-gated exits card to its tracked explainer, which quotes the 4
  for(const quote of [id,"bundle arm only","pending experiment","FLAG_BADGE05_GET","PartyHasMonWithSurf","Exits here you have not taken: none (you have taken every exit you can walk to on this map this run)","Warp destination at (45,6): ALTERING CAVE (not an exit you can use now: across water, needs Surf)"])expect(html).toContain(quote);
  expect(html).not.toContain("both arms");
 });
+it.each([
+ ["tutorial-party-owner-v1",["LoadWallyZigzagoon","Party (tutorial): ZIGZAGOON Lv7 HP 23/23 · moves TACKLE PP 35 · nickname ZIGZAGOON","malformed /pokebench/observation payload"]],
+ ["mid-frame-readout-v1",["WaitForVBlank","Save-backed world state (player, location, party) not read in this snapshot: the game was in the middle of a frame. Observe again to read it."]],
+ ["unset-dynamic-warp-v1",["setdynamicwarp MAP_LITTLEROOT_TOWN, 3, 10","Warp destination at (4,1): dynamic destination","PETALBURG CITY (dynamic warp; map 0/0)"]],
+ ["status-names-v1",["GetAilmentFromStatus","gText_Psn","STATUS PSN","STATUS 8"]],
+ ["surf-gated-exits-v2",["EventScript_UseSurf","EventScript_EndUseSurf","crosses water you cannot cross yet"]],
+] as const)("links the %s card to its tracked explainer, which quotes the recorded lines and the game source",(id,quotes)=>{
+ expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
+ const log=new Log();log.add(0,{...START,harness_features:["ram-state-v1",id]});
+ const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
+ expect(doc.querySelector(`[data-feature="${id}"] a`)?.getAttribute("href")).toBe(`/explainers/${id}.html`);
+ const html=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)),"utf8");
+ for(const quote of [id,"bundle arm only","pending experiment",...quotes])expect(html).toContain(quote);
+ expect(html).not.toContain("both arms");
+});
 it("links the cross-map goal card to its tracked explainer, which quotes the recorded 4caa result and the new refusal",()=>{
  expect(FEATURE_EXPLAINERS["cross-map-goal-v1"]).toBe("cross-map-goal-v1.html");
  const log=new Log();log.add(0,{...START,harness_features:["ram-state-v1","cross-map-goal-v1"]});

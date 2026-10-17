@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Status names</title>
+<style>
+:root{
+ --bg:#f7f6f2; --fg:#1c1d1f; --soft:#5b5d61; --rule:#dedcd5; --panel:#ffffff;
+ --game:#1a7f5a; --game-bg:#e3f4ec; --prior:#c2432f; --prior-bg:#fbe7e2; --nav:#2a62c9; --nav-bg:#e4edfb;
+ --body:system-ui,-apple-system,"Segoe UI",sans-serif; --mono:ui-monospace,"SF Mono",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+ --bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; color-scheme:dark}}
+:root[data-theme="dark"]{
+ --bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; color-scheme:dark}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.6 var(--body);padding:0 16px}
+main{max-width:760px;margin:0 auto;padding:40px 0 64px;display:flex;flex-direction:column;gap:34px}
+h1{font-size:2.1rem;line-height:1.15;margin:0}
+h2{font-size:1.3rem;margin:0}
+p{margin:0;max-width:66ch}
+ul{margin:0;padding-left:20px}
+code{font-family:var(--mono);font-size:.88em}
+.eyebrow{font:500 .75rem var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--soft)}
+.lede{font-size:1.08rem;color:var(--soft)}
+section{display:flex;flex-direction:column;gap:12px}
+figure{margin:0;display:flex;flex-direction:column;gap:8px}
+.scroll{overflow-x:auto}
+svg{display:block;max-width:100%;height:auto}
+figcaption{font-size:.88rem;color:var(--soft)}
+svg text{font-family:var(--body);font-size:12px;fill:var(--fg)}
+svg .s{fill:var(--soft);font-size:11px}
+svg .t{font-weight:600;font-size:13px}
+svg .m{font-family:var(--mono);font-size:11px}
+.box{fill:var(--panel);stroke:var(--rule)}
+.game{fill:var(--game-bg);stroke:var(--game)}
+.prior{fill:var(--prior-bg);stroke:var(--prior)}
+.nav{fill:var(--nav-bg);stroke:var(--nav)}
+.arrow{stroke:var(--soft);fill:none;stroke-width:1.4}
+pre{margin:0;padding:12px 14px;background:var(--panel);border:1px solid var(--rule);border-radius:6px;overflow-x:auto;font:12px/1.5 var(--mono);white-space:pre}
+.off{border-left:4px solid var(--prior)}
+.on{border-left:4px solid var(--game)}
+table{border-collapse:collapse;font-size:.9rem;width:100%}
+th,td{border-bottom:1px solid var(--rule);padding:6px 8px;text-align:left;vertical-align:top}
+th{font-weight:600}
+.tw{overflow-x:auto}
+</style>
+</head>
+<body>
+<main>
+<header>
+ <p class="eyebrow">Feature switch · observation · <code>status-names-v1</code> · default OFF · bundle arm only · pending experiment</p>
+ <h1>Status names</h1>
+ <p class="lede">The Party line names a Pokémon's status with the label the game's own party and summary screens show (PSN, PAR, SLP, FRZ, BRN), instead of the raw status number.</p>
+</header>
+
+<section>
+ <h2>Why</h2>
+ <p>bd60 T688-706 (seq 18617-19141): for 19 turns the readout said <code>TORCHIC … STATUS 8</code> while its HP fell from 13 to 0 on the field, ending in a field-poison whiteout. 8 is the poison bit; nothing told the model the Pokémon was poisoned.</p><p>Operator rule (the operator, 2026-10-17): model-facing text says what the game itself would show. The game shows one ailment icon, picked by <code>GetAilmentFromStatus</code>, labelled with its own strings; it shows no sleep turn count and no separate bad-poison mark, so neither does the readout.</p>
+</section>
+
+<section>
+ <h2>What the model reads</h2>
+ <figure>
+  <pre class="off">OFF, bd60 seq 18617
+Party (player): TORCHIC Lv11 HP 13/33 · STATUS 8 · moves SCRATCH PP 22, GROWL PP 40, FOCUS ENERGY PP 30, EMBER PP 23 · nickname TORCHIC</pre><pre class="on">ON, bd60 seq 18617
+Party (player): TORCHIC Lv11 HP 13/33 · STATUS PSN · moves SCRATCH PP 22, GROWL PP 40, FOCUS ENERGY PP 30, EMBER PP 23 · nickname TORCHIC</pre>
+  <figcaption>Recorded RAM re-rendered on the real ROM with the switch off and on (env/tests/env/test_readout_truth_fixes.py). Nothing else in the readout changes.</figcaption>
+ </figure>
+</section>
+
+<section>
+ <h2>How it decides</h2>
+ <figure>
+  <div class="scroll">
+  <svg viewBox="0 0 720 150" role="img" aria-label="status bits to label"><text class="t" x="20" y="24">STATUS1 bits, checked in the game's order</text><rect class="game" x="20" y="40" width="128" height="60" rx="6"/><text class="t" x="30" y="65">PSN</text><text class="s m" x="30" y="85">bit 3 or bit 7</text><rect class="box" x="158" y="40" width="128" height="60" rx="6"/><text class="t" x="168" y="65">PAR</text><text class="s m" x="168" y="85">bit 6</text><rect class="box" x="296" y="40" width="128" height="60" rx="6"/><text class="t" x="306" y="65">SLP</text><text class="s m" x="306" y="85">bits 0-2</text><rect class="box" x="434" y="40" width="128" height="60" rx="6"/><text class="t" x="444" y="65">FRZ</text><text class="s m" x="444" y="85">bit 5</text><rect class="box" x="572" y="40" width="128" height="60" rx="6"/><text class="t" x="582" y="65">BRN</text><text class="s m" x="582" y="85">bit 4</text><text class="s" x="20" y="125">first match wins; none of these: the number stays (e.g. a bad-poison counter alone)</text></svg>
+  </div>
+  <figcaption>The first bit set in this order gives the label, exactly as <code>GetAilmentFromStatus</code> does for the party and summary status icons.</figcaption>
+ </figure>
+</section>
+
+<section>
+ <h2>Game grounding (pret/pokeemerald 731ad5bf, US ROM f3ae0881)</h2>
+ <div class="tw"><table>
+  <tr><th>Fact</th><th>Source</th><th>Value</th></tr>
+  <tr><td>Status bits</td><td>include/constants/battle.h:114-125</td><td>POISON 1&lt;&lt;3, TOXIC 1&lt;&lt;7, …</td></tr><tr><td>Ailment order</td><td><code>GetAilmentFromStatus</code> (src/party_menu.c:1909-1922)</td><td>PSN, PRZ, SLP, FRZ, BRN</td></tr><tr><td>Labels</td><td><code>gText_Psn</code>, <code>gText_Par</code>, <code>gText_Slp</code>, <code>gText_Brn</code>, <code>gText_Frz</code> (src/strings.c:627-631)</td><td>PSN PAR SLP BRN FRZ</td></tr>
+ </table></div>
+</section>
+
+<section>
+ <h2>Limits</h2>
+ <ul><li>Battle lines keep their own status fields; only the Party line changes.</li><li>A test reads the labels and the ailment order from the pokeemerald checkout when it is present.</li></ul>
+</section>
+
+<section>
+ <h2>Status</h2>
+ <p>Branch <code>claude/readout-truth-fixes</code> (2026-10-17 top-50 run analysis, Group A); gates in <code>docs/worklogs/active/2026-10-17_readout-truth-fixes.md</code>. Server switch, default off, bundle arm only; registered as a pending experiment, not queued. Not reviewed or measured yet.</p>
+</section>
+</main>
+</body>
+</html>

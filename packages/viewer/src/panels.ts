@@ -428,6 +428,11 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "people-id-cards-v1":"people-id-cards-v1.html",
  "open-goal-prompt-v1":"open-goal-prompt-v1.html",
  "story-destinations-v1":"story-destinations-v1.html",
+ "tutorial-party-owner-v1":"tutorial-party-owner-v1.html",
+ "mid-frame-readout-v1":"mid-frame-readout-v1.html",
+ "unset-dynamic-warp-v1":"unset-dynamic-warp-v1.html",
+ "status-names-v1":"status-names-v1.html",
+ "surf-gated-exits-v2":"surf-gated-exits-v2.html",
 });
 
 export function harnessConfig(view:RunView,registry:readonly FeatureInfo[]=[]):string {

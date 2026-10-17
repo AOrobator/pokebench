@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Unset dynamic warp</title>
+<style>
+:root{
+ --bg:#f7f6f2; --fg:#1c1d1f; --soft:#5b5d61; --rule:#dedcd5; --panel:#ffffff;
+ --game:#1a7f5a; --game-bg:#e3f4ec; --prior:#c2432f; --prior-bg:#fbe7e2; --nav:#2a62c9; --nav-bg:#e4edfb;
+ --body:system-ui,-apple-system,"Segoe UI",sans-serif; --mono:ui-monospace,"SF Mono",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+ --bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; color-scheme:dark}}
+:root[data-theme="dark"]{
+ --bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; color-scheme:dark}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.6 var(--body);padding:0 16px}
+main{max-width:760px;margin:0 auto;padding:40px 0 64px;display:flex;flex-direction:column;gap:34px}
+h1{font-size:2.1rem;line-height:1.15;margin:0}
+h2{font-size:1.3rem;margin:0}
+p{margin:0;max-width:66ch}
+ul{margin:0;padding-left:20px}
+code{font-family:var(--mono);font-size:.88em}
+.eyebrow{font:500 .75rem var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--soft)}
+.lede{font-size:1.08rem;color:var(--soft)}
+section{display:flex;flex-direction:column;gap:12px}
+figure{margin:0;display:flex;flex-direction:column;gap:8px}
+.scroll{overflow-x:auto}
+svg{display:block;max-width:100%;height:auto}
+figcaption{font-size:.88rem;color:var(--soft)}
+svg text{font-family:var(--body);font-size:12px;fill:var(--fg)}
+svg .s{fill:var(--soft);font-size:11px}
+svg .t{font-weight:600;font-size:13px}
+svg .m{font-family:var(--mono);font-size:11px}
+.box{fill:var(--panel);stroke:var(--rule)}
+.game{fill:var(--game-bg);stroke:var(--game)}
+.prior{fill:var(--prior-bg);stroke:var(--prior)}
+.nav{fill:var(--nav-bg);stroke:var(--nav)}
+.arrow{stroke:var(--soft);fill:none;stroke-width:1.4}
+pre{margin:0;padding:12px 14px;background:var(--panel);border:1px solid var(--rule);border-radius:6px;overflow-x:auto;font:12px/1.5 var(--mono);white-space:pre}
+.off{border-left:4px solid var(--prior)}
+.on{border-left:4px solid var(--game)}
+table{border-collapse:collapse;font-size:.9rem;width:100%}
+th,td{border-bottom:1px solid var(--rule);padding:6px 8px;text-align:left;vertical-align:top}
+th{font-weight:600}
+.tw{overflow-x:auto}
+</style>
+</head>
+<body>
+<main>
+<header>
+ <p class="eyebrow">Feature switch · observation · <code>unset-dynamic-warp-v1</code> · default OFF · bundle arm only · pending experiment</p>
+ <h1>Unset dynamic warp</h1>
+ <p class="lede">Before the moving truck stops, its exits read as a dynamic destination, not PETALBURG CITY.</p>
+</header>
+
+<section>
+ <h2>Why</h2>
+ <p>0e05 (seq 693-786, 9 readouts) and 93eb (seq 758-2281, 65 readouts) showed the truck's back door as <code>PETALBURG CITY (dynamic warp; map 0/0)</code>. The truck's door is a MAP_DYNAMIC warp; its target (<code>SaveBlock1.dynamicWarp</code>) is all zero until the truck stops and its script runs <code>setdynamicwarp MAP_LITTLEROOT_TOWN, 3, 10</code>. All-zero WarpData decodes as map 0/0, which is PETALBURG CITY. Only (127,127) was treated as unset.</p>
+</section>
+
+<section>
+ <h2>What the model reads</h2>
+ <figure>
+  <pre class="off">OFF, 0e05 seq 693 (truck moving)
+Warps: (4,1) -&gt; PETALBURG CITY (dynamic warp; map 0/0) [activation unknown], …
+Warp destination at (4,1): PETALBURG CITY (dynamic warp; map 0/0)</pre><pre class="on">ON, 0e05 seq 693
+Warps: (4,1) -&gt; dynamic destination [activation unknown], …
+Dynamic warp at (4,1), elevation 0; movement; activation depends on metatile (see local map); conditional; dynamic destination
+Warp destination at (4,1): dynamic destination</pre><pre class="on">ON and OFF alike, 0e05 seq 798 (after the truck stops)
+Warp destination at (4,1): LITTLEROOT TOWN (dynamic warp; map 0/9)</pre>
+  <figcaption>Recorded RAM re-rendered on the real ROM with the switch off and on (env/tests/env/test_readout_truth_fixes.py). Nothing else in the readout changes.</figcaption>
+ </figure>
+</section>
+
+<section>
+ <h2>How it decides</h2>
+ <figure>
+  <div class="scroll">
+  <svg viewBox="0 0 720 130" role="img" aria-label="decision flow"><rect class="box" x="20" y="30" width="147" height="60" rx="6"/><text class="t" x="30" y="55">door is MAP_DYNAMIC</text><text class="s" x="30" y="75">destination (127,127)</text><line class="arrow" x1="167" y1="60" x2="197" y2="60"/><text class="s" x="171" y="52">→</text><rect class="nav" x="197" y="30" width="147" height="60" rx="6"/><text class="t" x="207" y="55">dynamicWarp</text><text class="s" x="207" y="75">8 bytes at SaveBlock1 + 0x14</text><line class="arrow" x1="344" y1="60" x2="374" y2="60"/><text class="s" x="348" y="52">→</text><rect class="prior" x="374" y="30" width="147" height="60" rx="6"/><text class="t" x="384" y="55">all zero: unset</text><text class="s" x="384" y="75">ON: dynamic destination</text><line class="arrow" x1="521" y1="60" x2="551" y2="60"/><text class="s" x="525" y="52">→</text><rect class="game" x="551" y="30" width="147" height="60" rx="6"/><text class="t" x="561" y="55">set by the script</text><text class="s" x="561" y="75">LITTLEROOT TOWN (0,9,-1,0,3,10)</text></svg>
+  </div>
+  <figcaption>The 8-byte WarpData (mapGroup, mapNum, warpId, padding, x, y) is unset when every byte is zero. Any set value, including a real map 0/0 with a coordinate, reads as before.</figcaption>
+ </figure>
+</section>
+
+<section>
+ <h2>Game grounding (pret/pokeemerald 731ad5bf, US ROM f3ae0881)</h2>
+ <div class="tw"><table>
+  <tr><th>Fact</th><th>Source</th><th>Value</th></tr>
+  <tr><td>WarpData</td><td>include/global.h:581-588; <code>dynamicWarp</code> at SaveBlock1 + 0x14 (global.h:989)</td><td>0e05 raw 226: 00 00 00 00 00 00 00 00</td></tr><tr><td>Set by</td><td><code>InsideOfTruck_EventScript_SetIntroFlags</code>: <code>setdynamicwarp MAP_LITTLEROOT_TOWN, 3, 10</code></td><td>0e05 raw 263: (0, 9, -1, 0, 3, 10)</td></tr>
+ </table></div>
+</section>
+
+<section>
+ <h2>Limits</h2>
+ <ul><li>A script that sets the dynamic warp to map 0/0, warp 0, at (0,0) would read as unset; no Emerald script does.</li></ul>
+</section>
+
+<section>
+ <h2>Status</h2>
+ <p>Branch <code>claude/readout-truth-fixes</code> (2026-10-17 top-50 run analysis, Group A); gates in <code>docs/worklogs/active/2026-10-17_readout-truth-fixes.md</code>. Server switch, default off, bundle arm only; registered as a pending experiment, not queued. Not reviewed or measured yet.</p>
+</section>
+</main>
+</body>
+</html>

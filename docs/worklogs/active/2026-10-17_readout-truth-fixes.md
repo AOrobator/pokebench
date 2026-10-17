@@ -47,11 +47,11 @@ feature-switch, execute-worklog (stop before the review loop), feature-explainer
 - [x] Implementation per switch, registry, presets, DEFAULT_NEXT_RUN, SERVER_FEATURES (TS and Python), default-off env list
 - [x] Wiring deletion receipts
 - [x] Gates: just test, just lint, just build, just coverage (>=90)
-- [ ] COMMIT GREEN
+- [x] COMMIT GREEN: `feat(readout-truth-fixes): five default-off bundle-arm server switches for readout bugs from the 2026-10-17 top-50 analysis` (c6c6964d)
 
 **M3 - explainers and pending experiments**
-- [ ] Five explainers, README, FEATURE_EXPLAINERS + panels/server tests, `just pages-check`
-- [ ] Five pending `experiments/<id>.json`, `just experiments-check`, readiness rows
+- [x] Five explainers, README, FEATURE_EXPLAINERS + panels/server tests, `just pages-check`
+- [x] Five pending `experiments/<id>.json`, `just experiments-check`, readiness rows
 - [ ] COMMIT
 
 **M4 - STOP** before the review loop; report to the thread.
@@ -62,3 +62,6 @@ feature-switch, execute-worklog (stop before the review loop), feature-explainer
 - GREEN (M2): implementation in pokemon.py (`empty_move_pp`), game_state.py (three reader switches, `mid_frame`, `party_owner: str | None`), readout.py (Party owner, PSN labels, mid-frame line, `party_owner` omitted when None, SERVER_FEATURES and default-off list), surf_gate.py (`SWITCH_V2`, plain notes), rerender.py, new readout_fixes.py and status_names.py; agent features.ts (registry, server list, run record), play-preset.ts, untaken-exits.ts (v2 line); viewer next-run.ts. Positional registry assertions in older tests shifted by 5 and the later-switch-off lists extended (no behavior change). surf-gated-exits-v2 also rewords a real recorded line: bd60 T706 (seq 19141) ROUTE104 SOUTH edge.
 - Wiring deletion receipts: rerender without `tutorial_owner_enabled` -> 10 failed; without `mid_frame_enabled` -> 9 failed; without `unset_warp_enabled` -> 5 failed; readout `named_status = False` -> 4 failed; `plain = False` -> 4 failed; untaken-exits v2 conditional forced off -> 1 failed; SERVER_FEATURES entries removed -> 6 failed; `...when("status-names-v1")` removed -> 1 failed. All restored.
 - Gates on the GREEN tree: just test (vitest agent 2122 passed, viewer 1106 passed; pytest 2667 passed), just lint clean (tsc, eslint, ruff, ruff format, mypy), just build ok, just coverage: agent lines 99.23 / branches 94.42 / functions 98.27; viewer lines 97.62 / branches 91.39 / functions 93.78; Python lines 97.62 / branches 93.77 / functions 100 (floor 90). New modules status_names.py, readout_fixes.py 100%.
+- M3: explainers docs/explainers/{tutorial-party-owner-v1,mid-frame-readout-v1,unset-dynamic-warp-v1,status-names-v1,surf-gated-exits-v2}.html (inline CSS/SVG, `just pages-check` prints nothing), README entries, FEATURE_EXPLAINERS mapping, panels.test.ts card-link test and server.test.ts allowlist test. Not copied to the main checkout's runs/mockups or opened through 8790/8791 (brief: work only in this worktree, never touch those ports); the live READ EXPLAINER click is for the thread after landing.
+- Pending experiments experiments/{tutorial-party-owner,mid-frame-readout,unset-dynamic-warp,status-names,surf-gated-exits-v2}.json, no queuePosition, finals incumbent with the five new switches explicit false; mid-frame-readout sets transition-coherence-v1 on and surf-gated-exits-v2 sets surf-gated-exits-v1 on in both arms (else the switch is a no-op / invalid); tutorial-party-owner grades on WALLY_TUTORIAL_COMPLETE (RIVAL_BATTLE_WON precedes its activation, which the schema refuses). Provisional source.commit c6c6964d; repin at merge. `just experiments-check` reads the main checkout (ok: 89), so the worktree files are validated by experiments.test.ts (12 passed). Readiness rows PENDING until `just experiments` after landing.
+- Gates on the M3 tree: just test (agent 2122, viewer 1112, pytest 2667 passed), just lint clean, just build ok, just verify-vendor ok, just coverage rc 0: agent stmts 98.06 / branches 94.41 / functions 98.27 / lines 99.23; viewer 95.35 / 91.39 / 93.78 / 97.62; Python lines 97.62 / branches 93.77 / functions 100.

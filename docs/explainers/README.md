@@ -85,3 +85,8 @@ The original ignored runs/explainers copies remain for existing links. Make futu
 - [People ID cards](people-id-cards-v1.html)
 - [Open goal prompt](open-goal-prompt-v1.html)
 - [Story destinations](story-destinations-v1.html)
+- [Tutorial party owner](tutorial-party-owner-v1.html)
+- [Mid-frame readout](mid-frame-readout-v1.html)
+- [Unset dynamic warp](unset-dynamic-warp-v1.html)
+- [Status names](status-names-v1.html)
+- [Surf-gated exits v2](surf-gated-exits-v2.html)

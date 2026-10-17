@@ -30,6 +30,16 @@ Check at least the relevant selection change, confirmation/cancel path, and a tr
 
 Record source symbols/revision, ROM identity, verified addresses/offsets, run/frame evidence, and remaining uncertainty in the repository's findings/worklog. Follow its existing gates and review requirements for implementation. This skill supplies source-grounding guidance; it does not authorize landing, new navigation solvers, RAM writes, or save manipulation.
 
+## Harness messages use the game's own words
+
+Operator decision (the operator, 2026-10-17): the harness should give the model the guidance the game itself would give, so it can rely on it and save the time of finding out. When a readout, refusal, briefing or guard tells the model about an obstacle, an exit, a blocked action or what to do next:
+
+1. Find what the game shows if the player tried it: the script and text in the reference (for example `data/scripts/*.inc`, `data/text/*.inc`, `data/maps/<map>/scripts.inc`). Quote that text, or a short faithful paraphrase of it, and name the speaker or sign when the game does. Cite the script or text symbol in the code comment or test, so a reviewer can check it.
+2. When the game shows nothing (for example facing water without a Pokémon that knows Surf: `EventScript_UseSurf` checks the party and ends silently, so `gText_WantToUseSurf` never appears), say the plain observable fact ("crosses water you cannot cross yet") and stop there.
+3. Never name a mechanic, item, badge, move, place or person the game has not yet shown the player at that point in the run. That is route foreknowledge (PB4). Words the game has already shown, such as a sign, a character's line or a menu label, are fine.
+4. Keep the game's spelling and capitalization (POKéMON, PROF. BIRCH, ROUTE 103), as the readout already does.
+5. Test the message text against the source: a fixture test asserts the quoted words, and the explainer names the script symbol.
+
 ## Unsupported-state repair workflow
 
 A recorded `active_ui.diagnostic` / `STATE COVERAGE ERROR`, unknown callback, unknown selection owner or unsupported text character is a state-coverage defect, not permission to guess. When investigating a run, collect the event seq, turn, paired frame, callback/task facts and exact model observation. Group repeated diagnostics by owner so animation frames do not create duplicate work. Use the source-grounding procedure above to establish ownership, readiness and live selected values, then add regression tests, coherent native proof, typed propagation and reviewed repair. Keep unresolved owners in the worklog with their concrete evidence; never close the defect by relabeling it overworld or defaulting a cursor.

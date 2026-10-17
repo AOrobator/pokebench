@@ -57,3 +57,8 @@ Branch `claude/instruction-ledger-v2`, worktree `/private/tmp/pokebench-instruct
 - [x] Sixth sync with main a04de386 (five readout truth fixes join the bundle): v2 incumbent regenerated from the bundle arm (93 switches on). Gates: build OK; just test agent 2309, viewer 1131, pytest 2478 passed / 229 skipped; lint OK; experiments-check ok (100). Coverage as on e33adc52 (this merge changes only experiment JSON).
   - COMMIT: merge main a04de386 (08f44f64). STOP: ready for review round 2; not landed.
 - [x] Coordinator (before round 2): removed the test asserting the incumbent equals the bundle arm of experiments/fixed/bundle-v-control.json (that file is edited many times a day and would turn main red); the generated incumbent stays; notes and readiness row say it was generated at the a04de386 sync. Hypothesis-phrase test kept. Ledger, experiments and experiment-gate tests 52 passed; lint OK; experiments-check ok (100).
+
+## Review and landing
+- Round 1 (head c282318a, base 44652551): Claude, Grok, GPT BLOCKING on the stale registry/experiment copy (old pinning rule); GPT also asked for the incumbent to match the bundle arm (done, generated at a04de386, no coupling test) and for coverage evidence (rebutted: viewer timeouts under load in untouched files; a later full run passed). Fixed at c8c6f9fb (RED) / 49879089 (GREEN); synced with main a04de386; brittle incumbent-equality test removed at fbce3481.
+- Round 2 (head fbce3481, base a04de386): Claude LGTM, Grok LGTM, GPT LGTM.
+- Landing 2026-10-17 New York: experiments/instruction-ledger-v2.json source.commit pinned to fbce34813e25402ad3b4232efb20fa5b9ce2730e; fast-forward into local main. Bundle-only: the bundle owner adds instruction-ledger-v2 to bundle-v-control.

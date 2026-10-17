@@ -76,9 +76,9 @@
    "full-map-navigation-v1": true,
    "elevation-transitions-v1": true,
    "game-evidence-priority-v1": true,
-   "dialogue-log-v1": true,
+   "dialogue-log-v1": false,
    "loop-guard-supervisor-v1": true,
-   "instruction-ledger-v1": true,
+   "instruction-ledger-v1": false,
    "next-milestone-hint-v1": false,
    "double-context-window-v1": false,
    "fresh-retry-v1": false,
@@ -136,7 +136,8 @@
    "people-id-cards-v1": true,
    "open-goal-prompt-v1": false,
    "low-hp-trainer-warning-v2": true,
-   "story-destinations-v1": true
+   "story-destinations-v1": true,
+   "exit-reachability-v1": true
   },
   "start": {
    "kind": "save_state",

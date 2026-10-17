@@ -54,10 +54,7 @@ class ExitReach:
         return ((direction, destination, offset), NONE) in self.connections
 
     def connection_note(self) -> str:
-        return (
-            f"{NOTE}: no walkable way on this map leads from your tile to this edge"
-            " (walls, ledges or water cut it off; another map may lead there)"
-        )
+        return f"{NOTE}: no walkable way on this map leads from your tile to this edge"
 
     def warp_note(self) -> str:
         return f"; {NOTE}: no walkable way on this map leads from your tile to it"

@@ -45,8 +45,7 @@ NORTH_OFF = (
 )
 NORTH_ON = (
     "- NORTH -> RUSTBORO CITY (map 0/3), offset 0; not reachable on foot from where you stand:"
-    " no walkable way on this map leads from your tile to this edge (walls, ledges or water cut"
-    " it off; another map may lead there)"
+    " no walkable way on this map leads from your tile to this edge"
 )
 WARP_ON = (
     "; not reachable on foot from where you stand: no walkable way on this map leads from your"
@@ -179,8 +178,11 @@ def test_on_route104_north_edge_and_woods_north_warps_say_not_reachable_on_foot(
         dest = next(line for line in lines if line.startswith(f"Warp destination at ({x},{y}):"))
         expected += [(warp, warp + WARP_ON), (dest, dest + DEST_ON)]
     assert sorted(changed(case["readout"], on)) == sorted(expected)
-    # No Surf or badge wording on a land case.
+    # No Surf or badge wording on a land case, and no guessed cause (pokebench-game-state skill,
+    # "Harness messages use the game's own words": the game shows nothing here, so the fact only).
     assert "Surf" not in NORTH_ON and "Badge" not in WARP_ON
+    for word in ("wall", "ledge", "water", "another map", "may"):
+        assert word not in NORTH_ON.split("; ", 1)[1] and word not in WARP_ON
 
 
 @pytest.mark.parametrize("seq", SEQS_104)

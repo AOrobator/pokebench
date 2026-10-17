@@ -1,0 +1,5 @@
+Guard: pageLines output equals the recorded 4caa T107 dialogue list. Deleted: an extra space in pageLine. Restored afterwards: delivery suite passes.
+$ npx vitest run src/people-id-cards-delivery.test.ts
+     × pageLine keeps the dialogue list byte-identical to what the run recorded (4caa T107, 13 pages) 36ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+      Tests  1 failed | 7 passed (8)

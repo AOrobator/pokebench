@@ -25,7 +25,11 @@ import {RUN_START_META} from "../test-support/events.js";
 const ID="low-hp-trainer-warning-v1";
 const RUN54A7=JSON.parse(readFileSync(new URL("../test-support/trainer-heal-54a7.json",import.meta.url),"utf8")) as {harness_features:string[];states:{turn:number;state:unknown}[]};
 const T363=parseGameState(RUN54A7.states.find(s=>s.turn===363)?.state);
-const WARNING="SUPERVISOR: Your TORCHIC has 3/21 HP (below half), and your rival MAY is on this map at (10,3).";
+// One real-adapter run per producer: v1's low_hp_trainer_warning and, with low-hp-trainer-warning-v2, story_battle_warning.
+const ROWS=[
+ {v2:false,warning:"SUPERVISOR: Your TORCHIC has 3/21 HP (below half), and your rival MAY is on this map at (10,3).",type:"low_hp_trainer_warning"},
+ {v2:true,warning:"SUPERVISOR: A story battle is on this map: your rival MAY, at (10,3).",type:"story_battle_warning"},
+] as const;
 // The bundle's switches, minus the ones whose tool wrappers need the real game server (navigation, auto-advance).
 const BASE:FeatureSet={...featuresOf(RUN54A7.harness_features),"bounded-navigation-v1":false,"navigate-first-prompt-v1":false,"dialogue-auto-advance-v1":false,"battle-text-auto-advance-v1":false};
 
@@ -44,12 +48,13 @@ it("delivers the warning to the next model request through pi and records the ev
  try{
   const {port}=server.address() as AddressInfo;
   const model=selectModel(await discoverModels({gatewayUrl:`http://127.0.0.1:${String(port)}/v1`,visionModels:["warning-fixture"]}),"warning-fixture");
-  {
-   const log=RunLog.create(root,"on");
+  for(const row of ROWS){
+   const WARNING=row.warning;requests.length=0;
+   const log=RunLog.create(root,row.v2?"v2":"v1");
    const recorder=new RunRecorder({log,frames:new FrameStore(root),milestones:{poll:()=>Promise.resolve([])},gameState:{read:()=>Promise.resolve(T363)}});
    await recorder.start(RUN_START_META);
    const game=(name:string):AgentTool=>({name,label:name,description:name,parameters:Type.Object({}),execute:()=>Promise.resolve({content:[{type:"text" as const,text:`${name}: ROUTE103 readout`}],details:{state:T363}})});
-   const tools=playGameTools([game("observe"),game("press")],{...BASE,[ID]:true},{read:()=>Promise.resolve(T363)},recorder);
+   const tools=playGameTools([game("observe"),game("press")],{...BASE,[ID]:true,"low-hp-trainer-warning-v2":row.v2},{read:()=>Promise.resolve(T363)},recorder);
    const abort=new AbortController();
    const governor=new Governor({limits:{maxTurns:2,maxWallMs:10000,failureLimit:3},retry:()=>{},abort:()=>{abort.abort();},now:()=>0});
    const loop=piLoop({systemPrompt:"Play",tools,base:gatewayLoopConfig(model,"off"),governor,signal:abort.signal,transformContext:m=>Promise.resolve(m),emit:event=>recorder.emit(event)});
@@ -57,14 +62,15 @@ it("delivers the warning to the next model request through pi and records the ev
    recorder.end("budget");
    expect(requests).toHaveLength(2);
    const events:RunEvent[]=readFileSync(log.eventsPath,"utf8").trim().split("\n").map(line=>checkEvent(JSON.parse(line)));
-   const warnings=events.filter(e=>e.type==="low_hp_trainer_warning");
+   const warnings=events.filter(e=>e.type===row.type);
+   expect(events.filter(e=>e.type==="low_hp_trainer_warning"||e.type==="story_battle_warning")).toHaveLength(1);
    const results=events.filter((e):e is Extract<RunEvent,{type:"tool_result"}>=>e.type==="tool_result");
    {
     // The first tool result reached the second request with the paragraph after the readout.
     expect(requests[0]).not.toContain(WARNING);
     expect(requests[1]).toContain(WARNING);
     expect(warnings).toHaveLength(1);
-    expect(warnings[0]).toMatchObject({tool:"observe",species:"TORCHIC",hp:3,max_hp:21,rival:"MAY",x:10,y:3});
+    expect(warnings[0]).toMatchObject(row.v2?{tool:"observe",kind:"rival",opponent:"MAY",x:10,y:3,party:[{species:"TORCHIC",hp:3,max_hp:21}]}:{tool:"observe",species:"TORCHIC",hp:3,max_hp:21,rival:"MAY",x:10,y:3});
     expect(results[0]?.text).toContain(`observe: ROUTE103 readout\n${WARNING}`);
     expect(must(warnings[0]).seq).toBeLessThan(must(results[0]).seq);
     // Once only: the second observe on the same state adds nothing.

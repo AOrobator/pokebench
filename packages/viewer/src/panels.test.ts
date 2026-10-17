@@ -652,6 +652,10 @@ it("links the named warp destinations card to its explainer",()=>{
  expect(FEATURE_EXPLAINERS["battle-observation-loop-v1"]).toBe("battle-observation-loop-v1.html");
 });
 
+it("links the ineffective loops card to its explainer",()=>{
+ expect(FEATURE_EXPLAINERS["ineffective-loops-v1"]).toBe("ineffective-loops-v1.html");
+});
+
 it("links the connection edge tiles card to its explainer",()=>{
  expect(FEATURE_EXPLAINERS["connection-edge-tiles-v1"]).toBe("connection-edge-tiles-v1.html");
 });
@@ -701,6 +705,19 @@ it("links the talk to people card to its tracked explainer, which quotes the exa
  const html=readFileSync(fileURLToPath(new URL("../../../docs/explainers/explorer-guidance-v1.html",import.meta.url)),"utf8");
  expect(html).toContain("explorer-guidance-v1");
  expect(html).toContain("Talk to people: in this game, people tell you where to go next. After each story event, and whenever you are unsure where to go, talk to everyone in the room you are in before you leave, including the families and neighbours of characters you have met. People often say something new once the story has moved on, so talk again to people you spoke to before. A short remark, such as where someone has gone, is a direction to follow, not small talk.");
+ expect(html).toContain("Talking is cheap: face the person and press A; the harness reads the conversation until your next decision.");
+});
+
+it("links the talk to people v2 card to its tracked explainer, which quotes v1 and the exact v2 model text",()=>{
+ expect(FEATURE_EXPLAINERS["explorer-guidance-v2"]).toBe("explorer-guidance-v2.html");
+ const log=new Log();log.add(0,{...START,harness_features:["explorer-guidance-v2"]});
+ const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
+ expect(doc.querySelector('[data-feature="explorer-guidance-v2"] a')?.getAttribute("href")).toBe("/explainers/explorer-guidance-v2.html");
+ const html=readFileSync(fileURLToPath(new URL("../../../docs/explainers/explorer-guidance-v2.html",import.meta.url)),"utf8");
+ expect(html).toContain("explorer-guidance-v2");
+ const text=html.replace(/<\/?mark>/g,"");
+ expect(html).toContain("Talk to people: talking to people gives you information about the world and can move the story forward. When you are unsure where to go, or after the story has moved on, talking to the people around you is a good way to learn more. What people tell you is evidence; use it to decide where to go.");
+ expect(text).toContain("Talk to people: in this game, people tell you where to go next. After each story event, and whenever you are unsure where to go, talk to everyone in the room you are in before you leave, including the families and neighbours of characters you have met. People often say something new once the story has moved on, so talk again to people you spoke to before. A short remark, such as where someone has gone, is a direction to follow, not small talk.");
  expect(html).toContain("Talking is cheap: face the person and press A; the harness reads the conversation until your next decision.");
 });
 
@@ -828,6 +845,14 @@ it("links the cross-map goal card to its tracked explainer, which quotes the rec
  const html=readFileSync(fileURLToPath(new URL("../../../docs/explainers/cross-map-goal-v1.html",import.meta.url)),"utf8");
  for(const quote of ["cross-map-goal-v1","Navigation: map changed; inspect destination; 0 ordinary button attempts.","(8,0) on map 0/9 is on another map; you are on map 0/16 (ROUTE101) and navigate_to only walks within the current map","bundle arm"])expect(html).toContain(quote);
 });
+it("links the people ID cards card to its tracked explainer, which quotes the recorded 4caa T211 card and the prompt line",()=>{
+ expect(FEATURE_EXPLAINERS["people-id-cards-v1"]).toBe("people-id-cards-v1.html");
+ const log=new Log();log.add(0,{...START,harness_features:["ram-state-v1","people-ledger-v1","people-id-cards-v1"]});
+ const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
+ expect(doc.querySelector('[data-feature="people-id-cards-v1"] a')?.getAttribute("href")).toBe("/explainers/people-id-cards-v1.html");
+ const html=readFileSync(fileURLToPath(new URL("../../../docs/explainers/people-id-cards-v1.html",import.meta.url)),"utf8");
+ for(const quote of ["people-id-cards-v1","ID card: MAY (sprite RIVAL_MAY_NORMAL), map object 2, at 10,3 on ROUTE103 (map 0/18)","- Name: MAY. The game first showed this name on turn 107.","consider who this person is to you and where they fit in the story so far","38 cards"])expect(html).toContain(quote);
+});
 it("links the coherent transition readouts card to its tracked explainer, which quotes the cook runs' battle-start readouts before and after",()=>{
  expect(FEATURE_EXPLAINERS["transition-coherence-v1"]).toBe("transition-coherence-v1.html");
  const log=new Log();log.add(0,{...START,harness_features:["transition-coherence-v1"]});
@@ -889,8 +914,8 @@ it("links the script line presence card to its tracked explainer, which shows th
  expect(html).toContain("1. turn 259 · ROUTE101 (map 0/16) · at 11,19: \"H-help me!\"");
  expect(html).toContain("(no speaker shown by the game; on screen: PROF. BIRCH (sprite PROF_BIRCH) at 4,13; ZIGZAGOON_1 at 5,13; BIRCHS_BAG at 7,14)");
 });
-it("links the trainer heal guidance and low-HP trainer warning cards to their tracked explainers",()=>{
- const ids=["trainer-heal-guidance-v1","low-hp-trainer-warning-v1"] as const;
+it("links the trainer heal guidance and both low-HP trainer warning cards to their tracked explainers",()=>{
+ const ids=["trainer-heal-guidance-v1","low-hp-trainer-warning-v1","low-hp-trainer-warning-v2"] as const;
  // One render of just these two cards; the shared mapped-explainer test reads each tracked file.
  const log=new Log();log.add(0,{...START,harness_features:[...ids]});
  const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES.filter(f=>(ids as readonly string[]).includes(f.id)));

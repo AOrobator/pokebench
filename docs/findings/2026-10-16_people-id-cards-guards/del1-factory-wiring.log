@@ -1,0 +1,6 @@
+Guard: playGameTools wraps the tools in withPeopleIdCards. Deleted: replaced withPeopleIdCards(...) with an identity function. Restored afterwards: 5 passed.
+$ npx vitest run src/people-id-cards-delivery.test.ts
+     × T211 through the production factory: the card follows the people-ledger block, MAY's row carries her summary, one event is recorded 40ms
+     × with the ledger on in the factory, the cards still follow the ledger block, after untaken exits, and the navigate-first reminder stays its own part 2ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+      Tests  2 failed | 3 passed (5)

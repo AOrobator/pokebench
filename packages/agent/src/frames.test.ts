@@ -46,8 +46,8 @@ function events(log: RunLog): RunEvent[] {
 }
 
 describe("FrameStore", () => {
-  it("defaults to a 500 MB cap", () => {
-    expect(FRAME_CAP_BYTES).toBe(500 * 1024 * 1024);
+  it("defaults to a 10 GB cap", () => {
+    expect(FRAME_CAP_BYTES).toBe(10 * 1024 * 1024 * 1024);
   });
 
   it("measures only PNG frames under runs/*/frames", () => {

@@ -314,7 +314,11 @@ function who(page:DialoguePage):string {
 }
 // The numbered page lines of a "Dialogue shown during this call" block.
 export function pageLines(pages:readonly DialoguePage[],turn:number):string[] {
- return pages.map((page,i)=>`${String(i+1)}. turn ${String(turn)} · ${place(page)}${who(page)}: "${page.text}"`);
+ return pages.map((page,i)=>`${String(i+1)}. ${pageLine(page,turn)}`);
+}
+// One page as the dialogue lists show it, without its number.
+export function pageLine(page:DialoguePage,turn:number):string {
+ return `turn ${String(turn)} · ${place(page)}${who(page)}: "${page.text}"`;
 }
 function summary(outcome:Outcome,pages:readonly DialoguePage[],dropped:readonly Button[],turn:number,ignored:readonly Button[]=[]):string {
  const battle=outcome.battlePresses;

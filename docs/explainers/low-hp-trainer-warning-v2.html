@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Story Battle Heal Warning</title>
+<style>
+:root{
+ --bg:#f7f6f2; --fg:#1c1d1f; --soft:#5b5d61; --rule:#dedcd5; --panel:#ffffff;
+ --game:#1a7f5a; --game-bg:#e3f4ec; --prior:#c2432f; --prior-bg:#fbe7e2; --nav:#2a62c9; --nav-bg:#e4edfb; --hot:#c2432f;
+ --body:system-ui,-apple-system,"Segoe UI",sans-serif; --mono:ui-monospace,"SF Mono",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+ --bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; --hot:#ff7a63; color-scheme:dark}}
+:root[data-theme="dark"]{
+ --bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; --hot:#ff7a63; color-scheme:dark}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.6 var(--body);padding:0 16px}
+main{max-width:740px;margin:0 auto;padding:40px 0 64px;display:flex;flex-direction:column;gap:34px}
+h1{font-size:2.2rem;line-height:1.15;margin:0}
+h2{font-size:1.3rem;margin:0}
+p{margin:0;max-width:66ch}
+ul{margin:0;padding-left:20px}
+.eyebrow{font:500 .75rem var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--soft)}
+.lede{font-size:1.08rem;color:var(--soft)}
+section{display:flex;flex-direction:column;gap:12px}
+figure{margin:0;display:flex;flex-direction:column;gap:8px}
+.scroll{overflow-x:auto}
+svg{display:block;max-width:100%;height:auto}
+figcaption{font-size:.88rem;color:var(--soft)}
+svg text{font-family:var(--body);font-size:12px;fill:var(--fg)}
+svg .s{fill:var(--soft);font-size:11px}
+svg .t{font-weight:600;font-size:13px}
+svg .m{font-family:var(--mono);font-size:11px}
+svg .big{font-family:var(--mono);font-size:15px;font-weight:600}
+.box{fill:var(--panel);stroke:var(--rule)}
+.game{fill:var(--game-bg);stroke:var(--game)}
+.prior{fill:var(--prior-bg);stroke:var(--prior)}
+.nav{fill:var(--nav-bg);stroke:var(--nav)}
+.hot{stroke:var(--hot);stroke-width:2.2}
+.arr{stroke:var(--soft);stroke-width:1.5;fill:none}
+.arr.g{stroke:var(--game);stroke-width:2.4}
+pre{background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:14px;white-space:pre-wrap;font:13px/1.5 var(--mono);margin:0}
+code{font:500 .88em var(--mono);background:var(--panel);border:1px solid var(--rule);border-radius:4px;padding:0 4px}
+table{border-collapse:collapse;width:100%;font-size:.92rem}
+th,td{text-align:left;padding:7px 9px;border-bottom:1px solid var(--rule);vertical-align:top}
+th{font:500 .75rem var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--soft)}
+.tablewrap{overflow-x:auto}
+.yes{color:var(--game);font-weight:600}
+.no{color:var(--prior);font-weight:600}
+
+</style>
+</head>
+<body>
+<main>
+<div>
+<div class="eyebrow">Harness switch · guard · <code>low-hp-trainer-warning-v2</code> · needs <code>low-hp-trainer-warning-v1</code> · off by default</div>
+<h1>Story battle heal warning</h1>
+</div>
+<p class="lede">v2 of the low-HP trainer warning. v1 only warned on Route 103, for the rival, below half HP. v2 warns before every story battle the game state can see, whenever any party Pokémon is below its max HP, and lists each one. Operator, 2:43 PM: heal before story trainer battles at any HP below max; general game guidance, not route specific.</p>
+<section>
+<h2>v1 and v2 side by side</h2>
+<figure><div class="scroll"><svg viewBox="0 0 660 200" width="660" role="img" aria-label="v1 versus v2 conditions">
+<rect x="10" y="10" width="300" height="180" rx="8" class="box"/><text x="24" y="34" class="t">v1 (v2 off)</text>
+<text x="24" y="62">Route 103 only</text><text x="24" y="86">Rival MAY / BRENDAN only</text><text x="24" y="110">Lead below half HP</text><text x="24" y="134">Event: low_hp_trainer_warning</text><text x="24" y="166" class="s">Unchanged when v2 is off.</text>
+<rect x="350" y="10" width="300" height="180" rx="8" class="game hot"/><text x="364" y="34" class="t">v2 on</text>
+<text x="364" y="62">Any map with a visible story battle</text><text x="364" y="86">Rival, Aqua grunt, Roxanne</text><text x="364" y="110">Any party Pokémon below max HP</text><text x="364" y="134">Event: story_battle_warning</text><text x="364" y="166" class="s">Replaces v1's paragraph and event.</text>
+</svg></div><figcaption>v2 needs v1 and widens it. Both keep the free-field rule: field controls unlocked, so a won battle's dialogue (which runs locked until the defeat flag is set) never triggers it.</figcaption></figure>
+</section>
+<section>
+<h2>Story battles it can see (pret/pokeemerald)</h2>
+<div class="tablewrap"><table>
+<tr><th>Battle</th><th>Map</th><th>Unbeaten when</th><th>Present when</th><th>Starts by</th></tr>
+<tr><td>Rival MAY / BRENDAN</td><td>ROUTE 103 (0/18)</td><td><code>FLAG_DEFEATED_RIVAL_ROUTE103</code> clear</td><td>rival object loaded (gfx 105 / 100)</td><td>talking: <code>trainerbattle_no_intro</code></td></tr>
+<tr><td>Gym Leader ROXANNE</td><td>RUSTBORO CITY GYM (11/3)</td><td>trainer flag 0x609 clear</td><td>her object loaded (gfx 125)</td><td>talking: <code>trainerbattle_single TRAINER_ROXANNE_1</code></td></tr>
+<tr><td>TEAM AQUA grunt</td><td>PETALBURG WOODS (24/11)</td><td>trainer flag 0x50A clear</td><td>on the map (his object, gfx 117 at 26,17, is loaded but has no talk script; the battle starts only from the coord events at 26,23 and 27,23)</td><td>walking into the Devon researcher scene (coord events, <code>trainerbattle_no_intro</code>)</td></tr>
+</table></div>
+<p>Ordinary route trainers are not story battles and are left out. Story battles after the first gym need their flags read before they can be added.</p>
+</section>
+<section>
+<h2>What the model reads</h2>
+<p>Run 54a7, turn 363 (exact text from the test on the recorded state):</p>
+<pre>SUPERVISOR: A story battle is on this map: your rival MAY, at (10,3). Talking to her starts a trainer battle you cannot run from. Your party is not at full HP: TORCHIC 3/21. If your party faints, you black out: you lose half your money (₽1500 of ₽3000) and wake up back at the last POKéMON CENTER you entered, or at home. Heal to full before this battle: the nurse at a POKéMON CENTER heals your whole party, and so does MOM at home.</pre>
+<p>Petalburg Woods, with the grunt unbeaten:</p>
+<pre>SUPERVISOR: A story battle is on this map: a TEAM AQUA grunt. He stops you on the forest path when you reach the DEVON researcher, and that trainer battle cannot be run from. Your party is not at full HP: TORCHIC 3/21. If your party faints, you black out: you lose half your money (₽1500 of ₽3000) and wake up back at the last POKéMON CENTER you entered, or at home. Heal to full before this battle: the nurse at a POKéMON CENTER heals your whole party, and so does MOM at home.</pre>
+<p>Every party Pokémon below max is listed (<code>WURMPLE 0/15, ZIGZAGOON 7/18</code>), fainted ones too; healing items in the bag are named when a hurt Pokémon can use them: HP medicine and berries when one is still standing, revival medicine (REVIVE, MAX REVIVE, REVIVAL HERB) when one has fainted (<code>Your BAG has REVIVE ×1 and POTION ×2; using one restores HP.</code>). If any party Pokémon cannot be read, it stays silent rather than give a partial list.</p>
+</section>
+<section>
+<h2>When it fires again</h2>
+<figure><div class="scroll"><svg viewBox="0 0 640 150" width="640" role="img" aria-label="Arm keyed by battle">
+<rect x="20" y="60" width="150" height="44" rx="22" class="nav"/><text x="50" y="87" class="t">ARMED</text>
+<rect x="440" y="60" width="180" height="44" rx="22" class="prior"/><text x="460" y="87" class="t">FIRED for battle X</text>
+<path class="arr g" d="M170 70 C260 30 340 30 440 70"/><text x="200" y="34">fires once (paragraph + event)</text>
+<path class="arr" d="M440 96 C340 140 260 140 170 96"/><text x="176" y="146" class="s">whole party full HP · another map · battle X won</text>
+</svg></div><figcaption>A different story battle fires on its own. Battles and unreadable states change nothing.</figcaption></figure>
+</section>
+<section>
+<h2>Where you see it</h2>
+<ul><li>The model: appended to the tool result (observe, press or navigate_to), after any other text.</li>
+<li>Activity History: a SUPERVISOR row "Story battle warning added to the … result · opponent · hurt party · paragraph", from the <code>story_battle_warning</code> event.</li>
+<li>The timeline: nothing (closed to new marks; a test checks it).</li></ul>
+</section>
+<section>
+<h2>Status</h2>
+<ul><li>Branch <code>claude/story-battle-heal</code>. Tests cover each battle, every negative case, v2 off = v1 exactly, the arm, the event schema, the tail line, Activity History, and delivery through the pinned pi loop.</li>
+<li>Not yet measured. Meant for the bundle arm (operator, 2:43 PM).</li></ul>
+</section>
+</main>
+</body>
+</html>

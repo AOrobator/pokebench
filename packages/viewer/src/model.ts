@@ -78,6 +78,8 @@ const KNOWN: Record<RunEvent["type"], true> = {
   retry: true,
   text_only_supervisor: true,
   low_hp_trainer_warning: true,
+  people_id_card: true,
+  story_battle_warning: true,
   dialogue_auto_advance: true,
   disk_usage: true,
   frames_evicted: true,

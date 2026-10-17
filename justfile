@@ -80,7 +80,7 @@ map-rules:
 tail-run run_id: build
     node packages/agent/dist/tail.js {{run_id}}
 
-# Frame storage: usage against the 500 MB cap (runs refuse to start above 75%).
+# Frame storage: usage against the 10 GB cap (runs refuse to start above 75%).
 runs-disk: build
     node packages/agent/dist/runs-cli.js disk
 

@@ -67,7 +67,7 @@
    "warp-activation-guidance-v1": true,
    "ledge-hops-v1": true,
    "one-way-tiles-v1": true,
-   "counter-talk-v1": false,
+   "counter-talk-v1": true,
    "walkable-floor-v1": true,
    "deterministic-loop-guard-v1": true,
    "objective-tracking-v1": false,

@@ -77,6 +77,7 @@ Done when every milestone is merged, qualification shows none of F1–F8, the fo
 
 ## Session Log
 
+- 2026-10-17 01:30 PM EDT: counter-talk-v1 joins the bundle-v-control bundle arm (the operator 1:29 PM EDT, next round; base false, needs live-map-v1, on in both); open-goal-prompt.json incumbent follows.
 - 2026-10-17 01:20 PM EDT: story-destinations-v1 (landed 9060af6c, repin 967b2713; place resolution only, no people) joins the bundle-v-control bundle arm (base false; needs dialogue-auto-advance-v1, on in both); open-goal-prompt.json incumbent follows (story-destinations-v1 true).
 - 2026-10-17 11:53 AM EDT: Fixed main red from 90dae68b: agent open-goal-prompt.test.ts required the incumbent to name exactly the switches registered up to open-goal-prompt-v1; it now requires that prefix and that every bundle switch is on (open-goal off), so later bundle switches can join. Agent 2084 and viewer 1040 tests pass.
 - 2026-10-17 11:40 AM EDT: low-hp-trainer-warning-v2 (landed 74b76850, the operator approved) joins the bundle-v-control bundle arm (base false; needs low-hp-trainer-warning-v1, on in both). experiments/open-goal-prompt.json incumbent follows the bundle cook arm: 120-min cap (budget doubled to 122400000), low-hp v2 on; open-goal-prompt.test.ts expects 7_200_000 (it failed on main since 997f570e), and its feature check now compares both sides without the changed switch (the arm has it on since 993f7df9). Viewer tests 1040 passed.

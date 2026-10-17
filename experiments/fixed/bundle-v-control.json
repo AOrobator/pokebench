@@ -118,7 +118,8 @@
    "ineffective-loops-v1": false,
    "people-id-cards-v1": false,
    "open-goal-prompt-v1": false,
-   "low-hp-trainer-warning-v2": false
+   "low-hp-trainer-warning-v2": false,
+   "story-destinations-v1": false
   }
  },
  "switches": [
@@ -129,7 +130,8 @@
   "ineffective-loops-v1",
   "people-id-cards-v1",
   "open-goal-prompt-v1",
-  "low-hp-trainer-warning-v2"
+  "low-hp-trainer-warning-v2",
+  "story-destinations-v1"
  ],
  "offInBoth": [
   "milestone-stall-stop-v1",

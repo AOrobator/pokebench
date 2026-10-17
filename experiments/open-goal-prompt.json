@@ -135,7 +135,8 @@
    "ineffective-loops-v1": true,
    "people-id-cards-v1": true,
    "open-goal-prompt-v1": false,
-   "low-hp-trainer-warning-v2": true
+   "low-hp-trainer-warning-v2": true,
+   "story-destinations-v1": true
   },
   "start": {
    "kind": "save_state",

@@ -61,7 +61,8 @@ Ordering note: the registry, presets, events schema and wiring all sit on lines 
 - [ ] Gates
 
 **M2 — cited-destination-v1**
-- [ ] RED: schema has required `because`; found / not found / too short; OFF schema unchanged; factory test.
+- [x] M2a RED: `cited-destination.test.ts`: schema (required `because`, other properties and tools unchanged, description), text per full-map and exit-reach, OFF same tools; 4caa T272 MAY's line found across its line break and curly quotes (walk gets no `because`, result unchanged); not found line; too short; only earlier non-error results count, newest cited; image-only result; arguments without `because` pass through.
+  - 3:36 PM New York: the suite fails at load (no `cited-destination.js`).
 - [ ] GREEN: registry, presets, defaults, events (`destination_citation`), recorder, viewer, wiring, prompt navigate_to text.
 - [ ] Gates
 

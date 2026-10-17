@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Conversation Ledger</title>
+<style>
+:root{
+ --bg:#f7f6f2; --fg:#1c1d1f; --soft:#5b5d61; --rule:#dedcd5; --panel:#ffffff;
+ --game:#1a7f5a; --game-bg:#e3f4ec; --prior:#c2432f; --prior-bg:#fbe7e2; --nav:#2a62c9; --nav-bg:#e4edfb; --hot:#c2432f;
+ --wall:#9b968a; --ground:#eef0e6;
+ --body:system-ui,-apple-system,"Segoe UI",sans-serif; --mono:ui-monospace,"SF Mono",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+ --bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; --hot:#ff7a63;
+ --wall:#55585e; --ground:#1f2420; color-scheme:dark}}
+:root[data-theme="dark"]{
+ --bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; --hot:#ff7a63;
+ --wall:#55585e; --ground:#1f2420; color-scheme:dark}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.6 var(--body);padding:0 16px}
+main{max-width:760px;margin:0 auto;padding:40px 0 64px;display:flex;flex-direction:column;gap:34px}
+h1{font-size:2.2rem;line-height:1.15;margin:0}
+h2{font-size:1.3rem;margin:0}
+p{margin:0;max-width:66ch}
+ul{margin:0;padding-left:20px}
+.eyebrow{font:500 .75rem var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--soft)}
+.lede{font-size:1.08rem;color:var(--soft)}
+section{display:flex;flex-direction:column;gap:12px}
+figure{margin:0;display:flex;flex-direction:column;gap:8px}
+.scroll{overflow-x:auto}
+svg{display:block;max-width:100%;height:auto}
+.scroll svg{min-width:520px}
+figcaption{font-size:.88rem;color:var(--soft)}
+svg text{font-family:var(--body);font-size:12px;fill:var(--fg)}
+svg .s{fill:var(--soft);font-size:11px}
+svg .t{font-weight:600;font-size:13px}
+svg .m{font-family:var(--mono);font-size:11px}
+.box{fill:var(--panel);stroke:var(--rule)}
+.game{fill:var(--game-bg);stroke:var(--game)}
+.prior{fill:var(--prior-bg);stroke:var(--prior)}
+.navf{fill:var(--nav-bg);stroke:var(--nav)}
+.hot{stroke:var(--hot);stroke-width:2.2}
+.wall{fill:var(--wall);stroke:var(--rule)}
+.ground{fill:var(--ground);stroke:var(--rule)}
+.arr{stroke:var(--soft);stroke-width:1.5;fill:none}
+pre{background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:14px;white-space:pre-wrap;font:13px/1.5 var(--mono);margin:0}
+code{font:500 .88em var(--mono);background:var(--panel);border:1px solid var(--rule);border-radius:4px;padding:0 4px}
+table{border-collapse:collapse;width:100%;font-size:.92rem}
+th,td{text-align:left;padding:7px 9px;border-bottom:1px solid var(--rule);vertical-align:top}
+th{font:500 .75rem var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--soft)}
+.tablewrap{overflow-x:auto}
+.pair{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:640px){.pair{grid-template-columns:1fr}}
+.tag{font:600 .72rem var(--mono);letter-spacing:.06em;text-transform:uppercase}
+.off{color:var(--prior)} .on{color:var(--game)}
+</style>
+<body>
+<main>
+<div>
+<div class="eyebrow">Harness switch · observation · <code>instruction-ledger-v2</code> · needs <code>dialogue-auto-advance-v1</code> · off by default · bundle arm</div>
+<h1>Conversation ledger</h1>
+</div>
+<p class="lede">Every observe, press and navigate_to result on the free overworld gets one block right under the readout's Story line. It quotes the latest conversation in which the game prints a speaker's name, whole, with its speakers and turn ("MAY, turn 450"). Then it lists every room visited, newest first, with the last line heard in each. The harness picks nothing by meaning. The game's own <code>NAME:</code> prefix decides which conversation counts. There is no model tool, no prompt line and no model-written text.</p>
+
+<section>
+<h2>Why a v2</h2>
+<p>The PokeBench review of 2026-10-17 (harness engineer, evaluation integrity, data scientist, ML engineer) found four problems with <code>instruction-ledger-v1</code>. The operator then decided to drop <code>dialogue-log-v1</code> and <code>note_contradiction</code> and build this switch instead. v1 itself is unchanged; it is a separate switch.</p>
+<div class="tablewrap"><table>
+<tr><th>v1</th><th>v2</th></tr>
+<tr><td>Asks the model to call <code>note_contradiction</code>. In 36 cook runs the model called the similar optional reader <code>get_dialogue</code> 4 times in 26,293 calls.</td><td>No tool. Nothing depends on the model asking.</td></tr>
+<tr><td>Pins the last three pages of any dialogue, so signs and filler (MANIAC's "Wait until I finish sketching them") replace an instruction.</td><td>Pins the latest conversation with a page the game names a speaker for, every page of it.</td></tr>
+<tr><td>A room's "last heard" fills only when the newest page's seq equals the tool result's state seq. Under auto-advance they never match, so rooms read "nothing heard".</td><td>Keys "last heard" on each auto-advance page's own map.</td></tr>
+<tr><td>Appended as a trailing user message after the newest result, the last thing the model reads.</td><td>Inside the tool result, under the Story line. The current readout still follows it.</td></tr>
+</table></div>
+</section>
+
+<section>
+<h2>Before and after, recorded e962 turn 450</h2>
+<p>Run <code>2026-10-16T19-48-44_qwen36-gpu0_e962</code>. MAY's post-battle line on ROUTE 103 was turn 444. At turn 450 MAY says "Let's hurry home!" in OLDALE TOWN. At turn 451 the model decides "My home is the house at (5,7)", a house in OLDALE TOWN. With the switch on, the same result also lists LITTLEROOT TOWN and the player's own house as rooms visited, and ROUTE 103 still shows the LAB line.</p>
+<div class="pair">
+<figure>
+<div class="tag off">Off (what the model got)</div>
+<pre>Story: player name confirmed; … Route 103 rival battle won
+Player: RRED
+Location: OLDALE TOWN
+Position: X=10, Y=19, facing down
+…</pre>
+</figure>
+<figure>
+<div class="tag on">On (same result)</div>
+<pre>Story: player name confirmed; … Route 103 rival battle won
+<b>Conversation ledger: …</b>
+<b>Latest conversation … (MAY, turn 450; …)</b>
+<b>Rooms visited, newest first, …</b>
+Player: RRED
+Location: OLDALE TOWN
+…</pre>
+</figure>
+</div>
+<p>The whole block, exactly as the tests replay it from the recorded events (fixture <code>instruction-ledger-v2-e962.jsonl.gz</code>):</p>
+<pre>Conversation ledger: game text you were shown, quoted whole; past text, the current screen overrides it.
+Latest conversation where the game names the speaker (MAY, turn 450; OLDALE TOWN (map 0/10)):
+- MAY: &quot;RRED! Over here! Let&#39;s hurry home!&quot;
+Rooms visited, newest first, with the last line heard in each:
+- OLDALE TOWN (map 0/10), here turn 450: last heard turn 450, MAY: &quot;RRED! Over here! Let&#39;s hurry home!&quot;
+- ROUTE103 (map 0/18), here turn 446: last heard turn 444, MAY: &quot;Well, it&#39;s time to head back to the LAB.&quot;
+- ROUTE101 (map 0/16), here turn 389: last heard turn 125, PROF. BIRCH: &quot;This is not the place to chat, so come by my POKéMON LAB later, okay?&quot;
+- LITTLEROOT TOWN (map 0/9), here turn 374: last heard turn 144, Sign text &quot;RRED&#39;s HOUSE&quot; (faced object): &quot;RRED&#39;s HOUSE&quot;
+- OLDALE TOWN POKEMON CENTER 1F (map 2/2), here turn 300: last heard turn 298: &quot;We hope to see you again!&quot;
+- PROF. BIRCH&#39;S POKéMON LAB (map 1/4), here turn 160: last heard turn 159, SCIENTIST_1 (sprite kind, not a name): &quot;The PROF enjoys MAY&#39;s help, too. There&#39;s a lot of love there.&quot;
+- RRED&#39;s HOUSE 1F (map 1/0), here turn 149: last heard turn 148, MOM: &quot;Take care, honey!&quot;
+- PROF. BIRCH&#39;S HOUSE 1F (map 1/2), here turn 139: last heard turn 98, RIVAL_MAY_NORMAL (sprite kind, not a name): &quot;RRED, I&#39;ll catch you later!&quot;
+- PROF. BIRCH&#39;S HOUSE 2F (map 1/3), here turn 137: nothing heard
+- RRED&#39;s HOUSE 2F (map 1/1), here turn 81: last heard turn 81, MOM: &quot;Oh, you should make sure that everything&#39;s all there on your desk.&quot;
+- INSIDE OF TRUCK (map 25/40), here turn 61: last heard turn 58, MOVING_BOX (sprite kind, not a name): &quot;It&#39;s a POKéMON brand moving and delivery service.&quot;</pre>
+</section>
+
+<section>
+<h2>Which conversation is pinned</h2>
+<figure>
+<div class="scroll">
+<svg viewBox="0 0 720 270" role="img" aria-label="Conversations in run 2fb4 from turn 241 to 316; only MOM at turn 245 has a NAME prefix, so it stays pinned">
+<text x="10" y="20" class="t">Run 2fb4, turns 241–316: field conversations the model was shown, oldest to newest</text>
+<line x1="20" y1="120" x2="700" y2="120" class="arr"/>
+<g><rect x="20" y="60" width="120" height="44" rx="6" class="box"/><text x="30" y="78">T241 TWIN</text><text x="30" y="95" class="s">faced sprite</text></g>
+<g><rect x="155" y="60" width="120" height="44" rx="6" class="game hot"/><text x="165" y="78" class="t">T245 MOM</text><text x="165" y="95" class="s">NAME: prefix</text></g>
+<g><rect x="290" y="60" width="120" height="44" rx="6" class="box"/><text x="300" y="78">T250 sign</text><text x="300" y="95" class="s">faced object</text></g>
+<g><rect x="425" y="60" width="120" height="44" rx="6" class="box"/><text x="435" y="78">T255 WOMAN_4</text><text x="435" y="95" class="s">faced sprite</text></g>
+<g><rect x="560" y="60" width="140" height="44" rx="6" class="prior"/><text x="570" y="78">T316 MANIAC</text><text x="570" y="95" class="s">faced sprite (v1 pins it)</text></g>
+<text x="20" y="150" class="t">v2 pins MOM, T245: the newest conversation with a NAME: prefix.</text>
+<text x="20" y="172" class="s">Faced sprites are graphics (sprite kinds); faced objects are signs and clocks.</text>
+<text x="20" y="190" class="s">Neither is a name the game prints. They still count as the last line heard in their room.</text>
+<text x="20" y="230" class="s">Limit: WOMAN_4's "went out to ROUTE 103" has no prefix in the game's text</text>
+<text x="20" y="248" class="s">(RivalsHouse_1F_Text_WentOutToRoute103), so it is never pinned.</text>
+</svg>
+</div>
+<figcaption>One claim: the selection rule is the game's own <code>NAME:</code> prefix, nothing else. Recorded run <code>2026-10-16T16-46-59_qwen36-gpu0_2fb4</code>, result at seq 8319 (turn 320, entering ROUTE 103).</figcaption>
+</figure>
+<ul>
+<li>A conversation is every field page of one auto-advance call, in order. Battle text (pages with a battle turn) never counts.</li>
+<li>Pages in a named conversation that carry no prefix themselves keep the speaker auto-advance carried within the conversation. For example, MOM's "He lives right next door" (<code>PlayersHouse_1F_Text_GoIntroduceYourselfNextDoor</code>) follows "MOM: Oh… It's over."</li>
+<li>A page counts once its tool result reached the model. The result that delivers a conversation already pins it. An error result delivers nothing.</li>
+<li>Before any named conversation, the latest field page stands in, labelled "the latest field page".</li>
+<li>No character list, milestone order, map knowledge or route knowledge is used (PB4). This differs from <code>story-destinations-v1</code>, which uses character presence's story-character table.</li>
+</ul>
+<p>Recorded runs it was checked on:</p>
+<div class="tablewrap"><table>
+<tr><th>Run, seq</th><th>Pinned</th><th>Notable room line</th></tr>
+<tr><td>93eb 2771 (T134)</td><td>MOM, INTERVIEWER, turn 131: the TV report, ending "He lives right next door, so you should go over and introduce yourself."</td><td>LITTLEROOT TOWN: MOM, turn 120, "And, you get your own room…"</td></tr>
+<tr><td>0e05 1286 (T76)</td><td>The same conversation, turn 74</td><td>BRED's HOUSE 1F: "He lives right next door…"</td></tr>
+<tr><td>e962 10160 (T445)</td><td>MAY, turn 444: four pages ending "Well, it's time to head back to the LAB."</td><td>Battle pages left out</td></tr>
+<tr><td>defa 9920 (T402)</td><td>MAY, turn 402, in the very result that delivers it</td><td>ROUTE103: the LAB line (v1: "nothing heard")</td></tr>
+<tr><td>2fb4 8319 (T320)</td><td>MOM, turn 245</td><td>OLDALE TOWN: MANIAC; PROF. BIRCH'S HOUSE 1F: WOMAN_4</td></tr>
+</table></div>
+</section>
+
+<section>
+<h2>Where "last heard" comes from</h2>
+<figure>
+<div class="scroll">
+<svg viewBox="0 0 720 200" role="img" aria-label="Run defa turn 402: MAY's pages have state seqs 9889 to 9911, the result pairs with state 9918; v1 compares 9911 with 9918 and finds nothing, v2 uses each page's map">
+<text x="10" y="20" class="t">Run defa, turn 402: one press, auto-advance shows MAY's four pages</text>
+<g><rect x="20" y="40" width="300" height="60" rx="6" class="game"/><text x="30" y="60" class="m">pages: state_seq 9889, 9899, 9905, 9911</text><text x="30" y="80" class="m">map ROUTE103 (0/18) on every page</text></g>
+<g><rect x="400" y="40" width="300" height="60" rx="6" class="box"/><text x="410" y="60" class="m">tool_result 9920, state_seq 9918</text><text x="410" y="80" class="s">the state after field control returned</text></g>
+<g><rect x="20" y="130" width="300" height="50" rx="6" class="navf hot"/><text x="30" y="150" class="t">v2: room of each page = its own map</text><text x="30" y="168" class="s">ROUTE103: last heard turn 402, MAY</text></g>
+<g><rect x="400" y="130" width="300" height="50" rx="6" class="prior"/><text x="410" y="150" class="t">v1: newest page 9911 ≠ 9918</text><text x="410" y="168" class="s">ROUTE103: nothing heard</text></g>
+<line x1="170" y1="100" x2="170" y2="130" class="arr"/><line x1="550" y1="100" x2="550" y2="130" class="arr"/>
+</svg>
+</div>
+<figcaption>One claim: v2 fills a room's last line from the auto-advance page records, which v1 could not. Both outcomes are asserted by the tests on the recorded fixture.</figcaption>
+</figure>
+<p>Rooms are keyed by the game's location and map id. They are named the way the readout names them once a readout has shown the room (for example "RRED's HOUSE 1F (map 1/0)"); a room known only from a page uses the page's map name. Map ids appear when <code>bounded-navigation-v1</code> is on, as in the readout. The list is ordered by the latest turn the player was there, newest first. Nothing is clipped and there is no cap: the context window is the only bound.</p>
+</section>
+
+<section>
+<h2>Interface format</h2>
+<p>Recorded 2fb4 seq 8319, as the tests replay it:</p>
+<pre>Conversation ledger: game text you were shown, quoted whole; past text, the current screen overrides it.
+Latest conversation where the game names the speaker (MOM, turn 245; YROVE&#39;s HOUSE 1F (map 1/0)):
+- MOM: &quot;How are you doing, YROVE? You look a little tired.&quot;
+- MOM: &quot;I think you should rest a bit.&quot;
+- MOM: &quot;Take care, honey!&quot;
+Rooms visited, newest first, with the last line heard in each:
+- ROUTE103 (map 0/18), here turn 320: nothing heard
+- OLDALE TOWN (map 0/10), here turn 319: last heard turn 316, MANIAC (sprite kind, not a name): &quot;Wait until I finish sketching them, okay?&quot;
+- ROUTE101 (map 0/16), here turn 309: last heard turn 220, PROF. BIRCH: &quot;This is not the place to chat, so come by my POKéMON LAB later, okay?&quot;
+- LITTLEROOT TOWN (map 0/9), here turn 288: last heard turn 250, Sign text &quot;PROF. BIRCH&#39;S HOUSE&quot; (faced object): &quot;PROF. BIRCH&#39;S HOUSE&quot;
+- PROF. BIRCH&#39;S HOUSE 1F (map 1/2), here turn 257: last heard turn 255, WOMAN_4 (sprite kind, not a name): &quot;Like father, like child. MAY can&#39;t stay quietly at home.&quot;
+- YROVE&#39;s HOUSE 1F (map 1/0), here turn 247: last heard turn 245, MOM: &quot;Take care, honey!&quot;
+- PROF. BIRCH&#39;S POKéMON LAB (map 1/4), here turn 223: last heard turn 222, PROF. BIRCH: &quot;Get MAY to teach you what it means to be a TRAINER.&quot;
+- PROF. BIRCH&#39;S HOUSE 2F (map 1/3), here turn 170: last heard turn 170, RIVAL_MAY_NORMAL (sprite kind, not a name): &quot;YROVE, I&#39;ll catch you later!&quot;
+- YROVE&#39;s HOUSE 2F (map 1/1), here turn 129: last heard turn 129, MOM: &quot;Oh, you should make sure that everything&#39;s all there on your desk.&quot;
+- INSIDE OF TRUCK (map 25/40), here turn 89: last heard turn 84, MOVING_BOX (sprite kind, not a name): &quot;It&#39;s a POKéMON brand moving and delivery service.&quot;</pre>
+<ul>
+<li>The speaker label is the game's <code>NAME:</code> prefix, with the prefix moved out of the quote. A faced sprite reads "MANIAC (sprite kind, not a name)", a faced object reads "Wall clock (faced object)" and an unlabelled page has no label.</li>
+<li>Line breaks in the game's text are printed as spaces. Every other character is kept.</li>
+<li>Battle screens, menus and the title screen get no block. A result whose readout has no Location line is unchanged.</li>
+<li>Record: the block is part of the recorded <code>tool_result</code> text, so forensics and replay see exactly what the model saw. There is no <code>ledger_context</code> event, because the decision probe replays <code>ledger_context</code> as a trailing user message and v2 is not one.</li>
+</ul>
+</section>
+
+<section>
+<h2>Wiring</h2>
+<figure>
+<div class="scroll">
+<svg viewBox="0 0 720 120" role="img" aria-label="Preset FeatureSet to playGameTools to withInstructionLedgerV2 to the tool result text to the recorder">
+<g><rect x="10" y="40" width="120" height="44" rx="6" class="box"/><text x="20" y="66">run preset</text></g>
+<g><rect x="150" y="40" width="120" height="44" rx="6" class="box"/><text x="160" y="66" class="m">FeatureSet</text></g>
+<g><rect x="290" y="40" width="130" height="44" rx="6" class="box"/><text x="300" y="66" class="m">playGameTools</text></g>
+<g><rect x="440" y="30" width="140" height="64" rx="6" class="game hot"/><text x="450" y="55" class="m">withInstruction</text><text x="450" y="72" class="m">LedgerV2</text></g>
+<g><rect x="600" y="40" width="110" height="44" rx="6" class="box"/><text x="610" y="60">tool_result</text><text x="610" y="76" class="s">recorded text</text></g>
+<line x1="130" y1="62" x2="150" y2="62" class="arr"/><line x1="270" y1="62" x2="290" y2="62" class="arr"/><line x1="420" y1="62" x2="440" y2="62" class="arr"/><line x1="580" y1="62" x2="600" y2="62" class="arr"/>
+<text x="440" y="112" class="s">wraps story-destinations, so the ledger sits above its block</text>
+</svg>
+</div>
+<figcaption>The only box that changes behavior is highlighted. Off: it returns the very same tools and subscribes to nothing.</figcaption>
+</figure>
+</section>
+
+<section>
+<h2>Game grounding (pret/pokeemerald 731ad5b)</h2>
+<ul>
+<li><code>Route103_Text_MayTimeToHeadBack</code>: "MAY: I think I know why my dad has an eye out for you now. … Well, it's time to head back to the LAB."</li>
+<li><code>PlayersHouse_1F_Text_OhComeQuickly</code>, <code>PlayersHouse_1F_Text_ItsOverWeMissedHim</code> and <code>PlayersHouse_1F_Text_GoIntroduceYourselfNextDoor</code> (<code>data/maps/LittlerootTown_BrendansHouse_1F/scripts.inc</code>)</li>
+<li><code>OldaleTown_Text_MayLetsGoBack</code>: "MAY: {PLAYER}{KUN}! Over here! Let's hurry home!"</li>
+<li><code>RivalsHouse_1F_Text_WentOutToRoute103</code> has no prefix; the game never names its speaker, so it is never pinned.</li>
+</ul>
+</section>
+
+<section>
+<h2>Status</h2>
+<ul>
+<li>Branch <code>claude/instruction-ledger-v2</code>. Tests replay five recorded runs. Gates: test, lint, build, coverage.</li>
+<li>Not done: the multi-model review, the merge, the experiment design and any measured run. <code>experiments/instruction-ledger-v2.json</code> is pending, not queued.</li>
+</ul>
+</section>
+</main>
+</body>
+</html>

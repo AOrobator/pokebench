@@ -271,17 +271,39 @@ describe("instruction-ledger-v2 rules",()=>{
  });
  it("a conversation is every field page of one call, in order, with every speaker the game names; battle pages are skipped",()=>{
   const ledger=new ConversationLedger(ON);
-  ledger.observe(talk("a",9,[page("MAY: Let's battle!","MAY","name_prefix"),page("PKMN TRAINER MAY\nwould like to battle!",null,null,{battle_turn:1}),page("PROF. BIRCH: Well done!","PROF. BIRCH","name_prefix",{map:"OLDALE TOWN",map_id:[0,10]}),page("See you!","MAY","name_prefix",{map:"OLDALE TOWN",map_id:[0,10]})]));
+  ledger.observe(talk("a",9,[page("MAY: Let's battle!","MAY","name_prefix"),page("PKMN TRAINER MAY\nwould like to battle!",null,null,{battle_turn:1}),page("PROF. BIRCH: Well done!","PROF. BIRCH","name_prefix",{map:"OLDALE TOWN",map_id:[0,10]}),page("RAED received\nthe POTION!",null,null,{map:"OLDALE TOWN",map_id:[0,10]}),page("See you!","MAY","name_prefix",{map:"OLDALE TOWN",map_id:[0,10]})]));
   ledger.observe(delivered("a",9));
   expect(ledger.block(ROUTE,"c")).toContain([
    "Latest conversation where the game names the speaker (MAY, PROF. BIRCH, turn 9; ROUTE103 (map 0/18), then OLDALE TOWN (map 0/10)):",
    "- MAY: \"Let's battle!\"",
    "- PROF. BIRCH: \"Well done!\"",
+   "- \"RAED received the POTION!\"",
    "- MAY: \"See you!\"",
    "Rooms visited, newest first, with the last line heard in each:",
    "- ROUTE103 (map 0/18), here turn 9: last heard turn 9, MAY: \"Let's battle!\"",
    "- OLDALE TOWN (map 0/10), here turn 9: last heard turn 9, MAY: \"See you!\"",
   ].join("\n"));
+ });
+ it("pages with no map join no room; a call with only battle text changes nothing; at most 16 undelivered calls are kept",()=>{
+  const ledger=new ConversationLedger(ON);
+  ledger.observe(talk("m",3,[page("MAY: Hi!","MAY","name_prefix",{map:null,map_id:null})]));ledger.observe(delivered("m",3));
+  ledger.observe(talk("b",4,[page("Go! TORCHIC!",null,null,{battle_turn:1})]));
+  expect(ledger.block(ROUTE,"b")).toBe([
+   "Conversation ledger: game text you were shown, quoted whole; past text, the current screen overrides it.",
+   "Latest conversation where the game names the speaker (MAY, turn 3):",
+   "- MAY: \"Hi!\"",
+   "Rooms visited, newest first, with the last line heard in each:",
+   "- ROUTE103 (map 0/18), here turn 4: nothing heard",
+  ].join("\n"));
+  const fresh=new ConversationLedger(ON);
+  fresh.observe(talk("n",1,[page("…",null,null,{map:null,map_id:null})]));fresh.observe(delivered("n",1));
+  expect(fresh.block(ROUTE,"c")).toContain("none yet; the latest field page, turn 1:\n- \"…\"\n");
+  const busy=new ConversationLedger(ON);
+  for(let i=0;i<17;i++)busy.observe(talk(`k${String(i)}`,1,[page(`MAY: Line ${String(i)}.`,"MAY","name_prefix")]));
+  busy.observe(delivered("k0",1));
+  expect(busy.block(ROUTE,"c")).toContain("none yet; no field dialogue shown yet.");
+  busy.observe(delivered("k16",1));
+  expect(busy.block(ROUTE,"c")).toContain("- MAY: \"Line 16.\"");
  });
  it("names a room the way the readout does once a readout has shown it, and without the map id when navigation is off",()=>{
   const ledger=new ConversationLedger({...ON,"bounded-navigation-v1":false});
@@ -331,6 +353,9 @@ describe("instruction-ledger-v2 switch",()=>{
   expect(textOf(await press.executeChecked(result.id,{buttons:["A"]},()=>undefined))).toBe(expected.slice(1));
   expect(textOf(await out[2]?.execute(result.id,{}) ?? empty)).toBe(expected.slice(1));
   expect(out[3]).toBe(other);
+  const noReadout:AgentTool={...other,name:"navigate_to",execute:()=>Promise.resolve({content:[{type:"text",text:"Navigation: refused"}],details:{state}})};
+  const [n]=withInstructionLedgerV2([noReadout],ON,{subscribe:()=>undefined});
+  expect(textOf(await n?.execute("n",{}) ?? empty)).toBe("Navigation: refused");
   // A result without state passes through untouched.
   const bare:AgentTool={...other,name:"observe",execute:()=>Promise.resolve({content:[{type:"text",text:"Story: x"}],details:undefined})};
   const [b]=withInstructionLedgerV2([bare],ON,{subscribe:()=>undefined});
@@ -343,7 +368,10 @@ describe("instruction-ledger-v2 switch",()=>{
   const only={...OFF,"instruction-ledger-v2":true};
   const on=playGameTools([fakeObserve(state,result.text)],only,reader,recorder);
   replayInto(subs);
-  expect(textOf(await on[0]?.execute(result.id,{}) ?? empty)).toContain(`\n${X93eb_2771}\nPlayer: GREEENN\n`);
+  // Navigation is off here, so rooms carry no map ids; otherwise the same block as T134 above.
+  const block=X93eb_2771.replace(/ \(map \d+\/\d+\)/g,"");
+  expect(ledgerAt("93eb",2771,only).ledger.block(state,result.id)).toBe(block);
+  expect(textOf(await on[0]?.execute(result.id,{}) ?? empty)).toBe(`|${result.text.replace("\nPlayer: GREEENN\n",`\n${block}\nPlayer: GREEENN\n`)}`);
   const count=subs.length;
   const off=playGameTools([fakeObserve(state,result.text)],{...only,"instruction-ledger-v2":false},reader,recorder);
   expect(subs.length).toBe(count);
@@ -360,7 +388,8 @@ describe("instruction-ledger-v2 switch",()=>{
   replayInto(subs);
   const plain=textOf(await without?.execute(result.id,{}) ?? empty);
   expect(plain).toContain("Latest story line naming a place");
-  expect(textOf(await withLedger?.execute(result.id,{}) ?? empty)).toBe(plain.replace("(after the Petalburg Gym TV report)\n",`(after the Petalburg Gym TV report)\n${X93eb_2771}\n`));
+  const block=X93eb_2771.replace(/ \(map \d+\/\d+\)/g,"");
+  expect(textOf(await withLedger?.execute(result.id,{}) ?? empty)).toBe(plain.replace("(after the Petalburg Gym TV report)\n",`(after the Petalburg Gym TV report)\n${block}\n`));
  });
  it("registers no tool, no prompt line and no ledger_context event: the tool result carries the record",()=>{
   expect(playTools(ON)).toEqual(playTools({...ON,"instruction-ledger-v2":false}));

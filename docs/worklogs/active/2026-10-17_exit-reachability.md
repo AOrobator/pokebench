@@ -27,7 +27,11 @@ Switch `exit-reachability-v1`, server + agent, default OFF in presets and DEFAUL
 
 ## M1: server-side classification and reach rows
 
-- [ ] RED: Python tests from the 4caa Route 103 fixture (EAST edge and Altering Cave classified `water`; untaken walkable exits `foot`) and a Route 104 fixture built from 0e05/93eb raw RAM (north edge `none` from the south half); state_json field only with the switch on; OFF readout byte-identical.
+- [x] RED: Python tests from the 4caa Route 103 fixture (EAST edge and Altering Cave classified `water`; untaken walkable exits `foot`) and a Route 104 fixture built from 0e05/93eb raw RAM (north edge `none` from the south half); state_json field only with the switch on; OFF readout byte-identical.
+  - Fixture `env/tests/env/fixtures/exit-reach-0e05.json.gz` (16 KB): RAM windows of 0e05 tool results 22580 (state 22579, raw 11268, (18,42)) and 25575 (state 25574, raw 12848, (19,42)), recorded by a scratch reader over `rerender` with every server switch on and again with the run's own switches; never ROM or Flash bytes. Its `readout` is the server re-render under the run's switches, checked by the builder to be the recorded tool text from `Screen:` on minus the 7 agent-added lines (untaken exits, people ledger, agent story line). Builder kept in the session scratchpad, not committed.
+  - Probe with today's `surf_gate.reachable` on the fixture: 546 foot tiles from both starts, min y 38 (matches the RAM audit), 805 with water. Labels: warps (17,50) (10,38) (11,38) foot; (5,18) (10,30) (11,30) (32,42) (33,42) none (the east woods mouth sits above south-only ledges); NORTH none, SOUTH water, EAST foot. 4caa: (45,6) water, SOUTH foot, EAST water.
+  - 2026-10-17 New York: `pytest tests/env/test_exit_reach.py` fails at collection (`No module named 'pokebench_env.exit_reach'`).
+  - COMMIT: `test(exit-reachability): RED Python classification from 4caa Route 103 and 0e05 Route 104 RAM` (sha recorded in the next entry)
 - [ ] GREEN: classification + reach rows in surf_gate.py (or a sibling module), readout notes, SERVER_FEATURES registration both sides.
 - [ ] Gates: just test, just lint, just coverage (>=90).
 

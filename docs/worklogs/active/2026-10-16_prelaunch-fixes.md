@@ -77,6 +77,7 @@ Done when every milestone is merged, qualification shows none of F1–F8, the fo
 
 ## Session Log
 
+- 2026-10-17 11:53 AM EDT: Fixed main red from 90dae68b: agent open-goal-prompt.test.ts required the incumbent to name exactly the switches registered up to open-goal-prompt-v1; it now requires that prefix and that every bundle switch is on (open-goal off), so later bundle switches can join. Agent 2084 and viewer 1040 tests pass.
 - 2026-10-17 11:40 AM EDT: low-hp-trainer-warning-v2 (landed 74b76850, the operator approved) joins the bundle-v-control bundle arm (base false; needs low-hp-trainer-warning-v1, on in both). experiments/open-goal-prompt.json incumbent follows the bundle cook arm: 120-min cap (budget doubled to 122400000), low-hp v2 on; open-goal-prompt.test.ts expects 7_200_000 (it failed on main since 997f570e), and its feature check now compares both sides without the changed switch (the arm has it on since 993f7df9). Viewer tests 1040 passed.
 - 2026-10-17 12:23 AM EDT: Cook phase cap doubled from 60 to 120 min in both arms (the operator 12:21 AM EDT: many cook runs hit the 60-min cap). Confirmatory phase unchanged at 15 min. The overnight dry-run rounds pass their own --wall-ms (owned by the Overnight GPU plan thread).
 - 2026-10-16 06:12 PM EDT: open-goal-prompt-v1 (landed 2fcb544b, repin 61f77a22) joins the bundle-v-control bundle arm (base false, no dependency).

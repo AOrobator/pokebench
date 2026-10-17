@@ -90,6 +90,8 @@ Ordering note: the registry, presets, events schema and wiring all sit on lines 
 
 **Self-check before review**
 - [x] RED: the map table must be read once per player name (story-destinations-v1 does; the player's house is named after the player, so a table read before naming would mis-resolve "He lives" for the player's own house). 4:05 PM New York: fails, 1 read instead of 3.
+  - COMMIT: `test(harness-trust): RED map table read once per player name` (be78c729)
+- [x] GREEN: per-player-name table cache in `withHarnessTrust`, as story-destinations-v1 does. Gates: agent 2173, viewer 1111, pytest 2544; lint, build clean; coverage agent 99.18 / 94.45 / 98.15, viewer 97.62 / 91.38 / 93.79, Python 97.63 / 93.76 / 100; verify-vendor OK.
 
 **M5 — review and land**
 - [ ] Review: Claude, Grok, GPT; 2-round cap.

@@ -205,13 +205,18 @@ export function withHarnessTrust(tools:readonly AgentTool[],on:boolean,recorder:
  const record=recorder.storyGoalAway?.bind(recorder);
  if(options.supervisor&&record===undefined)throw new Error("harness-trust-v1 needs a recorder for story_goal_away events");
  const trust=new HarnessTrust(options);recorder.subscribe(event=>{trust.observe(event);});
- let table:Promise<readonly Place[]>|null=null;
- const places=async():Promise<readonly Place[]|Error>=>{
-  table??=source.places===undefined?Promise.reject(new Error("this game server does not serve /pokebench/places")):source.places().then(body=>{
-   if(!Value.Check(PlacesBodySchema,body))throw new Error("malformed /pokebench/places");
-   return body.places;
-  });
-  try{return await table;}catch(error){table=null;return error instanceof Error?error:new Error(String(error));}
+ // The map table never changes; the names of the player's own house do, so it is read once per player name.
+ const tables=new Map<string,Promise<readonly Place[]>>();
+ const places=async(player:string):Promise<readonly Place[]|Error>=>{
+  let pending=tables.get(player);
+  if(pending===undefined){
+   pending=source.places===undefined?Promise.reject(new Error("this game server does not serve /pokebench/places")):source.places().then(body=>{
+    if(!Value.Check(PlacesBodySchema,body))throw new Error("malformed /pokebench/places");
+    return body.places;
+   });
+   tables.set(player,pending);
+  }
+  try{return await pending;}catch(error){tables.delete(player);return error instanceof Error?error:new Error(String(error));}
  };
  const annotate=async<T>(tool:string,id:string,result:AgentToolResult<T>):Promise<AgentToolResult<T>>=>{
   const state=stateOf(result.details);
@@ -219,7 +224,7 @@ export function withHarnessTrust(tools:readonly AgentTool[],on:boolean,recorder:
   const index=result.content.findIndex(part=>part.type==="text");
   const part=result.content[index];
   if(part?.type!=="text")return result;
-  const {header,away}=trust.lines(part.text,state,id,await places());
+  const {header,away}=trust.lines(part.text,state,id,await places(state.name ?? ""));
   const note=away===null?null:awayText(away);
   if(away!==null&&note!==null)record?.(tool,away,note);
   const content=[...result.content];content[index]={...part,text:`${header}\n${note===null?"":`${note}\n`}\n${part.text}`};

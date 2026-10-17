@@ -130,9 +130,7 @@
   "dialogue-log-v1",
   "grass-cost-navigation-v1",
   "full-map-navigation-v1",
-  "navigation-evidence-memory-v1",
-  "objective-tracking-v1",
-  "repeat-attempt-guard-v1"
+  "navigation-evidence-memory-v1"
  ],
  "offInBoth": [
   "milestone-stall-stop-v1",

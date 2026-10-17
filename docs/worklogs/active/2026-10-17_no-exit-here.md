@@ -17,7 +17,7 @@ Operator decision (the operator, 2026-10-17 4:49 PM New York): switch `no-exit-h
 
 ## Game grounding
 
-pret/pokeemerald 731ad5bf. Outside the map's own grid with no connected map there, `GetMapGridBlockAt` (src/fieldmap.c) returns the border block with `MAPGRID_IMPASSABLE`, so `MapGridGetCollisionAt` reports a collision. `PlayerNotOnBikeCollide` (src/field_player_avatar.c) plays the bump sound and walks in place. No script or text runs: the game shows nothing. So the harness line states only the fact (skill rule 2): there is no way off this map on that side, and the ways off it the readout already lists.
+pret/pokeemerald 731ad5bf (corrected in review round 2). The game keeps the map in a padded layout (width + MAP_OFFSET_W); `InitMapLayoutData` (src/fieldmap.c) fills it with `MAPGRID_UNDEFINED` and only map connections overwrite the padding. A step off the map where nothing is connected lands on an undefined cell: `MapGridGetCollisionAt` returns 1, `GetCollisionAtCoords` (src/event_object_movement.c) gives `COLLISION_IMPASSABLE`, and `PlayerNotOnBikeCollide` (src/field_player_avatar.c) plays the bump sound and walks in place. No script or text runs: the game shows nothing. So the harness line states only the fact (skill rule 2): there is no way off this map on that side, and the ways off it the readout already lists.
 
 ## Design
 
@@ -79,3 +79,5 @@ Claude and Grok LGTM; GPT BLOCKING on two items, both fixed (operator rule: fix 
 Follow-ups (not in this branch): classify the submitted buttons rather than requested ones under dialogue-safe batches; facing null; mixed per-tile reach in one doorway.
 
 - [x] RED: three name tests (Oldale with only Warp destination lines, sh02 s761 truck dynamic warp, reach note and unknown map) and the explainer grounding quotes in panels.test.ts; 3 agent tests and 1 viewer test fail.
+- [x] GREEN: `destinationLines` names each doorway from its Warp destination line first; grounding corrected in the module and test comments, registry copy, explainer figure and caption, and this worklog. no-exit-here suite 28/28.
+  - COMMIT (RED): `test(no-exit-here): RED warp names from the readout's Warp destination lines; grounding names the undefined padded cell (review round 2)` (ac8e28b5)

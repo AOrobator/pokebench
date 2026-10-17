@@ -1,8 +1,9 @@
 // no-exit-here-v1: a press into a map edge, or navigate_to aimed at or past one, on a side with no map connection adds
-// one line: "There is no way off <MAP> to the <side>; the ways off this map are: <list>". The game shows nothing there:
-// off the map's grid where no map is connected, GetMapGridBlockAt (pokeemerald src/fieldmap.c) gives the impassable
-// border block and PlayerNotOnBikeCollide (src/field_player_avatar.c) only bumps, so the line states the fact and lists
-// the exits the readout already shows. A side with a connection, reachable or not, is exit-reachability-v1's job.
+// one line: "There is no way off <MAP> to the <side>; the ways off this map are: <list>". The game shows nothing there
+// (pokeemerald 731ad5bf): the step lands in the padded backup layout, which InitMapLayoutData (src/fieldmap.c) fills
+// with MAPGRID_UNDEFINED and only map connections overwrite; MapGridGetCollisionAt returns 1 for it, GetCollisionAtCoords
+// (src/event_object_movement.c) gives COLLISION_IMPASSABLE and PlayerNotOnBikeCollide (src/field_player_avatar.c) only
+// bumps. So the line states the fact and lists the exits the readout already shows. A side with a connection, reachable or not, is exit-reachability-v1's job.
 import type {AgentTool,AgentToolResult} from "@mariozechner/pi-agent-core";
 import {mapKey,readoutNames,tileKey,warpsOf} from "./exit-history.js";
 import type {FeatureSet} from "./features.js";
@@ -62,10 +63,29 @@ export function noExitLine(features:FeatureSet,state:Snapshot,text:string,sides:
   door.tiles.push(`(${tileKey(w.x,w.y)})`);door.cuts.push(block.warpCut(w.x,w.y));doors.set(key,door);
  }
  // A doorway is cut only when every one of its tiles is, as untaken-exits-v1 lists them.
- const warps=[...doors.values()].map(d=>{const cut=d.cuts.every(c=>c!==null)?d.cuts[0]??null:null;return `${d.tiles.join(" or ")} -> ${mapKey(d.destination)==="127/127"?"dynamic destination":place(d.destination)}${cut===null?"":CUT[cut]}`;});
+ const tiles=destinationLines(text);
+ // A doorway is named by the readout's own Warp destination line for one of its tiles, then by the map names, then by id.
+ const named=(d:{tiles:string[];destination:readonly number[]}):string=>{
+  const dynamic=mapKey(d.destination)==="127/127";
+  const line=d.tiles.map(t=>tiles.get(t)).find((n):n is string=>n!==undefined);
+  if(line!==undefined)return dynamic||/\(map \d+\/\d+\)$/.test(line)?line:`${line} (map ${mapKey(d.destination)})`;
+  return dynamic?"dynamic destination":place(d.destination);
+ };
+ const warps=[...doors.values()].map(d=>{const cut=d.cuts.every(c=>c!==null)?d.cuts[0]??null:null;return `${d.tiles.join(" or ")} -> ${named(d)}${cut===null?"":CUT[cut]}`;});
  const ways=[...connections,...warps];
  const side=sides.map(s=>`the ${s.toLowerCase()}`).join(" or ");
  return `There is no way off ${map} to ${side}; the ways off this map are: ${ways.length===0?"none are listed":ways.join("; ")}`;
+}
+
+// The readout's "Warp destination at (x,y): NAME" lines (world destinations), by tile "(x,y)": the name without the readout's
+// own reach note, which this line marks its own way; "unknown map g/n" is no name.
+function destinationLines(text:string):Map<string,string> {
+ const out=new Map<string,string>();
+ for(const m of text.matchAll(/^Warp destination at \((\d+),(\d+)\): (.+)$/gm)){
+  const name=(m[3]??"").replace(/ \((?:not an exit you can use now|not reachable on foot)[^()]*\)$/,"");
+  if(!/^unknown map \d+\/\d+$/.test(name))out.set(`(${m[1]??""},${m[2]??""})`,name);
+ }
+ return out;
 }
 
 function stateOf(result:AgentToolResult<unknown>):GameStateSnapshot|undefined {

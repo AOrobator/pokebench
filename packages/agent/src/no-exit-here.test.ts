@@ -12,9 +12,10 @@
 //   (before and at T628 "SOUTH -> ROUTE116"); 14845 navigate_to (3,19); 4011 navigate_to (2,8), the exit mat of MAYS HOUSE 1F
 //   (review round 1: a south arrow warp on the bottom row; TryArrowWarp in src/field_control_avatar.c runs before any
 //   bump, so DOWN there leaves the map).
-// Game grounding (pret/pokeemerald 731ad5bf): off the map's own grid where no map is connected, GetMapGridBlockAt
-// (src/fieldmap.c) gives the border block with MAPGRID_IMPASSABLE, MapGridGetCollisionAt reports a collision and
-// PlayerNotOnBikeCollide (src/field_player_avatar.c) bumps and walks in place. No script or text runs, so the line states
+// Game grounding (pret/pokeemerald 731ad5bf): the step lands in the padded layout InitMapLayoutData (src/fieldmap.c)
+// fills with MAPGRID_UNDEFINED where no map is connected, MapGridGetCollisionAt returns 1, GetCollisionAtCoords
+// (src/event_object_movement.c) gives COLLISION_IMPASSABLE and PlayerNotOnBikeCollide (src/field_player_avatar.c) bumps
+// and walks in place. No script or text runs, so the line states
 // only the fact.
 import {readFileSync} from "node:fs";
 import {gunzipSync} from "node:zlib";

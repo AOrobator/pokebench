@@ -15,6 +15,7 @@ import {flagFeatures,normalizeFeatures} from "./play-preset.js";
 import {parseGameState,type GameStateSnapshot} from "./game-state.js";
 import {withNavigation} from "./navigation.js";
 import {exitReach} from "./surf-gate.js";
+import {loopSupervisor,playGameTools} from "./play-wiring.js";
 import {UntakenExits} from "./untaken-exits.js";
 import {SupervisorBriefing} from "./loop-supervisor.js";
 import {edgeNote} from "./connection-edges.js";
@@ -63,7 +64,7 @@ function field(rows:readonly string[],player:{x:number;y:number}):GameStateSnaps
   navigation_grid:{elevation:3,tiles,objects:[],warps:[]},
   map_grid:{width,height,elevation:3,rows:rows.map(r=>Array.from(r).map(c=>c==="#"?cell(1):cell(0)).join("")),objects:[],warps:[]},
   interaction_targets:[],topology:{width,height,connections:[]},
-  exit_reach:{warps:[],connections:[],foot:{width,height,rows:hexRows(rows)}}} as GameStateSnapshot;
+  exit_reach:{warps:[],connections:[],foot:{width,height,rows:hexRows(rows)}}};
 }
 const NAV:FeatureSet={...flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false}),"bounded-navigation-v1":true,"ledge-hops-v1":true,"one-way-tiles-v1":true,"navigation-refusal-reasons-v1":true,"navigation-truth-v1":true};
 
@@ -96,7 +97,7 @@ describe("exit-reachability-v1: navigate_to's command-limit text on ROUTE104 (0e
  });
  it("the helper's foot set: the player's tile and the south half, nothing above y=38, nothing off the map",()=>{
   const reach=exitReach({...runFeatures("0e05"),[ID]:true},recorded("0e05:22579"));
-  expect([reach.foot(17,49),reach.foot(12,0),reach.foot(18,42),reach.foot(40,0),reach.foot(-1,0),reach.foot(18,37)]).toEqual([true,false,true,false,false,false]);
+  expect([reach.footNear(17,50),reach.foot(12,0),reach.foot(18,42),reach.foot(40,0),reach.foot(-1,0),reach.foot(18,37)]).toEqual([true,false,true,false,false,false]);
  });
  it("whole-map mode: the whole-map plan refuses (12,0) before any press, ON as OFF",async()=>{
   const full:FeatureSet={...runFeatures("0e05"),"full-map-navigation-v1":true};
@@ -138,15 +139,19 @@ function synthetic():GameStateSnapshot {
   map_grid:{width:6,height:3,elevation:3,rows,objects:[{x:2,y:1},{x:4,y:0},{x:4,y:1},{x:4,y:2},{x:5,y:1}],warps:[]},
   navigation_grid:{elevation:3,tiles:[0,1,2].flatMap(y=>[0,1,2,3,4,5].map(x=>({x,y,collision:x===2&&y!==1?1:0,behavior:0,elevation:3}))),objects:[{x:2,y:1},{x:4,y:0},{x:4,y:1},{x:4,y:2},{x:5,y:1}],warps:[]},
   interaction_targets:[{kind:"object",x:4,y:1,elevation:3,activation:"A",availability:"available",facing:null,local_id:3,destination:null,name:"MAY"}],
-  topology:{width:6,height:3,connections:[]},exit_reach:reachable} as GameStateSnapshot;
+  topology:{width:6,height:3,connections:[]},exit_reach:reachable};
 }
 describe("exit-reachability-v1: whole-map person refusal",()=>{
  const base:FeatureSet={...flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false}),"bounded-navigation-v1":true,"full-map-navigation-v1":true,"ledge-hops-v1":true,"one-way-tiles-v1":true,"navigation-refusal-reasons-v1":true,"navigation-truth-v1":true};
  it("a neighbour on foot reach but off every whole-map route: names it and the likely blockers, no local-window wording",async()=>{
   const on=await navigate({...base,[ID]:true},synthetic(),{x:4,y:1});
-  expect(on.status).toBe("(4,1) is MAY (person or object), which navigate_to cannot stand on; navigate_to finds no route on this map to a free tile next to it right now, though this map's walkable area reaches (3,1) next to it (people, heights or one-way tiles may be in the way); choose a waypoint nearer to it");
+  expect(on.status).toBe("(4,1) is MAY (person or object), which navigate_to cannot stand on; navigate_to finds no route on this map to a free tile next to it right now, though this map's walkable area reaches (3,1) next to it (people, heights, one-way tiles or script-trigger tiles may be in the way); choose a waypoint nearer to it");
   const off=await navigate(base,synthetic(),{x:4,y:1});
   expect(off.status).toBe("(4,1) is MAY (person or object), which navigate_to cannot stand on, and none of its free neighbouring tiles can be reached from here; choose a reachable waypoint nearer to it");
+ });
+ it("local map: when the flood inside the window reaches the neighbour, the plan (not the window) is what failed",async()=>{
+  const local={...base,"full-map-navigation-v1":false};
+  expect((await navigate({...local,[ID]:true},synthetic(),{x:4,y:1})).status).toBe("(4,1) is MAY (person or object), which navigate_to cannot stand on; navigate_to finds no route on the 15x15 local map it plans over to a free tile next to it right now, though this map's walkable area reaches (3,1) next to it (people, heights, one-way tiles or script-trigger tiles may be in the way); choose a waypoint nearer to it");
  });
  it("no neighbour on foot reach: says so plainly",async()=>{
   const s=synthetic();
@@ -185,7 +190,7 @@ describe("exit-reachability-v1: exit lists on ROUTE104 (0e05 seq 22579)",()=>{
    checkEvent({v:1,run:"s",t:"2026-10-17T13:00:00.000-04:00",turn:1,seq:1,type:"state",...s}),
    checkEvent({v:1,run:"s",t:"2026-10-17T13:00:00.000-04:00",turn:1,seq:2,type:"tool_result",id:"c1",name:"observe",is_error:false,duration_ms:1,text:"Location: ROUTE104",frames:[],state_seq:1}),
   ];
-  const brief=(features:FeatureSet)=>{const b=new SupervisorBriefing(features);for(const e of shown)b.observe(e);return b.text("cycle",9);};
+  const brief=(features:FeatureSet)=>{const b=new SupervisorBriefing(features);for(const e of shown)b.observe(e);return b.stallText({kind:"milestone_drought",minutes:5},9);};
   const features={...runFeatures("0e05"),"briefing-exits-v1":true,"connection-edge-tiles-v1":true};
   const off=brief(features),on=brief({...features,[ID]:true});
   const pick=(text:string,head:string)=>text.split("\n").find(l=>l.startsWith(head))??"";
@@ -239,5 +244,34 @@ describe("exit-reachability-v1 schema, registry and presets",()=>{
   const {[ID]:omitted,...rest}=ALL_ON;expect(omitted).toBe(true);
   expect(normalizeFeatures(rest as Parameters<typeof normalizeFeatures>[0])[ID]).toBe(false);
   expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false})[ID]).toBe(false);
+ });
+});
+
+describe("exit-reachability-v1 production wiring (playGameTools and loopSupervisor)",()=>{
+ const BASE:FeatureSet={...ALL_ON,"people-ledger-v1":false,"people-id-cards-v1":false,"trainer-heal-guidance-v1":false,"low-hp-trainer-warning-v1":false,"low-hp-trainer-warning-v2":false,"dialogue-auto-advance-v1":false,"bounded-navigation-v1":false,"navigate-first-prompt-v1":false,"blocked-exit-fact-v1":false,"battle-loss-recap-v1":false,"next-milestone-hint-v1":false,"story-destinations-v1":false};
+ const snapshot=recorded("0e05:22579");
+ const readout="Screen: overworld\nLocation: ROUTE104\nPosition: X=18, Y=42, facing left\nMoney: 1";
+ const tool=(name:string):AgentTool=>({name,label:name,description:name,parameters:{},execute:()=>Promise.resolve({content:[{type:"text",text:readout}],details:{state:snapshot}})}) as unknown as AgentTool;
+ const recorder=()=>{const observers:((e:RunEvent)=>void)[]=[];return {observers,lowHpTrainerWarning:()=>undefined,peopleIdCard:()=>undefined,recordState:()=>({seq:1,turn:1}),recordDialogueAutoAdvance:()=>({seq:1,turn:1}),textOnlySupervisor:()=>undefined,storyDestinations:()=>undefined,subscribe:(fn:(e:RunEvent)=>void)=>{observers.push(fn);}};};
+ const text=async(tools:readonly AgentTool[])=>{const r=await tools.find(t=>t.name==="observe")?.execute("id",{});const part=r?.content[0];return part?.type==="text"?part.text:"";};
+ it("playGameTools passes the switch to the untaken-exits line",async()=>{
+  const on=await text(playGameTools([tool("observe")],{...BASE,[ID]:true},{read:()=>Promise.resolve(snapshot)},recorder()));
+  const off=await text(playGameTools([tool("observe")],{...BASE,[ID]:false},{read:()=>Promise.resolve(snapshot)},recorder()));
+  expect(off).toContain("(5,18) -> map 17/1");
+  expect(on).not.toContain("(5,18) -> map 17/1");
+  expect(on).not.toContain("NORTH edge");
+ });
+ it("loopSupervisor passes the switch to the briefing's edge line",()=>{
+  const ways=(features:FeatureSet)=>{
+   const r=recorder();const loop=loopSupervisor(features,r);
+   const events:RunEvent[]=[
+    checkEvent({v:1,run:"s",t:"2026-10-17T13:00:00.000-04:00",turn:1,seq:1,type:"state",...snapshot}),
+    checkEvent({v:1,run:"s",t:"2026-10-17T13:00:00.000-04:00",turn:1,seq:2,type:"tool_result",id:"c1",name:"observe",is_error:false,duration_ms:1,text:"Location: ROUTE104",frames:[],state_seq:1}),
+   ];
+   for(const e of events)for(const o of r.observers)o(e);
+   return (loop?.("cycle",9)??"").split("\n").find(l=>l.startsWith("- Ways off this map"))??"";
+  };
+  expect(ways({...BASE,[ID]:false})).toContain("NORTH -> RUSTBORO CITY");
+  expect(ways({...BASE,[ID]:true})).not.toContain("NORTH -> RUSTBORO CITY");
  });
 });

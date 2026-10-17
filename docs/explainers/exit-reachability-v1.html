@@ -1,0 +1,709 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Exit Reachability</title>
+<style>
+:root{
+ --bg:#f7f6f2; --fg:#1c1d1f; --soft:#5b5d61; --rule:#dedcd5; --panel:#ffffff;
+ --game:#1a7f5a; --game-bg:#e3f4ec; --prior:#c2432f; --prior-bg:#fbe7e2; --nav:#2a62c9; --nav-bg:#e4edfb;
+ --foot:#7cc49f; --water:#7fa7e0; --far:#d9c27a; --solid:#cfcdc6; --exit:#c2432f;
+ --body:system-ui,-apple-system,"Segoe UI",sans-serif; --mono:ui-monospace,"SF Mono",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+ --bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740;
+ --foot:#2f8a5f; --water:#3a5d94; --far:#8a7a3a; --solid:#2f3135; --exit:#ff7a63; color-scheme:dark}}
+:root[data-theme="dark"]{
+ --bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740;
+ --foot:#2f8a5f; --water:#3a5d94; --far:#8a7a3a; --solid:#2f3135; --exit:#ff7a63; color-scheme:dark}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.6 var(--body);padding:0 16px}
+main{max-width:760px;margin:0 auto;padding:40px 0 64px;display:flex;flex-direction:column;gap:34px}
+h1{font-size:2.1rem;line-height:1.15;margin:0}
+h2{font-size:1.3rem;margin:0}
+p{margin:0;max-width:66ch}
+ul{margin:0;padding-left:20px}
+code{font-family:var(--mono);font-size:.88em}
+.eyebrow{font:500 .75rem var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--soft)}
+.lede{font-size:1.08rem;color:var(--soft)}
+section{display:flex;flex-direction:column;gap:12px}
+figure{margin:0;display:flex;flex-direction:column;gap:8px}
+.scroll{overflow-x:auto}
+svg{display:block}
+figcaption{font-size:.88rem;color:var(--soft)}
+svg text{font-family:var(--body);font-size:11px;fill:var(--fg)}
+.foot{fill:var(--foot)} .water{fill:var(--water)} .far{fill:var(--far)} .solid{fill:var(--solid)}
+.exit{fill:none;stroke:var(--exit);stroke-width:2.5} .walk{fill:none;stroke:var(--game);stroke-width:2.5}
+.me{fill:var(--fg)}
+.box{fill:var(--panel);stroke:var(--rule)} .hot{fill:var(--game-bg);stroke:var(--game)}
+.arrow{stroke:var(--soft);fill:none;stroke-width:1.4}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:.85rem;color:var(--soft)}
+.legend span::before{content:"";display:inline-block;width:12px;height:12px;margin-right:6px;vertical-align:-1px;border-radius:2px;background:var(--c)}
+pre{margin:0;padding:12px 14px;background:var(--panel);border:1px solid var(--rule);border-radius:6px;overflow-x:auto;font:12px/1.5 var(--mono);white-space:pre}
+.off{border-left:4px solid var(--prior)}
+.on{border-left:4px solid var(--game)}
+table{border-collapse:collapse;font-size:.9rem;width:100%}
+th,td{border-bottom:1px solid var(--rule);padding:6px 8px;text-align:left;vertical-align:top}
+th{font-weight:600}
+.tw{overflow-x:auto}
+</style>
+</head>
+<body>
+<main>
+<header>
+ <p class="eyebrow">Feature switch · observation · <code>exit-reachability-v1</code> · default OFF · bundle arm only · pending experiment</p>
+ <h1>Exit reachability</h1>
+ <p class="lede">One reachability check, made once by the game server, decides for every exit list and every navigate_to message whether the player can walk there from where they stand. Exits nobody can walk to stop being offered as exits, and navigate_to stops telling the model to keep going toward a goal it cannot reach.</p>
+</header>
+
+<section>
+ <h2>Why</h2>
+ <ul>
+  <li>Runs 0e05 and 93eb (2026-10-17, ROUTE104): from the south half, the readout listed <code>NORTH edge -&gt; RUSTBORO CITY</code> and the PETALBURG WOODS north mouths as untaken exits, and navigate_to said <code>call navigate_to again to continue to (12,0)</code>. Rows 31 to 37 are solid wall; the north half is reached only through PETALBURG WOODS.</li>
+  <li>Run 4198 (2026-10-16, ROUTE103): navigate_to told the model, 11 times, that none of MAY's free neighbouring tiles could be reached from here. That was true only inside the 15x15 local map; the way to her runs west, outside it. The model gave up on her.</li>
+  <li>The operator asked for one DRY mechanism for leaving out exits that are not available (the operator, 2026-10-17). This switch is it: <code>exitReach(features, state)</code> in <code>packages/agent/src/surf-gate.ts</code>, fed by the server's <code>exit_reach</code>.</li>
+ </ul>
+</section>
+
+<section>
+ <h2>What the server computes</h2>
+ <p>From the player's tile, the server floods the whole current map (<code>surf_gate.reachable</code>, the same flood surf-gated-exits-v1 already used). On foot a tile is entered when its collision is 0 and it is not surfable water; a ledge (MB_JUMP_*) is hopped one tile on, in its arrow direction only (pokeemerald GetCollisionAtCoords). A second flood also opens water. Every warp and walking map connection then gets one label:</p>
+ <div class="tw"><table>
+  <tr><th>Label</th><th>Warp</th><th>Map connection</th></tr>
+  <tr><td><code>foot</code></td><td>it or a tile next to it is in the foot flood</td><td>one of its walk-off edge tiles is in the foot flood</td></tr>
+  <tr><td><code>water</code></td><td>not on foot, but with water open</td><td>not on foot, but an edge tile crossable with water is reached with water open</td></tr>
+  <tr><td><code>none</code></td><td>neither</td><td>neither</td></tr>
+ </table></div>
+ <p>The flood leaves out heights (elevation), one-way tiles and people on purpose. Each of those can only take tiles away from what the player can walk to, so the flood reaches every tile the player can walk to and maybe more. A tile outside it cannot be walked to, so saying <code>none</code> is safe. An exit the server could not read (no whole map, an unreadable edge, a dive connection) has no label and stays listed. If the player's own tile is not on the map read, there is no <code>exit_reach</code> at all.</p>
+</section>
+
+<section>
+ <h2>ROUTE104 from the south half</h2>
+ <figure>
+  <div class="scroll"><svg viewBox="0 0 370 400" width="370" height="400" role="img" aria-label="ROUTE104 foot area from (18,42)">
+<rect class="solid" x="0" y="0" width="50" height="5"/>
+<rect class="far" x="50" y="0" width="120" height="5"/>
+<rect class="solid" x="170" y="0" width="30" height="5"/>
+<rect class="solid" x="0" y="5" width="60" height="5"/>
+<rect class="far" x="60" y="5" width="110" height="5"/>
+<rect class="solid" x="170" y="5" width="30" height="5"/>
+<rect class="solid" x="0" y="10" width="60" height="5"/>
+<rect class="far" x="60" y="10" width="100" height="5"/>
+<rect class="solid" x="160" y="10" width="40" height="5"/>
+<rect class="solid" x="0" y="15" width="70" height="5"/>
+<rect class="far" x="70" y="15" width="90" height="5"/>
+<rect class="solid" x="160" y="15" width="40" height="5"/>
+<rect class="solid" x="0" y="20" width="30" height="5"/>
+<rect class="far" x="30" y="20" width="10" height="5"/>
+<rect class="solid" x="40" y="20" width="30" height="5"/>
+<rect class="far" x="70" y="20" width="90" height="5"/>
+<rect class="solid" x="160" y="20" width="40" height="5"/>
+<rect class="solid" x="0" y="25" width="30" height="5"/>
+<rect class="far" x="30" y="25" width="10" height="5"/>
+<rect class="solid" x="40" y="25" width="30" height="5"/>
+<rect class="far" x="70" y="25" width="45" height="5"/>
+<rect class="solid" x="115" y="25" width="5" height="5"/>
+<rect class="far" x="120" y="25" width="40" height="5"/>
+<rect class="solid" x="160" y="25" width="40" height="5"/>
+<rect class="solid" x="0" y="30" width="10" height="5"/>
+<rect class="far" x="10" y="30" width="40" height="5"/>
+<rect class="solid" x="50" y="30" width="20" height="5"/>
+<rect class="far" x="70" y="30" width="100" height="5"/>
+<rect class="solid" x="170" y="30" width="15" height="5"/>
+<rect class="far" x="185" y="30" width="5" height="5"/>
+<rect class="solid" x="190" y="30" width="10" height="5"/>
+<rect class="solid" x="0" y="35" width="10" height="5"/>
+<rect class="far" x="10" y="35" width="40" height="5"/>
+<rect class="solid" x="50" y="35" width="30" height="5"/>
+<rect class="far" x="80" y="35" width="110" height="5"/>
+<rect class="solid" x="190" y="35" width="10" height="5"/>
+<rect class="solid" x="0" y="40" width="10" height="5"/>
+<rect class="far" x="10" y="40" width="40" height="5"/>
+<rect class="solid" x="50" y="40" width="50" height="5"/>
+<rect class="far" x="100" y="40" width="90" height="5"/>
+<rect class="solid" x="190" y="40" width="10" height="5"/>
+<rect class="solid" x="0" y="45" width="10" height="5"/>
+<rect class="far" x="10" y="45" width="30" height="5"/>
+<rect class="solid" x="40" y="45" width="60" height="5"/>
+<rect class="water" x="100" y="45" width="20" height="5"/>
+<rect class="far" x="120" y="45" width="10" height="5"/>
+<rect class="water" x="130" y="45" width="60" height="5"/>
+<rect class="solid" x="190" y="45" width="10" height="5"/>
+<rect class="solid" x="0" y="50" width="10" height="5"/>
+<rect class="far" x="10" y="50" width="20" height="5"/>
+<rect class="solid" x="30" y="50" width="70" height="5"/>
+<rect class="water" x="100" y="50" width="20" height="5"/>
+<rect class="far" x="120" y="50" width="10" height="5"/>
+<rect class="water" x="130" y="50" width="60" height="5"/>
+<rect class="solid" x="190" y="50" width="10" height="5"/>
+<rect class="solid" x="0" y="55" width="10" height="5"/>
+<rect class="far" x="10" y="55" width="20" height="5"/>
+<rect class="solid" x="30" y="55" width="70" height="5"/>
+<rect class="water" x="100" y="55" width="20" height="5"/>
+<rect class="far" x="120" y="55" width="10" height="5"/>
+<rect class="water" x="130" y="55" width="60" height="5"/>
+<rect class="solid" x="190" y="55" width="10" height="5"/>
+<rect class="solid" x="0" y="60" width="10" height="5"/>
+<rect class="far" x="10" y="60" width="10" height="5"/>
+<rect class="solid" x="20" y="60" width="60" height="5"/>
+<rect class="water" x="80" y="60" width="40" height="5"/>
+<rect class="far" x="120" y="60" width="10" height="5"/>
+<rect class="water" x="130" y="60" width="60" height="5"/>
+<rect class="solid" x="190" y="60" width="10" height="5"/>
+<rect class="solid" x="0" y="65" width="10" height="5"/>
+<rect class="far" x="10" y="65" width="10" height="5"/>
+<rect class="solid" x="20" y="65" width="50" height="5"/>
+<rect class="water" x="70" y="65" width="50" height="5"/>
+<rect class="far" x="120" y="65" width="10" height="5"/>
+<rect class="water" x="130" y="65" width="60" height="5"/>
+<rect class="solid" x="190" y="65" width="10" height="5"/>
+<rect class="solid" x="0" y="70" width="10" height="5"/>
+<rect class="far" x="10" y="70" width="10" height="5"/>
+<rect class="solid" x="20" y="70" width="50" height="5"/>
+<rect class="water" x="70" y="70" width="50" height="5"/>
+<rect class="far" x="120" y="70" width="10" height="5"/>
+<rect class="water" x="130" y="70" width="60" height="5"/>
+<rect class="solid" x="190" y="70" width="10" height="5"/>
+<rect class="solid" x="0" y="75" width="10" height="5"/>
+<rect class="far" x="10" y="75" width="10" height="5"/>
+<rect class="solid" x="20" y="75" width="45" height="5"/>
+<rect class="water" x="65" y="75" width="55" height="5"/>
+<rect class="far" x="120" y="75" width="40" height="5"/>
+<rect class="water" x="160" y="75" width="30" height="5"/>
+<rect class="far" x="190" y="75" width="10" height="5"/>
+<rect class="solid" x="0" y="80" width="10" height="5"/>
+<rect class="far" x="10" y="80" width="5" height="5"/>
+<rect class="solid" x="15" y="80" width="50" height="5"/>
+<rect class="water" x="65" y="80" width="55" height="5"/>
+<rect class="far" x="120" y="80" width="40" height="5"/>
+<rect class="water" x="160" y="80" width="30" height="5"/>
+<rect class="far" x="190" y="80" width="10" height="5"/>
+<rect class="solid" x="0" y="85" width="10" height="5"/>
+<rect class="far" x="10" y="85" width="5" height="5"/>
+<rect class="solid" x="15" y="85" width="50" height="5"/>
+<rect class="water" x="65" y="85" width="85" height="5"/>
+<rect class="far" x="150" y="85" width="10" height="5"/>
+<rect class="water" x="160" y="85" width="30" height="5"/>
+<rect class="solid" x="190" y="85" width="10" height="5"/>
+<rect class="solid" x="0" y="90" width="10" height="5"/>
+<rect class="far" x="10" y="90" width="5" height="5"/>
+<rect class="solid" x="15" y="90" width="10" height="5"/>
+<rect class="far" x="25" y="90" width="5" height="5"/>
+<rect class="solid" x="30" y="90" width="35" height="5"/>
+<rect class="water" x="65" y="90" width="85" height="5"/>
+<rect class="far" x="150" y="90" width="10" height="5"/>
+<rect class="water" x="160" y="90" width="30" height="5"/>
+<rect class="solid" x="190" y="90" width="10" height="5"/>
+<rect class="solid" x="0" y="95" width="10" height="5"/>
+<rect class="far" x="10" y="95" width="45" height="5"/>
+<rect class="solid" x="55" y="95" width="10" height="5"/>
+<rect class="water" x="65" y="95" width="85" height="5"/>
+<rect class="far" x="150" y="95" width="10" height="5"/>
+<rect class="water" x="160" y="95" width="30" height="5"/>
+<rect class="solid" x="190" y="95" width="10" height="5"/>
+<rect class="solid" x="0" y="100" width="10" height="5"/>
+<rect class="far" x="10" y="100" width="25" height="5"/>
+<rect class="solid" x="35" y="100" width="5" height="5"/>
+<rect class="far" x="40" y="100" width="15" height="5"/>
+<rect class="solid" x="55" y="100" width="10" height="5"/>
+<rect class="water" x="65" y="100" width="85" height="5"/>
+<rect class="far" x="150" y="100" width="10" height="5"/>
+<rect class="water" x="160" y="100" width="30" height="5"/>
+<rect class="solid" x="190" y="100" width="10" height="5"/>
+<rect class="solid" x="0" y="105" width="10" height="5"/>
+<rect class="far" x="10" y="105" width="55" height="5"/>
+<rect class="water" x="65" y="105" width="85" height="5"/>
+<rect class="far" x="150" y="105" width="10" height="5"/>
+<rect class="water" x="160" y="105" width="30" height="5"/>
+<rect class="solid" x="190" y="105" width="10" height="5"/>
+<rect class="solid" x="0" y="110" width="10" height="5"/>
+<rect class="far" x="10" y="110" width="5" height="5"/>
+<rect class="solid" x="15" y="110" width="5" height="5"/>
+<rect class="far" x="20" y="110" width="170" height="5"/>
+<rect class="solid" x="190" y="110" width="10" height="5"/>
+<rect class="solid" x="0" y="115" width="10" height="5"/>
+<rect class="far" x="10" y="115" width="5" height="5"/>
+<rect class="solid" x="15" y="115" width="5" height="5"/>
+<rect class="far" x="20" y="115" width="65" height="5"/>
+<rect class="solid" x="85" y="115" width="5" height="5"/>
+<rect class="far" x="90" y="115" width="80" height="5"/>
+<rect class="solid" x="170" y="115" width="30" height="5"/>
+<rect class="solid" x="0" y="120" width="10" height="5"/>
+<rect class="far" x="10" y="120" width="5" height="5"/>
+<rect class="solid" x="15" y="120" width="5" height="5"/>
+<rect class="far" x="20" y="120" width="150" height="5"/>
+<rect class="solid" x="170" y="120" width="30" height="5"/>
+<rect class="solid" x="0" y="125" width="10" height="5"/>
+<rect class="far" x="10" y="125" width="5" height="5"/>
+<rect class="solid" x="15" y="125" width="5" height="5"/>
+<rect class="far" x="20" y="125" width="140" height="5"/>
+<rect class="solid" x="160" y="125" width="40" height="5"/>
+<rect class="solid" x="0" y="130" width="10" height="5"/>
+<rect class="far" x="10" y="130" width="150" height="5"/>
+<rect class="solid" x="160" y="130" width="40" height="5"/>
+<rect class="solid" x="0" y="135" width="10" height="5"/>
+<rect class="far" x="10" y="135" width="60" height="5"/>
+<rect class="solid" x="70" y="135" width="130" height="5"/>
+<rect class="solid" x="0" y="140" width="50" height="5"/>
+<rect class="far" x="50" y="140" width="10" height="5"/>
+<rect class="solid" x="60" y="140" width="10" height="5"/>
+<rect class="far" x="70" y="140" width="15" height="5"/>
+<rect class="solid" x="85" y="140" width="10" height="5"/>
+<rect class="far" x="95" y="140" width="20" height="5"/>
+<rect class="solid" x="115" y="140" width="15" height="5"/>
+<rect class="far" x="130" y="140" width="20" height="5"/>
+<rect class="solid" x="150" y="140" width="50" height="5"/>
+<rect class="solid" x="0" y="145" width="40" height="5"/>
+<rect class="far" x="40" y="145" width="30" height="5"/>
+<rect class="solid" x="70" y="145" width="130" height="5"/>
+<rect class="solid" x="0" y="150" width="50" height="5"/>
+<rect class="far" x="50" y="150" width="10" height="5"/>
+<rect class="solid" x="60" y="150" width="140" height="5"/>
+<rect class="solid" x="0" y="155" width="200" height="5"/>
+<rect class="solid" x="0" y="160" width="200" height="5"/>
+<rect class="solid" x="0" y="165" width="200" height="5"/>
+<rect class="solid" x="0" y="170" width="200" height="5"/>
+<rect class="solid" x="0" y="175" width="200" height="5"/>
+<rect class="solid" x="0" y="180" width="200" height="5"/>
+<rect class="solid" x="0" y="185" width="200" height="5"/>
+<rect class="solid" x="0" y="190" width="50" height="5"/>
+<rect class="foot" x="50" y="190" width="10" height="5"/>
+<rect class="solid" x="60" y="190" width="140" height="5"/>
+<rect class="water" x="0" y="195" width="20" height="5"/>
+<rect class="solid" x="20" y="195" width="30" height="5"/>
+<rect class="foot" x="50" y="195" width="10" height="5"/>
+<rect class="solid" x="60" y="195" width="140" height="5"/>
+<rect class="water" x="0" y="200" width="20" height="5"/>
+<rect class="solid" x="20" y="200" width="30" height="5"/>
+<rect class="foot" x="50" y="200" width="10" height="5"/>
+<rect class="solid" x="60" y="200" width="140" height="5"/>
+<rect class="water" x="0" y="205" width="25" height="5"/>
+<rect class="solid" x="25" y="205" width="10" height="5"/>
+<rect class="foot" x="35" y="205" width="45" height="5"/>
+<rect class="solid" x="80" y="205" width="25" height="5"/>
+<rect class="foot" x="105" y="205" width="5" height="5"/>
+<rect class="solid" x="110" y="205" width="15" height="5"/>
+<rect class="foot" x="125" y="205" width="5" height="5"/>
+<rect class="solid" x="130" y="205" width="70" height="5"/>
+<rect class="water" x="0" y="210" width="30" height="5"/>
+<rect class="solid" x="30" y="210" width="5" height="5"/>
+<rect class="foot" x="35" y="210" width="95" height="5"/>
+<rect class="solid" x="130" y="210" width="30" height="5"/>
+<rect class="far" x="160" y="210" width="10" height="5"/>
+<rect class="solid" x="170" y="210" width="30" height="5"/>
+<rect class="water" x="0" y="215" width="30" height="5"/>
+<rect class="solid" x="30" y="215" width="5" height="5"/>
+<rect class="foot" x="35" y="215" width="95" height="5"/>
+<rect class="solid" x="130" y="215" width="30" height="5"/>
+<rect class="far" x="160" y="215" width="10" height="5"/>
+<rect class="solid" x="170" y="215" width="30" height="5"/>
+<rect class="water" x="0" y="220" width="30" height="5"/>
+<rect class="solid" x="30" y="220" width="10" height="5"/>
+<rect class="foot" x="40" y="220" width="90" height="5"/>
+<rect class="solid" x="130" y="220" width="25" height="5"/>
+<rect class="far" x="155" y="220" width="15" height="5"/>
+<rect class="solid" x="170" y="220" width="30" height="5"/>
+<rect class="water" x="0" y="225" width="35" height="5"/>
+<rect class="solid" x="35" y="225" width="5" height="5"/>
+<rect class="foot" x="40" y="225" width="90" height="5"/>
+<rect class="solid" x="130" y="225" width="25" height="5"/>
+<rect class="far" x="155" y="225" width="15" height="5"/>
+<rect class="solid" x="170" y="225" width="30" height="5"/>
+<rect class="water" x="0" y="230" width="35" height="5"/>
+<rect class="solid" x="35" y="230" width="20" height="5"/>
+<rect class="foot" x="55" y="230" width="75" height="5"/>
+<rect class="solid" x="130" y="230" width="25" height="5"/>
+<rect class="far" x="155" y="230" width="15" height="5"/>
+<rect class="solid" x="170" y="230" width="30" height="5"/>
+<rect class="water" x="0" y="235" width="50" height="5"/>
+<rect class="solid" x="50" y="235" width="25" height="5"/>
+<rect class="foot" x="75" y="235" width="60" height="5"/>
+<rect class="solid" x="135" y="235" width="15" height="5"/>
+<rect class="far" x="150" y="235" width="20" height="5"/>
+<rect class="solid" x="170" y="235" width="30" height="5"/>
+<rect class="water" x="0" y="240" width="35" height="5"/>
+<rect class="solid" x="35" y="240" width="10" height="5"/>
+<rect class="water" x="45" y="240" width="25" height="5"/>
+<rect class="solid" x="70" y="240" width="30" height="5"/>
+<rect class="foot" x="100" y="240" width="35" height="5"/>
+<rect class="solid" x="135" y="240" width="15" height="5"/>
+<rect class="far" x="150" y="240" width="20" height="5"/>
+<rect class="solid" x="170" y="240" width="30" height="5"/>
+<rect class="water" x="0" y="245" width="35" height="5"/>
+<rect class="solid" x="35" y="245" width="10" height="5"/>
+<rect class="water" x="45" y="245" width="25" height="5"/>
+<rect class="solid" x="70" y="245" width="30" height="5"/>
+<rect class="foot" x="100" y="245" width="40" height="5"/>
+<rect class="solid" x="140" y="245" width="5" height="5"/>
+<rect class="far" x="145" y="245" width="25" height="5"/>
+<rect class="solid" x="170" y="245" width="30" height="5"/>
+<rect class="water" x="0" y="250" width="45" height="5"/>
+<rect class="solid" x="45" y="250" width="10" height="5"/>
+<rect class="water" x="55" y="250" width="15" height="5"/>
+<rect class="solid" x="70" y="250" width="15" height="5"/>
+<rect class="foot" x="85" y="250" width="5" height="5"/>
+<rect class="solid" x="90" y="250" width="15" height="5"/>
+<rect class="foot" x="105" y="250" width="35" height="5"/>
+<rect class="solid" x="140" y="250" width="5" height="5"/>
+<rect class="far" x="145" y="250" width="25" height="5"/>
+<rect class="solid" x="170" y="250" width="30" height="5"/>
+<rect class="water" x="0" y="255" width="35" height="5"/>
+<rect class="solid" x="35" y="255" width="20" height="5"/>
+<rect class="water" x="55" y="255" width="5" height="5"/>
+<rect class="foot" x="60" y="255" width="80" height="5"/>
+<rect class="solid" x="140" y="255" width="5" height="5"/>
+<rect class="far" x="145" y="255" width="25" height="5"/>
+<rect class="solid" x="170" y="255" width="30" height="5"/>
+<rect class="water" x="0" y="260" width="25" height="5"/>
+<rect class="solid" x="25" y="260" width="20" height="5"/>
+<rect class="water" x="45" y="260" width="15" height="5"/>
+<rect class="foot" x="60" y="260" width="80" height="5"/>
+<rect class="solid" x="140" y="260" width="5" height="5"/>
+<rect class="far" x="145" y="260" width="25" height="5"/>
+<rect class="solid" x="170" y="260" width="30" height="5"/>
+<rect class="water" x="0" y="265" width="25" height="5"/>
+<rect class="solid" x="25" y="265" width="10" height="5"/>
+<rect class="water" x="35" y="265" width="35" height="5"/>
+<rect class="solid" x="70" y="265" width="5" height="5"/>
+<rect class="foot" x="75" y="265" width="65" height="5"/>
+<rect class="solid" x="140" y="265" width="5" height="5"/>
+<rect class="far" x="145" y="265" width="15" height="5"/>
+<rect class="solid" x="160" y="265" width="40" height="5"/>
+<rect class="water" x="0" y="270" width="25" height="5"/>
+<rect class="solid" x="25" y="270" width="5" height="5"/>
+<rect class="water" x="30" y="270" width="40" height="5"/>
+<rect class="solid" x="70" y="270" width="10" height="5"/>
+<rect class="foot" x="80" y="270" width="10" height="5"/>
+<rect class="solid" x="90" y="270" width="10" height="5"/>
+<rect class="foot" x="100" y="270" width="40" height="5"/>
+<rect class="solid" x="140" y="270" width="5" height="5"/>
+<rect class="far" x="145" y="270" width="15" height="5"/>
+<rect class="solid" x="160" y="270" width="40" height="5"/>
+<rect class="water" x="0" y="275" width="20" height="5"/>
+<rect class="solid" x="20" y="275" width="5" height="5"/>
+<rect class="far" x="25" y="275" width="5" height="5"/>
+<rect class="solid" x="30" y="275" width="5" height="5"/>
+<rect class="water" x="35" y="275" width="35" height="5"/>
+<rect class="foot" x="70" y="275" width="25" height="5"/>
+<rect class="solid" x="95" y="275" width="5" height="5"/>
+<rect class="foot" x="100" y="275" width="40" height="5"/>
+<rect class="solid" x="140" y="275" width="15" height="5"/>
+<rect class="far" x="155" y="275" width="5" height="5"/>
+<rect class="solid" x="160" y="275" width="40" height="5"/>
+<rect class="water" x="0" y="280" width="20" height="5"/>
+<rect class="solid" x="20" y="280" width="15" height="5"/>
+<rect class="water" x="35" y="280" width="40" height="5"/>
+<rect class="foot" x="75" y="280" width="20" height="5"/>
+<rect class="solid" x="95" y="280" width="5" height="5"/>
+<rect class="foot" x="100" y="280" width="50" height="5"/>
+<rect class="solid" x="150" y="280" width="5" height="5"/>
+<rect class="far" x="155" y="280" width="5" height="5"/>
+<rect class="solid" x="160" y="280" width="40" height="5"/>
+<rect class="water" x="0" y="285" width="25" height="5"/>
+<rect class="solid" x="25" y="285" width="10" height="5"/>
+<rect class="water" x="35" y="285" width="40" height="5"/>
+<rect class="foot" x="75" y="285" width="20" height="5"/>
+<rect class="solid" x="95" y="285" width="5" height="5"/>
+<rect class="foot" x="100" y="285" width="50" height="5"/>
+<rect class="solid" x="150" y="285" width="50" height="5"/>
+<rect class="water" x="0" y="290" width="25" height="5"/>
+<rect class="solid" x="25" y="290" width="10" height="5"/>
+<rect class="water" x="35" y="290" width="40" height="5"/>
+<rect class="foot" x="75" y="290" width="20" height="5"/>
+<rect class="solid" x="95" y="290" width="10" height="5"/>
+<rect class="foot" x="105" y="290" width="65" height="5"/>
+<rect class="solid" x="170" y="290" width="30" height="5"/>
+<rect class="water" x="0" y="295" width="30" height="5"/>
+<rect class="solid" x="30" y="295" width="10" height="5"/>
+<rect class="water" x="40" y="295" width="35" height="5"/>
+<rect class="foot" x="75" y="295" width="25" height="5"/>
+<rect class="solid" x="100" y="295" width="5" height="5"/>
+<rect class="foot" x="105" y="295" width="65" height="5"/>
+<rect class="solid" x="170" y="295" width="30" height="5"/>
+<rect class="water" x="0" y="300" width="30" height="5"/>
+<rect class="solid" x="30" y="300" width="10" height="5"/>
+<rect class="water" x="40" y="300" width="35" height="5"/>
+<rect class="foot" x="75" y="300" width="25" height="5"/>
+<rect class="solid" x="100" y="300" width="10" height="5"/>
+<rect class="foot" x="110" y="300" width="70" height="5"/>
+<rect class="solid" x="180" y="300" width="20" height="5"/>
+<rect class="water" x="0" y="305" width="30" height="5"/>
+<rect class="solid" x="30" y="305" width="10" height="5"/>
+<rect class="water" x="40" y="305" width="30" height="5"/>
+<rect class="foot" x="70" y="305" width="35" height="5"/>
+<rect class="solid" x="105" y="305" width="5" height="5"/>
+<rect class="foot" x="110" y="305" width="90" height="5"/>
+<rect class="water" x="0" y="310" width="30" height="5"/>
+<rect class="solid" x="30" y="310" width="10" height="5"/>
+<rect class="water" x="40" y="310" width="30" height="5"/>
+<rect class="foot" x="70" y="310" width="35" height="5"/>
+<rect class="solid" x="105" y="310" width="15" height="5"/>
+<rect class="foot" x="120" y="310" width="80" height="5"/>
+<rect class="water" x="0" y="315" width="35" height="5"/>
+<rect class="solid" x="35" y="315" width="10" height="5"/>
+<rect class="water" x="45" y="315" width="25" height="5"/>
+<rect class="foot" x="70" y="315" width="45" height="5"/>
+<rect class="solid" x="115" y="315" width="5" height="5"/>
+<rect class="foot" x="120" y="315" width="80" height="5"/>
+<rect class="water" x="0" y="320" width="25" height="5"/>
+<rect class="solid" x="25" y="320" width="20" height="5"/>
+<rect class="water" x="45" y="320" width="25" height="5"/>
+<rect class="foot" x="70" y="320" width="45" height="5"/>
+<rect class="solid" x="115" y="320" width="10" height="5"/>
+<rect class="foot" x="125" y="320" width="55" height="5"/>
+<rect class="solid" x="180" y="320" width="20" height="5"/>
+<rect class="water" x="0" y="325" width="25" height="5"/>
+<rect class="solid" x="25" y="325" width="10" height="5"/>
+<rect class="water" x="35" y="325" width="35" height="5"/>
+<rect class="foot" x="70" y="325" width="50" height="5"/>
+<rect class="solid" x="120" y="325" width="5" height="5"/>
+<rect class="foot" x="125" y="325" width="55" height="5"/>
+<rect class="solid" x="180" y="325" width="20" height="5"/>
+<rect class="water" x="0" y="330" width="30" height="5"/>
+<rect class="solid" x="30" y="330" width="10" height="5"/>
+<rect class="water" x="40" y="330" width="35" height="5"/>
+<rect class="foot" x="75" y="330" width="45" height="5"/>
+<rect class="solid" x="120" y="330" width="20" height="5"/>
+<rect class="foot" x="140" y="330" width="30" height="5"/>
+<rect class="solid" x="170" y="330" width="30" height="5"/>
+<rect class="water" x="0" y="335" width="30" height="5"/>
+<rect class="solid" x="30" y="335" width="10" height="5"/>
+<rect class="water" x="40" y="335" width="35" height="5"/>
+<rect class="foot" x="75" y="335" width="55" height="5"/>
+<rect class="solid" x="130" y="335" width="5" height="5"/>
+<rect class="foot" x="135" y="335" width="35" height="5"/>
+<rect class="solid" x="170" y="335" width="30" height="5"/>
+<rect class="water" x="0" y="340" width="25" height="5"/>
+<rect class="solid" x="25" y="340" width="5" height="5"/>
+<rect class="water" x="30" y="340" width="45" height="5"/>
+<rect class="foot" x="75" y="340" width="55" height="5"/>
+<rect class="solid" x="130" y="340" width="5" height="5"/>
+<rect class="foot" x="135" y="340" width="25" height="5"/>
+<rect class="solid" x="160" y="340" width="40" height="5"/>
+<rect class="water" x="0" y="345" width="20" height="5"/>
+<rect class="solid" x="20" y="345" width="5" height="5"/>
+<rect class="far" x="25" y="345" width="5" height="5"/>
+<rect class="solid" x="30" y="345" width="5" height="5"/>
+<rect class="water" x="35" y="345" width="40" height="5"/>
+<rect class="foot" x="75" y="345" width="55" height="5"/>
+<rect class="solid" x="130" y="345" width="5" height="5"/>
+<rect class="foot" x="135" y="345" width="25" height="5"/>
+<rect class="solid" x="160" y="345" width="40" height="5"/>
+<rect class="water" x="0" y="350" width="20" height="5"/>
+<rect class="solid" x="20" y="350" width="15" height="5"/>
+<rect class="water" x="35" y="350" width="45" height="5"/>
+<rect class="foot" x="80" y="350" width="50" height="5"/>
+<rect class="solid" x="130" y="350" width="10" height="5"/>
+<rect class="foot" x="140" y="350" width="10" height="5"/>
+<rect class="solid" x="150" y="350" width="50" height="5"/>
+<rect class="water" x="0" y="355" width="35" height="5"/>
+<rect class="solid" x="35" y="355" width="10" height="5"/>
+<rect class="water" x="45" y="355" width="35" height="5"/>
+<rect class="foot" x="80" y="355" width="75" height="5"/>
+<rect class="solid" x="155" y="355" width="45" height="5"/>
+<rect class="water" x="0" y="360" width="35" height="5"/>
+<rect class="solid" x="35" y="360" width="10" height="5"/>
+<rect class="water" x="45" y="360" width="35" height="5"/>
+<rect class="foot" x="80" y="360" width="75" height="5"/>
+<rect class="solid" x="155" y="360" width="45" height="5"/>
+<rect class="water" x="0" y="365" width="30" height="5"/>
+<rect class="solid" x="30" y="365" width="10" height="5"/>
+<rect class="water" x="40" y="365" width="50" height="5"/>
+<rect class="foot" x="90" y="365" width="65" height="5"/>
+<rect class="solid" x="155" y="365" width="45" height="5"/>
+<rect class="water" x="0" y="370" width="30" height="5"/>
+<rect class="solid" x="30" y="370" width="10" height="5"/>
+<rect class="water" x="40" y="370" width="60" height="5"/>
+<rect class="foot" x="100" y="370" width="55" height="5"/>
+<rect class="solid" x="155" y="370" width="45" height="5"/>
+<rect class="water" x="0" y="375" width="25" height="5"/>
+<rect class="solid" x="25" y="375" width="10" height="5"/>
+<rect class="water" x="35" y="375" width="80" height="5"/>
+<rect class="foot" x="115" y="375" width="40" height="5"/>
+<rect class="solid" x="155" y="375" width="45" height="5"/>
+<rect class="water" x="0" y="380" width="25" height="5"/>
+<rect class="solid" x="25" y="380" width="20" height="5"/>
+<rect class="water" x="45" y="380" width="100" height="5"/>
+<rect class="foot" x="145" y="380" width="10" height="5"/>
+<rect class="solid" x="155" y="380" width="45" height="5"/>
+<rect class="water" x="0" y="385" width="35" height="5"/>
+<rect class="solid" x="35" y="385" width="10" height="5"/>
+<rect class="water" x="45" y="385" width="100" height="5"/>
+<rect class="solid" x="145" y="385" width="55" height="5"/>
+<rect class="water" x="0" y="390" width="30" height="5"/>
+<rect class="solid" x="30" y="390" width="10" height="5"/>
+<rect class="water" x="40" y="390" width="95" height="5"/>
+<rect class="solid" x="135" y="390" width="65" height="5"/>
+<rect class="water" x="0" y="395" width="30" height="5"/>
+<rect class="solid" x="30" y="395" width="10" height="5"/>
+<rect class="water" x="40" y="395" width="95" height="5"/>
+<rect class="solid" x="135" y="395" width="10" height="5"/>
+<rect class="water" x="145" y="395" width="10" height="5"/>
+<rect class="solid" x="155" y="395" width="45" height="5"/>
+<circle class="me" cx="92.5" cy="212.5" r="4.0"/>
+<rect class="exit" x="60" y="0" width="5" height="5"/>
+<text x="68" y="5">NORTH edge (none)</text>
+<rect class="exit" x="50" y="150" width="5" height="5"/>
+<text x="58" y="155">woods north mouth (none)</text>
+<rect class="exit" x="25" y="90" width="5" height="5"/>
+<text x="33" y="95">flower shop (none)</text>
+<rect class="exit" x="85" y="250" width="5" height="5"/>
+<text x="93" y="255">Briney (foot)</text>
+<rect class="exit" x="50" y="190" width="5" height="5"/>
+<text x="58" y="195">woods south mouth (foot)</text>
+<rect class="exit" x="195" y="310" width="5" height="5"/>
+<text x="203" y="315">EAST edge (foot)</text>
+</svg></div>
+  <div class="legend"><span style="--c:var(--foot)">reached on foot from (18,42): 546 tiles</span><span style="--c:var(--water)">water</span><span style="--c:var(--solid)">solid</span><span style="--c:var(--far)">walkable but not reached</span></div>
+  <figcaption>Run 0e05, raw-RAM archive 11268 (state 22579), drawn from the committed fixture with the production flood. No tile above y=38 is reached; rows 31 to 37 are wall from x=0 to 39. The NORTH edge, the flower shop (5,18), the woods' north mouths (10,30)/(11,30) and the woods' east mouth (32,42)/(33,42) (above south-only ledges) are <code>none</code>; Briney's house (17,50), the woods' south mouth (10,38)/(11,38) and the EAST edge are <code>foot</code>; the SOUTH edge is <code>water</code>.</figcaption>
+ </figure>
+</section>
+
+<section>
+ <h2>Before and after on that readout (0e05 tool result 22580)</h2>
+ <p>OFF, as recorded:</p>
+ <pre class="off">Navigation: command limit: stopped at (18,42) after 8 ordinary button attempts, the most one navigate_to call makes; call navigate_to again to continue to (12,0); 8 ordinary button attempts.
+- NORTH -> RUSTBORO CITY (map 0/3), offset 0; walk off the map from any tile from (12,0) to (19,0) or (33,0): stand on one of these edge tiles and press UP</pre>
+ <p>ON:</p>
+ <pre class="on">Navigation: command limit: stopped at (18,42) after 8 ordinary button attempts, the most one navigate_to call makes; (12,0) cannot be reached on foot from where you stand: no walkable way on this map leads from your tile to it or to a tile next to it, so calling navigate_to again will not get there; 8 ordinary button attempts.
+- NORTH -> RUSTBORO CITY (map 0/3), offset 0; not reachable on foot from where you stand: no walkable way on this map leads from your tile to this edge (walls, ledges or water cut it off; another map may lead there)
+Warp to ROUTE104 PRETTY PETAL FLOWER SHOP (map 17/1) at (5,18), ...; not reachable on foot from where you stand: no walkable way on this map leads from your tile to it
+Warp destination at (5,18): ROUTE104 PRETTY PETAL FLOWER SHOP (not reachable on foot from where you stand)</pre>
+ <p>The untaken-exits line (fresh history, no names read yet) goes from</p>
+ <pre class="off">Exits here you have not taken: (17,50) -> map 17/0; (5,18) -> map 17/1; (10,30) -> map 24/11; (11,30) -> map 24/11; (10,38) -> map 24/11; (11,38) -> map 24/11; (32,42) -> map 24/11; (33,42) -> map 24/11; NORTH edge -> map 0/3; EAST edge -> map 0/0</pre>
+ <p>to</p>
+ <pre class="on">Exits here you have not taken: (17,50) -> map 17/0; (10,38) -> map 24/11; (11,38) -> map 24/11; EAST edge -> map 0/0</pre>
+ <p>When nothing is left it says why: <code>none you can walk to (no exit listed on this map can be reached on foot from where you stand)</code>, or with water exits also left out (surf-gated-exits-v1 on, no Surf) <code>none you can walk to (every exit listed on this map is across water you cannot Surf yet or cannot be reached on foot from where you stand)</code>. The supervisor's three exit lists and its ways-off line drop the same exits. No Surf or badge wording appears for a land case.</p>
+</section>
+
+<section>
+ <h2>MAY on ROUTE103: the local map is not the map</h2>
+ <figure>
+  <div class="scroll"><svg viewBox="0 0 488 224" width="488" height="224" role="img" aria-label="ROUTE103 local window and foot area from (16,7)">
+<rect class="solid" x="0" y="0" width="364" height="14"/>
+<rect class="water" x="364" y="0" width="14" height="14"/>
+<rect class="solid" x="0" y="14" width="364" height="14"/>
+<rect class="water" x="364" y="14" width="14" height="14"/>
+<rect class="solid" x="0" y="28" width="56" height="14"/>
+<rect class="foot" x="56" y="28" width="168" height="14"/>
+<rect class="solid" x="224" y="28" width="140" height="14"/>
+<rect class="water" x="364" y="28" width="14" height="14"/>
+<rect class="solid" x="0" y="42" width="56" height="14"/>
+<rect class="foot" x="56" y="42" width="168" height="14"/>
+<rect class="solid" x="224" y="42" width="140" height="14"/>
+<rect class="water" x="364" y="42" width="14" height="14"/>
+<rect class="solid" x="0" y="56" width="28" height="14"/>
+<rect class="foot" x="28" y="56" width="224" height="14"/>
+<rect class="solid" x="252" y="56" width="84" height="14"/>
+<rect class="water" x="336" y="56" width="42" height="14"/>
+<rect class="solid" x="0" y="70" width="28" height="14"/>
+<rect class="foot" x="28" y="70" width="56" height="14"/>
+<rect class="solid" x="84" y="70" width="112" height="14"/>
+<rect class="foot" x="196" y="70" width="56" height="14"/>
+<rect class="solid" x="252" y="70" width="112" height="14"/>
+<rect class="water" x="364" y="70" width="14" height="14"/>
+<rect class="solid" x="0" y="84" width="28" height="14"/>
+<rect class="foot" x="28" y="84" width="154" height="14"/>
+<rect class="solid" x="182" y="84" width="196" height="14"/>
+<rect class="solid" x="0" y="98" width="28" height="14"/>
+<rect class="foot" x="28" y="98" width="252" height="14"/>
+<rect class="solid" x="280" y="98" width="56" height="14"/>
+<rect class="water" x="336" y="98" width="28" height="14"/>
+<rect class="solid" x="364" y="98" width="14" height="14"/>
+<rect class="solid" x="0" y="112" width="28" height="14"/>
+<rect class="foot" x="28" y="112" width="280" height="14"/>
+<rect class="water" x="308" y="112" width="70" height="14"/>
+<rect class="solid" x="0" y="126" width="28" height="14"/>
+<rect class="foot" x="28" y="126" width="126" height="14"/>
+<rect class="solid" x="154" y="126" width="14" height="14"/>
+<rect class="foot" x="168" y="126" width="140" height="14"/>
+<rect class="water" x="308" y="126" width="70" height="14"/>
+<rect class="solid" x="0" y="140" width="56" height="14"/>
+<rect class="foot" x="56" y="140" width="252" height="14"/>
+<rect class="water" x="308" y="140" width="70" height="14"/>
+<rect class="solid" x="0" y="154" width="56" height="14"/>
+<rect class="foot" x="56" y="154" width="252" height="14"/>
+<rect class="water" x="308" y="154" width="70" height="14"/>
+<rect class="solid" x="0" y="168" width="196" height="14"/>
+<rect class="foot" x="196" y="168" width="140" height="14"/>
+<rect class="water" x="336" y="168" width="42" height="14"/>
+<rect class="solid" x="0" y="182" width="56" height="14"/>
+<rect class="foot" x="56" y="182" width="280" height="14"/>
+<rect class="solid" x="336" y="182" width="42" height="14"/>
+<rect class="solid" x="0" y="196" width="56" height="14"/>
+<rect class="foot" x="56" y="196" width="196" height="14"/>
+<rect class="solid" x="252" y="196" width="126" height="14"/>
+<rect class="solid" x="0" y="210" width="56" height="14"/>
+<rect class="foot" x="56" y="210" width="196" height="14"/>
+<rect class="solid" x="252" y="210" width="84" height="14"/>
+<rect class="far" x="336" y="210" width="28" height="14"/>
+<rect class="water" x="364" y="210" width="14" height="14"/>
+<circle class="me" cx="231.0" cy="105.0" r="11.200000000000001"/>
+<rect class="walk" x="126" y="0" width="210" height="210" stroke-dasharray="5 3"/>
+<rect class="exit" x="140" y="42" width="14" height="14"/>
+<text x="157" y="56">MAY</text>
+<rect class="exit" x="126" y="84" width="14" height="14"/>
+<text x="143" y="98">walk here first</text>
+</svg></div>
+  <div class="legend"><span style="--c:var(--foot)">reached on foot from (16,7)</span><span style="--c:var(--water)">water</span><span style="--c:var(--solid)">solid (the row-5 and row-12 ledges are solid tiles hopped south only)</span><span style="--c:var(--far)">walkable but not reached</span></div>
+  <figcaption>Run 4198, state 23325, the west part of ROUTE103. The dashed square is the 15x15 local map navigate_to plans over, top-left (9,0). Inside it the ledges at row 5 cut the player off from MAY at (10,3); the foot flood reaches all four tiles next to her by the west path through x=2 to 5 at row 5, outside the local map.</figcaption>
+ </figure>
+ <pre class="off">(10,3) is RIVAL_MAY_NORMAL (person or object), which navigate_to cannot stand on, and none of its free neighbouring tiles can be reached from here; choose a reachable waypoint nearer to it</pre>
+ <pre class="on">(10,3) is RIVAL_MAY_NORMAL (person or object), which navigate_to cannot stand on; none of its free neighbouring tiles can be reached inside the 15x15 local map navigate_to plans over, but this map's walkable area reaches (10,4) next to it, so the way there leaves that local map; walk to (9,6) on its west edge first, then call navigate_to (10,3) again</pre>
+ <p>The waypoint is the one navigation-refusal-reasons-v2 would pick: the reachable tile on the local map's edge, with an unseen neighbour inside the map, nearest the goal. The neighbour named is one nobody stands on, nearest the player. If the flood inside the local map already reaches that neighbour, the way does not leave the local map; then it says the plan found no route right now (people, heights, one-way tiles or script-trigger tiles may be in the way). If no neighbour is reached on foot at all: <code>none of its neighbouring tiles can be reached on foot from where you stand: no walkable way on this map leads there; choose another target</code>.</p>
+</section>
+
+<section>
+ <h2>Whole-map navigation (full-map-navigation-v1)</h2>
+ <p>With the whole map there is no 15x15 window, and nothing here mentions one. The whole-map plan reaches MAY from (16,7), so the refusal never happens and the reply offers the tiles to talk from, ON as OFF. When the plan fails but the flood reaches a tile next to the person, the reply is <code>navigate_to finds no route on this map to a free tile next to it right now, though this map's walkable area reaches (x,y) next to it (people, heights, one-way tiles or script-trigger tiles may be in the way)</code>. "Call navigate_to again" can only follow a whole-map plan to the goal, which the flood also reaches, so it reads as before; a 512-press serpentine test pins that.</p>
+</section>
+
+<section>
+ <h2>Data: <code>exit_reach</code> in the state</h2>
+ <p>Present only with the switch on. Recorded example (0e05 state 22579, rows abbreviated):</p>
+ <pre>"exit_reach": {
+  "warps": [{"x":17,"y":50,"reach":"foot"}, {"x":5,"y":18,"reach":"none"}, {"x":10,"y":30,"reach":"none"}, {"x":11,"y":30,"reach":"none"},
+            {"x":10,"y":38,"reach":"foot"}, {"x":11,"y":38,"reach":"foot"}, {"x":32,"y":42,"reach":"none"}, {"x":33,"y":42,"reach":"none"}],
+  "connections": [{"direction":"NORTH","reach":"none"}, {"direction":"SOUTH","reach":"water"}, {"direction":"EAST","reach":"foot"}],
+  "foot": {"width":40, "height":80, "rows":["0000000000", ... 80 rows of 10 hex digits ...]}
+}</pre>
+ <p>Each row is one hex digit per four tiles; the high bit of a digit is the leftmost tile. Tile (x,y) is reached on foot when bit <code>3 - x%4</code> of digit <code>x/4</code> of row <code>y</code> is set. A 40x80 map costs 800 characters. The schema (<code>packages/agent/src/events.ts</code>) allows labels <code>foot</code>, <code>water</code>, <code>none</code>, directions NORTH/SOUTH/EAST/WEST, at most 255 warps, 16 connections and 256 rows of 1 to 64 lowercase hex digits.</p>
+</section>
+
+<section>
+ <h2>Wiring</h2>
+ <figure>
+  <div class="scroll"><svg viewBox="0 0 720 230" width="720" height="230" role="img" aria-label="wiring">
+   <rect class="box" x="10" y="20" width="160" height="56" rx="6"/><text x="22" y="44">preset FeatureSet</text><text x="22" y="62">exit-reachability-v1</text>
+   <rect class="box" x="10" y="140" width="160" height="56" rx="6"/><text x="22" y="164">serverFeatureEnv</text><text x="22" y="182">POKEBENCH_FEATURES_OFF</text>
+   <rect class="hot" x="210" y="140" width="190" height="56" rx="6"/><text x="222" y="164">game server: flood once</text><text x="222" y="182">exit_reach + readout notes</text>
+   <rect class="hot" x="440" y="80" width="150" height="56" rx="6"/><text x="452" y="104">exitReach(features,</text><text x="452" y="122">state) in surf-gate.ts</text>
+   <rect class="box" x="620" y="10" width="95" height="40" rx="6"/><text x="628" y="34">untaken exits</text>
+   <rect class="box" x="620" y="60" width="95" height="40" rx="6"/><text x="628" y="84">supervisor</text>
+   <rect class="box" x="620" y="110" width="95" height="40" rx="6"/><text x="628" y="134">edgeNote</text>
+   <rect class="box" x="620" y="160" width="95" height="40" rx="6"/><text x="628" y="184">navigate_to</text>
+   <path class="arrow" d="M90 76 V140"/><path class="arrow" d="M170 168 H210"/><path class="arrow" d="M400 168 C420 168 420 108 440 108"/><path class="arrow" d="M170 48 C300 48 380 100 440 100"/>
+   <path class="arrow" d="M590 108 L620 30"/><path class="arrow" d="M590 108 L620 80"/><path class="arrow" d="M590 108 L620 130"/><path class="arrow" d="M590 108 L620 180"/>
+  </svg></div>
+  <figcaption>The switch travels from the run's FeatureSet to the server (as the off-list) and to every agent consumer; the two highlighted boxes are the only places the decision is made. <code>withNavigation</code> passes it to navigate_to; <code>playGameTools</code> and <code>loopSupervisor</code> pass it to the untaken-exits line and the briefing. Tests break this wiring once and watch the factory tests go red.</figcaption>
+ </figure>
+ <p>With surf-gated-exits-v1 also on and Surf unusable, <code>exitReach</code> also leaves out <code>water</code> exits, exactly as surf-gated-exits-v1 does today; on its own this switch never hides a water exit (the finals incumbent has surf-gated-exits-v1 off).</p>
+</section>
+
+<section>
+ <h2>Off</h2>
+ <p>Every exit is listed whether or not it can be walked to; connection lines tell you to walk off edges you cannot reach; navigate_to says "call navigate_to again to continue" whenever the field is free; the person refusal says none of the neighbouring tiles can be reached from here; the state has no <code>exit_reach</code>. Tests replay the recorded 0e05 and 4198 results and the 4caa and 0e05 readouts byte for byte with the switch off.</p>
+</section>
+
+<section>
+ <h2>Status</h2>
+ <ul>
+  <li>Branch <code>claude/exit-reachability</code>. Gates: <code>just test</code>, <code>just lint</code>, <code>just build</code>, <code>just coverage</code> (90% floor) pass.</li>
+  <li>Not done yet: the multi-model review, landing, and any measured run. Registered as a pending experiment (<code>experiments/exit-reachability.json</code>), bundle arm only (operator decision 2026-10-17); not queued or approved.</li>
+ </ul>
+</section>
+</main>
+</body>
+</html>

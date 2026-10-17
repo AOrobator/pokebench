@@ -7,6 +7,7 @@ import {parseGameState,type StateSource,type GameStateSnapshot} from "./game-sta
 import {COMMAND_LIMIT_HINT,NAVIGATE_FIRST_DESCRIPTION} from "./navigate-first.js";
 import {COUNTER,EDGE_WALLS,GAME_RULE,LEDGES,OPPOSITE,WATER,type Direction,type ElevationRule} from "./tile-rules.js";
 import {edgeNote} from "./connection-edges.js";
+import {exitBlock,type ReachSwitches} from "./surf-gate.js";
 
 type Point={readonly x:number;readonly y:number};
 type Tile={readonly collision:number;readonly behavior:number;readonly elevation:number};
@@ -132,7 +133,7 @@ function unreadyReason(state:GameStateSnapshot):string {
  if(state.field_controls_locked!==false)return "field control state is unavailable; inspect the new state before calling navigate_to again";
  return "this map's navigation geometry is unavailable; inspect the new state before calling navigate_to again";
 }
-function targetReason(state:GameStateSnapshot,goal:Point,options:NavigationOptions,edges=false,truth=false):string|null {
+function targetReason(state:GameStateSnapshot,goal:Point,options:NavigationOptions,edges=false,truth=false,switches:ReachSwitches|null=null):string|null {
  const geometry=options.mode==="full"?fullGeometry(state):localGeometry(state);if(geometry===null)return null;
  const bounds=geometry.bounds;
  if(bounds!==null&&(goal.x>=bounds.width||goal.y>=bounds.height))return `${at(goal)} is outside this map; its tiles run from (0,0) to (${String(bounds.width-1)},${String(bounds.height-1)}); to reach another map, use a listed warp or a map connection`;
@@ -176,6 +177,9 @@ function targetReason(state:GameStateSnapshot,goal:Point,options:NavigationOptio
   const first=reached[0];
   const named=several?`${[...new Set(reached.map(call))].join(" or ")} (persons or objects stacked at different elevations)`:first===undefined?label:first.name!=null?`${first.name} (person or object)`:"a person or object";
   const stands=usable.map(({stand,side},i)=>`${at(stand)} facing ${OPPOSITE[side]}${several?` (reaches ${call(reached[i])})`:""}`);
+  // exit-reachability-v1: the whole-map flood decides whether "cannot be reached" is true.
+  const cut=stands.length===0&&switches!==null?personCut(state,geometry,goal,options,switches):null;
+  if(cut!==null)return `${at(goal)} is ${label}, which navigate_to cannot stand on${cut}`;
   return stands.length===0?`${at(goal)} is ${label}, which navigate_to cannot stand on, and none of its free neighbouring tiles can be reached from here; choose a reachable waypoint nearer to it`:`${at(goal)} is ${named}, which navigate_to cannot stand on; to talk to ${several?"one":"it or use it"}, walk to one of these free tiles, face it and press A: ${stands.join("; ")}`;
  }
  if(standable(tile))return null;
@@ -185,7 +189,8 @@ function targetReason(state:GameStateSnapshot,goal:Point,options:NavigationOptio
  const sorted=candidates.sort((a,b)=>distance(a,goal)-distance(b,goal)||a.y-b.y||a.x-b.x);
  const nearest=sorted.find(free);
  // connection-edge-tiles-v1: an edge tile also says which map it leads to and how to cross.
- const edge=nearest!==undefined&&edges?edgeNote(state.topology,nearest)??"":"";
+ // exit-reachability-v1: no note for a connection the reachability check leaves out.
+ const edge=nearest!==undefined&&edges?edgeNote(state.topology,nearest,switches===null?undefined:exitBlock(switches,state).connection)??"":"";
  return `${at(goal)} is ${what}, not a walkable tile; ${nearest===undefined?`no walkable tile navigate_to can reach lies within ${String(NEAREST_RADIUS)} steps of it`:`the nearest walkable tile navigate_to can reach is ${at(nearest)}${edge}`}${gatedNearer(state,geometry,goal,sorted,nearest,loose,options)}`;
 }
 const standableTile=(options:NavigationOptions)=>{
@@ -241,13 +246,21 @@ function windowReason(state:GameStateSnapshot,goal:Point,options:NavigationOptio
  if(options.mode==="full")return null;
  const geometry=localGeometry(state),grid=state.navigation_grid;
  if(geometry===null||grid==null||geometry.bounds===null)return null;
- const bounds=geometry.bounds;
  const standable=standableTile(options);
  const same=(p:Point):boolean=>p.x===goal.x&&p.y===goal.y;
  // Only when no route lies inside the window even with every terrain rule the game has (ledge hops, one-way tiles,
  // walkable floor, the game's elevation rule, matching triggers ignored): a route the configured switches miss is not a route that leaves the window.
  if(planNavigation(state,goal,{...options,ledges:true,oneWay:true,floor:true,elevation:"game",triggers:[]})!==null)return null;
  if(!standable(geometry.tile(goal))||geometry.objects.some(same)||geometry.warps.some(same)||(state.interaction_targets??[]).some(t=>t.kind==="object"&&same(t))||(state.world_context?.objects??[]).some(o=>same(o)&&o.map_id[0]===state.map_id?.[0]&&o.map_id[1]===state.map_id[1]))return null;
+ const listed=windowEdges(state,goal,options);
+ const inside=`no route to ${at(goal)} lies inside the 15x15 local map navigate_to plans over`;
+ return listed.length===0?`${inside}, and navigate_to can reach no tile on that local map's edge from here; choose another target`:`${inside}, so any route leaves it; reachable tiles on its edge, nearest ${at(goal)} first: ${listed.map(([side,p])=>`${at(p)} on the ${SIDES[side]} edge`).join(", ")}; walk to one, then call navigate_to ${at(goal)} again`;
+}
+// Reachable local-window edge tiles with an unseen neighbour inside the map, one per side, nearest the goal first.
+function windowEdges(state:GameStateSnapshot,goal:Point,options:NavigationOptions):[Direction,Point][] {
+ const geometry=localGeometry(state),grid=state.navigation_grid;
+ if(geometry===null||grid==null||geometry.bounds===null)return [];
+ const bounds=geometry.bounds,standable=standableTile(options);
  const best=new Map<Direction,Point>();
  for(const t of grid.tiles){
   const sides=DIRECTIONS.filter(([,dx,dy])=>{const n={x:t.x+dx,y:t.y+dy};return n.x>=0&&n.y>=0&&n.x<bounds.width&&n.y<bounds.height&&geometry.tile(n)===undefined;});
@@ -256,9 +269,41 @@ function windowReason(state:GameStateSnapshot,goal:Point,options:NavigationOptio
   if(path===null||triggerAt(options.triggers,t,walked(state,path,options)?.elevation??geometry.elevation)!==undefined)continue;
   for(const [side] of sides){const held=best.get(side);if(held===undefined||distance(t,goal)<distance(held,goal)||(distance(t,goal)===distance(held,goal)&&(t.y<held.y||(t.y===held.y&&t.x<held.x))))best.set(side,{x:t.x,y:t.y});}
  }
- const listed=[...best.entries()].sort(([,a],[,b])=>distance(a,goal)-distance(b,goal)||a.y-b.y||a.x-b.x);
- const inside=`no route to ${at(goal)} lies inside the 15x15 local map navigate_to plans over`;
- return listed.length===0?`${inside}, and navigate_to can reach no tile on that local map's edge from here; choose another target`:`${inside}, so any route leaves it; reachable tiles on its edge, nearest ${at(goal)} first: ${listed.map(([side,p])=>`${at(p)} on the ${SIDES[side]} edge`).join(", ")}; walk to one, then call navigate_to ${at(goal)} again`;
+ return [...best.entries()].sort(([,a],[,b])=>distance(a,goal)-distance(b,goal)||a.y-b.y||a.x-b.x);
+}
+// exit-reachability-v1: the server's flood rules (env/pokebench_env/surf_gate.py reachable) over the tiles one geometry
+// holds: no collision, no water, a ledge hops one tile on in its arrow direction. A superset of walking.
+function flood(geometry:Geometry,start:Point):Set<string> {
+ const seen=new Set([key(start)]),queue=[start];
+ for(let p=queue.shift();p!==undefined;p=queue.shift()){
+  for(const [direction,dx,dy] of DIRECTIONS){
+   let next={x:p.x+dx,y:p.y+dy},tile=geometry.tile(next);
+   if(tile===undefined)continue;
+   if(tile.collision!==0&&LEDGES.get(tile.behavior)===direction){next={x:next.x+dx,y:next.y+dy};tile=geometry.tile(next);if(tile===undefined)continue;}
+   if(seen.has(key(next))||tile.collision!==0||WATER.has(tile.behavior))continue;
+   seen.add(key(next));queue.push(next);
+  }
+ }
+ return seen;
+}
+// exit-reachability-v1: a person or object none of whose free neighbouring tiles navigate_to can reach. With the
+// server's foot area: none of its neighbours on it means it cannot be walked to at all; one on it means the plan, not
+// the map, is what failed: in the local window because the way leaves it (named by the nearest window-edge tile),
+// otherwise because people, heights, one-way or trigger tiles are in the way. Null when the foot area is unknown.
+function personCut(state:GameStateSnapshot,geometry:Geometry,goal:Point,options:NavigationOptions,reach:ReachSwitches):string|null {
+ const block=exitBlock(reach,state);
+ const sides=DIRECTIONS.map(([,dx,dy])=>({x:goal.x+dx,y:goal.y+dy}));
+ const known=sides.map(p=>block.foot(p.x,p.y));
+ if(known.some(k=>k===null))return null;
+ // A neighbour nobody stands on first, then the one nearest the player.
+ const start=state.position;
+ const taken=(p:Point):boolean=>geometry.objects.some(o=>o.x===p.x&&o.y===p.y)||(state.interaction_targets??[]).some(t=>t.kind==="object"&&t.x===p.x&&t.y===p.y);
+ const near=sides.filter((_,i)=>known[i]===true).sort((a,b)=>Number(taken(a))-Number(taken(b))||(start===null?0:distance(a,start)-distance(b,start)))[0];
+ if(near===undefined)return ", and none of its neighbouring tiles can be reached on foot from where you stand: no walkable way on this map leads there; choose another target";
+ if(options.mode==="full"||start===null||flood(geometry,start).has(key(near)))return `; navigate_to finds no route ${options.mode==="full"?"on this map":"on the 15x15 local map it plans over"} to a free tile next to it right now, though this map's walkable area reaches ${at(near)} next to it (people, heights, one-way tiles or script-trigger tiles may be in the way); choose a waypoint nearer to it`;
+ const edge=windowEdges(state,goal,options)[0];
+ const inside=`; none of its free neighbouring tiles can be reached inside the 15x15 local map navigate_to plans over, but this map's walkable area reaches ${at(near)} next to it, so the way there leaves that local map`;
+ return edge===undefined?`${inside}; navigate_to can reach no tile on that local map's edge from here, so choose another target`:`${inside}; walk to ${at(edge[1])} on its ${SIDES[edge[0]]} edge first, then call navigate_to ${at(goal)} again`;
 }
 // navigation-truth-v1: who now stands on the route tile a blocked step would have entered.
 function blocker(state:GameStateSnapshot,mode:NavigationMode,tiles:readonly Point[]):string|null {
@@ -415,6 +460,10 @@ export interface NavigationPorts {
  readonly navigateFirst?:boolean;
  // cross-map-goal-v1: a goal on another map, before any press, is refused as such, not as "map changed".
  readonly crossMapGoal?:boolean;
+ // exit-reachability-v1: the server's foot area decides "call again" and person refusals; edge notes skip blocked
+ // connections (water ones too with surf-gated-exits-v1).
+ readonly exitReach?:boolean;
+ readonly surfGate?:boolean;
 }
 function resultState(result:AgentToolResult<unknown>):GameStateSnapshot {
  const details=result.details;
@@ -459,7 +508,7 @@ export function navigationTool(ports:NavigationPorts):AgentTool<typeof Args> {
    const options:NavigationOptions={mode,ledges:ports.ledges===true,oneWay:ports.oneWay===true,grassCost:ports.grassCost===true,floor:ports.floor===true,elevation:ports.elevation??"game",...(truth&&ports.triggers===true?{triggers:matchingTriggers(state)}:{})};
    const path=planNavigation(state,goal,options);
    if(path===null){
-    status=(ports.counters===true?counterHint(state,goal,options,truth):null)??(ports.refusalReasons===true?targetReason(state,goal,options,ports.connectionEdges===true,truth):null)??(truth?triggerReason(state,goal,options):null)??(ports.windowReasons===true?windowReason(state,goal,options):null)??(mode==="full"?"no supported path on the current map; choose a reachable waypoint":"no supported local path; choose a reachable local waypoint");
+    status=(ports.counters===true?counterHint(state,goal,options,truth):null)??(ports.refusalReasons===true?targetReason(state,goal,options,ports.connectionEdges===true,truth,ports.exitReach===true?{surf:ports.surfGate===true,reach:true}:null):null)??(truth?triggerReason(state,goal,options):null)??(ports.windowReasons===true?windowReason(state,goal,options):null)??(mode==="full"?"no supported path on the current map; choose a reachable waypoint":"no supported local path; choose a reachable local waypoint");
     const here=state.position;
     if(truth&&commands>0&&origin!==null&&here!==null&&distance(origin,here)!==0)status=`walked from ${at(origin)} to ${at(here)}, then stopped: ${status}`;
     break;
@@ -487,7 +536,8 @@ export function navigationTool(ports:NavigationPorts):AgentTool<typeof Args> {
   }
   last=await ports.observe(id,signal);state=resultState(last);
   // The cap text describes the observation returned with it: "call again" only when the walk can go on.
-  if(truth&&status==="command limit"){const here=state.position;status=here!==null&&sameMap()&&ready(state,mode)?`command limit: stopped at ${at(here)} after ${String(commands)} ordinary button attempts, the most one navigate_to call makes; call navigate_to again to continue to ${at(goal)}`:`command limit: stopped after ${String(commands)} ordinary button attempts, the most one navigate_to call makes; the field is no longer free to walk, so inspect the new state`;}
+  // exit-reachability-v1: "call again" only when the goal (or a tile next to it) is on the server's foot area.
+  if(truth&&status==="command limit"){const here=state.position;const cut=ports.exitReach===true&&exitBlock({surf:false,reach:true},state).footNear(goal.x,goal.y)===false;status=here!==null&&sameMap()&&ready(state,mode)?`command limit: stopped at ${at(here)} after ${String(commands)} ordinary button attempts, the most one navigate_to call makes; ${cut?`${at(goal)} cannot be reached on foot from where you stand: no walkable way on this map leads from your tile to it or to a tile next to it, so calling navigate_to again will not get there`:`call navigate_to again to continue to ${at(goal)}`}`:`command limit: stopped after ${String(commands)} ordinary button attempts, the most one navigate_to call makes; the field is no longer free to walk, so inspect the new state`;}
   return {content:[{type:"text",text:`Navigation: ${status}; ${String(commands)} ordinary button attempts.`},...last.content],details:{state,navigation:{status,commands,target:goal,unready}}};
  }};
 }
@@ -498,5 +548,5 @@ export function withNavigation(base:readonly AgentTool[],features:FeatureSet,sta
  const tools=[...base];if(!features["bounded-navigation-v1"])return tools;
  const press=base.find(tool=>tool.name==="press"),observe=base.find(tool=>tool.name==="observe");
  if(press===undefined||observe===undefined||!isCheckedPress(press))throw new Error("Navigation requires ordinary game tools");
- tools.push(navigationTool({ledges:features["ledge-hops-v1"],oneWay:features["one-way-tiles-v1"],grassCost:features["grass-cost-navigation-v1"],counters:features["counter-talk-v1"],refusalReasons:features["navigation-refusal-reasons-v1"],connectionEdges:features["connection-edge-tiles-v1"],truth:features["navigation-truth-v1"],triggers:features["coordinate-script-conditions-v1"],windowReasons:features["navigation-refusal-reasons-v2"],floor:features["walkable-floor-v1"],elevation:features["elevation-transitions-v1"]?"game":"legacy",navigateFirst:features["navigate-first-prompt-v1"],crossMapGoal:features["cross-map-goal-v1"],read:signal=>state.read(signal),press:(id,params,signal,check)=>check===undefined?press.execute(id,params,signal):press.executeChecked(id,params,check,signal),observe:(id,signal)=>observe.execute(id,{},signal),gate,fullMap:features["full-map-navigation-v1"]}));return tools;
+ tools.push(navigationTool({ledges:features["ledge-hops-v1"],oneWay:features["one-way-tiles-v1"],grassCost:features["grass-cost-navigation-v1"],counters:features["counter-talk-v1"],refusalReasons:features["navigation-refusal-reasons-v1"],connectionEdges:features["connection-edge-tiles-v1"],truth:features["navigation-truth-v1"],triggers:features["coordinate-script-conditions-v1"],windowReasons:features["navigation-refusal-reasons-v2"],floor:features["walkable-floor-v1"],elevation:features["elevation-transitions-v1"]?"game":"legacy",navigateFirst:features["navigate-first-prompt-v1"],crossMapGoal:features["cross-map-goal-v1"],exitReach:features["exit-reachability-v1"],surfGate:features["surf-gated-exits-v1"],read:signal=>state.read(signal),press:(id,params,signal,check)=>check===undefined?press.execute(id,params,signal):press.executeChecked(id,params,check,signal),observe:(id,signal)=>observe.execute(id,{},signal),gate,fullMap:features["full-map-navigation-v1"]}));return tools;
 }

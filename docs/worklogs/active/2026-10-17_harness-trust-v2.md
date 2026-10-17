@@ -47,6 +47,9 @@ Factory test through the production playGameTools.
 
 ## Multi-Model Review Log
 
+- Round 1 (5:20-5:35 PM New York): base main 44652551, head e637d113. Claude LGTM, Grok LGTM, Codex BLOCKING: battle_action puts its status in the first text part and the readout in a later one, so the characters line was not found (charactersLine read only the first text part). Fix: on battle_action results the characters line is read from every text part; observe/press/navigate_to keep v1's first-part read, so harness-trust-v1 stays byte-identical.
+- [x] RED: multi-part battle_action result (status, screenshot, T272 readout) must carry the characters line. 5:37 PM New York: fails.
+
 ## Boy Scout Log
 
 ## Archive Milestone (user-gated)

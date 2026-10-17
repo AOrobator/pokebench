@@ -67,4 +67,15 @@ describe("harness-trust-v2",()=>{
   expect(await factory({...OFF,"harness-trust-v1":true,[ID]:true})).toBe(`${TRUST_HEADER}\n${LAB_GOAL}\n\nbattle_action: result`);
   expect(await factory({...OFF,"harness-trust-v1":true})).toBe("battle_action: result");
  });
+ it("reads the characters line from every text part, as battle_action puts its status first and the readout after the screenshot",async()=>{
+  const readout=T272?.text ?? "";
+  expect(readout).toContain("Story characters here (from this map's own object list): none.");
+  const subs:((e:RunEvent)=>void)[]=[];
+  const battle:AgentTool={name:"battle_action",label:"b",description:"b",parameters:Type.Object({}),execute:()=>Promise.resolve({content:[{type:"text",text:"Battle action: chose EMBER."},{type:"image",data:"x",mimeType:"image/png"},{type:"text",text:readout}],details:{state:STATE}})};
+  const [wrapped]=withHarnessTrust([battle],true,{subscribe:fn=>{subs.push(fn);},storyGoalAway:()=>undefined},{places:()=>Promise.resolve(PLACES)},{supervisor:true,battleAction:true});
+  for(const s of subs)for(const e of CAAA)s(e);
+  const r=await wrapped?.execute("b",{});
+  const first=r?.content[0];
+  expect(first?.type==="text"?first.text:"").toBe(`${TRUST_HEADER}\n${LAB_GOAL}\nStory characters on this map (from its own object list): none.\n\nBattle action: chose EMBER.`);
+ });
 });

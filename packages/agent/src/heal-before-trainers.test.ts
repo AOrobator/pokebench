@@ -17,6 +17,7 @@ import {formatEvent} from "./tail.js";
 import {HealBeforeTrainers,healBeforeTrainers,healBeforeTrainersText,nearestHeal,weakParty,withLowHpTrainerWarning,warningText,lowHpTrainerWarning,storyBattleText,storyBattleWarning,type WarningRecorder} from "./low-hp-trainer-warning.js";
 import {playSystemPrompt,playTools} from "./play-config.js";
 import type {PlacesBody} from "./story-destinations.js";
+import {experimentArms,parseExperiment} from "./experiments.js";
 
 const ID="heal-before-trainers-v1";
 const E046=JSON.parse(readFileSync(new URL("../test-support/heal-before-trainers-e046.json",import.meta.url),"utf8")) as {harness_features:string[];states:{seq:number;turn:number;state:unknown}[]};
@@ -266,5 +267,20 @@ describe("recorded event",()=>{
   expect(eventProblem(event)).toBeNull();
   expect(eventProblem({...event,weak:[]})).not.toBeNull();
   expect(formatEvent(event)).toBe("14:20:00 t582 SUPERVISOR heal before trainers · LASS (31,24) · TORCHIC 14/38 below half · POKéMON CENTER in OLDALE TOWN");
+ });
+});
+
+describe("the pending experiment",()=>{
+ it("flips only heal-before-trainers-v1 over the finals incumbent with v1 on, lists every switch, and is not queued",()=>{
+  const raw=JSON.parse(readFileSync(new URL("../../../experiments/heal-before-trainers.json",import.meta.url),"utf8")) as {incumbent:{features:Record<string,boolean>}};
+  expect(Object.keys(raw.incumbent.features)).toEqual([...SWITCHABLE_FEATURES]);
+  const entry=parseExperiment(raw);
+  expect(entry.queuePosition).toBeUndefined();
+  expect(entry.changedFeature).toBe(ID);
+  expect(entry.activationMilestone).toBe("ROUTE_102");
+  const {incumbent,candidate}=experimentArms(entry);
+  expect(Object.keys(candidate.features).filter(id=>candidate.features[id as keyof typeof candidate.features]!==incumbent.features[id as keyof typeof incumbent.features])).toEqual([ID]);
+  expect(incumbent.features["low-hp-trainer-warning-v1"]).toBe(true);
+  expect(dependencyProblems(presetFeatures(parsePlayPreset(candidate)))).toEqual([]);
  });
 });

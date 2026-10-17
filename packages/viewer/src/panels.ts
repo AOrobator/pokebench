@@ -429,6 +429,7 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "people-id-cards-v1":"people-id-cards-v1.html",
  "open-goal-prompt-v1":"open-goal-prompt-v1.html",
  "story-destinations-v1":"story-destinations-v1.html",
+ "heal-before-trainers-v1":"heal-before-trainers-v1.html",
 });
 
 export function harnessConfig(view:RunView,registry:readonly FeatureInfo[]=[]):string {

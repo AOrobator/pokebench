@@ -51,9 +51,14 @@ feature-switch, feature-explainer, agent-observability, pokebench-game-state (pl
 - [x] COMMIT GREEN
 
 **M3 — explainer, pending experiment, measurement, gates, review**
-- [ ] Explainer + FEATURE_EXPLAINERS; pending experiment + readiness row.
-- [ ] Measurement across recent runs (fires, false positives) by raw-RAM replay.
-- [ ] Gates; principles self-review; review (Claude, Grok, GPT), at most 2 rounds; sync main before the final round.
+- [x] COMMIT GREEN: `feat: heal-before-trainers-v1 warns on the free field …` (f8ef854b)
+- [x] Explainer `docs/explainers/heal-before-trainers-v1.html` (pages-check prints nothing; FEATURE_EXPLAINERS + README; panels/server link tests); pending `experiments/heal-before-trainers.json` (finals incumbent + v1 ON, flips this switch only, no queuePosition; test) + readiness row; `just experiments-check` ok: 89 experiments.
+- [x] Extra arm tests for coverage of real branches: a wild battle does not repeat the warning; a failed map-table read is retried, a malformed one reads as none; singular "1 map change"; center wins a tie with home; unreachable place skipped.
+- [x] Measurement (`packages/agent/test-support/measure-heal-before-trainers.ts`, production HealBeforeTrainers arm; inputs from scratch `extract.py`, which replays each field state's raw-RAM archive through `heal_trainers.read_heal_facts` with ROM script heads and move power from pokeemerald source): 14 finished runs, 2026-10-16 8:49 PM to 2026-10-17 1:15 PM New York (1fc0 4198 9439 4495 0687 d937 defa b671 bd60 dc5a 0e05 93eb eae2 e046), 11,357 game-tool results. 32 warnings in 7 runs (0.28%), all for a lead below half HP (fainted and out-of-PP never fired). 42 trainer battles (incl. rival/grunt); 12 started weak and all 12 were warned first; 11 of the 12 won without healing, 1 lost (e046 HALEY). After a warning: next trainer battle was the warned trainer 15 times (14 won, 1 lost), another trainer 7, none 10; the party read as healed before the next battle 7 times. Repeats as trainers load: dc5a 3 in 5 turns (ROUTE104), eae2 3 in 8 turns (ROUTE102). The live runs started 2026-10-17 3:16 PM were left alone.
+- [x] Live proof (isolated built viewer on 127.0.0.1:8796, scratch runs root, stopped after): `test-support/live-heal-before-trainers.ts` recorded a run through the production playGameTools + RunRecorder + pinned pi loop over e046's states: 2 `heal_before_trainers_warning` events (#8 RICH_BOY, #21 LASS). Agent Trace showed both as SUP "Heal before trainers warning" rows; expanding #21 showed the whole paragraph and the inspector "#21 · heal_before_trainers_warning · turn 0"; the timeline lanes showed no new mark; Harness Config lists HEAL BEFORE TRAINERS with "Read explainer" → `/explainers/heal-before-trainers-v1.html`, served 200; explainer checked at 1280 and 375 (figures scroll inside their containers at phone width, no page-level horizontal scroll).
+- [x] Gates after M3: `just lint` clean; `just test` agent 2136, viewer 1105, pytest 2548; `just coverage` agent 98.06 stmts / 94.28 branches / 98.25 funcs / 99.23 lines, viewer 95.35/91.39/93.79/97.62, Python lines 97.62 branches 93.73 functions 100; low-hp-trainer-warning.ts 99.12/92.59/100/100; heal_trainers.py 100%.
+- [x] COMMIT M3 docs/experiment/measurement
+- [ ] Sync main; principles self-review; review (Claude, Grok, GPT), at most 2 rounds; sync main before the final round.
 - [ ] Report reviewed head; LANDING HOLD until exit-reachability-v1.
 
 ## Multi-Model Review Log

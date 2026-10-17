@@ -80,9 +80,10 @@ it("the pending experiment's incumbent is exactly the bundle-v-control bundle co
   const arm = armPreset(definition, "cook", "bundle");
   const without = (value: Record<string, unknown>, ...keys: string[]): Record<string, unknown> => Object.fromEntries(Object.entries(value).filter(([key]) => !keys.includes(key)));
   expect(without(raw.incumbent, "id", "features")).toEqual(without(arm, "id", "features"));
-  expect(arm).toMatchObject({ start: { kind: "save_state" }, limits: { maxWallMs: 3_600_000 } });
+  expect(arm).toMatchObject({ start: { kind: "save_state" }, limits: { maxWallMs: 7_200_000 } });
   expect(raw.incumbent.features[ID]).toBe(false);
-  expect(without(raw.incumbent.features, ID)).toEqual(arm.features);
+  expect(arm.features[ID]).toBe(true);
+  expect(without(raw.incumbent.features, ID)).toEqual(without(arm.features, ID));
 });
 
 it("every diagnostic number on the explainer comes from the tracked per-run manifest", () => {

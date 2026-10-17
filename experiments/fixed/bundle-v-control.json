@@ -117,7 +117,8 @@
    "explorer-guidance-v2": true,
    "ineffective-loops-v1": false,
    "people-id-cards-v1": false,
-   "open-goal-prompt-v1": false
+   "open-goal-prompt-v1": false,
+   "low-hp-trainer-warning-v2": false
   }
  },
  "switches": [
@@ -127,7 +128,8 @@
   "cross-map-goal-v1",
   "ineffective-loops-v1",
   "people-id-cards-v1",
-  "open-goal-prompt-v1"
+  "open-goal-prompt-v1",
+  "low-hp-trainer-warning-v2"
  ],
  "offInBoth": [
   "milestone-stall-stop-v1",

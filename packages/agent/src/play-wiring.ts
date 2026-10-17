@@ -18,6 +18,8 @@ import {withPeopleLedger} from "./people-ledger.js";
 import {withPeopleIdCards,type IdCardRecorder} from "./people-id-cards.js";
 import {withStoryDestinations} from "./story-destinations.js";
 import {withInstructionLedgerV2} from "./instruction-ledger-v2.js";
+import {withHarnessTrust,type TrustRecorder} from "./harness-trust.js";
+import {withCitedDestination,type CitationRecorder} from "./cited-destination.js";
 import {withUntakenExits} from "./untaken-exits.js";
 import {withResultFacts} from "./result-facts.js";
 import type {RunRecorder} from "./recorder.js";
@@ -85,6 +87,10 @@ export function stallStop(features:FeatureSet,recorder:Pick<RunRecorder,"subscri
 // low-hp-trainer-warning-v1 wraps everything else, so its paragraph follows any other text the result gained; only
 // withResultFacts (blocked-exit-fact-v1, battle-loss-recap-v1) is outside it, adding its lines after that paragraph.
 // heal-before-trainers-v1 reads the game's map table from the same state source (GET /pokebench/places).
-export function playGameTools(base:readonly AgentTool[],features:FeatureSet,state:StateSource,recorder:AutoAdvanceRecorder&WarningRecorder&IdCardRecorder,gate?:NavigationPorts["gate"],extra:readonly AgentTool[]=[]):AgentTool[]{
- return [...withResultFacts(withLowHpTrainerWarning(withNavigateFirst([...withInstructionLedgerV2(withStoryDestinations(withPeopleIdCards(withUntakenExits(withPeopleLedger(withDialogueAutoAdvance(withNavigation(base,features,state,gate),features,{state,recorder}),features,recorder),features,recorder),features,recorder),features,recorder,state),features,recorder),...extra],features),features,recorder,state),features,recorder)];
+// cited-destination-v1 wraps all of that, so its line sits right under harness-trust-v1's header, which is outermost and
+// therefore the first thing in every result.
+export function playGameTools(base:readonly AgentTool[],features:FeatureSet,state:StateSource,recorder:AutoAdvanceRecorder&WarningRecorder&IdCardRecorder&TrustRecorder&Pick<CitationRecorder,"destinationCitation">,gate?:NavigationPorts["gate"],extra:readonly AgentTool[]=[]):AgentTool[]{
+ const facts=[...withResultFacts(withLowHpTrainerWarning(withNavigateFirst([...withInstructionLedgerV2(withStoryDestinations(withPeopleIdCards(withUntakenExits(withPeopleLedger(withDialogueAutoAdvance(withNavigation(base,features,state,gate),features,{state,recorder}),features,recorder),features,recorder),features,recorder),features,recorder,state),features,recorder),...extra],features),features,recorder,state),features,recorder)];
+ const cited=withCitedDestination(facts,features["cited-destination-v1"],recorder,{fullMap:features["full-map-navigation-v1"],exitReach:features["exit-reachability-v1"]});
+ return withHarnessTrust(cited,features["harness-trust-v1"],recorder,state);
 }

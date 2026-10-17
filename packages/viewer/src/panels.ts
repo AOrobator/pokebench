@@ -234,6 +234,8 @@ export function eventText(event: RunEvent, view?: RunView): string | null {
     case "low_hp_trainer_warning":return `Low-HP trainer warning added to the ${esc(event.tool)} result · ${esc(event.species)} ${String(event.hp)}/${String(event.max_hp)} HP · rival ${esc(event.rival)} at (${String(event.x)},${String(event.y)}) · ${esc(event.text)}`;
     case "heal_before_trainers_warning":return `Heal before trainers warning added to the ${esc(event.tool)} result · ${event.trainers.map(t=>`object ${String(t.local_id)} ${esc(t.sprite_kind??"unknown")} at (${String(t.x)},${String(t.y)})`).join(", ")} · ${event.heal===null?"no healing place named":`${event.heal.kind==="pokemon_center"?"POKéMON CENTER":"home"} in ${esc(event.heal.town)}, ${String(event.heal.hops)} map changes`} · ${esc(event.text)}`;
     case "story_battle_warning":return `Story battle warning added to the ${esc(event.tool)} result · ${esc(event.opponent)}${event.x===null||event.y===null?"":` at (${String(event.x)},${String(event.y)})`} · ${event.party.map(p=>`${esc(p.species)} ${String(p.hp)}/${String(p.max_hp)}`).join(", ")} · ${esc(event.text)}`;
+    case "story_goal_away":return `Story goal walk-away note added to the ${esc(event.tool)} result · ${esc(event.speaker)}, turn ${String(event.line_turn)} · ${event.steps.map(st=>st.measure==="tiles"?`${esc(st.to_name)} (${String(st.from.x)},${String(st.from.y)}) → (${String(st.to.x)},${String(st.to.y)}): ${String(st.before)} → ${String(st.after)} tiles`:`${esc(st.from_name)} → ${esc(st.to_name)}: ${String(st.before)} → ${String(st.after)} maps`).join("; ")} · ${esc(event.text)}`;
+    case "destination_citation":return `navigate_to because ${event.verdict==="found"?`found in the turn ${String(event.found_turn ?? 0)} result`:event.verdict==="not_found"?"not found in anything shown":"too short to check"} · to (${String(event.x)},${String(event.y)}) on map ${String(event.map_id[0])}/${String(event.map_id[1])} · “${esc(event.because)}”${event.text===null?"":` · ${esc(event.text)}`}`;
     case "text_only_supervisor":return `Text-only supervisor note ${String(event.note)}/${String(event.limit)} sent after ${String(event.replies)} replies with no tool call · ${esc(event.text)}`;
     case "ledger_context":return `Instruction ledger delivered · ${String(event.evidence.length)} references · ${esc(event.text.slice(0,200))}`;
     case "belief_ledger":return `Disproved beliefs ledger delivered · ${String(event.entries)} entr${event.entries===1?"y":"ies"} · ${String(event.evidence.length)} references · ${esc(event.text)}`;
@@ -431,6 +433,8 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "story-destinations-v1":"story-destinations-v1.html",
  "exit-reachability-v1":"exit-reachability-v1.html",
  "heal-before-trainers-v1":"heal-before-trainers-v1.html",
+ "harness-trust-v1":"harness-trust-v1.html",
+ "cited-destination-v1":"cited-destination-v1.html",
  "instruction-ledger-v2":"instruction-ledger-v2.html",
 });
 

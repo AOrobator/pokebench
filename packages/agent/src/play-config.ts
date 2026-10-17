@@ -8,6 +8,7 @@ import type { ToolSwitches } from "./game-tools.js";
 import { NAVIGATE_RULES } from "./navigation.js";
 import { mapRulesSection } from "./map-rules.js";
 import { MOVING_AROUND_FULL, MOVING_AROUND_LOCAL, navigateFirstToolList } from "./navigate-first.js";
+import { trustSection } from "./harness-trust.js";
 
 export const PLAY_LIMITS: Limits = { maxTurns: 300, maxWallMs: 30 * 60_000, failureLimit: 3 };
 export const PLAY_MAX_TOKENS = 4096;
@@ -84,6 +85,9 @@ export const PEOPLE_ID_CARDS_SECTION = "ID cards: when a person comes into view 
 // trainer-heal-guidance-v1: trainer and rival battles cannot be fled; a blackout's cost; heal first. Game rules, no destinations.
 export const TRAINER_HEAL_SECTION = "Trainer battles and your rival: a battle against a trainer, including your rival, cannot be run from. If every Pokémon in your party faints, you black out: you lose half your money and wake up back at the last POKéMON CENTER you entered, or at home, far from where you were. Your rival usually battles you when you talk to them. Before you talk to a trainer or your rival, check your party HP in the readout, and if your Pokémon is below half its maximum HP, heal first: talking to the nurse at a POKéMON CENTER heals your whole party, and so does talking to MOM at home; a POTION or an ORAN BERRY from your BAG restores some HP.";
 
+// cited-destination-v1: navigate_to's required because, in one rule.
+export const CITED_DESTINATION_SECTION = "navigate_to's because: quote, word for word, the line the game showed you that makes the destination the place to go. When nothing the game has shown you has those words, the result says so; the walk still runs.";
+
 export const GOAL_SENTENCE = "Your goal is to make as much story progress as you can: start a new game, get your first Pokémon, and work toward defeating the first Gym Leader in Rustboro City.";
 // open-goal-prompt-v1: the goal names no town, gym or leader; the game's own people say where to go.
 export const OPEN_GOAL_SENTENCE = "Your goal is to play the game and make as much story progress as you can; the people in the game will tell you what to do next.";
@@ -135,9 +139,11 @@ export function playSystemPrompt(features: FeatureSet, target: string | null): s
   if (features["untaken-exits-v1"]) prompt += `\n\n${UNTAKEN_EXITS_SECTION}`;
   if (features["people-id-cards-v1"]) prompt += `\n\n${PEOPLE_ID_CARDS_SECTION}`;
   if (navigateFirst) prompt = `${navigateFirstToolList(prompt)}\n\n${features["full-map-navigation-v1"] ? MOVING_AROUND_FULL : MOVING_AROUND_LOCAL}`;
-  return features["objective-tracking-v1"]
-    ? `${prompt}\n\n${objectivePrompt(objectiveSwitches(features))}`
-    : prompt;
+  if (features["objective-tracking-v1"]) prompt += `\n\n${objectivePrompt(objectiveSwitches(features))}`;
+  if (features["cited-destination-v1"] && features["bounded-navigation-v1"]) prompt += `\n\n${CITED_DESTINATION_SECTION}`;
+  // harness-trust-v1: last, so the trust order is the final thing the system prompt says.
+  if (features["harness-trust-v1"]) prompt += `\n\n${trustSection(features["game-evidence-priority-v1"], true)}`;
+  return prompt;
 }
 
 // The objective record repeats state facts; it hides those whose switch is off.

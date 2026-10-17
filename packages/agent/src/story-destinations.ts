@@ -22,7 +22,7 @@ export const PlacesBodySchema=Type.Object({places:Type.Array(Type.Object({
 },closed))},closed);
 export type PlacesBody=Static<typeof PlacesBodySchema>;
 export type Place=PlacesBody["places"][number];
-type MapId=readonly [number,number];
+export type MapId=readonly [number,number];
 
 export const STORY_HEADER="Latest story line naming a place";
 const NAMES=STORY_CHARACTERS.map(c=>c.name);
@@ -92,6 +92,11 @@ export interface StoryLine {
  readonly lives:Lives|null;
 }
 
+// One place a story line names: the quoted words, how they resolve (text as the block prints it after the quote),
+// and the map they resolve to (null when not resolved).
+export interface Resolved {readonly quote:string;readonly text:string;readonly target:Place|null}
+export interface StoryGoal {readonly line:StoryLine;readonly resolved:readonly Resolved[]}
+
 function namedIn(text:string):string[] {
  const out:string[]=[];
  for(const m of text.matchAll(NAMED)){const name=m[1] ?? "";if(!out.includes(name))out.push(name);}
@@ -158,29 +163,35 @@ export class StoryDestinations {
   }
   return null;
  }
+ // The latest story line naming a place, with each place it names resolved against the map table from map `here`.
+ goal(here:MapId,player:string|null,callId:string,places:readonly Place[]):StoryGoal|null {
+  const heads=headsOf(places);
+  const line=this.latest(callId,heads,player);
+  if(line===null)return null;
+  const resolved:Resolved[]=[];
+  if(line.lives!==null){
+   const {subject,owner,others}=line.lives;
+   const quote=`"${subject} lives"`;
+   if(owner===null)resolved.push({quote,text:`: not resolved: ${others.length===0?"no story character is named before it in this conversation.":`"${subject}" could be ${others.slice(0,-1).join(", ")} or ${others.at(-1) ?? ""}.`}`,target:null});
+   else{
+    const why=subject===owner?"":` (${subject} = ${owner}, the one story character named before it in this conversation)`;
+    const house=`${owner}'S HOUSE`;
+    const r=resolve(nameWords(house),places,here,`no map in the game's map table is named ${house}.`);
+    resolved.push({quote,text:`${why}${r.text}`,target:r.target});
+   }
+  }
+  for(const phrase of placePhrases(line.text,heads,[...NAMES,...(player===null?[]:[player])]))
+   resolved.push({quote:`"${phrase}"`,...resolve(words(phrase.split(" ")),places,here,"no map in the game's map table has this name.")});
+  return {line,resolved};
+ }
  block(state:GameStateSnapshot,callId:string,places:readonly Place[]|Error):string|null {
   if(!state.started||state.screen!=="overworld"||state.in_battle||state.map_id===null)return null;
   // Which line names a place depends on the map table's name endings, so without the table no line is
   // picked: one plain line instead of a guess or a looser rule.
   if(places instanceof Error)return this.latest(callId,null,state.name)===null?null:`${STORY_HEADER}: not known; the game's map table could not be read (${places.message}).`;
-  const heads=headsOf(places);
-  const line=this.latest(callId,heads,state.name);
-  if(line===null)return null;
-  const here=state.map_id;
-  const out=[`${STORY_HEADER} (turn ${String(line.turn)}, ${line.speaker}): "${line.text}"`];
-  if(line.lives!==null){
-   const {subject,owner,others}=line.lives;
-   const quote=`"${subject} lives"`;
-   if(owner===null)out.push(`- ${quote}: not resolved: ${others.length===0?"no story character is named before it in this conversation.":`"${subject}" could be ${others.slice(0,-1).join(", ")} or ${others.at(-1) ?? ""}.`}`);
-   else{
-    const why=subject===owner?"":` (${subject} = ${owner}, the one story character named before it in this conversation)`;
-    const house=`${owner}'S HOUSE`;
-    out.push(`- ${quote}${why}${resolution(nameWords(house),places,here,`no map in the game's map table is named ${house}.`)}`);
-   }
-  }
-  for(const phrase of placePhrases(line.text,heads,[...NAMES,...(state.name===null?[]:[state.name])]))
-   out.push(`- "${phrase}"${resolution(words(phrase.split(" ")),places,here,"no map in the game's map table has this name.")}`);
-  return out.join("\n");
+  const goal=this.goal(state.map_id,state.name,callId,places);
+  if(goal===null)return null;
+  return [`${STORY_HEADER} (turn ${String(goal.line.turn)}, ${goal.line.speaker}): "${goal.line.text}"`,...goal.resolved.map(r=>`- ${r.quote}${r.text}`)].join("\n");
  }
  // The readout with the block inserted after its Story line (after Location/Position without one).
  annotate(text:string,state:GameStateSnapshot,callId:string,places:readonly Place[]|Error):string {
@@ -199,10 +210,10 @@ const EDGES=new Set(["NORTH","SOUTH","EAST","WEST"]);
 
 // Resolve a name to exactly one map, keeping only maps entered from outside the matching set
 // (a house's 2F, reached by its own 1F stairs, is not a second answer), and say how to get in.
-function resolution(phrase:readonly string[],places:readonly Place[],here:MapId,none:string):string {
+function resolve(phrase:readonly string[],places:readonly Place[],here:MapId,none:string):{readonly text:string;readonly target:Place|null} {
  const head=phrase.at(-1);
  const matches=places.filter(p=>[p.name,p.display].some(n=>{const ws=nameWords(n);return headOf(ws)===head&&phrase.every(w=>ws.includes(w));}));
- if(matches.length===0)return `: not resolved: ${none}`;
+ if(matches.length===0)return {text:`: not resolved: ${none}`,target:null};
  const inside=(id:MapId)=>matches.some(p=>same(p.map_id,id));
  const ways=(target:Place)=>({
   edges:places.filter(p=>!inside(p.map_id)).flatMap(p=>p.connections.filter(c=>same(c.to,target.map_id)).map(c=>({from:p,direction:c.direction}))),
@@ -210,15 +221,15 @@ function resolution(phrase:readonly string[],places:readonly Place[],here:MapId,
  });
  const entered=matches.filter(p=>{const w=ways(p);return w.edges.length+w.doors.length>0;});
  const pick=entered.length===1?entered[0]:entered.length===0&&matches.length===1?matches[0]:undefined;
- if(pick===undefined)return `: not resolved: ${String(entered.length>0?entered.length:matches.length)} maps in the game's map table match this name, and the line does not say which.`;
+ if(pick===undefined)return {text:`: not resolved: ${String(entered.length>0?entered.length:matches.length)} maps in the game's map table match this name, and the line does not say which.`,target:null};
  const head0=` = ${mapLabel(pick)}.`;
- if(same(pick.map_id,here))return `${head0} You are in it now.`;
+ if(same(pick.map_id,here))return {text:`${head0} You are in it now.`,target:pick};
  const {edges,doors}=ways(pick);
  const parts=[
   ...edges.map(e=>{const side=EDGES.has(e.direction)?`${e.direction} edge`:`by ${e.direction}`;return same(e.from.map_id,here)?`this map's ${side}`:`${mapLabel(e.from)} ${side}`;}),
   ...doors.map(d=>{const at=d.at.map(w=>`(${String(w.x)},${String(w.y)})`).join(" or ");return same(d.from.map_id,here)?`door on this map at ${at}`:`door in ${mapLabel(d.from)} at ${at}`;}),
  ];
- return parts.length===0?`${head0} No way in is recorded in the game's map table.`:`${head0} Way in: ${parts.join("; ")}.`;
+ return {text:parts.length===0?`${head0} No way in is recorded in the game's map table.`:`${head0} Way in: ${parts.join("; ")}.`,target:pick};
 }
 
 export interface PlaceSource {places?(signal?:AbortSignal):Promise<unknown>}

@@ -6,7 +6,7 @@ import { CONTEXTUAL_CONTROLS, GAME_EVIDENCE_SECTION, NAVIGATE_TO_USAGE, PLAY_SYS
 import { OBJECTIVE_PROMPT, objectivePrompt } from "./objective-tools.js";
 
 const sha = (text: string): string => createHash("sha256").update(text).digest("hex");
-const off = (...ids: SwitchableFeature[]): FeatureSet => ({ ...ALL_ON, ...Object.fromEntries(ids.map((id) => [id, false])) });
+const off = (...ids: SwitchableFeature[]): FeatureSet => ({ ...ALL_ON, "harness-trust-v1": false, "cited-destination-v1": false, ...Object.fromEntries(ids.map((id) => [id, false])) });
 
 // Hashes of the prompts live.ts built at 0632fc0 (recorded in the worklog).
 it("reproduces the pre-registry prompts for the four legacy flag combinations", () => {
@@ -79,7 +79,7 @@ it("tells the model navigate_to hops ledges only when ledge hops are on",()=>{
 
 it("declares only the enabled navigation memory prompt and tool",()=>{const enabled={...ALL_ON,"navigation-evidence-memory-v1":true};expect(playTools(enabled)).toContain("remember_destination");expect(playSystemPrompt(enabled,null)).toContain("not required before acting");expect(playSystemPrompt(ALL_ON,null)).not.toContain("navigation evidence ledger");});
 const EVIDENCE_SHA="f5b38faa608109f47cb570284de898dc3df4bf1007b3232d65ec40ea5d7491bf",NAVIGATE_SHA="b6e6d33e6071350ae185fa42d8a705aada6578d26d8b7ebe6f739db5ac74d5b2";
-const PLAIN={...ALL_ON,"objective-tracking-v1":false,"repeat-attempt-guard-v1":false,"native-objective-completion-v1":false};
+const PLAIN={...ALL_ON,"harness-trust-v1":false,"cited-destination-v1":false,"objective-tracking-v1":false,"repeat-attempt-guard-v1":false,"native-objective-completion-v1":false};
 it("puts game evidence above remembered Pokémon knowledge only when that treatment is on",()=>{
  const on={...PLAIN,"game-evidence-priority-v1":true};
  expect(playSystemPrompt(on,null)).toBe(`${playSystemPrompt(PLAIN,null)}\n\n${GAME_EVIDENCE_SECTION}`);

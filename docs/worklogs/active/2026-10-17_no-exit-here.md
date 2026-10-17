@@ -56,3 +56,12 @@ pret/pokeemerald 731ad5bf. Outside the map's own grid with no connected map ther
 ## Multi-Model Review Log
 
 Not started (this session stops before the review loop).
+
+## Review round 1 (coordinator relay)
+
+Grok and GPT LGTM. Claude BLOCKING on one real bug: the line fires on indoor exit mats. They are south arrow warps on the map's bottom row (metatile behavior 0x65 `MB_SOUTH_ARROW_WARP`). `TryArrowWarp` in `ProcessPlayerFieldInput` (src/field_control_avatar.c) runs before any bump, so DOWN there leaves the map. Triage:
+- Fix: drop a side whose edge row or column holds any warp from the state's warp list (covers the end tile and the goal tile being a warp, exit mats and door warps on an edge); say nothing when the state has no interaction targets, since the warps are then unknown.
+- Rebut (process): PB9 / PB4 rows are re-scored with the fix; no further proof asked beyond the RED test.
+- Follow-up: none.
+
+- [x] RED: fixture gains 9439 s4011 (navigate_to (2,8) on MAYS HOUSE 1F, shown as PROF. BIRCH'S HOUSE 1F, warps (1,8)/(2,8) -> map 0/9); 3 tests fail (25 total, 22 pass).

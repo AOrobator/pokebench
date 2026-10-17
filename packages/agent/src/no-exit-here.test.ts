@@ -9,7 +9,9 @@
 // - 2026-10-16T17-47-29_qwen36-gpu0_deb4: 11662 navigate_to (10,19) on LITTLEROOT TOWN after "SOUTH -> ROUTE116" (s11619);
 //   11596 navigate_to (10,19) on ROUTE101 (a connection south).
 // - 2026-10-16T21-49-19_qwen36-gpu0_9439: 14790 press DOWN at (10,19) and 16266 press DOWN at (7,19) on LITTLEROOT TOWN
-//   (before and at T628 "SOUTH -> ROUTE116"); 14845 navigate_to (3,19).
+//   (before and at T628 "SOUTH -> ROUTE116"); 14845 navigate_to (3,19); 4011 navigate_to (2,8), the exit mat of MAYS HOUSE 1F
+//   (review round 1: a south arrow warp on the bottom row; TryArrowWarp in src/field_control_avatar.c runs before any
+//   bump, so DOWN there leaves the map).
 // Game grounding (pret/pokeemerald 731ad5bf): off the map's own grid where no map is connected, GetMapGridBlockAt
 // (src/fieldmap.c) gives the border block with MAPGRID_IMPASSABLE, MapGridGetCollisionAt reports a collision and
 // PlayerNotOnBikeCollide (src/field_player_avatar.c) bumps and walks in place. No script or text runs, so the line states
@@ -73,6 +75,26 @@ describe("no-exit-here-v1 on the recorded invented exits",()=>{
    for(const m of line.matchAll(/-> ([^;()]+?) \(map/g))expect(text(key)).toContain(must(m[1],key));
    expect(line).not.toMatch(/PETALBURG|RUSTBORO|ROUTE116|ROUTE119/);
   }
+ });
+});
+
+describe("no-exit-here-v1 on a map edge with a warp (review round 1)",()=>{
+ const mat=recorded("9439:4011");
+ it("9439 s4011: navigate_to (2,8) and a press DOWN on May's house exit mat say nothing, since DOWN there leaves through the warp",()=>{
+  expect(lineFor("9439:4011")).toBeNull();
+  expect(pressSides(mat,["DOWN"])).toEqual([]);
+  expect(goalSides(mat,{x:2,y:8,map_id:[1,2]})).toEqual([]);
+ });
+ it("drops any side whose edge row or column holds a warp, wherever the player stands on it",()=>{
+  expect(goalSides(mat,{x:5,y:8,map_id:[1,2]})).toEqual([]);
+  expect(goalSides(mat,{x:5,y:20,map_id:[1,2]})).toEqual([]);
+  expect(pressSides({...mat,position:{x:6,y:8}},["DOWN"])).toEqual([]);
+  expect(goalSides(mat,{x:0,y:8,map_id:[1,2]})).toEqual(["WEST"]);
+  expect(goalSides(mat,{x:5,y:0,map_id:[1,2]})).toEqual(["NORTH"]);
+ });
+ it("says nothing when the state lists no interaction targets (warps unknown)",()=>{
+  expect(goalSides({...mat,interaction_targets:null},{x:5,y:0,map_id:[1,2]})).toEqual([]);
+  expect(pressSides({...recorded("9439:14790"),interaction_targets:null},["DOWN"])).toEqual([]);
  });
 });
 

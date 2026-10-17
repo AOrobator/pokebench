@@ -10,3 +10,4 @@ Requested in the ChatGPT feedback triage thread (the operator, 2026-10-17). One 
 - [x] Round 1 fix: ranking follows frontier.ts; reports never call a run faster across boot and MAIN_MENU; line 71 and the checklist reworded. COMMIT: `skills: rank boot and MAIN_MENU together as frontier.ts does, never call one faster across kinds`
 - [ ] Review round 2 on the fix delta, then fast-forward merge into main
 - Gates: node --check frontier.mjs passes; no code, test or coverage surface changed.
+- [x] Synced with main before round 2

@@ -48,7 +48,11 @@ No new endpoints, subprocesses or files. Quotes from the model are matched as pl
 ## Milestones
 
 **M1 — harness-trust-v1**
-- [ ] RED: prompt rule at the end; header on observe/press/navigate_to from recorded states; supervisor sequences; whiteout; OFF byte-identical; factory test.
+
+Ordering note: the registry, presets, events schema and wiring all sit on lines exit-reachability-v1 also edits, and the coordinator holds landings that touch them until it lands. So M1a/M2a build and test the modules on their own; M1b/M2b register and wire them after merging main once exit-reachability lands.
+
+- [x] M1a RED: `harness-trust.test.ts` on the 4caa (MAY's LAB, T272/T273) and sh02 (MOM's "He lives", T74) recordings and the ROM map table: trust order text, header exact on press/navigate_to/observe, no-goal and unreadable-table lines, characters line from the readout's own object-list line, walk-away note (two farther moves; closer/standstill/repeat cases; map-table step across a connection; whiteout not counted and goal still shown; goal map, unmeasurable and unknown maps; a new story line), supervisor option off, OFF returns the same tools.
+  - 3:27 PM New York: the suite fails at load (no `harness-trust.js`).
 - [ ] GREEN: registry, presets, defaults, events (`story_goal_away`), recorder, viewer Activity History, wiring.
 - [ ] Gates
 

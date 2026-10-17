@@ -33,7 +33,7 @@
    "battle-text-auto-advance-v1": true,
    "battle-triage-guidance-v1": true,
    "birch-speech-pages-v1": true,
-   "blackout-readout-v1": false,
+   "blackout-readout-v1": true,
    "blocked-batch-result-v1": true,
    "blocked-exit-fact-v1": true,
    "bounded-navigation-v1": true,
@@ -112,21 +112,17 @@
    "world-targets-v1": true,
    "surf-gated-exits-v1": true,
    "navigation-truth-v1": true,
-   "navigation-refusal-reasons-v2": false,
+   "navigation-refusal-reasons-v2": true,
    "cross-map-goal-v1": true,
    "explorer-guidance-v2": true,
-   "ineffective-loops-v1": false,
-   "people-id-cards-v1": false,
+   "ineffective-loops-v1": true,
+   "people-id-cards-v1": true,
    "open-goal-prompt-v1": true,
    "low-hp-trainer-warning-v2": false,
    "story-destinations-v1": false
   }
  },
  "switches": [
-  "blackout-readout-v1",
-  "navigation-refusal-reasons-v2",
-  "ineffective-loops-v1",
-  "people-id-cards-v1",
   "low-hp-trainer-warning-v2",
   "story-destinations-v1",
   "counter-talk-v1",
@@ -145,7 +141,11 @@
   "navigation-truth-v1",
   "surf-gated-exits-v1",
   "cross-map-goal-v1",
-  "open-goal-prompt-v1"
+  "open-goal-prompt-v1",
+  "blackout-readout-v1",
+  "ineffective-loops-v1",
+  "navigation-refusal-reasons-v2",
+  "people-id-cards-v1"
  ],
  "phases": [
   {

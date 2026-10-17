@@ -120,7 +120,8 @@
    "open-goal-prompt-v1": true,
    "low-hp-trainer-warning-v2": false,
    "story-destinations-v1": false,
-   "exit-reachability-v1": false
+   "exit-reachability-v1": false,
+   "heal-before-trainers-v1": false
   }
  },
  "switches": [
@@ -130,7 +131,8 @@
   "grass-cost-navigation-v1",
   "full-map-navigation-v1",
   "navigation-evidence-memory-v1",
-  "exit-reachability-v1"
+  "exit-reachability-v1",
+  "heal-before-trainers-v1"
  ],
  "offInBoth": [
   "milestone-stall-stop-v1",

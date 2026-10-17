@@ -125,7 +125,12 @@
    "harness-trust-v1": false,
    "cited-destination-v1": false,
    "battle-move-tool-v1": false,
-   "harness-trust-v2": false
+   "harness-trust-v2": false,
+   "tutorial-party-owner-v1": false,
+   "mid-frame-readout-v1": false,
+   "unset-dynamic-warp-v1": false,
+   "status-names-v1": false,
+   "surf-gated-exits-v2": false
   }
  },
  "switches": [
@@ -139,7 +144,12 @@
   "harness-trust-v1",
   "cited-destination-v1",
   "battle-move-tool-v1",
-  "harness-trust-v2"
+  "harness-trust-v2",
+  "tutorial-party-owner-v1",
+  "mid-frame-readout-v1",
+  "unset-dynamic-warp-v1",
+  "status-names-v1",
+  "surf-gated-exits-v2"
  ],
  "offInBoth": [
   "milestone-stall-stop-v1",

@@ -77,6 +77,7 @@ Done when every milestone is merged, qualification shows none of F1–F8, the fo
 
 ## Session Log
 
+- 2026-10-17 01:46 PM EDT: instruction-ledger-v1 and dialogue-log-v1 join the bundle-v-control bundle arm (the operator 1:38 PM EDT; base false, both need active-field-message-buffer-v1, on in both); open-goal-prompt.json incumbent follows.
 - 2026-10-17 01:42 PM EDT: **Control changes:** surf-gated-exits-v1 moves from the bundle to on-in-both (the operator 1:37 PM EDT promotion). world-destinations-v1, battle-text-auto-advance-v1, in-game-naming-readout-v1 and no-nickname-guidance-v1 were already on in control (base). 2-hour cook cap kept.
 - 2026-10-17 01:30 PM EDT: counter-talk-v1 joins the bundle-v-control bundle arm (the operator 1:29 PM EDT, next round; base false, needs live-map-v1, on in both); open-goal-prompt.json incumbent follows.
 - 2026-10-17 01:20 PM EDT: story-destinations-v1 (landed 9060af6c, repin 967b2713; place resolution only, no people) joins the bundle-v-control bundle arm (base false; needs dialogue-auto-advance-v1, on in both); open-goal-prompt.json incumbent follows (story-destinations-v1 true).

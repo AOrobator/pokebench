@@ -131,7 +131,9 @@
   "open-goal-prompt-v1",
   "low-hp-trainer-warning-v2",
   "story-destinations-v1",
-  "counter-talk-v1"
+  "counter-talk-v1",
+  "instruction-ledger-v1",
+  "dialogue-log-v1"
  ],
  "offInBoth": [
   "milestone-stall-stop-v1",

@@ -837,19 +837,14 @@ it("links the Surf-gated exits card to its tracked explainer, which quotes the 4
  for(const quote of [id,"bundle arm only","pending experiment","FLAG_BADGE05_GET","PartyHasMonWithSurf","Exits here you have not taken: none (you have taken every exit you can walk to on this map this run)","Warp destination at (45,6): ALTERING CAVE (not an exit you can use now: across water, needs Surf)"])expect(html).toContain(quote);
  expect(html).not.toContain("both arms");
 });
-it.each([
- ["tutorial-party-owner-v1",["LoadWallyZigzagoon","Party (tutorial): ZIGZAGOON Lv7 HP 23/23 · moves TACKLE PP 35 · nickname ZIGZAGOON","malformed /pokebench/observation payload"]],
- ["mid-frame-readout-v1",["WaitForVBlank","Save-backed world state (player, location, party) not read in this snapshot: the game was in the middle of a frame. Observe again to read it."]],
- ["unset-dynamic-warp-v1",["setdynamicwarp MAP_LITTLEROOT_TOWN, 3, 10","Warp destination at (4,1): dynamic destination","PETALBURG CITY (dynamic warp; map 0/0)"]],
- ["status-names-v1",["GetAilmentFromStatus","gText_Psn","STATUS PSN","STATUS 8"]],
- ["surf-gated-exits-v2",["EventScript_UseSurf","EventScript_EndUseSurf","crosses water you cannot cross yet"]],
-] as const)("links the %s card to its tracked explainer, which quotes the recorded lines and the game source",(id,quotes)=>{
+it("links the Exit reachability card to its tracked explainer, which quotes the 0e05 and 4198 lines before and after",()=>{
+ const id="exit-reachability-v1";
  expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
  const log=new Log();log.add(0,{...START,harness_features:["ram-state-v1",id]});
  const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
  expect(doc.querySelector(`[data-feature="${id}"] a`)?.getAttribute("href")).toBe(`/explainers/${id}.html`);
  const html=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)),"utf8");
- for(const quote of [id,"bundle arm only","pending experiment",...quotes])expect(html).toContain(quote);
+ for(const quote of [id,"bundle arm only","pending experiment","call navigate_to again to continue to (12,0)","(12,0) cannot be reached on foot from where you stand","walk to (9,6) on its west edge first, then call navigate_to (10,3) again","546 tiles"])expect(html).toContain(quote);
  expect(html).not.toContain("both arms");
 });
 it("links the cross-map goal card to its tracked explainer, which quotes the recorded 4caa result and the new refusal",()=>{
@@ -969,4 +964,20 @@ it("links the story destinations card to its tracked explainer, which quotes the
  const html=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)),"utf8");
  expect(html).toContain(id);
  expect(html).toContain("- \"LAB\" = PROF. BIRCH'S POKéMON LAB (map 1/4). Way in: door in LITTLEROOT TOWN (map 0/9) at (7,16).");
+});
+
+it.each([
+ ["tutorial-party-owner-v1",["LoadWallyZigzagoon","Party (tutorial): ZIGZAGOON Lv7 HP 23/23 · moves TACKLE PP 35 · nickname ZIGZAGOON","malformed /pokebench/observation payload"]],
+ ["mid-frame-readout-v1",["WaitForVBlank","Save-backed world state (player, location, party) not read in this snapshot: the game was in the middle of a frame. Observe again to read it."]],
+ ["unset-dynamic-warp-v1",["setdynamicwarp MAP_LITTLEROOT_TOWN, 3, 10","Warp destination at (4,1): dynamic destination","PETALBURG CITY (dynamic warp; map 0/0)"]],
+ ["status-names-v1",["GetAilmentFromStatus","gText_Psn","STATUS PSN","STATUS 8"]],
+ ["surf-gated-exits-v2",["EventScript_UseSurf","EventScript_EndUseSurf","crosses water you cannot cross yet"]],
+] as const)("links the %s card to its tracked explainer, which quotes the recorded lines and the game source",(id,quotes)=>{
+ expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
+ const log=new Log();log.add(0,{...START,harness_features:["ram-state-v1",id]});
+ const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
+ expect(doc.querySelector(`[data-feature="${id}"] a`)?.getAttribute("href")).toBe(`/explainers/${id}.html`);
+ const html=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)),"utf8");
+ for(const quote of [id,"bundle arm only","pending experiment",...quotes])expect(html).toContain(quote);
+ expect(html).not.toContain("both arms");
 });

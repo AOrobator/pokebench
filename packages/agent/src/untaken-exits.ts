@@ -7,11 +7,11 @@ import {ExitHistory,mapKey,readoutNames,tileKey,warpsOf} from "./exit-history.js
 import type {FeatureSet} from "./features.js";
 import {isCheckedPress,type CheckedPressTool} from "./game-tools.js";
 import {parseGameState,type GameStateSnapshot} from "./game-state.js";
-import {surfBlock} from "./surf-gate.js";
+import {exitReach,type Cut} from "./surf-gate.js";
 import type {RunRecorder} from "./recorder.js";
 
 export const UNTAKEN_HEADER="Exits here you have not taken";
-type Snapshot=Pick<GameStateSnapshot,"started"|"screen"|"location"|"map_id"|"position"|"interaction_targets"|"topology"|"surf_gate">;
+type Snapshot=Pick<GameStateSnapshot,"started"|"screen"|"location"|"map_id"|"position"|"interaction_targets"|"topology"|"surf_gate"|"exit_reach">;
 const EDGES=new Set(["NORTH","SOUTH","EAST","WEST"]);
 
 export class UntakenExits {
@@ -39,18 +39,23 @@ export class UntakenExits {
    group.taken||=this.history.taken(map,warp.x,warp.y);
    groups.set(key,group);
   }
-  // surf-gated-exits-v1: an exit reachable only across water is not listed while Surf cannot be used (v2: the line
-  // names no badge or move); a doorway is
-  // across water only when every one of its tiles is.
-  const block=surfBlock(this.features,state);
+  // surf-gated-exits-v1: an exit reachable only across water is not listed while Surf cannot be used; a doorway is
+  // across water only when every one of its tiles is. exit-reachability-v1: nor is one reachable neither way.
+  const block=exitReach(this.features,state);
   const all=[...groups.values()],listed=this.features["world-destinations-v1"]?state.topology?.connections??[]:[];
-  const warps=all.filter(g=>!g.warps.every(w=>block.warp(w.x,w.y))),connections=listed.filter(c=>!block.connection(c.direction));
+  const warps=all.filter(g=>!g.warps.every(w=>block.warp(w.x,w.y))),connections=listed.filter(c=>!block.connection(c));
   const across=all.length-warps.length+listed.length-connections.length;
+  const cuts=new Set<Cut|null>([...all.filter(g=>!warps.includes(g)).flatMap(g=>g.warps.map(w=>block.warpCut(w.x,w.y))),...listed.filter(c=>!connections.includes(c)).map(c=>block.connectionCut(c))]);
+  // surf-gated-exits-v2: the water part names no badge or move (EventScript_UseSurf ends silently without a Surf user).
+  const plain=this.features["surf-gated-exits-v2"];
+  const why=!cuts.has("none")?(plain?"every exit listed on this map is across water you cannot cross yet":"every exit listed on this map is across water, and you cannot use Surf yet"):cuts.has("water")?(plain?"every exit listed on this map is across water you cannot cross yet or cannot be reached on foot from where you stand":"every exit listed on this map is across water you cannot Surf yet or cannot be reached on foot from where you stand"):"no exit listed on this map can be reached on foot from where you stand";
+  // exit-reachability-v1: a doorway prints only its tiles not labelled none; off, every tile as before.
+  const shown=(g:{tiles:string[];warps:{x:number;y:number}[]}):string[]=>this.features["exit-reachability-v1"]?g.tiles.filter((_,i)=>{const w=g.warps[i];return w===undefined||block.warpCut(w.x,w.y)!=="none";}):g.tiles;
   const open=[
-   ...warps.filter(g=>!g.taken).map(g=>`${g.tiles.join(" or ")} -> ${mapKey(g.destination)==="127/127"?"dynamic destination":this.place(g.destination)}`),
+   ...warps.filter(g=>!g.taken).map(g=>`${shown(g).join(" or ")} -> ${mapKey(g.destination)==="127/127"?"dynamic destination":this.place(g.destination)}`),
    ...connections.filter(c=>!this.history.crossed(map,mapKey(c.destination))).map(c=>`${c.direction}${EDGES.has(c.direction)?" edge":""} -> ${this.place(c.destination)}`),
   ];
-  const none=warps.length+connections.length>0?`none (you have taken every exit ${across>0?"you can walk to ":""}on this map this run)`:across>0?`none you can walk to (every exit listed on this map is across water${this.features["surf-gated-exits-v2"]?" you cannot cross yet":", and you cannot use Surf yet"})`:"none (no exits are listed on this map)";
+  const none=warps.length+connections.length>0?`none (you have taken every exit ${across>0?"you can walk to ":""}on this map this run)`:across>0?`none you can walk to (${why})`:"none (no exits are listed on this map)";
   return `${UNTAKEN_HEADER}: ${open.length===0?none:open.join("; ")}`;
  }
  // The readout with the line inserted after its Position line (or Location line when position is off).

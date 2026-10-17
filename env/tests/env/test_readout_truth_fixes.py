@@ -106,8 +106,12 @@ class FixtureMemory:
         return PokemonCpu(self.gprs, self.cpsr, sp, self(sp, 128))
 
 
+# Registered on main after these runs were recorded, so off for them.
+LATER = frozenset({"exit-reachability-v1"})
+
+
 def all_off(frame: dict[str, Any]) -> frozenset[str]:
-    return frozenset(frame["recorded_off"]) | NEW
+    return frozenset(frame["recorded_off"]) | NEW | LATER
 
 
 def state(name: str, on: frozenset[str] = frozenset()) -> GameState:
@@ -349,6 +353,23 @@ def test_v2_rewords_the_route104_south_edge_bd60_t706() -> None:
         " and a party Pokémon that knows SURF (you have neither)"
     )
     assert after == f"{head} where you stand to this edge crosses water you cannot cross yet"
+
+
+def test_v2_alongside_exit_reachability_rewords_only_the_water_notes() -> None:
+    # exit-reachability-v1 notes the exits reachable neither way ("not reachable on foot ...");
+    # v2 replaces only v1's Surf wording on the water-only ones.
+    reach = frozenset({"exit-reachability-v1"})
+    v1 = render("bd60-19141", reach).split("\n")
+    v2 = render("bd60-19141", reach | {"surf-gated-exits-v2"}).split("\n")
+    assert len(v1) == len(v2)
+    pairs = [(a, b) for a, b in zip(v1, v2, strict=True) if a != b]
+    assert pairs and all("Balance Badge" in a and "cannot cross yet" in b for a, b in pairs)
+    reached = [line for line in v2 if "not reachable on foot from where you stand" in line]
+    assert reached and reached == [
+        line for line in v1 if "not reachable on foot from where you stand" in line
+    ]
+    for line in v2:
+        assert "Balance Badge" not in line and "SURF" not in line
 
 
 # --- 4. status-names-v1 ------------------------------------------------------------------------

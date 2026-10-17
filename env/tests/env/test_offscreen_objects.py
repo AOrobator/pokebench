@@ -39,6 +39,7 @@ RECORDED_OFF = frozenset(FIXTURE["recorded_off"]) | {
     "birch-speech-pages-v1",
     "blackout-readout-v1",
     "surf-gated-exits-v1",
+    "exit-reachability-v1",
     "tutorial-party-owner-v1",
     "mid-frame-readout-v1",
     "unset-dynamic-warp-v1",

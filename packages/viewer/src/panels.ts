@@ -428,6 +428,7 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "people-id-cards-v1":"people-id-cards-v1.html",
  "open-goal-prompt-v1":"open-goal-prompt-v1.html",
  "story-destinations-v1":"story-destinations-v1.html",
+ "exit-reachability-v1":"exit-reachability-v1.html",
  "tutorial-party-owner-v1":"tutorial-party-owner-v1.html",
  "mid-frame-readout-v1":"mid-frame-readout-v1.html",
  "unset-dynamic-warp-v1":"unset-dynamic-warp-v1.html",

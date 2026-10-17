@@ -39,6 +39,7 @@ RECORDED_OFF = frozenset(FIXTURE["recorded_off"]) | {
     "birch-speech-pages-v1",
     "blackout-readout-v1",
     "surf-gated-exits-v1",
+    "exit-reachability-v1",
     "tutorial-party-owner-v1",
     "mid-frame-readout-v1",
     "unset-dynamic-warp-v1",
@@ -218,7 +219,7 @@ def test_production_observation_route_honours_the_switch(monkeypatch: pytest.Mon
 
 
 def test_switch_is_a_default_off_server_feature() -> None:
-    assert SERVER_FEATURES[-11] == SWITCH
+    assert SERVER_FEATURES[-12] == SWITCH
     assert SWITCH in features_off_from_env({})
 
 

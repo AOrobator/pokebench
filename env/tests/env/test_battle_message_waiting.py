@@ -35,6 +35,7 @@ RECORDED_OFF = frozenset(FIXTURE["recorded_off"]) | {
     "birch-speech-pages-v1",
     "blackout-readout-v1",
     "surf-gated-exits-v1",
+    "exit-reachability-v1",
     "tutorial-party-owner-v1",
     "mid-frame-readout-v1",
     "unset-dynamic-warp-v1",
@@ -314,7 +315,7 @@ def test_format_readout_off_is_unchanged_without_a_battle() -> None:
 
 
 def test_switch_is_registered_server_side_last_and_default_off() -> None:
-    assert SERVER_FEATURES[-13] == SWITCH
+    assert SERVER_FEATURES[-14] == SWITCH
     assert SWITCH in features_off_from_env({})
     assert features_off_from_env({"POKEBENCH_FEATURES_OFF": SWITCH}) == frozenset({SWITCH})
 

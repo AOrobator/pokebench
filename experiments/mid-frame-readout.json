@@ -103,7 +103,8 @@
    "unset-dynamic-warp-v1": false,
    "status-names-v1": false,
    "surf-gated-exits-v2": false,
-   "transition-coherence-v1": true
+   "transition-coherence-v1": true,
+   "exit-reachability-v1": false
   }
  },
  "trialsPerArm": 8,

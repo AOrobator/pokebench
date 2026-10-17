@@ -16,6 +16,7 @@ out on purpose; each can only add connectivity on foot here, so an error keeps a
 from collections import deque
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
+from typing import Generic, TypeVar
 
 from pokebench_env.game_screen import ReadMemory
 from pokebench_env.live_map import read_full_map
@@ -99,14 +100,28 @@ def reachable(tiles: Tiles, start: Tile, *, water: bool) -> frozenset[Tile]:
     return frozenset(seen)
 
 
-def water_only(
-    tiles: Tiles,
-    start: Tile,
-    *,
-    warps: Iterable[Tile],
-    connections: Mapping[str, tuple[tuple[Tile, ...], tuple[Tile, ...]]],
-) -> tuple[tuple[Tile, ...], tuple[str, ...]]:
-    """Warps and connection directions reachable with water open but not on foot.
+Edges = tuple[tuple[Tile, ...], tuple[Tile, ...]]
+# exit-reachability-v1: one map connection, as (direction, destination map, offset); a map can have
+# two on one side (Route 111 two WEST, Route 124 two EAST).
+ConnectionKey = tuple[str, tuple[int, int], int]
+K = TypeVar("K")
+Connections = Mapping[str, Edges]
+# exit-reachability-v1: how an exit can be reached from the player's tile on this map.
+FOOT, WATER, NONE = "foot", "water", "none"
+
+
+@dataclass(frozen=True)
+class Reached(Generic[K]):
+    foot: frozenset[Tile]
+    wet: frozenset[Tile]
+    warps: tuple[tuple[Tile, str], ...]
+    connections: tuple[tuple[K, str], ...]
+
+
+def classify(
+    tiles: Tiles, start: Tile, *, warps: Iterable[Tile], connections: Mapping[K, Edges]
+) -> Reached[K]:
+    """Each warp and connection labelled foot, water (only across water) or none (neither).
 
     A warp counts as reached from itself or a neighbour (doors and cave mouths are entered from
     next to them). A connection maps to (its foot edge tiles, its edge tiles crossable with water).
@@ -118,13 +133,70 @@ def water_only(
         x, y = tile
         return tile in area or any((x + dx, y + dy) in area for dx, dy in STEP)
 
-    gated_warps = tuple(w for w in dict.fromkeys(warps) if not near(w, foot) and near(w, wet))
-    gated = tuple(
-        direction
-        for direction, (dry, wet_edges) in connections.items()
-        if not any(t in foot for t in dry) and any(t in wet for t in wet_edges)
+    def label(on_foot: bool, across: bool) -> str:
+        return FOOT if on_foot else WATER if across else NONE
+
+    return Reached(
+        foot,
+        wet,
+        tuple((w, label(near(w, foot), near(w, wet))) for w in dict.fromkeys(warps)),
+        tuple(
+            (key, label(any(t in foot for t in dry), any(t in wet for t in wet_edges)))
+            for key, (dry, wet_edges) in connections.items()
+        ),
     )
-    return gated_warps, gated
+
+
+def water_only(
+    tiles: Tiles,
+    start: Tile,
+    *,
+    warps: Iterable[Tile],
+    connections: Connections,
+) -> tuple[tuple[Tile, ...], tuple[str, ...]]:
+    """Warps and connection directions reachable with water open but not on foot."""
+    reached = classify(tiles, start, warps=warps, connections=connections)
+    return (
+        tuple(w for w, how in reached.warps if how == WATER),
+        tuple(d for d, how in reached.connections if how == WATER),
+    )
+
+
+@dataclass(frozen=True)
+class FloodInputs:
+    """The current map's tiles, the player's tile and the exits the flood classifies."""
+
+    tiles: Tiles
+    start: Tile
+    warps: tuple[Tile, ...]
+    connections: Mapping[ConnectionKey, Edges]
+    width: int
+    height: int
+
+
+def read_flood_inputs(
+    read: ReadMemory,
+    map_id: tuple[int, int],
+    position: Tile,
+    targets: tuple[InteractionTarget, ...] | None,
+    topology: Topology | None,
+) -> FloodInputs | None:
+    full = read_full_map(read, position, map_id)
+    if full is None:
+        return None
+    tiles = {(t.x, t.y): (t.collision, t.behavior) for t in full.tiles}
+    connections: dict[ConnectionKey, Edges] = {}
+    for c in () if topology is None else topology.connections:
+        if c.direction not in STEPS:
+            continue
+        dry = _edges(read, c.direction, c.offset, c.destination)
+        wet = _edges(read, c.direction, c.offset, c.destination, water=True)
+        if dry is not None and wet is not None:
+            connections[(c.direction, c.destination, c.offset)] = (dry, wet)
+    warps = tuple(
+        (t.x, t.y) for t in targets or () if t.kind == "warp" and t.destination is not None
+    )
+    return FloodInputs(tiles, position, warps, connections, full.width, full.height)
 
 
 @dataclass(frozen=True)
@@ -187,6 +259,22 @@ class SurfGate:
         return f" ({NOT_NOW}: across water, needs Surf)"
 
 
+def surf_gate_from(
+    read: ReadMemory,
+    flood: FloodInputs,
+    badges: tuple[str, ...] | None,
+    party: tuple[PartyMon, ...] | None,
+) -> SurfGate:
+    # surf-gated-exits-v1 keys connections by direction, as it always has (a later one on the
+    # same side replaces an earlier one).
+    by_direction: dict[str, Edges] = {}
+    for (direction, _, _), edges in flood.connections.items():
+        by_direction[direction] = edges
+    warps, gated = water_only(flood.tiles, flood.start, warps=flood.warps, connections=by_direction)
+    use = surf_use(badges, party, read(PLAYER_AVATAR, 1)[0])
+    return SurfGate(use.can_surf, use.balance_badge, use.party_surf, use.surfing, warps, gated)
+
+
 def read_surf_gate(
     read: ReadMemory,
     map_id: tuple[int, int],
@@ -196,23 +284,5 @@ def read_surf_gate(
     badges: tuple[str, ...] | None,
     party: tuple[PartyMon, ...] | None,
 ) -> SurfGate | None:
-    full = read_full_map(read, position, map_id)
-    if full is None:
-        return None
-    tiles = {(t.x, t.y): (t.collision, t.behavior) for t in full.tiles}
-    connections: dict[str, tuple[tuple[Tile, ...], tuple[Tile, ...]]] = {}
-    for c in () if topology is None else topology.connections:
-        if c.direction not in STEPS:
-            continue
-        dry = _edges(read, c.direction, c.offset, c.destination)
-        wet = _edges(read, c.direction, c.offset, c.destination, water=True)
-        if dry is not None and wet is not None:
-            connections[c.direction] = (dry, wet)
-    warps, gated = water_only(
-        tiles,
-        position,
-        warps=[(t.x, t.y) for t in targets or () if t.kind == "warp" and t.destination is not None],
-        connections=connections,
-    )
-    use = surf_use(badges, party, read(PLAYER_AVATAR, 1)[0])
-    return SurfGate(use.can_surf, use.balance_badge, use.party_surf, use.surfing, warps, gated)
+    flood = read_flood_inputs(read, map_id, position, targets, topology)
+    return None if flood is None else surf_gate_from(read, flood, badges, party)

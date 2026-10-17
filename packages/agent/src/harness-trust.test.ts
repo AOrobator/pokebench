@@ -144,7 +144,7 @@ describe("harness-trust-v1 walk-away supervisor",()=>{
  });
  it("two moves in a row farther from the way toward the goal add one SUPERVISOR note under the header and record it",async()=>{
   const {h,texts}=await walk([route103(9,13),route103(9,10),route103(9,7)]);
-  const note="SUPERVISOR: Your last two moves took you farther from PROF. BIRCH'S POKéMON LAB (map 1/4), the place in MAY's line above (turn 272): on ROUTE103 (map 0/18) you went from (9,13) to (9,10), and this map's SOUTH edge (to OLDALE TOWN (map 0/10)) went from 8 to 11 tiles away in a straight line; then on ROUTE103 (map 0/18) you went from (9,10) to (9,7), and this map's SOUTH edge (to OLDALE TOWN (map 0/10)) went from 11 to 14 tiles away in a straight line. Unless a story character has told you something newer, the Story goal line is where to go.";
+  const note="SUPERVISOR: Your last two moves took you farther from PROF. BIRCH'S POKéMON LAB (map 1/4), the place in MAY's line above (turn 272): on ROUTE103 (map 0/18) you went from (9,13) to (9,10), and this map's SOUTH edge (to OLDALE TOWN (map 0/10)) went from 8 to 11 tiles away, counting tiles across and down; then on ROUTE103 (map 0/18) you went from (9,10) to (9,7), and this map's SOUTH edge (to OLDALE TOWN (map 0/10)) went from 11 to 14 tiles away, counting tiles across and down. Unless a story character has told you something newer, the Story goal line is where to go.";
   expect(texts[0]).not.toContain("SUPERVISOR");expect(texts[1]).not.toContain("SUPERVISOR");
   expect(texts[2]).toBe(`|${TRUST_HEADER}\n${LAB_GOAL}\n${note}\n\nLocation: x`);
   expect(h.notes).toHaveLength(1);
@@ -163,7 +163,7 @@ describe("harness-trust-v1 walk-away supervisor",()=>{
  it("leaving a map through a connection that leads farther counts as a move away, with the map-table count",async()=>{
   const {h}=await walk([oldale(10,3),route103(10,19),route103(10,15)]);
   expect(h.notes).toHaveLength(1);
-  expect(h.notes[0]?.text).toContain(": you went from OLDALE TOWN (map 0/10) to ROUTE103 (map 0/18), from 3 to 4 maps away from it by the game's map table (doors, stairs and map edges); then on ROUTE103 (map 0/18) you went from (10,19) to (10,15), and this map's SOUTH edge (to OLDALE TOWN (map 0/10)) went from 2 to 6 tiles away in a straight line.");
+  expect(h.notes[0]?.text).toContain(": you went from OLDALE TOWN (map 0/10) to ROUTE103 (map 0/18), from 3 to 4 maps away from it by the game's map table (doors, stairs and map edges); then on ROUTE103 (map 0/18) you went from (10,19) to (10,15), and this map's SOUTH edge (to OLDALE TOWN (map 0/10)) went from 2 to 6 tiles away, counting tiles across and down.");
  });
  it("a whiteout, fly or scripted warp is not a move: no note, and the goal is still shown after it",async()=>{
   const home:GameStateSnapshot={...base,map_id:[1,1],location:"RAED's HOUSE 2F",position:{x:4,y:5}};
@@ -224,16 +224,16 @@ describe("harness-trust-v1 walk-away supervisor",()=>{
   const story=harness();story.feed(CAAA,result272.seq);
   // A goal with no resolved place, and a position or map the state does not give.
   const unresolved={line:{turn:1,speaker:"MOM",text:"Go to the SECRET TOMB.",lives:null},resolved:[{quote:"\"SECRET TOMB\"",text:": not resolved",target:null}]};
-  expect(walkAway.observe(route103(9,13),unresolved,PLACES.places)).toBeNull();
-  expect(walkAway.observe({...route103(9,13),position:null},null,PLACES.places)).toBeNull();
+  expect(walkAway.observe(route103(9,13),unresolved,PLACES.places,true)).toBeNull();
+  expect(walkAway.observe({...route103(9,13),position:null},null,PLACES.places,true)).toBeNull();
   // An adjacent map the table cannot count from.
   const lab=PLACES.places.find(p=>p.map_id[0]===1&&p.map_id[1]===4);if(lab===undefined)throw Error("no lab");
   const goal={line:{turn:1,speaker:"MAY",text:"the LAB",lives:null},resolved:[{quote:"\"LAB\"",text:" = lab",target:lab}]};
   const island=[...PLACES.places,{map_id:[50,50] as [number,number],name:"ISLAND",display:"ISLAND",warps:[],connections:[{direction:"SOUTH" as const,to:[0,18] as [number,number]}]}];
   const w2=new WalkAway();
-  expect(w2.observe({...route103(9,13),map_id:[50,50],location:"ISLAND"},goal,island)).toBeNull();
-  expect(w2.observe(route103(9,13),goal,island)).toBeNull();
-  expect(w2.observe(route103(9,10),goal,island)).toBeNull();
+  expect(w2.observe({...route103(9,13),map_id:[50,50],location:"ISLAND"},goal,island,true)).toBeNull();
+  expect(w2.observe(route103(9,13),goal,island,true)).toBeNull();
+  expect(w2.observe(route103(9,10),goal,island,true)).toBeNull();
  });
  it("says one map, not one maps, and needs a recorder for its events",()=>{
   const facts:StoryGoalAwayFacts={speaker:"MAY",line_turn:1,quote:"q",targets:[{name:"LAB",map_id:[1,4]}],steps:[{measure:"maps",from_map:[0,16],to_map:[0,10],from_name:"ROUTE101",to_name:"OLDALE TOWN",from:{x:1,y:1},to:{x:1,y:1},before:0,after:1,way:null},{measure:"maps",from_map:[0,10],to_map:[0,18],from_name:"OLDALE TOWN",to_name:"ROUTE103",from:{x:1,y:1},to:{x:1,y:1},before:1,after:2,way:null}]};
@@ -312,7 +312,7 @@ describe("harness-trust-v1 walk-away review round 1",()=>{
   const h=await walkWith(2,[at(2,2),at(4,9),at(4,4)],places);
   expect(h.notes).toHaveLength(1);
   expect(h.notes[0]?.facts.steps.map(s=>[s.way,s.before,s.after])).toEqual([
-   ["the door at (1,1) (to PROF. BIRCH'S POKéMON LAB (map 1/4))",2,10],
+   ["the door at (1,1) (to PROF. BIRCH'S POKéMON LAB (map 1/4))",2,11],
    ["the door at (7,16) (to PROF. BIRCH'S POKéMON LAB (map 1/4))",10,15],
   ]);
  });

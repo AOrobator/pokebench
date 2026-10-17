@@ -854,7 +854,7 @@ it("links the Harness trust card to its tracked explainer, which quotes the reco
  const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
  expect(doc.querySelector(`[data-feature="${id}"] a`)?.getAttribute("href")).toBe(`/explainers/${id}.html`);
  const html=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)),"utf8");
- for(const quote of [id,"bundle arm only","pending experiment","Read from game memory, always true:","Story goal: &quot;Well, it&#39;s time to head back to the LAB.&quot; (MAY, turn 272) -&gt; &quot;LAB&quot; = PROF. BIRCH&#39;S POKéMON LAB (map 1/4). Way in: door in LITTLEROOT TOWN (map 0/9) at (7,16).","3. Never your memory of Pokémon games, guides or walkthroughs.","Exits you can walk to from where you stand: SOUTH edge -&gt; OLDALE TOWN (map 0/10).","went from 8 to 11 tiles away in a straight line"])expect(html).toContain(quote);
+ for(const quote of [id,"bundle arm only","pending experiment","Read from game memory, always true:","Story goal: &quot;Well, it&#39;s time to head back to the LAB.&quot; (MAY, turn 272) -&gt; &quot;LAB&quot; = PROF. BIRCH&#39;S POKéMON LAB (map 1/4). Way in: door in LITTLEROOT TOWN (map 0/9) at (7,16).","3. Never your memory of Pokémon games, guides or walkthroughs.","Exits you can walk to from where you stand: SOUTH edge -&gt; OLDALE TOWN (map 0/10).","went from 8 to 11 tiles away, counting tiles across and down"])expect(html).toContain(quote);
  expect(html).not.toContain("both arms");
 });
 it("links the Cited destination card to its tracked explainer, which quotes the schema, the found case and the not-found line",()=>{

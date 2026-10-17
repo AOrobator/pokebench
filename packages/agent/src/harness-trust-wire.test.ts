@@ -39,7 +39,7 @@ const STATE=((): GameStateSnapshot=>{
  return parseGameState(Object.fromEntries(Object.entries(e).filter(([key])=>!envelope.has(key))));
 })();
 const OFF:FeatureSet=Object.fromEntries(SWITCHABLE_FEATURES.map(id=>[id,false])) as FeatureSet;
-const at=(x:number,y:number):GameStateSnapshot=>({...STATE,position:{x,y}});
+const at=(x:number,y:number):GameStateSnapshot=>({...STATE,position:{x,y},field_controls_locked:false});
 const LAB_GOAL="Story goal: \"Well, it's time to head back to the LAB.\" (MAY, turn 272) -> \"LAB\" = PROF. BIRCH'S POKéMON LAB (map 1/4). Way in: door in LITTLEROOT TOWN (map 0/9) at (7,16).";
 const must=<T>(value:T|undefined):T=>{if(value===undefined)throw new Error("missing");return value;};
 
@@ -143,7 +143,7 @@ it("delivers the header and the walk-away note to the next model request through
   if(req.url==="/v1/models"){res.writeHead(200,{"content-type":"application/json"});res.end(JSON.stringify({data:[{id:"trust-fixture",context_window:65536,max_tokens:4096}]}));return;}
   let body="";req.setEncoding("utf8");req.on("data",(part:string)=>{body+=part;});req.on("end",()=>{
    requests.push(body);res.writeHead(200,{"content-type":"text/event-stream"});
-   for(const [delta,finish] of [[{role:"assistant",tool_calls:[{index:0,id:`observe-${String(requests.length)}`,type:"function",function:{name:"observe",arguments:"{}"}}]},null],[{},"tool_calls"]] as const)res.write(`data: ${JSON.stringify({id:"fixture",object:"chat.completion.chunk",created:0,model:"trust-fixture",choices:[{index:0,delta,finish_reason:finish}]})}\n\n`);
+   for(const [delta,finish] of [[{role:"assistant",tool_calls:[{index:0,id:`observe-${String(requests.length)}`,type:"function",function:{name:"press",arguments:JSON.stringify({buttons:["UP"]})}}]},null],[{},"tool_calls"]] as const)res.write(`data: ${JSON.stringify({id:"fixture",object:"chat.completion.chunk",created:0,model:"trust-fixture",choices:[{index:0,delta,finish_reason:finish}]})}\n\n`);
    res.end("data: [DONE]\n\n");
   });
  });
@@ -172,7 +172,7 @@ it("delivers the header and the walk-away note to the next model request through
   expect(requests[1]).toContain(goal);
   expect(results[0]?.text.startsWith(`${TRUST_HEADER}\nStory goal: "Well, it's time to head back to the LAB." (MAY, turn 0) -> "LAB" = PROF. BIRCH'S POKéMON LAB (map 1/4).`)).toBe(true);
   expect(notes).toHaveLength(1);
-  expect(notes[0]).toMatchObject({tool:"observe",speaker:"MAY",line_turn:0,steps:[{measure:"tiles",from:{x:9,y:13},to:{x:9,y:10}},{measure:"tiles",from:{x:9,y:10},to:{x:9,y:7}}]});
+  expect(notes[0]).toMatchObject({tool:"press",speaker:"MAY",line_turn:0,steps:[{measure:"tiles",from:{x:9,y:13},to:{x:9,y:10}},{measure:"tiles",from:{x:9,y:10},to:{x:9,y:7}}]});
   expect(results[3]?.text).toContain(`\n${must(notes[0]).text}\n`);
   expect(must(notes[0]).seq).toBeLessThan(must(results[3]).seq);
   expect(requests.some(r=>r.includes("SUPERVISOR: Your last two moves took you farther from PROF. BIRCH'S POKéMON LAB (map 1/4)"))).toBe(true);

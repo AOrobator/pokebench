@@ -39,9 +39,12 @@ function quoteBody(because:string):string {
 export class Citations {
  private readonly shown:{readonly turn:number;readonly text:string}[]=[];
  private readonly seen=new Set<string>();
+ // The lines this wrapper wrote echo the model's own words; they are removed before a result counts as shown.
+ private readonly echoes=new Set<string>();
+ echoed(line:string):void {this.echoes.add(line);}
  observe(event:RunEvent):void {
   if(event.type!=="tool_result"||event.is_error)return;
-  const text=normalise(event.text);
+  const text=normalise(event.text.split("\n").filter(l=>!this.echoes.has(l)).join("\n"));
   if(text===""||this.seen.has(text))return;
   this.seen.add(text);this.shown.push({turn:event.turn,text});
  }
@@ -80,6 +83,7 @@ export function withCitedDestination(tools:readonly AgentTool[],on:boolean,recor
    const {because,...goal}=params;
    const {verdict,turn}=citations.check(because);
    const line=citationText(verdict,because);
+   if(line!==null)citations.echoed(line);
    record({tool_call_id:id,because,verdict,found_turn:turn,x:goal.x,y:goal.y,map_id:[goal.map_id[0],goal.map_id[1]]},line);
    const result=await tool.execute(id,goal,signal,update);
    if(line===null)return result;

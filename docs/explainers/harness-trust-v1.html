@@ -121,8 +121,8 @@ A SUPERVISOR note under the header says when your last two moves took you farthe
 <rect class="box" x="0" y="138" width="160" height="28" rx="6"/><text x="10" y="157">LITTLEROOT TOWN · 1</text>
 <rect class="game" x="0" y="176" width="160" height="28" rx="6"/><text x="10" y="195">PROF. BIRCH'S LAB · 0</text>
 <text class="s" x="176" y="43">exit toward it:</text><text class="s" x="176" y="58">its SOUTH edge</text></g>
-</svg></div><figcaption>Within a map, the distance is the straight line to the nearest way off it that leads into the goal map, or one map-table step closer to it. Across a warp or edge, it is the count of map-table steps. Numbers from the 4caa T272 state's 80×22 topology, as the tests use them.</figcaption></figure>
-<pre>SUPERVISOR: Your last two moves took you farther from PROF. BIRCH&#39;S POKéMON LAB (map 1/4), the place in MAY&#39;s line above (turn 272): on ROUTE103 (map 0/18) you went from (9,13) to (9,10), and this map&#39;s SOUTH edge (to OLDALE TOWN (map 0/10)) went from 8 to 11 tiles away in a straight line; then on ROUTE103 (map 0/18) you went from (9,10) to (9,7), and this map&#39;s SOUTH edge (to OLDALE TOWN (map 0/10)) went from 11 to 14 tiles away in a straight line. Unless a story character has told you something newer, the Story goal line is where to go.</pre>
+</svg></div><figcaption>Within a map, the distance counts tiles across and down to the nearest way off it that leads into the goal map, or one map-table step closer to it. Across a warp or edge, it is the count of map-table steps. Numbers from the 4caa T272 state's 80×22 topology, as the tests use them.</figcaption></figure>
+<pre>SUPERVISOR: Your last two moves took you farther from PROF. BIRCH&#39;S POKéMON LAB (map 1/4), the place in MAY&#39;s line above (turn 272): on ROUTE103 (map 0/18) you went from (9,13) to (9,10), and this map&#39;s SOUTH edge (to OLDALE TOWN (map 0/10)) went from 8 to 11 tiles away, counting tiles across and down; then on ROUTE103 (map 0/18) you went from (9,10) to (9,7), and this map&#39;s SOUTH edge (to OLDALE TOWN (map 0/10)) went from 11 to 14 tiles away, counting tiles across and down. Unless a story character has told you something newer, the Story goal line is where to go.</pre>
 <div class="tablewrap"><table>
 <tr><th>Situation</th><th>Counts as</th></tr>
 <tr><td>Same map, farther from the way toward the goal</td><td>a move away</td></tr>
@@ -133,7 +133,7 @@ A SUPERVISOR note under the header says when your last two moves took you farthe
 <tr><td>Inside the goal map, an unresolved goal, a map without its size</td><td>nothing</td></tr>
 <tr><td>A newer story line that names a place</td><td>a new goal, a new count</td></tr>
 </table></div>
-<p>The goal survives a whiteout: the line is kept, and the next result after it shows it again. The note is a plain fact ("farther … in a straight line"), so a route that must loop around water can draw it; the facts it states stay true.</p>
+<p>The goal survives a whiteout: the line is kept, and the next result after it shows it again. The note is a plain fact ("farther … counting tiles across and down"), so a route that must loop around water can draw it; the facts it states stay true.</p>
 </section>
 
 <section>

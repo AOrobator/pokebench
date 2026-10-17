@@ -89,7 +89,7 @@ Ordering note: the registry, presets, events schema and wiring all sit on lines 
 - [ ] Decision probes on/off at the recorded forks, only when no trial runs on the lanes. DEFERRED until lanes are idle.
 
 **Self-check before review**
-- [x] RED: the map table must be read once per player name (story-destinations-v1 does; the player's house is named after the player, so a table read before naming would mis-resolve "He lives" for the player's own house). 4:05 PM New York: fails, 1 read instead of 3.
+- [x] RED: the map table must be read once per player name (story-destinations-v1 does; the player's house is named after the player, so a table read before naming would mis-resolve "He lives" for the player's own house). 4:02 PM New York: fails, 1 read instead of 3.
   - COMMIT: `test(harness-trust): RED map table read once per player name` (be78c729)
 - [x] GREEN: per-player-name table cache in `withHarnessTrust`, as story-destinations-v1 does. Gates: agent 2173, viewer 1111, pytest 2544; lint, build clean; coverage agent 99.18 / 94.45 / 98.15, viewer 97.62 / 91.38 / 93.79, Python 97.63 / 93.76 / 100; verify-vendor OK.
 
@@ -111,14 +111,16 @@ Tests from recorded states; viewer Activity History check on a fixture run; prob
 
 ## Multi-Model Review Log
 
-- Round 1 (4:12-4:40 PM New York), frozen base 3e8d7228 (exit-reachability tip), head 38d0b9d9, diff SHA-256 1a0512ad55da50d5a8a53b5cb2bd66ba39393e9592e95c16d6797422ff16131b. Claude (claude -p, default login, plan mode) BLOCKING, Grok (cursor-grok-4.5-high) LGTM, GPT (Codex gpt-5.6-sol, read-only) BLOCKING. Logs in /private/tmp/claude-tmp/review/ht-r1-*.log.
+- Round 1 (3:55-4:05 PM New York), frozen base 3e8d7228 (exit-reachability tip), head 38d0b9d9, diff SHA-256 1a0512ad55da50d5a8a53b5cb2bd66ba39393e9592e95c16d6797422ff16131b. Claude (claude -p, default login, plan mode) BLOCKING, Grok (cursor-grok-4.5-high) LGTM, GPT (Codex gpt-5.6-sol, read-only) BLOCKING. Logs in /private/tmp/claude-tmp/review/ht-r1-*.log.
   - Fix: (C-B1) a repeated invented `because` matched the harness's own Because line echoed into the recorded result, so the second call read "found"; (C-B2) with two ways toward the goal, `before` came from the previous nearest way and `after`/name from the current one; (X-B1) movement seen by observe, or with field controls locked (scripts), was called "your last two moves".
   - Fix (wording only): (X-B2) the experiment notes called the provisional source.commit "this branch's head"; it is a branch commit repinned at merge (feature-switch skill), so the note now says so.
   - Rebut / follow-up: map-table read retried each result when the endpoint is missing (hardening; the header says so plainly); "in a straight line" is Manhattan distance (wording within the frozen boundary; changed to "counting tiles across and down" since it is free and truer); citation scan cost (speculation, bounded by run length); duplicate unchecked worklog boxes (cleaned).
 
 ## Round 1 fixes
 
-- [x] RED: cited repeat-quote echo; observe-only and locked movement; two-ways same-way measurement. 4:45 PM New York: 3 fail.
+- [x] RED: cited repeat-quote echo; observe-only and locked movement; two-ways same-way measurement. 4:08 PM New York: 3 fail.
+  - COMMIT: `test(harness-trust,cited-destination): RED round 1 findings (echoed because, non-player movement, mixed ways)` (e7050808)
+- [x] GREEN: `Citations` drops the Because lines it wrote before a result counts as shown; `WalkAway.observe(..., own)` counts only press/navigate_to results ending with field controls free (anything else seen moving starts over); same-map moves are measured to the way that was nearest before the move, both numbers about that way; wording "counting tiles across and down" (prompt note, explainer, copy); the pi wire test now moves with press calls; experiment notes no longer call the provisional commit the head. Gates: agent 2176, viewer 1111, pytest 2544; lint, build clean; coverage agent 99.18 / 94.47 / 98.16, viewer 97.62 / 91.38 / 93.79, Python 97.63 / 93.76 / 100; pages-check clean.
 
 ## Boy Scout Log
 

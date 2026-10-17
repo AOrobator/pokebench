@@ -124,30 +124,34 @@ export interface StoryGoalAwayFacts {
  readonly targets:readonly {readonly name:string;readonly map_id:MapId}[];
  readonly steps:readonly AwayStep[];
 }
-interface Sample {readonly key:string;readonly map:MapId;readonly name:string;readonly pos:{readonly x:number;readonly y:number};readonly tiles:WayIn|null;readonly maps:number|null}
+interface Sample {readonly key:string;readonly map:MapId;readonly name:string;readonly pos:{readonly x:number;readonly y:number};readonly ways:readonly WayIn[];readonly maps:number|null}
 
 // Counts the player's own moves farther from the goal's place; two in a row (no closer move between) fire once.
 export class WalkAway {
  private last:Sample|null=null;
  private away:AwayStep[]=[];
- observe(state:GameStateSnapshot,goal:StoryGoal|null,places:readonly Place[]):StoryGoalAwayFacts|null {
+ // own: the result is the player's own move: a press or navigate_to that ended with field controls free. Movement seen
+ // otherwise (an observe, a script moving the player while controls are locked) is not counted and starts over.
+ observe(state:GameStateSnapshot,goal:StoryGoal|null,places:readonly Place[],own:boolean):StoryGoalAwayFacts|null {
   if(!state.started||state.screen!=="overworld"||state.in_battle||state.map_id===null||state.position===null)return null;
   const targets=goal===null?[]:goal.resolved.flatMap(r=>r.target===null?[]:[r.target]);
   if(goal===null||targets.length===0){this.reset(null);return null;}
   const key=`${String(goal.line.turn)}\u0000${goal.line.speaker}\u0000${goal.line.text}`;
   const here=state.map_id;
   if(targets.some(t=>same(t.map_id,here))){this.reset(null);return null;}
-  const ways=waysHere(state,targets,places);
-  const nearest=ways.reduce<WayIn|null>((best,w)=>best===null||w.distance<best.distance?w:best,null);
-  const sample:Sample={key,map:here,name:state.location_display??state.location??"this map",pos:state.position,tiles:nearest,maps:mapSteps(here,targets.map(t=>t.map_id),places)};
+  const sample:Sample={key,map:here,name:state.location_display??state.location??"this map",pos:state.position,ways:waysHere(state,targets,places),maps:mapSteps(here,targets.map(t=>t.map_id),places)};
   const prev=this.last;this.last=sample;
   if(prev?.key!==key){this.away=[];return null;}
+  if(same(prev.map,here)&&prev.pos.x===sample.pos.x&&prev.pos.y===sample.pos.y)return null;
+  if(!own||state.field_controls_locked!==false){this.away=[];return null;}
   let step:AwayStep|null=null,closer=false;
   if(same(prev.map,here)){
-   if(prev.pos.x===sample.pos.x&&prev.pos.y===sample.pos.y)return null;
-   if(prev.tiles===null||sample.tiles===null)return null;
-   if(sample.tiles.distance>prev.tiles.distance)step={measure:"tiles",from_map:prev.map,to_map:here,from_name:prev.name,to_name:sample.name,from:prev.pos,to:sample.pos,before:prev.tiles.distance,after:sample.tiles.distance,way:sample.tiles.label};
-   else closer=sample.tiles.distance<prev.tiles.distance;
+   // Measured to the way that was nearest before the move, before and after, so both numbers are about one way.
+   const way=prev.ways.reduce<WayIn|null>((best,w)=>best===null||w.distance<best.distance?w:best,null);
+   const now=way===null?undefined:sample.ways.find(w=>w.label===way.label);
+   if(way===null||now===undefined)return null;
+   if(now.distance>way.distance)step={measure:"tiles",from_map:prev.map,to_map:here,from_name:prev.name,to_name:sample.name,from:prev.pos,to:sample.pos,before:way.distance,after:now.distance,way:way.label};
+   else closer=now.distance<way.distance;
   }else{
    // Only a walk through one warp or connection counts; a whiteout, a fly or a scripted warp is not a move.
    if(!adjacent(prev.map,here,places)){this.away=[];return null;}
@@ -166,7 +170,7 @@ export class WalkAway {
 }
 
 function stepText(s:AwayStep):string {
- if(s.measure==="tiles")return `on ${mapLabel(s.to_name,s.to_map)} you went from ${at(s.from)} to ${at(s.to)}, and ${s.way ?? "the way in"} went from ${String(s.before)} to ${String(s.after)} tiles away in a straight line`;
+ if(s.measure==="tiles")return `on ${mapLabel(s.to_name,s.to_map)} you went from ${at(s.from)} to ${at(s.to)}, and ${s.way ?? "the way in"} went from ${String(s.before)} to ${String(s.after)} tiles away, counting tiles across and down`;
  return `you went from ${mapLabel(s.from_name,s.from_map)} to ${mapLabel(s.to_name,s.to_map)}, from ${String(s.before)} to ${String(s.after)} map${s.after===1?"":"s"} away from it by the game's map table (doors, stairs and map edges)`;
 }
 export function awayText(f:StoryGoalAwayFacts):string {
@@ -189,13 +193,13 @@ export class HarnessTrust {
  private readonly walk=new WalkAway();
  constructor(private readonly options:TrustOptions) {}
  observe(event:RunEvent):void {this.story.observe(event);}
- lines(text:string,state:GameStateSnapshot,callId:string,places:readonly Place[]|Error):{readonly header:string;readonly away:StoryGoalAwayFacts|null} {
+ lines(text:string,state:GameStateSnapshot,callId:string,places:readonly Place[]|Error,own=false):{readonly header:string;readonly away:StoryGoalAwayFacts|null} {
   const anyLine=this.story.latest(callId,null,state.name)!==null;
   const goal=places instanceof Error||state.map_id===null?null:this.story.goal(state.map_id,state.name,callId,places);
   const characters=charactersLine(text);
   const exits=places instanceof Error?null:exitsLine(state,places);
   const header=[TRUST_HEADER,goalLine(goal,places,anyLine),...(characters===null?[]:[characters]),...(exits===null?[]:[exits])].join("\n");
-  const away=this.options.supervisor&&!(places instanceof Error)?this.walk.observe(state,goal,places):null;
+  const away=this.options.supervisor&&!(places instanceof Error)?this.walk.observe(state,goal,places,own):null;
   return {header,away};
  }
 }
@@ -224,7 +228,7 @@ export function withHarnessTrust(tools:readonly AgentTool[],on:boolean,recorder:
   const index=result.content.findIndex(part=>part.type==="text");
   const part=result.content[index];
   if(part?.type!=="text")return result;
-  const {header,away}=trust.lines(part.text,state,id,await places(state.name ?? ""));
+  const {header,away}=trust.lines(part.text,state,id,await places(state.name ?? ""),tool!=="observe");
   const note=away===null?null:awayText(away);
   if(away!==null&&note!==null)record?.(tool,away,note);
   const content=[...result.content];content[index]={...part,text:`${header}\n${note===null?"":`${note}\n`}\n${part.text}`};

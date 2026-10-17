@@ -93,5 +93,5 @@
   "window": 4,
   "minReached": 3
  },
- "notes": "Bundle arm only (operator decision the operator 2026-10-17 2:12 PM New York): the config owner turns it on in the bundle arm of bundle-v-control, which is owned elsewhere and not edited here. Uses exit-reachability's finals incumbent (bounded navigation ON, which the switch needs) with only cited-destination-v1 flipped. Activation: navigate_to exists from the truck on (PLAYER_NAME_CONFIRMED), as for whole-map navigation. Not designed (pokebench-experiment-design) and not queued. Provisional source.commit is this branch's head; repin to the merge SHA with `just experiment-pin` when it lands."
+ "notes": "Bundle arm only (operator decision the operator 2026-10-17 2:12 PM New York): the config owner turns it on in the bundle arm of bundle-v-control, which is owned elsewhere and not edited here. Uses exit-reachability's finals incumbent (bounded navigation ON, which the switch needs) with only cited-destination-v1 flipped. Activation: navigate_to exists from the truck on (PLAYER_NAME_CONFIRMED), as for whole-map navigation. Not designed (pokebench-experiment-design) and not queued. Provisional source.commit is a commit on this branch, not the reviewed head; repin to the merge SHA with `just experiment-pin` when it lands."
 }

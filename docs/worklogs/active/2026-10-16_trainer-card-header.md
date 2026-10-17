@@ -59,3 +59,4 @@ No harness behavior change, so no feature switch.
 - [x] Art built into ~/dev/pokebench/runs/sprites/trainer-card-v1 (symlink to a ROM-verified build). `just viewer-main`: viewer at ceddc5e6, 2 live gameplay processes kept.
 - [x] Live check on 8790: two cards (control 93eb, bundle 0e05) with card clocks equal to the header clock (42:58). Clicking bundle watches it (RUNNING, aria-pressed). The phone sheet shows the mini cards, watched first. Screenshots: runs/reviews/2026-10-16-trainer-card-e2e/live-8790-*.
 - Follow-ups: focus restore keyed by run, not position (Claude H1, round 2); test card count changing between polls; keyed mini-card updates in the sheet.
+- Grok round 3 (packet 4bd75229, the landed diff): VERDICT: LGTM, returned after landing.

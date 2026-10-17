@@ -82,7 +82,7 @@ th{font:500 .75rem var(--mono);letter-spacing:.06em;text-transform:uppercase;col
 <text x="342" y="142">navigate_to (19,10) arrived (e046 s18731), or</text>
 <text x="342" y="160">press RIGHT here: the game only bumps.</text>
 <text class="s" x="342" y="180">The result adds the line below.</text>
-</svg></div><figcaption>Green: sides with a map connection (never this switch's line, reachable or not). Red: a side with none. The line fires when a press ends with its last button a direction pointing off the map from the tile the player stands on (facing it), or when navigate_to aims at a tile on or past an edge of the current map, and that side has no connection. A corner names each side without one.</figcaption></figure>
+</svg></div><figcaption>Green: sides with a map connection (never this switch's line, reachable or not). Red: a side with none. The line fires when a press ends with its last button a direction pointing off the map from the tile the player stands on (facing it), or when navigate_to aims at a tile on or past an edge of the current map, and that side has no connection. A corner names each side without one. A side whose edge row or column holds a warp never gets the line: indoor exit mats are south arrow warps on the bottom row (<code>MB_SOUTH_ARROW_WARP</code>), and <code>TryArrowWarp</code> in <code>ProcessPlayerFieldInput</code> (src/field_control_avatar.c) runs before any bump, so DOWN there leaves the map. Without the state's interaction targets the warps are unknown and no line is added.</figcaption></figure>
 <div class="tablewrap"><table>
 <tr><th>Recorded call</th><th>Side</th><th>Line</th></tr>
 <tr><td>e046 s18731 navigate_to (19,10), OLDALE TOWN</td><td>east, no connection</td><td class="on">yes</td></tr>
@@ -92,6 +92,7 @@ th{font:500 .75rem var(--mono);letter-spacing:.06em;text-transform:uppercase;col
 <tr><td>e046 s17409 press UP, UP onto (11,0), OLDALE TOWN</td><td>north, ROUTE103</td><td class="off">no</td></tr>
 <tr><td>e046 s17421 press UP across to ROUTE103 (11,21)</td><td>ends on the south edge, pressed north</td><td class="off">no</td></tr>
 <tr><td>deb4 s11596 navigate_to (10,19), ROUTE101</td><td>south, LITTLEROOT TOWN</td><td class="off">no</td></tr>
+<tr><td>9439 s4011 navigate_to (2,8), the exit mat of MAYS HOUSE 1F (shown as PROF. BIRCH'S HOUSE 1F)</td><td>south, no connection but warps (1,8) and (2,8) on that edge</td><td class="off">no</td></tr>
 </table></div>
 </section>
 

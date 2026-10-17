@@ -20,8 +20,12 @@ const CUT:Readonly<Record<Cut,string>>={water:" (crosses water you cannot cross 
 
 type Placed=Snapshot&{readonly map_id:readonly [number,number];readonly position:{readonly x:number;readonly y:number};readonly topology:NonNullable<Snapshot["topology"]>};
 const placed=(s:Snapshot):s is Placed=>s.started&&s.screen==="overworld"&&!s.in_battle&&s.map_id!==null&&s.position!==null&&s.topology!=null;
-// The sides with no connection among those given, in map order.
-const open=(s:Placed,sides:ReadonlySet<Side>):Side[]=>ORDER.filter(side=>sides.has(side)&&!s.topology.connections.some(c=>c.direction===side));
+// A warp on an edge row or column can lead off the map that way: indoor exit mats are south arrow warps on the bottom
+// row (MB_SOUTH_ARROW_WARP), and TryArrowWarp (src/field_control_avatar.c ProcessPlayerFieldInput) runs before any bump.
+const onEdge=(s:Placed,side:Side,x:number,y:number):boolean=>side==="NORTH"?y===0:side==="SOUTH"?y===s.topology.height-1:side==="EAST"?x===s.topology.width-1:x===0;
+// The sides among those given with no connection and no warp on their edge, in map order. Without the state's
+// interaction targets the warps are unknown, so no side is claimed.
+const open=(s:Placed,sides:ReadonlySet<Side>):Side[]=>s.interaction_targets==null?[]:ORDER.filter(side=>sides.has(side)&&!s.topology.connections.some(c=>c.direction===side)&&!warpsOf(s).some(w=>onEdge(s,side,w.x,w.y)));
 
 // The side a press pushed off the map: its last button is a direction, pointing off the map from the tile it ends on,
 // and the player faces it (when the state says).
@@ -29,9 +33,7 @@ export function pressSides(state:Snapshot,buttons:readonly string[]):Side[] {
  if(!placed(state))return [];
  const side=PRESSED[buttons.at(-1)??""];
  if(side===undefined||(state.facing!==null&&state.facing!==FACING[side]))return [];
- const {x,y}=state.position,{width,height}=state.topology;
- const edge=side==="NORTH"?y===0:side==="SOUTH"?y===height-1:side==="EAST"?x===width-1:x===0;
- return edge?open(state,new Set([side])):[];
+ return onEdge(state,side,state.position.x,state.position.y)?open(state,new Set([side])):[];
 }
 
 // The sides a navigate_to goal on this map lies on or past.

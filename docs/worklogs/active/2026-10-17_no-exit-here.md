@@ -65,3 +65,5 @@ Grok and GPT LGTM. Claude BLOCKING on one real bug: the line fires on indoor exi
 - Follow-up: none.
 
 - [x] RED: fixture gains 9439 s4011 (navigate_to (2,8) on MAYS HOUSE 1F, shown as PROF. BIRCH'S HOUSE 1F, warps (1,8)/(2,8) -> map 0/9); 3 tests fail (25 total, 22 pass).
+  - COMMIT: `test(no-exit-here): RED no line on an edge that holds a warp (MAYS HOUSE 1F exit mat, 9439 s4011)` (ce972222)
+- [x] GREEN: `open()` in no-exit-here.ts drops a side whose edge holds a warp and claims nothing without interaction targets; registry copy and explainer say so (new table row for 9439 s4011, grounding in the caption). no-exit-here suite 25/25.

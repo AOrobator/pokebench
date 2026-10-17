@@ -8117,6 +8117,8 @@
                 "type": "object",
                 "required": [
                   "direction",
+                  "destination",
+                  "offset",
                   "reach"
                 ],
                 "properties": {
@@ -8127,6 +8129,26 @@
                       "EAST",
                       "WEST"
                     ]
+                  },
+                  "destination": {
+                    "type": "array",
+                    "additionalItems": false,
+                    "items": [
+                      {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 255
+                      },
+                      {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 255
+                      }
+                    ],
+                    "minItems": 2
+                  },
+                  "offset": {
+                    "type": "integer"
                   },
                   "reach": {
                     "enum": [

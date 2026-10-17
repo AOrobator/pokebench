@@ -257,7 +257,7 @@ describe("exit-reachability-v1: malformed foot masks are unknown",()=>{
    expect([block.foot(18,42),block.footNear(12,0),block.warp(5,18),block.connection(edge("NORTH"))]).toEqual([null,null,false,false]);
    expect(new UntakenExits(features).line(bad,"")).toBe(new UntakenExits(runFeatures("0e05")).line(s,""));
    const start=recorded(ROUTE104[0]??""),after=ROUTE104.slice(1).map(k=>recorded(k));
-   const last=after.length-1;const walked=after.map((a,i)=>i===last?{...a,exit_reach:{...reach,foot}} as GameStateSnapshot:a);
+   const last=after.length-1;const walked=after.map((a,i)=>i===last?{...a,exit_reach:{...reach,foot}}:a);
    expect((await navigate(features,start,{x:12,y:0},walked)).line).toBe(resultLine("0e05:22580"));
   });
  }

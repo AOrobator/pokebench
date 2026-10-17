@@ -666,10 +666,12 @@ Warp destination at (5,18): ROUTE104 PRETTY PETAL FLOWER SHOP (not reachable on 
  <pre>"exit_reach": {
   "warps": [{"x":17,"y":50,"reach":"foot"}, {"x":5,"y":18,"reach":"none"}, {"x":10,"y":30,"reach":"none"}, {"x":11,"y":30,"reach":"none"},
             {"x":10,"y":38,"reach":"foot"}, {"x":11,"y":38,"reach":"foot"}, {"x":32,"y":42,"reach":"none"}, {"x":33,"y":42,"reach":"none"}],
-  "connections": [{"direction":"NORTH","reach":"none"}, {"direction":"SOUTH","reach":"water"}, {"direction":"EAST","reach":"foot"}],
+  "connections": [{"direction":"NORTH","destination":[0,3],"offset":0,"reach":"none"},
+                  {"direction":"SOUTH","destination":[0,20],"offset":0,"reach":"water"},
+                  {"direction":"EAST","destination":[0,0],"offset":50,"reach":"foot"}],
   "foot": {"width":40, "height":80, "rows":["0000000000", ... 80 rows of 10 hex digits ...]}
 }</pre>
- <p>Each row is one hex digit per four tiles; the high bit of a digit is the leftmost tile. Tile (x,y) is reached on foot when bit <code>3 - x%4</code> of digit <code>x/4</code> of row <code>y</code> is set. A 40x80 map costs 800 characters. The schema (<code>packages/agent/src/events.ts</code>) allows labels <code>foot</code>, <code>water</code>, <code>none</code>, directions NORTH/SOUTH/EAST/WEST, at most 255 warps, 16 connections and 256 rows of 1 to 64 lowercase hex digits.</p>
+ <p>Each row is one hex digit per four tiles; the high bit of a digit is the leftmost tile. Tile (x,y) is reached on foot when bit <code>3 - x%4</code> of digit <code>x/4</code> of row <code>y</code> is set. A 40x80 map costs 800 characters. The schema (<code>packages/agent/src/events.ts</code>) allows labels <code>foot</code>, <code>water</code>, <code>none</code>, directions NORTH/SOUTH/EAST/WEST, at most 255 warps, 16 connections and 256 rows of 1 to 64 lowercase hex digits. Each connection is named by its direction, destination map and offset, because a map can have two on one side (Route 111 two WEST, Route 124 two EAST), and each is labelled and looked up on its own. A mask that does not have exactly <code>height</code> rows of <code>ceil(width/4)</code> digits, or whose size differs from the map's, is treated as unknown: every exit stays listed and nothing is called unreachable.</p>
 </section>
 
 <section>

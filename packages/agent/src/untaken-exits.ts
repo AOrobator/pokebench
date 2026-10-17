@@ -43,9 +43,9 @@ export class UntakenExits {
   // across water only when every one of its tiles is. exit-reachability-v1: nor is one reachable neither way.
   const block=exitReach(this.features,state);
   const all=[...groups.values()],listed=this.features["world-destinations-v1"]?state.topology?.connections??[]:[];
-  const warps=all.filter(g=>!g.warps.every(w=>block.warp(w.x,w.y))),connections=listed.filter(c=>!block.connection(c.direction));
+  const warps=all.filter(g=>!g.warps.every(w=>block.warp(w.x,w.y))),connections=listed.filter(c=>!block.connection(c));
   const across=all.length-warps.length+listed.length-connections.length;
-  const cuts=new Set<Cut|null>([...all.filter(g=>!warps.includes(g)).flatMap(g=>g.warps.map(w=>block.warpCut(w.x,w.y))),...listed.filter(c=>!connections.includes(c)).map(c=>block.connectionCut(c.direction))]);
+  const cuts=new Set<Cut|null>([...all.filter(g=>!warps.includes(g)).flatMap(g=>g.warps.map(w=>block.warpCut(w.x,w.y))),...listed.filter(c=>!connections.includes(c)).map(c=>block.connectionCut(c))]);
   const why=!cuts.has("none")?"every exit listed on this map is across water, and you cannot use Surf yet":cuts.has("water")?"every exit listed on this map is across water you cannot Surf yet or cannot be reached on foot from where you stand":"no exit listed on this map can be reached on foot from where you stand";
   const open=[
    ...warps.filter(g=>!g.taken).map(g=>`${g.tiles.join(" or ")} -> ${mapKey(g.destination)==="127/127"?"dynamic destination":this.place(g.destination)}`),

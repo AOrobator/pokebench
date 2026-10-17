@@ -40,7 +40,7 @@ function ledgerAt(run:Run,seq:number,features:FeatureSet=ON):{ledger:Conversatio
 }
 const X0e05_1286=[
  "Conversation ledger: game text you were shown, quoted whole; past text, the current screen overrides it.",
- "Latest conversation where the game names the speaker (MOM, INTERVIEWER, turn 74; BRED's HOUSE 1F (map 1/0)):",
+ "Latest conversation with a person (MOM, INTERVIEWER, turn 74; BRED's HOUSE 1F (map 1/0)):",
  "- MOM: \"Oh! BRED, BRED! Quick! Come quickly!\"",
  "- MOM: \"Look! It's PETALBURG GYM! Maybe DAD will be on!\"",
  "- INTERVIEWER: \"…We brought you this report from in front of PETALBURG GYM.\"",
@@ -55,27 +55,42 @@ const X0e05_1286=[
  "- BRED's HOUSE 2F (map 1/1), here turn 71: last heard turn 71, MOM: \"Oh, you should make sure that everything's all there on your desk.\"",
  "- INSIDE OF TRUCK (map 25/40), here turn 58: nothing heard",
 ].join("\n");
-const X2fb4_8319=[
+const X2fb4_6401=[
  "Conversation ledger: game text you were shown, quoted whole; past text, the current screen overrides it.",
- "Latest conversation where the game names the speaker (MOM, turn 245; YROVE's HOUSE 1F (map 1/0)):",
- "- MOM: \"How are you doing, YROVE? You look a little tired.\"",
- "- MOM: \"I think you should rest a bit.\"",
- "- MOM: \"Take care, honey!\"",
+ "Latest conversation with a person (the woman you talked to, turn 255; PROF. BIRCH'S HOUSE 1F (map 1/2)):",
+ "- the woman you talked to: \"Oh, MAY went out to ROUTE 103 just a little while ago.\"",
+ "- the woman you talked to: \"Like father, like child. MAY can't stay quietly at home.\"",
  "Rooms visited, newest first, with the last line heard in each:",
- "- ROUTE103 (map 0/18), here turn 320: nothing heard",
- "- OLDALE TOWN (map 0/10), here turn 319: last heard turn 316, MANIAC (sprite kind, not a name): \"Wait until I finish sketching them, okay?\"",
- "- ROUTE101 (map 0/16), here turn 309: last heard turn 220, PROF. BIRCH: \"This is not the place to chat, so come by my POKéMON LAB later, okay?\"",
- "- LITTLEROOT TOWN (map 0/9), here turn 288: last heard turn 250, Sign text \"PROF. BIRCH'S HOUSE\" (faced object): \"PROF. BIRCH'S HOUSE\"",
- "- PROF. BIRCH'S HOUSE 1F (map 1/2), here turn 257: last heard turn 255, WOMAN_4 (sprite kind, not a name): \"Like father, like child. MAY can't stay quietly at home.\"",
+ "- PROF. BIRCH'S HOUSE 1F (map 1/2), here turn 256: last heard turn 255, the woman you talked to: \"Like father, like child. MAY can't stay quietly at home.\"",
+ "- LITTLEROOT TOWN (map 0/9), here turn 252: last heard turn 250, the sign: \"PROF. BIRCH'S HOUSE\"",
  "- YROVE's HOUSE 1F (map 1/0), here turn 247: last heard turn 245, MOM: \"Take care, honey!\"",
  "- PROF. BIRCH'S POKéMON LAB (map 1/4), here turn 223: last heard turn 222, PROF. BIRCH: \"Get MAY to teach you what it means to be a TRAINER.\"",
- "- PROF. BIRCH'S HOUSE 2F (map 1/3), here turn 170: last heard turn 170, RIVAL_MAY_NORMAL (sprite kind, not a name): \"YROVE, I'll catch you later!\"",
+ "- ROUTE101 (map 0/16), here turn 220: last heard turn 220, PROF. BIRCH: \"This is not the place to chat, so come by my POKéMON LAB later, okay?\"",
+ "- PROF. BIRCH'S HOUSE 2F (map 1/3), here turn 170: last heard turn 170, the girl you talked to: \"YROVE, I'll catch you later!\"",
  "- YROVE's HOUSE 2F (map 1/1), here turn 129: last heard turn 129, MOM: \"Oh, you should make sure that everything's all there on your desk.\"",
- "- INSIDE OF TRUCK (map 25/40), here turn 89: last heard turn 84, MOVING_BOX (sprite kind, not a name): \"It's a POKéMON brand moving and delivery service.\"",
+ "- INSIDE OF TRUCK (map 25/40), here turn 89: last heard turn 84, the box: \"It's a POKéMON brand moving and delivery service.\"",
+].join("\n");
+const X2fb4_8319=[
+ "Conversation ledger: game text you were shown, quoted whole; past text, the current screen overrides it.",
+ "Latest conversation with a person (the man you talked to, turn 316; OLDALE TOWN (map 0/10)):",
+ "- the man you talked to: \"Aaaaah! Wait! Please don't come in here.\"",
+ "- the man you talked to: \"I just discovered the footprints of a rare POKéMON!\"",
+ "- the man you talked to: \"Wait until I finish sketching them, okay?\"",
+ "Rooms visited, newest first, with the last line heard in each:",
+ "- ROUTE103 (map 0/18), here turn 320: nothing heard",
+ "- OLDALE TOWN (map 0/10), here turn 319: last heard turn 316, the man you talked to: \"Wait until I finish sketching them, okay?\"",
+ "- ROUTE101 (map 0/16), here turn 309: last heard turn 220, PROF. BIRCH: \"This is not the place to chat, so come by my POKéMON LAB later, okay?\"",
+ "- LITTLEROOT TOWN (map 0/9), here turn 288: last heard turn 250, the sign: \"PROF. BIRCH'S HOUSE\"",
+ "- PROF. BIRCH'S HOUSE 1F (map 1/2), here turn 257: last heard turn 255, the woman you talked to: \"Like father, like child. MAY can't stay quietly at home.\"",
+ "- YROVE's HOUSE 1F (map 1/0), here turn 247: last heard turn 245, MOM: \"Take care, honey!\"",
+ "- PROF. BIRCH'S POKéMON LAB (map 1/4), here turn 223: last heard turn 222, PROF. BIRCH: \"Get MAY to teach you what it means to be a TRAINER.\"",
+ "- PROF. BIRCH'S HOUSE 2F (map 1/3), here turn 170: last heard turn 170, the girl you talked to: \"YROVE, I'll catch you later!\"",
+ "- YROVE's HOUSE 2F (map 1/1), here turn 129: last heard turn 129, MOM: \"Oh, you should make sure that everything's all there on your desk.\"",
+ "- INSIDE OF TRUCK (map 25/40), here turn 89: last heard turn 84, the box: \"It's a POKéMON brand moving and delivery service.\"",
 ].join("\n");
 const X93eb_2771=[
  "Conversation ledger: game text you were shown, quoted whole; past text, the current screen overrides it.",
- "Latest conversation where the game names the speaker (MOM, INTERVIEWER, turn 131; GREEENN's HOUSE 1F (map 1/0)):",
+ "Latest conversation with a person (MOM, INTERVIEWER, turn 131; GREEENN's HOUSE 1F (map 1/0)):",
  "- MOM: \"Oh! GREEENN, GREEENN! Quick! Come quickly!\"",
  "- MOM: \"Look! It's PETALBURG GYM! Maybe DAD will be on!\"",
  "- INTERVIEWER: \"…We brought you this report from in front of PETALBURG GYM.\"",
@@ -88,71 +103,71 @@ const X93eb_2771=[
  "- LITTLEROOT TOWN (map 0/9), here turn 134: last heard turn 120, MOM: \"And, you get your own room, GREEENN! Let's go inside.\"",
  "- GREEENN's HOUSE 1F (map 1/0), here turn 132: last heard turn 131, MOM: \"He lives right next door, so you should go over and introduce yourself.\"",
  "- GREEENN's HOUSE 2F (map 1/1), here turn 129: last heard turn 128, MOM: \"Oh, you should make sure that everything's all there on your desk.\"",
- "- INSIDE OF TRUCK (map 25/40), here turn 115: last heard turn 112, MOVING_BOX (sprite kind, not a name): \"It's a POKéMON brand moving and delivery service.\"",
+ "- INSIDE OF TRUCK (map 25/40), here turn 115: last heard turn 112, the box: \"It's a POKéMON brand moving and delivery service.\"",
 ].join("\n");
 const X93eb_892=[
  "Conversation ledger: game text you were shown, quoted whole; past text, the current screen overrides it.",
- "Latest conversation where the game names the speaker: none yet; the latest field page, turn 57 in INSIDE OF TRUCK (map 25/40):",
- "- MOVING_BOX (sprite kind, not a name): \"It's a POKéMON brand moving and delivery service.\"",
+ "Latest conversation with a person: none yet; the latest field page, turn 57 in INSIDE OF TRUCK (map 25/40):",
+ "- the box: \"It's a POKéMON brand moving and delivery service.\"",
  "Rooms visited, newest first, with the last line heard in each:",
- "- INSIDE OF TRUCK (map 25/40), here turn 57: last heard turn 57, MOVING_BOX (sprite kind, not a name): \"It's a POKéMON brand moving and delivery service.\"",
+ "- INSIDE OF TRUCK (map 25/40), here turn 57: last heard turn 57, the box: \"It's a POKéMON brand moving and delivery service.\"",
 ].join("\n");
 const Xdefa_9920=[
  "Conversation ledger: game text you were shown, quoted whole; past text, the current screen overrides it.",
- "Latest conversation where the game names the speaker (MAY, turn 402; ROUTE103 (map 0/18)):",
+ "Latest conversation with a person (MAY, turn 402; ROUTE103 (map 0/18)):",
  "- MAY: \"I think I know why my dad has an eye out for you now.\"",
  "- MAY: \"I mean, you just got that POKéMON, but it already likes you.\"",
  "- MAY: \"You might be able to befriend any kind of POKéMON easily.\"",
  "- MAY: \"Well, it's time to head back to the LAB.\"",
  "Rooms visited, newest first, with the last line heard in each:",
  "- ROUTE103 (map 0/18), here turn 402: last heard turn 402, MAY: \"Well, it's time to head back to the LAB.\"",
- "- OLDALE TOWN (map 0/10), here turn 368: last heard turn 365, MANIAC (sprite kind, not a name): \"Wait until I finish sketching them, okay?\"",
- "- OLDALE TOWN POKEMON CENTER 1F (map 2/2), here turn 361: last heard turn 293: \"We hope to see you again!\"",
+ "- OLDALE TOWN (map 0/10), here turn 368: last heard turn 365, the man you talked to: \"Wait until I finish sketching them, okay?\"",
+ "- OLDALE TOWN POKEMON CENTER 1F (map 2/2), here turn 361: last heard turn 293, no speaker shown: \"We hope to see you again!\"",
  "- ROUTE101 (map 0/16), here turn 279: last heard turn 127, PROF. BIRCH: \"This is not the place to chat, so come by my POKéMON LAB later, okay?\"",
- "- LITTLEROOT TOWN (map 0/9), here turn 265: last heard turn 115, TWIN (sprite kind, not a name): \"Can you go see what's happening for me?\"",
+ "- LITTLEROOT TOWN (map 0/9), here turn 265: last heard turn 115, the girl you talked to: \"Can you go see what's happening for me?\"",
  "- PROF. BIRCH'S POKéMON LAB (map 1/4), here turn 261: last heard turn 132, PROF. BIRCH: \"Get MAY to teach you what it means to be a TRAINER.\"",
- "- PROF. BIRCH'S HOUSE 1F (map 1/2), here turn 112: last heard turn 104, WOMAN_4 (sprite kind, not a name): \"Our daughter is upstairs, I think.\"",
- "- PROF. BIRCH'S HOUSE 2F (map 1/3), here turn 110: last heard turn 110, RIVAL_MAY_NORMAL (sprite kind, not a name): \"GRREEN, I'll catch you later!\"",
+ "- PROF. BIRCH'S HOUSE 1F (map 1/2), here turn 112: last heard turn 104, the woman you talked to: \"Our daughter is upstairs, I think.\"",
+ "- PROF. BIRCH'S HOUSE 2F (map 1/3), here turn 110: last heard turn 110, the girl you talked to: \"GRREEN, I'll catch you later!\"",
  "- GRREEN's HOUSE 1F (map 1/0), here turn 88: last heard turn 87, MOM: \"He lives right next door, so you should go over and introduce yourself.\"",
  "- GRREEN's HOUSE 2F (map 1/1), here turn 83: last heard turn 83, MOM: \"Oh, you should make sure that everything's all there on your desk.\"",
  "- INSIDE OF TRUCK (map 25/40), here turn 63: nothing heard",
 ].join("\n");
 const Xe962_10160=[
  "Conversation ledger: game text you were shown, quoted whole; past text, the current screen overrides it.",
- "Latest conversation where the game names the speaker (MAY, turn 444; ROUTE103 (map 0/18)):",
+ "Latest conversation with a person (MAY, turn 444; ROUTE103 (map 0/18)):",
  "- MAY: \"I think I know why my dad has an eye out for you now.\"",
  "- MAY: \"I mean, you just got that POKéMON, but it already likes you.\"",
  "- MAY: \"You might be able to befriend any kind of POKéMON easily.\"",
  "- MAY: \"Well, it's time to head back to the LAB.\"",
  "Rooms visited, newest first, with the last line heard in each:",
  "- ROUTE103 (map 0/18), here turn 445: last heard turn 444, MAY: \"Well, it's time to head back to the LAB.\"",
- "- OLDALE TOWN (map 0/10), here turn 402: last heard turn 399, MANIAC (sprite kind, not a name): \"Wait until I finish sketching them, okay?\"",
+ "- OLDALE TOWN (map 0/10), here turn 402: last heard turn 399, the man you talked to: \"Wait until I finish sketching them, okay?\"",
  "- ROUTE101 (map 0/16), here turn 389: last heard turn 125, PROF. BIRCH: \"This is not the place to chat, so come by my POKéMON LAB later, okay?\"",
- "- LITTLEROOT TOWN (map 0/9), here turn 374: last heard turn 144, Sign text \"RRED's HOUSE\" (faced object): \"RRED's HOUSE\"",
- "- OLDALE TOWN POKEMON CENTER 1F (map 2/2), here turn 300: last heard turn 298: \"We hope to see you again!\"",
- "- PROF. BIRCH'S POKéMON LAB (map 1/4), here turn 160: last heard turn 159, SCIENTIST_1 (sprite kind, not a name): \"The PROF enjoys MAY's help, too. There's a lot of love there.\"",
+ "- LITTLEROOT TOWN (map 0/9), here turn 374: last heard turn 144, the sign: \"RRED's HOUSE\"",
+ "- OLDALE TOWN POKEMON CENTER 1F (map 2/2), here turn 300: last heard turn 298, no speaker shown: \"We hope to see you again!\"",
+ "- PROF. BIRCH'S POKéMON LAB (map 1/4), here turn 160: last heard turn 159, the scientist you talked to: \"The PROF enjoys MAY's help, too. There's a lot of love there.\"",
  "- RRED's HOUSE 1F (map 1/0), here turn 149: last heard turn 148, MOM: \"Take care, honey!\"",
- "- PROF. BIRCH'S HOUSE 1F (map 1/2), here turn 139: last heard turn 98, RIVAL_MAY_NORMAL (sprite kind, not a name): \"RRED, I'll catch you later!\"",
+ "- PROF. BIRCH'S HOUSE 1F (map 1/2), here turn 139: last heard turn 98, the girl you talked to: \"RRED, I'll catch you later!\"",
  "- PROF. BIRCH'S HOUSE 2F (map 1/3), here turn 137: nothing heard",
  "- RRED's HOUSE 2F (map 1/1), here turn 81: last heard turn 81, MOM: \"Oh, you should make sure that everything's all there on your desk.\"",
- "- INSIDE OF TRUCK (map 25/40), here turn 61: last heard turn 58, MOVING_BOX (sprite kind, not a name): \"It's a POKéMON brand moving and delivery service.\"",
+ "- INSIDE OF TRUCK (map 25/40), here turn 61: last heard turn 58, the box: \"It's a POKéMON brand moving and delivery service.\"",
 ].join("\n");
 const Xe962_10341=[
  "Conversation ledger: game text you were shown, quoted whole; past text, the current screen overrides it.",
- "Latest conversation where the game names the speaker (MAY, turn 450; OLDALE TOWN (map 0/10)):",
+ "Latest conversation with a person (MAY, turn 450; OLDALE TOWN (map 0/10)):",
  "- MAY: \"RRED! Over here! Let's hurry home!\"",
  "Rooms visited, newest first, with the last line heard in each:",
  "- OLDALE TOWN (map 0/10), here turn 450: last heard turn 450, MAY: \"RRED! Over here! Let's hurry home!\"",
  "- ROUTE103 (map 0/18), here turn 446: last heard turn 444, MAY: \"Well, it's time to head back to the LAB.\"",
  "- ROUTE101 (map 0/16), here turn 389: last heard turn 125, PROF. BIRCH: \"This is not the place to chat, so come by my POKéMON LAB later, okay?\"",
- "- LITTLEROOT TOWN (map 0/9), here turn 374: last heard turn 144, Sign text \"RRED's HOUSE\" (faced object): \"RRED's HOUSE\"",
- "- OLDALE TOWN POKEMON CENTER 1F (map 2/2), here turn 300: last heard turn 298: \"We hope to see you again!\"",
- "- PROF. BIRCH'S POKéMON LAB (map 1/4), here turn 160: last heard turn 159, SCIENTIST_1 (sprite kind, not a name): \"The PROF enjoys MAY's help, too. There's a lot of love there.\"",
+ "- LITTLEROOT TOWN (map 0/9), here turn 374: last heard turn 144, the sign: \"RRED's HOUSE\"",
+ "- OLDALE TOWN POKEMON CENTER 1F (map 2/2), here turn 300: last heard turn 298, no speaker shown: \"We hope to see you again!\"",
+ "- PROF. BIRCH'S POKéMON LAB (map 1/4), here turn 160: last heard turn 159, the scientist you talked to: \"The PROF enjoys MAY's help, too. There's a lot of love there.\"",
  "- RRED's HOUSE 1F (map 1/0), here turn 149: last heard turn 148, MOM: \"Take care, honey!\"",
- "- PROF. BIRCH'S HOUSE 1F (map 1/2), here turn 139: last heard turn 98, RIVAL_MAY_NORMAL (sprite kind, not a name): \"RRED, I'll catch you later!\"",
+ "- PROF. BIRCH'S HOUSE 1F (map 1/2), here turn 139: last heard turn 98, the girl you talked to: \"RRED, I'll catch you later!\"",
  "- PROF. BIRCH'S HOUSE 2F (map 1/3), here turn 137: nothing heard",
  "- RRED's HOUSE 2F (map 1/1), here turn 81: last heard turn 81, MOM: \"Oh, you should make sure that everything's all there on your desk.\"",
- "- INSIDE OF TRUCK (map 25/40), here turn 61: last heard turn 58, MOVING_BOX (sprite kind, not a name): \"It's a POKéMON brand moving and delivery service.\"",
+ "- INSIDE OF TRUCK (map 25/40), here turn 61: last heard turn 58, the box: \"It's a POKéMON brand moving and delivery service.\"",
 ].join("\n");
 
 describe("instruction-ledger-v2 on recorded runs",()=>{
@@ -195,18 +210,19 @@ describe("instruction-ledger-v2 on recorded runs",()=>{
   for(const e of RUNS.defa){if(e.seq>9920)break;v1.observe(e);}
   expect(v1.text()).toMatch(/^ROUTE103 \(map 0\/18\) \(first turn \d+\): nothing heard$/m);
  });
- it("2fb4 T321 (MAY visible on ROUTE 103): MANIAC's newer lines are not a conversation the game names; MOM's turn-245 conversation stays pinned",()=>{
-  const {ledger,result,state}=ledgerAt("2fb4",8319);
-  const block=ledger.block(state,result.id);
-  expect(block).toBe(X2fb4_8319);
-  const [conversation]=(block??"").split("\nRooms visited");
-  expect(conversation).not.toContain("MANIAC");
-  // v1 pinned the last three pages of any dialogue: the MANIAC filler.
-  const v1=new InstructionLedger({...ON,"instruction-ledger-v1":true});
-  for(const e of RUNS["2fb4"]){if(e.seq>=8319)break;v1.observe(e);}
-  expect(v1.text().split("\nRooms visited")[0]).toContain("Wait until I finish sketching");
+ it("2fb4 T256: the woman in PROF. BIRCH'S HOUSE 1F (\"went out to ROUTE 103\", RivalsHouse_1F_Text_WentOutToRoute103, no NAME: prefix) is pinned while she is the latest person",()=>{
+  const {ledger,result,state}=ledgerAt("2fb4",6401);
+  expect(ledger.block(state,result.id)).toBe(X2fb4_6401);
  });
- it("93eb T57: before any page the game names a speaker for, the latest field page stands in, labelled as such",()=>{
+ it("2fb4 T321 (MAY visible on ROUTE 103): newer person filler replaces it (operator's choice); the woman's line stays as that room's last line; signs never pin",()=>{
+  const {ledger,result,state}=ledgerAt("2fb4",8319);
+  const block=ledger.block(state,result.id) ?? "";
+  expect(block).toBe(X2fb4_8319);
+  expect(block).toContain("last heard turn 255, the woman you talked to: \"Like father, like child. MAY can't stay quietly at home.\"");
+  expect(block).toContain("last heard turn 250, the sign: \"PROF. BIRCH'S HOUSE\"");
+  expect(block).not.toMatch(/WOMAN_4|RIVAL_MAY|MANIAC|MOVING_BOX|sprite kind/);
+ });
+ it("93eb T57: before any conversation with a person, the latest field page (the box) stands in, labelled as such",()=>{
   const {ledger,result,state}=ledgerAt("93eb",892);
   expect(ledger.block(state,result.id)).toBe(X93eb_892);
  });
@@ -216,7 +232,7 @@ describe("instruction-ledger-v2 on recorded runs",()=>{
 // ledgers said "nothing heard" for rooms where dialogue was shown (3419 of 3493 room lines). v1 sets a room's line
 // only when the newest page's seq equals the tool result's state seq, which auto-advance pages never do.
 describe("room lines regression, recorded run e0cc (May's house)",()=>{
- const MOM_1F="- PROF. BIRCH'S HOUSE 1F (map 1/2), here turn 70: last heard turn 70, WOMAN_4 (sprite kind, not a name): \"Our daughter is upstairs, I think.\"";
+ const MOM_1F="- PROF. BIRCH'S HOUSE 1F (map 1/2), here turn 70: last heard turn 70, the woman you talked to: \"Our daughter is upstairs, I think.\"";
  const recorded=(seq:number)=>{const e=RUNS.e0cc.find(x=>x.seq===seq);if(e?.type!=="ledger_context")throw Error(`no ledger ${String(seq)}`);return e.text;};
  it("T71 result (v1 ledger 1576): v2 gives May's house 1F the mom's last line with its speaker; v1 recorded and still replays \"nothing heard\"",()=>{
   const {ledger,result,state}=ledgerAt("e0cc",1573);
@@ -229,7 +245,7 @@ describe("room lines regression, recorded run e0cc (May's house)",()=>{
  it("T79 result (v1 ledger 1835): 2F keeps MAY's last line after her twelve pages; 1F keeps the mom's",()=>{
   const {ledger,result,state}=ledgerAt("e0cc",1832);
   const block=ledger.block(state,result.id);
-  expect(block).toContain("- PROF. BIRCH'S HOUSE 2F (map 1/3), here turn 78: last heard turn 76, RIVAL_MAY_NORMAL (sprite kind, not a name): \"GREEN, I'll catch you later!\"");
+  expect(block).toContain("- PROF. BIRCH'S HOUSE 2F (map 1/3), here turn 78: last heard turn 76, the girl you talked to: \"GREEN, I'll catch you later!\"");
   expect(block).toContain(MOM_1F.replace("here turn 70","here turn 79"));
   expect(recorded(1835)).toContain("PROF. BIRCH'S HOUSE 2F (map 1/3) (first turn 71): nothing heard");
  });
@@ -254,7 +270,7 @@ describe("instruction-ledger-v2 rules",()=>{
   ledger.observe(ev({type:"tool_call",turn:1,id:"c",name:"observe",args:{}}));
   expect(ledger.block(ROUTE,"c")).toBe([
    "Conversation ledger: game text you were shown, quoted whole; past text, the current screen overrides it.",
-   "Latest conversation where the game names the speaker: none yet; no field dialogue shown yet.",
+   "Latest conversation with a person: none yet; no field dialogue shown yet.",
    "Rooms visited, newest first, with the last line heard in each:",
    "- ROUTE103 (map 0/18), here turn 1: nothing heard",
   ].join("\n"));
@@ -284,28 +300,57 @@ describe("instruction-ledger-v2 rules",()=>{
   ledger.observe(delivered("t2",6));
   expect(ledger.block(ROUTE,"other")).toContain("- MAY: \"Hello again!\"");
  });
- it("labels faced sprites and faced objects as what they are, keeps unnamed pages unlabelled, and never treats them as named speakers",()=>{
+ it("every line names who said it: the NAME: prefix, a faced person by how they look, a sign or object as such, never a raw sprite id",()=>{
   const ledger=new ConversationLedger(ON);
   ledger.observe(talk("a",2,[page("MOM: Go next door.","MOM","name_prefix")]));ledger.observe(delivered("a",2));
-  ledger.observe(talk("b",3,[page("Wait until I finish\nsketching them, okay?","MANIAC","faced_sprite"),page("The clock is stopped…","Wall clock","faced_target"),page("We hope to see you again!",null,null)]));ledger.observe(delivered("b",3));
+  ledger.observe(talk("b",3,[page("The clock is stopped…","Wall clock","faced_target"),page("PROF. BIRCH'S HOUSE",'Sign text "PROF. BIRCH\'S HOUSE"',"faced_target"),page("The box is printed with a POKéMON logo.","MOVING_BOX","faced_sprite"),page("We hope to see you again!",null,null)]));ledger.observe(delivered("b",3));
   const block=ledger.block(ROUTE,"c") ?? "";
+  // Signs, objects and pages with no speaker never become the pinned conversation.
   expect(block).toContain("(MOM, turn 2; ROUTE103 (map 0/18)):\n- MOM: \"Go next door.\"\nRooms visited");
-  expect(block).toContain("- ROUTE103 (map 0/18), here turn 3: last heard turn 3: \"We hope to see you again!\"");
-  ledger.observe(talk("d",4,[page("Wait until I finish\nsketching them, okay?","MANIAC","faced_sprite"),page("The clock is stopped…","Wall clock","faced_target")]));ledger.observe(delivered("d",4));
-  expect(ledger.block(ROUTE,"c")).toContain("last heard turn 4, Wall clock (faced object): \"The clock is stopped…\"");
-  const fresh=new ConversationLedger(ON);
-  fresh.observe(talk("e",1,[page("Wait until I finish\nsketching them, okay?","MANIAC","faced_sprite")]));fresh.observe(delivered("e",1));
-  expect(fresh.block(ROUTE,"c")).toContain("none yet; the latest field page, turn 1 in ROUTE103 (map 0/18):\n- MANIAC (sprite kind, not a name): \"Wait until I finish sketching them, okay?\"");
+  expect(block).toContain("- ROUTE103 (map 0/18), here turn 3: last heard turn 3, no speaker shown: \"We hope to see you again!\"");
+  for(const [id,who] of [["d","the wall clock"],["e","the sign"],["f","the box"]] as const){
+   const p=id==="d"?page("The clock is stopped…","Wall clock","faced_target"):id==="e"?page("PROF. BIRCH'S HOUSE",'Sign text "PROF. BIRCH\'S HOUSE"',"faced_target"):page("The box is printed with a POKéMON logo.","MOVING_BOX","faced_sprite");
+   ledger.observe(talk(id,4,[p]));ledger.observe(delivered(id,4));
+   expect(ledger.block(ROUTE,"c")).toContain(`last heard turn 4, ${who}: "`);
+  }
+  expect(ledger.block(ROUTE,"c")).toContain("(MOM, turn 2;");
+  // A faced person is a conversation with a person, described by how they look.
+  for(const [kind,who] of [["MANIAC","the man you talked to"],["WOMAN_4","the woman you talked to"],["RIVAL_MAY_NORMAL","the girl you talked to"],["BRENDAN_NORMAL","the boy you talked to"],["OLD_MAN","the old man you talked to"],["SCIENTIST_1","the scientist you talked to"]] as const){
+   const fresh=new ConversationLedger(ON);
+   fresh.observe(talk("p",1,[page("Hello.",kind,"faced_sprite")]));fresh.observe(delivered("p",1));
+   expect(fresh.block(ROUTE,"c")).toContain(`Latest conversation with a person (${who}, turn 1; ROUTE103 (map 0/18)):\n- ${who}: "Hello."`);
+  }
+  for(const [kind,who] of [["ITEM_BALL","the item ball"],["PIKACHU_DOLL","the doll"],["SPIN_CUSHION","the cushion"],["SUBMARINE_SHADOW","the shadow"],["ZIGZAGOON_1","the POKéMON"]] as const){
+   const fresh=new ConversationLedger(ON);
+   fresh.observe(talk("o",1,[page("…",kind,"faced_sprite")]));fresh.observe(delivered("o",1));
+   expect(fresh.block(ROUTE,"c")).toContain(`none yet; the latest field page, turn 1 in ROUTE103 (map 0/18):\n- ${who}: "…"`);
+  }
+  const tv=new ConversationLedger(ON);
+  tv.observe(talk("t",1,[page("It's a TV.","TV","faced_target")]));tv.observe(delivered("t",1));
+  expect(tv.block(ROUTE,"c")).toContain("- the TV: \"It's a TV.\"");
  });
- it("a conversation is every field page of one call, in order, with every speaker the game names; battle pages are skipped",()=>{
+ it("a sprite the game names in the same conversation keeps that name on that map, and only there",()=>{
+  const ledger=new ConversationLedger(ON);
+  ledger.observe(talk("a",1,[page("MOM: See?","MOM","name_prefix"),page("Go check it out, dear!","MOM","faced_sprite")]));ledger.observe(delivered("a",1));
+  ledger.observe(talk("b",2,[page("Don't forget to set it!","MOM","faced_sprite")]));
+  expect(ledger.block(ROUTE,"b")).toContain("(MOM, turn 2; ROUTE103 (map 0/18)):\n- MOM: \"Don't forget to set it!\"");
+  ledger.observe(talk("c",3,[page("Hi.","MOM","faced_sprite",{map:"OLDALE TOWN",map_id:[0,10]})]));
+  expect(ledger.block(ROUTE,"c")).toContain("- the woman you talked to: \"Hi.\"");
+  // Two names or two sprites in one conversation: no link.
+  const two=new ConversationLedger(ON);
+  two.observe(talk("x",1,[page("MAY: Hi.","MAY","name_prefix"),page("DAD: Hi.","DAD","name_prefix"),page("Yo.","WOMAN_4","faced_sprite")]));two.observe(delivered("x",1));
+  two.observe(talk("y",2,[page("Yo.","WOMAN_4","faced_sprite")]));
+  expect(two.block(ROUTE,"y")).toContain("- the woman you talked to: \"Yo.\"");
+ });
+ it("a conversation is every field page of one call, in order, with every person who spoke; battle pages are skipped",()=>{
   const ledger=new ConversationLedger(ON);
   ledger.observe(talk("a",9,[page("MAY: Let's battle!","MAY","name_prefix"),page("PKMN TRAINER MAY\nwould like to battle!",null,null,{battle_turn:1}),page("PROF. BIRCH: Well done!","PROF. BIRCH","name_prefix",{map:"OLDALE TOWN",map_id:[0,10]}),page("RAED received\nthe POTION!",null,null,{map:"OLDALE TOWN",map_id:[0,10]}),page("See you!","MAY","name_prefix",{map:"OLDALE TOWN",map_id:[0,10]})]));
   ledger.observe(delivered("a",9));
   expect(ledger.block(ROUTE,"c")).toContain([
-   "Latest conversation where the game names the speaker (MAY, PROF. BIRCH, turn 9; ROUTE103 (map 0/18), then OLDALE TOWN (map 0/10)):",
+   "Latest conversation with a person (MAY, PROF. BIRCH, turn 9; ROUTE103 (map 0/18), then OLDALE TOWN (map 0/10)):",
    "- MAY: \"Let's battle!\"",
    "- PROF. BIRCH: \"Well done!\"",
-   "- \"RAED received the POTION!\"",
+   "- no speaker shown: \"RAED received the POTION!\"",
    "- MAY: \"See you!\"",
    "Rooms visited, newest first, with the last line heard in each:",
    "- ROUTE103 (map 0/18), here turn 9: last heard turn 9, MAY: \"Let's battle!\"",
@@ -318,14 +363,14 @@ describe("instruction-ledger-v2 rules",()=>{
   ledger.observe(talk("b",4,[page("Go! TORCHIC!",null,null,{battle_turn:1})]));
   expect(ledger.block(ROUTE,"b")).toBe([
    "Conversation ledger: game text you were shown, quoted whole; past text, the current screen overrides it.",
-   "Latest conversation where the game names the speaker (MAY, turn 3):",
+   "Latest conversation with a person (MAY, turn 3):",
    "- MAY: \"Hi!\"",
    "Rooms visited, newest first, with the last line heard in each:",
    "- ROUTE103 (map 0/18), here turn 4: nothing heard",
   ].join("\n"));
   const fresh=new ConversationLedger(ON);
   fresh.observe(talk("n",1,[page("…",null,null,{map:null,map_id:null})]));fresh.observe(delivered("n",1));
-  expect(fresh.block(ROUTE,"c")).toContain("none yet; the latest field page, turn 1:\n- \"…\"\n");
+  expect(fresh.block(ROUTE,"c")).toContain("none yet; the latest field page, turn 1:\n- no speaker shown: \"…\"\n");
   const busy=new ConversationLedger(ON);
   for(let i=0;i<17;i++)busy.observe(talk(`k${String(i)}`,1,[page(`MAY: Line ${String(i)}.`,"MAY","name_prefix")]));
   busy.observe(delivered("k0",1));

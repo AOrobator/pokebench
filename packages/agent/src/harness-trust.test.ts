@@ -305,15 +305,18 @@ describe("harness-trust-v1 walk-away review round 1",()=>{
   // A press that moves the player with controls free counts, like navigate_to.
   expect((await walkWith(1,[route103(9,13),route103(9,10),route103(9,7)])).notes).toHaveLength(1);
  });
- it("with two ways toward the goal, each move is measured to the same way before and after",async()=>{
+ it("with two ways toward the goal, a move that gets closer to either way is not a move away; a note names a way that got farther, with its own numbers",async()=>{
   const town=PLACES.places.find(p=>p.map_id[0]===0&&p.map_id[1]===9);if(town===undefined)throw Error("no town");
   const places={places:[...PLACES.places.filter(p=>p!==town),{...town,warps:[...town.warps,{x:1,y:1,to:[1,4] as [number,number]}]}]};
   const at=(x:number,y:number):GameStateSnapshot=>({...base,map_id:[0,9],location:"LITTLEROOT TOWN",position:{x,y},field_controls_locked:false});
-  const h=await walkWith(2,[at(2,2),at(4,9),at(4,4)],places);
+  // (2,2) -> (4,9): door (7,16) 19 -> 10; (4,9) -> (4,4): door (1,1) 11 -> 6. Each move got closer to one way.
+  expect((await walkWith(2,[at(2,2),at(4,9),at(4,4)],places)).notes).toHaveLength(0);
+  // Away from both doors twice: (6,6) -> (10,5) -> (14,4).
+  const h=await walkWith(2,[at(6,6),at(10,5),at(14,4)],places);
   expect(h.notes).toHaveLength(1);
   expect(h.notes[0]?.facts.steps.map(s=>[s.way,s.before,s.after])).toEqual([
-   ["the door at (1,1) (to PROF. BIRCH'S POKéMON LAB (map 1/4))",2,11],
-   ["the door at (7,16) (to PROF. BIRCH'S POKéMON LAB (map 1/4))",10,15],
+   ["the door at (1,1) (to PROF. BIRCH'S POKéMON LAB (map 1/4))",10,13],
+   ["the door at (1,1) (to PROF. BIRCH'S POKéMON LAB (map 1/4))",13,16],
   ]);
  });
 });

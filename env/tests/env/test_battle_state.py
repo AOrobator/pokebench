@@ -395,3 +395,22 @@ def test_invalid_execution_owner_fields_cannot_be_recorded_as_a_move(address, bo
     state = read_battle_state(m.read)
     assert state.current_execution is None and state.ready is None
     assert "script execution fields" in state.diagnostic
+
+
+def test_move_target_types_in_the_real_rom_match_pret() -> None:
+    # battle-move-tool-v1: byte 6 of every gBattleMoves entry in the operator's ROM is one of the
+    # MOVE_TARGET_* values the reader accepts; spot values from pret src/data/battle_moves.h.
+    import os
+
+    from pokebench_env.battle_state import TARGETS
+    from pokebench_env.rom import EMERALD_SHA1, RomError, resolve_rom
+
+    try:
+        rom = resolve_rom(os.environ, EMERALD_SHA1).read_bytes()
+    except RomError:
+        pytest.skip("POKEBENCH_ROM is not set to the Emerald ROM")
+    base = BATTLE_MOVES - 0x08000000
+    targets = {move: rom[base + move * 12 + 6] for move in range(1, 355)}
+    assert set(targets.values()) <= TARGETS
+    # TACKLE, EMBER selected (0); GROWL, SURF both foes (8); FOCUS ENERGY user (16).
+    assert [targets[m] for m in (33, 52, 45, 57, 116)] == [0, 0, 8, 8, 16]

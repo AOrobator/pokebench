@@ -146,17 +146,19 @@ auto-advance, the turn's battle messages)</pre>
 <path class="arr" d="M480,220H506" marker-end="url(#b)"/>
 </svg>
 </div>
-<figcaption>At most 8 presses per call (the longest path is B, then two cursor moves and A, then two cursor moves and A). No sleeps or polling inside the tool: every press is the ordinary press tool, and the only waits are the server's frame-counted battle wait.</figcaption>
+<figcaption>At most 12 presses per call (the longest path is B, then two cursor moves and A, two cursor moves and A, then three target moves and A). No sleeps or polling inside the tool: every press is the ordinary press tool, and the only waits are the server's frame-counted battle wait.</figcaption>
 </figure>
 </section>
 
 <section>
 <h2>The tool the model gets</h2>
-<pre>battle_action(action: "fight" | "bag" | "pokemon" | "run", move?: string)
+<pre>battle_action(action: "fight" | "bag" | "pokemon" | "run", move?: string, target?: string)
 
 move: with fight, the move name as the battle shows it (EMBER). Case, spaces and
 hyphens do not matter ("focus energy" = FOCUS ENERGY); otherwise it must match one
-of the active POKéMON's moves.</pre>
+of the active POKéMON's moves.
+target: with fight in a double battle, the POKéMON the move hits: its name as the
+battle shows it, or foe left / foe right (as on the screen), ally, self.</pre>
 <div class="tablewrap"><table>
 <tr><th>Situation</th><th>Pressed</th><th>First line of the result</th></tr>
 <tr><td>Move with no PP</td><td>nothing</td><td>Battle action: nothing pressed: There's no PP left for this move! (SCRATCH has 0/35 PP)</td></tr>
@@ -167,6 +169,9 @@ of the active POKéMON's moves.</pre>
 <tr><td>run in a trainer battle</td><td>A</td><td>Battle action: chose RUN; buttons pressed: A; a battle message is waiting for A or B: "No! There's no running from a TRAINER battle!"</td></tr>
 <tr><td>bag / pokemon</td><td>to BAG or POKéMON, then A</td><td>… chose BAG; buttons pressed: RIGHT, A; the game is showing another screen (bag_menu); choosing an item there is up to you.</td></tr>
 <tr><td>Every move at 0 PP</td><td>A on FIGHT</td><td>… chose FIGHT (every move has 0 PP; the game picks what TORCHIC does); …</td></tr>
+<tr><td>Double battle, single-target move, no target</td><td>nothing</td><td>… EMBER needs a target in this double battle; name one of: WURMPLE (ally, screen right), ZIGZAGOON (foe, screen left).</td></tr>
+<tr><td>Double battle with target</td><td>A, RIGHT, DOWN, A, RIGHT, RIGHT, A</td><td>Battle action: chose FIGHT, then EMBER for TORCHIC, at ZIGZAGOON (foe, screen left); …; the battle menu (FIGHT, BAG, POKéMON, RUN) is open for WURMPLE; highlighted FIGHT.</td></tr>
+<tr><td>Spread move with a target</td><td>A, RIGHT, A</td><td>… chose FIGHT, then GROWL for TORCHIC; buttons pressed: A, RIGHT, A; target ignored: GROWL hits both foes; …</td></tr>
 <tr><td>Input changed before a press</td><td>nothing more</td><td>… stopped; the battle input changed before the press, so no button was sent; inspect the new state.</td></tr>
 </table></div>
 <p>Game words: "There's no PP left for this move!" is <code>sText_NoPPLeft</code> and the menu labels are <code>gText_BattleMenu</code> ("FIGHT BAG / POKéMON RUN"), both in pret <code>src/battle_message.c</code>. Where the game shows nothing (a move the POKéMON does not know, a battle still busy), the line says only the observable fact. Messages the game shows after a press (no running from a trainer battle, a disabled move) are quoted from the battle message window.</p>
@@ -188,7 +193,8 @@ of the active POKéMON's moves.</pre>
 <h2>Scope in v1, from the evidence</h2>
 <ul>
 <li><b>BAG and POKéMON open the screen and stop.</b> No recorded run has ever chosen an item or a party POKéMON in battle; the bag and party screens have their own cursors, lists and confirmations, which press still drives.</li>
-<li><b>Double battles:</b> a button reaches every battle input that is ready, so with two of your POKéMON waiting for a choice at once the tool presses nothing ("more than one battle input is waiting at once"), and stops if a second input opens during a call. When the game asks for a target the tool stops and says the target choice is open, with its highlight. It never accepts a default target.</li>
+<li><b>Double battles</b> (the operator, 2026-10-17 4:18 PM: "the battle tool needs to be able to select which pokemon should be attacked"): the game asks for each of your POKéMON in turn: the right one only after the left one has chosen (pret <code>HandleTurnActionSelectionState</code>). One call acts for the POKéMON being asked and names it ("chose FIGHT, then EMBER for TORCHIC, at ZIGZAGOON (foe, screen left)"), and its result says who is asked next ("the battle menu … is open for WURMPLE"). Two inputs ready at once does not happen in these battles; if it ever does, the tool presses nothing, because one button reaches both.</li>
+<li><b>Targets:</b> a move whose target type (ROM move table, byte 6 of <code>struct BattleMove</code>) is MOVE_TARGET_SELECTED needs <code>target</code> while more than one other POKéMON is present. The choices are every present battler but the user, labelled by side and by where the screen draws it (pret <code>sBattlerCoords</code>: your POKéMON left and right, foes left and right). A missing, unmatched or ambiguous target is refused with the list. The highlight is moved with RIGHT only (forward through <code>sTargetIdentities</code>; the retail LEFT wrap reads past the array) and checked after each press. Spread moves (both foes, everyone), self moves, CURSE for a non-GHOST user, random-target moves, a battle with one other POKéMON left and single battles ignore <code>target</code> and say so. No recorded run has reached a double battle yet, so the tests use synthetic double-battle states built from recorded rows.</li>
 <li><b>Not read:</b> Disable, Taunt, Torment, Imprison and Choice Band locks. If the game refuses such a move after A, the result quotes the game's message.</li>
 <li><b>Not handled:</b> the Safari Zone menu, battle YES/NO choices and the move reorder (SELECT) choice. The tool refuses and names what is open.</li>
 <li><b>Field-only blocks</b> (untaken exits, people ledger, ID cards, story destinations) are not added to a battle_action result; battle-loss recap and blocked-exit facts are.</li>

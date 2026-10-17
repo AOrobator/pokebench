@@ -154,8 +154,8 @@ describe("double battles: one call per battler, in the game's order",()=>{
  it("the target cursor is checked after every press; a highlight that does not move stops the call",async()=>{
   const sim=new DoubleSim(doubleBase());
   const ports=sim.ports();
-  const press=ports.press;
-  ports.press=async(id,params,signal,check)=>{if(sim.phase==="target")sim.frozen=true;return press(id,params,signal,check);};
+  const inner=sim.ports();
+  ports.press=async(id,params,signal,check)=>{if(sim.phase==="target")sim.frozen=true;return inner.press(id,params,signal,check);};
   const text=(await battleActionTool(ports).execute("d",{action:"fight",move:"EMBER",target:"ZIGZAGOON"})).content[0];
   expect(text).toEqual({type:"text",text:"Battle action: stopped after pressing A, RIGHT, DOWN, A, RIGHT; the highlight stayed on SHROOMISH; inspect the new state."});
   expect(sim.chosen).toEqual([]);

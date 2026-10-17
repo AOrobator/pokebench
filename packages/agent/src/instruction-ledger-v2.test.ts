@@ -510,9 +510,5 @@ describe("the pending experiment",()=>{
   expect(dependencyProblems(presetFeatures(parsePlayPreset(candidate)))).toEqual([]);
   expect(entry.hypothesis).toContain("latest conversation with a person");
   expect(entry.hypothesis).not.toContain("names the speaker");
-  // The incumbent is the bundle arm of bundle-v-control (its base with every bundle switch on), minus this switch.
-  const fixed=JSON.parse(readFileSync(new URL("../../../experiments/fixed/bundle-v-control.json",import.meta.url),"utf8")) as {base:{features:Record<string,boolean>};switches:string[]};
-  const bundle=Object.fromEntries(SWITCHABLE_FEATURES.map(k=>[k,k==="instruction-ledger-v2"?false:fixed.switches.includes(k)?true:(fixed.base.features[k]??false)]));
-  expect(incumbent.features).toEqual(bundle);
  });
 });

@@ -56,3 +56,4 @@ Branch `claude/instruction-ledger-v2`, worktree `/private/tmp/pokebench-instruct
   - COMMIT: merge main 8cdf6cd1 (e33adc52)
 - [x] Sixth sync with main a04de386 (five readout truth fixes join the bundle): v2 incumbent regenerated from the bundle arm (93 switches on). Gates: build OK; just test agent 2309, viewer 1131, pytest 2478 passed / 229 skipped; lint OK; experiments-check ok (100). Coverage as on e33adc52 (this merge changes only experiment JSON).
   - COMMIT: merge main a04de386 (08f44f64). STOP: ready for review round 2; not landed.
+- [x] Coordinator (before round 2): removed the test asserting the incumbent equals the bundle arm of experiments/fixed/bundle-v-control.json (that file is edited many times a day and would turn main red); the generated incumbent stays; notes and readiness row say it was generated at the a04de386 sync. Hypothesis-phrase test kept. Ledger, experiments and experiment-gate tests 52 passed; lint OK; experiments-check ok (100).

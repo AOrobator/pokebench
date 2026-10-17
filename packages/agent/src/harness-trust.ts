@@ -189,7 +189,8 @@ function stateOf(details:unknown):GameStateSnapshot|null {
  return parseGameState(details.state);
 }
 
-export interface TrustOptions {readonly supervisor:boolean}
+// battleAction: harness-trust-v2 also heads battle_action results.
+export interface TrustOptions {readonly supervisor:boolean;readonly battleAction?:boolean}
 
 // The header (and any walk-away note) put at the top of the result's first text part.
 export class HarnessTrust {
@@ -232,14 +233,14 @@ export function withHarnessTrust(tools:readonly AgentTool[],on:boolean,recorder:
   const index=result.content.findIndex(part=>part.type==="text");
   const part=result.content[index];
   if(part?.type!=="text")return result;
-  const {header,away}=trust.lines(part.text,state,id,await places(state.name ?? ""),tool!=="observe");
+  const {header,away}=trust.lines(part.text,state,id,await places(state.name ?? ""),tool==="press"||tool==="navigate_to");
   const note=away===null?null:awayText(away);
   if(away!==null&&note!==null)record?.(tool,away,note);
   const content=[...result.content];content[index]={...part,text:`${header}\n${note===null?"":`${note}\n`}\n${part.text}`};
   return {...result,content};
  };
  return tools.map(tool=>{
-  if(tool.name!=="observe"&&tool.name!=="press"&&tool.name!=="navigate_to")return tool;
+  if(tool.name!=="observe"&&tool.name!=="press"&&tool.name!=="navigate_to"&&!(options.battleAction===true&&tool.name==="battle_action"))return tool;
   const execute:AgentTool["execute"]=async(id,params,signal,update)=>annotate(tool.name,id,await tool.execute(id,params,signal,update));
   if(!isCheckedPress(tool))return {...tool,execute};
   const checked:CheckedPressTool={...tool,execute,executeChecked:async(id,params,check,signal,update)=>annotate(tool.name,id,await tool.executeChecked(id,params,check,signal,update))};

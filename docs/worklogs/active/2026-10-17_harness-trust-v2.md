@@ -28,8 +28,10 @@ No new inputs, endpoints or files.
 
 **M1: harness-trust-v2**
 - [x] RED: `harness-trust-v2.test.ts` (battle_action wrapped only with the option, recorded 4caa T272 header; never counted as own move; registry, presets, factory through playGameTools with an extra battle_action tool) and the viewer default. 5:08 PM New York: 2 agent tests fail (option and registry missing).
-- [ ] GREEN: option in withHarnessTrust, registry, presets, defaults, wiring, explainer section, pending experiment entry.
-- [ ] Gates
+  - COMMIT: `test(harness-trust-v2): RED header on battle_action results` (3a4b9573)
+- [x] GREEN: `TrustOptions.battleAction` wraps battle_action; the walk-away own-move test is now press or navigate_to by name (battle_action never counts); registry (last, guidance, needs harness-trust-v1, state-only list), presets OFF, DEFAULT_NEXT_RUN OFF, playGameTools passes the switch; explainer section in harness-trust-v1.html mapped for the v2 card; pending `experiments/harness-trust-v2.json` and readiness row; heal-before-trainers and battle-move-tool incumbents list the new switch. Mechanical test updates: positions +1, v2 OFF wherever cited-destination is OFF, guidance 44, switchboard rows 104.
+  - Wiring break: `battleAction:false` in play-wiring turned the factory test red; restored, 3/3.
+- [x] Gates: agent 2257, viewer 1118, pytest 2564; lint, build clean; coverage agent 99.2 / 94.11 / 98.2, viewer 97.62 / 91.38 / 93.79, Python 97.65 / 93.78 / 100; verify-vendor OK; experiments-check ok (94); pages-check clean; schema unchanged.
 - [ ] Review: Claude, Grok, Codex; 2-round cap.
 - [ ] Merge slot from the coordinator; land ff-only; SHA to the coordinator.
 

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { TIERS, cardHtml, clockParts, parseCardArt, placeText, tierOf, trainerFor, type CardArt, type CardInput } from "./trainer-card.js";
+import { TIERS, cardHtml, cardInputFor, clockParts, parseCardArt, placeText, tierOf, trainerFor, type CardArt, type CardInput } from "./trainer-card.js";
+import { run as recorded } from "../test-support/workbench.js";
 import type { PlateFacts } from "./workbench-view.js";
 
 const ART: CardArt = { trainers: ["brendan", "may", "birch", "norman"], icons: new Set([280, 412]), egg: 412 };
@@ -73,5 +74,22 @@ describe("trainer card markup", () => {
   it("escapes everything that comes from a run", () => {
     const html = cardHtml(input({ title: 'x"<script>', runId: 'r"1', card: { name: "<i>", location: "<s>", party: [] } }), ART, "wide");
     expect(html).not.toContain("<script>"); expect(html).not.toContain("<i>"); expect(html).not.toContain("<s>"); expect(html).toContain("&quot;");
+  });
+});
+
+describe("one card per workbench run, shared by the viewer and the comparisons page", () => {
+  const exp = (arm: string, trial: number) => ({ id: "bundle-v-control-dryrun-cook", arm, trial, of: 4 });
+  it("titles by experiment, picks the trainer among the experiment's arms and reads the trial", () => {
+    const bundle = recorded({ id: "b", status: "live", experiment: exp("bundle", 2), card: { name: "RED", location: "OLDALE TOWN", party: [] } });
+    const control = recorded({ id: "c", status: "live", experiment: exp("control", 1) });
+    const input = cardInputFor(bundle, 1000, 1000, "live", [bundle, control, recorded({ id: "z", experiment: null })], { ...ART, trainers: ["brendan", "may", "birch", "wally", "roxanne", "brawly", "wattson", "flannery", "norman", "winona", "sidney", "phoebe", "glacia", "drake"] });
+    expect(input).toMatchObject({ runId: "b", title: "bundle-v-control-dryrun-cook", arm: "bundle", trial: "trial 2/4", status: "live", trainer: "norman", card: { name: "RED" } });
+    const plain = cardInputFor(recorded({ id: "p", experiment: null, card: undefined }), 1000, 1000, "paused", [], ART);
+    expect(plain).toMatchObject({ title: "Model <img onerror=x>", arm: null, trial: null, card: null, status: "paused" });
+    expect(cardInputFor(recorded({ id: "q", experiment: null, model: null }), 1000, 1000, "live", [], ART).title).toBe("q");
+  });
+  it("draws a link instead of a button when given a destination", () => {
+    const html = cardHtml(input(), ART, "wide", "/#run=run-a");
+    expect(html.startsWith('<a class="tc tc-wide" href="/#run=run-a" data-watch="run-a"')).toBe(true); expect(html).not.toContain("aria-pressed"); expect(html.endsWith("</a>")).toBe(true);
   });
 });

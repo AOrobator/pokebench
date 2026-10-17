@@ -492,6 +492,17 @@ describe("trainer card data", () => {
     const d = parseWorkbench(await workbenchSnapshot(r, () => Promise.resolve(true), 2000000000000));
     expect(d.runs[0]?.card?.party).toEqual([{ speciesId: 280, level: 6, egg: false }]);
   });
+  it("carries the run's experiment, arm and trial from its header, and null without one", async () => {
+    const r = root(), log = named(), first = log.events[0];
+    if (first?.type !== "run_start") throw new Error("fixture start");
+    log.events[0] = { ...first, evaluation: { preset_id: "bundle-v-control", target: null, failure_limit: 3, flags: { loopGuard: true, activeUi: true, interfaceDocs: true, objectives: true }, experiment: { id: "exp-a", arm: "bundle", trial: 2, of: 4 } } };
+    write(r, "tagged", log); write(r, "plain", named());
+    const d = parseWorkbench(await workbenchSnapshot(r, () => Promise.resolve(true), 2000000000000));
+    expect(d.runs.find(x => x.id === "tagged")?.experiment).toEqual({ id: "exp-a", arm: "bundle", trial: 2, of: 4 });
+    expect(d.runs.find(x => x.id === "plain")?.experiment).toBeNull();
+    const run = d.runs[0]; if (run === undefined) throw new Error("fixture");
+    for (const experiment of [{ id: 1, arm: "a", trial: 1, of: 2 }, { id: "x", arm: "a", trial: 0, of: 2 }, { id: "x", arm: "a", trial: 1.5, of: 2 }]) expect(() => parseWorkbench({ ...d, runs: [{ ...run, experiment }] })).toThrow("Invalid workbench");
+  });
   it("rejects a malformed card at the browser boundary", async () => {
     const r = root(); write(r, "card", named()); const d = await workbenchSnapshot(r, () => Promise.resolve(true), 42);
     const run = d.runs[0]; if (run === undefined) throw new Error("missing fixture");

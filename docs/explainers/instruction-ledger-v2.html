@@ -28,7 +28,9 @@ ul{margin:0;padding-left:20px}
 .eyebrow{font:500 .75rem var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--soft)}
 .lede{font-size:1.08rem;color:var(--soft)}
 section{display:flex;flex-direction:column;gap:12px}
-figure{margin:0;display:flex;flex-direction:column;gap:8px}
+figure{margin:0;display:flex;flex-direction:column;gap:8px;min-width:0}
+section,main>div{min-width:0}
+code{overflow-wrap:anywhere}
 .scroll{overflow-x:auto}
 svg{display:block;max-width:100%;height:auto}
 .scroll svg{min-width:520px}
@@ -62,7 +64,7 @@ th{font:500 .75rem var(--mono);letter-spacing:.06em;text-transform:uppercase;col
 <div class="eyebrow">Harness switch · observation · <code>instruction-ledger-v2</code> · needs <code>dialogue-auto-advance-v1</code> · off by default · bundle arm</div>
 <h1>Conversation ledger</h1>
 </div>
-<p class="lede">Every observe, press and navigate_to result on the free overworld gets one block right under the readout's Story line. It quotes the latest conversation in which the game prints a speaker's name, whole, with its speakers and turn ("MAY, turn 450"). Then it lists every room visited, newest first, with the last line heard in each. The harness picks nothing by meaning. The game's own <code>NAME:</code> prefix decides which conversation counts. There is no model tool, no prompt line and no model-written text.</p>
+<p class="lede">Every observe, press and navigate_to result on the free overworld gets one block right under the readout's Story line. It quotes the latest conversation with a person, whole, with who spoke and the turn ("MAY, turn 450"). Every line says who said it. Then it lists every room visited, newest first, with the last line heard in each and who said it. There is no model tool, no prompt line and no model-written text.</p>
 
 <section>
 <h2>Why a v2</h2>
@@ -70,8 +72,9 @@ th{font:500 .75rem var(--mono);letter-spacing:.06em;text-transform:uppercase;col
 <div class="tablewrap"><table>
 <tr><th>v1</th><th>v2</th></tr>
 <tr><td>Asks the model to call <code>note_contradiction</code>. In 36 cook runs the model called the similar optional reader <code>get_dialogue</code> 4 times in 26,293 calls.</td><td>No tool. Nothing depends on the model asking.</td></tr>
-<tr><td>Pins the last three pages of any dialogue, so signs and filler (MANIAC's "Wait until I finish sketching them") replace an instruction.</td><td>Pins the latest conversation with a page the game names a speaker for, every page of it.</td></tr>
+<tr><td>Pins the last three pages of any dialogue: signs and objects count, and a long conversation is cut to its last three pages.</td><td>Pins the latest conversation with a person, every page of it. Signs and objects never pin.</td></tr>
 <tr><td>A room's "last heard" fills only when the newest page's seq equals the tool result's state seq. Under auto-advance they never match, so rooms read "nothing heard".</td><td>Keys "last heard" on each auto-advance page's own map.</td></tr>
+<tr><td>Labels faced people by internal sprite ids, or not at all.</td><td>Every line says who said it, the way the game shows them: "MAY", "the woman you talked to", "the sign".</td></tr>
 <tr><td>Appended as a trailing user message after the newest result, the last thing the model reads.</td><td>Inside the tool result, under the Story line. The current readout still follows it.</td></tr>
 </table></div>
 </section>
@@ -101,58 +104,66 @@ Location: OLDALE TOWN
 </div>
 <p>The whole block, exactly as the tests replay it from the recorded events (fixture <code>instruction-ledger-v2-e962.jsonl.gz</code>):</p>
 <pre>Conversation ledger: game text you were shown, quoted whole; past text, the current screen overrides it.
-Latest conversation where the game names the speaker (MAY, turn 450; OLDALE TOWN (map 0/10)):
+Latest conversation with a person (MAY, turn 450; OLDALE TOWN (map 0/10)):
 - MAY: &quot;RRED! Over here! Let&#39;s hurry home!&quot;
 Rooms visited, newest first, with the last line heard in each:
 - OLDALE TOWN (map 0/10), here turn 450: last heard turn 450, MAY: &quot;RRED! Over here! Let&#39;s hurry home!&quot;
 - ROUTE103 (map 0/18), here turn 446: last heard turn 444, MAY: &quot;Well, it&#39;s time to head back to the LAB.&quot;
 - ROUTE101 (map 0/16), here turn 389: last heard turn 125, PROF. BIRCH: &quot;This is not the place to chat, so come by my POKéMON LAB later, okay?&quot;
-- LITTLEROOT TOWN (map 0/9), here turn 374: last heard turn 144, Sign text &quot;RRED&#39;s HOUSE&quot; (faced object): &quot;RRED&#39;s HOUSE&quot;
-- OLDALE TOWN POKEMON CENTER 1F (map 2/2), here turn 300: last heard turn 298: &quot;We hope to see you again!&quot;
-- PROF. BIRCH&#39;S POKéMON LAB (map 1/4), here turn 160: last heard turn 159, SCIENTIST_1 (sprite kind, not a name): &quot;The PROF enjoys MAY&#39;s help, too. There&#39;s a lot of love there.&quot;
+- LITTLEROOT TOWN (map 0/9), here turn 374: last heard turn 144, the sign: &quot;RRED&#39;s HOUSE&quot;
+- OLDALE TOWN POKEMON CENTER 1F (map 2/2), here turn 300: last heard turn 298, no speaker shown: &quot;We hope to see you again!&quot;
+- PROF. BIRCH&#39;S POKéMON LAB (map 1/4), here turn 160: last heard turn 159, the scientist you talked to: &quot;The PROF enjoys MAY&#39;s help, too. There&#39;s a lot of love there.&quot;
 - RRED&#39;s HOUSE 1F (map 1/0), here turn 149: last heard turn 148, MOM: &quot;Take care, honey!&quot;
-- PROF. BIRCH&#39;S HOUSE 1F (map 1/2), here turn 139: last heard turn 98, RIVAL_MAY_NORMAL (sprite kind, not a name): &quot;RRED, I&#39;ll catch you later!&quot;
+- PROF. BIRCH&#39;S HOUSE 1F (map 1/2), here turn 139: last heard turn 98, the girl you talked to: &quot;RRED, I&#39;ll catch you later!&quot;
 - PROF. BIRCH&#39;S HOUSE 2F (map 1/3), here turn 137: nothing heard
 - RRED&#39;s HOUSE 2F (map 1/1), here turn 81: last heard turn 81, MOM: &quot;Oh, you should make sure that everything&#39;s all there on your desk.&quot;
-- INSIDE OF TRUCK (map 25/40), here turn 61: last heard turn 58, MOVING_BOX (sprite kind, not a name): &quot;It&#39;s a POKéMON brand moving and delivery service.&quot;</pre>
+- INSIDE OF TRUCK (map 25/40), here turn 61: last heard turn 58, the box: &quot;It&#39;s a POKéMON brand moving and delivery service.&quot;</pre>
 </section>
 
 <section>
 <h2>Which conversation is pinned</h2>
 <figure>
 <div class="scroll">
-<svg viewBox="0 0 720 270" role="img" aria-label="Conversations in run 2fb4 from turn 241 to 316; only MOM at turn 245 has a NAME prefix, so it stays pinned">
+<svg viewBox="0 0 720 270" role="img" aria-label="Conversations in run 2fb4 from turn 241 to 316; the newest conversation with a person is pinned; signs never are">
 <text x="10" y="20" class="t">Run 2fb4, turns 241–316: field conversations the model was shown, oldest to newest</text>
 <line x1="20" y1="120" x2="700" y2="120" class="arr"/>
-<g><rect x="20" y="60" width="120" height="44" rx="6" class="box"/><text x="30" y="78">T241 TWIN</text><text x="30" y="95" class="s">faced sprite</text></g>
-<g><rect x="155" y="60" width="120" height="44" rx="6" class="game hot"/><text x="165" y="78" class="t">T245 MOM</text><text x="165" y="95" class="s">NAME: prefix</text></g>
-<g><rect x="290" y="60" width="120" height="44" rx="6" class="box"/><text x="300" y="78">T250 sign</text><text x="300" y="95" class="s">faced object</text></g>
-<g><rect x="425" y="60" width="120" height="44" rx="6" class="box"/><text x="435" y="78">T255 WOMAN_4</text><text x="435" y="95" class="s">faced sprite</text></g>
-<g><rect x="560" y="60" width="140" height="44" rx="6" class="prior"/><text x="570" y="78">T316 MANIAC</text><text x="570" y="95" class="s">faced sprite (v1 pins it)</text></g>
-<text x="20" y="150" class="t">v2 pins MOM, T245: the newest conversation with a NAME: prefix.</text>
-<text x="20" y="172" class="s">Faced sprites are graphics (sprite kinds); faced objects are signs and clocks.</text>
-<text x="20" y="190" class="s">Neither is a name the game prints. They still count as the last line heard in their room.</text>
-<text x="20" y="230" class="s">Limit: WOMAN_4's "went out to ROUTE 103" has no prefix in the game's text</text>
-<text x="20" y="248" class="s">(RivalsHouse_1F_Text_WentOutToRoute103), so it is never pinned.</text>
+<g><rect x="20" y="60" width="120" height="44" rx="6" class="game"/><text x="30" y="78">T241 girl</text><text x="30" y="95" class="s">person</text></g>
+<g><rect x="155" y="60" width="120" height="44" rx="6" class="game"/><text x="165" y="78">T245 MOM</text><text x="165" y="95" class="s">NAME: prefix</text></g>
+<g><rect x="290" y="60" width="120" height="44" rx="6" class="box"/><text x="300" y="78">T250 sign</text><text x="300" y="95" class="s">never pinned</text></g>
+<g><rect x="425" y="60" width="120" height="44" rx="6" class="game hot"/><text x="435" y="78" class="t">T255 woman</text><text x="435" y="95" class="s">pinned at T256</text></g>
+<g><rect x="560" y="60" width="140" height="44" rx="6" class="game hot"/><text x="570" y="78" class="t">T316 man</text><text x="570" y="95" class="s">pinned at T320</text></g>
+<text x="20" y="150" class="t">The pin is always the newest conversation with a person, named or not.</text>
+<text x="20" y="172" class="s">At T256 that is the woman in PROF. BIRCH'S HOUSE 1F: "Oh, MAY went out to ROUTE 103 just a little while ago."</text>
+<text x="20" y="190" class="s">At T320 it is the man in OLDALE TOWN ("Wait until I finish sketching them"): newer filler replaces it.</text>
+<text x="20" y="230" class="s">The woman's line stays as that room's last line heard. The sign at T250 is a room line only,</text>
+<text x="20" y="248" class="s">never the pinned conversation.</text>
 </svg>
 </div>
-<figcaption>One claim: the selection rule is the game's own <code>NAME:</code> prefix, nothing else. Recorded run <code>2026-10-16T16-46-59_qwen36-gpu0_2fb4</code>, result at seq 8319 (turn 320, entering ROUTE 103).</figcaption>
+<figcaption>One claim: the newest conversation with a person is pinned, and signs and objects never are. Recorded run <code>2026-10-16T16-46-59_qwen36-gpu0_2fb4</code>, results at seq 6401 (turn 256) and 8319 (turn 320).</figcaption>
 </figure>
+<p>Who said a line, in this order (operator decision, the operator 2026-10-17 4:49 PM):</p>
+<ol>
+<li>The game's own <code>NAME:</code> prefix ("MAY: Well, it's time…"), moved out of the quote. Pages that continue that message keep the name.</li>
+<li>Else the person the player faced, described by how they look on screen: "the woman you talked to", "the man", "the boy", "the girl", "the old man", "the scientist", "the nurse" or "the clerk". If the game printed a name for that same sprite on that map in the same conversation (one <code>NAME:</code> prefix, one faced person), that name is used from then on. Internal sprite ids such as WOMAN_4 or RIVAL_MAY_NORMAL are never printed.</li>
+<li>Signs and objects are named as such: "the sign", "the wall clock", "the box", "the item ball", "the doll". A faced POKéMON is "the POKéMON".</li>
+<li>A page where the game shows no speaker (the player's own "received" lines, a nurse's goodbye with no one faced) reads "no speaker shown".</li>
+</ol>
 <ul>
 <li>A conversation is every field page of one auto-advance call, in order. Battle text (pages with a battle turn) never counts.</li>
-<li>Pages in a named conversation that carry no prefix themselves keep the speaker auto-advance carried within the conversation. For example, MOM's "He lives right next door" (<code>PlayersHouse_1F_Text_GoIntroduceYourselfNextDoor</code>) follows "MOM: Oh… It's over."</li>
 <li>A page counts once its tool result reached the model. The result that delivers a conversation already pins it. An error result delivers nothing.</li>
-<li>Before any named conversation, the latest field page stands in, labelled "the latest field page".</li>
-<li>No character list, milestone order, map knowledge or route knowledge is used (PB4). This differs from <code>story-destinations-v1</code>, which uses character presence's story-character table.</li>
+<li>Before any person has spoken, the latest field page stands in, labelled "the latest field page" (in the truck: "the box").</li>
+<li>No character list, milestone order, map knowledge or route knowledge is used (PB4). The person words come from the sprite's look (pokeemerald <code>OBJ_EVENT_GFX_*</code>, <code>env/pokebench_env/event-graphics.json</code>), not from who matters to the story.</li>
 </ul>
 <p>Recorded runs it was checked on:</p>
 <div class="tablewrap"><table>
 <tr><th>Run, seq</th><th>Pinned</th><th>Notable room line</th></tr>
-<tr><td>93eb 2771 (T134)</td><td>MOM, INTERVIEWER, turn 131: the TV report, ending "He lives right next door, so you should go over and introduce yourself."</td><td>LITTLEROOT TOWN: MOM, turn 120, "And, you get your own room…"</td></tr>
+<tr><td>93eb 2771 (T134)</td><td>MOM, INTERVIEWER, turn 131: the TV report, ending "He lives right next door, so you should go over and introduce yourself."</td><td>INSIDE OF TRUCK: the box</td></tr>
 <tr><td>0e05 1286 (T76)</td><td>The same conversation, turn 74</td><td>BRED's HOUSE 1F: "He lives right next door…"</td></tr>
 <tr><td>e962 10160 (T445)</td><td>MAY, turn 444: four pages ending "Well, it's time to head back to the LAB."</td><td>Battle pages left out</td></tr>
 <tr><td>defa 9920 (T402)</td><td>MAY, turn 402, in the very result that delivers it</td><td>ROUTE103: the LAB line (v1: "nothing heard")</td></tr>
-<tr><td>2fb4 8319 (T320)</td><td>MOM, turn 245</td><td>OLDALE TOWN: MANIAC; PROF. BIRCH'S HOUSE 1F: WOMAN_4</td></tr>
+<tr><td>2fb4 6401 (T256)</td><td>the woman you talked to, turn 255: "Oh, MAY went out to ROUTE 103 just a little while ago."</td><td>LITTLEROOT TOWN: the sign</td></tr>
+<tr><td>2fb4 8319 (T320)</td><td>the man you talked to, turn 316 (the sketching man in OLDALE TOWN)</td><td>PROF. BIRCH'S HOUSE 1F: the woman's "Like father, like child…"</td></tr>
+<tr><td>e0cc 1573, 1832, 3525 (live bundle run, v1 on)</td><td>the woman you talked to, turn 70, then the girl you talked to, turn 76</td><td>PROF. BIRCH'S HOUSE 1F: the woman you talked to, "Our daughter is upstairs, I think." (v1 recorded "nothing heard")</td></tr>
 </table></div>
 </section>
 
@@ -176,25 +187,22 @@ Rooms visited, newest first, with the last line heard in each:
 
 <section>
 <h2>Interface format</h2>
-<p>Recorded 2fb4 seq 8319, as the tests replay it:</p>
+<p>Recorded 2fb4 seq 6401 (turn 256), as the tests replay it:</p>
 <pre>Conversation ledger: game text you were shown, quoted whole; past text, the current screen overrides it.
-Latest conversation where the game names the speaker (MOM, turn 245; YROVE&#39;s HOUSE 1F (map 1/0)):
-- MOM: &quot;How are you doing, YROVE? You look a little tired.&quot;
-- MOM: &quot;I think you should rest a bit.&quot;
-- MOM: &quot;Take care, honey!&quot;
+Latest conversation with a person (the woman you talked to, turn 255; PROF. BIRCH&#39;S HOUSE 1F (map 1/2)):
+- the woman you talked to: &quot;Oh, MAY went out to ROUTE 103 just a little while ago.&quot;
+- the woman you talked to: &quot;Like father, like child. MAY can&#39;t stay quietly at home.&quot;
 Rooms visited, newest first, with the last line heard in each:
-- ROUTE103 (map 0/18), here turn 320: nothing heard
-- OLDALE TOWN (map 0/10), here turn 319: last heard turn 316, MANIAC (sprite kind, not a name): &quot;Wait until I finish sketching them, okay?&quot;
-- ROUTE101 (map 0/16), here turn 309: last heard turn 220, PROF. BIRCH: &quot;This is not the place to chat, so come by my POKéMON LAB later, okay?&quot;
-- LITTLEROOT TOWN (map 0/9), here turn 288: last heard turn 250, Sign text &quot;PROF. BIRCH&#39;S HOUSE&quot; (faced object): &quot;PROF. BIRCH&#39;S HOUSE&quot;
-- PROF. BIRCH&#39;S HOUSE 1F (map 1/2), here turn 257: last heard turn 255, WOMAN_4 (sprite kind, not a name): &quot;Like father, like child. MAY can&#39;t stay quietly at home.&quot;
+- PROF. BIRCH&#39;S HOUSE 1F (map 1/2), here turn 256: last heard turn 255, the woman you talked to: &quot;Like father, like child. MAY can&#39;t stay quietly at home.&quot;
+- LITTLEROOT TOWN (map 0/9), here turn 252: last heard turn 250, the sign: &quot;PROF. BIRCH&#39;S HOUSE&quot;
 - YROVE&#39;s HOUSE 1F (map 1/0), here turn 247: last heard turn 245, MOM: &quot;Take care, honey!&quot;
 - PROF. BIRCH&#39;S POKéMON LAB (map 1/4), here turn 223: last heard turn 222, PROF. BIRCH: &quot;Get MAY to teach you what it means to be a TRAINER.&quot;
-- PROF. BIRCH&#39;S HOUSE 2F (map 1/3), here turn 170: last heard turn 170, RIVAL_MAY_NORMAL (sprite kind, not a name): &quot;YROVE, I&#39;ll catch you later!&quot;
+- ROUTE101 (map 0/16), here turn 220: last heard turn 220, PROF. BIRCH: &quot;This is not the place to chat, so come by my POKéMON LAB later, okay?&quot;
+- PROF. BIRCH&#39;S HOUSE 2F (map 1/3), here turn 170: last heard turn 170, the girl you talked to: &quot;YROVE, I&#39;ll catch you later!&quot;
 - YROVE&#39;s HOUSE 2F (map 1/1), here turn 129: last heard turn 129, MOM: &quot;Oh, you should make sure that everything&#39;s all there on your desk.&quot;
-- INSIDE OF TRUCK (map 25/40), here turn 89: last heard turn 84, MOVING_BOX (sprite kind, not a name): &quot;It&#39;s a POKéMON brand moving and delivery service.&quot;</pre>
+- INSIDE OF TRUCK (map 25/40), here turn 89: last heard turn 84, the box: &quot;It&#39;s a POKéMON brand moving and delivery service.&quot;</pre>
 <ul>
-<li>The speaker label is the game's <code>NAME:</code> prefix, with the prefix moved out of the quote. A faced sprite reads "MANIAC (sprite kind, not a name)", a faced object reads "Wall clock (faced object)" and an unlabelled page has no label.</li>
+<li>Every line starts with who said it, as listed above. The game's <code>NAME:</code> prefix is moved out of the quote.</li>
 <li>Line breaks in the game's text are printed as spaces. Every other character is kept.</li>
 <li>Battle screens, menus and the title screen get no block. A result whose readout has no Location line is unchanged.</li>
 <li>Record: the block is part of the recorded <code>tool_result</code> text, so forensics and replay see exactly what the model saw. There is no <code>ledger_context</code> event, because the decision probe replays <code>ledger_context</code> as a trailing user message and v2 is not one.</li>
@@ -225,7 +233,7 @@ Rooms visited, newest first, with the last line heard in each:
 <li><code>Route103_Text_MayTimeToHeadBack</code>: "MAY: I think I know why my dad has an eye out for you now. … Well, it's time to head back to the LAB."</li>
 <li><code>PlayersHouse_1F_Text_OhComeQuickly</code>, <code>PlayersHouse_1F_Text_ItsOverWeMissedHim</code> and <code>PlayersHouse_1F_Text_GoIntroduceYourselfNextDoor</code> (<code>data/maps/LittlerootTown_BrendansHouse_1F/scripts.inc</code>)</li>
 <li><code>OldaleTown_Text_MayLetsGoBack</code>: "MAY: {PLAYER}{KUN}! Over here! Let's hurry home!"</li>
-<li><code>RivalsHouse_1F_Text_WentOutToRoute103</code> has no prefix; the game never names its speaker, so it is never pinned.</li>
+<li><code>RivalsHouse_1F_Text_WentOutToRoute103</code> has no prefix; the woman faced in PROF. BIRCH'S HOUSE 1F says it, so it reads "the woman you talked to" and is pinned while it is the latest conversation with a person.</li>
 </ul>
 </section>
 

@@ -27,7 +27,7 @@ No new inputs, endpoints or files.
 ## Milestones
 
 **M1: harness-trust-v2**
-- [ ] RED: unit (battle_action wrapped only with the option; not counted as own move), factory through playGameTools (extra tool named battle_action), registry/presets/defaults.
+- [x] RED: `harness-trust-v2.test.ts` (battle_action wrapped only with the option, recorded 4caa T272 header; never counted as own move; registry, presets, factory through playGameTools with an extra battle_action tool) and the viewer default. 5:08 PM New York: 2 agent tests fail (option and registry missing).
 - [ ] GREEN: option in withHarnessTrust, registry, presets, defaults, wiring, explainer section, pending experiment entry.
 - [ ] Gates
 - [ ] Review: Claude, Grok, Codex; 2-round cap.

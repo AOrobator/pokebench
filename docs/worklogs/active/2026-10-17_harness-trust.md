@@ -124,11 +124,14 @@ Tests from recorded states; viewer Activity History check on a fixture run; prob
   - COMMIT: `fix(harness-trust,cited-destination): own Because lines never count as shown; only the player's own free moves count; measure each move to one way` (a1383c61)
 - [x] 4:12 PM New York: exit-reachability-v1 landed on main at 7235ae56 (main now 65a4b021); merged main; one conflict in the FEATURES list (main's exit-reachability copy kept, these two entries after it). COMMIT: merge (e3f1c397).
   - Gates on the merged tip: agent 2178, viewer 1111, pytest 2544; lint, build clean; coverage agent 99.18 / 94.46 / 98.16, viewer 97.62 / 91.38 / 93.79, Python 97.63 / 93.76 / 100; verify-vendor OK; experiments-check ok (90); schema unchanged.
-- [x] Round 2 (4:15-4:30 PM New York): base main 65a4b021, head 20a97e5f, diff SHA-256 9d67ec5cea609eb8941c90049d535b7c021f5744f24816a63ceecaf170631196. Claude, Grok and Codex all BLOCKING on the same two points; X-B1 confirmed fixed. Logs /private/tmp/claude-tmp/review/ht-r2-*.log.
+- [x] Round 2 (4:12-4:20 PM New York): base main 65a4b021, head 20a97e5f, diff SHA-256 9d67ec5cea609eb8941c90049d535b7c021f5744f24816a63ceecaf170631196. Claude, Grok and Codex all BLOCKING on the same two points; X-B1 confirmed fixed. Logs /private/tmp/claude-tmp/review/ht-r2-*.log.
   - (R2-1) a `because` with a line break makes a multi-line echo, which the per-line filter missed: the repeat reads "found" (all three lanes; Codex reproduced it on the compiled module).
   - (R2-2) measuring only to the way nearest before the move can call a move "farther" when it got closer to another way into the goal (Claude, Grok).
   - Round cap reached: blockers remain after round 2, so per execute-worklog the operator chooses (land as is, fix only these bugs, or drop). Fixes prepared on the branch meanwhile (reversible).
-- [x] RED round 2: multi-line and CRLF `because` stay not_found on repeat while genuine multi-line game text is still found; two-ways path that gets closer to either way gives no note, and a path away from both names a way that got farther with its own numbers. 4:32 PM New York: 2 fail.
+- [x] RED round 2: multi-line and CRLF `because` stay not_found on repeat while genuine multi-line game text is still found; two-ways path that gets closer to either way gives no note, and a path away from both names a way that got farther with its own numbers. 4:22 PM New York: 2 fail.
+  - COMMIT: `test(harness-trust,cited-destination): RED round 2 (multi-line because echo; closer to another way)` (2bc8ced6)
+- [x] GREEN round 2: `Citations.observe` cuts each echo out whole (line breaks included) before normalising; same-map moves count as away only when no way into the goal got closer and the nearest is farther, naming the nearest way among those that got farther with its own two numbers. FEATURES copy and explainer updated. Gates: agent 2178, viewer 1111, pytest 2544; lint, build clean; coverage agent 99.18 / 94.45 / 98.16, viewer 97.62 / 91.38 / 93.79, Python 97.63 / 93.76 / 100; pages-check clean.
+- [ ] ASK USER: land with the round 2 fixes (not re-reviewed), re-review them once, land as reviewed, or drop.
 
 ## Boy Scout Log
 

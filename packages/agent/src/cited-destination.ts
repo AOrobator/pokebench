@@ -39,12 +39,15 @@ function quoteBody(because:string):string {
 export class Citations {
  private readonly shown:{readonly turn:number;readonly text:string}[]=[];
  private readonly seen=new Set<string>();
- // The lines this wrapper wrote echo the model's own words; they are removed before a result counts as shown.
+ // The lines this wrapper wrote echo the model's own words (line breaks included); each is cut out whole before a
+ // result counts as shown.
  private readonly echoes=new Set<string>();
  echoed(line:string):void {this.echoes.add(line);}
  observe(event:RunEvent):void {
   if(event.type!=="tool_result"||event.is_error)return;
-  const text=normalise(event.text.split("\n").filter(l=>!this.echoes.has(l)).join("\n"));
+  let raw=event.text;
+  for(const echo of this.echoes)raw=raw.split(echo).join("\n");
+  const text=normalise(raw);
   if(text===""||this.seen.has(text))return;
   this.seen.add(text);this.shown.push({turn:event.turn,text});
  }

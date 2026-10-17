@@ -146,12 +146,16 @@ export class WalkAway {
   if(!own||state.field_controls_locked!==false){this.away=[];return null;}
   let step:AwayStep|null=null,closer=false;
   if(same(prev.map,here)){
-   // Measured to the way that was nearest before the move, before and after, so both numbers are about one way.
-   const way=prev.ways.reduce<WayIn|null>((best,w)=>best===null||w.distance<best.distance?w:best,null);
-   const now=way===null?undefined:sample.ways.find(w=>w.label===way.label);
-   if(way===null||now===undefined)return null;
-   if(now.distance>way.distance)step={measure:"tiles",from_map:prev.map,to_map:here,from_name:prev.name,to_name:sample.name,from:prev.pos,to:sample.pos,before:way.distance,after:now.distance,way:way.label};
-   else closer=now.distance<way.distance;
+   // Away only when no way into the goal got closer and the nearest one is farther; the note names the way nearest
+   // after the move among those that got farther, with its own two distances.
+   const pairs=sample.ways.flatMap(w=>{const before=prev.ways.find(p=>p.label===w.label);return before===undefined?[]:[{label:w.label,before:before.distance,after:w.distance}];});
+   if(pairs.length===0)return null;
+   const min=(ds:readonly number[])=>Math.min(...ds);
+   if(pairs.some(p=>p.after<p.before)){closer=true;}
+   else if(min(pairs.map(p=>p.after))>min(pairs.map(p=>p.before))){
+    const way=pairs.filter(p=>p.after>p.before).reduce((best,p)=>p.after<best.after?p:best);
+    step={measure:"tiles",from_map:prev.map,to_map:here,from_name:prev.name,to_name:sample.name,from:prev.pos,to:sample.pos,before:way.before,after:way.after,way:way.label};
+   }
   }else{
    // Only a walk through one warp or connection counts; a whiteout, a fly or a scripted warp is not a move.
    if(!adjacent(prev.map,here,places)){this.away=[];return null;}

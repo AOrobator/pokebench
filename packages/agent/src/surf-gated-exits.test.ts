@@ -148,7 +148,7 @@ describe("surf-gated-exits-v1 rules",()=>{
   expect(new UntakenExits(features).line({...ROUTE,surf_gate:GATED},text)).toBe("Exits here you have not taken: (3,3) -> map 2/2; SOUTH edge -> OLDALE TOWN (map 0/10)");
  });
  it("says how many it left out only when no other exit is left: none to walk to at all, or every walkable one taken",()=>{
-  const features={...ALL_ON,[ID]:true};
+  const features={...ALL_ON,[ID]:true,"surf-gated-exits-v2":false};
   const island={...ROUTE,interaction_targets:[warp(45,6,[24,106,0])],topology:{...ROUTE.topology,connections:[EAST]},surf_gate:GATED} satisfies GameStateSnapshot;
   expect(new UntakenExits(features).line(island,"")).toBe("Exits here you have not taken: none you can walk to (every exit listed on this map is across water, and you cannot use Surf yet)");
   expect(new UntakenExits({...features,[ID]:false}).line(island,"")).toBe("Exits here you have not taken: (45,6) -> map 24/106; EAST edge -> map 0/25");
@@ -167,7 +167,7 @@ describe("surf-gated-exits-v1 rules",()=>{
 });
 
 describe("surf-gated-exits-v1 production wiring",()=>{
- const BASE:FeatureSet={...ALL_ON,"battle-move-tool-v1":false,"harness-trust-v1":false,"cited-destination-v1":false,"people-ledger-v1":false,"people-id-cards-v1":false,"trainer-heal-guidance-v1":false,"low-hp-trainer-warning-v1":false,"low-hp-trainer-warning-v2":false,"dialogue-auto-advance-v1":false,"bounded-navigation-v1":false,"navigate-first-prompt-v1":false,"blocked-exit-fact-v1":false,"battle-loss-recap-v1":false,"next-milestone-hint-v1":false};
+ const BASE:FeatureSet={...ALL_ON,"battle-move-tool-v1":false,"harness-trust-v1":false,"cited-destination-v1":false,"harness-trust-v2":false,"people-ledger-v1":false,"people-id-cards-v1":false,"trainer-heal-guidance-v1":false,"low-hp-trainer-warning-v1":false,"low-hp-trainer-warning-v2":false,"dialogue-auto-advance-v1":false,"bounded-navigation-v1":false,"navigate-first-prompt-v1":false,"blocked-exit-fact-v1":false,"battle-loss-recap-v1":false,"next-milestone-hint-v1":false};
  const snapshot={...ROUTE,surf_gate:GATED} satisfies GameStateSnapshot;
  const readout="Screen: overworld\nLocation: ROUTE103\nPosition: X=10, Y=21, facing up\nMoney: 1";
  const tool=(name:string):AgentTool=>({name,label:name,description:name,parameters:{},execute:()=>Promise.resolve({content:[{type:"text",text:readout}],details:{state:snapshot}})});
@@ -201,8 +201,8 @@ describe("surf-gated-exits-v1 registry and presets",()=>{
   expect(description).toContain("bundle arm only");
   expect(description).not.toContain("both arms");
   const ids=FEATURES.filter(f=>f.switchable).map(f=>f.id);
-  expect(ids.at(-16)).toBe(ID);
-  expect(playHarnessFeatures(ALL_ON,null).at(-16)).toBe(ID);
+  expect(ids.at(-22)).toBe(ID);
+  expect(playHarnessFeatures(ALL_ON,null).at(-22)).toBe(ID);
   expect(SERVER_FEATURES).toContain(ID);
   expect(serverFeatureEnv({...ALL_ON,[ID]:false}).POKEBENCH_FEATURES_OFF.split(",")).toContain(ID);
   expect(serverFeatureEnv(ALL_ON).POKEBENCH_FEATURES_OFF.split(",")).not.toContain(ID);

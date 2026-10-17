@@ -76,7 +76,8 @@
    "stall-briefing-v1": false,
    "dialogue-auto-advance-v1": true,
    "displayed-place-names-v1": true,
-   "battle-move-tool-v1": false
+   "battle-move-tool-v1": false,
+   "harness-trust-v2": false
   }
  },
  "trialsPerArm": 8,

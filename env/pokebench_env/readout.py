@@ -26,9 +26,13 @@ from pokebench_env.levelup_box import levelup_clause
 from pokebench_env.map_rules import FEATURE as RULES_FEATURE
 from pokebench_env.offscreen_objects import SWITCH as OFFSCREEN
 from pokebench_env.offscreen_objects import offscreen_text
+from pokebench_env.readout_fixes import MID_FRAME, MID_FRAME_TEXT
 from pokebench_env.readout_truth import SWITCH as TRUTH
 from pokebench_env.readout_truth import lock_line, menu_line
+from pokebench_env.status_names import SWITCH as STATUS_NAMES
+from pokebench_env.status_names import status_text
 from pokebench_env.surf_gate import SWITCH as SURF_GATE
+from pokebench_env.surf_gate import SWITCH_V2 as SURF_GATE_V2
 from pokebench_env.surf_gate import SurfGate
 from pokebench_env.topology import Topology
 from pokebench_env.world import InteractionTarget
@@ -75,6 +79,11 @@ SERVER_FEATURES = (
     "surf-gated-exits-v1",
     "exit-reachability-v1",
     "heal-before-trainers-v1",
+    "tutorial-party-owner-v1",
+    "mid-frame-readout-v1",
+    "unset-dynamic-warp-v1",
+    "status-names-v1",
+    "surf-gated-exits-v2",
 )
 
 
@@ -92,7 +101,9 @@ def features_off_from_env(env: Mapping[str, str]) -> frozenset[str]:
         "readout-truth-v1,birch-speech-pages-v1,blackout-readout-v1,"
         "surf-gated-exits-v1,"
         "exit-reachability-v1,"
-        "heal-before-trainers-v1",
+        "heal-before-trainers-v1,"
+        "tutorial-party-owner-v1,mid-frame-readout-v1,unset-dynamic-warp-v1,status-names-v1,"
+        "surf-gated-exits-v2",
     )
     if raw == "":
         return frozenset()
@@ -321,14 +332,23 @@ def format_readout(
     if not state.started:
         return "\n".join([*lines, PRE_GAME_TEXT])
     if state.position is None:
+        # mid-frame-readout-v1: the save was skipped because the snapshot was mid-frame.
+        if state.mid_frame and MID_FRAME not in off:
+            return "\n".join([*lines, MID_FRAME_TEXT])
         return "\n".join(
             [*lines, "Save-backed world state unavailable: save data is not initialized or valid."]
         )
     x, y = state.position
+    named_status = STATUS_NAMES not in off
     facing = "" if state.facing is None else f", facing {state.facing}"
     party = "; ".join(
         f"{m.species or 'UNKNOWN'} Lv{m.level} HP {m.hp}/{m.max_hp}"
-        + (f" · STATUS {m.status}" if expanded and m.status else "")
+        # status-names-v1: the status by name (poison, sleep turns, ...) instead of its bits.
+        + (
+            f" · STATUS {(status_text(m.status) if named_status else None) or m.status}"
+            if expanded and m.status
+            else ""
+        )
         + (
             " · moves "
             + ", ".join(
@@ -346,9 +366,11 @@ def format_readout(
     lines += [f"Player: {state.name}", f"Location: {location or state.location}"]
     if "live-player-position-v1" not in off:
         lines.append(f"Position: X={x}, Y={y}{facing}")
-    lines.append(f"Party ({state.party_owner}): {party or 'none'}")
+    # tutorial-party-owner-v1: an owner that could not be established is None (OFF: "unknown").
+    owner = state.party_owner or "unknown"
+    lines.append(f"Party ({owner}): {party or 'none'}")
     triage = (
-        field_triage_line(state.party, state.party_owner)
+        field_triage_line(state.party, owner)
         if TRIAGE not in off and not state.in_battle and state.battle is None
         else None
     )
@@ -445,6 +467,8 @@ def format_readout(
         )
     # surf-gated-exits-v1: exits reachable only across water while Surf cannot be used.
     gate = state.surf_gate if SURF_GATE not in off else None
+    # surf-gated-exits-v2: the notes name no badge and no move.
+    plain = SURF_GATE_V2 not in off
 
     # exit-reachability-v1: exits reachable neither on foot nor across water from here.
     reach = state.exit_reach if EXIT_REACH not in off else None
@@ -457,7 +481,7 @@ def format_readout(
 
     def warp_note(t: InteractionTarget) -> str:
         return (
-            gate.warp_note()
+            gate.warp_note(plain=plain)
             if gate is not None and across(t)
             else reach.warp_note()
             if reach is not None and cut_off(t)
@@ -478,7 +502,11 @@ def format_readout(
     if bounded_navigation and "bounded-navigation-v1" not in off and state.map_id is not None:
         lines.append(f"Navigation map_id: [{state.map_id[0]},{state.map_id[1]}] (current map only)")
     if world_destinations and "world-destinations-v1" not in off:
-        notes = {} if state.topology is None else connection_notes(state.topology, gate, reach)
+        notes = (
+            {}
+            if state.topology is None
+            else connection_notes(state.topology, gate, reach, plain=plain)
+        )
         lines.append(
             "Map topology: unavailable"
             if state.topology is None
@@ -497,7 +525,7 @@ def format_readout(
                     lines.append(
                         f"Warp destination at ({target.x},{target.y}): {name}"
                         + (
-                            gate.destination_note()
+                            gate.destination_note(plain=plain)
                             if gate is not None and across(target)
                             else reach.destination_note()
                             if reach is not None and cut_off(target)
@@ -508,7 +536,7 @@ def format_readout(
 
 
 def connection_notes(
-    topology: Topology, gate: SurfGate | None, reach: ExitReach | None
+    topology: Topology, gate: SurfGate | None, reach: ExitReach | None, *, plain: bool = False
 ) -> dict[int, str]:
     """The note each map connection line carries instead of its walk-off instruction, by index.
 
@@ -517,7 +545,7 @@ def connection_notes(
     notes: dict[int, str] = {}
     for i, c in enumerate(topology.connections):
         if gate is not None and gate.blocks_connection(c.direction):
-            notes[i] = gate.connection_note()
+            notes[i] = gate.connection_note(plain=plain)
         elif reach is not None and reach.blocks_connection(c.direction, c.destination, c.offset):
             notes[i] = reach.connection_note()
     return notes
@@ -574,7 +602,8 @@ def state_json(state: GameState) -> dict[str, object]:
         else {"x": state.position[0], "y": state.position[1]},
         "facing": state.facing,
         "in_battle": state.in_battle,
-        "party_owner": state.party_owner,
+        # tutorial-party-owner-v1: left out when ownership could not be established.
+        **({} if state.party_owner is None else {"party_owner": state.party_owner}),
         "party_ownership": None if state.party_ownership is None else state.party_ownership.json(),
         "party": [asdict(mon) for mon in state.party or ()],
         "game_stats": state.game_stats,

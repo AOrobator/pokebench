@@ -23,6 +23,7 @@ from pokebench_env.game_state import GameState, MapNames, read_game_state
 from pokebench_env.heal_trainers import SWITCH as HEAL_TRAINERS
 from pokebench_env.raw_ram import load_raw_ram
 from pokebench_env.readout import features_off_from_env, format_readout
+from pokebench_env.readout_fixes import MID_FRAME, OWNER, UNSET_WARP
 from pokebench_env.rom import resolve_rom
 from pokebench_env.screen_settle import WARP_FEATURE, warp_animating
 from pokebench_env.surf_gate import SWITCH as SURF_GATE
@@ -56,6 +57,9 @@ def read_state(
         surf_gate_enabled=SURF_GATE not in off,
         exit_reach_enabled=EXIT_REACH not in off,
         heal_trainers_enabled=HEAL_TRAINERS not in off,
+        tutorial_owner_enabled=OWNER not in off,
+        mid_frame_enabled=MID_FRAME not in off,
+        unset_warp_enabled=UNSET_WARP not in off,
     )
 
 

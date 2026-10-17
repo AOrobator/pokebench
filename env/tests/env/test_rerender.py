@@ -35,6 +35,11 @@ RECORDED_OFF = [
     "surf-gated-exits-v1",
     "exit-reachability-v1",
     "heal-before-trainers-v1",
+    "tutorial-party-owner-v1",
+    "mid-frame-readout-v1",
+    "unset-dynamic-warp-v1",
+    "status-names-v1",
+    "surf-gated-exits-v2",
 ]
 
 
@@ -127,6 +132,9 @@ def test_read_state_and_render_pass_every_server_switch_through(monkeypatch):
         "surf_gate_enabled": False,
         "exit_reach_enabled": False,
         "heal_trainers_enabled": False,
+        "tutorial_owner_enabled": False,
+        "mid_frame_enabled": False,
+        "unset_warp_enabled": False,
         "fmt_named_interactions": False,
         "fmt_world_destinations": False,
         "fmt_bounded_navigation": False,

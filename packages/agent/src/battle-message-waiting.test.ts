@@ -17,16 +17,16 @@ it("registers a default-off observation switch with no dependency, recorded last
   // As built: a finishing battle keeps its text and gains the message clause (battle_details._input_text).
   expect(description).toContain('finishing (outcome won) · battle message waiting: "Got away safely!"');
   expect(description).not.toContain("finishing and recorded-playback text is unchanged");
-  expect(SWITCHABLE_FEATURES.at(-39)).toBe(ID);
-  expect(playHarnessFeatures(ALL_ON, null).at(-39)).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-45)).toBe(ID);
+  expect(playHarnessFeatures(ALL_ON, null).at(-45)).toBe(ID);
   expect(playHarnessFeatures(off(ID), null)).not.toContain(ID);
   expect(featuresOf(playHarnessFeatures(off(ID), null))[ID]).toBe(false);
   // Works whatever the battle readout switches are: the control arm has battle-details-v2 off.
-  expect(dependencyProblems(off("battle-details-v2", "expanded-menu-battle-information-v1"))).toEqual([]);
+  expect(dependencyProblems(off("battle-details-v2", "expanded-menu-battle-information-v1", "status-names-v1"))).toEqual([]);
 });
 
 it("hands the switch to the game server, which writes the battle readout", () => {
-  expect(SERVER_FEATURES.at(-10)).toBe(ID);
+  expect(SERVER_FEATURES.at(-15)).toBe(ID);
   expect(serverFeatureEnv(off(ID)).POKEBENCH_FEATURES_OFF).toBe(ID);
   expect(serverFeatureEnv(ALL_ON).POKEBENCH_FEATURES_OFF).toBe("");
   // The Python server's own list and default-off set name it too.

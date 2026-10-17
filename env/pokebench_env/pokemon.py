@@ -176,7 +176,13 @@ def _checksum(secure: bytes) -> int:
 
 
 def _decode_mon(
-    body: bytes, read: ReadMemory, *, party: bool, address: int | None, cpu: PokemonCpu | None
+    body: bytes,
+    read: ReadMemory,
+    *,
+    party: bool,
+    address: int | None,
+    cpu: PokemonCpu | None,
+    empty_move_pp: bool = False,
 ) -> PartyMon:
     """Never emit guessed data from a corrupt, mixed or ambiguous snapshot."""
     if len(body) != (100 if party else 80):
@@ -241,8 +247,11 @@ def _decode_mon(
             return invalid(str(error))
         move_ids = struct.unpack_from("<4H", attacks)
         pps = attacks[8:12]
+        # tutorial-party-owner-v1: LoadWallyZigzagoon (field_specials.c:1423-1435) empties
+        # MOVE2-4 after CreateMon without clearing their PP; the game ignores a slot's PP
+        # while its move is MOVE_NONE.
         if any(
-            move >= 355 or pp > 64 or (move == 0 and pp != 0)
+            move >= 355 or pp > 64 or (move == 0 and pp != 0 and not empty_move_pp)
             for move, pp in zip(move_ids, pps, strict=True)
         ):
             return invalid("invalid move or PP")
@@ -339,9 +348,16 @@ def _decode_mon(
 
 
 def decode_party_mon(
-    body: bytes, read: ReadMemory, *, address: int | None = None, cpu: PokemonCpu | None = None
+    body: bytes,
+    read: ReadMemory,
+    *,
+    address: int | None = None,
+    cpu: PokemonCpu | None = None,
+    empty_move_pp: bool = False,
 ) -> PartyMon:
-    return _decode_mon(body, read, party=True, address=address, cpu=cpu)
+    return _decode_mon(
+        body, read, party=True, address=address, cpu=cpu, empty_move_pp=empty_move_pp
+    )
 
 
 def decode_box_mon(

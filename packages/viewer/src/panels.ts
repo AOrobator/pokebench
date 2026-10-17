@@ -435,7 +435,13 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "heal-before-trainers-v1":"heal-before-trainers-v1.html",
  "harness-trust-v1":"harness-trust-v1.html",
  "cited-destination-v1":"cited-destination-v1.html",
+ "harness-trust-v2":"harness-trust-v1.html",
  "battle-move-tool-v1":"battle-move-tool-v1.html",
+ "tutorial-party-owner-v1":"tutorial-party-owner-v1.html",
+ "mid-frame-readout-v1":"mid-frame-readout-v1.html",
+ "unset-dynamic-warp-v1":"unset-dynamic-warp-v1.html",
+ "status-names-v1":"status-names-v1.html",
+ "surf-gated-exits-v2":"surf-gated-exits-v2.html",
  "instruction-ledger-v2":"instruction-ledger-v2.html",
 });
 

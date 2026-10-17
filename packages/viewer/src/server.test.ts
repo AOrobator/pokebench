@@ -484,6 +484,20 @@ it("serves the tracked battle action tool explainer byte for byte through the al
  expect((await get(viewer,`/explainers/${id}.html`,{method:"PUT"})).status).toBe(405);
 });
 
+it("serves the 2026-10-17 readout-fix explainers byte for byte through the allowlist",async()=>{
+ const root=mkdtempSync(join(tmpdir(),"pokebench-explainers-"));const staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});
+ const pages={"tutorial-party-owner-v1":"Tutorial party owner","mid-frame-readout-v1":"Mid-frame readout","unset-dynamic-warp-v1":"Unset dynamic warp","status-names-v1":"Status names","surf-gated-exits-v2":"Surf-gated exits v2"};
+ const tracked=new Map(Object.keys(pages).map(id=>[id,readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)))]));
+ for(const [id,body] of tracked)writeFileSync(join(docs,`${id}.html`),body);
+ const viewer=await startViewer({runsRoot:join(root,"runs"),staticDir,appDir:join(root,"app"),port:0});open.push(viewer);
+ for(const [id,heading] of Object.entries(pages)){
+  const reply=await get(viewer,`/explainers/${id}.html`);
+  expect(reply.status,id).toBe(200);expect(reply.type).toContain("text/html");expect(reply.body.equals(tracked.get(id)??Buffer.alloc(0)),id).toBe(true);expect(reply.body.toString()).toContain(`<h1>${heading}</h1>`);
+ }
+ expect((await get(viewer,"/explainers/status-names-v1.html",{host:"elsewhere.invalid"})).status).toBe(403);
+ expect((await get(viewer,"/explainers/surf-gated-exits-v2.html",{method:"PUT"})).status).toBe(405);
+});
+
 it("serves the tracked conversation ledger explainer byte for byte through the allowlist",async()=>{
  const id="instruction-ledger-v2";
  const tracked=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)));

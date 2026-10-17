@@ -186,6 +186,18 @@ describe("exit-reachability-v1: exit lists on ROUTE104 (0e05 seq 22579)",()=>{
   const noEast={...both,topology:both.topology==null?null:{...both.topology,connections:both.topology.connections.filter(c=>c.direction!=="EAST")}} as GameStateSnapshot;
   expect(new UntakenExits(features).line(noEast,"")).toBe("Exits here you have not taken: none you can walk to (every exit listed on this map is across water you cannot Surf yet or cannot be reached on foot from where you stand)");
  });
+ it("surf-gated-exits-v2 rewords only the water part; the on-foot part is exit-reachability-v1's own",()=>{
+  // GetInteractedWaterScript (src/field_control_avatar.c) returns no script, so the game shows nothing, unless badge 5
+  // and a party Surf user both hold: v2 states only the fact.
+  const features={...runFeatures("0e05"),[ID]:true,"surf-gated-exits-v2":true};
+  const north={...s,interaction_targets:(s.interaction_targets??[]).filter(t=>t.kind!=="warp"||t.x===5),topology:s.topology==null?null:{...s.topology,connections:s.topology.connections.filter(c=>c.direction==="NORTH")}} as GameStateSnapshot;
+  expect(new UntakenExits(features).line(north,"")).toBe("Exits here you have not taken: none you can walk to (no exit listed on this map can be reached on foot from where you stand)");
+  const noEast={...north,topology:s.topology==null?null:{...s.topology,connections:s.topology.connections.filter(c=>c.direction!=="EAST")}} as GameStateSnapshot;
+  expect(new UntakenExits(features).line(noEast,"")).toBe("Exits here you have not taken: none you can walk to (every exit listed on this map is across water you cannot cross yet or cannot be reached on foot from where you stand)");
+  const water={...s,interaction_targets:[],topology:s.topology==null?null:{...s.topology,connections:s.topology.connections.filter(c=>c.direction==="SOUTH")}} as GameStateSnapshot;
+  expect(new UntakenExits(features).line(water,"")).toBe("Exits here you have not taken: none you can walk to (every exit listed on this map is across water you cannot cross yet)");
+  expect(new UntakenExits({...features,"surf-gated-exits-v2":false}).line(water,"")).toBe("Exits here you have not taken: none you can walk to (every exit listed on this map is across water, and you cannot use Surf yet)");
+ });
  it("the supervisor's lists and ways-off line leave them out with the switch on and are unchanged off",()=>{
   const shown:RunEvent[]=[
    checkEvent({v:1,run:"s",t:"2026-10-17T13:00:00.000-04:00",turn:1,seq:1,type:"state",...s}),
@@ -296,9 +308,9 @@ describe("exit-reachability-v1 schema, registry and presets",()=>{
   expect(description).toContain(" Off: ");
   expect(description).toContain("bundle arm only");
   expect(description).not.toContain("both arms");
-  expect(FEATURES.filter(f=>f.switchable).at(-6)?.id).toBe(ID);
-  expect(playHarnessFeatures(ALL_ON,null).at(-6)).toBe(ID);
-  expect(SERVER_FEATURES.at(-2)).toBe(ID);
+  expect(FEATURES.filter(f=>f.switchable).at(-12)?.id).toBe(ID);
+  expect(playHarnessFeatures(ALL_ON,null).at(-12)).toBe(ID);
+  expect(SERVER_FEATURES.at(-7)).toBe(ID);
   expect(serverFeatureEnv({...ALL_ON,[ID]:false}).POKEBENCH_FEATURES_OFF.split(",")).toContain(ID);
   expect(serverFeatureEnv(ALL_ON).POKEBENCH_FEATURES_OFF.split(",")).not.toContain(ID);
  });
@@ -310,7 +322,7 @@ describe("exit-reachability-v1 schema, registry and presets",()=>{
 });
 
 describe("exit-reachability-v1 production wiring (playGameTools and loopSupervisor)",()=>{
- const BASE:FeatureSet={...ALL_ON,"battle-move-tool-v1":false,"people-ledger-v1":false,"people-id-cards-v1":false,"trainer-heal-guidance-v1":false,"low-hp-trainer-warning-v1":false,"low-hp-trainer-warning-v2":false,"dialogue-auto-advance-v1":false,"bounded-navigation-v1":false,"navigate-first-prompt-v1":false,"blocked-exit-fact-v1":false,"battle-loss-recap-v1":false,"next-milestone-hint-v1":false,"story-destinations-v1":false,"harness-trust-v1":false,"cited-destination-v1":false};
+ const BASE:FeatureSet={...ALL_ON,"battle-move-tool-v1":false,"people-ledger-v1":false,"people-id-cards-v1":false,"trainer-heal-guidance-v1":false,"low-hp-trainer-warning-v1":false,"low-hp-trainer-warning-v2":false,"dialogue-auto-advance-v1":false,"bounded-navigation-v1":false,"navigate-first-prompt-v1":false,"blocked-exit-fact-v1":false,"battle-loss-recap-v1":false,"next-milestone-hint-v1":false,"story-destinations-v1":false,"harness-trust-v1":false,"cited-destination-v1":false,"harness-trust-v2":false};
  const snapshot=recorded("0e05:22579");
  const readout="Screen: overworld\nLocation: ROUTE104\nPosition: X=18, Y=42, facing left\nMoney: 1";
  const tool=(name:string):AgentTool=>({name,label:name,description:name,parameters:{},execute:()=>Promise.resolve({content:[{type:"text",text:readout}],details:{state:snapshot}})}) as unknown as AgentTool;

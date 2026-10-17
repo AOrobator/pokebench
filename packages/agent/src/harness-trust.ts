@@ -9,6 +9,7 @@ import {parseGameState,type GameStateSnapshot} from "./game-state.js";
 import type {RunEvent} from "./events.js";
 import {StoryDestinations,PlacesBodySchema,type MapId,type Place,type PlaceSource,type StoryGoal} from "./story-destinations.js";
 import {Value} from "typebox/value";
+import {exitBlock} from "./surf-gate.js";
 
 export const TRUST_HEADER="Read from game memory, always true:";
 
@@ -40,6 +41,27 @@ const CHARACTERS=/^Story characters here \(from this map's own object list\): (.
 export function charactersLine(text:string):string|null {
  const m=CHARACTERS.exec(text);
  return m===null?null:`Story characters on this map (from its own object list): ${m[1] ?? ""}.`;
+}
+
+// exit-reachability-v1's labels: the warps and connections of this map the server's flood reaches on foot from the
+// player's tile, named from the map table. Null without exit_reach, with a malformed foot mask, or for a map the table
+// lacks. A warp the table does not list, or one to a dynamic destination, is left out rather than guessed.
+export function exitsLine(state:Pick<GameStateSnapshot,"map_id"|"exit_reach"|"topology"|"surf_gate">,places:readonly Place[]):string|null {
+ const reach=state.exit_reach,here=state.map_id;
+ if(reach===undefined||here===null||exitBlock({surf:false,reach:true},state).foot(0,0)===null)return null;
+ const map=places.find(p=>same(p.map_id,here));if(map===undefined)return null;
+ const name=(to:MapId)=>{const q=places.find(r=>same(r.map_id,to));return q===undefined?null:mapLabel(q.display,to);};
+ const doors=new Map<string,{tiles:string[];label:string}>();
+ for(const w of reach.warps){
+  if(w.reach!=="foot")continue;
+  const to=map.warps.find(m=>m.x===w.x&&m.y===w.y)?.to;
+  const label=to===undefined?null:name(to);if(to===undefined||label===null)continue;
+  const key=`${String(to[0])}/${String(to[1])}`;const door=doors.get(key)??{tiles:[],label};
+  door.tiles.push(at(w));doors.set(key,door);
+ }
+ const edges=reach.connections.flatMap(c=>{const label=c.reach==="foot"?name(c.destination):null;return label===null?[]:[`${c.direction} edge -> ${label}`];});
+ const all=[...[...doors.values()].map(d=>`${d.tiles.join(" or ")} -> ${d.label}`),...edges];
+ return `Exits you can walk to from where you stand: ${all.length===0?"none (no exit of this map can be reached on foot from your tile)":all.join("; ")}.`;
 }
 
 // Map-table steps (warps and NORTH/SOUTH/EAST/WEST connections) from a map to the nearest target; null when none leads there.
@@ -171,7 +193,8 @@ export class HarnessTrust {
   const anyLine=this.story.latest(callId,null,state.name)!==null;
   const goal=places instanceof Error||state.map_id===null?null:this.story.goal(state.map_id,state.name,callId,places);
   const characters=charactersLine(text);
-  const header=[TRUST_HEADER,goalLine(goal,places,anyLine),...(characters===null?[]:[characters])].join("\n");
+  const exits=places instanceof Error?null:exitsLine(state,places);
+  const header=[TRUST_HEADER,goalLine(goal,places,anyLine),...(characters===null?[]:[characters]),...(exits===null?[]:[exits])].join("\n");
   const away=this.options.supervisor&&!(places instanceof Error)?this.walk.observe(state,goal,places):null;
   return {header,away};
  }

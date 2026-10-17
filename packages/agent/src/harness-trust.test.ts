@@ -264,8 +264,7 @@ describe("harness-trust-v1 exits line (exit-reachability-v1's foot labels)",()=>
   const s=recorded("4198:23325");
   const reach=s.exit_reach;if(reach===undefined)throw Error("no exit_reach");
   expect(exitsLine({...s,exit_reach:{...reach,connections:reach.connections.map(c=>({...c,reach:"none" as const}))}},PLACES.places)).toBe("Exits you can walk to from where you stand: none (no exit of this map can be reached on foot from your tile).");
-  const {exit_reach:_gone,...without}=s;
-  expect(exitsLine(without,PLACES.places)).toBeNull();
+  expect(exitsLine(parseGameState(Object.fromEntries(Object.entries(s).filter(([k])=>k!=="exit_reach"))),PLACES.places)).toBeNull();
   expect(exitsLine({...s,exit_reach:{...reach,foot:{...reach.foot,rows:[]}}},PLACES.places)).toBeNull();
   expect(exitsLine({...s,map_id:[99,99]},PLACES.places)).toBeNull();
   // A warp the table does not list, or one to a dynamic destination, is left out rather than guessed.

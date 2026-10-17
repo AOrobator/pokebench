@@ -78,7 +78,10 @@ Ordering note: the registry, presets, events schema and wiring all sit on lines 
 **M3 — exit-reachability integration**
 - [x] `because` description names exit-reachability's not-reachable exits (done in M2a/M2b).
 - [x] RED: exits line from exit_reach foot labels on the recorded 0e05 Route 104 (south half) and 4198 Route 103 states (exit-reach-states fixture): only foot exits, grouped doorways, "none" wording, nothing without exit_reach / with a malformed mask / for a map the table lacks, unknown and dynamic warps left out, and placed after the characters line in the header.
-  - 3:58 PM New York: 4 fail (no `exitsLine`).
+  - 3:48 PM New York: 4 fail (no `exitsLine`).
+  - COMMIT: `test(harness-trust): RED exits-you-can-walk-to line from exit-reachability's foot labels` (51f0a585)
+- [x] GREEN: `exitsLine` (foot labels only, names from the map table, doorways grouped; null without a well-formed mask) joins the header after the characters line; FEATURES copy says so.
+- [x] Gates: just test (agent 2172, viewer 1107; pytest 2544), lint clean, build OK, coverage agent 99.18 lines / 94.43 branches / 98.15 functions (harness-trust.ts 100 / 96.4 / 100), viewer 97.62 / 91.38 / 93.79, Python 97.63 / 93.76 / 100.
 - [ ] Gates
 
 **M4 — explainers, pending experiments, probes**

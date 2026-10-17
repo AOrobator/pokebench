@@ -53,6 +53,10 @@ Ordering note: the registry, presets, events schema and wiring all sit on lines 
 
 - [x] M1a RED: `harness-trust.test.ts` on the 4caa (MAY's LAB, T272/T273) and sh02 (MOM's "He lives", T74) recordings and the ROM map table: trust order text, header exact on press/navigate_to/observe, no-goal and unreadable-table lines, characters line from the readout's own object-list line, walk-away note (two farther moves; closer/standstill/repeat cases; map-table step across a connection; whiteout not counted and goal still shown; goal map, unmeasurable and unknown maps; a new story line), supervisor option off, OFF returns the same tools.
   - 3:27 PM New York: the suite fails at load (no `harness-trust.js`).
+  - COMMIT: `test(harness-trust): RED header, trust order and walk-away note from the 4caa and sh02 recordings` (f4db4397)
+- [x] M1a GREEN: `harness-trust.ts` (trustSection, goalLine, charactersLine, mapSteps, waysHere, WalkAway, awayText, HarnessTrust, withHarnessTrust taking a plain boolean until M1b). `story-destinations.ts`: `goal()` returns the structured line and resolutions; `block()` is rebuilt from it byte for byte (its 21 tests unchanged and green).
+  - Way toward the goal when it is not on this map: the exits of this map that lead one map-table step closer (Route 103's SOUTH edge toward the lab), measured in straight-line tiles; map size from `topology` (or `map_grid`).
+  - harness-trust + story-destinations suites 37/37; harness-trust.ts lines 99.1 / branches 88.8 / functions 100 (branches raised in M1b); tsc and eslint clean.
 - [ ] GREEN: registry, presets, defaults, events (`story_goal_away`), recorder, viewer Activity History, wiring.
 - [ ] Gates
 

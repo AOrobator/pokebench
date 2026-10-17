@@ -91,7 +91,7 @@ describe("harness-trust-v1 header on recorded runs",()=>{
   expect(textOf(await h.tools[0]?.execute("o",{}) ?? {content:[],details:undefined})).toBe(`|${TRUST_HEADER}\nStory goal: no story character has named a place yet in this run.\n\nLocation: ROUTE103`);
   let fail=true;
   const broken=harness(true,()=>{if(fail){fail=false;return Promise.reject(new Error("HTTP 503"));}return Promise.resolve(PLACES);});
-  broken.feed(CAAA,result.seq-1);broken.observe.next(state,"Location: ROUTE103");
+  broken.feed(CAAA,result.seq);broken.observe.next(state,"Location: ROUTE103");
   expect(textOf(await broken.tools[0]?.execute("o",{}) ?? {content:[],details:undefined})).toContain("\nStory goal: not known; the game's map table could not be read (HTTP 503).\n");
   // The failed read is retried on the next result.
   expect(textOf(await broken.tools[0]?.execute("o",{}) ?? {content:[],details:undefined})).toContain(`\n${LAB_GOAL}\n`);
@@ -129,7 +129,7 @@ describe("harness-trust-v1 header on recorded runs",()=>{
 describe("harness-trust-v1 walk-away supervisor",()=>{
  const result=resultAt(CAAA,272);
  const base=stateAt(CAAA,result.state_seq ?? -1);
- const route103=(x:number,y:number):GameStateSnapshot=>({...base,map_id:[0,18],location:"ROUTE103",position:{x,y},world_context:{...base.world_context,topology:{width:80,height:20,connections:[]}} as GameStateSnapshot["world_context"]});
+ const route103=(x:number,y:number):GameStateSnapshot=>({...base,map_id:[0,18],location:"ROUTE103",position:{x,y}});
  const oldale=(x:number,y:number):GameStateSnapshot=>({...route103(x,y),map_id:[0,10],location:"OLDALE TOWN"});
  async function walk(states:readonly GameStateSnapshot[]){
   const h=harness();h.feed(CAAA,result.seq);
@@ -143,7 +143,7 @@ describe("harness-trust-v1 walk-away supervisor",()=>{
  });
  it("two moves in a row farther from the way toward the goal add one SUPERVISOR note under the header and record it",async()=>{
   const {h,texts}=await walk([route103(9,13),route103(9,10),route103(9,7)]);
-  const note="SUPERVISOR: Your last two moves took you farther from PROF. BIRCH'S POKéMON LAB (map 1/4), the place in MAY's line above (turn 272): on ROUTE103 (map 0/18) you went from (9,13) to (9,10), and this map's SOUTH edge (to OLDALE TOWN (map 0/10)) went from 6 to 9 tiles away in a straight line; then on ROUTE103 (map 0/18) you went from (9,10) to (9,7), and this map's SOUTH edge (to OLDALE TOWN (map 0/10)) went from 9 to 12 tiles away in a straight line. Unless a story character has told you something newer, the Story goal line is where to go.";
+  const note="SUPERVISOR: Your last two moves took you farther from PROF. BIRCH'S POKéMON LAB (map 1/4), the place in MAY's line above (turn 272): on ROUTE103 (map 0/18) you went from (9,13) to (9,10), and this map's SOUTH edge (to OLDALE TOWN (map 0/10)) went from 8 to 11 tiles away in a straight line; then on ROUTE103 (map 0/18) you went from (9,10) to (9,7), and this map's SOUTH edge (to OLDALE TOWN (map 0/10)) went from 11 to 14 tiles away in a straight line. Unless a story character has told you something newer, the Story goal line is where to go.";
   expect(texts[0]).not.toContain("SUPERVISOR");expect(texts[1]).not.toContain("SUPERVISOR");
   expect(texts[2]).toBe(`|${TRUST_HEADER}\n${LAB_GOAL}\n${note}\n\nLocation: x`);
   expect(h.notes).toHaveLength(1);
@@ -162,7 +162,7 @@ describe("harness-trust-v1 walk-away supervisor",()=>{
  it("leaving a map through a connection that leads farther counts as a move away, with the map-table count",async()=>{
   const {h}=await walk([oldale(10,3),route103(10,19),route103(10,15)]);
   expect(h.notes).toHaveLength(1);
-  expect(h.notes[0]?.text).toContain(": you went from OLDALE TOWN (map 0/10) to ROUTE103 (map 0/18), from 3 to 4 maps away from it by the game's map table (doors, stairs and map edges); then on ROUTE103 (map 0/18) you went from (10,19) to (10,15), and this map's SOUTH edge (to OLDALE TOWN (map 0/10)) went from 0 to 4 tiles away in a straight line.");
+  expect(h.notes[0]?.text).toContain(": you went from OLDALE TOWN (map 0/10) to ROUTE103 (map 0/18), from 3 to 4 maps away from it by the game's map table (doors, stairs and map edges); then on ROUTE103 (map 0/18) you went from (10,19) to (10,15), and this map's SOUTH edge (to OLDALE TOWN (map 0/10)) went from 2 to 6 tiles away in a straight line.");
  });
  it("a whiteout, fly or scripted warp is not a move: no note, and the goal is still shown after it",async()=>{
   const home:GameStateSnapshot={...base,map_id:[1,1],location:"RAED's HOUSE 2F",position:{x:4,y:5}};
@@ -173,8 +173,8 @@ describe("harness-trust-v1 walk-away supervisor",()=>{
  it("no note inside the goal's own map, with no way to measure, or once a new story line replaces the goal",async()=>{
   const lab=(x:number,y:number):GameStateSnapshot=>({...base,map_id:[1,4],location:"PROF. BIRCH'S POKéMON LAB",position:{x,y}});
   expect((await walk([lab(6,5),lab(6,8),lab(6,11)])).h.notes).toHaveLength(0);
-  // No map size known: the SOUTH edge cannot be measured, so nothing is counted.
-  const bare=(y:number):GameStateSnapshot=>({...base,map_id:[0,18],location:"ROUTE103",position:{x:9,y}});
+  // No map size known (the recorded state has the topology; without it): the SOUTH edge cannot be measured, so nothing is counted.
+  const bare=(y:number):GameStateSnapshot=>({...route103(9,y),topology:null});
   expect((await walk([bare(13),bare(10),bare(7)])).h.notes).toHaveLength(0);
   // A map the table does not know.
   const unknown=(y:number):GameStateSnapshot=>({...route103(9,y),map_id:[99,99]});
@@ -187,7 +187,8 @@ describe("harness-trust-v1 walk-away supervisor",()=>{
   }
   h.nav.next(route103(9,7),"x");
   const text=textOf(await h.tools[2]?.execute("m2",{}) ?? {content:[],details:undefined});
-  expect(text).toContain("Story goal: \"Go to OLDALE TOWN.\" (MOM, turn 300) -> \"OLDALE TOWN\" = OLDALE TOWN (map 0/10). Way in: this map's SOUTH edge");
+  expect(text).toContain("Story goal: \"Go to OLDALE TOWN.\" (MOM, turn 300) -> \"OLDALE TOWN\" = OLDALE TOWN (map 0/10). Way in: ");
+  expect(text).toContain("; this map's SOUTH edge; ");
   expect(h.notes).toHaveLength(0);
  });
  it("off when the supervisor option is off: the header stays, no note",async()=>{

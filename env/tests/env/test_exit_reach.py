@@ -164,7 +164,9 @@ def test_on_route104_north_edge_and_woods_north_warps_say_not_reachable_on_foot(
     lines = case["readout"].split("\n")
     expected = [(NORTH_OFF, NORTH_ON)]
     for x, y in NONE_WARPS:
-        warp = next(line for line in lines if line.startswith("Warp to ") and f"at ({x},{y})," in line)
+        warp = next(
+            line for line in lines if line.startswith("Warp to ") and f"at ({x},{y})," in line
+        )
         dest = next(line for line in lines if line.startswith(f"Warp destination at ({x},{y}):"))
         expected += [(warp, warp + WARP_ON), (dest, dest + DEST_ON)]
     assert sorted(changed(case["readout"], on)) == sorted(expected)

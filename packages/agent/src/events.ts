@@ -468,6 +468,14 @@ export const StateBodySchema = Type.Object(
       warps: Type.Array(Type.Object({x:Type.Integer({minimum:0,maximum:255}),y:Type.Integer({minimum:0,maximum:255})},closed),{maxItems:255}),
       connections: Type.Array(Type.Enum(["NORTH","SOUTH","EAST","WEST"]),{maxItems:16}),
     },closed)),
+    // exit-reachability-v1: each warp and walking map connection labelled foot, water (only across water) or none
+    // (neither), and the tiles reached on foot from the player: one hex string per map row, four tiles per digit,
+    // the high bit the leftmost tile. Present only with the switch; an exit with no label is unknown.
+    exit_reach: Type.Optional(Type.Object({
+      warps: Type.Array(Type.Object({x:Type.Integer({minimum:0,maximum:255}),y:Type.Integer({minimum:0,maximum:255}),reach:Type.Enum(["foot","water","none"])},closed),{maxItems:255}),
+      connections: Type.Array(Type.Object({direction:Type.Enum(["NORTH","SOUTH","EAST","WEST"]),reach:Type.Enum(["foot","water","none"])},closed),{maxItems:16}),
+      foot: Type.Object({width:Type.Integer({minimum:1,maximum:256}),height:Type.Integer({minimum:1,maximum:256}),rows:Type.Array(Type.String({pattern:"^[0-9a-f]{1,64}$"}),{maxItems:256})},closed),
+    },closed)),
   },
   closed,
 );

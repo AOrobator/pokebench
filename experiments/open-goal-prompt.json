@@ -140,7 +140,8 @@
    "exit-reachability-v1": true,
    "heal-before-trainers-v1": true,
    "harness-trust-v1": true,
-   "cited-destination-v1": true
+   "cited-destination-v1": true,
+   "battle-move-tool-v1": true
   },
   "start": {
    "kind": "save_state",

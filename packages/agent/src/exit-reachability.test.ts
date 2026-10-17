@@ -168,14 +168,15 @@ describe("exit-reachability-v1: exit lists on ROUTE104 (0e05 seq 22579)",()=>{
   expect(new UntakenExits(runFeatures("0e05")).line(s,"")).toBe(OFF_LINE);
   expect(new UntakenExits({...runFeatures("0e05"),[ID]:true}).line(s,"")).toBe("Exits here you have not taken: (17,50) -> map 17/0; (10,38) -> map 24/11; (11,38) -> map 24/11; EAST edge -> map 0/0");
  });
+ const edge=(direction:string)=>{const c=s.topology?.connections.find(k=>k.direction===direction);if(c===undefined)throw new Error(direction);return c;};
  it("the helper blocks only none (and water while Surf cannot be used, with surf-gated-exits-v1 on)",()=>{
   const on=exitReach({...runFeatures("0e05"),[ID]:true},s);
-  expect([on.warp(5,18),on.warp(10,38),on.warp(32,42),on.connection("NORTH"),on.connection("EAST"),on.connection("SOUTH")]).toEqual([true,false,true,true,false,true]);
-  expect([on.warpCut(5,18),on.connectionCut("SOUTH"),on.connectionCut("EAST")]).toEqual(["none","water",null]);
+  expect([on.warp(5,18),on.warp(10,38),on.warp(32,42),on.connection(edge("NORTH")),on.connection(edge("EAST")),on.connection(edge("SOUTH"))]).toEqual([true,false,true,true,false,true]);
+  expect([on.warpCut(5,18),on.connectionCut(edge("SOUTH")),on.connectionCut(edge("EAST"))]).toEqual(["none","water",null]);
   const off=exitReach(runFeatures("0e05"),s);
-  expect([off.warp(5,18),off.connection("NORTH"),off.connection("SOUTH"),off.foot(18,42)]).toEqual([false,false,true,null]);
+  expect([off.warp(5,18),off.connection(edge("NORTH")),off.connection(edge("SOUTH")),off.foot(18,42)]).toEqual([false,false,true,null]);
   const noSurf=exitReach({...runFeatures("0e05"),[ID]:true,"surf-gated-exits-v1":false},s);
-  expect([noSurf.connection("SOUTH"),noSurf.connection("NORTH")]).toEqual([false,true]);
+  expect([noSurf.connection(edge("SOUTH")),noSurf.connection(edge("NORTH"))]).toEqual([false,true]);
  });
  it("says why none is left: cut off on foot, or across water and cut off",()=>{
   const features={...runFeatures("0e05"),[ID]:true};
@@ -218,6 +219,50 @@ describe("exit-reachability-v1: exit lists on ROUTE104 (0e05 seq 22579)",()=>{
  });
 });
 
+// Route 111 has two WEST connections and Route 124 two EAST ones: each connection is looked up on its own.
+describe("exit-reachability-v1: two connections on one side",()=>{
+ const west=(destination:[number,number],offset:number,x:number)=>({direction:"WEST" as const,offset,destination,destination_name:`ROUTE ${String(destination[1])}`,edges:[{x:0,y:x}]});
+ const A=west([0,1],0,0),B=west([0,2],2,2);
+ const two={...field(["..","##",".."],{x:1,y:0}),topology:{width:2,height:3,connections:[A,B]},
+  exit_reach:{warps:[],connections:[{direction:"WEST",destination:[0,1],offset:0,reach:"foot"},{direction:"WEST",destination:[0,2],offset:2,reach:"none"}],foot:{width:2,height:3,rows:["c","0","0"]}}} as GameStateSnapshot;
+ const features:FeatureSet={...NAV,"world-destinations-v1":true,[ID]:true};
+ it("blocks only the one cut off, and the untaken line keeps the other",()=>{
+  const block=exitReach(features,two);
+  expect([block.connection(A),block.connection(B),block.connectionCut(B)]).toEqual([false,true,"none"]);
+  expect(new UntakenExits(features).line(two,"")).toBe("Exits here you have not taken: WEST edge -> map 0/1");
+  expect(new UntakenExits({...features,[ID]:false}).line(two,"")).toBe("Exits here you have not taken: WEST edge -> map 0/1; WEST edge -> map 0/2");
+  expect(edgeNote(two.topology,{x:0,y:0},block.connection)).toContain("WEST to ROUTE 1 (map 0/1)");
+  expect(edgeNote(two.topology,{x:0,y:2},block.connection)).toBeNull();
+ });
+});
+
+// A foot mask that does not have exactly height rows of ceil(width/4) hex digits, or whose size disagrees with the
+// map's, is unknown: nothing is left out and nothing is called unreachable.
+describe("exit-reachability-v1: malformed foot masks are unknown",()=>{
+ const s=recorded("0e05:22579");
+ const reach=s.exit_reach;if(reach==null)throw new Error("no exit_reach");
+ const rows=reach.foot.rows;
+ const edge=(direction:string)=>{const c=s.topology?.connections.find(k=>k.direction===direction);if(c===undefined)throw new Error(direction);return c;};
+ const masks:Record<string,NonNullable<GameStateSnapshot["exit_reach"]>["foot"]>={
+  truncated:{...reach.foot,rows:rows.slice(0,40)},
+  short:{...reach.foot,rows:rows.map((r,y)=>y===42?r.slice(0,4):r)},
+  long:{...reach.foot,rows:rows.map((r,y)=>y===0?`${r}0`:r)},
+  "other size":{width:41,height:80,rows:rows.map(r=>`${r}0`)},
+ };
+ for(const [name,foot] of Object.entries(masks)){
+  it(`${name}: no foot answer, every exit listed, no "cannot be reached" text`,async()=>{
+   const bad={...s,exit_reach:{...reach,foot}} as GameStateSnapshot;
+   const features={...runFeatures("0e05"),[ID]:true};
+   const block=exitReach(features,bad);
+   expect([block.foot(18,42),block.footNear(12,0),block.warp(5,18),block.connection(edge("NORTH"))]).toEqual([null,null,false,false]);
+   expect(new UntakenExits(features).line(bad,"")).toBe(new UntakenExits(runFeatures("0e05")).line(s,""));
+   const start=recorded(ROUTE104[0]??""),after=ROUTE104.slice(1).map(k=>recorded(k));
+   const last=after.length-1;const walked=after.map((a,i)=>i===last?{...a,exit_reach:{...reach,foot}} as GameStateSnapshot:a);
+   expect((await navigate(features,start,{x:12,y:0},walked)).line).toBe(resultLine("0e05:22580"));
+  });
+ }
+});
+
 describe("exit-reachability-v1 schema, registry and presets",()=>{
  it("a state carrying exit_reach is schema-valid; a malformed one is not",()=>{
   const s=FIXTURE.states["0e05:22579"] as Record<string,unknown>;
@@ -227,6 +272,7 @@ describe("exit-reachability-v1 schema, registry and presets",()=>{
   expect(()=>checkEvent({...event,exit_reach:{...reach,warps:[{x:1,y:1,reach:"maybe"}]}})).toThrow();
   expect(()=>checkEvent({...event,exit_reach:{...reach,foot:{...reach.foot,rows:["XYZ"]}}})).toThrow();
   expect(()=>checkEvent({...event,exit_reach:{...reach,extra:1}})).toThrow();
+  expect(()=>checkEvent({...event,exit_reach:{...reach,connections:[{direction:"WEST",reach:"foot"}]}})).toThrow();
  });
  it("is a default-off server observation switch recorded last, described as bundle arm only",()=>{
   expect(featureInfo(ID)).toMatchObject({group:"observation",needs:null,switchable:true,title:"EXIT REACHABILITY"});

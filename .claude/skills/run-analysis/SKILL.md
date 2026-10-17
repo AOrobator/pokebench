@@ -15,6 +15,8 @@ Find what the best recent runs did right, where they lost time, and which harnes
 
 Never call `chat-thread` tools from this skill or its subagents. Quote every time in New York time.
 
+Never put backticks or `$(...)` inside an unquoted heredoc or a double-quoted shell string when writing a brief or report: the shell runs them. On 2026-10-17 a brief containing the text `just viewer-main` restarted the 8790 viewer mid-analysis. Write briefs with a quoted heredoc (`<<'EOF'`) or from a script file.
+
 ## Procedure
 
 1. **Pool and snapshot.** First fix the candidate pool, before anything is ranked: the named cohort id(s) when the operator names a cohort or experiment, otherwise an explicit New York start and end window for the night (by run start time). Record both, and the counts of runs included and excluded with reasons. Then fetch the workbench read-only:
@@ -33,7 +35,7 @@ Never call `chat-thread` tools from this skill or its subagents. Quote every tim
    - **Rank:** the last index in that order of a split without `screenshotEvidence`.
    - **Start-kind groups**, from `config.start` and `config.resume`: *fresh* is `boot` or a `MAIN_MENU` save; *checkpoint* is a `CLOCK_SET` save; *other save* is any other `save_state` start, including `resume` null; *unknown start* is a run with `config` null. Label every row with its group.
    - **Tiebreak:** group first (fresh, then checkpoint, then other save, then unknown start), then that split's `elapsedMs` ascending within the group, then `id`. Boot and `MAIN_MENU` share a group because `frontier.ts` ranks them together, but say which each run is. Minutes are never compared across groups.
-   - Take the top N (default 10). Never rank from `run_end.furthest_milestone` or the fixed ledger: they use `MILESTONE_ORDER`, which places optional milestones such as `FIRST_POKECENTER_HEAL` late and mis-ranks runs. Where they disagree with the frontier order, report it as a grading blind spot.
+   - Take the top N: the operator's number when given (they have asked for 10, 30 and 50), otherwise 10. Scale the fan-out in step 5 to N. Never rank from `run_end.furthest_milestone` or the fixed ledger: they use `MILESTONE_ORDER`, which places optional milestones such as `FIRST_POKECENTER_HEAL` late and mis-ranks runs. Where they disagree with the frontier order, report it as a grading blind spot.
    - Cross-check against `node .claude/skills/pokebench-review/frontier.mjs`. The one required agreement: its "best valid fresh-boot run" must equal the agent frontier below. Its other lists are a sanity view, not the same rule: they omit `MAIN_MENU` runs, rank `CLOCK_SET` resumes only from after the resume point, and split runs by status, so rows can differ for those reasons. It needs a built viewer in `POKEBENCH_VIEWER_WORKTREE` (default `/private/tmp/pokebench-viewer`), and gives up on the workbench after 60 s, so run it after step 1 has warmed the viewer and retry once if it times out. If it times out again, stop and tell the operator. Explain any disagreement before going on.
    - Charting follows the viewer's frontier chart (`shownAgent` in `frontier.ts`): fresh starts as solid lines, and `CLOCK_SET` resumes drawn dashed from Clock set onward and labelled "not from zero". Other-save and unknown-start runs are listed but not charted. Checkpoint and other-save minutes count from the save, so they are not comparable with fresh-start minutes. Never say one beat another on time across groups.
    - Lead the report with the furthest milestones reached.
@@ -54,16 +56,20 @@ Never call `chat-thread` tools from this skill or its subagents. Quote every tim
 
 5. **Fan out forensics in parallel.**
    - Write one shared brief at `<scratch>/brief.md`: the snapshot time, the run list, the segment tables and the exact output schema below.
-   - Launch one subagent per 2 runs. Each follows `pokebench-trace-forensics` on exactly its assigned runs (this skill already chose them, so the forensics run-selection step is skipped) and their 3 longest segments, plus what went well (fast segments, good recoveries).
+   - Launch one subagent per 2 runs for the top 20; below that, up to 5 runs per subagent at lighter depth (2 longest segments, 2 thinking examples). Runs that already have a card from an earlier run-analysis packet and have since ended can reuse it: convert it to the schema and add any missing section, rather than redo it. Mind the concurrent-subagent limit (about 20); queue the rest. Each follows `pokebench-trace-forensics` on exactly its assigned runs (this skill already chose them, so the forensics run-selection step is skipped) and their 3 longest segments, plus what went well (fast segments, good recoveries).
    - Launch one more subagent to reconstruct harness history (step 3).
    - Tell every subagent: read-only, stream events, never call `chat-thread` tools, cite run id and seq or turn for every claim.
-   - Output schema per run: a markdown card (run id, arm, start kind, furthest milestone, end reason, segment table, forensics classes) and a JSON block with `wins`, `stalls` (segment, minutes, turns, primary class, evidence seqs), `mistakes` (label, occurrences, minutes lost, seqs), `loop_guard` (fires, hits that ended a loop, false fires), `false_messages`, and `hypotheses`.
+   - **Thinking traces** (operator ask, 2026-10-17): every card says where the model's reasoning (`thinking` in `assistant` events) went well and where it went badly. Give 2–4 examples with seqs: reasoning that used delivered evidence and led to progress, and reasoning that went wrong (an invented fact or place, a delivered fact ignored, the same plan repeated, coordinates misread, a long looping think). Quote no more than about 20 words. Note thinking length and repeated plan sentences inside stall windows. Reasoning is the model's stated belief, never proof of cause.
+   - Output schema per run: a markdown card (run id, arm, start kind, furthest milestone, end reason, segment table, forensics classes, thinking-trace findings) and a JSON block with `wins`, `stalls` (segment, minutes, turns, primary class, evidence seqs), `mistakes` (label, occurrences, minutes lost, seqs), `loop_guard` (fires, hits that ended a loop, false fires), `false_messages`, `thinking` (`good` and `bad` lists of seq, quote and why, plus `repetition_notes`) and `hypotheses`.
+   - Alongside the cards, measure repetition for every run in one streaming pass: mean thinking length, the word 4-gram Jaccard similarity between consecutive thinking texts, and the share of turns whose thinking repeats one of the last 5. Compare each pair of twins.
    - Subagents run at the same time, so they cannot share labels. The brief gives a starting list of mistake labels; step 7 normalizes the labels across runs before counting.
 
 6. **Compare arms.** Where the cohort has paired arms (e.g. bundle on gpu0 and control on gpu1, same round and pin), tabulate the furthest milestone per arm per round. N per round is usually 1 per arm: say so, and never call anything significant from it. Hand power questions to `pokebench-experiment-design`.
    - Before reading anything into the top-N arm composition, count the pools: how many eligible runs each arm had at the same start kind and cap. A top-N that is mostly one arm can just mean that arm had more long runs.
    - Check confounds and state each one: arm against GPU lane or port (did each lane run both arms?), pin drift between rounds (only pairs on one pin compare one harness), and switches added between rounds in response to earlier rounds' failures (tuning on the same start).
    - Count milestones that fired inside harness-driven input (for example dialogue auto-advance) per arm, so credited progress is attributed honestly.
+   - Split the arm table into eras whenever the control arm's switch set changes (for example the control promotion at 986cb496 on 2026-10-16): bundle against an old control and bundle against a promoted control are different comparisons. Report each era's win count separately, and the run on the longest single frozen pin.
+   - **Every round the control arm won** (operator ask, 2026-10-17) gets its own explanation. Send each pair to a subagent: line up the splits, find the first milestone where they diverge, then the first turn where behavior diverged at the same decision point. Classify the cause as a bundle-only switch (cite the message only the bundle saw, and its frames), run-to-run luck (same harness behavior, a different model choice), or something else (lane, infrastructure, a harness bug). State confidence with N of 1.
 
 7. **Synthesize.**
    - **(a) What went well**, and the switch or behavior behind it.
@@ -75,6 +81,7 @@ Never call `chat-thread` tools from this skill or its subagents. Quote every tim
      - a decision probe (`just probe-decision <run> <turn> --switch <id>=on|off`), for switches that change what the model reads;
      - a correctness fix and test, for false messages and wrong observations;
      - an experiment designed with `pokebench-experiment-design`, behind a switch per `feature-switch`.
+   - **Per-switch attribution** (operator ask, 2026-10-17). List every switch that changed in either arm across the analyzed runs (the step 3 diffs), and for each one decide from the traces **and the screenshots** whether it can be tied to better or worse play. Give the work to parallel subagents grouped by era (for example the bundle's additions before a control promotion, the promotion itself, and the bundle-only switches after it). Per switch: its mechanism; whether it reached the model (seqs of its text or event); whether the stall it targets shrank against earlier runs and the same-round twin; whether the thinking cites its information just before progress; and the frames at 2–3 key moments (`runs/<id>/frames/<seq padded to 6>_<i>.png`, the images the model received). Label each switch HELPED, HURT, NO VISIBLE EFFECT or CONFOUNDED / CAN'T TELL, with confidence. Group switches that arrived together and cannot be separated, and name the prompt-wide ones (for example a system-prompt change) as confounds for everything else on that pin. The report gets a switch table with these labels.
    - **Mechanism check.** For each switch the analysis calls helpful, harmful or unproven, state the effect it was supposed to have and measure that effect in the recorded data before judging outcomes. For example, presence penalty should reduce repetition, which shows in the `thinking` text of `assistant` events; a guard should end loops, which shows in what followed its `loop_guard` events. Compare each arm with its same-round twin before and after the switch arrived, and name the other switches that arrived on the same pin.
    - Mark what the evidence cannot show (confounded pins, N of 1, CLOCK_SET minutes, live runs not finished).
    - Report grading blind spots to `pokebench-story-milestones`, and harness bugs as **harness bug** with trigger and evidence.
@@ -86,6 +93,7 @@ Never call `chat-thread` tools from this skill or its subagents. Quote every tim
      2. **How much confidence does the top-N arm composition give?** For example, 9 of the top 10 from one arm. Weigh selection effects (top-N picks winners from unequal pools), paired rounds, N per arm, start kinds and pin drift between rounds.
    - Keep each persona's verdict as written. The helping or hurting verdict is the one the personas agree on. If they split, report the split with each side's evidence; never average it away.
    - A missing persona is reported missing, never written by the coordinator.
+   - Reviewers are cloud models only: Claude, Grok and GPT/Codex. Spread the personas across those families when their CLIs work (Claude subagents, `cursor-agent --mode ask --model <discovered Grok id>`, `codex exec` read-only), and record which model wrote each section. Never local inference models (`think_fast`, `think_swarm`, anything on `inference.example`): they are the models under benchmark.
 
 9. **Promotion recommendation.** Every report recommends whether to fold the tested changes into the control arm and make that the new incumbent: promote all, promote some (name the switches), or hold. Base it on the arm table, the per-switch evidence and the PokeBench review's helping-or-hurting verdict. Name switches that look harmful or unproven and should stay out. Say what evidence would change the call. This is a recommendation only: `pokebench-patch-evaluation` owns incumbent promotion, and changing `experiments/fixed/*.json` or presets is the operator's decision.
 
@@ -93,22 +101,28 @@ Never call `chat-thread` tools from this skill or its subagents. Quote every tim
    - **HTML report** at `runs/reports/run-analysis/<YYYY-MM-DD>_<slug>/index.html` in the main checkout (`~/dev/pokebench/runs/reports/...`). `just pages` serves the main checkout's `runs/reports/` under `/reports/`, so a worktree copy is not served.
      - Follow the CLAUDE.md "Explainers" rules: zero network requests, inline CSS and SVG, system fonts.
      - Diagrams, all inline SVG: a milestone-vs-minutes frontier chart of the top runs (fresh starts solid; every top-N `CLOCK_SET` resume dashed from Clock set and labelled, as in step 2), a stall bar chart of the longest segments, and a switch timeline across rounds per arm.
-     - Sections: snapshot and run table, frontier, **agent frontier** (its own section: which run it is and whether it moved; its full configuration: model, pin, arm, preset, sampling and every switch that is on; its segment table; what went well and what did not, with turn evidence), wins, what went wrong, mistakes (common and costly), arm comparison, hypotheses, promotion recommendation (promote all, some or hold, and why), PokeBench review (each persona's verdict, the agreed helping or hurting verdict, the top-N confidence answer, disagreements), what the evidence cannot show.
+     - Sections: snapshot and run table, frontier, **agent frontier** (its own section: which run it is and whether it moved; its full configuration: model, pin, arm, preset, sampling and every switch that is on; its segment table; what went well and what did not, with turn evidence), wins, what went wrong, thinking traces (well and badly, with examples), mistakes (common and costly, the costliest by summed minutes first), arm comparison by era, why control won (each such round), switch changes and per-switch attribution, hypotheses, promotion recommendation (promote all, some or hold, and why), PokeBench review (each persona's verdict, the agreed helping or hurting verdict, the top-N confidence answer, disagreements), what the evidence cannot show.
      - `just pages-check <file>` must print nothing. Run `just pages`, then check `http://127.0.0.1:8791/reports/run-analysis/<YYYY-MM-DD>_<slug>/index.html` returns 200 before linking.
        - Then follow `.claude/skills/close-the-loop/SKILL.md` for reports: screenshot the page at 1280×900, 1440×900 and 375×812, with `<details>` closed and again opened, open every image, and check for clipped labels, overflowing tables or charts, squeezed columns and horizontal page scroll. Fix and re-check before linking.
      - Never `SendUserFile`, `/mnt/project-files`, `attached_outputs` or claude.ai artifacts for the HTML.
-   - **Chat summary**, in this order:
+   - **Chat summary**, in this order. When the operator is away from the computer, the link will not work for them: the chat summary carries the whole result, split into several replies of 15 lines or fewer, and the link is an extra for later.
      1. Furthest milestones reached and which runs reached them (start kind, LIVE if so), and the agent frontier: which run, whether it moved, and its configuration in one line.
      2. Top 3 wins.
-     3. Top 3 costliest mistakes, with minutes.
-     4. The hypotheses, each with its cheapest test.
-     5. The promotion recommendation in one line: promote all, some (which) or hold.
-     6. The PokeBench review verdict in one line: helping, hurting, or split, and how much the top-N composition says.
-     7. The one link, then the `open ~/dev/pokebench/runs/reports/run-analysis/<...>/index.html` fallback.
+     3. Top 3 costliest mistakes, with summed minutes lost.
+     4. Thinking traces: what went well and badly, in two or three lines.
+     5. Why control won the rounds it won.
+     6. Switch attribution: which switches look helpful, harmful or neutral, and how strong each call is.
+     7. The hypotheses, each with its cheapest test.
+     8. The promotion recommendation in one line: promote all, some (which) or hold.
+     9. The PokeBench review verdict in one line: helping, hurting, or split, and how much the top-N composition says.
+     10. The one link, then the `open ~/dev/pokebench/runs/reports/run-analysis/<...>/index.html` fallback.
 
 ## Operator feedback
 
 Operator feedback on a run-analysis report is folded back into this skill. When the operator corrects what a report should contain or how it should judge, change the procedure or self-check here, not only that one report.
+
+Folded in so far:
+- 2026-10-17 (top-50 analysis): analyze any top N the operator names; explain where thinking traces went well and badly; explain every round the control arm won; attribute each changed switch to better or worse play from traces and screenshots; lead the mistakes with the costliest by time lost; when the operator is away, put the whole summary in chat.
 
 ## Self-check
 
@@ -125,9 +139,14 @@ Operator feedback on a run-analysis report is folded back into this skill. When 
 - events.jsonl always streamed, never loaded whole.
 - Every claim cites run id plus turn or seq; every hypothesis labelled with evidence and a cheapest test.
 - Mistakes ranked by both frequency and summed minutes.
+- Every card has thinking-trace examples with seqs, and twins were compared on repetition.
+- Every round the control arm won has a divergence explanation.
+- Every switch that changed has an attribution label from traces and frames, with co-arriving switches grouped.
+- The arm table is split by control era.
+- When the operator is away, the full summary was posted in chat in replies of 15 lines or fewer.
 - Each judged switch had its predicted mechanism measured in recorded data, with co-arriving switches named.
 - N per arm per round stated; nothing called significant.
 - Promotion recommendation given (all, some or hold), with the switches named and what would change it; nothing promoted.
 - PokeBench review ran with four parallel personas on one packet, and answered helping or hurting and top-N confidence.
 - Report passes `just pages-check`, returns 200 from 8791, was screenshotted and inspected at 1280, 1440 and 375 with details closed and open, and is linked once.
-- No runs launched, nothing edited outside the report, the review packet and scratch, no `chat-thread` calls.
+- No runs launched, nothing edited outside the report, the review packet and scratch, no `chat-thread` calls from subagents, no unquoted backticks in shell-written briefs.

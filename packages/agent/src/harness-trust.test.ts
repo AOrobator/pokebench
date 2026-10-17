@@ -276,3 +276,13 @@ describe("harness-trust-v1 exits line (exit-reachability-v1's foot labels)",()=>
   expect(textOf(await h.tools[0]?.execute("o",{}) ?? {content:[],details:undefined})).toBe(`|${TRUST_HEADER}\nStory goal: no story character has named a place yet in this run.\nStory characters on this map (from its own object list): MAY at 10,3.\nExits you can walk to from where you stand: SOUTH edge -> OLDALE TOWN (map 0/10).\n\nStory characters here (from this map's own object list): MAY at 10,3. Not on this map: MOM.`);
  });
 });
+
+describe("harness-trust-v1 map table reads",()=>{
+ it("reads the map table once per player name, since the player's house is named after the player",async()=>{
+  const result=resultAt(CAAA,272);const state=stateAt(CAAA,result.state_seq ?? -1);
+  let calls=0;
+  const h=harness(true,()=>{calls++;return Promise.resolve(PLACES);});
+  for(const name of ["RAED","RAED",null,"MAY2","RAED"]){h.observe.next({...state,name},"x");await h.tools[0]?.execute("o",{});}
+  expect(calls).toBe(3);
+ });
+});

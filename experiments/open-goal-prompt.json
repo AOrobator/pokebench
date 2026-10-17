@@ -39,7 +39,7 @@
    "maxTokens": 4096
   },
   "features": {
-   "navigation-evidence-memory-v1": true,
+   "navigation-evidence-memory-v1": false,
    "automatic-running-v1": false,
    "expanded-menu-battle-information-v1": true,
    "ram-state-v1": true,

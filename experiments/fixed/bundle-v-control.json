@@ -110,7 +110,7 @@
    "world-coordinate-grid-v1": true,
    "world-destinations-v1": true,
    "world-targets-v1": true,
-   "surf-gated-exits-v1": false,
+   "surf-gated-exits-v1": true,
    "navigation-truth-v1": true,
    "navigation-refusal-reasons-v2": false,
    "cross-map-goal-v1": false,
@@ -124,7 +124,6 @@
  },
  "switches": [
   "blackout-readout-v1",
-  "surf-gated-exits-v1",
   "navigation-refusal-reasons-v2",
   "cross-map-goal-v1",
   "ineffective-loops-v1",
@@ -140,7 +139,8 @@
   "presence-penalty-v1"
  ],
  "onInBoth": [
-  "navigation-truth-v1"
+  "navigation-truth-v1",
+  "surf-gated-exits-v1"
  ],
  "phases": [
   {

@@ -286,7 +286,7 @@ describe("other stops",()=>{
   const two=rec("e046:16609");const b=two.battle;if(b==null)throw new Error("battle");
   b.player_inputs=[{...ACTION_TEMPLATE},{...ACTION_TEMPLATE,battler:2}];
   const ports:BattleActionPorts={read:()=>Promise.resolve(two),press:()=>{throw new Error("pressed");},observe:()=>Promise.resolve({content:[],details:{state:two}})};
-  expect((await battleActionTool(ports).execute("b",{action:"run"})).content[0]).toEqual({type:"text",text:"Battle action: nothing pressed: the battle is not waiting for a choice; more than one battle input is waiting at once."});
+  expect((await battleActionTool(ports).execute("b",{action:"run"})).content[0]).toEqual({type:"text",text:"Battle action: nothing pressed: more than one battle input is waiting at once; battle_action chooses for one at a time, so use press."});
   const sim=new BattleSim(rec("e046:16609"));
   const doubled=()=>{const s=sim.state();const sb=s.battle;if(sb==null)throw new Error("battle");sb.player_inputs=[...(sb.player_inputs??[]),{...ACTION_TEMPLATE,battler:2}];return s;};
   let first=true;

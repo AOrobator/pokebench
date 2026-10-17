@@ -258,6 +258,11 @@ async function drive(start:GameStateSnapshot,pages:Pages,press:(signal?:AbortSig
  }
 }
 
+function refusedAction(details:unknown):boolean {
+ if(typeof details!=="object"||details===null||!("battle_action" in details))return false;
+ const action=details.battle_action;
+ return typeof action==="object"&&action!==null&&"refused" in action&&action.refused===true;
+}
 const frameOf=(s:GameStateSnapshot):number|null=>s.raw_ram?.frame??null;
 // The message's text can be in the game's buffer a frame before its phase reads (3f21 T95 seq 1634):
 // new or changed text is a message that has appeared, so no further queued input is sent.
@@ -272,11 +277,6 @@ export function afterAdvance(line:string,detail:string):string {
  return kept===line?line:`${kept}; after auto-advance: ${detail}`;
 }
 // navigate_to's status was read before auto-advance ran; restate why it stopped and what is true now.
-function refusedAction(details:unknown):boolean {
- if(typeof details!=="object"||details===null||!("battle_action" in details))return false;
- const action=details.battle_action;
- return typeof action==="object"&&action!==null&&"refused" in action&&action.refused===true;
-}
 export function navigationAfter(raw:unknown,outcome:Pick<Outcome,"stop"|"detail">,moved:string|null=null):string|null {
  if(typeof raw!=="object"||raw===null||!("navigation" in raw))return null;
  const nav=raw.navigation;

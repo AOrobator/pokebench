@@ -98,6 +98,8 @@ function validate(s:GameStateSnapshot,args:Args):string|Plan {
  const b=s.battle;
  if(b==null||b.phase==="unavailable"||b.battlers==null)return `the battle state could not be read${b?.diagnostic==null?"":` (${b.diagnostic})`}.`;
  if(args.move!==undefined&&args.action!=="fight")return "move goes only with action fight.";
+ // Codex round 2: with two inputs ready the battle is waiting, for two choices at once; say only that.
+ if(readyInputs(s).length>1)return `${SEVERAL}; battle_action chooses for one at a time, so use press.`;
  const input=readyInput(s);
  if(input===undefined)return `the battle is not waiting for a choice; ${describeBattle(s)}`;
  if(input.phase!=="action"&&input.phase!=="move")return `the battle is not waiting for a choice from the ${MENU} menu; ${describeBattle(s)}.`;

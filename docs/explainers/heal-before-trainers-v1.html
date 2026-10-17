@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Heal Before Trainers</title>
+<style>
+:root{
+ --bg:#f7f6f2; --fg:#1c1d1f; --soft:#5b5d61; --rule:#dedcd5; --panel:#ffffff;
+ --game:#1a7f5a; --game-bg:#e3f4ec; --prior:#c2432f; --prior-bg:#fbe7e2; --nav:#2a62c9; --nav-bg:#e4edfb; --hot:#c2432f;
+ --body:system-ui,-apple-system,"Segoe UI",sans-serif; --mono:ui-monospace,"SF Mono",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+ --bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; --hot:#ff7a63; color-scheme:dark}}
+:root[data-theme="dark"]{
+ --bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; --hot:#ff7a63; color-scheme:dark}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.6 var(--body);padding:0 16px}
+main{max-width:760px;margin:0 auto;padding:40px 0 64px;display:flex;flex-direction:column;gap:34px}
+h1{font-size:2.2rem;line-height:1.15;margin:0}
+h2{font-size:1.3rem;margin:0}
+p{margin:0;max-width:68ch}
+ul{margin:0;padding-left:20px}
+.eyebrow{font:500 .75rem var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--soft)}
+.lede{font-size:1.08rem;color:var(--soft)}
+section{display:flex;flex-direction:column;gap:12px}
+figure{margin:0;display:flex;flex-direction:column;gap:8px}
+.scroll{overflow-x:auto}
+svg{display:block;max-width:100%;height:auto}
+@media (max-width:600px){.scroll svg{max-width:none;width:640px}}
+figcaption{font-size:.88rem;color:var(--soft)}
+svg text{font-family:var(--body);font-size:12px;fill:var(--fg)}
+svg .s{fill:var(--soft);font-size:11px}
+svg .t{font-weight:600;font-size:13px}
+svg .m{font-family:var(--mono);font-size:11px}
+.box{fill:var(--panel);stroke:var(--rule)}
+.game{fill:var(--game-bg);stroke:var(--game)}
+.prior{fill:var(--prior-bg);stroke:var(--prior)}
+.nav{fill:var(--nav-bg);stroke:var(--nav)}
+.hot{stroke:var(--hot);stroke-width:2.2}
+.arr{stroke:var(--soft);stroke-width:1.5;fill:none}
+.arr.g{stroke:var(--game);stroke-width:2.4}
+pre{background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:14px;white-space:pre-wrap;font:13px/1.5 var(--mono);margin:0}
+code{font:500 .88em var(--mono);background:var(--panel);border:1px solid var(--rule);border-radius:4px;padding:0 4px}
+table{border-collapse:collapse;width:100%;font-size:.92rem}
+th,td{text-align:left;padding:7px 9px;border-bottom:1px solid var(--rule);vertical-align:top}
+th{font:500 .75rem var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--soft)}
+.tablewrap{overflow-x:auto}
+.label{font:500 .75rem var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--soft)}
+</style>
+</head>
+<body>
+<main>
+<div>
+<div class="eyebrow">Harness switch · guard · <code>heal-before-trainers-v1</code> · needs <code>low-hp-trainer-warning-v1</code> · bundle arm only · off by default</div>
+<h1>Heal before trainers</h1>
+</div>
+<p class="lede">A simple v1 of "heal before trainer fights" (the operator, 2026-10-17). On the free field, when a trainer the player has not beaten is loaded on the current map and the party is weak, the tool result says so and names the nearest place the player has been to that heals the party. Everything it says comes from game memory, the ROM's map table and the game's own text.</p>
+
+<section>
+<h2>The run that prompted it</h2>
+<p>Run <code>2026-10-17T13-15-36_qwen36-gpu1_e046</code> on ROUTE104. TORCHIC was at 17/38 HP. It beat the RICH_BOY (WINSTON) and dropped to 14/38, walked east, talked to the LASS at (31,24) and battled her at 14/38. SCRATCH ran out of PP during the battle (EMBER still had 13), TORCHIC fainted, and the run whited out to OLDALE TOWN, losing ₽2584.</p>
+<figure><div class="scroll"><svg viewBox="0 0 840 130" width="840" role="img" aria-label="e046 sequence on ROUTE104 and when the warning fires">
+<line x1="20" y1="60" x2="830" y2="60" class="arr"/>
+<g><circle cx="50" cy="60" r="7" class="game hot"/><text x="32" y="38" class="t">16066</text><text x="10" y="86" class="s">warns: RICH_BOY</text><text x="10" y="100" class="s">TORCHIC 17/38</text></g>
+<g><circle cx="170" cy="60" r="6" class="box"/><text x="154" y="38">16104</text><text x="130" y="86" class="s">he spots you:</text><text x="130" y="100" class="s">locked, silent</text></g>
+<g><rect x="250" y="50" width="96" height="20" rx="4" class="nav"/><text x="278" y="38">16137</text><text x="256" y="64" class="s">battle: WINSTON</text><text x="262" y="86" class="s">won, 14/38</text></g>
+<g><circle cx="410" cy="60" r="7" class="game hot"/><text x="392" y="38" class="t">16287</text><text x="370" y="86" class="s">warns again after</text><text x="370" y="100" class="s">a trainer battle: LASS</text></g>
+<g><circle cx="540" cy="60" r="6" class="box"/><text x="524" y="38">16361</text><text x="510" y="86" class="s">walks up</text><text x="510" y="100" class="s">and talks</text></g>
+<g><rect x="610" y="50" width="88" height="20" rx="4" class="prior"/><text x="634" y="38">16399</text><text x="620" y="64" class="s">battle: HALEY</text><text x="642" y="86" class="s">lost</text></g>
+<g><circle cx="780" cy="60" r="6" class="box"/><text x="762" y="38">16828</text><text x="736" y="86" class="s">OLDALE TOWN,</text><text x="736" y="100" class="s">whited out</text></g>
+</svg></div><figcaption>Replaying e046's recorded tool-result states through the production code: the warning fires at seq 16066 and 16287 and nowhere else in this stretch (test "replays e046").</figcaption></figure>
+</section>
+
+<section>
+<h2>What the model reads, off and on</h2>
+<p class="label">Off (today): the readout's general battle-triage line only</p>
+<pre>Party (player): TORCHIC Lv13 HP 14/38 · moves SCRATCH PP 4, GROWL PP 39, FOCUS ENERGY PP 30, EMBER PP 13 · nickname TORCHIC
+Your TORCHIC has 14/38 HP (below half). Talking to the nurse at a POKéMON CENTER heals your whole party; so does talking to MOM at home.</pre>
+<p class="label">On: the same result gains this paragraph at seq 16287 (exact text from the test)</p>
+<pre>SUPERVISOR: A trainer you have not beaten is on this map: object 3, sprite LASS, at (31,24). Your party is weak for a battle: TORCHIC, your lead, has 14/38 HP (below half). In a trainer battle the game says "No! There's no running from a TRAINER battle!" If your party faints, you black out: you lose half your money (₽2584 of ₽5168) and wake up back at the last POKéMON CENTER you entered, or at home. The nearest place you have been to that heals your party is the POKéMON CENTER in OLDALE TOWN (map 2/2), 4 map changes from here in the game's map table; its nurse says "We restore your tired POKéMON to full health."</pre>
+<p>The trainer is named only by object id, sprite and tile, as the readout already lists it: the game does not show "LASS HALEY" until the battle starts. Other weaknesses read <code>WURMPLE has fainted (0/15 HP)</code> or <code>TORCHIC, your lead, has no PP left for its damaging moves (SCRATCH, EMBER), and the game says "There's no PP left for this move!"</code>. MOM's version: <code>… is your house in LITTLEROOT TOWN (map 1/0), 6 map changes from here in the game's map table, where MOM says "I think you should rest a bit." and heals your party.</code></p>
+</section>
+
+<section>
+<h2>When it fires</h2>
+<figure><div class="scroll"><svg viewBox="0 0 700 250" width="700" role="img" aria-label="The three conditions">
+<rect x="10" y="20" width="200" height="120" rx="8" class="box"/><text x="24" y="44" class="t">Free field</text>
+<text x="24" y="68">overworld, not in battle</text><text x="24" y="88">field controls unlocked</text><text x="24" y="108">the player's own party</text><text x="24" y="128" class="s">(a trainer who spotted you locks them)</text>
+<rect x="250" y="20" width="200" height="120" rx="8" class="nav"/><text x="264" y="44" class="t">Unbeaten trainer here</text>
+<text x="264" y="68">object loaded and shown</text><text x="264" y="88">script starts: trainerbattle</text><text x="264" y="108">its trainer flag is clear</text><text x="264" y="128" class="s">(read by the game server)</text>
+<rect x="490" y="20" width="200" height="120" rx="8" class="prior"/><text x="504" y="44" class="t">Weak party (any)</text>
+<text x="504" y="68">a Pokémon (not an egg) fainted</text><text x="504" y="88">the lead below half HP</text><text x="504" y="108">every damaging move</text><text x="504" y="124">of the lead at 0 PP</text>
+<path class="arr g" d="M110 140 L330 200"/><path class="arr g" d="M350 140 L350 200"/><path class="arr g" d="M590 140 L370 200"/>
+<rect x="230" y="200" width="240" height="40" rx="20" class="game hot"/><text x="262" y="225" class="t">paragraph + recorded event</text>
+</svg></div><figcaption>All three must hold on the tool result's own state. "The lead" is the first party Pokémon that can battle. "Damaging" is power above 0 in the game's move table. Status conditions and items are not judged in v1.</figcaption></figure>
+<p>It names each trainer once while the party stays weak on that map; a trainer that loads later is named on its own. After any trainer battle it names every unbeaten trainer again (as at seq 16287), and it re-arms after the player leaves the map or the party reads as not weak. A wild battle does not repeat it. With <code>low-hp-trainer-warning-v2</code> on, a story battle's opponent (ROXANNE) is left to that warning; with v1 or v2 the two paragraphs can both appear, v1/v2 first.</p>
+</section>
+
+<section>
+<h2>The nearest place that heals</h2>
+<figure><div class="scroll"><svg viewBox="0 0 700 170" width="700" role="img" aria-label="Map changes from ROUTE104">
+<g><rect x="10" y="20" width="96" height="34" rx="6" class="nav"/><text x="22" y="42" class="t">ROUTE104</text></g>
+<g><rect x="130" y="20" width="110" height="34" rx="6" class="box"/><text x="140" y="42">PETALBURG CITY</text></g>
+<g><rect x="264" y="20" width="90" height="34" rx="6" class="box"/><text x="278" y="42">ROUTE102</text></g>
+<g><rect x="378" y="20" width="100" height="34" rx="6" class="box"/><text x="388" y="42">OLDALE TOWN</text></g>
+<g><rect x="502" y="14" width="186" height="46" rx="6" class="game hot"/><text x="512" y="34" class="t">POKéMON CENTER 1F</text><text x="512" y="50" class="s">entered this run · 4 changes</text></g>
+<path class="arr" d="M106 37 H130"/><path class="arr" d="M240 37 H264"/><path class="arr" d="M354 37 H378"/><path class="arr g" d="M478 37 H502"/>
+<g><rect x="378" y="100" width="100" height="34" rx="6" class="box"/><text x="388" y="122">ROUTE101</text></g>
+<g><rect x="502" y="100" width="100" height="34" rx="6" class="box"/><text x="508" y="122">LITTLEROOT TOWN</text></g>
+<g><rect x="502" y="140" width="186" height="26" rx="6" class="box"/><text x="512" y="158" class="s">your house 1F (MOM) · 6 changes</text></g>
+<path class="arr" d="M428 54 V100"/><path class="arr" d="M478 117 H502"/><path class="arr" d="M600 134 V140"/>
+</svg></div><figcaption>Fewest map changes (warps and map connections, either way) in the ROM's map table from GET /pokebench/places. It does not know whether a path needs Cut or Surf, or crosses ledges the wrong way.</figcaption></figure>
+<ul>
+<li><b>A POKéMON CENTER the player has been to:</b> any <code>… POKEMON CENTER 1F</code> map a tool result showed the player in this run, plus the center of the town in the save's last heal location (every center's 1F runs <code>setrespawn HEAL_LOCATION_&lt;TOWN&gt;</code> as it loads, so that town's center was entered, even before a checkpoint start).</li>
+<li><b>MOM at home:</b> the player's house 1F (<code>BRENDANS</code> or <code>MAYS HOUSE 1F</code> from the saved gender), named only while talking to her heals: <code>PlayersHouse_1F_EventScript_Mom</code> reaches <code>…MomHealsParty</code> once <code>FLAG_RESCUED_BIRCH</code> is set, unless she first registers in the POKéNAV or gives the AMULET COIN, or the late-game houses state is 4.</li>
+<li>The closest wins; a POKéMON CENTER wins a tie with home. With no map table, or no place, it says "Heal before you battle: the nurse at a POKéMON CENTER heals your whole party" (", and so does MOM at home" while she heals).</li>
+</ul>
+</section>
+
+<section>
+<h2>Game grounding (pret/pokeemerald 731ad5bf)</h2>
+<div class="tablewrap"><table>
+<tr><th>Fact</th><th>Where the game keeps it</th><th>e046 seq 16287</th></tr>
+<tr><td>Trainer objects</td><td><code>SaveBlock1.objectEventTemplates</code> (+0xC70), script pointer at +0x10; a script starting <code>5C type id:u16</code> is <code>trainerbattle</code> (battle types 0–8)</td><td>object 3: <code>5C 00 5C 02</code> = TRAINER_HALEY_1 (604)</td></tr>
+<tr><td>Beaten?</td><td>flag <code>TRAINER_FLAGS_START (0x500) + id</code>, as <code>GetTrainerFlagFromScriptPointer</code> reads it</td><td>604 clear; RICH_BOY (136) set</td></tr>
+<tr><td>Loaded and shown</td><td><code>gObjectEvents</code>, active, not invisible, this map</td><td>LASS at (31,24)</td></tr>
+<tr><td>Damaging move</td><td><code>gBattleMoves[move].power</code> &gt; 0</td><td>SCRATCH 40, EMBER 40, GROWL 0, FOCUS ENERGY 0</td></tr>
+<tr><td>Last heal</td><td><code>SaveBlock1.lastHealLocation</code> (+0x1C)</td><td>OLDALE TOWN (0/10)</td></tr>
+<tr><td>Home, MOM</td><td><code>SaveBlock2.playerGender</code>; flags 0x52, 0x12F, 0xD8, 0x85, badge 5; vars 0x4082, 0x408C</td><td>BRENDANS HOUSE 1F; MOM heals</td></tr>
+<tr><td>Quoted words</td><td><code>sText_NoRunningFromTrainers</code>, <code>sText_NoPPLeft</code> (src/battle_message.c); <code>gText_WouldYouLikeToRestYourPkmn</code>; <code>PlayersHouse_1F_Text_YouShouldRestABit</code></td><td></td></tr>
+</table></div>
+<p>A pytest reads e046's real RAM (seq 16066 and 16287) with the operator's ROM through the production reader and gets exactly the facts pokeemerald's source names for those objects and moves. The facts reach the agent as <code>heal_before_trainers</code> in the state JSON, only while the switch is on; the readout text never changes.</p>
+</section>
+
+<section>
+<h2>Measured on 14 recorded runs</h2>
+<p>Raw-RAM replay of the 14 finished runs of 2026-10-16 20:49 to 2026-10-17 13:15 (11,357 game-tool results), through the production arm:</p>
+<div class="tablewrap"><table>
+<tr><th>What</th><th>Count</th></tr>
+<tr><td>Warnings</td><td>32, in 7 of 14 runs (0.28% of tool results); every one for a lead below half HP</td></tr>
+<tr><td>Trainer battles started weak</td><td>12 of 42 trainer battles; all 12 warned first</td></tr>
+<tr><td>… of those, lost</td><td>1 (e046, the LASS); 11 won without healing</td></tr>
+<tr><td>Warnings followed by no trainer battle</td><td>10</td></tr>
+<tr><td>Warnings followed by healing (party read not weak) before the next trainer battle</td><td>7</td></tr>
+<tr><td>Warnings repeated within 10 turns on one map as more trainers loaded</td><td>runs dc5a (3 in 5 turns) and eae2 (3 in 8 turns)</td></tr>
+</table></div>
+<p>So in hindsight most warnings were not needed: the weak party won 11 of 12 such battles. The fainted and out-of-PP rules never fired in these runs.</p>
+</section>
+
+<section>
+<h2>Wiring</h2>
+<ul>
+<li>Preset → <code>FeatureSet</code> → <code>serverFeatureEnv</code>: the game server reads the facts only with the switch (<code>SERVER_FEATURES</code>, default off).</li>
+<li><code>playGameTools</code> → <code>withLowHpTrainerWarning</code>, now one wrapper over a rule list: v1 or v2, then this rule. Its paragraph follows any other text the result gained; the state source also serves the map table.</li>
+<li>Recorded as <code>heal_before_trainers_warning</code> (Activity History SUPERVISOR row "Heal before trainers warning added to the … result"); no timeline mark.</li>
+<li>Off: no paragraph, no event, no <code>heal_before_trainers</code> in the state, no map-table read; v1 and v2 read exactly as before.</li>
+</ul>
+</section>
+
+<section>
+<h2>Status</h2>
+<ul><li>Branch <code>claude/heal-before-trainers</code>. Tests: e046 replay, every condition, the arm, v1/v2 unchanged with the switch off, the event schema, Activity History, delivery through the pinned pi loop, and the real-ROM reader check.</li>
+<li>Pending experiment <code>heal-before-trainers</code>, not designed and not queued; meant for the bundle arm.</li>
+<li>Not yet reviewed when this page was written; not run live.</li></ul>
+</section>
+</main>
+</body>
+</html>

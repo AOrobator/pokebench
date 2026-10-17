@@ -44,8 +44,8 @@ describe("registry and presets",()=>{
   expect(featureInfo(ID)).toMatchObject({group:"guidance",needs:"story-state-v1",switchable:true,title:"DISPROVED BELIEFS LEDGER"});
   expect(featureInfo(ID).description).toContain(" Off: no ledger.");
   expect(featureInfo(ID).description).toContain("Things the game has contradicted");
-  expect(SWITCHABLE_FEATURES.at(-29)).toBe(ID);
-  expect(playHarnessFeatures(ALL_ON,null).at(-29)).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-31)).toBe(ID);
+  expect(playHarnessFeatures(ALL_ON,null).at(-31)).toBe(ID);
   expect(playHarnessFeatures({...ALL_ON,[ID]:false},null)).not.toContain(ID);
   expect(featuresOf(playHarnessFeatures({...ALL_ON,[ID]:false},null))[ID]).toBe(false);
   // Entries leave on a story-flag change, which needs the story state (review round 1).

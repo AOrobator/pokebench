@@ -60,7 +60,14 @@ from tests.env.test_game_state import MAPS, OVERWORLD, SB1, Memory, decode_text,
 
 FIXTURE = json.loads((Path(__file__).parent / "fixtures/readout-truth-cook.json").read_text())
 NEW = frozenset(
-    {"readout-truth-v1", "birch-speech-pages-v1", "blackout-readout-v1", "surf-gated-exits-v1"}
+    {
+        "readout-truth-v1",
+        "birch-speech-pages-v1",
+        "blackout-readout-v1",
+        "surf-gated-exits-v1",
+        "exit-reachability-v1",
+        "heal-before-trainers-v1",
+    }
 )
 ROM_START = 0x08000000
 HEDGE_TEXT = "Field-message text: unavailable; do not infer that the dialogue box is closed."
@@ -311,7 +318,7 @@ def test_state_json_is_unchanged_where_no_interface_owner_changes() -> None:
 def test_switch_is_a_default_off_server_feature() -> None:
     assert SWITCH in SERVER_FEATURES
     assert SWITCH in features_off_from_env({})
-    assert SERVER_FEATURES[-4:-1] == (
+    assert SERVER_FEATURES[-6:-3] == (
         "readout-truth-v1",
         "birch-speech-pages-v1",
         "blackout-readout-v1",

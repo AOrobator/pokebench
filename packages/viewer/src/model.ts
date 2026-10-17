@@ -80,6 +80,7 @@ const KNOWN: Record<RunEvent["type"], true> = {
   low_hp_trainer_warning: true,
   people_id_card: true,
   story_battle_warning: true,
+  heal_before_trainers_warning: true,
   dialogue_auto_advance: true,
   disk_usage: true,
   frames_evicted: true,

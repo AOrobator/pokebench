@@ -24,9 +24,10 @@ const walking=(topology:Topology|null|undefined):(Connection&{edges:readonly Til
  (topology?.connections??[]).flatMap(c=>{const button=BUTTON[c.direction];return button===undefined||c.edges===undefined?[]:[{...c,edges:c.edges,button}];});
 
 // navigate_to refusals: what the nearest reachable tile leads to, when it is an edge tile.
-export function edgeNote(topology:Topology|null|undefined,tile:Tile):string|null {
+// exit-reachability-v1: a connection the reachability check leaves out (blocked) gets no note.
+export function edgeNote(topology:Topology|null|undefined,tile:Tile,blocked?:(connection:Connection)=>boolean):string|null {
  const c=walking(topology).find(w=>w.edges.some(e=>e.x===tile.x&&e.y===tile.y));
- return c===undefined?null:`, an edge tile of this map: stand on ${at(tile)} and press ${c.button} to walk off the map ${c.direction} to ${place(c)}`;
+ return c===undefined||blocked?.(c)===true?null:`, an edge tile of this map: stand on ${at(tile)} and press ${c.button} to walk off the map ${c.direction} to ${place(c)}`;
 }
 
 // Supervisor bearings: every walking connection's edge tiles, or null when the state lists none.

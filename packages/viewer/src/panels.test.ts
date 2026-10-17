@@ -837,6 +837,16 @@ it("links the Surf-gated exits card to its tracked explainer, which quotes the 4
  for(const quote of [id,"bundle arm only","pending experiment","FLAG_BADGE05_GET","PartyHasMonWithSurf","Exits here you have not taken: none (you have taken every exit you can walk to on this map this run)","Warp destination at (45,6): ALTERING CAVE (not an exit you can use now: across water, needs Surf)"])expect(html).toContain(quote);
  expect(html).not.toContain("both arms");
 });
+it("links the Exit reachability card to its tracked explainer, which quotes the 0e05 and 4198 lines before and after",()=>{
+ const id="exit-reachability-v1";
+ expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
+ const log=new Log();log.add(0,{...START,harness_features:["ram-state-v1",id]});
+ const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
+ expect(doc.querySelector(`[data-feature="${id}"] a`)?.getAttribute("href")).toBe(`/explainers/${id}.html`);
+ const html=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)),"utf8");
+ for(const quote of [id,"bundle arm only","pending experiment","call navigate_to again to continue to (12,0)","(12,0) cannot be reached on foot from where you stand","walk to (9,6) on its west edge first, then call navigate_to (10,3) again","546 tiles"])expect(html).toContain(quote);
+ expect(html).not.toContain("both arms");
+});
 it("links the cross-map goal card to its tracked explainer, which quotes the recorded 4caa result and the new refusal",()=>{
  expect(FEATURE_EXPLAINERS["cross-map-goal-v1"]).toBe("cross-map-goal-v1.html");
  const log=new Log();log.add(0,{...START,harness_features:["ram-state-v1","cross-map-goal-v1"]});
@@ -954,6 +964,17 @@ it("links the story destinations card to its tracked explainer, which quotes the
  const html=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)),"utf8");
  expect(html).toContain(id);
  expect(html).toContain("- \"LAB\" = PROF. BIRCH'S POKéMON LAB (map 1/4). Way in: door in LITTLEROOT TOWN (map 0/9) at (7,16).");
+});
+
+it("links the heal before trainers card to its tracked explainer, which quotes the e046 paragraph",()=>{
+ const id="heal-before-trainers-v1";
+ expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
+ const log=new Log();log.add(0,{...START,harness_features:["ram-state-v1","low-hp-trainer-warning-v1",id]});
+ const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
+ expect(doc.querySelector(`[data-feature="${id}"] a`)?.getAttribute("href")).toBe(`/explainers/${id}.html`);
+ const html=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)),"utf8");
+ expect(html).toContain(id);
+ expect(html).toContain("SUPERVISOR: A trainer you have not beaten is on this map: object 3, sprite LASS, at (31,24).");
 });
 
 it("links the battle action tool card to its tracked explainer, which quotes the tool's recorded-state result",()=>{

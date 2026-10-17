@@ -232,6 +232,7 @@ export function eventText(event: RunEvent, view?: RunView): string | null {
     case "dialogue_auto_advance":return `Dialogue auto-advance (${event.tool}) · B ×${String(event.auto_presses)}${event.battle_auto_presses===undefined?"":` (${String(event.battle_auto_presses)} in battle)`} · stopped: ${esc(event.stop.replaceAll("_"," "))} · ${esc(event.detail)}${event.dropped.length===0?"":` · ${String(event.dropped.length)} requested inputs not sent (${esc(event.dropped.join(", "))})`} · ${String(event.pages.length)} pages${event.pages.map((page,i)=>` · ${String(i+1)}. ${page.battle_turn===undefined?"":`battle turn ${String(page.battle_turn)}: `}${page.speaker===null?"":`${esc(page.speaker)}${page.speaker_source==="faced_sprite"?" (sprite kind)":page.speaker_source==="faced_target"?" (faced object)":""}: `}“${esc(page.text)}”`).join("")}`;
     case "people_id_card":return `ID card added to the ${esc(event.tool)} result (${event.reason==="first"?"first sight":"back in view, card changed"}) · ${esc(event.key)} · ${esc(event.text)}`;
     case "low_hp_trainer_warning":return `Low-HP trainer warning added to the ${esc(event.tool)} result · ${esc(event.species)} ${String(event.hp)}/${String(event.max_hp)} HP · rival ${esc(event.rival)} at (${String(event.x)},${String(event.y)}) · ${esc(event.text)}`;
+    case "heal_before_trainers_warning":return `Heal before trainers warning added to the ${esc(event.tool)} result · ${event.trainers.map(t=>`object ${String(t.local_id)} ${esc(t.sprite_kind??"unknown")} at (${String(t.x)},${String(t.y)})`).join(", ")} · ${event.heal===null?"no healing place named":`${event.heal.kind==="pokemon_center"?"POKéMON CENTER":"home"} in ${esc(event.heal.town)}, ${String(event.heal.hops)} map changes`} · ${esc(event.text)}`;
     case "story_battle_warning":return `Story battle warning added to the ${esc(event.tool)} result · ${esc(event.opponent)}${event.x===null||event.y===null?"":` at (${String(event.x)},${String(event.y)})`} · ${event.party.map(p=>`${esc(p.species)} ${String(p.hp)}/${String(p.max_hp)}`).join(", ")} · ${esc(event.text)}`;
     case "text_only_supervisor":return `Text-only supervisor note ${String(event.note)}/${String(event.limit)} sent after ${String(event.replies)} replies with no tool call · ${esc(event.text)}`;
     case "ledger_context":return `Instruction ledger delivered · ${String(event.evidence.length)} references · ${esc(event.text.slice(0,200))}`;
@@ -428,6 +429,8 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "people-id-cards-v1":"people-id-cards-v1.html",
  "open-goal-prompt-v1":"open-goal-prompt-v1.html",
  "story-destinations-v1":"story-destinations-v1.html",
+ "exit-reachability-v1":"exit-reachability-v1.html",
+ "heal-before-trainers-v1":"heal-before-trainers-v1.html",
  "instruction-ledger-v2":"instruction-ledger-v2.html",
 });
 

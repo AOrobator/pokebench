@@ -85,4 +85,6 @@ The original ignored runs/explainers copies remain for existing links. Make futu
 - [People ID cards](people-id-cards-v1.html)
 - [Open goal prompt](open-goal-prompt-v1.html)
 - [Story destinations](story-destinations-v1.html)
+- [Exit reachability](exit-reachability-v1.html)
+- [Heal before trainers](heal-before-trainers-v1.html)
 - [Conversation ledger](instruction-ledger-v2.html)

@@ -122,7 +122,9 @@ Tests from recorded states; viewer Activity History check on a fixture run; prob
   - COMMIT: `test(harness-trust,cited-destination): RED round 1 findings (echoed because, non-player movement, mixed ways)` (e7050808)
 - [x] GREEN: `Citations` drops the Because lines it wrote before a result counts as shown; `WalkAway.observe(..., own)` counts only press/navigate_to results ending with field controls free (anything else seen moving starts over); same-map moves are measured to the way that was nearest before the move, both numbers about that way; wording "counting tiles across and down" (prompt note, explainer, copy); the pi wire test now moves with press calls; experiment notes no longer call the provisional commit the head. Gates: agent 2176, viewer 1111, pytest 2544; lint, build clean; coverage agent 99.18 / 94.47 / 98.16, viewer 97.62 / 91.38 / 93.79, Python 97.63 / 93.76 / 100; pages-check clean.
   - COMMIT: `fix(harness-trust,cited-destination): own Because lines never count as shown; only the player's own free moves count; measure each move to one way` (a1383c61)
-- [x] 4:12 PM New York: exit-reachability-v1 landed on main at 7235ae56 (main now 65a4b021); merged main; one conflict in the FEATURES list (main's exit-reachability copy kept, these two entries after it).
+- [x] 4:12 PM New York: exit-reachability-v1 landed on main at 7235ae56 (main now 65a4b021); merged main; one conflict in the FEATURES list (main's exit-reachability copy kept, these two entries after it). COMMIT: merge (e3f1c397).
+  - Gates on the merged tip: agent 2178, viewer 1111, pytest 2544; lint, build clean; coverage agent 99.18 / 94.46 / 98.16, viewer 97.62 / 91.38 / 93.79, Python 97.63 / 93.76 / 100; verify-vendor OK; experiments-check ok (90); schema unchanged.
+- [ ] Round 2: base main 65a4b021, cumulative diff; focus on the round 1 fix delta.
 
 ## Boy Scout Log
 

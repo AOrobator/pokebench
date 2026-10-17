@@ -231,7 +231,7 @@ describe("exit-reachability-v1: one doorway, tiles with different labels",()=>{
  });
  it("surf-gated-exits-v1 alone keeps printing every tile of a doorway that is not wholly across water",()=>{
   const gate={can_surf:false,balance_badge:false,party_surf:false,surfing:false,warps:[{x:5,y:0}],connections:[]};
-  expect(new UntakenExits({...NAV,"surf-gated-exits-v1":true}).line({...state,surf_gate:gate} as GameStateSnapshot,"")).toBe("Exits here you have not taken: (1,0) or (5,0) -> map 24/11");
+  expect(new UntakenExits({...NAV,"surf-gated-exits-v1":true}).line({...state,surf_gate:gate},"")).toBe("Exits here you have not taken: (1,0) or (5,0) -> map 24/11");
  });
 });
 

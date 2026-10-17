@@ -80,5 +80,8 @@ Scope note (coordinator, during M1): full-map-navigation-v1 is in the bundle on 
 ## Round 2 fixes (operator: The operator 4:02 PM New York, land after these without another review round)
 
 - [x] RED: (a) one doorway (two warps to map 24/11) with a foot and a none tile: ON prints only the walkable tile, OFF and surf-gated-exits-v1 alone print both as today; (b) game-wording rule (pokebench-game-state skill, "Harness messages use the game's own words"): the connection note and the person refusal state only the observable fact, no guessed causes. Python 3 fail (the two ON readout tests and the note test), TS 3 fail.
-  - COMMIT: `test(exit-reachability): RED doorway tiles printed by their own label; notes without guessed causes` (sha in the next entry)
+  - COMMIT: `test(exit-reachability): RED doorway tiles printed by their own label; notes without guessed causes` (7d8505f3)
+- [x] GREEN: untaken-exits prints a doorway's tiles filtered by their own `warpCut !== "none"` only with exit-reachability-v1 on (surf-gated-exits-v1 alone unchanged); `ExitReach.connection_note` drops "(walls, ledges or water cut it off; another map may lead there)", `personCut` drops "(people, heights, one-way tiles or script-trigger tiles may be in the way)"; FEATURES copy and explainer match (`just pages-check` clean). One eslint autofix in the RED test (an unneeded cast).
+- [x] Gates: just test (vitest agent 2134, viewer 1103; pytest 2544), just lint clean, just build OK, just coverage: Python lines 97.63 / branches 93.76 / functions 100; agent lines 99.24 / branches 94.41 / functions 98.30; viewer lines 97.62 / branches 91.39 / functions 93.78.
+  - COMMIT: `fix(exit-reachability): a doorway prints only its tiles you can walk to; notes state the fact without guessed causes` (sha in the report)
 - Follow-up (deferred, not this branch): dive/emerge connections carry no label (topology STEPS only), so they stay listed with today's text.

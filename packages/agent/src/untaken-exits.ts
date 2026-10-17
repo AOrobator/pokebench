@@ -47,8 +47,10 @@ export class UntakenExits {
   const across=all.length-warps.length+listed.length-connections.length;
   const cuts=new Set<Cut|null>([...all.filter(g=>!warps.includes(g)).flatMap(g=>g.warps.map(w=>block.warpCut(w.x,w.y))),...listed.filter(c=>!connections.includes(c)).map(c=>block.connectionCut(c))]);
   const why=!cuts.has("none")?"every exit listed on this map is across water, and you cannot use Surf yet":cuts.has("water")?"every exit listed on this map is across water you cannot Surf yet or cannot be reached on foot from where you stand":"no exit listed on this map can be reached on foot from where you stand";
+  // exit-reachability-v1: a doorway prints only its tiles not labelled none; off, every tile as before.
+  const shown=(g:{tiles:string[];warps:{x:number;y:number}[]}):string[]=>this.features["exit-reachability-v1"]?g.tiles.filter((_,i)=>{const w=g.warps[i];return w===undefined||block.warpCut(w.x,w.y)!=="none";}):g.tiles;
   const open=[
-   ...warps.filter(g=>!g.taken).map(g=>`${g.tiles.join(" or ")} -> ${mapKey(g.destination)==="127/127"?"dynamic destination":this.place(g.destination)}`),
+   ...warps.filter(g=>!g.taken).map(g=>`${shown(g).join(" or ")} -> ${mapKey(g.destination)==="127/127"?"dynamic destination":this.place(g.destination)}`),
    ...connections.filter(c=>!this.history.crossed(map,mapKey(c.destination))).map(c=>`${c.direction}${EDGES.has(c.direction)?" edge":""} -> ${this.place(c.destination)}`),
   ];
   const none=warps.length+connections.length>0?`none (you have taken every exit ${across>0?"you can walk to ":""}on this map this run)`:across>0?`none you can walk to (${why})`:"none (no exits are listed on this map)";

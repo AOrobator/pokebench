@@ -288,8 +288,8 @@ function flood(geometry:Geometry,start:Point):Set<string> {
 }
 // exit-reachability-v1: a person or object none of whose free neighbouring tiles navigate_to can reach. With the
 // server's foot area: none of its neighbours on it means it cannot be walked to at all; one on it means the plan, not
-// the map, is what failed: in the local window because the way leaves it (named by the nearest window-edge tile),
-// otherwise because people, heights, one-way or trigger tiles are in the way. Null when the foot area is unknown.
+// the map, is what failed: in the local window because the way leaves it (named by the nearest window-edge tile);
+// otherwise only the fact is stated, no guessed cause (pokebench-game-state skill). Null when the foot area is unknown.
 function personCut(state:GameStateSnapshot,geometry:Geometry,goal:Point,options:NavigationOptions,reach:ReachSwitches):string|null {
  const block=exitBlock(reach,state);
  const sides=DIRECTIONS.map(([,dx,dy])=>({x:goal.x+dx,y:goal.y+dy}));
@@ -300,7 +300,7 @@ function personCut(state:GameStateSnapshot,geometry:Geometry,goal:Point,options:
  const taken=(p:Point):boolean=>geometry.objects.some(o=>o.x===p.x&&o.y===p.y)||(state.interaction_targets??[]).some(t=>t.kind==="object"&&t.x===p.x&&t.y===p.y);
  const near=sides.filter((_,i)=>known[i]===true).sort((a,b)=>Number(taken(a))-Number(taken(b))||(start===null?0:distance(a,start)-distance(b,start)))[0];
  if(near===undefined)return ", and none of its neighbouring tiles can be reached on foot from where you stand: no walkable way on this map leads there; choose another target";
- if(options.mode==="full"||start===null||flood(geometry,start).has(key(near)))return `; navigate_to finds no route ${options.mode==="full"?"on this map":"on the 15x15 local map it plans over"} to a free tile next to it right now, though this map's walkable area reaches ${at(near)} next to it (people, heights, one-way tiles or script-trigger tiles may be in the way); choose a waypoint nearer to it`;
+ if(options.mode==="full"||start===null||flood(geometry,start).has(key(near)))return `; navigate_to finds no route ${options.mode==="full"?"on this map":"on the 15x15 local map it plans over"} to a free tile next to it right now, though this map's walkable area reaches ${at(near)} next to it; choose a waypoint nearer to it`;
  const edge=windowEdges(state,goal,options)[0];
  const inside=`; none of its free neighbouring tiles can be reached inside the 15x15 local map navigate_to plans over, but this map's walkable area reaches ${at(near)} next to it, so the way there leaves that local map`;
  return edge===undefined?`${inside}; navigate_to can reach no tile on that local map's edge from here, so choose another target`:`${inside}; walk to ${at(edge[1])} on its ${SIDES[edge[0]]} edge first, then call navigate_to ${at(goal)} again`;

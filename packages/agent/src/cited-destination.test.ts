@@ -101,3 +101,17 @@ describe("cited-destination-v1 check",()=>{
   expect(h.checks).toHaveLength(1);
  });
 });
+
+describe("cited-destination-v1 review round 1",()=>{
+ it("the harness's own Because line, echoing the model's words, never counts as something the game showed",async()=>{
+  const h=harness();h.feed(CAAA);
+  const because="the LAB is in RUSTBORO CITY";
+  for(const id of ["n1","n2"]){
+   const r=await h.tools[1]?.execute(id,{...goal,because});
+   const text=textOf(r ?? {content:[],details:undefined}).replace(/^\|/,"");
+   expect(text.startsWith("Because: ")).toBe(true);
+   h.feed([checkEvent({v:1,run:RECORDED["4caa"].run,seq:900000+h.checks.length,t:"2026-10-16T13:07:12.905-04:00",type:"tool_result",turn:300+h.checks.length,id,name:"navigate_to",is_error:false,duration_ms:1,text,frames:[]})]);
+  }
+  expect(h.checks.map(c=>c.facts.verdict)).toEqual(["not_found","not_found"]);
+ });
+});

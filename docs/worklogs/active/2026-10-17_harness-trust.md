@@ -111,6 +111,15 @@ Tests from recorded states; viewer Activity History check on a fixture run; prob
 
 ## Multi-Model Review Log
 
+- Round 1 (4:12-4:40 PM New York), frozen base 3e8d7228 (exit-reachability tip), head 38d0b9d9, diff SHA-256 1a0512ad55da50d5a8a53b5cb2bd66ba39393e9592e95c16d6797422ff16131b. Claude (claude -p, default login, plan mode) BLOCKING, Grok (cursor-grok-4.5-high) LGTM, GPT (Codex gpt-5.6-sol, read-only) BLOCKING. Logs in /private/tmp/claude-tmp/review/ht-r1-*.log.
+  - Fix: (C-B1) a repeated invented `because` matched the harness's own Because line echoed into the recorded result, so the second call read "found"; (C-B2) with two ways toward the goal, `before` came from the previous nearest way and `after`/name from the current one; (X-B1) movement seen by observe, or with field controls locked (scripts), was called "your last two moves".
+  - Fix (wording only): (X-B2) the experiment notes called the provisional source.commit "this branch's head"; it is a branch commit repinned at merge (feature-switch skill), so the note now says so.
+  - Rebut / follow-up: map-table read retried each result when the endpoint is missing (hardening; the header says so plainly); "in a straight line" is Manhattan distance (wording within the frozen boundary; changed to "counting tiles across and down" since it is free and truer); citation scan cost (speculation, bounded by run length); duplicate unchecked worklog boxes (cleaned).
+
+## Round 1 fixes
+
+- [x] RED: cited repeat-quote echo; observe-only and locked movement; two-ways same-way measurement. 4:45 PM New York: 3 fail.
+
 ## Boy Scout Log
 
 ## Archive Milestone (user-gated)

@@ -286,3 +286,34 @@ describe("harness-trust-v1 map table reads",()=>{
   expect(calls).toBe(3);
  });
 });
+
+describe("harness-trust-v1 walk-away review round 1",()=>{
+ const result=resultAt(CAAA,272);
+ const base=stateAt(CAAA,result.state_seq ?? -1);
+ const route103=(x:number,y:number):GameStateSnapshot=>({...base,map_id:[0,18],location:"ROUTE103",position:{x,y},field_controls_locked:false});
+ async function walkWith(tool:0|1|2,states:readonly GameStateSnapshot[],places=PLACES){
+  const h=harness(true,()=>Promise.resolve(places));h.feed(CAAA,result.seq);
+  const scripts=[h.observe,h.press,h.nav];
+  for(const [i,s] of states.entries()){scripts[tool]?.next(s,"x");await h.tools[tool]?.execute(`w${String(i)}`,{});}
+  return h;
+ }
+ it("movement seen only by observe, or with field controls locked (a script moving the player), is not the player's move",async()=>{
+  expect((await walkWith(0,[route103(9,13),route103(9,10),route103(9,7)])).notes).toHaveLength(0);
+  const locked=(x:number,y:number)=>({...route103(x,y),field_controls_locked:true});
+  expect((await walkWith(1,[route103(9,13),locked(9,10),locked(9,7)])).notes).toHaveLength(0);
+  expect((await walkWith(2,[route103(9,13),route103(9,10),{...route103(9,7),field_controls_locked:null}])).notes).toHaveLength(0);
+  // A press that moves the player with controls free counts, like navigate_to.
+  expect((await walkWith(1,[route103(9,13),route103(9,10),route103(9,7)])).notes).toHaveLength(1);
+ });
+ it("with two ways toward the goal, each move is measured to the same way before and after",async()=>{
+  const town=PLACES.places.find(p=>p.map_id[0]===0&&p.map_id[1]===9);if(town===undefined)throw Error("no town");
+  const places={places:[...PLACES.places.filter(p=>p!==town),{...town,warps:[...town.warps,{x:1,y:1,to:[1,4] as [number,number]}]}]};
+  const at=(x:number,y:number):GameStateSnapshot=>({...base,map_id:[0,9],location:"LITTLEROOT TOWN",position:{x,y},field_controls_locked:false});
+  const h=await walkWith(2,[at(2,2),at(4,9),at(4,4)],places);
+  expect(h.notes).toHaveLength(1);
+  expect(h.notes[0]?.facts.steps.map(s=>[s.way,s.before,s.after])).toEqual([
+   ["the door at (1,1) (to PROF. BIRCH'S POKéMON LAB (map 1/4))",2,10],
+   ["the door at (7,16) (to PROF. BIRCH'S POKéMON LAB (map 1/4))",10,15],
+  ]);
+ });
+});

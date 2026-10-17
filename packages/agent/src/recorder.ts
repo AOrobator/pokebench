@@ -1,5 +1,7 @@
 import type { IdCard } from "./people-id-cards.js";
-import type { LowHpTrainerWarningFacts, StoryBattleWarningFacts } from "./low-hp-trainer-warning.js";
+import type { HealBeforeTrainersFacts, LowHpTrainerWarningFacts, StoryBattleWarningFacts } from "./low-hp-trainer-warning.js";
+import type { StoryGoalAwayFacts } from "./harness-trust.js";
+import type { DestinationCitationFacts } from "./cited-destination.js";
 import type { PressModifiers } from "./game-tools.js";
 import {StateActivities} from "./activity.js";
 import type {DecisionSnapshot} from "./state-decision.js";
@@ -451,6 +453,19 @@ export class RunRecorder {
   // low-hp-trainer-warning-v2: recorded as the story-battle paragraph is added to the tool result.
   storyBattleWarning(tool: string, facts: StoryBattleWarningFacts, text: string): void {
     this.append({ type: "story_battle_warning", turn: this.turn, tool, ...facts, map_id: [facts.map_id[0], facts.map_id[1]], party: facts.party.map((p) => ({ ...p })), items: facts.items.map((i) => ({ ...i })), text });
+  }
+  // heal-before-trainers-v1: recorded as the paragraph is added to the tool result.
+  healBeforeTrainersWarning(tool: string, facts: HealBeforeTrainersFacts, text: string): void {
+    this.append({ type: "heal_before_trainers_warning", turn: this.turn, tool, map_id: [facts.map_id[0], facts.map_id[1]], trainers: facts.trainers.map((t) => ({ ...t })), weak: facts.weak.map((w) => (w.kind === "lead_no_pp" ? { ...w, moves: [...w.moves] } : { ...w })), heal: facts.heal === null ? null : { ...facts.heal, map_id: [facts.heal.map_id[0], facts.heal.map_id[1]] }, mom_heals: facts.mom_heals, money: facts.money, text });
+  }
+
+  // harness-trust-v1: recorded as the walk-away note is added under the result's header.
+  storyGoalAway(tool: string, facts: StoryGoalAwayFacts, text: string): void {
+    this.append({ type: "story_goal_away", turn: this.turn, tool, speaker: facts.speaker, line_turn: facts.line_turn, quote: facts.quote, targets: facts.targets.map((t) => ({ name: t.name, map_id: [t.map_id[0], t.map_id[1]] })), steps: facts.steps.map((st) => ({ ...st, from_map: [st.from_map[0], st.from_map[1]], to_map: [st.to_map[0], st.to_map[1]], from: { ...st.from }, to: { ...st.to } })), text });
+  }
+  // cited-destination-v1: recorded before the walk, with the line the result will start with (null when found).
+  destinationCitation(facts: DestinationCitationFacts, text: string | null): void {
+    this.append({ type: "destination_citation", turn: this.turn, ...facts, map_id: [facts.map_id[0], facts.map_id[1]], text });
   }
 
   // people-id-cards-v1: recorded as each card is added to the tool result.

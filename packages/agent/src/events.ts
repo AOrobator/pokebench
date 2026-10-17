@@ -226,6 +226,40 @@ const StoryBattleWarningEvent = event("story_battle_warning", {
   text: Type.String({ minLength: 1 }),
 });
 
+// heal-before-trainers-v1: the SUPERVISOR paragraph a game-tool result gained, with the facts it states.
+const HealBeforeTrainersWarningEvent = event("heal_before_trainers_warning", {
+  tool: Type.String({ minLength: 1 }), map_id: Type.Tuple([Type.Integer(), Type.Integer()]),
+  trainers: Type.Array(Type.Object({ local_id: NonNegativeInt, x: Type.Integer(), y: Type.Integer(), sprite_kind: Type.Union([Type.String(), Type.Null()]) }, closed), { minItems: 1, maxItems: 64 }),
+  weak: Type.Array(Type.Union([
+    Type.Object({ kind: Type.Literal("fainted"), species: Type.String({ minLength: 1 }), max_hp: Type.Integer({ minimum: 1 }) }, closed),
+    Type.Object({ kind: Type.Literal("lead_below_half"), species: Type.String({ minLength: 1 }), hp: NonNegativeInt, max_hp: Type.Integer({ minimum: 1 }) }, closed),
+    Type.Object({ kind: Type.Literal("lead_no_pp"), species: Type.String({ minLength: 1 }), moves: Type.Array(Type.String({ minLength: 1 }), { minItems: 1, maxItems: 4 }) }, closed),
+  ]), { minItems: 1, maxItems: 8 }),
+  heal: Type.Union([Type.Object({ kind: Type.Enum(["pokemon_center", "home"]), town: Type.String({ minLength: 1 }), map_id: Type.Tuple([Type.Integer(), Type.Integer()]), hops: NonNegativeInt }, closed), Type.Null()]),
+  mom_heals: Type.Boolean(),
+  money: Type.Union([NonNegativeInt, Type.Null()]),
+  text: Type.String({ minLength: 1 }),
+});
+
+// harness-trust-v1: the walk-away SUPERVISOR note a game-tool result gained, with the story line and the two moves it states.
+const MapIdTuple = Type.Tuple([Type.Integer(), Type.Integer()]);
+const TilePoint = Type.Object({ x: Type.Integer(), y: Type.Integer() }, closed);
+const StoryGoalAwayEvent = event("story_goal_away", {
+  tool: Type.String({ minLength: 1 }), speaker: Type.String({ minLength: 1 }), line_turn: NonNegativeInt, quote: Type.String({ minLength: 1 }),
+  targets: Type.Array(Type.Object({ name: Type.String({ minLength: 1 }), map_id: MapIdTuple }, closed), { minItems: 1, maxItems: 16 }),
+  steps: Type.Array(Type.Object({
+    measure: Type.Enum(["tiles", "maps"]), from_map: MapIdTuple, to_map: MapIdTuple, from_name: Type.String({ minLength: 1 }), to_name: Type.String({ minLength: 1 }),
+    from: TilePoint, to: TilePoint, before: NonNegativeInt, after: NonNegativeInt, way: Type.Union([Type.String({ minLength: 1 }), Type.Null()]),
+  }, closed), { minItems: 2, maxItems: 2 }),
+  text: Type.String({ minLength: 1 }),
+});
+// cited-destination-v1: one check of navigate_to's because against the results shown before the call.
+const DestinationCitationEvent = event("destination_citation", {
+  tool_call_id: Type.String({ minLength: 1 }), because: Type.String({ minLength: 1 }), verdict: Type.Enum(["found", "not_found", "too_short"]),
+  found_turn: Type.Union([NonNegativeInt, Type.Null()]), x: Type.Integer(), y: Type.Integer(), map_id: MapIdTuple,
+  text: Type.Union([Type.String({ minLength: 1 }), Type.Null()]),
+});
+
 // dialogue-auto-advance-v1: the harness advanced field dialogue to the next decision point within one tool call.
 // battle-text-auto-advance-v1 adds the battle_* stops and paused; its pages carry battle_turn and battle_message_id.
 export const DIALOGUE_AUTO_ADVANCE_STOPS = ["field_free", "menu", "naming", "battle", "screen_change", "locked_no_message", "interface_not_ready", "message_not_ready", "press_cap", "time_cap", "error", "battle_input", "battle_prompt", "battle_busy", "battle_unreadable", "paused"] as const;
@@ -477,6 +511,16 @@ export const StateBodySchema = Type.Object(
       connections: Type.Array(Type.Object({direction:Type.Enum(["NORTH","SOUTH","EAST","WEST"]),destination:Type.Tuple([Type.Integer({minimum:0,maximum:255}),Type.Integer({minimum:0,maximum:255})]),offset:Type.Integer(),reach:Type.Enum(["foot","water","none"])},closed),{maxItems:16}),
       foot: Type.Object({width:Type.Integer({minimum:1,maximum:256}),height:Type.Integer({minimum:1,maximum:256}),rows:Type.Array(Type.String({pattern:"^[0-9a-f]{1,64}$"}),{maxItems:256})},closed),
     },closed)),
+    // heal-before-trainers-v1: the trainers loaded on this map (template script starts with trainerbattle) with their
+    // trainer flag, the power of each party move, SaveBlock1.lastHealLocation's map, the player's house 1F and whether
+    // talking to MOM heals now. Present only with the switch, on the field.
+    heal_before_trainers: Type.Optional(Type.Object({
+      trainers: Type.Array(Type.Object({local_id:NonNegativeInt,x:Type.Integer(),y:Type.Integer(),graphics_id:NonNegativeInt,sprite_kind:Type.Union([Type.String(),Type.Null()]),trainer_id:Type.Integer({minimum:1,maximum:854}),defeated:Type.Boolean()},closed),{maxItems:64}),
+      move_power: Type.Array(Type.Object({move_id:Type.Integer({minimum:1,maximum:354}),power:Type.Integer({minimum:0,maximum:255})},closed),{maxItems:24}),
+      last_heal: Type.Union([Type.Tuple([Type.Integer({minimum:0}),Type.Integer({minimum:0})]),Type.Null()]),
+      home: Type.Union([Type.Tuple([Type.Integer({minimum:0}),Type.Integer({minimum:0})]),Type.Null()]),
+      mom_heals: Type.Boolean(),
+    },closed)),
   },
   closed,
 );
@@ -563,6 +607,9 @@ export const RunEventSchema = Type.Union([
   LowHpTrainerWarning,
   PeopleIdCard,
   StoryBattleWarningEvent,
+  HealBeforeTrainersWarningEvent,
+  StoryGoalAwayEvent,
+  DestinationCitationEvent,
   DialogueAutoAdvance,
   DiskUsage,
   FramesEvicted,

@@ -85,7 +85,7 @@ describe("surf-gated-exits-v2: the untaken-exits line names no badge and no move
 });
 
 describe("surf-gated-exits-v2 production wiring: playGameTools adds the untaken-exits line",()=>{
- const BASE:FeatureSet={...ALL_ON,"people-ledger-v1":false,"people-id-cards-v1":false,"trainer-heal-guidance-v1":false,"low-hp-trainer-warning-v1":false,"low-hp-trainer-warning-v2":false,"dialogue-auto-advance-v1":false,"bounded-navigation-v1":false,"navigate-first-prompt-v1":false,"blocked-exit-fact-v1":false,"battle-loss-recap-v1":false,"next-milestone-hint-v1":false,"surf-gated-exits-v1":true};
+ const BASE:FeatureSet={...ALL_ON,"people-ledger-v1":false,"people-id-cards-v1":false,"trainer-heal-guidance-v1":false,"low-hp-trainer-warning-v1":false,"low-hp-trainer-warning-v2":false,"dialogue-auto-advance-v1":false,"bounded-navigation-v1":false,"navigate-first-prompt-v1":false,"blocked-exit-fact-v1":false,"battle-loss-recap-v1":false,"next-milestone-hint-v1":false,"cited-destination-v1":false,"harness-trust-v1":false,"surf-gated-exits-v1":true};
  const warp={kind:"warp",x:45,y:6,elevation:0,activation:"movement",availability:"conditional",facing:null,local_id:null,destination:[24,106,0] as [number,number,number],name:"Warp to map 24/106"};
  const EAST={direction:"EAST" as const,offset:-60,destination:[0,25] as [number,number],destination_name:"ROUTE110",edges:[{x:79,y:7}]};
  // Every exit listed on this map is across water and Surf cannot be used.

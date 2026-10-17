@@ -64,7 +64,10 @@ const SAMPLES: { [K in RunEvent["type"]]: Extract<Body, { type: K }> } = {
   text_only_supervisor: { type: "text_only_supervisor", turn: 1, replies: 3, note: 1, limit: 3, text: X },
   people_id_card: { type: "people_id_card", turn: 1, tool: X, tool_call_id: X, key: "name:MAY", reason: "first", text: X },
   low_hp_trainer_warning: { type: "low_hp_trainer_warning", turn: 1, tool: X, species: X, hp: 3, max_hp: 21, rival: "MAY", x: 10, y: 3, map_id: [0, 18], money: 3000, items: [{ name: X, quantity: 1 }], text: X },
+  heal_before_trainers_warning: { type: "heal_before_trainers_warning", turn: 1, tool: X, map_id: [0, 19], trainers: [{ local_id: 3, x: 31, y: 24, sprite_kind: X }], weak: [{ kind: "lead_below_half", species: X, hp: 14, max_hp: 38 }], heal: { kind: "pokemon_center", town: X, map_id: [2, 2], hops: 4 }, mom_heals: true, money: 5168, text: X },
   story_battle_warning: { type: "story_battle_warning", turn: 1, tool: X, kind: "aqua_grunt", opponent: X, x: null, y: null, map_id: [24, 11], party: [{ species: X, hp: 3, max_hp: 21 }], money: 3000, items: [{ name: X, quantity: 1 }], text: X },
+  story_goal_away: { type: "story_goal_away", turn: 1, tool: X, speaker: X, line_turn: 1, quote: X, targets: [{ name: X, map_id: [1, 4] }], steps: [{ measure: "tiles", from_map: [0, 18], to_map: [0, 18], from_name: X, to_name: X, from: { x: 9, y: 13 }, to: { x: 9, y: 10 }, before: 8, after: 11, way: X }, { measure: "maps", from_map: [0, 10], to_map: [0, 18], from_name: X, to_name: X, from: { x: 1, y: 0 }, to: { x: 1, y: 21 }, before: 3, after: 4, way: null }], text: X },
+  destination_citation: { type: "destination_citation", turn: 1, tool_call_id: X, because: X, verdict: "not_found", found_turn: null, x: 1, y: 2, map_id: [0, 9], text: X },
   dialogue_auto_advance: { type: "dialogue_auto_advance", turn: 1, tool_call_id: "c1", tool: "press", requested: ["A", "A"], sent: ["A"], dropped: ["A"], auto_presses: 2, pages: [{ state_seq: 3, map: X, map_id: [1, 4], position: { x: 1, y: 2 }, speaker: X, speaker_source: "faced_sprite", text: X }], stop: "field_free", detail: X, duration_ms: 400 },
   telemetry_error: { type: "telemetry_error", turn: 1, source: "state", message: X },
   compaction: { type: "compaction", turn: 1, from_tokens: 9000, to_tokens: 1000 },
@@ -466,5 +469,20 @@ describe("low-hp-trainer-warning-v2 in Activity History", () => {
     expect(step.category).toBe("sup");
     expect(step.titleHtml).toContain("Story battle warning");
     expect(eventText(must(log.events.at(-1)))).toBe(`Story battle warning added to the press result · ROXANNE at (5,2) · COMBUSKEN 30/41 · ${text}`);
+  });
+});
+
+describe("heal-before-trainers-v1 in Activity History", () => {
+  it("is a SUPERVISOR step titled for the warning, naming the tool, each trainer, the healing place and the whole paragraph", () => {
+    const log = new Log();
+    log.add(0, START);
+    const text = "SUPERVISOR: A trainer you have not beaten is on this map: object 3, sprite LASS, at (31,24).";
+    log.add(100, { type: "heal_before_trainers_warning", turn: 582, tool: "press", map_id: [0, 19], trainers: [{ local_id: 3, x: 31, y: 24, sprite_kind: "LASS" }], weak: [{ kind: "lead_below_half", species: "TORCHIC", hp: 14, max_hp: 38 }], heal: { kind: "pokemon_center", town: "OLDALE TOWN", map_id: [2, 2], hops: 4 }, mom_heals: true, money: 5168, text });
+    const step = must(steps(build(log.events)).find((s) => s.kind === "heal_before_trainers_warning"));
+    expect(step.category).toBe("sup");
+    expect(step.titleHtml).toContain("Heal before trainers warning");
+    expect(eventText(must(log.events.at(-1)))).toBe(`Heal before trainers warning added to the press result · object 3 LASS at (31,24) · POKéMON CENTER in OLDALE TOWN, 4 map changes · ${text}`);
+    log.add(200, { type: "heal_before_trainers_warning", turn: 583, tool: "navigate_to", map_id: [0, 19], trainers: [{ local_id: 9, x: 4, y: 5, sprite_kind: null }], weak: [{ kind: "fainted", species: "WURMPLE", max_hp: 15 }], heal: null, mom_heals: false, money: null, text });
+    expect(eventText(must(log.events.at(-1)))).toBe(`Heal before trainers warning added to the navigate_to result · object 9 unknown at (4,5) · no healing place named · ${text}`);
   });
 });

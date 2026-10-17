@@ -847,6 +847,26 @@ it("links the Exit reachability card to its tracked explainer, which quotes the 
  for(const quote of [id,"bundle arm only","pending experiment","call navigate_to again to continue to (12,0)","(12,0) cannot be reached on foot from where you stand","walk to (9,6) on its west edge first, then call navigate_to (10,3) again","546 tiles"])expect(html).toContain(quote);
  expect(html).not.toContain("both arms");
 });
+it("links the Harness trust card to its tracked explainer, which quotes the recorded header, the trust order and the walk-away note",()=>{
+ const id="harness-trust-v1";
+ expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
+ const log=new Log();log.add(0,{...START,harness_features:["ram-state-v1","dialogue-auto-advance-v1",id]});
+ const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
+ expect(doc.querySelector(`[data-feature="${id}"] a`)?.getAttribute("href")).toBe(`/explainers/${id}.html`);
+ const html=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)),"utf8");
+ for(const quote of [id,"bundle arm only","pending experiment","Read from game memory, always true:","Story goal: &quot;Well, it&#39;s time to head back to the LAB.&quot; (MAY, turn 272) -&gt; &quot;LAB&quot; = PROF. BIRCH&#39;S POKéMON LAB (map 1/4). Way in: door in LITTLEROOT TOWN (map 0/9) at (7,16).","3. Never your memory of Pokémon games, guides or walkthroughs.","Exits you can walk to from where you stand: SOUTH edge -&gt; OLDALE TOWN (map 0/10).","went from 8 to 11 tiles away, counting tiles across and down"])expect(html).toContain(quote);
+ expect(html).not.toContain("both arms");
+});
+it("links the Cited destination card to its tracked explainer, which quotes the schema, the found case and the not-found line",()=>{
+ const id="cited-destination-v1";
+ expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
+ const log=new Log();log.add(0,{...START,harness_features:["ram-state-v1","bounded-navigation-v1",id]});
+ const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
+ expect(doc.querySelector(`[data-feature="${id}"] a`)?.getAttribute("href")).toBe(`/explainers/${id}.html`);
+ const html=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)),"utf8");
+ for(const quote of [id,"bundle arm only","pending experiment","&quot;required&quot;: [&quot;x&quot;, &quot;y&quot;, &quot;map_id&quot;, &quot;because&quot;]","is not in anything the game has shown you this run (results, readouts and dialogue). navigate_to walked anyway","destination_citation"])expect(html).toContain(quote);
+ expect(html).not.toContain("both arms");
+});
 it("links the cross-map goal card to its tracked explainer, which quotes the recorded 4caa result and the new refusal",()=>{
  expect(FEATURE_EXPLAINERS["cross-map-goal-v1"]).toBe("cross-map-goal-v1.html");
  const log=new Log();log.add(0,{...START,harness_features:["ram-state-v1","cross-map-goal-v1"]});
@@ -964,6 +984,17 @@ it("links the story destinations card to its tracked explainer, which quotes the
  const html=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)),"utf8");
  expect(html).toContain(id);
  expect(html).toContain("- \"LAB\" = PROF. BIRCH'S POKéMON LAB (map 1/4). Way in: door in LITTLEROOT TOWN (map 0/9) at (7,16).");
+});
+
+it("links the heal before trainers card to its tracked explainer, which quotes the e046 paragraph",()=>{
+ const id="heal-before-trainers-v1";
+ expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
+ const log=new Log();log.add(0,{...START,harness_features:["ram-state-v1","low-hp-trainer-warning-v1",id]});
+ const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
+ expect(doc.querySelector(`[data-feature="${id}"] a`)?.getAttribute("href")).toBe(`/explainers/${id}.html`);
+ const html=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)),"utf8");
+ expect(html).toContain(id);
+ expect(html).toContain("SUPERVISOR: A trainer you have not beaten is on this map: object 3, sprite LASS, at (31,24).");
 });
 
 it.each([

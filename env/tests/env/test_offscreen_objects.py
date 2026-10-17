@@ -40,6 +40,7 @@ RECORDED_OFF = frozenset(FIXTURE["recorded_off"]) | {
     "blackout-readout-v1",
     "surf-gated-exits-v1",
     "exit-reachability-v1",
+    "heal-before-trainers-v1",
     "tutorial-party-owner-v1",
     "mid-frame-readout-v1",
     "unset-dynamic-warp-v1",

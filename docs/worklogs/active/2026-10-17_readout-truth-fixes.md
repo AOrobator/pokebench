@@ -52,9 +52,9 @@ feature-switch, execute-worklog (stop before the review loop), feature-explainer
 **M3 - explainers and pending experiments**
 - [x] Five explainers, README, FEATURE_EXPLAINERS + panels/server tests, `just pages-check`
 - [x] Five pending `experiments/<id>.json`, `just experiments-check`, readiness rows
-- [ ] COMMIT
+- [x] COMMIT: `docs(readout-truth-fixes): explainers, Harness Config links and pending experiments for the five switches` (3a441333)
 
-**M4 - STOP** before the review loop; report to the thread.
+**M4 - STOP** before the review loop; report to the thread. (Reached: head 3a441333 plus this worklog commit; no review run, no merge.)
 
 ## Log
 

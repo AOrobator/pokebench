@@ -867,6 +867,16 @@ it("links the Cited destination card to its tracked explainer, which quotes the 
  for(const quote of [id,"bundle arm only","pending experiment","&quot;required&quot;: [&quot;x&quot;, &quot;y&quot;, &quot;map_id&quot;, &quot;because&quot;]","is not in anything the game has shown you this run (results, readouts and dialogue). navigate_to walked anyway","destination_citation"])expect(html).toContain(quote);
  expect(html).not.toContain("both arms");
 });
+it("links the No exit here card to its tracked explainer, which quotes the recorded lines and the game grounding",()=>{
+ const id="no-exit-here-v1";
+ expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
+ const log=new Log();log.add(0,{...START,harness_features:["ram-state-v1","world-destinations-v1",id]});
+ const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
+ expect(doc.querySelector(`[data-feature="${id}"] a`)?.getAttribute("href")).toBe(`/explainers/${id}.html`);
+ const html=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)),"utf8");
+ for(const quote of [id,"bundle arm only","pending experiment","There is no way off OLDALE TOWN to the east; the ways off this map are: NORTH edge -&gt; ROUTE103 (map 0/18)","There is no way off ROUTE103 to the north;","MapGridGetCollisionAt","PlayerNotOnBikeCollide"])expect(html).toContain(quote);
+ expect(html).not.toContain("both arms");
+});
 it("links the cross-map goal card to its tracked explainer, which quotes the recorded 4caa result and the new refusal",()=>{
  expect(FEATURE_EXPLAINERS["cross-map-goal-v1"]).toBe("cross-map-goal-v1.html");
  const log=new Log();log.add(0,{...START,harness_features:["ram-state-v1","cross-map-goal-v1"]});

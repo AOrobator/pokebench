@@ -18,9 +18,9 @@ import type {PlacesBody} from "./story-destinations.js";
 // Recorded runs, cut down to the events the ledger reads (states without world context, every
 // dialogue_auto_advance, tool results with their text kept only near the decision under test).
 // Built by streaming each run's events.jsonl; see docs/worklogs/active/2026-10-17_instruction-ledger-v2.md.
-type Run="93eb"|"0e05"|"e962"|"defa"|"2fb4";
+type Run="93eb"|"0e05"|"e962"|"defa"|"2fb4"|"e0cc";
 const load=(name:Run):RunEvent[]=>gunzipSync(readFileSync(new URL(`./fixtures/instruction-ledger-v2-${name}.jsonl.gz`,import.meta.url))).toString("utf8").trim().split("\n").map(line=>checkEvent(JSON.parse(line)));
-const RUNS:Record<Run,RunEvent[]>={"93eb":load("93eb"),"0e05":load("0e05"),"e962":load("e962"),defa:load("defa"),"2fb4":load("2fb4")};
+const RUNS:Record<Run,RunEvent[]>={"93eb":load("93eb"),"0e05":load("0e05"),"e962":load("e962"),defa:load("defa"),"2fb4":load("2fb4"),e0cc:load("e0cc")};
 type StateEvent=Extract<RunEvent,{type:"state";started:boolean}>;
 type ToolResultEvent=Extract<RunEvent,{type:"tool_result"}>;
 function snapshot(e:StateEvent):GameStateSnapshot {
@@ -209,6 +209,34 @@ describe("instruction-ledger-v2 on recorded runs",()=>{
  it("93eb T57: before any page the game names a speaker for, the latest field page stands in, labelled as such",()=>{
   const {ledger,result,state}=ledgerAt("93eb",892);
   expect(ledger.block(state,result.id)).toBe(X93eb_892);
+ });
+});
+
+// Live bundle run 2026-10-17T15-16-43_qwen36-gpu0_e0cc (pin f5742c0, instruction-ledger-v1 ON): its recorded
+// ledgers said "nothing heard" for rooms where dialogue was shown (3419 of 3493 room lines). v1 sets a room's line
+// only when the newest page's seq equals the tool result's state seq, which auto-advance pages never do.
+describe("room lines regression, recorded run e0cc (May's house)",()=>{
+ const MOM_1F="- PROF. BIRCH'S HOUSE 1F (map 1/2), here turn 70: last heard turn 70, WOMAN_4 (sprite kind, not a name): \"Our daughter is upstairs, I think.\"";
+ const recorded=(seq:number)=>{const e=RUNS.e0cc.find(x=>x.seq===seq);if(e?.type!=="ledger_context")throw Error(`no ledger ${String(seq)}`);return e.text;};
+ it("T71 result (v1 ledger 1576): v2 gives May's house 1F the mom's last line with its speaker; v1 recorded and still replays \"nothing heard\"",()=>{
+  const {ledger,result,state}=ledgerAt("e0cc",1573);
+  expect(ledger.block(state,result.id)).toContain(MOM_1F);
+  expect(recorded(1576)).toContain("PROF. BIRCH'S HOUSE 1F (map 1/2) (first turn 68): nothing heard");
+  const v1=new InstructionLedger({...ON,"instruction-ledger-v1":true});
+  for(const e of RUNS.e0cc){if(e.seq>1573)break;v1.observe(e);}
+  expect(v1.text()).toContain("PROF. BIRCH'S HOUSE 1F (map 1/2) (first turn 68): nothing heard");
+ });
+ it("T79 result (v1 ledger 1835): 2F keeps MAY's last line after her twelve pages; 1F keeps the mom's",()=>{
+  const {ledger,result,state}=ledgerAt("e0cc",1832);
+  const block=ledger.block(state,result.id);
+  expect(block).toContain("- PROF. BIRCH'S HOUSE 2F (map 1/3), here turn 78: last heard turn 76, RIVAL_MAY_NORMAL (sprite kind, not a name): \"GREEN, I'll catch you later!\"");
+  expect(block).toContain(MOM_1F.replace("here turn 70","here turn 79"));
+  expect(recorded(1835)).toContain("PROF. BIRCH'S HOUSE 2F (map 1/3) (first turn 71): nothing heard");
+ });
+ it("T134 result at the May fork (v1 ledger 3528): May's house 1F still shows the mom's line",()=>{
+  const {ledger,result,state}=ledgerAt("e0cc",3525);
+  expect(ledger.block(state,result.id)).toContain(MOM_1F.replace("here turn 70","here turn 134"));
+  expect(recorded(3528)).toContain("PROF. BIRCH'S HOUSE 1F (map 1/2) (first turn 68): nothing heard");
  });
 });
 

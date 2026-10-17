@@ -152,7 +152,7 @@
   {
    "id": "cook",
    "perArm": 20,
-   "maxWallMs": 3600000,
+   "maxWallMs": 7200000,
    "primary": false,
    "start": {
     "kind": "save_state",

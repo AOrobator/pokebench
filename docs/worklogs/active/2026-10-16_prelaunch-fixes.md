@@ -77,6 +77,7 @@ Done when every milestone is merged, qualification shows none of F1–F8, the fo
 
 ## Session Log
 
+- 2026-10-17 12:23 AM EDT: Cook phase cap doubled from 60 to 120 min in both arms (the operator 12:21 AM EDT: many cook runs hit the 60-min cap). Confirmatory phase unchanged at 15 min. The overnight dry-run rounds pass their own --wall-ms (owned by the Overnight GPU plan thread).
 - 2026-10-16 06:12 PM EDT: open-goal-prompt-v1 (landed 2fcb544b, repin 61f77a22) joins the bundle-v-control bundle arm (base false, no dependency).
 - 2026-10-16 05:56 PM EDT: people-id-cards-v1 landed fast-forward at 04a4c165 (Claude, Codex, Grok LGTM; The operator approved the design 4:47 PM EDT) and joins the bundle-v-control bundle arm (base false; needs people-ledger-v1, on in both).
 - 2026-10-16 05:12 PM EDT: ineffective-loops-v1 (landed f7ee1bae, repin cbdee575) joins the bundle-v-control bundle arm (base false, no dependency).

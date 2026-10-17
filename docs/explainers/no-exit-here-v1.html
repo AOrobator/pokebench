@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>No exit here</title>
+<style>
+:root{
+ --bg:#f7f6f2; --fg:#1c1d1f; --soft:#5b5d61; --rule:#dedcd5; --panel:#ffffff;
+ --game:#1a7f5a; --game-bg:#e3f4ec; --prior:#c2432f; --prior-bg:#fbe7e2; --nav:#2a62c9; --nav-bg:#e4edfb; --hot:#c2432f;
+ --wall:#9b968a; --ground:#eef0e6;
+ --body:system-ui,-apple-system,"Segoe UI",sans-serif; --mono:ui-monospace,"SF Mono",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+ --bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; --hot:#ff7a63;
+ --wall:#55585e; --ground:#1f2420; color-scheme:dark}}
+:root[data-theme="dark"]{
+ --bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; --hot:#ff7a63;
+ --wall:#55585e; --ground:#1f2420; color-scheme:dark}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.6 var(--body);padding:0 16px}
+main{max-width:760px;margin:0 auto;padding:40px 0 64px;display:flex;flex-direction:column;gap:34px}
+h1{font-size:2.2rem;line-height:1.15;margin:0}
+h2{font-size:1.3rem;margin:0}
+p{margin:0;max-width:66ch}
+ul{margin:0;padding-left:20px}
+.eyebrow{font:500 .75rem var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--soft)}
+.lede{font-size:1.08rem;color:var(--soft)}
+section{display:flex;flex-direction:column;gap:12px}
+figure{margin:0;display:flex;flex-direction:column;gap:8px}
+.scroll{overflow-x:auto}
+svg{display:block;max-width:100%;height:auto}
+.scroll svg{min-width:520px}
+figcaption{font-size:.88rem;color:var(--soft)}
+svg text{font-family:var(--body);font-size:12px;fill:var(--fg)}
+svg .s{fill:var(--soft);font-size:11px}
+svg .t{font-weight:600;font-size:13px}
+svg .m{font-family:var(--mono);font-size:11px}
+.box{fill:var(--panel);stroke:var(--rule)}
+.game{fill:var(--game-bg);stroke:var(--game)}
+.prior{fill:var(--prior-bg);stroke:var(--prior)}
+.navf{fill:var(--nav-bg);stroke:var(--nav)}
+.hot{stroke:var(--hot);stroke-width:2.2}
+.wall{fill:var(--wall);stroke:var(--rule)}
+.ground{fill:var(--ground);stroke:var(--rule)}
+.arr{stroke:var(--soft);stroke-width:1.5;fill:none}
+pre{background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:14px;white-space:pre-wrap;font:13px/1.5 var(--mono);margin:0}
+code{font:500 .88em var(--mono);background:var(--panel);border:1px solid var(--rule);border-radius:4px;padding:0 4px}
+table{border-collapse:collapse;width:100%;font-size:.92rem}
+th,td{text-align:left;padding:7px 9px;border-bottom:1px solid var(--rule);vertical-align:top}
+th{font:500 .75rem var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--soft)}
+.tablewrap{overflow-x:auto}
+.pair{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:640px){.pair{grid-template-columns:1fr}}
+.tag{font:600 .72rem var(--mono);letter-spacing:.06em;text-transform:uppercase}
+.off{color:var(--prior)} .on{color:var(--game)}
+</style>
+</head>
+<body>
+<main>
+<div>
+<div class="eyebrow">Harness switch · guidance · <code>no-exit-here-v1</code> · needs <code>world-destinations-v1</code> · off by default · bundle arm only</div>
+<h1>No exit here</h1>
+</div>
+<p class="lede">Runs invent exits and then walk into a map edge that leads nowhere: e046 wrote "Oldale's east exit to Petalburg" (s18744) and "Route 103's north exit to Rustboro" (s17437); deb4 read "SOUTH -&gt; ROUTE116" and "EAST -&gt; ROUTE119" for Littleroot (s11619); 9439 pressed DOWN on Littleroot's south edge and was told only "no movement" (s14790, s16266). With this switch on, that press or navigate_to call gets one line: there is no way off this map on that side, and here are the ways off it.</p>
+
+<section>
+<h2>When the line appears</h2>
+<figure><div class="scroll"><svg viewBox="0 0 720 300" role="img" aria-label="Oldale Town edges with and without connections">
+<rect class="ground" x="40" y="30" width="240" height="240"/>
+<text class="t" x="40" y="20">OLDALE TOWN (map 0/10), 20 × 20</text>
+<rect class="game" x="136" y="30" width="48" height="12"/><text class="s" x="190" y="40">NORTH edge -&gt; ROUTE103, (8..11,0)</text>
+<rect class="game" x="136" y="258" width="48" height="12"/><text class="s" x="190" y="290">SOUTH edge -&gt; ROUTE101, (8..11,19)</text>
+<rect class="game" x="40" y="150" width="12" height="24"/><text class="s" x="58" y="166">WEST -&gt; ROUTE102</text>
+<rect class="prior" x="268" y="30" width="12" height="240"/>
+<text class="s" x="290" y="60">EAST side: no connection</text>
+<circle cx="274" cy="156" r="6" style="fill:var(--nav)"/>
+<path d="M280 156 L318 156" class="hot"/><path d="M312 150 L320 156 L312 162" class="hot" fill="none"/>
+<text x="290" y="140">(19,10), facing right</text>
+<rect class="box" x="330" y="120" width="380" height="74" rx="8"/>
+<text x="342" y="142">navigate_to (19,10) arrived (e046 s18731), or</text>
+<text x="342" y="160">press RIGHT here: the game only bumps.</text>
+<text class="s" x="342" y="180">The result adds the line below.</text>
+</svg></div><figcaption>Green: sides with a map connection (never this switch's line, reachable or not). Red: a side with none. The line fires when a press ends with its last button a direction pointing off the map from the tile the player stands on (facing it), or when navigate_to aims at a tile on or past an edge of the current map, and that side has no connection. A corner names each side without one.</figcaption></figure>
+<div class="tablewrap"><table>
+<tr><th>Recorded call</th><th>Side</th><th>Line</th></tr>
+<tr><td>e046 s18731 navigate_to (19,10), OLDALE TOWN</td><td>east, no connection</td><td class="on">yes</td></tr>
+<tr><td>e046 s17480, s17549 navigate_to (10,0), ROUTE103</td><td>north, no connection</td><td class="on">yes</td></tr>
+<tr><td>deb4 s11662 navigate_to (10,19), LITTLEROOT TOWN</td><td>south, no connection</td><td class="on">yes</td></tr>
+<tr><td>9439 s14790, s16266 press DOWN, LITTLEROOT TOWN</td><td>south, no connection</td><td class="on">yes</td></tr>
+<tr><td>e046 s17409 press UP, UP onto (11,0), OLDALE TOWN</td><td>north, ROUTE103</td><td class="off">no</td></tr>
+<tr><td>e046 s17421 press UP across to ROUTE103 (11,21)</td><td>ends on the south edge, pressed north</td><td class="off">no</td></tr>
+<tr><td>deb4 s11596 navigate_to (10,19), ROUTE101</td><td>south, LITTLEROOT TOWN</td><td class="off">no</td></tr>
+</table></div>
+</section>
+
+<section>
+<h2>The line</h2>
+<div class="pair">
+<div><div class="tag off">Off (today, 9439 s14790)</div><pre>pressed DOWN
+Press result: blocked or unavailable (no movement/turn observed; snapshots cannot distinguish collision from ignored input)
+
+Screen: overworld
+...</pre></div>
+<div><div class="tag on">On</div><pre>pressed DOWN
+Press result: blocked or unavailable (no movement/turn observed; snapshots cannot distinguish collision from ignored input)
+There is no way off LITTLEROOT TOWN to the south; the ways off this map are: NORTH edge -&gt; ROUTE101 (map 0/16); (14,8) -&gt; PROF. BIRCH'S HOUSE 1F (map 1/2); (5,8) -&gt; BREDON's HOUSE 1F (map 1/0); (7,16) -&gt; PROF. BIRCH'S POKéMON LAB (map 1/4)
+
+Screen: overworld
+...</pre></div>
+</div>
+<p>On e046 s18731 (navigate_to puts the line as its own text part right after the Navigation line):</p>
+<pre>There is no way off OLDALE TOWN to the east; the ways off this map are: NORTH edge -&gt; ROUTE103 (map 0/18); SOUTH edge -&gt; ROUTE101 (map 0/16); WEST edge -&gt; ROUTE102 (map 0/17); (5,7) -&gt; OLDALE TOWN HOUSE1 (map 2/0); (15,16) -&gt; OLDALE TOWN HOUSE2 (map 2/1); (6,16) -&gt; OLDALE TOWN POKEMON CENTER 1F (map 2/2); (14,6) -&gt; OLDALE TOWN MART (map 2/4)</pre>
+<p>On e046 s17480 and s17549, where the east edge and the cave are across water and surf-gated-exits-v1 is on, those ways are marked, not hidden:</p>
+<pre>There is no way off ROUTE103 to the north; the ways off this map are: SOUTH edge -&gt; OLDALE TOWN (map 0/10); EAST edge -&gt; ROUTE110 (map 0/25) (crosses water you cannot cross yet); (45,6) -&gt; ALTERING CAVE (map 24/106) (crosses water you cannot cross yet)</pre>
+<p>Every name comes from the result's own readout: the map from its Location line, connections and warps from its Map connections and warp lines (a two-tile door is one entry, "(1,0) or (2,0)"); a map the readout never named is given as its map id. With exit-reachability-v1 on, an exit its foot check leaves out is marked "(cannot be reached on foot from where you stand)". Nothing is clipped. No route or place the readout has not shown is named.</p>
+</section>
+
+<section>
+<h2>Game grounding</h2>
+<figure><div class="scroll"><svg viewBox="0 0 720 150" role="img" aria-label="What the game does at a map edge with no connection">
+<rect class="box" x="10" y="40" width="160" height="60" rx="8"/><text x="22" y="64">press toward the edge</text><text class="s" x="22" y="84">player on the last tile</text>
+<rect class="navf" x="210" y="40" width="190" height="60" rx="8"/><text class="m" x="222" y="64">GetMapGridBlockAt</text><text class="s" x="222" y="84">off the grid, nothing connected:</text><text class="s" x="222" y="96">border block | MAPGRID_IMPASSABLE</text>
+<rect class="navf" x="440" y="10" width="270" height="50" rx="8"/><text class="m" x="452" y="32">MapGridGetCollisionAt</text><text class="s" x="452" y="50">collision (src/fieldmap.c)</text>
+<rect class="prior" x="440" y="80" width="270" height="60" rx="8"/><text class="m" x="452" y="102">PlayerNotOnBikeCollide</text><text class="s" x="452" y="120">bump sound, walk in place; no script,</text><text class="s" x="452" y="132">no text (src/field_player_avatar.c)</text>
+<path d="M170 70 L210 70 M400 70 L440 35 M400 70 L440 110" class="arr"/>
+</svg></div><figcaption>pret/pokeemerald 731ad5bf. The map's own grid sits inside a buffer that holds the connected maps' strips; where no map is connected, the block outside the grid is the map's impassable border. The game shows nothing, so the harness states only that fact (game-state skill, "Harness messages use the game's own words", rule 2).</figcaption></figure>
+</section>
+
+<section>
+<h2>Wiring</h2>
+<figure><div class="scroll"><svg viewBox="0 0 720 120" role="img" aria-label="How the switch reaches the tools">
+<rect class="box" x="10" y="35" width="130" height="50" rx="8"/><text x="22" y="58">preset / switchboard</text><text class="s" x="22" y="74">FeatureSet</text>
+<rect class="box" x="170" y="35" width="120" height="50" rx="8"/><text x="182" y="64">playGameTools</text>
+<rect class="game hot" x="320" y="35" width="160" height="50" rx="8"/><text x="332" y="58">withNoExitHere</text><text class="s" x="332" y="74">press, navigate_to</text>
+<rect class="box" x="510" y="35" width="200" height="50" rx="8"/><text x="522" y="58">withNavigation(base)</text><text class="s" x="522" y="74">its own presses are not wrapped</text>
+<path d="M140 60 L170 60 M290 60 L320 60 M480 60 L510 60" class="arr"/>
+</svg></div><figcaption>The wrapper sits right outside navigation and inside dialogue auto-advance and every other result wrapper, so its line sits right under the Press result or Navigation line. Off: the same tool objects, results unchanged. No new events and no timeline marks.</figcaption></figure>
+</section>
+
+<section>
+<h2>Status</h2>
+<ul>
+<li>Branch <code>claude/no-exit-here</code>; tests on the e046, deb4 and 9439 recordings (cited seqs), the production factory (press and a real navigate_to refusal) and the registry and presets. The factory test was watched red with the wiring removed.</li>
+<li>Registered as a pending experiment (<code>experiments/no-exit-here.json</code>), bundle arm only; not queued, not measured. Not yet reviewed.</li>
+</ul>
+</section>
+</main>
+</body>
+</html>

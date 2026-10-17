@@ -23,7 +23,6 @@ import {flagFeatures,normalizeFeatures} from "./play-preset.js";
 import {parseGameState,type GameStateSnapshot} from "./game-state.js";
 import {playGameTools} from "./play-wiring.js";
 import {goalSides,noExitLine,pressSides,withNoExitHere} from "./no-exit-here.js";
-import type {RunEvent} from "./events.js";
 import {IN_GAME} from "../test-support/events.js";
 
 const ID="no-exit-here-v1";
@@ -125,7 +124,7 @@ describe("no-exit-here-v1 line",()=>{
   expect(noExitLine({...ALL_ON,"world-destinations-v1":false},base({}),"",["EAST"])).toBeNull();
  });
  it("marks an exit exit-reachability-v1 finds unreachable on foot",()=>{
-  const reach={foot:{width:10,height:10,rows:Array.from({length:10},()=>"000")},warps:[{x:1,y:0,reach:"none" as const},{x:2,y:0,reach:"none" as const},{x:5,y:5,reach:"foot" as const}],connections:[{direction:"NORTH",destination:[7,7],offset:0,reach:"foot" as const}]};
+  const reach={foot:{width:10,height:10,rows:Array.from({length:10},()=>"000")},warps:[{x:1,y:0,reach:"none" as const},{x:2,y:0,reach:"none" as const},{x:5,y:5,reach:"foot" as const}],connections:[{direction:"NORTH" as const,destination:[7,7] as [number,number],offset:0,reach:"foot" as const}]};
   expect(noExitLine({...ALL_ON,"exit-reachability-v1":true},base({exit_reach:reach}),"",["EAST"])).toBe("There is no way off HALL to the east; the ways off this map are: NORTH edge -> map 7/7; (1,0) or (2,0) -> map 4/4 (cannot be reached on foot from where you stand); (5,5) -> dynamic destination");
  });
  it("no sides, no line",()=>{
@@ -135,7 +134,7 @@ describe("no-exit-here-v1 line",()=>{
 
 const result=(state:GameStateSnapshot,texts:readonly string[]):AgentToolResult<{state:GameStateSnapshot}>=>({content:[{type:"image",data:"",mimeType:"image/png"},...texts.map(t=>({type:"text" as const,text:t}))],details:{state}});
 const textOf=(r:AgentToolResult<unknown>):string=>r.content.flatMap(c=>c.type==="text"?[c.text]:[]).join("\n");
-const fake=(name:string,out:AgentToolResult<unknown>):AgentTool=>({name,label:name,description:name,parameters:{},execute:()=>Promise.resolve(out)} as unknown as AgentTool);
+const fake=(name:string,out:AgentToolResult<unknown>):AgentTool=>({name,label:name,description:name,parameters:{},execute:()=>Promise.resolve(out)});
 
 describe("withNoExitHere",()=>{
  const littleroot=recorded("9439:14790");
@@ -177,18 +176,19 @@ describe("withNoExitHere",()=>{
 // The production factory: playGameTools over fake ordinary tools serving the recorded state. navigate_to runs the real
 // bounded navigation on e046 s17548 (Route 103 at (14,7), goal (10,0) refused as a wall), as at s17549.
 describe("no-exit-here-v1 through playGameTools",()=>{
- const recorder={subscribe:(_o:(e:RunEvent)=>void)=>undefined,recordState:()=>{throw new Error("unused");},recordDialogueAutoAdvance:()=>{throw new Error("unused");},lowHpTrainerWarning:()=>undefined,peopleIdCard:()=>undefined,storyGoalAway:()=>undefined,destinationCitation:()=>undefined};
+ const recorder={subscribe:():void=>undefined,recordState:()=>{throw new Error("unused");},recordDialogueAutoAdvance:()=>{throw new Error("unused");},lowHpTrainerWarning:()=>undefined,peopleIdCard:()=>undefined,storyGoalAway:()=>undefined,destinationCitation:()=>undefined};
  const quiet=(key:string,on:boolean):FeatureSet=>({...runFeatures(key,on),"dialogue-auto-advance-v1":false,"battle-text-auto-advance-v1":false,"story-destinations-v1":false});
  const tools=(key:string,on:boolean):AgentTool[]=>{
   const state=recorded(key),out=result(state,[text(key)]);
   const press={...fake("press",out),executeChecked:()=>Promise.resolve(out)} as unknown as AgentTool;
   return playGameTools([fake("observe",out),press],quiet(key,on),{read:()=>Promise.resolve(state)},recorder);
  };
- it("ON: the 9439 s14790 press result carries the line; OFF: byte for byte the recorded text",async()=>{
+ it("ON: the 9439 s14790 press result carries the line; OFF: byte for byte ON without it",async()=>{
   const on=textOf(await must(tools("9439:14790",true).find(t=>t.name==="press"),"press").execute("p",{buttons:["DOWN"]}));
   expect(on).toContain(`Press result: blocked or unavailable (no movement/turn observed; snapshots cannot distinguish collision from ignored input)\n${LITTLEROOT_SOUTH_9439}\n`);
   const off=textOf(await must(tools("9439:14790",false).find(t=>t.name==="press"),"press").execute("p",{buttons:["DOWN"]}));
-  expect(off).toBe(text("9439:14790"));
+  expect(off).toBe(on.replace(`\n${LITTLEROOT_SOUTH_9439}`,""));
+  expect(off).not.toContain("There is no way off");
  });
  it("ON: navigate_to (10,0) on Route 103 is refused and says there is no way off to the north; OFF says nothing",async()=>{
   const goal={x:10,y:0,map_id:[0,18],walking:true};

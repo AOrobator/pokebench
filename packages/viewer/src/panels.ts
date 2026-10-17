@@ -435,6 +435,7 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "heal-before-trainers-v1":"heal-before-trainers-v1.html",
  "harness-trust-v1":"harness-trust-v1.html",
  "cited-destination-v1":"cited-destination-v1.html",
+ "no-exit-here-v1":"no-exit-here-v1.html",
 });
 
 export function harnessConfig(view:RunView,registry:readonly FeatureInfo[]=[]):string {

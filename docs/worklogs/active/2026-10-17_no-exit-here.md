@@ -43,10 +43,12 @@ pret/pokeemerald 731ad5bf. Outside the map's own grid with no connected map ther
 
 - [x] RED: `no-exit-here.test.ts` from recorded states (fixture `no-exit-here-states.json.gz`: e046 s17409/17421/17480/17549/18731, deb4 s11596/11662, 9439 s14790/14845/16266, streamed by seq) plus playGameTools wiring, registry, presets; viewer DEFAULT_NEXT_RUN, Harness Config card link and served explainer.
   - 5:00 PM New York: agent suite fails at load (no `no-exit-here.js`); viewer 3 failed / 166 passed.
-- [ ] GREEN: module, registry, presets, DEFAULT_NEXT_RUN, factory wiring, registry counts.
-- [ ] Wiring test broken once and watched red.
-- [ ] Explainer `docs/explainers/no-exit-here-v1.html`, FEATURE_EXPLAINERS, pending `experiments/no-exit-here.json`, readiness row.
-- [ ] Gates: just test, just lint, just build, just coverage.
+  - COMMIT: `test(no-exit-here): RED line on map edges with no connection, from e046, deb4 and 9439 recordings` (c2302476)
+- [x] GREEN: `no-exit-here.ts` (pressSides, goalSides, noExitLine, withNoExitHere), registry (appended after cited-destination-v1; `needs: world-destinations-v1`), presets/flagFeatures/DEFAULT_NEXT_RUN default OFF, `playGameTools` wiring right outside `withNavigation`.
+  - Registry-position tests shifted by one (`.at(-N)`, slices), guidance count 42 -> 43, legacy off lists, and the ALL_ON fixtures with world-destinations-v1 OFF (`experiments.test.ts`, `experiment-gate.test.ts`, viewer `test-support/experiments.ts` QUEUE_FEATURES, `next-run.test.ts`) set no-exit-here-v1 OFF so their presets stay valid. heal-before-trainers' pending-entry test now checks the switches registered when that entry was written (through cited-destination-v1) instead of every switch, so the pinned entry is not edited.
+- [x] Wiring test broken once and watched red: 5:04 PM New York, `withNoExitHere` removed from `playGameTools`; both factory tests (9439 s14790 press, e046 s17549 navigate_to) failed, 2 failed / 20 passed; restored, 22/22.
+- [x] Explainer `docs/explainers/no-exit-here-v1.html` (README entry; `just pages-check` prints nothing), FEATURE_EXPLAINERS mapping with the panels and server tests, pending `experiments/no-exit-here.json` (cited-destination's incumbent with world-destinations-v1 ON; provisional source.commit), readiness row; `just experiments-check`: ok, 94 experiments.
+- [x] Gates (5:15 PM New York): `just build` ok; `just test` agent 2232/2232, viewer 1117/1117, pytest 2445 passed / 117 skipped; `just lint` clean (tsc, eslint, ruff, mypy); `just coverage` agent lines 98.06 / branches 94.31 / functions 98.18 (no-exit-here.ts 100 / 90.99 / 100), viewer 95.36 / 91.38 / 93.79, Python lines 97.55 / branches 93.60 / functions 99.43, floor 90.
 
 ## Multi-Model Review Log
 

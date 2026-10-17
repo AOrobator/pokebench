@@ -8,7 +8,7 @@
  "primaryMilestone": "PETALBURG_WOODS",
  "source": {
   "checkout": "main",
-  "commit": "4698ee757ca50692d425c24a478c4eb309b9d53e"
+  "commit": "804d2bc1afd61b8703bd39664608dbd048d8b4af"
  },
  "incumbent": {
   "version": 2,
@@ -96,5 +96,5 @@
   "window": 4,
   "minReached": 3
  },
- "notes": "Bundle arm only (operator decision the operator 2026-10-17 4:49 PM New York): the config owner turns it on in the bundle arm of bundle-v-control, which is owned elsewhere and not edited here. Uses cited-destination's finals incumbent with world-destinations-v1 ON (the switch needs it: it lists the readout's map connections; the bundle has it on) and only no-exit-here-v1 flipped. Activation: navigate_to and edge presses exist from the truck on (PLAYER_NAME_CONFIRMED), as for cited-destination. Not designed (pokebench-experiment-design) and not queued. Provisional source.commit is a commit on this branch, not the reviewed head; repin to the merge SHA with `just experiment-pin` when it lands."
+ "notes": "Bundle arm only (operator decision the operator 2026-10-17 4:49 PM New York): the config owner turns it on in the bundle arm of bundle-v-control, which is owned elsewhere and not edited here. Uses cited-destination's finals incumbent with world-destinations-v1 ON (the switch needs it: it lists the readout's map connections; the bundle has it on) and only no-exit-here-v1 flipped. Activation: navigate_to and edge presses exist from the truck on (PLAYER_NAME_CONFIRMED), as for cited-destination. Not designed (pokebench-experiment-design) and not queued. source.commit is the branch's final pre-archive head (reviewed, both rounds fixed); repin with `just experiment-pin` if main moves before approval."
 }

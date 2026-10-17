@@ -997,6 +997,17 @@ it("links the heal before trainers card to its tracked explainer, which quotes t
  expect(html).toContain("SUPERVISOR: A trainer you have not beaten is on this map: object 3, sprite LASS, at (31,24).");
 });
 
+it("links the battle action tool card to its tracked explainer, which quotes the tool's recorded-state result",()=>{
+ const id="battle-move-tool-v1";
+ expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
+ const log=new Log();log.add(0,{...START,harness_features:["ram-state-v1",id]});
+ const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
+ expect(doc.querySelector(`[data-feature="${id}"] a`)?.getAttribute("href")).toBe(`/explainers/${id}.html`);
+ const html=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)),"utf8");
+ expect(html).toContain(id);
+ expect(html).toContain("Battle action: chose FIGHT, then EMBER; buttons pressed:\nA, RIGHT, DOWN, A; the battle is running its own text\nor animation.");
+});
+
 it("links the conversation ledger card to its tracked explainer, which quotes the recorded e962 T450 block",()=>{
  const id="instruction-ledger-v2";
  expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);

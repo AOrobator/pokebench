@@ -138,7 +138,9 @@
    "low-hp-trainer-warning-v2": true,
    "story-destinations-v1": true,
    "exit-reachability-v1": true,
-   "heal-before-trainers-v1": true
+   "heal-before-trainers-v1": true,
+   "harness-trust-v1": true,
+   "cited-destination-v1": true
   },
   "start": {
    "kind": "save_state",

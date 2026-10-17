@@ -203,6 +203,9 @@ def test_measurement_json_is_identical_with_every_switch_off(
     # surf-gated-exits-v1 adds the Surf gate (no water on this map, so nothing is across it).
     assert payloads[0]["state"].pop("surf_gate")["warps"] == []
     assert "surf_gate" not in payloads[1]["state"]
+    # heal-before-trainers-v1 adds the trainers on this map and the healing places (none here).
+    assert payloads[0]["state"].pop("heal_before_trainers")["trainers"] == []
+    assert "heal_before_trainers" not in payloads[1]["state"]
     assert payloads[0]["state"] == payloads[1]["state"]
     assert payloads[0]["state_text"] != "" and payloads[1]["state_text"] == ""
 
@@ -241,6 +244,7 @@ def test_env_list_is_validated() -> None:
             "birch-speech-pages-v1",
             "blackout-readout-v1",
             "surf-gated-exits-v1",
+            "heal-before-trainers-v1",
         }
     )
     assert features_off_from_env({"POKEBENCH_FEATURES_OFF": ""}) == frozenset()
@@ -250,7 +254,7 @@ def test_env_list_is_validated() -> None:
     for bad in ("invented-v1", "live-map-v1,,story-state-v1", "deterministic-loop-guard-v1"):
         with pytest.raises(ValueError, match="POKEBENCH_FEATURES_OFF"):
             features_off_from_env({"POKEBENCH_FEATURES_OFF": bad})
-    assert "active-ui-ownership-v1" not in SERVER_FEATURES and len(SERVER_FEATURES) == 39
+    assert "active-ui-ownership-v1" not in SERVER_FEATURES and len(SERVER_FEATURES) == 40
 
 
 def test_observation_route_applies_the_env_switches(monkeypatch: pytest.MonkeyPatch) -> None:

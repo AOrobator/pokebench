@@ -30,7 +30,7 @@ function promptsDigest(base:FeatureSet):string{
 
 it("OFF builds every main prompt byte for byte, from the incumbent and from every switch on",()=>{
  expect(INCUMBENT[ID]).toBe(false);
- expect(MAIN_SWITCHES).toEqual(SWITCHABLE_FEATURES.filter(id=>id!==ID&&id!=="ineffective-loops-v1"&&id!=="people-id-cards-v1"&&id!=="open-goal-prompt-v1"&&id!=="low-hp-trainer-warning-v2"&&id!=="story-destinations-v1"));
+ expect(MAIN_SWITCHES).toEqual(SWITCHABLE_FEATURES.filter(id=>id!==ID&&id!=="ineffective-loops-v1"&&id!=="people-id-cards-v1"&&id!=="open-goal-prompt-v1"&&id!=="low-hp-trainer-warning-v2"&&id!=="story-destinations-v1"&&id!=="heal-before-trainers-v1"));
  expect(promptsDigest({...INCUMBENT,[ID]:false})).toBe(MAIN_INCUMBENT_SHA);
  // Later switches that add prompt text are off here, so the digest still names main's prompts before them.
  expect(promptsDigest({...ALL_ON,[ID]:false,"people-id-cards-v1":false,"open-goal-prompt-v1":false})).toBe(MAIN_ALL_ON_SHA);
@@ -104,9 +104,9 @@ it("reaches the model through the production preset path",()=>{
 it("is a default-off standalone guidance switch, recorded third to last (before ineffective-loops-v1 and people-id-cards-v1), that state-only mode refuses",()=>{
  expect(featureInfo(ID)).toMatchObject({group:"guidance",needs:null,switchable:true,title:"TALK TO PEOPLE V2"});
  expect(featureInfo(ID).description).toContain(" Off: ");
- expect(SWITCHABLE_FEATURES.at(-6)).toBe(ID);
- expect(FEATURES.filter(f=>f.switchable).at(-6)?.id).toBe(ID);
- expect(playHarnessFeatures(ALL_ON,null).at(-6)).toBe(ID);
+ expect(SWITCHABLE_FEATURES.at(-7)).toBe(ID);
+ expect(FEATURES.filter(f=>f.switchable).at(-7)?.id).toBe(ID);
+ expect(playHarnessFeatures(ALL_ON,null).at(-7)).toBe(ID);
  expect(serverFeatureEnv({...ALL_ON,[ID]:false}).POKEBENCH_FEATURES_OFF).toBe("");
  expect(dependencyProblems({...ALL_ON,"dialogue-auto-advance-v1":false,"field-dialogue-phase-v1":false,[ID]:true})).not.toContain(expect.stringContaining(ID));
  expect(stateOnlyProblems({...INCUMBENT,"state-only-decisions-v1":true,[ID]:true})).toContain(`state-only-decisions-v1 requires ${ID} OFF`);
@@ -117,6 +117,6 @@ it("defaults off in presets and the legacy flag presets",()=>{
  const {"explorer-guidance-v2":_omitted,...without}=INCUMBENT;
  expect(_omitted).toBe(false);
  expect(normalizeFeatures(without)[ID]).toBe(false);
- expect(Object.keys(normalizeFeatures(without)).at(-6)).toBe(ID);
+ expect(Object.keys(normalizeFeatures(without)).at(-7)).toBe(ID);
  for(const objectives of [true,false])expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives})[ID]).toBe(false);
 });

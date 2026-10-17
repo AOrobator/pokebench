@@ -34,7 +34,7 @@ function replay(name:string,states:GameStateSnapshot[]):AgentTool {
  return {name,label:name,description:name,parameters:{type:"object",properties:{}},execute:()=>{const state=states[i++];return Promise.resolve({content:[{type:"text",text:`${name} ok`}],details:state===undefined?{}:{state}});}};
 }
 type Calls={v1:unknown[][];v2:unknown[][]};
-function recorder():Required<WarningRecorder>&{calls:Calls}{
+function recorder():Required<Pick<WarningRecorder,"lowHpTrainerWarning"|"storyBattleWarning">>&{calls:Calls}{
  const calls:Calls={v1:[],v2:[]};
  return {calls,lowHpTrainerWarning:(...args)=>{calls.v1.push(args);},storyBattleWarning:(...args)=>{calls.v2.push(args);}};
 }
@@ -45,8 +45,8 @@ describe("registry",()=>{
   expect(featureInfo(ID)).toMatchObject({group:"guard",needs:"low-hp-trainer-warning-v1",switchable:true,title:"STORY BATTLE HEAL WARNING"});
   expect(featureInfo(ID).description).toContain(" Off: ");
   expect(featureInfo(ID).description).toContain(T363_TEXT);
-  expect(SWITCHABLE_FEATURES.at(-2)).toBe(ID);
-  expect(playHarnessFeatures(ALL_ON,null).at(-2)).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-3)).toBe(ID);
+  expect(playHarnessFeatures(ALL_ON,null).at(-3)).toBe(ID);
   expect(playHarnessFeatures({...ALL_ON,[ID]:false},null)).not.toContain(ID);
   expect(SERVER_FEATURES).not.toContain(ID);
   expect(dependencyProblems({...ALL_ON,"low-hp-trainer-warning-v1":false})).toContain(`${ID} needs low-hp-trainer-warning-v1`);

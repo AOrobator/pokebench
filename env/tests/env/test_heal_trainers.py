@@ -8,7 +8,11 @@ flag is 0x500 + 604, gBattleMoves gives SCRATCH (10) power 40, GROWL (45) 0 and 
 and lastHealLocation is OLDALE TOWN (0/10), where the run had entered the POKéMON CENTER.
 """
 
+import functools
+import json
+import os
 import struct
+from pathlib import Path
 
 import pytest
 
@@ -30,6 +34,7 @@ from pokebench_env.heal_trainers import (
 from pokebench_env.pokemon import BATTLE_MOVES, PartyMon, PokemonMove
 from pokebench_env.readout import SERVER_FEATURES, features_off_from_env, format_readout, state_json
 from pokebench_env.rerender import read_state
+from pokebench_env.rom import EMERALD_SHA1, RomError, resolve_rom
 from tests.env.test_game_state import MAPS, OVERWORLD, SB1, SB2, Memory, game
 
 ROUTE104 = (0, 19)
@@ -175,7 +180,9 @@ def test_several_trainers_keep_template_order_and_skip_empty_slots() -> None:
     loaded(m, 2, 7, 20, 30)
     m.put(OTHER_SCRIPT, bytes([0x5C, 0x04, 0x88, 0x00]))
     flag(m, 0x500 + 0x88)
-    assert [(t.local_id, t.trainer_id, t.defeated) for t in read_map_trainers(m.read, SB1, ROUTE104)] == [
+    assert [
+        (t.local_id, t.trainer_id, t.defeated) for t in read_map_trainers(m.read, SB1, ROUTE104)
+    ] == [
         (3, 604, False),
         (7, 0x88, True),
     ]
@@ -262,3 +269,67 @@ def test_no_field_facts_off_the_field() -> None:
     m.put(0x030026F9, bytes([0x02]))
     state = read_game_state(m.read, MAPS, heal_trainers_enabled=True)
     assert state.heal_trainers is None
+
+
+# --- real RAM: run e046, with the operator's ROM ---------------------------------------------
+# The fixture holds RAM windows (never ROM bytes) from the raw-RAM archives of e046's states 16066
+# (before the RICH_BOY) and 16287 (after him, before the LASS), and twin_facts: what pokeemerald's
+# source (scripts.inc, opponents.h, battle_moves.h) says those objects and moves are. The ROM's own
+# script heads and move table must give the same facts.
+
+E046 = json.loads((Path(__file__).parent / "fixtures/heal-trainers-e046.json").read_text())
+ROM_START = 0x08000000
+
+
+@functools.cache
+def operator_rom() -> bytes:
+    try:
+        return resolve_rom(os.environ, EMERALD_SHA1).read_bytes()
+    except RomError:
+        pytest.skip("POKEBENCH_ROM is not set to the Emerald ROM")
+
+
+def e046(seq: int):  # type: ignore[no-untyped-def]
+    frame = next(f for f in E046["frames"] if f["seq"] == seq)
+    cells: dict[int, int] = {}
+    for window in frame["windows"]:
+        start = int(window["address"], 16)
+        for offset, value in enumerate(bytes.fromhex(window["hex"])):
+            cells[start + offset] = value
+    rom = operator_rom()
+
+    def read(address: int, length: int) -> bytes:
+        if address >= ROM_START:
+            return rom[address - ROM_START : address - ROM_START + length]
+        return bytes(cells[address + i] for i in range(length))
+
+    party = tuple(
+        PartyMon(
+            m["species"],
+            m["level"],
+            m["hp"],
+            m["max_hp"],
+            moves=tuple(PokemonMove(*v) for v in m["moves"]),
+        )
+        for m in frame["party"]
+    )
+    save1, save2 = struct.unpack("<II", read(0x03005D8C, 8))
+    return read_heal_facts(read, save1, save2, tuple(frame["map_id"]), party), frame
+
+
+@pytest.mark.parametrize("seq", [16066, 16287])
+def test_e046_real_ram_and_rom_give_the_facts_the_game_source_names(seq: int) -> None:
+    got, frame = e046(seq)
+    assert got is not None
+    assert got.json() == frame["twin_facts"]
+
+
+def test_e046_after_the_rich_boy_the_lass_is_unbeaten_and_oldale_set_the_last_heal() -> None:
+    got, _ = e046(16287)
+    assert got is not None
+    assert [(t.local_id, t.sprite_kind, t.trainer_id, t.defeated) for t in got.trainers] == [
+        (3, "LASS", 604, False),
+        (25, "RICH_BOY", 136, True),
+    ]
+    assert dict(got.move_power) == {10: 40, 45: 0, 52: 40, 116: 0}
+    assert (got.last_heal, got.home, got.mom_heals) == ((0, 10), (1, 0), True)

@@ -121,7 +121,7 @@ describe("condition and text",()=>{
   expect(healBeforeTrainers(RICH_BOY_BATTLE,ctx)).toBeNull();
   expect(healBeforeTrainers({...AFTER,field_controls_locked:null},ctx)).toBeNull();
   expect(healBeforeTrainers({...AFTER,party_owner:"tutorial"},ctx)).toBeNull();
-  const {heal_before_trainers:_,...bare}=AFTER;
+  const bare=parseGameState(Object.fromEntries(Object.entries(AFTER).filter(([key])=>key!=="heal_before_trainers")));
   expect(healBeforeTrainers(bare,ctx)).toBeNull();
  });
  it("lists every unbeaten trainer loaded here and names each weakness",()=>{
@@ -147,6 +147,17 @@ describe("the nearest place that heals",()=>{
   const text=healBeforeTrainersText(must(healBeforeTrainers(home,ctx([]))));
   expect(text).toMatch(/ The nearest place you have been to that heals your party is your house in LITTLEROOT TOWN \(map 1\/0\), 6 map changes from here in the game's map table, where MOM says "I think you should rest a bit\." and heals your party\.$/);
   expect(nearestHeal({...home,heal_before_trainers:{...facts(home),mom_heals:false}},ctx([]),PLACES)).toBeNull();
+ });
+ it("counts one map change in the singular, prefers a POKéMON CENTER to home at the same distance, and skips a place the table cannot reach",()=>{
+  const next={...AFTER,map_id:[0,0] as [number,number],location:"PETALBURG CITY"};
+  expect(healBeforeTrainersText(must(healBeforeTrainers(next,{entered:new Set(["8/4"]),places:PLACES,skip:null})))).toContain("the POKéMON CENTER in PETALBURG CITY (map 8/4), 1 map change from here in the game's map table;");
+  const house:typeof PLACES[number]={map_id:[1,0],name:"LITTLEROOT TOWN BRENDANS HOUSE 1F",display:"HOUSE",warps:[{x:0,y:0,to:[0,19]}],connections:[]};
+  const near=[...PLACES.filter(p=>p.map_id[0]!==1||p.map_id[1]!==0),house];
+  expect(nearestHeal({...AFTER,heal_before_trainers:{...facts(AFTER),last_heal:null}},{entered:new Set(["8/4"])},near)).toEqual({kind:"home",town:"LITTLEROOT TOWN",map_id:[1,0],hops:1});
+  const tie=[...near,{map_id:[8,4] as [number,number],name:"PETALBURG CITY POKEMON CENTER 1F",display:"C",warps:[{x:0,y:0,to:[0,19] as [number,number]}],connections:[]}];
+  expect(nearestHeal({...AFTER,heal_before_trainers:{...facts(AFTER),last_heal:null}},{entered:new Set(["8/4"])},tie.filter(p=>p.name!=="PETALBURG CITY POKEMON CENTER 1F"||p.display==="C"))?.kind).toBe("pokemon_center");
+  const island=PLACES.map(p=>p.name==="OLDALE TOWN POKEMON CENTER 1F"?{...p,warps:[]}:{...p,warps:p.warps.filter(w=>w.to[0]!==2||w.to[1]!==2)});
+  expect(nearestHeal(AFTER,{entered:new Set()},island)?.kind).toBe("home");
  });
  it("without a map table or any healing place, says where healing is without naming a place the player has not been",()=>{
   const none={...AFTER,heal_before_trainers:{...facts(AFTER),last_heal:null,mom_heals:false}};
@@ -183,6 +194,14 @@ describe("the arm",()=>{
   expect(await watch.observe(AFTER)).not.toBeNull();
   expect(await watch.observe({...AFTER,party:[{...lead,hp:null,max_hp:null}]})).toBeNull();
   expect(await watch.observe(AFTER)).toBeNull();
+ });
+ it("a wild battle is not a trainer battle: it does not repeat the warning",async()=>{
+  const watch=new HealBeforeTrainers({skipStory:false,places:()=>Promise.resolve(PLACES)});
+  expect(await watch.observe(AFTER)).not.toBeNull();
+  expect(await watch.observe({...RICH_BOY_BATTLE,trainer_opponent:{...must(RICH_BOY_BATTLE.trainer_opponent),battle_active:false}})).toBeNull();
+  expect(await watch.observe(AFTER)).toBeNull();
+  expect(await watch.observe(LASS_BATTLE)).toBeNull();
+  expect(await watch.observe(AFTER)).not.toBeNull();
  });
  it("with low-hp-trainer-warning-v2 on, leaves a story-battle opponent (ROXANNE) to the story warning",async()=>{
   const gym:GameStateSnapshot={...AFTER,location:"RUSTBORO CITY GYM",map_id:[11,3],story:{...must(AFTER.story),roxanne_defeated:false},
@@ -222,6 +241,18 @@ describe("delivery",()=>{
   const rec=recorder();
   const [press]=withLowHpTrainerWarning([replay("press",[AFTER])],ON,rec,{});
   expect((await run(must(press),1))[0]).toMatch(/at home\. Heal before you battle: the nurse at a POKéMON CENTER heals your whole party, and so does MOM at home\.$/);
+ });
+ it("retries a map table read that failed, and reads a malformed table as no table",async()=>{
+  let calls=0;
+  const flaky={places:()=>{calls++;return calls===1?Promise.reject(new Error("down")):Promise.resolve({places:PLACES});}};
+  const rec=recorder();
+  const [press]=withLowHpTrainerWarning([replay("press",[AFTER,withLead(AFTER,{hp:38}),AFTER])],ON,rec,flaky);
+  const texts=await run(must(press),3);
+  expect(texts[0]).toMatch(/Heal before you battle: the nurse at a POKéMON CENTER heals your whole party, and so does MOM at home\.$/);
+  expect(texts[2]).toContain("the POKéMON CENTER in OLDALE TOWN (map 2/2)");
+  expect(calls).toBe(2);
+  const [bad]=withLowHpTrainerWarning([replay("press",[AFTER])],ON,recorder(),{places:()=>Promise.resolve({places:"no"})});
+  expect((await run(must(bad),1))[0]).toMatch(/and so does MOM at home\.$/);
  });
  it("needs a recorder that can record its event",()=>{
   expect(()=>withLowHpTrainerWarning([replay("press",[])],ON,{lowHpTrainerWarning:()=>undefined},places)).toThrow("heal_before_trainers_warning");

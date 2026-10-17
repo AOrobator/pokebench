@@ -442,6 +442,7 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "unset-dynamic-warp-v1":"unset-dynamic-warp-v1.html",
  "status-names-v1":"status-names-v1.html",
  "surf-gated-exits-v2":"surf-gated-exits-v2.html",
+ "instruction-ledger-v2":"instruction-ledger-v2.html",
  "no-exit-here-v1":"no-exit-here-v1.html",
 });
 

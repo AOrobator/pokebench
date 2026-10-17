@@ -1040,3 +1040,14 @@ it.each([
  for(const quote of [id,"bundle arm only","pending experiment",...quotes])expect(html).toContain(quote);
  expect(html).not.toContain("both arms");
 });
+
+it("links the conversation ledger card to its tracked explainer, which quotes the recorded e962 T450 block",()=>{
+ const id="instruction-ledger-v2";
+ expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
+ const log=new Log();log.add(0,{...START,harness_features:["ram-state-v1","dialogue-auto-advance-v1",id]});
+ const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
+ expect(doc.querySelector(`[data-feature="${id}"] a`)?.getAttribute("href")).toBe(`/explainers/${id}.html`);
+ const html=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)),"utf8");
+ expect(html).toContain(id);
+ expect(html).toContain("- ROUTE103 (map 0/18), here turn 446: last heard turn 444, MAY: &quot;Well, it&#39;s time to head back to the LAB.&quot;");
+});

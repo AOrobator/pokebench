@@ -132,7 +132,8 @@
    "mid-frame-readout-v1": false,
    "unset-dynamic-warp-v1": false,
    "status-names-v1": false,
-   "surf-gated-exits-v2": false
+   "surf-gated-exits-v2": false,
+   "instruction-ledger-v2": false
   }
  },
  "trialsPerArm": 8,

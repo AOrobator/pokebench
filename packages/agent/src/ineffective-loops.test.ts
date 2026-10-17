@@ -318,7 +318,7 @@ describe("ineffective-loops-v1 registry",()=>{
  it("is a default-off guard with no dependency, recorded last",()=>{
   expect(featureInfo(ID)).toMatchObject({group:"guard",needs:null,switchable:true});
   expect(featureInfo(ID).description).toContain(" Off: ");
-  expect(playHarnessFeatures(ALL_ON,null).at(-17)).toBe(ID);
+  expect(playHarnessFeatures(ALL_ON,null).at(-18)).toBe(ID);
   expect(playHarnessFeatures({...ALL_ON,[ID]:false},null)).not.toContain(ID);
   expect(dependencyProblems({...ALL_ON,"deterministic-loop-guard-v1":false})).not.toContainEqual(expect.stringContaining(ID));
   expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:true})[ID]).toBe(false);

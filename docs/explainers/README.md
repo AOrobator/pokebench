@@ -95,4 +95,5 @@ The original ignored runs/explainers copies remain for existing links. Make futu
 - [Unset dynamic warp](unset-dynamic-warp-v1.html)
 - [Status names](status-names-v1.html)
 - [Surf-gated exits v2](surf-gated-exits-v2.html)
+- [Conversation ledger](instruction-ledger-v2.html)
 - [No exit here](no-exit-here-v1.html)

@@ -218,6 +218,13 @@ describe("withNoExitHere",()=>{
   expect(withNoExitHere(tools,runFeatures("9439:14790",false))[0]).toBe(tools[0]);
   expect(must(observe,"observe").name).toBe("observe");
  });
+ it("leaves a result alone when the call's arguments are not the shape the tool takes",async()=>{
+  const out=result(littleroot,["pressed DOWN\nPress result: blocked"]);
+  const [press,nav]=withNoExitHere([fake("press",out),fake("navigate_to",out)],runFeatures("9439:14790"));
+  expect(await must(press,"press").execute("p",null)).toBe(out);
+  expect(await must(press,"press").execute("p",{buttons:"DOWN"})).toBe(out);
+  expect(await must(nav,"nav").execute("n",{x:10,y:19})).toBe(out);
+ });
  it("keeps executeChecked on a checked press",async()=>{
   const out=result(littleroot,["pressed DOWN\nPress result: blocked"]);
   const checked={...fake("press",out),executeChecked:()=>Promise.resolve(out)} as unknown as AgentTool&{executeChecked:(id:string,params:unknown,check:()=>void)=>Promise<AgentToolResult<unknown>>};

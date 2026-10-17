@@ -77,6 +77,7 @@ Done when every milestone is merged, qualification shows none of F1–F8, the fo
 
 ## Session Log
 
+- 2026-10-17 06:08 PM EDT: instruction-ledger-v2 (landed 9b4dcc15; needs dialogue-auto-advance-v1, on in both) joins the bundle-v-control bundle arm; open-goal-prompt.json incumbent follows. Previous commit a04de386.
 - 2026-10-17 05:38 PM EDT: readout-truth-fixes (landed 8cdf6cd1): tutorial-party-owner-v1, mid-frame-readout-v1, unset-dynamic-warp-v1, status-names-v1 and surf-gated-exits-v2 join the bundle-v-control bundle arm (all dependencies already on in both arms; control keeps surf-gated-exits v1). open-goal-prompt.json incumbent follows. Previous commit 1da4be69.
 - 2026-10-17 05:22 PM EDT: harness-trust-v2 (landed 8280b57a, main 43ebeda9; needs harness-trust-v1, with battle-move-tool-v1, both in the bundle) joins the bundle-v-control bundle arm; open-goal-prompt.json incumbent follows. Previous commit 44652551.
 - 2026-10-17 05:03 PM EDT: battle-move-tool-v1 (landed f7923b5c, repin feb3ad83; no dependency) joins the bundle-v-control bundle arm; open-goal-prompt.json incumbent follows. Previous commit 3d9581c6.

@@ -19,9 +19,9 @@ const id=(name:string):SwitchableFeature=>{const found=SWITCHABLE_FEATURES.find(
 
 describe("registry and presets",()=>{
  it("appends the five switches, in order, at the end of every registry list",()=>{
-  expect(SWITCHABLE_FEATURES.slice(-6,-1)).toEqual([...NEW]);
-  expect(FEATURES.filter(f=>f.switchable).map(f=>f.id).slice(-6,-1)).toEqual([...NEW]);
-  expect(playHarnessFeatures(ALL_ON,null).slice(-6,-1)).toEqual([...NEW]);
+  expect(SWITCHABLE_FEATURES.slice(-7,-2)).toEqual([...NEW]);
+  expect(FEATURES.filter(f=>f.switchable).map(f=>f.id).slice(-7,-2)).toEqual([...NEW]);
+  expect(playHarnessFeatures(ALL_ON,null).slice(-7,-2)).toEqual([...NEW]);
   expect(SERVER_FEATURES.slice(-5)).toEqual([...NEW]);
  });
  it.each(NEW)("%s is a server observation switch, bundle arm only, whose description says what OFF does",(name)=>{
@@ -85,7 +85,7 @@ describe("surf-gated-exits-v2: the untaken-exits line names no badge and no move
 });
 
 describe("surf-gated-exits-v2 production wiring: playGameTools adds the untaken-exits line",()=>{
- const BASE:FeatureSet={...ALL_ON,"people-ledger-v1":false,"people-id-cards-v1":false,"trainer-heal-guidance-v1":false,"low-hp-trainer-warning-v1":false,"low-hp-trainer-warning-v2":false,"dialogue-auto-advance-v1":false,"bounded-navigation-v1":false,"navigate-first-prompt-v1":false,"blocked-exit-fact-v1":false,"battle-loss-recap-v1":false,"next-milestone-hint-v1":false,"cited-destination-v1":false,"harness-trust-v1":false,"harness-trust-v2":false,"battle-move-tool-v1":false,"surf-gated-exits-v1":true};
+ const BASE:FeatureSet={...ALL_ON,"instruction-ledger-v2":false,"people-ledger-v1":false,"people-id-cards-v1":false,"trainer-heal-guidance-v1":false,"low-hp-trainer-warning-v1":false,"low-hp-trainer-warning-v2":false,"dialogue-auto-advance-v1":false,"bounded-navigation-v1":false,"navigate-first-prompt-v1":false,"blocked-exit-fact-v1":false,"battle-loss-recap-v1":false,"next-milestone-hint-v1":false,"cited-destination-v1":false,"harness-trust-v1":false,"harness-trust-v2":false,"battle-move-tool-v1":false,"surf-gated-exits-v1":true};
  const warp={kind:"warp",x:45,y:6,elevation:0,activation:"movement",availability:"conditional",facing:null,local_id:null,destination:[24,106,0] as [number,number,number],name:"Warp to map 24/106"};
  const EAST={direction:"EAST" as const,offset:-60,destination:[0,25] as [number,number],destination_name:"ROUTE110",edges:[{x:79,y:7}]};
  // Every exit listed on this map is across water and Surf cannot be used.

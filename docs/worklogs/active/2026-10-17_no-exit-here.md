@@ -55,7 +55,9 @@ pret/pokeemerald 731ad5bf (corrected in review round 2). The game keeps the map 
 
 ## Multi-Model Review Log
 
-Not started (this session stops before the review loop).
+- Round 1 (frozen head ae68900b's predecessor packet, base main a04de386 after merge): Grok LGTM, GPT LGTM, Claude BLOCKING on one real bug: the line fired on indoor exit mats (south arrow warps on the bottom row; TryArrowWarp runs before any bump). Fixed in ce972222 (RED) / ec06e744 (GREEN): no line on a side whose edge holds a warp, nor without the warp list. PB4/PB9 re-scored with the fix (rebutted as process otherwise).
+- Round 2 (packet base a04de386, head ae68900b): Claude LGTM, Grok LGTM, GPT BLOCKING on two items, both fixed in ac8e28b5 (RED) / f6e310ac (GREEN): (1) warp names now come from the readout's own "Warp destination at (x,y)" lines (world targets off; the truck's dynamic warp); (2) the game grounding now cites the real path (padded layout cell MAPGRID_UNDEFINED from InitMapLayoutData, MapGridGetCollisionAt returns 1, GetCollisionAtCoords gives COLLISION_IMPASSABLE, PlayerNotOnBikeCollide). GPT's non-blocking notes (submitted vs requested buttons under dialogue-safe batches; facing null; mixed per-tile reach in one doorway) are follow-ups, not in this branch.
+- Landing: approved under the operator's two-round rule (fix small real issues after round 2 and land without another round), relayed by the coordinator. The coordinator lands it; this session does not merge into main.
 
 ## Review round 1 (coordinator relay)
 
@@ -81,3 +83,6 @@ Follow-ups (not in this branch): classify the submitted buttons rather than requ
 - [x] RED: three name tests (Oldale with only Warp destination lines, sh02 s761 truck dynamic warp, reach note and unknown map) and the explainer grounding quotes in panels.test.ts; 3 agent tests and 1 viewer test fail.
 - [x] GREEN: `destinationLines` names each doorway from its Warp destination line first; grounding corrected in the module and test comments, registry copy, explainer figure and caption, and this worklog. no-exit-here suite 28/28.
   - COMMIT (RED): `test(no-exit-here): RED warp names from the readout's Warp destination lines; grounding names the undefined padded cell (review round 2)` (ac8e28b5)
+  - COMMIT (GREEN): `fix(no-exit-here): keep the readout's warp destination names; grounding cites the undefined padded cell and GetCollisionAtCoords (review round 2)` (f6e310ac)
+- [x] Merged main 9b4dcc15 (instruction-ledger-v2). no-exit-here-v1 appended after instruction-ledger-v2 in every registry list, presets, DEFAULT_NEXT_RUN, FEATURE_EXPLAINERS, README and readiness; wiring unchanged (withBattleAction(withNoExitHere(withNavigation(...)))). Count tests shifted by one on main's versions; heal-before-trainers' entry check runs through instruction-ledger-v2; one more no-exit-here test covers malformed call arguments.
+  - Gates on the merge: `just build` ok; `just test` agent 2338/2338, viewer 1133/1133, pytest 2478 passed / 229 skipped; `just lint` clean; `just coverage` agent 98.04 / 94.17 / 98.26 (no-exit-here.ts 100 / 92.18 / 100), viewer 95.36 / 91.38 / 93.79, Python 97.48 / 93.42 / 99.43 (one viewer server-stream timeout on the first coverage run, green on rerun); `just experiments-check` ok, 101 experiments; `just verify-vendor` ok.

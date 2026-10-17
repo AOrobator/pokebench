@@ -147,7 +147,8 @@
    "mid-frame-readout-v1": true,
    "unset-dynamic-warp-v1": true,
    "status-names-v1": true,
-   "surf-gated-exits-v2": true
+   "surf-gated-exits-v2": true,
+   "instruction-ledger-v2": true
   },
   "start": {
    "kind": "save_state",

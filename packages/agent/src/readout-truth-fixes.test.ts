@@ -3,12 +3,18 @@ import {ALL_ON,FEATURES,SERVER_FEATURES,SWITCHABLE_FEATURES,dependencyProblems,f
 import {flagFeatures,normalizeFeatures} from "./play-preset.js";
 import {parseGameState,type GameStateSnapshot} from "./game-state.js";
 import {UntakenExits} from "./untaken-exits.js";
+import type {AgentTool} from "@mariozechner/pi-agent-core";
+import {playGameTools} from "./play-wiring.js";
+import type {RunEvent} from "./events.js";
 import {IN_GAME} from "../test-support/events.js";
 
 // Readout bugs from the 2026-10-17 top-50 run analysis (runs/reviews/2026-10-17-run-analysis-top50/ram-audit.md), one
 // server switch each, plus surf-gated-exits-v2 (operator decision, the operator 2026-10-17 1:59 PM). The server side and the
 // recorded RAM are tested in env/tests/env/test_readout_truth_fixes.py and test_surf_gate.py.
 const NEW=["tutorial-party-owner-v1","mid-frame-readout-v1","unset-dynamic-warp-v1","status-names-v1","surf-gated-exits-v2"] as const;
+// The switch each one is a no-op without (review round 1): mid-frame needs the skipped save reads, the dynamic-warp text
+// exists only with named warps, and the Party line's STATUS part only with the expanded information.
+const NEEDS:Readonly<Record<(typeof NEW)[number],string|null>>={"tutorial-party-owner-v1":null,"mid-frame-readout-v1":"transition-coherence-v1","unset-dynamic-warp-v1":"named-warp-destinations-v1","status-names-v1":"expanded-menu-battle-information-v1","surf-gated-exits-v2":"surf-gated-exits-v1"};
 const id=(name:string):SwitchableFeature=>{const found=SWITCHABLE_FEATURES.find(f=>f===name);if(found===undefined)throw new Error(`${name} is not registered`);return found;};
 
 describe("registry and presets",()=>{
@@ -20,7 +26,7 @@ describe("registry and presets",()=>{
  });
  it.each(NEW)("%s is a server observation switch, bundle arm only, whose description says what OFF does",(name)=>{
   const info=featureInfo(id(name));
-  expect(info).toMatchObject({group:"observation",switchable:true,needs:name==="surf-gated-exits-v2"?"surf-gated-exits-v1":null});
+  expect(info).toMatchObject({group:"observation",switchable:true,needs:NEEDS[name]});
   expect(info.description).toContain(" Off: ");
   expect(info.description).toContain("bundle arm only");
   expect(serverFeatureEnv({...ALL_ON,[id(name)]:false}).POKEBENCH_FEATURES_OFF.split(",")).toContain(name);
@@ -31,6 +37,12 @@ describe("registry and presets",()=>{
   const {[id(name)]:omitted,...rest}=ALL_ON;expect(omitted).toBe(true);
   expect(normalizeFeatures(rest as Parameters<typeof normalizeFeatures>[0])[id(name)]).toBe(false);
   expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false})[id(name)]).toBe(false);
+ });
+ it.each(NEW.filter(n=>NEEDS[n]!==null))("%s reports its unmet dependency, and none once the parent is on",(name)=>{
+  const parent=NEEDS[name];if(parent===null)throw new Error(name);
+  expect(dependencyProblems({...ALL_ON,[id(parent)]:false})).toContain(`${name} needs ${parent}`);
+  expect(dependencyProblems({...ALL_ON,[id(parent)]:false,[id(name)]:false}).filter(p=>p.startsWith(`${name} `))).toEqual([]);
+  expect(dependencyProblems(ALL_ON)).toEqual([]);
  });
  it("surf-gated-exits-v2 needs surf-gated-exits-v1",()=>{
   expect(dependencyProblems({...ALL_ON,"surf-gated-exits-v1":false})).toContain("surf-gated-exits-v2 needs surf-gated-exits-v1");
@@ -69,5 +81,24 @@ describe("surf-gated-exits-v2: the untaken-exits line names no badge and no move
  it("ON without v1 changes nothing",()=>{
   const plain={...ALL_ON,"surf-gated-exits-v1":false,[id("surf-gated-exits-v2")]:true};
   expect(new UntakenExits(plain).line(island,"")).toBe(new UntakenExits({...plain,[id("surf-gated-exits-v2")]:false}).line(island,""));
+ });
+});
+
+describe("surf-gated-exits-v2 production wiring: playGameTools adds the untaken-exits line",()=>{
+ const BASE:FeatureSet={...ALL_ON,"people-ledger-v1":false,"people-id-cards-v1":false,"trainer-heal-guidance-v1":false,"low-hp-trainer-warning-v1":false,"low-hp-trainer-warning-v2":false,"dialogue-auto-advance-v1":false,"bounded-navigation-v1":false,"navigate-first-prompt-v1":false,"blocked-exit-fact-v1":false,"battle-loss-recap-v1":false,"next-milestone-hint-v1":false,"surf-gated-exits-v1":true};
+ const warp={kind:"warp",x:45,y:6,elevation:0,activation:"movement",availability:"conditional",facing:null,local_id:null,destination:[24,106,0] as [number,number,number],name:"Warp to map 24/106"};
+ const EAST={direction:"EAST" as const,offset:-60,destination:[0,25] as [number,number],destination_name:"ROUTE110",edges:[{x:79,y:7}]};
+ // Every exit listed on this map is across water and Surf cannot be used.
+ const snapshot={...IN_GAME,started:true,screen:"overworld",location:"ROUTE103",map_id:[0,18],position:{x:10,y:21},facing:"up",
+  interaction_targets:[warp],topology:{width:80,height:22,connections:[EAST]},
+  surf_gate:{can_surf:false,balance_badge:false,party_surf:false,surfing:false,warps:[{x:45,y:6}],connections:["EAST"]}} satisfies GameStateSnapshot;
+ const readout="Screen: overworld\nLocation: ROUTE103\nPosition: X=10, Y=21, facing up\nMoney: 1";
+ const tool=(name:string):AgentTool=>({name,label:name,description:name,parameters:{},execute:()=>Promise.resolve({content:[{type:"text",text:readout}],details:{state:snapshot}})});
+ const recorder=()=>{const observers:((e:RunEvent)=>void)[]=[];return {observers,lowHpTrainerWarning:()=>undefined,peopleIdCard:()=>undefined,recordState:()=>({seq:1,turn:1}),recordDialogueAutoAdvance:()=>({seq:1,turn:1}),textOnlySupervisor:()=>undefined,subscribe:(fn:(e:RunEvent)=>void)=>{observers.push(fn);}};};
+ const observe=async(features:FeatureSet)=>{const r=await playGameTools([tool("observe")],features,{read:()=>Promise.resolve(snapshot)},recorder()).find(t=>t.name==="observe")?.execute("id",{});const part=r?.content[0];return part?.type==="text"?part.text:"";};
+ it("OFF and ON give these exact bytes, toggling only v2",async()=>{
+  const head="Screen: overworld\nLocation: ROUTE103\nPosition: X=10, Y=21, facing up\n";
+  expect(await observe({...BASE,[id("surf-gated-exits-v2")]:false})).toBe(`${head}Exits here you have not taken: none you can walk to (every exit listed on this map is across water, and you cannot use Surf yet)\nMoney: 1`);
+  expect(await observe({...BASE,[id("surf-gated-exits-v2")]:true})).toBe(`${head}Exits here you have not taken: none you can walk to (every exit listed on this map is across water you cannot cross yet)\nMoney: 1`);
  });
 });

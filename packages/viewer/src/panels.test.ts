@@ -971,7 +971,7 @@ it.each([
  ["mid-frame-readout-v1",["WaitForVBlank","Save-backed world state (player, location, party) not read in this snapshot: the game was in the middle of a frame. Observe again to read it."]],
  ["unset-dynamic-warp-v1",["setdynamicwarp MAP_LITTLEROOT_TOWN, 3, 10","Warp destination at (4,1): dynamic destination","PETALBURG CITY (dynamic warp; map 0/0)"]],
  ["status-names-v1",["GetAilmentFromStatus","gText_Psn","STATUS PSN","STATUS 8"]],
- ["surf-gated-exits-v2",["EventScript_UseSurf","EventScript_EndUseSurf","crosses water you cannot cross yet"]],
+ ["surf-gated-exits-v2",["GetInteractedWaterScript","FLAG_BADGE05_GET","PartyHasMonWithSurf","crosses water you cannot cross yet"]],
 ] as const)("links the %s card to its tracked explainer, which quotes the recorded lines and the game source",(id,quotes)=>{
  expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
  const log=new Log();log.add(0,{...START,harness_features:["ram-state-v1",id]});

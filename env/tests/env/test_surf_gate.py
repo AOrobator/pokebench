@@ -392,3 +392,20 @@ def test_v2_on_rewords_the_three_notes_and_nothing_else(case: dict[str, Any]) ->
 def test_v2_without_v1_changes_nothing(case: dict[str, Any]) -> None:
     base = [f for f in RECORDED_OFF if f not in (V2, ID)]
     assert readout(case, [*base, ID]) == readout(case, [*base, ID, V2]) == case["readout"]
+
+
+def test_v2_experiment_arms_differ_only_in_the_notes() -> None:
+    # Review round 1: the candidate arm (incumbent with v2 flipped) must show the v2 wording, so
+    # both arms have surf-gated-exits-v1 on. Rendered from the 4caa ROUTE103 RAM.
+    body = json.loads(
+        (Path(__file__).resolve().parents[3] / "experiments/surf-gated-exits-v2.json").read_text()
+    )
+    features: dict[str, bool] = body["incumbent"]["features"]
+    assert body["changedFeature"] == V2 and features[V2] is False
+    control = [f for f in SERVER_FEATURES if not features.get(f, False)]
+    candidate = [f for f in control if f != V2]
+    for case in CASES:
+        before, after = readout(case, control), readout(case, candidate)
+        pairs = changed(before, after)
+        assert pairs and all("Balance Badge" in a and "cannot cross yet" in b for a, b in pairs)
+        assert any("at (45,6)" in b for _, b in pairs)

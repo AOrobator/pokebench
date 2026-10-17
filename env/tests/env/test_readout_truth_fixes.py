@@ -451,14 +451,66 @@ def test_status_labels_are_the_games_own_strings() -> None:
 
 
 def test_surf_v2_says_only_what_the_game_shows_without_a_surf_user() -> None:
-    # EventScript_UseSurf (data/scripts/surf.inc): with no party Pokémon that knows SURF,
-    # checkpartymove leaves PARTY_SIZE and the script jumps to EventScript_EndUseSurf, which
-    # ends without a message. The game shows nothing, so v2 states only the fact: water the
-    # player cannot cross yet.
-    script = source("data/scripts/surf.inc")
-    head = script.split("EventScript_UseSurf::", 1)[1].split("EventScript_ReleaseUseSurf::", 1)[0]
-    assert "goto_if_eq VAR_RESULT, PARTY_SIZE, EventScript_EndUseSurf" in head
-    assert "EventScript_EndUseSurf::\n\tend" in script
+    # GetInteractedWaterScript (src/field_control_avatar.c:448-461) is the silent owner: pressing
+    # A at surfable water starts EventScript_UseSurf (and its gText_WantToUseSurf prompt) only when
+    # FLAG_BADGE05_GET is set, a party Pokémon knows Surf and the player faces surfable water;
+    # otherwise, away from a waterfall, it returns NULL and the game shows nothing. So v2 states
+    # only the fact: water the player cannot cross yet.
+    body = source("src/field_control_avatar.c").split(
+        "static const u8 *GetInteractedWaterScript(struct MapPosition *unused1,", 1
+    )[1]
+    body = body.split("\n}\n", 1)[0]
+    assert (
+        "if (FlagGet(FLAG_BADGE05_GET) == TRUE && PartyHasMonWithSurf() == TRUE"
+        " && IsPlayerFacingSurfableFishableWater() == TRUE)\n        return EventScript_UseSurf;"
+    ) in body
+    assert "if (MetatileBehavior_IsWaterfall(metatileBehavior) == TRUE)" in body
+    assert body.rstrip().endswith("return NULL;")
     from pokebench_env.surf_gate import CANNOT_CROSS
 
     assert CANNOT_CROSS == "crosses water you cannot cross yet"
+
+
+# --- each pending experiment's arms (review round 1) --------------------------------------------
+# The candidate arm is the incumbent with only changedFeature flipped; its prerequisite must be on
+# in both arms, or the switch changes nothing. Each arm's server switches are the incumbent's off
+# features, as serverFeatureEnv builds POKEBENCH_FEATURES_OFF.
+EXPERIMENTS = Path(__file__).resolve().parents[3] / "experiments"
+ARMS = [
+    (
+        "tutorial-party-owner",
+        "dc5a-raw00010618",
+        "Party (unknown): UNKNOWN LvNone",
+        "Party (tutorial): ZIGZAGOON Lv7 HP 23/23",
+    ),
+    ("mid-frame-readout", "fe15-9631", UNINITIALIZED, MID_FRAME_TEXT),
+    (
+        "unset-dynamic-warp",
+        "0e05-693",
+        "PETALBURG CITY (dynamic warp; map 0/0)",
+        "Dynamic warp at (4,1), elevation 0",
+    ),
+    ("status-names", "bd60-18617", "HP 13/33 · STATUS 8 · ", "HP 13/33 · STATUS PSN · "),
+]
+
+
+@pytest.mark.parametrize(("experiment", "name", "before_text", "after_text"), ARMS)
+def test_each_experiment_arm_turns_its_change_on(
+    experiment: str, name: str, before_text: str, after_text: str
+) -> None:
+    body = json.loads((EXPERIMENTS / f"{experiment}.json").read_text())
+    features: dict[str, bool] = body["incumbent"]["features"]
+    changed_feature = body["changedFeature"]
+    assert features[changed_feature] is False
+    control = frozenset(f for f in SERVER_FEATURES if not features.get(f, False))
+    candidate = control - {changed_feature}
+    frame = BY_KEY[name]
+    active = bool(features.get("active-ui-ownership-v1", False))
+
+    def arm(off: frozenset[str]) -> str:
+        read = FixtureMemory(frame, operator_rom())
+        return rerender.render(rerender.read_state(read, maps(), active_ui=active, off=off), off)
+
+    before, after = arm(control), arm(candidate)
+    assert before_text in before and before_text not in after
+    assert after_text in after and after_text not in before

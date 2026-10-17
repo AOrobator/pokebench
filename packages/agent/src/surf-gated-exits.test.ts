@@ -167,11 +167,11 @@ describe("surf-gated-exits-v1 rules",()=>{
 });
 
 describe("surf-gated-exits-v1 production wiring",()=>{
- const BASE:FeatureSet={...ALL_ON,"people-ledger-v1":false,"trainer-heal-guidance-v1":false,"low-hp-trainer-warning-v1":false,"dialogue-auto-advance-v1":false,"bounded-navigation-v1":false,"navigate-first-prompt-v1":false,"blocked-exit-fact-v1":false,"battle-loss-recap-v1":false,"next-milestone-hint-v1":false};
+ const BASE:FeatureSet={...ALL_ON,"people-ledger-v1":false,"people-id-cards-v1":false,"trainer-heal-guidance-v1":false,"low-hp-trainer-warning-v1":false,"low-hp-trainer-warning-v2":false,"dialogue-auto-advance-v1":false,"bounded-navigation-v1":false,"navigate-first-prompt-v1":false,"blocked-exit-fact-v1":false,"battle-loss-recap-v1":false,"next-milestone-hint-v1":false};
  const snapshot={...ROUTE,surf_gate:GATED} satisfies GameStateSnapshot;
  const readout="Screen: overworld\nLocation: ROUTE103\nPosition: X=10, Y=21, facing up\nMoney: 1";
  const tool=(name:string):AgentTool=>({name,label:name,description:name,parameters:{},execute:()=>Promise.resolve({content:[{type:"text",text:readout}],details:{state:snapshot}})});
- const recorder=()=>{const observers:((e:RunEvent)=>void)[]=[];return {observers,lowHpTrainerWarning:()=>undefined,recordState:()=>({seq:1,turn:1}),recordDialogueAutoAdvance:()=>({seq:1,turn:1}),textOnlySupervisor:()=>undefined,subscribe:(fn:(e:RunEvent)=>void)=>{observers.push(fn);}};};
+ const recorder=()=>{const observers:((e:RunEvent)=>void)[]=[];return {observers,lowHpTrainerWarning:()=>undefined,peopleIdCard:()=>undefined,recordState:()=>({seq:1,turn:1}),recordDialogueAutoAdvance:()=>({seq:1,turn:1}),textOnlySupervisor:()=>undefined,subscribe:(fn:(e:RunEvent)=>void)=>{observers.push(fn);}};};
  const text=async(tools:readonly AgentTool[])=>{const r=await tools.find(t=>t.name==="observe")?.execute("id",{});const part=r?.content[0];return part?.type==="text"?part.text:"";};
  it("playGameTools passes the switch to the untaken-exits line",async()=>{
   expect(await text(playGameTools([tool("observe")],{...BASE,[ID]:true},{read:()=>Promise.resolve(snapshot)},recorder()))).toContain("Exits here you have not taken: (3,3) -> map 2/2; SOUTH edge -> map 0/10\n");
@@ -201,8 +201,8 @@ describe("surf-gated-exits-v1 registry and presets",()=>{
   expect(description).toContain("bundle arm only");
   expect(description).not.toContain("both arms");
   const ids=FEATURES.filter(f=>f.switchable).map(f=>f.id);
-  expect(ids.at(-4)).toBe(ID);
-  expect(playHarnessFeatures(ALL_ON,null).at(-4)).toBe(ID);
+  expect(ids.at(-10)).toBe(ID);
+  expect(playHarnessFeatures(ALL_ON,null).at(-10)).toBe(ID);
   expect(SERVER_FEATURES).toContain(ID);
   expect(serverFeatureEnv({...ALL_ON,[ID]:false}).POKEBENCH_FEATURES_OFF.split(",")).toContain(ID);
   expect(serverFeatureEnv(ALL_ON).POKEBENCH_FEATURES_OFF.split(",")).not.toContain(ID);

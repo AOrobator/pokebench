@@ -2,6 +2,8 @@ import { eventEnvelope, type EventEnvelope, type RunEvent } from "@pokebench/age
 import { readVisualPlan, verifiedVisuals, visualEvidenceSignature, type ScreenshotEvidence } from "./frontier-visual.js";
 import { RunView } from "./model.js";
 import { readWorkbenchSnapshot } from "./workbench-reader.js";
+import { recoveredAttacher } from "./recovered-fields.js";
+import { dirname } from "node:path";
 export interface RecordingSplit { name: string; elapsedMs: number; segmentMs: number; seq: number; turn: number; inputTokens: number; outputTokens: number; derived?: true; screenshotEvidence?: ScreenshotEvidence[] }
 export interface RecordingMeasurement {
   controller: "agent" | "human"; features: string[]; logSha256: string; logBytes?: number; pausedMs: number;
@@ -12,7 +14,8 @@ export interface RecordingMeasurement {
 type Milestone = Extract<RunEvent, { type: "milestone" }>;
 type State = Extract<RunEvent, { type: "state"; started: boolean }>;
 // skipped: events the schema rejected and a tolerant read stepped over (version skew), with the first problem.
-export interface NativeRecording { view: RunView; splits: RecordingSplit[]; measurement: RecordingMeasurement; skipped: { count: number; first: string } | null }
+// last: the trainer card fields of the last game state, kept because view.state is dropped from the result.
+export interface NativeRecording { view: RunView; splits: RecordingSplit[]; measurement: RecordingMeasurement; skipped: { count: number; first: string } | null; last: Pick<State, "name" | "location" | "party"> | null }
 function compact(state: State): State {
   return { v: state.v, run: state.run, seq: state.seq, t: state.t, turn: state.turn, type: "state", screen: state.screen,
     started: state.started, name: state.name, location: state.location, map_id: state.map_id, position: state.position, facing: state.facing,
@@ -22,6 +25,31 @@ function compact(state: State): State {
     ...(state.active_ui === undefined ? {} : { active_ui: state.active_ui }), ...(state.field_controls_locked === undefined ? {} : { field_controls_locked: state.field_controls_locked }),
     ...(state.story !== undefined || state.world_context === undefined ? {} : { world_context: state.world_context }),
   };
+}
+// A log whose run_start this viewer's schema rejects (a newer harness): its status, turn and timing
+// only, never splits, since the run's configuration is unknown. Every schema-rejected event, the
+// run_start included, is stepped over with its envelope order-checked; a rejected run_end still fails.
+export function readStartlessLog(path: string, id: string): { view: RunView; skipped: { count: number; first: string } } {
+  const view = new RunView();
+  let expected = 0, previousMs = -Infinity; const skipped = { count: 0, first: "" };
+  const ordered = (event: EventEnvelope): number => {
+    const ms = Date.parse(event.t);
+    if (event.run !== id || event.seq !== expected || !Number.isFinite(ms) || ms < previousMs || (event.seq === 0) !== (event.type === "run_start") || view.end !== null) throw new Error("Run identity, event order or terminal sequence is invalid; no split graded");
+    expected++; previousMs = ms; view.lastMs = ms; view.turn = Math.max(view.turn, event.turn);
+    if (event.seq === 0) view.startMs = ms;
+    return ms;
+  };
+  readWorkbenchSnapshot(path, event => {
+    ordered(event);
+    if (event.type === "run_end" || event.type === "operator_control") { view.apply(event); view.events.length = 0; }
+  }, { allowAppend: true, skip: (line, problem, value) => {
+    const envelope = eventEnvelope(value);
+    if (envelope === null || envelope.type === "run_end") throw new Error(`line ${String(line)}: ${problem}`);
+    ordered(envelope);
+    if (skipped.count++ === 0) skipped.first = `line ${String(line)}: ${problem}`;
+  } });
+  if (skipped.count === 0) throw new Error("No unreadable run_start to step over");
+  return { view, skipped };
 }
 // tolerate: step over schema-rejected events whose envelope is in order (never run_start or run_end) instead of failing.
 export function readNativeRecording(path: string, id: string, qualified: (event: Milestone, states: readonly (RunEvent | undefined)[]) => boolean, evidenceLimit = 100000, tolerate = false): NativeRecording {
@@ -43,7 +71,9 @@ export function readNativeRecording(path: string, id: string, qualified: (event:
     view.lastMs = ordered(envelope); view.turn = Math.max(view.turn, envelope.turn);
     skipped = { count: (skipped?.count ?? 0) + 1, first: skipped?.first ?? `line ${String(line)}: ${problem}` };
   };
-  const snapshot = readWorkbenchSnapshot(path, event => {
+  const recovered = recoveredAttacher(dirname(path));
+  const snapshot = readWorkbenchSnapshot(path, logged => {
+    const event = recovered(logged);
     const ms = ordered(event);
     if (event.type === "human_sample" && wantedSamples.has(event.seq)) samples.set(event.seq, event);
     if (["run_start", "run_end", "operator_control", "assistant", "objective_update"].includes(event.type)) {
@@ -53,7 +83,7 @@ export function readNativeRecording(path: string, id: string, qualified: (event:
       if (states.size >= evidenceLimit) throw new Error("Native evidence state bound exceeded; no split graded");
       const nativeState = compact(event); states.set(event.seq, nativeState);
       view.apply(nativeState); view.events.length = 0;
-      const resumedSplit = (name: string): boolean => name === "PLAYER_HOUSE_EXITED_AFTER_CLOCK" || name === "RIVAL_HOUSE_ENTERED" || name === "RIVAL_HOUSE_EXITED" || name === "ROUTE_101_AFTER_HANDOFF" || name === "PLAYER_BEDROOM_EXITED_AFTER_CLOCK" || name === "ROUTE_101_AFTER_RIVAL_BATTLE" || name === "LITTLEROOT_AFTER_RIVAL_BATTLE" || name === "CLOCK_SET" || name === "PLAYER_BEDROOM";
+      const resumedSplit = (name: string): boolean => name === "PLAYER_HOUSE_EXITED_AFTER_CLOCK" || name === "RIVAL_HOUSE_ENTERED" || name === "RIVAL_HOUSE_EXITED" || name === "ROUTE_101_AFTER_HANDOFF" || name === "PLAYER_BEDROOM_EXITED_AFTER_CLOCK" || name === "ROUTE_101_AFTER_RIVAL_BATTLE" || name === "LITTLEROOT_AFTER_RIVAL_BATTLE" || name === "RIVAL_BATTLE_STARTED" || name === "RIVAL_BATTLE_DEFEATED" || name === "RIVAL_OLDALE_SEND_OFF" || name === "CLOCK_SET" || name === "PLAYER_BEDROOM";
       if (view.start !== null && !view.start.harness_features.includes("probe") && (view.start.start_state.kind === "boot" || view.milestones.some(mark => mark.derived === true && resumedSplit(mark.name)))) for (const recovered of view.milestones) {
         if (view.start.start_state.kind !== "boot" && !resumedSplit(recovered.name)) continue;
         if (recovered.derived !== true || recovered.origin !== "observed" || recovered.evidence === undefined || splits.some(s => s.name === recovered.name)) continue;
@@ -83,6 +113,7 @@ export function readNativeRecording(path: string, id: string, qualified: (event:
   }
   splits.sort((a, b) => a.elapsedMs - b.elapsedMs || a.seq - b.seq);
   let previousSplit = 0; for (const split of splits) { split.segmentMs = split.elapsedMs - previousSplit; previousSplit = split.elapsedMs; }
+  const last = view.state === null || !("started" in view.state) ? null : { name: view.state.name, location: view.state.location, party: view.state.party };
   view.state = null;
-  return { view, splits, measurement: { controller: view.start.controller?.kind === "human" ? "human" : "agent", features: [...view.start.harness_features], logSha256: hash, logBytes: snapshot.bytes, pausedMs: view.control.pausedBefore(view.lastMs ?? view.startMs ?? 0), rawSplits }, skipped };
+  return { view, last, splits, measurement: { controller: view.start.controller?.kind === "human" ? "human" : "agent", features: [...view.start.harness_features], logSha256: hash, logBytes: snapshot.bytes, pausedMs: view.control.pausedBefore(view.lastMs ?? view.startMs ?? 0), rawSplits }, skipped };
 }

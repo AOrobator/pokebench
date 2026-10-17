@@ -1,4 +1,4 @@
-import { appendFileSync, mkdirSync, mkdtempSync, rmSync, symlinkSync, truncateSync, writeFileSync } from "node:fs";
+import { appendFileSync, cpSync, mkdirSync, mkdtempSync, rmSync, symlinkSync, truncateSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -7,6 +7,7 @@ import { workbenchSnapshot } from "./workbench-store.js";
 import { parseWorkbench } from "./workbench-data.js";
 import { ALL_ON, playHarnessFeatures } from "@pokebench/agent/features";
 import { cohort } from "../test-support/workbench-cohort.js";
+import { rivalRam, writeArchive } from "../test-support/raw-ram.js";
 const root = (): string => { const p = join(mkdtempSync(join(tmpdir(), "workbench-")), "runs"); mkdirSync(p); return p; };
 function write(r: string, id: string, log: Log): string {
   mkdirSync(join(r, id)); const p = join(r, id, "events.jsonl");
@@ -469,5 +470,73 @@ describe("run-tagged experiment cohorts", () => {
     for (const id of ids.slice(0, 5)) { expect(of(id)?.cohort).toBe(`experiment:corrupt@${C1.slice(0, 12)}`); expect(of(id)?.excluded).toMatch(/^Unverified: ledger .+ is unreadable/); }
     expect(of(ids[0])?.excluded).toContain("experiments/queue/trials.jsonl");
     expect(of(ids[5])?.excluded).toBeNull(); expect(of(untagged)).toMatchObject({ cohort: null, excluded: null });
+  });
+});
+
+describe("recovered route103_rival side file", () => {
+  const scratch = mkdtempSync(join(tmpdir(), "ram-"));
+  const ram = (n: 1 | 2 | 3) => writeArchive(scratch, n, [rivalRam(false, false), rivalRam(true, false), rivalRam(false, true)][n - 1] ?? []);
+  const copyRam = (dir: string) => { cpSync(join(scratch, "raw-ram"), join(dir, "raw-ram"), { recursive: true }); };
+  const battle = (): Log => {
+    const l = new Log();
+    l.add(0, { ...START, harness_features: ["ram-state-v1"] });
+    l.add(1000, state({ location: "ROUTE103", raw_ram: ram(1) }));
+    l.add(2000, state({ location: "ROUTE103", in_battle: true, raw_ram: ram(2) }));
+    l.add(3000, { type: "run_end", turn: 1, reason: "budget", furthest_milestone: null, turns: 1, wall_ms: 3000, tokens: { input: 0, output: 0 }, frames: { saved: 0, bytes: 0 } });
+    return l;
+  };
+  it("re-grades a cached run when the side file is written or removed", async () => {
+    const r = root(), p = write(r, "rv", battle());
+    const names = async () => (await workbenchSnapshot(r, () => Promise.resolve(false), 2000000000000)).runs[0]?.splits.map((s) => s.name) ?? [];
+    expect(await names()).not.toContain("RIVAL_BATTLE_STARTED");
+    mkdirSync(join(r, "rv", "derived"));
+    copyRam(join(r, "rv"));
+    const side = join(r, "rv", "derived", "route103_rival.jsonl");
+    writeFileSync(side, [{ v: 1, run: "rv", source: "raw-ram-route103-v1" }, ...([[1, false], [2, true]] as const).map(([n, active]) => ({ seq: n, raw_ram: ram(n).path, sha256: ram(n).sha256, route103_rival: { battle_active: active, defeated: false, oldale_stage: 0 } }))].map((row) => JSON.stringify(row)).join("\n") + "\n");
+    expect(await names()).toContain("RIVAL_BATTLE_STARTED");
+    rmSync(side);
+    expect(await names()).not.toContain("RIVAL_BATTLE_STARTED");
+    expect(p.endsWith("events.jsonl")).toBe(true);
+  });
+});
+
+describe("trainer card data", () => {
+  it("carries the trainer name, place and party from the run's last state", async () => {
+    const r = root(), log = named();
+    log.add(5000, state({ name: "RED", location: "OLDALE TOWN", party: [{ species: "TORCHIC", level: 7, hp: 20, max_hp: 22, species_id: 280, is_egg: false }, { species: "TORCHIC", level: 1, hp: 0, max_hp: 0, species_id: 280, is_egg: true }] }));
+    write(r, "card", log);
+    const d = parseWorkbench(await workbenchSnapshot(r, () => Promise.resolve(true), 2000000000000));
+    expect(d.runs[0]?.card).toEqual({ name: "RED", location: "OLDALE TOWN", party: [{ speciesId: 280, level: 7, egg: false }, { speciesId: 280, level: 1, egg: true }] });
+  });
+  it("has no card before the game reports a state, and a null species id when the readout lacks one", async () => {
+    const r = root(), bare = new Log(); bare.add(0, START); bare.add(1000, assistant()); write(r, "bare", bare); write(r, "old", named());
+    const d = parseWorkbench(await workbenchSnapshot(r, () => Promise.resolve(true), 2000000000000));
+    expect(d.runs.find(x => x.id === "bare")?.card).toBeNull();
+    expect(d.runs.find(x => x.id === "old")?.card).toEqual({ name: "MAY", location: "LITTLEROOT TOWN", party: [{ speciesId: null, level: 5, egg: false }] });
+  });
+  it("leaves out a party slot the readout gives level 0, so one odd state cannot fail the whole snapshot", async () => {
+    const r = root(), log = named();
+    log.add(5000, state({ party: [{ species: "TORCHIC", level: 0, hp: 0, max_hp: 0, species_id: 280, is_egg: false }, { species: "TORCHIC", level: 6, hp: 20, max_hp: 20, species_id: 280, is_egg: false }] }));
+    write(r, "zero", log);
+    const d = parseWorkbench(await workbenchSnapshot(r, () => Promise.resolve(true), 2000000000000));
+    expect(d.runs[0]?.card?.party).toEqual([{ speciesId: 280, level: 6, egg: false }]);
+  });
+  it("carries the run's experiment, arm and trial from its header, and null without one", async () => {
+    const r = root(), log = named(), first = log.events[0];
+    if (first?.type !== "run_start") throw new Error("fixture start");
+    log.events[0] = { ...first, evaluation: { preset_id: "bundle-v-control", target: null, failure_limit: 3, flags: { loopGuard: true, activeUi: true, interfaceDocs: true, objectives: true }, experiment: { id: "exp-a", arm: "bundle", trial: 2, of: 4 } } };
+    write(r, "tagged", log); write(r, "plain", named());
+    const d = parseWorkbench(await workbenchSnapshot(r, () => Promise.resolve(true), 2000000000000));
+    expect(d.runs.find(x => x.id === "tagged")?.experiment).toEqual({ id: "exp-a", arm: "bundle", trial: 2, of: 4 });
+    expect(d.runs.find(x => x.id === "plain")?.experiment).toBeNull();
+    const run = d.runs[0]; if (run === undefined) throw new Error("fixture");
+    for (const experiment of [{ id: 1, arm: "a", trial: 1, of: 2 }, { id: "x", arm: "a", trial: 0, of: 2 }, { id: "x", arm: "a", trial: 1.5, of: 2 }]) expect(() => parseWorkbench({ ...d, runs: [{ ...run, experiment }] })).toThrow("Invalid workbench");
+  });
+  it("rejects a malformed card at the browser boundary", async () => {
+    const r = root(); write(r, "card", named()); const d = await workbenchSnapshot(r, () => Promise.resolve(true), 42);
+    const run = d.runs[0]; if (run === undefined) throw new Error("missing fixture");
+    for (const card of [{ name: 1, location: null, party: [] }, { name: null, location: null, party: [{ speciesId: 999, level: 5, egg: false }] }, { name: null, location: null, party: [{ speciesId: 1, level: 0, egg: false }] }, { name: null, location: null, party: Array.from({ length: 7 }, () => ({ speciesId: 1, level: 5, egg: false })) }])
+      expect(() => parseWorkbench({ ...d, runs: [{ ...run, card }] })).toThrow("Invalid workbench");
+    expect(parseWorkbench({ ...d, runs: [{ ...run, card: undefined }] }).runs[0]?.card).toBeUndefined();
   });
 });

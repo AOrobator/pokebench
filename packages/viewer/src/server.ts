@@ -2,6 +2,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import type { AddressInfo } from "node:net";
 import { dirname, join } from "node:path";
+import { recoveredAttacher } from "./recovered-fields.js";
 import { ApprovalError, approveExperiment, revokeApproval, setFinalsWithdrawn } from "./experiment-approval.js";
 import { AUTORUN_TICK_MS, type AutoRunStatus, type ExperimentAutoRun } from "./experiment-autorun.js";
 import { execFileSync } from "node:child_process";
@@ -14,7 +15,7 @@ import { FEATURES } from "@pokebench/agent/features";
 import { CONTROL_ACTIONS } from "@pokebench/agent/events";
 import { finalsRunLabels } from "./experiment-gate-store.js";
 import type { BaselineStore, RunStore } from "./baseline-store.js";
-import { BaselineError, RunsError, createBaselineReader, comparisonsOf, type BaselineCompute, eventsPath, listRuns, liveScreenPort, LogReader, readStart, runDir, type BaselineReader } from "./runs.js";
+import { BaselineError, RunsError, createBaselineReader, comparisonsOf, type BaselineCompute, eventsPath, listRuns, liveScreenPort, LogReader, readStart, readStartIdentity, runDir, type BaselineReader } from "./runs.js";
 import { featureHistory } from "./history.js";
 import { localModels } from "./models.js";
 import { NextRunError, appendControl, healthProbe, liveRuns, readDraft, writeDraft, type RunQueue } from "./next-run.js";
@@ -27,11 +28,13 @@ import { FEATURE_EXPLAINERS } from "./panels.js";
 export const HOST = "127.0.0.1";
 const EXPERIMENTS_CACHE_MS = 5_000;
 // Browser code the page may load; everything else in dist/ stays private.
-export const BROWSER_MODULES = ["main", "app", "model", "format", "inspectformat", "timeline", "panels", "gba", "replay", "controls", "nextpanel", "human-input", "human-play", "human-main", "workbench-main", "workbench", "workbench-view", "workbench-data", "frontier", "frontier-versions", "frontier-legend", "queue-view", "trace", "run-head"] as const;
+export const BROWSER_MODULES = ["main", "app", "model", "format", "inspectformat", "timeline", "panels", "gba", "replay", "controls", "nextpanel", "human-input", "human-play", "human-main", "workbench-main", "workbench", "workbench-view", "workbench-data", "frontier", "frontier-versions", "frontier-legend", "queue-view", "trace", "run-head", "trainer-card", "game-font", "card-dom"] as const;
 
 const MODULE_NAME = new RegExp(`^(${BROWSER_MODULES.join("|")})\\.js$`);
 const FRAME_NAME = /^\d{6}_\d+\.png$/;
 const FONT_NAME = /^(press-start-2p|inter|jetbrains-mono)\.woff2$/;
+// The trainer card art `just trainer-card-art` builds from the ROM into runs/sprites (never into git).
+const SPRITE_PATH = /^(manifest\.json|card\/(wide|mini|mini-ribbon)-(green|bronze|copper|silver|gold)\.png|trainers\/[a-z]+\.png|font\/glyphs\.(png|json)|icons\/[1-9][0-9]{0,2}\.png)$/;
 const PNG_SIGNATURE = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
 const SCREEN_TIMEOUT_MS = 3_000;
 
@@ -233,6 +236,7 @@ function streamEvents(req: IncomingMessage, res: ServerResponse, path: string, p
   res.writeHead(200, { ...SECURITY_HEADERS, "content-type": "text/event-stream; charset=utf-8", connection: "keep-alive" });
   let closed = false, timer: NodeJS.Timeout | null = null;
   const reader = new LogReader(path, chunkBytes);
+  const recovered = recoveredAttacher(dirname(path));
   let skewReported = false, endRead = false, caughtUp = false, closing = false;
   // A queue with a read cursor: shifting a large array on every write would be quadratic.
   let pending: string[] = [], cursor = 0;
@@ -243,7 +247,7 @@ function streamEvents(req: IncomingMessage, res: ServerResponse, path: string, p
     const { results, lines } = reader.next(STREAM_STEP_LINES);
     for (const result of results) {
       if (result.ok) {
-        pending.push(message("ev", result.event));
+        pending.push(message("ev", recovered(result.event)));
         endRead ||= result.event.type === "run_end";
       } else if (skew === null) {
         pending.push(message("problem", { line: result.line, problem: result.problem }));
@@ -380,6 +384,11 @@ async function route(req: IncomingMessage, res: ServerResponse, options: ViewerO
     sendFile(res, join(options.staticDir, "style.css"), "text/css; charset=utf-8");
     return;
   }
+  if (head === "sprites" && SPRITE_PATH.test(parts.slice(1).join("/"))) {
+    const path = parts.slice(1).join("/");
+    sendFile(res, join(options.runsRoot, "sprites", "trainer-card-v1", ...path.split("/")), path.endsWith(".json") ? "application/json; charset=utf-8" : "image/png");
+    return;
+  }
   if (parts.length === 2 && head === "fonts" && second !== undefined && FONT_NAME.test(second)) {
     sendFile(res, join(options.staticDir, "fonts", second), "font/woff2");
     return;
@@ -398,7 +407,7 @@ async function route(req: IncomingMessage, res: ServerResponse, options: ViewerO
   if (parts.length === 2) {
     const live = new Set(await liveRuns(options.runsRoot, healthProbe(options.fetchFn ?? fetch)));
     const finals = finalsRunLabels(options.runsRoot);
-    sendJson(res, 200, listRuns(options.runsRoot).map((run) => ({ ...run, ...(finals.has(run.id) ? { experiment: finals.get(run.id) } : {}), live: live.has(run.id) })));
+    sendJson(res, 200, listRuns(options.runsRoot, options.build ?? null).map((run) => ({ ...run, ...(finals.has(run.id) ? { experiment: finals.get(run.id) } : {}), live: live.has(run.id) })));
     return;
   }
   try {
@@ -408,8 +417,9 @@ async function route(req: IncomingMessage, res: ServerResponse, options: ViewerO
     if (parts.length === 4 && leaf === "events") {
       const path = eventsPath(options.runsRoot, id);
       if (!existsSync(path)) throw new RunsError(`run ${id} has no events.jsonl`);
-      let skew: Skew | null = null;
-      try { skew = skewOf(options.build ?? null, readStart(options.runsRoot, id).harness); } catch { /* No readable run_start: every problem is reported as is. */ }
+      // run_start read loosely, so a newer harness's run_start the schema rejects still names its build.
+      const identity = readStartIdentity(options.runsRoot, id);
+      const skew: Skew | null = identity === null ? null : skewOf(options.build ?? null, identity);
       streamEvents(req, res, path, options.pollMs ?? 250, skew, options.streamChunkBytes ?? STREAM_CHUNK_BYTES);
       return;
     }

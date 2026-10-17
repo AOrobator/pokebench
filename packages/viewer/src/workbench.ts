@@ -4,7 +4,10 @@ import { frontierReferences, frontierPlot, frontierVersions } from "./frontier.j
 import { esc } from "./format.js";
 import { QUEUE_POLL_MS, QueuePanel } from "./queue-view.js";
 import { WORKBENCH_POLL_MS, parseFeatureDescriptions, parseWorkbench, type WorkbenchData, type WorkbenchRun } from "./workbench-data.js";
-import { currentRunHtml, runDetails, runLanes, type LaneUnknown, type RunLanes } from "./workbench-view.js";
+import { currentRunHtml, liveOrPaused, partyHead, plateNotes, plateWhere, runDetails, runLanes, viewerUrl, type LaneUnknown, type RunLanes } from "./workbench-view.js";
+import { browserGlyphSheet, drawGlyphs, fillCards, loadCardArt, syncCards, type LoadedArt } from "./card-dom.js";
+import type { GlyphPixels, GlyphSheet } from "./game-font.js";
+import { cardHtml, cardInputFor } from "./trainer-card.js";
 // Copies changed [data-current-field] content and styles from `next` onto `root`; false when their fields differ.
 function patchFields(root: Element, next: Element): boolean {
   const was = [...root.querySelectorAll<HTMLElement>("[data-current-field]")], now = [...next.querySelectorAll<HTMLElement>("[data-current-field]")];
@@ -29,7 +32,8 @@ function replaceKeepingFocus(root: HTMLElement, html: string): void {
   (next?.tagName === "DETAILS" ? next.querySelector<HTMLElement>("summary") : next)?.focus({ preventScroll: true });
 }
 // fetchFeatures: the switch catalog (/api/features), read once for the legend's switch descriptions.
-export interface WorkbenchDeps { fetchSnapshot(): Promise<unknown>; fetchFeatures?(): Promise<unknown>; now(): number; width(): number }
+// fetchJson, loadGlyphSheet, drawGlyphs: the trainer card art (/sprites); without fetchJson the live runs stay name plates.
+export interface WorkbenchDeps { fetchSnapshot(): Promise<unknown>; fetchFeatures?(): Promise<unknown>; now(): number; width(): number; fetchJson?(url: string): Promise<unknown>; loadGlyphSheet?(url: string): Promise<GlyphSheet | null>; drawGlyphs?(canvas: HTMLCanvasElement, pixels: GlyphPixels): void }
 const HOVER_EVENTS = ["mouseover", "mouseout", "focusin", "focusout"] as const;
 export class Workbench {
   private data: WorkbenchData = { version: 1, at: 0, milestones: [], runs: [], problems: [] };
@@ -76,8 +80,14 @@ export class Workbench {
     element.value = selected;
   }
   private active(): boolean { return !this.disposed; }
+  private cardArt: Promise<LoadedArt | null> | null = null;
+  private art: LoadedArt | null = null;
+  private readonly cardMemo = new WeakMap<Element, string>();
   async refresh(): Promise<void> {
     if (this.busy || !this.active()) return; this.busy = true;
+    const deps = this.deps;
+    this.cardArt ??= deps.fetchJson === undefined ? Promise.resolve(null) : loadCardArt((url) => deps.fetchJson?.(url) ?? Promise.resolve(null), (url) => deps.loadGlyphSheet?.(url) ?? Promise.resolve(null));
+    this.art = await this.cardArt;
     try {
       const data = parseWorkbench(await this.deps.fetchSnapshot()); if (!this.active()) return;
       if (data.at < this.data.at) throw new Error("Outdated workbench snapshot ignored; last verified data retained.");
@@ -101,6 +111,7 @@ export class Workbench {
   }
   clock(): void {
     if (!this.active()) return;
+    if (this.cards()) return;
     const host = this.ui("current"), template = this.doc.createElement("template");
     template.innerHTML = (this.verified ? "" : '<p class="wb-notice">Live status unavailable; charts retain the last verified snapshot.</p>') + currentRunHtml(this.verified ? this.data.runs : [], this.data.at, this.deps.now(), this.back, this.runLanes);
     // Plates are reconciled by run id and patched field by field, so a focused plate link survives clock
@@ -124,6 +135,26 @@ export class Workbench {
       if (!patchFields(old, fresh)) old.replaceChildren(...fresh.childNodes);
       if (cursor === old) cursor = old.nextElementSibling; else list.insertBefore(old, cursor);
     }
+  }
+  // With the card art, the live runs are the viewer's trainer cards (linking to the viewer), each with its lane and
+  // warnings under it; false when the plates should be drawn instead.
+  private cards(): boolean {
+    const loaded = this.art, live = this.verified ? liveOrPaused(this.data.runs) : [];
+    if (loaded === null || live.length === 0) return false;
+    const host = this.ui("current");
+    let party = host.querySelector(".wb-party.wb-cards");
+    if (party === null) { host.innerHTML = `<div class="wb-party wb-cards">${partyHead(live)}<div class="wb-card-row"></div></div>`; party = host.querySelector(".wb-party.wb-cards"); }
+    const head = party?.querySelector(".wb-party-head"), row = party?.querySelector(".wb-card-row");
+    if (head == null || row == null) return false;
+    const nextHead = partyHead(live);
+    if (head.outerHTML !== nextHead) head.outerHTML = nextHead;
+    const now = this.deps.now(), inputs = live.map(run => cardInputFor(run, this.data.at, now, run.status === "paused" ? "paused" : "live", this.data.runs, loaded.art));
+    syncCards(row, inputs.map((input, i) => {
+      const run = live[i];
+      return `<div class="wb-card">${cardHtml(input, loaded.art, "wide", viewerUrl(input.runId))}${run === undefined ? "" : `<small class="wb-card-where">${plateWhere(run, this.runLanes)}</small>${plateNotes(run)}`}</div>`;
+    }), this.cardMemo);
+    fillCards([row], inputs, loaded, (canvas, pixels) => { this.deps.drawGlyphs?.(canvas, pixels); });
+    return true;
   }
   // Lane, GPU and arm per run from the experiment queue's /api/experiments poll, or "unavailable" when it fails.
   lanes(lanes: RunLanes | "unavailable"): void { this.runLanes = lanes; this.clock(); }
@@ -249,6 +280,8 @@ export function bootWorkbench(win: Window): Workbench {
     fetchSnapshot: async () => { const response = await win.fetch("/api/workbench", { signal: AbortSignal.timeout(180000) }); if (!response.ok) throw new Error(`Workbench request failed (${String(response.status)})`); return response.json() as Promise<unknown>; },
     fetchFeatures: async () => { const response = await win.fetch("/api/features"); if (!response.ok) throw new Error(`Feature catalog request failed (${String(response.status)})`); return response.json() as Promise<unknown>; },
     now: () => Date.now(), width: () => win.document.querySelector('[data-wb="frontier-full"]')?.getBoundingClientRect().width || win.document.documentElement.clientWidth || 640,
+    fetchJson: async (url) => { const response = await win.fetch(url); if (!response.ok) throw new Error(`GET ${url} returned HTTP ${String(response.status)}`); return response.json() as Promise<unknown>; },
+    loadGlyphSheet: browserGlyphSheet(win.document), drawGlyphs,
   }, from);
   const queueRoot = win.document.querySelector<HTMLElement>('[data-ui="experiment-queue"]');
   const experiments = queueRoot === null ? null : new QueuePanel(queueRoot, { fetchJson: async (url) => { const response = await win.fetch(url); if (!response.ok) throw new Error(`GET ${url} returned HTTP ${String(response.status)}`); return response.json() as Promise<unknown>; }, sendJson: async (method, url, body) => { const response = await win.fetch(url, { method, headers: { "content-type": "application/json" }, body: JSON.stringify(body) }); const reply: unknown = await response.json(); if (!response.ok) throw new Error(typeof reply === "object" && reply !== null && "error" in reply ? String(reply.error) : `${method} ${url} returned HTTP ${String(response.status)}`); return reply; }, confirm: (text) => win.confirm(text), loaded: (snapshot) => { wb.lanes(runLanes(snapshot.fixedRuns ?? [])); }, unavailable: () => { wb.lanes("unavailable"); }, problem: (text) => { const el = queueRoot.querySelector('[data-eq="queue"]'); if (el !== null) el.innerHTML = `<pre class="eq-problems">${esc(text)}</pre>`; } });

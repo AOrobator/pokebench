@@ -201,3 +201,7 @@ The operator: "reword and land, no additional review". Round 11's GPT finding (T
 ## Landed
 
 2026-10-16 4:01 PM New York time: `git merge --ff-only e580f3ce` on main 03e45115 → main `e580f3ce` (operator: "reword and land, no additional review", the operator 3:54 PM; merge slot from the coordinator). Experiments navigation-truth and navigation-refusal-reasons-v2 pinned to e580f3ce. Arms for bundle-v-control (handed to its owner): navigation-truth-v1 ON in both arms; navigation-refusal-reasons-v2 bundle arm only.
+
+## Archive
+
+- Archived 2026-10-16 4:33 PM New York time on the operator's word ("archive the work log and resolve the thread", Harness bugs thread, 4:31 PM). Landed on main: navigation-truth e580f3ce, cross-map-goal 85a52e85, pinned at fe65ac57; no unmerged commits on either branch.

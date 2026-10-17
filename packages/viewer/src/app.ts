@@ -13,6 +13,10 @@ import { NextRunPanel } from "./nextpanel.js";
 import { QueuePanel } from "./queue-view.js";
 import { headHtml, sheetHtml } from "./run-head.js";
 import type { Cohort } from "./runs.js";
+import { cardHtml, cardInputFor, type CardInput } from "./trainer-card.js";
+import type { GlyphPixels, GlyphSheet } from "./game-font.js";
+import { browserGlyphSheet, drawGlyphs, fillCards, loadCardArt, syncCards, type LoadedArt } from "./card-dom.js";
+import { WORKBENCH_POLL_MS, parseWorkbench, type WorkbenchData } from "./workbench-data.js";
 
 export interface StreamLike {
   addEventListener(type: string, listener: (message: { data: string }) => void): void;
@@ -25,6 +29,9 @@ export interface AppDeps {
   openStream(url: string): StreamLike;
   now(): number;
   readonly hash: string;
+  // The trainer cards' game font: the glyph sheet's pixels, and putting painted text on a canvas.
+  loadGlyphSheet?(url: string): Promise<GlyphSheet | null>;
+  drawGlyphs?(canvas: HTMLCanvasElement, pixels: GlyphPixels): void;
 }
 
 export type Mode = "loading" | "live" | "replay" | "idle";
@@ -162,6 +169,14 @@ export class App {
   view = new RunView();
   private shown = new RunView();
   private runs: RunChoice[] = [];
+  // Trainer cards: the ROM art (null until `just trainer-card-art` has built it) and the latest workbench snapshot.
+  private art: LoadedArt | null = null;
+  private artLoad: Promise<void> | null = null;
+  private workbench: WorkbenchData | null = null;
+  private cardsBusy = false;
+  // The cards replace the live-run buttons; the run list refreshes every few seconds and must not bring them back.
+  private cardsShown = false;
+  private readonly cardHtml = new WeakMap<Element, string>();
   // Set when the newest run is opened; a later refresh may list a newer one first.
   private following = false;
   private followThinking = true;
@@ -297,6 +312,10 @@ export class App {
     this.ui("run-sheet-close").addEventListener("click", () => { this.showSheet(false); });
     this.ui("run-sheet").addEventListener("keydown", (event) => { if (event.key === "Escape") this.showSheet(false); });
     this.picker("run").addEventListener("change", () => { this.showSheet(false, false); });
+    this.ui("run-cards").addEventListener("click", (event) => {
+      const id = (event.target as HTMLElement).closest<HTMLElement>("[data-watch]")?.dataset.watch;
+      if (id !== undefined) this.select(id);
+    });
     this.ui("run-sheet-body").addEventListener("click", (event) => {
       const id = (event.target as HTMLElement).closest<HTMLElement>("[data-watch]")?.dataset.watch;
       if (id === undefined) return;
@@ -320,6 +339,32 @@ export class App {
       return;
     }
     this.select(first.id);
+    void this.pollCards();
+  }
+
+  private loadArt(): Promise<void> {
+    this.artLoad ??= loadCardArt((url) => this.deps.fetchJson(url), (url) => this.deps.loadGlyphSheet?.(url) ?? Promise.resolve(null)).then((loaded) => { this.art = loaded; });
+    return this.artLoad;
+  }
+
+  // Without the art the old live-run buttons and sheet stay, and the workbench is never asked.
+  async pollCards(): Promise<void> {
+    await this.loadArt();
+    if (this.art === null || this.cardsBusy) return;
+    this.cardsBusy = true;
+    try { this.workbench = parseWorkbench(await this.deps.fetchJson("/api/workbench")); } catch { /* keep the last snapshot; the comparisons page reports workbench problems */ } finally { this.cardsBusy = false; }
+    this.render();
+  }
+
+  private cardInputs(): CardInput[] {
+    const { art, workbench } = this;
+    if (art === null || workbench === null) return [];
+    const now = this.deps.now();
+    return this.runs.filter(isLive).flatMap((run): CardInput[] => {
+      const recorded = workbench.runs.find((r) => r.id === run.id);
+      if (recorded === undefined || (recorded.status !== "live" && recorded.status !== "paused")) return [];
+      return [cardInputFor(recorded, workbench.at, now, run.id === this.runId ? "watching" : recorded.status === "paused" ? "paused" : "live", workbench.runs, art.art)];
+    });
   }
 
   private listRuns(runs: RunChoice[]): void {
@@ -329,7 +374,7 @@ export class App {
     if (this.runId !== null) picker.value = this.runId;
     const live = runs.filter(isLive);
     const box = this.ui("live-runs");
-    box.hidden = live.length === 0;
+    box.hidden = live.length === 0 || this.cardsShown;
     box.replaceChildren();
     for (const run of live) {
       const button = this.doc.createElement("button");
@@ -886,7 +931,14 @@ export class App {
     const head = { view, runId: this.runId, label, running: live && view.control.state === "running", time, others: this.runs.filter((run) => isLive(run) && run.id !== this.runId) };
     this.setHtml("run-head", headHtml(head));
     // The time ticks every render; rebuilding the sheet for it would remount the WATCH buttons under the pointer.
-    this.setHtml("run-sheet-body", sheetHtml({ ...head, time: "" }, startedAt));
+    const cards = this.cardInputs(), art = this.art?.art ?? null;
+    const watched = cards.filter((c) => c.status === "watching"), mini = art === null || cards.length === 0 ? null : [...watched, ...cards.filter((c) => c.status !== "watching")].map((c) => cardHtml(c, art, "mini")).join("");
+    this.setHtml("run-sheet-body", sheetHtml({ ...head, time: "" }, startedAt, mini === null ? null : { html: mini, watched: watched.length > 0 }));
+    syncCards(this.ui("run-cards"), art === null ? [] : cards.map((c) => cardHtml(c, art, "wide")), this.cardHtml);
+    this.cardsShown = mini !== null;
+    this.ui("run-cards").hidden = !this.cardsShown;
+    this.ui("live-runs").hidden = this.cardsShown || !this.runs.some(isLive);
+    fillCards([this.ui("run-cards"), this.ui("run-sheet-body")], cards, this.art, (canvas, pixels) => { this.deps.drawGlyphs?.(canvas, pixels); });
     for (const slot of this.ui("run-sheet-body").querySelectorAll(".rh-time")) slot.textContent = time;
     if (clock !== null) {
       scrub.value = String(Math.round(clock.fraction * 1000));
@@ -928,6 +980,8 @@ export async function boot(win: BootWindow): Promise<App> {
     openStream: (url) => new win.EventSource(url),
     now: () => Date.now(),
     hash: win.location.hash,
+    loadGlyphSheet: browserGlyphSheet(win.document),
+    drawGlyphs,
   });
   let last = win.performance.now();
   win.setInterval(() => {
@@ -940,5 +994,6 @@ export async function boot(win: BootWindow): Promise<App> {
     void app.next.poll();
     void app.pollExperiments();
   }, RUN_LIST_MS);
+  win.setInterval(() => { void app.pollCards(); }, WORKBENCH_POLL_MS);
   return app;
 }

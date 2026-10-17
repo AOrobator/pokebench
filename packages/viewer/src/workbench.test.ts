@@ -8,6 +8,7 @@ import { Workbench } from "./workbench.js";
 function run(overrides: Partial<WorkbenchRun> = {}): WorkbenchRun { return { measurement: { controller: "agent", features: [], logSha256: "a".repeat(64), pausedMs: 0, rawSplits: [] }, ...recorded(overrides) }; }
 const html = readFileSync(join(process.cwd(), "static/workbench.html"), "utf8");
 function data(): WorkbenchData { return { version: 1, at: 1000, milestones: [{ id: "NEW_GAME_CREATED", label: "New game" }, { id: "PLAYER_NAME_CONFIRMED", label: "Accepted name" }], runs: [run()], problems: [] }; }
+function must<T>(v: T | null | undefined): T { if (v == null) throw new Error("fixture"); return v; }
 function ui(name: string): HTMLElement { const element = document.querySelector<HTMLElement>(`[data-wb="${name}"]`); if (element === null) throw new Error(name); return element; }
 function change(name: string, value: string): void { (ui(name) as HTMLSelectElement).value = value; ui(name).dispatchEvent(new Event("change", { bubbles: true })); }
 function open(): void { ui("frontier-full").querySelector('[data-run="run_01"]')?.dispatchEvent(new MouseEvent("click", { bubbles: true })); }
@@ -157,5 +158,40 @@ describe("switch catalog for the frontier legend", () => {
     const { parseFeatureDescriptions } = await import("./workbench-data.js");
     expect([...parseFeatureDescriptions({ features: [{ id: "a-v1", title: "A", description: "Does a." }, { id: "b-v1", title: "B", description: "" }], milestones: [] })]).toEqual([["a-v1", "Does a."]]);
     for (const bad of [null, [], { features: "x" }, { features: [null] }, { features: [{ id: 1, description: "x" }] }, { features: [{ id: "a", description: null }] }]) expect(() => parseFeatureDescriptions(bad)).toThrow("Invalid feature catalog");
+  });
+});
+describe("live runs as trainer cards on the comparisons page", () => {
+  const MANIFEST = { version: 1, tiers: ["green", "bronze", "copper", "silver", "gold"], trainers: ["brendan", "may", "birch", "wally", "roxanne", "brawly", "wattson", "flannery", "norman", "winona", "sidney", "phoebe", "glacia", "drake"], icons: [280], egg: 412, proof: {}, source: {} };
+  const exp = (arm: string, trial: number) => ({ id: "bundle-v-control-dryrun-cook", arm, trial, of: 4 });
+  function live(): WorkbenchData {
+    return { ...data(), runs: [run({ id: "run_live", status: "live", elapsedMs: 60_000, experiment: exp("bundle", 2), card: { name: "RED", location: "OLDALE TOWN", party: [{ speciesId: 280, level: 7, egg: false }] }, config: { ...must(run().config), resume: "CLOCK_SET" } }), run({ id: "run_other", status: "paused", experiment: exp("control", 1) }), run()] };
+  }
+  function mountCards(art = true): { wb: Workbench; now: { t: number } } {
+    const now = { t: 6000 };
+    const wb = new Workbench(document, { fetchSnapshot: () => Promise.resolve(live()), now: () => now.t, width: () => 340, fetchJson: (url: string) => (art ? Promise.resolve(url.endsWith("manifest.json") ? MANIFEST : { widths: Array.from({ length: 512 }, () => 4), cmap: {} }) : Promise.reject(new Error("404"))) }, "run_01");
+    return { wb, now };
+  }
+  it("draws each live or paused run as the viewer's trainer card, linking to the viewer, with its notes under it", async () => {
+    const { wb } = mountCards(); await wb.refresh(); wb.clock();
+    const cards = [...ui("current").querySelectorAll<HTMLAnchorElement>("a.tc.tc-wide")];
+    expect(cards.map(c => c.getAttribute("href"))).toEqual(["/#run=run_live", "/#run=run_other"]);
+    expect(cards[0]?.innerHTML).toContain("/sprites/trainers/norman.png"); expect(cards[0]?.innerHTML).toContain('data-gt="LIVE"'); expect(cards[1]?.innerHTML).toContain('data-gt="PAUSED"');
+    expect(cards[0]?.innerHTML).toContain("trial 2/4"); expect(cards[0]?.textContent).toContain("RED");
+    expect(ui("current").textContent).toContain("NOT FROM ZERO"); expect(ui("current").textContent).toContain("2 CURRENT RUNS");
+    expect(ui("current").querySelector(".wb-plate")).toBeNull();
+    wb.destroy();
+  });
+  it("ticks the clock in place without redrawing the card", async () => {
+    const { wb, now } = mountCards(); await wb.refresh(); wb.clock();
+    const card = ui("current").querySelector<HTMLElement>('a.tc[data-watch="run_live"]'), clock = card?.querySelector("[data-clock]");
+    expect(clock?.textContent).toBe("1:05/10:00");
+    now.t += 1000; wb.clock();
+    expect(ui("current").querySelector('a.tc[data-watch="run_live"]')).toBe(card); expect(clock?.textContent).toBe("1:06/10:00");
+    wb.destroy();
+  });
+  it("keeps the name plates when the card art was never built", async () => {
+    const { wb } = mountCards(false); await wb.refresh(); wb.clock();
+    expect(ui("current").querySelectorAll(".wb-plate")).toHaveLength(2); expect(ui("current").querySelector(".tc")).toBeNull();
+    wb.destroy();
   });
 });

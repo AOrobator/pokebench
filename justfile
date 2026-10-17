@@ -35,6 +35,16 @@ build-mgba:
 verify-rom:
     cd env && uv run python -c 'import os; from pokebench_env.rom import resolve_rom; print("ROM OK:", resolve_rom(os.environ))'
 
+# Recover route103_rival for older runs from their raw-RAM archives into runs/<id>/derived/ (events.jsonl untouched).
+backfill-route103 +runs:
+    cd env && uv run python -m pokebench_env.backfill_route103 ../runs {{runs}}
+
+# Trainer-card art for the viewer (cards, trainer sprites, font, party icons) from ~/dev/pokeemerald
+# ($POKEEMERALD), every asset verified against $POKEBENCH_ROM. ROM-derived: output stays under runs/.
+[positional-arguments]
+trainer-card-art out="runs/sprites/trainer-card-v1":
+    uv run --project env python scripts/trainer-card/build_art.py "$1"
+
 verify-vendor:
     cd env && uv run python -c 'from pokebench_env.launcher import VENDOR_DIR; from pokebench_env.vendor import check_vendor; check_vendor(VENDOR_DIR); print("vendor OK:", VENDOR_DIR)'
 
@@ -74,7 +84,7 @@ map-rules:
 tail-run run_id: build
     node packages/agent/dist/tail.js {{run_id}}
 
-# Frame storage: usage against the 500 MB cap (runs refuse to start above 75%).
+# Frame storage: usage against the 10 GB cap (runs refuse to start above 75%).
 runs-disk: build
     node packages/agent/dist/runs-cli.js disk
 

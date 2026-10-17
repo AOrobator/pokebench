@@ -1,11 +1,12 @@
-import { appendFileSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { appendFileSync, cpSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { createServer, request, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
-import { Log, START, fullRun } from "../test-support/events.js";
+import { Log, START, fullRun, state } from "../test-support/events.js";
+import { rivalRam, writeArchive } from "../test-support/raw-ram.js";
 import { QUEUE_FEATURES } from "../test-support/experiments.js";
 import { BROWSER_MODULES, HOST, startViewer, type Viewer } from "./server.js";
 import { parseWorkbench } from "./workbench-data.js";
@@ -189,6 +190,25 @@ describe("viewer server", () => {
     expect(text.trimEnd().endsWith("event: done\ndata: {}")).toBe(true);
   });
 
+  it("streams rival values recovered from raw RAM onto the state events that lack them", async () => {
+    const { runsRoot, viewer } = await fixture();
+    const log = new Log();
+    log.add(0, START);
+    const scratch = mkdtempSync(join(tmpdir(), "ram-"));
+    const fight = writeArchive(scratch, 1, rivalRam(true, false));
+    const target = log.add(1000, state({ location: "ROUTE103", in_battle: true, raw_ram: fight }));
+    log.add(2000, state({ location: "ROUTE103" }));
+    log.add(3000, { type: "run_end", turn: 1, reason: "budget", furthest_milestone: null, turns: 1, wall_ms: 3000, tokens: { input: 0, output: 0 }, frames: { saved: 0, bytes: 0 } });
+    writeRun(runsRoot, "recovered", log);
+    mkdirSync(join(runsRoot, "recovered", "derived"), { recursive: true });
+    cpSync(join(scratch, "raw-ram"), join(runsRoot, "recovered", "raw-ram"), { recursive: true });
+    writeFileSync(join(runsRoot, "recovered", "derived", "route103_rival.jsonl"), [{ v: 1, run: "recovered", source: "raw-ram-route103-v1" }, { seq: target.seq, raw_ram: fight.path, sha256: fight.sha256, route103_rival: { battle_active: true, defeated: false, oldale_stage: 0 } }].map((r) => JSON.stringify(r)).join("\n") + "\n");
+    const text = (await get(viewer, "/api/runs/recovered/events")).body.toString();
+    const streamed = text.split("\n").filter((l) => l.startsWith("data: {\"")).map((l) => JSON.parse(l.slice(6)) as { seq?: number; route103_rival?: unknown });
+    expect(streamed.find((e) => e.seq === target.seq)?.route103_rival).toEqual({ battle_active: true, defeated: false, oldale_stage: 0 });
+    expect(streamed.filter((e) => e.route103_rival !== undefined)).toHaveLength(1);
+  });
+
   it("tails a live run until run_end and reports invalid lines", async () => {
     const { runsRoot, viewer } = await fixture();
     const live = new Log();
@@ -306,9 +326,18 @@ it("serves the tracked talk to people explainer byte for byte",async()=>{
  expect(reply.status).toBe(200);expect(reply.type).toContain("text/html");expect(reply.body.equals(tracked)).toBe(true);
 });
 
-it("serves the tracked push-back and battle observation explainers byte for byte, with their headings",async()=>{
+it("serves the tracked talk to people v2 explainer byte for byte",async()=>{
+ const tracked=readFileSync(fileURLToPath(new URL("../../../docs/explainers/explorer-guidance-v2.html",import.meta.url)));
  const root=mkdtempSync(join(tmpdir(),"pokebench-explainers-"));const staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});
- const files={"pushback-loop-detection-v1":"Push-back loop detection","pushback-press-result-v1":"Push-back press results","battle-observation-loop-v1":"Battle observation loop"} as const;
+ writeFileSync(join(docs,"explorer-guidance-v2.html"),tracked);
+ const viewer=await startViewer({runsRoot:join(root,"runs"),staticDir,appDir:join(root,"app"),port:0});open.push(viewer);
+ const reply=await get(viewer,"/explainers/explorer-guidance-v2.html");
+ expect(reply.status).toBe(200);expect(reply.type).toContain("text/html");expect(reply.body.equals(tracked)).toBe(true);
+});
+
+it("serves the tracked push-back, battle observation and ineffective loops explainers byte for byte, with their headings",async()=>{
+ const root=mkdtempSync(join(tmpdir(),"pokebench-explainers-"));const staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});
+ const files={"pushback-loop-detection-v1":"Push-back loop detection","pushback-press-result-v1":"Push-back press results","battle-observation-loop-v1":"Battle observation loop","ineffective-loops-v1":"Ineffective loops"} as const;
  const tracked=new Map(Object.keys(files).map(id=>[id,readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)))]));
  for(const [id,bytes] of tracked)writeFileSync(join(docs,`${id}.html`),bytes);
  const viewer=await startViewer({runsRoot:join(root,"runs"),staticDir,appDir:join(root,"app"),port:0});open.push(viewer);
@@ -332,11 +361,55 @@ it("serves the tracked Surf-gated exits explainer byte for byte through the allo
  expect((await get(viewer,"/explainers/surf-gated-exits-v1.html",{method:"PUT"})).status).toBe(405);
 });
 
+it("serves the tracked cross-map goal explainer byte for byte",async()=>{
+ const tracked=readFileSync(fileURLToPath(new URL("../../../docs/explainers/cross-map-goal-v1.html",import.meta.url)));
+ const root=mkdtempSync(join(tmpdir(),"pokebench-explainers-"));const staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});
+ writeFileSync(join(docs,"cross-map-goal-v1.html"),tracked);
+ const viewer=await startViewer({runsRoot:join(root,"runs"),staticDir,appDir:join(root,"app"),port:0});open.push(viewer);
+ const reply=await get(viewer,"/explainers/cross-map-goal-v1.html");
+ expect(reply.status).toBe(200);expect(reply.type).toContain("text/html");expect(reply.body.equals(tracked)).toBe(true);
+ expect((await get(viewer,"/explainers/cross-map-goal-v1.html",{host:"elsewhere.invalid"})).status).toBe(403);
+ expect((await get(viewer,"/explainers/cross-map-goal-v1.html",{method:"PUT"})).status).toBe(405);
+});
+
+it("serves the tracked people ID cards explainer byte for byte",async()=>{
+ const tracked=readFileSync(fileURLToPath(new URL("../../../docs/explainers/people-id-cards-v1.html",import.meta.url)));
+ const root=mkdtempSync(join(tmpdir(),"pokebench-explainers-"));const staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});
+ writeFileSync(join(docs,"people-id-cards-v1.html"),tracked);
+ const viewer=await startViewer({runsRoot:join(root,"runs"),staticDir,appDir:join(root,"app"),port:0});open.push(viewer);
+ const reply=await get(viewer,"/explainers/people-id-cards-v1.html");
+ expect(reply.status).toBe(200);expect(reply.type).toContain("text/html");expect(reply.body.equals(tracked)).toBe(true);
+ expect((await get(viewer,"/explainers/people-id-cards-v1.html",{host:"elsewhere.invalid"})).status).toBe(403);
+ expect((await get(viewer,"/explainers/people-id-cards-v1.html",{method:"PUT"})).status).toBe(405);
+});
+
+it("serves the tracked story battle heal warning explainer byte for byte",async()=>{
+ const tracked=readFileSync(fileURLToPath(new URL("../../../docs/explainers/low-hp-trainer-warning-v2.html",import.meta.url)));
+ const root=mkdtempSync(join(tmpdir(),"pokebench-explainers-"));const staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});
+ writeFileSync(join(docs,"low-hp-trainer-warning-v2.html"),tracked);
+ const viewer=await startViewer({runsRoot:join(root,"runs"),staticDir,appDir:join(root,"app"),port:0});open.push(viewer);
+ const reply=await get(viewer,"/explainers/low-hp-trainer-warning-v2.html");
+ expect(reply.status).toBe(200);expect(reply.type).toContain("text/html");expect(reply.body.equals(tracked)).toBe(true);
+});
+
 it("serves the rival-push explainers through the existing allowlist",async()=>{
  const root=mkdtempSync(join(tmpdir(),"pokebench-explainers-"));const staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});
  for(const id of ["game-evidence-priority-v1","dialogue-log-v1","loop-guard-supervisor-v1","double-context-window-v1","fresh-retry-v1","named-warp-destinations-v1","milestone-stall-stop-v1","text-only-supervisor-v1","character-presence-v1","navigation-refusal-reasons-v1","transition-press-result-v1","stall-briefing-v1","battle-triage-guidance-v1","battle-details-v2","dialogue-auto-advance-v1","warp-arrival-settle-v1","dialogue-context-kept-v1","displayed-place-names-v1","transition-loop-detection-v1","blocked-batch-result-v1","adjacent-tiles-v1","readout-rules-in-prompt-v1","connection-edge-tiles-v1","in-game-naming-readout-v1","no-nickname-guidance-v1","battle-text-auto-advance-v1","battle-message-waiting-v1","script-line-presence-v1","disproved-beliefs-v1","same-plan-breaker-v1","briefing-exits-v1","untaken-exits-v1","briefing-battle-outcomes-v1","blocked-exit-fact-v1","battle-loss-recap-v1","navigation-truth-v1","navigation-refusal-reasons-v2"])writeFileSync(join(docs,`${id}.html`),`<h1>${id}</h1>`);
  const viewer=await startViewer({runsRoot:join(root,"runs"),staticDir,appDir:join(root,"app"),port:0});open.push(viewer);
  for(const id of ["game-evidence-priority-v1","dialogue-log-v1","loop-guard-supervisor-v1","double-context-window-v1","fresh-retry-v1","named-warp-destinations-v1","milestone-stall-stop-v1","text-only-supervisor-v1","character-presence-v1","navigation-refusal-reasons-v1","transition-press-result-v1","stall-briefing-v1","battle-triage-guidance-v1","battle-details-v2","dialogue-auto-advance-v1","warp-arrival-settle-v1","dialogue-context-kept-v1","displayed-place-names-v1","transition-loop-detection-v1","blocked-batch-result-v1","adjacent-tiles-v1","readout-rules-in-prompt-v1","connection-edge-tiles-v1","in-game-naming-readout-v1","no-nickname-guidance-v1","battle-text-auto-advance-v1","battle-message-waiting-v1","script-line-presence-v1","disproved-beliefs-v1","same-plan-breaker-v1","briefing-exits-v1","untaken-exits-v1","briefing-battle-outcomes-v1","blocked-exit-fact-v1","battle-loss-recap-v1","navigation-truth-v1","navigation-refusal-reasons-v2"]){const reply=await get(viewer,`/explainers/${id}.html`);expect(reply.status).toBe(200);expect(reply.body.toString()).toContain(id);}
+});
+
+it("serves only the allowlisted trainer card art from runs/sprites/trainer-card-v1",async()=>{
+ const {runsRoot,viewer}=await fixture();const art=join(runsRoot,"sprites","trainer-card-v1");
+ for(const dir of ["card","trainers","font","icons"])mkdirSync(join(art,dir),{recursive:true});
+ const png=PNG;
+ writeFileSync(join(art,"manifest.json"),'{"version":1}');writeFileSync(join(art,"card","wide-gold.png"),png);writeFileSync(join(art,"card","mini-ribbon-green.png"),png);writeFileSync(join(art,"trainers","may.png"),png);writeFileSync(join(art,"font","glyphs.png"),png);writeFileSync(join(art,"font","glyphs.json"),"{}");writeFileSync(join(art,"icons","280.png"),png);writeFileSync(join(art,"icons","secret.txt"),"no");writeFileSync(join(runsRoot,"sprites","other.png"),png);
+ const manifest=await get(viewer,"/sprites/manifest.json");expect(manifest.status).toBe(200);expect(manifest.type).toContain("application/json");expect(manifest.body.toString()).toBe('{"version":1}');
+ for(const path of ["/sprites/card/wide-gold.png","/sprites/card/mini-ribbon-green.png","/sprites/trainers/may.png","/sprites/font/glyphs.png","/sprites/icons/280.png"]){const reply=await get(viewer,path);expect(reply.status,path).toBe(200);expect(reply.type,path).toBe("image/png");}
+ expect((await get(viewer,"/sprites/font/glyphs.json")).type).toContain("application/json");
+ for(const path of ["/sprites/icons/secret.txt","/sprites/icons/1234.png","/sprites/card/wide-purple.png","/sprites/trainers/May.png","/sprites/../other.png","/sprites/%2e%2e/other.png","/sprites/icons/..%2f..%2fother.png","/sprites/icons/281.png","/sprites/manifest.json/x","/sprites"])expect((await get(viewer,path)).status,path).toBe(404);
+ expect((await get(viewer,"/sprites/manifest.json",{host:"elsewhere.invalid"})).status).toBe(403);
+ expect(BROWSER_MODULES).toEqual(expect.arrayContaining(["trainer-card","game-font"]));
 });
 
 it("serves the tracked story destinations explainer byte for byte through the allowlist",async()=>{

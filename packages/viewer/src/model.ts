@@ -78,6 +78,8 @@ const KNOWN: Record<RunEvent["type"], true> = {
   retry: true,
   text_only_supervisor: true,
   low_hp_trainer_warning: true,
+  people_id_card: true,
+  story_battle_warning: true,
   dialogue_auto_advance: true,
   disk_usage: true,
   frames_evicted: true,
@@ -219,6 +221,8 @@ export class RunView {
   private bedroomPrevious: { state: StateEvent; seq: number } | null = null;
   private rivalWitness: number | null = null;
   private rivalPrevious: { state: StateEvent; seq: number } | null = null;
+  private rivalBaseline = new Set<string>();
+  private battleSettled: { state: StateEvent; seq: number } | null = null;
 
   get isThinking(): boolean {
     return this.thinkingSpans.at(-1)?.endMs === null;
@@ -300,7 +304,7 @@ export class RunView {
       case "battle_choice":this.battleChoices.push(event);break;
       case "milestone": {
         // A native route receipt supersedes a provisional replay recovery.
-        const recovered = this.milestones.findIndex(mark => mark.name === event.name && mark.derived === true && (/^(?:ROUTE_(?:10[1-4]|115|116)|RUSTURF_TUNNEL|ROXANNE_DEFEATED|PLAYER_HOUSE_EXITED_AFTER_CLOCK|RIVAL_HOUSE_ENTERED|RIVAL_HOUSE_EXITED|ROUTE_101_AFTER_HANDOFF|PLAYER_BEDROOM_EXITED_AFTER_CLOCK|ROUTE_101_AFTER_RIVAL_BATTLE|LITTLEROOT_AFTER_RIVAL_BATTLE|PLAYER_BEDROOM)$/.test(mark.name) || (mark.name === "CLOCK_SET" && event.origin !== undefined && event.evidence !== undefined)));
+        const recovered = this.milestones.findIndex(mark => mark.name === event.name && mark.derived === true && (/^(?:ROUTE_(?:10[1-4]|115|116)|RUSTURF_TUNNEL|ROXANNE_DEFEATED|PLAYER_HOUSE_EXITED_AFTER_CLOCK|RIVAL_HOUSE_ENTERED|RIVAL_HOUSE_EXITED|ROUTE_101_AFTER_HANDOFF|PLAYER_BEDROOM_EXITED_AFTER_CLOCK|ROUTE_101_AFTER_RIVAL_BATTLE|LITTLEROOT_AFTER_RIVAL_BATTLE|RIVAL_BATTLE_STARTED|RIVAL_BATTLE_DEFEATED|RIVAL_OLDALE_SEND_OFF|PLAYER_BEDROOM)$/.test(mark.name) || (mark.name === "CLOCK_SET" && event.origin !== undefined && event.evidence !== undefined)));
         if(recovered>=0)this.milestones.splice(recovered,1);
         if (!this.milestones.some((m) => m.name === event.name)) this.milestones.push({ name: event.name, ms, seq: event.seq, ...(event.emulator_frame===undefined?{}:{emulatorFrame:event.emulator_frame}), ...(event.kind === undefined ? {} : {kind:event.kind}), ...(event.origin === undefined ? {} : {origin:event.origin}), ...(event.evidence === undefined ? {} : {evidence:event.evidence}) });
         break;
@@ -414,6 +418,7 @@ export class RunView {
     this.recoverRoute101Return(event);
     this.recoverBedroomExit(event);
     this.recoverRivalReturn(event);
+    this.recoverRivalBattle(event);
     this.state = event;
     const now = event.started && event.position !== null && event.field_controls_locked !== true && previous !== null && samePlace(previous, event) ? (this.stuck?.now ?? 0) + 1 : 0;
     this.stuck = { now, max: Math.max(now, this.stuck?.max ?? 0) };
@@ -493,6 +498,27 @@ export class RunView {
       this.milestones.push({ name: "PLAYER_BEDROOM_EXITED_AFTER_CLOCK", ms: eventMs(event), seq: event.seq, derived: true, kind: "navigation", origin: "observed", evidence: [previous.seq, event.seq] });
     }
     this.bedroomPrevious = { state: event, seq: event.seq };
+  }
+
+  // Mirrors the tracker's reader splits for runs that predate route103-rival-splits-v1, from values the
+  // backfill recovered from raw RAM: each needs an in-run false before its first true, and the send-off
+  // needs Oldale rival state 1 then 2 on two settled Oldale states.
+  private recoverRivalBattle(event: StateEvent): void {
+    if (this.start?.harness_features.includes("probe") === true || this.start?.harness_features.includes("route103-rival-splits-v1") === true) return;
+    const rival = event.route103_rival;
+    if (event.started && event.screen !== "field_transition" && rival != null) {
+      for (const [name, reached] of [["RIVAL_BATTLE_STARTED", rival.battle_active], ["RIVAL_BATTLE_DEFEATED", rival.defeated]] as const) {
+        if (!reached) this.rivalBaseline.add(name);
+        else if (this.rivalBaseline.has(name) && !this.milestones.some(mark => mark.name === name)) this.milestones.push({ name, ms: eventMs(event), seq: event.seq, derived: true, kind: "story", origin: "observed", evidence: [event.seq] });
+      }
+    }
+    const settled = event.started && event.screen !== "field_transition" && !event.screen.startsWith("unknown") && event.location !== null;
+    if (!settled) return;
+    const previous = this.battleSettled;
+    if (previous !== null && previous.state.location === "OLDALE TOWN" && previous.state.route103_rival?.oldale_stage === 1 && event.location === "OLDALE TOWN" && rival?.oldale_stage === 2 && !this.milestones.some(mark => mark.name === "RIVAL_OLDALE_SEND_OFF")) {
+      this.milestones.push({ name: "RIVAL_OLDALE_SEND_OFF", ms: eventMs(event), seq: event.seq, derived: true, kind: "story", origin: "observed", evidence: [previous.seq, event.seq] });
+    }
+    this.battleSettled = { state: event, seq: event.seq };
   }
 
   // Mirrors the tracker's return-trip proofs: a settled pre-battle state (Birch lab state 0-3), then

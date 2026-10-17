@@ -113,7 +113,7 @@ describe("connection-edge-tiles-v1 registry, presets and state schema",()=>{
  it("is a default-off server observation switch recorded last, with OFF copy",()=>{
   expect(featureInfo(ID)).toMatchObject({group:"observation",needs:null,switchable:true});
   expect(featureInfo(ID).description).toContain(" Off: ");
-  expect(playHarnessFeatures({...ALL_ON,[ID]:true},null).at(-31)).toBe(ID);
+  expect(playHarnessFeatures({...ALL_ON,[ID]:true},null).at(-37)).toBe(ID);
   expect(playHarnessFeatures({...ALL_ON,[ID]:false},null)).not.toContain(ID);
   expect(SERVER_FEATURES).toContain(ID);
   expect(serverFeatureEnv({...ALL_ON,[ID]:false}).POKEBENCH_FEATURES_OFF.split(",")).toContain(ID);

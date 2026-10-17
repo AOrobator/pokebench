@@ -51,7 +51,7 @@ describe("registry",()=>{
   expect(dependencyProblems({...ALL_ON,[ID]:true})).toEqual([]);
  });
  it("defaults OFF for presets that omit it and for legacy flag presets; the prompt and tool list never change",()=>{
-  const without=Object.fromEntries(Object.entries({...ALL_ON,"state-only-decisions-v1":false}).filter(([id])=>id!==ID)) as Omit<FeatureSet,typeof ID>;
+  const without=Object.fromEntries(Object.entries({...ALL_ON,"state-only-decisions-v1":false,"low-hp-trainer-warning-v2":false}).filter(([id])=>id!==ID)) as Omit<FeatureSet,typeof ID>;
   expect(normalizeFeatures(without)[ID]).toBe(false);
   expect(normalizeFeatures({...without,[ID]:true})[ID]).toBe(true);
   expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:true})[ID]).toBe(false);
@@ -187,7 +187,7 @@ describe("delivery on game-tool results",()=>{
    const body=url.endsWith("/action")?{status:"success"}:url.endsWith("/queue_status")?{queue_empty:true}:url.endsWith("/pokebench/observation")?{state_text:"field",screenshot_base64:png,state:T363}:T363;
    return Promise.resolve(new Response(JSON.stringify(body)));
   };
-  const build=(features:FeatureSet,rec:WarningRecorder)=>playGameTools(gameTools("http://127.0.0.1",{beforePress:()=>undefined,afterPress:()=>Promise.resolve()},fetchFn,toolSwitches(features),{now:()=>0,sleep:()=>Promise.resolve()}),features,{read:()=>Promise.resolve(T363)},{...rec,recordState:()=>({seq:1,turn:1}),recordDialogueAutoAdvance:()=>({seq:1,turn:1}),subscribe:()=>undefined});
+  const build=(features:FeatureSet,rec:WarningRecorder)=>playGameTools(gameTools("http://127.0.0.1",{beforePress:()=>undefined,afterPress:()=>Promise.resolve()},fetchFn,toolSwitches(features),{now:()=>0,sleep:()=>Promise.resolve()}),features,{read:()=>Promise.resolve(T363)},{...rec,peopleIdCard:()=>undefined,recordState:()=>({seq:1,turn:1}),recordDialogueAutoAdvance:()=>({seq:1,turn:1}),subscribe:()=>undefined});
   // Battle text auto-advance needs the game server's battle journal, which this fake server does not serve.
   const onRec=recorder(),offRec=recorder();
   const observe=(tools:AgentTool[])=>must(tools.find(t=>t.name==="observe")).execute("a",{});

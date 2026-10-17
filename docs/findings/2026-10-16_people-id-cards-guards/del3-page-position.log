@@ -1,0 +1,5 @@
+Guard: a speakerless page needs a position to be anyone's words (level-up box pages have none). Deleted: the position check in attribute(). Restored afterwards: 20 passed.
+$ npx vitest run src/people-id-cards.test.ts
+     × T285: MAY in Oldale after the battle: her T272 words, the game's battle text, and her self-introduction moved to the other pages 7ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+      Tests  1 failed | 19 passed (20)

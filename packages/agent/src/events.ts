@@ -209,6 +209,23 @@ const LowHpTrainerWarning = event("low_hp_trainer_warning", {
   text: Type.String({ minLength: 1 }),
 });
 
+// people-id-cards-v1: one ID card added to a game-tool result, with the person's identity and why it was shown.
+const PeopleIdCard = event("people_id_card", {
+  tool: Type.String({ minLength: 1 }), tool_call_id: Type.String({ minLength: 1 }),
+  key: Type.String({ pattern: "^(name:.+|obj:-?\\d+/-?\\d+#\\d+)$" }), reason: Type.Enum(["first", "changed"] as const),
+  text: Type.String({ minLength: 1 }),
+});
+
+// low-hp-trainer-warning-v2: the story-battle SUPERVISOR paragraph a game-tool result gained, with the facts it states.
+const StoryBattleWarningEvent = event("story_battle_warning", {
+  tool: Type.String({ minLength: 1 }), kind: Type.Enum(["rival", "aqua_grunt", "gym_leader"]), opponent: Type.String({ minLength: 1 }),
+  x: Type.Union([Type.Integer(), Type.Null()]), y: Type.Union([Type.Integer(), Type.Null()]), map_id: Type.Tuple([Type.Integer(), Type.Integer()]),
+  party: Type.Array(Type.Object({ species: Type.String({ minLength: 1 }), hp: NonNegativeInt, max_hp: Type.Integer({ minimum: 1 }) }, closed), { minItems: 1, maxItems: 6 }),
+  money: Type.Union([NonNegativeInt, Type.Null()]),
+  items: Type.Array(Type.Object({ name: Type.String({ minLength: 1 }), quantity: Type.Integer({ minimum: 1 }) }, closed), { maxItems: 186 }),
+  text: Type.String({ minLength: 1 }),
+});
+
 // dialogue-auto-advance-v1: the harness advanced field dialogue to the next decision point within one tool call.
 // battle-text-auto-advance-v1 adds the battle_* stops and paused; its pages carry battle_turn and battle_message_id.
 export const DIALOGUE_AUTO_ADVANCE_STOPS = ["field_free", "menu", "naming", "battle", "screen_change", "locked_no_message", "interface_not_ready", "message_not_ready", "press_cap", "time_cap", "error", "battle_input", "battle_prompt", "battle_busy", "battle_unreadable", "paused"] as const;
@@ -535,6 +552,8 @@ export const RunEventSchema = Type.Union([
   Retry,
   TextOnlySupervisor,
   LowHpTrainerWarning,
+  PeopleIdCard,
+  StoryBattleWarningEvent,
   DialogueAutoAdvance,
   DiskUsage,
   FramesEvicted,
@@ -588,6 +607,23 @@ export interface EventEnvelope { run: string; seq: number; t: string; turn: numb
 export function eventEnvelope(value: unknown): EventEnvelope | null {
   if (!Value.Check(EnvelopeSchema, value)) return null;
   return { run: value.run, seq: value.seq, t: value.t, turn: value.turn, type: value.type };
+}
+
+export interface StartIdentity { run: string; t: string; commit: string; dirty: boolean; model: string | null; port: number | null }
+const fields = (value: unknown): Record<string, unknown> | null => typeof value === "object" && value !== null && !Array.isArray(value) ? value as Record<string, unknown> : null;
+// A run_start's identity read without the closed schema, so a viewer can tell which build wrote a
+// run_start it cannot validate. Null unless the envelope, harness.commit and harness.dirty all read.
+export function startIdentity(value: unknown): StartIdentity | null {
+  const envelope = eventEnvelope(value), body = fields(value);
+  if (envelope === null || body === null || envelope.type !== "run_start" || envelope.seq !== 0) return null;
+  const harness = fields(body.harness);
+  if (harness === null || !Value.Check(Sha1, harness.commit) || typeof harness.dirty !== "boolean") return null;
+  const model = fields(body.model)?.id, port = fields(body.isolation)?.port;
+  return {
+    run: envelope.run, t: envelope.t, commit: harness.commit, dirty: harness.dirty,
+    model: typeof model === "string" ? model : null,
+    port: typeof port === "number" && Number.isSafeInteger(port) && port > 0 && port < 65536 ? port : null,
+  };
 }
 
 export function checkEvent(value: unknown): RunEvent {

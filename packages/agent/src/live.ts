@@ -228,7 +228,7 @@ async function playAgent(): Promise<void> {
   const thinking=preset?.sampling.thinkingLevel??PLAY_THINKING;
   const loopMode=features["deterministic-loop-guard-v1"]?"enforced":"diagnostic";
   const target=preset?.target??null;
-  const goal=playGoal(target);
+  const goal=playGoal(target,features);
   const stateMode=features["state-only-decisions-v1"];
   const incompatible=stateOnlyProblems(features);if(incompatible.length)throw new Error(incompatible.join("; "));
   const systemPrompt=stateMode?stateOnlyPrompt(features,target):playSystemPrompt(features,target);
@@ -286,7 +286,7 @@ async function playAgent(): Promise<void> {
       if(preset!==null&&recorder.elapsedMs()>=limits.maxWallMs){governor.abort("budget");return "budget";}
       const capture = captureAt === null ? null : new CheckpointCapture(captureAt, { serverUrl: gameServerUrl, dir: join(RUNS_ROOT, runId, "checkpoints"), fetch, write: (path, data) => { mkdirSync(dirname(path), { recursive: true }); writeFileSync(path, data); }, rename: renameSync });
       if (capture !== null) recorder.subscribe(event => { capture.observe(event); });
-      const loopDetector = attachLoopGuard(recorder, governor, undefined, loopMode, features["interaction-loop-detection-v1"], loopSupervisor(features, recorder), features["transition-loop-detection-v1"], features["pushback-loop-detection-v1"], features["battle-observation-loop-v1"], features["navigation-truth-v1"]);
+      const loopDetector = attachLoopGuard(recorder, governor, undefined, loopMode, features["interaction-loop-detection-v1"], loopSupervisor(features, recorder), features["transition-loop-detection-v1"], features["pushback-loop-detection-v1"], features["battle-observation-loop-v1"], features["navigation-truth-v1"], features["ineffective-loops-v1"]);
       if(target!==null){
         const stop=new NativeTargetStop(runId,target,proof=>{
           if(governor.stopReason!==null)return;

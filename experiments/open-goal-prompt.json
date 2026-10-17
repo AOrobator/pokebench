@@ -39,7 +39,7 @@
    "maxTokens": 4096
   },
   "features": {
-   "navigation-evidence-memory-v1": false,
+   "navigation-evidence-memory-v1": true,
    "automatic-running-v1": false,
    "expanded-menu-battle-information-v1": true,
    "ram-state-v1": true,
@@ -51,7 +51,7 @@
    "named-interactions-v1": true,
    "world-destinations-v1": true,
    "bounded-navigation-v1": true,
-   "grass-cost-navigation-v1": false,
+   "grass-cost-navigation-v1": true,
    "field-dialogue-phase-v1": true,
    "dialogue-safe-batches-v1": false,
    "interaction-loop-detection-v1": true,
@@ -73,7 +73,7 @@
    "objective-tracking-v1": false,
    "repeat-attempt-guard-v1": false,
    "native-objective-completion-v1": false,
-   "full-map-navigation-v1": false,
+   "full-map-navigation-v1": true,
    "elevation-transitions-v1": true,
    "game-evidence-priority-v1": true,
    "dialogue-log-v1": true,

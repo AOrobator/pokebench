@@ -77,6 +77,7 @@ Done when every milestone is merged, qualification shows none of F1–F8, the fo
 
 ## Session Log
 
+- 2026-10-17 01:48 PM EDT: **Control change:** cross-map-goal-v1 moves from the bundle to on-in-both (the operator approved 1:41 PM EDT). grass-cost-navigation-v1 (needs bounded-navigation-v1, on in both) joins the bundle arm (the operator 1:42 PM EDT, replacing the earlier grass-cost-out rule); open-goal-prompt.json incumbent follows. full-map-navigation-v1 (needs bounded-navigation-v1; navigate_to plans over the whole map, up to 512 presses) and navigation-evidence-memory-v1 join the bundle arm too (the operator 1:40 PM EDT). repeat-attempt-guard-v1 held: it needs objective-tracking-v1, which is off in both arms (asked the operator).
 - 2026-10-17 01:46 PM EDT: instruction-ledger-v1 and dialogue-log-v1 join the bundle-v-control bundle arm (the operator 1:38 PM EDT; base false, both need active-field-message-buffer-v1, on in both); open-goal-prompt.json incumbent follows.
 - 2026-10-17 01:42 PM EDT: **Control changes:** surf-gated-exits-v1 moves from the bundle to on-in-both (the operator 1:37 PM EDT promotion). world-destinations-v1, battle-text-auto-advance-v1, in-game-naming-readout-v1 and no-nickname-guidance-v1 were already on in control (base). 2-hour cook cap kept.
 - 2026-10-17 01:30 PM EDT: counter-talk-v1 joins the bundle-v-control bundle arm (the operator 1:29 PM EDT, next round; base false, needs live-map-v1, on in both); open-goal-prompt.json incumbent follows.

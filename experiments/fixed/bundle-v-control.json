@@ -113,7 +113,7 @@
    "surf-gated-exits-v1": true,
    "navigation-truth-v1": true,
    "navigation-refusal-reasons-v2": false,
-   "cross-map-goal-v1": false,
+   "cross-map-goal-v1": true,
    "explorer-guidance-v2": true,
    "ineffective-loops-v1": false,
    "people-id-cards-v1": false,
@@ -125,7 +125,6 @@
  "switches": [
   "blackout-readout-v1",
   "navigation-refusal-reasons-v2",
-  "cross-map-goal-v1",
   "ineffective-loops-v1",
   "people-id-cards-v1",
   "open-goal-prompt-v1",
@@ -133,7 +132,10 @@
   "story-destinations-v1",
   "counter-talk-v1",
   "instruction-ledger-v1",
-  "dialogue-log-v1"
+  "dialogue-log-v1",
+  "grass-cost-navigation-v1",
+  "full-map-navigation-v1",
+  "navigation-evidence-memory-v1"
  ],
  "offInBoth": [
   "milestone-stall-stop-v1",
@@ -142,7 +144,8 @@
  ],
  "onInBoth": [
   "navigation-truth-v1",
-  "surf-gated-exits-v1"
+  "surf-gated-exits-v1",
+  "cross-map-goal-v1"
  ],
  "phases": [
   {

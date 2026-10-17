@@ -87,6 +87,17 @@ def test_continuous_battle_battlers_pp_status_stages_and_inputs():
     assert read_battle_state(m.read).ready is False
 
 
+def test_move_target_type_from_the_rom_move_table():
+    # battle-move-tool-v1: struct BattleMove byte 6 is `target` (pret include/pokemon.h);
+    # SCRATCH is MOVE_TARGET_SELECTED (0), GROWL MOVE_TARGET_BOTH (8) in src/data/battle_moves.h.
+    m = fixture()
+    m.put(BATTLE_MOVES + 45 * 12, bytes([0, 0, 0, 100, 40, 0, 8]) + bytes(5))
+    moves = read_battle_state(m.read).battlers[0].moves
+    assert [move.target for move in moves] == [0, 8, None, None]
+    m.put(BATTLE_MOVES + 45 * 12, bytes([0, 0, 0, 100, 40, 0, 3]) + bytes(5))
+    assert read_battle_state(m.read).phase == "unavailable"
+
+
 def test_double_battle_positions_and_player_owners_separate():
     m = fixture(double=True)
     m.put(EXEC_FLAGS, struct.pack("<I", 5))

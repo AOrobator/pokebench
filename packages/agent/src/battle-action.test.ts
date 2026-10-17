@@ -110,7 +110,7 @@ class BattleSim {
   };
  }
 }
-const call=async(sim:BattleSim,args:{action:"fight"|"bag"|"pokemon"|"run";move?:string},over:Partial<BattleActionPorts>={})=>{
+const call=async(sim:BattleSim,args:{action:"fight"|"bag"|"pokemon"|"run";move?:string;target?:string},over:Partial<BattleActionPorts>={})=>{
  const result=await battleActionTool(sim.ports(over)).execute("b1",args);
  const text=result.content.flatMap(p=>p.type==="text"?[p.text]:[]).join("\n");
  return {result,text,status:text.split("\n")[0]??""};
@@ -187,6 +187,15 @@ describe("battle_action on the recorded battles",()=>{
   await call(sim,{action:"fight",move:"focus energy"});
   expect(sim.presses).toEqual(["LEFT","DOWN","A"]);
   expect(sim.chosen).toEqual({action:"fight",slot:2});
+ });
+});
+
+describe("battle-move-tool-v1 doubles scope (the operator 2026-10-17 4:18 PM): target in a single battle",()=>{
+ it("a target passed in a single battle is ignored, and the result says so",async()=>{
+  const sim=new BattleSim(rec("e046:16609"));
+  const {status}=await call(sim,{action:"fight",move:"EMBER",target:"SHROOMISH"});
+  expect(sim.chosen).toEqual({action:"fight",slot:3});
+  expect(status).toBe("Battle action: chose FIGHT, then EMBER; buttons pressed: A, RIGHT, DOWN, A; target ignored: this is not a double battle; the battle is running its own text or animation.");
  });
 });
 

@@ -85,3 +85,7 @@ Scope note (coordinator, during M1): full-map-navigation-v1 is in the bundle on 
 - [x] Gates: just test (vitest agent 2134, viewer 1103; pytest 2544), just lint clean, just build OK, just coverage: Python lines 97.63 / branches 93.76 / functions 100; agent lines 99.24 / branches 94.41 / functions 98.30; viewer lines 97.62 / branches 91.39 / functions 93.78.
   - COMMIT: `fix(exit-reachability): a doorway prints only its tiles you can walk to; notes state the fact without guessed causes` (sha in the report)
 - Follow-up (deferred, not this branch): dive/emerge connections carry no label (topology STEPS only), so they stay listed with today's text.
+
+- Round 2 (head 3e8d7228): Claude LGTM, Grok LGTM, GPT BLOCKING with 7 items: 2 fixed (doorway tiles printed by their own label; notes state the fact without guessed causes, per the game-wording rule) at 7d8505f3 (RED) and 1d6f43c8 (GREEN); dive/emerge labels deferred (follow-up, not reachable before Surf); 4 repeated rebuttals. Round cap reached; The operator (2026-10-17 4:02 PM New York): "lets fix a and b and land it without review."
+- Landing: synced with main 945e2dc7 (a739a25d); experiments/exit-reachability.json source.commit pinned to a739a25d07e3d4c0b3925360e6c5b3896337f2e7; fast-forward into local main. Bundle-only: the bundle owner adds exit-reachability-v1 to bundle-v-control.
+- Follow-up: label DIVE/EMERGE connections; post-landing explainer click at 8791 and Harness Config READ EXPLAINER.

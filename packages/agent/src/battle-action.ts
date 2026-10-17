@@ -65,7 +65,11 @@ export const moveButton=(cursor:number,slot:number,count:number):Button|null=>gr
 const norm=(name:string):string=>name.toUpperCase().replace(/[^A-Z0-9]/g,"");
 const known=(mon:Mon)=>mon.moves.filter(m=>m.move_id!==0&&m.name!==null);
 const moveList=(mon:Mon):string=>known(mon).map(m=>`${m.name??""} (PP ${String(m.pp)}/${String(m.max_pp)})`).join(", ");
-const readyInput=(s:GameStateSnapshot):Input|undefined=>s.in_battle?s.battle?.player_inputs?.find(i=>i.ready):undefined;
+const readyInputs=(s:GameStateSnapshot):Input[]=>s.in_battle?(s.battle?.player_inputs??[]).filter(i=>i.ready):[];
+// One ready input, or none: a button reaches every ready input handler at once (input is global), so with two
+// ready (a double battle) one press could move or choose for both. Codex review round 1.
+const readyInput=(s:GameStateSnapshot):Input|undefined=>{const ready=readyInputs(s);return ready.length===1?ready[0]:undefined;};
+const SEVERAL="more than one battle input is waiting at once";
 
 const PHASES:Readonly<Record<string,string>>={target:"the target choice is open",move_reorder:"the move reorder choice is open",yes_no:"a battle YES/NO choice is open",safari_action:"the Safari action menu is open"};
 // What the battle is doing now, from the game state the model also sees.
@@ -73,6 +77,7 @@ export function describeBattle(s:GameStateSnapshot):string {
  if(!s.in_battle)return "the battle has ended";
  const b=s.battle;
  if(b==null||b.phase==="unavailable")return `the battle state could not be read${b?.diagnostic==null?"":` (${b.diagnostic})`}`;
+ if(readyInputs(s).length>1)return SEVERAL;
  const input=readyInput(s);
  if(input!==undefined){
   const lit=input.selected===null?"":`; highlighted ${input.selected}`;
@@ -138,6 +143,7 @@ export function battleActionTool(ports:BattleActionPorts):AgentTool<typeof Battl
    if(presses.length>=MAX_PRESSES)throw new Stop(`${pressed()} ${String(MAX_PRESSES)} presses is the most one battle_action makes; inspect the new state.`);
    signal?.throwIfAborted();await ports.gate?.(signal);signal?.throwIfAborted();
    const result=await ports.press(id,{buttons:[button]},signal,before=>{
+    // readyInput is undefined with two inputs ready, so such a state never passes.
     const now=before===undefined?undefined:readyInput(before);
     if(now?.battler!==battler||now.phase!==phase||(phase==="action"?now.action_cursor:now.move_cursor)!==cursor)throw new Stop(`${pressed()} the battle input changed before the press, so no button was sent; inspect the new state.`);
    });
@@ -149,9 +155,10 @@ export function battleActionTool(ports:BattleActionPorts):AgentTool<typeof Battl
    for(;;){
     const input=readyInput(s);
     if(input===undefined||input.battler!==battler){
-     // Only between menus (after A on FIGHT or B out of the move menu) does the call wait for the next input frame.
+     // Only between menus (after A on FIGHT or B out of the move menu) does the call wait for the next input frame;
+     // never with two inputs ready.
      const between=presses.at(-1)==="B"||presses.at(-1)==="A";
-     if(between&&s.in_battle&&ports.wait!==undefined&&waits<MAX_WAITS&&s.battle?.text_phase==="busy"){waits++;s=(await ports.wait(signal)).state;continue;}
+     if(between&&readyInputs(s).length===0&&s.in_battle&&ports.wait!==undefined&&waits<MAX_WAITS&&s.battle?.text_phase==="busy"){waits++;s=(await ports.wait(signal)).state;continue;}
      throw new Stop(`${pressed()} ${describeBattle(s)}; inspect the new state.`);
     }
     if(input.phase==="action"){

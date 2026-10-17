@@ -210,6 +210,12 @@ describe("battle-text-auto-advance-v1 hand-offs",()=>{
   expect(result.content[0]).toEqual({type:"text",text:"Battle action: chose FIGHT, then SCRATCH; buttons pressed: A, A; the battle is running its own text or animation."});
   expect(textOf(result)).toContain(`"Wild WURMPLE used\nTACKLE!"`);
   expect(tool("battle_action").description).toBe("choose If the battle then runs its own text, the text advances automatically to the next decision point and its pages are listed.");
+  // A refused call pressed nothing, and auto-advance presses nothing after it either.
+  const waiting=SHOW_STATES.findIndex(s=>phaseOf(s)==="waiting");const shown=SHOW_STATES[waiting];if(shown===undefined)throw new Error("no waiting state");
+  const refused:AgentTool={name:"battle_action",label:"b",description:"choose",parameters:Type.Object({}),execute:()=>Promise.resolve({content:[{type:"text" as const,text:"Battle action: nothing pressed: the battle is not waiting for a choice."}],details:{state:shown,battle_action:{refused:true}}})};
+  const quiet=new ScriptServer(SHOW_STATES,SHOW.journal.entries,waiting);const r2=wire(quiet,ON,[refused]);
+  const kept=await r2.tool("battle_action").execute("b2",{});
+  expect(quiet.posts).toEqual([]);expect(r2.rec.advances()).toEqual([]);expect(kept.content).toHaveLength(1);
   const off=wire(new ScriptServer(SHOW_STATES,SHOW.journal.entries,busy),{...ON,[ID]:false},[act]);
   expect(off.tool("battle_action")).toBe(act);
  });

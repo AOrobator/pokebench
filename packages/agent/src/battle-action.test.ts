@@ -282,6 +282,19 @@ describe("never presses blindly",()=>{
 });
 
 describe("other stops",()=>{
+ it("Codex round 1: two ready inputs (a double battle) are refused, and a second one appearing mid-call stops it; nothing reaches both",async()=>{
+  const two=rec("e046:16609");const b=two.battle;if(b==null)throw new Error("battle");
+  b.player_inputs=[{...ACTION_TEMPLATE},{...ACTION_TEMPLATE,battler:2}];
+  const ports:BattleActionPorts={read:()=>Promise.resolve(two),press:()=>{throw new Error("pressed");},observe:()=>Promise.resolve({content:[],details:{state:two}})};
+  expect((await battleActionTool(ports).execute("b",{action:"run"})).content[0]).toEqual({type:"text",text:"Battle action: nothing pressed: the battle is not waiting for a choice; more than one battle input is waiting at once."});
+  const sim=new BattleSim(rec("e046:16609"));
+  const doubled=()=>{const s=sim.state();const sb=s.battle;if(sb==null)throw new Error("battle");sb.player_inputs=[...(sb.player_inputs??[]),{...ACTION_TEMPLATE,battler:2}];return s;};
+  let first=true;
+  const p2=sim.ports({press:(_i,params,_s,check)=>{check(first?sim.state():doubled());for(const x of params.buttons)sim.press(x);const out=first?doubled():sim.state();first=false;return Promise.resolve({content:[],details:{state:out}});}});
+  const result=await battleActionTool(p2).execute("b",{action:"run"});
+  expect(sim.presses).toEqual(["RIGHT"]);
+  expect(result.content[0]).toEqual({type:"text",text:"Battle action: stopped after pressing RIGHT; more than one battle input is waiting at once; inspect the new state."});
+ });
  it("an input this call does not drive appearing between menus stops it",async()=>{
   const sim=new BattleSim(rec("e046:16609"));
   const {status}=await call(sim,{action:"fight",move:"EMBER"},{wait:()=>{sim.screen="target";return Promise.resolve({reason:"input",frames:3,state:sim.state()});}});
@@ -317,6 +330,13 @@ describe("other stops",()=>{
 });
 
 describe("battle-move-tool-v1 registry and production wiring",()=>{
+ it("the precondition refuses a state with two ready inputs; nothing is sent",async()=>{
+  const sim=new BattleSim(rec("e046:16609"));
+  const p=sim.ports({press:(_i,params,_s,check)=>{const s=sim.state();const sb=s.battle;if(sb==null)throw new Error("battle");sb.player_inputs=[...(sb.player_inputs??[]),{...ACTION_TEMPLATE,battler:2}];check(s);for(const x of params.buttons)sim.press(x);return Promise.resolve({content:[],details:{state:sim.state()}});}});
+  const result=await battleActionTool(p).execute("b",{action:"run"});
+  expect(sim.presses).toEqual([]);
+  expect(result.content[0]).toEqual({type:"text",text:"Battle action: stopped; the battle input changed before the press, so no button was sent; inspect the new state."});
+ });
  const BASE=flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false});
  const ON:FeatureSet={...BASE,[BATTLE_ACTION_ID]:true};
  it("is a default-off guidance switch recorded last, needing no other switch",()=>{

@@ -272,6 +272,11 @@ export function afterAdvance(line:string,detail:string):string {
  return kept===line?line:`${kept}; after auto-advance: ${detail}`;
 }
 // navigate_to's status was read before auto-advance ran; restate why it stopped and what is true now.
+function refusedAction(details:unknown):boolean {
+ if(typeof details!=="object"||details===null||!("battle_action" in details))return false;
+ const action=details.battle_action;
+ return typeof action==="object"&&action!==null&&"refused" in action&&action.refused===true;
+}
 export function navigationAfter(raw:unknown,outcome:Pick<Outcome,"stop"|"detail">,moved:string|null=null):string|null {
  if(typeof raw!=="object"||raw===null||!("navigation" in raw))return null;
  const nav=raw.navigation;
@@ -433,6 +438,8 @@ export function withDialogueAutoAdvance(tools:readonly AgentTool[],features:Feat
    const result=await tool.execute(id,params,signal,update);
    const state=stateOf(result);
    if(!dialogueEngaged(state)&&!(battle!==null&&battleEngaged(state)))return result;
+   // battle-move-tool-v1: "nothing pressed" stays true for the whole call (review round 1 note).
+   if(battleAction&&refusedAction(result.details))return result;
    const pages=new Pages(record,open,present,truth);
    const outcome=await drive(state,pages,autoPress(id),full,battle,signal);
    open=pages.openAt(outcome.state);

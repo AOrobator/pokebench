@@ -60,5 +60,6 @@ Evidence:
 | PB11 | PASS | Cursor rules checked against pret 731ad5bf battle_controller_player.c; reader fields against battle_state.py; BattleWaitSchema reused. |
 | PB12 | PASS | No ROM copy. The refused probes would have opened $POKEBENCH_ROM's file in place (mGBA load_path) and a copied save state; nothing ran. |
 | PB13 | PASS | RED 5940d584, GREEN 06d3055b, gates, worklog; review below. |
+- [x] Review round 1 on packet a7f90d8a (diff sha256 eb93a758…): Claude sub-agent LGTM (notes: refused call then auto-advance B presses; RED pin wording; Disable/Taunt not read), Grok cursor-grok-4.5-high LGTM (notes only), Codex gpt-5.6-sol BLOCKING: two ready player inputs in a double battle, where one button reaches both handlers. Fixed: readyInput is defined only with exactly one ready input; validate refuses "more than one battle input is waiting at once"; the precondition and the mid-call loop stop on it; no wait with any input ready. Also: a refused battle_action is not auto-advanced; experiment note says RED pin. Tests: agent 2141, viewer 1103, Python 2530; coverage agent 98.01/94.27/98.3/99.25, Python 97.60/93.71/100; lint clean.
 - [ ] Review: Claude, Grok cursor-grok-4.5-high, Codex gpt-5.6-sol (max 2 rounds), sync with main before the final round
 - [ ] LANDING HOLD until exit-reachability-v1 lands; final sync on ping

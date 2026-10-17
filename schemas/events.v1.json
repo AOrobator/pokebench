@@ -8070,6 +8070,129 @@
             }
           },
           "additionalProperties": false
+        },
+        "exit_reach": {
+          "type": "object",
+          "required": [
+            "warps",
+            "connections",
+            "foot"
+          ],
+          "properties": {
+            "warps": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "x",
+                  "y",
+                  "reach"
+                ],
+                "properties": {
+                  "x": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 255
+                  },
+                  "y": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 255
+                  },
+                  "reach": {
+                    "enum": [
+                      "foot",
+                      "water",
+                      "none"
+                    ]
+                  }
+                },
+                "additionalProperties": false
+              },
+              "maxItems": 255
+            },
+            "connections": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "direction",
+                  "destination",
+                  "offset",
+                  "reach"
+                ],
+                "properties": {
+                  "direction": {
+                    "enum": [
+                      "NORTH",
+                      "SOUTH",
+                      "EAST",
+                      "WEST"
+                    ]
+                  },
+                  "destination": {
+                    "type": "array",
+                    "additionalItems": false,
+                    "items": [
+                      {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 255
+                      },
+                      {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 255
+                      }
+                    ],
+                    "minItems": 2
+                  },
+                  "offset": {
+                    "type": "integer"
+                  },
+                  "reach": {
+                    "enum": [
+                      "foot",
+                      "water",
+                      "none"
+                    ]
+                  }
+                },
+                "additionalProperties": false
+              },
+              "maxItems": 16
+            },
+            "foot": {
+              "type": "object",
+              "required": [
+                "width",
+                "height",
+                "rows"
+              ],
+              "properties": {
+                "width": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 256
+                },
+                "height": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 256
+                },
+                "rows": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{1,64}$"
+                  },
+                  "maxItems": 256
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
         }
       },
       "additionalProperties": false

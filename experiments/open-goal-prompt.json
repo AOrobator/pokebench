@@ -141,7 +141,8 @@
    "heal-before-trainers-v1": true,
    "harness-trust-v1": true,
    "cited-destination-v1": true,
-   "battle-move-tool-v1": true
+   "battle-move-tool-v1": true,
+   "harness-trust-v2": true
   },
   "start": {
    "kind": "save_state",

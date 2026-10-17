@@ -49,6 +49,9 @@ pret/pokeemerald 731ad5bf. Outside the map's own grid with no connected map ther
 - [x] Wiring test broken once and watched red: 5:04 PM New York, `withNoExitHere` removed from `playGameTools`; both factory tests (9439 s14790 press, e046 s17549 navigate_to) failed, 2 failed / 20 passed; restored, 22/22.
 - [x] Explainer `docs/explainers/no-exit-here-v1.html` (README entry; `just pages-check` prints nothing), FEATURE_EXPLAINERS mapping with the panels and server tests, pending `experiments/no-exit-here.json` (cited-destination's incumbent with world-destinations-v1 ON; provisional source.commit), readiness row; `just experiments-check`: ok, 94 experiments.
 - [x] Gates (5:15 PM New York): `just build` ok; `just test` agent 2232/2232, viewer 1117/1117, pytest 2445 passed / 117 skipped; `just lint` clean (tsc, eslint, ruff, mypy); `just coverage` agent lines 98.06 / branches 94.31 / functions 98.18 (no-exit-here.ts 100 / 90.99 / 100), viewer 95.36 / 91.38 / 93.79, Python lines 97.55 / branches 93.60 / functions 99.43, floor 90.
+  - COMMIT: `feat(no-exit-here): no-exit-here-v1 says there is no way off the map on a side with no connection, with the ways off it; explainer and pending experiment` (4698ee75)
+  - Pending entry's provisional source.commit set to 4698ee75 (repin to the merge SHA when it lands); `just experiments-check` ok.
+- [ ] STOP: review loop (principles self-review, Claude, Grok, GPT/Codex) not started in this session.
 
 ## Multi-Model Review Log
 

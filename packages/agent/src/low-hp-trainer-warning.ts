@@ -293,8 +293,9 @@ export function healBeforeTrainersText(f:HealBeforeTrainersFacts):string {
  return `SUPERVISOR: ${who} Your party is weak for a battle: ${weak}. ${NO_RUNNING} ${blackout(f.money)} ${where}`;
 }
 
-// The arm: warns about each unbeaten trainer once while the party stays weak on this map, and again after a trainer
-// battle. It re-arms on another map or a party read as not weak; battles and unreadable states change nothing else.
+// The arm: names each unbeaten trainer once while the party stays weak on this map (a trainer that loads later is named
+// on its own), and every one again after a trainer battle. It re-arms on another map or a party read as not weak;
+// battles and unreadable states change nothing else.
 // It also remembers every POKéMON CENTER 1F the results show the player in.
 export class HealBeforeTrainers {
  private readonly entered=new Set<string>();
@@ -317,11 +318,14 @@ export class HealBeforeTrainers {
   }
   const key=keyOf(facts.map_id);
   if(key!==this.map){this.warned=new Set();this.map=key;}
-  if(!this.battled&&facts.trainers.every(t=>this.warned.has(t.local_id)))return null;
+  // Without a trainer battle since the last warning, only the trainers not yet named are named.
+  const fresh=facts.trainers.filter(t=>!this.warned.has(t.local_id));
+  if(!this.battled&&fresh.length===0)return null;
+  const named={...facts,trainers:this.battled?facts.trainers:fresh};
   for(const t of facts.trainers)this.warned.add(t.local_id);
   this.battled=false;
   const places=await this.options.places();
-  return places===null?facts:{...facts,heal:nearestHeal(state,ctx,places)};
+  return places===null?named:{...named,heal:nearestHeal(state,ctx,places)};
  }
  private rearms(state:GameStateSnapshot):boolean {
   if(!state.started)return false;

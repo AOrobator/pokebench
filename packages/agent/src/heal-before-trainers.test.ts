@@ -196,6 +196,18 @@ describe("the arm",()=>{
   expect(await watch.observe({...AFTER,party:[{...lead,hp:null,max_hp:null}]})).toBeNull();
   expect(await watch.observe(AFTER)).toBeNull();
  });
+ it("names a trainer that loads later on its own: A, then A and B, warns about B only (review round 1, GPT)",async()=>{
+  const watch=new HealBeforeTrainers({skipStory:false,places:()=>Promise.resolve(PLACES)});
+  const both={...AFTER,heal_before_trainers:{...facts(AFTER),trainers:facts(AFTER).trainers.map(t=>({...t,defeated:false}))}};
+  const first=must(await watch.observe(BEFORE_RICH_BOY));
+  expect(first.trainers.map(t=>t.local_id)).toEqual([25]);
+  const second=must(await watch.observe(both));
+  expect(second.trainers).toEqual([{local_id:3,x:31,y:24,sprite_kind:"LASS"}]);
+  expect(healBeforeTrainersText(second)).toContain("A trainer you have not beaten is on this map: object 3, sprite LASS, at (31,24).");
+  expect(await watch.observe(both)).toBeNull();
+  expect(await watch.observe(RICH_BOY_BATTLE)).toBeNull();
+  expect((await watch.observe(both))?.trainers.map(t=>t.local_id)).toEqual([3,25]);
+ });
  it("a wild battle is not a trainer battle: it does not repeat the warning",async()=>{
   const watch=new HealBeforeTrainers({skipStory:false,places:()=>Promise.resolve(PLACES)});
   expect(await watch.observe(AFTER)).not.toBeNull();

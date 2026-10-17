@@ -115,7 +115,7 @@ it("registers the switch as a guard that needs the loop guard, with a prompt lin
  expect(featureInfo("loop-guard-supervisor-v1")).toMatchObject({group:"guard",needs:"deterministic-loop-guard-v1"});
  expect(dependencyProblems({...ALL_ON,"deterministic-loop-guard-v1":false})).toContain("loop-guard-supervisor-v1 needs deterministic-loop-guard-v1");
  expect(playSystemPrompt({...ALL_ON,"loop-guard-supervisor-v1":true},null)).toContain("SUPERVISOR");
- expect(playSystemPrompt({...ALL_ON,"loop-guard-supervisor-v1":false},null)).not.toContain("SUPERVISOR");
+ expect(playSystemPrompt({...ALL_ON,"loop-guard-supervisor-v1":false,"harness-trust-v1":false},null)).not.toContain("SUPERVISOR");
 });
 
 it("labels odd calls and outcomes truthfully",()=>{

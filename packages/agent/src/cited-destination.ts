@@ -13,7 +13,7 @@ export interface DestinationCitationFacts {
 }
 export interface CitationRecorder {
  subscribe(listener:(event:RunEvent)=>void):void;
- destinationCitation(facts:DestinationCitationFacts,text:string|null):void;
+ destinationCitation?(facts:DestinationCitationFacts,text:string|null):void;
 }
 export interface CitationOptions {readonly fullMap:boolean;readonly exitReach:boolean}
 
@@ -68,6 +68,8 @@ function isGoal(value:unknown):value is Goal&{readonly because?:unknown} {
 
 export function withCitedDestination(tools:readonly AgentTool[],on:boolean,recorder:CitationRecorder,options:CitationOptions):AgentTool[] {
  if(!on)return [...tools];
+ const record=recorder.destinationCitation?.bind(recorder);
+ if(record===undefined)throw new Error("cited-destination-v1 needs a recorder for destination_citation events");
  const citations=new Citations();recorder.subscribe(event=>{citations.observe(event);});
  return tools.map(tool=>{
   if(tool.name!=="navigate_to")return tool;
@@ -78,7 +80,7 @@ export function withCitedDestination(tools:readonly AgentTool[],on:boolean,recor
    const {because,...goal}=params;
    const {verdict,turn}=citations.check(because);
    const line=citationText(verdict,because);
-   recorder.destinationCitation({tool_call_id:id,because,verdict,found_turn:turn,x:goal.x,y:goal.y,map_id:[goal.map_id[0],goal.map_id[1]]},line);
+   record({tool_call_id:id,because,verdict,found_turn:turn,x:goal.x,y:goal.y,map_id:[goal.map_id[0],goal.map_id[1]]},line);
    const result=await tool.execute(id,goal,signal,update);
    if(line===null)return result;
    const index=result.content.findIndex(part=>part.type==="text");

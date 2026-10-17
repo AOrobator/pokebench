@@ -152,7 +152,7 @@ export function awayText(f:StoryGoalAwayFacts):string {
  return `SUPERVISOR: Your last two moves took you farther from ${place}, the place in ${f.speaker}'s line above (turn ${String(f.line_turn)}): ${f.steps.map(stepText).join("; then ")}. Unless a story character has told you something newer, the Story goal line is where to go.`;
 }
 
-export interface TrustRecorder {storyGoalAway(tool:string,facts:StoryGoalAwayFacts,text:string):void}
+export interface TrustRecorder {storyGoalAway?(tool:string,facts:StoryGoalAwayFacts,text:string):void}
 
 function stateOf(details:unknown):GameStateSnapshot|null {
  if(typeof details!=="object"||details===null||!("state" in details)||details.state===undefined)return null;
@@ -179,6 +179,8 @@ export class HarnessTrust {
 
 export function withHarnessTrust(tools:readonly AgentTool[],on:boolean,recorder:{subscribe(listener:(event:RunEvent)=>void):void}&TrustRecorder,source:PlaceSource,options:TrustOptions={supervisor:true}):AgentTool[] {
  if(!on)return [...tools];
+ const record=recorder.storyGoalAway?.bind(recorder);
+ if(options.supervisor&&record===undefined)throw new Error("harness-trust-v1 needs a recorder for story_goal_away events");
  const trust=new HarnessTrust(options);recorder.subscribe(event=>{trust.observe(event);});
  let table:Promise<readonly Place[]>|null=null;
  const places=async():Promise<readonly Place[]|Error>=>{
@@ -196,7 +198,7 @@ export function withHarnessTrust(tools:readonly AgentTool[],on:boolean,recorder:
   if(part?.type!=="text")return result;
   const {header,away}=trust.lines(part.text,state,id,await places());
   const note=away===null?null:awayText(away);
-  if(away!==null&&note!==null)recorder.storyGoalAway(tool,away,note);
+  if(away!==null&&note!==null)record?.(tool,away,note);
   const content=[...result.content];content[index]={...part,text:`${header}\n${note===null?"":`${note}\n`}\n${part.text}`};
   return {...result,content};
  };

@@ -75,6 +75,8 @@ function body(event: RunEvent): [string, string] {
     case "dialogue_auto_advance": return ["DIALOGUE", `auto-advanced ${String(event.auto_presses)} B${event.battle_auto_presses===undefined?"":` (${String(event.battle_auto_presses)} in battle)`} (${event.tool}) · ${String(event.pages.length)} pages · stop ${event.stop}${event.dropped.length===0?"":` · ${String(event.dropped.length)} inputs not sent`}`];
     case "people_id_card": return ["OBSERVE", `ID card · ${event.key} · ${event.reason} · ${event.tool} result`];
     case "story_battle_warning": return ["SUPERVISOR", `story battle warning · ${event.opponent} · ${event.party.map((p) => `${p.species} ${String(p.hp)}/${String(p.max_hp)}`).join(", ")}`];
+    case "story_goal_away": return ["SUPERVISOR", `story goal walk-away · ${event.speaker}, turn ${String(event.line_turn)} · ${event.steps.map((st) => `${String(st.before)}→${String(st.after)} ${st.measure}`).join(", ")}`];
+    case "destination_citation": return ["OBSERVE", `navigate_to because ${event.verdict.replace("_"," ")}${event.found_turn===null?"":` (turn ${String(event.found_turn)})`} · ${clip(event.because,80)}`];
     case "low_hp_trainer_warning": return ["SUPERVISOR", `low-HP trainer warning · ${event.species} ${String(event.hp)}/${String(event.max_hp)} · ${event.rival} at (${String(event.x)},${String(event.y)})`];
     case "text_only_supervisor": return ["SUPERVISOR", `text-only note ${String(event.note)}/${String(event.limit)} after ${String(event.replies)} replies · ${clip(event.text,80)}`];
     case "retry":

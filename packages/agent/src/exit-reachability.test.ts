@@ -280,8 +280,8 @@ describe("exit-reachability-v1 schema, registry and presets",()=>{
   expect(description).toContain(" Off: ");
   expect(description).toContain("bundle arm only");
   expect(description).not.toContain("both arms");
-  expect(FEATURES.filter(f=>f.switchable).at(-1)?.id).toBe(ID);
-  expect(playHarnessFeatures(ALL_ON,null).at(-1)).toBe(ID);
+  expect(FEATURES.filter(f=>f.switchable).at(-3)?.id).toBe(ID);
+  expect(playHarnessFeatures(ALL_ON,null).at(-3)).toBe(ID);
   expect(SERVER_FEATURES.at(-1)).toBe(ID);
   expect(serverFeatureEnv({...ALL_ON,[ID]:false}).POKEBENCH_FEATURES_OFF.split(",")).toContain(ID);
   expect(serverFeatureEnv(ALL_ON).POKEBENCH_FEATURES_OFF.split(",")).not.toContain(ID);
@@ -294,7 +294,7 @@ describe("exit-reachability-v1 schema, registry and presets",()=>{
 });
 
 describe("exit-reachability-v1 production wiring (playGameTools and loopSupervisor)",()=>{
- const BASE:FeatureSet={...ALL_ON,"people-ledger-v1":false,"people-id-cards-v1":false,"trainer-heal-guidance-v1":false,"low-hp-trainer-warning-v1":false,"low-hp-trainer-warning-v2":false,"dialogue-auto-advance-v1":false,"bounded-navigation-v1":false,"navigate-first-prompt-v1":false,"blocked-exit-fact-v1":false,"battle-loss-recap-v1":false,"next-milestone-hint-v1":false,"story-destinations-v1":false};
+ const BASE:FeatureSet={...ALL_ON,"people-ledger-v1":false,"people-id-cards-v1":false,"trainer-heal-guidance-v1":false,"low-hp-trainer-warning-v1":false,"low-hp-trainer-warning-v2":false,"dialogue-auto-advance-v1":false,"bounded-navigation-v1":false,"navigate-first-prompt-v1":false,"blocked-exit-fact-v1":false,"battle-loss-recap-v1":false,"next-milestone-hint-v1":false,"story-destinations-v1":false,"harness-trust-v1":false,"cited-destination-v1":false};
  const snapshot=recorded("0e05:22579");
  const readout="Screen: overworld\nLocation: ROUTE104\nPosition: X=18, Y=42, facing left\nMoney: 1";
  const tool=(name:string):AgentTool=>({name,label:name,description:name,parameters:{},execute:()=>Promise.resolve({content:[{type:"text",text:readout}],details:{state:snapshot}})}) as unknown as AgentTool;

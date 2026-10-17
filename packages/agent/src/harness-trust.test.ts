@@ -6,7 +6,7 @@ import {checkEvent,type RunEvent} from "./events.js";
 import {parseGameState,type GameStateSnapshot} from "./game-state.js";
 import {isCheckedPress,type CheckedPressTool} from "./game-tools.js";
 import type {PlacesBody} from "./story-destinations.js";
-import {TRUST_HEADER,awayText,charactersLine,mapSteps,trustSection,withHarnessTrust,type StoryGoalAwayFacts} from "./harness-trust.js";
+import {TRUST_HEADER,WalkAway,awayText,charactersLine,mapSteps,trustSection,waysHere,withHarnessTrust,type StoryGoalAwayFacts} from "./harness-trust.js";
 
 interface Recording {readonly run:string;readonly events:readonly unknown[]}
 const RECORDED=JSON.parse(readFileSync(new URL("../test-support/story-destinations-recorded.json",import.meta.url),"utf8")) as Record<"4caa"|"sh02",Recording>;
@@ -198,5 +198,54 @@ describe("harness-trust-v1 walk-away supervisor",()=>{
   for(const e of CAAA){if(e.seq>result.seq)break;for(const s of subs)s(e);}
   for(const [i,s] of [route103(9,13),route103(9,10),route103(9,7)].entries()){nav.next(s,"x");expect(textOf(await tool?.execute(`k${String(i)}`,{}) ?? {content:[],details:undefined})).toContain(LAB_GOAL);}
   expect(notes).toHaveLength(0);
+ });
+ it("measures each map edge from its own side, and nothing without a position or a way",()=>{
+  const place=(id:[number,number])=>{const p=PLACES.places.find(q=>q.map_id[0]===id[0]&&q.map_id[1]===id[1]);if(p===undefined)throw Error("no place");return p;};
+  const on=(id:[number,number],x:number,y:number):GameStateSnapshot=>({...base,map_id:id,position:{x,y},topology:{width:20,height:20,connections:[]}});
+  expect(waysHere(on([0,9],5,7),[place([0,16])],PLACES.places)).toEqual([{label:"this map's NORTH edge (to ROUTE101 (map 0/16))",distance:7}]);
+  expect(waysHere(on([0,10],5,7),[place([0,17])],PLACES.places)).toEqual([{label:"this map's WEST edge (to ROUTE102 (map 0/17))",distance:5}]);
+  expect(waysHere(on([0,18],5,7),[place([0,25])],PLACES.places)).toEqual([{label:"this map's EAST edge (to ROUTE110 (map 0/25))",distance:14}]);
+  expect(waysHere(on([0,9],5,7),[place([1,4])],PLACES.places)).toEqual([{label:"the door at (7,16) (to PROF. BIRCH'S POKéMON LAB (map 1/4))",distance:11}]);
+  expect(waysHere({...on([0,9],5,7),position:null},[place([1,4])],PLACES.places)).toEqual([]);
+  expect(waysHere(on([1,4],5,7),[place([1,4])],PLACES.places)).toEqual([]);
+  expect(waysHere(on([99,99],5,7),[place([1,4])],PLACES.places)).toEqual([]);
+  // A warp to a map the table does not list is named by its id.
+  const odd=[...PLACES.places.filter(p=>!(p.map_id[0]===0&&p.map_id[1]===9)),{...place([0,9]),warps:[{x:1,y:1,to:[1,4] as [number,number]},{x:2,y:2,to:[77,77] as [number,number]}]}];
+  expect(waysHere(on([0,9],5,7),[place([1,4]),{...place([1,4]),map_id:[77,77]}],odd).map(w=>w.label)).toEqual(["the door at (1,1) (to PROF. BIRCH'S POKéMON LAB (map 1/4))","the door at (2,2) (to a map (map 77/77))"]);
+ });
+ it("sideways moves, moves closer across a map edge, and unresolved or unmeasurable goals never add a note",async()=>{
+  // Sideways: the same distance to the SOUTH edge.
+  expect((await walk([route103(9,13),route103(10,13),route103(11,13)])).h.notes).toHaveLength(0);
+  // Route 103 to Oldale is a step closer: it resets the count.
+  expect((await walk([route103(9,13),route103(9,10),oldale(10,3),route103(10,21),route103(11,21)])).h.notes).toHaveLength(0);
+  const walkAway=new WalkAway();
+  const result272=resultAt(CAAA,272);
+  const story=harness();story.feed(CAAA,result272.seq);
+  // A goal with no resolved place, and a position or map the state does not give.
+  const unresolved={line:{turn:1,speaker:"MOM",text:"Go to the SECRET TOMB.",lives:null},resolved:[{quote:"\"SECRET TOMB\"",text:": not resolved",target:null}]};
+  expect(walkAway.observe(route103(9,13),unresolved,PLACES.places)).toBeNull();
+  expect(walkAway.observe({...route103(9,13),position:null},null,PLACES.places)).toBeNull();
+  // An adjacent map the table cannot count from.
+  const lab=PLACES.places.find(p=>p.map_id[0]===1&&p.map_id[1]===4);if(lab===undefined)throw Error("no lab");
+  const goal={line:{turn:1,speaker:"MAY",text:"the LAB",lives:null},resolved:[{quote:"\"LAB\"",text:" = lab",target:lab}]};
+  const island=[...PLACES.places,{map_id:[50,50] as [number,number],name:"ISLAND",display:"ISLAND",warps:[],connections:[{direction:"SOUTH" as const,to:[0,18] as [number,number]}]}];
+  const w2=new WalkAway();
+  expect(w2.observe({...route103(9,13),map_id:[50,50],location:"ISLAND"},goal,island)).toBeNull();
+  expect(w2.observe(route103(9,13),goal,island)).toBeNull();
+  expect(w2.observe(route103(9,10),goal,island)).toBeNull();
+ });
+ it("says one map, not one maps, and needs a recorder for its events",()=>{
+  const facts:StoryGoalAwayFacts={speaker:"MAY",line_turn:1,quote:"q",targets:[{name:"LAB",map_id:[1,4]}],steps:[{measure:"maps",from_map:[0,16],to_map:[0,10],from_name:"ROUTE101",to_name:"OLDALE TOWN",from:{x:1,y:1},to:{x:1,y:1},before:0,after:1,way:null},{measure:"maps",from_map:[0,10],to_map:[0,18],from_name:"OLDALE TOWN",to_name:"ROUTE103",from:{x:1,y:1},to:{x:1,y:1},before:1,after:2,way:null}]};
+  expect(awayText(facts)).toContain("from 0 to 1 map away from it by the game's map table");
+  expect(awayText(facts)).toContain("from 1 to 2 maps away from it by the game's map table");
+  expect(()=>withHarnessTrust([],true,{subscribe:()=>undefined},{})).toThrow("harness-trust-v1 needs a recorder for story_goal_away events");
+  expect(withHarnessTrust([],true,{subscribe:()=>undefined},{},{supervisor:false})).toEqual([]);
+ });
+ it("a malformed map table reads as unreadable",async()=>{
+  const result=resultAt(CAAA,272);const state=stateAt(CAAA,result.state_seq ?? -1);
+  for(const places of [()=>Promise.resolve({places:"nope"})]){
+   const h=harness(true,places);h.feed(CAAA,result.seq);h.observe.next(state,"x");
+   expect(textOf(await h.tools[0]?.execute("o",{}) ?? {content:[],details:undefined})).toMatch(/\nStory goal: not known; the game's map table could not be read \((malformed \/pokebench\/places|HTTP 500)\)\.\n/);
+  }
  });
 });

@@ -26,7 +26,7 @@ import {FrameStore} from "./frames.js";
 import {RUN_START_META} from "../test-support/events.js";
 import type {PlacesBody} from "./story-destinations.js";
 
-const TRUST="harness-trust-v1",CITED="cited-destination-v1";
+const TRUST="harness-trust-v1" as const,CITED="cited-destination-v1" as const;
 interface Recording {readonly run:string;readonly events:readonly unknown[]}
 const RECORDED=JSON.parse(readFileSync(new URL("../test-support/story-destinations-recorded.json",import.meta.url),"utf8")) as Record<"4caa",Recording>;
 const PLACES=JSON.parse(readFileSync(new URL("../test-support/story-destinations-places.json",import.meta.url),"utf8")) as PlacesBody;
@@ -56,7 +56,7 @@ describe("registry and presets",()=>{
   expect(stateOnlyProblems({...ALL_ON,"state-only-decisions-v1":true})).toEqual(expect.arrayContaining([`state-only-decisions-v1 requires ${TRUST} OFF`,`state-only-decisions-v1 requires ${CITED} OFF`]));
  });
  it("presets default both OFF when omitted (new treatments), and keep an explicit value",()=>{
-  const {[TRUST]:_t,[CITED]:_c,...rest}=ALL_ON;
+  const rest=Object.fromEntries(Object.entries(ALL_ON).filter(([id])=>id!==TRUST&&id!==CITED)) as Omit<FeatureSet,typeof TRUST|typeof CITED>;
   expect(normalizeFeatures(rest)).toMatchObject({[TRUST]:false,[CITED]:false});
   expect(normalizeFeatures({...rest,[TRUST]:true,[CITED]:true})).toMatchObject({[TRUST]:true,[CITED]:true});
   expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:true})).toMatchObject({[TRUST]:false,[CITED]:false});
@@ -88,7 +88,7 @@ function gameTools(states:()=>GameStateSnapshot,onCall?:(name:string,id:string)=
  const result=(name:string,id:string):Promise<AgentToolResult<Details>>=>{onCall?.(name,id);return Promise.resolve({content:[{type:"text",text:`${name}: Location: ROUTE103`}],details:{state:states()}});};
  return [
   {name:"observe",label:"o",description:"o",parameters:Type.Object({}),execute:id=>result("observe",id)},
-  {name:"press",label:"p",description:"p",parameters:Type.Object({buttons:Type.Array(Type.String())}),execute:id=>result("press",id),executeChecked:id=>result("press",id)} as AgentTool,
+  {name:"press",label:"p",description:"p",parameters:Type.Object({buttons:Type.Array(Type.String())}),execute:(id:string)=>result("press",id),executeChecked:(id:string)=>result("press",id)} as AgentTool,
  ];
 }
 function fakeRecorder() {
@@ -128,7 +128,7 @@ describe("the production factory",()=>{
 
 describe("recorded events",()=>{
  it("story_goal_away and destination_citation are schema-valid run events",()=>{
-  const away={tool:"navigate_to",speaker:"MAY",line_turn:272,quote:"Well, it's time to head back to the LAB.",targets:[{name:"PROF. BIRCH'S POKéMON LAB",map_id:[1,4]}],steps:[{measure:"tiles",from_map:[0,18],to_map:[0,18],from_name:"ROUTE103",to_name:"ROUTE103",from:{x:9,y:13},to:{x:9,y:10},before:8,after:11,way:"this map's SOUTH edge (to OLDALE TOWN (map 0/10))"}],text:"SUPERVISOR: x"};
+  const away={tool:"navigate_to",speaker:"MAY",line_turn:272,quote:"Well, it's time to head back to the LAB.",targets:[{name:"PROF. BIRCH'S POKéMON LAB",map_id:[1,4]}],steps:[{measure:"tiles",from_map:[0,18],to_map:[0,18],from_name:"ROUTE103",to_name:"ROUTE103",from:{x:9,y:13},to:{x:9,y:10},before:8,after:11,way:"this map's SOUTH edge (to OLDALE TOWN (map 0/10))"},{measure:"maps",from_map:[0,10],to_map:[0,18],from_name:"OLDALE TOWN",to_name:"ROUTE103",from:{x:10,y:0},to:{x:10,y:21},before:3,after:4,way:null}],text:"SUPERVISOR: x"};
   expect(checkEvent({v:1,run:"r",seq:1,t:"2026-10-17T15:00:00.000-04:00",type:"story_goal_away",turn:3,...away}).type).toBe("story_goal_away");
   const cite={tool_call_id:"n",because:"x y",verdict:"not_found",found_turn:null,x:1,y:2,map_id:[0,9],text:"Because: x"};
   expect(checkEvent({v:1,run:"r",seq:2,t:"2026-10-17T15:00:00.000-04:00",type:"destination_citation",turn:3,...cite}).type).toBe("destination_citation");
@@ -158,7 +158,7 @@ it("delivers the header and the walk-away note to the next model request through
   const recorder=new RunRecorder({log,frames:new FrameStore(root),milestones:{poll:()=>Promise.resolve([])},gameState:{read:()=>Promise.resolve(STATE)}});
   await recorder.start(RUN_START_META);
   const states=()=>must(walk[Math.min(call,walk.length)-1]);
-  const tools=playGameTools(gameTools(states,(_name,id)=>{call++;if(call===1)recorder.recordDialogueAutoAdvance({tool_call_id:id,tool:"observe",requested:["A"],sent:["A"],dropped:[],auto_presses:1,pages:[{state_seq:null,map:"ROUTE103",map_id:[0,18],position:{x:9,y:3},speaker:"MAY",speaker_source:"name_prefix",text:"MAY: Well, it's time to head back to\nthe LAB."}],stop:"field_free",detail:"d",duration_ms:1});}),{...OFF,[TRUST]:true},{read:()=>Promise.resolve(STATE),places:()=>Promise.resolve(PLACES)},recorder);
+  const tools=playGameTools(gameTools(states,(_name,id)=>{call++;if(call===1)recorder.recordDialogueAutoAdvance({tool_call_id:id,tool:"press",requested:["A"],sent:["A"],dropped:[],auto_presses:1,pages:[{state_seq:null,map:"ROUTE103",map_id:[0,18],position:{x:9,y:3},speaker:"MAY",speaker_source:"name_prefix",text:"MAY: Well, it's time to head back to\nthe LAB."}],stop:"field_free",detail:"d",duration_ms:1});}),{...OFF,[TRUST]:true},{read:()=>Promise.resolve(STATE),places:()=>Promise.resolve(PLACES)},recorder);
   const abort=new AbortController();
   const governor=new Governor({limits:{maxTurns:5,maxWallMs:10000,failureLimit:3},retry:()=>{},abort:()=>{abort.abort();},now:()=>0});
   const loop=piLoop({systemPrompt:"Play",tools,base:gatewayLoopConfig(model,"off"),governor,signal:abort.signal,transformContext:m=>Promise.resolve(m),emit:event=>recorder.emit(event)});
@@ -167,12 +167,12 @@ it("delivers the header and the walk-away note to the next model request through
   const events:RunEvent[]=readFileSync(log.eventsPath,"utf8").trim().split("\n").map(line=>checkEvent(JSON.parse(line)));
   const results=events.filter((e):e is Extract<RunEvent,{type:"tool_result"}>=>e.type==="tool_result");
   const notes=events.filter((e):e is Extract<RunEvent,{type:"story_goal_away"}>=>e.type==="story_goal_away");
-  const goal="Story goal: \\\"Well, it's time to head back to the LAB.\\\" (MAY, turn 1)";
+  const goal="Story goal: \\\"Well, it's time to head back to the LAB.\\\" (MAY, turn 0)";
   expect(requests[1]).toContain(JSON.stringify(TRUST_HEADER).slice(1,-1));
   expect(requests[1]).toContain(goal);
-  expect(results[0]?.text.startsWith(`${TRUST_HEADER}\nStory goal: "Well, it's time to head back to the LAB." (MAY, turn 1) -> "LAB" = PROF. BIRCH'S POKéMON LAB (map 1/4).`)).toBe(true);
+  expect(results[0]?.text.startsWith(`${TRUST_HEADER}\nStory goal: "Well, it's time to head back to the LAB." (MAY, turn 0) -> "LAB" = PROF. BIRCH'S POKéMON LAB (map 1/4).`)).toBe(true);
   expect(notes).toHaveLength(1);
-  expect(notes[0]).toMatchObject({tool:"observe",speaker:"MAY",line_turn:1,steps:[{measure:"tiles",from:{x:9,y:13},to:{x:9,y:10}},{measure:"tiles",from:{x:9,y:10},to:{x:9,y:7}}]});
+  expect(notes[0]).toMatchObject({tool:"observe",speaker:"MAY",line_turn:0,steps:[{measure:"tiles",from:{x:9,y:13},to:{x:9,y:10}},{measure:"tiles",from:{x:9,y:10},to:{x:9,y:7}}]});
   expect(results[3]?.text).toContain(`\n${must(notes[0]).text}\n`);
   expect(must(notes[0]).seq).toBeLessThan(must(results[3]).seq);
   expect(requests.some(r=>r.includes("SUPERVISOR: Your last two moves took you farther from PROF. BIRCH'S POKéMON LAB (map 1/4)"))).toBe(true);

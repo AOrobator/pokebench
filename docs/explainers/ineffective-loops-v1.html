@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ineffective Loops</title>
+<style>
+:root{
+ --bg:#f7f6f2; --fg:#1c1d1f; --soft:#5b5d61; --rule:#dedcd5; --panel:#ffffff;
+ --game:#1a7f5a; --game-bg:#e3f4ec; --prior:#c2432f; --prior-bg:#fbe7e2; --nav:#2a62c9; --nav-bg:#e4edfb; --hot:#c2432f; --water:#cfe3f7;
+ --body:system-ui,-apple-system,"Segoe UI",sans-serif; --mono:ui-monospace,"SF Mono",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+ --bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; --hot:#ff7a63; --water:#1b3550; color-scheme:dark}}
+:root[data-theme="dark"]{
+ --bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; --hot:#ff7a63; --water:#1b3550; color-scheme:dark}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.6 var(--body);padding:0 16px}
+main{max-width:760px;margin:0 auto;padding:40px 0 64px;display:flex;flex-direction:column;gap:34px}
+h1{font-size:2.2rem;line-height:1.15;margin:0}
+h2{font-size:1.3rem;margin:0}
+p{margin:0;max-width:68ch}
+ul{margin:0;padding-left:20px}
+.eyebrow{font:500 .75rem var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--soft)}
+.lede{font-size:1.08rem;color:var(--soft)}
+section{display:flex;flex-direction:column;gap:12px}
+figure{margin:0;display:flex;flex-direction:column;gap:8px}
+.scroll{overflow-x:auto}
+.scroll svg{min-width:600px}
+svg{display:block;max-width:100%;height:auto}
+figcaption{font-size:.88rem;color:var(--soft)}
+svg text{font-family:var(--body);font-size:12px;fill:var(--fg)}
+svg .s{fill:var(--soft);font-size:11px}
+svg .t{font-weight:600;font-size:13px}
+.box{fill:var(--panel);stroke:var(--rule)}
+.game{fill:var(--game-bg);stroke:var(--game)}
+.prior{fill:var(--prior-bg);stroke:var(--prior)}
+.navb{fill:var(--nav-bg);stroke:var(--nav)}
+.water{fill:var(--water);stroke:var(--rule)}
+.hot{stroke:var(--hot);stroke-width:2.2}
+.arr{stroke:var(--soft);stroke-width:1.5;fill:none}
+.arr.g{stroke:var(--game)} .arr.p{stroke:var(--prior)} .arr.d{stroke-dasharray:5 4}
+pre{background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:14px;white-space:pre-wrap;font:13px/1.5 var(--mono);margin:0}
+code{font:500 .88em var(--mono);background:var(--panel);border:1px solid var(--rule);border-radius:4px;padding:0 4px}
+table{border-collapse:collapse;width:100%;font-size:.92rem}
+th,td{text-align:left;padding:7px 9px;border-bottom:1px solid var(--rule);vertical-align:top}
+th{font:500 .75rem var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--soft)}
+.wrap{overflow-x:auto}
+</style>
+</head>
+<body>
+<main>
+<div class="eyebrow">Harness switch · guard · <code>ineffective-loops-v1</code> · no dependency · off by default · for the bundle arm</div>
+<h1>Ineffective loops</h1>
+<p class="lede">Two kinds of repetition today's loop guard misses. A navigate_to or press loop whose targets alternate but keep ending on the same one or two tiles now raises a loop-guard warning and the supervisor briefing. An observe of an open menu or prompt today's field fingerprint cannot see (the START menu and others) that has not changed now counts toward the observation guard. Off: alternating loops go unflagged, and only the interfaces today's fingerprint sees (naming screens, BOY/GIRL, name and clock prompts, and ready messages with interaction detection on) count unchanged observes, with the generic warning.</p>
+
+<section>
+<h2>Why</h2>
+<p>From the overnight run analysis (hypothesis: "count repeated unchanged observes, and alternating 2–3 target loops that end on one tile, as ineffective") and the recorded events. Turn T, seq numbers are event seqs; all replayed through the real loop guard with each run's own switches.</p>
+<div class="wrap"><table>
+<tr><th>Run</th><th>Loop</th><th>Loop guard today</th><th>With this switch</th></tr>
+<tr><td><code>4caa</code> Route 103</td><td>T199–T248: about 50 navigate_to calls to targets across the water ((79,9), (40,12), (45,6) …), ending on (23,12), (23,13) or (21,8)</td><td>warning T219 (one target, 4 times), recovered T221</td><td>warning T212 (seq 5121), held to T215; T219 as today</td></tr>
+<tr><td><code>4caa</code> Route 102 ledge</td><td>T550–T571: DOWN,LEFT / RIGHT,DOWN alternating between (34,9) and (35,9)</td><td>nothing (only the same-plan note at T571)</td><td>warnings T555 (seq 15059) and T571 (seq 15332)</td></tr>
+<tr><td><code>7ccf</code> Oldale west</td><td>T198–T244: the Maniac stops the player at (1,10); the model walks back to (2,10) and tries (0,10), (0,11), DOWN, LEFT again. Not a push-back: the model walks back itself.</td><td>warning T244</td><td>warning T215 (seq 5334), held until T245</td></tr>
+<tr><td>all 2026-10-15/16 runs</td><td>observes of a ready START or other menu the field fingerprint cannot see, unchanged 3+ times</td><td>never counted (naming screens and the BOY/GIRL, name and clock prompts already count, with the generic warning)</td><td>none recorded (0 of 69 runs); tested on the one recorded START-menu observe (b41f seq 144)</td></tr>
+</table></div>
+</section>
+
+<section>
+<h2>What counts as a loop</h2>
+<figure>
+<div class="scroll"><svg viewBox="0 0 720 250" role="img" aria-label="Two tile grids: an alternating loop on two tiles is counted; exploration out of a hub tile is not">
+ <text x="10" y="18" class="t">Counted: 4caa ledge, T567–T571</text>
+ <g transform="translate(10,30)">
+  <rect x="0" y="0" width="300" height="180" class="box"/>
+  <rect x="60" y="60" width="60" height="60" class="prior"/><text x="72" y="95">(34,9)</text>
+  <rect x="120" y="60" width="60" height="60" class="navb"/><text x="132" y="95">(35,9)</text>
+    <path d="M100 70 C130 40 150 40 150 62" class="arr p"/><text x="118" y="36" class="s">RIGHT,DOWN</text>
+  <path d="M145 118 C120 150 100 150 92 120" class="arr p"/><text x="88" y="168" class="s">DOWN,LEFT</text>
+  <text x="190" y="80" class="s">ends: 34,9 · 35,9 ·</text>
+  <text x="190" y="96" class="s">34,9 · 35,9 · 34,9</text>
+  <text x="190" y="112" class="s">→ 3rd end on (34,9)</text>
+ </g>
+ <text x="370" y="18" class="t">Not counted: exploring from a hub</text>
+ <g transform="translate(370,30)">
+  <rect x="0" y="0" width="330" height="180" class="box"/>
+  <rect x="135" y="60" width="60" height="60" class="game"/><text x="152" y="95">T</text>
+  <rect x="135" y="0" width="60" height="40" class="navb"/><text x="157" y="25">U</text>
+  <rect x="255" y="60" width="60" height="60" class="navb"/><text x="280" y="95">V</text>
+  <rect x="135" y="140" width="60" height="40" class="navb"/><text x="157" y="165">W</text>
+  <path d="M165 60 L165 40" class="arr g"/><path d="M195 90 L255 90" class="arr g"/><path d="M165 120 L165 140" class="arr g"/>
+  <text x="10" y="80" class="s">T, U, T, V, T, W, T:</text>
+  <text x="10" y="96" class="s">4 end tiles since</text>
+  <text x="10" y="112" class="s">the 1st of the last</text>
+  <text x="10" y="128" class="s">3 ends on T</text>
+ </g>
+</svg></div>
+<figcaption>Layout illustrative; the tiles and inputs on the left are the recorded ones. Left: the newest tile has ended three moves, the moves since the first of those ended on two tiles, and a target was named again after a different one. Right: the player keeps returning to T but reaches a new tile each time, so the loop spans more than two tiles and is not counted.</figcaption>
+</figure>
+
+<figure>
+<div class="scroll"><svg viewBox="0 0 720 300" role="img" aria-label="Decision flow for one completed call">
+ <rect x="10" y="10" width="190" height="44" class="box"/><text x="20" y="30" class="t">Game call completes</text><text x="20" y="46" class="s">press, navigate_to, observe</text>
+ <rect x="250" y="10" width="220" height="44" class="prior"/><text x="260" y="30">battle, open menu/naming, or a</text><text x="260" y="46">conversation not heard yet?</text>
+ <rect x="520" y="10" width="190" height="44" class="game"/><text x="530" y="30" class="t">clear the moves</text><text x="530" y="46" class="s">new information</text>
+ <path d="M200 32 L250 32" class="arr"/><path d="M470 32 L520 32" class="arr g"/><text x="482" y="26" class="s">yes</text>
+ <rect x="250" y="84" width="220" height="58" class="box"/><text x="260" y="104">a move? navigate_to, or a press</text><text x="260" y="120">with a direction from free controls; no</text><text x="260" y="136">message during or after the call</text>
+ <path d="M360 54 L360 84" class="arr"/><text x="366" y="74" class="s">no</text>
+ <rect x="520" y="90" width="190" height="44" class="box"/><text x="530" y="110">neutral: A, B, menu cursor,</text><text x="530" y="126">a conversation heard again</text>
+ <path d="M470 112 L520 112" class="arr"/><text x="482" y="106" class="s">no</text>
+ <rect x="250" y="172" width="220" height="44" class="box"/><text x="260" y="192">record tile + target</text><text x="260" y="208" class="s">per map; 12 kept; map change restarts</text>
+ <path d="M360 142 L360 172" class="arr"/><text x="366" y="162" class="s">yes</text>
+ <rect x="250" y="244" width="220" height="50" class="navb"/><text x="260" y="264">newest tile ended 3 moves, ≤2 tiles</text><text x="260" y="282">since the first, targets alternate?</text>
+ <path d="M360 216 L360 244" class="arr"/>
+ <rect x="520" y="246" width="190" height="46" class="prior hot"/><text x="530" y="266" class="t">cycle warning</text><text x="530" y="282" class="s">+ supervisor briefing</text>
+ <path d="M470 268 L520 268" class="arr p"/><text x="482" y="262" class="s">yes</text>
+</svg></div>
+<figcaption>How one completed call feeds the few-target loop check. The threshold 3 is the loop policy's <code>cycleRepeats</code>; the episode recovers only on a tile not among the last 16 results or a story milestone, as push-back episodes do.</figcaption>
+</figure>
+</section>
+
+<section>
+<h2>Waiting observes</h2>
+<p>Today an observe counts as unchanged only when the field fingerprint equals the previous call's: the free field, ready naming screens, the BOY/GIRL, name and clock prompts, and (with interaction detection) ready messages. A ready START menu or any other menu it cannot see has no fingerprint, so observing it forever never counts. With this switch an observe outside battle counts as unchanged when the game is waiting for input (a ready menu or prompt with no diagnostic, a ready naming screen, or a ready message on the locked field) and the player's place, facing, lock, interface, dialogue, message, story, party, money, badges and name equal the previous game call's. The fourth such observe in a row records an observation warning with this text (naming screens and prompts that already counted now get it instead of the generic one). As for loops, with the supervisor on the model is shown the supervisor briefing instead; with it off, this text as <code>LOOP GUARD (observation): …</code>:</p>
+<pre>Repeated observations show the same open menu, prompt or message waiting for your input: observing again does not change it. Decide from what the game shows which input it needs, or choose a different approach using observed evidence.</pre>
+<p>Never counted: the game acting (truck ride, scripts, door animations, text still printing), battles (battle-observation-loop-v1's job), a menu whose highlight moved. A waiting state not among the last 16 recovers the episode.</p>
+</section>
+
+<section>
+<h2>What the model sees</h2>
+<p>The loop guard records a <code>cycle</code> warning with this text. With <code>loop-guard-supervisor-v1</code> on (as in the bundle and the experiment's incumbent) the model is not shown it: the supervisor briefing replaces it at the next model call and again every 6 calls while the loop lasts. With the supervisor off, the model sees it as <code>LOOP GUARD (cycle): …</code> at the next model call.</p>
+<pre>Your recent moves name different targets but keep ending on the same one or two tiles, with no new map, tile or story milestone in between: switching between these few targets is not getting anywhere. Reassess what stops you there using observed evidence, then choose a different route or destination.</pre>
+<p>Diagnostics go where loop-guard events already go: the run's <code>loop_guard</code> events, Activity History and the raw inspector. The notices reuse the existing <code>cycle</code> and <code>observation</code> loop-guard kinds, so the TIMELINE draws them with its existing loop-guard mark, as it draws every loop-guard warning today; this switch adds no timeline marks, lanes, labels or colors and changes no viewer event or timeline rendering code (only the explainer mapping in panels.ts). Whether these warnings should be kept off the timeline is an open question for the operator.</p>
+</section>
+
+<section>
+<h2>Measured on recorded runs</h2>
+<p>Every 2026-10-15/16 run (69, no probes or human runs; the two newest were still live), replayed OFF (the run's own switches) and ON (the same plus this switch).</p>
+<div class="wrap"><table>
+<tr><th>Runs</th><th>Count</th><th>Warnings today</th><th>Warnings added</th><th>Runs with one</th></tr>
+<tr><td>qwen gpu0 (bundle arm)</td><td>17</td><td>47</td><td>36</td><td>10</td></tr>
+<tr><td>qwen gpu1 (control, showcases)</td><td>19</td><td>200</td><td>92</td><td>13</td></tr>
+<tr><td>think-fast</td><td>33</td><td>185</td><td>92</td><td>21</td></tr>
+<tr><td>all</td><td>69</td><td>432</td><td>220 (0 waiting-observe)</td><td>44</td></tr>
+</table></div>
+<p>Hand check of 36 added warnings across 13 runs: 33 in stretches where the player stayed on one or two tiles for 3+ moves with no new map or milestone; 3 true but followed by progress within 1–2 turns (8b01 T337, 2a25 T9, show T173). False positives found and removed during the sweep: the Pokémon Center heal (4caa T456; a new conversation now clears the moves) and arrive-then-bump or turn-to-a-sign sequences (960a T7, 4caa T481, 8b01 T151, sh02 T412; the targets must alternate), inputs while a script held the controls (now not moves) and stairs bounces (823c T18; any call ending on another map now restarts the moves).</p>
+</section>
+
+<section>
+<h2>Wiring</h2>
+<figure>
+<div class="scroll"><svg viewBox="0 0 720 110" role="img" aria-label="Switch wiring from the preset to the loop detector">
+ <rect x="10" y="30" width="150" height="46" class="box"/><text x="20" y="50">play preset /</text><text x="20" y="66">switchboard</text>
+ <rect x="190" y="30" width="150" height="46" class="box"/><text x="200" y="50">FeatureSet</text><text x="200" y="66" class="s">ineffective-loops-v1</text>
+ <rect x="370" y="30" width="160" height="46" class="box"/><text x="380" y="50">attachLoopGuard</text><text x="380" y="66" class="s">11th argument (live, probe)</text>
+ <rect x="560" y="30" width="150" height="46" class="prior hot"/><text x="570" y="50" class="t">LoopDetector</text><text x="570" y="66" class="s">revisit + waitingState</text>
+ <path d="M160 53 L190 53" class="arr"/><path d="M340 53 L370 53" class="arr"/><path d="M530 53 L560 53" class="arr"/>
+</svg></div>
+<figcaption>The switch travels from the run's preset to the loop detector; only the highlighted box changes behavior. Off reproduces today's notices exactly (tested on all three fixtures).</figcaption>
+</figure>
+</section>
+
+<section>
+<h2>Status</h2>
+<ul>
+<li>Branch <code>claude/ineffective-loops</code>; tests <code>packages/agent/src/ineffective-loops.test.ts</code> (fixtures from 4caa, 7ccf, b41f) and the live factory test.</li>
+<li>Pending experiment <code>experiments/ineffective-loops.json</code> (not queued). No measured runs yet; nothing here says the switch helps.</li>
+</ul>
+</section>
+</main>
+</body>
+</html>

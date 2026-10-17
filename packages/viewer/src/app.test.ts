@@ -536,7 +536,7 @@ describe("boot", () => {
     const app = await boot(win);
     expect(win.fetch).toHaveBeenCalledWith("/api/runs");
     expect(streams[0]?.url).toBe("/api/runs/2026-10-11T23-00-00_live/events");
-    expect(intervals).toHaveLength(2);
+    expect(intervals).toHaveLength(3);
     intervals[0]?.();
     expect(app.mode).toBe("loading");
     await vi.waitFor(() => { expect(app.next.draft).not.toBeNull(); });
@@ -701,7 +701,7 @@ it("offers only eligible references and preserves none while comparisons are pen
   const pending: ((value:unknown)=>void)[] = [];
   const streams: FakeStream[] = [];
   const app = await mountApp(document, {
-    fetchJson:(url)=>nextRunReply(url) ?? (url === "/api/runs" ? Promise.resolve(RUNS) : new Promise((resolve)=>pending.push(resolve))),
+    fetchJson:(url)=>nextRunReply(url) ?? (url === "/api/runs" ? Promise.resolve(RUNS) : url.startsWith("/sprites/") ? Promise.reject(new Error("no card art")) : new Promise((resolve)=>pending.push(resolve))),
     sendJson: noWrites,
     openStream:(url)=>{const s=new FakeStream(url);streams.push(s);return s;},now:()=>BASE_MS,hash:"",
   });
@@ -798,7 +798,7 @@ it("mounts state-input and host-wait history, the snapshot timeline mark, select
 
 });
 it("links the push-back and battle observation cards in Harness Config to their explainers",async()=>{
- const ids=["pushback-loop-detection-v1","pushback-press-result-v1","battle-observation-loop-v1"] as const;
+ const ids=["pushback-loop-detection-v1","pushback-press-result-v1","battle-observation-loop-v1","ineffective-loops-v1"] as const;
  const {app,streams}=await harness(`#run=${M4_ID}`);const log=new Log();log.add(0,{...START,harness_features:[...ids]});feed(must(streams[0]),log.events);
  app.next.registry=ids.map(id=>({id,title:id.toUpperCase(),description:`${id} card.`,group:"guard" as const,switchable:true,needs:null}));app.tick(1000);
  for(const id of ids){
@@ -826,6 +826,26 @@ it("mounts the push-back and battle observation guard notices in the timeline, A
  expect(must(ui("trace").querySelector<HTMLElement>(`[data-seqs~="${String(battle.seq)}"]`)).textContent).toContain("Repeated observations contain no new reliable game information.");
  expect(ui("lanes").querySelectorAll('[aria-label*="A game script keeps returning the player"]').length).toBeGreaterThan(0);
  row.click();expect(ui("inspector").textContent).toContain('"type": "loop_guard"');expect(ui("inspector").textContent).toContain('"kind": "cycle"');expect(ui("inspector").textContent).toContain("2973");expect(row.classList.contains("sel")).toBe(true);
+});
+
+it("mounts the ineffective loops notices in Activity History and the inspector at the replay cursor (ineffective-loops-v1)",async()=>{
+ const {REVISIT_MESSAGE,WAITING_MESSAGE}=await import("../../agent/src/loop-detection.js");
+ const {app,streams}=await harness(`#run=${M4_ID}`);const stream=must(streams[0]);const log=new Log();log.add(0,START);
+ log.add(1000,{type:"tool_call",turn:212,id:"c212",name:"navigate_to",args:{map_id:[0,18],x:45,y:6}});
+ // The 4caa Route 103 receipt (T212, evidence 5057 and 5121) and a waiting-observe warning, as the recorder writes them.
+ const warning=log.add(2000,{type:"loop_guard",turn:212,kind:"cycle",mode:"enforced",phase:"warning",message:REVISIT_MESSAGE,calls:20,evidence:[5057,5121]});
+ const recovered=log.add(5000,{type:"loop_guard",turn:215,kind:"cycle",mode:"enforced",phase:"recovered",message:REVISIT_MESSAGE,calls:23,evidence:[5057,5224]});
+ const waiting=log.add(9000,{type:"loop_guard",turn:16,kind:"observation",mode:"enforced",phase:"warning",message:WAITING_MESSAGE,calls:30,evidence:[145]});
+ log.add(70000,{type:"run_end",turn:216,reason:"budget",furthest_milestone:null,turns:216,wall_ms:70000,tokens:{input:0,output:0},frames:{saved:0,bytes:0}});
+ feed(stream,log.events.map(e=>parseEvent(JSON.stringify(e))));stream.send("done",{});
+ app.tick(1999);
+ expect(ui("trace").querySelector(`[data-seqs~="${String(warning.seq)}"]`)).toBeNull();
+ app.tick(9000);
+ const row=must(ui("trace").querySelector<HTMLElement>(`[data-seqs~="${String(warning.seq)}"]`));
+ expect(row.textContent).toContain("Loop guard · cycle warning");expect(row.textContent).toContain("keep ending on the same one or two tiles");
+ expect(must(ui("trace").querySelector<HTMLElement>(`[data-seqs~="${String(recovered.seq)}"]`)).textContent).toContain("cycle recovered");
+ expect(must(ui("trace").querySelector<HTMLElement>(`[data-seqs~="${String(waiting.seq)}"]`)).textContent).toContain("open menu, prompt or message waiting for your input");
+ row.click();expect(ui("inspector").textContent).toContain('"type": "loop_guard"');expect(ui("inspector").textContent).toContain("5057");expect(ui("inspector").textContent).toContain("5121");expect(row.classList.contains("sel")).toBe(true);
 });
 
 it('labels human comparison candidates with unverified ROM provenance',async()=>{

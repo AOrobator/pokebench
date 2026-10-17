@@ -1,0 +1,95 @@
+{
+ "version": 1,
+ "id": "explorer-guidance-v2",
+ "title": "Talk to people v2 (generic)",
+ "changedFeature": "explorer-guidance-v2",
+ "hypothesis": "A generic talk-to-people section (talking to people gives information and can move the story forward; when unsure where to go, or after the story has moved on, talk to the people around you; what people say is evidence for where to go), with no pointer toward particular people, gets more runs to the next milestone after each story event, in fewer turns, than no such section. It replaces v1's \"families and neighbours of characters you have met\" and \"where someone has gone\" lines, which the operator read as a walkthrough toward particular NPCs (operator decision 2026-10-16 4:18 PM EDT).",
+ "activationMilestone": "NEW_GAME_CREATED",
+ "primaryMilestone": "RIVAL_HOUSE_ENTERED",
+ "source": {
+  "checkout": "main",
+  "commit": "d9d82b3f48acf4a58a5febfa5b890884dba028cb"
+ },
+ "incumbent": {
+  "version": 2,
+  "id": "finals-incumbent",
+  "target": null,
+  "limits": {
+   "maxTurns": 1500,
+   "maxWallMs": 1800000,
+   "failureLimit": 3
+  },
+  "sampling": {
+   "thinkingLevel": "medium",
+   "maxTokens": 4096
+  },
+  "features": {
+   "navigation-evidence-memory-v1": false,
+   "automatic-running-v1": false,
+   "expanded-menu-battle-information-v1": false,
+   "ram-state-v1": true,
+   "live-map-v1": true,
+   "live-player-position-v1": true,
+   "world-coordinate-grid-v1": true,
+   "live-object-sprites-v1": true,
+   "world-targets-v1": true,
+   "named-interactions-v1": true,
+   "world-destinations-v1": false,
+   "bounded-navigation-v1": true,
+   "grass-cost-navigation-v1": false,
+   "field-dialogue-phase-v1": true,
+   "dialogue-safe-batches-v1": false,
+   "interaction-loop-detection-v1": true,
+   "active-field-message-buffer-v1": true,
+   "naming-cursor-v1": true,
+   "story-state-v1": true,
+   "coordinate-script-conditions-v1": true,
+   "state-only-decisions-v1": false,
+   "contextual-interface-docs-v1": true,
+   "active-ui-ownership-v1": true,
+   "press-result-v1": true,
+   "field-control-lock": true,
+   "warp-activation-guidance-v1": true,
+   "ledge-hops-v1": true,
+   "one-way-tiles-v1": true,
+   "counter-talk-v1": false,
+   "walkable-floor-v1": false,
+   "deterministic-loop-guard-v1": true,
+   "objective-tracking-v1": false,
+   "repeat-attempt-guard-v1": false,
+   "native-objective-completion-v1": false,
+   "full-map-navigation-v1": false,
+   "elevation-transitions-v1": true,
+   "game-evidence-priority-v1": false,
+   "dialogue-log-v1": false,
+   "loop-guard-supervisor-v1": true,
+   "instruction-ledger-v1": false,
+   "next-milestone-hint-v1": false,
+   "double-context-window-v1": false,
+   "fresh-retry-v1": false,
+   "named-warp-destinations-v1": false,
+   "milestone-stall-stop-v1": false,
+   "text-only-supervisor-v1": true,
+   "character-presence-v1": false,
+   "navigation-refusal-reasons-v1": false,
+   "transition-press-result-v1": false,
+   "stall-briefing-v1": false,
+   "explorer-guidance-v1": false,
+   "explorer-guidance-v2": false
+  }
+ },
+ "trialsPerArm": 8,
+ "modelLane": "think-fast",
+ "budget": {
+  "maxWallMs": 30600000
+ },
+ "criteria": {
+  "completionTolerance": 0,
+  "speedMarginPercent": 10
+ },
+ "readiness": {
+  "window": 4,
+  "minReached": 3
+ },
+ "notes": "Uses the finals incumbent, as explorer-guidance does, with explorer-guidance-v1 and explorer-guidance-v2 both explicitly off, so the candidate differs from the incumbent only by the v2 section. Activation: a system-prompt section present from the first turn, so the earliest activation is NEW_GAME_CREATED, as for explorer-guidance-v1. With v1 also on (as in the bundle arm of bundle-v-control), v2 supersedes v1: only the v2 section is shown. Bundle membership is decided by the readiness thread. Provisional source.commit is the branch head before merge; repinned to the merge SHA with `just experiment-pin` when it lands."
+}

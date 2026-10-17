@@ -12,7 +12,7 @@ import { GATEWAY_PROVIDER } from "./gateway.js";
 import { gameTools } from "./game-tools.js";
 import { Governor, NUDGE, attachLoopGuard, slideWindow, withoutTextOnlyReplies } from "./harness.js";
 import type { LoopNotice } from "./loop-detection.js";
-import { PLAY_LIMITS, PLAY_TASK, playGoal, playSystemPrompt, toolSwitches } from "./play-config.js";
+import { PLAY_LIMITS, PLAY_TASK, playSystemPrompt, targetGoal, toolSwitches } from "./play-config.js";
 import { contextTools, loopSupervisor, playGameTools, stallBriefing } from "./play-wiring.js";
 import { ShownStates, pressResult } from "./press-result.js";
 
@@ -137,6 +137,8 @@ export class Replay {
   readonly recordState = (): never => { throw new Error("probe tools never execute"); };
   readonly recordDialogueAutoAdvance = (): never => { throw new Error("probe tools never execute"); };
   readonly lowHpTrainerWarning = (): never => { throw new Error("probe tools never execute"); };
+  readonly peopleIdCard = (): never => { throw new Error("probe tools never execute"); };
+  readonly storyBattleWarning = (): never => { throw new Error("probe tools never execute"); };
 }
 // What the wiring itself records; the replay regenerates these instead of reading them.
 const DERIVED: readonly RunEvent["type"][] = ["loop_guard", "navigation_context", "ledger_context", "milestone_hint", "text_only_supervisor", "belief_ledger"];
@@ -167,7 +169,7 @@ export function contextSize(messages: readonly Message[]): ContextSize {
 /** The context of `turn`'s model call, rebuilt under `features` (the run's own switches reproduce the recording). */
 // The conversation as the agent loop accumulated it: task, then each kept reply with its nudge or tool results.
 function conversation(prior: readonly RunEvent[], goal: string | null, byId: ReadonlyMap<string, ToolResultEvent>, notes: readonly Extract<RunEvent, { type: "text_only_supervisor" }>[], texts: ReadonlyMap<number, string>, ports: ProbePorts, model: string): Message[] {
-  const history: Message[] = [{ role: "user", content: goal === null ? PLAY_TASK : `The game has just booted. ${playGoal(goal)}`, timestamp: 0 }];
+  const history: Message[] = [{ role: "user", content: goal === null ? PLAY_TASK : `The game has just booted. ${targetGoal(goal)}`, timestamp: 0 }];
   let note = 0;
   for (const e of prior) {
     if (e.type !== "assistant" || e.stop_reason === "error" || e.stop_reason === "aborted") continue;
@@ -236,7 +238,7 @@ export async function decisionContext(run: RecordedRun, turn: number, features: 
   // The wiring, replayed over the recorded stream under the probe's switches.
   const replay = new Replay(start);
   const governor = new Governor({ limits: PLAY_LIMITS, retry: () => undefined, abort: () => undefined, now: () => 0 });
-  const detector = attachLoopGuard(replay, governor, undefined, features["deterministic-loop-guard-v1"] ? "enforced" : "diagnostic", features["interaction-loop-detection-v1"], loopSupervisor(features, replay), features["transition-loop-detection-v1"], features["pushback-loop-detection-v1"], features["battle-observation-loop-v1"], features["navigation-truth-v1"]);
+  const detector = attachLoopGuard(replay, governor, undefined, features["deterministic-loop-guard-v1"] ? "enforced" : "diagnostic", features["interaction-loop-detection-v1"], loopSupervisor(features, replay), features["transition-loop-detection-v1"], features["pushback-loop-detection-v1"], features["battle-observation-loop-v1"], features["navigation-truth-v1"], features["ineffective-loops-v1"]);
   const t0 = Date.parse(start.t);
   stallBriefing(features, replay, detector, { pausedMs: () => 0 }, () => Date.parse(replay.current.t) - t0);
   const wiring = probeTools(features, replay);

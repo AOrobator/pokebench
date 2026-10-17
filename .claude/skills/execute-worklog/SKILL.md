@@ -39,6 +39,23 @@ The contract is `~/dev/local-inference-stack/.claude/skills/multi-model-review/S
 
 Record every round in the worklog's Multi-Model Review Log. A broken lane is never a clean review.
 
+### Triage findings before fixing anything (operator decision 2026-10-17)
+
+Reviewers are advisors, not a work queue. Label every finding before touching code:
+
+- **Fix:** a correctness or safety bug in this diff, with a concrete input that goes wrong.
+- **Rebut:** answer in one line and do no extra work when the finding is any of these:
+  - Code or tests this diff does not change. Cite `git diff main -- <file>`.
+  - A request for proof beyond what the project skills require, such as more screenshots, more receipt files, operation counts, scaling receipts or rewrites of shared tests.
+  - A finding repeated without new evidence; the earlier rebuttal stands.
+- **Follow-up:** a new capability, stronger invariant or adjacent cleanup. It never lands in this branch; propose it separately.
+
+A reviewer's BLOCKING verdict that rests only on rebutted or follow-up findings does not send you back to fix things. Put the rebuttals in the next round's boundary amendment once, and if the lane still blocks on them alone, ask the operator. Never comply to get the LGTM.
+
+**Round cap.** If blockers remain after round 2, stop and ask the operator to choose: land as is, fix only the listed bugs, or drop the change. (Story-battle-heal took 8 rounds for 3 real bugs; operator: "push back on bullshit instead of blindly accepting everything and expanding scope.")
+
+**Hold main still.** Before round 1, ask the coordinator to hold other landings until this one merges. Every sync to a moved `main` voids the packet.
+
 ## Landing on main
 
 An agent may merge its own branch into local `main` without asking per merge (operator decision 2026-10-16) when all of these hold:

@@ -113,7 +113,7 @@ describe("battle-loss-recap-v1 through playGameTools",()=>{
  async function first(on:boolean):Promise<{text:string;same:boolean}>{
   const events=recorded(LIVE);
   const observers:((e:RunEvent)=>void)[]=[];
-  const recorder={subscribe:(o:(e:RunEvent)=>void)=>{observers.push(o);},recordState:()=>{throw new Error("unused");},recordDialogueAutoAdvance:()=>{throw new Error("unused");},lowHpTrainerWarning:()=>undefined};
+  const recorder={subscribe:(o:(e:RunEvent)=>void)=>{observers.push(o);},recordState:()=>{throw new Error("unused");},recordDialogueAutoAdvance:()=>{throw new Error("unused");},lowHpTrainerWarning:()=>undefined,peopleIdCard:()=>undefined};
   // The whiteout call (T371, result seq 8983): its after state 8982 is recorded only after the tool returns.
   const result=events.find((e):e is Result=>e.type==="tool_result"&&e.seq===8983);
   if(result===undefined)throw new Error("fixture has seq 8983");

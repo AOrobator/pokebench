@@ -28,11 +28,13 @@ import { FEATURE_EXPLAINERS } from "./panels.js";
 export const HOST = "127.0.0.1";
 const EXPERIMENTS_CACHE_MS = 5_000;
 // Browser code the page may load; everything else in dist/ stays private.
-export const BROWSER_MODULES = ["main", "app", "model", "format", "inspectformat", "timeline", "panels", "gba", "replay", "controls", "nextpanel", "human-input", "human-play", "human-main", "workbench-main", "workbench", "workbench-view", "workbench-data", "frontier", "frontier-versions", "frontier-legend", "queue-view", "trace", "run-head"] as const;
+export const BROWSER_MODULES = ["main", "app", "model", "format", "inspectformat", "timeline", "panels", "gba", "replay", "controls", "nextpanel", "human-input", "human-play", "human-main", "workbench-main", "workbench", "workbench-view", "workbench-data", "frontier", "frontier-versions", "frontier-legend", "queue-view", "trace", "run-head", "trainer-card", "game-font", "card-dom"] as const;
 
 const MODULE_NAME = new RegExp(`^(${BROWSER_MODULES.join("|")})\\.js$`);
 const FRAME_NAME = /^\d{6}_\d+\.png$/;
 const FONT_NAME = /^(press-start-2p|inter|jetbrains-mono)\.woff2$/;
+// The trainer card art `just trainer-card-art` builds from the ROM into runs/sprites (never into git).
+const SPRITE_PATH = /^(manifest\.json|card\/(wide|mini|mini-ribbon)-(green|bronze|copper|silver|gold)\.png|trainers\/[a-z]+\.png|font\/glyphs\.(png|json)|icons\/[1-9][0-9]{0,2}\.png)$/;
 const PNG_SIGNATURE = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
 const SCREEN_TIMEOUT_MS = 3_000;
 
@@ -380,6 +382,11 @@ async function route(req: IncomingMessage, res: ServerResponse, options: ViewerO
   }
   if (parts.length === 1 && head === "style.css") {
     sendFile(res, join(options.staticDir, "style.css"), "text/css; charset=utf-8");
+    return;
+  }
+  if (head === "sprites" && SPRITE_PATH.test(parts.slice(1).join("/"))) {
+    const path = parts.slice(1).join("/");
+    sendFile(res, join(options.runsRoot, "sprites", "trainer-card-v1", ...path.split("/")), path.endsWith(".json") ? "application/json; charset=utf-8" : "image/png");
     return;
   }
   if (parts.length === 2 && head === "fonts" && second !== undefined && FONT_NAME.test(second)) {

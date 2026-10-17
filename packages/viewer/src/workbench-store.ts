@@ -85,11 +85,13 @@ export function loadRun(root: string, id: string, viewer: BuildIdentity | null =
   try { start = startOf(root, id); } catch (error) { return startlessRun(root, id, viewer, errorText(error)); }
   try {
     run ={ ...run, arm: start.evaluation?.experiment?.arm ?? null, model: start.controller?.kind === "human" ? `Human · ${start.controller.name}` : start.model.id, started: start.t, config: configuration(start), excluded: start.harness_features.includes("probe") ? "Excluded probe session" : null };
+    const tagged = start.evaluation?.experiment; run.experiment = tagged === undefined ? null : { id: tagged.id, arm: tagged.arm, trial: tagged.trial, of: tagged.of };
     port = start.isolation.port;
     const experiment = start.evaluation?.experiment; if (experiment !== undefined) tag = { experiment: experiment.id, commit: start.harness.commit };
     const tolerate = viewer !== null && !(viewer.commit === start.harness.commit && !viewer.dirty && !start.harness.dirty);
     const recording = readNativeRecording(path, id, qualifiedNativeMilestone, undefined, tolerate), view = recording.view;
     run.splits = recording.splits; run.measurement = recording.measurement;
+    const last = recording.last; run.card = last === null ? null : { name: last.name, location: last.location, party: last.party.flatMap(m => m.level === null || m.level < 1 ? [] : [{ speciesId: m.species_id ?? null, level: m.level, egg: m.is_egg === true }]) };
     if (recording.skipped !== null) skew = { commit: start.harness.commit, dirty: start.harness.dirty, ...recording.skipped };
     run.status = view.end === null ? "unresponsive" : "ended"; run.reason = view.end?.reason ?? null; run.turn = view.turn;
     if (run.reason === "operator_abort") run.excluded ??= "Excluded operator-aborted run";

@@ -113,11 +113,11 @@ describe("runsCli summary", () => {
 });
 
 describe("runs-cli main", () => {
-  it("main passes a given runs root and the 500 MB cap to the disk report", () => {
+  it("main passes a given runs root and the 10 GB cap to the disk report", () => {
     // runs-cli-main.test.ts checks the default root; the real runs/ holds tens of GB of frames.
     const out: string[] = [];
     expect(main(["disk"], (line) => out.push(line), runsWith([300, 100]))).toBe(0);
-    expect(out).toEqual(["frames on disk: 400 B of 500.0 MB cap (0%); runs may start at or below 75%"]);
+    expect(out).toEqual(["frames on disk: 400 B of 10240.0 MB cap (0%); runs may start at or below 75%"]);
   });
 });
 

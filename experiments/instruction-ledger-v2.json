@@ -3,7 +3,7 @@
  "id": "instruction-ledger-v2",
  "title": "Conversation ledger in the tool result",
  "changedFeature": "instruction-ledger-v2",
- "hypothesis": "Pinning the latest conversation in which the game names the speaker, whole, inside every overworld tool result right under the Story line, plus each visited room's last line heard, keeps the story instruction in front of the model at every decision (93eb and 0e05 after MOM's \"He lives right next door\", e962 and defa after MAY's \"Well, it's time to head back to the LAB.\"), so fewer minutes go to ignoring delivered story instructions and more runs reach the next story milestone in fewer turns.",
+ "hypothesis": "Pinning the latest conversation with a person, whole, inside every overworld tool result right under the Story line, with every line naming who said it (the game's NAME: prefix, else \"the woman you talked to\" and the like), plus each visited room's last line heard, keeps the story instruction in front of the model at every decision (93eb and 0e05 after MOM's \"He lives right next door\", e962 and defa after MAY's \"Well, it's time to head back to the LAB.\", 2fb4 after May's mother's \"Oh, MAY went out to ROUTE 103\"), so fewer minutes go to ignoring delivered story instructions and more runs reach the next story milestone in fewer turns.",
  "activationMilestone": "FIRST_TRUCK_EXIT",
  "primaryMilestone": "RIVAL_HOUSE_ENTERED",
  "source": {
@@ -58,7 +58,7 @@
    "objective-tracking-v1": false,
    "repeat-attempt-guard-v1": false,
    "native-objective-completion-v1": false,
-   "full-map-navigation-v1": true,
+   "full-map-navigation-v1": false,
    "elevation-transitions-v1": true,
    "game-evidence-priority-v1": true,
    "dialogue-log-v1": false,
@@ -122,11 +122,11 @@
    "open-goal-prompt-v1": true,
    "low-hp-trainer-warning-v2": true,
    "story-destinations-v1": true,
-   "exit-reachability-v1": false,
-   "heal-before-trainers-v1": false,
-   "harness-trust-v1": false,
-   "cited-destination-v1": false,
-   "battle-move-tool-v1": false,
+   "exit-reachability-v1": true,
+   "heal-before-trainers-v1": true,
+   "harness-trust-v1": true,
+   "cited-destination-v1": true,
+   "battle-move-tool-v1": true,
    "instruction-ledger-v2": false
   }
  },
@@ -143,5 +143,5 @@
   "window": 4,
   "minReached": 3
  },
- "notes": "Pending, not designed or queued. Operator decision (the operator, 2026-10-17 4:02 PM New York): build instruction-ledger-v2 for the bundle arm only; dialogue-log-v1 and note_contradiction are dropped. The incumbent is the bundle arm of experiments/fixed/bundle-v-control.json (its base with every bundle switch on), except instruction-ledger-v1 and dialogue-log-v1 OFF per that decision; that bundle definition is owned elsewhere and is not edited here. The candidate flips only instruction-ledger-v2. Activation: the first conversation the game names a speaker for is MOM's \"BRED, we're here, honey!\" right after the truck (0e05 turn 62, 93eb turn 120). Before any measured run, design it with pokebench-experiment-design (tier, checkpoint start, power-sized N, lane: the recorded cook runs are Qwen3.6-35B-A3B, not think-fast, and RIVAL_HOUSE_ENTERED is near ceiling there; the review suggested a decision-point probe at Mom's next door and May's LAB first). source.commit is this branch's RED commit; repin to the merge SHA with `just experiment-pin` when it lands."
+ "notes": "Pending, not designed or queued. Operator decision (the operator, 2026-10-17 4:02 PM New York): build instruction-ledger-v2 for the bundle arm only; dialogue-log-v1 and note_contradiction are dropped. The incumbent is the bundle arm of experiments/fixed/bundle-v-control.json as of this branch's last sync (its base with every bundle switch on, which already has instruction-ledger-v1 and dialogue-log-v1 OFF), with instruction-ledger-v2 OFF; a test keeps it equal to that file, which is read only here and owned elsewhere. The candidate flips only instruction-ledger-v2. Activation: the first conversation with a person is MOM's \"we're here, honey!\" right after the truck (0e05 turn 62, 93eb turn 120); before it, the truck's box stands in as the latest field page. Before any measured run, design it with pokebench-experiment-design (tier, checkpoint start, power-sized N, lane: the recorded cook runs are Qwen3.6-35B-A3B, not think-fast, and RIVAL_HOUSE_ENTERED is near ceiling there; the review suggested a decision-point probe at Mom's next door and May's LAB first). source.commit is this branch's RED commit; repin to the merge SHA with `just experiment-pin` when it lands."
 }

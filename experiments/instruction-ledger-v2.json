@@ -128,11 +128,11 @@
    "cited-destination-v1": true,
    "battle-move-tool-v1": true,
    "harness-trust-v2": true,
-   "tutorial-party-owner-v1": false,
-   "mid-frame-readout-v1": false,
-   "unset-dynamic-warp-v1": false,
-   "status-names-v1": false,
-   "surf-gated-exits-v2": false,
+   "tutorial-party-owner-v1": true,
+   "mid-frame-readout-v1": true,
+   "unset-dynamic-warp-v1": true,
+   "status-names-v1": true,
+   "surf-gated-exits-v2": true,
    "instruction-ledger-v2": false
   }
  },

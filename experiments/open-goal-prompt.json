@@ -142,7 +142,12 @@
    "harness-trust-v1": true,
    "cited-destination-v1": true,
    "battle-move-tool-v1": true,
-   "harness-trust-v2": true
+   "harness-trust-v2": true,
+   "tutorial-party-owner-v1": true,
+   "mid-frame-readout-v1": true,
+   "unset-dynamic-warp-v1": true,
+   "status-names-v1": true,
+   "surf-gated-exits-v2": true
   },
   "start": {
    "kind": "save_state",

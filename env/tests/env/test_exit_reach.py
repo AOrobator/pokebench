@@ -25,9 +25,15 @@ import pytest
 from pokebench_env import rerender
 from pokebench_env.exit_reach import SWITCH, ExitReach, build_exit_reach
 from pokebench_env.game_state import MapNames
-from pokebench_env.readout import SERVER_FEATURES, features_off_from_env, state_json
+from pokebench_env.readout import (
+    SERVER_FEATURES,
+    connection_notes,
+    features_off_from_env,
+    state_json,
+)
 from pokebench_env.rom import EMERALD_SHA1, RomError, resolve_rom
 from pokebench_env.surf_gate import FloodInputs, classify
+from pokebench_env.topology import Connection, Topology
 
 ID = "exit-reachability-v1"
 FIXTURES = Path(__file__).parent / "fixtures"
@@ -140,7 +146,10 @@ def test_route103_altering_cave_and_east_edge_are_water_south_is_foot(seq: int) 
     reach = state(ROUTE103, seq, recorded_off(ROUTE103)).exit_reach
     assert reach is not None
     assert reach.warps == (((45, 6), "water"),)
-    assert reach.connections == (("SOUTH", "foot"), ("EAST", "water"))
+    assert reach.connections == (
+        (("SOUTH", (0, 10), 0), "foot"),
+        (("EAST", (0, 25), -60), "water"),
+    )
     # Across water is surf-gated-exits-v1's to say; nothing here is `none`, so the readout is
     # unchanged with only this switch on.
     off = [*recorded_off(ROUTE103), "surf-gated-exits-v1"]
@@ -192,9 +201,9 @@ def test_on_state_json_carries_labels_and_foot_rows_off_has_no_field(seq: int) -
         (33, 42): "none",
     }
     assert reach["connections"] == [
-        {"direction": "NORTH", "reach": "none"},
-        {"direction": "SOUTH", "reach": "water"},
-        {"direction": "EAST", "reach": "foot"},
+        {"direction": "NORTH", "destination": [0, 3], "offset": 0, "reach": "none"},
+        {"direction": "SOUTH", "destination": [0, 20], "offset": 0, "reach": "water"},
+        {"direction": "EAST", "destination": [0, 0], "offset": 50, "reach": "foot"},
     ]
     foot = reach["foot"]
     assert (foot["width"], foot["height"]) == (40, 80)
@@ -249,7 +258,8 @@ def test_classify_labels_foot_water_and_none() -> None:
 def inputs(start: tuple[int, int], rows: list[str] = POND) -> FloodInputs:
     tiles = grid(rows)
     width, height = len(rows[0]), len(rows)
-    return FloodInputs(tiles, start, ((6, 0), (9, 9)), {"NORTH": ((), ())}, width, height)
+    north = {("NORTH", (0, 3), 0): ((), ())}
+    return FloodInputs(tiles, start, ((6, 0), (9, 9)), north, width, height)
 
 
 def test_exit_reach_rows_pack_four_tiles_per_hex_digit() -> None:
@@ -268,7 +278,9 @@ def test_only_none_is_blocked_and_notes_are_plain() -> None:
     assert isinstance(reach, ExitReach)
     assert reach.warps == (((6, 0), "water"), ((9, 9), "none"))
     assert not reach.blocks_warp(6, 0) and reach.blocks_warp(9, 9) and not reach.blocks_warp(1, 1)
-    assert reach.blocks_connection("NORTH") and not reach.blocks_connection("EAST")
+    assert reach.blocks_connection("NORTH", (0, 3), 0)
+    assert not reach.blocks_connection("EAST", (0, 3), 0)
+    assert not reach.blocks_connection("NORTH", (0, 4), 0)
     assert reach.connection_note() == NORTH_ON.split("offset 0; ", 1)[1]
     assert reach.warp_note() == WARP_ON
     assert reach.destination_note() == DEST_ON
@@ -276,4 +288,38 @@ def test_only_none_is_blocked_and_notes_are_plain() -> None:
         {"x": 6, "y": 0, "reach": "water"},
         {"x": 9, "y": 9, "reach": "none"},
     ]
-    assert reach.json()["connections"] == [{"direction": "NORTH", "reach": "none"}]
+    assert reach.json()["connections"] == [
+        {"direction": "NORTH", "destination": [0, 3], "offset": 0, "reach": "none"}
+    ]
+
+
+# Route 111 has two WEST connections and Route 124 two EAST ones: each is labelled on its own.
+TWO_WEST = [
+    Connection("WEST", 0, (0, 1), "ROUTE A", ((0, 0),)),
+    Connection("WEST", 2, (0, 2), "ROUTE B", ((0, 2),)),
+]
+
+
+def test_two_same_direction_connections_are_labelled_and_noted_separately() -> None:
+    tiles = grid(["..", "##", ".."])
+    flood = FloodInputs(
+        tiles,
+        (0, 0),
+        (),
+        {("WEST", (0, 1), 0): (((0, 0),), ((0, 0),)), ("WEST", (0, 2), 2): (((0, 2),), ((0, 2),))},
+        2,
+        3,
+    )
+    reach = build_exit_reach(flood)
+    assert reach is not None
+    assert reach.connections == ((("WEST", (0, 1), 0), "foot"), (("WEST", (0, 2), 2), "none"))
+    assert not reach.blocks_connection("WEST", (0, 1), 0)
+    assert reach.blocks_connection("WEST", (0, 2), 2)
+    topology = Topology(2, 3, tuple(TWO_WEST))
+    notes = connection_notes(topology, None, reach)
+    assert notes == {1: reach.connection_note()}
+    lines = topology.text(notes).split("\n")
+    assert lines[2].startswith("- WEST -> ROUTE A (map 0/1), offset 0; walk off the map from (0,0)")
+    assert lines[3] == f"- WEST -> ROUTE B (map 0/2), offset 2; {reach.connection_note()}"
+    # The Surf gate keys connections by direction, as before this switch; nothing else changes.
+    assert connection_notes(topology, None, None) == {}

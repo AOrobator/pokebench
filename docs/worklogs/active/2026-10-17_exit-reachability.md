@@ -58,3 +58,14 @@ Scope note (coordinator, during M1): full-map-navigation-v1 is in the bundle on 
 - [ ] Review (caller runs it): Claude, Grok, GPT lanes; 2-round cap. Stopped here per the coordinator brief.
 - [ ] Review: Claude, Grok, GPT lanes; 2-round cap.
 - [ ] Land: ff-only into local main; SHA to the coordinator for the config owner.
+
+## Multi-Model Review Log
+
+- Round 1 (2026-10-17 ~2:45 PM New York), frozen base 558f2e76, head 6c1cf408, diff SHA-256 f2a60453c6e9eb400b3b09d073cad80a3902359e456ee383134b721fdf7e2023. Claude LGTM, Grok (cursor-grok-4.5-high) LGTM, GPT (gpt-5.6-sol-xhigh via Cursor) BLOCKING.
+  - Fix: (1) same-direction connections overwrite each other (Route 111, Route 124); (2) malformed foot masks read as unreachable instead of unknown.
+  - Rebut: (3) whole-map serpentine test runtime (process/operation-count demand); (4) ROM-gated real-RAM tests follow the existing operator_rom pattern (env/tests/env/test_surf_gate.py:78-81, unchanged by this diff); (5) the pending experiment entry is what the feature-switch skill requires at merge, design comes before queueing; (6) explainer click and 8791 check are post-landing close-the-loop steps; (7) the changed messages are text inside already-recorded tool results and supervisor events, no new event kinds.
+
+## Round 1 fixes
+
+- [x] RED (Python): `test_two_same_direction_connections_are_labelled_and_noted_separately` (two WEST connections, one walkable, one cut off: labelled and noted separately; notes keyed per connection) and the connection JSON/labels keyed by direction, destination and offset in the 4caa/0e05 tests. Fails at collection (no `readout.connection_notes`).
+  - COMMIT: `test(exit-reachability): RED same-direction connections labelled separately (Python)` (sha in the next entry)

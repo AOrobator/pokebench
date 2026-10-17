@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cited destination</title>
+<style>
+:root{
+ --bg:#f7f6f2; --fg:#1c1d1f; --soft:#5b5d61; --rule:#dedcd5; --panel:#ffffff;
+ --game:#1a7f5a; --game-bg:#e3f4ec; --prior:#c2432f; --prior-bg:#fbe7e2; --nav:#2a62c9; --nav-bg:#e4edfb; --hot:#c2432f;
+ --wall:#9b968a; --ground:#eef0e6;
+ --body:system-ui,-apple-system,"Segoe UI",sans-serif; --mono:ui-monospace,"SF Mono",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+ --bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; --hot:#ff7a63;
+ --wall:#55585e; --ground:#1f2420; color-scheme:dark}}
+:root[data-theme="dark"]{
+ --bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; --hot:#ff7a63;
+ --wall:#55585e; --ground:#1f2420; color-scheme:dark}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.6 var(--body);padding:0 16px}
+main{max-width:760px;margin:0 auto;padding:40px 0 64px;display:flex;flex-direction:column;gap:34px}
+h1{font-size:2.2rem;line-height:1.15;margin:0}
+h2{font-size:1.3rem;margin:0}
+p{margin:0;max-width:66ch}
+ul{margin:0;padding-left:20px}
+.eyebrow{font:500 .75rem var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--soft)}
+.lede{font-size:1.08rem;color:var(--soft)}
+section{display:flex;flex-direction:column;gap:12px}
+figure{margin:0;display:flex;flex-direction:column;gap:8px}
+.scroll{overflow-x:auto}
+svg{display:block;max-width:100%;height:auto}
+.scroll svg{min-width:520px}
+figcaption{font-size:.88rem;color:var(--soft)}
+svg text{font-family:var(--body);font-size:12px;fill:var(--fg)}
+svg .s{fill:var(--soft);font-size:11px}
+svg .t{font-weight:600;font-size:13px}
+svg .m{font-family:var(--mono);font-size:11px}
+.box{fill:var(--panel);stroke:var(--rule)}
+.game{fill:var(--game-bg);stroke:var(--game)}
+.prior{fill:var(--prior-bg);stroke:var(--prior)}
+.navf{fill:var(--nav-bg);stroke:var(--nav)}
+.hot{stroke:var(--hot);stroke-width:2.2}
+.wall{fill:var(--wall);stroke:var(--rule)}
+.ground{fill:var(--ground);stroke:var(--rule)}
+.arr{stroke:var(--soft);stroke-width:1.5;fill:none}
+pre{background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:14px;white-space:pre-wrap;font:13px/1.5 var(--mono);margin:0}
+code{font:500 .88em var(--mono);background:var(--panel);border:1px solid var(--rule);border-radius:4px;padding:0 4px}
+table{border-collapse:collapse;width:100%;font-size:.92rem}
+th,td{text-align:left;padding:7px 9px;border-bottom:1px solid var(--rule);vertical-align:top}
+th{font:500 .75rem var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--soft)}
+.tablewrap{overflow-x:auto}
+.pair{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:640px){.pair{grid-template-columns:1fr}}
+.tag{font:600 .72rem var(--mono);letter-spacing:.06em;text-transform:uppercase}
+.off{color:var(--prior)} .on{color:var(--game)}
+</style>
+</head>
+<body>
+<main>
+<div>
+<div class="eyebrow">Harness switch · guidance · <code>cited-destination-v1</code> · needs <code>bounded-navigation-v1</code> · off by default · bundle arm only</div>
+<h1>Cited destination</h1>
+</div>
+<p class="lede">Runs invent exits: e046 wrote "Oldale's east exit to Petalburg" (s18744) and "Route 103's north exit to Rustboro" (s17437) when no such line was ever shown. Qwen is most reliable at filling tool arguments, so navigate_to now asks for the line behind each destination, quoted, and the harness checks it against what the game showed. No new tool.</p>
+
+<section>
+<h2>The schema</h2>
+<pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;required&quot;: [&quot;x&quot;, &quot;y&quot;, &quot;map_id&quot;, &quot;because&quot;],
+  &quot;properties&quot;: {
+    &quot;x&quot;: {&quot;type&quot;: &quot;integer&quot;, &quot;minimum&quot;: 0},
+    &quot;y&quot;: {&quot;type&quot;: &quot;integer&quot;, &quot;minimum&quot;: 0},
+    &quot;map_id&quot;: [group, number],
+    &quot;walking&quot;: {&quot;type&quot;: &quot;boolean&quot;},
+    &quot;because&quot;: {&quot;type&quot;: &quot;string&quot;, &quot;minLength&quot;: 1, &quot;description&quot;: &quot;Required. Quote, word for word, what the game showed you that makes this the place to go: …&quot;}
+  },
+  &quot;additionalProperties&quot;: false
+}</pre>
+<p>The rest of navigate_to is unchanged; the walk never sees <code>because</code>. With <code>full-map-navigation-v1</code> the description says "a readout line that shows the destination on this map"; with <code>exit-reachability-v1</code> it adds: "An exit the readout says cannot be reached on foot from where you stand is not a reason to walk to it." The system prompt gains one rule saying the same.</p>
+</section>
+
+<section>
+<h2>The check</h2>
+<figure><div class="scroll"><svg viewBox="0 0 720 200" role="img" aria-label="Checking because against shown results">
+<rect class="box" x="10" y="70" width="150" height="56" rx="8"/><text x="22" y="94">navigate_to call</text><text class="s" x="22" y="112">x, y, map_id, because</text>
+<rect class="navf" x="200" y="70" width="170" height="56" rx="8"/><text x="212" y="94">plain-text lookup</text><text class="s" x="212" y="112">every result shown before</text>
+<rect class="game" x="420" y="14" width="290" height="50" rx="8"/><text x="432" y="36">found: result unchanged</text><text class="s" x="432" y="54">event: verdict found, its turn</text>
+<rect class="prior" x="420" y="74" width="290" height="50" rx="8"/><text x="432" y="96">not found: one line on top</text><text class="s" x="432" y="114">the walk still runs</text>
+<rect class="prior" x="420" y="134" width="290" height="50" rx="8"/><text x="432" y="156">under two words: too short</text><text class="s" x="432" y="174">not checked, said so</text>
+<path d="M160 98 L200 98 M370 98 L420 40 M370 98 L420 98 M370 98 L420 158" class="arr"/>
+</svg></div><figcaption>Case, curly quotes, line breaks and runs of spaces are ignored; only results the model was shown before the call count, never an error result. Every check is recorded as a <code>destination_citation</code> event (Activity History; no timeline mark).</figcaption></figure>
+<p>Found, on the recorded 4caa T272 result: <code>because: "“Well, it’s time to head back to the lab.”"</code> matches MAY's page, which the result printed across a line break ("head back to / the LAB."). The result is unchanged. Not found:</p>
+<pre>Because: &quot;the LAB is in RUSTBORO CITY&quot; is not in anything the game has shown you this run (results, readouts and dialogue). navigate_to walked anyway; nothing the game showed you supports this destination as you quoted it.</pre>
+</section>
+
+<section>
+<h2>Status</h2>
+<ul>
+<li>Branch <code>claude/harness-trust</code>; tests on the 4caa recording, the production factory (schema, whole-map and exit-reach text) and the recorder events.</li>
+<li>Registered as a pending experiment (<code>experiments/cited-destination.json</code>), bundle arm only; not queued, not measured.</li>
+</ul>
+</section>
+</main>
+</body>
+</html>

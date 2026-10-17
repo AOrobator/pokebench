@@ -85,7 +85,7 @@ Ordering note: the registry, presets, events schema and wiring all sit on lines 
 - [ ] Gates
 
 **M4 — explainers, pending experiments, probes**
-- [ ] Explainers for both switches, FEATURE_EXPLAINERS, pending experiments/*.json, readiness rows.
+- [x] (Gates after: agent 2172, viewer 1111, pytest 2544; lint, build, coverage pass as before.) Explainers `docs/explainers/harness-trust-v1.html` and `cited-destination-v1.html` (recorded header, trust order, walk-away figure with the 4caa numbers, rules table, wiring; schema, check flow, found/not-found), README entries, FEATURE_EXPLAINERS mapping, panels and server route tests; `just pages-check` prints nothing. Pending entries `experiments/harness-trust.json` and `experiments/cited-destination.json` (exit-reachability's finals incumbent with only the switch flipped; provisional source.commit c6c340ec, repin at merge) and readiness rows; `just experiments-check` ok (89).
 - [ ] Decision probes on/off at the recorded forks, only when no trial runs on the lanes. DEFERRED until lanes are idle.
 
 **M5 — review and land**

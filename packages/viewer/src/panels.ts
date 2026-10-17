@@ -431,6 +431,8 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "open-goal-prompt-v1":"open-goal-prompt-v1.html",
  "story-destinations-v1":"story-destinations-v1.html",
  "exit-reachability-v1":"exit-reachability-v1.html",
+ "harness-trust-v1":"harness-trust-v1.html",
+ "cited-destination-v1":"cited-destination-v1.html",
 });
 
 export function harnessConfig(view:RunView,registry:readonly FeatureInfo[]=[]):string {

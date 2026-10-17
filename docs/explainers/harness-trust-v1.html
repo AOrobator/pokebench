@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Harness trust</title>
+<style>
+:root{
+ --bg:#f7f6f2; --fg:#1c1d1f; --soft:#5b5d61; --rule:#dedcd5; --panel:#ffffff;
+ --game:#1a7f5a; --game-bg:#e3f4ec; --prior:#c2432f; --prior-bg:#fbe7e2; --nav:#2a62c9; --nav-bg:#e4edfb; --hot:#c2432f;
+ --wall:#9b968a; --ground:#eef0e6;
+ --body:system-ui,-apple-system,"Segoe UI",sans-serif; --mono:ui-monospace,"SF Mono",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+ --bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; --hot:#ff7a63;
+ --wall:#55585e; --ground:#1f2420; color-scheme:dark}}
+:root[data-theme="dark"]{
+ --bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; --hot:#ff7a63;
+ --wall:#55585e; --ground:#1f2420; color-scheme:dark}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.6 var(--body);padding:0 16px}
+main{max-width:760px;margin:0 auto;padding:40px 0 64px;display:flex;flex-direction:column;gap:34px}
+h1{font-size:2.2rem;line-height:1.15;margin:0}
+h2{font-size:1.3rem;margin:0}
+p{margin:0;max-width:66ch}
+ul{margin:0;padding-left:20px}
+.eyebrow{font:500 .75rem var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--soft)}
+.lede{font-size:1.08rem;color:var(--soft)}
+section{display:flex;flex-direction:column;gap:12px}
+figure{margin:0;display:flex;flex-direction:column;gap:8px}
+.scroll{overflow-x:auto}
+svg{display:block;max-width:100%;height:auto}
+.scroll svg{min-width:520px}
+figcaption{font-size:.88rem;color:var(--soft)}
+svg text{font-family:var(--body);font-size:12px;fill:var(--fg)}
+svg .s{fill:var(--soft);font-size:11px}
+svg .t{font-weight:600;font-size:13px}
+svg .m{font-family:var(--mono);font-size:11px}
+.box{fill:var(--panel);stroke:var(--rule)}
+.game{fill:var(--game-bg);stroke:var(--game)}
+.prior{fill:var(--prior-bg);stroke:var(--prior)}
+.navf{fill:var(--nav-bg);stroke:var(--nav)}
+.hot{stroke:var(--hot);stroke-width:2.2}
+.wall{fill:var(--wall);stroke:var(--rule)}
+.ground{fill:var(--ground);stroke:var(--rule)}
+.arr{stroke:var(--soft);stroke-width:1.5;fill:none}
+pre{background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:14px;white-space:pre-wrap;font:13px/1.5 var(--mono);margin:0}
+code{font:500 .88em var(--mono);background:var(--panel);border:1px solid var(--rule);border-radius:4px;padding:0 4px}
+table{border-collapse:collapse;width:100%;font-size:.92rem}
+th,td{text-align:left;padding:7px 9px;border-bottom:1px solid var(--rule);vertical-align:top}
+th{font:500 .75rem var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--soft)}
+.tablewrap{overflow-x:auto}
+.pair{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:640px){.pair{grid-template-columns:1fr}}
+.tag{font:600 .72rem var(--mono);letter-spacing:.06em;text-transform:uppercase}
+.off{color:var(--prior)} .on{color:var(--game)}
+</style>
+</head>
+<body>
+<main>
+<div>
+<div class="eyebrow">Harness switch · guidance · <code>harness-trust-v1</code> · needs <code>dialogue-auto-advance-v1</code> · off by default · bundle arm only</div>
+<h1>Harness trust</h1>
+</div>
+<p class="lede">The model keeps losing true facts to what it remembers about Pokémon games: run 4caa read MAY's "head back to the LAB" and then decided the lab was in Rustboro. This switch moves the trust from the middle of a long system prompt to the places Qwen weighs most: the last lines of the system prompt, and the first lines of every tool result.</p>
+
+<section>
+<h2>What changes, in three places</h2>
+<figure><div class="scroll"><svg viewBox="0 0 720 210" role="img" aria-label="Three places the switch changes">
+<rect class="box" x="10" y="20" width="220" height="170" rx="10"/><text class="t" x="24" y="46">1. System prompt, last</text><text x="24" y="72">a numbered trust order:</text><text class="s" x="24" y="94">1 latest story line</text><text class="s" x="24" y="112">2 readout facts</text><text class="s" x="24" y="130">3 never memory</text><text class="s" x="24" y="160">appended after every other</text><text class="s" x="24" y="176">section, objectives included</text>
+<rect class="game" x="250" y="20" width="220" height="170" rx="10"/><text class="t" x="264" y="46">2. Every result, first</text><text x="264" y="72">Read from game memory:</text><text class="s" x="264" y="94">Story goal line, resolved</text><text class="s" x="264" y="112">story characters on this map</text><text class="s" x="264" y="130">exits you can walk to</text><text class="s" x="264" y="160">observe, press, navigate_to</text><text class="s" x="264" y="176">(exits only with exit-reachability)</text>
+<rect class="prior" x="490" y="20" width="220" height="170" rx="10"/><text class="t" x="504" y="46">3. Walk-away note</text><text x="504" y="72">SUPERVISOR under the header</text><text class="s" x="504" y="94">after two moves in a row</text><text class="s" x="504" y="112">farther from the goal's place</text><text class="s" x="504" y="130">recorded: story_goal_away</text><text class="s" x="504" y="160">Activity History, SUPERVISOR</text><text class="s" x="504" y="176">no timeline mark</text>
+</svg></div><figcaption>The prompt sets the order once; each result restates the facts it ranks first; the note fires only when the player's own moves lead away.</figcaption></figure>
+</section>
+
+<section>
+<h2>The header, on a recorded result</h2>
+<p>Run 4caa, turn 272, the press that showed MAY's line on ROUTE103. The off result is unchanged; on adds these lines on top, then a blank line, then the same result.</p>
+<div class="pair">
+<figure><div class="tag off">Off</div><pre>pressed A
+Dialogue auto-advance: …
+14. turn 272 · ROUTE103 (map 0/18) · at 9,3 · MAY: "Well, it&#39;s time to head back to
+the LAB."
+…</pre></figure>
+<figure><div class="tag on">On</div><pre>Read from game memory, always true:
+Story goal: &quot;Well, it&#39;s time to head back to the LAB.&quot; (MAY, turn 272) -&gt; &quot;LAB&quot; = PROF. BIRCH&#39;S POKéMON LAB (map 1/4). Way in: door in LITTLEROOT TOWN (map 0/9) at (7,16).
+Story characters on this map (from its own object list): none.
+
+pressed A
+…</pre></figure>
+</div>
+<p>The Story goal is the latest line a story character spoke that names a place, whole, resolved by <code>story-destinations-v1</code>'s resolver against the game's own map table (GET /pokebench/places). Before any such line it says <code>Story goal: no story character has named a place yet in this run.</code>; if the map table cannot be read it says so. The characters line copies only the on-this-map part of <code>character-presence-v1</code>'s readout line. With <code>exit-reachability-v1</code> on, a third line lists the warps and edges the server's flood reaches on foot, for example on run 4198's ROUTE103 state (MAY at (10,3), player at (16,7)):</p>
+<pre>Exits you can walk to from where you stand: SOUTH edge -&gt; OLDALE TOWN (map 0/10).</pre>
+<p>Altering Cave and the EAST edge are across water there, so they are not listed. Without that switch the line is never shown.</p>
+</section>
+
+<section>
+<h2>The trust order</h2>
+<pre>Trust order (this puts &quot;Game evidence first&quot; in order): when sources disagree, believe them in this order.
+1. The latest thing a story character told you. Each result starts with it as the Story goal line, read from game memory, with the place it names.
+2. The other facts read from game memory in the result: where you are, who is on this map, the exits and the map.
+3. Never your memory of Pokémon games, guides or walkthroughs. When it disagrees with 1 or 2, it is wrong about this game.
+A SUPERVISOR note under the header says when your last two moves took you farther from the place the Story goal line names.</pre>
+<p>With <code>game-evidence-priority-v1</code> off the first line reads <code>Trust order: when sources disagree, believe them in this order.</code> It names no place, person or step.</p>
+</section>
+
+<section>
+<h2>When the walk-away note fires</h2>
+<figure><div class="scroll"><svg viewBox="0 0 720 260" role="img" aria-label="Walking north on Route 103 away from the south edge toward Oldale">
+<rect class="ground" x="20" y="20" width="300" height="220"/><text class="t" x="30" y="40">ROUTE103 (map 0/18), 80×22</text>
+<line x1="20" y1="236" x2="320" y2="236" class="hot"/><text class="s" x="190" y="230">SOUTH edge → OLDALE TOWN</text>
+<circle cx="120" cy="190" r="7" class="navf"/><text x="134" y="194">(9,13): 8 tiles</text>
+<circle cx="120" cy="140" r="7" class="prior"/><text x="134" y="144">(9,10): 11 tiles · away 1</text>
+<circle cx="120" cy="90" r="7" class="prior"/><text x="134" y="94">(9,7): 14 tiles · away 2 → note</text>
+<path d="M120 182 L120 150 M120 132 L120 100" class="arr"/>
+<g transform="translate(360,30)"><text class="t" x="0" y="10">Map-table steps to the LAB</text>
+<rect class="box" x="0" y="24" width="160" height="28" rx="6"/><text x="10" y="43">ROUTE103 · 4</text>
+<rect class="box" x="0" y="62" width="160" height="28" rx="6"/><text x="10" y="81">OLDALE TOWN · 3</text>
+<rect class="box" x="0" y="100" width="160" height="28" rx="6"/><text x="10" y="119">ROUTE101 · 2</text>
+<rect class="box" x="0" y="138" width="160" height="28" rx="6"/><text x="10" y="157">LITTLEROOT TOWN · 1</text>
+<rect class="game" x="0" y="176" width="160" height="28" rx="6"/><text x="10" y="195">PROF. BIRCH'S LAB · 0</text>
+<text class="s" x="176" y="43">exit toward it:</text><text class="s" x="176" y="58">its SOUTH edge</text></g>
+</svg></div><figcaption>Within a map, the distance is the straight line to the nearest way off it that leads into the goal map, or one map-table step closer to it. Across a warp or edge, it is the count of map-table steps. Numbers from the 4caa T272 state's 80×22 topology, as the tests use them.</figcaption></figure>
+<pre>SUPERVISOR: Your last two moves took you farther from PROF. BIRCH&#39;S POKéMON LAB (map 1/4), the place in MAY&#39;s line above (turn 272): on ROUTE103 (map 0/18) you went from (9,13) to (9,10), and this map&#39;s SOUTH edge (to OLDALE TOWN (map 0/10)) went from 8 to 11 tiles away in a straight line; then on ROUTE103 (map 0/18) you went from (9,10) to (9,7), and this map&#39;s SOUTH edge (to OLDALE TOWN (map 0/10)) went from 11 to 14 tiles away in a straight line. Unless a story character has told you something newer, the Story goal line is where to go.</pre>
+<div class="tablewrap"><table>
+<tr><th>Situation</th><th>Counts as</th></tr>
+<tr><td>Same map, farther from the way toward the goal</td><td>a move away</td></tr>
+<tr><td>Through one warp or edge to a map more steps from the goal</td><td>a move away</td></tr>
+<tr><td>Closer by either measure</td><td>starts the count over</td></tr>
+<tr><td>Standing still, a sideways step, a battle</td><td>nothing</td></tr>
+<tr><td>Whiteout, fly, a scripted or dynamic warp (not one map-table step)</td><td>starts the count over; never a move</td></tr>
+<tr><td>Inside the goal map, an unresolved goal, a map without its size</td><td>nothing</td></tr>
+<tr><td>A newer story line that names a place</td><td>a new goal, a new count</td></tr>
+</table></div>
+<p>The goal survives a whiteout: the line is kept, and the next result after it shows it again. The note is a plain fact ("farther … in a straight line"), so a route that must loop around water can draw it; the facts it states stay true.</p>
+</section>
+
+<section>
+<h2>Wiring</h2>
+<figure><div class="scroll"><svg viewBox="0 0 720 150" role="img" aria-label="How the switch travels">
+<rect class="box" x="10" y="50" width="130" height="44" rx="8"/><text x="22" y="76">preset / bundle arm</text>
+<rect class="box" x="170" y="10" width="150" height="44" rx="8"/><text x="182" y="36">playSystemPrompt</text>
+<rect class="game" x="170" y="92" width="150" height="44" rx="8"/><text x="182" y="118">withHarnessTrust</text>
+<rect class="box" x="350" y="92" width="180" height="44" rx="8"/><text x="362" y="112">every other wrapper</text><text class="s" x="362" y="128">(inside it)</text>
+<rect class="box" x="560" y="92" width="150" height="44" rx="8"/><text x="572" y="118">story_goal_away event</text>
+<path d="M140 72 L170 32 M140 72 L170 114 M320 114 L350 114 M530 114 L560 114" class="arr"/>
+</svg></div><figcaption>The header wrapper is outermost in <code>playGameTools</code>, so it is the first thing in each result; the trust order is the last thing in the system prompt.</figcaption></figure>
+</section>
+
+<section>
+<h2>Status</h2>
+<ul>
+<li>Branch <code>claude/harness-trust</code>; tests from the 4caa, sh02, 0e05 and 4198 recordings, the production factory and one run through the pinned pi loop that delivers the header and the note to the next model request.</li>
+<li>Registered as a pending experiment (<code>experiments/harness-trust.json</code>), bundle arm only; not queued, not measured.</li>
+<li>Decision probes at the recorded forks run only when no trial is on the GPU lanes.</li>
+</ul>
+</section>
+</main>
+</body>
+</html>

@@ -63,6 +63,9 @@ Ordering note: the registry, presets, events schema and wiring all sit on lines 
 **M2 — cited-destination-v1**
 - [x] M2a RED: `cited-destination.test.ts`: schema (required `because`, other properties and tools unchanged, description), text per full-map and exit-reach, OFF same tools; 4caa T272 MAY's line found across its line break and curly quotes (walk gets no `because`, result unchanged); not found line; too short; only earlier non-error results count, newest cited; image-only result; arguments without `because` pass through.
   - 3:36 PM New York: the suite fails at load (no `cited-destination.js`).
+  - COMMIT: `test(cited-destination): RED required because on navigate_to, checked against what the game showed` (48e61240)
+- [x] M2a GREEN: `cited-destination.ts` (becauseDescription, normalise, Citations, citationText, withCitedDestination taking a plain boolean until M2b). Plain-string matching only (no regex from model text); unique normalised result texts searched newest first.
+  - 8/8; cited-destination.ts lines 100 / branches 97.7 / functions 100; tsc and eslint clean.
 - [ ] GREEN: registry, presets, defaults, events (`destination_citation`), recorder, viewer, wiring, prompt navigate_to text.
 - [ ] Gates
 

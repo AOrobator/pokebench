@@ -6,7 +6,8 @@ import {checkEvent,type RunEvent} from "./events.js";
 import {parseGameState,type GameStateSnapshot} from "./game-state.js";
 import {isCheckedPress,type CheckedPressTool} from "./game-tools.js";
 import type {PlacesBody} from "./story-destinations.js";
-import {TRUST_HEADER,WalkAway,awayText,charactersLine,mapSteps,trustSection,waysHere,withHarnessTrust,type StoryGoalAwayFacts} from "./harness-trust.js";
+import {TRUST_HEADER,WalkAway,awayText,charactersLine,exitsLine,mapSteps,trustSection,waysHere,withHarnessTrust,type StoryGoalAwayFacts} from "./harness-trust.js";
+import {gunzipSync} from "node:zlib";
 
 interface Recording {readonly run:string;readonly events:readonly unknown[]}
 const RECORDED=JSON.parse(readFileSync(new URL("../test-support/story-destinations-recorded.json",import.meta.url),"utf8")) as Record<"4caa"|"sh02",Recording>;
@@ -247,5 +248,32 @@ describe("harness-trust-v1 walk-away supervisor",()=>{
    const h=harness(true,places);h.feed(CAAA,result.seq);h.observe.next(state,"x");
    expect(textOf(await h.tools[0]?.execute("o",{}) ?? {content:[],details:undefined})).toMatch(/\nStory goal: not known; the game's map table could not be read \((malformed \/pokebench\/places|HTTP 500)\)\.\n/);
   }
+ });
+});
+
+describe("harness-trust-v1 exits line (exit-reachability-v1's foot labels)",()=>{
+ const FIXTURE=JSON.parse(gunzipSync(readFileSync(new URL("./fixtures/exit-reach-states.json.gz",import.meta.url))).toString("utf8")) as {states:Record<string,unknown>};
+ const recorded=(key:string)=>parseGameState(FIXTURE.states[key]);
+ it("0e05 Route 104 south half: only the exits the server reaches on foot, never the cut-off NORTH edge or the water SOUTH edge",()=>{
+  expect(exitsLine(recorded("0e05:22579"),PLACES.places)).toBe("Exits you can walk to from where you stand: (17,50) -> ROUTE104 MR BRINEYS HOUSE (map 17/0); (10,38) or (11,38) -> PETALBURG WOODS (map 24/11); EAST edge -> PETALBURG CITY (map 0/0).");
+ });
+ it("4198 Route 103: the SOUTH edge only; Altering Cave and the EAST edge are across water",()=>{
+  expect(exitsLine(recorded("4198:23325"),PLACES.places)).toBe("Exits you can walk to from where you stand: SOUTH edge -> OLDALE TOWN (map 0/10).");
+ });
+ it("says none when nothing is on foot reach, and says nothing without exit_reach, a well-formed mask or the map in the table",()=>{
+  const s=recorded("4198:23325");
+  const reach=s.exit_reach;if(reach===undefined)throw Error("no exit_reach");
+  expect(exitsLine({...s,exit_reach:{...reach,connections:reach.connections.map(c=>({...c,reach:"none" as const}))}},PLACES.places)).toBe("Exits you can walk to from where you stand: none (no exit of this map can be reached on foot from your tile).");
+  const {exit_reach:_gone,...without}=s;
+  expect(exitsLine(without,PLACES.places)).toBeNull();
+  expect(exitsLine({...s,exit_reach:{...reach,foot:{...reach.foot,rows:[]}}},PLACES.places)).toBeNull();
+  expect(exitsLine({...s,map_id:[99,99]},PLACES.places)).toBeNull();
+  // A warp the table does not list, or one to a dynamic destination, is left out rather than guessed.
+  expect(exitsLine({...s,exit_reach:{...reach,warps:[{x:1,y:1,reach:"foot"}]}},PLACES.places)).toBe("Exits you can walk to from where you stand: SOUTH edge -> OLDALE TOWN (map 0/10).");
+ });
+ it("joins the header after the characters line when the result's state carries exit_reach",async()=>{
+  const h=harness();const s=recorded("4198:23325");
+  h.observe.next(s,"Story characters here (from this map's own object list): MAY at 10,3. Not on this map: MOM.");
+  expect(textOf(await h.tools[0]?.execute("o",{}) ?? {content:[],details:undefined})).toBe(`|${TRUST_HEADER}\nStory goal: no story character has named a place yet in this run.\nStory characters on this map (from its own object list): MAY at 10,3.\nExits you can walk to from where you stand: SOUTH edge -> OLDALE TOWN (map 0/10).\n\nStory characters here (from this map's own object list): MAY at 10,3. Not on this map: MOM.`);
  });
 });

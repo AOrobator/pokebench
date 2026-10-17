@@ -75,8 +75,10 @@ Ordering note: the registry, presets, events schema and wiring all sit on lines 
 - [ ] GREEN: registry, presets, defaults, events (`destination_citation`), recorder, viewer, wiring, prompt navigate_to text.
 - [ ] Gates
 
-**M3 — exit-reachability integration (after it lands on main)**
-- [ ] Merge main; exits line from `exitReach`; `because` description names its exit lines.
+**M3 — exit-reachability integration**
+- [x] `because` description names exit-reachability's not-reachable exits (done in M2a/M2b).
+- [x] RED: exits line from exit_reach foot labels on the recorded 0e05 Route 104 (south half) and 4198 Route 103 states (exit-reach-states fixture): only foot exits, grouped doorways, "none" wording, nothing without exit_reach / with a malformed mask / for a map the table lacks, unknown and dynamic warps left out, and placed after the characters line in the header.
+  - 3:58 PM New York: 4 fail (no `exitsLine`).
 - [ ] Gates
 
 **M4 — explainers, pending experiments, probes**

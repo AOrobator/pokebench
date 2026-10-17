@@ -123,7 +123,7 @@ or animation.
 auto-advance, the turn's battle messages)</pre>
 </figure>
 </div>
-<p>The ON text is the tool's actual first line from the e046 test, which starts at the recorded state (seq 16609) and simulates the menu with the game's cursor rules. The simulated move menu is checked against the recorded move-menu states (seq 16616 and 16622) field for field. The real-ROM probe below drives the same code against the game.</p>
+<p>The ON text is the tool's actual first line from the e046 test, which starts at the recorded state (seq 16609) and simulates the menu with the game's cursor rules. The simulated move menu is checked against the recorded move-menu states (seq 16616 and 16622) field for field. No real-ROM probe has driven the tool yet: the offline probe (the tool against mGBA on a saved battle, no server) was refused by this session's permissions, so the cursor rules rest on the pret source and the recorded states above.</p>
 </section>
 
 <section>
@@ -217,7 +217,7 @@ of the active POKéMON's moves.</pre>
 <ul>
 <li>Branch <code>claude/battle-move-tool</code>. Default off; registered as the pending experiment <code>experiments/battle-move-tool.json</code> (not queued). Bundle arm only; the bundle file is owned elsewhere and not edited here.</li>
 <li>Tests: recorded e046 and 0e05 states, every refusal, precondition and cursor-check stop, production factory over HTTP, auto-advance hand-off, OFF byte-identity.</li>
-<li>Not done: measured runs. Whether this helps is for the experiment to show.</li>
+<li>Not done: a real-ROM probe (refused by the session's permissions; see above) and measured runs. Whether this helps is for the experiment to show.</li>
 </ul>
 </section>
 </main>

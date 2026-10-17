@@ -42,6 +42,23 @@ Evidence:
 **M3: explainer, experiment, review**
 - [x] Explainer docs/explainers/battle-move-tool-v1.html, FEATURE_EXPLAINERS link, panels/server tests, pages-check prints nothing
 - [x] Pending experiment experiments/battle-move-tool.json (no queuePosition; provisional source.commit = RED commit) + readiness row; parse/arms test in battle-action.test.ts
-- [ ] Principles self-review
+- [x] Real-ROM probe: NOT RUN. Both a scratch-port game server (8977, scratch run dir in the session scratchpad, state copied from runs/battle-text-qualify/states/first-battle-action.state) and an offline probe (the tool's dist driving mGBA in-process through a stdin/stdout bridge, no port) were refused by the session's permission system. Recorded as a gap in the explainer; the cursor rules rest on pret source and the recorded states (the simulator reproduces e046 seq 16616 and 16622 field for field).
+- [x] Principles self-review (PB1-PB13), zero FAIL:
+
+| ID | Score | Evidence |
+|---|---|---|
+| PB1 | PASS | The tool reports only what RAM shows; what was committed is the game's battle_choice journal, not the tool's text. No grading change. |
+| PB2 | N/A | No measured runs. The measurement counts every run (288), including failed and aborted ones. |
+| PB3 | PASS | No improvement claimed; the pending experiment (8 per arm) is the test. |
+| PB4 | PASS | Declared harness capability: a registered switch recorded in harness_features, default off, OFF byte-identical; button presses carry the tool call id. No RAM writes, no save reloads. |
+| PB5 | PASS | One switch; the experiment flips only battle-move-tool-v1 (tested). |
+| PB6 | PASS | Adds one status line per call; no model-facing text is clipped. |
+| PB7 | PASS | tool_call/tool_result (with state_seq), button_press per press, battle_choice, dialogue_auto_advance (tool battle_action) are recorded (tested through RunRecorder). |
+| PB8 | PASS | Arguments are schema-checked (enum action, optional string move, no extra keys); invalid moves are refused with the list of valid ones, never guessed. |
+| PB9 | PASS | Scope questions answered from evidence (bag/party never chosen in 288 runs), stated in the explainer; nothing defaulted silently (no default target in doubles). |
+| PB10 | PASS | No skipped tests; floor 90 untouched; no --no-verify. Count updates in other tests are registry positions only. |
+| PB11 | PASS | Cursor rules checked against pret 731ad5bf battle_controller_player.c; reader fields against battle_state.py; BattleWaitSchema reused. |
+| PB12 | PASS | No ROM copy. The refused probes would have opened $POKEBENCH_ROM's file in place (mGBA load_path) and a copied save state; nothing ran. |
+| PB13 | PASS | RED 5940d584, GREEN 06d3055b, gates, worklog; review below. |
 - [ ] Review: Claude, Grok cursor-grok-4.5-high, Codex gpt-5.6-sol (max 2 rounds), sync with main before the final round
 - [ ] LANDING HOLD until exit-reachability-v1 lands; final sync on ping

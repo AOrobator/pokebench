@@ -480,6 +480,10 @@ describe("instruction-ledger-v2 switch",()=>{
   expect(FEATURES.filter(f=>f.switchable).at(-1)?.id).toBe(id);
   expect(featureInfo(id)).toMatchObject({group:"observation",title:"CONVERSATION LEDGER",needs:"dialogue-auto-advance-v1",switchable:true});
   expect(featureInfo(id).description).toContain(" Off: ");
+  // The switchboard copy describes the shipped rule (review round 1: it still described the NAME:-only pin).
+  const copy=featureInfo(id).description;
+  for(const phrase of ["the latest conversation with a person","Every line names who said it","the game's own NAME: prefix","\"the woman you talked to\"","the name the game printed for that same sprite on that map","\"the sign\"","never become the pinned conversation","keyed on each dialogue page's own map","Internal sprite ids are never printed"])expect(copy,phrase).toContain(phrase);
+  for(const stale of ["names the speaker","sprite kind, not a name","NAME: prefix decides"])expect(copy,stale).not.toContain(stale);
   expect(dependencyProblems({...OFF,[id]:true})).toContain(`${id} needs dialogue-auto-advance-v1`);
   expect(playHarnessFeatures(ALL_ON,null).at(-1)).toBe(id);
   expect(playHarnessFeatures({...ALL_ON,[id]:false},null)).not.toContain(id);
@@ -504,5 +508,11 @@ describe("the pending experiment",()=>{
   expect(candidate.features["instruction-ledger-v2"]).toBe(true);
   for(const arm of [incumbent,candidate]){expect(arm.features["dialogue-auto-advance-v1"]).toBe(true);expect(arm.features["instruction-ledger-v1"]).toBe(false);expect(arm.features["dialogue-log-v1"]).toBe(false);}
   expect(dependencyProblems(presetFeatures(parsePlayPreset(candidate)))).toEqual([]);
+  expect(entry.hypothesis).toContain("latest conversation with a person");
+  expect(entry.hypothesis).not.toContain("names the speaker");
+  // The incumbent is the bundle arm of bundle-v-control (its base with every bundle switch on), minus this switch.
+  const fixed=JSON.parse(readFileSync(new URL("../../../experiments/fixed/bundle-v-control.json",import.meta.url),"utf8")) as {base:{features:Record<string,boolean>};switches:string[]};
+  const bundle=Object.fromEntries(SWITCHABLE_FEATURES.map(k=>[k,k==="instruction-ledger-v2"?false:fixed.switches.includes(k)?true:(fixed.base.features[k]??false)]));
+  expect(incumbent.features).toEqual(bundle);
  });
 });

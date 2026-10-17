@@ -17,6 +17,7 @@ from pathlib import Path
 from typing import TextIO
 
 from pokebench_env.blackout_readout import Whiteout
+from pokebench_env.exit_reach import SWITCH as EXIT_REACH
 from pokebench_env.game_screen import ReadMemory
 from pokebench_env.game_state import GameState, MapNames, read_game_state
 from pokebench_env.heal_trainers import SWITCH as HEAL_TRAINERS
@@ -53,6 +54,7 @@ def read_state(
         readout_truth_enabled="readout-truth-v1" not in off,
         birch_pages_enabled="birch-speech-pages-v1" not in off,
         surf_gate_enabled=SURF_GATE not in off,
+        exit_reach_enabled=EXIT_REACH not in off,
         heal_trainers_enabled=HEAL_TRAINERS not in off,
     )
 

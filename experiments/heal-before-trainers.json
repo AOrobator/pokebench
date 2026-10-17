@@ -122,6 +122,7 @@
    "open-goal-prompt-v1": false,
    "low-hp-trainer-warning-v2": false,
    "story-destinations-v1": false,
+   "exit-reachability-v1": false,
    "heal-before-trainers-v1": false
   }
  },

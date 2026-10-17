@@ -143,13 +143,14 @@ class Topology:
             "connections": tuple(c.json() for c in self.connections),
         }
 
-    def text(self, notes: Mapping[str, str] | None = None) -> str:
+    def text(self, notes: Mapping[int, str] | None = None) -> str:
+        """notes: a note per connection, by its index in self.connections."""
         lines = [f"Current map bounds: X=0..{self.width - 1}, Y=0..{self.height - 1}"]
         lines.append(
             "Map connections (game-defined; terrain and story conditions may block passage):"
         )
         lines.extend(
-            c.line(None if notes is None else notes.get(c.direction)) for c in self.connections
+            c.line(None if notes is None else notes.get(i)) for i, c in enumerate(self.connections)
         )
         if not self.connections:
             lines.append("- none defined; inspect doors/warps instead")

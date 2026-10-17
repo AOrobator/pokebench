@@ -483,6 +483,15 @@ export const StateBodySchema = Type.Object(
       warps: Type.Array(Type.Object({x:Type.Integer({minimum:0,maximum:255}),y:Type.Integer({minimum:0,maximum:255})},closed),{maxItems:255}),
       connections: Type.Array(Type.Enum(["NORTH","SOUTH","EAST","WEST"]),{maxItems:16}),
     },closed)),
+    // exit-reachability-v1: each warp and walking map connection (by direction, destination and offset) labelled foot,
+    // water (only across water) or none (neither), and the tiles reached on foot from the player: one hex string per map
+    // row, four tiles per digit, the high bit the leftmost tile. Present only with the switch; an exit with no label is
+    // unknown, and a mask without exactly height rows of ceil(width/4) digits is unknown (surf-gate.ts exitBlock).
+    exit_reach: Type.Optional(Type.Object({
+      warps: Type.Array(Type.Object({x:Type.Integer({minimum:0,maximum:255}),y:Type.Integer({minimum:0,maximum:255}),reach:Type.Enum(["foot","water","none"])},closed),{maxItems:255}),
+      connections: Type.Array(Type.Object({direction:Type.Enum(["NORTH","SOUTH","EAST","WEST"]),destination:Type.Tuple([Type.Integer({minimum:0,maximum:255}),Type.Integer({minimum:0,maximum:255})]),offset:Type.Integer(),reach:Type.Enum(["foot","water","none"])},closed),{maxItems:16}),
+      foot: Type.Object({width:Type.Integer({minimum:1,maximum:256}),height:Type.Integer({minimum:1,maximum:256}),rows:Type.Array(Type.String({pattern:"^[0-9a-f]{1,64}$"}),{maxItems:256})},closed),
+    },closed)),
     // heal-before-trainers-v1: the trainers loaded on this map (template script starts with trainerbattle) with their
     // trainer flag, the power of each party move, SaveBlock1.lastHealLocation's map, the player's house 1F and whether
     // talking to MOM heals now. Present only with the switch, on the field.

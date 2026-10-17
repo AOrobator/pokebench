@@ -77,6 +77,7 @@ Done when every milestone is merged, qualification shows none of F1–F8, the fo
 
 ## Session Log
 
+- 2026-10-17 04:10 PM EDT: exit-reachability-v1 (landed 7235ae56, server+agent switch, the operator approved bundle only) joins the bundle-v-control bundle arm (base false, no dependency); open-goal-prompt.json incumbent follows. Viewer restart (just viewer-main) needed before any launch check from this pin.
 - 2026-10-17 04:04 PM EDT: dialogue-log-v1 and instruction-ledger-v1 leave the bundle-v-control bundle, off in both (the operator 4:02 PM EDT; instruction-ledger-v2 to follow as a bundle-only switch). open-goal-prompt.json incumbent follows.
 - 2026-10-17 02:27 PM EDT: objective-tracking-v1 and repeat-attempt-guard-v1 leave the bundle arm again, off in both (the operator 2:26 PM EDT: minimal tool set; a standalone repeat-press-guard-v1 is being built instead). open-goal-prompt.json incumbent follows. Previous commit f7f34d1e.
 - 2026-10-17 02:03 PM EDT: objective-tracking-v1 and repeat-attempt-guard-v1 (needs objective tracking) join the bundle-v-control bundle arm (the operator 1:59 PM EDT); off in control. open-goal-prompt.json incumbent follows. Previous commit e176b935. fixed-run check clean (1c34512d); both arms' presets parse and prompts build; agent 2105, viewer 1101, pytest 2530 pass.

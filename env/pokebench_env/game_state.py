@@ -15,6 +15,7 @@ from pokebench_env.battle_details import BattleDetails, read_battle_details
 from pokebench_env.battle_state import BattleState, read_battle_state
 from pokebench_env.character_presence import StoryCharacters, read_story_characters
 from pokebench_env.displayed_names import place_name, player_gender, sign_labeler
+from pokebench_env.exit_reach import ExitReach, build_exit_reach
 from pokebench_env.game_screen import ReadMemory, read_screen
 from pokebench_env.gba_text import GBA_TEXT, decode_text
 from pokebench_env.heal_trainers import HealFacts, read_heal_facts
@@ -28,7 +29,7 @@ from pokebench_env.resources import Resources, read_resources
 from pokebench_env.route103_rival import Route103Rival, read_route103_rival
 from pokebench_env.running import RunningPermission, read_running_permission
 from pokebench_env.story import StoryState, read_story
-from pokebench_env.surf_gate import SurfGate, read_surf_gate
+from pokebench_env.surf_gate import SurfGate, read_flood_inputs, surf_gate_from
 from pokebench_env.topology import Topology, read_topology
 from pokebench_env.trainer_opponent import TrainerOpponent, read_trainer_opponent
 from pokebench_env.transition_coherence import CB2_HANDLE_START_BATTLE, main_loop_idle
@@ -131,6 +132,8 @@ class GameState:
     menu_window_drawn: bool | None = None
     # surf-gated-exits-v1: exits reachable only across water and whether Surf works; None when off.
     surf_gate: SurfGate | None = None
+    # exit-reachability-v1: each exit labelled foot, water or none, and the foot area; off: None.
+    exit_reach: ExitReach | None = None
     # heal-before-trainers-v1: present only with the switch, on the field.
     heal_trainers: HealFacts | None = None
 
@@ -210,6 +213,7 @@ def read_game_state(
     readout_truth_enabled: bool = False,
     birch_pages_enabled: bool = False,
     surf_gate_enabled: bool = False,
+    exit_reach_enabled: bool = False,
     heal_trainers_enabled: bool = False,
 ) -> GameState:
     screen = read_screen(read)
@@ -331,11 +335,18 @@ def read_game_state(
     topology = (
         read_topology(read, maps, edges=connection_edges_enabled) if nearby is not None else None
     )
-    surf_gate = (
-        read_surf_gate(read, map_id, (x, y), targets, topology, badges, party)
-        if surf_gate_enabled and nearby is not None
+    # One flood read for surf-gated-exits-v1 and exit-reachability-v1.
+    flood = (
+        read_flood_inputs(read, map_id, (x, y), targets, topology)
+        if (surf_gate_enabled or exit_reach_enabled) and nearby is not None
         else None
     )
+    surf_gate = (
+        surf_gate_from(read, flood, badges, party)
+        if surf_gate_enabled and flood is not None
+        else None
+    )
+    exit_reach = build_exit_reach(flood) if exit_reach_enabled and flood is not None else None
     return GameState(
         blackout_active=screen.callback2 == 0x08085F59,
         game_stats=_game_stats(read, save1, save2),
@@ -427,6 +438,7 @@ def read_game_state(
         active_ui_read=truth_read,
         menu_window_drawn=window_drawn,
         surf_gate=surf_gate,
+        exit_reach=exit_reach,
         heal_trainers=read_heal_facts(read, save1, save2, map_id, party)
         if heal_trainers_enabled and screen.kind == "overworld" and not in_battle
         else None,

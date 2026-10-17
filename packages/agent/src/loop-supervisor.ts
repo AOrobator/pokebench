@@ -2,7 +2,7 @@ import {DialogueLog,roomKey,roomOf,type DialogueEntry,speakerLabel} from "./dial
 import {ExitHistory,mapKey,readoutNames} from "./exit-history.js";
 import {NextMilestoneHint} from "./milestone-hint.js";
 import {edgeBearings} from "./connection-edges.js";
-import {surfBlock} from "./surf-gate.js";
+import {exitReach} from "./surf-gate.js";
 import {MEASUREMENT_ONLY_MILESTONES} from "./milestones.js";
 import {BattleOutcomes} from "./battle-outcomes.js";
 import type {RunEvent} from "./events.js";
@@ -374,9 +374,10 @@ export class SupervisorBriefing {
  }
  private kept():string {return this.features["dialogue-context-kept-v1"]?this.storyContext():"";}
 
- // surf-gated-exits-v1: the state's targets less the warps reachable only across water while Surf cannot be used.
+ // surf-gated-exits-v1: the state's targets less the warps reachable only across water while Surf cannot be used;
+ // exit-reachability-v1: and less those reachable neither on foot nor across water.
  private reachable(s:State):Target[] {
-  const block=surfBlock(this.features,s);
+  const block=exitReach(this.features,s);
   return (s.interaction_targets??[]).filter(t=>t.kind!=="warp"||!block.warp(t.x,t.y));
  }
  private untried():string {
@@ -421,8 +422,8 @@ export class SupervisorBriefing {
   const rooms=[...this.path.values()].reverse().flatMap(s=>{
    const exits=this.reachable(s).filter(t=>t.kind==="warp"&&t.destination!==null&&!this.entered.has(`${String(t.destination[0])}/${String(t.destination[1])}`));
    // briefing-exits-v1: the map's connections to maps not entered either, where the readout shows them (world destinations).
-   const block=surfBlock(this.features,s);
-   const edges=this.exits!==null&&this.features["world-destinations-v1"]?(s.topology?.connections??[]).filter(c=>!this.entered.has(mapKey(c.destination))&&!block.connection(c.direction)):[];
+   const block=exitReach(this.features,s);
+   const edges=this.exits!==null&&this.features["world-destinations-v1"]?(s.topology?.connections??[]).filter(c=>!this.entered.has(mapKey(c.destination))&&!block.connection(c)):[];
    const items=[...exits.map(t=>`${this.target(t)} at ${at(t.x,t.y)}`),...edges.map(c=>{const name=this.names.get(mapKey(c.destination));return `${c.direction}${EDGES.has(c.direction)?" edge":""} -> ${name===undefined?`map ${mapKey(c.destination)}`:`${name} (map ${mapKey(c.destination)})`}`;})];
    return items.length===0?[]:[`${roomOf(s,this.features)}: ${items.join("; ")}`];
   });
@@ -443,8 +444,8 @@ export class SupervisorBriefing {
  private edges():string {
   const latest=this.latest,topology=latest?.topology;
   // surf-gated-exits-v1: an edge reachable only across water is not a way off while Surf cannot be used.
-  const block=latest==null?null:surfBlock(this.features,latest);
-  const line=this.features["connection-edge-tiles-v1"]?edgeBearings(topology==null||block===null?topology:{...topology,connections:topology.connections.filter(c=>!block.connection(c.direction))}):null;
+  const block=latest==null?null:exitReach(this.features,latest);
+  const line=this.features["connection-edge-tiles-v1"]?edgeBearings(topology==null||block===null?topology:{...topology,connections:topology.connections.filter(c=>!block.connection(c))}):null;
   return line===null?"":`- Ways off this map across its edge (the game's map connections): ${line}\n`;
  }
  text(kind:LoopKind,calls:number):string {

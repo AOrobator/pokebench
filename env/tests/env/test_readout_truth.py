@@ -65,6 +65,7 @@ NEW = frozenset(
         "birch-speech-pages-v1",
         "blackout-readout-v1",
         "surf-gated-exits-v1",
+        "exit-reachability-v1",
         "heal-before-trainers-v1",
     }
 )
@@ -317,7 +318,7 @@ def test_state_json_is_unchanged_where_no_interface_owner_changes() -> None:
 def test_switch_is_a_default_off_server_feature() -> None:
     assert SWITCH in SERVER_FEATURES
     assert SWITCH in features_off_from_env({})
-    assert SERVER_FEATURES[-5:-2] == (
+    assert SERVER_FEATURES[-6:-3] == (
         "readout-truth-v1",
         "birch-speech-pages-v1",
         "blackout-readout-v1",

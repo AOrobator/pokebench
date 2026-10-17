@@ -23,5 +23,8 @@ No harness behavior change, so no feature switch.
 
 **M1: cards on the comparisons page**
 - [x] RED 5bdef504 / GREEN: experiment on workbench runs; cardInputFor; link cards; shared card-dom (app.ts moved onto it; focus restore now keyed by run, closing the trainer-card-header follow-up); comparisons party as cards with lane and notes, clock in place, per-card sync, plates without art. Gates: viewer 1080 (95.39/91.41/93.73/97.61), agent 2084, Python 2398
-- [ ] Gates, browser proof at 1280/1440/375
-- [ ] Review (round cap 2), land ff-only, restart, live check
+- [x] Gates, browser proof at 1280/1440/375: runs/reviews/2026-10-17-trainer-card-comparisons-e2e/receipt.md (round 2: polling, keyboard, return path, frames, console)
+- [x] Review on packet 96821a1c (head 8ace2510): Claude LGTM, Grok LGTM. GPT BLOCKING twice on evidence only. Round 1: the stale principles table (fixed) and the click-through proof (added). Round 2: mutation evidence for the arm/of validation (rebutted as an evidence demand). At the round cap, the operator said "merge".
+- [x] Landed 2026-10-17 12:35 PM EDT: `git merge --ff-only` -> main 8ace2510. `just test` on main: agent 2084, viewer 1080, Python 2502. `just viewer-main`: viewer at 8ace2510, 2 live runs kept.
+- [x] Live on 8790: /comparisons shows both live runs (93eb control, 0e05 bundle) as gold trainer cards with LANE A · GPU1 / LANE B · GPU0 under them, all text painted, no plates. Clicking a card opens the viewer on that run.
+- Follow-ups: art load before the first snapshot has no timeout (Claude H3); syncCards keeps focus by index rather than across reorders; negative tests for experiment arm/of (GPT round 2).

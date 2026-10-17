@@ -34,8 +34,10 @@ const ON:FeatureSet={...ALL_ON,"state-only-decisions-v1":false,"story-destinatio
 const T272_BLOCK=[
  `${STORY_HEADER} (turn 272, MAY): "Well, it's time to head back to the LAB."`,
  "- \"LAB\" = PROF. BIRCH'S POKéMON LAB (map 1/4). Way in: door in LITTLEROOT TOWN (map 0/9) at (7,16).",
- "- MAY (spoke the line): not on this map.",
 ].join("\n");
+
+// Operator decision 2026-10-17 12:59 PM EDT ("drop it"): the block lists no people; the line is shown only for what it resolves.
+const NO_PEOPLE=/spoke the line|named in the line|in the line\)|on this map|readout does not say/;
 
 describe("story-destinations-v1 on recorded runs",()=>{
  it("4caa T272: MAY's \"head back to the LAB\" becomes the lab door in LITTLEROOT TOWN at (7,16), right under the Story line",()=>{
@@ -44,6 +46,8 @@ describe("story-destinations-v1 on recorded runs",()=>{
   replay(story,CAAA,result.seq-1);
   const state=stateAt(CAAA,result.state_seq ?? -1);
   expect(story.block(state,result.text,result.id,PLACES.places)).toBe(T272_BLOCK);
+  expect(T272_BLOCK).not.toMatch(NO_PEOPLE);
+  expect(STORY_HEADER).toBe("Latest story line naming a place");
   const text=story.annotate(result.text,state,result.id,PLACES.places);
   expect(text).toContain(`Story: player name confirmed; Mom clock instruction received; clock set; Mom rival instruction received; rival met; sent to save Birch; Birch rescue complete; Birch starter handoff complete; Route 103 rival battle won\n${T272_BLOCK}\nPlayer: RAED\n`);
   // Nothing else changes and nothing is clipped.
@@ -64,7 +68,6 @@ describe("story-destinations-v1 on recorded runs",()=>{
   expect(story.block(state,result.text,result.id,PLACES.places)).toBe([
    `${STORY_HEADER} (turn 138, PROF. BIRCH): "This is not the place to chat, so come by my POKéMON LAB later, okay?"`,
    "- \"POKéMON LAB\" = PROF. BIRCH'S POKéMON LAB (map 1/4). You are in it now.",
-   "- PROF. BIRCH (spoke the line): on this map at (6,4).",
   ].join("\n"));
  });
  it("sh02 T74: MOM's \"He lives right next door\" resolves He to PROF. BIRCH and the place to his house's door, not the lab",()=>{
@@ -75,8 +78,6 @@ describe("story-destinations-v1 on recorded runs",()=>{
   const block=[
    `${STORY_HEADER} (turn 74, MOM): "He lives right next door, so you should go over and introduce yourself."`,
    "- \"He lives\" (He = PROF. BIRCH, the one story character named before it in this conversation) = PROF. BIRCH'S HOUSE 1F (map 1/2). Way in: door in LITTLEROOT TOWN (map 0/9) at (14,8).",
-   "- MOM (spoke the line): on this map at (2,6).",
-   "- PROF. BIRCH (\"He\" in the line): not on this map.",
   ].join("\n");
   expect(story.block(state,result.text,result.id,PLACES.places)).toBe(block);
   // The T75 navigate_to result (the model headed for "Professor Birch's Lab") shows it again.
@@ -84,15 +85,19 @@ describe("story-destinations-v1 on recorded runs",()=>{
   const later=new StoryDestinations();replay(later,SH02,next.seq-1);
   expect(later.block(stateAt(SH02,next.state_seq ?? -1),next.text,next.id,PLACES.places)).toBe(block);
  });
- it("4caa T107: a faced sprite whose graphics is MAY on this map speaks as MAY, and the PROF. BIRCH she names is listed",()=>{
+ it("4caa T107: a faced sprite whose graphics is MAY on this map speaks as MAY; a sprite kind with no recorded state is no story speaker",()=>{
   const story=new StoryDestinations();
   const daa=CAAA.find(e=>e.type==="dialogue_auto_advance"&&e.turn===107);
-  if(daa===undefined)throw Error("no T107 talk");
+  if(daa?.type!=="dialogue_auto_advance")throw Error("no T107 talk");
   replay(story,CAAA,daa.seq);
-  const line=story.latest(daa.type==="dialogue_auto_advance"?daa.tool_call_id:"",headsOf(PLACES.places),"RAED");
-  expect(line?.speaker).toBe("MAY");
-  expect(line?.text).toBe("I… I heard about you, RAED, from my dad, PROF. BIRCH.");
-  expect(line?.named).toEqual(["PROF. BIRCH"]);
+  const first=daa.pages.find(p=>p.speaker==="RIVAL_MAY_NORMAL"&&p.state_seq!==null);
+  if(first===undefined)throw Error("no sprite page");
+  const lab={...first,text:"Well, it's time to head back to the LAB."};
+  story.observe(talk("sprite",107,[lab]));story.observe(delivered("sprite",107));
+  expect(story.latest("z",headsOf(PLACES.places),"RAED")).toMatchObject({speaker:"MAY",text:"Well, it's time to head back to the LAB."});
+  const unknown=new StoryDestinations();
+  unknown.observe(talk("sprite",107,[{...lab,state_seq:null}]));unknown.observe(delivered("sprite",107));
+  expect(unknown.latest("z",headsOf(PLACES.places),"RAED")).toBeNull();
  });
 });
 
@@ -133,17 +138,14 @@ describe("story-destinations-v1 rules",()=>{
   // A named owner needs no pronoun: WALLY's house is a map of its own in PETALBURG CITY.
   expect(after([page("WALLY lives far away.","MOM")])).toContain("- \"WALLY lives\" = PETALBURG CITY WALLYS HOUSE (map 8/0). Way in: door in PETALBURG CITY (map 0/0) at (7,5).");
  });
- it("lists every story character the line names with where the readout places them",()=>{
-  const block=after([page("Go see MAY. BRENDAN, WALLY, PROF. BIRCH and STEVEN too.","MOM")]);
+ it("lists no people: a line that only names story characters shows nothing, and a place line shows only its places",()=>{
+  expect(after([page("Go see MAY. BRENDAN, WALLY, PROF. BIRCH and STEVEN too.","MOM")])).toBeNull();
+  const block=after([page("Go see MAY at the LAB.","MOM")]);
   expect(block).toBe([
-   `${STORY_HEADER} (turn 5, MOM): "Go see MAY. BRENDAN, WALLY, PROF. BIRCH and STEVEN too."`,
-   "- MOM (spoke the line): not on this map.",
-   "- MAY (named in the line): on this map at (10,3), out of view.",
-   "- BRENDAN (named in the line): on this map, out of view (its tile was not read).",
-   "- WALLY (named in the line): on this map, out of view; the map places this character at (1,2), it may have moved.",
-   "- PROF. BIRCH (named in the line): not on this map.",
-   "- STEVEN (named in the line): the readout does not say where.",
+   `${STORY_HEADER} (turn 5, MOM): "Go see MAY at the LAB."`,
+   "- \"LAB\" = PROF. BIRCH'S POKéMON LAB (map 1/4). Way in: door in LITTLEROOT TOWN (map 0/9) at (7,16).",
   ].join("\n"));
+  expect(block).not.toMatch(NO_PEOPLE);
  });
  it("keeps the latest story line that names something; other speakers, signs and battle text never replace it",()=>{
   const story=new StoryDestinations();
@@ -154,12 +156,15 @@ describe("story-destinations-v1 rules",()=>{
   // A newer story line that names nothing does not replace it either.
   story.observe(talk("c",6,[page("MOM: Bye, honey!","MOM")]));story.observe(delivered("c",6));
   expect(story.latest("z")?.text).toBe("Head back to the LAB.");
+  // Naming only a person no longer makes a line the latest one.
+  story.observe(talk("p",6,[page("Go see WALLY.","MOM")]));story.observe(delivered("p",6));
+  expect(story.latest("z")?.text).toBe("Head back to the LAB.");
   // A talk whose result failed was never shown, so it does not count.
-  story.observe(talk("d",7,[page("Go see WALLY.","MOM")]));story.observe(delivered("d",7,true));
+  story.observe(talk("d",7,[page("Go to OLDALE TOWN.","MOM")]));story.observe(delivered("d",7,true));
   expect(story.latest("z")?.text).toBe("Head back to the LAB.");
   // The call that shows a line counts it before its result is recorded.
-  story.observe(talk("e",8,[page("Go see WALLY.","MOM")]));
-  expect(story.latest("e")?.text).toBe("Go see WALLY.");
+  story.observe(talk("e",8,[page("Go to OLDALE TOWN.","MOM")]));
+  expect(story.latest("e")?.text).toBe("Go to OLDALE TOWN.");
   expect(story.latest("other")?.text).toBe("Head back to the LAB.");
  });
  it("says plainly when the map table could not be read, and then picks no line at all rather than a looser one",()=>{
@@ -291,13 +296,13 @@ describe("the game server's map table reader",()=>{
 });
 
 describe("the pending experiment",()=>{
- it("flips only story-destinations-v1, in arms that record story lines, place people and name buildings by their signs (round-1 Claude and Grok blockers)",()=>{
+ it("flips only story-destinations-v1, in arms that record story lines and name buildings by their signs (round-1 Grok blocker); character presence stays as the finals incumbent has it",()=>{
   const entry=parseExperiment(JSON.parse(readFileSync(new URL("../../../experiments/story-destinations.json",import.meta.url),"utf8")));
   expect(entry.queuePosition).toBeUndefined();
   const {incumbent,candidate}=experimentArms(entry);
   expect(Object.keys(candidate.features).filter(id=>candidate.features[id as keyof typeof candidate.features]!==incumbent.features[id as keyof typeof incumbent.features])).toEqual(["story-destinations-v1"]);
   expect(candidate.features["story-destinations-v1"]).toBe(true);
-  for(const arm of [incumbent,candidate])for(const id of ["dialogue-auto-advance-v1","character-presence-v1","displayed-place-names-v1"] as const)expect(arm.features[id],id).toBe(true);
+  for(const arm of [incumbent,candidate]){for(const id of ["dialogue-auto-advance-v1","displayed-place-names-v1"] as const)expect(arm.features[id],id).toBe(true);expect(arm.features["character-presence-v1"]).toBe(false);}
   expect(dependencyProblems(presetFeatures(parsePlayPreset(candidate)))).toEqual([]);
  });
 });

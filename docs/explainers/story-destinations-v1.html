@@ -63,7 +63,7 @@ th{font:500 .75rem var(--mono);letter-spacing:.06em;text-transform:uppercase;col
 <div class="eyebrow">Harness switch · observation · <code>story-destinations-v1</code> · needs <code>dialogue-auto-advance-v1</code> · off by default · bundle arm</div>
 <h1>Story destinations</h1>
 </div>
-<p class="lede">When a story character's latest line names a place ("head back to the LAB", "come by my POKéMON LAB later", "He lives right next door"), the readout says which map that is and where its door or edge is, using the game's own map table. It also says where each story character the line names stands: on this map at x,y, out of view, or not on this map. A name the map table does not pin to one map is reported as not resolved, never guessed.</p>
+<p class="lede">When a story character's latest line names a place ("head back to the LAB", "come by my POKéMON LAB later", "He lives right next door"), the readout says which map that is and where its door or edge is, using the game's own map table. The line itself is quoted, with its speaker, only to show what was resolved; the block lists no people (operator decision 2026-10-17). A name the map table does not pin to one map is reported as not resolved, never guessed.</p>
 
 <section>
 <h2>The miss it targets</h2>
@@ -83,9 +83,8 @@ Position: X=9, Y=13, facing down</pre>
 <figure>
 <div class="tag on">On (same result, replayed)</div>
 <pre>Story: player name confirmed; … Route 103 rival battle won
-Latest story line naming a place or person (turn 272, MAY): "Well, it's time to head back to the LAB."
+Latest story line naming a place (turn 272, MAY): "Well, it's time to head back to the LAB."
 - "LAB" = PROF. BIRCH'S POKéMON LAB (map 1/4). Way in: door in LITTLEROOT TOWN (map 0/9) at (7,16).
-- MAY (spoke the line): not on this map.
 Player: RAED
 Location: ROUTE103
 Position: X=9, Y=13, facing down</pre>
@@ -111,10 +110,10 @@ Position: X=9, Y=13, facing down</pre>
 <text class="s" x="222" y="74">"MAY:" prefix, or a faced sprite</text>
 <text class="s" x="222" y="88">whose graphics is MAY here</text>
 <rect class="box" x="440" y="20" width="290" height="88" rx="8"/>
-<text class="t" x="452" y="42">names something?</text>
+<text class="t" x="452" y="42">names a place?</text>
 <text class="s" x="452" y="60">a capitalised run ending in a map-name word</text>
-<text class="s" x="452" y="74">(LAB, ROUTE 103, PETALBURG GYM), "He lives",</text>
-<text class="s" x="452" y="88">or a story character. Latest such line wins.</text>
+<text class="s" x="452" y="74">(LAB, ROUTE 103, PETALBURG GYM) or "He lives".</text>
+<text class="s" x="452" y="88">Latest such line wins.</text>
 <path class="arr" d="M180,64H206" marker-end="url(#a)"/>
 <path class="arr" d="M410,64H436" marker-end="url(#a)"/>
 <rect class="game" x="10" y="160" width="250" height="110" rx="8"/>
@@ -138,11 +137,11 @@ Position: X=9, Y=13, facing down</pre>
 <path class="arr" d="M585,108V130H385V156" marker-end="url(#a)"/>
 <path class="arr" d="M260,215H286" marker-end="url(#a)"/>
 <path class="arr" d="M510,215H536" marker-end="url(#a)"/>
-<text class="s" x="22" y="300">People: each story character the line names, and its speaker, is placed from the readout's own character-presence line.</text>
+<text class="s" x="22" y="300">No people are listed: story characters' names are used only to tell who "He lives" means.</text>
 <text class="s" x="22" y="316">Inserted under the Story line of observe, press and navigate_to readouts, in the overworld only.</text>
 </svg>
 </div>
-<figcaption>One claim: every fact in the block comes from recorded dialogue, the ROM's map table or the readout's presence line. The only words the harness knows by heart are the story characters' names (character-presence-v1's table) and "lives".</figcaption>
+<figcaption>One claim: every fact in the block comes from recorded dialogue or the ROM's map table. The only words the harness knows by heart are the story characters' names (character-presence-v1's table) and "lives".</figcaption>
 </figure>
 </section>
 
@@ -179,22 +178,9 @@ Position: X=9, Y=13, facing down</pre>
 <tr><td>"Go to the POKéMON CENTER, then to the GYM."</td><td>"POKéMON CENTER": not resolved: N maps in the game's map table match this name, and the line does not say which. (same for "GYM")</td></tr>
 <tr><td>"WALLY and STEVEN came by." / "He lives right next door."</td><td>"He lives": not resolved: "He" could be WALLY or STEVEN.</td></tr>
 <tr><td>"ROXANNE lives far away."</td><td>"ROXANNE lives": not resolved: no map in the game's map table is named ROXANNE'S HOUSE.</td></tr>
-<tr><td>the map table cannot be read</td><td>Latest story line naming a place or person: not known; the game's map table could not be read (HTTP 503). (Which line names a place depends on the table, so no line is picked.)</td></tr>
+<tr><td>the map table cannot be read</td><td>Latest story line naming a place: not known; the game's map table could not be read (HTTP 503). (Which line names a place depends on the table, so no line is picked.)</td></tr>
 </table></div>
-<p>A line spoken by someone who is not a story character (May's mother, the nurse), a sign, battle text, or a newer story line that names nothing never replaces the latest one. A call's own line counts in that call's result; a call whose result failed was never shown and does not count.</p>
-</section>
-
-<section>
-<h2>Where people are</h2>
-<div class="tablewrap"><table>
-<tr><th>Presence line entry</th><th>Block says</th></tr>
-<tr><td>MAY at 10,3</td><td>on this map at (10,3)</td></tr>
-<tr><td>MAY at 10,3 (out of view)</td><td>on this map at (10,3), out of view</td></tr>
-<tr><td>MAY at 10,3 (out of view; where the map places this character, it may have moved)</td><td>on this map, out of view; the map places this character at (10,3), it may have moved</td></tr>
-<tr><td>MAY (on this map, out of view)</td><td>on this map, out of view (its tile was not read)</td></tr>
-<tr><td>in "Not on this map"</td><td>not on this map</td></tr>
-<tr><td>no presence line, or not listed</td><td>the readout does not say where</td></tr>
-</table></div>
+<p>A line spoken by someone who is not a story character (May's mother, the nurse), a sign, battle text, or a newer story line that names no place never replaces the latest one; naming only a person does not make a line the latest. A call's own line counts in that call's result; a call whose result failed was never shown and does not count.</p>
 </section>
 
 <section>
@@ -203,19 +189,19 @@ Position: X=9, Y=13, facing down</pre>
 <div class="tablewrap"><table>
 <tr><th>Measure</th><th>Value</th></tr>
 <tr><td>Bundle runs with dialogue pages</td><td>7 (sh02, 230d, 7ccf, a3c9, 4caa, 8b01, d32e)</td></tr>
-<tr><td>Overworld results with the block, those runs</td><td>3,052 of 3,142 (97%); it first appears at T48–T72, MOM's "Well, this is LITTLEROOT TOWN."</td></tr>
-<tr><td>Distinct story lines shown</td><td>56</td></tr>
+<tr><td>Overworld results with the block, those runs</td><td>3,220 of 3,310 (97%); it first appears at T48–T72, MOM's "Well, this is LITTLEROOT TOWN." (replayed again on 2026-10-17 after the people lines were dropped; d32e had grown from 240 to 408 overworld results since the first replay)</td></tr>
+<tr><td>Distinct story lines shown</td><td>26 (each prints at least one place line)</td></tr>
 <tr><td>Place resolutions printed (distinct lines)</td><td>26: LITTLEROOT TOWN 7, "He lives" → PROF. BIRCH'S HOUSE 1F 7, "POKéMON LAB" 7, "LAB" 4, "ROUTE 103" 1</td></tr>
 <tr><td>Wrong resolutions</td><td>0 of 26, each checked against pokeemerald's map data</td></tr>
 <tr><td>Not resolved (ambiguous / no match)</td><td>0 in these runs</td></tr>
-<tr><td>People lines</td><td>5,164: not on this map 4,190; on this map at x,y 338; out of view at x,y 234; template tile 250; out of view, tile not read 152</td></tr>
+<tr><td>People lines</td><td>0 (none are listed)</td></tr>
 </table></div>
 </section>
 
 <section>
 <h2>Status</h2>
 <ul>
-<li>Branch <code>claude/story-destination-targets</code>. Default off; registered as the pending experiment <code>experiments/story-destinations.json</code> (not queued), whose arms have <code>dialogue-auto-advance-v1</code>, <code>character-presence-v1</code> and <code>displayed-place-names-v1</code> on, as the bundle arm does. Without character presence every person reads "the readout does not say where"; without displayed place names the table names the lab LITTLEROOT TOWN PROFESSOR BIRCHS LAB, so "LAB" still resolves but "POKéMON LAB" and "He lives" (PROF. BIRCH'S HOUSE) are reported as not resolved.</li>
+<li>Branch <code>claude/story-destination-targets</code>. Default off; registered as the pending experiment <code>experiments/story-destinations.json</code> (not queued), whose arms have <code>dialogue-auto-advance-v1</code> and <code>displayed-place-names-v1</code> on, as the bundle arm does (<code>character-presence-v1</code> stays as the finals incumbent has it; the block no longer uses it). Without displayed place names the table names the lab LITTLEROOT TOWN PROFESSOR BIRCHS LAB, so "LAB" still resolves but "POKéMON LAB" and "He lives" (PROF. BIRCH'S HOUSE) are reported as not resolved.</li>
 <li>Not done: measured runs. Whether the model uses the block is untested; only the operator approves runs.</li>
 <li>Decision probes (<code>just probe-decision</code>) have no game server, so a probe with this switch on says the map table could not be read.</li>
 </ul>

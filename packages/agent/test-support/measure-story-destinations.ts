@@ -26,6 +26,6 @@ for(const e of events){
  if(recorded===undefined)continue;
  const state=parseGameState(Object.fromEntries(Object.entries(recorded).filter(([key])=>!envelope.has(key))));
  const overworld=state.started&&state.screen==="overworld"&&!state.in_battle;
- const block=story.block(state,e.text,e.id,places);
+ const block=story.block(state,e.id,places);
  console.log(JSON.stringify({seq:e.seq,turn:e.turn,map:state.location,overworld,block}));
 }

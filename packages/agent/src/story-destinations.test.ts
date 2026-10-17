@@ -45,7 +45,7 @@ describe("story-destinations-v1 on recorded runs",()=>{
   const result=resultAt(CAAA,272);
   replay(story,CAAA,result.seq-1);
   const state=stateAt(CAAA,result.state_seq ?? -1);
-  expect(story.block(state,result.text,result.id,PLACES.places)).toBe(T272_BLOCK);
+  expect(story.block(state,result.id,PLACES.places)).toBe(T272_BLOCK);
   expect(T272_BLOCK).not.toMatch(NO_PEOPLE);
   expect(STORY_HEADER).toBe("Latest story line naming a place");
   const text=story.annotate(result.text,state,result.id,PLACES.places);
@@ -58,14 +58,14 @@ describe("story-destinations-v1 on recorded runs",()=>{
   const result=resultAt(CAAA,273);
   replay(story,CAAA,result.seq-1);
   const state=stateAt(CAAA,result.state_seq ?? -1);
-  expect(story.block(state,result.text,result.id,PLACES.places)).toBe(T272_BLOCK);
+  expect(story.block(state,result.id,PLACES.places)).toBe(T272_BLOCK);
  });
  it("4caa T138: PROF. BIRCH's \"come by my POKéMON LAB later\" resolves to the lab, and the cutscene has already put the player in it",()=>{
   const story=new StoryDestinations();
   const result=resultAt(CAAA,138);
   replay(story,CAAA,result.seq-1);
   const state=stateAt(CAAA,result.state_seq ?? -1);
-  expect(story.block(state,result.text,result.id,PLACES.places)).toBe([
+  expect(story.block(state,result.id,PLACES.places)).toBe([
    `${STORY_HEADER} (turn 138, PROF. BIRCH): "This is not the place to chat, so come by my POKéMON LAB later, okay?"`,
    "- \"POKéMON LAB\" = PROF. BIRCH'S POKéMON LAB (map 1/4). You are in it now.",
   ].join("\n"));
@@ -79,11 +79,11 @@ describe("story-destinations-v1 on recorded runs",()=>{
    `${STORY_HEADER} (turn 74, MOM): "He lives right next door, so you should go over and introduce yourself."`,
    "- \"He lives\" (He = PROF. BIRCH, the one story character named before it in this conversation) = PROF. BIRCH'S HOUSE 1F (map 1/2). Way in: door in LITTLEROOT TOWN (map 0/9) at (14,8).",
   ].join("\n");
-  expect(story.block(state,result.text,result.id,PLACES.places)).toBe(block);
+  expect(story.block(state,result.id,PLACES.places)).toBe(block);
   // The T75 navigate_to result (the model headed for "Professor Birch's Lab") shows it again.
   const next=resultAt(SH02,75);
   const later=new StoryDestinations();replay(later,SH02,next.seq-1);
-  expect(later.block(stateAt(SH02,next.state_seq ?? -1),next.text,next.id,PLACES.places)).toBe(block);
+  expect(later.block(stateAt(SH02,next.state_seq ?? -1),next.id,PLACES.places)).toBe(block);
  });
  it("4caa T107: a faced sprite whose graphics is MAY on this map speaks as MAY; a sprite kind with no recorded state is no story speaker",()=>{
   const story=new StoryDestinations();
@@ -114,13 +114,12 @@ function talk(id:string,turn:number,pages:readonly object[]):RunEvent {
 function delivered(id:string,turn:number,is_error=false):RunEvent {
  return checkEvent({v:1,run:"2026-10-16T12-42-29_qwen36-gpu0_4caa",seq:seq++,t:"2026-10-16T13:07:12.905-04:00",type:"tool_result",turn,id,name:"press",is_error,duration_ms:1,text:"pressed A",frames:[]});
 }
-const READOUT="Screen: overworld\nStory: rival met\nLocation: OLDALE TOWN\nPosition: X=5, Y=5, facing up\nStory characters here (from this map's own object list): MAY at 10,3 (out of view), BRENDAN (on this map, out of view), WALLY at 1,2 (out of view; where the map places this character, it may have moved). Not on this map: PROF. BIRCH, MOM. Sprite kinds such as SCIENTIST_1 or FAT_MAN are not these characters.\nParty (player): none";
 
 describe("story-destinations-v1 rules",()=>{
  const oldale=field([0,10],"OLDALE TOWN");
  function after(pages:readonly object[]):string|null {
   const story=new StoryDestinations();story.observe(talk("c",5,pages));story.observe(delivered("c",5));
-  return story.block(oldale,READOUT,"later",PLACES.places);
+  return story.block(oldale,"later",PLACES.places);
  }
  it("a connected map is reached by the edge that leads to it, said as this map's edge when it is this one",()=>{
   expect(after([page("MAY: The POKéMON found on ROUTE 103 include…","MAY")])).toContain("- \"ROUTE 103\" = ROUTE103 (map 0/18). Way in: this map's NORTH edge; ROUTE110 (map 0/25) WEST edge; door in ALTERING CAVE (map 24/106) at (");
@@ -172,18 +171,18 @@ describe("story-destinations-v1 rules",()=>{
   story.observe(talk("a",3,[page("Head back to the LAB.","MAY")]));story.observe(delivered("a",3));
   // A newer line with a capitalised run that ends no map's name (round-1 Codex reproducer).
   story.observe(talk("b",4,[page("Thanks, POKéMON TRAINER!","MOM")]));story.observe(delivered("b",4));
-  expect(story.block(oldale,READOUT,"x",PLACES.places)).toContain(`${STORY_HEADER} (turn 3, MAY): "Head back to the LAB."`);
-  expect(story.block(oldale,READOUT,"x",new Error("HTTP 503"))).toBe(`${STORY_HEADER}: not known; the game's map table could not be read (HTTP 503).`);
+  expect(story.block(oldale,"x",PLACES.places)).toContain(`${STORY_HEADER} (turn 3, MAY): "Head back to the LAB."`);
+  expect(story.block(oldale,"x",new Error("HTTP 503"))).toBe(`${STORY_HEADER}: not known; the game's map table could not be read (HTTP 503).`);
   // Before any story line there is nothing to say either way.
-  expect(new StoryDestinations().block(oldale,READOUT,"x",new Error("HTTP 503"))).toBeNull();
+  expect(new StoryDestinations().block(oldale,"x",new Error("HTTP 503"))).toBeNull();
  });
  it("shows nothing outside a started overworld readout or before any story line, and inserts after Location/Position when there is no Story line",()=>{
   const story=new StoryDestinations();
-  expect(story.block(oldale,READOUT,"x",PLACES.places)).toBeNull();
+  expect(story.block(oldale,"x",PLACES.places)).toBeNull();
   story.observe(talk("a",3,[page("Head back to the LAB.","MAY")]));story.observe(delivered("a",3));
-  for(const s of [{...oldale,screen:"battle"},{...oldale,in_battle:true},{...oldale,started:false},{...oldale,map_id:null}])expect(story.block(s,READOUT,"x",PLACES.places)).toBeNull();
+  for(const s of [{...oldale,screen:"battle"},{...oldale,in_battle:true},{...oldale,started:false},{...oldale,map_id:null}])expect(story.block(s,"x",PLACES.places)).toBeNull();
   const bare="Screen: overworld\nLocation: OLDALE TOWN\nPosition: X=5, Y=5, facing up\nParty: none";
-  expect(story.annotate(bare,oldale,"x",PLACES.places)).toBe(`Screen: overworld\nLocation: OLDALE TOWN\nPosition: X=5, Y=5, facing up\n${story.block(oldale,bare,"x",PLACES.places) ?? ""}\nParty: none`);
+  expect(story.annotate(bare,oldale,"x",PLACES.places)).toBe(`Screen: overworld\nLocation: OLDALE TOWN\nPosition: X=5, Y=5, facing up\n${story.block(oldale,"x",PLACES.places) ?? ""}\nParty: none`);
   expect(story.annotate("Screen: overworld\nParty: none",oldale,"x",PLACES.places)).toBe("Screen: overworld\nParty: none");
  });
  it("finds place phrases only where the last word ends some map's name",()=>{

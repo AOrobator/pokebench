@@ -1,8 +1,8 @@
-// story-destinations-v1: right under the readout's Story line, the latest story line that names a place
-// or a story character, with each place resolved against the game's own map table (GET /pokebench/places,
-// read from the ROM by env/pokebench_env/places.py) into the map and the door or edge that leads into it,
-// and each story character placed where the readout's character-presence line says they are. A name the
-// table does not resolve to exactly one map is reported as not resolved. Facts only, nothing clipped.
+// story-destinations-v1: right under the readout's Story line, the latest story line that names a place,
+// with each place resolved against the game's own map table (GET /pokebench/places, read from the ROM by
+// env/pokebench_env/places.py) into the map and the door or edge that leads into it. A name the table does
+// not resolve to exactly one map is reported as not resolved. No people are listed (operator decision
+// 2026-10-17). Facts only, nothing clipped.
 import type {AgentTool,AgentToolResult} from "@mariozechner/pi-agent-core";
 import {Type,type Static} from "typebox";
 import {Value} from "typebox/value";
@@ -10,7 +10,6 @@ import type {RunEvent} from "./events.js";
 import type {FeatureSet} from "./features.js";
 import {isCheckedPress,type CheckedPressTool} from "./game-tools.js";
 import {parseGameState,type GameStateSnapshot} from "./game-state.js";
-import {presence} from "./people-ledger.js";
 import type {RunRecorder} from "./recorder.js";
 import {STORY_CHARACTERS,storyCharacter} from "./script-line-presence.js";
 
@@ -25,7 +24,7 @@ export type PlacesBody=Static<typeof PlacesBodySchema>;
 export type Place=PlacesBody["places"][number];
 type MapId=readonly [number,number];
 
-export const STORY_HEADER="Latest story line naming a place or person";
+export const STORY_HEADER="Latest story line naming a place";
 const NAMES=STORY_CHARACTERS.map(c=>c.name);
 const escape=(s:string)=>s.replace(/[.*+?^${}()|[\]\\]/g,"\\$&");
 const NAMED=new RegExp(`(?<![A-Za-z])(${NAMES.map(escape).join("|")})(?![A-Za-z])`,"g");
@@ -90,7 +89,7 @@ type Page=Extract<RunEvent,{type:"dialogue_auto_advance"}>["pages"][number];
 interface Lives {readonly subject:string;readonly owner:string|null;readonly others:readonly string[]}
 export interface StoryLine {
  readonly turn:number;readonly speaker:string;readonly text:string;
- readonly named:readonly string[];readonly lives:Lives|null;
+ readonly lives:Lives|null;
 }
 
 function namedIn(text:string):string[] {
@@ -126,7 +125,8 @@ export class StoryDestinations {
   const known=this.sprites.findLast(s=>s.seq<=seq&&s.map!==null&&same(s.map,map));
   return known?.kinds.get(page.speaker)??null;
  }
- // Every field page a story character speaks in one call, with what it names; battle text is no one's line.
+ // Every field page a story character speaks in one call, with its "lives" clause; battle text is no one's line.
+ // Story characters named on earlier pages of the call (any speaker) are who "He/She lives" can mean.
  private storyLines(turn:number,pages:readonly Page[]):StoryLine[] {
   const out:StoryLine[]=[];const before:string[]=[];
   for(const page of pages){
@@ -134,7 +134,6 @@ export class StoryDestinations {
    const speaker=this.speaker(page);
    const prefix=page.speaker===null?"":`${page.speaker}: `;
    const text=(page.speaker_source==="name_prefix"&&page.text.startsWith(prefix)?page.text.slice(prefix.length):page.text).replace(/\s+/g," ").trim();
-   const named=namedIn(text);
    if(speaker!==null){
     const m=LIVES.exec(text);
     let lives:Lives|null=null;
@@ -143,23 +142,23 @@ export class StoryDestinations {
      const others=before.filter(n=>n!==speaker);
      lives=subject==="He"||subject==="She"?{subject,owner:others.length===1?others[0] ?? null:null,others}:{subject,owner:subject,others:[]};
     }
-    out.push({turn,speaker,text,named:named.filter(n=>n!==speaker),lives});
+    out.push({turn,speaker,text,lives});
    }
    for(const n of namedIn(page.text))if(!before.includes(n))before.push(n);
   }
   return out;
  }
- // The latest story line that names a place (by the map table's name endings), a "lives" or a story character.
+ // The latest story line that names a place (by the map table's name endings) or says who "lives" where.
  latest(callId:string,heads:ReadonlySet<string>|null=null,player:string|null=null):StoryLine|null {
   const lines=[...this.lines,...(this.pending.get(callId)??[])];
   for(let i=lines.length-1;i>=0;i--){
    const line=lines[i];
    if(line===undefined)continue;
-   if(line.lives!==null||line.named.length>0||placePhrases(line.text,heads,[...NAMES,...(player===null?[]:[player])]).length>0)return line;
+   if(line.lives!==null||placePhrases(line.text,heads,[...NAMES,...(player===null?[]:[player])]).length>0)return line;
   }
   return null;
  }
- block(state:GameStateSnapshot,readout:string,callId:string,places:readonly Place[]|Error):string|null {
+ block(state:GameStateSnapshot,callId:string,places:readonly Place[]|Error):string|null {
   if(!state.started||state.screen!=="overworld"||state.in_battle||state.map_id===null)return null;
   // Which line names a place depends on the map table's name endings, so without the table no line is
   // picked: one plain line instead of a guess or a looser rule.
@@ -181,19 +180,13 @@ export class StoryDestinations {
   }
   for(const phrase of placePhrases(line.text,heads,[...NAMES,...(state.name===null?[]:[state.name])]))
    out.push(`- "${phrase}"${resolution(words(phrase.split(" ")),places,here,"no map in the game's map table has this name.")}`);
-  const characters=presence(readout);
-  const where=(name:string)=>whereIs(name,characters);
-  out.push(`- ${line.speaker} (spoke the line): ${where(line.speaker)}.`);
-  for(const name of line.named)out.push(`- ${name} (named in the line): ${where(name)}.`);
-  const owner=line.lives?.owner;
-  if(owner!=null&&line.lives?.subject!==owner&&owner!==line.speaker&&!line.named.includes(owner))out.push(`- ${owner} ("${line.lives?.subject ?? ""}" in the line): ${where(owner)}.`);
   return out.join("\n");
  }
  // The readout with the block inserted after its Story line (after Location/Position without one).
  annotate(text:string,state:GameStateSnapshot,callId:string,places:readonly Place[]|Error):string {
   const anchor=/^Story: .*$/m.exec(text)??/^Location: .*$(?:\nPosition: .*$)?/m.exec(text);
   if(anchor===null)return text;
-  const block=this.block(state,text,callId,places);
+  const block=this.block(state,callId,places);
   if(block===null)return text;
   const end=anchor.index+anchor[0].length;
   return `${text.slice(0,end)}\n${block}${text.slice(end)}`;
@@ -226,23 +219,6 @@ function resolution(phrase:readonly string[],places:readonly Place[],here:MapId,
   ...doors.map(d=>{const at=d.at.map(w=>`(${String(w.x)},${String(w.y)})`).join(" or ");return same(d.from.map_id,here)?`door on this map at ${at}`:`door in ${mapLabel(d.from)} at ${at}`;}),
  ];
  return parts.length===0?`${head0} No way in is recorded in the game's map table.`:`${head0} Way in: ${parts.join("; ")}.`;
-}
-
-function whereIs(name:string,characters:ReturnType<typeof presence>):string {
- if(characters===null)return "the readout does not say where";
- const entry=characters.here.find(e=>e===name||e.startsWith(`${name} `));
- if(entry!==undefined){
-  const rest=entry.slice(name.length);
-  let m=/^ at (-?\d+),(-?\d+)$/.exec(rest);
-  if(m!==null)return `on this map at (${m[1] ?? ""},${m[2] ?? ""})`;
-  m=/^ at (-?\d+),(-?\d+) \(out of view\)$/.exec(rest);
-  if(m!==null)return `on this map at (${m[1] ?? ""},${m[2] ?? ""}), out of view`;
-  m=/^ at (-?\d+),(-?\d+) \(out of view; where the map places this character, it may have moved\)$/.exec(rest);
-  if(m!==null)return `on this map, out of view; the map places this character at (${m[1] ?? ""},${m[2] ?? ""}), it may have moved`;
-  if(rest===" (on this map, out of view)")return "on this map, out of view (its tile was not read)";
-  return `on this map (the readout says "${entry}")`;
- }
- return characters.absent.split(", ").includes(name)?"not on this map":"the readout does not say where";
 }
 
 export interface PlaceSource {places?(signal?:AbortSignal):Promise<unknown>}

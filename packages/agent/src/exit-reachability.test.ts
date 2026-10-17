@@ -143,15 +143,15 @@ function synthetic():GameStateSnapshot {
 }
 describe("exit-reachability-v1: whole-map person refusal",()=>{
  const base:FeatureSet={...flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false}),"bounded-navigation-v1":true,"full-map-navigation-v1":true,"ledge-hops-v1":true,"one-way-tiles-v1":true,"navigation-refusal-reasons-v1":true,"navigation-truth-v1":true};
- it("a neighbour on foot reach but off every whole-map route: names it and the likely blockers, no local-window wording",async()=>{
+ it("a neighbour on foot reach but off every whole-map route: names it, no guessed causes and no local-window wording",async()=>{
   const on=await navigate({...base,[ID]:true},synthetic(),{x:4,y:1});
-  expect(on.status).toBe("(4,1) is MAY (person or object), which navigate_to cannot stand on; navigate_to finds no route on this map to a free tile next to it right now, though this map's walkable area reaches (3,1) next to it (people, heights, one-way tiles or script-trigger tiles may be in the way); choose a waypoint nearer to it");
+  expect(on.status).toBe("(4,1) is MAY (person or object), which navigate_to cannot stand on; navigate_to finds no route on this map to a free tile next to it right now, though this map's walkable area reaches (3,1) next to it; choose a waypoint nearer to it");
   const off=await navigate(base,synthetic(),{x:4,y:1});
   expect(off.status).toBe("(4,1) is MAY (person or object), which navigate_to cannot stand on, and none of its free neighbouring tiles can be reached from here; choose a reachable waypoint nearer to it");
  });
  it("local map: when the flood inside the window reaches the neighbour, the plan (not the window) is what failed",async()=>{
   const local={...base,"full-map-navigation-v1":false};
-  expect((await navigate({...local,[ID]:true},synthetic(),{x:4,y:1})).status).toBe("(4,1) is MAY (person or object), which navigate_to cannot stand on; navigate_to finds no route on the 15x15 local map it plans over to a free tile next to it right now, though this map's walkable area reaches (3,1) next to it (people, heights, one-way tiles or script-trigger tiles may be in the way); choose a waypoint nearer to it");
+  expect((await navigate({...local,[ID]:true},synthetic(),{x:4,y:1})).status).toBe("(4,1) is MAY (person or object), which navigate_to cannot stand on; navigate_to finds no route on the 15x15 local map it plans over to a free tile next to it right now, though this map's walkable area reaches (3,1) next to it; choose a waypoint nearer to it");
  });
  it("no neighbour on foot reach: says so plainly",async()=>{
   const s=synthetic();
@@ -216,6 +216,22 @@ describe("exit-reachability-v1: exit lists on ROUTE104 (0e05 seq 22579)",()=>{
   const block=exitReach({...runFeatures("0e05"),[ID]:true},s);
   expect(edgeNote(topology,{x:12,y:0},block.connection)).toBeNull();
   expect(edgeNote(topology,{x:39,y:62},block.connection)).toContain("walk off the map EAST");
+ });
+});
+
+// untaken-exits-v1 groups warps by destination; with this switch a tile labelled none is not printed, even when
+// another tile of the same doorway can be walked to.
+describe("exit-reachability-v1: one doorway, tiles with different labels",()=>{
+ const door=(x:number,y:number)=>({kind:"warp",x,y,elevation:0,activation:"movement",availability:"conditional",facing:null,local_id:null,destination:[24,11,0] as [number,number,number],name:"Warp to map 24/11"});
+ const state={...field(["......"],{x:0,y:0}),interaction_targets:[door(1,0),door(5,0)],
+  exit_reach:{warps:[{x:1,y:0,reach:"foot"},{x:5,y:0,reach:"none"}],connections:[],foot:{width:6,height:1,rows:["c0"]}}} as GameStateSnapshot;
+ it("ON prints only the tile you can walk to; OFF prints both, as today",()=>{
+  expect(new UntakenExits({...NAV,[ID]:true}).line(state,"")).toBe("Exits here you have not taken: (1,0) -> map 24/11");
+  expect(new UntakenExits(NAV).line(state,"")).toBe("Exits here you have not taken: (1,0) or (5,0) -> map 24/11");
+ });
+ it("surf-gated-exits-v1 alone keeps printing every tile of a doorway that is not wholly across water",()=>{
+  const gate={can_surf:false,balance_badge:false,party_surf:false,surfing:false,warps:[{x:5,y:0}],connections:[]};
+  expect(new UntakenExits({...NAV,"surf-gated-exits-v1":true}).line({...state,surf_gate:gate} as GameStateSnapshot,"")).toBe("Exits here you have not taken: (1,0) or (5,0) -> map 24/11");
  });
 });
 

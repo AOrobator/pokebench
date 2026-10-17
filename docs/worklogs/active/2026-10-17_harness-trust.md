@@ -57,12 +57,14 @@ Ordering note: the registry, presets, events schema and wiring all sit on lines 
 - [x] M1a GREEN: `harness-trust.ts` (trustSection, goalLine, charactersLine, mapSteps, waysHere, WalkAway, awayText, HarnessTrust, withHarnessTrust taking a plain boolean until M1b). `story-destinations.ts`: `goal()` returns the structured line and resolutions; `block()` is rebuilt from it byte for byte (its 21 tests unchanged and green).
   - Way toward the goal when it is not on this map: the exits of this map that lead one map-table step closer (Route 103's SOUTH edge toward the lab), measured in straight-line tiles; map size from `topology` (or `map_grid`).
   - harness-trust + story-destinations suites 37/37; harness-trust.ts lines 99.1 / branches 88.8 / functions 100 (branches raised in M1b); tsc and eslint clean.
-- [ ] GREEN: registry, presets, defaults, events (`story_goal_away`), recorder, viewer Activity History, wiring.
+- [x] M1b+M2b RED (both switches, one commit; registered after exit-reachability-v1, merged in at ffae6e9c): `packages/agent/src/harness-trust-wire.test.ts` (registry order, needs, OFF copy, playHarnessFeatures, state-only list, preset defaults OFF, system prompt last and OFF byte-identical incl. after objective tracking, cited prompt rule only with navigation, production playGameTools for both, navigate_to `because` with whole-map and exit-reach text, event schemas, and one pinned-pi run delivering the header and walk-away note with story_goal_away recorded before the result) and `packages/viewer/src/harness-trust.test.ts` (DEFAULT_NEXT_RUN OFF, Activity History rows, trace categories, raw inspector, no timeline mark).
+  - 3:45 PM New York: agent 8 fail (switches not registered), viewer 3 fail.
+- [ ] GREEN: registry, presets, defaults, events (`story_goal_away`, `destination_citation`), recorder, viewer Activity History, wiring.
 - [ ] Gates
 
 **M2 — cited-destination-v1**
 - [x] M2a RED: `cited-destination.test.ts`: schema (required `because`, other properties and tools unchanged, description), text per full-map and exit-reach, OFF same tools; 4caa T272 MAY's line found across its line break and curly quotes (walk gets no `because`, result unchanged); not found line; too short; only earlier non-error results count, newest cited; image-only result; arguments without `because` pass through.
-  - 3:36 PM New York: the suite fails at load (no `cited-destination.js`).
+  - 3:29 PM New York: the suite fails at load (no `cited-destination.js`).
   - COMMIT: `test(cited-destination): RED required because on navigate_to, checked against what the game showed` (48e61240)
 - [x] M2a GREEN: `cited-destination.ts` (becauseDescription, normalise, Citations, citationText, withCitedDestination taking a plain boolean until M2b). Plain-string matching only (no regex from model text); unique normalised result texts searched newest first.
   - 8/8; cited-destination.ts lines 100 / branches 97.7 / functions 100; tsc and eslint clean.
@@ -90,6 +92,8 @@ Tests from recorded states; viewer Activity History check on a fixture run; prob
 - 2026-10-17 3:25 PM New York: worktree created from main f5742c00; setup done.
 
 ## Surprises
+
+- 3:30 PM New York: exit-reachability-v1 is still in review. Rather than registering on main and re-resolving the same registry lines later, this branch merges `claude/exit-reachability` (tip 3e8d7228) now and registers after it; when it lands, merging main is a no-op for those lines. M3 (exits line) can use `exitReach` directly.
 
 ## Multi-Model Review Log
 

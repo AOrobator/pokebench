@@ -76,6 +76,8 @@ function body(event: RunEvent): [string, string] {
     case "people_id_card": return ["OBSERVE", `ID card · ${event.key} · ${event.reason} · ${event.tool} result`];
     case "heal_before_trainers_warning": return ["SUPERVISOR", `heal before trainers · ${event.trainers.map((t) => `${t.sprite_kind ?? "unknown"} (${String(t.x)},${String(t.y)})`).join(", ")} · ${event.weak.map((w) => (w.kind === "fainted" ? `${w.species} fainted` : w.kind === "lead_below_half" ? `${w.species} ${String(w.hp)}/${String(w.max_hp)} below half` : `${w.species} no PP (${w.moves.join(", ")})`)).join(", ")} · ${event.heal === null ? "no place named" : event.heal.kind === "pokemon_center" ? `POKéMON CENTER in ${event.heal.town}` : `home in ${event.heal.town}`}`];
     case "story_battle_warning": return ["SUPERVISOR", `story battle warning · ${event.opponent} · ${event.party.map((p) => `${p.species} ${String(p.hp)}/${String(p.max_hp)}`).join(", ")}`];
+    case "story_goal_away": return ["SUPERVISOR", `story goal walk-away · ${event.speaker}, turn ${String(event.line_turn)} · ${event.steps.map((st) => `${String(st.before)}→${String(st.after)} ${st.measure}`).join(", ")}`];
+    case "destination_citation": return ["OBSERVE", `navigate_to because ${event.verdict.replace("_"," ")}${event.found_turn===null?"":` (turn ${String(event.found_turn)})`} · ${clip(event.because,80)}`];
     case "low_hp_trainer_warning": return ["SUPERVISOR", `low-HP trainer warning · ${event.species} ${String(event.hp)}/${String(event.max_hp)} · ${event.rival} at (${String(event.x)},${String(event.y)})`];
     case "text_only_supervisor": return ["SUPERVISOR", `text-only note ${String(event.note)}/${String(event.limit)} after ${String(event.replies)} replies · ${clip(event.text,80)}`];
     case "retry":

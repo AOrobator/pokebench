@@ -81,6 +81,8 @@ const KNOWN: Record<RunEvent["type"], true> = {
   people_id_card: true,
   story_battle_warning: true,
   heal_before_trainers_warning: true,
+  story_goal_away: true,
+  destination_citation: true,
   dialogue_auto_advance: true,
   disk_usage: true,
   frames_evicted: true,

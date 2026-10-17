@@ -73,7 +73,7 @@
    "objective-tracking-v1": false,
    "repeat-attempt-guard-v1": false,
    "native-objective-completion-v1": false,
-   "full-map-navigation-v1": true,
+   "full-map-navigation-v1": false,
    "elevation-transitions-v1": true,
    "game-evidence-priority-v1": true,
    "dialogue-log-v1": false,
@@ -138,7 +138,9 @@
    "low-hp-trainer-warning-v2": true,
    "story-destinations-v1": true,
    "exit-reachability-v1": true,
-   "heal-before-trainers-v1": true
+   "heal-before-trainers-v1": true,
+   "harness-trust-v1": true,
+   "cited-destination-v1": true
   },
   "start": {
    "kind": "save_state",

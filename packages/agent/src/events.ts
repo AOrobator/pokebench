@@ -241,6 +241,25 @@ const HealBeforeTrainersWarningEvent = event("heal_before_trainers_warning", {
   text: Type.String({ minLength: 1 }),
 });
 
+// harness-trust-v1: the walk-away SUPERVISOR note a game-tool result gained, with the story line and the two moves it states.
+const MapIdTuple = Type.Tuple([Type.Integer(), Type.Integer()]);
+const TilePoint = Type.Object({ x: Type.Integer(), y: Type.Integer() }, closed);
+const StoryGoalAwayEvent = event("story_goal_away", {
+  tool: Type.String({ minLength: 1 }), speaker: Type.String({ minLength: 1 }), line_turn: NonNegativeInt, quote: Type.String({ minLength: 1 }),
+  targets: Type.Array(Type.Object({ name: Type.String({ minLength: 1 }), map_id: MapIdTuple }, closed), { minItems: 1, maxItems: 16 }),
+  steps: Type.Array(Type.Object({
+    measure: Type.Enum(["tiles", "maps"]), from_map: MapIdTuple, to_map: MapIdTuple, from_name: Type.String({ minLength: 1 }), to_name: Type.String({ minLength: 1 }),
+    from: TilePoint, to: TilePoint, before: NonNegativeInt, after: NonNegativeInt, way: Type.Union([Type.String({ minLength: 1 }), Type.Null()]),
+  }, closed), { minItems: 2, maxItems: 2 }),
+  text: Type.String({ minLength: 1 }),
+});
+// cited-destination-v1: one check of navigate_to's because against the results shown before the call.
+const DestinationCitationEvent = event("destination_citation", {
+  tool_call_id: Type.String({ minLength: 1 }), because: Type.String({ minLength: 1 }), verdict: Type.Enum(["found", "not_found", "too_short"]),
+  found_turn: Type.Union([NonNegativeInt, Type.Null()]), x: Type.Integer(), y: Type.Integer(), map_id: MapIdTuple,
+  text: Type.Union([Type.String({ minLength: 1 }), Type.Null()]),
+});
+
 // dialogue-auto-advance-v1: the harness advanced field dialogue to the next decision point within one tool call.
 // battle-text-auto-advance-v1 adds the battle_* stops and paused; its pages carry battle_turn and battle_message_id.
 export const DIALOGUE_AUTO_ADVANCE_STOPS = ["field_free", "menu", "naming", "battle", "screen_change", "locked_no_message", "interface_not_ready", "message_not_ready", "press_cap", "time_cap", "error", "battle_input", "battle_prompt", "battle_busy", "battle_unreadable", "paused"] as const;
@@ -589,6 +608,8 @@ export const RunEventSchema = Type.Union([
   PeopleIdCard,
   StoryBattleWarningEvent,
   HealBeforeTrainersWarningEvent,
+  StoryGoalAwayEvent,
+  DestinationCitationEvent,
   DialogueAutoAdvance,
   DiskUsage,
   FramesEvicted,

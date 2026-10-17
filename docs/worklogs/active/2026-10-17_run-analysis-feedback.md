@@ -8,6 +8,7 @@ No code, no tests, no coverage change.
 
 ## M1: skill text
 
-- [x] Procedure steps 2, 5, 6, 7, 8 and 10 updated; self-check extended; feedback log added.
+- [x] Procedure steps 2, 5, 6, 7, 8 and 10 updated; self-check extended; feedback log added. COMMIT: `docs(skill): run-analysis folds in ...` (7c54cd3f)
+- [x] Review round 1: Grok BLOCKING (step-5 depth contradiction) plus 2 hardening notes; all fixed in round 2. Codex CLI default model refused on this account; GPT lane moves to Cursor gpt-5.6-sol-xhigh.
 - [ ] Review: Claude, Grok and GPT/Codex lanes return `VERDICT: LGTM` on the frozen diff.
 - [ ] Land: fast-forward merge into local `main`, SHA reported in the thread.

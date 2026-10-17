@@ -27,6 +27,7 @@ describe("next-run draft", () => {
     expect(readDraft(runsRoot)).toEqual(DEFAULT_NEXT_RUN);
     expect(DEFAULT_NEXT_RUN.features["battle-triage-guidance-v1"]).toBe(false);
     expect(DEFAULT_NEXT_RUN.features["briefing-exits-v1"]).toBe(false);
+    expect(DEFAULT_NEXT_RUN.features["instruction-ledger-v2"]).toBe(false);
     expect(DEFAULT_NEXT_RUN.features["untaken-exits-v1"]).toBe(false);
     expect(writeDraft(runsRoot, draft)).toEqual(draft);
     expect(readDraft(runsRoot)).toEqual(draft);

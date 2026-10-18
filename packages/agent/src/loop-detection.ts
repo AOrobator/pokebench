@@ -301,11 +301,12 @@ function rejectionKey(call: CompletedCall): string | null {
 }
 
 function clockLookPlace(state: GameStateSnapshot): string | null {
+  if (state.story?.clock_set !== true) return null;
   if (state.screen !== "clock") return null;
   const phase = state.active_ui?.phase;
   if (phase !== "clock_transition" && phase !== "clock_view") return null;
   if (state.map_id === null || state.position === null) return null;
-  return JSON.stringify([state.location, state.map_id, state.position, state.facing]);
+  return JSON.stringify([state.location, state.map_id, state.position]);
 }
 
 export class LoopDetector {
@@ -494,14 +495,16 @@ export class LoopDetector {
   // and must not clear the count. Leaving that tile does. Setting the clock (adjustment, confirmation)
   // is a different phase and does not count.
   private noteClockLook(game: boolean, call: CompletedCall): boolean {
-    if (!this.clockViews || !game || call.name !== "press" || call.state === undefined) return false;
-    const look = clockLookPlace(call.state);
-    if (look !== null) {
-      this.clockLooks = look === this.clockLooks.place ? { place: look, count: this.clockLooks.count + 1 } : { place: look, count: 1 };
-      return this.clockLooks.count >= this.policy.ineffective;
+    if (!this.clockViews || !game || call.state === undefined) return false;
+    if (call.name === "press") {
+      const look = clockLookPlace(call.state);
+      if (look !== null) {
+        this.clockLooks = look === this.clockLooks.place ? { place: look, count: this.clockLooks.count + 1 } : { place: look, count: 1 };
+        return this.clockLooks.count >= this.policy.ineffective;
+      }
     }
     if (call.state.screen === "overworld" && call.state.map_id !== null && call.state.position !== null) {
-      const place = JSON.stringify([call.state.location, call.state.map_id, call.state.position, call.state.facing]);
+      const place = JSON.stringify([call.state.location, call.state.map_id, call.state.position]);
       if (place !== this.clockLooks.place) this.clockLooks = { place: "", count: 0 };
     }
     return false;
@@ -629,7 +632,7 @@ export class LoopDetector {
         if (restarted) hit ??= "cycle";
         const clockLoop = this.noteClockLook(game, call);
         if (clockLoop) hit ??= "cycle";
-        reopened = call.state?.world_context?.message?.ready === true || restarted || clockLoop;
+        reopened = call.state?.world_context?.message?.ready === true || restarted;
         if (this.ineffective.count >= this.policy.ineffective)
           hit ??= "ineffective";
         if (eligible && fingerprint !== null && before !== null) {

@@ -50,9 +50,9 @@ function look(d:LoopDetector,minute:string):void {
 }
 
 describe("clock-view-loop-v1",()=>{
- it("is registered last, default off, and the bundle arm is the one that turns it on",()=>{
-  expect(SWITCHABLE_FEATURES.at(-1)).toBe(ID);
-  expect(playHarnessFeatures(ALL_ON,null).at(-1)).toBe(ID);
+ it("is registered second to last, default off, and the bundle arm is the one that turns it on",()=>{
+  expect(SWITCHABLE_FEATURES.at(-2)).toBe(ID);
+  expect(playHarnessFeatures(ALL_ON,null).at(-2)).toBe(ID);
   expect(featureInfo(ID)).toMatchObject({group:"guard",needs:null,switchable:true,title:"CLOCK VIEW LOOP"});
   expect(featureInfo(ID).description).toContain(" Off: ");
   expect(featureInfo(ID).description).toContain("Bundle arm only");
@@ -120,7 +120,7 @@ describe("clock-view-loop-v1",()=>{
   turned.d.complete(press(bedroom(),{...bedroom(),facing:"left"}));
   turned.d.complete(press({...bedroom(),facing:"left"},bedroom()));
   turned.d.complete(press(bedroom(),transition("10:00 AM")));
-  expect(turned.notices.filter(n=>n.kind==="cycle")).toHaveLength(1);
+  expect(turned.notices.map(n=>n.phase)).toEqual(["warning","supervisor"]);
  });
 
  it("ON: the opening transition before the clock is set does not count",()=>{

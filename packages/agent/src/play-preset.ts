@@ -99,6 +99,7 @@ export const FeatureSetSchema=Type.Object({
  "bag-healing-items-v1":Type.Optional(Type.Boolean()),
  "battle-menu-loop-v1":Type.Optional(Type.Boolean()),
  "clock-view-loop-v1":Type.Optional(Type.Boolean()),
+ "stale-story-goal-v1":Type.Optional(Type.Boolean()),
  "cross-map-goal-v1":Type.Optional(Type.Boolean()),
  "explorer-guidance-v2":Type.Optional(Type.Boolean()),
  "navigation-truth-v1":Type.Optional(Type.Boolean()),

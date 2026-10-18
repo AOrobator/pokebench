@@ -830,7 +830,7 @@ b.wb-add, b.wb-rem { white-space:nowrap; }
 .mh-row svg { display:block; width:100%; height:auto; min-width:0; align-self:center; }
 .mh-row svg text { font:9px 'JetBrains Mono',monospace; fill:#59636e; }
 .mh-grid { stroke:#d1d6dc; stroke-width:1; }
-.mh-line { stroke:#258970; stroke-width:2; fill:none; stroke-linecap:round; }
+.mh-line { stroke:#258970; stroke-width:1; vector-effect:non-scaling-stroke; fill:none; stroke-linecap:round; }
 .mh-cursor { stroke:#b98235; stroke-width:1; stroke-dasharray:3 4; }
 .mh-input { fill:#537cab; background:#537cab; }
 .mh-cache { fill:#65a98b; background:#65a98b; }

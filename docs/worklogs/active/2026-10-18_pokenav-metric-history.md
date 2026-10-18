@@ -41,3 +41,8 @@ Viewer-only scope: RunView completed-response samples, pure SVG metric-history r
 - Combined candidate cf2f browser proves cachewrite-aware partial historical totals, persistent definitions and unchanged native mobile navigation at1280/1440/375. Canonical unfinished81files preserved by direct user authorization in separate attachedworktree; final JIT candidate includes approved graph source.
 
 - Final combined source2b2dec5d landed after all three cloud-family approvals and6330passing full-suite tests. Live8790 serves that clean build. Actual two-GPU JIT cohort Watch frames, growing Stats samples, four graphs, native mobile375 pager and1440comparison polling verified; canonical evidence runs/mockups/jit-launch-live/shots/. Root inspected screenshots/receipt. Native frontier updates after initial roughly5minute historical scan delay; no local Stats slider. Existing unrelated missing comparison receipt warning remains disclosed. No measured protocol/source changes after launch.
+
+### Thinner metric connectors — operator feedback
+
+- User reports connecting lines too thick. Browser confirms the LLM Stats preview uses2SVG units and scales at desktop widths. Change only `.mh-line` to1CSS-pixel non-scaling stroke; dots, native navigation, four metrics and experiment/runtime stay unchanged. Original ambient tab no longer exists; a fresh tab at its exact61365 URL reproduced the heavy Stats lines.
+- Styling-only adjustment; no new implementation-mirroring tests. Browser verification and existing focused tests/review follow on the frozen patch.

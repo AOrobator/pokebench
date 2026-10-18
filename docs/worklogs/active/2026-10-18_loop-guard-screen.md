@@ -54,9 +54,11 @@ Gates, 2026-10-18, on this worktree after the vendor submodule was checked out a
 - `just pages-check docs/explainers/loop-guard-screen-v1.html`: printed nothing.
 
 **M3 — Review and land**
-- [ ] Multi-model review until the three cloud lanes return LGTM
-- [ ] Fast-forward main
-- [ ] Report the merge SHA
+- [x] Multi-model review until the three cloud lanes return LGTM
+- [x] Fast-forward main
+- [x] Report the merge SHA
+
+Round 2 delta was worklog-only: base `5a53b64a`, head `84629b1f`, SHA-256 `ff49251498c359c58122724965a0a3814ec33a5bca8adceb3f3d92d8655f98cc`. Claude (`claude-opus-5-5-high`), Grok (`cursor-grok-4.5-high`) and GPT (`gpt-5.6-sol-xhigh`) each ended `VERDICT: LGTM`. Stderr empty. The tree was unchanged. Main fast-forwarded from `336c174a` to `84629b1f`. The 8790 viewer was left running; a cook is still on ports 8075 and 8076, so it was not restarted. `source.commit` in the pending experiment is still `bcde8cd4` and gets repinned only when that experiment is queued.
 
 ## Closing the Loop
 

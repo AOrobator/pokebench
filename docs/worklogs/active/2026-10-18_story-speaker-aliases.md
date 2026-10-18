@@ -35,7 +35,7 @@ The correction remains inside the existing default-off `story-destinations-v1` s
 - [x] GREEN: canonicalize only source-proven speaker aliases for eligibility while preserving printed output.
 - [x] Update the existing feature explainer and pending experiment notes.
 - [x] Run focused tests and full gates.
-- [ ] Complete multi-model review.
+- [x] Complete multi-model review and land on local `main`.
 
 ## Session Log
 
@@ -52,4 +52,10 @@ The correction remains inside the existing default-off `story-destinations-v1` s
 
 ## Multi-Model Review Log
 
-Pending.
+Final frozen packet: base `2b2dec5dfccf5d52507bc2ff246acd6c4fc02346`, head `2a52a1995a032d6289b8cf9e5ab96b89b86772e3`, SHA-256 `da44c856b4d95c7930f5bc06ad87145320c67da41a20af78b595248c09a2dd29`.
+
+- GPT (`gpt-5.6-sol`, isolated Codex, xhigh): `VERDICT: LGTM`; independently verified the packet bytes, clean status, focused suites, artifacts, and all nine test-quality checks.
+- Claude (`claude-opus-5-5-high`, Cursor ask mode): `VERDICT: LGTM`; independently verified the exact alias/provenance behavior, source claim, mutation evidence, and 45/45 focused tests.
+- Grok (`grok-4.7-high`, Cursor ask mode): `VERDICT: LGTM`; reviewed the frozen file bytes, boundary, source/run evidence, and all nine test-quality checks. The first Grok attempt was canceled after ten minutes without output; the retry completed on the same packet.
+
+Before landing, `main` advanced to `33f9ff8a`; merging it into the reviewed branch changed no owned bytes: `git diff --binary main..HEAD` remained exactly `da44c856…a2dd29` and compared byte-for-byte equal to the reviewed packet. Integrated full gates passed again: agent 2456/2456, viewer 1169/1169, Python 2478 passed with 229 ROM-dependent skips; lint, build, vendor, explainer, and 111 experiment checks clean; all coverage floors passed. Fast-forward landed local `main` at `6204d571b3782cc87a951614a298d1bf6ee632fb`; post-landing `just test` passed with the same counts. `just experiment-pin story-destinations` updated the unstarted candidate to that merge and passed `just experiments-check`; pin commit `995cfa97`.

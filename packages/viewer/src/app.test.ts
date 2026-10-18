@@ -6,6 +6,8 @@ import {NAME_CONFIRMED} from "../../agent/test-support/events.js";
 import { parseEvent, type RunEvent } from "@pokebench/agent/events";
 import { BASE_MS, Log, START, assistant, fullRun, m4Run, must, state } from "../test-support/events.js";
 import { boot, mountApp, type App, type AppDeps, type StreamLike } from "./app.js";
+import { bagRun } from "../test-support/bag.js";
+import { eventMs } from "./format.js";
 
 const PAGE = readFileSync(join(import.meta.dirname, "../static/index.html"), "utf8");
 // The ★ NEXT RUN page loads these on mount; tests of the watch view answer them.
@@ -56,7 +58,7 @@ const RUNS = [
   { id: "2026-10-11T21-00-00_old", model: "think-swarm", started: "x", ended: true, reason: "budget", problem: null },
 ];
 
-async function harness(hash = "", runs: unknown[] = RUNS): Promise<Harness> {
+async function harness(hash = "", runs: unknown[] = RUNS, replies: Readonly<Record<string, unknown>> = {}): Promise<Harness> {
   document.body.innerHTML = PAGE.slice(PAGE.indexOf("<body>") + 6, PAGE.indexOf("</body>"));
   const streams: FakeStream[] = [];
   const fetched: string[] = [];
@@ -66,6 +68,7 @@ async function harness(hash = "", runs: unknown[] = RUNS): Promise<Harness> {
       const next = nextRunReply(url);
       if (next !== null) return next;
       fetched.push(url);
+      if (url in replies) return Promise.resolve(replies[url]);
       if (url === "/api/runs") return runs.length === 1 && runs[0] === "fail" ? Promise.reject(new Error("offline")) : Promise.resolve([...runs]);
       if (url.endsWith("/comparisons")) return Promise.resolve({ candidates: [{run: "2026-10-11T21-00-00_old", milestones: []}], baseline: null, best: null });
       if (url.endsWith("/milestones")) {
@@ -148,6 +151,8 @@ describe("viewer app", () => {
     must(document.querySelector<HTMLButtonElement>('[data-page="party"]')).click();
     expect(select.value).toBe("party");
     const step = (by: string): void => { must(document.querySelector<HTMLButtonElement>(`[data-page-step="${by}"]`)).click(); };
+    step("1");
+    expect(shown()).toEqual(["bag"]);
     step("1");
     expect(shown()).toEqual(["stats"]);
     must(document.querySelector<HTMLButtonElement>('[data-page="trace"]')).click();
@@ -1258,5 +1263,64 @@ describe("side panel", () => {
     app.tick(100);
     expect(ui("ident").hidden).toBe(false);
     expect(ui("ident").textContent).toContain("MODEL · THINKING");
+  });
+});
+
+describe("BAG page", () => {
+  beforeEach(() => {
+    document.body.innerHTML = "";
+  });
+
+  function endedBagRun(): RunEvent[] {
+    const log = bagRun();
+    log.add(900_000, { type: "run_end", turn: 80, reason: "budget", furthest_milestone: null, turns: 80, wall_ms: 900_000, tokens: { input: 0, output: 0 }, frames: { saved: 9, bytes: 9 } });
+    return log.events;
+  }
+
+  const flush = async (): Promise<void> => { for (let i = 0; i < 5; i += 1) await Promise.resolve(); };
+
+  it("lists the run's bag with the game's art and jumps the replay to the frame after a change", async () => {
+    const { app, streams, fetched } = await harness(`#run=${M4_ID}`, RUNS, { "/sprites/bag/manifest.json": { items: [4, 13], pockets: ["items", "poke_balls"] } });
+    const stream = must(streams[0]);
+    const events = endedBagRun();
+    feed(stream, events, false);
+    stream.send("done", {});
+    app.tick(0);
+    expect(ui("bag").innerHTML).toBe("");
+    must(document.querySelector<HTMLButtonElement>('[data-page="bag"]')).click();
+    await flush();
+    expect(fetched).toContain("/sprites/bag/manifest.json");
+    expect(ui("bag-range").textContent).toBe("RUN 890b · T0–T80");
+    expect(ui("bag").querySelectorAll(".bg-row")).toHaveLength(11);
+    expect(ui("bag").querySelector('.bg-lab img[src="/sprites/bag/items/4.png"]')).not.toBeNull();
+    const button = must([...ui("bag").querySelectorAll<HTMLButtonElement>("[data-bag-jump]")].find((b) => b.textContent === "▶ T40"));
+    const kept = ui("bag").innerHTML;
+    app.clock?.play();
+    button.click();
+    const frame = must(events.find((e) => e.type === "tool_result" && e.turn === 40));
+    expect(app.clock?.playing).toBe(false);
+    expect(app.clock?.positionMs).toBe(eventMs(frame));
+    app.tick(100);
+    expect(ui("think-title").textContent).toBe("RIGHT NOW · TURN 40");
+    expect(ui("screen").getAttribute("href")).toContain("frames/000040_0.png");
+    expect(ui("bag").innerHTML).toBe(kept);
+    // An unknown change leaves the replay where it is.
+    const position = app.clock?.positionMs;
+    app.jumpTo(-1);
+    expect(app.clock?.positionMs).toBe(position);
+  });
+
+  it("keeps the jumps disabled on a live run and draws names without art", async () => {
+    const { app, streams } = await harness();
+    feed(must(streams[0]), bagRun().events);
+    must(document.querySelector<HTMLButtonElement>('[data-page="bag"]')).click();
+    await flush();
+    app.tick(100);
+    const jumps = [...ui("bag").querySelectorAll<HTMLButtonElement>("[data-bag-jump]")];
+    expect(jumps).toHaveLength(11);
+    expect(jumps.every((b) => b.disabled)).toBe(true);
+    expect(ui("bag").querySelector("img")).toBeNull();
+    app.jumpTo(Number(jumps[0]?.dataset.bagJump));
+    expect(app.clock).toBeNull();
   });
 });

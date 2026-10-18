@@ -56,7 +56,7 @@ function identity(graphics:number,local:number,s:Pick<GameStateSnapshot,"locatio
 }
 
 export class PeopleIdCards {
- constructor(private readonly named=true){}
+ constructor(private readonly named=true,private readonly cuts=false){}
  private turn=0;
  private readonly facing=new Map<number,Person|null>();
  private readonly pending=new Map<string,Shown[]>();
@@ -138,8 +138,9 @@ export class PeopleIdCards {
    :`- Name: ${name}. The game first showed this name on turn ${String(shown.turn)}.`);
   const maps=[...h.maps];
   lines.push(maps.length===1?`- First seen: turn ${String(h.first)}, here.`:`- Seen on: ${maps.map(([at,turn])=>`${at} from turn ${String(turn)}`).join("; ")}.`);
-  if(words.length===0)lines.push("- Has not spoken to you in this run.");
-  else lines.push(`- Last spoke to you: turn ${String(words[0]?.turn??0)}, ${plural(words.length,"page")}, whole:`,...quote(words));
+  const spokeNow=(this.pending.get(callId)??[]).some(x=>x.person?.key===person.key);
+  if(words.length>0)lines.push(`- Last spoke to you: turn ${String(words[0]?.turn??0)}, ${plural(words.length,"page")}, whole:`,...quote(words));
+  else if(!(this.cuts&&spokeNow))lines.push("- Has not spoken to you in this run.");
   if(name!==null){
    if(other.length===0)lines.push("- Other pages that name them: none.");
    else lines.push("- Other pages that name them (each once, in order, whole):",...quote(other));
@@ -172,20 +173,22 @@ export class PeopleIdCards {
   this.visible=now;
   for(const [key,h] of this.history)if(h.fingerprint!==null){
    // A summary changes only when a result is delivered, so it is recomputed only then.
+   const spokeNow=this.cuts&&(this.pending.get(callId)??[]).some(x=>x.person?.key===key);
+   if(spokeNow){summaries.set(key,this.summary(key,true));continue;}
    const cached=this.summaryCache.get(key);
-   const text=cached?.at===this.delivered.length?cached.text:this.summary(key);
+   const text=cached?.at===this.delivered.length?cached.text:this.summary(key,false);
    this.summaryCache.set(key,{at:this.delivered.length,text});summaries.set(key,text);
   }
   return {cards,summaries};
  }
- private summary(key:string):string {
+ private summary(key:string,spokeNow=false):string {
   const name=key.startsWith("name:")?key.slice(5):null;
   const person:Person={key,name};
   const shown=name===null?undefined:this.nameShown(name);
   const words=this.lastWords(key);
   const turns=[...new Set(this.battles(person).map(x=>x.turn))];
   return [name===null?"no name shown":shown===undefined?`name ${name} from the harness's story-character table, not yet shown by the game`:`name shown by the game on turn ${String(shown.turn)}`,
-   words.length===0?"has not spoken to you":`last spoke to you on turn ${String(words[0]?.turn??0)}`,
+   words.length===0?(spokeNow?"spoke during this call (see this result's dialogue list)":"has not spoken to you"):`last spoke to you on turn ${String(words[0]?.turn??0)}`,
    turns.length===0?"battles: none":`battle text on ${turns.length===1?"turn":"turns"} ${turns.map(String).join(", ")}`].join("; ");
  }
  // The readout with the cards after the people-ledger block (after Position or Location when the block is
@@ -227,7 +230,7 @@ function stateOf(details:unknown):GameStateSnapshot|null {
 
 export function withPeopleIdCards(tools:readonly AgentTool[],features:FeatureSet,recorder:Pick<RunRecorder,"subscribe">&IdCardRecorder):AgentTool[] {
  if(!features["people-id-cards-v1"])return [...tools];
- const model=new PeopleIdCards(features["character-presence-v1"]);recorder.subscribe(event=>{model.observe(event);});
+ const model=new PeopleIdCards(features["character-presence-v1"],features["input-cuts-v1"]);recorder.subscribe(event=>{model.observe(event);});
  const annotate=<T>(tool:string,id:string,result:AgentToolResult<T>):AgentToolResult<T>=>{
   const state=stateOf(result.details);
   if(state===null)return result;

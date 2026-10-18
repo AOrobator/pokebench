@@ -31,7 +31,7 @@ const resultAt=(run:Run,seq:number):ToolResultEvent=>{const e=RUNS[run].find(x=>
 const stateAt=(run:Run,seq:number):GameStateSnapshot=>{const e=RUNS[run].find(x=>x.seq===seq);if(e?.type!=="state"||!("started" in e))throw Error(`no state ${String(seq)} in ${run}`);return snapshot(e);};
 const OFF:FeatureSet=Object.fromEntries(SWITCHABLE_FEATURES.map(id=>[id,false])) as Record<(typeof SWITCHABLE_FEATURES)[number],boolean>;
 // The bundle arm: everything on except the switches a play run never combines with it.
-const ON:FeatureSet={...ALL_ON,"state-only-decisions-v1":false,"instruction-ledger-v1":false,"dialogue-log-v1":false,"instruction-ledger-v2":true};
+const ON:FeatureSet={...ALL_ON,"state-only-decisions-v1":false,"instruction-ledger-v1":false,"dialogue-log-v1":false,"instruction-ledger-v2":true,"input-cuts-v1":false};
 // The ledger as the model reads it in the result of the tool call that produced `seq`.
 function ledgerAt(run:Run,seq:number,features:FeatureSet=ON):{ledger:ConversationLedger;result:ToolResultEvent;state:GameStateSnapshot} {
  const ledger=new ConversationLedger(features);const result=resultAt(run,seq);
@@ -476,8 +476,8 @@ describe("instruction-ledger-v2 switch",()=>{
  });
  it("is registered last, default-off, an observation that needs dialogue auto-advance",()=>{
   const id="instruction-ledger-v2";
-  expect(SWITCHABLE_FEATURES.at(-7)).toBe(id);
-  expect(FEATURES.filter(f=>f.switchable).at(-7)?.id).toBe(id);
+  expect(SWITCHABLE_FEATURES.at(-8)).toBe(id);
+  expect(FEATURES.filter(f=>f.switchable).at(-8)?.id).toBe(id);
   expect(featureInfo(id)).toMatchObject({group:"observation",title:"CONVERSATION LEDGER",needs:"dialogue-auto-advance-v1",switchable:true});
   expect(featureInfo(id).description).toContain(" Off: ");
   // The switchboard copy describes the shipped rule (review round 1: it still described the NAME:-only pin).
@@ -485,14 +485,14 @@ describe("instruction-ledger-v2 switch",()=>{
   for(const phrase of ["the latest conversation with a person","Every line names who said it","the game's own NAME: prefix","\"the woman you talked to\"","the name the game printed for that same sprite on that map","\"the sign\"","never become the pinned conversation","keyed on each dialogue page's own map","Internal sprite ids are never printed"])expect(copy,phrase).toContain(phrase);
   for(const stale of ["names the speaker","sprite kind, not a name","NAME: prefix decides"])expect(copy,stale).not.toContain(stale);
   expect(dependencyProblems({...OFF,[id]:true})).toContain(`${id} needs dialogue-auto-advance-v1`);
-  expect(playHarnessFeatures(ALL_ON,null).at(-7)).toBe(id);
+  expect(playHarnessFeatures(ALL_ON,null).at(-8)).toBe(id);
   expect(playHarnessFeatures({...ALL_ON,[id]:false},null)).not.toContain(id);
   expect(stateOnlyProblems({...ALL_ON,"state-only-decisions-v1":true})).toContain(`state-only-decisions-v1 requires ${id} OFF`);
   expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:true})[id]).toBe(false);
   const without=Object.fromEntries(Object.entries({...ALL_ON,"state-only-decisions-v1":false}).filter(([k])=>k!==id));
   const preset=parsePlayPreset({version:2,id:"old",target:null,limits:{maxTurns:1,maxWallMs:1,failureLimit:1},sampling:{thinkingLevel:"medium",maxTokens:1},features:without});
   expect(presetFeatures(preset)[id]).toBe(false);
-  expect(Object.keys(normalizeFeatures(without as Parameters<typeof normalizeFeatures>[0])).at(-7)).toBe(id);
+  expect(Object.keys(normalizeFeatures(without as Parameters<typeof normalizeFeatures>[0])).at(-8)).toBe(id);
   // instruction-ledger-v1 is unchanged: same title, tool and description.
   expect(featureInfo("instruction-ledger-v1").title).toBe("INSTRUCTION LEDGER");
  });

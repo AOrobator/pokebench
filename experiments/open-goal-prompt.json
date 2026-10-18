@@ -153,6 +153,7 @@
    "battle-menu-loop-v1": true,
    "clock-view-loop-v1": true,
    "stale-story-goal-v1": true,
+   "input-cuts-v1": true,
    "loop-guard-screen-v1": true
   },
   "start": {

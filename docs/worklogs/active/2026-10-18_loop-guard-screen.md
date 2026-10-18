@@ -66,6 +66,7 @@ Tests for the note. Explainer via `just pages-check` and a local link. The live 
 
 - 2026-10-18 1:49 AM EDT: operator asked for the loop-guard path to quote the open screen's controls, behind a switch, reviewed, landed, and in the bundle.
 - 2026-10-18 2:05 AM EDT: wiring is one condition in `SupervisorBriefing.bearings`. ON reuses the stall path's interface note. The clock transition stays a field note. The bundle base keeps the switch false and lists it last in `switches`, so the bundle arm turns it on.
+- 2026-10-18 2:20 AM EDT: main had moved to `336c174a` (`input-cuts-v1`) after this branch was cut from `bcde8cd4`. Merged main in. `input-cuts-v1` stays where main registered it, and `loop-guard-screen-v1` stays last. Agent tests 2408 passed and viewer tests 1142 passed after rebuilding the agent so the viewer sees both switches.
 
 ## Surprises
 

@@ -136,7 +136,7 @@
    "battle-menu-loop-v1": false,
    "clock-view-loop-v1": false,
    "stale-story-goal-v1": false,
-   "loop-guard-screen-v1": false
+   "input-cuts-v1": false,"loop-guard-screen-v1": false
   }
  },
  "switches": [
@@ -159,6 +159,7 @@
   "battle-menu-loop-v1",
   "clock-view-loop-v1",
   "stale-story-goal-v1",
+  "input-cuts-v1",
   "loop-guard-screen-v1"
  ],
  "offInBoth": [

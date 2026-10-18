@@ -82,6 +82,9 @@ export const UNTAKEN_EXITS_SECTION = "Exits you have not taken: before you leave
 // people-id-cards-v1: the one guidance line; it names no person, place or step.
 export const PEOPLE_ID_CARDS_SECTION = "ID cards: when a person comes into view for the first time, or comes back into view after something about them has changed, the result shows their ID card. A card holds only what the game itself has shown or stored about that person in this run: the name the game used, where you have seen them, their last words to you, other lines that name them, and any battles with you. When you read a card, consider who this person is to you and where they fit in the story so far.";
 
+// dialog-button-b-v1: B advances a message; A starts whatever the player faces (FieldInputHandling).
+export const DIALOGUE_BUTTON_B_SECTION = "Dialogue button: B is the button for a message. Press B to advance or close one. Do not press A to move a message along: A talks to whatever you face and starts its message again, so the same sign or person speaks once more. Once you can walk, leave instead of pressing A in front of it.";
+
 // trainer-heal-guidance-v1: trainer and rival battles cannot be fled; a blackout's cost; heal first. Game rules, no destinations.
 export const TRAINER_HEAL_SECTION = "Trainer battles and your rival: a battle against a trainer, including your rival, cannot be run from. If every Pokémon in your party faints, you black out: you lose half your money and wake up back at the last POKéMON CENTER you entered, or at home, far from where you were. Your rival usually battles you when you talk to them. Before you talk to a trainer or your rival, check your party HP in the readout, and if your Pokémon is below half its maximum HP, heal first: talking to the nurse at a POKéMON CENTER heals your whole party, and so does talking to MOM at home; a POTION or an ORAN BERRY from your BAG restores some HP.";
 
@@ -141,6 +144,7 @@ export function playSystemPrompt(features: FeatureSet, target: string | null): s
   if (navigateFirst) prompt = `${navigateFirstToolList(prompt)}\n\n${features["full-map-navigation-v1"] ? MOVING_AROUND_FULL : MOVING_AROUND_LOCAL}`;
   if (features["objective-tracking-v1"]) prompt += `\n\n${objectivePrompt(objectiveSwitches(features))}`;
   if (features["cited-destination-v1"] && features["bounded-navigation-v1"]) prompt += `\n\n${CITED_DESTINATION_SECTION}`;
+  if (features["dialog-button-b-v1"]) prompt += `\n\n${DIALOGUE_BUTTON_B_SECTION}`;
   // harness-trust-v1: last, so the trust order is the final thing the system prompt says.
   if (features["harness-trust-v1"]) prompt += `\n\n${trustSection(features["game-evidence-priority-v1"], true)}`;
   return prompt;

@@ -33,6 +33,11 @@ None added. The flag attribute is visible in devtools on `<html>`.
 - [x] `BROWSER_MODULES` allowlist + tests updated (mobile-layout, run-head, trainer-card-app, trace-page-layout); flag-flip and fold-viewport tests added.
 - [x] Gate: `pnpm lint` clean; viewer `pnpm coverage` 81 files / 1149 tests pass (95.3% stmts / 91.4% branch, ≥90 floor); `pnpm build` clean. pytest unaffected (no env change) — 2478 passed / 229 ROM-skipped on the parent commit.
 - [x] Headless Chrome probes at real viewports: 390×844 phone, 750×832 desktop, 832×750 phone, 1440×813 desktop.
+- [x] Review round 1, two GPT-family lanes on one sealed packet (base 0e5ca723 head 85b8d353, diff sha256 99c69cd5…d8ef8): cursor-agent gpt-5.3-codex-xhigh LGTM; codex exec gpt-5.6-sol BLOCKING (2 blockers).
+  - Taken (blocker 1): the `:root[data-phone]` prefix raises specificity, reviving the `.inspection-nav { height:650px }` that `@media`-equal specificity kept dead — proven by computed-style A/B at 390×844 and 375×667 (623→650px, 620→650px, 7 cascaded diffs). Fix: delete the dead declaration (2026-10-16 trace worklog already recorded it dead); A/B now 0 diffs with the flag live.
+  - Taken (blocker 2): the literal guard only scanned non-test `src/*.ts` plus one `@media max-width` CSS pattern; adversarial mutations `@media(max-height:800px)` in style.css and `@media(max-width:700px)` in human.css passed green. Fix: substring scan of all three widths across static css/html files + non-test sources; both mutations now fail with named messages.
+  - Not taken (hardening): `watchPhoneFlag` listener idempotence — entry points run once per document; per the lane, no repeated-entry-point failure demonstrated.
+- [ ] Re-review (round 2) on the fixed head via codex exec.
 - [ ] Land via the protected queue.
 
 Base SHA (branch point): 0e5ca723.

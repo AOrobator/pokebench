@@ -11,13 +11,15 @@ function phoneRules(css: string): string {
 
 describe("phone-width watch deck", () => {
   it("drives every phone rule off the data-phone flag so the breakpoint lives only in phone.ts", () => {
-    expect(read("style.css")).not.toMatch(/@media\s*\(\s*max-width:\s*(700|880)px\s*\)/);
+    // Substring scan, any context: an @media, a bare declaration, or a comment
+    // mentioning a breakpoint width outside phone.ts all fail here.
+    const widths = ["700px", "880px", "800px"];
+    for (const file of ["style.css", "human.css", "index.html", "play.html", "workbench.html"]) {
+      for (const width of widths) expect(read(file), `${file} mentions ${width}`).not.toContain(width);
+    }
     const owners = readdirSync(import.meta.dirname)
       .filter((file) => file.endsWith(".ts") && !file.endsWith(".test.ts"))
-      .filter((file) => {
-        const source = readFileSync(join(import.meta.dirname, file), "utf8");
-        return ["700px", "880px", "800px"].some((width) => source.includes(width));
-      });
+      .filter((file) => widths.some((width) => readFileSync(join(import.meta.dirname, file), "utf8").includes(width)));
     expect(owners).toEqual(["phone.ts"]);
   });
 

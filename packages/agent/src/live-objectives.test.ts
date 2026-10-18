@@ -148,7 +148,7 @@ it("records a preset's replyFailuresEndRun in run_start", async () => {
   expect(Object.values(recorded??{}).every(v=>typeof v==="boolean")).toBe(true);
 });
 
-it.each([false,true])("actual play wires JIT request transformation and execution guard (enabled=%s)",async enabled=>{
+it.each([[false,"clock"],[true,"clock"],[true,"bag_menu"],[true,"party_menu"]] as const)("actual play wires JIT request transformation and execution guard (enabled=%s, screen=%s)",async (enabled,screen)=>{
  vi.resetModules();owner.files.clear();owner.loop=null;
  const {flagFeatures}=await import("./play-preset.js");
  const preset={version:2,id:"jit-factory",target:null,limits:{maxTurns:20000,maxWallMs:600000,failureLimit:3,replyFailuresEndRun:false},sampling:{thinkingLevel:"medium",maxTokens:100},features:{...flagFeatures({loopGuard:false,activeUi:true,interfaceDocs:true,objectives:false}),"just-in-time-prompt-v1":enabled,"battle-move-tool-v1":true}};
@@ -156,10 +156,11 @@ it.each([false,true])("actual play wires JIT request transformation and executio
  vi.stubEnv("POKEBENCH_PLAY_PRESET","/test-owned/preset.json");vi.stubEnv("POKEBENCH_RUN_ID","assigned-jit-factory");
  vi.spyOn(console,"log").mockImplementation(()=>undefined);
  let blocked:unknown=null;
- owner.screen="clock";
+ owner.screen=screen;
+ const scene=screen==="clock"?"clock":"menu";
  owner.duringPlay=async loop=>{
   await loop.emit({type:"tool_execution_start",toolCallId:"observe-jit",toolName:"observe",args:{}});
-  await loop.emit({type:"tool_execution_end",toolCallId:"observe-jit",toolName:"observe",isError:false,result:{content:[{type:"text",text:"clock"}],details:{state:{raw_ram:{v:1,sequence:1,frame:1,path:"raw-ram/00000001.json.gz",sha256:"a".repeat(64)},story:{...NAME_CONFIRMED.story,name_confirmed:false},game_stats:null,blackout_active:null,route103_rival:null,screen:"clock",started:false,name:null,location:null,map_id:null,position:null,facing:null,in_battle:false,party:[],money:null,badges:[],play_time_s:null}}}});
+  await loop.emit({type:"tool_execution_end",toolCallId:"observe-jit",toolName:"observe",isError:false,result:{content:[{type:"text",text:screen}],details:{state:{raw_ram:{v:1,sequence:1,frame:1,path:"raw-ram/00000001.json.gz",sha256:"a".repeat(64)},story:{...NAME_CONFIRMED.story,name_confirmed:false},game_stats:null,blackout_active:null,route103_rival:null,screen,active_ui:{phase:screen,selected:null,ready:true,controls:"",diagnostic:null},started:false,name:null,location:null,map_id:null,position:null,facing:null,in_battle:scene==="menu",party:[],money:null,badges:[],play_time_s:null}}}});
   const request={systemPrompt:"standing",messages:[],tools:[{name:"observe",description:"observe",parameters:{type:"object",properties:{}}},{name:"battle_action",description:"fight",parameters:{type:"object",properties:{}}}]};
   const next=loop.requestContext?.(request);
   expect(next?.tools?.map(t=>t.name)).toEqual(enabled?["observe"]:["observe","battle_action"]);
@@ -180,9 +181,9 @@ it.each([false,true])("actual play wires JIT request transformation and executio
  const recorded=[...owner.files.entries()].filter(([path])=>path.endsWith("/events.jsonl")).flatMap(([,chunks])=>chunks.join("").trim().split("\n").map(parseEvent));
  const response=recorded.find(e=>e.type==="assistant");
  if(enabled){
-  expect(response).toMatchObject({request_context:{scene:"clock",tools:["observe"]}});
+  expect(response).toMatchObject({request_context:{scene,tools:["observe"]}});
   if(response?.type!=="assistant"||response.request_context===undefined)throw new Error("missing JIT receipt");
   expect(response.request_context.prompt_sha256).toBe(createHash("sha256").update(response.request_context.system_prompt).digest("hex"));
-  expect(recorded.find(e=>e.seq===response.request_context?.state_seq)).toMatchObject({type:"state",screen:"clock"});
+  expect(recorded.find(e=>e.seq===response.request_context?.state_seq)).toMatchObject({type:"state",screen});
  }else expect(response).toMatchObject({request_context:{mode:"full",system_prompt:"standing"}});
 });

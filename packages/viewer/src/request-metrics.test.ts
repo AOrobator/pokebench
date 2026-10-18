@@ -29,5 +29,25 @@ it("links request screens to source evidence and rejects replay duplicates",()=>
  log.add(30,{type:"assistant",turn:1,thinking:"",text:"",tool_calls:[],usage:{input:3,output:4,cache_read:5},ttft_ms:null,latency_ms:10,stop_reason:"stop"});
  expect(requestMetrics(log.events).requests[0]).toMatchObject({screen:"clock",stateSeq:source.seq,cacheWrite:null,logicalInput:null,recordedPromptTokens:8});
  expect(()=>requestMetrics([...log.events,log.events[0] as typeof log.events[number]])).toThrow(/sequence/);
- expect(requestMetrics([])).toEqual({run:null,requests:[],pendingTurn:null,lastEventAt:null});
+ expect(requestMetrics([])).toEqual({run:null,requests:[],pendingTurn:null,incompleteRequest:null,lastEventAt:null});
+});
+
+it.each(["crash","budget","operator_stop"] as const)("retains an unanswered request as terminal and incomplete after %s",reason=>{
+ const log=new Log();log.add(0,START);
+ log.add(10,{type:"turn_start",turn:1,context:{messages:1,images:0,est_tokens:200}});
+ expect(requestMetrics(log.events)).toMatchObject({requests:[],pendingTurn:1});
+ const end=log.add(20,{type:"run_end",turn:1,reason,furthest_milestone:null,turns:1,wall_ms:20,tokens:{input:0,output:0},frames:{saved:0,bytes:0}});
+ expect(requestMetrics(log.events)).toMatchObject({requests:[],pendingTurn:null,incompleteRequest:{turn:1,reason,seq:end.seq,at:end.t}});
+ expect(requestMetrics(log.events)).toEqual(requestMetrics(log.events));
+});
+
+it("does not label a completed response incomplete when the run ends",()=>{
+ const log=new Log();log.add(0,START);
+ log.add(10,{type:"turn_start",turn:1,context:{messages:1,images:0,est_tokens:200}});
+ log.add(15,{type:"assistant",turn:1,thinking:"",text:"",tool_calls:[],usage:{input:3,output:0,cache_read:0},ttft_ms:null,latency_ms:5,stop_reason:"aborted"});
+ log.add(20,{type:"run_end",turn:1,reason:"budget",furthest_milestone:null,turns:1,wall_ms:20,tokens:{input:3,output:0},frames:{saved:0,bytes:0}});
+ const view=requestMetrics(log.events);
+ expect(view).toMatchObject({pendingTurn:null,incompleteRequest:null});
+ expect(view.requests).toHaveLength(1);
+ expect(view.requests[0]).toMatchObject({stopReason:"aborted",input:3,ttftMs:null});
 });

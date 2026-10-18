@@ -54,3 +54,21 @@ it("hashes only model-facing tool definitions, not execution labels",()=>{
  jit.context({...request,tools:(request.tools??[]).map(t=>({...t,label:"operator-only"}))});
  expect(jit.receipt()?.tools_sha256).toBe(hash);
 });
+
+it.each([
+ ["bag_menu",{phase:"bag_menu"}], ["party_menu",{phase:"party_menu"}],
+ ["bag_menu",null], ["party_menu",null],
+ ["battle",{phase:"bag_menu"}], ["battle",{phase:"party_menu"}],
+] as const)("gives the active menu priority over the battle flag (%s, %j)",(screen,active_ui)=>{
+ const jit=new JitContext(features,null);
+ jit.observe({type:"state",seq:20,screen,in_battle:true,active_ui});
+ const menuRequest={...request,tools:[...(request.tools??[]),{name:"press",description:"press",parameters:{type:"object",properties:{}}}]};
+ expect(jit.context(menuRequest).tools?.map(t=>t.name)).toEqual(["observe","press"]);
+ expect(jit.receipt()).toMatchObject({scene:"menu",state_seq:20});
+ expect(jit.allowed("battle_action")).toBe(false);
+ expect(jit.allowed("press")).toBe(true);
+ const off=new JitContext({...features,"just-in-time-prompt-v1":false},null);
+ off.observe({type:"state",seq:20,screen,in_battle:true,active_ui});
+ expect(off.context(menuRequest)).toBe(menuRequest);
+ expect(off.allowed("battle_action")).toBe(true);
+});

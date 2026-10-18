@@ -72,3 +72,14 @@ it.each([
  expect(off.context(menuRequest)).toBe(menuRequest);
  expect(off.allowed("battle_action")).toBe(true);
 });
+
+it.each([
+ ["overworld",false],["battle",true],["naming",false],["clock",false],["bag_menu",false],["unrecognized",false],
+] as const)("retains cross-scene loop-supervisor guidance for JIT scene %s",(screen,in_battle)=>{
+ const jit=new JitContext(features,null);
+ jit.observe({type:"state",seq:30,screen,in_battle});
+ expect(jit.context(request).systemPrompt).toContain("Loop supervisor: if you repeat a pattern without new game information");
+ const disabled=new JitContext({...features,"loop-guard-supervisor-v1":false},null);
+ disabled.observe({type:"state",seq:30,screen,in_battle});
+ expect(disabled.context(request).systemPrompt).not.toContain("Loop supervisor:");
+});

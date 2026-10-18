@@ -1,23 +1,30 @@
 // @vitest-environment happy-dom
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 const read = (file: string): string => readFileSync(join(import.meta.dirname, "../static", file), "utf8");
 
 function phoneRules(css: string): string {
-  const blocks: string[] = [];
-  for (const match of css.matchAll(/@media\s*\(max-width:\s*700px\)\s*\{/g)) {
-    let depth = 1;
-    let i = match.index + match[0].length;
-    const start = i;
-    for (; i < css.length && depth > 0; i++) depth += css[i] === "{" ? 1 : css[i] === "}" ? -1 : 0;
-    blocks.push(css.slice(start, i - 1));
-  }
-  return blocks.join("\n").replace(/\s+/g, " ");
+  return (css.match(/:root\[data-phone\][^{]*\{[^}]*\}/g) ?? []).join("\n").replace(/\s+/g, " ");
 }
 
 describe("phone-width watch deck", () => {
+  it("drives every phone rule off the data-phone flag so the breakpoint lives only in phone.ts", () => {
+    // Substring scan, any context: an @media, a bare declaration, or a comment
+    // mentioning a breakpoint width outside phone.ts all fail here. One read
+    // per fixture; every assertion runs against the in-memory string.
+    const widths = ["700px", "880px", "800px"];
+    const staticSources = ["style.css", "human.css", "index.html", "play.html", "workbench.html"].map((file) => [file, read(file)] as const);
+    for (const [file, source] of staticSources) {
+      for (const width of widths) expect(source, `${file} mentions ${width}`).not.toContain(width);
+    }
+    const sources = readdirSync(import.meta.dirname)
+      .filter((file) => file.endsWith(".ts") && !file.endsWith(".test.ts"))
+      .map((file) => [file, readFileSync(join(import.meta.dirname, file), "utf8")] as const);
+    expect(sources.filter(([, source]) => widths.some((width) => source.includes(width))).map(([file]) => file)).toEqual(["phone.ts"]);
+  });
+
   it("keeps the timeline a direct child of the watch deck, after the game stream", () => {
     const document = new DOMParser().parseFromString(read("index.html").replace(/<(script|link)\b[^>]*>(<\/script>)?/g, ""), "text/html");
     const deck = document.querySelector(".watch-deck");

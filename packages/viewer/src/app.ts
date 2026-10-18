@@ -5,6 +5,7 @@ import type { RunEvent } from "@pokebench/agent/events";
 import { esc, eventMs, hms } from "./format.js";
 import { gbaSvg, litButtons } from "./gba.js";
 import { RunView, isRunEvent } from "./model.js";
+import { syncPhoneFlag } from "./phone.js";
 import { brand, runIdentity, budgets, counters, fieldContext, harnessConfig, inspector, party, splits, thinkingDialog, trainerCard, type Baseline } from "./panels.js";
 import { ReplayClock } from "./replay.js";
 import { lanesSvg } from "./timeline.js";
@@ -121,7 +122,6 @@ function reconcile(box: HTMLElement, groups: readonly TraceGroup[], tail: string
 
 // Unended runs whose game server no longer answers are not live.
 const isLive = (run: RunChoice): boolean => run.ended === false && run.problem === null && run.live !== false;
-const PHONE = "(max-width: 700px)";
 const startedAt = (iso: string): string => new Date(iso).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 
 const LIVE_RETRY_MS = 5_000;
@@ -275,7 +275,7 @@ export class App {
   // On a phone the controls sit under the screen and the run picker in the
   // sheet; each element keeps a marker at its header position to return to.
   private placeForWidth(): void {
-    const phone = this.doc.defaultView?.matchMedia(PHONE).matches === true;
+    const phone = syncPhoneFlag(this.doc);
     if (!phone) this.showSheet(false, false);
     for (const [element, home] of this.homes) {
       const slot = this.doc.querySelector(`[data-slot="${element.matches(".tb-ctl, .replay-controls") ? "phone-controls" : "phone-picker"}"]`);

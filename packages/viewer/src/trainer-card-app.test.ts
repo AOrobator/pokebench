@@ -181,7 +181,7 @@ describe("trainer cards in the viewer", () => {
   });
 
   it("styles the cards: hidden on phones in the header, pixel art, bobbing icons, gold border and badge", () => {
-    expect(CSS).toContain("@media (max-width: 700px) { .bar > .run-cards { display: none !important; }");
+    expect(CSS).toContain(":root[data-phone] .bar > .run-cards { display: none !important; }");
     expect(CSS).toContain("image-rendering: pixelated");
     expect(CSS).toMatch(/@keyframes tc-bob/); expect(CSS).toMatch(/@keyframes tc-ring/);
     expect(CSS).toContain("linear-gradient(#fff3a0, #f8c828)"); expect(CSS).toContain("#a07800");

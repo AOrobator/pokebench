@@ -221,9 +221,9 @@ table.splits td.d, table.splits td.t { width: 18.66%; }
 .page-content table.splits { min-width:0; }
 .page-content table.splits td,.page-content table.splits th { white-space:normal; overflow-wrap:anywhere; }
 @media(max-width:980px) { .game-stream { grid-template-columns:minmax(0,1.3fr) minmax(300px,1fr); } .page-content .logcols { grid-template-columns:1fr 1fr; } }
-@media(max-width:700px) { .watch-deck { height:auto; grid-template-rows:auto auto; min-height:0; } .game-stream { grid-template-columns:1fr; } .game-stream .gbaStage { height:280px; } .thinking-stream { height:340px; } .directory-pages { grid-template-columns:minmax(0,1fr); grid-template-rows:auto minmax(0,1fr); } .page-directory { display:none; } .page-picker { display:flex; } .inspection-nav { height:650px; } .page-content .logcols { grid-template-columns:1fr; height:auto; } .page-content .log,.page-content .inspector { height:360px; } .trace-content .logcols { flex:none; grid-template-rows:none; } }
+:root[data-phone] .watch-deck { height:auto; grid-template-rows:auto auto; min-height:0; } :root[data-phone] .game-stream { grid-template-columns:1fr; } :root[data-phone] .game-stream .gbaStage { height:280px; } :root[data-phone] .thinking-stream { height:340px; } :root[data-phone] .directory-pages { grid-template-columns:minmax(0,1fr); grid-template-rows:auto minmax(0,1fr); } :root[data-phone] .page-directory { display:none; } :root[data-phone] .page-picker { display:flex; } :root[data-phone] .page-content .logcols { grid-template-columns:1fr; height:auto; } :root[data-phone] .page-content .log,:root[data-phone] .page-content .inspector { height:360px; } :root[data-phone] .trace-content .logcols { flex:none; grid-template-rows:none; }
 /* Phones: the timeline follows the Game Boy; the live panel comes after it. */
-@media(max-width:700px) { .watch-deck { display:flex; flex-direction:column; } .game-stream { display:contents; } .game-stream .side { order:1; } }
+:root[data-phone] .watch-deck { display:flex; flex-direction:column; } :root[data-phone] .game-stream { display:contents; } :root[data-phone] .game-stream .side { order:1; }
 /* Clear the former two-column grid's named areas in the watch deck. */
 .watch-deck > .lanesBox,.game-stream > .gbaStage { grid-area:auto; }
 
@@ -433,7 +433,7 @@ select.p, .field input { font: 8px 'Press Start 2P', monospace; padding: 6px 8px
 .config-overview{background:#253149;color:#fff8db;border:3px solid #597ca6;border-radius:12px;padding:16px;margin:4px 0 16px;box-shadow:inset 0 0 0 2px #1b2334}
 .config-readonly{display:inline-block;background:#ffe178;color:#253149;padding:7px 10px;border-radius:5px;font-size:9px}.config-overview p{font:12px/1.7 'JetBrains Mono',monospace;overflow-wrap:anywhere}.config-counts{display:flex;gap:8px;flex-wrap:wrap}.config-counts span{font-size:8px;padding:6px 8px;border:1px solid #7d91af;border-radius:5px}
 .config-summary-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,250px),1fr));gap:12px;margin-bottom:16px}.config-summary-card{background:#fffdf4;border:2px solid #536b89;border-radius:9px;padding:16px;box-shadow:0 3px 0 #ccd3dd}.config-summary-card h4{font-size:10px;color:#ad383e;margin:0 0 14px}.config-summary-card .kv{gap:10px;font-size:10px;line-height:1.7}.config-summary-card .kv dt{font-size:8px}.config-summary-card .kv dd{font-family:'JetBrains Mono',monospace}
-.config-provenance{font:12px/1.7 'Inter',sans-serif;color:#4b586b;margin:16px 0}.config-group{margin:24px 0}.config-group>h4{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;border-bottom:3px solid #b6c9db;padding-bottom:10px;font-size:10px;color:#344563}.config-group>h4 span{font:12px 'Inter',sans-serif;color:#667487}.config-feature-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:12px}.config-feature{border:2px solid #8b9db0;border-radius:9px;padding:16px;background:#f6f8fb;min-width:0;box-shadow:0 3px 0 #d8dce2}.config-feature.config-on{background:#f2faf1}.config-feature.config-off{background:#fff6f3}.config-feature.config-conflict{border-color:#ba790b;background:#fff4cb}.config-feature header{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}.config-feature h5{font-size:9px;line-height:1.8;margin:0;color:#26374a}.config-badge{flex-shrink:0;border:1px solid #9eabb9;border-radius:5px;background:#e4e9ef;color:#526073;font-size:7px;padding:6px}.config-on .config-badge{background:#d9efce;color:#235c32;border-color:#91bb81}.config-off .config-badge{background:#f8dddc;color:#8b3438;border-color:#d29b9e}.config-feature p{font:12px/1.7 'Inter',sans-serif;color:#344154;margin:12px 0}.config-feature footer{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center}.config-feature footer code{font:10px/1.5 'JetBrains Mono',monospace;color:#65758a;overflow-wrap:anywhere}.config-feature a{display:inline-block;border:2px solid #587396;border-radius:5px;padding:7px 9px;background:#fff8da;color:#344e71;font-size:7px;line-height:1.6;text-decoration:none}.config-feature a:hover{background:#ffe27b}.config-tools{display:flex;gap:8px;flex-wrap:wrap}.config-tools code{background:#26344c;color:#fff5d0;border-radius:5px;padding:8px 10px;font:11px 'JetBrains Mono',monospace}.config-raw{border:2px solid #a3b4c5;border-radius:8px;padding:14px;margin:12px 0}.config-raw summary{font-size:9px;line-height:1.8;cursor:pointer}@media(max-width:700px){.config-feature,.config-summary-card,.config-overview{padding:12px}.config-feature header{flex-wrap:wrap}}
+.config-provenance{font:12px/1.7 'Inter',sans-serif;color:#4b586b;margin:16px 0}.config-group{margin:24px 0}.config-group>h4{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;border-bottom:3px solid #b6c9db;padding-bottom:10px;font-size:10px;color:#344563}.config-group>h4 span{font:12px 'Inter',sans-serif;color:#667487}.config-feature-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:12px}.config-feature{border:2px solid #8b9db0;border-radius:9px;padding:16px;background:#f6f8fb;min-width:0;box-shadow:0 3px 0 #d8dce2}.config-feature.config-on{background:#f2faf1}.config-feature.config-off{background:#fff6f3}.config-feature.config-conflict{border-color:#ba790b;background:#fff4cb}.config-feature header{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}.config-feature h5{font-size:9px;line-height:1.8;margin:0;color:#26374a}.config-badge{flex-shrink:0;border:1px solid #9eabb9;border-radius:5px;background:#e4e9ef;color:#526073;font-size:7px;padding:6px}.config-on .config-badge{background:#d9efce;color:#235c32;border-color:#91bb81}.config-off .config-badge{background:#f8dddc;color:#8b3438;border-color:#d29b9e}.config-feature p{font:12px/1.7 'Inter',sans-serif;color:#344154;margin:12px 0}.config-feature footer{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center}.config-feature footer code{font:10px/1.5 'JetBrains Mono',monospace;color:#65758a;overflow-wrap:anywhere}.config-feature a{display:inline-block;border:2px solid #587396;border-radius:5px;padding:7px 9px;background:#fff8da;color:#344e71;font-size:7px;line-height:1.6;text-decoration:none}.config-feature a:hover{background:#ffe27b}.config-tools{display:flex;gap:8px;flex-wrap:wrap}.config-tools code{background:#26344c;color:#fff5d0;border-radius:5px;padding:8px 10px;font:11px 'JetBrains Mono',monospace}.config-raw{border:2px solid #a3b4c5;border-radius:8px;padding:14px;margin:12px 0}.config-raw summary{font-size:9px;line-height:1.8;cursor:pointer}:root[data-phone] .config-feature,:root[data-phone] .config-summary-card,:root[data-phone] .config-overview{padding:12px}:root[data-phone] .config-feature header{flex-wrap:wrap}
 
 .config-search{padding:16px;border:2px solid #8b9db0;border-radius:9px;background:#e9eff6;margin-bottom:16px}.config-search label{display:block;font-size:9px;color:#344563;margin-bottom:10px}.config-search input{box-sizing:border-box;width:100%;min-width:0;padding:12px;border:2px solid #597ca6;border-radius:6px;background:#fffdf2;color:#26374a;font:13px 'Inter',sans-serif}.config-search input:focus{outline:3px solid #e9bf4f;outline-offset:2px}.config-search p{font:12px/1.6 'Inter',sans-serif;color:#526073;margin:8px 0 0}.config-search [role=status]{font-weight:700;color:#344563}
 
@@ -766,7 +766,7 @@ b.wb-add, b.wb-rem { white-space:nowrap; }
 .bar > .run-cards { flex-basis: 100%; display: flex; flex-wrap: wrap; gap: 14px; padding: 4px 4px 8px; }
 .bar > .run-cards > .tc.tc { width: min(100%, 400px); flex: none; }
 .bar > .run-cards[hidden] { display: none; }
-@media (max-width: 700px) { .bar > .run-cards { display: none !important; } }
+:root[data-phone] .bar > .run-cards { display: none !important; }
 .rs-cards { display: grid; gap: 12px; padding: 2px 4px 6px; }
 .tc.tc { all: unset; position: relative; display: block; width: 100%; container-type: inline-size; cursor: pointer; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 .tc.tc:focus-visible { outline: 3px solid #ffd447; outline-offset: 3px; }
@@ -809,11 +809,9 @@ b.wb-add, b.wb-rem { white-space:nowrap; }
 }
 @media (prefers-reduced-motion: reduce) { .tc .tc-dot, .tc .tc-mon, .tc.tc-new .tc-art { animation: none !important; } .tc.tc-new .tc-art { filter: drop-shadow(var(--u) 0 0 #ffe060) drop-shadow(calc(var(--u) * -1) 0 0 #ffe060) drop-shadow(0 var(--u) 0 #ffe060) drop-shadow(0 calc(var(--u) * -1) 0 #ffe060); } }
 
-@media (max-width: 700px) {
-  .bar { padding: 9px 12px; gap: 8px; }
-  .bar > .logo, .bar > .mode, .bar > .clock, .bar > .live-runs, .bar > .ident { display: none; }
-  .bar > .run-head { display: flex; }
-}
+:root[data-phone] .bar { padding: 9px 12px; gap: 8px; }
+:root[data-phone] .bar > .logo, :root[data-phone] .bar > .mode, :root[data-phone] .bar > .clock, :root[data-phone] .bar > .live-runs, :root[data-phone] .bar > .ident { display: none; }
+:root[data-phone] .bar > .run-head { display: flex; }
 
 
 /* Recorded request history inherits the existing PokéNav Stats screen and navigation. */
@@ -837,12 +835,10 @@ b.wb-add, b.wb-rem { white-space:nowrap; }
 .mh-write { fill:#b28a4b; background:#b28a4b; }
 .mh-key i { display:inline-block; width:7px; height:7px; margin-right:3px; }
 .metric-definitions { margin-top:10px; font:10px/1.8 Inter,sans-serif; color:#59636e; }
-@media(max-width:700px) {
- .mh-row { grid-template-columns:1fr; }
- .mh-label { border-right:0; border-bottom:1px solid #d1d6dc; padding:8px 10px; }
- .mh-label strong { font-size:13px; }
- .mh-row svg { min-height:100px; }
-}
+:root[data-phone] .mh-row { grid-template-columns:1fr; }
+:root[data-phone] .mh-label { border-right:0; border-bottom:1px solid #d1d6dc; padding:8px 10px; }
+:root[data-phone] .mh-label strong { font-size:13px; }
+:root[data-phone] .mh-row svg { min-height:100px; }
 
 .mh-point { fill:#258970; }
 

@@ -24,7 +24,7 @@ describe("PokéNav agent trace page", () => {
   });
 
   it("keeps the phone layout's stacked trace and inspector scrollable", () => {
-    expect(css).toContain(".trace-content .logcols { flex:none; grid-template-rows:none; } }");
+    expect(css).toContain(":root[data-phone] .trace-content .logcols { flex:none; grid-template-rows:none; }");
   });
 
   it("swaps the side directory for the page picker at phone width only", () => {
@@ -32,6 +32,6 @@ describe("PokéNav agent trace page", () => {
     expect(picker?.querySelector('select[data-ui="page-select"][aria-label]')).not.toBeNull();
     expect([...(picker?.querySelectorAll<HTMLButtonElement>("button[data-page-step]") ?? [])].map((button) => button.dataset.pageStep)).toEqual(["-1", "1"]);
     expect(css).toContain(".page-picker { display:none; gap:6px; }");
-    expect(css).toContain(".directory-pages { grid-template-columns:minmax(0,1fr); grid-template-rows:auto minmax(0,1fr); } .page-directory { display:none; } .page-picker { display:flex; }");
+    expect(css).toContain(":root[data-phone] .directory-pages { grid-template-columns:minmax(0,1fr); grid-template-rows:auto minmax(0,1fr); } :root[data-phone] .page-directory { display:none; } :root[data-phone] .page-picker { display:flex; }");
   });
 });

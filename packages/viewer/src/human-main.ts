@@ -1,5 +1,7 @@
 import {HumanPlay,type HumanPlayDeps} from './human-play.js';
+import {watchPhoneFlag} from './phone.js';
 import type {AudioFollower} from '@pokebench/agent/spectator';
+watchPhoneFlag(document);
 export function createHumanAudio(Owner:typeof AudioFollower,runId:string,status:(text:string)=>void,createContext:()=>AudioContext=()=>new AudioContext()):AudioFollower {
  let context:AudioContext|undefined;
  return new Owner({

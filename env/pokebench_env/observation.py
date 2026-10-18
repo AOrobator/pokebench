@@ -78,6 +78,10 @@ def install_observation(
         shot = get_screenshot().model_dump()
         fading = palette_fade_active(read_memory)
         animation = warp and warp_animating(read_memory)
+        # Preserve the legacy OFF path: archive pairing stays under the frame
+        # lock. ON waits until the receipt has been added below.
+        if raw_archive is not None and receipt is not None and whiteout is None:
+            raw_archive.pair(receipt, serialized, str(shot.get("screenshot_base64", "")))
         return receipt, state, serialized, shot, fading, animation, seen
 
     @app.get("/pokebench/observation")
@@ -107,7 +111,7 @@ def install_observation(
                         "frame": event.frame,
                         "money_before": event.money_before,
                     }
-                if raw_archive is not None and receipt is not None:
+                if raw_archive is not None and receipt is not None and whiteout is not None:
                     raw_archive.pair(receipt, serialized, screenshot)
             except BaseException:
                 if whiteout is not None and event is not None:

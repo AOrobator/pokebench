@@ -220,15 +220,17 @@ const menuDetourScreen = (state: GameStateSnapshot): boolean =>
 const battleStamp = (state: GameStateSnapshot): string | null => {
   const battle = state.battle;
   const battlers = battle?.battlers;
-  if (battle == null || battlers == null || battlers.length === 0) return null;
-  return `${String(battle.turn ?? "")}:${battlers.map((b) => `${String(b.battler)}:${b.species}:${String(b.hp)}`).join(",")}`;
+  // A missing turn or battler list is not "the same battle". Collapse those to no stamp, not to an empty key.
+  if (battle == null || battle.turn == null || battlers == null || battlers.length === 0) return null;
+  return `${String(battle.turn)}:${battlers.map((b) => `${String(b.battler)}:${b.species}:${String(b.hp)}`).join(",")}`;
 };
 const actionMenuKey = (state: GameStateSnapshot): string | null => {
   const battle = state.battle;
-  if (!state.in_battle || state.screen !== "battle" || battle == null || battle.diagnostic !== null) return null;
+  const stamp = battleStamp(state);
+  if (!state.in_battle || state.screen !== "battle" || battle == null || battle.diagnostic !== null || stamp === null) return null;
   const input = battle.player_inputs?.find((row) => row.ready && row.phase === "action" && row.action_cursor !== null);
   if (input === undefined) return null;
-  return `${battleStamp(state) ?? ""}:${String(input.action_cursor ?? "")}:${input.selected ?? ""}`;
+  return `${stamp}:${String(input.action_cursor)}:${input.selected ?? ""}`;
 };
 const DIRECTIONS = new Set(["UP", "DOWN", "LEFT", "RIGHT"]);
 const interfaceOpen = (state: GameStateSnapshot): boolean =>
@@ -399,7 +401,7 @@ export class LoopDetector {
       this.latestSeq = event.seq;
       if ("started" in event) {
         if (this.pushback) this.tripState(event);
-        if (this.menuLoop) this.noteMenuScreen(event);
+        if (this.menuLoop) this.noteMenuScreen(event, event.seq);
         const said = this.ineffectiveLoops ? (event.world_context?.dialogue || event.world_context?.message?.identity) ?? "" : "";
         if (said !== "")
           for (const pending of this.calls.values()) if (!(pending.dialogue ??= []).includes(said)) pending.dialogue.push(said);
@@ -900,8 +902,15 @@ export class LoopDetector {
   }
 
   // A state during a call can open the POKéMON or BAG screen and the call can still end on the battle menu.
-  private noteMenuScreen(state: GameStateSnapshot): void {
-    if (!state.in_battle) return;
+  // A state that has left the battle clears the count. complete() also sees the end state; this covers a
+  // state event that is not that end state.
+  private noteMenuScreen(state: GameStateSnapshot, seq: number): void {
+    if (!state.in_battle) {
+      const stuck = this.episode?.menu === true;
+      this.resetMenu();
+      if (stuck) this.recover(seq, false);
+      return;
+    }
     if (menuDetourScreen(state)) this.menuDetour = true;
   }
 

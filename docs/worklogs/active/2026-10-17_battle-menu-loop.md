@@ -21,7 +21,7 @@ The bundle arm of `experiments/fixed/bundle-v-control.json` lists the switch. Th
 ## Invariants
 
 - INV-1 OFF is today's guard. The new counter is not consulted.
-- INV-2 The fourth return warns. The first three do not. HP, the battle turn, a cursor change, or leaving the battle clears the count.
+- INV-2 The fourth return warns. The first three do not. HP, species, the battle turn, a cursor change, or leaving the battle clears the count. A missing battle turn or battler list does not count. A state event that has left the battle clears the count.
 - INV-3 The warning uses the game's menu words and does not tell the model to RUN.
 - INV-4 No standing prompt line. No timeline mark.
 
@@ -54,7 +54,21 @@ The party-screen state used as a detour must carry the same battler HP and battl
 
 ## Multi-Model Review Log
 
-Pending.
+Round 1, frozen head `4d9a3cb936ed3b4b7864536b75c45bcf6be3b04f`, diff SHA-256 `4e070e090ac405037a4dd35415e45b2e7a63cbf9c7040bdc3b5948e81ff6a051`. Claude CLI was logged out (`~/.claude-review` and the default profile both `loggedIn: false`), so the Claude lane ran as Cursor `claude-opus-5-thinking-high` in ask mode. Grok was Cursor `cursor-grok-4.5-high`. GPT was Cursor `gpt-5.6-sol-xhigh`. No local inference lane.
+
+- Grok: `VERDICT: LGTM`. Empty stderr.
+- GPT: `VERDICT: BLOCKING`. Five findings, triaged below.
+- Claude (`claude-opus-5-thinking-high`): `VERDICT: LGTM`. Empty stderr. It reproduced the pre-fix coverage numbers, so this verdict is on `4d9a3cb9`. Its non-blocking notes 4 and 5 are the same two holes GPT blocked on (an empty stamp still counted; a non-battle state event did not clear). Those are the fixes in the next commit. The other notes (positional-boolean coverage, a missing end state resetting, the count not cleared after the warning, the undesigned pending experiment) stay non-blocking.
+
+Triage of the GPT findings:
+
+1. Fix. `actionMenuKey` used an empty string when `battleStamp` was null, so a missing battler list or a null battle turn could count as the same menu. `battleStamp` now returns null when the turn is null, and the menu key returns null when the stamp is null.
+2. Fix. `noteMenuScreen` ignored a state event with `in_battle: false`, so the count survived a battle exit that was not the completing press. That event now clears the count and ends a menu episode.
+3. Rebut. The notice is the existing `loop_guard` event. Activity History already renders that kind, and no new consumer was added. The fourth-return test now parses the warning with `checkEvent`. `context()` is the model-facing sentence and is already asserted. A mounted-viewer replay of an unchanged event kind is outside this delta.
+4. Rebut. `experiments/battle-menu-loop.json` has no `queuePosition`, and its notes say it is not designed and not queued. That is the same shape as the pending entries already on main (`bag-healing-items`, `no-exit-here`, `instruction-ledger-v2`). The design skill applies before a cohort is queued or driven. This landing does not queue it. The operator did not set a GPU-hour budget.
+5. Rebut. The explainer skill requires `just pages-check` (clean) and a local link. It does not require screenshots at three widths. The viewer server test already serves the page.
+
+Grok's non-blocking note on a missing species-change test is covered by the fix commit.
 
 ## Boy Scout Log
 

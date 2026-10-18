@@ -4,12 +4,13 @@ import {describe,expect,it} from "vitest";
 import {ALL_ON,dependencyProblems,featureInfo,playHarnessFeatures,SWITCHABLE_FEATURES} from "./features.js";
 import {experimentArms,parseExperiment} from "./experiments.js";
 import {flagFeatures,parsePlayPreset,presetFeatures} from "./play-preset.js";
+import {checkEvent} from "./events.js";
 import {BATTLE_MENU_LOOP_MESSAGE,LOOP_POLICY,LoopDetector,type LoopKind,type LoopNotice} from "./loop-detection.js";
 import type {GameStateSnapshot} from "./game-state.js";
 
 const ID = "battle-menu-loop-v1";
 
-function battle(cursor: number, opts: {hp?: number; turn?: number; screen?: string; species?: string} = {}): GameStateSnapshot {
+function battle(cursor: number, opts: {hp?: number; turn?: number | null; screen?: string; species?: string; battlers?: null} = {}): GameStateSnapshot {
   const screen = opts.screen ?? "battle";
   const labels = ["FIGHT", "BAG", "POKEMON", "RUN"];
   return {
@@ -23,11 +24,13 @@ function battle(cursor: number, opts: {hp?: number; turn?: number; screen?: stri
     active_ui: null,
     battle: {
       diagnostic: null,
-      turn: opts.turn ?? 1,
-      battlers: [
-        {battler: 1, species: opts.species ?? "WINGULL", hp: opts.hp ?? 17},
-        {battler: 0, species: "TORCHIC", hp: 34},
-      ],
+      turn: opts.turn === undefined ? 1 : opts.turn,
+      battlers: opts.battlers === null
+        ? null
+        : [
+            {battler: 1, species: opts.species ?? "WINGULL", hp: opts.hp ?? 17},
+            {battler: 0, species: "TORCHIC", hp: 34},
+          ],
       player_inputs: screen === "battle"
         ? [{ready: true, phase: "action", action_cursor: cursor, selected: labels[cursor] ?? null}]
         : [],
@@ -61,10 +64,12 @@ function detector(on: boolean, supervisor?: (kind: LoopKind, calls: number) => s
 }
 
 // Open the POKéMON screen, then come back to the same battle-menu cursor.
-function trip(t: ReturnType<typeof detector>, cursor = 2, opts: {hp?: number; turn?: number; screen?: string} = {}): void {
-  const shared: {hp?: number; turn?: number} = {};
+function trip(t: ReturnType<typeof detector>, cursor = 2, opts: {hp?: number; turn?: number | null; screen?: string; species?: string; battlers?: null} = {}): void {
+  const shared: {hp?: number; turn?: number | null; species?: string; battlers?: null} = {};
   if (opts.hp !== undefined) shared.hp = opts.hp;
   if (opts.turn !== undefined) shared.turn = opts.turn;
+  if (opts.species !== undefined) shared.species = opts.species;
+  if (opts.battlers === null) shared.battlers = null;
   t.press(battle(cursor, {...shared, screen: opts.screen ?? "party_menu"}));
   t.press(battle(cursor, shared));
 }
@@ -88,6 +93,12 @@ describe("battle-menu-loop-v1", () => {
     trip(on);
     expect(on.notices.map((n) => [n.kind, n.phase])).toEqual([["cycle", "warning"]]);
     expect(on.notices[0]?.message).toBe(BATTLE_MENU_LOOP_MESSAGE);
+    const warning = on.notices[0];
+    if (warning === undefined) throw new Error("missing warning");
+    expect(checkEvent({
+      v: 1, run: "r", seq: 9, t: "2026-10-17T21:19:13.883-04:00", turn: 970, type: "loop_guard",
+      ...warning, evidence: [...warning.evidence],
+    }).type).toBe("loop_guard");
   });
 
   it("ON: the BAG screen counts the same way as the POKéMON screen", () => {
@@ -118,6 +129,51 @@ describe("battle-menu-loop-v1", () => {
     for (let i = 0; i < 3; i++) trip(on, 2, {turn: 2});
     expect(on.notices).toEqual([]);
     trip(on, 2, {turn: 2});
+    expect(on.notices.map((n) => n.phase)).toEqual(["warning"]);
+  });
+
+  it("ON: a species change clears the count", () => {
+    const on = detector(true);
+    on.press(battle(2, {species: "WINGULL"}));
+    for (let i = 0; i < 3; i++) trip(on, 2, {species: "WINGULL"});
+    on.press(battle(2, {species: "POOCHYENA"}));
+    for (let i = 0; i < 3; i++) trip(on, 2, {species: "POOCHYENA"});
+    expect(on.notices).toEqual([]);
+    trip(on, 2, {species: "POOCHYENA"});
+    expect(on.notices.map((n) => n.phase)).toEqual(["warning"]);
+  });
+
+  it("ON: a missing battler list or battle turn does not count as the same menu", () => {
+    const missing = detector(true);
+    missing.press(battle(2, {battlers: null}));
+    for (let i = 0; i < 4; i++) trip(missing, 2, {battlers: null});
+    expect(missing.notices).toEqual([]);
+    const unread = detector(true);
+    unread.press(battle(2, {turn: null}));
+    for (let i = 0; i < 4; i++) trip(unread, 2, {turn: null});
+    expect(unread.notices).toEqual([]);
+    const kept = detector(true);
+    kept.press(battle(2));
+    for (let i = 0; i < 3; i++) trip(kept);
+    for (let i = 0; i < 4; i++) trip(kept, 2, {battlers: null});
+    expect(kept.notices).toEqual([]);
+    trip(kept);
+    expect(kept.notices.map((n) => n.phase)).toEqual(["warning"]);
+  });
+
+  it("ON: a state event that leaves the battle clears the count", () => {
+    const on = detector(true);
+    on.press(battle(2));
+    for (let i = 0; i < 3; i++) trip(on);
+    on.d.observe({
+      v: 1, run: "r", seq: 40, t: "2026-10-17T21:19:13.883-04:00", turn: 970, type: "state",
+      in_battle: false, screen: "overworld", started: true, party: [], badges: [], location: null, map_id: null,
+    });
+    trip(on);
+    expect(on.notices).toEqual([]);
+    for (let i = 0; i < 2; i++) trip(on);
+    expect(on.notices).toEqual([]);
+    trip(on);
     expect(on.notices.map((n) => n.phase)).toEqual(["warning"]);
   });
 

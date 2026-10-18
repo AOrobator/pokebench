@@ -19,7 +19,7 @@ Keep internal map identities in `GameState.destination_names` and `GameState.dyn
 
 - A warp gets a textual destination name only when `displayed-place-names-v1` supplies a game-displayed name for that destination map.
 - Otherwise a static warp keeps its map group/number and a dynamic warp stays `dynamic destination`.
-- The named-warp switch depends on `displayed-place-names-v1`; its standalone experiment enables that dependency in both arms.
+- The named-warp switch consumes `displayed-place-names-v1` when available; without it, ON remains valid but conservatively exposes no textual destination names. Its standalone experiment enables that provenance source in both arms.
 - In `bundle-v-control`, the control has the named-warp switch OFF and the bundle flips it ON. `displayed-place-names-v1` remains ON in both arms.
 
 This intentionally does not add a second conversation/history store. A future feature may remember map names the player has already seen, but it is not required to stop this leak.
@@ -35,8 +35,8 @@ This intentionally does not add a second conversation/history store. A future fe
 ## Milestones
 
 - [x] M1 RED: regression tests cover the truck leak, sign-backed names, dependency, and fixed-bundle arm split. The focused Python suite fails on the four old internal-name emissions; the agent tests fail on the old dependency and the bundle's old ON-in-control definition.
-- [ ] M2 GREEN: restrict rendered names to game-displayed place names; update feature copy and experiment definition.
-- [ ] M3 DOCS: update the existing named-warp and unset-dynamic-warp explainers and validate them.
+- [x] M2 GREEN (`82cb9811`): rendered names now come only from `displayed_places`; internal-only static destinations keep their IDs and the set truck warp stays dynamic. Feature copy, prompt map rules, standalone experiment and fixed bundle updated. Focused gates: 14 named-warp Python tests and 35 agent tests pass; `just experiments-check` validates 111 definitions.
+- [x] M3 DOCS: updated the existing named-warp and unset-dynamic-warp explainers; both `just pages-check` validations are clean.
 - [ ] M4 GATES: targeted tests, full tests, lint, build, coverage and experiment checks pass.
 - [ ] M5 REVIEW: principles audit and required cloud review lanes reach LGTM on one frozen packet.
 - [ ] M6 LAND: fast-forward local `main`, recheck, repin the unstarted experiment, and restart the viewer without launching a measured run.

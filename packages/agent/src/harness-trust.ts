@@ -7,7 +7,7 @@ import type {AgentTool,AgentToolResult} from "@mariozechner/pi-agent-core";
 import {isCheckedPress,type CheckedPressTool} from "./game-tools.js";
 import {parseGameState,type GameStateSnapshot} from "./game-state.js";
 import type {RunEvent} from "./events.js";
-import {StoryDestinations,PlacesBodySchema,type MapId,type Place,type PlaceSource,type StoryGoal} from "./story-destinations.js";
+import {STORY_HEADER,StoryDestinations,PlacesBodySchema,type MapId,type Place,type PlaceSource,type StoryGoal} from "./story-destinations.js";
 import {Value} from "typebox/value";
 import {exitBlock} from "./surf-gate.js";
 
@@ -190,7 +190,7 @@ function stateOf(details:unknown):GameStateSnapshot|null {
 }
 
 // battleAction: harness-trust-v2 also heads battle_action results.
-export interface TrustOptions {readonly supervisor:boolean;readonly battleAction?:boolean}
+export interface TrustOptions {readonly supervisor:boolean;readonly battleAction?:boolean;readonly goalOnce?:boolean}
 
 // The header (and any walk-away note) put at the top of the result's first text part.
 export class HarnessTrust {
@@ -203,7 +203,8 @@ export class HarnessTrust {
   const goal=places instanceof Error||state.map_id===null?null:this.story.goal(state.map_id,state.name,callId,places);
   const characters=charactersLine(text);
   const exits=places instanceof Error?null:exitsLine(state,places);
-  const header=[TRUST_HEADER,goalLine(goal,places,anyLine),...(characters===null?[]:[characters]),...(exits===null?[]:[exits])].join("\n");
+  const repeated=this.options.goalOnce===true&&goal!==null&&text.includes(STORY_HEADER)&&text.includes(`"${goal.line.text}"`);
+  const header=[TRUST_HEADER,...(repeated?[]:[goalLine(goal,places,anyLine)]),...(characters===null?[]:[characters]),...(exits===null?[]:[exits])].join("\n");
   const away=this.options.supervisor&&!(places instanceof Error)?this.walk.observe(state,goal,places,own):null;
   return {header,away};
  }

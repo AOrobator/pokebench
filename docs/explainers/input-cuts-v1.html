@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Input cuts</title>
+<style>
+:root{
+ --bg:#f7f6f2; --fg:#1c1d1f; --soft:#5b5d61; --rule:#dedcd5; --panel:#ffffff;
+ --game:#1a7f5a; --game-bg:#e3f4ec; --prior:#c2432f; --prior-bg:#fbe7e2; --nav:#2a62c9; --nav-bg:#e4edfb;
+ --body:system-ui,-apple-system,"Segoe UI",sans-serif; --mono:ui-monospace,"SF Mono",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+ --bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; color-scheme:dark}}
+:root[data-theme="dark"]{
+ --bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; color-scheme:dark}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.6 var(--body);padding:0 16px}
+main{max-width:760px;margin:0 auto;padding:40px 0 64px;display:flex;flex-direction:column;gap:34px}
+h1{font-size:2.2rem;line-height:1.15;margin:0}
+h2{font-size:1.3rem;margin:0}
+p{margin:0;max-width:68ch}
+.eyebrow{font:500 .75rem var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--soft)}
+.lede{font-size:1.08rem;color:var(--soft)}
+section{display:flex;flex-direction:column;gap:12px}
+figure{margin:0;display:flex;flex-direction:column;gap:8px}
+.scroll{overflow-x:auto}
+svg{display:block;max-width:100%;height:auto}
+@media (max-width:600px){.scroll svg{max-width:none;width:720px}}
+figcaption{font-size:.88rem;color:var(--soft)}
+svg text{font-family:var(--body);font-size:13px;fill:var(--fg)}
+svg .s{fill:var(--soft);font-size:11px}
+svg .m{font-family:var(--mono);font-size:12px}
+.box{fill:var(--panel);stroke:var(--rule)}
+.game{fill:var(--game-bg);stroke:var(--game)}
+.prior{fill:var(--prior-bg);stroke:var(--prior)}
+.nav{fill:var(--nav-bg);stroke:var(--nav)}
+pre{background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:14px;white-space:pre-wrap;font:13px/1.5 var(--mono);margin:0}
+code{font:500 .88em var(--mono);background:var(--panel);border:1px solid var(--rule);border-radius:4px;padding:0 4px}
+table{border-collapse:collapse;width:100%;font-size:.92rem}
+th,td{text-align:left;padding:7px 9px;border-bottom:1px solid var(--rule);vertical-align:top}
+th{font:500 .75rem var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--soft)}
+</style>
+</head>
+<body>
+<main>
+<div>
+<div class="eyebrow">Harness switch · observation · <code>input-cuts-v1</code> · needs nothing · bundle arm only · off by default</div>
+<h1>Input cuts</h1>
+</div>
+<p class="lede">Four lines in a result repeat something that same result already shows. With the switch on, each of those repeats is left out. The check, the walk, and the earlier quotes stay.</p>
+
+<section>
+<h2>The same result, twice</h2>
+<figure>
+<div class="scroll">
+<svg viewBox="0 0 720 250" role="img" aria-labelledby="cutTitle cutDesc">
+<title id="cutTitle">Four repeats and what replaces each</title>
+<desc id="cutDesc">Off quotes this call, prints a missing citation, repeats the Story goal, and says the person has not spoken. On points at this result's dialogue list, records the miss without a Because line, keeps one Story goal, and says the person also spoke during this call.</desc>
+<rect class="prior" x="16" y="36" width="330" height="196" rx="8"/>
+<rect class="game" x="374" y="36" width="330" height="196" rx="8"/>
+<text class="s" x="28" y="24">OFF</text>
+<text class="s" x="386" y="24">ON</text>
+<text class="m" x="28" y="64">MOM: "Go next door."</text>
+<text class="m" x="28" y="92">Because: "…" is not in …</text>
+<text class="m" x="28" y="120">Story goal: "… LAB."</text>
+<text class="m" x="28" y="148">and the destinations block</text>
+<text class="m" x="28" y="176">Has not spoken to you</text>
+<text class="m" x="28" y="204">in this run.</text>
+<text class="m" x="386" y="64">this result's dialogue list</text>
+<text class="m" x="386" y="92">walk still runs; check recorded</text>
+<text class="m" x="386" y="120">destinations block only</text>
+<text class="m" x="386" y="148">Story goal line left out</text>
+<text class="m" x="386" y="176">Also spoke to you during</text>
+<text class="m" x="386" y="204">this call</text>
+</svg>
+</div>
+<figcaption>One result. Off prints the quote, the miss, the goal, and “has not spoken” on top of text that already says those things. On keeps one copy of each.</figcaption>
+</figure>
+</section>
+
+<section>
+<h2>What changes</h2>
+<table>
+<thead><tr><th>Cut</th><th>Off</th><th>On</th></tr></thead>
+<tbody>
+<tr><td>Conversation ledger</td><td>Quotes this call’s pages under “Latest conversation with a person”, and a room’s last-heard line quotes them too.</td><td>Those lines say <code>this result's dialogue list</code>. A line from an earlier turn stays quoted.</td></tr>
+<tr><td>Cited destination</td><td>A quote the game has not shown starts the navigate_to result with the Because line. The walk still runs.</td><td>That Because line is not added. The <code>destination_citation</code> event is still recorded, with text null. A quote under two words is still said.</td></tr>
+<tr><td>Story goal</td><td>The harness-trust header prints the Story goal, and the story-destinations block in the same result prints it again.</td><td>When this result already contains <code>Latest story line naming a place</code> and the goal’s quote, the header leaves the Story goal line out. The rest of the header stays. If the destinations block is absent, the header keeps the goal.</td></tr>
+<tr><td>ID card</td><td>A person whose lines are in this result can still get “Has not spoken to you in this run.” and a summary that says they have not spoken.</td><td>That sentence is left out. The card still says they also spoke during this call. The summary says they spoke during this call.</td></tr>
+</tbody>
+</table>
+</section>
+
+<section>
+<h2>Where it is wired</h2>
+<p><code>playGameTools</code> passes <code>silenceMiss</code> into cited destination and <code>goalOnce</code> into harness trust when <code>input-cuts-v1</code> is on. The conversation ledger and the ID cards read the same flag from the feature set they already receive. Off, those flags are false and the text is the previous text.</p>
+<p>The switch is in the bundle arm of <code>bundle-v-control</code>. The base preset leaves it false. A pending experiment, <code>experiments/input-cuts-v1.json</code>, is registered and not queued.</p>
+</section>
+</main>
+</body>
+</html>

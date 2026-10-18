@@ -38,7 +38,7 @@ No new trust boundary. The switch reads the decoded battle already in the tool r
 - [x] Explainer `docs/explainers/battle-menu-loop-v1.html`. `just pages-check` prints nothing.
 - [x] Pending experiment, not queued. Readiness row. Bundle switches list and base false. `open-goal-prompt.json`'s incumbent, which tracks the bundle arm, sets this switch true.
 - [x] Gates: `just lint` clean (worktree venv linked to the main checkout's mgba binding; vendor submodule initialized). `just coverage`: agent 2366 tests, 97.98 / 94.07 / 98.28 / 99.24; viewer 1136 tests, 95.36 / 91.38 / 93.79 / 97.62; pytest 2707; Python lines 97.66, branches 93.82, functions 100. `just experiments-check`: ok 105. `loop-detection.ts` 97.20 / 95.36 / 100 / 99.
-- [ ] Review, then fast-forward onto main.
+- [x] Review, then fast-forward onto main. Landed as `10f62d9f2323229ee6c8bcc3ed29e9fe098c9950`.
 
 ## Closing the Loop
 
@@ -78,6 +78,14 @@ Round 2, frozen head `7e2848d593a83cbf93ba14cf37acf3c17fe2abb4`, diff SHA-256 `f
   1. Rebut. A return is the call's end state. An intermediate cursor inside a call that ends back on the same choice is still that return. Clearing on a mid-call cursor would drop the LEFT, A, A loop this guard exists for, whenever one frame of the batch touched FIGHT.
   2. Fix. An empty battler list took the same null-stamp path as a missing list and had no test. The missing-list test now also drives `battlers: []`, including the case that keeps a count already underway.
   3. Fix. The state-event leave test ran before any warning, so it did not show `recover`. The supervisor test now observes an overworld state after the warning and expects `recovered` and a null context.
+
+Round 3, frozen head `10f62d9f2323229ee6c8bcc3ed29e9fe098c9950`, diff SHA-256 `da140b7042a20ca3c6a0c6130768ae73746c95511c277ef84d5a74e87ef079c5`. Same three Cursor lanes, ask mode, empty stderr. The packet was unchanged before and after. Claude CLI stayed logged out, so Claude remained Cursor `claude-opus-5-thinking-high`.
+
+- Claude: `VERDICT: LGTM`. Re-ran `tsc --noEmit` and eslint. Reproduced agent coverage 98.02 / 94.14 / 98.28 / 99.24 and `loop-detection.ts` 97.88 / 96.24 / 100 / 99.01. `just experiments-check` ok 106.
+- Grok: `VERDICT: LGTM`.
+- GPT: `VERDICT: LGTM`.
+
+Fast-forward of local main: `44c42815` to `10f62d9f`. The dirty `stale-story-goal-v1` checkout was not switched. `experiments/battle-menu-loop.json` `source.commit` is still `44c42815`; the notes say to repin with `just experiment-pin` after landing. That edit is not in this evidence commit.
 
 ## Boy Scout Log
 

@@ -35,8 +35,17 @@ Deletion receipt, 2026-10-18: removed `features["reopened-dialogue-loop-v1"]` fr
 
 Before the main merge: agent suite 2403 passed; viewer panels, server, and next-run 190 passed; `just pages-check` on both explainers printed nothing.
 
-After merging `0ccb8a1c` (input-cuts) and resolving the append conflicts: agent suite 2410 passed (153 files); viewer suite 1145 passed (81 files).
+Gates on `f9d26a34` (main merged through `336c174a`):
+
+- `just test`: agent 2410 passed (153 files), viewer 1145 passed (81 files), pytest 2707 passed.
+- `just lint`: tsc, eslint, ruff, and mypy (92 files) clean.
+- `just build`: agent and viewer tsc succeeded. Viewer stamp `f9d26a3`.
+- `just coverage`: agent lines 99.22 / branches 94.18 / functions 98.3; viewer lines 97.62 / branches 91.38 / functions 93.79; pytest lines 97.66 / branches 93.82 / functions 100. Floor is 90.
+- `just verify-vendor`: vendor OK at `bbab97ad`.
+- `just pages-check` on both explainers printed nothing.
+
+One agent test (`serial-comparison` hung-child stdout) failed once while lint and the build were running on the same machine, and passed on the next isolated run and in the gate above. It is not part of this diff.
 
 ## Not done
 
-The feature commit is `05060925`. Main was merged through `336c174a` (input-cuts landed and pinned). Not reviewed. Not on main. `source.commit` is still `bcde8cd4`; repin after landing. Experiments not queued, not approved, not launched. The live cook is unchanged.
+The feature commit is `05060925`. Main was merged through `336c174a`. Not reviewed. Not on main. `source.commit` on the two new experiment files is still `bcde8cd4`; repin after landing. Experiments not queued, not approved, not launched. The live cook is unchanged.

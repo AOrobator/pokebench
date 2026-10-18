@@ -5,3 +5,5 @@ One local HTML page per designed experiment, written with `.claude/skills/pokebe
 Readiness verdicts are in [readiness.md](readiness.md).
 
 <!-- Add one line per overview: - [Title](<experiment-id>.html) — tier, start, runs per arm -->
+
+- [JIT ten-minute screen](jit-10m.html) — screen; MAIN_MENU start; 12 per arm across both GPUs; launch held.

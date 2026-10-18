@@ -204,7 +204,7 @@ function analyzeLedger(argv: readonly string[], deps: FixedCliDeps, id: string):
     const path = join(deps.runsRoot, run, "events.jsonl");
     return existsSync(path) ? readFileSync(path, "utf8") : null;
   };
-  const { trials, unscored } = rescoreTrials(trialsFromLedger(def, readLedger(join(experimentDir(deps, id), "trials.jsonl")), phase.id), logOf);
+  const { trials, unscored } = rescoreTrials(trialsFromLedger(def, readLedger(join(experimentDir(deps, id), "trials.jsonl")), phase.id), logOf,def.progressOrder);
   if (unscored.length > 0) deps.err(`depth not re-graded (no usable log, stored furthest is an optional activity): ${unscored.join(", ")}`);
   deps.out(renderAnalysis(analyze(trials, def.lanes.map((l) => l.id)), `${def.id} ${phase.id}${phase.primary ? "" : " (exploratory)"}`));
 }

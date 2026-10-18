@@ -13,6 +13,7 @@ export class EventError extends Error {
 }
 
 const NonNegativeInt = Type.Integer({ minimum: 0 });
+const Sha256 = Type.String({pattern:"^[0-9a-f]{64}$"});
 const Sha1 = Type.String({ pattern: "^[0-9a-f]{40}$" });
 
 export const BUTTONS = ["A", "B", "START", "SELECT", "UP", "DOWN", "LEFT", "RIGHT"] as const;
@@ -89,9 +90,10 @@ const TurnStart = event("turn_start", {
 
 const Assistant = event("assistant", {
   thinking: Type.String(),
+  request_context: Type.Optional(Type.Object({mode:Type.Enum(["full","jit"] as const),scene:Type.Enum(["overworld","battle","naming","clock","menu","unknown"] as const),state_seq:Type.Union([NonNegativeInt,Type.Null()]),system_prompt:Type.String(),prompt_sha256:Sha256,tools:Type.Array(Type.String()),tools_sha256:Sha256},closed)),
   text: Type.String(),
   tool_calls: Type.Array(Type.Union([Type.Object({id:Type.String(),name:Type.Literal("act"),args:Type.Unknown()},closed),Type.Object({ id: Type.String(), name: Type.String(), args: Args }, closed)])),
-  usage: Type.Object({ input: NonNegativeInt, output: NonNegativeInt, cache_read: NonNegativeInt }, closed),
+  usage: Type.Object({ input: NonNegativeInt, output: NonNegativeInt, cache_read: NonNegativeInt, cache_write: Type.Optional(NonNegativeInt) }, closed),
   latency_ms: NonNegativeInt,
   ttft_ms: Type.Union([NonNegativeInt, Type.Null()]),
   stop_reason: StopReason,

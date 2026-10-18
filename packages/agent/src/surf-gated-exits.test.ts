@@ -201,8 +201,8 @@ describe("surf-gated-exits-v1 registry and presets",()=>{
   expect(description).toContain("bundle arm only");
   expect(description).not.toContain("both arms");
   const ids=FEATURES.filter(f=>f.switchable).map(f=>f.id);
-  expect(ids.at(-31)).toBe(ID);
-  expect(playHarnessFeatures(ALL_ON,null).at(-31)).toBe(ID);
+  expect(ids.at(-32)).toBe(ID);
+  expect(playHarnessFeatures(ALL_ON,null).at(-32)).toBe(ID);
   expect(SERVER_FEATURES).toContain(ID);
   expect(serverFeatureEnv({...ALL_ON,[ID]:false}).POKEBENCH_FEATURES_OFF.split(",")).toContain(ID);
   expect(serverFeatureEnv(ALL_ON).POKEBENCH_FEATURES_OFF.split(",")).not.toContain(ID);

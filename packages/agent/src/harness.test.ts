@@ -840,3 +840,15 @@ describe("double-context-window-v1", () => {
     expect(await run(undefined)).toBe(3);
   });
 });
+
+it("refreshes request presentation through the real pinned loop before every model call",async()=>{
+ const {g}=governor({maxTurns:2});const controller=new AbortController();let screen="clock";
+ const seen:{prompt:string|undefined;tools:string[]}[]=[];
+ const replies=[pressReply(["A"]),pressReply(["B"])];
+ const model=scriptedModel(replies,[]);
+ const loop=piLoop({systemPrompt:"full",tools:[fakePress(()=>{screen="field";})],base:{model:MODEL,convertToLlm:messages=>messages as Message[]},governor:g,transformContext:messages=>Promise.resolve(messages),emit:()=>undefined,signal:controller.signal,
+ requestContext:context=>({...context,systemPrompt:screen,tools:(context.tools??[]).filter(t=>t.name==="press")}),
+ streamFn:(m,context,options)=>{seen.push({prompt:context.systemPrompt,tools:context.tools?.map(t=>t.name)??[]});return model(m,context,options);}});
+ expect(await play(TASK,g,loop)).toBe("budget");
+ expect(seen).toEqual([{prompt:"clock",tools:["press"]},{prompt:"field",tools:["press"]}]);
+});

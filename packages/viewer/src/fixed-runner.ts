@@ -271,7 +271,7 @@ class Runner {
   }
 
   private expectation(lane: FixedLane, slot: QueueSlot) {
-    return { maxWallMs: phaseOf(this.o.def, slot.phase).maxWallMs, primary: this.o.def.primaryMilestone, presetId: armPreset(this.o.def, slot.phase, slot.arm).id, features: armFeatureBits(this.o.def, slot.arm), start: startExpectation(phaseOf(this.o.def, slot.phase).start), romSha1: this.o.def.romSha1, port: lane.gamePort, model: this.o.def.serving.model };
+    return { ...(this.o.def.terminalErrorsAsOutcomes===undefined?{}:{terminalErrorsAsOutcomes:this.o.def.terminalErrorsAsOutcomes}),...(this.o.def.progressOrder===undefined?{}:{progressOrder:this.o.def.progressOrder}),maxWallMs: phaseOf(this.o.def, slot.phase).maxWallMs, primary: this.o.def.primaryMilestone, presetId: armPreset(this.o.def, slot.phase, slot.arm).id, features: armFeatureBits(this.o.def, slot.arm), start: startExpectation(phaseOf(this.o.def, slot.phase).start), romSha1: this.o.def.romSha1, port: lane.gamePort, model: this.o.def.serving.model };
   }
 
   private events(run: string): string | null {

@@ -356,7 +356,7 @@ export class RunView {
     if (span?.endMs === null) span.endMs = ms;
     this.lastThought = { turn: event.turn, thinking: event.thinking, reply: event.text, latencyMs: event.latency_ms };
     this.tokens = { input: this.tokens.input + event.usage.input, output: this.tokens.output + event.usage.output };
-    const prompt = event.usage.input + event.usage.cache_read;
+    const prompt = event.usage.input + event.usage.cache_read + (event.usage.cache_write ?? 0);
     if (prompt > 0) this.promptTokens = prompt;
     if (event.stop_reason === "error") {
       this.modelErrors += 1;

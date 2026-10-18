@@ -194,16 +194,16 @@ export function renderAnalysis(report: AnalysisReport, title: string): string {
 // depth from the trial's own complete log (run_start first, run_end last); otherwise re-map the
 // stored furthest name onto DEPTH_ORDER. A stored activity name with no usable log cannot be
 // re-graded, so it is listed. The primary outcome and validity always stay as the ledger has them.
-export function rescoreTrials(trials: readonly AnalysisTrial[], events: (run: string) => string | null): { trials: AnalysisTrial[]; unscored: string[] } {
+export function rescoreTrials(trials: readonly AnalysisTrial[], events: (run: string) => string | null, progressOrder?:readonly string[]): { trials: AnalysisTrial[]; unscored: string[] } {
   const unscored: string[] = [];
   const rescored = trials.map((t) => {
     const text = events(t.run);
     if (text !== null && completeLog(text, t.run)) {
-      const o = classifyTrial(text, { maxWallMs: t.capMs, primary: "" }, undefined);
+      const o = classifyTrial(text, { maxWallMs: t.capMs, primary: "",...(progressOrder===undefined?{}:{progressOrder}) }, undefined);
       return { ...t, furthest: o.furthest, furthestDepth: o.furthestDepth, furthestMs: o.furthestMs };
     }
     if (t.furthest === undefined || t.furthest === null) return t;
-    const depth = DEPTH_ORDER.indexOf(t.furthest);
+    const depth = (progressOrder??DEPTH_ORDER).indexOf(t.furthest);
     if (depth < 0) { unscored.push(t.run); return t; }
     return { ...t, furthestDepth: depth };
   });

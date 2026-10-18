@@ -1,3 +1,4 @@
+import {JitContext} from "./jit-context.js";
 import {contextTools,loopSupervisor,playGameTools,stallBriefing,stallStop,textOnlySupervisor} from "./play-wiring.js";
 import { operatorSignalLatch } from "./operator-signals.js";
 import {CheckpointCapture,checkpointTarget} from "./checkpoint-capture.js";
@@ -313,11 +314,14 @@ async function playAgent(): Promise<void> {
       const baseTools=objectives?.tools ?? gameTools(gameServerUrl, pressHooks(recorder), fetch, toolSwitches(features));
       const context=contextTools(features,recorder,objectives?.transformContext??recorder.transformContext);
       const tools=playGameTools(baseTools,features,new StateWatcher(gameServerUrl),recorder,signal=>runControl.gate(signal),context.tools);
+      const jit=new JitContext(features,target);
+      recorder.subscribe(event=>{if(event.type==="state")jit.observe(event);});
       const loop = piLoop({
         systemPrompt,
         loopDetector,
         tools,
-        base: playLoopBase(model, thinking, apiKey, maxTokens, features),
+        base: {...playLoopBase(model, thinking, apiKey, maxTokens, features),beforeToolCall:({toolCall})=>Promise.resolve(jit.allowed(toolCall.name)?undefined:{block:true,reason:"This tool was not available for the screen of this decision; inspect the current state and choose an available tool."})},
+        requestContext: context=>{const next=jit.context(context);recorder.recordRequestContext(jit.receipt());return next;},
         governor,
         transformContext: context.transformContext,
         window: context.window,

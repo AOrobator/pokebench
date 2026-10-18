@@ -7,7 +7,7 @@ import {
   type AgentTool,
   type StreamFn,
 } from "@mariozechner/pi-agent-core";
-import { createAssistantMessageEventStream, streamSimple, type Api, type AssistantMessage, type Model, type ToolResultMessage } from "@mariozechner/pi-ai";
+import { createAssistantMessageEventStream, streamSimple, type Context, type Api, type AssistantMessage, type Model, type ToolResultMessage } from "@mariozechner/pi-ai";
 import { LoopDetector, type LoopKind, type LoopPolicy, type LoopMode } from "./loop-detection.js";
 import type { RunRecorder } from "./recorder.js";
 import type { RunEndReason } from "./events.js";
@@ -242,6 +242,7 @@ export interface PiLoopOptions {
   readonly emit: (event: AgentEvent) => Promise<void> | void;
   readonly signal: AbortSignal;
   readonly streamFn?: StreamFn;
+  readonly requestContext?: (context: Context) => Context;
   readonly loopDetector?: LoopDetector | undefined;
   readonly window?: Window;
   // Awaited before every model call (operator pause).
@@ -253,7 +254,7 @@ function abortedReply(model: Model<Api>): AssistantMessage {
 }
 
 // A run that ended while held at the gate must not reach the model.
-function streamFn(inner: StreamFn | undefined): StreamFn {
+function streamFn(inner: StreamFn | undefined, requestContext?: (context: Context) => Context): StreamFn {
   return (model, context, options) => {
     if (options?.signal?.aborted === true) {
       const stream = createAssistantMessageEventStream();
@@ -261,13 +262,13 @@ function streamFn(inner: StreamFn | undefined): StreamFn {
       stream.push({ type: "error", reason: "aborted", error: message });
       return stream;
     }
-    return (inner ?? streamSimple)(model, context, options);
+    return (inner ?? streamSimple)(model, requestContext?.(context) ?? context, options);
   };
 }
 
 export function piLoop(options: PiLoopOptions): Loop {
   const { systemPrompt, tools, governor, emit, signal } = options;
-  const model = streamFn(options.streamFn);
+  const model = streamFn(options.streamFn, options.requestContext);
   const config: AgentLoopConfig = {
     ...options.base,
     toolExecution: "sequential",

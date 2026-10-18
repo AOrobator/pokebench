@@ -125,6 +125,7 @@ export const SWITCHABLE_FEATURES = [
   "loop-guard-screen-v1",
   "reopened-dialogue-loop-v1",
   "dialog-button-b-v1",
+  "just-in-time-prompt-v1",
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
 
@@ -329,6 +330,7 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("loop-guard-screen-v1", "guard", "LOOP GUARD SCREEN", "loop-guard-supervisor-v1", "Bundle arm only, default off. On run 2026-10-18T01-30-48_qwen36-gpu1_cdb1 the loop guard raised a cycle note every six turns from turn 93 through 213 while the bedroom clock adjustment was open (controls \"LEFT/RIGHT changes time; A opens confirmation\"). Each note briefed the field and listed the PC, notebook, GameCube, region map and television. The model pressed B 117 times. The stall briefing already names a ready interface and quotes the controls the game shows. This switch makes the loop guard's own note do the same when the latest result is a ready interface: the interface name, the highlighted choice when there is one, and the controls string. A transition whose input is not active is not a ready interface, so the field note stays. Needs loop-guard-supervisor-v1. Off: the loop guard's note briefs the field even while a ready interface is open."),
   on("reopened-dialogue-loop-v1", "guard", "REOPENED DIALOGUE LOOP", null, "Bundle arm only. Lets the loop guard count a conversation a press shows and then closes before the result. On run 2026-10-18T01-30-48_qwen36-gpu0_e6ce, turns 52-109, the player stood at (2,2) inside the truck facing a box and pressed A. Each A started the box's sign (InsideOfTruck_EventScript_MovingBox, MSGBOX_SIGN: \"The box is printed with a POKéMON logo.\"). Dialogue auto-advance pressed B and closed it, so the result was the free field with no message. The guard already counts a message that is still open on the result. A closed result never counted, so no supervisor note fired. This switch counts the readable lines shown during an A press when the result is the free field (overworld, not in battle, field controls unlocked, no ready interface) and has already closed them, at the same place. A locked menu, a ready interface, a missing world context, and a message identity with no readable lines do not count. Native story progress clears the count. The fourth showing of the same lines raises the cycle warning and the supervisor briefing. One showing, a different line, the same lines after leaving that tile, and the same lines still open do not count. Off: a call whose result has no dialogue does not count as reopening it."),
   on("dialog-button-b-v1", "guidance", "DIALOGUE BUTTON B", null, "Bundle arm only. Adds a system-prompt section that makes B the button for a message. Pressing A on the field starts whatever you face (FieldInputHandling calls TryStartInteractionScript only for pressedAButton, field_control_avatar.c), so the same sign or person speaks again. B advances or closes a message (Std_MsgboxSign's waitbuttonpress; TextPrinterWait accepts A or B) and does not start that script. The section says to press B for a message and, once you can walk, to leave instead of pressing A in front of what you just read. Names no character, place or story step. Off: the prompt is unchanged."),
+  on("just-in-time-prompt-v1", "guidance", "JUST IN TIME PROMPT", null, "Default off. Before every live model request, selects instructions and tools for the most recently recorded screen. Naming keeps the keyboard guide; the clock keeps its controls; battles keep battle rules and battle_action; the field keeps navigation and map rules. Unknown screens retain the full prompt and tools. Each response records the exact request prompt and tool hashes with the source state. Off: the existing full prompt and tool list are sent unchanged."),
   measured("story-milestones-v2", "STORY MILESTONES",
     "Records each story milestone the game's own state confirms, with its turn and time. This feeds splits and the score."),
   measured("clock-milestone-v1", "CLOCK MILESTONE",
@@ -503,6 +505,7 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("loop-guard-screen-v1"),
     ...when("reopened-dialogue-loop-v1"),
     ...when("dialog-button-b-v1"),
+    ...when("just-in-time-prompt-v1"),
   ];
 }
 
@@ -513,5 +516,5 @@ export function featuresOf(harnessFeatures: readonly string[]): FeatureSet {
 
 export function stateOnlyProblems(features:FeatureSet):string[]{
  if(!features["state-only-decisions-v1"])return [];
- return (["objective-tracking-v1","deterministic-loop-guard-v1","bounded-navigation-v1","press-result-v1","navigation-evidence-memory-v1","game-evidence-priority-v1","dialogue-log-v1","instruction-ledger-v1","instruction-ledger-v2","disproved-beliefs-v1","next-milestone-hint-v1","double-context-window-v1","fresh-retry-v1","text-only-supervisor-v1","dialogue-auto-advance-v1","readout-rules-in-prompt-v1","explorer-guidance-v1","untaken-exits-v1","explorer-guidance-v2","people-id-cards-v1","harness-trust-v1","cited-destination-v1","harness-trust-v2","input-cuts-v1"] as const).filter(id=>features[id]).map(id=>`state-only-decisions-v1 requires ${id} OFF`);
+ return (["objective-tracking-v1","deterministic-loop-guard-v1","bounded-navigation-v1","press-result-v1","navigation-evidence-memory-v1","game-evidence-priority-v1","dialogue-log-v1","instruction-ledger-v1","instruction-ledger-v2","disproved-beliefs-v1","next-milestone-hint-v1","double-context-window-v1","fresh-retry-v1","text-only-supervisor-v1","dialogue-auto-advance-v1","readout-rules-in-prompt-v1","explorer-guidance-v1","untaken-exits-v1","explorer-guidance-v2","people-id-cards-v1","harness-trust-v1","cited-destination-v1","harness-trust-v2","input-cuts-v1","just-in-time-prompt-v1"] as const).filter(id=>features[id]).map(id=>`state-only-decisions-v1 requires ${id} OFF`);
 }

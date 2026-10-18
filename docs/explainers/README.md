@@ -105,3 +105,5 @@ The original ignored runs/explainers copies remain for existing links. Make futu
 - [Loop guard screen](loop-guard-screen-v1.html)
 - [Reopened dialogue loop](reopened-dialogue-loop-v1.html)
 - [Dialogue button B](dialog-button-b-v1.html)
+
+- [Just in time prompt](just-in-time-prompt-v1.html) — per-request screen-specific instructions and tools, default off.

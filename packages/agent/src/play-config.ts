@@ -54,6 +54,46 @@ When the editor fills its allowed length, it may move the cursor to OK automatic
 
 Clock interface: LEFT/RIGHT adjust the clock hands; A opens a confirmation question. The question can initially select NO; repeated A is not evidence of acceptance. Check the visible highlighted option, use directions to change it if needed, and use A to choose it; B returns to adjustment. Confirm completion from the subsequent game state rather than the press alone.`;
 
+export type PromptScene = "overworld" | "battle" | "naming" | "clock" | "menu" | "unknown";
+
+export function promptScene(state: { screen: string; in_battle: boolean; active_ui?: { phase?: string | null } | null }): PromptScene {
+  const phase = state.active_ui?.phase?.toLowerCase() ?? "";
+  const screen = state.screen.toLowerCase();
+  if (screen.startsWith("naming") || phase.includes("naming") || phase.includes("nickname")) return "naming";
+  if (screen.startsWith("clock") || phase.startsWith("clock")) return "clock";
+  if (state.in_battle) return "battle";
+  if (phase === "unknown" || phase === "transition" || phase === "unsupported") return "unknown";
+  if (screen === "overworld" && state.active_ui == null) return "overworld";
+  if (["menu", "start_menu", "bag", "party", "summary", "yes_no", "choice"].includes(screen) || /^(bag|party|start_menu|yes_no|choice)/.test(phase)) return "menu";
+  return "unknown";
+}
+
+const CONTEXT_PARTS = CONTEXTUAL_CONTROLS.split("\n\n");
+
+export function contextualFor(scene: PromptScene): string {
+  const [buttons, overworld, docs, naming, layout, clock] = CONTEXT_PARTS;
+  if (CONTEXT_PARTS.length !== 6 || buttons === undefined || docs === undefined || clock === undefined) return CONTEXTUAL_CONTROLS;
+  const keep: (string | undefined)[] = [buttons, docs];
+  if (scene === "overworld" || scene === "menu" || scene === "battle") keep.splice(1, 0, overworld);
+  if (scene === "naming") keep.push(naming, layout);
+  if (scene === "clock") keep.push(clock);
+  return keep.filter((part): part is string => typeof part === "string").join("\n\n");
+}
+
+const DROP_TOOLS: Record<Exclude<PromptScene, "unknown">, readonly string[]> = {
+  overworld: ["battle_action"],
+  battle: ["navigate_to"],
+  naming: ["navigate_to", "battle_action", "get_dialogue", "recall_dialogue", "remember_destination", "get_next_milestone", "note_contradiction"],
+  clock: ["navigate_to", "battle_action", "get_dialogue", "recall_dialogue", "remember_destination", "get_next_milestone", "note_contradiction"],
+  menu: ["navigate_to", "battle_action"],
+};
+
+export function jitTools<T extends { name: string }>(tools: readonly T[], scene: PromptScene): T[] {
+  if (scene === "unknown") return [...tools];
+  const drop = new Set<string>(DROP_TOOLS[scene]);
+  return tools.filter((tool) => !drop.has(tool.name));
+}
+
 export const DOCUMENTED_PLAY_SYSTEM_PROMPT = PLAY_SYSTEM_PROMPT.replace(
   "Controls: A confirms, talks and interacts; B cancels and backs out; START opens the menu; each D-pad press moves one tile, and a press in a new direction may only turn you to face it.",
   CONTEXTUAL_CONTROLS,
@@ -110,41 +150,45 @@ export function playGoal(target: string | null, features: FeatureSet): string {
   return features["open-goal-prompt-v1"] ? OPEN_PLAY_GOAL : PLAY_GOAL;
 }
 
-export function playSystemPrompt(features: FeatureSet, target: string | null): string {
+export function playSystemPrompt(features: FeatureSet, target: string | null, scene: PromptScene = "unknown"): string {
+  const jit = features["just-in-time-prompt-v1"] && scene !== "unknown";
+  const show = (...scenes: PromptScene[]): boolean => !jit || scenes.includes(scene);
   let prompt = features["contextual-interface-docs-v1"] ? DOCUMENTED_PLAY_SYSTEM_PROMPT : PLAY_SYSTEM_PROMPT;
-  if (features["bounded-navigation-v1"] && features["full-map-navigation-v1"]) prompt += `\n\n- navigate_to: supply x, y and the current map_id from the Navigation map_id readout. Walks to a coordinate on the current map using A* over the whole current map shown in the readout, one ordinary button at a time, re-planning before every press. The route never crosses a warp unless it is the destination. Choose the destination from observed evidence. This tool does not pick story objectives, press A, surf or solve ledges. It stops on blocked or unexpected movement, locks, map changes, or when the route stops getting shorter. Inspect its returned state; reaching a directional-exit tile may still require its indicated button. ${NAVIGATE_RULES}`;
-  else if (features["bounded-navigation-v1"]) prompt += `\n\n- navigate_to: supply x, y and the current map_id from the Navigation map_id readout. Walks toward a coordinate on the current map using bounded A* on known local tiles. Farther targets within verified map bounds use a reachable local frontier, with up to eight ordinary button attempts. Choose the destination from observed evidence. This tool does not pick story objectives, press A, surf or solve ledges. It stops on blocked movement, locks or map changes. Inspect its returned state; reaching a directional-exit tile may still require its indicated button. ${NAVIGATE_RULES}`;
+  if (jit && features["contextual-interface-docs-v1"]) prompt = prompt.replace(CONTEXTUAL_CONTROLS, contextualFor(scene));
+  if (jit && !show("overworld", "menu")) prompt = prompt.replace(/\n\nDialogue: [^\n]*/, "");
+  if (show("overworld") && features["bounded-navigation-v1"] && features["full-map-navigation-v1"]) prompt += `\n\n- navigate_to: supply x, y and the current map_id from the Navigation map_id readout. Walks to a coordinate on the current map using A* over the whole current map shown in the readout, one ordinary button at a time, re-planning before every press. The route never crosses a warp unless it is the destination. Choose the destination from observed evidence. This tool does not pick story objectives, press A, surf or solve ledges. It stops on blocked or unexpected movement, locks, map changes, or when the route stops getting shorter. Inspect its returned state; reaching a directional-exit tile may still require its indicated button. ${NAVIGATE_RULES}`;
+  else if (show("overworld") && features["bounded-navigation-v1"]) prompt += `\n\n- navigate_to: supply x, y and the current map_id from the Navigation map_id readout. Walks toward a coordinate on the current map using bounded A* on known local tiles. Farther targets within verified map bounds use a reachable local frontier, with up to eight ordinary button attempts. Choose the destination from observed evidence. This tool does not pick story objectives, press A, surf or solve ledges. It stops on blocked movement, locks or map changes. Inspect its returned state; reaching a directional-exit tile may still require its indicated button. ${NAVIGATE_RULES}`;
   if (features["dialogue-safe-batches-v1"]) prompt += "\n\nInterface input safety: interaction/menu inputs or locked/unknown-interface batches submit only the first input, then return a fresh observation. Repeated A can dismiss a message and reopen the object you face. Identical text is not evidence of a mandatory cutscene or new story progress. Inspect one input before choosing the next approach.";
   if (target !== null) prompt = prompt.replace(GOAL_SENTENCE, `Your goal is: ${playGoal(target, features)}`);
   else if (features["open-goal-prompt-v1"]) prompt = prompt.replace(GOAL_SENTENCE, OPEN_GOAL_SENTENCE);
   if (!features["ram-state-v1"]) prompt = prompt.replace(OBSERVE_LINE, OBSERVE_SCREEN_ONLY).replace(PRESS_LINE, PRESS_SCREEN_ONLY);
-  if (!features["warp-activation-guidance-v1"]) prompt = prompt.replace(WARP_PARAGRAPH, "");
-  if (features["ledge-hops-v1"]) prompt = prompt.replace("press A, surf or solve ledges.", "press A or surf. It hops a ledge only in its arrow direction.");
-  if(features["navigation-evidence-memory-v1"])prompt+="\n\nA bounded navigation evidence ledger is supplied before each decision. It quotes observations and records attempted targets. Use it to choose destinations from observed instructions; current state overrides stale facts. remember_destination optionally retains your evidence-linked destination hypothesis; it is not required before acting and never proves completion.";
-  if (features["dialogue-log-v1"]) prompt += "\n\n- recall_dialogue: searches every dialogue page you have been shown this run, newest first, with turn, location, your position and the character you faced when known. Filter by contains, room or last. Use it when you are unsure what someone told you or where you heard it.";
-  if (features["next-milestone-hint-v1"]) prompt += "\n\n- get_next_milestone: tells you the next main story milestone to pursue and how many are done. Call it whenever you are unsure what to do next. When you reach a milestone, a MILESTONE REACHED message also tells you the next one.";
-  if (features["instruction-ledger-v1"]) prompt += "\n\nAn INSTRUCTION LEDGER is supplied before each decision: the latest dialogue you were shown, the rooms you visited with what you heard there, and contradictions you recorded. It quotes the game; it is not a walkthrough. When the game turns out different from what you expected, record it with note_contradiction (expected, observed, 1–4 event numbers) so you do not repeat the same wrong assumption.";
-  if (features["loop-guard-supervisor-v1"]) prompt += "\n\nLoop supervisor: if you repeat a pattern without new game information, a SUPERVISOR note summarizes where you are, the last dialogue you were shown, what you tried and what is listed here that you have not tried. The run continues; use the note to change strategy.";
-  if (features["dialogue-auto-advance-v1"]) prompt += `\n\n${DIALOGUE_AUTO_ADVANCE_SECTION}`;
-  if (features["battle-text-auto-advance-v1"]) prompt += `\n\n${BATTLE_TEXT_AUTO_ADVANCE_SECTION}`;
+  if (!show("overworld") || !features["warp-activation-guidance-v1"]) prompt = prompt.replace(WARP_PARAGRAPH, "");
+  if (show("overworld") && features["ledge-hops-v1"]) prompt = prompt.replace("press A, surf or solve ledges.", "press A or surf. It hops a ledge only in its arrow direction.");
+  if (show("overworld") && features["navigation-evidence-memory-v1"]) prompt += "\n\nA bounded navigation evidence ledger is supplied before each decision. It quotes observations and records attempted targets. Use it to choose destinations from observed instructions; current state overrides stale facts. remember_destination optionally retains your evidence-linked destination hypothesis; it is not required before acting and never proves completion.";
+  if (show("overworld") && features["dialogue-log-v1"]) prompt += "\n\n- recall_dialogue: searches every dialogue page you have been shown this run, newest first, with turn, location, your position and the character you faced when known. Filter by contains, room or last. Use it when you are unsure what someone told you or where you heard it.";
+  if (show("overworld") && features["next-milestone-hint-v1"]) prompt += "\n\n- get_next_milestone: tells you the next main story milestone to pursue and how many are done. Call it whenever you are unsure what to do next. When you reach a milestone, a MILESTONE REACHED message also tells you the next one.";
+  if (show("overworld") && features["instruction-ledger-v1"]) prompt += "\n\nAn INSTRUCTION LEDGER is supplied before each decision: the latest dialogue you were shown, the rooms you visited with what you heard there, and contradictions you recorded. It quotes the game; it is not a walkthrough. When the game turns out different from what you expected, record it with note_contradiction (expected, observed, 1–4 event numbers) so you do not repeat the same wrong assumption.";
+  if (!jit && features["loop-guard-supervisor-v1"]) prompt += "\n\nLoop supervisor: if you repeat a pattern without new game information, a SUPERVISOR note summarizes where you are, the last dialogue you were shown, what you tried and what is listed here that you have not tried. The run continues; use the note to change strategy.";
+  if (show("overworld", "menu") && features["dialogue-auto-advance-v1"]) prompt += `\n\n${DIALOGUE_AUTO_ADVANCE_SECTION}`;
+  if (show("battle") && features["battle-text-auto-advance-v1"]) prompt += `\n\n${BATTLE_TEXT_AUTO_ADVANCE_SECTION}`;
   // navigate-first-prompt-v1: its Moving around section replaces the one-line usage rule.
-  const navigateFirst = features["navigate-first-prompt-v1"] && features["bounded-navigation-v1"];
-  if (features["game-evidence-priority-v1"]) prompt += `\n\n${GAME_EVIDENCE_SECTION}${features["bounded-navigation-v1"] && !navigateFirst ? `\n\n${NAVIGATE_TO_USAGE}` : ""}`;
-  if (features["no-nickname-guidance-v1"]) prompt += `\n\n${NO_NICKNAME_SECTION}`;
+  const navigateFirst = show("overworld") && features["navigate-first-prompt-v1"] && features["bounded-navigation-v1"];
+  if (features["game-evidence-priority-v1"]) prompt += `\n\n${GAME_EVIDENCE_SECTION}${show("overworld") && features["bounded-navigation-v1"] && !navigateFirst ? `\n\n${NAVIGATE_TO_USAGE}` : ""}`;
+  if (show("naming") && features["no-nickname-guidance-v1"]) prompt += `\n\n${NO_NICKNAME_SECTION}`;
   // readout-rules-in-prompt-v1: the fixed map rules the server no longer prints in each readout.
-  const mapRules = features["readout-rules-in-prompt-v1"] ? mapRulesSection(features) : "";
+  const mapRules = show("overworld") && features["readout-rules-in-prompt-v1"] ? mapRulesSection(features) : "";
   if (mapRules !== "") prompt += `\n\n${mapRules}`;
-  if (features["battle-triage-guidance-v1"]) prompt += `\n\n${BATTLE_TRIAGE_SECTION}`;
-  if (features["trainer-heal-guidance-v1"]) prompt += `\n\n${TRAINER_HEAL_SECTION}`;
+  if (show("battle") && features["battle-triage-guidance-v1"]) prompt += `\n\n${BATTLE_TRIAGE_SECTION}`;
+  if (show("overworld", "battle") && features["trainer-heal-guidance-v1"]) prompt += `\n\n${TRAINER_HEAL_SECTION}`;
   // explorer-guidance-v2 supersedes v1 in the same slot: with both on, only v2's section is shown.
   const explorer = features["explorer-guidance-v2"] ? EXPLORER_GUIDANCE_V2_SECTION : features["explorer-guidance-v1"] ? EXPLORER_GUIDANCE_SECTION : null;
-  if (explorer !== null) prompt += `\n\n${explorer}${features["dialogue-auto-advance-v1"] ? ` ${EXPLORER_TALK_IS_CHEAP}` : ""}`;
-  if (features["untaken-exits-v1"]) prompt += `\n\n${UNTAKEN_EXITS_SECTION}`;
-  if (features["people-id-cards-v1"]) prompt += `\n\n${PEOPLE_ID_CARDS_SECTION}`;
+  if (show("overworld") && explorer !== null) prompt += `\n\n${explorer}${features["dialogue-auto-advance-v1"] ? ` ${EXPLORER_TALK_IS_CHEAP}` : ""}`;
+  if (show("overworld") && features["untaken-exits-v1"]) prompt += `\n\n${UNTAKEN_EXITS_SECTION}`;
+  if (show("overworld") && features["people-id-cards-v1"]) prompt += `\n\n${PEOPLE_ID_CARDS_SECTION}`;
   if (navigateFirst) prompt = `${navigateFirstToolList(prompt)}\n\n${features["full-map-navigation-v1"] ? MOVING_AROUND_FULL : MOVING_AROUND_LOCAL}`;
   if (features["objective-tracking-v1"]) prompt += `\n\n${objectivePrompt(objectiveSwitches(features))}`;
-  if (features["cited-destination-v1"] && features["bounded-navigation-v1"]) prompt += `\n\n${CITED_DESTINATION_SECTION}`;
-  if (features["dialog-button-b-v1"]) prompt += `\n\n${DIALOGUE_BUTTON_B_SECTION}`;
+  if (show("overworld") && features["cited-destination-v1"] && features["bounded-navigation-v1"]) prompt += `\n\n${CITED_DESTINATION_SECTION}`;
+  if (show("overworld", "menu") && features["dialog-button-b-v1"]) prompt += `\n\n${DIALOGUE_BUTTON_B_SECTION}`;
   // harness-trust-v1: last, so the trust order is the final thing the system prompt says.
   if (features["harness-trust-v1"]) prompt += `\n\n${trustSection(features["game-evidence-priority-v1"], true)}`;
   return prompt;

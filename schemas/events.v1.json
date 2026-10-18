@@ -1183,6 +1183,65 @@
         "thinking": {
           "type": "string"
         },
+        "request_context": {
+          "type": "object",
+          "required": [
+            "mode",
+            "scene",
+            "state_seq",
+            "system_prompt",
+            "prompt_sha256",
+            "tools",
+            "tools_sha256"
+          ],
+          "properties": {
+            "mode": {
+              "enum": [
+                "full",
+                "jit"
+              ]
+            },
+            "scene": {
+              "enum": [
+                "overworld",
+                "battle",
+                "naming",
+                "clock",
+                "menu",
+                "unknown"
+              ]
+            },
+            "state_seq": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "system_prompt": {
+              "type": "string"
+            },
+            "prompt_sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "tools": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "tools_sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            }
+          },
+          "additionalProperties": false
+        },
         "text": {
           "type": "string"
         },
@@ -1252,6 +1311,10 @@
               "minimum": 0
             },
             "cache_read": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "cache_write": {
               "type": "integer",
               "minimum": 0
             }

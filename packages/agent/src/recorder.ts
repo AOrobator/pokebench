@@ -1,3 +1,4 @@
+import type {PromptReceipt} from "./jit-context.js";
 import type { IdCard } from "./people-id-cards.js";
 import type { HealBeforeTrainersFacts, LowHpTrainerWarningFacts, StoryBattleWarningFacts } from "./low-hp-trainer-warning.js";
 import type { StoryGoalAwayFacts } from "./harness-trust.js";
@@ -94,6 +95,8 @@ export class RunRecorder {
   private startedAt = 0;
   elapsedMs():number {return this.now()-this.startedAt;}
   private requestAt = 0;
+  private requestContext:PromptReceipt|null=null;
+  recordRequestContext(context:PromptReceipt|null):void {this.requestContext=context;this.requestAt=this.now();this.firstTokenAt=null;}
   private firstTokenAt: number | null = null;
   private stream = { thinking: "", text: "", flushedAt: 0 };
   private readonly toolStarts = new Map<string, number>();
@@ -188,6 +191,7 @@ export class RunRecorder {
     this.turn += 1;
     this.requestAt = this.now();
     this.firstTokenAt = null;
+    this.requestContext=null;
     this.stream = { thinking: "", text: "", flushedAt: this.requestAt };
     this.append({ type: "turn_start", turn: this.turn, context: contextSize(messages) });
     return Promise.resolve(messages);
@@ -197,7 +201,7 @@ export class RunRecorder {
     await Promise.resolve();
     switch (event.type) {
       case "message_update":
-        this.firstTokenAt ??= this.now();
+        {const update=event.assistantMessageEvent;if((update.type==="thinking_delta"||update.type==="text_delta"||update.type==="toolcall_delta")&&update.delta!=="")this.firstTokenAt ??= this.now();}
         this.streamDelta(event.assistantMessageEvent);
         break;
       case "message_end":
@@ -245,9 +249,10 @@ export class RunRecorder {
       type: "assistant",
       turn: this.turn,
       thinking,
+      ...(this.requestContext===null?{}:{request_context:this.requestContext}),
       text,
       tool_calls,
-      usage: { input: message.usage.input, output: message.usage.output, cache_read: message.usage.cacheRead },
+      usage: { input: message.usage.input, output: message.usage.output, cache_read: message.usage.cacheRead, ...(this.requestContext!==null||message.usage.cacheWrite!==0?{cache_write:message.usage.cacheWrite}:{}) },
       latency_ms: Math.round(done - this.requestAt),
       ttft_ms: this.firstTokenAt === null ? null : Math.round(this.firstTokenAt - this.requestAt),
       stop_reason: message.stopReason,

@@ -19,6 +19,7 @@ it("uses the newest state at every request, retaining naming during a battle",()
  const clock=jit.context(request);
  expect(clock.systemPrompt).toContain("Clock interface:");
  expect(clock.systemPrompt).not.toContain("Naming layout,");
+ expect(clock.systemPrompt).not.toContain("\n\nDialogue:");
  expect(clock.tools?.map(t=>t.name)).toEqual(["observe"]);
  expect(jit.allowed("navigate_to")).toBe(false);
  jit.observe({type:"state",seq:8,screen:"naming",in_battle:true});
@@ -34,6 +35,7 @@ it("OFF returns the identical context and permits the original execution path",(
  const jit=new JitContext({...features,"just-in-time-prompt-v1":false},null);
  jit.observe({type:"state",seq:1,screen:"clock",in_battle:false});
  expect(jit.context(request)).toBe(request);
+ expect(jit.receipt()).toMatchObject({mode:"full",system_prompt:"standing prompt"});
  expect(jit.allowed("navigate_to")).toBe(true);
 });
 it("binds request receipts to exact prompt and tools without modifying history",()=>{
@@ -45,4 +47,10 @@ it("binds request receipts to exact prompt and tools without modifying history",
  expect(receipt?.prompt_sha256).toMatch(/^[a-f0-9]{64}$/);
  expect(receipt?.tools_sha256).toMatch(/^[a-f0-9]{64}$/);
  expect(request.systemPrompt).toBe("standing prompt");
+});
+
+it("hashes only model-facing tool definitions, not execution labels",()=>{
+ const jit=new JitContext(features,null);jit.context(request);const hash=jit.receipt()?.tools_sha256;
+ jit.context({...request,tools:(request.tools??[]).map(t=>({...t,label:"operator-only"}))});
+ expect(jit.receipt()?.tools_sha256).toBe(hash);
 });

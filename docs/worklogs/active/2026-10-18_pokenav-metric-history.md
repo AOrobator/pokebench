@@ -16,13 +16,13 @@ Viewer-only scope: RunView completed-response samples, pure SVG metric-history r
 
 ## Validation and review
 
-- [ ] RED/GREEN focused metric, replay and mounted consumer tests
-- [ ] Required test/lint/build/coverage/vendor gates
-- [ ] Candidate browser at1280/1440/375; live-update/replay proof and screenshots
-- [ ] Principles self-review and frozen packet
-- [ ] Claude, Grok and isolated Codex review; findings fixed and re-reviewed
-- [ ] Fast-forward local main; preserve unrelated dirty work
-- [ ] Coordinate8790 restart and verify real recorded data at merged build
+- [x] RED/GREEN focused metric, replay and mounted consumer tests
+- [x] Required test/lint/build/coverage/vendor gates
+- [x] Candidate browser at1280/1440/375; live-update/replay proof and screenshots
+- [x] Principles self-review and frozen packet
+- [x] Claude, Grok and isolated Codex review; findings fixed and re-reviewed
+- [x] Fast-forward local main; preserve unrelated dirty work
+- [x] Coordinate8790 restart and verify real recorded data at merged build
 
 ## Session log
 
@@ -39,3 +39,20 @@ Viewer-only scope: RunView completed-response samples, pure SVG metric-history r
 
 - Round2 frozen1502cfbb/diff7024736d: cloud Cursor Claude and Grok plus isolated GPT each VERDICT: LGTM. Both external receipts exit0/trackedWrites[]; GPT independently reran71tests. Full5gates pass at1502; native browser129realresponses replay/phone proof and screenshot sheets inspected by root. Main fast-forward landed1502cfbb. Shared live restart deferred to single combined experiment-pin restart.
 - Combined candidate cf2f browser proves cachewrite-aware partial historical totals, persistent definitions and unchanged native mobile navigation at1280/1440/375. Canonical unfinished81files preserved by direct user authorization in separate attachedworktree; final JIT candidate includes approved graph source.
+
+- Final combined source2b2dec5d landed after all three cloud-family approvals and6330passing full-suite tests. Live8790 serves that clean build. Actual two-GPU JIT cohort Watch frames, growing Stats samples, four graphs, native mobile375 pager and1440comparison polling verified; canonical evidence runs/mockups/jit-launch-live/shots/. Root inspected screenshots/receipt. Native frontier updates after initial roughly5minute historical scan delay; no local Stats slider. Existing unrelated missing comparison receipt warning remains disclosed. No measured protocol/source changes after launch.
+
+### Thinner metric connectors — operator feedback
+
+- User reports connecting lines too thick. Browser confirms the LLM Stats preview uses2SVG units and scales at desktop widths. Change only `.mh-line` to1CSS-pixel non-scaling stroke; dots, native navigation, four metrics and experiment/runtime stay unchanged. Original ambient tab no longer exists; a fresh tab at its exact61365 URL reproduced the heavy Stats lines.
+- Styling-only adjustment; no new implementation-mirroring tests. Browser verification and existing focused tests/review follow on the frozen patch.
+
+- Thinner connectors landed063a9c0d after independent Claude Opus5.5, Grok4.5 and isolated GPT literal LGTM on frozen diff8d1b207a; both cloud receipts exit0/cleanAfter true. Existing focused72tests pass; no CSS-mirroring tests added. Root opened candidate1280/1440/375 screenshots and confirmed1px non-scaling computed strokes.
+- Sanctioned viewer-main refresh serves clean063a9c0d on8790 (PID82580); both gameplay processes survived, runner46655 and pinned measured build unchanged. Initial shell background viewer exited after tool session; detached sanctioned restart recovered service. Fresh verification tab hit temporary connection error; existing tab15 click through to trial3 then LLM Stats proved RUNNING,65responses, four1px/non-scaling paths and visible thin connectors. Proof runs/thin-metric-live/verification.json and runs/mockups/thin-metric-lines/shots/live.png. Historical61365 preview remains its earlier source; updated live viewer is8790.
+
+### Metric direction labels — operator request
+
+- Add explicit direction under every graph value: TTFT and inference/request lower is better; output/request and prompt composition lower is better for token cost. Token usage is not gameplay quality; do not imply fewer output/context tokens improve progress. Include the same direction in accessible graph names. Existing native mobile navigation, thin strokes, calculations and measured runtime remain untouched.
+- Text-only presentation change; existing focused tests and real desktop/mobile browser checks, followed by frozen independent cloud review before landing.
+
+- Direction labels landed2f136466 after independent Claude/Grok/GPT LGTM on frozen e6077fb3 packet.72existing focused tests, viewer build/lint pass. Initial lint hit duplicate private types from cross-worktree node_modules links; local frozen-lockfile install resolved environment identity, unchanged source. Real candidate1280/1440/375 screenshots opened, native mobile pager retained. Sanctioned detached viewer-main refresh serves clean2f136466; both gameplay processes survived. Existing live tab reloaded, Stats click verified all4labels, RUNNING trial3 and90responses. Canonical evidence runs/metric-direction-live/ and runs/mockups/metric-directions/shots/live.png. No harness/protocol changes.

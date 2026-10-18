@@ -49,3 +49,8 @@ Viewer-only scope: RunView completed-response samples, pure SVG metric-history r
 
 - Thinner connectors landed063a9c0d after independent Claude Opus5.5, Grok4.5 and isolated GPT literal LGTM on frozen diff8d1b207a; both cloud receipts exit0/cleanAfter true. Existing focused72tests pass; no CSS-mirroring tests added. Root opened candidate1280/1440/375 screenshots and confirmed1px non-scaling computed strokes.
 - Sanctioned viewer-main refresh serves clean063a9c0d on8790 (PID82580); both gameplay processes survived, runner46655 and pinned measured build unchanged. Initial shell background viewer exited after tool session; detached sanctioned restart recovered service. Fresh verification tab hit temporary connection error; existing tab15 click through to trial3 then LLM Stats proved RUNNING,65responses, four1px/non-scaling paths and visible thin connectors. Proof runs/thin-metric-live/verification.json and runs/mockups/thin-metric-lines/shots/live.png. Historical61365 preview remains its earlier source; updated live viewer is8790.
+
+### Metric direction labels — operator request
+
+- Add explicit direction under every graph value: TTFT and inference/request lower is better; output/request and prompt composition lower is better for token cost. Token usage is not gameplay quality; do not imply fewer output/context tokens improve progress. Include the same direction in accessible graph names. Existing native mobile navigation, thin strokes, calculations and measured runtime remain untouched.
+- Text-only presentation change; existing focused tests and real desktop/mobile browser checks, followed by frozen independent cloud review before landing.

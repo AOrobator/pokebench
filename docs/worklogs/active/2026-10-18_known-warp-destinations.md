@@ -44,3 +44,7 @@ This intentionally does not add a second conversation/history store. A future fe
 ## Review Log
 
 Not started.
+
+## Gate Notes
+
+- Full gate attempt after `45e6f619`: agent 2452/2457 passed; five prompt-golden assertions correctly detected the revised named-warp rule sentence. Pytest 2475 passed / 229 ROM-skipped; three old golden assertions detected the same wording and the deliberate removal of internal-only names when `displayed-place-names-v1` is off. Updated only those compatibility expectations/fixtures; focused repairs pass (29 agent prompt tests, 103 Python adjacency/displayed-name tests).

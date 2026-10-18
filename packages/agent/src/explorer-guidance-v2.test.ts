@@ -19,7 +19,9 @@ const MAIN_SWITCHES=["navigation-evidence-memory-v1","automatic-running-v1","exp
 // sha256 over every prompt main cefacbf1 built from a base and from the base with each main switch flipped,
 // for no target and for RIVAL_HOUSE_ENTERED (computed from main's build before this change; see the worklog).
 const MAIN_INCUMBENT_SHA="3ebfcf0bc4dba80703f2661f8f959baa9249393fda0d160f8621fb975da7e90f";
-const MAIN_ALL_ON_SHA="9bca870b33fecdbe7585455c55bd964d79bf1c7ead521e8014ed2b10cc3c1207";
+// named-warp-destinations-v1 now promises only game-displayed names, so the all-on prompt's
+// warp-rule sentence changed with that switch's semantics; the incumbent digest is unchanged.
+const MAIN_ALL_ON_SHA="38651cf6cd10ae86fd437819ab86391efbec4bc2b086fba1e8bbc036d79cbaf9";
 const PLAIN:FeatureSet={...INCUMBENT,"objective-tracking-v1":false,"repeat-attempt-guard-v1":false,"native-objective-completion-v1":false,"dialogue-auto-advance-v1":false,"game-evidence-priority-v1":false,"bounded-navigation-v1":false,[V1]:false,[ID]:false};
 
 function promptsDigest(base:FeatureSet):string{

@@ -4,6 +4,7 @@
  "title": "JIT vs full prompt · ten-minute early-game screen",
  "worklog": "docs/worklogs/active/2026-10-18_jit-10m-screen.md",
  "primaryMilestone": "RIVAL_MET",
+ "primaryOutcome": "frontier",
  "romSha1": "f3ae088181bf583e55daf962a92bb46f4f1d07b7",
  "controlBase": {
   "path": "experiments/fixed/control-bases/jit-10m-control.json",

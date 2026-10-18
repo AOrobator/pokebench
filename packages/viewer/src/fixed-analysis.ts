@@ -131,6 +131,7 @@ export interface GroupResult {
   readonly mannWhitney: MannWhitney;
 }
 export interface AnalysisReport {
+  readonly trials: readonly AnalysisTrial[];
   readonly groups: readonly GroupResult[];
   readonly invalid: readonly Pick<AnalysisTrial, "slot" | "lane" | "arm" | "run" | "reason">[];
   readonly endedEarly: readonly Pick<AnalysisTrial, "slot" | "lane" | "arm" | "run" | "reason">[];
@@ -154,6 +155,7 @@ function group(name: string, trials: readonly AnalysisTrial[]): GroupResult {
 export function analyze(trials: readonly AnalysisTrial[], lanes: readonly string[]): AnalysisReport {
   const valid = trials.filter((t) => t.valid);
   return {
+    trials,
     groups: [group("pooled", valid), ...lanes.map((l) => group(l, valid.filter((t) => t.lane === l)))],
     invalid: trials.filter((t) => !t.valid).map(({ slot, lane, arm, run, reason }) => ({ slot, lane, arm, run, reason })),
     endedEarly: valid.filter((t) => t.reason !== WALL_CAP).map(({ slot, lane, arm, run, reason }) => ({ slot, lane, arm, run, reason })),
@@ -164,7 +166,33 @@ const pct = (c: ArmCount): string => `${String(c.reached)}/${String(c.n)} (${c.n
 const p4 = (p: number): string => p.toPrecision(4);
 const below = (p: number, alpha: number): string => (p < alpha ? "yes" : "no");
 
-export function renderAnalysis(report: AnalysisReport, title: string): string {
+type RenderOptions=Pick<FixedDefinition,"primaryOutcome"|"primaryMilestone"|"replacementReserveMs">;
+
+function renderFrontier(report:AnalysisReport,title:string,options:RenderOptions):string {
+  return [
+    `# ${title}`, "",
+    "Primary: furthest required-story milestone within the cap, ties by earlier arrival.",
+    "Descriptive screen; no confirmatory thresholds or promotion.", "",
+    "## Primary frontier", "",
+    "| Group | Bundle n | Control n | P(bundle ranks above control), ties count half |",
+    "|---|---|---|---|",
+    ...report.groups.map(g=>`| ${g.name} | ${String(g.bundle.n)} | ${String(g.control.n)} | ${g.bundle.n===0||g.control.n===0?"unavailable":g.mannWhitney.superiority.toFixed(3)} |`), "",
+    "| Slot | Lane | Arm | Run | Valid | Furthest milestone | Arrival ms | Reason |",
+    "|---|---|---|---|---|---|---|---|",
+    ...report.trials.map(t=>`| ${String(t.slot)} | ${t.lane} | ${t.arm} | ${t.run} | ${t.valid?"yes":"no"} | ${t.furthest??"not reached"} | ${t.furthestMs===null?"unavailable":String(t.furthestMs)} | ${t.reason} |`), "",
+    `## Secondary: ${options.primaryMilestone} reach within cap`, "",
+    "| Group | Bundle | Control |", "|---|---|---|",
+    ...report.groups.map(g=>`| ${g.name} | ${pct(g.bundle)} | ${pct(g.control)} |`), "",
+    "## Trial endings and invalid records", "",
+    "Predeclared budget, loop/stuck and retained terminal model-error/crash endings remain outcomes. Early endings retain progress earned within the cap; they are not automatically invalid.",
+    options.replacementReserveMs===0?"Zero replacement reserve: invalid trials remain recorded and are not automatically replaced.":"Invalid trials remain recorded; any replacement is limited by the definition’s reserve.",
+    "Invalid trials are excluded from the descriptive comparison and must be reported by arm alongside all launched trials.", "",
+    ...(report.invalid.length===0?["No invalid trials."]:["| Slot | Lane | Arm | Run | Reason |","|---|---|---|---|---|",...report.invalid.map(t=>`| ${String(t.slot)} | ${t.lane} | ${t.arm} | ${t.run} | ${t.reason} |`)]), "",
+  ].join("\n");
+}
+
+export function renderAnalysis(report: AnalysisReport, title: string, options?:RenderOptions): string {
+  if(options?.primaryOutcome==="frontier")return renderFrontier(report,title,options);
   const lines = [
     `# ${title}`, "",
     ...(report.endedEarly.length === 0 ? ["Every valid trial ended at its wall cap.", ""] : [

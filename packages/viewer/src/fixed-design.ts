@@ -31,6 +31,7 @@ const draftShape = {
   title: Type.String({ minLength: 1, maxLength: 120 }),
   worklog: Type.String({ minLength: 1 }),
   primaryMilestone: Type.String({ minLength: 1 }),
+  primaryOutcome: Type.Optional(Type.Union([Type.Literal("milestone"),Type.Literal("frontier")])),
   // Every trial, save or New Game, must record this ROM.
   romSha1: Type.String({ pattern: "^[0-9a-f]{40}$" }),
   // The preset the control arm reproduces outside the switches and off-in-both flags, pinned by bytes.

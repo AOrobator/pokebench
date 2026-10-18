@@ -199,6 +199,29 @@ describe("fixed-run status and analyze", () => {
     expect(out.join("\n")).toContain("lane A (GPU1, :8071) paused: why; retry y");
   });
 
+  it("renders the actual JIT definition as a descriptive frontier screen through the CLI",async()=>{
+    const {deps,out,path,runsRoot}=setup();
+    const def=parseFixedDefinition(readFileSync(new URL("../../../experiments/fixed/jit-10m.json",import.meta.url),"utf8")).definition;
+    expect(def).toMatchObject({primaryOutcome:"frontier",replacementReserveMs:0});
+    writeFileSync(join(path,"..","jit-10m.json"),JSON.stringify(def));
+    const dir=join(runsRoot,"experiments",def.id);mkdirSync(dir,{recursive:true});
+    const entries=def.plan.slice(0,4).flatMap((slot,i)=>[
+      {kind:"launch",slot:slot.slot,lane:slot.lane,phase:slot.phase,arm:slot.arm,run:`r${String(i)}`,at:"x",commit:"c",sources:"s",presetSha256:"p",serving:"f"},
+      {kind:"outcome",slot:slot.slot,run:`r${String(i)}`,at:"x",valid:i!==2,reason:i===0?"ended stuck before the wall cap":i===1?"retained terminal error: model_error":i===2?"no run_start":"wall cap",endReason:i===0?"stuck":i===1?"model_error":i===2?null:"budget",primaryReached:false,primaryMs:null,furthest:"CLOCK_SET",furthestDepth:7,furthestMs:50000,wallMs:i===3?600000:50000,turns:3},
+    ]);
+    writeFileSync(join(dir,"trials.jsonl"),entries.map(e=>JSON.stringify(e)).join("\n")+"\n");
+    expect(await main(["analyze",def.id],deps)).toBe(0);
+    const text=out.join("\n");
+    expect(text).toContain("Primary: furthest required-story milestone within the cap, ties by earlier arrival.");
+    expect(text.indexOf("## Primary frontier")).toBeLessThan(text.indexOf("## Secondary: RIVAL_MET"));
+    expect(text).toContain("P(bundle ranks above control), ties count half");
+    expect(text).toContain("Descriptive screen; no confirmatory thresholds or promotion.");
+    expect(text).toContain("stuck");expect(text).toContain("model_error");
+    expect(text).toContain("Zero replacement reserve: invalid trials remain recorded and are not automatically replaced.");
+    expect(text).not.toContain("p <");expect(text).not.toContain("primary milestone");
+    expect(text).not.toContain("only the wall cap");expect(text).not.toContain("kept in the record and replaced");
+  });
+
   it("analyzes the ledger's primary phase, or a named phase", async () => {
     const { deps, out, path, runsRoot } = setup();
     const def = definition();

@@ -123,15 +123,37 @@ describe("reopened-dialogue-loop-v1", () => {
     expect(notices.map((n) => n.phase)).toEqual(["warning", "supervisor"]);
   });
 
-  it("ON: a locked menu, a ready interface, and a missing world context do not count", () => {
+  it("ON: a locked menu, a ready interface, a battle, and a missing world context do not count", () => {
     const menu: GameStateSnapshot = {...truck(), field_controls_locked: true, active_ui: {phase: "pc_player_menu", selected: null, ready: true, controls: "Directions select; A chooses", diagnostic: null}};
     const yesno: GameStateSnapshot = {...truck(), field_controls_locked: true, active_ui: {phase: "field_yes_no", selected: "YES", ready: true, controls: "Directions select; A chooses; B cancels", diagnostic: null, details: {options: ["YES", "NO"], selected_index: 0}}};
+    const ready: GameStateSnapshot = {...truck(), active_ui: {phase: "field_yes_no", selected: "YES", ready: true, controls: "Directions select; A chooses; B cancels", diagnostic: null, details: {options: ["YES", "NO"], selected_index: 0}}};
+    const battle: GameStateSnapshot = {...truck(), in_battle: true};
     const missing: GameStateSnapshot = {...truck(), world_context: null};
-    for (const state of [menu, yesno, missing]) {
+    for (const state of [menu, yesno, ready, battle, missing]) {
       const {d, notices} = detector(true);
       for (let i = 0; i < 4; i++) d.complete({...shown(), state});
       expect(notices.filter((n) => n.kind === "cycle")).toEqual([]);
     }
+  });
+
+  it("ON: a different line still clears the count when that result is locked", () => {
+    const notices: LoopNotice[] = [];
+    const d = new LoopDetector((n) => notices.push(n), LOOP_POLICY, "enforced", false, () => "SUPERVISOR", false, false, false, false, false, false, false, true);
+    d.complete(shown());
+    d.complete(shown());
+    d.complete(shown());
+    const locked = {...truck(2, "A different line."), field_controls_locked: true};
+    d.complete({...shown("A different line."), state: locked});
+    d.complete(shown());
+    expect(notices.filter((n) => n.kind === "cycle")).toEqual([]);
+  });
+
+  it("ON: a ready message with no dialogue text is not the free field", () => {
+    const notices: LoopNotice[] = [];
+    const d = new LoopDetector((n) => notices.push(n), LOOP_POLICY, "enforced", false, () => "SUPERVISOR", false, false, false, false, false, false, false, true);
+    const waiting: GameStateSnapshot = {...truck(), world_context: {objects: [], triggers: [], dialogue: null, message: {phase: "dismiss_wait", cursor: 0, ready: true, identity: "d".repeat(64)}}};
+    for (let i = 0; i < 4; i++) d.complete({...shown(), state: waiting});
+    expect(notices.filter((n) => n.kind === "cycle")).toEqual([]);
   });
 
   it("ON: a message identity with no readable lines does not count, through the recorded state path", () => {

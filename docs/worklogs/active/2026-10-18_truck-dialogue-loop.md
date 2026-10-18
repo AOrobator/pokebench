@@ -80,6 +80,17 @@ Deletion receipts, each restored after the red run:
 
 Index test names that still said "last" while asserting `at(-4)`, `at(-3)`, and `at(-5)` now say fourth, third, and fifth from the end.
 
+## Round 3
+
+Frozen fix delta `8ce3dbb5..5e7b399f`, diff SHA-256 `315471e1de7579b4325e2d9da4b7c1c6862754b5787f3da1e16c85bce1527961`. Cursor Claude returned `VERDICT: LGTM`. Grok and GPT returned `VERDICT: BLOCKING`. Empty stderr, one verdict each.
+
+The free-field return was skipping the different-line clear, so a locked result that showed a different line left the count in place. The open-line comparison now happens first: a different line clears, including when controls are locked, and the same lines still open do not. A result whose message is still ready is not the free field, even when its dialogue string is empty.
+
+Deletion receipts, each restored after the red run:
+
+- Checking the lock before the different-line clear failed `ON: a different line still clears the count when that result is locked` with `expected [ { kind: 'cycle' …} ] to deeply equal []`.
+- Dropping the ready-message clause failed `ON: a ready message with no dialogue text is not the free field` with that same assertion.
+
 ## Not done
 
 The feature commit is `05060925`. Main moved to `56dfa98f` (`loop-guard-screen-v1`) during round 1, so that landing is merged in ahead of these two switches as `0c9db3da`. Round 1 reviewed `336c174a..40991fb2` and is void: the tree changed and main moved. Its accepted fixes are in `b41f09ce` (explainer titles; count only a press whose requested buttons include A; a different open line clears the count). Not on main. `source.commit` on the two new experiment files is still `bcde8cd4`; repin after landing. Experiments not queued, not approved, not launched. The live cook is unchanged.

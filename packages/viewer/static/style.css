@@ -815,3 +815,40 @@ b.wb-add, b.wb-rem { white-space:nowrap; }
   .bar > .run-head { display: flex; }
 }
 
+
+/* Recorded request history inherits the existing PokéNav Stats screen and navigation. */
+.metric-history { container-type:inline-size; margin-top:18px; padding-top:16px; border-top:3px double #8a96a3; }
+.metric-history .mh-summary,.metric-history .mh-note { font:10px/1.7 Inter,sans-serif; color:#59636e; }
+.metric-history .mh-summary { margin:0 0 10px; }
+.mh-strips { border:2px solid #8a96a3; border-radius:6px; overflow:hidden; }
+.mh-row { display:grid; grid-template-columns:145px minmax(0,1fr); min-width:0; }
+.mh-row + .mh-row { border-top:1px solid #d1d6dc; }
+.mh-label { padding:12px 10px; background:#eee; border-right:1px solid #8a96a3; min-width:0; }
+.mh-label h3 { font-size:7px; line-height:1.9; overflow-wrap:anywhere; }
+.mh-label strong { display:block; font:15px/1.7 'JetBrains Mono',monospace; font-weight:400; }
+.mh-label small { display:block; margin-top:5px; color:#59636e; font:9px/1.7 Inter,sans-serif; }
+.mh-row svg { display:block; width:100%; height:auto; min-width:0; align-self:center; }
+.mh-row svg text { font:9px 'JetBrains Mono',monospace; fill:#59636e; }
+.mh-grid { stroke:#d1d6dc; stroke-width:1; }
+.mh-line { stroke:#258970; stroke-width:2; fill:none; stroke-linecap:round; }
+.mh-cursor { stroke:#b98235; stroke-width:1; stroke-dasharray:3 4; }
+.mh-input { fill:#537cab; background:#537cab; }
+.mh-cache { fill:#65a98b; background:#65a98b; }
+.mh-key i { display:inline-block; width:7px; height:7px; margin-right:3px; }
+.metric-history details { font:10px/1.8 Inter,sans-serif; color:#59636e; }
+@media(max-width:700px) {
+ .mh-row { grid-template-columns:1fr; }
+ .mh-label { border-right:0; border-bottom:1px solid #d1d6dc; padding:8px 10px; }
+ .mh-label strong { font-size:13px; }
+ .mh-row svg { min-height:100px; }
+}
+
+.mh-point { fill:#258970; }
+
+@container (max-width:540px) {
+ .mh-row { grid-template-columns:1fr; }
+ .mh-label { border-right:0; border-bottom:1px solid #d1d6dc; padding:8px 10px; }
+ .mh-row svg text { font-size:16px; }
+}
+
+#page-stats .page-content { padding-right:18px; scrollbar-gutter:stable; }

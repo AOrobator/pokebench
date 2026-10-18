@@ -196,6 +196,25 @@ describe("viewer app", () => {
     expect(ui("mode").textContent).toBe("LOADING");
   });
 
+  it("updates Stats history from the live stream and follows replay rewind without changing the picker", async () => {
+    const {app,streams}=await harness();
+    const stream=must(streams[0]);
+    document.querySelector<HTMLButtonElement>('[data-page="stats"]')?.click();
+    feed(stream,fullRun().events.slice(0,5));
+    expect(ui("metric-history").textContent).toContain("1 responses");
+    expect(ui("metric-history").querySelector('[data-metric="output"] strong')?.textContent).toBe("100 tokens");
+    expect(document.querySelector('.page-picker select')).not.toBeNull();
+    feed(stream,fullRun().events.slice(5),false);app.render();
+    expect(ui("metric-history").querySelector('[data-metric="output"] strong')?.textContent).toBe("300 tokens");
+    stream.send("done",{});
+    app.clock?.seek(BASE_MS+3500);app.render();
+    expect(ui("metric-history").querySelector('[data-metric="output"] strong')?.textContent).toBe("100 tokens");
+    app.clock?.seek(BASE_MS);app.render();
+    expect(ui("metric-history").textContent).toContain("Waiting for a recorded response");
+    expect(document.querySelector('#page-stats input[type="range"]')).toBeNull();
+    expect(ui("replay-controls").hidden).toBe(false);
+  });
+
   it("replays the recorded M4 run end to end", async () => {
     const { app, streams } = await harness(`#run=${M4_ID}`);
     const stream = must(streams[0]);

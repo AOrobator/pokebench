@@ -37,7 +37,7 @@ This intentionally does not add a second conversation/history store. A future fe
 - [x] M1 RED: regression tests cover the truck leak, sign-backed names, dependency, and fixed-bundle arm split. The focused Python suite fails on the four old internal-name emissions; the agent tests fail on the old dependency and the bundle's old ON-in-control definition.
 - [x] M2 GREEN (`82cb9811`): rendered names now come only from `displayed_places`; internal-only static destinations keep their IDs and the set truck warp stays dynamic. Feature copy, prompt map rules, standalone experiment and fixed bundle updated. Focused gates: 14 named-warp Python tests and 35 agent tests pass; `just experiments-check` validates 111 definitions.
 - [x] M3 DOCS: updated the existing named-warp and unset-dynamic-warp explainers; both `just pages-check` validations are clean.
-- [ ] M4 GATES: targeted tests, full tests, lint, build, coverage and experiment checks pass.
+- [x] M4 GATES: full tests pass (agent 2,457; viewer 1,172; Python 2,478 with 229 ROM-dependent skips); lint and build pass; coverage is agent 98/94.26/98.32/99.23, viewer 95.4/91.46/93.83/97.64, Python 97.47 lines / 93.37 branches / 99.43 functions (all above 90); vendor integrity passes; 111 experiment definitions and both explainer pages validate. Viewer coverage's parallel run twice exposed unrelated `server-stream` timing flakes (different cases each run); single-worker coverage passed all 1,172 tests.
 - [ ] M5 REVIEW: principles audit and required cloud review lanes reach LGTM on one frozen packet.
 - [ ] M6 LAND: fast-forward local `main`, recheck, repin the unstarted experiment, and restart the viewer without launching a measured run.
 
@@ -48,3 +48,4 @@ Not started.
 ## Gate Notes
 
 - Full gate attempt after `45e6f619`: agent 2452/2457 passed; five prompt-golden assertions correctly detected the revised named-warp rule sentence. Pytest 2475 passed / 229 ROM-skipped; three old golden assertions detected the same wording and the deliberate removal of internal-only names when `displayed-place-names-v1` is off. Updated only those compatibility expectations/fixtures; focused repairs pass (29 agent prompt tests, 103 Python adjacency/displayed-name tests).
+- Coverage flake triage: first parallel viewer coverage timed out two stream tests; immediate retry failed two different stream tests (one timeout, one scheduling-sensitive write count). `git diff main -- packages/viewer/src/server-stream.test.ts packages/viewer/src/server.ts` is empty. The single-worker coverage run passed 84 files / 1,172 tests at the normal coverage percentages.

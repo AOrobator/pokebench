@@ -35,9 +35,9 @@ OFF_GUIDANCE = (
 )
 ON_GUIDANCE = (
     "Warp destinations are the map you arrive on: a name the game displays when one is"
-    " available, then its group/number ID in parentheses; not warp indexes. Activation also requires"
-    " matching elevation and available field controls; W alone does not guarantee a transition."
-    " After a transition, check the new map and position."
+    " available, then its group/number ID in parentheses; not warp indexes. Activation also"
+    " requires matching elevation and available field controls; W alone does not guarantee a"
+    " transition. After a transition, check the new map and position."
 )
 FIXTURES = Path(__file__).resolve().parent / "fixtures"
 

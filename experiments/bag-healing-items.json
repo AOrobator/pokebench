@@ -136,6 +136,7 @@
    "instruction-ledger-v2": false,
    "no-exit-here-v1": false,
    "bag-healing-items-v1": false,
+   "battle-menu-loop-v1": false,
    "input-cuts-v1": false
   }
  },

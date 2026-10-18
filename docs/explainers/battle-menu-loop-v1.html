@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Battle menu loop</title>
+<style>
+:root{
+ --bg:#f7f6f2; --fg:#1c1d1f; --soft:#5b5d61; --rule:#dedcd5; --panel:#ffffff;
+ --game:#1a7f5a; --game-bg:#e3f4ec; --prior:#c2432f; --prior-bg:#fbe7e2; --nav:#2a62c9; --nav-bg:#e4edfb; --hot:#c2432f;
+ --body:system-ui,-apple-system,"Segoe UI",sans-serif; --mono:ui-monospace,"SF Mono",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+ --bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; --hot:#ff7a63; color-scheme:dark}}
+:root[data-theme="dark"]{
+ --bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; --hot:#ff7a63; color-scheme:dark}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.6 var(--body);padding:0 16px}
+main{max-width:740px;margin:0 auto;padding:40px 0 64px;display:flex;flex-direction:column;gap:34px}
+h1{font-size:2.2rem;line-height:1.15;margin:0}
+h2{font-size:1.3rem;margin:0}
+p{margin:0;max-width:66ch}
+.eyebrow{font:500 .75rem var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--soft)}
+.lede{font-size:1.08rem;color:var(--soft)}
+section{display:flex;flex-direction:column;gap:12px}
+figure{margin:0;display:flex;flex-direction:column;gap:8px}
+.scroll{overflow-x:auto}
+svg{display:block;max-width:100%;height:auto}
+figcaption{font-size:.88rem;color:var(--soft)}
+svg text{font-family:var(--body);font-size:12px;fill:var(--fg)}
+svg .s{fill:var(--soft);font-size:11px}
+svg .t{font-weight:600;font-size:13px}
+.box{fill:var(--panel);stroke:var(--rule)}
+.game{fill:var(--game-bg);stroke:var(--game)}
+.prior{fill:var(--prior-bg);stroke:var(--prior)}
+.navb{fill:var(--nav-bg);stroke:var(--nav)}
+.hot{stroke:var(--hot);stroke-width:2.2}
+.arr{stroke:var(--soft);stroke-width:1.5;fill:none}
+pre{background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:14px;white-space:pre-wrap;font:13px/1.5 var(--mono);margin:0}
+code{font:500 .88em var(--mono);background:var(--panel);border:1px solid var(--rule);border-radius:4px;padding:0 4px}
+table{border-collapse:collapse;width:100%;font-size:.92rem}
+th,td{text-align:left;padding:7px 9px;border-bottom:1px solid var(--rule);vertical-align:top}
+th{font:500 .75rem var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--soft)}
+</style>
+</head>
+<body>
+<main>
+<div class="eyebrow">Harness switch · guard · <code>battle-menu-loop-v1</code> · no dependency · off by default · bundle arm only</div>
+<h1>Battle menu loop</h1>
+<p class="lede">On the control arm of the cook, a wild WINGULL fight spent 8.9 minutes opening the POKéMON screen and coming back to the same menu choice. The battle never moved. With this switch on, the fourth return to that choice warns. Off: those screens never count.</p>
+
+<section>
+<h2>The menu the game draws</h2>
+<figure>
+<div class="scroll">
+<svg viewBox="0 0 700 250" width="700" role="img" aria-label="Battle menu of four choices and which directions move the cursor">
+<text x="10" y="18" class="t">HandleInputChooseAction, pokeemerald 731ad5b</text>
+<rect x="10" y="36" width="150" height="52" rx="6" class="game"/><text x="85" y="66" text-anchor="middle">FIGHT · cursor 0</text>
+<rect x="180" y="36" width="150" height="52" rx="6" class="box"/><text x="255" y="66" text-anchor="middle">BAG · cursor 1</text>
+<rect x="10" y="108" width="150" height="52" rx="6" class="prior hot"/><text x="85" y="138" text-anchor="middle">POKéMON · cursor 2</text>
+<rect x="180" y="108" width="150" height="52" rx="6" class="box"/><text x="255" y="138" text-anchor="middle">RUN · cursor 3</text>
+<text x="360" y="58">UP from POKéMON moves to FIGHT</text>
+<text x="360" y="80" class="s">DOWN from FIGHT moves to POKéMON</text>
+<text x="360" y="110">LEFT from POKéMON does not move</text>
+<text x="360" y="132" class="s">LEFT moves only from BAG or RUN</text>
+<text x="360" y="162">A on FIGHT chooses a move</text>
+<text x="360" y="184" class="s">A on POKéMON opens the party</text>
+<text x="10" y="200" class="s">The menu text is gText_BattleMenu: FIGHT BAG / POKéMON RUN</text>
+<text x="10" y="222" class="s">Trainer battles cannot be fled. The warning does not say to pick RUN.</text>
+</svg>
+</div>
+<figcaption>The cursor is a 2×2. From POKéMON, the press that reaches FIGHT is UP, then A. LEFT stays on POKéMON, and A there opens the party again.</figcaption>
+</figure>
+</section>
+
+<section>
+<h2>What counts</h2>
+<figure>
+<div class="scroll">
+<svg viewBox="0 0 700 184" width="700" role="img" aria-label="Four returns to the same menu choice warn; the first three do not">
+<text x="10" y="18" class="t">Same cursor, same battler HP, same battle turn, after POKéMON or BAG</text>
+<rect x="10" y="36" width="120" height="48" rx="4" class="box"/><text x="70" y="64" text-anchor="middle">return 1 · look</text>
+<rect x="150" y="36" width="120" height="48" rx="4" class="box"/><text x="210" y="64" text-anchor="middle">return 2</text>
+<rect x="290" y="36" width="120" height="48" rx="4" class="box"/><text x="350" y="64" text-anchor="middle">return 3</text>
+<rect x="430" y="36" width="150" height="48" rx="4" class="prior hot"/><text x="505" y="64" text-anchor="middle">return 4 · warning</text>
+<text x="10" y="116" class="s">A different cursor, a change in battler HP or species, a new battle turn, or leaving the battle clears the count.</text>
+<text x="10" y="154" class="s">A missing battle turn or battler list does not count. A state event outside the battle clears the count too.</text>
+<text x="10" y="138" class="s">Screens that open the detour: party menu, party action menu, POKéMON summary, BAG.</text>
+</svg>
+</div>
+<figcaption>One opening of the party or the BAG does not warn. The fourth return to the same choice does, then the supervisor briefing repeats how the menu moves.</figcaption>
+</figure>
+<pre>The battle menu is back on the same choice after the POKéMON or BAG screen, and the foe's HP and the battle turn are unchanged. The menu reads FIGHT BAG / POKéMON RUN. POKéMON is the bottom-left. UP from POKéMON moves to FIGHT; LEFT from POKéMON does not move. A on FIGHT chooses a move.</pre>
+</section>
+
+<section>
+<h2>The fight it is for</h2>
+<table>
+<tr><th>Run</th><th>Window</th><th>What happened</th></tr>
+<tr><td>control <code>a1b1</code>, 2026-10-17</td><td>turns 961–1128, seq 26192–29641</td><td>Wild WINGULL Lv4 stayed at 17 HP. Battle turn stayed 1. 51 presses of LEFT, A, A. 100 party screens. 8.9 minutes. Fled at turn 1129.</td></tr>
+</table>
+<p>Across the cook's 726 battles, 6 matched this shape: party screens at least 3, foe HP unchanged, battle turn stayed 1. This one was the longest. <code>battle-observation-loop-v1</code> does not see it, because the screen changes between the menu and the party, so the identical-observe count resets. Same-plan on the button string misses it too, because the batches vary.</p>
+<p>The fourth return would have fired about 30 seconds in, near turn 970, instead of at the flee on turn 1129.</p>
+</section>
+
+<section>
+<h2>Where it is on</h2>
+<p>Default off, including the viewer's next-run draft. The bundle arm of <code>bundle-v-control</code> turns it on. The control arm leaves it off. The pending experiment <code>battle-menu-loop</code> is registered and not queued. No standing prompt line was added.</p>
+</section>
+</main>
+</body>
+</html>

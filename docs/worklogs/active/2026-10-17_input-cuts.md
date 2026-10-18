@@ -1,6 +1,6 @@
 # Worklog: input-cuts-v1
 
-Branch `input-cuts-v1`, base main `44c42815c1e7ed2ea743f20e5d016f881cb0d350`. Local only. Land only after Claude, Grok, and GPT each return `VERDICT: LGTM` on the same frozen packet.
+Branch `input-cuts-v1`. The feature commit is on main `44c42815c1e7ed2ea743f20e5d016f881cb0d350`. This tip merges main `a0f669d4ba73dc2c4976e362b5118e43305bda62` (battle-menu-loop-v1). `input-cuts-v1` stays last in the registry. Local only. Land only after Claude, Grok, and GPT each return `VERDICT: LGTM` on the same frozen packet.
 
 ## Problem
 
@@ -23,7 +23,7 @@ Removed `silenceMiss` and `goalOnce` from `playGameTools`. `input-cuts.test.ts` 
 
 ## Gates
 
-Agent tests 2362 passed. Viewer tests 1137 passed. `just lint` clean. `just experiments-check`: ok, 106 experiments. `just verify-vendor`: vendor OK. `just pages-check` on the explainer prints nothing. Coverage: agent lines 98.04, branches 94.17, functions 98.28; viewer lines 95.36, branches 91.39, functions 93.79; Python lines 97.66, branches 93.82, functions 100. Floor 90.
+After merging main `a0f669d4`: agent tests 2375 passed, viewer tests 1138 passed, pytest 2707 passed. `just lint` clean. `just experiments-check`: ok, 106 experiments. `just verify-vendor`: vendor OK. `just pages-check` on the explainer prints nothing. Coverage: agent statements 98.02, branches 94.14, functions 98.28, lines 99.24; viewer statements 95.36, branches 91.38, functions 93.79, lines 97.62; Python lines 97.66, branches 93.82, functions 100. Floor 90.
 
 ## Principles
 

@@ -1014,6 +1014,17 @@ it("links the heal before trainers card to its tracked explainer, which quotes t
  expect(html).toContain("SUPERVISOR: A trainer you have not beaten is on this map: object 3, sprite LASS, at (31,24).");
 });
 
+it("links the battle menu loop card to its tracked explainer, which quotes the menu sentence",()=>{
+ const id="battle-menu-loop-v1";
+ expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
+ const log=new Log();log.add(0,{...START,harness_features:["ram-state-v1","deterministic-loop-guard-v1",id]});
+ const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
+ expect(doc.querySelector(`[data-feature="${id}"] a`)?.getAttribute("href")).toBe(`/explainers/${id}.html`);
+ const html=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)),"utf8");
+ expect(html).toContain(id);
+ expect(html).toContain("LEFT from POKéMON does not move");
+});
+
 it("links the heal before trainers BAG items card to its tracked explainer, which quotes the e046 sentence",()=>{
  const id="bag-healing-items-v1";
  expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);

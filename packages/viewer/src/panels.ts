@@ -445,6 +445,7 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "instruction-ledger-v2":"instruction-ledger-v2.html",
  "no-exit-here-v1":"no-exit-here-v1.html",
  "bag-healing-items-v1":"bag-healing-items-v1.html",
+ "battle-menu-loop-v1":"battle-menu-loop-v1.html",
  "input-cuts-v1":"input-cuts-v1.html",
 });
 

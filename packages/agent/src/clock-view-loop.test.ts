@@ -120,7 +120,7 @@ describe("clock-view-loop-v1",()=>{
   turned.d.complete(press(bedroom(),{...bedroom(),facing:"left"}));
   turned.d.complete(press({...bedroom(),facing:"left"},bedroom()));
   turned.d.complete(press(bedroom(),transition("10:00 AM")));
-  expect(turned.notices.filter(n=>n.kind==="cycle")).toHaveLength(1);
+  expect(turned.notices.filter(n=>n.kind==="cycle"&&n.phase==="warning")).toHaveLength(1);
  });
 
  it("ON: the opening transition before the clock is set does not count",()=>{

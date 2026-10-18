@@ -77,6 +77,7 @@ Done when every milestone is merged, qualification shows none of F1–F8, the fo
 
 ## Session Log
 
+- 2026-10-17 09:51 PM EDT: gates on 40036af1 before review. `just test`: agent 2372, viewer 1137, pytest 2707. `just lint` clean. `just build` ok (viewer stamp 40036af). `just coverage`: agent 98.04/94.14/98.29/99.24, viewer 95.36/91.38/93.79/97.62, Python 97.66/93.82/100, floor 90. `just verify-vendor` ok. Main still 44c42815. Local inference reviewers are not in this roster.
 - 2026-10-17 09:49 PM EDT: eslint: the factory describe had an unused `resultAt(272)`. Removed.
 - 2026-10-17 09:48 PM EDT: the switchboard test counted "No matching runs yet" as 112. The new switch makes it one per switchable feature, so the assertion now uses that count.
 - 2026-10-17 09:47 PM EDT: the first stale-story-goal commit also picked up an unrelated viewer watch snapshot (app.ts, server.ts, watch.ts, watch-snapshot.test.ts). That snapshot is removed in the following commit so the review packet is only this switch.

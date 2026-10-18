@@ -178,7 +178,19 @@ export class ControlView {
   }
 }
 
+export interface RequestSample {
+  readonly seq: number;
+  readonly ms: number;
+  readonly ttftMs: number | null;
+  readonly inferenceMs: number;
+  readonly output: number;
+  readonly input: number;
+  readonly cacheRead: number;
+  readonly failed: boolean;
+}
+
 export class RunView {
+  readonly requestSamples: RequestSample[] = [];
   readonly events: RunEvent[] = [];
   start: RunStartEvent | null = null;
   startMs: number | null = null;
@@ -352,6 +364,9 @@ export class RunView {
   }
 
   private onAssistant(event: Of<"assistant">, ms: number): void {
+    this.requestSamples.push({ seq: event.seq, ms, ttftMs: event.ttft_ms,
+      inferenceMs: event.latency_ms, output: event.usage.output, input: event.usage.input,
+      cacheRead: event.usage.cache_read, failed: event.stop_reason === "error" || event.stop_reason === "aborted" });
     const span = this.thinkingSpans.at(-1);
     if (span?.endMs === null) span.endMs = ms;
     this.lastThought = { turn: event.turn, thinking: event.thinking, reply: event.text, latencyMs: event.latency_ms };

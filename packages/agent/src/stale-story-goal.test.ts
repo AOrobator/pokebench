@@ -190,7 +190,6 @@ describe("stale-story-goal-v1 harness trust",()=>{
 });
 
 describe("stale-story-goal-v1 production factory",()=>{
- const result=resultAt(272);
  const here=dex(field([0,10],"OLDALE TOWN"),true);
  const lab=talk("t",5,[page("Go see MAY at the LAB.","MOM")]);
  const features=(on:boolean):FeatureSet=>({...Object.fromEntries(SWITCHABLE_FEATURES.map(id=>[id,false])),"story-destinations-v1":true,"harness-trust-v1":true,[ID]:on} as FeatureSet);

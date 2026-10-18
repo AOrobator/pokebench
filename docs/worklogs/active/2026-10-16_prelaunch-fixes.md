@@ -77,6 +77,7 @@ Done when every milestone is merged, qualification shows none of F1–F8, the fo
 
 ## Session Log
 
+- 2026-10-17 09:49 PM EDT: eslint: the factory describe had an unused `resultAt(272)`. Removed.
 - 2026-10-17 09:48 PM EDT: the switchboard test counted "No matching runs yet" as 112. The new switch makes it one per switchable feature, so the assertion now uses that count.
 - 2026-10-17 09:47 PM EDT: the first stale-story-goal commit also picked up an unrelated viewer watch snapshot (app.ts, server.ts, watch.ts, watch-snapshot.test.ts). That snapshot is removed in the following commit so the review packet is only this switch.
 - 2026-10-17 09:45 PM EDT: The operator asked for stale-story-goal-v1 to be reviewed and, once the cloud lanes approve, merged to main, with the fix in the bundle. The switch retires the latest place-naming story line when the story checklist shows that place's milestone is done, or when a later ledger line exists, and does not promote an older place line. `story-destinations-v1` is off in both arms (`offInBoth`); `stale-story-goal-v1` is a bundle switch (base false). Pending experiment `experiments/stale-story-goal.json` is not queued. The live cook loaded its definition at start and is not restarted.

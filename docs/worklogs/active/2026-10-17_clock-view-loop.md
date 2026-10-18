@@ -31,7 +31,7 @@ No new IO, no new server surface, no new model-facing text. The existing cycle w
 - [x] COMMIT: `test(clock-view-loop): count reopening the set bedroom clock` (RED) `5e3c44af`
 - [x] Implement
 - [x] Gates on this tip, before review: `just test` agent 2374, viewer 1137, pytest 2707. `just lint` clean. `just build` ok. `just coverage` agent 98.02/94.22/98.28/99.24, viewer 95.36/91.38/93.79/97.62, Python 97.66/93.82/100. `just experiments-check` ok 106. `just verify-vendor` ok. `just pages-check` on the explainer prints nothing.
-- [ ] COMMIT: `feat(clock-view-loop): ...` (GREEN)
+- [x] COMMIT: `feat(clock-view-loop): count reopening the set bedroom clock` (GREEN) `ad55bde3`
 - [x] Explainer, pending experiment, bundle arm (on in the bundle arm of bundle-v-control, off in the control arm)
 - [ ] Multi-model review loop until clean
 - [ ] Land on local main

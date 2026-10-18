@@ -70,6 +70,15 @@ Triage of the GPT findings:
 
 Grok's non-blocking note on a missing species-change test is covered by the fix commit.
 
+Round 2, frozen head `7e2848d593a83cbf93ba14cf37acf3c17fe2abb4`, diff SHA-256 `f06d78d08cb95bf38d1ea600be312c788b0f3df9c3f44d04b8d76aca9089b312`. Same three Cursor lanes. The packet was unchanged before and after.
+
+- Grok: `VERDICT: LGTM`. Empty stderr.
+- Claude: `VERDICT: BLOCKING`. `just lint` fails: the new state-event literal is not a `RunEvent` (`TS2345` at `battle-menu-loop.test.ts`). Vitest does not type-check, so the suite stayed green. Fix: spread a `GameStateSnapshot` cast, the same form as the other observe in this file. The worklog's round-1 gate numbers were not re-run for `7e2848d5`; this commit re-runs `tsc --noEmit` on the agent package.
+- GPT: `VERDICT: BLOCKING`. Three findings.
+  1. Rebut. A return is the call's end state. An intermediate cursor inside a call that ends back on the same choice is still that return. Clearing on a mid-call cursor would drop the LEFT, A, A loop this guard exists for, whenever one frame of the batch touched FIGHT.
+  2. Fix. An empty battler list took the same null-stamp path as a missing list and had no test. The missing-list test now also drives `battlers: []`, including the case that keeps a count already underway.
+  3. Fix. The state-event leave test ran before any warning, so it did not show `recover`. The supervisor test now observes an overworld state after the warning and expects `recovered` and a null context.
+
 ## Boy Scout Log
 
 None.

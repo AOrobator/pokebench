@@ -10,7 +10,7 @@ import type {GameStateSnapshot} from "./game-state.js";
 
 const ID = "battle-menu-loop-v1";
 
-function battle(cursor: number, opts: {hp?: number; turn?: number | null; screen?: string; species?: string; battlers?: null} = {}): GameStateSnapshot {
+function battle(cursor: number, opts: {hp?: number; turn?: number | null; screen?: string; species?: string; battlers?: null | []} = {}): GameStateSnapshot {
   const screen = opts.screen ?? "battle";
   const labels = ["FIGHT", "BAG", "POKEMON", "RUN"];
   return {
@@ -25,8 +25,8 @@ function battle(cursor: number, opts: {hp?: number; turn?: number | null; screen
     battle: {
       diagnostic: null,
       turn: opts.turn === undefined ? 1 : opts.turn,
-      battlers: opts.battlers === null
-        ? null
+      battlers: opts.battlers !== undefined
+        ? opts.battlers
         : [
             {battler: 1, species: opts.species ?? "WINGULL", hp: opts.hp ?? 17},
             {battler: 0, species: "TORCHIC", hp: 34},
@@ -64,12 +64,12 @@ function detector(on: boolean, supervisor?: (kind: LoopKind, calls: number) => s
 }
 
 // Open the POKéMON screen, then come back to the same battle-menu cursor.
-function trip(t: ReturnType<typeof detector>, cursor = 2, opts: {hp?: number; turn?: number | null; screen?: string; species?: string; battlers?: null} = {}): void {
-  const shared: {hp?: number; turn?: number | null; species?: string; battlers?: null} = {};
+function trip(t: ReturnType<typeof detector>, cursor = 2, opts: {hp?: number; turn?: number | null; screen?: string; species?: string; battlers?: null | []} = {}): void {
+  const shared: {hp?: number; turn?: number | null; species?: string; battlers?: null | []} = {};
   if (opts.hp !== undefined) shared.hp = opts.hp;
   if (opts.turn !== undefined) shared.turn = opts.turn;
   if (opts.species !== undefined) shared.species = opts.species;
-  if (opts.battlers === null) shared.battlers = null;
+  if (opts.battlers !== undefined) shared.battlers = opts.battlers;
   t.press(battle(cursor, {...shared, screen: opts.screen ?? "party_menu"}));
   t.press(battle(cursor, shared));
 }
@@ -159,6 +159,17 @@ describe("battle-menu-loop-v1", () => {
     expect(kept.notices).toEqual([]);
     trip(kept);
     expect(kept.notices.map((n) => n.phase)).toEqual(["warning"]);
+    const empty = detector(true);
+    empty.press(battle(2, {battlers: []}));
+    for (let i = 0; i < 4; i++) trip(empty, 2, {battlers: []});
+    expect(empty.notices).toEqual([]);
+    const keptEmpty = detector(true);
+    keptEmpty.press(battle(2));
+    for (let i = 0; i < 3; i++) trip(keptEmpty);
+    for (let i = 0; i < 4; i++) trip(keptEmpty, 2, {battlers: []});
+    expect(keptEmpty.notices).toEqual([]);
+    trip(keptEmpty);
+    expect(keptEmpty.notices.map((n) => n.phase)).toEqual(["warning"]);
   });
 
   it("ON: a state event that leaves the battle clears the count", () => {
@@ -167,7 +178,7 @@ describe("battle-menu-loop-v1", () => {
     for (let i = 0; i < 3; i++) trip(on);
     on.d.observe({
       v: 1, run: "r", seq: 40, t: "2026-10-17T21:19:13.883-04:00", turn: 970, type: "state",
-      in_battle: false, screen: "overworld", started: true, party: [], badges: [], location: null, map_id: null,
+      ...({in_battle: false, screen: "overworld", started: true, party: [], badges: [], location: null, map_id: null} as unknown as GameStateSnapshot),
     });
     trip(on);
     expect(on.notices).toEqual([]);
@@ -209,6 +220,15 @@ describe("battle-menu-loop-v1", () => {
     expect(on.d.context()).toContain("LEFT from POKéMON does not move");
     on.press({in_battle: false, screen: "overworld"} as GameStateSnapshot);
     expect(on.notices.map((n) => n.phase)).toEqual(["warning", "supervisor", "recovered"]);
+    const again = detector(true, (kind, calls) => `SUPERVISOR: ${kind} at ${String(calls)} calls`);
+    again.press(battle(2));
+    for (let i = 0; i < 4; i++) trip(again);
+    again.d.observe({
+      v: 1, run: "r", seq: 80, t: "2026-10-17T21:19:13.883-04:00", turn: 971, type: "state",
+      ...({in_battle: false, screen: "overworld", started: true, party: [], badges: [], location: null, map_id: null} as unknown as GameStateSnapshot),
+    });
+    expect(again.notices.map((n) => n.phase)).toEqual(["warning", "supervisor", "recovered"]);
+    expect(again.d.context()).toBeNull();
   });
 
   it("passes the switch as attachLoopGuard's last argument from live and the decision probe", () => {

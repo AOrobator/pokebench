@@ -38,7 +38,7 @@ None added. The flag attribute is visible in devtools on `<html>`.
   - Taken (blocker 2): the literal guard only scanned non-test `src/*.ts` plus one `@media max-width` CSS pattern; adversarial mutations `@media(max-height:800px)` in style.css and `@media(max-width:700px)` in human.css passed green. Fix: substring scan of all three widths across static css/html files + non-test sources; both mutations now fail with named messages.
   - Not taken (hardening): `watchPhoneFlag` listener idempotence — entry points run once per document; per the lane, no repeated-entry-point failure demonstrated.
 - [x] Review round 2 on e5f506b9 (codex gpt-5.6-sol): round-1 blockers verified fixed by the lane (dead rule gone; adversarial cases caught). New BLOCKING finding taken: shared-gate fixture I/O — guard did 199 reads (3 widths × 67 files); rewritten to one read per fixture (67) with all assertions in memory. Not taken (hardening): double syncPhoneFlag per resize on index (frozen wiring), threshold-mutant boundary pins, per-page flag tests, string-based CSS assertions generally (browser A/B covers head).
-- [ ] Re-review (round 3) on the fixed head via codex exec.
+- [x] Review round 3 on de12ffe9 (codex gpt-5.6-sol): LGTM. Round-2 blocker verified resolved (67 reads, in-memory asserts, mutation caught); digest reproduced independently; non-blocking notes dispositioned as above. Review loop closed: 2× BLOCKING taken, 1× LGTM.
 - [ ] Land via the protected queue.
 
 Base SHA (branch point): 0e5ca723.

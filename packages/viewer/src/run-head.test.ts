@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import type { RunEvent } from "@pokebench/agent/events";
 import { BASE_MS, Log, START, fullRun, must } from "../test-support/events.js";
 import { mountApp, type App, type AppDeps, type StreamLike } from "./app.js";
@@ -168,14 +168,18 @@ async function mount(width: number): Promise<{ app: App; streams: FakeStream[] }
 }
 
 const setWidth = (width: number): void => { (window as unknown as { happyDOM: { setInnerWidth(width: number): void } }).happyDOM.setInnerWidth(width); };
+// happy-dom's setViewport moves innerWidth but its matchMedia keeps reading the
+// initial height; the documented innerHeight setter is what media queries see.
+const setViewport = (width: number, height: number): void => {
+  setWidth(width);
+  window.innerHeight = height;
+};
 const ui = (name: string): HTMLElement => must(document.querySelector<HTMLElement>(`[data-ui="${name}"]`));
 
 describe("phone header in the viewer", () => {
-  beforeEach(() => {
-    document.body.innerHTML = "";
-  });
   afterEach(() => {
-    setWidth(1024);
+    setViewport(1024, 900);
+    document.body.innerHTML = "";
   });
 
   it("shows the experiment-first header and moves the controls under the screen and the run picker into the sheet", async () => {
@@ -245,11 +249,9 @@ describe("phone header in the viewer", () => {
 });
 
 describe("phone header sheet behavior", () => {
-  beforeEach(() => {
-    document.body.innerHTML = "";
-  });
   afterEach(() => {
-    setWidth(1024);
+    setViewport(1024, 900);
+    document.body.innerHTML = "";
   });
 
   it("closes an open sheet when the window widens past the phone breakpoint", async () => {
@@ -289,9 +291,22 @@ describe("phone header sheet behavior", () => {
   it("mirrors phone mode onto <html>[data-phone] so style.css keys off the flag", async () => {
     await mount(375);
     expect(document.documentElement.hasAttribute("data-phone")).toBe(true);
-    setWidth(750);
+    setViewport(750, 1000);
     window.dispatchEvent(new Event("resize"));
     expect(document.documentElement.hasAttribute("data-phone")).toBe(false);
+  });
+
+  it("keeps phone mode on a foldable's short landscape viewport and drops it on a tall desktop window", async () => {
+    await mount(375);
+    setViewport(832, 750);
+    window.dispatchEvent(new Event("resize"));
+    expect(document.documentElement.hasAttribute("data-phone"), "Fold 7 unfolded landscape").toBe(true);
+    setViewport(750, 832);
+    window.dispatchEvent(new Event("resize"));
+    expect(document.documentElement.hasAttribute("data-phone"), "Fold 7 unfolded portrait").toBe(false);
+    setViewport(1440, 900);
+    window.dispatchEvent(new Event("resize"));
+    expect(document.documentElement.hasAttribute("data-phone"), "laptop window").toBe(false);
   });
 
   it("ignores clicks in the sheet body that are not on a WATCH button", async () => {

@@ -10,11 +10,14 @@ function phoneRules(css: string): string {
 }
 
 describe("phone-width watch deck", () => {
-  it("drives every phone rule off the data-phone flag so 700px lives only in phone.ts", () => {
-    expect(read("style.css")).not.toMatch(/@media\s*\(\s*max-width:\s*700px\s*\)/);
+  it("drives every phone rule off the data-phone flag so the breakpoint lives only in phone.ts", () => {
+    expect(read("style.css")).not.toMatch(/@media\s*\(\s*max-width:\s*(700|880)px\s*\)/);
     const owners = readdirSync(import.meta.dirname)
       .filter((file) => file.endsWith(".ts") && !file.endsWith(".test.ts"))
-      .filter((file) => readFileSync(join(import.meta.dirname, file), "utf8").includes("700px"));
+      .filter((file) => {
+        const source = readFileSync(join(import.meta.dirname, file), "utf8");
+        return ["700px", "880px", "800px"].some((width) => source.includes(width));
+      });
     expect(owners).toEqual(["phone.ts"]);
   });
 

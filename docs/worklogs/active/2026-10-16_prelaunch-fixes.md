@@ -77,6 +77,13 @@ Done when every milestone is merged, qualification shows none of F1–F8, the fo
 
 ## Session Log
 
+- 2026-10-17 10:12 PM EDT: gates on the round-2 tip before its review. `just test`: agent 2373, viewer 1137, pytest 2707. `just lint` clean. `just build` ok. `just coverage`: agent 98.04/94.14/98.29/99.24, viewer 95.36/91.38/93.79/97.62, Python 97.66/93.82/100, floor 90. `just verify-vendor` ok.
+- 2026-10-17 10:15 PM EDT: round-1 review blocked. Cities were retired by the woods and gym labels, and `watch-snapshot-v1` was still registered. Both fixed on `stale-story-goal-v1-r2`. The uncommitted left-conversation-loop and watch-snapshot work in the other worktree is not part of this branch.
+- 2026-10-17 09:51 PM EDT: gates on 40036af1 before review. `just test`: agent 2372, viewer 1137, pytest 2707. `just lint` clean. `just build` ok (viewer stamp 40036af). `just coverage`: agent 98.04/94.14/98.29/99.24, viewer 95.36/91.38/93.79/97.62, Python 97.66/93.82/100, floor 90. `just verify-vendor` ok. Main still 44c42815. Local inference reviewers are not in this roster.
+- 2026-10-17 09:49 PM EDT: eslint: the factory describe had an unused `resultAt(272)`. Removed.
+- 2026-10-17 09:48 PM EDT: the switchboard test counted "No matching runs yet" as 112. The new switch makes it one per switchable feature, so the assertion now uses that count.
+- 2026-10-17 09:47 PM EDT: the first stale-story-goal commit also picked up an unrelated viewer watch snapshot (app.ts, server.ts, watch.ts, watch-snapshot.test.ts). That snapshot is removed in the following commit so the review packet is only this switch.
+- 2026-10-17 09:45 PM EDT: The operator asked for stale-story-goal-v1 to be reviewed and, once the cloud lanes approve, merged to main, with the fix in the bundle. The switch retires the latest place-naming story line when the story checklist shows that place's milestone is done, or when a later ledger line exists, and does not promote an older place line. `story-destinations-v1` is off in both arms (`offInBoth`); `stale-story-goal-v1` is a bundle switch (base false). Pending experiment `experiments/stale-story-goal.json` is not queued. The live cook loaded its definition at start and is not restarted.
 - 2026-10-17 08:45 PM EDT: archived 50 active worklogs whose implementations are already on main (76431ffd). This worklog stays active; launch approval is still open.
 - 2026-10-17 07:45 PM EDT: no-exit-here-v1 (landed 18bb0a4b; needs world-destinations-v1, on in both) joins the bundle-v-control bundle arm; open-goal-prompt.json incumbent follows. Previous commit 2c2023d8.
 - 2026-10-17 07:42 PM EDT: navigation-evidence-memory-v1 leaves the bundle, off in both (the operator 7:40 PM EDT). The RAM-confirmed bug fixes stay bundle-only: tutorial-party-owner-v1, mid-frame-readout-v1, unset-dynamic-warp-v1 already in; field-whiteout-record-v1 joins when it lands. open-goal-prompt.json incumbent follows. Previous commit cf52c8f7.
@@ -148,7 +155,18 @@ Done when every milestone is merged, qualification shows none of F1–F8, the fo
 
 ## Surprises
 
+- 2026-10-17: stale-story-goal-v1. Deleting the production wiring once turned the factory test red, then it was restored. With `features["stale-story-goal-v1"]` removed from `withStoryDestinations`, the ON result kept `Way in: door in LITTLEROOT TOWN (map 0/9) at (7,16)`. With `retireLab` removed from `playGameTools`'s `withHarnessTrust` call, the Story goal line kept the door. Both restored; the factory test is green. The same switch now retires a place line when the story checklist shows that milestone is done, or when a later ledger line exists, and does not promote an older place line. `story-destinations-v1` is off in both arms of bundle-v-control; the switch stays a bundle-only harness-trust change.
+
 ## Multi-Model Review Log
+
+- Round 1, packet `65e72a86243fc3ba6df27263376412cac9fee7d5d20aab4b6744619b13a0e8d4`, base `44c42815`, head `d46ef9d0`. Cursor Claude `claude-opus-5-5-high` VERDICT: BLOCKING. Cursor Grok `grok-4.7-high` VERDICT: BLOCKING. Cursor GPT `gpt-5.6-sol-xhigh` VERDICT: BLOCKING. Claude CLI was logged out; the Claude lane was Cursor Claude. Local inference reviewers were not run.
+- Fix: `covers()` required every distinctive word of a place to appear in the label, so PETALBURG CITY matched "Petalburg Woods Aqua event complete" and RUSTBORO CITY matched "Rustboro Gym complete" (Claude blocker 2, Grok blocker). A label now covers a place only when the place's words are exactly the place that label names.
+- Fix: `watch-snapshot-v1` was still registered and recorded after the writer was removed (Claude blocker 1, GPT blocker 3). The registration is removed. The snapshot itself stays out of this branch.
+- Rebut, same-call page order (GPT blocker 1): a later line is a greater turn number. The locked example is turn 5 then turn 6. Pages in one call share a turn and do not retire the place line.
+- Rebut, change `activationMilestone` (GPT blocker 2): the pending experiment is not designed and not queued. The milestone stays `RECEIVED_POKEDEX`, which is the comparison the hypothesis names. The notes and readiness row no longer say that flag is the first text change.
+- Rebut, quadratic feature-list test and one extra explainer request (GPT blockers 4 and 5): both follow tests this diff did not invent. A scaling receipt or a new shared fixture is more proof than the project skills require.
+- Rebut, browser screenshots and a model-delivery receipt (GPT blocker 6): more screenshots than this landing's gates. The explainer check stays `just pages-check` and HTTP 200.
+- Follow-up, not in this branch: `newerThan` copies the ledger; the trust sentence is awkward when the only reason is a later line; the pending incumbent still has story-destinations on, which the bundle now turns off in both arms.
 
 ## Boy Scout Log
 

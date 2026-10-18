@@ -64,7 +64,7 @@ describe("registry",()=>{
   expect(dependencyProblems({...ALL_ON,"low-hp-trainer-warning-v1":false})).toContain(`${ID} needs low-hp-trainer-warning-v1`);
  });
  it("defaults OFF for presets that omit it and legacy flags; prompt and tools never change",()=>{
-  const without=Object.fromEntries(Object.entries({...ALL_ON,"state-only-decisions-v1":false,"bag-healing-items-v1":false,"battle-menu-loop-v1":false,"clock-view-loop-v1":false}).filter(([id])=>id!==ID)) as Omit<FeatureSet,typeof ID>;
+  const without=Object.fromEntries(Object.entries({...ALL_ON,"state-only-decisions-v1":false,"bag-healing-items-v1":false,"battle-menu-loop-v1":false,"clock-view-loop-v1":false,"stale-story-goal-v1":false}).filter(([id])=>id!==ID)) as Omit<FeatureSet,typeof ID>;
   expect(normalizeFeatures(without)[ID]).toBe(false);
   expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:true})[ID]).toBe(false);
   expect(presetFeatures(parsePlayPreset({version:2,id:"p",target:null,limits:{maxTurns:1,maxWallMs:1,failureLimit:1},sampling:{thinkingLevel:"medium",maxTokens:1},features:without}))[ID]).toBe(false);

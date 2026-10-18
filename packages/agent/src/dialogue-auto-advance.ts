@@ -426,8 +426,8 @@ export function withDialogueAutoAdvance(tools:readonly AgentTool[],features:Feat
    ...(plan.length<params.buttons.length||(walk&&sent.length<plan.length)?[`Interface safety: submitted ${String(walk?sent.length:plan.length)} of ${String(params.buttons.length)} requested inputs; remaining inputs were not sent. Inspect the new state before another input.`]:[]),
    ...(switches.pressResult?[`Press result: ${(line=>switches.pushback===true&&engaged?pushbackPressResult(line,before,after,finalState,switches):line)(results.every(r=>r.line!==null)?(line=>detail===null?line:afterAdvance(line,detail))(results.length===1?results[0]?.line??"":results.map((r,i)=>`${i===0?"":"then "}${r.buttons.join(", ")}: ${r.line??""}`).join(" | ")):pressResult(before,finalState,sent,switches))}`]:[]),
    ...(block===null?[]:[block])];
-  const notice=carry.missingNotice([...head,seen.text,...extras.map(part=>part.text)]);
-  return {content:[...seen.images,{type:"text",text:`${head.join("\n")}\n${notice===null?"":`\n${notice}\n`}\n${seen.text}`},...extras],details:{state:finalState}};
+  const notices=carry.missingNotices([...head,seen.text,...extras.map(part=>part.text)]);
+  return {content:[...seen.images,{type:"text",text:`${head.join("\n")}\n${notices.length===0?"":`\n${notices.join("\n")}\n`}\n${seen.text}`},...extras],details:{state:finalState}};
  };
  const wrappedPress:CheckedPressTool={...press,description:`${press.description} Field dialogue advances automatically: once a conversation opens, the harness presses B through every page until the next decision point and lists the pages; inputs left in your batch are not sent.${battleSource===null?"":" Battle text advances the same way: while a battle runs its own messages, the harness presses B through each waiting message until a battle menu, a YES/NO question, another screen or the battle's end, and lists every battle message shown."}`,execute:(id,params,signal,update)=>execute(id,params,signal,update),executeChecked:(id,params,check,signal,update)=>execute(id,params,signal,update,check)};
  const out=tools.map(tool=>{
@@ -454,8 +454,8 @@ export function withDialogueAutoAdvance(tools:readonly AgentTool[],features:Feat
    const raw:unknown=result.details;
    const restated=navigationAfter(raw,outcome,switches.pushback===true?scriptMove(state,done.state,switches):null);
    const status=result.content.slice(0,1).filter((part):part is TextContent=>part.type==="text").map(part=>restated===null?part:{...part,text:restated});
-   const notice=carry.missingNotice([...status.map(part=>part.text),done.block,seen.text,...outcome.extras.map(part=>part.text)]);
-   return {content:[...status,...seen.images,{type:"text",text:`${done.block}\n${notice===null?"":`\n${notice}\n`}\n${seen.text}`},...outcome.extras],details:{...Object(raw) as object,state:done.state}};
+   const notices=carry.missingNotices([...status.map(part=>part.text),done.block,seen.text,...outcome.extras.map(part=>part.text)]);
+   return {content:[...status,...seen.images,{type:"text",text:`${done.block}\n${notices.length===0?"":`\n${notices.join("\n")}\n`}\n${seen.text}`},...outcome.extras],details:{...Object(raw) as object,state:done.state}};
   }} satisfies AgentTool;
  });
  const dialogues=new DialogueRecord();full.recorder.subscribe(event=>{dialogues.observe(event);});

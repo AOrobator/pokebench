@@ -7507,6 +7507,40 @@
           },
           "additionalProperties": false
         },
+        "blackout_receipts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "frame",
+              "money_before",
+              "notice"
+            ],
+            "properties": {
+              "frame": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "money_before": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "notice": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "additionalProperties": false
+          },
+          "minItems": 1
+        },
         "game_stats": {
           "anyOf": [
             {

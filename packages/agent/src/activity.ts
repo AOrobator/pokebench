@@ -47,12 +47,14 @@ export class StateActivities {
    }
    }
   }
-  const receipt=state.blackout_receipt;
-  if(receipt!==undefined) {
+  const receipts=[...new Map([...(state.blackout_receipts??[]),...(state.blackout_receipt===undefined?[]:[state.blackout_receipt])].map(receipt=>[receipt.frame,receipt])).values()];
+  if(receipts.length>0) {
+   for(const receipt of receipts) {
    if(!this.blackoutReceipts.has(receipt.frame)) {
     this.blackoutReceipts.add(receipt.frame);
     if(this.sampledBlackoutsWithoutReceipt>0)this.sampledBlackoutsWithoutReceipt--;
     else activities.push({kind:'blackout',count:1,evidence:[previous?.seq??seq,seq]});
+   }
    }
   } else if(previous?.state.blackout_active===false&&state.blackout_active===true) {
    this.sampledBlackoutsWithoutReceipt++;

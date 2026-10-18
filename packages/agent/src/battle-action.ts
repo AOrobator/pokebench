@@ -207,8 +207,8 @@ export function battleActionTool(ports:BattleActionPorts):AgentTool<typeof Battl
    const seen=await ports.observe(id,signal);
    const state=blackout.preserve(blackout.remember(stateOf(seen)));
    const text=/[".!)]$/.test(status)?status:`${status}.`;
-   const notice=blackout.missingNotice([text,...seen.content.flatMap(part=>part.type==="text"?[part.text]:[])]);
-   return {content:[{type:"text" as const,text:`Battle action: ${text}`},...(notice===null?[]:[{type:"text" as const,text:notice}]),...seen.content],details:{state,battle_action:{action,move:typeof plan==="string"?null:plan.name,presses:[...presses],refused,status:text}}};
+   const notices=blackout.missingNotices([text,...seen.content.flatMap(part=>part.type==="text"?[part.text]:[])]);
+   return {content:[{type:"text" as const,text:`Battle action: ${text}`},...notices.map(notice=>({type:"text" as const,text:notice})),...seen.content],details:{state,battle_action:{action,move:typeof plan==="string"?null:plan.name,presses:[...presses],refused,status:text}}};
   };
   if(typeof plan==="string")return finish(`nothing pressed: ${plan}`,true);
   const battler=plan.input.battler;

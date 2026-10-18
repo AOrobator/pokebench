@@ -543,8 +543,8 @@ export function navigationTool(ports:NavigationPorts):AgentTool<typeof Args> {
   // The cap text describes the observation returned with it: "call again" only when the walk can go on.
   // exit-reachability-v1: "call again" only when the goal (or a tile next to it) is on the server's foot area.
   if(truth&&status==="command limit"){const here=state.position;const cut=ports.exitReach===true&&exitBlock({surf:false,reach:true},state).footNear(goal.x,goal.y)===false;status=here!==null&&sameMap()&&ready(state,mode)?`command limit: stopped at ${at(here)} after ${String(commands)} ordinary button attempts, the most one navigate_to call makes; ${cut?`${at(goal)} cannot be reached on foot from where you stand: no walkable way on this map leads from your tile to it or to a tile next to it, so calling navigate_to again will not get there`:`call navigate_to again to continue to ${at(goal)}`}`:`command limit: stopped after ${String(commands)} ordinary button attempts, the most one navigate_to call makes; the field is no longer free to walk, so inspect the new state`;}
-  const notice=blackout.missingNotice(last.content.flatMap(part=>part.type==="text"?[part.text]:[]));
-  return {content:[{type:"text",text:`Navigation: ${status}; ${String(commands)} ordinary button attempts.`},...(notice===null?[]:[{type:"text" as const,text:notice}]),...last.content],details:{state,navigation:{status,commands,target:goal,unready}}};
+  const notices=blackout.missingNotices(last.content.flatMap(part=>part.type==="text"?[part.text]:[]));
+  return {content:[{type:"text",text:`Navigation: ${status}; ${String(commands)} ordinary button attempts.`},...notices.map(text=>({type:"text" as const,text})),...last.content],details:{state,navigation:{status,commands,target:goal,unready}}};
  }};
 }
 

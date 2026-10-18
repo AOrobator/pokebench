@@ -42,6 +42,11 @@ function event<T extends string, P extends Record<string, TSchema>>(type: T, pay
 }
 
 const closed = { additionalProperties: false } as const;
+const BlackoutReceiptSchema=Type.Object({
+  frame:NonNegativeInt,
+  money_before:Type.Union([NonNegativeInt,Type.Null()]),
+  notice:Type.String({minLength:1}),
+},{additionalProperties:false});
 const Args = Type.Record(Type.String(), Type.Unknown());
 
 const Evaluation = Type.Object({preset_id:Type.String({minLength:1}),target:Type.Union([Type.String({minLength:1}),Type.Null()]),failure_limit:Type.Integer({minimum:1}),reply_failures_end_run:Type.Optional(Type.Boolean()),flags:Type.Object({loopGuard:Type.Boolean(),activeUi:Type.Boolean(),interfaceDocs:Type.Boolean(),objectives:Type.Boolean()},closed),features:Type.Optional(Type.Record(Type.String({pattern:"^[a-z0-9-]+$"}),Type.Boolean())),experiment:Type.Optional(Type.Object({id:Type.String({minLength:1,maxLength:100}),arm:Type.String({minLength:1,maxLength:60}),trial:Type.Integer({minimum:1}),of:Type.Integer({minimum:1})},closed))},closed);
@@ -435,11 +440,11 @@ export const StateBodySchema = Type.Object(
     blackout_active:Type.Optional(Type.Union([Type.Boolean(),Type.Null()])),
     // blackout-readout-v1: the frame latch's one-shot delivery receipt. Unlike
     // blackout_active, it survives a complete CB2_WhiteOut between observations.
-    blackout_receipt:Type.Optional(Type.Object({
-      frame:NonNegativeInt,
-      money_before:Type.Union([NonNegativeInt,Type.Null()]),
-      notice:Type.String({minLength:1}),
-    },closed)),
+    blackout_receipt:Type.Optional(BlackoutReceiptSchema),
+    // Composite tools can consume more than one queued one-shot receipt before
+    // returning. Keep the singular field for ordinary server observations and
+    // carry the full ordered set here when that happens.
+    blackout_receipts:Type.Optional(Type.Array(BlackoutReceiptSchema,{minItems:1})),
     game_stats: Type.Optional(Type.Union([Type.Object({
       pokemon_captures:Type.Union([NonNegativeInt,Type.Null()]),
       evolved_pokemon:Type.Union([NonNegativeInt,Type.Null()]),

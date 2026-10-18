@@ -204,7 +204,11 @@ describe("viewer app", () => {
     expect(ui("metric-history").textContent).toContain("1 responses");
     expect(ui("metric-history").querySelector('[data-metric="output"] strong')?.textContent).toBe("100 tokens");
     expect(document.querySelector('.page-picker select')).not.toBeNull();
+    const definitions=must(document.querySelector<HTMLDetailsElement>('#page-stats details'));
+    definitions.open=true;
     feed(stream,fullRun().events.slice(5),false);app.render();
+    expect(document.querySelector('#page-stats details')).toBe(definitions);
+    expect(definitions.open).toBe(true);
     expect(ui("metric-history").querySelector('[data-metric="output"] strong')?.textContent).toBe("300 tokens");
     stream.send("done",{});
     app.clock?.seek(BASE_MS+3500);app.render();

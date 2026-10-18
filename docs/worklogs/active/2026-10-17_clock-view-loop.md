@@ -33,8 +33,8 @@ No new IO, no new server surface, no new model-facing text. The existing cycle w
 - [x] Gates on this tip, before review: `just test` agent 2374, viewer 1137, pytest 2707. `just lint` clean. `just build` ok. `just coverage` agent 98.02/94.22/98.28/99.24, viewer 95.36/91.38/93.79/97.62, Python 97.66/93.82/100. `just experiments-check` ok 106. `just verify-vendor` ok. `just pages-check` on the explainer prints nothing.
 - [x] COMMIT: `feat(clock-view-loop): count reopening the set bedroom clock` (GREEN) `ad55bde3`
 - [x] Explainer, pending experiment, bundle arm (on in the bundle arm of bundle-v-control, off in the control arm)
-- [ ] Multi-model review loop until clean
-- [ ] Land on local main
+- [x] Multi-model review loop until clean
+- [x] Land on local main `982d7f05`
 
 ## Closing the Loop
 
@@ -44,6 +44,7 @@ Tests for the detector and the production wiring. Explainer served locally. The 
 
 - 2026-10-17 11:07 PM: RED. `clock-view-loop.test.ts` on main `a0f669d4`: 3 failed, 2 passed. Last switch is `battle-menu-loop-v1`. The third opening raises no notice. `live.ts` does not read the switch. Commit `5e3c44af`.
 - 2026-10-18 12:30 AM: Round 1 review found three misses. RED adds tests: `navigate_to` off the tile must clear the count, turning on the tile must not, the opening transition before `clock_set` must not count, and the cycle warning must not say a message reopened. Commit `cf013f99`. 3 failed, 5 passed.
+- 2026-10-18 12:44 PM: Operator said to merge. Main had moved to `0e5ca723`. Merged it in and fast-forwarded main to `982d7f05`. `just test` on that commit: agent 2425, viewer 1146, pytest 2707. The uncommitted work already in the main checkout was left uncommitted. Viewer 8790 was left running.
 - 2026-10-18 1:36 AM: Main moved to `bcde8cd4` during review (stale-story-goal landed, and the bundle lists both switches). Merged main in. The guard fixes were already on that commit; this branch keeps the registry text, the explainer, and the tests.
 - 2026-10-18 1:32 AM: GREEN. `just test` agent 2377, viewer 1137, pytest 2707. `just lint` clean. `just coverage` agent 98.02/94.22/98.28/99.24, viewer 95.36/91.38/93.79/97.62, Python 97.66/93.82/100. Explainer checked at 1280, 1440, and 375.
 - 2026-10-17 11:19 PM: GREEN. `clockViews` is `LoopDetector`'s last argument after `menuLoop`, and `attachLoopGuard`'s last argument. Wired from `features["clock-view-loop-v1"]` in `live.ts` and `decision-probe.ts`. Deletion proof: removing that read from `live.ts` failed the production-path test (exit 1); the same for `decision-probe.ts` (exit 1); both restored and the test passed. Bundle arm of `bundle-v-control` lists the switch; base features keep it false, so the control arm stays off. Pending `experiments/clock-view-loop.json` has no queue position. `source.commit` is the RED sha `5e3c44af84a0b657c3ad89fb9b0969e95ed7459d`; repin to the merge SHA after landing.
@@ -56,7 +57,7 @@ Tests for the detector and the production wiring. Explainer served locally. The 
 
 Round 2, packet base `bcde8cd4`, head `9c6d5ab8`, diff SHA-256 `5844734f4316d96cc5e3dcb1baa2bc245ed5e9d88bdd037b922954c9bb554bce`. Claude `claude-opus-5-5-high` and Grok `cursor-grok-4.5-high` ended `VERDICT: LGTM`. GPT `gpt-5.6-sol-xhigh` ended `VERDICT: BLOCKING`.
 
-GPT's blocker: the new sentence said the warning does not claim a message reopened. That is true only when navigation-truth is on. The pending experiment leaves navigation-truth off, so the existing cycle sentence still adds the clause. The bundle arm has navigation-truth on. The sentence is now qualified. That change is not in the reviewed packet. Round cap is 2, so this branch is not fast-forwarded.
+GPT's blocker: the new sentence said the warning does not claim a message reopened. That is true only when navigation-truth is on. The pending experiment leaves navigation-truth off, so the existing cycle sentence still adds the clause. The bundle arm has navigation-truth on. The sentence is now qualified. The operator said to merge without another review. Main fast-forwarded to `982d7f05`.
 
 Round 1, packet head `2ba6905d`, diff SHA-256 `b408c4ba89529edb409d14e8f2b607e1635a7d617e54779dd7b99752f93ab5e3`. Claude lane was Cursor Claude `claude-opus-5-5-high` because `~/.claude-review` reported loggedIn false. Grok was `cursor-grok-4.5-high`. GPT was `gpt-5.6-sol-xhigh`. Each ended `VERDICT: BLOCKING`. The guard fixes landed on main in `bcde8cd4` before round 2.
 

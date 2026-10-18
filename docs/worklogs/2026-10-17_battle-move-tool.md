@@ -77,3 +77,7 @@ Evidence:
 
 - 2026-10-17 05:00 PM EDT: Merge-delta review (3d9581c6..f7923b5c, packet sha256 6d4d1ab1…5e81): Claude LGTM, Grok cursor-grok-4.5-high LGTM, Codex gpt-5.6-sol LGTM. Landing hold for exit-reachability-v1 cleared (landed 65a4b021).
 - 2026-10-17 05:02 PM EDT: LANDED: main fast-forwarded to f7923b5c. On main after `just build`: agent 2254, pytest 2564 (with .env ROM) passed; viewer 1117 passed with --maxWorkers=2 (full-parallel run had 4 timeouts in untouched server-stream/experiment-cli tests at load average 44). Experiment battle-move-tool repinned. Bundle arm; bundle-v-control owner adds it.
+
+## Archived
+
+2026-10-17, 8:40 PM EDT, on the operator's request to archive worklogs whose implementation is already on main (f7923b5c Merge branch 'main' into claude/battle-move-tool). Unchecked boxes left above are bookkeeping from before that landing.

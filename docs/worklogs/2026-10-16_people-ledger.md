@@ -72,3 +72,7 @@ Story characters here: none. Not on this map: PROF. BIRCH, MAY, BRENDAN, MOM, NO
   COMMIT: `Merge branch 'main' into claude/people-ledger; ledger composes with untaken exits and navigate-first` (81430d7b)
 - 2026-10-16 06:52 AM EDT: review round 6 on the merge delta only (`git show --cc 81430d7b`, sha256 b0bd4f63…): Claude CLI LGTM, Codex LGTM, Grok LGTM; HEAD, clean status and digest verified after. Follow-ups (not done): composition test has no warp, so its untaken line is the "none" form; registry blurbs both say "right after Position" without naming the dual-ON order; stale PB5 wording and a levelup-box test title.
 - 2026-10-16 06:53 AM EDT (parent session): fast-forwarded main to 9a1ea32d (people-ledger-v1 landed, main hold for registry branches lifted). Repinned experiments/people-ledger.json source.commit to 9a1ea32d.
+
+## Archived
+
+2026-10-17, 8:40 PM EDT, on the operator's request to archive worklogs whose implementation is already on main (9a1ea32d docs(worklog): people-ledger round 6 merge delta LGTM). Unchecked boxes left above are bookkeeping from before that landing.

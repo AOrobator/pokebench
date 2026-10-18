@@ -203,4 +203,8 @@ Zero FAIL.
 
 ## Archive Milestone (user-gated)
 
-- [ ] ASK USER: archive this worklog
+- [x] ASK USER: archive this worklog
+
+## Archived
+
+2026-10-17, 8:40 PM EDT, on the operator's request to archive worklogs whose implementation is already on main (7334cfda Merge branch 'main' into claude/battle-start-journal (trainer heal, low-HP warning, briefing outcomes, blocked exit, loss recap, push-back, battle observation loop)). Unchecked boxes left above are bookkeeping from before that landing.

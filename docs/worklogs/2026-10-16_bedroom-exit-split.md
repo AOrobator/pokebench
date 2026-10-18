@@ -21,3 +21,7 @@ Operator ask (the operator, 2026-10-16 00:17 EDT): a milestone for leaving your 
   - Codex CLI default model gpt-6.1-sol refused (400, ChatGPT account); Cursor gpt-5.6-sol-xhigh hit its usage limit; Codex -m gpt-5.6-sol ran: BLOCKING (High) measurement-only milestones are valid STOP AT targets and the target goes into the model's goal (live.ts playGoal/task). Accepted: refuse measurement-only targets in parsePlayPreset; drop the target-stop branch. RED committed. GREEN: agent 1274/1274 (cov 97.62/94.22/97.87/99.03), lint clean; no on-disk preset targets a measurement-only split.
   - grok cursor-grok-4.5-high: LGTM with low/medium notes. Accepted: explainer + Harness Config link (medium), refuse measurement-only finals.target (low). Deferred: residual leave-home credit for a save that left and returned with rival state 0/1 (no game state records it); stall tests use the shared set, not the new name. RED committed.
 - [x] M4 Experiment thread OK'd landing before the bundle-v-control re-pin; operator said merge (2026-10-16 01:10 EDT). MERGE: `Merge branch 'claude/bedroom-exit-split'` (bf246930). Main: agent 1274, viewer 790 passing. `just viewer-main` at bf246930, 1 live gameplay process kept; Harness Config LEFT BEDROOM card links /explainers/bedroom-exit-v1.html, which serves 200 with the page.
+
+## Archived
+
+2026-10-17, 8:40 PM EDT, on the operator's request to archive worklogs whose implementation is already on main (bf246930 Merge branch 'claude/bedroom-exit-split'). Unchecked boxes left above are bookkeeping from before that landing.

@@ -57,4 +57,8 @@ Factory test through the production playGameTools.
 
 ## Archive Milestone (user-gated)
 
-- [ ] ASK USER: archive.
+- [x] ASK USER: archive.
+
+## Archived
+
+2026-10-17, 8:40 PM EDT, on the operator's request to archive worklogs whose implementation is already on main (8280b57a Merge branch 'main' into claude/harness-trust-v2). Unchecked boxes left above are bookkeeping from before that landing.

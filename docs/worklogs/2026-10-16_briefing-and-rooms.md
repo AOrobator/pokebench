@@ -148,3 +148,7 @@ Not here: loop-detection.ts and press-result text (claude/pushback-loop-guard).
 
 - 2026-10-16 06:40 AM EDT: Review round 11 (main 45db59c1..780f40a5, packet sha256 78ff1d3d…3f07): Codex gpt-5.6-sol LGTM, Grok cursor-grok-4.5-high LGTM, Claude sub-agent LGTM.
 - 2026-10-16 06:40 AM EDT: LANDED: main fast-forwarded to 780f40a53168968a813fb5655107bcc9c043570b. On main after `just build`: agent 1682 (runs-cli timeout flake passed on rerun, 16/16), viewer 907, pytest 2251 passed / 46 skipped. Experiments briefing-exits and untaken-exits repinned.
+
+## Archived
+
+2026-10-17, 8:40 PM EDT, on the operator's request to archive worklogs whose implementation is already on main (780f40a5 Merge main into claude/briefing-and-rooms). Unchecked boxes left above are bookkeeping from before that landing.

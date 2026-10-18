@@ -26,3 +26,7 @@ Viewer only, phone widths (`max-width: 700px`, the existing phone breakpoint); t
 - [ ] Live on 8790: restart through the coordinator, then check the phone header on live runs.
 
 Follow-ups (not in scope; from reviews): placement re-inserts elements on every resize (could blur a focused picker on iOS toolbar resizes); the sheet body still rebuilds once per turn (Turn N); no focus trap or aria-modal; focus after a picker pick and after widening lands on a hidden element.
+
+## Archived
+
+2026-10-17, 8:40 PM EDT, on the operator's request to archive worklogs whose implementation is already on main (53e17fbb Merge branch 'main' into claude/viewer-header-q). Unchecked boxes left above are bookkeeping from before that landing.

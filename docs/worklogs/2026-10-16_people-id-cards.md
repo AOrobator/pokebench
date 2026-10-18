@@ -234,4 +234,8 @@ No new network surface: the server field rides the existing state endpoint on 12
 
 ## Archive Milestone (user-gated)
 
-- [ ] ASK USER: archive this worklog.
+- [x] ASK USER: archive this worklog.
+
+## Archived
+
+2026-10-17, 8:40 PM EDT, on the operator's request to archive worklogs whose implementation is already on main (04a4c165 docs(worklog): people-id-cards round 2 LGTM from Claude, Codex and Grok). Unchecked boxes left above are bookkeeping from before that landing.

@@ -34,3 +34,7 @@ Fix: `frontierPlot` takes the frontier's verified status (`"live" | "paused" | n
 - [x] GREEN: `FrontierStatus` type; `frontierPlot(..., zoom, frontierStatus = null)` drives both the legend's LIVE/PAUSED and the gold line's live/paused group and live head; the run's stored status is no longer read for either. `Workbench.renderCharts` passes `refs.best.status` only when `this.verified` and it is live/paused, independent of filters. Viewer 911 tests; coverage 95.32 / 91.12 / 93.63 / 97.62 (frontier.ts 99.52 / 95.08 / 100 / 100); tsc + eslint clean.
 - [ ] Re-review (Codex, grok, Claude), then operator approval to merge.
 - [x] Reviews: full branch Codex BLOCKING (stale LIVE) then fixed; grok and Claude LGTM; delta 23e32094..49a95064 Codex, grok and Claude `VERDICT: LGTM`. Merging to main 2026-10-16 6:42 AM EDT.
+
+## Archived
+
+2026-10-17, 8:40 PM EDT, on the operator's request to archive worklogs whose implementation is already on main (49a95064 fix(viewer): frontier LIVE label and glow share one verified status). Unchecked boxes left above are bookkeeping from before that landing.

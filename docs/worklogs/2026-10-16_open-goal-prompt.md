@@ -116,3 +116,7 @@ Zero FAIL rows.
 
 - 2026-10-16 06:10 PM EDT: Review round 6 (140e1c82..2fcb544b, packet sha256 4c8e2507…1fe8): Claude CLI LGTM, Grok cursor-grok-4.5-high LGTM, Codex gpt-5.6-sol LGTM. Round 5 (53448a0d..99a877c4) was also LGTM x3.
 - 2026-10-16 06:11 PM EDT: LANDED: main fast-forwarded to 2fcb544b. On main after `just build`: agent 2063, viewer 1037, pytest 2498 passed. Experiment open-goal-prompt repinned. Bundle arm (the operator); bundle-v-control owner adds it.
+
+## Archived
+
+2026-10-17, 8:40 PM EDT, on the operator's request to archive worklogs whose implementation is already on main (2fcb544b docs(worklog): open-goal-prompt gates after the people-id-cards sync). Unchecked boxes left above are bookkeeping from before that landing.

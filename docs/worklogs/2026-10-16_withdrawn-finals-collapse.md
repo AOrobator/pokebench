@@ -15,3 +15,7 @@ The stats page still led its experiment section with the withdrawn whole-map nav
 - [x] Re-review 1: grok LGTM; Codex BLOCKING: a fixed runner in state waiting has not taken the gameplay lease, so it must not claim to pause the queue. RED: waiting keeps the old notices.
 - [x] GREEN: `paused` requires runnerAlive and state running. Viewer 782 tests; coverage 95.08 / 90.46 / 93.55 / 97.59; lint clean. Delta re-review next.
 - [x] Delta re-review: Codex `VERDICT: LGTM`, grok `VERDICT: LGTM`. Merging to main (operator OK 2026-10-16 2:28 AM EDT).
+
+## Archived
+
+2026-10-17, 8:40 PM EDT, on the operator's request to archive worklogs whose implementation is already on main (f1c7d40c Merge branch 'claude/withdrawn-finals-collapse'). Unchecked boxes left above are bookkeeping from before that landing.

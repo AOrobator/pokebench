@@ -266,3 +266,7 @@ Any valid trial that still ends before the wall cap is listed in a WARNING table
 ## Multi-Model Review Log
 
 ## Boy Scout Log
+
+## Archived
+
+2026-10-17, 8:40 PM EDT, on the operator's request to archive worklogs whose implementation is already on main (4ce5e7a4 Merge branch 'claude/bundle-v-control'). Unchecked boxes left above are bookkeeping from before that landing.

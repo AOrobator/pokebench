@@ -70,7 +70,7 @@ Read-only GET on the loopback game server; reads ROM and the save block under th
 ## Boy Scout Log
 
 ## Archive Milestone (user-gated)
-- [ ] ASK USER
+- [x] ASK USER
 - 2026-10-16 ~3:35 PM EDT: merged main e349269c (depth order, frontier versions; no conflicts) into the branch (8225d35d). Gates with the ROM: agent 1903, viewer 1002, pytest 2485 passed, 0 skipped; coverage agent 98.00/94.47/98.46/99.15, viewer 95.56/91.32/93.91/97.75, Python 97.55/93.61/100; tsc, eslint, ruff, mypy clean. Main then moved to 986cb496 (viewer legend only); merging that before sealing the review packet.
 - 2026-10-16 ~3:45 PM EDT: merged main 986cb496 (viewer legend only, clean). Gates with the ROM: agent 1903, viewer 1003, pytest 2485 passed, 0 skipped; coverage agent 98.00/94.47/98.46/99.15, viewer 95.57/91.33/93.97/97.75, Python 97.55/93.61/100; lint clean; build ok. Principles self-review r1 (PB1–PB13): zero FAIL (PB1, PB2 N/A; the rest PASS; artifact .cache/review/principles-r1.md). Sealing the round-1 packet: git diff --binary main HEAD.
 
@@ -99,3 +99,7 @@ Remove the NPC part: no more "- MAY (spoke the line): …" people lines and no "
 
 - 2026-10-17 01:14 PM EDT: Review round 3 (666291ee..9060af6c, packet sha256 d3e44bb7…d2e3): Claude CLI LGTM, Grok cursor-grok-4.5-high LGTM, Codex gpt-5.6-sol LGTM. People lines removed per the operator (12:59 PM, "drop it").
 - 2026-10-17 01:16 PM EDT: LANDED: main fast-forwarded to 9060af6c. On main after `just build`: agent 2105, viewer 1101, pytest 2530 passed. Experiment story-destinations repinned. Bundle arm (the operator); bundle-v-control owner adds it.
+
+## Archived
+
+2026-10-17, 8:40 PM EDT, on the operator's request to archive worklogs whose implementation is already on main (9060af6c feat: story-destinations-v1 lists no people; the latest story line is shown only for the places it resolves). Unchecked boxes left above are bookkeeping from before that landing.

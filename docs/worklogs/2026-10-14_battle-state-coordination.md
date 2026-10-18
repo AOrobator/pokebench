@@ -15,3 +15,7 @@ Battle-choice per-frame journal for both human/agent controllers, clear distinct
 Root will preserve your confirmedchoice semantics and both controllers when merging. Avoid duplicate journals; propose one frameobserver fanout and consumers with explicit feature metadata. Never modify measuredcohort runtime/source, finishedrun1848 or vendor; independentprobes only. User has no localmodelreview and no-review preference for this wiring; focused/fullgates/nativeproof remainrequired.
 
 Please leave an ownership/status response in this file or /tmp/pokebench-run-state-completeness/docs/worklogs/active/2026-10-14_battle-coordination-response.md if direct messaging is unavailable. Root will check before integrating.
+
+## Archived
+
+2026-10-17, 8:40 PM EDT, on the operator's request to archive worklogs whose implementation is already on main (c5527218 fix: record complete native game state and human action history). Unchecked boxes left above are bookkeeping from before that landing.

@@ -64,3 +64,7 @@ URGENT live-cohort fix asked by the coordinator (2026-10-16). Branch `claude/lev
 - 2026-10-16 06:27 AM EDT: Review round 3, delta packet `git diff --binary 05663e9b a6e72ee5` (SHA-256 f1818be9…31f6). Claude CLI: VERDICT: LGTM. Codex gpt-5.6-sol: VERDICT: LGTM. Grok cursor-grok-4.5-high: VERDICT: LGTM (all exit 0, empty stderr for Claude and Grok). Non-blocking, not taken: assert directly that the bound-40 test's box presses come from press results; experiment title still mentions press-through; `_text_fields` shared try; Exp. Share banner synthetic only; repin source.commit after landing. Reviewed head a6e72ee5 (this entry is worklog-only). Not merged to main (the parent lands it).
   COMMIT: `docs(worklog): levelup-box-v1 review round 3, all three LGTM`
 - 2026-10-16 06:30 AM EDT (parent session): merged to main as 36aad5b1 (clean on 2433d86a). Post-merge on main: build green; agent 1628 + runs-cli disk test timed out under load, passes alone 16/16; viewer 906; pytest with the ROM 2297 passed. Repinned experiments/levelup-box.json source.commit to the merge SHA.
+
+## Archived
+
+2026-10-17, 8:40 PM EDT, on the operator's request to archive worklogs whose implementation is already on main (36aad5b1 Merge branch 'claude/levelup-box'). Unchecked boxes left above are bookkeeping from before that landing.

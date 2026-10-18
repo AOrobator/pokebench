@@ -14,3 +14,7 @@ Cause: `lanesSvg` draws everything in one SVG with `viewBox="0 0 1000 H"` and `p
 - [x] COMMIT: `fix(viewer): press labels stay aria-hidden and shrink on phones` (e74a8040)
 - [x] Review round 2 on e74a8040 (base 154d905e): Claude LGTM, Grok LGTM, Codex LGTM. Landed fast-forward: main = e74a8040; viewer 905 tests pass on main.
 - [x] 8790 restart at 06:28 New York (coordinator's slot): viewer at main. The two round 3 fixed-run trials (live.js 22909, 22914) survived and show LIVE in the run selector (05-51-58 gpu0_7a95 and gpu1_7f38). The restart script reported two lost processes, 55321 and 57550; these were `serial-comparison.test.ts` vitest children in a temp `pokebench-comparison-*` dir from another session's test run, not benchmark runs. Live at 2400px: "presses" label 40.9×13px (natural), 0 `<text>` in the timeline SVG.
+
+## Archived
+
+2026-10-17, 8:40 PM EDT, on the operator's request to archive worklogs whose implementation is already on main (e74a8040 fix(viewer): press labels stay aria-hidden and shrink on phones). Unchecked boxes left above are bookkeeping from before that landing.

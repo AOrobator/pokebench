@@ -66,3 +66,7 @@ Branch claude/route103-review-notes. Claude-lane low/info notes from final round
 - GREEN: runsRootFor uses fileURLToPath; RUNS_ROOT = runsRootFor(import.meta.url). runs-cli 18/18; just test (ROM set) agent, viewer 933, pytest 2372 pass; coverage agent 97.99/94.69/98.4, viewer 95.33/91.09/93.68, Python 97.42/93.35/100; lint clean.
 - Review round 2: Claude LGTM, grok LGTM, Codex BLOCKING (medium: the %20 test hard-coded a POSIX file URL). Fixed: the URL and expected path are built with pathToFileURL, join and sep under tmpdir. Mutation check: reverting runsRootFor to URL.pathname turns the test red; restored.
 - Round 3 (packet 14f1bb45): Claude subagent, grok and Codex LGTM. Re-synced; diff byte-identical. Gates on the tip: viewer 971, pytest 2372 (ROM set), coverage agent 97.99/94.69/98.4, viewer 95.41/91.17/93.79, Python 97.42/93.35/100, lint clean. MERGE: fast-forward of main to `008ac3d2` (14:18 EDT, outside the :40 to :55 pin window). `just test` on main with the real 26 GB runs/: agent 1874/1874, viewer 971, pytest 2372, no runs-cli timeout.
+
+## Archived
+
+2026-10-17, 8:40 PM EDT, on the operator's request to archive worklogs whose implementation is already on main (008ac3d2 Merge branch 'main' into claude/runs-cli-fixture). Unchecked boxes left above are bookkeeping from before that landing.

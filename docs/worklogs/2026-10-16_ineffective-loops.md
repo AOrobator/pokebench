@@ -134,3 +134,7 @@ No new inputs, files, processes or network. Fixtures are trimmed copies of local
 - Landing: the coordinator lands f7ee1bae with `git merge --ff-only` (worktree sessions cannot run git in the main checkout). This entry is an evidence-only commit on top that touches only docs/worklogs.
 
 - 2026-10-16 05:10 PM EDT: LANDED: main fast-forwarded to f7ee1bae (reviewed, round 6 LGTM x3) and the evidence-only 48199842. On main after `just build`: agent 2022, viewer 1028, pytest 2498 passed. Experiment ineffective-loops repinned. Bundle arm (the operator); bundle-v-control owner adds it.
+
+## Archived
+
+2026-10-17, 8:40 PM EDT, on the operator's request to archive worklogs whose implementation is already on main (f7ee1bae docs(worklog): ineffective loops main sync and gates before review round 6). Unchecked boxes left above are bookkeeping from before that landing.

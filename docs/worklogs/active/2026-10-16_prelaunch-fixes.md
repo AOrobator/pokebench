@@ -77,6 +77,7 @@ Done when every milestone is merged, qualification shows none of F1–F8, the fo
 
 ## Session Log
 
+- 2026-10-17 08:45 PM EDT: archived 50 active worklogs whose implementations are already on main (76431ffd). This worklog stays active; launch approval is still open.
 - 2026-10-17 07:45 PM EDT: no-exit-here-v1 (landed 18bb0a4b; needs world-destinations-v1, on in both) joins the bundle-v-control bundle arm; open-goal-prompt.json incumbent follows. Previous commit 2c2023d8.
 - 2026-10-17 07:42 PM EDT: navigation-evidence-memory-v1 leaves the bundle, off in both (the operator 7:40 PM EDT). The RAM-confirmed bug fixes stay bundle-only: tutorial-party-owner-v1, mid-frame-readout-v1, unset-dynamic-warp-v1 already in; field-whiteout-record-v1 joins when it lands. open-goal-prompt.json incumbent follows. Previous commit cf52c8f7.
 - 2026-10-17 06:08 PM EDT: instruction-ledger-v2 (landed 9b4dcc15; needs dialogue-auto-advance-v1, on in both) joins the bundle-v-control bundle arm; open-goal-prompt.json incumbent follows. Previous commit a04de386.

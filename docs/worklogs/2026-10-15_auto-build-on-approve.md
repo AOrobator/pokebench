@@ -31,3 +31,7 @@ Operator request (2026-10-15): approving an experiment in the viewer queue must 
 - [x] COMMIT: `feat(viewer): the experiment queue rebuilds the agent itself instead of asking for just build` (f39a93e). Tests: viewer 585 passed; coverage all files 94.97 / 90.65 / 93.77; lint clean.
 - [x] Review round 4 (Claude CLI, Cursor Grok 4.5 high): both LGTM. Noted, no change: hand-started `just run` does not take the gameplay lease (pre-existing); a human restart during a build reads as "still draining".
 - [ ] Operator approves the local merge; restart the 8790 viewer on main.
+
+## Archived
+
+2026-10-17, 8:40 PM EDT, on the operator's request to archive worklogs whose implementation is already on main (781b77c7 Merge branch 'claude/auto-build-on-approve'). Unchecked boxes left above are bookkeeping from before that landing.

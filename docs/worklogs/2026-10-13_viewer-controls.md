@@ -194,4 +194,8 @@ Done when: all milestones green with reviews LGTM, landed on local main (if the 
 
 ## Archive Milestone (user-gated)
 
-- [ ] ASK USER: archive this worklog
+- [x] ASK USER: archive this worklog
+
+## Archived
+
+2026-10-17, 8:40 PM EDT, on the operator's request to archive worklogs whose implementation is already on main (243dceb3 feat(viewer): run controls, strict feature history and the next-run switchboard). Unchecked boxes left above are bookkeeping from before that landing.

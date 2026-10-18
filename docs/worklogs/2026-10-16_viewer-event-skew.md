@@ -45,3 +45,7 @@ main moved under the branch (workbench runs reduce in `loadRun` on worker thread
 - [x] Gates: agent 1568 tests passed; viewer 66 files / 901 tests passed. Coverage agent 97.88 / 94.57 / 98.21 / 99.15; viewer 95.32 / 91.11 / 93.62 / 97.62. `pnpm -r lint` and `pnpm -r build` clean.
 - [x] Real runs again (copies, 308ddd3e schema grafted, loads routed through `handleBaselineRequest` with structured-cloned plain data): unknown build — gpu0_54a7 invalid (`line 4553: invalid state event at /battle: unexpected property message`); viewer 308ddd3e — gpu0_54a7 live, turn 241, 22 splits to OLDALE_TOWN, same restart-the-viewer problem (83 skipped); gpu1_1623 live, 11 splits.
 - [x] Delta review of 9231e30d..ac50a462: Codex, grok and Claude `VERDICT: LGTM`. Merging to main.
+
+## Archived
+
+2026-10-17, 8:40 PM EDT, on the operator's request to archive worklogs whose implementation is already on main (ac50a462 docs(worklog): viewer-event-skew main merged and skew ported at 60b698b2). Unchecked boxes left above are bookkeeping from before that landing.

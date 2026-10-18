@@ -101,3 +101,7 @@ Read-only RAM decoding and text. No subprocesses, no network, no new endpoints. 
 
 - 2026-10-16 03:55 PM EDT: Final review on bd50aafa (packet sha256 39d029b2…4f62, base 986cb496): Claude CLI LGTM, Grok cursor-grok-4.5-high LGTM, Codex gpt-5.6-sol LGTM (round 2, after exact-head gates). Note: earlier entries stamped 3:45/3:55 PM actually ran about 3:15-3:40 PM.
 - 2026-10-16 03:55 PM EDT: LANDED: main 85d0ef48 (worklog move only) merged into bd50aafa as 49e18c58; `git diff main 49e18c58` byte-identical to the reviewed packet; main fast-forwarded to 49e18c58. On main after `just build`: agent 1897, viewer 1003, pytest 2498 passed. Experiment surf-gated-exits repinned. Bundle arm only (the operator); bundle-v-control owner adds it.
+
+## Archived
+
+2026-10-17, 8:40 PM EDT, on the operator's request to archive worklogs whose implementation is already on main (49e18c58 Merge main (worklog move 85d0ef48) into claude/surf-gated-exits). Unchecked boxes left above are bookkeeping from before that landing.

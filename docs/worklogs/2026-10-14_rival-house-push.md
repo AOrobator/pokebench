@@ -336,3 +336,7 @@ COMMIT: `feat(experiments): register next-milestone-hint as a pending experiment
   local Hermes endpoint ~/.hermes/runtimes/llamacpp/server.json, model Qwen3.8-Flash-Next-UD-IQ4_XS).
   runs/launch-receipts/factorial-chain/run-all.sh runs Think Fast then Qwen under caffeinate;
   started 22:35:58Z, reparented to launchd (ppid 1, own process group), adopted trial 1.
+
+## Archived
+
+2026-10-17, 8:40 PM EDT, on the operator's request to archive worklogs whose implementation is already on main (9bda476e feat(agent): add game-evidence-priority-v1 prompt guidance switch). Unchecked boxes left above are bookkeeping from before that landing.

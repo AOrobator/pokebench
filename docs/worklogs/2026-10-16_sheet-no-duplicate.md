@@ -17,3 +17,7 @@ Viewer only, no feature switch. `run-head.ts` `sheetHtml`: an other-run card who
 - [x] Landed: main 404d9a34 merged in, gates rerun (viewer 971), branch diff still 1a2e4f7f; `git merge --ff-only` -> main 043f695b.
 - [ ] `just test` on main is RED: `packages/agent/src/runs-cli.test.ts` "uses the repo runs/ directory and the 500 MB cap" scans the real runs/ (26 GB) and now takes 5.1–6.6 s against the 5 s timeout on every run (3 of 3). Pre-existing and unrelated to this change (agent package untouched); reported to the operator, fix proposed on its own branch.
 - [ ] Live on 8790: restart through the Viewer down thread, then check the sheet on live runs.
+
+## Archived
+
+2026-10-17, 8:40 PM EDT, on the operator's request to archive worklogs whose implementation is already on main (043f695b Merge branch 'main' into claude/sheet-no-duplicate). Unchecked boxes left above are bookkeeping from before that landing.

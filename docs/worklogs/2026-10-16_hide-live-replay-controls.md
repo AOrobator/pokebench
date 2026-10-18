@@ -17,3 +17,7 @@ Viewer only, no harness behavior change, so no feature switch. `static/index.htm
 - [x] Landed: main b0310914 merged into the branch, gates rerun (viewer 906, agent 1629 tests), branch diff still b43ae12c; `git merge --ff-only` -> main 8c98cb7c. `just test` on main: first run timed out `runs-cli.test.ts` "uses the repo runs/ directory and the 500 MB cap" (5 s limit scanning the 20 GB real runs/; unrelated to this change), rerun passed (TS 1629 + 906, Python 2297).
 
 Follow-ups (not in scope): `runs-cli.test.ts` repo-runs test is load-sensitive; `viewer-restart.sh` kills any process matching live.js, including vitest children (coordinator note 2026-10-16 6:28 AM EDT).
+
+## Archived
+
+2026-10-17, 8:40 PM EDT, on the operator's request to archive worklogs whose implementation is already on main (8c98cb7c Merge branch 'main' into claude/hide-live-replay-controls). Unchecked boxes left above are bookkeeping from before that landing.

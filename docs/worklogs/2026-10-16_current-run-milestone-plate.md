@@ -76,3 +76,7 @@ already polls it for the queue, so QueuePanel hands each parsed snapshot to the 
 
 ## Log
 - [x] Re-review of 7350dbb7..ddd836e3: Codex `VERDICT: LGTM`, grok `VERDICT: LGTM` (nit: no bootWorkbench integration test for the two hooks). Merging to main (operator OK 2026-10-16 2:28 AM EDT).
+
+## Archived
+
+2026-10-17, 8:40 PM EDT, on the operator's request to archive worklogs whose implementation is already on main (ddd836e3 fix(viewer): plates keep focus across membership, unknown lanes, derived splits (GREEN)). Unchecked boxes left above are bookkeeping from before that landing.

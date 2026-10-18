@@ -178,7 +178,7 @@ None.
 
 ## Archive Milestone (user-gated)
 
-- [ ] ASK USER: archive this worklog after wiring and playthrough status are recorded.
+- [x] ASK USER: archive this worklog after wiring and playthrough status are recorded.
 
 ### Cumulative review R1 and accepted fix batch
 
@@ -318,3 +318,7 @@ None.
 - Audit input/frame integrity, unsupportedUI ownership, invalidpartydecode and missedprogress/activity; distinguisholdrun gaps fromlatestimplementednext-run fields. Userstrategy amendments:afterharvestreplantsameberry; prioritizesdamage oropponentdisruption/status (paralysislimitsopponentactions), not justdamagingmoves. Parallelreadonlyauditors inspectallstate/nativeflags andbattle/nonbattlescreenshots. No runtime/model/sourcechanges authorizedbythisaudit; preserveoriginalfinishedlog andrecord receipts separately.
 
 - Finishedaudit:100,268consecutiveevents,49,237inputintervals0–397952continuous,all13,324screenshotfiles/hashmatch. Screenshotmedian501ms/three1.112–1.262sgaps; statemedian192ms/oneunpaused1.038sgap.24,342/37,664stateunsupported including21,946battleowner08038421; otheractionablemenus starter/party/Bag/shop/summary confirmed, animations notmisclassifiedas28actionabledefects.29invalidspecies samples proven, currentreaderstilllackschecksum/speciesguards, in-placegamedecryptiononlypossibleunprovenrootcause. No missednativeflag completion; historicalroutesrecovered. Remaining nativecoverage berries (8samevariety pairs), Woods/116trainerwins, capturedspecies/boxdestination, learnedmoves/inventory andoptional115/116/Tunnelvisits. All13,324frames OCR-scanned withpositiveproofvisualverification;8itempickups and8berrypairs identified. NoCutHM/QuickClawreceipt found, notabsenceproof; Cascoon caught, noevolutionproof. Saved state/milestone/resourcesaudits andcontactsheetreceipts underharness-audit; sourcefindings committed. Originaleventsunchanged, no runtime/model implementationchanges orperformancebenefitclaim; priorgates notrerun forread-only/docwork. Updatedinterviewberryreplant/opponentdisruptionrationale.
+
+## Archived
+
+2026-10-17, 8:40 PM EDT, on the operator's request to archive worklogs whose implementation is already on main (46df815b merge human playthrough with current state-only event support). Unchecked boxes left above are bookkeeping from before that landing.

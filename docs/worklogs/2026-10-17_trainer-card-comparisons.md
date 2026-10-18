@@ -28,3 +28,7 @@ No harness behavior change, so no feature switch.
 - [x] Landed 2026-10-17 12:35 PM EDT: `git merge --ff-only` -> main 8ace2510. `just test` on main: agent 2084, viewer 1080, Python 2502. `just viewer-main`: viewer at 8ace2510, 2 live runs kept.
 - [x] Live on 8790: /comparisons shows both live runs (93eb control, 0e05 bundle) as gold trainer cards with LANE A · GPU1 / LANE B · GPU0 under them, all text painted, no plates. Clicking a card opens the viewer on that run.
 - Follow-ups: art load before the first snapshot has no timeout (Claude H3); syncCards keeps focus by index rather than across reorders; negative tests for experiment arm/of (GPT round 2).
+
+## Archived
+
+2026-10-17, 8:40 PM EDT, on the operator's request to archive worklogs whose implementation is already on main (8ace2510 feat(viewer): comparisons page draws live runs as the shared trainer card (GREEN)). Unchecked boxes left above are bookkeeping from before that landing.

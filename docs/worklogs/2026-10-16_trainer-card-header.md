@@ -60,3 +60,7 @@ No harness behavior change, so no feature switch.
 - [x] Live check on 8790: two cards (control 93eb, bundle 0e05) with card clocks equal to the header clock (42:58). Clicking bundle watches it (RUNNING, aria-pressed). The phone sheet shows the mini cards, watched first. Screenshots: runs/reviews/2026-10-16-trainer-card-e2e/live-8790-*.
 - Follow-ups: focus restore keyed by run, not position (Claude H1, round 2); test card count changing between polls; keyed mini-card updates in the sheet.
 - Grok round 3 (packet 4bd75229, the landed diff): VERDICT: LGTM, returned after landing.
+
+## Archived
+
+2026-10-17, 8:40 PM EDT, on the operator's request to archive worklogs whose implementation is already on main (ceddc5e6 Merge branch 'main' into claude/trainer-card-header). Unchecked boxes left above are bookkeeping from before that landing.

@@ -143,7 +143,7 @@ Lanes: the think_fast/think_swarm endpoint lanes are not used while overnight tr
 
 ## Archive Milestone (user-gated)
 
-- [ ] ASK USER: archive
+- [x] ASK USER: archive
 
 
 ### Round 1 (packet base 1e1feec9, head 497b39e4, diff SHA-256 4719290e…77adf; boundary and principles in the session scratchpad)
@@ -206,3 +206,7 @@ Lanes: the think_fast/think_swarm endpoint lanes are not used while overnight tr
 
 - 2026-10-16 05:15 AM EDT: merged into main at 164d7a79 (`Merge branch 'claude/nav-guidance'`). Pending experiments offscreen-objects, navigate-first-prompt, presence-penalty pinned to 164d7a79 (`just experiment-pin`). Switch names and SHA sent to the coordinator for the readiness thread (owner of experiments/fixed/bundle-v-control.json). Viewer 8790 restart left to the stats thread (coordinator instruction 05:17 AM).
   COMMIT: `experiments: pin offscreen-objects, navigate-first-prompt and presence-penalty to their merge`
+
+## Archived
+
+2026-10-17, 8:40 PM EDT, on the operator's request to archive worklogs whose implementation is already on main (164d7a79 Merge branch 'claude/nav-guidance'). Unchecked boxes left above are bookkeeping from before that landing.

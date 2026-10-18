@@ -76,3 +76,7 @@ feature-switch, feature-explainer, agent-observability, pokebench-game-state (pl
 
 - 2026-10-17 04:27 PM EDT: Final-sync review (65a4b021..68f7348d, packet sha256 318b1033…d379b): Claude CLI LGTM, Grok cursor-grok-4.5-high LGTM, Codex gpt-5.6-sol LGTM.
 - 2026-10-17 04:28 PM EDT: LANDED: main fast-forwarded to 68f7348d. On main after `just build`: agent 2166, viewer 1107, pytest 2562 passed. Experiment heal-before-trainers repinned. Bundle arm; bundle-v-control owner adds it.
+
+## Archived
+
+2026-10-17, 8:40 PM EDT, on the operator's request to archive worklogs whose implementation is already on main (68f7348d Merge branch 'main' (exit-reachability-v1) into claude/heal-before-trainers-sync). Unchecked boxes left above are bookkeeping from before that landing.

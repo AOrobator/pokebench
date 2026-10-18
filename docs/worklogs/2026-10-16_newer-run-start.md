@@ -1,6 +1,6 @@
 # newer-run-start: a newer harness's run_start keeps the run listed with the restart hint
 
-Follow-up from the viewer-event-skew review (docs/worklogs/active/2026-10-16_viewer-event-skew.md): when a newer harness adds a field to `run_start`, the viewer's schema rejects the run's first event, so it never learns the run's build. The run turns `invalid` with an old-style message (`run <id> has no readable run_start`) and no restart hint.
+Follow-up from the viewer-event-skew review (docs/worklogs/2026-10-16_viewer-event-skew.md): when a newer harness adds a field to `run_start`, the viewer's schema rejects the run's first event, so it never learns the run's build. The run turns `invalid` with an old-style message (`run <id> has no readable run_start`) and no restart hint.
 
 Branch `claude/newer-run-start`, worktree `.claude/worktrees/agent-a3a0bd155e60b0024`. Viewer-only plus a loose reader in the agent's `events.ts`; no harness behavior change, so no feature switch. The 8790 viewer and `runs/` are untouched; the live-ish check runs on a scratch copy.
 
@@ -25,3 +25,7 @@ Branch `claude/newer-run-start`, worktree `.claude/worktrees/agent-a3a0bd155e60b
   - After (8797): `/api/runs` problem `viewer build 9beec78 is older than this run's build 113d6bb: restart the viewer (just viewer-main). It cannot read this run's run_start: line 1: invalid run_start event at /: unexpected property run_start_extension`, model from the loose read; workbench status `live`, turn 83, 0 splits, config null, problem `… restart the viewer (just viewer-main). It cannot read this run's run_start, so the run is not graded. It skipped 1 event it cannot read; first: line 1: …`, same text in page problems.
   - Strict kept (8796, run's own older commit): identical to before.
   - Browser: stats page (`/comparisons`) at 1280 and 375 shows the hint on the current-run plate and in the page problems; the frontier says no valid agent run (the run is not plotted). Run viewer (`/#run=…`) at 1280 and 375 shows one problem `line 1: viewer build 9beec78 is older … restart the viewer (just viewer-main). First event it cannot read: line 1: invalid run_start event …` and replays the other 2093 events (turn 83). Known limits: the run viewer's TIME reads 0:00:00 and the header says NOT RESPONDING, since it has no run_start; the run picker does not label it LIVE (the list problem is non-null).
+
+## Archived
+
+2026-10-17, 8:40 PM EDT, on the operator's request to archive worklogs whose implementation is already on main (9beec78a fix: a run whose run_start only a newer harness can read stays listed with the restart-the-viewer problem). Unchecked boxes left above are bookkeeping from before that landing.

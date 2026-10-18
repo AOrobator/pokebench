@@ -101,3 +101,7 @@ explainers/low-hp-trainer-warning-v2.html served=ad3ca69d4c46cc46c368f6ec3c32f0f
 - Codex r8 (only blocker; Claude and Grok LGTM): features.test round-trip now uses 2·ceil(log2 N) bit groups instead of N rows; every switch is off in a distinct set of groups. features 26/26. Next: pipeline r9, proof, review round 9.
 - Synced main c5637ffb (people-id-cards-v1, open-goal-prompt-v1). agent 2084/2084; viewer 1039/1040, the one failure (open-goal-prompt.test incumbent maxWallMs 1h vs bundle 2h) fails identically on main c5637ffb. Operator (2026-10-17 11:28 AM): merge without another review round.
 - Landed 74b76850 (operator: merge without another round, 2026-10-17 11:28 AM). Follow-up branch claude/review-pushback: execute-worklog triage rules.
+
+## Archived
+
+2026-10-17, 8:40 PM EDT, on the operator's request to archive worklogs whose implementation is already on main (74b76850 Merge branch 'main' into claude/story-battle-heal (people-id-cards-v1, open-goal-prompt-v1)). Unchecked boxes left above are bookkeeping from before that landing.

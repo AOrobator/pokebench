@@ -64,3 +64,7 @@ Packet: prompt + `git diff main..HEAD`, main cefacbf1, HEAD d9d82b3f, sha256 472
 - These worklog notes are left uncommitted so HEAD stays the reviewed tree.
 
 - 2026-10-16 04:56 PM EDT: Landed on main fast-forward at d9d82b3f (reviewed tree; Claude, Codex, Grok LGTM). experiments/explorer-guidance-v2.json repinned to d9d82b3f.
+
+## Archived
+
+2026-10-17, 8:40 PM EDT, on the operator's request to archive worklogs whose implementation is already on main (d9d82b3f docs(explainer): explorer-guidance-v2 highlights only the two phrases the operator quoted). Unchecked boxes left above are bookkeeping from before that landing.

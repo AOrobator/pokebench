@@ -141,4 +141,8 @@ Tests from recorded states; viewer Activity History check on a fixture run; prob
 
 ## Archive Milestone (user-gated)
 
-- [ ] ASK USER: archive.
+- [x] ASK USER: archive.
+
+## Archived
+
+2026-10-17, 8:40 PM EDT, on the operator's request to archive worklogs whose implementation is already on main (815c17a5 Merge branch 'main' into claude/harness-trust). Unchecked boxes left above are bookkeeping from before that landing.

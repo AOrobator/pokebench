@@ -45,7 +45,7 @@ The soft input band is not implemented.
 
 Post-land `just test` on that worktree: the TypeScript suites passed after `just build`. The first viewer run failed on a stale dist; after the build, viewer tests were 1141 passed, and `pnpm -r test` passed before pytest. Pytest then failed 198 because this worktree's vendor submodule was not checked out. `git submodule update --init` checked out the pinned `bbab97ad`, and pytest passed 2707. The viewer on port 8790 was not restarted. A bundle cook is live (`just fixed-run dry-run bundle-v-control --phase cook`, two `live.js play` processes).
 
-`experiments/input-cuts-v1.json` still names `source.commit` `44c42815` in the landed tree. The pin to `0ccb8a1c` is the next commit. It is not queued and not approved.
+`experiments/input-cuts-v1.json` `source.commit` is the merge SHA `0ccb8a1c87d0b7f2dd658addfeac5c7b676ec809`. The entry stays pending, not queued, and not approved. `just experiments` was not re-run: that command writes through the primary checkout, which is on another branch.
 
 ## Multi-Model Review Log
 

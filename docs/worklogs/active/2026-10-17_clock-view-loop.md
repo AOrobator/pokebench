@@ -27,12 +27,12 @@ No new IO, no new server surface, no new model-facing text. The existing cycle w
 ## Milestones
 
 **M1 — Count the clock look**
-- [ ] Write tests (registry last and default off; OFF thirteen opens silent; ON third opening warns; setting the clock, one look, and a look after leaving the tile do not count; production path)
-- [ ] COMMIT: `test(clock-view-loop): ...` (RED)
-- [ ] Implement
-- [ ] Gates
+- [x] Write tests (registry last and default off; OFF thirteen opens silent; ON third opening warns; setting the clock, one look, and a look after leaving the tile do not count; production path)
+- [x] COMMIT: `test(clock-view-loop): count reopening the set bedroom clock` (RED) `5e3c44af`
+- [x] Implement
+- [x] Gates on this tip, before review: `just test` agent 2374, viewer 1137, pytest 2707. `just lint` clean. `just build` ok. `just coverage` agent 98.02/94.22/98.28/99.24, viewer 95.36/91.38/93.79/97.62, Python 97.66/93.82/100. `just experiments-check` ok 106. `just verify-vendor` ok. `just pages-check` on the explainer prints nothing.
 - [ ] COMMIT: `feat(clock-view-loop): ...` (GREEN)
-- [ ] Explainer, pending experiment, bundle arm
+- [x] Explainer, pending experiment, bundle arm (on in the bundle arm of bundle-v-control, off in the control arm)
 - [ ] Multi-model review loop until clean
 - [ ] Land on local main
 
@@ -42,7 +42,8 @@ Tests for the detector and the production wiring. Explainer served locally. The 
 
 ## Session Log
 
-- 2026-10-17 11:07 PM: RED. `clock-view-loop.test.ts` on main `a0f669d4`: 3 failed, 2 passed. Last switch is `battle-menu-loop-v1`. The third opening raises no notice. `live.ts` does not read the switch.
+- 2026-10-17 11:07 PM: RED. `clock-view-loop.test.ts` on main `a0f669d4`: 3 failed, 2 passed. Last switch is `battle-menu-loop-v1`. The third opening raises no notice. `live.ts` does not read the switch. Commit `5e3c44af`.
+- 2026-10-17 11:19 PM: GREEN. `clockViews` is `LoopDetector`'s last argument after `menuLoop`, and `attachLoopGuard`'s last argument. Wired from `features["clock-view-loop-v1"]` in `live.ts` and `decision-probe.ts`. Deletion proof: removing that read from `live.ts` failed the production-path test (exit 1); the same for `decision-probe.ts` (exit 1); both restored and the test passed. Bundle arm of `bundle-v-control` lists the switch; base features keep it false, so the control arm stays off. Pending `experiments/clock-view-loop.json` has no queue position. `source.commit` is the RED sha `5e3c44af84a0b657c3ad89fb9b0969e95ed7459d`; repin to the merge SHA after landing.
 
 ## Surprises
 

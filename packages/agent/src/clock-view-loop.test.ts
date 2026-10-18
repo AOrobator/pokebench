@@ -117,18 +117,18 @@ describe("clock-view-loop-v1",()=>{
    for(let i=0;i<3;i++){
     const id=`a${String(i)}`;
     emit({type:"tool_call",id,name:"press",args:{buttons:["A"]}});
-    emit({type:"state",started:true,...bedroom()});
+    emit({type:"state",...bedroom()});
     const before=seq;
     emit({type:"button_press",tool_call_id:id,buttons:["A"],before_state_seq:before});
-    emit({type:"state",started:true,...transition(`${String(9+i)}:58 AM`)});
+    emit({type:"state",...transition(`${String(9+i)}:58 AM`)});
     emit({type:"tool_result",id,name:"press",is_error:false,text:"Screen: clock",state_seq:seq});
     if(i<2){
      const close=`b${String(i)}`;
      emit({type:"tool_call",id:close,name:"press",args:{buttons:["A"]}});
-     emit({type:"state",started:true,...transition(`${String(9+i)}:58 AM`)});
+     emit({type:"state",...transition(`${String(9+i)}:58 AM`)});
      const beforeClose=seq;
      emit({type:"button_press",tool_call_id:close,buttons:["A"],before_state_seq:beforeClose});
-     emit({type:"state",started:true,...bedroom()});
+     emit({type:"state",...bedroom()});
      emit({type:"tool_result",id:close,name:"press",is_error:false,text:"Screen: overworld",state_seq:seq});
     }
    }

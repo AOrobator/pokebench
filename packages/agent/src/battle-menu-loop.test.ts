@@ -231,21 +231,21 @@ describe("battle-menu-loop-v1", () => {
     expect(again.d.context()).toBeNull();
   });
 
-  it("passes the switch as attachLoopGuard's last argument from live and the decision probe", () => {
+  it("passes the switch to attachLoopGuard from live and the decision probe", () => {
     for (const file of ["live.ts", "decision-probe.ts"]) {
       const source = readFileSync(fileURLToPath(new URL(`./${file}`, import.meta.url)), "utf8");
       const call = source.slice(source.indexOf("attachLoopGuard("));
-      expect(call.slice(0, call.indexOf(");")).trimEnd().endsWith(`features["${ID}"]`), file).toBe(true);
+      expect(call.slice(0, call.indexOf(");")).includes(`features["${ID}"]`), file).toBe(true);
     }
   });
 });
 
 describe("battle-menu-loop-v1 registry", () => {
-  it("is a default-off guard with no dependency, recorded last", () => {
+  it("is a default-off guard with no dependency, recorded second to last", () => {
     expect(featureInfo(ID)).toMatchObject({group: "guard", needs: null, switchable: true});
     expect(featureInfo(ID).description).toContain(" Off: ");
-    expect(SWITCHABLE_FEATURES.at(-1)).toBe(ID);
-    expect(playHarnessFeatures(ALL_ON, null).at(-1)).toBe(ID);
+    expect(SWITCHABLE_FEATURES.at(-2)).toBe(ID);
+    expect(playHarnessFeatures(ALL_ON, null).at(-2)).toBe(ID);
     expect(playHarnessFeatures({...ALL_ON, [ID]: false}, null)).not.toContain(ID);
     expect(flagFeatures({loopGuard: true, activeUi: true, interfaceDocs: true, objectives: true})[ID]).toBe(false);
     const raw = JSON.parse(readFileSync(fileURLToPath(new URL("../../../experiments/battle-menu-loop.json", import.meta.url)), "utf8")) as {incumbent: {features: Record<string, boolean>}};

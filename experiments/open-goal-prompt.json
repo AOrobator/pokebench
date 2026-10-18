@@ -150,7 +150,8 @@
    "surf-gated-exits-v2": true,
    "instruction-ledger-v2": true,
    "no-exit-here-v1": true,
-   "battle-menu-loop-v1": true
+   "battle-menu-loop-v1": true,
+   "clock-view-loop-v1": true
   },
   "start": {
    "kind": "save_state",

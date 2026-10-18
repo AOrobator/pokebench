@@ -39,4 +39,4 @@ After merging `0ccb8a1c` (input-cuts) and resolving the append conflicts: agent 
 
 ## Not done
 
-The feature commit is `05060925`. This merge of main is the next commit. Not reviewed. Not on main. `source.commit` is still `bcde8cd4`; repin after landing. Experiments not queued, not approved, not launched. The live cook is unchanged.
+The feature commit is `05060925`. Main was merged through `336c174a` (input-cuts landed and pinned). Not reviewed. Not on main. `source.commit` is still `bcde8cd4`; repin after landing. Experiments not queued, not approved, not launched. The live cook is unchanged.

@@ -1,6 +1,6 @@
 # Worklog: input-cuts-v1
 
-Branch `input-cuts-v1`. The feature commit is on main `44c42815c1e7ed2ea743f20e5d016f881cb0d350`. This tip merges main `bcde8cd4ea2b8e2cb5b403be4d984eac830195ee` (clock-view-loop-v1, stale-story-goal-v1, and the preset fix that accepts both). `input-cuts-v1` stays last in the registry, after those two. Local only. Land only after Claude, Grok, and GPT each return `VERDICT: LGTM` on the same frozen packet.
+Landed on main by fast-forward to `0ccb8a1c87d0b7f2dd658addfeac5c7b676ec809`. `input-cuts-v1` stays last in the registry, after clock-view-loop-v1 and stale-story-goal-v1. Local only.
 
 ## Problem
 
@@ -27,7 +27,7 @@ After merging main `bcde8cd4`: agent tests 2400 passed, viewer tests 1141 passed
 
 ## Principles
 
-PB1 N/A, no run result. PB2 N/A, nothing launched. PB3 N/A, no improvement claimed. PB4 PASS, one named switch, default off. PB5 PASS, one variable, hypothesis in the pending experiment, not queued. PB6 PASS, the cuts remove repeated result text; the effect is not measured. PB7 N/A, no new event. PB8 N/A, no new model-output path. PB9 PASS, the four cuts were the operator's request. PB10 PASS, gates unchanged. PB11 N/A, no new dependency. PB12 N/A, the ROM was not read. PB13 in progress until the three review lanes return LGTM. Zero FAIL.
+PB1 N/A, no run result. PB2 N/A, nothing launched. PB3 N/A, no improvement claimed. PB4 PASS, one named switch, default off. PB5 PASS, one variable, hypothesis in the pending experiment, not queued. PB6 PASS, the cuts remove repeated result text; the effect is not measured. PB7 N/A, no new event. PB8 N/A, no new model-output path. PB9 PASS, the four cuts were the operator's request, then only the navigate_to miss. PB10 PASS, gates unchanged. PB11 N/A, no new dependency. PB12 N/A, the ROM was not read. PB13 PASS, the three cloud lanes returned LGTM on one packet and the diff SHA was unchanged after main's docs-only move. Zero FAIL.
 
 ## navigate_to Story goal
 
@@ -38,3 +38,20 @@ A retired goal is not treated as a repeated Story goal. Its header is the stale 
 ## Not in this branch
 
 The soft input band is not implemented.
+
+## Landed
+
+`git merge --ff-only 0ccb8a1c87d0b7f2dd658addfeac5c7b676ec809` on the main worktree (`/private/tmp/pokebench-land-main`). During review, main moved from `bcde8cd4ea2b8e2cb5b403be4d984eac830195ee` to `b0e04564030194969977ae435677db2d5b444f1f` (docs only: the stale-story-goal-v1 review note). The branch merged that commit, and `git diff --binary b0e04564 0ccb8a1c` SHA-256 is `5559b5a90fb5a215d794149be7f3dfa677415d8af60a2b13b63e6d3f0110d944`, the same as the reviewed packet.
+
+Post-land `just test` on that worktree: the TypeScript suites passed after `just build`. The first viewer run failed on a stale dist; after the build, viewer tests were 1141 passed, and `pnpm -r test` passed before pytest. Pytest then failed 198 because this worktree's vendor submodule was not checked out. `git submodule update --init` checked out the pinned `bbab97ad`, and pytest passed 2707. The viewer on port 8790 was not restarted. A bundle cook is live (`just fixed-run dry-run bundle-v-control --phase cook`, two `live.js play` processes).
+
+`experiments/input-cuts-v1.json` `source.commit` is the merge SHA `0ccb8a1c87d0b7f2dd658addfeac5c7b676ec809`. The entry stays pending, not queued, and not approved. `just experiments` was not re-run: that command writes through the primary checkout, which is on another branch.
+
+## Multi-Model Review Log
+
+Reviewed packet: base `bcde8cd4ea2b8e2cb5b403be4d984eac830195ee`, head `95f2394ba83086369acdcdaa6e88cd09dee170af`, diff `/tmp/review-20261018014629-51539.diff`, SHA-256 `5559b5a90fb5a215d794149be7f3dfa677415d8af60a2b13b63e6d3f0110d944`. Cursor ask mode. Empty stderr on every lane. Local inference reviewers were not run.
+
+- Earlier head `51498b2e` (the navigate_to fix and the main merge, before the retired-goal test), diff SHA-256 `d7965ac2533919189799d203fcc845fdfa95beb7ac1d025cd44b007331e6d3b0`: Claude `claude-opus-5-5-high` VERDICT: BLOCKING (no test reaches `goal.done===true` while `goalOnce` is on, so deleting `goal.done!==true` stayed green). Grok `grok-4.7-high` VERDICT: LGTM. GPT `gpt-5.6-sol-xhigh` VERDICT: LGTM. Fix: the production factory test in `stale-story-goal.test.ts`. Removing the guard failed that test; restoring it passed.
+- First pass on head `95f2394b`: Claude `claude-opus-5-5-high` VERDICT: LGTM. Grok `grok-4.7-high` VERDICT: LGTM. GPT `gpt-5.6-sol-xhigh` VERDICT: BLOCKING. The pending entry says it is not designed, and `docs/experiments/input-cuts-v1.html` does not exist.
+- Rebut, no code change (`/tmp/review-20261018014629-51539-boundary-r2.md`): the operator registered this as a pending entry and said not to design, queue, or approve it. No queue position. Clock-view, stale-story, and battle-menu on main have the same shape.
+- Rebuttal round, same SHA-256: Claude `claude-opus-5-5-high` VERDICT: LGTM. Grok `grok-4.7-high` VERDICT: LGTM. GPT `gpt-5.6-sol-xhigh` VERDICT: LGTM. One verdict line each. Those three are the landing verdicts.

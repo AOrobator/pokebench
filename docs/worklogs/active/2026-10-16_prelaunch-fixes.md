@@ -77,6 +77,7 @@ Done when every milestone is merged, qualification shows none of F1–F8, the fo
 
 ## Session Log
 
+- 2026-10-17 09:45 PM EDT: The operator asked for stale-story-goal-v1 to be reviewed and, once the cloud lanes approve, merged to main, with the fix in the bundle. The switch retires the latest place-naming story line when the story checklist shows that place's milestone is done, or when a later ledger line exists, and does not promote an older place line. `story-destinations-v1` is off in both arms (`offInBoth`); `stale-story-goal-v1` is a bundle switch (base false). Pending experiment `experiments/stale-story-goal.json` is not queued. The live cook loaded its definition at start and is not restarted.
 - 2026-10-17 08:45 PM EDT: archived 50 active worklogs whose implementations are already on main (76431ffd). This worklog stays active; launch approval is still open.
 - 2026-10-17 07:45 PM EDT: no-exit-here-v1 (landed 18bb0a4b; needs world-destinations-v1, on in both) joins the bundle-v-control bundle arm; open-goal-prompt.json incumbent follows. Previous commit 2c2023d8.
 - 2026-10-17 07:42 PM EDT: navigation-evidence-memory-v1 leaves the bundle, off in both (the operator 7:40 PM EDT). The RAM-confirmed bug fixes stay bundle-only: tutorial-party-owner-v1, mid-frame-readout-v1, unset-dynamic-warp-v1 already in; field-whiteout-record-v1 joins when it lands. open-goal-prompt.json incumbent follows. Previous commit cf52c8f7.
@@ -147,6 +148,8 @@ Done when every milestone is merged, qualification shows none of F1–F8, the fo
 - 2026-10-16 12:45 AM EDT: Worklog drafted from the two forensics reports; awaiting operator approval. Estimate: about a day of work for M1–M6, then qualification and review.
 
 ## Surprises
+
+- 2026-10-17: stale-story-goal-v1. Deleting the production wiring once turned the factory test red, then it was restored. With `features["stale-story-goal-v1"]` removed from `withStoryDestinations`, the ON result kept `Way in: door in LITTLEROOT TOWN (map 0/9) at (7,16)`. With `retireLab` removed from `playGameTools`'s `withHarnessTrust` call, the Story goal line kept the door. Both restored; the factory test is green. The same switch now retires a place line when the story checklist shows that milestone is done, or when a later ledger line exists, and does not promote an older place line. `story-destinations-v1` is off in both arms of bundle-v-control; the switch stays a bundle-only harness-trust change.
 
 ## Multi-Model Review Log
 

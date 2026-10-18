@@ -135,7 +135,8 @@
    "surf-gated-exits-v2": false,
    "instruction-ledger-v2": false,
    "no-exit-here-v1": false,
-   "bag-healing-items-v1": false
+   "bag-healing-items-v1": false,
+   "stale-story-goal-v1": false
   }
  },
  "trialsPerArm": 8,

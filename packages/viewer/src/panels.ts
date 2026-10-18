@@ -445,6 +445,7 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "instruction-ledger-v2":"instruction-ledger-v2.html",
  "no-exit-here-v1":"no-exit-here-v1.html",
  "bag-healing-items-v1":"bag-healing-items-v1.html",
+ "stale-story-goal-v1":"stale-story-goal-v1.html",
 });
 
 export function harnessConfig(view:RunView,registry:readonly FeatureInfo[]=[]):string {

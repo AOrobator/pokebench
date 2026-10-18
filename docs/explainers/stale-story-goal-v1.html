@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Stale story goal</title>
+<style>
+:root{
+ --bg:#f7f6f2; --fg:#1c1d1f; --soft:#5b5d61; --rule:#dedcd5; --panel:#ffffff;
+ --game:#1a7f5a; --game-bg:#e3f4ec; --prior:#c2432f; --prior-bg:#fbe7e2; --nav:#2a62c9; --nav-bg:#e4edfb;
+ --body:system-ui,-apple-system,"Segoe UI",sans-serif; --mono:ui-monospace,"SF Mono",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+ --bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; color-scheme:dark}}
+:root[data-theme="dark"]{
+ --bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; color-scheme:dark}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.6 var(--body);padding:0 16px}
+main{max-width:760px;margin:0 auto;padding:40px 0 64px;display:flex;flex-direction:column;gap:34px}
+h1{font-size:2.2rem;line-height:1.15;margin:0}
+h2{font-size:1.3rem;margin:0}
+p{margin:0;max-width:68ch}
+ul{margin:0;padding-left:20px}
+.eyebrow{font:500 .75rem var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--soft)}
+.lede{font-size:1.08rem;color:var(--soft)}
+section{display:flex;flex-direction:column;gap:12px}
+figure{margin:0;display:flex;flex-direction:column;gap:8px}
+.scroll{overflow-x:auto}
+svg{display:block;max-width:100%;height:auto}
+@media (max-width:600px){.scroll svg{max-width:none;width:720px}}
+figcaption{font-size:.88rem;color:var(--soft)}
+svg text{font-family:var(--body);font-size:12px;fill:var(--fg)}
+svg .s{fill:var(--soft);font-size:11px}
+svg .t{font-weight:600;font-size:13px}
+svg .m{font-family:var(--mono);font-size:11px}
+.box{fill:var(--panel);stroke:var(--rule)}
+.game{fill:var(--game-bg);stroke:var(--game)}
+.prior{fill:var(--prior-bg);stroke:var(--prior)}
+.nav{fill:var(--nav-bg);stroke:var(--nav)}
+pre{background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:14px;white-space:pre-wrap;font:13px/1.5 var(--mono);margin:0}
+code{font:500 .88em var(--mono);background:var(--panel);border:1px solid var(--rule);border-radius:4px;padding:0 4px}
+table{border-collapse:collapse;width:100%;font-size:.92rem}
+th,td{text-align:left;padding:7px 9px;border-bottom:1px solid var(--rule);vertical-align:top}
+th{font:500 .75rem var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--soft)}
+.tablewrap{overflow-x:auto}
+</style>
+</head>
+<body>
+<main>
+<div>
+<div class="eyebrow">Harness switch · observation · <code>stale-story-goal-v1</code> · needs nothing · bundle arm only · off by default</div>
+<h1>Stale story goal</h1>
+</div>
+<p class="lede">A story line that names a place stays the Story goal after that milestone is already done, and it outranks a later line in the conversation ledger. With this switch on, the checklist and the ledger are newer. The quote stays. The door and the walk-away note do not.</p>
+
+<section>
+<h2>What decides it</h2>
+<p>The latest story line that names a place is still the one that is shown. The story checklist and a later ledger line are newer than that quote. An older place line is not promoted into the goal slot.</p>
+<figure><div class="scroll"><svg viewBox="0 0 720 268" width="720" role="img" aria-label="A place line is retired when the checklist shows its milestone is done, or when a later ledger line exists">
+<rect x="20" y="16" width="200" height="64" rx="8" class="box"/><text x="32" y="40" class="t">Latest place line</text><text x="32" y="60" class="s">MAY, "head back to the LAB"</text>
+<rect x="250" y="16" width="210" height="64" rx="8" class="game"/><text x="262" y="40" class="t">Story checklist</text><text x="262" y="60" class="s">Pokédex received</text>
+<rect x="490" y="16" width="210" height="64" rx="8" class="nav"/><text x="502" y="40" class="t">Conversation ledger</text><text x="502" y="60" class="s">MOM, a later turn</text>
+<line x1="220" y1="48" x2="242" y2="48" stroke="currentColor"/><line x1="460" y1="48" x2="482" y2="48" stroke="currentColor"/>
+<rect x="120" y="120" width="480" height="112" rx="8" class="game"/><text x="136" y="148" class="t">Retire this line. Do not pick an older one.</text><text x="136" y="170" class="s">Quote stays. No door. Away-supervisor gets no goal.</text><text x="136" y="190" class="s">Checklist: the place that label names is done.</text><text x="136" y="210" class="s">Ledger: a later line is newer, even with no place in it.</text>
+</svg></div>
+<figcaption>Either the checklist or a later line is enough. A lab line before the Pokédex, with no later line, stays the goal. Birch's handoff is not the Pokédex.</figcaption>
+</figure>
+<div class="tablewrap"><table>
+<thead><tr><th>Latest line resolves to</th><th>Newer fact</th><th>Switch</th><th>What the model is told</th></tr></thead>
+<tbody>
+<tr><td>Birch's lab only</td><td>Pokédex flag false or null, no later line</td><td>on</td><td>The door, as today</td></tr>
+<tr><td>Birch's lab only</td><td>Pokédex received</td><td>off</td><td>The door, as today</td></tr>
+<tr><td>Birch's lab only</td><td>Pokédex received</td><td>on</td><td>Done: Pokédex received. No door</td></tr>
+<tr><td>ROUTE 103 only</td><td>Route 103 rival battle won</td><td>on</td><td>Done: Route 103 rival battle won. No door</td></tr>
+<tr><td>Birch's lab only</td><td>A later ledger line</td><td>on</td><td>That later line is newer. No door</td></tr>
+<tr><td>Lab and another place</td><td>Pokédex received, no later line</td><td>on</td><td>Both ways in, as today</td></tr>
+<tr><td>A newer place</td><td>Pokédex received</td><td>on</td><td>That newer place</td></tr>
+</tbody>
+</table></div>
+</section>
+
+<section>
+<h2>The same line, off and on</h2>
+<p>These are the two strings the tests lock. The first row is the story-destinations block. The second is the harness-trust header. In the live cook, bundle run <code>2026-10-17T19-38-19_qwen36-gpu0_b7d1</code>, MAY's lab line kept that door after the Pokédex flag was already true, and the model went back to the lab.</p>
+<div class="tablewrap"><table>
+<thead><tr><th>Off</th><th>On</th></tr></thead>
+<tbody>
+<tr>
+<td><pre>Latest story line naming a place (turn 5, MOM): "Go see MAY at the LAB."
+- "LAB" = PROF. BIRCH'S POKéMON LAB (map 1/4). Way in: door in LITTLEROOT TOWN (map 0/9) at (7,16).</pre></td>
+<td><pre>Latest story line naming a place (turn 5, MOM): "Go see MAY at the LAB."
+Done: Pokédex received. This is not where to go.</pre></td>
+</tr>
+<tr>
+<td><pre>Story goal: "Well, it's time to head back to the LAB." (MAY, turn 272) -&gt; "LAB" = PROF. BIRCH'S POKéMON LAB (map 1/4). Way in: door in LITTLEROOT TOWN (map 0/9) at (7,16).</pre></td>
+<td><pre>Story goal: none. MAY's line from turn 272 ("Well, it's time to head back to the LAB.") is done: Pokédex received. It is not where to go.</pre></td>
+</tr>
+</tbody>
+</table></div>
+<p>Both read the same picker. The quote is not deleted from the conversation record. An older line, such as "Birch lives next door", is not promoted into the goal slot. A later ledger line reads <code>Done: MOM's line from turn 6 ("Don't forget your RUNNING SHOES.") is newer. This is not where to go.</code> When the checklist and the ledger both apply, the Pokédex label and the later line are in the same sentence.</p>
+</section>
+
+<section>
+<h2>Where it is wired</h2>
+<figure><div class="scroll"><svg viewBox="0 0 720 150" width="720" role="img" aria-label="The switch is read in playGameTools and passed into both result wrappers">
+<rect x="16" y="40" width="150" height="56" rx="8" class="nav"/><text x="28" y="64" class="t">Feature set</text><text x="28" y="82" class="m">stale-story-goal-v1</text>
+<rect x="210" y="16" width="220" height="48" rx="8" class="box"/><text x="222" y="44" class="s">story-destinations block</text>
+<rect x="210" y="80" width="220" height="48" rx="8" class="game"/><text x="222" y="108" class="s">harness-trust header and supervisor</text>
+<line x1="166" y1="68" x2="202" y2="40"/><line x1="166" y1="68" x2="202" y2="104"/>
+<text x="460" y="44" class="s">Door omitted when done</text>
+<text x="460" y="108" class="s">Supervisor sees no goal</text>
+</svg></div>
+<figcaption>playGameTools passes the switch into both wrappers. With story destinations and harness trust both off, the switch changes nothing.</figcaption>
+</figure>
+<p>The lab case is the checklist label "Pokédex received", save flag 0x8E4 (<code>FLAG_RECEIVED_POKEDEX_FROM_BIRCH</code>). The same rule uses the checklist's own words when they name the map: "Route 103 rival battle won", "Petalburg Woods Aqua event complete", "Rustboro Gym complete". A trainer's "defeated" line does not retire the route. Between Birch's handoff and the Pokédex, with no later line, "come by my LAB later" stays the goal. <code>story-destinations-v1</code> is off in both arms of <code>bundle-v-control</code>. This switch is the harness-trust change, on for the bundle only.</p>
+</section>
+
+<section>
+<h2>Status</h2>
+<ul>
+<li>Branch <code>stale-story-goal-v1</code>. Off is the previous text, including the door and the walk-away note.</li>
+<li>On for the bundle arm of <code>bundle-v-control</code> only. Control stays off. <code>story-destinations-v1</code> is off in both arms. The live cook loaded its definition at start, so this does not change the trial already running.</li>
+<li>Pending experiment <code>experiments/stale-story-goal.json</code>, not queued and not approved. Activation milestone <code>RECEIVED_POKEDEX</code>. Primary milestone <code>ROUTE_102</code>.</li>
+</ul>
+</section>
+</main>
+</body>
+</html>

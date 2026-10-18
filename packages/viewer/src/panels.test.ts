@@ -1014,6 +1014,19 @@ it("links the heal before trainers card to its tracked explainer, which quotes t
  expect(html).toContain("SUPERVISOR: A trainer you have not beaten is on this map: object 3, sprite LASS, at (31,24).");
 });
 
+it("links the stale story goal card to its tracked explainer, which quotes the retired line",()=>{
+ const id="stale-story-goal-v1";
+ expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
+ const log=new Log();log.add(0,{...START,harness_features:["ram-state-v1",id]});
+ const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
+ expect(doc.querySelector(`[data-feature="${id}"] a`)?.getAttribute("href")).toBe(`/explainers/${id}.html`);
+ const html=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)),"utf8");
+ expect(html).toContain(id);
+ expect(html).toContain("Done: Pokédex received. This is not where to go.");
+ expect(html).toContain("is done: Pokédex received. It is not where to go.");
+ expect(html).toContain("bundle arm only");
+});
+
 it("links the heal before trainers BAG items card to its tracked explainer, which quotes the e046 sentence",()=>{
  const id="bag-healing-items-v1";
  expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);

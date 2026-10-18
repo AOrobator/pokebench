@@ -59,3 +59,5 @@ Use actual serialized model-bound payloads on pinned pi-loop stubs, RED/GREEN an
 
 ## Archive Milestone (user-gated)
 - [ ] the operator authorizes archive; not requested.
+
+- M1 RED: added six projection contract tests covering OFF identity, six-scene stable core/catalog, immutable A→B→A guidance, idempotence, collapse/eviction/transient suffixes, result batches, exact character receipts and unknown fallback. Focused run fails as expected because jit-v2-context does not exist; transcript runs/reviews/jit-v2-preparation/red-unit.log. Factory test follows once the optional flag parses.

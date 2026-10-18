@@ -92,7 +92,7 @@ describe("readout-rules-in-prompt-v1 pending experiment", () => {
   it("names every registry switch explicitly in its incumbent, with this switch off", () => {
     const entry = JSON.parse(readFileSync(new URL("../../../experiments/readout-rules-in-prompt.json", import.meta.url), "utf8")) as { changedFeature: string; incumbent: { features: Record<string, boolean> } };
     expect(entry.changedFeature).toBe(ID);
-    expect(Object.keys(entry.incumbent.features)).toEqual(SWITCHABLE_FEATURES.slice(0, SWITCHABLE_FEATURES.indexOf(ID) + 1));
+    expect(Object.keys(entry.incumbent.features)).toEqual(SWITCHABLE_FEATURES.filter(id=>id!=="faced-interaction-history-v1").slice(0, SWITCHABLE_FEATURES.indexOf(ID)));
     expect(entry.incumbent.features[ID]).toBe(false);
   });
 });

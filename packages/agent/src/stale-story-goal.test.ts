@@ -221,7 +221,7 @@ describe("stale-story-goal-v1 production factory",()=>{
  });
  it("the pending experiment flips only this switch, with the lab parents on, and is not queued",()=>{
   const raw=JSON.parse(readFileSync(new URL("../../../experiments/stale-story-goal.json",import.meta.url),"utf8")) as {incumbent:{features:Record<string,boolean>}};
-  expect(Object.keys(raw.incumbent.features)).toEqual([...SWITCHABLE_FEATURES]);
+  expect(Object.keys(raw.incumbent.features)).toEqual(SWITCHABLE_FEATURES.filter(id=>id!=="faced-interaction-history-v1"));
   const entry=parseExperiment(raw);
   expect(entry.queuePosition).toBeUndefined();
   expect(entry.changedFeature).toBe(ID);

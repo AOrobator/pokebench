@@ -281,7 +281,7 @@ describe("script-line-presence-v1: pending experiment (review round 1)",()=>{
  it("names every registry switch explicitly, in order, with only this switch flipped in the candidate",()=>{
   const raw=JSON.parse(readFileSync(new URL("../../../experiments/script-line-presence.json",import.meta.url),"utf8")) as {changedFeature:string;incumbent:{features:Record<string,boolean>}};
   expect(raw.changedFeature).toBe("script-line-presence-v1");
-  expect(Object.keys(raw.incumbent.features)).toEqual(SWITCHABLE_FEATURES.slice(0,SWITCHABLE_FEATURES.indexOf("script-line-presence-v1")+1));
+  expect(Object.keys(raw.incumbent.features)).toEqual(SWITCHABLE_FEATURES.filter(id=>id!=="faced-interaction-history-v1").slice(0,SWITCHABLE_FEATURES.indexOf("script-line-presence-v1")));
   expect(raw.incumbent.features["script-line-presence-v1"]).toBe(false);
   expect(raw.incumbent.features["dialogue-auto-advance-v1"]).toBe(true);
  });

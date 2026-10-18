@@ -100,11 +100,11 @@ it("the pending experiment's incumbent is the bundle-v-control bundle arm and fl
  expect(raw.changedFeature).toBe(ID);
  expect(raw.queuePosition).toBeUndefined();
  expect(raw.externalCohort).toBeUndefined();
- const named=SWITCHABLE_FEATURES.slice(0,SWITCHABLE_FEATURES.indexOf(ID)+1);
+ const named=SWITCHABLE_FEATURES.filter(id=>id!=="faced-interaction-history-v1").slice(0,SWITCHABLE_FEATURES.indexOf(ID));
  expect(Object.keys(raw.incumbent.features).slice(0,named.length)).toEqual(named);
  const bundleArm={...bundle.base.features,...Object.fromEntries(bundle.switches.map(s=>[s,true]))};
  for(const [id,value] of Object.entries(raw.incumbent.features))expect([id,value]).toEqual([id,id===ID?false:bundleArm[id]]);
- for(const id of bundle.switches)expect([id,raw.incumbent.features[id]]).toEqual([id,id!==ID]);
+ for(const id of bundle.switches.filter(id=>id in raw.incumbent.features))expect([id,raw.incumbent.features[id]]).toEqual([id,id!==ID]);
 });
 
 it("the pending entry never joins the queue by itself: it stays blocked as a bundle-arm switch even once readiness passes",()=>{

@@ -249,7 +249,7 @@ describe("battle-menu-loop-v1 registry", () => {
     expect(playHarnessFeatures({...ALL_ON, [ID]: false}, null)).not.toContain(ID);
     expect(flagFeatures({loopGuard: true, activeUi: true, interfaceDocs: true, objectives: true})[ID]).toBe(false);
     const raw = JSON.parse(readFileSync(fileURLToPath(new URL("../../../experiments/battle-menu-loop.json", import.meta.url)), "utf8")) as {incumbent: {features: Record<string, boolean>}};
-    expect(Object.keys(raw.incumbent.features)).toEqual([...SWITCHABLE_FEATURES]);
+    expect(Object.keys(raw.incumbent.features)).toEqual(SWITCHABLE_FEATURES.filter(id=>id!=="faced-interaction-history-v1"));
     const entry = parseExperiment(raw);
     expect(entry.queuePosition).toBeUndefined();
     expect(entry.changedFeature).toBe(ID);

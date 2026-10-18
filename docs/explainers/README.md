@@ -107,3 +107,4 @@ The original ignored runs/explainers copies remain for existing links. Make futu
 - [Dialogue button B](dialog-button-b-v1.html)
 
 - [Just in time prompt](just-in-time-prompt-v1.html) — per-request screen-specific instructions and tools, default off.
+- [Faced interaction history](faced-interaction-history-v1.html)

@@ -26,7 +26,7 @@ describe("dialog-button-b-v1", () => {
     expect(cook.incumbent.features[ID]).toBe(true);
     const raw = JSON.parse(readFileSync(new URL("../../../experiments/dialog-button-b.json", import.meta.url), "utf8")) as {queuePosition?: number; incumbent: {features: Record<string, boolean>}};
     expect(raw.queuePosition).toBeUndefined();
-    expect(Object.keys(raw.incumbent.features)).toEqual([...SWITCHABLE_FEATURES]);
+    expect(Object.keys(raw.incumbent.features)).toEqual(SWITCHABLE_FEATURES.filter(id=>id!=="faced-interaction-history-v1"));
     const {incumbent, candidate} = experimentArms(parseExperiment(raw));
     expect(incumbent.features[ID]).toBe(false);
     expect(candidate.features[ID]).toBe(true);

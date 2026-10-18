@@ -209,7 +209,7 @@ describe("recorded event",()=>{
 describe("the pending experiment",()=>{
  it("flips only bag-healing-items-v1 over the bundle-style incumbent with heal-before-trainers-v1 on, and is not queued",()=>{
   const raw=JSON.parse(readFileSync(new URL("../../../experiments/bag-healing-items.json",import.meta.url),"utf8")) as {incumbent:{features:Record<string,boolean>}};
-  expect(Object.keys(raw.incumbent.features)).toEqual([...SWITCHABLE_FEATURES]);
+  expect(Object.keys(raw.incumbent.features)).toEqual(SWITCHABLE_FEATURES.filter(id=>id!=="faced-interaction-history-v1"));
   const entry=parseExperiment(raw);
   expect(entry.queuePosition).toBeUndefined();
   expect(entry.changedFeature).toBe(ID);

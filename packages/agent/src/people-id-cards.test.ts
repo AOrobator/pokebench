@@ -332,7 +332,7 @@ describe("people-id-cards-v1 pending experiment",()=>{
  it("names every switch explicitly, needs nothing it lacks, and flips only people-id-cards-v1",async()=>{
   const {experimentArms,parseExperiment}=await import("./experiments.js");
   const raw=JSON.parse(readFileSync(new URL("../../../experiments/people-id-cards.json",import.meta.url),"utf8")) as {incumbent:{features:Record<string,boolean>};queuePosition?:number};
-  expect(Object.keys(raw.incumbent.features).sort()).toEqual(SWITCHABLE_FEATURES.slice(0,SWITCHABLE_FEATURES.indexOf("people-id-cards-v1")+1).sort());
+  expect(Object.keys(raw.incumbent.features).sort()).toEqual(SWITCHABLE_FEATURES.filter(id=>id!=="faced-interaction-history-v1").slice(0,SWITCHABLE_FEATURES.indexOf("people-id-cards-v1")).sort());
   expect(raw.queuePosition).toBeUndefined();
   const {incumbent,candidate}=experimentArms(parseExperiment(raw));
   expect(incumbent.features["people-ledger-v1"]).toBe(true);expect(incumbent.features["character-presence-v1"]).toBe(true);

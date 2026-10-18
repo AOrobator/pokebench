@@ -6,6 +6,7 @@
 export type FeatureGroup = "observation" | "guidance" | "guard" | "measurement";
 
 export const SWITCHABLE_FEATURES = [
+  "faced-interaction-history-v1",
   "navigation-evidence-memory-v1",
   "automatic-running-v1",
   "expanded-menu-battle-information-v1",
@@ -169,6 +170,7 @@ function measured(id: MeasurementFeature, title: string, description: string): F
 }
 
 export const FEATURES: readonly FeatureInfo[] = [
+  on("faced-interaction-history-v1", "guard", "FACED INTERACTION HISTORY", null, "Bundle arm only, default off. When a press batch moves or turns before A and dialogue auto-advance records its first page as coming from the faced target or faced sprite, the loop supervisor marks the target faced in that page's exact recorded state as tried. Backgrounds and signs use their map tile; people retain their map-local object identity. On run 2026-10-18T01-30-48_qwen36-gpu1_cdb1, turn 84 read the television at (4,1) with LEFT,LEFT,LEFT,UP,A, but the turn-93 supervisor note still called it untried. With this switch on, the television is no longer listed while untouched furniture remains. A page without faced-target attribution changes nothing. Off: only a request whose entire button list is one A marks the faced target tried, so a movement-plus-A interaction can remain listed as untried."),
   on("navigation-evidence-memory-v1", "guidance", "NAVIGATION EVIDENCE MEMORY", RAM, "Pins the recent observed dialogue, visited rooms and attempted-target outcomes (whole entries, never clipped) before each turn; optional remember_destination retains a model hypothesis with evidence references. No route or objective enforcement. Off: ordinary sliding conversation and no memory tool."),
   on("automatic-running-v1", "guidance", "AUTOMATIC RUNNING", RAM, "Adds simultaneous B to ordinary directional travel only when native running permission and controls are verified each frame. walking=true overrides it. Off: ordinary sequential button input."),
   on("expanded-menu-battle-information-v1", "observation", "EXPANDED MENU + BATTLE INFORMATION", RAM, "Adds newly decoded menu selections, contents and continuous battle descriptions to model text. Off: these descriptions are explicitly unprovided; corrected typed RAM, native journals, milestones and diagnostics remain recorded."),
@@ -411,6 +413,7 @@ export const LOOP_POLICY_FEATURE = "deterministic-loop-policy-v1:p6:o3:a3:c3:r2:
 export function playHarnessFeatures(features: FeatureSet, target: string | null): string[] {
   const when = (id: SwitchableFeature): string[] => (features[id] ? [id] : []);
   return [
+    ...when("faced-interaction-history-v1"),
     ...when("ram-state-v1"), ...when("live-map-v1"), ...when("field-control-lock"), ...when("naming-cursor-v1"),
     ...when("live-object-sprites-v1"), ...when("coordinate-script-conditions-v1"), ...when("active-field-message-buffer-v1"),
     ...when("world-targets-v1"), ...when("named-interactions-v1"), ...when("world-destinations-v1"), ...when("bounded-navigation-v1"), ...when("live-player-position-v1"), ...when("world-coordinate-grid-v1"),

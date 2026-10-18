@@ -137,7 +137,8 @@
    "clock-view-loop-v1": false,
    "stale-story-goal-v1": false,
    "input-cuts-v1": false, "loop-guard-screen-v1": false, "reopened-dialogue-loop-v1": false,
-   "dialog-button-b-v1": false
+   "dialog-button-b-v1": false,
+   "faced-interaction-history-v1": false
   }
  },
  "switches": [
@@ -163,7 +164,8 @@
   "input-cuts-v1",
   "loop-guard-screen-v1",
   "reopened-dialogue-loop-v1",
-  "dialog-button-b-v1"
+  "dialog-button-b-v1",
+  "faced-interaction-history-v1"
  ],
  "offInBoth": [
   "milestone-stall-stop-v1",

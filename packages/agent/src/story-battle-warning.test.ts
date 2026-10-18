@@ -202,7 +202,7 @@ describe("recorded event",()=>{
 describe("pending experiment",()=>{
  it("lists every switch registered up to v2 in its raw incumbent, with v1 on (v2 needs it), and flips only v2",()=>{
   const raw=JSON.parse(readFileSync(new URL("../../../experiments/low-hp-trainer-warning-v2.json",import.meta.url),"utf8")) as {changedFeature:string;activationMilestone:string;queuePosition?:number;incumbent:{features:Record<string,boolean>}};
-  expect(Object.keys(raw.incumbent.features)).toEqual(SWITCHABLE_FEATURES.slice(0,SWITCHABLE_FEATURES.indexOf(ID)+1));
+  expect(Object.keys(raw.incumbent.features)).toEqual(SWITCHABLE_FEATURES.filter(id=>id!=="faced-interaction-history-v1").slice(0,SWITCHABLE_FEATURES.indexOf(ID)));
   expect(raw.changedFeature).toBe(ID);
   expect(raw.incumbent.features[ID]).toBe(false);
   expect(raw.incumbent.features["low-hp-trainer-warning-v1"]).toBe(true);

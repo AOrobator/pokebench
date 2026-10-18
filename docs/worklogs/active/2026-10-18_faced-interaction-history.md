@@ -12,7 +12,7 @@ feature-switch, feature-explainer, experiment-queue, agent-observability, featur
 
 ## Architecture
 
-Add default-off switch `faced-interaction-history-v1`, needing `briefing-exits-v1`. With the switch on, the supervisor uses the first auto-advanced dialogue page only when its recorder attribution is `faced_target` or `faced_sprite`, looks up that page's exact recorded state, resolves the target faced in that state, and marks that target tried. Background/sign targets use their map tile; people also retain their map-local object identity. The original single-`A` path is unchanged. The control arm leaves the switch off; `bundle-v-control` flips it on in the bundle arm.
+Add default-off switch `faced-interaction-history-v1`. With the switch on, the supervisor uses the first auto-advanced dialogue page only when its recorder attribution is `faced_target` or `faced_sprite`, looks up that page's exact recorded state, resolves the target faced in that state, and marks that target tried. Background/sign targets use their map tile; people also retain their map-local object identity. The original single-`A` path is unchanged. The control arm leaves the switch off; `bundle-v-control` flips it on in the bundle arm. The switch has no hard feature dependency: it can safely retain history even when no supervisor surface currently renders that history.
 
 ## Invariants
 
@@ -31,14 +31,14 @@ No new tool, file read, network path, emulator mutation, or private model reason
 **M1 — RED: recorded TV regression**
 - [x] Add OFF/ON, no-attribution, and production-wiring tests from cdb1 turn 84.
 - [x] Run the focused test and observe the ON assertions fail while OFF remains green.
-- [ ] COMMIT: `test(loop-supervisor): cover batched faced interactions` (RED)
+- [x] COMMIT: `test(loop-supervisor): cover batched faced interactions` (`2ed03f30`, RED)
 
 **M2 — GREEN: switched fix, bundle, explainer, pending entry**
-- [ ] Register `faced-interaction-history-v1`, default off, and wire the exact page attribution.
-- [ ] Add the switch to the bundle arm only and register its pending correctness-tier entry.
-- [ ] Add the self-contained explainer, feature-card link, index entry, readiness row, and serving tests.
-- [ ] Delete the switch check once, observe the focused ON and production tests fail, restore it, and record the receipt.
-- [ ] Run focused tests and `just pages-check`.
+- [x] Register `faced-interaction-history-v1`, default off, and wire the exact page attribution.
+- [x] Add the switch to the bundle arm only and register its pending correctness-tier entry.
+- [x] Add the self-contained explainer, feature-card link, index entry, readiness row, and serving tests.
+- [x] Delete the switched implementation once, observe the focused ON and production tests fail, restore it, and record the receipt.
+- [x] Run focused tests and `just pages-check`.
 - [ ] COMMIT: `feat(loop-supervisor): retain faced batch interactions` (GREEN)
 
 **M3 — Gates, review, land, live proof**
@@ -56,10 +56,12 @@ The deterministic proof is a production-shaped replay of cdb1 turn 84 through th
 
 - 2026-10-18 EDT: operator approved the fix and bundle inclusion. Read-only trace confirmed cdb1 tool result seq 1577 showed two television pages, while loop note seq 1776 listed the television as untried. Source trace found the whole-request `names.length === 1 && names[0] === "A"` restriction.
 - 2026-10-18 7:35 PM EDT: focused RED run: 2 failed, 2 passed. OFF and missing-attribution cases passed; ON direct construction and production `loopSupervisor` delivery both still listed `television at 4,1` as untried.
+- 2026-10-18 7:42 PM EDT: focused GREEN run: 5 passed. Agent registry suite: 38 passed. Viewer linkage/default suite: 194 passed. `just pages-check docs/explainers/faced-interaction-history-v1.html`: pass. `just experiments-check`: 111 experiments, pass.
+- 2026-10-18 7:47 PM EDT: wiring deletion proof temporarily disabled the switched attribution block. The focused suite returned the same two failures—ON direct construction and production delivery—while OFF, no-attribution, and registry isolation stayed green. Restored the block immediately.
 
 ## Surprises
 
-- Fresh managed worktrees have no dependency links. The first focused command could not find Vitest; linked the existing root, agent, and viewer `node_modules` installations into the worktree, then reran to obtain the real RED result. These links are ignored setup, not product changes.
+- Fresh managed worktrees have no dependencies. The first focused command could not find Vitest. Temporary links exposed stale workspace-package targets, so they were removed and replaced with a frozen offline `pnpm install`; dependency setup did not change tracked files.
 
 ## Multi-Model Review Log
 

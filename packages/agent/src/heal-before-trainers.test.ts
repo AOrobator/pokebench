@@ -286,7 +286,7 @@ describe("the pending experiment",()=>{
  it("flips only heal-before-trainers-v1 over the finals incumbent with v1 on, lists every switch, and is not queued",()=>{
   const raw=JSON.parse(readFileSync(new URL("../../../experiments/heal-before-trainers.json",import.meta.url),"utf8")) as {incumbent:{features:Record<string,boolean>}};
   // Every switch registered when the entry was written (through instruction-ledger-v2); later ones default off.
-  expect(Object.keys(raw.incumbent.features)).toEqual(SWITCHABLE_FEATURES.slice(0,SWITCHABLE_FEATURES.indexOf("instruction-ledger-v2")+1));
+  expect(Object.keys(raw.incumbent.features)).toEqual(SWITCHABLE_FEATURES.filter(id=>id!=="faced-interaction-history-v1").slice(0,SWITCHABLE_FEATURES.indexOf("instruction-ledger-v2")));
   const entry=parseExperiment(raw);
   expect(entry.queuePosition).toBeUndefined();
   expect(entry.changedFeature).toBe(ID);

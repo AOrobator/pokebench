@@ -2,7 +2,7 @@
 
 Grounded in pret/pokeemerald 731ad5bf and the US ROM (SHA-1 f3ae0881); addresses below were
 read from ROM literal pools and call targets and seen in archived raw RAM (worklog
-docs/worklogs/active/2026-10-16_battle-start-journal.md).
+docs/worklogs/2026-10-16_battle-start-journal.md).
 
 - Battle start. CB2_InitBattleInternal sets gBattleMainFunc = BeginBattleIntroDummy and every
   gBattlerPositions to 0xFF, then gMain.inBattle; gBattlersCount, gBattleMons, gBattleOutcome

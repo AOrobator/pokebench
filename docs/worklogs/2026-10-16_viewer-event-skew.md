@@ -1,0 +1,51 @@
+# viewer-event-skew: an older viewer build never silently drops a newer run
+
+Operator report, 2026-10-16 about 5:10 AM EDT: the stats page showed only the control run of overnight round 2 although both lanes were live, with errors like `line 4553: invalid event at : must have required properties action, status, request`.
+
+Root cause: the 8790 viewer was built at `308ddd3e`; the trials run from the pinned harness `6d2be8afb37c`, whose `packages/agent/src/events.ts` adds `battle.message`/`battle.prompt`/`battle.text_phase` to state and battle stops/`battle_auto_presses`/page fields to `dialogue_auto_advance`. The viewer's closed schema rejected those events in `runs/2026-10-16T04-51-03_qwen36-gpu0_54a7/events.jsonl`, the whole run became status `invalid` and fell off the current-run card. The message named the first union member (`operator_control`) instead of the event's own type.
+
+Branch `claude/viewer-event-skew` in `.claude/worktrees/agent-ac78386488eab5966`. Viewer-only plus the agent's `eventProblem`; no harness behavior changes, so no feature switch. Lane freeze: no traffic to 8091/8098/8075/8076, the 8790 viewer and running experiments are untouched; verification uses copies under the gitignored `runs/skew-scratch/`.
+
+## Design
+
+- `eventProblem` validates against the union members whose `type` literal matches the event's `type` (fewest errors wins among same-type members), reports `invalid <type> event at <path>: <message>`, rewrites additional-property errors as `unexpected property <name>`, and gives unknown types and non-objects their own messages.
+- The viewer knows its own build from `dist/build-stamp.json`, written after `tsc` by `dist/build-stamp.js` (`git rev-parse HEAD` + `git status --porcelain` in the package dir). No stamp means unknown, which keeps today's strict behavior.
+- Skew = the viewer build is known and the run's `run_start.harness` build is not contained in it: a newer or diverged commit, or the same commit with either side dirty. A run whose commit is an ancestor of the viewer's (viewer newer) stays strict: the viewer's schema includes everything that build could write, so historical runs are never newly graded on partial logs. Under skew a schema-invalid event whose envelope is valid is skipped (still order-checked); the run keeps its status, and `problem` reads `viewer build X is older than this run's build Y: … Restart the viewer (just viewer-main).` (older from `git merge-base --is-ancestor` in the viewer tree, cached per run commit; else "differs from"). JSON-broken lines, bad envelopes, skipped run_start/run_end, and any schema failure from the same build stay `invalid` (integrity).
+- Stats page: the snapshot lists the run's problem in its page problems, and the current-run plate shows it. The single-run stream emits one skew problem instead of the misleading per-line error.
+- Docs: fixed-run-launch skill, CLAUDE.md and the justfile say a merge followed by a launch from a newer pin needs `just viewer-main` before the launch check.
+
+## M1: RED, GREEN, gates
+
+- [x] RED tests: agent `events.test.ts` (type-directed `eventProblem`, `eventEnvelope`): 13 of 55 fail. Viewer `src/event-skew.test.ts` (build stamp, `skewOf`, workbench snapshot skew vs same build vs unknown build, broken JSON/envelope/run_end stay invalid, plate problem, single-run stream): file fails to import (`build-stamp.ts` does not exist).
+  - RED COMMIT: `test: RED viewer keeps a newer-build run listed with a restart-the-viewer problem, and event problems name their own type` (1fa1d69b)
+- [x] GREEN: `eventProblem` per type + `eventEnvelope` (agent `events.ts`); viewer `build-stamp.ts` (stamp write/read, `gitRelation`, `skewOf`), package build runs `node dist/build-stamp.js` after tsc; `workbench-reader` `skip` hook; `readNativeRecording(…, tolerate)` order-checks skipped envelopes and returns `skipped`; `workbench-store` load passes the build, sets the skew problem, adds `Run <id>: …` to page problems, cache signature includes the build; `server.ts` `build` option (default stamp), single-run stream reports one skew problem (`<head>. First event it cannot read: line N: …`); current-run plate shows `data-current-field="problem"` (`.wb-plate-problem`).
+  - Test fixes during GREEN: the stream test's first bad line is the `surprise` one; the stamp written in a clean temp repo is clean; viewer-newer case made strict (test added).
+- [x] Docs: fixed-run-launch skill (precondition: viewer build stamp must be the pin or a descendant; launch check: no skew problem), CLAUDE.md (rule + `just viewer-main` in commands), justfile comments on `viewer-main` and `fixed-run`.
+- [x] Gates: agent 98 files / 1534 tests, viewer 65 / 882. Coverage agent 97.85 stmts / 94.45 branches / 98.18 functions / 99.13 lines (`events.ts` 100 lines, 91.89 branches); viewer 95.34 / 91.03 / 93.56 / 97.67 (`build-stamp.ts` 91.66 lines: only the `import.meta.main` entry block is uncovered). `pnpm -r lint` (tsc + eslint) clean; `pnpm -r build` clean and writes `dist/build-stamp.json`.
+- [x] Verified read-only on copies of the two real runs (`runs/skew-scratch/`, copied 05:13 EDT) with the 308ddd3e schema grafted under the new reader (scratch test, not committed), viewer build 308ddd3e with real git ancestry:
+  - Before (old message, old schema): `line 4553: invalid event at : must have required properties action, status, request`; bundle run gpu0_54a7 `invalid`, 0 splits; control gpu1_1623 live.
+  - Unknown viewer build (strict) with the new message: gpu0_54a7 `invalid`, `line 4553: invalid state event at /battle: unexpected property message`.
+  - Viewer build 308ddd3e: gpu0_54a7 `live`, turn 241, 22 splits through OLDALE_TOWN, problem `viewer build 308ddd3 is older than this run's build 6d2be8a: restart the viewer (just viewer-main). It skipped 83 events it cannot read; first: line 4553: invalid state event at /battle: unexpected property message`; same text in page problems and on its plate. gpu1_1623 live, 11 splits, no problem.
+  - GREEN COMMIT: `fix: a run from a newer harness build stays listed with a restart-the-viewer problem, and event problems name their own type and path` (9d44a789)
+
+## Before merge (operator)
+
+- [ ] Multi-model review (Codex + Grok) of main..9d44a789.
+- [ ] After merge: `just viewer-main`, then `cat /private/tmp/pokebench-viewer/packages/viewer/dist/build-stamp.json` shows main.
+- [x] Review of main..9d44a789: Codex, grok and Claude `VERDICT: LGTM` (follow-ups: a newer run_start still goes invalid without the restart hint; unknown git relation cached forever). Merging to main 2026-10-16 (operator self-merge rule).
+
+## M2: merge main (workbench loader refactor) and port skew — MERGE COMMIT 60b698b2
+
+main moved under the branch (workbench runs reduce in `loadRun` on worker threads, `createWorkbenchLoader`, `RunStore<LoadedRun>`, `runSignature`, `invalidRun`); `git merge main` conflicted in `workbench-store.ts` and `server.ts`.
+
+- [x] Ported: `loadRun(root, id, viewer)` takes the viewer's build stamp as plain data (`{commit, dirty}` or null). When the run is not that exact clean build it reads tolerantly and returns `skew: {commit, dirty, count, first}` (the run's build and the skipped events) with no problem set. Git ancestry stays on the main thread: the loader (`createWorkbenchLoader({ build })`, default the dist stamp) applies `settleSkew` to every computed or persisted `LoadedRun` — skewed (`skewOf` not null) keeps status and sets the restart-the-viewer problem; viewer newer than the run turns it invalid exactly as a strict read (first problem, no splits, no timing/port). `gitRelation`'s cache lives with the loader's `ViewerBuild`, one per viewer process.
+- [x] Signature/cache: the loader's signature is `runSignature(path) + ":viewer=<commit>[+dirty]|unknown"`, used for the in-memory cache, the in-flight key, the post-load recheck and the persisted ended-run store, so a stored record from another viewer build is never reused. The store persists the raw `LoadedRun` (with `skew`); `parseLoadedRun` validates `skew`.
+- [x] Worker path: `BaselineRequest.viewer` carries the stamp; `handleBaselineRequest` refuses a malformed stamp; `BaselinePool.load(root, id, viewer)`. `server.ts` always builds its loader with `options.build` (main's in-process default loader is used only when `workbenchSnapshot` is called without one).
+- [x] Tests: `event-skew.test.ts` snapshot helper uses a loader; new tests for the build-keyed persisted store (same ended run invalid / ended+problem / invalid across two builds sharing one store) and for the worker request carrying the stamp. main's `workbench-offthread.test.ts` pool test now passes and checks a stamp.
+- [x] Gates: agent 1568 tests passed; viewer 66 files / 901 tests passed. Coverage agent 97.88 / 94.57 / 98.21 / 99.15; viewer 95.32 / 91.11 / 93.62 / 97.62. `pnpm -r lint` and `pnpm -r build` clean.
+- [x] Real runs again (copies, 308ddd3e schema grafted, loads routed through `handleBaselineRequest` with structured-cloned plain data): unknown build — gpu0_54a7 invalid (`line 4553: invalid state event at /battle: unexpected property message`); viewer 308ddd3e — gpu0_54a7 live, turn 241, 22 splits to OLDALE_TOWN, same restart-the-viewer problem (83 skipped); gpu1_1623 live, 11 splits.
+- [x] Delta review of 9231e30d..ac50a462: Codex, grok and Claude `VERDICT: LGTM`. Merging to main.
+
+## Archived
+
+2026-10-17, 8:40 PM EDT, on the operator's request to archive worklogs whose implementation is already on main (ac50a462 docs(worklog): viewer-event-skew main merged and skew ported at 60b698b2). Unchecked boxes left above are bookkeeping from before that landing.

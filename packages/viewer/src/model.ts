@@ -186,6 +186,7 @@ export interface RequestSample {
   readonly output: number;
   readonly input: number;
   readonly cacheRead: number;
+  readonly cacheWrite: number | null;
   readonly failed: boolean;
 }
 
@@ -366,7 +367,7 @@ export class RunView {
   private onAssistant(event: Of<"assistant">, ms: number): void {
     this.requestSamples.push({ seq: event.seq, ms, ttftMs: event.ttft_ms,
       inferenceMs: event.latency_ms, output: event.usage.output, input: event.usage.input,
-      cacheRead: event.usage.cache_read, failed: event.stop_reason === "error" || event.stop_reason === "aborted" });
+      cacheRead: event.usage.cache_read, cacheWrite: event.usage.cache_write ?? null, failed: event.stop_reason === "error" || event.stop_reason === "aborted" });
     const span = this.thinkingSpans.at(-1);
     if (span?.endMs === null) span.endMs = ms;
     this.lastThought = { turn: event.turn, thinking: event.thinking, reply: event.text, latencyMs: event.latency_ms };

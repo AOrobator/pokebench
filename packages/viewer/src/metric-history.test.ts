@@ -6,7 +6,7 @@ import {METRIC_HISTORY_LIMIT,metricHistory} from "./metric-history.js";
 function view(log:Log){const v=new RunView();for(const e of log.events)v.apply(e);return v;}
 describe("recorded metric history",()=>{
  it("projects each response by sequence and plots recorded values including zero without a stats slider",()=>{
-  const log=new Log();log.add(0,START);log.add(1000,assistant({ttft_ms:0,latency_ms:0,usage:{input:0,output:0,cache_read:0}}));log.add(2000,assistant({ttft_ms:250,usage:{input:500,output:100,cache_read:200}}));
+  const log=new Log();log.add(0,START);log.add(1000,assistant({ttft_ms:0,latency_ms:0,usage:{input:0,output:0,cache_read:0,cache_write:0}}));log.add(2000,assistant({ttft_ms:250,usage:{input:500,output:100,cache_read:200,cache_write:0}}));
   const v=view(log);expect(v.requestSamples.map(s=>[s.seq,s.ttftMs,s.input,s.cacheRead])).toEqual([[1,0,0,0],[2,250,500,200]]);
   document.body.innerHTML=metricHistory(v);
   expect(document.querySelectorAll('svg')).toHaveLength(4);
@@ -17,6 +17,27 @@ describe("recorded metric history",()=>{
   expect(document.querySelectorAll('rect.mh-input')).toHaveLength(2);
   expect(document.querySelectorAll('rect.mh-cache')).toHaveLength(2);
   expect(metricHistory(v)).toBe(metricHistory(v));
+ });
+ it("includes recorded cache writes in the prompt total and third stack, preserving historical unknowns",()=>{
+  const log=new Log();log.add(0,START);
+  log.add(1000,assistant({usage:{input:100,output:10,cache_read:200,cache_write:50}}));
+  const v=view(log);expect(v.requestSamples[0]).toMatchObject({cacheWrite:50});
+  document.body.innerHTML=metricHistory(v);
+  expect(document.querySelector('[data-metric="prompt"] strong')?.textContent).toBe('350 tokens');
+  expect(document.querySelector('rect.mh-write title')?.textContent).toContain('cache writes 50 tokens');
+  expect(Number(document.querySelector('rect.mh-write')?.getAttribute('height'))).toBeGreaterThan(0);
+  expect(document.querySelector('[data-metric="prompt"]')?.textContent).toContain('Cache writes');
+  log.add(2000,assistant({usage:{input:100,output:10,cache_read:200,cache_write:0}}));
+  const zero=view(log);expect(zero.requestSamples[1]).toMatchObject({cacheWrite:0});
+  document.body.innerHTML=metricHistory(zero);
+  expect(document.querySelectorAll('rect.mh-write')).toHaveLength(2);
+  expect(document.querySelector('[data-metric="prompt"] strong')?.textContent).toBe('300 tokens');
+  log.add(3000,assistant({usage:{input:100,output:10,cache_read:200}}));
+  const historical=view(log);expect(historical.requestSamples[2]).toMatchObject({cacheWrite:null});
+  document.body.innerHTML=metricHistory(historical);
+  expect(document.querySelector('[data-metric="prompt"] strong')?.textContent).toBe('300 tokens (partial)');
+  expect(document.querySelectorAll('rect.mh-write')).toHaveLength(2);
+  expect(document.body.textContent).toContain('Missing cache writes remain unknown; prompt totals for those responses are partial.');
  });
  it("breaks missing TTFT and failed-response lines; never counts failed zero as a healthy response",()=>{
   const log=new Log();log.add(0,START);log.add(1000,assistant());log.add(2000,assistant({ttft_ms:null}));log.add(3000,assistant());log.add(4000,assistant({stop_reason:'error',ttft_ms:0}));log.add(5000,assistant());

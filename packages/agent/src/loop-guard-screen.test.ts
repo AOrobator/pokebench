@@ -34,7 +34,7 @@ const confirmation={phase:"clock_confirmation",selected:"NO",ready:true,controls
 const transition={phase:"clock_transition",selected:null,ready:false,controls:"Clock transition; selection input is not active",diagnostic:null,value:"10:00 AM"};
 
 describe("loop-guard-screen-v1",()=>{
- it("is registered last, default off, and the bundle arm is the one that turns it on",()=>{
+ it("is registered third from the end, default off, and the bundle arm is the one that turns it on",()=>{
   expect(SWITCHABLE_FEATURES.at(-3)).toBe(ID);
   expect(playHarnessFeatures(ALL_ON,null).at(-3)).toBe(ID);
   expect(featureInfo(ID)).toMatchObject({group:"guard",needs:"loop-guard-supervisor-v1",switchable:true,title:"LOOP GUARD SCREEN"});

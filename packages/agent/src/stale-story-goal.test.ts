@@ -59,7 +59,7 @@ function run(calls:readonly {turn:number;pages:readonly object[]}[],state:GameSt
 describe("stale-story-goal-v1",()=>{
  const oldale=field([0,10],"OLDALE TOWN");
  const lab=[page("BIRCH lives next door.","MOM"),page("Go see MAY at the LAB.","MOM")];
- it("is registered last, default off, and needs nothing",()=>{
+ it("is registered fifth from the end, default off, and needs nothing",()=>{
   expect(SWITCHABLE_FEATURES.at(-5)).toBe(ID);
   expect(playHarnessFeatures(ALL_ON,null).at(-5)).toBe(ID);
   expect(featureInfo(ID)).toMatchObject({group:"observation",needs:null,switchable:true,title:"STALE STORY GOAL"});

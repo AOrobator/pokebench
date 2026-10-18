@@ -61,6 +61,8 @@ export interface CompletedCall {
   readonly startState?: GameStateSnapshot | undefined;
   // ineffective-loops-v1: the dialogue texts (or message identities) shown in states recorded during the call.
   readonly dialogue?: readonly string[] | undefined;
+  // reopened-dialogue-loop-v1: readable dialogue shown during the call. Empty means none; absent means the caller supplied dialogue instead.
+  readonly spoken?: readonly string[] | undefined;
 }
 export type LoopPolicy = { readonly [K in keyof typeof LOOP_POLICY]: number };
 
@@ -390,6 +392,8 @@ export class LoopDetector {
       navigation?: boolean;
       pressed?: boolean;
       dialogue?: string[];
+      // reopened-dialogue-loop-v1: readable dialogue only. A message identity is not a line.
+      spoken?: string[];
     }
   >();
 
@@ -425,9 +429,18 @@ export class LoopDetector {
       if ("started" in event) {
         if (this.pushback) this.tripState(event);
         if (this.menuLoop) this.noteMenuScreen(event, event.seq);
-        const said = this.ineffectiveLoops || this.closedDialogue ? (event.world_context?.dialogue || event.world_context?.message?.identity) ?? "" : "";
-        if (said !== "")
-          for (const pending of this.calls.values()) if (!(pending.dialogue ??= []).includes(said)) pending.dialogue.push(said);
+        if (this.ineffectiveLoops) {
+          const said = (event.world_context?.dialogue || event.world_context?.message?.identity) ?? "";
+          if (said !== "")
+            for (const pending of this.calls.values()) if (!(pending.dialogue ??= []).includes(said)) pending.dialogue.push(said);
+        }
+        if (this.closedDialogue) {
+          const line = event.world_context?.dialogue ?? "";
+          for (const pending of this.calls.values()) {
+            pending.spoken ??= [];
+            if (line !== "" && !pending.spoken.includes(line)) pending.spoken.push(line);
+          }
+        }
         this.nativeProgress(event, event.seq);
         this.latest = event;
       } else {
@@ -466,6 +479,7 @@ export class LoopDetector {
         requested: pending?.requested,
         startState: pending?.navigation === true ? pending.before : pending?.start,
         dialogue: pending?.dialogue,
+        spoken: pending?.spoken,
         isError: event.is_error,
         text: event.text,
         seq: event.seq,
@@ -531,12 +545,14 @@ export class LoopDetector {
       return false;
     }
     const place = JSON.stringify([call.state.location, call.state.map_id, call.state.position]);
-    const open = call.state.world_context?.dialogue ?? "";
+    // A locked menu, a ready interface, or a missing world context is not the free field the lines closed onto.
+    if (call.state.in_battle || call.state.field_controls_locked !== false || call.state.active_ui?.ready === true || call.state.world_context == null) return false;
+    const open = call.state.world_context.dialogue ?? "";
     if (open !== "") {
       if (open !== this.closedTalk.text) this.closedTalk = { text: "", place: "", count: 0 };
       return false;
     }
-    const text = (call.dialogue ?? []).filter((line) => line !== "").join("\n");
+    const text = (call.spoken ?? call.dialogue ?? []).filter((line) => line !== "").join("\n");
     if (text === "" || call.name !== "press" || !pressAskedForA(call)) {
       if (place !== this.closedTalk.place) this.closedTalk = { text: "", place: "", count: 0 };
       return false;
@@ -814,6 +830,7 @@ export class LoopDetector {
     this.pushbacks.length = 0;
     this.moves.length = 0;
     this.movesHeard.clear();
+    this.closedTalk = { text: "", place: "", count: 0 };
   }
 
   // pushback-loop-detection-v1: what a state since the last settled result says about the trip away from it.

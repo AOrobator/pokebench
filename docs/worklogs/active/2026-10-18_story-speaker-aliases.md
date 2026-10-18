@@ -42,6 +42,8 @@ The correction remains inside the existing default-off `story-destinations-v1` s
 - 2026-10-18: RED adds the exact `DAD:` Rustboro instruction plus negative cases for a faced sprite and `WALLYS DAD`; current code returns no destination block.
 - 2026-10-18: GREEN adds the exact source-proven alias `DAD -> NORMAN` at the shared story-character identity boundary. Destination output still quotes `DAD`; aliases apply only to game-printed name prefixes.
 - 2026-10-18: Updated the existing story-destinations explainer and pending experiment notes; no new switch or experiment was created because OFF remains unchanged and the correction is inside the already default-off candidate.
+- 2026-10-18: Replaced the combined synthetic instruction with the three-page shape recorded in live run `2026-10-18T07-32-23_qwen36-gpu1_4865`, `dialogue_auto_advance` seq 14855. The decisive page is speaker `DAD`, source `name_prefix`, text `Head for RUSTBORO CITY beyond this town.` Added direct exact-alias tests.
+- 2026-10-18: Gates on GREEN `2da53ea7` before the evidence-only test refinement: `just test` agent 2426, viewer 1152, Python 2478 (229 ROM-dependent skips); `just lint` clean after copying the existing local mGBA binding into the isolated environment; `just build` clean; `just coverage` agent 97.99/94.23/98.31/99.22, viewer 95.40/91.43/93.84/97.64, Python 97.48/93.42/99.43, floor 90; `just verify-vendor` clean; explainer and experiment checks clean.
 
 ## Multi-Model Review Log
 

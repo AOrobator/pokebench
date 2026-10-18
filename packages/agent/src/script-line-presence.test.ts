@@ -11,7 +11,7 @@ import {InstructionLedger,instructionLedger} from "./instruction-ledger.js";
 import {dialogueUnits} from "./harness.js";
 import {observeTool,pressTool} from "./game-tools.js";
 import {playGameTools} from "./play-wiring.js";
-import {SCREEN_REACH,STORY_CHARACTERS,onScreen,presenceTag,storyCharacter} from "./script-line-presence.js";
+import {SCREEN_REACH,STORY_CHARACTERS,canonicalStoryCharacterName,onScreen,presenceTag,storyCharacter} from "./script-line-presence.js";
 import type {GameStateSnapshot} from "./game-state.js";
 import {IN_GAME} from "../test-support/events.js";
 
@@ -136,6 +136,12 @@ describe("script-line-presence-v1: on screen and names",()=>{
   expect(onScreen(state([obj(10,9,106,"RIVAL_MAY_NORMAL")],"SLATEPORT CITY BATTLE TENT BATTLE ROOM"),true)?.[0]?.character).toBeNull();
   expect(storyCharacter(17,"LITTLEROOT TOWN PROFESSOR BIRCHS LAB")).toBeNull();
   expect(storyCharacter(64,null)).toBeNull();
+ });
+ it("canonicalizes only exact source-proven story-character labels",()=>{
+  expect(canonicalStoryCharacterName("NORMAN")).toBe("NORMAN");
+  expect(canonicalStoryCharacterName("DAD")).toBe("NORMAN");
+  expect(canonicalStoryCharacterName("dad")).toBeNull();
+  expect(canonicalStoryCharacterName("WALLYS DAD")).toBeNull();
  });
  it("cannot tell who is on screen without a position, map or object list",()=>{
   expect(onScreen({...state([]),position:null},true)).toBeNull();

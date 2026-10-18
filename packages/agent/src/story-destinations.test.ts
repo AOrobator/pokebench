@@ -122,13 +122,14 @@ describe("story-destinations-v1 rules",()=>{
   return story.block(oldale,"later",PLACES.places);
  }
  it("accepts the game's DAD prefix as Norman without rewriting the quoted speaker",()=>{
-  const instruction="DAD: Now… RAED, if you want to become a strong TRAINER, here's my advice. Head for RUSTBORO CITY beyond this town.";
-  expect(after([page(instruction,"DAD")])).toContain([
-   `${STORY_HEADER} (turn 5, DAD): "Now… RAED, if you want to become a strong TRAINER, here's my advice. Head for RUSTBORO CITY beyond this town."`,
+  // Live run 4865, dialogue_auto_advance seq 14855: these are three separate pages.
+  const instruction=[page("DAD: Now…","DAD"),page("RAED, if you want to become a strong TRAINER, here's my advice.","DAD"),page("Head for RUSTBORO CITY beyond this\ntown.","DAD")];
+  expect(after(instruction)).toContain([
+   `${STORY_HEADER} (turn 5, DAD): "Head for RUSTBORO CITY beyond this town."`,
    '- "RUSTBORO CITY" = RUSTBORO CITY (map 0/3).',
   ].join("\n"));
-  expect(after([page(instruction,"DAD","faced_sprite")])).toBeNull();
-  expect(after([page(instruction,"WALLYS DAD")])).toBeNull();
+  expect(after([page("Head for RUSTBORO CITY beyond this town.","DAD","faced_sprite")])).toBeNull();
+  expect(after([page("Head for RUSTBORO CITY beyond this town.","WALLYS DAD")])).toBeNull();
  });
  it("a connected map is reached by the edge that leads to it, said as this map's edge when it is this one",()=>{
   expect(after([page("MAY: The POKéMON found on ROUTE 103 include…","MAY")])).toContain("- \"ROUTE 103\" = ROUTE103 (map 0/18). Way in: this map's NORTH edge; ROUTE110 (map 0/25) WEST edge; door in ALTERING CAVE (map 24/106) at (");

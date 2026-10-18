@@ -93,6 +93,10 @@ Deletion receipts, each restored after the red run:
 
 A ready message at another tile was still leaving the count in place, so the next showing at the old tile warned. That result now clears the count, the same way any other result does after the player leaves the tile. Emptying `leftTile` failed `ON: a ready message at another tile clears the count` with `expected [ { kind: 'cycle' …} ] to deeply equal []`, and the clear was restored.
 
+## Landed
+
+Fast-forward of `86d0994ea1341b1b3aced49b736a5ec398f6c145` onto main. The leave-tile delta `bbb48850..86d0994e` (SHA-256 `b496bf7d63dfcc36ba83058ab1e2ecc61dd3fe7ed7338f11216b0a93117b5dd6`) got `VERDICT: LGTM` from Cursor Claude `claude-opus-5-thinking-high`, Grok `grok-4.7-high`, and GPT `gpt-5.6-sol-xhigh`, each with empty stderr and one verdict. `just test` on that commit: agent 2425, viewer 1146, pytest 2707. On main after the fast-forward, agent 2425, viewer 1146, pytest 2707. The cook already running is unchanged. The next launch after this merge picks the switches up. `source.commit` on the two new experiment files is still `bcde8cd4`; repin with `just experiment-pin` when those entries are queued. Experiments not queued, not approved, not launched.
+
 ## Not done
 
 The feature commit is `05060925`. Main moved to `56dfa98f` (`loop-guard-screen-v1`) during round 1, so that landing is merged in ahead of these two switches as `0c9db3da`. Round 1 reviewed `336c174a..40991fb2` and is void: the tree changed and main moved. Its accepted fixes are in `b41f09ce` (explainer titles; count only a press whose requested buttons include A; a different open line clears the count). Not on main. `source.commit` on the two new experiment files is still `bcde8cd4`; repin after landing. Experiments not queued, not approved, not launched. The live cook is unchanged.

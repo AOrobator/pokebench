@@ -35,7 +35,7 @@ Viewer-only. No new recorded fields, no harness behavior change, so no feature s
 
 **M1: BAG page**
 - [x] RED: bag ledger, page, app jump and server art route tests (bag.test.ts fails to import bag.ts; 4 app/server tests fail)
-- [ ] GREEN: bag.ts, app wiring, page, styles, server route, `just bag-art`
+- [x] GREEN: bag.ts, app wiring, page, styles, server route, `just bag-art`. Gates: viewer 1147 (95.57/91.42/94.05/97.74), agent 2338, Python 2478 passed (97.48/93.42/99.43), lint clean
 - [ ] Gates, browser proof at 1280/1440/390 on e046 (scratch copy)
 - [ ] Review (Claude, Grok, GPT cloud lanes) on a frozen packet
 

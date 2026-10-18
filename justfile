@@ -45,6 +45,12 @@ backfill-route103 +runs:
 trainer-card-art out="runs/sprites/trainer-card-v1":
     uv run --project env python scripts/trainer-card/build_art.py "$1"
 
+# BAG page art for the viewer (item icons, bag pocket sprites) from ~/dev/pokeemerald, every asset
+# verified against $POKEBENCH_ROM. ROM-derived: output stays under runs/.
+[positional-arguments]
+bag-art out="runs/sprites/bag-v1":
+    uv run --project env python scripts/bag-art/build_bag_art.py "$1"
+
 verify-vendor:
     cd env && uv run python -c 'from pokebench_env.launcher import VENDOR_DIR; from pokebench_env.vendor import check_vendor; check_vendor(VENDOR_DIR); print("vendor OK:", VENDOR_DIR)'
 

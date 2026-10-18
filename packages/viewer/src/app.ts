@@ -17,6 +17,7 @@ import { cardHtml, cardInputFor, type CardInput } from "./trainer-card.js";
 import type { GlyphPixels, GlyphSheet } from "./game-font.js";
 import { browserGlyphSheet, drawGlyphs, fillCards, loadCardArt, syncCards, type LoadedArt } from "./card-dom.js";
 import { WORKBENCH_POLL_MS, parseWorkbench, type WorkbenchData } from "./workbench-data.js";
+import { BagLedger, NO_ART, bagPage, bagRange, parseBagArt, type BagArt } from "./bag.js";
 
 export interface StreamLike {
   addEventListener(type: string, listener: (message: { data: string }) => void): void;
@@ -198,6 +199,12 @@ export class App {
   private readonly held = new Set<HTMLElement>();
   private readonly heldAtTop = new Set<HTMLElement>();
   private sideBox: number | null = null;
+  // The BAG page: folded from every recorded event of the run (not the replay cursor), drawn only while open.
+  private bag = new BagLedger();
+  private bagged = 0;
+  private bagKey = "";
+  private bagArt: BagArt | null = null;
+  private bagArtLoad: Promise<void> | null = null;
   private readonly autoScroll = new WeakMap<HTMLElement, number>();
   private rows: RowState = { open: new Set(), folded: new Set(), selected: null };
   private screenTick = 0;
@@ -454,6 +461,10 @@ export class App {
       });
     }
     this.ui("feature-search").addEventListener("input", () => { this.filterFeatures(); });
+    this.ui("bag").addEventListener("click", (event) => {
+      const seq = (event.target as HTMLElement).closest<HTMLButtonElement>("[data-bag-jump]")?.dataset.bagJump;
+      if (seq !== undefined) this.jumpTo(Number(seq));
+    });
     this.ui("think-body").addEventListener("scroll", () => {
       const body = this.ui("think-body");
       this.followThinking = body.scrollHeight - body.scrollTop - body.clientHeight < 40;
@@ -569,9 +580,49 @@ export class App {
   private showPage(name: string): void {
     if (name === "splits" && this.runId !== null && this.comparisonsRun !== this.runId) void this.loadComparisons(this.runId);
     if (name === "queue") void this.experiments?.load();
+    if (name === "bag") void this.loadBagArt();
     for (const panel of this.doc.querySelectorAll<HTMLElement>("[data-nav-page]")) panel.hidden = panel.dataset.navPage !== name;
     for (const button of this.doc.querySelectorAll<HTMLButtonElement>("[data-page]")) button.setAttribute("aria-pressed", String(button.dataset.page === name));
     (this.ui("page-select") as HTMLSelectElement).value = name;
+  }
+
+  // The item icons and pocket sprites `just bag-art` builds; without them the page shows names only.
+  loadBagArt(): Promise<void> {
+    this.bagArtLoad ??= this.deps.fetchJson("/sprites/bag/manifest.json").then((value) => { this.bagArt = parseBagArt(value); }, () => { this.bagArt = NO_ART; }).then(() => { this.render(); });
+    return this.bagArtLoad;
+  }
+
+  // ▶ on a bag change: pause the replay on the first recorded frame after that change.
+  jumpTo(seq: number): void {
+    const clock = this.clock;
+    const events = this.view.events;
+    const at = events.findIndex((event) => event.seq === seq);
+    const change = events[at];
+    if (clock === null || change === undefined) return;
+    let target: RunEvent = change;
+    for (let i = at; i < events.length; i += 1) {
+      const event = events[i];
+      if (event?.type === "tool_result" && event.frames.length > 0) {
+        target = event;
+        break;
+      }
+    }
+    clock.pause();
+    clock.seek(eventMs(target));
+    this.render();
+    this.doc.querySelector(".gbaStage")?.scrollIntoView({ block: "center", behavior: "smooth" });
+  }
+
+  private renderBag(): void {
+    const events = this.view.events;
+    for (; this.bagged < events.length; this.bagged += 1) this.bag.add(events[this.bagged] as RunEvent);
+    if (this.ui("bag").closest<HTMLElement>("[data-nav-page]")?.hidden !== false) return;
+    const input = { ledger: this.bag, run: this.runId, art: this.bagArt ?? NO_ART, canJump: this.clock !== null };
+    const key = `${this.runId ?? ""}|${String(this.bag.version)}|${String(this.bag.lastTurn)}|${String(input.canJump)}|${String(this.bagArt !== null)}`;
+    if (key === this.bagKey) return;
+    this.bagKey = key;
+    this.setHtml("bag-range", bagRange(input));
+    this.setHtml("bag", bagPage(input));
   }
 
   private async pickBaseline(runId: string): Promise<void> {
@@ -638,6 +689,9 @@ export class App {
     this.wasLive = false;
     this.ui("follow-thinking").setAttribute("aria-pressed", "true");
     this.liveFailedAt = null;
+    this.bag = new BagLedger();
+    this.bagged = 0;
+    this.bagKey = "";
     this.setHtml("inspector", inspector(undefined));
     this.picker("run").value = runId;
     this.markSelectedRun();
@@ -915,6 +969,7 @@ export class App {
     this.setHtml("splits", split.table);
     this.setHtml("lanes", lanesSvg(view, nowMs));
     this.renderTrace(nowMs);
+    this.renderBag();
     this.renderScreen(nowMs);
     const lit = litButtons(view.presses, nowMs);
     for (const button of this.ui("gba").querySelectorAll<SVGElement>("[data-btn]")) {

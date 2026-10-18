@@ -12,15 +12,17 @@ function phoneRules(css: string): string {
 describe("phone-width watch deck", () => {
   it("drives every phone rule off the data-phone flag so the breakpoint lives only in phone.ts", () => {
     // Substring scan, any context: an @media, a bare declaration, or a comment
-    // mentioning a breakpoint width outside phone.ts all fail here.
+    // mentioning a breakpoint width outside phone.ts all fail here. One read
+    // per fixture; every assertion runs against the in-memory string.
     const widths = ["700px", "880px", "800px"];
-    for (const file of ["style.css", "human.css", "index.html", "play.html", "workbench.html"]) {
-      for (const width of widths) expect(read(file), `${file} mentions ${width}`).not.toContain(width);
+    const staticSources = ["style.css", "human.css", "index.html", "play.html", "workbench.html"].map((file) => [file, read(file)] as const);
+    for (const [file, source] of staticSources) {
+      for (const width of widths) expect(source, `${file} mentions ${width}`).not.toContain(width);
     }
-    const owners = readdirSync(import.meta.dirname)
+    const sources = readdirSync(import.meta.dirname)
       .filter((file) => file.endsWith(".ts") && !file.endsWith(".test.ts"))
-      .filter((file) => widths.some((width) => readFileSync(join(import.meta.dirname, file), "utf8").includes(width)));
-    expect(owners).toEqual(["phone.ts"]);
+      .map((file) => [file, readFileSync(join(import.meta.dirname, file), "utf8")] as const);
+    expect(sources.filter(([, source]) => widths.some((width) => source.includes(width))).map(([file]) => file)).toEqual(["phone.ts"]);
   });
 
   it("keeps the timeline a direct child of the watch deck, after the game stream", () => {

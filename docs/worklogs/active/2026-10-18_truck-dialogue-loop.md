@@ -10,7 +10,7 @@ feature-switch, feature-explainer, experiment-queue, agent-observability, pokebe
 
 ## Architecture
 
-Two switches, both needs null, default off, appended after `input-cuts-v1` (main moved while this branch was open). Registry order ends `stale-story-goal-v1`, `input-cuts-v1`, `reopened-dialogue-loop-v1`, `dialog-button-b-v1`. Both new switches are on in the bundle arm of `experiments/fixed/bundle-v-control.json` and in the `open-goal-prompt` incumbent (the cook arm). Both are off in the control arm. `input-cuts-v1` stays as main had it: base false, in the bundle switches list, true on the cook incumbent.
+Two switches, both needs null, default off. Registry order ends `stale-story-goal-v1`, `input-cuts-v1`, `loop-guard-screen-v1`, `reopened-dialogue-loop-v1`, `dialog-button-b-v1`. Both new switches are on in the bundle arm of `experiments/fixed/bundle-v-control.json` and in the `open-goal-prompt` incumbent (the cook arm). Both are off in the control arm. `input-cuts-v1` and `loop-guard-screen-v1` stay as main had them: base false, in the bundle switches list, true on the cook incumbent.
 
 `reopened-dialogue-loop-v1` (guard). `LoopDetector`'s last argument `closedDialogue`, after `clockViews`, wired from the FeatureSet in `live.ts` and `decision-probe.ts`. A separate `closedTalk` counter. ON counts the lines shown during a press when the result is the free field and the message is already gone, at the same place. The first showing is count 0. The fourth showing of the same lines raises the existing cycle warning and the supervisor briefing, and sets the reopened flag so navigation truth still says reopening the message is not story progress. One showing, a different line, and the same lines after leaving that tile do not count. A result that still shows the lines stays on the older counter. OFF: a call whose result has no dialogue does not count as reopening it.
 
@@ -60,4 +60,4 @@ Rebutted, not changed: replaying the live cook cannot show this warning, because
 
 ## Not done
 
-The feature commit is `05060925`. Main was merged through `336c174a`. Round 1 is not an LGTM. Not on main. `source.commit` on the two new experiment files is still `bcde8cd4`; repin after landing. Experiments not queued, not approved, not launched. The live cook is unchanged.
+The feature commit is `05060925`. Main moved to `56dfa98f` (`loop-guard-screen-v1`) during round 1, so that landing is merged in ahead of these two switches. Round 1 is not an LGTM. Not on main. `source.commit` on the two new experiment files is still `bcde8cd4`; repin after landing. Experiments not queued, not approved, not launched. The live cook is unchanged.

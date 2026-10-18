@@ -1,0 +1,272 @@
+# Bundle vs fixed control — confirmatory two-arm experiment
+
+## Problem Statement
+
+The full-map-navigation finals were withdrawn by the operator: every arm was dominated by harness bugs (dc0e truck soft-lock, 6684 repeated A×8 dialogue loop, cd66 slow house exits) and 1–2 trials per arm cannot separate anything. The harness-fixes bundle (`claude/bundle-integration`, worklog `2026-10-15_harness-fixes-bundle.md`) fixes those bugs and adds eight default-off switches. This experiment answers one question with decent power: does the eight-switch bundle beat the fixed control?
+
+## Decisions (operator, 2026-10-15)
+
+- Two arms, bundle vs fixed control. The 16-configuration factorial was dropped: per-switch main effects at affordable N have <20% power, and the bundle effect estimated as a sum of eight main effects is ~2.8× noisier than a direct two-arm comparison. Per-switch attribution for readout switches goes to decision-point screening instead.
+- Plan B: 64 trials per arm capped at 15 minutes (confirmatory) plus 6 per arm capped at 60 minutes ("let it cook", exploratory, never in the p-value).
+- Budget: 48 GPU-hours. 32 confirmatory + 12 cook + 4 reserve for invalid-trial replacements.
+- Fixed N. No interim analysis, no early stopping for efficacy or futility, no automatic experiment ejects.
+- Both RTX 4090s run trials in parallel, one runner per GPU. The chat bot stays offline for the duration.
+- Primary milestone RIVAL_MET; ranking stays furthest-milestone-first.
+- Review merge rule (operator directive, the operator, 2026-10-15 ~22:00 EDT): a review finding blocks ONLY if it (1) crashes, throws, or can stop or stall the experiment silently; (2) breaks the pre-registered design: fixed N, balanced blocks per lane, arms differing only in the eight switches, caps, the CLOCK_SET start, milestone-stall-stop off; (3) mishandles invalid trials or lane pause/retry, or misreports status; (4) gets the analysis wrong. Everything else goes to the Deferred list below, one line each, and is not fixed now. One cloud-only review; any re-review covers only the blocker-fix delta.
+- Review lanes (operator directive, 2026-10-15 ~20:45 EDT): no local-model review lanes at all, think-swarm included. Review uses cloud lanes only: Codex `gpt-5.6-sol` and grok (Cursor), with opus/fable as fallbacks. Both 4090s stay with the experiment.
+- The two battle switches (`expanded-menu-battle-information-v1`, `battle-details-v2`) are out; they get their own experiment from a Birch-rescue save.
+
+## Pre-registration (frozen before the first trial)
+
+- Start: the clock-set save (CLOCK_SET), same checkpoint bytes for every trial.
+- Control arm: main after the bundle, decision-point, fade-settle and auto-advance-qualify merges, running the **finals incumbent preset** with all eight bundle switches off and `milestone-stall-stop-v1` off. Control base = `runs/experiments/full-map-navigation/presets/finals-incumbent.json`, preset id `full-map-navigation-finals-incumbent`, sha256 `2a7a2a0fd7cba935ce8631c6ca67770e3cc6833447cc1b3a037e3c46039e0161` (the 504f flag set). It is NOT the checked-in `experiments/full-map-navigation.json` `incumbent` (`navigation-incumbent`).
+  - Decision (orchestrator, 2026-10-15; operator may overturn). Reasons: it is what the finals ran; the decision-point supervisor and loop-guard corrections only act with these switches on; with the supervisor off the loop guard ends trials `stuck` before the cap, which violates "only the wall cap ends a trial".
+  - The definition records it as `controlBase {path, presetId, sha256}`; every load (`check`, `approve`, `run`, `dry-run`) refuses to proceed unless the preset file's bytes match that sha256, its id matches, and the base equals it in sampling, `maxTurns`, `failureLimit` and every feature outside the eight switches and the off-in-both flags.
+  - Flags where the two presets differ (finals incumbent vs checked-in `navigation-incumbent`; "unset" = absent from the preset, default off):
+
+    | Flag | finals incumbent (control base) | checked-in `navigation-incumbent` |
+    |---|---|---|
+    | `interaction-loop-detection-v1` | true | false |
+    | `loop-guard-supervisor-v1` | true | unset |
+    | `text-only-supervisor-v1` | true | unset |
+    | `deterministic-loop-guard-v1` | true | true |
+    | `dialogue-log-v1`, `double-context-window-v1`, `fresh-retry-v1`, `instruction-ledger-v1`, `next-milestone-hint-v1`, `walkable-floor-v1` | false | unset |
+    | `game-evidence-priority-v1`, `named-warp-destinations-v1` (bundle switches) | false | unset |
+    | `milestone-stall-stop-v1` (off in both) | false | unset |
+    | limits | maxTurns 20000, maxWallMs 2700000 (phase caps replace it) | maxTurns 1500, maxWallMs 1800000 |
+- Bundle arm: the same build bytes, switches on: `named-warp-destinations-v1`, `world-destinations-v1`, `game-evidence-priority-v1`, `character-presence-v1`, `navigation-refusal-reasons-v1`, `transition-press-result-v1`, `stall-briefing-v1`, `dialogue-auto-advance-v1`. Every other flag identical between arms.
+- Corrections (bundle fixes, fade-settle, qualification fixes) are in both arms.
+- Confirmatory trials: maxWallMs 900000 (15 min). Cook trials: maxWallMs 3600000 (60 min).
+- The only thing that ends a trial is its wall cap. `milestone-stall-stop-v1` is off in both arms.
+- Primary outcome: RIVAL_MET reached within the trial (binary). Test: two-sided Fisher exact, α = 0.05; p is reported against 0.10 as well.
+- Secondary outcomes: time to RIVAL_MET (right-censored at the cap; log-rank), furthest milestone ranked depth-first then time (Mann–Whitney). Reported per GPU as well as pooled.
+- Power at a 50% control rate (16/32 in the 2×2 cohort from CLOCK_SET): 80% for +25 pts at α = 0.05; 59% for +20; 35% for +15. Scripts: `~/.hermes/cache/scratch/pb_power.py`, `pb_power2.py`.
+- 15-minute cap rationale: all 16 RIVAL_MET times in the 2×2 cohort fell in 6.8–13.9 min.
+- Order: randomized balanced blocks with a recorded seed. Each block of four gives each GPU one bundle and one control trial. All 128 confirmatory trials run before the 12 cook trials.
+- Invalid trial = infrastructure failure (model/gateway error, emulator or server crash, checkpoint load failure), never model behavior. An invalid trial is recorded with its reason, kept in the record, and replaced by a trial of the same arm on the same GPU appended to the end of the queue. Replacements draw from the 4 GPU-h reserve; every invalid trial is reported.
+- The runner never halts the experiment on its own. If a lane cannot serve, that runner pauses, writes the reason to the status file shown in the viewer, and retries; the other runner continues.
+
+## Compute
+
+| Lane | GPU | Model path |
+|---|---|---|
+| A | GPU1 | Direct tunnel to llama-server |
+| B | GPU0 | Direct tunnel to llama-server |
+
+- Both: llama.cpp `b10236-1464c62d8` (image `ghcr.io/ggml-org/llama.cpp@sha256:fd68d130…`), `/models/Qwen3.6-35B-A3B-UD-Q4_K_M.gguf` + `mmproj-F16.gguf`, ctx 65536, `--parallel 1`, q4_0 KV, `--reasoning-budget 1024`, identical argv.
+- Measured 2026-10-15 17:48: generation 182.5 / 182.4 tok/s (GPU1) vs 180.9 / 182.4 tok/s (GPU0), temperature 0, 200 tokens.
+- Both lanes must reach the model the same way (same proxy path), so latency differences come only from the GPUs.
+
+### Compute isolation and restoration
+
+Unrelated workloads and their automatic recovery were paused to reserve compute. A host reboot could reclaim one lane, which would cause the runner to pause that lane. Pre-experiment state was recorded for restoration afterward. Private service names, schedules and recovery commands are omitted.
+
+## Launch dependencies
+
+- [ ] `claude/bundle-integration` merged to main (sa-0-dc354d39), with the merge SHA recorded.
+- [ ] `claude/decision-point-screening` merged (sa-1-8ce3580d).
+- [ ] `claude/fade-settle` merged (sa-0-5f3acb7a).
+- [ ] `claude/auto-advance-qualify` merged (sa-1-97c6ff75): real-ROM proof of no lost pages, no B on YES/NO, correct cutscene-lock handling.
+- [ ] `just build` on main after the last merge.
+
+## Milestones
+
+- [ ] M1 Driver: two-arm fixed-N experiment definition plus a two-lane parallel runner (one game server port and one model endpoint per lane), balanced-block order with a seed, invalid-trial replacement, a pause-with-reason status file, no early stopping. RED/GREEN, gates, multi-model review, merge.
+- [ ] M2 Model-error cause: find why 5 of 32 trials in the 2×2 cohort ended `model_error`, and fix or classify it before launch.
+- [ ] M3 Lane qualification: serving/environment receipts for both lanes; prove both use the same proxy path, model, argv and build.
+- [x] M4 Dry run on main's built bytes: one 2-minute trial per arm per lane; both runners concurrently; verify events, preset flags, caps and status reporting; delete the dry-run trials from the cohort. (Results below. The dry run writes only to its own `bundle-v-control-dryrun` ledger, so no trial reached the cohort and nothing needed deleting.)
+- [ ] M5 Ready to launch: report to the operator. The operator launches.
+- [ ] M6 Analysis script (pre-registered tests above) and report after the cohort completes.
+
+## M2 finding: the 2×2 `model_error` ends were model behavior
+
+All 5 `model_error` ends in the 2×2 cohort (`factorial-2x2-think-fast-*`, 32 graded trials) were three consecutive text-only replies, not model or gateway failures:
+
+| Run | Arm | Wall | Turns | Furthest | Retries in the run | Last three |
+|---|---|---|---|---|---|---|
+| `2026-10-14T19-30-06_think-fast_26e0` | both | 29.0 min | 270 | MOM_RIVAL_INSTRUCTION | 4 text-only | turns 268–270, text-only 1/2/3 |
+| `2026-10-14T19-59-09_think-fast_0c89` | memory | 13.7 min | 219 | RIVAL_MET | 3 text-only | turns 217–219, text-only 1/2/3 |
+| `2026-10-15T00-26-27_think-fast_fb9b` | neither | 15.7 min | 335 | MOM_RIVAL_INSTRUCTION | 5 text-only | turns 333–335, text-only 1/2/3 |
+| `2026-10-15T00-13-22_think-fast_a08c` | both | 13.0 min | 209 | MOM_RIVAL_INSTRUCTION | 3 text-only | turns 207–209, text-only 1/2/3 |
+| `2026-10-15T06-43-00_think-fast_952f` | whole-map | 29.7 min | 600 | MOM_RIVAL_INSTRUCTION | 3 text-only | turns 598–600, text-only 1/2/3 |
+
+- None of the five has a `model error:` retry. Each reply streamed normally and ended `stop`. The reasoning was a degenerate repetition (0c89 enumerates "(8,1) is clear … (8,84) is clear" in two consecutive turns; 952f repeats one paragraph about the Twin), and the reply carried no tool call.
+- The 2×2 presets had `text-only-supervisor-v1` off, so the Governor's `failureLimit` (3) ended the run at the third text-only reply in a row. The end reason `model_error` is shared by API errors and reply failures (`Governor.fail`), which is why these looked like infrastructure failures.
+- Classification under the invalid-trial rule: model behavior, so **valid** trials. They are not replaced.
+- Fix for this experiment (harness, RED/GREEN): an optional preset limit `limits.replyFailuresEndRun: false`. Text-only, cut-off (`max_tokens`) and invalid-tool-call streaks then never end the run (the nudge and the text-only supervisor notes still go out, and the count restarts). Three consecutive model errors still end it `model_error`. `run_start.evaluation.reply_failures_end_run` records the setting. Both arms set it, so the wall cap is the only behavioral end, and a `model_error` end is always an infrastructure failure (invalid, replaced).
+
+## M1 driver: `just fixed-run`
+
+- Definition `experiments/fixed/bundle-v-control.json` (a subdirectory, so the experiment queue's `experiments/*.json` loader never sees it). Seed `b70b39b399e5bbae`, drawn 2026-10-15 22:20 EDT. 64 + 6 per arm, two lanes, so 32 confirmatory blocks and 3 cook blocks of four; 140 planned trials. The plan is frozen with `just fixed-run plan bundle-v-control` once `claude/bundle-integration` is in main (this branch's preset schema does not know the five new bundle switches yet); `plan` reuses the recorded seed and refuses once any trial has launched. Every load regenerates the plan from the seed and refuses a mismatch.
+- Arms: `base.features` = the full-map-navigation finals incumbent with all eight switches, `milestone-stall-stop-v1`, `battle-details-v2` and `expanded-menu-battle-information-v1` off; the bundle arm turns the eight switches on and changes nothing else (`armPreset`). The definition check refuses a switch that is on in the base, an `offInBoth` flag that is on, an unknown feature, and an enforced loop guard without its supervisor (the only other behavioral end, `stuck`). Limits: maxTurns 20000, failureLimit 3, `replyFailuresEndRun: false` (schema-fixed); sampling medium / 4096. Start: CLOCK_SET `runs/launch-receipts/rival-push-checkpoint/CLOCK_SET.state`, sha1 `51007c05068f4059f7d97c34541e29a93bedd80b` (checked against the bytes at `check`, `run` and `dry-run`).
+- Lanes A and B used separate game servers and symmetric direct tunnels to llama-server to avoid introducing a gateway hop in only one arm. Each trial gets an endpoint file `{base_url: <lane>/v1}` (`POKEBENCH_ENDPOINT_FILE`), so the agent's single-model discovery reads the model path id, n_ctx and vision from that lane's own `/v1/models`.
+- Runner (`runFixed`): one process holds the gameplay lease and runs both lanes concurrently. Each lane plays its own planned slots in order; confirmatory before cook across both lanes (a lane whose confirmatory slots are done waits for the other lane's). Before each trial: build check (serialized across lanes), `/health` + `/props` receipt (model path, build, n_ctx, slots, vision must match `serving`), game port free. Any failure pauses only that lane with the reason in `runs/experiments/<id>/status.json`, then retries with backoff 30 s, 1, 2, 5, 10 min (10 min thereafter). Nothing ends the experiment: no interim analysis, no stopping rule; the reserve exhausting pauses the lane "waiting for the operator". Ctrl-C/SIGTERM only stops new trials; running trials are detached, play to their wall cap and are adopted by the next runner.
+- Ledger `runs/experiments/<id>/trials.jsonl`: launch (slot, lane, phase, arm, run, commit, source identity, preset sha256, serving fingerprint, replaces), started (pid), outcome. Invalid = infrastructure only: no run_start (server/emulator/checkpoint), no run_end (process died), run_start not matching the plan (preset, cap, start sha1, port, model), `crash`, `model_error` whose last retry is `model error:` (API/gateway), operator stop. Each invalid trial is kept and a replacement of the same arm on the same lane is appended to the end of its phase, charged at the phase cap against the 4 GPU-h reserve (`replacementReserveMs` 14400000).
+- `runner.json` names a running trial while either lane plays (so merges into main wait); the viewer's experiment panel shows a card per fixed run: n done / 140, invalid count, reserve, each lane's state/reason/retry time/last error, the invalid list, and a loud "RUNNER NOT RUNNING" when the pid is gone before the end.
+- Commands: `just fixed-run check|plan|approve|run|dry-run|status|analyze <id>` and `analyze-receipt <dir> <control-arm> <treatment-arm> --cap-ms <ms>`. `approve` is interactive (types the id) and binds the definition sha256; `run` refuses without it or after any edit.
+
+## Trial end conditions with this definition (grok b, verified against `4b5b8bf`)
+
+Every way a preset run ends, with `target: null` and both arms' flags:
+
+| End | Code | Can it fire? |
+|---|---|---|
+| `budget` (wall cap) | `live.ts` `BudgetTimer`, `harness.ts` Governor `active >= maxWallMs` | Yes: the intended end. |
+| `budget` (turn cap) | `harness.ts` `this.turns >= maxTurns` | In principle at 20000 turns; operator-rejected as unreachable (no run near 1500). Reported by the classifier as "turn cap before the wall cap". |
+| `milestone` | `live.ts` `NativeTargetStop`, only when `target !== null` | No: the definition schema fixes `target: null`. |
+| `stalled` | `play-wiring.ts` `stallStop`, only with `milestone-stall-stop-v1` | No: off in both arms (`offInBoth`, checked). |
+| `stuck` | `loop-detection.ts` `notice("stop")` → `harness.ts` `attachLoopGuard` aborts | Only without a supervisor: line ~402 sends the supervisor briefing instead when `loop-guard-supervisor-v1` is on and the mode is enforced (`deterministic-loop-guard-v1`). Both are on in both arms; the definition check now refuses either off. |
+| `model_error` | `harness.ts` Governor `fail` | Only for consecutive model/gateway errors: `replyFailuresEndRun: false` resets text-only/cut-off/invalid streaks. Invalid (infrastructure). |
+| `crash`, `operator_abort` | `live.ts` | Infrastructure or operator: invalid. |
+| Stall briefing, dialogue auto-advance, text-only supervisor | `play-wiring.ts` | Notes only; never end a run. |
+
+Any valid trial that still ends before the wall cap is listed in a WARNING table at the top of the analysis.
+
+## Bundle activation milestones at CLOCK_SET (`4b5b8bf`)
+
+- `character-presence-v1` activates at PLAYER_NAME_CONFIRMED and `stall-briefing-v1` at NEW_GAME_CREATED; both precede CLOCK_SET in `MILESTONE_ORDER`, so both are active from the first turn of every bundle trial. All eight, from `experiments/<switch>.json` `activationMilestone` against `milestones.ts` order (CLOCK_SET = index 8): dialogue-auto-advance, game-evidence-priority, stall-briefing at NEW_GAME_CREATED (1); character-presence, navigation-refusal-reasons, world-destinations at PLAYER_NAME_CONFIRMED (2); named-warp-destinations at FIRST_TRUCK_EXIT (4); transition-press-result at PLAYER_HOUSE_ENTERED (7). None is gated on a milestone at run time; the activation milestone is grading metadata, and milestones already reached in the save arrive as `present_at_start`.
+
+## M3 lane receipts (2026-10-15 ~22:25 EDT, three short requests per lane)
+
+| | Lane A (GPU1) | Lane B (GPU0) |
+|---|---|---|
+| `/health` | 200 | 200 |
+| `/props` model_path / alias | `/models/Qwen3.6-35B-A3B-UD-Q4_K_M.gguf` (alias = path) | same |
+| build_info | `b10236-1464c62d8` | same |
+| total_slots / n_ctx | 1 / 65536 | 1 / 65536 |
+| modalities | vision true, video true, audio false | same |
+| chat_template sha256 | `55d4931433fe…` | `55d4931433fe…` |
+| default sampling params sha256 | `257d326ca7b9c7eb…` | `257d326ca7b9c7eb…` |
+| `/v1/chat/completions` (8 tokens) | 200 in 0.24 s, `system_fingerprint` b10236-1464c62d8 | 200 in 0.12 s, same |
+| Tunnel | Direct tunnel | Direct tunnel, same options |
+
+- Server argv identity rests on the operator's compute record above (identical argv, image digest); the `/props` fields and default sampling params hash agree. The GPU host was not touched.
+
+## M4 dry run (`3bab974`, 2026-10-15 19:42–19:47 EDT)
+
+`just fixed-run check bundle-v-control` passed (definition sha256 `b98add43…`, control base `finals-incumbent.json` sha256 `2a7a2a0f…` matches, approval none). `just fixed-run dry-run bundle-v-control` exited 0 after 4 min 9 s. It ran both lanes at once with a 120000 ms cap: `bundle-v-control-dryrun: finished`. Its ledger is `runs/experiments/bundle-v-control-dryrun/trials.jsonl`, with definition sha256 `8dc111c9…`, one phase `dry-run`, `primary: false`, and zero reserve.
+
+| Slot | Lane | Arm | Run | Port / endpoint | Turns | Turns/min | Model s/turn (mean) | Tool s/call (mean) | Furthest (depth) | Ledger |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 1 | A | control | `2026-10-15T19-42-50_qwen36-gpu1_ab75` | 8075 / `loopback inference endpoint/v1` | 51 | 25.5 | 1.38 | 0.97 | PLAYER_HOUSE_EXITED_AFTER_CLOCK (12) | valid, wall cap |
+| 2 | B | bundle | `2026-10-15T19-42-50_qwen36-gpu0_c205` | 8076 / `loopback inference endpoint/v1` | 12 | 6.0 | 1.50 | 8.48 | PLAYER_HOUSE_EXITED_AFTER_CLOCK (12) | valid, wall cap |
+| 3 | B | control | `2026-10-15T19-44-55_qwen36-gpu0_dfb0` | 8076 / `loopback inference endpoint/v1` | 46 | 23.0 | 1.41 | 1.21 | MOM_RIVAL_INSTRUCTION (11) | valid, wall cap |
+| 4 | A | bundle | `2026-10-15T19-44-55_qwen36-gpu1_2262` | 8075 / `loopback inference endpoint/v1` | 14 | 7.0 | 1.64 | 6.91 | PLAYER_HOUSE_EXITED_AFTER_CLOCK (12) | valid, wall cap |
+
+- **Arms.** In every `run_start.evaluation.features`, the eight switches are all true in bundle trials and all false in control trials. Every other flag equals `finals-incumbent.json` `features`, with no difference and no key missing. The three off-in-both flags are false in all four trials. `evaluation.flags` is `{loopGuard, activeUi, interfaceDocs: true, objectives: false}` in all four. `evaluation.experiment` gives `{id: bundle-v-control-dryrun, arm, trial n of 4}`. The bundle runs' `harness_features` add exactly the eight switch ids. Preset sha256: control `e17c1fd8…`, bundle `677002eb…`, matching the ledger `presetSha256`.
+- **Start.** All four runs have `start_state` = `save_state` `runs/launch-receipts/rival-push-checkpoint/CLOCK_SET.state`, sha1 `51007c05068f4059f7d97c34541e29a93bedd80b`. That equals the definition and a re-hash of the file. Milestones GAME_RUNNING through CLOCK_SET arrive at the first second. Also identical in all four: `harness.commit` `3bab9746…`, `dirty: false`, model `/models/Qwen3.6-35B-A3B-UD-Q4_K_M.gguf`, sampling medium / 4096, and `budgets.max_wall_ms` 120000. The ledger `serving` fingerprint `f4fdb502…` is the same on both lanes.
+- **Lanes.** `isolation.port` is 8075 for lane A and 8076 for lane B. The run logs identify a separate loopback inference endpoint for each lane.
+- **Ends.** Every `run_end` gives `reason: budget` at about 120 s (wall_ms 120036 / 120173 / 120029 / 120056). `reply_failures_end_run: false` in all four. There were no `retry` or `error` events, and every assistant stop was `toolUse` except the last request of slot 3 (`aborted`, "Request was aborted"). Three runs end with a tool error, and each is the final tool result, within 110 ms of `run_end`: "This operation was aborted". This is the cap abort. Each run's `.err` has only the usual startup WARNINGs (pytesseract/OCR, LLM logger, no objectives file).
+- **Ledger and isolation.** All four trials were classified `valid`, reason `wall cap`, endReason `budget`, primaryReached false. The furthest milestone and depth match the run events. Each lane ran one trial of each arm. Nothing exists under `runs/experiments/bundle-v-control/`, so the n/140 cohort is untouched. A second dry run needs `runs/experiments/bundle-v-control-dryrun` moved aside first; the CLI refuses otherwise. `runs/experiments/runner.json` existed during the run and is gone afterwards.
+- **Status.** `just fixed-run status bundle-v-control` prints "bundle-v-control has no status yet" (exit 1). `status bundle-v-control-dryrun` prints "finished: 4 / 4 done, 0 invalid, reserve 0.00 / 0.00 GPU-h … (runner pid 35035 is not running)", and each lane is "done: every trial planned for this lane has run". The main-built viewer on a scratch port shows the same data in `/api/experiments` `fixedRuns` (`state: finished`, `runnerAlive: false`, each lane `valid 2 / total 2`). It renders this card: "Harness-fixes bundle vs fixed control (CLOCK_SET → RIVAL_MET) (dry run) · FINISHED 4 / 4 done · 0 invalid · … LANE A · GPU1 · :8075 DONE 2 / 2 … LANE B · GPU0 · :8076 DONE 2 / 2". The long-running viewer on :8790 is an older checkout (`/private/tmp/pokebench-viewer` at `5340c086`) without the fixed-run card. Restart it from main before the operator relies on it.
+- **Analyze.** `just fixed-run analyze bundle-v-control` runs with no data. It prints the full report with 0/0 cells, p = 1.000, "No invalid trials", and the vacuous line "Every valid trial ended at its wall cap." It does not refuse. `analyze bundle-v-control-dryrun` refuses with "no definition …/bundle-v-control-dryrun.json" (exit 1).
+- **Throughput.** Per lane within an arm, rates are similar: control 25.5 (A) vs 23.0 (B) turns/min, bundle 7.0 (A) vs 6.0 (B). Model latency per turn is 1.4–1.6 s on both lanes. The arms differ by about 3.7× in turns per minute, and the cause is in the tools, not the model. Bundle `press`/`navigate_to` calls that trigger `dialogue_auto_advance` take 18.8–42.2 s, for example "Dialogue auto-advance: the harness pressed B 8 times" in 41.3 s. Button presses per run are about the same (50/50/55/47). Bundle trials reached the same milestones in 12–14 turns that control trials reached in 46–51. This is how the treatment behaves, not a lane problem. The turn count is therefore not a fair comparison across arms.
+
+## M6 analysis
+
+- `packages/viewer/src/fixed-analysis.ts`: two-sided Fisher exact (all tables no more likely than observed, relative tolerance 1e-7), log-rank (ties, censored at the cap), Mann-Whitney U with tie and continuity corrections on a depth-then-time score; pooled and per lane, valid trials only, plus the invalid list. Unit tests match scipy `fisher_exact`, `mannwhitneyu(method="asymptotic")` and lifelines `logrank_test` to 9 digits.
+- Smoke on the 2×2 cohort (`analyze-receipt runs/launch-receipts/navigation-factorial-think-fast-n4 control both --cap-ms 1800000`): RIVAL_MET both 4/8 vs control 3/8, Fisher p = 1.000 (scipy agrees); log-rank χ² 0.312, p 0.577; Mann-Whitney U 38, p 0.564. The 4/8 and 3/8 match a raw grep of the run events.
+
+## Principles Adherence (driver review, `6635285..bbf3873`)
+
+| ID | Score | Evidence |
+|---|---|---|
+| PB1 | PASS | Outcomes come from the run's own milestone events (`classifyTrial`), never from agent claims. |
+| PB2 | PASS | Every trial, invalid ones included, stays in the ledger and the report; misses are censored at the cap, not dropped. |
+| PB3 | PASS | Fixed N = 64 per arm confirmatory, pre-registered tests; cook is labeled exploratory. |
+| PB4 | PASS | Arms differ only in the eight switches (`armPreset`, checked by `definitionProblems`); same build, start bytes, model, sampling, caps. |
+| PB5 | PASS | One change (the bundle) with the hypothesis in the worklog. |
+| PB6 | PASS | 15-min and 60-min caps; runner adopts long trials across restarts; the wall cap is the only behavioral end (`replyFailuresEndRun: false`, loop-guard supervisor required). |
+| PB7 | PASS | No run_start/run_end ⇒ invalid with reason; every launch has a ledger line before spawn. |
+| PB8 | PASS | Reply failures are counted (retry events) and bounded by the cap, not silently ending runs; M2 reclassified the five 2×2 ends with evidence. |
+| PB9 | PASS | Lane problems pause with a written reason and retry; reserve exhaustion waits for the operator; nothing guesses. |
+| PB10 | PASS | All gates run in full; coverage ≥ 90 per metric on both stacks; no skipped tests. |
+| PB11 | PASS | llama.cpp build, model path, slots, ctx and vision are read live from `/props` before every trial. |
+| PB12 | N/A | No macOS privacy-protected resources touched. |
+| PB13 | PASS | Analysis is run on the 2×2 cohort's real runs and cross-checked against a raw grep and scipy. |
+
+## Session Log
+
+- 2026-10-15 17:45 EDT: Finals confirmed stopped (`finals-withdrawn.json`; the last trials record "operator stopped the run"; no runner). GPU0 cleared and a twin think-fast started; the bot stack disabled; the lane-B tunnel added. Power analysis and plan B chosen by the operator.
+
+- 2026-10-15 20:30 EDT: M2 traced (table above). Agent RED: Governor tests for `replyFailuresEndRun: false`, preset schema, run_start record, single-model llama-server discovery (7 failing, 95 passing in the four files).
+- 2026-10-15 20:50 EDT: Agent GREEN: `limits.replyFailuresEndRun` (Governor, preset schema, `run_start.evaluation.reply_failures_end_run`, `schemas/events.v1.json` regenerated), single-model llama-server discovery in `discoverLocal`. Agent vitest 70 files / 1090 tests pass; agent tsc and eslint clean. The RED live-objectives test was narrowed to the run_start record: the mocked run has ended by the time a test can drive its Governor, and harness.test covers the Governor behavior.
+- 2026-10-15 21:40 EDT: Viewer RED: tests for the fixed-run driver (`fixed-design`, `fixed-ledger`, `fixed-runner`, `fixed-status`, `fixed-analysis`, `fixed-cli`), the queue-view status card and `/api/experiments` `fixedRuns`. All six new test files fail to import; 3 tests fail in the queue-view and server-experiments files; 12 pass.
+- 2026-10-15 22:00 EDT: Operator merge rule recorded (Decisions). 22:15 EDT: operator burn-in (~3 h, both lanes, 15-min fixed-control trials from CLOCK_SET, worktree /private/tmp/pokebench-burnin, status ~/.hermes/cache/scratch/burnin/status.json, runs under runs/burnin-2026-10-15/) is running: M3 probes kept to three short requests per lane; M4 waits for the operator to stop it; its report's model_error evidence goes to M2.
+- 2026-10-15 22:35 EDT: Viewer RED was `feaefc3`. Viewer GREEN: `fixed-design`, `fixed-ledger`, `fixed-runner`, `fixed-status`, `fixed-analysis`, `fixed-cli`, the queue-view card, `/api/experiments` `fixedRuns`, `just fixed-run`, the draft definition. Gates: `just test` agent 70 files / 1090, viewer 58 / 735, env 1877 passed; `just lint` 0; `just build` 0; `just coverage` agent 97.5 / 93.88 / 98.15 / 98.88, viewer 95.31 / 90.55 / 94.13 / 97.9 (stmts / branches / funcs / lines); `just verify-vendor` OK.
+- 2026-10-15 22:50 EDT: Cloud review of `5340c08..761e8a6` (diff sha256 `0374e9e8…`). Codex gpt-5.6-sol: BLOCKING, three findings; grok (Cursor): LGTM with notes, triaged by the operator. Operator dispositions: Codex 2 (maxTurns 20000) rejected by operator decision; fix Codex 1, Codex 3 and grok (a), (b), (c). RED for Codex 1 and 3 (ledger: no milestone after the wall cap counts; analysis: Fisher counts a late primary as a miss; runner: one pinned commit for every build check and launch).
+- 2026-10-15 23:05 EDT: Merged main (bundle 4b5b8bf and decision-point screening 954d74f) into the branch. RED for grok (a) a lane survives an unexpected I/O throw, (b) the definition requires both loop-guard switches on and the analysis prints a WARNING table of valid trials that ended before the wall cap, (c) run_start records `evaluation.features` and the classifier checks the eight switches and the off-in-both flags against the arm.
+- 2026-10-15 18:58 EDT: GREEN for the five blockers (RED `19f3784`, `8ea1018`): ledger drops milestones after the wall cap; Fisher counts a late primary as a miss; one pinned commit per run; lanes survive unexpected I/O throws (pause, write status, retry); definition requires both loop-guard switches; analysis WARNING table for valid trials ending before the cap; run_start `evaluation.features` checked against the arm. Plan re-frozen with seed `b70b39b399e5bbae`.
+- 2026-10-15 19:00 EDT: Control base pinned to the finals incumbent (Pre-registration). RED: `controlBaseProblems` (sha256, preset id, sampling, limits, every non-switch flag) and CLI refusal when the preset is missing or drifted (12 failing in fixed-design/fixed-cli).
+- 2026-10-15 19:01 EDT: GREEN: `controlBase` in the schema and definition; `controlBaseProblems` in fixed-design; every CLI load checks it; `check` prints the matched control base. Verified the real definition against the real `finals-incumbent.json` (definition sha256 `b98add43…`, pre-merge).
+- 2026-10-15 19:06 EDT: Gates at `4cdb29a` (main `1bb327e` already merged, nothing new on main): `just test` agent 80 files / 1251, viewer 58 / 759, env 1962 passed; `just lint` 0; `just build` 0; `just coverage` agent 97.59 / 94.14 / 97.85 / 99.02, viewer 95.34 / 90.5 / 94.19 / 97.89, env lines 97.03 / branches 92.57 / functions 100 (stmts / branches / funcs / lines); `just verify-vendor` OK. Scoped cloud re-review of `19f3784` + `a0092a1..4cdb29a` (docs and definition JSON excluded; diff sha256 `850e0276…`) started: Codex gpt-5.6-sol and grok (Cursor).
+- 2026-10-15 19:40 EDT: Re-review of `19f3784` + `a0092a1..4cdb29a`: Codex `VERDICT: BLOCKING` (2), grok `VERDICT: LGTM`. Operator triage: BLOCK Codex 1 (started-record I/O in the spawn listener escapes every catch and can kill the runner; with it, grok's residual: a throw inside `pause()` rejects `Promise.all` and drops the lease while the other lane runs; rule 1) and Codex 2 (the cap classifier must use paused-time-excluded elapsed time like the production `BudgetTimer`; rules 2/4). Merged main `3c4c26f` (auto-advance `0d589f1`). RED: three failing tests in fixed-runner/fixed-ledger.
+- 2026-10-15 19:50 EDT: GREEN: the started callback sets the child first and catches its ledger/runner-file writes (reason in `lastError` and the lane); every runner log line goes through a non-throwing `say`, so `pause()` and status writes cannot reject a lane loop; `classifyTrial` subtracts applied `paused_ms` before comparing a milestone with the cap and reports unpaused `primaryMs`/`furthestMs`.
+- 2026-10-15 20:00 EDT: Gates at `219f7c9` + test-type fix: `just test` agent 80 / 1263, viewer 58 / 762, env 1962; `just lint` 0 (after adding `turn` to the pause fixture events); `just build` 0; `just coverage` agent 97.61 / 94.19 / 97.85 / 99.02, viewer 95.35 / 90.54 / 94.19 / 97.89, env 97.03 / 92.57 / 100; `just verify-vendor` OK. Delta re-review `cc6372d..219f7c9` (sha256 `faca790f…`) running: Codex gpt-5.6-sol, grok.
+- 2026-10-15 19:26 EDT: Delta re-review `cc6372d..219f7c9`: grok `VERDICT: LGTM` (both blockers cleared; non-blocking: bare `host.log`/post-exit `writeRunner` in `play`/`record` now only cost a backoff; a lost `started` pid degrades only restart adoption; open pauses lack `paused_ms`). Codex `VERDICT: BLOCKING` on one item only: the pause fixtures omitted `turn` (TS2345, `just lint` exit 2), already fixed test-only in `f17700b` with `just lint` 0; not an operator-rule blocker. Merging into main.
+- 2026-10-15 19:28 EDT: Merged into main at `4ce5e7a` (`--no-ff`; main was `3c4c26f`, quiet, no runner.json). `just build` 0. `just fixed-run check bundle-v-control` from `~/dev/pokebench` passes against the real `finals-incumbent.json`; definition sha256 `b98add435a0ed044d57cd91c2ec3af1cefc93061041da18de2e21d75a9a981f5`, approval none. Not dry-run, approved or launched (burn-in on both GPUs).
+- 2026-10-15 19:42 EDT: Burn-in stopped: both lanes `stopped (STOP file)`, the last trials ended `budget`, and no live.js, game server or loop is left on 8881/8883/8075/8076. Its two idle `shim.py` proxies (8891→8091, 8892→8098) are still up; the dry run does not use them. `nvidia-smi`: both GPUs 0 %, only the two llama-servers resident. M4 dry run 19:42–19:47 EDT: 4/4 valid at the wall cap, arms, start, lanes and status verified (M4 section). Not approved or launched.
+- 2026-10-15 21:43 EDT: First launch (approved 01:43Z on the operator's go-ahead). The runner was started with bare `node` instead of `just`, so `.env` was not loaded: slots 1 and 2 died with "POKEBENCH_ROM is required". Relaunched via `just` at 21:45; slots 3 and 4 ran. The runs were absent from the Runs & Comparisons EXPERIMENT dropdown: `workbench-store.ts` read `runs/experiments/<id>/trials.jsonl` only with the experiment-queue schema (`type` rows), and the fixed-run driver writes its own `kind` rows to the same filename, so every line was "not a ledger entry".
+- 2026-10-15 21:56 EDT: Operator decision (the operator): the launch is tainted by the launch mistake; restart the experiment from zero, do not keep slots 1–2, and the runs must appear in the EXPERIMENT dropdown (hard requirement). Runner and both trials stopped; the ledger, approval and four run dirs moved to `runs/aborted/bundle-v-control-20261016T015615Z/` (outside `runs/experiments/` and the run list).
+- 2026-10-15 22:00 EDT: Branch `claude/fixed-run-cohort`. RED `1f17d44`: a fixed-run ledger joins cohort `experiment:<id>`, invalid trials are excluded with their reason, all or nothing. GREEN: `parseFixedLedger`/`isFixedLedgerText` in `fixed-ledger.ts`, `fixedCohort` in `workbench-store.ts`.
+- 2026-10-15 22:10 EDT: GREEN `b0d3960` (viewer workbench + fixed-ledger tests 57 pass). RED: `fixed-run run` and `dry-run` refuse, before any trial launches, when `POKEBENCH_ROM` is unset (the bare-node launch) or unreadable.
+- 2026-10-15 22:20 EDT: GREEN for `07861c8`: `requireRom` in `fixed-cli.ts` (run and dry-run). New skill `.claude/skills/fixed-run-launch/SKILL.md` (launch only through `just`, run_start checks, EXPERIMENT dropdown as a hard launch check, aborted-launch procedure), linked from CLAUDE.md.
+- 2026-10-15 22:45 EDT: Gates at `8d733b1`: `just coverage` agent 80 files / 1263 (97.61 / 94.19 / 97.85 / 99.02), viewer 58 / 764 (95.32 / 90.53 / 94.22 / 97.88), env 1960 passed 2 skipped (no native mGBA in this worktree); `just build` 0; `pnpm -r lint` and ruff clean; mypy fails only on the missing `mgba._pylib` binding in the worktree venv (main's venv: no issues in 69 files); `just verify-vendor` OK. Cloud review of `main..8d733b1`: Codex gpt-5.6-sol `VERDICT: LGTM`, grok (cursor-grok-4.5-high) `VERDICT: LGTM`. Merging into main on the operator's go-ahead.
+- 2026-10-15 22:50 EDT: Merged `claude/fixed-run-cohort` into main at `427f798` (`--no-ff`, no push). Relaunch follows `.claude/skills/fixed-run-launch/SKILL.md` with a fresh approval.
+- 2026-10-15 22:05–22:18 EDT: Relaunch at `f3f4b3b` (slots 1–2, lane A/B bundle, `…22-05-18_qwen36-gpu1_8292` / `…gpu0_6ba4`, both in the EXPERIMENT dropdown). Operator asked whether viewer changes can restart the experiment. Finding: trials ran `packages/agent/dist/live.js` from the main checkout (`fixed-cli.ts:258`), so any `just build` or `just fixed-run …` rebuilt it mid-trial (voiding the build stamp and pausing lanes), and `run_start.harness.commit` recorded main's HEAD at launch (`run.ts:57`), not the pinned commit. Operator (the operator, 02:17Z): do the proper fix, restart is fine, and run a PokeBench review on starting every trial from New Game. Stopped; both runs moved to `runs/aborted/bundle-v-control-20261016T0218Z-checkpoint-question/`.
+- 2026-10-15 22:40 EDT: Branch `claude/fixed-run-isolated-tree`. RED: `fixed-tree.test.ts`: the runner prepares a detached checkout at the pinned commit (`/private/tmp/pokebench-fixed-<commit12>`), installs (pnpm frozen, uv sync frozen), copies the native mGBA binding from the main venv, verifies `import mgba.core`, builds the agent and stamps `<commit> <sources>`; a stamped checkout is reused without a build; a moved or dirty checkout is refused, not repaired; each failing step is named.
+- 2026-10-15 22:55 EDT: GREEN `fixed-tree.ts` (7 tests). RED: `fixedLaunchSpec`: each trial runs the experiment checkout's `live.js` with cwd = main checkout (relative preset start paths) and `POKEBENCH_RUNS_ROOT` = main runs root, overriding any inherited value.
+- 2026-10-15 23:10 EDT: GREEN for `4c74e3e`: `fixedLaunchSpec` and `productionFixedHost` (verifyBuild prepares the experiment checkout; launch runs its `live.js`, cwd main checkout, `POKEBENCH_RUNS_ROOT` = main runs); `live.ts` `RUNS_ROOT` honors `POKEBENCH_RUNS_ROOT`. Viewer fixed-cli/tree/runner 36 tests pass; tsc and eslint clean. Skill updated.
+- 2026-10-15 23:35 EDT: Gates at `ca2db1f`: agent 80 / 1263 (97.61 / 94.18 / 97.85 / 99.02), viewer 59 / 772 (95.07 / 90.42 / 93.52 / 97.58), env 1960 passed 2 skipped; build 0; pnpm lint and ruff clean, mypy only the worktree's missing `mgba._pylib`; verify-vendor OK. Review of `main..ca2db1f`: grok `VERDICT: BLOCKING`, and Codex reached the same finding: the stamp `<tree>/.fixed-tree` is an untracked file, so `harness.dirty` (`git status --porcelain`) would be true on every trial; and the skill still said `harness.commit` is main. RED: stamp under ignored `packages/agent/dist/`, and preparation refuses a checkout that is not fully clean (untracked included) before stamping.
+- 2026-10-15 23:45 EDT: GREEN for `b1ceb72`: stamp at `packages/agent/dist/.fixed-tree`; final `git status --porcelain` check before stamping; skill says `harness.commit` equals the pinned launch commit.
+- 2026-10-15 23:55 EDT: Delta re-review of `ca2db1f..1601a5d`: grok `VERDICT: LGTM`; Codex `VERDICT: BLOCKING`: the reuse fast path checks status with `--untracked-files=no`, so a stamped checkout that later gains an untracked file would launch trials recording dirty: true. RED: a stamped checkout with an untracked file is refused; every status check includes untracked files.
+- 2026-10-16 00:00 EDT: GREEN `4162695` (for RED `465489d`): both status checks in `prepareFixedTree` use full `git status --porcelain`.
+- 2026-10-16 00:10 EDT: Codex re-review of `1601a5d..4162695`: functional fix confirmed; its only finding was that this log named the RED sha for the GREEN (docs, not an operator-rule blocker; corrected above). Viewer 81 targeted tests pass, coverage 95.07 / 90.42 / 93.52 / 97.58, `fixed-tree.ts` 100 / 96.77 / 100 / 100. Merging into main.
+- 2026-10-16 00:35 EDT: Merged `claude/fixed-run-isolated-tree` at `ca37a39`; isolated dry run 4/4 valid (commit `ca37a39`, dirty false, PLAYER_HOUSE_EXITED_AFTER_CLOCK in all four). Operator (the operator, 02:52Z): keep the CLOCK_SET confirmatory, run the cook phase from New Game at 60 min, keep control's old press-result text (measured through `transition-press-result-v1`), fix the operator-stop-as-crash bug, one boot qualification trial per arm per lane. Branch `claude/fixed-run-boot-cook`. RED: `onOperatorSignals` ends a play run as `operator_abort` on SIGINT and SIGTERM (play handled only SIGINT, `live.ts:309`, so a SIGTERM left no run_end).
+- 2026-10-16 00:45 EDT: GREEN for `04ed6cb`: `operator-signals.ts` (SIGINT and SIGTERM, once, detachable) wired into play in `live.ts`; skill's abort procedure signals `live.js`, never the server.
+- 2026-10-16 01:05 EDT: RED (driver, New Game cook): every phase names its start (`save` = the definition's save, `boot` = New Game); the definition pins `romSha1`; a boot phase's preset has no `start`; the classifier checks the start kind per phase (a boot trial under a save plan or the reverse is invalid, no vacuous sha1 comparison) and every trial's `rom_sha1`; `run`/`dry-run` refuse a ROM whose sha1 differs; `dry-run --phase <id>` runs that phase's start as `<id>-dryrun-<phase>`.
+- 2026-10-16 01:25 EDT: GREEN for `83306e6`: `PhaseSchema.start` (`save`/`boot`), `romSha1` in the definition, boot presets omit `start`, `TrialExpectation.start` + `romSha1` in the classifier, `requireDefinitionRom` and `dry-run --phase` in the CLI. `experiments/fixed/bundle-v-control.json`: `romSha1` f3ae0881… (re-hashed from `POKEBENCH_ROM`), confirmatory `save`, cook `boot`. Fixed-run tests 80 pass, tsc clean. (`fixed-run check` reads the main checkout's definition, so it is re-checked after the merge.)
+- 2026-10-16 01:50 EDT: Gates at `5ffd03e`: agent 81 / 1265 (97.61 / 94.2 / 97.86 / 99.03), viewer 59 / 778 (95.08 / 90.45 / 93.53 / 97.59), env 1960 passed 2 skipped; build 0; lint: 4 viewer test/lint nits plus the worktree mypy binding gap. Review of `main..5ffd03e`: grok `VERDICT: LGTM`; Codex `VERDICT: BLOCKING` (operator rule 1): (a) signal handlers attach only after the server starts, so a stop during startup kills `live.js` with no run_end and can orphan the detached game server on the lane port; (b) handlers stay attached after the first signal, so a stalled shutdown cannot be ended by signalling again. RED: `operatorSignalLatch` holds an early signal and delivers it when the run subscribes, and detaches on the first signal.
+- 2026-10-16 02:00 EDT: GREEN for `9e5f1c1`: `operatorSignalLatch` armed at the top of `playAgent`, detached on the first signal, an early signal delivered when the run subscribes (so a stop during startup still records run_start, run_end operator_abort and stops the server). Viewer lint nits fixed (test destructuring, an unnecessary optional chain). Agent and viewer tsc and eslint clean.
+- 2026-10-16 02:10 EDT: Codex delta re-review of `5ffd03e..64773ca`: `VERDICT: LGTM` (grok LGTM on the full branch). Merging `claude/fixed-run-boot-cook` into main on the operator's go-ahead to fix the operator-stop bug and run the cook phase from New Game.
+- 2026-10-16 03:30 EDT: Operator (the operator, 03:21Z): every run uses FAST text, set only through the OPTION menu; the cook phase starts from a main-menu save (OPTION → FAST, before NEW GAME) rather than power-on; those runs must show properly in the viewer; replays accepted. Game source (pret/pokeemerald `731ad5b`): `optionsTextSpeed` SaveBlock2 0x14 bits 0–2, SLOW/MID/FAST = 8/4/1 frames per character (`menu.c:77`), MID on a fresh save (`new_game.c:91`, `intro.c:1156`), not reset by `NewGameInitData`. A recorded probe subagent is making `runs/launch-receipts/fast-text/{MAIN_MENU,CLOCK_SET}.state`. Branch `claude/fast-text-starts`. RED: each phase carries its own start (`{kind: save_state, path, sha1}` or `{kind: boot}`), `check` verifies and prints every phase's start; the workbench names a `MAIN_MENU.state` start; the frontier plots main-menu starts as tagged New Game runs, solid, never the fresh-boot record.
+- 2026-10-16 03:55 EDT: GREEN for `c748b42`: `PhaseStart` = pinned save or boot per phase (top-level `start` removed), runner expectation from the phase's start, `check` verifies and prints every phase's save; workbench `resume` names `MAIN_MENU.state`; frontier plots `MAIN_MENU` starts with boot runs, tagged in each mark, never the fresh-boot reference. Viewer fixed/frontier/workbench tests 129 pass; tsc and eslint clean. The definition JSON is updated once the probe's two saves exist.
+- 2026-10-16 04:00 EDT: Lint: two unused fixture names in the fixed-cli and fixed-runner tests removed; viewer eslint clean.
+- 2026-10-16 04:15 EDT: FAST-text starts made by a recorded probe, OPTION menu only (no memory or save edits). `runs/launch-receipts/fast-text/MAIN_MENU.state` sha1 `b3a6cc1c19836600a15febf41b8f8b19661ce5d4` (probe `2026-10-15T23-24-57_probe_77e7`, boot → START, DOWN, A, RIGHT, B, UP; main menu, NEW GAME selected; optionsTextSpeed 1 → 2 in raw RAM). `runs/launch-receipts/fast-text/CLOCK_SET.state` sha1 `342de3a1a1e00239c54a3cd6619c5dc80292c217` (probe `2026-10-15T23-28-28_probe_b41f` from rival-push CLOCK_SET `51007c05…`: A×5, START, DOWN×3, A, RIGHT, B, B, UP; 2F (5,2) facing up, field free; optionsTextSpeed 1 → 2). Load checks `…23-36-47_probe_79e5` and `…23-37-09_probe_4992` pass. Difference from the old save: the old CLOCK_SET save starts inside MOM's 5-page "new room" message (options cannot open until it ends), so the new one starts a few seconds later, after that scene; both arms share it. A hung load-check probe `…23-31-09_probe_93a4` has no run_end (probe-tagged, excluded). Definition: both phases carry their own save start.
+- 2026-10-16 04:35 EDT: Gates at `e7fd174`: agent 81 / 1266 (97.61 / 94.2 / 97.86 / 99.03), viewer 59 / 781 (95.07 / 90.42 / 93.54 / 97.59), env 1960 passed 2 skipped; build 0; lint only the worktree mypy binding gap. Review of `main..3130f28`: Codex `VERDICT: LGTM`, grok `VERDICT: LGTM` (non-blocking: run details show raw `save_state` for MAIN_MENU starts; the saves are gitignored and must stay on disk). Merging into main.
+- 2026-10-16 00:00 EDT (04:00Z): Merged `claude/fast-text-starts` at `be38752`. Cook qualification dry run (`--phase cook --wall-ms 720000`, main-menu FAST save): slots 1–2 (`…23-44-03_qwen36-gpu1_9ff4`, `…gpu0_5a38`) INVALID "game server not healthy within 180000 ms": the first two trials on the freshly prepared experiment checkout; their server dirs have no `run_data`/`llm_logs` and the `.err` stops after the vendor OCR import warning. Slots 3–4 valid at the cap: control `…23-47-41_qwen36-gpu0_2919` CLOCK_SET 3.81 min, PLAYER_HOUSE_EXITED_AFTER_CLOCK 4.97; bundle `…gpu1_3f21` CLOCK_SET 4.20, PLAYER_HOUSE_EXITED_AFTER_CLOCK 5.26; no later milestone in either; auto-advance 69 pages in 129 s (1.9 s/page with FAST text). A cold single server start in a fresh checkout took 22 s, so plain cold start does not explain the 180 s timeout; reproducing with a confirmatory dry run on the next fresh checkout.
+- 2026-10-16 00:20 EDT: Operator locked the budget split (the operator, 12:20 AM EDT): confirmatory 104 + 104 at 15 min from the FAST-text CLOCK_SET save (52 GPU-h), cook 20 + 20 at 60 min from the FAST-text main-menu save (40 GPU-h), replacement reserve 4 GPU-h; about 46.7 h on two GPUs, 48.7 h worst. Power (`power.py exact_power`, control 33%): confirmatory 80% at +20 (55% at +15), smallest reliable gap about +21 (+20 at control 25%); cook about +48. Re-planned with the recorded seed `b70b39b399e5bbae`: 248 trials, definition sha256 `7845ae13…`. Not approved; harness bugs from the qualification forensics are open.
+
+## Deferred
+
+(Non-blocking review findings under the operator merge rule, one line each.)
+
+- Codex: the runner records each lane's serving fingerprint but neither compares fingerprints across lanes nor reads `/v1/models`; M3 supplies that assurance.
+- grok: the `/v1/models` probe wording.
+- grok: no backoff before a replacement trial.
+- grok: `operator_stop` treated as invalid.
+- **Rejected by operator decision (Codex 2, maxTurns 20000 as an early end):** no run has come near 1500 turns, so a 20000-turn cap cannot bind within 15 or 60 minutes. Not fixed.
+- grok: `plan` / `analyze` load without the control-base gate; the launch paths (`check`, `approve`, `run`, `dry-run`) gate it.
+- grok: `controlBaseProblems` compares sampling by `JSON.stringify` without sorting keys; a key-order change fails closed.
+- grok: analysis re-caps the primary but not `furthest*` for ledger rows written before the classifier fix; no such rows exist.
+- Codex/grok: the review bundle lacked `finals-incumbent.json` (it lives under gitignored `runs/`); `check` from `~/dev/pokebench` re-hashes it.
+- grok: `play`/`record` bare `host.log` and post-exit `writeRunner` throws cost the lane one backoff after a recorded trial.
+- grok: a failed `started` append leaves no pid, so only a mid-trial runner restart adopts without it.
+- grok: an open pause (no `paused_ms` yet) is not subtracted; completed trials always close it.
+- Codex: the two new runner tests run the full 12-trial fixture; a smaller plan would be faster.
+- M4: `analyze` with an empty ledger prints a full report (0/0, p = 1.000, "Every valid trial ended at its wall cap.") instead of refusing; `analyze` cannot read a `-dryrun` ledger (no definition file).
+- Eval-integrity review: a trial stopped by signals (runner SIGKILL, server pkill) records `run_end.reason: crash` / "emulator or game server crash", not an operator stop. Aborted launches are moved aside so it did not enter a cohort; mid-cohort trial aborts should go through the viewer's stop control. Not fixed now.
+
+## Surprises
+
+- The first SSH connection attempt returned "No route to host" while ping and llama traffic were fine; the retry seconds later connected. Transient. Don't conclude the host is down from one failure.
+- The viewer on :8790 serves `/private/tmp/pokebench-viewer` at `5340c086`, not main, so it has no fixed-run card. To check the card, use a viewer built from main.
+- Dialogue auto-advance makes a bundle tool call take up to ~42 s, so bundle trials run about 4× fewer turns per minute than control for the same milestone progress.
+
+## Multi-Model Review Log
+
+## Boy Scout Log
+
+## Archived
+
+2026-10-17, 8:40 PM EDT, on the operator's request to archive worklogs whose implementation is already on main (4ce5e7a4 Merge branch 'claude/bundle-v-control'). Unchecked boxes left above are bookkeeping from before that landing.

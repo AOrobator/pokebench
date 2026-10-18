@@ -1,0 +1,257 @@
+# Push-back loop guard and truthful push-back press results
+
+Branch `claude/pushback-loop-guard` (worktree `.claude/worktrees/agent-ac31af784cbdcc618`), from main 917fd9a1. Brief from the operator (the operator) via the project coordinator, 2026-10-16 ~02:50 AM EDT, with two amendments relayed by the coordinator: (1) review lanes are Codex, Grok and Claude only (no think_fast / think_swarm); (2) bug fixes land as harness switches marked ON in both arms like `transition-loop-detection-v1`, not as pending A/B experiments; `experiments/fixed/bundle-v-control.json` is owned by another thread and is not edited here. Scope addition: the press-result fix is required, behind its own switch. The brief is the operator's approval of this scope; the operator gave standing approval to merge locally once every lane approves and all gates pass.
+
+## Problem Statement
+
+The loop guard misses loops where a game script pushes the player back after each attempt. Evidence (read-only live run `runs/2026-10-16T02-23-17_qwen36-gpu1_sh02`, all loop switches ON):
+
+1. **Twin bounce, T141–T171 (seq 2934–3615).** At Littleroot (11,2) the model presses UP every turn. Odd turns: UP moves to (11,1); the result returns mid-script (field locked, script context running, no message). Between calls the twin's message opens; the next UP is auto-advanced through "Um, um, um! … It's dangerous if you don't have your own POKéMON" while the script walks the player back to (11,2). 30 turns, zero loop_guard events; only `milestone_drought` at T171 (seq 3616).
+2. **Birch bounce, T263–T307 (seq 5927–7271).** At Route 101 (7,15) the model sends LEFT,LEFT,LEFT,UP,UP,UP 45 times. Each steps onto (6,15), triggers Route101_EventScript_PreventExitWest ("Wh-Where are you going?! Don't leave me like this!"), is auto-advanced and ends at (7,15). Zero loop_guard events; `milestone_drought` at T307 (seq 7272). It ends at T308 (UP, A: bag) → STARTER_CHOSEN T310.
+3. The press results lie or omit: twin T142/T146/… say `locked (field controls locked in a snapshot; no net movement)` although the call moved the player (11,1)->(11,2); Birch says only `conversation restarted …` although LEFT moved the player to (6,15) and the script moved them back to (7,15).
+
+### Confirmed root causes (replay of the trimmed fixtures through `LoopDetector` with the run's switches, a scratch spy on `complete`)
+
+- **(a) confirmed.** Every twin "move" call ends at (11,1) with field controls locked by a running script (script_mode 2, status 0) and no message, so `semanticState` is null and the cycle history is cleared (`history.length = 0`) every other call. `transientLock` does not apply (script running, not stopped).
+- **(b) confirmed, and wider than hypothesised.** Auto-advance's B presses are `button_press` events of the same tool call. Each one overwrites the pending call's `before` state (the mid-message state at (11,2) or (6,15)) and, with interaction-loop-detection ON, its action (`args.buttons` becomes `["B"]`). So the push-back calls read `[message state, B, settled state]`: before never equals after (no `ineffective`), and the history entries are one identical entry repeated, which `repeating()` refuses (a pattern needs two distinct entries).
+- **(c) confirmed.** Auto-advance closes the conversation before the result, so the result state has no dialogue: `restartedConversation` and the message-visit key see nothing.
+- Press result: the press line is computed for the model's own input only (before → state when the input ended); the script's movement happens during auto-advance and is never compared.
+
+## Skills Loaded
+
+feature-worklog, feature-switch, feature-explainer, agent-observability, experiment-queue (only to confirm no pending entry is added, per amendment 2), multi-model-review (local-inference-stack).
+
+## Architecture
+
+### Switch 1: `pushback-loop-detection-v1` (guard, default off, needs null)
+
+`LoopDetector` gets a `pushback` flag (constructor and `attachLoopGuard` 8th argument), wired from the FeatureSet in `live.ts` and `decision-probe.ts`. ON adds a round-trip tracker; nothing existing changes:
+
+- A **settled** state: semantic fingerprint known, field controls free (`field_controls_locked === false`), no dialogue and no message. The player can act there.
+- The tracker keeps an **anchor** (the last settled result of a game call), the model's own actions since it (the tool call's requested buttons or the navigate_to target, never auto-advance's B), and whether a **script or message held the controls** since it (any recorded state with field controls locked that is not a door/warp transient lock).
+- When a press/navigate_to result is settled and equal to the anchor, and a script or message held the controls in between, that is a **push-back**: key = anchor + actions. The last 12 push-backs are kept; when one key occurs `cycleRepeats` (3) times, the guard raises a `cycle` hit through the existing warning → supervisor path, with its own message and the evidence seqs of those push-backs.
+- A settled result elsewhere moves the anchor. More than 8 calls without a settled result drop it. A story milestone and a novel state clear the push-back window.
+
+OFF: no tracker; byte-identical.
+
+### Switch 2: `pushback-press-result-v1` (guidance, needs `dialogue-auto-advance-v1`, default off)
+
+In `withDialogueAutoAdvance`, when auto-advance ran, the press result compares three states: before the call, when the model's own input ended, and after auto-advance. If the player's tile changed during auto-advance, the result says so with tiles: `… then a script moved you (11,1) -> (11,2) while the dialogue advanced`; if the press itself moved the player and the script returned them, `your press moved you (7,15) -> (6,15), then a script moved you back (6,15) -> (7,15) while the dialogue advanced: you are back where this press began`. A press line that says `no net movement` for a call the script moved is reworded to `your press did not move you`. Tiles only when positions are shown. OFF: today's text.
+
+Kept separate from switch 1 because one is model-facing text, the other a guard; each can be A/B'd or reverted alone.
+
+## Invariants
+
+- **INV-1** OFF is byte-identical: both fixtures replay to today's notices with switch 1 OFF; press-result text unchanged with switch 2 OFF. Test: replay OFF equals recorded silence; existing suites unchanged.
+- **INV-2** Only a script or message push-back counts: a settled no-op (wall bump), an ordinary walk, a door bounce and a single conversation add nothing. Tests: synthetic cases.
+- **INV-3** The action is the model's own request, never auto-advance's B. Test: replay keys.
+- **INV-4** No sleeps, polling or truncation: the tracker is driven by recorded events; model text is not clipped.
+- **INV-5** The production factory honors each switch (live.ts loop guard; play tools for the press result). Wiring-deletion check.
+
+## Security Review
+
+No new inputs, files, processes or network. Fixtures are trimmed copies of a local run (no ROM bytes; RAM fields dropped).
+
+## Milestones
+
+**M1 — Push-back loop guard + press result**
+- [x] RED: replay tests for both fixtures (ON fires; OFF silent), synthetic negative cases, press-result tests, registry/factory tests
+- [x] COMMIT RED: `test(loop-guard): RED push-back loops and push-back press results (sh02 twin and Birch)` (d89716cc)
+- [x] GREEN: switches registered, LoopDetector tracker, auto-advance press result, wiring (live, decision-probe, play-config)
+- [x] Wiring-deletion checks
+- [x] COMMIT GREEN: `feat(loop-guard): push-back loop detection and push-back press results behind two switches` (d17b71dc)
+
+**M2 — Battle observation loop (scope addition 3, own switch `battle-observation-loop-v1`)**
+- [x] RED: replay of sh02 seq 9850–11960 (270 observes in a static wild battle) fires an observation warning ON, silent OFF; a battle that advances on its own between observes never counts; registry/factory
+- [x] COMMIT RED: `test(loop-guard): RED battle observation loop (sh02 T445-T716, 270 observes)` (e86af861)
+- [x] GREEN (receipt T452 seq 10079; recovered T717 seq 11945)
+- [x] COMMIT GREEN: `feat(loop-guard): battle-observation-loop-v1 counts unchanged in-battle observes` (a0cb78b5)
+
+**M3 — Close**
+- [x] Observability: loop_guard recorded, delivered via context(), visible in timeline/Activity History/inspector (mounted test + isolated built-viewer replay)
+- [x] Explainer(s) + FEATURE_EXPLAINERS mapping (bf04fe56)
+- [x] Gates: test, lint, build, coverage (90), verify-vendor (05142168; lint's mypy with the main checkout's mGBA venv)
+- [x] Principles self-review (zero FAIL)
+- [x] Review: Claude, Codex, Grok — LGTM each (round 11 on 72ef2113)
+- [ ] Merge main, re-run gates, local merge into main — handed to the coordinator (worktree sessions cannot run git in the main checkout)
+
+## Closing the Loop
+
+Merge locally after all lanes LGTM. No pending experiment entry (amendment 2). Report: switch ids for the coordinator to mark ON in both bundle-v-control arms. Viewer not restarted (brief: do not restart the viewer).
+
+## Session Log
+
+- 2026-10-16 02:55 AM EDT: Worktree on `claude/pushback-loop-guard` from 917fd9a1. Root causes confirmed by replay (above). Fixtures `packages/agent/src/fixtures/pushback-twin-sh02.jsonl.gz` (seq 2880–3720) and `pushback-birch-sh02.jsonl.gz` (seq 5880–7345), trimmed: state events without navigation grid, interaction targets, local map, raw RAM and heavy resources; tool result text cut at the first blank line (press echo, press result, navigation status, auto-advance summary).
+
+- 2026-10-16 03:10 AM EDT: RED. `pushback-loop-detection.test.ts` (12 of 22 fail: every ON push-back case and the registry; OFF silence on both fixtures and the add-nothing negatives pass today), `pushback-press-result.test.ts` (10 of 13 fail; the three OFF cases reproduce the recorded text exactly: Birch `moved (7,15) -> (6,15)` then `conversation restarted … (2nd time)`, twin `locked (field controls locked in a snapshot; no net movement)`), `live-world-features.test.ts` factory test (both arms fail: the preset does not know the switch), `decision-probe-live.test.ts` AUTO_TEXT line.
+
+- RED commit d89716cc.
+- 2026-10-16 03:25 AM EDT: GREEN M1.
+  - `LoopDetector` gets `pushback` (constructor 7th, `attachLoopGuard` 8th argument), wired from `features["pushback-loop-detection-v1"]` in live.ts and decision-probe.ts. The tool call's own args are kept as `requested` so auto-advance's B never becomes the action. A settled state event or a settled before state seeds the anchor when no trip is under way.
+  - `pushbackPressResult` in press-result.ts, applied in `withDialogueAutoAdvance` when auto-advance ran and `toolSwitches(features).pushback`. decision-probe's AUTO_TEXT lists the switch (an auto-advanced result is kept as recorded, and flipping the switch is refused).
+  - Design change from the plan: `pushback-press-result-v1` has `needs: null` (inert without auto-advance). With `needs: dialogue-auto-advance-v1`, every ALL_ON-derived preset that turns auto-advance off failed validation (experiment-gate, state-runtime tests).
+  - Receipts (replay through attachLoopGuard with the run's own switches and a supervisor): twin ON warning + supervisor T146 seq 3062 (evidence 2973, 3062: the push-backs of T142 and T146), re-brief T152/T158/T164/T170, recovered T173 seq 3693 (navigate_to reached (12,9)); OFF none. Birch ON warning + supervisor T265 seq 6011 (evidence 5951, 6011), re-brief every 6 calls T271–T307, recovered T310 seq 7333 (STARTER_CHOSEN); OFF none. No stop in either.
+  - Wiring/guard deletions (each red once, restored): live.ts argument dropped → factory test (true arm) red; `switches.pushback===true&&engaged` → `false` → 3 ON press tests red; play-config `pushback` dropped → 4 red; `!trip.left` dropped → "conversation read in place" red; `!trip.scripted` dropped → passed at first (the one-call door case was masked by the existing ineffective hit), so the door negative became a two-call LEFT/RIGHT bounce through animation locks, which then went red; restored.
+  - Registry churn: `.at(-N)` positions +2 (features, battle-triage, blocked-batch, dialogue-auto-advance, dialogue-context-kept, transition-loop tests), group counts guidance 28 / guard 13, switchboard rows 60, presets/next-run expectations.
+  - Tests: agent 1444 passed; viewer 801 passed. Lint (tsc + eslint, both packages) clean.
+
+- GREEN M1 commit d17b71dc (it also picked up the M2 fixture `battle-observe-sh02.jsonl.gz`, staged early).
+- 2026-10-16 03:35 AM EDT: scope addition 3 (the operator via coordinator): 270 observes in a wild battle, T445–T716, no loop guard. Root cause confirmed by replay of sh02 seq 9850–11960 through attachLoopGuard with the run's switches: zero notices. `semanticState` returns null for `in_battle`, so the observation counter compares null and resets to 0 on every observe. The battle object is byte-identical in all 268 state snapshots from seq 10056 to 11928 (phase resolving, turn 3, Wingull 0/13 HP, same script_pc, controller flags, signals and input state): the game waits for A while the readout says resolving (that readout text is owned by claude/battle-text-auto-advance; env/pokebench_env/battle_details.py untouched here).
+  - Design: own switch `battle-observation-loop-v1` (guard, needs null): it acts on a different surface (battle) and kind (observation) than the push-back tracker. ON, an observe whose battle readout (the whole decoded battle object, active UI, party, message) equals the previous game call's counts as an unchanged observation; any changed field (script pointer, controller flags, HP, turn, inputs, signals, execution) is the battle advancing and restarts the count. A decoder diagnostic or a missing battle readout never counts. A battle state not seen in the last 16 is novel and recovers the episode.
+- 2026-10-16 03:40 AM EDT: RED M2. `battle-observation-loop.test.ts` (5 of 13 fail: the replay warning and recovery, four unchanged observes, recovery, registry; OFF silence and every advancing-battle negative pass today), factory test both arms (preset does not know the switch).
+
+- RED M2 commit e86af861.
+- 2026-10-16 03:55 AM EDT: GREEN M2. `battleState()` in loop-detection.ts; `LoopDetector` 8th / `attachLoopGuard` 9th argument `battles`, wired from `features["battle-observation-loop-v1"]` in live.ts and decision-probe.ts. Registry: guard, needs null, recorded last; presets, flagFeatures and next-run default false.
+  - Receipt (replay, run's switches + supervisor): ON warning + supervisor T452 seq 10079 (fourth identical observe, T449–T452), supervisor every 6 calls to T716 (45 briefings), recovered T717 seq 11945 (the press moved the battle on); OFF none. No stop.
+  - Wiring/guard deletions (each red once, restored): live.ts argument dropped → factory test (true arm) red; the battle comparison in the observation counter dropped → 4 battle tests red.
+  - Sweep of the 60 most recent runs (OFF vs each switch ON, warnings/stops only): push-back adds sh02 T146/T265 and two others, both checked by hand and real: 939e T341 (the twin push-back without auto-advance, UP then A×3–4, (10,1)→(10,2)) and 9d86 T470 (Birch, LEFT,A,A ×3, (7,15)→(6,15)→(7,15)). Battle adds only sh02 T452. Limit: only sh02 (284) and show (1) have in-battle observes among those runs; sh02's battle changed between 15 consecutive in-battle observes outside the static stretch and none of those counted.
+  - Positions +1 again (now +3 overall), guard count 14, switchboard rows 61. Tests: agent 1459 passed, viewer 801 passed; lint clean.
+
+- GREEN M2 commit a0cb78b5.
+- 2026-10-16 04:05 AM EDT: M3 explainers and observability.
+  - Explainers `docs/explainers/pushback-loop-detection-v1.html`, `pushback-press-result-v1.html`, `battle-observation-loop-v1.html` (inline CSS/SVG, `just pages-check` prints nothing), README entries, `FEATURE_EXPLAINERS` mappings (panels.ts) with panels tests (mapped file exists, renders a body heading).
+  - Observability trace: producer `LoopDetector` → `attachLoopGuard` → `RunRecorder.recordLoopGuard` (schema-validated; the factory tests run the real recorder and RunLog, and the replay tests `checkEvent` every notice) → model delivery through `piLoop`'s `transformContext`, which appends `loopDetector.context()` before every model call (unchanged seam, proven kind-agnostically by `loop-integration.test.ts`; the replay tests assert the SUPERVISOR text is what `context()` returns at the next turn_start) → viewer `RunView` timeline/Activity History label and replay cursor (new `model.test.ts` case with the sh02 receipts: "Short cycle warning · … · evidence #2973, #3062 · enforced", "Observation stall warning …", hidden before its time with `foldUntil`). No viewer code changed; the existing kinds `cycle` and `observation` carry the new hits. No live viewer session was started (brief: do not restart or launch the viewer).
+
+- Explainers commit bf04fe56.
+- 2026-10-16 04:20 AM EDT: gates on the branch (after a comment-only fix in loop-detection.ts: the `pushedBack` doc comment had landed above `settled`). The worktree had no vendor submodule checked out (10 pytest failures, FileNotFoundError on `map_groups.json`); `git submodule update --init` checked out the pin bbab97ad.
+  - `just build` OK; `just test`: agent 1459 passed, viewer 802 passed, pytest 2042 passed; `just verify-vendor` OK.
+  - `just coverage` OK: agent lines 99.1 / branches 94.73 / functions 98 (loop-detection.ts 98.49 / 97.57 / 100; press-result.ts 100 / 99.22 / 100); viewer lines 97.62 / branches 90.47 / functions 93.6; python lines 97.09 / branches 92.70 / functions 100.
+  - `just lint`: tsc, eslint, ruff and ruff format clean; mypy fails only on `pokebench_env/memory_reader.py:83` (`mgba._pylib` not found: this worktree has no native mGBA binding; the same known worktree gap as the transition-loop worklog). Re-run in the main checkout after the merge.
+  - Principles self-review: all 13 rows scored, zero FAIL (review packet artifact).
+
+- Gates commit 05142168.
+- 2026-10-16 04:55 AM EDT: review round 1 (frozen 917fd9a1..05142168, diff SHA-256 a663828f…9689). Grok (cursor-grok-4.5-high) LGTM with hardening notes. Codex (gpt-5.6-sol, xhigh, read-only; the configured default gpt-6.1-sol is refused for a ChatGPT account) BLOCKING, four findings. Claude lane: Cursor claude-opus-5-thinking-high and claude-sonnet-5-thinking-high both refused (Cursor usage limit until 10/17); the `~/.claude-review` CLI profile is logged out; next harness: Claude CLI on the default profile (logged in).
+- Fix batch for round 1 (all accepted):
+  - Codex 1 (trip bound ignored observes): every completed game call now counts toward the 8-call bound. Writing the test exposed a second bug: a trip seeded from a state event in the middle of a call (the result state) took that call's earlier before-state as evidence, giving a false push-back. Trips now start only from the state a call's first input started from (first `button_press`, or the state at a `navigate_to` call), or from a call's settled result; state events alone never start one. Tests: "observes included" bound (alternating pages so the existing observation check cannot mask it) and "push-back seen only in the states recorded during the call counts from the very first call". Deletions: dropping the observe count → bound test red; dropping first-input seeding → first-call test red; dropping the navigate_to seeding → both navigate_to and first-call tests red; restored. Replay receipts unchanged (T146 seq 3062, T265 seq 6011, T452 seq 10079).
+  - Codex 2 (viewer proof): mounted `app.test.ts` case feeds the sh02 records through the stream: Activity History rows, timeline lane label, inspector raw JSON, and hidden before the replay cursor reaches them; deleting the `Loop guard ·` title in trace.ts turns it red (restored). Isolated built-viewer replay: `scratchpad/viewer-replay/build.mjs` writes a labelled copy of sh02 (to seq 3700 and to seq 10200; assistant_delta dropped to free seqs; notices from the real detector with the three switches inserted after their calls; README in the copy says it is not benchmark history) and `serve.mjs` starts `startViewer` on 127.0.0.1:8797/8798 with no run queue, no autorun, no human restarts. Browser: Activity History shows "Loop guard · cycle warning" #3064 (turn 146, evidence #2973, #3062), supervisor notes #3065/#3199/#3334/#3469/#3604, "cycle recovered" #3695; inspector shows the raw loop_guard JSON; the 10200 copy shows "Loop guard · observation warning" #10081 (turn 452, evidence #10079) and its supervisor notes, frame "Wild WINGULL fainted!". Served main.js/trace.js/model.js/panels.js/style.css SHA-256 equal the built dist/static files. Both isolated viewers stopped; the operator's viewer (8790) untouched. The live-run timeline window (last 60 s) did not reach these notices, and the scrub control does not move a run with no run_end; timeline lane rendering is covered by the mounted test.
+  - Codex 3 (lint): `mypy` on this worktree's env with the main checkout's venv (which has the mGBA binding): "Success: no issues found in 73 source files". tsc, eslint, ruff, ruff format were already green.
+  - Codex 4 (worklog checkboxes): milestone boxes and commit receipts updated above.
+  - Grok hardening: the battle fixture state is cached once; the push-back registry test title now names its real position.
+
+- Fix commit d204eed7.
+- 2026-10-16 05:20 AM EDT: review round 2 (frozen 917fd9a1..d204eed7, SHA-256 3b93e489…bbfa). Claude lane: Claude CLI (default logged-in profile, `--permission-mode plan`) ran; BLOCKING only on missing post-fix gate receipts. Grok LGTM. Codex BLOCKING: (1) post-fix gates; (2) explainer route and READ EXPLAINER click-through not proven for the new ids. Both note (non-blocking) that an errored game call leaves the trip open. Coordinator relay (the operator, 07:47 UTC = 03:47 AM EDT): a Claude sub-agent launched with the Agent tool counts as the Claude lane.
+- Merged main (f46346a3: adjacent-tiles-v1, readout-rules-in-prompt-v1, explorer-guidance-v1 and others) into the branch. Conflicts in features.ts, play-preset.ts, next-run.ts and their tests resolved by taking main's side and appending this branch's three switches after main's three (main's landed first; recorded order is append-only). Positional registry assertions recomputed from the built registry; group counts observation 21 / guidance 29 / guard 14; switchboard rows 64. Agent 1489 passed, viewer 825 passed.
+
+- Merge commit 448738a1.
+- Fix batch for round 2 (all accepted):
+  - Errored call (Claude/Codex non-blocking): an errored press or navigate_to ends the push-back trip (what it did is unknown). Test "a return across an errored press"; deleting the reset turns it red; restored.
+  - Codex 2 (explainer delivery): server test serves the three tracked explainers byte for byte with their headings (and keeps the host 403 / method 405 rejections); mounted app test asserts each Harness Config card links to `/explainers/<id>.html` with READ EXPLAINER. Deleting the battle mapping turns both red; restored. Isolated built viewer (127.0.0.1:8798, labelled sh02 copy, the three tracked explainers copied beside its runs root): each new card's READ EXPLAINER click opened `/explainers/<id>.html` with heading "Push-back loop detection", "Push-back press results", "Battle observation loop"; curl 200 for all three. Viewer stopped.
+  - Codex 1 / Claude (post-fix gates): full gates re-run at the new head below.
+
+- Fix commit a2cce071. Gates at a2cce071 (after the main merge), all exit 0: `just build`; `just test` agent 1490 passed, viewer 827 passed, pytest 2132 passed; `just lint` (tsc, eslint, ruff, ruff format, mypy "no issues found in 75 source files"); `just coverage` agent lines 99.1 / branches 94.73 / functions 98.01 (loop-detection.ts 98.52 / 97.19 / 100; press-result.ts 100 / 99.22 / 100), viewer 97.64 / 90.65 / 93.55, python 97.14 / 92.80 / 100 (floor 90); `just verify-vendor` OK.
+
+- 2026-10-16 05:55 AM EDT: review round 3 (packet f46346a3..e38de393). Claude CLI LGTM. Grok BLOCKING on experiments/*.json, timeline.ts and style.css changes: all of them main-side changes, because the packet base was wrong: merge 448738a1's main parent is da8993aa, not f46346a3 (main had moved between my log check and the merge). Codex BLOCKING: an errored state-only `act` press (outer tool name `act`, normalised to `press` only on success) did not end the trip. Fix: the trip reset also matches `act` with `kind: "press"`; test "a return across an errored state-only act press" (red with the match removed; restored). Next round's packet uses the merged main parent as base.
+
+- Fix commit ec0a2ad3. Merged main again (1e1feec9: connection-edge-tiles-v1, in-game-naming-readout-v1, no-nickname-guidance-v1 and others). Same resolution: main's side, then this branch's three switches appended after `no-nickname-guidance-v1`; FEATURE_EXPLAINERS keeps both sides; positional registry assertions recomputed from the built registry; switchboard rows 67. Agent 1507 passed, viewer 853 passed.
+
+- Merge commit 2cc874d5 (main parent 1e1feec9). Gates at 2cc874d5, all exit 0: build; test agent 1507, viewer 853, pytest 2180 passed; lint incl. mypy "no issues found in 75 source files"; coverage agent lines 99.11 / branches 94.74 / functions 98.11 (loop-detection.ts 98.52 / 97.37 / 100), viewer 97.61 / 90.69 / 93.41, python 97.16 / 92.88 / 100; verify-vendor OK. Coordinator lane freeze until 10 AM EDT noted: nothing here touches 8091/8098/8075/8076.
+
+- 2026-10-16 06:40 AM EDT: review round 4 (packet 1e1feec9..031a0717, SHA-256 390e2133…36d3). Claude CLI LGTM, Grok LGTM. Codex BLOCKING: any non-transient lock counted as "a script or message held the controls", so an open start menu (pokeemerald locks field controls for it) or a lock of unknown origin could make a voluntary return look like a push-back. Fix: `scriptHeld()` requires a lock with no active UI or naming screen and either a dialogue/message or the game's script context running (mode 1 or 2, status not CONTEXT_SHUTDOWN, src/script.c). Tests: start-menu and unknown-lock round trips match OFF (both red with the old rule; restored). Replay receipts unchanged (sh02 twin/Birch states are message or script mode 2 status 0). Switch copy and explainer say menus and unknown locks do not count. Agent 1509, viewer 853 passed; lint clean.
+
+- Fix commit 165bed53. Merged main again (5fd00072: battle-text-auto-advance-v1 and others). dialogue-auto-advance.ts conflict was only the import line (main's battle-text import kept, `pushbackPressResult` kept; the press-result composition auto-merged unchanged). Registry, presets, README and FEATURE_EXPLAINERS resolved as before (this branch's three after `battle-text-auto-advance-v1`); positional assertions recomputed, including main's new "registry order" checks in battle-text-auto-advance.test.ts; switchboard rows 68. Agent 1547, viewer 869 passed.
+
+- Merge commit 9f7dd74b (main parent 5fd00072). Gates at 9f7dd74b, all exit 0: build; test agent 1547, viewer 869, pytest 2209 passed; lint incl. mypy (76 files, no issues); coverage agent lines 99.13 / branches 94.73 / functions 98.16 (loop-detection.ts 98.54 / 97.42 / 100; press-result.ts 100 / 99.22 / 100), viewer 97.7 / 90.98 / 93.57, python 97.26 / 93.01 / 100; verify-vendor OK.
+
+- Gates commit 506b3661. 2026-10-16 07:25 AM EDT: review round 5 (packet 5fd00072..506b3661, SHA-256 0a92e802…4495). Claude CLI LGTM, Grok LGTM. Codex BLOCKING: (1) `scriptHeld()` accepted any status but 2, so a decoder's null or invalid status counted as a running script; (2) the replay fixtures were not schema-valid (state rows trimmed below the schema), so the replays accepted shapes production rejects. Fixes: status must be CONTEXT_RUNNING (0) or CONTEXT_WAITING (1); negative tests for mode 2 with status null and 3 (both red under the old rule; restored). Fixtures rebuilt by `scratchpad/trim_valid.mjs` from the read-only run: a field is dropped only if the row still passes `checkEvent` (navigation grid, interaction targets, local map, raw RAM, berry/storage resources, map triggers; tool result text after the first blank line); same event counts (499 / 597 / 1,189), 35 / 29 / 60 KB gzipped; the tests load them with `checkEvent(JSON.parse(line))`. All replay receipts unchanged.
+
+- Fix commit 7bd60b2d. Merged main (6d2be8af: interface stall briefing, which adds a StallKind and touches loop-supervisor.ts / stall-briefing.ts; merged cleanly) as 5a7a6852. Gates at 5a7a6852, all exit 0: build; test agent 1553, viewer 869, pytest 2209; lint incl. mypy (76 files); coverage agent lines 99.14 / branches 94.55 / functions 98.17 (loop-detection.ts 98.54 / 97.43 / 100; press-result.ts 100 / 99.22 / 100), viewer 97.7 / 90.98 / 93.57, python 97.26 / 93.01 / 100; verify-vendor OK.
+
+- 2026-10-16 08:05 AM EDT: review round 6 (packet 6d2be8af..35d14d24, SHA-256 e7c693e9…6614): Claude CLI LGTM, Grok LGTM, Codex LGTM. HEAD and status unchanged across the round. Main had moved (battle-message-waiting-v1, 48d6b48f), so merged main again: registry/preset/README conflicts resolved as before (this branch's three after `battle-message-waiting-v1`), positional assertions recomputed (including battle-text and battle-message-waiting tests), switchboard rows 69. Agent 1558, viewer 870 passed. A merge-resolution review round follows.
+
+- Merge commit 2b637515 (main parent 48d6b48f). Gates at 2b637515, all exit 0: build; test agent 1558, viewer 870, pytest 2234; lint incl. mypy (77 files); coverage agent lines 99.14 / branches 94.55 / functions 98.17 (loop-detection.ts 98.54 / 97.43 / 100; press-result.ts 100 / 99.22 / 100), viewer 97.7 / 90.98 / 93.57, python 97.29 / 93.10 / 100; verify-vendor OK.
+
+- Main moved again (script-line-presence-v1, bbbee47b). Merged with the same resolution (this branch's three after `script-line-presence-v1`; positional assertions recomputed from the built registry by `scratchpad/fixpos3.py`; switchboard rows 70). Agent 1581, viewer 871 passed.
+
+- Merge commit 27f9ec28 (main parent bbbee47b). Gates: build, test (agent 1581, viewer 871, pytest 2235), coverage (agent 99.15 / 94.61 / 98.19, loop-detection.ts 98.54 / 97.43 / 100; viewer 97.7 / 90.98 / 93.57; python 97.29 / 93.10 / 100), verify-vendor all exit 0. Lint first failed: the resolver added this branch's keys a second time to one next-run.test.ts object literal that had not conflicted (TS1117 duplicate keys); removed the duplicate; `just lint` then exit 0 (mypy 77 files).
+
+- Fix commit e3fe448c; merged two data-only main commits (08fadf73: worklog and experiments JSON) as 5e81a866. Agent 1581 passed. Viewer full-suite reruns under host load average ~47 (other sessions) showed different 5 s timeouts on each run (next-run restart tests, experiment-cli production host, experiment-gate pid probe, once the new mounted app test); each failing file passes in isolation three times in a row (92/92), and the last full run failed only one unrelated experiment-cli test with "Test timed out in 5000ms". Recorded as host-load timeouts, not regressions; the gate run at 27f9ec28 was fully green.
+
+- 2026-10-16 08:35 AM EDT: review round 7 (merge-resolution, packet 08fadf73..6615d169, SHA-256 17bca875…cac2). Claude CLI LGTM. Grok printed its LGTM line twice (one verdict required) and Codex blocked only on a missing full test receipt at that head; full gates were run at 6615d169 (load back to ~8–25): all exit 0, agent 1581, viewer 871, pytest 2235; coverage agent 99.15 / 94.61 / 98.19, viewer 97.7 / 90.98 / 93.57, python 97.29 / 93.10 / 100; mypy 77 files. Re-run on the unchanged head: Grok LGTM (single verdict), Codex LGTM. So 6615d169 had LGTM from all three lanes.
+- Main moved again before the landing (offscreen-objects-v1, navigate-first-prompt-v1, presence-penalty-v1; 3307db77). Merged with the same resolution (this branch's three after `presence-penalty-v1`), plus an idempotence pass that removed resolver duplicates (including the repeated switch arguments in features.test.ts that Codex listed as a follow-up); battle-text tail-order assertions now slice before this branch's three; switchboard rows 73. A merge-resolution review follows.
+
+- Merge commit 50c92c10 (main parent 3307db77). Gates there: build, lint, verify-vendor exit 0; agent 1615 and viewer 888 passed; pytest 34 failed (all `KeyError: 33786826` raised from `pokebench_env/route103_rival.py:41` inside other tests' fake RAM, e.g. test_battle_message_waiting.py:85). This branch changes nothing under env/ (`git diff 3307db77 HEAD -- env/` is empty): main's own integration of rival-route103-splits with the battle-message/naming/offscreen tests, outside this branch. Reported to the coordinator.
+
+**M4 — Audit acceptance cases (scope addition 4, cook harness audit, the operator-approved bug fixes on both arms; same two switches)**
+- 2026-10-16 09:10 AM EDT: brief received: eight cases from `runs/reports/2026-10-16-cook-harness-audit/{live,sh02}.md`. Fixtures built with `scratchpad/trim_valid.mjs` (every row passes checkEvent): `pushback-twin-54a7` (54a7 seq 1623–2582), `pushback-oldale-54a7` (5895–7263), `pushback-mom-1623` (1623 seq 1109–3923), `pushback-maniac-sh02` (sh02 18029–18686).
+- Root causes (replay and recorded states):
+  - Press results (cases 1, 3, 4): the press line compares only the input's own snapshots. 54a7 T247 and sh02 T1076/T1078/T1080: the step-back happens between snapshots inside one plain press (no message), so the line said "turned left -> right; no net movement" or "locked … no net movement", although from free controls no LEFT press can face the player right; sh02 T1072: "moved (1,10) -> (0,10)" with a running script holding the controls right after; sh02 T1073: the script walked the player back after the last result, before the press, and nothing said so.
+  - navigate_to (case 2): `navigationAfter` always added "call navigate_to again" and never compared the states around auto-advance (54a7 T90–T114: (10,1) -> (10,2) each time).
+  - Dropped inputs (case 5): the walk path sends the batch in one submission and recorded all six as sent; five were pressed under the message's lock.
+  - Guard (cases 6–8): push-back keys were the whole input sequence, so irregular periods (LEFT vs LEFT,LEFT; DOWN,A,A vs DOWN,DOWN,A,A) and varying navigate_to targets ((10,0) vs (11,0)) never matched three times; the Oldale step-back is never in a snapshot, so the trip never "left" its tile; and any new fingerprint (one START opening the menu) recovered the episode and cleared the push-back count (1623 T145, then 147 turns unguarded).
+- RED: `pushback-audit-cases.test.ts` (12 of 17 fail on the pre-M4 code: cases 1–5 ON lines and the dropped split, case 6 recovery, cases 7–8 receipts), plus navigate_to and walk-batch tests in `pushback-press-result.test.ts` (2 fail). OFF tests reproduce the recorded lines.
+
+- RED commit 97f59503.
+- 2026-10-16 09:45 AM EDT: GREEN M4 (same two switches; OFF unchanged: every OFF test reproduces the recorded text and today's guard notices).
+  - press-result.ts: `pressResult` wraps the existing line with `scriptTakeover` when `show.pushback`: (a) from free controls, same tile, a message or running script holding the controls after the press and the player facing away from the pressed direction → "a script took over during your press …"; (b) a move that ends with a running script holding the controls (no message) → "; then a script took over …"; (c) the last shown result on another tile of the same map and a script holding the controls → "a script moved you … after your last result, before this press; this press: …". `scriptMove` and `ignoredSteps` helpers.
+  - dialogue-auto-advance.ts: navigate_to's restated status names the script's move and drops "call navigate_to again" when the player's tile changed during auto-advance; a walk batch's steps not taken after the message opened go to the event's `dropped` (sent keeps the steps taken, at least one) and the summary names them.
+  - loop-detection.ts: trip direction remembered from presses; facing away from it under a script hold marks the trip as left; push-backs keyed by the way out (first button, or navigate_to's target map); a push-back episode recovers only on a map/tile not among the last 16 results or a story milestone, and a new state on a known tile no longer clears the push-back count.
+  - Receipts: 54a7 twin warning T88 seq 1927 (OFF none); 54a7 Oldale T254 seq 6212 (OFF none); 1623 Mom warning T96, recovered only at T305, supervisor briefings ≤ 12 turns apart (OFF: recovered T145 by START, silent to T293); sh02 Maniac T1075 seq 18360 (OFF none); sh02 twin T146 and Birch T265 unchanged.
+  - Deletion checks (each red once, restored; scratchpad/deletions.py): turned-back rule (2 red), moved-before-press (1), moved-then-script (1), facing-based left (2), way-out key (2), held recovery (1), navigate wiring (1), ignored-steps wiring (1).
+  - Sweep of the 70 most recent runs: added push-back warnings in 12 runs; all checked by hand are real push-backs (1623 T934, 54a7 T402, e588 T498, show T115, 3f21 T146, 939e T276, d116 T617, ab34 T358, 4fe9 T102 and T377, 26e0 T146, plus the known sh02/9d86/939e ones). Battle observation adds e588 T567/T758/T1104, each 4 observes of an identical decoded battle.
+  - Switch copy and both push-back explainers updated (way out, facing evidence, recovery rule, all press paths, navigate_to, dropped steps, audit tables). `just pages-check` clean.
+
+- GREEN commit 4c5dced2; merged main cleanly (9e84ba4d, viewer workbench/event-skew; no overlapping files) as 6285fdca. Gates at 6285fdca: build, lint (mypy 79 files), verify-vendor exit 0; agent 1649 and viewer 905 passed; coverage agent lines 99.17 / branches 94.67 / functions 98.24 (loop-detection.ts 98.61 / 96.88 / 100; press-result.ts 100 / 98.02 / 100), viewer 97.62 / 91.11 / 93.62. pytest: 34 ROM-backed tests fail with `KeyError: 33786826` (`pokebench_env/route103_rival.py:41` reading 0x02038ACA from those tests' fake RAM; `just` loads the main checkout's `.env`, so POKEBENCH_ROM is set); without the ROM they skip and the rest pass: 2236 passed, 34 skipped, python coverage 97.31 / 93.08 / 100. env/ is identical to main (9e84ba4d), so this is main's own breakage from the route103-rival merge (3307db77), not this branch; reported to the coordinator.
+
+- Receipts commit 70a1e53d. 2026-10-16 10:20 AM EDT: review round 8 (packet 9e84ba4d..70a1e53d, SHA-256 7e7c2502…0921). Grok LGTM. Claude CLI BLOCKING: the "a script moved you … after your last result" rule could misattribute a navigate_to walk (it accepted a script hold on either side). Note: navigate_to steps through the same base press/observe tools, which record into the shared ShownStates, so the reproducer's premise does not hold in production, but the rule is tightened anyway. Codex BLOCKING: (1) the walk-batch split inferred accepted inputs from net displacement (RIGHT, LEFT, UP onto a trigger would be misreported); (2) the navigate_to note claimed "calling it again walks back into the same script" for any scripted move. Fixes: the before-press rule now needs the last result itself to show a script holding the controls; `ignoredSteps` claims a split only when exactly one prefix of the batch, one tile per input, explains the position when the message opened (a bump, a turn in place, a non-direction input or two fitting prefixes drop nothing); the navigate_to note says only "a script moved you X -> Y while the dialogue advanced". Tests: canceling path RIGHT,LEFT,UP (integration and unit), bump, two fitting prefixes, non-direction input, free last result, cross-map script move. Deletions: `fits.length === 1` → `>= 1` turns the prefix test red; restoring the either-side hold turns the free-last-result test red; restored. Audit fixtures are now loaded once per file. Principles artifact rows PB3 and PB13 updated.
+
+- Fix commit b7379905. Merged main again (76784654: disproved-beliefs-v1, same-plan-breaker-v1): same resolution (this branch's three after `same-plan-breaker-v1`), positions recomputed, battle-text tail slices now `(-11,-5)`, switchboard rows 75. Agent 1704, viewer 908 passed.
+
+- Merge commit a7e95054 (main parent 76784654). Gates: build, lint (mypy 79 files), verify-vendor exit 0; agent 1704, viewer 908 passed; coverage agent 99.17 / 94.57 / 98.41 (loop-detection.ts 98.61 / 96.88 / 100; press-result.ts 100 / 98.41 / 100), viewer 97.62 / 91.1 / 93.62; pytest the same 34 ROM-backed `KeyError: 33786826` failures as main (2236 passed, 34 skipped without the ROM; python 97.31 / 93.08 / 100).
+
+- Receipts commit a89def37. 2026-10-16 11:05 AM EDT: review round 9 (packet 76784654..a89def37, SHA-256 c14bf888…775b). Grok LGTM. Claude CLI BLOCKING: a bump followed by a prefix that fits (LEFT into a wall, UP, LEFT onto the trigger) still yields a split. Codex BLOCKING: (1) a new place did not recover a push-back episode when its fingerprint was still in `visited`; (2) a walk batch ending in a battle transition (no field message) could be split and reported as a message lock. Fixes: `ignoredSteps` also needs a field message open after the batch and the player facing the fitting prefix's last direction; a push-back episode recovers on any result at a map/tile outside the last 16 results (`escaped`), whatever its fingerprint. Receipt changes from (1): sh02 Birch now recovers at T308 seq 7300 (the result shows the player at (6,13) in the starter scene) instead of T310 at STARTER_CHOSEN; 1623 Mom at T304 (upstairs, map 1/1) instead of T305. Tests: bump-then-fit, battle transition, recorded T264 split, the prefix cases against a message state (they had passed against a free state, masked by the new message check: rewritten), place-window recovery with a seen fingerprint (direct LoopDetector with a supervisor). Deletions: facing check → prefix test red; message check → battle-transition test red; `escaped` → 3 red; restored.
+
+- Fix commit ed963e57. Merged main again (411e097d: levelup-box-v1 and others). dialogue-auto-advance.ts conflicts resolved by hand: main's battle-text import (adds `levelUpListedPage`) and `openBattle` (adds `levelupBox`), this branch's press-result import and `finish` (ignored inputs); registry/presets/tests as before (this branch's three after `levelup-box-v1`; battle-text tail slices `(-12,-6)`; switchboard rows 76). Agent 1715, viewer 910 passed.
+
+- Merge commit fb0a403e (main parent 71402ebd). Gates at fb0a403e, all exit 0 (main's pytest breakage is fixed there): build; test agent 1715, viewer 910, pytest 2297 passed; lint incl. mypy (80 files); coverage agent lines 99.17 / branches 94.59 / functions 98.41 (loop-detection.ts 98.62 / 96.91 / 100; press-result.ts 100 / 98.15 / 100), viewer 97.62 / 91.1 / 93.63, python 97.36 / 93.22 / 100; verify-vendor OK.
+
+- Receipts commit 268fff52. 2026-10-16 11:50 AM EDT: review round 10 (packet 71402ebd..268fff52, SHA-256 9391459d…6241). Claude CLI LGTM. Grok BLOCKING: an escape to a new place recovered the episode but kept the old push-backs, so one more push-back re-warned at once. Fix: an escape empties the push-back count; the place-window test now also needs three new push-backs for the next warning (red with the clear removed; restored). Codex BLOCKING: bundle-v-control's arms do not turn the three switches on. That manifest is the coordinator's and is edited after this branch lands (the brief forbids this branch to touch it; the switches must exist on main first); recorded as the hand-off, not changed here.
+
+- Fix commit 72ef2113. Gates at 72ef2113, all exit 0: build; test agent 1715, viewer 910, pytest 2297; lint incl. mypy (80 files); coverage agent lines 99.17 / branches 94.59 / functions 98.41 (loop-detection.ts 98.62 / 96.92 / 100; press-result.ts 100 / 98.15 / 100), viewer 97.62 / 91.1 / 93.63, python 97.36 / 93.22 / 100; verify-vendor OK.
+- 2026-10-16 12:30 PM EDT: review round 11 (packet 71402ebd..72ef2113, SHA-256 e69e2a88…c901): Claude CLI LGTM, Grok LGTM, Codex LGTM (its first process was ended by SIGTERM mid-review with no verdict; re-run on the same frozen head). HEAD and status unchanged across the round. **Reviewed head: 72ef2113.**
+- Landing: the coordinator lands it (worktree sessions cannot run git in the main checkout). Main had moved 80 commits past 71402ebd by then (worklog archiving, briefing-exits / people-ledger / untaken-exits switches), so the landing merge will meet the same mechanical registry/preset/position conflicts as before; the recipe is in this log (main's side first, this branch's three switches appended after main's last, positions recomputed from the built registry). After landing: turn `pushback-loop-detection-v1`, `pushback-press-result-v1` and `battle-observation-loop-v1` ON in both arms of experiments/fixed/bundle-v-control.json (coordinator-owned; not edited here), and restart the viewer with `just viewer-main` (not done here per the brief).
+- Explainers also copied to runs/mockups/<id>/<id>.html for the local pages server (200 on 127.0.0.1:8791).
+
+- 2026-10-16 01:05 PM EDT: coordinator request: merge current main for the merge queue (briefing-exits-v1, untaken-exits-v1, people-ledger-v1, disproved-beliefs-v1, same-plan-breaker-v1, script-line-presence-v1 included) and check same-plan-breaker against the recovery change. Merged with the registry recipe (this branch's three after `people-ledger-v1`; a resolver duplicate of the three schema keys in play-preset.ts removed by hand; positions recomputed; battle-text tail slices `(-15,-9)`; people-ledger `.at(-4)`; play-preset v1-flags expectations given the three keys; switchboard rows 79). Agent 1786, viewer 918 passed.
+  - same-plan-breaker interaction: it posts through `LoopDetector.stall()`, which refuses while a loop episode is open (unchanged rule). Replaying six full recorded runs (sh02, 54a7, 1623, show, e588, 687e) with same-plan-breaker on and the push-back switches off/on: same-plan notes posted are identical (one per run) except 54a7, where the note moves from T114 to T252 because the push-back episode had been briefing that same twin loop since T88 (warning T88, supervisor every 6 calls, recovered T115). Refusals 72 → 70 there, unchanged elsewhere. No loss of guidance: the open episode is the same loop and posts its own briefing; it ends on the first new map/tile or story milestone.
+
+- Merge commit c95e8f50 (main parent be428cdb). Gates at c95e8f50, all exit 0: build; test agent 1786, viewer 918, pytest 2299; lint incl. mypy (80 files); coverage agent lines 99.14 / branches 94.61 / functions 98.52 (loop-detection.ts 98.62 / 96.92 / 100; press-result.ts 100 / 98.15 / 100), viewer 97.62 / 91.12 / 93.63, python 97.36 / 93.22 / 100; verify-vendor OK.
+
+- Round 12 (merge delta, packet be428cdb..e59b7aac): Claude CLI, Grok and Codex LGTM. Reviewed head e59b7aac.
+- 2026-10-16 merge slot: merged main 29da5591 (blocked-exit-and-loss: briefing-battle-outcomes-v1, blocked-exit-fact-v1, battle-loss-recap-v1, trainer-heal-guidance-v1, low-hp-trainer-warning-v1). Registry recipe again (this branch's three after `battle-loss-recap-v1`). Description drift check: this branch's three `on(...)` lines are byte-identical to the reviewed head e59b7aac (sha1 of each line compared), and `features.ts`, `play-preset.ts` and `next-run.ts` differ from main only by inserting this branch's keys/lines (no main line removed or rewritten except the three list lines that gained the keys). Positions recomputed; battle-text tail slices `(-20,-14)`; people-ledger `.at(-9)`; switchboard rows 84. Agent 1867, viewer 932 passed.
+
+## Multi-Model Review Log (summary)
+
+| Round | Packet | Claude | Grok | Codex |
+|---|---|---|---|---|
+| 1 | 917fd9a1..05142168 | unavailable (Cursor usage limits) | LGTM | BLOCKING (4) |
+| 2 | 917fd9a1..d204eed7 | BLOCKING (gates receipt) | LGTM | BLOCKING (2) |
+| 3 | f46346a3..e38de393 | LGTM | BLOCKING (wrong base) | BLOCKING (act errors) |
+| 4 | 1e1feec9..031a0717 | LGTM | LGTM | BLOCKING (menu locks) |
+| 5 | 5fd00072..506b3661 | LGTM | LGTM | BLOCKING (status, fixtures) |
+| 6 | 6d2be8af..35d14d24 | LGTM | LGTM | LGTM |
+| 7 | 08fadf73..6615d169 | LGTM | LGTM (re-run) | LGTM (re-run) |
+| 8 | 9e84ba4d..70a1e53d (M4) | BLOCKING | LGTM | BLOCKING (2) |
+| 9 | 76784654..a89def37 | BLOCKING | LGTM | BLOCKING (2) |
+| 10 | 71402ebd..268fff52 | LGTM | BLOCKING | BLOCKING (manifest hand-off) |
+| 11 | 71402ebd..72ef2113 | LGTM | LGTM | LGTM (re-run after SIGTERM) |
+
+## Surprises
+
+- `loop_guard` evidence is capped at 2 items by the event schema (`maxItems:2`); a 3-seq evidence list made the recorder throw in the factory test. Evidence is now [first push-back, completing call]. The replay tests validate every notice through `checkEvent`.
+- An existing registry assertion pattern, `expect(array).not.toContain(expect.stringContaining(...))`, is vacuous (`toContain` does not use asymmetric matchers). The new tests use `toContainEqual`. Not changed in older tests (Boy Scout candidate).
+- The auto-advance B presses overwrite the call's before state and its action in `LoopDetector.observe` (root cause b). Every loop kind that reads before/action is blind to auto-advanced calls, not only push-backs.
+
+## Multi-Model Review Log
+
+## Boy Scout Log
+
+## Archive Milestone (user-gated)
+
+- [x] ASK USER: archive
+
+- 2026-10-16 08:40 AM EDT: Review round 13 (29da5591..50f0add3, packet sha256 282e618c…c5c7): Claude CLI LGTM, Grok cursor-grok-4.5-high LGTM, Codex gpt-5.6-sol LGTM. Gates at 50f0add3: agent 1867, viewer 932, pytest 2313; coverage agent 99.14/94.69/98.4, viewer 97.63/91.09/93.68, python 97.37/93.23/100.
+- 2026-10-16 08:40 AM EDT: LANDED: main fast-forwarded to 50f0add3. On main after `just build`: agent 1867 (runs-cli timeout flake passed on rerun), viewer and pytest green. Switches pushback-loop-detection-v1, pushback-press-result-v1, battle-observation-loop-v1 are bug fixes for both arms of bundle-v-control (owner: readiness thread).
+
+## Archived
+
+2026-10-17, 8:40 PM EDT, on the operator's request to archive worklogs whose implementation is already on main (50f0add3 Merge branch 'main' into claude/pushback-loop-guard). Unchecked boxes left above are bookkeeping from before that landing.

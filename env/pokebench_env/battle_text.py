@@ -25,7 +25,7 @@ the cursor at gBattleCommunication[CURSOR_POSITION]; B answers NO.
 The level-up stats box (Cmd_drawlvlupbox, opcode 0x6C) is its own window, B_WIN_LEVEL_UP_BOX,
 not printer 0. gBattleScripting.drawlvlupboxState 6 shows page 1 (the stat increases,
 DrawLevelUpWindowPg1) and 8 page 2 (the new totals, DrawLevelUpWindowPg2); both wait for
-gMain.newKeys != 0, any new button. Findings: docs/worklogs/active/2026-10-16_levelup-box.md.
+gMain.newKeys != 0, any new button. Findings: docs/worklogs/2026-10-16_levelup-box.md.
 """
 
 import threading

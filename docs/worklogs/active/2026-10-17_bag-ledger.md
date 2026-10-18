@@ -36,7 +36,9 @@ Viewer-only. No new recorded fields, no harness behavior change, so no feature s
 **M1: BAG page**
 - [x] RED: bag ledger, page, app jump and server art route tests (bag.test.ts fails to import bag.ts; 4 app/server tests fail)
 - [x] GREEN: bag.ts, app wiring, page, styles, server route, `just bag-art`. Gates: viewer 1147 (95.57/91.42/94.05/97.74), agent 2338, Python 2478 passed (97.48/93.42/99.43), lint clean
-- [ ] Gates, browser proof at 1280/1440/390 on e046 (scratch copy)
+- [x] Synced with main 8e0e0c34 (merge 5b321636, docs-only upstream). Gates on the tip: viewer 1147, agent 2338, Python 2478 passed / 229 ROM-skipped (97.48/93.42/99.43), `pnpm -r lint` clean, mypy clean (run with the main checkout's venv: this worktree's fresh venv lacks the mGBA binding, a pre-existing env gap), build OK.
+- [x] Browser proof on a scratch copy of e046 (scratch viewer on 127.0.0.1:8797, stopped after): headline 10 gained / 0 used / ¥500 in 2 buys / 1 tutorial swap, the same as the mockup; pockets in game order with BERRIES and KEY ITEMS faded; tutorial band T450–T454. A pointer click on ▶ T611 paused the replay at TURN 611 on frame 017180 (the mart after the POTION buy, ¥2084). Enter on a focused ▶ T450 showed Wally's tutorial bag (POTION ×1). At 390 px, a tap on ▶ T514 scrolled to the game at TURN 514 in Petalburg Woods. No horizontal overflow; the only console errors are 404s for trainer-card art the scratch root lacks. Screenshots: runs/mockups/bag-inventory/shots/.
+- Art: the session could not read the ROM (permission denied), so `just bag-art` was proven on a synthetic ROM that holds the decomp's LZ77 blocks and a gItemIconTable (309 icons, 5 pockets verified). The operator runs `just bag-art` once against the real ROM.
 - [ ] Review (Claude, Grok, GPT cloud lanes) on a frozen packet
 
 ## Multi-Model Review Log

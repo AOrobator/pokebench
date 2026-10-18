@@ -8,7 +8,7 @@
  "primaryMilestone": "RIVAL_MET",
  "source": {
   "checkout": "main",
-  "commit": "a9b80f0248e6362adb533aa6a6a6ce5de366d6ea"
+  "commit": "476b223290b4b590535468e39a2bf3fd82e507c7"
  },
  "incumbent": {
   "version": 2,
@@ -165,6 +165,6 @@
   "window": 4,
   "minReached": 3
  },
- "notes": "Registration only. The runnable fixed definition is experiments/fixed/jit-10m.json: 24 trials, 12 per arm, six of each arm per GPU, 600000 ms cap, MAIN_MENU save start, no milestone target or stall stop, zero replacement reserve. The registry trialsPerArm=8 is its supported schema screen default, not this fixed cohort N. Primary comparison is ranked frontier at ten minutes; RIVAL_MET is a secondary descriptive reach marker. Screen only; no powered confirmation, automatic finals or promotion. Source pin is the combined implementation commit a9b80f0248e6362adb533aa6a6a6ce5de366d6ea including native Pok\u00e9Nav graphs; fixed-run approval pins the final reviewed main HEAD. Serving values must be freshly verified before launch.",
+ "notes": "Registration only. The runnable fixed definition is experiments/fixed/jit-10m.json: 24 trials, 12 per arm, six of each arm per GPU, 600000 ms cap, MAIN_MENU save start, no milestone target or stall stop, zero replacement reserve. The registry trialsPerArm=8 is its supported schema screen default, not this fixed cohort N. Primary comparison is ranked frontier at ten minutes; RIVAL_MET is a secondary descriptive reach marker. Screen only; no powered confirmation, automatic finals or promotion. Source pin is the combined implementation commit 476b223290b4b590535468e39a2bf3fd82e507c7 including native Pok\u00e9Nav graphs; fixed-run approval pins the final reviewed main HEAD. Serving values must be freshly verified before launch.",
  "blocked": "Pending registry remains unqueued; the operator conditionally authorized the separate fixed-N jit-10m launch after readiness, review and live-viewer checks. This registration is not the launch definition."
 }

@@ -132,7 +132,8 @@
    "status-names-v1": false,
    "surf-gated-exits-v2": false,
    "instruction-ledger-v2": false,
-   "no-exit-here-v1": false
+   "no-exit-here-v1": false,
+   "battle-menu-loop-v1": false
   }
  },
  "switches": [
@@ -152,7 +153,8 @@
   "status-names-v1",
   "surf-gated-exits-v2",
   "instruction-ledger-v2",
-  "no-exit-here-v1"
+  "no-exit-here-v1",
+  "battle-menu-loop-v1"
  ],
  "offInBoth": [
   "milestone-stall-stop-v1",

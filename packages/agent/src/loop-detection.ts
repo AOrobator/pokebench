@@ -205,6 +205,31 @@ export const WAITING_MESSAGE =
   "Repeated observations show the same open menu, prompt or message waiting for your input: observing again does not change it. Decide from what the game shows which input it needs, or choose a different approach using observed evidence.";
 export const REVISIT_MESSAGE =
   "Your recent moves name different targets but keep ending on the same one or two tiles, with no new map, tile or story milestone in between: switching between these few targets is not getting anywhere. Reassess what stops you there using observed evidence, then choose a different route or destination.";
+// battle-menu-loop-v1. pokeemerald src/battle_message.c gText_BattleMenu is "FIGHT BAG / POKéMON RUN".
+// src/battle_controller_player.c HandleInputChooseAction: cursor 0 is top-left FIGHT (B_ACTION_USE_MOVE), 1 is top-right
+// BAG, 2 is bottom-left POKéMON (B_ACTION_SWITCH), 3 is bottom-right RUN. DPAD_LEFT moves only when cursor & 1
+// (BAG or RUN), so LEFT from POKéMON does not move. DPAD_UP moves only when cursor & 2 (POKéMON or RUN). A on
+// cursor 0 emits B_ACTION_USE_MOVE. The fourth return matches battle-observation-loop-v1's fourth identical observe.
+export const BATTLE_MENU_RETURNS = 4;
+export const BATTLE_MENU_LOOP_MESSAGE =
+  "The battle menu is back on the same choice after the POKéMON or BAG screen, and the foe's HP and the battle turn are unchanged. The menu reads FIGHT BAG / POKéMON RUN. POKéMON is the bottom-left. UP from POKéMON moves to FIGHT; LEFT from POKéMON does not move. A on FIGHT chooses a move.";
+const MENU_DETOUR_SCREENS = new Set(["party_menu", "party_action_menu", "pokemon_summary", "bag_menu"]);
+const menuDetourScreen = (state: GameStateSnapshot): boolean =>
+  MENU_DETOUR_SCREENS.has(state.screen) ||
+  (state.active_ui?.phase != null && MENU_DETOUR_SCREENS.has(state.active_ui.phase));
+const battleStamp = (state: GameStateSnapshot): string | null => {
+  const battle = state.battle;
+  const battlers = battle?.battlers;
+  if (battle == null || battlers == null || battlers.length === 0) return null;
+  return `${String(battle.turn ?? "")}:${battlers.map((b) => `${String(b.battler)}:${b.species}:${String(b.hp)}`).join(",")}`;
+};
+const actionMenuKey = (state: GameStateSnapshot): string | null => {
+  const battle = state.battle;
+  if (!state.in_battle || state.screen !== "battle" || battle == null || battle.diagnostic !== null) return null;
+  const input = battle.player_inputs?.find((row) => row.ready && row.phase === "action" && row.action_cursor !== null);
+  if (input === undefined) return null;
+  return `${battleStamp(state) ?? ""}:${String(input.action_cursor ?? "")}:${input.selected ?? ""}`;
+};
 const DIRECTIONS = new Set(["UP", "DOWN", "LEFT", "RIGHT"]);
 const interfaceOpen = (state: GameStateSnapshot): boolean =>
   state.active_ui != null || state.naming != null || (state.world_context?.dialogue ?? "") !== "" || state.world_context?.message != null;
@@ -316,7 +341,14 @@ export class LoopDetector {
     briefing: string | null;
     pushback: boolean;
     revisit: boolean;
+    menu: boolean;
   } | null = null;
+  // battle-menu-loop-v1: the battle-menu choice last ready, whether the POKéMON or BAG screen has opened since,
+  // the returns to that choice, and foe/party HP plus the battle turn (a change clears the count).
+  private menuAnchor: string | null = null;
+  private menuDetour = false;
+  private readonly menuReturns: { key: string; seq: number }[] = [];
+  private menuStamp: string | null = null;
   private stallNote: { text: string; exposed: boolean } | null = null;
   private run: string | null = null;
   private eventSeq = -1;
@@ -352,6 +384,7 @@ export class LoopDetector {
     // navigation-truth-v1: the interaction warning mentions a reopened message only when one reopened.
     private readonly messageTruth = false,
     private readonly ineffectiveLoops = false,
+    private readonly menuLoop = false,
   ) {}
 
   observe(event: RunEvent): void {
@@ -366,6 +399,7 @@ export class LoopDetector {
       this.latestSeq = event.seq;
       if ("started" in event) {
         if (this.pushback) this.tripState(event);
+        if (this.menuLoop) this.noteMenuScreen(event);
         const said = this.ineffectiveLoops ? (event.world_context?.dialogue || event.world_context?.message?.identity) ?? "" : "";
         if (said !== "")
           for (const pending of this.calls.values()) if (!(pending.dialogue ??= []).includes(said)) pending.dialogue.push(said);
@@ -433,8 +467,12 @@ export class LoopDetector {
       return this.stallNote.text;
     }
     this.episode.exposed = true;
-    if (this.episode.briefing !== null) return this.episode.briefing;
-    return `LOOP GUARD (${this.episode.kind}): ${this.episode.message} Recovery is bounded; objective wording and new evidence IDs alone do not establish progress.`;
+    const guard = this.episode.briefing !== null
+      ? this.episode.briefing
+      : `LOOP GUARD (${this.episode.kind}): ${this.episode.message} Recovery is bounded; objective wording and new evidence IDs alone do not establish progress.`;
+    return this.episode.menu && this.episode.briefing !== null && !guard.includes(BATTLE_MENU_LOOP_MESSAGE)
+      ? `${guard}\n${BATTLE_MENU_LOOP_MESSAGE}`
+      : guard;
   }
 
   private restartedConversation(state: GameStateSnapshot | undefined, before: GameStateSnapshot | undefined): boolean {
@@ -511,6 +549,7 @@ export class LoopDetector {
     let reopened = false;
     let pushed: number[] | null = null;
     let revisited: number[] | null = null;
+    let menuLooped: number[] | null = null;
     let waited = false;
     if (!call.isError && PLANNING.has(call.name)) {
       this.planning++;
@@ -584,6 +623,13 @@ export class LoopDetector {
         hit = "cycle";
         pingPong = true;
       }
+      if (this.menuLoop) {
+        const back = this.menuReturn(call, seq);
+        if (back !== null && hit === null) {
+          hit = "cycle";
+          menuLooped = back;
+        }
+      }
       this.previous = fingerprint;
       if (this.battles) {
         this.previousBattle = battle;
@@ -632,17 +678,18 @@ export class LoopDetector {
     if (this.episode === null) {
       this.episode = {
         kind: hit,
-        message: pushed !== null ? PUSHBACK_MESSAGE : revisited !== null ? REVISIT_MESSAGE : hit === "observation" && waited ? WAITING_MESSAGE : pingPong ? TRANSITION_MESSAGE : hit === "ineffective" && call.name === "navigate_to" ? "Repeated navigation attempts to the same target produced equivalent states. Inspect the destination and obstacle before trying again." : this.interactions && (hit === "ineffective" || hit === "cycle") ? `The same interaction or input pattern is repeating without new game information. Use a single input, inspect the resulting interface, and choose an evidence-supported different approach.${this.messageTruth && !reopened ? "" : " Reopening the same message is not story progress."}` : MESSAGES[hit],
+        message: menuLooped !== null ? BATTLE_MENU_LOOP_MESSAGE : pushed !== null ? PUSHBACK_MESSAGE : revisited !== null ? REVISIT_MESSAGE : hit === "observation" && waited ? WAITING_MESSAGE : pingPong ? TRANSITION_MESSAGE : hit === "ineffective" && call.name === "navigate_to" ? "Repeated navigation attempts to the same target produced equivalent states. Inspect the destination and obstacle before trying again." : this.interactions && (hit === "ineffective" || hit === "cycle") ? `The same interaction or input pattern is repeating without new game information. Use a single input, inspect the resulting interface, and choose an evidence-supported different approach.${this.messageTruth && !reopened ? "" : " Reopening the same message is not story progress."}` : MESSAGES[hit],
         exposed: false,
         recovery: 0,
         threshold: false,
         // The first push-back of the repeated input, or the first of the moves ending on the loop's tile; the notice
         // adds the call that completed the count.
-        evidence: (pushed ?? revisited)?.slice(0, 1) ?? [seq],
+        evidence: (pushed ?? revisited ?? menuLooped)?.slice(0, 1) ?? [seq],
         window: this.policy.recovery,
         briefing: null,
         pushback: pushed !== null,
         revisit: revisited !== null,
+        menu: menuLooped !== null,
       };
       this.notice("warning", seq);
       // Speedrun: the supervisor briefs as soon as a loop is found, then again every window while it lasts.
@@ -834,6 +881,71 @@ export class LoopDetector {
     }
     return moved && repeating(this.mapMoves, this.policy.cycleRepeats);
   }
+  private noticeMessage(phase: "warning" | "recovered" | "stop" | "supervisor", episode: NonNullable<LoopDetector["episode"]>): string {
+    const base = phase === "stop"
+      ? `${episode.message} Bounded recovery ended without verified recovery; unknown readouts do not prove progress.`
+      : phase === "supervisor" && episode.briefing !== null
+        ? episode.briefing
+        : episode.message;
+    return episode.menu && phase === "supervisor" && !base.includes(BATTLE_MENU_LOOP_MESSAGE)
+      ? `${base}\n${BATTLE_MENU_LOOP_MESSAGE}`
+      : base;
+  }
+
+  private resetMenu(): void {
+    this.menuAnchor = null;
+    this.menuDetour = false;
+    this.menuReturns.length = 0;
+    this.menuStamp = null;
+  }
+
+  // A state during a call can open the POKéMON or BAG screen and the call can still end on the battle menu.
+  private noteMenuScreen(state: GameStateSnapshot): void {
+    if (!state.in_battle) return;
+    if (menuDetourScreen(state)) this.menuDetour = true;
+  }
+
+  // The seqs of the returns once the same battle-menu choice has been come back to BATTLE_MENU_RETURNS times
+  // after the POKéMON or BAG screen. Null when this call is not that return. HP, the battle turn, a different
+  // cursor or leaving the battle clears the count; an open episode of this kind ends.
+  private menuReturn(call: CompletedCall, seq: number): number[] | null {
+    const state = call.state;
+    if (state === undefined || !state.in_battle) {
+      this.resetMenu();
+      if (this.episode?.menu === true) this.recover(seq, false);
+      return null;
+    }
+    const stamp = battleStamp(state);
+    if (stamp !== null && this.menuStamp !== null && stamp !== this.menuStamp) {
+      this.resetMenu();
+      this.menuStamp = stamp;
+      if (this.episode?.menu === true) this.recover(seq, false);
+      return null;
+    }
+    if (stamp !== null) this.menuStamp = stamp;
+    if (menuDetourScreen(state)) {
+      this.menuDetour = true;
+      return null;
+    }
+    const key = actionMenuKey(state);
+    if (key === null) return null;
+    if (this.menuAnchor !== null && this.menuAnchor !== key) {
+      const stuck = this.episode?.menu === true;
+      this.menuAnchor = key;
+      this.menuDetour = false;
+      this.menuReturns.length = 0;
+      if (stuck) this.recover(seq, false);
+      return null;
+    }
+    this.menuAnchor = key;
+    if (!this.menuDetour) return null;
+    this.menuDetour = false;
+    this.menuReturns.push({ key, seq });
+    if (this.menuReturns.length > 12) this.menuReturns.shift();
+    const same = this.menuReturns.filter((row) => row.key === key);
+    return same.length >= BATTLE_MENU_RETURNS ? same.map((row) => row.seq) : null;
+  }
+
   private recover(seq: number, novel: boolean): void {
     if (this.episode !== null) this.notice("recovered", seq);
     this.episode = null;
@@ -847,12 +959,7 @@ export class LoopDetector {
     if (episode === null) return;
     const fields = {
       kind: episode.kind,
-      message:
-        phase === "stop"
-          ? `${episode.message} Bounded recovery ended without verified recovery; unknown readouts do not prove progress.`
-          : phase === "supervisor" && episode.briefing !== null
-            ? episode.briefing
-            : episode.message,
+      message: this.noticeMessage(phase, episode),
       calls: this.completed,
       evidence: [...episode.evidence, seq].filter(
         (value, index, all) => all.indexOf(value) === index,

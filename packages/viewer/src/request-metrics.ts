@@ -1,4 +1,4 @@
-import type {RunEvent} from "@pokebench/agent/events";
+import type {RunEvent,RunEndReason} from "@pokebench/agent/events";
 
 export interface RequestMetric {
  readonly run:string;readonly turn:number;readonly seq:number;readonly at:string;
@@ -9,11 +9,13 @@ export interface RequestMetric {
  readonly toolCalls:number;failedToolResults:number;
  readonly reasoningTokens:null;readonly prefillTokens:null;readonly correctAction:null;readonly usefulDecisionsPerSecond:null;readonly invalidToolCalls:null;
 }
-export interface RequestMetricSeries {readonly run:string|null;readonly requests:RequestMetric[];readonly pendingTurn:number|null;readonly lastEventAt:string|null}
+export interface IncompleteRequest {readonly turn:number;readonly reason:RunEndReason;readonly at:string;readonly seq:number}
+export interface RequestMetricSeries {readonly run:string|null;readonly requests:RequestMetric[];readonly pendingTurn:number|null;readonly incompleteRequest:IncompleteRequest|null;readonly lastEventAt:string|null}
 // Read-only projection of one recording. Rebuilding after a poll is idempotent;
 // pending calls never become zero-valued completed samples. No gameplay or scheduling imports.
 export function requestMetrics(events:readonly RunEvent[]):RequestMetricSeries {
  let run:string|null=null,pendingTurn:number|null=null,lastEventAt:string|null=null,screen="unknown",stateSeq:number|null=null;
+ let incompleteRequest:IncompleteRequest|null=null;
  const requests:RequestMetric[]=[],byTurn=new Map<number,RequestMetric>(),turnScreens=new Map<number,{screen:string;seq:number|null}>();
  let lastSeq=-1;
  for(const event of events){
@@ -31,6 +33,10 @@ export function requestMetrics(events:readonly RunEvent[]):RequestMetricSeries {
    if(pendingTurn===event.turn)pendingTurn=null;
   }
   if(event.type==="tool_result"&&event.is_error){const request=byTurn.get(event.turn);if(request!==undefined)request.failedToolResults++;}
+  if(event.type==="run_end"&&pendingTurn!==null){
+   incompleteRequest={turn:pendingTurn,reason:event.reason,at:event.t,seq:event.seq};
+   pendingTurn=null;
+  }
  }
- return {run,requests,pendingTurn,lastEventAt};
+ return {run,requests,pendingTurn,incompleteRequest,lastEventAt};
 }

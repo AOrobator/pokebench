@@ -61,10 +61,11 @@ export function promptScene(state: { screen: string; in_battle: boolean; active_
   const screen = state.screen.toLowerCase();
   if (screen.startsWith("naming") || phase.includes("naming") || phase.includes("nickname")) return "naming";
   if (screen.startsWith("clock") || phase.startsWith("clock")) return "clock";
+  // Bag and Party keep the battle flag set while their own menu owns input.
+  if (["menu", "start_menu", "bag", "bag_menu", "party", "party_menu", "summary", "yes_no", "choice"].includes(screen) || /^(bag|party|start_menu|yes_no|choice)/.test(phase)) return "menu";
   if (state.in_battle) return "battle";
   if (phase === "unknown" || phase === "transition" || phase === "unsupported") return "unknown";
   if (screen === "overworld" && state.active_ui == null) return "overworld";
-  if (["menu", "start_menu", "bag", "party", "summary", "yes_no", "choice"].includes(screen) || /^(bag|party|start_menu|yes_no|choice)/.test(phase)) return "menu";
   return "unknown";
 }
 

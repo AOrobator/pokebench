@@ -277,13 +277,20 @@ function checklistLabels(story:StoryFacts):string[] {
 function distinctive(place:Place):string[] {
  return [...new Set([...nameWords(place.name),...nameWords(place.display)])].filter(w=>!GENERIC.has(w)&&!FLOOR.test(w));
 }
-// A checklist label covers a place when it names that place. "Pokédex received" is the checklist's
-// own words for Birch's lab (the label does not say LAB).
+// A checklist label covers a place when that place's words are exactly the place the label names.
+// "Pokédex received" is the checklist's own words for Birch's lab (the label does not say LAB).
+// Sharing one word is not enough: PETALBURG CITY is not Petalburg Woods, and RUSTBORO CITY is not the gym.
+const LABEL_PLACE:Readonly<Record<string,readonly string[]>>={
+ "Route 103 rival battle won":words(["ROUTE","103"]),
+ "Petalburg Woods Aqua event complete":words(["PETALBURG","WOODS"]),
+ "Rustboro Gym complete":words(["RUSTBORO","GYM"]),
+};
 function covers(label:string,place:Place):boolean {
  if(label==="Pokédex received")return isBirchLab(place);
- const lw=new Set(words(label.split(" ")));
+ const named=LABEL_PLACE[label];
+ if(named===undefined)return false;
  const dw=distinctive(place);
- return dw.length>0&&dw.every(w=>lw.has(w));
+ return dw.length===named.length&&named.every(w=>dw.includes(w));
 }
 function retirement(targets:readonly Place[],story:GameStateSnapshot["story"],newer:LedgerLine|null):string|null {
  const labels=story===null||story===undefined?[]:checklistLabels(story);

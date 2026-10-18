@@ -113,7 +113,7 @@ Done: Pokédex received. This is not where to go.</pre></td>
 </svg></div>
 <figcaption>playGameTools passes the switch into both wrappers. With story destinations and harness trust both off, the switch changes nothing.</figcaption>
 </figure>
-<p>The lab case is the checklist label "Pokédex received", save flag 0x8E4 (<code>FLAG_RECEIVED_POKEDEX_FROM_BIRCH</code>). The same rule uses the checklist's own words when they name the map: "Route 103 rival battle won", "Petalburg Woods Aqua event complete", "Rustboro Gym complete". A trainer's "defeated" line does not retire the route. Between Birch's handoff and the Pokédex, with no later line, "come by my LAB later" stays the goal. <code>story-destinations-v1</code> is off in both arms of <code>bundle-v-control</code>. This switch is the harness-trust change, on for the bundle only.</p>
+<p>The lab case is the checklist label "Pokédex received", save flag 0x8E4 (<code>FLAG_RECEIVED_POKEDEX_FROM_BIRCH</code>). The same rule uses the checklist's own words when they name the map: "Route 103 rival battle won", "Petalburg Woods Aqua event complete", "Rustboro Gym complete". Those labels name the woods and the gym, not PETALBURG CITY or RUSTBORO CITY. A trainer's "defeated" line does not retire the route. Between Birch's handoff and the Pokédex, with no later line, "come by my LAB later" stays the goal. <code>story-destinations-v1</code> is off in both arms of <code>bundle-v-control</code>. This switch is the harness-trust change, on for the bundle only.</p>
 </section>
 
 <section>

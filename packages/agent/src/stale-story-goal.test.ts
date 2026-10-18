@@ -134,6 +134,14 @@ describe("stale-story-goal-v1",()=>{
   expect(gym).toContain("Done: Rustboro Gym complete. This is not where to go.");
   expect(gym).not.toContain("Way in");
  });
+ it("does not retire the city when the checklist names the woods or the gym",()=>{
+  const petalburg=run([{turn:5,pages:[page("Your DAD is waiting in PETALBURG CITY.","MOM")]}],withStory(oldale,{woods_stage:1,pokedex_received:false,rival_battle_won:false}),true) ?? "";
+  expect(petalburg).toContain("Way in");
+  expect(petalburg).not.toContain("Petalburg Woods Aqua event complete");
+  const rustboro=run([{turn:5,pages:[page("Go back to RUSTBORO CITY.","MAY")]}],withStory(oldale,{rustboro_gym_complete:true,pokedex_received:false,rival_battle_won:false}),true) ?? "";
+  expect(rustboro).toContain("Way in");
+  expect(rustboro).not.toContain("Rustboro Gym complete");
+ });
  it("a trainer defeat does not retire the route that trainer stands on",()=>{
   const text=run([{turn:5,pages:[page("The POKéMON on ROUTE 102 are tough.","MAY")]}],withStory(oldale,{route102_calvin_defeated:true,pokedex_received:false}),true) ?? "";
   expect(text).toContain("ROUTE 102");

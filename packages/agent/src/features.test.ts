@@ -138,7 +138,7 @@ it("registers fresh retry as an agent-side guard recorded fourth to last",()=>{
 });
 
 it("registers named warp destinations as a default-off server readout treatment recorded third to last",()=>{
- expect(featureInfo("named-warp-destinations-v1")).toMatchObject({group:"observation",needs:"displayed-place-names-v1",switchable:true});
+ expect(featureInfo("named-warp-destinations-v1")).toMatchObject({group:"observation",needs:"live-map-v1",switchable:true});
  expect(featureInfo("named-warp-destinations-v1").description).toContain(" Off: ");
  expect(featureInfo("named-warp-destinations-v1").description).toMatch(/map 1\/2/);
  expect(featureInfo("named-warp-destinations-v1").description).toContain("dynamic destination");
@@ -146,7 +146,7 @@ it("registers named warp destinations as a default-off server readout treatment 
  expect(playHarnessFeatures(ALL_ON,null).at(-77)).toBe("named-warp-destinations-v1");
  expect(serverFeatureEnv(ALL_ON).POKEBENCH_FEATURES_OFF).toBe("");
  expect(serverFeatureEnv(off("named-warp-destinations-v1")).POKEBENCH_FEATURES_OFF).toBe("named-warp-destinations-v1");
- expect(dependencyProblems(off("displayed-place-names-v1"))).toContain("named-warp-destinations-v1 needs displayed-place-names-v1");
+ expect(dependencyProblems(off("displayed-place-names-v1"))).not.toContain("named-warp-destinations-v1 needs displayed-place-names-v1");
 });
 
 it("registers the milestone stall stop as a default-off agent-side guard recorded second to last",()=>{

@@ -94,8 +94,8 @@ def legend(
 def warp_note(*, named: bool) -> str:
     return (
         (
-            "Warp destinations are the map you arrive on: its name when the game's map"
-            " table has one, then its group/number ID in parentheses; not warp indexes."
+            "Warp destinations are the map you arrive on: a name the game displays when one"
+            " is available, then its group/number ID in parentheses; not warp indexes."
             if named
             else "Warp destinations are map group/number IDs, not warp indexes."
         )

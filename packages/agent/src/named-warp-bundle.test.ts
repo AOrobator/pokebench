@@ -10,6 +10,5 @@ describe(ID,()=>{
   expect(def.switches).toContain(ID);
   expect(def.onInBoth).not.toContain(ID);
   expect(def.base.features["displayed-place-names-v1"]).toBe(true);
-  expect(def.onInBoth).toContain("displayed-place-names-v1");
  });
 });

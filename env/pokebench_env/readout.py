@@ -171,21 +171,19 @@ def format_readout(
         if "displayed-place-names-v1" not in off
         else {}
     )
-    # Only names the game's map table resolved; the "unknown map" fallback keeps the bare ID.
+    # named-warp-destinations-v1 exposes only names the game itself displays. Internal map-table
+    # names remain in GameState for identity/navigation, but are not player-facing provenance.
     destinations = (
-        {
-            (g, n): places.get((g, n), name)
-            for g, n, name in state.destination_names
-            if name != f"unknown map {g}/{n}"
-        }
+        {(g, n): places[(g, n)] for g, n, _name in state.destination_names if (g, n) in places}
         if named_warps and "named-warp-destinations-v1" not in off
         else None
     )
     # The game's own dynamic warp (SaveBlock1.dynamicWarp) for MAP_DYNAMIC warps; ON side only.
     dynamic = None
     if destinations is not None and state.dynamic_warp is not None:
-        group, number, place = state.dynamic_warp
-        dynamic = f"{place} (dynamic warp; map {group}/{number})"
+        group, number, _internal_name = state.dynamic_warp
+        if (place := places.get((group, number))) is not None:
+            dynamic = f"{place} (dynamic warp; map {group}/{number})"
     expanded = "expanded-menu-battle-information-v1" not in off
     # battle-details-v2 replaces the raw battler/input lines; OFF keeps them byte for byte.
     details = state.battle_details if expanded and "battle-details-v2" not in off else None

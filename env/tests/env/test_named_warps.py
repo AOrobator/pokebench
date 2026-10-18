@@ -187,7 +187,7 @@ def test_the_truck_exit_does_not_reveal_the_internal_dynamic_warp_name() -> None
     )
     assert "Warp destination at (0,1): dynamic destination" in lines(text)
     named = format_readout(state, named_warps=True, named_interactions=True)
-    assert any(line.startswith("Warp to dynamic destination at (0,1)") for line in lines(named)), named
+    assert any(line.startswith("Dynamic warp at (0,1)") for line in lines(named)), named
     full = read_game_state(truck().read, maps, full_map_enabled=True)
     assert f"Warps: (0,1) -> dynamic destination {EXIT}" in lines(
         format_readout(full, named_warps=True)

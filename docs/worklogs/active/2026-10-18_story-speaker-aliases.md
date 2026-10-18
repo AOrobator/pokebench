@@ -34,7 +34,8 @@ The correction remains inside the existing default-off `story-destinations-v1` s
 - [x] RED: Norman's exact `DAD:` Rustboro instruction is rejected by the current destination selector.
 - [x] GREEN: canonicalize only source-proven speaker aliases for eligibility while preserving printed output.
 - [x] Update the existing feature explainer and pending experiment notes.
-- [ ] Run focused tests, full gates, and multi-model review.
+- [x] Run focused tests and full gates.
+- [ ] Complete multi-model review.
 
 ## Session Log
 
@@ -46,6 +47,7 @@ The correction remains inside the existing default-off `story-destinations-v1` s
 - 2026-10-18: Gates on GREEN `2da53ea7` before the evidence-only test refinement: `just test` agent 2426, viewer 1152, Python 2478 (229 ROM-dependent skips); `just lint` clean after copying the existing local mGBA binding into the isolated environment; `just build` clean; `just coverage` agent 97.99/94.23/98.31/99.22, viewer 95.40/91.43/93.84/97.64, Python 97.48/93.42/99.43, floor 90; `just verify-vendor` clean; explainer and experiment checks clean.
 - 2026-10-18: Final-tip gates on `f1e29445`: `just test` agent 2427, viewer 1152, Python 2478 (229 pre-existing ROM-dependent skips); `just lint`, `just build`, and `just verify-vendor` clean. `just coverage`: agent statements/branches/functions/lines 98.00/94.24/98.31/99.22; viewer 95.40/91.43/93.84/97.64; Python lines/branches/functions 97.48/93.42/99.43; all above the independent 90% floors. Focused alias suites 45/45; explainer check and 110 experiment definitions clean.
 - 2026-10-18: Review caught a caller-seam gap: helper coverage rejected lowercase `dad`, but the destination selector test did not. Added the caller-level negative case so normalization inside `StoryDestinations.speaker()` is also guarded.
+- 2026-10-18: The caller-side uppercase mutation made the new selector assertion fail with an active `(turn 5, dad)` Rustboro block; restoration returned the focused suites to 45/45. Final gates: agent 2427/2427, viewer 1152/1152, Python 2478 passed with 229 ROM-dependent skips; lint, build, vendor, explainer, and 111 experiment checks clean. Coverage: agent 98.00/94.24/98.31/99.22, viewer 95.40/91.43/93.84/97.64, Python 97.48/93.42/99.43. The first concurrent coverage attempt timed out an unrelated long-path test under contention; the immediate isolated rerun passed.
 
 ## Multi-Model Review Log
 

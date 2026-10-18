@@ -198,12 +198,12 @@ export class HarnessTrust {
  private readonly walk=new WalkAway();
  constructor(private readonly options:TrustOptions) {}
  observe(event:RunEvent):void {this.story.observe(event);}
- lines(text:string,state:GameStateSnapshot,callId:string,places:readonly Place[]|Error,own=false):{readonly header:string;readonly away:StoryGoalAwayFacts|null} {
+ lines(text:string,state:GameStateSnapshot,callId:string,places:readonly Place[]|Error,own=false,seen=text):{readonly header:string;readonly away:StoryGoalAwayFacts|null} {
   const anyLine=this.story.latest(callId,null,state.name)!==null;
   const goal=places instanceof Error||state.map_id===null?null:this.story.goal(state.map_id,state.name,callId,places);
   const characters=charactersLine(text);
   const exits=places instanceof Error?null:exitsLine(state,places);
-  const repeated=this.options.goalOnce===true&&goal!==null&&text.includes(STORY_HEADER)&&text.includes(`"${goal.line.text}"`);
+  const repeated=this.options.goalOnce===true&&goal!==null&&seen.includes(STORY_HEADER)&&seen.includes(`"${goal.line.text}"`);
   const header=[TRUST_HEADER,...(repeated?[]:[goalLine(goal,places,anyLine)]),...(characters===null?[]:[characters]),...(exits===null?[]:[exits])].join("\n");
   const away=this.options.supervisor&&!(places instanceof Error)?this.walk.observe(state,goal,places,own):null;
   return {header,away};
@@ -236,8 +236,11 @@ export function withHarnessTrust(tools:readonly AgentTool[],on:boolean,recorder:
   if(part?.type!=="text")return result;
   // battle_action (harness-trust-v2) puts its status first and the readout after the screenshot, so its readout lines are
   // read from every text part; the other tools keep harness-trust-v1's first-part read.
+  // navigate_to puts "Navigation:" first and the story-destinations block in a later part. input-cuts-v1's goal
+  // check has to see that later part. Characters still come from the first part.
   const readout=tool==="battle_action"?result.content.flatMap(c=>c.type==="text"?[c.text]:[]).join("\n"):part.text;
-  const {header,away}=trust.lines(readout,state,id,await places(state.name ?? ""),tool==="press"||tool==="navigate_to");
+  const seen=tool==="navigate_to"&&options.goalOnce===true?result.content.flatMap(c=>c.type==="text"?[c.text]:[]).join("\n"):readout;
+  const {header,away}=trust.lines(readout,state,id,await places(state.name ?? ""),tool==="press"||tool==="navigate_to",seen);
   const note=away===null?null:awayText(away);
   if(away!==null&&note!==null)record?.(tool,away,note);
   const content=[...result.content];content[index]={...part,text:`${header}\n${note===null?"":`${note}\n`}\n${part.text}`};

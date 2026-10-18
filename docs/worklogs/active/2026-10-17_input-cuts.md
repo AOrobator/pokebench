@@ -29,6 +29,10 @@ After merging main `a0f669d4`: agent tests 2375 passed, viewer tests 1138 passed
 
 PB1 N/A, no run result. PB2 N/A, nothing launched. PB3 N/A, no improvement claimed. PB4 PASS, one named switch, default off. PB5 PASS, one variable, hypothesis in the pending experiment, not queued. PB6 PASS, the cuts remove repeated result text; the effect is not measured. PB7 N/A, no new event. PB8 N/A, no new model-output path. PB9 PASS, the four cuts were the operator's request. PB10 PASS, gates unchanged. PB11 N/A, no new dependency. PB12 N/A, the ROM was not read. PB13 in progress until the three review lanes return LGTM. Zero FAIL.
 
+## navigate_to Story goal
+
+Round 2 found that `goalOnce` read only the first text part. A `navigate_to` result puts `Navigation:` there and the story-destinations block in a later part, so the Story goal line was still added. The check now reads every text part of a `navigate_to` result. Characters still come from the first part. Observe and press are unchanged. The production test asserts the ON `navigate_to` result contains the destinations header and not `Story goal:`.
+
 ## Not in this branch
 
 `stale-story-goal-v1` stays on its own branch. It is not merged here. The soft input band is not implemented.

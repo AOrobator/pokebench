@@ -141,6 +141,8 @@ describe("input-cuts-v1 through playGameTools",()=>{
   expect(offObserve).toContain("Story goal:");
   const offNav=await textOf(off.find(t=>t.name==="navigate_to")?.execute("n",{x:9,y:3,map_id:[0,18],because:"the LAB is in RUSTBORO CITY"})??Promise.reject(Error("no nav")));
   expect(offNav).toContain("Because:");
+  expect(offNav).toContain(STORY_HEADER);
+  expect(offNav).toContain("Story goal:");
   const onCites:{facts:DestinationCitationFacts;text:string|null}[]=[];
   const on=tools({...base,[ID]:true},onCites);
   const onObserve=await textOf(on.find(t=>t.name==="observe")?.execute("o",{})??Promise.reject(Error("no observe")));
@@ -148,6 +150,8 @@ describe("input-cuts-v1 through playGameTools",()=>{
   expect(onObserve).not.toContain("Story goal:");
   const onNav=await textOf(on.find(t=>t.name==="navigate_to")?.execute("n",{x:9,y:3,map_id:[0,18],because:"the LAB is in RUSTBORO CITY"})??Promise.reject(Error("no nav")));
   expect(onNav).not.toContain("Because:");
+  expect(onNav).toContain(STORY_HEADER);
+  expect(onNav).not.toContain("Story goal:");
   expect(onCites[0]?.facts.verdict).toBe("not_found");
   expect(onCites[0]?.text).toBeNull();
  });

@@ -10,7 +10,7 @@ import {NAME_CONFIRMED} from "../test-support/events.js";
 import {assistant} from "../test-support/pi.js";
 import { OBJECTIVE_PROMPT } from "./objective-tools.js";
 
-const owner = vi.hoisted(() => ({ files: new Map<string, string[]>(), loop: null as PiLoopOptions | null, start: null as Extract<RunEvent, { type: "run_start" }> | null, context: "", clock:null as (()=>number)|null, resolve: undefined as ((plan: RunPlan) => void) | undefined, reject: undefined as ((error: unknown) => void) | undefined }));
+const owner = vi.hoisted(() => ({ files: new Map<string, string[]>(), loop: null as PiLoopOptions | null, start: null as Extract<RunEvent, { type: "run_start" }> | null, context: "", screen:"title", seedInitial:false,stateReads:0, duringPlay: null as ((loop:PiLoopOptions)=>Promise<void>)|null, clock:null as (()=>number)|null, resolve: undefined as ((plan: RunPlan) => void) | undefined, reject: undefined as ((error: unknown) => void) | undefined }));
 vi.mock("node:fs", async (load) => {
   const actual = await load<typeof import("node:fs")>();
   return { ...actual, mkdirSync: () => undefined, readdirSync: () => [],
@@ -29,7 +29,7 @@ vi.mock("./config.js", () => ({ loadConfig: () => ({ model: "fixture-vlm", gameS
 vi.mock("./gateway.js", () => ({ discoverModels: () => Promise.resolve([]), selectModel: () => ({ id: "fixture-vlm", input: ["text", "image"], contextWindow: 1000, maxTokens: 100 }) }));
 vi.mock("./harness.js", async (load) => {
   const actual = await load<typeof import("./harness.js")>();
-  return { ...actual, piLoop: (options: PiLoopOptions) => { owner.loop = options;return { start: () => Promise.resolve(), resume: () => Promise.resolve() }; }, play: async () => { owner.context = JSON.stringify(await owner.loop?.transformContext([] as AgentMessage[]));return "completed"; } };
+  return { ...actual, piLoop: (options: PiLoopOptions) => { owner.loop = options;return { start: () => Promise.resolve(), resume: () => Promise.resolve() }; }, play: async () => { owner.context = JSON.stringify(await owner.loop?.transformContext([] as AgentMessage[]));if(owner.loop!==null)await owner.duringPlay?.(owner.loop);return "completed"; } };
 });
 vi.mock("./run.js", async (load) => {
   const actual = await load<typeof import("./run.js")>();const { FrameStore } = await import("./frames.js");
@@ -37,8 +37,8 @@ vi.mock("./run.js", async (load) => {
     const host: RunHost = {
       serverHealthy: () => Promise.resolve(false), launchServer: (dir) => Promise.resolve({ serverDir: `${dir}/server`, stop: () => Promise.resolve() }),
       harness: () => ({ commit: "1".repeat(40), dirty: false }), vendorPin: () => "bbab97ad73e460b7cd7c08527d10ced30cc03fbe",
-      milestones: { poll: () => Promise.resolve([]) },
-      gameState: { nativeActions:()=>Promise.resolve({frame:0,last_id:0,entries:[]}), battleChoices:()=>Promise.resolve({frame:0,last_id:0,entries:[]}), read: () => Promise.resolve({ screen: "title", started: false, name: null, location: null, map_id: null, position: null, facing: null, in_battle: false, party: [], money: null, badges: [], play_time_s: null,story:{...NAME_CONFIRMED.story,name_confirmed:false} }) },
+      milestones: { poll: () => Promise.resolve([]),...(owner.seedInitial?{observe:()=>[]}: {}) },
+      gameState: { nativeActions:()=>Promise.resolve({frame:0,last_id:0,entries:[]}), battleChoices:()=>Promise.resolve({frame:0,last_id:0,entries:[]}), read: () => (owner.stateReads++,Promise.resolve({ raw_ram:{v:1 as const,sequence:1,frame:1,path:"raw-ram/00000001.json.gz",sha256:"a".repeat(64)},game_stats:null,blackout_active:null,route103_rival:null,screen: owner.screen, started: false, name: null, location: null, map_id: null, position: null, facing: null, in_battle: false, party: [], money: null, badges: [], play_time_s: null,story:{...NAME_CONFIRMED.story,name_confirmed:false} })) },
     };
     try {
       const root = "/test-owned/objective-entrypoint";
@@ -57,7 +57,7 @@ vi.mock("./run.js", async (load) => {
   } };
 });
 function currentLoop(): PiLoopOptions | null { return owner.loop; }
-afterEach(() => { vi.unstubAllGlobals();vi.unstubAllEnvs();vi.restoreAllMocks();owner.files.clear();owner.loop = null;owner.start = null;owner.clock=null; });
+afterEach(() => { vi.unstubAllGlobals();vi.unstubAllEnvs();vi.restoreAllMocks();owner.files.clear();owner.loop = null;owner.start = null;owner.clock=null;owner.duringPlay=null;owner.screen="title";owner.seedInitial=false;owner.stateReads=0; });
 it.each([[undefined, undefined, undefined], [undefined, "0", "0"], ["0", undefined, "1"], ["0", "0", "0"]])("actual play entrypoint agrees on tools, context, prompt and metadata (objectives=%s, interface=%s)", async (flag, interfaceFlag, activeUiFlag) => {
   vi.resetModules();owner.files.clear();owner.loop = null;
   const done = new Promise<RunPlan>((resolve, reject) => { owner.resolve = resolve;owner.reject = reject; });
@@ -146,4 +146,75 @@ it("records a preset's replyFailuresEndRun in run_start", async () => {
   const recorded=(owner.start as {evaluation?:{features?:Record<string,boolean>}}).evaluation?.features;
   expect(recorded).toMatchObject({"deterministic-loop-guard-v1":false,"milestone-stall-stop-v1":false,"stall-briefing-v1":false});
   expect(Object.values(recorded??{}).every(v=>typeof v==="boolean")).toBe(true);
+});
+
+it.each([[false,"clock"],[true,"clock"],[true,"bag_menu"],[true,"party_menu"]] as const)("actual play wires JIT request transformation and execution guard (enabled=%s, screen=%s)",async (enabled,screen)=>{
+ vi.resetModules();owner.files.clear();owner.loop=null;
+ const {flagFeatures}=await import("./play-preset.js");
+ const preset={version:2,id:"jit-factory",target:null,limits:{maxTurns:20000,maxWallMs:600000,failureLimit:3,replyFailuresEndRun:false},sampling:{thinkingLevel:"medium",maxTokens:100},features:{...flagFeatures({loopGuard:false,activeUi:true,interfaceDocs:true,objectives:false}),"just-in-time-prompt-v1":enabled,"battle-move-tool-v1":true}};
+ owner.files.set("/test-owned/preset.json",[JSON.stringify(preset)]);
+ vi.stubEnv("POKEBENCH_PLAY_PRESET","/test-owned/preset.json");vi.stubEnv("POKEBENCH_RUN_ID","assigned-jit-factory");
+ vi.spyOn(console,"log").mockImplementation(()=>undefined);
+ let blocked:unknown=null;
+ owner.screen=screen;
+ const scene=screen==="clock"?"clock":"menu";
+ owner.duringPlay=async loop=>{
+  await loop.emit({type:"tool_execution_start",toolCallId:"observe-jit",toolName:"observe",args:{}});
+  await loop.emit({type:"tool_execution_end",toolCallId:"observe-jit",toolName:"observe",isError:false,result:{content:[{type:"text",text:screen}],details:{state:{raw_ram:{v:1,sequence:1,frame:1,path:"raw-ram/00000001.json.gz",sha256:"a".repeat(64)},story:{...NAME_CONFIRMED.story,name_confirmed:false},game_stats:null,blackout_active:null,route103_rival:null,screen,active_ui:{phase:screen,selected:null,ready:true,controls:"",diagnostic:null},started:false,name:null,location:null,map_id:null,position:null,facing:null,in_battle:scene==="menu",party:[],money:null,badges:[],play_time_s:null}}}});
+  const request={systemPrompt:"standing",messages:[],tools:[{name:"observe",description:"observe",parameters:{type:"object",properties:{}}},{name:"battle_action",description:"fight",parameters:{type:"object",properties:{}}}]};
+  const next=loop.requestContext?.(request);
+  expect(next?.tools?.map(t=>t.name)).toEqual(enabled?["observe"]:["observe","battle_action"]);
+  const call={type:"toolCall" as const,id:"bad-jit",name:"battle_action",arguments:{}};
+  blocked=await loop.base.beforeToolCall?.({assistantMessage:assistant({toolCalls:[call]}),toolCall:call,args:{},context:{systemPrompt:"standing",messages:[],tools:loop.tools}});
+  await loop.emit({type:"message_end",message:assistant({text:"sample"})});
+ };
+ const done=new Promise<RunPlan>((resolve,reject)=>{owner.resolve=resolve;owner.reject=reject;});
+ vi.stubGlobal("process",Object.assign(Object.create(process) as NodeJS.Process,{argv:[...process.argv.slice(0,2),"play"]}));
+ await import("./live.js");await done;
+ const loop=currentLoop();if(loop===null)throw new Error("missing JIT factory");
+ const request={systemPrompt:"standing",messages:[],tools:[{name:"observe",description:"observe",parameters:{type:"object",properties:{}}},{name:"battle_action",description:"fight",parameters:{type:"object",properties:{}}}]};
+ const next=loop.requestContext?.(request);
+ expect(next===request).toBe(!enabled);
+ expect(owner.start?.harness_features.includes("just-in-time-prompt-v1")).toBe(enabled);
+ expect(next?.tools?.map(t=>t.name)).toEqual(enabled?["observe"]:["observe","battle_action"]);
+ if(enabled)expect(blocked).toMatchObject({block:true});else expect(blocked).toBeUndefined();
+ const recorded=[...owner.files.entries()].filter(([path])=>path.endsWith("/events.jsonl")).flatMap(([,chunks])=>chunks.join("").trim().split("\n").map(parseEvent));
+ const response=recorded.find(e=>e.type==="assistant");
+ if(enabled){
+  expect(response).toMatchObject({request_context:{scene,tools:["observe"]}});
+  if(response?.type!=="assistant"||response.request_context===undefined)throw new Error("missing JIT receipt");
+  expect(response.request_context.prompt_sha256).toBe(createHash("sha256").update(response.request_context.system_prompt).digest("hex"));
+  expect(recorded.find(e=>e.seq===response.request_context?.state_seq)).toMatchObject({type:"state",screen});
+ }else expect(response).toMatchObject({request_context:{mode:"full",system_prompt:"standing"}});
+});
+
+it.each([[true,"clock",true],[false,"clock",true],[true,"title",true],[true,"clock",false]] as const)("first dispatch uses recorded startup state without another read (JIT=%s, screen=%s, initial=%s)",async(enabled,screen,initial)=>{
+ vi.resetModules();owner.files.clear();owner.loop=null;owner.screen=screen;owner.seedInitial=initial;owner.stateReads=0;
+ const {flagFeatures}=await import("./play-preset.js");
+ const preset={version:2,id:"jit-startup",target:null,limits:{maxTurns:20000,maxWallMs:600000,failureLimit:3,replyFailuresEndRun:false},sampling:{thinkingLevel:"medium",maxTokens:100},features:{...flagFeatures({loopGuard:false,activeUi:true,interfaceDocs:true,objectives:false}),"just-in-time-prompt-v1":enabled,"battle-move-tool-v1":true}};
+ owner.files.set("/test-owned/startup-preset.json",[JSON.stringify(preset)]);
+ vi.stubEnv("POKEBENCH_PLAY_PRESET","/test-owned/startup-preset.json");vi.stubEnv("POKEBENCH_RUN_ID","assigned-jit-startup");vi.spyOn(console,"log").mockImplementation(()=>undefined);
+ const narrow=enabled&&initial&&screen==="clock";
+ owner.duringPlay=async loop=>{
+  expect(owner.stateReads).toBe(initial?1:0);
+  const request={systemPrompt:"standing",messages:[],tools:[{name:"observe",description:"observe",parameters:{type:"object",properties:{}}},{name:"battle_action",description:"fight",parameters:{type:"object",properties:{}}}]};
+  const next=loop.requestContext?.(request);
+  expect(next===request).toBe(!enabled);
+  expect(next?.tools?.map(t=>t.name)).toEqual(narrow?["observe"]:["observe","battle_action"]);
+  if(narrow)expect(next?.systemPrompt).toContain("Clock interface:");
+  expect(owner.stateReads).toBe(initial?1:0);
+  await loop.emit({type:"message_end",message:assistant({text:"first response before any tool observation"})});
+ };
+ const done=new Promise<RunPlan>((resolve,reject)=>{owner.resolve=resolve;owner.reject=reject;});
+ vi.stubGlobal("process",Object.assign(Object.create(process) as NodeJS.Process,{argv:[...process.argv.slice(0,2),"play"]}));
+ await import("./live.js");await done;
+ const recorded=[...owner.files.entries()].filter(([path])=>path.endsWith("/events.jsonl")).flatMap(([,chunks])=>chunks.join("").trim().split("\n").map(parseEvent));
+ const response=recorded.find(e=>e.type==="assistant");
+ if(response?.type!=="assistant"||response.request_context===undefined)throw Error("missing initial request receipt");
+ expect(response.request_context).toMatchObject({mode:enabled?"jit":"full",scene:initial&&screen==="clock"?"clock":"unknown"});
+ if(initial){
+  const state=recorded.find(e=>e.type==="state");expect(state).toMatchObject({screen});
+  expect(response.request_context.state_seq).toBe(state?.seq);expect(state?.seq).toBeLessThan(response.seq);
+ }else expect(response.request_context.state_seq).toBeNull();
+ expect(recorded.filter(e=>e.type==="tool_call")).toHaveLength(0);
 });

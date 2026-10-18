@@ -31,6 +31,7 @@ const draftShape = {
   title: Type.String({ minLength: 1, maxLength: 120 }),
   worklog: Type.String({ minLength: 1 }),
   primaryMilestone: Type.String({ minLength: 1 }),
+  primaryOutcome: Type.Optional(Type.Union([Type.Literal("milestone"),Type.Literal("frontier")])),
   // Every trial, save or New Game, must record this ROM.
   romSha1: Type.String({ pattern: "^[0-9a-f]{40}$" }),
   // The preset the control arm reproduces outside the switches and off-in-both flags, pinned by bytes.
@@ -50,6 +51,8 @@ const draftShape = {
   lanes: Type.Array(LaneSchema, { minItems: 1 }),
   serving: Type.Object({ model: Type.String({ minLength: 1 }), build: Type.String({ minLength: 1 }), contextTokens: positive, slots: positive }, closed),
   replacementReserveMs: Type.Integer({ minimum: 0 }),
+  terminalErrorsAsOutcomes: Type.Optional(Type.Boolean()),
+  progressOrder: Type.Optional(Type.Array(Type.String({minLength:1}),{minItems:1,uniqueItems:true})),
 };
 export const FixedDraftSchema = Type.Object({ ...draftShape, seed: Type.Optional(Type.String({ pattern: "^[0-9a-f]{16}$" })) }, closed);
 export const FixedDefinitionSchema = Type.Object({ ...draftShape, seed: Type.String({ pattern: "^[0-9a-f]{16}$" }), plan: Type.Array(SlotSchema) }, closed);
@@ -194,6 +197,7 @@ export function controlBaseProblems(def: FixedDefinition, presetText: string): s
 
 export function definitionProblems(def: FixedDefinition): string[] {
   const problems = [...laneProblems(def), ...phaseProblems(def), ...featureProblems(def)];
+  for(const name of def.progressOrder??[])if(!MILESTONE_ORDER.includes(name))problems.push(`unknown progress milestone ${name}`);
   if (!MILESTONE_ORDER.includes(def.primaryMilestone)) problems.push(`unknown primary milestone ${def.primaryMilestone}`);
   if (JSON.stringify(def.plan) !== JSON.stringify(generatePlan(def))) problems.push(`plan does not match seed ${def.seed}: regenerate it with \`just fixed-run plan\``);
   return [...new Set(problems)];

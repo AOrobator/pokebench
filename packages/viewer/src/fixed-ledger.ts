@@ -4,7 +4,7 @@ import { appendFileSync, existsSync, mkdirSync, readFileSync } from "node:fs";
 import { dirname } from "node:path";
 import { Type, type Static } from "typebox";
 import { Value } from "typebox/value";
-import { DEPTH_ORDER, deeperMilestone } from "@pokebench/agent/milestones";
+import { DEPTH_ORDER } from "@pokebench/agent/milestones";
 import { phaseOf, type FixedArm, type FixedDefinition } from "./fixed-design.js";
 
 export class FixedLedgerError extends Error {
@@ -172,6 +172,8 @@ export const WALL_CAP = "wall cap";
 
 export interface TrialExpectation {
   readonly maxWallMs: number;
+  readonly terminalErrorsAsOutcomes?: boolean;
+  readonly progressOrder?: readonly string[];
   readonly primary: string;
   // Absent for cohorts run before this driver: their configuration is not checked.
   readonly presetId?: string;
@@ -242,11 +244,12 @@ export function classifyTrial(text: string | null, expect: TrialExpectation, exi
     const ms = Date.parse(String(e.t)) - t0 - pausedMs;
     if (ms <= expect.maxWallMs) reached.set(e["name"], ms);
   }
-  const furthest = [...reached.keys()].reduce<string | null>(deeperMilestone, null);
+  const order=expect.progressOrder??DEPTH_ORDER;
+  const furthest=[...reached.keys()].reduce<string|null>((current,name)=>order.indexOf(name)>=0&&(current===null||order.indexOf(name)>order.indexOf(current))?name:current,null);
   const primaryMs = reached.get(expect.primary) ?? null;
   const end = events.at(-1);
   const metrics = {
-    primaryReached: primaryMs !== null, primaryMs, furthest, furthestDepth: furthest === null ? -1 : DEPTH_ORDER.indexOf(furthest), furthestMs: furthest === null ? null : (reached.get(furthest) ?? null),
+    primaryReached: primaryMs !== null, primaryMs, furthest, furthestDepth: furthest === null ? -1 : order.indexOf(furthest), furthestMs: furthest === null ? null : (reached.get(furthest) ?? null),
     wallMs: end?.type === "run_end" && typeof end["wall_ms"] === "number" ? end["wall_ms"] : null,
     turns: end?.type === "run_end" && typeof end["turns"] === "number" ? end["turns"] : null,
   };
@@ -259,6 +262,7 @@ export function classifyTrial(text: string | null, expect: TrialExpectation, exi
     if (metrics.wallMs !== null && metrics.wallMs < expect.maxWallMs * 0.98) return verdict(true, `turn cap (${String(metrics.turns)} turns) before the wall cap`);
     return verdict(true, WALL_CAP);
   }
+  if(expect.terminalErrorsAsOutcomes===true&&(reason==="model_error"||reason==="crash"))return verdict(true,`retained terminal error: ${reason}`);
   if (reason === "model_error") {
     const lastRetry = events.filter((e) => e.type === "retry").at(-1);
     const why = typeof lastRetry?.["reason"] === "string" ? lastRetry["reason"] : "no retry recorded";

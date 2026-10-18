@@ -556,3 +556,38 @@ it("navigation memory retains only the state actually returned after internal po
  const input=logged.find(e=>e.type==="button_press");if(input?.type!=="button_press")throw Error("missing input");expect(context.evidence).not.toContain(input.before_state_seq);expect(context.text).toContain("input location unverified");
  recorder.end("completed");
 });
+
+it("durably records exact JIT request identity and clears it for the following request",async()=>{
+ const {recorder,log}=harness();await recorder.start(START_META);
+ await recorder.transformContext([]);
+ const receipt={mode:"jit" as const,scene:"clock" as const,state_seq:3,system_prompt:"clock controls",prompt_sha256:"a".repeat(64),tools:["press"],tools_sha256:"b".repeat(64)};
+ recorder.recordRequestContext(receipt);
+ await recorder.emit({type:"message_end",message:assistant({text:"ready"})});
+ await recorder.transformContext([]);
+ await recorder.emit({type:"message_end",message:assistant({text:"next"})});
+ const rows=events(log).filter(e=>e.type==="assistant");
+ expect(rows[0]).toMatchObject({request_context:receipt});
+ expect(rows[1]).not.toHaveProperty("request_context");
+});
+
+it("measures TTFT from model dispatch to the first content delta, retaining cache writes",async()=>{
+ const {recorder,log,advance}=harness();await recorder.start(START_META);
+ await recorder.transformContext([]);advance(100);recorder.recordRequestContext(null);
+ const partial=assistant({text:""});advance(10);
+ await recorder.emit({type:"message_update",message:partial,assistantMessageEvent:{type:"text_start",contentIndex:0,partial}});
+ advance(20);await recorder.emit(delta("thinking_delta","thinking"));advance(40);
+ const message=assistant({input:30,output:12});message.usage.cacheWrite=7;
+ await recorder.emit({type:"message_end",message});
+ expect(events(log).find(e=>e.type==="assistant")).toMatchObject({ttft_ms:30,latency_ms:70,usage:{input:30,output:12,cache_read:3,cache_write:7}});
+});
+
+it("replays only the latest existing state when a late subscriber explicitly requests it",async()=>{
+ const {recorder}=harness();await recorder.start(START_META);
+ const empty:RunEvent[]=[];recorder.subscribe(e=>empty.push(e),false,true);expect(empty).toEqual([]);
+ recorder.recordState(STATE);const latest=recorder.recordState({...STATE,screen:"clock"});
+ const normal:RunEvent[]=[],seeded:RunEvent[]=[];
+ recorder.subscribe(e=>normal.push(e));recorder.subscribe(e=>seeded.push(e),false,true);
+ expect(normal).toEqual([]);expect(seeded).toEqual([latest]);
+ const next=recorder.recordState({...STATE,screen:"naming"});
+ expect(normal).toEqual([next]);expect(seeded).toEqual([latest,next]);
+});

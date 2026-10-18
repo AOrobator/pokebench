@@ -3,12 +3,17 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { runFixed, type FixedHost, type FixedLaunch, type ServingReceipt } from "./fixed-runner.js";
-import { readLedger, type FixedLedgerEntry } from "./fixed-ledger.js";
+import { readLedger, queueState, type FixedLedgerEntry } from "./fixed-ledger.js";
+import {checkEvent} from "@pokebench/agent/events";
+import {cohortIndex} from "./workbench-store.js";
+import {experimentsAudit} from "./experiments-audit.js";
+import {fileURLToPath} from "node:url";
+import {FRONTIER_MILESTONES} from "./frontier.js";
 import { LEASE } from "./lease.js";
 import { parseFixedStatus, type FixedStatus } from "./fixed-status.js";
 import { definition, MODEL_PATH, ROM_SHA1 } from "../test-support/fixed.js";
 import { Log, START } from "../test-support/events.js";
-import { dryRunDefinition, type FixedDefinition, type FixedLane } from "./fixed-design.js";
+import { parseFixedDefinition, controlBaseProblems, dryRunDefinition, type FixedDefinition, type FixedLane } from "./fixed-design.js";
 
 const COMMIT = "0123456789abcdef0123456789abcdef01234567";
 const RECEIPT: ServingReceipt = { model: MODEL_PATH, build: "b10236-1464c62d8", contextTokens: 65536, slots: 1, vision: true, fingerprint: "f".repeat(64) };
@@ -297,4 +302,60 @@ describe("runFixed", () => {
     await expect(runFixed({ def: { ...def, plan: [] }, definitionSha256: "d".repeat(64), runsRoot, host: new Fake(runsRoot), stopRequested: () => false, pid: 77 })).rejects.toThrow(/plan does not match seed/);
     expect(existsSync(join(runsRoot, "experiments"))).toBe(false);
   });
+});
+
+it.each([false,true])("rehearses the actual JIT definition: 24 outcomes, both GPUs, six of each arm per GPU, no replacement budget (terminal error=%s)",async retainFailure=>{
+ const parsed=parseFixedDefinition(readFileSync(new URL("../../../experiments/fixed/jit-10m.json",import.meta.url),"utf8"));
+ const def=parsed.definition;
+ expect(def.progressOrder).toEqual(FRONTIER_MILESTONES.map(m=>m.id));
+ expect(def.terminalErrorsAsOutcomes).toBe(true);
+ expect(controlBaseProblems(def,readFileSync(new URL(`../../../${def.controlBase.path}`,import.meta.url),"utf8"))).toEqual([]);
+ const {runsRoot,dir}=setup(def);
+ class JitFake extends Fake {
+  override async launch(l:FixedLaunch):Promise<number|null>{
+   const start=this.clock;this.launches.push(l);const n=this.launches.length;
+   this.running++;this.maxRunning=Math.max(this.maxRunning,this.running);l.started(1000+n);this.snapshot();
+   await new Promise<void>(resolve=>setImmediate(resolve));
+   this.clock=Math.max(this.clock,start+600_000);
+   writeEvents(this.runsRoot,l,retainFailure&&n===1?"model_error":"budget");
+   const path=join(this.runsRoot,l.runId,"events.jsonl");
+   const events=readFileSync(path,"utf8").trim().split("\n").map(line=>{
+    const e=checkEvent(JSON.parse(line));
+    return {...e,run:l.runId,...(e.type==="run_start"&&e.evaluation!==undefined?{evaluation:{...e.evaluation,experiment:{id:def.id,arm:l.arm,trial:l.slot,of:def.plan.length}}}:{})};
+   });
+   writeFileSync(path,events.map(e=>JSON.stringify(e)).join("\n")+"\n");this.running--;return 0;
+  }
+ }
+ const host=new JitFake(runsRoot,{serving:()=>({...RECEIPT,model:def.serving.model})},def.id);
+ const began=host.clock;
+ expect(def.plan).toHaveLength(24);
+ for(const lane of def.lanes){
+  const slots=def.plan.filter(s=>s.lane===lane.id);
+  expect(slots.filter(s=>s.arm==="control")).toHaveLength(6);
+  expect(slots.filter(s=>s.arm==="bundle")).toHaveLength(6);
+  expect(slots.reduce((n,s)=>n+(def.phases.find(p=>p.id===s.phase)?.maxWallMs??0),0)).toBe(120*60_000);
+ }
+ expect(def.phases).toMatchObject([{perArm:12,maxWallMs:600_000,primary:false}]);
+ expect(def.replacementReserveMs).toBe(0);
+ expect(await runFixed({def,definitionSha256:parsed.sha256,runsRoot,host,stopRequested:()=>host.sleeps>100,pid:77})).toBe("finished");
+ const rows=readLedger(join(dir,"trials.jsonl"));
+ expect(outcomes(rows)).toHaveLength(24);
+ expect(outcomes(rows).every(o=>o.valid)).toBe(true);
+ expect(outcomes(rows).filter(o=>o.endReason==="model_error")).toHaveLength(retainFailure?1:0);
+ expect(host.maxRunning).toBe(2);
+ expect(host.clock-began).toBe(120*60_000);
+ expect(queueState(def,rows).slots).toHaveLength(24);
+ const status=parseFixedStatus(JSON.parse(readFileSync(join(dir,"status.json"),"utf8")));
+ expect(status).toMatchObject({state:"finished",valid:24,invalid:0,total:24});
+ expect(status.lanes.map(l=>l.valid)).toEqual([12,12]);
+ const index=await cohortIndex(runsRoot,fileURLToPath(new URL("../../../experiments",import.meta.url)));
+ expect(index.runs).toHaveLength(24);
+ expect(index.runs.every(r=>r.cohort===`experiment:${def.id}@${COMMIT.slice(0,12)}`&&r.problem===null)).toBe(true);
+ expect(experimentsAudit(runsRoot,index)).toEqual([]);
+ for(const launch of host.launches){
+  const preset=JSON.parse(readFileSync(launch.presetPath,"utf8")) as {target:null;limits:{maxWallMs:number};features:Record<string,boolean>};
+  expect(preset.target).toBeNull();expect(preset.limits.maxWallMs).toBe(600_000);
+  expect(preset.features["just-in-time-prompt-v1"]).toBe(launch.arm==="bundle");
+  expect(preset.features["milestone-stall-stop-v1"]).toBe(false);
+ }
 });

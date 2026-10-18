@@ -28,6 +28,14 @@ export const STORY_CHARACTERS:readonly {readonly name:string;readonly graphics:r
  {name:"STEVEN",graphics:[134],maps:["GRANITE CAVE STEVENS ROOM","METEOR FALLS STEVENS CAVE","MOSSDEEP CITY SPACE CENTER 1F","MOSSDEEP CITY SPACE CENTER 2F","MOSSDEEP CITY STEVENS HOUSE","ROUTE118","ROUTE120","ROUTE128","SOOTOPOLIS CITY"]},
 ];
 
+// Source-proven labels the game prints for a story character instead of that character's proper name.
+// These are exact NAME: prefixes, not fuzzy kinship terms: Wally's father must never become Norman.
+const STORY_CHARACTER_ALIASES:Readonly<Record<string,string>>={DAD:"NORMAN"};
+export function canonicalStoryCharacterName(label:string):string|null {
+ if(STORY_CHARACTERS.some(c=>c.name===label))return label;
+ return STORY_CHARACTER_ALIASES[label]??null;
+}
+
 // A live object's graphics id is already resolved (VAR_OBJ_GFX_ID_n is read when it spawns), and a
 // live object's hide flag was clear when it spawned, so the template rule applies to it directly.
 export function storyCharacter(graphics:number,location:string|null):string|null {

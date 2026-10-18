@@ -142,7 +142,8 @@
    "input-cuts-v1": false,
    "loop-guard-screen-v1": false,
    "reopened-dialogue-loop-v1": false,
-   "dialog-button-b-v1": false
+   "dialog-button-b-v1": false,
+   "just-in-time-prompt-v1": false
   }
  },
  "trialsPerArm": 8,

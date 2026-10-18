@@ -309,11 +309,12 @@ function rejectionKey(call: CompletedCall): string | null {
 }
 
 function clockLookPlace(state: GameStateSnapshot): string | null {
-  if (state.story?.clock_set !== true) return null;
-  if (state.screen !== "clock") return null;
+  // The opening transition while the clock is being set uses the same phase. Only a set clock counts.
+  if (state.screen !== "clock" || state.story?.clock_set !== true) return null;
   const phase = state.active_ui?.phase;
   if (phase !== "clock_transition" && phase !== "clock_view") return null;
   if (state.map_id === null || state.position === null) return null;
+  // The minute ticks during the transition, and turning does not leave the tile.
   return JSON.stringify([state.location, state.map_id, state.position]);
 }
 
@@ -514,10 +515,9 @@ export class LoopDetector {
       : guard;
   }
 
-  // clock-view-loop-v1: the result is the clock transition or the clock view. The minute changes while
-  // the transition plays, so it is not part of the place. Closing the clock returns to the same tile
-  // and must not clear the count. Leaving that tile does. Setting the clock (adjustment, confirmation)
-  // is a different phase and does not count.
+  // clock-view-loop-v1: a press whose result is the set clock's transition or view. Closing the clock
+  // returns to the same tile and must not clear the count. Any result on a different tile does,
+  // including navigate_to. Turning on the tile does not.
   private noteClockLook(game: boolean, call: CompletedCall): boolean {
     if (!this.clockViews || !game || call.state === undefined) return false;
     if (call.name === "press") {

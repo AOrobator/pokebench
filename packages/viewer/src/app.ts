@@ -1,3 +1,4 @@
+import { metricHistory } from "./metric-history.js";
 // Browser glue: picks a run, follows its event stream, and renders the Open
 // PokéNav layout either live (wall clock) or as a replay (cursor clock).
 import type { RunEvent } from "@pokebench/agent/events";
@@ -910,6 +911,7 @@ export class App {
     this.doc.documentElement.style.setProperty("--viewer-bar-height", `${String(barHeight || 110)}px`);
     this.setHtml("budgets", budgets(view, nowMs));
     this.setHtml("counters", counters(view));
+    this.setHtml("metric-history", metricHistory(view));
     const split = splits(view, this.baseline, nowMs, this.best);
     this.setHtml("splits-summary", split.summary);
     this.setHtml("splits", split.table);

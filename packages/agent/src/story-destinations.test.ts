@@ -121,6 +121,17 @@ describe("story-destinations-v1 rules",()=>{
   const story=new StoryDestinations();story.observe(talk("c",5,pages));story.observe(delivered("c",5));
   return story.block(oldale,"later",PLACES.places);
  }
+ it("accepts the game's DAD prefix as Norman without rewriting the quoted speaker",()=>{
+  // Live run 4865, dialogue_auto_advance seq 14855: these are three separate pages.
+  const instruction=[page("DAD: Now…","DAD"),page("RAED, if you want to become a strong TRAINER, here's my advice.","DAD"),page("Head for RUSTBORO CITY beyond this\ntown.","DAD")];
+  expect(after(instruction)).toContain([
+   `${STORY_HEADER} (turn 5, DAD): "Head for RUSTBORO CITY beyond this town."`,
+   '- "RUSTBORO CITY" = RUSTBORO CITY (map 0/3).',
+  ].join("\n"));
+  expect(after([page("Head for RUSTBORO CITY beyond this town.","DAD","faced_sprite")])).toBeNull();
+  expect(after([page("Head for RUSTBORO CITY beyond this town.","dad")])).toBeNull();
+  expect(after([page("Head for RUSTBORO CITY beyond this town.","WALLYS DAD")])).toBeNull();
+ });
  it("a connected map is reached by the edge that leads to it, said as this map's edge when it is this one",()=>{
   expect(after([page("MAY: The POKéMON found on ROUTE 103 include…","MAY")])).toContain("- \"ROUTE 103\" = ROUTE103 (map 0/18). Way in: this map's NORTH edge; ROUTE110 (map 0/25) WEST edge; door in ALTERING CAVE (map 24/106) at (");
  });
@@ -269,7 +280,7 @@ describe("story-destinations-v1 switch",()=>{
   expect(dependencyProblems({...OFF,"story-destinations-v1":true})).toContain("story-destinations-v1 needs dialogue-auto-advance-v1");
   expect(SWITCHABLE_FEATURES).toContain("story-destinations-v1");
   expect(playHarnessFeatures(ON,null)).toContain("story-destinations-v1");
-  expect(playHarnessFeatures({...ON,"story-destinations-v1":false,"harness-trust-v1":false,"cited-destination-v1":false,"harness-trust-v2":false,"heal-before-trainers-v1":false,"bag-healing-items-v1":false,"battle-menu-loop-v1":false,"clock-view-loop-v1":false,"stale-story-goal-v1":false,"input-cuts-v1":false,"loop-guard-screen-v1":false,"reopened-dialogue-loop-v1":false,"dialog-button-b-v1":false},null)).not.toContain("story-destinations-v1");
+  expect(playHarnessFeatures({...ON,"story-destinations-v1":false,"harness-trust-v1":false,"cited-destination-v1":false,"harness-trust-v2":false,"heal-before-trainers-v1":false,"bag-healing-items-v1":false,"battle-menu-loop-v1":false,"clock-view-loop-v1":false,"stale-story-goal-v1":false,"input-cuts-v1":false,"loop-guard-screen-v1":false,"reopened-dialogue-loop-v1":false,"dialog-button-b-v1":false,"just-in-time-prompt-v1":false},null)).not.toContain("story-destinations-v1");
   const features=Object.fromEntries(Object.entries({...ALL_ON,"state-only-decisions-v1":false}).filter(([id])=>id!=="story-destinations-v1"));
   const preset=parsePlayPreset({version:2,id:"old",target:null,limits:{maxTurns:1500,maxWallMs:1800000,failureLimit:3},sampling:{thinkingLevel:"medium",maxTokens:4096},features});
   expect(presetFeatures(preset)["story-destinations-v1"]).toBe(false);

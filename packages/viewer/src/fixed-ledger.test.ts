@@ -227,3 +227,20 @@ describe("classifyTrial", () => {
     expect(o).toMatchObject({ valid: true, wallMs: 900_000 });
   });
 });
+
+it("retains terminal model/crash failures only for an explicit screen policy, without accepting config drift",()=>{
+ const log=new Log();log.add(0,START);log.add(20,{type:"run_end",turn:1,reason:"model_error",furthest_milestone:null,turns:1,wall_ms:20,tokens:{input:0,output:0},frames:{saved:0,bytes:0}});
+ const text=log.events.map(e=>JSON.stringify(e)).join("\n");
+ expect(classifyTrial(text,{maxWallMs:600000,primary:"RIVAL_MET"},1).valid).toBe(false);
+ expect(classifyTrial(text,{maxWallMs:600000,primary:"RIVAL_MET",terminalErrorsAsOutcomes:true},1)).toMatchObject({valid:true,endReason:"model_error",primaryReached:false});
+ expect(classifyTrial(text,{maxWallMs:600000,primary:"RIVAL_MET",terminalErrorsAsOutcomes:true,presetId:"wrong"},1).valid).toBe(false);
+});
+it("grades only the declared story path and rejects milestones after the cap",()=>{
+ const log=new Log();log.add(0,START);
+ log.add(100,{type:"milestone",turn:1,name:"CLOCK_SET",kind:"story",origin:"observed",server_timestamp:1,evidence:[]});
+ log.add(200,{type:"milestone",turn:2,name:"ROUTE_102_TRAINER_CALVIN_DEFEATED",kind:"story",origin:"observed",server_timestamp:2,evidence:[]});
+ log.add(600001,{type:"milestone",turn:3,name:"RIVAL_MET",kind:"story",origin:"observed",server_timestamp:3,evidence:[]});
+ log.add(600002,{type:"run_end",turn:3,reason:"budget",furthest_milestone:"RIVAL_MET",turns:3,wall_ms:600002,tokens:{input:0,output:0},frames:{saved:0,bytes:0}});
+ const text=log.events.map(e=>JSON.stringify(e)).join("\n");
+ expect(classifyTrial(text,{maxWallMs:600000,primary:"RIVAL_MET",progressOrder:["CLOCK_SET","RIVAL_MET"]},0)).toMatchObject({furthest:"CLOCK_SET",furthestDepth:0,furthestMs:100,primaryReached:false});
+});

@@ -10,6 +10,8 @@ export class StateActivities {
  private previous:Observation|null=null;
  private pendingHeal:{seq:number;baseline:number;value:number;count:number}|null=null;
  private healSeen=false;
+ private readonly blackoutReceipts=new Set<number>();
+ private sampledBlackoutsWithoutReceipt=0;
  private readonly counters=new Map<string,{value:number;seq:number}>();
  observe(state:GameStateSnapshot,seq:number):{activities:Activity[];firstHealEvidence:number[]|null} {
   const activities:Activity[]=[];
@@ -45,7 +47,17 @@ export class StateActivities {
    }
    }
   }
-  if(previous?.state.blackout_active===false&&state.blackout_active===true)activities.push({kind:'blackout',count:1,evidence:[previous.seq,seq]});
+  const receipt=state.blackout_receipt;
+  if(receipt!==undefined) {
+   if(!this.blackoutReceipts.has(receipt.frame)) {
+    this.blackoutReceipts.add(receipt.frame);
+    if(this.sampledBlackoutsWithoutReceipt>0)this.sampledBlackoutsWithoutReceipt--;
+    else activities.push({kind:'blackout',count:1,evidence:[previous?.seq??seq,seq]});
+   }
+  } else if(previous?.state.blackout_active===false&&state.blackout_active===true) {
+   this.sampledBlackoutsWithoutReceipt++;
+   activities.push({kind:'blackout',count:1,evidence:[previous.seq,seq]});
+  }
   if(state.started&&state.screen!=='field_transition')for(const [field,value] of Object.entries(state.game_stats??{}))if(value!==null)this.counters.set(field,{value,seq});
   this.previous={state,seq};
   return {activities,firstHealEvidence};

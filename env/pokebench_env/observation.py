@@ -78,8 +78,6 @@ def install_observation(
         shot = get_screenshot().model_dump()
         fading = palette_fade_active(read_memory)
         animation = warp and warp_animating(read_memory)
-        if raw_archive is not None and receipt is not None:
-            raw_archive.pair(receipt, serialized, str(shot.get("screenshot_base64", "")))
         return receipt, state, serialized, shot, fading, animation, seen
 
     @app.get("/pokebench/observation")
@@ -104,6 +102,13 @@ def install_observation(
             event: Whiteout | None = None if whiteout is None else whiteout.take(state, seen)
             try:
                 text = render(state, off, warp_animation=animation, whiteout=event)
+                if event is not None:
+                    serialized["blackout_receipt"] = {
+                        "frame": event.frame,
+                        "money_before": event.money_before,
+                    }
+                if raw_archive is not None and receipt is not None:
+                    raw_archive.pair(receipt, serialized, screenshot)
             except BaseException:
                 if whiteout is not None and event is not None:
                     whiteout.put_back(event)

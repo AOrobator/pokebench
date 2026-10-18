@@ -53,7 +53,7 @@ th{font-weight:600}
 <header>
  <p class="eyebrow">Feature switch · observation · <code>blackout-readout-v1</code> · default OFF · bundle arm only</p>
  <h1>Whiteout notice</h1>
- <p class="lede">When the player whites out, the readout says so once: the party had no usable Pokémon left, the game took the player back to the last place they healed, healed the party and halved the money.</p>
+ <p class="lede">When the player whites out, the readout says so once and the same observation records a durable blackout event: the party had no usable Pokémon left, the game took the player back to the last place they healed, healed the party and halved the money.</p>
 </header>
 
 <section>
@@ -72,7 +72,7 @@ Play time: 1:02:03
 Whited out: your party had no usable Pokémon left, so the game took you back to LITTLEROOT TOWN (the last place you healed), healed your party and halved your money: ₽3000 → ₽1500.</pre>
   <pre class="off">OFF
 (no such lines; the frame hook is not installed)</pre>
-  <figcaption>The field line follows the Play time line and appears once. A second observation does not repeat it.</figcaption>
+  <figcaption>The field line follows the Play time line and appears once. That delivered observation carries one typed receipt; a second observation repeats neither the line nor the receipt.</figcaption>
  </figure>
 </section>
 
@@ -87,11 +87,11 @@ Whited out: your party had no usable Pokémon left, so the game took you back to
    <rect class="game" x="450" y="40" width="250" height="34" rx="6"/><text x="460" y="62">back on the field (warp exit fade)</text>
    <text class="s" x="200" y="104">first frame: latch set, money read (₽3000)</text>
    <text class="s" x="200" y="120">last frame: DoWhiteOut halves money, heals, warps</text>
-   <text class="s" x="450" y="104">first field observation: line shown, latch cleared</text>
+   <text class="s" x="450" y="104">first field observation: line + receipt, latch cleared</text>
    <text class="s" x="200" y="140">readouts taken here say "Whiting out: …" from their own state</text>
   </svg>
   </div>
-  <figcaption>The latch runs after every game-loop frame the vendor advances through <code>run_frame_with_buttons</code> (under its memory lock), like the frame settle, and numbers the frames. Each observation notes that number with the state it reads, and takes the whiteout only if it began on or before that frame: a field-poison whiteout starts from the field, and a field state read just before it must not carry the line. The line is taken only once the observation has its screenshot, and put back if the readout then fails. Two whiteouts before a field observation queue oldest first; each is said once. Waits come from game frames; there is no polling or sleeping.</figcaption>
+  <figcaption>The latch runs after every game-loop frame the vendor advances through <code>run_frame_with_buttons</code> (under its memory lock), like the frame settle, and numbers the frames. Each observation notes that number with the state it reads, and takes the whiteout only if it began on or before that frame: a field-poison whiteout starts from the field, and a field state read just before it must not carry the line. The line and typed receipt are committed together only after the observation has its screenshot and rendered text, and the event is put back if delivery fails. The recorder turns a new receipt into one <code>activity(kind=blackout)</code> event; sampling <code>blackout_active</code> remains a fallback for old servers. Two whiteouts before a field observation queue oldest first; each is said and recorded once. Waits come from game frames; there is no polling or sleeping.</figcaption>
  </figure>
 </section>
 
@@ -116,7 +116,7 @@ Whited out: your party had no usable Pokémon left, so the game took you back to
 
 <section>
  <h2>Status</h2>
- <p>Branch <code>claude/readout-truth</code>; gates in the worklog. Behavior change: bundle arm only. Not measured.</p>
+ <p>Improved on branch <code>codex/blackout-event-receipt</code>; gates in the worklog. The fixed control keeps the switch OFF and the bundle turns it ON. Not measured or launched.</p>
 </section>
 </main>
 </body>

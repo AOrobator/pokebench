@@ -433,6 +433,12 @@ export const StateBodySchema = Type.Object(
     // trainer-opponent-v1: gTrainerBattleOpponent_A, its ROM name and class, its defeated flag, and a trainer battle on now.
     trainer_opponent:Type.Optional(Type.Union([Type.Object({trainer_id:Type.Integer({minimum:1,maximum:854}),trainer_class:Type.Integer({minimum:0,maximum:255}),name:Type.Union([Type.String({maxLength:40}),Type.Null()]),defeated:Type.Boolean(),battle_active:Type.Boolean()},closed),Type.Null()])),
     blackout_active:Type.Optional(Type.Union([Type.Boolean(),Type.Null()])),
+    // blackout-readout-v1: the frame latch's one-shot delivery receipt. Unlike
+    // blackout_active, it survives a complete CB2_WhiteOut between observations.
+    blackout_receipt:Type.Optional(Type.Object({
+      frame:NonNegativeInt,
+      money_before:Type.Union([NonNegativeInt,Type.Null()]),
+    },closed)),
     game_stats: Type.Optional(Type.Union([Type.Object({
       pokemon_captures:Type.Union([NonNegativeInt,Type.Null()]),
       evolved_pokemon:Type.Union([NonNegativeInt,Type.Null()]),

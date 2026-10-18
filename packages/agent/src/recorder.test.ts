@@ -410,6 +410,24 @@ it("records objective deltas and sends the validated state to subscribers", asyn
   expect(events(log).at(-2)).toMatchObject({ type: "state", position: STATE.position });
 });
 
+it("records a latched blackout receipt as one durable native activity", async () => {
+  const { recorder, log } = harness();
+  const state: GameStateSnapshot = {
+    ...STATE,
+    field_controls_locked: false,
+    blackout_active: false,
+    game_stats: { pokemon_captures: 0, evolved_pokemon: 0, used_pokecenter: 0, saved_game: 0 },
+    party: [{ identity: "12345678:9abcdef0", species: "TORCHIC", level: 5, hp: 20, max_hp: 20 }],
+  };
+  await recorder.start({ ...START_META, harness_features: ["native-progress-activity-v1", "blackout-readout-v1"] }, false);
+  const before = recorder.recordState(state);
+  const delivered = recorder.recordState({ ...state, blackout_receipt: { frame: 81, money_before: 3000 } });
+  recorder.recordState({ ...state, blackout_receipt: { frame: 81, money_before: 3000 } });
+  expect(events(log).filter((event) => event.type === "activity" && event.kind === "blackout")).toEqual([
+    expect.objectContaining({ count: 1, evidence: [before.seq, delivered.seq] }),
+  ]);
+});
+
 it("records milestones from the exact observation snapshot and its persisted evidence ID", async () => {
   const { StateMilestones } = await import("./milestones.js");
   const root = mkdtempSync(join(tmpdir(), "pokebench-story-rec-"));

@@ -316,6 +316,8 @@ export class LoopDetector {
   private ineffective = { key: "", count: 0 };
   // clock-view-loop-v1: looks at the set wall clock (the minute ticks, so it is not part of the place).
   private clockLooks = { place: "", count: 0 };
+  // reopened-dialogue-loop-v1: the same lines shown and then closed, at one place. The first showing is count 0.
+  private closedTalk = { text: "", place: "", count: 0 };
   private readonly rejections = new Map<string, number>();
   private previous: string | null = null;
   private readonly history: string[] = [];
@@ -400,6 +402,8 @@ export class LoopDetector {
     private readonly menuLoop = false,
     // clock-view-loop-v1: a press whose result is the clock transition or the clock view.
     private readonly clockViews = false,
+    // reopened-dialogue-loop-v1: lines shown during a call whose result has already closed them.
+    private readonly closedDialogue = false,
   ) {}
 
   observe(event: RunEvent): void {
@@ -415,7 +419,7 @@ export class LoopDetector {
       if ("started" in event) {
         if (this.pushback) this.tripState(event);
         if (this.menuLoop) this.noteMenuScreen(event, event.seq);
-        const said = this.ineffectiveLoops ? (event.world_context?.dialogue || event.world_context?.message?.identity) ?? "" : "";
+        const said = this.ineffectiveLoops || this.closedDialogue ? (event.world_context?.dialogue || event.world_context?.message?.identity) ?? "" : "";
         if (said !== "")
           for (const pending of this.calls.values()) if (!(pending.dialogue ??= []).includes(said)) pending.dialogue.push(said);
         this.nativeProgress(event, event.seq);
@@ -508,6 +512,29 @@ export class LoopDetector {
       if (place !== this.clockLooks.place) this.clockLooks = { place: "", count: 0 };
     }
     return false;
+  }
+
+  // reopened-dialogue-loop-v1: the press printed lines and auto-advance closed them before the result,
+  // so the result is the free field (run 2026-10-18T01-30-48_qwen36-gpu0_e6ce, the truck box, turns 52–109).
+  // restartedConversation only sees dialogue still on the result. The fourth showing of the same lines
+  // at the same tile warns. A different line, or the same lines after leaving that tile, starts over.
+  private noteClosedDialogue(game: boolean, call: CompletedCall): boolean {
+    if (!this.closedDialogue || !game || call.name === "observe" || call.state === undefined) return false;
+    if (call.state.screen !== "overworld" || call.state.map_id === null || call.state.position === null) {
+      this.closedTalk = { text: "", place: "", count: 0 };
+      return false;
+    }
+    const place = JSON.stringify([call.state.location, call.state.map_id, call.state.position]);
+    if ((call.state.world_context?.dialogue ?? "") !== "") return false;
+    const text = (call.dialogue ?? []).filter((line) => line !== "").join("\n");
+    if (text === "") {
+      if (place !== this.closedTalk.place) this.closedTalk = { text: "", place: "", count: 0 };
+      return false;
+    }
+    this.closedTalk = text === this.closedTalk.text && place === this.closedTalk.place
+      ? { text, place, count: this.closedTalk.count + 1 }
+      : { text, place, count: 0 };
+    return this.closedTalk.count >= this.policy.ineffective;
   }
 
   private restartedConversation(state: GameStateSnapshot | undefined, before: GameStateSnapshot | undefined): boolean {
@@ -632,7 +659,9 @@ export class LoopDetector {
         if (restarted) hit ??= "cycle";
         const clockLoop = this.noteClockLook(game, call);
         if (clockLoop) hit ??= "cycle";
-        reopened = call.state?.world_context?.message?.ready === true || restarted;
+        const closedLoop = this.noteClosedDialogue(game, call);
+        if (closedLoop) hit ??= "cycle";
+        reopened = call.state?.world_context?.message?.ready === true || restarted || closedLoop;
         if (this.ineffective.count >= this.policy.ineffective)
           hit ??= "ineffective";
         if (eligible && fingerprint !== null && before !== null) {

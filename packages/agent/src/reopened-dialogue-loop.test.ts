@@ -1,0 +1,151 @@
+import {readFileSync} from "node:fs";
+import {describe,expect,it} from "vitest";
+import type {GameStateSnapshot} from "./game-state.js";
+import {attachLoopGuard,Governor} from "./harness.js";
+import {ALL_ON,SWITCHABLE_FEATURES,featureInfo,playHarnessFeatures} from "./features.js";
+import {experimentArms,parseExperiment} from "./experiments.js";
+import {flagFeatures,normalizeFeatures,presetFeatures,parsePlayPreset} from "./play-preset.js";
+import type {FeatureSet} from "./features.js";
+import {LOOP_POLICY,LoopDetector,type CompletedCall,type LoopNotice} from "./loop-detection.js";
+import type {RunEvent} from "./events.js";
+
+const ID = "reopened-dialogue-loop-v1" as const;
+const LINES = "The box is printed with a POKéMON logo.\nIt's a POKéMON brand moving and delivery service.";
+
+const truck = (x = 2, dialogue: string | null = null): GameStateSnapshot => ({
+  screen: "overworld", started: true, name: "KENNY", location: "INSIDE OF TRUCK", map_id: [0, 11],
+  position: {x, y: 2}, facing: "down", field_controls_locked: false, in_battle: false, party: [], money: 0, badges: [], play_time_s: 40,
+  world_context: {objects: [], triggers: [], dialogue, message: null},
+});
+
+const shown = (text = LINES, x = 2): CompletedCall => ({
+  name: "press", args: {buttons: ["A"]}, isError: false, text: "dialogue opened; after auto-advance: the conversation closed",
+  state: truck(x), beforeState: truck(x, text), dialogue: [text],
+});
+
+function detector(on: boolean, messageTruth = false) {
+  const notices: LoopNotice[] = [];
+  const d = new LoopDetector((n) => notices.push(n), LOOP_POLICY, "enforced", true, () => "SUPERVISOR", false, false, false, messageTruth, false, false, false, on);
+  return {d, notices};
+}
+
+describe("reopened-dialogue-loop-v1", () => {
+  it("is registered second to last, default off, and the bundle arm is the one that turns it on", () => {
+    expect(SWITCHABLE_FEATURES.at(-2)).toBe(ID);
+    expect(playHarnessFeatures(ALL_ON, null).at(-2)).toBe(ID);
+    expect(featureInfo(ID)).toMatchObject({group: "guard", needs: null, switchable: true, title: "REOPENED DIALOGUE LOOP"});
+    expect(featureInfo(ID).description).toContain(" Off: ");
+    expect(featureInfo(ID).description).toContain("Bundle arm only");
+    expect(flagFeatures({loopGuard: true, activeUi: true, interfaceDocs: true, objectives: false})[ID]).toBe(false);
+    expect(normalizeFeatures({} as Parameters<typeof normalizeFeatures>[0])[ID]).toBe(false);
+    const without = Object.fromEntries(Object.entries({...ALL_ON, "state-only-decisions-v1": false}).filter(([id]) => id !== ID)) as FeatureSet;
+    expect(presetFeatures(parsePlayPreset({version: 2, id: "p", target: null, limits: {maxTurns: 1, maxWallMs: 1, failureLimit: 1}, sampling: {thinkingLevel: "medium", maxTokens: 1}, features: without}))[ID]).toBe(false);
+    const bundle = JSON.parse(readFileSync(new URL("../../../experiments/fixed/bundle-v-control.json", import.meta.url), "utf8")) as {base: {features: Record<string, boolean>}; switches: string[]};
+    expect(bundle.base.features[ID]).toBe(false);
+    expect(bundle.switches).toContain(ID);
+    const cook = JSON.parse(readFileSync(new URL("../../../experiments/open-goal-prompt.json", import.meta.url), "utf8")) as {incumbent: {features: Record<string, boolean>}};
+    expect(cook.incumbent.features[ID]).toBe(true);
+    const raw = JSON.parse(readFileSync(new URL("../../../experiments/reopened-dialogue-loop.json", import.meta.url), "utf8")) as {queuePosition?: number; incumbent: {features: Record<string, boolean>}};
+    expect(raw.queuePosition).toBeUndefined();
+    expect(Object.keys(raw.incumbent.features)).toEqual([...SWITCHABLE_FEATURES]);
+    const {incumbent, candidate} = experimentArms(parseExperiment(raw));
+    expect(incumbent.features[ID]).toBe(false);
+    expect(candidate.features[ID]).toBe(true);
+    expect(SWITCHABLE_FEATURES.filter((id) => incumbent.features[id] !== candidate.features[id])).toEqual([ID]);
+  });
+
+  it("OFF: four closed showings of the same lines raise no cycle notice", () => {
+    const {d, notices} = detector(false);
+    for (let i = 0; i < 4; i++) d.complete(shown());
+    expect(notices.filter((n) => n.kind === "cycle")).toEqual([]);
+  });
+
+  it("ON: the fourth showing at the same tile warns, and the supervisor briefs", () => {
+    const {d, notices} = detector(true);
+    d.complete(shown());
+    d.complete(shown());
+    d.complete(shown());
+    expect(notices).toEqual([]);
+    d.complete(shown());
+    expect(notices.map((n) => n.phase)).toEqual(["warning", "supervisor"]);
+    expect(notices[0]).toMatchObject({kind: "cycle", mode: "enforced"});
+    expect(notices[1]?.message).toBe("SUPERVISOR");
+  });
+
+  it("ON: one showing, a different line, and the same lines after leaving the tile do not count", () => {
+    const once = detector(true);
+    once.d.complete(shown());
+    expect(once.notices).toEqual([]);
+    const other = detector(true);
+    other.d.complete(shown(LINES));
+    other.d.complete(shown(LINES));
+    other.d.complete(shown(LINES));
+    other.d.complete(shown("It's a POKéMON brand moving and delivery service."));
+    other.d.complete(shown("It's a POKéMON brand moving and delivery service."));
+    other.d.complete(shown("It's a POKéMON brand moving and delivery service."));
+    expect(other.notices.filter((n) => n.kind === "cycle")).toEqual([]);
+    const left = detector(true);
+    left.d.complete(shown());
+    left.d.complete(shown());
+    left.d.complete(shown());
+    left.d.complete({name: "press", args: {buttons: ["RIGHT"]}, isError: false, text: "ok", state: truck(4), dialogue: []});
+    left.d.complete(shown());
+    left.d.complete(shown());
+    left.d.complete(shown());
+    expect(left.notices.filter((n) => n.kind === "cycle")).toEqual([]);
+  });
+
+  it("ON: a result that still shows the lines does not count as a closed reopening", () => {
+    const notices: LoopNotice[] = [];
+    const d = new LoopDetector((n) => notices.push(n), LOOP_POLICY, "enforced", false, () => "SUPERVISOR", false, false, false, false, false, false, false, true);
+    const open: CompletedCall = {...shown(), state: truck(2, LINES), beforeState: truck()};
+    for (let i = 0; i < 4; i++) d.complete(open);
+    expect(notices).toEqual([]);
+  });
+
+  it("ON: navigation truth still says reopening the message is not story progress", () => {
+    const {d, notices} = detector(true, true);
+    for (let i = 0; i < 4; i++) d.complete(shown());
+    expect(notices[0]?.message).toContain("Reopening the same message is not story progress.");
+  });
+
+  it("the production path counts lines shown during the call when the result has already closed them", () => {
+    const live = readFileSync(new URL("./live.ts", import.meta.url), "utf8");
+    const probe = readFileSync(new URL("./decision-probe.ts", import.meta.url), "utf8");
+    expect(live).toContain('features["reopened-dialogue-loop-v1"]');
+    expect(probe).toContain('features["reopened-dialogue-loop-v1"]');
+    const play = (on: boolean) => {
+      const notices: LoopNotice[] = [];
+      const observers: ((e: RunEvent) => void)[] = [];
+      const recorder = {subscribe: (o: (e: RunEvent) => void) => { observers.push(o); }, recordLoopGuard: (n: LoopNotice) => { notices.push(n); }};
+      const governor = new Governor({limits: {maxTurns: 50, maxWallMs: 60_000, failureLimit: 3}, retry: () => undefined, abort: () => undefined, now: () => 0});
+      attachLoopGuard(recorder, governor, undefined, "enforced", true, () => "SUPERVISOR", false, false, false, true, false, false, false, on);
+      let seq = 0;
+      const emit = (body: Record<string, unknown>) => {
+        seq += 1;
+        const event = {v: 1, run: "r", t: "2026-10-18T01:35:00.000-04:00", seq, turn: 52, ...body} as RunEvent;
+        for (const o of observers) o(event);
+      };
+      // Recorded shape of 2026-10-18T01-30-48_qwen36-gpu0_e6ce: A opens the sign, auto-advance's last B
+      // is the before-state (message still up), and the result is the free field.
+      for (let i = 0; i < 4; i++) {
+        const id = `a${String(i)}`;
+        emit({type: "tool_call", id, name: "press", args: {buttons: ["A"]}});
+        emit({type: "state", ...truck()});
+        const opened = seq;
+        emit({type: "button_press", tool_call_id: id, buttons: ["A"], before_state_seq: opened});
+        emit({type: "state", ...truck(2, LINES)});
+        const page = seq;
+        emit({type: "button_press", tool_call_id: id, buttons: ["B"], before_state_seq: page});
+        emit({type: "state", ...truck()});
+        emit({type: "tool_result", id, name: "press", is_error: false, text: "dialogue opened; after auto-advance: the conversation closed and field controls are free", state_seq: seq});
+      }
+      return notices;
+    };
+    expect(play(false)).toEqual([]);
+    const on = play(true);
+    expect(on.some((n) => n.kind === "cycle" && n.phase === "warning")).toBe(true);
+    expect(on.some((n) => n.phase === "supervisor")).toBe(true);
+    expect(on.find((n) => n.phase === "warning")?.message).toContain("Reopening the same message is not story progress.");
+  });
+});

@@ -33,7 +33,7 @@ PB1 N/A, no run result. PB2 N/A, nothing launched. PB3 N/A, no improvement claim
 
 Round 2 found that `goalOnce` read only the first text part. A `navigate_to` result puts `Navigation:` there and the story-destinations block in a later part, so the Story goal line was still added. The check now reads every text part of a `navigate_to` result. Characters still come from the first part. Observe and press are unchanged. The production test asserts the ON `navigate_to` result contains the destinations header and not `Story goal:`.
 
-A retired goal is not treated as a repeated Story goal. Its header is the stale line, which is not a duplicate of the destinations block. `goalOnce` and `retireLab` are both passed from `playGameTools`.
+A retired goal is not treated as a repeated Story goal. Its header is the stale line, which is not a duplicate of the destinations block. `goalOnce` and `retireLab` are both passed from `playGameTools`. The production factory turns both switches on and checks observe and navigate_to: the stale line stays, including when the destinations block is a later text part. Removing `goal.done!==true` drops that line and the test goes red.
 
 ## Not in this branch
 

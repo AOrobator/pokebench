@@ -241,4 +241,21 @@ describe("stale-story-goal-v1 production factory",()=>{
   expect(text).not.toContain("Way in");
   expect(text).toContain(readout);
  });
+ it("ON with input cuts still prints the stale Story goal, including when navigate_to puts the block in a later part",async()=>{
+  const both={...features(true),"input-cuts-v1":true} as FeatureSet;
+  const stale=`${TRUST_HEADER}\n${staleGoalLine({turn:5,speaker:"MOM",text:"Go see MAY at the LAB.",lives:null})}`;
+  const subs:((e:RunEvent)=>void)[]=[];
+  const recorder={subscribe:(fn:(e:RunEvent)=>void)=>{subs.push(fn);},recordState:()=>({seq:1,turn:1}),recordDialogueAutoAdvance:()=>({seq:1,turn:1}),storyGoalAway:()=>undefined,destinationCitation:()=>undefined} as unknown as Parameters<typeof playGameTools>[3];
+  const nav:AgentTool={name:"navigate_to",label:"Walk",description:"d",parameters:Type.Object({}),execute:()=>Promise.resolve({content:[{type:"text",text:"Navigation: arrived"},{type:"text",text:readout}],details:{state:here}})};
+  const tools=playGameTools([observe(),nav],both,{read:()=>Promise.resolve(here),places:()=>Promise.resolve(PLACES)},recorder);
+  for(const fn of subs){fn(lab);fn(delivered("t",5));}
+  const observed=textOf(await tools[0]?.execute("o",{}) ?? {content:[],details:undefined});
+  const walked=textOf(await tools[1]?.execute("n",{}) ?? {content:[],details:undefined});
+  for(const text of [observed,walked]){
+   expect(text).toContain(STORY_HEADER);
+   expect(text).toContain(STALE_LAB_NOTE);
+   expect(text).toContain(stale);
+  }
+  expect(walked.indexOf(stale)).toBeLessThan(walked.indexOf("Navigation:"));
+ });
 });

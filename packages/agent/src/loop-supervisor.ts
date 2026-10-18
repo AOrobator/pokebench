@@ -460,7 +460,7 @@ export class SupervisorBriefing {
  }
 
  private bearings(headline:string,stall=false):string {
-  if(stall&&this.screenNow!==null)return this.interfaceBearings(headline,this.screenNow.ui);
+  if((stall||this.features["loop-guard-screen-v1"])&&this.screenNow!==null)return this.interfaceBearings(headline,this.screenNow.ui);
   const tried=this.tried.length===0?"nothing recorded":this.tried.slice().reverse().map(t=>`${t.label}${t.count>1?` ×${String(t.count)}`:""} in ${t.room} → ${t.outcome}`).join("; ");
   const recall=this.features["dialogue-log-v1"]?" (use recall_dialogue to check exactly what characters said)":"";
   const instruction=`- Dialogue shown with your latest story step that came with dialogue${this.instructionText()}\n`;

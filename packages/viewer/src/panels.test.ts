@@ -1027,6 +1027,18 @@ it("links the clock view loop card to its tracked explainer, which quotes the be
  expect(html).toContain("2026-10-17T21-38-43_qwen36-gpu1_c18f");
 });
 
+it("links the loop guard screen card to its tracked explainer, which quotes the clock controls",()=>{
+ const id="loop-guard-screen-v1";
+ expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
+ const log=new Log();log.add(0,{...START,harness_features:["ram-state-v1","loop-guard-supervisor-v1",id]});
+ const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
+ expect(doc.querySelector(`[data-feature="${id}"] a`)?.getAttribute("href")).toBe(`/explainers/${id}.html`);
+ const html=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)),"utf8");
+ expect(html).toContain(id);
+ expect(html).toContain("LEFT/RIGHT changes time; A opens confirmation");
+ expect(html).toContain("2026-10-18T01-30-48_qwen36-gpu1_cdb1");
+});
+
 it("links the stale story goal card to its tracked explainer, which quotes the retired line",()=>{
  const id="stale-story-goal-v1";
  expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);

@@ -135,7 +135,8 @@
    "no-exit-here-v1": false,
    "battle-menu-loop-v1": false,
    "clock-view-loop-v1": false,
-   "stale-story-goal-v1": false
+   "stale-story-goal-v1": false,
+   "loop-guard-screen-v1": false
   }
  },
  "switches": [
@@ -157,7 +158,8 @@
   "no-exit-here-v1",
   "battle-menu-loop-v1",
   "clock-view-loop-v1",
-  "stale-story-goal-v1"
+  "stale-story-goal-v1",
+  "loop-guard-screen-v1"
  ],
  "offInBoth": [
   "milestone-stall-stop-v1",

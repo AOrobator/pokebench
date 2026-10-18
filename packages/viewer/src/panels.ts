@@ -448,6 +448,7 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "battle-menu-loop-v1":"battle-menu-loop-v1.html",
  "clock-view-loop-v1":"clock-view-loop-v1.html",
  "stale-story-goal-v1":"stale-story-goal-v1.html",
+ "loop-guard-screen-v1":"loop-guard-screen-v1.html",
 });
 
 export function harnessConfig(view:RunView,registry:readonly FeatureInfo[]=[]):string {

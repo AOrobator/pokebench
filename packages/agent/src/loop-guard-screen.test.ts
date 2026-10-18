@@ -2,16 +2,19 @@
 // Control run 2026-10-18T01-30-48_qwen36-gpu1_cdb1, turns 93-213: twenty-one cycle notes
 // briefed the bedroom while the clock adjustment was ready.
 import {describe,expect,it} from "vitest";
-import {ALL_ON,type FeatureSet} from "./features.js";
+import {readFileSync} from "node:fs";
+import {ALL_ON,SWITCHABLE_FEATURES,featureInfo,playHarnessFeatures,type FeatureSet} from "./features.js";
+import {experimentArms,parseExperiment} from "./experiments.js";
+import {flagFeatures,normalizeFeatures,presetFeatures,parsePlayPreset} from "./play-preset.js";
 import {SupervisorBriefing} from "./loop-supervisor.js";
 import {loopSupervisor} from "./play-wiring.js";
 import {checkEvent,type RunEvent} from "./events.js";
 import {IN_GAME} from "../test-support/events.js";
 
-const ID="loop-guard-screen-v1";
+const ID="loop-guard-screen-v1" as const;
 const ADJUST="LEFT/RIGHT changes time; A opens confirmation";
 const CONFIRM="UP/DOWN selects; A accepts selection; B returns to adjustment";
-const features=(on:boolean):FeatureSet=>({...ALL_ON,[ID]:on} as FeatureSet);
+const features=(on:boolean):FeatureSet=>({...ALL_ON,[ID]:on});
 const ev=(body:Record<string,unknown>,seq:number):RunEvent=>checkEvent({v:1,run:"screen",t:"2026-10-18T01:30:00.000-04:00",turn:93,seq,...body});
 const field=(seq:number)=>ev({type:"state",...IN_GAME,started:true,screen:"overworld",location:"GREEN's HOUSE 2F",map_id:[1,1],position:{x:7,y:2},facing:"down",field_controls_locked:false,interaction_targets:[],world_context:{objects:[],triggers:[],dialogue:null}},seq);
 const clock=(seq:number,ui:Record<string,unknown>)=>ev({type:"state",...IN_GAME,started:true,screen:"clock",location:"GREEN's HOUSE 2F",map_id:[1,1],position:{x:7,y:2},facing:"down",field_controls_locked:null,active_ui:ui,world_context:{objects:[],triggers:[],dialogue:null}},seq);
@@ -31,6 +34,28 @@ const confirmation={phase:"clock_confirmation",selected:"NO",ready:true,controls
 const transition={phase:"clock_transition",selected:null,ready:false,controls:"Clock transition; selection input is not active",diagnostic:null,value:"10:00 AM"};
 
 describe("loop-guard-screen-v1",()=>{
+ it("is registered last, default off, and the bundle arm is the one that turns it on",()=>{
+  expect(SWITCHABLE_FEATURES.at(-1)).toBe(ID);
+  expect(playHarnessFeatures(ALL_ON,null).at(-1)).toBe(ID);
+  expect(featureInfo(ID)).toMatchObject({group:"guard",needs:"loop-guard-supervisor-v1",switchable:true,title:"LOOP GUARD SCREEN"});
+  expect(featureInfo(ID).description).toContain(" Off: ");
+  expect(featureInfo(ID).description).toContain("Bundle arm only");
+  expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false})[ID]).toBe(false);
+  expect(normalizeFeatures({} as Parameters<typeof normalizeFeatures>[0])[ID]).toBe(false);
+  const without=Object.fromEntries(Object.entries({...ALL_ON,"state-only-decisions-v1":false}).filter(([id])=>id!==ID)) as FeatureSet;
+  expect(presetFeatures(parsePlayPreset({version:2,id:"p",target:null,limits:{maxTurns:1,maxWallMs:1,failureLimit:1},sampling:{thinkingLevel:"medium",maxTokens:1},features:without}))[ID]).toBe(false);
+  const bundle=JSON.parse(readFileSync(new URL("../../../experiments/fixed/bundle-v-control.json",import.meta.url),"utf8")) as {base:{features:Record<string,boolean>};switches:string[]};
+  expect(bundle.base.features[ID]).toBe(false);
+  expect(bundle.switches.at(-1)).toBe(ID);
+  const raw=JSON.parse(readFileSync(new URL("../../../experiments/loop-guard-screen.json",import.meta.url),"utf8")) as {queuePosition?:number;incumbent:{features:Record<string,boolean>}};
+  expect(raw.queuePosition).toBeUndefined();
+  expect(Object.keys(raw.incumbent.features)).toEqual([...SWITCHABLE_FEATURES]);
+  const {incumbent,candidate}=experimentArms(parseExperiment(raw));
+  expect(incumbent.features[ID]).toBe(false);
+  expect(candidate.features[ID]).toBe(true);
+  expect(candidate.features["loop-guard-supervisor-v1"]).toBe(true);
+  expect(SWITCHABLE_FEATURES.filter(id=>incumbent.features[id]!==candidate.features[id])).toEqual([ID]);
+ });
  it("OFF briefs the field while the clock adjustment is open",()=>{
   const text=brief(false,adjustment);
   expect(text).toContain("GREEN's HOUSE 2F (map 1/1) at 7,2 facing down");
@@ -54,6 +79,14 @@ describe("loop-guard-screen-v1",()=>{
   const text=brief(true,transition);
   expect(text).toContain("Listed here that you have not tried yet");
   expect(text).not.toContain("Open interface");
+ });
+ it("the stall note still quotes the screen when this switch is off",()=>{
+  const b=new SupervisorBriefing(features(false));
+  b.observe(field(1));
+  b.observe(result(2,1));
+  b.observe(clock(3,adjustment));
+  b.observe(result(4,3));
+  expect(b.stallText({kind:"interface_dwell",name:"clock adjustment interface",calls:20},93)).toContain(`controls the game shows: ${ADJUST}`);
  });
  it("the production loop supervisor passes the switch through",()=>{
   const subscribers:((e:RunEvent)=>void)[]=[];

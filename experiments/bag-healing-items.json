@@ -151,5 +151,5 @@
   "window": 4,
   "minReached": 3
  },
- "notes": "Bundle arm only (coordinator brief \"Potions\", 2026-10-17): the config owner turns it on in the bundle arm of bundle-v-control, which is owned elsewhere and not edited here. Incumbent: heal-before-trainers' finals incumbent with heal-before-trainers-v1 ON (this switch needs it) and every later switch off; only bag-healing-items-v1 flipped. Activation as for heal-before-trainers (ROUTE_102, the first trainers). Not designed (pokebench-experiment-design) and not queued. source.commit is the branch head; repin with `just experiment-pin` after landing."
+ "notes": "Bundle arm only (coordinator brief \"Potions\", 2026-10-17): the config owner turns it on in the bundle arm of bundle-v-control, which is owned elsewhere and not edited here. Incumbent: heal-before-trainers' finals incumbent with heal-before-trainers-v1 ON (this switch needs it) and every later switch off; only bag-healing-items-v1 flipped. Activation as for heal-before-trainers (ROUTE_102, the first trainers). Not designed (pokebench-experiment-design) and not queued. source.commit is the branch's base (main 0ada6403); repin it to the merge SHA with `just experiment-pin` after landing."
 }

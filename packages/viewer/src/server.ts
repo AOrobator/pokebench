@@ -24,7 +24,6 @@ import { createWorkbenchLoader, workbenchSnapshot, type LoadedRun, type Workbenc
 import { MILESTONE_ORDER } from "./model.js";
 import { defaultViewerBuild, skewOf, type Skew, type ViewerBuild } from "./build-stamp.js";
 import { FEATURE_EXPLAINERS } from "./panels.js";
-import { readWatch } from "./watch.js";
 
 export const HOST = "127.0.0.1";
 const EXPERIMENTS_CACHE_MS = 5_000;
@@ -426,10 +425,6 @@ async function route(req: IncomingMessage, res: ServerResponse, options: ViewerO
     }
     if (parts.length === 4 && leaf === "comparisons") {
       sendJson(res, 200, await comparisonsOf(options.runsRoot, id, readBaseline));
-      return;
-    }
-    if (parts.length === 4 && leaf === "watch") {
-      sendJson(res, 200, readWatch(options.runsRoot, id));
       return;
     }
     if (parts.length === 4 && leaf === "milestones") {

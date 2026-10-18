@@ -77,6 +77,7 @@ Done when every milestone is merged, qualification shows none of F1–F8, the fo
 
 ## Session Log
 
+- 2026-10-17 09:47 PM EDT: the first stale-story-goal commit also picked up an unrelated viewer watch snapshot (app.ts, server.ts, watch.ts, watch-snapshot.test.ts). That snapshot is removed in the following commit so the review packet is only this switch.
 - 2026-10-17 09:45 PM EDT: The operator asked for stale-story-goal-v1 to be reviewed and, once the cloud lanes approve, merged to main, with the fix in the bundle. The switch retires the latest place-naming story line when the story checklist shows that place's milestone is done, or when a later ledger line exists, and does not promote an older place line. `story-destinations-v1` is off in both arms (`offInBoth`); `stale-story-goal-v1` is a bundle switch (base false). Pending experiment `experiments/stale-story-goal.json` is not queued. The live cook loaded its definition at start and is not restarted.
 - 2026-10-17 08:45 PM EDT: archived 50 active worklogs whose implementations are already on main (76431ffd). This worklog stays active; launch approval is still open.
 - 2026-10-17 07:45 PM EDT: no-exit-here-v1 (landed 18bb0a4b; needs world-destinations-v1, on in both) joins the bundle-v-control bundle arm; open-goal-prompt.json incumbent follows. Previous commit 2c2023d8.

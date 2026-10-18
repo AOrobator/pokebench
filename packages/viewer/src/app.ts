@@ -3,7 +3,7 @@
 import type { RunEvent } from "@pokebench/agent/events";
 import { esc, eventMs, hms } from "./format.js";
 import { gbaSvg, litButtons } from "./gba.js";
-import { ControlView, RunView, isRunEvent, type StateEvent } from "./model.js";
+import { RunView, isRunEvent } from "./model.js";
 import { brand, runIdentity, budgets, counters, fieldContext, harnessConfig, inspector, party, splits, thinkingDialog, trainerCard, type Baseline } from "./panels.js";
 import { ReplayClock } from "./replay.js";
 import { lanesSvg } from "./timeline.js";
@@ -120,14 +120,6 @@ function reconcile(box: HTMLElement, groups: readonly TraceGroup[], tail: string
 
 // Unended runs whose game server no longer answers are not live.
 const isLive = (run: RunChoice): boolean => run.ended === false && run.problem === null && run.live !== false;
-
-interface WatchMon { readonly species: string | null; readonly level: number | null; readonly hp: number | null; readonly max_hp: number | null }
-interface WatchSnapshot {
-  readonly milestones: readonly { readonly name: string; readonly offsetMs: number; readonly origin: "observed" | "present_at_start"; readonly derived?: true }[];
-  readonly party: readonly WatchMon[] | null;
-  readonly location: string | null;
-  readonly map_id: readonly [number, number] | null;
-}
 const PHONE = "(max-width: 700px)";
 const startedAt = (iso: string): string => new Date(iso).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 
@@ -211,9 +203,6 @@ export class App {
   private screenTick = 0;
   private sinceScreen = 0;
   private liveFailedAt: number | null = null;
-  private watch: WatchSnapshot | null = null;
-  private watchRequest = 0;
-  private preferLiveScreen = false;
   private readonly html = new Map<HTMLElement, string>();
   // Hold-to-confirm abort: when X (or the button) went down; null when released.
   private holdStart: number | null = null;
@@ -649,9 +638,6 @@ export class App {
     this.wasLive = false;
     this.ui("follow-thinking").setAttribute("aria-pressed", "true");
     this.liveFailedAt = null;
-    this.watch = null;
-    this.watchRequest += 1;
-    this.preferLiveScreen = this.runs.some((run) => run.id === runId && isLive(run));
     this.setHtml("inspector", inspector(undefined));
     this.picker("run").value = runId;
     this.markSelectedRun();
@@ -687,20 +673,7 @@ export class App {
       this.render();
     });
     if (this.doc.querySelector('[data-page="splits"][aria-pressed="true"]') !== null) void this.loadComparisons(runId);
-    void this.loadWatch(runId);
     this.render();
-  }
-
-  private async loadWatch(runId: string): Promise<void> {
-    const request = this.watchRequest;
-    try {
-      const snapshot = watchSnapshot(await this.deps.fetchJson(`/api/runs/${encodeURIComponent(runId)}/watch`));
-      if (request !== this.watchRequest || this.runId !== runId) return;
-      this.watch = snapshot;
-      if (this.mode === "loading") this.render();
-    } catch (error) {
-      if (request === this.watchRequest && this.runId === runId) this.problem(`watch: ${String(error)}`);
-    }
   }
 
   private receive(data: string): void {
@@ -879,12 +852,12 @@ export class App {
     const screen = this.ui("screen");
     const id = encodeURIComponent(this.runId ?? "");
     const recorded = this.shown.frame === null ? "" : `/api/runs/${id}/${this.shown.frame}`;
-    let href = this.mode === "loading" ? "" : recorded;
-    let note = this.mode === "loading" ? "loading" : recorded === "" ? "no frame yet" : "recorded frame";
-    if (this.mode === "live" || (this.mode === "loading" && this.preferLiveScreen)) {
+    let href = recorded;
+    let note = recorded === "" ? "no frame yet" : "recorded frame";
+    if (this.mode === "live") {
       const failed = this.liveFailedAt !== null && nowMs - this.liveFailedAt < LIVE_RETRY_MS;
-      href = failed ? (this.mode === "loading" ? "" : recorded) : `/api/runs/${id}/screen?n=${String(this.screenTick)}`;
-      note = failed ? (this.mode === "loading" ? "live screen unavailable" : "live screen unavailable · last frame") : "live";
+      href = failed ? recorded : `/api/runs/${id}/screen?n=${String(this.screenTick)}`;
+      note = failed ? "live screen unavailable · last frame" : "live";
     }
     if (screen.getAttribute("href") !== href) screen.setAttribute("href", href);
     this.ui("screen-note").textContent = note;
@@ -912,8 +885,8 @@ export class App {
       }
     }
     this.setHtml("stats", sideStats(view, nowMs));
-    this.setHtml("split-strip", splitStrip(shownNow));
-    this.setHtml("split-times", splitTimes(shownNow, this.best));
+    this.setHtml("split-strip", splitStrip(view));
+    this.setHtml("split-times", splitTimes(view, this.best));
     this.next.setLive(live ? view : null);
     this.ui("brand").textContent = brand(view);
     const dialog = thinkingDialog(view, nowMs);
@@ -927,12 +900,11 @@ export class App {
       const body = this.ui("think-body");
       body.scrollTop = body.scrollHeight;
     }
-    const shownNow = this.mode === "loading" && this.watch !== null ? withWatch(view, this.watch) : view;
-    this.setHtml("trainer", trainerCard(shownNow, nowMs));
+    this.setHtml("trainer", trainerCard(view, nowMs));
     this.setHtml("field-context", fieldContext(view));
     this.setHtml("harness-config", harnessConfig(view, this.next.registry));
     this.filterFeatures();
-    this.setHtml("party", party(shownNow));
+    this.setHtml("party", party(view));
     this.setHtml("run-details", `<details><summary>RUN METADATA · PROMPT · TOOLS · BUDGETS</summary><pre>${esc(JSON.stringify(view.start, null, 2))}</pre></details><details><summary>LATEST RECORDED STATE</summary><pre>${esc(JSON.stringify(view.state, null, 2))}</pre></details><details><summary>TERMINAL EVENT</summary><pre>${esc(JSON.stringify(view.end, null, 2))}</pre></details>`);
     const barHeight = this.doc.querySelector(".bar")?.getBoundingClientRect().height ?? 0;
     this.doc.documentElement.style.setProperty("--viewer-bar-height", `${String(barHeight || 110)}px`);

@@ -8,7 +8,7 @@
  "primaryMilestone": "RIVAL_MET",
  "source": {
   "checkout": "main",
-  "commit": "00aa1e697d6cf811c73ce0545a53c893f3314995"
+  "commit": "a7efb80e64c83a6c238605bb2a79b460fa33f959"
  },
  "incumbent": {
   "version": 2,
@@ -165,6 +165,6 @@
   "window": 4,
   "minReached": 3
  },
- "notes": "Registration only. The runnable fixed definition is experiments/fixed/jit-10m.json: 24 trials, 12 per arm, six of each arm per GPU, 600000 ms cap, MAIN_MENU save start, no milestone target or stall stop, zero replacement reserve. The registry trialsPerArm=8 is its supported schema screen default, not this fixed cohort N. Primary comparison is ranked frontier at ten minutes; RIVAL_MET is a secondary descriptive reach marker. Screen only; no powered confirmation, automatic finals or promotion. Source pin is the preparation base and must be replaced by the reviewed merge SHA before operator launch. Serving values must be freshly verified before launch.",
+ "notes": "Registration only. The runnable fixed definition is experiments/fixed/jit-10m.json: 24 trials, 12 per arm, six of each arm per GPU, 600000 ms cap, MAIN_MENU save start, no milestone target or stall stop, zero replacement reserve. The registry trialsPerArm=8 is its supported schema screen default, not this fixed cohort N. Primary comparison is ranked frontier at ten minutes; RIVAL_MET is a secondary descriptive reach marker. Screen only; no powered confirmation, automatic finals or promotion. Source pin is candidate code commit a7efb80e64c83a6c238605bb2a79b460fa33f959; it is not yet main and must be repinned to the reviewed landed build before operator launch. Serving values must be freshly verified before launch.",
  "blocked": "Prepared as fixed-N jit-10m (12 per arm, two GPUs); operator explicitly holds all experiment runs. This pending registration is not a launch definition."
 }

@@ -8,6 +8,7 @@ Requested in the ChatGPT feedback triage thread (the operator, 2026-10-17). One 
 - [x] Run-analysis checklist: no milestone credited to a longer cap when it was reached before the old cap (same commit)
 - [x] Review round 1 (diff f8590773…): Claude LGTM; Grok and GPT BLOCKING. Finding: docs said MAIN_MENU minutes are never compared with boot runs, but frontier.ts ranks both by elapsedMs. Also pokebench-review SKILL.md:71 still said "fresh boot", and the section 6 checklist claimed a separate MAIN_MENU list.
 - [x] Round 1 fix: ranking follows frontier.ts; reports never call a run faster across boot and MAIN_MENU; line 71 and the checklist reworded. COMMIT: `skills: rank boot and MAIN_MENU together as frontier.ts does, never call one faster across kinds`
-- [ ] Review round 2 on the fix delta, then fast-forward merge into main
+- [x] Review round 2 (main 44652551..643f588e, diff e933171e…): Claude, Grok cursor-grok-4.5-high, GPT gpt-5.6-sol-xhigh all VERDICT: LGTM. Fast-forward merged into main at 643f588e.
+- [x] Archived on operator request (the operator, 2026-10-17 8:08 PM).
 - Gates: node --check frontier.mjs passes; no code, test or coverage surface changed.
 - [x] Synced with main before round 2

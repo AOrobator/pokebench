@@ -16,13 +16,13 @@ Viewer-only scope: RunView completed-response samples, pure SVG metric-history r
 
 ## Validation and review
 
-- [ ] RED/GREEN focused metric, replay and mounted consumer tests
-- [ ] Required test/lint/build/coverage/vendor gates
-- [ ] Candidate browser at1280/1440/375; live-update/replay proof and screenshots
-- [ ] Principles self-review and frozen packet
-- [ ] Claude, Grok and isolated Codex review; findings fixed and re-reviewed
-- [ ] Fast-forward local main; preserve unrelated dirty work
-- [ ] Coordinate8790 restart and verify real recorded data at merged build
+- [x] RED/GREEN focused metric, replay and mounted consumer tests
+- [x] Required test/lint/build/coverage/vendor gates
+- [x] Candidate browser at1280/1440/375; live-update/replay proof and screenshots
+- [x] Principles self-review and frozen packet
+- [x] Claude, Grok and isolated Codex review; findings fixed and re-reviewed
+- [x] Fast-forward local main; preserve unrelated dirty work
+- [x] Coordinate8790 restart and verify real recorded data at merged build
 
 ## Session log
 
@@ -39,3 +39,5 @@ Viewer-only scope: RunView completed-response samples, pure SVG metric-history r
 
 - Round2 frozen1502cfbb/diff7024736d: cloud Cursor Claude and Grok plus isolated GPT each VERDICT: LGTM. Both external receipts exit0/trackedWrites[]; GPT independently reran71tests. Full5gates pass at1502; native browser129realresponses replay/phone proof and screenshot sheets inspected by root. Main fast-forward landed1502cfbb. Shared live restart deferred to single combined experiment-pin restart.
 - Combined candidate cf2f browser proves cachewrite-aware partial historical totals, persistent definitions and unchanged native mobile navigation at1280/1440/375. Canonical unfinished81files preserved by direct user authorization in separate attachedworktree; final JIT candidate includes approved graph source.
+
+- Final combined source2b2dec5d landed after all three cloud-family approvals and6330passing full-suite tests. Live8790 serves that clean build. Actual two-GPU JIT cohort Watch frames, growing Stats samples, four graphs, native mobile375 pager and1440comparison polling verified; canonical evidence runs/mockups/jit-launch-live/shots/. Root inspected screenshots/receipt. Native frontier updates after initial roughly5minute historical scan delay; no local Stats slider. Existing unrelated missing comparison receipt warning remains disclosed. No measured protocol/source changes after launch.

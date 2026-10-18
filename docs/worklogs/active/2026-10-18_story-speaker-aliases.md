@@ -31,15 +31,17 @@ The correction remains inside the existing default-off `story-destinations-v1` s
 
 ### M1 - Focused regression and identity boundary
 
-- [ ] RED: Norman's exact `DAD:` Rustboro instruction is rejected by the current destination selector.
-- [ ] GREEN: canonicalize only source-proven speaker aliases for eligibility while preserving printed output.
-- [ ] Update the existing feature explainer and pending experiment notes.
+- [x] RED: Norman's exact `DAD:` Rustboro instruction is rejected by the current destination selector.
+- [x] GREEN: canonicalize only source-proven speaker aliases for eligibility while preserving printed output.
+- [x] Update the existing feature explainer and pending experiment notes.
 - [ ] Run focused tests, full gates, and multi-model review.
 
 ## Session Log
 
 - 2026-10-18: Confirmed the feedback against production code and the pinned pret/pokeemerald source. Created isolated branch `codex/story-speaker-aliases` from main `1502cfbb`.
 - 2026-10-18: RED adds the exact `DAD:` Rustboro instruction plus negative cases for a faced sprite and `WALLYS DAD`; current code returns no destination block.
+- 2026-10-18: GREEN adds the exact source-proven alias `DAD -> NORMAN` at the shared story-character identity boundary. Destination output still quotes `DAD`; aliases apply only to game-printed name prefixes.
+- 2026-10-18: Updated the existing story-destinations explainer and pending experiment notes; no new switch or experiment was created because OFF remains unchanged and the correction is inside the already default-off candidate.
 
 ## Multi-Model Review Log
 

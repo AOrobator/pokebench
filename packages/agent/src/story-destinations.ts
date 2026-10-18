@@ -11,7 +11,7 @@ import type {FeatureSet} from "./features.js";
 import {isCheckedPress,type CheckedPressTool} from "./game-tools.js";
 import {parseGameState,type GameStateSnapshot} from "./game-state.js";
 import type {RunRecorder} from "./recorder.js";
-import {STORY_CHARACTERS,storyCharacter} from "./script-line-presence.js";
+import {STORY_CHARACTERS,canonicalStoryCharacterName,storyCharacter} from "./script-line-presence.js";
 
 const closed={additionalProperties:false};
 const MapIdSchema=Type.Tuple([Type.Integer(),Type.Integer()]);
@@ -142,6 +142,8 @@ export class StoryDestinations {
  private speaker(page:Page):string|null {
   if(page.speaker===null||page.speaker_source===null||page.speaker_source==="faced_target")return null;
   if(NAMES.includes(page.speaker))return page.speaker;
+  // Keep the game's printed label in the quote, but use its canonical identity for eligibility.
+  if(page.speaker_source==="name_prefix"&&canonicalStoryCharacterName(page.speaker)!==null)return page.speaker;
   if(page.speaker_source!=="faced_sprite"||page.state_seq===null||page.map_id===null)return null;
   // The page's own state, or the latest earlier one on the same map that showed a story character.
   const seq=page.state_seq,map=page.map_id;

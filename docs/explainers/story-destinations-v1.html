@@ -68,6 +68,7 @@ th{font:500 .75rem var(--mono);letter-spacing:.06em;text-transform:uppercase;col
 <section>
 <h2>The miss it targets</h2>
 <p>Run <code>2026-10-16T12-42-29_qwen36-gpu0_4caa</code>, turn 272: after the Route 103 battle MAY says "Well, it's time to head back to the LAB." At turn 273 the model thinks "head back to the LAB (Rustboro City)" and walks south toward Oldale. Back in Littleroot it took its own house door for the lab (T469–T504). In <code>2026-10-16T02-23-17_qwen36-gpu1_sh02</code> turn 74, MOM says PROF. BIRCH "lives right next door"; at turn 75 the model sets off for "Professor Birch's Lab". The overnight run analysis counted this misreading of story destinations as the most common mistake (7 runs).</p>
+<p>A later audit found a separate harness bug: Norman's Petalburg Gym instruction is printed by the game as <code>DAD: Now… Head for RUSTBORO CITY…</code>. The conversation ledger kept it, but this feature admitted <code>NORMAN</code> and rejected <code>DAD</code>, so the line never became a destination candidate. The source-backed alias <code>DAD → NORMAN</code> now applies only at character eligibility; the readout still quotes the game's label <code>DAD</code>. This does not change how long a destination remains active.</p>
 </section>
 
 <section>
@@ -107,8 +108,8 @@ Position: X=9, Y=13, facing down</pre>
 <rect class="box" x="210" y="20" width="200" height="88" rx="8"/>
 <text class="t" x="222" y="42">story line?</text>
 <text class="s" x="222" y="60">speaker is a story character:</text>
-<text class="s" x="222" y="74">"MAY:" prefix, or a faced sprite</text>
-<text class="s" x="222" y="88">whose graphics is MAY here</text>
+<text class="s" x="222" y="74">proper name or exact game alias</text>
+<text class="s" x="222" y="88">(DAD → NORMAN), or mapped sprite</text>
 <rect class="box" x="440" y="20" width="290" height="88" rx="8"/>
 <text class="t" x="452" y="42">names a place?</text>
 <text class="s" x="452" y="60">a capitalised run ending in a map-name word</text>
@@ -171,6 +172,7 @@ Position: X=9, Y=13, facing down</pre>
 <h2>Rules, from the tests</h2>
 <div class="tablewrap"><table>
 <tr><th>Line</th><th>Block says</th></tr>
+<tr><td>DAD: "Now… Head for RUSTBORO CITY beyond this town."</td><td><code>DAD</code> is accepted as Norman's exact game-printed alias, while the quote stays labelled <code>DAD</code>; "RUSTBORO CITY" resolves to RUSTBORO CITY (map 0/3). A faced sprite called DAD or <code>WALLYS DAD</code> does not use the alias.</td></tr>
 <tr><td>MAY: "Well, it's time to head back to the LAB."</td><td>"LAB" = PROF. BIRCH'S POKéMON LAB (map 1/4). Way in: door in LITTLEROOT TOWN (map 0/9) at (7,16).</td></tr>
 <tr><td>PROF. BIRCH: "…come by my POKéMON LAB later, okay?" (the cutscene then moves the player into the lab)</td><td>"POKéMON LAB" = PROF. BIRCH'S POKéMON LAB (map 1/4). You are in it now.</td></tr>
 <tr><td>MOM: "PROF. BIRCH is his name." / "He lives right next door…"</td><td>"He lives" (He = PROF. BIRCH, the one story character named before it in this conversation) = PROF. BIRCH'S HOUSE 1F (map 1/2). Way in: door in LITTLEROOT TOWN (map 0/9) at (14,8).</td></tr>
@@ -201,7 +203,7 @@ Position: X=9, Y=13, facing down</pre>
 <section>
 <h2>Status</h2>
 <ul>
-<li>Branch <code>claude/story-destination-targets</code>. Default off; registered as the pending experiment <code>experiments/story-destinations.json</code> (not queued), whose arms have <code>dialogue-auto-advance-v1</code> and <code>displayed-place-names-v1</code> on, as the bundle arm does (<code>character-presence-v1</code> stays as the finals incumbent has it; the block no longer uses it). Without displayed place names the table names the lab LITTLEROOT TOWN PROFESSOR BIRCHS LAB, so "LAB" still resolves but "POKéMON LAB" and "He lives" (PROF. BIRCH'S HOUSE) are reported as not resolved.</li>
+<li>Alias correction branch <code>codex/story-speaker-aliases</code>. Default off; registered as the pending experiment <code>experiments/story-destinations.json</code> (not queued), whose arms have <code>dialogue-auto-advance-v1</code> and <code>displayed-place-names-v1</code> on, as the bundle arm does (<code>character-presence-v1</code> stays as the finals incumbent has it; the block no longer uses it). Without displayed place names the table names the lab LITTLEROOT TOWN PROFESSOR BIRCHS LAB, so "LAB" still resolves but "POKéMON LAB" and "He lives" (PROF. BIRCH'S HOUSE) are reported as not resolved.</li>
 <li>Not done: measured runs. Whether the model uses the block is untested; only the operator approves runs.</li>
 <li>Decision probes (<code>just probe-decision</code>) have no game server, so a probe with this switch on says the map table could not be read.</li>
 </ul>

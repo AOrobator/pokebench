@@ -203,7 +203,7 @@ def test_production_run_reports_the_whiteout_once(
     observations = [json.loads(get(app, "/pokebench/observation")[2]) for _ in range(2)]
     assert (LINE in observations[0]["state_text"].split("\n")) is shown
     assert LINE not in observations[1]["state_text"]
-    expected_receipt = {"frame": 1, "money_before": 3000}
+    expected_receipt = {"frame": 1, "money_before": 3000, "notice": LINE}
     assert (observations[0]["state"].get("blackout_receipt") == expected_receipt) is shown
     assert "blackout_receipt" not in observations[1]["state"]
 
@@ -312,7 +312,11 @@ def test_a_render_failure_puts_the_whiteout_back(monkeypatch: pytest.MonkeyPatch
     status, _, body = get(app, "/pokebench/observation")
     payload = json.loads(body)
     assert status == 200 and LINE in payload["state_text"].split("\n")
-    assert payload["state"]["blackout_receipt"] == {"frame": 0, "money_before": 3000}
+    assert payload["state"]["blackout_receipt"] == {
+        "frame": 0,
+        "money_before": 3000,
+        "notice": LINE,
+    }
 
 
 def test_delivered_receipt_is_paired_with_the_raw_observation(
@@ -354,7 +358,11 @@ def test_delivered_receipt_is_paired_with_the_raw_observation(
         whiteout=latch,
     )
     payload = json.loads(get(app, "/pokebench/observation")[2])
-    assert payload["state"]["blackout_receipt"] == {"frame": 7, "money_before": 3000}
+    assert payload["state"]["blackout_receipt"] == {
+        "frame": 7,
+        "money_before": 3000,
+        "notice": LINE,
+    }
     assert paired == [payload["state"]]
 
 

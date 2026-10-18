@@ -12,7 +12,7 @@ from fastapi import FastAPI, HTTPException, Query
 from pydantic import BaseModel
 
 from pokebench_env.battle_text import WAIT_BOUND_FRAMES, BattleWait
-from pokebench_env.blackout_readout import Whiteout, WhiteoutLatch
+from pokebench_env.blackout_readout import Whiteout, WhiteoutLatch, whiteout_line
 from pokebench_env.game_screen import ReadMemory
 from pokebench_env.game_state import GameState, MapNames
 from pokebench_env.places import PlaceDirectory
@@ -110,6 +110,7 @@ def install_observation(
                     serialized["blackout_receipt"] = {
                         "frame": event.frame,
                         "money_before": event.money_before,
+                        "notice": whiteout_line(event, state),
                     }
                 if raw_archive is not None and receipt is not None and whiteout is not None:
                     raw_archive.pair(receipt, serialized, screenshot)

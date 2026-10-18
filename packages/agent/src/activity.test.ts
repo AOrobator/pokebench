@@ -30,17 +30,17 @@ describe('native activities',()=>{
  });
  it('records a latched blackout receipt exactly once even when no sampled edge exists',()=>{
   const a=new StateActivities();a.observe(base,1);
-  const receipt={frame:27,money_before:3000};
+ const receipt={frame:27,money_before:3000,notice:"Whited out."};
   expect(a.observe({...base,blackout_receipt:receipt},2).activities).toEqual([{kind:'blackout',count:1,evidence:[1,2]}]);
   expect(a.observe({...base,blackout_receipt:receipt},3).activities).toEqual([]);
-  expect(a.observe({...base,blackout_receipt:{frame:61,money_before:null},blackout_active:true},4).activities).toEqual([{kind:'blackout',count:1,evidence:[3,4]}]);
+  expect(a.observe({...base,blackout_receipt:{frame:61,money_before:null,notice:"Whited out."},blackout_active:true},4).activities).toEqual([{kind:'blackout',count:1,evidence:[3,4]}]);
  });
  it('does not double count a receipt after the legacy sampled edge recorded that whiteout',()=>{
   const a=new StateActivities();a.observe(base,1);
   expect(a.observe({...base,blackout_active:true},2).activities).toEqual([{kind:'blackout',count:1,evidence:[1,2]}]);
   a.observe(base,3);
-  expect(a.observe({...base,blackout_receipt:{frame:27,money_before:3000}},4).activities).toEqual([]);
-  expect(a.observe({...base,blackout_receipt:{frame:61,money_before:1500}},5).activities).toEqual([{kind:'blackout',count:1,evidence:[4,5]}]);
+  expect(a.observe({...base,blackout_receipt:{frame:27,money_before:3000,notice:"Whited out."}},4).activities).toEqual([]);
+  expect(a.observe({...base,blackout_receipt:{frame:61,money_before:1500,notice:"Whited out again."}},5).activities).toEqual([{kind:'blackout',count:1,evidence:[4,5]}]);
  });
  it('waits for completed nurse script and full healed party, retaining first split evidence',()=>{
   const a=new StateActivities();a.observe(base,1);
@@ -62,8 +62,8 @@ describe('native activities',()=>{
  });
  it('accepts optional RAM contracts and rejects malformed counters/events',()=>{
   expect(parseGameState(base)).toEqual(base);expect(()=>parseGameState({...base,game_stats:{...stats,saved_game:-1}})).toThrow();
-  expect(parseGameState({...base,blackout_receipt:{frame:27,money_before:null}}).blackout_receipt).toEqual({frame:27,money_before:null});
-  expect(()=>parseGameState({...base,blackout_receipt:{frame:-1,money_before:3000}})).toThrow();
+  expect(parseGameState({...base,blackout_receipt:{frame:27,money_before:null,notice:"Whited out."}}).blackout_receipt).toEqual({frame:27,money_before:null,notice:"Whited out."});
+  expect(()=>parseGameState({...base,blackout_receipt:{frame:-1,money_before:3000,notice:"Whited out."}})).toThrow();
   expect(()=>checkEvent({v:1,run:'test',seq:2,t:'2026-10-14T00:00:00.000-04:00',type:'activity',turn:0,kind:'capture',count:0,server_timestamp:0,evidence:[0,1]})).toThrow();
  });
 });

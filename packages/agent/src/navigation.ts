@@ -494,6 +494,7 @@ export function navigationTool(ports:NavigationPorts):AgentTool<typeof Args> {
  execute:async(id,goal,signal)=>{
   signal?.throwIfAborted();await ports.gate?.(signal);signal?.throwIfAborted();
   let state=await ports.read(signal),commands=0,status="command limit",last:AgentToolResult<unknown>|undefined;
+  let blackout:GameStateSnapshot["blackout_receipt"];
   let shortest=Infinity,stalled=0,unready=false;
   const origin=state.position;
   const sameMap=():boolean=>state.map_id?.[0]===goal.map_id[0]&&state.map_id[1]===goal.map_id[1];
@@ -521,7 +522,7 @@ export function navigationTool(ports:NavigationPorts):AgentTool<typeof Args> {
      if(actual===undefined||!ready(actual,mode)||actual.map_id?.[0]!==goal.map_id[0]||actual.map_id[1]!==goal.map_id[1]||actual.position?.x!==before.x||actual.position.y!==before.y)throw new NavigationPreconditionError("map, position or field input unavailable or changed before action; no command submitted");
     });
    } catch(error){if(!(error instanceof NavigationPreconditionError))throw error;status=error.message;break;}
-   commands++;state=resultState(last);
+   commands++;state=resultState(last);blackout=state.blackout_receipt??blackout;
    if(!sameMap()){status="map changed; inspect destination";break;}
    if(!ready(state,mode)){status=ports.refusalReasons===true?`walk interrupted: ${unreadyReason(state)}`:"field input locked or unavailable; inspect new state";unready=true;break;}
    const after=state.position;if(after===null)throw new Error("Navigation position unavailable");
@@ -534,11 +535,16 @@ export function navigationTool(ports:NavigationPorts):AgentTool<typeof Args> {
    if(after.x!==before.x+delta[1]*span||after.y!==before.y+delta[2]*span){status="unexpected movement; inspect new state";break;}
    if(distance(after,goal)===0){status="arrived at requested coordinate";break;}
   }
-  last=await ports.observe(id,signal);state=resultState(last);
+  last=await ports.observe(id,signal);state=resultState(last);blackout=state.blackout_receipt??blackout;
+  // A composite navigation call can consume the one-shot receipt in an internal
+  // press and then replace that observation with a fresh one. Carry the event
+  // and its exact notice into the outer result for both recording and the model.
+  if(blackout!==undefined&&state.blackout_receipt===undefined)state={...state,blackout_receipt:blackout};
   // The cap text describes the observation returned with it: "call again" only when the walk can go on.
   // exit-reachability-v1: "call again" only when the goal (or a tile next to it) is on the server's foot area.
   if(truth&&status==="command limit"){const here=state.position;const cut=ports.exitReach===true&&exitBlock({surf:false,reach:true},state).footNear(goal.x,goal.y)===false;status=here!==null&&sameMap()&&ready(state,mode)?`command limit: stopped at ${at(here)} after ${String(commands)} ordinary button attempts, the most one navigate_to call makes; ${cut?`${at(goal)} cannot be reached on foot from where you stand: no walkable way on this map leads from your tile to it or to a tile next to it, so calling navigate_to again will not get there`:`call navigate_to again to continue to ${at(goal)}`}`:`command limit: stopped after ${String(commands)} ordinary button attempts, the most one navigate_to call makes; the field is no longer free to walk, so inspect the new state`;}
-  return {content:[{type:"text",text:`Navigation: ${status}; ${String(commands)} ordinary button attempts.`},...last.content],details:{state,navigation:{status,commands,target:goal,unready}}};
+  const carriesNotice=blackout!==undefined&&last.content.some(part=>part.type==="text"&&part.text.includes(blackout.notice));
+  return {content:[{type:"text",text:`Navigation: ${status}; ${String(commands)} ordinary button attempts.`},...(blackout===undefined||carriesNotice?[]:[{type:"text" as const,text:blackout.notice}]),...last.content],details:{state,navigation:{status,commands,target:goal,unready}}};
  }};
 }
 

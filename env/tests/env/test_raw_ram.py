@@ -68,6 +68,61 @@ def test_archive_failure_never_reuses_a_run(tmp_path):
     assert paired["raw_ram"] == receipt and paired["screenshot_sha256"] is None
 
 
+def test_pair_serializes_concurrent_route_writes(tmp_path, monkeypatch):
+    """Observation delivery and /state may pair against one archive concurrently."""
+    import threading
+    import time
+
+    archive = RawRamArchive(tmp_path, "a" * 40)
+    original_open = type(tmp_path).open
+    guard = threading.Lock()
+    active = 0
+    maximum = 0
+
+    class SlowFile:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return None
+
+        def write(self, _data):
+            nonlocal active, maximum
+            with guard:
+                active += 1
+                maximum = max(maximum, active)
+            time.sleep(0.05)
+            with guard:
+                active -= 1
+
+        def flush(self):
+            pass
+
+        def fileno(self):
+            return 1
+
+    def opened(path, *args, **kwargs):
+        if path.name == "observations.jsonl":
+            return SlowFile()
+        return original_open(path, *args, **kwargs)
+
+    monkeypatch.setattr(type(tmp_path), "open", opened)
+    monkeypatch.setattr("pokebench_env.raw_ram.os.fsync", lambda _fd: None)
+    start = threading.Barrier(3)
+
+    def pair(sequence):
+        start.wait()
+        archive.pair({"sequence": sequence}, {"screen": "overworld"}, None)
+
+    threads = [threading.Thread(target=pair, args=(sequence,)) for sequence in (1, 2)]
+    for thread in threads:
+        thread.start()
+    start.wait()
+    for thread in threads:
+        thread.join()
+    assert maximum == 1
+
+
 @pytest.mark.parametrize(
     "change",
     [

@@ -12,6 +12,10 @@ import type { GameStateSnapshot } from "./game-state.js";
 import type { SeenMilestone } from "./milestones.js";
 import { RecorderError, RunRecorder } from "./recorder.js";
 import { RunLog } from "./run-log.js";
+import {gameTools} from "./game-tools.js";
+import {withNavigation} from "./navigation.js";
+import {toolSwitches} from "./play-config.js";
+import {flagFeatures} from "./play-preset.js";
 
 
 const STATE: GameStateSnapshot = {
@@ -421,11 +425,44 @@ it("records a latched blackout receipt as one durable native activity", async ()
   };
   await recorder.start({ ...START_META, harness_features: ["native-progress-activity-v1", "blackout-readout-v1"] }, false);
   const before = recorder.recordState(state);
-  const delivered = recorder.recordState({ ...state, blackout_receipt: { frame: 81, money_before: 3000 } });
-  recorder.recordState({ ...state, blackout_receipt: { frame: 81, money_before: 3000 } });
+  const delivered = recorder.recordState({ ...state, blackout_receipt: { frame: 81, money_before: 3000, notice: "Whited out." } });
+  recorder.recordState({ ...state, blackout_receipt: { frame: 81, money_before: 3000, notice: "Whited out." } });
   expect(events(log).filter((event) => event.type === "activity" && event.kind === "blackout")).toEqual([
     expect.objectContaining({ count: 1, evidence: [before.seq, delivered.seq] }),
   ]);
+});
+
+it("preserves and records a one-shot blackout consumed inside production navigate_to", async () => {
+  const {recorder,log}=harness();
+  const notice="Whited out: your party had no usable Pokémon left, so the game took you back home.";
+  const tile=(x:number,y:number)=>({x,y,collision:0,behavior:0,elevation:3});
+  const field:GameStateSnapshot={...STATE,location:"ROUTE 103",map_id:[0,18],position:{x:0,y:0},facing:"right",field_controls_locked:false,blackout_active:false,game_stats:{pokemon_captures:0,evolved_pokemon:0,used_pokecenter:0,saved_game:0},party:[{identity:"12345678:9abcdef0",species:"TORCHIC",level:5,hp:20,max_hp:20}],navigation_grid:{elevation:3,tiles:[tile(0,0),tile(1,0)],objects:[],warps:[]}};
+  const home:GameStateSnapshot={...field,location:"HOME",map_id:[1,1],position:{x:2,y:2},blackout_receipt:{frame:81,money_before:3000,notice}};
+  let current=field,pending=false;
+  const png=(()=>{const b=Buffer.alloc(33);Buffer.from([137,80,78,71,13,10,26,10]).copy(b);b.writeUInt32BE(13,8);b.write("IHDR",12);b.writeUInt32BE(240,16);b.writeUInt32BE(160,20);return b.toString("base64");})();
+  const fetchFn:typeof fetch=(input)=>{
+    const url=typeof input==="string"?input:input instanceof URL?input.href:input.url;
+    if(url.endsWith("/action")){current=home;pending=true;return Promise.resolve(new Response(JSON.stringify({status:"success"})));}
+    if(url.endsWith("/queue_status"))return Promise.resolve(new Response(JSON.stringify({queue_empty:true})));
+    if(url.endsWith("/pokebench/state"))return Promise.resolve(new Response(JSON.stringify(current)));
+    if(url.endsWith("/pokebench/observation")){
+      const state=pending?home:{...home,blackout_receipt:undefined};pending=false;
+      return Promise.resolve(new Response(JSON.stringify({state_text:state.blackout_receipt===undefined?"Current field.":`${notice}\nCurrent field.`,screenshot_base64:png,state})));
+    }
+    throw new Error(`unexpected ${url}`);
+  };
+  const features={...flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false}),"bounded-navigation-v1":true,"blackout-readout-v1":true};
+  const base=gameTools("http://127.0.0.1",{beforePress:()=>undefined,afterPress:()=>Promise.resolve()},fetchFn,toolSwitches(features),{now:()=>0,sleep:()=>Promise.resolve()});
+  const nav=withNavigation(base,features,{read:()=>Promise.resolve(current)}).find(tool=>tool.name==="navigate_to");
+  if(nav===undefined)throw new Error("missing navigate_to");
+  await recorder.start({...START_META,harness_features:["native-progress-activity-v1","blackout-readout-v1"]},false);
+  await recorder.emit({type:"tool_execution_start",toolCallId:"n1",toolName:"navigate_to",args:{x:1,y:0,map_id:[0,18]}});
+  const result=await nav.execute("n1",{x:1,y:0,map_id:[0,18]});
+  await recorder.emit({type:"tool_execution_end",toolCallId:"n1",toolName:"navigate_to",result,isError:false});
+  const text=result.content.flatMap(part=>part.type==="text"?[part.text]:[]).join("\n");
+  expect(text).toContain(notice);
+  expect((result.details as {state:GameStateSnapshot}).state.blackout_receipt).toEqual(home.blackout_receipt);
+  expect(events(log).filter(event=>event.type==="activity"&&event.kind==="blackout")).toHaveLength(1);
 });
 
 it("records milestones from the exact observation snapshot and its persisted evidence ID", async () => {

@@ -438,6 +438,7 @@ export const StateBodySchema = Type.Object(
     blackout_receipt:Type.Optional(Type.Object({
       frame:NonNegativeInt,
       money_before:Type.Union([NonNegativeInt,Type.Null()]),
+      notice:Type.String({minLength:1}),
     },closed)),
     game_stats: Type.Optional(Type.Union([Type.Object({
       pokemon_captures:Type.Union([NonNegativeInt,Type.Null()]),

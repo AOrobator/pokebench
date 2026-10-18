@@ -300,11 +300,22 @@ function rejectionKey(call: CompletedCall): string | null {
   return `${call.name}:${call.text.replace(/(?:state\s*)?#\d+|state(?: sequence)?\s+\d+/gi, "state#").slice(0, 2000)}`;
 }
 
+function clockLookPlace(state: GameStateSnapshot): string | null {
+  if (state.story?.clock_set !== true) return null;
+  if (state.screen !== "clock") return null;
+  const phase = state.active_ui?.phase;
+  if (phase !== "clock_transition" && phase !== "clock_view") return null;
+  if (state.map_id === null || state.position === null) return null;
+  return JSON.stringify([state.location, state.map_id, state.position]);
+}
+
 export class LoopDetector {
   stopped = false;
   private planning = 0;
   private observations = 0;
   private ineffective = { key: "", count: 0 };
+  // clock-view-loop-v1: looks at the set wall clock (the minute ticks, so it is not part of the place).
+  private clockLooks = { place: "", count: 0 };
   private readonly rejections = new Map<string, number>();
   private previous: string | null = null;
   private readonly history: string[] = [];
@@ -387,6 +398,8 @@ export class LoopDetector {
     private readonly messageTruth = false,
     private readonly ineffectiveLoops = false,
     private readonly menuLoop = false,
+    // clock-view-loop-v1: a press whose result is the clock transition or the clock view.
+    private readonly clockViews = false,
   ) {}
 
   observe(event: RunEvent): void {
@@ -475,6 +488,26 @@ export class LoopDetector {
     return this.episode.menu && this.episode.briefing !== null && !guard.includes(BATTLE_MENU_LOOP_MESSAGE)
       ? `${guard}\n${BATTLE_MENU_LOOP_MESSAGE}`
       : guard;
+  }
+
+  // clock-view-loop-v1: the result is the clock transition or the clock view. The minute changes while
+  // the transition plays, so it is not part of the place. Closing the clock returns to the same tile
+  // and must not clear the count. Leaving that tile does. Setting the clock (adjustment, confirmation)
+  // is a different phase and does not count.
+  private noteClockLook(game: boolean, call: CompletedCall): boolean {
+    if (!this.clockViews || !game || call.state === undefined) return false;
+    if (call.name === "press") {
+      const look = clockLookPlace(call.state);
+      if (look !== null) {
+        this.clockLooks = look === this.clockLooks.place ? { place: look, count: this.clockLooks.count + 1 } : { place: look, count: 1 };
+        return this.clockLooks.count >= this.policy.ineffective;
+      }
+    }
+    if (call.state.screen === "overworld" && call.state.map_id !== null && call.state.position !== null) {
+      const place = JSON.stringify([call.state.location, call.state.map_id, call.state.position]);
+      if (place !== this.clockLooks.place) this.clockLooks = { place: "", count: 0 };
+    }
+    return false;
   }
 
   private restartedConversation(state: GameStateSnapshot | undefined, before: GameStateSnapshot | undefined): boolean {
@@ -597,6 +630,8 @@ export class LoopDetector {
         if(messageKey !== "" && this.messageVisits.filter(item=>item===messageKey).length >= this.policy.ineffective) hit ??= "cycle";
         const restarted = this.interactions && this.restartedConversation(call.state, call.beforeState);
         if (restarted) hit ??= "cycle";
+        const clockLoop = this.noteClockLook(game, call);
+        if (clockLoop) hit ??= "cycle";
         reopened = call.state?.world_context?.message?.ready === true || restarted;
         if (this.ineffective.count >= this.policy.ineffective)
           hit ??= "ineffective";

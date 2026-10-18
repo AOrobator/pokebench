@@ -95,7 +95,17 @@ export interface StoryLine {
 // One place a story line names: the quoted words, how they resolve (text as the block prints it after the quote),
 // and the map they resolve to (null when not resolved).
 export interface Resolved {readonly quote:string;readonly text:string;readonly target:Place|null}
-export interface StoryGoal {readonly line:StoryLine;readonly resolved:readonly Resolved[]}
+export interface StoryGoal {readonly line:StoryLine;readonly resolved:readonly Resolved[];readonly done?:boolean;readonly doneReason?:string}
+interface LedgerLine {readonly turn:number;readonly speaker:string;readonly text:string}
+
+// The middle of the retired-goal sentences. "Pokédex received" is the story checklist's own label.
+export function staleNote(reason="Pokédex received"):string {
+ return `Done: ${reason}. This is not where to go.`;
+}
+export const STALE_LAB_NOTE=staleNote();
+export function staleGoalLine(line:StoryLine,reason="Pokédex received"):string {
+ return `Story goal: none. ${line.speaker}'s line from turn ${String(line.turn)} ("${line.text}") is done: ${reason}. It is not where to go.`;
+}
 
 function namedIn(text:string):string[] {
  const out:string[]=[];
@@ -105,7 +115,9 @@ function namedIn(text:string):string[] {
 
 export class StoryDestinations {
  private readonly lines:StoryLine[]=[];
+ private readonly ledger:LedgerLine[]=[];
  private readonly pending=new Map<string,StoryLine[]>();
+ private readonly pendingLedger=new Map<string,LedgerLine[]>();
  // The story characters each recorded state's sprite kinds are (character-presence-v1's table by graphics id),
  // for states that show one, in recording order.
  private readonly sprites:{readonly seq:number;readonly map:MapId|null;readonly kinds:ReadonlyMap<string,string>}[]=[];
@@ -116,10 +128,16 @@ export class StoryDestinations {
    if(kinds.size>0)this.sprites.push({seq:event.seq,map:event.map_id,kinds});
    return;
   }
-  if(event.type==="dialogue_auto_advance"){this.pending.set(event.tool_call_id,this.storyLines(event.turn,event.pages));return;}
+  if(event.type==="dialogue_auto_advance"){
+   const lines=this.storyLines(event.turn,event.pages);
+   this.pending.set(event.tool_call_id,lines);
+   this.pendingLedger.set(event.tool_call_id,ledgerOf(event.turn,event.pages,lines));
+   return;
+  }
   if(event.type!=="tool_result")return;
   const lines=this.pending.get(event.id);this.pending.delete(event.id);
-  if(lines!==undefined&&!event.is_error)this.lines.push(...lines);
+  const said=this.pendingLedger.get(event.id);this.pendingLedger.delete(event.id);
+  if(lines!==undefined&&!event.is_error){this.lines.push(...lines);this.ledger.push(...(said??[]));}
  }
  private speaker(page:Page):string|null {
   if(page.speaker===null||page.speaker_source===null||page.speaker_source==="faced_target")return null;
@@ -163,8 +181,18 @@ export class StoryDestinations {
   }
   return null;
  }
+ // A later line the conversation ledger would quote (a story character, or a NAME: the game printed), after this one.
+ private newerThan(callId:string,line:StoryLine):LedgerLine|null {
+  let newer:LedgerLine|null=null;
+  for(const other of [...this.ledger,...(this.pendingLedger.get(callId)??[])]){
+   if(other.turn>line.turn&&(newer===null||other.turn>=newer.turn))newer=other;
+  }
+  return newer;
+ }
  // The latest story line naming a place, with each place it names resolved against the map table from map `here`.
- goal(here:MapId,player:string|null,callId:string,places:readonly Place[]):StoryGoal|null {
+ // retire: the story checklist and a later ledger line are newer than this quote. A finished milestone, or a
+ // later line, retires it. An older place line is not promoted into its slot.
+ goal(here:MapId,player:string|null,callId:string,places:readonly Place[],retire=false,story:GameStateSnapshot["story"]=null):StoryGoal|null {
   const heads=headsOf(places);
   const line=this.latest(callId,heads,player);
   if(line===null)return null;
@@ -182,26 +210,100 @@ export class StoryDestinations {
   }
   for(const phrase of placePhrases(line.text,heads,[...NAMES,...(player===null?[]:[player])]))
    resolved.push({quote:`"${phrase}"`,...resolve(words(phrase.split(" ")),places,here,"no map in the game's map table has this name.")});
-  return {line,resolved};
+  const targets=resolved.flatMap(r=>r.target===null?[]:[r.target]);
+  const doneReason=retire?retirement(targets,story??null,this.newerThan(callId,line)):null;
+  return doneReason===null?{line,resolved}:{line,resolved,done:true,doneReason};
  }
- block(state:GameStateSnapshot,callId:string,places:readonly Place[]|Error):string|null {
+ block(state:GameStateSnapshot,callId:string,places:readonly Place[]|Error,retireLab=false):string|null {
   if(!state.started||state.screen!=="overworld"||state.in_battle||state.map_id===null)return null;
   // Which line names a place depends on the map table's name endings, so without the table no line is
   // picked: one plain line instead of a guess or a looser rule.
   if(places instanceof Error)return this.latest(callId,null,state.name)===null?null:`${STORY_HEADER}: not known; the game's map table could not be read (${places.message}).`;
-  const goal=this.goal(state.map_id,state.name,callId,places);
+  const goal=this.goal(state.map_id,state.name,callId,places,retireLab,state.story??null);
   if(goal===null)return null;
-  return [`${STORY_HEADER} (turn ${String(goal.line.turn)}, ${goal.line.speaker}): "${goal.line.text}"`,...goal.resolved.map(r=>`- ${r.quote}${r.text}`)].join("\n");
+  const quote=`${STORY_HEADER} (turn ${String(goal.line.turn)}, ${goal.line.speaker}): "${goal.line.text}"`;
+  if(goal.done===true)return [quote,staleNote(goal.doneReason)].join("\n");
+  return [quote,...goal.resolved.map(r=>`- ${r.quote}${r.text}`)].join("\n");
  }
  // The readout with the block inserted after its Story line (after Location/Position without one).
- annotate(text:string,state:GameStateSnapshot,callId:string,places:readonly Place[]|Error):string {
+ annotate(text:string,state:GameStateSnapshot,callId:string,places:readonly Place[]|Error,retireLab=false):string {
   const anchor=/^Story: .*$/m.exec(text)??/^Location: .*$(?:\nPosition: .*$)?/m.exec(text);
   if(anchor===null)return text;
-  const block=this.block(state,callId,places);
+  const block=this.block(state,callId,places,retireLab);
   if(block===null)return text;
   const end=anchor.index+anchor[0].length;
   return `${text.slice(0,end)}\n${block}${text.slice(end)}`;
  }
+}
+
+function isBirchLab(place:Place):boolean {
+ const ws=new Set([...nameWords(place.name),...nameWords(place.display)]);
+ return [...ws].some(w=>w.includes("BIRCH"))&&ws.has("LAB");
+}
+
+const GENERIC=new Set(["THE","POKEMON","PROF","CITY","TOWN","MAP","HOUSE"]);
+function spokenText(page:Page):string {
+ const prefix=page.speaker===null?"":`${page.speaker}: `;
+ return (page.speaker_source==="name_prefix"&&page.text.startsWith(prefix)?page.text.slice(prefix.length):page.text).replace(/\s+/g," ").trim();
+}
+// Lines the conversation ledger would quote: story characters, and any NAME: the game printed.
+function ledgerOf(turn:number,pages:readonly Page[],story:readonly StoryLine[]):LedgerLine[] {
+ const out:LedgerLine[]=story.map(line=>({turn:line.turn,speaker:line.speaker,text:line.text}));
+ for(const page of pages){
+  if(page.battle_message_id!==undefined||page.battle_turn!==undefined)continue;
+  if(page.speaker_source!=="name_prefix"||page.speaker===null)continue;
+  const text=spokenText(page);
+  if(out.some(line=>line.speaker===page.speaker&&line.text===text))continue;
+  out.push({turn,speaker:page.speaker,text});
+ }
+ return out;
+}
+type StoryFacts=NonNullable<GameStateSnapshot["story"]>;
+// Checklist labels the readout already prints for a finished milestone (story.py text()). Trainer
+// "defeated" lines are not the place being finished, so they are not here.
+function checklistLabels(story:StoryFacts):string[] {
+ const out:string[]=[];
+ const lab=story.birch_lab_stage;
+ if(lab!==null&&lab>=2)out.push("Birch rescue complete");
+ if(lab!==null&&lab>=3)out.push("Birch starter handoff complete");
+ if(story.rival_battle_won===true)out.push("Route 103 rival battle won");
+ if(story.pokedex_received===true)out.push("Pokédex received");
+ if(story.running_shoes_received===true)out.push("running shoes received");
+ if(story.woods_stage===1)out.push("Petalburg Woods Aqua event complete");
+ if(story.rustboro_gym_complete===true)out.push("Rustboro Gym complete");
+ if(story.stone_badge===true)out.push("Stone Badge received");
+ return out;
+}
+function distinctive(place:Place):string[] {
+ return [...new Set([...nameWords(place.name),...nameWords(place.display)])].filter(w=>!GENERIC.has(w)&&!FLOOR.test(w));
+}
+// A checklist label covers a place when that place's words are exactly the place the label names.
+// "Pokédex received" is the checklist's own words for Birch's lab (the label does not say LAB).
+// Sharing one word is not enough: PETALBURG CITY is not Petalburg Woods, and RUSTBORO CITY is not the gym.
+const LABEL_PLACE:Readonly<Record<string,readonly string[]>>={
+ "Route 103 rival battle won":words(["ROUTE","103"]),
+ "Petalburg Woods Aqua event complete":words(["PETALBURG","WOODS"]),
+ "Rustboro Gym complete":words(["RUSTBORO","GYM"]),
+};
+function covers(label:string,place:Place):boolean {
+ if(label==="Pokédex received")return isBirchLab(place);
+ const named=LABEL_PLACE[label];
+ if(named===undefined)return false;
+ const dw=distinctive(place);
+ return dw.length===named.length&&named.every(w=>dw.includes(w));
+}
+function retirement(targets:readonly Place[],story:GameStateSnapshot["story"],newer:LedgerLine|null):string|null {
+ const labels=story===null||story===undefined?[]:checklistLabels(story);
+ const cited:string[]=[];
+ const covered=targets.length>0&&targets.every(target=>{
+  const hit=labels.findLast(label=>covers(label,target));
+  if(hit===undefined)return false;
+  if(!cited.includes(hit))cited.push(hit);
+  return true;
+ });
+ const newerText=newer===null?null:`${newer.speaker}'s line from turn ${String(newer.turn)} ("${newer.text}") is newer`;
+ if(covered)return newerText===null?cited.join("; "):`${cited.join("; ")}. ${newerText}`;
+ return newerText;
 }
 
 const same=(a:MapId,b:MapId)=>a[0]===b[0]&&a[1]===b[1];
@@ -261,7 +363,7 @@ export function withStoryDestinations(tools:readonly AgentTool[],features:Featur
   const index=result.content.findLastIndex(part=>part.type==="text"&&/^Location: /m.test(part.text));
   const part=result.content[index];
   if(part?.type!=="text")return result;
-  const content=[...result.content];content[index]={...part,text:story.annotate(part.text,state,id,await table(state.name??""))};
+  const content=[...result.content];content[index]={...part,text:story.annotate(part.text,state,id,await table(state.name??""),features["stale-story-goal-v1"])};
   return {...result,content};
  };
  return tools.map(tool=>{

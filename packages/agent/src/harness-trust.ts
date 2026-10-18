@@ -7,7 +7,7 @@ import type {AgentTool,AgentToolResult} from "@mariozechner/pi-agent-core";
 import {isCheckedPress,type CheckedPressTool} from "./game-tools.js";
 import {parseGameState,type GameStateSnapshot} from "./game-state.js";
 import type {RunEvent} from "./events.js";
-import {STORY_HEADER,StoryDestinations,PlacesBodySchema,type MapId,type Place,type PlaceSource,type StoryGoal} from "./story-destinations.js";
+import {STORY_HEADER,StoryDestinations,PlacesBodySchema,staleGoalLine,type MapId,type Place,type PlaceSource,type StoryGoal} from "./story-destinations.js";
 import {Value} from "typebox/value";
 import {exitBlock} from "./surf-gate.js";
 
@@ -32,6 +32,7 @@ const at=(p:{readonly x:number;readonly y:number})=>`(${String(p.x)},${String(p.
 export function goalLine(goal:StoryGoal|null,places:readonly Place[]|Error,anyLine:boolean):string {
  if(places instanceof Error)return anyLine?`Story goal: not known; the game's map table could not be read (${places.message}).`:"Story goal: no story character has named a place yet in this run.";
  if(goal===null)return "Story goal: no story character has named a place yet in this run.";
+ if(goal.done===true)return staleGoalLine(goal.line,goal.doneReason);
  const {line,resolved}=goal;
  return `Story goal: "${line.text}" (${line.speaker}, turn ${String(line.turn)}) -> ${resolved.map(r=>`${r.quote}${r.text}`).join(" ")}`;
 }
@@ -190,7 +191,7 @@ function stateOf(details:unknown):GameStateSnapshot|null {
 }
 
 // battleAction: harness-trust-v2 also heads battle_action results.
-export interface TrustOptions {readonly supervisor:boolean;readonly battleAction?:boolean;readonly goalOnce?:boolean}
+export interface TrustOptions {readonly supervisor:boolean;readonly battleAction?:boolean;readonly goalOnce?:boolean;readonly retireLab?:boolean}
 
 // The header (and any walk-away note) put at the top of the result's first text part.
 export class HarnessTrust {
@@ -200,12 +201,12 @@ export class HarnessTrust {
  observe(event:RunEvent):void {this.story.observe(event);}
  lines(text:string,state:GameStateSnapshot,callId:string,places:readonly Place[]|Error,own=false,seen=text):{readonly header:string;readonly away:StoryGoalAwayFacts|null} {
   const anyLine=this.story.latest(callId,null,state.name)!==null;
-  const goal=places instanceof Error||state.map_id===null?null:this.story.goal(state.map_id,state.name,callId,places);
+  const goal=places instanceof Error||state.map_id===null?null:this.story.goal(state.map_id,state.name,callId,places,this.options.retireLab===true,state.story??null);
   const characters=charactersLine(text);
   const exits=places instanceof Error?null:exitsLine(state,places);
-  const repeated=this.options.goalOnce===true&&goal!==null&&seen.includes(STORY_HEADER)&&seen.includes(`"${goal.line.text}"`);
+  const repeated=this.options.goalOnce===true&&goal!==null&&goal.done!==true&&seen.includes(STORY_HEADER)&&seen.includes(`"${goal.line.text}"`);
   const header=[TRUST_HEADER,...(repeated?[]:[goalLine(goal,places,anyLine)]),...(characters===null?[]:[characters]),...(exits===null?[]:[exits])].join("\n");
-  const away=this.options.supervisor&&!(places instanceof Error)?this.walk.observe(state,goal,places,own):null;
+  const away=this.options.supervisor&&!(places instanceof Error)?this.walk.observe(state,goal?.done===true?null:goal,places,own):null;
   return {header,away};
  }
 }

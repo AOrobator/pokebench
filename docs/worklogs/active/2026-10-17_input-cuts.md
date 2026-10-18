@@ -1,6 +1,6 @@
 # Worklog: input-cuts-v1
 
-Branch `input-cuts-v1`. The feature commit is on main `44c42815c1e7ed2ea743f20e5d016f881cb0d350`. This tip merges main `a0f669d4ba73dc2c4976e362b5118e43305bda62` (battle-menu-loop-v1). `input-cuts-v1` stays last in the registry. Local only. Land only after Claude, Grok, and GPT each return `VERDICT: LGTM` on the same frozen packet.
+Branch `input-cuts-v1`. The feature commit is on main `44c42815c1e7ed2ea743f20e5d016f881cb0d350`. This tip merges main `bcde8cd4ea2b8e2cb5b403be4d984eac830195ee` (clock-view-loop-v1, stale-story-goal-v1, and the preset fix that accepts both). `input-cuts-v1` stays last in the registry, after those two. Local only. Land only after Claude, Grok, and GPT each return `VERDICT: LGTM` on the same frozen packet.
 
 ## Problem
 
@@ -23,7 +23,7 @@ Removed `silenceMiss` and `goalOnce` from `playGameTools`. `input-cuts.test.ts` 
 
 ## Gates
 
-After merging main `a0f669d4`: agent tests 2375 passed, viewer tests 1138 passed, pytest 2707 passed. `just lint` clean. `just experiments-check`: ok, 106 experiments. `just verify-vendor`: vendor OK. `just pages-check` on the explainer prints nothing. Coverage: agent statements 98.02, branches 94.14, functions 98.28, lines 99.24; viewer statements 95.36, branches 91.38, functions 93.79, lines 97.62; Python lines 97.66, branches 93.82, functions 100. Floor 90.
+After merging main `bcde8cd4`: agent tests 2400 passed, viewer tests 1141 passed, pytest 2707 passed. `just lint` clean. `just experiments-check`: ok, 106 experiments. `just verify-vendor`: vendor OK. `just pages-check` on the explainer prints nothing. Coverage: agent statements 98.01, branches 94.18, functions 98.30, lines 99.25; viewer statements 95.36, branches 91.38, functions 93.79, lines 97.62; Python lines 97.66, branches 93.82, functions 100. Floor 90. The viewer coverage run used a 15 second test timeout; under the default 5 second timeout the pre-existing long-stream test sits next to the limit and timed out once, then passed alone. The non-coverage viewer suite passed at the default timeout.
 
 ## Principles
 
@@ -33,6 +33,8 @@ PB1 N/A, no run result. PB2 N/A, nothing launched. PB3 N/A, no improvement claim
 
 Round 2 found that `goalOnce` read only the first text part. A `navigate_to` result puts `Navigation:` there and the story-destinations block in a later part, so the Story goal line was still added. The check now reads every text part of a `navigate_to` result. Characters still come from the first part. Observe and press are unchanged. The production test asserts the ON `navigate_to` result contains the destinations header and not `Story goal:`.
 
+A retired goal is not treated as a repeated Story goal. Its header is the stale line, which is not a duplicate of the destinations block. `goalOnce` and `retireLab` are both passed from `playGameTools`.
+
 ## Not in this branch
 
-`stale-story-goal-v1` stays on its own branch. It is not merged here. The soft input band is not implemented.
+The soft input band is not implemented.

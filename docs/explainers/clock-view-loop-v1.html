@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Clock view loop</title>
+<style>
+:root{
+ --bg:#f7f6f2; --fg:#1c1d1f; --soft:#5b5d61; --rule:#dedcd5; --panel:#ffffff;
+ --game:#1a7f5a; --game-bg:#e3f4ec; --prior:#c2432f; --prior-bg:#fbe7e2; --nav:#2a62c9; --nav-bg:#e4edfb;
+ --body:system-ui,-apple-system,"Segoe UI",sans-serif; --mono:ui-monospace,"SF Mono",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+ --bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; color-scheme:dark}}
+:root[data-theme="dark"]{
+ --bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; color-scheme:dark}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.6 var(--body);padding:0 16px}
+main{max-width:740px;margin:0 auto;padding:40px 0 64px;display:flex;flex-direction:column;gap:34px}
+h1{font-size:2.2rem;line-height:1.15;margin:0}
+h2{font-size:1.3rem;margin:0}
+p{margin:0;max-width:66ch}
+.eyebrow{font:500 .75rem var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--soft)}
+.lede{font-size:1.08rem;color:var(--soft)}
+section{display:flex;flex-direction:column;gap:12px}
+figure{margin:0;display:flex;flex-direction:column;gap:8px}
+.scroll{overflow-x:auto}
+svg{display:block;height:auto}
+.scroll svg{width:700px;max-width:none}
+figcaption{font-size:.88rem;color:var(--soft)}
+svg text{font-family:var(--body);font-size:12px;fill:var(--fg)}
+svg .s{fill:var(--soft);font-size:11px}
+svg .t{font-weight:600;font-size:13px}
+.box{fill:var(--panel);stroke:var(--rule)}
+.game{fill:var(--game-bg);stroke:var(--game)}
+.prior{fill:var(--prior-bg);stroke:var(--prior)}
+.navb{fill:var(--nav-bg);stroke:var(--nav)}
+.arr{stroke:var(--soft);stroke-width:1.5;fill:none;marker-end:url(#arrow)}
+code{font-family:var(--mono);font-size:.9em}
+</style>
+</head>
+<body>
+<main>
+<p class="eyebrow">clock-view-loop-v1 · guard · bundle arm only · default off</p>
+<h1>Clock view loop</h1>
+<p class="lede">After the clock is set, opening it again lands the result on a transition the loop guard does not treat as an interface. Closing it and opening it again never added up.</p>
+
+<section>
+<h2>What the run did</h2>
+<p>On <code>2026-10-17T21-38-43_qwen36-gpu1_c18f</code> (the bundle arm), the clock was set at turn 110. From turn 114 through 138 the player stood at (5,2) facing the clock and pressed A thirteen times. Each opening press ended while the clock was still transitioning. The controls were “Clock transition; selection input is not active”, and the minute was ticking. The next A closed it. The controls on the view that followed were “A or B closes clock.” No loop-guard event fired in that window. The guard had already fired while the clock was being set.</p>
+<figure>
+<div class="scroll">
+<svg viewBox="0 0 700 168" width="700" height="168" role="img" aria-label="One reopen: A ends on the clock transition, the next A closes it">
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 1.2 L 8 5 L 0 8.8 z" fill="currentColor"/></marker></defs>
+<rect class="navb" x="8" y="28" width="150" height="72" rx="8"/>
+<text class="t" x="20" y="52">Press A</text>
+<text class="s" x="20" y="72">facing the clock</text>
+<text class="s" x="20" y="88">(5,2)</text>
+<rect class="prior" x="198" y="16" width="230" height="96" rx="8"/>
+<text class="t" x="210" y="40">Result: clock transition</text>
+<text class="s" x="210" y="62">input not ready</text>
+<text class="s" x="210" y="78">minute ticks, 9:58 then 10:02</text>
+<text class="s" x="210" y="98">guard used to stop here</text>
+<rect class="game" x="468" y="28" width="220" height="72" rx="8"/>
+<text class="t" x="480" y="52">Next A closes it</text>
+<text class="s" x="480" y="72">A or B closes clock</text>
+<text class="s" x="480" y="88">same tile again</text>
+<path class="arr" d="M 158 64 H 194"/>
+<path class="arr" d="M 428 64 H 464"/>
+</svg>
+</div>
+<figcaption>One cycle from the recorded run. The opening result is the clock transition. The close puts the player back on the same tile, so the next A opens it again.</figcaption>
+</figure>
+</section>
+
+<section>
+<h2>What the switch counts</h2>
+<p>Clock adjustment and the YES/NO confirmation already count: those results are a ready interface. This switch adds the look after the clock is set. A press whose result is the clock transition or the clock view counts once at that place. The minute is ignored. The third such result raises the cycle warning and the supervisor briefing. The threshold is the guard's existing ineffective count, 3.</p>
+<figure>
+<div class="scroll">
+<svg viewBox="0 0 700 120" width="700" height="120" role="img" aria-label="Three openings, warning on the third">
+<rect class="box" x="16" y="24" width="200" height="56" rx="8"/>
+<text class="t" x="28" y="48">Opening 1</text>
+<text class="s" x="28" y="66">count 1</text>
+<rect class="box" x="246" y="24" width="200" height="56" rx="8"/>
+<text class="t" x="258" y="48">Opening 2</text>
+<text class="s" x="258" y="66">count 2</text>
+<rect class="prior" x="476" y="24" width="208" height="56" rx="8"/>
+<text class="t" x="488" y="48">Opening 3</text>
+<text class="s" x="488" y="66">cycle warning</text>
+</svg>
+</div>
+<figcaption>Off, all thirteen openings on that run stayed silent. On, the warning is the third opening. Closing the clock, still on the same tile, does not clear the count.</figcaption>
+</figure>
+<p>Setting the clock does not count. One look does not count. Leaving that tile starts over. Off, a result on the clock transition or the clock view does not count.</p>
+</section>
+
+<section>
+<h2>Status</h2>
+<p>Default off. On in the bundle arm of <code>bundle-v-control</code>, off in the control arm. Pending experiment <code>clock-view-loop</code>, not queued and not measured on its own. The cook already running keeps the build it started on; this switch does not change it.</p>
+</section>
+</main>
+</body>
+</html>

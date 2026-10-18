@@ -444,6 +444,7 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "surf-gated-exits-v2":"surf-gated-exits-v2.html",
  "instruction-ledger-v2":"instruction-ledger-v2.html",
  "no-exit-here-v1":"no-exit-here-v1.html",
+ "bag-healing-items-v1":"bag-healing-items-v1.html",
 });
 
 export function harnessConfig(view:RunView,registry:readonly FeatureInfo[]=[]):string {

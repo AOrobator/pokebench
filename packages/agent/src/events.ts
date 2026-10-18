@@ -238,6 +238,8 @@ const HealBeforeTrainersWarningEvent = event("heal_before_trainers_warning", {
   heal: Type.Union([Type.Object({ kind: Type.Enum(["pokemon_center", "home"]), town: Type.String({ minLength: 1 }), map_id: Type.Tuple([Type.Integer(), Type.Integer()]), hops: NonNegativeInt }, closed), Type.Null()]),
   mom_heals: Type.Boolean(),
   money: Type.Union([NonNegativeInt, Type.Null()]),
+  // bag-healing-items-v1 only: the BAG items the paragraph names, with the game's description of each.
+  items: Type.Optional(Type.Array(Type.Object({ name: Type.String({ minLength: 1 }), quantity: Type.Integer({ minimum: 1 }), description: Type.String({ minLength: 1 }) }, closed), { maxItems: 186 })),
   text: Type.String({ minLength: 1 }),
 });
 

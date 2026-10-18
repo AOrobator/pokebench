@@ -97,3 +97,4 @@ The original ignored runs/explainers copies remain for existing links. Make futu
 - [Surf-gated exits v2](surf-gated-exits-v2.html)
 - [Conversation ledger](instruction-ledger-v2.html)
 - [No exit here](no-exit-here-v1.html)
+- [Heal before trainers: BAG items](bag-healing-items-v1.html)

@@ -188,6 +188,7 @@ export type WeakReason=
  |{readonly kind:"lead_below_half";readonly species:string;readonly hp:number;readonly max_hp:number}
  |{readonly kind:"lead_no_pp";readonly species:string;readonly moves:readonly string[]};
 export interface HealPlace {readonly kind:"pokemon_center"|"home";readonly town:string;readonly map_id:readonly [number,number];readonly hops:number}
+export interface BagHealingItem {readonly name:string;readonly quantity:number;readonly description:string}
 export interface HealBeforeTrainersFacts {
  readonly map_id:readonly [number,number];
  readonly trainers:readonly {readonly local_id:number;readonly x:number;readonly y:number;readonly sprite_kind:string|null}[];
@@ -195,6 +196,8 @@ export interface HealBeforeTrainersFacts {
  readonly heal:HealPlace|null;
  readonly mom_heals:boolean;
  readonly money:number|null;
+ // bag-healing-items-v1 only: the BAG items that answer the weaknesses named.
+ readonly items?:readonly BagHealingItem[];
 }
 export interface HealContext {readonly entered:ReadonlySet<string>;readonly places:readonly Place[]|null;readonly skip:"story"|null}
 
@@ -280,6 +283,59 @@ export function healBeforeTrainers(state:GameStateSnapshot,ctx:HealContext):Heal
  return {map_id:[state.map_id[0],state.map_id[1]],trainers,weak,heal:ctx.places===null?null:nearestHeal(state,ctx,ctx.places),mom_heals:facts.mom_heals,money:state.money};
 }
 
+// bag-healing-items-v1: the BAG items whose field use (ItemUseOutOfBattle_Medicine, ItemUseOutOfBattle_PPRecovery in
+// pokeemerald src/data/items.h) answers a weakness the paragraph names, with the game's description of each
+// (src/data/text/item_descriptions.h, its line breaks as spaces). HP items for a lead below half, revival items for a
+// fainted Pokémon, PP items for a lead out of PP. Status items are left out, as the weaknesses are.
+const HP_DESCRIPTIONS={
+ "POTION":"Restores the HP of a POKéMON by 20 points.",
+ "SUPER POTION":"Restores the HP of a POKéMON by 50 points.",
+ "HYPER POTION":"Restores the HP of a POKéMON by 200 points.",
+ "MAX POTION":"Fully restores the HP of a POKéMON.",
+ "FULL RESTORE":"Fully restores the HP and status of a POKéMON.",
+ "FRESH WATER":"A mineral water that restores HP by 50 points.",
+ "SODA POP":"A fizzy soda drink that restores HP by 60 points.",
+ "LEMONADE":"A very sweet drink that restores HP by 80 points.",
+ "MOOMOO MILK":"A nutritious milk that restores HP by 100 points.",
+ "ENERGYPOWDER":"A bitter powder that restores HP by 50 points.",
+ "ENERGY ROOT":"A bitter root that restores HP by 200 points.",
+ "BERRY JUICE":"A 100% pure juice that restores HP by 20 points.",
+ "ORAN BERRY":"A hold item that restores 10 HP in battle.",
+ "SITRUS BERRY":"A hold item that restores 30 HP in battle.",
+} as const;
+const REVIVE_DESCRIPTIONS={
+ "REVIVE":"Revives a fainted POKéMON with half its HP.",
+ "MAX REVIVE":"Revives a fainted POKéMON with all its HP.",
+ "REVIVAL HERB":"A very bitter herb that revives a fainted POKéMON.",
+} as const;
+const PP_DESCRIPTIONS={
+ "ETHER":"Restores the PP of a selected move by 10.",
+ "MAX ETHER":"Fully restores the PP of a selected move.",
+ "ELIXIR":"Restores the PP of all moves by 10.",
+ "MAX ELIXIR":"Fully restores the PP of a POKéMON's moves.",
+ "LEPPA BERRY":"A hold item that restores 10 PP in battle.",
+} as const;
+export const BAG_ITEM_DESCRIPTIONS:Readonly<Record<string,string>>={...HP_DESCRIPTIONS,...REVIVE_DESCRIPTIONS,...PP_DESCRIPTIONS};
+const FOR_WEAKNESS:Readonly<Record<WeakReason["kind"],Readonly<Record<string,string>>>>={lead_below_half:HP_DESCRIPTIONS,fainted:REVIVE_DESCRIPTIONS,lead_no_pp:PP_DESCRIPTIONS};
+
+// The BAG's items, in BAG order, that answer one of these weaknesses.
+export function bagHealingItems(state:GameStateSnapshot,weak:readonly WeakReason[]):BagHealingItem[] {
+ const wanted=weak.map(w=>FOR_WEAKNESS[w.kind]);
+ return (state.resources?.bag??[]).flatMap(i=>{
+  const name=i.name;
+  if(name==null||i.quantity<=0)return [];
+  const description=wanted.find(d=>Object.hasOwn(d,name))?.[name];
+  return description===undefined?[]:[{name,quantity:i.quantity,description}];
+ });
+}
+
+// gText_MenuBag "BAG" (the START menu), the battle menu's BAG, gMenuText_Use "USE" in both BAG context menus
+// (sContextMenuItems_ItemsPocket, sContextMenuItems_BattleUse in src/item_menu.c) and the party menu's
+// PARTY_MSG_USE_ON_WHICH_MON, gText_UseOnWhichPokemon.
+const USE_ITEM="To use one, choose BAG (on the START menu, or on the battle menu in a battle), then the item and USE; the game asks \"Use on which POKéMON?\"";
+const listed=(parts:readonly string[]):string=>parts.length<=2?parts.join(" and "):`${parts.slice(0,-1).join(", ")} and ${parts.at(-1)??""}`;
+const bagSentence=(items:readonly BagHealingItem[]):string=>` Your BAG has ${listed(items.map(i=>`${i.name} ×${String(i.quantity)} ("${i.description}")`))}. ${USE_ITEM}`;
+
 const NO_RUNNING="In a trainer battle the game says \"No! There's no running from a TRAINER battle!\"";
 export function healBeforeTrainersText(f:HealBeforeTrainersFacts):string {
  const list=f.trainers.map(t=>`object ${String(t.local_id)}, sprite ${t.sprite_kind??"unknown"}, at (${String(t.x)},${String(t.y)})`).join("; ");
@@ -290,7 +346,8 @@ export function healBeforeTrainersText(f:HealBeforeTrainersFacts):string {
  const h=f.heal;
  const where=h===null?`Heal before you battle: the nurse at a POKéMON CENTER heals your whole party${f.mom_heals?", and so does MOM at home":""}.`
   :`The nearest place you have been to that heals your party is ${h.kind==="pokemon_center"?"the POKéMON CENTER":"your house"} in ${h.town} (map ${keyOf(h.map_id)}), ${String(h.hops)} map change${h.hops===1?"":"s"} from here in the game's map table${h.kind==="pokemon_center"?"; its nurse says \"We restore your tired POKéMON to full health.\"":", where MOM says \"I think you should rest a bit.\" and heals your party."}`;
- return `SUPERVISOR: ${who} Your party is weak for a battle: ${weak}. ${NO_RUNNING} ${blackout(f.money)} ${where}`;
+ const bag=f.items===undefined||f.items.length===0?"":bagSentence(f.items);
+ return `SUPERVISOR: ${who} Your party is weak for a battle: ${weak}. ${NO_RUNNING} ${blackout(f.money)} ${where}${bag}`;
 }
 
 // The arm: names each unbeaten trainer once while the party stays weak on this map (a trainer that loads later is named
@@ -302,7 +359,7 @@ export class HealBeforeTrainers {
  private warned=new Set<number>();
  private map:string|null=null;
  private battled=false;
- constructor(private readonly options:{readonly skipStory:boolean;readonly places:()=>Promise<readonly Place[]|null>}){}
+ constructor(private readonly options:{readonly skipStory:boolean;readonly places:()=>Promise<readonly Place[]|null>;readonly items?:boolean}){}
  async observe(state:GameStateSnapshot|undefined):Promise<HealBeforeTrainersFacts|null> {
   if(state===undefined)return null;
   if(state.map_id!==null&&state.location?.endsWith(CENTER)===true)this.entered.add(keyOf(state.map_id));
@@ -321,7 +378,8 @@ export class HealBeforeTrainers {
   // Without a trainer battle since the last warning, only the trainers not yet named are named.
   const fresh=facts.trainers.filter(t=>!this.warned.has(t.local_id));
   if(!this.battled&&fresh.length===0)return null;
-  const named={...facts,trainers:this.battled?facts.trainers:fresh};
+  const trainers=this.battled?facts.trainers:fresh;
+  const named:HealBeforeTrainersFacts=this.options.items===true?{...facts,trainers,items:bagHealingItems(state,facts.weak)}:{...facts,trainers};
   for(const t of facts.trainers)this.warned.add(t.local_id);
   this.battled=false;
   const places=await this.options.places();
@@ -371,7 +429,7 @@ export function withLowHpTrainerWarning(tools:readonly AgentTool[],features:Feat
  if(features["heal-before-trainers-v1"]){
   const record=recorder.healBeforeTrainersWarning?.bind(recorder);
   if(record===undefined)throw new Error("heal-before-trainers-v1 needs a recorder for heal_before_trainers_warning events");
-  const heal=new HealBeforeTrainers({skipStory:features["low-hp-trainer-warning-v2"],places:placesOnce(source)});
+  const heal=new HealBeforeTrainers({skipStory:features["low-hp-trainer-warning-v2"],places:placesOnce(source),items:features["bag-healing-items-v1"]});
   rules.push(async state=>{const facts=await heal.observe(state);if(facts===null)return null;const text=healBeforeTrainersText(facts);return {text,record:tool=>{record(tool,facts,text);}};});
  }
  return tools.map(tool=>({...tool,execute:async(...args:Parameters<AgentTool["execute"]>)=>{

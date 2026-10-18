@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BAG Healing Items</title>
+<style>
+:root{
+ --bg:#f7f6f2; --fg:#1c1d1f; --soft:#5b5d61; --rule:#dedcd5; --panel:#ffffff;
+ --game:#1a7f5a; --game-bg:#e3f4ec; --prior:#c2432f; --prior-bg:#fbe7e2; --nav:#2a62c9; --nav-bg:#e4edfb; --hot:#c2432f;
+ --body:system-ui,-apple-system,"Segoe UI",sans-serif; --mono:ui-monospace,"SF Mono",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+ --bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; --hot:#ff7a63; color-scheme:dark}}
+:root[data-theme="dark"]{
+ --bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; --hot:#ff7a63; color-scheme:dark}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.6 var(--body);padding:0 16px}
+main{max-width:760px;margin:0 auto;padding:40px 0 64px;display:flex;flex-direction:column;gap:34px}
+h1{font-size:2.2rem;line-height:1.15;margin:0}
+h2{font-size:1.3rem;margin:0}
+p{margin:0;max-width:68ch}
+ul{margin:0;padding-left:20px}
+.eyebrow{font:500 .75rem var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--soft)}
+.lede{font-size:1.08rem;color:var(--soft)}
+section{display:flex;flex-direction:column;gap:12px}
+figure{margin:0;display:flex;flex-direction:column;gap:8px}
+.scroll{overflow-x:auto}
+svg{display:block;max-width:100%;height:auto}
+@media (max-width:600px){.scroll svg{max-width:none;width:640px}}
+figcaption{font-size:.88rem;color:var(--soft)}
+svg text{font-family:var(--body);font-size:12px;fill:var(--fg)}
+svg .s{fill:var(--soft);font-size:11px}
+svg .t{font-weight:600;font-size:13px}
+svg .m{font-family:var(--mono);font-size:11px}
+.box{fill:var(--panel);stroke:var(--rule)}
+.game{fill:var(--game-bg);stroke:var(--game)}
+.prior{fill:var(--prior-bg);stroke:var(--prior)}
+.nav{fill:var(--nav-bg);stroke:var(--nav)}
+.hot{stroke:var(--hot);stroke-width:2.2}
+.arr{stroke:var(--soft);stroke-width:1.5;fill:none}
+.arr.g{stroke:var(--game);stroke-width:2.4}
+pre{background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:14px;white-space:pre-wrap;font:13px/1.5 var(--mono);margin:0}
+code{font:500 .88em var(--mono);background:var(--panel);border:1px solid var(--rule);border-radius:4px;padding:0 4px}
+table{border-collapse:collapse;width:100%;font-size:.92rem}
+th,td{text-align:left;padding:7px 9px;border-bottom:1px solid var(--rule);vertical-align:top}
+th{font:500 .75rem var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--soft)}
+.tablewrap{overflow-x:auto}
+.label{font:500 .75rem var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--soft)}
+mark{background:var(--game-bg);color:var(--fg);border-bottom:2px solid var(--game)}
+</style>
+</head>
+<body>
+<main>
+<div>
+<div class="eyebrow">Harness switch · guard · <code>bag-healing-items-v1</code> · needs <code>heal-before-trainers-v1</code> · agent side only · bundle arm only · off by default</div>
+<h1>Heal before trainers: BAG items</h1>
+</div>
+<p class="lede">The model could see its POTION all along, but nothing ever connected it to the weak lead in front of a trainer. With this switch on, the heal-before-trainers paragraph also names the BAG items that fix the weakness it names, with the game's own description of each, and how the game uses one.</p>
+
+<section>
+<h2>What the audit found</h2>
+<p>Read-only forensics on the 12 runs of 2026-10-17 (12:50 AM to 7:38 PM New York), main checkout <code>runs/</code>.</p>
+<ul>
+<li><b>The model saw the item.</b> From seq 15989 on, every e046 tool result had <code>Bag: POTION ×1; POKé BALL ×5; GREAT BALL ×1; TM09 ×1</code>, on the field and in battle. That line is decoded from the SaveBlock1 bag pockets, with each quantity XOR the save's encryption key. A separate decode of raw-RAM archive <code>00008958</code> (the state at seq 16287) gives item 13 (ITEM_POTION) ×1, POKé BALL ×5 and GREAT BALL ×1, so the line was right.</li>
+<li><b>In battle it was listed as usable.</b> battle-details-v2: <code>BAG allowed — has a battle use (whether it does anything now is not checked): POTION ×1</code> (e046 seq 16212).</li>
+<li><b>The heal advice named no item.</b> Before the LASS battle the only heal advice the model got was battle-triage's line (seq 16289 and 16362): <code>Your TORCHIC has 14/38 HP (below half). Talking to the nurse at a POKéMON CENTER heals your whole party; so does talking to MOM at home.</code> heal-before-trainers-v1 also names only a POKéMON CENTER or MOM ("items are not judged"). Only the Route 103 rival and story-battle warnings name BAG items.</li>
+<li><b>battle_action stops at the BAG.</b> battle-move-tool-v1's <code>bag</code> opens the BAG screen and leaves choosing the item to <code>press</code>.</li>
+<li><b>No model used a healing item.</b> Across all 12 runs there were 0 real uses. Every POTION that disappeared belonged to the bag the game lends during the Wally catch tutorial (<code>Party (tutorial)</code>, for example e046 seq 11843 to 11898). Outside battle no run opened the BAG. In battle the BAG was opened by mistake: e0cc seq 13032 to 13149 pressed into the BAG again and again while trying to choose EMBER. Trainer battles that started with the lead below half and a POTION in the BAG: e046 twice (seq 16138 at 17/38, seq 16400 at 14/38) and e0cc five times (seq 9839, 9885, 12816, 12970, 13032). Once, at e0cc seq 9609, the model's reasoning considered the POTION, and then it battled anyway.</li>
+</ul>
+<figure><div class="scroll"><svg viewBox="0 0 840 130" width="840" role="img" aria-label="e046 on ROUTE104 with the unused POTION">
+<line x1="20" y1="60" x2="830" y2="60" class="arr"/>
+<rect x="20" y="104" width="790" height="14" rx="4" class="game"/><text x="30" y="115" class="s">Bag: POTION ×1 on every result in this stretch (never used)</text>
+<g><circle cx="50" cy="60" r="6" class="box"/><text x="32" y="38" class="t">15131</text><text x="10" y="86" class="s">"BREWES found one POTION!"</text></g>
+<g><circle cx="230" cy="60" r="7" class="game hot"/><text x="212" y="38" class="t">16066</text><text x="190" y="86" class="s">warning: RICH_BOY, 17/38</text></g>
+<g><rect x="330" y="50" width="96" height="20" rx="4" class="nav"/><text x="358" y="38">16137</text><text x="336" y="64" class="s">battle: WINSTON</text><text x="346" y="86" class="s">won, 14/38</text></g>
+<g><circle cx="500" cy="60" r="7" class="game hot"/><text x="482" y="38" class="t">16287</text><text x="456" y="86" class="s">warning: LASS, 14/38</text></g>
+<g><rect x="600" y="50" width="88" height="20" rx="4" class="prior"/><text x="624" y="38">16399</text><text x="610" y="64" class="s">battle: HALEY</text><text x="632" y="86" class="s">lost</text></g>
+<g><circle cx="780" cy="60" r="6" class="box"/><text x="762" y="38">16828</text><text x="726" y="86" class="s">OLDALE TOWN, whited out</text></g>
+</svg></div><figcaption>e046 picked up the POTION at seq 15131 and still had it when it whited out. Red-ringed dots are the two places heal-before-trainers-v1 fires on these recorded states; with this switch on, both paragraphs also name the POTION (test "replays e046 with items on").</figcaption></figure>
+</section>
+
+<section>
+<h2>What the model reads, off and on</h2>
+<p class="label">Off: heal-before-trainers-v1's paragraph at e046 seq 16287, byte for byte</p>
+<pre>SUPERVISOR: A trainer you have not beaten is on this map: object 3, sprite LASS, at (31,24). Your party is weak for a battle: TORCHIC, your lead, has 14/38 HP (below half). In a trainer battle the game says "No! There's no running from a TRAINER battle!" If your party faints, you black out: you lose half your money (₽2584 of ₽5168) and wake up back at the last POKéMON CENTER you entered, or at home. The nearest place you have been to that heals your party is the POKéMON CENTER in OLDALE TOWN (map 2/2), 4 map changes from here in the game's map table; its nurse says "We restore your tired POKéMON to full health."</pre>
+<p class="label">On: the same paragraph, then one more sentence (exact text from the test, from e046's recorded state)</p>
+<pre>… its nurse says "We restore your tired POKéMON to full health." <mark>Your BAG has POTION ×1 (&quot;Restores the HP of a POKéMON by 20 points.&quot;). To use one, choose BAG (on the START menu, or on the battle menu in a battle), then the item and USE; the game asks "Use on which POKéMON?"</mark></pre>
+<p>If there are several items, each gets its count and description, in BAG order: <code>Your BAG has POTION ×1 ("…") and REVIVE ×1 ("Revives a fainted POKéMON with half its HP.").</code> If the BAG holds no item that fixes a named weakness, the paragraph is heal-before-trainers-v1's unchanged. The sentence names no item the player does not have, and adds no advice about whether to use it.</p>
+</section>
+
+<section>
+<h2>Which items it names</h2>
+<figure><div class="scroll"><svg viewBox="0 0 700 200" width="700" role="img" aria-label="Weakness to item kind">
+<rect x="10" y="20" width="200" height="44" rx="8" class="prior"/><text x="22" y="47" class="t">lead below half HP</text>
+<rect x="10" y="80" width="200" height="44" rx="8" class="prior"/><text x="22" y="107" class="t">a Pokémon fainted</text>
+<rect x="10" y="140" width="200" height="44" rx="8" class="prior"/><text x="22" y="167" class="t">lead's damaging moves at 0 PP</text>
+<rect x="300" y="20" width="390" height="44" rx="8" class="game"/><text x="312" y="40" class="t">HP items</text><text x="312" y="56" class="s">POTION, SUPER/HYPER/MAX POTION, FULL RESTORE, FRESH WATER, SODA POP, …, ORAN, SITRUS BERRY</text>
+<rect x="300" y="80" width="390" height="44" rx="8" class="game"/><text x="312" y="100" class="t">revival items</text><text x="312" y="116" class="s">REVIVE, MAX REVIVE, REVIVAL HERB</text>
+<rect x="300" y="140" width="390" height="44" rx="8" class="game"/><text x="312" y="160" class="t">PP items</text><text x="312" y="176" class="s">ETHER, MAX ETHER, ELIXIR, MAX ELIXIR, LEPPA BERRY</text>
+<path class="arr g" d="M210 42 H300"/><path class="arr g" d="M210 102 H300"/><path class="arr g" d="M210 162 H300"/>
+</svg></div><figcaption>Each weakness heal-before-trainers-v1 names maps to the items whose field use fixes it (<code>fieldUseFunc</code> ItemUseOutOfBattle_Medicine or ItemUseOutOfBattle_PPRecovery in src/data/items.h). Status items are not named, because status is not one of the weaknesses. A POTION is never named for a fainted Pokémon.</figcaption></figure>
+<div class="tablewrap"><table>
+<tr><th>Item</th><th>The game's description (item_descriptions.h, line breaks as spaces)</th></tr>
+<tr><td>POTION</td><td>Restores the HP of a POKéMON by 20 points.</td></tr>
+<tr><td>SUPER POTION</td><td>Restores the HP of a POKéMON by 50 points.</td></tr>
+<tr><td>HYPER POTION</td><td>Restores the HP of a POKéMON by 200 points.</td></tr>
+<tr><td>MAX POTION</td><td>Fully restores the HP of a POKéMON.</td></tr>
+<tr><td>FULL RESTORE</td><td>Fully restores the HP and status of a POKéMON.</td></tr>
+<tr><td>FRESH WATER / SODA POP / LEMONADE / MOOMOO MILK</td><td>… restores HP by 50 / 60 / 80 / 100 points.</td></tr>
+<tr><td>ENERGYPOWDER / ENERGY ROOT / BERRY JUICE</td><td>… restores HP by 50 / 200 / 20 points.</td></tr>
+<tr><td>ORAN BERRY / SITRUS BERRY</td><td>A hold item that restores 10 / 30 HP in battle.</td></tr>
+<tr><td>REVIVE / MAX REVIVE</td><td>Revives a fainted POKéMON with half / all its HP.</td></tr>
+<tr><td>REVIVAL HERB</td><td>A very bitter herb that revives a fainted POKéMON.</td></tr>
+<tr><td>ETHER / MAX ETHER</td><td>Restores the PP of a selected move by 10. / Fully restores the PP of a selected move.</td></tr>
+<tr><td>ELIXIR / MAX ELIXIR</td><td>Restores the PP of all moves by 10. / Fully restores the PP of a POKéMON's moves.</td></tr>
+<tr><td>LEPPA BERRY</td><td>A hold item that restores 10 PP in battle.</td></tr>
+</table></div>
+<p>The list holds 22 items, and the test checks it against the source. Each description is quoted whole, in the game's words. A berry's description says "in battle" because that is what the game says. The field BAG can still USE a berry, because its <code>fieldUseFunc</code> is set.</p>
+</section>
+
+<section>
+<h2>How the game uses one, in its own words</h2>
+<figure><div class="scroll"><svg viewBox="0 0 760 150" width="760" role="img" aria-label="Field and battle use paths">
+<text x="10" y="30" class="label s">Field</text>
+<rect x="70" y="12" width="110" height="30" rx="6" class="box"/><text x="82" y="32">START menu</text>
+<rect x="210" y="12" width="70" height="30" rx="6" class="nav"/><text x="226" y="32" class="t">BAG</text>
+<rect x="310" y="12" width="90" height="30" rx="6" class="box"/><text x="322" y="32">POTION</text>
+<rect x="430" y="12" width="70" height="30" rx="6" class="nav"/><text x="446" y="32" class="t">USE</text>
+<rect x="530" y="12" width="220" height="30" rx="6" class="game hot"/><text x="542" y="32">"Use on which POKéMON?"</text>
+<path class="arr" d="M180 27 H210"/><path class="arr" d="M280 27 H310"/><path class="arr" d="M400 27 H430"/><path class="arr g" d="M500 27 H530"/>
+<text x="10" y="100" class="label s">Battle</text>
+<rect x="70" y="82" width="110" height="30" rx="6" class="box"/><text x="82" y="102">battle menu</text>
+<rect x="210" y="82" width="70" height="30" rx="6" class="nav"/><text x="226" y="102" class="t">BAG</text>
+<rect x="310" y="82" width="90" height="30" rx="6" class="box"/><text x="322" y="102">POTION</text>
+<rect x="430" y="82" width="70" height="30" rx="6" class="nav"/><text x="446" y="102" class="t">USE</text>
+<rect x="530" y="82" width="220" height="30" rx="6" class="game hot"/><text x="542" y="102">"Use on which POKéMON?"</text>
+<path class="arr" d="M180 97 H210"/><path class="arr" d="M280 97 H310"/><path class="arr" d="M400 97 H430"/><path class="arr g" d="M500 97 H530"/>
+<text x="70" y="140" class="s">battle_action bag (battle-move-tool-v1) reaches the BAG screen and stops; the rest is press.</text>
+</svg></div><figcaption>Every label comes from the game: <code>gText_MenuBag</code> "BAG", <code>gMenuText_Use</code> "USE" in both BAG context menus (<code>sContextMenuItems_ItemsPocket</code> and <code>sContextMenuItems_BattleUse</code>, src/item_menu.c), and the party menu's <code>PARTY_MSG_USE_ON_WHICH_MON</code> = <code>gText_UseOnWhichPokemon</code>. The harness already reads these screens: <code>bag_menu</code>, <code>bag_context_menu</code> and the party menu, each with its highlighted entry.</figcaption></figure>
+</section>
+
+<section>
+<h2>Wiring</h2>
+<figure><div class="scroll"><svg viewBox="0 0 760 170" width="760" role="img" aria-label="Switch wiring">
+<rect x="10" y="20" width="150" height="50" rx="8" class="box"/><text x="22" y="42" class="t">run preset</text><text x="22" y="60" class="s">FeatureSet</text>
+<rect x="190" y="20" width="170" height="50" rx="8" class="box"/><text x="202" y="42" class="t">playGameTools</text><text x="202" y="60" class="s">withLowHpTrainerWarning</text>
+<rect x="390" y="20" width="170" height="50" rx="8" class="game hot"/><text x="402" y="42" class="t">HealBeforeTrainers</text><text x="402" y="60" class="s">items: bag-healing-items-v1</text>
+<rect x="590" y="20" width="160" height="50" rx="8" class="box"/><text x="602" y="42" class="t">tool result</text><text x="602" y="60" class="s">paragraph + BAG sentence</text>
+<path class="arr" d="M160 45 H190"/><path class="arr" d="M360 45 H390"/><path class="arr g" d="M560 45 H590"/>
+<rect x="390" y="100" width="170" height="50" rx="8" class="box"/><text x="402" y="122" class="t">result's own state</text><text x="402" y="140" class="s">resources.bag (game server)</text>
+<path class="arr" d="M475 100 V70"/>
+<rect x="590" y="100" width="160" height="50" rx="8" class="box"/><text x="602" y="122" class="t">heal_before_trainers_warning</text><text x="602" y="140" class="s">+ items (name, count, text)</text>
+<path class="arr" d="M560 60 L590 110"/>
+</svg></div><figcaption>The switch is read only from the run's FeatureSet and passed to the arm. It uses the bag the game server already sends in every state. Nothing changes on the server, in the readout, the prompt or the tools. A test runs the production <code>playGameTools</code> with the switch on and off and reads back the run log.</figcaption></figure>
+</section>
+
+<section>
+<h2>Status</h2>
+<ul>
+<li>Branch <code>claude/potion-items</code>, based on main 0ada6403. Tests are in <code>packages/agent/src/bag-healing-items.test.ts</code>; the worklog has the gate results.</li>
+<li>Pending experiment <code>experiments/bag-healing-items.json</code>: heal-before-trainers' finals incumbent with heal-before-trainers-v1 on, and only this switch flipped. It is not queued. <code>experiments/fixed/bundle-v-control.json</code> is not edited; the bundle owner turns this switch on.</li>
+<li>Not done: no measured runs. Nothing here shows whether the model will actually use the item.</li>
+<li><b>A gap this switch does not cover</b> (proposed as its own switch, <code>battle-item-choice-v1</code>): battle_action's <code>bag</code> could take an item name, then move the BAG cursor to it, choose USE and pick the party POKéMON, checked press by press the way <code>fight</code> is. If the item can't be used it would refuse in the game's words ("It won't have any effect."). This changes the tool interface, so it needs its own A/B.</li>
+</ul>
+</section>
+</main>
+</body>
+</html>

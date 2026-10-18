@@ -34,15 +34,17 @@ Proposed second switch (not built here): `battle-item-choice-v1`, battle_action 
 **M1 — RED**
 - [x] Tests in `packages/agent/src/bag-healing-items.test.ts` on e046's recorded states (fixture heal-before-trainers-e046.json; its states carry the recorded bag).
 - [x] RED run 8:14 PM: 15 failed, 3 passed (the 3 OFF byte-identity checks pass already, as they should).
-- [x] COMMIT RED
+- [x] COMMIT RED: `test(RED): bag-healing-items-v1 names the BAG's healing items …` (2759d6c5)
 
 **M2 — GREEN**
-- [ ] Implementation, registry, presets, defaults, event schema.
-- [ ] Gates (lint, test, coverage ≥90).
-- [ ] COMMIT GREEN
+- [x] Implementation (`low-hp-trainer-warning.ts`): BAG_ITEM_DESCRIPTIONS (22 items, item_descriptions.h), bagHealingItems(state, weak), HealBeforeTrainers option `items`, one sentence after the healing place; facts gain `items` only with the switch on. Event `heal_before_trainers_warning` gains optional `items` (+ `just schema`), RunRecorder writes it only when present, tail line adds ` · BAG POTION ×1` only when non-empty.
+- [x] Registry: SWITCHABLE_FEATURES / FEATURES / playHarnessFeatures appended last (guard, needs heal-before-trainers-v1, agent side, not a server feature); presets optional + default false; flagFeatures and DEFAULT_NEXT_RUN false; FEATURE_EXPLAINERS mapped. Mechanical test updates only: positional `.at(-N)`/`.slice` +1, feature literals that turn off no-exit-here-v1 or heal-before-trainers-v1 also turn this off, guard count 22, switchboard rows 112.
+- [x] Deletion receipt: dropping `items:features["bag-healing-items-v1"]` in withLowHpTrainerWarning turned 2 tests red (ON delivery, production playGameTools); restored, 18/18 green.
+- [x] Gates 8:40 PM: `just lint` clean (after linking the main venv's mgba binding into this worktree's venv); `just test` agent 2356, viewer 1135, pytest 2707; `just coverage` agent 98.04/94.17/98.27/99.23, viewer 95.36/91.38/93.79/97.62, Python lines 97.66 branches 93.82 functions 100 (gate OK); low-hp-trainer-warning.ts 99.18 stmts / 92.72 branches / 100 funcs; experiments-check ok 102; verify-vendor OK.
+- [x] COMMIT GREEN
 
 **M3 — explainer, pending experiment, review**
-- [ ] Explainer + FEATURE_EXPLAINERS + pending experiment + readiness row.
+- [x] Explainer `docs/explainers/bag-healing-items-v1.html` (pages-check prints nothing; README; panels/server link tests) + pending `experiments/bag-healing-items.json` (not queued) + readiness row. In the GREEN commit.
 - [ ] Review (Claude, Grok, GPT), at most 2 rounds.
 
 ## Multi-Model Review Log

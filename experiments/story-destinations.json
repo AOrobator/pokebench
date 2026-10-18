@@ -8,7 +8,7 @@
  "primaryMilestone": "RIVAL_HOUSE_ENTERED",
  "source": {
   "checkout": "main",
-  "commit": "9060af6c3dded15b06fdbe668bd6fd2eb067b3bd"
+  "commit": "6204d571b3782cc87a951614a298d1bf6ee632fb"
  },
  "incumbent": {
   "version": 2,

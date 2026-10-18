@@ -7,7 +7,7 @@ const features={...ALL_ON,"just-in-time-prompt-v1":false,"just-in-time-prompt-v2
 const task:Message={role:"user",content:"Play",timestamp:1};
 const result=(id:string):Message=>({role:"toolResult",toolCallId:id,toolName:"observe",content:[{type:"text",text:"observation"}],isError:false,timestamp:2});
 const request=(messages:Message[]=[task]):Context=>({systemPrompt:"standing",messages,tools:[{name:"observe",description:"observe",parameters:{type:"object",properties:{}}},{name:"navigate_to",description:"walk",parameters:{type:"object",properties:{}}}]});
-const scene=(jit:StableJitContext,screen:string,seq:number)=>jit.observe({type:"state",seq,screen,in_battle:screen==="battle"});
+const scene=(jit:StableJitContext,screen:string,seq:number)=>{jit.observe({type:"state",seq,screen,in_battle:screen==="battle"});};
 it("OFF preserves the identical request",()=>{
  const jit=new StableJitContext({...features,"just-in-time-prompt-v2":false},null),input=request();
  scene(jit,"clock",1);expect(jit.context(input)).toBe(input);expect(jit.receipt()).toBeNull();
@@ -38,7 +38,7 @@ it("anchors by tool call id through collapse, reinjects after active eviction, a
  scene(jit,"naming",2);const b=jit.context(request([task,result("b")])),guide=b.messages.at(-1);
  const collapsed={...result("b"),content:[{type:"text" as const,text:"collapsed"}]};
  const suffix:Message={role:"user",content:"changing ledger",timestamp:999};
- const same=jit.context(request([task,collapsed,result("c"),suffix]));expect(same.messages[2]).toEqual(guide);
+ const same=jit.context(request([task,collapsed,result("c"),suffix]));expect(same.messages[3]).toEqual(guide);
  expect(jit.receipt()?.guidance?.reason).toBe("none");
  const evicted=jit.context(request([task,result("c"),suffix]));expect(evicted.messages.at(-2)?.content).toContain("Naming layout,");
  expect(jit.receipt()?.guidance).toMatchObject({reason:"evicted",anchor:"tool:c",ordinal:3});
@@ -48,7 +48,7 @@ it("inserts after the entire result batch and records exact component characters
  const input=request([task,result("one"),result("two")]),out=jit.context(input),receipt=jit.receipt();
  expect(out.messages.slice(0,3)).toEqual(input.messages);expect(receipt?.guidance).toMatchObject({anchor:"tool:two",source_state_seq:10});
  expect(receipt?.guidance?.text).toBe(out.messages[3]?.content);
- expect(receipt?.component_chars).toMatchObject({core:out.systemPrompt?.length,history:JSON.stringify(input.messages).length,guidance:JSON.stringify([out.messages[3]]).length});
+ expect(receipt?.component_chars).toMatchObject({core_text:out.systemPrompt?.length,canonical_history_json:JSON.stringify(input.messages).length,guidance_text:receipt?.guidance?.text.length});
  scene(jit,"clock",11);jit.context(input);expect(jit.receipt()).toMatchObject({state_seq:11,guidance:{source_state_seq:10,reason:"none"}});
 });
 it("unknown keeps full fallback at the tail; transitions at the same anchor append rather than replace",()=>{
@@ -56,4 +56,42 @@ it("unknown keeps full fallback at the tail; transitions at the same anchor appe
  expect(unknown.messages.at(-1)?.content).toContain("Clock interface:");expect(unknown.messages.at(-1)?.content).toContain("Naming layout,");
  scene(jit,"clock",1);const clock=jit.context(input);expect(clock.messages.slice(0,unknown.messages.length)).toEqual(unknown.messages);
  expect(clock.messages.at(-1)?.content).toContain("applies only");
+});
+
+
+it("provider serializes all image-bearing tool results before the scene guide",async()=>{
+ const {streamOpenAICompletions}=await import("@mariozechner/pi-ai/openai-completions");
+ const {assistant}=await import("../test-support/pi.js");
+ const {Type}=await import("typebox");const {Value}=await import("typebox/value");
+ const jit=new StableJitContext(features,null);scene(jit,"clock",5);
+ const calls=["one","two"].map(id=>({type:"toolCall" as const,id,name:"observe",arguments:{}}));
+ const observation=(id:string):Message=>({...result(id),content:[{type:"text",text:id},{type:"image",data:"AAAA",mimeType:"image/png"}]});
+ const out=jit.context(request([task,assistant({toolCalls:calls}),observation("one"),observation("two")]));
+ let payload:unknown=null;
+ const model={id:"fixture",name:"fixture",api:"openai-completions" as const,provider:"fixture",baseUrl:"http://provider-fixture.invalid/v1",reasoning:false,input:["text","image"] as ("text"|"image")[],cost:{input:0,output:0,cacheRead:0,cacheWrite:0},contextWindow:1000,maxTokens:100};
+ await streamOpenAICompletions(model,out,{apiKey:"fixture",onPayload:p=>{payload=p;throw Error("stop before HTTP");}}).result();
+ const wire=Value.Parse(Type.Object({messages:Type.Array(Type.Object({role:Type.String()},{additionalProperties:true}))},{additionalProperties:true}),payload);
+ const toolIndices=wire.messages.flatMap((m,i)=>m.role==="tool"?[i]:[]);
+ expect(toolIndices).toHaveLength(2);expect(toolIndices[1]).toBe((toolIndices[0]??0)+1);
+ expect(JSON.stringify(wire.messages.at(-2))).toContain("image_url");expect(JSON.stringify(wire.messages.at(-1))).toContain("Clock interface:");
+});
+
+it("evicts old guide storage with retained anchors over a long synthetic history",()=>{
+ const jit=new StableJitContext(features,null);
+ for(let i=0;i<2000;i++){
+  scene(jit,i%2===0?"clock":"naming",i);
+  jit.context(request([task,result(String(i))]));
+  expect(jit.receipt()?.projected_guidance).toHaveLength(1);
+ }
+});
+
+it("appends changed guidance after intervening canonical assistant replies, preserving the prior prefix",async()=>{
+ const {assistant}=await import("../test-support/pi.js");
+ const jit=new StableJitContext(features,null);scene(jit,"clock",1);
+ const history=[task,result("a"),assistant({text:"checking the screen"})];
+ const before=jit.context(request(history));
+ scene(jit,"naming",2);
+ const after=jit.context(request([...history,assistant({text:"still checking"})]));
+ expect(after.messages.slice(0,before.messages.length)).toEqual(before.messages);
+ expect(after.messages.at(-1)?.content).toContain("Naming layout,");
 });

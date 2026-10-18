@@ -2,7 +2,7 @@ import type {RunEvent,RunEndReason} from "@pokebench/agent/events";
 
 export interface RequestMetric {
  readonly run:string;readonly turn:number;readonly seq:number;readonly at:string;
- readonly promptMode:"full"|"jit"|"unrecorded";
+ readonly promptMode:"full"|"jit"|"jit-v2"|"unrecorded";
  readonly screen:string;readonly stateSeq:number|null;
  readonly input:number;readonly cacheRead:number;readonly cacheWrite:number|null;readonly logicalInput:number|null;readonly recordedPromptTokens:number;readonly output:number;
  readonly ttftMs:number|null;readonly inferenceMs:number;readonly stopReason:string;

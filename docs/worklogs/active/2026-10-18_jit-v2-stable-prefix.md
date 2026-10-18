@@ -27,7 +27,7 @@ Local-only loopback documents, no credentials/ROM copies, no RAM writes or vendo
 ## Milestones
 **M1 — Contract and RED**
 - [x] Record operator-approved proposal, protocol assumptions and launch boundary before implementation.
-- [ ] Add request-prefix, scope, trim/idempotence, OFF-identity and production-factory failing tests; commit RED.
+- [x] Add request-prefix, scope, trim/idempotence, OFF-identity and production-factory tests; commit RED e307afcc, then restore factory routing mutation and test GREEN.
 **M2 — Implementation and metadata**
 - [ ] Stable-prefix projection, compact-core/scene split, exact additive receipts, default-OFF registry/presets.
 - [ ] Separate pending experiment and proposed fixed plan, tracked explainer/overview and native card mapping.
@@ -61,3 +61,14 @@ Use actual serialized model-bound payloads on pinned pi-loop stubs, RED/GREEN an
 - [ ] the operator authorizes archive; not requested.
 
 - M1 RED: added six projection contract tests covering OFF identity, six-scene stable core/catalog, immutable A→B→A guidance, idempotence, collapse/eviction/transient suffixes, result batches, exact character receipts and unknown fallback. Focused run fails as expected because jit-v2-context does not exist; transcript runs/reviews/jit-v2-preparation/red-unit.log. Factory test follows once the optional flag parses.
+
+- COMMIT e307afcc: RED contract tests. GREEN now: nine projection tests, actual startup/factory receipts with v2 superseding v1 without filtering tools or guarding execution, pinned provider serialization including two image-bearing results, immutable prefix through intervening assistant replies, and 2000-step synthetic eviction history. The latter assistant-tail case was independently RED before its anchor fix (red-intervening-assistant.log); factory request routing deletion also RED (mutation-factory-routing-01.log), restored and passing.
+- Independent preliminary projection audit found mixed character units; fixed raw core_text/guidance_text and explicitly serialized canonical_history_json, with docs/tests. No other concrete correctness finding; image-bearing batch test added as requested production seam proof.
+- Registry/defaults/presets v2 OFF, additive request receipt schema regenerated, native Harness Config explainer mapping/routes, separate pending registration + proposed24trialfixedplan/hashedbaseline. Existing v1 fixed files untouched. Legacy positional registry assertions shifted once and historical definitions explicitly keep their pre-v2 keyset; no old experiments rewritten.
+- Gate receipts before main sync: test2467agent+1175viewer, Python2478+229ROM-skips before .env linked. Coverage re-runs with canonical .env and isolated Python env: agent2468, viewer1175, Python2707 allpassed; aggregate TS agent lines99.23/branches94.21/functions98.33, viewer97.64/91.46/93.83; Python97.66/93.82/100. Initial overloaded coverage attempts timed out on unchanged serpentine planner and abandoned-stream tests; retained logs, no timeout/coverage/exclusion weakening. Vendor check passed. Lint/build rechecking final source before commit.
+- Environment isolation: an initial shared .venv symlink caused uv to relocate only the editable package pointer (Python source byte-identical). Restored canonical editable installation immediately and replaced symlink with a dedicated venv; only pinned native mgba binding is linked read-only. No measured runtime/source/config/log edits.
+- Main moved independently to b9e501df while preparation ran (viewer phone-layout flag and story-speaker aliases). Sync before frozen review; neither is v2 scope. Four-persona review now reads final24trial JIT evidence plus exact v2 design snapshot, independently. No new GPU allocation, launch, promotion or landing inferred.
+- Fresh v1 status finished24/24valid at19:38:33ET. Final analysis is separate ignored evidence under main runs/reports/run-analysis/2026-10-18_jit-final; no overwriting original interim. The completed cohort remains frozen at2b2dec5d.
+- Claude alternate CLI auth checked: loggedInfalse under .claude-review. Cursor model inventory refreshed; cloud review not yet attempted on final packet. This is not LGTM.
+
+- Final before-sync lint and build PASS. Coverage complete without skips: TS2468agent+1175viewer, Python2707; all existing floor checks PASS. V2 docs now explicitly disclose permanent task-anchored startup fallback, raw text vs serialized-history units, and final-cohort cap/power sensitivity (not power for frontier). Four persona snapshot is frozen before feedback; no verdict yet.

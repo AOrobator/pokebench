@@ -852,3 +852,27 @@ it("refreshes request presentation through the real pinned loop before every mod
  expect(await play(TASK,g,loop)).toBe("budget");
  expect(seen).toEqual([{prompt:"clock",tools:["press"]},{prompt:"field",tools:["press"]}]);
 });
+
+
+it("stable JIT preserves provider-serialized history across a scene transition in the pinned loop",async()=>{
+ const {StableJitContext}=await import("./jit-v2-context.js");
+ const {streamOpenAICompletions}=await import("@mariozechner/pi-ai/openai-completions");
+ const jit=new StableJitContext({...ALL_ON,"just-in-time-prompt-v1":false,"just-in-time-prompt-v2":true},null);
+ jit.observe({type:"state",seq:1,screen:"clock",in_battle:false});
+ const {g}=governor({maxTurns:2}),controller=new AbortController();
+ const payloads:unknown[]=[];const seen:Message[][]=[];const model=scriptedModel([pressReply(["A"]),pressReply(["B"])],seen);
+ const loop=piLoop({systemPrompt:"full",tools:[fakePress(()=>{jit.observe({type:"state",seq:2,screen:"naming",in_battle:false});})],base:{model:MODEL,convertToLlm:messages=>messages as Message[]},governor:g,transformContext:messages=>Promise.resolve(messages),emit:()=>undefined,signal:controller.signal,requestContext:context=>jit.context(context),
+ streamFn:async(m,context,options)=>{
+  // The provider constructs the real outgoing payload, then aborts before HTTP.
+  const probe=streamOpenAICompletions({...MODEL,baseUrl:"http://provider-fixture.invalid/v1"},context,{apiKey:"fixture",onPayload:payload=>{payloads.push(payload);throw new Error("test stops before HTTP");}});
+  expect((await probe.result()).stopReason).toBe("error");
+  return model(m,context,options);
+ }});
+ expect(await play(TASK,g,loop)).toBe("budget");
+ const schema=Type.Object({messages:Type.Array(Type.Unknown()),tools:Type.Array(Type.Unknown())},{additionalProperties:true});
+ const {Value}=await import("typebox/value");
+ const [a,b]=payloads.map(payload=>Value.Parse(schema,payload));
+ if(a===undefined||b===undefined)throw Error("missing provider payloads");
+ expect(b.messages.slice(0,a.messages.length)).toEqual(a.messages);expect(b.tools).toEqual(a.tools);
+ expect(JSON.stringify(a.messages)).toContain("Clock interface:");expect(JSON.stringify(b.messages.at(-1))).toContain("Naming layout,");
+});

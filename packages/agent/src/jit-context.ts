@@ -1,10 +1,14 @@
 import {createHash} from "node:crypto";
+import type {GuidanceReceipt} from "./jit-v2-context.js";
 import type {Context} from "@mariozechner/pi-ai";
 import type {FeatureSet} from "./features.js";
 import {jitTools,playSystemPrompt,promptScene,type PromptScene} from "./play-config.js";
 
 export interface PromptReceipt {
- readonly mode:"full"|"jit";
+ readonly mode:"full"|"jit"|"jit-v2";
+ readonly guidance?:GuidanceReceipt & {readonly reason:"first"|"scene_change"|"evicted"|"none"};
+ readonly projected_guidance?:GuidanceReceipt[];
+ readonly component_chars?:{readonly core_text:number;readonly guidance_text:number;readonly canonical_history_json:number};
  readonly scene:PromptScene;
  readonly state_seq:number|null;
  readonly system_prompt:string;

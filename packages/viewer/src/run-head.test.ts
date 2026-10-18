@@ -286,6 +286,14 @@ describe("phone header sheet behavior", () => {
     expect(ui("run-sheet").hidden).toBe(false);
   });
 
+  it("mirrors phone mode onto <html>[data-phone] so style.css keys off the flag", async () => {
+    await mount(375);
+    expect(document.documentElement.hasAttribute("data-phone")).toBe(true);
+    setWidth(750);
+    window.dispatchEvent(new Event("resize"));
+    expect(document.documentElement.hasAttribute("data-phone")).toBe(false);
+  });
+
   it("ignores clicks in the sheet body that are not on a WATCH button", async () => {
     const { streams } = await mount(375);
     ui("run-head").click();
@@ -298,8 +306,8 @@ describe("phone header sheet behavior", () => {
 describe("phone header CSS", () => {
   it("hides the header button on wide screens and the old header pieces on phones", () => {
     expect(CSS).toMatch(/\.run-head \{[^}]*display: none;/);
-    const phone = CSS.slice(CSS.lastIndexOf("@media (max-width: 700px)"));
-    expect(phone).toContain(".bar > .logo, .bar > .mode, .bar > .clock, .bar > .live-runs, .bar > .ident { display: none; }");
+    const phone = (CSS.match(/:root\[data-phone\][^{]*\{[^}]*\}/g) ?? []).join(" ");
+    expect(phone).toContain(":root[data-phone] .bar > .logo, :root[data-phone] .bar > .mode, :root[data-phone] .bar > .clock, :root[data-phone] .bar > .live-runs, :root[data-phone] .bar > .ident { display: none; }");
     expect(phone).toMatch(/\.run-head \{[^}]*display: flex;/);
   });
   it("drops the picker's 'Watching' label in the sheet, where it would repeat the run you are on", () => {

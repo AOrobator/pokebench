@@ -91,6 +91,8 @@ Deletion receipts, each restored after the red run:
 - Checking the lock before the different-line clear failed `ON: a different line still clears the count when that result is locked` with `expected [ { kind: 'cycle' …} ] to deeply equal []`.
 - Dropping the ready-message clause failed `ON: a ready message with no dialogue text is not the free field` with that same assertion.
 
+A ready message at another tile was still leaving the count in place, so the next showing at the old tile warned. That result now clears the count, the same way any other result does after the player leaves the tile. Emptying `leftTile` failed `ON: a ready message at another tile clears the count` with `expected [ { kind: 'cycle' …} ] to deeply equal []`, and the clear was restored.
+
 ## Not done
 
 The feature commit is `05060925`. Main moved to `56dfa98f` (`loop-guard-screen-v1`) during round 1, so that landing is merged in ahead of these two switches as `0c9db3da`. Round 1 reviewed `336c174a..40991fb2` and is void: the tree changed and main moved. Its accepted fixes are in `b41f09ce` (explainer titles; count only a press whose requested buttons include A; a different open line clears the count). Not on main. `source.commit` on the two new experiment files is still `bcde8cd4`; repin after landing. Experiments not queued, not approved, not launched. The live cook is unchanged.

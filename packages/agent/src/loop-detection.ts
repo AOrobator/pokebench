@@ -545,7 +545,10 @@ export class LoopDetector {
       return false;
     }
     const place = JSON.stringify([call.state.location, call.state.map_id, call.state.position]);
-    if (call.state.world_context == null) return false;
+    const leftTile = () => {
+      if (place !== this.closedTalk.place) this.closedTalk = { text: "", place: "", count: 0 };
+    };
+    if (call.state.world_context == null) { leftTile(); return false; }
     const open = call.state.world_context.dialogue ?? "";
     if (open !== "") {
       if (open !== this.closedTalk.text) this.closedTalk = { text: "", place: "", count: 0 };
@@ -553,7 +556,7 @@ export class LoopDetector {
     }
     // No dialogue left on the result. A locked menu, a ready interface, a battle, or a message that is still up is not the free field.
     const messageUp = call.state.world_context.message?.ready === true;
-    if (call.state.in_battle || call.state.field_controls_locked !== false || call.state.active_ui?.ready === true || messageUp) return false;
+    if (call.state.in_battle || call.state.field_controls_locked !== false || call.state.active_ui?.ready === true || messageUp) { leftTile(); return false; }
     const text = (call.spoken ?? call.dialogue ?? []).filter((line) => line !== "").join("\n");
     if (text === "" || call.name !== "press" || !pressAskedForA(call)) {
       if (place !== this.closedTalk.place) this.closedTalk = { text: "", place: "", count: 0 };

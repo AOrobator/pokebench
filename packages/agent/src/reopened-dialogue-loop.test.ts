@@ -148,6 +148,18 @@ describe("reopened-dialogue-loop-v1", () => {
     expect(notices.filter((n) => n.kind === "cycle")).toEqual([]);
   });
 
+  it("ON: a ready message at another tile clears the count", () => {
+    const notices: LoopNotice[] = [];
+    const d = new LoopDetector((n) => notices.push(n), LOOP_POLICY, "enforced", false, () => "SUPERVISOR", false, false, false, false, false, false, false, true);
+    d.complete(shown());
+    d.complete(shown());
+    d.complete(shown());
+    const waiting: GameStateSnapshot = {...truck(4), world_context: {objects: [], triggers: [], dialogue: null, message: {phase: "dismiss_wait", cursor: 0, ready: true, identity: "d".repeat(64)}}};
+    d.complete({...shown(), state: waiting});
+    d.complete(shown());
+    expect(notices.filter((n) => n.kind === "cycle")).toEqual([]);
+  });
+
   it("ON: a ready message with no dialogue text is not the free field", () => {
     const notices: LoopNotice[] = [];
     const d = new LoopDetector((n) => notices.push(n), LOOP_POLICY, "enforced", false, () => "SUPERVISOR", false, false, false, false, false, false, false, true);

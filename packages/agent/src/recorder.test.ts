@@ -16,6 +16,7 @@ import {gameTools} from "./game-tools.js";
 import {withNavigation} from "./navigation.js";
 import {toolSwitches} from "./play-config.js";
 import {flagFeatures} from "./play-preset.js";
+import {playGameTools} from "./play-wiring.js";
 
 
 const STATE: GameStateSnapshot = {
@@ -437,12 +438,13 @@ it("preserves and records a one-shot blackout consumed inside production navigat
   const notice="Whited out: your party had no usable Pokémon left, so the game took you back home.";
   const tile=(x:number,y:number)=>({x,y,collision:0,behavior:0,elevation:3});
   const field:GameStateSnapshot={...STATE,location:"ROUTE 103",map_id:[0,18],position:{x:0,y:0},facing:"right",field_controls_locked:false,blackout_active:false,game_stats:{pokemon_captures:0,evolved_pokemon:0,used_pokecenter:0,saved_game:0},party:[{identity:"12345678:9abcdef0",species:"TORCHIC",level:5,hp:20,max_hp:20}],navigation_grid:{elevation:3,tiles:[tile(0,0),tile(1,0)],objects:[],warps:[]}};
-  const home:GameStateSnapshot={...field,location:"HOME",map_id:[1,1],position:{x:2,y:2},blackout_receipt:{frame:81,money_before:3000,notice}};
+  const homeBase:GameStateSnapshot={...field,location:"HOME",map_id:[1,1],position:{x:2,y:2}};
+  const home:GameStateSnapshot={...homeBase,blackout_receipt:{frame:81,money_before:3000,notice}};
   let current=field,pending=false;
   const png=(()=>{const b=Buffer.alloc(33);Buffer.from([137,80,78,71,13,10,26,10]).copy(b);b.writeUInt32BE(13,8);b.write("IHDR",12);b.writeUInt32BE(240,16);b.writeUInt32BE(160,20);return b.toString("base64");})();
   const fetchFn:typeof fetch=(input)=>{
     const url=typeof input==="string"?input:input instanceof URL?input.href:input.url;
-    if(url.endsWith("/action")){current=home;pending=true;return Promise.resolve(new Response(JSON.stringify({status:"success"})));}
+    if(url.endsWith("/action")){current=homeBase;pending=true;return Promise.resolve(new Response(JSON.stringify({status:"success"})));}
     if(url.endsWith("/queue_status"))return Promise.resolve(new Response(JSON.stringify({queue_empty:true})));
     if(url.endsWith("/pokebench/state"))return Promise.resolve(new Response(JSON.stringify(current)));
     if(url.endsWith("/pokebench/observation")){
@@ -462,6 +464,40 @@ it("preserves and records a one-shot blackout consumed inside production navigat
   const text=result.content.flatMap(part=>part.type==="text"?[part.text]:[]).join("\n");
   expect(text).toContain(notice);
   expect((result.details as {state:GameStateSnapshot}).state.blackout_receipt).toEqual(home.blackout_receipt);
+  expect(events(log).filter(event=>event.type==="activity"&&event.kind==="blackout")).toHaveLength(1);
+});
+
+it("preserves and records a one-shot blackout through the production dialogue wrapper", async () => {
+  const {recorder,log}=harness();
+  const notice="Whited out: your party had no usable Pokémon left, so the game took you back home.";
+  const field:GameStateSnapshot={...STATE,location:"ROUTE 103",map_id:[0,18],position:{x:0,y:0},facing:"right",field_controls_locked:false,blackout_active:false,game_stats:{pokemon_captures:0,evolved_pokemon:0,used_pokecenter:0,saved_game:0},party:[{identity:"12345678:9abcdef0",species:"TORCHIC",level:5,hp:20,max_hp:20}]};
+  const home:GameStateSnapshot={...field,location:"HOME",map_id:[1,1],position:{x:2,y:2}};
+  const receipt={frame:82,money_before:3000,notice};
+  let current=field,pending=false,actions=0;
+  const png=(()=>{const b=Buffer.alloc(33);Buffer.from([137,80,78,71,13,10,26,10]).copy(b);b.writeUInt32BE(13,8);b.write("IHDR",12);b.writeUInt32BE(240,16);b.writeUInt32BE(160,20);return b.toString("base64");})();
+  const fetchFn:typeof fetch=(input)=>{
+    const url=typeof input==="string"?input:input instanceof URL?input.href:input.url;
+    if(url.endsWith("/action")){actions++;current=home;pending=actions===1;return Promise.resolve(new Response(JSON.stringify({status:"success"})));}
+    if(url.endsWith("/queue_status"))return Promise.resolve(new Response(JSON.stringify({queue_empty:true})));
+    if(url.endsWith("/pokebench/state"))return Promise.resolve(new Response(JSON.stringify(current)));
+    if(url.endsWith("/pokebench/observation")){
+      const state=pending?{...home,blackout_receipt:receipt}:home;pending=false;
+      return Promise.resolve(new Response(JSON.stringify({state_text:"Current field.",screenshot_base64:png,state})));
+    }
+    throw new Error(`unexpected ${url}`);
+  };
+  const features={...flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false}),"dialogue-auto-advance-v1":true,"blackout-readout-v1":true};
+  const base=gameTools("http://127.0.0.1",{beforePress:()=>undefined,afterPress:()=>Promise.resolve()},fetchFn,toolSwitches(features),{now:()=>0,sleep:()=>Promise.resolve()});
+  const wrapped=playGameTools(base,features,{read:()=>Promise.resolve(current)},recorder);
+  const press=wrapped.find(tool=>tool.name==="press");if(press===undefined)throw new Error("missing press");
+  await recorder.start({...START_META,harness_features:["native-progress-activity-v1","blackout-readout-v1"]},false);
+  await recorder.emit({type:"tool_execution_start",toolCallId:"p1",toolName:"press",args:{buttons:["RIGHT","A"]}});
+  const result=await press.execute("p1",{buttons:["RIGHT","A"]});
+  await recorder.emit({type:"tool_execution_end",toolCallId:"p1",toolName:"press",result,isError:false});
+  const text=result.content.flatMap(part=>part.type==="text"?[part.text]:[]).join("\n");
+  expect(actions).toBe(2);
+  expect(text).toContain(notice);
+  expect((result.details as {state:GameStateSnapshot}).state.blackout_receipt).toEqual(receipt);
   expect(events(log).filter(event=>event.type==="activity"&&event.kind==="blackout")).toHaveLength(1);
 });
 

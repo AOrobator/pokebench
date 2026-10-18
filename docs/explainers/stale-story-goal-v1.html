@@ -52,29 +52,29 @@ th{font:500 .75rem var(--mono);letter-spacing:.06em;text-transform:uppercase;col
 <div class="eyebrow">Harness switch · observation · <code>stale-story-goal-v1</code> · needs nothing · bundle arm only · off by default</div>
 <h1>Stale story goal</h1>
 </div>
-<p class="lede">A story line that names a place stays the Story goal after that milestone is already done, and it outranks a later line in the conversation ledger. With this switch on, the checklist and the ledger are newer. The quote stays. The door and the walk-away note do not.</p>
+<p class="lede">A story line that names a place stays the Story goal after that place's milestone is already done. With this switch on, native completion retires that exact destination. The quote stays. The door and the walk-away note do not. Incidental later dialogue does not erase a still-active destination.</p>
 
 <section>
 <h2>What decides it</h2>
-<p>The latest story line that names a place is still the one that is shown. The story checklist and a later ledger line are newer than that quote. An older place line is not promoted into the goal slot.</p>
-<figure><div class="scroll"><svg viewBox="0 0 720 268" width="720" role="img" aria-label="A place line is retired when the checklist shows its milestone is done, or when a later ledger line exists">
+<p>The latest story line that names a place is still the one that is shown. The native story checklist retires it only when the checklist label covers every place the line resolves to. A newer line that names another place replaces it through the ordinary latest-place rule. A later line with no place leaves it active.</p>
+<figure><div class="scroll"><svg viewBox="0 0 720 268" width="720" role="img" aria-label="A place line is retired only when the native checklist shows that exact place's milestone is done">
 <rect x="20" y="16" width="200" height="64" rx="8" class="box"/><text x="32" y="40" class="t">Latest place line</text><text x="32" y="60" class="s">MAY, "head back to the LAB"</text>
 <rect x="250" y="16" width="210" height="64" rx="8" class="game"/><text x="262" y="40" class="t">Story checklist</text><text x="262" y="60" class="s">Pokédex received</text>
-<rect x="490" y="16" width="210" height="64" rx="8" class="nav"/><text x="502" y="40" class="t">Conversation ledger</text><text x="502" y="60" class="s">MOM, a later turn</text>
+<rect x="490" y="16" width="210" height="64" rx="8" class="nav"/><text x="502" y="40" class="t">Exact place match</text><text x="502" y="60" class="s">Pokédex → Birch's lab</text>
 <line x1="220" y1="48" x2="242" y2="48" stroke="currentColor"/><line x1="460" y1="48" x2="482" y2="48" stroke="currentColor"/>
-<rect x="120" y="120" width="480" height="112" rx="8" class="game"/><text x="136" y="148" class="t">Retire this line. Do not pick an older one.</text><text x="136" y="170" class="s">Quote stays. No door. Away-supervisor gets no goal.</text><text x="136" y="190" class="s">Checklist: the place that label names is done.</text><text x="136" y="210" class="s">Ledger: a later line is newer, even with no place in it.</text>
+<rect x="120" y="120" width="480" height="112" rx="8" class="game"/><text x="136" y="148" class="t">Retire this line. Do not pick an older one.</text><text x="136" y="170" class="s">Quote stays. No door. Away-supervisor gets no goal.</text><text x="136" y="190" class="s">Checklist: the place that label names is done.</text><text x="136" y="210" class="s">Later dialogue without a place does not retire it.</text>
 </svg></div>
-<figcaption>Either the checklist or a later line is enough. A lab line before the Pokédex, with no later line, stays the goal. Birch's handoff is not the Pokédex.</figcaption>
+<figcaption>Native completion is required. A lab line before the Pokédex stays the goal even after unrelated dialogue. Birch's handoff is not the Pokédex.</figcaption>
 </figure>
 <div class="tablewrap"><table>
 <thead><tr><th>Latest line resolves to</th><th>Newer fact</th><th>Switch</th><th>What the model is told</th></tr></thead>
 <tbody>
-<tr><td>Birch's lab only</td><td>Pokédex flag false or null, no later line</td><td>on</td><td>The door, as today</td></tr>
+<tr><td>Birch's lab only</td><td>Pokédex flag false or null</td><td>on</td><td>The door, as today</td></tr>
 <tr><td>Birch's lab only</td><td>Pokédex received</td><td>off</td><td>The door, as today</td></tr>
 <tr><td>Birch's lab only</td><td>Pokédex received</td><td>on</td><td>Done: Pokédex received. No door</td></tr>
 <tr><td>ROUTE 103 only</td><td>Route 103 rival battle won</td><td>on</td><td>Done: Route 103 rival battle won. No door</td></tr>
-<tr><td>Birch's lab only</td><td>A later ledger line</td><td>on</td><td>That later line is newer. No door</td></tr>
-<tr><td>Lab and another place</td><td>Pokédex received, no later line</td><td>on</td><td>Both ways in, as today</td></tr>
+<tr><td>Birch's lab only</td><td>Later dialogue with no place</td><td>on</td><td>The door remains</td></tr>
+<tr><td>Lab and another place</td><td>Pokédex received</td><td>on</td><td>Both ways in, as today</td></tr>
 <tr><td>A newer place</td><td>Pokédex received</td><td>on</td><td>That newer place</td></tr>
 </tbody>
 </table></div>
@@ -98,7 +98,7 @@ Done: Pokédex received. This is not where to go.</pre></td>
 </tr>
 </tbody>
 </table></div>
-<p>Both read the same picker. The quote is not deleted from the conversation record. An older line, such as "Birch lives next door", is not promoted into the goal slot. A later ledger line reads <code>Done: MOM's line from turn 6 ("Don't forget your RUNNING SHOES.") is newer. This is not where to go.</code> When the checklist and the ledger both apply, the Pokédex label and the later line are in the same sentence.</p>
+<p>Both read the same picker. The quote is not deleted from the conversation record. An older line, such as "Birch lives next door", is not promoted into the goal slot. A later line such as <code>Don't forget your RUNNING SHOES.</code> has no place, so it does not supersede the lab. A later line that names OLDALE TOWN becomes the latest place line through the existing picker.</p>
 </section>
 
 <section>
@@ -113,14 +113,14 @@ Done: Pokédex received. This is not where to go.</pre></td>
 </svg></div>
 <figcaption>playGameTools passes the switch into both wrappers. With story destinations and harness trust both off, the switch changes nothing.</figcaption>
 </figure>
-<p>The lab case is the checklist label "Pokédex received", save flag 0x8E4 (<code>FLAG_RECEIVED_POKEDEX_FROM_BIRCH</code>). The same rule uses the checklist's own words when they name the map: "Route 103 rival battle won", "Petalburg Woods Aqua event complete", "Rustboro Gym complete". Those labels name the woods and the gym, not PETALBURG CITY or RUSTBORO CITY. A trainer's "defeated" line does not retire the route. Between Birch's handoff and the Pokédex, with no later line, "come by my LAB later" stays the goal. <code>story-destinations-v1</code> is off in both arms of <code>bundle-v-control</code>. This switch is the harness-trust change, on for the bundle only.</p>
+<p>The lab case is the checklist label "Pokédex received", save flag 0x8E4 (<code>FLAG_RECEIVED_POKEDEX_FROM_BIRCH</code>). The same rule uses the checklist's own words when they name the map: "Route 103 rival battle won", "Petalburg Woods Aqua event complete", "Rustboro Gym complete". Those labels name the woods and the gym, not PETALBURG CITY or RUSTBORO CITY. A trainer's "defeated" line does not retire the route. Between Birch's handoff and the Pokédex, "come by my LAB later" stays the goal across unrelated later dialogue. <code>story-destinations-v1</code> is off in both arms of <code>bundle-v-control</code>. This switch is the harness-trust change, on for the bundle only.</p>
 </section>
 
 <section>
 <h2>Status</h2>
 <ul>
-<li>Branch <code>stale-story-goal-v1</code>. Off is the previous text, including the door and the walk-away note.</li>
-<li>On for the bundle arm of <code>bundle-v-control</code> only. Control stays off. <code>story-destinations-v1</code> is off in both arms. The live cook loaded its definition at start, so this does not change the trial already running.</li>
+<li>Branch <code>codex/stale-story-goal-refine</code>. Off is the previous text, including the door and the walk-away note.</li>
+<li>On for the bundle arm of <code>bundle-v-control</code> only. Control stays off. <code>story-destinations-v1</code> is off in both arms.</li>
 <li>Pending experiment <code>experiments/stale-story-goal.json</code>, not queued and not approved. Activation milestone <code>RECEIVED_POKEDEX</code>. Primary milestone <code>ROUTE_102</code>.</li>
 </ul>
 </section>

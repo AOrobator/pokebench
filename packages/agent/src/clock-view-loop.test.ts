@@ -11,10 +11,15 @@ import type {RunEvent} from "./events.js";
 
 const ID="clock-view-loop-v1" as const;
 
+const story=(set:boolean):NonNullable<GameStateSnapshot["story"]>=>({
+ name_confirmed:true,intro_stage:6,rival_stage:0,birch_lab_stage:0,petalburg_gym_stage:0,woods_stage:0,
+ clock_set:set,rival_battle_won:false,pokedex_received:false,running_shoes_received:false,
+ starter_tutorial_complete:false,rustboro_gym_complete:false,stone_badge:false,rock_tomb_received:false,
+});
 const bedroom=(x=5):GameStateSnapshot=>({
  screen:"overworld",started:true,name:"KENNY",location:"LITTLEROOT TOWN KENNY'S HOUSE 2F",map_id:[1,1],
  position:{x,y:2},facing:"up",field_controls_locked:false,in_battle:false,party:[],money:0,badges:[],play_time_s:600,
- world_context:{objects:[],triggers:[],dialogue:null,message:null},
+ world_context:{objects:[],triggers:[],dialogue:null,message:null},story:story(true),
 });
 const transition=(minute:string):GameStateSnapshot=>({
  ...bedroom(),screen:"clock",field_controls_locked:null,
@@ -26,6 +31,9 @@ const adjustment=():GameStateSnapshot=>({
 });
 const press=(before:GameStateSnapshot,after:GameStateSnapshot):CompletedCall=>({
  name:"press",args:{buttons:["A"]},isError:false,text:"ok",state:after,beforeState:before,
+});
+const walked=(before:GameStateSnapshot,after:GameStateSnapshot):CompletedCall=>({
+ name:"navigate_to",args:{map_id:after.map_id,x:after.position?.x,y:after.position?.y},isError:false,text:"ok",state:after,beforeState:before,acted:true,
 });
 
 function detector(on:boolean){
@@ -95,6 +103,46 @@ describe("clock-view-loop-v1",()=>{
   look(moved.d,"10:00 AM");
   look(moved.d,"10:01 AM");
   expect(moved.notices.filter(n=>n.kind==="cycle")).toEqual([]);
+ });
+
+ it("ON: navigate_to off the tile clears the count, and turning on the tile does not",()=>{
+  const left=detector(true);
+  look(left.d,"9:58 AM");
+  look(left.d,"9:59 AM");
+  left.d.complete(walked(bedroom(),{...bedroom(7),facing:"down"}));
+  left.d.complete(walked({...bedroom(7),facing:"down"},bedroom()));
+  look(left.d,"10:00 AM");
+  look(left.d,"10:01 AM");
+  expect(left.notices.filter(n=>n.kind==="cycle")).toEqual([]);
+  const turned=detector(true);
+  look(turned.d,"9:58 AM");
+  look(turned.d,"9:59 AM");
+  turned.d.complete(press(bedroom(),{...bedroom(),facing:"left"}));
+  turned.d.complete(press({...bedroom(),facing:"left"},bedroom()));
+  turned.d.complete(press(bedroom(),transition("10:00 AM")));
+  expect(turned.notices.filter(n=>n.kind==="cycle")).toHaveLength(1);
+ });
+
+ it("ON: the opening transition before the clock is set does not count",()=>{
+  const {d,notices}=detector(true);
+  const unset={...bedroom(),story:story(false)};
+  d.complete(press(unset,{...transition("9:00 AM"),story:story(false)}));
+  look(d,"9:58 AM");
+  look(d,"9:59 AM");
+  expect(notices.filter(n=>n.kind==="cycle")).toEqual([]);
+  d.complete(press(bedroom(),transition("10:00 AM")));
+  expect(notices.map(n=>n.phase)).toEqual(["warning","supervisor"]);
+ });
+
+ it("ON: the cycle warning does not claim a message reopened",()=>{
+  const notices:LoopNotice[]=[];
+  const d=new LoopDetector(n=>notices.push(n),LOOP_POLICY,"enforced",true,()=>"SUPERVISOR",false,false,false,true,false,false,true);
+  look(d,"9:58 AM");
+  look(d,"9:59 AM");
+  d.complete(press(bedroom(),transition("10:00 AM")));
+  expect(notices[0]?.message).toContain("The same interaction or input pattern is repeating");
+  expect(notices[0]?.message).not.toContain("Reopening the same message");
+  expect(d.context()).toBe("SUPERVISOR");
  });
 
  it("the production path reads the clock transition on the press result and honors the switch",()=>{

@@ -86,8 +86,10 @@ function linesOf(turn:number,pages:readonly Page[],names:Map<string,string>):Lin
  });
 }
 const quote=(line:Line)=>`${line.who}: "${line.text}"`;
-function heard(h:Line|null):string {
- return h===null?"nothing heard":`last heard turn ${String(h.turn)}, ${quote(h)}`;
+function heard(h:Line|null,hideTurn:number|null):string {
+ if(h===null)return "nothing heard";
+ if(hideTurn!==null&&h.turn===hideTurn)return `last heard turn ${String(h.turn)} (this result's dialogue list)`;
+ return `last heard turn ${String(h.turn)}, ${quote(h)}`;
 }
 const placeOf=(page:Page)=>({location:page.map,...(page.map_display===undefined?{}:{location_display:page.map_display}),map_id:page.map_id});
 
@@ -149,15 +151,24 @@ export class ConversationLedger {
   const latest=lines.at(-1)??this.last;
   this.visit(rooms,state,this.turn);
   const nameOf=(page:Page)=>rooms.get(roomKey(placeOf(page)))?.name??roomOf(placeOf(page),this.features);
+  // This call's pages are already in the result's dialogue list. Quote only earlier turns.
+  const hideTurn=this.features["input-cuts-v1"]&&call!==undefined?call.turn:null;
   const out=[HEAD];
   if(conversation!==null){
    const speakers=[...new Set(conversation.lines.flatMap(l=>l.person?[l.who]:[]))];
    const places=[...new Set(conversation.lines.filter(l=>l.page.map!==null||l.page.map_id!==null).map(l=>nameOf(l.page)))];
-   out.push(`${LATEST} (${speakers.join(", ")}, turn ${String(conversation.turn)}${places.length===0?"":`; ${places.join(", then ")}`}):`,...conversation.lines.map(l=>`- ${quote(l)}`));
-  }else if(latest!==null)out.push(`${LATEST}: none yet; the latest field page, turn ${String(latest.turn)}${latest.page.map===null&&latest.page.map_id===null?"":` in ${nameOf(latest.page)}`}:`,`- ${quote(latest)}`);
+   const head=`${LATEST} (${speakers.join(", ")}, turn ${String(conversation.turn)}${places.length===0?"":`; ${places.join(", then ")}`}):`;
+   if(hideTurn!==null&&conversation.turn===hideTurn)out.push(`${head} this result's dialogue list.`);
+   else out.push(head,...conversation.lines.map(l=>`- ${quote(l)}`));
+  }else if(latest!==null){
+   const where=latest.page.map===null&&latest.page.map_id===null?"":` in ${nameOf(latest.page)}`;
+   const head=`${LATEST}: none yet; the latest field page, turn ${String(latest.turn)}${where}:`;
+   if(hideTurn!==null&&latest.turn===hideTurn)out.push(`${head} this result's dialogue list.`);
+   else out.push(head,`- ${quote(latest)}`);
+  }
   else out.push(`${LATEST}: none yet; no field dialogue shown yet.`);
   out.push(ROOMS);
-  for(const room of [...rooms.values()].reverse())out.push(`- ${room.name}, here turn ${String(room.turn)}: ${heard(room.heard)}`);
+  for(const room of [...rooms.values()].reverse())out.push(`- ${room.name}, here turn ${String(room.turn)}: ${heard(room.heard,hideTurn)}`);
   return out.join("\n");
  }
  // The readout with the block inserted after its Story line (after Location/Position without one).

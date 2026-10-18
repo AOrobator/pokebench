@@ -136,9 +136,10 @@
    "instruction-ledger-v2": false,
    "no-exit-here-v1": false,
    "bag-healing-items-v1": false,
+
    "battle-menu-loop-v1": false, "clock-view-loop-v1": false,
    "stale-story-goal-v1": false,
-   "reopened-dialogue-loop-v1": false,
+   "input-cuts-v1": false, "reopened-dialogue-loop-v1": false,
    "dialog-button-b-v1": false
   }
  },

@@ -101,5 +101,6 @@ The original ignored runs/explainers copies remain for existing links. Make futu
 - [Battle menu loop](battle-menu-loop-v1.html)
 - [Clock view loop](clock-view-loop-v1.html)
 - [Stale story goal](stale-story-goal-v1.html)
+- [Input cuts](input-cuts-v1.html)
 - [Reopened dialogue loop](reopened-dialogue-loop-v1.html)
 - [Dialogue button B](dialog-button-b-v1.html)

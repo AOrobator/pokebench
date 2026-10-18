@@ -1085,6 +1085,17 @@ it("links the heal before trainers BAG items card to its tracked explainer, whic
  expect(html).toContain("Your BAG has POTION ×1 (&quot;Restores the HP of a POKéMON by 20 points.&quot;).");
 });
 
+it("links the input cuts card to its tracked explainer, which quotes the hidden ledger line",()=>{
+ const id="input-cuts-v1";
+ expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
+ const log=new Log();log.add(0,{...START,harness_features:["ram-state-v1",id]});
+ const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
+ expect(doc.querySelector(`[data-feature="${id}"] a`)?.getAttribute("href")).toBe(`/explainers/${id}.html`);
+ const html=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)),"utf8");
+ expect(html).toContain(id);
+ expect(html).toContain("this result's dialogue list");
+});
+
 it("links the battle action tool card to its tracked explainer, which quotes the tool's recorded-state result",()=>{
  const id="battle-move-tool-v1";
  expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);

@@ -580,3 +580,14 @@ it("measures TTFT from model dispatch to the first content delta, retaining cach
  await recorder.emit({type:"message_end",message});
  expect(events(log).find(e=>e.type==="assistant")).toMatchObject({ttft_ms:30,latency_ms:70,usage:{input:30,output:12,cache_read:3,cache_write:7}});
 });
+
+it("replays only the latest existing state when a late subscriber explicitly requests it",async()=>{
+ const {recorder}=harness();await recorder.start(START_META);
+ const empty:RunEvent[]=[];recorder.subscribe(e=>empty.push(e),false,true);expect(empty).toEqual([]);
+ recorder.recordState(STATE);const latest=recorder.recordState({...STATE,screen:"clock"});
+ const normal:RunEvent[]=[],seeded:RunEvent[]=[];
+ recorder.subscribe(e=>normal.push(e));recorder.subscribe(e=>seeded.push(e),false,true);
+ expect(normal).toEqual([]);expect(seeded).toEqual([latest]);
+ const next=recorder.recordState({...STATE,screen:"naming"});
+ expect(normal).toEqual([next]);expect(seeded).toEqual([latest,next]);
+});

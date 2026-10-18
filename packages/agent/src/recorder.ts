@@ -133,11 +133,13 @@ export class RunRecorder {
 
   private readonly observers: ((event: RunEvent) => void)[] = [];
   private readonly milestoneEvents: RunEvent[] = [];
-  // Late subscribers still learn the milestones already recorded, such as those present at a checkpoint start.
-  subscribe(observer: (event: RunEvent) => void, replayMilestones = false): void { this.observers.push(observer); if (replayMilestones) for (const event of this.milestoneEvents) observer(event); }
+  private latestStateEvent: Extract<RunEvent,{type:"state"}> | null = null;
+  // Replay is opt-in: milestones at checkpoint start, or the latest recorded state for a late request observer.
+  subscribe(observer: (event: RunEvent) => void, replayMilestones = false, replayLatestState = false): void { this.observers.push(observer); if (replayMilestones) for (const event of this.milestoneEvents) observer(event); if(replayLatestState&&this.latestStateEvent!==null)observer(this.latestStateEvent); }
   private append(body: EventBody): RunEvent {
     const event = this.log.append(body);
     if (event.type === "milestone") this.milestoneEvents.push(event);
+    if(event.type==="state")this.latestStateEvent=event;
     for (const observer of this.observers) observer(event);
     return event;
   }

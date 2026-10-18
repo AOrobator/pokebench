@@ -315,7 +315,7 @@ async function playAgent(): Promise<void> {
       const context=contextTools(features,recorder,objectives?.transformContext??recorder.transformContext);
       const tools=playGameTools(baseTools,features,new StateWatcher(gameServerUrl),recorder,signal=>runControl.gate(signal),context.tools);
       const jit=new JitContext(features,target);
-      recorder.subscribe(event=>{if(event.type==="state")jit.observe(event);});
+      recorder.subscribe(event=>{if(event.type==="state")jit.observe(event);},false,true);
       const loop = piLoop({
         systemPrompt,
         loopDetector,

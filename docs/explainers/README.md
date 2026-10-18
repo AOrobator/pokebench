@@ -100,3 +100,4 @@ The original ignored runs/explainers copies remain for existing links. Make futu
 - [Heal before trainers: BAG items](bag-healing-items-v1.html)
 - [Battle menu loop](battle-menu-loop-v1.html)
 - [Clock view loop](clock-view-loop-v1.html)
+- [Stale story goal](stale-story-goal-v1.html)

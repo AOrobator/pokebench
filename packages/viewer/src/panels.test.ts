@@ -1027,6 +1027,19 @@ it("links the clock view loop card to its tracked explainer, which quotes the be
  expect(html).toContain("2026-10-17T21-38-43_qwen36-gpu1_c18f");
 });
 
+it("links the stale story goal card to its tracked explainer, which quotes the retired line",()=>{
+ const id="stale-story-goal-v1";
+ expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
+ const log=new Log();log.add(0,{...START,harness_features:["ram-state-v1",id]});
+ const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
+ expect(doc.querySelector(`[data-feature="${id}"] a`)?.getAttribute("href")).toBe(`/explainers/${id}.html`);
+ const html=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)),"utf8");
+ expect(html).toContain(id);
+ expect(html).toContain("Done: Pokédex received. This is not where to go.");
+ expect(html).toContain("is done: Pokédex received. It is not where to go.");
+ expect(html).toContain("bundle arm only");
+});
+
 it("links the battle menu loop card to its tracked explainer, which quotes the menu sentence",()=>{
  const id="battle-menu-loop-v1";
  expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);

@@ -136,7 +136,7 @@
    "people-id-cards-v1": true,
    "open-goal-prompt-v1": false,
    "low-hp-trainer-warning-v2": true,
-   "story-destinations-v1": true,
+   "story-destinations-v1": false,
    "exit-reachability-v1": true,
    "heal-before-trainers-v1": true,
    "harness-trust-v1": true,
@@ -151,7 +151,8 @@
    "instruction-ledger-v2": true,
    "no-exit-here-v1": true,
    "battle-menu-loop-v1": true,
-   "clock-view-loop-v1": true
+   "clock-view-loop-v1": true,
+   "stale-story-goal-v1": true
   },
   "start": {
    "kind": "save_state",

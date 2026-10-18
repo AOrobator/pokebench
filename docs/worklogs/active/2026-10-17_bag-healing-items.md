@@ -45,6 +45,9 @@ Proposed second switch (not built here): `battle-item-choice-v1`, battle_action 
 
 **M3 — explainer, pending experiment, review**
 - [x] Explainer `docs/explainers/bag-healing-items-v1.html` (pages-check prints nothing; README; panels/server link tests) + pending `experiments/bag-healing-items.json` (not queued) + readiness row. In the GREEN commit.
+- [x] COMMIT GREEN: `feat(bag-healing-items): …` (719a07d7)
+- [x] Live proof 8:50 PM (isolated built viewer on 127.0.0.1:8797, scratch runs root in the session scratchpad, stopped after): `test-support/live-bag-healing-items.ts` recorded a run through production playGameTools + RunRecorder + pinned pi loop over e046's states: 2 `heal_before_trainers_warning` events (#8 RICH_BOY, #21 LASS), each with items [POTION ×1, "Restores the HP of a POKéMON by 20 points."], and tool_results #10 and #23 (what the next model request carries) end with the BAG sentence. The Agent Trace SUP row for #21 expanded to the whole paragraph with the sentence; Harness Config lists HEAL BEFORE TRAINERS: BAG ITEMS, and clicking its Read explainer opened `/explainers/bag-healing-items-v1.html` (h1 "Heal before trainers: BAG items"). No timeline change (no new event kind).
+- [x] Explainer at http://127.0.0.1:8791/bag-healing-items-v1/bag-healing-items-v1.html (200), viewed at 1280, 1440 and 375 (dark scheme); two figures had text running past their boxes at 1280 and were widened; no page-level horizontal scroll at any width; pages-check prints nothing.
 - [ ] Review (Claude, Grok, GPT), at most 2 rounds.
 
 ## Multi-Model Review Log

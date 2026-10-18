@@ -92,14 +92,14 @@ mark{background:var(--game-bg);color:var(--fg);border-bottom:2px solid var(--gam
 
 <section>
 <h2>Which items it names</h2>
-<figure><div class="scroll"><svg viewBox="0 0 700 200" width="700" role="img" aria-label="Weakness to item kind">
-<rect x="10" y="20" width="200" height="44" rx="8" class="prior"/><text x="22" y="47" class="t">lead below half HP</text>
-<rect x="10" y="80" width="200" height="44" rx="8" class="prior"/><text x="22" y="107" class="t">a Pokémon fainted</text>
-<rect x="10" y="140" width="200" height="44" rx="8" class="prior"/><text x="22" y="167" class="t">lead's damaging moves at 0 PP</text>
-<rect x="300" y="20" width="390" height="44" rx="8" class="game"/><text x="312" y="40" class="t">HP items</text><text x="312" y="56" class="s">POTION, SUPER/HYPER/MAX POTION, FULL RESTORE, FRESH WATER, SODA POP, …, ORAN, SITRUS BERRY</text>
-<rect x="300" y="80" width="390" height="44" rx="8" class="game"/><text x="312" y="100" class="t">revival items</text><text x="312" y="116" class="s">REVIVE, MAX REVIVE, REVIVAL HERB</text>
-<rect x="300" y="140" width="390" height="44" rx="8" class="game"/><text x="312" y="160" class="t">PP items</text><text x="312" y="176" class="s">ETHER, MAX ETHER, ELIXIR, MAX ELIXIR, LEPPA BERRY</text>
-<path class="arr g" d="M210 42 H300"/><path class="arr g" d="M210 102 H300"/><path class="arr g" d="M210 162 H300"/>
+<figure><div class="scroll"><svg viewBox="0 0 740 200" width="740" role="img" aria-label="Weakness to item kind">
+<rect x="10" y="20" width="240" height="44" rx="8" class="prior"/><text x="22" y="47" class="t">lead below half HP</text>
+<rect x="10" y="80" width="240" height="44" rx="8" class="prior"/><text x="22" y="107" class="t">a Pokémon fainted</text>
+<rect x="10" y="140" width="240" height="44" rx="8" class="prior"/><text x="22" y="167" class="t">lead's damaging moves at 0 PP</text>
+<rect x="320" y="20" width="410" height="44" rx="8" class="game"/><text x="332" y="40" class="t">HP items (14)</text><text x="332" y="56" class="s">POTION, SUPER/HYPER/MAX POTION, FULL RESTORE, … (table below)</text>
+<rect x="320" y="80" width="410" height="44" rx="8" class="game"/><text x="332" y="100" class="t">revival items (3)</text><text x="332" y="116" class="s">REVIVE, MAX REVIVE, REVIVAL HERB</text>
+<rect x="320" y="140" width="410" height="44" rx="8" class="game"/><text x="332" y="160" class="t">PP items (5)</text><text x="332" y="176" class="s">ETHER, MAX ETHER, ELIXIR, MAX ELIXIR, LEPPA BERRY</text>
+<path class="arr g" d="M250 42 H320"/><path class="arr g" d="M250 102 H320"/><path class="arr g" d="M250 162 H320"/>
 </svg></div><figcaption>Each weakness heal-before-trainers-v1 names maps to the items whose field use fixes it (<code>fieldUseFunc</code> ItemUseOutOfBattle_Medicine or ItemUseOutOfBattle_PPRecovery in src/data/items.h). Status items are not named, because status is not one of the weaknesses. A POTION is never named for a fainted Pokémon.</figcaption></figure>
 <div class="tablewrap"><table>
 <tr><th>Item</th><th>The game's description (item_descriptions.h, line breaks as spaces)</th></tr>
@@ -143,15 +143,15 @@ mark{background:var(--game-bg);color:var(--fg);border-bottom:2px solid var(--gam
 
 <section>
 <h2>Wiring</h2>
-<figure><div class="scroll"><svg viewBox="0 0 760 170" width="760" role="img" aria-label="Switch wiring">
+<figure><div class="scroll"><svg viewBox="0 0 830 170" width="830" role="img" aria-label="Switch wiring">
 <rect x="10" y="20" width="150" height="50" rx="8" class="box"/><text x="22" y="42" class="t">run preset</text><text x="22" y="60" class="s">FeatureSet</text>
 <rect x="190" y="20" width="170" height="50" rx="8" class="box"/><text x="202" y="42" class="t">playGameTools</text><text x="202" y="60" class="s">withLowHpTrainerWarning</text>
 <rect x="390" y="20" width="170" height="50" rx="8" class="game hot"/><text x="402" y="42" class="t">HealBeforeTrainers</text><text x="402" y="60" class="s">items: bag-healing-items-v1</text>
-<rect x="590" y="20" width="160" height="50" rx="8" class="box"/><text x="602" y="42" class="t">tool result</text><text x="602" y="60" class="s">paragraph + BAG sentence</text>
+<rect x="590" y="20" width="230" height="50" rx="8" class="box"/><text x="602" y="42" class="t">tool result</text><text x="602" y="60" class="s">paragraph + BAG sentence</text>
 <path class="arr" d="M160 45 H190"/><path class="arr" d="M360 45 H390"/><path class="arr g" d="M560 45 H590"/>
 <rect x="390" y="100" width="170" height="50" rx="8" class="box"/><text x="402" y="122" class="t">result's own state</text><text x="402" y="140" class="s">resources.bag (game server)</text>
 <path class="arr" d="M475 100 V70"/>
-<rect x="590" y="100" width="160" height="50" rx="8" class="box"/><text x="602" y="122" class="t">heal_before_trainers_warning</text><text x="602" y="140" class="s">+ items (name, count, text)</text>
+<rect x="590" y="100" width="230" height="50" rx="8" class="box"/><text x="602" y="122" class="t">heal_before_trainers_warning</text><text x="602" y="140" class="s">+ items (name, count, text)</text>
 <path class="arr" d="M560 60 L590 110"/>
 </svg></div><figcaption>The switch is read only from the run's FeatureSet and passed to the arm. It uses the bag the game server already sends in every state. Nothing changes on the server, in the readout, the prompt or the tools. A test runs the production <code>playGameTools</code> with the switch on and off and reads back the run log.</figcaption></figure>
 </section>

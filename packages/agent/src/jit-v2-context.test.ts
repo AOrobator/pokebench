@@ -65,7 +65,7 @@ it("provider serializes all image-bearing tool results before the scene guide",a
  const {Type}=await import("typebox");const {Value}=await import("typebox/value");
  const jit=new StableJitContext(features,null);scene(jit,"clock",5);
  const calls=["one","two"].map(id=>({type:"toolCall" as const,id,name:"observe",arguments:{}}));
- const observation=(id:string):Message=>({...result(id),content:[{type:"text",text:id},{type:"image",data:"AAAA",mimeType:"image/png"}]});
+ const observation=(id:string):Message=>({role:"toolResult",toolCallId:id,toolName:"observe",isError:false,timestamp:2,content:[{type:"text",text:id},{type:"image",data:"AAAA",mimeType:"image/png"}]});
  const out=jit.context(request([task,assistant({toolCalls:calls}),observation("one"),observation("two")]));
  let payload:unknown=null;
  const model={id:"fixture",name:"fixture",api:"openai-completions" as const,provider:"fixture",baseUrl:"http://provider-fixture.invalid/v1",reasoning:false,input:["text","image"] as ("text"|"image")[],cost:{input:0,output:0,cacheRead:0,cacheWrite:0},contextWindow:1000,maxTokens:100};

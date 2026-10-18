@@ -1035,7 +1035,8 @@ it("links the reopened dialogue loop card to its tracked explainer, which quotes
  expect(doc.querySelector(`[data-feature="${id}"] a`)?.getAttribute("href")).toBe(`/explainers/${id}.html`);
  const html=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)),"utf8");
  expect(html).toContain(id);
- expect(html).toContain("The box is printed with a POKéMON logo.");
+    expect(html).toContain("<title>Reopened dialogue loop</title>");
+    expect(html).toContain("The box is printed with a POKéMON logo.");
  expect(html).toContain("2026-10-18T01-30-48_qwen36-gpu0_e6ce");
 });
 
@@ -1047,7 +1048,8 @@ it("links the dialogue button card to its tracked explainer, which names B as th
  expect(doc.querySelector(`[data-feature="${id}"] a`)?.getAttribute("href")).toBe(`/explainers/${id}.html`);
  const html=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)),"utf8");
  expect(html).toContain(id);
- expect(html).toContain("B is the button for a message.");
+    expect(html).toContain("<title>Dialogue button B</title>");
+    expect(html).toContain("B is the button for a message.");
 });
 
 it("links the stale story goal card to its tracked explainer, which quotes the retired line",()=>{

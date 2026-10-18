@@ -63,6 +63,12 @@ export interface CompletedCall {
   readonly dialogue?: readonly string[] | undefined;
 }
 export type LoopPolicy = { readonly [K in keyof typeof LOOP_POLICY]: number };
+
+function pressAskedForA(call: CompletedCall): boolean {
+  const source = call.requested ?? call.args;
+  const buttons = source["buttons"];
+  return Array.isArray(buttons) && buttons.some((button) => button === "A");
+}
 const PLANNING = new Set([
   "get_objectives",
   "set_objective",
@@ -525,9 +531,13 @@ export class LoopDetector {
       return false;
     }
     const place = JSON.stringify([call.state.location, call.state.map_id, call.state.position]);
-    if ((call.state.world_context?.dialogue ?? "") !== "") return false;
+    const open = call.state.world_context?.dialogue ?? "";
+    if (open !== "") {
+      if (open !== this.closedTalk.text) this.closedTalk = { text: "", place: "", count: 0 };
+      return false;
+    }
     const text = (call.dialogue ?? []).filter((line) => line !== "").join("\n");
-    if (text === "") {
+    if (text === "" || call.name !== "press" || !pressAskedForA(call)) {
       if (place !== this.closedTalk.place) this.closedTalk = { text: "", place: "", count: 0 };
       return false;
     }

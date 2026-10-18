@@ -46,6 +46,18 @@ Gates on `f9d26a34` (main merged through `336c174a`):
 
 One agent test (`serial-comparison` hung-child stdout) failed once while lint and the build were running on the same machine, and passed on the next isolated run and in the gate above. It is not part of this diff.
 
+## Review round 1
+
+Frozen packet `336c174a..40991fb2`, diff SHA-256 `d62fdfb6965e143fb781b52ffa86fb69b607ab3fedaf866bcded37594a99306b`. Claude CLI review login was logged out, so the Claude lane was Cursor `claude-opus-5-thinking-high`. Grok was `grok-4.7-high`. GPT was `gpt-5.6-sol-xhigh`. All three returned `VERDICT: BLOCKING` with empty stderr.
+
+Accepted and fixed:
+
+- Both explainers had copied `<title>Clock view loop</title>`. Titles are now the page subjects, and the card tests assert them.
+- The counter now counts only a `press` whose requested buttons include A. A `navigate_to` and a B-only press do not add. An open result whose lines differ from the counted lines clears the count. The same lines still open do not.
+- Deletion receipts, each restored after the red run: removing the `dialog-button-b-v1` prompt insertion failed `expect(sectionAt).toBeGreaterThan(0)`; removing the `decision-probe.ts` argument failed the probe `toContain`; removing `if (closedLoop) hit ??= "cycle"` failed the fourth-showing `["warning", "supervisor"]` assertion.
+
+Rebutted, not changed: replaying the live cook cannot show this warning, because that run loaded the old build. The production-path test already drives `attachLoopGuard` with the recorded press shape, and the event type is the existing `loop_guard`. The live 8790 viewer is not restarted while the cook is up. Leaving and returning inside one call is judged by the result place, the same rule as the clock counter.
+
 ## Not done
 
-The feature commit is `05060925`. Main was merged through `336c174a`. Not reviewed. Not on main. `source.commit` on the two new experiment files is still `bcde8cd4`; repin after landing. Experiments not queued, not approved, not launched. The live cook is unchanged.
+The feature commit is `05060925`. Main was merged through `336c174a`. Round 1 is not an LGTM. Not on main. `source.commit` on the two new experiment files is still `bcde8cd4`; repin after landing. Experiments not queued, not approved, not launched. The live cook is unchanged.

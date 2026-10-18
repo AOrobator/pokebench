@@ -95,6 +95,22 @@ describe("reopened-dialogue-loop-v1", () => {
     expect(left.notices.filter((n) => n.kind === "cycle")).toEqual([]);
   });
 
+  it("ON: a navigate_to, a B press, and an open different line do not continue the count", () => {
+    const nav = detector(true);
+    for (let i = 0; i < 4; i++) nav.d.complete({...shown(), name: "navigate_to", args: {map_id: [0, 11], x: 2, y: 2}});
+    expect(nav.notices.filter((n) => n.kind === "cycle")).toEqual([]);
+    const closing = detector(true);
+    for (let i = 0; i < 4; i++) closing.d.complete({...shown(), args: {buttons: ["B"]}, requested: {buttons: ["B"]}});
+    expect(closing.notices.filter((n) => n.kind === "cycle")).toEqual([]);
+    const other = detector(true);
+    other.d.complete(shown());
+    other.d.complete(shown());
+    other.d.complete(shown());
+    other.d.complete({...shown("A different line."), state: truck(2, "A different line.")});
+    other.d.complete(shown());
+    expect(other.notices.filter((n) => n.kind === "cycle")).toEqual([]);
+  });
+
   it("ON: a result that still shows the lines does not count as a closed reopening", () => {
     const notices: LoopNotice[] = [];
     const d = new LoopDetector((n) => notices.push(n), LOOP_POLICY, "enforced", false, () => "SUPERVISOR", false, false, false, false, false, false, false, true);

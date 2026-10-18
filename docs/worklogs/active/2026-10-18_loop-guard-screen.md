@@ -67,6 +67,24 @@ Tests for the note. Explainer via `just pages-check` and a local link. The live 
 - 2026-10-18 1:49 AM EDT: operator asked for the loop-guard path to quote the open screen's controls, behind a switch, reviewed, landed, and in the bundle.
 - 2026-10-18 2:05 AM EDT: wiring is one condition in `SupervisorBriefing.bearings`. ON reuses the stall path's interface note. The clock transition stays a field note. The bundle base keeps the switch false and lists it last in `switches`, so the bundle arm turns it on.
 - 2026-10-18 2:20 AM EDT: main had moved to `336c174a` (`input-cuts-v1`) after this branch was cut from `bcde8cd4`. Merged main in. `input-cuts-v1` stays where main registered it, and `loop-guard-screen-v1` stays last. Agent tests 2408 passed and viewer tests 1142 passed after rebuilding the agent so the viewer sees both switches.
+- 2026-10-18 2:22 AM EDT: gates on the merge commit `5a53b64a`, before the review packet was sealed. `just test`: agent 2408, viewer 1142, pytest 2707 passed. `just lint` clean. `just build`: viewer stamp `5a53b64`. `just coverage`: agent lines 99.25 / branches 94.23 / functions 98.30; viewer lines 97.62 / branches 91.38 / functions 93.79; Python lines 97.66 / branches 93.82 / functions 100. `just verify-vendor` OK. `just experiments-check`: ok, 106 experiments. `pages-check` on the explainer printed nothing.
+
+## Multi-Model Review Log
+
+Round 1, frozen base `336c174a`, head `5a53b64a`, diff SHA-256 `3527b05d2fb86f08ea335769bde6cb8be7217527d850344a193289bc65ed8d62`. Claude CLI `~/.claude-review` was logged out, so the Claude lane was Cursor `claude-opus-5-5-high`. Grok was Cursor `cursor-grok-4.5-high`. GPT was Cursor `gpt-5.6-sol-xhigh`. Tree unchanged after the reviews. Grok: `VERDICT: LGTM`. Claude and GPT: `VERDICT: BLOCKING`.
+
+Triage:
+
+- **Fix (recorded here):** both blocking lanes said the worklog did not show the full gates on `5a53b64a`. Those gates had already been run on that commit. This entry is the receipt. No product code changed.
+- **Rebut, model delivery:** GPT asked for a new recorded-event, model-context, and viewer replay of the note. `loopSupervisor` is the production closure `LoopDetector` stores as the briefing and sends. The factory test asserts that closure returns the controls sentence with the switch on and the field note with it off. This diff does not change the detector, the `loop_guard` event, or the viewer renderer. Activity History already renders a supervisor `loop_guard` message in full (`panels.test.ts`). Clock-view-loop, the previous guard, used the same notice path and did not add a new replay.
+- **Rebut, live Harness Config click:** the explainer page was checked on the pages server (below). The 8790 viewer is already listening and was not restarted, so the live card click is not done. The card link is the existing `FEATURE_EXPLAINERS` test.
+- **Follow-up:** a naming-editor case for the reused interface note, and repinning `source.commit` after this lands. The pin stays the pre-land SHA until then.
+
+Explainer, looked at in the browser. [Loop guard screen](http://127.0.0.1:8791/loop-guard-screen-v1/loop-guard-screen-v1.html) returned 200. At 1280 and 1440 the column is 740px, centered, and the page does not scroll sideways. At 375 the column is 343px, the page does not scroll sideways, and the 700px figure scrolls inside its box. [375](http://127.0.0.1:8791/loop-guard-screen-v1/375.png) shows the heading, the cdb1 paragraph, and the first diagram box, with the next box peeking as the scroll.
+
+```bash
+open ~/dev/pokebench/docs/explainers/loop-guard-screen-v1.html
+```
 
 ## Surprises
 
@@ -90,9 +108,7 @@ Scored against `docs/agent-principles.md` PB1–PB13.
 | PB10 | PASS | No test skipped, no floor lowered. The wiring deletion went red, then was restored. |
 | PB11 | N/A | No new call into pi, mGBA, or the vendor server. |
 | PB12 | PASS | The ROM was not copied. Pytest used `POKEBENCH_ROM`. |
-| PB13 | PASS | RED committed, GREEN follows, gates recorded. Review is the next milestone. |
-
-## Multi-Model Review Log
+| PB13 | PASS | RED and GREEN are committed. Gates on `5a53b64a` are in the session log. |
 
 ## Boy Scout Log
 

@@ -54,7 +54,11 @@ Tests for the detector and the production wiring. Explainer served locally. The 
 
 ## Multi-Model Review Log
 
-Round 1, packet head `2ba6905d`, diff SHA-256 `b408c4ba89529edb409d14e8f2b607e1635a7d617e54779dd7b99752f93ab5e3`. Claude lane was Cursor Claude `claude-opus-5-5-high` because `~/.claude-review` reported loggedIn false. Grok was `cursor-grok-4.5-high`. GPT was `gpt-5.6-sol-xhigh`. Each ended `VERDICT: BLOCKING`.
+Round 2, packet base `bcde8cd4`, head `9c6d5ab8`, diff SHA-256 `5844734f4316d96cc5e3dcb1baa2bc245ed5e9d88bdd037b922954c9bb554bce`. Claude `claude-opus-5-5-high` and Grok `cursor-grok-4.5-high` ended `VERDICT: LGTM`. GPT `gpt-5.6-sol-xhigh` ended `VERDICT: BLOCKING`.
+
+GPT's blocker: the new sentence said the warning does not claim a message reopened. That is true only when navigation-truth is on. The pending experiment leaves navigation-truth off, so the existing cycle sentence still adds the clause. The bundle arm has navigation-truth on. The sentence is now qualified. That change is not in the reviewed packet. Round cap is 2, so this branch is not fast-forwarded.
+
+Round 1, packet head `2ba6905d`, diff SHA-256 `b408c4ba89529edb409d14e8f2b607e1635a7d617e54779dd7b99752f93ab5e3`. Claude lane was Cursor Claude `claude-opus-5-5-high` because `~/.claude-review` reported loggedIn false. Grok was `cursor-grok-4.5-high`. GPT was `gpt-5.6-sol-xhigh`. Each ended `VERDICT: BLOCKING`. The guard fixes landed on main in `bcde8cd4` before round 2.
 
 Fixed in this round:
 - `navigate_to` onto another tile did not clear the count, because the reset ran only for `press`. Any overworld result on a different tile clears it. Claude, Grok, and GPT.

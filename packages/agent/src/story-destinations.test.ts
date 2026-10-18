@@ -129,6 +129,7 @@ describe("story-destinations-v1 rules",()=>{
    '- "RUSTBORO CITY" = RUSTBORO CITY (map 0/3).',
   ].join("\n"));
   expect(after([page("Head for RUSTBORO CITY beyond this town.","DAD","faced_sprite")])).toBeNull();
+  expect(after([page("Head for RUSTBORO CITY beyond this town.","dad")])).toBeNull();
   expect(after([page("Head for RUSTBORO CITY beyond this town.","WALLYS DAD")])).toBeNull();
  });
  it("a connected map is reached by the edge that leads to it, said as this map's edge when it is this one",()=>{

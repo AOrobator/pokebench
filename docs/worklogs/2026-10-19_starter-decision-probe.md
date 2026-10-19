@@ -24,7 +24,7 @@ The operator asked to design and implement the starter decision probe and get it
 
 ## Review
 
-Pending.
+Approved for local landing: independent GPT/Codex Sol and cloud Grok both LGTM on frozen2cd3d439; Claude explicitly waived by the operator. Grok could read source but could not execute shell hashing; independent GPT/Codex and controller reproduced exact pre/post identity and digest. See final landing section and durable review packet for the limitation.
 
 - RED: new starter decision module/factory tests fail because the module is absent; shared native-target fixed-definition test fails because target is null-only. Logs /tmp/starter-red-{agent,fixed}.log.
 
@@ -67,3 +67,38 @@ Prior frozen candidate afd3604e: just test 6762 passed; exact-head build/lint pa
 
 - Final pending diagnostic source pin 9ec31544db3c8dee21c2d911265050801c99f9b9; no queue position or approval. Source freeze follows this metadata-only update; final reviews will independently verify frozen base/head/digest before and after.
 - Metadata commit initially rejected by the existing whole-second worklog freshness hook because it immediately followed the implementation commit. This later substantive update records that result; hook unchanged and no bypass used. Final qualification must use the clean committed tree after this update.
+
+
+## Landed on main — 2026-10-19
+
+- The operator explicitly directed prompt landing when original probe had no defect, with further repair delegated. Independent delegated audit found no remaining repair; no further hardening holds landing.
+- Frozen BASE52d51dc6356f1191de6554d43b207480e80bbaa6 / HEAD2cd3d4391ef993b499007007551bf9d4edc4089a, exact binary SHA256de55b69deeae97037f1ec29eafd3779557a11e9d94ef0f4cad4cef09f00e575e. Controller verified clean identity before and after reviews; main fast-forwarded exactly to reviewed HEAD. No original probe code/design blocker.
+- Sol GPT/Codex cumulative re-review VERDICT: LGTM, independently matching live pre/post identity/digest; allPB1-PB13 and nine test-quality checks examined. Grok cloud VERDICT: LGTM, exit0/empty stderr, source acceptance; read-only shell rejected, so its identity corroboration is filesystem-only and is not called independent hashing. Claude explicitly waived by operator. Canonical runs/reviews/2026-10-19_starter-decision-probe/repair/ contains exact outputs, synthesis and frozen packet.
+- Final frozen ordinary test and coverage each6808pass (2681agent/1303viewer/2824Python), zero skips; lint/build/vendor pass. Native OFF/ON qualification at exact clean2cd3d439 completes12steps each, modelCalls0/assistantEvents0, STARTER_CHOSEN milestone170/state169, native run_end proof. All raw gzip archives validated. Manual acquired Mudkip is execution proof only.
+- Postmerge verification ran in the actual clean main checkout extend-run/pokebench: just build and just test6808pass, /tmp/starter-actual-main-{build,test}.log. An earlier duplicate postmerge invocation accidentally used the candidate checkout; stopped that redundant run, retained /tmp/starter-main-test.log, and do not call it main proof.
+- This one evidence-only commit touches docs/worklogs/ only, permitted by execute-worklog. One viewer-main refresh and operator-surface proof follow this commit; authoritative final outcome/IDs/stamp/HTTP/screenshots are written to canonical runs/reviews/2026-10-19_starter-decision-probe/repair/landing.json. Verify that receipt before calling the operator surface ready.
+- Existing fixed CLI assumes common Git root is the active main checkout; canonical root currently hosts a different working branch. Delegated only an ignored helper around existing exported production dependencies, explicitly using actual main and canonical runs, with exact checkpoint symlink and unchanged operator approval. No generic CLI refactor or change to canonical branch. Final helper check receipt accompanies landing.json.
+- Implementation, source review, deterministic gates, checkpoint qualification and source landing complete. Pending diagnostic remains unqueued/unapproved; no measured probe, experiment launch, promotion or worklog archival.
+
+## Operator launch — 2026-10-19 19:07 New York
+
+The operator ordered a measured launch of 25 control and 25 reminder trials, with permission to prepare the plan and start the runs. The fixed runner requires per-arm counts divisible by the two lanes, so the plan is 24 per arm in balanced blocks plus one seeded single pair. That is 25 and 25. One lane runs 13 control and 12 reminder; the other runs 12 and 13. Same Route 101 save, 300-second cap, and stop at STARTER_CHOSEN. Agent bytes stay the landed pin ecda0eec. The definition change is the trial count only.
+
+The Petalburg continuous campaign held ports 8075 and 8076 on round 11, started 22:54 UTC. Its STOP file is the driver's own operator stop, so those two trials end as operator aborts and the driver does not start another round. The probe cannot share those lanes.
+
+## Result — 2026-10-19 7:36 PM New York
+
+The 25 and 25 launch finished at 23:36:42 UTC. 50 of 50 trials were valid and 0 were invalid. Every trial ended on the native milestone STARTER_CHOSEN. Agent bytes stayed the landed pin ecda0eec.
+
+The Pokémon in the party at the end:
+
+- Control: 25 Torchic, 0 Treecko, 0 Mudkip.
+- Reminder: 25 Torchic, 0 Treecko, 0 Mudkip.
+
+No trial's game state ever contained Treecko or Mudkip, so none of them moved the menu off the starter it already had highlighted. Median wall time was 36.7 seconds for control and 35.7 seconds for the reminder. The slowest reminder trial was 2 minutes 47 seconds (2026-10-19T19-31-39_qwen36-gpu1_4414, 29 turns) and still ended on Torchic. The ledger is runs/experiments/starter-decision-salience/trials.jsonl.
+
+The operator's decision after that result: the reminder had no effect, so turn the prompt off and turn the switch off. starter-decision-salience-v1 was already the default-OFF treatment. It is not promoted. Omitted presets, the next-run draft, and flag features keep it false, and the reminder text is appended only when that switch is on. Nothing running has it on. The launch approval and the ignored launch helper are removed so this experiment does not start the reminder again. The registered switch stays in the tree so the finished trials can still be read. The committed fixed definition stays the reviewed 16-slot file; the 25 and 25 count was the uncommitted plan the runner used and is not a new treatment.
+
+## Archive
+
+Archived 2026-10-19 at the operator's request, after the null species result. The probe branch and its checkouts are removed. The Petalburg STOP file is still in place.

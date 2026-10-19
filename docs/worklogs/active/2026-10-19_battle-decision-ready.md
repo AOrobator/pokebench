@@ -23,7 +23,7 @@ No game-memory writes, save edits, vendor edits, new network surface, local infe
 - [x] M1: RED regressions and commit.
 - [x] M2: Implementation, metadata, explainer and both-arm definition; GREEN gates and mutation proof.
 - [x] M3: Recorded/native probe and viewer/explainer proof; principles self-review and frozen cloud reviews.
-- [ ] M4: Fast-forward local landing after required cloud approvals, viewer restart and live proof.
+- [x] M4: Fast-forward local landing after required cloud approvals, viewer restart and live proof.
 
 ## Closing the Loop
 Prove production entrypoint context delivery, repeated battle_action calls, prompt stops, OFF parity, finite caps and both-arm configuration. Run full tests/coverage/lint/build/vendor gates; inspect recorded pages and final state in replay and actual viewer. Do not launch measured trials.
@@ -35,7 +35,7 @@ Prove production entrypoint context delivery, repeated battle_action calls, prom
 - Current refusal bypass and its test intentionally guarantee no buttons for refused calls; repair must make preflight explicit rather than silently falsifying that receipt.
 
 ## Multi-Model Review Log
-Pending.
+Final integrated GPT and Grok verdicts LGTM on the same frozen packet; unavailable Claude lane explicitly waived by the operator. Detailed rounds and final receipts below.
 
 ## Boy Scout Log
 No unrelated changes.
@@ -79,3 +79,11 @@ No unrelated changes.
 - Integration implementation committed as 1f44618f4a5666037952d9bdffbef371dcd79941; pending standalone definition pins that source. Freezing post-sync packet for refreshed GPT/Grok review. The operator-authorized Claude exception persists; no missing lane is presented as green.
 
 - A subsequent main landing added capture workers/shared viewer frames and a rehearsal optimization; integrated cleanly at 4e97639993e7b47423bf6d55b66e51578e7bf76d from main908dd6c7. Full final integration gates pass:agent2605, viewer1280, Python2768; coverage agent99.23/94.09/98.05, viewer97.69/91.03/93.77, Python96.90/92.37/100 (lines/branches/functions). Lint/build/vendor/pages and123 experiment definitions pass; no production readiness change was needed. Pending source pin now names this integration. Frozen available-lane re-review follows; operator Claude exception remains in force.
+
+### Final landing receipt
+- Operator approval in this chat: “yes” to landing without the unavailable Claude review. GPT isolated and Grok cursor-grok-4.5-high-fast both returned literal VERDICT: LGTM on HEAD a6274650f46a1b8fa550752f795544dc938a6065, BASE908dd6c791fe3919a5f8b32fc0534099900f8e1a, cumulative diff SHA256 f249874444fd73559cf8c94dda425f03015d5c9455e23441648c85b30e43a9b1. Grok ask-mode could not execute shell; dispatch wrapper and final prelanding check independently verified clean HEAD/base/hash. No accepted blockers remain. Review artifacts retained in the attached battle-decision-ready worktree under runs/battle-ready-proof/review/integration/.
+- Fast-forwarded local main to exact reviewed HEAD a6274650. Postmerge main build and just test pass:agent2605, viewer1280, Python2768 (6653 total). Logs /tmp/battle-ready-main-{build,test}.log, copied into the proof gates directory. No remote push or PR.
+- just viewer-main completed successfully, served clean build stamp a6274650, one listener74930 on127.0.0.1:8790. Restart script reported0 local gameplay-process matches before/after; no gameplay server or measured run was stopped by this task. HTTP /api/features includes battle-decision-ready-v1; /explainers/battle-decision-ready-v1.html returns200 and exactly matches the tracked bytes.
+- Live browser proof in fresh diagnostic tab4: explicitly selected battle-ready-native-observe-r2, ENDED replay with recorded FIGHT/BAG/POKEMON/RUN frame; Bx1 encounter receipt retains Wild ZIGZAGOON appeared and Go TORCHIC pages. HARNESS CONFIG records readiness ON; clicked real READ EXPLAINER to tab5 and verified correct heading/retained-observation content. No console errors. Screenshots primary runs/mockups/battle-decision-ready/shots/landed-{replay,explainer}.png. This is preserved manual-probe mechanism evidence, not a new clean-main native gameplay run or benchmark efficacy claim. Original probe events/frames copied unchanged into primary runs/battle-ready-native-observe-r2 for replay.
+- Browser-control limitation recorded separately: original preview tab2 encountered connection refusal during navigation at restart, then its browser-generated data error page was uninspectable under URL policy. It was not closed or claimed recovered. Fresh tab4 reached replay readiness and tab5 verified the real explainer click-through; new explainer tab retained for operator.
+- Both future bundle-v-control arms enable battle-decision-ready-v1 through base.features plus onInBoth, not treatment switches. Prior presets/history/approvals retained; no experiment approval, pinning of an active campaign or measured launch. Default omitted/legacy/next-run remains OFF. Worklog remains active, not archived.

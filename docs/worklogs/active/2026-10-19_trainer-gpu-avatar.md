@@ -10,7 +10,7 @@ viewer-e2e, close-the-loop.
 
 ## Architecture
 
-Keep the existing stable experiment/arm trainer selection and add the GPU token recorded in fixed-run IDs (`gpu0`, `gpu1`, and future numbered lanes) to its hash input. Runs without a GPU token retain the previous selection.
+Keep the existing stable experiment/arm trainer selection and add the GPU token recorded in fixed-run IDs (`gpu0`, `gpu1`, and future numbered lanes) to the card's display identity. Every `(arm, GPU)` identity in an experiment shares one sorted collision table. Runs without a GPU token retain the previous selection.
 
 ## Invariants
 
@@ -44,6 +44,7 @@ The change is complete only after the built candidate visibly assigns different 
 - RED: the current two live-run IDs both selected `norman`; the new focused regression failed on their equal trainer values. GREEN: GPU1 deterministically selects Wally and GPU0 Glacia from the production 14-trainer manifest, and the same GPU1 run remains Wally after clock/status changes. Focused trainer-card suite: 13 passed.
 - Full gates: `just test` passed 2,527 agent, 1,191 viewer, and 2,709 Python tests. `just lint`, `just build`, and `just verify-vendor` passed. `just coverage` passed the 90% floor: agent 97.99% statements / 94.15% branches / 98.32% functions / 99.25% lines; viewer 95.42% / 91.50% / 93.85% / 97.65%; Python 97.64% lines / 93.77% branches / 100% functions.
 - Candidate browser proof used scratch root `/private/tmp/pokebench-gpu-avatar-proof.SCfRHZ` and port 8804, containing copied events/frames for only the two live Petalburg reruns plus trainer-card art and no experiment state. The comparison page showed GPU1 as Wally and GPU0 as Glacia across two polling cycles. Pointer activation of GPU1 and keyboard Enter on GPU0 each selected the exact run URL, reached RUNNING, and displayed a run-owned `/api/runs/<id>/screen` image. Opened 1280×900, 1440×900, and 375×812 screenshots; both avatars are visibly distinct and the page reports no horizontal document overflow. Receipts: `runs/mockups/trainer-gpu-avatar/shots/cards-{1280,1440,375}.png`, served by 8791 with HTTP 200.
+- Review round 1 found that salting every experiment arm with the current card's GPU created separate collision tables, allowing cross-GPU control/bundle cards to collide. Added a production-path regression and changed the selector to allocate all `(arm, GPU)` display identities in one shared sorted table; the focused trainer-card and app suites pass 27/27.
 
 ## Surprises
 
@@ -51,7 +52,7 @@ The current live runs are not present in the fixed-run lane status, so the only 
 
 ## Multi-Model Review Log
 
-- Pending.
+- Round 1 frozen packet `24232e63..43291e84`, SHA-256 `d033304cef670dcd70b711db1d6beee293e32a658b4d372f4bf333f080111cbb`: Grok returned LGTM with a cross-GPU collision hardening note; both independent Claude-availability fallback reviewers and the isolated Codex attempt reproduced that note as a blocker. The fix stays inside the frozen trainer-selection owner and adds the missing cross-GPU experiment regression. Re-review pending on the cumulative candidate.
 
 ## Boy Scout Log
 

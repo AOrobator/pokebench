@@ -42,17 +42,16 @@ function fnv1a(text: string): number {
   return hash;
 }
 
-// The arms of one experiment take trainers in sorted order, each probing past ones already taken,
-// so two arms never share a sprite while there are sprites to go round. Fixed-run ids carry the GPU
-// lane; mixing it into the seed makes otherwise identical concurrent GPU cards look different.
-export function trainerFor(experiment: string, arm: string, arms: readonly string[], trainers: readonly string[], gpu = ""): string {
-  const taken = new Set<number>(), all = [...new Set([...arms, arm])].sort();
+// The display identities in one group take trainers in sorted order, each probing past ones already
+// taken, so experiment arms and GPU lanes never share a sprite while there are sprites to go round.
+export function trainerFor(group: string, identity: string, identities: readonly string[], trainers: readonly string[]): string {
+  const taken = new Set<number>(), all = [...new Set([...identities, identity])].sort();
   for (const each of all) {
-    const seed = `${experiment}\u0000${each}${gpu === "" ? "" : `\u0000${gpu}`}`;
+    const seed = `${group}\u0000${each}`;
     let index = fnv1a(seed) % trainers.length;
     for (let probes = 0; taken.has(index) && probes < trainers.length; probes++) index = (index + 1) % trainers.length;
     taken.add(index);
-    if (each === arm) return trainers[index] ?? "";
+    if (each === identity) return trainers[index] ?? "";
   }
   return trainers[0] ?? "";
 }
@@ -61,13 +60,18 @@ function gpuOf(runId: string): string {
   return /(?:^|[-_])(gpu\d+)(?=[-_]|$)/i.exec(runId)?.[1]?.toLowerCase() ?? "";
 }
 
+function trainerIdentity(arm: string, gpu: string): string {
+  return gpu === "" ? arm : `${arm}\u0000${gpu}`;
+}
+
 // One run's card from the workbench snapshot; runs: every run the snapshot has, so the trainer pick sees
 // all of the experiment's arms the same way on every page.
 export function cardInputFor(run: WorkbenchRun, at: number, now: number, status: CardInput["status"], runs: readonly WorkbenchRun[], art: CardArt): CardInput {
   const experiment = run.experiment ?? null, title = experiment?.id ?? run.model ?? run.id;
-  const arms = experiment === null ? [] : runs.flatMap((other) => (other.experiment?.id === experiment.id ? [other.experiment.arm] : []));
+  const identity = trainerIdentity(experiment?.arm ?? "", gpuOf(run.id));
+  const identities = experiment === null ? [] : runs.flatMap((other) => (other.experiment?.id === experiment.id ? [trainerIdentity(other.experiment.arm, gpuOf(other.id))] : []));
   return { runId: run.id, title, arm: experiment?.arm ?? null, trial: experiment === null ? null : `trial ${String(experiment.trial)}/${String(experiment.of)}`,
-    card: run.card ?? null, facts: plateFacts(run, at, now), status, trainer: trainerFor(title, experiment?.arm ?? "", arms, art.trainers, gpuOf(run.id)) };
+    card: run.card ?? null, facts: plateFacts(run, at, now), status, trainer: trainerFor(title, identity, identities, art.trainers) };
 }
 
 export function placeText(location: string | null): string {

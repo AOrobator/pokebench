@@ -98,6 +98,13 @@ describe("one card per workbench run, shared by the viewer and the comparisons p
     expect(cardInputFor(gpu0, 1000, 1000, "live", runs, art).trainer).toBe("glacia");
     expect(cardInputFor(gpu1, 1000, 2000, "watching", runs, art).trainer).toBe("wally");
   });
+  it("keeps experiment arms distinct when their runs use different GPUs", () => {
+    const trainers = ["brendan", "may", "birch", "wally", "roxanne", "brawly", "wattson", "flannery", "norman", "winona", "sidney", "phoebe", "glacia", "drake"];
+    const bundle = recorded({ id: "2026-10-19T00-04-00_qwen36-gpu0_test-a", status: "live", experiment: { id: "experiment-0", arm: "bundle", trial: 1, of: 2 } });
+    const control = recorded({ id: "2026-10-19T00-04-00_qwen36-gpu1_test-b", status: "live", experiment: { id: "experiment-0", arm: "control", trial: 1, of: 2 } });
+    const runs = [bundle, control], art = { ...ART, trainers };
+    expect(cardInputFor(bundle, 1000, 1000, "live", runs, art).trainer).not.toBe(cardInputFor(control, 1000, 1000, "live", runs, art).trainer);
+  });
   it("draws a link instead of a button when given a destination", () => {
     const html = cardHtml(input(), ART, "wide", "/#run=run-a");
     expect(html.startsWith('<a class="tc tc-wide" href="/#run=run-a" data-watch="run-a"')).toBe(true); expect(html).not.toContain("aria-pressed"); expect(html.endsWith("</a>")).toBe(true);

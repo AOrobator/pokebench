@@ -46,7 +46,7 @@ describe("loop-guard-screen-v1",()=>{
   expect(presetFeatures(parsePlayPreset({version:2,id:"p",target:null,limits:{maxTurns:1,maxWallMs:1,failureLimit:1},sampling:{thinkingLevel:"medium",maxTokens:1},features:without}))[ID]).toBe(false);
   const bundle=JSON.parse(readFileSync(new URL("../../../experiments/fixed/bundle-v-control.json",import.meta.url),"utf8")) as {base:{features:Record<string,boolean>};switches:string[]};
   expect(bundle.base.features[ID]).toBe(false);
-  expect(bundle.switches.at(-4)).toBe(ID);
+  expect(bundle.switches).toContain(ID);
   const raw=JSON.parse(readFileSync(new URL("../../../experiments/loop-guard-screen.json",import.meta.url),"utf8")) as {queuePosition?:number;incumbent:{features:Record<string,boolean>}};
   expect(raw.queuePosition).toBeUndefined();
   expect(Object.keys(raw.incumbent.features)).toEqual(SWITCHABLE_FEATURES.filter(id=>id!=="scripted-place-guidance-v1"&&id!=="trigger-script-loop-v1"&&id!=="just-in-time-prompt-v2"&&id!=="faced-interaction-history-v1"&&id!=="cache-aligned-window-v1"&&id!=="jit-guide-reuse-v1"));

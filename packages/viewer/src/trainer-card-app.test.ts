@@ -50,13 +50,14 @@ function cohortRun(): RunEvent[] {
 }
 
 let workbenchDown = false;
-async function mount(width: number, options: { art?: boolean; fresh?: boolean; glyphs?: boolean; runs?: typeof RUNS; replayStatus?: "ended" | "live" } = {}): Promise<{ app: App; streams: FakeStream[]; drawn: number[] }> {
+async function mount(width: number, options: { art?: boolean; fresh?: boolean; glyphs?: boolean; runs?: typeof RUNS; replayStatus?: "ended" | "live"; missingLiveCards?: boolean } = {}): Promise<{ app: App; streams: FakeStream[]; drawn: number[] }> {
   nowMs = BASE_MS + 3_500; setWidth(width); fetched.length = 0; workbenchDown = false;
   document.body.innerHTML = PAGE.slice(PAGE.indexOf("<body>") + 6, PAGE.indexOf("</body>"));
   const streams: FakeStream[] = [], drawn: number[] = [];
   const replayStatus = options.replayStatus ?? "ended";
   const replay = { ...wbRun(REPLAY_ID, "bundle", 1_000_000, 3_600_000), status: replayStatus, reason: replayStatus === "ended" ? "budget" : null };
   const workbench = { version: 1, at: nowMs, milestones: [], problems: [], runs: [wbRun(LIVE_ID, "bundle", options.fresh === true ? 2_790_000 : 1_000_000, 2_800_000), wbRun(OTHER_ID, "control", 500_000, 2_700_000), replay] };
+  if (options.missingLiveCards === true) workbench.runs = [replay];
   const deps: AppDeps = {
     fetchJson: (url) => {
       fetched.push(url);
@@ -160,6 +161,26 @@ describe("trainer cards in the viewer", () => {
     expect(replay.getAttribute("aria-pressed")).toBe("true");
     expect(replay.innerHTML).toContain('data-gt="REPLAY"');
     expect(replay.querySelector(".tc-dot")).toBeNull();
+  });
+
+  it("shows the replay while discovered live runs have no renderable workbench cards", async () => {
+    const { app } = await mount(375, { missingLiveCards: true });
+    app.select(REPLAY_ID);
+    expect([...ui("run-cards").querySelectorAll<HTMLElement>("[data-watch]")].map(e => e.dataset.watch)).toEqual([REPLAY_ID]);
+    const replay = card(ui("run-sheet-body"), REPLAY_ID);
+    expect(replay.getAttribute("aria-pressed")).toBe("true");
+    expect(replay.querySelector('[data-gt="REPLAY"]')).not.toBeNull();
+    expect(replay.querySelector(".tc-dot")).toBeNull();
+  });
+
+  it("retains the other mobile card and its artwork when one card changes", async () => {
+    const { app } = await mount(375, { fresh: true });
+    ui("run-head").click();
+    const other = card(ui("run-sheet-body"), OTHER_ID), art = other.querySelector(".tc-art");
+    nowMs += 40_000; app.tick(0);
+    expect(card(ui("run-sheet-body"), OTHER_ID)).toBe(other);
+    expect(other.querySelector(".tc-art")).toBe(art);
+    expect(ui("run-sheet").hidden).toBe(false);
   });
 
   it("keeps replay fallback semantics when the retained workbench snapshot still says live", async () => {

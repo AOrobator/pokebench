@@ -261,6 +261,7 @@ function plans(root: string): string[] {
   }; visit(join(root, "launch-receipts"), 0); return found;
 }
 function navigationRootOwnsStore(receiptRoot: string, root: string): boolean {
+  if (receiptRoot.trim() === "") return false;
   try { lstatSync(receiptRoot); } catch (error) { return (error as NodeJS.ErrnoException).code === "ENOENT"; }
   try { return realpathSync(join(receiptRoot, "runs")) === realpathSync(root); } catch { return false; }
 }

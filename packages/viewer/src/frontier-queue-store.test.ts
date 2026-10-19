@@ -66,6 +66,19 @@ it("keeps a retained navigation receipt after its execution checkout is archived
   expect(retained.runs[0]?.cohort).toBe(f.manifest.id);
 });
 
+it("rejects an empty execution root and filesystem failures other than a missing checkout", async () => {
+  const { root, folder, f } = setup(); writeRun(root, f);
+  for (const receiptRoot of ["", join("/", "a".repeat(10_000))]) {
+    const manifest = { ...f.manifest, root: receiptRoot };
+    const bytes = JSON.stringify(manifest), digest = createHash("sha256").update(bytes).digest("hex");
+    writeFileSync(join(folder, "manifest.json"), bytes);
+    writeFileSync(join(folder, "trials.jsonl"), JSON.stringify({ ...f.row, manifest_sha256: digest }) + "\n");
+    const rejected = await workbenchSnapshot(root, () => Promise.resolve(false), Date.now());
+    expect(rejected.problems.join()).toContain("root");
+    expect(rejected.runs[0]?.cohort).toBeNull();
+  }
+});
+
 it("retains process-failed recordings as outcomes but excludes them from best-run rank and timing credit", async () => {
  const { root, f, rows }=setup();
  rows([f.row,{...f.process,code:1},{...f.row,type:"launcher_error",error:"child exit 1"}]);

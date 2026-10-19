@@ -1,8 +1,9 @@
+import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
 import {readFileSync} from "node:fs";
 import {describe,expect,it} from "vitest";
 import type {AgentTool,AgentToolResult} from "@mariozechner/pi-agent-core";
 import {checkEvent,type Button,type RunEvent} from "./events.js";
-import {ALL_ON,FEATURES,SWITCHABLE_FEATURES,dependencyProblems,featureInfo,featuresOf,playHarnessFeatures,type FeatureSet} from "./features.js";
+import {FEATURES,SWITCHABLE_FEATURES,dependencyProblems,featureInfo,featuresOf,playHarnessFeatures,type FeatureSet} from "./features.js";
 import {flagFeatures,normalizeFeatures} from "./play-preset.js";
 import {pageLines,DialogueRecord,type AutoAdvanceRecorder} from "./dialogue-auto-advance.js";
 import {DialogueLog,speakerLabel} from "./dialogue-log.js";
@@ -231,13 +232,13 @@ describe("script-line-presence-v1: the production factory honors the switch",()=
 
 describe("script-line-presence-v1: registry",()=>{
  it("is the last switchable feature, an observation that needs dialogue auto-advance, default off",()=>{
-  expect(SWITCHABLE_FEATURES.at(-66)).toBe("script-line-presence-v1");
+  expect(SWITCHABLE_FEATURES.at(-70)).toBe("script-line-presence-v1");
   const info=featureInfo("script-line-presence-v1");
   expect(info.group).toBe("observation");
   expect(info.needs).toBe("dialogue-auto-advance-v1");
   expect(info.description).toContain(" Off: ");
   expect(FEATURES.filter(f=>f.id==="script-line-presence-v1")).toHaveLength(1);
-  expect(playHarnessFeatures(ALL_ON,null).at(-66)).toBe("script-line-presence-v1");
+  expect(playHarnessFeatures(ALL_ON,null).at(-65)).toBe("script-line-presence-v1");
   expect(playHarnessFeatures({...ALL_ON,"battle-decision-ready-v1":false,"script-line-presence-v1":false},null)).not.toContain("script-line-presence-v1");
   const older=Object.fromEntries(Object.entries(ALL_ON).filter(([id])=>id!=="script-line-presence-v1")) as Omit<FeatureSet,"script-line-presence-v1">;
   expect(normalizeFeatures(older)["script-line-presence-v1"]).toBe(false);

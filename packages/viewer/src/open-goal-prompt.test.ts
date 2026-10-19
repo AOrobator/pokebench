@@ -74,7 +74,7 @@ it("the viewer serves the tracked explainer byte for byte through the explainer 
   expect((await get(viewer, "/explainers/open-goal-prompt.html")).status).toBe(404);
 });
 
-it("the pending experiment retains its pinned bundle cook incumbent, excluding later bundle additions", () => {
+it("the pending experiment's incumbent is exactly the bundle-v-control bundle cook arm, with only this switch off", () => {
   const raw = JSON.parse(readFileSync(fileURLToPath(new URL("../../../experiments/open-goal-prompt.json", import.meta.url)), "utf8")) as { incumbent: { id: string; features: Record<string, boolean> } & Record<string, unknown> };
   const { definition } = parseFixedDefinition(readFileSync(fileURLToPath(new URL("../../../experiments/fixed/bundle-v-control.json", import.meta.url)), "utf8"));
   const arm = armPreset(definition, "cook", "bundle");
@@ -83,7 +83,7 @@ it("the pending experiment retains its pinned bundle cook incumbent, excluding l
   expect(arm).toMatchObject({ start: { kind: "save_state" }, limits: { maxWallMs: 7_200_000 } });
   expect(raw.incumbent.features[ID]).toBe(false);
   expect(arm.features[ID]).toBe(true);
-  expect(without(raw.incumbent.features, ID)).toEqual(without(arm.features, ID, "safe-navigation-strides-v1", "battle-decision-ready-v1", "faced-interaction-history-v1", "scripted-place-guidance-v1", "trigger-script-loop-v1", "battle-effective-damage-v1", "visited-terrain-navigation-v1", "deterministic-warp-navigation-v1"));
+  expect(without(raw.incumbent.features, ID)).toEqual(without(arm.features, ID, "safe-navigation-strides-v1", "ineffective-navigation-v2", "supervisor-briefing-v2", "reachable-story-guidance-v1", "text-only-supervisor-v2", "battle-decision-ready-v1", "faced-interaction-history-v1", "scripted-place-guidance-v1", "trigger-script-loop-v1", "battle-effective-damage-v1", "visited-terrain-navigation-v1", "deterministic-warp-navigation-v1"));
 });
 
 it("every diagnostic number on the explainer comes from the tracked per-run manifest", () => {

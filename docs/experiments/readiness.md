@@ -147,6 +147,12 @@ Pending, unqueued and unapproved. Separate proposed MAIN_MENU early-game screen,
 | `battle-decision-ready-v1` | `STARTER_CHOSEN` | Shared repair in both bundle-v-control arms by operator request; standalone registration explicitly blocked, not queued. |
 ## battle-refusal-loop (2026-10-19)
 Pending, unqueued, unapproved. Correctness-tier production replay first: round-2 visited-map has 322 semantic refusals. Gameplay efficacy and runtime recovery remain unmeasured. No new cohort sized or authorized; operator GPU budget and checkpoint design required before measured trials.
+## Supervisor recovery treatments (2026-10-19)
+
+- `ineffective-navigation-v2`: pending and explicitly blocked from the standalone queue. Fixed bundle ON / control OFF by operator request. No matching readiness/cohort result is claimed; qualify an operator-designed checkpoint comparison before measured trials.
+- `supervisor-briefing-v2`: pending and explicitly blocked from the standalone queue. Fixed bundle ON / control OFF by operator request. No matching readiness/cohort result is claimed; qualify an operator-designed checkpoint comparison before measured trials.
+- `reachable-story-guidance-v1`: pending and explicitly blocked from the standalone queue. Fixed bundle ON / control OFF by operator request. No matching readiness/cohort result is claimed; qualify an operator-designed checkpoint comparison before measured trials.
+- `text-only-supervisor-v2`: pending and explicitly blocked from the standalone queue. Fixed bundle ON / control OFF by operator request. No matching readiness/cohort result is claimed; qualify an operator-designed checkpoint comparison before measured trials.
 
 ## 2026-10-19 — safe planned navigation strides
 

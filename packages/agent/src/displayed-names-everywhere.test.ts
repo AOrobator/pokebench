@@ -1,7 +1,8 @@
+import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
 import {expect,it} from "vitest";
 import {IN_GAME} from "../test-support/events.js";
 import {checkEvent,type RunEvent} from "./events.js";
-import {ALL_ON} from "./features.js";
+import {} from "./features.js";
 import type {GameStateSnapshot} from "./game-state.js";
 import {DialogueLog,roomKey,roomOf} from "./dialogue-log.js";
 import {NavigationMemory} from "./navigation-memory.js";

@@ -1,6 +1,7 @@
+import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
 import {expect,it} from "vitest";
 import {SupervisorBriefing} from "./loop-supervisor.js";
-import {ALL_ON} from "./features.js";
+
 import {IN_GAME} from "../test-support/events.js";
 import {checkEvent,type RunEvent} from "./events.js";
 

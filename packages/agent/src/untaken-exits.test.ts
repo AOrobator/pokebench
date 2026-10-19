@@ -1,9 +1,10 @@
+import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
 import {describe,expect,it} from "vitest";
 import {readFileSync} from "node:fs";
 import {gunzipSync} from "node:zlib";
 import {fileURLToPath} from "node:url";
 import type {AgentTool} from "@mariozechner/pi-agent-core";
-import {ALL_ON,FEATURES,dependencyProblems,featureInfo,featuresOf,playHarnessFeatures,stateOnlyProblems,type FeatureSet} from "./features.js";
+import {FEATURES,dependencyProblems,featureInfo,featuresOf,playHarnessFeatures,stateOnlyProblems,type FeatureSet} from "./features.js";
 import {flagFeatures,normalizeFeatures} from "./play-preset.js";
 import {UNTAKEN_EXITS_SECTION,playSystemPrompt} from "./play-config.js";
 import {playGameTools} from "./play-wiring.js";

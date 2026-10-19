@@ -1,6 +1,7 @@
+import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
 import { readFileSync } from "node:fs";
 import { expect, it } from "vitest";
-import { ALL_ON, SERVER_FEATURES, SWITCHABLE_FEATURES, dependencyProblems, featureInfo, featuresOf, playHarnessFeatures, serverFeatureEnv, type FeatureSet } from "./features.js";
+import { SERVER_FEATURES, SWITCHABLE_FEATURES, dependencyProblems, featureInfo, featuresOf, playHarnessFeatures, serverFeatureEnv, type FeatureSet} from "./features.js";
 import { flagFeatures, normalizeFeatures, parsePlayPreset, presetFeatures } from "./play-preset.js";
 
 // readout-truth-v1 and birch-speech-pages-v1 (correctness fixes, ON in both arms) and
@@ -9,8 +10,8 @@ const IDS = ["readout-truth-v1", "birch-speech-pages-v1", "blackout-readout-v1"]
 const off = (...ids: (typeof SWITCHABLE_FEATURES)[number][]): FeatureSet => ({ ...ALL_ON,"battle-decision-ready-v1":false,...Object.fromEntries(ids.map((id) => [id, false])) });
 
 it("registers three default-off observation switches with no dependency, recorded last in this order", () => {
-  expect(SWITCHABLE_FEATURES.slice(-47,-44)).toEqual([...IDS]);
-  expect(playHarnessFeatures(ALL_ON, null).slice(-47,-44)).toEqual([...IDS]);
+  expect(SWITCHABLE_FEATURES.slice(-51,-48)).toEqual([...IDS]);
+  expect(playHarnessFeatures(ALL_ON, null).slice(-46,-43)).toEqual([...IDS]);
   for (const id of IDS) {
     expect(featureInfo(id)).toMatchObject({ group: "observation", needs: null, switchable: true });
     expect(featureInfo(id).description).toContain(" Off: ");
@@ -59,8 +60,8 @@ it("states each switch's intended arms and the whiteout frame scope (operator de
 
 it("hands all three to the game server, whose list and default-off set name them", () => {
   expect(SERVER_FEATURES.slice(-13,-10)).toEqual([...IDS]);
-  for (const id of IDS) expect(serverFeatureEnv(off(id)).POKEBENCH_FEATURES_OFF).toBe(id);
-  expect(serverFeatureEnv(ALL_ON).POKEBENCH_FEATURES_OFF).toBe("");
+  for (const id of IDS) expect(serverFeatureEnv(off(id)).POKEBENCH_FEATURES_OFF).toBe(`${id},safe-navigation-strides-v1`);
+  expect(serverFeatureEnv(ALL_ON).POKEBENCH_FEATURES_OFF).toBe("safe-navigation-strides-v1");
   const readout = readFileSync(new URL("../../../env/pokebench_env/readout.py", import.meta.url), "utf8");
   expect(readout).toContain('    "transition-coherence-v1",\n    "readout-truth-v1",\n    "birch-speech-pages-v1",\n    "blackout-readout-v1",\n');
   expect(readout).toContain('"readout-truth-v1,birch-speech-pages-v1,blackout-readout-v1,"');

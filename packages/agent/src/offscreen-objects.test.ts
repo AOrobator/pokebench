@@ -1,5 +1,6 @@
+import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
 import { expect, it } from "vitest";
-import { ALL_ON, SERVER_FEATURES, SWITCHABLE_FEATURES, dependencyProblems, featureInfo, featuresOf, playHarnessFeatures, serverFeatureEnv, type FeatureSet } from "./features.js";
+import { SERVER_FEATURES, SWITCHABLE_FEATURES, dependencyProblems, featureInfo, featuresOf, playHarnessFeatures, serverFeatureEnv, type FeatureSet } from "./features.js";
 import { flagFeatures, normalizeFeatures, parsePlayPreset, presetFeatures } from "./play-preset.js";
 
 const ID = "offscreen-objects-v1";
@@ -21,8 +22,8 @@ it("registers off-screen objects as a default-off observation switch that needs 
 
 it("hands the switch to the game server, which writes the readout", () => {
   expect(SERVER_FEATURES.indexOf(ID)).toBe(SERVER_FEATURES.indexOf(PREVIOUS_SERVER) + 1);
-  expect(serverFeatureEnv(off(ID)).POKEBENCH_FEATURES_OFF).toBe(ID);
-  expect(serverFeatureEnv(ALL_ON).POKEBENCH_FEATURES_OFF).toBe("");
+  expect(serverFeatureEnv(off(ID)).POKEBENCH_FEATURES_OFF).toBe(`${ID},safe-navigation-strides-v1`);
+  expect(serverFeatureEnv(ALL_ON).POKEBENCH_FEATURES_OFF).toBe("safe-navigation-strides-v1");
 });
 
 it("defaults OFF for presets that omit it and for legacy flag presets", () => {

@@ -1,8 +1,9 @@
+import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
 import { expect, it } from "vitest";
 import type { GameStateSnapshot } from "./game-state.js";
 import type { RunEvent } from "./events.js";
 import { parseGameState } from "./game-state.js";
-import { featureInfo, playHarnessFeatures, ALL_ON } from "./features.js";
+import { featureInfo, playHarnessFeatures} from "./features.js";
 import { MEASUREMENT_ONLY_MILESTONES, MILESTONES, StateMilestones, qualifiedNativeMilestone } from "./milestones.js";
 import { requireRoute103Field } from "./recorder.js";
 import { NATIVE_PROGRESS_MILESTONES } from "./loop-detection.js";

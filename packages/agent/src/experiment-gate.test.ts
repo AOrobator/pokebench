@@ -1,5 +1,6 @@
+import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
 import {expect,it} from "vitest";
-import {ALL_ON,type FeatureSet} from "./features.js";
+import {type FeatureSet} from "./features.js";
 import {DEFAULT_FINALS,FINALS_MAX_TURNS,WIN_SHARE,compareRuns,decideFinals,finalsConfig,finalsOrder,finalsPlan,finalsPreset,furthestIndex,nominate,parseFinalsLedger,parseNomination,parsePromotions,rankArms,superiority,withPromotion,type ArmRuns,type Promotion,type RunOutcome} from "./experiment-gate.js";
 import {parseExperiment} from "./experiments.js";
 import {MILESTONE_HINTS} from "./milestone-hint.js";
@@ -41,7 +42,7 @@ it("builds a finals preset: boot start, the finals wall limit and stop milestone
  // Text-only replies get a supervisor note instead of ending a finals run (operator 2026-10-15 14:41 UTC).
  expect(finalsPreset(preset,"exp","whole",{"text-only-supervisor-v1":false},DEFAULT_FINALS).features["text-only-supervisor-v1"]).toBe(true);
  // State-only decisions deliver no follow-up message, so their finals keep it off.
- const stateOnly=Object.fromEntries(Object.entries(features).map(([k,v])=>[k,["safe-navigation-strides-v1","objective-tracking-v1","deterministic-loop-guard-v1","bounded-navigation-v1","press-result-v1","navigation-evidence-memory-v1","game-evidence-priority-v1","dialogue-log-v1","instruction-ledger-v1","next-milestone-hint-v1","double-context-window-v1","fresh-retry-v1","grass-cost-navigation-v1","cross-map-goal-v1","loop-guard-supervisor-v1","just-in-time-prompt-v1","just-in-time-prompt-v2"].includes(k)?false:v]));
+ const stateOnly=Object.fromEntries(Object.entries(features).map(([k,v])=>[k,["objective-tracking-v1","deterministic-loop-guard-v1","bounded-navigation-v1","press-result-v1","navigation-evidence-memory-v1","game-evidence-priority-v1","dialogue-log-v1","instruction-ledger-v1","next-milestone-hint-v1","double-context-window-v1","fresh-retry-v1","grass-cost-navigation-v1","cross-map-goal-v1","loop-guard-supervisor-v1","just-in-time-prompt-v1","just-in-time-prompt-v2"].includes(k)?false:v]));
  expect(finalsPreset({...preset,features:{...stateOnly,"state-only-decisions-v1":true} as typeof features},"exp","state",{},DEFAULT_FINALS).features["text-only-supervisor-v1"]).toBe(false);
  expect(finalsPreset(preset,"exp","whole",{"milestone-stall-stop-v1":true},DEFAULT_FINALS).features["milestone-stall-stop-v1"]).toBe(false);
  // An experiment can stop its finals early, at a milestone or a shorter wall limit.

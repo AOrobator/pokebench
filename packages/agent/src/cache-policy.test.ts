@@ -1,6 +1,7 @@
+import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
 import {expect,it} from "vitest";
 import type {Message} from "@mariozechner/pi-ai";
-import {ALL_ON} from "./features.js";
+import {} from "./features.js";
 import {contextWindow,slideWindow,WINDOW} from "./harness.js";
 import {StableJitContext} from "./jit-v2-context.js";
 import {assistant} from "../test-support/pi.js";

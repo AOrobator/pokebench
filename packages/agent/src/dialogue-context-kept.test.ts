@@ -1,9 +1,10 @@
+import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
 import { readFileSync } from "node:fs";
 import type { AgentMessage } from "@mariozechner/pi-agent-core";
 import type { AssistantMessage, ImageContent, ToolResultMessage } from "@mariozechner/pi-ai";
 import { describe, expect, it } from "vitest";
 import type { RunEvent } from "./events.js";
-import { ALL_ON, dependencyProblems, featureInfo, featuresOf, playHarnessFeatures, type FeatureSet } from "./features.js";
+import { dependencyProblems, featureInfo, featuresOf, playHarnessFeatures, type FeatureSet} from "./features.js";
 import { DOUBLE_WINDOW, OMITTED_FRAME, WINDOW, contextWindow, dialogueUnits, slideWindow, type Window } from "./harness.js";
 import { SupervisorBriefing } from "./loop-supervisor.js";
 import { contextTools } from "./play-wiring.js";
@@ -150,7 +151,7 @@ describe("dialogue-context-kept-v1 registry and production wiring", () => {
   it("is a default-off guidance switch recorded last that needs no other switch", () => {
     expect(featureInfo("dialogue-context-kept-v1")).toMatchObject({ group: "guidance", needs: null, switchable: true });
     expect(featureInfo("dialogue-context-kept-v1").description).toContain(" Off: ");
-    expect(playHarnessFeatures(ALL_ON, null).at(-79)).toBe("dialogue-context-kept-v1");
+    expect(playHarnessFeatures(ALL_ON, null).at(-78)).toBe("dialogue-context-kept-v1");
     expect(playHarnessFeatures({ ...ALL_ON,"battle-decision-ready-v1":false,"cache-aligned-window-v1":false, "dialogue-context-kept-v1": false }, null)).not.toContain("dialogue-context-kept-v1");
     expect(dependencyProblems({ ...ALL_ON,"battle-decision-ready-v1":false,"cache-aligned-window-v1":false, "dialogue-context-kept-v1": true })).toEqual([]);
     const older = Object.fromEntries(Object.entries(ALL_ON).filter(([id]) => id !== "dialogue-context-kept-v1")) as Parameters<typeof normalizeFeatures>[0];

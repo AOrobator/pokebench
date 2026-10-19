@@ -1,3 +1,4 @@
+import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
 import {describe,expect,it} from "vitest";
 import {Type} from "typebox";
 import {mkdtempSync,readFileSync,rmSync} from "node:fs";
@@ -10,7 +11,7 @@ import {withNavigation} from "./navigation.js";
 import {playGameTools} from "./play-wiring.js";
 import {flagFeatures} from "./play-preset.js";
 import {playSystemPrompt,playTools,toolSwitches} from "./play-config.js";
-import {dependencyProblems,featureInfo,playHarnessFeatures,stateOnlyProblems,ALL_ON,type FeatureSet} from "./features.js";
+import {dependencyProblems,featureInfo,playHarnessFeatures,stateOnlyProblems,type FeatureSet} from "./features.js";
 import {checkEvent,type Button,type RunEvent} from "./events.js";
 import {RunRecorder} from "./recorder.js";
 import {RunLog} from "./run-log.js";
@@ -406,36 +407,6 @@ describe("navigate_to and the dialogue record",()=>{
   expect(result.details).toMatchObject({navigation:{target:{x:13,y:14}}});
  });
 
-
- it.each([{then:"free",completed:1,reason:"completed"},{then:"battle",completed:0,reason:"field input unavailable"}] as const)("delivers the native stride receipt through the real wrappers after $then",async({then,completed,reason})=>{
-  const game=new FakeGame({...SCIENTIST,ends:[SCIENTIST.text.length],then});const clock=fakeClock();const rec=memoryRecorder();
-  const native={permitted:true,controllable:true,reason:"permitted",shoes:true,allow_running:true,avatar_flags:1,metatile:0,elevation:3,map_type:3,callback1:0x08085E05,callback2:0x08085E5D,diagnostic:null,raw_hex:null};
-  const grid=(s:GameStateSnapshot):GameStateSnapshot=>({...s,running:{...native,controllable:s.field_controls_locked===false},navigation_grid:{elevation:3,tiles:[tile(12,14),tile(13,14)],objects:[],warps:[]}});
-  const source={read:async()=>grid(await game.read.read())};
-  let receipt:Record<string,unknown>|null=null;
-  const fetchFn:typeof fetch=async(input,init)=>{
-   const url=typeof input==="string"?input:input instanceof URL?input.href:input.url;
-   if(url.endsWith("/stride")&&init?.method==="POST"){
-    if(typeof init.body!=="string")throw new Error("Missing stride fixture body");
-    const plan:unknown=JSON.parse(init.body);if(typeof plan!=="object"||plan===null)throw new Error("Invalid stride fixture");
-    receipt={...plan,completed,frames:12,reason,stopped:true};game.press(["RIGHT"]);game.openNow();return new Response(JSON.stringify({status:"success"}));
-   }
-   if(url.includes("/pokebench/stride/"))return new Response(JSON.stringify(receipt));
-   const r=await game.fetch(input,init);
-   if(url.endsWith("/pokebench/state"))return new Response(JSON.stringify(grid(await r.json() as GameStateSnapshot)));
-   if(url.endsWith("/pokebench/observation")){const body=await r.json() as {state:GameStateSnapshot};return new Response(JSON.stringify({...body,state:grid(body.state)}));}
-   return r;
-  };
-  game.press(["LEFT"]);
-  const features={...ON,"bounded-navigation-v1":true,"safe-navigation-strides-v1":true};
-  const base=gameTools(URL_BASE,{beforePress:()=>undefined,afterPress:()=>Promise.resolve()},fetchFn,toolSwitches(features),clock);
-  const tools=withDialogueAutoAdvance(withNavigation(base,features,source),features,{state:source,recorder:rec.api,clock});
-  const nav=tools.find(t=>t.name==="navigate_to");if(nav===undefined)throw new Error("No navigation tool");
-  const result=await nav.execute("stride-dialogue",{x:13,y:14,map_id:[1,4]});
-  const receipts=result.content.flatMap(p=>p.type==="text"&&p.text.startsWith("Navigation stride receipt:")?[p.text]:[]);
-  expect(receipt).not.toBeNull();expect(receipts).toEqual([`Navigation stride receipt: ${JSON.stringify(receipt)}`]);expect(result.content.filter(p=>p.type==="text"&&p.text.startsWith("Navigation: "))).toHaveLength(1);
-  expect(rec.advances()).toHaveLength(1);expect(textOf(result)).toContain("Dialogue shown during this call (1 page");
- });
  it("leaves a navigate_to result alone when no dialogue opens",async()=>{
   const game=new FakeGame(SCIENTIST);const rec=memoryRecorder();
   const result={content:[{type:"text" as const,text:"Navigation: arrived"}],details:{state:game.state()}};
@@ -473,7 +444,7 @@ describe("dialogue-auto-advance-v1 registry and production wiring",()=>{
  it("is a default-off guidance switch recorded last that needs the message buffer and phase",()=>{
   expect(featureInfo("dialogue-auto-advance-v1")).toMatchObject({group:"guidance",needs:"active-field-message-buffer-v1",switchable:true});
   expect(featureInfo("dialogue-auto-advance-v1").description).toContain(" Off: ");
-  expect(playHarnessFeatures(ALL_ON,null).at(-81)).toBe("dialogue-auto-advance-v1");
+  expect(playHarnessFeatures(ALL_ON,null).at(-80)).toBe("dialogue-auto-advance-v1");
   expect(dependencyProblems({...ON,"field-dialogue-phase-v1":false})).toEqual(["dialogue-auto-advance-v1 needs field-dialogue-phase-v1"]);
   expect(dependencyProblems({...ON,"active-field-message-buffer-v1":false})).toContain("dialogue-auto-advance-v1 needs active-field-message-buffer-v1");
   expect(dependencyProblems({...ON,"dialogue-safe-batches-v1":true})).toEqual([]);

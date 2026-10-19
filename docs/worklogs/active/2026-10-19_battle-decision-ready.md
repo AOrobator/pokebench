@@ -22,7 +22,7 @@ No game-memory writes, save edits, vendor edits, new network surface, local infe
 ## Milestones
 - [x] M1: RED regressions and commit.
 - [x] M2: Implementation, metadata, explainer and both-arm definition; GREEN gates and mutation proof.
-- [ ] M3: Recorded/native probe and viewer/explainer proof; principles self-review and frozen cloud reviews.
+- [x] M3: Recorded/native probe and viewer/explainer proof; principles self-review and frozen cloud reviews.
 - [ ] M4: Fast-forward local landing after required cloud approvals, viewer restart and live proof.
 
 ## Closing the Loop
@@ -70,3 +70,8 @@ No unrelated changes.
 
 - Round-2 reviewed fixes committed as 125f61b25dd6ef41cb863db18fd0e6278a85fdeb; pending standalone source pin updated to this implementation. Preparing final frozen review packet; no main merge without the required cloud approvals or explicit operator exception.
 - Pin commit's first attempt hit the hook's same-second worklog freshness boundary immediately after 125f61b2; it was rejected without bypass. Updated this log and retrying the ordinary commit before freezing. No reviewer was dispatched on the dirty attempt.
+
+### Operator-authorized landing and main synchronization
+- Operator explicitly answered “yes” to landing without unavailable Claude cloud review. Claude exception is authorized; no benchmark/experiment launch authorization is inferred. Final pre-sync packet d5af8cc6 had GPT and Grok LGTM; Astra/Luna fallback also LGTM. Grok ask-mode could read the packet/source but could not run git; the dispatch wrapper and final handoff independently verified clean HEAD and exact diff SHA.
+- Main advanced to 0b5ad284 with Wally battle readouts/refusal detection and bundle metadata. Integrated it before landing. Conflicts are append-only registry additions, legacy test fixtures and adjacent documentation/tests; preserved main’s battle-refusal-loop-v1 before the appended battle-decision-ready-v1. Preserved both explainer tests and both bundle configurations. Main's battle_action refusal lifecycle and native Wally implementation remain unchanged.
+- Initial integration gates exposed missed append-only registry offsets; fixed expectations while retaining OFF fixture projections and all assertions. First viewer attempt ran against stale agent dist; after completed build, all1268 viewer tests pass. First Python command omitted ROM env, producing229 native skips and the required Wally-ROM failure; reran with the verified Emerald ROM:2762 passed, no skips, coverage lines97.09/branches92.73/functions100. No gates weakened. TypeScript lint/build, Python lint/mypy and vendor check pass;123 experiment definitions validate. Agent full coverage:2605 tests/167 files passed; lines99.23/branches94.09/functions98.05. All integration gates now GREEN before the new frozen packet. Original failed attempts retained alongside corrected full receipts.

@@ -300,12 +300,12 @@ describe("people-id-cards-v1 rules",()=>{
 describe("people-id-cards-v1 registration",()=>{
  const OFF:FeatureSet=Object.fromEntries(SWITCHABLE_FEATURES.map(id=>[id,false])) as Record<(typeof SWITCHABLE_FEATURES)[number],boolean>;
  it("is an observation switch that needs the people ledger, last in the registry and harness feature list, and off unless asked for",()=>{
-  expect(SWITCHABLE_FEATURES.at(-36)).toBe("people-id-cards-v1");
+  expect(SWITCHABLE_FEATURES.at(-37)).toBe("people-id-cards-v1");
   const info=featureInfo("people-id-cards-v1");
   expect(info).toMatchObject({group:"observation",title:"PEOPLE ID CARDS",needs:"people-ledger-v1",switchable:true});
   expect(info.description).toContain(" Off: no cards, no row summaries, no prompt section and no event");
   expect(dependencyProblems({...OFF,"people-id-cards-v1":true})).toContain("people-id-cards-v1 needs people-ledger-v1");
-  expect(playHarnessFeatures({...OFF,"people-id-cards-v1":true},null).at(-1)).toBe("people-id-cards-v1");
+  expect(playHarnessFeatures({...OFF,"battle-refusal-loop-v1":false,"people-id-cards-v1":true},null).at(-1)).toBe("people-id-cards-v1");
   expect(playHarnessFeatures(OFF,null)).not.toContain("people-id-cards-v1");
   expect(stateOnlyProblems({...ALL_ON,"battle-decision-ready-v1":false,"state-only-decisions-v1":true})).toContain("state-only-decisions-v1 requires people-id-cards-v1 OFF");
   expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false})["people-id-cards-v1"]).toBe(false);

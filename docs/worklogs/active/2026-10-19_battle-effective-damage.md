@@ -66,6 +66,7 @@ Moves whose final power/type or hit count depends on move-specific script state 
 - 2026-10-19 EDT: the operator assigned this session ownership to get the complete candidate reviewed and landed. The review boundary is the synced base `a7be38f6` through the corrective topic tip; the existing live probe processes remain out of scope and undisturbed.
 - 2026-10-19 EDT: the commit hook normalized one long set literal in the archived-readout regression after the review-gate correction commit; recorded the formatter-only change before sealing the candidate.
 - 2026-10-19 EDT: responsive browser QA at 1280, 1440 and 375 px found the experiment's long primary milestone escaping its phone-width fact card. Added local overflow wrapping; the feature explainer and experiment overview otherwise rendered cleanly with no external requests.
+- 2026-10-19 EDT: cloud review round 1: the Claude family was unavailable across the dedicated CLI and three Cursor Claude variants because authentication/usage limits blocked every harness; Cursor GPT was likewise usage-limited. Grok returned `VERDICT: BLOCKING` on one in-contract formula defect: Huge/Pure Power was applied to special attacks and Plus/Minus to physical attacks, unlike `CalculateBaseDamage`. Restricted those modifiers to physical and special categories respectively and added public-path equality regressions for both wrong-category cases. Fake Out turn-state modeling and adversarial HTML deletion checks were classified as non-blocking hardening follow-ups outside the frozen behavior.
 
 ## Multi-Model Review Log
 

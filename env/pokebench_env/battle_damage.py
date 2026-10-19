@@ -398,7 +398,7 @@ def _damage(
         raise ValueError(f"{atk_item.name or 'held item'} effect is not decoded")
     if def_item is not None and def_item.hold_effect is None:
         raise ValueError(f"{def_item.name or 'held item'} effect is not decoded")
-    if actor.ability in (ABILITY_HUGE_POWER, ABILITY_PURE_POWER):
+    if physical and actor.ability in (ABILITY_HUGE_POWER, ABILITY_PURE_POWER):
         attack *= 2
         notes.append("HUGE/PURE POWER")
     flags = battle.battle_type or 0
@@ -482,8 +482,9 @@ def _damage(
         attack = 150 * attack // 100
         notes.append("HUSTLE")
     field = battle.battlers or ()
-    if (actor.ability == ABILITY_PLUS and any(m.ability == ABILITY_MINUS for m in field)) or (
-        actor.ability == ABILITY_MINUS and any(m.ability == ABILITY_PLUS for m in field)
+    if not physical and (
+        (actor.ability == ABILITY_PLUS and any(m.ability == ABILITY_MINUS for m in field))
+        or (actor.ability == ABILITY_MINUS and any(m.ability == ABILITY_PLUS for m in field))
     ):
         attack = 150 * attack // 100
         notes.append("PLUS/MINUS")

@@ -143,6 +143,41 @@ def test_blaze_and_current_hp_are_applied_by_the_emerald_integer_pipeline() -> N
     assert "BLAZE" in text
 
 
+def test_huge_power_does_not_modify_special_attack() -> None:
+    ember = move(0, 52, "EMBER", 40, 10, effect=4)
+    ordinary = mon(0, 0, "TORCHIC", ability=0, moves=(ember, EMPTY, EMPTY, EMPTY))
+    huge_power = replace(ordinary, ability=37)
+    target = mon(1, 1, "WURMPLE", types=(0, 0), ability=0)
+
+    ordinary_lines = effective_damage_lines(
+        battle(ordinary, target), details(context=DamageContext())
+    )
+    huge_power_lines = effective_damage_lines(
+        battle(huge_power, target), details(context=DamageContext())
+    )
+
+    assert huge_power_lines == ordinary_lines
+    assert "HUGE/PURE POWER" not in "\n".join(huge_power_lines)
+
+
+def test_plus_minus_does_not_modify_physical_attack() -> None:
+    scratch = move(0, 10, "SCRATCH", 40, 0)
+    ordinary = mon(0, 0, "TORCHIC", ability=0, moves=(scratch, EMPTY, EMPTY, EMPTY))
+    plus = replace(ordinary, ability=57)
+    minus_ally = mon(2, 2, "TORCHIC", ability=58)
+    target = mon(1, 1, "WURMPLE", types=(0, 0), ability=0)
+
+    ordinary_lines = effective_damage_lines(
+        battle(ordinary, target, minus_ally, double=True), details(context=DamageContext())
+    )
+    plus_lines = effective_damage_lines(
+        battle(plus, target, minus_ally, double=True), details(context=DamageContext())
+    )
+
+    assert plus_lines == ordinary_lines
+    assert "PLUS/MINUS" not in "\n".join(plus_lines)
+
+
 def test_status_and_script_dynamic_moves_are_never_given_guessed_damage() -> None:
     actor = mon(
         0,

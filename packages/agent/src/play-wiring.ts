@@ -111,10 +111,15 @@ export function battleDecisionContext(features:FeatureSet,state:StateSource,tool
  const observe=tools.find(t=>t.name==="observe");
  if(observe===undefined)throw new Error("Battle decision readiness requires observe");
  let sequence=0;
+ let retained:AgentMessage|null=null,observedAt:string|null=null;
+ const gameTools=new Set(["observe","press","navigate_to","battle_action","act"]);
  return async messages=>{
+  const latest=messages.findLast(message=>message.role==="toolResult"&&gameTools.has(message.toolName)&&!message.isError&&message.content.some(part=>part.type==="image"));
+  const anchor=latest?.role==="toolResult"?JSON.stringify([latest.toolName,latest.toolCallId,latest.timestamp]):null;
+  if(anchor!==null&&anchor!==observedAt)retained=null;
   signal?.throwIfAborted();
   const current=await state.read(signal);
-  if(!battleEngaged(current))return base(messages);
+  if(!battleEngaged(current))return base(retained===null?messages:[...messages,retained]);
   const result=await observe.execute(`battle-ready-${String(++sequence)}`,{},signal);
   const image=result.content.find(c=>c.type==="image");
   const details:unknown=result.details;
@@ -122,6 +127,8 @@ export function battleDecisionContext(features:FeatureSet,state:StateSource,tool
   const text=result.content.flatMap(c=>c.type==="text"?[c.text]:[]).join("\n");
   const snapshot={state:parseGameState(details.state),content:[image,{type:"text" as const,text}]} as const;
   recorder.recordDecisionSnapshot(snapshot);
-  return base([...messages,{role:"user",content:[{type:"text",text:"Harness battle update before your next decision:"},...snapshot.content],timestamp:Date.now()}]);
+  observedAt=anchor;
+  retained={role:"user",content:[{type:"text",text:"Harness battle update before your next decision:"},...snapshot.content],timestamp:Date.now()};
+  return base([...messages,retained]);
  };
 }

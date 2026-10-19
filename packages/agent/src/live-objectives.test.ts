@@ -298,6 +298,11 @@ it("production play settles battle text before constructing the model request co
  }) satisfies typeof fetch);
  const preset={version:2,id:"battle-ready-entry",target:null,limits:{maxTurns:10,maxWallMs:600000,failureLimit:3},sampling:{thinkingLevel:"medium",maxTokens:100},features:{...flagFeatures({loopGuard:false,activeUi:true,interfaceDocs:true,objectives:false}),"field-dialogue-phase-v1":true,"dialogue-auto-advance-v1":true,"battle-text-auto-advance-v1":true,"battle-decision-ready-v1":true}};
  owner.files.set("/test-owned/battle-ready-preset.json",[JSON.stringify(preset)]);
+ owner.duringPlay=async loop=>{
+  const again=await loop.transformContext([]);
+  expect(JSON.stringify(again)).toContain("Wild WURMPLE appeared!");
+  expect(presses).toEqual(["B"]);
+ };
  vi.stubEnv("POKEBENCH_PLAY_PRESET","/test-owned/battle-ready-preset.json");vi.stubEnv("POKEBENCH_RUN_ID","battle-ready-entry");
  vi.spyOn(console,"log").mockImplementation(()=>undefined);
  const done=new Promise<RunPlan>((resolve,reject)=>{owner.resolve=resolve;owner.reject=reject;});
@@ -310,6 +315,7 @@ it("production play settles battle text before constructing the model request co
  expect(owner.start?.harness_features).toContain("battle-decision-ready-v1");
  const events=[...owner.files.entries()].filter(([path])=>path.endsWith("/events.jsonl")).flatMap(([,chunks])=>chunks.join("").trim().split("\n").map(parseEvent));
  expect(events.find(e=>e.type==="dialogue_auto_advance")).toMatchObject({tool:"observe",stop:"battle_input",battle_auto_presses:1});
+ expect(events.filter(e=>e.type==="decision_input")).toHaveLength(1);
  const snapshot=events.find(e=>e.type==="decision_input");
  expect(snapshot).toMatchObject({decision_turn:1,text:expect.stringContaining("Wild WURMPLE appeared!") as string,frames:[{path:expect.stringMatching(/frames\//) as string}]});
  if(snapshot?.type!=="decision_input")throw new Error("missing readiness snapshot");

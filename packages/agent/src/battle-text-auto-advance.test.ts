@@ -4,7 +4,7 @@ import {gunzipSync} from "node:zlib";
 import {mkdtempSync,readFileSync,rmSync} from "node:fs";
 import {tmpdir} from "node:os";
 import {join} from "node:path";
-import type {AgentTool,AgentToolResult} from "@mariozechner/pi-agent-core";
+import type {AgentMessage,AgentTool,AgentToolResult} from "@mariozechner/pi-agent-core";
 import {BATTLE_BUSY_BOUNDS,BattleJournal,advanceBattle,battleEngaged,battlePage,classifyBattle,type BattleRun,type BattleTextEntry,type BattleTextSource} from "./battle-text-auto-advance.js";
 import {AUTO_ADVANCE_LIMITS,DialogueRecord,withDialogueAutoAdvance,type AutoAdvanceRecorder} from "./dialogue-auto-advance.js";
 import {DialogueLog} from "./dialogue-log.js";
@@ -560,7 +560,16 @@ it("battle decision request context settles through the production factory befor
  expect(snapshots).toMatchObject([{state:{battle:{text_phase:"input"}}}]);
  expect(JSON.stringify(messages)).toContain("Wild WURMPLE appeared!");
  expect(JSON.stringify(messages)).toContain("Harness battle update");
- const next=await transform(messages);expect(next).toBe(messages);expect(server.posts).toHaveLength(1);
+ const canonical:AgentMessage[]=[];
+ const next=await transform(canonical);
+ expect(JSON.stringify(next)).toContain("Wild WURMPLE appeared!");
+ expect(next).toHaveLength(1);expect(server.posts).toHaveLength(1);
+ const contextTool:AgentMessage={role:"toolResult",toolCallId:"memory-1",toolName:"get_dialogue",isError:false,content:[{type:"text",text:"memory result"}],timestamp:2};
+ const afterMemory=await transform([contextTool]);expect(JSON.stringify(afterMemory)).toContain("Wild WURMPLE appeared!");
+ const failedObserve:AgentMessage={...contextTool,toolName:"observe",isError:true};
+ expect(JSON.stringify(await transform([failedObserve]))).toContain("Wild WURMPLE appeared!");
+ const gameResult:AgentMessage={role:"toolResult",toolCallId:"observe-new",toolName:"observe",isError:false,content:[{type:"image",data:png,mimeType:"image/png"},{type:"text",text:"newer game observation"}],timestamp:3};
+ const observed=[gameResult];expect(await transform(observed)).toBe(observed);
  const cancelled=new AbortController();cancelled.abort();
  await expect(battleDecisionContext(ready,source,tools,chain,snapshotRecorder,cancelled.signal)([])).rejects.toThrow();
  expect(server.posts).toHaveLength(1);
@@ -604,4 +613,20 @@ it("production battle readiness waits for the operator pause gate before automat
  resume();await result;
  expect(server.posts.map(p=>p.button)).toEqual(["B"]);
  expect(server.now.battle?.text_phase).toBe("input");
+});
+
+
+it.each(["observe","battle_action"] as const)("battle settling preserves an intermediate whiteout notice for %s",async name=>{
+ const notice="Whited out: your party had no usable Pokémon left; money halved: ₽3000 → ₽1500.";
+ const receipt={frame:81,money_before:3000,notice};
+ const recovery={...fieldMessage("You should rest your POKéMON.",true),blackout_receipt:receipt};
+ const server=new ScriptServer([WAITING,recovery,FIELD],[]);
+ server.readout=state=>`Screen: ${state.screen}${state.blackout_receipt===undefined?"":`\n${state.blackout_receipt.notice}`}`;
+ const action:AgentTool={name:"battle_action",label:"b",description:"choose",parameters:Type.Object({}),execute:()=>{throw new Error("queued action must not execute across battle end");}};
+ const ready={...ON,"battle-decision-ready-v1":true} as FeatureSet;
+ const {tool}=wire(server,ready,[action]);
+ const result=await tool(name).execute("whiteout-ready",{});
+ expect(textOf(result)).toContain(notice);
+ expect(stateOfResult(result).blackout_receipt).toEqual(receipt);
+ expect(server.posts.map(p=>p.button)).toEqual(["B","B"]);
 });

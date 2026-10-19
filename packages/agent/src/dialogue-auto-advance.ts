@@ -435,13 +435,17 @@ export function withDialogueAutoAdvance(tools:readonly AgentTool[],features:Feat
  const settle=async(id:string,state:GameStateSnapshot,signal?:AbortSignal,tool:"observe"|"battle_action"="observe")=>{
   await full.gate(signal);signal?.throwIfAborted();
   const began=full.clock.now(),carry=new BlackoutCarry();
+  carry.remember(state);
   const battle=await openBattle(signal,true);
   const pages=new Pages(record,open,present,truth);
   const outcome=await drive(state,pages,autoPress(id,carry),full,battle,signal);
   open=pages.openAt(outcome.state);
   const done=await finish(id,tool,outcome,pages,[],[],[],began,carry,signal);
-  const result:Result={content:[{type:"text",text:done.block},...done.seen.content,...outcome.extras],details:{state:done.state}};
-  return {result,state:done.state,stop:outcome.stop,summary:[{type:"text" as const,text:done.block},...outcome.extras]};
+  const extras=outcome.extras.map(part=>part.text);
+  const notices=carry.missingNotices([done.block,observation(done.seen).text,...extras]);
+  const summary=[{type:"text" as const,text:[done.block,...carry.missingNotices([done.block,...extras])].join("\n")},...outcome.extras];
+  const result:Result={content:[{type:"text",text:[done.block,...notices].join("\n")},...done.seen.content,...outcome.extras],details:{state:done.state}};
+  return {result,state:done.state,stop:outcome.stop,summary};
  };
  const out=tools.map(tool=>{
   if(ready&&tool===observe)return {...tool,description:`${tool.description} Pending ordinary battle text advances to the next decision; all messages are listed.`,execute:async(id:string,params:unknown,signal?:AbortSignal,update?:Parameters<AgentTool["execute"]>[3])=>{
@@ -461,7 +465,7 @@ export function withDialogueAutoAdvance(tools:readonly AgentTool[],features:Feat
    if(ready&&battleAction){
     const before=await full.state.read(signal);
     if(battleEngaged(before)){
-     const settled=await settle(id,before,signal,"battle_action");preflight=settled.summary;
+     const settled=await settle(id,before,signal,"battle_action");preflight=settled.summary;carry.remember(settled.state);
      const inputs=settled.state.battle?.player_inputs?.filter(i=>i.ready)??[];
      if(settled.stop!=="battle_input"||!settled.state.in_battle||settled.state.battle?.text_phase!=="input"||inputs.length!==1||!inputs.every(i=>i.phase==="action"||i.phase==="move"))return {
       content:[{type:"text",text:"Battle action: requested action not executed; inspect the decision reached after advancing battle text."},...settled.result.content],
@@ -471,7 +475,7 @@ export function withDialogueAutoAdvance(tools:readonly AgentTool[],features:Feat
    }
    const battle=await openBattle(signal);
    const acted=await tool.execute(id,params,signal,update);
-   const result=preflight===null?acted:{...acted,content:[...acted.content,...preflight]};
+   const result=preflight===null?acted:{...acted,content:[...acted.content,...preflight],details:{...Object(acted.details) as object,state:carry.preserve(stateOf(acted))}};
    const state=carry.remember(stateOf(result));
    if(!dialogueEngaged(state)&&!(battle!==null&&battleEngaged(state)))return result;
    // battle-move-tool-v1: "nothing pressed" stays true for the whole call (review round 1 note).
@@ -485,7 +489,7 @@ export function withDialogueAutoAdvance(tools:readonly AgentTool[],features:Feat
    const raw:unknown=result.details;
    const restated=navigationAfter(raw,outcome,switches.pushback===true?scriptMove(state,done.state,switches):null);
    const status=result.content.slice(0,1).filter((part):part is TextContent=>part.type==="text").map(part=>restated===null?part:{...part,text:restated});
-   const notices=carry.missingNotices([...status.map(part=>part.text),done.block,seen.text,...outcome.extras.map(part=>part.text)]);
+   const notices=carry.missingNotices([...status.map(part=>part.text),...(preflight?.map(part=>part.text)??[]),done.block,seen.text,...outcome.extras.map(part=>part.text)]);
    return {content:[...status,...(preflight??[]),...seen.images,{type:"text",text:`${done.block}\n${notices.length===0?"":`\n${notices.join("\n")}\n`}\n${seen.text}`},...outcome.extras],details:{...Object(raw) as object,state:done.state}};
   }} satisfies AgentTool;
  });

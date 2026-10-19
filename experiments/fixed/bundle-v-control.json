@@ -156,7 +156,8 @@
    "reachable-story-guidance-v1": false,
    "text-only-supervisor-v2": false,
    "safe-navigation-strides-v1": false,
-   "evolution-decision-v1": false
+   "evolution-decision-v1": false,
+   "observed-instructions-v1": false
   }
  },
  "switches": [
@@ -197,7 +198,8 @@
   "reachable-story-guidance-v1",
   "text-only-supervisor-v2",
   "safe-navigation-strides-v1",
-  "evolution-decision-v1"
+  "evolution-decision-v1",
+  "observed-instructions-v1"
  ],
  "offInBoth": [
   "visited-terrain-navigation-v1",

@@ -31,21 +31,24 @@ import {TEXT_ONLY_NOTE_LIMIT,contextWindow,withoutTextOnlyReplies,type Window} f
 import {withStarterDecision} from "./starter-decision.js";
 import {VisitedTerrain,withVisitedTerrain} from "./visited-terrain.js";
 
+import {observedInstructions} from "./observed-instructions.js";
+
 type Transform=(messages:AgentMessage[])=>Promise<AgentMessage[]>;
 type WiringRecorder=Pick<RunRecorder,"subscribe"|"recordNavigationContext"|"recordLedgerContext"|"recordMilestoneHint"|"recordBeliefLedger">;
 
 // The switch-dependent memory tools and the context chain a play run delivers to the model.
 export function contextTools(features:FeatureSet,recorder:WiringRecorder,base:Transform):{tools:AgentTool[];transformContext:Transform;window:Window}{
  const tools:AgentTool[]=[];
- const memory=navigationMemory(features,recorder,base);
+ const observedBase=observedInstructions(features,recorder,base);
+ const memory=navigationMemory(features,recorder,observedBase);
  if(memory!==null)tools.push(memory.tool);
  const dialogue=dialogueLog(features,recorder);
  if(dialogue!==null)tools.push(dialogue);
- const ledger=instructionLedger(features,recorder,memory?.transformContext??base);
+ const ledger=instructionLedger(features,recorder,memory?.transformContext??observedBase);
  if(ledger!==null)tools.push(ledger.tool);
- const hint=nextMilestoneHint(features,recorder,ledger?.transformContext??memory?.transformContext??base);
+ const hint=nextMilestoneHint(features,recorder,ledger?.transformContext??memory?.transformContext??observedBase);
  if(hint!==null)tools.push(hint.tool);
- const hinted=hint?.transformContext??ledger?.transformContext??memory?.transformContext??base;
+ const hinted=hint?.transformContext??ledger?.transformContext??memory?.transformContext??observedBase;
  const chain=disprovedBeliefs(features,recorder,hinted)?.transformContext??hinted;
  return {tools,transformContext:features["fresh-retry-v1"]?messages=>chain(withoutTextOnlyReplies(messages)):chain,window:contextWindow(features)};
 }

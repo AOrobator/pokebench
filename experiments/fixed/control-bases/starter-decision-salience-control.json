@@ -152,7 +152,8 @@
     "reachable-story-guidance-v1": false,
     "text-only-supervisor-v2": false,
     "safe-navigation-strides-v1": false,
-    "evolution-decision-v1": false
+    "evolution-decision-v1": false,
+    "observed-instructions-v1": false
   },
   "start": {
     "kind": "save_state",

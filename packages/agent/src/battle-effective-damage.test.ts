@@ -9,7 +9,7 @@ const root=(path:string)=>readFileSync(fileURLToPath(new URL(`../../../${path}`,
 
 describe(ID,()=>{
  it("is a default-off server observation switch that depends on battle details",()=>{
-  expect(SWITCHABLE_FEATURES.at(-13)).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-14)).toBe(ID);
   expect(featureInfo(ID)).toMatchObject({group:"observation",needs:"battle-details-v2",switchable:true,title:"BATTLE EFFECTIVE DAMAGE"});
   expect(SERVER_FEATURES.at(-3)).toBe(ID);
   expect(serverFeatureEnv({...ALL_ON,"battle-decision-ready-v1":false,[ID]:false}).POKEBENCH_FEATURES_OFF.split(",")).toEqual([ID,"safe-navigation-strides-v1"]);
@@ -21,7 +21,7 @@ describe(ID,()=>{
  it("is an isolated candidate in the fixed bundle and has tracked operator docs",()=>{
   const bundle=JSON.parse(root("experiments/fixed/bundle-v-control.json")) as {base:{features:Record<string,boolean>};switches:string[]};
   expect(bundle.base.features[ID]).toBe(false);
-  expect(bundle.switches.at(-8)).toBe(ID);
+  expect(bundle.switches.at(-9)).toBe(ID);
   expect(root("docs/explainers/README.md")).toContain("battle-effective-damage-v1.html");
   expect(root("docs/explainers/battle-effective-damage-v1.html")).toContain("The harness does not rank moves");
   expect(root("docs/experiments/README.md")).toContain("battle-effective-damage.html");

@@ -538,7 +538,10 @@ def _damage(
         if alive_defenders == 2:
             damage //= 2
             notes.append("spread ×0.5")
-    damage = max(1, damage) if move_type != MYSTERY else 0
+    if physical:
+        damage = max(1, damage)
+    elif move_type == MYSTERY:
+        damage = 0
     if not physical and _weather_works(battle.battlers or ()):
         if context.weather & 1:
             if move_type == FIRE:

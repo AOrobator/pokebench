@@ -178,6 +178,39 @@ def test_plus_minus_does_not_modify_physical_attack() -> None:
     assert "PLUS/MINUS" not in "\n".join(plus_lines)
 
 
+def test_only_physical_damage_gets_the_pre_plus_two_minimum_one_clamp() -> None:
+    scratch = move(0, 10, "SCRATCH", 20, 0)
+    ember = move(1, 52, "EMBER", 20, 10, effect=4)
+    actor = mon(
+        0,
+        0,
+        "TORCHIC",
+        level=5,
+        stats=(5, 5, 5, 5, 5),
+        types=(11, 11),
+        ability=0,
+        moves=(scratch, ember, EMPTY, EMPTY),
+    )
+    target = mon(
+        1,
+        1,
+        "WURMPLE",
+        level=5,
+        stats=(20, 20, 20, 20, 20),
+        types=(0, 0),
+        ability=0,
+    )
+
+    text = "\n".join(
+        effective_damage_lines(battle(actor, target), details(context=DamageContext()))
+    )
+
+    scratch_text = text[text.index("1 SCRATCH") : text.index("2 EMBER")]
+    ember_text = text[text.index("2 EMBER") :]
+    assert "WURMPLE (foe, screen right): 2-3 HP" in scratch_text
+    assert "WURMPLE (foe, screen right): 1-2 HP" in ember_text
+
+
 def test_status_and_script_dynamic_moves_are_never_given_guessed_damage() -> None:
     actor = mon(
         0,

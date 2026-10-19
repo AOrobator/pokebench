@@ -99,4 +99,6 @@ Publication-cap-only real-game comparison complete: three alternating15s pairs, 
 
 M4 RED independently repeated by parent:9fail/11pass in20 fake-clock publication tests. The old default encodes60of80frames; explicit80 strict gate loses frames under bounded quarter-period jitter; inclusive half-period eligibility and early acceptance fail. Existing consumer/error/late-rebase/invalid-rate/capped320-source guards pass. Tests use tiny injected encoder outputs and no native game, sleeps or durable fixture loop. COMMIT: `test: expose publication deadline aliasing` (RED).
 
+M1c RED independently repeated by parent:1fail/6pass. Four-run production /api/runs fixture shows8event-existence checks/8identity stats/22directory probes rather than4/4/0. Six legacy guards pass, including an ambiguous peer inserted immediately after discovery, one-root listing failure, vanished files, real-read EIO/retry and strict-build health eligibility. Path shortcuts must retain ambiguity-race semantics; directory metadata validation or conservative legacy fallback is required, not a blind discovered-path assumption. COMMIT: `test: pin fresh single-scan catalog discovery` (RED).
+
 Production changes require RED/GREEN, full gates and frozen review before landing; unavailable reviewer lanes remain unavailable unless operator grants a specific exception.

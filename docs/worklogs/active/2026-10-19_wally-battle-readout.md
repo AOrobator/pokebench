@@ -32,7 +32,7 @@ Read local archives through production hash/layout validation and matching exter
 ### M3 — Review and close loop
 - [ ] Score PB1-PB13; freeze packet and complete Claude/Grok/GPT cloud review under repository contract (maximum two rounds).
 - [ ] Merge only if full required cloud approval and gates permit; otherwise retain concrete reviewed candidate and report blocker.
-- [ ] Qualify recorded/model-visible consumers and live proof appropriate to changed surfaces, coordinate viewer restart only after a permitted merge.
+- [x] Qualify recorded/model-visible consumers and browser proof on isolated offline replay; no live gameplay restart authorized or required for this correctness proof.
 - [ ] Report implementation, gates, review, landing, runtime exposure separately. No experiment launch.
 
 ## Closing the Loop
@@ -81,3 +81,5 @@ Native archive replay must move the real Wally error to truthful decoded battle/
 - Round 1 synthesis on frozen361c2246: Fix both concrete in-contract lifecycle defects independently identified by Sol/Astra: initialized=false diagnostic-free battle readout falsely recovers/clears refusal counts; unchanged observe with battle-observation enabled falsely recovers through legacy novelty. Add post-warning production-seam regressions before fixing. No rebuttals or scope additions. Claude CLI unauthenticated, both Cursor Claude variants and Cursor GPT usage-limited; Cursor Grok timeout180s. Two distinct-model read-only fallback reviews BLOCKING; frozen hash reproduced and clean. Fallback cannot authorize landing.
 
 - Review RED b941cc06: both independent recovery regressions fail on original frozen code. GREEN now qualifies initialized native state before count clearing/recovery and prevents legacy novelty from recovering an active refusal episode. Qualified native change/known field escape remain the single recovery contract. 68 focused tests GREEN; both operand deletions produce assertion-RED and are restored (mutations-review-recovery.json).
+
+- Recovery fix COMMITa5d83397. Pending source pins now point to this runtime. g5 final combined-tree gates ALL GREEN: build9.42s, test50.38s, lint42.61s, coverage76.09s, vendor pass. Tests2586 agent +1263 viewer +2762 Python =6611, zero skips. Coverage remains agent99.25/94.11/98.27%, viewer97.60/90.93/93.72%, Python97.09/92.73/100.00% (lines/branches/functions). Only pending JSON pins were dirty during gates; no runtime source changed. A bookkeeping commit initially rejected by worklog hook was corrected by updating this worklog, without bypass. Main remains3c626e32. Round2 cumulative freeze follows; prior native/model/viewer proof remains applicable, regression-only recovery changes have additional RED/GREEN and mutation proof.

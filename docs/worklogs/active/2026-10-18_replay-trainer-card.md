@@ -25,7 +25,9 @@ The viewer header originally built trainer cards only from runs that are current
 **M2 — live-card precedence correction**
 - [x] RED: selecting a replay while live runs exist expected two live cards but received three cards because the replay was mixed in; the no-live fallback case was added at the same consumer seam.
 - [x] GREEN: card input selection implements live-first, replay-only fallback behavior without changing replay playback. Focused app result: 14/14.
-- [ ] Gates, owned-preview browser proof, fresh subagent review and landing.
+- [x] Gates: focused trainer-card/app/card-DOM/run-head tests 51/51; `just build`; `just test` (agent 2,527, viewer 1,191, Python 2,480 with 229 ROM-dependent skips); `just lint`; `just coverage` (agent 97.99/94.15/98.32/99.25, viewer 95.42/91.51/93.84/97.64, Python lines 97.47 / branches 93.37 / functions 99.43); `just verify-vendor`.
+- [x] Owned-preview browser proof on candidate build `0563939`: with the real runs root and the ended replay selected, the page stayed in `REPLAY` mode through two workbench cycles while its card count was zero and the two live cards remained present, unselected, labelled `LIVE`, and dotted. On an isolated runs root containing only that ended recording, one selected `REPLAY` card appeared with zero live dots and remained stable across another poll. Both previews had no visible problems or console errors; screenshots were visually inspected in the task record.
+- [ ] Fresh subagent review and landing.
 
 ## Evidence
 

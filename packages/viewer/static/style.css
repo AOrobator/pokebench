@@ -735,6 +735,15 @@ b.wb-add, b.wb-rem { white-space:nowrap; }
 .stage-controls .replay-controls input[type=range] { flex: 1; accent-color: #d03a3a; }
 .run-sheet-shade { position: fixed; inset: 0; z-index: 40; background: rgba(5,8,15,.55); }
 .run-sheet { position: fixed; left: 0; right: 0; bottom: 0; z-index: 41; max-height: 86vh; overflow-y: auto; background: #1e2c44; color: #dfe8f5; border-top: 3px solid #ffd447; border-radius: 18px 18px 0 0; padding: 10px 16px 22px; font: 12px/1.5 'Inter', system-ui, sans-serif; }
+:root[data-phone] .run-sheet:not([hidden]) { animation: rs-slide-in 130ms cubic-bezier(.2,.8,.2,1); }
+:root[data-phone] .run-sheet-shade:not([hidden]) { animation: rs-fade-in 90ms ease-out; }
+:root[data-phone] .run-sheet[data-closing] { animation: rs-slide-out 130ms ease-in forwards; }
+:root[data-phone] .run-sheet-shade[data-closing] { animation: rs-fade-out 90ms ease-in forwards; }
+@keyframes rs-slide-in { from { transform: translateY(100%); } to { transform: translateY(0); } }
+@keyframes rs-fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes rs-slide-out { from { transform: translateY(0); } to { transform: translateY(100%); } }
+@keyframes rs-fade-out { from { opacity: 1; } to { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { :root[data-phone] .run-sheet, :root[data-phone] .run-sheet-shade { animation: none !important; } }
 .rs-grab { display: block; width: 64px; height: 20px; margin: 0 auto 10px; border: 0; background: linear-gradient(#4d6a96, #4d6a96) center / 44px 5px no-repeat; cursor: pointer; }
 .run-sheet h4 { font: 7px/1.6 'Press Start 2P', monospace; color: #9fb3cf; margin: 24px 0 10px; }
 .rs-now { display: flex; flex-direction: column; gap: 10px; border: 3px solid #ff4b4b; border-radius: 12px; padding: 12px; background: #26375a; }
@@ -771,7 +780,7 @@ b.wb-add, b.wb-rem { white-space:nowrap; }
 .tc img { display: block; width: 100%; height: 100%; image-rendering: pixelated; }
 .tc .tc-line { display: flex; align-items: center; gap: calc(var(--u) * 4); min-width: 0; height: 100%; white-space: nowrap; }
 .tc .tc-line.tc-end { justify-content: flex-end; }
-.tc .tc-tab { position: absolute; display: flex; align-items: center; box-sizing: border-box; padding: 0 calc(var(--u) * 6); background: #6abdff; border: calc(var(--u) * 1) solid #418bc5; }
+.tc .tc-tab { position: absolute; display: flex; align-items: center; box-sizing: border-box; overflow: hidden; padding: 0 calc(var(--u) * 6); background: #6abdff; border: calc(var(--u) * 1) solid #418bc5; }
 /* Game-font text: plain text until the glyph sheet paints it, then only the canvas shows. */
 .tc .gtx { display: inline-flex; align-items: center; font: calc(var(--u) * 6)/1 'Press Start 2P', monospace; color: #183060; white-space: nowrap; }
 .tc .gtx[data-painted] { font-size: 0; line-height: 0; }
@@ -845,3 +854,29 @@ b.wb-add, b.wb-rem { white-space:nowrap; }
 }
 
 #page-stats .page-content { padding-right:18px; scrollbar-gutter:stable; }
+
+/* Operator extensions use the same Emerald message frame as the live thought box. */
+.extend-dialog { position:fixed; background:#fff; color:#283038; border:4px solid #283038; border-radius:10px; box-shadow:inset 0 0 0 3px #fff,inset 0 0 0 6px #7cc8e8,0 8px 0 #12213866; padding:32px 24px 26px; width:min(520px,calc(100vw - 32px)); max-height:90svh; overflow:auto; box-sizing:border-box; font:14px/1.65 'Inter',system-ui,sans-serif; }
+.extend-dialog::backdrop { background:#0e1626ba; }
+.extend-dialog .emer-name { position:absolute; top:10px; left:14px; background:#1e2c44; color:#ffd447; font:7px/1.7 'Press Start 2P',monospace; padding:4px 8px; border-radius:5px; }
+.extend-dialog h2 { margin:16px 0 10px; font:clamp(11px,2.8vw,14px)/1.9 'Press Start 2P',monospace; color:#283038; }
+.extend-dialog .extend-id { overflow-wrap:anywhere; font:11px/1.5 'JetBrains Mono',monospace; color:#53687b; margin:0 0 18px; }
+.extend-dialog label { display:flex; gap:12px; align-items:center; flex-wrap:wrap; color:#345779; font:8px/1.8 'Press Start 2P',monospace; }
+.extend-dialog select { font:14px/1.5 'Inter',system-ui,sans-serif; padding:10px 12px; border:3px solid #3a6ea5; border-radius:7px; color:#283038; background:#f5f9fc; }
+.extend-dialog [data-ui=extend-preview] { padding:12px; border:2px solid #b6c9db; border-radius:6px; background:#fffbe4; color:#283038; font-variant-numeric:tabular-nums; }
+.extend-actions { display:flex; gap:12px; justify-content:flex-end; margin-top:18px; }
+.extend-dialog button { cursor:pointer; font:8px/1.8 'Press Start 2P',monospace; padding:10px 12px; border:3px solid #3a6ea5; border-radius:8px; background:#fff; color:#283038; box-shadow:0 3px 0 #cad7e3; }
+.extend-dialog [data-ui=extend-confirm] { background:#ffd447; border-color:#b68120; box-shadow:0 3px 0 #7a5410; }
+.extend-dialog :is(button,select):focus-visible { outline:3px solid #2f9e57; outline-offset:3px; }
+.extend-dialog :disabled { opacity:.5; cursor:default; }
+.extend-dialog [data-ui=extend-status] { min-height:24px; color:#345779; font-weight:600; }
+.extend-dialog .emer-arrow { position:absolute; right:14px; bottom:6px; color:#d03a3a; font:10px 'Press Start 2P',monospace; }
+.extension-note { grid-column:1/-1; margin:2px 0 0; font:12px/1.5 'Inter',system-ui,sans-serif; color:#344563; }
+/* Native symbols and pixel labels have different baselines; center the two boxes. */
+.tb-ctl button { display:inline-flex; align-items:center; justify-content:center; gap:6px; }
+.tb-ctl .control-icon { display:inline-flex; align-items:center; justify-content:center; flex:none; font:15px/1 system-ui,sans-serif; }
+.tb-ctl .control-label { display:block; line-height:1.6; }
+.tb-ctl .control-help { display:block; font:6px/1.7 'Press Start 2P',monospace; white-space:nowrap; }
+.stage-controls .tb-ctl button { gap:4px; }
+.stage-controls .tb-ctl .control-icon { font-size:12px; }
+.stage-controls .tb-ctl .control-help { font-size:4px; }

@@ -252,6 +252,7 @@ async function playAgent(): Promise<void> {
       startState: start,
       harnessFeatures: playHarnessFeatures(features,target),
 
+      extend_run: true,
       budgets: { max_turns: limits.maxTurns, max_wall_ms: limits.maxWallMs },
       piVersion: piVersion(),
     },
@@ -275,10 +276,14 @@ async function playAgent(): Promise<void> {
         ...(preset===null?{}:{startedAt:0}),
         takeStop: () => control?.takeStop() ?? false,
         pausedMs: () => control?.pausedMs() ?? 0,
+        wallLimit: () => control?.wallLimit(limits.maxWallMs) ?? limits.maxWallMs,
         ...(textOnly === undefined ? {} : { textOnlySupervisor: textOnly }),
       });
       const controlFile = new ControlFile(join(RUNS_ROOT, runId, "control.jsonl"));
+      let startedAt = elapsed();
+      const activeMs = (): number => elapsed() - (preset === null ? startedAt : 0) - (control?.pausedMs() ?? 0);
       const runControl = new RunControl({
+        budget: { maxWallMs: limits.maxWallMs, activeMs, stopped: () => governor.stopReason !== null },
         poll: () => controlFile.poll(),
         record: (body) => { recorder.recordControl(body); },
         freeze: (paused) => freezeGame(gameServerUrl, paused),
@@ -289,17 +294,17 @@ async function playAgent(): Promise<void> {
       if(preset!==null&&recorder.elapsedMs()>=limits.maxWallMs){governor.abort("budget");return "budget";}
       const capture = captureMode === null ? null : new CheckpointCapture(captureMode, { serverUrl: gameServerUrl, dir: join(RUNS_ROOT, runId, "checkpoints"), libraryDir:join(RUNS_ROOT,"checkpoints"), fetch, write: (path, data) => { mkdirSync(dirname(path), { recursive: true }); writeFileSync(path, data); }, linkExclusive:linkSync,remove:unlinkSync,rename: renameSync },startMeta);
       if(capture!==null){recorder.subscribe(event=>{capture.observe(event);});lifecycle.beforeRunEnd(async()=>{await capture.close().catch((error:unknown)=>{recorder.checkpointFailure(error);console.error(`checkpoint capture failed: ${String(error)}`);});});}
-      const loopDetector = attachLoopGuard(recorder, governor, undefined, loopMode, features["interaction-loop-detection-v1"], loopSupervisor(features, recorder), features["transition-loop-detection-v1"], features["pushback-loop-detection-v1"], features["battle-observation-loop-v1"], features["navigation-truth-v1"], features["ineffective-loops-v1"], features["battle-menu-loop-v1"], features["clock-view-loop-v1"], features["reopened-dialogue-loop-v1"],features["trigger-script-loop-v1"]);
+      const loopDetector = attachLoopGuard(recorder, governor, undefined, loopMode, features["interaction-loop-detection-v1"], loopSupervisor(features, recorder), features["transition-loop-detection-v1"], features["pushback-loop-detection-v1"], features["battle-observation-loop-v1"], features["navigation-truth-v1"], features["ineffective-loops-v1"], features["battle-menu-loop-v1"], features["clock-view-loop-v1"], features["reopened-dialogue-loop-v1"],features["trigger-script-loop-v1"],features["battle-refusal-loop-v1"]);
       if(target!==null){
         const stop=new NativeTargetStop(runId,target,proof=>{
           if(governor.stopReason!==null)return;
-          if(preset!==null&&recorder.elapsedMs()-runControl.pausedMs()>limits.maxWallMs){governor.abort("budget");return;}
+          if(preset!==null&&activeMs()>runControl.wallLimit(limits.maxWallMs)){governor.abort("budget");return;}
           recorder.setTargetProof(proof);
           governor.stop("milestone");
         });
         recorder.subscribe(event=>{stop.observe(event);});
       }
-      const startedAt = elapsed();
+      startedAt = elapsed();
       const wall = new BudgetTimer(runControl, limits.maxWallMs, () => elapsed() - (preset===null?startedAt:0), () => {
         governor.abort("budget");
       });

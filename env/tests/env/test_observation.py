@@ -246,3 +246,150 @@ def test_raw_archive_precedes_decode_and_shares_frame_lock(tmp_path, monkeypatch
         load_raw_ram(tmp_path / receipts[1]["path"], receipts[1]["sha256"])(0x02000001, 3)
         == b"\x01\x02\x03"
     )
+
+
+@pytest.mark.parametrize("with_whiteout", [False, True])
+def test_blocked_persistence_never_holds_frame_lock_or_png_work(
+    tmp_path, monkeypatch, with_whiteout
+):
+    import threading
+    from concurrent.futures import ThreadPoolExecutor
+    from types import SimpleNamespace
+
+    from PIL import Image
+
+    import pokebench_env.raw_ram as raw_module
+    from pokebench_env.blackout_readout import WhiteoutLatch
+    from pokebench_env.memory_reader import SnapshotMemoryReader
+    from pokebench_env.menus import PALETTE_FADE
+    from pokebench_env.raw_ram import REGIONS, RawRamArchive, digest
+    from pokebench_env.screen_settle import FrameSettle
+    from pokebench_env.serve import frozen_native_screenshot
+
+    lock = threading.Lock()
+    entered = threading.Event()
+    release = threading.Event()
+    original = raw_module._persist_capture
+    region_data = {address: bytearray(size) for _, address, size in REGIONS}
+    naming_offset = 0x030022C0 - 0x03000000
+    region_data[0x03000000][naming_offset : naming_offset + len(NAMING)] = NAMING
+    source_image = Image.new("RGB", (2, 1), (12, 34, 56))
+
+    def blocked(directory, frozen):
+        region_data[0x03000000][naming_offset : naming_offset + len(NAMING)] = bytes(len(NAMING))
+        source_image.paste((200, 10, 20), (0, 0, 2, 1))
+        entered.set()
+        assert release.wait(10)
+        return original(directory, frozen)
+
+    monkeypatch.setattr(raw_module, "_persist_capture", blocked)
+    executor = ThreadPoolExecutor(max_workers=1)
+    archive = RawRamArchive(tmp_path, "a" * 40, executor=executor, queue_size=1)
+
+    class View:
+        def __getitem__(self, span):
+            for base, data in region_data.items():
+                if base <= span.start and span.stop <= base + len(data):
+                    return bytes(data[span.start - base : span.stop - base])
+            return bytes(span.stop - span.start)
+
+    core = SimpleNamespace(
+        memory=SimpleNamespace(u8=View()),
+        cpu=SimpleNamespace(gprs=[0] * 16, cpsr=SimpleNamespace(packed=0)),
+    )
+
+    def raw_region(address, size):
+        return bytes(region_data[address][:size])
+
+    raw = SnapshotMemoryReader(lambda: core, raw_region)
+    snapshot_calls = 0
+    transitioning = True
+
+    def atomic_memory(address, length):
+        if address == PALETTE_FADE + 7:
+            return bytes([0x80 if transitioning else 0])
+        if address == 0x05000000:
+            return b"\x01" + bytes(length - 1)
+        return memory(address, length)
+
+    settle = FrameSettle(atomic_memory)
+
+    def raw_snapshot(reservation):
+        nonlocal snapshot_calls
+        snapshot_calls += 1
+        return archive.snapshot(reservation, raw, 42)
+
+    def screenshot_snapshot():
+        assert lock.locked(), "framebuffer copy must share the atomic frame lock"
+        deferred = frozen_native_screenshot(SimpleNamespace(get_screenshot=lambda: source_image))
+
+        def verified_encode():
+            assert not lock.locked(), "PNG encoding held the emulator frame lock"
+            return deferred()
+
+        return verified_encode
+
+    app = FastAPI()
+    observe = install_observation(
+        app,
+        screenshot_snapshot,
+        atomic_memory,
+        MapNames({}),
+        lock,
+        raw_archive=archive,
+        raw_snapshot=raw_snapshot,
+        raw_rom=bytes(4),
+        whiteout=WhiteoutLatch(memory) if with_whiteout else None,
+        settle=settle,
+    )
+    result = []
+    request = threading.Thread(target=lambda: result.append(observe()))
+    request.start()
+    for _ in range(100):
+        with settle._lock:
+            if settle._waiters:
+                break
+        threading.Event().wait(0.005)
+    else:
+        pytest.fail("observation did not register its frame waiter")
+    transitioning = False
+
+    def run_frame_callback():
+        with lock:
+            settle.on_frame()
+
+    frame_callback = threading.Thread(target=run_frame_callback)
+    frame_callback.start()
+    frame_callback.join(0.2)
+    assert not frame_callback.is_alive(), "frame callback retained persistence work"
+    assert entered.wait(2), "persistence worker did not start"
+    assert lock.acquire(timeout=0.2), "blocked fsync/compression retained the frame lock"
+    lock.release()
+    assert request.is_alive(), "request should retain synchronous durability semantics"
+    second_result = []
+    second = threading.Thread(target=lambda: second_result.append(observe()))
+    second.start()
+    second.join(0.1)
+    assert second.is_alive() and snapshot_calls == 1, (
+        "a full persistence queue must block before the frame callback"
+    )
+    release.set()
+    request.join(2)
+    second.join(2)
+    assert not request.is_alive() and not second.is_alive()
+    assert result[0]["raw_ram"]["frame"] == 42
+    assert result[0]["state"]["screen"] == "naming"
+    import base64
+    from io import BytesIO
+
+    screenshot = str(result[0]["screenshot_base64"])
+    assert Image.open(BytesIO(base64.b64decode(screenshot))).getpixel((0, 0)) == (12, 34, 56)
+    assert second_result[0]["raw_ram"]["sequence"] == 1
+    pairs = [
+        json.loads(line) for line in (tmp_path / "observations.jsonl").read_text().splitlines()
+    ]
+    assert len(pairs) == 2
+    first = next(pair for pair in pairs if pair["raw_ram"]["sequence"] == 0)
+    assert first["state"]["screen"] == "naming"
+    assert first["screenshot_sha256"] == digest(base64.b64decode(screenshot))
+    executor.shutdown()

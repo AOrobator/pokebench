@@ -48,7 +48,9 @@
             "resume",
             "stop",
             "cancel_stop",
-            "abort"
+            "abort",
+            "extend_30m",
+            "extend_60m"
           ]
         },
         "status": {
@@ -62,6 +64,14 @@
         "request": {
           "type": "integer",
           "minimum": 1
+        },
+        "previous_max_wall_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "max_wall_ms": {
+          "type": "integer",
+          "minimum": 0
         },
         "paused_ms": {
           "type": "integer",
@@ -761,6 +771,10 @@
         "type": {
           "type": "string",
           "const": "run_start"
+        },
+        "extend_run": {
+          "type": "boolean",
+          "const": true
         },
         "rom_sha1": {
           "type": "string",

@@ -146,6 +146,7 @@ export interface GovernorDeps {
   // Operator control: a stop due at this turn end, and time spent paused.
   readonly takeStop?: () => boolean;
   readonly pausedMs?: () => number;
+  readonly wallLimit?: () => number;
   // text-only-supervisor-v1: a recorded note to send instead of ending the run (replies, note number).
   readonly textOnlySupervisor?: (replies: number, note: number) => string;
 }
@@ -233,7 +234,7 @@ export class Governor {
     const { maxTurns, maxWallMs } = this.deps.limits;
     if (this.deps.takeStop?.() === true) this.stopReason ??= "operator_stop";
     const active = this.deps.now() - this.startedAt - (this.deps.pausedMs?.() ?? 0);
-    if (this.turns >= maxTurns || active >= maxWallMs) this.stopReason ??= "budget";
+    if (this.turns >= maxTurns || active >= (this.deps.wallLimit?.() ?? maxWallMs)) this.stopReason ??= "budget";
     return this.stopReason !== null;
   }
 }
@@ -243,11 +244,11 @@ function firstText(result: ToolResultMessage | undefined): string {
   return part?.type === "text" ? part.text : "";
 }
 
-export function attachLoopGuard(recorder: Pick<RunRecorder, "subscribe" | "recordLoopGuard">, governor: Governor, policy?: LoopPolicy, mode:LoopMode="enforced", interactions=false, supervisor?: (kind: LoopKind, calls: number) => string, transitions=false, pushback=false, battles=false, messageTruth=false, ineffectiveLoops=false, menuLoop=false, clockViews=false, closedDialogue=false,triggerScriptLoops=false): LoopDetector {
+export function attachLoopGuard(recorder: Pick<RunRecorder, "subscribe" | "recordLoopGuard">, governor: Governor, policy?: LoopPolicy, mode:LoopMode="enforced", interactions=false, supervisor?: (kind: LoopKind, calls: number) => string, transitions=false, pushback=false, battles=false, messageTruth=false, ineffectiveLoops=false, menuLoop=false, clockViews=false, closedDialogue=false,triggerScriptLoops=false,battleRefusals=false): LoopDetector {
   const detector = new LoopDetector((notice) => {
     recorder.recordLoopGuard({...notice,evidence:[...notice.evidence]});
     if (notice.phase === "stop") governor.abort("stuck");
-  }, policy, mode, interactions, supervisor, transitions, pushback, battles, messageTruth, ineffectiveLoops, menuLoop, clockViews, closedDialogue,triggerScriptLoops);
+  }, policy, mode, interactions, supervisor, transitions, pushback, battles, messageTruth, ineffectiveLoops, menuLoop, clockViews, closedDialogue,triggerScriptLoops,battleRefusals);
   recorder.subscribe((event) => { detector.observe(event); });
   return detector;
 }

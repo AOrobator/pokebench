@@ -143,11 +143,20 @@ export type ControlState = "running" | "pause_pending" | "paused" | "stop_pendin
 
 // Operator control as recorded by the agent (operator_control events).
 export class ControlView {
+  maxWallMs: number | null = null;
+  lastExtensionRequest: number | null = null;
   state: ControlState = "running";
   emulatorFrozen: boolean | null = null;
   readonly pauses: { startMs: number; endMs: number | null }[] = [];
 
   apply(event: Of<"operator_control">, ms: number): void {
+    if (event.action === "extend_30m" || event.action === "extend_60m") {
+      if (event.status === "applied" && event.max_wall_ms !== undefined) {
+        this.maxWallMs = event.max_wall_ms;
+        this.lastExtensionRequest = event.request;
+      }
+      return;
+    }
     if (event.status === "ignored" || event.status === "failed") return;
     if (event.status === "pending") {
       this.state = event.action === "pause" ? "pause_pending" : "stop_pending";

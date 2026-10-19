@@ -72,5 +72,17 @@
   <div class="rs-all" data-slot="phone-picker"><h4>ALL RUNS</h4></div>
 </section>
 </div>
+<dialog class="extend-dialog" data-ui="extend-dialog" aria-labelledby="extend-title">
+  <div class="emer-name">POKéNAV · RUN CONTROL</div>
+  <h2 id="extend-title">EXTEND THIS RUN?</h2>
+  <p class="extend-id" data-ui="extend-run"></p>
+  <p>Add active run time. Pauses still stop the clock.</p>
+  <label>Additional time <select data-ui="extend-duration"><option value="extend_30m">30 minutes</option><option value="extend_60m">1 hour</option></select></label>
+  <p data-ui="extend-preview"></p>
+  <p>The current run keeps its GPU until it finishes. The original evaluation horizon and turn limit stay recorded.</p>
+  <p role="status" aria-live="polite" data-ui="extend-status"></p>
+  <div class="extend-actions"><button type="button" data-ui="extend-cancel">Cancel</button><button type="button" data-ui="extend-confirm">Extend run</button></div>
+  <span class="emer-arrow" aria-hidden="true">▼</span>
+</dialog>
 </body>
 </html>

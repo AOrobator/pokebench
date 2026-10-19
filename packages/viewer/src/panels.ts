@@ -105,7 +105,8 @@ export function budgets(view: RunView, nowMs: number): string {
       ? budgetMissing("RETRIES", '<span class="nodata">no retries yet</span>')
       : budgetBar("RETRIES", view.retry.attempt / view.retry.limit, `${String(view.retry.attempt)} / ${String(view.retry.limit)}`),
   );
-  const { max_turns, max_tokens, max_wall_ms } = start.budgets;
+  const { max_turns, max_tokens } = start.budgets;
+  const max_wall_ms = view.control.maxWallMs ?? start.budgets.max_wall_ms;
   if (max_turns !== undefined) rows.push(budgetBar("TURNS", view.turn / max_turns, `${String(view.turn)} / ${num(max_turns)}`));
   if (max_tokens !== undefined) {
     const used = view.tokens.input + view.tokens.output;
@@ -205,8 +206,12 @@ function chip(button: string): string {
   return `<span class="chipb">${ARROW[button] ?? ""}${esc(button)}</span>`;
 }
 
-const CONTROL_ICON = { pause: "⏸", resume: "▶", stop: "■", cancel_stop: "↺", abort: "✖" } as const;
+const CONTROL_ICON = { pause: "⏸", resume: "▶", stop: "■", cancel_stop: "↺", abort: "✖", extend_30m: "＋", extend_60m: "＋" } as const;
 function controlRow(event: Extract<RunEvent, { type: "operator_control" }>): string {
+  if (event.action === "extend_30m" || event.action === "extend_60m") {
+    const limits = event.previous_max_wall_ms !== undefined && event.max_wall_ms !== undefined ? ` · ${hms(event.previous_max_wall_ms / 1000)} → ${hms(event.max_wall_ms / 1000)}` : "";
+    return `＋ Extend ${event.action === "extend_30m" ? "30 minutes" : "1 hour"} · ${esc(event.status)}${limits} · original evaluation horizon unchanged · request ${String(event.request)}`;
+  }
   const name = event.action.replace("_", " ");
   const status = event.status === "pending" ? "requested" : event.status === "failed" ? "FAILED" : event.status;
   const detail = event.status === "failed" ? " · emulator still frozen; the run stays paused" : event.status === "pending"
@@ -468,6 +473,7 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "jit-guide-reuse-v1":"jit-guide-reuse-v1.html",
  "scripted-place-guidance-v1":"scripted-place-guidance-v1.html",
  "trigger-script-loop-v1":"trigger-script-loop-v1.html",
+ "battle-refusal-loop-v1":"battle-refusal-loop-v1.html",
  "battle-effective-damage-v1":"battle-effective-damage-v1.html",
  "deterministic-warp-navigation-v1":"deterministic-warp-navigation-v1.html",
 });
@@ -496,6 +502,6 @@ export function harnessConfig(view:RunView,registry:readonly FeatureInfo[]=[]):s
  const box=(title:string,rows:readonly(readonly[string,string])[])=>`<section class="config-summary-card"><h4>${title}</h4>${kv(rows)}</section>`;
  return `<div class="config-overview"><span class="config-readonly">◈ READ ONLY</span><p>Recorded settings for <strong>${esc(start.run)}</strong></p><div class="config-counts"><span>${String(cards.filter(c=>c.state==="on").length)} ON</span><span>${String(cards.filter(c=>c.state==="off").length)} OFF</span><span>${String(cards.filter(c=>c.state==="unknown").length)} NOT RECORDED</span>${cards.some(c=>c.state==="conflict")?'<span>CONFLICT · inspect raw configuration</span>':""}</div></div><div class="config-summary-grid">`+
  box("MODEL",[["MODEL",esc(start.model.id)],["CONTEXT WINDOW",num(start.model.context_window)],["VISION",start.model.vision?"supported":"not supported"],["THINKING",esc(start.sampling.thinking_level)],["OUTPUT TOKEN CAP",num(start.sampling.max_tokens)]])+
- box("BUDGET & GOAL",[["TIME CAP",start.budgets.max_wall_ms===undefined?missing:hms(start.budgets.max_wall_ms/1000)],["TURN CAP",start.budgets.max_turns===undefined?missing:String(start.budgets.max_turns)],["FAILURE LIMIT",evaluation===undefined?missing:String(evaluation.failure_limit)],["STOP AT MILESTONE",evaluation===undefined?missing:evaluation.target===null?"NONE · play to budget":esc(evaluation.target)]])+
+ box("BUDGET & GOAL",[["TIME CAP",(view.control.maxWallMs??start.budgets.max_wall_ms)===undefined?missing:hms((view.control.maxWallMs??start.budgets.max_wall_ms??0)/1000)],...(view.control.maxWallMs===null?[]:[["ORIGINAL EVALUATION CAP",hms((start.budgets.max_wall_ms??0)/1000)]] as [string,string][]),["TURN CAP",start.budgets.max_turns===undefined?missing:String(start.budgets.max_turns)],["FAILURE LIMIT",evaluation===undefined?missing:String(evaluation.failure_limit)],["STOP AT MILESTONE",evaluation===undefined?missing:evaluation.target===null?"NONE · play to budget":esc(evaluation.target)]])+
  box("BUILD & PRESET",[["PRESET",esc(evaluation?.preset_id??missing)],["HARNESS SOURCE",esc(start.harness.commit)+(start.harness.dirty?" · dirty":" · clean")],["START STATE",esc(start.start_state.kind)],["VENDOR PIN",esc(start.vendor_pin)],["PI VERSION",esc(start.pi_version)]])+`</div><p class="config-provenance">Statuses come from this run’s recorded header. Missing IDs stay NOT RECORDED, not guessed OFF. Descriptions come from the viewer’s feature catalog and may be newer than a historical run. This page never edits next-run settings.</p>${sections}<section class="config-summary-card"><h4>AVAILABLE TOOLS</h4><p class="config-provenance">Tools listed by this run’s recorded header. Reference documentation reflects this viewer build; names are not recorded with historical tool schemas. Outputs and limits depend on the run’s enabled features.</p><div class="config-tool-grid">${start.tools.map(name=>toolReference(name,start.harness_features.includes("automatic-running-v1"))).join("")||"none recorded"}</div></section><p class="config-provenance">Model weight digest, endpoint, temperature and other serving defaults: not recorded in this run header.</p><details class="config-raw"><summary>RECORDED SYSTEM PROMPT</summary><pre>${esc(start.system_prompt)}</pre></details><details class="config-raw"><summary>RAW RUN CONFIGURATION</summary>${jsonHtml(start)}</details>`;
 }

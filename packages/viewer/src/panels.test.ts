@@ -1248,3 +1248,13 @@ it("links stable JIT v2's native feature card to its tracked guide and receipt c
  const html=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)),"utf8");
  expect(html).toContain("projected_guidance");expect(html).toContain("canonical_history_json");
 });
+
+it("links the semantic battle refusal switch to its tracked mechanism",()=>{
+ const id="battle-refusal-loop-v1";
+ expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
+ const log=new Log();log.add(0,{...START,harness_features:["ram-state-v1",id]});
+ const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
+ expect(doc.querySelector(`[data-feature="${id}"] a`)?.getAttribute("href")).toBe(`/explainers/${id}.html`);
+ const html=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)),"utf8");
+ for(const text of [id,"no button press","paired native battle","Default OFF"])expect(html).toContain(text);
+});

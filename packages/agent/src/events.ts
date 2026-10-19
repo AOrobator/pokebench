@@ -1,4 +1,5 @@
 import { Type, type Static, type TSchema } from "typebox";
+import { Compile } from "typebox/compile";
 import { Value } from "typebox/value";
 import { ObjectiveSchema, makeAttemptSchema } from "./objective-schema.js";
 
@@ -52,6 +53,7 @@ const Args = Type.Record(Type.String(), Type.Unknown());
 const Evaluation = Type.Object({preset_id:Type.String({minLength:1}),target:Type.Union([Type.String({minLength:1}),Type.Null()]),failure_limit:Type.Integer({minimum:1}),reply_failures_end_run:Type.Optional(Type.Boolean()),flags:Type.Object({loopGuard:Type.Boolean(),activeUi:Type.Boolean(),interfaceDocs:Type.Boolean(),objectives:Type.Boolean()},closed),features:Type.Optional(Type.Record(Type.String({pattern:"^[a-z0-9-]+$"}),Type.Boolean())),experiment:Type.Optional(Type.Object({id:Type.String({minLength:1,maxLength:100}),arm:Type.String({minLength:1,maxLength:60}),trial:Type.Integer({minimum:1}),of:Type.Integer({minimum:1})},closed))},closed);
 const TargetProof = Type.Object({name:Type.String({minLength:1}),milestone_seq:NonNegativeInt,state_evidence:Type.Array(NonNegativeInt,{minItems:1,maxItems:3})},closed);
 const RunStart = event("run_start", {
+  extend_run: Type.Optional(Type.Literal(true)),
   rom_sha1: Type.Optional(Sha1),
   controller: Type.Optional(Type.Object({ kind: Type.Literal("human"), name: Type.String({minLength:1}), rom_sha1: Sha1, input_policy: Type.Literal("frame-held-v1"), sample_ms: Type.Literal(100), screenshot_ms: Type.Optional(Type.Literal(500)), nominal_fps: Type.Literal(59.7275) }, closed)),
   evaluation:Type.Optional(Evaluation),
@@ -592,11 +594,13 @@ const RunEnd = event("run_end", {
 });
 
 // Operator run control from runs/<id>/control.jsonl (see run-control.ts).
-export const CONTROL_ACTIONS = ["pause", "resume", "stop", "cancel_stop", "abort"] as const;
+export const CONTROL_ACTIONS = ["pause", "resume", "stop", "cancel_stop", "abort", "extend_30m", "extend_60m"] as const;
 const OperatorControl = event("operator_control", {
   action: Type.Enum(CONTROL_ACTIONS),
   status: Type.Enum(["pending", "applied", "ignored", "failed"] as const),
   request: Type.Integer({ minimum: 1 }),
+  previous_max_wall_ms: Type.Optional(NonNegativeInt),
+  max_wall_ms: Type.Optional(NonNegativeInt),
   paused_ms: Type.Optional(NonNegativeInt),
   emulator_frozen: Type.Optional(Type.Boolean()),
 });
@@ -661,6 +665,7 @@ function addMembers(schema: unknown): void {
   if (typeof type === "string") MEMBERS.set(type, [...(MEMBERS.get(type) ?? []), schema]);
 }
 addMembers(RunEventSchema);
+const VALIDATORS = new Map<string, ReturnType<typeof Compile>>();
 
 const unescapePointer = (segment: string): string => segment.replace(/~1/g, "/").replace(/~0/g, "~");
 function describeError(error: { instancePath: string; schemaPath: string; message: string }): string {
@@ -672,14 +677,22 @@ function describeError(error: { instancePath: string; schemaPath: string; messag
 }
 
 export function eventProblem(value: unknown): string | null {
-  if (Value.Check(RunEventSchema, value)) return null;
   if (!isRecord(value)) return "invalid event: not a JSON object";
   if (typeof value.type !== "string") return "invalid event: no string type field";
-  const members = MEMBERS.get(value.type);
-  if (members === undefined) return `unknown event type ${JSON.stringify(value.type)}: this build of the schema does not know it`;
+  const eventType = value.type, members = MEMBERS.get(eventType);
+  if (members === undefined) return `unknown event type ${JSON.stringify(eventType)}: this build of the schema does not know it`;
+  // Dispatch by the event's discriminator and compile that stable member schema only when first
+  // observed. This avoids interpreting the entire large union for every valid log line without
+  // making each process compile and retain one monolithic union validator.
+  let validator = VALIDATORS.get(eventType);
+  if (validator === undefined) {
+    validator = Compile(members.length === 1 ? members[0] as TSchema : Type.Union(members));
+    VALIDATORS.set(eventType, validator);
+  }
+  if (validator.Check(value)) return null;
   // A type with several members (state and legacy state, tool_call) is judged by the closest one.
   const [first] = members.map(member => [...Value.Errors(member, value)]).reduce((best, errors) => (errors.length < best.length ? errors : best));
-  return `invalid ${value.type} event at ${first === undefined ? "/: does not match the schema" : describeError(first)}`;
+  return `invalid ${eventType} event at ${first === undefined ? "/: does not match the schema" : describeError(first)}`;
 }
 
 const EnvelopeSchema = Type.Object({ ...Envelope, type: Type.String({ minLength: 1 }) });

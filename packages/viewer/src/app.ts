@@ -25,15 +25,31 @@ export interface StreamLike {
   close(): void;
 }
 
+export interface FrameStreamLike {
+  binaryType: string;
+  addEventListener(type: string, listener: (event: { data?: unknown; code?: number; reason?: string }) => void): void;
+  close(): void;
+}
+
 export interface AppDeps {
   fetchJson(url: string): Promise<unknown>;
   sendJson(method: "POST" | "PUT", url: string, body: unknown): Promise<unknown>;
   openStream(url: string): StreamLike;
+  openFrameStream?(url: string): FrameStreamLike;
+  frameUrl?(data: unknown): string;
+  stageFrame?(url: string, ready: () => void, failed: () => void): void;
+  revokeFrameUrl?(url: string): void;
   now(): number;
   readonly hash: string;
   // The trainer cards' game font: the glyph sheet's pixels, and putting painted text on a canvas.
   loadGlyphSheet?(url: string): Promise<GlyphSheet | null>;
   drawGlyphs?(canvas: HTMLCanvasElement, pixels: GlyphPixels): void;
+}
+
+export function frameSocketUrl(path: string, pageHref: string): string {
+  const target = new URL(path, pageHref);
+  target.protocol = target.protocol === "https:" ? "wss:" : "ws:";
+  return target.href;
 }
 
 export type Mode = "loading" | "live" | "replay" | "idle";
@@ -50,7 +66,6 @@ interface RunChoice {
   readonly live?: boolean;
 }
 
-const LIVE_SCREEN_MS = 500;
 const TRACE_TURNS = 50;
 const SIDE_TURNS = 30;
 
@@ -122,7 +137,6 @@ function reconcile(box: HTMLElement, groups: readonly TraceGroup[], tail: string
 
 // Unended runs whose game server no longer answers are not live.
 const isLive = (run: RunChoice): boolean => run.ended === false && run.problem === null && run.live !== false;
-const startedAt = (iso: string): string => new Date(iso).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 
 const LIVE_RETRY_MS = 5_000;
 export const RUN_LIST_MS = 3_000;
@@ -137,6 +151,13 @@ function runChoices(value: unknown): RunChoice[] {
     const liveB = b.ended === false && b.problem === null && b.live !== false;
     return Number(liveB) - Number(liveA) || (Date.parse(b.started ?? "") || 0) - (Date.parse(a.started ?? "") || 0);
   });
+}
+
+function preferredRun(runs: readonly RunChoice[], hash: string): RunChoice | undefined {
+  const wanted = /^#(?:run|replay)=(.+)$/.exec(hash)?.[1];
+  const requested = wanted === undefined ? undefined : runs.find((run) => run.id === decodeURIComponent(wanted));
+  if (requested !== undefined && (hash.startsWith("#replay=") || isLive(requested))) return requested;
+  return runs.find(isLive) ?? requested ?? runs[0];
 }
 
 function recordedHead(value: unknown, runId: string): readonly RunEvent[] {
@@ -186,6 +207,7 @@ export class App {
   private artLoad: Promise<void> | null = null;
   private workbench: WorkbenchData | null = null;
   private workbenchLoad: Promise<void> | null = null;
+  private workbenchSelection: string | null = null;
   // The cards replace the live-run buttons; the run list refreshes every few seconds and must not bring them back.
   private readonly cardHtml = new WeakMap<Element, string>();
   // Set when the newest run is opened; a later refresh may list a newer one first.
@@ -214,11 +236,20 @@ export class App {
   private readonly heldAtTop = new Set<HTMLElement>();
   private readonly autoScroll = new WeakMap<HTMLElement, number>();
   private rows: RowState = { open: new Set(), folded: new Set(), selected: null };
-  private screenTick = 0;
-  private sinceScreen = 0;
+  private frameStream: FrameStreamLike | null = null;
+  private frameUrl: string | null = null;
+  private stagedFrameUrl: string | null = null;
+  private queuedFrameUrl: string | null = null;
+  private readonly retiredFrameUrls: string[] = [];
+  private frameConnecting = false;
   private liveFailedAt: number | null = null;
+  private frameReceived = 0;
+  private framePresented = 0;
+  private frameLoadBound = false;
   private readonly html = new Map<HTMLElement, string>();
   // Hold-to-confirm abort: when X (or the button) went down; null when released.
+  private extensionPending: { run: string; action: "extend_30m" | "extend_60m"; afterSeq: number; request: number | null } | null = null;
+  private extensionMessage = "";
   private holdStart: number | null = null;
   private overlayClosed = false;
   private wasLive = false;
@@ -252,6 +283,113 @@ export class App {
     return this.mode === "live" || (this.mode === "loading" && this.runs.some((run) => run.id === this.runId && isLive(run)));
   }
 
+  private closeFrameStream(): void {
+    const stream = this.frameStream;
+    this.frameStream = null;
+    this.frameConnecting = false;
+    stream?.close();
+    if (this.frameUrl !== null) {
+      this.deps.revokeFrameUrl?.(this.frameUrl);
+      this.frameUrl = null;
+    }
+    if (this.stagedFrameUrl !== null) this.deps.revokeFrameUrl?.(this.stagedFrameUrl);
+    if (this.queuedFrameUrl !== null) this.deps.revokeFrameUrl?.(this.queuedFrameUrl);
+    this.stagedFrameUrl = null;
+    this.queuedFrameUrl = null;
+    for (const url of this.retiredFrameUrls.splice(0)) this.deps.revokeFrameUrl?.(url);
+  }
+
+  private promoteFrame(url: string): void {
+    const previous = this.frameUrl;
+    this.frameUrl = url;
+    this.liveFailedAt = null;
+    this.renderScreen(this.deps.now());
+    // SVG image loading is asynchronous. Keep a short grace window so a
+    // 60 FPS replacement cannot revoke the URL the browser is still decoding.
+    if (previous !== null) this.retiredFrameUrls.push(previous);
+    if (this.retiredFrameUrls.length > 8) this.deps.revokeFrameUrl?.(this.retiredFrameUrls.shift() as string);
+  }
+
+  private stageFrame(url: string): void {
+    if (this.deps.stageFrame === undefined) { this.promoteFrame(url); return; }
+    if (this.stagedFrameUrl !== null) {
+      if (this.queuedFrameUrl !== null) this.deps.revokeFrameUrl?.(this.queuedFrameUrl);
+      this.queuedFrameUrl = url;
+      return;
+    }
+    this.stagedFrameUrl = url;
+    const complete = (valid: boolean): void => {
+      if (this.stagedFrameUrl !== url) return;
+      this.stagedFrameUrl = null;
+      if (valid && this.frameStream !== null) this.promoteFrame(url);
+      else this.deps.revokeFrameUrl?.(url);
+      const queued = this.queuedFrameUrl;
+      this.queuedFrameUrl = null;
+      if (queued !== null && this.frameStream !== null) this.stageFrame(queued);
+      else if (queued !== null) this.deps.revokeFrameUrl?.(queued);
+    };
+    this.deps.stageFrame(url, () => { complete(true); }, () => { complete(false); });
+  }
+
+  private failFrameStream(stream: FrameStreamLike): void {
+    if (this.frameStream !== stream) return;
+    this.liveFailedAt = this.deps.now();
+    this.closeFrameStream();
+    this.renderScreen(this.deps.now());
+  }
+
+  private ensureFrameStream(nowMs: number): void {
+    if (!this.liveScreen || this.runId === null || this.deps.openFrameStream === undefined) {
+      if (!this.liveScreen) this.closeFrameStream();
+      return;
+    }
+    if (this.frameStream !== null || (this.liveFailedAt !== null && nowMs - this.liveFailedAt < LIVE_RETRY_MS)) return;
+    const stream = this.deps.openFrameStream(`/api/runs/${encodeURIComponent(this.runId)}/frames`);
+    stream.binaryType = "arraybuffer";
+    this.frameStream = stream;
+    this.frameConnecting = true;
+    this.frameReceived = 0;
+    this.framePresented = 0;
+    const screen = this.ui("screen");
+    if (!this.frameLoadBound) {
+      screen.addEventListener("load", () => {
+        if (this.frameUrl === null || screen.getAttribute("href") !== this.frameUrl) return;
+        this.framePresented += 1;
+        screen.dataset.liveFramesPresented = String(this.framePresented);
+      });
+      this.frameLoadBound = true;
+    }
+    screen.dataset.liveFramesReceived = "0";
+    screen.dataset.liveFramesPresented = "0";
+    screen.dataset.liveFramesStartedAt = String(nowMs);
+    stream.addEventListener("open", () => {
+      if (this.frameStream !== stream) return;
+      this.frameConnecting = false;
+      this.liveFailedAt = null;
+      this.renderScreen(this.deps.now());
+    });
+    stream.addEventListener("message", (event) => {
+      if (this.frameStream !== stream || this.deps.frameUrl === undefined) return;
+      let next: string;
+      try { next = this.deps.frameUrl(event.data); }
+      catch { this.failFrameStream(stream); return; }
+      this.frameReceived += 1;
+      screen.dataset.liveFramesReceived = String(this.frameReceived);
+      this.stageFrame(next);
+    });
+    stream.addEventListener("error", () => {
+      if (this.frameStream !== stream) return;
+      this.problem("live frame stream error");
+      this.failFrameStream(stream);
+    });
+    stream.addEventListener("close", (event) => {
+      if (this.frameStream !== stream) return;
+      const detail = event.code === undefined ? "" : ` (${String(event.code)}${event.reason === undefined || event.reason === "" ? "" : `: ${event.reason}`})`;
+      this.problem(`live frame stream closed${detail}`);
+      this.failFrameStream(stream);
+    });
+  }
+
   async control(action: ControlAction): Promise<void> {
     if (this.runId === null || !availableActions(this.view, this.live).has(action)) return;
     try {
@@ -259,6 +397,66 @@ export class App {
     } catch (error) {
       this.problem(`${action.replace("_", " ")}: ${String(error)}`);
     }
+  }
+
+  private extensionDialog(): HTMLDialogElement { return this.ui("extend-dialog") as HTMLDialogElement; }
+
+  private openExtension(): void {
+    if (!availableActions(this.view, this.live).has("extend_30m")) return;
+    this.extensionMessage = "";
+    this.updateExtension();
+    this.extensionDialog().showModal();
+    this.ui("extend-duration").focus();
+  }
+
+  private closeExtension(): void {
+    this.extensionDialog().close();
+    this.doc.querySelector<HTMLElement>("[data-extend-open]")?.focus({ preventScroll: true });
+  }
+
+  private updateExtension(): void {
+    const pending = this.extensionPending;
+    if (pending !== null && pending.run === this.runId) {
+      const ack = this.view.events.find(e => e.type === "operator_control" && e.seq > pending.afterSeq && e.action === pending.action && pending.request !== null && e.request === pending.request);
+      if (ack?.type === "operator_control") {
+        this.extensionPending = null;
+        this.extensionMessage = ack.status === "applied" ? "Extension applied." : "Extension was not applied. The run may have reached its limit or be stopping.";
+      } else if (this.view.end !== null) {
+        this.extensionPending = null;
+        this.extensionMessage = "The run ended before an extension was confirmed.";
+      }
+    }
+    const wall = this.view.control.maxWallMs ?? this.view.start?.budgets.max_wall_ms ?? 0;
+    const addition = (this.ui("extend-duration") as HTMLSelectElement).value === "extend_60m" ? 3_600_000 : 1_800_000;
+    this.ui("extend-run").textContent = this.runId;
+    this.ui("extend-preview").textContent = `Time limit: ${hms(wall / 1000)} → ${hms((wall + addition) / 1000)} · remaining after extension: ${hms(Math.max(0, (wall + addition) / 1000 - runSeconds(this.view, this.deps.now())))}`;
+    const waiting = this.extensionPending !== null;
+    const applied = this.extensionMessage === "Extension applied.";
+    this.ui("extend-confirm").hidden = applied;
+    (this.ui("extend-confirm") as HTMLButtonElement).disabled = waiting || !availableActions(this.view, this.live).has("extend_30m");
+    (this.ui("extend-duration") as HTMLSelectElement).disabled = waiting || applied;
+    this.ui("extend-status").textContent = this.extensionMessage || (waiting ? "Waiting for the running agent to confirm…" : "");
+    if (applied) this.ui("extend-preview").textContent = `Time limit: ${hms(wall / 1000)} · remaining: ${hms(Math.max(0, wall / 1000 - runSeconds(this.view, this.deps.now())))}`;
+    this.ui("extend-cancel").textContent = waiting || this.extensionMessage !== "" ? "Close" : "Cancel";
+  }
+
+  private async extendRun(): Promise<void> {
+    if (this.runId === null || this.extensionPending !== null || !availableActions(this.view, this.live).has("extend_30m")) return;
+    const value = (this.ui("extend-duration") as HTMLSelectElement).value;
+    const pending = { run: this.runId, action: value === "extend_60m" ? "extend_60m" as const : "extend_30m" as const, afterSeq: this.view.events.at(-1)?.seq ?? -1, request: null as number | null };
+    this.extensionPending = pending;
+    this.extensionMessage = "";
+    this.updateExtension();
+    try {
+      const reply = await this.deps.sendJson("POST", `/api/runs/${encodeURIComponent(pending.run)}/control`, { action: pending.action });
+      if (this.extensionPending !== pending || this.runId !== pending.run) return;
+      if (typeof reply === "object" && reply !== null && "request" in reply && typeof reply.request === "number") pending.request = reply.request;
+    } catch (error) {
+      if (this.extensionPending !== pending || this.runId !== pending.run) return;
+      // A lost HTTP response may have enqueued the request. Never retry it automatically.
+      this.extensionMessage = `Request could not be confirmed: ${String(error)}. Check Activity History and reload before trying another extension.`;
+    }
+    this.updateExtension();
   }
 
   private holdFraction(): number | null {
@@ -306,13 +504,30 @@ export class App {
   }
 
   private showSheet(open: boolean, moveFocus = true): void {
-    const sheet = this.ui("run-sheet");
-    if (sheet.hidden === !open) return;
-    sheet.hidden = !open;
-    this.ui("run-sheet-shade").hidden = !open;
+    const sheet = this.ui("run-sheet"), shade = this.ui("run-sheet-shade");
+    if (sheet.hidden && !open) return;
+    if (open) {
+      sheet.removeAttribute("data-closing");
+      shade.removeAttribute("data-closing");
+      sheet.hidden = shade.hidden = false;
+      sheet.inert = false;
+    } else {
+      sheet.dataset.closing = shade.dataset.closing = "";
+      sheet.inert = true;
+      // Reduced motion and non-phone layouts have no exit animation to await.
+      if (!this.doc.documentElement.hasAttribute("data-phone") || this.doc.defaultView?.getComputedStyle(sheet).animationName !== "rs-slide-out") this.hideSheet();
+    }
     const head = this.ui("run-head");
     head.setAttribute("aria-expanded", String(open));
     if (moveFocus) (open ? this.ui("run-sheet-close") : head).focus();
+  }
+
+  private hideSheet(): void {
+    for (const name of ["run-sheet", "run-sheet-shade"]) {
+      const element = this.ui(name);
+      element.hidden = true;
+      element.removeAttribute("data-closing");
+    }
   }
 
   private setupPhoneHeader(): void {
@@ -331,6 +546,11 @@ export class App {
     this.ui("run-head").addEventListener("click", () => { this.showSheet(true); });
     this.ui("run-sheet-shade").addEventListener("click", () => { this.showSheet(false); });
     this.ui("run-sheet-close").addEventListener("click", () => { this.showSheet(false); });
+    const finishSheetAnimation = (event: AnimationEvent): void => {
+      if (event.target === event.currentTarget && event.animationName === "rs-slide-out" && this.ui("run-sheet").hasAttribute("data-closing")) this.hideSheet();
+    };
+    this.ui("run-sheet").addEventListener("animationend", finishSheetAnimation);
+    this.ui("run-sheet").addEventListener("animationcancel", finishSheetAnimation);
     this.ui("run-sheet").addEventListener("keydown", (event) => { if (event.key === "Escape") this.showSheet(false); });
     this.picker("run").addEventListener("change", () => { this.showSheet(false, false); });
     this.ui("run-cards").addEventListener("click", (event) => {
@@ -351,15 +571,13 @@ export class App {
     this.wire();
     void this.next.load();
     this.listRuns(runChoices(await this.deps.fetchJson("/api/runs")));
-    const wanted = /^#run=(.+)$/.exec(this.deps.hash)?.[1];
-    const fromHash = wanted === undefined ? undefined : this.runs.find((run) => run.id === decodeURIComponent(wanted));
-    const first = fromHash ?? this.runs[0];
+    const first = preferredRun(this.runs, this.deps.hash);
     if (first === undefined) {
       this.mode = "idle";
       this.render();
       return;
     }
-    this.select(first.id);
+    this.select(first.id, !this.deps.hash.startsWith("#replay="));
     void this.pollCards();
   }
 
@@ -369,9 +587,11 @@ export class App {
   }
 
   private loadWorkbench(): Promise<void> {
-    if (this.workbenchLoad !== null) return this.workbenchLoad;
-    const load = this.deps.fetchJson("/api/workbench")
-      .then((value) => { this.workbench = parseWorkbench(value); this.render(); })
+    const selected = this.runId;
+    if (this.workbenchLoad !== null) return this.workbenchSelection === selected ? this.workbenchLoad : this.workbenchLoad.then(() => this.loadWorkbench());
+    this.workbenchSelection = selected;
+    const load = this.deps.fetchJson(`/api/cards${selected === null ? "" : `?run=${encodeURIComponent(selected)}`}`)
+      .then((value) => { if (this.runId === selected) { this.workbench = parseWorkbench(value); this.render(); } })
       .catch(() => { /* keep the last snapshot; the comparisons page reports workbench problems */ })
       .finally(() => { if (this.workbenchLoad === load) this.workbenchLoad = null; });
     this.workbenchLoad = load;
@@ -394,18 +614,18 @@ export class App {
     const { art, workbench } = this;
     if (art === null || workbench === null) return [];
     const now = this.deps.now();
-    // Preserve the API's stable live-run order. A selected replay is a fallback card,
-    // never an extra card mixed into an active live-run row.
+    const replay = this.runs.find((run) => run.id === this.runId && run.ended === true);
+    const recordedReplay = replay === undefined ? undefined : workbench.runs.find((run) => run.id === replay.id);
+    if (recordedReplay !== undefined) return [cardInputFor(recordedReplay, workbench.at, now, "replay", workbench.runs, art.art)];
+    // An explicitly opened replay is separate from the default live-run row.
     const live = this.runs.filter(isLive);
-    if (live.length > 0) return live.flatMap((run): CardInput[] => {
+    const liveCards = live.flatMap((run): CardInput[] => {
       const recorded = workbench.runs.find((r) => r.id === run.id);
       if (recorded === undefined || (recorded.status !== "live" && recorded.status !== "paused")) return [];
       const status: CardInput["status"] = run.id === this.runId ? "watching" : recorded.status === "paused" ? "paused" : "live";
       return [cardInputFor(recorded, workbench.at, now, status, workbench.runs, art.art)];
     });
-    const replay = this.runs.find((run) => run.id === this.runId && run.ended === true);
-    const recorded = replay === undefined ? undefined : workbench.runs.find((run) => run.id === replay.id);
-    return recorded === undefined ? [] : [cardInputFor(recorded, workbench.at, now, "replay", workbench.runs, art.art)];
+    return liveCards;
   }
 
   private listRuns(runs: RunChoice[]): void {
@@ -429,16 +649,20 @@ export class App {
     const newest = this.runs[0];
     if (newest === undefined || newest.id === this.runId) return;
     if (this.runId === null) {
-      const wanted = /^#run=(.+)$/.exec(this.deps.hash)?.[1];
-      this.select(runs.find((run) => wanted !== undefined && run.id === decodeURIComponent(wanted))?.id ?? newest.id);
+      this.select((preferredRun(runs, this.deps.hash) ?? newest).id, !this.deps.hash.startsWith("#replay="));
     } else if (this.following && this.view.end !== null) {
-      this.select(newest.id);
+      this.select(newest.id, true);
     }
   }
 
   private wire(): void {
     const controls = this.ui("run-controls");
+    this.ui("extend-duration").addEventListener("change", () => { this.updateExtension(); });
+    this.ui("extend-confirm").addEventListener("click", () => { void this.extendRun(); });
+    this.ui("extend-cancel").addEventListener("click", () => { this.closeExtension(); });
+    this.extensionDialog().addEventListener("cancel", (event) => { event.preventDefault(); this.closeExtension(); });
     controls.addEventListener("click", (event) => {
+      if ((event.target as HTMLElement).closest("[data-extend-open]") !== null) { this.openExtension(); return; }
       if ((event.target as HTMLElement).closest("[data-dismiss-overlay]") !== null) {
         this.overlayClosed = true;
         this.render();
@@ -560,9 +784,6 @@ export class App {
     this.picker("baseline").addEventListener("change", (event) => {
       void this.pickBaseline((event.target as HTMLSelectElement).value);
     });
-    this.ui("screen").addEventListener("error", () => {
-      if (this.liveScreen) this.liveFailedAt = this.deps.now();
-    });
   }
 
   private filterFeatures(): void {
@@ -660,11 +881,15 @@ export class App {
     this.recordedThinkingTrace = trace;
   }
 
-  select(runId: string): void {
+  select(runId: string, automatic = false): void {
+    this.extensionDialog().close();
+    this.extensionPending = null;
+    this.extensionMessage = "";
     this.stream?.close();
+    this.closeFrameStream();
     this.runId = runId;
     this.comparisonRequest += 1; this.comparisonsRun = null;
-    this.following = this.runs[0]?.id === runId;
+    this.following = automatic || (this.runs[0]?.id === runId && this.runs[0].ended !== true);
     this.view = new RunView();
     this.shown = this.view;
     this.clock = null;
@@ -689,11 +914,13 @@ export class App {
     this.picker("run").value = runId;
     // References are eligible only after the owned server validates their logs.
     this.picker("baseline").replaceChildren(option(this.doc, "", "none"));
-    this.doc.location.hash = `run=${encodeURIComponent(runId)}`;
+    this.doc.location.hash = `${!automatic && this.runs.find((run) => run.id === runId)?.ended === true ? "replay" : "run"}=${encodeURIComponent(runId)}`;
     const comparisons = this.doc.querySelector<HTMLAnchorElement>('[data-ui="comparisons-link"]');
     if (comparisons !== null) comparisons.href = `/comparisons?from=${encodeURIComponent(runId)}`;
     const stream = this.deps.openStream(`/api/runs/${encodeURIComponent(runId)}/events`);
     this.stream = stream;
+    this.ensureFrameStream(this.deps.now());
+    void this.pollCards();
     void this.loadRecordedThinking(runId);
     stream.addEventListener("ev", (message) => {
       if (this.stream !== stream) return;
@@ -720,6 +947,7 @@ export class App {
     stream.addEventListener("done", () => {
       stream.close();
       if (this.stream !== stream) return;
+      this.closeFrameStream();
       if (this.mode !== "replay") this.startReplay(true);
       this.render();
     });
@@ -776,11 +1004,7 @@ export class App {
       this.holdStart = null;
       void this.control("abort");
     }
-    this.sinceScreen += realMs;
-    if (this.sinceScreen >= LIVE_SCREEN_MS) {
-      this.sinceScreen = 0;
-      this.screenTick += 1;
-    }
+    this.ensureFrameStream(this.deps.now());
     this.render();
   }
 
@@ -912,8 +1136,8 @@ export class App {
     let note = recorded === "" ? "no frame yet" : "recorded frame";
     if (this.liveScreen) {
       const failed = this.liveFailedAt !== null && nowMs - this.liveFailedAt < LIVE_RETRY_MS;
-      href = failed ? recorded : `/api/runs/${id}/screen?n=${String(this.screenTick)}`;
-      note = failed ? "live screen unavailable · last frame" : "live";
+      href = this.frameUrl ?? recorded;
+      note = this.frameUrl !== null ? "live" : failed ? "live stream unavailable · last frame" : this.frameConnecting ? "live stream connecting · last frame" : "live stream unavailable · last frame";
     }
     if (screen.getAttribute("href") !== href) screen.setAttribute("href", href);
     this.ui("screen-note").textContent = note;
@@ -941,6 +1165,7 @@ export class App {
       }
     }
     this.setHtml("stats", sideStats(view, nowMs));
+    if (this.extensionDialog().open || this.extensionPending !== null) this.updateExtension();
     const recordedSplits = this.mode === "loading" ? this.recordedSplits() : undefined;
     const splitView = this.mode === "loading" ? view : this.view;
     this.setHtml("split-strip", splitStrip(splitView, recordedSplits));
@@ -988,18 +1213,22 @@ export class App {
     play.disabled = clock === null;
     scrub.disabled = clock === null;
     play.textContent = clock?.playing === true ? "❚❚" : "▶";
-    const cap = view.start?.budgets.max_wall_ms;
+    const cap = view.control.maxWallMs ?? view.start?.budgets.max_wall_ms;
     const time = clock !== null ? `${hms((clock.positionMs - clock.startMs) / 1000)} / ${hms((clock.endMs - clock.startMs) / 1000)}` : view.startMs === null ? "" : `${hms(runSeconds(view, nowMs))}${cap === undefined ? "" : ` / ${hms(cap / 1000)}`}`;
     const head = { view, runId: this.runId, label, running: live && view.control.state === "running", time, others: this.runs.filter((run) => isLive(run) && run.id !== this.runId) };
     this.setHtml("run-head", headHtml(head));
     // The time ticks every render; rebuilding the sheet for it would remount the WATCH buttons under the pointer.
     const cards = this.cardInputs(), art = this.art?.art ?? null;
-    const watched = cards.filter((c) => c.status === "watching" || c.status === "replay"), mini = art === null || cards.length === 0 ? null : [...watched, ...cards.filter((c) => c.status !== "watching" && c.status !== "replay")].map((c) => cardHtml(c, art, "mini")).join("");
-    this.setHtml("run-sheet-body", sheetHtml({ ...head, time: "" }, startedAt, mini === null ? null : { html: mini, watched: watched.length > 0 }));
+    const watched = cards.filter((c) => c.status === "watching" || c.status === "replay");
+    const sheetCardHtml = art === null || cards.length === 0 ? [] : [...watched, ...cards.filter((c) => c.status !== "watching" && c.status !== "replay")].map((c) => cardHtml(c, art, "wide"));
+    this.setHtml("run-sheet-body", sheetHtml());
+    const sheetBody = this.ui("run-sheet-body");
+    const sheetCards = sheetBody.querySelector(".rs-cards");
+    if (sheetCards !== null) syncCards(sheetCards, sheetCardHtml, this.cardHtml);
+    sheetBody.querySelector<HTMLElement>("[data-card-loading]")?.toggleAttribute("hidden", sheetCardHtml.length > 0);
     syncCards(this.ui("run-cards"), art === null ? [] : cards.map((c) => cardHtml(c, art, "wide")), this.cardHtml);
-    this.ui("run-cards").hidden = mini === null;
+    this.ui("run-cards").hidden = cards.length === 0;
     fillCards([this.ui("run-cards"), this.ui("run-sheet-body")], cards, this.art, (canvas, pixels) => { this.deps.drawGlyphs?.(canvas, pixels); });
-    for (const slot of this.ui("run-sheet-body").querySelectorAll(".rh-time")) slot.textContent = time;
     if (clock !== null) {
       scrub.value = String(Math.round(clock.fraction * 1000));
       this.ui("clock").textContent = `${hms((clock.positionMs - clock.startMs) / 1000)} / ${hms((clock.endMs - clock.startMs) / 1000)}`;
@@ -1017,9 +1246,12 @@ export async function mountApp(doc: Document, deps: AppDeps): Promise<App> {
 
 export interface BootWindow {
   readonly document: Document;
-  readonly location: { readonly hash: string };
+  readonly location: { readonly hash: string; readonly href: string };
   fetch(url: string, init?: RequestInit): Promise<Response>;
   readonly EventSource: new (url: string) => StreamLike;
+  readonly WebSocket: new (url: string) => FrameStreamLike;
+  readonly Blob: new (parts?: BlobPart[], options?: BlobPropertyBag) => Blob;
+  readonly URL: Pick<typeof URL, "createObjectURL" | "revokeObjectURL">;
   setInterval(handler: () => void, ms: number): unknown;
   readonly performance: { now(): number };
 }
@@ -1038,6 +1270,17 @@ export async function boot(win: BootWindow): Promise<App> {
       return reply;
     },
     openStream: (url) => new win.EventSource(url),
+    openFrameStream: (url) => new win.WebSocket(frameSocketUrl(url, win.location.href)),
+    frameUrl: (data) => {
+      if (!(data instanceof ArrayBuffer)) throw new Error("live frame was not binary");
+      return win.URL.createObjectURL(new win.Blob([data], { type: "image/png" }));
+    },
+    stageFrame: (url, ready, failed) => {
+      const image = win.document.createElement("img");
+      const finish = (done: () => void): void => { image.onload = null; image.onerror = null; done(); };
+      image.onload = () => { finish(ready); }; image.onerror = () => { finish(failed); }; image.src = url;
+    },
+    revokeFrameUrl: (url) => { win.URL.revokeObjectURL(url); },
     now: () => Date.now(),
     hash: win.location.hash,
     loadGlyphSheet: browserGlyphSheet(win.document),

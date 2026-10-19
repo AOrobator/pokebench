@@ -9,7 +9,7 @@
  "primaryMilestone": "RECEIVED_POKEDEX",
  "source": {
   "checkout": "main",
-  "commit": "2fcb544b351f966feee02ed7c8e6fd1b3af1ade6"
+  "commit": "16384decaabaf3099b74d102cbe73008a731d438"
  },
  "trialsPerArm": 8,
  "modelLane": "think-fast",
@@ -161,7 +161,8 @@
    "dialog-button-b-v1": true,
    "just-in-time-prompt-v1": false,
    "just-in-time-prompt-v2": false,
-   "jit-guide-reuse-v1": false
+   "jit-guide-reuse-v1": false,
+   "battle-refusal-loop-v1": true
   },
   "start": {
    "kind": "save_state",
@@ -169,5 +170,5 @@
    "sha1": "b3a6cc1c19836600a15febf41b8f8b19661ce5d4"
   }
  },
- "notes": "Operator decision (the operator via coordinator, 2026-10-16 ~2:55 PM New York): this switch goes in the BUNDLE ARM of bundle-v-control; this entry is the pending record the feature-switch skill requires, not a standalone experiment to queue. Incumbent = the bundle-v-control bundle cook arm (armPreset(bundle-v-control, cook, bundle): base features from control base frontier-incumbent-4caa plus the bundle switches on, MAIN_MENU save start b3a6cc1c, 120-minute cap (60 until the operator doubled the cook cap 2026-10-17 12:21 AM; budget doubled with it); low-hp-trainer-warning-v2 joined the bundle arm 2026-10-17, maxTurns 20000); the candidate flips only open-goal-prompt-v1. The queue runs boot starts only, so a measured comparison runs as the bundle arm or an external cohort, not from this entry. Activation: the prompt changes from the first request. Primary RECEIVED_POKEDEX: the recorded misplacement (4caa T273, 0875) comes after the rival battle, when the game sends the player back to Birch's lab. Pre-registered diagnostic (mechanism, not grading): turns whose assistant reasoning names Rustboro before any tool result or dialogue page did; scan in docs/worklogs/active/2026-10-16_open-goal-prompt.md. Grading reads native game flags only, never the prompt. source.commit is the branch commit d2613ced (the switch wiring and this entry as reviewed, apart from this pin); repinned to the merge SHA with `just experiment-pin` when it lands."
+ "notes": "October19 operator-authorized bundle update: refusal detection ON in this bundle incumbent; source pin includes its implementation. Pending only, no launch. Operator decision (the operator via coordinator, 2026-10-16 ~2:55 PM New York): this switch goes in the BUNDLE ARM of bundle-v-control; this entry is the pending record the feature-switch skill requires, not a standalone experiment to queue. Incumbent = the bundle-v-control bundle cook arm (armPreset(bundle-v-control, cook, bundle): base features from control base frontier-incumbent-4caa plus the bundle switches on, MAIN_MENU save start b3a6cc1c, 120-minute cap (60 until the operator doubled the cook cap 2026-10-17 12:21 AM; budget doubled with it); low-hp-trainer-warning-v2 joined the bundle arm 2026-10-17, maxTurns 20000); the candidate flips only open-goal-prompt-v1. The queue runs boot starts only, so a measured comparison runs as the bundle arm or an external cohort, not from this entry. Activation: the prompt changes from the first request. Primary RECEIVED_POKEDEX: the recorded misplacement (4caa T273, 0875) comes after the rival battle, when the game sends the player back to Birch's lab. Pre-registered diagnostic (mechanism, not grading): turns whose assistant reasoning names Rustboro before any tool result or dialogue page did; scan in docs/worklogs/active/2026-10-16_open-goal-prompt.md. Grading reads native game flags only, never the prompt. source.commit is the branch commit d2613ced (the switch wiring and this entry as reviewed, apart from this pin); repinned to the merge SHA with `just experiment-pin` when it lands."
 }

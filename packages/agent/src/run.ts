@@ -16,6 +16,7 @@ export function humanLeasePath(repoRoot: string, commonDir: string): string {
 }
 
 export interface RunPlan {
+  readonly extend_run?: true;
   readonly runsRoot: string;
   readonly runId: string;
   readonly port: number;
@@ -103,6 +104,7 @@ export async function withRun(
       pi_version: plan.piVersion,
       start_state: plan.startState,
       harness_features: [...plan.harnessFeatures],
+      ...(plan.extend_run === true ? { extend_run: true as const } : {}),
       budgets: plan.budgets,
       isolation: { server_dir: server?.serverDir ?? join(log.runDir, "server"), run_data_id: plan.runId, load_checkpoint_mode: false, port: plan.port },
     };

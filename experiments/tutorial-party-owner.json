@@ -8,7 +8,7 @@
  "primaryMilestone": "WALLY_TUTORIAL_COMPLETE",
  "source": {
   "checkout": "main",
-  "commit": "ecb8e4c3942c72e5f2dfad681408de6b2f4c5ede"
+  "commit": "bdf0955cd86c6b55703cc7305608227afa053898"
  },
  "incumbent": {
   "version": 2,
@@ -126,5 +126,5 @@
   "window": 4,
   "minReached": 3
  },
- "notes": "Uses the finals incumbent. Bug fix from the 2026-10-17 top-50 run analysis (runs/reviews/2026-10-17-run-analysis-top50/ram-audit.md) that goes in the bundle arm of bundle-v-control only, default off (operator decision 2026-10-17, the operator: \"They should each be under their own switch, and all the fixes need to be included in the bundle\"); the bundle owner adds it to that experiment's switches. Pending, not queued. source.commit is the reviewed, gated head ecb8e4c3 that main fast-forwards to. Activation: the Wally scene starts in the Petalburg Gym on the first visit to PETALBURG CITY. Graded on WALLY_TUTORIAL_COMPLETE, the end of the scene the switch acts on (the shared RIVAL_BATTLE_WON comes before it)."
+ "notes": "Uses the finals incumbent. Bug fix from the 2026-10-17 top-50 run analysis (runs/reviews/2026-10-17-run-analysis-top50/ram-audit.md) that goes in the bundle arm of bundle-v-control only, default off (operator decision 2026-10-17, the operator: \"They should each be under their own switch, and all the fixes need to be included in the bundle\"); the bundle owner adds it to that experiment's switches. Pending, not queued. source.commit is the reviewed, gated head ecb8e4c3 that main fast-forwards to. Activation: the Wally scene starts in the Petalburg Gym on the first visit to PETALBURG CITY. Graded on WALLY_TUTORIAL_COMPLETE, the end of the scene the switch acts on (the shared RIVAL_BATTLE_WON comes before it). October19 battle coverage repair: native Wally tutorial player-side level7 ZIGZAGOON with TACKLE and cleared MOVE2-4 tolerates retained PP in the battle/active UI readers. OFF retains rejection. Archive-backed correctness only, no speed benefit claimed."
 }

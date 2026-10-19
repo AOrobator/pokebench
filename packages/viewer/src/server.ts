@@ -20,10 +20,12 @@ import { featureHistory } from "./history.js";
 import { localModels } from "./models.js";
 import { NextRunError, appendControl, healthProbe, liveRuns, readDraft, writeDraft, type RunQueue } from "./next-run.js";
 import { WORKBENCH_POLL_MS, type WorkbenchData } from "./workbench-data.js";
-import { createWorkbenchLoader, workbenchSnapshot, type LoadedRun, type WorkbenchCompute } from "./workbench-store.js";
+import { cardWorkbench, createWorkbenchLoader, workbenchSnapshot, type LoadedRun, type WorkbenchCompute } from "./workbench-store.js";
 import { MILESTONE_ORDER } from "./model.js";
 import { defaultViewerBuild, skewOf, type Skew, type ViewerBuild } from "./build-stamp.js";
 import { FEATURE_EXPLAINERS } from "./panels.js";
+import { WebSocketServer } from "ws";
+import { SharedFrameHub } from "./frame-hub.js";
 
 export const HOST = "127.0.0.1";
 const EXPERIMENTS_CACHE_MS = 5_000;
@@ -37,13 +39,49 @@ const FONT_NAME = /^(press-start-2p|inter|jetbrains-mono)\.woff2$/;
 const SPRITE_PATH = /^(manifest\.json|card\/(wide|mini|mini-ribbon)-(green|bronze|copper|silver|gold)\.png|trainers\/[a-z]+\.png|font\/glyphs\.(png|json)|icons\/[1-9][0-9]{0,2}\.png)$/;
 const PNG_SIGNATURE = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
 const SCREEN_TIMEOUT_MS = 3_000;
+const FRAME_MAX_BYTES = 1024 * 1024;
+const PNG_MAX_DIMENSION = 2048;
+
+function crc32(bytes: Buffer): number {
+  let crc = 0xffffffff;
+  for (const byte of bytes) {
+    crc ^= byte;
+    for (let bit = 0; bit < 8; bit += 1) crc = (crc >>> 1) ^ (crc & 1 ? 0xedb88320 : 0);
+  }
+  return (crc ^ 0xffffffff) >>> 0;
+}
+
+export function validFramePng(png: Buffer): boolean {
+  if (png.length < 45 || png.length > FRAME_MAX_BYTES || !png.subarray(0, PNG_SIGNATURE.length).equals(PNG_SIGNATURE)) return false;
+  let offset = PNG_SIGNATURE.length;
+  let chunks = 0;
+  let sawIdat = false;
+  while (offset <= png.length - 12) {
+    const length = png.readUInt32BE(offset);
+    if (length > png.length - offset - 12) return false;
+    const dataEnd = offset + 8 + length;
+    const chunkEnd = dataEnd + 4;
+    const type = png.toString("ascii", offset + 4, offset + 8);
+    if (png.readUInt32BE(dataEnd) !== crc32(png.subarray(offset + 4, dataEnd))) return false;
+    if (chunks === 0) {
+      if (type !== "IHDR" || length !== 13) return false;
+      const width = png.readUInt32BE(offset + 8), height = png.readUInt32BE(offset + 12);
+      if (width === 0 || height === 0 || width > PNG_MAX_DIMENSION || height > PNG_MAX_DIMENSION) return false;
+    } else if (type === "IHDR") return false;
+    if (type === "IDAT") sawIdat = true;
+    if (type === "IEND") return length === 0 && sawIdat && chunkEnd === png.length;
+    offset = chunkEnd;
+    chunks += 1;
+  }
+  return false;
+}
 
 const SECURITY_HEADERS = {
   "cache-control": "no-store",
   "x-content-type-options": "nosniff",
   "content-security-policy":
     "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; " +
-    "font-src 'self'; img-src 'self'; connect-src 'self'",
+    "font-src 'self'; img-src 'self' blob:; connect-src 'self'",
 };
 
 export interface ViewerOptions {
@@ -135,7 +173,7 @@ async function write(req: IncomingMessage, res: ServerResponse, options: ViewerO
       return;
     }
     if (req.method === "POST" && parts.length === 4 && second === "runs" && id !== undefined && leaf === "control") {
-      if (!Value.Check(ControlBodySchema, body)) throw new RequestError(400, "action must be pause, resume, stop, cancel_stop or abort");
+      if (!Value.Check(ControlBodySchema, body)) throw new RequestError(400, "invalid control action (pause, resume, stop, cancel_stop, abort, extend_30m or extend_60m)");
       sendJson(res, 200, { request: await appendControl(options.runsRoot, id, body.action, now, healthProbe(options.fetchFn ?? fetch)) });
       return;
     }
@@ -306,7 +344,7 @@ async function liveScreen(res: ServerResponse, port: number, fetchFn: typeof fet
   }
 }
 
-async function route(req: IncomingMessage, res: ServerResponse, options: ViewerOptions, port: number, origins: ReadonlyMap<string, string>, readBaseline: BaselineReader, readWorkbench: () => Promise<WorkbenchData>, queueApi: QueueApi): Promise<void> {
+async function route(req: IncomingMessage, res: ServerResponse, options: ViewerOptions, port: number, origins: ReadonlyMap<string, string>, readBaseline: BaselineReader, readWorkbench: (cards?: { selected: string | null }) => Promise<WorkbenchData>, queueApi: QueueApi): Promise<void> {
   const origin = origins.get(req.headers.host ?? "");
   if (origin === undefined) {
     sendJson(res, 403, { error: "the viewer only answers 127.0.0.1 and its published origins" });
@@ -332,6 +370,11 @@ async function route(req: IncomingMessage, res: ServerResponse, options: ViewerO
   }
   if (parts.length === 2 && head === "api" && second === "workbench") {
     sendJson(res, 200, await readWorkbench());
+    return;
+  }
+  if (parts.length === 2 && head === "api" && second === "cards") {
+    const selected = new URL(req.url ?? "/", "http://viewer.invalid").searchParams.get("run");
+    sendJson(res, 200, cardWorkbench(await readWorkbench({ selected }), selected));
     return;
   }
   if (parts.length === 2 && head === "explainers" && Object.values(FEATURE_EXPLAINERS).includes(second ?? "")) {
@@ -478,12 +521,22 @@ export async function startViewer(given: ViewerOptions): Promise<Viewer> {
   const readBaseline = createBaselineReader(options.runsRoot, { ...(options.baselines?.compute === undefined ? {} : { compute: options.baselines.compute }), ...(options.baselines?.store === undefined ? {} : { store: options.baselines.store }) });
   const workbenchLoader = createWorkbenchLoader({ build: options.build ?? null, ...(options.workbench?.compute === undefined ? {} : { compute: options.workbench.compute }), ...(options.workbench?.store === undefined ? {} : { store: options.workbench.store }) });
   let snapshot: { until: number; result: Promise<WorkbenchData> } | null = null;
-  const readWorkbench = (): Promise<WorkbenchData> => {
+  let cardsSnapshot: { selected: string | null; until: number; result: Promise<WorkbenchData> } | null = null;
+  const readWorkbench = (cards?: { selected: string | null }): Promise<WorkbenchData> => {
     const now = (options.now?.() ?? new Date()).getTime();
-    if (snapshot !== null && now < snapshot.until) return snapshot.result;
-    const next = { until: Infinity, result: Promise.resolve().then(() => workbenchSnapshot(options.runsRoot, healthProbe(options.fetchFn ?? fetch), now, undefined, workbenchLoader, { partial: options.workbench?.partial === true })) };
-    snapshot = next;
-    next.result = next.result.then(data => { next.until = (options.now?.() ?? new Date()).getTime() + WORKBENCH_POLL_MS; return data; }, (error: unknown) => { if (snapshot === next) snapshot = null; throw error; });
+    const cached = cards === undefined ? snapshot : cardsSnapshot?.selected === cards.selected ? cardsSnapshot : null;
+    if (cached !== null && now < cached.until) return cached.result;
+    const healthy = healthProbe(options.fetchFn ?? fetch);
+    const pending = cards === undefined
+      ? Promise.resolve().then(() => workbenchSnapshot(options.runsRoot, healthy, now, undefined, workbenchLoader, { partial: options.workbench?.partial === true }))
+      : liveRuns(options.runsRoot, healthy).then(live => workbenchSnapshot(options.runsRoot, healthy, now, undefined, workbenchLoader, { partial: options.workbench?.partial === true, cards: { ...cards, live: new Set(live) } }));
+    if (cards === undefined) {
+      const next = { until: Infinity, result: pending }; snapshot = next;
+      next.result = next.result.then(data => { next.until = (options.now?.() ?? new Date()).getTime() + WORKBENCH_POLL_MS; return data; }, (error: unknown) => { if (snapshot === next) snapshot = null; throw error; });
+      return next.result;
+    }
+    const next = { selected: cards.selected, until: Infinity, result: pending }; cardsSnapshot = next;
+    next.result = next.result.then(data => { next.until = (options.now?.() ?? new Date()).getTime() + WORKBENCH_POLL_MS; return data; }, (error: unknown) => { if (cardsSnapshot === next) cardsSnapshot = null; throw error; });
     return next.result;
   };
   const repo = dirname(options.runsRoot);
@@ -521,6 +574,48 @@ export async function startViewer(given: ViewerOptions): Promise<Viewer> {
       else sendJson(res, 500, { error: error instanceof Error ? error.message : String(error) });
     });
   });
+  const frameSockets = new WebSocketServer({ noServer: true, perMessageDeflate: false, maxPayload: FRAME_MAX_BYTES });
+  const frameHubs = new Map<string, SharedFrameHub>();
+  server.on("upgrade", (req, socket, head) => {
+    const reject = (status: number, message: string): void => {
+      socket.end(`HTTP/1.1 ${String(status)} ${message}\r\nConnection: close\r\n\r\n`);
+    };
+    const origin = origins.get(req.headers.host ?? "");
+    if (origin === undefined || req.headers.origin !== origin) { reject(403, "Forbidden"); return; }
+    const parts = segments(req.url ?? "/");
+    const runId = parts?.length === 4 && parts[0] === "api" && parts[1] === "runs" && parts[3] === "frames" ? parts[2] : undefined;
+    if (runId === undefined) { reject(404, "Not Found"); return; }
+    let gamePort: number | null;
+    try { gamePort = liveScreenPort(options.runsRoot, runId); }
+    catch { reject(404, "Not Found"); return; }
+    if (gamePort === null) { reject(409, "Conflict"); return; }
+    frameSockets.handleUpgrade(req, socket, head, (client) => {
+      let hub = frameHubs.get(runId);
+      if (hub !== undefined && hub.gamePort !== gamePort) {
+        hub.stop();
+        hub = undefined;
+      }
+      if (hub === undefined) {
+        hub = new SharedFrameHub({
+          runId,
+          gamePort,
+          host: HOST,
+          maxPayload: FRAME_MAX_BYTES,
+          decode: (raw) => {
+            const encoded = Array.isArray(raw) ? Buffer.concat(raw) : Buffer.from(raw as ArrayBuffer);
+            const payload = JSON.parse(encoded.toString("utf8")) as { frame_data?: unknown };
+            if (typeof payload.frame_data !== "string") throw new Error("frame_data is missing");
+            const png = Buffer.from(payload.frame_data, "base64");
+            if (!validFramePng(png)) throw new Error("frame is not a bounded PNG");
+            return png;
+          },
+          onEmpty: (closed) => { if (frameHubs.get(runId) === closed) frameHubs.delete(runId); },
+        });
+        frameHubs.set(runId, hub);
+      }
+      hub.add(client);
+    });
+  });
   const queue = options.queue;
   const ticker = queue === undefined ? null : setInterval(() => { queue.tick().catch(() => undefined); }, 1_000);
   await new Promise<void>((resolve, reject) => {
@@ -542,6 +637,10 @@ export async function startViewer(given: ViewerOptions): Promise<Viewer> {
         if (ticker !== null) clearInterval(ticker);
         if (autorunTicker !== null) clearInterval(autorunTicker);
         autorun?.stop();
+        for (const hub of frameHubs.values()) hub.stop(1001, "viewer closing");
+        frameHubs.clear();
+        for (const client of frameSockets.clients) client.terminate();
+        frameSockets.close();
         server.closeAllConnections();
         server.close(() => {
           (options.baselines?.close?.() ?? Promise.resolve()).then(resolve, resolve);

@@ -17,7 +17,7 @@ The viewer header builds trainer cards only from runs that are currently live. W
 
 **M1 — selected replay card**
 - [x] RED: `trainer-card-app.test.ts` adds an ended selected run and requires its selected `REPLAY` card without a live dot while both live cards remain `LIVE`. Focused result: 1 failed / 12 passed because the replay card was absent.
-- [ ] GREEN: implement the replay card state and selected-run inclusion.
+- [x] GREEN: the selected ended run joins the stable card row as a selected `REPLAY` card; replay and paused states have no live dot, and the phone sheet calls the mixed collection `RUNS`. Focused trainer-card/app/header tests: 47 passed.
 - [ ] Gates: focused tests, `just test`, `just lint`, `just build`, `just coverage`, `just verify-vendor`.
 - [ ] Browser proof on an owned preview: replay selection and live selection, pointer and keyboard, two polling cycles, screenshots at 1280, 1440 and 375.
 - [ ] Multi-model review and landing.

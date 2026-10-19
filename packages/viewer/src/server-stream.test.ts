@@ -92,19 +92,27 @@ it("stops reading once a client abandons a long stream, and keeps serving", asyn
 });
 
 it("answers another request while a stream waits on a slow reader, and stops reading meanwhile", async () => {
-  const log = longRun(30000);
-  const viewer = await serve("long", log, 65536);
+  const log = longRun(400);
+  const viewer = await serve("long", log, 4096);
   const read = fs.readSync;
   let reads = 0;
   vi.spyOn(fs, "readSync").mockImplementation(((...args: Parameters<typeof fs.readSync>) => { reads += 1; return read(...args); }));
+  const write = Reflect.get(ServerResponse.prototype, "write") as (this: ServerResponse, ...args: Parameters<ServerResponse["write"]>) => boolean;
+  const streams: ServerResponse[] = [];
+  vi.spyOn(ServerResponse.prototype, "write").mockImplementation(function (this: ServerResponse, ...args: Parameters<ServerResponse["write"]>): boolean {
+    const ok = Reflect.apply<ServerResponse, Parameters<ServerResponse["write"]>, boolean>(write, this, args);
+    if (this.req.url?.endsWith("/events") === true && streams.length === 0) { streams.push(this); return false; }
+    return ok;
+  });
   const reply = await fetch(new URL("api/runs/long/events", viewer.url));
   const reader = reply.body?.getReader();
   await reader?.read();
   const list = await fetch(new URL("api/runs", viewer.url));
   expect(list.status).toBe(200);
-  await new Promise((resolve) => { setTimeout(resolve, 100); });
-  const paused = reads, size = fs.statSync(join(roots.at(-1) ?? "", "runs", "long", "events.jsonl")).size;
-  expect(paused).toBeLessThan(size / 65536 / 2);
+  const paused = reads;
+  await new Promise((resolve) => { setImmediate(resolve); });
+  expect(reads).toBe(paused);
+  streams[0]?.emit("drain");
   let text = "";
   const decoder = new TextDecoder();
   for (;;) { const chunk = await reader?.read(); if (chunk === undefined || chunk.done) break; text += decoder.decode(chunk.value, { stream: true }); }

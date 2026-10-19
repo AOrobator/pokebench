@@ -8,7 +8,7 @@
  "primaryMilestone": "RIVAL_HOUSE_ENTERED",
  "source": {
   "checkout": "main",
-  "commit": "6c054d82ba46899dd9af14332be2ae530f49caa1"
+  "commit": "55396e82261f64e413077815fc776c8df85f6a02"
  },
  "incumbent": {
   "version": 2,
@@ -162,5 +162,5 @@
   "window": 4,
   "minReached": 3
  },
- "notes": "Correctness-tier registration; pending and not queued. The candidate differs only in deterministic-warp-navigation-v1. Activation is CLOCK_SET and the primary milestone is RIVAL_HOUSE_ENTERED. The switch is also present only in the bundle arm of experiments/fixed/bundle-v-control.json. No measured runs are authorized by this registration. source.commit is the committed RED specification and must be repinned to the landed implementation SHA."
+ "notes": "Correctness-tier registration; pending and not queued. The candidate differs only in deterministic-warp-navigation-v1. Activation is CLOCK_SET and the primary milestone is RIVAL_HOUSE_ENTERED. The switch is also present only in the bundle arm of experiments/fixed/bundle-v-control.json. No measured runs are authorized by this registration. source.commit identifies the committed reviewed implementation."
 }

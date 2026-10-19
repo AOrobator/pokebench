@@ -180,6 +180,21 @@ describe("deterministic-warp-navigation-v1",()=>{
   if(produced===undefined)throw new Error("missing navigate_to");
   const outcome=await produced.execute("nav",{x:3,y:2,map_id:MAP},new AbortController().signal);
   expect(buttons).toEqual([["DOWN"]]);expect(outcome.details).toMatchObject({state:{map_id:[0,9]},navigation:{status:"directional warp activated; inspect destination",commands:1}});
+
+  const rememberedWarps=[warp(1,2),warp(17,2)];
+  const targets=rememberedWarps.map(({kind,x,y,elevation,activation,availability,facing,local_id,destination,name})=>({kind,x,y,elevation,activation,availability,facing,local_id,destination,name}));
+  const remembered=room({position:{x:1,y:2},navigation_grid:{elevation:3,tiles:[tile(1,2,0x65),tile(17,2,0x65)],objects:[],warps:rememberedWarps.map(({x,y})=>({x,y}))},interaction_targets:targets});
+  let live=room({position:{x:1,y:2},navigation_grid:{elevation:3,tiles:[tile(1,2,0x65)],objects:[],warps:[{x:1,y:2}]},interaction_targets:targets});
+  const visitedButtons:string[][]=[];
+  const checkedPress={name:"press",execute:()=>Promise.reject(new Error("unchecked press")),executeChecked:(_id:string,params:{buttons:string[]},check:(state:GameStateSnapshot)=>void)=>{
+   check(live);visitedButtons.push([...params.buttons]);live={...live,map_id:[0,9]};return Promise.resolve(result(live));
+  }} as unknown as CheckedPressTool;
+  const observe={name:"observe",execute:()=>Promise.resolve(result(live))} as unknown as AgentTool;
+  const visitedFeatures={...features,"visited-terrain-navigation-v1":true};
+  const visited=withNavigation([checkedPress,observe],visitedFeatures as FeatureSet,{read:()=>Promise.resolve(remembered)}).find(t=>t.name==="navigate_to");
+  if(visited===undefined)throw new Error("missing visited navigate_to");
+  const visitedOutcome=await visited.execute("nav",{x:17,y:2,map_id:MAP},new AbortController().signal);
+  expect(visitedButtons).toEqual([["DOWN"]]);expect(visitedOutcome.details).toMatchObject({state:{map_id:[0,9]},navigation:{status:"directional warp activated; inspect destination",commands:1,selected_target:{x:1,y:2}}});
  });
 
  it("is appended, default OFF, bundle-only, and registered as a pending one-switch experiment",()=>{

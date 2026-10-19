@@ -452,6 +452,17 @@ const samePoint=(a:Point,b:Point):boolean=>a.x===b.x&&a.y===b.y;
 const sameDestination=(a:readonly number[],b:readonly number[]):boolean=>a.length===3&&b.length===3&&a.every((value,index)=>value===b[index]);
 const sameWarpIdentity=(a:WarpIdentity,b:WarpIdentity):boolean=>a.behavior===b.behavior&&a.elevation===b.elevation&&sameDestination(a.destination,b.destination);
 const dynamicDestination=(destination:readonly number[]):boolean=>destination.some(value=>value===0x7f);
+function warpIdentityAt(state:GameStateSnapshot,target:Point,options:NavigationOptions):{readonly activation:Direction;readonly identity:WarpIdentity}|null {
+ const geometry=options.mode==="full"?fullGeometry(state):localGeometry(state);
+ if(geometry===null)return null;
+ const listed=(state.interaction_targets??[]).filter(candidate=>candidate.kind==="warp"&&samePoint(candidate,target));
+ if(listed.length!==1)return null;
+ const event=listed[0],destination=event?.destination;
+ if(event===undefined||destination===null||destination===undefined||dynamicDestination(destination))return null;
+ const tile=geometry.tile(target),activation=tile===undefined?undefined:DIRECTIONAL_WARP_PRESSES.get(tile.behavior);
+ if(tile===undefined||activation===undefined)return null;
+ return {activation,identity:{destination:[...destination],behavior:tile.behavior,elevation:event.elevation}};
+}
 function deterministicWarpPlan(state:GameStateSnapshot,requested:Point,options:NavigationOptions):WarpPlan|null {
  const geometry=options.mode==="full"?fullGeometry(state):localGeometry(state);
  if(geometry===null)return null;
@@ -569,8 +580,8 @@ export function navigationTool(ports:NavigationPorts):AgentTool<typeof Args> {
      try {
       last=await ports.press(id,{buttons:[activation]},signal,actual=>{
        if(actual===undefined||!ready(actual,mode)||actual.map_id?.[0]!==goal.map_id[0]||actual.map_id[1]!==goal.map_id[1]||actual.position?.x!==before.x||actual.position.y!==before.y)throw new NavigationPreconditionError("map, position or field input unavailable or changed before action; no command submitted");
-       const current=deterministicWarpPlan(actual,goal,options);
-       if(current===null||current.activation!==activation||!samePoint(current.target,warpPlan.target)||current.path.length!==0||!sameWarpIdentity(current.identity,warpPlan.identity))throw new NavigationPreconditionError("warp identity or activation changed before action; no command submitted");
+       const current=warpIdentityAt(actual,warpPlan.target,options);
+       if(current===null||current.activation!==activation||!sameWarpIdentity(current.identity,warpPlan.identity))throw new NavigationPreconditionError("warp identity or activation changed before action; no command submitted");
       });
      } catch(error){if(!(error instanceof NavigationPreconditionError))throw error;status=error.message;break;}
      commands++;directionalWarpAttempted=true;state=blackout.remember(resultState(last));

@@ -148,7 +148,7 @@ export function cardHtml(input: CardInput, art: CardArt, kind: CardKind, href: s
   const mons = wide
     ? party.map((m, i) => { const html = mon(art, m); return html === "" ? "" : box(g, 42 + 60.8 * i - 32, 132 - 32, 64, 64, html, " tc-slot"); }).join("")
     : (() => { const lead = party[0], html = lead === undefined ? "" : mon(art, lead); return html === "" ? "" : box(g, 262 - 18, 54 - 18, 36, 36, html, " tc-slot"); })();
-  const body = `<span class="tc-tab" style="left:${pct(13, g.w)};top:${pct(10, g.h)};height:${pct(16, g.h)};min-width:${pct(wide ? 168 : 176, g.w)}">${gt(input.title, "tab", 14, 1)}</span>`
+  const body = `<span class="tc-tab" style="left:${pct(13, g.w)};top:${pct(10, g.h)};height:${pct(16, g.h)};width:${pct(wide ? 168 : 166, g.w)}">${gt(input.title, "tab", 14, 1)}</span>`
     + box(g, wide ? 196 : 184, 9, wide ? 184 : 98, 18, `<span class="tc-line tc-end">${corner}</span>`)
     + (wide ? box(g, 10, 37, 64, 64, sprite, " tc-sprite") : box(g, 4, 26, 44, 44, sprite, " tc-sprite"))
     + (wide ? box(g, 92, 30, 286, 20, nameType(input, true)) + box(g, 92, 52, 286, 14, `<span class="tc-line tc-l2">${second}</span>`) + box(g, 92, 68, 286, 13, story) + box(g, 92, 84, 286, 13, time)

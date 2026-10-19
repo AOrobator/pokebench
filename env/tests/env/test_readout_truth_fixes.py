@@ -148,7 +148,7 @@ def test_each_switch_is_a_registered_default_off_server_feature(switch: str) -> 
 
 
 def test_registered_last_in_order() -> None:
-    assert SERVER_FEATURES[-6:-1] == (
+    assert SERVER_FEATURES[-8:-3] == (
         OWNER,
         MID_FRAME,
         UNSET_WARP,
@@ -238,14 +238,20 @@ def test_on_the_wally_scene_is_the_tutorial_zigzagoon(name: str) -> None:
 
 
 def test_on_the_tutorial_battle_shows_the_zigzagoon() -> None:
-    [(before, after)] = changed("93eb-16529", frozenset({OWNER}))
-    assert before == (
-        "Party (tutorial): UNKNOWN LvNone HP None/None · HARNESS BUG: harness bug: Pokémon"
-        " invalid move or PP"
+    off = render("93eb-16529")
+    on = render("93eb-16529", frozenset({OWNER}))
+    assert "HARNESS BUG (battle): harness bug: empty battle move has PP" in off
+    assert "Party (tutorial): UNKNOWN LvNone" in off
+    assert "HARNESS BUG (battle)" not in on
+    assert (
+        "Battle details: WILD single · WALLY tutorial (the game plays it) · turn 4 · resolving"
+        in on
     )
-    assert after == (
-        "Party (tutorial): ZIGZAGOON Lv7 HP 24/24 · moves TACKLE PP 33 · nickname ZIGZAGOON"
+    assert "Actions: none (the game plays the WALLY tutorial)" in on
+    assert (
+        "Party (tutorial): ZIGZAGOON Lv7 HP 24/24 · moves TACKLE PP 33 · nickname ZIGZAGOON" in on
     )
+    assert state("93eb-16529", frozenset({OWNER})).battle.initialized
 
 
 def zigzagoon_body() -> tuple[bytes, Callable[[int, int], bytes]]:

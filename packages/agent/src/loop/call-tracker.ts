@@ -65,7 +65,7 @@ export class CallTracker {
     return { pending, started };
   }
 
-  finish(event: ToolResultEvent): CompletedCall {
+  finish(event: ToolResultEvent, battleRefusals=false): CompletedCall {
     const pending = this.calls.get(event.id);
     this.calls.delete(event.id);
     const name = event.name === "act" && !event.is_error
@@ -85,7 +85,9 @@ export class CallTracker {
       seq: event.seq,
       beforeState: pending?.before,
       acted: pending?.pressed === true,
-      state: pending !== undefined && this.latestSeq >
+      state: battleRefusals && name === "battle_action"
+        ? pending !== undefined && event.state_seq === this.latestSeq ? this.latest : undefined
+        : pending !== undefined && this.latestSeq >
         ((name === "press" || name === "navigate_to") ? (pending.beforeSeq ?? Infinity) : pending.seq) &&
         (name === "press" || name === "navigate_to" || name === "observe") ? this.latest : undefined,
     };

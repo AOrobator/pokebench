@@ -1,10 +1,11 @@
+import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
 import { readFileSync } from "node:fs";
 import { expect, it } from "vitest";
-import { ALL_ON, SERVER_FEATURES, SWITCHABLE_FEATURES, dependencyProblems, featureInfo, featuresOf, playHarnessFeatures, serverFeatureEnv, type FeatureSet } from "./features.js";
+import { SERVER_FEATURES, SWITCHABLE_FEATURES, dependencyProblems, featureInfo, featuresOf, playHarnessFeatures, serverFeatureEnv, type FeatureSet} from "./features.js";
 import { flagFeatures, normalizeFeatures, parsePlayPreset, presetFeatures } from "./play-preset.js";
 
 const ID = "transition-coherence-v1";
-const off = (...ids: (typeof SWITCHABLE_FEATURES)[number][]): FeatureSet => ({ ...ALL_ON,"observed-instructions-v1":false, ...Object.fromEntries(ids.map((id) => [id, false])) });
+const off = (...ids: (typeof SWITCHABLE_FEATURES)[number][]): FeatureSet => ({ ...ALL_ON,"battle-decision-ready-v1":false,...Object.fromEntries(ids.map((id) => [id, false])) });
 
 it("registers a default-off observation switch with no dependency, recorded last", () => {
   expect(featureInfo(ID)).toMatchObject({ group: "observation", needs: null, switchable: true, title: "COHERENT TRANSITION READOUTS" });
@@ -18,18 +19,18 @@ it("registers a default-off observation switch with no dependency, recorded last
   expect(description).toContain("field_transition");
   expect(description).toContain("Save-backed world state unavailable");
   expect(description).toContain("both arms");
-  expect(SWITCHABLE_FEATURES.at(-46)).toBe(ID);
-  expect(playHarnessFeatures(ALL_ON, null).at(-46)).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-54)).toBe(ID);
+  expect(playHarnessFeatures(ALL_ON, null).at(-48)).toBe(ID);
   expect(playHarnessFeatures(off(ID), null)).not.toContain(ID);
   expect(featuresOf(playHarnessFeatures(off(ID), null))[ID]).toBe(false);
   // A correctness fix meant for both arms of the bundle, whatever their battle readout switches.
-  expect(dependencyProblems(off("battle-effective-damage-v1", "battle-details-v2", "expanded-menu-battle-information-v1", "status-names-v1"))).toEqual([]);
+  expect(dependencyProblems(off("battle-decision-ready-v1","battle-effective-damage-v1", "battle-details-v2", "expanded-menu-battle-information-v1", "status-names-v1"))).toEqual([]);
 });
 
 it("hands the switch to the game server, which owns the decoding", () => {
-  expect(SERVER_FEATURES.at(-13)).toBe(ID);
-  expect(serverFeatureEnv(off(ID)).POKEBENCH_FEATURES_OFF).toBe(ID);
-  expect(serverFeatureEnv(ALL_ON).POKEBENCH_FEATURES_OFF).toBe("");
+  expect(SERVER_FEATURES.at(-15)).toBe(ID);
+  expect(serverFeatureEnv(off(ID)).POKEBENCH_FEATURES_OFF).toBe(`${ID},safe-navigation-strides-v1`);
+  expect(serverFeatureEnv(ALL_ON).POKEBENCH_FEATURES_OFF).toBe("safe-navigation-strides-v1");
   const readout = readFileSync(new URL("../../../env/pokebench_env/readout.py", import.meta.url), "utf8");
   expect(readout).toContain(`"levelup-box-v1",\n    "${ID}",\n    "readout-truth-v1",`);
   expect(readout).toContain(`"levelup-box-v1,"\n        "${ID},"\n        "readout-truth-v1,`);

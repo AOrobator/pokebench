@@ -232,6 +232,7 @@ def read_game_state(
     tutorial_owner_enabled: bool = False,
     mid_frame_enabled: bool = False,
     unset_warp_enabled: bool = False,
+    evolution_decision_enabled: bool = False,
 ) -> GameState:
     screen = read_screen(read)
     coherent = transition_coherence_enabled
@@ -242,15 +243,27 @@ def read_game_state(
         else screen.label
     )
     in_battle = bool(read(IN_BATTLE, 1)[0] & 0x02)
-    battle = read_battle_state(read, current_battle_only=coherent) if in_battle else None
+    battle = (
+        read_battle_state(
+            read, current_battle_only=coherent, tutorial_owner_enabled=tutorial_owner_enabled
+        )
+        if in_battle
+        else None
+    )
     dialog, menu = read_dialog(read, screen.kind), read_menu(read)
     native_ui = read_active_ui(
         read,
         screen,
         truth=readout_truth_enabled,
+        evolution_decision=evolution_decision_enabled,
         birch_pages=birch_pages_enabled,
         transition_coherence=coherent,
+        tutorial_owner_enabled=tutorial_owner_enabled,
     )
+    if evolution_decision_enabled:
+        from pokebench_env.evolution_decision import decision_ui
+
+        native_ui = decision_ui(native_ui, read)
     active_ui = native_ui if active_ui_enabled else None
     truth_read = readout_truth_enabled and active_ui_enabled
     window_drawn = menu_window_drawn(read) if readout_truth_enabled else None

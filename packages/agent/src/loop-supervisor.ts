@@ -83,6 +83,7 @@ export class SupervisorBriefing {
  private readonly touched=new Map<string,Set<string>>();
  private readonly hint:NextMilestoneHint|null;
  private story:string|null=null;
+ private goal:string|null=null;
  private readonly heard=new Set<string>();
  // dialogue-auto-advance-v1: the pages of each auto-advanced call, recorded before its result.
  private readonly advanced=new Map<string,Advance>();
@@ -195,6 +196,7 @@ export class SupervisorBriefing {
  }
  // The readout's own Story line, so the briefing never disagrees with it. A reload gap keeps the last known line.
  private readStory(text:string):void {
+  const goal=/^Story goal: (.*)$/m.exec(text)?.[1];if(goal!==undefined)this.goal=goal.split(" -> ")[0]??goal;
   const line=/^Story: (.*)$/m.exec(text)?.[1];
   if(line===undefined||line.startsWith("unavailable"))return;
   // briefing-exits-v1: things tried stay tried across a story step; only people, who may say something new, are listed again.
@@ -468,7 +470,16 @@ export class SupervisorBriefing {
   return this.bearings(`SUPERVISOR: You are stalling. ${what}, and the game is not moving forward (stall briefing, ${String(calls)} calls into the run).`,true);
  }
 
+ private focused(headline:string):string {
+  const ui=this.screenNow?.ui;
+  const recent=(ui===undefined?this.tried:this.uiTried).slice(-3).reverse().map(t=>`${t.label} → ${t.outcome}`).join("; ")||"none recorded";
+  const alternatives=this.latest===null||!this.features["world-targets-v1"]?[]:this.open(this.latest).slice(0,3);
+  const goal=this.goal??"none recorded";
+  return `${headline}\n- Current position: ${this.where()}\n- Latest recorded place instruction: ${goal}\n${ui===undefined?`- Untried targets already shown here (up to 3; not a route recommendation): ${!this.features["world-targets-v1"]?"not available (world targets are off)":alternatives.join("; ")||"none listed"}\n${this.edges()}`:`- Open interface: ${ui.name}; phase ${ui.phase}; text ${ui.text??"unknown"}; selected ${ui.selected??"unknown"}; controls: ${ui.controls??"unknown"}\n`}- Recent attempts (up to 3): ${recent}\nUse the latest game readout to choose a different action. End the next reply with one listed tool call.`;
+ }
+
  private bearings(headline:string,stall=false):string {
+  if(this.features["supervisor-briefing-v2"])return this.focused(headline);
   if((stall||this.features["loop-guard-screen-v1"])&&this.screenNow!==null)return this.interfaceBearings(headline,this.screenNow.ui);
   const tried=this.tried.length===0?"nothing recorded":this.tried.slice().reverse().map(t=>`${t.label}${t.count>1?` ×${String(t.count)}`:""} in ${t.room} → ${t.outcome}`).join("; ");
   const recall=this.features["dialogue-log-v1"]?" (use recall_dialogue to check exactly what characters said)":"";
@@ -513,7 +524,12 @@ ${this.hint===null?"":`- Next milestone (hint): ${this.hint.describe()}\n`}- Sto
 Before your next action, look back at your goal and at what the game has told you${recall}. If anything you believe disagrees with the dialogue or the readout above, believe the game. Make a new plan that is different from what you have been trying, and say how you will finish or leave this interface first. The run continues.`;
  }
 
- textOnly(replies:number,note:number,limit:number):string {
+ textOnly(replies:number,note:number,limit:number,replyFailuresEndRun=true):string {
+  const policy=replyFailuresEndRun?`If replies keep calling no tool after note ${String(limit)} of ${String(limit)}, the run ends.`:"Reply-based stopping is disabled for this run; the configured turn and time budgets still apply.";
+  if(this.features["supervisor-briefing-v2"]){
+   const head=`SUPERVISOR: Your last ${String(replies)} replies called no tool, so nothing happened in the game (text-only supervisor, note ${String(note)} of ${String(limit)}).`;
+   return `${this.focused(head)}${this.features["text-only-supervisor-v2"]?`\n${policy}`:`\nIf replies keep calling no tool after note ${String(limit)} of ${String(limit)}, the run ends.`}`;
+  }
   const text=`SUPERVISOR: Your last ${String(replies)} replies called no tool, so nothing happened in the game (text-only supervisor, note ${String(note)} of ${String(limit)}). Writing out a plan or a list of coordinates does not move you; only a tool call does.
 Get your bearings:
 - Where you are: ${this.where()}
@@ -522,7 +538,7 @@ Get your bearings:
 ${this.kept()}- Recent dialogue you were shown, newest first: ${this.told()}
 - Listed here that you have not tried yet: ${this.untried()}
 Keep your thinking short and end this reply with one tool call: observe to look again, or press, navigate_to or another listed tool to act. If replies keep calling no tool after note ${String(limit)} of ${String(limit)}, the run ends.`;
-  return text;
+  return this.features["text-only-supervisor-v2"]?text.replace(`If replies keep calling no tool after note ${String(limit)} of ${String(limit)}, the run ends.`,policy):text;
  }
 
 }

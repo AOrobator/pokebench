@@ -1,7 +1,8 @@
+import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
 import {expect,it} from "vitest";
 import {LoopDetector,LOOP_POLICY,type CompletedCall,type LoopNotice} from "./loop-detection.js";
 import {SupervisorBriefing} from "./loop-supervisor.js";
-import {ALL_ON,featureInfo,dependencyProblems} from "./features.js";
+import {featureInfo,dependencyProblems} from "./features.js";
 import {playSystemPrompt} from "./play-config.js";
 import {attachLoopGuard,Governor} from "./harness.js";
 import {IN_GAME} from "../test-support/events.js";

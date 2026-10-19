@@ -1,6 +1,6 @@
 import {StableJitContext} from "./jit-v2-context.js";
 import {JitContext} from "./jit-context.js";
-import {contextTools,loopSupervisor,playGameTools,stallBriefing,stallStop,textOnlySupervisor} from "./play-wiring.js";
+import {battleDecisionContext,contextTools,loopSupervisor,playGameTools,stallBriefing,stallStop,textOnlySupervisor} from "./play-wiring.js";
 import { operatorSignalLatch } from "./operator-signals.js";
 import {CheckpointCapture,checkpointSelection} from "./checkpoint-capture.js";
 import {experimentFromEnv} from "./play-experiment.js";
@@ -262,9 +262,10 @@ async function playAgent(): Promise<void> {
       const controller = new AbortController();
       const elapsed = preset===null?(()=>Date.now()):()=>recorder.elapsedMs();
       let control: RunControl | null = null;
-      const textOnly = textOnlySupervisor(features, recorder);
+      const textOnly = textOnlySupervisor(features, recorder,limits.replyFailuresEndRun!==false);
       const governor = new Governor({
         limits,
+        ...(features["text-only-supervisor-v2"]?{textOnlyReminder:"SUPERVISOR: No tool was called. Keep the next reply short and end it with one listed game tool call. The configured run budgets and stopping policy still apply."}:{}),
         retry: (why, attempt, limit) => {
           recorder.retry(why, attempt, limit);
           console.log(`retry ${String(attempt)}/${String(limit)}: ${why}`);
@@ -294,7 +295,7 @@ async function playAgent(): Promise<void> {
       if(preset!==null&&recorder.elapsedMs()>=limits.maxWallMs){governor.abort("budget");return "budget";}
       const capture = captureMode === null ? null : new CheckpointCapture(captureMode, { serverUrl: gameServerUrl, dir: join(RUNS_ROOT, runId, "checkpoints"), libraryDir:join(RUNS_ROOT,"checkpoints"), fetch, write: (path, data) => { mkdirSync(dirname(path), { recursive: true }); writeFileSync(path, data); }, linkExclusive:linkSync,remove:unlinkSync,rename: renameSync },startMeta);
       if(capture!==null){recorder.subscribe(event=>{capture.observe(event);});lifecycle.beforeRunEnd(async()=>{await capture.close().catch((error:unknown)=>{recorder.checkpointFailure(error);console.error(`checkpoint capture failed: ${String(error)}`);});});}
-      const loopDetector = attachLoopGuard(recorder, governor, undefined, loopMode, features["interaction-loop-detection-v1"], loopSupervisor(features, recorder), features["transition-loop-detection-v1"], features["pushback-loop-detection-v1"], features["battle-observation-loop-v1"], features["navigation-truth-v1"], features["ineffective-loops-v1"], features["battle-menu-loop-v1"], features["clock-view-loop-v1"], features["reopened-dialogue-loop-v1"],features["trigger-script-loop-v1"]);
+      const loopDetector = attachLoopGuard(recorder, governor, undefined, loopMode, features["interaction-loop-detection-v1"], loopSupervisor(features, recorder), features["transition-loop-detection-v1"], features["pushback-loop-detection-v1"], features["battle-observation-loop-v1"], features["navigation-truth-v1"], features["ineffective-loops-v1"], features["battle-menu-loop-v1"], features["clock-view-loop-v1"], features["reopened-dialogue-loop-v1"],features["trigger-script-loop-v1"],features["battle-refusal-loop-v1"],features["ineffective-navigation-v2"]);
       if(target!==null){
         const stop=new NativeTargetStop(runId,target,proof=>{
           if(governor.stopReason!==null)return;
@@ -331,7 +332,7 @@ async function playAgent(): Promise<void> {
         base: {...playLoopBase(model, thinking, apiKey, maxTokens, features),beforeToolCall:({toolCall})=>Promise.resolve(features["just-in-time-prompt-v2"]||jit.allowed(toolCall.name)?undefined:{block:true,reason:"This tool was not available for the screen of this decision; inspect the current state and choose an available tool."})},
         requestContext: context=>{const presentation=features["just-in-time-prompt-v2"]?stableJit:jit;const next=presentation.context(context);recorder.recordRequestContext(presentation.receipt());return next;},
         governor,
-        transformContext: context.transformContext,
+        transformContext: battleDecisionContext(features,new StateWatcher(gameServerUrl),tools,context.transformContext,recorder,controller.signal),
         window: context.window,
         emit: recorder.emit,
         signal: controller.signal,

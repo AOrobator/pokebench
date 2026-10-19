@@ -1,5 +1,6 @@
+import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
 import { expect, it } from "vitest";
-import { ALL_ON, SERVER_FEATURES, SWITCHABLE_FEATURES, featureInfo, featuresOf, playHarnessFeatures, type FeatureSet } from "./features.js";
+import { SERVER_FEATURES, SWITCHABLE_FEATURES, featureInfo, featuresOf, playHarnessFeatures, type FeatureSet } from "./features.js";
 import { flagFeatures, normalizeFeatures, parsePlayPreset, presetFeatures } from "./play-preset.js";
 import { PRESENCE_PENALTY, playSampling, samplingExtras } from "./presence-penalty.js";
 import { readFileSync } from "node:fs";

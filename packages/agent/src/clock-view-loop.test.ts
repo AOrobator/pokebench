@@ -1,8 +1,9 @@
+import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
 import {readFileSync} from "node:fs";
 import {describe,expect,it} from "vitest";
 import type {GameStateSnapshot} from "./game-state.js";
 import {attachLoopGuard,Governor} from "./harness.js";
-import {ALL_ON,SWITCHABLE_FEATURES,featureInfo,playHarnessFeatures} from "./features.js";
+import {SWITCHABLE_FEATURES,featureInfo,playHarnessFeatures} from "./features.js";
 import {experimentArms,parseExperiment} from "./experiments.js";
 import {flagFeatures,normalizeFeatures,presetFeatures,parsePlayPreset} from "./play-preset.js";
 import type {FeatureSet} from "./features.js";
@@ -51,21 +52,21 @@ function look(d:LoopDetector,minute:string):void {
 
 describe("clock-view-loop-v1",()=>{
  it("is registered second to last, default off, and the bundle arm is the one that turns it on",()=>{
-  expect(SWITCHABLE_FEATURES.at(-17)).toBe(ID);
-  expect(playHarnessFeatures(ALL_ON,null).at(-17)).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-25)).toBe(ID);
+  expect(playHarnessFeatures(ALL_ON,null).at(-19)).toBe(ID);
   expect(featureInfo(ID)).toMatchObject({group:"guard",needs:null,switchable:true,title:"CLOCK VIEW LOOP"});
   expect(featureInfo(ID).description).toContain(" Off: ");
   expect(featureInfo(ID).description).toContain("Bundle arm only");
   expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false})[ID]).toBe(false);
   expect(normalizeFeatures({} as Parameters<typeof normalizeFeatures>[0])[ID]).toBe(false);
-  const without=Object.fromEntries(Object.entries({...ALL_ON,"observed-instructions-v1":false,"scripted-place-guidance-v1":false,"trigger-script-loop-v1":false,"state-only-decisions-v1":false}).filter(([id])=>id!==ID)) as FeatureSet;
+  const without=Object.fromEntries(Object.entries({...ALL_ON,"battle-decision-ready-v1":false,"scripted-place-guidance-v1":false,"trigger-script-loop-v1":false,"state-only-decisions-v1":false}).filter(([id])=>id!==ID)) as FeatureSet;
   expect(presetFeatures(parsePlayPreset({version:2,id:"p",target:null,limits:{maxTurns:1,maxWallMs:1,failureLimit:1},sampling:{thinkingLevel:"medium",maxTokens:1},features:without}))[ID]).toBe(false);
   const bundle=JSON.parse(readFileSync(new URL("../../../experiments/fixed/bundle-v-control.json",import.meta.url),"utf8")) as {base:{features:Record<string,boolean>};switches:string[]};
   expect(bundle.base.features[ID]).toBe(false);
   expect(bundle.switches).toContain(ID);
   const raw=JSON.parse(readFileSync(new URL("../../../experiments/clock-view-loop.json",import.meta.url),"utf8")) as {queuePosition?:number;incumbent:{features:Record<string,boolean>}};
   expect(raw.queuePosition).toBeUndefined();
-  expect(Object.keys(raw.incumbent.features)).toEqual(SWITCHABLE_FEATURES.filter(id=>id!=="observed-instructions-v1"&&id!=="deterministic-warp-navigation-v1"&&id!=="battle-effective-damage-v1"&&id!=="scripted-place-guidance-v1"&&id!=="trigger-script-loop-v1"&&id!=="just-in-time-prompt-v2"&&id!=="faced-interaction-history-v1"&&id!=="cache-aligned-window-v1"&&id!=="jit-guide-reuse-v1"&&id!=="stale-story-goal-v2"&&id!=="visited-terrain-navigation-v1"));
+  expect(Object.keys(raw.incumbent.features)).toEqual(SWITCHABLE_FEATURES.filter(id=>id!=="observed-instructions-v1"&&id!=="evolution-decision-v1"&&id!=="safe-navigation-strides-v1"&&id!=="ineffective-navigation-v2"&&id!=="supervisor-briefing-v2"&&id!=="reachable-story-guidance-v1"&&id!=="text-only-supervisor-v2"&&id!=="battle-decision-ready-v1"&&id!=="battle-refusal-loop-v1"&&id!=="deterministic-warp-navigation-v1"&&id!=="battle-effective-damage-v1"&&id!=="scripted-place-guidance-v1"&&id!=="trigger-script-loop-v1"&&id!=="just-in-time-prompt-v2"&&id!=="faced-interaction-history-v1"&&id!=="cache-aligned-window-v1"&&id!=="jit-guide-reuse-v1"&&id!=="stale-story-goal-v2"&&id!=="visited-terrain-navigation-v1"));
   const {incumbent,candidate}=experimentArms(parseExperiment(raw));
   expect(incumbent.features[ID]).toBe(false);
   expect(candidate.features[ID]).toBe(true);

@@ -1,9 +1,10 @@
+import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
 import {readFileSync} from "node:fs";
 import {describe,expect,it} from "vitest";
 import {Type} from "typebox";
 import type {AgentTool,AgentToolResult} from "@mariozechner/pi-agent-core";
 import {checkEvent,type RunEvent} from "./events.js";
-import {ALL_ON,featureInfo,playHarnessFeatures,stateOnlyProblems,SWITCHABLE_FEATURES,type FeatureSet} from "./features.js";
+import {featureInfo,playHarnessFeatures,stateOnlyProblems,SWITCHABLE_FEATURES,type FeatureSet} from "./features.js";
 import {ConversationLedger} from "./instruction-ledger-v2.js";
 import {citationText,withCitedDestination,type DestinationCitationFacts} from "./cited-destination.js";
 import {HarnessTrust,TRUST_HEADER} from "./harness-trust.js";
@@ -24,12 +25,12 @@ const done=(id:string,turn:number):RunEvent=>checkEvent({v:1,run:"r",seq:100+tur
 
 describe("input-cuts-v1",()=>{
  it("is registered fourth from the end, an observation, default off, and state-only refuses it",()=>{
-  expect(SWITCHABLE_FEATURES.at(-15)).toBe(ID);
-  expect(playHarnessFeatures(ALL_ON,null).at(-15)).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-23)).toBe(ID);
+  expect(playHarnessFeatures(ALL_ON,null).at(-17)).toBe(ID);
   expect(playHarnessFeatures(OFF,null)).not.toContain(ID);
   expect(featureInfo(ID)).toMatchObject({group:"observation",needs:null,title:"INPUT CUTS",switchable:true});
   expect(featureInfo(ID).description).toContain(" Off: ");
-  expect(stateOnlyProblems({...ALL_ON,"observed-instructions-v1":false,"state-only-decisions-v1":true})).toContain(`state-only-decisions-v1 requires ${ID} OFF`);
+  expect(stateOnlyProblems({...ALL_ON,"battle-decision-ready-v1":false,"state-only-decisions-v1":true})).toContain(`state-only-decisions-v1 requires ${ID} OFF`);
  });
 
  it("does not quote this call's pages again, and still quotes an earlier turn",()=>{

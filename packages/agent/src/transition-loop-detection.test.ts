@@ -1,9 +1,10 @@
+import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
 import {describe,expect,it} from "vitest";
 import {readFileSync} from "node:fs";
 import {gunzipSync} from "node:zlib";
 import {fileURLToPath} from "node:url";
 import {attachLoopGuard,Governor} from "./harness.js";
-import {ALL_ON,dependencyProblems,featureInfo,featuresOf,playHarnessFeatures} from "./features.js";
+import {dependencyProblems,featureInfo,featuresOf,playHarnessFeatures} from "./features.js";
 import {flagFeatures} from "./play-preset.js";
 import {checkEvent,type RunEvent} from "./events.js";
 import {LOOP_POLICY,LoopDetector,type LoopNotice} from "./loop-detection.js";
@@ -248,9 +249,9 @@ describe("transition-loop-detection-v1 registry",()=>{
  it("is a default-off guard with no dependency, recorded last",()=>{
   expect(featureInfo("transition-loop-detection-v1")).toMatchObject({group:"guard",needs:null,switchable:true});
   expect(featureInfo("transition-loop-detection-v1").description).toContain(" Off: any locked step clears the cycle history and map changes are not counted.");
-  expect(playHarnessFeatures(ALL_ON,null).at(-75)).toBe("transition-loop-detection-v1");
-  expect(playHarnessFeatures({...ALL_ON,"observed-instructions-v1":false,"transition-loop-detection-v1":false},null)).not.toContain("transition-loop-detection-v1");
-  expect(dependencyProblems({...ALL_ON,"observed-instructions-v1":false,"deterministic-loop-guard-v1":false})).not.toContain(expect.stringContaining("transition-loop-detection-v1"));
+  expect(playHarnessFeatures(ALL_ON,null).at(-77)).toBe("transition-loop-detection-v1");
+  expect(playHarnessFeatures({...ALL_ON,"battle-decision-ready-v1":false,"transition-loop-detection-v1":false},null)).not.toContain("transition-loop-detection-v1");
+  expect(dependencyProblems({...ALL_ON,"battle-decision-ready-v1":false,"deterministic-loop-guard-v1":false})).not.toContain(expect.stringContaining("transition-loop-detection-v1"));
   expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:true})["transition-loop-detection-v1"]).toBe(false);
  });
 });

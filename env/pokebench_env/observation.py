@@ -16,7 +16,7 @@ from pokebench_env.blackout_readout import Whiteout, WhiteoutLatch, whiteout_lin
 from pokebench_env.game_screen import ReadMemory
 from pokebench_env.game_state import GameState, MapNames
 from pokebench_env.places import PlaceDirectory
-from pokebench_env.raw_ram import RawRamArchive, raw_reference
+from pokebench_env.raw_ram import RawRamArchive, RawRamSnapshot, Reservation, raw_reference
 from pokebench_env.readout import features_off_from_env, state_json
 from pokebench_env.rerender import read_state, render
 from pokebench_env.screen_settle import (
@@ -30,7 +30,8 @@ from pokebench_env.screen_settle import (
 )
 from pokebench_env.ui_state import active_ui_enabled_from_env
 
-ScreenshotFn = Callable[[], BaseModel]
+ScreenshotFn = Callable[[], BaseModel | Callable[[], BaseModel]]
+RawSnapshotFn = Callable[[Reservation], RawRamSnapshot]
 
 
 def install_observation(
@@ -41,14 +42,56 @@ def install_observation(
     memory_lock: AbstractContextManager[object] | None = None,
     *,
     raw_capture: Callable[[], dict[str, object]] | None = None,
+    raw_snapshot: RawSnapshotFn | None = None,
+    raw_rom: bytes | None = None,
     raw_archive: RawRamArchive | None = None,
     settle: FrameSettle | None = None,
     battle_wait: BattleWait | None = None,
     whiteout: WhiteoutLatch | None = None,
 ) -> Callable[[], dict[str, object]]:
+    if raw_snapshot is not None and raw_archive is None:
+        raise ValueError("raw_snapshot requires raw_archive")
+    if raw_snapshot is not None and raw_capture is not None:
+        raise ValueError("raw_snapshot and raw_capture are mutually exclusive")
     enabled = active_ui_enabled_from_env(os.environ)
     off = features_off_from_env(os.environ)
     warp = WARP_FEATURE not in off
+
+    def realize_screenshot(value: BaseModel | Callable[[], BaseModel]) -> dict[str, object]:
+        return (value() if callable(value) else value).model_dump()
+
+    def decode_snapshot(snapshot: RawRamSnapshot) -> tuple[GameState, dict[str, object]]:
+        state = read_state(snapshot.reader(raw_rom), maps, active_ui=enabled, off=off)
+        return state, state_json(state)
+
+    def finish_snapshot(
+        reservation: Reservation,
+        snapshot: RawRamSnapshot,
+        *,
+        screenshot: BaseModel | Callable[[], BaseModel] | None = None,
+        error: BaseException | None = None,
+    ) -> tuple[dict[str, object], GameState, dict[str, object], dict[str, object] | None]:
+        assert raw_archive is not None
+        future = raw_archive.start_capture(reservation, snapshot)
+        decode_error = error
+        state: GameState | None = None
+        serialized: dict[str, object] | None = None
+        shot: dict[str, object] | None = None
+        if decode_error is None:
+            try:
+                state, serialized = decode_snapshot(snapshot)
+                if screenshot is not None:
+                    shot = realize_screenshot(screenshot)
+            except BaseException as caught:
+                decode_error = caught
+        # Persistence deliberately precedes decode errors: a failed readout
+        # still has a durable raw receipt, matching the legacy contract.
+        receipt = raw_archive.finish_capture(reservation, future)
+        if decode_error is not None:
+            raise decode_error
+        assert state is not None and serialized is not None
+        serialized["raw_ram"] = raw_reference(receipt)
+        return receipt, state, serialized, shot
 
     def serialize() -> dict[str, object]:
         """The typed state; the caller holds the memory lock."""
@@ -62,6 +105,14 @@ def install_observation(
         return serialized
 
     def snapshot() -> dict[str, object]:
+        if raw_snapshot is not None:
+            assert raw_archive is not None
+            with raw_archive.reserve() as reservation:
+                with memory_lock if memory_lock is not None else nullcontext():
+                    frozen = raw_snapshot(reservation)
+                receipt, _, serialized, _ = finish_snapshot(reservation, frozen)
+            raw_archive.pair(receipt, serialized, None)
+            return serialized
         with memory_lock if memory_lock is not None else nullcontext():
             return serialize()
 
@@ -75,7 +126,7 @@ def install_observation(
         serialized = state_json(state)
         if receipt is not None:
             serialized["raw_ram"] = raw_reference(receipt)
-        shot = get_screenshot().model_dump()
+        shot = realize_screenshot(get_screenshot())
         fading = palette_fade_active(read_memory)
         animation = warp and warp_animating(read_memory)
         # Preserve the legacy OFF path: archive pairing stays under the frame
@@ -84,11 +135,56 @@ def install_observation(
             raw_archive.pair(receipt, serialized, str(shot.get("screenshot_base64", "")))
         return receipt, state, serialized, shot, fading, animation, seen
 
+    def capture_frozen(
+        reservation: Reservation,
+    ) -> tuple[
+        RawRamSnapshot,
+        BaseModel | Callable[[], BaseModel] | None,
+        bool,
+        bool,
+        int,
+        BaseException | None,
+    ]:
+        """Frame callback half: immutable copies only, no decode/PNG/disk work."""
+
+        assert raw_snapshot is not None
+        frozen = raw_snapshot(reservation)
+        try:
+            seen = 0 if whiteout is None else whiteout.mark()
+            screenshot = get_screenshot()
+            fading = palette_fade_active(read_memory)
+            animation = warp and warp_animating(read_memory)
+            return frozen, screenshot, fading, animation, seen, None
+        except BaseException as error:
+            # The raw snapshot must remain durable even when a later atomic
+            # read or screenshot copy fails.
+            return frozen, None, False, False, 0, error
+
     @app.get("/pokebench/observation")
     def observation() -> dict[str, object]:
         lock = memory_lock if memory_lock is not None else nullcontext()
         settled: Settled | None = None
-        if settle is not None:
+        receipt: dict[str, object] | None
+        state: GameState
+        serialized: dict[str, object]
+        shot: dict[str, object]
+        if raw_snapshot is not None:
+            assert raw_archive is not None
+            with raw_archive.reserve() as reservation:
+                if settle is not None:
+                    frozen_capture, settled = settle.settle_traced(
+                        lambda: capture_frozen(reservation), lock
+                    )
+                else:
+                    with lock:
+                        frozen_capture = capture_frozen(reservation)
+                frozen, screenshot_source, fading, animation, seen, error = frozen_capture
+                receipt, state, serialized, maybe_shot = finish_snapshot(
+                    reservation, frozen, screenshot=screenshot_source, error=error
+                )
+            assert maybe_shot is not None
+            shot = maybe_shot
+        elif settle is not None:
             captured, settled = settle.settle_traced(capture, lock)
             receipt, state, serialized, shot, fading, animation, seen = captured
         else:
@@ -112,7 +208,11 @@ def install_observation(
                         "money_before": event.money_before,
                         "notice": whiteout_line(event, state),
                     }
-                if raw_archive is not None and receipt is not None and whiteout is not None:
+                if (
+                    raw_archive is not None
+                    and receipt is not None
+                    and (whiteout is not None or raw_snapshot is not None)
+                ):
                     raw_archive.pair(receipt, serialized, screenshot)
             except BaseException:
                 if whiteout is not None and event is not None:
@@ -149,7 +249,16 @@ def install_observation(
             max_frames: int = Query(default=WAIT_BOUND_FRAMES, ge=1, le=3600),
         ) -> dict[str, object]:
             lock = memory_lock if memory_lock is not None else nullcontext()
-            captured, reason, frames = wait.wait(serialize, lock, max_frames)
+            if raw_snapshot is not None:
+                assert raw_archive is not None
+                with raw_archive.reserve() as reservation:
+                    frozen, reason, frames = wait.wait(
+                        lambda: raw_snapshot(reservation), lock, max_frames
+                    )
+                    receipt, _, captured, _ = finish_snapshot(reservation, frozen)
+                raw_archive.pair(receipt, captured, None)
+            else:
+                captured, reason, frames = wait.wait(serialize, lock, max_frames)
             return {"reason": reason, "frames": frames, "state": captured}
 
     return observation

@@ -121,9 +121,11 @@ export interface LoopRuleFeatures {
   readonly clockViews?: boolean;
   readonly closedDialogue?: boolean;
   readonly triggerScriptLoops?: boolean;
+  readonly battleRefusals?: boolean;
 }
 
 export interface LoopCoordinatorOptions extends LoopRuleFeatures {
+  readonly ineffectiveNavigation?: boolean;
   readonly policy?: LoopPolicy;
   readonly mode?: LoopMode;
   readonly supervisor?: (kind: LoopKind, calls: number) => string;

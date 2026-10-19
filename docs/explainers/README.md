@@ -123,6 +123,17 @@ The original ignored runs/explainers copies remain for existing links. Make futu
 - [Visited terrain navigation](visited-terrain-navigation-v1.html)
 - [Deterministic warp navigation](deterministic-warp-navigation-v1.html)
 
+- [Failed navigation outcomes](ineffective-navigation-v2.html) — default-OFF recovery treatment; fixed bundle ON / control OFF.
+- [Focused supervisor briefings](supervisor-briefing-v2.html) — default-OFF recovery treatment; fixed bundle ON / control OFF.
+- [Reachable story guidance](reachable-story-guidance-v1.html) — default-OFF recovery treatment; fixed bundle ON / control OFF.
+- [Truthful text-only supervisor](text-only-supervisor-v2.html) — default-OFF recovery treatment; fixed bundle ON / control OFF.
 - [Extend an active run (operator control)](extend-run.html)
+
+- [Battle decision readiness](battle-decision-ready-v1.html): bounded non-choice battle settling before model requests and semantic action validation; shared by control and bundle.
+- [Battle action refusals](battle-refusal-loop-v1.html): default-OFF semantic refusal coverage using the existing rejection lifecycle.
+
+- [Safe planned navigation strides](safe-navigation-strides-v1.html)
+- [Explicit evolution decision](evolution-decision-v1.html): native decision boundary, both choices, and corrected animation observations.
+
 
 - [Observed instruction memory](observed-instructions-v1.html): complete delivered story-character episodes in YAML, separated from observed progress.

@@ -22,11 +22,13 @@
    "maxTokens": 4096
   },
   "features": {
+   "battle-decision-ready-v1": true,
    "active-field-message-buffer-v1": true,
    "active-ui-ownership-v1": true,
    "adjacent-tiles-v1": true,
    "automatic-running-v1": false,
    "battle-details-v2": true,
+   "battle-refusal-loop-v1": false,
    "battle-loss-recap-v1": true,
    "battle-message-waiting-v1": true,
    "battle-observation-loop-v1": true,
@@ -149,6 +151,12 @@
    "battle-effective-damage-v1": false,
    "visited-terrain-navigation-v1": false,
    "deterministic-warp-navigation-v1": false,
+   "ineffective-navigation-v2": false,
+   "supervisor-briefing-v2": false,
+   "reachable-story-guidance-v1": false,
+   "text-only-supervisor-v2": false,
+   "safe-navigation-strides-v1": false,
+   "evolution-decision-v1": false,
    "observed-instructions-v1": false
   }
  },
@@ -163,6 +171,7 @@
   "harness-trust-v1",
   "cited-destination-v1",
   "battle-move-tool-v1",
+  "battle-refusal-loop-v1",
   "harness-trust-v2",
   "tutorial-party-owner-v1",
   "mid-frame-readout-v1",
@@ -184,9 +193,16 @@
   "trigger-script-loop-v1",
   "battle-effective-damage-v1",
   "deterministic-warp-navigation-v1",
+  "ineffective-navigation-v2",
+  "supervisor-briefing-v2",
+  "reachable-story-guidance-v1",
+  "text-only-supervisor-v2",
+  "safe-navigation-strides-v1",
+  "evolution-decision-v1",
   "observed-instructions-v1"
  ],
  "offInBoth": [
+  "visited-terrain-navigation-v1",
   "milestone-stall-stop-v1",
   "same-plan-breaker-v1",
   "presence-penalty-v1",
@@ -196,6 +212,7 @@
   "jit-guide-reuse-v1"
  ],
  "onInBoth": [
+  "battle-decision-ready-v1",
   "navigation-truth-v1",
   "surf-gated-exits-v1",
   "cross-map-goal-v1",

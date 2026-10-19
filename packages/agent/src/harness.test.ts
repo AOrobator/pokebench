@@ -1,3 +1,5 @@
+import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
+import {gunzipSync} from "node:zlib";
 import type { AgentMessage, AgentTool, StreamFn } from "@mariozechner/pi-agent-core";
 import {
   createAssistantMessageEventStream,
@@ -8,13 +10,13 @@ import {
 } from "@mariozechner/pi-ai";
 import { Type } from "typebox";
 import { describe, expect, it, vi } from "vitest";
-import { appendFileSync, mkdtempSync } from "node:fs";
+import { appendFileSync, mkdtempSync,readFileSync,rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { ControlFile, RunControl, controlLine } from "./run-control.js";
 import { PRESS_TIMING, pressTool } from "./game-tools.js";
-import { DOUBLE_WINDOW, Governor, NUDGE, OMITTED_FRAME, TEXT_ONLY_NOTE_LIMIT, WINDOW, contextWindow, keepCount, piLoop, play, slideWindow, withoutTextOnlyReplies, type Loop, type Window } from "./harness.js";
-import { ALL_ON } from "./features.js";
+import { DOUBLE_WINDOW, Governor, NUDGE, OMITTED_FRAME, TEXT_ONLY_NOTE_LIMIT, WINDOW, contextWindow, keepCount, piLoop, play, slideWindow, withoutTextOnlyReplies, attachLoopGuard,type Loop, type Window } from "./harness.js";
+import {} from "./features.js";
 
 const usage = {
   input: 0,
@@ -883,4 +885,37 @@ it("stable JIT preserves provider-serialized history through unknown, naming and
  expect(JSON.stringify(parsed[0]?.messages)).not.toContain("Clock interface:");
  expect(JSON.stringify(parsed[1]?.messages.at(-1))).toContain("Naming layout,");
  expect(JSON.stringify(parsed[3]?.messages.at(-1))).toContain("Clock interface:");
+});
+
+
+it("records semantic refusal warnings and delivers them before the next pinned-pi decision",async()=>{
+ const {RunRecorder}=await import("./recorder.js");
+ const {RunLog}=await import("./run-log.js");
+ const {FrameStore}=await import("./frames.js");
+ const {RUN_START_META,IN_GAME}=await import("../test-support/events.js");
+ const {checkEvent}=await import("./events.js");
+ const root=mkdtempSync(join(tmpdir(),"pokebench-refusal-pi-"));
+ try{
+  const log=RunLog.create(root,"2026-10-19T15-00-00_refusal-delivery");
+  const recorder=new RunRecorder({log,frames:new FrameStore(root,1000000,()=>undefined),milestones:{poll:()=>Promise.resolve([])},gameState:{read:()=>Promise.resolve(IN_GAME)}});
+  await recorder.start(RUN_START_META,false);
+  const {parseGameState}=await import("./game-state.js");
+  const recorded=JSON.parse(gunzipSync(readFileSync(new URL("../test-support/battle-message-refusals.json.gz",import.meta.url))).toString("utf8")) as {state:unknown}[];
+  const waiting=parseGameState(recorded[0]?.state);
+  const controller=new AbortController();const {g}=governor({maxTurns:3});
+  const detector=attachLoopGuard(recorder,g,undefined,"enforced",false,undefined,false,false,false,false,false,false,false,false,false,true);
+  const refusal='Battle action: nothing pressed: the battle is not waiting for a choice; a battle message is waiting for A or B: "Go!".';
+  const tool:AgentTool={name:"battle_action",label:"battle",description:"battle",parameters:Type.Object({}),execute:()=>Promise.resolve({content:[{type:"text",text:refusal}],details:{state:waiting}})};
+  const seen:Message[][]=[];
+  const loop=piLoop({systemPrompt:"play",tools:[tool],base:{model:MODEL,convertToLlm:m=>m as Message[]},governor:g,transformContext:recorder.transformContext,emit:recorder.emit,signal:controller.signal,loopDetector:detector,streamFn:scriptedModel([reply(["battle_action"]),reply(["battle_action"]),reply(["battle_action"])],seen)});
+  expect(await play(TASK,g,loop)).toBe("budget");
+  const delivered=seen[2]?.filter(m=>m.role==="user").map(m=>typeof m.content==="string"?m.content:JSON.stringify(m.content)).join("\n");
+  expect(delivered).toContain("Repeated battle action refusals pressed no buttons");
+  expect(delivered).toContain("A or B");
+  const events=readFileSync(log.eventsPath,"utf8").trim().split("\n").map(row=>checkEvent(JSON.parse(row)));
+  const warnings=events.filter(e=>e.type==="loop_guard"&&e.phase==="warning");
+  expect(warnings).toHaveLength(1);
+  expect(warnings[0]).toMatchObject({kind:"rejection",calls:2});
+  expect(events.filter(e=>e.type==="button_press")).toEqual([]);
+ }finally{rmSync(root,{recursive:true,force:true});}
 });

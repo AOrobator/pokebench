@@ -1,3 +1,4 @@
+import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
 // exit-reachability-v1: one walk-reachability check (the server's exit_reach) read by every exit list and navigate_to message.
 // Fixture exit-reach-states.json.gz: recorded state bodies (envelope stripped) from runs/<id>/events.jsonl, each with the
 // exit_reach the server code (env/pokebench_env/exit_reach.py) reads from that state's own raw-RAM archive, and map_grids,
@@ -10,7 +11,7 @@ import {readFileSync} from "node:fs";
 import {gunzipSync} from "node:zlib";
 import {describe,expect,it} from "vitest";
 import type {AgentTool,AgentToolResult} from "@mariozechner/pi-agent-core";
-import {ALL_ON,FEATURES,SERVER_FEATURES,featureInfo,featuresOf,playHarnessFeatures,serverFeatureEnv,type FeatureSet} from "./features.js";
+import {FEATURES,SERVER_FEATURES,featureInfo,featuresOf,playHarnessFeatures,serverFeatureEnv,type FeatureSet} from "./features.js";
 import {flagFeatures,normalizeFeatures} from "./play-preset.js";
 import {parseGameState,type GameStateSnapshot} from "./game-state.js";
 import {withNavigation} from "./navigation.js";
@@ -308,10 +309,10 @@ describe("exit-reachability-v1 schema, registry and presets",()=>{
   expect(description).toContain(" Off: ");
   expect(description).toContain("bundle arm only");
   expect(description).not.toContain("both arms");
-  expect(FEATURES.filter(f=>f.switchable).at(-32)?.id).toBe(ID);
-  expect(playHarnessFeatures(ALL_ON,null).at(-32)).toBe(ID);
-  expect(SERVER_FEATURES.at(-8)).toBe(ID);
-  expect(serverFeatureEnv({...ALL_ON,"observed-instructions-v1":false,[ID]:false}).POKEBENCH_FEATURES_OFF.split(",")).toContain(ID);
+  expect(FEATURES.filter(f=>f.switchable).at(-40)?.id).toBe(ID);
+  expect(playHarnessFeatures(ALL_ON,null).at(-34)).toBe(ID);
+  expect(SERVER_FEATURES.at(-10)).toBe(ID);
+  expect(serverFeatureEnv({...ALL_ON,"battle-decision-ready-v1":false,[ID]:false}).POKEBENCH_FEATURES_OFF.split(",")).toContain(ID);
   expect(serverFeatureEnv(ALL_ON).POKEBENCH_FEATURES_OFF.split(",")).not.toContain(ID);
  });
  it("defaults off in presets that omit it and in legacy flag presets",()=>{
@@ -322,7 +323,7 @@ describe("exit-reachability-v1 schema, registry and presets",()=>{
 });
 
 describe("exit-reachability-v1 production wiring (playGameTools and loopSupervisor)",()=>{
- const BASE:FeatureSet={...ALL_ON,"observed-instructions-v1":false,"battle-move-tool-v1":false,"people-ledger-v1":false,"people-id-cards-v1":false,"trainer-heal-guidance-v1":false,"low-hp-trainer-warning-v1":false,"low-hp-trainer-warning-v2":false,"dialogue-auto-advance-v1":false,"bounded-navigation-v1":false,"navigate-first-prompt-v1":false,"blocked-exit-fact-v1":false,"battle-loss-recap-v1":false,"next-milestone-hint-v1":false,"story-destinations-v1":false,"harness-trust-v1":false,"cited-destination-v1":false,"harness-trust-v2":false};
+ const BASE:FeatureSet={...ALL_ON,"battle-decision-ready-v1":false,"battle-move-tool-v1":false,"people-ledger-v1":false,"people-id-cards-v1":false,"trainer-heal-guidance-v1":false,"low-hp-trainer-warning-v1":false,"low-hp-trainer-warning-v2":false,"dialogue-auto-advance-v1":false,"bounded-navigation-v1":false,"navigate-first-prompt-v1":false,"blocked-exit-fact-v1":false,"battle-loss-recap-v1":false,"next-milestone-hint-v1":false,"story-destinations-v1":false,"harness-trust-v1":false,"cited-destination-v1":false,"harness-trust-v2":false};
  const snapshot=recorded("0e05:22579");
  const readout="Screen: overworld\nLocation: ROUTE104\nPosition: X=18, Y=42, facing left\nMoney: 1";
  const tool=(name:string):AgentTool=>({name,label:name,description:name,parameters:{},execute:()=>Promise.resolve({content:[{type:"text",text:readout}],details:{state:snapshot}})}) as unknown as AgentTool;

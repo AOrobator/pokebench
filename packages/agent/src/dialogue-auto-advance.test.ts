@@ -1,3 +1,4 @@
+import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
 import {describe,expect,it} from "vitest";
 import {Type} from "typebox";
 import {mkdtempSync,readFileSync,rmSync} from "node:fs";
@@ -10,7 +11,7 @@ import {withNavigation} from "./navigation.js";
 import {playGameTools} from "./play-wiring.js";
 import {flagFeatures} from "./play-preset.js";
 import {playSystemPrompt,playTools,toolSwitches} from "./play-config.js";
-import {dependencyProblems,featureInfo,playHarnessFeatures,stateOnlyProblems,ALL_ON,type FeatureSet} from "./features.js";
+import {dependencyProblems,featureInfo,playHarnessFeatures,stateOnlyProblems,type FeatureSet} from "./features.js";
 import {checkEvent,type Button,type RunEvent} from "./events.js";
 import {RunRecorder} from "./recorder.js";
 import {RunLog} from "./run-log.js";
@@ -443,11 +444,11 @@ describe("dialogue-auto-advance-v1 registry and production wiring",()=>{
  it("is a default-off guidance switch recorded last that needs the message buffer and phase",()=>{
   expect(featureInfo("dialogue-auto-advance-v1")).toMatchObject({group:"guidance",needs:"active-field-message-buffer-v1",switchable:true});
   expect(featureInfo("dialogue-auto-advance-v1").description).toContain(" Off: ");
-  expect(playHarnessFeatures(ALL_ON,null).at(-79)).toBe("dialogue-auto-advance-v1");
+  expect(playHarnessFeatures(ALL_ON,null).at(-81)).toBe("dialogue-auto-advance-v1");
   expect(dependencyProblems({...ON,"field-dialogue-phase-v1":false})).toEqual(["dialogue-auto-advance-v1 needs field-dialogue-phase-v1"]);
   expect(dependencyProblems({...ON,"active-field-message-buffer-v1":false})).toContain("dialogue-auto-advance-v1 needs active-field-message-buffer-v1");
   expect(dependencyProblems({...ON,"dialogue-safe-batches-v1":true})).toEqual([]);
-  expect(stateOnlyProblems({...ALL_ON,"observed-instructions-v1":false,"state-only-decisions-v1":true})).toContain("state-only-decisions-v1 requires dialogue-auto-advance-v1 OFF");
+  expect(stateOnlyProblems({...ALL_ON,"battle-decision-ready-v1":false,"state-only-decisions-v1":true})).toContain("state-only-decisions-v1 requires dialogue-auto-advance-v1 OFF");
   expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:true})["dialogue-auto-advance-v1"]).toBe(false);
  });
 

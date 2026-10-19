@@ -304,6 +304,18 @@ it("serves a partial snapshot at once while cold runs load in the background", a
   expect(h.calls).toHaveLength(4);
 });
 
+it("includes the selected cold replay in its first card response without waiting for other runs", async () => {
+  const r = root(); write(r, "done", ended()); write(r, "live", named());
+  let releaseOther = (): void => { throw new Error("other run was not requested"); };
+  const loader = createWorkbenchLoader({ compute: (root, id) => id === "done" ? Promise.resolve(loadRun(root, id)) : new Promise(resolve => { releaseOther = () => { resolve(loadRun(root, id)); }; }) });
+  try {
+    const first = await workbenchSnapshot(r, healthy, NOW, undefined, loader, { partial: true, cards: { selected: "done", live: new Set(["live"]) } });
+    expect(first.runs.map(run => run.id)).toEqual(["done"]);
+    expect(first.runs[0]?.config).not.toBeNull();
+    expect(first.runs[0]?.status).toBe("ended");
+  } finally { releaseOther(); }
+});
+
 it("keeps showing a run's previous record while its grown log reloads", async () => {
   const r = catalog();
   const h = heldCompute();

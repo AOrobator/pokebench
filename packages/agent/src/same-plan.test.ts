@@ -1,6 +1,7 @@
+import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
 import {readFileSync} from "node:fs";
 import {describe,expect,it} from "vitest";
-import {ALL_ON,SWITCHABLE_FEATURES,dependencyProblems,featureInfo,featuresOf,playHarnessFeatures,type FeatureSet} from "./features.js";
+import {SWITCHABLE_FEATURES,dependencyProblems,featureInfo,featuresOf,playHarnessFeatures,type FeatureSet} from "./features.js";
 import {attachLoopGuard,Governor} from "./harness.js";
 import {checkEvent,parseEvent,type RunEvent} from "./events.js";
 import type {LoopNotice} from "./loop-detection.js";
@@ -41,10 +42,10 @@ describe("registry and presets",()=>{
   expect(featureInfo(ID)).toMatchObject({group:"guard",needs:"deterministic-loop-guard-v1",switchable:true,title:"SAME-PLAN BREAKER"});
   expect(featureInfo(ID).description).toContain(" Off: no such note.");
   expect(featureInfo(ID).description).toContain("Your last 3 plans (turns a, b, c) were the same and the game state did not change");
-  expect(SWITCHABLE_FEATURES.at(-59)).toBe(ID);
-  expect(playHarnessFeatures(ALL_ON,null).at(-59)).toBe(ID);
-  expect(featuresOf(playHarnessFeatures({...ALL_ON,"observed-instructions-v1":false,[ID]:false},null))[ID]).toBe(false);
-  expect(dependencyProblems({...ALL_ON,"observed-instructions-v1":false,"deterministic-loop-guard-v1":false})).toContain(`${ID} needs deterministic-loop-guard-v1`);
+  expect(SWITCHABLE_FEATURES.at(-67)).toBe(ID);
+  expect(playHarnessFeatures(ALL_ON,null).at(-61)).toBe(ID);
+  expect(featuresOf(playHarnessFeatures({...ALL_ON,"battle-decision-ready-v1":false,[ID]:false},null))[ID]).toBe(false);
+  expect(dependencyProblems({...ALL_ON,"battle-decision-ready-v1":false,"deterministic-loop-guard-v1":false})).toContain(`${ID} needs deterministic-loop-guard-v1`);
  });
  it("defaults off for presets that omit it and for legacy flag presets",()=>{
   const older=Object.fromEntries(Object.entries(ALL_ON).filter(([id])=>id!==ID)) as Omit<FeatureSet,typeof ID>;

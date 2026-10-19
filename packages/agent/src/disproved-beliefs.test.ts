@@ -1,7 +1,8 @@
+import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
 import {readFileSync} from "node:fs";
 import type {AgentMessage} from "@mariozechner/pi-agent-core";
 import {describe,expect,it} from "vitest";
-import {ALL_ON,SWITCHABLE_FEATURES,dependencyProblems,featureInfo,featuresOf,playHarnessFeatures,type FeatureSet} from "./features.js";
+import {SWITCHABLE_FEATURES,dependencyProblems,featureInfo,featuresOf,playHarnessFeatures,type FeatureSet} from "./features.js";
 import {DisprovedBeliefs,disprovedBeliefs,locatingClaims} from "./disproved-beliefs.js";
 import {checkEvent,type BodyOf,type RunEvent} from "./events.js";
 import {contextTools} from "./play-wiring.js";
@@ -44,12 +45,12 @@ describe("registry and presets",()=>{
   expect(featureInfo(ID)).toMatchObject({group:"guidance",needs:"story-state-v1",switchable:true,title:"DISPROVED BELIEFS LEDGER"});
   expect(featureInfo(ID).description).toContain(" Off: no ledger.");
   expect(featureInfo(ID).description).toContain("Things the game has contradicted");
-  expect(SWITCHABLE_FEATURES.at(-60)).toBe(ID);
-  expect(playHarnessFeatures(ALL_ON,null).at(-60)).toBe(ID);
-  expect(playHarnessFeatures({...ALL_ON,"observed-instructions-v1":false,[ID]:false},null)).not.toContain(ID);
-  expect(featuresOf(playHarnessFeatures({...ALL_ON,"observed-instructions-v1":false,[ID]:false},null))[ID]).toBe(false);
+  expect(SWITCHABLE_FEATURES.at(-68)).toBe(ID);
+  expect(playHarnessFeatures(ALL_ON,null).at(-62)).toBe(ID);
+  expect(playHarnessFeatures({...ALL_ON,"battle-decision-ready-v1":false,[ID]:false},null)).not.toContain(ID);
+  expect(featuresOf(playHarnessFeatures({...ALL_ON,"battle-decision-ready-v1":false,[ID]:false},null))[ID]).toBe(false);
   // Entries leave on a story-flag change, which needs the story state (review round 1).
-  expect(dependencyProblems({...ALL_ON,"observed-instructions-v1":false,"story-state-v1":false})).toContain(`${ID} needs story-state-v1`);
+  expect(dependencyProblems({...ALL_ON,"battle-decision-ready-v1":false,"story-state-v1":false})).toContain(`${ID} needs story-state-v1`);
  });
  it("defaults off for presets that omit it and for legacy flag presets",()=>{
   const older=Object.fromEntries(Object.entries(ALL_ON).filter(([id])=>id!==ID)) as Omit<FeatureSet,typeof ID>;
@@ -364,8 +365,8 @@ describe("leaving the ledger and never clipping",()=>{
  });
  it("the production factory is null when the switch is off",()=>{
   const recorder={subscribe:()=>undefined,recordBeliefLedger:()=>undefined};
-  expect(disprovedBeliefs({...ALL_ON,"observed-instructions-v1":false,[ID]:false},recorder,m=>Promise.resolve(m))).toBeNull();
-  expect(disprovedBeliefs({...ALL_ON,"observed-instructions-v1":false,[ID]:true},recorder,m=>Promise.resolve(m))).not.toBeNull();
+  expect(disprovedBeliefs({...ALL_ON,"battle-decision-ready-v1":false,[ID]:false},recorder,m=>Promise.resolve(m))).toBeNull();
+  expect(disprovedBeliefs({...ALL_ON,"battle-decision-ready-v1":false,[ID]:true},recorder,m=>Promise.resolve(m))).not.toBeNull();
  });
 });
 

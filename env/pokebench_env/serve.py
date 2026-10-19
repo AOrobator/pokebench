@@ -31,15 +31,22 @@ from pokebench_env.battle_text import BattleWait, install_battle_text, install_b
 from pokebench_env.blackout_readout import SWITCH as BLACKOUT
 from pokebench_env.blackout_readout import WhiteoutLatch, install_whiteout_latch
 from pokebench_env.checkpoint import install_checkpoint
+from pokebench_env.evolution_decision import SWITCH as EVOLUTION
+from pokebench_env.evolution_decision import install_evolution_decision
 from pokebench_env.frame_pacing import GameLoopServer, install_deadline_pacing
 from pokebench_env.game_screen import ReadMemory
 from pokebench_env.game_state import MapNames
 from pokebench_env.human import HumanServer, install_human
 from pokebench_env.levelup_box import SWITCH as LEVELUP_BOX
 from pokebench_env.memory_reader import Core, NativeCore, SnapshotMemoryReader, copy_native_region
-from pokebench_env.observation import ScreenshotFn, install_observation
+from pokebench_env.observation import RawSnapshotFn, ScreenshotFn, install_observation
 from pokebench_env.pause import SteppingServer, install_pause
-from pokebench_env.raw_ram import RawRamArchive
+from pokebench_env.raw_ram import (
+    RawRamArchive,
+    RawRamSnapshot,
+    Reservation,
+    shutdown_persistence_worker,
+)
 from pokebench_env.readout import features_off_from_env
 from pokebench_env.rom import resolve_rom
 from pokebench_env.screen_settle import (
@@ -70,10 +77,24 @@ def native_screenshot(emulator: FrameSource) -> NativeScreenshot:
     image = emulator.get_screenshot()
     if image is None:
         raise HTTPException(status_code=503, detail="no screenshot available")
+    return native_screenshot_image(image)
+
+
+def native_screenshot_image(image: Image.Image) -> NativeScreenshot:
     encoded = encode_png_base64(image)
     if encoded is None:  # pragma: no cover - FrameSource promises a PIL image
         raise HTTPException(status_code=503, detail="unsupported screenshot")
     return NativeScreenshot(screenshot_base64=encoded)
+
+
+def frozen_native_screenshot(emulator: FrameSource) -> Callable[[], NativeScreenshot]:
+    """Copy framebuffer pixels under the emulator lock; encode afterward."""
+
+    image = emulator.get_screenshot()
+    if image is None:
+        raise HTTPException(status_code=503, detail="no screenshot available")
+    frozen = image.copy()
+    return lambda: native_screenshot_image(frozen)
 
 
 def encode_png_base64(screenshot: object) -> str | None:
@@ -247,11 +268,19 @@ def run(
     checkpoint: Callable[[], bytes | None] | None = None,
     raw_archive: RawRamArchive | None = None,
     raw_capture: Callable[[], dict[str, object]] | None = None,
+    raw_snapshot: RawSnapshotFn | None = None,
+    raw_rom: bytes | None = None,
     travel: tuple[FastAPI, type[FrameEmulator], TravelServer, ReadMemory] | None = None,
     agent_checkpoint: tuple[FastAPI, Callable[[], bytes | None]] | None = None,
     frames: type[SteppedEmulator] | None = None,
     battle_text: tuple[FastAPI, type[SteppedEmulator], ReadMemory] | None = None,
 ) -> None:
+    if human is not None:
+        # Human play has neither this model tool nor its frame gate. Keep every
+        # reader OFF even when the historical human launch list omits the ID.
+        os.environ["POKEBENCH_FEATURES_OFF"] = ",".join(
+            sorted(features_off_from_env(os.environ) | {EVOLUTION})
+        )
     # Agent observations wait out screen fades on emulated frames (never wall
     # time). The human server records its snapshot observation under the
     # journal lock that the frame step also takes, so it captures at once.
@@ -278,9 +307,30 @@ def run(
         battle_wait = BattleWait(observation[2], levelup_box=LEVELUP_BOX not in off)
         install_battle_wait(frames, battle_wait)
     if actions is not None:
-        install_action_history(*actions)
+        install_action_history(
+            *actions,
+            evolution_decision=human is None and EVOLUTION not in features_off_from_env(os.environ),
+            tutorial_owner_enabled="tutorial-party-owner-v1"
+            not in features_off_from_env(os.environ),
+        )
     if travel is not None:
-        install_travel(*travel)
+        install_travel(
+            *travel,
+            safe_strides="safe-navigation-strides-v1" not in features_off_from_env(os.environ),
+        )
+    if (
+        observation is not None
+        and frames is not None
+        and human is None
+        and EVOLUTION not in features_off_from_env(os.environ)
+    ):
+        if len(observation) != 5:
+            raise ValueError("evolution decisions require the emulator memory lock")
+        gate = install_evolution_decision(observation[0], frames, observation[2], observation[4])
+        if settle is not None:
+            # The game intentionally waits for a choice; capture that state even
+            # if its palette is still fading/black. Never advance a held frame.
+            settle.capture_held = lambda: gate.pending() is not None
     if pause is not None:
         install_pause(
             *pause,
@@ -297,6 +347,8 @@ def run(
             *observation,
             raw_archive=raw_archive,
             raw_capture=raw_capture,
+            raw_snapshot=raw_snapshot,
+            raw_rom=raw_rom,
             settle=settle,
             battle_wait=battle_wait,
             whiteout=whiteout,
@@ -307,7 +359,12 @@ def run(
         install_pause(api, server, input_pause=controller.set_paused)
     pin_localhost(uvicorn)
     sys.argv = ["server.app", *argv]
-    vendor_main()
+    try:
+        vendor_main()
+    finally:
+        if raw_archive is not None:
+            raw_archive.close()
+            shutdown_persistence_worker()
 
 
 def main() -> None:  # pragma: no cover - entrypoint, exercised by `just smoke`
@@ -331,13 +388,14 @@ def main() -> None:  # pragma: no cover - entrypoint, exercised by `just smoke`
 
     import hashlib
 
+    rom = resolve_rom(os.environ).read_bytes()
     archive = RawRamArchive(
         Path.cwd().parent / "raw-ram",
-        hashlib.sha1(resolve_rom(os.environ).read_bytes(), usedforsecurity=False).hexdigest(),
+        hashlib.sha1(rom, usedforsecurity=False).hexdigest(),
     )
 
-    def raw_capture() -> dict[str, object]:
-        return archive.capture(read_memory, int(app.env.core.frame_counter))
+    def raw_snapshot(reservation: Reservation) -> RawRamSnapshot:
+        return archive.snapshot(reservation, read_memory, int(app.env.core.frame_counter))
 
     def checkpoint() -> bytes | None:
         with app.memory_lock:
@@ -357,7 +415,7 @@ def main() -> None:  # pragma: no cover - entrypoint, exercised by `just smoke`
         actions=(app.app, cast(type[FrameEmulator], EmeraldEmulator), read_memory),
         observation=(
             app.app,
-            lambda: native_screenshot(cast(FrameSource, app.env)),
+            lambda: frozen_native_screenshot(cast(FrameSource, app.env)),
             # The vendor creates `env` at startup, after routes are installed.
             read_memory,
             MapNames.load(PORYMAP_MAPS),
@@ -365,7 +423,8 @@ def main() -> None:  # pragma: no cover - entrypoint, exercised by `just smoke`
         ),
         checkpoint=checkpoint if token else None,
         raw_archive=archive,
-        raw_capture=raw_capture,
+        raw_snapshot=raw_snapshot,
+        raw_rom=rom,
         travel=(
             app.app,
             cast(type[FrameEmulator], EmeraldEmulator),

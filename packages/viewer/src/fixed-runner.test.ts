@@ -13,7 +13,7 @@ import { LEASE } from "./lease.js";
 import { parseFixedStatus, type FixedStatus } from "./fixed-status.js";
 import { definition, MODEL_PATH, ROM_SHA1 } from "../test-support/fixed.js";
 import { Log, START } from "../test-support/events.js";
-import { armFeatureBits, parseFixedDefinition, controlBaseProblems, dryRunDefinition, type FixedDefinition, type FixedLane } from "./fixed-design.js";
+import { armFeatures, armFeatureBits, parseFixedDefinition, controlBaseProblems, dryRunDefinition, type FixedDefinition, type FixedLane } from "./fixed-design.js";
 
 const COMMIT = "0123456789abcdef0123456789abcdef01234567";
 const RECEIPT: ServingReceipt = { model: MODEL_PATH, build: "b10236-1464c62d8", contextTokens: 65536, slots: 1, vision: true, fingerprint: "f".repeat(64) };
@@ -24,6 +24,14 @@ it("keeps the improved blackout receipt out of control and in the bundle",()=>{
  expect(def.onInBoth).not.toContain("blackout-readout-v1");
  expect(armFeatureBits(def,"control")["blackout-readout-v1"]).toBe(false);
  expect(armFeatureBits(def,"bundle")["blackout-readout-v1"]).toBe(true);
+});
+
+it("all four recovery treatments are ON in bundle and OFF in control in the actual fixed runner design",()=>{
+ const {definition:def}=parseFixedDefinition(readFileSync(new URL("../../../experiments/fixed/bundle-v-control.json",import.meta.url),"utf8"));
+ for(const id of ["ineffective-navigation-v2","supervisor-briefing-v2","reachable-story-guidance-v1","text-only-supervisor-v2"]){
+  expect(armFeatures(def,"control")[id]).toBe(false);expect(armFeatures(def,"bundle")[id]).toBe(true);
+  expect(armFeatureBits(def,"control")[id]).toBe(false);expect(armFeatureBits(def,"bundle")[id]).toBe(true);
+ }
 });
 
 type Ending = "budget" | "model_error" | "never-started";
@@ -451,3 +459,54 @@ it("holds both GPU lanes through finite extensions, then chains without replacem
   expect(host.maxRunning).toBe(2);
   expect(parseFixedStatus(JSON.parse(readFileSync(join(dir, "status.json"), "utf8")))).toMatchObject({ state: "finished", invalid: 0, valid: def.plan.length });
 });
+
+it("enables battle decision readiness identically in control and bundle, preserving the frozen control base",async()=>{
+ const {armPreset}=await import("./fixed-design.js");
+ const def=parseFixedDefinition(readFileSync(new URL("../../../experiments/fixed/bundle-v-control.json",import.meta.url),"utf8")).definition;
+ const id="battle-decision-ready-v1";
+ expect(def.onInBoth).toContain(id);expect(def.switches).not.toContain(id);
+ expect(controlBaseProblems(def,readFileSync(new URL(`../../../${def.controlBase.path}`,import.meta.url),"utf8"))).toEqual([]);
+ for(const arm of ["control","bundle"] as const){
+  expect(armFeatureBits(def,arm)[id]).toBe(true);
+  for(const phase of def.phases)expect(armPreset(def,phase.id,arm).features[id]).toBe(true);
+ }
+});
+
+ it("keeps visited navigation explicitly registered OFF for approved campaign overrides",async()=>{
+ const {armPreset}=await import("./fixed-design.js");
+ const {presetFeatures,parsePlayPreset}=await import("@pokebench/agent/play-preset");
+ const def=parseFixedDefinition(readFileSync(new URL("../../../experiments/fixed/bundle-v-control.json",import.meta.url),"utf8")).definition;
+ const id="visited-terrain-navigation-v1";
+ expect(id in def.base.features).toBe(true);expect(def.base.features[id]).toBe(false);
+ expect(def.offInBoth).toContain(id);expect(def.switches).not.toContain(id);expect(def.onInBoth).not.toContain(id);
+ expect(controlBaseProblems(def,readFileSync(new URL(`../../../${def.controlBase.path}`,import.meta.url),"utf8"))).toEqual([]);
+ const omitted=structuredClone(def);delete omitted.base.features["visited-terrain-navigation-v1"];omitted.offInBoth=omitted.offInBoth.filter(key=>key!==id);
+ for(const arm of ["control","bundle"] as const)for(const phase of def.phases){
+  const restored=armPreset(def,phase.id,arm),previous=armPreset(omitted,phase.id,arm);
+  expect(armFeatureBits(def,arm)[id]).toBe(false);
+  expect(presetFeatures(parsePlayPreset(restored))).toEqual(presetFeatures(parsePlayPreset(previous)));
+  expect(restored.features["battle-decision-ready-v1"]).toBe(true);
+ }
+});
+
+it("enables safe navigation strides only in the canonical bundle treatment",async()=>{
+ const {armPreset}=await import("./fixed-design.js");
+ const {presetFeatures}=await import("@pokebench/agent/play-preset");
+ const {playHarnessFeatures,dependencyProblems}=await import("@pokebench/agent/features");
+ const def=parseFixedDefinition(readFileSync(new URL("../../../experiments/fixed/bundle-v-control.json",import.meta.url),"utf8")).definition;
+ const id="safe-navigation-strides-v1";
+ expect(def.base.features[id]).toBe(false);expect(def.switches).toContain(id);
+ expect(def.offInBoth).not.toContain(id);expect(def.onInBoth).not.toContain(id);
+ expect(controlBaseProblems(def,readFileSync(new URL(`../../../${def.controlBase.path}`,import.meta.url),"utf8"))).toEqual([]);
+ for(const phase of def.phases)for(const arm of ["control","bundle"] as const){
+  const features=presetFeatures(armPreset(def,phase.id,arm));
+  expect(features[id]).toBe(arm==="bundle");expect(dependencyProblems(features)).toEqual([]);
+  expect(playHarnessFeatures(features,null).includes(id)).toBe(arm==="bundle");
+ }
+});
+
+it("enables explicit evolution only in the bundle through the production arm builder",()=>{
+ const {definition:def}=parseFixedDefinition(readFileSync(new URL("../../../experiments/fixed/bundle-v-control.json",import.meta.url),"utf8"));
+ expect(armFeatureBits(def,"control")["evolution-decision-v1"]).toBe(false);
+ expect(armFeatureBits(def,"bundle")["evolution-decision-v1"]).toBe(true);
+ });

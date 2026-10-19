@@ -44,6 +44,8 @@ export class LoopDetector extends LoopCoordinator {
     clockViews = false,
     closedDialogue = false,
     triggerScriptLoops = false,
+    battleRefusals = false,
+    ineffectiveNavigation = false,
   ) {
     super(notify, {
       policy,
@@ -59,6 +61,8 @@ export class LoopDetector extends LoopCoordinator {
       clockViews,
       closedDialogue,
       triggerScriptLoops,
+      battleRefusals,
+      ineffectiveNavigation,
     });
   }
 }

@@ -1,3 +1,4 @@
+import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
 // navigate-first-prompt-v1: the prompt, the navigate_to description and a press reminder steer
 // walking to navigate_to. Cook run #2 (2026-10-16T02-23-17_qwen36-gpu1_sh02) walked Route 103 by
 // press for 76 overworld turns against 56 by navigate_to; at T888 it pressed into a ledge row while
@@ -5,7 +6,7 @@
 import {readFileSync} from "node:fs";
 import {describe,expect,it} from "vitest";
 import type {AgentTool,AgentToolResult} from "@mariozechner/pi-agent-core";
-import {ALL_ON,SERVER_FEATURES,SWITCHABLE_FEATURES,dependencyProblems,featureInfo,featuresOf,playHarnessFeatures,type FeatureSet} from "./features.js";
+import {SERVER_FEATURES,SWITCHABLE_FEATURES,dependencyProblems,featureInfo,featuresOf,playHarnessFeatures,type FeatureSet} from "./features.js";
 import {flagFeatures,normalizeFeatures,parsePlayPreset,presetFeatures} from "./play-preset.js";
 import {NAVIGATE_TO_USAGE,playSystemPrompt,toolSwitches} from "./play-config.js";
 import {MOVING_AROUND_FULL,MOVING_AROUND_LOCAL,MOVING_AROUND_VISITED,NAVIGATE_FIRST_DESCRIPTION,NAVIGATE_FIRST_TOOL_LINE,PRESS_NOT_WALKING,REMINDER,REMINDER_EVERY,navigateFirstToolList,withNavigateFirst} from "./navigate-first.js";

@@ -1,16 +1,17 @@
+import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
 import { readFileSync } from "node:fs";
 import { expect, it } from "vitest";
-import { ALL_ON, SERVER_FEATURES, SWITCHABLE_FEATURES, dependencyProblems, featureInfo, featuresOf, playHarnessFeatures, serverFeatureEnv, type FeatureSet } from "./features.js";
+import { SERVER_FEATURES, SWITCHABLE_FEATURES, dependencyProblems, featureInfo, featuresOf, playHarnessFeatures, serverFeatureEnv, type FeatureSet} from "./features.js";
 import { flagFeatures, normalizeFeatures, parsePlayPreset, presetFeatures } from "./play-preset.js";
 
 // readout-truth-v1 and birch-speech-pages-v1 (correctness fixes, ON in both arms) and
 // blackout-readout-v1 (bundle arm only): game-server readout switches, recorded last.
 const IDS = ["readout-truth-v1", "birch-speech-pages-v1", "blackout-readout-v1"] as const;
-const off = (...ids: (typeof SWITCHABLE_FEATURES)[number][]): FeatureSet => ({ ...ALL_ON,"observed-instructions-v1":false, ...Object.fromEntries(ids.map((id) => [id, false])) });
+const off = (...ids: (typeof SWITCHABLE_FEATURES)[number][]): FeatureSet => ({ ...ALL_ON,"battle-decision-ready-v1":false,...Object.fromEntries(ids.map((id) => [id, false])) });
 
 it("registers three default-off observation switches with no dependency, recorded last in this order", () => {
-  expect(SWITCHABLE_FEATURES.slice(-45,-42)).toEqual([...IDS]);
-  expect(playHarnessFeatures(ALL_ON, null).slice(-45,-42)).toEqual([...IDS]);
+  expect(SWITCHABLE_FEATURES.slice(-53,-50)).toEqual([...IDS]);
+  expect(playHarnessFeatures(ALL_ON, null).slice(-47,-44)).toEqual([...IDS]);
   for (const id of IDS) {
     expect(featureInfo(id)).toMatchObject({ group: "observation", needs: null, switchable: true });
     expect(featureInfo(id).description).toContain(" Off: ");
@@ -18,7 +19,7 @@ it("registers three default-off observation switches with no dependency, recorde
     expect(featuresOf(playHarnessFeatures(off(id), null))[id]).toBe(false);
   }
   // No dependency: the control arm of bundle-v-control has expanded menu text off.
-  expect(dependencyProblems(off("battle-effective-damage-v1", "expanded-menu-battle-information-v1", "battle-details-v2", "battle-triage-guidance-v1", "status-names-v1"))).toEqual([]);
+  expect(dependencyProblems(off("battle-decision-ready-v1","battle-effective-damage-v1", "expanded-menu-battle-information-v1", "battle-details-v2", "battle-triage-guidance-v1", "status-names-v1"))).toEqual([]);
 });
 
 it("describes each switch with the exact lines the game server writes", () => {
@@ -58,9 +59,9 @@ it("states each switch's intended arms and the whiteout frame scope (operator de
 });
 
 it("hands all three to the game server, whose list and default-off set name them", () => {
-  expect(SERVER_FEATURES.slice(-12,-9)).toEqual([...IDS]);
-  for (const id of IDS) expect(serverFeatureEnv(off(id)).POKEBENCH_FEATURES_OFF).toBe(id);
-  expect(serverFeatureEnv(ALL_ON).POKEBENCH_FEATURES_OFF).toBe("");
+  expect(SERVER_FEATURES.slice(-14,-11)).toEqual([...IDS]);
+  for (const id of IDS) expect(serverFeatureEnv(off(id)).POKEBENCH_FEATURES_OFF).toBe(`${id},safe-navigation-strides-v1`);
+  expect(serverFeatureEnv(ALL_ON).POKEBENCH_FEATURES_OFF).toBe("safe-navigation-strides-v1");
   const readout = readFileSync(new URL("../../../env/pokebench_env/readout.py", import.meta.url), "utf8");
   expect(readout).toContain('    "transition-coherence-v1",\n    "readout-truth-v1",\n    "birch-speech-pages-v1",\n    "blackout-readout-v1",\n');
   expect(readout).toContain('"readout-truth-v1,birch-speech-pages-v1,blackout-readout-v1,"');

@@ -1,9 +1,10 @@
+import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
 import { readFileSync } from "node:fs";
 import type { AgentMessage } from "@mariozechner/pi-agent-core";
 import type { AssistantMessage, ImageContent, ToolResultMessage } from "@mariozechner/pi-ai";
 import { describe, expect, it } from "vitest";
 import type { RunEvent } from "./events.js";
-import { ALL_ON, dependencyProblems, featureInfo, featuresOf, playHarnessFeatures, type FeatureSet } from "./features.js";
+import { dependencyProblems, featureInfo, featuresOf, playHarnessFeatures, type FeatureSet} from "./features.js";
 import { DOUBLE_WINDOW, OMITTED_FRAME, WINDOW, contextWindow, dialogueUnits, slideWindow, type Window } from "./harness.js";
 import { SupervisorBriefing } from "./loop-supervisor.js";
 import { contextTools } from "./play-wiring.js";
@@ -150,9 +151,9 @@ describe("dialogue-context-kept-v1 registry and production wiring", () => {
   it("is a default-off guidance switch recorded last that needs no other switch", () => {
     expect(featureInfo("dialogue-context-kept-v1")).toMatchObject({ group: "guidance", needs: null, switchable: true });
     expect(featureInfo("dialogue-context-kept-v1").description).toContain(" Off: ");
-    expect(playHarnessFeatures(ALL_ON, null).at(-77)).toBe("dialogue-context-kept-v1");
-    expect(playHarnessFeatures({ ...ALL_ON,"observed-instructions-v1":false,"cache-aligned-window-v1":false, "dialogue-context-kept-v1": false }, null)).not.toContain("dialogue-context-kept-v1");
-    expect(dependencyProblems({ ...ALL_ON,"observed-instructions-v1":false,"cache-aligned-window-v1":false, "dialogue-context-kept-v1": true })).toEqual([]);
+    expect(playHarnessFeatures(ALL_ON, null).at(-79)).toBe("dialogue-context-kept-v1");
+    expect(playHarnessFeatures({ ...ALL_ON,"battle-decision-ready-v1":false,"cache-aligned-window-v1":false, "dialogue-context-kept-v1": false }, null)).not.toContain("dialogue-context-kept-v1");
+    expect(dependencyProblems({ ...ALL_ON,"battle-decision-ready-v1":false,"cache-aligned-window-v1":false, "dialogue-context-kept-v1": true })).toEqual([]);
     const older = Object.fromEntries(Object.entries(ALL_ON).filter(([id]) => id !== "dialogue-context-kept-v1")) as Parameters<typeof normalizeFeatures>[0];
     expect("dialogue-context-kept-v1" in older).toBe(false);
     expect(normalizeFeatures(older)["dialogue-context-kept-v1"]).toBe(false);
@@ -160,10 +161,10 @@ describe("dialogue-context-kept-v1 registry and production wiring", () => {
   });
 
   it("OFF keeps the incumbent windows by identity; ON adds keepDialogue to either", () => {
-    expect(contextWindow({ ...ALL_ON,"observed-instructions-v1":false,"cache-aligned-window-v1":false, "dialogue-context-kept-v1": false, "double-context-window-v1": false })).toBe(WINDOW);
-    expect(contextWindow({ ...ALL_ON,"observed-instructions-v1":false,"cache-aligned-window-v1":false, "dialogue-context-kept-v1": false, "double-context-window-v1": true })).toBe(DOUBLE_WINDOW);
-    expect(contextWindow({ ...ALL_ON,"observed-instructions-v1":false,"cache-aligned-window-v1":false, "dialogue-context-kept-v1": true, "double-context-window-v1": false })).toEqual<Window>({ ...WINDOW, keepDialogue: true });
-    expect(contextWindow({ ...ALL_ON,"observed-instructions-v1":false,"cache-aligned-window-v1":false, "dialogue-context-kept-v1": true, "double-context-window-v1": true })).toEqual<Window>({ ...DOUBLE_WINDOW, keepDialogue: true });
+    expect(contextWindow({ ...ALL_ON,"battle-decision-ready-v1":false,"cache-aligned-window-v1":false, "dialogue-context-kept-v1": false, "double-context-window-v1": false })).toBe(WINDOW);
+    expect(contextWindow({ ...ALL_ON,"battle-decision-ready-v1":false,"cache-aligned-window-v1":false, "dialogue-context-kept-v1": false, "double-context-window-v1": true })).toBe(DOUBLE_WINDOW);
+    expect(contextWindow({ ...ALL_ON,"battle-decision-ready-v1":false,"cache-aligned-window-v1":false, "dialogue-context-kept-v1": true, "double-context-window-v1": false })).toEqual<Window>({ ...WINDOW, keepDialogue: true });
+    expect(contextWindow({ ...ALL_ON,"battle-decision-ready-v1":false,"cache-aligned-window-v1":false, "dialogue-context-kept-v1": true, "double-context-window-v1": true })).toEqual<Window>({ ...DOUBLE_WINDOW, keepDialogue: true });
   });
 
   it("the play wiring hands the loop the switch's window", () => {
@@ -220,9 +221,9 @@ describe("dialogue-context-kept-v1: the supervisor cites the last story instruct
   });
 
   it("says so when no story step has dialogue yet, and is absent when dialogue text is off", () => {
-    expect(new SupervisorBriefing({ ...ALL_ON,"observed-instructions-v1":false,"cache-aligned-window-v1":false, "dialogue-context-kept-v1": true }).text("planning", 0)).toContain("- Dialogue you were shown leading up to the last story step the game confirmed: none recorded");
-    expect(new SupervisorBriefing({ ...ALL_ON,"observed-instructions-v1":false,"cache-aligned-window-v1":false, "dialogue-context-kept-v1": true, "active-field-message-buffer-v1": false }).text("planning", 0)).toContain("- Dialogue you were shown leading up to the last story step the game confirmed: not available (dialogue text is off)");
-    expect(new SupervisorBriefing({ ...ALL_ON,"observed-instructions-v1":false,"cache-aligned-window-v1":false, "dialogue-context-kept-v1": false }).text("planning", 0)).not.toContain("leading up to");
+    expect(new SupervisorBriefing({ ...ALL_ON,"battle-decision-ready-v1":false,"cache-aligned-window-v1":false, "dialogue-context-kept-v1": true }).text("planning", 0)).toContain("- Dialogue you were shown leading up to the last story step the game confirmed: none recorded");
+    expect(new SupervisorBriefing({ ...ALL_ON,"battle-decision-ready-v1":false,"cache-aligned-window-v1":false, "dialogue-context-kept-v1": true, "active-field-message-buffer-v1": false }).text("planning", 0)).toContain("- Dialogue you were shown leading up to the last story step the game confirmed: not available (dialogue text is off)");
+    expect(new SupervisorBriefing({ ...ALL_ON,"battle-decision-ready-v1":false,"cache-aligned-window-v1":false, "dialogue-context-kept-v1": false }).text("planning", 0)).not.toContain("leading up to");
   });
 
   // The control arm has no auto-advance: pages come from the readout's message buffer, one press at a time.
@@ -234,7 +235,7 @@ describe("dialogue-context-kept-v1: the supervisor cites the last story instruct
   const story = (b: SupervisorBriefing, seq: number, turn: number, name: string, kind = "story", origin = "observed") => { b.observe(ev({ type: "milestone", name, server_timestamp: 1, kind, origin }, seq, turn)); };
 
   it("bounds the pages by event order, not turn: same-turn pages on either side of a milestone go to the right step", () => {
-    const b = new SupervisorBriefing({ ...ALL_ON,"observed-instructions-v1":false,"cache-aligned-window-v1":false, "dialogue-context-kept-v1": true });
+    const b = new SupervisorBriefing({ ...ALL_ON,"battle-decision-ready-v1":false,"cache-aligned-window-v1":false, "dialogue-context-kept-v1": true });
     shown(b, 10, 5, "Before the first step.");
     story(b, 20, 5, "FIRST_STEP");
     shown(b, 30, 5, "After the first step, same turn.");
@@ -242,7 +243,7 @@ describe("dialogue-context-kept-v1: the supervisor cites the last story instruct
     shown(b, 50, 5, "After the second step, same turn.");
     const line = b.text("cycle", 9).split("\n").find((l) => l.startsWith("- Dialogue you were shown leading up to")) ?? "";
     expect(line).toBe(`- Dialogue you were shown leading up to the last story step the game confirmed (second step at turn 5), oldest first: turn 5, HOUSE 1F (map 1/0): "After the first step, same turn."`);
-    const twin = new SupervisorBriefing({ ...ALL_ON,"observed-instructions-v1":false,"cache-aligned-window-v1":false, "dialogue-context-kept-v1": true });
+    const twin = new SupervisorBriefing({ ...ALL_ON,"battle-decision-ready-v1":false,"cache-aligned-window-v1":false, "dialogue-context-kept-v1": true });
     shown(twin, 10, 7, "Told before both.");
     story(twin, 20, 7, "STEP_A");
     story(twin, 21, 7, "STEP_B");
@@ -251,7 +252,7 @@ describe("dialogue-context-kept-v1: the supervisor cites the last story instruct
   });
 
   it("control arm: the readout pages between the previous story step and the latest one, walking back past a step with none", () => {
-    const b = new SupervisorBriefing({ ...ALL_ON,"observed-instructions-v1":false,"cache-aligned-window-v1":false, "dialogue-context-kept-v1": true });
+    const b = new SupervisorBriefing({ ...ALL_ON,"battle-decision-ready-v1":false,"cache-aligned-window-v1":false, "dialogue-context-kept-v1": true });
     story(b, 1, 1, "NEW_GAME_CREATED", "story", "present_at_start");
     shown(b, 10, 117, "Old clock text.");
     story(b, 20, 117, "CLOCK_SET");

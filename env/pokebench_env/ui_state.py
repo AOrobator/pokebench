@@ -359,8 +359,10 @@ def read_active_ui(
     screen: "Screen",
     *,
     truth: bool = False,
+    evolution_decision: bool = False,
     birch_pages: bool = False,
     transition_coherence: bool = True,
+    tutorial_owner_enabled: bool = False,
 ) -> ActiveUi | None:
     """transition_coherence: transition-coherence-v1's battle-start and handoff rules."""
     from pokebench_env.game_screen import TASKS
@@ -424,7 +426,9 @@ def read_active_ui(
                 details=owner_details(read, screen.callback2),
             )
 
-    lifecycle_ui = read_pokemon_lifecycle_menu(read, screen.callback2)
+    lifecycle_ui = read_pokemon_lifecycle_menu(
+        read, screen.callback2, evolution_decision=evolution_decision
+    )
     if lifecycle_ui is not None:
         return lifecycle_ui
     legacy_ui = read_legacy_menu(read, screen.callback2)
@@ -570,7 +574,11 @@ def read_active_ui(
     if len(battle_flag) != 1:
         raise ValueError("short active UI battle flag read")
     if battle_flag[0] & 2:
-        battle = read_battle_state(read, current_battle_only=transition_coherence)
+        battle = read_battle_state(
+            read,
+            current_battle_only=transition_coherence,
+            tutorial_owner_enabled=tutorial_owner_enabled,
+        )
         inputs = battle.player_inputs or ()
         selected = (
             "; ".join(
@@ -592,7 +600,12 @@ def read_active_ui(
             "battle_" + battle.phase,
             selected,
             battle.ready,
-            "Use the game-owned battle input and selected control when ready",
+            "The game controls this tutorial battle; no player battle choice is waiting"
+            if tutorial_owner_enabled
+            and battle.battle_type is not None
+            and battle.battle_type & (1 << 9)
+            and battle.ready is False
+            else "Use the game-owned battle input and selected control when ready",
             battle.diagnostic,
             details=details,
         )

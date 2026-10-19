@@ -1,10 +1,11 @@
+import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
 import {describe,expect,it} from "vitest";
 import type {AgentTool,AgentToolResult} from "@mariozechner/pi-agent-core";
 import {withDialogueAutoAdvance,type AutoAdvanceRecorder} from "./dialogue-auto-advance.js";
 import {gameTools,type Clock} from "./game-tools.js";
 import {flagFeatures} from "./play-preset.js";
 import {toolSwitches} from "./play-config.js";
-import {ALL_ON,dependencyProblems,featureInfo,playHarnessFeatures,type FeatureSet} from "./features.js";
+import {dependencyProblems,featureInfo,playHarnessFeatures,type FeatureSet} from "./features.js";
 import type {Button,RunEvent} from "./events.js";
 import type {GameStateSnapshot} from "./game-state.js";
 import {pushbackPressResult} from "./press-result.js";
@@ -171,8 +172,8 @@ describe("pushback-press-result-v1 registry and wiring",()=>{
  it("is a default-off guidance switch with no dependency, recorded second to last",()=>{
   expect(featureInfo("pushback-press-result-v1")).toMatchObject({group:"guidance",needs:null,switchable:true});
   expect(featureInfo("pushback-press-result-v1").description).toContain(" Off: ");
-  expect(playHarnessFeatures(ALL_ON,null).at(-48)).toBe("pushback-press-result-v1");
-  expect(dependencyProblems({...ALL_ON,"observed-instructions-v1":false,"dialogue-auto-advance-v1":false})).not.toContainEqual(expect.stringContaining("pushback-press-result-v1"));
+  expect(playHarnessFeatures(ALL_ON,null).at(-50)).toBe("pushback-press-result-v1");
+  expect(dependencyProblems({...ALL_ON,"battle-decision-ready-v1":false,"dialogue-auto-advance-v1":false})).not.toContainEqual(expect.stringContaining("pushback-press-result-v1"));
   expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:true})["pushback-press-result-v1"]).toBe(false);
  });
  it("the tool switches carry it from the FeatureSet",()=>{

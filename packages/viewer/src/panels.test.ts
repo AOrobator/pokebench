@@ -1272,6 +1272,14 @@ it("links the safe navigation stride card to its native corridor contract",()=>{
  const html=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)),"utf8");
  for(const text of ["eight tiles","224-frame ceiling","Bundle ON","Control OFF","General default OFF","script coordinate","model chooses"])expect(html).toContain(text);
 });
+
+it("links the explicit evolution feature to its tracked explainer",()=>{
+ expect(FEATURE_EXPLAINERS["evolution-decision-v1"]).toBe("evolution-decision-v1.html");
+ const html=readFileSync(fileURLToPath(new URL("../../../docs/explainers/evolution-decision-v1.html",import.meta.url)),"utf8");
+ expect(html).toContain("<h1>Explicit evolution decision</h1>");
+ const log=new Log();log.add(0,{...START,harness_features:["ram-state-v1","evolution-decision-v1"]});const rendered=harnessConfig(view(log),FEATURES);
+ expect(rendered).toContain('/explainers/evolution-decision-v1.html');
+});
  it("links starter decision salience from its recorded feature card",()=>{
  const id="starter-decision-salience-v1";
  expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);

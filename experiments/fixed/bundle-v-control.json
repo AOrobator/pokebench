@@ -155,7 +155,8 @@
    "supervisor-briefing-v2": false,
    "reachable-story-guidance-v1": false,
    "text-only-supervisor-v2": false,
-   "safe-navigation-strides-v1": false
+   "safe-navigation-strides-v1": false,
+   "evolution-decision-v1": false
   }
  },
  "switches": [
@@ -195,7 +196,8 @@
   "supervisor-briefing-v2",
   "reachable-story-guidance-v1",
   "text-only-supervisor-v2",
-  "safe-navigation-strides-v1"
+  "safe-navigation-strides-v1",
+  "evolution-decision-v1"
  ],
  "offInBoth": [
   "visited-terrain-navigation-v1",

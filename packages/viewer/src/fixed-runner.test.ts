@@ -506,6 +506,11 @@ it("enables safe navigation strides only in the canonical bundle treatment",asyn
  }
 });
 
+it("enables explicit evolution only in the bundle through the production arm builder",()=>{
+ const {definition:def}=parseFixedDefinition(readFileSync(new URL("../../../experiments/fixed/bundle-v-control.json",import.meta.url),"utf8"));
+ expect(armFeatureBits(def,"control")["evolution-decision-v1"]).toBe(false);
+ expect(armFeatureBits(def,"bundle")["evolution-decision-v1"]).toBe(true);
+ });
 it("rehearses all sixteen starter diagnostic slots with one switch, native early stops and eight choices per arm",async()=>{
  const {definition:def}=parseFixedDefinition(readFileSync(new URL("../../../experiments/fixed/starter-decision-salience.json",import.meta.url),"utf8"));
  const {runsRoot,dir}=setup(def);const host=new Fake(runsRoot,{ending:()=>"milestone",serving:()=>({...RECEIPT,...def.serving})},def.id);

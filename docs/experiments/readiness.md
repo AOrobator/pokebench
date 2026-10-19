@@ -159,6 +159,11 @@ Pending, unqueued, unapproved. Correctness-tier production replay first: round-2
 Pending, unqueued and unapproved. Earliest activation PLAYER_NAME_CONFIRMED; intended primary RUSTBORO_CITY. Recorded last50 audit confirms a running/planner contract mismatch and supplies a descriptive two-tile median baseline. Native owned emulator probes verify only correctness. No common-build model ON/OFF comparison exists; >=4 median travel is an unproven target. Source pins the reviewed implementation a0950397; design/power and operator approval for a measured comparison remain required.
 
 Operator 2026-10-19: enable safe-navigation-strides-v1 in the canonical bundle treatment, control OFF and omission defaults OFF. Individual experiment remains pending, unqueued and unapproved; source pins the reviewed implementation a0950397. No measured benefit or launch is implied.
+## Explicit evolution decision — 2026-10-19
+
+Pending, not queued. STARTER_CHOSEN is only the conservative earliest prerequisite. Reliable arrival at an actual cancellable evolution window is not yet qualified. One retained checkpoint trace establishes the interface failure, not readiness or benefit. No measured runs approved or launched.
+
+
 ## Starter decision salience · 2026-10-19
 
 Checkpoint diagnostic candidate: first-arrival ROUTE_101, SHA1 0c34433cc305ea5de6fa69aa4a5612bf434a5714, source frontier-acq-a state900/milestone901, empty party. Qualification on current build pending; do not infer readiness from the historical capture alone. Native activation occurs after ROUTE_101 at ready starter_selection. No measured launch or approval.

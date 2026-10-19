@@ -260,6 +260,10 @@ function plans(root: string): string[] {
     }
   }; visit(join(root, "launch-receipts"), 0); return found;
 }
+function navigationRootOwnsStore(receiptRoot: string, root: string): boolean {
+  try { lstatSync(receiptRoot); } catch (error) { return (error as NodeJS.ErrnoException).code === "ENOENT"; }
+  try { return realpathSync(join(receiptRoot, "runs")) === realpathSync(root); } catch { return false; }
+}
 // membership and failures are the legacy ledger readers' verdicts. named holds the infrastructure failure
 // any ledger records for a run, even one another ledger owns, so a run-tagged run is excluded wherever its
 // ledger lives; unverified holds the runs an unreadable ledger names.
@@ -274,7 +278,11 @@ async function cohortMembership(root: string): Promise<Membership> {
         claimed.add(dirname(path)); reserved.add(raw.id);
         ledgerPath = join(dirname(path), "trials.jsonl");
         const rows: unknown[] = existsSync(ledgerPath) ? boundedLedger(ledgerPath) : [];
-        if (typeof raw.root !== "string" || realpathSync(join(raw.root, "runs")) !== realpathSync(root)) throw new Error("Navigation receipt root does not own this run store");
+        if (typeof raw.root !== "string") throw new Error("Navigation receipt has no execution root");
+        // A retained receipt outlives its disposable execution worktree. While that checkout exists,
+        // keep the original run-store ownership check; after it is archived, the manifest digest,
+        // strict ledger parser and each run's recorded source/model identity remain the durable proof.
+        if (!navigationRootOwnsStore(raw.root, root)) throw new Error("Navigation receipt root does not own this run store");
         const custom = parseNavigationReceipt(raw, rows, receipt.digest, raw.root);
         if (accepted.has(custom.id)) continue; accepted.add(custom.id);
         for (const trial of custom.trials) {

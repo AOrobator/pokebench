@@ -48,6 +48,22 @@ it("qualifies a frozen execution checkout only when its runs directory resolves 
   writeFileSync(join(folder, "manifest.json"), JSON.stringify({ ...manifest, root: unrelated }));
   const rejected = await workbenchSnapshot(root, () => Promise.resolve(false), Date.now());
   expect(rejected.problems.join()).toContain("root"); expect(rejected.runs[0]?.cohort).toBeNull();
+  const incomplete = mkdtempSync(join(tmpdir(), "frontier-incomplete-"));
+  writeFileSync(join(folder, "manifest.json"), JSON.stringify({ ...manifest, root: incomplete }));
+  const missingRuns = await workbenchSnapshot(root, () => Promise.resolve(false), Date.now());
+  expect(missingRuns.problems.join()).toContain("root"); expect(missingRuns.runs[0]?.cohort).toBeNull();
+});
+
+it("keeps a retained navigation receipt after its execution checkout is archived", async () => {
+  const { root, folder, f } = setup(); writeRun(root, f);
+  const archived = join(mkdtempSync(join(tmpdir(), "archived-navigation-parent-")), "removed-checkout");
+  const manifest = { ...f.manifest, root: archived };
+  const bytes = JSON.stringify(manifest), digest = createHash("sha256").update(bytes).digest("hex");
+  writeFileSync(join(folder, "manifest.json"), bytes);
+  writeFileSync(join(folder, "trials.jsonl"), JSON.stringify({ ...f.row, manifest_sha256: digest }) + "\n");
+  const retained = await workbenchSnapshot(root, () => Promise.resolve(false), Date.now());
+  expect(retained.problems).toEqual([]);
+  expect(retained.runs[0]?.cohort).toBe(f.manifest.id);
 });
 
 it("retains process-failed recordings as outcomes but excludes them from best-run rank and timing credit", async () => {

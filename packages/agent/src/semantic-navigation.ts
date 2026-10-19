@@ -2,9 +2,9 @@ import type {AgentTool,AgentToolResult} from "@mariozechner/pi-agent-core";
 import {Type} from "typebox";
 import type {Button} from "./events.js";
 import type {FeatureSet} from "./features.js";
-import {isCheckedPress} from "./game-tools.js";
+import {isCheckedPress,type CheckedPressTool} from "./game-tools.js";
 import {parseGameState,type GameStateSnapshot,type StateSource} from "./game-state.js";
-import {planNavigation,type NavigationMode,type NavigationOptions} from "./navigation.js";
+import {directionalWarpActivation,isCheckedNavigation,planNavigation,type CheckedNavigationTool,type NavigationMode,type NavigationOptions} from "./navigation.js";
 
 const MapId=Type.Tuple([Type.Integer({minimum:0,maximum:255}),Type.Integer({minimum:0,maximum:255})]);
 const ObjectTarget=Type.Object({kind:Type.Literal("object"),local_id:Type.Integer({minimum:0,maximum:255})},{additionalProperties:false});
@@ -94,9 +94,9 @@ function withStatus(result:AgentToolResult<unknown>,status:string,selected:strin
 }
 function isMap(state:GameStateSnapshot,map:readonly [number,number]):boolean{return state.map_id?.[0]===map[0]&&state.map_id[1]===map[1];}
 
-function semanticTool(navigate:AgentTool,press:AgentTool,features:FeatureSet,stateSource:StateSource):AgentTool<typeof SemanticArgs> {
+function semanticTool(navigate:CheckedNavigationTool,press:CheckedPressTool,features:FeatureSet,stateSource:StateSource):AgentTool<typeof SemanticArgs> {
  const options=navigationOptions(features);
- const executePress=(id:string,button:Button,check:(state:GameStateSnapshot|undefined)=>void,signal?:AbortSignal):Promise<AgentToolResult<unknown>>=>isCheckedPress(press)?press.executeChecked(id,{buttons:[button]},check,signal,undefined,{automaticRunning:false}):press.execute(id,{buttons:[button]},signal);
+ const executePress=(id:string,button:Button,check:(state:GameStateSnapshot|undefined)=>void,signal?:AbortSignal):Promise<AgentToolResult<unknown>>=>press.executeChecked(id,{buttons:[button]},check,signal,undefined,{automaticRunning:false});
  return {name:"navigate_to_target",label:"Navigate to a game target",description:"Select a listed person, object, warp or walking map connection by its game-owned identity. The harness chooses the reachable approach, continues progress-making route segments without an end-to-end command cap, faces the target and activates it once. It immediately returns control if battle, dialogue, a menu, a script, forced movement, a map transition or unavailable input interrupts travel.",parameters:SemanticArgs,
   execute:async(id,request,signal)=>{
    signal?.throwIfAborted();const before=await stateSource.read(signal),selected=label(request.target);
@@ -105,44 +105,62 @@ function semanticTool(navigate:AgentTool,press:AgentTool,features:FeatureSet,sta
    if(request.target.kind!=="connection"&&listed===null)return withStatus({content:[],details:{state:before}},"target is not listed in the current verified state",selected,false);
    const choices=request.target.kind==="connection"?connectionApproaches(before,request.target,options):approaches(before,listed as SnapshotTarget,options);
    const choice=choices[0];if(choice===undefined)return withStatus({content:[],details:{state:before}},"no supported route to a valid approach",selected,false);
-   const destination={x:choice.point.x,y:choice.point.y,map_id:[request.map_id[0],request.map_id[1]]};
+   const connectionDirection=request.target.kind==="connection"?request.target.direction:null;
+   const identityIssue=(actual:GameStateSnapshot,phase:string):string|null=>{
+    if(connectionDirection!==null){
+     const connection=actual.topology?.connections.find(item=>item.direction===connectionDirection);
+     return connection?.edges?.some(point=>point.x===choice.point.x&&point.y===choice.point.y)===true?null:`semantic connection changed during ${phase}`;
+    }
+    const fresh=resolve(actual,request.target);
+    return fresh===null?`semantic target disappeared during ${phase}`:fresh.x!==listed?.x||fresh.y!==listed.y?`semantic target moved during ${phase}`:null;
+   };
+   const routeStop=(actual:GameStateSnapshot):string|null=>{
+    if(!isMap(actual,request.map_id))return null;
+    const interruption=interrupted(actual);if(interruption!==null)return `semantic navigation interrupted during travel: ${interruption}`;
+    return identityIssue(actual,"travel");
+   };
+   const destination={x:choice.point.x,y:choice.point.y,map_id:[request.map_id[0],request.map_id[1]] as [number,number]};
    let previous=before.position;
-   let walked=await navigate.execute(id,destination,signal),current:GameStateSnapshot,reason:string|null;
+   let walked=await navigate.executeChecked(id,destination,routeStop,signal),current:GameStateSnapshot,reason:string|null;
    for(;;){
     current=stateOf(walked);reason=interrupted(current);
     if(reason!==null)return withStatus(walked,`interrupted before activation: ${reason}`,selected,false);
     if(!isMap(current,request.map_id))return withStatus(walked,"interrupted by a map transition",selected,request.target.kind==="warp");
+    const changed=identityIssue(current,"travel");if(changed!==null)return withStatus(walked,changed,selected,false);
     if(current.position?.x===choice.point.x&&current.position.y===choice.point.y)break;
     const status=navigationStatus(walked);
     if(status===null||!status.startsWith("command limit"))return withStatus(walked,"route ended before the selected approach",selected,false);
     if(previous!==null&&current.position?.x===previous.x&&current.position.y===previous.y)return withStatus(walked,"route made no progress before the selected approach",selected,false);
     previous=current.position;
-    walked=await navigate.execute(id,destination,signal);
+    walked=await navigate.executeChecked(id,destination,routeStop,signal);
    }
+   const checkInput=(actual:GameStateSnapshot|undefined,phase:"facing input"|"activation",requiredFacing:Button|null):void=>{
+    if(actual===undefined)throw new SemanticPreconditionError(`verified state became unavailable before ${phase}`);
+    if(!isMap(actual,request.map_id)||actual.position?.x!==choice.point.x||actual.position.y!==choice.point.y)throw new SemanticPreconditionError(`semantic target approach changed before ${phase}`);
+    const interruption=interrupted(actual);if(interruption!==null)throw new SemanticPreconditionError(`semantic navigation was interrupted before ${phase}: ${interruption}`);
+    const changed=identityIssue(actual,phase);if(changed!==null)throw new SemanticPreconditionError(changed);
+    if(requiredFacing!==null&&actual.facing!==requiredFacing.toLowerCase())throw new SemanticPreconditionError(`player facing changed before ${phase}`);
+   };
    if(request.target.kind!=="connection"){
     const fresh=resolve(current,request.target);
     if(fresh===null)return withStatus(walked,"target disappeared before activation",selected,false);
     if(fresh.x!==listed?.x||fresh.y!==listed.y)return withStatus(walked,"target moved before activation; inspect its new position",selected,false);
-    if(fresh.kind==="warp"||fresh.activation==="step")return withStatus(walked,"arrived at the movement-activated target",selected,true);
+    if(fresh.kind==="warp"){
+     const warpActivation=directionalWarpActivation(current,fresh,options.mode??"local");
+     if(warpActivation===null)return withStatus(walked,"arrived at the movement-activated target",selected,true);
+     let activated:AgentToolResult<unknown>;
+     try{activated=await executePress(id,warpActivation,actual=>{checkInput(actual,"activation",null);},signal);}
+     catch(error){if(!(error instanceof SemanticPreconditionError))throw error;const state=await stateSource.read(signal);return withStatus({content:[],details:{state}},error.message,selected,false);}
+     current=stateOf(activated);reason=interrupted(current);
+     const status=reason!==null?`activation handed control back: ${reason}`:!isMap(current,request.map_id)?"activation changed maps; inspect the destination":"directional warp activation did not change maps; inspect the target";
+     return withStatus(activated,status,selected,true);
+    }
+    if(fresh.activation==="step")return withStatus(walked,"arrived at the movement-activated target",selected,true);
    }
    const facing=choice.facing;if(facing===null)return withStatus(walked,"arrived at the selected target",selected,false);
-   const connectionDirection=request.target.kind==="connection"?request.target.direction:null;
-   const checkInput=(actual:GameStateSnapshot|undefined,phase:"facing input"|"activation",requireFacing:boolean):void=>{
-    if(actual===undefined)throw new SemanticPreconditionError(`verified state became unavailable before ${phase}`);
-    if(!isMap(actual,request.map_id)||actual.position?.x!==choice.point.x||actual.position.y!==choice.point.y)throw new SemanticPreconditionError(`semantic target approach changed before ${phase}`);
-    const interruption=interrupted(actual);if(interruption!==null)throw new SemanticPreconditionError(`semantic navigation was interrupted before ${phase}: ${interruption}`);
-    if(connectionDirection!==null){
-     const connection=actual.topology?.connections.find(item=>item.direction===connectionDirection);
-     if(connection?.edges?.some(point=>point.x===choice.point.x&&point.y===choice.point.y)!==true)throw new SemanticPreconditionError(`semantic connection changed before ${phase}`);
-    }else{
-     const fresh=resolve(actual,request.target);
-     if(fresh===null||fresh.x!==listed?.x||fresh.y!==listed.y)throw new SemanticPreconditionError(`semantic target changed before ${phase}`);
-    }
-    if(requireFacing&&actual.facing!==facing.toLowerCase())throw new SemanticPreconditionError(`player facing changed before ${phase}`);
-   };
    if(current.facing!==facing.toLowerCase()){
     let turned:AgentToolResult<unknown>;
-    try{turned=await executePress(id,facing,actual=>{checkInput(actual,"facing input",false);},signal);}
+    try{turned=await executePress(id,facing,actual=>{checkInput(actual,"facing input",null);},signal);}
     catch(error){if(!(error instanceof SemanticPreconditionError))throw error;const fresh=await stateSource.read(signal);return withStatus({content:[],details:{state:fresh}},error.message,selected,false);}
     current=stateOf(turned);reason=interrupted(current);
     if(reason!==null)return withStatus(turned,`interrupted while facing the target: ${reason}`,selected,false);
@@ -150,7 +168,7 @@ function semanticTool(navigate:AgentTool,press:AgentTool,features:FeatureSet,sta
    }
    const activation=request.target.kind==="connection"?facing:"A";
    let activated:AgentToolResult<unknown>;
-   try{activated=await executePress(id,activation,actual=>{checkInput(actual,"activation",true);},signal);}
+   try{activated=await executePress(id,activation,actual=>{checkInput(actual,"activation",facing);},signal);}
    catch(error){if(!(error instanceof SemanticPreconditionError))throw error;const fresh=await stateSource.read(signal);return withStatus({content:[],details:{state:fresh}},error.message,selected,false);}
    current=stateOf(activated);reason=interrupted(current);
    const status=reason!==null?`activation handed control back: ${reason}`:!isMap(current,request.map_id)?"activation changed maps; inspect the destination":"activation completed; inspect the resulting state";
@@ -188,7 +206,7 @@ export function withSemanticNavigation(tools:readonly AgentTool[],features:Featu
  const navigate=tools.find(tool=>tool.name==="navigate_to"),press=tools.find(tool=>tool.name==="press");
  // State-only probes and historical replay builders intentionally construct partial tool sets.
  // Production feature validation requires bounded navigation, and live play always supplies both.
- if(navigate===undefined||press===undefined)return [...tools];
+ if(navigate===undefined||press===undefined||!isCheckedNavigation(navigate)||!isCheckedPress(press))return [...tools];
  const semantic=semanticTool(navigate,press,features,state),result=[...tools,semantic];
  if(features["deterministic-exploration-v1"])result.push(explorationTool(semantic,features,state));
  return result;

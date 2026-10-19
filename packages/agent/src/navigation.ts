@@ -442,6 +442,10 @@ const DIRECTIONAL_WARP_PRESSES=new Map<number,Direction>([
  [0x62,"RIGHT"],[0x63,"LEFT"],[0x64,"UP"],[0x65,"DOWN"],
  [0x1b,"UP"],[0x1c,"DOWN"],[0x6d,"DOWN"],
 ]);
+export function directionalWarpActivation(state:GameStateSnapshot,target:Point,mode:NavigationMode):Direction|null {
+ const geometry=mode==="full"?fullGeometry(state):localGeometry(state);
+ return geometry===null?null:DIRECTIONAL_WARP_PRESSES.get(geometry.tile(target)?.behavior??-1)??null;
+}
 // Exact-equivalence routing is deliberately limited to directional warps.
 // Step-on warps, doors and unknown behaviors retain the requested coordinate
 // and old stop semantics even if their destination tuples happen to match.
@@ -485,6 +489,9 @@ function deterministicWarpPlan(state:GameStateSnapshot,requested:Point,options:N
 }
 const Args=Type.Object({x:Type.Integer({minimum:0}),y:Type.Integer({minimum:0}),map_id:Type.Tuple([Type.Integer({minimum:0,maximum:255}),Type.Integer({minimum:0,maximum:255})]),walking:Type.Optional(Type.Boolean({description:"Walk deliberately without automatic running."}))},{additionalProperties:false});
 const DeterministicRunningArgs=Type.Object({x:Args.properties.x,y:Args.properties.y,map_id:Args.properties.map_id},{additionalProperties:false});
+export type NavigationStopCheck=(state:GameStateSnapshot)=>string|null;
+export type CheckedNavigationTool=AgentTool<typeof Args>&{readonly executeChecked:(id:string,goal:{readonly x:number;readonly y:number;readonly map_id:readonly [number,number];readonly walking?:boolean},check:NavigationStopCheck,signal?:AbortSignal)=>Promise<AgentToolResult<unknown>>};
+export function isCheckedNavigation(tool:AgentTool):tool is CheckedNavigationTool {return "executeChecked" in tool&&typeof tool.executeChecked==="function";}
 export interface NavigationPorts {
  readonly automaticRunning?:boolean;
  readonly counters?:boolean;
@@ -542,7 +549,7 @@ const terrainRules=(ports:NavigationPorts):string=>{
  const rules=[...(ports.ledges===true?["hops a ledge only in its arrow direction"]:[]),...(ports.oneWay===true?["never crosses a walled side of a + tile"]:[]),...(ports.floor===true?["walks sand, cave and other floor the game allows"]:[])];
  return rules.length===0?"avoids unsupported terrain":`avoids unsupported terrain, ${rules.join(", ")},`;
 };
-export function navigationTool(ports:NavigationPorts):AgentTool<typeof Args> {
+export function navigationTool(ports:NavigationPorts):CheckedNavigationTool {
  const mode:NavigationMode=ports.fullMap===true?"full":ports.visitedTerrain===true?"visited":"local",truth=ports.truth===true;
  const limit=mode==="local"?MAX_NAVIGATION_COMMANDS:MAX_FULL_ROUTE_COMMANDS;
  const bound=ports.maxCommands??limit;
@@ -551,8 +558,7 @@ export function navigationTool(ports:NavigationPorts):AgentTool<typeof Args> {
  const warpDescription=ports.deterministicWarps===true?"For a listed warp, it may choose a reachable equivalent warp with the same complete destination and known activation behavior; if already on a directional warp, it presses the required direction once and verifies the map changed. Does not press A.":"Does not press A, choose destinations, or activate a directional exit after arriving.";
  const described=(ports.automaticRunning===true?incumbent.replace(" Use walking=true for deliberate walking.",""):incumbent).replace("avoids unsupported terrain",terrainRules(ports)).replace("Does not press A, choose destinations, or activate a directional exit after arriving.",warpDescription);
  const description=ports.navigateFirst===true?`${NAVIGATE_FIRST_DESCRIPTION} ${described}${mode==="local"?COMMAND_LIMIT_HINT:""}`:described;
- return {name:"navigate_to",label:"Walk to a coordinate",description,parameters:(ports.automaticRunning===true?DeterministicRunningArgs:Args) as typeof Args,
- execute:async(id,goal,signal)=>{
+ const execute=async(id:string,goal:{readonly x:number;readonly y:number;readonly map_id:readonly [number,number];readonly walking?:boolean},signal?:AbortSignal,stop?:NavigationStopCheck):Promise<AgentToolResult<unknown>>=>{
   signal?.throwIfAborted();await ports.gate?.(signal);signal?.throwIfAborted();
   let state=await ports.read(signal),commands=0,status="command limit",last:AgentToolResult<unknown>|undefined;
   const blackout=new BlackoutCarry();
@@ -562,6 +568,7 @@ export function navigationTool(ports:NavigationPorts):AgentTool<typeof Args> {
   while(commands<bound){
    signal?.throwIfAborted();await ports.gate?.(signal);signal?.throwIfAborted();
    state=await ports.read(signal);signal?.throwIfAborted();
+   const beforeStop=stop?.(state)??null;if(beforeStop!==null){status=beforeStop;break;}
    if(!sameMap()){
     if(ports.crossMapGoal!==true||commands>0){status="map changed; inspect destination";break;}
     if(state.map_id!==null){status=crossMapReason(state,state.map_id,goal);break;}
@@ -589,6 +596,7 @@ export function navigationTool(ports:NavigationPorts):AgentTool<typeof Args> {
       },{automaticRunning:false});
      } catch(error){if(!(error instanceof NavigationPreconditionError))throw error;status=error.message;break;}
      commands++;directionalWarpAttempted=true;state=blackout.remember(resultState(last));
+     const afterWarpStop=stop?.(state)??null;if(afterWarpStop!==null)status=afterWarpStop;
      break;
     }
     status="arrived at requested coordinate";break;
@@ -601,6 +609,7 @@ export function navigationTool(ports:NavigationPorts):AgentTool<typeof Args> {
     });
    } catch(error){if(!(error instanceof NavigationPreconditionError))throw error;status=error.message;break;}
    commands++;state=blackout.remember(resultState(last));
+   const afterStop=stop?.(state)??null;if(afterStop!==null){status=afterStop;break;}
    if(!sameMap()){status="map changed; inspect destination";break;}
    if(!ready(state,mode)){status=ports.refusalReasons===true?`walk interrupted: ${unreadyReason(state)}`:"field input locked or unavailable; inspect new state";unready=true;break;}
    const after=state.position;if(after===null)throw new Error("Navigation position unavailable");
@@ -621,6 +630,7 @@ export function navigationTool(ports:NavigationPorts):AgentTool<typeof Args> {
    }
   }
   last=await ports.observe(id,signal);state=blackout.preserve(blackout.remember(resultState(last)));
+  const finalStop=stop?.(state)??null;if(finalStop!==null)status=finalStop;
   if(directionalWarpAttempted){status=state.map_id===null?"directional warp transition unverified; inspect new state":sameMap()?"directional warp did not change map; inspect new state":"directional warp activated; inspect destination";}
   // A composite navigation call can consume the one-shot receipt in an internal
   // press and then replace that observation with a fresh one. Carry the event
@@ -630,7 +640,8 @@ export function navigationTool(ports:NavigationPorts):AgentTool<typeof Args> {
   if(truth&&status==="command limit"){const here=state.position;const cut=ports.exitReach===true&&exitBlock({surf:false,reach:true},state).footNear(goal.x,goal.y)===false;status=here!==null&&sameMap()&&ready(state,mode)?`command limit: stopped at ${at(here)} after ${String(commands)} ordinary button attempts, the most one navigate_to call makes; ${cut?`${at(goal)} cannot be reached on foot from where you stand: no walkable way on this map leads from your tile to it or to a tile next to it, so calling navigate_to again will not get there`:`call navigate_to again to continue to ${at(goal)}`}`:`command limit: stopped after ${String(commands)} ordinary button attempts, the most one navigate_to call makes; the field is no longer free to walk, so inspect the new state`;}
   const notices=blackout.missingNotices(last.content.flatMap(part=>part.type==="text"?[part.text]:[]));
   return {content:[{type:"text",text:`Navigation: ${status}; ${String(commands)} ordinary button attempts.`},...notices.map(text=>({type:"text" as const,text})),...last.content],details:{state,navigation:{status,commands,target:goal,...(ports.deterministicWarps===true?{selected_target:selectedTarget}:{}),unready}}};
- }};
+ };
+ return {name:"navigate_to",label:"Walk to a coordinate",description,parameters:(ports.automaticRunning===true?DeterministicRunningArgs:Args) as typeof Args,execute:(id,goal,signal)=>execute(id,goal,signal),executeChecked:(id,goal,check,signal)=>execute(id,goal,signal,check)};
 }
 
 

@@ -2,7 +2,7 @@ import {readFileSync} from "node:fs";
 import {describe,expect,it,vi} from "vitest";
 import {Type} from "typebox";
 import type {AgentTool,AgentToolResult} from "@mariozechner/pi-agent-core";
-import {featuresOf,playHarnessFeatures} from "./features.js";
+import {featuresOf,playHarnessFeatures,stateOnlyProblems} from "./features.js";
 import {normalizeFeatures} from "./play-preset.js";
 import {parseGameState,type GameStateSnapshot} from "./game-state.js";
 import {gameTools,isCheckedPress,type CheckedPressTool} from "./game-tools.js";
@@ -95,4 +95,11 @@ it("separates native termination from the model goal in checkpoint presets",asyn
  expect(()=>parsePlayPreset({...preset,stopAt:"INVENTED"})).toThrow(/native target/);
  expect(()=>parsePlayPreset({...preset,stopAt:"PLAYER_BEDROOM_EXITED_AFTER_CLOCK"})).toThrow(/native target/);
  expect(()=>parsePlayPreset({...preset,target:"STONE_BADGE"})).toThrow(/conflict/);
+});
+
+it("preserves existing state-only validation order when the starter reminder is OFF",()=>{
+ const baseline=featuresOf(["state-only-decisions-v1","battle-decision-ready-v1","evolution-decision-v1"]);
+ const previous=["battle-decision-ready-v1","evolution-decision-v1"].map(id=>`state-only-decisions-v1 requires ${id} OFF`);
+ expect(stateOnlyProblems(baseline)).toEqual(previous);
+ expect(stateOnlyProblems({...baseline,[ID]:true})).toEqual([...previous,`state-only-decisions-v1 requires ${ID} OFF`]);
 });

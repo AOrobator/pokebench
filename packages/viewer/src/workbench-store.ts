@@ -542,7 +542,7 @@ export async function workbenchSnapshot(root: string, healthy: HealthProbe, now:
   // A requested card must arrive as soon as its projection is ready, not as an empty
   // cached response that waits another polling interval. Other runs stay nonblocking.
   const found = mode.partial === true
-    ? await Promise.all(reduced.map(s => s.id === mode.cards?.selected ? loader.load(root, s.id) : loader.current(root, s.id)))
+    ? await Promise.all(reduced.map(async s => s.id === mode.cards?.selected ? loader.load(root, s.id) : loader.current(root, s.id)))
     : await Promise.all(reduced.map(s => loader.load(root, s.id)));
   const loadedRuns = found.filter((l): l is Loaded => l !== null), waiting = found.length - loadedRuns.length, definitions = experimentDefinitions(experimentsDir, root);
   const tagged = taggedCohorts(loadedRuns.flatMap(l => l.tag === null ? [] : [{ run: l.run.id, experiment: l.tag.experiment, commit: l.tag.commit, started: l.run.started }]), definitions);

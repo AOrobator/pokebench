@@ -45,7 +45,10 @@ function fnv1a(text: string): number {
 // The display identities in one group take trainers in sorted order, each probing past ones already
 // taken, so experiment arms and GPU lanes never share a sprite while there are sprites to go round.
 export function trainerFor(group: string, identity: string, identities: readonly string[], trainers: readonly string[]): string {
-  const taken = new Set<number>(), all = [...new Set([...identities, identity])].sort();
+  const taken = new Set<number>(), all = [...new Set([...identities, identity])].sort((a, b) => {
+    const aQualified = a.includes("\u0000"), bQualified = b.includes("\u0000");
+    return aQualified === bQualified ? (a < b ? -1 : a > b ? 1 : 0) : aQualified ? 1 : -1;
+  });
   for (const each of all) {
     const seed = `${group}\u0000${each}`;
     let index = fnv1a(seed) % trainers.length;

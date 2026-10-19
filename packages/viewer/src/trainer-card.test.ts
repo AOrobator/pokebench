@@ -105,6 +105,15 @@ describe("one card per workbench run, shared by the viewer and the comparisons p
     const runs = [bundle, control], art = { ...ART, trainers };
     expect(cardInputFor(bundle, 1000, 1000, "live", runs, art).trainer).not.toBe(cardInputFor(control, 1000, 1000, "live", runs, art).trainer);
   });
+  it("does not reshuffle legacy experiment cards when a GPU-qualified sibling appears", () => {
+    const trainers = ["brendan", "may", "birch", "wally", "roxanne", "brawly", "wattson", "flannery", "norman", "winona", "sidney", "phoebe", "glacia", "drake"];
+    const experiment = (arm: string) => ({ id: "experiment-10", arm, trial: 1, of: 2 });
+    const bundle = recorded({ id: "legacy-bundle", experiment: experiment("bundle") });
+    const control = recorded({ id: "legacy-control", experiment: experiment("control") });
+    const gpuBundle = recorded({ id: "new-gpu0-bundle", experiment: experiment("bundle") });
+    const art = { ...ART, trainers }, legacy = cardInputFor(control, 1000, 1000, "replay", [bundle, control], art).trainer;
+    expect(cardInputFor(control, 1000, 1000, "replay", [bundle, control, gpuBundle], art).trainer).toBe(legacy);
+  });
   it("draws a link instead of a button when given a destination", () => {
     const html = cardHtml(input(), ART, "wide", "/#run=run-a");
     expect(html.startsWith('<a class="tc tc-wide" href="/#run=run-a" data-watch="run-a"')).toBe(true); expect(html).not.toContain("aria-pressed"); expect(html.endsWith("</a>")).toBe(true);

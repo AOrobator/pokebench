@@ -53,6 +53,7 @@ The current live runs are not present in the fixed-run lane status, so the only 
 ## Multi-Model Review Log
 
 - Round 1 frozen packet `24232e63..43291e84`, SHA-256 `d033304cef670dcd70b711db1d6beee293e32a658b4d372f4bf333f080111cbb`: Grok returned LGTM with a cross-GPU collision hardening note; both independent Claude-availability fallback reviewers and the isolated Codex attempt reproduced that note as a blocker. The fix stays inside the frozen trainer-selection owner and adds the missing cross-GPU experiment regression. Re-review pending on the cumulative candidate.
+- Round 2 frozen packet `24232e63..6d0662b2`, SHA-256 `8ba1426fc5b87ba08a5fb22c858706cafa5db627e8e47f3169d3df1f5338e44e`: Grok and both Claude-availability fallback reviewers returned LGTM. The isolated Codex reviewer found that inserting a GPU-qualified identity between sorted legacy arms could reshuffle a no-GPU experiment card, violating INV-3. Preserve all legacy allocations first, then allocate GPU-qualified identities; add the mixed-table production-path regression. Re-review pending.
 
 ## Boy Scout Log
 

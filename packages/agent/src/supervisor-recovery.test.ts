@@ -125,3 +125,26 @@ it("holds the production episode across unavailable optional observations, then 
  d.complete({name:"observe",args:{},state:parseGameState({...s,navigation_grid:{...geometry,elevation:1}}),beforeState:s,text:"changed elevation",isError:false,seq:7});
  expect(r.guards).toContainEqual(expect.objectContaining({phase:"recovered"}));
 });
+
+it.each([
+ {label:"money",initial:{money:null},known:{money:0},changed:{money:5}},
+ {label:"geometry elevation",initial:{navigation_grid:null},known:{navigation_grid:geometry},changed:{navigation_grid:{...geometry,elevation:1}}},
+ {label:"nullable trigger value",initial:{world_context:{...nearby,triggers:[{...nearby.triggers[0],current_value:null,condition_met:null}]}},known:{world_context:nearby},changed:{world_context:{...nearby,triggers:[{...nearby.triggers[0],current_value:1,condition_met:true}]}}},
+])("learns initially unknown $label without recovering, preserves it across unreadable gaps, then recovers on a confirmed change",({initial,known,changed})=>{
+ const s=parseGameState({...state,...initial}),{r,d}=activeNavigation(s);
+ for(const [seq,extra] of [[4,known],[5,initial],[6,known]] as const){
+  d.complete({name:"observe",args:{},state:parseGameState({...state,...extra}),beforeState:s,text:"observed conditions",isError:false,seq});
+  expect(r.guards).not.toContainEqual(expect.objectContaining({phase:"recovered"}));
+ }
+ d.complete({name:"observe",args:{},state:parseGameState({...state,...changed}),beforeState:s,text:"confirmed changed condition",isError:false,seq:7});
+ expect(r.guards).toContainEqual(expect.objectContaining({phase:"recovered"}));
+});
+it.each(["object","trigger"] as const)("learns newly observed nearby %s identities, retains them through clipping, then recovers on a confirmed change",kind=>{
+ const empty={...nearby,objects:[],triggers:[]},s=parseGameState({...state,world_context:empty}),{r,d}=activeNavigation(s);
+ for(const [seq,context] of [[4,nearby],[5,empty],[6,nearby]] as const){
+  d.complete({name:"observe",args:{},state:parseGameState({...state,world_context:context}),beforeState:s,text:"nearby window",isError:false,seq});
+  expect(r.guards).not.toContainEqual(expect.objectContaining({phase:"recovered"}));
+ }
+ d.complete({name:"observe",args:{},state:parseGameState({...state,world_context:kind==="object"?{...nearby,objects:[{...nearby.objects[0],x:24}]}:{...nearby,triggers:[{...nearby.triggers[0],current_value:1,condition_met:true}]}}),beforeState:s,text:"confirmed nearby change",isError:false,seq:7});
+ expect(r.guards).toContainEqual(expect.objectContaining({phase:"recovered"}));
+});

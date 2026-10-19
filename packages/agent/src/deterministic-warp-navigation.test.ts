@@ -129,6 +129,10 @@ describe("deterministic-warp-navigation-v1",()=>{
   const cheaper=await run(weighted,true,{x:5,y:1,map_id:MAP},1,{grassCost:true});
   expect(cheaper.buttons).toEqual([["DOWN"]]);expect(cheaper.outcome.details).toMatchObject({navigation:{selected_target:{x:1,y:6}}});
 
+  const ledge=warpField({x:2,y:2},[{x:5,y:2},{x:2,y:4}],8,7,(x,y)=>x===3&&y===2?0x38:0);
+  const cheaperWalk=await run(ledge,true,{x:5,y:2,map_id:MAP},1,{ledges:true});
+  expect(cheaperWalk.buttons).toEqual([["DOWN"]]);expect(cheaperWalk.outcome.details).toMatchObject({navigation:{selected_target:{x:2,y:4}}});
+
   const xTied=warpField({x:2,y:1},[{x:3,y:2},{x:1,y:2}],5,3);
   const byX=await run(xTied,true,{x:3,y:2,map_id:MAP},1);
   expect(byX.outcome.details).toMatchObject({navigation:{selected_target:{x:1,y:2}}});
@@ -190,5 +194,6 @@ describe("deterministic-warp-navigation-v1",()=>{
   expect(bundle.base.features[ID]).toBe(false);expect(bundle.switches).toContain(ID);expect(bundle.onInBoth).not.toContain(ID);
   const raw=JSON.parse(readFileSync(new URL("../../../experiments/deterministic-warp-navigation.json",import.meta.url),"utf8")) as {queuePosition?:number;changedFeature:string;incumbent:{features:Record<string,boolean>}};
   expect(raw.queuePosition).toBeUndefined();expect(raw.changedFeature).toBe(ID);const arms=experimentArms(parseExperiment(raw));expect(arms.incumbent.features[id]).toBe(false);expect(arms.candidate.features[id]).toBe(true);expect(SWITCHABLE_FEATURES.filter(feature=>arms.incumbent.features[feature]!==arms.candidate.features[feature])).toEqual([ID]);
+  const explainer=readFileSync(new URL("../../../docs/explainers/deterministic-warp-navigation-v1.html",import.meta.url),"utf8");expect(explainer).toContain("weighted terrain/ledge cost");expect(explainer).not.toContain("Route length wins");
  });
 });

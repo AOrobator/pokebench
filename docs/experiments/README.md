@@ -7,3 +7,5 @@ Readiness verdicts are in [readiness.md](readiness.md).
 <!-- Add one line per overview: - [Title](<experiment-id>.html) — tier, start, runs per arm -->
 
 - [JIT ten-minute screen](jit-10m.html) — screen; MAIN_MENU start; 12 per arm across both GPUs; launch held.
+
+- [JIT v2 one-pair diagnostic pilot](jit-v2-pair-10m.html) — one ten-minute run per arm; existing runs protected.

@@ -89,6 +89,15 @@ describe("clock-view-loop-v1",()=>{
   expect(notices[1]?.message).toBe("SUPERVISOR");
  });
 
+ it("ON: an observation between clock looks does not reset the action loop",()=>{
+  const {d,notices}=detector(true);
+  look(d,"9:58 AM");
+  look(d,"9:59 AM");
+  d.complete({name:"observe",args:{},isError:false,text:"ok",state:bedroom(7)});
+  d.complete(press(bedroom(),transition("10:00 AM")));
+  expect(notices.map(n=>n.phase)).toEqual(["warning","supervisor"]);
+ });
+
  it("ON: setting the clock, one look, and a look after leaving the tile do not count",()=>{
   const setting=detector(true);
   for(let i=0;i<8;i++) setting.d.complete(press(bedroom(),adjustment()));

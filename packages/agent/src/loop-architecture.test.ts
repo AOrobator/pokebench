@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { LOOP_RULE_PRIORITY, buildLoopRules, firstLoopHit } from "./loop/rules/index.js";
 import { LOOP_POLICY, type CompletedCall, type LoopHit, type LoopRule, type LoopRuleId } from "./loop/types.js";
+import { InterfaceRules } from "./loop/rules/interfaces.js";
+import { LoopDetector, type LoopNotice } from "./loop-detection.js";
+import type { GameStateSnapshot } from "./game-state.js";
 
 describe("loop rule architecture", () => {
   it("keeps detector priority explicit and stable", () => {
@@ -43,5 +46,66 @@ describe("loop rule architecture", () => {
       ["planning", hit("planning")],
     ]);
     expect(firstLoopHit(rules, call, { seq: 41, policy: LOOP_POLICY, candidates })?.rule.id).toBe("planning");
+  });
+
+  it("uses registry priority through the production coordinator on a real collision", () => {
+    const notices: LoopNotice[] = [];
+    const detector = new LoopDetector(
+      (notice) => notices.push(notice),
+      { ...LOOP_POLICY, cycleRepeats: 2, ineffective: 99 },
+      "enforced",
+      false,
+      undefined,
+      true,
+    );
+    const state = (map: [number, number]): GameStateSnapshot => ({
+      screen: "overworld",
+      started: true,
+      name: "RED",
+      location: map[1] === 0 ? "MAP A" : "MAP B",
+      map_id: map,
+      position: { x: 0, y: 0 },
+      facing: "up",
+      field_controls_locked: false,
+      in_battle: false,
+      party: [],
+      money: 0,
+      badges: [],
+      play_time_s: 0,
+      world_context: { objects: [], triggers: [], dialogue: null, message: null },
+    });
+    const a = state([0, 0]);
+    const b = state([0, 1]);
+    const move = (before: GameStateSnapshot, after: GameStateSnapshot, button: string): CompletedCall => ({
+      name: "press",
+      args: { buttons: [button] },
+      isError: false,
+      text: "ok",
+      beforeState: before,
+      state: after,
+    });
+    detector.complete(move(a, b, "UP"));
+    detector.complete(move(b, a, "DOWN"));
+    detector.complete(move(a, b, "UP"));
+    detector.complete(move(b, a, "DOWN"));
+    expect(notices).toHaveLength(1);
+    expect(notices[0]).toMatchObject({ kind: "cycle", phase: "warning" });
+    expect(notices[0]?.message).toContain("short state/action pattern");
+  });
+
+  it("keeps lifecycle callbacks out of pattern-rule APIs", () => {
+    const rules = new InterfaceRules(3, false, false, true);
+    const observeState: (state: GameStateSnapshot) => boolean = (state) => rules.observeState(state);
+    const menuReturn: (call: CompletedCall, seq: number) => { readonly evidence: number[] | null; readonly stateReset: boolean } =
+      (call, seq) => rules.menuReturn(call, seq);
+    const state: GameStateSnapshot = {
+      screen: "overworld", started: true, name: "RED", location: "MAP", map_id: [0, 0], position: { x: 0, y: 0 },
+      facing: "up", field_controls_locked: false, in_battle: false, party: [], money: 0, badges: [], play_time_s: 0,
+    };
+    expect(observeState(state)).toBe(true);
+    expect(menuReturn({ name: "press", args: {}, isError: false, text: "ok", state }, 9)).toEqual({
+      evidence: null,
+      stateReset: true,
+    });
   });
 });

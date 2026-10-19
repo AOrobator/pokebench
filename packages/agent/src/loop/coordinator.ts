@@ -153,9 +153,8 @@ export class LoopCoordinator {
     if (event.type === "state") {
       if ("started" in event) {
         this.field.observeState(event, event.seq, [...this.callTracker.pending()]);
-        this.interfaces.observeState(event, event.seq, this.episode?.menu === true, (recoverySeq) => {
-          this.recover(recoverySeq, false);
-        });
+        const menuStateReset = this.interfaces.observeState(event);
+        if (menuStateReset && this.episode?.menu === true) this.recover(event.seq, false);
         if (this.ineffectiveLoops) {
           const said = (event.world_context?.dialogue || event.world_context?.message?.identity) ?? "";
           if (said !== "")
@@ -261,12 +260,11 @@ export class LoopCoordinator {
         candidateIds.add("transition");
       }
       if (this.menuLoop) {
-        const back = this.interfaces.menuReturn(call, seq, this.episode?.menu === true, (recoverySeq) => {
-          this.recover(recoverySeq, false);
-        });
-        if (back !== null) {
+        const menu = this.interfaces.menuReturn(call, seq);
+        if (menu.stateReset && this.episode?.menu === true) this.recover(seq, false);
+        if (menu.evidence !== null) {
           candidateIds.add("battle-menu");
-          menuLooped = back;
+          menuLooped = menu.evidence;
         }
       }
       triggerLooped=this.field.triggerHit(call,seq);
@@ -275,7 +273,10 @@ export class LoopCoordinator {
     }
     if (this.basic.rejectionHit(call)) candidateIds.add("rejection");
     const candidates = new Map<LoopRuleId, LoopHit>();
-    for (const id of candidateIds) {
+    // Candidate collection order is intentionally not priority order. The static
+    // registry below is the sole priority owner, and the production collision
+    // test fails if this path is replaced with Map insertion-order selection.
+    for (const id of [...candidateIds].reverse()) {
       const kind: LoopKind = id === "planning" ? "planning"
         : id === "observation" ? "observation"
           : id === "ineffective-action" ? "ineffective"

@@ -18,11 +18,9 @@ export {
   semanticState,
   transientLock,
   waitingState,
-  LoopCoordinator,
 } from "./loop/coordinator.js";
 export type {
   CompletedCall,
-  LoopCoordinatorOptions,
   LoopKind,
   LoopMode,
   LoopNotice,

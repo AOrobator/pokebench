@@ -54,18 +54,18 @@ export class InterfaceRules {
     private readonly menuLoop: boolean,
   ) {}
 
-  observeState(state: GameStateSnapshot, seq: number, menuEpisode: boolean, recover: (seq: number) => void): void {
-    if (!this.menuLoop) return;
+  observeState(state: GameStateSnapshot): boolean {
+    if (!this.menuLoop) return false;
     if (!state.in_battle) {
       this.resetMenu();
-      if (menuEpisode) recover(seq);
-      return;
+      return true;
     }
     if (menuDetourScreen(state)) this.menuDetour = true;
+    return false;
   }
 
   clockHit(game: boolean, call: CompletedCall): boolean {
-    if (!this.clockViews || !game || call.state === undefined) return false;
+    if (!this.clockViews || !game || call.name === "observe" || call.state === undefined) return false;
     if (call.name === "press") {
       const look = clockLookPlace(call.state);
       if (look !== null) {
@@ -114,42 +114,42 @@ export class InterfaceRules {
     return this.closedTalk.count >= this.ineffectiveThreshold;
   }
 
-  menuReturn(call: CompletedCall, seq: number, menuEpisode: boolean, recover: (seq: number) => void): number[] | null {
-    if (!this.menuLoop) return null;
+  menuReturn(call: CompletedCall, seq: number): { readonly evidence: number[] | null; readonly stateReset: boolean } {
+    if (!this.menuLoop) return { evidence: null, stateReset: false };
     const state = call.state;
     if (state === undefined || !state.in_battle) {
       this.resetMenu();
-      if (menuEpisode) recover(seq);
-      return null;
+      return { evidence: null, stateReset: true };
     }
     const stamp = battleStamp(state);
     if (stamp !== null && this.menuStamp !== null && stamp !== this.menuStamp) {
       this.resetMenu();
       this.menuStamp = stamp;
-      if (menuEpisode) recover(seq);
-      return null;
+      return { evidence: null, stateReset: true };
     }
     if (stamp !== null) this.menuStamp = stamp;
     if (menuDetourScreen(state)) {
       this.menuDetour = true;
-      return null;
+      return { evidence: null, stateReset: false };
     }
     const key = actionMenuKey(state);
-    if (key === null) return null;
+    if (key === null) return { evidence: null, stateReset: false };
     if (this.menuAnchor !== null && this.menuAnchor !== key) {
       this.menuAnchor = key;
       this.menuDetour = false;
       this.menuReturns.length = 0;
-      if (menuEpisode) recover(seq);
-      return null;
+      return { evidence: null, stateReset: true };
     }
     this.menuAnchor = key;
-    if (!this.menuDetour) return null;
+    if (!this.menuDetour) return { evidence: null, stateReset: false };
     this.menuDetour = false;
     this.menuReturns.push({ key, seq });
     if (this.menuReturns.length > 12) this.menuReturns.shift();
     const same = this.menuReturns.filter((row) => row.key === key);
-    return same.length >= BATTLE_MENU_RETURNS ? same.map((row) => row.seq) : null;
+    return {
+      evidence: same.length >= BATTLE_MENU_RETURNS ? same.map((row) => row.seq) : null,
+      stateReset: false,
+    };
   }
 
   resetNativeProgress(): void {

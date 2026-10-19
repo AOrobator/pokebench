@@ -146,6 +146,7 @@ export interface GovernorDeps {
   // Operator control: a stop due at this turn end, and time spent paused.
   readonly takeStop?: () => boolean;
   readonly pausedMs?: () => number;
+  readonly wallLimit?: () => number;
   // text-only-supervisor-v1: a recorded note to send instead of ending the run (replies, note number).
   readonly textOnlySupervisor?: (replies: number, note: number) => string;
   readonly textOnlyReminder?: string;
@@ -234,7 +235,7 @@ export class Governor {
     const { maxTurns, maxWallMs } = this.deps.limits;
     if (this.deps.takeStop?.() === true) this.stopReason ??= "operator_stop";
     const active = this.deps.now() - this.startedAt - (this.deps.pausedMs?.() ?? 0);
-    if (this.turns >= maxTurns || active >= maxWallMs) this.stopReason ??= "budget";
+    if (this.turns >= maxTurns || active >= (this.deps.wallLimit?.() ?? maxWallMs)) this.stopReason ??= "budget";
     return this.stopReason !== null;
   }
 }

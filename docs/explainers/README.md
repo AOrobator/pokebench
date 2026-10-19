@@ -127,3 +127,4 @@ The original ignored runs/explainers copies remain for existing links. Make futu
 - [Focused supervisor briefings](supervisor-briefing-v2.html) — default-OFF recovery treatment; fixed bundle ON / control OFF.
 - [Reachable story guidance](reachable-story-guidance-v1.html) — default-OFF recovery treatment; fixed bundle ON / control OFF.
 - [Truthful text-only supervisor](text-only-supervisor-v2.html) — default-OFF recovery treatment; fixed bundle ON / control OFF.
+- [Extend an active run (operator control)](extend-run.html)

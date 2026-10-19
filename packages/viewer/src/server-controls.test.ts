@@ -37,8 +37,8 @@ function call(v: Viewer, method: string, path: string, body?: unknown, headers: 
   });
 }
 
-function liveRun(runsRoot: string, id: string): void {
-  const log = new Log(); log.add(0, START);
+function liveRun(runsRoot: string, id: string, extend = false): void {
+  const log = new Log(); log.add(0, { ...START, ...(extend ? { extend_run: true as const } : {}) });
   mkdirSync(join(runsRoot, id), { recursive: true });
   writeFileSync(join(runsRoot, id, "events.jsonl"), log.events.map((e) => JSON.stringify({ ...e, run: id })).join("\n") + "\n");
 }
@@ -208,4 +208,18 @@ describe("public origins", () => {
     const { viewer: v } = await viewer({ fetchFn: gameUp });
     expect((await call(v, "GET", "/api/features", undefined, { host: "studio.example.ts.net:8447" })).status).toBe(403);
   });
+});
+
+it("enqueues only finite extensions for capable live agents", async () => {
+  const { viewer: v, runsRoot } = await viewer({ fetchFn: gameUp, now: () => new Date("2026-10-19T17:00:00Z") });
+  liveRun(runsRoot, "capable", true); liveRun(runsRoot, "old");
+  expect(await call(v, "POST", "/api/runs/capable/control", { action: "extend_30m" })).toEqual({ status: 200, json: { request: 1 } });
+  expect(await call(v, "POST", "/api/runs/capable/control", { action: "extend_60m" })).toEqual({ status: 200, json: { request: 2 } });
+  expect((await call(v, "POST", "/api/runs/old/control", { action: "extend_30m" })).status).toBe(409);
+  expect((await call(v, "POST", "/api/runs/capable/control", { action: "extend_indefinitely" })).status).toBe(400);
+  expect((await call(v, "POST", "/api/runs/capable/control", { action: "extend_30m", minutes: -1 })).status).toBe(400);
+  expect(readFileSync(join(runsRoot, "capable", "control.jsonl"), "utf8").trim().split("\n").map(line => JSON.parse(line) as unknown)).toEqual([
+    { v: 1, seq: 1, at: "2026-10-19T17:00:00.000Z", action: "extend_30m" },
+    { v: 1, seq: 2, at: "2026-10-19T17:00:00.000Z", action: "extend_60m" },
+  ]);
 });

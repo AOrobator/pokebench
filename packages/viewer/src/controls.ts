@@ -6,7 +6,7 @@ import { esc, hms, num } from "./format.js";
 import { FRONTIER_MILESTONES } from "./frontier.js";
 import { MILESTONE_ORDER, deeperMilestone, type RunView } from "./model.js";
 
-export type ControlAction = "pause" | "resume" | "stop" | "cancel_stop" | "abort";
+export type ControlAction = "pause" | "resume" | "stop" | "cancel_stop" | "abort" | "extend_30m" | "extend_60m";
 export type Overlay = "pausing" | "paused" | "stopping" | "ended" | "abort_hold" | "aborted" | null;
 export const ABORT_HOLD_MS = 1_500;
 
@@ -49,9 +49,10 @@ const GROUPS = [["observation", "OBSERVATION · WHAT THE MODEL SEES"], ["guidanc
 export function availableActions(view: RunView, live: boolean): Set<ControlAction> {
   if (!live || view.end !== null) return new Set();
   const state = view.control.state;
-  if (state === "running") return new Set(["pause", "stop", "abort"]);
-  if (state === "pause_pending") return new Set(["resume", "stop", "abort"]);
-  if (state === "paused") return new Set(["resume", "stop", "abort"]);
+  const extensions: ControlAction[] = view.start?.extend_run === true && view.start.controller?.kind !== "human" ? ["extend_30m", "extend_60m"] : [];
+  if (state === "running") return new Set(["pause", "stop", "abort", ...extensions]);
+  if (state === "pause_pending") return new Set(["resume", "stop", "abort", ...extensions]);
+  if (state === "paused") return new Set(["resume", "stop", "abort", ...extensions]);
   if (state === "stop_pending") return new Set(["cancel_stop", "abort"]);
   return new Set();
 }
@@ -59,15 +60,20 @@ export function availableActions(view: RunView, live: boolean): Set<ControlActio
 export function controlBar(view: RunView, live: boolean, holdFraction: number | null): string {
   const actions = availableActions(view, live);
   const paused = view.control.state === "paused" || view.control.state === "pause_pending";
+  const labelHtml = (label: string): string => {
+    const [icon, ...text] = label.split(" ");
+    return `<span class="control-icon" aria-hidden="true">${icon ?? ""}</span><span class="control-label">${text.join(" ")}</span>`;
+  };
   const button = (action: ControlAction, cls: string, label: string): string =>
-    `<button type="button" class="${cls}" data-control="${action}"${actions.has(action) ? "" : " disabled"}>${label}</button>`;
+    `<button type="button" class="${cls}" data-control="${action}"${actions.has(action) ? "" : " disabled"}>${labelHtml(label)}</button>`;
   const stopping = view.control.state === "stop_pending";
   const abort = holdFraction === null ? "" : ` style="--hold:${String(Math.round(holdFraction * 100))}%"`;
   return [
     ...(view.end === null ? [] : ['<button type="button" data-dismiss-overlay>CLOSE</button>']),
     paused ? button("resume", "resume", "▶ RESUME") : button("pause", "pause", "⏸ PAUSE"),
+    ...(view.start?.extend_run === true && view.start.controller?.kind !== "human" ? [`<button type="button" data-extend-open${actions.has("extend_30m") ? "" : " disabled"}>${labelHtml("＋ EXTEND")}</button>`] : []),
     stopping ? button("cancel_stop", "cancel", "↺ CANCEL STOP") : button("stop", "stop", "■ STOP"),
-    `<button type="button" class="abort${holdFraction === null ? "" : " holding"}" data-control="abort"${actions.has("abort") ? "" : " disabled"}${abort}>✖ ABORT <span>hold to abort</span></button>`,
+    `<button type="button" class="abort${holdFraction === null ? "" : " holding"}" data-control="abort"${actions.has("abort") ? "" : " disabled"}${abort}><span class="control-icon" aria-hidden="true">✖</span><span class="control-label">ABORT <small class="control-help">hold to abort</small></span></button>`,
   ].join("");
 }
 
@@ -128,7 +134,7 @@ function bar(label: string, fraction: number, value: string, of: string): string
 export function sideStats(view: RunView, nowMs: number): string {
   const start = view.start;
   const turns = start?.budgets.max_turns;
-  const wall = start?.budgets.max_wall_ms;
+  const wall = view.control.maxWallMs ?? start?.budgets.max_wall_ms;
   const seconds = runSeconds(view, nowMs);
   const failures = view.retry === null ? 0 : view.retry.attempt;
   const limit = start?.evaluation?.failure_limit ?? view.retry?.limit ?? 3;
@@ -140,6 +146,7 @@ export function sideStats(view: RunView, nowMs: number): string {
     bar("TIME", wall === undefined ? 0 : (seconds * 1000) / wall, hms(seconds), wall === undefined ? "" : `of ${hms(wall / 1000)}`),
     `<div class="stat">FAILURES<b>${String(failures)}</b>of ${String(limit)}</div>`,
     bar("CONTEXT", window === 0 ? 0 : context / window, `${readout?.measured === false ? "~" : ""}${num(Math.round(context / 1000))}k`, window === 0 ? "" : `of ${num(Math.round(window / 1000))}k`),
+    ...(view.control.maxWallMs === null ? [] : [`<p class="extension-note">Operator-extended continuation · original ${hms((start?.budgets.max_wall_ms ?? 0) / 1000)}</p>`]),
   ].join("");
 }
 

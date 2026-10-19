@@ -297,12 +297,16 @@ export function scanRun(text: string): { readonly metrics: TrialMetrics; readonl
   if (start?.type !== "run_start" || last === undefined) throw new RunsError("event log does not begin with run_start");
   const startMs = Date.parse(start.t);
   const reached: string[] = [], milestoneMs: Record<string, number> = {};
-  for (const line of lines) {
-    if (!line.includes('"type":"milestone"')) continue;
-    const event = parseEvent(line);
+  const relevant = lines.filter(line => /"type"\s*:\s*"(milestone|operator_control)"/.test(line)).map(parseEvent);
+  const extended = relevant.some(event => event.type === "operator_control" && (event.action === "extend_30m" || event.action === "extend_60m") && event.status === "applied");
+  let pausedMs = 0;
+  for (const event of relevant) {
+    if (event.type === "operator_control" && event.status === "applied") pausedMs += event.paused_ms ?? 0;
     if (event.type !== "milestone" || event.origin === "present_at_start") continue;
+    const ms = Date.parse(event.t) - startMs - (extended ? pausedMs : 0);
+    if (extended && start.budgets.max_wall_ms !== undefined && ms > start.budgets.max_wall_ms) continue;
     reached.push(event.name);
-    milestoneMs[event.name] ??= Date.parse(event.t) - startMs;
+    milestoneMs[event.name] ??= ms;
   }
   const end = parseEvent(last);
   return end.type === "run_end"

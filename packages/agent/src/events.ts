@@ -52,6 +52,7 @@ const Args = Type.Record(Type.String(), Type.Unknown());
 const Evaluation = Type.Object({preset_id:Type.String({minLength:1}),target:Type.Union([Type.String({minLength:1}),Type.Null()]),failure_limit:Type.Integer({minimum:1}),reply_failures_end_run:Type.Optional(Type.Boolean()),flags:Type.Object({loopGuard:Type.Boolean(),activeUi:Type.Boolean(),interfaceDocs:Type.Boolean(),objectives:Type.Boolean()},closed),features:Type.Optional(Type.Record(Type.String({pattern:"^[a-z0-9-]+$"}),Type.Boolean())),experiment:Type.Optional(Type.Object({id:Type.String({minLength:1,maxLength:100}),arm:Type.String({minLength:1,maxLength:60}),trial:Type.Integer({minimum:1}),of:Type.Integer({minimum:1})},closed))},closed);
 const TargetProof = Type.Object({name:Type.String({minLength:1}),milestone_seq:NonNegativeInt,state_evidence:Type.Array(NonNegativeInt,{minItems:1,maxItems:3})},closed);
 const RunStart = event("run_start", {
+  extend_run: Type.Optional(Type.Literal(true)),
   rom_sha1: Type.Optional(Sha1),
   controller: Type.Optional(Type.Object({ kind: Type.Literal("human"), name: Type.String({minLength:1}), rom_sha1: Sha1, input_policy: Type.Literal("frame-held-v1"), sample_ms: Type.Literal(100), screenshot_ms: Type.Optional(Type.Literal(500)), nominal_fps: Type.Literal(59.7275) }, closed)),
   evaluation:Type.Optional(Evaluation),
@@ -585,11 +586,13 @@ const RunEnd = event("run_end", {
 });
 
 // Operator run control from runs/<id>/control.jsonl (see run-control.ts).
-export const CONTROL_ACTIONS = ["pause", "resume", "stop", "cancel_stop", "abort"] as const;
+export const CONTROL_ACTIONS = ["pause", "resume", "stop", "cancel_stop", "abort", "extend_30m", "extend_60m"] as const;
 const OperatorControl = event("operator_control", {
   action: Type.Enum(CONTROL_ACTIONS),
   status: Type.Enum(["pending", "applied", "ignored", "failed"] as const),
   request: Type.Integer({ minimum: 1 }),
+  previous_max_wall_ms: Type.Optional(NonNegativeInt),
+  max_wall_ms: Type.Optional(NonNegativeInt),
   paused_ms: Type.Optional(NonNegativeInt),
   emulator_frozen: Type.Optional(Type.Boolean()),
 });

@@ -1,9 +1,9 @@
 import {readFileSync} from "node:fs";
-import type {AgentToolResult} from "@mariozechner/pi-agent-core";
+import type {AgentTool,AgentToolResult} from "@mariozechner/pi-agent-core";
 import {describe,expect,it} from "vitest";
 import {ALL_ON,SWITCHABLE_FEATURES,featureInfo,playHarnessFeatures,type FeatureSet,type SwitchableFeature} from "./features.js";
 import type {GameStateSnapshot} from "./game-state.js";
-import {observeTool,pressTool} from "./game-tools.js";
+import {observeTool,pressTool,type CheckedPressTool} from "./game-tools.js";
 import {navigationTool,withNavigation,type NavigationPorts} from "./navigation.js";
 import {experimentArms,parseExperiment} from "./experiments.js";
 import {flagFeatures,normalizeFeatures,presetFeatures,parsePlayPreset} from "./play-preset.js";
@@ -21,8 +21,14 @@ const room=(extra:Partial<GameStateSnapshot>={}):GameStateSnapshot=>{
   navigation_grid:{elevation:3,tiles:[0,1,2].flatMap(y=>[0,1,2,3,4].map(x=>tile(x,y,warps.find(w=>w.x===x&&w.y===y)?.behavior??0))),objects:[],warps:warps.map(({x,y})=>({x,y}))},
   interaction_targets:warps.map(({kind,x,y,elevation,activation,availability,facing,local_id,destination,name})=>({kind,x,y,elevation,activation,availability,facing,local_id,destination,name})),...extra};
 };
+const fullRoom=(extra:Partial<GameStateSnapshot>={}):GameStateSnapshot=>{
+ const state=room(),grid=state.navigation_grid;if(grid===null||grid===undefined)throw new Error("missing navigation grid");
+ const cells=new Map(grid.tiles.map(t=>[`${String(t.x)},${String(t.y)}`,t]));
+ const rows=[0,1,2].map(y=>[0,1,2,3,4].map(x=>{const t=cells.get(`${String(x)},${String(y)}`);if(t===undefined)throw new Error("missing tile");return ((t.collision<<12)|(t.elevation<<8)|t.behavior).toString(16).padStart(4,"0");}).join(""));
+ return {...state,navigation_grid:null,map_grid:{width:5,height:3,elevation:3,rows,objects:grid.objects,warps:grid.warps},topology:{width:5,height:3,connections:[]},...extra};
+};
 const result=(state:GameStateSnapshot):AgentToolResult<{state:GameStateSnapshot}>=>({content:[{type:"text",text:"observed"}],details:{state}});
-const run=async(initial:GameStateSnapshot,on=true,goal={x:3,y:2,map_id:MAP},maxCommands?:number)=>{
+const run=async(initial:GameStateSnapshot,on=true,goal={x:3,y:2,map_id:MAP},maxCommands?:number,extraPorts:Partial<NavigationPorts>={})=>{
  let current=initial;const buttons:string[][]=[];
  const ports:NavigationPorts={read:()=>Promise.resolve(current),press:(_id,params,_signal,check)=>{
   check?.(current);buttons.push([...params.buttons]);const button=params.buttons[0];const p=current.position;
@@ -31,7 +37,7 @@ const run=async(initial:GameStateSnapshot,on=true,goal={x:3,y:2,map_id:MAP},maxC
   else {const delta=button==="DOWN"?[0,1]:button==="UP"?[0,-1]:button==="LEFT"?[-1,0]:[1,0];current={...current,position:{x:p.x+(delta[0]??0),y:p.y+(delta[1]??0)}};}
   return Promise.resolve(result(current));
  },observe:()=>Promise.resolve(result(current))};
- const tool=navigationTool({...ports,deterministicWarps:on,...(maxCommands===undefined?{}:{maxCommands})});
+ const tool=navigationTool({...ports,...extraPorts,deterministicWarps:on,...(maxCommands===undefined?{}:{maxCommands})});
  const outcome=await tool.execute("nav",goal,new AbortController().signal);
  return {buttons,outcome,description:tool.description};
 };
@@ -54,7 +60,19 @@ describe("deterministic-warp-navigation-v1",()=>{
   }
   const stuck=room({position:{x:3,y:2}});let presses=0;
   const outcome=await navigationTool({deterministicWarps:true,read:()=>Promise.resolve(stuck),press:()=>{presses++;return Promise.resolve(result(stuck));},observe:()=>Promise.resolve(result(stuck))}).execute("nav",{x:3,y:2,map_id:MAP});
-  expect(presses).toBe(1);expect(outcome.details).toMatchObject({navigation:{status:"directional warp did not change map; inspect new state",commands:1}});
+ expect(presses).toBe(1);expect(outcome.details).toMatchObject({navigation:{status:"directional warp did not change map; inspect new state",commands:1}});
+ });
+
+ it("classifies the final observation instead of treating an unknown or stale press result as success",async()=>{
+  const start=room({position:{x:3,y:2}});
+  let current:GameStateSnapshot={...start,map_id:null};
+  const unknown=navigationTool({deterministicWarps:true,read:()=>Promise.resolve(start),press:()=>Promise.resolve(result(current)),observe:()=>Promise.resolve(result(current))});
+  expect((await unknown.execute("nav",{x:3,y:2,map_id:MAP})).details).toMatchObject({navigation:{status:"directional warp transition unverified; inspect new state",commands:1}});
+
+  current={...start,map_id:[0,9]};let observes=0;
+  const settled=navigationTool({deterministicWarps:true,read:()=>Promise.resolve(start),press:()=>Promise.resolve(result(start)),observe:()=>{observes++;return Promise.resolve(result(current));}});
+  expect((await settled.execute("nav",{x:3,y:2,map_id:MAP})).details).toMatchObject({state:{map_id:[0,9]},navigation:{status:"directional warp activated; inspect destination",commands:1}});
+  expect(observes).toBe(1);
  });
 
  it("respects the command bound and rechecks warp identity before the only activation press",async()=>{
@@ -63,7 +81,42 @@ describe("deterministic-warp-navigation-v1",()=>{
   const current=room({position:{x:3,y:2}});let submitted=0;
   const tool=navigationTool({deterministicWarps:true,read:()=>Promise.resolve(current),press:(_id,_params,_signal,check)=>{check?.({...current,position:{x:2,y:2}});submitted++;return Promise.resolve(result(current));},observe:()=>Promise.resolve(result(current))});
   const outcome=await tool.execute("nav",{x:3,y:2,map_id:MAP});
-  expect(submitted).toBe(0);expect(outcome.details).toMatchObject({navigation:{status:"map, position or field input unavailable or changed before action; no command submitted",commands:0}});
+ expect(submitted).toBe(0);expect(outcome.details).toMatchObject({navigation:{status:"map, position or field input unavailable or changed before action; no command submitted",commands:0}});
+
+  let identitySubmissions=0;
+  const identity=navigationTool({deterministicWarps:true,read:()=>Promise.resolve(current),press:(_id,_params,_signal,check)=>{
+   const changed={...current,interaction_targets:(current.interaction_targets??[]).map(t=>t.x===3&&t.y===2?{...t,destination:[0,8,2] as [number,number,number]}:t)};
+   check?.(changed);identitySubmissions++;return Promise.resolve(result(changed));
+  },observe:()=>Promise.resolve(result(current))});
+  const changed=await identity.execute("nav",{x:3,y:2,map_id:MAP});
+  expect(identitySubmissions).toBe(0);expect(changed.details).toMatchObject({navigation:{status:"warp identity or activation changed before action; no command submitted",commands:0}});
+ });
+
+ it("rejects ambiguous coordinates, incompatible elevations, step-on warps and missing geometry",async()=>{
+  const base=room(),targets=base.interaction_targets??[],grid=base.navigation_grid;if(grid===null||grid===undefined)throw new Error("missing navigation grid");
+  const near=targets[0],requestedTarget=targets[1];if(near===undefined||requestedTarget===undefined)throw new Error("missing warp targets");
+  const duplicateNear={...near,x:1,y:2,destination:[0,8,1] as [number,number,number]};
+  for(const reordered of [[...targets,duplicateNear],[duplicateNear,...targets]]){
+   const {buttons,outcome}=await run({...base,interaction_targets:reordered});
+   expect(buttons).toEqual([["RIGHT"],["DOWN"],["RIGHT"],["DOWN"]]);expect(outcome.details).toMatchObject({navigation:{selected_target:{x:3,y:2}}});
+  }
+  const duplicateRequested={...requestedTarget,x:3,y:2,destination:null};
+  for(const reordered of [[...targets,duplicateRequested],[duplicateRequested,...targets]]){
+   const {buttons,outcome}=await run({...base,interaction_targets:reordered});
+   expect(buttons).toEqual([["RIGHT"],["DOWN"],["RIGHT"]]);expect(outcome.details).toMatchObject({navigation:{status:"arrived at requested coordinate",selected_target:{x:3,y:2}}});
+  }
+  const elevated={...base,interaction_targets:targets.map(t=>({...t,elevation:2}))};
+  expect((await run(elevated)).buttons).toEqual([["RIGHT"],["DOWN"],["RIGHT"]]);
+  const stepOn={...base,navigation_grid:{...grid,tiles:grid.tiles.map(t=>t.y===2?{...t,behavior:0x6e}:t)}};
+  expect((await run(stepOn)).buttons).toEqual([["RIGHT"],["DOWN"],["RIGHT"]]);
+  const missing=await run({...base,navigation_grid:null});expect(missing.buttons).toEqual([]);expect(missing.outcome.details).toMatchObject({navigation:{commands:0}});
+ });
+
+ it("uses whole-map geometry and resolves equal-cost equivalents by y then x",async()=>{
+  const whole=await run(fullRoom(),true,{x:3,y:2,map_id:MAP},undefined,{fullMap:true});
+  expect(whole.buttons).toEqual([["DOWN"],["DOWN"]]);expect(whole.outcome.details).toMatchObject({navigation:{selected_target:{x:1,y:2}}});
+  const tied=await run(room({position:{x:2,y:1}}));
+  expect(tied.buttons).toEqual([["DOWN"],["LEFT"],["DOWN"]]);expect(tied.outcome.details).toMatchObject({navigation:{selected_target:{x:1,y:2}}});
  });
 
  it("fails closed for distinct destinations, dynamic destinations, behavior or elevation mismatches, unknown classes and unreachable candidates",async()=>{
@@ -87,13 +140,23 @@ describe("deterministic-warp-navigation-v1",()=>{
   const before=await run(room(),false);expect(before.buttons).toEqual([["RIGHT"],["DOWN"],["RIGHT"]]);expect(before.outcome.details).toMatchObject({navigation:{status:"arrived at requested coordinate",commands:3,target:{x:3,y:2}}});expect(before.outcome.details).not.toHaveProperty("navigation.selected_target");expect(before.description).not.toContain("equivalent warp");
  });
 
- it("is wired through the production factory",()=>{
+ it("is wired through the production factory and executes the shortcut",async()=>{
   const fetchFn:typeof fetch=()=>Promise.reject(new Error("unused"));
   const base=[observeTool("http://127.0.0.1",fetchFn),pressTool("http://127.0.0.1",{beforePress:()=>undefined,afterPress:()=>Promise.resolve()},fetchFn)];
   const features={...flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false}),"bounded-navigation-v1":true,[ID]:true};
   const on=withNavigation(base,features as FeatureSet,{read:()=>Promise.reject(new Error("unused"))}).find(t=>t.name==="navigate_to");
   const off=withNavigation(base,{...features,[ID]:false},{read:()=>Promise.reject(new Error("unused"))}).find(t=>t.name==="navigate_to");
   expect(on?.description).toContain("equivalent warp");expect(off?.description).not.toContain("equivalent warp");
+
+  const start=room({position:{x:3,y:2}});let current=start;const buttons:string[][]=[];
+  const ordinaryPress={name:"press",execute:()=>Promise.reject(new Error("unchecked press")),executeChecked:(_id:string,params:{buttons:string[]},check:(state:GameStateSnapshot)=>void)=>{
+   check(current);buttons.push([...params.buttons]);current={...current,map_id:[0,9]};return Promise.resolve(result(current));
+  }} as unknown as CheckedPressTool;
+  const ordinaryObserve={name:"observe",execute:()=>Promise.resolve(result(current))} as unknown as AgentTool;
+  const produced=withNavigation([ordinaryPress,ordinaryObserve],features as FeatureSet,{read:()=>Promise.resolve(current)}).find(t=>t.name==="navigate_to");
+  if(produced===undefined)throw new Error("missing navigate_to");
+  const outcome=await produced.execute("nav",{x:3,y:2,map_id:MAP},new AbortController().signal);
+  expect(buttons).toEqual([["DOWN"]]);expect(outcome.details).toMatchObject({state:{map_id:[0,9]},navigation:{status:"directional warp activated; inspect destination",commands:1}});
  });
 
  it("is appended, default OFF, bundle-only, and registered as a pending one-switch experiment",()=>{

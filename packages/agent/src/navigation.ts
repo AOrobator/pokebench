@@ -444,21 +444,27 @@ const DIRECTIONAL_WARP_PRESSES=new Map<number,Direction>([
 // Step-on warps, doors and unknown behaviors retain the requested coordinate
 // and old stop semantics even if their destination tuples happen to match.
 const knownWarpBehavior=(behavior:number):boolean=>DIRECTIONAL_WARP_PRESSES.has(behavior);
-type WarpPlan={readonly target:Point;readonly path:Direction[];readonly activation:Direction|null};
+interface WarpIdentity {readonly destination:readonly number[];readonly behavior:number;readonly elevation:number}
+type WarpPlan={readonly target:Point;readonly path:Direction[];readonly activation:Direction|null;readonly identity:WarpIdentity};
 const samePoint=(a:Point,b:Point):boolean=>a.x===b.x&&a.y===b.y;
 const sameDestination=(a:readonly number[],b:readonly number[]):boolean=>a.length===3&&b.length===3&&a.every((value,index)=>value===b[index]);
+const sameWarpIdentity=(a:WarpIdentity,b:WarpIdentity):boolean=>a.behavior===b.behavior&&a.elevation===b.elevation&&sameDestination(a.destination,b.destination);
 const dynamicDestination=(destination:readonly number[]):boolean=>destination.some(value=>value===0x7f);
 function deterministicWarpPlan(state:GameStateSnapshot,requested:Point,options:NavigationOptions):WarpPlan|null {
  const geometry=options.mode==="full"?fullGeometry(state):localGeometry(state);
  if(geometry===null)return null;
- const listed=(state.interaction_targets??[]).filter(target=>target.kind==="warp"&&samePoint(target,requested)&&target.destination!==null);
+ const warps=(state.interaction_targets??[]).filter(target=>target.kind==="warp");
+ const listed=warps.filter(target=>samePoint(target,requested));
  if(listed.length!==1)return null;
  const wanted=listed[0],destination=wanted?.destination;if(wanted===undefined||destination===null||destination===undefined||dynamicDestination(destination))return null;
  const wantedTile=geometry.tile(wanted);if(wantedTile===undefined||!knownWarpBehavior(wantedTile.behavior))return null;
- const candidates=(state.interaction_targets??[]).flatMap(target=>{
-  if(target.kind!=="warp"||target.destination===null||dynamicDestination(target.destination)||!sameDestination(target.destination,destination)||target.elevation!==wanted.elevation)return [];
+ const candidates=warps.flatMap(target=>{
+  if(target.destination===null||dynamicDestination(target.destination)||!sameDestination(target.destination,destination)||target.elevation!==wanted.elevation)return [];
+  if(warps.filter(other=>samePoint(other,target)).length!==1)return [];
   const tile=geometry.tile(target);if(tile===undefined||tile.behavior!==wantedTile.behavior)return [];
-  const path=planNavigation(state,target,options);return path===null?[]:[{target:{x:target.x,y:target.y},path,activation:DIRECTIONAL_WARP_PRESSES.get(tile.behavior)??null}];
+  const path=planNavigation(state,target,options);if(path===null)return [];
+  const arrival=walked(state,path,options)?.elevation??geometry.elevation;if(target.elevation!==0&&target.elevation!==arrival)return [];
+  return [{target:{x:target.x,y:target.y},path,activation:DIRECTIONAL_WARP_PRESSES.get(tile.behavior)??null,identity:{destination:[...target.destination],behavior:tile.behavior,elevation:target.elevation}}];
  });
  candidates.sort((a,b)=>a.path.length-b.path.length||a.target.y-b.target.y||a.target.x-b.target.x);
  return candidates[0]??null;
@@ -530,7 +536,7 @@ export function navigationTool(ports:NavigationPorts):AgentTool<typeof Args> {
   signal?.throwIfAborted();await ports.gate?.(signal);signal?.throwIfAborted();
   let state=await ports.read(signal),commands=0,status="command limit",last:AgentToolResult<unknown>|undefined;
   const blackout=new BlackoutCarry();
-  let shortest=Infinity,stalled=0,unready=false,selectedTarget:Point={x:goal.x,y:goal.y};
+  let shortest=Infinity,stalled=0,unready=false,selectedTarget:Point={x:goal.x,y:goal.y},directionalWarpAttempted=false;
   const origin=state.position;
   const sameMap=():boolean=>state.map_id?.[0]===goal.map_id[0]&&state.map_id[1]===goal.map_id[1];
   while(commands<bound){
@@ -559,11 +565,10 @@ export function navigationTool(ports:NavigationPorts):AgentTool<typeof Args> {
       last=await ports.press(id,{buttons:[activation]},signal,actual=>{
        if(actual===undefined||!ready(actual,mode)||actual.map_id?.[0]!==goal.map_id[0]||actual.map_id[1]!==goal.map_id[1]||actual.position?.x!==before.x||actual.position.y!==before.y)throw new NavigationPreconditionError("map, position or field input unavailable or changed before action; no command submitted");
        const current=deterministicWarpPlan(actual,goal,options);
-       if(current===null||current.activation!==activation||!samePoint(current.target,warpPlan.target)||current.path.length!==0)throw new NavigationPreconditionError("warp identity or activation changed before action; no command submitted");
+       if(current===null||current.activation!==activation||!samePoint(current.target,warpPlan.target)||current.path.length!==0||!sameWarpIdentity(current.identity,warpPlan.identity))throw new NavigationPreconditionError("warp identity or activation changed before action; no command submitted");
       });
      } catch(error){if(!(error instanceof NavigationPreconditionError))throw error;status=error.message;break;}
-     commands++;state=blackout.remember(resultState(last));
-     status=sameMap()?"directional warp did not change map; inspect new state":"directional warp activated; inspect destination";
+     commands++;directionalWarpAttempted=true;state=blackout.remember(resultState(last));
      break;
     }
     status="arrived at requested coordinate";break;
@@ -592,6 +597,7 @@ export function navigationTool(ports:NavigationPorts):AgentTool<typeof Args> {
    }
   }
   last=await ports.observe(id,signal);state=blackout.preserve(blackout.remember(resultState(last)));
+  if(directionalWarpAttempted){status=state.map_id===null?"directional warp transition unverified; inspect new state":sameMap()?"directional warp did not change map; inspect new state":"directional warp activated; inspect destination";}
   // A composite navigation call can consume the one-shot receipt in an internal
   // press and then replace that observation with a fresh one. Carry the event
   // and its exact notice into the outer result for both recording and the model.

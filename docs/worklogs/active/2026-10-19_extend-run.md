@@ -32,9 +32,9 @@ Reuse loopback/allowed-origin, run-id validation and existing POST control owner
 - [x] Gates: just test, just lint, just build, just coverage (90% independently), just verify-vendor, schema regeneration.
 - [x] Fake-data runner rehearsal and isolated browser clicks at desktop/phone widths, inspected screenshots, pending/failure/recovery and replay.
 - [x] Explainer with mechanism diagram, local delivery and verification.
-- [ ] Principles PB1–PB13 self-review; frozen packet; independent Claude/Grok/GPT review; triage and at most two rounds.
-- [ ] Commit GREEN and land only with required cloud approvals and passing gates. Do not overwrite unrelated checkout edits.
-- [ ] After landing, viewer restart coordinated with other owners and live read-only proof; existing gameplay processes preserved.
+- [x] Principles PB1–PB13; frozen packet; two review rounds. Grok/Sol/Astra approve; operator waived unavailable Claude lane.
+- [x] GREEN landed by fast-forward after gates and explicit operator authorization for Claude waiver; unrelated checkout preserved.
+- [x] Viewer restart overlap checked; live read-only proof complete. Zero local gameplay processes present at final restart; no real controls sent.
 
 ## Closing the Loop
 Scratch runs root only, no experiment approvals; candidate viewer on owned port. Exercise +30/+60, cancel, paused extension, end race, rejection, repeat requests, focus through polling, reload/replay and raw inspection. Retain evidence under ignored runs/extend-run-proof. Never extend a real benchmark for a smoke check. Report separately code, gates, review, landing and live availability. Old running binaries remain unsupported until subsequent runs start from the new build.
@@ -80,3 +80,11 @@ No adjacent cleanup planned.
 - Round 2 gates: just build/lint/test/coverage pass. Agent 2574 tests; viewer 1238; Python 2724, zero skipped. Coverage: agent statements 97.86 / branches 94.09 / functions 98.27; viewer 95.41 / 91.33 / 93.97; Python lines 97.12 / branches 92.85 / functions 100.00. Vendor remains pinned/clean.
 - Real-run inventory read-only check: live 8790 and candidate listRuns both list the same 365 unique run IDs; zero added/removed/duplicate entries (real-run-inventory.json). Existing live jobs unchanged.
 - Final candidate browser normal flow: fresh scratch run extension-rehearsal-r2, +30 minutes waits then confirms exact request 1; cap 2h -> 2h30; no console errors. Updated served app/source hashes checked; no real benchmark controls sent.
+
+## Authorized Landing and Delivery
+- R2 frozen base 63b6236fec08dac3e533ad6aa62b585fd3d4480c -> 35edd7af6e137dce891b25ff4bc54517f700f6d1, diff SHA256 ccb694f5267bb46bbc1ecca2f35b615bab1d4b6d0b1a2248009950a2592c7986. Grok Cursor, isolated GPT Sol and Astra fallback each LGTM on exact candidate; Claude unavailable, no approval claimed. PB1–PB13 and nine-check synthesis have no outstanding blocker.
+- Operator answered “yes” to explicit request to merge and refresh without Claude. Main fast-forwarded to exact candidate 35edd7af. Primary checkout remains on unrelated codex/viewer-60fps branch. No push, run launch, campaign repin or real extension performed.
+- Post-merge just test on main: 2574 agent + 1238 viewer + 2724 Python = 6536 passed, zero skips (/tmp/pb-extend-main-test.log).
+- First restart overlapped tests and reported lost transient PID 7556; its survival is not claimed. After tests completed, just viewer-main succeeded at 35edd7af with zero local gameplay processes present. Detached child did not persist beyond tool shell; same compiled CLI started in persistent owned terminal session 31660, listener PID 9114 on 127.0.0.1:8790. No existing gameplay process terminated by us.
+- Live API answers; clean build stamp 35edd7af6e137dce891b25ff4bc54517f700f6d1. Served app.js/style.css/index.html match built bytes (runs/extend-run-proof/landed-assets.json). Browser loads existing Petalburg run and controls; Extend correctly absent for its old capability-less binary. Screenshot: primary runs/mockups/extend-run/shots/landed-viewer.png. Emerald dialog/alignment screenshots remain in same directory.
+- Subsequent runs from new build support Extend. Existing binaries and frozen pins retain old code. Turn cap unchanged at 20000. Worklog remains active; archive not authorized.

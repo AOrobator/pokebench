@@ -24,8 +24,8 @@ const done=(id:string,turn:number):RunEvent=>checkEvent({v:1,run:"r",seq:100+tur
 
 describe("input-cuts-v1",()=>{
  it("is registered fourth from the end, an observation, default off, and state-only refuses it",()=>{
-  expect(SWITCHABLE_FEATURES.at(-10)).toBe(ID);
-  expect(playHarnessFeatures(ALL_ON,null).at(-10)).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-11)).toBe(ID);
+  expect(playHarnessFeatures(ALL_ON,null).at(-11)).toBe(ID);
   expect(playHarnessFeatures(OFF,null)).not.toContain(ID);
   expect(featureInfo(ID)).toMatchObject({group:"observation",needs:null,title:"INPUT CUTS",switchable:true});
   expect(featureInfo(ID).description).toContain(" Off: ");

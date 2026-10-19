@@ -364,7 +364,7 @@ export function withStoryDestinations(tools:readonly AgentTool[],features:Featur
   const index=result.content.findLastIndex(part=>part.type==="text"&&/^Location: /m.test(part.text));
   const part=result.content[index];
   if(part?.type!=="text")return result;
-  const content=[...result.content];content[index]={...part,text:story.annotate(part.text,state,id,await table(state.name??""),features["stale-story-goal-v1"])};
+  const content=[...result.content];content[index]={...part,text:story.annotate(part.text,state,id,await table(state.name??""),features["stale-story-goal-v1"],features["stale-story-goal-v2"])};
   return {...result,content};
  };
  return tools.map(tool=>{

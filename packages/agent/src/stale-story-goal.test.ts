@@ -73,13 +73,13 @@ describe("stale-story-goal-v1",()=>{
  const oldale=field([0,10],"OLDALE TOWN");
  const lab=[page("BIRCH lives next door.","MOM"),page("Go see MAY at the LAB.","MOM")];
  it("is registered fifth from the end, default off, and needs nothing",()=>{
-  expect(SWITCHABLE_FEATURES.at(-11)).toBe(ID);
-  expect(playHarnessFeatures(ALL_ON,null).at(-11)).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-12)).toBe(ID);
+  expect(playHarnessFeatures(ALL_ON,null).at(-12)).toBe(ID);
   expect(featureInfo(ID)).toMatchObject({group:"observation",needs:null,switchable:true,title:"STALE STORY GOAL"});
   expect(featureInfo(ID).description).toContain(" Off: ");
   expect(dependencyProblems({...ALL_ON,"scripted-place-guidance-v1":false,"trigger-script-loop-v1":false,[ID]:true,"story-destinations-v1":false,"harness-trust-v1":false})).not.toContain(expect.stringContaining(ID));
   expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:true})[ID]).toBe(false);
-  const without=Object.fromEntries(Object.entries({...ALL_ON,"scripted-place-guidance-v1":false,"trigger-script-loop-v1":false,"state-only-decisions-v1":false}).filter(([id])=>id!==ID)) as Omit<FeatureSet,typeof ID>;
+  const without=Object.fromEntries(Object.entries({...ALL_ON,"scripted-place-guidance-v1":false,"trigger-script-loop-v1":false,"state-only-decisions-v1":false,[ID2]:false}).filter(([id])=>id!==ID)) as Omit<FeatureSet,typeof ID>;
   expect(normalizeFeatures(without)[ID]).toBe(false);
   expect(presetFeatures(parsePlayPreset({version:2,id:"p",target:null,limits:{maxTurns:1,maxWallMs:1,failureLimit:1},sampling:{thinkingLevel:"medium",maxTokens:1},features:without}))[ID]).toBe(false);
  });
@@ -291,7 +291,7 @@ describe("stale-story-goal-v1 production factory",()=>{
  });
  it("the pending experiment flips only this switch, with the lab parents on, and is not queued",()=>{
   const raw=JSON.parse(readFileSync(new URL("../../../experiments/stale-story-goal.json",import.meta.url),"utf8")) as {incumbent:{features:Record<string,boolean>}};
-  expect(Object.keys(raw.incumbent.features)).toEqual(SWITCHABLE_FEATURES.filter(id=>id!=="scripted-place-guidance-v1"&&id!=="trigger-script-loop-v1"&&id!=="just-in-time-prompt-v2"&&id!=="faced-interaction-history-v1"&&id!=="cache-aligned-window-v1"&&id!=="jit-guide-reuse-v1"));
+  expect(Object.keys(raw.incumbent.features)).toEqual(SWITCHABLE_FEATURES.filter(id=>id!=="scripted-place-guidance-v1"&&id!=="trigger-script-loop-v1"&&id!=="just-in-time-prompt-v2"&&id!=="faced-interaction-history-v1"&&id!=="cache-aligned-window-v1"&&id!=="jit-guide-reuse-v1"&&id!==ID2));
   const entry=parseExperiment(raw);
   expect(entry.queuePosition).toBeUndefined();
   expect(entry.changedFeature).toBe(ID);

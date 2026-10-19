@@ -54,16 +54,16 @@ The authorized outcome is a new default-OFF `stale-story-goal-v2` switch. With v
 - [x] Implement stage-at-issue tracking, v2 retirement, empty-header omission, and supervisor/destination behavior
 - [x] Gates: agent suite 2531 passed; `just lint` clean; `just build` clean
 - [x] COMMIT: `feat(story-goal): add stage-bound v2 lifecycle` (`223b9b93`, GREEN)
-- [ ] Observability proof on production-shaped recorded events; no gameplay run
+- [x] Observability proof on production-shaped recorded events; no gameplay run
 - [ ] Multi-model review loop until clean
 
 **M2 — Switch registration, explainer, and pending experiment**
-- [ ] Write tests for INV-7 and INV-8
-- [ ] COMMIT: `test(story-goal): require v2 registration and explainer` (RED)
-- [ ] Register switch/presets/defaults, explainer mapping/page, pending experiment, and readiness row
-- [ ] Gates: viewer/agent targeted tests, `just experiments-check`, `just pages-check docs/explainers/stale-story-goal-v2.html`
+- [x] Write tests for INV-7 and INV-8
+- [x] COMMIT: `test(story-goal): require v2 registration and explainer` (`e3c9d17c`, RED)
+- [x] Register switch/presets/defaults, explainer mapping/page, pending experiment, and readiness row
+- [x] Gates: viewer/agent targeted tests, `just experiments-check`, `just pages-check docs/explainers/stale-story-goal-v2.html`
 - [ ] COMMIT: `docs(story-goal): register v2 experiment and explainer` (GREEN)
-- [ ] Browser proof at 1280×900, 1440×900, and 375×812; Harness Config click on isolated viewer
+- [x] Browser proof at 1280×900, 1440×900, and 375×812; Harness Config click on isolated viewer
 - [ ] Multi-model review loop until clean
 
 **M3 — Repository gates, frozen review, and landing**
@@ -94,6 +94,11 @@ The authorized outcome is a new default-OFF `stale-story-goal-v2` switch. With v
 - 2026-10-19 ET: M1 GREEN records the native Birch stage attached to each dialogue page's recorded `state_seq`, retires only a pre-stage-3 all-lab episode at stage 3, preserves unknown stages, and lets the v2 presentation omit absent/completed destination goals. Pinned pret/pokeemerald reference is clean at `731ad5bfd6e6f265508d0efcca0ba42f9dcf5881`; `LittlerootTown_ProfessorBirchsLab_EventScript_AgreeToSeeRival` sets stage 3 after the rival-teaching line, Route 103 supplies the later return-to-LAB line, and `LittlerootTown_ProfessorBirchsLab_EventScript_GivePokedex` sets stage 5.
 - 2026-10-19 ET: Delete/restore receipt `m1-destination-block-operand`: removing the completed-v2 block suppression produced 2529 passed / 2 failed, exposing both pre-handoff and post-rival retired lines; restoring it returned 2531/2531 green. Fresh-worktree lint initially lacked `mgba._pylib`; `just build-mgba` installed the pinned local binding, after which lint passed. Build passed with dirty stamp `5b28fe9`.
 - 2026-10-19 ET: M1 GREEN committed as `223b9b93` (`feat(story-goal): add stage-bound v2 lifecycle`). M2 now moves the already-tested policy behind the public default-OFF feature switch and requires the production factory, preset, experiment, viewer card, and explainer route to agree.
+- 2026-10-19 ET: M2 RED committed as `e3c9d17c` (`test(story-goal): require v2 registration and explainer`). Before implementation, the agent target had 3 failures (missing registry entry, production ignored v2, missing experiment) and the viewer target had 2 failures (missing card mapping and missing served page).
+- 2026-10-19 ET: Registered `stale-story-goal-v2` last in the feature catalog, default OFF in presets and Next Run, dependent on v1, and wired it through both story-destination annotation and the production harness-trust factory. Appending the registry entry required deterministic negative-index fixture updates; full suites then passed: agent 161 files / 2534 tests and viewer 85 files / 1195 tests. `input-cuts-v1` remains compatible, and `experiments/fixed/bundle-v-control.json` is byte-for-byte unchanged.
+- 2026-10-19 ET: Added the pending-only experiment definition and readiness row; no queue position, approval, launch, measured run, or incumbent promotion occurred. `just experiments-check` reports 118 valid experiments. Added the self-contained explainer, README/card mapping, and exact viewer route tests; `just pages-check docs/explainers/stale-story-goal-v2.html`, build, and `git diff --check` pass.
+- 2026-10-19 ET: Browser proof: the explainer rendered cleanly at 1280×900 and 1440×900. The first 375×812 check exposed document overflow from the SVG flow; containing the section and making the flow locally scrollable reduced `documentElement.scrollWidth` from 714 to exactly 375. An isolated viewer on port 18764 showed one `STAGE-BOUND STORY GOAL` Harness Config card; its `READ EXPLAINER` link opened `/explainers/stale-story-goal-v2.html` with title and H1 `Stage-bound story goal`. Temporary viewers and tabs were closed; the long-lived viewer was not restarted.
+- 2026-10-19 ET: M2 delete/restore receipt `m2-production-switch-operands`: replacing the production factory's `stageBound` and `omitEmptyGoal` v2 operands with false produced 24 passed / 1 failed in `stale-story-goal.test.ts`, exposing the stale invitation in the v2-on factory path; restoring both operands returned 25/25 green. Viewer targets pass 166/166.
 
 ## Surprises
 

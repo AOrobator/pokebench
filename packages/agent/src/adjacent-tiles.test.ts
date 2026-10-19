@@ -10,17 +10,17 @@ it("registers adjacent tiles as a default-off observation switch that needs the 
   expect(featureInfo(ID)).toMatchObject({ group: "observation", needs: "live-map-v1", switchable: true, title: "ADJACENT TILES" });
   expect(featureInfo(ID).description).toContain("Next tiles: up (8,6) ledge (v), hops down only, cannot be entered from here");
   expect(featureInfo(ID).description).toContain(" Off: ");
-  expect(SWITCHABLE_FEATURES.at(-78)).toBe(ID);
-  expect(playHarnessFeatures(ALL_ON,null).at(-74)).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-79)).toBe(ID);
+  expect(playHarnessFeatures(ALL_ON,null).at(-73)).toBe(ID);
   expect(playHarnessFeatures(off(ID), null)).not.toContain(ID);
   expect(featuresOf(playHarnessFeatures(off(ID), null))[ID]).toBe(false);
   expect(dependencyProblems(off("live-map-v1"))).toContain("adjacent-tiles-v1 needs live-map-v1");
 });
 
 it("hands the switch to the game server, which draws the map", () => {
-  expect(SERVER_FEATURES.at(-20)).toBe(ID);
-  expect(serverFeatureEnv(off(ID)).POKEBENCH_FEATURES_OFF).toBe(ID);
-  expect(serverFeatureEnv(ALL_ON).POKEBENCH_FEATURES_OFF).toBe("");
+  expect(SERVER_FEATURES.at(-21)).toBe(ID);
+  expect(serverFeatureEnv(off(ID)).POKEBENCH_FEATURES_OFF).toBe(`${ID},safe-navigation-strides-v1`);
+  expect(serverFeatureEnv(ALL_ON).POKEBENCH_FEATURES_OFF).toBe("safe-navigation-strides-v1");
 });
 
 it("defaults OFF for presets that omit it and for legacy flag presets", () => {

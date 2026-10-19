@@ -37,6 +37,8 @@ def install_travel(
     emulator: type[FrameEmulator],
     server: TravelServer,
     read: ReadMemory,
+    *,
+    safe_strides: bool = False,
 ) -> None:
     # Each queued direction carries its own marker. Concurrent ordinary actions
     # cannot inherit an ambient modifier; release frames remain empty inputs.
@@ -69,3 +71,10 @@ def install_travel(
             for direction in body.buttons
         )
         return {"status": "success", "actions_added": len(body.buttons)}
+
+    if safe_strides:
+        from typing import cast
+
+        from pokebench_env.strides import QueuedStride, install_strides
+
+        install_strides(api, emulator, cast(QueuedStride, server), read)

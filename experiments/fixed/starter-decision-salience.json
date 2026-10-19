@@ -9,7 +9,7 @@
   "controlBase": {
     "path": "experiments/fixed/control-bases/starter-decision-salience-control.json",
     "presetId": "starter-decision-salience-control",
-    "sha256": "ba56207276d35cfba98c008f9598347df860b4a3d812fb2693ffcfc59aa6d17e"
+    "sha256": "bb22416287abb05840aad21f98e7fa24f4ee1571a8949e222ed3bc03a859e2cb"
   },
   "base": {
     "target": null,
@@ -161,7 +161,8 @@
       "ineffective-navigation-v2": false,
       "supervisor-briefing-v2": false,
       "reachable-story-guidance-v1": false,
-      "text-only-supervisor-v2": false
+      "text-only-supervisor-v2": false,
+      "safe-navigation-strides-v1": false
     }
   },
   "switches": [

@@ -364,6 +364,7 @@ function toolReference(name:string,automaticRunning:boolean):string {
 }
 
 export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
+ "safe-navigation-strides-v1":"safe-navigation-strides-v1.html",
  "automatic-running-v1":"automatic-running-v1.html",
  "visited-terrain-navigation-v1":"visited-terrain-navigation-v1.html",
  "just-in-time-prompt-v1":"just-in-time-prompt-v1.html",

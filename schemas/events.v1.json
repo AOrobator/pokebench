@@ -1667,6 +1667,91 @@
         "automatic_running": {
           "type": "boolean"
         },
+        "stride": {
+          "type": "object",
+          "required": [
+            "id",
+            "map_id",
+            "origin",
+            "path",
+            "elevation"
+          ],
+          "properties": {
+            "id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64
+            },
+            "map_id": {
+              "type": "array",
+              "additionalItems": false,
+              "items": [
+                {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 255
+                },
+                {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 255
+                }
+              ],
+              "minItems": 2
+            },
+            "origin": {
+              "type": "object",
+              "required": [
+                "x",
+                "y"
+              ],
+              "properties": {
+                "x": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 255
+                },
+                "y": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 255
+                }
+              },
+              "additionalProperties": false
+            },
+            "path": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "x",
+                  "y"
+                ],
+                "properties": {
+                  "x": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 255
+                  },
+                  "y": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 255
+                  }
+                },
+                "additionalProperties": false
+              },
+              "minItems": 1,
+              "maxItems": 8
+            },
+            "elevation": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 14
+            }
+          },
+          "additionalProperties": false
+        },
         "walking": {
           "type": "boolean"
         },

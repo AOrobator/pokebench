@@ -374,7 +374,7 @@ export function withDialogueAutoAdvance(tools:readonly AgentTool[],features:Feat
   return {seen,state:carry.preserve(state),block:summary(outcome,pages.pages,dropped,event.turn,ignored)};
  };
  let open:OpenMessage|null=null;
- const execute=async(id:string,params:PressParams,signal?:AbortSignal,update?:Parameters<CheckedPressTool["execute"]>[3],check?:BeforePressCheck):Promise<AgentToolResult<{state:GameStateSnapshot|undefined}>>=>{
+ const execute=async(id:string,params:PressParams,signal?:AbortSignal,update?:Parameters<CheckedPressTool["execute"]>[3],check?:BeforePressCheck,options?:Parameters<CheckedPressTool["executeChecked"]>[5]):Promise<AgentToolResult<{state:GameStateSnapshot|undefined}>>=>{
   signal?.throwIfAborted();
   const carry=new BlackoutCarry();
   const began=full.clock.now();
@@ -383,7 +383,7 @@ export function withDialogueAutoAdvance(tools:readonly AgentTool[],features:Feat
   const battle=await openBattle(signal);
   const plan=submittedButtons(params.buttons,before,switches);
   const walking=params.walking===undefined?{}:{walking:params.walking};
-  const run=async(buttons:Button[],first:boolean)=>{const result=await (first&&check!==undefined?press.executeChecked(id,{buttons,...walking},check,signal,update):press.execute(id,{buttons,...walking},signal,update));carry.remember(stateOf(result));return result;};
+  const run=async(buttons:Button[],first:boolean)=>{const result=await (first&&check!==undefined?press.executeChecked(id,{buttons,...walking},check,signal,update,options):press.execute(id,{buttons,...walking},signal,update));carry.remember(stateOf(result));return result;};
   const pages=new Pages(record,open,present,truth);if(before!==undefined)pages.prime(before);
   const shownBefore=pages.pages.length>0;
   // A batch that starts inside a conversation stops after its first input: the next inputs could land on a
@@ -429,7 +429,7 @@ export function withDialogueAutoAdvance(tools:readonly AgentTool[],features:Feat
   const notices=carry.missingNotices([...head,seen.text,...extras.map(part=>part.text)]);
   return {content:[...seen.images,{type:"text",text:`${head.join("\n")}\n${notices.length===0?"":`\n${notices.join("\n")}\n`}\n${seen.text}`},...extras],details:{state:finalState}};
  };
- const wrappedPress:CheckedPressTool={...press,description:`${press.description} Field dialogue advances automatically: once a conversation opens, the harness presses B through every page until the next decision point and lists the pages; inputs left in your batch are not sent.${battleSource===null?"":" Battle text advances the same way: while a battle runs its own messages, the harness presses B through each waiting message until a battle menu, a YES/NO question, another screen or the battle's end, and lists every battle message shown."}`,execute:(id,params,signal,update)=>execute(id,params,signal,update),executeChecked:(id,params,check,signal,update)=>execute(id,params,signal,update,check)};
+ const wrappedPress:CheckedPressTool={...press,description:`${press.description} Field dialogue advances automatically: once a conversation opens, the harness presses B through every page until the next decision point and lists the pages; inputs left in your batch are not sent.${battleSource===null?"":" Battle text advances the same way: while a battle runs its own messages, the harness presses B through each waiting message until a battle menu, a YES/NO question, another screen or the battle's end, and lists every battle message shown."}`,execute:(id,params,signal,update)=>execute(id,params,signal,update),executeChecked:(id,params,check,signal,update,options)=>execute(id,params,signal,update,check,options)};
  const out=tools.map(tool=>{
   if(tool===press)return wrappedPress;
   // battle-move-tool-v1: a battle_action result hands the turn's battle text over the way navigate_to's does.

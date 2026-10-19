@@ -1,5 +1,9 @@
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
-import { CliError, DEFAULT_PORT, closeOnSignals, main, parseArgs, viewUrl } from "./cli.js";
+import { CliError, DEFAULT_PORT, closeOnSignals, main, parseArgs, viewerOffload, viewUrl } from "./cli.js";
+import type { BaselineRequest, BaselineWorkerLike } from "./baseline-pool.js";
 import { RunQueue } from "./next-run.js";
 
 describe("parseArgs", () => {
@@ -91,6 +95,37 @@ describe("main", () => {
     await main(["abc"], { repoRunsRoot: "/repo/runs", defaultEndpoint: null, defaultPublicOrigins: "https://studio.example.ts.net:8447", liveJs: "/l.js", staticDir: "/s", appDir: "/a", start, print: (line) => lines.push(line) });
     expect(start).toHaveBeenCalledWith(expect.objectContaining({ publicOrigins: ["https://studio.example.ts.net:8447"] }));
     expect(lines.slice(0, 2)).toEqual(["PokeBench viewer: http://127.0.0.1:8790/#run=abc", "also published at: https://studio.example.ts.net:8447/#run=abc"]);
+  });
+});
+
+describe("production log reduction", () => {
+  it("stays cold after restart and serializes mixed requested reductions on one worker", async () => {
+    const root = mkdtempSync(join(tmpdir(), "viewer-offload-"));
+    try {
+      const requests: BaselineRequest[] = [];
+      const worker: BaselineWorkerLike = {
+        postMessage: (message) => { requests.push(message); },
+        on: () => undefined,
+        terminate: () => Promise.resolve(0),
+        unref: () => undefined,
+      };
+      let spawns = 0;
+      const offload = viewerOffload(root, new URL("file:///held-worker.js"), "a".repeat(64), 32, () => {
+        spawns += 1;
+        return worker;
+      });
+      expect(offload.baselines?.warm).not.toBe(true);
+      const baseline = offload.baselines?.compute;
+      const workbench = offload.workbench?.compute;
+      if (baseline === undefined || workbench === undefined) throw new Error("production offload omitted its reducers");
+      const jobs = [baseline(root, "a"), baseline(root, "b"), workbench(root, "c", null)];
+      expect(spawns).toBe(1);
+      expect(requests).toHaveLength(1);
+      await offload.baselines?.close?.();
+      await Promise.allSettled(jobs);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
   });
 });
 

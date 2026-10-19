@@ -1,6 +1,6 @@
 import * as fs from "node:fs";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { ServerResponse } from "node:http";
+import { get, ServerResponse } from "node:http";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, expect, it, vi } from "vitest";
@@ -70,38 +70,53 @@ it("delivers a line longer than the chunk whole", async () => {
   expect(text).toContain("event: done");
 });
 
-it("stops reading once a client abandons a long stream, and keeps serving", async () => {
-  const viewer = await serve("long", longRun(30000), 65536);
-  const read = fs.readSync;
+it("stops polling once a client abandons an active stream, and keeps serving", async () => {
+  const active = longRun(3);
+  active.events.pop(); // no run_end: after catch-up the live stream polls for appended events
+  const viewer = await serve("long", active, 4096);
+  const open = fs.openSync;
   let reads = 0;
-  vi.spyOn(fs, "readSync").mockImplementation(((...args: Parameters<typeof fs.readSync>) => { reads += 1; return read(...args); }));
-  const abort = new AbortController();
-  const reply = await fetch(new URL("api/runs/long/events", viewer.url), { signal: abort.signal });
-  await reply.body?.getReader().read();
-  abort.abort();
+  vi.spyOn(fs, "openSync").mockImplementation(((...args: Parameters<typeof fs.openSync>) => { reads += 1; return open(...args); }));
+  await new Promise<void>((resolve, reject) => {
+    const request = get(new URL("api/runs/long/events", viewer.url), (reply) => {
+      reply.once("data", () => { reply.destroy(); resolve(); });
+    });
+    request.once("error", reject);
+  });
   await new Promise((resolve) => { setTimeout(resolve, 50); });
   const after = reads;
   await new Promise((resolve) => { setTimeout(resolve, 100); });
   expect(reads).toBe(after);
   vi.restoreAllMocks();
   expect((await fetch(new URL("api/runs", viewer.url))).status).toBe(200);
-  expect(await (await fetch(new URL("api/runs/long/events", viewer.url))).text()).toContain("event: done");
+  const short = longRun(2), runsRoot = join(roots.at(-1) ?? "", "runs");
+  mkdirSync(join(runsRoot, "short"));
+  writeFileSync(join(runsRoot, "short", "events.jsonl"), short.events.map((e) => JSON.stringify({ ...e, run: "short" })).join("\n") + "\n");
+  expect(await (await fetch(new URL("api/runs/short/events", viewer.url))).text()).toContain("event: done");
 });
 
 it("answers another request while a stream waits on a slow reader, and stops reading meanwhile", async () => {
-  const log = longRun(30000);
-  const viewer = await serve("long", log, 65536);
+  const log = longRun(400);
+  const viewer = await serve("long", log, 4096);
   const read = fs.readSync;
   let reads = 0;
   vi.spyOn(fs, "readSync").mockImplementation(((...args: Parameters<typeof fs.readSync>) => { reads += 1; return read(...args); }));
+  const write = Reflect.get(ServerResponse.prototype, "write") as (this: ServerResponse, ...args: Parameters<ServerResponse["write"]>) => boolean;
+  const streams: ServerResponse[] = [];
+  vi.spyOn(ServerResponse.prototype, "write").mockImplementation(function (this: ServerResponse, ...args: Parameters<ServerResponse["write"]>): boolean {
+    const ok = Reflect.apply<ServerResponse, Parameters<ServerResponse["write"]>, boolean>(write, this, args);
+    if (this.req.url?.endsWith("/events") === true && streams.length === 0) { streams.push(this); return false; }
+    return ok;
+  });
   const reply = await fetch(new URL("api/runs/long/events", viewer.url));
   const reader = reply.body?.getReader();
   await reader?.read();
   const list = await fetch(new URL("api/runs", viewer.url));
   expect(list.status).toBe(200);
-  await new Promise((resolve) => { setTimeout(resolve, 100); });
-  const paused = reads, size = fs.statSync(join(roots.at(-1) ?? "", "runs", "long", "events.jsonl")).size;
-  expect(paused).toBeLessThan(size / 65536 / 2);
+  const paused = reads;
+  await new Promise((resolve) => { setImmediate(resolve); });
+  expect(reads).toBe(paused);
+  streams[0]?.emit("drain");
   let text = "";
   const decoder = new TextDecoder();
   for (;;) { const chunk = await reader?.read(); if (chunk === undefined || chunk.done) break; text += decoder.decode(chunk.value, { stream: true }); }

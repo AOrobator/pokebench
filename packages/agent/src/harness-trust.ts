@@ -252,7 +252,7 @@ export function withHarnessTrust(tools:readonly AgentTool[],on:boolean,recorder:
   if(tool.name!=="observe"&&tool.name!=="press"&&tool.name!=="navigate_to"&&!(options.battleAction===true&&tool.name==="battle_action"))return tool;
   const execute:AgentTool["execute"]=async(id,params,signal,update)=>annotate(tool.name,id,await tool.execute(id,params,signal,update));
   if(!isCheckedPress(tool))return {...tool,execute};
-  const checked:CheckedPressTool={...tool,execute,executeChecked:async(id,params,check,signal,update)=>annotate(tool.name,id,await tool.executeChecked(id,params,check,signal,update))};
+  const checked:CheckedPressTool={...tool,execute,executeChecked:async(id,params,check,signal,update,options)=>annotate(tool.name,id,await tool.executeChecked(id,params,check,signal,update,options))};
   return checked;
  });
 }

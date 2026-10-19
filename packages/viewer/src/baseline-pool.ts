@@ -50,9 +50,10 @@ export function parseBaselineOutcome(value: unknown): BaselineOutcome | null {
   return Value.Check(OutcomeSchema, value) ? value : null;
 }
 
-// Leave cores for the game servers and agents; more than four buys little on a disk-bound scan.
+// Log reduction is also memory-bandwidth heavy. One worker keeps comparisons available without
+// letting the viewer compete with live game servers; parallel scans buy little on a disk-bound log.
 export function defaultPoolSize(cpus: number): number {
-  return Math.min(4, Math.max(1, cpus - 2));
+  return Math.min(1, Math.max(1, cpus - 2));
 }
 
 interface Job {

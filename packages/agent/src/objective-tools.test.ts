@@ -4,7 +4,7 @@ import type { AgentMessage, StreamFn } from "@mariozechner/pi-agent-core";
 import { Governor, piLoop } from "./harness.js";
 import { expect, it, vi } from "vitest";
 import { objectiveGameTools, objectiveTools, objectiveHarness } from "./objective-tools.js";
-import { isCheckedPress, ALL_TOOL_SWITCHES } from "./game-tools.js";
+import { isCheckedPress, ALL_TOOL_SWITCHES, PRESS_TIMING } from "./game-tools.js";
 import { ObjectiveTracker } from "./objectives.js";
 import { IN_GAME } from "../test-support/events.js";
 import type { BodyOf, RunEvent } from "./events.js";
@@ -399,8 +399,23 @@ it("leaves hidden facts out of the objective record and states model-reported co
   await press.executeChecked("nav1",{buttons:["RIGHT"]},check);
   await press.executeChecked("nav2",{buttons:["RIGHT"]},check);
   await expect(press.executeChecked("nav3",{buttons:["RIGHT"]},check)).rejects.toThrow(/Reassess/);
-  expect(checks).toBe(2);expect(server.actions()).toBe(2);expect(tracker.attempts).toHaveLength(2);
+ expect(checks).toBe(2);expect(server.actions()).toBe(2);expect(tracker.attempts).toHaveLength(2);
  });
+it("forwards the harness-owned running override through the objective press owner",async()=>{
+ const {tracker,recorder}=setup();tracker.set({...request,completion:{kind:"state",field:"party_count",value:1}});
+ const running={permitted:true,controllable:true,reason:"permitted",shoes:true,allow_running:true,avatar_flags:1,metatile:0,elevation:3,map_type:3,callback1:0x08085E05,callback2:0x08085E5D,diagnostic:null,raw_hex:null};
+ const state={...game,screen:"overworld",in_battle:false,active_ui:null,running};const posted:{url:string;body:unknown}[]=[];
+ const bytes=Buffer.alloc(33);Buffer.from([0x89,0x50,0x4e,0x47,0x0d,0x0a,0x1a,0x0a]).copy(bytes);bytes.write("IHDR",12);bytes.writeUInt32BE(240,16);bytes.writeUInt32BE(160,20);
+ const fetchFn:typeof fetch=(input,init)=>{const url=typeof input==="string"?input:input instanceof URL?input.href:input.url;let body:unknown=state;
+  if(url.endsWith("/action")||url.endsWith("/pokebench/travel")){if(typeof init?.body!=="string")throw new Error("action body must be JSON");posted.push({url,body:JSON.parse(init.body) as unknown});body={status:"success"};}
+  else if(url.endsWith("/queue_status"))body={queue_empty:true};
+  else if(url.endsWith("/pokebench/observation"))body={state,state_text:"field",screenshot_base64:bytes.toString("base64")};
+  return Promise.resolve(new Response(JSON.stringify(body)));};
+ const press=objectiveGameTools(tracker,recorder,"http://127.0.0.1:8812",fetchFn,{...ALL_TOOL_SWITCHES,automaticRunning:true}).find(tool=>tool.name==="press");
+ if(press===undefined||!isCheckedPress(press))throw new Error("Missing checked press");
+ await press.executeChecked("warp",{buttons:["DOWN"]},()=>undefined,undefined,undefined,{automaticRunning:false});
+ expect(posted).toEqual([{url:"http://127.0.0.1:8812/action",body:{buttons:["DOWN"],...PRESS_TIMING}}]);
+});
 it("tracks submitted single inputs and blocks repeats even when the requested batch was longer",async()=>{
  const {tracker,recorder}=setup();const server=serving();const press=objectiveGameTools(tracker,recorder,"http://127.0.0.1:8812",server.fetchFn,{...ALL_TOOL_SWITCHES,safeInterfaces:true}).find(t=>t.name==="press");
  if(press===undefined)throw new Error("Missing press");tracker.set({...request,completion:{kind:"state",field:"party_count",value:1}});

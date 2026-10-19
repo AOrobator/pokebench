@@ -147,7 +147,8 @@
    "just-in-time-prompt-v2": false,
    "jit-guide-reuse-v1": false,
    "battle-effective-damage-v1": false,
-   "visited-terrain-navigation-v1": false
+   "visited-terrain-navigation-v1": false,
+   "deterministic-warp-navigation-v1": false
   }
  },
  "switches": [
@@ -180,7 +181,8 @@
   "faced-interaction-history-v1",
   "scripted-place-guidance-v1",
   "trigger-script-loop-v1",
-  "battle-effective-damage-v1"
+  "battle-effective-damage-v1",
+  "deterministic-warp-navigation-v1"
  ],
  "offInBoth": [
   "milestone-stall-stop-v1",

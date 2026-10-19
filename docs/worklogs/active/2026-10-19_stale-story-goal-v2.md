@@ -55,7 +55,7 @@ The authorized outcome is a new default-OFF `stale-story-goal-v2` switch. With v
 - [x] Gates: agent suite 2531 passed; `just lint` clean; `just build` clean
 - [x] COMMIT: `feat(story-goal): add stage-bound v2 lifecycle` (`223b9b93`, GREEN)
 - [x] Observability proof on production-shaped recorded events; no gameplay run
-- [ ] Multi-model review loop until clean
+- [x] Multi-model review loop until clean
 
 **M2 — Switch registration, explainer, and pending experiment**
 - [x] Write tests for INV-7 and INV-8
@@ -64,7 +64,7 @@ The authorized outcome is a new default-OFF `stale-story-goal-v2` switch. With v
 - [x] Gates: viewer/agent targeted tests, `just experiments-check`, `just pages-check docs/explainers/stale-story-goal-v2.html`
 - [x] COMMIT: `docs(story-goal): register v2 experiment and explainer` (`5423e717`, GREEN)
 - [x] Browser proof at 1280×900, 1440×900, and 375×812; Harness Config click on isolated viewer
-- [ ] Multi-model review loop until clean
+- [x] Multi-model review loop until clean
 
 **M3 — Repository gates, frozen review, and landing**
 - [x] Sync current `main` into the branch
@@ -140,6 +140,9 @@ The authorized outcome is a new default-OFF `stale-story-goal-v2` switch. With v
 - Round 1 repair is complete locally; full gates and cumulative round 2 review remain pending.
 - Round 2 packet: head `a8311945`, SHA-256 `3869d805802d0b4fc176c40c5197976aa183f594f8839cef092d016beda00a5a`, 256016 bytes / 1945 lines. Astra and Sol fallback lanes independently returned `VERDICT: BLOCKING` only for the empty-target operand-level evidence gap; both classified the unchanged viewer coverage timing issue as a non-blocking hardening follow-up and found no security defect or scope expansion. The gap is repaired for round 3.
 - Round 3 packet: head `4b8121dd`, SHA-256 `0ec7af444aba633f575232190818314026de7064dae3d792d9ced1e79ebc0331`, 257551 bytes / 1955 lines. Sol first returned LGTM, then reversed to `VERDICT: BLOCKING` after the GPT lane identified the mixed resolved/unresolved defect and Sol reproduced it independently. GPT also returned BLOCKING on the same defect. Astra returned LGTM before receiving that late concrete edge. No reviewer found a security defect or scope expansion. The defect is repaired for round 4.
+- Round 4 packet: head `5dcef59f`, SHA-256 `990e91d85a9a123499dbe96a324b10e2c649b402ea106c24be85123c30e21b75`. Astra, Sol, GPT fallback, and external Grok all returned `VERDICT: LGTM`; the primary GPT lane was unavailable from capacity and is not counted as approval. Reviewers exercised 100 lifecycle combinations and 20 base-versus-candidate production comparisons without finding another behavior defect. The only suggestions were non-blocking viewer timing hardening and clearer all-resolved explainer wording; the wording is incorporated.
+- During the review window, canonical `main` advanced to `d4f3d9cc` with `battle-effective-damage-v1`, `visited-terrain-navigation-v1`, and viewer work. The first ordinary merge exposed broad append-order conflicts, was aborted without source loss, and a current-main-preferred merge produced `03696e4f`. The v2 core registration/default/wiring was then reapplied after the two newer switches, preserving append-only order and every incoming main change.
+- Post-merge integration updated only deterministic registry-order and historical-default fixtures plus the four core registration/default/wiring files. Full gates pass on the integrated tree: 2552 agent tests, 1210 viewer tests, and 2492 Python tests with the existing 229 ROM-dependent skips; repository lint, build, vendor verification, page validation, all 120 experiment checks, audit, and diff hygiene are green. `input-cuts-v1` remains true in both pending v2 experiment arms, while `stale-story-goal-v2` is false in the incumbent and true only in the candidate. No experiment was queued, approved, or launched.
 
 ## Boy Scout Log
 

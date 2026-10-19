@@ -135,6 +135,7 @@ export const SWITCHABLE_FEATURES = [
   "jit-guide-reuse-v1",
   "battle-effective-damage-v1",
   "visited-terrain-navigation-v1",
+  "stale-story-goal-v2",
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
 
@@ -349,6 +350,7 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("jit-guide-reuse-v1", "guidance", "REUSE RETAINED JIT GUIDES", "just-in-time-prompt-v2", "Default off. Reuses byte-identical scoped guidance while its original anchor remains in history. Keeps its placement and original source state; records reuse, without appending duplicates. Unknown interfaces still add nothing. Off: original JIT v2 appends another guide on scene re-entry."),
   on("battle-effective-damage-v1", "observation", "BATTLE EFFECTIVE DAMAGE", "battle-details-v2", "Default off. At an actionable player battle decision, lists every known move in menu order and, for ordinary fixed-power damaging moves, the landed non-critical Emerald damage range for every nominal legal current target across the game's 85-100 random rolls. Each target line keeps accuracy separate and names current HP percentage, normal-hit KO rolls, STAB, sequential dual-type effectiveness and applied current modifiers. A move with 0 PP is unavailable; if every move has 0 PP, the actual typeless STRUGGLE choice is shown. Other move locks are explicitly not decoded. Status moves say no direct damage. A target behind a Substitute is not computed until Substitute HP is decoded. Double battles distinguish selectable, random, self and spread targets and apply the game's spread modifier; Follow Me and Lightning Rod redirection state is not decoded. Script-derived power, type or hit-count cases are explicitly not deterministically computed. The harness does not rank, recommend or choose a move. Needs battle-details-v2. Off: the effective-damage block is absent and the previous battle readout is byte-for-byte unchanged."),
   on("visited-terrain-navigation-v1", "guidance", "VISITED TERRAIN NAVIGATION", "bounded-navigation-v1", "Default off. Remembers only local-map cells in tool results actually delivered to the model during this run, separately for each map; appends a stitched map with unknown cells marked ?, and lets navigate_to walk a full route through those remembered cells. A fresh run, including one restored from an emulator checkpoint, begins with no harness map history. Hidden state reads and internal navigation presses never add cells. Current delivered terrain replaces an older value at the same coordinate, and only current live objects are treated as occupied. The display is clipped to 64x64 around the player when the remembered bounds are larger. When full-map-navigation-v1 is also on, whole-map navigation takes precedence and this treatment is inactive. Off: the existing 15x15 readout, eight-attempt local planner, tool descriptions and results are byte-for-byte unchanged."),
+  on("stale-story-goal-v2", "observation", "STAGE-BOUND STORY GOAL", "stale-story-goal-v1", "Default off. Refines stale-story-goal-v1 by tying each Birch-lab instruction to the native Birch lab stage recorded when the dialogue page was observed. A lab invitation observed before stage 3 retires when the starter handoff advances the game to stage 3. A distinct return-to-the-lab line first observed at stage 3 or later remains active through stage 4 and retires under v1 at Pokédex receipt or stage 5. Retirement requires every named destination to resolve to PROF. BIRCH'S POKéMON LAB; an unresolved or mixed destination remains active. When no active place-bearing instruction remains, story-destinations-v1 omits its destination block and harness-trust-v1 omits the Story goal line entirely: it does not print Story goal: none or repeat the retired quote, and the walk-away supervisor receives no retired goal. Dialogue history is unchanged, and no replacement destination is invented. An unreadable issue or current stage does not retire a line. Needs stale-story-goal-v1. Off: v1 is byte-for-byte unchanged, including its milestone-based retirement text and Story goal: none presentation."),
   measured("story-milestones-v2", "STORY MILESTONES",
     "Records each story milestone the game's own state confirms, with its turn and time. This feeds splits and the score."),
   measured("clock-milestone-v1", "CLOCK MILESTONE",
@@ -533,6 +535,7 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("jit-guide-reuse-v1"),
     ...when("battle-effective-damage-v1"),
     ...when("visited-terrain-navigation-v1"),
+    ...when("stale-story-goal-v2"),
   ];
 }
 

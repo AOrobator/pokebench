@@ -1,7 +1,7 @@
 import {readFileSync} from "node:fs";
 import {expect,it} from "vitest";
 import {ALL_ON,type FeatureSet} from "./features.js";
-import {initialPlayTask,PLAY_TASK} from "./play-config.js";
+import {deliverInitialPlayTask,initialPlayTask,PLAY_TASK} from "./play-config.js";
 import {gameServerLauncherArgs} from "./server-launch.js";
 
 const features=(enabled:boolean):FeatureSet=>({...ALL_ON,"save-state-task-truth-v1":enabled});
@@ -19,9 +19,12 @@ it("keeps the native target and removes boot wording from a restored targeted ru
  expect(initialPlayTask({kind:"boot"},"RUSTBORO_CITY",features(true))).toBe("The game has just booted. Reach the native game milestone RUSTBORO CITY.");
 });
 
-it("wires the production entrypoint through start.kind and the recorded feature switch",()=>{
+it("delivers the exact resumed task through the production consumer seam",async()=>{
+ let delivered:unknown;
+ const result=await deliverInitialPlayTask({kind:"save_state"},"RUSTBORO_CITY",features(true),()=>123,task=>{delivered=task;return Promise.resolve("played");});
+ expect(result).toBe("played");expect(delivered).toEqual({role:"user",content:"The game has resumed from a recorded checkpoint. Reach the native game milestone RUSTBORO CITY.",timestamp:123});
  const live=readFileSync(new URL("./live.ts",import.meta.url),"utf8");
- expect(live).toContain("initialPlayTask(start,target,features)");
+ expect(live).toContain("deliverInitialPlayTask(start,target,features,()=>Date.now(),task=>play(task,governor,loop))");
  expect(live).toContain('realHost(port,start.kind==="save_state"?start.path:undefined,serverEnv)');
  expect(live).toContain("gameServerLauncherArgs(python,runDir,runId,serverPort,loadState).slice(1)");
 });

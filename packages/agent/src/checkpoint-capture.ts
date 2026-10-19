@@ -12,7 +12,8 @@ export interface CheckpointDeps {
  readonly libraryDir?:string;
  readonly fetch:(url:string,init?:{method?:string;headers?:Record<string,string>;body?:string})=>Promise<Response>;
  readonly write:(path:string,data:Buffer|string)=>void;
- readonly writeExclusive?: (path:string,data:string)=>void;
+ readonly linkExclusive?: (from:string,to:string)=>void;
+ readonly remove?: (path:string)=>void;
  readonly rename:(from:string,to:string)=>void;
 }
 
@@ -78,6 +79,11 @@ export class CheckpointCapture {
  async close():Promise<void>{this.closed=true;await this.settled();}
  private selected(name:string):boolean{return this.selection.kind==="single"?name===this.selection.target:frontier.has(name);}
  private async post(path:string,body:unknown):Promise<Response>{return this.deps.fetch(`${this.deps.serverUrl}${path}`,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(body)});}
+ private async pause(paused:boolean):Promise<void>{
+  const action=paused?"pause":"unpause",reply=await this.post("/pokebench/pause",{paused});
+  if(!reply.ok)throw new Error(`${action} request failed with HTTP ${String(reply.status)}`);
+  const body=await reply.json() as {paused?:unknown};if(body.paused!==paused)throw new Error(`${action} response did not confirm paused=${String(paused)}`);
+ }
  private metadata(event:MilestoneEvent,data:Buffer,sha1:string,sha256:string):Record<string,unknown>{
   return {version:1,run:event.run,milestone:event.name,milestone_event:{seq:event.seq,t:event.t,turn:event.turn,server_timestamp:event.server_timestamp,...(event.kind===undefined?{}:{kind:event.kind}),...(event.origin===undefined?{}:{origin:event.origin}),...(event.evidence===undefined?{}:{evidence:[...event.evidence]})},state:{sha1,sha256,bytes:data.length},source:source(this.start),capture:{basis:"first_observed_native_milestone",stability:"paused_after_recorded_observation"}};
  }
@@ -88,11 +94,16 @@ export class CheckpointCapture {
   this.deps.rename(`${sidecar}.partial`,sidecar);this.deps.rename(`${state}.partial`,state);
  }
  private promote(event:MilestoneEvent,data:Buffer,meta:string,sha1:string,sha256:string):void{
-  if(this.selection.kind!=="frontier"||this.deps.libraryDir===undefined||this.deps.writeExclusive===undefined)return;
+  if(this.selection.kind!=="frontier"||this.deps.libraryDir===undefined||this.deps.linkExclusive===undefined||this.deps.remove===undefined)return;
   const root=join(this.deps.libraryDir,event.name),relative=join("candidates",event.run),candidate=join(root,relative);
   this.pair(candidate,event.name,data,meta);
   const winner=JSON.stringify({version:1,milestone:event.name,run:event.run,candidate:relative,state:{sha1,sha256,bytes:data.length},milestone_seq:event.seq,observed_at:event.t});
-  try {this.deps.writeExclusive(join(root,"first-arrival.json"),winner);} catch(error) {if(!isExists(error))throw error;}
+  // A hard link publishes already-complete bytes atomically and fails with
+  // EEXIST without replacing an earlier winner. A failed temp write can never
+  // poison the final index path.
+  const staged=join(root,`.first-arrival.${event.run}.partial`),published=join(root,"first-arrival.json");
+  this.deps.write(staged,winner);
+  try {this.deps.linkExclusive(staged,published);} catch(error) {if(!isExists(error))throw error;} finally {this.deps.remove(staged);}
  }
  private recordFailure(event:MilestoneEvent,error:Error):void{
   const path=join(this.deps.dir,`${event.name}.error.json`),partial=`${path}.partial`;
@@ -100,13 +111,13 @@ export class CheckpointCapture {
  }
  private async capture(event:MilestoneEvent):Promise<void>{
   try {
-   const paused=await this.post("/pokebench/pause",{paused:true});if(!paused.ok)throw new Error(`pause request failed with HTTP ${String(paused.status)}; no checkpoint saved`);
+   await this.pause(true);
    const reply=await this.post("/pokebench/checkpoint",{});if(!reply.ok)throw new Error(`checkpoint request failed with HTTP ${String(reply.status)}`);
    const body=await reply.json() as {state_base64?:unknown;sha1?:unknown;sha256?:unknown};
    if(typeof body.state_base64!=="string"||typeof body.sha1!=="string"||typeof body.sha256!=="string")throw new Error("checkpoint reply is missing its state or digests");
    const data=Buffer.from(body.state_base64,"base64");if(data.length===0||data.length>8*1024*1024)throw new Error("checkpoint state size is invalid");
    const sha1=createHash("sha1").update(data).digest("hex"),sha256=createHash("sha256").update(data).digest("hex");if(sha1!==body.sha1||sha256!==body.sha256)throw new Error("checkpoint digest does not match the returned state");
    const meta=JSON.stringify(this.metadata(event,data,sha1,sha256));this.pair(this.deps.dir,event.name,data,meta);this.promote(event,data,meta,sha1,sha256);
-  } finally {await this.post("/pokebench/pause",{paused:false});}
+  } finally {await this.pause(false);}
  }
 }

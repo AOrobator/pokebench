@@ -2,6 +2,7 @@
 // what the model is told. The prompt constants moved here byte for byte from
 // live.ts; every feature switched on reproduces the earlier prompt exactly.
 import type { Limits } from "./harness.js";
+import type {AgentMessage} from "@mariozechner/pi-agent-core";
 import { objectivePrompt, type ObjectiveSwitches } from "./objective-tools.js";
 import type { FeatureSet } from "./features.js";
 import type { ToolSwitches } from "./game-tools.js";
@@ -157,6 +158,12 @@ export function initialPlayTask(start:{readonly kind:"boot"}|{readonly kind:"sav
     return target===null?RESUME_TASK:`The game has resumed from a recorded checkpoint. ${playGoal(target,features)}`;
   }
   return target===null?PLAY_TASK:`The game has just booted. ${playGoal(target,features)}`;
+}
+
+// Production seam for the first model input: tests observe the exact message
+// handed to the loop instead of merely inspecting live.ts source text.
+export function deliverInitialPlayTask<T>(start:{readonly kind:"boot"}|{readonly kind:"save_state"},target:string|null,features:FeatureSet,now:()=>number,deliver:(task:AgentMessage)=>T):T {
+ return deliver({role:"user",content:initialPlayTask(start,target,features),timestamp:now()});
 }
 
 export function playSystemPrompt(features: FeatureSet, target: string | null, scene: PromptScene | "core" = "unknown"): string {

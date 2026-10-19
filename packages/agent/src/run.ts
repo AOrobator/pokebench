@@ -62,10 +62,12 @@ export function harnessInfo(git: (args: string[]) => string): RunStart["harness"
 export interface RunLifecycle {beforeRunEnd(task:()=>Promise<void>):void}
 
 async function finishRecording(recorder:RunRecorder,reason:RunEndReason,capture:boolean,tasks:readonly (()=>Promise<void>)[]):Promise<void>{
-  let terminal=reason;
-  try {if(capture)await recorder.afterPress();for(const task of tasks)await task();}
-  catch(error){terminal="crash";throw error;}
-  finally {recorder.end(terminal);}
+  let terminal=reason,failure:Error|undefined;
+  const asError=(value:unknown):Error=>value instanceof Error?value:new Error(String(value));
+  try {if(capture)await recorder.afterPress();} catch(error){terminal="crash";failure=asError(error);}
+  for(const task of tasks){try {await task();} catch(error){terminal="crash";failure??=asError(error);}}
+  recorder.end(terminal);
+  if(failure!==undefined)throw failure;
 }
 
 export async function withRun(

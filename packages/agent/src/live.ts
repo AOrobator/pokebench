@@ -16,11 +16,11 @@ import { execFileSync, spawn } from "node:child_process";
 import { createHash, randomBytes } from "node:crypto";
 import { activeUiFeatures } from "./ui-feature.js";
 import { humanPlan, humanLease, humanRunId, driveHuman, saveHumanCheckpoint } from "./human.js";
-import { mkdirSync, renameSync, writeFileSync, readFileSync } from "node:fs";
+import { linkSync, mkdirSync, renameSync, unlinkSync, writeFileSync, readFileSync } from "node:fs";
 import { createInterface } from "node:readline";
 import { objectiveHarness } from "./objective-tools.js";
 import { playHarnessFeatures, serverFeatureEnv } from "./features.js";
-import { PLAY_LIMITS, PLAY_MAX_TOKENS, PLAY_THINKING, initialPlayTask, objectiveSwitches, playGoal, playSystemPrompt, playTools, toolSwitches } from "./play-config.js";
+import { PLAY_LIMITS, PLAY_MAX_TOKENS, PLAY_THINKING, deliverInitialPlayTask, objectiveSwitches, playGoal, playSystemPrompt, playTools, toolSwitches } from "./play-config.js";
 import { verifyIntro } from "./verify-state.js";
 import { driveProbe, parseProbeCommand, type ProbeCommand } from "./probe.js";
 import { dirname, join, resolve } from "node:path";
@@ -287,7 +287,7 @@ async function playAgent(): Promise<void> {
       });
       control = runControl;
       if(preset!==null&&recorder.elapsedMs()>=limits.maxWallMs){governor.abort("budget");return "budget";}
-      const capture = captureMode === null ? null : new CheckpointCapture(captureMode, { serverUrl: gameServerUrl, dir: join(RUNS_ROOT, runId, "checkpoints"), libraryDir:join(RUNS_ROOT,"checkpoints"), fetch, write: (path, data) => { mkdirSync(dirname(path), { recursive: true }); writeFileSync(path, data); }, writeExclusive:(path,data)=>{mkdirSync(dirname(path),{recursive:true});writeFileSync(path,data,{flag:"wx"});}, rename: renameSync },startMeta);
+      const capture = captureMode === null ? null : new CheckpointCapture(captureMode, { serverUrl: gameServerUrl, dir: join(RUNS_ROOT, runId, "checkpoints"), libraryDir:join(RUNS_ROOT,"checkpoints"), fetch, write: (path, data) => { mkdirSync(dirname(path), { recursive: true }); writeFileSync(path, data); }, linkExclusive:linkSync,remove:unlinkSync,rename: renameSync },startMeta);
       if(capture!==null){recorder.subscribe(event=>{capture.observe(event);});lifecycle.beforeRunEnd(async()=>{await capture.close().catch((error:unknown)=>{recorder.checkpointFailure(error);console.error(`checkpoint capture failed: ${String(error)}`);});});}
       const loopDetector = attachLoopGuard(recorder, governor, undefined, loopMode, features["interaction-loop-detection-v1"], loopSupervisor(features, recorder), features["transition-loop-detection-v1"], features["pushback-loop-detection-v1"], features["battle-observation-loop-v1"], features["navigation-truth-v1"], features["ineffective-loops-v1"], features["battle-menu-loop-v1"], features["clock-view-loop-v1"], features["reopened-dialogue-loop-v1"]);
       if(target!==null){
@@ -334,8 +334,7 @@ async function playAgent(): Promise<void> {
       });
       try {
         if(stateMode)return await runStateMode({features,target,serverUrl:gameServerUrl,recorder,governor,base:playLoopBase(model,thinking,apiKey,maxTokens,features),signal:controller.signal,gate:signal=>runControl.gate(signal),inputEpoch:()=>runControl.pausedMs()});
-        const task: AgentMessage = { role: "user", content:initialPlayTask(start,target,features), timestamp: Date.now() };
-        return await play(task, governor, loop);
+        return await deliverInitialPlayTask(start,target,features,()=>Date.now(),task=>play(task,governor,loop));
       } finally {
         wall.clear();
         stall?.clear();

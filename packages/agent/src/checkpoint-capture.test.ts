@@ -1,5 +1,5 @@
 import {createHash} from "node:crypto";
-import {mkdtempSync,mkdirSync,readFileSync,renameSync,writeFileSync} from "node:fs";
+import {linkSync,mkdtempSync,mkdirSync,readFileSync,renameSync,unlinkSync,writeFileSync} from "node:fs";
 import {tmpdir} from "node:os";
 import {dirname,join} from "node:path";
 import {expect,it} from "vitest";
@@ -31,9 +31,9 @@ function fixture(
  const calls:{url:string;body:unknown;active:number}[]=[];const files=new Map<string,Buffer|string>();let active=0,maxActive=0;
  const fetchFn=async(url:string,init?:{body?:string})=>{active++;maxActive=Math.max(maxActive,active);calls.push({url,body:init?.body===undefined?undefined:JSON.parse(init.body),active});await Promise.resolve();active--;
   const ok=url.endsWith("/pokebench/checkpoint")?status:pauseStatus;
-  return new Response(JSON.stringify(url.endsWith("/pokebench/pause")?{paused:true}:reply),{status:ok});};
+  const requested=init?.body===undefined?undefined:JSON.parse(init.body) as {paused?:unknown};return new Response(JSON.stringify(url.endsWith("/pokebench/pause")?{paused:requested?.paused}:reply),{status:ok});};
  const write=(path:string,data:Buffer|string)=>{if(path.endsWith(".json.partial")&&failMeta)throw new Error("disk full");files.set(path,data);};
- const deps:CheckpointDeps={serverUrl:"http://127.0.0.1:9",dir:"/runs/cp-run/checkpoints",libraryDir:"/runs/checkpoints",fetch:fetchFn,write,rename:(from,to)=>{const v=files.get(from);if(v===undefined)throw new Error("missing");files.delete(from);files.set(to,v);},writeExclusive:(path,data)=>{if(files.has(path)){const error=Object.assign(new Error("exists"),{code:"EEXIST"});throw error;}files.set(path,data);}};
+ const deps:CheckpointDeps={serverUrl:"http://127.0.0.1:9",dir:"/runs/cp-run/checkpoints",libraryDir:"/runs/checkpoints",fetch:fetchFn,write,rename:(from,to)=>{const v=files.get(from);if(v===undefined)throw new Error("missing");files.delete(from);files.set(to,v);},linkExclusive:(from,to)=>{if(files.has(to)){const error=Object.assign(new Error("exists"),{code:"EEXIST"});throw error;}const data=files.get(from);if(data===undefined)throw new Error("missing staged index");files.set(to,data);},remove:path=>{files.delete(path);}};
  const capture=new CheckpointCapture(selection,deps,START);
  return {capture,calls,files,deps,maxActive:()=>maxActive};
 }
@@ -65,7 +65,7 @@ it("promotes the first complete candidate per milestone without overwriting a wi
 
 it("lets a later complete candidate win after an index write fails after exclusive creation",async()=>{
  const shared=fixture({kind:"frontier"});let poison=true;
- const deps:CheckpointDeps={...shared.deps,writeExclusive:(path,data)=>{if(poison){poison=false;shared.files.set(path,"");throw Object.assign(new Error("disk full after create"),{code:"ENOSPC"});}shared.deps.writeExclusive?.(path,data);}};
+ const deps:CheckpointDeps={...shared.deps,write:(path,data)=>{if(path.includes(".first-arrival.")&&poison){poison=false;shared.files.set(path,"");throw Object.assign(new Error("disk full after create"),{code:"ENOSPC"});}shared.deps.write(path,data);}};
  const first=new CheckpointCapture({kind:"frontier"},deps,START);first.observe(milestoneFor("run-a","PETALBURG_WOODS",20));await expect(first.settled()).rejects.toThrow(/disk full after create/);
  const second=new CheckpointCapture({kind:"frontier"},deps,START);second.observe(milestoneFor("run-b","PETALBURG_WOODS",21));await second.settled();
  expect(JSON.parse(String(shared.files.get("/runs/checkpoints/PETALBURG_WOODS/first-arrival.json")))).toMatchObject({run:"run-b",candidate:"candidates/run-b"});
@@ -73,7 +73,7 @@ it("lets a later complete candidate win after an index write fails after exclusi
 
 it("rehearses two independent run-local checkpoint sets against one immutable first-arrival library",async()=>{
  const root=mkdtempSync(join(tmpdir(),"pokebench-frontier-checkpoints-")),library=join(root,"library");
- const deps=(run:string):CheckpointDeps=>({serverUrl:"http://fake",dir:join(root,run,"checkpoints"),libraryDir:library,fetch:(url)=>Promise.resolve(new Response(JSON.stringify(url.endsWith("/pause")?{paused:true}:{state_base64:STATE.toString("base64"),sha1,sha256}))),write:(path,data)=>{mkdirSync(dirname(path),{recursive:true});writeFileSync(path,data);},writeExclusive:(path,data)=>{mkdirSync(dirname(path),{recursive:true});writeFileSync(path,data,{flag:"wx"});},rename:renameSync});
+ const deps=(run:string):CheckpointDeps=>({serverUrl:"http://fake",dir:join(root,run,"checkpoints"),libraryDir:library,fetch:(_url,init)=>{const body=init?.body===undefined?{}:JSON.parse(init.body) as {paused?:unknown};return Promise.resolve(new Response(JSON.stringify("paused" in body?{paused:body.paused}:{state_base64:STATE.toString("base64"),sha1,sha256})));},write:(path,data)=>{mkdirSync(dirname(path),{recursive:true});writeFileSync(path,data);},linkExclusive:linkSync,remove:unlinkSync,rename:renameSync});
  const first=new CheckpointCapture({kind:"frontier"},deps("run-a"),START),second=new CheckpointCapture({kind:"frontier"},deps("run-b"),START);
  first.observe(milestoneFor("run-a","PETALBURG_WOODS",20));await first.close();second.observe(milestoneFor("run-b","PETALBURG_WOODS",21));await second.close();
  expect(readFileSync(join(root,"run-a/checkpoints/PETALBURG_WOODS.state"))).toEqual(STATE);expect(readFileSync(join(root,"run-b/checkpoints/PETALBURG_WOODS.state"))).toEqual(STATE);

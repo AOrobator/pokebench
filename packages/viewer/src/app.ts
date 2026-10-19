@@ -232,6 +232,13 @@ export class App {
     return this.mode === "live" && this.view.end === null && this.runs.find((run) => run.id === this.runId)?.live === false;
   }
 
+  // `/api/runs` has already established that this run owns a reachable game
+  // server. Use that server while the event stream backfills; otherwise each
+  // recorded frame in the backlog briefly appears as if the live run replayed.
+  private get liveScreen(): boolean {
+    return this.mode === "live" || (this.mode === "loading" && this.runs.some((run) => run.id === this.runId && isLive(run)));
+  }
+
   async control(action: ControlAction): Promise<void> {
     if (this.runId === null || !availableActions(this.view, this.live).has(action)) return;
     try {
@@ -542,7 +549,7 @@ export class App {
       void this.pickBaseline((event.target as HTMLSelectElement).value);
     });
     this.ui("screen").addEventListener("error", () => {
-      if (this.mode === "live") this.liveFailedAt = this.deps.now();
+      if (this.liveScreen) this.liveFailedAt = this.deps.now();
     });
   }
 
@@ -855,7 +862,7 @@ export class App {
     const recorded = this.shown.frame === null ? "" : `/api/runs/${id}/${this.shown.frame}`;
     let href = recorded;
     let note = recorded === "" ? "no frame yet" : "recorded frame";
-    if (this.mode === "live") {
+    if (this.liveScreen) {
       const failed = this.liveFailedAt !== null && nowMs - this.liveFailedAt < LIVE_RETRY_MS;
       href = failed ? recorded : `/api/runs/${id}/screen?n=${String(this.screenTick)}`;
       note = failed ? "live screen unavailable · last frame" : "live";

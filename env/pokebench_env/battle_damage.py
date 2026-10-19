@@ -6,6 +6,7 @@ currently decoded battlers and field state.
 """
 
 from dataclasses import dataclass
+from fractions import Fraction
 from typing import Protocol
 
 from pokebench_env.battle_state import BattleBattler, BattleMove, BattleState
@@ -177,11 +178,19 @@ SCRIPT_DAMAGE = frozenset(
 SOUND_MOVES = frozenset({45, 46, 47, 48, 103, 173, 253, 304, 319, 320})
 
 # CalculateBaseDamage constants.
-DOUBLE, LINK, TRAINER, EREADER, SECRET_BASE = 1, 1 << 1, 1 << 3, 1 << 11, 1 << 27
+DOUBLE, LINK, TRAINER, EREADER, RECORDED_LINK, SECRET_BASE = (
+    1,
+    1 << 1,
+    1 << 3,
+    1 << 11,
+    1 << 25,
+    1 << 27,
+)
 FRONTIER = sum(1 << bit for bit in (8, 16, 17, 18, 19, 20, 21))
 REFLECT, LIGHT_SCREEN = 1, 2
 RAIN, SAND, SUN, HAIL = 0b111, 0b11000, 0b1100000, 0b10000000
-BURN = 1 << 4
+BURN, FREEZE = 1 << 4, 1 << 5
+SUBSTITUTE = 1 << 24
 FORESIGHT = 1 << 29
 CHARGED = 1 << 9
 MUD_SPORT, WATER_SPORT = 1 << 16, 1 << 17
@@ -263,44 +272,51 @@ def _stage(stat: int, stage: int) -> int:
     return stat * (stage - 4) // 2
 
 
-def _type_effectiveness(move_type: int, target: BattleBattler) -> int:
-    value = 10
-    for target_type in dict.fromkeys(target.types):
-        multiplier = TYPE_CHART.get((move_type, target_type), 10)
-        if target.status2 & FORESIGHT and target_type == GHOST and move_type in (NORMAL, FIGHTING):
-            multiplier = 10
-        value = value * multiplier // 10
-    return value
+def _type_multipliers(move_type: int, target: BattleBattler) -> tuple[int, ...]:
+    """Return Emerald's explicit type-table entries in the game's table order."""
+    target_types = set(target.types)
+    return tuple(
+        multiplier
+        for (attack_type, defense_type), multiplier in TYPE_CHART.items()
+        if attack_type == move_type
+        and defense_type in target_types
+        and not (
+            target.status2 & FORESIGHT and defense_type == GHOST and move_type in (NORMAL, FIGHTING)
+        )
+    )
 
 
-def _effectiveness(move: BattleMove, target: BattleBattler) -> tuple[int, str | None]:
+def _effectiveness(
+    move: BattleMove, target: BattleBattler
+) -> tuple[Fraction, tuple[int, ...], str | None]:
     assert move.move_type is not None
     move_type = move.move_type
     if move_type == GROUND and target.ability == ABILITY_LEVITATE:
-        return 0, "LEVITATE"
-    if target.ability == ABILITY_FLASH_FIRE and move_type == FIRE:
-        return 0, "FLASH FIRE"
+        return Fraction(0), (), "LEVITATE"
+    if target.ability == ABILITY_FLASH_FIRE and move_type == FIRE and not target.status1 & FREEZE:
+        return Fraction(0), (), "FLASH FIRE"
     if (target.ability, move_type) == (10, ELECTRIC):
-        return 0, "VOLT ABSORB"
+        return Fraction(0), (), "VOLT ABSORB"
     if (target.ability, move_type) == (11, WATER):
-        return 0, "WATER ABSORB"
+        return Fraction(0), (), "WATER ABSORB"
     if target.ability == ABILITY_SOUNDPROOF and move.move_id in SOUND_MOVES:
-        return 0, "SOUNDPROOF"
-    value = _type_effectiveness(move_type, target)
-    if target.ability == ABILITY_WONDER_GUARD and value <= 10:
-        return 0, "WONDER GUARD"
-    return value, "type ×0" if value == 0 else None
+        return Fraction(0), (), "SOUNDPROOF"
+    multipliers = _type_multipliers(move_type, target)
+    value = Fraction(1)
+    for multiplier in multipliers:
+        value *= Fraction(multiplier, 10)
+    if target.ability == ABILITY_WONDER_GUARD and value <= 1:
+        return Fraction(0), multipliers, "WONDER GUARD"
+    return value, multipliers, "type ×0" if value == 0 else None
 
 
 def _weather_works(battlers: tuple[BattleBattler, ...]) -> bool:
-    return not any(
-        not mon.absent and mon.ability in (ABILITY_CLOUD_NINE, ABILITY_AIR_LOCK) for mon in battlers
-    )
+    return not any(mon.ability in (ABILITY_CLOUD_NINE, ABILITY_AIR_LOCK) for mon in battlers)
 
 
 def _badge_works(flags: int, mon: BattleBattler) -> bool:
     return (
-        not flags & (LINK | EREADER | FRONTIER)
+        not flags & (LINK | EREADER | RECORDED_LINK | FRONTIER)
         and not (flags & TRAINER and flags & SECRET_BASE)
         and not mon.position & 1
     )
@@ -359,8 +375,8 @@ def _label(mon: BattleBattler, actor: BattleBattler) -> str:
     )
 
 
-def _fmt_effect(value: int) -> str:
-    return "0" if value == 0 else str(value // 10) if value % 10 == 0 else f"{value / 10:g}"
+def _fmt_effect(value: Fraction) -> str:
+    return f"{float(value):g}"
 
 
 def _damage(
@@ -370,7 +386,7 @@ def _damage(
     actor: BattleBattler,
     target: BattleBattler,
     move: BattleMove,
-) -> tuple[list[int], int, list[str], str | None]:
+) -> tuple[list[int], Fraction, list[str], str | None]:
     assert move.power is not None and move.move_type is not None and move.target is not None
     move_type, power = move.move_type, move.power
     physical = move_type < MYSTERY
@@ -465,13 +481,9 @@ def _damage(
     if actor.ability == ABILITY_HUSTLE and physical:
         attack = 150 * attack // 100
         notes.append("HUSTLE")
-    allies = [
-        m
-        for m in battle.battlers or ()
-        if not m.absent and m.battler != actor.battler and (m.position & 1) == (actor.position & 1)
-    ]
-    if (actor.ability == ABILITY_PLUS and any(m.ability == ABILITY_MINUS for m in allies)) or (
-        actor.ability == ABILITY_MINUS and any(m.ability == ABILITY_PLUS for m in allies)
+    field = battle.battlers or ()
+    if (actor.ability == ABILITY_PLUS and any(m.ability == ABILITY_MINUS for m in field)) or (
+        actor.ability == ABILITY_MINUS and any(m.ability == ABILITY_PLUS for m in field)
     ):
         attack = 150 * attack // 100
         notes.append("PLUS/MINUS")
@@ -481,14 +493,10 @@ def _damage(
     if target.ability == ABILITY_MARVEL_SCALE and target.status1 and physical:
         defense = 150 * defense // 100
         notes.append("MARVEL SCALE")
-    if move_type == ELECTRIC and any(
-        not m.absent and m.status3 & MUD_SPORT for m in battle.battlers or ()
-    ):
+    if move_type == ELECTRIC and any(m.status3 & MUD_SPORT for m in battle.battlers or ()):
         power //= 2
         notes.append("MUD SPORT")
-    if move_type == FIRE and any(
-        not m.absent and m.status3 & WATER_SPORT for m in battle.battlers or ()
-    ):
+    if move_type == FIRE and any(m.status3 & WATER_SPORT for m in battle.battlers or ()):
         power //= 2
         notes.append("WATER SPORT")
     pinch = {
@@ -516,7 +524,7 @@ def _damage(
         alive_defenders = sum(
             1
             for m in battle.battlers or ()
-            if not m.absent and m.hp > 0 and (m.position & 1) == (target.position & 1)
+            if not m.absent and (m.position & 1) == (target.position & 1)
         )
         damage = 2 * (damage // 3) if flags & DOUBLE and alive_defenders == 2 else damage // 2
         notes.append("REFLECT" if physical else "LIGHT SCREEN")
@@ -524,7 +532,7 @@ def _damage(
         alive_defenders = sum(
             1
             for m in battle.battlers or ()
-            if not m.absent and m.hp > 0 and (m.position & 1) == (target.position & 1)
+            if not m.absent and (m.position & 1) == (target.position & 1)
         )
         if alive_defenders == 2:
             damage //= 2
@@ -552,11 +560,22 @@ def _damage(
     if actor.status3 & CHARGED and move_type == ELECTRIC:
         damage *= 2
         notes.append("CHARGE")
-    stab = move_type in actor.types
+    # Struggle bypasses Cmd_typecalc entirely: no STAB and no type effectiveness.
+    struggle = move.move_id == 165
+    stab = not struggle and move_type in actor.types
     if stab:
         damage = damage * 15 // 10
-    effectiveness, immunity = _effectiveness(move, target)
-    damage = damage * effectiveness // 10
+    multipliers: tuple[int, ...]
+    if struggle:
+        effectiveness, multipliers, immunity = Fraction(1), (), None
+    else:
+        effectiveness, multipliers, immunity = _effectiveness(move, target)
+    for multiplier in multipliers:
+        damage = damage * multiplier // 10
+        if damage == 0 and multiplier != 0:
+            damage = 1
+    if effectiveness == 0:
+        damage = 0
     rolls = [0 if damage == 0 else max(1, damage * percent // 100) for percent in range(85, 101)]
     if move.effect == 101:
         rolls = [min(value, max(0, target.hp - 1)) for value in rolls]
@@ -581,15 +600,26 @@ def effective_damage_lines(battle: BattleState, details: DetailsFacts) -> list[s
     held = {item.battler: item for item in details.held}
     lines = [
         "Effective damage (landed, non-critical normal hit; Emerald rolls 85-100; "
-        "accuracy separate; no move ranking):"
+        "accuracy separate; PP availability shown; other move locks not decoded; "
+        "no move ranking):"
     ]
     for actor in actors:
         lines.append(f" For {actor.species}:")
-        for move in actor.moves:
-            if not move.move_id or move.name is None:
-                continue
+        moves = [move for move in actor.moves if move.move_id and move.name is not None]
+        entries = [(move, f"  {move.slot + 1} {move.name}") for move in moves]
+        if moves and all(move.pp == 0 for move in moves):
+            entries.append(
+                (
+                    BattleMove(0, 165, "STRUGGLE", 1, 1, NORMAL, 50, 100, 48, TARGET_RANDOM),
+                    "  STRUGGLE (automatic because every move has 0 PP)",
+                )
+            )
+        for move, label in entries:
             accuracy = "never misses" if move.accuracy == 0 else f"acc {move.accuracy}"
-            prefix = f"  {move.slot + 1} {move.name} · {accuracy}"
+            prefix = f"{label} · {accuracy}"
+            if move.move_id != 165 and move.pp == 0:
+                lines.append(prefix + " · unavailable (0 PP)")
+                continue
             reason = _unsupported(move, actor)
             if reason is not None:
                 lines.append(prefix + f" · not deterministically computed ({reason})")
@@ -597,14 +627,18 @@ def effective_damage_lines(battle: BattleState, details: DetailsFacts) -> list[s
             if move.power == 0:
                 lines.append(prefix + " · no direct damage")
                 continue
-            if move.effect == 7 and any(
-                not mon.absent and mon.ability == ABILITY_DAMP for mon in battle.battlers
-            ):
+            if move.effect == 7 and any(mon.ability == ABILITY_DAMP for mon in battle.battlers):
                 lines.append(prefix + " · 0 HP (DAMP prevents explosion)")
                 continue
             targets, target_note = _targets(battle, actor, move)
             lines.append(prefix + (" · " + target_note if target_note else "") + ":")
             for target in targets:
+                if target.status2 & SUBSTITUTE:
+                    lines.append(
+                        f"   -> {_label(target, actor)}: not deterministically computed "
+                        "(target is behind a substitute; substitute HP is not decoded)"
+                    )
+                    continue
                 try:
                     rolls, effectiveness, notes, immunity = _damage(
                         battle, context, held, actor, target, move
@@ -620,7 +654,13 @@ def effective_damage_lines(battle: BattleState, details: DetailsFacts) -> list[s
                 low, high = min(rolls), max(rolls)
                 ko = sum(value >= target.hp for value in rolls)
                 low_pct, high_pct = low * 100 // target.hp, high * 100 // target.hp
-                stab = "STAB ×1.5" if move.move_type in actor.types else "no STAB"
+                stab = (
+                    "STRUGGLE ignores STAB/type"
+                    if move.move_id == 165
+                    else "STAB ×1.5"
+                    if move.move_type in actor.types
+                    else "no STAB"
+                )
                 suffix = "" if not notes else " · current modifiers: " + ", ".join(notes)
                 lines.append(
                     f"   -> {_label(target, actor)}: {low}-{high} HP "

@@ -10,7 +10,7 @@ body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.55 system-ui,sans
 <p>The switch turns the moves the game already exposes into a target-by-target damage matrix. It computes Emerald's landed, non-critical 85–100 damage rolls from current RAM and pinned ROM facts, then leaves the choice to the model. The harness does not rank moves, recommend a move, press a button, or hide weaker options.</p>
 
 <h2>What the model sees</h2>
-<pre>Effective damage (landed, non-critical normal hit; Emerald rolls 85-100; accuracy separate; no move ranking):
+<pre>Effective damage (landed, non-critical normal hit; Emerald rolls 85-100; accuracy separate; PP availability shown; other move locks not decoded; no move ranking):
  For TORCHIC:
   1 SCRATCH · acc 100:
    -&gt; WURMPLE (foe, screen right): 10-12 HP (66-80% of current 15 HP) · 0/16 normal-hit KO rolls · type ×1 · no STAB
@@ -21,14 +21,14 @@ body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.55 system-ui,sans
 
 <h2>Deterministic pipeline</h2>
 <div class="flow"><div class="box">Current battler stats, stages, status, ability and held item</div><div class="box">Move power, Gen III physical/special category, field weather and screens</div><div class="box good">Emerald integer damage order, STAB, type chart and all 16 rolls</div><div class="box">One factual line per legal current target</div></div>
-<p>Implemented against pret/pokeemerald revision <code>731ad5bfd6e6f265508d0efcca0ba42f9dcf5881</code>, especially <code>CalculateBaseDamage</code>, <code>Cmd_damagecalc</code>, <code>Cmd_typecalc</code>, and <code>ApplyRandomDmgMultiplier</code>. Current modifiers include stat stages, burn, Reflect/Light Screen, rain/sun, spread damage, Charge and Mud/Water Sport, badge boosts, supported held-item effects, common stat/damage abilities, and type or ability immunities.</p>
+<p>Implemented against pret/pokeemerald revision <code>731ad5bfd6e6f265508d0efcca0ba42f9dcf5881</code>, especially <code>CalculateBaseDamage</code>, <code>Cmd_damagecalc</code>, <code>Cmd_typecalc</code>, and <code>ApplyRandomDmgMultiplier</code>. Current modifiers include stat stages, burn, Reflect/Light Screen, rain/sun, spread damage, Charge and Mud/Water Sport, badge boosts, supported held-item effects, common stat/damage abilities, and type or ability immunities. Dual types follow the game's sequential integer rounding and minimum-one rule instead of collapsing the pair into one approximate multiplier.</p>
 
 <h2>Double battles</h2>
 <table><tr><th>Move targeting</th><th>Readout</th></tr><tr><td>Selected target</td><td>Lists each living legal foe separately.</td></tr><tr><td>Random target</td><td>Labels that the game selects one, then shows each possible living target.</td></tr><tr><td>Spread</td><td>Lists every affected living target and applies Emerald's ×0.5 spread modifier only when two defenders remain.</td></tr><tr><td>Self / ally-capable</td><td>Labels self and ally distinctly; absent and fainted battlers are omitted.</td></tr></table>
 
 <h2>Refusal boundary</h2>
-<div class="box warn">Status moves say “no direct damage.” Variable hit-count, fixed-damage, and script-derived power or type cases say “not deterministically computed.” Unknown held-item effects also refuse computation. The harness never fills a missing fact with a guess.</div>
-<p>The calculation is a snapshot before future choices execute. It cannot know a partner's later Helping Hand, whether a move will hit, critical hits, Protect-style success, or script-controlled damage that is not a pure function of the decoded current state.</p>
+<div class="box warn">Status moves say “no direct damage.” A move with 0 PP says unavailable; when every move has 0 PP, the readout shows the game's actual typeless STRUGGLE choice. Variable hit-count, fixed-damage, script-derived power or type, unknown held-item effects, and a target behind a Substitute whose HP is not decoded say “not deterministically computed.” The harness never fills a missing fact with a guess.</div>
+<p>The calculation is a snapshot before future choices execute. It cannot know a partner's later Helping Hand, whether a move will hit, critical hits, Protect-style success, or script-controlled damage that is not a pure function of the decoded current state. Disable, Encore, Taunt, Torment, Imprison and Choice-lock state are not decoded, so PP availability is exact but those other move locks remain explicit limitations.</p>
 <p>In doubles, selectable and random lines are the nominal pre-redirection target matrix. The current Follow Me timer and Lightning Rod turn-order redirection are not decoded; the model must not treat those rows as a promise that its selected target will remain the execution target.</p>
 
 <h2>Switch boundary</h2>

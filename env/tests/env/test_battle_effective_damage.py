@@ -17,8 +17,9 @@ def move(
     effect: int = 0,
     target: int = 0,
     accuracy: int = 100,
+    pp: int = 25,
 ) -> BattleMove:
-    return BattleMove(slot, move_id, name, 25, 25, move_type, power, accuracy, effect, target)
+    return BattleMove(slot, move_id, name, pp, 25, move_type, power, accuracy, effect, target)
 
 
 EMPTY = BattleMove(3, 0, None, 0, 0, None, None, None, None)
@@ -240,6 +241,68 @@ def test_immunity_and_absent_targets_follow_current_battle_state() -> None:
     )
     assert "0 HP · immune (LEVITATE)" in text
     assert text.count("WURMPLE (foe") == 1
+
+
+def test_dual_type_modifiers_follow_sequential_integer_rounding_and_never_false_zero() -> None:
+    ember = move(0, 52, "EMBER", 40, 10, effect=4)
+    actor = mon(
+        0,
+        0,
+        "TORCHIC",
+        level=5,
+        stats=(5, 5, 5, 5, 5),
+        types=(0, 0),
+        ability=0,
+        moves=(ember, EMPTY, EMPTY, EMPTY),
+    )
+    target = mon(
+        1,
+        1,
+        "KINGDRA",
+        level=5,
+        hp=10,
+        maximum=10,
+        stats=(20, 20, 20, 20, 20),
+        types=(11, 16),
+        ability=0,
+    )
+    text = "\n".join(
+        effective_damage_lines(battle(actor, target), details(context=DamageContext()))
+    )
+    assert "KINGDRA (foe, screen right): 1-1 HP" in text
+    assert "type ×0.25" in text
+
+
+def test_substitute_refuses_real_hp_and_ko_claims_until_substitute_hp_is_decoded() -> None:
+    ember = move(0, 52, "EMBER", 40, 10, effect=4)
+    actor = mon(0, 0, "TORCHIC", moves=(ember, EMPTY, EMPTY, EMPTY))
+    target = replace(mon(1, 1, "WURMPLE", types=(6, 6), ability=19), status2=1 << 24)
+    text = "\n".join(
+        effective_damage_lines(battle(actor, target), details(context=DamageContext()))
+    )
+    assert "target is behind a substitute; substitute HP is not decoded" in text
+    assert "normal-hit KO rolls" not in text
+
+
+def test_frozen_flash_fire_target_is_not_reported_immune() -> None:
+    ember = move(0, 52, "EMBER", 40, 10, effect=4)
+    actor = mon(0, 0, "TORCHIC", moves=(ember, EMPTY, EMPTY, EMPTY))
+    target = replace(mon(1, 1, "WURMPLE", types=(6, 6), ability=18), status1=1 << 5)
+    text = "\n".join(
+        effective_damage_lines(battle(actor, target), details(context=DamageContext()))
+    )
+    assert "immune (FLASH FIRE)" not in text
+    assert "normal-hit KO rolls" in text
+
+
+def test_zero_pp_moves_are_unavailable_and_all_zero_pp_exposes_typeless_struggle() -> None:
+    empty_scratch = move(0, 10, "SCRATCH", 40, 0, pp=0)
+    actor = mon(0, 0, "TORCHIC", moves=(empty_scratch, EMPTY, EMPTY, EMPTY))
+    ghost = mon(1, 1, "SHUPPET", types=(7, 7), ability=15)
+    text = "\n".join(effective_damage_lines(battle(actor, ghost), details(context=DamageContext())))
+    assert "SCRATCH · acc 100 · unavailable (0 PP)" in text
+    assert "STRUGGLE (automatic because every move has 0 PP)" in text
+    assert "type ×1 · STRUGGLE ignores STAB/type" in text
 
 
 def test_screens_weather_burn_badges_and_hold_effects_are_current_not_assumed() -> None:

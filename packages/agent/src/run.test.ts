@@ -265,8 +265,8 @@ it('derives the canonical human lease from Git common-dir for primary and linked
 });
 
 it('retains crash terminal and stops server when final battle drain fails',async()=>{
- const r=root(),h=host();let polls=0,taskRan=false;
+ const r=root(),h=host();let polls=0;const tasks:string[]=[];
  const failed={...h,gameState:{...h.gameState,battleChoices:()=>{if(polls++===0)return Promise.resolve({frame:0,last_id:0,entries:[]});return Promise.reject(Error("journal full"));}}};
- await expect(withRun({...plan(r),harnessFeatures:["battle-choices-v1"]},failed,new FrameStore(r),(_recorder,_url,_start,lifecycle)=>{lifecycle.beforeRunEnd(()=>{taskRan=true;return Promise.resolve();});return Promise.resolve("completed");})).rejects.toThrow("journal full");
- expect(taskRan).toBe(true);expect(events(r,plan(r).runId).at(-1)).toMatchObject({type:"run_end",reason:"crash"});expect(h.calls.at(-1)).toBe("stop");
+ await expect(withRun({...plan(r),harnessFeatures:["battle-choices-v1"]},failed,new FrameStore(r),(_recorder,_url,_start,lifecycle)=>{lifecycle.beforeRunEnd(()=>{tasks.push("failed");return Promise.reject(new Error("cleanup failed"));});lifecycle.beforeRunEnd(()=>{tasks.push("continued");return Promise.resolve();});return Promise.resolve("completed");})).rejects.toThrow(/^journal full$/);
+ expect(tasks).toEqual(["failed","continued"]);expect(events(r,plan(r).runId).at(-1)).toMatchObject({type:"run_end",reason:"crash"});expect(h.calls.at(-1)).toBe("stop");
 });

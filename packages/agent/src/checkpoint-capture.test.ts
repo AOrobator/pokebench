@@ -110,4 +110,26 @@ it("surfaces a failed unpause after a valid state instead of reporting capture s
  await expect(capture.settled()).rejects.toThrow(/unpause.*503/);expect(base.files.has("/runs/cp-run/checkpoints/CLOCK_SET.error.json")).toBe(true);
 });
 
+it("preserves the primary capture failure when the required unpause also fails",async()=>{
+ const failedPause=fixture();let calls=0;
+ const pauseDeps:CheckpointDeps={...failedPause.deps,fetch:(url,init)=>url.endsWith("/pokebench/pause")?Promise.resolve(new Response(JSON.stringify({paused:init?.body?.includes("true")}),{status:++calls===1?502:503})):failedPause.deps.fetch(url,init)};
+ const first=new CheckpointCapture({kind:"single",target:"CLOCK_SET"},pauseDeps,START);first.observe(milestone("CLOCK_SET",20));await expect(first.settled()).rejects.toThrow(/^pause request failed with HTTP 502$/);
+ expect(JSON.parse(String(failedPause.files.get("/runs/cp-run/checkpoints/CLOCK_SET.error.json")))).toMatchObject({error:"pause request failed with HTTP 502"});
+
+ const badDigest=fixture(undefined,{state_base64:STATE.toString("base64"),sha1:"0".repeat(40),sha256});let pauses=0;
+ const digestDeps:CheckpointDeps={...badDigest.deps,fetch:(url,init)=>{if(url.endsWith("/pokebench/pause")&&++pauses===2)return Promise.resolve(new Response(JSON.stringify({paused:true}),{status:503}));return badDigest.deps.fetch(url,init);}};
+ const second=new CheckpointCapture({kind:"single",target:"CLOCK_SET"},digestDeps,START);second.observe(milestone("CLOCK_SET",21));await expect(second.settled()).rejects.toThrow(/^checkpoint digest does not match the returned state$/);
+ expect(JSON.parse(String(badDigest.files.get("/runs/cp-run/checkpoints/CLOCK_SET.error.json")))).toMatchObject({error:"checkpoint digest does not match the returned state"});
+});
+
+it("rejects successful pause responses that do not confirm the requested state",async()=>{
+ const wrongPause=fixture();const pauseDeps:CheckpointDeps={...wrongPause.deps,fetch:(url,init)=>url.endsWith("/pokebench/pause")?Promise.resolve(new Response(JSON.stringify({paused:false}))):wrongPause.deps.fetch(url,init)};
+ const first=new CheckpointCapture({kind:"single",target:"CLOCK_SET"},pauseDeps,START);first.observe(milestone("CLOCK_SET",20));await expect(first.settled()).rejects.toThrow(/^pause response did not confirm paused=true$/);expect(wrongPause.calls.some(call=>call.url.endsWith("/pokebench/checkpoint"))).toBe(false);
+
+ const wrongUnpause=fixture();let pauses=0;
+ const unpauseDeps:CheckpointDeps={...wrongUnpause.deps,fetch:(url,init)=>{if(url.endsWith("/pokebench/pause")&&++pauses===2)return Promise.resolve(new Response(JSON.stringify({paused:true})));return wrongUnpause.deps.fetch(url,init);}};
+ const second=new CheckpointCapture({kind:"single",target:"CLOCK_SET"},unpauseDeps,START);second.observe(milestone("CLOCK_SET",21));await expect(second.settled()).rejects.toThrow(/^unpause response did not confirm paused=false$/);
+ expect(JSON.parse(String(wrongUnpause.files.get("/runs/cp-run/checkpoints/CLOCK_SET.error.json")))).toMatchObject({error:"unpause response did not confirm paused=false"});
+});
+
 it("checks and loads a relative checkpoint path through one absolute path",()=>{const start={kind:"save_state",path:"relative/CLOCK_SET.state",sha1};const seen:string[]=[];const resolved=presetStart(parsePlayPreset({...v2,start}),path=>{seen.push(path);return STATE;});expect(resolved.kind==="save_state"&&resolved.path.startsWith("/")).toBe(true);expect(seen).toEqual([resolved.kind==="save_state"?resolved.path:""]);});

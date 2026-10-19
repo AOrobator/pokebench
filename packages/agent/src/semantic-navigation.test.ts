@@ -12,11 +12,11 @@ import {playGameTools} from "./play-wiring.js";
 import {withSemanticNavigation} from "./semantic-navigation.js";
 
 const tile=(x:number,y:number,collision=0,behavior=0)=>({x,y,collision,behavior,elevation:3});
-const target=(local_id:number,x:number,y:number)=>({kind:"object",x,y,elevation:3,activation:"A",availability:"conditional",facing:null,local_id,destination:null,name:`PERSON_${String(local_id)}`});
+const target=(local_id:number,x:number,y:number)=>({kind:"object",x,y,elevation:3,activation:"A",availability:"conditional",facing:null,local_id,native_slot:local_id,destination:null,name:`PERSON_${String(local_id)}`});
 const uncontrollable={permitted:false,controllable:false,reason:"forced_or_transitioning",shoes:true,allow_running:true,avatar_flags:0x41,metatile:0,elevation:3,map_type:3,callback1:0x08085E05,callback2:0x08085E5D,diagnostic:null,raw_hex:null};
 const baseFeatures=():FeatureSet=>({...flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false}),"bounded-navigation-v1":true,"walkable-floor-v1":true,"semantic-navigation-v1":true});
 const result=(state:GameStateSnapshot):AgentToolResult<{state:GameStateSnapshot}>=>({content:[{type:"text",text:"state"}],details:{state}});
-const field=(targets:NonNullable<GameStateSnapshot["interaction_targets"]>=[target(2,3,0)]):GameStateSnapshot=>({...IN_GAME,screen:"overworld",started:true,map_id:[0,9],position:{x:0,y:0},facing:"right",field_controls_locked:false,interaction_targets:targets,navigation_grid:{elevation:3,tiles:[0,1,2,3,4].flatMap(x=>[tile(x,0),tile(x,1)]),objects:targets.filter(t=>t.kind==="object").map(t=>({x:t.x,y:t.y})),warps:targets.filter(t=>t.kind==="warp").map(t=>({x:t.x,y:t.y}))}});
+const field=(targets:NonNullable<GameStateSnapshot["interaction_targets"]>=[target(2,3,0)]):GameStateSnapshot=>({...IN_GAME,screen:"overworld",started:true,map_id:[0,9],position:{x:0,y:0},facing:"right",field_controls_locked:false,interaction_targets:targets,interaction_object_slots:targets.filter(t=>t.kind==="object"&&t.local_id!==null&&t.native_slot!==undefined).map(t=>({slot:t.native_slot??0,x:t.x,y:t.y,elevation:t.elevation,local_id:t.local_id??0,map_id:[0,9] as [number,number],is_player:false})).sort((a,b)=>a.slot-b.slot),navigation_grid:{elevation:3,tiles:[0,1,2,3,4].flatMap(x=>[tile(x,0),tile(x,1)]),objects:targets.filter(t=>t.kind==="object").map(t=>({x:t.x,y:t.y})),warps:targets.filter(t=>t.kind==="warp").map(t=>({x:t.x,y:t.y}))}});
 
 function fixture(afterNavigation?:(state:GameStateSnapshot,attempt:number)=>GameStateSnapshot,features:FeatureSet=baseFeatures(),beforeCheckedPress?:(state:GameStateSnapshot,button:string|undefined)=>GameStateSnapshot,initial:GameStateSnapshot=field(),activationStartsBattle=true){
  let current=initial;const navigations:unknown[]=[],buttons:string[][]=[];
@@ -249,6 +249,28 @@ it("refuses a selected object when an earlier wildcard-elevation object is the n
  expect(f.navigations).toEqual([]);expect(f.buttons).toEqual([]);expect(out.content[0]?.type==="text"?out.content[0].text:"").toContain("no supported route");
 });
 
+it("refuses an object when native slot evidence is unavailable",async()=>{
+ const initial={...field()};Reflect.deleteProperty(initial,"interaction_object_slots");
+ const f=fixture(undefined,baseFeatures(),undefined,initial),tool=f.tools.find(t=>t.name==="navigate_to_target");if(tool===undefined)throw new Error("missing semantic tool");
+ const out=await tool.execute("s",{map_id:[0,9],target:{kind:"object",local_id:2}});
+ expect(f.navigations).toEqual([]);expect(f.buttons).toEqual([]);expect(out.content[0]?.type==="text"?out.content[0].text:"").toContain("no supported route");
+});
+
+it("refuses a visible object intercepted by an earlier invisible native slot",async()=>{
+ const initial={...field(),interaction_object_slots:[{slot:1,x:3,y:0,elevation:3,local_id:7,map_id:[0,9] as [number,number],is_player:false},{slot:2,x:3,y:0,elevation:3,local_id:2,map_id:[0,9] as [number,number],is_player:false}]};
+ const f=fixture(undefined,baseFeatures(),undefined,initial),tool=f.tools.find(t=>t.name==="navigate_to_target");if(tool===undefined)throw new Error("missing semantic tool");
+ const out=await tool.execute("s",{map_id:[0,9],target:{kind:"object",local_id:2}});
+ expect(f.navigations).toEqual([]);expect(f.buttons).toEqual([]);expect(out.content[0]?.type==="text"?out.content[0].text:"").toContain("no supported route");
+});
+
+it("refuses a warp coordinate when a different native elevation entry wins",async()=>{
+ const first:NonNullable<GameStateSnapshot["interaction_targets"]>[number]={kind:"warp",x:2,y:0,elevation:4,activation:"movement",availability:"conditional",facing:null,local_id:null,destination:[1,2,0],name:"High"};
+ const eligible={...first,elevation:3,destination:[1,3,0] as [number,number,number],name:"Low"};
+ const f=fixture(undefined,baseFeatures(),undefined,field([first,eligible])),tool=f.tools.find(t=>t.name==="navigate_to_target");if(tool===undefined)throw new Error("missing semantic tool");
+ const out=await tool.execute("s",{map_id:[0,9],target:{kind:"warp",x:2,y:0}});
+ expect(f.navigations).toEqual([]);expect(f.buttons).toEqual([]);expect(out.content[0]?.type==="text"?out.content[0].text:"").toContain("no supported route");
+});
+
 it("refuses a background when a scripted object would receive A first",async()=>{
  const object=target(1,3,0),background:NonNullable<GameStateSnapshot["interaction_targets"]>[number]={kind:"background",x:3,y:0,elevation:3,activation:"A",availability:"conditional",facing:null,local_id:null,destination:null,name:"Sign"};
  const f=fixture(undefined,baseFeatures(),undefined,field([object,background])),tool=f.tools.find(t=>t.name==="navigate_to_target");if(tool===undefined)throw new Error("missing semantic tool");
@@ -256,8 +278,16 @@ it("refuses a background when a scripted object would receive A first",async()=>
  expect(f.navigations).toEqual([]);expect(f.buttons).toEqual([]);expect(out.content[0]?.type==="text"?out.content[0].text:"").toContain("no supported route");
 });
 
+it("refuses an ambiguous fixed interaction instead of skipping an earlier wrong-facing background",async()=>{
+ const background:NonNullable<GameStateSnapshot["interaction_targets"]>[number]={kind:"background",x:3,y:0,elevation:3,activation:"A",availability:"conditional",facing:"up",local_id:null,destination:null,name:"North sign"};
+ const television:NonNullable<GameStateSnapshot["interaction_targets"]>[number]={...background,kind:"metatile_television",facing:null,name:"television"};
+ const f=fixture(undefined,baseFeatures(),undefined,field([background,television])),tool=f.tools.find(t=>t.name==="navigate_to_target");if(tool===undefined)throw new Error("missing semantic tool");
+ const out=await tool.execute("s",{map_id:[0,9],target:{kind:"interaction",interaction_kind:"metatile_television",x:3,y:0}});
+ expect(f.navigations).toEqual([]);expect(f.buttons).toEqual([]);expect(out.content[0]?.type==="text"?out.content[0].text:"").toContain("no supported route");
+});
+
 it("submits no A when a different native recipient appears in the fresh checked state",async()=>{
- const selected=target(2,3,0),f=fixture(undefined,baseFeatures(),(state,button)=>button==="A"?{...state,interaction_targets:[{...target(1,3,0),elevation:0},selected]}:state),tool=f.tools.find(t=>t.name==="navigate_to_target");if(tool===undefined)throw new Error("missing semantic tool");
+ const selected=target(2,3,0),f=fixture(undefined,baseFeatures(),(state,button)=>button==="A"?{...state,interaction_targets:[{...target(1,3,0),elevation:0},selected],interaction_object_slots:[{slot:1,x:3,y:0,elevation:0,local_id:1,map_id:[0,9],is_player:false},{slot:2,x:3,y:0,elevation:3,local_id:2,map_id:[0,9],is_player:false}]}:state),tool=f.tools.find(t=>t.name==="navigate_to_target");if(tool===undefined)throw new Error("missing semantic tool");
  const out=await tool.execute("s",{map_id:[0,9],target:{kind:"object",local_id:2}});
  expect(f.buttons).toEqual([]);expect(out.content[0]?.type==="text"?out.content[0].text:"").toContain("interaction recipient changed");expect(out.details).toMatchObject({semantic_navigation:{activation_attempted:false}});
 });

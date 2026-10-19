@@ -79,8 +79,8 @@ it("reports every unmet dependency", () => {
 
 it("hands the game server only its own observation switches", () => {
   expect(serverFeatureEnv(ALL_ON)).toEqual({ POKEBENCH_ACTIVE_UI: "1", POKEBENCH_FEATURES_OFF: "" });
-  expect(serverFeatureEnv(off("active-ui-ownership-v1","deterministic-loop-guard-v1","press-result-v1"))).toEqual({ POKEBENCH_ACTIVE_UI: "0", POKEBENCH_FEATURES_OFF: "" });
-  expect(serverFeatureEnv(off("story-state-v1","live-map-v1","warp-activation-guidance-v1","visited-terrain-navigation-v1","deterministic-warp-navigation-v1"))).toEqual({ POKEBENCH_ACTIVE_UI: "1", POKEBENCH_FEATURES_OFF: "live-map-v1,story-state-v1,warp-activation-guidance-v1" });
+  expect(serverFeatureEnv(off("active-ui-ownership-v1","deterministic-loop-guard-v1","press-result-v1"))).toEqual({ POKEBENCH_ACTIVE_UI: "0", POKEBENCH_FEATURES_OFF: "semantic-navigation-v1" });
+  expect(serverFeatureEnv(off("story-state-v1","live-map-v1","warp-activation-guidance-v1","visited-terrain-navigation-v1","deterministic-warp-navigation-v1"))).toEqual({ POKEBENCH_ACTIVE_UI: "1", POKEBENCH_FEATURES_OFF: "live-map-v1,semantic-navigation-v1,story-state-v1,warp-activation-guidance-v1" });
 });
 
 it("keeps the objective record from outliving the RAM readout", () => {
@@ -90,14 +90,14 @@ it("keeps the objective record from outliving the RAM readout", () => {
 it("records and delivers the independently switchable interaction-name treatment",()=>{
  expect(playHarnessFeatures(ALL_ON,null)).toContain("named-interactions-v1");
  expect(playHarnessFeatures(off("instruction-ledger-v2","tutorial-party-owner-v1","mid-frame-readout-v1","unset-dynamic-warp-v1","status-names-v1","surf-gated-exits-v2","battle-move-tool-v1","people-id-cards-v1","explorer-guidance-v2","ineffective-loops-v1","cross-map-goal-v1","surf-gated-exits-v1","readout-truth-v1","birch-speech-pages-v1","blackout-readout-v1","story-destinations-v1","harness-trust-v1","cited-destination-v1","harness-trust-v2","exit-reachability-v1","pushback-loop-detection-v1","pushback-press-result-v1","battle-observation-loop-v1","named-interactions-v1"),null)).not.toContain("named-interactions-v1");
- expect(serverFeatureEnv(off("named-interactions-v1")).POKEBENCH_FEATURES_OFF).toBe("named-interactions-v1");
+ expect(serverFeatureEnv(off("named-interactions-v1")).POKEBENCH_FEATURES_OFF).toBe("named-interactions-v1,semantic-navigation-v1");
  expect(dependencyProblems(off("instruction-ledger-v2","tutorial-party-owner-v1","mid-frame-readout-v1","unset-dynamic-warp-v1","status-names-v1","surf-gated-exits-v2","people-id-cards-v1","explorer-guidance-v2","ineffective-loops-v1","cross-map-goal-v1","surf-gated-exits-v1","readout-truth-v1","birch-speech-pages-v1","blackout-readout-v1","story-destinations-v1","harness-trust-v1","cited-destination-v1","harness-trust-v2","exit-reachability-v1","pushback-loop-detection-v1","pushback-press-result-v1","battle-observation-loop-v1","world-targets-v1"))).toContain("named-interactions-v1 needs world-targets-v1");
 });
 
 it("registers whole-map navigation as a navigation-dependent server treatment recorded last",()=>{
  expect(featureInfo("full-map-navigation-v1")).toMatchObject({group:"guidance",needs:"bounded-navigation-v1",switchable:true});
  expect(playHarnessFeatures(ALL_ON,null).at(-96)).toBe("full-map-navigation-v1");
- expect(serverFeatureEnv(off("full-map-navigation-v1")).POKEBENCH_FEATURES_OFF).toBe("full-map-navigation-v1");
+ expect(serverFeatureEnv(off("full-map-navigation-v1")).POKEBENCH_FEATURES_OFF).toBe("semantic-navigation-v1,full-map-navigation-v1");
  expect(dependencyProblems(off("instruction-ledger-v2","tutorial-party-owner-v1","mid-frame-readout-v1","unset-dynamic-warp-v1","status-names-v1","surf-gated-exits-v2","people-id-cards-v1","explorer-guidance-v2","ineffective-loops-v1","cross-map-goal-v1","surf-gated-exits-v1","readout-truth-v1","birch-speech-pages-v1","blackout-readout-v1","story-destinations-v1","harness-trust-v1","cited-destination-v1","harness-trust-v2","exit-reachability-v1","pushback-loop-detection-v1","pushback-press-result-v1","battle-observation-loop-v1","bounded-navigation-v1"))).toContain("full-map-navigation-v1 needs bounded-navigation-v1");
 });
 
@@ -105,21 +105,21 @@ it("records ledge hops as a server-side map treatment that needs the live map",(
  expect(featureInfo("ledge-hops-v1")).toMatchObject({group:"guidance",needs:"live-map-v1",switchable:true});
  expect(featureInfo("ledge-hops-v1").description).toMatch(/one-way/);
  expect(playHarnessFeatures(ALL_ON,null)).toContain("ledge-hops-v1");
- expect(serverFeatureEnv(off("ledge-hops-v1")).POKEBENCH_FEATURES_OFF).toBe("ledge-hops-v1");
+ expect(serverFeatureEnv(off("ledge-hops-v1")).POKEBENCH_FEATURES_OFF).toBe("semantic-navigation-v1,ledge-hops-v1");
 });
 
 it("records one-way tiles as a server-side map treatment that needs the live map",()=>{
  expect(featureInfo("one-way-tiles-v1")).toMatchObject({group:"guidance",needs:"live-map-v1",switchable:true});
  expect(featureInfo("one-way-tiles-v1").description).toMatch(/walled side/);
  expect(playHarnessFeatures(ALL_ON,null)).toContain("one-way-tiles-v1");
- expect(serverFeatureEnv(off("one-way-tiles-v1")).POKEBENCH_FEATURES_OFF).toBe("one-way-tiles-v1");
+ expect(serverFeatureEnv(off("one-way-tiles-v1")).POKEBENCH_FEATURES_OFF).toBe("semantic-navigation-v1,one-way-tiles-v1");
 });
 
 it("registers the elevation transitions switch as a planner-only guidance feature",()=>{
  expect(featureInfo("elevation-transitions-v1")).toMatchObject({group:"guidance",needs:null,switchable:true});
  expect(featureInfo("elevation-transitions-v1").description).toMatch(/stairs/);
  expect(playHarnessFeatures(ALL_ON,null).at(-94)).toBe("elevation-transitions-v1");
- expect(serverFeatureEnv(off("elevation-transitions-v1")).POKEBENCH_FEATURES_OFF).toBe("");
+ expect(serverFeatureEnv(off("elevation-transitions-v1")).POKEBENCH_FEATURES_OFF).toBe("semantic-navigation-v1");
  expect(dependencyProblems(off("instruction-ledger-v2","tutorial-party-owner-v1","mid-frame-readout-v1","unset-dynamic-warp-v1","status-names-v1","surf-gated-exits-v2","people-id-cards-v1","explorer-guidance-v2","ineffective-loops-v1","cross-map-goal-v1","surf-gated-exits-v1","readout-truth-v1","birch-speech-pages-v1","blackout-readout-v1","story-destinations-v1","harness-trust-v1","cited-destination-v1","harness-trust-v2","exit-reachability-v1","pushback-loop-detection-v1","pushback-press-result-v1","battle-observation-loop-v1","bounded-navigation-v1","full-map-navigation-v1","grass-cost-navigation-v1","navigation-refusal-reasons-v1","navigation-refusal-reasons-v2","navigate-first-prompt-v1","visited-terrain-navigation-v1","deterministic-warp-navigation-v1"))).toEqual([]);
 });
 
@@ -127,7 +127,7 @@ it("records counter talk as a server-side map treatment that needs the live map"
  expect(featureInfo("counter-talk-v1")).toMatchObject({group:"guidance",needs:"live-map-v1",switchable:true});
  expect(featureInfo("counter-talk-v1").description).toMatch(/talk across/);
  expect(playHarnessFeatures(ALL_ON,null)).toContain("counter-talk-v1");
- expect(serverFeatureEnv(off("counter-talk-v1")).POKEBENCH_FEATURES_OFF).toBe("counter-talk-v1");
+ expect(serverFeatureEnv(off("counter-talk-v1")).POKEBENCH_FEATURES_OFF).toBe("semantic-navigation-v1,counter-talk-v1");
 });
 
 it("records walkable floor as an agent-side navigate_to treatment that drafts can leave on while navigation is off",()=>{
@@ -135,7 +135,7 @@ it("records walkable floor as an agent-side navigate_to treatment that drafts ca
  expect(featureInfo("walkable-floor-v1").description).toMatch(/sand/);
  expect(playHarnessFeatures(ALL_ON,null)).toContain("walkable-floor-v1");
  expect(serverFeatureEnv(ALL_ON).POKEBENCH_FEATURES_OFF).toBe("");
- expect(serverFeatureEnv(off("walkable-floor-v1")).POKEBENCH_FEATURES_OFF).toBe("");
+ expect(serverFeatureEnv(off("walkable-floor-v1")).POKEBENCH_FEATURES_OFF).toBe("semantic-navigation-v1");
  expect(dependencyProblems(off("instruction-ledger-v2","tutorial-party-owner-v1","mid-frame-readout-v1","unset-dynamic-warp-v1","status-names-v1","surf-gated-exits-v2","people-id-cards-v1","explorer-guidance-v2","ineffective-loops-v1","cross-map-goal-v1","surf-gated-exits-v1","readout-truth-v1","birch-speech-pages-v1","blackout-readout-v1","story-destinations-v1","harness-trust-v1","cited-destination-v1","harness-trust-v2","exit-reachability-v1","pushback-loop-detection-v1","pushback-press-result-v1","battle-observation-loop-v1","bounded-navigation-v1")).join()).not.toContain("walkable-floor-v1");
 });
 
@@ -143,20 +143,20 @@ it("records grass cost as an agent-side planner treatment that needs bounded nav
  expect(featureInfo("grass-cost-navigation-v1")).toMatchObject({group:"guidance",needs:"bounded-navigation-v1",switchable:true});
  expect(dependencyProblems(off("instruction-ledger-v2","tutorial-party-owner-v1","mid-frame-readout-v1","unset-dynamic-warp-v1","status-names-v1","surf-gated-exits-v2","people-id-cards-v1","explorer-guidance-v2","ineffective-loops-v1","cross-map-goal-v1","surf-gated-exits-v1","readout-truth-v1","birch-speech-pages-v1","blackout-readout-v1","story-destinations-v1","harness-trust-v1","cited-destination-v1","harness-trust-v2","exit-reachability-v1","pushback-loop-detection-v1","pushback-press-result-v1","battle-observation-loop-v1","bounded-navigation-v1"))).toContain("grass-cost-navigation-v1 needs bounded-navigation-v1");
  expect(playHarnessFeatures(ALL_ON,null).at(-95)).toBe("grass-cost-navigation-v1");
- expect(serverFeatureEnv(off("grass-cost-navigation-v1")).POKEBENCH_FEATURES_OFF).toBe("");
+ expect(serverFeatureEnv(off("grass-cost-navigation-v1")).POKEBENCH_FEATURES_OFF).toBe("semantic-navigation-v1");
 });
 
 it("registers game evidence priority as standalone prompt guidance",()=>{
   expect(featureInfo("game-evidence-priority-v1")).toMatchObject({group:"guidance",needs:null,switchable:true});
   expect(playHarnessFeatures(ALL_ON,null).at(-93)).toBe("game-evidence-priority-v1");
-  expect(serverFeatureEnv(off("game-evidence-priority-v1")).POKEBENCH_FEATURES_OFF).toBe("");
+  expect(serverFeatureEnv(off("game-evidence-priority-v1")).POKEBENCH_FEATURES_OFF).toBe("semantic-navigation-v1");
 });
 
 it("registers fresh retry as an agent-side guard recorded fourth to last",()=>{
  expect(featureInfo("fresh-retry-v1")).toMatchObject({group:"guard",needs:null,switchable:true});
  expect(featureInfo("fresh-retry-v1").description).toContain(" Off: ");
  expect(playHarnessFeatures(ALL_ON,null).at(-87)).toBe("fresh-retry-v1");
- expect(serverFeatureEnv(off("fresh-retry-v1")).POKEBENCH_FEATURES_OFF).toBe("");
+ expect(serverFeatureEnv(off("fresh-retry-v1")).POKEBENCH_FEATURES_OFF).toBe("semantic-navigation-v1");
 });
 
 it("registers named warp destinations as a default-off server readout treatment recorded third to last",()=>{
@@ -167,7 +167,7 @@ it("registers named warp destinations as a default-off server readout treatment 
  expect(featureInfo("named-warp-destinations-v1").description).not.toContain("Unknown and dynamic destinations keep their ID");
  expect(playHarnessFeatures(ALL_ON,null).at(-86)).toBe("named-warp-destinations-v1");
  expect(serverFeatureEnv(ALL_ON).POKEBENCH_FEATURES_OFF).toBe("");
- expect(serverFeatureEnv(off("named-warp-destinations-v1")).POKEBENCH_FEATURES_OFF).toBe("named-warp-destinations-v1");
+ expect(serverFeatureEnv(off("named-warp-destinations-v1")).POKEBENCH_FEATURES_OFF).toBe("semantic-navigation-v1,named-warp-destinations-v1");
  expect(dependencyProblems(off("displayed-place-names-v1"))).not.toContain("named-warp-destinations-v1 needs displayed-place-names-v1");
 });
 
@@ -177,7 +177,7 @@ it("registers the milestone stall stop as a default-off agent-side guard recorde
  expect(featureInfo("milestone-stall-stop-v1").description).toMatch(/10 minutes/);
  expect(playHarnessFeatures(ALL_ON,null).at(-85)).toBe("milestone-stall-stop-v1");
  expect(playHarnessFeatures(off("instruction-ledger-v2","tutorial-party-owner-v1","mid-frame-readout-v1","unset-dynamic-warp-v1","status-names-v1","surf-gated-exits-v2","battle-move-tool-v1","people-id-cards-v1","explorer-guidance-v2","ineffective-loops-v1","cross-map-goal-v1","surf-gated-exits-v1","readout-truth-v1","birch-speech-pages-v1","blackout-readout-v1","story-destinations-v1","harness-trust-v1","cited-destination-v1","harness-trust-v2","exit-reachability-v1","pushback-loop-detection-v1","pushback-press-result-v1","battle-observation-loop-v1","milestone-stall-stop-v1"),null)).not.toContain("milestone-stall-stop-v1");
- expect(serverFeatureEnv(off("milestone-stall-stop-v1")).POKEBENCH_FEATURES_OFF).toBe("");
+ expect(serverFeatureEnv(off("milestone-stall-stop-v1")).POKEBENCH_FEATURES_OFF).toBe("semantic-navigation-v1");
 });
 
 it("registers the bedroom exit split as a measured feature recorded after the Route 101 split",()=>{
@@ -222,7 +222,7 @@ it("registers battle details v2 as a default-off server readout treatment that n
  expect(playHarnessFeatures(ALL_ON,null).at(-79)).toBe("battle-details-v2");
  expect(playHarnessFeatures(off("instruction-ledger-v2","tutorial-party-owner-v1","mid-frame-readout-v1","unset-dynamic-warp-v1","status-names-v1","surf-gated-exits-v2","battle-move-tool-v1","people-id-cards-v1","explorer-guidance-v2","ineffective-loops-v1","cross-map-goal-v1","surf-gated-exits-v1","readout-truth-v1","birch-speech-pages-v1","blackout-readout-v1","story-destinations-v1","harness-trust-v1","cited-destination-v1","harness-trust-v2","exit-reachability-v1","pushback-loop-detection-v1","pushback-press-result-v1","battle-observation-loop-v1","battle-details-v2"),null)).not.toContain("battle-details-v2");
  expect(serverFeatureEnv(ALL_ON).POKEBENCH_FEATURES_OFF).toBe("");
- expect(serverFeatureEnv(off("battle-details-v2")).POKEBENCH_FEATURES_OFF).toBe("battle-details-v2");
+ expect(serverFeatureEnv(off("battle-details-v2")).POKEBENCH_FEATURES_OFF).toBe("semantic-navigation-v1,battle-details-v2");
  expect(SERVER_FEATURES.at(-24)).toBe("battle-details-v2");
  expect(dependencyProblems(off("instruction-ledger-v2","tutorial-party-owner-v1","mid-frame-readout-v1","unset-dynamic-warp-v1","status-names-v1","surf-gated-exits-v2","people-id-cards-v1","explorer-guidance-v2","ineffective-loops-v1","cross-map-goal-v1","surf-gated-exits-v1","readout-truth-v1","birch-speech-pages-v1","blackout-readout-v1","story-destinations-v1","harness-trust-v1","cited-destination-v1","harness-trust-v2","exit-reachability-v1","pushback-loop-detection-v1","pushback-press-result-v1","battle-observation-loop-v1","expanded-menu-battle-information-v1"))).toContain("battle-details-v2 needs expanded-menu-battle-information-v1");
 });
@@ -235,7 +235,7 @@ it("registers warp arrival settle as a default-off server observation treatment 
  expect(playHarnessFeatures(off("instruction-ledger-v2","tutorial-party-owner-v1","mid-frame-readout-v1","unset-dynamic-warp-v1","status-names-v1","surf-gated-exits-v2","battle-move-tool-v1","people-id-cards-v1","explorer-guidance-v2","ineffective-loops-v1","cross-map-goal-v1","surf-gated-exits-v1","readout-truth-v1","birch-speech-pages-v1","blackout-readout-v1","story-destinations-v1","harness-trust-v1","cited-destination-v1","harness-trust-v2","exit-reachability-v1","pushback-loop-detection-v1","pushback-press-result-v1","battle-observation-loop-v1","warp-arrival-settle-v1"),null)).not.toContain("warp-arrival-settle-v1");
  expect(SERVER_FEATURES.at(-23)).toBe("warp-arrival-settle-v1");
  expect(serverFeatureEnv(ALL_ON).POKEBENCH_FEATURES_OFF).toBe("");
- expect(serverFeatureEnv(off("battle-text-auto-advance-v1","warp-arrival-settle-v1")).POKEBENCH_FEATURES_OFF).toBe("warp-arrival-settle-v1");
+ expect(serverFeatureEnv(off("battle-text-auto-advance-v1","warp-arrival-settle-v1")).POKEBENCH_FEATURES_OFF).toBe("semantic-navigation-v1,warp-arrival-settle-v1");
 });
 
 it("registers displayed place names as a default-off server readout treatment, recorded last",()=>{
@@ -246,7 +246,7 @@ it("registers displayed place names as a default-off server readout treatment, r
  expect(SWITCHABLE_FEATURES.at(-75)).toBe("displayed-place-names-v1");
  expect(playHarnessFeatures(ALL_ON,null).at(-75)).toBe("displayed-place-names-v1");
  expect(playHarnessFeatures(off("instruction-ledger-v2","tutorial-party-owner-v1","mid-frame-readout-v1","unset-dynamic-warp-v1","status-names-v1","surf-gated-exits-v2","battle-move-tool-v1","people-id-cards-v1","explorer-guidance-v2","ineffective-loops-v1","cross-map-goal-v1","surf-gated-exits-v1","readout-truth-v1","birch-speech-pages-v1","blackout-readout-v1","story-destinations-v1","harness-trust-v1","cited-destination-v1","harness-trust-v2","exit-reachability-v1","pushback-loop-detection-v1","pushback-press-result-v1","battle-observation-loop-v1","displayed-place-names-v1"),null)).not.toContain("displayed-place-names-v1");
- expect(serverFeatureEnv(off("displayed-place-names-v1")).POKEBENCH_FEATURES_OFF).toBe("displayed-place-names-v1");
+ expect(serverFeatureEnv(off("displayed-place-names-v1")).POKEBENCH_FEATURES_OFF).toBe("semantic-navigation-v1,displayed-place-names-v1");
  expect(SERVER_FEATURES.at(-22)).toBe("displayed-place-names-v1");
  expect(dependencyProblems(off("instruction-ledger-v2","tutorial-party-owner-v1","mid-frame-readout-v1","unset-dynamic-warp-v1","status-names-v1","surf-gated-exits-v2","people-id-cards-v1","explorer-guidance-v2","ineffective-loops-v1","cross-map-goal-v1","surf-gated-exits-v1","readout-truth-v1","birch-speech-pages-v1","blackout-readout-v1","story-destinations-v1","harness-trust-v1","cited-destination-v1","harness-trust-v2","exit-reachability-v1","pushback-loop-detection-v1","pushback-press-result-v1","battle-observation-loop-v1","ram-state-v1"))).toContain("displayed-place-names-v1 needs ram-state-v1");
 });

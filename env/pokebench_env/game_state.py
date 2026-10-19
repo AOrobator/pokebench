@@ -44,7 +44,12 @@ from pokebench_env.ui_state import (
 from pokebench_env.world_context import WorldContext, read_world_context
 
 __all__ = ["GBA_TEXT", "GameState", "MapNames", "PartyMon", "decode_text", "read_game_state"]
-from pokebench_env.world import InteractionTarget, read_targets
+from pokebench_env.world import (
+    InteractionObjectSlot,
+    InteractionTarget,
+    read_interaction_object_slots,
+    read_targets,
+)
 
 SAVE_BLOCK_PTRS = 0x03005D8C
 PARTY_COUNT = 0x020244E9
@@ -104,6 +109,8 @@ class GameState:
     menu: Menu | None = None
     active_ui: ActiveUi | None = None
     interaction_targets: tuple[InteractionTarget, ...] | None = None
+    # semantic-navigation-v1 only: complete native A-recipient slot order.
+    interaction_object_slots: tuple[InteractionObjectSlot, ...] | None = None
     nearby: LocalMap | None = None
     full_map: FullMap | None = None
     topology: Topology | None = None
@@ -232,6 +239,7 @@ def read_game_state(
     tutorial_owner_enabled: bool = False,
     mid_frame_enabled: bool = False,
     unset_warp_enabled: bool = False,
+    semantic_navigation_enabled: bool = False,
 ) -> GameState:
     screen = read_screen(read)
     coherent = transition_coherence_enabled
@@ -329,6 +337,7 @@ def read_game_state(
             read,
             map_id,
             sign_label=sign_labeler(read, gender, player) if displayed_names_enabled else None,
+            native_slots=semantic_navigation_enabled,
         )
         if nearby is not None
         else None
@@ -451,6 +460,9 @@ def read_game_state(
         )
         else None,
         interaction_targets=targets,
+        interaction_object_slots=read_interaction_object_slots(read)
+        if semantic_navigation_enabled and nearby is not None
+        else None,
         displayed_places=tuple(
             (g, n, shown)
             for g, n in dict.fromkeys(

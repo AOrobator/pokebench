@@ -109,7 +109,7 @@ it("is a default-off standalone guidance switch, recorded third to last (before 
  expect(SWITCHABLE_FEATURES.at(-37)).toBe(ID);
  expect(FEATURES.filter(f=>f.switchable).at(-37)?.id).toBe(ID);
  expect(playHarnessFeatures(ALL_ON,null).at(-37)).toBe(ID);
- expect(serverFeatureEnv({...ALL_ON,"semantic-navigation-v1":false,"deterministic-exploration-v1":false,"scripted-place-guidance-v1":false,"trigger-script-loop-v1":false,[ID]:false}).POKEBENCH_FEATURES_OFF).toBe("");
+ expect(serverFeatureEnv({...ALL_ON,"semantic-navigation-v1":false,"deterministic-exploration-v1":false,"scripted-place-guidance-v1":false,"trigger-script-loop-v1":false,[ID]:false}).POKEBENCH_FEATURES_OFF).toBe("semantic-navigation-v1");
  expect(dependencyProblems({...ALL_ON,"semantic-navigation-v1":false,"deterministic-exploration-v1":false,"scripted-place-guidance-v1":false,"trigger-script-loop-v1":false,"dialogue-auto-advance-v1":false,"field-dialogue-phase-v1":false,[ID]:true})).not.toContain(expect.stringContaining(ID));
  expect(stateOnlyProblems({...INCUMBENT,"state-only-decisions-v1":true,[ID]:true})).toContain(`state-only-decisions-v1 requires ${ID} OFF`);
  expect(stateOnlyProblems({...INCUMBENT,"state-only-decisions-v1":true,[ID]:false})).not.toContain(`state-only-decisions-v1 requires ${ID} OFF`);

@@ -89,17 +89,31 @@ function sameTargetIdentity(before:SnapshotTarget,after:SnapshotTarget):boolean 
  return before.activation===after.activation&&before.elevation===after.elevation&&(a===null?b===null:b!==null&&a[0]===b[0]&&a[1]===b[1]&&a[2]===b[2]);
 }
 function interactionRecipient(state:GameStateSnapshot,target:SnapshotTarget,approach:Approach,options:NavigationOptions):SnapshotTarget|null {
- if(target.kind==="warp"||target.activation!=="A")return target;
  const elevation=plannedArrivalElevation(state,approach.point,options);if(elevation===null)return null;
- const candidates=(state.interaction_targets??[]).filter(item=>item.x===target.x&&item.y===target.y&&item.activation==="A"&&elevationsMatch(item.elevation,elevation));
- const object=candidates.find(item=>item.kind==="object");if(object!==undefined)return object;
+ if(target.kind==="warp"){
+  return (state.interaction_targets??[]).find(item=>item.kind==="warp"&&item.x===target.x&&item.y===target.y&&(item.elevation===0||item.elevation===elevation))??null;
+ }
+ if(target.activation!=="A")return target;
+ const slots=state.interaction_object_slots;if(slots===undefined)return null;
+ const native=slots.find(item=>item.x===target.x&&item.y===target.y&&elevationsMatch(item.elevation,elevation));
+ if(target.kind==="object"){
+  return native!==undefined&&target.native_slot!==undefined&&native.slot===target.native_slot&&native.local_id===target.local_id&&native.map_id[0]===state.map_id?.[0]&&native.map_id[1]===state.map_id[1]?target:null;
+ }
+ // Native object lookup precedes background and metatile lookup. Conservatively
+ // refuse a fixed target whenever any active slot would be selected there.
+ if(native!==undefined)return null;
+ const candidates=(state.interaction_targets??[]).filter(item=>item.x===target.x&&item.y===target.y&&item.activation==="A"&&item.kind!=="object"&&item.kind!=="warp"&&(item.elevation===0||item.elevation===elevation));
+ const fixed=candidates;if(fixed.length!==1)return null;
  const facing=approach.facing?.toLowerCase()??null;
- return candidates.find(item=>item.kind!=="object"&&item.kind!=="warp"&&(item.facing===null||item.facing===facing))??null;
+ const recipient=fixed[0];return recipient!==undefined&&(recipient.facing===null||recipient.facing===facing)?recipient:null;
 }
 function approaches(state:GameStateSnapshot,target:SnapshotTarget,options:NavigationOptions):Approach[] {
  if(target.kind==="warp"||target.activation==="step"){
   const path=planNavigation(state,{x:target.x,y:target.y},options);
-  return path===null?[]:[{point:{x:target.x,y:target.y},facing:null,length:path.length}];
+  if(path===null)return [];
+  const approach={point:{x:target.x,y:target.y},facing:null,length:path.length};
+  const recipient=interactionRecipient(state,target,approach,options);
+  return recipient!==null&&sameTargetIdentity(target,recipient)?[approach]:[];
  }
  return STEPS.flatMap(([facing,dx,dy])=>{
   if(target.facing!==null&&target.facing!==facing.toLowerCase())return [];
@@ -148,7 +162,12 @@ function semanticTool(navigate:CheckedNavigationTool,press:CheckedPressTool,feat
     if(fresh===null)return `semantic target disappeared during ${phase}`;
     if(listed===null)return `semantic target changed during ${phase}`;
     if(fresh.x!==listed.x||fresh.y!==listed.y)return `semantic target moved during ${phase}`;
-    return sameTargetIdentity(listed,fresh)?null:`semantic target changed during ${phase}`;
+    if(!sameTargetIdentity(listed,fresh))return `semantic target changed during ${phase}`;
+    if(fresh.kind==="warp"||fresh.activation==="A"){
+     const recipient=interactionRecipient(actual,fresh,choice,options);
+     if(recipient===null||!sameTargetIdentity(fresh,recipient))return `semantic interaction recipient changed during ${phase}`;
+    }
+    return null;
    };
    const routeStop=(actual:GameStateSnapshot):string|null=>{
     if(!isMap(actual,request.map_id))return null;

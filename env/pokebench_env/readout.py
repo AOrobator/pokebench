@@ -48,6 +48,7 @@ SERVER_FEATURES = (
     "named-interactions-v1",
     "world-destinations-v1",
     "bounded-navigation-v1",
+    "semantic-navigation-v1",
     "field-dialogue-phase-v1",
     "active-field-message-buffer-v1",
     "naming-cursor-v1",
@@ -91,7 +92,7 @@ SERVER_FEATURES = (
 def features_off_from_env(env: Mapping[str, str]) -> frozenset[str]:
     raw = env.get(
         "POKEBENCH_FEATURES_OFF",
-        "named-interactions-v1,world-destinations-v1,bounded-navigation-v1,expanded-menu-battle-information-v1,field-dialogue-phase-v1,full-map-navigation-v1,named-warp-destinations-v1,character-presence-v1,battle-details-v2,warp-arrival-settle-v1,displayed-place-names-v1,"
+        "named-interactions-v1,world-destinations-v1,bounded-navigation-v1,semantic-navigation-v1,expanded-menu-battle-information-v1,field-dialogue-phase-v1,full-map-navigation-v1,named-warp-destinations-v1,character-presence-v1,battle-details-v2,warp-arrival-settle-v1,displayed-place-names-v1,"
         "battle-triage-guidance-v1,"
         "adjacent-tiles-v1,"
         "readout-rules-in-prompt-v1,connection-edge-tiles-v1,in-game-naming-readout-v1,"
@@ -605,6 +606,14 @@ def state_json(state: GameState) -> dict[str, object]:
         "interaction_targets": None
         if state.interaction_targets is None
         else [t.json() for t in state.interaction_targets],
+        # semantic-navigation-v1: absent when off, preserving incumbent state bytes.
+        **(
+            {}
+            if state.interaction_object_slots is None
+            else {
+                "interaction_object_slots": [slot.json() for slot in state.interaction_object_slots]
+            }
+        ),
         "started": state.started,
         "name": state.name,
         "location": state.location,

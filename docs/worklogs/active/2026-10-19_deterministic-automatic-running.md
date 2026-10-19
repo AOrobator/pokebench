@@ -27,7 +27,7 @@ On 2026-10-19, the operator clarified the contract for `automatic-running-v1`: t
 - [x] Runtime tests prove native permission remains the only running decision.
 - [x] Explainer, card link and local serving checks pass.
 - [x] Full repository gates pass.
-- [ ] Frozen multi-model review passes.
+- [x] Frozen multi-model review passes.
 - [ ] Fast-forward landed on `main` after active measured runs permit it.
 
 ## Session log
@@ -54,3 +54,4 @@ On 2026-10-19, the operator clarified the contract for `automatic-running-v1`: t
 - 2026-10-19: `main` advanced to `f159caac827bd83319ccda1f267b6e1e6d447b2d` during final review. Integrated it before landing. The two semantic conflicts preserve both sides: navigation now supports the new visited-terrain mode while still removing `walking` and wiring `automaticRunning` when ON; the feature-card map includes both visited-terrain and automatic-running explainers. Running-focused agent tests pass 194/194. The new-main finals-label server test fails while the merge is uncommitted but passes on canonical `main`; recheck after the merge commit before treating it as a candidate failure.
 - 2026-10-19: Rechecked the committed integration head: the complete viewer suite passes 1,227/1,227, including the finals-label server coverage and the automatic-running explainer route. The earlier isolated finals-label failure did not reproduce and required no code or test change.
 - 2026-10-19: Final integrated repository gates pass: 2,556 agent tests, 1,227 viewer tests, and 2,495 Python tests; 229 ROM-dependent Python checks remain skipped because `POKEBENCH_ROM` is unset. Both lint and build gates pass, as do vendor integrity, all 121 experiment definitions, and the automatic-running explainer asset check.
+- 2026-10-19: Three independent final reviewers reproduced head `15355f15ee866793ae335eddf675d7affde3409a` and diff digest `1090d998891b3c6e0cdac2c5a60466d840f18e2845f6a9427ce64fcfde34b80e`; all returned LGTM. Their integration checks covered local/visited navigation crossed with automatic running OFF/ON, native permission and stale-input semantics, truthful receipts, both explainer mappings, and the nine required test-quality checks. Grok was waived by the operator.

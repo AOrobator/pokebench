@@ -84,7 +84,8 @@ describe("trigger-script-loop-v1",()=>{
    r.emit({type:"state",...field(8,12,{...held,world_context:{objects:[],triggers:triggers(12,pointer),dialogue:null,message:null}})});
    const trigger=triggers(12,pointer)[0];if(trigger===undefined)throw Error("missing trigger fixture");
    r.emit({type:"state",...field(8,12,reset==="condition"?{...held,world_context:{objects:[],triggers:[{...trigger,current_value:1,condition_met:false}],dialogue:null,message:null}}:{...held,story:{...story,petalburg_gym_stage:1},world_context:{objects:[],triggers:triggers(12,pointer),dialogue:null,message:null}})});
-   r.emit({type:"tool_result",id,name:"press",is_error:false,duration_ms:20,text:"reset before return",state_seq:5});
+   r.emit({type:"state",...field(8,12,{...held,...(reset==="story"?{story:{...story,petalburg_gym_stage:1}}:{}),world_context:{objects:[],triggers:triggers(12,pointer),dialogue:null,message:null}})});
+   r.emit({type:"tool_result",id,name:"press",is_error:false,duration_ms:20,text:"reset before return",state_seq:6});
    r.trip(13,0x08100120);
    expect(r.notices.filter(n=>n.kind==="trigger_script"),reset).toEqual([]);
   }

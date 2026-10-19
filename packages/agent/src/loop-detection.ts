@@ -407,6 +407,7 @@ export class LoopDetector {
       // reopened-dialogue-loop-v1: readable dialogue only. A message identity is not a line.
       spoken?: string[];
       triggerScript?: {map:readonly [number,number];variable:number;required:number;current:number;pointer:number;stateSeq:number};
+      triggerEntrySeen?: boolean;
     }
   >();
 
@@ -478,9 +479,9 @@ export class LoopDetector {
           if(trigger!==undefined)for(const pending of this.calls.values()){
             const start=pending.start;
             const entered=pending.pressed===true&&start!==undefined&&start.map_id!==null&&start.position!==null&&start.map_id[0]===event.map_id[0]&&start.map_id[1]===event.map_id[1]&&(start.position.x!==position.x||start.position.y!==position.y)&&!scriptHeld(start);
-            if(entered){
+            if(entered&&pending.triggerEntrySeen!==true){
               const execution={map:event.map_id,variable:trigger.variable,required:trigger.required_value,current:trigger.current_value??trigger.required_value,pointer:trigger.script_pointer,stateSeq:event.seq};
-              pending.triggerScript=execution;this.activeTriggerScript=execution;
+              pending.triggerEntrySeen=true;pending.triggerScript=execution;this.activeTriggerScript=execution;
             }
           }
         }

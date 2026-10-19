@@ -153,13 +153,16 @@ export class StoryDestinations {
   // pret/pokeemerald PetalburgCity_EventScript_ShowGymToPlayer: the four VAR_PETALBURG_CITY_STATE
   // coordinate triggers show this exact guidance and physically lead the player to the Gym.
   const plain=(page:Page)=>page.text.replace(/\s+/g," ").trim();
-  const forcedGym=this.scriptedGuidance&&pages.some(page=>page.speaker===null&&page.speaker_source===null&&page.map_id?.[0]===0&&page.map_id[1]===0&&plain(page).startsWith("Hiya! Are you maybe… A rookie TRAINER?"))&&pages.some(page=>page.speaker===null&&page.speaker_source===null&&plain(page)==="This is the GYM's sign. Look for it whenever you're looking for a GYM.");
+  const gymBoy=(page:Page)=>(page.speaker===null&&page.speaker_source===null)||(page.speaker==="BOY_2"&&page.speaker_source==="faced_sprite");
+  const forcedGym=this.scriptedGuidance&&pages.some(page=>gymBoy(page)&&page.map_id?.[0]===0&&page.map_id[1]===0&&plain(page).startsWith("Hiya! Are you maybe… A rookie TRAINER?"))&&pages.some(page=>gymBoy(page)&&plain(page)==="This is the GYM's sign. Look for it whenever you're looking for a GYM.");
   for(const page of pages){
    if(page.battle_message_id!==undefined||page.battle_turn!==undefined)continue;
    const speaker=this.speaker(page);
    const prefix=page.speaker===null?"":`${page.speaker}: `;
    const text=(page.speaker_source==="name_prefix"&&page.text.startsWith(prefix)?page.text.slice(prefix.length):page.text).replace(/\s+/g," ").trim();
-   if(speaker!==null){
+   if(forcedGym&&gymBoy(page)&&page.map_id?.[0]===0&&page.map_id[1]===0&&text==="See? This is PETALBURG CITY's GYM."){
+    out.push({turn,speaker:"PETALBURG GYM BOY",text,lives:null,scriptedPlaces:[{quote:"PETALBURG CITY's GYM",resolution:"PETALBURG CITY GYM"}]});
+   }else if(speaker!==null){
     const m=LIVES.exec(text);
     let lives:Lives|null=null;
     if(m!==null){
@@ -168,8 +171,6 @@ export class StoryDestinations {
      lives=subject==="He"||subject==="She"?{subject,owner:others.length===1?others[0] ?? null:null,others}:{subject,owner:subject,others:[]};
     }
     out.push({turn,speaker,text,lives});
-   }else if(forcedGym&&page.speaker===null&&page.speaker_source===null&&page.map_id?.[0]===0&&page.map_id[1]===0&&text==="See? This is PETALBURG CITY's GYM."){
-    out.push({turn,speaker:"PETALBURG GYM BOY",text,lives:null,scriptedPlaces:[{quote:"PETALBURG CITY's GYM",resolution:"PETALBURG CITY GYM"}]});
    }
    for(const n of namedIn(page.text))if(!before.includes(n))before.push(n);
   }

@@ -334,7 +334,7 @@ export class LoopDetector {
   private closedTalk = { text: "", place: "", count: 0 };
   // trigger-script-loop-v1: executions since native progress, grouped by live condition and shown dialogue.
   // Adjacent rows can use different wrapper script pointers for the same gate.
-  private readonly triggerScripts=new Map<string,{readonly evidence:number[];readonly dialogue:string}>();
+  private readonly triggerScripts=new Map<string,{readonly evidence:number[];readonly dialogue:string;readonly map:readonly [number,number];readonly variable:number;readonly required:number;readonly current:number}>();
   private readonly rejections = new Map<string, number>();
   private previous: string | null = null;
   private readonly history: string[] = [];
@@ -452,10 +452,21 @@ export class LoopDetector {
             if (line !== "" && !pending.spoken.includes(line)) pending.spoken.push(line);
           }
         }
+        if(this.triggerScriptLoops&&event.map_id!==null){
+          for(const [key,seen] of this.triggerScripts){
+            if(seen.map[0]!==event.map_id[0]||seen.map[1]!==event.map_id[1])continue;
+            const live=(event.world_context?.triggers??[]).find(t=>t.variable===seen.variable&&t.required_value===seen.required);
+            if(live!==undefined&&(live.current_value!==seen.current||live.condition_met!==true))this.triggerScripts.delete(key);
+          }
+        }
         if(this.triggerScriptLoops&&event.map_id!==null&&event.position!==null&&scriptHeld(event)){
           const position=event.position;
           const trigger=(event.world_context?.triggers??[]).find(t=>t.x===position.x&&t.y===position.y&&t.condition_met===true&&t.current_value!==null);
-          if(trigger!==undefined)for(const pending of this.calls.values())pending.triggerScript={map:event.map_id,variable:trigger.variable,required:trigger.required_value,current:trigger.current_value??trigger.required_value,pointer:trigger.script_pointer,stateSeq:event.seq};
+          if(trigger!==undefined)for(const pending of this.calls.values()){
+            const start=pending.start;
+            const entered=pending.pressed===true&&start!==undefined&&start.map_id!==null&&start.position!==null&&start.map_id[0]===event.map_id[0]&&start.map_id[1]===event.map_id[1]&&(start.position.x!==position.x||start.position.y!==position.y)&&!scriptHeld(start);
+            if(entered)pending.triggerScript={map:event.map_id,variable:trigger.variable,required:trigger.required_value,current:trigger.current_value??trigger.required_value,pointer:trigger.script_pointer,stateSeq:event.seq};
+          }
         }
         this.nativeProgress(event, event.seq);
         this.latest = event;
@@ -616,7 +627,7 @@ export class LoopDetector {
     const key=JSON.stringify([t.map,t.variable,t.required,t.current,dialogue]);
     const before=this.triggerScripts.get(key);
     const evidence=[...(before?.evidence??[]),seq].slice(-2);
-    this.triggerScripts.set(key,{evidence,dialogue});
+    this.triggerScripts.set(key,{evidence,dialogue,map:t.map,variable:t.variable,required:t.required,current:t.current});
     if(this.triggerScripts.size>8)this.triggerScripts.delete(this.triggerScripts.keys().next().value??"");
     return evidence.length>=2?{evidence,dialogue}:null;
   }
@@ -1101,7 +1112,7 @@ export class LoopDetector {
       calls: this.completed,
       evidence: [...episode.evidence, seq].filter(
         (value, index, all) => all.indexOf(value) === index,
-      ),
+      ).slice(-2),
     };
     if (this.mode === "diagnostic")
       this.notify({

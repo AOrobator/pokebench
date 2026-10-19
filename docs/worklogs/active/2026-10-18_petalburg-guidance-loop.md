@@ -1,6 +1,6 @@
 # Petalburg scripted-place guidance and trigger-loop detection
 
-Branch `codex/petalburg-gym-trigger-loop`, base main `d4eff8de`. Local only. The operator asked on 2026-10-18 to put two harness fixes into the main bundle and rerun two 45-minute Petalburg checkpoint continuations: record the forced Gym introduction as the current place goal, and detect repeated coordinate-trigger scripts before the five-minute milestone-drought supervisor.
+Branch `codex/petalburg-gym-trigger-loop`, rebased base main `6b4aaa71`. Local only. The operator asked on 2026-10-18 to put two harness fixes into the main bundle and rerun two 45-minute Petalburg checkpoint continuations: record the forced Gym introduction as the current place goal, and detect repeated coordinate-trigger scripts before the five-minute milestone-drought supervisor.
 
 ## Problem Statement
 
@@ -48,7 +48,7 @@ No automatic movement, hidden walkthrough, new timeline mark, milestone change o
 - [x] Reuse the existing typed loop-guard event and visible consumers; prove model delivery.
 - [x] Add both explainers, pending experiment entries and readiness rows.
 - [x] Perform focused RED/GREEN, deletion/restoration coverage and full gates.
-- [ ] Commit GREEN.
+- [x] Commit GREEN.
 
 ### M3 - Review and land
 
@@ -71,14 +71,15 @@ READY (checkpoint): the shared `PETALBURG_CITY` save is pinned by SHA-1 and load
 - 2026-10-18 EDT: qualified both original probes, verified immediate healing, repeated native trigger scripts, delayed generic supervisor intervention, downstream Wally completion, per-milestone checkpoint files and raw-RAM archives.
 - 2026-10-18 EDT: RED focused replay: 28 tests ran, 26 passed and the two intended assertions failed. The exact Gym page remained `null`; the second shared-condition trigger execution emitted no `trigger_script` notice. OFF and negative cases stayed green.
 - 2026-10-18 EDT: GREEN gates: agent 160 files / 2,516 tests; viewer 84 files / 1,183 tests; Python 2,480 passed / 229 ROM-dependent skipped; TypeScript, ESLint, builds, schema, 114 experiment definitions, both self-contained explainer checks and vendor verification passed. ROM verification was unavailable in this worktree because `POKEBENCH_ROM` was not exported; the same local ROM is required at launch.
+- 2026-10-18 EDT: first frozen review was BLOCKING. Independent reproductions showed the real probe pages identify the speaker as `BOY_2`/`faced_sprite`, repeated observations of one open script could be counted as separate executions, a live condition change did not retire old recurrence history, and recovery/supervisor evidence could exceed the event schema's two-item limit. The repair now accepts the actual page attribution, requires a physical entry from an unlocked starting state, clears matching history on condition change, bounds every notice to two evidence IDs, validates notices through the production event schema, and adds focused regressions.
 
 ## Multi-Model Review Log
 
-Pending.
+First packet `6b4aaa71..6a923c62`, SHA-256 `e4bf1df761af3c02f4f816ba5bf72c054b2098cc3d7c0a7af043a040f7e1fe44`: Claude CLI authentication was unavailable and Cursor Claude exhausted its account quota. The approved two-reviewer availability fallback (Sol and Astra) both returned `VERDICT: BLOCKING` with the reproduced defects recorded above. Grok and GPT Cursor attempts on that packet were discarded after the tree changed; GPT Cursor was also quota-blocked. A new frozen packet and full review are required after the repairs.
 
 ## Principles Adherence
 
-Pending final frozen tip.
+PB1 PASS; PB2 N/A; PB3 PASS; PB4 PASS; PB5 PASS; PB6 N/A; PB7 PASS after schema-valid bounded evidence repair; PB8 PASS after physical-entry and condition-reset repair; PB9 PASS; PB10 PASS; PB11 PASS; PB12 N/A; PB13 PASS pending final frozen review and landing.
 
 ## Archive Milestone
 

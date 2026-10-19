@@ -229,6 +229,13 @@ describe("scripted-place-guidance-v1",()=>{
    `- "PETALBURG CITY's GYM" = PETALBURG CITY GYM (map 8/1). Way in: door in PETALBURG CITY (map 0/0) at (15,8).`,
   ].join("\n"));
  });
+ it("ON accepts the faced BOY_2 attribution recorded by both Petalburg probes",()=>{
+  const recorded=gymPages.map(p=>({...p,speaker:"BOY_2",speaker_source:"faced_sprite" as const}));
+  expect(block(true,recorded)).toBe([
+   `${STORY_HEADER} (turn 14, PETALBURG GYM BOY): "See? This is PETALBURG CITY's GYM."`,
+   `- "PETALBURG CITY's GYM" = PETALBURG CITY GYM (map 8/1). Way in: door on this map at (15,8).`,
+  ].join("\n"));
+ });
  it("ON does not promote an arbitrary unnamed place line",()=>{
   expect(block(true,[page("Go to RUSTBORO CITY.",null,null)])).toBeNull();
  });

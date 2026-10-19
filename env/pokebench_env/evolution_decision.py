@@ -173,7 +173,7 @@ def install_evolution_decision(
     emulator: type[SteppedEmulator],
     read: ReadMemory,
     memory_lock: AbstractContextManager[object],
-) -> None:
+) -> EvolutionGate:
     gate = EvolutionGate(read)
     original = emulator.run_frame_with_buttons
 
@@ -197,3 +197,5 @@ def install_evolution_decision(
             except ValueError as error:
                 raise HTTPException(409, str(error)) from error
             return {"status": "success", "decision": body.decision}
+
+    return gate

@@ -362,7 +362,7 @@ def test_pending_decision_observation_returns_without_advancing_held_frames(
     from pokebench_env.game_state import MapNames
     from pokebench_env.menus import PALETTE_FADE
     from pokebench_env.readout import SERVER_FEATURES
-    from pokebench_env.screen_settle import FrameSettle, PALETTE_RAM
+    from pokebench_env.screen_settle import PALETTE_RAM, FrameSettle
 
     waiting, done = threading.Event(), threading.Event()
     captures, failures, settlements, instances = [], [], [], []
@@ -449,8 +449,11 @@ def test_pending_decision_observation_returns_without_advancing_held_frames(
         paused, receipt = instances[0].settle_traced(lambda: "paused", lock)
         assert paused == "paused" and receipt.reason == "paused"
         instances[0].resume()
-        held, receipt = instances[0].settle_traced(lambda: "held", lock)
-        assert held == "held" and receipt.reason == "input_hold"
+        done.clear()
+        thread = threading.Thread(target=observe, daemon=True)
+        thread.start()
+        assert done.wait(1), "observation after resume waited on an intentional hold"
+        assert settlements[-1].reason == "input_hold"
         human_off = os.environ["POKEBENCH_FEATURES_OFF"]
         assert "evolution-decision-v1" not in human_off.split(",")
     finally:

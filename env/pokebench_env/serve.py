@@ -323,7 +323,11 @@ def run(
     ):
         if len(observation) != 5:
             raise ValueError("evolution decisions require the emulator memory lock")
-        install_evolution_decision(observation[0], frames, observation[2], observation[4])
+        gate = install_evolution_decision(observation[0], frames, observation[2], observation[4])
+        if settle is not None:
+            # The game intentionally waits for a choice; capture that state even
+            # if its palette is still fading/black. Never advance a held frame.
+            settle.capture_held = lambda: gate.pending() is not None
     if pause is not None:
         install_pause(
             *pause,

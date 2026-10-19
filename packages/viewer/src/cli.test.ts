@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import { CliError, DEFAULT_PORT, closeOnSignals, main, parseArgs, viewerOffload, viewUrl } from "./cli.js";
+import type { BaselineRequest, BaselineWorkerLike } from "./baseline-pool.js";
 import { RunQueue } from "./next-run.js";
 
 describe("parseArgs", () => {
@@ -98,12 +99,30 @@ describe("main", () => {
 });
 
 describe("production log reduction", () => {
-  it("stays idle after a restart instead of eagerly scanning every historical run", async () => {
+  it("stays cold after restart and serializes mixed requested reductions on one worker", async () => {
     const root = mkdtempSync(join(tmpdir(), "viewer-offload-"));
     try {
-      const offload = viewerOffload(root, new URL("file:///not-started-worker.js"), "a".repeat(64), 32);
+      const requests: BaselineRequest[] = [];
+      const worker: BaselineWorkerLike = {
+        postMessage: (message) => { requests.push(message); },
+        on: () => undefined,
+        terminate: () => Promise.resolve(0),
+        unref: () => undefined,
+      };
+      let spawns = 0;
+      const offload = viewerOffload(root, new URL("file:///held-worker.js"), "a".repeat(64), 32, () => {
+        spawns += 1;
+        return worker;
+      });
       expect(offload.baselines?.warm).not.toBe(true);
+      const baseline = offload.baselines?.compute;
+      const workbench = offload.workbench?.compute;
+      if (baseline === undefined || workbench === undefined) throw new Error("production offload omitted its reducers");
+      const jobs = [baseline(root, "a"), baseline(root, "b"), workbench(root, "c", null)];
+      expect(spawns).toBe(1);
+      expect(requests).toHaveLength(1);
       await offload.baselines?.close?.();
+      await Promise.allSettled(jobs);
     } finally {
       rmSync(root, { recursive: true, force: true });
     }

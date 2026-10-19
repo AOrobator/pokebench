@@ -6,7 +6,7 @@ import { RUN_ID_PATTERN } from "@pokebench/agent/events";
 import { existsSync } from "node:fs";
 import { availableParallelism, homedir } from "node:os";
 import { Worker } from "node:worker_threads";
-import { createBaselinePool, defaultPoolSize } from "./baseline-pool.js";
+import { createBaselinePool, defaultPoolSize, type BaselineWorkerLike } from "./baseline-pool.js";
 import { baselineCacheDir, codeIdentity, createBaselineStore, createWorkbenchStore, pruneBaselineCaches, workbenchCacheDir } from "./baseline-store.js";
 import { dirname, join } from "node:path";
 import { ExperimentAutoRun } from "./experiment-autorun.js";
@@ -110,9 +110,15 @@ export interface MainDeps {
 
 // Cold caches are reduced only when a page asks for them. Eagerly warming every historical log
 // after each viewer build can saturate several cores for minutes and starve live emulators.
-export function viewerOffload(runsRoot: string, worker: URL, codeId: string, parallelism: number): Pick<ViewerOptions, "baselines" | "workbench"> {
+export function viewerOffload(
+  runsRoot: string,
+  worker: URL,
+  codeId: string,
+  parallelism: number,
+  spawn: () => BaselineWorkerLike = () => new Worker(worker),
+): Pick<ViewerOptions, "baselines" | "workbench"> {
   pruneBaselineCaches(runsRoot, codeId, Date.now());
-  const pool = createBaselinePool(() => new Worker(worker), defaultPoolSize(parallelism));
+  const pool = createBaselinePool(spawn, defaultPoolSize(parallelism));
   return {
     baselines: { compute: pool.compute, store: createBaselineStore(baselineCacheDir(runsRoot, codeId)), close: () => pool.close() },
     workbench: { compute: pool.load, store: createWorkbenchStore(workbenchCacheDir(runsRoot, codeId)), partial: true },

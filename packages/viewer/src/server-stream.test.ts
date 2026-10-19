@@ -1,6 +1,6 @@
 import * as fs from "node:fs";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { ServerResponse } from "node:http";
+import { get, ServerResponse } from "node:http";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, expect, it, vi } from "vitest";
@@ -70,15 +70,19 @@ it("delivers a line longer than the chunk whole", async () => {
   expect(text).toContain("event: done");
 });
 
-it("stops reading once a client abandons a long stream, and keeps serving", async () => {
-  const viewer = await serve("long", longRun(30000), 65536);
-  const read = fs.readSync;
+it("stops polling once a client abandons an active stream, and keeps serving", async () => {
+  const active = longRun(3);
+  active.events.pop(); // no run_end: after catch-up the live stream polls for appended events
+  const viewer = await serve("long", active, 4096);
+  const open = fs.openSync;
   let reads = 0;
-  vi.spyOn(fs, "readSync").mockImplementation(((...args: Parameters<typeof fs.readSync>) => { reads += 1; return read(...args); }));
-  const abort = new AbortController();
-  const reply = await fetch(new URL("api/runs/long/events", viewer.url), { signal: abort.signal });
-  await reply.body?.getReader().read();
-  abort.abort();
+  vi.spyOn(fs, "openSync").mockImplementation(((...args: Parameters<typeof fs.openSync>) => { reads += 1; return open(...args); }));
+  await new Promise<void>((resolve, reject) => {
+    const request = get(new URL("api/runs/long/events", viewer.url), (reply) => {
+      reply.once("data", () => { reply.destroy(); resolve(); });
+    });
+    request.once("error", reject);
+  });
   await new Promise((resolve) => { setTimeout(resolve, 50); });
   const after = reads;
   await new Promise((resolve) => { setTimeout(resolve, 100); });

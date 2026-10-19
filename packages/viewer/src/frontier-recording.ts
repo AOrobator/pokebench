@@ -18,7 +18,8 @@ type State = Extract<RunEvent, { type: "state"; started: boolean }>;
 // skipped: events the schema rejected and a tolerant read stepped over (version skew), with the first problem.
 // last: the trainer card fields of the last game state, kept because view.state is dropped from the result.
 export interface NativeRecording { view: RunView; splits: RecordingSplit[]; measurement: RecordingMeasurement; skipped: { count: number; first: string } | null; last: Pick<State, "name" | "location" | "party"> | null }
-export interface NativeRecordingTailer { read(): NativeRecording }
+export interface RecordingFileIdentity { dev: number; ino: number; size: number; mtimeMs: number; ctimeMs: number }
+export interface NativeRecordingTailer { read(): NativeRecording; fileIdentity(): RecordingFileIdentity | null }
 function compact(state: State): State {
   return { v: state.v, run: state.run, seq: state.seq, t: state.t, turn: state.turn, type: "state", screen: state.screen,
     started: state.started, name: state.name, location: state.location, map_id: state.map_id, position: state.position, facing: state.facing,
@@ -84,6 +85,7 @@ export function createNativeRecordingTailer(path: string, id: string, qualified:
     skipped = { count: (skipped?.count ?? 0) + 1, first: skipped?.first ?? `line ${String(line)}: ${problem}` };
   };
   const recovered = recoveredAttacher(dirname(path));
+  let fileIdentity: RecordingFileIdentity | null = null;
   const consume = (logged: RunEvent): void => {
     const event = recovered(logged);
     const ms = ordered(event);
@@ -142,7 +144,12 @@ export function createNativeRecordingTailer(path: string, id: string, qualified:
         pending = Buffer.from(joined.subarray(start));
         if (pending.length > lineBytes) throw new Error("Run log line exceeds the streaming line bound");
       }
-      if (fstatSync(fd).size < before.size) throw new Error("Run log changed during reduction; snapshot unavailable");
+      const after = fstatSync(fd);
+      if (after.dev !== before.dev || after.ino !== before.ino || after.size < before.size) throw new Error("Run log changed during reduction; snapshot unavailable");
+      // Growth is the normal append-only case. With no growth, any metadata
+      // change means bytes may have been replaced after readSync copied them;
+      // never commit that possibly mixed snapshot into the persistent tailer.
+      if (after.size === before.size && (after.mtimeMs !== before.mtimeMs || after.ctimeMs !== before.ctimeMs)) throw new Error("Run log changed during reduction; snapshot unavailable");
       if (verifyPrefix) {
         const verified = createHash("sha256"); let checked = 0;
         while (checked < before.size) {
@@ -152,10 +159,11 @@ export function createNativeRecordingTailer(path: string, id: string, qualified:
         }
         if (verified.digest("hex") !== hash.copy().digest("hex")) throw new Error("Run log changed during reduction; snapshot unavailable");
       }
+      fileIdentity = { dev: after.dev, ino: after.ino, size: after.size, mtimeMs: after.mtimeMs, ctimeMs: after.ctimeMs };
     } finally { closeSync(fd); }
   };
 
-  return { read: (): NativeRecording => {
+  return { fileIdentity: () => fileIdentity, read: (): NativeRecording => {
     append();
     if (view.start === null) throw new Error("No complete run_start yet");
     const digest = hash.copy().digest("hex"), outputSplits = splits.map(s => ({ ...s })), outputRaw = rawSplits.map(s => ({ ...s, evidence: [...s.evidence] }));

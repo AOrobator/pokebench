@@ -9,7 +9,7 @@ import type { RunEvent } from "@pokebench/agent/events";
 import { Log, START, fullRun, state } from "../test-support/events.js";
 import { rivalRam, writeArchive } from "../test-support/raw-ram.js";
 import { QUEUE_FEATURES } from "../test-support/experiments.js";
-import { BROWSER_MODULES, HOST, frameClientReady, startViewer, type Viewer } from "./server.js";
+import { BROWSER_MODULES, HOST, frameClientReady, startViewer, validFramePng, type Viewer } from "./server.js";
 import { parseWorkbench } from "./workbench-data.js";
 import WebSocket, { WebSocketServer } from "ws";
 
@@ -396,6 +396,14 @@ describe("viewer server", () => {
     expect(frameClientReady({ readyState: WebSocket.OPEN, bufferedAmount: 0 })).toBe(true);
     expect(frameClientReady({ readyState: WebSocket.OPEN, bufferedAmount: 1 })).toBe(false);
     expect(frameClientReady({ readyState: WebSocket.CLOSING, bufferedAmount: 0 })).toBe(false);
+  });
+
+  it("accepts only complete bounded PNG structures with valid chunk checksums", () => {
+    expect(validFramePng(PNG)).toBe(true);
+    expect(validFramePng(PNG.subarray(0, PNG.length - 1))).toBe(false);
+    expect(validFramePng(Buffer.concat([PNG.subarray(0, 8), Buffer.from("not chunks")]))).toBe(false);
+    const corrupt = Buffer.from(PNG), at = corrupt.length - 13; corrupt[at] = (corrupt[at] ?? 0) ^ 1;
+    expect(validFramePng(corrupt)).toBe(false);
   });
 
   it("refuses the live screen for an ended run and reports an unreachable or malformed server", async () => {

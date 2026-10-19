@@ -37,6 +37,7 @@ export interface AppDeps {
   openStream(url: string): StreamLike;
   openFrameStream?(url: string): FrameStreamLike;
   frameUrl?(data: unknown): string;
+  stageFrame?(url: string, ready: () => void, failed: () => void): void;
   revokeFrameUrl?(url: string): void;
   now(): number;
   readonly hash: string;
@@ -237,9 +238,14 @@ export class App {
   private rows: RowState = { open: new Set(), folded: new Set(), selected: null };
   private frameStream: FrameStreamLike | null = null;
   private frameUrl: string | null = null;
+  private stagedFrameUrl: string | null = null;
+  private queuedFrameUrl: string | null = null;
   private readonly retiredFrameUrls: string[] = [];
   private frameConnecting = false;
   private liveFailedAt: number | null = null;
+  private frameReceived = 0;
+  private framePresented = 0;
+  private frameLoadBound = false;
   private readonly html = new Map<HTMLElement, string>();
   // Hold-to-confirm abort: when X (or the button) went down; null when released.
   private extensionPending: { run: string; action: "extend_30m" | "extend_60m"; afterSeq: number; request: number | null } | null = null;
@@ -286,7 +292,43 @@ export class App {
       this.deps.revokeFrameUrl?.(this.frameUrl);
       this.frameUrl = null;
     }
+    if (this.stagedFrameUrl !== null) this.deps.revokeFrameUrl?.(this.stagedFrameUrl);
+    if (this.queuedFrameUrl !== null) this.deps.revokeFrameUrl?.(this.queuedFrameUrl);
+    this.stagedFrameUrl = null;
+    this.queuedFrameUrl = null;
     for (const url of this.retiredFrameUrls.splice(0)) this.deps.revokeFrameUrl?.(url);
+  }
+
+  private promoteFrame(url: string): void {
+    const previous = this.frameUrl;
+    this.frameUrl = url;
+    this.liveFailedAt = null;
+    this.renderScreen(this.deps.now());
+    // SVG image loading is asynchronous. Keep a short grace window so a
+    // 60 FPS replacement cannot revoke the URL the browser is still decoding.
+    if (previous !== null) this.retiredFrameUrls.push(previous);
+    if (this.retiredFrameUrls.length > 8) this.deps.revokeFrameUrl?.(this.retiredFrameUrls.shift() as string);
+  }
+
+  private stageFrame(url: string): void {
+    if (this.deps.stageFrame === undefined) { this.promoteFrame(url); return; }
+    if (this.stagedFrameUrl !== null) {
+      if (this.queuedFrameUrl !== null) this.deps.revokeFrameUrl?.(this.queuedFrameUrl);
+      this.queuedFrameUrl = url;
+      return;
+    }
+    this.stagedFrameUrl = url;
+    const complete = (valid: boolean): void => {
+      if (this.stagedFrameUrl !== url) return;
+      this.stagedFrameUrl = null;
+      if (valid && this.frameStream !== null) this.promoteFrame(url);
+      else this.deps.revokeFrameUrl?.(url);
+      const queued = this.queuedFrameUrl;
+      this.queuedFrameUrl = null;
+      if (queued !== null && this.frameStream !== null) this.stageFrame(queued);
+      else if (queued !== null) this.deps.revokeFrameUrl?.(queued);
+    };
+    this.deps.stageFrame(url, () => { complete(true); }, () => { complete(false); });
   }
 
   private failFrameStream(stream: FrameStreamLike): void {
@@ -306,6 +348,20 @@ export class App {
     stream.binaryType = "arraybuffer";
     this.frameStream = stream;
     this.frameConnecting = true;
+    this.frameReceived = 0;
+    this.framePresented = 0;
+    const screen = this.ui("screen");
+    if (!this.frameLoadBound) {
+      screen.addEventListener("load", () => {
+        if (this.frameUrl === null || screen.getAttribute("href") !== this.frameUrl) return;
+        this.framePresented += 1;
+        screen.dataset.liveFramesPresented = String(this.framePresented);
+      });
+      this.frameLoadBound = true;
+    }
+    screen.dataset.liveFramesReceived = "0";
+    screen.dataset.liveFramesPresented = "0";
+    screen.dataset.liveFramesStartedAt = String(nowMs);
     stream.addEventListener("open", () => {
       if (this.frameStream !== stream) return;
       this.frameConnecting = false;
@@ -317,20 +373,17 @@ export class App {
       let next: string;
       try { next = this.deps.frameUrl(event.data); }
       catch { this.failFrameStream(stream); return; }
-      const previous = this.frameUrl;
-      this.frameUrl = next;
-      this.liveFailedAt = null;
-      this.renderScreen(this.deps.now());
-      // SVG image loading is asynchronous. Keep a short grace window so a
-      // 60 FPS replacement cannot revoke the URL the browser is still decoding.
-      if (previous !== null) this.retiredFrameUrls.push(previous);
-      if (this.retiredFrameUrls.length > 8) this.deps.revokeFrameUrl?.(this.retiredFrameUrls.shift() as string);
+      this.frameReceived += 1;
+      screen.dataset.liveFramesReceived = String(this.frameReceived);
+      this.stageFrame(next);
     });
     stream.addEventListener("error", () => {
+      if (this.frameStream !== stream) return;
       this.problem("live frame stream error");
       this.failFrameStream(stream);
     });
     stream.addEventListener("close", (event) => {
+      if (this.frameStream !== stream) return;
       const detail = event.code === undefined ? "" : ` (${String(event.code)}${event.reason === undefined || event.reason === "" ? "" : `: ${event.reason}`})`;
       this.problem(`live frame stream closed${detail}`);
       this.failFrameStream(stream);
@@ -1221,6 +1274,11 @@ export async function boot(win: BootWindow): Promise<App> {
     frameUrl: (data) => {
       if (!(data instanceof ArrayBuffer)) throw new Error("live frame was not binary");
       return win.URL.createObjectURL(new win.Blob([data], { type: "image/png" }));
+    },
+    stageFrame: (url, ready, failed) => {
+      const image = win.document.createElement("img");
+      const finish = (done: () => void): void => { image.onload = null; image.onerror = null; done(); };
+      image.onload = () => { finish(ready); }; image.onerror = () => { finish(failed); }; image.src = url;
     },
     revokeFrameUrl: (url) => { win.URL.revokeObjectURL(url); },
     now: () => Date.now(),

@@ -144,11 +144,42 @@ it("reloads a run whose log changed, and ignores corrupt cache entries", async (
 it("discards incremental state after a same-size in-place rewrite", () => {
   const r = root(), path = write(r, "live", named()), load = createIncrementalRunLoader();
   expect(load(r, "live").run.status).toBe("unresponsive");
-  const original = fs.readFileSync(path, "utf8"), firstBreak = original.indexOf("\n"), rewritten = original.slice(0, firstBreak + 1) + original.slice(firstBreak + 1).replace('"seq":1', '"seq":9');
+  const originalStat = fs.statSync(path), original = fs.readFileSync(path, "utf8"), firstBreak = original.indexOf("\n"), rewritten = original.slice(0, firstBreak + 1) + original.slice(firstBreak + 1).replace('"seq":1', '"seq":9');
   expect(Buffer.byteLength(rewritten)).toBe(Buffer.byteLength(original));
-  fs.writeFileSync(path, rewritten); const future = new Date(Date.now() + 2000); fs.utimesSync(path, future, future);
+  fs.writeFileSync(path, rewritten); fs.utimesSync(path, originalStat.atime, originalStat.mtime);
   const after = load(r, "live").run;
   expect(after.status).toBe("invalid"); expect(after.problem).toContain("order");
+});
+
+it("discards a tailer when the path is atomically replaced during reduction", () => {
+  const r = root(), path = write(r, "live", named());
+  let replaced = false;
+  const load = createIncrementalRunLoader({ observeRead: (activePath) => {
+    if (replaced) return;
+    replaced = true;
+    fs.renameSync(activePath, `${activePath}.old`);
+    fs.writeFileSync(activePath, ended().events.map(event => JSON.stringify({ ...event, run: "live" })).join("\n") + "\n");
+  } });
+  const raced = load(r, "live").run;
+  expect(raced.status).toBe("invalid"); expect(raced.problem).toContain("changed during reduction"); expect(load.retained()).toBe(0);
+  expect(load(r, "live").run.status).toBe("ended"); expect(load.retained()).toBe(0);
+  expect(fs.existsSync(`${path}.old`)).toBe(true);
+});
+
+it("discards a tailer when a same-size rewrite races its reduction", () => {
+  const r = root(); write(r, "live", named());
+  let rewritten = false;
+  const load = createIncrementalRunLoader({ observeRead: (activePath) => {
+    if (rewritten) return;
+    rewritten = true;
+    const original = fs.readFileSync(activePath, "utf8"), changed = original.replace('"seq":1', '"seq":9');
+    expect(Buffer.byteLength(changed)).toBe(Buffer.byteLength(original));
+    fs.writeFileSync(activePath, changed);
+  } });
+  const raced = load(r, "live").run;
+  expect(raced.status).toBe("invalid"); expect(raced.problem).toContain("changed during reduction"); expect(load.retained()).toBe(0);
+  const next = load(r, "live").run;
+  expect(next.status).toBe("invalid"); expect(next.problem).toContain("order"); expect(load.retained()).toBe(0);
 });
 
 it("retires terminal reducers, resets after truncation and replacement, and bounds unfinished logs", () => {

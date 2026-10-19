@@ -39,6 +39,41 @@ const SPRITE_PATH = /^(manifest\.json|card\/(wide|mini|mini-ribbon)-(green|bronz
 const PNG_SIGNATURE = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
 const SCREEN_TIMEOUT_MS = 3_000;
 const FRAME_MAX_BYTES = 1024 * 1024;
+const PNG_MAX_DIMENSION = 2048;
+
+function crc32(bytes: Buffer): number {
+  let crc = 0xffffffff;
+  for (const byte of bytes) {
+    crc ^= byte;
+    for (let bit = 0; bit < 8; bit += 1) crc = (crc >>> 1) ^ (crc & 1 ? 0xedb88320 : 0);
+  }
+  return (crc ^ 0xffffffff) >>> 0;
+}
+
+export function validFramePng(png: Buffer): boolean {
+  if (png.length < 45 || png.length > FRAME_MAX_BYTES || !png.subarray(0, PNG_SIGNATURE.length).equals(PNG_SIGNATURE)) return false;
+  let offset = PNG_SIGNATURE.length;
+  let chunks = 0;
+  let sawIdat = false;
+  while (offset <= png.length - 12) {
+    const length = png.readUInt32BE(offset);
+    if (length > png.length - offset - 12) return false;
+    const dataEnd = offset + 8 + length;
+    const chunkEnd = dataEnd + 4;
+    const type = png.toString("ascii", offset + 4, offset + 8);
+    if (png.readUInt32BE(dataEnd) !== crc32(png.subarray(offset + 4, dataEnd))) return false;
+    if (chunks === 0) {
+      if (type !== "IHDR" || length !== 13) return false;
+      const width = png.readUInt32BE(offset + 8), height = png.readUInt32BE(offset + 12);
+      if (width === 0 || height === 0 || width > PNG_MAX_DIMENSION || height > PNG_MAX_DIMENSION) return false;
+    } else if (type === "IHDR") return false;
+    if (type === "IDAT") sawIdat = true;
+    if (type === "IEND") return length === 0 && sawIdat && chunkEnd === png.length;
+    offset = chunkEnd;
+    chunks += 1;
+  }
+  return false;
+}
 
 export function frameClientReady(client: Pick<WebSocket, "readyState" | "bufferedAmount">): boolean {
   return client.readyState === WebSocket.OPEN && client.bufferedAmount === 0;
@@ -566,7 +601,7 @@ export async function startViewer(given: ViewerOptions): Promise<Viewer> {
             const payload = JSON.parse(encoded.toString("utf8")) as { frame_data?: unknown };
             if (typeof payload.frame_data !== "string") throw new Error("frame_data is missing");
             const png = Buffer.from(payload.frame_data, "base64");
-            if (png.length > FRAME_MAX_BYTES || !png.subarray(0, PNG_SIGNATURE.length).equals(PNG_SIGNATURE)) throw new Error("frame is not a bounded PNG");
+            if (!validFramePng(png)) throw new Error("frame is not a bounded PNG");
             sending = true;
             client.send(png, { binary: true }, (error) => {
               sending = false;

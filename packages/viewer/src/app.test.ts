@@ -75,7 +75,7 @@ const RUNS = [
   { id: "2026-10-11T21-00-00_old", model: "think-swarm", started: "x", ended: true, reason: "budget", problem: null },
 ];
 
-async function harness(hash = "", runs: unknown[] = RUNS, workbench: unknown = null, heads: Readonly<Record<string, unknown>> = {}): Promise<Harness> {
+async function harness(hash = "", runs: unknown[] = RUNS, workbench: unknown = null, heads: Readonly<Record<string, unknown>> = {}, stageFrame?: AppDeps["stageFrame"]): Promise<Harness> {
   document.body.innerHTML = PAGE.slice(PAGE.indexOf("<body>") + 6, PAGE.indexOf("</body>"));
   const streams: FakeStream[] = [];
   const frames: FakeFrameStream[] = [];
@@ -111,6 +111,7 @@ async function harness(hash = "", runs: unknown[] = RUNS, workbench: unknown = n
       return stream;
     },
     frameUrl: (data) => `blob:frame-${String(data)}`,
+    ...(stageFrame === undefined ? {} : { stageFrame }),
     revokeFrameUrl: (url) => { revoked.push(url); },
     now: () => now,
     hash,
@@ -367,11 +368,14 @@ describe("viewer app", () => {
     setNow(BASE_MS + 4_000);
     must(frames[0]).send("message", "one");
     must(frames[0]).send("error");
+    must(frames[0]).send("close");
     app.tick(100);
     expect(ui("screen").getAttribute("href")).toBe("/api/runs/2026-10-11T23-00-00_live/frames/000009_0.png");
     expect(ui("screen-note").textContent).toBe("live stream unavailable · last frame");
     expect(revoked).toEqual(["blob:frame-one"]);
     expect(frames[0]?.closed).toBe(true);
+    expect(ui("problems").textContent).toContain("live frame stream error");
+    expect(ui("problems").textContent).not.toContain("live frame stream closed");
     setNow(BASE_MS + 9_100);
     app.tick(5_000);
     expect(frames[1]?.url).toBe("/api/runs/2026-10-11T23-00-00_live/frames");
@@ -384,16 +388,42 @@ describe("viewer app", () => {
     expect(socket.url).toBe("/api/runs/2026-10-11T23-00-00_live/frames");
     expect(socket.binaryType).toBe("arraybuffer");
     socket.send("message", "one");
+    expect(ui("screen").dataset.liveFramesReceived).toBe("1");
+    expect(ui("screen").dataset.liveFramesPresented).toBe("0");
+    ui("screen").dispatchEvent(new Event("load"));
+    expect(ui("screen").dataset.liveFramesPresented).toBe("1");
     for (let i = 0; i < 10; i += 1) app.tick(1_000);
     expect(ui("screen").getAttribute("href")).toBe("blob:frame-one");
     expect(ui("screen").getAttribute("href")).not.toContain("/screen?");
     expect(fetched.every((url) => !url.includes("/screen"))).toBe(true);
     socket.send("message", "two");
     expect(ui("screen").getAttribute("href")).toBe("blob:frame-two");
+    expect(ui("screen").dataset.liveFramesReceived).toBe("2");
+    ui("screen").dispatchEvent(new Event("load"));
+    expect(ui("screen").dataset.liveFramesPresented).toBe("2");
     expect(revoked).toEqual([]);
     for (const name of ["three", "four", "five", "six", "seven", "eight", "nine", "ten"]) socket.send("message", name);
     expect(revoked).toEqual(["blob:frame-one"]);
     expect(frames).toHaveLength(1);
+  });
+
+  it("keeps the last good frame when decoding fails and bounds queued work", async () => {
+    const staged: { url: string; ready: () => void; failed: () => void }[] = [];
+    const { streams, frames, revoked } = await harness("", RUNS, null, {}, (url, ready, failed) => { staged.push({ url, ready, failed }); });
+    feed(must(streams[0]), fullRun().events.slice(0, 4));
+    const socket = must(frames[0]);
+    socket.send("message", "one");
+    expect(ui("screen").getAttribute("href")).not.toBe("blob:frame-one");
+    must(staged[0]).ready();
+    expect(ui("screen").getAttribute("href")).toBe("blob:frame-one");
+    socket.send("message", "bad"); socket.send("message", "stale"); socket.send("message", "latest");
+    expect(revoked).toContain("blob:frame-stale");
+    must(staged[1]).failed();
+    expect(ui("screen").getAttribute("href")).toBe("blob:frame-one");
+    expect(staged[2]?.url).toBe("blob:frame-latest");
+    must(staged[2]).ready();
+    expect(ui("screen").getAttribute("href")).toBe("blob:frame-latest");
+    expect(revoked).toContain("blob:frame-bad");
   });
 
   it("switches to replay when a live run ends", async () => {
@@ -483,10 +513,14 @@ describe("viewer app", () => {
     const pick = ui("run") as HTMLSelectElement;
     pick.value = M4_ID;
     pick.dispatchEvent(new Event("change"));
+    must(frames[0]).send("close");
     expect(streams[0]?.closed).toBe(true);
     expect(frames[0]?.closed).toBe(true);
     expect(streams[1]?.url).toBe(`/api/runs/${M4_ID}/events`);
     expect(ui("trace").querySelectorAll("[data-key]").length).toBe(0);
+    expect(ui("problems").hidden).toBe(true);
+    expect(ui("screen").dataset.liveFramesReceived).toBe("0");
+    expect(ui("screen").dataset.liveFramesPresented).toBe("0");
     expect(window.location.hash).toBe(`#replay=${M4_ID}`);
   });
 

@@ -8,6 +8,7 @@ checkout on `sys.path`; the working directory is the run's server dir (INV-7).
 
 import asyncio
 import base64
+import math
 import os
 import sys
 import threading
@@ -128,31 +129,47 @@ def install_on_demand_frame_cache(
     frame_count: Callable[[], int],
     *,
     clock: Callable[[], float] = time.time,
+    max_publish_fps: float = 60.0,
 ) -> None:
-    """Publish every source frame only while the vendor WebSocket is observed.
+    """Publish useful source frames only while the WebSocket is observed.
 
     The pinned implementation hard-skips every second call, capping an 80 FPS
-    game at 40 display FPS. This adapter replaces that producer rather than
-    invoking it twice: one compatible payload is encoded for each completed
-    emulator frame, and no image work occurs without a consumer.
+    game at 40 display FPS. This adapter instead uses an absolute publication
+    deadline: nominal play retains every ~59.7 FPS frame, while 4x fast-dialog
+    play does at most 60 PNG encodes/second. No image work occurs without a
+    consumer, and a late iteration cannot start an unbounded catch-up burst.
     """
 
+    if not math.isfinite(max_publish_fps) or max_publish_fps <= 0:
+        raise ValueError("max_publish_fps must be finite and positive")
+    period = 1.0 / max_publish_fps
+    next_publish_at: float | None = None
+
     def update_if_observed(screenshot: object) -> None:
+        nonlocal next_publish_at
         with server.frame_manager.lock:
             observed = bool(server.frame_manager.active_connections)
             if not observed:
                 # A later subscriber must wait for a current frame rather than
                 # receiving the last subscriber's arbitrarily old payload.
                 server.frame_manager.latest_frame = None
+                next_publish_at = None
         if not observed:
             return
+        sampled_at = clock()
+        if next_publish_at is not None and sampled_at < next_publish_at:
+            return
+        if next_publish_at is None or sampled_at - next_publish_at > 4 * period:
+            next_publish_at = sampled_at + period
+        else:
+            next_publish_at += (math.floor((sampled_at - next_publish_at) / period) + 1) * period
         encoded = encode_png_base64(screenshot)
         if encoded is None:
             return
         payload: dict[str, object] = {
             "frame_data": encoded,
             "frame_count": frame_count(),
-            "timestamp": clock(),
+            "timestamp": sampled_at,
         }
         # A disconnect may race the encoder. Never retain an unobservable
         # payload that a later subscriber could mistake for a current frame.
@@ -166,7 +183,7 @@ def install_on_demand_frame_cache(
 
 
 def install_deadline_frame_stream(
-    api: FastAPI, manager: FrameManagerLike, *, frames_per_second: float = 60.0
+    api: FastAPI, manager: FrameManagerLike, *, polls_per_second: float = 120.0
 ) -> None:
     """Expose the compatible frame stream without adding work to its period.
 
@@ -174,10 +191,11 @@ def install_deadline_frame_stream(
     I/O, so its real period is 16 ms plus work (about 55 FPS on this machine).
     This route uses absolute deadlines: work consumes the frame budget instead
     of extending it, and a badly delayed client cannot trigger an unbounded
-    catch-up loop.
+    catch-up loop. It checks at 120 Hz so its sampling phase cannot discard
+    unique 59.7275 Hz source frames; the manager still sends each frame once.
     """
 
-    period = 1.0 / frames_per_second
+    period = 1.0 / polls_per_second
 
     @api.websocket("/pokebench/frames")
     async def deadline_frames(websocket: WebSocket) -> None:

@@ -87,7 +87,7 @@ def test_frame_cache_skips_encoder_without_websocket_consumers() -> None:
     assert manager.latest_frame is None
 
 
-def test_frame_cache_publishes_every_source_frame_with_actual_monotonic_counts() -> None:
+def test_frame_cache_publishes_every_nominal_source_frame_with_actual_counts() -> None:
     class Manager:
         def __init__(self) -> None:
             self.lock = threading.Lock()
@@ -112,9 +112,11 @@ def test_frame_cache_publishes_every_source_frame_with_actual_monotonic_counts()
         frame_manager=manager, update_frame_cache=lambda frame: old_calls.append(frame)
     )
 
-    install_on_demand_frame_cache(server, lambda: next(counts), clock=lambda: 1234.5)
+    now = 1234.5
+    install_on_demand_frame_cache(server, lambda: next(counts), clock=lambda: now)
     for color in ((255, 0, 0), (0, 255, 0), (0, 0, 255)):
         server.update_frame_cache(Image.new("RGB", (2, 1), color))
+        now += 1 / 59.7275
 
     assert old_calls == []
     assert [payload["frame_count"] for payload in manager.publications] == [401, 402, 404]
@@ -122,11 +124,38 @@ def test_frame_cache_publishes_every_source_frame_with_actual_monotonic_counts()
         set(payload) == {"frame_data", "frame_count", "timestamp"}
         for payload in manager.publications
     )
-    assert all(payload["timestamp"] == 1234.5 for payload in manager.publications)
+    assert [payload["timestamp"] for payload in manager.publications] == pytest.approx(
+        [1234.5, 1234.5 + 1 / 59.7275, 1234.5 + 2 / 59.7275]
+    )
     final = manager.publications[-1]
     png = Image.open(BytesIO(base64.b64decode(str(final["frame_data"]), validate=True)))
     assert png.format == "PNG" and png.size == (2, 1)
     assert png.getpixel((0, 0)) == (0, 0, 255)
+
+
+def test_frame_cache_caps_four_x_dialog_encoding_at_delivery_rate() -> None:
+    class Manager:
+        lock = threading.Lock()
+        active_connections = [object()]
+        latest_frame = None
+
+    manager = Manager()
+    server = types.SimpleNamespace(frame_manager=manager, update_frame_cache=lambda _frame: None)
+    now = 0.0
+    publications = 0
+
+    def count() -> int:
+        nonlocal publications
+        publications += 1
+        return publications
+
+    install_on_demand_frame_cache(server, count, clock=lambda: now)
+    frame = Image.new("RGB", (2, 1), (1, 2, 3))
+    for _ in range(240):
+        server.update_frame_cache(frame)
+        now += 1 / (4 * 59.7275)
+
+    assert 59 <= publications <= 61
 
 
 def test_frame_cache_accepts_numpy_and_reconnects_without_stale_frame() -> None:

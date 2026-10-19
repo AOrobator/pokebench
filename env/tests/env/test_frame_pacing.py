@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from pokebench_env.frame_pacing import TimeProxy, install_deadline_pacing
+from pokebench_env.frame_pacing import EMERALD_REALTIME_FPS, TimeProxy, install_deadline_pacing
 from pokebench_env.launcher import VENDOR_DIR
 
 
@@ -79,6 +79,13 @@ def test_unrelated_sleeps_and_clock_calls_delegate_outside_game_loop() -> None:
     assert clock.sleeps == [1.0, 5.0]
 
 
+def test_unrelated_time_module_attributes_delegate_transparently() -> None:
+    clock = FakeClock()
+    clock.ctime = lambda seconds: f"ctime:{seconds}"  # type: ignore[attr-defined]
+
+    assert TimeProxy(clock).ctime(0) == "ctime:0"  # type: ignore[attr-defined,operator]
+
+
 def test_game_loop_context_is_thread_local() -> None:
     clock = FakeClock()
     proxy = TimeProxy(clock)
@@ -118,6 +125,12 @@ def test_lateness_bound_must_be_positive() -> None:
         TimeProxy(FakeClock(), max_lateness_periods=0)
 
 
+@pytest.mark.parametrize("scale", [0.0, -1.0, float("inf"), float("nan")])
+def test_period_scale_must_be_finite_and_positive(scale: float) -> None:
+    with pytest.raises(ValueError, match="finite and positive"):
+        TimeProxy(FakeClock(), period_scale=scale)
+
+
 def test_install_wraps_only_explicit_game_loop_context() -> None:
     clock = FakeClock()
 
@@ -135,7 +148,25 @@ def test_install_wraps_only_explicit_game_loop_context() -> None:
 
     assert server.game_loop() == "done"
     server.time.sleep(1.0)
-    assert clock.sleeps == pytest.approx([0.01, 1.0])
+    assert clock.sleeps == pytest.approx([(1 / EMERALD_REALTIME_FPS) - 0.0025, 1.0])
+
+
+def test_install_preserves_four_x_fast_dialog_ratio_at_real_time_base_rate() -> None:
+    clock = FakeClock()
+
+    class Server:
+        time = clock
+
+        @staticmethod
+        def game_loop() -> None:
+            server.time.sleep(1 / 80)
+            server.time.sleep(1 / 320)
+
+    server = Server()
+    install_deadline_pacing(server)
+    server.game_loop()
+
+    assert clock.sleeps == pytest.approx([1 / EMERALD_REALTIME_FPS, 1 / (4 * EMERALD_REALTIME_FPS)])
 
 
 def test_pinned_vendor_game_loop_has_the_single_expected_cadence_seam() -> None:

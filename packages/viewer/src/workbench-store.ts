@@ -58,17 +58,17 @@ function startOf(root: string, id: string): Extract<RunEvent, { type: "run_start
   if (start.run !== id) throw new Error("Run identity is invalid; no split graded");
   return start;
 }
-// The log's identity for caching: size, mtime, inode and any verified visual evidence.
+// The log's identity for caching: size, modification/change times, device/inode and verified evidence.
 function runSignature(path: string): string {
   const stat = statSync(path);
-  return `${String(stat.size)}:${String(stat.mtimeMs)}:${String(stat.ino)}` + visualEvidenceSignature(path) + recoveredSignature(dirname(path));
+  return `${String(stat.size)}:${String(stat.mtimeMs)}:${String(stat.ctimeMs)}:${String(stat.dev)}:${String(stat.ino)}` + visualEvidenceSignature(path) + recoveredSignature(dirname(path));
 }
 // True when the log at `now` is the log at `then` with more bytes appended: same inode, larger, and the
 // same visual evidence and viewer build. A rewrite, truncation or replacement is not.
 function appendedSince(then: string, now: string): boolean {
   const parse = (signature: string): { size: number; ino: string; rest: string } | null => {
-    const m = /^(\d+):[^:]*:(\d+)(.*)$/s.exec(signature);
-    return m === null ? null : { size: Number(m[1]), ino: m[2] ?? "", rest: m[3] ?? "" };
+    const m = /^(\d+):[^:]*:[^:]*:(\d+):(\d+)(.*)$/s.exec(signature);
+    return m === null ? null : { size: Number(m[1]), ino: `${m[2] ?? ""}:${m[3] ?? ""}`, rest: m[4] ?? "" };
   };
   const a = parse(then), b = parse(now);
   return a !== null && b !== null && a.ino === b.ino && a.rest === b.rest && b.size > a.size;
@@ -113,30 +113,31 @@ export interface IncrementalRunLoader {
   (root: string, id: string, viewer?: BuildIdentity | null): LoadedRun;
   retained(): number;
 }
-export function createIncrementalRunLoader(): IncrementalRunLoader {
-  interface Tail { path: string; ino: number; size: number; mtimeMs: number; evidence: string; tailer: ReturnType<typeof createNativeRecordingTailer> }
+export function createIncrementalRunLoader(options: { observeRead?: (path: string, offset: number, bytes: number) => void } = {}): IncrementalRunLoader {
+  interface Tail { path: string; dev: number; ino: number; size: number; mtimeMs: number; ctimeMs: number; evidence: string; tailer: ReturnType<typeof createNativeRecordingTailer> }
   const tails = new Map<string, Tail>();
   const load = (root: string, id: string, viewer: BuildIdentity | null = null): LoadedRun => {
     const requested = eventsPath(root, id);
     try {
       const now = statSync(requested);
-      for (const [key, tail] of tails) if (tail.path === requested && (tail.ino !== now.ino || now.size < tail.size || (now.size === tail.size && now.mtimeMs !== tail.mtimeMs))) tails.delete(key);
+      for (const [key, tail] of tails) if (tail.path === requested && (tail.dev !== now.dev || tail.ino !== now.ino || now.size < tail.size || (now.size === tail.size && (now.mtimeMs !== tail.mtimeMs || now.ctimeMs !== tail.ctimeMs)))) tails.delete(key);
     } catch { for (const [key, tail] of tails) if (tail.path === requested) tails.delete(key); }
     return loadRunWith(root, id, viewer, (path, run, tolerate) => {
     const stat = statSync(path), evidence = visualEvidenceSignature(path) + recoveredSignature(dirname(path));
     const key = `${path}\0${viewer === null ? "unknown" : `${viewer.commit}:${String(viewer.dirty)}`}\0${String(tolerate)}`;
     let tail = tails.get(key);
-    const append = tail !== undefined && tail.ino === stat.ino && stat.size >= tail.size && (stat.size > tail.size || stat.mtimeMs === tail.mtimeMs) && tail.evidence === evidence;
+    const append = tail !== undefined && tail.dev === stat.dev && tail.ino === stat.ino && stat.size >= tail.size && (stat.size > tail.size || (stat.mtimeMs === tail.mtimeMs && stat.ctimeMs === tail.ctimeMs)) && tail.evidence === evidence;
     if (!append) {
-      tail = { path, ino: stat.ino, size: 0, mtimeMs: stat.mtimeMs, evidence, tailer: createNativeRecordingTailer(path, run, qualifiedNativeMilestone, undefined, tolerate) };
+      tail = { path, dev: stat.dev, ino: stat.ino, size: 0, mtimeMs: stat.mtimeMs, ctimeMs: stat.ctimeMs, evidence, tailer: createNativeRecordingTailer(path, run, qualifiedNativeMilestone, undefined, tolerate, (offset, bytes) => { options.observeRead?.(path, offset, bytes); }) };
       tails.set(key, tail);
       while (tails.size > 8) { const oldest = tails.keys().next().value; if (oldest === undefined) break; tails.delete(oldest); }
     }
     const active = tail;
     if (active === undefined) throw new Error("Incremental recording tailer unavailable");
     try {
-      const recording = active.tailer.read(), after = statSync(path);
-      active.ino = after.ino; active.size = recording.measurement.logBytes ?? after.size; active.mtimeMs = after.mtimeMs;
+      const recording = active.tailer.read(), source = active.tailer.fileIdentity(), after = statSync(path);
+      if (source === null || source.dev !== after.dev || source.ino !== after.ino || after.size < (recording.measurement.logBytes ?? source.size) || (after.size === source.size && (after.mtimeMs !== source.mtimeMs || after.ctimeMs !== source.ctimeMs))) throw new Error("Run log changed during reduction; snapshot unavailable");
+      active.dev = source.dev; active.ino = source.ino; active.size = recording.measurement.logBytes ?? source.size; active.mtimeMs = source.mtimeMs; active.ctimeMs = source.ctimeMs;
       if (recording.view.end !== null) tails.delete(key);
       return recording;
     } catch (error) { tails.delete(key); throw error; }

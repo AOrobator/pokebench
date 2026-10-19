@@ -60,8 +60,8 @@ describe("stale-story-goal-v1",()=>{
  const oldale=field([0,10],"OLDALE TOWN");
  const lab=[page("BIRCH lives next door.","MOM"),page("Go see MAY at the LAB.","MOM")];
  it("is registered fifth from the end, default off, and needs nothing",()=>{
-  expect(SWITCHABLE_FEATURES.at(-6)).toBe(ID);
-  expect(playHarnessFeatures(ALL_ON,null).at(-6)).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-7)).toBe(ID);
+  expect(playHarnessFeatures(ALL_ON,null).at(-7)).toBe(ID);
   expect(featureInfo(ID)).toMatchObject({group:"observation",needs:null,switchable:true,title:"STALE STORY GOAL"});
   expect(featureInfo(ID).description).toContain(" Off: ");
   expect(dependencyProblems({...ALL_ON,[ID]:true,"story-destinations-v1":false,"harness-trust-v1":false})).not.toContain(expect.stringContaining(ID));
@@ -224,7 +224,7 @@ describe("stale-story-goal-v1 production factory",()=>{
  });
  it("the pending experiment flips only this switch, with the lab parents on, and is not queued",()=>{
   const raw=JSON.parse(readFileSync(new URL("../../../experiments/stale-story-goal.json",import.meta.url),"utf8")) as {incumbent:{features:Record<string,boolean>}};
-  expect(Object.keys(raw.incumbent.features)).toEqual([...SWITCHABLE_FEATURES]);
+  expect(Object.keys(raw.incumbent.features)).toEqual(SWITCHABLE_FEATURES.filter(id=>id!=="just-in-time-prompt-v2"));
   const entry=parseExperiment(raw);
   expect(entry.queuePosition).toBeUndefined();
   expect(entry.changedFeature).toBe(ID);

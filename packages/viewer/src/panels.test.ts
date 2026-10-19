@@ -1154,3 +1154,13 @@ it("links the conversation ledger card to its tracked explainer, which quotes th
  expect(html).toContain(id);
  expect(html).toContain("- ROUTE103 (map 0/18), here turn 446: last heard turn 444, MAY: &quot;Well, it&#39;s time to head back to the LAB.&quot;");
 });
+
+
+it("links stable JIT v2's native feature card to its tracked guide and receipt contract",()=>{
+ const id="just-in-time-prompt-v2";
+ const log=new Log();log.add(0,{...START,harness_features:["ram-state-v1",id]});
+ const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
+ expect(doc.querySelector(`[data-feature="${id}"] a`)?.getAttribute("href")).toBe(`/explainers/${id}.html`);
+ const html=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)),"utf8");
+ expect(html).toContain("projected_guidance");expect(html).toContain("canonical_history_json");
+});

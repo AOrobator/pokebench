@@ -1198,7 +1198,8 @@
             "mode": {
               "enum": [
                 "full",
-                "jit"
+                "jit",
+                "jit-v2"
               ]
             },
             "scene": {
@@ -1238,6 +1239,139 @@
             "tools_sha256": {
               "type": "string",
               "pattern": "^[0-9a-f]{64}$"
+            },
+            "guidance": {
+              "type": "object",
+              "required": [
+                "anchor",
+                "ordinal",
+                "scene",
+                "source_state_seq",
+                "text",
+                "sha256",
+                "reason"
+              ],
+              "properties": {
+                "anchor": {
+                  "type": "string"
+                },
+                "ordinal": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "scene": {
+                  "enum": [
+                    "overworld",
+                    "battle",
+                    "naming",
+                    "clock",
+                    "menu",
+                    "unknown"
+                  ]
+                },
+                "source_state_seq": {
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "text": {
+                  "type": "string"
+                },
+                "sha256": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$"
+                },
+                "reason": {
+                  "enum": [
+                    "first",
+                    "scene_change",
+                    "evicted",
+                    "none"
+                  ]
+                }
+              },
+              "additionalProperties": false
+            },
+            "projected_guidance": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "anchor",
+                  "ordinal",
+                  "scene",
+                  "source_state_seq",
+                  "text",
+                  "sha256"
+                ],
+                "properties": {
+                  "anchor": {
+                    "type": "string"
+                  },
+                  "ordinal": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "scene": {
+                    "enum": [
+                      "overworld",
+                      "battle",
+                      "naming",
+                      "clock",
+                      "menu",
+                      "unknown"
+                    ]
+                  },
+                  "source_state_seq": {
+                    "anyOf": [
+                      {
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "text": {
+                    "type": "string"
+                  },
+                  "sha256": {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{64}$"
+                  }
+                },
+                "additionalProperties": false
+              }
+            },
+            "component_chars": {
+              "type": "object",
+              "required": [
+                "core_text",
+                "guidance_text",
+                "canonical_history_json"
+              ],
+              "properties": {
+                "core_text": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "guidance_text": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "canonical_history_json": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              },
+              "additionalProperties": false
             }
           },
           "additionalProperties": false

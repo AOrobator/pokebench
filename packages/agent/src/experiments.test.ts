@@ -3,7 +3,7 @@ import {expect,it} from "vitest";
 import {ALL_ON,type FeatureSet} from "./features.js";
 import {definitionHash,deriveStatus,experimentArms,parseExperiment,parseNewerExperiment,parseLedger,readinessOf,trialOrder,trialProgress,type Experiment,type LedgerEntry,type ReadinessRun} from "./experiments.js";
 
-const features:FeatureSet={...ALL_ON,"state-only-decisions-v1":false,"named-interactions-v1":false,"world-destinations-v1":false,"no-exit-here-v1":false,"bag-healing-items-v1":false,"battle-menu-loop-v1":false,"clock-view-loop-v1":false,"stale-story-goal-v1":false,"input-cuts-v1":false,"loop-guard-screen-v1":false,"reopened-dialogue-loop-v1":false,"dialog-button-b-v1":false,"just-in-time-prompt-v1":false,"full-map-navigation-v1":false,"objective-tracking-v1":false,"repeat-attempt-guard-v1":false,"native-objective-completion-v1":false,"unset-dynamic-warp-v1":false};
+const features:FeatureSet={...ALL_ON,"state-only-decisions-v1":false,"named-interactions-v1":false,"world-destinations-v1":false,"no-exit-here-v1":false,"bag-healing-items-v1":false,"battle-menu-loop-v1":false,"clock-view-loop-v1":false,"stale-story-goal-v1":false,"input-cuts-v1":false,"loop-guard-screen-v1":false,"reopened-dialogue-loop-v1":false,"dialog-button-b-v1":false,"just-in-time-prompt-v1":false,"just-in-time-prompt-v2":false,"full-map-navigation-v1":false,"objective-tracking-v1":false,"repeat-attempt-guard-v1":false,"native-objective-completion-v1":false,"unset-dynamic-warp-v1":false};
 const base={
  version:1,id:"full-map",title:"Whole-map navigation",changedFeature:"full-map-navigation-v1",hypothesis:"Seeing the whole map helps.",
  activationMilestone:"FIRST_TRUCK_EXIT",primaryMilestone:"RIVAL_MET",queuePosition:1,

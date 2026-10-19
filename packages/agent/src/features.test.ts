@@ -1,5 +1,6 @@
+import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
 import { expect, it } from "vitest";
-import { ALL_ON, FEATURES, stateOnlyProblems, MEASUREMENT_FEATURES, SERVER_FEATURES, SWITCHABLE_FEATURES, dependencyProblems, featureInfo, featuresOf, playHarnessFeatures, serverFeatureEnv, type FeatureSet } from "./features.js";
+import { ALL_ON as CURRENT_ALL_ON, FEATURES, stateOnlyProblems, MEASUREMENT_FEATURES, SERVER_FEATURES, SWITCHABLE_FEATURES, dependencyProblems, featureInfo, featuresOf, playHarnessFeatures, serverFeatureEnv, type FeatureSet} from "./features.js";
 
 // Literal run_start lists written by live.ts at 0632fc0 with every flag on.
 const LEGACY_DEFAULT = ["ram-state-v1", "live-map-v1", "field-control-lock", "naming-cursor-v1", "live-object-sprites-v1", "coordinate-script-conditions-v1", "active-field-message-buffer-v1", "world-targets-v1", "live-player-position-v1", "world-coordinate-grid-v1", "press-result-v1", "warp-activation-guidance-v1", "clock-milestone-v1", "story-state-v1", "active-ui-ownership-v1", "story-milestones-v2", "new-game-created-v1", "post-clock-navigation-milestones-v1", "rustboro-gym-trainer-milestones-v1", "native-progress-activity-v1", "battle-choices-v1", "continuous-battle-state-v1", "validated-pokemon-v1", "menu-observability-v1", "native-action-history-v1", "remaining-native-milestones-v1", "deterministic-loop-diagnostics-v1", "deterministic-loop-policy-v1:p6:o3:a3:c3:r2:recovery6", "deterministic-loop-guard-v1", "contextual-interface-docs-v1", "objective-tracking-v1", "repeat-attempt-guard-v1", "native-objective-completion-v1"];
@@ -14,8 +15,8 @@ it("describes every switchable and measurement feature exactly once", () => {
   expect(FEATURES.filter((f) => f.switchable).map((f) => f.id)).toEqual([...SWITCHABLE_FEATURES]);
 
   expect(FEATURES.filter((f) => f.group === "observation")).toHaveLength(49);
-  expect(FEATURES.filter((f) => f.group === "guidance")).toHaveLength(54);
-  expect(FEATURES.filter((f) => f.group === "guard")).toHaveLength(28);
+  expect(FEATURES.filter((f) => f.group === "guidance")).toHaveLength(57);
+  expect(FEATURES.filter((f) => f.group === "guard")).toHaveLength(29);
   for (const f of FEATURES) {
     expect(f.title).not.toBe("");
     if (f.switchable) expect(f.description).toMatch(/ Off: /);
@@ -26,8 +27,8 @@ it("describes every switchable and measurement feature exactly once", () => {
 
 it("keeps visited terrain immediately before deterministic warps and the final story treatment",()=>{
  const id="visited-terrain-navigation-v1";
- expect(SWITCHABLE_FEATURES.at(-3)).toBe(id);
- expect(FEATURES.filter(feature=>feature.switchable).at(-3)?.id).toBe(id);
+ expect(SWITCHABLE_FEATURES.at(-7)).toBe(id);
+ expect(FEATURES.filter(feature=>feature.switchable).at(-7)?.id).toBe(id);
  expect(playHarnessFeatures(ALL_ON,null).at(-3)).toBe(id);
  expect(featureInfo(id)).toMatchObject({group:"guidance",needs:"bounded-navigation-v1",switchable:true});
  expect(featureInfo(id).description).toContain("Off: the existing 15x15 readout");
@@ -43,7 +44,8 @@ it("retains the legacy information list while adding mandatory raw recording", (
 it("drops exactly the switched-off ids and round-trips through recorded features", () => {
   // Each switch is off in a distinct set of these groups (by the bits of its index, and their complements), so a switch that
   // dropped or recorded the wrong id fails a group; the number of round trips grows with log N, not N.
-  const all = playHarnessFeatures(ALL_ON, null);
+  const all = playHarnessFeatures(CURRENT_ALL_ON, null);
+  const disabled=(ids:readonly (typeof SWITCHABLE_FEATURES)[number][])=>({...CURRENT_ALL_ON,...Object.fromEntries(ids.map(id=>[id,false]))});
   const groups: (typeof SWITCHABLE_FEATURES)[number][][] = [];
   for (let bit = 1; bit < SWITCHABLE_FEATURES.length; bit *= 2) {
     groups.push(SWITCHABLE_FEATURES.filter((_, i) => (i & bit) !== 0), SWITCHABLE_FEATURES.filter((_, i) => (i & bit) === 0));
@@ -51,10 +53,10 @@ it("drops exactly the switched-off ids and round-trips through recorded features
   expect(groups.length).toBeLessThanOrEqual(2 * Math.ceil(Math.log2(SWITCHABLE_FEATURES.length)));
   for (const id of SWITCHABLE_FEATURES) expect(groups.filter((g) => g.includes(id)).length).toBeGreaterThan(0);
   for (const ids of groups) {
-    const list = playHarnessFeatures(off(...ids), null);
+    const list = playHarnessFeatures(disabled(ids), null);
     const kept = new Set(list);
     expect(all.filter((item) => !kept.has(item)).sort()).toEqual([...ids].sort());
-    expect(featuresOf(list)).toEqual(off(...ids));
+    expect(featuresOf(list)).toEqual(disabled(ids));
   }
 });
 
@@ -231,7 +233,7 @@ it("registers displayed place names as a default-off server readout treatment, r
  expect(featureInfo("displayed-place-names-v1").description).toContain(" Off: ");
  expect(featureInfo("displayed-place-names-v1").description).toContain("PROF. BIRCH'S HOUSE");
  expect(featureInfo("displayed-place-names-v1").description).toContain("Mays House Sign");
- expect(SWITCHABLE_FEATURES.at(-75)).toBe("displayed-place-names-v1");
+ expect(SWITCHABLE_FEATURES.at(-79)).toBe("displayed-place-names-v1");
  expect(playHarnessFeatures(ALL_ON,null).at(-75)).toBe("displayed-place-names-v1");
  expect(playHarnessFeatures(off("instruction-ledger-v2","tutorial-party-owner-v1","mid-frame-readout-v1","unset-dynamic-warp-v1","status-names-v1","surf-gated-exits-v2","battle-move-tool-v1","people-id-cards-v1","explorer-guidance-v2","ineffective-loops-v1","cross-map-goal-v1","surf-gated-exits-v1","readout-truth-v1","birch-speech-pages-v1","blackout-readout-v1","story-destinations-v1","harness-trust-v1","cited-destination-v1","harness-trust-v2","exit-reachability-v1","pushback-loop-detection-v1","pushback-press-result-v1","battle-observation-loop-v1","displayed-place-names-v1"),null)).not.toContain("displayed-place-names-v1");
  expect(serverFeatureEnv(off("displayed-place-names-v1")).POKEBENCH_FEATURES_OFF).toBe("displayed-place-names-v1");

@@ -1,3 +1,4 @@
+import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
 // low-hp-trainer-warning-v2: the v1 warning generalized to every story battle the game state can see (Route 103
 // rival, Petalburg Woods TEAM AQUA grunt, Rustboro Gym Leader ROXANNE) and to any party Pokémon below its max HP.
 // Operator 2026-10-16 2:43 PM EDT: "heal before story trainer battles at any HP below max". States are run 54a7's
@@ -5,7 +6,7 @@
 import {readFileSync} from "node:fs";
 import {describe,expect,it} from "vitest";
 import type {AgentTool,AgentToolResult} from "@mariozechner/pi-agent-core";
-import {ALL_ON,SERVER_FEATURES,SWITCHABLE_FEATURES,dependencyProblems,featureInfo,featuresOf,playHarnessFeatures,type FeatureSet} from "./features.js";
+import {SERVER_FEATURES,SWITCHABLE_FEATURES,dependencyProblems,featureInfo,featuresOf,playHarnessFeatures,type FeatureSet} from "./features.js";
 import {flagFeatures,normalizeFeatures,parsePlayPreset,presetFeatures} from "./play-preset.js";
 import {parseGameState,type GameStateSnapshot} from "./game-state.js";
 import {eventProblem,type RunEvent} from "./events.js";
@@ -45,7 +46,7 @@ describe("registry",()=>{
   expect(featureInfo(ID)).toMatchObject({group:"guard",needs:"low-hp-trainer-warning-v1",switchable:true,title:"STORY BATTLE HEAL WARNING"});
   expect(featureInfo(ID).description).toContain(" Off: ");
   expect(featureInfo(ID).description).toContain(T363_TEXT);
-  expect(SWITCHABLE_FEATURES.at(-33)).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-37)).toBe(ID);
   expect(playHarnessFeatures(ALL_ON,null).at(-33)).toBe(ID);
   expect(playHarnessFeatures({...ALL_ON,[ID]:false},null)).not.toContain(ID);
   expect(SERVER_FEATURES).not.toContain(ID);

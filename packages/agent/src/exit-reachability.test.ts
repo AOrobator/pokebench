@@ -1,3 +1,4 @@
+import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
 // exit-reachability-v1: one walk-reachability check (the server's exit_reach) read by every exit list and navigate_to message.
 // Fixture exit-reach-states.json.gz: recorded state bodies (envelope stripped) from runs/<id>/events.jsonl, each with the
 // exit_reach the server code (env/pokebench_env/exit_reach.py) reads from that state's own raw-RAM archive, and map_grids,
@@ -10,7 +11,7 @@ import {readFileSync} from "node:fs";
 import {gunzipSync} from "node:zlib";
 import {describe,expect,it} from "vitest";
 import type {AgentTool,AgentToolResult} from "@mariozechner/pi-agent-core";
-import {ALL_ON,FEATURES,SERVER_FEATURES,featureInfo,featuresOf,playHarnessFeatures,serverFeatureEnv,type FeatureSet} from "./features.js";
+import {FEATURES,SERVER_FEATURES,featureInfo,featuresOf,playHarnessFeatures,serverFeatureEnv,type FeatureSet} from "./features.js";
 import {flagFeatures,normalizeFeatures} from "./play-preset.js";
 import {parseGameState,type GameStateSnapshot} from "./game-state.js";
 import {withNavigation} from "./navigation.js";
@@ -308,7 +309,7 @@ describe("exit-reachability-v1 schema, registry and presets",()=>{
   expect(description).toContain(" Off: ");
   expect(description).toContain("bundle arm only");
   expect(description).not.toContain("both arms");
-  expect(FEATURES.filter(f=>f.switchable).at(-31)?.id).toBe(ID);
+  expect(FEATURES.filter(f=>f.switchable).at(-35)?.id).toBe(ID);
   expect(playHarnessFeatures(ALL_ON,null).at(-31)).toBe(ID);
   expect(SERVER_FEATURES.at(-8)).toBe(ID);
   expect(serverFeatureEnv({...ALL_ON,[ID]:false}).POKEBENCH_FEATURES_OFF.split(",")).toContain(ID);

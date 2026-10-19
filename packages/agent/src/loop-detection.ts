@@ -1,3 +1,4 @@
+import {NavigationFailure} from "./navigation-failure.js";
 import type { RunEvent } from "./events.js";
 import { MEASUREMENT_ONLY_MILESTONES, MILESTONES } from "./milestones.js";
 import type { GameStateSnapshot } from "./game-state.js";
@@ -377,6 +378,7 @@ export class LoopDetector {
     pushback: boolean;
     revisit: boolean;
     menu: boolean;
+    navigationFailure: boolean;
   } | null = null;
   // battle-menu-loop-v1: the battle-menu choice last ready, whether the POKéMON or BAG screen has opened since,
   // the returns to that choice, and foe/party HP plus the battle turn (a change clears the count).
@@ -411,6 +413,8 @@ export class LoopDetector {
     }
   >();
 
+  private readonly navigationFailures=new NavigationFailure();
+
   constructor(
     private readonly notify: (notice: LoopNotice) => void,
     private readonly policy: LoopPolicy = LOOP_POLICY,
@@ -429,6 +433,7 @@ export class LoopDetector {
     // reopened-dialogue-loop-v1: lines shown during a call whose result has already closed them.
     private readonly closedDialogue = false,
     private readonly triggerScriptLoops = false,
+    private readonly ineffectiveNavigation = false,
   ) {}
 
   observe(event: RunEvent): void {
@@ -655,6 +660,8 @@ export class LoopDetector {
     this.completed++;
     if (this.stallNote?.exposed === true) this.stallNote = null;
     const seq = call.seq ?? this.completed;
+    const failure=this.ineffectiveNavigation?this.navigationFailures.observe({...call,seq}):null;
+    if(failure?.active===false&&this.episode?.navigationFailure===true)this.recover(seq,true);
     const rejection = rejectionKey(call);
     // pushback-loop-detection-v1: what an errored press or navigate_to did is unknown, so the trip ends.
     // State-only mode's `act` tool presses too; an errored result keeps its outer name.
@@ -691,11 +698,11 @@ export class LoopDetector {
     // Out of the loop: its push-backs no longer count toward the next warning.
     if (escaped) this.pushbacks.length = 0;
     if (
-      (novel && !held) || escaped ||
-      (game && (call.name === "press" || (call.name === "navigate_to" && call.acted===true)) && this.episode?.kind === "planning")
+      !(this.episode?.navigationFailure===true&&failure?.active!==false)&&((novel && !held) || escaped ||
+      (game && (call.name === "press" || (call.name === "navigate_to" && call.acted===true)) && this.episode?.kind === "planning"))
     )
       this.recover(seq, (novel && !held) || escaped);
-    let hit: LoopKind | null = null;
+    let hit: LoopKind | null = failure?.active===true?"ineffective":null;
     let pingPong = false;
     let reopened = false;
     let pushed: number[] | null = null;
@@ -836,18 +843,19 @@ export class LoopDetector {
     if (this.episode === null) {
       this.episode = {
         kind: hit,
-        message: triggerLooped!==null?TRIGGER_SCRIPT_MESSAGE(triggerLooped.dialogue):menuLooped !== null ? BATTLE_MENU_LOOP_MESSAGE : pushed !== null ? PUSHBACK_MESSAGE : revisited !== null ? REVISIT_MESSAGE : hit === "observation" && waited ? WAITING_MESSAGE : pingPong ? TRANSITION_MESSAGE : hit === "ineffective" && call.name === "navigate_to" ? "Repeated navigation attempts to the same target produced equivalent states. Inspect the destination and obstacle before trying again." : this.interactions && (hit === "ineffective" || hit === "cycle") ? `The same interaction or input pattern is repeating without new game information. Use a single input, inspect the resulting interface, and choose an evidence-supported different approach.${this.messageTruth && !reopened ? "" : " Reopening the same message is not story progress."}` : MESSAGES[hit],
+        message: failure?.active===true?"Repeated navigation attempts, including different coordinates, left you in the same area without changing the game conditions. A turn or a small step is not recovery; inspect the observed alternatives.":triggerLooped!==null?TRIGGER_SCRIPT_MESSAGE(triggerLooped.dialogue):menuLooped !== null ? BATTLE_MENU_LOOP_MESSAGE : pushed !== null ? PUSHBACK_MESSAGE : revisited !== null ? REVISIT_MESSAGE : hit === "observation" && waited ? WAITING_MESSAGE : pingPong ? TRANSITION_MESSAGE : hit === "ineffective" && call.name === "navigate_to" ? "Repeated navigation attempts to the same target produced equivalent states. Inspect the destination and obstacle before trying again." : this.interactions && (hit === "ineffective" || hit === "cycle") ? `The same interaction or input pattern is repeating without new game information. Use a single input, inspect the resulting interface, and choose an evidence-supported different approach.${this.messageTruth && !reopened ? "" : " Reopening the same message is not story progress."}` : MESSAGES[hit],
         exposed: false,
         recovery: 0,
         threshold: false,
         // The first push-back of the repeated input, or the first of the moves ending on the loop's tile; the notice
         // adds the call that completed the count.
-        evidence: triggerLooped?.evidence??(pushed ?? revisited ?? menuLooped)?.slice(0, 1) ?? [seq],
+        evidence: failure?.active===true?[...failure.evidence]:triggerLooped?.evidence??(pushed ?? revisited ?? menuLooped)?.slice(0, 1) ?? [seq],
         window: this.policy.recovery,
         briefing: null,
         pushback: pushed !== null,
         revisit: revisited !== null,
         menu: menuLooped !== null,
+        navigationFailure: failure?.active===true,
       };
       this.notice("warning", seq);
       // Speedrun: the supervisor briefs as soon as a loop is found, then again every window while it lasts.
@@ -885,6 +893,7 @@ export class LoopDetector {
     }
     this.nativeState = state;
     if (!advanced || this.stopped) return;
+    if(this.ineffectiveNavigation)this.navigationFailures.reset();
     this.recover(seq, true);
     this.planning = 0;
     this.observations = 0;

@@ -1,3 +1,4 @@
+import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
 // harness-trust-v1 and cited-destination-v1: registry, presets, system prompt, the production playGameTools factory,
 // the recorder's events, and one run through the pinned pi loop that delivers the header, the walk-away note and the
 // citation line to the model's next request.
@@ -9,7 +10,7 @@ import {join} from "node:path";
 import {describe,expect,it} from "vitest";
 import {Type,type TObject} from "typebox";
 import type {AgentTool,AgentToolResult} from "@mariozechner/pi-agent-core";
-import {ALL_ON,FEATURES,SWITCHABLE_FEATURES,dependencyProblems,featureInfo,playHarnessFeatures,stateOnlyProblems,type FeatureSet} from "./features.js";
+import {FEATURES,SWITCHABLE_FEATURES,dependencyProblems,featureInfo,playHarnessFeatures,stateOnlyProblems,type FeatureSet} from "./features.js";
 import {flagFeatures,normalizeFeatures} from "./play-preset.js";
 import {CITED_DESTINATION_SECTION,playSystemPrompt} from "./play-config.js";
 import {TRUST_HEADER,trustSection,type StoryGoalAwayFacts} from "./harness-trust.js";
@@ -45,7 +46,7 @@ const must=<T>(value:T|undefined):T=>{if(value===undefined)throw new Error("miss
 
 describe("registry and presets",()=>{
  it("both switches are registered last, in order, with copy that says what OFF does",()=>{
-  expect(SWITCHABLE_FEATURES.slice(-31,-27)).toEqual(["exit-reachability-v1","heal-before-trainers-v1",TRUST,CITED]);
+  expect(SWITCHABLE_FEATURES.slice(-35,-31)).toEqual(["exit-reachability-v1","heal-before-trainers-v1",TRUST,CITED]);
   expect(featureInfo(TRUST)).toMatchObject({switchable:true,group:"guidance",needs:"dialogue-auto-advance-v1",title:"HARNESS TRUST"});
   expect(featureInfo(CITED)).toMatchObject({switchable:true,group:"guidance",needs:"bounded-navigation-v1",title:"CITED DESTINATION"});
   for(const id of [TRUST,CITED])expect(featureInfo(id).description).toContain(" Off: ");
@@ -108,6 +109,16 @@ describe("the production factory",()=>{
   const off=fakeRecorder();
   const plain=playGameTools(gameTools(()=>STATE),OFF,reader,off.recorder);
   expect(textOf(await plain[0]?.execute("o",{}))).toBe("observe: Location: ROUTE103");
+ });
+ it("reachable-story-guidance-v1 changes the production header while OFF preserves exact prior bytes",async()=>{
+  const reader={read:()=>Promise.resolve(STATE),places:()=>Promise.resolve(PLACES)};
+  for(const on of [false,true]){
+   const r=fakeRecorder();const tools=playGameTools(gameTools(()=>STATE),{...OFF,[TRUST]:true,"reachable-story-guidance-v1":on},reader,r.recorder);
+   for(const sub of r.subs)for(const event of CAAA)sub(event);
+   const text=textOf(await tools[0]?.execute("o",{}));
+   if(on){expect(text).toContain("PROF. BIRCH'S POKéMON LAB (map 1/4).");expect(text).not.toContain("Way in:");expect(text).toContain("No direct entrance to this destination is listed on the current map");}
+   else expect(text).toBe(`${TRUST_HEADER}\n${LAB_GOAL}\n\nobserve: Location: ROUTE103`);
+  }
  });
  it("cited-destination-v1 gives the production navigate_to a required because, with the whole-map and exit-reach text",async()=>{
   const reader={read:()=>Promise.resolve(STATE),places:()=>Promise.resolve(PLACES)};

@@ -1,8 +1,9 @@
+import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
 import {describe,expect,it} from "vitest";
 import {readFileSync} from "node:fs";
 import {gunzipSync} from "node:zlib";
 import {fileURLToPath} from "node:url";
-import {ALL_ON,FEATURES,dependencyProblems,featureInfo,featuresOf,playHarnessFeatures,type FeatureSet} from "./features.js";
+import {FEATURES,dependencyProblems,featureInfo,featuresOf,playHarnessFeatures,type FeatureSet} from "./features.js";
 import {flagFeatures,normalizeFeatures} from "./play-preset.js";
 import {SupervisorBriefing,type Stall} from "./loop-supervisor.js";
 import {loopSupervisor,stallBriefing,textOnlySupervisor} from "./play-wiring.js";

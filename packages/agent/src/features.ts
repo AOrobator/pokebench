@@ -137,6 +137,10 @@ export const SWITCHABLE_FEATURES = [
   "visited-terrain-navigation-v1",
   "stale-story-goal-v2",
   "deterministic-warp-navigation-v1",
+  "ineffective-navigation-v2",
+  "supervisor-briefing-v2",
+  "reachable-story-guidance-v1",
+  "text-only-supervisor-v2",
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
 
@@ -353,6 +357,10 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("visited-terrain-navigation-v1", "guidance", "VISITED TERRAIN NAVIGATION", "bounded-navigation-v1", "Default off. Remembers only local-map cells in tool results actually delivered to the model during this run, separately for each map; appends a stitched map with unknown cells marked ?, and lets navigate_to walk a full route through those remembered cells. A fresh run, including one restored from an emulator checkpoint, begins with no harness map history. Hidden state reads and internal navigation presses never add cells. Current delivered terrain replaces an older value at the same coordinate, and only current live objects are treated as occupied. The display is clipped to 64x64 around the player when the remembered bounds are larger. When full-map-navigation-v1 is also on, whole-map navigation takes precedence and this treatment is inactive. Off: the existing 15x15 readout, eight-attempt local planner, tool descriptions and results are byte-for-byte unchanged."),
   on("stale-story-goal-v2", "observation", "STAGE-BOUND STORY GOAL", "stale-story-goal-v1", "Default off. Refines stale-story-goal-v1 by tying each Birch-lab instruction to the native Birch lab stage recorded when the dialogue page was observed. A lab invitation observed before stage 3 retires when the starter handoff advances the game to stage 3. A distinct return-to-the-lab line first observed at stage 3 or later remains active through stage 4 and retires under v1 at Pokédex receipt or stage 5. Retirement requires every named destination to resolve to PROF. BIRCH'S POKéMON LAB; an unresolved or mixed destination remains active. When no active place-bearing instruction remains, story-destinations-v1 omits its destination block and harness-trust-v1 omits the Story goal line entirely: it does not print Story goal: none or repeat the retired quote, and the walk-away supervisor receives no retired goal. Dialogue history is unchanged, and no replacement destination is invented. An unreadable issue or current stage does not retire a line. Needs stale-story-goal-v1. Off: v1 is byte-for-byte unchanged, including its milestone-based retirement text and Story goal: none presentation."),
   on("deterministic-warp-navigation-v1", "guidance", "DETERMINISTIC WARP NAVIGATION", "bounded-navigation-v1", "Bundle arm only, default off. When navigate_to targets a listed warp, it may select the cheapest reachable warp on the same map only when the complete destination tuple, known activation behavior and elevation match exactly. A stable coordinate tie-break makes equal routes deterministic. When the player is already standing on a source-known directional warp, navigate_to presses its required direction exactly once and verifies that the map changed; it never retries a failed transition. Dynamic destinations, unknown behaviors, step-on warps, doors and incomplete geometry retain the existing behavior. Off: navigate_to follows the exact requested coordinate and stops on a directional exit without activating it."),
+  on("ineffective-navigation-v2","guard","INEFFECTIVE NAVIGATION V2","deterministic-loop-guard-v1","Three unchanged failed navigation outcomes across distinct or repeated coordinates raise a loop episode. Turns and displacement under four tiles do not clear that episode; changed conditions, a qualified interaction, native story progress or displacement of four tiles do. Uses observed game state, never model reasoning. Off: the existing target-specific and short-cycle checks run unchanged."),
+  on("supervisor-briefing-v2","guidance","FOCUSED SUPERVISOR","loop-guard-supervisor-v1","Loop, stall and text-only briefings show current position, latest place instruction, three recent attempts and up to three untried targets already observed here. Active interfaces retain their owner and controls. Full recording history is untouched. Off: existing full-history briefings are delivered."),
+  on("reachable-story-guidance-v1","guidance","REACHABLE STORY GUIDANCE","harness-trust-v1","The prominent story goal separates destination identity from locally usable exits. Current reach evidence qualifies local ways; unknown reach is stated explicitly. Walk-away notes do not use inaccessible local edges or topology-only map counts. No route is chosen. Off: goal headers and walk-away notes use the existing map-table guidance."),
+  on("text-only-supervisor-v2","guidance","TEXT-ONLY SUPERVISOR V2","text-only-supervisor-v1","Text-only warnings honor the configured reply stopping policy. After three detailed notes, continuing retries receive a short action reminder. Budgets and termination behavior are unchanged. Off: the original third-note stop claim and generic retry prompt remain."),
   measured("story-milestones-v2", "STORY MILESTONES",
     "Records each story milestone the game's own state confirms, with its turn and time. This feeds splits and the score."),
   measured("clock-milestone-v1", "CLOCK MILESTONE",
@@ -539,6 +547,10 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("visited-terrain-navigation-v1"),
     ...when("stale-story-goal-v2"),
     ...when("deterministic-warp-navigation-v1"),
+    ...when("ineffective-navigation-v2"),
+    ...when("supervisor-briefing-v2"),
+    ...when("reachable-story-guidance-v1"),
+    ...when("text-only-supervisor-v2"),
   ];
 }
 

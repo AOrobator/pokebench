@@ -1,9 +1,10 @@
+import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
 import {describe,expect,it} from "vitest";
 import {readFileSync} from "node:fs";
 import {gunzipSync} from "node:zlib";
 import {fileURLToPath} from "node:url";
 import {attachLoopGuard,Governor} from "./harness.js";
-import {ALL_ON,SWITCHABLE_FEATURES,dependencyProblems,featureInfo,featuresOf,playHarnessFeatures} from "./features.js";
+import {SWITCHABLE_FEATURES,dependencyProblems,featureInfo,featuresOf,playHarnessFeatures} from "./features.js";
 import {experimentArms,parseExperiment} from "./experiments.js";
 import {flagFeatures} from "./play-preset.js";
 import {checkEvent,type RunEvent} from "./events.js";
@@ -294,7 +295,7 @@ describe("ineffective-loops-v1 fixture loading",()=>{
 describe("ineffective-loops-v1 pending experiment",()=>{
  it("names every switch explicitly in registry order and flips only this switch",()=>{
   const raw=JSON.parse(readFileSync(fileURLToPath(new URL("../../../experiments/ineffective-loops.json",import.meta.url)),"utf8")) as {incumbent:{features:Record<string,boolean>}};
-  expect(Object.keys(raw.incumbent.features)).toEqual(SWITCHABLE_FEATURES.filter(id=>id!=="deterministic-warp-navigation-v1"&&id!=="battle-effective-damage-v1"&&id!=="scripted-place-guidance-v1"&&id!=="trigger-script-loop-v1").filter(id=>id!=="faced-interaction-history-v1").slice(0,Object.keys(raw.incumbent.features).length));expect(Object.keys(raw.incumbent.features)).toContain("ineffective-loops-v1");
+  expect(Object.keys(raw.incumbent.features)).toEqual(SWITCHABLE_FEATURES.filter(id=>id!=="ineffective-navigation-v2"&&id!=="supervisor-briefing-v2"&&id!=="reachable-story-guidance-v1"&&id!=="text-only-supervisor-v2"&&id!=="deterministic-warp-navigation-v1"&&id!=="battle-effective-damage-v1"&&id!=="scripted-place-guidance-v1"&&id!=="trigger-script-loop-v1").filter(id=>id!=="faced-interaction-history-v1").slice(0,Object.keys(raw.incumbent.features).length));expect(Object.keys(raw.incumbent.features)).toContain("ineffective-loops-v1");
   const {incumbent,candidate}=experimentArms(parseExperiment(raw));
   expect(incumbent.features[ID]).toBe(false);
   expect(SWITCHABLE_FEATURES.filter(id=>id!=="deterministic-warp-navigation-v1"&&incumbent.features[id]!==candidate.features[id])).toEqual([ID]);

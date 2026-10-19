@@ -1,10 +1,11 @@
+import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
 import {describe,expect,it} from "vitest";
 import type {AgentTool,AgentToolResult} from "@mariozechner/pi-agent-core";
 import {withDialogueAutoAdvance,type AutoAdvanceRecorder} from "./dialogue-auto-advance.js";
 import {gameTools,type Clock} from "./game-tools.js";
 import {flagFeatures} from "./play-preset.js";
 import {toolSwitches} from "./play-config.js";
-import {ALL_ON,dependencyProblems,featureInfo,playHarnessFeatures,type FeatureSet} from "./features.js";
+import {dependencyProblems,featureInfo,playHarnessFeatures,type FeatureSet} from "./features.js";
 import type {Button,RunEvent} from "./events.js";
 import type {GameStateSnapshot} from "./game-state.js";
 import {pushbackPressResult} from "./press-result.js";

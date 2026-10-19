@@ -1,7 +1,8 @@
+import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
 import {readFileSync} from "node:fs";
 import {fileURLToPath} from "node:url";
 import {describe,expect,it} from "vitest";
-import {ALL_ON,dependencyProblems,featureInfo,playHarnessFeatures,SWITCHABLE_FEATURES} from "./features.js";
+import {dependencyProblems,featureInfo,playHarnessFeatures,SWITCHABLE_FEATURES} from "./features.js";
 import {experimentArms,parseExperiment} from "./experiments.js";
 import {flagFeatures,parsePlayPreset,presetFeatures} from "./play-preset.js";
 import {checkEvent} from "./events.js";
@@ -244,12 +245,12 @@ describe("battle-menu-loop-v1 registry", () => {
   it("is a default-off guard with no dependency, recorded third to last", () => {
     expect(featureInfo(ID)).toMatchObject({group: "guard", needs: null, switchable: true});
     expect(featureInfo(ID).description).toContain(" Off: ");
-    expect(SWITCHABLE_FEATURES.at(-17)).toBe(ID);
+    expect(SWITCHABLE_FEATURES.at(-21)).toBe(ID);
     expect(playHarnessFeatures(ALL_ON, null).at(-17)).toBe(ID);
     expect(playHarnessFeatures({...ALL_ON,"scripted-place-guidance-v1":false,"trigger-script-loop-v1":false, [ID]: false}, null)).not.toContain(ID);
     expect(flagFeatures({loopGuard: true, activeUi: true, interfaceDocs: true, objectives: true})[ID]).toBe(false);
     const raw = JSON.parse(readFileSync(fileURLToPath(new URL("../../../experiments/battle-menu-loop.json", import.meta.url)), "utf8")) as {incumbent: {features: Record<string, boolean>}};
-    expect(Object.keys(raw.incumbent.features)).toEqual(SWITCHABLE_FEATURES.filter(id=>id!=="deterministic-warp-navigation-v1"&&id!=="battle-effective-damage-v1"&&id!=="scripted-place-guidance-v1"&&id!=="trigger-script-loop-v1"&&id!=="just-in-time-prompt-v2"&&id!=="faced-interaction-history-v1"&&id!=="cache-aligned-window-v1"&&id!=="jit-guide-reuse-v1"&&id!=="stale-story-goal-v2"&&id!=="visited-terrain-navigation-v1"));
+    expect(Object.keys(raw.incumbent.features)).toEqual(SWITCHABLE_FEATURES.filter(id=>id!=="ineffective-navigation-v2"&&id!=="supervisor-briefing-v2"&&id!=="reachable-story-guidance-v1"&&id!=="text-only-supervisor-v2"&&id!=="deterministic-warp-navigation-v1"&&id!=="battle-effective-damage-v1"&&id!=="scripted-place-guidance-v1"&&id!=="trigger-script-loop-v1"&&id!=="just-in-time-prompt-v2"&&id!=="faced-interaction-history-v1"&&id!=="cache-aligned-window-v1"&&id!=="jit-guide-reuse-v1"&&id!=="stale-story-goal-v2"&&id!=="visited-terrain-navigation-v1"));
     const entry = parseExperiment(raw);
     expect(entry.queuePosition).toBeUndefined();
     expect(entry.changedFeature).toBe(ID);

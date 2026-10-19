@@ -17,8 +17,22 @@ it("never counts successful partial walks, errors, battles, unknown/locked field
   const f=new NavigationFailure();for(let i=1;i<=5;i++)expect(f.observe(nav(i,change))?.active??false).toBe(false);
  }
 });
-it("re-arms on changed story/NPC/geometry conditions and explicit native progress reset",()=>{
+it("re-arms on changed resources and an explicit reset",()=>{
  const f=new NavigationFailure();f.observe(nav(1));f.observe(nav(2));
  f.observe(nav(3,{state:{...field(),money:5},beforeState:{...field(),money:5}}));expect(f.observe(nav(4))).toBeNull();
  f.observe(nav(5));expect(f.observe(nav(6))?.active).toBe(true);f.reset();expect(f.observe(nav(7))).toBeNull();
+});
+
+it("overlapping geometry changes re-arm, while a scrolling local window does not clear an active episode",()=>{
+ const grid=(x:number,collision=0)=>({elevation:0,tiles:[{x,y:0,collision,behavior:0,elevation:0}],objects:[],warps:[]});
+ const f=new NavigationFailure();const s={...field(),navigation_grid:grid(0)};
+ for(let i=1;i<=3;i++)f.observe(nav(i,{state:s,beforeState:s}));
+ expect(f.observe(nav(4,{name:"press",state:{...s,position:{x:31,y:58},navigation_grid:grid(1)}}))?.active).toBe(true);
+ expect(f.observe(nav(5,{name:"observe",state:{...s,navigation_grid:grid(0,1)}}))).toEqual({active:false,evidence:[]});
+});
+it("unknown observations and errors cannot clear an active episode; a qualified interface does",()=>{
+ const f=new NavigationFailure();for(let i=1;i<=3;i++)f.observe(nav(i));
+ expect(f.observe(nav(4,{state:undefined}))).toBeNull();expect(f.observe(nav(5,{isError:true}))).toBeNull();
+ expect(f.observe(nav(6,{name:"observe"}))?.active).toBe(true);
+ expect(f.observe(nav(7,{state:{...field(),in_battle:true}}))).toEqual({active:false,evidence:[]});
 });

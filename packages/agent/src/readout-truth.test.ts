@@ -1,6 +1,7 @@
+import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
 import { readFileSync } from "node:fs";
 import { expect, it } from "vitest";
-import { ALL_ON, SERVER_FEATURES, SWITCHABLE_FEATURES, dependencyProblems, featureInfo, featuresOf, playHarnessFeatures, serverFeatureEnv, type FeatureSet } from "./features.js";
+import { SERVER_FEATURES, SWITCHABLE_FEATURES, dependencyProblems, featureInfo, featuresOf, playHarnessFeatures, serverFeatureEnv, type FeatureSet} from "./features.js";
 import { flagFeatures, normalizeFeatures, parsePlayPreset, presetFeatures } from "./play-preset.js";
 
 // readout-truth-v1 and birch-speech-pages-v1 (correctness fixes, ON in both arms) and
@@ -9,7 +10,7 @@ const IDS = ["readout-truth-v1", "birch-speech-pages-v1", "blackout-readout-v1"]
 const off = (...ids: (typeof SWITCHABLE_FEATURES)[number][]): FeatureSet => ({ ...ALL_ON, ...Object.fromEntries(ids.map((id) => [id, false])) });
 
 it("registers three default-off observation switches with no dependency, recorded last in this order", () => {
-  expect(SWITCHABLE_FEATURES.slice(-44,-41)).toEqual([...IDS]);
+  expect(SWITCHABLE_FEATURES.slice(-48,-45)).toEqual([...IDS]);
   expect(playHarnessFeatures(ALL_ON, null).slice(-44,-41)).toEqual([...IDS]);
   for (const id of IDS) {
     expect(featureInfo(id)).toMatchObject({ group: "observation", needs: null, switchable: true });

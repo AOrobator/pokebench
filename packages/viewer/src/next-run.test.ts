@@ -1,8 +1,9 @@
+import {LEGACY_ALL_ON as REGISTERED_ALL_ON} from "../../agent/test-support/legacy-features.js";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
-import { ALL_ON as REGISTERED_ALL_ON } from "@pokebench/agent/features";
+
 import { Log, START } from "../test-support/events.js";
 import { processGroup } from "../test-support/process-group.js";
 import { DEFAULT_NEXT_RUN, LEASE, NextRunError, RunQueue, appendControl, healthProbe, liveRuns, presetFor, readDraft, spawnLaunch, writeDraft, type LaunchSpec, type QueueHost } from "./next-run.js";

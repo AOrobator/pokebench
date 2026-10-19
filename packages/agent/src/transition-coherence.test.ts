@@ -1,6 +1,7 @@
+import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
 import { readFileSync } from "node:fs";
 import { expect, it } from "vitest";
-import { ALL_ON, SERVER_FEATURES, SWITCHABLE_FEATURES, dependencyProblems, featureInfo, featuresOf, playHarnessFeatures, serverFeatureEnv, type FeatureSet } from "./features.js";
+import { SERVER_FEATURES, SWITCHABLE_FEATURES, dependencyProblems, featureInfo, featuresOf, playHarnessFeatures, serverFeatureEnv, type FeatureSet} from "./features.js";
 import { flagFeatures, normalizeFeatures, parsePlayPreset, presetFeatures } from "./play-preset.js";
 
 const ID = "transition-coherence-v1";
@@ -18,7 +19,7 @@ it("registers a default-off observation switch with no dependency, recorded last
   expect(description).toContain("field_transition");
   expect(description).toContain("Save-backed world state unavailable");
   expect(description).toContain("both arms");
-  expect(SWITCHABLE_FEATURES.at(-45)).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-49)).toBe(ID);
   expect(playHarnessFeatures(ALL_ON, null).at(-45)).toBe(ID);
   expect(playHarnessFeatures(off(ID), null)).not.toContain(ID);
   expect(featuresOf(playHarnessFeatures(off(ID), null))[ID]).toBe(false);

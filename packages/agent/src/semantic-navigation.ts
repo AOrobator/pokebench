@@ -36,6 +36,12 @@ function stateOf(result:AgentToolResult<unknown>):GameStateSnapshot {
  if(typeof details!=="object"||details===null||!("state" in details))throw new Error("Semantic navigation result lacks verified state");
  return parseGameState(details.state);
 }
+function navigationStatus(result:AgentToolResult<unknown>):string|null {
+ const details=result.details;
+ if(typeof details!=="object"||details===null||!("navigation" in details))return null;
+ const navigation=details.navigation;
+ return typeof navigation==="object"&&navigation!==null&&"status" in navigation&&typeof navigation.status==="string"?navigation.status:null;
+}
 function interrupted(state:GameStateSnapshot):string|null {
  if(state.in_battle)return "battle began";
  if(state.screen!=="overworld")return `screen changed to ${state.screen}`;
@@ -90,7 +96,7 @@ function isMap(state:GameStateSnapshot,map:readonly [number,number]):boolean{ret
 function semanticTool(navigate:AgentTool,press:AgentTool,features:FeatureSet,stateSource:StateSource):AgentTool<typeof SemanticArgs> {
  const options=navigationOptions(features);
  const executePress=(id:string,button:Button,check:(state:GameStateSnapshot|undefined)=>void,signal?:AbortSignal):Promise<AgentToolResult<unknown>>=>isCheckedPress(press)?press.executeChecked(id,{buttons:[button]},check,signal,undefined,{automaticRunning:false}):press.execute(id,{buttons:[button]},signal);
- return {name:"navigate_to_target",label:"Navigate to a game target",description:"Select a listed person, object, warp or walking map connection by its game-owned identity. The harness chooses the reachable approach, runs the route, faces the target and activates it once. It immediately returns control if battle, dialogue, a menu, a script, forced movement, a map transition or unavailable input interrupts travel.",parameters:SemanticArgs,
+ return {name:"navigate_to_target",label:"Navigate to a game target",description:"Select a listed person, object, warp or walking map connection by its game-owned identity. The harness chooses the reachable approach, continues progress-making route segments without an end-to-end command cap, faces the target and activates it once. It immediately returns control if battle, dialogue, a menu, a script, forced movement, a map transition or unavailable input interrupts travel.",parameters:SemanticArgs,
   execute:async(id,request,signal)=>{
    signal?.throwIfAborted();const before=await stateSource.read(signal),selected=label(request.target);
    if(!isMap(before,request.map_id))return withStatus({content:[],details:{state:before}},"refused because the requested map is not current",selected,false);
@@ -98,11 +104,20 @@ function semanticTool(navigate:AgentTool,press:AgentTool,features:FeatureSet,sta
    if(request.target.kind!=="connection"&&listed===null)return withStatus({content:[],details:{state:before}},"target is not listed in the current verified state",selected,false);
    const choices=request.target.kind==="connection"?connectionApproaches(before,request.target,options):approaches(before,listed as SnapshotTarget,options);
    const choice=choices[0];if(choice===undefined)return withStatus({content:[],details:{state:before}},"no supported route to a valid approach",selected,false);
-   const walked=await navigate.execute(id,{x:choice.point.x,y:choice.point.y,map_id:[request.map_id[0],request.map_id[1]]},signal);
-   let current=stateOf(walked),reason=interrupted(current);
-   if(reason!==null)return withStatus(walked,`interrupted before activation: ${reason}`,selected,false);
-   if(!isMap(current,request.map_id))return withStatus(walked,"interrupted by a map transition",selected,request.target.kind==="warp");
-   if(current.position?.x!==choice.point.x||current.position.y!==choice.point.y)return withStatus(walked,"route ended before the selected approach",selected,false);
+   const destination={x:choice.point.x,y:choice.point.y,map_id:[request.map_id[0],request.map_id[1]]};
+   let previous=before.position;
+   let walked=await navigate.execute(id,destination,signal),current:GameStateSnapshot,reason:string|null;
+   for(;;){
+    current=stateOf(walked);reason=interrupted(current);
+    if(reason!==null)return withStatus(walked,`interrupted before activation: ${reason}`,selected,false);
+    if(!isMap(current,request.map_id))return withStatus(walked,"interrupted by a map transition",selected,request.target.kind==="warp");
+    if(current.position?.x===choice.point.x&&current.position.y===choice.point.y)break;
+    const status=navigationStatus(walked);
+    if(status===null||!status.startsWith("command limit"))return withStatus(walked,"route ended before the selected approach",selected,false);
+    if(previous!==null&&current.position?.x===previous.x&&current.position.y===previous.y)return withStatus(walked,"route made no progress before the selected approach",selected,false);
+    previous=current.position;
+    walked=await navigate.execute(id,destination,signal);
+   }
    if(request.target.kind!=="connection"){
     const fresh=resolve(current,request.target);
     if(fresh===null)return withStatus(walked,"target disappeared before activation",selected,false);

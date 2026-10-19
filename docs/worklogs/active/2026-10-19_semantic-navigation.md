@@ -17,7 +17,7 @@ Both treatments must immediately return control when the game changes input owne
 - Exploration handles one target at a time and returns after activation or interruption; it does not interact with a whole map without giving the model each resulting state.
 - Valid running displacement may cover multiple collinear tiles only when every crossed tile is a prefix of the currently planned route. Off-route movement remains an interruption.
 - Whole-map mode may traverse the full current-map route. Visited-terrain mode may use only delivered terrain and returns at its known frontier.
-- Keep the 512-command emergency bound and non-convergence guard. Do not claim benchmark benefit before a qualified comparison.
+- Semantic navigation has no end-to-end command cap: it continues underlying bounded navigation segments while each segment makes progress. It still stops on the planner's non-convergence/no-path result or any game interruption. Do not claim benchmark benefit before a qualified comparison.
 - Do not mutate, restart, or inject input into live measured runs.
 
 ## Consumers
@@ -42,6 +42,7 @@ Both treatments must immediately return control when the game changes input owne
 
 ## Session log
 
+- 2026-10-19: Principles pre-review caught that semantic navigation still inherited the underlying 512-command segment as an end-to-end stop. Corrected it to continue progress-making segments without a semantic hard cap and added a production-path regression test; interruption and non-convergence remain terminators.
 - 2026-10-19: Committed implementation as `9db88de86f3898c779b7812ce4e64b4dba1b11e0`; pinned both pending experiment definitions to that exact candidate implementation commit. They remain unqueued and unapproved.
 - 2026-10-19: Browser proof on the isolated candidate viewer (`127.0.0.1:8793`): Harness Config matched `semantic-navigation-v1` and `deterministic-exploration-v1`; each card's explainer link opened the corresponding titled page. Temporary candidate servers were then stopped.
 

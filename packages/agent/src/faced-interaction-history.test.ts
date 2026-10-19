@@ -14,12 +14,16 @@ const ID="faced-interaction-history-v1";
 const TV={kind:"background",x:4,y:1,elevation:0,activation:"A",availability:"conditional",facing:"up",local_id:null,destination:null,name:"television"} as const;
 const PC={kind:"background",x:0,y:1,elevation:0,activation:"A",availability:"conditional",facing:"up",local_id:null,destination:null,name:"PC"} as const;
 const MOM={kind:"object",x:4,y:1,elevation:0,activation:"A",availability:"conditional",facing:"up",local_id:7,destination:null,name:"MOM"} as const;
+const MOVED_MOM={...MOM,x:3} as const;
 const RIVAL={kind:"object",x:0,y:1,elevation:0,activation:"A",availability:"conditional",facing:"up",local_id:8,destination:null,name:"RIVAL"} as const;
+const NORTH_TRIGGER={kind:"trigger",x:4,y:1,elevation:0,activation:"step",availability:"conditional",facing:null,local_id:null,destination:null,name:"north path"} as const;
+type Target=typeof PC|typeof TV|typeof MOM|typeof MOVED_MOM|typeof RIVAL|typeof NORTH_TRIGGER;
 const features=(on:boolean,overrides:Partial<FeatureSet>={}):FeatureSet=>({...ALL_ON,...overrides,[ID]:on});
 const ev=(body:Record<string,unknown>,seq:number):RunEvent=>checkEvent({v:1,run:"cdb1-tv",t:"2026-10-18T01:32:00.000-04:00",turn:84,seq,...body});
-const state=(seq:number,x:number,y:number,facing:string,dialogue:string|null,targets:readonly (typeof PC|typeof TV|typeof MOM|typeof RIVAL)[])=>ev({type:"state",...IN_GAME,started:true,screen:"overworld",location:"GREEN's HOUSE 2F",map_id:[1,1],position:{x,y},facing,field_controls_locked:dialogue!==null,interaction_targets:targets,world_context:{objects:[],triggers:[],dialogue}},seq);
+const state=(seq:number,x:number,y:number,facing:string,dialogue:string|null,targets:readonly Target[])=>ev({type:"state",...IN_GAME,started:true,screen:"overworld",location:"GREEN's HOUSE 2F",map_id:[1,1],position:{x,y},facing,field_controls_locked:dialogue!==null,interaction_targets:targets,world_context:{objects:[],triggers:[],dialogue}},seq);
 
-function recordedTurn(source:"faced_target"|"faced_sprite"|null,targets:readonly (typeof PC|typeof TV|typeof MOM|typeof RIVAL)[]=[PC,TV],speaker="television"):RunEvent[]{
+interface TurnOptions {readonly finalTargets?:readonly Target[];readonly finalX?:number;readonly finalY?:number;readonly finalFacing?:string}
+function recordedTurn(source:"faced_target"|"faced_sprite"|null,targets:readonly Target[]=[PC,TV],speaker="television",options:TurnOptions={}):RunEvent[]{
  const id="Y3g0PzeGK31YOYnrtFg2v44le8qgUA20";
  return [
   ev({type:"tool_call",id,name:"press",args:{buttons:["LEFT","LEFT","LEFT","UP","A"]}},1),
@@ -29,14 +33,27 @@ function recordedTurn(source:"faced_target"|"faced_sprite"|null,targets:readonly
   ev({type:"button_press",tool_call_id:id,before_state_seq:4,buttons:["A"],hold_frames:10,release_frames:8},5),
   state(6,4,2,"up","MOM might like this program.\nBetter get going!",targets),
   ev({type:"dialogue_auto_advance",tool_call_id:id,tool:"press",requested:["LEFT","LEFT","LEFT","UP","A"],sent:["LEFT","LEFT","LEFT","UP","A"],dropped:[],auto_presses:2,pages:[{state_seq:6,map:"LITTLEROOT TOWN BRENDANS HOUSE 2F",map_display:"GREEN's HOUSE 2F",map_id:[1,1],position:{x:4,y:2},speaker:source===null?null:speaker,speaker_source:source,text:"MOM might like this program.\nBetter get going!"}],stop:"field_free",detail:"closed",duration_ms:1},7),
-  state(8,4,2,"up",null,targets),
+  state(8,options.finalX??4,options.finalY??2,options.finalFacing??"up",null,options.finalTargets??targets),
   ev({type:"tool_result",id,name:"press",is_error:false,duration_ms:1,text:"pressed LEFT, LEFT, LEFT, UP, A\nStory: player name confirmed; Mom clock instruction received",frames:[],state_seq:8},9),
  ];
 }
 
-function brief(on:boolean,source:"faced_target"|"faced_sprite"|null="faced_target",overrides:Partial<FeatureSet>={},targets:readonly (typeof PC|typeof TV|typeof MOM|typeof RIVAL)[]=[PC,TV],speaker="television"):string {
+function brief(on:boolean,source:"faced_target"|"faced_sprite"|null="faced_target",overrides:Partial<FeatureSet>={},targets:readonly Target[]=[PC,TV],speaker="television",options:TurnOptions={}):string {
  const supervisor=new SupervisorBriefing(features(on,overrides));
- for(const event of recordedTurn(source,targets,speaker))supervisor.observe(event);
+ for(const event of recordedTurn(source,targets,speaker,options))supervisor.observe(event);
+ return supervisor.text("cycle",93);
+}
+
+function pushbackBrief(on:boolean):string {
+ const supervisor=new SupervisorBriefing(features(on,{"briefing-exits-v1":false}));
+ const id="pushback-without-auto";
+ for(const event of [
+  ev({type:"tool_call",id,name:"press",args:{buttons:["UP"]}},20),
+  state(21,4,2,"up",null,[NORTH_TRIGGER]),
+  ev({type:"button_press",tool_call_id:id,before_state_seq:21,buttons:["UP"],hold_frames:10,release_frames:8},22),
+  state(23,4,2,"up","You cannot leave yet.",[NORTH_TRIGGER]),
+  ev({type:"tool_result",id,name:"press",is_error:false,duration_ms:1,text:"pressed UP",frames:[],state_seq:23},24),
+ ])supervisor.observe(event);
  return supervisor.text("cycle",93);
 }
 
@@ -68,8 +85,8 @@ describe("faced-interaction-history-v1",()=>{
   expect(untried(brief(false))).toContain("television at 4,1 (A)");
  });
 
- it("ON uses the attributed dialogue state to mark the TV tried without marking another object",()=>{
-  const line=untried(brief(true));
+ it("ON uses the exact attributed dialogue state rather than the final result state",()=>{
+  const line=untried(brief(true,"faced_target",{},[PC,TV],"television",{finalX:0,finalY:2,finalFacing:"up"}));
   expect(line).not.toContain("television at 4,1");
   expect(line).toContain("PC at 0,1 (A)");
  });
@@ -84,16 +101,21 @@ describe("faced-interaction-history-v1",()=>{
   expect(line).toContain("PC at 0,1 (A)");
  });
 
- it("ON accepts explicit faced-sprite attribution for a background target",()=>{
-  const line=untried(brief(true,"faced_sprite"));
-  expect(line).not.toContain("television at 4,1");
-  expect(line).toContain("PC at 0,1 (A)");
- });
-
- it("ON retains a faced person's map-local object identity",()=>{
-  const line=untried(brief(true,"faced_target",{},[RIVAL,MOM],"MOM"));
+ it("ON accepts production-shaped faced-sprite attribution for a person",()=>{
+  const line=untried(brief(true,"faced_sprite",{"briefing-exits-v1":false},[RIVAL,MOM],"MOM"));
   expect(line).not.toContain("MOM at 4,1");
   expect(line).toContain("RIVAL at 0,1 (A)");
+ });
+
+ it("ON retains a faced person's map-local object identity after that person moves",()=>{
+  const line=untried(brief(true,"faced_sprite",{},[RIVAL,MOM],"MOM",{finalTargets:[RIVAL,MOVED_MOM]}));
+  expect(line).not.toContain("MOM at 3,1");
+  expect(line).toContain("RIVAL at 0,1 (A)");
+ });
+
+ it("ON does not enable unrelated push-back inference when briefing exits are off",()=>{
+  expect(pushbackBrief(true)).toBe(pushbackBrief(false));
+  expect(untried(pushbackBrief(true))).toContain("north path at 4,1 (step)");
  });
 
  it("the production loop supervisor delivers the corrected history",()=>{

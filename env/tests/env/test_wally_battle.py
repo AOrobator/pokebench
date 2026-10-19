@@ -1,0 +1,86 @@
+"""LoadWallyZigzagoon source731ad5bf: MOVE2-4 are cleared, their PP is retained."""
+
+import json
+import os
+import struct
+from pathlib import Path
+
+import pytest
+from test_battle_state import fixture
+
+from pokebench_env.battle_choices import MONS, TYPE_FLAGS
+from pokebench_env.battle_state import read_battle_state
+from pokebench_env.game_screen import Screen
+from pokebench_env.game_state import MapNames, read_game_state
+from pokebench_env.raw_ram import load_raw_ram
+from pokebench_env.readout import state_json
+from pokebench_env.rerender import PORYMAP_MAPS, read_state, render
+from pokebench_env.rom import RomError, resolve_rom
+from pokebench_env.ui_state import read_active_ui
+
+FIXTURES = Path(__file__).parent / "fixtures"
+
+
+def tutorial():
+    memory = fixture()
+    memory.put(TYPE_FLAGS, struct.pack("<I", 0x204))
+    memory.put(MONS + 0x24 + 2, bytes([40, 30]))
+    return memory
+
+
+def test_empty_slots_in_native_tutorial_only_and_off_parity():
+    memory = tutorial()
+    legacy = read_battle_state(memory.read)
+    assert legacy.diagnostic == "harness bug: empty battle move has PP"
+    assert read_battle_state(memory.read, tutorial_owner_enabled=False) == legacy
+    repaired = read_battle_state(memory.read, tutorial_owner_enabled=True)
+    assert repaired.initialized and repaired.diagnostic is None
+    assert [(move.move_id, move.pp, move.max_pp) for move in repaired.battlers[0].moves[2:]] == [
+        (0, 0, 0), (0, 0, 0)
+    ]
+    memory.put(TYPE_FLAGS, bytes(4))
+    assert read_battle_state(memory.read, tutorial_owner_enabled=True) == legacy
+
+
+@pytest.mark.parametrize("invalid", [65, 255])
+def test_tutorial_does_not_hide_out_of_range_pp(invalid):
+    memory = tutorial()
+    memory.put(MONS + 0x26, bytes([invalid]))
+    assert read_battle_state(memory.read, tutorial_owner_enabled=True).phase == "unavailable"
+
+
+def test_game_state_and_active_ui_forward_existing_switch():
+    memory = tutorial()
+    on = read_game_state(memory.read, MapNames({}), tutorial_owner_enabled=True)
+    off = read_game_state(memory.read, MapNames({}), tutorial_owner_enabled=False)
+    assert on.battle.initialized and on.battle.diagnostic is None
+    assert off.battle.phase == "unavailable"
+    assert on.active_ui.diagnostic is None
+    assert off.active_ui.diagnostic == "harness bug: empty battle move has PP"
+    screen = Screen("battle", 0, 0)
+    assert read_active_ui(memory.read, screen, tutorial_owner_enabled=True).diagnostic is None
+    assert read_active_ui(memory.read, screen, tutorial_owner_enabled=False).diagnostic == off.active_ui.diagnostic
+
+
+def test_real_archived_tutorial_reaches_model_readout():
+    provenance = json.loads((FIXTURES / "wally-battle-raw.provenance.json").read_text())
+    try:
+        rom = resolve_rom(os.environ).read_bytes()
+    except RomError:
+        pytest.skip("POKEBENCH_ROM is not set to the Emerald ROM")
+    read = load_raw_ram(FIXTURES / "wally-battle-raw.json.gz", provenance["archive"]["sha256"], rom=rom)
+    maps = MapNames.load(PORYMAP_MAPS)
+    # Isolate the existing owner switch via the same production factory used by /state and rerender.
+    off = frozenset({"tutorial-party-owner-v1"})
+    old = read_state(read, maps, active_ui=True, off=off)
+    repaired = read_state(read, maps, active_ui=True, off=frozenset())
+    assert old.battle.diagnostic == "harness bug: empty battle move has PP"
+    assert repaired.battle.initialized and repaired.battle.diagnostic is None
+    assert repaired.active_ui.diagnostic is None
+    assert repaired.battle.battlers[0].species == "ZIGZAGOON"
+    assert [move.move_id for move in repaired.battle.battlers[0].moves] == [33, 0, 0, 0]
+    assert repaired.battle.ready is False
+    assert "empty battle move has PP" not in render(repaired, frozenset())
+    delivered = state_json(repaired)
+    assert delivered["battle"]["initialized"] is True
+    assert delivered["battle"]["diagnostic"] is None

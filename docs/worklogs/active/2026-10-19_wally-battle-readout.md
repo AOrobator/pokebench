@@ -52,3 +52,6 @@ Native archive replay must move the real Wally error to truthful decoded battle/
 
 ## Archive Milestone
 - [ ] ASK USER: approve archiving after completion.
+
+- Worklog COMMIT: `docs: plan Wally battle readout repair` (3c5741d1). Reference pret/pokeemerald731ad5bf clean. Source LoadWallyZigzagoon clears MOVE2-4 only; failing archive r1 whole-map seq971/T47/raw886 has type0x204 and TACKLE/empty/empty/empty PP35/40/30/0. Preserved full writable archive and provenance as regression fixture, no ROM.
+- Initial RED run confirms missing switch arguments on both production readers. First native test invocation lacked ROM configuration (not counted as repair evidence); configured-ROM run also exposed uninitialized vendor dependency, now initializing normally. No test/gate weakening.

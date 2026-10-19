@@ -207,6 +207,33 @@ describe("story-destinations-v1 rules",()=>{
  });
 });
 
+describe("scripted-place-guidance-v1",()=>{
+ const petalburg=field([0,0],"PETALBURG CITY");
+ const gymPages=[
+  page("Hiya! Are you maybe…\nA rookie TRAINER?",null,null),
+  page("They first check what kind of GYM\nis in the town.",null,null),
+  page("See? This is PETALBURG CITY's GYM.",null,null),
+  page("This is the GYM's sign. Look for it\nwhenever you're looking for a GYM.",null,null),
+ ];
+ const block=(on:boolean,pages:readonly object[])=>{
+  const story=new StoryDestinations(on);
+  story.observe(talk("gym",14,pages));story.observe(delivered("gym",14));
+  return story.block(petalburg,"later",PLACES.places);
+ };
+ it("OFF leaves the forced Gym introduction outside the story-character destination stream",()=>{
+  expect(block(false,gymPages)).toBeNull();
+ });
+ it("ON preserves the game's line and resolves its named Gym to the Petalburg door",()=>{
+  expect(block(true,gymPages)).toBe([
+   `${STORY_HEADER} (turn 14, PETALBURG GYM BOY): "See? This is PETALBURG CITY's GYM."`,
+   `- "PETALBURG CITY's GYM" = PETALBURG CITY GYM (map 8/1). Way in: door in PETALBURG CITY (map 0/0) at (15,8).`,
+  ].join("\n"));
+ });
+ it("ON does not promote an arbitrary unnamed place line",()=>{
+  expect(block(true,[page("Go to RUSTBORO CITY.",null,null)])).toBeNull();
+ });
+});
+
 type Details={state:GameStateSnapshot|undefined};
 function fakeObserve(state:GameStateSnapshot,text:string):AgentTool {
  return {name:"observe",label:"Observe",description:"d",parameters:Type.Object({}),execute:()=>Promise.resolve({content:[{type:"image",data:"x",mimeType:"image/png"},{type:"text",text}],details:{state}} satisfies AgentToolResult<Details>)};

@@ -8,7 +8,7 @@
  "primaryMilestone": "RUSTBORO_CITY",
  "source": {
   "checkout": "main",
-  "commit": "f2384d6bb3edde7d8739732ba1852e7f9d0fdf29"
+  "commit": "53de6d83a649568e4c847135196f929d20fd9e35"
  },
  "incumbent": {
   "version": 2,
@@ -153,5 +153,5 @@
  "criteria": {"completionTolerance": 0,"speedMarginPercent": 10},
  "readiness": {"window": 4,"minReached": 3},
  "externalCohort": "visited-terrain-petalburg-45m",
- "notes": "Pending, unqueued and unapproved. Intended design is a balanced checkpoint cohort from the verified PETALBURG_CITY state used by the 2026-10-19 reruns (SHA-1 f1cf4b8217b7a67f9d48094d21e9fa2c50eebc82), 45 minutes per trial on the main bundle, with only visited-terrain-navigation-v1 flipped. The memory begins empty in each run; no history is reconstructed from the parent run. The implementation's earliest possible activation remains PLAYER_NAME_CONFIRMED, while the planned cohort starts later for frontier relevance. No queue position is assigned. source.commit is the implementation ancestor on this branch; repin to the merge SHA after landing. Design and power sizing remain required before operator approval or launch. A compact local-plus-visited default with explicit on-demand inspect_map or plan_route access is a separate follow-on prompted by whole-map probe deliberation; this experiment evaluates the persistent visited-terrain treatment implemented here."
+ "notes": "Pending, unqueued and unapproved. Intended design is a balanced checkpoint cohort from the verified PETALBURG_CITY state used by the 2026-10-19 reruns (SHA-1 f1cf4b8217b7a67f9d48094d21e9fa2c50eebc82), 45 minutes per trial on the main bundle, with only visited-terrain-navigation-v1 flipped. The memory begins empty in each run; no history is reconstructed from the parent run. The implementation's earliest possible activation remains PLAYER_NAME_CONFIRMED, while the planned cohort starts later for frontier relevance. No queue position is assigned. source.commit is the feature-complete branch parent; repin to the merge SHA after landing. Design and power sizing remain required before operator approval or launch. A compact local-plus-visited default with explicit on-demand inspect_map or plan_route access is a separate follow-on prompted by whole-map probe deliberation; this experiment evaluates the persistent visited-terrain treatment implemented here."
 }

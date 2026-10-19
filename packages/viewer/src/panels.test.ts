@@ -577,6 +577,14 @@ it("links the elevation transitions card to its tracked explainer",()=>{
  expect(FEATURE_EXPLAINERS["elevation-transitions-v1"]).toBe("elevation-transitions.html");
 });
 
+it("links visited terrain navigation to its tracked explainer",()=>{
+ const id="visited-terrain-navigation-v1";
+ expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
+ const html=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)),"utf8");
+ expect(html).toContain("only cells shown to you this run");
+ expect(html).toContain("checkpoint restores the game, not this memory");
+});
+
 it("maps game evidence priority to a tracked explainer, like every other mapped card",()=>{
  expect(FEATURE_EXPLAINERS["game-evidence-priority-v1"]).toBe("game-evidence-priority-v1.html");
  for(const file of Object.values(FEATURE_EXPLAINERS))expect(existsSync(fileURLToPath(new URL(`../../../docs/explainers/${file}`,import.meta.url)))).toBe(true);
@@ -1121,6 +1129,19 @@ it("links the stale story goal card to its tracked explainer, which quotes the r
  expect(html).toContain("Done: Pokédex received. This is not where to go.");
  expect(html).toContain("is done: Pokédex received. It is not where to go.");
  expect(html).toContain("bundle arm only");
+});
+
+it("links the stage-bound story goal card to its tracked explainer, which shows omission instead of none",()=>{
+ const id="stale-story-goal-v2";
+ expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
+ const log=new Log();log.add(0,{...START,harness_features:["ram-state-v1","stale-story-goal-v1",id]});
+ const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
+ expect(doc.querySelector(`[data-feature="${id}"] a`)?.getAttribute("href")).toBe(`/explainers/${id}.html`);
+ const html=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)),"utf8");
+ expect(html).toContain(id);
+ expect(html).toContain("<title>Stage-bound story goal</title>");
+ expect(html).toContain("Story goal: none");
+ expect(html).toContain("omitted");
 });
 
 it("links the battle menu loop card to its tracked explainer, which quotes the menu sentence",()=>{

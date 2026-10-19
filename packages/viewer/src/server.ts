@@ -15,7 +15,7 @@ import { FEATURES } from "@pokebench/agent/features";
 import { CONTROL_ACTIONS } from "@pokebench/agent/events";
 import { finalsRunLabels } from "./experiment-gate-store.js";
 import type { BaselineStore, RunStore } from "./baseline-store.js";
-import { BaselineError, RunsError, createBaselineReader, comparisonsOf, type BaselineCompute, eventsPath, listRuns, liveScreenPort, LogReader, readStart, readStartIdentity, runDir, type BaselineReader } from "./runs.js";
+import { BaselineError, RunsError, createBaselineReader, comparisonsOf, type BaselineCompute, eventsPath, listRuns, liveScreenPort, LogReader, readRecentEvents, readStart, readStartIdentity, runDir, type BaselineReader } from "./runs.js";
 import { featureHistory } from "./history.js";
 import { localModels } from "./models.js";
 import { NextRunError, appendControl, healthProbe, liveRuns, readDraft, writeDraft, type RunQueue } from "./next-run.js";
@@ -414,6 +414,7 @@ async function route(req: IncomingMessage, res: ServerResponse, options: ViewerO
     if (id === undefined) throw new RunsError("no run id");
     const dir = runDir(options.runsRoot, id);
     if(parts.length===4 && leaf==="start") {sendJson(res,200,readStart(options.runsRoot,id));return;}
+    if (parts.length === 4 && leaf === "head") { sendJson(res, 200, readRecentEvents(options.runsRoot, id)); return; }
     if (parts.length === 4 && leaf === "events") {
       const path = eventsPath(options.runsRoot, id);
       if (!existsSync(path)) throw new RunsError(`run ${id} has no events.jsonl`);

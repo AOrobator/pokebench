@@ -46,6 +46,7 @@ RECORDED_OFF = frozenset(FIXTURE["recorded_off"]) | {
     "unset-dynamic-warp-v1",
     "status-names-v1",
     "surf-gated-exits-v2",
+    "battle-effective-damage-v1",
 }
 T416 = "raw-ram/00004588.json.gz"
 T754 = "raw-ram/00005144.json.gz"

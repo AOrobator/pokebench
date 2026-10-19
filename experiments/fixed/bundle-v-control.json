@@ -146,7 +146,8 @@
    "just-in-time-prompt-v1": false,
    "just-in-time-prompt-v2": false,
    "jit-guide-reuse-v1": false,
-   "battle-effective-damage-v1": false
+   "battle-effective-damage-v1": false,
+   "visited-terrain-navigation-v1": false
   }
  },
  "switches": [

@@ -35,8 +35,12 @@ export type FrontierStatus = "live" | "paused" | null;
 const modelName = (run: WorkbenchRun): string => run.model ?? "Model not recorded";
 // A main-menu save (options set, before NEW GAME) starts the game from New game: it plots with boot runs, tagged.
 const plottedAgent = (run: WorkbenchRun): boolean => run.excluded === null && run.problem === null && run.measurement?.controller === "agent" && (run.config?.start === "boot" || run.config?.resume === "MAIN_MENU");
-export const clockSetResume = (run: WorkbenchRun): boolean => run.excluded === null && run.problem === null && run.measurement?.controller === "agent" && run.config?.resume === "CLOCK_SET";
-export const shownAgent = (run: WorkbenchRun): boolean => plottedAgent(run) || clockSetResume(run);
+// Only exact known story-checkpoint identities are admitted; arbitrary save files remain unclassified.
+export function resumeMilestone(run: WorkbenchRun): (typeof FRONTIER_MILESTONES)[number] | null {
+  return FRONTIER_MILESTONES.find(m => m.id === run.config?.resume) ?? null;
+}
+export const checkpointResume = (run: WorkbenchRun): boolean => run.excluded === null && run.problem === null && run.measurement?.controller === "agent" && resumeMilestone(run) !== null;
+export const shownAgent = (run: WorkbenchRun): boolean => plottedAgent(run) || checkpointResume(run);
 // Harness versions of every run the frontier can draw; previous keeps colors already given out (version key → color).
 export function frontierVersions(runs: readonly WorkbenchRun[], previous: ReadonlyMap<string, string> = new Map()): VersionIndex {
   return harnessVersions(runs.filter(shownAgent), previous);
@@ -48,7 +52,7 @@ export function preciseTime(ms: number): string {
   return `${String(Math.floor(whole / 60))}:${String(whole % 60).padStart(2, "0")}.${fraction}`;
 }
 const recordedRun = (r: WorkbenchRun): boolean => r.excluded === null && r.problem === null && r.measurement !== undefined && !r.measurement.features.some(f => /probe|synthetic|replay/.test(f));
-// The agent frontier is the best New Game start (power-on or the main-menu save), live or finished; a Clock set resume starts its clock mid-game, so it never competes.
+// The agent frontier is the best New Game start (power-on or the main-menu save), live or finished; a checkpoint resume starts its clock mid-game, so it never competes.
 const frontierCandidate = (r: WorkbenchRun): boolean => recordedRun(r) && r.measurement?.controller === "agent" && (r.config?.start === "boot" || r.config?.resume === "MAIN_MENU") && (r.status === "ended" || r.status === "live" || r.status === "paused");
 export function frontierReferences(runs: readonly WorkbenchRun[]): ReferencePair {
   const rank = (r: WorkbenchRun): number => RECORD_ORDER.findLastIndex(name => r.splits.some(s => s.name === name && s.screenshotEvidence === undefined));
@@ -70,7 +74,7 @@ export function markerShape(shape: "human" | "best" | "overlay" | "resumed", x: 
 }
 function mark(run: WorkbenchRun, name: string, x: number, y: number, color: string, shape: "human" | "best" | "overlay" | "resumed"): string {
   const split = run.splits.find(s => s.name === name); if (split === undefined) return "";
-  const sinceSave = run.config?.resume === "CLOCK_SET" ? " · resumed at Clock set, not from New game; minutes since the save loaded" : run.config?.resume === "MAIN_MENU" ? " · started from the main-menu save (text speed FAST), not power-on; minutes since the save loaded" : "";
+  const sinceSave = resumeMilestone(run) !== null ? ` · resumed at ${resumeMilestone(run)?.label ?? ""}, not from New game; minutes since the save loaded` : run.config?.resume === "MAIN_MENU" ? " · started from the main-menu save (text speed FAST), not power-on; minutes since the save loaded" : "";
   const title = `${run.id} · ${name} · active ${split.derived === true ? "≤ " : ""}${preciseTime(split.elapsedMs)} · ${split.derived === true ? (split.screenshotEvidence === undefined ? "recovered native state (first observation upper bound)" : "reviewed screenshot (observation upper bound)") : "native milestone"} #${String(split.seq)}${sinceSave}`;
   const body = markerShape(shape, x, y, color);
   return `<g class="wb-mark" role="button" tabindex="0" data-run="${esc(run.id)}" data-split="${esc(name)}" aria-label="${esc(title)}" fill="${color}" stroke="${color}" stroke-width="${shape === "best" ? "2" : "1"}"><title>${esc(title)}</title>${body}</g>`;
@@ -82,7 +86,7 @@ export function frontierLabel(run: WorkbenchRun, status: FrontierStatus, version
 }
 function zoomEnd(agents: readonly WorkbenchRun[], human: WorkbenchRun | null): number {
   const reached = (run: WorkbenchRun, i: number): boolean => run.splits.some(s => s.name === RECORD_ORDER[i]);
-  const farthest = Math.max(-1, ...agents.map(run => RECORD_ORDER.findLastIndex((_, i) => reached(run, i))));
+  const farthest = Math.max(-1, ...agents.map(run => Math.max(RECORD_ORDER.indexOf(run.config?.resume ?? ""), RECORD_ORDER.findLastIndex((_, i) => reached(run, i)))));
   const next = human === null ? -1 : RECORD_ORDER.findIndex((_, i) => i > farthest && reached(human, i));
   return Math.min(RECORD_ORDER.length - 1, Math.max(1, next === -1 ? farthest + 1 : next));
 }
@@ -92,16 +96,15 @@ export function frontierPlot(refs: ReferencePair, overlays: readonly WorkbenchRu
   const series: { run: WorkbenchRun; color: string; kind: "human" | "best" | "overlay" | "live" | "paused" | "resumed"; resumed: boolean }[] = [];
   const current = currentRuns.filter(r => shownAgent(r) && (r.status === "live" || r.status === "paused") && r.id !== refs.best?.id);
   const currentIds = new Set(current.map(r => r.id));
-  for (const run of overlays) if (!currentIds.has(run.id) && run.id !== refs.human?.id && run.id !== refs.best?.id && shownAgent(run)) series.push({ run, color: versions.byRun.get(run.id)?.color ?? OTHER_COLOR, kind: clockSetResume(run) ? "resumed" : "overlay", resumed: clockSetResume(run) });
+  for (const run of overlays) if (!currentIds.has(run.id) && run.id !== refs.human?.id && run.id !== refs.best?.id && shownAgent(run)) series.push({ run, color: versions.byRun.get(run.id)?.color ?? OTHER_COLOR, kind: checkpointResume(run) ? "resumed" : "overlay", resumed: checkpointResume(run) });
   if (refs.human !== null) series.push({ run: refs.human, color: "#304f7a", kind: "human", resumed: false });
   if (refs.best !== null) series.push({ run: refs.best, color: "#af8915", kind: "best", resumed: false });
-  for (const run of current) series.push({ run, color: versions.byRun.get(run.id)?.color ?? OTHER_COLOR, kind: run.status === "live" ? "live" : "paused", resumed: clockSetResume(run) });
+  for (const run of current) series.push({ run, color: versions.byRun.get(run.id)?.color ?? OTHER_COLOR, kind: run.status === "live" ? "live" : "paused", resumed: checkpointResume(run) });
   const milestones = zoom ? FRONTIER_MILESTONES.slice(0, zoomEnd(series.filter(s => s.kind !== "human").map(s => s.run), refs.human) + 1) : FRONTIER_MILESTONES;
   const hidden = FRONTIER_MILESTONES.length - milestones.length, last = milestones[milestones.length - 1]?.label ?? "";
   const left = 43, right = width - 15, top = 20, bottom = 490, height = 635;
-  const clockAt = FRONTIER_MILESTONES.findIndex(m => m.id === "CLOCK_SET");
-  const onChart = (resumed: boolean, name: string): boolean => !resumed || FRONTIER_MILESTONES.findIndex(m => m.id === name) >= clockAt;
-  const values = series.flatMap(s => milestones.flatMap(m => onChart(s.resumed, m.id) ? s.run.splits.filter(p => p.name === m.id).map(p => p.elapsedMs / 60000) : []));
+  const onChart = (run: WorkbenchRun, name: string): boolean => resumeMilestone(run) === null || RECORD_ORDER.indexOf(name) >= RECORD_ORDER.indexOf(run.config?.resume ?? "");
+  const values = series.flatMap(s => milestones.flatMap(m => onChart(s.run, m.id) ? s.run.splits.filter(p => p.name === m.id).map(p => p.elapsedMs / 60000) : []));
   const peak = Math.max(0, ...values) * 1.08, step = peak > 60 ? 20 : peak > 20 ? 5 : peak > 10 ? 2 : 1;
   const max = Math.max(1, Math.ceil(peak / step) * step);
   const x = (i: number): number => left + (right - left) * i / (milestones.length - 1);
@@ -110,44 +113,44 @@ export function frontierPlot(refs: ReferencePair, overlays: readonly WorkbenchRu
   for (let i = 0; i <= 4; i++) { const value = max * i / 4, at = y(value); body += `<line class="wb-gridline" x1="${String(left)}" x2="${String(right)}" y1="${String(at)}" y2="${String(at)}"/><text class="wb-axis" x="${String(left - 7)}" y="${String(at + 4)}" text-anchor="end">${String(Number(value.toFixed(1)))}</text>`; }
   const labelEvery = Math.ceil(milestones.length / Math.max(2, Math.floor((right - left) / 28)));
   const mustLabel = new Set<number>([milestones.length - 1]);
-  for (const { run, resumed } of series) {
+  for (const { run } of series) {
     let previous = false;
     milestones.forEach((m, i) => {
-      const present = onChart(resumed, m.id) && run.splits.some(s => s.name === m.id);
+      const present = onChart(run, m.id) && run.splits.some(s => s.name === m.id);
       if (present && !previous) mustLabel.add(i);
       if (!present && previous) mustLabel.add(i - 1);
       previous = present;
     });
   }
-  const resumeOrigin = milestones.findIndex(m => m.id === "CLOCK_SET");
-  if (resumeOrigin >= 0 && series.some(s => s.resumed)) mustLabel.add(resumeOrigin);
+  const origins = [...new Set(series.filter(s => s.resumed).map(s => s.run.config?.resume))];
+  for (const id of origins) { const origin = milestones.findIndex(m => m.id === id); if (origin >= 0) mustLabel.add(origin); }
   milestones.forEach((m, i) => { if (i % labelEvery !== 0 && !mustLabel.has(i)) return; const at = x(i); body += `<text class="wb-axis" transform="translate(${String(at)},${String(bottom + 23)}) rotate(-60)" text-anchor="end">${m.label}</text>`; });
-  if (series.some(s => s.resumed)) {
-    const origin = milestones.findIndex(m => m.id === "CLOCK_SET");
+  for (const id of origins) {
+    const origin = milestones.findIndex(m => m.id === id);
     if (origin >= 0) {
       const at = x(origin);
-      body += `<line data-resume-origin="CLOCK_SET" x1="${String(at)}" x2="${String(at)}" y1="${String(top)}" y2="${String(bottom)}" stroke="#b36b00" stroke-width="1.5" stroke-dasharray="3 4" pointer-events="none"/><text class="wb-resume-tag" data-resume-origin="CLOCK_SET" x="${String(at + 6)}" y="${String(top + 14)}">not from zero</text>`;
+      body += `<line data-resume-origin="${esc(id ?? "")}" x1="${String(at)}" x2="${String(at)}" y1="${String(top)}" y2="${String(bottom)}" stroke="#b36b00" stroke-width="1.5" stroke-dasharray="3 4" pointer-events="none"/><text class="wb-resume-tag" data-resume-origin="${esc(id ?? "")}" x="${String(at)}" text-anchor="${origin > milestones.length / 2 ? "end" : "start"}" y="${String(top + 14)}">not from zero</text>`;
     }
   }
   for (const { run, color, kind, resumed } of series) {
     const active = kind === "live" || (kind === "best" && frontierStatus === "live"), isCurrent = active || kind === "paused" || (kind === "best" && frontierStatus !== null);
     const group = kind === "human" ? "__human" : kind === "best" ? "__best" : versions.byRun.get(run.id)?.id ?? "__other", member = kind === "best" ? versions.byRun.get(run.id)?.id : undefined;
     const on = focus !== null && (group === focus || member === focus);
-    body += `<g class="${["wb-series", on ? "wb-on" : "", active ? "wb-live-run" : "", isCurrent && !active ? "wb-paused-run" : "", resumed ? "wb-resumed-run" : ""].filter(c => c !== "").join(" ")}" data-version="${group}"${member === undefined ? "" : ` data-member="${member}"`}${isCurrent ? ` data-current-run="${esc(run.id)}"` : ""}${active ? ` data-live-run="${esc(run.id)}"` : ""}${resumed ? ' data-resume="CLOCK_SET"' : ""} style="--wb-run-color:${color}">`;
+    body += `<g class="${["wb-series", on ? "wb-on" : "", active ? "wb-live-run" : "", isCurrent && !active ? "wb-paused-run" : "", resumed ? "wb-resumed-run" : ""].filter(c => c !== "").join(" ")}" data-version="${group}"${member === undefined ? "" : ` data-member="${member}"`}${isCurrent ? ` data-current-run="${esc(run.id)}"` : ""}${active ? ` data-live-run="${esc(run.id)}"` : ""}${resumed ? ` data-resume="${esc(run.config?.resume ?? "")}"` : ""} style="--wb-run-color:${color}">`;
     let points: string[] = [];
     const flush = (): void => { if (points.length > 1) body += `<polyline data-series="${esc(run.id)}" fill="none" stroke="${color}" stroke-width="${kind === "overlay" || kind === "resumed" ? "1.5" : "2.5"}"${kind === "overlay" ? ' opacity=".45"' : ""}${resumed ? ' stroke-dasharray="8 5"' : ""} points="${points.join(" ")}"/>`; points = []; };
-    milestones.forEach((m, i) => { if (!onChart(resumed, m.id)) { flush(); return; } const split = run.splits.find(s => s.name === m.id); if (split === undefined) { if (milestoneStatus(run, m.id) !== "unsupported") flush(); return; } const atX = x(i), atY = y(split.elapsedMs / 60000); points.push(`${String(atX)},${String(atY)}`); }); flush();
-    milestones.forEach((m, i) => { if (!onChart(resumed, m.id)) return; const split = run.splits.find(s => s.name === m.id); if (split !== undefined) body += mark(run, m.id, x(i), y(split.elapsedMs / 60000), color, kind === "human" || kind === "best" ? kind : resumed ? "resumed" : "overlay"); });
+    milestones.forEach((m, i) => { if (!onChart(run, m.id)) { flush(); return; } const split = run.splits.find(s => s.name === m.id); if (split === undefined) { if (milestoneStatus(run, m.id) !== "unsupported") flush(); return; } const atX = x(i), atY = y(split.elapsedMs / 60000); points.push(`${String(atX)},${String(atY)}`); }); flush();
+    milestones.forEach((m, i) => { if (!onChart(run, m.id)) return; const split = run.splits.find(s => s.name === m.id); if (split !== undefined) body += mark(run, m.id, x(i), y(split.elapsedMs / 60000), color, kind === "human" || kind === "best" ? kind : resumed ? "resumed" : "overlay"); });
     if (active) {
-      const latest = milestones.findLastIndex(m => onChart(resumed, m.id) && run.splits.some(s => s.name === m.id));
+      const latest = milestones.findLastIndex(m => onChart(run, m.id) && run.splits.some(s => s.name === m.id));
       const split = run.splits.find(s => s.name === milestones[latest]?.id);
       if (split !== undefined) body += `<circle class="wb-live-head" cx="${String(x(latest))}" cy="${String(y(split.elapsedMs / 60000))}" r="10" fill="none" stroke="${color}" pointer-events="none"/>`;
     }
     body += "</g>";
   }
   const unavailable = `${refs.human === null ? '<p class="wb-notice">Human reference unavailable: recorded baseline is missing or invalid.</p>' : ""}${refs.best === null ? '<p class="wb-notice">Agent frontier unavailable: no valid New Game-start agent run has reached a story checkpoint yet.</p>' : ""}`;
-  const resumeNotice = series.some(s => s.resumed) ? '<p class="wb-notice" data-resume-notice="CLOCK_SET">Dashed runs loaded a Clock set save. They did not start from New game. Minutes on a dashed line start when that save loaded, so a low line is not a faster fresh start.</p>' : "";
-  const currentKeys = current.map(run => { const color = versions.byRun.get(run.id)?.color ?? OTHER_COLOR; return `<span class="wb-current-key ${run.status === "live" ? "wb-live-key" : ""}" style="--wb-run-color:${color}" title="${esc(run.id)}"><i style="background:${color}"></i>${run.status === "live" ? "LIVE" : "PAUSED"}${clockSetResume(run) ? " · NOT FROM ZERO" : ""} · ${esc(versionLabel(run, versions))} · ${esc(run.id.slice(-4))}${run.splits.some(s => milestones.some(m => m.id === s.name)) ? "" : " · waiting for first story checkpoint"}</span>`; }).join("");
+  const resumeNotice = origins.map(id => `<p class="wb-notice" data-resume-notice="${esc(id ?? "")}">Dashed runs loaded a ${esc(FRONTIER_MILESTONES.find(m => m.id === id)?.label ?? "checkpoint")} save. They did not start from New game. Minutes on a dashed line start when that save loaded, so a low line is not a faster fresh start.</p>`).join("");
+  const currentKeys = current.map(run => { const color = versions.byRun.get(run.id)?.color ?? OTHER_COLOR; return `<span class="wb-current-key ${run.status === "live" ? "wb-live-key" : ""}" style="--wb-run-color:${color}" title="${esc(run.id)}"><i style="background:${color}"></i>${run.status === "live" ? "LIVE" : "PAUSED"}${checkpointResume(run) ? " · NOT FROM ZERO" : ""} · ${esc(versionLabel(run, versions))} · ${esc(run.id.slice(-4))}${run.splits.some(s => onChart(run, s.name) && milestones.some(m => m.id === s.name)) ? "" : " · waiting for first story checkpoint"}</span>`; }).join("");
   const legend = currentKeys === "" ? "" : `<div class="wb-model-legend wb-current-keys" aria-label="Runs in progress">${currentKeys}</div>`;
   return `${unavailable}${resumeNotice}${legend}<svg class="wb-chart wb-frontier-chart${focus === null ? "" : " wb-dim"}" viewBox="0 0 ${String(width)} ${String(height)}" role="img" aria-label="${hidden === 0 ? "Full story frontier through gym and badge" : `Story frontier zoomed to ${FRONTIER_MILESTONES[0].label} through ${last}`}">${body}</svg><p class="wb-muted">${hidden === 0 ? `${String(milestones.length)} required progression checkpoints.` : `Zoomed to the frontier: ${FRONTIER_MILESTONES[0].label} → ${last}, ${String(milestones.length)} of ${String(FRONTIER_MILESTONES.length)} checkpoints. ${String(hidden)} later checkpoints hidden; choose FULL BASELINE for the whole human run.`}${labelEvery === 1 ? "" : ` Some axis labels are hidden to fit this width; all ${hidden === 0 ? "recorded" : "visible"} points remain plotted.`} Recovered first-observation times are upper bounds (≤ in point details). A checkpoint the run recorded but missed breaks the line; one its build never recorded is skipped.</p>`;
 }

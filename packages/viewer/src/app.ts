@@ -139,6 +139,17 @@ function runChoices(value: unknown): RunChoice[] {
   });
 }
 
+function recordedHead(value: unknown, runId: string): readonly RunEvent[] {
+  if (!Array.isArray(value)) throw new Error("malformed recorded thinking payload");
+  const events: RunEvent[] = [];
+  for (const event of value as unknown[]) {
+    if (!isRunEvent(event) || event.run !== runId) throw new Error("malformed recorded thinking payload");
+    events.push(event);
+  }
+  if (events[0]?.type !== "run_start") throw new Error("malformed recorded thinking payload");
+  return events;
+}
+
 function comparisonLabel(run: string, value: unknown): string {
   const record = value as { controller?: { kind?: unknown }; romIdentity?: unknown };
   return record.controller?.kind === "human" && record.romIdentity === "unverified" ? `${run} (ROM unverified)` : run;
@@ -192,13 +203,16 @@ export class App {
   private trace = this.newTrace();
   private traced = 0;
   private traceKey = "";
+  private sideKey = "";
+  private recordedThinking: RunView | null = null;
+  private recordedThinkingTrace: TraceBuilder | null = null;
+  private recordedThinkingRequest = 0;
   private traceOn = new Set<TraceCategory>(TRACE_CHIPS.filter((chip) => chip.on).map((chip) => chip.id));
   private traceLimit = TRACE_TURNS;
   private readonly stamps = new WeakMap<HTMLElement, string>();
   // Lists under the pointer hold still while newer turns arrive, so a click lands where aimed.
   private readonly held = new Set<HTMLElement>();
   private readonly heldAtTop = new Set<HTMLElement>();
-  private sideBox: number | null = null;
   private readonly autoScroll = new WeakMap<HTMLElement, number>();
   private rows: RowState = { open: new Set(), folded: new Set(), selected: null };
   private screenTick = 0;
@@ -644,6 +658,30 @@ export class App {
     }
   }
 
+  private async loadRecordedThinking(runId: string): Promise<void> {
+    const request = ++this.recordedThinkingRequest;
+    try {
+      const events = recordedHead(await this.deps.fetchJson(`/api/runs/${encodeURIComponent(runId)}/head`), runId);
+      if (request !== this.recordedThinkingRequest || this.runId !== runId) return;
+      const view = new RunView();
+      for (const event of events) view.apply(event);
+      this.setRecordedThinking(view, events);
+      this.render();
+    } catch {
+      if (request !== this.recordedThinkingRequest || this.runId !== runId) return;
+      this.recordedThinking = null;
+      this.recordedThinkingTrace = null;
+      this.render();
+    }
+  }
+
+  private setRecordedThinking(view: RunView, events: readonly RunEvent[]): void {
+    const trace = new TraceBuilder((event) => view.loopLabel(event).replace(`: ${event.message}`, ""));
+    for (const event of events) trace.add(event);
+    this.recordedThinking = view;
+    this.recordedThinkingTrace = trace;
+  }
+
   select(runId: string): void {
     this.stream?.close();
     this.runId = runId;
@@ -656,6 +694,9 @@ export class App {
     this.baseline = null;
     this.best = null;
     this.baselineRequest += 1;
+    this.recordedThinkingRequest += 1;
+    this.recordedThinking = null;
+    this.recordedThinkingTrace = null;
     this.problems = [];
     this.ui("problems").hidden = true;
     this.ui("problems").textContent = "";
@@ -676,6 +717,7 @@ export class App {
     if (comparisons !== null) comparisons.href = `/comparisons?from=${encodeURIComponent(runId)}`;
     const stream = this.deps.openStream(`/api/runs/${encodeURIComponent(runId)}/events`);
     this.stream = stream;
+    void this.loadRecordedThinking(runId);
     stream.addEventListener("ev", (message) => {
       if (this.stream !== stream) return;
       this.receive(message.data);
@@ -687,6 +729,10 @@ export class App {
     });
     stream.addEventListener("caught_up", () => {
       if (this.stream !== stream) return;
+      // The fully folded stream is authoritative now. A slower optional head
+      // request must not replace or clear it after this handoff.
+      this.recordedThinkingRequest += 1;
+      this.setRecordedThinking(this.view, this.view.events);
       if (this.view.end !== null) this.startReplay(false);
       else {
         this.mode = "live";
@@ -720,7 +766,9 @@ export class App {
       this.problem(`event for run ${value.run}`);
       return;
     }
+    const eventCount = this.view.events.length;
     this.view.apply(value);
+    if (this.mode !== "loading" && this.recordedThinking === this.view && this.view.events.length > eventCount) this.recordedThinkingTrace?.add(value);
   }
 
   private problem(text: string): void {
@@ -783,9 +831,9 @@ export class App {
     this.trace = this.newTrace();
     this.traced = 0;
     this.traceKey = "";
+    this.sideKey = "";
     this.traceLimit = TRACE_TURNS;
     this.rows = { open: new Set(), folded: new Set(), selected: null };
-    this.sideBox = null;
     for (const name of ["trace", "side-trace"]) this.doc.querySelector<HTMLElement>(`[data-ui="${name}"]`)?.replaceChildren();
   }
 
@@ -835,8 +883,9 @@ export class App {
     for (const selected of this.doc.querySelectorAll(".tl.sel")) selected.classList.remove("sel");
     this.rows.selected = row.dataset.key ?? null;
     for (const same of this.doc.querySelectorAll<HTMLElement>(`[data-key="${row.dataset.key ?? ""}"]`)) same.classList.add("sel");
+    const owner = row.closest('[data-ui="side-trace"]') === null ? this.shown : this.recordedThinking;
     const seqs = (row.dataset.seqs ?? "").split(" ").map(Number);
-    this.setHtml("inspector", seqs.map((seq) => inspector(this.shown.bySeq(seq))).join(""));
+    this.setHtml("inspector", seqs.map((seq) => inspector(owner?.bySeq(seq))).join(""));
   }
 
   private renderTrace(nowMs: number): void {
@@ -846,21 +895,23 @@ export class App {
     const key = `${String(this.trace.version)}|${[...this.traceOn].sort().join(",")}|${String(this.traceLimit)}|${String(live?.turn ?? "")}`;
     const box = this.ui("trace");
     if (key !== this.traceKey) {
-      const versionChanged = this.traceKey.split("|")[0] !== String(this.trace.version);
       this.traceKey = key;
       this.renderChips();
-      // The side list leaves out the thought the Emerald box shows, so it also redraws when the box moves on.
-      const boxTurn = this.shown.isThinking ? null : this.shown.lastThought?.turn ?? null;
-      if (versionChanged || boxTurn !== this.sideBox) {
-        this.sideBox = boxTurn;
-        const side = this.ui("side-trace");
-        const groups = sideGroups(this.trace.turns, SIDE_TURNS, boxTurn);
-        reconcile(side, groups, groups.length === 0 ? '<p class="nodata">no steps yet</p>' : "", this.stamps, this.held.has(side), this.rows, (top) => { this.scrollTo(side, top); });
-      }
       const startMs = this.shown.startMs;
       const elapsed = startMs === null ? null : (ms: number): number => (ms - startMs - this.shown.control.pausedBefore(ms)) / 1000;
       const { groups, more } = traceGroups(this.trace.turns, this.traceOn, { elapsed, live, limit: this.traceLimit, page: TRACE_TURNS });
       reconcile(box, groups, groups.length === 0 ? '<p class="nodata">no recorded events</p>' : moreButton(more, TRACE_TURNS), this.stamps, this.held.has(box), this.rows, (top) => { this.scrollTo(box, top); });
+    }
+    const sideView = this.recordedThinking;
+    const sideTrace = this.recordedThinkingTrace;
+    const boxTurn = sideView === null || sideView.isThinking ? null : sideView.lastThought?.turn ?? null;
+    const sideKey = `${this.mode}|${String(sideTrace?.version ?? -1)}|${String(boxTurn ?? "")}`;
+    if (sideKey !== this.sideKey) {
+      this.sideKey = sideKey;
+      const side = this.ui("side-trace");
+      const groups = sideTrace === null ? [] : sideGroups(sideTrace.turns, SIDE_TURNS, boxTurn);
+      const empty = this.mode === "loading" && sideTrace === null ? '<p class="nodata">loading recorded thinking…</p>' : '<p class="nodata">no steps yet</p>';
+      reconcile(side, groups, groups.length === 0 ? empty : "", this.stamps, this.held.has(side), this.rows, (top) => { this.scrollTo(side, top); });
     }
     if (live !== null) {
       const { thinking, text } = this.shown.streaming;
@@ -919,9 +970,12 @@ export class App {
     this.setHtml("split-times", splitTimes(splitView, this.best, recordedSplits));
     this.next.setLive(live ? view : null);
     this.ui("brand").textContent = brand(view);
-    const dialog = thinkingDialog(view, nowMs);
+    const thinkingView = this.recordedThinking ?? (this.mode === "loading" ? null : view);
+    const dialog = thinkingView === null
+      ? { head: "LOADING RECORDED THINKING…", body: '<span class="nodata">waiting for the selected run snapshot</span>' }
+      : thinkingDialog(thinkingView, nowMs);
     this.ui("think-head").textContent = dialog.head;
-    this.ui("think-title").textContent = view.start === null ? "NO RUN" : `${view.end === null ? "RIGHT NOW" : "FINAL"} · TURN ${String(view.turn)}`;
+    this.ui("think-title").textContent = thinkingView === null || thinkingView.start === null ? "NO RUN" : `${thinkingView.end === null ? "RIGHT NOW" : "FINAL"} · TURN ${String(thinkingView.turn)}`;
     const ident = runIdentity(view);
     this.setHtml("ident", ident);
     this.ui("ident").hidden = ident === "";

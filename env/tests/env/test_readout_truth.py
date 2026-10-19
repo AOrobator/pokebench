@@ -75,6 +75,7 @@ NEW = frozenset(
         "unset-dynamic-warp-v1",
         "status-names-v1",
         "surf-gated-exits-v2",
+        "battle-effective-damage-v1",
     }
 )
 ROM_START = 0x08000000

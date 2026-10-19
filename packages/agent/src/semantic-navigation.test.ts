@@ -303,6 +303,14 @@ it("uses the whole-map counter receipt when selecting a two-tile object approach
  expect(f.navigations).toEqual([{x:1,y:0,map_id:[0,9]}]);expect(f.buttons).toEqual([["A"]]);
 });
 
+it("does not skip a first player-sentinel slot behind a counter to select a later object",async()=>{
+ const selected=target(3,3,0),base=field([selected]),grid=base.navigation_grid;if(grid===null||grid===undefined)throw new Error("missing grid");
+ const initial={...base,interaction_object_slots:[{slot:1,x:3,y:0,elevation:3,local_id:0xff,map_id:[0,9] as [number,number],is_player:true},{slot:3,x:3,y:0,elevation:3,local_id:3,map_id:[0,9] as [number,number],is_player:false}],navigation_grid:{...grid,tiles:grid.tiles.map(t=>t.x===2&&t.y===0?{...t,collision:1,behavior:0x80}:t.x===4&&t.y===0||t.x===3&&t.y===1?{...t,collision:1}:t)}};
+ const f=fixture(undefined,baseFeatures(),undefined,initial),tool=f.tools.find(t=>t.name==="navigate_to_target");if(tool===undefined)throw new Error("missing semantic tool");
+ const out=await tool.execute("s",{map_id:[0,9],target:{kind:"object",local_id:3}});
+ expect(f.navigations).toEqual([]);expect(f.buttons).toEqual([]);expect(out.content[0]?.type==="text"?out.content[0].text:"").toContain("no supported route");
+});
+
 it("submits no A when a counter recipient appears in the fresh checked state",async()=>{
  const background:NonNullable<GameStateSnapshot["interaction_targets"]>[number]={kind:"background",x:2,y:0,elevation:3,activation:"A",availability:"conditional",facing:"right",local_id:null,destination:null,name:"Counter"};
  const base=field([background]),grid=base.navigation_grid;if(grid===null||grid===undefined)throw new Error("missing grid");

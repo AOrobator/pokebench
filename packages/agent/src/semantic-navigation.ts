@@ -107,7 +107,8 @@ function interactionRecipient(state:GameStateSnapshot,target:SnapshotTarget,appr
  const front={x:approach.point.x+step[1],y:approach.point.y+step[2]};
  const first=slots.find(item=>item.x===front.x&&item.y===front.y&&elevationsMatch(item.elevation,elevation));
  const beyond={x:front.x+step[1],y:front.y+step[2]};
- const native=first!==undefined&&first.local_id!==0xff?first:tileBehavior(state,front,options.mode)===COUNTER?slots.find(item=>item.x===beyond.x&&item.y===beyond.y&&elevationsMatch(item.elevation,elevation)&&item.local_id!==0xff):undefined;
+ const beyondFirst=tileBehavior(state,front,options.mode)===COUNTER?slots.find(item=>item.x===beyond.x&&item.y===beyond.y&&elevationsMatch(item.elevation,elevation)):undefined;
+ const native=first!==undefined&&first.local_id!==0xff?first:beyondFirst!==undefined&&beyondFirst.local_id!==0xff?beyondFirst:undefined;
  if(target.kind==="object"){
   return native!==undefined&&native.x===target.x&&native.y===target.y&&target.native_slot!==undefined&&native.slot===target.native_slot&&native.local_id===target.local_id&&native.map_id[0]===state.map_id?.[0]&&native.map_id[1]===state.map_id[1]?target:null;
  }

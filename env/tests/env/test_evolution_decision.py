@@ -296,3 +296,49 @@ def test_native_cancellation_window_is_held_even_during_palette_fade():
     token = gate.pending()["token"]
     gate.choose(token, "cancel")
     assert gate.before_frame([]) == ["B"]
+
+
+def test_human_server_keeps_tool_dependent_evolution_observation_off(monkeypatch):
+    import os
+    from types import SimpleNamespace
+
+    from pydantic import BaseModel
+
+    from pokebench_env.game_state import MapNames
+    from pokebench_env.readout import features_off_from_env
+    from pokebench_env.serve import run
+
+    # Exact human launch shape: its historical explicit OFF list predates this switch.
+    monkeypatch.setenv(
+        "POKEBENCH_FEATURES_OFF",
+        "named-interactions-v1,world-destinations-v1,bounded-navigation-v1,expanded-menu-battle-information-v1,full-map-navigation-v1",
+    )
+    monkeypatch.setenv("POKEBENCH_ACTIVE_UI", "1")
+    m = native()
+    applied = []
+
+    class Emulator:
+        def run_frame_with_buttons(self, buttons):
+            applied.append(buttons)
+
+    class Shot(BaseModel):
+        screenshot_base64: str = "cG5n"
+
+    api = FastAPI()
+    server = SimpleNamespace(step_environment=lambda buttons: None, fps=80)
+    run(
+        [],
+        uvicorn=SimpleNamespace(run=lambda *a, **k: None),
+        vendor_main=lambda: None,
+        observation=(api, Shot, m.read, MapNames({}), nullcontext()),
+        frames=Emulator,
+        human=(api, server, "secret"),
+    )
+    assert "evolution-decision-v1" in features_off_from_env(os.environ)
+    status, observation = get(api, "/pokebench/observation")
+    assert status == 200
+    assert observation["state"]["active_ui"]["selected"] == "CANCEL"
+    assert "choose_evolution" not in observation["state_text"]
+    Emulator().run_frame_with_buttons(["B"])
+    assert applied == [["B"]]
+    assert get(api, "/pokebench/evolution")[0] == 404

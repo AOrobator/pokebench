@@ -219,6 +219,8 @@ export class App {
   private liveFailedAt: number | null = null;
   private readonly html = new Map<HTMLElement, string>();
   // Hold-to-confirm abort: when X (or the button) went down; null when released.
+  private extensionPending: { run: string; action: "extend_30m" | "extend_60m"; afterSeq: number; request: number | null } | null = null;
+  private extensionMessage = "";
   private holdStart: number | null = null;
   private overlayClosed = false;
   private wasLive = false;
@@ -259,6 +261,66 @@ export class App {
     } catch (error) {
       this.problem(`${action.replace("_", " ")}: ${String(error)}`);
     }
+  }
+
+  private extensionDialog(): HTMLDialogElement { return this.ui("extend-dialog") as HTMLDialogElement; }
+
+  private openExtension(): void {
+    if (!availableActions(this.view, this.live).has("extend_30m")) return;
+    this.extensionMessage = "";
+    this.updateExtension();
+    this.extensionDialog().showModal();
+    this.ui("extend-duration").focus();
+  }
+
+  private closeExtension(): void {
+    this.extensionDialog().close();
+    this.doc.querySelector<HTMLElement>("[data-extend-open]")?.focus({ preventScroll: true });
+  }
+
+  private updateExtension(): void {
+    const pending = this.extensionPending;
+    if (pending !== null && pending.run === this.runId) {
+      const ack = this.view.events.find(e => e.type === "operator_control" && e.seq > pending.afterSeq && e.action === pending.action && (pending.request === null || e.request === pending.request));
+      if (ack?.type === "operator_control") {
+        this.extensionPending = null;
+        this.extensionMessage = ack.status === "applied" ? "Extension applied." : "Extension was not applied. The run may have reached its limit or be stopping.";
+      } else if (this.view.end !== null) {
+        this.extensionPending = null;
+        this.extensionMessage = "The run ended before an extension was confirmed.";
+      }
+    }
+    const wall = this.view.control.maxWallMs ?? this.view.start?.budgets.max_wall_ms ?? 0;
+    const addition = (this.ui("extend-duration") as HTMLSelectElement).value === "extend_60m" ? 3_600_000 : 1_800_000;
+    this.ui("extend-run").textContent = this.runId;
+    this.ui("extend-preview").textContent = `Time limit: ${hms(wall / 1000)} → ${hms((wall + addition) / 1000)} · remaining after extension: ${hms(Math.max(0, (wall + addition) / 1000 - runSeconds(this.view, this.deps.now())))}`;
+    const waiting = this.extensionPending !== null;
+    const applied = this.extensionMessage === "Extension applied.";
+    this.ui("extend-confirm").hidden = applied;
+    (this.ui("extend-confirm") as HTMLButtonElement).disabled = waiting || !availableActions(this.view, this.live).has("extend_30m");
+    (this.ui("extend-duration") as HTMLSelectElement).disabled = waiting || applied;
+    this.ui("extend-status").textContent = this.extensionMessage || (waiting ? "Waiting for the running agent to confirm…" : "");
+    if (applied) this.ui("extend-preview").textContent = `Time limit: ${hms(wall / 1000)} · remaining: ${hms(Math.max(0, wall / 1000 - runSeconds(this.view, this.deps.now())))}`;
+    this.ui("extend-cancel").textContent = waiting || this.extensionMessage !== "" ? "Close" : "Cancel";
+  }
+
+  private async extendRun(): Promise<void> {
+    if (this.runId === null || this.extensionPending !== null || !availableActions(this.view, this.live).has("extend_30m")) return;
+    const value = (this.ui("extend-duration") as HTMLSelectElement).value;
+    const pending = { run: this.runId, action: value === "extend_60m" ? "extend_60m" as const : "extend_30m" as const, afterSeq: this.view.events.at(-1)?.seq ?? -1, request: null as number | null };
+    this.extensionPending = pending;
+    this.extensionMessage = "";
+    this.updateExtension();
+    try {
+      const reply = await this.deps.sendJson("POST", `/api/runs/${encodeURIComponent(pending.run)}/control`, { action: pending.action });
+      if (this.extensionPending !== pending || this.runId !== pending.run) return;
+      if (typeof reply === "object" && reply !== null && "request" in reply && typeof reply.request === "number") pending.request = reply.request;
+    } catch (error) {
+      if (this.extensionPending !== pending || this.runId !== pending.run) return;
+      // A lost HTTP response may have enqueued the request. Never retry it automatically.
+      this.extensionMessage = `Request could not be confirmed: ${String(error)}. Check Activity History before trying another extension.`;
+    }
+    this.updateExtension();
   }
 
   private holdFraction(): number | null {
@@ -438,7 +500,12 @@ export class App {
 
   private wire(): void {
     const controls = this.ui("run-controls");
+    this.ui("extend-duration").addEventListener("change", () => { this.updateExtension(); });
+    this.ui("extend-confirm").addEventListener("click", () => { void this.extendRun(); });
+    this.ui("extend-cancel").addEventListener("click", () => { this.closeExtension(); });
+    this.extensionDialog().addEventListener("cancel", (event) => { event.preventDefault(); this.closeExtension(); });
     controls.addEventListener("click", (event) => {
+      if ((event.target as HTMLElement).closest("[data-extend-open]") !== null) { this.openExtension(); return; }
       if ((event.target as HTMLElement).closest("[data-dismiss-overlay]") !== null) {
         this.overlayClosed = true;
         this.render();
@@ -661,6 +728,9 @@ export class App {
   }
 
   select(runId: string): void {
+    this.extensionDialog().close();
+    this.extensionPending = null;
+    this.extensionMessage = "";
     this.stream?.close();
     this.runId = runId;
     this.comparisonRequest += 1; this.comparisonsRun = null;
@@ -941,6 +1011,7 @@ export class App {
       }
     }
     this.setHtml("stats", sideStats(view, nowMs));
+    if (this.extensionDialog().open || this.extensionPending !== null) this.updateExtension();
     const recordedSplits = this.mode === "loading" ? this.recordedSplits() : undefined;
     const splitView = this.mode === "loading" ? view : this.view;
     this.setHtml("split-strip", splitStrip(splitView, recordedSplits));
@@ -988,7 +1059,7 @@ export class App {
     play.disabled = clock === null;
     scrub.disabled = clock === null;
     play.textContent = clock?.playing === true ? "❚❚" : "▶";
-    const cap = view.start?.budgets.max_wall_ms;
+    const cap = view.control.maxWallMs ?? view.start?.budgets.max_wall_ms;
     const time = clock !== null ? `${hms((clock.positionMs - clock.startMs) / 1000)} / ${hms((clock.endMs - clock.startMs) / 1000)}` : view.startMs === null ? "" : `${hms(runSeconds(view, nowMs))}${cap === undefined ? "" : ` / ${hms(cap / 1000)}`}`;
     const head = { view, runId: this.runId, label, running: live && view.control.state === "running", time, others: this.runs.filter((run) => isLive(run) && run.id !== this.runId) };
     this.setHtml("run-head", headHtml(head));

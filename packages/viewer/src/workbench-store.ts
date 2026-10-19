@@ -93,6 +93,7 @@ export function loadRun(root: string, id: string, viewer: BuildIdentity | null =
     run.splits = recording.splits; run.measurement = recording.measurement;
     const last = recording.last; run.card = last === null ? null : { name: last.name, location: last.location, party: last.party.flatMap(m => m.level === null || m.level < 1 ? [] : [{ speciesId: m.species_id ?? null, level: m.level, egg: m.is_egg === true }]) };
     if (recording.skipped !== null) skew = { commit: start.harness.commit, dirty: start.harness.dirty, ...recording.skipped };
+    if (run.config !== null && view.control.maxWallMs !== null) run.config.extendedWallMs = view.control.maxWallMs;
     run.status = view.end === null ? "unresponsive" : "ended"; run.reason = view.end?.reason ?? null; run.turn = view.turn;
     if (run.reason === "operator_abort") run.excluded ??= "Excluded operator-aborted run";
     timing = { startMs: view.startMs, ended: view.end !== null, lastMs: view.lastMs, paused: view.control.state === "paused", pauses: view.control.pauses.map(p => ({ ...p })) };

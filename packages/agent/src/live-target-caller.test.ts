@@ -1,5 +1,5 @@
 import { ChildProcess, type SpawnOptions } from "node:child_process";
-import { mkdtempSync, readFileSync, writeFileSync, rmSync } from "node:fs";
+import { appendFileSync, mkdtempSync, readFileSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createHash } from "node:crypto";
@@ -15,6 +15,8 @@ import { assistant, toolCall } from "../test-support/pi.js";
 
 const owner = vi.hoisted(() => ({
   root: "",
+  extend: false,
+  noTarget: false,
   elapsed: 0,
   at: 0,
   observed: false,
@@ -117,13 +119,14 @@ vi.mock("./harness.js", async (load) => {
         ...options,
         streamFn: () => {
           owner.inferences++;
+
           const stream = createAssistantMessageEventStream();
           const message =
-            owner.inferences === 1
+            owner.inferences === 1 || owner.noTarget
               ? assistant({
                   toolCalls: [
                     toolCall("accept", "observe", {}),
-                    toolCall("trailing", "press", { buttons: ["A"] }),
+                    ...(owner.noTarget ? [] : [toolCall("trailing", "press", { buttons: ["A"] })]),
                   ],
                   stopReason: "toolUse",
                 })
@@ -154,7 +157,10 @@ vi.mock("./run.js", async (load) => {
           { ...plan, runsRoot: owner.root },
           host,
           new FrameStore(owner.root),
-          body,
+          (recorder, url) => {
+            if (owner.extend) appendFileSync(join(owner.root, "live-native-caller", "control.jsonl"), JSON.stringify({v:1,seq:1,at:new Date().toISOString(),action:"extend_30m"}) + "\n");
+            return body(recorder, url);
+          },
         );
         owner.resolve?.(reason);
         return reason;
@@ -179,17 +185,21 @@ afterEach(() => {
 });
 
 it.each([
-  [599999, false],
-  [600000, true],
-  [600001, false],
+  [599999, false, false, false],
+  [600000, true, false, false],
+  [600001, false, false, false],
+  [600001, false, true, false],
+  [600001, false, true, true],
 ] as const)(
   "actual live native callback respects pending deadline and child UI env (target=%s, UI=%s)",
-  async (at, activeUi) => {
+  async (at, activeUi, extend, noTarget) => {
     vi.resetModules();
     owner.root = mkdtempSync(join(tmpdir(), "live-target-caller-"));
+    vi.stubEnv("POKEBENCH_RUNS_ROOT", owner.root);
     const romPath=join(owner.root,"fixture.gba");
     writeFileSync(romPath,"test-owned ROM identity fixture");
     vi.stubEnv("POKEBENCH_ROM",romPath);
+    owner.extend = extend; owner.noTarget = noTarget;
     owner.elapsed = 0;
     owner.at = at;
     owner.observed = false;
@@ -201,7 +211,7 @@ it.each([
     const preset = {
       version: 1,
       id: "caller",
-      target: "PLAYER_NAME_CONFIRMED",
+      target: noTarget ? null : "PLAYER_NAME_CONFIRMED",
       limits: { maxTurns: 3, maxWallMs: 600000, failureLimit: 3 },
       sampling: { thinkingLevel: "medium", maxTokens: 100 },
       flags: {
@@ -294,8 +304,8 @@ it.each([
     });
     await import("./live.js");
     const reason = await done;
-    expect(reason).toBe(at <= 600000 ? "milestone" : "budget");
-    expect(owner.inferences).toBe(1);
+    expect(reason).toBe(!noTarget && (at <= 600000 || extend) ? "milestone" : "budget");
+    expect(owner.inferences).toBe(noTarget ? 3 : 1);
     expect(
       owner.requests.filter((request) => request.startsWith("POST")),
     ).toEqual([]);
@@ -334,7 +344,10 @@ it.each([
     );
     const end = events.at(-1);
     if (end?.type !== "run_end") throw new Error("missing actual terminal");
-    if (at <= 600000) {
+    expect(start.extend_run).toBe(true);
+    expect(start.budgets).toEqual({max_turns:3,max_wall_ms:600000});
+    if (extend) expect(events.filter(e => e.type === "operator_control").map(e => ({action:e.action,status:e.status,request:e.request,previous:e.previous_max_wall_ms,next:e.max_wall_ms}))).toEqual([{action:"extend_30m",status:"applied",request:1,previous:600000,next:2400000}]);
+    if (!noTarget && (at <= 600000 || extend)) {
       const mark = events.find(
         (event) =>
           event.type === "milestone" && event.name === "PLAYER_NAME_CONFIRMED",

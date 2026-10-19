@@ -27,11 +27,11 @@ Reuse loopback/allowed-origin, run-id validation and existing POST control owner
 
 ## Milestones
 **M1 — End-to-end finite extension**
-- [ ] RED: control, timer, budget, viewer API/DOM/replay and runner regression tests; commit with this log.
-- [ ] GREEN: implement typed request/ack, shared effective cap, dialog, history and continuation disclosure.
-- [ ] Gates: just test, just lint, just build, just coverage (90% independently), just verify-vendor, schema regeneration.
-- [ ] Fake-data runner rehearsal and isolated browser clicks at desktop/phone widths, inspected screenshots, pending/failure/recovery and replay.
-- [ ] Explainer with mechanism diagram, local delivery and verification.
+- [x] RED: control, timer, budget, viewer API/DOM/replay and runner regression tests; commit with this log.
+- [x] GREEN: implement typed request/ack, shared effective cap, dialog, history and continuation disclosure.
+- [x] Gates: just test, just lint, just build, just coverage (90% independently), just verify-vendor, schema regeneration.
+- [x] Fake-data runner rehearsal and isolated browser clicks at desktop/phone widths, inspected screenshots, pending/failure/recovery and replay.
+- [x] Explainer with mechanism diagram, local delivery and verification.
 - [ ] Principles PB1–PB13 self-review; frozen packet; independent Claude/Grok/GPT review; triage and at most two rounds.
 - [ ] Commit GREEN and land only with required cloud approvals and passing gates. Do not overwrite unrelated checkout edits.
 - [ ] After landing, viewer restart coordinated with other owners and live read-only proof; existing gameplay processes preserved.
@@ -54,3 +54,15 @@ No adjacent cleanup planned.
 ## Archive Milestone (user-gated)
 - [ ] ASK USER before archiving. Keep active after delivery.
 - RED: new production-control deadline/governor, pause/terminal/unsupported, schema/turn-cap tests and replay/capability/history tests fail on the missing extension contract (receipts /tmp/pb-extend-red-{agent,viewer}.log).
+- RED commit 0da25eb6 recorded; GREEN runtime/control and viewer implementation underway. The capability bit is emitted only for the live gameplay entrypoint and survives withRun into run_start. Old binaries/recordings do not advertise extension support.
+
+- Operator amendment: 2026-10-19, “needs to be more pokemon themed, use the emerald and current design language”. Replaced the generic dark dialog with the viewer’s Emerald frame, inset blue border, pixel heading, PokéNav label, yellow confirmation and red advance arrow. Phone rehearsal exposed the continuation note occupying a stat cell; moved it after the four metrics with full-width readable text.
+
+- Operator amendment: vertically center Pause/Extend/Stop text with their icons. Split symbols and labels into flex-aligned elements; preserve the Abort hold instruction below its label.
+- Core/runtime seam: actual live.ts entrypoint -> withRun -> control.jsonl -> typed acknowledgement -> target callback and Governor verified. Paused extension also retains its original active-time grading horizon. Four adversarial deletions each failed the intended test and passed after restoration: live Governor wiring, timer cap, replay cap, experiment cutoff (runs/extend-run-proof/mutation-*-{red,restored}.log).
+- Rehearsal: runFixed held two child launches past the old caps, then finished all twelve planned slots with no replacements and no post-horizon STONE_BADGE credit. No GPU/model/emulator calls. Existing adoption awaits PID liveness.
+- Browser: owned 8798 server with scratch root only. Cancel; +30 minutes; reload retained cap; Pause; +1 hour via keyboard; paused clock held; Resume via keyboard. Durable events #2/#5 and Activity History show 2h -> 2h30 -> 3h30. Raw state and final replay checks pending. No console errors. Desktop/phone Emerald screenshots opened and inspected at 1280, 1440 and 375. Latest screenshots: main checkout runs/mockups/extend-run/shots/emerald-*.png.
+- Gates before final freeze: full TS 2573 agent + 1237 viewer and Python 2724 tests passed; coverage agent 97.86 statements/94.08 branches/98.27 functions, viewer 95.41/91.36/93.97, Python 97.12 lines/92.85 branches/100 functions. Final re-run includes the operator theme/alignment amendments and the paused-horizon regression.
+- Standalone Claude reviewer namespace reports loggedIn=false; use standing-authorized Cursor Claude equivalent. Discovered Claude, Grok and GPT model ids via agent models. No local inference reviewers.
+- Final proof: inspector selected real scratch extension event #2 with previous=7200000/new=9000000 and request=1. Built/served app.js, index.html and style.css SHA-256s match (served-assets.json). Explainer zero-network check and local 8791 delivery pass; screenshots inspected at all three widths (viewport-bound tab; corrected an initial unbound-tab capture).
+- All final tests: 2574 agent, 1237 viewer, 2724 Python, zero skipped. just lint/build/verify-vendor pass. Original-horizon pause regression added within existing patch-results owner. Agent coverage re-run after that test; other stack coverage unchanged and above 90. Green source remains unlanded pending cloud review.

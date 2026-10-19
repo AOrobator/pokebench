@@ -17,7 +17,7 @@ class Stream implements StreamLike {
   send(type: string, data: unknown): void { for (const l of this.listeners.get(type) ?? []) l({ data: JSON.stringify(data) }); }
 }
 
-async function mount(history: unknown = {}, refuse = false, gameUp = true) {
+async function mount(history: unknown = {}, refuse = false, gameUp = true, extend = false) {
   document.body.innerHTML = PAGE.slice(PAGE.indexOf("<body>") + 6, PAGE.indexOf("</body>"));
   const writes: [string, string, unknown][] = [];
   const streams: Stream[] = [];
@@ -48,7 +48,7 @@ async function mount(history: unknown = {}, refuse = false, gameUp = true) {
   if (stream === undefined) throw new Error("no stream");
   const log = new Log();
   const send = (offset: number, body: Parameters<Log["add"]>[1]): void => { stream.send("ev", { ...log.add(offset, body), run: RUN }); };
-  send(0, { ...START, harness_features: FEATURES.filter((f) => f.id !== "story-state-v1" && f.id !== "state-only-decisions-v1").map((f) => f.id) });
+  send(0, { ...START, ...(extend ? { extend_run: true as const } : {}), harness_features: FEATURES.filter((f) => f.id !== "story-state-v1" && f.id !== "state-only-decisions-v1").map((f) => f.id) });
   stream.send("caught_up", {});
   await vi.waitFor(() => { expect(app.next.draft).not.toBeNull(); });
   app.tick(0);
@@ -251,4 +251,49 @@ it("shows an unended run whose game server is gone as not responding, with contr
   key("keydown", "p");
   await Promise.resolve();
   expect(writes).toEqual([]);
+});
+
+
+describe("extension dialog", () => {
+  it("cancels without a request, keeps focus across polling, and waits for durable acknowledgement", async () => {
+    const { app, writes, send } = await mount({}, false, true, true);
+    const open = () => document.querySelector<HTMLButtonElement>("[data-extend-open]")?.click();
+    open();
+    expect((ui("extend-dialog") as HTMLDialogElement).open).toBe(true);
+    expect(ui("extend-preview").textContent).toContain("0:01:00 → 0:31:00");
+    ui("extend-cancel").click();
+    expect(writes).toEqual([]);
+    open();
+    const duration = ui("extend-duration") as HTMLSelectElement;
+    duration.value = "extend_60m"; duration.dispatchEvent(new Event("change"));
+    duration.focus(); app.tick(100); app.tick(100);
+    expect(document.activeElement).toBe(duration);
+    expect(ui("extend-preview").textContent).toContain("1:01:00");
+    ui("extend-confirm").click(); ui("extend-confirm").click();
+    await vi.waitFor(() => { expect(writes).toHaveLength(1); });
+    expect(writes[0]).toEqual(["POST", `/api/runs/${RUN}/control`, { action: "extend_60m" }]);
+    expect(ui("extend-status").textContent).toContain("Waiting");
+    expect(ui("stats").textContent).not.toContain("original");
+    send(6000, { type: "operator_control", turn: 1, action: "extend_60m", status: "applied", request: 1, previous_max_wall_ms: 60000, max_wall_ms: 3660000 });
+    app.tick(0);
+    expect(ui("extend-status").textContent).toBe("Extension applied.");
+    expect(ui("stats").textContent).toContain("original");
+    expect(ui("run-head").textContent).toContain("1:01:00");
+    expect(ui("extend-confirm").hidden).toBe(true);
+    ui("extend-cancel").click();
+    expect(document.activeElement).toBe(document.querySelector("[data-extend-open]"));
+  });
+
+  it("keeps an uncertain transport failure pending and recovers when its acknowledgement arrives", async () => {
+    const { app, writes, send } = await mount({}, true, true, true);
+    document.querySelector<HTMLButtonElement>("[data-extend-open]")?.click();
+    ui("extend-confirm").click();
+    await vi.waitFor(() => { expect(ui("extend-status").textContent).toContain("could not be confirmed"); });
+    ui("extend-confirm").click(); expect(writes).toHaveLength(1);
+    send(6000, { type: "operator_control", turn: 1, action: "extend_30m", status: "ignored", request: 1 }); app.tick(0);
+    expect(ui("extend-status").textContent).toContain("not applied");
+    expect((ui("extend-confirm") as HTMLButtonElement).disabled).toBe(false);
+    app.select("other");
+    expect((ui("extend-dialog") as HTMLDialogElement).open).toBe(false);
+  });
 });

@@ -845,3 +845,29 @@ b.wb-add, b.wb-rem { white-space:nowrap; }
 }
 
 #page-stats .page-content { padding-right:18px; scrollbar-gutter:stable; }
+
+/* Operator extensions use the same Emerald message frame as the live thought box. */
+.extend-dialog { position:fixed; background:#fff; color:#283038; border:4px solid #283038; border-radius:10px; box-shadow:inset 0 0 0 3px #fff,inset 0 0 0 6px #7cc8e8,0 8px 0 #12213866; padding:32px 24px 26px; width:min(520px,calc(100vw - 32px)); max-height:90svh; overflow:auto; box-sizing:border-box; font:14px/1.65 'Inter',system-ui,sans-serif; }
+.extend-dialog::backdrop { background:#0e1626ba; }
+.extend-dialog .emer-name { position:absolute; top:10px; left:14px; background:#1e2c44; color:#ffd447; font:7px/1.7 'Press Start 2P',monospace; padding:4px 8px; border-radius:5px; }
+.extend-dialog h2 { margin:16px 0 10px; font:clamp(11px,2.8vw,14px)/1.9 'Press Start 2P',monospace; color:#283038; }
+.extend-dialog .extend-id { overflow-wrap:anywhere; font:11px/1.5 'JetBrains Mono',monospace; color:#53687b; margin:0 0 18px; }
+.extend-dialog label { display:flex; gap:12px; align-items:center; flex-wrap:wrap; color:#345779; font:8px/1.8 'Press Start 2P',monospace; }
+.extend-dialog select { font:14px/1.5 'Inter',system-ui,sans-serif; padding:10px 12px; border:3px solid #3a6ea5; border-radius:7px; color:#283038; background:#f5f9fc; }
+.extend-dialog [data-ui=extend-preview] { padding:12px; border:2px solid #b6c9db; border-radius:6px; background:#fffbe4; color:#283038; font-variant-numeric:tabular-nums; }
+.extend-actions { display:flex; gap:12px; justify-content:flex-end; margin-top:18px; }
+.extend-dialog button { cursor:pointer; font:8px/1.8 'Press Start 2P',monospace; padding:10px 12px; border:3px solid #3a6ea5; border-radius:8px; background:#fff; color:#283038; box-shadow:0 3px 0 #cad7e3; }
+.extend-dialog [data-ui=extend-confirm] { background:#ffd447; border-color:#b68120; box-shadow:0 3px 0 #7a5410; }
+.extend-dialog :is(button,select):focus-visible { outline:3px solid #2f9e57; outline-offset:3px; }
+.extend-dialog :disabled { opacity:.5; cursor:default; }
+.extend-dialog [data-ui=extend-status] { min-height:24px; color:#345779; font-weight:600; }
+.extend-dialog .emer-arrow { position:absolute; right:14px; bottom:6px; color:#d03a3a; font:10px 'Press Start 2P',monospace; }
+.extension-note { grid-column:1/-1; margin:2px 0 0; font:12px/1.5 'Inter',system-ui,sans-serif; color:#344563; }
+/* Native symbols and pixel labels have different baselines; center the two boxes. */
+.tb-ctl button { display:inline-flex; align-items:center; justify-content:center; gap:6px; }
+.tb-ctl .control-icon { display:inline-flex; align-items:center; justify-content:center; flex:none; font:15px/1 system-ui,sans-serif; }
+.tb-ctl .control-label { display:block; line-height:1.6; }
+.tb-ctl .control-help { display:block; font:6px/1.7 'Press Start 2P',monospace; white-space:nowrap; }
+.stage-controls .tb-ctl button { gap:4px; }
+.stage-controls .tb-ctl .control-icon { font-size:12px; }
+.stage-controls .tb-ctl .control-help { font-size:4px; }

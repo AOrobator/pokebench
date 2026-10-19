@@ -9,7 +9,7 @@ import { Type, type Static } from "typebox";
 import { Value } from "typebox/value";
 import { ALL_ON, dependencyProblems, stateOnlyProblems, type FeatureSet } from "@pokebench/agent/features";
 import { normalizeFeatures, FeatureSetSchema, parsePlayPreset, type PlayPresetV2 } from "@pokebench/agent/play-preset";
-import { controlLine, type ControlAction } from "@pokebench/agent/run-control";
+import { controlLine, isExtension, type ControlAction } from "@pokebench/agent/run-control";
 import { newRunId } from "@pokebench/agent/run";
 import { RUN_ID_PATTERN } from "@pokebench/agent/events";
 import { spawnDetached } from "./detached.js";
@@ -103,6 +103,10 @@ export async function appendControl(runsRoot: string, runId: string, action: Con
   if (!new RegExp(RUN_ID_PATTERN).test(runId) || !(await liveRuns(runsRoot, healthy)).includes(runId)) throw new NextRunError(`run ${runId} is not live`);
   // The run may have ended while its game server was being probed.
   if (listRuns(runsRoot).find((run) => run.id === runId)?.ended !== false) throw new NextRunError(`run ${runId} is not live`);
+  if (isExtension(action)) {
+    const start = readStart(runsRoot, runId);
+    if (start.extend_run !== true || start.controller?.kind === "human") throw new NextRunError("this run does not support extensions; start a run on the newer build");
+  }
   const path = join(runDir(runsRoot, runId), "control.jsonl");
   const seq = existsSync(path) ? readFileSync(path, "utf8").split("\n").filter((line) => line !== "").length + 1 : 1;
   appendFileSync(path, `${controlLine(seq, action, now.toISOString())}\n`);

@@ -135,7 +135,7 @@ async function write(req: IncomingMessage, res: ServerResponse, options: ViewerO
       return;
     }
     if (req.method === "POST" && parts.length === 4 && second === "runs" && id !== undefined && leaf === "control") {
-      if (!Value.Check(ControlBodySchema, body)) throw new RequestError(400, "action must be pause, resume, stop, cancel_stop or abort");
+      if (!Value.Check(ControlBodySchema, body)) throw new RequestError(400, "invalid control action (pause, resume, stop, cancel_stop, abort, extend_30m or extend_60m)");
       sendJson(res, 200, { request: await appendControl(options.runsRoot, id, body.action, now, healthProbe(options.fetchFn ?? fetch)) });
       return;
     }

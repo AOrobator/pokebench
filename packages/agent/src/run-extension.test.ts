@@ -67,7 +67,7 @@ describe("finite run extensions through production controls", () => {
     let now = 0;
     let stopped = false;
     const records: ControlBody[] = [];
-    const control = new RunControl({ now: () => now, record: b => records.push(b), freeze: () => Promise.resolve(), end: vi.fn(), budget: { maxWallMs: 1000, activeMs: () => now - control.pausedMs(), stopped: () => stopped } });
+    const control: RunControl = new RunControl({ now: () => now, record: b => records.push(b), freeze: () => Promise.resolve(), end: vi.fn(), budget: { maxWallMs: 1000, activeMs: () => now - control.pausedMs(), stopped: () => stopped } });
     control.apply(request(1, "pause"));
     const held = control.gate();
     await Promise.resolve();

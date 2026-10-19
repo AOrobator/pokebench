@@ -29,7 +29,7 @@ describe("run controls", () => {
     expect(bar).toContain("hold to abort");
     expect(bar).not.toContain("<kbd>");
     expect(bar).not.toContain("disabled");
-    expect(controlBar(view((l) => l.add(1, control("stop", "pending"))), true, null)).toContain("↺ CANCEL STOP");
+    expect(controlBar(view((l) => l.add(1, control("stop", "pending"))), true, null)).toContain('class="control-label">CANCEL STOP</span>');
     expect(controlBar(view((l) => l.add(1, control("pause", "pending"))), true, 0.5)).toContain("--hold:50%");
     expect(controlBar(view(), false, null).match(/disabled/g)).toHaveLength(3);
   });

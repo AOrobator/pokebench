@@ -134,7 +134,7 @@ def test_location_line_names_the_house_but_json_location_is_unchanged() -> None:
 
 
 def test_off_is_todays_readout_byte_for_byte() -> None:
-    # Goldens were rendered by env/pokebench_env at fa09dbe6 (before this switch) from this fixture.
+    # Goldens originated at fa09dbe6 and were rerendered for game-known named-warps on 2026-10-18.
     for gender in (0, 1):
         for room, kw in (("town", {}), ("house", {"player_map": (1, 2), "warp_to": (0, 9)})):
             memory = littleroot(gender, **kw)
@@ -254,7 +254,8 @@ def test_observation_route_applies_the_switch_from_env(monkeypatch: pytest.Monke
     assert 'Sign text "PROF. BIRCH\'S HOUSE"' in payloads[""]["state_text"]
     assert "PROF. BIRCH'S HOUSE 1F (map 1/2)" in payloads[""]["state_text"]
     assert "Sign text" not in payloads[SWITCH]["state_text"]
-    assert "LITTLEROOT TOWN MAYS HOUSE 1F (map 1/2)" in payloads[SWITCH]["state_text"]
+    assert "LITTLEROOT TOWN MAYS HOUSE 1F (map 1/2)" not in payloads[SWITCH]["state_text"]
+    assert "Warps: (0,1) -> map 1/2" in payloads[SWITCH]["state_text"]
     signs = [t for t in payloads[""]["state"]["interaction_targets"] if t["kind"] == "background"]
     assert signs[0]["name"] == 'Sign text "PROF. BIRCH\'S HOUSE"'
     off_signs = [

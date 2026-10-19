@@ -5,6 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
+import type { RunEvent } from "@pokebench/agent/events";
 import { Log, START, fullRun, state } from "../test-support/events.js";
 import { rivalRam, writeArchive } from "../test-support/raw-ram.js";
 import { QUEUE_FEATURES } from "../test-support/experiments.js";
@@ -188,6 +189,17 @@ describe("viewer server", () => {
     expect(text.match(/^event: ev$/gm)).toHaveLength(fullRun().events.length);
     expect(text).toMatch(/event: caught_up\ndata: \{\}\n\n/);
     expect(text.trimEnd().endsWith("event: done\ndata: {}")).toBe(true);
+  });
+
+  it("serves the selected run's bounded recent recorded-event head", async () => {
+    const { runsRoot, viewer } = await fixture();
+    writeRun(runsRoot, "head", fullRun());
+    const reply = await get(viewer, "/api/runs/head/head");
+    expect(reply.type).toContain("application/json");
+    const events = JSON.parse(reply.body.toString()) as RunEvent[];
+    expect(events[0]?.type).toBe("run_start");
+    expect(events.at(-1)?.type).toBe("run_end");
+    expect(events.every((event) => event.run === "head")).toBe(true);
   });
 
   it("streams rival values recovered from raw RAM onto the state events that lack them", async () => {

@@ -2,9 +2,9 @@ import { appendFileSync, cpSync, mkdirSync, mkdtempSync, readFileSync, writeFile
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { Log, START, fullRun, state } from "../test-support/events.js";
+import { Log, START, assistant, fullRun, state } from "../test-support/events.js";
 import { rivalRam, writeArchive } from "../test-support/raw-ram.js";
-import { RunsError, baselineOf, createBaselineReader, listRuns, liveScreenPort, readFrom, runDir } from "./runs.js";
+import { RunsError, baselineOf, createBaselineReader, listRuns, liveScreenPort, readFrom, readRecentEvents, runDir } from "./runs.js";
 
 function root(): string {
   return mkdtempSync(join(tmpdir(), "pokebench-viewer-runs-"));
@@ -82,6 +82,26 @@ describe("readFrom", () => {
 
   it("reads nothing from a file that does not exist yet", () => {
     expect(readFrom(join(root(), "nope.jsonl"), 0, 0)).toEqual({ results: [], offset: 0, lineNo: 0 });
+  });
+});
+
+describe("readRecentEvents", () => {
+  it("returns the run header plus only complete newest turns from a bounded tail", () => {
+    const runsRoot = root();
+    const log = new Log();
+    log.add(0, START);
+    for (let turn = 1; turn <= 4; turn += 1) {
+      log.add(turn * 1_000, { type: "turn_start", turn, context: { messages: turn, images: 0, est_tokens: turn * 10 } });
+      log.add(turn * 1_000 + 1, { ...assistant({ turn, thinking: `thought ${String(turn)} ${"x".repeat(200)}` }) });
+    }
+    const path = writeRun(runsRoot, "recent", log);
+    const lastTwoBytes = readFileSync(path, "utf8").split("\n").slice(-5).join("\n").length + 20;
+    const recent = readRecentEvents(runsRoot, "recent", 2, lastTwoBytes);
+    expect(recent[0]?.type).toBe("run_start");
+    expect([...new Set(recent.slice(1).map((event) => event.turn))]).toEqual([3, 4]);
+    expect(recent.find((event) => event.type === "assistant" && event.turn === 3)?.thinking).toContain("thought 3");
+    expect(recent.find((event) => event.type === "assistant" && event.turn === 4)?.thinking).toContain("thought 4");
+    expect(recent.some((event) => event.turn === 2)).toBe(false);
   });
 });
 

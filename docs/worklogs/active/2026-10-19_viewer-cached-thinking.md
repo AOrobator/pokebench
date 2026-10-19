@@ -33,8 +33,8 @@ The endpoint is same-origin, GET-only, uses the existing run-id/path owner, vali
 
 **M1 — Atomic recorded-thinking bootstrap**
 
-- [ ] Write endpoint and app tests for bounded complete turns, atomic cached thinking, exact run scoping, and failure recovery.
-- [ ] COMMIT: `test(viewer): require atomic recorded thinking bootstrap` (RED)
+- [x] Write endpoint and app tests for bounded complete turns, atomic cached thinking, exact run scoping, and failure recovery.
+- [x] COMMIT: `test(viewer): require atomic recorded thinking bootstrap` (RED; this commit)
 - [ ] Implement the bounded snapshot and sidebar projection.
 - [ ] Adversarial break/restore proof.
 - [ ] Gates: `just test`, `just lint`, `just build`, `just coverage`.
@@ -50,6 +50,7 @@ The endpoint is same-origin, GET-only, uses the existing run-id/path owner, vali
 ## Session Log
 
 - 2026-10-19: After landing cached splits at `f0ff0138`, the real main viewer showed the analogous thinking defect: during `LOADING`, `RIGHT NOW` and `EARLIER` filled from old to new as the selected run's SSE stream replayed from byte zero. Confirmed final and streaming thoughts are already recorded in `events.jsonl`; no recorder change is required.
+- 2026-10-19: RED focused run: 4 expected failures. The endpoint does not exist, the client ignores the recorded head and shows partial stream thinking, and the failure path has no stable recorded-thinking loading state.
 
 ## Surprises
 

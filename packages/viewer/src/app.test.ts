@@ -56,7 +56,7 @@ const RUNS = [
   { id: "2026-10-11T21-00-00_old", model: "think-swarm", started: "x", ended: true, reason: "budget", problem: null },
 ];
 
-async function harness(hash = "", runs: unknown[] = RUNS, workbench: unknown = null): Promise<Harness> {
+async function harness(hash = "", runs: unknown[] = RUNS, workbench: unknown = null, heads: Readonly<Record<string, unknown>> = {}): Promise<Harness> {
   document.body.innerHTML = PAGE.slice(PAGE.indexOf("<body>") + 6, PAGE.indexOf("</body>"));
   const streams: FakeStream[] = [];
   const fetched: string[] = [];
@@ -68,6 +68,10 @@ async function harness(hash = "", runs: unknown[] = RUNS, workbench: unknown = n
       fetched.push(url);
       if (url === "/api/runs") return runs.length === 1 && runs[0] === "fail" ? Promise.reject(new Error("offline")) : Promise.resolve([...runs]);
       if (url === "/api/workbench") return workbench === null ? Promise.reject(new Error("workbench unavailable")) : Promise.resolve(workbench);
+      if (url.endsWith("/head")) {
+        const id = decodeURIComponent(url.split("/")[3] ?? "");
+        return id in heads ? Promise.resolve(heads[id]) : Promise.reject(new Error("recorded head unavailable"));
+      }
       if (url.endsWith("/comparisons")) return Promise.resolve({ candidates: [{run: "2026-10-11T21-00-00_old", milestones: []}], baseline: null, best: null });
       if (url.endsWith("/milestones")) {
         return Promise.resolve({ run: "2026-10-11T21-00-00_old", milestones: [{ name: "GAME_RUNNING", offsetMs: 5 }, { name: "PLAYER_NAME_SET", offsetMs: 20_000 }] });
@@ -496,6 +500,52 @@ describe("viewer app", () => {
     must(streams[0]).send("caught_up", {});
     app.tick(100);
     expect(ui("split-strip").textContent).toContain("NEW GAME ✔");
+  });
+
+  it("keeps the selected run's recorded thinking atomic until its event stream is caught up", async () => {
+    const id = RUNS[0]?.id ?? "missing";
+    const recorded = new Log();
+    recorded.add(0, START);
+    recorded.add(1_000, { type: "turn_start", turn: 1, context: { messages: 1, images: 0, est_tokens: 10 } });
+    recorded.add(2_000, assistant({ turn: 1, thinking: "Older recorded thought." }));
+    recorded.add(3_000, { type: "turn_start", turn: 2, context: { messages: 2, images: 0, est_tokens: 20 } });
+    recorded.add(4_000, assistant({ turn: 2, thinking: "Latest recorded thought." }));
+    const { app, streams } = await harness("", RUNS, null, { [id]: recorded.events.map((event) => ({ ...event, run: id })) });
+    await Promise.resolve();
+    app.render();
+    expect(ui("think-body").textContent).toContain("Latest recorded thought.");
+    expect(ui("side-trace").textContent).toContain("Older recorded thought.");
+
+    const partial = new Log();
+    partial.add(0, START);
+    partial.add(1_000, { type: "turn_start", turn: 1, context: { messages: 1, images: 0, est_tokens: 10 } });
+    partial.add(2_000, assistant({ turn: 1, thinking: "Partial stream thought." }));
+    feed(must(streams[0]), partial.events, false);
+    app.tick(100);
+    expect(ui("think-body").textContent).toContain("Latest recorded thought.");
+    expect(ui("think-body").textContent).not.toContain("Partial stream thought.");
+
+    feed(must(streams[0]), recorded.events.slice(partial.events.length), false);
+    must(streams[0]).send("caught_up", {});
+    app.tick(100);
+    expect(ui("think-body").textContent).toContain("Latest recorded thought.");
+  });
+
+  it("holds a stable thinking-loading state when the head snapshot fails, then trusts the caught-up stream", async () => {
+    const { app, streams } = await harness();
+    await Promise.resolve();
+    const log = new Log();
+    log.add(0, START);
+    log.add(1_000, { type: "turn_start", turn: 1, context: { messages: 1, images: 0, est_tokens: 10 } });
+    log.add(2_000, assistant({ turn: 1, thinking: "Recorded after catch-up." }));
+    feed(must(streams[0]), log.events, false);
+    app.tick(100);
+    expect(ui("think-head").textContent).toContain("LOADING RECORDED THINKING");
+    expect(ui("think-body").textContent).not.toContain("Recorded after catch-up.");
+    expect(ui("side-trace").textContent).toContain("loading recorded thinking");
+    must(streams[0]).send("caught_up", {});
+    app.tick(100);
+    expect(ui("think-body").textContent).toContain("Recorded after catch-up.");
   });
 
   it("says so when there are no runs", async () => {

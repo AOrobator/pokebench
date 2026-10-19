@@ -5,13 +5,14 @@ import type {AgentTool,AgentToolResult} from "@mariozechner/pi-agent-core";
 import {featuresOf,playHarnessFeatures} from "./features.js";
 import {normalizeFeatures} from "./play-preset.js";
 import {parseGameState,type GameStateSnapshot} from "./game-state.js";
-import {isCheckedPress,type CheckedPressTool} from "./game-tools.js";
+import {gameTools,isCheckedPress,type CheckedPressTool} from "./game-tools.js";
 import {playGameTools} from "./play-wiring.js";
 import {STARTER_DECISION_PROMPT,starterDecisionText,withStarterDecision} from "./starter-decision.js";
 const ID="starter-decision-salience-v1";
 const events=JSON.parse(readFileSync(new URL("./fixtures/starter-decision.json",import.meta.url),"utf8")) as {seq:number;state_seq?:number;text?:string;type:string}[];
 const entry=(seq:number)=>{const x=events.find(e=>e.seq===seq);if(!x)throw new Error("missing fixture");return x;};
-const state=parseGameState(entry(2906));
+const raw=Object.fromEntries(Object.entries(entry(2906)).filter(([key])=>!["v","run","seq","t","type","turn"].includes(key)));
+const state=parseGameState(raw);
 const text=entry(2907).text??"";
 const off=featuresOf([]),on={...off,[ID]:true};
 const result=(s:unknown=state):AgentToolResult<unknown>=>({content:[{type:"image",data:"frame",mimeType:"image/png"},{type:"text",text}],details:{state:s}});
@@ -35,6 +36,8 @@ describe(ID,()=>{
   {active_ui:{...state.active_ui,ready:null}},
   {active_ui:{...state.active_ui,phase:"starter_confirmation"}},
   {active_ui:null},
+  {active_ui:{...state.active_ui,selected:null}},
+  {active_ui:{...state.active_ui,diagnostic:"unverified owner"}},
   {screen:"overworld"},
   {party:[{species:"TORCHIC"}]},
   {started:false},
@@ -55,13 +58,14 @@ describe(ID,()=>{
    if(!r)throw new Error("missing result");
    expect(value(r)).toBe(i<3?text+"\n\n"+STARTER_DECISION_PROMPT:text);
    expect(r.content[0]).toEqual(result().content[0]);expect(r.details).toEqual({state});
-   expect(base[i]?.execute).toHaveBeenCalledWith("call",{buttons:["A"]},undefined,undefined);
+   expect(base[i]?.execute).toHaveBeenCalledWith(...(i<3?["call",{buttons:["A"]},undefined,undefined]:["call",{buttons:["A"]}]));
   }
   expect(read).not.toHaveBeenCalled();
  });
  it("preserves checked-press validation and refusals, no hidden execution",async()=>{
-  const executeChecked:CheckedPressTool["executeChecked"]=vi.fn(()=>Promise.resolve(result()));
-  const base:CheckedPressTool={...tool("press"),executeChecked};
+  const checkedResult={...result(),details:{state}};
+  const executeChecked:CheckedPressTool["executeChecked"]=vi.fn(()=>Promise.resolve(checkedResult));
+  const base:CheckedPressTool={...gameTools("http://unused",{beforePress:()=>undefined,afterPress:()=>Promise.resolve()})[1],execute:vi.fn(()=>Promise.resolve(checkedResult)),executeChecked};
   const wrapped=withStarterDecision([base],on)[0];
   if(!wrapped||!isCheckedPress(wrapped))throw new Error("lost checked press");
   const check=()=>null;
@@ -71,8 +75,24 @@ describe(ID,()=>{
   expect(base.execute).not.toHaveBeenCalled();
  });
  it("ignores absent snapshot, text-only results, and non-game tools",async()=>{
-  for(const r of [{content:[],details:{}},result(undefined),{content:[{type:"text" as const,text}],details:{state}}]){
+  for(const r of [{content:[],details:{}},{content:[],details:{state:undefined}},{content:[{type:"text" as const,text}],details:{state}}]){
    const base=tool("observe",r);expect(await withStarterDecision([base],on)[0]?.execute("x",{})).toBe(r);
   }
  });
+});
+
+it("separates native termination from the model goal in checkpoint presets",async()=>{
+ const {parsePlayPreset,terminationTarget}=await import("./play-preset.js");
+ const {playSystemPrompt,initialPlayTask}=await import("./play-config.js");
+ const preset={version:2,id:"starter-test",target:null,stopAt:"STARTER_CHOSEN",limits:{maxTurns:20000,maxWallMs:300000,failureLimit:3},sampling:{thinkingLevel:"medium",maxTokens:4096},features:{...off,"save-state-task-truth-v1":true}};
+ const p=parsePlayPreset(preset);
+ expect(terminationTarget(p)).toBe("STARTER_CHOSEN");
+ expect(p.target).toBeNull();
+ expect(initialPlayTask({kind:"save_state"},p.target,preset.features)).toContain("resumed from a recorded checkpoint");
+ expect(playSystemPrompt(preset.features,p.target)).not.toContain("Reach the native game milestone STARTER CHOSEN");
+ expect(terminationTarget(null)).toBeNull();
+ expect(terminationTarget(parsePlayPreset({...preset,stopAt:undefined,target:"STARTER_CHOSEN"}))).toBe("STARTER_CHOSEN");
+ expect(()=>parsePlayPreset({...preset,stopAt:"INVENTED"})).toThrow(/native target/);
+ expect(()=>parsePlayPreset({...preset,stopAt:"PLAYER_BEDROOM_EXITED_AFTER_CLOCK"})).toThrow(/native target/);
+ expect(()=>parsePlayPreset({...preset,target:"STONE_BADGE"})).toThrow(/conflict/);
 });

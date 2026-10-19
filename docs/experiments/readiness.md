@@ -147,3 +147,7 @@ Pending, unqueued and unapproved. Separate proposed MAIN_MENU early-game screen,
 | `battle-decision-ready-v1` | `STARTER_CHOSEN` | Shared repair in both bundle-v-control arms by operator request; standalone registration explicitly blocked, not queued. |
 ## battle-refusal-loop (2026-10-19)
 Pending, unqueued, unapproved. Correctness-tier production replay first: round-2 visited-map has 322 semantic refusals. Gameplay efficacy and runtime recovery remain unmeasured. No new cohort sized or authorized; operator GPU budget and checkpoint design required before measured trials.
+
+## Starter decision salience · 2026-10-19
+
+Checkpoint diagnostic candidate: first-arrival ROUTE_101, SHA1 0c34433cc305ea5de6fa69aa4a5612bf434a5714, source frontier-acq-a state900/milestone901, empty party. Qualification on current build pending; do not infer readiness from the historical capture alone. Native activation occurs after ROUTE_101 at ready starter_selection. No measured launch or approval.

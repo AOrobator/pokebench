@@ -473,6 +473,7 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "battle-effective-damage-v1":"battle-effective-damage-v1.html",
  "deterministic-warp-navigation-v1":"deterministic-warp-navigation-v1.html",
  "battle-decision-ready-v1":"battle-decision-ready-v1.html",
+ "starter-decision-salience-v1":"starter-decision-salience-v1.html",
 });
 
 export function harnessConfig(view:RunView,registry:readonly FeatureInfo[]=[]):string {

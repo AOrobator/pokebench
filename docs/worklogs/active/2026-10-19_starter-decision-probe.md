@@ -27,3 +27,9 @@ The operator asked to design and implement the starter decision probe and get it
 Pending.
 
 - RED: new starter decision module/factory tests fail because the module is absent; shared native-target fixed-definition test fails because target is null-only. Logs /tmp/starter-red-{agent,fixed}.log.
+
+- Implementation snapshot: neutral menu reminder, exact OFF factory behavior, checked presses and recorded-context replay; shared `stopAt` independent of the broad goal; 16-slot fixed diagnostic, blank annotation ledger, rubric and local pages. No measured approval or launch.
+- Focused feature/replay tests passed 44 tests; fake fixed-run rehearsal completed all 16 outcomes on both lanes with early native selection termination. Expanded checks exposed historical registry-position and explicit OFF fixture expectations, being updated without changing historical on-disk presets. Full gates still pending.
+- Correction to initial RED note: the first fixed-definition run failed on an unbuilt imported agent package, not yet on the target schema. A deliberate production mutation will establish the actual stopping-boundary regression before final review.
+- Checkpoint qualification: real current-build reload confirms native map [0,16], (11,19), empty party. Manual harness script metadata/location assertions were repaired; menu/cancel/native acquisition qualification is still in progress. These zero-inference manual probes are excluded from autonomous outcomes.
+- Main advanced with supervisor-recovery work while implementation was underway. Integrate it before sealing review; do not claim current combined-tree gates yet.

@@ -31,7 +31,7 @@ import { checkSmoke, gameTools, observeTool, pressTool, serverHealthy } from "./
 import { discoverModels, selectModel, type GatewayModel } from "./gateway.js";
 import { FrameStore } from "./frames.js";
 import { StateWatcher } from "./game-state.js";
-import {flagFeatures,parsePlayPreset,presetFeatures,presetFlags,presetStart} from "./play-preset.js";
+import {terminationTarget,flagFeatures,parsePlayPreset,presetFeatures,presetFlags,presetStart} from "./play-preset.js";
 import {runStateMode,stateOnlyPrompt,stateOnlyProblems} from "./state-runtime.js";
 import {NativeTargetStop} from "./target-stop.js";
 import { BudgetTimer, ControlFile, RunControl, freezeGame, watchControl, controlLine } from "./run-control.js";
@@ -230,11 +230,12 @@ async function playAgent(): Promise<void> {
   const maxTokens=preset?.sampling.maxTokens??Math.min(PLAY_MAX_TOKENS,model.maxTokens);
   const thinking=preset?.sampling.thinkingLevel??PLAY_THINKING;
   const loopMode=features["deterministic-loop-guard-v1"]?"enforced":"diagnostic";
-  const target=preset?.target??null;
-  const goal=playGoal(target,features);
+  const target=terminationTarget(preset);
+  const goalTarget=preset?.target??null;
+  const goal=playGoal(goalTarget,features);
   const stateMode=features["state-only-decisions-v1"];
   const incompatible=stateOnlyProblems(features);if(incompatible.length)throw new Error(incompatible.join("; "));
-  const systemPrompt=stateMode?stateOnlyPrompt(features,target):playSystemPrompt(features,target);
+  const systemPrompt=stateMode?stateOnlyPrompt(features,goalTarget):playSystemPrompt(features,goalTarget);
   console.log(`run-agent: run ${runId}, model ${model.id} via ${gatewayUrl}`);
   console.log(`watch: just tail-run ${runId}   (frame: http://127.0.0.1:${String(port)}/view)`);
 
@@ -246,7 +247,7 @@ async function playAgent(): Promise<void> {
       port,
       model: { id: model.id, context_window: model.contextWindow, max_tokens: model.maxTokens, vision: true },
       sampling: playSampling(features, thinking, maxTokens),
-      ...(preset===null?{}:{evaluation:{preset_id:preset.id,target:preset.target,failure_limit:limits.failureLimit,...(limits.replyFailuresEndRun===undefined?{}:{reply_failures_end_run:limits.replyFailuresEndRun}),flags:presetFlags(preset),features:{...features},...(experiment===null?{}:{experiment})}}),
+      ...(preset===null?{}:{evaluation:{preset_id:preset.id,target,...(preset.stopAt===undefined?{}:{goal_target:preset.target}),failure_limit:limits.failureLimit,...(limits.replyFailuresEndRun===undefined?{}:{reply_failures_end_run:limits.replyFailuresEndRun}),flags:presetFlags(preset),features:{...features},...(experiment===null?{}:{experiment})}}),
       systemPrompt,
       tools: stateMode?["act"]:playTools(features),
       startState: start,
@@ -321,8 +322,8 @@ async function playAgent(): Promise<void> {
       const baseTools=objectives?.tools ?? gameTools(gameServerUrl, pressHooks(recorder), fetch, toolSwitches(features));
       const context=contextTools(features,recorder,objectives?.transformContext??recorder.transformContext);
       const tools=playGameTools(baseTools,features,new StateWatcher(gameServerUrl),recorder,signal=>runControl.gate(signal),context.tools);
-      const jit=new JitContext(features,target);
-      const stableJit=new StableJitContext(features,target);
+      const jit=new JitContext(features,goalTarget);
+      const stableJit=new StableJitContext(features,goalTarget);
       recorder.subscribe(event=>{if(event.type==="state"){jit.observe(event);stableJit.observe(event);}},false,true);
       const loop = piLoop({
         systemPrompt,
@@ -338,8 +339,8 @@ async function playAgent(): Promise<void> {
         gate: (signal) => runControl.gate(signal),
       });
       try {
-        if(stateMode)return await runStateMode({features,target,serverUrl:gameServerUrl,recorder,governor,base:playLoopBase(model,thinking,apiKey,maxTokens,features),signal:controller.signal,gate:signal=>runControl.gate(signal),inputEpoch:()=>runControl.pausedMs()});
-        return await deliverInitialPlayTask(start,target,features,()=>Date.now(),task=>play(task,governor,loop));
+        if(stateMode)return await runStateMode({features,target:goalTarget,serverUrl:gameServerUrl,recorder,governor,base:playLoopBase(model,thinking,apiKey,maxTokens,features),signal:controller.signal,gate:signal=>runControl.gate(signal),inputEpoch:()=>runControl.pausedMs()});
+        return await deliverInitialPlayTask(start,goalTarget,features,()=>Date.now(),task=>play(task,governor,loop));
       } finally {
         wall.clear();
         stall?.clear();

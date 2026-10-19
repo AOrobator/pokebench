@@ -131,6 +131,17 @@ describe("classifyTrial", () => {
     expect(run({ kind: "boot" }, ROM_SHA1, expectation)).toMatchObject({ valid: false, reason: `run_start does not match the plan: start boot (planned save_state ${START_SHA1})` });
   });
 
+  it("rejects a trial that changes the declared native termination boundary",()=>{
+    const planned={...expectation,target:"STARTER_CHOSEN"};
+    const run=(target:string|null)=>classifyTrial(text(log=>{
+      log.add(0,{...goodStart,evaluation:{...goodStart.evaluation,target}});
+      log.add(900_000,{...end,reason:"budget"});
+    }),planned,0);
+    expect(run("STARTER_CHOSEN")).toMatchObject({valid:true});
+    expect(run(null)).toMatchObject({valid:false,reason:expect.stringContaining("target")});
+    expect(run("STONE_BADGE")).toMatchObject({valid:false,reason:expect.stringContaining("target")});
+  });
+
   it("checks the recorded feature bits against the arm, so a wrong-arm or unrecorded trial is invalid", () => {
     const planned = { ...expectation, features: { "stall-briefing-v1": true, "milestone-stall-stop-v1": false } };
     const run = (features: Record<string, boolean> | undefined) => classifyTrial(text((log) => {

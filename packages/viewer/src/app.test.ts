@@ -237,10 +237,10 @@ describe("viewer app", () => {
     expect(ui("play").textContent).toBe("❚❚");
     expect(ui("replay-controls").hidden).toBe(false);
     expect(ui("counters").innerHTML).toContain("think-swarm");
-    expect(ui("think-head").textContent).toBe("AGENT is waiting…");
+    expect(ui("think-head").textContent).toBe("AGENT thought for 7.0s · turn 4");
 
     app.tick(2_000);
-    expect(ui("think-head").textContent).toMatch(/^AGENT (is thinking|thought for)/);
+    expect(ui("think-head").textContent).toBe("AGENT thought for 7.0s · turn 4");
     app.tick(10_000);
     expect(ui("screen").getAttribute("href")).toBe(`/api/runs/${M4_ID}/frames/000015_0.png`);
     expect(ui("trace").querySelectorAll("[data-key]").length).toBeGreaterThan(5);
@@ -390,6 +390,7 @@ describe("viewer app", () => {
       fetchJson: (url) =>
         url === "/api/runs"
           ? Promise.resolve(RUNS)
+          : url.endsWith("/head") ? Promise.reject(new Error("recorded head unavailable"))
           : url.endsWith("/comparisons") ? Promise.resolve({ candidates:[{run:"2026-10-11T21-00-00_old",milestones:[]}],baseline:null,best:null }) : new Promise((resolve) => {
               pending.push(resolve);
             }),
@@ -529,6 +530,46 @@ describe("viewer app", () => {
     must(streams[0]).send("caught_up", {});
     app.tick(100);
     expect(ui("think-body").textContent).toContain("Latest recorded thought.");
+  });
+
+  it("keeps the run-splits thinking pane at the recorded present while a finished run replays", async () => {
+    const id = M4_ID;
+    const recorded = fullRun();
+    const head = recorded.events.map((event) => ({ ...event, run: id }));
+    const { app, streams } = await harness(`#run=${id}`, RUNS, null, { [id]: head });
+    await Promise.resolve();
+    feed(must(streams[0]), head);
+    app.clock?.seek(BASE_MS);
+    app.tick(0);
+    expect(ui("mode").textContent).toBe("REPLAY");
+    expect(ui("think-title").textContent).toBe("FINAL · TURN 2");
+    expect(ui("think-body").textContent).toContain("Again.");
+    expect(ui("trace").textContent).not.toContain("Again.");
+  });
+
+  it("ignores a recorded-thinking response from a run that is no longer selected", async () => {
+    const firstId = RUNS[0]?.id ?? "missing";
+    let resolveFirst: (value: unknown) => void = () => undefined;
+    const firstHead = new Promise<unknown>((resolve) => { resolveFirst = resolve; });
+    const fresh = new Log();
+    fresh.add(0, START);
+    fresh.add(1_000, { type: "turn_start", turn: 1, context: { messages: 1, images: 0, est_tokens: 10 } });
+    fresh.add(2_000, assistant({ turn: 1, thinking: "Selected run thought." }));
+    const { app } = await harness("", RUNS, null, {
+      [firstId]: firstHead,
+      [M4_ID]: fresh.events.map((event) => ({ ...event, run: M4_ID })),
+    });
+    app.select(M4_ID);
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(ui("think-body").textContent).toContain("Selected run thought.");
+
+    const stale = fresh.events.map((event) => event.type === "assistant" ? { ...event, run: firstId, thinking: "Stale run thought." } : { ...event, run: firstId });
+    resolveFirst(stale);
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(ui("think-body").textContent).toContain("Selected run thought.");
+    expect(ui("think-body").textContent).not.toContain("Stale run thought.");
   });
 
   it("holds a stable thinking-loading state when the head snapshot fails, then trusts the caught-up stream", async () => {
@@ -829,7 +870,7 @@ it("does not apply comparisons from a superseded run selection", async () => {
   const pending: ((value: unknown) => void)[] = [];
   const streams: FakeStream[] = [];
   const app = await mountApp(document, {
-    fetchJson: (url) => nextRunReply(url) ?? (url === "/api/runs" ? Promise.resolve(RUNS) : url === "/api/workbench" ? Promise.reject(new Error("workbench unavailable")) : new Promise((resolve) => pending.push(resolve))),
+    fetchJson: (url) => nextRunReply(url) ?? (url === "/api/runs" ? Promise.resolve(RUNS) : url === "/api/workbench" || url.endsWith("/head") ? Promise.reject(new Error("optional snapshot unavailable")) : new Promise((resolve) => pending.push(resolve))),
     sendJson: noWrites,
     openStream: (url) => { const stream = new FakeStream(url); streams.push(stream); return stream; }, now:()=>BASE_MS, hash:"",
   });
@@ -851,7 +892,7 @@ it("offers only eligible references and preserves none while comparisons are pen
   const pending: ((value:unknown)=>void)[] = [];
   const streams: FakeStream[] = [];
   const app = await mountApp(document, {
-    fetchJson:(url)=>nextRunReply(url) ?? (url === "/api/runs" ? Promise.resolve(RUNS) : url === "/api/workbench" ? Promise.reject(new Error("workbench unavailable")) : url.startsWith("/sprites/") ? Promise.reject(new Error("no card art")) : new Promise((resolve)=>pending.push(resolve))),
+    fetchJson:(url)=>nextRunReply(url) ?? (url === "/api/runs" ? Promise.resolve(RUNS) : url === "/api/workbench" || url.endsWith("/head") ? Promise.reject(new Error("optional snapshot unavailable")) : url.startsWith("/sprites/") ? Promise.reject(new Error("no card art")) : new Promise((resolve)=>pending.push(resolve))),
     sendJson: noWrites,
     openStream:(url)=>{const s=new FakeStream(url);streams.push(s);return s;},now:()=>BASE_MS,hash:"",
   });

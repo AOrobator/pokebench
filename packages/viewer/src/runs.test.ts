@@ -95,12 +95,17 @@ describe("readRecentEvents", () => {
       log.add(turn * 1_000 + 1, { ...assistant({ turn, thinking: `thought ${String(turn)} ${"x".repeat(200)}` }) });
     }
     const path = writeRun(runsRoot, "recent", log);
-    const lastTwoBytes = readFileSync(path, "utf8").split("\n").slice(-5).join("\n").length + 20;
+    const lastTwoBytes = readFileSync(path, "utf8").split("\n").slice(-7).join("\n").length + 20;
     const recent = readRecentEvents(runsRoot, "recent", 2, lastTwoBytes);
     expect(recent[0]?.type).toBe("run_start");
     expect([...new Set(recent.slice(1).map((event) => event.turn))]).toEqual([3, 4]);
-    expect(recent.find((event) => event.type === "assistant" && event.turn === 3)?.thinking).toContain("thought 3");
-    expect(recent.find((event) => event.type === "assistant" && event.turn === 4)?.thinking).toContain("thought 4");
+    const thought = (turn: number): string => {
+      const event = recent.find((candidate) => candidate.type === "assistant" && candidate.turn === turn);
+      if (event?.type !== "assistant") throw new Error(`missing assistant turn ${String(turn)}`);
+      return event.thinking;
+    };
+    expect(thought(3)).toContain("thought 3");
+    expect(thought(4)).toContain("thought 4");
     expect(recent.some((event) => event.turn === 2)).toBe(false);
   });
 });

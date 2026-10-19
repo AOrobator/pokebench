@@ -20,6 +20,8 @@ export class BaselineError extends Error {
 
 const RUN_ID = new RegExp(RUN_ID_PATTERN);
 const CHUNK = 64 * 1024;
+const RECENT_EVENT_TURNS = 30;
+const RECENT_EVENT_BYTES = 8 * 1024 * 1024;
 
 export interface RunSummary {
   readonly id: string;
@@ -253,6 +255,45 @@ export function readStart(runsRoot: string, runId: string): RunEvent & { type: "
   const start = first === null ? null : parseLine(first, 1);
   if (start?.ok !== true || start.event.type !== "run_start") throw new RunsError(`run ${runId} has no readable run_start`);
   return start.event;
+}
+
+// A compact, atomic view of the recorded present: the run header plus the newest
+// complete turns. The forward event stream remains authoritative after catch-up.
+export function readRecentEvents(
+  runsRoot: string,
+  runId: string,
+  maxTurns = RECENT_EVENT_TURNS,
+  maxBytes = RECENT_EVENT_BYTES,
+): RunEvent[] {
+  if (!Number.isSafeInteger(maxTurns) || maxTurns <= 0) throw new RunsError("recent turn limit must be a positive integer");
+  if (!Number.isSafeInteger(maxBytes) || maxBytes <= 0) throw new RunsError("recent byte limit must be a positive integer");
+  const path = eventsPath(runsRoot, runId);
+  const start = readStart(runsRoot, runId);
+  if (start.run !== runId) throw new RunsError(`run ${runId} holds an event for run ${start.run}`);
+
+  const size = sizeOf(path);
+  const offset = Math.max(0, size - maxBytes);
+  let bytes = readBytes(path, offset, maxBytes);
+  if (offset > 0 && readBytes(path, offset - 1, 1)[0] !== 0x0a) {
+    const boundary = bytes.indexOf(0x0a);
+    bytes = boundary < 0 ? Buffer.alloc(0) : bytes.subarray(boundary + 1);
+  }
+  const completeEnd = bytes.lastIndexOf(0x0a);
+  if (completeEnd < 0) return [start];
+
+  const tail: RunEvent[] = [];
+  for (const [index, text] of bytes.subarray(0, completeEnd).toString("utf8").split("\n").entries()) {
+    if (text.trim() === "") continue;
+    const parsed = parseLine(text, index + 1);
+    if (!parsed.ok) throw new RunsError(`run ${runId} recent event ${String(parsed.line)}: ${parsed.problem}`);
+    if (parsed.event.run !== runId) throw new RunsError(`run ${runId} holds an event for run ${parsed.event.run}`);
+    if (parsed.event.type !== "run_start") tail.push(parsed.event);
+  }
+
+  const turns = [...new Set(tail.map((event) => event.turn))];
+  const completeTurns = offset > 0 && turns.length <= maxTurns ? turns.slice(1) : turns.slice(-maxTurns);
+  const selected = new Set(completeTurns);
+  return [start, ...tail.filter((event) => selected.has(event.turn))];
 }
 
 export function baselineOf(runsRoot: string, runId: string): Baseline {

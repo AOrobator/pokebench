@@ -75,7 +75,7 @@ def test_observation_delivers_named_topology_only_when_enabled(monkeypatch):
         assert status == 200
         body = json.loads(raw)
         assert ("Current map bounds: X=0..4, Y=0..4" in body["state_text"]) is expected
-        assert ("Warp destination at (5,1): ROUTE 101" in body["state_text"]) is expected
+        assert ("Warp destination at (5,1): map 0/16" in body["state_text"]) is expected
         assert body["state"]["topology"]["width"] == 5
 
 

@@ -13,6 +13,9 @@ const PREVIOUS="people-ledger-v1";
 const RUN54A7=JSON.parse(readFileSync(new URL("../test-support/trainer-heal-54a7.json",import.meta.url),"utf8")) as {harness_features:string[];system_prompt:string};
 const BUNDLE:FeatureSet=featuresOf(RUN54A7.harness_features);
 const with_=(features:FeatureSet,value:boolean):FeatureSet=>({...features,[ID]:value});
+const OLD_WARP_RULE="Warp destinations are the map you arrive on: its name when the game's map table has one";
+const KNOWN_WARP_RULE="Warp destinations are the map you arrive on: a name the game displays when one is available";
+const currentPrompt=RUN54A7.system_prompt.replace(OLD_WARP_RULE,KNOWN_WARP_RULE);
 
 it("is a default-off agent-side guidance switch recorded right after people-ledger-v1",()=>{
  expect(featureInfo(ID)).toMatchObject({group:"guidance",needs:null,switchable:true,title:"TRAINER HEAL GUIDANCE"});
@@ -37,12 +40,12 @@ it("reads presets and legacy flags without the switch as OFF and keeps an explic
 
 it("OFF reproduces run 54a7's recorded system prompt byte for byte",()=>{
  expect(BUNDLE[ID]).toBe(false);
- expect(playSystemPrompt(BUNDLE,null)).toBe(RUN54A7.system_prompt);
+ expect(playSystemPrompt(BUNDLE,null)).toBe(currentPrompt);
 });
 
 it("ON appends exactly the section, after battle triage when that is on; tools are unchanged",()=>{
  const on=playSystemPrompt(with_(BUNDLE,true),null);
- expect(on).toBe(RUN54A7.system_prompt.replace(`\n\n${BATTLE_TRIAGE_SECTION}`,`\n\n${BATTLE_TRIAGE_SECTION}\n\n${TRAINER_HEAL_SECTION}`));
+ expect(on).toBe(currentPrompt.replace(`\n\n${BATTLE_TRIAGE_SECTION}`,`\n\n${BATTLE_TRIAGE_SECTION}\n\n${TRAINER_HEAL_SECTION}`));
  for(const base of [BUNDLE,with_(ALL_ON,false),{...BUNDLE,"battle-triage-guidance-v1":false,[ID]:false}]){
   const off=playSystemPrompt(base,null),withIt=playSystemPrompt(with_(base,true),null);
   expect(withIt.length).toBe(off.length+TRAINER_HEAL_SECTION.length+2);

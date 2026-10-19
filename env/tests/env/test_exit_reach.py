@@ -37,6 +37,7 @@ from pokebench_env.topology import Connection, Topology
 
 ID = "exit-reachability-v1"
 FIXTURES = Path(__file__).parent / "fixtures"
+CURRENT = json.loads((FIXTURES / "readout-truth-current-warp-names.json").read_text())["cases"]
 ROM_START = 0x08000000
 NOTE = "not reachable on foot from where you stand"
 NORTH_OFF = (
@@ -156,20 +157,20 @@ def test_route103_altering_cave_and_east_edge_are_water_south_is_foot(seq: int) 
 
 
 @pytest.mark.parametrize("seq", SEQS_104)
-def test_off_reproduces_the_recorded_0e05_readout_byte_for_byte(seq: int) -> None:
+def test_off_matches_current_policy_without_rewriting_the_recorded_0e05_readout(seq: int) -> None:
     case = next(c for c in fixture(ROUTE104)["cases"] if c["tool_result_seq"] == seq)
     assert "call navigate_to again to continue to" in case["navigation_line"]
     assert "NORTH edge -> RUSTBORO CITY (map 0/3)" in case["untaken_line"]
     off = readout(ROUTE104, seq, [*recorded_off(ROUTE104), ID])
-    assert off == case["readout"]
+    assert off == CURRENT[f"exit-reach:{seq}"]
     assert NORTH_OFF in off.split("\n")
 
 
 @pytest.mark.parametrize("seq", SEQS_104)
 def test_on_route104_north_edge_and_woods_north_warps_say_not_reachable_on_foot(seq: int) -> None:
-    case = next(c for c in fixture(ROUTE104)["cases"] if c["tool_result_seq"] == seq)
     on = readout(ROUTE104, seq, recorded_off(ROUTE104))
-    lines = case["readout"].split("\n")
+    baseline = CURRENT[f"exit-reach:{seq}"]
+    lines = baseline.split("\n")
     expected = [(NORTH_OFF, NORTH_ON)]
     for x, y in NONE_WARPS:
         warp = next(
@@ -177,7 +178,7 @@ def test_on_route104_north_edge_and_woods_north_warps_say_not_reachable_on_foot(
         )
         dest = next(line for line in lines if line.startswith(f"Warp destination at ({x},{y}):"))
         expected += [(warp, warp + WARP_ON), (dest, dest + DEST_ON)]
-    assert sorted(changed(case["readout"], on)) == sorted(expected)
+    assert sorted(changed(baseline, on)) == sorted(expected)
     # No Surf or badge wording on a land case, and no guessed cause (pokebench-game-state skill,
     # "Harness messages use the game's own words": the game shows nothing here, so the fact only).
     assert "Surf" not in NORTH_ON and "Badge" not in WARP_ON

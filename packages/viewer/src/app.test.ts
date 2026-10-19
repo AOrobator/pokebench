@@ -873,14 +873,14 @@ describe("boot", () => {
 
 // Live discovery and error containment are operator-visible guarantees.
 describe("live discovery and diagnostics", () => {
-  it("keeps every live run visible while replaying a finished probe", async () => {
+  it("keeps live runs selectable in the dropdown while replaying, without legacy bars", async () => {
     const runs = [runRow("probe_g4", true), runRow("active_model", false)];
     const { streams } = await harness("#run=probe_g4", runs);
-    expect(ui("live-runs").hidden).toBe(false);
-    const button = ui("live-runs").querySelector("button");
-    expect(button?.dataset.run).toBe("active_model");
-    expect(ui("run").querySelector("option")?.textContent).toContain("LIVE");
-    button?.click();
+    expect(document.querySelector('[data-ui="live-runs"]')).toBeNull();
+    const picker = ui("run") as HTMLSelectElement;
+    expect(picker.querySelector("option")?.textContent).toContain("LIVE");
+    picker.value = "active_model";
+    picker.dispatchEvent(new Event("change"));
     expect(streams.at(-1)?.url).toBe("/api/runs/active_model/events");
   });
 
@@ -910,23 +910,20 @@ it("ignores queued callbacks from a stream closed by a run switch", async () => 
   expect(app.view.start).toBeNull();
 });
 
-it("marks only the selected live run and retains the mark after discovery refresh", async () => {
+it("retains the selected run in the dropdown after discovery refresh without legacy bars", async () => {
   const runs = [runRow("first_live", false), runRow("second_live", false), runRow(M4_ID, true)];
-  const { app } = await harness("#run=first_live", runs);
-  const selected = () => [...ui("live-runs").querySelectorAll('button[aria-pressed="true"]')].map((button) => (button as HTMLButtonElement).dataset.run);
-  expect(selected()).toEqual(["first_live"]);
-  expect(ui("live-runs").textContent).toContain("WATCHING");
-  (ui("live-runs").querySelector('[data-run="second_live"]') as HTMLButtonElement).click();
-  expect(selected()).toEqual(["second_live"]);
-  expect((ui("live-runs").querySelector('[data-run="first_live"]') as HTMLButtonElement).textContent).toMatch(/^LIVE ELSEWHERE · .* · WATCH ▸$/);
-  expect((ui("live-runs").querySelector('[data-run="second_live"]') as HTMLButtonElement).textContent).toMatch(/^WATCHING · /);
+  const { app, streams } = await harness("#run=first_live", runs);
+  const picker = ui("run") as HTMLSelectElement;
+  expect(picker.value).toBe("first_live");
+  picker.value = "second_live";
+  picker.dispatchEvent(new Event("change"));
+  expect(streams.at(-1)?.url).toBe("/api/runs/second_live/events");
   await app.refreshRuns();
-  expect(selected()).toEqual(["second_live"]);
+  expect(picker.value).toBe("second_live");
+  expect(document.querySelector('[data-ui="live-runs"]')).toBeNull();
   app.select(M4_ID);
-  expect(selected()).toEqual([]);
-  expect((ui("run") as HTMLSelectElement).value).toBe(M4_ID);
-  // Replaying an ended run: every live chip says it is another run, none says WATCHING.
-  expect([...ui("live-runs").querySelectorAll("button")].map((b) => b.textContent)).toEqual([expect.stringMatching(/^LIVE ELSEWHERE · .* · WATCH ▸$/), expect.stringMatching(/^LIVE ELSEWHERE · .* · WATCH ▸$/)]);
+  expect(picker.value).toBe(M4_ID);
+  expect(document.querySelector('[data-ui="live-runs"]')).toBeNull();
 });
 
 

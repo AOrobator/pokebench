@@ -246,7 +246,7 @@ it("shows an unended run whose game server is gone as not responding, with contr
   const { writes } = await mount({}, false, false);
   expect(ui("mode").textContent).toBe("NOT RESPONDING");
   expect((ui("run") as HTMLSelectElement).options[0]?.textContent).toBe(`NOT RESPONDING · ${RUN}`);
-  expect(ui("live-runs").hidden).toBe(true);
+  expect(document.querySelector('[data-ui="live-runs"]')).toBeNull();
   expect(ui("run-controls").querySelectorAll("button:not([disabled])")).toHaveLength(0);
   key("keydown", "p");
   await Promise.resolve();

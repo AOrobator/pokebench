@@ -37,6 +37,7 @@ type Input=NonNullable<Battle["player_inputs"]>[number];
 type Mon=NonNullable<Battle["battlers"]>[number];
 
 export interface BattleActionPorts {
+ refusalGuidance?:boolean;
  read(signal?:AbortSignal):Promise<GameStateSnapshot>;
  press(id:string,params:{buttons:Button[]},signal:AbortSignal|undefined,check:BeforePressCheck):Promise<AgentToolResult<unknown>>;
  observe(id:string,signal?:AbortSignal):Promise<AgentToolResult<unknown>>;
@@ -195,7 +196,7 @@ const stateOf=(r:AgentToolResult<unknown>):GameStateSnapshot=>{
 };
 
 export function battleActionTool(ports:BattleActionPorts):AgentTool<typeof BattleActionArgs> {
- return {name:"battle_action",label:"Choose a battle action",description:BATTLE_ACTION_DESCRIPTION,parameters:BattleActionArgs,
+ return {name:"battle_action",label:"Choose a battle action",description:BATTLE_ACTION_DESCRIPTION+(ports.refusalGuidance===true?" A refused call presses nothing and does not automatically advance text. When the returned state says a message is waiting for A or B, use press with A or B; battle_action cannot choose FIGHT there. While the game runs its own text or animation without a waiting input, wait and observe.":""),parameters:BattleActionArgs,
  execute:async(id,args,signal)=>{
   signal?.throwIfAborted();await ports.gate?.(signal);signal?.throwIfAborted();
   const action=args.action;
@@ -304,6 +305,7 @@ export function withBattleAction(tools:readonly AgentTool[],features:FeatureSet,
  const press=tools.find(t=>t.name==="press"),observe=tools.find(t=>t.name==="observe");
  if(press===undefined||observe===undefined||!isCheckedPress(press))throw new Error("battle_action requires the ordinary game tools");
  return [...tools,battleActionTool({
+  refusalGuidance:features["battle-refusal-loop-v1"],
   read:signal=>state.read(signal),
   press:(id,params,signal,check)=>press.executeChecked(id,params,check,signal),
   observe:(id,signal)=>observe.execute(id,{},signal),

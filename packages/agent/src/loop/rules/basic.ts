@@ -50,6 +50,8 @@ export class BasicRules {
   private observations = 0;
   private ineffective = { key: "", count: 0 };
   private readonly rejections = new Map<string, number>();
+  private lastRefusalSnapshot: string | null = null;
+  private readonly refusalEvidence = new Map<string, number[]>();
   private previous: string | null = null;
   private previousBattle: string | null = null;
   private previousWaiting: string | null = null;
@@ -153,15 +155,40 @@ export class BasicRules {
     };
   }
 
-  rejectionHit(call: CompletedCall): boolean {
-    const rejection = rejectionKey(call);
+  refusal(call: CompletedCall, enabled: boolean): {native: string | null; status: string | null} {
+    const native = enabled && call.state?.battle?.initialized === true ? battleState(call.state) : null;
+    if (native !== null && native !== this.lastRefusalSnapshot) {
+      for (const key of this.refusalEvidence.keys()) this.rejections.delete(key);
+      this.refusalEvidence.clear();
+      this.lastRefusalSnapshot = native;
+    }
+    const status = enabled && call.name === "battle_action" && !call.isError && call.acted === false && native !== null
+      ? call.text.split("\n").find(line => line.startsWith("Battle action: nothing pressed: "))?.slice(0, 2000) ?? null : null;
+    return {native, status};
+  }
+
+  refusalSequences(status: string): number[] | undefined {
+    return this.refusalEvidence.get(`battle_action:${status}`);
+  }
+
+  rejectionHit(call: CompletedCall, refusal: string | null = null, seq=0): boolean {
+    const rejection = refusal === null ? rejectionKey(call) : `battle_action:${refusal}`;
     if (rejection !== null) {
       const count = (this.rejections.get(rejection) ?? 0) + 1;
       this.rejections.set(rejection, count);
+      if (refusal !== null) {
+        const evidence = this.refusalEvidence.get(rejection) ?? [];
+        evidence.push(seq);
+        this.refusalEvidence.set(rejection,evidence.slice(-2));
+        if (this.refusalEvidence.size > 16) this.refusalEvidence.delete(this.refusalEvidence.keys().next().value ?? "");
+      }
       if (this.rejections.size > 16) this.rejections.delete(this.rejections.keys().next().value ?? "");
       return count >= this.policy.rejection;
     }
-    if (!call.isError && !PLANNING.has(call.name)) this.rejections.clear();
+    if (!call.isError && !PLANNING.has(call.name)) {
+      this.rejections.clear();
+      this.refusalEvidence.clear();
+    }
     return false;
   }
 
@@ -203,6 +230,7 @@ export class BasicRules {
 
   resetNovel(): void {
     this.rejections.clear();
+    this.refusalEvidence.clear();
     this.ineffective = { key: "", count: 0 };
   }
 

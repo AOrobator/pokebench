@@ -1,5 +1,7 @@
 import { readFileSync } from "node:fs";
-import { describe, expect, it } from "vitest";
+import { fileURLToPath } from "node:url";
+import * as ts from "typescript";
+import { describe, expect, expectTypeOf, it } from "vitest";
 import * as loopFacade from "./loop-detection.js";
 import { LOOP_RULE_PRIORITY, buildLoopRules, firstLoopHit } from "./loop/rules/index.js";
 import { LOOP_POLICY, type CompletedCall, type LoopHit, type LoopRule, type LoopRuleId } from "./loop/types.js";
@@ -9,7 +11,7 @@ import type { GameStateSnapshot } from "./game-state.js";
 
 describe("loop rule architecture", () => {
   it("preserves the compatibility facade's exact runtime and type export surface", () => {
-    expect(Object.keys(loopFacade).sort()).toEqual([
+    const runtimeExports = [
       "BATTLE_MENU_LOOP_MESSAGE",
       "BATTLE_MENU_RETURNS",
       "LOOP_POLICY",
@@ -25,9 +27,30 @@ describe("loop rule architecture", () => {
       "semanticState",
       "transientLock",
       "waitingState",
-    ]);
-    const source = readFileSync(new URL("./loop-detection.ts", import.meta.url), "utf8");
-    expect(source).not.toMatch(/export type\s*\{[^}]*\bLoopCoordinatorOptions\b[^}]*\}/s);
+    ];
+    expect(Object.keys(loopFacade).sort()).toEqual(runtimeExports);
+    const facadePath = fileURLToPath(new URL("./loop-detection.ts", import.meta.url));
+    const program = ts.createProgram([facadePath], {
+      module: ts.ModuleKind.NodeNext,
+      moduleResolution: ts.ModuleResolutionKind.NodeNext,
+      skipLibCheck: true,
+      target: ts.ScriptTarget.ESNext,
+    });
+    const source = program.getSourceFile(facadePath);
+    const facadeSymbol = source === undefined ? undefined : program.getTypeChecker().getSymbolAtLocation(source);
+    expect(facadeSymbol).toBeDefined();
+    const allExports = facadeSymbol === undefined
+      ? []
+      : program.getTypeChecker().getExportsOfModule(facadeSymbol).map((symbol) => symbol.name).sort();
+    expect(allExports).toEqual([
+      ...runtimeExports,
+      "CompletedCall",
+      "LoopKind",
+      "LoopMode",
+      "LoopNotice",
+      "LoopPolicy",
+      "StallKind",
+    ].sort());
   });
 
   it("keeps detector priority explicit and stable", () => {
@@ -121,6 +144,10 @@ describe("loop rule architecture", () => {
     const source = readFileSync(new URL("./loop/rules/interfaces.ts", import.meta.url), "utf8");
     expect(source).not.toMatch(/recover/i);
     const rules = new InterfaceRules(3, false, false, true);
+    expect(rules.observeState.bind(rules)).toHaveLength(1);
+    expect(rules.menuReturn.bind(rules)).toHaveLength(2);
+    expectTypeOf<Parameters<InterfaceRules["observeState"]>>().toEqualTypeOf<[state: GameStateSnapshot]>();
+    expectTypeOf<Parameters<InterfaceRules["menuReturn"]>>().toEqualTypeOf<[call: CompletedCall, seq: number]>();
     const observeState: (state: GameStateSnapshot) => boolean = (state) => rules.observeState(state);
     const menuReturn: (call: CompletedCall, seq: number) => { readonly evidence: number[] | null; readonly stateReset: boolean } =
       (call, seq) => rules.menuReturn(call, seq);

@@ -26,3 +26,14 @@ Live restarted round 8 at 64ca188a still delivered about 9–20 FPS under active
 ## Review log
 
 Pending.
+
+### Implementation and focused proof
+
+- Shared upstream hub now owns one connection per run/game-port identity. PNG parse/CRC validation is O(B) once per source frame; fanout makes O(C) send attempts and necessarily transmits O(B*C) bytes to C subscribers. Each client retains one send and one replaceable latest frame. Final unsubscribe, source replacement, invalid/error/close, fallback and viewer shutdown are covered.
+- Real two-client RED observed two upstreams instead of one. Disabling hub reuse after GREEN reproduced that failure; restored. Viewer-focused 64 tests and full viewer coverage passed; root TS coverage also passed 2,581 agent and 1,275 viewer tests with every required coverage metric above 90%.
+- RAM capture now reserves one of eight slots before acquiring the frame lock, copies 527,360 fixed RAM bytes plus CPU/frame metadata and copied framebuffer pixels, then leaves the callback/lock. Request decoding and PNG encoding run against immutable snapshots; a separate spawned process performs base64/hash/JSON/gzip/durable archive/index/pair writes. All successful requests retain synchronous durable acknowledgments. Slots bound admitted persistence work; total request memory also includes snapshots retained by callers and IPC copies.
+- State, settled observations, battle waits and whiteout ON/OFF routes are wired. Worker death (actual spawned os._exit), pair failure, abandonment, duplicate submission, shutdown and ROM mirrors are tested. Focused Python 117 tests, mypy (94 files), ruff and diff checks pass.
+- Performed narrow mutation moving persistence into capture_frozen: the actual settle-callback barrier test failed with `frame callback retained persistence work` in 0.41s, then passed restored. This mutation receipt is in the agent transcript, not a saved log. The test mutates backing RAM and framebuffer after the atomic copy and checks preserved decoded screen, pixels, raw frame and pair hash.
+- Initial broad Python attempt omitted the ROM environment (229 integration skips) and exposed one lifecycle fixture invoking routes after fake vendor_main returned. The fixture now keeps the server lifetime active through its requests and asserts closed-archive failure afterward. Final ROM-enabled full coverage/gates are running; skipped integration tests are not counted as proof.
+- Controlled baseline with checkpoint, small active action batches and state polls stayed near 60 core FPS; it does not reproduce campaign 7–20 FPS. Full observation/capture load and candidate comparison are still being measured. These changes remove demonstrated lock and fanout hazards; restored campaign throughput remains unproven.
+- Main advanced independently from 64ca188a to 16384dec during implementation. Integrate current main before freezing/review; gates on the prior base do not certify the integrated candidate.

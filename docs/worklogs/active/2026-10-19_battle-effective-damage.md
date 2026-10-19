@@ -47,8 +47,8 @@ Moves whose final power/type or hit count depends on move-specific script state 
 ### M3 - Review and land
 
 - [x] Sync current main without touching active runs.
-- [x] Repair the operator-requested self-review findings; operator explicitly waived the unavailable independent cloud lanes by directing the branch to land.
-- [x] Land locally without launching an experiment; restore and restart the viewer only after the operator separately made its outage P0.
+- [ ] Complete the required Claude-, Grok-, and GPT-family cloud review lanes on one frozen packet; repair any blocking findings within the review cap.
+- [ ] Fast-forward the corrective tip to local main, run the required post-merge test and live viewer check, and do not launch the pending experiment.
 
 ## Session Log
 
@@ -62,11 +62,12 @@ Moves whose final power/type or hit count depends on move-specific script state 
 - 2026-10-19 EDT: operator-requested self-review found four correctness gaps before landing: dual-type multipliers were collapsed instead of applied sequentially, Substitute could produce false real-HP KO claims, frozen Flash Fire targets were treated as immune, and 0-PP moves were still assigned damage without exposing automatic Struggle. Repaired all four with source-grounded regression tests. The review also tightened source parity for recorded-link badge suppression and Gen III's field-wide Plus/Minus, weather-negation, sport, Damp and alive-side-count behavior. PP availability is now exact; Disable, Encore, Taunt, Torment, Imprison and Choice-lock state remain explicitly undecoded.
 - 2026-10-19 EDT: post-repair gates passed: agent 2,529 tests; viewer 1,190 tests; Python 2,492 passed with 229 existing ROM-dependent skips; lint and strict typing; builds; experiment registry (`118 experiments`); vendor integrity; both HTML pages; and `git diff --check`.
 - 2026-10-19 EDT: synced current main `a7be38f6` into the branch as `cd596604`. The synced gates passed after one unrelated viewer coverage timeout passed on retry: agent 2,529 tests at 97.99% statements / 94.15% branches / 98.32% functions / 99.25% lines; viewer 1,196 tests at 95.43% / 91.49% / 93.88% / 97.65%; Python 2,492 passed with 229 ROM-dependent skips at 96.96% lines / 92.48% branches / 99.44% functions; lint, build, registry, vendor, page and diff checks passed.
-- 2026-10-19 EDT: fast-forwarded local main to `cd596604` under the operator's explicit landing instruction. The required post-merge test first exposed stale TypeScript build output, then after rebuilding exposed a real ROM-fixture integration gap: archives created before `battle-effective-damage-v1` did not list the new default-off switch, so their bounded RAM readers rejected the new reads. Added the switch to every affected historical fixture's later-switch set; the ROM-enabled focused regression is 347/347 green. This corrective commit must land before the viewer moves to the merged build.
+- 2026-10-19 EDT: local main was fast-forwarded to `cd596604` before the repository's independent cloud review gate completed. The required post-merge test first exposed stale TypeScript build output, then after rebuilding exposed a real ROM-fixture integration gap: archives created before `battle-effective-damage-v1` did not list the new default-off switch, so their bounded RAM readers rejected the new reads. Added the switch to every affected historical fixture's later-switch set; the ROM-enabled focused regression is 347/347 green. Main therefore remains an incomplete landing until the corrective tip passes the required cloud lanes and is fast-forwarded.
+- 2026-10-19 EDT: the operator assigned this session ownership to get the complete candidate reviewed and landed. The review boundary is the synced base `a7be38f6` through the corrective topic tip; the existing live probe processes remain out of scope and undisturbed.
 
 ## Multi-Model Review Log
 
-Operator-requested self-review round 1: CHANGES REQUIRED (four findings above). All four were repaired and covered by regressions. Self-review round 2: PASS for the reviewed source paths and fixed-bundle wiring; no remaining blocking self-review finding. This was not the repository's independent multi-model review gate, which could not run in this side conversation because its rules prohibit subagent interaction. After that limitation was reported, the operator explicitly instructed `land it`; this is recorded as an operator review waiver, not three independent LGTM verdicts.
+Operator-requested self-review round 1: CHANGES REQUIRED (four findings above). All four were repaired and covered by regressions. Self-review round 2: PASS for the reviewed source paths and fixed-bundle wiring; no remaining blocking self-review finding. This was not the repository's independent multi-model review gate. The required Claude-, Grok-, and GPT-family cloud lanes remain pending for the frozen corrective candidate.
 
 ## Principles Adherence
 
@@ -82,7 +83,7 @@ Operator-requested self-review round 1: CHANGES REQUIRED (four findings above). 
 - PB10 PASS: no tests were suppressed; 229 ROM-dependent skips are pre-existing and reported.
 - PB11 PASS: mechanics are pinned to pret/pokeemerald `731ad5bf`.
 - PB12 PASS: no ROM or protected path was accessed.
-- PB13 PASS with disclosed exception: implementation gates and the operator-requested self-review pass; the operator explicitly authorized landing without the unavailable three-lane independent review.
+- PB13 PENDING: implementation gates and the operator-requested self-review pass; the independent cloud review and corrective landing remain open.
 
 ## Archive Milestone
 

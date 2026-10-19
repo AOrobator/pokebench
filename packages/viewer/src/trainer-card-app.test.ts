@@ -50,16 +50,17 @@ function cohortRun(): RunEvent[] {
 }
 
 let workbenchDown = false;
-async function mount(width: number, options: { art?: boolean; fresh?: boolean; glyphs?: boolean } = {}): Promise<{ app: App; streams: FakeStream[]; drawn: number[] }> {
+async function mount(width: number, options: { art?: boolean; fresh?: boolean; glyphs?: boolean; runs?: typeof RUNS; replayStatus?: "ended" | "live" } = {}): Promise<{ app: App; streams: FakeStream[]; drawn: number[] }> {
   nowMs = BASE_MS + 3_500; setWidth(width); fetched.length = 0; workbenchDown = false;
   document.body.innerHTML = PAGE.slice(PAGE.indexOf("<body>") + 6, PAGE.indexOf("</body>"));
   const streams: FakeStream[] = [], drawn: number[] = [];
-  const replay = { ...wbRun(REPLAY_ID, "bundle", 1_000_000, 3_600_000), status: "ended" as const, reason: "budget" };
+  const replayStatus = options.replayStatus ?? "ended";
+  const replay = { ...wbRun(REPLAY_ID, "bundle", 1_000_000, 3_600_000), status: replayStatus, reason: replayStatus === "ended" ? "budget" : null };
   const workbench = { version: 1, at: nowMs, milestones: [], problems: [], runs: [wbRun(LIVE_ID, "bundle", options.fresh === true ? 2_790_000 : 1_000_000, 2_800_000), wbRun(OTHER_ID, "control", 500_000, 2_700_000), replay] };
   const deps: AppDeps = {
     fetchJson: (url) => {
       fetched.push(url);
-      if (url === "/api/runs") return Promise.resolve(RUNS);
+      if (url === "/api/runs") return Promise.resolve(options.runs ?? RUNS);
       if (url === "/sprites/manifest.json") return options.art === false ? Promise.reject(new Error("GET /sprites/manifest.json returned HTTP 404")) : Promise.resolve(MANIFEST);
       if (url === "/sprites/font/glyphs.json") return Promise.resolve(FONT);
       if (url === "/api/workbench") return workbenchDown ? Promise.reject(new Error("GET /api/workbench returned HTTP 500")) : Promise.resolve(workbench);
@@ -142,16 +143,40 @@ describe("trainer cards in the viewer", () => {
     expect((ui("run") as HTMLSelectElement).value).toBe(OTHER_ID);
   });
 
-  it("keeps the selected replay as a trainer card without marking it live", async () => {
+  it("keeps live cards visible instead of mixing in the selected replay", async () => {
     const { app } = await mount(1280);
     app.select(REPLAY_ID);
+    const row = ui("run-cards");
+    expect(row.querySelectorAll(".tc.tc-wide")).toHaveLength(2);
+    expect(row.querySelector(`[data-watch="${REPLAY_ID}"]`)).toBeNull();
+    expect(card(row, LIVE_ID).innerHTML).toContain('data-gt="LIVE"');
+    expect(card(row, OTHER_ID).innerHTML).toContain('data-gt="LIVE"');
+  });
+
+  it("shows the selected replay card without marking it live when no live runs exist", async () => {
+    await mount(1280, { runs: [must(RUNS[2])] });
     const row = ui("run-cards"), replay = card(row, REPLAY_ID);
-    expect(row.querySelectorAll(".tc.tc-wide")).toHaveLength(3);
+    expect(row.querySelectorAll(".tc.tc-wide")).toHaveLength(1);
     expect(replay.getAttribute("aria-pressed")).toBe("true");
     expect(replay.innerHTML).toContain('data-gt="REPLAY"');
     expect(replay.querySelector(".tc-dot")).toBeNull();
-    expect(card(row, LIVE_ID).innerHTML).toContain('data-gt="LIVE"');
-    expect(card(row, OTHER_ID).innerHTML).toContain('data-gt="LIVE"');
+  });
+
+  it("keeps replay fallback semantics when the retained workbench snapshot still says live", async () => {
+    await mount(1280, { runs: [must(RUNS[2])], replayStatus: "live" });
+    const replay = card(ui("run-cards"), REPLAY_ID);
+    expect(replay.getAttribute("aria-pressed")).toBe("true");
+    expect(replay.innerHTML).toContain('data-gt="REPLAY"');
+    expect(replay.querySelector(".tc-dot")).toBeNull();
+  });
+
+  it("does not admit an ended workbench record into a stale live run list", async () => {
+    const staleRuns = RUNS.map((run) => run.id === REPLAY_ID ? { ...run, ended: false, live: true } : run);
+    const { app } = await mount(1280, { runs: staleRuns });
+    app.select(REPLAY_ID);
+    const row = ui("run-cards");
+    expect(row.querySelectorAll(".tc.tc-wide")).toHaveLength(2);
+    expect(row.querySelector(`[data-watch="${REPLAY_ID}"]`)).toBeNull();
   });
 
   it("ticks the clock in place without redrawing the card, so its animations keep running", async () => {
@@ -180,11 +205,11 @@ describe("trainer cards in the viewer", () => {
     expect(ui("run-sheet").hidden).toBe(true); expect(streams.at(-1)?.url).toBe(`/api/runs/${encodeURIComponent(OTHER_ID)}/events`);
   });
 
-  it("without the art, keeps the live-run buttons and the plain sheet, and never polls the workbench", async () => {
+  it("without the art, keeps the live-run buttons and the plain sheet while still loading recorded splits", async () => {
     const { app } = await mount(1280, { art: false });
     await app.pollCards();
     expect(ui("run-cards").hidden).toBe(true); expect(ui("live-runs").hidden).toBe(false);
-    expect(fetched).not.toContain("/api/workbench");
+    expect(fetched).toContain("/api/workbench");
     setWidth(375); app.tick(0);
     expect(ui("run-sheet-body").querySelector(".rs-now")).not.toBeNull();
   });

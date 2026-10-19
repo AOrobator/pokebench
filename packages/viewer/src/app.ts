@@ -10,7 +10,7 @@ import { brand, runIdentity, budgets, counters, fieldContext, harnessConfig, ins
 import { ReplayClock } from "./replay.js";
 import { lanesSvg } from "./timeline.js";
 import { TRACE_CHIPS, TraceBuilder, moreButton, sideGroups, traceGroups, type TraceCategory, type TraceGroup } from "./trace.js";
-import { ABORT_HOLD_MS, availableActions, controlBar, overlay, overlayKind, runSeconds, sideStats, splitStrip, splitTimes, stateLabel, type ControlAction } from "./controls.js";
+import { ABORT_HOLD_MS, availableActions, controlBar, overlay, overlayKind, runSeconds, sideStats, splitStrip, splitTimes, stateLabel, type BestSplits, type ControlAction } from "./controls.js";
 import { NextRunPanel } from "./nextpanel.js";
 import { QueuePanel } from "./queue-view.js";
 import { headHtml, sheetHtml } from "./run-head.js";
@@ -174,7 +174,7 @@ export class App {
   private art: LoadedArt | null = null;
   private artLoad: Promise<void> | null = null;
   private workbench: WorkbenchData | null = null;
-  private cardsBusy = false;
+  private workbenchLoad: Promise<void> | null = null;
   // The cards replace the live-run buttons; the run list refreshes every few seconds and must not bring them back.
   private cardsShown = false;
   private readonly cardHtml = new WeakMap<Element, string>();
@@ -355,27 +355,44 @@ export class App {
     return this.artLoad;
   }
 
-  // Without the art the old live-run buttons and sheet stay, and the workbench is never asked.
+  private loadWorkbench(): Promise<void> {
+    if (this.workbenchLoad !== null) return this.workbenchLoad;
+    const load = this.deps.fetchJson("/api/workbench")
+      .then((value) => { this.workbench = parseWorkbench(value); this.render(); })
+      .catch(() => { /* keep the last snapshot; the comparisons page reports workbench problems */ })
+      .finally(() => { if (this.workbenchLoad === load) this.workbenchLoad = null; });
+    this.workbenchLoad = load;
+    return load;
+  }
+
+  // The workbench projection is useful even when optional trainer-card art is unavailable: it lets
+  // a selected run paint all recorded splits atomically while the full event stream catches up.
   async pollCards(): Promise<void> {
-    await this.loadArt();
-    if (this.art === null || this.cardsBusy) return;
-    this.cardsBusy = true;
-    try { this.workbench = parseWorkbench(await this.deps.fetchJson("/api/workbench")); } catch { /* keep the last snapshot; the comparisons page reports workbench problems */ } finally { this.cardsBusy = false; }
+    await Promise.all([this.loadArt(), this.loadWorkbench()]);
     this.render();
+  }
+
+  private recordedSplits(): BestSplits | null {
+    const run = this.workbench?.runs.find((candidate) => candidate.id === this.runId);
+    return run === undefined || this.runId === null ? null : { run: this.runId, milestones: run.splits.map((split) => ({ name: split.name, offsetMs: split.elapsedMs })) };
   }
 
   private cardInputs(): CardInput[] {
     const { art, workbench } = this;
     if (art === null || workbench === null) return [];
     const now = this.deps.now();
-    // Preserve the API's stable run order so selecting a card never moves a focused live card.
-    const candidates = this.runs.filter((run) => run.id === this.runId || isLive(run));
-    return candidates.flatMap((run): CardInput[] => {
+    // Preserve the API's stable live-run order. A selected replay is a fallback card,
+    // never an extra card mixed into an active live-run row.
+    const live = this.runs.filter(isLive);
+    if (live.length > 0) return live.flatMap((run): CardInput[] => {
       const recorded = workbench.runs.find((r) => r.id === run.id);
-      if (recorded === undefined || (recorded.status !== "live" && recorded.status !== "paused" && !(run.id === this.runId && recorded.status === "ended"))) return [];
-      const status: CardInput["status"] = recorded.status === "ended" ? "replay" : run.id === this.runId ? "watching" : recorded.status === "paused" ? "paused" : "live";
+      if (recorded === undefined || (recorded.status !== "live" && recorded.status !== "paused")) return [];
+      const status: CardInput["status"] = run.id === this.runId ? "watching" : recorded.status === "paused" ? "paused" : "live";
       return [cardInputFor(recorded, workbench.at, now, status, workbench.runs, art.art)];
     });
+    const replay = this.runs.find((run) => run.id === this.runId && run.ended === true);
+    const recorded = replay === undefined ? undefined : workbench.runs.find((run) => run.id === replay.id);
+    return recorded === undefined ? [] : [cardInputFor(recorded, workbench.at, now, "replay", workbench.runs, art.art)];
   }
 
   private listRuns(runs: RunChoice[]): void {
@@ -896,8 +913,10 @@ export class App {
       }
     }
     this.setHtml("stats", sideStats(view, nowMs));
-    this.setHtml("split-strip", splitStrip(view));
-    this.setHtml("split-times", splitTimes(view, this.best));
+    const recordedSplits = this.mode === "loading" ? this.recordedSplits() : undefined;
+    const splitView = this.mode === "loading" ? view : this.view;
+    this.setHtml("split-strip", splitStrip(splitView, recordedSplits));
+    this.setHtml("split-times", splitTimes(splitView, this.best, recordedSplits));
     this.next.setLive(live ? view : null);
     this.ui("brand").textContent = brand(view);
     const dialog = thinkingDialog(view, nowMs);

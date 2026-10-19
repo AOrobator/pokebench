@@ -149,6 +149,7 @@
    "just-in-time-prompt-v2": false,
    "jit-guide-reuse-v1": false,
    "battle-effective-damage-v1": false,
+   "visited-terrain-navigation-v1": false,
    "deterministic-warp-navigation-v1": false,
    "semantic-navigation-v1": false,
    "deterministic-exploration-v1": false
@@ -191,6 +192,7 @@
   "deterministic-exploration-v1"
  ],
  "offInBoth": [
+  "visited-terrain-navigation-v1",
   "milestone-stall-stop-v1",
   "same-plan-breaker-v1",
   "presence-penalty-v1",

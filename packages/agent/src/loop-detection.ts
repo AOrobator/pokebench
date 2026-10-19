@@ -335,6 +335,9 @@ export class LoopDetector {
   // trigger-script-loop-v1: executions since native progress, grouped by live condition and shown dialogue.
   // Adjacent rows can use different wrapper script pointers for the same gate.
   private readonly triggerScripts=new Map<string,{readonly evidence:number[];readonly dialogue:string;readonly map:readonly [number,number];readonly variable:number;readonly required:number;readonly current:number}>();
+  // A physical entry can return control to the model before the script prints its first page. Carry that one
+  // qualified activation into continuation calls; it is consumed by the first call that records readable text.
+  private activeTriggerScript:{map:readonly [number,number];variable:number;required:number;current:number;pointer:number;stateSeq:number}|undefined;
   private readonly rejections = new Map<string, number>();
   private previous: string | null = null;
   private readonly history: string[] = [];
@@ -452,20 +455,33 @@ export class LoopDetector {
             if (line !== "" && !pending.spoken.includes(line)) pending.spoken.push(line);
           }
         }
+        const held=scriptHeld(event);
         if(this.triggerScriptLoops&&event.map_id!==null){
           for(const [key,seen] of this.triggerScripts){
             if(seen.map[0]!==event.map_id[0]||seen.map[1]!==event.map_id[1])continue;
             const live=(event.world_context?.triggers??[]).find(t=>t.variable===seen.variable&&t.required_value===seen.required);
             if(live!==undefined&&(live.current_value!==seen.current||live.condition_met!==true))this.triggerScripts.delete(key);
           }
+          const invalid=(seen:{readonly map:readonly [number,number];readonly variable:number;readonly required:number;readonly current:number})=>{
+            if(seen.map[0]!==event.map_id?.[0]||seen.map[1]!==event.map_id[1])return true;
+            const live=(event.world_context?.triggers??[]).find(t=>t.variable===seen.variable&&t.required_value===seen.required);
+            return live!==undefined&&(live.current_value!==seen.current||live.condition_met!==true);
+          };
+          if(this.activeTriggerScript!==undefined&&invalid(this.activeTriggerScript))this.activeTriggerScript=undefined;
+          for(const pending of this.calls.values())if(pending.triggerScript!==undefined&&invalid(pending.triggerScript))delete pending.triggerScript;
+          if(held&&this.activeTriggerScript!==undefined)for(const pending of this.calls.values())pending.triggerScript??=this.activeTriggerScript;
         }
-        if(this.triggerScriptLoops&&event.map_id!==null&&event.position!==null&&scriptHeld(event)){
+        if(this.triggerScriptLoops&&!held)this.activeTriggerScript=undefined;
+        if(this.triggerScriptLoops&&event.map_id!==null&&event.position!==null&&held){
           const position=event.position;
           const trigger=(event.world_context?.triggers??[]).find(t=>t.x===position.x&&t.y===position.y&&t.condition_met===true&&t.current_value!==null);
           if(trigger!==undefined)for(const pending of this.calls.values()){
             const start=pending.start;
             const entered=pending.pressed===true&&start!==undefined&&start.map_id!==null&&start.position!==null&&start.map_id[0]===event.map_id[0]&&start.map_id[1]===event.map_id[1]&&(start.position.x!==position.x||start.position.y!==position.y)&&!scriptHeld(start);
-            if(entered)pending.triggerScript={map:event.map_id,variable:trigger.variable,required:trigger.required_value,current:trigger.current_value??trigger.required_value,pointer:trigger.script_pointer,stateSeq:event.seq};
+            if(entered){
+              const execution={map:event.map_id,variable:trigger.variable,required:trigger.required_value,current:trigger.current_value??trigger.required_value,pointer:trigger.script_pointer,stateSeq:event.seq};
+              pending.triggerScript=execution;this.activeTriggerScript=execution;
+            }
           }
         }
         this.nativeProgress(event, event.seq);
@@ -623,6 +639,7 @@ export class LoopDetector {
     if(!this.triggerScriptLoops||call.isError||call.triggerScript===undefined)return null;
     const dialogue=(call.spoken??call.dialogue??[]).map(line=>line.replace(/\s+/g," ").trim()).filter(Boolean).join(" | ");
     if(dialogue==="")return null;
+    this.activeTriggerScript=undefined;
     const t=call.triggerScript;
     const key=JSON.stringify([t.map,t.variable,t.required,t.current,dialogue]);
     const before=this.triggerScripts.get(key);
@@ -880,6 +897,8 @@ export class LoopDetector {
     this.movesHeard.clear();
     this.closedTalk = { text: "", place: "", count: 0 };
     this.triggerScripts.clear();
+    this.activeTriggerScript=undefined;
+    for(const pending of this.calls.values())delete pending.triggerScript;
   }
 
   // pushback-loop-detection-v1: what a state since the last settled result says about the trip away from it.

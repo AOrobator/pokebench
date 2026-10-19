@@ -22,13 +22,17 @@ function rig(on:boolean){
  const emit=(body:Record<string,unknown>)=>{const event={v:1,run:"petalburg-trigger",seq:++seq,t:"2026-10-18T22:23:00.000-04:00",turn:seq,...body} as RunEvent;for(const fn of observers)fn(event);};
  const trip=(y:number,script_pointer:number,variable=0x4057)=>{
   const start=field(9,y,{world_context:{objects:[],triggers:triggers(y,script_pointer,variable),dialogue:null,message:null}});
-  const id=`trip-${String(y)}-${String(seq)}`;
+  const id=`enter-${String(y)}-${String(seq)}`;
   emit({type:"state",...start});
-  emit({type:"tool_call",id,name:"navigate_to",args:{map_id:[0,0],x:0,y}});
+  emit({type:"tool_call",id,name:"press",args:{buttons:["LEFT"]}});
   emit({type:"button_press",tool_call_id:id,before_state_seq:seq-1,buttons:["LEFT"]});
+  emit({type:"state",...field(8,y,{field_controls_locked:true,resources:{script_pc:script_pointer,script_mode:1,script_status:0,selected_tree_id:null,berry_script_owner:null} as NonNullable<GameStateSnapshot["resources"]>,world_context:{objects:[],triggers:triggers(y,script_pointer,variable),dialogue:null,message:null}})});
+  emit({type:"tool_result",id,name:"press",is_error:false,duration_ms:20,text:"script started",state_seq:seq});
+  const continuation=`continue-${String(y)}-${String(seq)}`;
+  emit({type:"tool_call",id:continuation,name:"press",args:{buttons:["B"]}});
   for(const dialogue of [GYM,SIGN])emit({type:"state",...field(8,y,{field_controls_locked:true,resources:{script_pc:script_pointer,script_mode:1,script_status:0,selected_tree_id:null,berry_script_owner:null} as NonNullable<GameStateSnapshot["resources"]>,world_context:{objects:[],triggers:triggers(y,script_pointer,variable),dialogue,message:{phase:"page_wait",cursor:dialogue.length,ready:true}}})});
   emit({type:"state",...field(15,10)});
-  emit({type:"tool_result",id,name:"navigate_to",is_error:false,duration_ms:100,text:"conversation closed",state_seq:seq});
+  emit({type:"tool_result",id:continuation,name:"press",is_error:false,duration_ms:100,text:"conversation closed",state_seq:seq});
  };
  return {notices,trip,emit};
 }
@@ -69,6 +73,21 @@ describe("trigger-script-loop-v1",()=>{
   r.emit({type:"state",...field(9,12,{world_context:{objects:[],triggers:[{...changed,current_value:1,condition_met:false}],dialogue:null,message:null}})});
   r.trip(13,0x08100120);
   expect(r.notices.filter(n=>n.kind==="trigger_script")).toEqual([]);
+ });
+ it("ON invalidates an in-flight entry when its condition or native story changes before the entry call returns",()=>{
+  for(const reset of ["condition","story"] as const){
+   const r=rig(true);const id=`pending-${reset}`;const pointer=0x08100100;
+   r.emit({type:"state",...field(9,12)});
+   r.emit({type:"tool_call",id,name:"press",args:{buttons:["LEFT"]}});
+   r.emit({type:"button_press",tool_call_id:id,before_state_seq:1,buttons:["LEFT"]});
+   const held={field_controls_locked:true,resources:{script_pc:pointer,script_mode:1,script_status:0,selected_tree_id:null,berry_script_owner:null} as NonNullable<GameStateSnapshot["resources"]>};
+   r.emit({type:"state",...field(8,12,{...held,world_context:{objects:[],triggers:triggers(12,pointer),dialogue:null,message:null}})});
+   const trigger=triggers(12,pointer)[0];if(trigger===undefined)throw Error("missing trigger fixture");
+   r.emit({type:"state",...field(8,12,reset==="condition"?{...held,world_context:{objects:[],triggers:[{...trigger,current_value:1,condition_met:false}],dialogue:null,message:null}}:{...held,story:{...story,petalburg_gym_stage:1},world_context:{objects:[],triggers:triggers(12,pointer),dialogue:null,message:null}})});
+   r.emit({type:"tool_result",id,name:"press",is_error:false,duration_ms:20,text:"reset before return",state_seq:5});
+   r.trip(13,0x08100120);
+   expect(r.notices.filter(n=>n.kind==="trigger_script"),reset).toEqual([]);
+  }
  });
  it("ON does not warn for one execution, a different condition, or after native story progress",()=>{
   const once=rig(true);once.trip(12,0x08100100);expect(once.notices).toEqual([]);

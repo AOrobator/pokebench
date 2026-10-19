@@ -104,9 +104,9 @@ it("reaches the model through the production preset path",()=>{
 it("is a default-off standalone guidance switch, recorded third to last (before ineffective-loops-v1 and people-id-cards-v1), that state-only mode refuses",()=>{
  expect(featureInfo(ID)).toMatchObject({group:"guidance",needs:null,switchable:true,title:"TALK TO PEOPLE V2"});
  expect(featureInfo(ID).description).toContain(" Off: ");
- expect(SWITCHABLE_FEATURES.at(-28)).toBe(ID);
- expect(FEATURES.filter(f=>f.switchable).at(-28)?.id).toBe(ID);
- expect(playHarnessFeatures(ALL_ON,null).at(-28)).toBe(ID);
+ expect(SWITCHABLE_FEATURES.at(-29)).toBe(ID);
+ expect(FEATURES.filter(f=>f.switchable).at(-29)?.id).toBe(ID);
+ expect(playHarnessFeatures(ALL_ON,null).at(-29)).toBe(ID);
  expect(serverFeatureEnv({...ALL_ON,[ID]:false}).POKEBENCH_FEATURES_OFF).toBe("");
  expect(dependencyProblems({...ALL_ON,"dialogue-auto-advance-v1":false,"field-dialogue-phase-v1":false,[ID]:true})).not.toContain(expect.stringContaining(ID));
  expect(stateOnlyProblems({...INCUMBENT,"state-only-decisions-v1":true,[ID]:true})).toContain(`state-only-decisions-v1 requires ${ID} OFF`);
@@ -117,6 +117,6 @@ it("defaults off in presets and the legacy flag presets",()=>{
  const {"explorer-guidance-v2":_omitted,...without}=INCUMBENT;
  expect(_omitted).toBe(false);
  expect(normalizeFeatures(without)[ID]).toBe(false);
- expect(Object.keys(normalizeFeatures(without)).at(-28)).toBe(ID);
+ expect(Object.keys(normalizeFeatures(without)).at(-29)).toBe(ID);
  for(const objectives of [true,false])expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives})[ID]).toBe(false);
 });

@@ -300,7 +300,7 @@ describe("people-id-cards-v1 rules",()=>{
 describe("people-id-cards-v1 registration",()=>{
  const OFF:FeatureSet=Object.fromEntries(SWITCHABLE_FEATURES.map(id=>[id,false])) as Record<(typeof SWITCHABLE_FEATURES)[number],boolean>;
  it("is an observation switch that needs the people ledger, last in the registry and harness feature list, and off unless asked for",()=>{
-  expect(SWITCHABLE_FEATURES.at(-26)).toBe("people-id-cards-v1");
+  expect(SWITCHABLE_FEATURES.at(-27)).toBe("people-id-cards-v1");
   const info=featureInfo("people-id-cards-v1");
   expect(info).toMatchObject({group:"observation",title:"PEOPLE ID CARDS",needs:"people-ledger-v1",switchable:true});
   expect(info.description).toContain(" Off: no cards, no row summaries, no prompt section and no event");
@@ -332,7 +332,7 @@ describe("people-id-cards-v1 pending experiment",()=>{
  it("names every switch explicitly, needs nothing it lacks, and flips only people-id-cards-v1",async()=>{
   const {experimentArms,parseExperiment}=await import("./experiments.js");
   const raw=JSON.parse(readFileSync(new URL("../../../experiments/people-id-cards.json",import.meta.url),"utf8")) as {incumbent:{features:Record<string,boolean>};queuePosition?:number};
-  expect(Object.keys(raw.incumbent.features).sort()).toEqual(SWITCHABLE_FEATURES.filter(id=>id!=="faced-interaction-history-v1").slice(0,SWITCHABLE_FEATURES.indexOf("people-id-cards-v1")).sort());
+  expect(Object.keys(raw.incumbent.features).sort()).toEqual(SWITCHABLE_FEATURES.slice(0,SWITCHABLE_FEATURES.indexOf("people-id-cards-v1")+1).sort());
   expect(raw.queuePosition).toBeUndefined();
   const {incumbent,candidate}=experimentArms(parseExperiment(raw));
   expect(incumbent.features["people-ledger-v1"]).toBe(true);expect(incumbent.features["character-presence-v1"]).toBe(true);

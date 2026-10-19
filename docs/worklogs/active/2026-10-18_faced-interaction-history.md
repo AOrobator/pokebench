@@ -39,11 +39,11 @@ No new tool, file read, network path, emulator mutation, or private model reason
 - [x] Add the self-contained explainer, feature-card link, index entry, readiness row, and serving tests.
 - [x] Delete the switched implementation once, observe the focused ON and production tests fail, restore it, and record the receipt.
 - [x] Run focused tests and `just pages-check`.
-- [ ] COMMIT: `feat(loop-supervisor): retain faced batch interactions` (GREEN)
+- [x] COMMIT: `feat(loop-supervisor): retain faced batch interactions` (`24576f10`, GREEN)
 
 **M3 — Gates, review, land, live proof**
-- [ ] Sync main and run `just test`, `just lint`, `just build`, `just coverage`, `just experiments-check`, and `just verify-vendor`.
-- [ ] Principles review PB1–PB13 with zero FAIL rows.
+- [x] Sync main and run `just test`, `just lint`, `just build`, `just coverage`, `just experiments-check`, and `just verify-vendor`.
+- [x] Principles review PB1–PB13 with zero FAIL rows.
 - [ ] Three cloud review lanes reach LGTM on one frozen packet within the two-round cap.
 - [ ] Fast-forward local main to the reviewed head and record the merge SHA.
 - [ ] Restart the main viewer once it is safe, then verify the feature-card explainer link and the merged build stamp.
@@ -58,6 +58,10 @@ The deterministic proof is a production-shaped replay of cdb1 turn 84 through th
 - 2026-10-18 7:35 PM EDT: focused RED run: 2 failed, 2 passed. OFF and missing-attribution cases passed; ON direct construction and production `loopSupervisor` delivery both still listed `television at 4,1` as untried.
 - 2026-10-18 7:42 PM EDT: focused GREEN run: 5 passed. Agent registry suite: 38 passed. Viewer linkage/default suite: 194 passed. `just pages-check docs/explainers/faced-interaction-history-v1.html`: pass. `just experiments-check`: 111 experiments, pass.
 - 2026-10-18 7:47 PM EDT: wiring deletion proof temporarily disabled the switched attribution block. The focused suite returned the same two failures—ON direct construction and production delivery—while OFF, no-attribution, and registry isolation stayed green. Restored the block immediately.
+- 2026-10-18 8:00 PM EDT: complete pre-review gates at `24576f10`: agent 156 files / 2461 tests; viewer 84 files / 1173 tests; Python 2478 passed / 229 skipped because no ROM was configured; agent coverage 98.00/94.26/98.32/99.23 and viewer 95.40/91.46/93.83/97.64 (statements/branches/functions/lines); Python 97.48/93.42/99.43. `just lint`, `just build`, `just experiments-check` (111 entries), `just verify-vendor`, and explainer `pages-check` passed. The first coverage attempt exposed an uninitialized vendor submodule; initialized the pinned submodule and reran successfully. The worktree Python environment used the existing native `mgba` package from canonical main solely to run mypy; no tracked files changed.
+- 2026-10-18 8:04 PM EDT: candidate viewer built from `24576f10` and served read-only run data on port 8792. A real Harness Config click opened the FACED INTERACTION HISTORY card's explainer. Browser checks at 1280×900, 1440×900, and 375×812 found no horizontal overflow; all three explainer sections remained present and the console had zero errors. Canonical viewer on 8790 was untouched.
+- 2026-10-18 8:14 PM EDT: round-one repair mutations were each performed and restored. Removing only the `faced_sprite` attribution operand failed only “ON accepts explicit faced-sprite attribution”; removing only the person `objectKey` touch failed only “ON retains a faced person's map-local object identity”; restoring the old `briefing-exits-v1` call gate failed only the new independence case; deleting the production subscription failed the explicit one-subscriber assertion. Restored all four, then the focused file passed 8/8 and the full agent suite passed 156 files / 2464 tests.
+- 2026-10-18 8:18 PM EDT: cumulative round-two candidate gates: `just test` passed agent 156 files / 2464 tests, viewer 84 files / 1173 tests, Python 2478 passed / 229 ROM-skipped; `just lint`, `just build`, `just experiments-check` (111), explainer `pages-check`, and `just verify-vendor` passed. Coverage passed at agent 98.00/94.28/98.32/99.23, viewer 95.40/91.46/93.83/97.64, and Python 97.48/93.42/99.43 (statements/branches/functions/lines where available; floor 90%). Canonical main remained clean at `b9e501df`, so no sync merge was needed.
 
 ## Surprises
 
@@ -65,7 +69,49 @@ The deterministic proof is a production-shaped replay of cdb1 turn 84 through th
 
 ## Multi-Model Review Log
 
-- Pending.
+### Round 1 — frozen `b9e501df..24576f10`, SHA-256 `8c92cf52752c47f05d4e888848d991fb7fdff7764f7bb45f6fdad2aff235388f`
+
+- Claude-family availability: dedicated and default Claude CLI profiles were logged out. Cursor Opus 5.5, Sonnet 5.5 and Fable 5 were each usage-limited until 2026-11-17; Haiku 5.5 was also usage-limited. No Claude verdict was counted.
+- Grok 4.7 High (Cursor, read-only): `VERDICT: BLOCKING`. Valid blockers: the production subscriber assertion could pass with no subscriber; `faced_sprite` and person object-id operands lacked independent falsifiers. Non-blocking: repin the blocked experiment after landing. Its claim that switch independence from `briefing-exits-v1` would be stronger than the frozen boundary contradicts the Architecture clause above and the registry's `needs:null`.
+- GPT 5.6 Sol xhigh (isolated Codex, read-only; Cursor GPT was usage-limited): `VERDICT: BLOCKING`. Valid blockers: the two Grok findings, the undeclared runtime dependency on `briefing-exits-v1`, the prohibited registry prepend, operand-complete mutation evidence, and the absence of gate/browser receipts from the frozen worklog.
+- Accepted fix batch: append the id in all three registries and update historical end-relative registry assertions; retain exact referenced states whenever either the exit ledger or this switch needs them; invoke attributed-interaction bookkeeping when either feature needs it; add independent `briefing-exits-v1=false`, `faced_sprite`, person-object, and live-subscriber assertions; record the pre-review gates and browser proof above. No new production domain or owner.
+
+### Round 1 Review Synthesis
+
+| Field | Result |
+|---|---|
+| Contract being proved | Explicitly attributed movement-plus-A dialogue marks only the exact faced target tried; OFF/control stay old; bundle turns it on. |
+| Frozen boundary | Loop-supervisor ledger, append-only feature registries/defaults/bundle, operator explainer/card, and blocked pending entry. No raw-event, prompt, grading, experiment-launch, API, dependency, persistence or owner changes. |
+| Principles adherence | PB1–PB13 table below had 8 PASS / 5 N/A / 0 FAIL, but PB10/PB13 evidence needed to be copied into the frozen worklog and PB4's append-only claim needed repair. |
+| Consensus findings | Both completed lanes found the vacuous subscriber assertion and missing `faced_sprite`/object-id falsifiers. |
+| Contradictions | Grok treated exit-feature independence as out of scope and did not block the prepend; the written Architecture plus `needs:null` make independence in-contract, and the loaded feature-switch skill explicitly vetoes reordering. GPT's findings control on both points. |
+| Unique findings | GPT alone found the hidden exit-feature dependency, append-only violation, and missing frozen evidence receipts; each was verified directly. |
+| Unsupported claims | None retained. Grok could not recompute the digest because its command execution was unavailable, so its identity statement is not used as the digest receipt. |
+| Missing evidence | Round-two full gates after the fix batch; literal green verdicts from every selected reviewer, including the authorized replacement for unavailable Claude. |
+| Test quality | Check 1 seam and check 7 payload fixed with defined-loop, subscriber-count, PC-present and TV-absent assertions. Check 2 now has independent mutations for the attribution operand, object-id statement, exit-independent call gate and production subscription. Checks 3–6 pass/inapplicable: no globals/shared pollution/concurrency/suppression. Check 8: nine constant events, bounded 64-state map, no fixture I/O/whole-state growth. Check 9: no production bound filled. |
+| Finding disposition | Five blocking classes accepted and fixed inside scope; zero scope expansions, security defects, or hardening changes. Experiment repin remains an expected landing bookkeeping step. |
+| Convergence | Round 1 produced blockers. The cumulative fix changes no production domain; round 2 is allowed under the two-round cap. |
+| Disposition | Rerun full gates, rewrite principles evidence, seal a new packet, and rerun the selected cloud/fallback roster. |
+
+## Principles Adherence (round-two candidate)
+
+| ID | Score | Evidence / reason |
+|---|---|---|
+| PB1 | PASS | The defect and fixtures use recorded dialogue/state events from cdb1; no model narration is graded as game progress. |
+| PB2 | N/A | No benchmark run is launched or filtered and no terminal accounting changes. |
+| PB3 | N/A | No performance claim is made; the entry remains blocked and unlaunched. |
+| PB4 | PASS | The default-off switch is appended to all three owned registries, recorded in run metadata, mapped to a Harness Config explainer, and independently usable without `briefing-exits-v1`. |
+| PB5 | PASS | The pending standalone entry isolates only this switch; bundle inclusion is the operator-requested aggregate treatment, not a standalone causal claim. |
+| PB6 | PASS | At most 64 exact recorded states are retained only when the exit ledger or this switch needs them; the new fixtures process nine constant-size events. |
+| PB7 | PASS | Exact `state_seq`, `speaker_source`, target coordinates and replay evidence drive the repair; raw events are unchanged. |
+| PB8 | N/A | No model-call validation, retry, fallback or stop behavior changes. |
+| PB9 | PASS | Ambiguous/missing attribution remains unchanged; the fix adds no guessed speaker heuristic and all round-one defects had mechanically determined resolutions. |
+| PB10 | PASS | No skip, retry, weakened threshold or exclusion. Operand-level and subscriber deletion receipts are retained above; complete gates are rerun after the fix batch. |
+| PB11 | N/A | No dependency API changes; pinned vendor verification is part of the gates. |
+| PB12 | N/A | No ROM or protected-path access. |
+| PB13 | PASS | RED and GREEN commits, worklog, full gates, visual proof, blocker synthesis, fix batch and round-two reviews close the loop. |
+
+Summary: 8 PASS / 5 N/A / 0 FAIL. Blocker: no.
 
 ## Boy Scout Log
 

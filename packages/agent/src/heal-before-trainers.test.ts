@@ -55,8 +55,8 @@ describe("registry",()=>{
   expect(featureInfo(ID)).toMatchObject({group:"guard",needs:"low-hp-trainer-warning-v1",switchable:true,title:"HEAL BEFORE TRAINERS"});
   expect(featureInfo(ID).description).toContain(" Off: ");
   expect(featureInfo(ID).description).toContain(AFTER_TEXT);
-  expect(SWITCHABLE_FEATURES.at(-21)).toBe(ID);
-  expect(playHarnessFeatures(ALL_ON,null).at(-21)).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-22)).toBe(ID);
+  expect(playHarnessFeatures(ALL_ON,null).at(-22)).toBe(ID);
   expect(playHarnessFeatures({...ALL_ON,[ID]:false},null)).not.toContain(ID);
   expect(SERVER_FEATURES).toContain(ID);
   expect(serverFeatureEnv({...ALL_ON,[ID]:false}).POKEBENCH_FEATURES_OFF.split(",")).toContain(ID);
@@ -286,7 +286,7 @@ describe("the pending experiment",()=>{
  it("flips only heal-before-trainers-v1 over the finals incumbent with v1 on, lists every switch, and is not queued",()=>{
   const raw=JSON.parse(readFileSync(new URL("../../../experiments/heal-before-trainers.json",import.meta.url),"utf8")) as {incumbent:{features:Record<string,boolean>}};
   // Every switch registered when the entry was written (through instruction-ledger-v2); later ones default off.
-  expect(Object.keys(raw.incumbent.features)).toEqual(SWITCHABLE_FEATURES.filter(id=>id!=="faced-interaction-history-v1").slice(0,SWITCHABLE_FEATURES.indexOf("instruction-ledger-v2")));
+  expect(Object.keys(raw.incumbent.features)).toEqual(SWITCHABLE_FEATURES.slice(0,SWITCHABLE_FEATURES.indexOf("instruction-ledger-v2")+1));
   const entry=parseExperiment(raw);
   expect(entry.queuePosition).toBeUndefined();
   expect(entry.changedFeature).toBe(ID);

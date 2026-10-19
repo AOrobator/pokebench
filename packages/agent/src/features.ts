@@ -6,7 +6,6 @@
 export type FeatureGroup = "observation" | "guidance" | "guard" | "measurement";
 
 export const SWITCHABLE_FEATURES = [
-  "faced-interaction-history-v1",
   "navigation-evidence-memory-v1",
   "automatic-running-v1",
   "expanded-menu-battle-information-v1",
@@ -127,6 +126,7 @@ export const SWITCHABLE_FEATURES = [
   "reopened-dialogue-loop-v1",
   "dialog-button-b-v1",
   "just-in-time-prompt-v1",
+  "faced-interaction-history-v1",
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
 
@@ -170,7 +170,6 @@ function measured(id: MeasurementFeature, title: string, description: string): F
 }
 
 export const FEATURES: readonly FeatureInfo[] = [
-  on("faced-interaction-history-v1", "guard", "FACED INTERACTION HISTORY", null, "Bundle arm only, default off. When a press batch moves or turns before A and dialogue auto-advance records its first page as coming from the faced target or faced sprite, the loop supervisor marks the target faced in that page's exact recorded state as tried. Backgrounds and signs use their map tile; people retain their map-local object identity. On run 2026-10-18T01-30-48_qwen36-gpu1_cdb1, turn 84 read the television at (4,1) with LEFT,LEFT,LEFT,UP,A, but the turn-93 supervisor note still called it untried. With this switch on, the television is no longer listed while untouched furniture remains. A page without faced-target attribution changes nothing. Off: only a request whose entire button list is one A marks the faced target tried, so a movement-plus-A interaction can remain listed as untried."),
   on("navigation-evidence-memory-v1", "guidance", "NAVIGATION EVIDENCE MEMORY", RAM, "Pins the recent observed dialogue, visited rooms and attempted-target outcomes (whole entries, never clipped) before each turn; optional remember_destination retains a model hypothesis with evidence references. No route or objective enforcement. Off: ordinary sliding conversation and no memory tool."),
   on("automatic-running-v1", "guidance", "AUTOMATIC RUNNING", RAM, "Adds simultaneous B to ordinary directional travel only when native running permission and controls are verified each frame. walking=true overrides it. Off: ordinary sequential button input."),
   on("expanded-menu-battle-information-v1", "observation", "EXPANDED MENU + BATTLE INFORMATION", RAM, "Adds newly decoded menu selections, contents and continuous battle descriptions to model text. Off: these descriptions are explicitly unprovided; corrected typed RAM, native journals, milestones and diagnostics remain recorded."),
@@ -333,6 +332,7 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("reopened-dialogue-loop-v1", "guard", "REOPENED DIALOGUE LOOP", null, "Bundle arm only. Lets the loop guard count a conversation a press shows and then closes before the result. On run 2026-10-18T01-30-48_qwen36-gpu0_e6ce, turns 52-109, the player stood at (2,2) inside the truck facing a box and pressed A. Each A started the box's sign (InsideOfTruck_EventScript_MovingBox, MSGBOX_SIGN: \"The box is printed with a POKéMON logo.\"). Dialogue auto-advance pressed B and closed it, so the result was the free field with no message. The guard already counts a message that is still open on the result. A closed result never counted, so no supervisor note fired. This switch counts the readable lines shown during an A press when the result is the free field (overworld, not in battle, field controls unlocked, no ready interface) and has already closed them, at the same place. A locked menu, a ready interface, a missing world context, and a message identity with no readable lines do not count. Native story progress clears the count. The fourth showing of the same lines raises the cycle warning and the supervisor briefing. One showing, a different line, the same lines after leaving that tile, and the same lines still open do not count. Off: a call whose result has no dialogue does not count as reopening it."),
   on("dialog-button-b-v1", "guidance", "DIALOGUE BUTTON B", null, "Bundle arm only. Adds a system-prompt section that makes B the button for a message. Pressing A on the field starts whatever you face (FieldInputHandling calls TryStartInteractionScript only for pressedAButton, field_control_avatar.c), so the same sign or person speaks again. B advances or closes a message (Std_MsgboxSign's waitbuttonpress; TextPrinterWait accepts A or B) and does not start that script. The section says to press B for a message and, once you can walk, to leave instead of pressing A in front of what you just read. Names no character, place or story step. Off: the prompt is unchanged."),
   on("just-in-time-prompt-v1", "guidance", "JUST IN TIME PROMPT", null, "Default off. Before every live model request, selects instructions and tools for the most recently recorded screen. Naming keeps the keyboard guide; the clock keeps its controls; battles keep battle rules and battle_action; the field keeps navigation and map rules. Unknown screens retain the full prompt and tools. Each response records the exact request prompt and tool hashes with the source state. Off: the existing full prompt and tool list are sent unchanged."),
+  on("faced-interaction-history-v1", "guard", "FACED INTERACTION HISTORY", null, "Bundle arm only, default off. When a press batch moves or turns before A and dialogue auto-advance records its first page as coming from the faced target or faced sprite, the loop supervisor marks the target faced in that page's exact recorded state as tried. Backgrounds and signs use their map tile; people retain their map-local object identity. On run 2026-10-18T01-30-48_qwen36-gpu1_cdb1, turn 84 read the television at (4,1) with LEFT,LEFT,LEFT,UP,A, but the turn-93 supervisor note still called it untried. With this switch on, the television is no longer listed while untouched furniture remains. A page without faced-target attribution changes nothing. Off: only a request whose entire button list is one A marks the faced target tried, so a movement-plus-A interaction can remain listed as untried."),
   measured("story-milestones-v2", "STORY MILESTONES",
     "Records each story milestone the game's own state confirms, with its turn and time. This feeds splits and the score."),
   measured("clock-milestone-v1", "CLOCK MILESTONE",
@@ -413,7 +413,6 @@ export const LOOP_POLICY_FEATURE = "deterministic-loop-policy-v1:p6:o3:a3:c3:r2:
 export function playHarnessFeatures(features: FeatureSet, target: string | null): string[] {
   const when = (id: SwitchableFeature): string[] => (features[id] ? [id] : []);
   return [
-    ...when("faced-interaction-history-v1"),
     ...when("ram-state-v1"), ...when("live-map-v1"), ...when("field-control-lock"), ...when("naming-cursor-v1"),
     ...when("live-object-sprites-v1"), ...when("coordinate-script-conditions-v1"), ...when("active-field-message-buffer-v1"),
     ...when("world-targets-v1"), ...when("named-interactions-v1"), ...when("world-destinations-v1"), ...when("bounded-navigation-v1"), ...when("live-player-position-v1"), ...when("world-coordinate-grid-v1"),
@@ -509,6 +508,7 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("reopened-dialogue-loop-v1"),
     ...when("dialog-button-b-v1"),
     ...when("just-in-time-prompt-v1"),
+    ...when("faced-interaction-history-v1"),
   ];
 }
 

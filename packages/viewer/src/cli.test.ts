@@ -1,5 +1,8 @@
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
-import { CliError, DEFAULT_PORT, closeOnSignals, main, parseArgs, viewUrl } from "./cli.js";
+import { CliError, DEFAULT_PORT, closeOnSignals, main, parseArgs, viewerOffload, viewUrl } from "./cli.js";
 import { RunQueue } from "./next-run.js";
 
 describe("parseArgs", () => {
@@ -91,6 +94,19 @@ describe("main", () => {
     await main(["abc"], { repoRunsRoot: "/repo/runs", defaultEndpoint: null, defaultPublicOrigins: "https://studio.example.ts.net:8447", liveJs: "/l.js", staticDir: "/s", appDir: "/a", start, print: (line) => lines.push(line) });
     expect(start).toHaveBeenCalledWith(expect.objectContaining({ publicOrigins: ["https://studio.example.ts.net:8447"] }));
     expect(lines.slice(0, 2)).toEqual(["PokeBench viewer: http://127.0.0.1:8790/#run=abc", "also published at: https://studio.example.ts.net:8447/#run=abc"]);
+  });
+});
+
+describe("production log reduction", () => {
+  it("stays idle after a restart instead of eagerly scanning every historical run", async () => {
+    const root = mkdtempSync(join(tmpdir(), "viewer-offload-"));
+    try {
+      const offload = viewerOffload(root, new URL("file:///not-started-worker.js"), "a".repeat(64), 32);
+      expect(offload.baselines?.warm).not.toBe(true);
+      await offload.baselines?.close?.();
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
   });
 });
 

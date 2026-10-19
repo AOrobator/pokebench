@@ -85,7 +85,10 @@ it("stops reading once a client abandons a long stream, and keeps serving", asyn
   expect(reads).toBe(after);
   vi.restoreAllMocks();
   expect((await fetch(new URL("api/runs", viewer.url))).status).toBe(200);
-  expect(await (await fetch(new URL("api/runs/long/events", viewer.url))).text()).toContain("event: done");
+  const short = longRun(2), runsRoot = join(roots.at(-1) ?? "", "runs");
+  mkdirSync(join(runsRoot, "short"));
+  writeFileSync(join(runsRoot, "short", "events.jsonl"), short.events.map((e) => JSON.stringify({ ...e, run: "short" })).join("\n") + "\n");
+  expect(await (await fetch(new URL("api/runs/short/events", viewer.url))).text()).toContain("event: done");
 });
 
 it("answers another request while a stream waits on a slow reader, and stops reading meanwhile", async () => {

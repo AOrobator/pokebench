@@ -108,6 +108,17 @@ export interface MainDeps {
   readonly offload?: (runsRoot: string) => Pick<ViewerOptions, "baselines" | "workbench">;
 }
 
+// Cold caches are reduced only when a page asks for them. Eagerly warming every historical log
+// after each viewer build can saturate several cores for minutes and starve live emulators.
+export function viewerOffload(runsRoot: string, worker: URL, codeId: string, parallelism: number): Pick<ViewerOptions, "baselines" | "workbench"> {
+  pruneBaselineCaches(runsRoot, codeId, Date.now());
+  const pool = createBaselinePool(() => new Worker(worker), defaultPoolSize(parallelism));
+  return {
+    baselines: { compute: pool.compute, store: createBaselineStore(baselineCacheDir(runsRoot, codeId)), close: () => pool.close() },
+    workbench: { compute: pool.load, store: createWorkbenchStore(workbenchCacheDir(runsRoot, codeId)), partial: true },
+  };
+}
+
 export async function main(argv: readonly string[], deps: MainDeps): Promise<Viewer> {
   const args = parseArgs(argv, deps.repoRunsRoot, deps.defaultEndpoint, deps.defaultPublicOrigins);
   const queue = new RunQueue({ runsRoot: args.runsRoot, liveJs: deps.liveJs, endpointFile: args.endpointFile, gamePort: QUEUE_GAME_PORT, healthy: healthProbe(), now: () => new Date(), random: randomSuffix, launch: (spec) => spawnLaunch(spec) });
@@ -157,12 +168,7 @@ if (import.meta.main) {
     // Run logs reduce on worker threads; results persist per code identity beside the runs.
     offload: (runsRoot) => {
       const worker = new URL("./baseline-worker.js", import.meta.url), codeId = codeIdentity(fileURLToPath(worker));
-      pruneBaselineCaches(runsRoot, codeId, Date.now());
-      const pool = createBaselinePool(() => new Worker(worker), defaultPoolSize(availableParallelism()));
-      return {
-        baselines: { compute: pool.compute, store: createBaselineStore(baselineCacheDir(runsRoot, codeId)), warm: true, close: () => pool.close() },
-        workbench: { compute: pool.load, store: createWorkbenchStore(workbenchCacheDir(runsRoot, codeId)), partial: true },
-      };
+      return viewerOffload(runsRoot, worker, codeId, availableParallelism());
     },
     print: (line) => {
       console.log(line);

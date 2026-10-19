@@ -1131,6 +1131,19 @@ it("links the stale story goal card to its tracked explainer, which quotes the r
  expect(html).toContain("bundle arm only");
 });
 
+it("links the stage-bound story goal card to its tracked explainer, which shows omission instead of none",()=>{
+ const id="stale-story-goal-v2";
+ expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
+ const log=new Log();log.add(0,{...START,harness_features:["ram-state-v1","stale-story-goal-v1",id]});
+ const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
+ expect(doc.querySelector(`[data-feature="${id}"] a`)?.getAttribute("href")).toBe(`/explainers/${id}.html`);
+ const html=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)),"utf8");
+ expect(html).toContain(id);
+ expect(html).toContain("<title>Stage-bound story goal</title>");
+ expect(html).toContain("Story goal: none");
+ expect(html).toContain("omitted");
+});
+
 it("links the battle menu loop card to its tracked explainer, which quotes the menu sentence",()=>{
  const id="battle-menu-loop-v1";
  expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);

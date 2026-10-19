@@ -451,6 +451,7 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "battle-menu-loop-v1":"battle-menu-loop-v1.html",
  "clock-view-loop-v1":"clock-view-loop-v1.html",
  "stale-story-goal-v1":"stale-story-goal-v1.html",
+ "stale-story-goal-v2":"stale-story-goal-v2.html",
  "input-cuts-v1":"input-cuts-v1.html",
  "loop-guard-screen-v1":"loop-guard-screen-v1.html",
  "reopened-dialogue-loop-v1":"reopened-dialogue-loop-v1.html",

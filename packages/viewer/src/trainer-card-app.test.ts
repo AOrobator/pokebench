@@ -144,14 +144,12 @@ describe("trainer cards in the viewer", () => {
     expect((ui("run") as HTMLSelectElement).value).toBe(OTHER_ID);
   });
 
-  it("keeps live cards visible instead of mixing in the selected replay", async () => {
+  it("shows only the explicitly selected replay instead of mixing live cards into it", async () => {
     const { app } = await mount(1280);
     app.select(REPLAY_ID);
     const row = ui("run-cards");
-    expect(row.querySelectorAll(".tc.tc-wide")).toHaveLength(2);
-    expect(row.querySelector(`[data-watch="${REPLAY_ID}"]`)).toBeNull();
-    expect(card(row, LIVE_ID).innerHTML).toContain('data-gt="LIVE"');
-    expect(card(row, OTHER_ID).innerHTML).toContain('data-gt="LIVE"');
+    expect([...row.querySelectorAll<HTMLElement>("[data-watch]")].map(e => e.dataset.watch)).toEqual([REPLAY_ID]);
+    expect(card(row, REPLAY_ID).querySelector('[data-gt="REPLAY"]')).not.toBeNull();
   });
 
   it("shows the selected replay card without marking it live when no live runs exist", async () => {
@@ -215,12 +213,12 @@ describe("trainer cards in the viewer", () => {
     expect(mine.classList.contains("tc-new")).toBe(true); expect(mine.innerHTML).toContain("NEW MILESTONE!"); expect(mine.innerHTML).not.toContain('data-gt="WATCHING"');
   });
 
-  it("on a phone, the sheet holds mini cards, the watched run first; tapping one watches it and closes the sheet", async () => {
+  it("on a phone, the sheet reuses the full trainer cards; tapping one watches it and closes the sheet", async () => {
     const { streams } = await mount(375, { fresh: true });
-    const body = ui("run-sheet-body"), cards = body.querySelectorAll<HTMLElement>(".tc.tc-mini");
+    const body = ui("run-sheet-body"), cards = body.querySelectorAll<HTMLElement>(".tc.tc-wide");
     expect(cards).toHaveLength(2); expect(cards[0]?.dataset.watch).toBe(LIVE_ID);
-    expect(cards[0]?.innerHTML).toContain('class="tc-ribbon"'); expect(cards[0]?.innerHTML).toContain('data-gt="WATCHING"');
-    expect(body.querySelector(".rs-now")).toBeNull(); expect(body.textContent).toContain("RUN DETAILS");
+    expect(cards[0]?.innerHTML).toBe(card(ui("run-cards"), LIVE_ID).innerHTML);
+    expect(body.querySelector(".rs-now, .rs-other")).toBeNull();
     ui("run-head").click(); expect(ui("run-sheet").hidden).toBe(false);
     card(body, OTHER_ID).click();
     expect(ui("run-sheet").hidden).toBe(true); expect(streams.at(-1)?.url).toBe(`/api/runs/${encodeURIComponent(OTHER_ID)}/events`);
@@ -232,7 +230,8 @@ describe("trainer cards in the viewer", () => {
     expect(ui("run-cards").hidden).toBe(true); expect(document.querySelector('[data-ui="live-runs"]')).toBeNull();
     expect(fetched).toContain("/api/workbench");
     setWidth(375); app.tick(0);
-    expect(ui("run-sheet-body").querySelector(".rs-now")).not.toBeNull();
+    expect(ui("run-sheet-body").querySelector(".rs-now, .rs-other")).toBeNull();
+    expect(ui("run-sheet-body").textContent).toContain("Loading trainer cards");
   });
 
   it("paints the game-font text once the glyph sheet loads", async () => {

@@ -70,48 +70,12 @@ describe("phone header model", () => {
     expect(headHtml(input({ view: view(plain.events) }))).toContain("&lt;b&gt;m&lt;/b&gt;");
   });
 
-  it("opens the sheet on what you are watching, then only the other live runs, then run details", () => {
+  it("provides a stable mount for existing trainer cards without bespoke run blocks", () => {
     const box = document.createElement("div");
-    box.innerHTML = sheetHtml(input({ others: [{ id: OTHER_ID, model: "qwen", started: "2026-10-16T05:52:27.171-04:00", cohort: { id: EXP, arm: "control", trial: 1, of: 4 } }] }), () => "5:52 AM");
-    const now = must(box.querySelector(".rs-now"));
-    expect(must(now.querySelector(".rs-tag")).textContent).toBe("YOU'RE WATCHINGRUNNING");
-    expect(must(now.querySelector(".rs-title")).textContent).toBe(EXP);
-    expect(now.textContent).toContain("BUNDLE");
-    expect(now.textContent).toContain("trial 2/4");
-    expect(now.textContent).toContain("0:27:22 / 1:00:00");
-    const watch = Array.from(box.querySelectorAll<HTMLButtonElement>("[data-watch]"));
-    expect(watch.map((b) => b.dataset.watch)).toEqual([OTHER_ID]);
-    expect(watch[0]?.textContent).toContain("CONTROL");
-    expect(watch[0]?.textContent).toContain("trial 1/4");
-    expect(watch[0]?.textContent).toContain("started 5:52 AM");
-    expect(watch[0]?.textContent).toContain("WATCH ▸");
-    expect(box.textContent).toContain("Modelthink-swarm");
-    expect(box.textContent).toContain("Thinkingmedium");
-    expect(box.textContent).toContain(`Run${LIVE_ID}`);
-  });
-
-  it("leads another live run's card with its arm when it shares the watched run's experiment", () => {
-    const box = document.createElement("div");
-    box.innerHTML = sheetHtml(input({ others: [{ id: OTHER_ID, started: "2026-10-16T05:52:27.171-04:00", cohort: { id: EXP, arm: "control", trial: 1, of: 4 } }] }), () => "5:52 AM");
-    const card = must(box.querySelector<HTMLElement>("[data-watch]"));
-    expect(card.textContent).not.toContain(EXP);
-    expect(must(card.querySelector(".rs-other-title")).textContent).toBe("CONTROLtrial 1/4");
-    expect(card.textContent).toContain("same experiment · started 5:52 AM");
-  });
-
-  it("keeps the experiment as the title when another live run belongs to a different experiment", () => {
-    const box = document.createElement("div");
-    box.innerHTML = sheetHtml(input({ others: [{ id: OTHER_ID, started: null, cohort: { id: "other-exp", arm: "bundle", trial: 3, of: 8 } }] }), () => "");
-    const card = must(box.querySelector<HTMLElement>("[data-watch]"));
-    expect(must(card.querySelector(".rs-other-title")).textContent).toBe("other-exp");
-    expect(card.textContent).toContain("trial 3/8");
-  });
-
-  it("says so when no other run is live", () => {
-    const box = document.createElement("div");
-    box.innerHTML = sheetHtml(input(), () => "");
-    expect(box.querySelector("[data-watch]")).toBeNull();
-    expect(box.textContent).toContain("No other run is live right now.");
+    box.innerHTML = sheetHtml();
+    expect(box.querySelector(".rs-cards")).not.toBeNull();
+    expect(box.querySelector(".rs-now, .rs-other")).toBeNull();
+    expect(box.textContent).toContain("Loading trainer cards");
   });
 });
 
@@ -205,8 +169,10 @@ describe("phone header in the viewer", () => {
     expect(ui("run-sheet").hidden).toBe(false);
     expect(head.getAttribute("aria-expanded")).toBe("true");
     const watch = Array.from(ui("run-sheet").querySelectorAll<HTMLButtonElement>("[data-watch]"));
-    expect(watch.map((b) => b.dataset.watch)).toEqual([OTHER_ID]);
-    must(watch[0]).click();
+    expect(watch).toHaveLength(0);
+    const picker = ui("run") as HTMLSelectElement;
+    picker.value = OTHER_ID;
+    picker.dispatchEvent(new Event("change", { bubbles: true }));
     expect(ui("run-sheet").hidden).toBe(true);
     expect(head.getAttribute("aria-expanded")).toBe("false");
     expect(streams.at(-1)?.url).toBe(`/api/runs/${encodeURIComponent(OTHER_ID)}/events`);
@@ -264,16 +230,16 @@ describe("phone header sheet behavior", () => {
     expect(ui("run-head").getAttribute("aria-expanded")).toBe("false");
   });
 
-  it("keeps the WATCH buttons in place while the clock ticks and updates the time in place", async () => {
+  it("keeps the card mount in place while the header clock ticks", async () => {
     const { app } = await mount(375);
     ui("run-head").click();
-    const watch = must(ui("run-sheet").querySelector<HTMLButtonElement>("[data-watch]"));
-    const time = must(ui("run-sheet").querySelector(".rs-now .rh-time"));
+    const cards = must(ui("run-sheet").querySelector(".rs-cards"));
+    const time = must(ui("run-head").querySelector(".rh-time"));
     expect(time.textContent).toBe("0:00:03 / 0:01:00");
     nowMs += 2_000;
     app.tick(500);
-    expect(ui("run-sheet").querySelector("[data-watch]")).toBe(watch);
-    expect(must(ui("run-sheet").querySelector(".rs-now .rh-time")).textContent).toBe("0:00:05 / 0:01:00");
+    expect(ui("run-sheet").querySelector(".rs-cards")).toBe(cards);
+    expect(must(ui("run-head").querySelector(".rh-time")).textContent).toBe("0:00:05 / 0:01:00");
   });
 
   it("moves focus into the sheet, closes on Escape and returns focus to the header", async () => {
@@ -312,7 +278,7 @@ describe("phone header sheet behavior", () => {
   it("ignores clicks in the sheet body that are not on a WATCH button", async () => {
     const { streams } = await mount(375);
     ui("run-head").click();
-    must(ui("run-sheet").querySelector<HTMLElement>(".rs-now")).click();
+    must(ui("run-sheet").querySelector<HTMLElement>("h4")).click();
     expect(ui("run-sheet").hidden).toBe(false);
     expect(streams).toHaveLength(1);
   });

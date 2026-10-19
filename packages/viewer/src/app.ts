@@ -122,7 +122,6 @@ function reconcile(box: HTMLElement, groups: readonly TraceGroup[], tail: string
 
 // Unended runs whose game server no longer answers are not live.
 const isLive = (run: RunChoice): boolean => run.ended === false && run.problem === null && run.live !== false;
-const startedAt = (iso: string): string => new Date(iso).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 
 const LIVE_RETRY_MS = 5_000;
 export const RUN_LIST_MS = 3_000;
@@ -137,6 +136,13 @@ function runChoices(value: unknown): RunChoice[] {
     const liveB = b.ended === false && b.problem === null && b.live !== false;
     return Number(liveB) - Number(liveA) || (Date.parse(b.started ?? "") || 0) - (Date.parse(a.started ?? "") || 0);
   });
+}
+
+function preferredRun(runs: readonly RunChoice[], hash: string): RunChoice | undefined {
+  const wanted = /^#(?:run|replay)=(.+)$/.exec(hash)?.[1];
+  const requested = wanted === undefined ? undefined : runs.find((run) => run.id === decodeURIComponent(wanted));
+  if (requested !== undefined && (hash.startsWith("#replay=") || isLive(requested))) return requested;
+  return runs.find(isLive) ?? requested ?? runs[0];
 }
 
 function recordedHead(value: unknown, runId: string): readonly RunEvent[] {
@@ -413,15 +419,13 @@ export class App {
     this.wire();
     void this.next.load();
     this.listRuns(runChoices(await this.deps.fetchJson("/api/runs")));
-    const wanted = /^#run=(.+)$/.exec(this.deps.hash)?.[1];
-    const fromHash = wanted === undefined ? undefined : this.runs.find((run) => run.id === decodeURIComponent(wanted));
-    const first = fromHash ?? this.runs[0];
+    const first = preferredRun(this.runs, this.deps.hash);
     if (first === undefined) {
       this.mode = "idle";
       this.render();
       return;
     }
-    this.select(first.id);
+    this.select(first.id, !this.deps.hash.startsWith("#replay="));
     void this.pollCards();
   }
 
@@ -456,8 +460,10 @@ export class App {
     const { art, workbench } = this;
     if (art === null || workbench === null) return [];
     const now = this.deps.now();
-    // Preserve the API's stable live-run order. A selected replay is a fallback card,
-    // never an extra card mixed into an active live-run row.
+    const replay = this.runs.find((run) => run.id === this.runId && run.ended === true);
+    const recordedReplay = replay === undefined ? undefined : workbench.runs.find((run) => run.id === replay.id);
+    if (recordedReplay !== undefined) return [cardInputFor(recordedReplay, workbench.at, now, "replay", workbench.runs, art.art)];
+    // An explicitly opened replay is separate from the default live-run row.
     const live = this.runs.filter(isLive);
     const liveCards = live.flatMap((run): CardInput[] => {
       const recorded = workbench.runs.find((r) => r.id === run.id);
@@ -465,10 +471,7 @@ export class App {
       const status: CardInput["status"] = run.id === this.runId ? "watching" : recorded.status === "paused" ? "paused" : "live";
       return [cardInputFor(recorded, workbench.at, now, status, workbench.runs, art.art)];
     });
-    if (liveCards.length > 0) return liveCards;
-    const replay = this.runs.find((run) => run.id === this.runId && run.ended === true);
-    const recorded = replay === undefined ? undefined : workbench.runs.find((run) => run.id === replay.id);
-    return recorded === undefined ? [] : [cardInputFor(recorded, workbench.at, now, "replay", workbench.runs, art.art)];
+    return liveCards;
   }
 
   private listRuns(runs: RunChoice[]): void {
@@ -492,10 +495,9 @@ export class App {
     const newest = this.runs[0];
     if (newest === undefined || newest.id === this.runId) return;
     if (this.runId === null) {
-      const wanted = /^#run=(.+)$/.exec(this.deps.hash)?.[1];
-      this.select(runs.find((run) => wanted !== undefined && run.id === decodeURIComponent(wanted))?.id ?? newest.id);
+      this.select((preferredRun(runs, this.deps.hash) ?? newest).id, !this.deps.hash.startsWith("#replay="));
     } else if (this.following && this.view.end !== null) {
-      this.select(newest.id);
+      this.select(newest.id, true);
     }
   }
 
@@ -728,14 +730,14 @@ export class App {
     this.recordedThinkingTrace = trace;
   }
 
-  select(runId: string): void {
+  select(runId: string, automatic = false): void {
     this.extensionDialog().close();
     this.extensionPending = null;
     this.extensionMessage = "";
     this.stream?.close();
     this.runId = runId;
     this.comparisonRequest += 1; this.comparisonsRun = null;
-    this.following = this.runs[0]?.id === runId;
+    this.following = automatic || (this.runs[0]?.id === runId && this.runs[0].ended !== true);
     this.view = new RunView();
     this.shown = this.view;
     this.clock = null;
@@ -760,7 +762,7 @@ export class App {
     this.picker("run").value = runId;
     // References are eligible only after the owned server validates their logs.
     this.picker("baseline").replaceChildren(option(this.doc, "", "none"));
-    this.doc.location.hash = `run=${encodeURIComponent(runId)}`;
+    this.doc.location.hash = `${!automatic && this.runs.find((run) => run.id === runId)?.ended === true ? "replay" : "run"}=${encodeURIComponent(runId)}`;
     const comparisons = this.doc.querySelector<HTMLAnchorElement>('[data-ui="comparisons-link"]');
     if (comparisons !== null) comparisons.href = `/comparisons?from=${encodeURIComponent(runId)}`;
     const stream = this.deps.openStream(`/api/runs/${encodeURIComponent(runId)}/events`);
@@ -1067,20 +1069,15 @@ export class App {
     // The time ticks every render; rebuilding the sheet for it would remount the WATCH buttons under the pointer.
     const cards = this.cardInputs(), art = this.art?.art ?? null;
     const watched = cards.filter((c) => c.status === "watching" || c.status === "replay");
-    const mini = art === null || cards.length === 0 ? null : [...watched, ...cards.filter((c) => c.status !== "watching" && c.status !== "replay")].map((c) => cardHtml(c, art, "mini"));
-    const sheetBody = this.ui("run-sheet-body"), previousCards = sheetBody.querySelector(".rs-cards");
-    const focusedCard = previousCards?.contains(this.doc.activeElement) === true ? this.doc.activeElement?.closest<HTMLElement>("[data-watch]")?.dataset.watch : undefined;
-    this.setHtml("run-sheet-body", sheetHtml({ ...head, time: "" }, startedAt, mini === null ? null : { html: "", watched: watched.length > 0 }));
+    const sheetCardHtml = art === null || cards.length === 0 ? [] : [...watched, ...cards.filter((c) => c.status !== "watching" && c.status !== "replay")].map((c) => cardHtml(c, art, "wide"));
+    this.setHtml("run-sheet-body", sheetHtml());
+    const sheetBody = this.ui("run-sheet-body");
     const sheetCards = sheetBody.querySelector(".rs-cards");
-    if (sheetCards !== null) {
-      if (previousCards !== null && previousCards !== sheetCards) sheetCards.replaceWith(previousCards);
-      syncCards(previousCards ?? sheetCards, mini ?? [], this.cardHtml);
-      if (focusedCard !== undefined && this.doc.activeElement === this.doc.body) sheetBody.querySelector<HTMLElement>(`[data-watch="${CSS.escape(focusedCard)}"]`)?.focus({ preventScroll: true });
-    }
+    if (sheetCards !== null) syncCards(sheetCards, sheetCardHtml, this.cardHtml);
+    sheetBody.querySelector<HTMLElement>("[data-card-loading]")?.toggleAttribute("hidden", sheetCardHtml.length > 0);
     syncCards(this.ui("run-cards"), art === null ? [] : cards.map((c) => cardHtml(c, art, "wide")), this.cardHtml);
-    this.ui("run-cards").hidden = mini === null;
+    this.ui("run-cards").hidden = cards.length === 0;
     fillCards([this.ui("run-cards"), this.ui("run-sheet-body")], cards, this.art, (canvas, pixels) => { this.deps.drawGlyphs?.(canvas, pixels); });
-    for (const slot of this.ui("run-sheet-body").querySelectorAll(".rh-time")) slot.textContent = time;
     if (clock !== null) {
       scrub.value = String(Math.round(clock.fraction * 1000));
       this.ui("clock").textContent = `${hms((clock.positionMs - clock.startMs) / 1000)} / ${hms((clock.endMs - clock.startMs) / 1000)}`;

@@ -771,7 +771,7 @@ b.wb-add, b.wb-rem { white-space:nowrap; }
 .rs-cards { display: grid; gap: 12px; padding: 2px 4px 6px; }
 .tc.tc { all: unset; position: relative; display: block; width: 100%; container-type: inline-size; cursor: pointer; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 .tc.tc:focus-visible { outline: 3px solid #ffd447; outline-offset: 3px; }
-.tc .tc-art { --u: calc(100cqw / var(--gw)); position: relative; display: block; width: 100%; background-color: #e8dfba; background-size: 100% 100%; image-rendering: pixelated; }
+.tc .tc-art { --u: calc(100cqw / var(--gw)); position: relative; display: block; width: 100%; background-size: 100% 100%; image-rendering: pixelated; }
 .tc .tc-abs { position: absolute; display: block; }
 .tc img { display: block; width: 100%; height: 100%; image-rendering: pixelated; }
 .tc .tc-line { display: flex; align-items: center; gap: calc(var(--u) * 4); min-width: 0; height: 100%; white-space: nowrap; }

@@ -2,7 +2,7 @@
 
 ## Contract
 
-Restore the selected replay card when no renderable live cards exist, preserving live-card precedence. Fix mobile card background stability during updates and animate the bottom sheet opening with reduced-motion support. Viewer only; no harness or experiment changes.
+Default to a live run when any live run exists. Deliberately opened replays remain accessible separately and show their own dotless Trainer Card. The mobile sheet reuses the existing full Trainer Card renderer with its original artwork, keeps card nodes stable and animates opening with reduced-motion support. Viewer only; no harness or experiment changes.
 
 ## Evidence and scope
 
@@ -19,12 +19,22 @@ Restore the selected replay card when no renderable live cards exist, preserving
 - [x] Browser on isolated 8803 with a clone-on-write copy of the reported replay (no experiment approvals): selected dotless REPLAY card in the mobile sheet with its PNG background, 260ms entrance style, pointer and Enter opening, card activation closes sheet; no horizontal overflow at 375. Desktop checked at 1280 and 1440. Captures visually inspected in tool record; persistent screenshot paths are unavailable from this browser surface.
 - [ ] Independent review and local-main landing, followed by live proof.
 
+## Operator correction and final behavior
+
+- Operator rejected the bespoke sheet blocks: "use the trainer cards ... reuse what we already have". Removed the custom YOU'RE WATCHING summary, plain other-run WATCH tiles and duplicated run metadata. Sheet now mounts the exact same `cardHtml(..., "wide")` used by the desktop header. No substitute background surface; existing PNG art is retained.
+- Operator clarified: "replays should NEVER be selected when there are live runs. a live run should be the default selection. the user always has the ability to view replays separately but it shouldn't show by default when there are live runs".
+- Default navigation prioritizes a live run over a stale `#run=` replay selection. Explicit replay links use `#replay=` and the existing run picker still opens replays deliberately. An explicitly selected replay gets only its own selected, dotless Trainer Card. Automatic following advances to the next live run; deliberate replay viewing remains separate.
+- Historical custom-sheet tests were replaced with assertions for the persistent Trainer Card mount. Integration asserts the mobile full card's inner markup equals its desktop counterpart, and no `.rs-now` or `.rs-other` is rendered.
+- Revised viewer suite: 1,238 passed; coverage lines/branches/functions 97.72/91.31/93.96, lint/build pass. Earlier agent and Python gates remain applicable: no agent/Python code changed in this amendment.
+- Browser on revised owned 8803: opening the reported stale replay URL selected live run `2026-10-19T18-15-28-702Z_qwen36-gpu0_petalburg2h-r7-visited-map` by default.
+- At 375px the sheet showed two existing full silver Trainer Cards with their PNG backgrounds, one WATCHING and one LIVE, and zero custom blocks. Deliberately selecting the ended run through the sheet picker closed the sheet, changed the URL to `#replay=...`, and showed exactly its own dotless REPLAY card. The default route and explicit replay route are now distinct.
+
 ## Principles adherence
 
-PB1 PASS: status remains recorded/discovered data, no agent claims used. PB2 N/A: no result filtering. PB3 N/A: no benchmark claim. PB4 PASS: viewer only. PB5 PASS: no measured runs. PB6 N/A: no context changes. PB7 PASS: scratch replay uses recorded events. PB8 N/A: no agent retry changes. PB9 PASS: prior live-card precedence retained; this corrects empty live-row behavior. PB10 PASS: both new regression tests observed failing before implementation; gates unchanged. PB11 PASS: no dependency/API change. PB12 PASS: ROM stays outside git and recordings unchanged. PB13 PASS: worklog and independent review track closeout.
+PB1 PASS: status remains recorded/discovered data, no agent claims used. PB2 N/A: no result filtering. PB3 N/A: no benchmark claim. PB4 PASS: viewer only. PB5 PASS: no measured runs. PB6 N/A: no context changes. PB7 PASS: scratch replay uses recorded events. PB8 N/A: no agent retry changes. PB9 PASS: operator clarified live default versus deliberate replay navigation and mandated existing full Trainer Cards. PB10 PASS: original regressions observed RED; amended tests assert live default, explicit replay and exact reused full-card markup; gates unchanged. PB11 PASS: no dependency/API change. PB12 PASS: ROM stays outside git and recordings unchanged. PB13 PASS: worklog and independent review track closeout.
 
 ## Review boundary
 
-Production owners: `app.ts` card selection and sheet rendering, `trainer-card.ts` title geometry, `style.css` card surface and sheet entrance. No new runtime, dependency, API, persistence, experiment or gameplay behavior. Stop when the replay fallback, stable cards and mobile animation are verified and reviewed; adjacent viewer performance work belongs to the separate dirty checkout.
+Production owners: `app.ts` default/explicit selection and sheet rendering, `run-head.ts` static card mount (bespoke blocks removed), `workbench-view.ts` explicit replay links, `trainer-card.ts` title geometry, `style.css` sheet entrance. Operator's correction explicitly amends the earlier frozen boundary. No new runtime, dependency, API, persistence, experiment or gameplay behavior. Stop when live defaults, separately opened replays, reused stable cards and mobile animation are verified and reviewed; adjacent viewer performance work belongs to the separate checkout.
 
 Test quality: mounted app consumer tests with fixture-owned IDs and exact card sets/node identity; both were RED before changes. Existing per-test DOM setup and width cleanup retained; no new shared global owner, concurrency, retries, sleeps, skipped tests or large fixture loops. Browser uses a scratch copy of real data, not the shared queue root.

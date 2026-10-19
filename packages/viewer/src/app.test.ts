@@ -122,7 +122,7 @@ describe("viewer app", () => {
   });
 
   it("changes inspection pages without resetting the stream, replay or baseline", async () => {
-    const { app, streams } = await harness(`#run=${M4_ID}`);
+    const { app, streams } = await harness(`#replay=${M4_ID}`);
     feed(must(streams[0]), fullRun().events);
     app.tick(4000);
     const clock = app.clock;
@@ -140,7 +140,7 @@ describe("viewer app", () => {
   });
 
   it("drives the phone page picker and the page directory as one control", async () => {
-    await harness(`#run=${M4_ID}`);
+    await harness(`#replay=${M4_ID}`);
     const select = must(document.querySelector<HTMLSelectElement>('[data-ui="page-select"]'));
     const buttons = [...document.querySelectorAll<HTMLButtonElement>("[data-page]")];
     expect([...select.options].map((option) => [option.value, option.textContent])).toEqual(buttons.map((button) => [button.dataset.page, button.textContent]));
@@ -184,8 +184,14 @@ describe("viewer app", () => {
     expect(ui("follow-thinking").getAttribute("aria-pressed")).toBe("true");
   });
 
-  it("lists runs and opens the run named in the hash", async () => {
+  it("defaults to a live run instead of restoring an old replay selection", async () => {
     const { streams } = await harness(`#run=${M4_ID}`);
+    expect(streams[0]?.url).toBe(`/api/runs/${must(RUNS[0]).id}/events`);
+    expect((ui("run") as HTMLSelectElement).value).toBe(must(RUNS[0]).id);
+  });
+
+  it("lists runs and opens a replay deliberately linked separately", async () => {
+    const { streams } = await harness(`#replay=${M4_ID}`);
     const options = [...ui("run").querySelectorAll("option")].map((option) => option.value);
     expect(options).toEqual(RUNS.map((run) => run.id));
     expect((ui("run") as HTMLSelectElement).value).toBe(M4_ID);
@@ -225,7 +231,7 @@ describe("viewer app", () => {
   });
 
   it("replays the recorded M4 run end to end", async () => {
-    const { app, streams } = await harness(`#run=${M4_ID}`);
+    const { app, streams } = await harness(`#replay=${M4_ID}`);
     const stream = must(streams[0]);
     const events = m4Run();
     feed(stream, events);
@@ -259,7 +265,7 @@ describe("viewer app", () => {
   });
 
   it("lights the GBA button while a press is held", async () => {
-    const { app, streams } = await harness(`#run=${M4_ID}`);
+    const { app, streams } = await harness(`#replay=${M4_ID}`);
     feed(must(streams[0]), m4Run());
     const press = must(m4Run().find((event) => event.type === "button_press"));
     app.clock?.pause();
@@ -272,7 +278,7 @@ describe("viewer app", () => {
   });
 
   it("drives the replay from the controls and seeks backwards", async () => {
-    const { app, streams } = await harness(`#run=${M4_ID}`);
+    const { app, streams } = await harness(`#replay=${M4_ID}`);
     feed(must(streams[0]), m4Run());
     ui("play").click();
     expect(app.clock?.playing).toBe(false);
@@ -292,7 +298,7 @@ describe("viewer app", () => {
   });
 
   it("opens a trace row's raw events in the inspector", async () => {
-    const { app, streams } = await harness(`#run=${M4_ID}`);
+    const { app, streams } = await harness(`#replay=${M4_ID}`);
     feed(must(streams[0]), m4Run());
     app.tick(60_000);
     const row = must(ui("trace").querySelector<HTMLElement>('[data-seqs~="9"]'));
@@ -359,7 +365,7 @@ describe("viewer app", () => {
   });
 
   it("compares splits against a picked baseline run", async () => {
-    const { app, streams, fetched } = await harness(`#run=${M4_ID}`);
+    const { app, streams, fetched } = await harness(`#replay=${M4_ID}`);
     feed(must(streams[0]), fullRun().events);
   await openSplits();
     const baseline = ui("baseline") as HTMLSelectElement;
@@ -401,7 +407,7 @@ describe("viewer app", () => {
         return stream;
       },
       now: () => BASE_MS,
-      hash: `#run=${M4_ID}`,
+      hash: `#replay=${M4_ID}`,
     });
     feed(must(streams[0]), fullRun().events);
     const baseline = ui("baseline") as HTMLSelectElement;
@@ -424,7 +430,7 @@ describe("viewer app", () => {
     expect(streams[0]?.closed).toBe(true);
     expect(streams[1]?.url).toBe(`/api/runs/${M4_ID}/events`);
     expect(ui("trace").querySelectorAll("[data-key]").length).toBe(0);
-    expect(window.location.hash).toBe(`#run=${M4_ID}`);
+    expect(window.location.hash).toBe(`#replay=${M4_ID}`);
   });
 
   it("shows a known-live run from its screen endpoint while its event history catches up", async () => {
@@ -731,7 +737,7 @@ describe("viewer app", () => {
   });
 
   it("ignores events for a different run than the one selected", async () => {
-    const { app, streams } = await harness(`#run=${M4_ID}`);
+    const { app, streams } = await harness(`#replay=${M4_ID}`);
     const log = new Log();
     log.add(0, START);
     must(streams[0]).send("ev", { ...log.events[0], run: "someone-else" });
@@ -786,7 +792,7 @@ describe("run list refresh", () => {
     ]);
 
     const old: unknown[] = [runRow("2026-10-11T23-00-00_live", false), runRow(M4_ID, true)];
-    const replaying = await harness(`#run=${M4_ID}`, old);
+    const replaying = await harness(`#replay=${M4_ID}`, old);
     const stream = must(replaying.streams[0]);
     feed(stream, m4Run());
     stream.send("done", {});
@@ -1088,7 +1094,7 @@ it("shows explicit evaluation target/cap and native terminal proof in history an
 });
 
 it("mounts state-input and host-wait history, the snapshot timeline mark, selected inspector and frame ingress",async()=>{
- const {app,streams}=await harness(`#run=${M4_ID}`);const stream=must(streams[0]);const log=new Log();log.add(0,START);const s=log.add(10,state());
+ const {app,streams}=await harness(`#replay=${M4_ID}`);const stream=must(streams[0]);const log=new Log();log.add(0,START);const s=log.add(10,state());
  const input=log.add(20,{type:"decision_input",turn:0,decision_turn:1,state_seq:s.seq,text:"CURRENT <clock> at (5,1)",frames:[{path:"frames/000002_0.png",sha1:"a".repeat(40)}]});
  const wait=log.add(30,{type:"wait_input",turn:1,tool_call_id:"wait-one",duration_ms:60});
  log.add(70000,{type:"run_end",turn:1,reason:"budget",furthest_milestone:null,turns:1,wall_ms:70000,tokens:{input:0,output:0},frames:{saved:1,bytes:100}});
@@ -1106,7 +1112,7 @@ it("mounts state-input and host-wait history, the snapshot timeline mark, select
 });
 it("links the push-back and battle observation cards in Harness Config to their explainers",async()=>{
  const ids=["pushback-loop-detection-v1","pushback-press-result-v1","battle-observation-loop-v1","ineffective-loops-v1"] as const;
- const {app,streams}=await harness(`#run=${M4_ID}`);const log=new Log();log.add(0,{...START,harness_features:[...ids]});feed(must(streams[0]),log.events);
+ const {app,streams}=await harness(`#replay=${M4_ID}`);const log=new Log();log.add(0,{...START,harness_features:[...ids]});feed(must(streams[0]),log.events);
  app.next.registry=ids.map(id=>({id,title:id.toUpperCase(),description:`${id} card.`,group:"guard" as const,switchable:true,needs:null}));app.tick(1000);
  for(const id of ids){
   const link=must(ui("harness-config").querySelector<HTMLAnchorElement>(`[data-feature="${id}"] a`));
@@ -1116,7 +1122,7 @@ it("links the push-back and battle observation cards in Harness Config to their 
 
 it("mounts the push-back and battle observation guard notices in the timeline, Activity History and inspector, and follows the replay cursor",async()=>{
  const {PUSHBACK_MESSAGE}=await import("../../agent/src/loop-detection.js");
- const {app,streams}=await harness(`#run=${M4_ID}`);const stream=must(streams[0]);const log=new Log();log.add(0,START);
+ const {app,streams}=await harness(`#replay=${M4_ID}`);const stream=must(streams[0]);const log=new Log();log.add(0,START);
  log.add(1000,{type:"tool_call",turn:146,id:"c146",name:"press",args:{buttons:["UP"]}});
  // The sh02 receipts (pushback-loop-detection-v1 T146, battle-observation-loop-v1 T452) as the recorder writes them.
  const warning=log.add(2000,{type:"loop_guard",turn:146,kind:"cycle",mode:"enforced",phase:"warning",message:PUSHBACK_MESSAGE,calls:11,evidence:[2973,3062]});
@@ -1137,7 +1143,7 @@ it("mounts the push-back and battle observation guard notices in the timeline, A
 
 it("mounts the ineffective loops notices in Activity History and the inspector at the replay cursor (ineffective-loops-v1)",async()=>{
  const {REVISIT_MESSAGE,WAITING_MESSAGE}=await import("../../agent/src/loop-detection.js");
- const {app,streams}=await harness(`#run=${M4_ID}`);const stream=must(streams[0]);const log=new Log();log.add(0,START);
+ const {app,streams}=await harness(`#replay=${M4_ID}`);const stream=must(streams[0]);const log=new Log();log.add(0,START);
  log.add(1000,{type:"tool_call",turn:212,id:"c212",name:"navigate_to",args:{map_id:[0,18],x:45,y:6}});
  // The 4caa Route 103 receipt (T212, evidence 5057 and 5121) and a waiting-observe warning, as the recorder writes them.
  const warning=log.add(2000,{type:"loop_guard",turn:212,kind:"cycle",mode:"enforced",phase:"warning",message:REVISIT_MESSAGE,calls:20,evidence:[5057,5121]});
@@ -1164,7 +1170,7 @@ it('labels human comparison candidates with unverified ROM provenance',async()=>
 
 it("opens the requested run stream without scanning historical comparisons or feature history",async()=>{
  document.body.innerHTML=PAGE.slice(PAGE.indexOf("<body>")+6,PAGE.indexOf("</body>"));const requested:string[]=[],streams:FakeStream[]=[];
- await mountApp(document,{fetchJson:url=>{requested.push(url);return nextRunReply(url)??Promise.resolve(url==="/api/runs"?RUNS:{candidates:[],baseline:null,best:null});},sendJson:noWrites,openStream:url=>{const stream=new FakeStream(url);streams.push(stream);return stream;},now:()=>BASE_MS,hash:`#run=${M4_ID}`});
+ await mountApp(document,{fetchJson:url=>{requested.push(url);return nextRunReply(url)??Promise.resolve(url==="/api/runs"?RUNS:{candidates:[],baseline:null,best:null});},sendJson:noWrites,openStream:url=>{const stream=new FakeStream(url);streams.push(stream);return stream;},now:()=>BASE_MS,hash:`#replay=${M4_ID}`});
  await Promise.resolve();await Promise.resolve();
  expect(streams.map(s=>s.url)).toEqual([`/api/runs/${M4_ID}/events`]);expect(requested.filter(url=>url.endsWith("/comparisons")||url.endsWith("/history"))).toEqual([]);
  document.querySelector<HTMLButtonElement>('[data-page="splits"]')?.click();await Promise.resolve();
@@ -1174,7 +1180,7 @@ it("opens the requested run stream without scanning historical comparisons or fe
 });
 
 it("opens the selected run configuration without changing playback or writing next-run settings",async()=>{
- const {app,streams}=await harness(`#run=${M4_ID}`);const log=new Log();log.add(0,{...START,model:{...START.model,id:"recorded-current-model"},harness_features:["navigation-evidence-memory-v1"]});feed(must(streams[0]),log.events);app.next.registry=[{id:"navigation-evidence-memory-v1",title:"NAVIGATION MEMORY",description:"Retains observed facts only.",group:"guidance",switchable:true,needs:null}];app.tick(1000);
+ const {app,streams}=await harness(`#replay=${M4_ID}`);const log=new Log();log.add(0,{...START,model:{...START.model,id:"recorded-current-model"},harness_features:["navigation-evidence-memory-v1"]});feed(must(streams[0]),log.events);app.next.registry=[{id:"navigation-evidence-memory-v1",title:"NAVIGATION MEMORY",description:"Retains observed facts only.",group:"guidance",switchable:true,needs:null}];app.tick(1000);
  expect(ui("harness-config").querySelector('[data-tool="press"]')?.textContent).toContain("buttons: required array of 1–8");
  expect(ui("harness-config").textContent).toContain("Retains observed facts only.");expect(ui("harness-config").querySelector("a")?.getAttribute("href")).toBe("/explainers/navigation-evidence-memory-v1.html");
  const clock=app.clock;must(document.querySelector<HTMLButtonElement>('[data-page="config"]')).click();
@@ -1206,7 +1212,7 @@ describe("agent trace page", () => {
   const chipButton = (id: string): HTMLButtonElement => must(ui("trace-chips").querySelector<HTMLButtonElement>(`[data-chip="${id}"]`));
 
   it("replaces ACTIVITY HISTORY with the agent trace, newest turn first, with chip counts", async () => {
-    const { app, streams } = await harness(`#run=${M4_ID}`);
+    const { app, streams } = await harness(`#replay=${M4_ID}`);
     feed(must(streams[0]), m4Run());
     app.tick(60_000);
     expect(document.querySelector('[data-page="activity"]')).toBeNull();
@@ -1224,7 +1230,7 @@ describe("agent trace page", () => {
   });
 
   it("filters rows by chip and puts them back", async () => {
-    const { app, streams } = await harness(`#run=${M4_ID}`);
+    const { app, streams } = await harness(`#replay=${M4_ID}`);
     feed(must(streams[0]), m4Run());
     app.tick(60_000);
     expect(ui("trace").querySelector('[data-c="think"]')).not.toBeNull();
@@ -1311,7 +1317,7 @@ describe("agent trace page", () => {
   });
 
   it("keeps a row open when a chip hides its turn and shows it again", async () => {
-    const { app, streams } = await harness(`#run=${M4_ID}`);
+    const { app, streams } = await harness(`#replay=${M4_ID}`);
     feed(must(streams[0]), m4Run());
     app.tick(60_000);
     const row = must(ui("trace").querySelector<HTMLDetailsElement>('details[data-c="think"]'));
@@ -1409,7 +1415,7 @@ describe("agent trace page", () => {
   });
 
   it("goes back to the newest turn when the pointer leaves a list it held at the top", async () => {
-    const { app, streams } = await harness(`#run=${M4_ID}`);
+    const { app, streams } = await harness(`#replay=${M4_ID}`);
     feed(must(streams[0]), m4Run());
     app.tick(60_000);
     const box = ui("trace");
@@ -1451,7 +1457,7 @@ describe("agent trace page", () => {
   });
 
   it("collapses and expands every row", async () => {
-    const { app, streams } = await harness(`#run=${M4_ID}`);
+    const { app, streams } = await harness(`#replay=${M4_ID}`);
     feed(must(streams[0]), m4Run());
     app.tick(60_000);
     must(ui("trace-chips").querySelector<HTMLButtonElement>("[data-trace-expand]")).click();
@@ -1535,7 +1541,7 @@ describe("side panel", () => {
   });
 
   it("jumps from the side panel to the full agent trace", async () => {
-    const { app, streams } = await harness(`#run=${M4_ID}`);
+    const { app, streams } = await harness(`#replay=${M4_ID}`);
     feed(must(streams[0]), m4Run());
     app.tick(60_000);
     expect(ui("think-title").textContent).toBe("FINAL · TURN 4");
@@ -1545,7 +1551,7 @@ describe("side panel", () => {
   });
 
   it("keeps split chips in the side panel and folds the split times table away", async () => {
-    const { app, streams } = await harness(`#run=${M4_ID}`);
+    const { app, streams } = await harness(`#replay=${M4_ID}`);
     feed(must(streams[0]), m4Run());
     app.tick(100);
     const fold = must(document.querySelector<HTMLDetailsElement>(".side details.split-times"));
@@ -1559,7 +1565,7 @@ describe("side panel", () => {
   });
 
   it("shows the run identity strip in the header", async () => {
-    const { app, streams } = await harness(`#run=${M4_ID}`);
+    const { app, streams } = await harness(`#replay=${M4_ID}`);
     expect(ui("ident").hidden).toBe(true);
     feed(must(streams[0]), m4Run());
     app.tick(100);

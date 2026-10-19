@@ -2,7 +2,7 @@ import type { FixedStatusView } from "./fixed-status.js";
 import { FRONTIER_MILESTONES, preciseTime, resumeMilestone } from "./frontier.js";
 import { esc, hms, num } from "./format.js";
 import type { WorkbenchRun, WorkbenchSplit } from "./workbench-data.js";
-export function viewerUrl(run: string | null): string { return run === null ? "/" : `/#run=${encodeURIComponent(run)}`; }
+export function viewerUrl(run: string | null): string { return run === null ? "/" : `/#replay=${encodeURIComponent(run)}`; }
 
 // Lane, GPU and arm of a run a fixed-run runner is driving, from /api/experiments fixedRuns[].lanes[].
 export interface RunLane { readonly lane: string; readonly gpu: string; readonly arm: string | null }

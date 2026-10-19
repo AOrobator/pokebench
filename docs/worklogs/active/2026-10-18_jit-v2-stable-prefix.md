@@ -100,3 +100,19 @@ Use actual serialized model-bound payloads on pinned pi-loop stubs, RED/GREEN an
 - Workbench shows all24jit-10m cohort rows. Full historical scan is still filling in; an unrelated missing navigation-evidence-memory comparison-worktree receipt remains visible. No new data-surface fix or clean-all-history claim.
 - M3 preparation gates, design review and browser proof complete; cloud review complete with explicit Claude waiver. M4 landing/live handoff complete. V2 remains defaultOFF, pending/unapproved/unqueued. Actual template/token-fit qualification, serving parity and a fresh budget/launch decision remain before any measured v2 run. No model/gameplay requests were made by this landing.
 - This is the permitted evidence-only main commit, confined to docs/worklogs. Application source is unchanged from reviewed730dfee2. Worklog archival is not authorized.
+
+## M5 — Operator-approved minimal unknown revision
+### Problem and authorization
+The operator approved “ok lets build it” after the concrete proposal: unrecognized interfaces receive the stable core, full catalog, current observations and retained history, with no full fallback or new unknown guide; preserve existing recognized-interface guides and correct the reversed naming/clock illustration. This revises the unmeasured default-OFF v2 treatment, not v1 or recorded cohorts. No extra interface guides, classifier changes, new RAM reads, launch or budget are authorized.
+### Architecture and invariants
+- V2 unknown: do not create an episode, including at startup; retain existing known-scene episodes only while their anchors survive. Record scene=unknown, projected guidance and component sizes truthfully, with no active guidance field.
+- Track the most recently presented scene separately from the active episode: known→unknown→same-known is a new episode after the latest observation, not stale-guide reuse. Repeated unknown requests add nothing.
+- Known-scene creation, stable core/catalog, canonical history, result-batch ordering and v2-OFF behavior stay unchanged. A known-interface startup anchored to a preserved task remains the existing behavior; this revision removes unknown startup retention specifically, not all possible task anchors.
+- Changing the delivery policy invalidates earlier v2 review/launch qualification. Use a fresh packet. No cache or gameplay benefit claim; readiness remains BLOCKED pending checkpoint and actual template/token-fit qualification.
+### Milestones
+- [ ] RED: unknown startup minimal; known→unknown→same-known chronology; window eviction and prefix preservation; factory receipt and provider payload.
+- [ ] GREEN: production projection; metadata/explainer/overview corrected; no extra guides.
+- [ ] Gates, mutation, synthetic provider/recording/replay proof, responsive explainer.
+- [ ] Fresh multi-model code review; no inferred Claude waiver for this new packet.
+### Review boundary
+Only no-fallback unknown delivery, truthful receipts and matching documentation. V1 and specialized scene text unchanged. Existing pending experiment remains unapproved/unqueued; no new experiment or silent source pin from old approval.

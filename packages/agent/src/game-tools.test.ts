@@ -374,8 +374,8 @@ it("requests guarded simultaneous running even for a stale walking argument and 
  await tool.execute("manual",{buttons:["UP","B"]});
  expect(bodies).toEqual([{buttons:["UP"],...PRESS_TIMING,automatic_running:true},{buttons:["UP"],...PRESS_TIMING,automatic_running:true},{buttons:["UP","B"],...PRESS_TIMING}]);
  expect(beforePress.mock.calls[0]?.[1]).toEqual(["UP"]);
- expect(beforePress.mock.calls[0]?.[4]).toEqual({automatic_running:true,walking:false,requested_held_buttons:["B"]});
- expect(beforePress.mock.calls[1]?.[4]).toEqual({automatic_running:true,walking:false,requested_held_buttons:["B"]});
+ expect(beforePress.mock.calls[0]?.[4]).toEqual({automatic_running:true,requested_held_buttons:["B"]});
+ expect(beforePress.mock.calls[1]?.[4]).toEqual({automatic_running:true,requested_held_buttons:["B"]});
  expect(Object.hasOwn(pressTool(SERVER,noHooks,fetchFn,instant,{...ALL_TOOL_SWITCHES,automaticRunning:false}).parameters.properties,"walking")).toBe(true);
 });
 it.each([true,false])("records and submits actual interaction inputs with safety %s",async(safeInterfaces)=>{

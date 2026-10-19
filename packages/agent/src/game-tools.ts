@@ -177,7 +177,7 @@ export function permitsAutomaticRunning(before: GameStateSnapshot | undefined, b
   return enabled === true && buttons.length > 0 && buttons.every(button => ["UP", "DOWN", "LEFT", "RIGHT"].includes(button)) && before?.screen === "overworld" && !before.in_battle && before.field_controls_locked === false && before.active_ui == null && before.running?.permitted === true && before.running.controllable === true;
 }
 
-export interface PressModifiers { readonly automatic_running: boolean; readonly walking: boolean; readonly requested_held_buttons?: readonly Button[] }
+export interface PressModifiers { readonly automatic_running: boolean; readonly walking?: boolean; readonly requested_held_buttons?: readonly Button[] }
 
 export interface PressHooks {
   beforePress(toolCallId: string, buttons: readonly Button[], timing: PressTiming, before?: GameStateSnapshot, modifiers?: PressModifiers): void;
@@ -218,7 +218,7 @@ export function pressTool(
       check?.(before);
       const buttons = submittedButtons(params.buttons,before,switches);
       const automaticRunning = permitsAutomaticRunning(before, buttons, params.walking, switches.automaticRunning);
-      if (switches.automaticRunning===true || params.walking!==undefined) hooks.beforePress(toolCallId, buttons, PRESS_TIMING, before, {automatic_running:automaticRunning,walking:switches.automaticRunning!==true&&params.walking===true,...(automaticRunning?{requested_held_buttons:["B"] as const}:{})});
+      if (switches.automaticRunning===true || params.walking!==undefined) hooks.beforePress(toolCallId, buttons, PRESS_TIMING, before, {automatic_running:automaticRunning,...(switches.automaticRunning===true?{}:{walking:params.walking===true}),...(automaticRunning?{requested_held_buttons:["B"] as const}:{})});
       else hooks.beforePress(toolCallId, buttons, PRESS_TIMING, before);
       const url = `${gameServerUrl}${automaticRunning ? "/pokebench/travel" : "/action"}`;
       const response = await fetchFn(url, {

@@ -116,6 +116,15 @@ describe("RunRecorder streaming", () => {
 });
 
 describe("RunRecorder", () => {
+  it("records harness-owned running without inventing a walking request", async () => {
+    const { recorder, log } = harness();
+    await recorder.start(START_META);
+    recorder.buttonPress("run", ["UP"], { hold_frames: 10, release_frames: 8 }, undefined, { automatic_running: true, requested_held_buttons: ["B"] });
+    const press=events(log).find(event=>event.type==="button_press");
+    expect(press).toMatchObject({type:"button_press",automatic_running:true,requested_held_buttons:["B"]});
+    expect(press,"running receipt must omit the ignored legacy walking modifier").not.toHaveProperty("walking");
+  });
+
   it("records a full turn: context, assistant, tool call, press, milestone, frame result", async () => {
     const { recorder, log, advance } = harness([
       [{ name: "GAME_RUNNING", serverTimestamp: 10 }],

@@ -51,7 +51,7 @@ it("the production factories make automatic running harness-owned when the switc
  const posted:{url:string;body:unknown}[]=[];
  const png=Buffer.alloc(33);Buffer.from([137,80,78,71,13,10,26,10]).copy(png);png.write("IHDR",12);png.writeUInt32BE(240,16);png.writeUInt32BE(160,20);
  const fetchFn:typeof fetch=(input,init)=>{const url=typeof input==="string"?input:input instanceof URL?input.href:input.url;let body:unknown=current;
-  if(url.endsWith("/pokebench/travel")||url.endsWith("/action")){const parsed=JSON.parse(String(init?.body)) as unknown;posted.push({url,body:parsed});current={...current,position:{x:1,y:0}};body={status:"success"};}
+  if(url.endsWith("/pokebench/travel")||url.endsWith("/action")){if(typeof init?.body!=="string")throw new Error("Action body must be JSON text");const parsed=JSON.parse(init.body) as unknown;posted.push({url,body:parsed});current={...current,position:{x:1,y:0}};body={status:"success"};}
   else if(url.endsWith("/queue_status"))body={queue_empty:true};
   else if(url.endsWith("/pokebench/observation"))body={state:current,state_text:"field",screenshot_base64:png.toString("base64")};
   return Promise.resolve(new Response(JSON.stringify(body)));};
@@ -60,7 +60,7 @@ it("the production factories make automatic running harness-owned when the switc
  const nav=withNavigation([observeTool("http://127.0.0.1",fetchFn),press],features,{read:()=>Promise.resolve(current)}).find(t=>t.name==="navigate_to");if(!nav)throw new Error("Missing navigation");
  expect(Object.hasOwn(press.parameters.properties,"walking")).toBe(false);
  expect(Object.hasOwn((nav.parameters as unknown as {properties:Readonly<Record<string,unknown>>}).properties,"walking")).toBe(false);
- await nav.execute("nav",{x:1,y:0,map_id:[0,9],walking:true} as never);
+ await nav.execute("nav",{x:1,y:0,map_id:[0,9],walking:true});
  expect(posted).toEqual([{url:"http://127.0.0.1/pokebench/travel",body:{buttons:["RIGHT"],...PRESS_TIMING,automatic_running:true}}]);
 });
 

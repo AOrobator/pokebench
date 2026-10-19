@@ -27,6 +27,7 @@ import {withResultFacts} from "./result-facts.js";
 import type {RunRecorder} from "./recorder.js";
 import {STALL_STOP_MS,StallStop,type RunControl} from "./run-control.js";
 import {TEXT_ONLY_NOTE_LIMIT,contextWindow,withoutTextOnlyReplies,type Window} from "./harness.js";
+import {VisitedTerrain,withVisitedTerrain} from "./visited-terrain.js";
 
 type Transform=(messages:AgentMessage[])=>Promise<AgentMessage[]>;
 type WiringRecorder=Pick<RunRecorder,"subscribe"|"recordNavigationContext"|"recordLedgerContext"|"recordMilestoneHint"|"recordBeliefLedger">;
@@ -95,7 +96,10 @@ export function stallStop(features:FeatureSet,recorder:Pick<RunRecorder,"subscri
 // cited-destination-v1 wraps all of that, so its line sits right under harness-trust-v1's header, which is outermost and
 // therefore the first thing in every result.
 export function playGameTools(base:readonly AgentTool[],features:FeatureSet,state:StateSource,recorder:AutoAdvanceRecorder&WarningRecorder&IdCardRecorder&TrustRecorder&Pick<CitationRecorder,"destinationCitation">,gate?:NavigationPorts["gate"],extra:readonly AgentTool[]=[]):AgentTool[]{
- const facts=[...withResultFacts(withLowHpTrainerWarning(withNavigateFirst([...withInstructionLedgerV2(withStoryDestinations(withPeopleIdCards(withUntakenExits(withPeopleLedger(withDialogueAutoAdvance(withBattleAction(withNoExitHere(withNavigation(base,features,state,gate),features),features,state,gate),features,{state,recorder}),features,recorder),features,recorder),features,recorder),features,recorder,state),features,recorder),...extra],features),features,recorder,state),features,recorder)];
- const cited=withCitedDestination(facts,features["cited-destination-v1"],recorder,{fullMap:features["full-map-navigation-v1"],exitReach:features["exit-reachability-v1"],silenceMiss:features["input-cuts-v1"]});
+ const terrain=features["visited-terrain-navigation-v1"]&&!features["full-map-navigation-v1"]?new VisitedTerrain():null;
+ const navigationState=terrain?.source(state)??state;
+ const facts=[...withResultFacts(withLowHpTrainerWarning(withNavigateFirst([...withInstructionLedgerV2(withStoryDestinations(withPeopleIdCards(withUntakenExits(withPeopleLedger(withDialogueAutoAdvance(withBattleAction(withNoExitHere(withNavigation(base,features,navigationState,gate),features),features,state,gate),features,{state,recorder}),features,recorder),features,recorder),features,recorder),features,recorder,state),features,recorder),...extra],features),features,recorder,state),features,recorder)];
+ const visible=terrain===null?facts:withVisitedTerrain(facts,terrain);
+ const cited=withCitedDestination(visible,features["cited-destination-v1"],recorder,{fullMap:features["full-map-navigation-v1"],exitReach:features["exit-reachability-v1"],silenceMiss:features["input-cuts-v1"]});
  return withHarnessTrust(cited,features["harness-trust-v1"],recorder,state,{supervisor:true,battleAction:features["harness-trust-v2"],goalOnce:features["input-cuts-v1"],retireLab:features["stale-story-goal-v1"],scriptedGuidance:features["scripted-place-guidance-v1"]});
 }

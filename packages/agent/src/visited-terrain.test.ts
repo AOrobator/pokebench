@@ -3,6 +3,9 @@ import type {AgentToolResult} from "@mariozechner/pi-agent-core";
 import type {GameStateSnapshot} from "./game-state.js";
 import {planNavigation} from "./navigation.js";
 import {VisitedTerrain,withVisitedTerrain} from "./visited-terrain.js";
+import {observeTool,pressTool} from "./game-tools.js";
+import {flagFeatures} from "./play-preset.js";
+import {playGameTools} from "./play-wiring.js";
 
 type Tile=NonNullable<GameStateSnapshot["navigation_grid"]>["tiles"][number];
 const tile=(x:number,y:number,collision=0,behavior=0,elevation=3):Tile=>({x,y,collision,behavior,elevation});
@@ -65,9 +68,27 @@ describe("visited-terrain-navigation-v1",()=>{
  });
 
  it("leaves non-state and malformed results byte-identical",async()=>{
-  const plain:AgentToolResult<unknown>={content:[{type:"text",text:"unchanged"}]};
+  const plain:AgentToolResult<unknown>={content:[{type:"text",text:"unchanged"}],details:undefined};
   const [tool]=withVisitedTerrain([{name:"x",label:"x",description:"x",parameters:{},execute:()=>Promise.resolve(plain)}],new VisitedTerrain());
   if(tool===undefined)throw new Error("fixture");
   expect(await tool.execute("call",{},undefined)).toBe(plain);
+ });
+
+ it("the production play factory keeps OFF results exact, and ON wires both the stitched result and planner description",async()=>{
+  const state=field([0,16],{x:1,y:1},[tile(1,1),tile(2,1)]),png=Buffer.alloc(33);
+  Buffer.from([137,80,78,71,13,10,26,10]).copy(png);png.write("IHDR",12);png.writeUInt32BE(240,16);png.writeUInt32BE(160,20);
+  const fetchFn:typeof fetch=()=>Promise.resolve(new Response(JSON.stringify({state,state_text:"exact incumbent readout",screenshot_base64:png.toString("base64")})));
+  const base=[observeTool("http://x",fetchFn),pressTool("http://x",{beforePress:()=>undefined,afterPress:()=>Promise.resolve()},fetchFn)];
+  const rec={recordState:()=>({seq:1,turn:1}),recordDialogueAutoAdvance:()=>({seq:1,turn:1}),subscribe:()=>undefined,lowHpTrainerWarning:()=>undefined,peopleIdCard:()=>undefined,storyBattleWarning:()=>undefined,destinationCitation:()=>undefined};
+  const incumbent={...flagFeatures({loopGuard:false,activeUi:false,interfaceDocs:false,objectives:false}),"bounded-navigation-v1":true};
+  const make=(features:typeof incumbent)=>playGameTools(base,features,{read:()=>Promise.resolve(state)},rec);
+  const off=make({...incumbent,"visited-terrain-navigation-v1":false}),on=make({...incumbent,"visited-terrain-navigation-v1":true});
+  const observe=async(tools:ReturnType<typeof make>)=>{const tool=tools.find(candidate=>candidate.name==="observe");if(tool===undefined)throw new Error("observe");return tool.execute("o",{},undefined);};
+  expect((await observe(off)).content.flatMap(p=>p.type==="text"?[p.text]:[])).toEqual(["exact incumbent readout"]);
+  expect((await observe(on)).content.flatMap(p=>p.type==="text"?[p.text]:[]).join("\n")).toContain("Visited terrain on map 0/16");
+  expect(on.find(tool=>tool.name==="navigate_to")?.description).toContain("only over terrain already shown to you this run");
+  const whole=playGameTools(base,{...incumbent,"visited-terrain-navigation-v1":true,"full-map-navigation-v1":true},{read:()=>Promise.resolve(state)},rec);
+  expect(whole.find(tool=>tool.name==="navigate_to")?.description).toContain("whole current map");
+  expect((await observe(whole)).content.flatMap(p=>p.type==="text"?[p.text]:[])).toEqual(["exact incumbent readout"]);
  });
 });

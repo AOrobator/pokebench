@@ -13,14 +13,14 @@ Authorized by the operator on 2026-10-19: implement a feature-switched treatment
 ## M1 — Memory and planner semantics
 
 - [x] RED tests cover map-keyed accumulation, overwrite, unknown cells, no hidden-read ingestion, current dynamic object override, run/checkpoint reset, and navigation across multiple delivered windows. `runs/visited-terrain-navigation/m1-red.log`: expected module-not-found failure before production implementation.
-- [ ] GREEN production module renders bounded stitched terrain and supplies planner geometry made only from remembered cells.
-- [ ] Record a wiring-deletion RED receipt and restore production wiring.
+- [x] GREEN production module renders bounded stitched terrain and supplies planner geometry made only from remembered cells. Focused suite: 133 passed; typecheck passed (`runs/visited-terrain-navigation/focused.log`, `types.log`).
+- [x] Record a wiring-deletion RED receipt and restore production wiring. Removing `withVisitedTerrain` made the production-factory assertion fail on the absent map; restored test passed (`wiring-deletion-red.log`, `wiring-restored-green.log`).
 
 ## M2 — Feature wiring
 
-- [ ] Register `visited-terrain-navigation-v1` in append-only feature order, default OFF, needing bounded navigation.
-- [ ] Wire through the production factory without environment/global reads; define interaction with whole-map navigation.
-- [ ] Prove OFF identity and ON tool/result/planner behavior at the factory seam.
+- [x] Register `visited-terrain-navigation-v1` in append-only feature order, default OFF, needing bounded navigation.
+- [x] Wire through the production factory without environment/global reads; whole-map navigation takes precedence if both switches are selected.
+- [x] Prove OFF identity and ON tool/result/planner behavior at the factory seam. OFF preserved the exact single text result; ON appended the stitched map and changed the planner description; both-ON kept whole-map behavior.
 
 ## M3 — Operator surfaces and pending experiment
 

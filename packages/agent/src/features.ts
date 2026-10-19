@@ -133,6 +133,7 @@ export const SWITCHABLE_FEATURES = [
   "save-state-task-truth-v1",
   "cache-aligned-window-v1",
   "jit-guide-reuse-v1",
+  "deterministic-warp-navigation-v1",
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
 
@@ -345,6 +346,7 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("save-state-task-truth-v1", "guidance", "SAVE STATE TASK TRUTH", null, "Default off. When a run loads a verified native save state, its first user task says the game resumed from a recorded checkpoint and asks the model to continue from the current state. Fresh boot tasks remain unchanged. Off: every run receives the previous boot wording."),
   on("cache-aligned-window-v1", "guidance", "CACHE ALIGNED WINDOW", null, "Default off. Keeps the existing hard turn and full-result caps. Trims history up to a result chunk early when that combines its rewrite with result pruning; preserves the old minimum retained turns. May retain fewer older turns before the cap. Off: independent legacy turn/result cuts."),
   on("jit-guide-reuse-v1", "guidance", "REUSE RETAINED JIT GUIDES", "just-in-time-prompt-v2", "Default off. Reuses byte-identical scoped guidance while its original anchor remains in history. Keeps its placement and original source state; records reuse, without appending duplicates. Unknown interfaces still add nothing. Off: original JIT v2 appends another guide on scene re-entry."),
+  on("deterministic-warp-navigation-v1", "guidance", "DETERMINISTIC WARP NAVIGATION", "bounded-navigation-v1", "Bundle arm only, default off. When navigate_to targets a listed warp, it may select the cheapest reachable warp on the same map only when the complete destination tuple, known activation behavior and elevation match exactly. A stable coordinate tie-break makes equal routes deterministic. When the player is already standing on a source-known directional warp, navigate_to presses its required direction exactly once and verifies that the map changed; it never retries a failed transition. Dynamic destinations, unknown behaviors, step-on warps, doors and incomplete geometry retain the existing behavior. Off: navigate_to follows the exact requested coordinate and stops on a directional exit without activating it."),
   measured("story-milestones-v2", "STORY MILESTONES",
     "Records each story milestone the game's own state confirms, with its turn and time. This feeds splits and the score."),
   measured("clock-milestone-v1", "CLOCK MILESTONE",
@@ -526,6 +528,7 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("save-state-task-truth-v1"),
     ...when("cache-aligned-window-v1"),
     ...when("jit-guide-reuse-v1"),
+    ...when("deterministic-warp-navigation-v1"),
   ];
 }
 

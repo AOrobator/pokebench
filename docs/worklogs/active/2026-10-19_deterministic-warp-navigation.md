@@ -32,21 +32,21 @@ Local game input only. No ROM/save writes, memory mutation, credentials, public 
 **M1 — RED: switch contract and warp policy**
 - [x] Write failing unit tests for exact equivalent selection, exclusions, deterministic tie-break, already-on directional activation, single-press verification and OFF identity.
 - [x] Write failing factory/registry/preset/default/bundle tests proving production wiring and bundle-only membership.
-- [ ] COMMIT: `test(navigation): specify deterministic warp handling` (RED)
-- [ ] Update this worklog immediately after the commit.
+- [x] COMMIT: `test(navigation): specify deterministic warp handling` (`6c054d82`, RED)
+- [x] Update this worklog immediately after the commit.
 
 **M2 — GREEN: implementation and registration**
-- [ ] Implement the typed warp policy and wire `deterministic-warp-navigation-v1` through production.
-- [ ] Register the switch default OFF; add it to the bundle arm only.
-- [ ] Delete the production wiring once, observe the factory test fail, restore it and record the mutation receipt.
-- [ ] Gates: focused tests, `just test`, `just lint`, `just build`, `just coverage`, `just verify-vendor`.
+- [x] Implement the typed warp policy and wire `deterministic-warp-navigation-v1` through production.
+- [x] Register the switch default OFF; add it to the bundle arm only.
+- [x] Delete the production wiring once, observe the factory test fail, restore it and record the mutation receipt.
+- [x] Gates: focused tests, `just test`, `just lint`, `just build`, `just coverage`, `just verify-vendor`.
 - [ ] COMMIT: `feat(navigation): handle equivalent directional warps` (GREEN)
 - [ ] Update this worklog immediately after the commit.
 
 **M3 — Explain, register pending experiment and close the loop**
-- [ ] Add `docs/explainers/deterministic-warp-navigation-v1.html`, index and `FEATURE_EXPLAINERS` mapping with viewer/server tests.
-- [ ] Add the pending experiment entry and readiness row; run `just experiments-check`. Do not queue or approve it.
-- [ ] Run `just pages-check` and verify the Harness Config card link in the real browser at desktop and phone widths.
+- [x] Add `docs/explainers/deterministic-warp-navigation-v1.html`, index and `FEATURE_EXPLAINERS` mapping with viewer/server tests.
+- [x] Add the pending experiment entry and readiness row; run `just experiments-check`. Do not queue or approve it.
+- [x] Run `just pages-check` and verify the Harness Config card link in the real browser at desktop and phone widths.
 - [ ] Run all required gates again; update source pin as required by the landing workflow.
 - [ ] COMMIT: `docs(navigation): explain deterministic warp handling`
 - [ ] Complete PB1–PB13 self-review and the three-lane cloud multi-model review; fix only accepted in-scope defects and re-review the cumulative packet.
@@ -61,6 +61,11 @@ Done means switch OFF preserves the incumbent, ON passes source-grounded warp te
 - 2026-10-19: Worklog drafted; awaiting the operator's approval before M1, per repository start gate.
 - 2026-10-19: The operator approved the worklog in the task thread. M1 implementation work is authorized; measured gameplay, experiment approval and launch remain out of scope.
 - 2026-10-19: RED receipt: focused Vitest collected six tests and all six failed against the incumbent. Failures show the farther requested route, zero already-on-warp activation, absent production description/wiring and missing registry entry. The first attempt failed earlier because the new worktree lacked dependency links; `pnpm install --offline --frozen-lockfile` restored exactly the lockfile-pinned packages.
+- 2026-10-19: GREEN behavior: exact full-destination/behavior/elevation matching selects the shortest reachable directional warp with a stable y/x tie-break, then submits at most one source-grounded direction through the checked press seam. Dynamic destinations, step-on warps, doors, unknown behavior, mismatches and unreachable candidates preserve the requested target. OFF retains the old description, target, route and stop behavior. Seven focused tests pass, including every supported directional behavior and failed-transition no-retry.
+- 2026-10-19: Production mutation receipt: temporarily removed the factory's `deterministicWarps` feature read; the production-path test failed because the tool description lacked equivalent-warp behavior. Restored the read and the focused factory test passed.
+- 2026-10-19: Gates: `just test` passed (agent 2,534, viewer 1,192, Python 2,480 passed / 229 skipped); `just build`, `just experiments-check` (118 definitions), `just pages-check`, `just verify-vendor` and `git diff --check` passed. Coverage passed above 90% in all three packages: agent 97.96 statements / 94.09 branches / 98.33 functions / 99.25 lines; viewer 95.42 / 91.50 / 93.84 / 97.64 with the full suite's existing stream-test timeout raised to 15 seconds for the coverage run; Python 97.47 lines / 93.37 branches / 99.43 functions. `just lint` passed TypeScript, ruff and Python formatting; mypy retained only the known worktree-only missing native `mgba._pylib` import plus its now-unused ignore at `pokebench_env/memory_reader.py:83`, with no touched Python files.
+- 2026-10-19: Browser proof used an isolated scratch copy of one real run. Harness Config filtered to `deterministic-warp-navigation-v1`, showed it as NOT RECORDED on the historical run, and opened the tracked explainer. The 1280 and 1440 desktop screenshots were clean. The first 375 screenshot exposed clipped horizontal diagrams; the explainer now supplies stacked mobile diagrams, and the repeated 375×812 screenshot shows both OFF/ON routes and all three activation states without horizontal overflow (`clientWidth = scrollWidth = 375`). Scratch viewer stopped; no experiment was approved, queued or launched.
+- 2026-10-19: Process correction: an earlier branch viewer was briefly pointed at the canonical runs root before the close-the-loop restriction was re-read. It was stopped immediately. `just experiments-audit` remained silent, no experiment runner receipt changed, and no launch process appeared. The complete browser proof above was then repeated against the isolated scratch root.
 
 ## Surprises
 - The exact-destination inventory includes older states without tile behavior and the dynamic truck placeholder. Full destination equality alone is therefore insufficient; current behavior evidence must also agree.

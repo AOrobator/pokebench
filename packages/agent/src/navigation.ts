@@ -432,6 +432,37 @@ export function planNavigation(state:GameStateSnapshot,goal:Point,options:Naviga
  }
  return !goalKnown&&best!==start ? route(best) : null;
 }
+
+// field_control_avatar.c routes these metatile behaviors through an arrow-warp
+// check. Unlike step-on warps and animated doors, they require one final move
+// command while the player is already standing on the warp tile.
+const DIRECTIONAL_WARP_PRESSES=new Map<number,Direction>([
+ [0x62,"RIGHT"],[0x63,"LEFT"],[0x64,"UP"],[0x65,"DOWN"],
+ [0x1b,"UP"],[0x1c,"DOWN"],[0x6d,"DOWN"],
+]);
+// Exact-equivalence routing is deliberately limited to directional warps.
+// Step-on warps, doors and unknown behaviors retain the requested coordinate
+// and old stop semantics even if their destination tuples happen to match.
+const knownWarpBehavior=(behavior:number):boolean=>DIRECTIONAL_WARP_PRESSES.has(behavior);
+type WarpPlan={readonly target:Point;readonly path:Direction[];readonly activation:Direction|null};
+const samePoint=(a:Point,b:Point):boolean=>a.x===b.x&&a.y===b.y;
+const sameDestination=(a:readonly number[],b:readonly number[]):boolean=>a.length===3&&b.length===3&&a.every((value,index)=>value===b[index]);
+const dynamicDestination=(destination:readonly number[]):boolean=>destination.some(value=>value===0x7f);
+function deterministicWarpPlan(state:GameStateSnapshot,requested:Point,options:NavigationOptions):WarpPlan|null {
+ const geometry=options.mode==="full"?fullGeometry(state):localGeometry(state);
+ if(geometry===null)return null;
+ const listed=(state.interaction_targets??[]).filter(target=>target.kind==="warp"&&samePoint(target,requested)&&target.destination!==null);
+ if(listed.length!==1)return null;
+ const wanted=listed[0],destination=wanted?.destination;if(wanted===undefined||destination===null||destination===undefined||dynamicDestination(destination))return null;
+ const wantedTile=geometry.tile(wanted);if(wantedTile===undefined||!knownWarpBehavior(wantedTile.behavior))return null;
+ const candidates=(state.interaction_targets??[]).flatMap(target=>{
+  if(target.kind!=="warp"||target.destination===null||dynamicDestination(target.destination)||!sameDestination(target.destination,destination)||target.elevation!==wanted.elevation)return [];
+  const tile=geometry.tile(target);if(tile===undefined||tile.behavior!==wantedTile.behavior)return [];
+  const path=planNavigation(state,target,options);return path===null?[]:[{target:{x:target.x,y:target.y},path,activation:DIRECTIONAL_WARP_PRESSES.get(tile.behavior)??null}];
+ });
+ candidates.sort((a,b)=>a.path.length-b.path.length||a.target.y-b.target.y||a.target.x-b.target.x);
+ return candidates[0]??null;
+}
 const Args=Type.Object({x:Type.Integer({minimum:0}),y:Type.Integer({minimum:0}),map_id:Type.Tuple([Type.Integer({minimum:0,maximum:255}),Type.Integer({minimum:0,maximum:255})]),walking:Type.Optional(Type.Boolean({description:"Walk deliberately without automatic running."}))},{additionalProperties:false});
 export interface NavigationPorts {
  readonly counters?:boolean;
@@ -465,6 +496,8 @@ export interface NavigationPorts {
  // connections (water ones too with surf-gated-exits-v1).
  readonly exitReach?:boolean;
  readonly surfGate?:boolean;
+ // deterministic-warp-navigation-v1: choose an exact equivalent warp and perform one verified arrow-warp press.
+ readonly deterministicWarps?:boolean;
 }
 function resultState(result:AgentToolResult<unknown>):GameStateSnapshot {
  const details=result.details;
@@ -489,14 +522,15 @@ export function navigationTool(ports:NavigationPorts):AgentTool<typeof Args> {
  const limit=mode==="full"?MAX_FULL_ROUTE_COMMANDS:MAX_NAVIGATION_COMMANDS;
  const bound=ports.maxCommands??limit;
  if(!Number.isInteger(bound)||bound<1||bound>limit)throw new Error(`Navigation command bound must be 1..${String(limit)}`);
- const described=(mode==="full"?FULL_DESCRIPTION:LOCAL_DESCRIPTION).replace("avoids unsupported terrain",terrainRules(ports));
+ const warpDescription=ports.deterministicWarps===true?"For a listed warp, it may choose a reachable equivalent warp with the same complete destination and known activation behavior; if already on a directional warp, it presses the required direction once and verifies the map changed. Does not press A.":"Does not press A, choose destinations, or activate a directional exit after arriving.";
+ const described=(mode==="full"?FULL_DESCRIPTION:LOCAL_DESCRIPTION).replace("avoids unsupported terrain",terrainRules(ports)).replace("Does not press A, choose destinations, or activate a directional exit after arriving.",warpDescription);
  const description=ports.navigateFirst===true?`${NAVIGATE_FIRST_DESCRIPTION} ${described}${mode==="local"?COMMAND_LIMIT_HINT:""}`:described;
  return {name:"navigate_to",label:"Walk to a coordinate",description,parameters:Args,
  execute:async(id,goal,signal)=>{
   signal?.throwIfAborted();await ports.gate?.(signal);signal?.throwIfAborted();
   let state=await ports.read(signal),commands=0,status="command limit",last:AgentToolResult<unknown>|undefined;
   const blackout=new BlackoutCarry();
-  let shortest=Infinity,stalled=0,unready=false;
+  let shortest=Infinity,stalled=0,unready=false,selectedTarget:Point={x:goal.x,y:goal.y};
   const origin=state.position;
   const sameMap=():boolean=>state.map_id?.[0]===goal.map_id[0]&&state.map_id[1]===goal.map_id[1];
   while(commands<bound){
@@ -508,14 +542,32 @@ export function navigationTool(ports:NavigationPorts):AgentTool<typeof Args> {
    }
    if(!ready(state,mode)){status=ports.refusalReasons===true?unreadyReason(state):"field input or navigation geometry unavailable";unready=true;break;}
    const options:NavigationOptions={mode,ledges:ports.ledges===true,oneWay:ports.oneWay===true,grassCost:ports.grassCost===true,floor:ports.floor===true,elevation:ports.elevation??"game",...(truth&&ports.triggers===true?{triggers:matchingTriggers(state)}:{})};
-   const path=planNavigation(state,goal,options);
+   const warpPlan=ports.deterministicWarps===true?deterministicWarpPlan(state,goal,options):null;
+   selectedTarget=warpPlan?.target??{x:goal.x,y:goal.y};
+   const path=warpPlan?.path??planNavigation(state,goal,options);
    if(path===null){
     status=(ports.counters===true?counterHint(state,goal,options,truth):null)??(ports.refusalReasons===true?targetReason(state,goal,options,ports.connectionEdges===true,truth,ports.exitReach===true?{surf:ports.surfGate===true,reach:true}:null):null)??(truth?triggerReason(state,goal,options):null)??(ports.windowReasons===true?windowReason(state,goal,options):null)??(mode==="full"?"no supported path on the current map; choose a reachable waypoint":"no supported local path; choose a reachable local waypoint");
     const here=state.position;
     if(truth&&commands>0&&origin!==null&&here!==null&&distance(origin,here)!==0)status=`walked from ${at(origin)} to ${at(here)}, then stopped: ${status}`;
     break;
    }
-   const direction=path[0];if(direction===undefined){status="arrived at requested coordinate";break;}
+   const direction=path[0];
+   if(direction===undefined){
+    if(warpPlan?.activation!==null&&warpPlan?.activation!==undefined&&state.position!==null&&samePoint(state.position,warpPlan.target)){
+     const before=state.position,activation=warpPlan.activation;
+     try {
+      last=await ports.press(id,{buttons:[activation]},signal,actual=>{
+       if(actual===undefined||!ready(actual,mode)||actual.map_id?.[0]!==goal.map_id[0]||actual.map_id[1]!==goal.map_id[1]||actual.position?.x!==before.x||actual.position.y!==before.y)throw new NavigationPreconditionError("map, position or field input unavailable or changed before action; no command submitted");
+       const current=deterministicWarpPlan(actual,goal,options);
+       if(current===null||current.activation!==activation||!samePoint(current.target,warpPlan.target)||current.path.length!==0)throw new NavigationPreconditionError("warp identity or activation changed before action; no command submitted");
+      });
+     } catch(error){if(!(error instanceof NavigationPreconditionError))throw error;status=error.message;break;}
+     commands++;state=blackout.remember(resultState(last));
+     status=sameMap()?"directional warp did not change map; inspect new state":"directional warp activated; inspect destination";
+     break;
+    }
+    status="arrived at requested coordinate";break;
+   }
    if(mode==="full"){if(path.length<shortest){shortest=path.length;stalled=0;}else if(++stalled>=NO_PROGRESS_PRESSES){status="route not converging; inspect obstacles and choose another approach";break;}}
    const planned=state,previousFacing=state.facing; const before=state.position;if(before===null)throw new Error("Navigation position unavailable");
    try {
@@ -534,7 +586,10 @@ export function navigationTool(ports:NavigationPorts):AgentTool<typeof Args> {
     status=(truth?blocker(state,mode,Array.from({length:span},(_,k)=>({x:before.x+delta[1]*(k+1),y:before.y+delta[2]*(k+1)}))):null)??"blocked; inspect obstacle and choose another approach";break;
    }
    if(after.x!==before.x+delta[1]*span||after.y!==before.y+delta[2]*span){status="unexpected movement; inspect new state";break;}
-   if(distance(after,goal)===0){status="arrived at requested coordinate";break;}
+   if(distance(after,selectedTarget)===0){
+    if(warpPlan?.activation!==null&&warpPlan?.activation!==undefined){if(commands<bound)continue;status="command limit";break;}
+    status="arrived at requested coordinate";break;
+   }
   }
   last=await ports.observe(id,signal);state=blackout.preserve(blackout.remember(resultState(last)));
   // A composite navigation call can consume the one-shot receipt in an internal
@@ -544,7 +599,7 @@ export function navigationTool(ports:NavigationPorts):AgentTool<typeof Args> {
   // exit-reachability-v1: "call again" only when the goal (or a tile next to it) is on the server's foot area.
   if(truth&&status==="command limit"){const here=state.position;const cut=ports.exitReach===true&&exitBlock({surf:false,reach:true},state).footNear(goal.x,goal.y)===false;status=here!==null&&sameMap()&&ready(state,mode)?`command limit: stopped at ${at(here)} after ${String(commands)} ordinary button attempts, the most one navigate_to call makes; ${cut?`${at(goal)} cannot be reached on foot from where you stand: no walkable way on this map leads from your tile to it or to a tile next to it, so calling navigate_to again will not get there`:`call navigate_to again to continue to ${at(goal)}`}`:`command limit: stopped after ${String(commands)} ordinary button attempts, the most one navigate_to call makes; the field is no longer free to walk, so inspect the new state`;}
   const notices=blackout.missingNotices(last.content.flatMap(part=>part.type==="text"?[part.text]:[]));
-  return {content:[{type:"text",text:`Navigation: ${status}; ${String(commands)} ordinary button attempts.`},...notices.map(text=>({type:"text" as const,text})),...last.content],details:{state,navigation:{status,commands,target:goal,unready}}};
+  return {content:[{type:"text",text:`Navigation: ${status}; ${String(commands)} ordinary button attempts.`},...notices.map(text=>({type:"text" as const,text})),...last.content],details:{state,navigation:{status,commands,target:goal,...(ports.deterministicWarps===true?{selected_target:selectedTarget}:{}),unready}}};
  }};
 }
 
@@ -554,5 +609,5 @@ export function withNavigation(base:readonly AgentTool[],features:FeatureSet,sta
  const tools=[...base];if(!features["bounded-navigation-v1"])return tools;
  const press=base.find(tool=>tool.name==="press"),observe=base.find(tool=>tool.name==="observe");
  if(press===undefined||observe===undefined||!isCheckedPress(press))throw new Error("Navigation requires ordinary game tools");
- tools.push(navigationTool({ledges:features["ledge-hops-v1"],oneWay:features["one-way-tiles-v1"],grassCost:features["grass-cost-navigation-v1"],counters:features["counter-talk-v1"],refusalReasons:features["navigation-refusal-reasons-v1"],connectionEdges:features["connection-edge-tiles-v1"],truth:features["navigation-truth-v1"],triggers:features["coordinate-script-conditions-v1"],windowReasons:features["navigation-refusal-reasons-v2"],floor:features["walkable-floor-v1"],elevation:features["elevation-transitions-v1"]?"game":"legacy",navigateFirst:features["navigate-first-prompt-v1"],crossMapGoal:features["cross-map-goal-v1"],exitReach:features["exit-reachability-v1"],surfGate:features["surf-gated-exits-v1"],read:signal=>state.read(signal),press:(id,params,signal,check)=>check===undefined?press.execute(id,params,signal):press.executeChecked(id,params,check,signal),observe:(id,signal)=>observe.execute(id,{},signal),gate,fullMap:features["full-map-navigation-v1"]}));return tools;
+ tools.push(navigationTool({ledges:features["ledge-hops-v1"],oneWay:features["one-way-tiles-v1"],grassCost:features["grass-cost-navigation-v1"],counters:features["counter-talk-v1"],refusalReasons:features["navigation-refusal-reasons-v1"],connectionEdges:features["connection-edge-tiles-v1"],truth:features["navigation-truth-v1"],triggers:features["coordinate-script-conditions-v1"],windowReasons:features["navigation-refusal-reasons-v2"],floor:features["walkable-floor-v1"],elevation:features["elevation-transitions-v1"]?"game":"legacy",navigateFirst:features["navigate-first-prompt-v1"],crossMapGoal:features["cross-map-goal-v1"],exitReach:features["exit-reachability-v1"],surfGate:features["surf-gated-exits-v1"],deterministicWarps:features["deterministic-warp-navigation-v1"],read:signal=>state.read(signal),press:(id,params,signal,check)=>check===undefined?press.execute(id,params,signal):press.executeChecked(id,params,check,signal),observe:(id,signal)=>observe.execute(id,{},signal),gate,fullMap:features["full-map-navigation-v1"]}));return tools;
 }

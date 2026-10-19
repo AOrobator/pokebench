@@ -588,18 +588,36 @@ describe("viewer app", () => {
     const id = RUNS[0]?.id ?? "missing";
     let rejectHead: (reason?: unknown) => void = () => undefined;
     const head = new Promise<unknown>((_resolve, reject) => { rejectHead = reject; });
-    const { streams } = await harness("", RUNS, null, { [id]: head });
-    const live = new Log();
-    live.add(0, START);
-    live.add(1_000, { type: "turn_start", turn: 1, context: { messages: 1, images: 0, est_tokens: 10 } });
-    live.add(2_000, assistant({ turn: 1, thinking: "Authoritative after failure." }));
-    feed(must(streams[0]), live.events);
+    const { app, streams } = await harness("", RUNS, null, { [id]: head });
+    feed(must(streams[0]), fullRun().events);
+    app.clock?.seek(BASE_MS);
+    app.render();
+    expect(ui("think-body").textContent).toContain("Again.");
+    expect(ui("side-trace").textContent).toContain("Press A to start.");
 
     rejectHead(new Error("late head failure"));
     await Promise.resolve();
     await Promise.resolve();
-    expect(ui("think-body").textContent).toContain("Authoritative after failure.");
-    expect(ui("side-trace").textContent).not.toContain("loading recorded thinking");
+    expect(ui("think-body").textContent).toContain("Again.");
+    expect(ui("side-trace").textContent).toContain("Press A to start.");
+  });
+
+  it("does not duplicate recorded-thinking rows when reconnect backfill repeats accepted events", async () => {
+    const { app, streams } = await harness();
+    const log = fullRun();
+    const throughTurnTwo = log.events.slice(0, 12);
+    feed(must(streams[0]), throughTurnTwo);
+    const earlierThought = (): number => ui("side-trace").querySelectorAll('[data-seqs~="4"]').length;
+    expect(earlierThought()).toBe(1);
+
+    feed(must(streams[0]), throughTurnTwo.slice(0, 5), false);
+    app.render();
+    expect(earlierThought()).toBe(1);
+
+    const fresh = log.add(8_100, { type: "tool_call", turn: 2, id: "fresh", name: "state", args: {} });
+    feed(must(streams[0]), [fresh], false);
+    app.render();
+    expect(ui("side-trace").querySelectorAll(`[data-seqs~="${String(fresh.seq)}"]`)).toHaveLength(1);
   });
 
   it("ignores a recorded-thinking response from a run that is no longer selected", async () => {

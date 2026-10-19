@@ -766,8 +766,9 @@ export class App {
       this.problem(`event for run ${value.run}`);
       return;
     }
+    const eventCount = this.view.events.length;
     this.view.apply(value);
-    if (this.mode !== "loading" && this.recordedThinking === this.view) this.recordedThinkingTrace?.add(value);
+    if (this.mode !== "loading" && this.recordedThinking === this.view && this.view.events.length > eventCount) this.recordedThinkingTrace?.add(value);
   }
 
   private problem(text: string): void {

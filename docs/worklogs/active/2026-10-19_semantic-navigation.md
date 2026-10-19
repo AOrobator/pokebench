@@ -42,6 +42,7 @@ Both treatments must immediately return control when the game changes input owne
 
 ## Session log
 
+- 2026-10-19: Committed implementation as `9db88de86f3898c779b7812ce4e64b4dba1b11e0`; pinned both pending experiment definitions to that exact candidate implementation commit. They remain unqueued and unapproved.
 - 2026-10-19: Browser proof on the isolated candidate viewer (`127.0.0.1:8793`): Harness Config matched `semantic-navigation-v1` and `deterministic-exploration-v1`; each card's explainer link opened the corresponding titled page. Temporary candidate servers were then stopped.
 
 - 2026-10-19: Created isolated branch `codex/semantic-navigation` from `main` `63b6236f`. Read the repository, feature-switch, feature-explainer, experiment-queue, patch-evaluation, agent-observability, and game-state contracts. Live benchmark checkouts remain untouched.

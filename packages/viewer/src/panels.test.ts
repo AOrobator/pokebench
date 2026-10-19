@@ -571,6 +571,12 @@ it("maps game evidence priority to a tracked explainer, like every other mapped 
  for(const file of Object.values(FEATURE_EXPLAINERS))expect(existsSync(fileURLToPath(new URL(`../../../docs/explainers/${file}`,import.meta.url)))).toBe(true);
 });
 
+it("links save-state task truth to its tracked explainer",()=>{
+ expect(FEATURE_EXPLAINERS["save-state-task-truth-v1"]).toBe("save-state-task-truth-v1.html");
+ const html=readFileSync(fileURLToPath(new URL("../../../docs/explainers/save-state-task-truth-v1.html",import.meta.url)),"utf8");
+ expect(html).toContain("Fresh boot");expect(html).toContain("Verified save state");
+});
+
 it("renders every mapped explainer's body as a page, not as stylesheet text",()=>{
  for(const file of new Set(Object.values(FEATURE_EXPLAINERS))){
   const html=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${file}`,import.meta.url)),"utf8");

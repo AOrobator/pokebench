@@ -246,6 +246,12 @@ it("captures a script's final milestone after the last tool and before server te
   expect(reads).toBe(2);
   expect(h.calls.at(-1)).toBe("stop");
 });
+it("runs registered pre-end work after the final snapshot and records a checkpoint failure before the unchanged terminal reason",async()=>{
+ const r=root();let complete=false;
+ const h=host(),source={...h.gameState,read:async()=>({...await h.gameState.read(),screen:"overworld",started:true,location:"PETALBURG WOODS",play_time_s:1})};
+ await withRun(plan(r),{...h,gameState:source},new FrameStore(r),(_recorder,_url,_start,lifecycle)=>{complete=true;lifecycle.beforeRunEnd(()=>{expect(complete).toBe(true);_recorder.checkpointFailure(new Error("checkpoint disk full"));return Promise.resolve();});return Promise.resolve("budget");});
+ const logged=events(r,plan(r).runId);expect(logged.at(-2)).toMatchObject({type:"telemetry_error",source:"checkpoint",message:"checkpoint disk full"});expect(logged.at(-1)).toMatchObject({type:"run_end",reason:"budget"});expect(h.calls.at(-1)).toBe("stop");
+});
 it('resolves nested human records while rejecting duplicate ownership and traversal',async()=>{
  const {locateRunDir}=await import('./run.js');const r=root();mkdirSync(join(r,'human','human-id'),{recursive:true});expect(locateRunDir(r,'human-id')).toBe(join(r,'human','human-id'));expect(()=>locateRunDir(r,'../escape')).toThrow('not a run id');mkdirSync(join(r,'human-id'));expect(()=>locateRunDir(r,'human-id')).toThrow('ambiguous');
 });

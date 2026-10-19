@@ -9708,7 +9708,8 @@
             "milestones",
             "state",
             "battle",
-            "actions"
+            "actions",
+            "checkpoint"
           ]
         },
         "message": {

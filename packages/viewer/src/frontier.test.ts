@@ -2,6 +2,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { REQUIRED_FRONTIER_MILESTONES } from "@pokebench/agent/milestones";
 import { run } from "../test-support/frontier-run.js";
 import { frontierLegend } from "./frontier-legend.js";
 import { HUMAN_REFERENCE, FRONTIER_MILESTONES, frontierReferences, frontierPlot, frontierVersions, milestoneStatus } from "./frontier.js";
@@ -16,6 +17,9 @@ function measured(id: string, times: readonly (number | null)[], controller: "ag
 const human = (): WorkbenchRun => measured(HUMAN_REFERENCE, [92246, 132921, 180979, 248863, 257446, 284511, 317885, 408081, 4194258, 6645610], "human");
 const best = (): WorkbenchRun => measured("dea1", [153477, 200600, 496944, 579200, 1301593, 1328664, 1477567]);
 describe("persistent actual native frontier", () => {
+  it("shares the exact required milestone axis with automatic checkpoint capture", () => {
+    expect(FRONTIER_MILESTONES.map((milestone) => milestone.id)).toEqual(REQUIRED_FRONTIER_MILESTONES);
+  });
   it("selects progress before speed and keeps one actual run, with stable ties", () => {
     const fast = measured("early", [1000, 2000, 3000]);
     const slow = measured("later-slow", [5000, 6000, 7000, 8000, 1500000]);
@@ -382,4 +386,3 @@ describe("zoom to frontier", () => {
     expect(axis()).toContain("Left rival house"); expect(axis()).not.toContain("Sent to Birch");
   });
 });
-

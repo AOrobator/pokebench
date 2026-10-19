@@ -1,4 +1,7 @@
 import {createHash} from "node:crypto";
+import {mkdtempSync,mkdirSync,readFileSync,renameSync,writeFileSync} from "node:fs";
+import {tmpdir} from "node:os";
+import {dirname,join} from "node:path";
 import {expect,it} from "vitest";
 import {CheckpointCapture,checkpointSelection,checkpointTarget,type CheckpointDeps,type CheckpointSelection} from "./checkpoint-capture.js";
 import {REQUIRED_FRONTIER_MILESTONES} from "./milestones.js";
@@ -9,6 +12,7 @@ import type {RunStartMeta} from "./recorder.js";
 
 const ev=(body:Record<string,unknown>,seq:number):RunEvent=>checkEvent({v:1,run:"cp-run",t:"2026-10-14T12:00:00.000-04:00",turn:4,seq,...body});
 const milestone=(name:string,seq:number,origin="observed",kind="story")=>ev({type:"milestone",name,server_timestamp:1,kind,origin,evidence:[seq-1]},seq);
+const milestoneFor=(run:string,name:string,seq:number):RunEvent=>checkEvent({v:1,run,t:"2026-10-14T12:00:00.000-04:00",turn:4,seq,type:"milestone",name,server_timestamp:1,kind:"navigation",origin:"observed",evidence:[seq-1]});
 const STATE=Buffer.from("native-state");
 const sha1=createHash("sha1").update(STATE).digest("hex"),sha256=createHash("sha256").update(STATE).digest("hex");
 const START:RunStartMeta={
@@ -57,6 +61,16 @@ it("promotes the first complete candidate per milestone without overwriting a wi
  expect(JSON.parse(String(first.files.get("/runs/checkpoints/PETALBURG_WOODS/first-arrival.json")))).toMatchObject({version:1,milestone:"PETALBURG_WOODS",run:"cp-run",candidate:"candidates/cp-run"});
  const second=fixture({kind:"frontier"});second.files.set("/runs/checkpoints/PETALBURG_WOODS/first-arrival.json",JSON.stringify({run:"earlier"}));second.capture.observe(milestone("PETALBURG_WOODS",21,"observed","navigation"));await second.capture.settled();
  expect(JSON.parse(String(second.files.get("/runs/checkpoints/PETALBURG_WOODS/first-arrival.json")))).toEqual({run:"earlier"});expect(second.files.has("/runs/cp-run/checkpoints/PETALBURG_WOODS.state")).toBe(true);
+});
+
+it("rehearses two independent run-local checkpoint sets against one immutable first-arrival library",async()=>{
+ const root=mkdtempSync(join(tmpdir(),"pokebench-frontier-checkpoints-")),library=join(root,"library");
+ const deps=(run:string):CheckpointDeps=>({serverUrl:"http://fake",dir:join(root,run,"checkpoints"),libraryDir:library,fetch:(url)=>Promise.resolve(new Response(JSON.stringify(url.endsWith("/pause")?{paused:true}:{state_base64:STATE.toString("base64"),sha1,sha256}))),write:(path,data)=>{mkdirSync(dirname(path),{recursive:true});writeFileSync(path,data);},writeExclusive:(path,data)=>{mkdirSync(dirname(path),{recursive:true});writeFileSync(path,data,{flag:"wx"});},rename:renameSync});
+ const first=new CheckpointCapture({kind:"frontier"},deps("run-a"),START),second=new CheckpointCapture({kind:"frontier"},deps("run-b"),START);
+ first.observe(milestoneFor("run-a","PETALBURG_WOODS",20));await first.close();second.observe(milestoneFor("run-b","PETALBURG_WOODS",21));await second.close();
+ expect(readFileSync(join(root,"run-a/checkpoints/PETALBURG_WOODS.state"))).toEqual(STATE);expect(readFileSync(join(root,"run-b/checkpoints/PETALBURG_WOODS.state"))).toEqual(STATE);
+ expect(JSON.parse(readFileSync(join(library,"PETALBURG_WOODS/first-arrival.json"),"utf8"))).toMatchObject({run:"run-a",candidate:"candidates/run-a"});
+ expect(readFileSync(join(library,"PETALBURG_WOODS/candidates/run-b/PETALBURG_WOODS.state"))).toEqual(STATE);
 });
 
 it("ignores milestones already present at start",async()=>{const {capture,calls}=fixture();capture.observe(milestone("CLOCK_SET",5,"present_at_start"));await capture.settled();expect(calls).toHaveLength(0);});

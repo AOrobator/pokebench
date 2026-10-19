@@ -224,6 +224,23 @@ export const MILESTONES: readonly Milestone[] = [
   { name: "ROCK_TOMB_RECEIVED", kind: "story", reached: flag("rock_tomb_received") },
 ];
 export const MILESTONE_ORDER = MILESTONES.map((m) => m.name);
+// The required progression axis shared by the viewer and automatic
+// checkpoint capture. Optional activities and trainer victories stay recorded
+// diagnostics, but never become frontier progress or automatic restore points.
+export const REQUIRED_FRONTIER_MILESTONES: readonly string[] = [
+  "NEW_GAME_CREATED", "PLAYER_NAME_CONFIRMED", "FIRST_TRUCK_EXIT", "LITTLEROOT_TOWN",
+  "PLAYER_HOUSE_ENTERED", "MOM_CLOCK_INSTRUCTION", "PLAYER_BEDROOM", "CLOCK_SET",
+  "PLAYER_BEDROOM_EXITED_AFTER_CLOCK", "MOM_RIVAL_INSTRUCTION", "PLAYER_HOUSE_EXITED_AFTER_CLOCK",
+  "RIVAL_HOUSE_ENTERED", "RIVAL_BEDROOM_REACHED", "RIVAL_MET", "RIVAL_HOUSE_EXITED",
+  "BIRCH_RESCUE_REQUESTED", "ROUTE_101", "STARTER_CHOSEN", "BIRCH_RESCUE_COMPLETE",
+  "BIRCH_STARTER_HANDOFF_COMPLETE", "ROUTE_101_AFTER_HANDOFF", "OLDALE_TOWN", "ROUTE_103",
+  "RIVAL_BATTLE_STARTED", "RIVAL_BATTLE_DEFEATED", "RIVAL_BATTLE_WON", "RIVAL_OLDALE_SEND_OFF",
+  "ROUTE_101_AFTER_RIVAL_BATTLE", "LITTLEROOT_AFTER_RIVAL_BATTLE", "RECEIVED_POKEDEX",
+  "STARTER_TUTORIAL_COMPLETE", "RUNNING_SHOES_RECEIVED", "ROUTE_102", "PETALBURG_CITY",
+  "DAD_FIRST_MEETING", "WALLY_TUTORIAL_COMPLETE", "ROUTE_104", "PETALBURG_WOODS",
+  "TEAM_AQUA_WOODS_EVENT_COMPLETE", "RUSTBORO_CITY", "RUSTBORO_CITY_GYM", "ROXANNE_DEFEATED",
+  "RUSTBORO_GYM_COMPLETE", "STONE_BADGE", "ROCK_TOMB_RECEIVED",
+];
 // Optional activities can happen almost anywhere after their prerequisite (a heal in Oldale before
 // Route 103), so they never rank how far a run got.
 export const ACTIVITY_MILESTONES: ReadonlySet<string> = new Set(["FIRST_POKEMON_CAUGHT", "FIRST_EVOLUTION", "FIRST_POKECENTER_HEAL"]);

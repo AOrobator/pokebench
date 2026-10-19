@@ -570,7 +570,7 @@ const Compaction = event("compaction", { from_tokens: NonNegativeInt, to_tokens:
 // A post-press read that failed after the press landed (operator 2026-10-12:
 // the press still succeeds; the failure is logged, not shown to the model).
 const TelemetryError = event("telemetry_error", {
-  source: Type.Enum(["milestones", "state", "battle", "actions"] as const),
+  source: Type.Enum(["milestones", "state", "battle", "actions", "checkpoint"] as const),
   message: Type.String(),
 });
 

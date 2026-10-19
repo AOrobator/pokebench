@@ -1,5 +1,7 @@
 # Feature explainers
 
+- [Save state task truth](save-state-task-truth-v1.html)
+
 Tracked, local HTML documentation. Open an explainer directly; no server or external account is required.
 
 - [Astar navigation](astar-navigation.html)

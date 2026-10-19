@@ -30,6 +30,7 @@ In every reply, think briefly about what you see and what to do next, then call 
 
 export const PLAY_GOAL = "Start a new game, obtain a starter, and work toward defeating the first Gym Leader in Rustboro City.";
 export const PLAY_TASK = "The game has just booted. Begin playing.";
+const RESUME_TASK = "The game has resumed from a recorded checkpoint. Continue playing from the current state.";
 
 // Documentation treatment only: retain the pre-experiment prompt verbatim above.
 export const CONTEXTUAL_CONTROLS = `Buttons are contextual: their meaning depends on the current screen, selected control, and whether input is ready. Screen-specific instructions below override general controls. START does not always open a menu.
@@ -149,6 +150,13 @@ export function targetGoal(target: string): string {
 export function playGoal(target: string | null, features: FeatureSet): string {
   if (target !== null) return targetGoal(target);
   return features["open-goal-prompt-v1"] ? OPEN_PLAY_GOAL : PLAY_GOAL;
+}
+
+export function initialPlayTask(start:{readonly kind:"boot"}|{readonly kind:"save_state"},target:string|null,features:FeatureSet):string {
+  if(start.kind==="save_state"&&features["save-state-task-truth-v1"]){
+    return target===null?RESUME_TASK:`The game has resumed from a recorded checkpoint. ${playGoal(target,features)}`;
+  }
+  return target===null?PLAY_TASK:`The game has just booted. ${playGoal(target,features)}`;
 }
 
 export function playSystemPrompt(features: FeatureSet, target: string | null, scene: PromptScene | "core" = "unknown"): string {

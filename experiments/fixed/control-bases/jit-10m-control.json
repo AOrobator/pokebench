@@ -132,7 +132,8 @@
   "loop-guard-screen-v1": true,
   "reopened-dialogue-loop-v1": true,
   "dialog-button-b-v1": true,
-  "just-in-time-prompt-v1": false
+  "just-in-time-prompt-v1": false,
+  "save-state-task-truth-v1": false
  },
  "start": {
   "kind": "save_state",

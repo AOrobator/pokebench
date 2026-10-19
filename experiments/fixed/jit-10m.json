@@ -9,7 +9,7 @@
  "controlBase": {
   "path": "experiments/fixed/control-bases/jit-10m-control.json",
   "presetId": "jit-10m-control",
-  "sha256": "958c036543d9bc4060cd45606b98b1cbc8520c705dda8b309f148d4ad7fe61d8"
+  "sha256": "3258e59fb480098340ab9e506396d6fcec5929d7a3ee0305cf17d5f11bf145c3"
  },
  "base": {
   "target": null,
@@ -142,7 +142,8 @@
    "loop-guard-screen-v1": true,
    "reopened-dialogue-loop-v1": true,
    "dialog-button-b-v1": true,
-   "just-in-time-prompt-v1": false
+   "just-in-time-prompt-v1": false,
+   "save-state-task-truth-v1": false
   }
  },
  "switches": [

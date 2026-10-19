@@ -2,7 +2,7 @@ import {StableJitContext} from "./jit-v2-context.js";
 import {JitContext} from "./jit-context.js";
 import {contextTools,loopSupervisor,playGameTools,stallBriefing,stallStop,textOnlySupervisor} from "./play-wiring.js";
 import { operatorSignalLatch } from "./operator-signals.js";
-import {CheckpointCapture,checkpointTarget} from "./checkpoint-capture.js";
+import {CheckpointCapture,checkpointSelection} from "./checkpoint-capture.js";
 import {experimentFromEnv} from "./play-experiment.js";
 // Live entrypoint for real, recorded runs: pi-agent-core on the local stack
 // gateway drives the observe / press tools against an isolated game server
@@ -20,7 +20,7 @@ import { mkdirSync, renameSync, writeFileSync, readFileSync } from "node:fs";
 import { createInterface } from "node:readline";
 import { objectiveHarness } from "./objective-tools.js";
 import { playHarnessFeatures, serverFeatureEnv } from "./features.js";
-import { PLAY_LIMITS, PLAY_MAX_TOKENS, PLAY_TASK, PLAY_THINKING, objectiveSwitches, playGoal, playSystemPrompt, playTools, toolSwitches } from "./play-config.js";
+import { PLAY_LIMITS, PLAY_MAX_TOKENS, PLAY_THINKING, initialPlayTask, objectiveSwitches, playGoal, playSystemPrompt, playTools, toolSwitches } from "./play-config.js";
 import { verifyIntro } from "./verify-state.js";
 import { driveProbe, parseProbeCommand, type ProbeCommand } from "./probe.js";
 import { dirname, join, resolve } from "node:path";
@@ -44,6 +44,7 @@ import { gatewayLoopConfig, playLoopBase } from "./provider.js";
 import { playSampling } from "./presence-penalty.js";
 import type { RunRecorder } from "./recorder.js";
 import { harnessInfo, humanLeasePath, newRunId, withRun, type RunHost, type ServerHandle } from "./run.js";
+import {gameServerLauncherArgs} from "./server-launch.js";
 
 const HEALTH_TIMEOUT_MS = 180_000;
 const LOOP_TIMEOUT_MS = 420_000;
@@ -93,7 +94,7 @@ function realHost(port: number, loadState?: string, env:NodeJS.ProcessEnv=proces
       const python = join(REPO_ROOT, "env", ".venv", "bin", "python");
       const child = spawn(
         python,
-        ["-m", "pokebench_env.launcher", "--run-dir", runDir, "--run-id", runId, "--port", String(serverPort), ...(loadState === undefined ? [] : ["--load-state", loadState])],
+        gameServerLauncherArgs(python,runDir,runId,serverPort,loadState).slice(1),
         { env, cwd: join(REPO_ROOT, "env"), stdio: ["ignore", "ignore", "inherit"], detached: true },
       );
       const exited = new Promise<void>((resolve) => {
@@ -221,7 +222,7 @@ async function playAgent(): Promise<void> {
   const features=preset===null?{...flagFeatures({loopGuard:readLoopMode(process.env)==="enforced",activeUi:activeUiFeatures().length>0,interfaceDocs:process.env["POKEBENCH_INTERFACE_DOCS"]!=="0",objectives:process.env["POKEBENCH_OBJECTIVES"]!=="0"}),"field-dialogue-phase-v1":process.env["POKEBENCH_FIELD_DIALOGUE_PHASE"]!=="0","automatic-running-v1":process.env["POKEBENCH_AUTOMATIC_RUNNING"]!=="0","expanded-menu-battle-information-v1":process.env["POKEBENCH_EXPANDED_INFORMATION"]!=="0"}:presetFeatures(preset);
   const serverEnv={...process.env,...serverFeatureEnv(features)};
   const start=preset===null?{kind:"boot" as const}:presetStart(preset,path=>readFileSync(path));
-  const captureAt=checkpointTarget(process.env);
+  const captureMode=checkpointSelection(process.env);
   const experiment=experimentFromEnv(process.env);
   const { model, port, gatewayUrl, apiKey } = await live();
   if(preset!==null&&preset.sampling.maxTokens>model.maxTokens)throw new Error("Play preset maxTokens exceeds the discovered model limit");
@@ -256,7 +257,7 @@ async function playAgent(): Promise<void> {
     },
     realHost(port,start.kind==="save_state"?start.path:undefined,serverEnv),
     new FrameStore(RUNS_ROOT),
-    async (recorder, gameServerUrl) => {
+    async (recorder,gameServerUrl,startMeta,lifecycle) => {
       const controller = new AbortController();
       const elapsed = preset===null?(()=>Date.now()):()=>recorder.elapsedMs();
       let control: RunControl | null = null;
@@ -286,8 +287,8 @@ async function playAgent(): Promise<void> {
       });
       control = runControl;
       if(preset!==null&&recorder.elapsedMs()>=limits.maxWallMs){governor.abort("budget");return "budget";}
-      const capture = captureAt === null ? null : new CheckpointCapture(captureAt, { serverUrl: gameServerUrl, dir: join(RUNS_ROOT, runId, "checkpoints"), fetch, write: (path, data) => { mkdirSync(dirname(path), { recursive: true }); writeFileSync(path, data); }, rename: renameSync });
-      if (capture !== null) recorder.subscribe(event => { capture.observe(event); });
+      const capture = captureMode === null ? null : new CheckpointCapture(captureMode, { serverUrl: gameServerUrl, dir: join(RUNS_ROOT, runId, "checkpoints"), libraryDir:join(RUNS_ROOT,"checkpoints"), fetch, write: (path, data) => { mkdirSync(dirname(path), { recursive: true }); writeFileSync(path, data); }, writeExclusive:(path,data)=>{mkdirSync(dirname(path),{recursive:true});writeFileSync(path,data,{flag:"wx"});}, rename: renameSync },startMeta);
+      if(capture!==null){recorder.subscribe(event=>{capture.observe(event);});lifecycle.beforeRunEnd(async()=>{await capture.close().catch((error:unknown)=>{recorder.checkpointFailure(error);console.error(`checkpoint capture failed: ${String(error)}`);});});}
       const loopDetector = attachLoopGuard(recorder, governor, undefined, loopMode, features["interaction-loop-detection-v1"], loopSupervisor(features, recorder), features["transition-loop-detection-v1"], features["pushback-loop-detection-v1"], features["battle-observation-loop-v1"], features["navigation-truth-v1"], features["ineffective-loops-v1"], features["battle-menu-loop-v1"], features["clock-view-loop-v1"], features["reopened-dialogue-loop-v1"]);
       if(target!==null){
         const stop=new NativeTargetStop(runId,target,proof=>{
@@ -333,10 +334,9 @@ async function playAgent(): Promise<void> {
       });
       try {
         if(stateMode)return await runStateMode({features,target,serverUrl:gameServerUrl,recorder,governor,base:playLoopBase(model,thinking,apiKey,maxTokens,features),signal:controller.signal,gate:signal=>runControl.gate(signal),inputEpoch:()=>runControl.pausedMs()});
-        const task: AgentMessage = { role: "user", content: target===null?PLAY_TASK:`The game has just booted. ${goal}`, timestamp: Date.now() };
+        const task: AgentMessage = { role: "user", content:initialPlayTask(start,target,features), timestamp: Date.now() };
         return await play(task, governor, loop);
       } finally {
-        await capture?.close().catch((error: unknown) => { console.error(`checkpoint capture failed: ${String(error)}`); });
         wall.clear();
         stall?.clear();
         stopWatching();

@@ -41,17 +41,17 @@ All filenames come from the closed milestone catalog and run IDs already validat
 - [x] COMMIT: `test(checkpoints): cover frontier milestone capture` (`b40692e6`, RED)
 
 **M2 — Runner implementation**
-- [ ] Implement the catalog, capture modes, serialized run-local writes, provenance sidecars, and race-safe first-arrival promotion.
-- [ ] Preserve the single-target environment behavior and wire explicit all-frontier capture into the runner.
-- [ ] Perform deletion/restoration receipts for catalog filtering, serialization, and exclusive first-arrival claiming.
-- [ ] Run focused tests and a fake-server/filesystem rehearsal.
+- [x] Implement the catalog, capture modes, serialized run-local writes, provenance sidecars, and race-safe first-arrival promotion.
+- [x] Preserve the single-target environment behavior and wire explicit all-frontier capture into the runner.
+- [x] Perform deletion/restoration receipts for catalog filtering, serialization, and exclusive first-arrival claiming.
+- [x] Run focused tests and a fake-server/filesystem rehearsal.
 - [ ] COMMIT: `feat(checkpoints): capture required frontier milestones` (GREEN)
 
 **M3 — Save-state initial-task truth**
 - [x] Add RED helper and production-path tests for boot/save-state and open/targeted tasks.
-- [ ] Register `save-state-task-truth-v1` default OFF through the complete feature registry/preset/viewer path.
-- [ ] Add the self-contained explainer and pending correctness-tier experiment record; do not queue or approve it.
-- [ ] COMMIT: `test(play): cover save-state initial task truth` (RED)
+- [x] Register `save-state-task-truth-v1` default OFF through the complete feature registry/preset/viewer path.
+- [x] Add the self-contained explainer and pending correctness-tier experiment record; do not queue or approve it.
+- [x] COMMIT: `test(play): cover save-state initial task truth` (`c48d4d06`, RED)
 - [ ] COMMIT: `fix(play): tell restored runs they resumed` (GREEN)
 
 **M4 — Gates and review**
@@ -70,6 +70,10 @@ Proof requires RED then GREEN focused tests, a fake-data capture rehearsal showi
 - 2026-10-18: RED receipt: `pnpm --filter @pokebench/agent test -- checkpoint-capture.test.ts` ran the agent suite (2,452 existing tests passed) and the seven new behavior assertions failed: required catalog missing, no all-frontier capture, no full provenance, no promotion, failures did not continue/record, and the new environment selector was absent. The first attempt was tooling-only (`vitest: command not found`); `just setup` installed the isolated worktree dependencies before the valid RED run.
 - 2026-10-18: Coordinator relayed a blocking PokeBench review finding: `live.ts` sends “The game has just booted” after loading a save state. Scope expanded before touching that path. Feature-switch discipline applies because this changes model-facing text. The continuation launches must wait for both the truthful task switch and a cold-load semantic proof.
 - 2026-10-18: Save-state task RED receipt: the agent suite ran 2,460 existing tests green and all three new tests failed because `initialPlayTask` does not exist and `live.ts` still constructs boot wording inline. Cases cover boot/save-state, switch OFF/ON, open play, a native target, and the production call site.
+- 2026-10-18: Merged canonical `main` at `6f8059fa` into the isolated branch before finalization. Resolved the appended-switch registry churn without reordering any registry, normalized historical definitions to the new default-OFF value, and refreshed the JIT control-base digest after its explicit feature map changed.
+- 2026-10-18: GREEN focused receipt: checkpoint capture, save-state task truth, lifecycle ordering, the two-run real-filesystem rehearsal, and cold-load argv forwarding passed (3 files, 33 tests). The rehearsal wrote distinct `run-a` and `run-b` local state/sidecar pairs, complete candidates for both, and kept `run-a` in the exclusive first-arrival index.
+- 2026-10-18: Deletion/restoration receipts: (1) replacing the required-frontier membership check with unconditional selection failed the exclusion test with 4 captures instead of 2; (2) removing the promise-chain serialization failed with 2 concurrent captures instead of 1; (3) replacing exclusive first-arrival creation with an ordinary write overwrote the seeded earlier winner and failed; (4) deleting the save-state wording condition made both open and targeted continuation tests return the old boot wording. Each production line was restored and the focused suite returned green.
+- 2026-10-18: `just experiments-check` passed all 111 definitions. The new entry is pending with no queue position and explicitly says the boot runner would produce identical arms; correctness comes from production-path tests. `just pages-check docs/explainers/save-state-task-truth-v1.html` passed. Agent package suite passed 156 files / 2,463 tests; viewer package suite passed 84 files / 1,173 tests after rebuilding the agent dependency.
 
 ## Surprises
 

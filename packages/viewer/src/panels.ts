@@ -455,6 +455,7 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "reopened-dialogue-loop-v1":"reopened-dialogue-loop-v1.html",
  "dialog-button-b-v1":"dialog-button-b-v1.html",
  "faced-interaction-history-v1":"faced-interaction-history-v1.html",
+ "save-state-task-truth-v1":"save-state-task-truth-v1.html",
 });
 
 export function harnessConfig(view:RunView,registry:readonly FeatureInfo[]=[]):string {

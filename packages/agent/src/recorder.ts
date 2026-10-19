@@ -346,7 +346,8 @@ export class RunRecorder {
     }
   }
 
-  private telemetryError(source: "milestones" | "state" | "battle" | "actions", error: unknown): void {
+  checkpointFailure(error:unknown):void {this.telemetryError("checkpoint",error);}
+  private telemetryError(source: "milestones" | "state" | "battle" | "actions" | "checkpoint", error: unknown): void {
     const message = error instanceof Error ? error.message : String(error);
     this.append({ type: "telemetry_error", turn: this.turn, source, message });
   }

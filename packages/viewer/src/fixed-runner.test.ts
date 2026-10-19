@@ -464,6 +464,23 @@ it("enables battle decision readiness identically in control and bundle, preserv
  }
 });
 
+ it("keeps visited navigation explicitly registered OFF for approved campaign overrides",async()=>{
+ const {armPreset}=await import("./fixed-design.js");
+ const {presetFeatures,parsePlayPreset}=await import("@pokebench/agent/play-preset");
+ const def=parseFixedDefinition(readFileSync(new URL("../../../experiments/fixed/bundle-v-control.json",import.meta.url),"utf8")).definition;
+ const id="visited-terrain-navigation-v1";
+ expect(id in def.base.features).toBe(true);expect(def.base.features[id]).toBe(false);
+ expect(def.offInBoth).toContain(id);expect(def.switches).not.toContain(id);expect(def.onInBoth).not.toContain(id);
+ expect(controlBaseProblems(def,readFileSync(new URL(`../../../${def.controlBase.path}`,import.meta.url),"utf8"))).toEqual([]);
+ const omitted=structuredClone(def);delete omitted.base.features["visited-terrain-navigation-v1"];omitted.offInBoth=omitted.offInBoth.filter(key=>key!==id);
+ for(const arm of ["control","bundle"] as const)for(const phase of def.phases){
+  const restored=armPreset(def,phase.id,arm),previous=armPreset(omitted,phase.id,arm);
+  expect(armFeatureBits(def,arm)[id]).toBe(false);
+  expect(presetFeatures(parsePlayPreset(restored))).toEqual(presetFeatures(parsePlayPreset(previous)));
+  expect(restored.features["battle-decision-ready-v1"]).toBe(true);
+ }
+});
+
 it("enables explicit evolution only in the bundle through the production arm builder",()=>{
  const {definition:def}=parseFixedDefinition(readFileSync(new URL("../../../experiments/fixed/bundle-v-control.json",import.meta.url),"utf8"));
  expect(armFeatureBits(def,"control")["evolution-decision-v1"]).toBe(false);

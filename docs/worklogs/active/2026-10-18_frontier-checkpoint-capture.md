@@ -56,9 +56,9 @@ All filenames come from the closed milestone catalog and run IDs already validat
 
 **M4 — Gates and review**
 - [x] Run `just test`, `just lint`, `just build`, `just coverage`, and `just verify-vendor` (coverage aggregate limitation recorded below).
-- [ ] Principles self-review with zero FAIL rows.
-- [ ] Run the required cloud multi-model review loop on one frozen packet; triage findings under the two-round rule.
-- [ ] Report the branch commit and evidence to the coordinator; do not launch runs, approve experiments, merge, or touch canonical `main`.
+- [x] Principles self-review with zero FAIL rows.
+- [x] Run the required cloud multi-model review loop on one frozen packet; triage findings under the operator-confirmed round-three scope.
+- [x] Report the branch commit and evidence to the coordinator; do not launch runs, approve experiments, merge, or touch canonical `main`.
 
 ## Closing the Loop
 
@@ -94,6 +94,15 @@ Round 1 frozen at `a5a6d54a` (`6f8059fa..a5a6d54a`, binary diff SHA-256 `74afc41
 - Round 3 GREEN and operand mutations: `capture()` now retains the first error while always attempting checked unpause; 3 focused files / 38 tests passed. Disabling the shared response-body confirmation made both independent pause-on and unpause-off tests fail by resolving instead of rejecting. Replacing lifecycle `failure ??=` with assignment made the combined test surface `cleanup failed` instead of the primary `journal full`; restoration returned the focused tests green. The pre-fix RED independently proves cleanup-error replacement in checkpoint capture.
 - Round 3 full gates before review: `just test` passed agent 156 files / 2,471 tests, viewer 84 files / 1,174 tests, and Python 2,478 tests with 229 unchanged ROM-dependent skips. `just build`, `just verify-vendor`, `just experiments-check` (112), the explainer page check, TypeScript/ESLint, Ruff, formatting, and binding-equipped mypy (92 files) passed. Agent coverage passed at 97.99% statements / 94.23% branches / 98.33% functions / 99.23% lines. The unchanged viewer coverage-only stream timeout limitation remains recorded above.
 - Round 3 initial review: Grok 4.5 high and Astra returned `VERDICT: LGTM`; Sol returned `VERDICT: BLOCKING` on an evidence gap, not a discovered production failure. The dual-failure matrix proved pause and digest errors but did not independently prove checkpoint-HTTP and persistence errors survive a simultaneous unpause failure. Added both exact cases: each proves unpause was attempted, the primary error is rejected exactly, and the durable error sidecar retains it. Three focused files / 47 tests passed. Mutating checkpoint capture's first-error retention from `failure ??=` to `failure=` made the new checkpoint-HTTP case report `unpause request failed with HTTP 503` instead of `checkpoint request failed with HTTP 502`; restoration returned the targeted test green. The expanded full gate passed agent 156 files / 2,472 tests, viewer 84 files / 1,174 tests, Python 2,478 tests with 229 ROM-dependent skips, and agent lint. The selected roster will re-review the expanded frozen packet within the already authorized round 3.
+- Round 3 final selected-roster review froze clean head `0967490b` over `67f1979c..0967490b`, binary diff SHA-256 `aae12e3d50e82baecf2ef0c301f485927ee01fc7b4b275929eb6be8641042448`, with unchanged boundary SHA-256 `67ca1784...ee99` and principles SHA-256 `a9bc96d2...84b11`. Fresh Sol and Astra independently reproduced custody and the diff, reran 3 files / 39 targeted tests, and returned literal `VERDICT: LGTM`. Grok 4.5 high in Cursor ask mode returned literal `VERDICT: LGTM`; its shell was denied, so the coordinator independently rechecked clean HEAD, all three digests, and byte-identical Git diff before and after that review. Principles Adherence remains 10 PASS / 3 N/A / 0 FAIL. No reviewer found a remaining production correctness or evidence blocker.
+
+## Landing and launch handoff
+
+This lane did not launch, approve, or merge anything. After the reviewed commits land, checkpoint acquisition uses a unique run id and `POKEBENCH_CHECKPOINT_FRONTIER=1` with the preset derived from the finally landed current-main bundle:
+
+`POKEBENCH_PLAY_PRESET=/absolute/path/to/current-main-derived-preset.json POKEBENCH_RUN_ID=<unique-acquisition-run> POKEBENCH_CHECKPOINT_FRONTIER=1 just run-agent`
+
+The two continuation presets must each be generated from that same finally landed current-main bundle, not copied from this branch or a stale preset. Set `start.kind` to `save_state`, `start.path` to the absolute winning `PETALBURG_CITY.state`, `start.sha1` to the digest in its first-arrival index/sidecar, `limits.maxWallMs` to `2700000`, `target` to `null`, and `features.save-state-task-truth-v1` to `true`; preserve every other feature exactly as current main defines the selected bundle. Launch each with its own `POKEBENCH_RUN_ID`, `POKEBENCH_PLAY_PRESET=<that continuation preset>`, and `POKEBENCH_CHECKPOINT_FRONTIER=1` before `just run-agent`, so each continuation also retains any later frontier milestone it reaches. Native state restoration does not restore the model transcript or run-local ledgers. The source run and event sequence in the sidecar audit only the source prefix; each continuation builds fresh model context and ledgers after `PETALBURG_CITY`.
 
 ## Boy Scout Log
 

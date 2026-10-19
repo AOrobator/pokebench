@@ -147,7 +147,7 @@ def world_block(text: str) -> list[str]:
 
 def test_switch_is_a_default_off_server_observation_switch() -> None:
     assert SWITCH == "transition-coherence-v1"
-    assert SERVER_FEATURES[-12] == SWITCH
+    assert SERVER_FEATURES[-13] == SWITCH
     assert SWITCH in features_off_from_env({})
     assert SWITCH not in features_off_from_env({"POKEBENCH_FEATURES_OFF": ""})
 

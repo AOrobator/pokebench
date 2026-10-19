@@ -41,6 +41,7 @@ Tracked, local HTML documentation. Open an explainer directly; no server or exte
 - [Leave bedroom split v1](bedroom-exit-v1.html)
 - [Route 103 rival splits v1](route103-rival-splits-v1.html)
 - [Battle details v2](battle-details-v2.html)
+- [Battle effective damage](battle-effective-damage-v1.html)
 - [Warp arrival settle v1](warp-arrival-settle-v1.html)
 - [Displayed place names v1](displayed-place-names-v1.html)
 - [Readout rules in prompt v1](readout-rules-in-prompt-v1.html)
@@ -117,4 +118,5 @@ The original ignored runs/explainers copies remain for existing links. Make futu
 - [Retained JIT guide reuse](jit-guide-reuse-v1.html)
 - [Scripted place guidance](scripted-place-guidance-v1.html)
 - [Trigger script loop detection](trigger-script-loop-v1.html)
+- [Visited terrain navigation](visited-terrain-navigation-v1.html)
 - [Deterministic warp navigation](deterministic-warp-navigation-v1.html)

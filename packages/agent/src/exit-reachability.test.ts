@@ -308,9 +308,9 @@ describe("exit-reachability-v1 schema, registry and presets",()=>{
   expect(description).toContain(" Off: ");
   expect(description).toContain("bundle arm only");
   expect(description).not.toContain("both arms");
-  expect(FEATURES.filter(f=>f.switchable).at(-28)?.id).toBe(ID);
-  expect(playHarnessFeatures(ALL_ON,null).at(-28)).toBe(ID);
-  expect(SERVER_FEATURES.at(-7)).toBe(ID);
+  expect(FEATURES.filter(f=>f.switchable).at(-30)?.id).toBe(ID);
+  expect(playHarnessFeatures(ALL_ON,null).at(-30)).toBe(ID);
+  expect(SERVER_FEATURES.at(-8)).toBe(ID);
   expect(serverFeatureEnv({...ALL_ON,[ID]:false}).POKEBENCH_FEATURES_OFF.split(",")).toContain(ID);
   expect(serverFeatureEnv(ALL_ON).POKEBENCH_FEATURES_OFF.split(",")).not.toContain(ID);
  });

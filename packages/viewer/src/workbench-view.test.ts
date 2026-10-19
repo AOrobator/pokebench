@@ -21,6 +21,14 @@ describe("workbench visual contract", () => {
     const saved = run({ status: "live" }); if (saved.config === null) throw new Error("config"); saved.config = { ...saved.config, resume: "CLOCK_SET" };
     expect(currentRunHtml([saved], 1000, 6000, null)).toContain("NOT FROM ZERO · Clock set save"); expect(runDetails(saved, null)).toContain("did not start from New game");
   });
+  it.each([["PETALBURG_CITY", "Petalburg"], ["RUSTBORO_CITY", "Rustboro"]])("labels %s starts on plates and details", (checkpoint, label) => {
+    const saved = run({ status: "live" });
+    if (saved.config === null) throw new Error("config");
+    saved.config = { ...saved.config, start: "save_state", resume: checkpoint };
+    expect(currentRunHtml([saved], 1000, 6000, null)).toContain(`NOT FROM ZERO · ${label} save`);
+    expect(runDetails(saved, null)).toContain(`${label} save · not from New game`);
+    expect(runDetails(saved, null)).toContain("Times count from when that save loaded");
+  });
   it("turns the plate gold with a NEW MILESTONE! chip while the latest milestone is under 30 s old on the live clock", () => {
     const at = 1000, fresh = currentRunHtml([run({ status: "live" })], at, at + 29_999, null);
     expect(fresh).toContain('class="wb-plate new"'); expect(fresh).toContain('<span class="wb-new-chip">NEW MILESTONE!</span>');

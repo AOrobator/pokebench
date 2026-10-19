@@ -9,8 +9,8 @@ const IDS = ["readout-truth-v1", "birch-speech-pages-v1", "blackout-readout-v1"]
 const off = (...ids: (typeof SWITCHABLE_FEATURES)[number][]): FeatureSet => ({ ...ALL_ON, ...Object.fromEntries(ids.map((id) => [id, false])) });
 
 it("registers three default-off observation switches with no dependency, recorded last in this order", () => {
-  expect(SWITCHABLE_FEATURES.slice(-41,-38)).toEqual([...IDS]);
-  expect(playHarnessFeatures(ALL_ON, null).slice(-41,-38)).toEqual([...IDS]);
+  expect(SWITCHABLE_FEATURES.slice(-43,-40)).toEqual([...IDS]);
+  expect(playHarnessFeatures(ALL_ON, null).slice(-43,-40)).toEqual([...IDS]);
   for (const id of IDS) {
     expect(featureInfo(id)).toMatchObject({ group: "observation", needs: null, switchable: true });
     expect(featureInfo(id).description).toContain(" Off: ");
@@ -18,7 +18,7 @@ it("registers three default-off observation switches with no dependency, recorde
     expect(featuresOf(playHarnessFeatures(off(id), null))[id]).toBe(false);
   }
   // No dependency: the control arm of bundle-v-control has expanded menu text off.
-  expect(dependencyProblems(off("expanded-menu-battle-information-v1", "battle-details-v2", "battle-triage-guidance-v1", "status-names-v1"))).toEqual([]);
+  expect(dependencyProblems(off("battle-effective-damage-v1", "expanded-menu-battle-information-v1", "battle-details-v2", "battle-triage-guidance-v1", "status-names-v1"))).toEqual([]);
 });
 
 it("describes each switch with the exact lines the game server writes", () => {
@@ -58,7 +58,7 @@ it("states each switch's intended arms and the whiteout frame scope (operator de
 });
 
 it("hands all three to the game server, whose list and default-off set name them", () => {
-  expect(SERVER_FEATURES.slice(-11,-8)).toEqual([...IDS]);
+  expect(SERVER_FEATURES.slice(-12,-9)).toEqual([...IDS]);
   for (const id of IDS) expect(serverFeatureEnv(off(id)).POKEBENCH_FEATURES_OFF).toBe(id);
   expect(serverFeatureEnv(ALL_ON).POKEBENCH_FEATURES_OFF).toBe("");
   const readout = readFileSync(new URL("../../../env/pokebench_env/readout.py", import.meta.url), "utf8");

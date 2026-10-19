@@ -154,6 +154,31 @@ describe("persistent actual native frontier", () => {
     expect(document.querySelector('polyline[data-series="menu"]')?.getAttribute("stroke-dasharray")).toBeNull();
     expect(document.querySelector('[data-resume="MAIN_MENU"]')).toBeNull();
   });
+  it("keeps a later save origin visible before its first post-save split arrives", () => {
+    const saved = measured("waiting", [null, null, 20]);
+    if (saved.config === null) throw new Error("config");
+    saved.config = { ...saved.config, start: "save_state", resume: "PETALBURG_CITY" };
+    saved.status = "live";
+    document.body.innerHTML = frontierPlot({ human: null, best: null }, [], 900, undefined, [saved], true);
+    expect(document.querySelector('[data-resume-origin="PETALBURG_CITY"]')).not.toBeNull();
+    expect(document.querySelector('.wb-current-key')?.textContent).toContain("waiting for first story checkpoint");
+    expect(document.querySelector('[data-run="waiting"]')).toBeNull();
+  });
+  it.each(["PETALBURG_CITY", "RUSTBORO_CITY"])("plots %s starts from their own checkpoint with explicit provenance", checkpoint => {
+    const resumed = measured("later-save", [9000000, null, 5000]);
+    if (resumed.config === null) throw new Error("config");
+    resumed.config = { ...resumed.config, start: "save_state", resume: checkpoint };
+    resumed.splits.push(...[checkpoint, checkpoint === "PETALBURG_CITY" ? "DAD_FIRST_MEETING" : "RUSTBORO_CITY_GYM"].map((name, i) => ({ name, elapsedMs: 10000 + i * 5000, segmentMs: 0, seq: 20 + i, turn: 1, inputTokens: 0, outputTokens: 0 })));
+    expect(frontierReferences([best(), resumed]).best?.id).toBe("dea1");
+    document.body.innerHTML = frontierPlot(frontierReferences([best()]), [resumed], 900);
+    expect(document.querySelector(`[data-resume="${checkpoint}"]`)).not.toBeNull();
+    expect(document.querySelector(`[data-resume-origin="${checkpoint}"]`)).not.toBeNull();
+    expect(document.querySelector(`[data-resume-notice="${checkpoint}"]`)?.textContent).toContain("did not start from New game");
+    expect(document.querySelector('[data-run="later-save"][data-split="CLOCK_SET"]')).toBeNull();
+    expect(document.querySelector('[data-run="later-save"][data-split="PLAYER_NAME_CONFIRMED"]')).toBeNull();
+    expect(document.querySelector('[data-series="later-save"]')?.getAttribute("stroke-dasharray")).toBe("8 5");
+    expect(document.querySelector('[data-run="later-save"]')?.getAttribute("aria-label")).toContain("minutes since the save loaded");
+  });
   it("draws a Clock set resume as a dashed not-from-zero line and keeps it off the agent frontier", () => {
     const resumed = measured("clock", [90000, null, 5000, 120000]);
     if (resumed.config === null) throw new Error("config");

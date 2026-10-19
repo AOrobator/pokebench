@@ -4,6 +4,7 @@
  "title": "Unset dynamic warp",
  "changedFeature": "unset-dynamic-warp-v1",
  "hypothesis": "This standalone comparison is superseded: game-known warp naming makes both arms render the truck exit as a dynamic destination. The switch remains independently correct in typed state and stays in the fixed bundle, but this definition must not launch as an attributable trial.",
+ "discarded": "Superseded before launch: named-warp-destinations-v1 makes both arms render the truck exit identically, so this definition has no attributable treatment contrast.",
  "activationMilestone": "PLAYER_NAME_CONFIRMED",
  "primaryMilestone": "RIVAL_BATTLE_WON",
  "source": {

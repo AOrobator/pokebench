@@ -519,6 +519,7 @@ def test_unset_dynamic_warp_experiment_is_superseded_but_still_flips_typed_state
     body = json.loads((EXPERIMENTS / "unset-dynamic-warp.json").read_text())
     features: dict[str, bool] = body["incumbent"]["features"]
     assert "superseded" in body["hypothesis"]
+    assert "no attributable treatment contrast" in body["discarded"]
     assert features[UNSET_WARP] is False and features["named-warp-destinations-v1"] is True
     control = frozenset(f for f in SERVER_FEATURES if not features.get(f, False))
     candidate = control - {UNSET_WARP}

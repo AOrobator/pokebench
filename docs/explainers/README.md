@@ -118,3 +118,4 @@ The original ignored runs/explainers copies remain for existing links. Make futu
 - [Retained JIT guide reuse](jit-guide-reuse-v1.html)
 - [Scripted place guidance](scripted-place-guidance-v1.html)
 - [Trigger script loop detection](trigger-script-loop-v1.html)
+- [Visited terrain navigation](visited-terrain-navigation-v1.html)

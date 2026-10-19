@@ -8,7 +8,7 @@ import type {AgentTool,AgentToolResult} from "@mariozechner/pi-agent-core";
 import {ALL_ON,SERVER_FEATURES,SWITCHABLE_FEATURES,dependencyProblems,featureInfo,featuresOf,playHarnessFeatures,type FeatureSet} from "./features.js";
 import {flagFeatures,normalizeFeatures,parsePlayPreset,presetFeatures} from "./play-preset.js";
 import {NAVIGATE_TO_USAGE,playSystemPrompt,toolSwitches} from "./play-config.js";
-import {MOVING_AROUND_FULL,MOVING_AROUND_LOCAL,NAVIGATE_FIRST_DESCRIPTION,NAVIGATE_FIRST_TOOL_LINE,PRESS_NOT_WALKING,REMINDER,REMINDER_EVERY,navigateFirstToolList,withNavigateFirst} from "./navigate-first.js";
+import {MOVING_AROUND_FULL,MOVING_AROUND_LOCAL,MOVING_AROUND_VISITED,NAVIGATE_FIRST_DESCRIPTION,NAVIGATE_FIRST_TOOL_LINE,PRESS_NOT_WALKING,REMINDER,REMINDER_EVERY,navigateFirstToolList,withNavigateFirst} from "./navigate-first.js";
 import {navigationTool,type NavigationPorts} from "./navigation.js";
 import {gameTools} from "./game-tools.js";
 import {playGameTools} from "./play-wiring.js";
@@ -76,6 +76,11 @@ describe("system prompt",()=>{
   expect(full.endsWith(`\n\n${MOVING_AROUND_FULL}`)).toBe(true);
   expect(MOVING_AROUND_FULL).not.toContain("command limit");
   expect(full).not.toContain(MOVING_AROUND_LOCAL);
+  const visited=playSystemPrompt({...ON,"full-map-navigation-v1":false,"visited-terrain-navigation-v1":true},null);
+  expect(visited.endsWith(`\n\n${MOVING_AROUND_VISITED}`)).toBe(true);
+  expect(visited).not.toContain(MOVING_AROUND_LOCAL);
+  expect(visited).not.toContain(MOVING_AROUND_FULL);
+  expect(playSystemPrompt({...ON,"full-map-navigation-v1":true,"visited-terrain-navigation-v1":true},null).endsWith(`\n\n${MOVING_AROUND_FULL}`)).toBe(true);
  });
  it("ON keeps the screen-only press line when the RAM readout is off, and the objective text last",()=>{
   const screenOnly=playSystemPrompt({...ON,"ram-state-v1":false},null);
@@ -85,7 +90,7 @@ describe("system prompt",()=>{
   expect(objectives.endsWith(MOVING_AROUND_LOCAL)).toBe(false);
  });
  it("names no destination or story step",()=>{
-  for(const text of [MOVING_AROUND_LOCAL,MOVING_AROUND_FULL,NAVIGATE_FIRST_TOOL_LINE,NAVIGATE_FIRST_DESCRIPTION,REMINDER]){
+  for(const text of [MOVING_AROUND_LOCAL,MOVING_AROUND_FULL,MOVING_AROUND_VISITED,NAVIGATE_FIRST_TOOL_LINE,NAVIGATE_FIRST_DESCRIPTION,REMINDER]){
    for(const name of ["MAY","BRENDAN","BIRCH","ROUTE","Rustboro","Oldale","Littleroot"])expect(text).not.toContain(name);
   }
  });

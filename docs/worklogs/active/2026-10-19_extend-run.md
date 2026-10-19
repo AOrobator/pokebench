@@ -46,7 +46,14 @@ Scratch runs root only, no experiment approvals; candidate viewer on owned port.
 None yet.
 
 ## Multi-Model Review Log
-Pending.
+Round 1 packet base 63b6236f -> c289a68f, SHA256 dadacc8bad2b37a7bdb6010634071954db1139c9fb594d84c5d2c6fc3f6727e2.
+- Claude CLI: standalone namespace not logged in. Cursor Opus and Sonnet: explicit usage limit until next monthly cycle; neither is approval.
+- Cursor GPT: explicit usage limit. Standing-approved isolated Codex Sol lane substituted.
+- Grok (Cursor): BLOCKING on missing operand deletion evidence at NativeTargetStop and patch-results.
+- GPT Sol (isolated): BLOCKING on a reproduced request-identity race: another tab’s acknowledgement could settle a request before its own HTTP response returned the sequence.
+- Astra fallback: independently reproduced the same race and confirmed the evidence gap. Reduced vendor diversity; does not replace Claude for self-landing.
+- Synthesis: both findings FIX (in-contract defect / skill-required evidence gap). No expansion, no new owner. Keep unknown HTTP request identity uncertain; only the exact returned request sequence may settle the dialog. Add delayed-response regression and targeted per-operand mutations. No other concrete production defect identified. Round 2 required on cumulative fix.
+- Nine-check synthesis: production caller seams and bounded 12-slot runner fixture verified; tmp roots/vi restoration own globals; exact request/record sets; no test retries/skips/floor changes; tests run under concurrent gates; guards require additional target/grading and acknowledgement mutations. No new runtime/persistence mechanisms introduced. Frozen boundary remains unchanged.
 
 ## Boy Scout Log
 No adjacent cleanup planned.
@@ -66,3 +73,10 @@ No adjacent cleanup planned.
 - Standalone Claude reviewer namespace reports loggedIn=false; use standing-authorized Cursor Claude equivalent. Discovered Claude, Grok and GPT model ids via agent models. No local inference reviewers.
 - Final proof: inspector selected real scratch extension event #2 with previous=7200000/new=9000000 and request=1. Built/served app.js, index.html and style.css SHA-256s match (served-assets.json). Explainer zero-network check and local 8791 delivery pass; screenshots inspected at all three widths (viewport-bound tab; corrected an initial unbound-tab capture).
 - All final tests: 2574 agent, 1237 viewer, 2724 Python, zero skipped. just lint/build/verify-vendor pass. Original-horizon pause regression added within existing patch-results owner. Agent coverage re-run after that test; other stack coverage unchanged and above 90. Green source remains unlanded pending cloud review.
+
+- Review-fix batch: exact HTTP request identity now required for UI confirmation; transport failure stays uncertain and instructs Activity History + reload. Deferred-response regression injects request 7 then confirms only returned request 8. Production path set unchanged.
+- Round 2 evidence: five additional independent deletions (target-cap, patch-extension, patch-pause, patch-cutoff, ack-identity) each exit 1 on the intended assertion, each restored exit 0. Exact logs: runs/extend-run-proof/mutation-r2-*-{red,restored}.log. Nine total successful break/restore pairs. No production source growth beyond the app request-correlation fix.
+- Final scratch replay: initial cursor retains original 2h cap; End reconstructs 3h30 and labels original 2h while Extend/Pause/Stop/Abort are disabled. Raw inspector event #2 has request=1/previous=7200000/new=9000000. Scratch terminal row was supplied after its real stop control applied because the fixture has no gameplay loop; not claimed as a live runtime terminal proof.
+- Round 2 gates: just build/lint/test/coverage pass. Agent 2574 tests; viewer 1238; Python 2724, zero skipped. Coverage: agent statements 97.86 / branches 94.09 / functions 98.27; viewer 95.41 / 91.33 / 93.97; Python lines 97.12 / branches 92.85 / functions 100.00. Vendor remains pinned/clean.
+- Real-run inventory read-only check: live 8790 and candidate listRuns both list the same 365 unique run IDs; zero added/removed/duplicate entries (real-run-inventory.json). Existing live jobs unchanged.
+- Final candidate browser normal flow: fresh scratch run extension-rehearsal-r2, +30 minutes waits then confirms exact request 1; cap 2h -> 2h30; no console errors. Updated served app/source hashes checked; no real benchmark controls sent.

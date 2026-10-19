@@ -281,7 +281,7 @@ export class App {
   private updateExtension(): void {
     const pending = this.extensionPending;
     if (pending !== null && pending.run === this.runId) {
-      const ack = this.view.events.find(e => e.type === "operator_control" && e.seq > pending.afterSeq && e.action === pending.action && (pending.request === null || e.request === pending.request));
+      const ack = this.view.events.find(e => e.type === "operator_control" && e.seq > pending.afterSeq && e.action === pending.action && pending.request !== null && e.request === pending.request);
       if (ack?.type === "operator_control") {
         this.extensionPending = null;
         this.extensionMessage = ack.status === "applied" ? "Extension applied." : "Extension was not applied. The run may have reached its limit or be stopping.";
@@ -318,7 +318,7 @@ export class App {
     } catch (error) {
       if (this.extensionPending !== pending || this.runId !== pending.run) return;
       // A lost HTTP response may have enqueued the request. Never retry it automatically.
-      this.extensionMessage = `Request could not be confirmed: ${String(error)}. Check Activity History before trying another extension.`;
+      this.extensionMessage = `Request could not be confirmed: ${String(error)}. Check Activity History and reload before trying another extension.`;
     }
     this.updateExtension();
   }

@@ -17,7 +17,7 @@ class Stream implements StreamLike {
   send(type: string, data: unknown): void { for (const l of this.listeners.get(type) ?? []) l({ data: JSON.stringify(data) }); }
 }
 
-async function mount(history: unknown = {}, refuse = false, gameUp = true, extend = false) {
+async function mount(history: unknown = {}, refuse = false, gameUp = true, extend = false, controlReply?: () => Promise<unknown>) {
   document.body.innerHTML = PAGE.slice(PAGE.indexOf("<body>") + 6, PAGE.indexOf("</body>"));
   const writes: [string, string, unknown][] = [];
   const streams: Stream[] = [];
@@ -38,6 +38,7 @@ async function mount(history: unknown = {}, refuse = false, gameUp = true, exten
       if (url === "/api/next-run") { draft = body; return Promise.resolve({ draft: body, queue: { state: "idle" } }); }
       if (url === "/api/next-run/queue") return Promise.resolve({ queue: { state: "queued", runId: "next", waitingFor: `live run ${RUN}` } });
       if (url === "/api/next-run/cancel") return Promise.resolve({ queue: { state: "idle" } });
+      if (controlReply !== undefined) return controlReply();
       return refuse ? Promise.reject(new Error("run is not live")) : Promise.resolve({ request: writes.length });
     },
     openStream: () => { const s = new Stream(); streams.push(s); return s; },
@@ -284,16 +285,36 @@ describe("extension dialog", () => {
     expect(document.activeElement).toBe(document.querySelector("[data-extend-open]"));
   });
 
-  it("keeps an uncertain transport failure pending and recovers when its acknowledgement arrives", async () => {
+  it("keeps an uncertain transport failure pending until the operator reloads", async () => {
     const { app, writes, send } = await mount({}, true, true, true);
     document.querySelector<HTMLButtonElement>("[data-extend-open]")?.click();
     ui("extend-confirm").click();
     await vi.waitFor(() => { expect(ui("extend-status").textContent).toContain("could not be confirmed"); });
     ui("extend-confirm").click(); expect(writes).toHaveLength(1);
     send(6000, { type: "operator_control", turn: 1, action: "extend_30m", status: "ignored", request: 1 }); app.tick(0);
-    expect(ui("extend-status").textContent).toContain("not applied");
-    expect((ui("extend-confirm") as HTMLButtonElement).disabled).toBe(false);
+    expect(ui("extend-status").textContent).toContain("could not be confirmed");
+    expect((ui("extend-confirm") as HTMLButtonElement).disabled).toBe(true);
     app.select("other");
     expect((ui("extend-dialog") as HTMLDialogElement).open).toBe(false);
   });
+});
+
+it("does not accept another request's acknowledgement while this HTTP response is delayed", async () => {
+  let reply: (value: unknown) => void = () => { throw new Error("no pending request"); };
+  const response = new Promise<unknown>(resolve => { reply = resolve; });
+  const { app, send, writes } = await mount({}, false, true, true, () => response);
+  document.querySelector<HTMLButtonElement>("[data-extend-open]")?.click();
+  ui("extend-confirm").click();
+  expect(writes).toHaveLength(1);
+  send(6000, { type:"operator_control", turn:1, action:"extend_30m", status:"applied", request:7, previous_max_wall_ms:60000, max_wall_ms:1860000 });
+  app.tick(0);
+  expect(ui("extend-status").textContent).toContain("Waiting");
+  expect(ui("extend-confirm").hidden).toBe(false);
+  expect((ui("extend-confirm") as HTMLButtonElement).disabled).toBe(true);
+  reply({ request:8 }); await Promise.resolve(); app.tick(0);
+  expect(ui("extend-status").textContent).toContain("Waiting");
+  send(7000, { type:"operator_control", turn:1, action:"extend_30m", status:"applied", request:8, previous_max_wall_ms:1860000, max_wall_ms:3660000 });
+  app.tick(0);
+  expect(ui("extend-status").textContent).toBe("Extension applied.");
+  expect(ui("extend-confirm").hidden).toBe(true);
 });

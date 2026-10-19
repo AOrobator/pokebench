@@ -74,7 +74,7 @@ describe("stale-story-goal-v1",()=>{
  const oldale=field([0,10],"OLDALE TOWN");
  const lab=[page("BIRCH lives next door.","MOM"),page("Go see MAY at the LAB.","MOM")];
  it("is registered fifth from the end, default off, and needs nothing",()=>{
-  expect(SWITCHABLE_FEATURES.at(-23)).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-24)).toBe(ID);
   expect(playHarnessFeatures(ALL_ON,null).at(-18)).toBe(ID);
   expect(featureInfo(ID)).toMatchObject({group:"observation",needs:null,switchable:true,title:"STALE STORY GOAL"});
   expect(featureInfo(ID).description).toContain(" Off: ");
@@ -336,7 +336,7 @@ describe("stale-story-goal-v1 production factory",()=>{
  });
  it("the pending experiment flips only this switch, with the lab parents on, and is not queued",()=>{
   const raw=JSON.parse(readFileSync(new URL("../../../experiments/stale-story-goal.json",import.meta.url),"utf8")) as {incumbent:{features:Record<string,boolean>}};
-  expect(Object.keys(raw.incumbent.features)).toEqual(SWITCHABLE_FEATURES.filter(id=>id!=="evolution-decision-v1"&&id!=="safe-navigation-strides-v1"&&id!=="ineffective-navigation-v2"&&id!=="supervisor-briefing-v2"&&id!=="reachable-story-guidance-v1"&&id!=="text-only-supervisor-v2"&&id!=="battle-decision-ready-v1"&&id!=="battle-refusal-loop-v1"&&id!==ID2&&id!=="deterministic-warp-navigation-v1"&&id!=="battle-effective-damage-v1"&&id!=="scripted-place-guidance-v1"&&id!=="trigger-script-loop-v1"&&id!=="just-in-time-prompt-v2"&&id!=="faced-interaction-history-v1"&&id!=="cache-aligned-window-v1"&&id!=="jit-guide-reuse-v1"&&id!=="visited-terrain-navigation-v1"));
+  expect(Object.keys(raw.incumbent.features)).toEqual(SWITCHABLE_FEATURES.filter(id=>id!=="observed-instructions-v1"&&id!=="evolution-decision-v1"&&id!=="safe-navigation-strides-v1"&&id!=="ineffective-navigation-v2"&&id!=="supervisor-briefing-v2"&&id!=="reachable-story-guidance-v1"&&id!=="text-only-supervisor-v2"&&id!=="battle-decision-ready-v1"&&id!=="battle-refusal-loop-v1"&&id!==ID2&&id!=="deterministic-warp-navigation-v1"&&id!=="battle-effective-damage-v1"&&id!=="scripted-place-guidance-v1"&&id!=="trigger-script-loop-v1"&&id!=="just-in-time-prompt-v2"&&id!=="faced-interaction-history-v1"&&id!=="cache-aligned-window-v1"&&id!=="jit-guide-reuse-v1"&&id!=="visited-terrain-navigation-v1"));
   const entry=parseExperiment(raw);
   expect(entry.queuePosition).toBeUndefined();
   expect(entry.changedFeature).toBe(ID);
@@ -394,7 +394,7 @@ describe("stale-story-goal-v2 registration and production factory",()=>{
  }
 
  it("is last, default off, and depends on v1",()=>{
-  expect(SWITCHABLE_FEATURES.at(-10)).toBe(ID2);
+  expect(SWITCHABLE_FEATURES.at(-11)).toBe(ID2);
   expect(playHarnessFeatures({...ALL_ON,"battle-decision-ready-v1":false,[ID2]:true},null).at(-4)).toBe(ID2);
   expect(featureInfo(ID2)).toMatchObject({group:"observation",needs:ID,switchable:true,title:"STAGE-BOUND STORY GOAL"});
   expect(featureInfo(ID2).description).toContain(" Off: ");

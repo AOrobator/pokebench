@@ -1288,3 +1288,18 @@ it("links the explicit evolution feature to its tracked explainer",()=>{
  const log=new Log();log.add(0,{...START,harness_features:["ram-state-v1","evolution-decision-v1"]});const rendered=harnessConfig(view(log),FEATURES);
  expect(rendered).toContain('/explainers/evolution-decision-v1.html');
 });
+
+
+
+it("links the observed instruction memory card to its tracked explainer, which shows omission instead of none",()=>{
+ const id="observed-instructions-v1";
+ expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
+ const log=new Log();log.add(0,{...START,harness_features:["ram-state-v1","stale-story-goal-v1",id]});
+ const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
+ expect(doc.querySelector(`[data-feature="${id}"] a`)?.getAttribute("href")).toBe(`/explainers/${id}.html`);
+ const html=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)),"utf8");
+ expect(html).toContain(id);
+ expect(html).toContain("<title>Observed instruction memory</title>");
+ expect(html).toContain("observed_instruction_episodes:");
+ expect(html).toContain("observed_progress:");
+});

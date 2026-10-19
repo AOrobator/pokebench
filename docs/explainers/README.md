@@ -137,3 +137,5 @@ The original ignored runs/explainers copies remain for existing links. Make futu
 - [Safe planned navigation strides](safe-navigation-strides-v1.html)
 - [Explicit evolution decision](evolution-decision-v1.html): native decision boundary, both choices, and corrected animation observations.
 
+
+- [Observed instruction memory](observed-instructions-v1.html): complete delivered story-character episodes in YAML, separated from observed progress.

@@ -171,3 +171,7 @@ Operator 2026-10-19: enable safe-navigation-strides-v1 in the canonical bundle t
 Pending, not queued. STARTER_CHOSEN is only the conservative earliest prerequisite. Reliable arrival at an actual cancellable evolution window is not yet qualified. One retained checkpoint trace establishes the interface failure, not readiness or benefit. No measured runs approved or launched.
 
 
+
+## observed-instructions-v1 — 2026-10-19
+
+BLOCKED for a dedicated comparison: no current qualifying boot-readiness count or validated pre-instruction checkpoint has been established in this task. Earliest activation is FIRST_TRUCK_EXIT (Mom's first delivered conversation); nominal primary RIVAL_HOUSE_ENTERED. Norman-specific mechanism requires a separate validated pre-Norman start and Gym-entry outcome. Correctness regressions use immutable recorded Mom/Norman episodes, not new gameplay. Pending only; trial cap, fixed N and GPU budget require design before queueing. Bundle inclusion is operator-requested treatment configuration, not individual benefit evidence.

@@ -91,6 +91,7 @@ export interface StoryLine {
  readonly turn:number;readonly speaker:string;readonly text:string;
  readonly lives:Lives|null;
  readonly scriptedPlaces?:readonly {readonly quote:string;readonly resolution:string}[];
+ readonly birchLabStage?:number;
 }
 
 // One place a story line names: the quoted words, how they resolve (text as the block prints it after the quote),
@@ -118,9 +119,14 @@ export class StoryDestinations {
  // The story characters each recorded state's sprite kinds are (character-presence-v1's table by graphics id),
  // for states that show one, in recording order.
  private readonly sprites:{readonly seq:number;readonly map:MapId|null;readonly kinds:ReadonlyMap<string,string>}[]=[];
+ // Native Birch-lab story stages paired to the dialogue pages recorded from those states. A missing stage stays
+ // unknown; it never becomes evidence that an instruction is complete.
+ private readonly birchLabStages:{readonly seq:number;readonly stage:number}[]=[];
  constructor(private readonly scriptedGuidance=false){}
  observe(event:RunEvent):void {
   if(event.type==="state"&&"started" in event){
+   const stage=event.story?.birch_lab_stage;
+   if(stage!==null&&stage!==undefined&&this.birchLabStages.at(-1)?.stage!==stage)this.birchLabStages.push({seq:event.seq,stage});
    const kinds=new Map<string,string>();
    for(const o of event.world_context?.objects??[]){const name=o.sprite_kind===null?null:storyCharacter(o.graphics_id,event.location);if(name!==null&&o.sprite_kind!==null)kinds.set(o.sprite_kind,name);}
    if(kinds.size>0)this.sprites.push({seq:event.seq,map:event.map_id,kinds});
@@ -146,6 +152,12 @@ export class StoryDestinations {
   const known=this.sprites.findLast(s=>s.seq<=seq&&s.map!==null&&same(s.map,map));
   return known?.kinds.get(page.speaker)??null;
  }
+ private withBirchLabStage(page:Page,line:StoryLine):StoryLine {
+  const stateSeq=page.state_seq;
+  if(stateSeq===null)return line;
+  const stage=this.birchLabStages.findLast(s=>s.seq<=stateSeq)?.stage;
+  return stage===undefined?line:{...line,birchLabStage:stage};
+ }
  // Every field page a story character speaks in one call, with its "lives" clause; battle text is no one's line.
  // Story characters named on earlier pages of the call (any speaker) are who "He/She lives" can mean.
  private storyLines(turn:number,pages:readonly Page[]):StoryLine[] {
@@ -161,7 +173,7 @@ export class StoryDestinations {
    const prefix=page.speaker===null?"":`${page.speaker}: `;
    const text=(page.speaker_source==="name_prefix"&&page.text.startsWith(prefix)?page.text.slice(prefix.length):page.text).replace(/\s+/g," ").trim();
    if(forcedGym&&gymBoy(page)&&page.map_id?.[0]===0&&page.map_id[1]===0&&text==="See? This is PETALBURG CITY's GYM."){
-    out.push({turn,speaker:"PETALBURG GYM BOY",text,lives:null,scriptedPlaces:[{quote:"PETALBURG CITY's GYM",resolution:"PETALBURG CITY GYM"}]});
+    out.push(this.withBirchLabStage(page,{turn,speaker:"PETALBURG GYM BOY",text,lives:null,scriptedPlaces:[{quote:"PETALBURG CITY's GYM",resolution:"PETALBURG CITY GYM"}]}));
    }else if(speaker!==null){
     const m=LIVES.exec(text);
     let lives:Lives|null=null;
@@ -170,7 +182,7 @@ export class StoryDestinations {
      const others=before.filter(n=>n!==speaker);
      lives=subject==="He"||subject==="She"?{subject,owner:others.length===1?others[0] ?? null:null,others}:{subject,owner:subject,others:[]};
     }
-    out.push({turn,speaker,text,lives});
+    out.push(this.withBirchLabStage(page,{turn,speaker,text,lives}));
    }
    for(const n of namedIn(page.text))if(!before.includes(n))before.push(n);
   }
@@ -189,7 +201,7 @@ export class StoryDestinations {
  // The latest story line naming a place, with each place it names resolved against the map table from map `here`.
  // retire: the story checklist retires the quote only when its resolved place's native milestone is finished.
  // A newer place-naming line supersedes it through latest(); incidental later dialogue does not.
- goal(here:MapId,player:string|null,callId:string,places:readonly Place[],retire=false,story:GameStateSnapshot["story"]=null):StoryGoal|null {
+ goal(here:MapId,player:string|null,callId:string,places:readonly Place[],retire=false,story:GameStateSnapshot["story"]=null,stageBound=false):StoryGoal|null {
   const heads=headsOf(places);
   const line=this.latest(callId,heads,player);
   if(line===null)return null;
@@ -210,25 +222,26 @@ export class StoryDestinations {
   for(const phrase of placePhrases(line.text,heads,[...NAMES,...(player===null?[]:[player]),...(line.scriptedPlaces??[]).map(place=>place.quote)]))
    resolved.push({quote:`"${phrase}"`,...resolve(words(phrase.split(" ")),places,here,"no map in the game's map table has this name.")});
   const targets=resolved.flatMap(r=>r.target===null?[]:[r.target]);
-  const doneReason=retire?retirement(targets,story??null):null;
+  const doneReason=stageBound?stageRetirement(line,targets,story??null)??(retire?retirement(targets,story??null):null):retire?retirement(targets,story??null):null;
   return doneReason===null?{line,resolved}:{line,resolved,done:true,doneReason};
  }
- block(state:GameStateSnapshot,callId:string,places:readonly Place[]|Error,retireLab=false):string|null {
+ block(state:GameStateSnapshot,callId:string,places:readonly Place[]|Error,retireLab=false,stageBound=false):string|null {
   if(!state.started||state.screen!=="overworld"||state.in_battle||state.map_id===null)return null;
   // Which line names a place depends on the map table's name endings, so without the table no line is
   // picked: one plain line instead of a guess or a looser rule.
   if(places instanceof Error)return this.latest(callId,null,state.name)===null?null:`${STORY_HEADER}: not known; the game's map table could not be read (${places.message}).`;
-  const goal=this.goal(state.map_id,state.name,callId,places,retireLab,state.story??null);
+  const goal=this.goal(state.map_id,state.name,callId,places,retireLab,state.story??null,stageBound);
   if(goal===null)return null;
+  if(stageBound&&goal.done===true)return null;
   const quote=`${STORY_HEADER} (turn ${String(goal.line.turn)}, ${goal.line.speaker}): "${goal.line.text}"`;
   if(goal.done===true)return [quote,staleNote(goal.doneReason)].join("\n");
   return [quote,...goal.resolved.map(r=>`- ${r.quote}${r.text}`)].join("\n");
  }
  // The readout with the block inserted after its Story line (after Location/Position without one).
- annotate(text:string,state:GameStateSnapshot,callId:string,places:readonly Place[]|Error,retireLab=false):string {
+ annotate(text:string,state:GameStateSnapshot,callId:string,places:readonly Place[]|Error,retireLab=false,stageBound=false):string {
   const anchor=/^Story: .*$/m.exec(text)??/^Location: .*$(?:\nPosition: .*$)?/m.exec(text);
   if(anchor===null)return text;
-  const block=this.block(state,callId,places,retireLab);
+  const block=this.block(state,callId,places,retireLab,stageBound);
   if(block===null)return text;
   const end=anchor.index+anchor[0].length;
   return `${text.slice(0,end)}\n${block}${text.slice(end)}`;
@@ -285,6 +298,13 @@ function retirement(targets:readonly Place[],story:GameStateSnapshot["story"]):s
   return true;
  });
  return covered?cited.join("; "):null;
+}
+
+function stageRetirement(line:StoryLine,targets:readonly Place[],story:GameStateSnapshot["story"]):string|null {
+ const current=story?.birch_lab_stage;
+ if(line.birchLabStage===undefined||current===null||current===undefined)return null;
+ if(line.birchLabStage>=3||current<3||targets.length===0||!targets.every(isBirchLab))return null;
+ return "Birch starter handoff complete";
 }
 
 const same=(a:MapId,b:MapId)=>a[0]===b[0]&&a[1]===b[1];

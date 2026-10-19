@@ -244,12 +244,12 @@ describe("battle-menu-loop-v1 registry", () => {
   it("is a default-off guard with no dependency, recorded third to last", () => {
     expect(featureInfo(ID)).toMatchObject({group: "guard", needs: null, switchable: true});
     expect(featureInfo(ID).description).toContain(" Off: ");
-    expect(SWITCHABLE_FEATURES.at(-9)).toBe(ID);
-    expect(playHarnessFeatures(ALL_ON, null).at(-9)).toBe(ID);
+    expect(SWITCHABLE_FEATURES.at(-10)).toBe(ID);
+    expect(playHarnessFeatures(ALL_ON, null).at(-10)).toBe(ID);
     expect(playHarnessFeatures({...ALL_ON, [ID]: false}, null)).not.toContain(ID);
     expect(flagFeatures({loopGuard: true, activeUi: true, interfaceDocs: true, objectives: true})[ID]).toBe(false);
     const raw = JSON.parse(readFileSync(fileURLToPath(new URL("../../../experiments/battle-menu-loop.json", import.meta.url)), "utf8")) as {incumbent: {features: Record<string, boolean>}};
-    expect(Object.keys(raw.incumbent.features)).toEqual(SWITCHABLE_FEATURES.filter(id=>id!=="just-in-time-prompt-v2"));
+    expect(Object.keys(raw.incumbent.features)).toEqual(SWITCHABLE_FEATURES.filter(id=>id!=="just-in-time-prompt-v2"&&id!=="faced-interaction-history-v1"));
     const entry = parseExperiment(raw);
     expect(entry.queuePosition).toBeUndefined();
     expect(entry.changedFeature).toBe(ID);

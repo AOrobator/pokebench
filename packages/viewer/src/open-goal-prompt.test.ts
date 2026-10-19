@@ -83,7 +83,7 @@ it("the pending experiment's incumbent is exactly the bundle-v-control bundle co
   expect(arm).toMatchObject({ start: { kind: "save_state" }, limits: { maxWallMs: 7_200_000 } });
   expect(raw.incumbent.features[ID]).toBe(false);
   expect(arm.features[ID]).toBe(true);
-  expect(without(raw.incumbent.features, ID)).toEqual(without(arm.features, ID));
+  expect(without(raw.incumbent.features, ID)).toEqual(without(arm.features, ID, "faced-interaction-history-v1"));
 });
 
 it("every diagnostic number on the explainer comes from the tracked per-run manifest", () => {

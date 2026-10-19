@@ -127,6 +127,7 @@ export const SWITCHABLE_FEATURES = [
   "dialog-button-b-v1",
   "just-in-time-prompt-v1",
   "just-in-time-prompt-v2",
+  "faced-interaction-history-v1",
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
 
@@ -333,6 +334,7 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("dialog-button-b-v1", "guidance", "DIALOGUE BUTTON B", null, "Bundle arm only. Adds a system-prompt section that makes B the button for a message. Pressing A on the field starts whatever you face (FieldInputHandling calls TryStartInteractionScript only for pressedAButton, field_control_avatar.c), so the same sign or person speaks again. B advances or closes a message (Std_MsgboxSign's waitbuttonpress; TextPrinterWait accepts A or B) and does not start that script. The section says to press B for a message and, once you can walk, to leave instead of pressing A in front of what you just read. Names no character, place or story step. Off: the prompt is unchanged."),
   on("just-in-time-prompt-v1", "guidance", "JUST IN TIME PROMPT", null, "Default off. Before every live model request, selects instructions and tools for the most recently recorded screen. Naming keeps the keyboard guide; the clock keeps its controls; battles keep battle rules and battle_action; the field keeps navigation and map rules. Unknown screens retain the full prompt and tools. Each response records the exact request prompt and tool hashes with the source state. Off: the existing full prompt and tool list are sent unchanged."),
   on("just-in-time-prompt-v2", "guidance", "JUST IN TIME PROMPT V2", null, "Default off. Keeps a stable cross-scene system core and the full tool catalog. Appends scoped interface guidance after the latest observation on startup, scene change or context-window eviction; retains earlier guidance unchanged while its observation survives. Unknown interfaces add no guide or full fallback. Records exact guidance, source state and character sizes. Supersedes v1 when both are selected. Off: the existing full or v1 request path is unchanged."),
+  on("faced-interaction-history-v1", "guard", "FACED INTERACTION HISTORY", null, "Bundle arm only, default off. When a press batch moves or turns before A and dialogue auto-advance records its first page as coming from the faced target or faced sprite, the loop supervisor marks the target faced in that page's exact recorded state as tried. Backgrounds and signs use their map tile; people retain their map-local object identity. On run 2026-10-18T01-30-48_qwen36-gpu1_cdb1, turn 84 read the television at (4,1) with LEFT,LEFT,LEFT,UP,A, but the turn-93 supervisor note still called it untried. With this switch on, the television is no longer listed while untouched furniture remains. A page without faced-target attribution changes nothing. Off: only a request whose entire button list is one A marks the faced target tried, so a movement-plus-A interaction can remain listed as untried."),
   measured("story-milestones-v2", "STORY MILESTONES",
     "Records each story milestone the game's own state confirms, with its turn and time. This feeds splits and the score."),
   measured("clock-milestone-v1", "CLOCK MILESTONE",
@@ -509,6 +511,7 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("dialog-button-b-v1"),
     ...when("just-in-time-prompt-v1"),
     ...when("just-in-time-prompt-v2"),
+    ...when("faced-interaction-history-v1"),
   ];
 }
 

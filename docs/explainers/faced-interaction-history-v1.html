@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Faced interaction history</title>
+<style>
+:root{color-scheme:light dark;--bg:#f5f2ea;--paper:#fffdf7;--ink:#20231f;--muted:#646b61;--line:#bbb9ae;--bad:#b44532;--good:#16745b;--accent:#315eaa;--soft:#e9e4d8}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}.page{width:min(760px,calc(100% - 32px));margin:40px auto 72px}h1{font-size:clamp(2rem,7vw,3.6rem);line-height:1.02;letter-spacing:-.045em;margin:0 0 16px}h2{margin:42px 0 12px;font-size:1.35rem}p{margin:10px 0}.lede{font-size:1.16rem;color:var(--muted)}code{font:0.9em ui-monospace,SFMono-Regular,Menlo,monospace;background:var(--soft);padding:.1em .35em;border-radius:4px}.figure{margin:18px 0 28px;border:1px solid var(--line);border-radius:14px;background:var(--paper);overflow:auto}.figure svg{display:block;min-width:700px;width:100%;height:auto}.caption{padding:12px 16px;border-top:1px solid var(--line);color:var(--muted);font-size:.9rem}.facts{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.fact{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:14px}.fact b{display:block;font-size:1.35rem}.status{border-left:4px solid var(--accent);padding:2px 0 2px 14px}@media(max-width:560px){.page{width:min(100% - 24px,760px);margin-top:24px}.facts{grid-template-columns:1fr}.figure{margin-left:0;margin-right:0}}@media(prefers-color-scheme:dark){:root{--bg:#151815;--paper:#20241f;--ink:#f2f0e9;--muted:#b6bcb1;--line:#4a5047;--bad:#f08a72;--good:#65d4ad;--accent:#8db3ff;--soft:#30362e}}
+</style>
+</head>
+<body>
+<main class="page">
+<h1>Faced interaction history</h1>
+<p class="lede"><code>faced-interaction-history-v1</code> keeps the loop supervisor’s exploration ledger consistent with dialogue the run actually recorded.</p>
+
+<div class="facts">
+ <div class="fact"><b>Turn 84</b>the television was read</div>
+ <div class="fact"><b>Turn 93</b>it was called untried</div>
+ <div class="fact"><b>1 source</b>explicit faced-target attribution</div>
+</div>
+
+<h2>The recorded contradiction</h2>
+<p>Run <code>2026-10-18T01-30-48_qwen36-gpu1_cdb1</code> sent <code>LEFT, LEFT, LEFT, UP, A</code>. Its first dialogue page was attributed to the faced television at (4,1): “MOM might like this program.” The next loop note listed that same television under “not tried yet.”</p>
+<div class="figure">
+<svg viewBox="0 0 700 260" role="img" aria-labelledby="before-title before-desc">
+ <title id="before-title">The old ledger loses the target of a button batch</title>
+ <desc id="before-desc">A movement and A batch reads the television, but the old rule only recognizes a request containing one A, so the untried list keeps the television.</desc>
+ <defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0L8 4L0 8z" fill="var(--muted)"/></marker></defs>
+ <rect x="24" y="30" width="188" height="92" rx="12" fill="var(--soft)" stroke="var(--line)"/>
+ <text x="42" y="58" fill="var(--ink)" font-family="monospace" font-size="14">LEFT LEFT LEFT UP A</text>
+ <text x="42" y="84" fill="var(--muted)" font-size="14">player ends at (4,2)</text>
+ <text x="42" y="106" fill="var(--muted)" font-size="14">facing television (4,1)</text>
+ <path d="M214 76H303" stroke="var(--muted)" stroke-width="2" marker-end="url(#arrow)"/>
+ <rect x="306" y="30" width="172" height="92" rx="12" fill="var(--soft)" stroke="var(--line)"/>
+ <text x="324" y="58" fill="var(--ink)" font-size="14">2 dialogue pages</text>
+ <text x="324" y="84" fill="var(--good)" font-size="14">speaker: television</text>
+ <text x="324" y="106" fill="var(--good)" font-size="14">source: faced_target</text>
+ <path d="M480 76H558" stroke="var(--muted)" stroke-width="2" marker-end="url(#arrow)"/>
+ <rect x="562" y="30" width="114" height="92" rx="12" fill="var(--soft)" stroke="var(--line)"/>
+ <text x="578" y="59" fill="var(--bad)" font-size="14">old rule</text>
+ <text x="578" y="84" fill="var(--ink)" font-size="14">batch ≠ [A]</text>
+ <text x="578" y="106" fill="var(--bad)" font-size="14">not marked</text>
+ <rect x="171" y="165" width="358" height="64" rx="12" fill="none" stroke="var(--bad)" stroke-width="2"/>
+ <text x="190" y="192" fill="var(--ink)" font-size="14">Not tried yet: PC; notebook; GameCube;</text>
+ <text x="190" y="214" fill="var(--bad)" font-size="14">region map; television at 4,1</text>
+</svg>
+<div class="caption">OFF reproduces this behavior exactly. The raw event log was correct; only the supervisor’s derived ledger was inconsistent.</div>
+</div>
+
+<h2>The switched rule</h2>
+<div class="figure">
+<svg viewBox="0 0 700 280" role="img" aria-labelledby="after-title after-desc">
+ <title id="after-title">The new rule uses exact recorded attribution</title>
+ <desc id="after-desc">The first page points to a recorded state. Faced-target attribution allows the supervisor to resolve the target at that state and mark only that target tried.</desc>
+ <defs><marker id="arrow2" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0L8 4L0 8z" fill="var(--accent)"/></marker></defs>
+ <rect x="24" y="24" width="176" height="86" rx="12" fill="var(--soft)" stroke="var(--line)"/>
+ <text x="42" y="53" fill="var(--ink)" font-size="14">first dialogue page</text>
+ <text x="42" y="78" fill="var(--good)" font-size="14">faced_target</text>
+ <text x="42" y="99" fill="var(--muted)" font-size="14">state_seq 1563</text>
+ <path d="M202 67H270" stroke="var(--accent)" stroke-width="2" marker-end="url(#arrow2)"/>
+ <rect x="274" y="24" width="174" height="86" rx="12" fill="var(--soft)" stroke="var(--line)"/>
+ <text x="292" y="53" fill="var(--ink)" font-size="14">exact state</text>
+ <text x="292" y="78" fill="var(--muted)" font-size="14">at (4,2), facing up</text>
+ <text x="292" y="99" fill="var(--good)" font-size="14">target: TV at (4,1)</text>
+ <path d="M450 67H518" stroke="var(--accent)" stroke-width="2" marker-end="url(#arrow2)"/>
+ <rect x="522" y="24" width="154" height="86" rx="12" fill="var(--soft)" stroke="var(--line)"/>
+ <text x="540" y="53" fill="var(--ink)" font-size="14">ledger update</text>
+ <text x="540" y="78" fill="var(--good)" font-size="14">mark (4,1) tried</text>
+ <text x="540" y="99" fill="var(--muted)" font-size="14">nothing else</text>
+ <rect x="170" y="153" width="360" height="62" rx="12" fill="none" stroke="var(--good)" stroke-width="2"/>
+ <text x="192" y="181" fill="var(--ink)" font-size="14">Not tried yet: PC; notebook; GameCube;</text>
+ <text x="192" y="203" fill="var(--good)" font-size="14">region map</text>
+ <text x="74" y="250" fill="var(--muted)" font-size="13">No faced_target / faced_sprite attribution → no ledger change.</text>
+</svg>
+<div class="caption">ON trusts the recorder’s explicit attribution and the referenced state. It does not guess from the first position in the batch or merely from the presence of an A button.</div>
+</div>
+
+<h2>Scope and status</h2>
+<p>The switch starts off by default, stays off in the fixed control, and is appended to the <code>bundle-v-control</code> bundle arm. It changes loop-supervisor, stall-briefing, and text-only-supervisor history because those surfaces share the same ledger.</p>
+<p class="status">Prepared as a correctness-tier repair. The recorded replay proves the classification. No standalone run is approved or launched.</p>
+</main>
+</body>
+</html>

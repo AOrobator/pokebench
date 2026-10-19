@@ -161,7 +161,7 @@ export class SupervisorBriefing {
    const where=call.before??after;
    this.remember(this.room(where),roomOf(where,this.features),label,this.outcome(call.before,after,auto?.pages??[]));
    if(call.before!==null&&this.room(call.before)===this.room(after)&&this.moved(call.before,after))this.touchSteppedTrigger(after);
-   if(this.exits!==null)this.scriptedTrigger(call,after,auto);
+   if(this.exits!==null||this.features["faced-interaction-history-v1"])this.scriptedTrigger(call,after,auto);
   }
   for(const page of auto?.pages??[])this.heard.add(this.pageOpening(page));
   const dialogue=after.world_context?.dialogue;
@@ -205,9 +205,10 @@ export class SupervisorBriefing {
  // briefing-exits-v1: every recorded overworld state can take an exit (a map change) or step onto a step trigger
  // (any two consecutive recorded states, not only a result's). Arriving on a trigger through a warp, or standing on it, is still not trying it.
  private exitFacts(state:State):void {
-  if(this.exits===null)return;
+  if(this.exits===null&&!this.features["faced-interaction-history-v1"])return;
   this.recent.set(state.seq,state);
   if(this.recent.size>64)this.recent.delete(this.recent.keys().next().value??-1);
+  if(this.exits===null)return;
   for(const mark of this.exits.observe(state))this.pendingTouches.push(mark);
   const p=state.position;
   if(!state.started||state.screen!=="overworld"||p===null)return;
@@ -237,7 +238,15 @@ export class SupervisorBriefing {
   const first=pages[0];
   const opened=first?.state_seq==null?undefined:this.recent.get(first.state_seq);
   const person=opened===undefined?null:this.faced(opened);
-  if(opened!==undefined&&person?.object!=null&&(sent.at(-1)==="A"||first?.speaker_source==="faced_sprite"))this.touch(this.room(opened),objectKey(person.object));
+  const attributed=first?.speaker_source==="faced_target"||first?.speaker_source==="faced_sprite";
+  const recordedFaced=this.features["faced-interaction-history-v1"]&&opened!==undefined&&person!==null&&attributed;
+  if(recordedFaced){
+   this.touch(this.room(opened),person.tile);
+   if(person.object!==null)this.touch(this.room(opened),objectKey(person.object));
+  }
+  // Enabling faced interaction history must not also enable briefing-exits-v1's legacy object or push-back inference.
+  if(this.exits===null)return;
+  if(!recordedFaced&&opened!==undefined&&person?.object!=null&&(sent.at(-1)==="A"||first?.speaker_source==="faced_sprite"))this.touch(this.room(opened),objectKey(person.object));
   const step=sent[0]===undefined?undefined:STEP[sent[0].toLowerCase()];
   if(step===undefined||!sent.every(b=>STEP[b.toLowerCase()]!==undefined)||before.field_controls_locked===true)return;
   const x=before.position.x+step[0],y=before.position.y+step[1];

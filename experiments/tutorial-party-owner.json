@@ -8,7 +8,7 @@
  "primaryMilestone": "WALLY_TUTORIAL_COMPLETE",
  "source": {
   "checkout": "main",
-  "commit": "a5d83397d11badf4bb0bfa1ea72e0b225e0fdec7"
+  "commit": "5055c0330f05a7c953cdf82e42b5c14a807314b9"
  },
  "incumbent": {
   "version": 2,

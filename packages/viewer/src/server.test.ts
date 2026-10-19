@@ -9,8 +9,9 @@ import type { RunEvent } from "@pokebench/agent/events";
 import { Log, START, fullRun, state } from "../test-support/events.js";
 import { rivalRam, writeArchive } from "../test-support/raw-ram.js";
 import { QUEUE_FEATURES } from "../test-support/experiments.js";
-import { BROWSER_MODULES, HOST, startViewer, type Viewer } from "./server.js";
+import { BROWSER_MODULES, HOST, frameClientReady, startViewer, type Viewer } from "./server.js";
 import { parseWorkbench } from "./workbench-data.js";
+import WebSocket, { WebSocketServer } from "ws";
 
 const PNG = Buffer.from(
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
@@ -88,6 +89,54 @@ async function fakeGameServer(body: unknown, status = 200): Promise<number> {
   await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
   open.push({ close: () => new Promise<void>((resolve) => server.close(() => { resolve(); })) });
   return (server.address() as AddressInfo).port;
+}
+
+async function fakeFrameGameServer(
+  frame: unknown = { frame_data: PNG.toString("base64"), frame_count: 2 },
+  acceptedPath = "/pokebench/frames",
+): Promise<number> {
+  const server = createServer();
+  const sockets = new WebSocketServer({ noServer: true });
+  server.on("upgrade", (request, socket, head) => {
+    if (request.url !== acceptedPath) { socket.end("HTTP/1.1 404 Not Found\r\nConnection: close\r\n\r\n"); return; }
+    sockets.handleUpgrade(request, socket, head, (client) => sockets.emit("connection", client, request));
+  });
+  sockets.on("connection", (client) => {
+    const frames = Array.isArray(frame) ? frame : [frame];
+    frames.forEach((payload, index) => {
+      setTimeout(() => {
+        if (client.readyState === WebSocket.OPEN) client.send(JSON.stringify(payload));
+      }, index * 10);
+    });
+  });
+  await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+  open.push({ close: () => new Promise<void>((resolve) => {
+    for (const client of sockets.clients) client.terminate();
+    sockets.close(() => { server.close(() => { resolve(); }); });
+  }) });
+  return (server.address() as AddressInfo).port;
+}
+
+function frameSocket(viewer: Viewer, path: string, origin = viewer.url.slice(0, -1), host = `${HOST}:${String(viewer.port)}`): WebSocket {
+  return new WebSocket(`ws://${HOST}:${String(viewer.port)}${path}`, { headers: { origin, host } });
+}
+
+function firstFrame(socket: WebSocket): Promise<Buffer> {
+  return new Promise((resolve, reject) => {
+    socket.once("message", (data, binary) => {
+      if (binary) resolve(Buffer.from(data as Buffer));
+      else reject(new Error("frame was not binary"));
+    });
+    socket.once("error", reject);
+  });
+}
+
+function rejected(socket: WebSocket): Promise<number> {
+  return new Promise((resolve, reject) => {
+    socket.once("unexpected-response", (_req, response) => { response.resume(); resolve(response.statusCode ?? 0); });
+    socket.once("open", () => { reject(new Error("socket unexpectedly opened")); });
+    socket.once("error", () => undefined);
+  });
 }
 
 async function closedPort(): Promise<number> {
@@ -280,6 +329,75 @@ describe("viewer server", () => {
     expect(screen.body.equals(PNG)).toBe(true);
   });
 
+  it("proxies the owned live run's upstream frames as bounded binary PNG messages", async () => {
+    const { runsRoot, viewer } = await fixture();
+    const live = new Log(); live.add(0, START);
+    writeRun(runsRoot, "live", live, await fakeFrameGameServer());
+    const socket = frameSocket(viewer, "/api/runs/live/frames");
+    open.push({ close: () => { socket.terminate(); return Promise.resolve(); } });
+    expect((await firstFrame(socket)).equals(PNG)).toBe(true);
+  });
+
+  it("keeps the downstream socket open after a successful send callback", async () => {
+    const { runsRoot, viewer } = await fixture();
+    const live = new Log(); live.add(0, START);
+    const frames = [1, 2, 3].map((frame_count) => ({ frame_data: PNG.toString("base64"), frame_count }));
+    writeRun(runsRoot, "live", live, await fakeFrameGameServer(frames));
+    const socket = frameSocket(viewer, "/api/runs/live/frames");
+    open.push({ close: () => { socket.terminate(); return Promise.resolve(); } });
+    const received = await new Promise<number>((resolve, reject) => {
+      let count = 0;
+      const timeout = setTimeout(() => { reject(new Error(`received only ${String(count)} frames`)); }, 1_000);
+      socket.on("message", (_data, binary) => {
+        if (!binary) { clearTimeout(timeout); reject(new Error("frame was not binary")); return; }
+        count += 1;
+        if (count === frames.length) { clearTimeout(timeout); resolve(count); }
+      });
+      socket.once("error", reject);
+    });
+    expect(received).toBe(frames.length);
+  });
+
+  it("falls back to the pinned vendor frame route for already-running game servers", async () => {
+    const { runsRoot, viewer } = await fixture();
+    const live = new Log(); live.add(0, START);
+    writeRun(runsRoot, "live", live, await fakeFrameGameServer(undefined, "/ws/frames"));
+    const socket = frameSocket(viewer, "/api/runs/live/frames");
+    open.push({ close: () => { socket.terminate(); return Promise.resolve(); } });
+    expect((await firstFrame(socket)).equals(PNG)).toBe(true);
+  });
+
+  it("rejects frame sockets from foreign origins, ended or missing runs, and other paths", async () => {
+    const { runsRoot, viewer } = await fixture();
+    const live = new Log(); live.add(0, START);
+    writeRun(runsRoot, "live", live, await fakeFrameGameServer());
+    writeRun(runsRoot, "done", fullRun(), await fakeFrameGameServer());
+    expect(await rejected(frameSocket(viewer, "/api/runs/live/frames", "http://evil.example"))).toBe(403);
+    const missingOrigin = new WebSocket(`ws://${HOST}:${String(viewer.port)}/api/runs/live/frames`, { headers: { host: `${HOST}:${String(viewer.port)}` } });
+    expect(await rejected(missingOrigin)).toBe(403);
+    expect(await rejected(frameSocket(viewer, "/api/runs/done/frames"))).toBe(409);
+    expect(await rejected(frameSocket(viewer, "/api/runs/missing/frames"))).toBe(404);
+    expect(await rejected(frameSocket(viewer, "/api/runs/live/not-frames"))).toBe(404);
+  });
+
+  it("accepts an explicitly configured published origin and matching Host", async () => {
+    const base = mkdtempSync(join(tmpdir(), "pokebench-viewer-public-frame-"));
+    const runsRoot = join(base, "runs"); mkdirSync(runsRoot);
+    const live = new Log(); live.add(0, START);
+    writeRun(runsRoot, "live", live, await fakeFrameGameServer());
+    const viewer = await startViewer({ runsRoot, staticDir: base, appDir: base, port: 0, publicOrigins: ["https://viewer.example"] });
+    open.push(viewer);
+    const socket = frameSocket(viewer, "/api/runs/live/frames", "https://viewer.example", "viewer.example");
+    open.push({ close: () => { socket.terminate(); return Promise.resolve(); } });
+    expect((await firstFrame(socket)).equals(PNG)).toBe(true);
+  });
+
+  it("drops an obsolete frame while the downstream socket still has buffered bytes", () => {
+    expect(frameClientReady({ readyState: WebSocket.OPEN, bufferedAmount: 0 })).toBe(true);
+    expect(frameClientReady({ readyState: WebSocket.OPEN, bufferedAmount: 1 })).toBe(false);
+    expect(frameClientReady({ readyState: WebSocket.CLOSING, bufferedAmount: 0 })).toBe(false);
+  });
+
   it("refuses the live screen for an ended run and reports an unreachable or malformed server", async () => {
     const { runsRoot, viewer } = await fixture();
     writeRun(runsRoot, "done", fullRun());
@@ -319,6 +437,14 @@ it("serves read-only workbench data from actual recorded runs, without prompts o
   const data = parseWorkbench(JSON.parse(reply.body.toString()) as unknown);
   expect(data.runs[0]?.id).toBe("recorded"); expect(data.runs[0]?.config?.source).toBe(START.harness.commit); expect(reply.body.toString()).not.toContain('"system_prompt"');
   expect((await get(viewer, "/api/workbench/../secrets")).status).not.toBe(200);
+});
+
+it("serves a validated lightweight card projection without changing the full workbench API", async () => {
+  const { runsRoot, viewer } = await fixture(); writeRun(runsRoot, "recorded", fullRun());
+  const full = await get(viewer, "/api/workbench"), cards = await get(viewer, "/api/cards?run=recorded");
+  const projected = parseWorkbench(JSON.parse(cards.body.toString()) as unknown);
+  expect(cards.status).toBe(200); expect(projected.runs[0]?.id).toBe("recorded");
+  expect(projected.runs[0]?.measurement).toBeUndefined(); expect(cards.body.length).toBeLessThan(full.body.length);
 });
 
 

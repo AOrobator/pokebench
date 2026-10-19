@@ -1,5 +1,45 @@
 # Server stream and emulator frame-rate regression
 
+## Phase 2: two-run 60 FPS optimization
+
+Operator direction on 2026-10-19: keep the existing TypeScript/Python architecture (no Rust rewrite), optimize it with parallel specialist review, and prove the result under two concurrent runs. The nominal real-time target is 59.7275 emulated frames per second per run; viewer presentation must use bounded latest-frame delivery rather than accumulating stale frames.
+
+### Phase-2 ground truth
+
+- The live viewer deliberately refreshes its screenshot URL every 500 ms, limiting visible motion to 2 FPS.
+- Direct read-only WebSocket sampling observed roughly 4.5 emulated frames/s in each active game server while the viewer was under load, although `/status` returned the configured `80` rather than measured throughput.
+- `/api/workbench` returns 5,058,554 bytes on every five-second refresh. Observed recomputation-bound responses took 0.62–0.86 s; cache hits took about 0.016–0.019 s.
+- A growing live log invalidates the workbench cache and is reduced from byte zero. Polling a log whose length grows linearly therefore performs quadratic cumulative byte work over run duration.
+- The vendor game loop obtains a screenshot every frame and PNG/base64-encodes every second frame for its WebSocket cache even with no WebSocket consumers; the PokeBench viewer separately polls and re-encodes `/screenshot`.
+
+### Phase-2 invariants
+
+- INV-6: After initial validation, a live event-log byte is parsed at most once per viewer process; appends are incremental and total reduction work is linear in bytes appended.
+- INV-7: Frame delivery is bounded and latest-frame-only. A slow or absent viewer cannot create a frame backlog or consume per-frame encoding work.
+- INV-8: Performance work preserves event order, schema validation, run/replay status, terminal semantics, and every model-visible observation and action.
+- INV-9: Configured `/status` cadence is not accepted as throughput proof; acceptance measures source `frame_count` against monotonic wall time.
+- INV-10: Acceptance requires a two-run soak with the real candidate viewer, actual achieved-frame measurements, browser-visible frames, bounded memory, and preserved shared run processes. Unit tests or configured FPS alone are insufficient.
+
+### Phase-2 plan
+
+- [x] Replace growing-log whole-history reductions with an incremental reducer/checkpoint or an equivalently linear design, with a mutation-sensitive byte-read test.
+- [x] Remove frame encoding when there are no subscribers and replace 2 FPS polling with bounded push delivery where safely possible.
+- [x] Audit game-loop pacing, per-frame hooks, native-memory reads, locks, allocations and compression with an independent game-engine reviewer.
+- [x] Run focused and full gates, then verify startup, live selection, frames, return navigation, polling stability, console and build identity in an owned browser preview.
+- [x] Measure two simultaneous servers with the candidate viewer and report achieved FPS separately from display FPS; do not disturb or relabel existing campaign recordings.
+
+### Phase-2 evidence
+
+- The live reducer now tails only appended bytes after its initial validated read, retaining partial lines and incremental SHA-256 state. Normal cumulative work changes from Θ(total-log-bytes × polls) (quadratic as a log grows linearly) to Θ(total-log-bytes); inode replacement, truncation, same-size rewrite, and evidence-identity change deliberately trigger a full O(n) rebuild. Mutation and terminal-eviction tests cover those reset paths.
+- The app polls a card projection rather than the full workbench. On the live two-run set the selected card payload was 24,822 bytes versus 510,942 bytes for the cached full workbench (20.6× smaller). Rich data is retained for selected/live cards; peer identities stay minimal.
+- Frame PNG/base64 encoding is disabled with no subscriber. With a subscriber, the producer publishes each completed source frame and uses the emulator's real core frame counter. The viewer uses same-origin binary WebSocket push with one frame in flight, drops obsolete frames under backpressure, and falls back to the pinned `/ws/frames` route for already-running older games.
+- A regression test sends three frames through the viewer socket and proves it remains open after successful `ws` callbacks. This caught the browser failure where `ws` reports success as `null` and the proxy incorrectly treated every successful first frame as an error.
+- Game-loop pacing is an absolute-deadline schedule (`max(work, period)`), scoped to the game-loop thread; unrelated sleeps and model-visible behavior remain unchanged. The new `/pokebench/frames` route also uses absolute 60 Hz deadlines rather than adding serialization and send time to every 16 ms sleep.
+- Two isolated candidate games ran concurrently for 30 seconds from the same checkpoint. Each delivered exactly 1,800 messages: lane A 60.00 FPS (source 80.01 FPS, p50 16.53 ms, p95 18.17 ms); lane B 60.00 FPS (source 80.01 FPS, p50 16.72 ms, p95 18.09 ms). Before the deadline route the same lanes delivered 55.50 and 55.25 FPS despite the same ~80 FPS source cadence.
+- Owned-browser proof on candidate port 8799 selected each live campaign lane and observed a distinct `blob:` frame URL with the visible note `live`; returning to the first lane recovered another `blob:` frame. Console output contained no application error or warning (only unrelated extension warnings). Already-running game servers exercised the legacy-route fallback.
+- Final frozen-tree gates pass: lint (TypeScript/ESLint plus Ruff, format and mypy over 94 Python files); tests (agent 2,567, viewer 1,244, Python 2,743); coverage (agent 97.86/94.09/98.31 statements/branches/functions, viewer 95.18/91.07/93.89, Python 97.09/92.73/100 lines/branches/functions); build; vendor integrity; and whitespace validation.
+- The isolated measurement servers were stopped. Shared campaign game PIDs 32038/32039 and their artifacts were not restarted or relabelled; only the owned candidate viewer on port 8799 was used for browser proof.
+
 ## Scope
 
 Repair the load-sensitive viewer event-stream failure and the dramatic emulator frame-rate regression reported on 2026-10-19. Preserve the running campaign while replacing only the viewer after the candidate is proven. This is performance/reliability work: it changes neither model-visible behavior nor benchmark capability, so it needs no feature switch or experiment entry.

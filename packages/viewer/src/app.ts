@@ -25,15 +25,30 @@ export interface StreamLike {
   close(): void;
 }
 
+export interface FrameStreamLike {
+  binaryType: string;
+  addEventListener(type: string, listener: (event: { data?: unknown; code?: number; reason?: string }) => void): void;
+  close(): void;
+}
+
 export interface AppDeps {
   fetchJson(url: string): Promise<unknown>;
   sendJson(method: "POST" | "PUT", url: string, body: unknown): Promise<unknown>;
   openStream(url: string): StreamLike;
+  openFrameStream?(url: string): FrameStreamLike;
+  frameUrl?(data: unknown): string;
+  revokeFrameUrl?(url: string): void;
   now(): number;
   readonly hash: string;
   // The trainer cards' game font: the glyph sheet's pixels, and putting painted text on a canvas.
   loadGlyphSheet?(url: string): Promise<GlyphSheet | null>;
   drawGlyphs?(canvas: HTMLCanvasElement, pixels: GlyphPixels): void;
+}
+
+export function frameSocketUrl(path: string, pageHref: string): string {
+  const target = new URL(path, pageHref);
+  target.protocol = target.protocol === "https:" ? "wss:" : "ws:";
+  return target.href;
 }
 
 export type Mode = "loading" | "live" | "replay" | "idle";
@@ -50,7 +65,6 @@ interface RunChoice {
   readonly live?: boolean;
 }
 
-const LIVE_SCREEN_MS = 500;
 const TRACE_TURNS = 50;
 const SIDE_TURNS = 30;
 
@@ -192,6 +206,7 @@ export class App {
   private artLoad: Promise<void> | null = null;
   private workbench: WorkbenchData | null = null;
   private workbenchLoad: Promise<void> | null = null;
+  private workbenchSelection: string | null = null;
   // The cards replace the live-run buttons; the run list refreshes every few seconds and must not bring them back.
   private readonly cardHtml = new WeakMap<Element, string>();
   // Set when the newest run is opened; a later refresh may list a newer one first.
@@ -220,8 +235,10 @@ export class App {
   private readonly heldAtTop = new Set<HTMLElement>();
   private readonly autoScroll = new WeakMap<HTMLElement, number>();
   private rows: RowState = { open: new Set(), folded: new Set(), selected: null };
-  private screenTick = 0;
-  private sinceScreen = 0;
+  private frameStream: FrameStreamLike | null = null;
+  private frameUrl: string | null = null;
+  private readonly retiredFrameUrls: string[] = [];
+  private frameConnecting = false;
   private liveFailedAt: number | null = null;
   private readonly html = new Map<HTMLElement, string>();
   // Hold-to-confirm abort: when X (or the button) went down; null when released.
@@ -258,6 +275,66 @@ export class App {
   // recorded frame in the backlog briefly appears as if the live run replayed.
   private get liveScreen(): boolean {
     return this.mode === "live" || (this.mode === "loading" && this.runs.some((run) => run.id === this.runId && isLive(run)));
+  }
+
+  private closeFrameStream(): void {
+    const stream = this.frameStream;
+    this.frameStream = null;
+    this.frameConnecting = false;
+    stream?.close();
+    if (this.frameUrl !== null) {
+      this.deps.revokeFrameUrl?.(this.frameUrl);
+      this.frameUrl = null;
+    }
+    for (const url of this.retiredFrameUrls.splice(0)) this.deps.revokeFrameUrl?.(url);
+  }
+
+  private failFrameStream(stream: FrameStreamLike): void {
+    if (this.frameStream !== stream) return;
+    this.liveFailedAt = this.deps.now();
+    this.closeFrameStream();
+    this.renderScreen(this.deps.now());
+  }
+
+  private ensureFrameStream(nowMs: number): void {
+    if (!this.liveScreen || this.runId === null || this.deps.openFrameStream === undefined) {
+      if (!this.liveScreen) this.closeFrameStream();
+      return;
+    }
+    if (this.frameStream !== null || (this.liveFailedAt !== null && nowMs - this.liveFailedAt < LIVE_RETRY_MS)) return;
+    const stream = this.deps.openFrameStream(`/api/runs/${encodeURIComponent(this.runId)}/frames`);
+    stream.binaryType = "arraybuffer";
+    this.frameStream = stream;
+    this.frameConnecting = true;
+    stream.addEventListener("open", () => {
+      if (this.frameStream !== stream) return;
+      this.frameConnecting = false;
+      this.liveFailedAt = null;
+      this.renderScreen(this.deps.now());
+    });
+    stream.addEventListener("message", (event) => {
+      if (this.frameStream !== stream || this.deps.frameUrl === undefined) return;
+      let next: string;
+      try { next = this.deps.frameUrl(event.data); }
+      catch { this.failFrameStream(stream); return; }
+      const previous = this.frameUrl;
+      this.frameUrl = next;
+      this.liveFailedAt = null;
+      this.renderScreen(this.deps.now());
+      // SVG image loading is asynchronous. Keep a short grace window so a
+      // 60 FPS replacement cannot revoke the URL the browser is still decoding.
+      if (previous !== null) this.retiredFrameUrls.push(previous);
+      if (this.retiredFrameUrls.length > 8) this.deps.revokeFrameUrl?.(this.retiredFrameUrls.shift() as string);
+    });
+    stream.addEventListener("error", () => {
+      this.problem("live frame stream error");
+      this.failFrameStream(stream);
+    });
+    stream.addEventListener("close", (event) => {
+      const detail = event.code === undefined ? "" : ` (${String(event.code)}${event.reason === undefined || event.reason === "" ? "" : `: ${event.reason}`})`;
+      this.problem(`live frame stream closed${detail}`);
+      this.failFrameStream(stream);
+    });
   }
 
   async control(action: ControlAction): Promise<void> {
@@ -457,9 +534,11 @@ export class App {
   }
 
   private loadWorkbench(): Promise<void> {
-    if (this.workbenchLoad !== null) return this.workbenchLoad;
-    const load = this.deps.fetchJson("/api/workbench")
-      .then((value) => { this.workbench = parseWorkbench(value); this.render(); })
+    const selected = this.runId;
+    if (this.workbenchLoad !== null) return this.workbenchSelection === selected ? this.workbenchLoad : this.workbenchLoad.then(() => this.loadWorkbench());
+    this.workbenchSelection = selected;
+    const load = this.deps.fetchJson(`/api/cards${selected === null ? "" : `?run=${encodeURIComponent(selected)}`}`)
+      .then((value) => { if (this.runId === selected) { this.workbench = parseWorkbench(value); this.render(); } })
       .catch(() => { /* keep the last snapshot; the comparisons page reports workbench problems */ })
       .finally(() => { if (this.workbenchLoad === load) this.workbenchLoad = null; });
     this.workbenchLoad = load;
@@ -652,9 +731,6 @@ export class App {
     this.picker("baseline").addEventListener("change", (event) => {
       void this.pickBaseline((event.target as HTMLSelectElement).value);
     });
-    this.ui("screen").addEventListener("error", () => {
-      if (this.liveScreen) this.liveFailedAt = this.deps.now();
-    });
   }
 
   private filterFeatures(): void {
@@ -757,6 +833,7 @@ export class App {
     this.extensionPending = null;
     this.extensionMessage = "";
     this.stream?.close();
+    this.closeFrameStream();
     this.runId = runId;
     this.comparisonRequest += 1; this.comparisonsRun = null;
     this.following = automatic || (this.runs[0]?.id === runId && this.runs[0].ended !== true);
@@ -789,6 +866,8 @@ export class App {
     if (comparisons !== null) comparisons.href = `/comparisons?from=${encodeURIComponent(runId)}`;
     const stream = this.deps.openStream(`/api/runs/${encodeURIComponent(runId)}/events`);
     this.stream = stream;
+    this.ensureFrameStream(this.deps.now());
+    void this.pollCards();
     void this.loadRecordedThinking(runId);
     stream.addEventListener("ev", (message) => {
       if (this.stream !== stream) return;
@@ -815,6 +894,7 @@ export class App {
     stream.addEventListener("done", () => {
       stream.close();
       if (this.stream !== stream) return;
+      this.closeFrameStream();
       if (this.mode !== "replay") this.startReplay(true);
       this.render();
     });
@@ -871,11 +951,7 @@ export class App {
       this.holdStart = null;
       void this.control("abort");
     }
-    this.sinceScreen += realMs;
-    if (this.sinceScreen >= LIVE_SCREEN_MS) {
-      this.sinceScreen = 0;
-      this.screenTick += 1;
-    }
+    this.ensureFrameStream(this.deps.now());
     this.render();
   }
 
@@ -1007,8 +1083,8 @@ export class App {
     let note = recorded === "" ? "no frame yet" : "recorded frame";
     if (this.liveScreen) {
       const failed = this.liveFailedAt !== null && nowMs - this.liveFailedAt < LIVE_RETRY_MS;
-      href = failed ? recorded : `/api/runs/${id}/screen?n=${String(this.screenTick)}`;
-      note = failed ? "live screen unavailable · last frame" : "live";
+      href = this.frameUrl ?? recorded;
+      note = this.frameUrl !== null ? "live" : failed ? "live stream unavailable · last frame" : this.frameConnecting ? "live stream connecting · last frame" : "live stream unavailable · last frame";
     }
     if (screen.getAttribute("href") !== href) screen.setAttribute("href", href);
     this.ui("screen-note").textContent = note;
@@ -1117,9 +1193,12 @@ export async function mountApp(doc: Document, deps: AppDeps): Promise<App> {
 
 export interface BootWindow {
   readonly document: Document;
-  readonly location: { readonly hash: string };
+  readonly location: { readonly hash: string; readonly href: string };
   fetch(url: string, init?: RequestInit): Promise<Response>;
   readonly EventSource: new (url: string) => StreamLike;
+  readonly WebSocket: new (url: string) => FrameStreamLike;
+  readonly Blob: new (parts?: BlobPart[], options?: BlobPropertyBag) => Blob;
+  readonly URL: Pick<typeof URL, "createObjectURL" | "revokeObjectURL">;
   setInterval(handler: () => void, ms: number): unknown;
   readonly performance: { now(): number };
 }
@@ -1138,6 +1217,12 @@ export async function boot(win: BootWindow): Promise<App> {
       return reply;
     },
     openStream: (url) => new win.EventSource(url),
+    openFrameStream: (url) => new win.WebSocket(frameSocketUrl(url, win.location.href)),
+    frameUrl: (data) => {
+      if (!(data instanceof ArrayBuffer)) throw new Error("live frame was not binary");
+      return win.URL.createObjectURL(new win.Blob([data], { type: "image/png" }));
+    },
+    revokeFrameUrl: (url) => { win.URL.revokeObjectURL(url); },
     now: () => Date.now(),
     hash: win.location.hash,
     loadGlyphSheet: browserGlyphSheet(win.document),

@@ -64,7 +64,7 @@ async function mount(width: number, options: { art?: boolean; fresh?: boolean; g
       if (url === "/api/runs") return Promise.resolve(options.runs ?? RUNS);
       if (url === "/sprites/manifest.json") return options.art === false ? Promise.reject(new Error("GET /sprites/manifest.json returned HTTP 404")) : Promise.resolve(MANIFEST);
       if (url === "/sprites/font/glyphs.json") return Promise.resolve(FONT);
-      if (url === "/api/workbench") return workbenchDown ? Promise.reject(new Error("GET /api/workbench returned HTTP 500")) : Promise.resolve(workbench);
+      if (url.startsWith("/api/cards")) return workbenchDown ? Promise.reject(new Error("GET /api/cards returned HTTP 500")) : Promise.resolve(workbench);
       if (url === "/api/features") return Promise.resolve({ features: [], milestones: [] });
       if (url === "/api/next-run") return Promise.resolve({ draft: { model: "", thinking: "medium", maxTurns: 300, maxWallMs: 1_800_000, failureLimit: 3, maxTokens: 4096, target: null, features: {} }, queue: { state: "idle" } });
       if (url === "/api/models") return Promise.resolve({ models: [] });
@@ -239,7 +239,7 @@ describe("trainer cards in the viewer", () => {
     const { app } = await mount(1280, { art: false });
     await app.pollCards();
     expect(ui("run-cards").hidden).toBe(true); expect(document.querySelector('[data-ui="live-runs"]')).toBeNull();
-    expect(fetched).toContain("/api/workbench");
+    expect(fetched).toContain(`/api/cards?run=${encodeURIComponent(LIVE_ID)}`);
     setWidth(375); app.tick(0);
     expect(ui("run-sheet-body").querySelector(".rs-now, .rs-other")).toBeNull();
     expect(ui("run-sheet-body").textContent).toContain("Loading trainer cards");

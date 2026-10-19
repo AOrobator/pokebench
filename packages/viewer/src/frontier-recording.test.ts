@@ -1,15 +1,30 @@
-import { cpSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { appendFileSync, cpSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { basename, join } from "node:path";
 import { rivalRam, writeArchive } from "../test-support/raw-ram.js";
 import { describe, expect, it } from "vitest";
 import { parseEvent } from "@pokebench/agent/events";
 import { StateMilestones, qualifiedNativeMilestone } from "../../agent/src/milestones.js";
-import { readNativeRecording } from "./frontier-recording.js";
+import { createNativeRecordingTailer, readNativeRecording } from "./frontier-recording.js";
 import { RunView } from "./model.js";
 import { Log, START, assistant, state } from "../test-support/events.js";
 function write(raw: string): string { const path = join(mkdtempSync(join(tmpdir(), "native-frontier-")), "events.jsonl"); writeFileSync(path, raw); return path; }
 describe("bounded native recording reduction", () => {
+  it("reduces only appended bytes while preserving torn-line, hash, ordering, and terminal parity", () => {
+    const log = new Log(); log.add(0, START); log.add(100, assistant()); log.add(200, state());
+    log.add(300, { type: "run_end", turn: 1, reason: "budget", furthest_milestone: null, turns: 1, wall_ms: 300, tokens: { input: 500, output: 100 }, frames: { saved: 0, bytes: 0 } });
+    const lines = log.events.map(event => JSON.stringify(event)), prefix = lines.slice(0, 2).join("\n") + "\n", suffix = lines.slice(2).join("\n") + "\n";
+    const tornAt = Math.floor(suffix.length / 2), path = write(prefix + suffix.slice(0, tornAt)), reads: { offset: number; bytes: number }[] = [];
+    const tailer = createNativeRecordingTailer(path, log.events[0]?.run ?? "", qualifiedNativeMilestone, undefined, false, (offset, bytes) => reads.push({ offset, bytes }));
+    const first = tailer.read(), firstBytes = Buffer.byteLength(prefix + suffix.slice(0, tornAt));
+    expect(first.view.end).toBeNull(); expect(first.measurement.logBytes).toBe(firstBytes);
+    const beforeAppendReads = reads.length;
+    appendFileSync(path, suffix.slice(tornAt));
+    const incremental = tailer.read(), complete = readNativeRecording(path, log.events[0]?.run ?? "", qualifiedNativeMilestone);
+    expect(reads.slice(beforeAppendReads).every(read => read.offset >= firstBytes)).toBe(true);
+    expect(incremental).toEqual(complete);
+    expect(incremental.view.end?.reason).toBe("budget");
+  });
   it("uses actual recorded native states and preserves active/raw timing without retaining replay history", () => {
     const raw: unknown = JSON.parse(readFileSync(new URL("../test-support/frontier-reference.json", import.meta.url), "utf8"));
     if (typeof raw !== "object" || raw === null || !("human" in raw) || typeof raw.human !== "object" || raw.human === null || !("events" in raw.human) || !Array.isArray(raw.human.events)) throw new Error("fixture");

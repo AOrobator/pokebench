@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {NAME_CONFIRMED} from "../../agent/test-support/events.js";
 import { parseEvent, type RunEvent } from "@pokebench/agent/events";
 import { BASE_MS, Log, START, assistant, fullRun, m4Run, must, state } from "../test-support/events.js";
-import { boot, mountApp, type App, type AppDeps, type StreamLike } from "./app.js";
+import { boot, frameSocketUrl, mountApp, type App, type AppDeps, type FrameStreamLike, type StreamLike } from "./app.js";
 
 const PAGE = readFileSync(join(import.meta.dirname, "../static/index.html"), "utf8");
 // The ★ NEXT RUN page loads these on mount; tests of the watch view answer them.
@@ -43,10 +43,29 @@ class FakeStream implements StreamLike {
   }
 }
 
+class FakeFrameStream implements FrameStreamLike {
+  binaryType = "blob";
+  closed = false;
+  private readonly listeners = new Map<string, ((event: { data?: unknown }) => void)[]>();
+
+  constructor(readonly url: string) {}
+
+  addEventListener(type: string, listener: (event: { data?: unknown }) => void): void {
+    this.listeners.set(type, [...(this.listeners.get(type) ?? []), listener]);
+  }
+
+  close(): void { this.closed = true; }
+  send(type: string, data?: unknown): void {
+    for (const listener of this.listeners.get(type) ?? []) listener({ data });
+  }
+}
+
 interface Harness {
   readonly app: App;
   readonly streams: FakeStream[];
+  readonly frames: FakeFrameStream[];
   readonly fetched: string[];
+  readonly revoked: string[];
   readonly setNow: (ms: number) => void;
 }
 
@@ -59,6 +78,8 @@ const RUNS = [
 async function harness(hash = "", runs: unknown[] = RUNS, workbench: unknown = null, heads: Readonly<Record<string, unknown>> = {}): Promise<Harness> {
   document.body.innerHTML = PAGE.slice(PAGE.indexOf("<body>") + 6, PAGE.indexOf("</body>"));
   const streams: FakeStream[] = [];
+  const frames: FakeFrameStream[] = [];
+  const revoked: string[] = [];
   const fetched: string[] = [];
   let now = BASE_MS;
   const deps: AppDeps = {
@@ -67,7 +88,7 @@ async function harness(hash = "", runs: unknown[] = RUNS, workbench: unknown = n
       if (next !== null) return next;
       fetched.push(url);
       if (url === "/api/runs") return runs.length === 1 && runs[0] === "fail" ? Promise.reject(new Error("offline")) : Promise.resolve([...runs]);
-      if (url === "/api/workbench") return workbench === null ? Promise.reject(new Error("workbench unavailable")) : Promise.resolve(workbench);
+      if (url.startsWith("/api/cards")) return workbench === null ? Promise.reject(new Error("workbench unavailable")) : Promise.resolve(workbench);
       if (url.endsWith("/head")) {
         const id = decodeURIComponent(url.split("/")[3] ?? "");
         return id in heads ? Promise.resolve(heads[id]) : Promise.reject(new Error("recorded head unavailable"));
@@ -84,6 +105,13 @@ async function harness(hash = "", runs: unknown[] = RUNS, workbench: unknown = n
       streams.push(stream);
       return stream;
     },
+    openFrameStream: (url) => {
+      const stream = new FakeFrameStream(url);
+      frames.push(stream);
+      return stream;
+    },
+    frameUrl: (data) => `blob:frame-${String(data)}`,
+    revokeFrameUrl: (url) => { revoked.push(url); },
     now: () => now,
     hash,
   };
@@ -91,7 +119,9 @@ async function harness(hash = "", runs: unknown[] = RUNS, workbench: unknown = n
   return {
     app,
     streams,
+    frames,
     fetched,
+    revoked,
     setNow: (ms) => {
       now = ms;
     },
@@ -310,7 +340,7 @@ describe("viewer app", () => {
   });
 
   it("follows a live run with the live screen and the wall clock", async () => {
-    const { app, streams, setNow } = await harness();
+    const { app, streams, frames, setNow } = await harness();
     const live = fullRun().events.slice(0, 4);
     feed(must(streams[0]), live);
     expect(app.mode).toBe("live");
@@ -318,9 +348,11 @@ describe("viewer app", () => {
     expect((ui("play") as HTMLButtonElement).disabled).toBe(true);
     expect(ui("replay-controls").hidden).toBe(true);
     setNow(BASE_MS + 3_500);
+    must(frames[0]).send("open");
+    must(frames[0]).send("message", "one");
     app.tick(500);
     expect(ui("think-head").textContent).toBe("AGENT is thinking… 2.5s");
-    expect(ui("screen").getAttribute("href")).toMatch(/^\/api\/runs\/2026-10-11T23-00-00_live\/screen\?n=\d+$/);
+    expect(ui("screen").getAttribute("href")).toBe("blob:frame-one");
     expect(ui("screen-note").textContent).toBe("live");
     const more = fullRun().events.slice(4, 10);
     feed(must(streams[0]), more, false);
@@ -330,14 +362,38 @@ describe("viewer app", () => {
   });
 
   it("falls back to the last recorded frame when the live screen fails", async () => {
-    const { app, streams, setNow } = await harness();
+    const { app, streams, frames, setNow, revoked } = await harness();
     feed(must(streams[0]), fullRun().events.slice(0, 10));
     setNow(BASE_MS + 4_000);
-    app.tick(500);
-    ui("screen").dispatchEvent(new Event("error"));
+    must(frames[0]).send("message", "one");
+    must(frames[0]).send("error");
     app.tick(100);
     expect(ui("screen").getAttribute("href")).toBe("/api/runs/2026-10-11T23-00-00_live/frames/000009_0.png");
-    expect(ui("screen-note").textContent).toBe("live screen unavailable · last frame");
+    expect(ui("screen-note").textContent).toBe("live stream unavailable · last frame");
+    expect(revoked).toEqual(["blob:frame-one"]);
+    expect(frames[0]?.closed).toBe(true);
+    setNow(BASE_MS + 9_100);
+    app.tick(5_000);
+    expect(frames[1]?.url).toBe("/api/runs/2026-10-11T23-00-00_live/frames");
+  });
+
+  it("presents pushed frames without polling and retains a short decode grace window", async () => {
+    const { app, streams, frames, fetched, revoked } = await harness();
+    feed(must(streams[0]), fullRun().events.slice(0, 4));
+    const socket = must(frames[0]);
+    expect(socket.url).toBe("/api/runs/2026-10-11T23-00-00_live/frames");
+    expect(socket.binaryType).toBe("arraybuffer");
+    socket.send("message", "one");
+    for (let i = 0; i < 10; i += 1) app.tick(1_000);
+    expect(ui("screen").getAttribute("href")).toBe("blob:frame-one");
+    expect(ui("screen").getAttribute("href")).not.toContain("/screen?");
+    expect(fetched.every((url) => !url.includes("/screen"))).toBe(true);
+    socket.send("message", "two");
+    expect(ui("screen").getAttribute("href")).toBe("blob:frame-two");
+    expect(revoked).toEqual([]);
+    for (const name of ["three", "four", "five", "six", "seven", "eight", "nine", "ten"]) socket.send("message", name);
+    expect(revoked).toEqual(["blob:frame-one"]);
+    expect(frames).toHaveLength(1);
   });
 
   it("switches to replay when a live run ends", async () => {
@@ -422,12 +478,13 @@ describe("viewer app", () => {
   });
 
   it("switches runs from the picker and closes the old stream", async () => {
-    const { streams } = await harness();
+    const { streams, frames } = await harness();
     feed(must(streams[0]), fullRun().events.slice(0, 4));
     const pick = ui("run") as HTMLSelectElement;
     pick.value = M4_ID;
     pick.dispatchEvent(new Event("change"));
     expect(streams[0]?.closed).toBe(true);
+    expect(frames[0]?.closed).toBe(true);
     expect(streams[1]?.url).toBe(`/api/runs/${M4_ID}/events`);
     expect(ui("trace").querySelectorAll("[data-key]").length).toBe(0);
     expect(window.location.hash).toBe(`#replay=${M4_ID}`);
@@ -436,7 +493,7 @@ describe("viewer app", () => {
   it("shows a known-live run from its screen endpoint while its event history catches up", async () => {
     const second = "2026-10-11T23-05-00_second-live";
     const runs = [RUNS[0], { id: second, model: "think-swarm", started: "x", ended: false, reason: null, problem: null }];
-    const { app, streams } = await harness("", runs);
+    const { app, streams, frames } = await harness("", runs);
     feed(must(streams[0]), fullRun().events.slice(0, 4));
 
     const pick = ui("run") as HTMLSelectElement;
@@ -444,16 +501,16 @@ describe("viewer app", () => {
     pick.dispatchEvent(new Event("change"));
 
     expect(app.mode).toBe("loading");
-    expect(ui("screen").getAttribute("href")).toMatch(new RegExp(`^/api/runs/${second}/screen\\?n=\\d+$`));
-    expect(ui("screen-note").textContent).toBe("live");
+    expect(frames[1]?.url).toBe(`/api/runs/${second}/frames`);
+    expect(ui("screen-note").textContent).toBe("live stream connecting · last frame");
     feed(must(streams[1]), fullRun().events.slice(0, 10), false);
-    app.tick(500);
-    expect(ui("screen").getAttribute("href")).toMatch(new RegExp(`^/api/runs/${second}/screen\\?n=\\d+$`));
+    must(frames[1]).send("message", "second");
+    expect(ui("screen").getAttribute("href")).toBe("blob:frame-second");
     expect(ui("replay-controls").hidden).toBe(true);
-    ui("screen").dispatchEvent(new Event("error"));
+    must(frames[1]).send("error");
     app.tick(100);
     expect(ui("screen").getAttribute("href")).toBe(`/api/runs/${second}/frames/000009_0.png`);
-    expect(ui("screen-note").textContent).toBe("live screen unavailable · last frame");
+    expect(ui("screen-note").textContent).toBe("live stream unavailable · last frame");
   });
 
   it("keeps the selected run's cached splits atomic until its event stream is caught up", async () => {
@@ -492,6 +549,27 @@ describe("viewer app", () => {
     app.clock?.seek(BASE_MS);
     app.render();
     expect(ui("split-strip").textContent).toContain("TRUCK EXIT ✔");
+  });
+
+  it("follows an in-flight card request with the newly selected run's projection", async () => {
+    const second = "2026-10-11T23-05-00_second-live", runs = [RUNS[0], { id: second, model: "think-swarm", started: "x", ended: true, reason: "budget", problem: null }];
+    document.body.innerHTML = PAGE.slice(PAGE.indexOf("<body>") + 6, PAGE.indexOf("</body>"));
+    const streams: FakeStream[] = [], requested: string[] = [], pending: ((value: unknown) => void)[] = [];
+    const minimal = (id: string) => ({ version: 1, at: BASE_MS, milestones: [], problems: [], runs: [{ id, cohort: null, arm: null, model: "think-swarm", started: "2026-10-11T23:00:00.000Z", status: "ended", reason: "budget", problem: null, excluded: null, elapsedMs: 1000, turn: 1, config: null, splits: [] }] });
+    const app = await mountApp(document, {
+      fetchJson: (url) => {
+        if (url === "/api/runs") return Promise.resolve(runs);
+        if (url.startsWith("/api/cards")) { requested.push(url); return new Promise(resolve => pending.push(resolve)); }
+        if (url.endsWith("/head")) return Promise.reject(new Error("no head"));
+        const next = nextRunReply(url); return next ?? Promise.reject(new Error(`unexpected ${url}`));
+      },
+      sendJson: noWrites, openStream: (url) => { const stream = new FakeStream(url); streams.push(stream); return stream; }, now: () => BASE_MS, hash: "",
+    });
+    expect(requested).toEqual([`/api/cards?run=${encodeURIComponent(RUNS[0]?.id ?? "")}`]);
+    app.select(second); pending.shift()?.(minimal(RUNS[0]?.id ?? ""));
+    await new Promise(resolve => { setImmediate(resolve); });
+    expect(requested).toContain(`/api/cards?run=${encodeURIComponent(second)}`);
+    pending.shift()?.(minimal(second)); await app.pollCards();
   });
 
   it("holds a stable split-loading state when the cache is unavailable, then trusts the caught-up stream", async () => {
@@ -663,7 +741,7 @@ describe("viewer app", () => {
     const streams: FakeStream[] = [];
     let headCalls = 0;
     const app = await mountApp(document, {
-      fetchJson: (url) => nextRunReply(url) ?? (url === "/api/runs" ? Promise.resolve(RUNS) : url === "/api/workbench" ? Promise.reject(new Error("workbench unavailable")) : url.endsWith("/head") ? (++headCalls === 1 ? firstHead : Promise.resolve(fresh.events.map((event) => ({ ...event, run: id })))) : Promise.reject(new Error(`unexpected ${url}`))),
+      fetchJson: (url) => nextRunReply(url) ?? (url === "/api/runs" ? Promise.resolve(RUNS) : url.startsWith("/api/cards") ? Promise.reject(new Error("workbench unavailable")) : url.endsWith("/head") ? (++headCalls === 1 ? firstHead : Promise.resolve(fresh.events.map((event) => ({ ...event, run: id })))) : Promise.reject(new Error(`unexpected ${url}`))),
       sendJson: noWrites,
       openStream: (url) => { const stream = new FakeStream(url); streams.push(stream); return stream; },
       now: () => BASE_MS,
@@ -829,13 +907,18 @@ describe("run list refresh", () => {
 });
 
 describe("boot", () => {
+  it("resolves the frame socket against the viewer origin with the matching WebSocket scheme", () => {
+    expect(frameSocketUrl("/api/runs/live/frames", "http://127.0.0.1:8790/watch")).toBe("ws://127.0.0.1:8790/api/runs/live/frames");
+    expect(frameSocketUrl("/api/runs/live/frames", "https://viewer.example/watch")).toBe("wss://viewer.example/api/runs/live/frames");
+  });
   it("wires the page to fetch, EventSource and a render interval", async () => {
     document.body.innerHTML = PAGE.slice(PAGE.indexOf("<body>") + 6, PAGE.indexOf("</body>"));
     const intervals: ((...args: unknown[]) => void)[] = [];
     const streams: FakeStream[] = [];
+    const frames: FakeFrameStream[] = [];
     const win = {
       document,
-      location: { hash: "" },
+      location: { hash: "", href: "http://127.0.0.1:8790/" },
       fetch: vi.fn((url: string) => (nextRunReply(url) ?? Promise.resolve(RUNS)).then((body) => new Response(JSON.stringify(body)))),
       EventSource: class extends FakeStream {
         constructor(url: string) {
@@ -843,6 +926,11 @@ describe("boot", () => {
           streams.push(this);
         }
       },
+      WebSocket: class extends FakeFrameStream {
+        constructor(url: string) { super(url); frames.push(this); }
+      },
+      Blob,
+      URL: { createObjectURL: () => "blob:frame", revokeObjectURL: () => undefined },
       setInterval: (fn: (...args: unknown[]) => void) => {
         intervals.push(fn);
         return 1;
@@ -852,6 +940,7 @@ describe("boot", () => {
     const app = await boot(win);
     expect(win.fetch).toHaveBeenCalledWith("/api/runs");
     expect(streams[0]?.url).toBe("/api/runs/2026-10-11T23-00-00_live/events");
+    expect(frames[0]?.url).toBe("ws://127.0.0.1:8790/api/runs/2026-10-11T23-00-00_live/frames");
     expect(intervals).toHaveLength(3);
     intervals[0]?.();
     expect(app.mode).toBe("loading");
@@ -867,9 +956,12 @@ describe("boot", () => {
     document.body.innerHTML = PAGE.slice(PAGE.indexOf("<body>") + 6, PAGE.indexOf("</body>"));
     const win = {
       document,
-      location: { hash: "" },
+      location: { hash: "", href: "http://127.0.0.1:8790/" },
       fetch: vi.fn().mockResolvedValue(new Response("{}", { status: 500 })),
       EventSource: FakeStream,
+      WebSocket: FakeFrameStream,
+      Blob,
+      URL: { createObjectURL: () => "blob:frame", revokeObjectURL: () => undefined },
       setInterval: () => 1,
       performance: { now: () => 0 },
     };
@@ -992,7 +1084,7 @@ it("does not apply comparisons from a superseded run selection", async () => {
   const pending: ((value: unknown) => void)[] = [];
   const streams: FakeStream[] = [];
   const app = await mountApp(document, {
-    fetchJson: (url) => nextRunReply(url) ?? (url === "/api/runs" ? Promise.resolve(RUNS) : url === "/api/workbench" || url.endsWith("/head") ? Promise.reject(new Error("optional snapshot unavailable")) : new Promise((resolve) => pending.push(resolve))),
+    fetchJson: (url) => nextRunReply(url) ?? (url === "/api/runs" ? Promise.resolve(RUNS) : url.startsWith("/api/cards") || url.endsWith("/head") ? Promise.reject(new Error("optional snapshot unavailable")) : new Promise((resolve) => pending.push(resolve))),
     sendJson: noWrites,
     openStream: (url) => { const stream = new FakeStream(url); streams.push(stream); return stream; }, now:()=>BASE_MS, hash:"",
   });
@@ -1014,7 +1106,7 @@ it("offers only eligible references and preserves none while comparisons are pen
   const pending: ((value:unknown)=>void)[] = [];
   const streams: FakeStream[] = [];
   const app = await mountApp(document, {
-    fetchJson:(url)=>nextRunReply(url) ?? (url === "/api/runs" ? Promise.resolve(RUNS) : url === "/api/workbench" || url.endsWith("/head") ? Promise.reject(new Error("optional snapshot unavailable")) : url.startsWith("/sprites/") ? Promise.reject(new Error("no card art")) : new Promise((resolve)=>pending.push(resolve))),
+    fetchJson:(url)=>nextRunReply(url) ?? (url === "/api/runs" ? Promise.resolve(RUNS) : url.startsWith("/api/cards") || url.endsWith("/head") ? Promise.reject(new Error("optional snapshot unavailable")) : url.startsWith("/sprites/") ? Promise.reject(new Error("no card art")) : new Promise((resolve)=>pending.push(resolve))),
     sendJson: noWrites,
     openStream:(url)=>{const s=new FakeStream(url);streams.push(s);return s;},now:()=>BASE_MS,hash:"",
   });

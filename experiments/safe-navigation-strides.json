@@ -154,7 +154,8 @@
       "trigger-script-loop-v1": true,
       "visited-terrain-navigation-v1": false,
       "safe-navigation-strides-v1": false,
-      "deterministic-warp-navigation-v1": true
+      "deterministic-warp-navigation-v1": true,
+      "battle-refusal-loop-v1": false
     }
   },
   "trialsPerArm": 8,

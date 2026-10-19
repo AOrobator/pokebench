@@ -11,9 +11,9 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from pokebench_env.action_history import FrameEmulator
 from pokebench_env.game_screen import ReadMemory
-from pokebench_env.live_map import MAP_OFFSET, read_local_map
+from pokebench_env.live_map import MAP_HEADER, MAP_OFFSET, read_local_map
 from pokebench_env.running import OBJECT_EVENTS, PLAYER_AVATAR, SAVE1, read_running_permission
-from pokebench_env.world_context import read_world_context
+from pokebench_env.world_context import read_world_context, rom_pointer
 
 PREFIX = "@POKEBENCH_STRIDE:"
 MAX_FRAMES = 224
@@ -112,6 +112,15 @@ def _safe_next(
         return False
     if any((x, y) in (position, target) for x, y, _, _ in local.warps):
         return False
+    events = int.from_bytes(read(MAP_HEADER + 4, 4), "little")
+    if not rom_pointer(events):
+        return False
+    header = read(events, 16)
+    if len(header) != 16:
+        return False
+    for count, offset in ((header[1], 8), (header[2], 12)):
+        if count and not rom_pointer(int.from_bytes(header[offset : offset + 4], "little")):
+            return False
     context = read_world_context(read, position, map_id, save, lambda _: "")
     return (
         context is not None

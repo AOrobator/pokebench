@@ -174,6 +174,16 @@ def test_ordinary_active_or_release_input_refuses_stride_admission():
         assert server.action_queue == []
 
 
+@pytest.mark.parametrize("offset", [1, 2])
+def test_missing_warp_or_coordinate_table_is_unknown_not_safe_floor(offset):
+    api, server, m, emu, body, applied = setup()
+    m.put(0x08501000 + offset, b"\x01")
+    assert request(api, "/pokebench/stride", body)[0] == 200
+    emu.run_frame_with_buttons([start(server)])
+    assert applied == [[]]
+    assert receipt(api)["reason"] == "corridor changed or unsafe"
+
+
 def test_budget_and_unexpected_displacement_stop_without_new_direction():
     for mode in ("budget", "teleport", "unreadable"):
         api, server, m, emu, body, applied = setup()

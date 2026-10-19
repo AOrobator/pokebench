@@ -470,6 +470,7 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "jit-guide-reuse-v1":"jit-guide-reuse-v1.html",
  "scripted-place-guidance-v1":"scripted-place-guidance-v1.html",
  "trigger-script-loop-v1":"trigger-script-loop-v1.html",
+ "battle-refusal-loop-v1":"battle-refusal-loop-v1.html",
  "battle-effective-damage-v1":"battle-effective-damage-v1.html",
  "deterministic-warp-navigation-v1":"deterministic-warp-navigation-v1.html",
 });

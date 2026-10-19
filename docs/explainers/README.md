@@ -125,4 +125,6 @@ The original ignored runs/explainers copies remain for existing links. Make futu
 
 - [Extend an active run (operator control)](extend-run.html)
 
+- [Battle action refusals](battle-refusal-loop-v1.html): default-OFF semantic refusal coverage using the existing rejection lifecycle.
+
 - [Safe planned navigation strides](safe-navigation-strides-v1.html)

@@ -15,16 +15,17 @@ import type {StridePlan,StrideReceipt} from "./stride.js";
 const running={permitted:true,controllable:true,reason:"permitted",shoes:true,allow_running:true,avatar_flags:1,metatile:0,elevation:3,map_type:3,callback1:0x08085E05,callback2:0x08085E5D,diagnostic:null,raw_hex:null};
 const initial:GameStateSnapshot={...IN_GAME,started:true,screen:"overworld",in_battle:false,active_ui:null,field_controls_locked:false,map_id:[0,9],position:{x:0,y:0},facing:"down",running,map_grid:{elevation:3,width:12,height:6,rows:Array.from({length:6},()=>"0300".repeat(12)),objects:[],warps:[]},navigation_grid:{elevation:3,tiles:Array.from({length:72},(_,i)=>({x:i%12,y:Math.floor(i/12),collision:0,behavior:0,elevation:3})),objects:[],warps:[]}};
 const png=Buffer.alloc(33);Buffer.from([137,80,78,71,13,10,26,10]).copy(png);png.write("IHDR",12);png.writeUInt32BE(240,16);png.writeUInt32BE(160,20);
-async function invoke(on:boolean,options:{badReceipt?:boolean;interrupted?:boolean;changed?:boolean}={}){
+async function invoke(on:boolean,options:{badReceipt?:boolean;interrupted?:boolean;changed?:boolean;queueFailure?:boolean;onCancel?:()=>void}={}){
  let current=initial,reads=0;const posts:{url:string;body:unknown}[]=[],plans:StridePlan[]=[],modifiers:PressModifiers[]=[],receipts=new Map<string,StrideReceipt>();
  const fetchFn:typeof fetch=(input,init)=>{const url=typeof input==="string"?input:input instanceof URL?input.href:input.url;let body:unknown=current;
   if(url.endsWith("/pokebench/state")){reads++;if(options.changed&&reads>0)current={...current,running:{...running,controllable:false}};body=current;}
+  else if(url.endsWith("/cancel")){options.onCancel?.();body={status:"success"};}
   else if(init?.method==="POST"){
    if(typeof init.body!=="string")throw new Error("Missing body");const p:unknown=JSON.parse(init.body);posts.push({url,body:p});
    if(url.endsWith("/stride")){const plan=p as StridePlan&{automatic_running:boolean};plans.push(plan);const end=plan.path.at(-1);if(end===undefined)throw new Error("Empty stride");current={...current,position:end};receipts.set(plan.id,{...plan,completed:options.interrupted?0:plan.path.length,frames:32,reason:options.interrupted?"corridor changed or unsafe":"completed",stopped:true});}
    else{const buttons=(p as {buttons:string[]}).buttons;const d=buttons[0];const a=current.position;if(a===null)throw new Error("Missing position");current={...current,position:{x:a.x+(d==="RIGHT"?2:d==="LEFT"?-2:0),y:a.y+(d==="DOWN"?2:d==="UP"?-2:0)}};}
    body={status:"success"};
-  }else if(url.endsWith("/queue_status"))body={queue_empty:true};
+  }else if(url.endsWith("/queue_status")){if(options.queueFailure)throw new Error("queue transport failed");body={queue_empty:true};}
   else if(url.includes("/pokebench/stride/")){const receipt=receipts.get(url.split("/").at(-1)??"");body=options.badReceipt?{...receipt,path:[]} : receipt;}
   else if(url.endsWith("/pokebench/observation"))body={state:current,state_text:"field",screenshot_base64:png.toString("base64")};
   return Promise.resolve(new Response(JSON.stringify(body)));
@@ -55,3 +56,5 @@ it("does not continue after a terminal partial stride or accept a mismatched rec
  const partial=await invoke(true,{interrupted:true});expect(partial.posts).toHaveLength(1);expect(JSON.stringify(partial.result)).toContain("corridor changed or unsafe");
  await expect(invoke(true,{badReceipt:true})).rejects.toThrow("matching terminal receipt");
 });
+
+it("cancels the native corridor if queue completion fails",async()=>{let cancelled=0;await expect(invoke(true,{queueFailure:true,onCancel:()=>{cancelled++;}})).rejects.toThrow("queue transport failed");expect(cancelled).toBe(1);});

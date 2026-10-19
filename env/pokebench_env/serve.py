@@ -278,7 +278,11 @@ def run(
         battle_wait = BattleWait(observation[2], levelup_box=LEVELUP_BOX not in off)
         install_battle_wait(frames, battle_wait)
     if actions is not None:
-        install_action_history(*actions)
+        install_action_history(
+            *actions,
+            tutorial_owner_enabled="tutorial-party-owner-v1"
+            not in features_off_from_env(os.environ),
+        )
     if travel is not None:
         install_travel(
             *travel,

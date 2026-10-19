@@ -1,0 +1,13 @@
+{
+  "run": "2026-10-19T06-09-37-608Z_qwen36-gpu0_petalburg2h-r1-whole-map",
+  "state_seq": 971,
+  "turn": 47,
+  "archive": {
+    "v": 1,
+    "sequence": 886,
+    "frame": 128062,
+    "sha256": "dd4751a13785965e5d98cf374ab7026d61e639bb3188811b4aaaa8291b87016e",
+    "path": "raw-ram/00000886.json.gz"
+  },
+  "rom_sha1": "f3ae088181bf583e55daf962a92bb46f4f1d07b7"
+}

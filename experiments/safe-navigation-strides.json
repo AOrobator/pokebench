@@ -8,7 +8,7 @@
   "primaryMilestone": "RUSTBORO_CITY",
   "source": {
     "checkout": "main",
-    "commit": "a6274650f46a1b8fa550752f795544dc938a6065"
+    "commit": "a0950397c21b7c53c7e930d770dfd80b8349bbed"
   },
   "incumbent": {
     "version": 2,
@@ -172,5 +172,5 @@
     "window": 4,
     "minReached": 3
   },
-  "notes": "Pending, unqueued, unapproved. Source is preparation base; repin after reviewed landing. Correctness repair addresses recorded two-tile running strides rejected by the incumbent single-tile executor. Historical last50 median=2 sampled tiles/call is descriptive and not a randomized control. The >=4 tile target must be evaluated on a common frozen build/start/budget, with zero calls retained and arrivals, transitions, refusals, native stride boundaries and story progress reported separately. Checkpoint design, horizon, power and operator approval are required before a measured comparison. Native owned emulator probes are engineering correctness verification only."
+  "notes": "Pending, unqueued, unapproved. Source pins the reviewed stride implementation. Operator enabled safe strides in the canonical bundle treatment on 2026-10-19; control and global defaults remain OFF. This is an operator-selected bundle change, not a measured promotion. Correctness repair addresses recorded two-tile running strides rejected by the incumbent single-tile executor. Historical last50 median=2 sampled tiles/call is descriptive and not a randomized control. The >=4 tile target must be evaluated on a common frozen build/start/budget, with zero calls retained and arrivals, transitions, refusals, native stride boundaries and story progress reported separately. Checkpoint design, horizon, power and operator approval are required before a measured comparison. Native owned emulator probes are engineering correctness verification only."
 }

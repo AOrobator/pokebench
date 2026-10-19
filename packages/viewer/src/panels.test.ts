@@ -1266,5 +1266,5 @@ it("links the safe navigation stride card to its native corridor contract",()=>{
  const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
  expect(doc.querySelector(`[data-feature="${id}"] a`)?.getAttribute("href")).toBe(`/explainers/${id}.html`);
  const html=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)),"utf8");
- for(const text of ["eight tiles","224-frame ceiling","Default OFF","script coordinate","model chooses"])expect(html).toContain(text);
+ for(const text of ["eight tiles","224-frame ceiling","Bundle ON","Control OFF","General default OFF","script coordinate","model chooses"])expect(html).toContain(text);
 });

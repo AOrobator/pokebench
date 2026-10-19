@@ -66,6 +66,8 @@ M1 RED independently repeated by parent: targeted run-catalog-cache.test.ts exit
 
 Synced current main f5518aae into the candidate before implementation. Other chats landed evolution/safe-stride features during investigation; these are not this task's changes. Original performance receipts stay bound to the earlier frozen source. Candidate optimization comparisons must use matched source/schema on both arms, not attribute main's intervening changes to this patch.
 
+M2 RED independently repeated by parent after sync: memory_reader existing+bulk tests exit1,35fail/5pass. Failures expose absent optional fast_read, read_canonical_ram and production make_memory_reader wiring; original reader tests pass. New tests cover exact copied spans, full-region bounds, no native resolution for aliases/I/O/ROM/Flash/cross-boundaries/invalid inputs, NULL/wrong-size fallback, fresh pointer/core ownership, unchanged raw-region archive reader and actual serve.main injection. COMMIT planned: `test: specify canonical RAM bulk-read parity` (RED). M1 implementation is proceeding on disjoint TypeScript files; no benchmark is running during correctness tests.
+
 No active campaign settings changed in this phase.
 
 Production changes require RED/GREEN, full gates and frozen review before landing; unavailable reviewer lanes remain unavailable unless operator grants a specific exception.

@@ -11,7 +11,7 @@ const off = (...ids: (typeof SWITCHABLE_FEATURES)[number][]): FeatureSet => ({ .
 
 it("registers three default-off observation switches with no dependency, recorded last in this order", () => {
   expect(SWITCHABLE_FEATURES.slice(-53,-50)).toEqual([...IDS]);
-  expect(playHarnessFeatures(ALL_ON, null).slice(-46,-43)).toEqual([...IDS]);
+  expect(playHarnessFeatures(ALL_ON, null).slice(-47,-44)).toEqual([...IDS]);
   for (const id of IDS) {
     expect(featureInfo(id)).toMatchObject({ group: "observation", needs: null, switchable: true });
     expect(featureInfo(id).description).toContain(" Off: ");

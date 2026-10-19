@@ -22,8 +22,8 @@ describe("registry and presets",()=>{
  it("appends the five switches, in order, at the end of every registry list",()=>{
   expect(SWITCHABLE_FEATURES.slice(-34,-29)).toEqual([...NEW]);
   expect(FEATURES.filter(f=>f.switchable).map(f=>f.id).slice(-34,-29)).toEqual([...NEW]);
-  expect(playHarnessFeatures(ALL_ON,null).slice(-27,-22)).toEqual([...NEW]);
-  expect(SERVER_FEATURES.slice(-7,-2)).toEqual([...NEW]);
+  expect(playHarnessFeatures(ALL_ON,null).slice(-28,-23)).toEqual([...NEW]);
+  expect(SERVER_FEATURES.slice(-8,-3)).toEqual([...NEW]);
  });
  it.each(NEW)("%s is a server observation switch, bundle arm only, whose description says what OFF does",(name)=>{
   const info=featureInfo(id(name));

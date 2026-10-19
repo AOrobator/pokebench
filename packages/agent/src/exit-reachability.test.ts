@@ -14,7 +14,7 @@ import type {AgentTool,AgentToolResult} from "@mariozechner/pi-agent-core";
 import {FEATURES,SERVER_FEATURES,featureInfo,featuresOf,playHarnessFeatures,serverFeatureEnv,type FeatureSet} from "./features.js";
 import {flagFeatures,normalizeFeatures} from "./play-preset.js";
 import {parseGameState,type GameStateSnapshot} from "./game-state.js";
-import {withNavigation} from "./navigation.js";
+import {MAX_FULL_ROUTE_COMMANDS,navigationTool,withNavigation} from "./navigation.js";
 import {exitReach} from "./surf-gate.js";
 import {loopSupervisor,playGameTools} from "./play-wiring.js";
 import {UntakenExits} from "./untaken-exits.js";
@@ -76,13 +76,21 @@ describe("exit-reachability-v1: 'call navigate_to again' stays for a goal on foo
   expect((await navigate(NAV,s,{x:11,y:0},"walk")).status).toBe(CONTINUE);
   expect((await navigate({...NAV,[ID]:true},s,{x:11,y:0},"walk")).status).toBe(CONTINUE);
  });
- it("whole map: a serpentine route longer than the 512-press bound",async()=>{
-  const rows=Array.from({length:31},(_,y)=>y%2===0?".".repeat(40):y%4===1?"#".repeat(39)+".":"."+"#".repeat(39));
-  const s=field(rows,{x:0,y:0});
-  const features={...NAV,"full-map-navigation-v1":true};
-  const off=await navigate(features,s,{x:39,y:30},"walk"),on=await navigate({...features,[ID]:true},s,{x:39,y:30},"walk");
-  expect(off.status).toMatch(/^command limit: stopped at \(\d+,\d+\) after 512 ordinary button attempts, the most one navigate_to call makes; call navigate_to again to continue to \(39,30\)$/);
-  expect(on.status).toBe(off.status);
+ it("whole map: command-limit guidance is identical ON and OFF at an injected tiny bound",async()=>{
+  expect(MAX_FULL_ROUTE_COMMANDS).toBe(512);
+  const initial=field(["............"],{x:0,y:0});
+  const statuses:string[]=[];
+  for(const enabled of [false,true]){
+   let current=initial,presses=0;
+   const tool=navigationTool({fullMap:true,truth:true,exitReach:enabled,maxCommands:3,
+    read:()=>Promise.resolve(current),observe:()=>Promise.resolve(result(current)),
+    press:(_id,params)=>{expect(params.buttons).toEqual(["RIGHT"]);presses++;current={...current,position:{x:presses,y:0}};return Promise.resolve(result(current));}});
+   const output=await tool.execute("bounded-full-map",{x:11,y:0,map_id:[0,9]});
+   expect(presses).toBe(3);
+   expect(output.details).toMatchObject({navigation:{commands:3,status:"command limit: stopped at (3,0) after 3 ordinary button attempts, the most one navigate_to call makes; call navigate_to again to continue to (11,0)"}});
+   statuses.push(output.content.flatMap(part=>part.type==="text"?[part.text]:[]).join("\n"));
+  }
+  expect(statuses[1]).toBe(statuses[0]);
  });
 });
 

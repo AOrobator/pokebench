@@ -532,9 +532,14 @@ export async function cohortIndex(root: string, experimentsDir: string = join(di
 // experimentsDir holds the definitions that label the EXPERIMENT dropdown (the repo's experiments/ next to runs/).
 // partial: serve what is loaded now (a grown log keeps its previous record until its reload lands)
 // and report the rest as still loading, instead of waiting for a cold cache.
-export async function workbenchSnapshot(root: string, healthy: HealthProbe, now: number, experimentsDir: string = join(dirname(root), "experiments"), loader: WorkbenchLoader = defaultLoader, mode: { partial?: boolean } = {}): Promise<WorkbenchData> {
+export async function workbenchSnapshot(root: string, healthy: HealthProbe, now: number, experimentsDir: string = join(dirname(root), "experiments"), loader: WorkbenchLoader = defaultLoader, mode: { partial?: boolean; cards?: { selected: string | null; live: ReadonlySet<string> } } = {}): Promise<WorkbenchData> {
   const cohorts = await cohortMembership(root); const summaries = listRuns(root);
-  const found = mode.partial === true ? summaries.map(s => loader.current(root, s.id)) : await Promise.all(summaries.map(s => loader.load(root, s.id)));
+  // The run page needs rich card state only for the selected and health-confirmed live runs. Experiment peers need
+  // only the identity recorded in run_start, which listRuns already read. Do not replay every historical
+  // log after each viewer build merely to replace those peers with the same lightweight card stubs.
+  const reduced = mode.cards === undefined ? summaries : summaries.filter(s => s.id === mode.cards?.selected || mode.cards?.live.has(s.id) === true);
+  const reducedIds = mode.cards === undefined ? null : new Set(reduced.map(s => s.id));
+  const found = mode.partial === true ? reduced.map(s => loader.current(root, s.id)) : await Promise.all(reduced.map(s => loader.load(root, s.id)));
   const loadedRuns = found.filter((l): l is Loaded => l !== null), waiting = found.length - loadedRuns.length, definitions = experimentDefinitions(experimentsDir, root);
   const tagged = taggedCohorts(loadedRuns.flatMap(l => l.tag === null ? [] : [{ run: l.run.id, experiment: l.tag.experiment, commit: l.tag.commit, started: l.run.started }]), definitions);
   const newest = new Map<number, { id: string; at: number }>();
@@ -560,6 +565,10 @@ export async function workbenchSnapshot(root: string, healthy: HealthProbe, now:
     const failure = cohorts.failures.get(run.id) ?? (own === undefined ? undefined : cohorts.named.get(run.id) ?? cohorts.unverified.get(run.id)); if (failure !== undefined) run.excluded = failure;
     return run;
   }));
+  if (mode.cards !== undefined) for (const summary of summaries) {
+    if (reducedIds?.has(summary.id) === true || summary.cohort === undefined) continue;
+    runs.push({ id: summary.id, cohort: null, arm: null, model: null, started: null, status: "ended", reason: null, problem: null, excluded: null, elapsedMs: null, turn: 0, config: null, splits: [], experiment: { ...summary.cohort } });
+  }
   loader.forget(path => summaries.some(s => eventsPath(root, s.id) === path) || !path.startsWith(root + "/"));
   runs.sort((a, b) => Date.parse(b.started ?? "") - Date.parse(a.started ?? "") || b.id.localeCompare(a.id));
   const problems = [...(waiting > 0 ? [`Still loading ${String(waiting)} of ${String(found.length)} recorded runs; this page fills in as they finish.`] : []), ...cohorts.problems, ...runs.flatMap(run => run.status !== "invalid" && run.problem !== null ? [`Run ${run.id}: ${run.problem}`] : [])], taggedValues = new Set(tagged.cohorts.map(c => c.id)), legacy = new Map<string, WorkbenchCohort>();

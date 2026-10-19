@@ -585,7 +585,7 @@ describe("viewer app", () => {
     expect(ui("split-strip").textContent).toContain("TRUCK EXIT ✔");
   });
 
-  it("follows an in-flight card request with the newly selected run's projection", async () => {
+  it("requests the selected replay without waiting for an older in-flight card request", async () => {
     const second = "2026-10-11T23-05-00_second-live", runs = [RUNS[0], { id: second, model: "think-swarm", started: "x", ended: true, reason: "budget", problem: null }];
     document.body.innerHTML = PAGE.slice(PAGE.indexOf("<body>") + 6, PAGE.indexOf("</body>"));
     const streams: FakeStream[] = [], requested: string[] = [], pending: ((value: unknown) => void)[] = [];
@@ -600,10 +600,23 @@ describe("viewer app", () => {
       sendJson: noWrites, openStream: (url) => { const stream = new FakeStream(url); streams.push(stream); return stream; }, now: () => BASE_MS, hash: "",
     });
     expect(requested).toEqual([`/api/cards?run=${encodeURIComponent(RUNS[0]?.id ?? "")}`]);
-    app.select(second); pending.shift()?.(minimal(RUNS[0]?.id ?? ""));
+    app.select(second);
+    expect(requested).toEqual([`/api/cards?run=${encodeURIComponent(RUNS[0]?.id ?? "")}`, `/api/cards?run=${encodeURIComponent(second)}`]);
+    const refresh = app.pollCards();
+    pending[1]?.(minimal(second));
+    await refresh;
+    expect(ui("split-strip").textContent).not.toContain("LOADING RECORDED SPLITS");
+    const first = RUNS[0]?.id ?? "";
+    app.select(first);
+    const newest = app.pollCards();
+    expect(requested).toEqual([`/api/cards?run=${encodeURIComponent(first)}`, `/api/cards?run=${encodeURIComponent(second)}`, `/api/cards?run=${encodeURIComponent(first)}`]);
+    const fresh = minimal(first);
+    pending[2]?.({ ...fresh, runs: fresh.runs.map(run => ({ ...run, splits: [{ name: "FIRST_TRUCK_EXIT", elapsedMs: 1, segmentMs: 1, seq: 1, turn: 1, inputTokens: 0, outputTokens: 0 }] })) });
+    await newest;
+    expect(ui("split-strip").textContent).toContain("TRUCK EXIT ✔");
+    pending[0]?.(minimal(first));
     await new Promise(resolve => { setImmediate(resolve); });
-    expect(requested).toContain(`/api/cards?run=${encodeURIComponent(second)}`);
-    pending.shift()?.(minimal(second)); await app.pollCards();
+    expect(ui("split-strip").textContent).toContain("TRUCK EXIT ✔");
   });
 
   it("holds a stable split-loading state when the cache is unavailable, then trusts the caught-up stream", async () => {

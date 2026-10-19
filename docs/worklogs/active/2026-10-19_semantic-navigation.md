@@ -68,6 +68,7 @@ The operator subsequently authorized enabling both switches in the fixed bundle 
 
 ## Session log
 
+- 2026-10-19: Committed the current-main integration as `16b8525b4503e68a8ecb791b36e7b6605c8c76d1` and re-pinned both pending standalone definitions to it. No run was queued, approved, launched, restarted, or changed.
 - 2026-10-19: Synced through current `main` `2404e9080a8ce4adb589a1803bb5ff3e52a56d31`, preserving its explicit evolution-decision switch and bundle treatment alongside semantic navigation, deterministic exploration, and safe strides. Conflict resolution keeps all four switches default OFF, keeps all four in the bundle treatment, and propagates both observation parameters to rerendered states. Focused TypeScript integration tests pass 244/244; focused Python registry/rerender tests pass 31 with two ROM-dependent skips after updating the combined server-feature count to 50.
 - 2026-10-19: Repaired-candidate gates are green: `just test` passes 2,718 agent, 1,293 viewer, and 2,806 Python tests; build, both TypeScript linters, Ruff, formatting, 123 experiment definitions, all three explainer checks, and coverage pass. Coverage is agent 97.36% statements/93.50% branches, viewer 95.08%/91.04%, and Python 96.88% lines/92.31% branches.
 - 2026-10-19: Committed the safe-stride composition repair as `5d37fe074505f13dc6153859ceb23bb9e6ea6585` and re-pinned both pending standalone experiment definitions to that implementation. They remain unqueued, unapproved, and unlaunched.

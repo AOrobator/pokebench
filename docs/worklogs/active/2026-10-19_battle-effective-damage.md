@@ -47,8 +47,8 @@ Moves whose final power/type or hit count depends on move-specific script state 
 ### M3 - Review and land
 
 - [x] Sync current main without touching active runs.
-- [ ] Complete the required Claude-, Grok-, and GPT-family cloud review lanes on one frozen packet; repair any blocking findings within the review cap.
-- [ ] Fast-forward the corrective tip to local main, run the required post-merge test and live viewer check, and do not launch the pending experiment.
+- [ ] Complete the required Claude-, Grok-, and GPT-family cloud review lanes on one frozen packet; repair any blocking findings within the review cap. Waived by the operator for this landing on 2026-10-19; the unavailable final lanes are not counted green.
+- [x] Merge the corrective tip to local main and run the focused post-merge regression; do not launch the pending experiment. Live viewer restart remains deferred while active runs are in progress.
 
 ## Session Log
 
@@ -70,6 +70,7 @@ Moves whose final power/type or hit count depends on move-specific script state 
 - 2026-10-19 EDT: cloud review round 2: Grok returned `VERDICT: LGTM` on the cumulative category fix. The isolated GPT fallback returned `VERDICT: BLOCKING` on a second in-contract source-parity defect: the physical branch's pre-`+2` minimum-one clamp was also applied to special moves, producing 2-3 HP instead of Emerald's 1-2 HP at a zero pre-add quotient. Moved that clamp back inside the physical category and added one public regression that preserves the physical 2-3 / special 1-2 asymmetry. No other GPT blockers were reported. Per the two-blocker-round convergence guard, round three requires explicit operator confirmation that the frozen scope remains unchanged.
 - 2026-10-19 EDT: the operator gave standing approval to merge once reviewer approval is complete, authorizing round three on the unchanged frozen scope. Canonical main advanced independently to `f9a495aa`; merged it cleanly as `a6eb677f` before sealing the final packet so the landing can remain fast-forward and include the exact reviewed tree.
 - 2026-10-19 EDT: after the main sync, the first test run correctly failed on stale generated TypeScript schema output for main's new `visited-terrain-navigation-v1`; `just build` restored the current schema and the full normal suite then passed (agent 2,540, viewer 1,204, Python 2,495 plus 229 ROM-dependent skips). The unchanged full coverage gate is blocked by the pre-existing viewer test `server-stream.test.ts:73`, which exceeded its 5-second timeout twice under coverage while passing in the normal suite. The same coverage test also times out on canonical main; main additionally needs a build before its new feature schema is usable. This is recorded as shared-main gate failure, not waived or attributed to battle code, and prevents round-three review/landing until main is green or the operator separately expands scope.
+- 2026-10-19 EDT: the operator explicitly directed `MERGE`, waiving the remaining final-review roster and shared stream-coverage blocker for this landing. Main had independently advanced with the trainer GPU-avatar work, so the exact corrective tip `c9bdb01d` was merged with a normal merge commit rather than fast-forwarded. The merged-tree battle regression passed 15/15. The unavailable review lanes are recorded as waived, not approved; the pending experiment was not launched, and the live viewer was not restarted because active runs remain in progress.
 
 ## Multi-Model Review Log
 
@@ -89,7 +90,7 @@ Operator-requested self-review round 1: CHANGES REQUIRED (four findings above). 
 - PB10 PASS: no tests were suppressed; 229 ROM-dependent skips are pre-existing and reported.
 - PB11 PASS: mechanics are pinned to pret/pokeemerald `731ad5bf`.
 - PB12 PASS: no ROM or protected path was accessed.
-- PB13 PENDING: implementation gates and the operator-requested self-review pass; the independent cloud review and corrective landing remain open.
+- PB13 WAIVED/LANDED: implementation gates and the focused merged-tree regression pass; the operator explicitly waived the incomplete final reviewer roster and shared stream-coverage blocker for this landing. The unavailable lanes are not represented as green.
 
 ## Archive Milestone
 

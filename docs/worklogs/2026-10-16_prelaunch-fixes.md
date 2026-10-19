@@ -180,4 +180,6 @@ Done when every milestone is merged, qualification shows none of F1–F8, the fo
 ## Boy Scout Log
 
 ## Archive Milestone (user-gated)
-- [ ] ASK USER: archive
+- [x] ASK USER: archive
+
+Archived 2026-10-18 at the operator's request after the stale-story-goal refinement landed on `main` (`35477da6`), its experiment source was pinned (`2a816391`), the live proof and explainer closeout were recorded (`6f8059fa`), and the merged feature worktree/branch cleanup was authorized. Historical unchecked items above are preserved as the worklog's execution record; they do not represent active work owned by this thread.

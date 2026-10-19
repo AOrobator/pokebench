@@ -3,7 +3,7 @@ import { recoveredSignature } from "./recovered-fields.js";
 import { existsSync, lstatSync, readFileSync, readdirSync, realpathSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { FEATURES } from "@pokebench/agent/features";
-import { MILESTONES, qualifiedNativeMilestone } from "@pokebench/agent/milestones";
+import { MILESTONES, REQUIRED_FRONTIER_MILESTONES, qualifiedNativeMilestone } from "@pokebench/agent/milestones";
 import { filesystemComparisonHost, prepareComparison, sha256 } from "@pokebench/agent/serial-comparison";
 import { RUN_END_REASONS, type RunEvent, type StartIdentity } from "@pokebench/agent/events";
 import { configOf } from "./history.js";
@@ -37,7 +37,7 @@ function metadata(path: string): { value: unknown; digest: string } {
 function resumeCheckpoint(start: Extract<RunEvent, { type: "run_start" }>): string | null {
   if (start.start_state.kind !== "save_state") return null;
   const file = start.start_state.path.split(/[/\\]/).pop() ?? "";
-  return file === "CLOCK_SET.state" ? "CLOCK_SET" : file === "MAIN_MENU.state" ? "MAIN_MENU" : null;
+  return file === "MAIN_MENU.state" ? "MAIN_MENU" : REQUIRED_FRONTIER_MILESTONES.find(id => file === `${id}.state`) ?? null;
 }
 function configuration(start: Extract<RunEvent, { type: "run_start" }>): WorkbenchConfig {
   const known = configOf(start);

@@ -25,3 +25,5 @@ The operator asked to design and implement the starter decision probe and get it
 ## Review
 
 Pending.
+
+- RED: new starter decision module/factory tests fail because the module is absent; shared native-target fixed-definition test fails because target is null-only. Logs /tmp/starter-red-{agent,fixed}.log.

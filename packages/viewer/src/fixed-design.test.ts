@@ -201,3 +201,11 @@ describe("controlBaseProblems", () => {
     expect(controlBaseProblems(def, "nope")[0]).toMatch(/^control base .* is not a preset/);
   });
 });
+
+it("preserves a shared native target in both diagnostic arms and rejects a misleading target",()=>{
+ const original=definition();
+ const def={...original,primaryMilestone:"STARTER_CHOSEN",base:{...original.base,target:"STARTER_CHOSEN"}};
+ expect(parseFixedDefinition(JSON.stringify(def)).definition.base.target).toBe("STARTER_CHOSEN");
+ for(const arm of ["control","bundle"] as const)expect(armPreset(def,"confirmatory",arm).target).toBe("STARTER_CHOSEN");
+ expect(definitionProblems({...def,base:{...def.base,target:"RIVAL_MET"}})).toContain("base target must equal primaryMilestone");
+});

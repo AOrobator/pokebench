@@ -12,7 +12,7 @@ A run that the owned `/api/runs` response already identifies as live must use it
 
 - [x] RED: regression test reproduces the live-to-live catch-up replay.
 - [x] GREEN: select a known-live run through `/screen` during catch-up; retain failure fallback.
-- [ ] Verify focused viewer tests, full gates, isolated-browser switching, polling stability, and desktop/phone screenshots.
+- [x] Verify focused viewer tests, full gates, isolated-browser switching, polling stability, and desktop/phone screenshots.
 - [ ] Complete cloud review before landing; do not restart the shared 8790 viewer without coordinating its owner.
 
 ## Session log
@@ -21,3 +21,6 @@ A run that the owned `/api/runs` response already identifies as live must use it
 - RED: `pnpm exec vitest run src/app.test.ts` ran 67 tests; the new case failed because the selected known-live run's image href was `""` instead of `/api/runs/2026-10-11T23-05-00_second-live/screen?n=…`.
 - GREEN: the screen source now treats an `/api/runs`-qualified live selection as live during event catch-up. This changes only image selection and image-error fallback; the viewer remains in `LOADING` until `caught_up`, so run state and controls are not claimed ready early.
 - Focused GREEN: `pnpm exec vitest run src/app.test.ts` passed all 67 viewer app tests, including the new immediate and mid-backfill `/screen` assertions.
+- Gates on candidate `29b019fb`: `just build` passed; configured sequential `just test` passed 2,507 agent, 1,181 viewer and 2,709 Python tests; `just lint` passed TypeScript, ESLint, Ruff, formatting and mypy; `just coverage` passed with agent 99.24% lines / 94.18% branches / 98.31% functions, viewer 97.64% / 91.47% / 93.83%, and Python 97.64% / 93.77% / 100%; `just verify-vendor` passed. The first parallel attempt was setup-invalid (missing worktree submodule/native binding) and made one unrelated 5-second agent test time out; dependency-correct sequential reruns are the receipts above.
+- Browser proof used the branch build on owned port 8794, a scratch runs root with 10,000 real event lines per selected run, and owned fake live-screen servers on 8891/8892. Pointer switching changed GPU1 to GPU0 with `LOADING`, replay hidden, and `/api/runs/<gpu0>/screen?n=29`; after two polling cycles it was `RUNNING` with the same `/screen` source family and replay hidden. Native keyboard type-ahead changed GPU0 to GPU1 with `LOADING`, replay hidden, and `/api/runs/<gpu1>/screen?n=228`. The browser console had zero errors while the preview servers were live.
+- Opened and inspected desktop 1280×900, desktop 1440×900 and phone 375×812 screenshots. The live game frame, `live` note, header and controls were visible without new overflow or clipping. Receipts are served at `/viewer-live-switch/shots/{desktop-1280.png,desktop-1440.png,phone-375.png}` on the existing 8791 pages server. Scratch servers were stopped and their temporary files moved to Trash; the shared 8790 viewer and measured runs were not restarted or mutated.

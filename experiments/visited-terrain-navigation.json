@@ -32,6 +32,8 @@
    "blocked-batch-result-v1": true,
    "blocked-exit-fact-v1": true,
    "bounded-navigation-v1": true,
+   "semantic-navigation-v1": false,
+   "deterministic-exploration-v1": false,
    "briefing-battle-outcomes-v1": true,
    "briefing-exits-v1": true,
    "character-presence-v1": true,

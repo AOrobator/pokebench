@@ -108,7 +108,7 @@ it("the pending experiment's incumbent is the bundle-v-control bundle arm and fl
  expect(named.at(-1)).toBe(ID);
  expect(Object.keys(raw.incumbent.features).slice(0,named.length)).toEqual(named);
  const bundleArm={...bundle.base.features,...Object.fromEntries(bundle.switches.map(s=>[s,true]))};
- for(const [id,value] of Object.entries(raw.incumbent.features))expect([id,value]).toEqual([id,id===ID?false:bundleArm[id]]);
+ for(const [id,value] of Object.entries(raw.incumbent.features))expect([id,value]).toEqual([id,id===ID?false:(bundleArm[id]??false)]);
  for(const id of bundle.switches.filter(id=>id in raw.incumbent.features))expect([id,raw.incumbent.features[id]]).toEqual([id,id!==ID]);
 });
 

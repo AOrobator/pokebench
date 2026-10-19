@@ -610,7 +610,11 @@ export function navigationTool(ports:NavigationPorts):AgentTool<typeof Args> {
     if(state.facing===direction.toLowerCase()&&previousFacing!==state.facing){continue;}
     status=(truth?blocker(state,mode,Array.from({length:span},(_,k)=>({x:before.x+delta[1]*(k+1),y:before.y+delta[2]*(k+1)}))):null)??"blocked; inspect obstacle and choose another approach";break;
    }
-   if(after.x!==before.x+delta[1]*span||after.y!==before.y+delta[2]*span){status="unexpected movement; inspect new state";break;}
+   const crossed=delta[1]===0&&after.x===before.x?(after.y-before.y)/delta[2]:delta[2]===0&&after.y===before.y?(after.x-before.x)/delta[1]:0;
+   // A held running press can finish more than one tile away. It is still the planned move only when every
+   // crossed tile is the next collinear prefix of the route; pushbacks, teleports and off-route displacement stop.
+   const runningPrefix=ports.automaticRunning===true&&Number.isInteger(crossed)&&crossed>0&&path.length>=crossed&&path.slice(0,crossed).every(step=>step===direction);
+   if((after.x!==before.x+delta[1]*span||after.y!==before.y+delta[2]*span)&&!runningPrefix){status="unexpected movement; inspect new state";break;}
    if(distance(after,selectedTarget)===0){
     if(warpPlan?.activation!==null&&warpPlan?.activation!==undefined){if(commands<bound)continue;status="command limit";break;}
     status="arrived at requested coordinate";break;

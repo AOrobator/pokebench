@@ -122,3 +122,5 @@ The original ignored runs/explainers copies remain for existing links. Make futu
 - [Trigger script loop detection](trigger-script-loop-v1.html)
 - [Visited terrain navigation](visited-terrain-navigation-v1.html)
 - [Deterministic warp navigation](deterministic-warp-navigation-v1.html)
+- [Semantic navigation](semantic-navigation-v1.html)
+- [Deterministic exploration](deterministic-exploration-v1.html)

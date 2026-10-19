@@ -6,7 +6,8 @@ const LEGACY_DEFAULT = ["ram-state-v1", "live-map-v1", "field-control-lock", "na
 const off = (...ids: (typeof SWITCHABLE_FEATURES)[number][]): FeatureSet => {
   // Each switch is named once per list, so a list never hides a duplicate.
   if (new Set(ids).size !== ids.length) throw new Error(`off() names a switch twice: ${ids.join(",")}`);
-  return { ...ALL_ON, ...Object.fromEntries(ids.map((id) => [id, false])) };
+  // Historical registry assertions predate the two appended navigation treatments.
+  return { ...ALL_ON, "semantic-navigation-v1":false, "deterministic-exploration-v1":false, ...Object.fromEntries(ids.map((id) => [id, false])) };
 };
 
 it("describes every switchable and measurement feature exactly once", () => {
@@ -14,7 +15,7 @@ it("describes every switchable and measurement feature exactly once", () => {
   expect(FEATURES.filter((f) => f.switchable).map((f) => f.id)).toEqual([...SWITCHABLE_FEATURES]);
 
   expect(FEATURES.filter((f) => f.group === "observation")).toHaveLength(49);
-  expect(FEATURES.filter((f) => f.group === "guidance")).toHaveLength(54);
+  expect(FEATURES.filter((f) => f.group === "guidance")).toHaveLength(56);
   expect(FEATURES.filter((f) => f.group === "guard")).toHaveLength(28);
   for (const f of FEATURES) {
     expect(f.title).not.toBe("");
@@ -34,6 +35,16 @@ it("keeps visited terrain immediately before deterministic warps and the final s
  expect(dependencyProblems({...ALL_ON,"bounded-navigation-v1":false})).toContain(`${id} needs bounded-navigation-v1`);
 });
 
+it("registers semantic navigation and deterministic exploration beside bounded navigation with explicit dependencies",()=>{
+ const bounded=SWITCHABLE_FEATURES.indexOf("bounded-navigation-v1"),recorded=playHarnessFeatures(ALL_ON,null),recordedBounded=recorded.indexOf("bounded-navigation-v1");
+ expect(SWITCHABLE_FEATURES.slice(bounded,bounded+3)).toEqual(["bounded-navigation-v1","semantic-navigation-v1","deterministic-exploration-v1"]);
+ expect(recorded.slice(recordedBounded,recordedBounded+3)).toEqual(["bounded-navigation-v1","semantic-navigation-v1","deterministic-exploration-v1"]);
+ expect(featureInfo("semantic-navigation-v1")).toMatchObject({group:"guidance",needs:"bounded-navigation-v1",switchable:true});
+ expect(featureInfo("deterministic-exploration-v1")).toMatchObject({group:"guidance",needs:"semantic-navigation-v1",switchable:true});
+ expect(dependencyProblems({...ALL_ON,"bounded-navigation-v1":false})).toContain("semantic-navigation-v1 needs bounded-navigation-v1");
+ expect(dependencyProblems({...ALL_ON,"semantic-navigation-v1":false})).toContain("deterministic-exploration-v1 needs semantic-navigation-v1");
+});
+
 it("retains the legacy information list while adding mandatory raw recording", () => {
   const recorded = [...LEGACY_DEFAULT.slice(0,25), "full-raw-ram-v1", ...LEGACY_DEFAULT.slice(25,26), "birch-rescue-requested-v1", "rival-house-exit-v1", "route-101-after-handoff-v1", "bedroom-exit-v1", "route103-rival-splits-v1", "trainer-opponent-v1", ...LEGACY_DEFAULT.slice(26)];
   expect(playHarnessFeatures(off("battle-effective-damage-v1","scripted-place-guidance-v1","trigger-script-loop-v1","cache-aligned-window-v1","jit-guide-reuse-v1","save-state-task-truth-v1","just-in-time-prompt-v2","faced-interaction-history-v1","just-in-time-prompt-v1","dialog-button-b-v1","reopened-dialogue-loop-v1","loop-guard-screen-v1","input-cuts-v1","clock-view-loop-v1","stale-story-goal-v1","stale-story-goal-v2","no-exit-here-v1","bag-healing-items-v1","battle-menu-loop-v1","instruction-ledger-v2","tutorial-party-owner-v1","mid-frame-readout-v1","unset-dynamic-warp-v1","status-names-v1","surf-gated-exits-v2","battle-move-tool-v1","heal-before-trainers-v1","open-goal-prompt-v1","people-id-cards-v1","explorer-guidance-v2","ineffective-loops-v1","cross-map-goal-v1","surf-gated-exits-v1","readout-truth-v1","birch-speech-pages-v1","blackout-readout-v1","story-destinations-v1","harness-trust-v1","cited-destination-v1","harness-trust-v2","exit-reachability-v1","transition-coherence-v1","pushback-loop-detection-v1","pushback-press-result-v1","battle-observation-loop-v1","briefing-battle-outcomes-v1","blocked-exit-fact-v1","battle-loss-recap-v1","people-ledger-v1","trainer-heal-guidance-v1","low-hp-trainer-warning-v1","low-hp-trainer-warning-v2","briefing-exits-v1","untaken-exits-v1","levelup-box-v1","disproved-beliefs-v1","same-plan-breaker-v1","navigation-truth-v1","navigation-refusal-reasons-v2","script-line-presence-v1","battle-message-waiting-v1","battle-text-auto-advance-v1","offscreen-objects-v1","navigate-first-prompt-v1","presence-penalty-v1","in-game-naming-readout-v1","no-nickname-guidance-v1","connection-edge-tiles-v1","explorer-guidance-v1","readout-rules-in-prompt-v1","adjacent-tiles-v1","battle-triage-guidance-v1","warp-arrival-settle-v1","dialogue-context-kept-v1","displayed-place-names-v1","transition-loop-detection-v1","blocked-batch-result-v1","navigation-evidence-memory-v1","game-evidence-priority-v1","dialogue-log-v1","loop-guard-supervisor-v1","instruction-ledger-v1","next-milestone-hint-v1","double-context-window-v1","fresh-retry-v1","named-warp-destinations-v1","milestone-stall-stop-v1","text-only-supervisor-v1","character-presence-v1","navigation-refusal-reasons-v1","transition-press-result-v1","stall-briefing-v1","battle-details-v2","dialogue-auto-advance-v1","field-dialogue-phase-v1","dialogue-safe-batches-v1","interaction-loop-detection-v1","automatic-running-v1","expanded-menu-battle-information-v1","state-only-decisions-v1","named-interactions-v1","world-destinations-v1","bounded-navigation-v1","ledge-hops-v1","one-way-tiles-v1","counter-talk-v1","walkable-floor-v1","full-map-navigation-v1","grass-cost-navigation-v1","elevation-transitions-v1","visited-terrain-navigation-v1","deterministic-warp-navigation-v1"), null)).toEqual(recorded);
@@ -51,10 +62,11 @@ it("drops exactly the switched-off ids and round-trips through recorded features
   expect(groups.length).toBeLessThanOrEqual(2 * Math.ceil(Math.log2(SWITCHABLE_FEATURES.length)));
   for (const id of SWITCHABLE_FEATURES) expect(groups.filter((g) => g.includes(id)).length).toBeGreaterThan(0);
   for (const ids of groups) {
-    const list = playHarnessFeatures(off(...ids), null);
+    const configured={...ALL_ON,...Object.fromEntries(ids.map(id=>[id,false]))};
+    const list = playHarnessFeatures(configured, null);
     const kept = new Set(list);
     expect(all.filter((item) => !kept.has(item)).sort()).toEqual([...ids].sort());
-    expect(featuresOf(list)).toEqual(off(...ids));
+    expect(featuresOf(list)).toEqual(configured);
   }
 });
 

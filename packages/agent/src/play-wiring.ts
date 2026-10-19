@@ -22,6 +22,7 @@ import {withBattleAction} from "./battle-action.js";
 import {withHarnessTrust,type TrustRecorder} from "./harness-trust.js";
 import {withCitedDestination,type CitationRecorder} from "./cited-destination.js";
 import {withUntakenExits} from "./untaken-exits.js";
+import {withSemanticNavigation} from "./semantic-navigation.js";
 import {withNoExitHere} from "./no-exit-here.js";
 import {withResultFacts} from "./result-facts.js";
 import type {RunRecorder} from "./recorder.js";
@@ -98,7 +99,8 @@ export function stallStop(features:FeatureSet,recorder:Pick<RunRecorder,"subscri
 export function playGameTools(base:readonly AgentTool[],features:FeatureSet,state:StateSource,recorder:AutoAdvanceRecorder&WarningRecorder&IdCardRecorder&TrustRecorder&Pick<CitationRecorder,"destinationCitation">,gate?:NavigationPorts["gate"],extra:readonly AgentTool[]=[]):AgentTool[]{
  const terrain=features["visited-terrain-navigation-v1"]&&!features["full-map-navigation-v1"]?new VisitedTerrain():null;
  const navigationState=terrain?.source(state)??state;
- const facts=[...withResultFacts(withLowHpTrainerWarning(withNavigateFirst([...withInstructionLedgerV2(withStoryDestinations(withPeopleIdCards(withUntakenExits(withPeopleLedger(withDialogueAutoAdvance(withBattleAction(withNoExitHere(withNavigation(base,features,navigationState,gate),features),features,state,gate),features,{state,recorder}),features,recorder),features,recorder),features,recorder),features,recorder,state),features,recorder),...extra],features),features,recorder,state),features,recorder)];
+ const navigated=withSemanticNavigation(withNavigation(base,features,navigationState,gate),features,navigationState);
+ const facts=[...withResultFacts(withLowHpTrainerWarning(withNavigateFirst([...withInstructionLedgerV2(withStoryDestinations(withPeopleIdCards(withUntakenExits(withPeopleLedger(withDialogueAutoAdvance(withBattleAction(withNoExitHere(navigated,features),features,state,gate),features,{state,recorder}),features,recorder),features,recorder),features,recorder),features,recorder,state),features,recorder),...extra],features),features,recorder,state),features,recorder)];
  const visible=terrain===null?facts:withVisitedTerrain(facts,terrain);
  const cited=withCitedDestination(visible,features["cited-destination-v1"],recorder,{fullMap:features["full-map-navigation-v1"],exitReach:features["exit-reachability-v1"],silenceMiss:features["input-cuts-v1"]});
  return withHarnessTrust(cited,features["harness-trust-v1"],recorder,state,{supervisor:true,battleAction:features["harness-trust-v2"],goalOnce:features["input-cuts-v1"],retireLab:features["stale-story-goal-v1"],stageBound:features["stale-story-goal-v2"],omitEmptyGoal:features["stale-story-goal-v2"],scriptedGuidance:features["scripted-place-guidance-v1"]});

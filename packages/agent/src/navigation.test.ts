@@ -115,6 +115,15 @@ it("removes the model walking choice and drops stale walking input when automati
  expect(Object.hasOwn(navigationTool({read:()=>Promise.resolve(field),press:()=>Promise.resolve(result(field)),observe:()=>Promise.resolve(result(field))}).parameters.properties,"walking")).toBe(true);
 });
 
+it("accepts every crossed tile of a running press when it is a prefix of the planned route",async()=>{
+ const row:GameStateSnapshot={...field,position:{x:0,y:0},navigation_grid:{elevation:3,tiles:[0,1,2,3,4].map(x=>tile(x,0)),objects:[],warps:[]}};
+ let current=row,presses=0;
+ const tool=navigationTool({automaticRunning:true,read:()=>Promise.resolve(current),press:()=>{presses++;const x=current.position?.x??0;current={...current,position:{x:Math.min(4,x+2),y:0}};return Promise.resolve(result(current));},observe:()=>Promise.resolve(result(current))});
+ const outcome=await tool.execute("nav",{x:4,y:0,map_id:[0,9]});
+ expect(outcome.details).toMatchObject({navigation:{status:"arrived at requested coordinate",commands:2}});
+ expect(presses).toBe(2);
+});
+
 // pokeemerald 731ad5b metatile_behaviors.h values. The readout draws all of these as '.'.
 const corridor=(behavior:number)=>({...field,navigation_grid:{elevation:3,tiles:[tile(0,0),tile(1,0,0,behavior),tile(2,0)],objects:[],warps:[]}});
 it("walks the ordinary floor the game lets the player walk: sand, cave, mountain top, puddles and bridges",()=>{

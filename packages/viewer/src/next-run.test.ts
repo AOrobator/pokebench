@@ -8,7 +8,7 @@ import { processGroup } from "../test-support/process-group.js";
 import { DEFAULT_NEXT_RUN, LEASE, NextRunError, RunQueue, appendControl, healthProbe, liveRuns, presetFor, readDraft, spawnLaunch, writeDraft, type LaunchSpec, type QueueHost } from "./next-run.js";
 
 const NOW = new Date("2026-10-13T16:00:00.000Z");
-const ALL_ON = { ...REGISTERED_ALL_ON, "visited-terrain-navigation-v1": false, "battle-effective-damage-v1": false };
+const ALL_ON = { ...REGISTERED_ALL_ON, "visited-terrain-navigation-v1": false, "battle-effective-damage-v1": false, "semantic-navigation-v1":false, "deterministic-exploration-v1":false };
 function root(): string { return mkdtempSync(join(tmpdir(), "next-run-")); }
 // Game servers that answer /health in these tests.
 const UP = new Set([9001, 9003]);
@@ -35,6 +35,8 @@ describe("next-run draft", () => {
     expect(DEFAULT_NEXT_RUN.features["trigger-script-loop-v1"]).toBe(false);
     expect(DEFAULT_NEXT_RUN.features["visited-terrain-navigation-v1"]).toBe(false);
     expect(DEFAULT_NEXT_RUN.features["battle-effective-damage-v1"]).toBe(false);
+    expect(DEFAULT_NEXT_RUN.features["semantic-navigation-v1"]).toBe(false);
+    expect(DEFAULT_NEXT_RUN.features["deterministic-exploration-v1"]).toBe(false);
     expect(writeDraft(runsRoot, draft)).toEqual(draft);
     expect(readDraft(runsRoot)).toEqual(draft);
     expect(() => writeDraft(runsRoot, { ...draft, features: { ...ALL_ON, "scripted-place-guidance-v1": false, "trigger-script-loop-v1": false, "state-only-decisions-v1": false, "pushback-loop-detection-v1": false, "pushback-press-result-v1": false, "battle-observation-loop-v1": false, "explorer-guidance-v1": false, "in-game-naming-readout-v1": false, "no-nickname-guidance-v1": false, "battle-text-auto-advance-v1": false, "battle-message-waiting-v1": false, "connection-edge-tiles-v1": false, "live-map-v1": false } })).toThrow(/world-coordinate-grid-v1 needs live-map-v1/);

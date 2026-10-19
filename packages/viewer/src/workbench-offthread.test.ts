@@ -42,6 +42,12 @@ function ended(): Log {
   l.add(6000, { type: "run_end", turn: 1, reason: "budget", furthest_milestone: "PLAYER_NAME_CONFIRMED", turns: 1, wall_ms: 6000, tokens: { input: 500, output: 100 }, frames: { saved: 0, bytes: 0 } });
   return l;
 }
+function taggedEnded(): Log {
+  const l = ended(), start = l.events[0];
+  if (start?.type !== "run_start") throw new Error("fixture start");
+  l.events[0] = { ...start, evaluation: { preset_id: "bundle-v-control", target: null, failure_limit: 3, flags: { loopGuard: false, activeUi: false, interfaceDocs: false, objectives: false }, experiment: { id: "allocation", arm: "control", trial: 1, of: 2 } } };
+  return l;
+}
 function paused(): Log {
   const l = named();
   const start = l.events[0];
@@ -79,6 +85,20 @@ it("projects cards without historical measurements while retaining active data a
   expect(peer).toMatchObject({ config: null, splits: [], experiment: heavy.experiment }); expect(peer?.measurement).toBeUndefined();
   expect(active?.splits).toEqual(live.splits); expect(active?.card).toEqual(live.card);
   expect(JSON.stringify(projected).length * 20).toBeLessThan(JSON.stringify(source).length);
+});
+
+it("reduces only unfinished and selected logs for cards while retaining historical experiment peers", async () => {
+  const r = catalog(); write(r, "peer", taggedEnded());
+  const c = counted(), loader = createWorkbenchLoader({ compute: c.compute });
+  const liveCards = cardWorkbench(await workbenchSnapshot(r, healthy, NOW, undefined, loader, { cards: { selected: "live", live: new Set(["live", "held"]) } }), "live");
+  expect([...c.calls].sort()).toEqual(["held", "live"]);
+  expect(liveCards.runs.find(run => run.id === "live")?.splits.length).toBeGreaterThan(0);
+  expect(liveCards.runs.find(run => run.id === "peer")).toMatchObject({ config: null, splits: [], experiment: { id: "allocation", arm: "control", trial: 1, of: 2 } });
+  expect(liveCards.runs.find(run => run.id === "done")).toBeUndefined();
+
+  const peerCards = cardWorkbench(await workbenchSnapshot(r, healthy, NOW, undefined, loader, { cards: { selected: "peer", live: new Set(["live", "held"]) } }), "peer");
+  expect(c.calls.filter(id => id === "peer")).toHaveLength(1);
+  expect(peerCards.runs.find(run => run.id === "peer")?.config).not.toBeNull();
 });
 
 it("returns plain, serializable records that survive validation", () => {
@@ -337,6 +357,23 @@ it("answers the comparisons data at once when the viewer serves partial snapshot
   expect(reply.status).toBe(200);
   expect(((await reply.json()) as { problems: string[] }).problems).toContain("Still loading 4 of 4 recorded runs; this page fills in as they finish.");
   h.release();
+});
+
+it("keeps card snapshot caches isolated when the selected replay changes", async () => {
+  const r = catalog(); write(r, "peer", taggedEnded()); write(r, "archive", ended());
+  const c = counted();
+  const viewer = await startViewer({ runsRoot: r, staticDir: r, appDir: r, port: 0, workbench: { compute: c.compute } });
+  viewers.push(viewer);
+  const done = parseWorkbench(await (await fetch(new URL("api/cards?run=done", viewer.url))).json());
+  const peer = parseWorkbench(await (await fetch(new URL("api/cards?run=peer", viewer.url))).json());
+  expect(done.runs.find(run => run.id === "done")?.config).not.toBeNull();
+  expect(peer.runs.find(run => run.id === "peer")?.config).not.toBeNull();
+  expect(c.calls.filter(id => id === "done")).toHaveLength(1);
+  expect(c.calls.filter(id => id === "peer")).toHaveLength(1);
+  expect(c.calls).not.toContain("archive");
+  const full = parseWorkbench(await (await fetch(new URL("api/workbench", viewer.url))).json());
+  expect(full.runs.find(run => run.id === "archive")?.config).not.toBeNull();
+  expect(c.calls.filter(id => id === "archive")).toHaveLength(1);
 });
 
 const tick = (): Promise<void> => new Promise((resolve) => { setImmediate(resolve); });

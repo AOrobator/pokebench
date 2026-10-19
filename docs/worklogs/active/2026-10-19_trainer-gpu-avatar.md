@@ -31,7 +31,7 @@ Viewer-only string hashing. No network boundary, secrets, ROM data, run mutation
 - [x] Implement GPU-aware deterministic selection.
 - [x] Pass focused viewer tests, build, lint, full tests, and coverage.
 - [x] Verify the candidate in a real browser against an isolated scratch runs root.
-- [ ] Complete the required multi-model review before landing.
+- [x] Complete the required multi-model review before landing.
 
 ## Closing the Loop
 
@@ -57,6 +57,8 @@ The current live runs are not present in the fixed-run lane status, so the only 
 - Round 3 frozen packet `24232e63..44ebcf6b`, SHA-256 `b13dc9c7c1f81550ecb0d3ac44fe50dbe523edeb61fe52263ed3fb58dee1fbfe`: a fallback reviewer found that replacing a GPU-only sibling's bare arm with its qualified identity could still change a legacy sibling's historical collision path. Refactor into two allocations: compute the complete original bare-arm table for exact legacy choices, then allocate GPU-qualified cards around actual legacy cards and each other. Add a regression for a legacy arm beside a GPU-only arm. Re-review pending.
 - After the round-3 fix, focused trainer-card/app tests pass 29/29; the full candidate passes 2,527 agent, 1,194 viewer, and 2,709 Python tests plus viewer lint/build and pinned-vendor verification.
 - Round 4 production review found no behavioral blocker. Test-quality review showed the mixed legacy/GPU fixture did not fail when the reserved-index guard was deleted; strengthen it to assert all three displayed cards are unique, directly covering that seam. Final re-review pending.
+- Round 5 final packet `24232e63..456dcbed`, SHA-256 `16cfc882137cbf2e62cd8c292ed22abc83e8f5a0e49c784ea2451e3573caad24`: Grok, isolated Codex, and both independent Claude-availability fallback reviewers returned LGTM. The reservation assertion was also mutation-checked: deleting the guard fails `2 !== 3`.
+- Landing remains blocked: repeated default viewer coverage runs fail only the pre-existing `server-stream.test.ts` timing/backpressure cases (`5,000 ms` timeouts and `writes` expected 1 / received 2) under current concurrent machine load. The exact candidate's full non-coverage suite is green; no gate was skipped or weakened, and the shared viewer on 8790 remains unchanged.
 
 ## Boy Scout Log
 

@@ -72,8 +72,8 @@ The authorized outcome is a new default-OFF `stale-story-goal-v2` switch. With v
 - [x] Principles self-review PB1–PB13 with zero FAIL
 - [x] Freeze packet and obtain the available independent review roster, including Grok and multiple GPT/Codex families, with documented Claude unavailability and authorized fallback
 - [x] Fast-forward merge reviewed tree into local `main` if every landing condition remains satisfied
-- [ ] Post-land `just test`; coordinate one viewer restart and verify the live build/card/link
-- [ ] Evidence-only worklog commit recording review and merge SHA
+- [x] Post-land `just test`; coordinate one viewer restart and verify the live build/card/link
+- [x] Evidence-only worklog commit recording review and merge SHA
 
 ## Closing the Loop
 
@@ -145,6 +145,10 @@ The authorized outcome is a new default-OFF `stale-story-goal-v2` switch. With v
 - Post-merge integration updated only deterministic registry-order and historical-default fixtures plus the four core registration/default/wiring files. Full gates pass on the integrated tree: 2552 agent tests, 1210 viewer tests, and 2492 Python tests with the existing 229 ROM-dependent skips; repository lint, build, vendor verification, page validation, all 120 experiment checks, audit, and diff hygiene are green. `input-cuts-v1` remains true in both pending v2 experiment arms, while `stale-story-goal-v2` is false in the incumbent and true only in the candidate. No experiment was queued, approved, or launched.
 - Final integration review approved `795c6593` in three independent lanes. When canonical `main` advanced again to `b07db8d1`, merge `86683f72` incorporated the landed battle-effective-damage work and cached-thinking viewer work without modifying any v2 source, test, default, or experiment metadata. Astra, Sol, and Luna each independently reviewed that incremental merge and returned `VERDICT: LGTM`; focused checks were green and the worktree stayed clean.
 - Clean canonical `main` fast-forwarded from `b07db8d1` to reviewed merge `86683f72832e6b121918b80d3103f59737381ae8`. Post-sync gates on that exact tree pass: 2552 agent tests, 1224 viewer tests, 2495 Python tests with 229 existing ROM skips, lint, build, and diff hygiene. The pending experiment source pin now names that landed reviewed tree; its queue and launch state remain unchanged.
+- Metadata-only commit `fc8cf9f607e5c870b92df6b168126190e7a04633` pins the pending experiment to reviewed landed source `86683f72832e6b121918b80d3103f59737381ae8`; canonical `main` fast-forwarded cleanly to that metadata commit. `just experiments-check` validates all 121 experiment definitions and the experiment audit is silent. The experiment remains pending, unapproved, and unlaunched.
+- The coordinated viewer restart wrapper reported a startup race (`EADDRINUSE` followed by its health timeout), but direct process and endpoint receipts show the replacement viewer is healthy: PID 95649 started at 11:17:17 ET from the detached clean-main viewer tree, its build stamp is clean `fc8cf9f6`, and both `/` and `/api/experiments` return HTTP 200. Existing live runs remained visible; no gameplay process was launched, stopped, or modified.
+- Live Harness Config proof on port 8790 found the `STAGE-BOUND STORY GOAL` card and its `stale-story-goal-v2` id. The selected older run correctly displayed `NOT RECORDED`. Filtering the catalog to v2 left one visible card; `READ EXPLAINER` opened `/explainers/stale-story-goal-v2.html` with title and H1 `Stage-bound story goal`. The explainer visibly states that v2 omits the empty destination slot and that `input-cuts-v1` can remain on. Temporary browser tabs were closed.
+- Canonical post-land verification first demonstrated the checkout's ignored agent `dist/` was stale: the source-level agent suite passed 2552/2552, while viewer tests rejected the new feature against the old built schema. `just build` refreshed the ignored build output at clean `fc8cf9f6`; the required rerun then passed 2552 agent tests, 1224 viewer tests, and 2724 environment tests. This was a checkout build-order artifact, not a source or runtime regression; no tracked file changed.
 
 ## Boy Scout Log
 

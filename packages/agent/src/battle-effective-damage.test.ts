@@ -9,10 +9,10 @@ const root=(path:string)=>readFileSync(fileURLToPath(new URL(`../../../${path}`,
 
 describe(ID,()=>{
  it("is a default-off server observation switch that depends on battle details",()=>{
-  expect(SWITCHABLE_FEATURES.at(-10)).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-11)).toBe(ID);
   expect(featureInfo(ID)).toMatchObject({group:"observation",needs:"battle-details-v2",switchable:true,title:"BATTLE EFFECTIVE DAMAGE"});
-  expect(SERVER_FEATURES.at(-1)).toBe(ID);
-  expect(serverFeatureEnv({...ALL_ON,"battle-decision-ready-v1":false,[ID]:false}).POKEBENCH_FEATURES_OFF.split(",").at(-1)).toBe(ID);
+  expect(SERVER_FEATURES.at(-2)).toBe(ID);
+  expect(serverFeatureEnv({...ALL_ON,"battle-decision-ready-v1":false,[ID]:false}).POKEBENCH_FEATURES_OFF.split(",")).toEqual([ID,"safe-navigation-strides-v1"]);
   expect(dependencyProblems({...ALL_ON,"battle-decision-ready-v1":false,"battle-details-v2":false})).toContain(`${ID} needs battle-details-v2`);
   expect(playHarnessFeatures({...ALL_ON,"battle-decision-ready-v1":false,[ID]:false},null)).not.toContain(ID);
   expect(playHarnessFeatures(ALL_ON,null)).toContain(ID);

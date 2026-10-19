@@ -539,7 +539,11 @@ export async function workbenchSnapshot(root: string, healthy: HealthProbe, now:
   // log after each viewer build merely to replace those peers with the same lightweight card stubs.
   const reduced = mode.cards === undefined ? summaries : summaries.filter(s => s.id === mode.cards?.selected || mode.cards?.live.has(s.id) === true);
   const reducedIds = mode.cards === undefined ? null : new Set(reduced.map(s => s.id));
-  const found = mode.partial === true ? reduced.map(s => loader.current(root, s.id)) : await Promise.all(reduced.map(s => loader.load(root, s.id)));
+  // A requested card must arrive as soon as its projection is ready, not as an empty
+  // cached response that waits another polling interval. Other runs stay nonblocking.
+  const found = mode.partial === true
+    ? await Promise.all(reduced.map(s => s.id === mode.cards?.selected ? loader.load(root, s.id) : loader.current(root, s.id)))
+    : await Promise.all(reduced.map(s => loader.load(root, s.id)));
   const loadedRuns = found.filter((l): l is Loaded => l !== null), waiting = found.length - loadedRuns.length, definitions = experimentDefinitions(experimentsDir, root);
   const tagged = taggedCohorts(loadedRuns.flatMap(l => l.tag === null ? [] : [{ run: l.run.id, experiment: l.tag.experiment, commit: l.tag.commit, started: l.run.started }]), definitions);
   const newest = new Map<number, { id: string; at: number }>();

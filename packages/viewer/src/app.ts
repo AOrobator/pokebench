@@ -588,10 +588,10 @@ export class App {
 
   private loadWorkbench(): Promise<void> {
     const selected = this.runId;
-    if (this.workbenchLoad !== null) return this.workbenchSelection === selected ? this.workbenchLoad : this.workbenchLoad.then(() => this.loadWorkbench());
+    if (this.workbenchLoad !== null && this.workbenchSelection === selected) return this.workbenchLoad;
     this.workbenchSelection = selected;
     const load = this.deps.fetchJson(`/api/cards${selected === null ? "" : `?run=${encodeURIComponent(selected)}`}`)
-      .then((value) => { if (this.runId === selected) { this.workbench = parseWorkbench(value); this.render(); } })
+      .then((value) => { if (this.runId === selected && this.workbenchLoad === load) { this.workbench = parseWorkbench(value); this.render(); } })
       .catch(() => { /* keep the last snapshot; the comparisons page reports workbench problems */ })
       .finally(() => { if (this.workbenchLoad === load) this.workbenchLoad = null; });
     this.workbenchLoad = load;

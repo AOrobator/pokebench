@@ -41,7 +41,14 @@ MONS = 0x02024084
 STATUSES3 = 0x020242AC
 OFF = frozenset({"battle-details-v2"})
 # Switches registered after the c406 golden; OFF is their previous behavior.
-LATER = frozenset({"readout-truth-v1", "birch-speech-pages-v1", "blackout-readout-v1"})
+LATER = frozenset(
+    {
+        "readout-truth-v1",
+        "birch-speech-pages-v1",
+        "blackout-readout-v1",
+        "battle-effective-damage-v1",
+    }
+)
 # pokeemerald src/data/pokemon/species_info.h: (types, abilities)
 SPECIES = {
     280: ("TORCHIC", (10, 10), (66, 0)),

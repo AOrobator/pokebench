@@ -571,6 +571,14 @@ it("links the elevation transitions card to its tracked explainer",()=>{
  expect(FEATURE_EXPLAINERS["elevation-transitions-v1"]).toBe("elevation-transitions.html");
 });
 
+it("links visited terrain navigation to its tracked explainer",()=>{
+ const id="visited-terrain-navigation-v1";
+ expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
+ const html=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)),"utf8");
+ expect(html).toContain("only cells shown to you this run");
+ expect(html).toContain("checkpoint restores the game, not this memory");
+});
+
 it("maps game evidence priority to a tracked explainer, like every other mapped card",()=>{
  expect(FEATURE_EXPLAINERS["game-evidence-priority-v1"]).toBe("game-evidence-priority-v1.html");
  for(const file of Object.values(FEATURE_EXPLAINERS))expect(existsSync(fileURLToPath(new URL(`../../../docs/explainers/${file}`,import.meta.url)))).toBe(true);

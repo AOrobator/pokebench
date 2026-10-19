@@ -40,6 +40,7 @@ RECORDED_OFF = [
     "unset-dynamic-warp-v1",
     "status-names-v1",
     "surf-gated-exits-v2",
+    "battle-effective-damage-v1",
 ]
 
 
@@ -119,6 +120,7 @@ def test_read_state_and_render_pass_every_server_switch_through(monkeypatch):
         "full_map_enabled": False,
         "story_characters_enabled": False,
         "battle_details_enabled": False,
+        "battle_damage_enabled": False,
         "dynamic_warp_enabled": False,
         "displayed_names_enabled": False,
         "connection_edges_enabled": False,

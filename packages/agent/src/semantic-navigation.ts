@@ -58,6 +58,7 @@ function interrupted(state:GameStateSnapshot):string|null {
  if(state.active_ui!=null)return `interface ${state.active_ui.phase} opened`;
  if(state.field_controls_locked===true)return "a script or forced field action took control";
  if(state.field_controls_locked!==false)return "field-control ownership became unavailable";
+ if(state.running?.controllable===false)return `native field input is not controllable (${state.running.reason})`;
  return null;
 }
 function targetKey(map:readonly number[],target:RequestTarget):string {
@@ -83,9 +84,17 @@ function resolve(state:GameStateSnapshot,target:RequestTarget):SnapshotTarget|nu
 function sameTargetIdentity(before:SnapshotTarget,after:SnapshotTarget):boolean {
  if(before.kind!==after.kind||before.x!==after.x||before.y!==after.y)return false;
  if(before.kind==="object")return before.local_id===after.local_id&&before.elevation===after.elevation;
- if(before.kind!=="warp")return true;
+ if(before.kind!=="warp")return before.elevation===after.elevation&&before.activation===after.activation&&before.facing===after.facing;
  const a=before.destination,b=after.destination;
  return before.activation===after.activation&&before.elevation===after.elevation&&(a===null?b===null:b!==null&&a[0]===b[0]&&a[1]===b[1]&&a[2]===b[2]);
+}
+function interactionRecipient(state:GameStateSnapshot,target:SnapshotTarget,approach:Approach,options:NavigationOptions):SnapshotTarget|null {
+ if(target.kind==="warp"||target.activation!=="A")return target;
+ const elevation=plannedArrivalElevation(state,approach.point,options);if(elevation===null)return null;
+ const candidates=(state.interaction_targets??[]).filter(item=>item.x===target.x&&item.y===target.y&&item.activation==="A"&&elevationsMatch(item.elevation,elevation));
+ const object=candidates.find(item=>item.kind==="object");if(object!==undefined)return object;
+ const facing=approach.facing?.toLowerCase()??null;
+ return candidates.find(item=>item.kind!=="object"&&item.kind!=="warp"&&(item.facing===null||item.facing===facing))??null;
 }
 function approaches(state:GameStateSnapshot,target:SnapshotTarget,options:NavigationOptions):Approach[] {
  if(target.kind==="warp"||target.activation==="step"){
@@ -97,7 +106,10 @@ function approaches(state:GameStateSnapshot,target:SnapshotTarget,options:Naviga
   const point={x:target.x-dx,y:target.y-dy},path=planNavigation(state,point,options);
   if(path===null)return [];
   const elevation=plannedArrivalElevation(state,point,options);
-  return elevation===null||!elevationsMatch(target.elevation,elevation)?[]:[{point,facing,length:path.length}];
+  if(elevation===null||!elevationsMatch(target.elevation,elevation))return [];
+  const approach={point,facing,length:path.length};
+  const recipient=interactionRecipient(state,target,approach,options);
+  return target.activation==="A"&&(recipient===null||!sameTargetIdentity(target,recipient))?[]:[approach];
  }).sort((a,b)=>a.length-b.length||a.point.y-b.point.y||a.point.x-b.point.x||a.facing.localeCompare(b.facing));
 }
 function connectionApproaches(state:GameStateSnapshot,target:Extract<RequestTarget,{kind:"connection"}>,options:NavigationOptions):Approach[] {
@@ -145,7 +157,7 @@ function semanticTool(navigate:CheckedNavigationTool,press:CheckedPressTool,feat
    };
    const destination={x:choice.point.x,y:choice.point.y,map_id:[request.map_id[0],request.map_id[1]] as [number,number]};
    let previous=before.position;
-   let walked=await navigate.executeChecked(id,destination,routeStop,signal,{exactTarget:true}),current:GameStateSnapshot,reason:string|null;
+   let walked=await navigate.executeChecked(id,destination,routeStop,signal,{exactTarget:true,multiTileRunning:true}),current:GameStateSnapshot,reason:string|null;
    for(;;){
     current=stateOf(walked);reason=interrupted(current);
     if(navigationStopRequested(walked))return withStatus(walked,navigationStatus(walked)??"semantic travel stop requested",selected,false);
@@ -160,7 +172,7 @@ function semanticTool(navigate:CheckedNavigationTool,press:CheckedPressTool,feat
     if(status===null||!status.startsWith("command limit"))return withStatus(walked,"route ended before the selected approach",selected,false);
     if(previous!==null&&current.position?.x===previous.x&&current.position.y===previous.y)return withStatus(walked,"route made no progress before the selected approach",selected,false);
     previous=current.position;
-    walked=await navigate.executeChecked(id,destination,routeStop,signal,{exactTarget:true});
+    walked=await navigate.executeChecked(id,destination,routeStop,signal,{exactTarget:true,multiTileRunning:true});
    }
    const checkInput=(actual:GameStateSnapshot|undefined,phase:"facing input"|"activation",requiredFacing:Button|null):void=>{
     if(actual===undefined)throw new SemanticPreconditionError(`verified state became unavailable before ${phase}`);
@@ -170,6 +182,8 @@ function semanticTool(navigate:CheckedNavigationTool,press:CheckedPressTool,feat
     if(listed!==null&&listed.kind!=="warp"){
      const elevation=plannedArrivalElevation(actual,choice.point,options);
      if(elevation===null||!elevationsMatch(listed.elevation,elevation))throw new SemanticPreconditionError(`selected target elevation became unreachable before ${phase}`);
+     const recipient=interactionRecipient(actual,listed,choice,options);
+     if(listed.activation==="A"&&(recipient===null||!sameTargetIdentity(listed,recipient)))throw new SemanticPreconditionError(`semantic interaction recipient changed before ${phase}`);
     }
     if(requiredFacing!==null&&actual.facing!==requiredFacing.toLowerCase())throw new SemanticPreconditionError(`player facing changed before ${phase}`);
    };

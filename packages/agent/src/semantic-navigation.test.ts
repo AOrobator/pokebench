@@ -13,6 +13,7 @@ import {withSemanticNavigation} from "./semantic-navigation.js";
 
 const tile=(x:number,y:number,collision=0,behavior=0)=>({x,y,collision,behavior,elevation:3});
 const target=(local_id:number,x:number,y:number)=>({kind:"object",x,y,elevation:3,activation:"A",availability:"conditional",facing:null,local_id,destination:null,name:`PERSON_${String(local_id)}`});
+const uncontrollable={permitted:false,controllable:false,reason:"forced_or_transitioning",shoes:true,allow_running:true,avatar_flags:0x41,metatile:0,elevation:3,map_type:3,callback1:0x08085E05,callback2:0x08085E5D,diagnostic:null,raw_hex:null};
 const baseFeatures=():FeatureSet=>({...flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false}),"bounded-navigation-v1":true,"walkable-floor-v1":true,"semantic-navigation-v1":true});
 const result=(state:GameStateSnapshot):AgentToolResult<{state:GameStateSnapshot}>=>({content:[{type:"text",text:"state"}],details:{state}});
 const field=(targets:NonNullable<GameStateSnapshot["interaction_targets"]>=[target(2,3,0)]):GameStateSnapshot=>({...IN_GAME,screen:"overworld",started:true,map_id:[0,9],position:{x:0,y:0},facing:"right",field_controls_locked:false,interaction_targets:targets,navigation_grid:{elevation:3,tiles:[0,1,2,3,4].flatMap(x=>[tile(x,0),tile(x,1)]),objects:targets.filter(t=>t.kind==="object").map(t=>({x:t.x,y:t.y})),warps:targets.filter(t=>t.kind==="warp").map(t=>({x:t.x,y:t.y}))}});
@@ -239,6 +240,32 @@ it("does not activate a stacked object when the selected object's elevation chan
  const out=await tool.execute("s",{map_id:[0,9],target:{kind:"object",local_id:2}});
  expect(f.buttons).toEqual([]);expect(out.content[0]?.type==="text"?out.content[0].text:"").toContain("target changed");
  expect(out.details).toMatchObject({semantic_navigation:{activation_attempted:false}});
+});
+
+it("refuses a selected object when an earlier wildcard-elevation object is the native recipient",async()=>{
+ const selected=target(2,3,0),earlier={...target(1,3,0),elevation:0};
+ const f=fixture(undefined,baseFeatures(),undefined,field([earlier,selected])),tool=f.tools.find(t=>t.name==="navigate_to_target");if(tool===undefined)throw new Error("missing semantic tool");
+ const out=await tool.execute("s",{map_id:[0,9],target:{kind:"object",local_id:2}});
+ expect(f.navigations).toEqual([]);expect(f.buttons).toEqual([]);expect(out.content[0]?.type==="text"?out.content[0].text:"").toContain("no supported route");
+});
+
+it("refuses a background when a scripted object would receive A first",async()=>{
+ const object=target(1,3,0),background:NonNullable<GameStateSnapshot["interaction_targets"]>[number]={kind:"background",x:3,y:0,elevation:3,activation:"A",availability:"conditional",facing:null,local_id:null,destination:null,name:"Sign"};
+ const f=fixture(undefined,baseFeatures(),undefined,field([object,background])),tool=f.tools.find(t=>t.name==="navigate_to_target");if(tool===undefined)throw new Error("missing semantic tool");
+ const out=await tool.execute("s",{map_id:[0,9],target:{kind:"interaction",interaction_kind:"background",x:3,y:0}});
+ expect(f.navigations).toEqual([]);expect(f.buttons).toEqual([]);expect(out.content[0]?.type==="text"?out.content[0].text:"").toContain("no supported route");
+});
+
+it("submits no A when a different native recipient appears in the fresh checked state",async()=>{
+ const selected=target(2,3,0),f=fixture(undefined,baseFeatures(),(state,button)=>button==="A"?{...state,interaction_targets:[{...target(1,3,0),elevation:0},selected]}:state),tool=f.tools.find(t=>t.name==="navigate_to_target");if(tool===undefined)throw new Error("missing semantic tool");
+ const out=await tool.execute("s",{map_id:[0,9],target:{kind:"object",local_id:2}});
+ expect(f.buttons).toEqual([]);expect(out.content[0]?.type==="text"?out.content[0].text:"").toContain("interaction recipient changed");expect(out.details).toMatchObject({semantic_navigation:{activation_attempted:false}});
+});
+
+it("submits no activation when native avatar control becomes forced before input",async()=>{
+ const f=fixture(undefined,baseFeatures(),(state,button)=>button==="A"?{...state,running:uncontrollable}:state),tool=f.tools.find(t=>t.name==="navigate_to_target");if(tool===undefined)throw new Error("missing semantic tool");
+ const out=await tool.execute("s",{map_id:[0,9],target:{kind:"object",local_id:2}});
+ expect(f.buttons).toEqual([]);expect(out.content[0]?.type==="text"?out.content[0].text:"").toContain("native field input is not controllable");expect(out.details).toMatchObject({semantic_navigation:{activation_attempted:false}});
 });
 
 it("does not submit a stale directional-warp input when its live behavior changes",async()=>{

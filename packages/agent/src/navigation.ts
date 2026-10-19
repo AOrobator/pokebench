@@ -490,7 +490,7 @@ function deterministicWarpPlan(state:GameStateSnapshot,requested:Point,options:N
 const Args=Type.Object({x:Type.Integer({minimum:0}),y:Type.Integer({minimum:0}),map_id:Type.Tuple([Type.Integer({minimum:0,maximum:255}),Type.Integer({minimum:0,maximum:255})]),walking:Type.Optional(Type.Boolean({description:"Walk deliberately without automatic running."}))},{additionalProperties:false});
 const DeterministicRunningArgs=Type.Object({x:Args.properties.x,y:Args.properties.y,map_id:Args.properties.map_id},{additionalProperties:false});
 export type NavigationStopCheck=(state:GameStateSnapshot)=>string|null;
-export interface CheckedNavigationOptions {readonly exactTarget?:boolean}
+export interface CheckedNavigationOptions {readonly exactTarget?:boolean;readonly multiTileRunning?:boolean}
 export type CheckedNavigationTool=AgentTool<typeof Args>&{readonly executeChecked:(id:string,goal:{readonly x:number;readonly y:number;readonly map_id:readonly [number,number];readonly walking?:boolean},check:NavigationStopCheck,signal?:AbortSignal,options?:CheckedNavigationOptions)=>Promise<AgentToolResult<unknown>>};
 export function isCheckedNavigation(tool:AgentTool):tool is CheckedNavigationTool {return "executeChecked" in tool&&typeof tool.executeChecked==="function";}
 export interface NavigationPorts {
@@ -625,7 +625,7 @@ export function navigationTool(ports:NavigationPorts):CheckedNavigationTool {
    const crossed=delta[1]===0&&after.x===before.x?(after.y-before.y)/delta[2]:delta[2]===0&&after.y===before.y?(after.x-before.x)/delta[1]:0;
    // A held running press can finish more than one tile away. It is still the planned move only when every
    // crossed tile is the next collinear prefix of the route; pushbacks, teleports and off-route displacement stop.
-   const runningPrefix=ports.automaticRunning===true&&Number.isInteger(crossed)&&crossed>0&&path.length>=crossed&&path.slice(0,crossed).every(step=>step===direction);
+   const runningPrefix=ports.automaticRunning===true&&checkedOptions.multiTileRunning===true&&Number.isInteger(crossed)&&crossed>0&&path.length>=crossed&&path.slice(0,crossed).every(step=>step===direction);
    if((after.x!==before.x+delta[1]*span||after.y!==before.y+delta[2]*span)&&!runningPrefix){status="unexpected movement; inspect new state";break;}
    if(distance(after,selectedTarget)===0){
     if(warpPlan?.activation!==null&&warpPlan?.activation!==undefined){if(commands<bound)continue;status="command limit";break;}

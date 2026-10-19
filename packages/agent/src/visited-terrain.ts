@@ -61,20 +61,20 @@ export class VisitedTerrain {
 
  text(state:GameStateSnapshot):string|null {
   if(state.map_id===null||state.position===null||state.navigation_grid==null)return null;
-  const memory=this.maps.get(mapKey(state.map_id));if(memory===undefined||memory.tiles.size===0)return null;
+  const position=state.position,memory=this.maps.get(mapKey(state.map_id));if(memory===undefined||memory.tiles.size===0)return null;
   const tiles=[...memory.tiles.values()],xs=tiles.map(tile=>tile.x),ys=tiles.map(tile=>tile.y);
   const natural={left:Math.min(...xs),right:Math.max(...xs),top:Math.min(...ys),bottom:Math.max(...ys)};
   const width=Math.min(MAX_RENDER_WIDTH,natural.right-natural.left+1),height=Math.min(MAX_RENDER_HEIGHT,natural.bottom-natural.top+1);
-  const left=Math.max(natural.left,Math.min(state.position.x-Math.floor(width/2),natural.right-width+1));
-  const top=Math.max(natural.top,Math.min(state.position.y-Math.floor(height/2),natural.bottom-height+1));
+  const left=Math.max(natural.left,Math.min(position.x-Math.floor(width/2),natural.right-width+1));
+  const top=Math.max(natural.top,Math.min(position.y-Math.floor(height/2),natural.bottom-height+1));
   const right=left+width-1,bottom=top+height-1,lookup=new Map(tiles.map(tile=>[key(tile),tile]));
-  const currentObjects=new Set((state.navigation_grid?.objects??[]).map(key)),currentWarps=new Set((state.navigation_grid?.warps??[]).map(key));
+  const currentObjects=new Set(state.navigation_grid.objects.map(key)),currentWarps=new Set(state.navigation_grid.warps.map(key));
   const rows=Array.from({length:height},(_,dy)=>{
-   const y=top+dy,row=Array.from({length:width},(_,dx)=>{const p={x:left+dx,y};return p.x===state.position?.x&&p.y===state.position.y?"@":currentObjects.has(key(p))?"N":currentWarps.has(key(p))?"W":symbol(lookup.get(key(p)));}).join("");
+   const y=top+dy,row=Array.from({length:width},(_,dx)=>{const p={x:left+dx,y};return p.x===position.x&&p.y===position.y?"@":currentObjects.has(key(p))?"N":currentWarps.has(key(p))?"W":symbol(lookup.get(key(p)));}).join("");
    return `${String(y).padStart(4," ")} ${row}`;
   });
   const clipped=natural.left!==left||natural.right!==right||natural.top!==top||natural.bottom!==bottom;
-  return `Visited terrain on map ${mapKey(state.map_id)}; only cells shown to you this run, north is up; ? unknown${clipped?`; view clipped to ${String(MAX_RENDER_WIDTH)}x${String(MAX_RENDER_HEIGHT)} around you`:""}:\n     x ${String(left)}..${String(right)}\n${rows.join("\n")}\n@ player; N current live object; W current warp; # solid; . clear; \" grass; ~ water; arrows are ledges. Loading a game checkpoint does not restore this harness memory.`;
+  return `Visited terrain on map ${mapKey(state.map_id)}; only cells shown to you this run, north is up; ? unknown${clipped?`; view clipped to ${String(MAX_RENDER_WIDTH)}x${String(MAX_RENDER_HEIGHT)} around you`:""}:\n     x ${String(left)}..${String(right)}\n${rows.join("\n")}\n@ player; N current live object; W current warp; # solid; . clear; " grass; ~ water; arrows are ledges. Loading a game checkpoint does not restore this harness memory.`;
  }
 }
 

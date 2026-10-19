@@ -24,12 +24,20 @@ Authorized by the operator on 2026-10-19: implement a feature-switched treatment
 
 ## M3 — Operator surfaces and pending experiment
 
-- [ ] Add a self-contained tracked explainer, index entry, Harness Config mapping, serving/card tests, and `pages-check` receipt.
-- [ ] Add a pending experiment with no queue position or approval, plus a readiness entry. Its provisional source commit must be repinned to the eventual merge SHA by the landing owner.
-- [ ] Run focused tests, full test, coverage (90% line/branch/function floors), lint, build, vendor verification, and `git diff --check`.
-- [ ] Commit the isolated branch and report review/landing/live proof as explicitly not done.
+- [x] Add a self-contained tracked explainer, index entry, Harness Config mapping, serving/card tests, and `pages-check` receipt. The tracked page passed `just pages-check`; the real Harness Config was not restarted or opened because a live run was in progress.
+- [x] Add a pending experiment with no queue position or approval, plus a readiness entry. `just experiments-check` passed all 118 definitions. Its provisional source commit must be repinned to the eventual merge SHA by the landing owner.
+- [x] Run focused tests, full test, coverage (90% line/branch/function floors), lint, build, vendor verification, and `git diff --check`.
+- [x] Commit the isolated branch for handoff. Review approval, landing, live Harness Config proof, and experiment launch remain explicitly not done.
+
+## Follow-on, outside this switch
+
+The concurrent whole-map probe showed visibly heavy deliberation while a complete map remained in every model turn. That is motivation for a separate design, not evidence about this treatment: keep the normal observation compact, add explicit on-demand `inspect_map` / `plan_route` access to local plus visited terrain, and have the loop supervisor recommend or attach that view once after a threshold instead of persistently emitting a full map. This branch deliberately does not add those tools or change its approved scope.
 
 ## Evidence
 
 - Source checkout: `/Users/user/dev/pokeemerald`, clean at `731ad5bfd6e6f265508d0efcca0ba42f9dcf5881` on 2026-10-19.
-- Test and deletion receipts will be written under ignored `runs/visited-terrain-navigation/`.
+- RED specification commit: `890d7e91675c2c4ee7da5d287614c253d08ece45`; production implementation commit: `f2384d6bb3edde7d8739732ba1852e7f9d0fdf29`.
+- Full tests: agent 2,535 passed; viewer 1,197 passed; environment 2,480 passed and 229 ROM-dependent tests skipped because `POKEBENCH_ROM` was unset.
+- Coverage: agent statements 97.87%, branches 93.96%, functions 98.25%, lines 99.25%; viewer statements 95.43%, branches 91.49%, functions 93.88%, lines 97.65%. The first viewer coverage pass timed out in the pre-existing long-stream abandonment test at its five-second limit; an isolated retry passed all 1,197 tests and all 90% floors.
+- `just lint`, `just build`, `just verify-vendor`, `just experiments-check`, explainer `pages-check`, and `git diff --check` passed. Vendor was clean at `bbab97ad73e460b7cd7c08527d10ced30cc03fbe`.
+- Focused test and deletion receipts are under ignored `runs/visited-terrain-navigation/`.

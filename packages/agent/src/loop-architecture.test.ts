@@ -42,6 +42,8 @@ describe("loop rule architecture", () => {
     const allExports = facadeSymbol === undefined
       ? []
       : program.getTypeChecker().getExportsOfModule(facadeSymbol).map((symbol) => symbol.name).sort();
+    // Export enumeration must not build the harness dependency graph or ambient libraries.
+    expect(program.getSourceFiles().map((file) => file.fileName)).toEqual([facadePath]);
     expect(allExports).toEqual([
       ...runtimeExports,
       "CompletedCall",

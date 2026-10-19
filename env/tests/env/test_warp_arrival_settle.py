@@ -288,6 +288,18 @@ def test_bound_hit_captures_anyway_and_does_not_hang() -> None:
     assert out["result"] == ((7, True), Settled(7, "warp_bound"))
 
 
+def test_frame_driver_stops_at_capture_before_worker_exits(monkeypatch: pytest.MonkeyPatch) -> None:
+    game = Game(synthetic(lock=True, funcs=(EXIT_DOOR,)))
+    lock = threading.Lock()
+    settle = FrameSettle(game.read, warp=True, warp_bound_frames=3)
+    out, thread = waiting(settle, lambda: game.frame, lock)
+    is_alive = thread.is_alive
+    # Force the observed failure: the worker still appears alive after frame 3's capture.
+    monkeypatch.setattr(thread, "is_alive", lambda: game.frame <= 3 or is_alive())
+    assert run_frames(game, settle, lock, thread, lambda frame: None) == 3
+    assert out["result"] == (3, Settled(3, "warp_bound"))
+
+
 def test_the_default_warp_bound_is_used_in_frames() -> None:
     game = Game(synthetic(lock=True, funcs=(EXIT_DOOR,)))
     lock = threading.Lock()

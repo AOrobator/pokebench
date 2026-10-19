@@ -88,9 +88,11 @@ const TurnStart = event("turn_start", {
   context: Type.Object({ messages: NonNegativeInt, images: NonNegativeInt, est_tokens: NonNegativeInt }, closed),
 });
 
+const GuidanceFields={anchor:Type.String(),ordinal:NonNegativeInt,scene:Type.Enum(["overworld","battle","naming","clock","menu","unknown"] as const),source_state_seq:Type.Union([NonNegativeInt,Type.Null()]),text:Type.String(),sha256:Sha256};
+
 const Assistant = event("assistant", {
   thinking: Type.String(),
-  request_context: Type.Optional(Type.Object({mode:Type.Enum(["full","jit"] as const),scene:Type.Enum(["overworld","battle","naming","clock","menu","unknown"] as const),state_seq:Type.Union([NonNegativeInt,Type.Null()]),system_prompt:Type.String(),prompt_sha256:Sha256,tools:Type.Array(Type.String()),tools_sha256:Sha256},closed)),
+  request_context: Type.Optional(Type.Object({mode:Type.Enum(["full","jit","jit-v2"] as const),scene:Type.Enum(["overworld","battle","naming","clock","menu","unknown"] as const),state_seq:Type.Union([NonNegativeInt,Type.Null()]),system_prompt:Type.String(),prompt_sha256:Sha256,tools:Type.Array(Type.String()),tools_sha256:Sha256,guidance:Type.Optional(Type.Object({...GuidanceFields,reason:Type.Enum(["first","scene_change","evicted","none"] as const)},closed)),projected_guidance:Type.Optional(Type.Array(Type.Object(GuidanceFields,closed))),component_chars:Type.Optional(Type.Object({core_text:NonNegativeInt,guidance_text:NonNegativeInt,canonical_history_json:NonNegativeInt},closed))},closed)),
   text: Type.String(),
   tool_calls: Type.Array(Type.Union([Type.Object({id:Type.String(),name:Type.Literal("act"),args:Type.Unknown()},closed),Type.Object({ id: Type.String(), name: Type.String(), args: Args }, closed)])),
   usage: Type.Object({ input: NonNegativeInt, output: NonNegativeInt, cache_read: NonNegativeInt, cache_write: Type.Optional(NonNegativeInt) }, closed),

@@ -1,0 +1,102 @@
+# Stable-prefix JIT v2 experiment preparation
+
+## Problem Statement
+The operator approved the stable-prefix JIT proposal with “ok let's start working on that v2 experiment” on 2026-10-18, then asked why v1's system prompt was not much smaller. Prepare a separate, reviewable v2 treatment and experiment, preserving the active jit-10m cohort. Existing evidence: first18 completed trials have7.1% smaller logical prompt tokens but no latency benefit; median run cache fraction66.9% vs70.6%, v1 prompt hash changes5–16/run. These are associations, not causal proof. V1 system instructions shrink~20% overall; overworld25%, naming65%, clock76% by characters.
+
+## Skills Loaded
+feature-worklog, feature-switch, experiment-queue, pokebench-experiment-design, feature-explainer, agent-observability, viewer-e2e, close-the-loop, repository multi-model-review.
+
+## Architecture
+Operator approval covers the proposed architecture and implementation work recorded here. No new measured GPU allocation or launch is inferred. Use just-in-time-prompt-v2, default OFF. V2 OFF preserves existing v1/full behavior exactly. Experiment compares full standing instructions (control) with stable-prefix instruction delivery (candidate); v1 OFF in both arms. The full tool catalog and existing tool execution behavior stay identical; no v2 tool filtering or new guard.
+
+V2 uses a fixed small core composed from existing cross-scene prompt sections, plus explicit scoping rules. Reuse existing scene instructions, preserving universal evidence/trust/supervisor rules. At actual request dispatch, project a clearly labelled harness-guidance message after the newest observation/task on first dispatch, scene change or eviction of active guidance. Keep those injected messages at stable anchors in later projections, so unchanged history retains its earlier injected guidance and reusable prefix. Do not mutate canonical messages, reorder tool results or rewrite prior guidance. When the ordinary context window drops an anchor, drop its projection entry; restore needed current-scene guidance at the current tail. Unknown scenes receive existing full-interface fallback guidance at the tail; stable core/catalog remain fixed. V2 supersedes v1 if both selected; actual experiment explicitly disables v1. All model-facing guidance and anchoring/source-state receipts must be recorded, schema-valid and inspectable in existing Activity History/raw inspector; no timeline additions.
+
+A proposal carries forward early milestones/no probes/600000ms caps/MAIN_MENU FAST/two GPUs/24trials12arm/zero replacements/four GPU-hour shape from v1 for review only. This is not a fresh spend authorization. Outcome remains furthest native story checkpoint then exact arrival time. Cache reuse, TTFT, request latency, output, instruction/core/guidance/history sizes are secondary mechanism measurements. No confirmatory benefit claim or automatic promotion. Definition stays unapproved/unstarted.
+
+## Invariants
+- INV-1 OFF identity: contexts, tools, messages, guards and historical schema behavior match the pre-v2 path; test factory and request seams.
+- INV-2 Stable prefix: core and model-facing tool definition hashes stay constant across verified scene transitions; injected history remains append-only while canonical history is unchanged; test real pinned pi loop payloads.
+- INV-3 Correct context: newest authoritative recorded state selects scoped guidance including startup, unknown, naming/battle/menu ownership; no extra emulator reads; exact state seq receipts.
+- INV-4 Delivery: no duplicate instruction on unchanged context; window eviction restores guidance at tail; old instructions remain explicitly scoped, canonical messages never mutated; tests for clones/retries/pruning.
+- INV-5 Measurement: exact injected text/anchors and component characters recorded, no invented token splits; provider usage/cache/latency retained. Token counts only when actually measured.
+- INV-6 Isolation: v1 fixed runtime, recordings, grading, definition and approvals unchanged; no new GPU calls. Any proposed v2 plan is separate and remains unapproved.
+
+## Security Review
+Local-only loopback documents, no credentials/ROM copies, no RAM writes or vendor edits. Guidance quotes existing harness interface instructions and is labelled as harness guidance rather than game dialogue or game-owned truth. No shell-string subprocesses, no any in new TypeScript.
+
+## Milestones
+**M1 — Contract and RED**
+- [x] Record operator-approved proposal, protocol assumptions and launch boundary before implementation.
+- [x] Add request-prefix, scope, trim/idempotence, OFF-identity and production-factory tests; commit RED e307afcc, then restore factory routing mutation and test GREEN.
+**M2 — Implementation and metadata**
+- [x] Stable-prefix projection, compact-core/scene split, exact additive receipts, default-OFF registry/presets.
+- [x] Separate pending experiment and proposed fixed plan, tracked explainer/overview and native card mapping.
+- [x] Routing deletion/restoration receipts; fake-data plan rehearsal; no inference.
+**M3 — Qualification and review**
+- [ ] All five application gates, coverage floors>=90, no skips/vendor changes.
+- [ ] Principles PB1–PB13 self-review and frozen cloud packet; Claude/Grok/GPT literal LGTM required for self-landing. Claude Cursor usage is currently unavailable; inspect approved alternate harness before declaring blocked. A fallback is not cloud merge approval.
+- [ ] Independent four-persona design review before any launch approval, with budget/readiness/power limitations stated.
+- [ ] Desktop1280/1440 and phone375 native UI/explainer proof; actual schema-valid synthetic replay, no gameplay actions.
+**M4 — Landing and handoff**
+- [ ] Land only if authorized cloud review gate passes; main FF only, post-landing test and viewer-main live proof.
+- [ ] Present concrete proposed experiment and any remaining launch/budget approval boundary. Do not launch a second cohort from the old four GPU-hour authorization.
+
+## Closing the Loop
+Use actual serialized model-bound payloads on pinned pi-loop stubs, RED/GREEN and mutations; preserve exact injected receipts and compare prefix bytes before scene transitions. Build served assets and click native Harness Config explainer on an isolated non-queue preview. Verify no timeline changes. Report prepared/reviewed/landed/launched as separate states.
+
+## Session Log
+- Main33f9ff8a clean at start. Dedicated attached managed worktree created at codex-app path jit-v2-stable-prefix; preserved unfinished-edits worktree is unrelated and unchanged. Existing jit-10m has20/24 valid,0invalid and continues on pinned2b2dec5d.
+- Read source: v1 rewrites leading system prompt and tool catalog at every scene transition. Existing request receipts retain exact system/tool hashes, but no appended-guide projection. Pinned pi-ai0.73.1 places system before messages; pinned pi-loop requestContext is called for each stream dispatch, including follow-ups.
+
+## Surprises
+- Cache-friendly delivery cannot merely move guidance to the bottom of the system message; it must follow retained conversation history. Base context-window collapsing itself changes earlier payloads; isolate v2's preservation claim to unchanged retained history and measure actual reuse rather than promise it.
+
+## Multi-Model Review Log
+- Pending implementation. No approval inferred from prior v1 reviews.
+
+## Boy Scout Log
+- No unrelated cleanup.
+
+## Archive Milestone (user-gated)
+- [ ] the operator authorizes archive; not requested.
+
+- M1 RED: added six projection contract tests covering OFF identity, six-scene stable core/catalog, immutable A→B→A guidance, idempotence, collapse/eviction/transient suffixes, result batches, exact character receipts and unknown fallback. Focused run fails as expected because jit-v2-context does not exist; transcript runs/reviews/jit-v2-preparation/red-unit.log. Factory test follows once the optional flag parses.
+
+- COMMIT e307afcc: RED contract tests. GREEN now: nine projection tests, actual startup/factory receipts with v2 superseding v1 without filtering tools or guarding execution, pinned provider serialization including two image-bearing results, immutable prefix through intervening assistant replies, and 2000-step synthetic eviction history. The latter assistant-tail case was independently RED before its anchor fix (red-intervening-assistant.log); factory request routing deletion also RED (mutation-factory-routing-01.log), restored and passing.
+- Independent preliminary projection audit found mixed character units; fixed raw core_text/guidance_text and explicitly serialized canonical_history_json, with docs/tests. No other concrete correctness finding; image-bearing batch test added as requested production seam proof.
+- Registry/defaults/presets v2 OFF, additive request receipt schema regenerated, native Harness Config explainer mapping/routes, separate pending registration + proposed24trialfixedplan/hashedbaseline. Existing v1 fixed files untouched. Legacy positional registry assertions shifted once and historical definitions explicitly keep their pre-v2 keyset; no old experiments rewritten.
+- Gate receipts before main sync: test2467agent+1175viewer, Python2478+229ROM-skips before .env linked. Coverage re-runs with canonical .env and isolated Python env: agent2468, viewer1175, Python2707 allpassed; aggregate TS agent lines99.23/branches94.21/functions98.33, viewer97.64/91.46/93.83; Python97.66/93.82/100. Initial overloaded coverage attempts timed out on unchanged serpentine planner and abandoned-stream tests; retained logs, no timeout/coverage/exclusion weakening. Vendor check passed. Lint/build rechecking final source before commit.
+- Environment isolation: an initial shared .venv symlink caused uv to relocate only the editable package pointer (Python source byte-identical). Restored canonical editable installation immediately and replaced symlink with a dedicated venv; only pinned native mgba binding is linked read-only. No measured runtime/source/config/log edits.
+- Main moved independently to b9e501df while preparation ran (viewer phone-layout flag and story-speaker aliases). Sync before frozen review; neither is v2 scope. Four-persona review now reads final24trial JIT evidence plus exact v2 design snapshot, independently. No new GPU allocation, launch, promotion or landing inferred.
+- Fresh v1 status finished24/24valid at19:38:33ET. Final analysis is separate ignored evidence under main runs/reports/run-analysis/2026-10-18_jit-final; no overwriting original interim. The completed cohort remains frozen at2b2dec5d.
+- Claude alternate CLI auth checked: loggedInfalse under .claude-review. Cursor model inventory refreshed; cloud review not yet attempted on final packet. This is not LGTM.
+
+- Correction: final before-sync build PASS; lint revealed a test-only union-spread type error in the image-bearing result fixture. The earlier simultaneous command committed fcc9e92e before its lint receipt was inspected; no green milestone/merge is claimed. Fixture now supplies explicit toolResult fields and lint reruns before further qualification. Coverage complete without skips: TS2468agent+1175viewer, Python2707; all existing floor checks PASS. V2 docs now explicitly disclose permanent task-anchored startup fallback, raw text vs serialized-history units, and final-cohort cap/power sensitivity (not power for frontier). Four persona snapshot is frozen before feedback; no verdict yet.
+
+- COMMIT fcc9e92e contains v2 implementation and metadata, still unlanded/unapproved. Fixing the fixture type and syncing main before frozen review.
+
+- COMMIT7438f755 fixes explicit toolResult typing; focused9tests+tscPASS. Sync commit362cac47 merged main before review (only a worklog update differed). Correction to initial session summary: actual managed worktree base was f36b15d9 (parent of b819bc1f), already containing main's viewer-phone/story-alias changes;33f9 was an earlier observed main snapshot, not this branch's creation parent. New v2 source pin is implementation ancestorfcc9e92e pending final reviewedmain pin at approval.
+- Four independent persona review completed on frozen final24data+v2design snapshot: finalanalysis holds allfour; v2 holds integrity, holds-with-changes harness/ML/Grokdata. Accepted as documentation fixes: final24insteadfirst18, persistentfallback arithmetic14615/22418chars beforelabels, whole-policy estimand, designated uncached-input mechanismsecondary and guide-volume reporting, explicit legacyprimaryMilestone fieldmeaning when primaryOutcome=frontier. No classifier specialization, new guard, probe, extra arm or GPU spend added. Harness maximum-payload request is qualification evidence rather than a confirmed overflow bug; a deterministic production-window serialized stress receipt will be attached, with no token-fit inference from JSON characters.
+
+- No-inference context-pressure receipt payload-envelope.json: real productionWINDOW20turns/6results,65alternatingunknown/overworldrequests through pinned provider serializer,0HTTPcalls, maximum21retainedguides,305654outgoingJSONbytes. Fixture has synthetic catalog/text/images, so this is not real-game byte/token proof or a token-fit claim. Added context-pressure disclosure and explicit actualchat-template/token-fit qualification before launch approval. No arbitrary guide cap or new guard introduced to make the test green.
+
+- Browser proof on isolated61367directstartViewer, no queue/autorun attached, synthetic-replay header explicitly marked no-inference: v2 rawassistantreceipt shows modejit-v2/projected_guidance/canonical_history_json; nativeHarnessConfig featurecard ON and realREAD EXPLAINER link opens trackedpage. Phone375 screenshot verifies unchanged Previous page / PokéNav page dropdown / Next page controls, nativewhiteStats/redheadings, thinmetricstrips andnoStats-localslider. Desktop1440explainer andphoneStats screenshots retained under runs/reviews/jit-v2-preparation/shots. Served file/build-byte hashes recorded separately before claiming finalfrozenassetidentity; previewisstillprecommitbuild, not mainliveproof.
+
+- Post-sync test PASS: agent2468, viewer1175, Python2707,0skips. Lint caught repository string-interpolation rule on numeric assistant timestamp; explicitString(timestamp) preserves the exact anchor bytes and removes the lint failure. Recheck lint/build/coverage on final source before sealing. Previewserved style.css/appmain.js/trackedexplainer allHTTP200 and byte-identicalSHA256 to built/source files (preview-assets.json). Main/source/runtime not restarted or altered for preview.
+
+- Final lint/build PASS after String(timestamp). Final coverage passed bothTSstacks and continues Python without failures. Before sealing, main advanced to67feeac5 with the independent stale-story-goal refinement and experiment bookkeeping. Sync again before final cloudreview; do not claim this newer common harness matches the measured v1 pin. V2 remains a same-new-build comparison with that change shared by both arms.
+
+- Review-tip gate closure at2fcb50ca/main67feeac5: justtest2468agent+1175viewer+2707PythonallPASS; lint/build/vendorPASS. Defaultparallelcoverage hit unchanged server-stream timing failures; preserved logs. Exact same fullTScoverage suite rerun with --maxWorkers=2 passes all2468+1175 and unchanged90floors (agentlines99.23/branches94.22/functions98.33; viewer97.64/91.46/93.83). Pythoncoverage2707PASS,97.66/93.82/100, sourcesbyte-identical acrossmainTS-onlysync. No test skips, timeout changes, excludes or weakened assertions. Controlled concurrency changes execution scheduling only. This equivalent complete coverage receipt is review-tip-ts-coverage-two-workers.log; failed justcoverage receipt remains review-tip-coverage.log.
+- Current Claude cloud review availability is genuinely blocked: CursorOpus and CursorSonnet both returnusage-limiterrors (separate stdout/stderr/exit receipts; account reset shown11/17/2026); approved isolated ClaudeCLIconfig loggedInfalse. No auth/spendsetting changes attempted. Therefore Claude LGTM is unavailable and this branch cannot self-land under execute-worklog; fresh distinct-modelfallback reviews supplement independentGrok/GPT on one frozenpacket but do not replace Claudecloudlandingapproval. Do not confuse persona holds with codeLGTM.
+- Code-review frozen packet, exactdiffSHA256, boundary, PB1–PB13adherence and final synthesis live under worktree runs/reviews/jit-v2-preparation/. No review verdict is implied here; terminal reviewer outputs/synthesis are the authoritative receipts. A real bug found before packetfinalization will be fixed and the cumulativepacket re-reviewed, capped at2rounds. Missing Claudecloudlane requires the operator's landing decision; no newbudget approval is requested before actualtoken-fit qualification.
+- Final v1 analysis is published locally, independently reviewed (allfourpersona finalanalysis holds) and browserchecked1280/1440/375 with workingrun toggles andmobilewidth375(nooverflow). It includes all24outcomes, allterminalresponses, fallbackstatejoins, cacheassociationlimits, finalpairforensics and uncertainty. Canonical main/runs/rawRAM/events/approvals untouched by that analysis. Report URL http://127.0.0.1:8791/reports/run-analysis/2026-10-18_jit-final/index.html .
+
+## Landing receipt — 2026-10-18
+- The operator explicitly answered “yes” to “May I land it with Claude’s review waived?” This waives only the unavailable Claude cloud lane for this frozen candidate; it does not approve launch or GPU spending.
+- Round 1 frozen HEAD730dfee2ae388a3d0c4178c86332a62d6ce2c7de, base67feeac544b8f77a8aa650decaff1f77616becde, binarydiffSHA256cf307171c2df401b73aa2779e263ea60c4ae52d309e0f701321ef9e2f5eaf3ba. GPT(gpt-5.6-sol), Grok(Cursor4.5), fallbackAstra and fallbackSol each terminal VERDICT: LGTM; Claude unavailable, waived by operator. No blocking findings or fixes. Full verbatim review receipts/synthesis remain in the preparation worktree runs/reviews/jit-v2-preparation/.
+- Main clean and unchanged from frozen base; fast-forward landed exactly730dfee2. No code or docs changed after frozen review before landing.
+- First canonical post-land test failed because packages/viewer/node_modules/@pokebench/agent linked a different old scratch checkout, not canonical agent. A rebuild exposed the same stale link at type-check time. Restored local workspace dependencies with frozen lockfile, without source/lockfile changes; link now ../../../agent. Rebuild PASS. Complete just test PASS:2468agent+1175viewer+2707Python, zero skips. Original failures and successful rerun retained in runs/reviews/jit-v2-preparation-post-land-test.log and runs/reviews/jit-v2-post-land/.
+- Sanctioned just viewer-main serves clean730dfee2; runtime build stamp matches. Restart at approximately20:24–20:25EDT. No gameplay processes existed before/after. First launch exited with its tool session; retained the second sanctioned viewer-main invocation in a persistent session, with one8790listener. Browser selected actual completed5a61throughRun dropdown, loadedREPLAY, opened nativeHARNESSCONFIGv2card and its actualREAD EXPLAINER link. Existing v1 run correctly says v2NOT RECORDED; registry marks defaultOFF. Screenshot opened and inspected at runs/reviews/jit-v2-post-land/landed-explainer.png. No stale-viewer-build problem.
+- Workbench shows all24jit-10m cohort rows. Full historical scan is still filling in; an unrelated missing navigation-evidence-memory comparison-worktree receipt remains visible. No new data-surface fix or clean-all-history claim.
+- M3 preparation gates, design review and browser proof complete; cloud review complete with explicit Claude waiver. M4 landing/live handoff complete. V2 remains defaultOFF, pending/unapproved/unqueued. Actual template/token-fit qualification, serving parity and a fresh budget/launch decision remain before any measured v2 run. No model/gameplay requests were made by this landing.
+- This is the permitted evidence-only main commit, confined to docs/worklogs. Application source is unchanged from reviewed730dfee2. Worklog archival is not authorized.

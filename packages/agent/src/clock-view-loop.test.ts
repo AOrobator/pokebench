@@ -51,8 +51,8 @@ function look(d:LoopDetector,minute:string):void {
 
 describe("clock-view-loop-v1",()=>{
  it("is registered second to last, default off, and the bundle arm is the one that turns it on",()=>{
-  expect(SWITCHABLE_FEATURES.at(-7)).toBe(ID);
-  expect(playHarnessFeatures(ALL_ON,null).at(-7)).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-8)).toBe(ID);
+  expect(playHarnessFeatures(ALL_ON,null).at(-8)).toBe(ID);
   expect(featureInfo(ID)).toMatchObject({group:"guard",needs:null,switchable:true,title:"CLOCK VIEW LOOP"});
   expect(featureInfo(ID).description).toContain(" Off: ");
   expect(featureInfo(ID).description).toContain("Bundle arm only");
@@ -65,7 +65,7 @@ describe("clock-view-loop-v1",()=>{
   expect(bundle.switches).toContain(ID);
   const raw=JSON.parse(readFileSync(new URL("../../../experiments/clock-view-loop.json",import.meta.url),"utf8")) as {queuePosition?:number;incumbent:{features:Record<string,boolean>}};
   expect(raw.queuePosition).toBeUndefined();
-  expect(Object.keys(raw.incumbent.features)).toEqual([...SWITCHABLE_FEATURES]);
+  expect(Object.keys(raw.incumbent.features)).toEqual(SWITCHABLE_FEATURES.filter(id=>id!=="just-in-time-prompt-v2"));
   const {incumbent,candidate}=experimentArms(parseExperiment(raw));
   expect(incumbent.features[ID]).toBe(false);
   expect(candidate.features[ID]).toBe(true);

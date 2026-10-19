@@ -60,8 +60,8 @@ describe("stale-story-goal-v1",()=>{
  const oldale=field([0,10],"OLDALE TOWN");
  const lab=[page("BIRCH lives next door.","MOM"),page("Go see MAY at the LAB.","MOM")];
  it("is registered fifth from the end, default off, and needs nothing",()=>{
-  expect(SWITCHABLE_FEATURES.at(-6)).toBe(ID);
-  expect(playHarnessFeatures(ALL_ON,null).at(-6)).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-7)).toBe(ID);
+  expect(playHarnessFeatures(ALL_ON,null).at(-7)).toBe(ID);
   expect(featureInfo(ID)).toMatchObject({group:"observation",needs:null,switchable:true,title:"STALE STORY GOAL"});
   expect(featureInfo(ID).description).toContain(" Off: ");
   expect(dependencyProblems({...ALL_ON,[ID]:true,"story-destinations-v1":false,"harness-trust-v1":false})).not.toContain(expect.stringContaining(ID));
@@ -113,17 +113,20 @@ describe("stale-story-goal-v1",()=>{
   expect(early).toContain("Way in");
   expect(early).not.toContain("Route 103 rival battle won");
  });
- it("treats a later ledger line as newer than the place line and does not promote an older place",()=>{
+ it("keeps the active place through incidental later dialogue, while native completion still retires it",()=>{
   const shoes=page("Don't forget your RUNNING SHOES.","MOM");
   const calls=[{turn:5,pages:lab},{turn:6,pages:[shoes]}];
   const on=run(calls,dex(oldale,false),true) ?? "";
-  expect(on).toBe([LAB_QUOTE,"Done: MOM's line from turn 6 (\"Don't forget your RUNNING SHOES.\") is newer. This is not where to go."].join("\n"));
-  expect(on).not.toContain("Way in");
+  expect(on).toBe([LAB_QUOTE,DOOR].join("\n"));
+  expect(on).toContain("Way in");
   expect(on).not.toContain("lives");
+  const clerk=run([{turn:5,pages:lab},{turn:6,pages:[page("Welcome!", "CLERK")]}],dex(oldale,false),true) ?? "";
+  expect(clerk).toBe([LAB_QUOTE,DOOR].join("\n"));
   const off=run(calls,dex(oldale,true),false) ?? "";
   expect(off).toBe([LAB_QUOTE,DOOR].join("\n"));
   const both=run(calls,dex(oldale,true),true) ?? "";
-  expect(both).toContain("Done: Pokédex received. MOM's line from turn 6 (\"Don't forget your RUNNING SHOES.\") is newer. This is not where to go.");
+  expect(both).toContain(STALE_LAB_NOTE);
+  expect(both).not.toContain("is newer");
   expect(both).not.toContain("Way in");
  });
  it("retires Petalburg Woods and the Rustboro Gym when the checklist says those are complete",()=>{
@@ -221,7 +224,7 @@ describe("stale-story-goal-v1 production factory",()=>{
  });
  it("the pending experiment flips only this switch, with the lab parents on, and is not queued",()=>{
   const raw=JSON.parse(readFileSync(new URL("../../../experiments/stale-story-goal.json",import.meta.url),"utf8")) as {incumbent:{features:Record<string,boolean>}};
-  expect(Object.keys(raw.incumbent.features)).toEqual([...SWITCHABLE_FEATURES]);
+  expect(Object.keys(raw.incumbent.features)).toEqual(SWITCHABLE_FEATURES.filter(id=>id!=="just-in-time-prompt-v2"));
   const entry=parseExperiment(raw);
   expect(entry.queuePosition).toBeUndefined();
   expect(entry.changedFeature).toBe(ID);

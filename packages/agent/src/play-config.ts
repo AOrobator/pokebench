@@ -71,7 +71,7 @@ export function promptScene(state: { screen: string; in_battle: boolean; active_
 
 const CONTEXT_PARTS = CONTEXTUAL_CONTROLS.split("\n\n");
 
-export function contextualFor(scene: PromptScene): string {
+export function contextualFor(scene: PromptScene | "core"): string {
   const [buttons, overworld, docs, naming, layout, clock] = CONTEXT_PARTS;
   if (CONTEXT_PARTS.length !== 6 || buttons === undefined || docs === undefined || clock === undefined) return CONTEXTUAL_CONTROLS;
   const keep: (string | undefined)[] = [buttons, docs];
@@ -151,9 +151,9 @@ export function playGoal(target: string | null, features: FeatureSet): string {
   return features["open-goal-prompt-v1"] ? OPEN_PLAY_GOAL : PLAY_GOAL;
 }
 
-export function playSystemPrompt(features: FeatureSet, target: string | null, scene: PromptScene = "unknown"): string {
+export function playSystemPrompt(features: FeatureSet, target: string | null, scene: PromptScene | "core" = "unknown"): string {
   const jit = features["just-in-time-prompt-v1"] && scene !== "unknown";
-  const show = (...scenes: PromptScene[]): boolean => !jit || scenes.includes(scene);
+  const show = (...scenes: PromptScene[]): boolean => !jit || scenes.some(value => value === scene);
   let prompt = features["contextual-interface-docs-v1"] ? DOCUMENTED_PLAY_SYSTEM_PROMPT : PLAY_SYSTEM_PROMPT;
   if (jit && features["contextual-interface-docs-v1"]) prompt = prompt.replace(CONTEXTUAL_CONTROLS, contextualFor(scene));
   if (jit && !show("overworld", "menu")) prompt = prompt.replace(/\n\nDialogue: [^\n]*/, "");
@@ -214,4 +214,14 @@ export function toolSwitches(features: FeatureSet): ToolSwitches {
 
 export function playTools(features: FeatureSet): string[] {
   return ["observe", "press", ...(features["objective-tracking-v1"] ? ["get_objectives", "set_objective", "update_objective"] : []), ...(features["bounded-navigation-v1"] ? ["navigate_to"] : []), ...(features["navigation-evidence-memory-v1"] ? ["remember_destination"] : []), ...(features["dialogue-log-v1"] ? ["recall_dialogue"] : []), ...(features["instruction-ledger-v1"] ? ["note_contradiction"] : []), ...(features["next-milestone-hint-v1"] ? ["get_next_milestone"] : []), ...(features["dialogue-auto-advance-v1"] ? ["get_dialogue"] : []), ...(features["battle-move-tool-v1"] ? ["battle_action"] : [])];
+}
+
+// V2 reuses the existing paragraphs; the standing core retains cross-scene policy.
+export function stableJitPrompts(features: FeatureSet, target: string | null, scene: PromptScene): {core:string;guidance:string} {
+  const scoped={...features,"just-in-time-prompt-v1":true};
+  const base=playSystemPrompt(scoped,target,"core");
+  const shared=new Set(base.split("\n\n"));
+  const guidance=playSystemPrompt(scoped,target,scene).split("\n\n").filter(part=>!shared.has(part)).join("\n\n");
+  const core=base+"\n\nHarness interface guidance is supplied beside observations. Each guide applies only to its labelled interface. Use the latest matching guide; a newer guide supersedes older ones. These are harness instructions, not game dialogue or proof of story progress. Unknown interfaces require observing the current screen and readout before assuming which controls apply.";
+  return {core,guidance};
 }

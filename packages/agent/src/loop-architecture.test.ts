@@ -1,4 +1,6 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import * as loopFacade from "./loop-detection.js";
 import { LOOP_RULE_PRIORITY, buildLoopRules, firstLoopHit } from "./loop/rules/index.js";
 import { LOOP_POLICY, type CompletedCall, type LoopHit, type LoopRule, type LoopRuleId } from "./loop/types.js";
 import { InterfaceRules } from "./loop/rules/interfaces.js";
@@ -6,6 +8,28 @@ import { LoopDetector, type LoopNotice } from "./loop-detection.js";
 import type { GameStateSnapshot } from "./game-state.js";
 
 describe("loop rule architecture", () => {
+  it("preserves the compatibility facade's exact runtime and type export surface", () => {
+    expect(Object.keys(loopFacade).sort()).toEqual([
+      "BATTLE_MENU_LOOP_MESSAGE",
+      "BATTLE_MENU_RETURNS",
+      "LOOP_POLICY",
+      "LoopDetector",
+      "NATIVE_PROGRESS_MILESTONES",
+      "PUSHBACK_MESSAGE",
+      "REVISIT_MESSAGE",
+      "TRIGGER_SCRIPT_MESSAGE",
+      "WAITING_MESSAGE",
+      "battleState",
+      "readLoopMode",
+      "scriptHeld",
+      "semanticState",
+      "transientLock",
+      "waitingState",
+    ]);
+    const source = readFileSync(new URL("./loop-detection.ts", import.meta.url), "utf8");
+    expect(source).not.toMatch(/export type\s*\{[^}]*\bLoopCoordinatorOptions\b[^}]*\}/s);
+  });
+
   it("keeps detector priority explicit and stable", () => {
     expect(LOOP_RULE_PRIORITY).toEqual([
       "planning",
@@ -94,6 +118,8 @@ describe("loop rule architecture", () => {
   });
 
   it("keeps lifecycle callbacks out of pattern-rule APIs", () => {
+    const source = readFileSync(new URL("./loop/rules/interfaces.ts", import.meta.url), "utf8");
+    expect(source).not.toMatch(/recover/i);
     const rules = new InterfaceRules(3, false, false, true);
     const observeState: (state: GameStateSnapshot) => boolean = (state) => rules.observeState(state);
     const menuReturn: (call: CompletedCall, seq: number) => { readonly evidence: number[] | null; readonly stateReset: boolean } =

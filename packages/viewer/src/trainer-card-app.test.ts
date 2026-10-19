@@ -15,12 +15,14 @@ const EXP = "bundle-v-control-dryrun-cook";
 const FLAGS = { loopGuard: true, activeUi: true, interfaceDocs: true, objectives: true };
 const LIVE_ID = "2026-10-16T05-51-58_qwen36-gpu0_7a95";
 const OTHER_ID = "2026-10-16T05-51-58_qwen36-gpu1_7f38";
+const REPLAY_ID = "2026-10-16T04-51-03_qwen36-gpu0_54a7";
 const TRAINERS = ["brendan", "may", "birch", "wally", "roxanne", "brawly", "wattson", "flannery", "norman", "winona", "sidney", "phoebe", "glacia", "drake"];
 const MANIFEST = { version: 1, tiers: ["green", "bronze", "copper", "silver", "gold"], trainers: TRAINERS, icons: [280, 412], egg: 412, proof: {}, source: {} };
 const FONT = { widths: Array.from({ length: 512 }, () => 4), cmap: { A: 1 } };
 const RUNS = [
   { id: LIVE_ID, model: "qwen", started: "2026-10-16T05:52:27.171-04:00", ended: false, reason: null, problem: null, live: true, experiment: `${EXP} · bundle · 2/4`, cohort: { id: EXP, arm: "bundle", trial: 2, of: 4 } },
   { id: OTHER_ID, model: "qwen", started: "2026-10-16T05:52:27.171-04:00", ended: false, reason: null, problem: null, live: true, experiment: `${EXP} · control · 1/4`, cohort: { id: EXP, arm: "control", trial: 1, of: 4 } },
+  { id: REPLAY_ID, model: "qwen", started: "2026-10-16T04:51:31.543-04:00", ended: true, reason: "budget", problem: null, live: false, experiment: `${EXP} · bundle · 2/4`, cohort: { id: EXP, arm: "bundle", trial: 2, of: 4 } },
 ];
 const milestone = must(FRONTIER_MILESTONES[3]);
 function wbRun(id: string, arm: string, splitMs: number, elapsedMs: number): WorkbenchRun {
@@ -52,7 +54,8 @@ async function mount(width: number, options: { art?: boolean; fresh?: boolean; g
   nowMs = BASE_MS + 3_500; setWidth(width); fetched.length = 0; workbenchDown = false;
   document.body.innerHTML = PAGE.slice(PAGE.indexOf("<body>") + 6, PAGE.indexOf("</body>"));
   const streams: FakeStream[] = [], drawn: number[] = [];
-  const workbench = { version: 1, at: nowMs, milestones: [], problems: [], runs: [wbRun(LIVE_ID, "bundle", options.fresh === true ? 2_790_000 : 1_000_000, 2_800_000), wbRun(OTHER_ID, "control", 500_000, 2_700_000)] };
+  const replay = { ...wbRun(REPLAY_ID, "bundle", 1_000_000, 3_600_000), status: "ended" as const, reason: "budget" };
+  const workbench = { version: 1, at: nowMs, milestones: [], problems: [], runs: [wbRun(LIVE_ID, "bundle", options.fresh === true ? 2_790_000 : 1_000_000, 2_800_000), wbRun(OTHER_ID, "control", 500_000, 2_700_000), replay] };
   const deps: AppDeps = {
     fetchJson: (url) => {
       fetched.push(url);
@@ -137,6 +140,18 @@ describe("trainer cards in the viewer", () => {
     card(ui("run-cards"), OTHER_ID).click();
     expect(streams.at(-1)?.url).toBe(`/api/runs/${encodeURIComponent(OTHER_ID)}/events`);
     expect((ui("run") as HTMLSelectElement).value).toBe(OTHER_ID);
+  });
+
+  it("keeps the selected replay as a trainer card without marking it live", async () => {
+    const { app } = await mount(1280);
+    app.select(REPLAY_ID);
+    const row = ui("run-cards"), replay = card(row, REPLAY_ID);
+    expect(row.querySelectorAll(".tc.tc-wide")).toHaveLength(3);
+    expect(replay.getAttribute("aria-pressed")).toBe("true");
+    expect(replay.innerHTML).toContain('data-gt="REPLAY"');
+    expect(replay.querySelector(".tc-dot")).toBeNull();
+    expect(card(row, LIVE_ID).innerHTML).toContain('data-gt="LIVE"');
+    expect(card(row, OTHER_ID).innerHTML).toContain('data-gt="LIVE"');
   });
 
   it("ticks the clock in place without redrawing the card, so its animations keep running", async () => {

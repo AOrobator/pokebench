@@ -30,10 +30,10 @@ Read local archives through production hash/layout validation and matching exter
 - [x] Update existing explainer and experiment notes to describe corrected coverage, without performance claims.
 - [x] Run just test, just lint, just build, just coverage and just verify-vendor; commit GREEN.
 ### M3 — Review and close loop
-- [ ] Score PB1-PB13; freeze packet and complete Claude/Grok/GPT cloud review under repository contract (maximum two rounds).
-- [ ] Merge only if full required cloud approval and gates permit; otherwise retain concrete reviewed candidate and report blocker.
+- [x] Score PB1-PB13 and freeze packet; two distinct-model fallback LGTM reviews, with operator explicit landing exception for unavailable cloud lanes.
+- [x] Merge exact reviewed repair5758786e under operator exception, plus reviewed bundle config and required dependent-record corrections.
 - [x] Qualify recorded/model-visible consumers and browser proof on isolated offline replay; no live gameplay restart authorized or required for this correctness proof.
-- [ ] Report implementation, gates, review, landing, runtime exposure separately. No experiment launch.
+- [x] Record implementation, gates, review, landing and unchanged runtime exposure separately. No experiment launch.
 
 ## Closing the Loop
 Native archive replay must move the real Wally error to truthful decoded battle/readout with the switch ON and retain the original diagnostic OFF. Non-tutorial malformed data remains loud. Any new ownership/refusal behavior requires production delivery and replay/history proof. Runtime qualification uses native frames/wall time; it is separate from decoder correctness and does not authorize process changes.
@@ -103,3 +103,9 @@ Native archive replay must move the real Wally error to truthful decoded battle/
 - Bundle config16384dec fast-forwarded to main after both distinct-model reviewers LGTM. Main build passed, full test then found exactly one dependent-contract RED: open-goal-prompt pending incumbent must track bundle cook arm and lacks new refusal flag. Fix on isolated branch: add refusal=true to that pending incumbent and pin source16384dec (contains implementation); no test exclusion, no weakened assertions, no control mutation or launch. Retain failure main-test.log; focused/full checks follow before next landing. Repair-only main post-rebuild test passed6620 before this config change.
 
 - Full post-landing test caught a second metadata contract: the historical incumbent feature-key prefix preserves registry insertion order. Moved the newly added refusal key to the end of that snapshot, preserving the exact parsed JSON value and all controls. No assertions changed. This is ordering only; final agent+viewer dependency tests and full main test follow.
+
+## Landing receipts and final state
+- Operator approval: “u can merge, and it should be on in the bundle”. Reviewed repair landed by fast-forward at5758786e. Bundle config16384dec, dependent incumbentee8723d0, and JSON key-order-only correctione57536b4 each independently reviewed LGTM by Sol and Astra before fast-forward landing. No cloud result invented; user exception used. All review receipts remain under isolated worktree runs/wally-battle-readout.
+- Final source/config main e57536b4647030e0247ace1df67d9e0d0ea43891: just build and post-landing just test GREEN (2593 agent +1265 viewer +2762 Python =6620, zero skips). Experiment definition check GREEN:123 entries. Focused dependent contracts16 tests GREEN; fixed-design/runner45 GREEN. Earlier stale-build/schema and snapshot/order failures retained; corrected generated files/metadata without changing test assertions.
+- Canonical bundle treatment has tutorial-party-owner-v1=true and battle-refusal-loop-v1=true; controls false in both phases. Production resolved control preset proof unchanged; only the newly requested refusal bit differs in treatment from pre-edit. Plans, starts, budgets and pinned control-base file unchanged. Existing visited-terrain-navigation-v1 false/unset control-base validator mismatch remains a separate issue; no launch-readiness claim.
+- No gameplay launch, approval, measured session restart or active model exposure performed. Global default of new guard remains OFF. Isolated proof server stopped. Worklog remains active; archive requires a separate operator decision. This closing commit touches docs/worklogs only under the evidence-only exception.

@@ -1,7 +1,7 @@
 {
  "version": 1,
  "id": "bundle-v-control",
- "title": "Harness-fixes bundle vs fixed control (CLOCK_SET → RIVAL_MET)",
+ "title": "Harness-fixes bundle vs fixed control (CLOCK_SET \u2192 RIVAL_MET)",
  "worklog": "docs/worklogs/active/2026-10-15_bundle-v-control.md",
  "primaryMilestone": "RIVAL_MET",
  "romSha1": "f3ae088181bf583e55daf962a92bb46f4f1d07b7",
@@ -136,11 +136,16 @@
    "battle-menu-loop-v1": false,
    "clock-view-loop-v1": false,
    "stale-story-goal-v1": false,
-   "input-cuts-v1": false, "loop-guard-screen-v1": false, "reopened-dialogue-loop-v1": false,
+   "input-cuts-v1": false,
+   "loop-guard-screen-v1": false,
+   "reopened-dialogue-loop-v1": false,
    "dialog-button-b-v1": false,
    "faced-interaction-history-v1": false,
    "scripted-place-guidance-v1": false,
-   "trigger-script-loop-v1": false
+   "trigger-script-loop-v1": false,
+   "just-in-time-prompt-v1": false,
+   "just-in-time-prompt-v2": false,
+   "jit-guide-reuse-v1": false
   }
  },
  "switches": [
@@ -177,7 +182,10 @@
   "milestone-stall-stop-v1",
   "same-plan-breaker-v1",
   "presence-penalty-v1",
-  "story-destinations-v1"
+  "story-destinations-v1",
+  "just-in-time-prompt-v1",
+  "just-in-time-prompt-v2",
+  "jit-guide-reuse-v1"
  ],
  "onInBoth": [
   "navigation-truth-v1",

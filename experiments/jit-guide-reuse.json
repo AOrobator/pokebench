@@ -170,5 +170,6 @@
     "minReached": 3
   },
   "notes": "Default OFF. Fixed20minute pilot shares aligned window in both arms and compares full instructions with revised JIT plus guide reuse; no isolated attribution of common window change, no promotion. Original eight-per-arm queue entry remains unapproved/unqueued. Before standalone test, qualify reviewed source and common checkpoint.",
-  "blocked": "Pending independent switch registration; operator authorized separate concurrent fixed diagnostic jit-v2-cache-20m, not queue execution."
+  "blocked": "Pending independent switch registration; operator authorized separate concurrent fixed diagnostic jit-v2-cache-20m, not queue execution.",
+  "discarded": "Operator decision 2026-10-19: do not promote JIT. Completed 20-minute diagnostic pair had 212 JIT requests vs 244 control, with slower mean inference/request; farther JIT frontier did not establish an overall benefit. JIT disabled in both ongoing bundle/control arms. Evidence: docs/experiments/results/2026-10-18-jit-v2-cache-20m.md. Historical pilot definitions and logs retained."
 }

@@ -68,6 +68,7 @@ The operator subsequently authorized enabling both switches in the fixed bundle 
 
 ## Session log
 
+- 2026-10-19: Latest-main full gate passes 2,738 agent, 1,298 viewer, and 2,825 Python tests; all 123 experiment definitions validate. The earlier complete build/lint/page/coverage gates remain green for the navigation repair, and the latest main-only observed-instruction delta passes its focused integration tests.
 - 2026-10-19: Committed the observed-instruction/current-main integration as `41fd02559fc3eabca2ec133aa8d51605562e2733` and re-pinned both pending navigation definitions. They remain unqueued, unapproved, and unlaunched.
 - 2026-10-19: Synced through current `main` `52d51dc6356f1191de6554d43b207480e80bbaa6`, preserving observed-instruction memory and its bundle switch alongside the navigation/evolution features. Registry defaults, legacy presets, and the viewer next-run form keep the newly composed switches explicitly OFF; focused agent/viewer integration tests pass 212/212 and 102/102.
 - 2026-10-19: Current-main gates are green: `just test` passes 2,728 agent, 1,296 viewer, and 2,825 Python tests; build, TypeScript lint, Ruff, formatting, 123 experiment definitions, and all three explainer checks pass. The first concurrent coverage attempt timed out three unrelated long tests at the fixed five-second ceiling; the immediate isolated rerun passed all suites and floors (agent 97.28% statements/93.40% branches, viewer 95.08%/91.04%, Python 96.91% lines/92.36% branches).

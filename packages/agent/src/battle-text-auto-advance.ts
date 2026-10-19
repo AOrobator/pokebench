@@ -94,13 +94,13 @@ export function classifyBattle(s:GameStateSnapshot,levelupBox=false):Decision {
 export class BattleJournal {
  private problem:string|null=null;
  constructor(private readonly source:BattleTextSource,private cursor:number|null,private readonly errors:number){}
- static async open(source:BattleTextSource,known:{last:number},signal?:AbortSignal):Promise<BattleJournal> {
-  const take=(j:Static<typeof BattleTextJournalSchema>)=>{known.last=j.last_id;return new BattleJournal(source,j.last_id,j.errors);};
+ static async open(source:BattleTextSource,known:{last:number},signal?:AbortSignal,includeExisting=false):Promise<BattleJournal> {
+  const take=(j:Static<typeof BattleTextJournalSchema>,after=known.last)=>{known.last=j.last_id;return new BattleJournal(source,includeExisting?after:j.last_id,j.errors);};
   try{return take(await source.battleMessages(known.last,signal));}
   catch(error){
    signal?.throwIfAborted();
    // A restarted server numbers its journal from 1 again.
-   if(known.last>0)try{return take(await source.battleMessages(0,signal));}catch(again){signal?.throwIfAborted();return new BattleJournal(source,null,0).fail(again);}
+   if(known.last>0)try{return take(await source.battleMessages(0,signal),0);}catch(again){signal?.throwIfAborted();return new BattleJournal(source,null,0).fail(again);}
    return new BattleJournal(source,null,0).fail(error);
   }
  }

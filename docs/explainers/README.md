@@ -124,3 +124,5 @@ The original ignored runs/explainers copies remain for existing links. Make futu
 - [Deterministic warp navigation](deterministic-warp-navigation-v1.html)
 
 - [Extend an active run (operator control)](extend-run.html)
+
+- [Battle decision readiness](battle-decision-ready-v1.html): bounded non-choice battle settling before model requests and semantic action validation; shared by control and bundle.

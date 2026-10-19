@@ -1,6 +1,6 @@
 import {StableJitContext} from "./jit-v2-context.js";
 import {JitContext} from "./jit-context.js";
-import {contextTools,loopSupervisor,playGameTools,stallBriefing,stallStop,textOnlySupervisor} from "./play-wiring.js";
+import {battleDecisionContext,contextTools,loopSupervisor,playGameTools,stallBriefing,stallStop,textOnlySupervisor} from "./play-wiring.js";
 import { operatorSignalLatch } from "./operator-signals.js";
 import {CheckpointCapture,checkpointSelection} from "./checkpoint-capture.js";
 import {experimentFromEnv} from "./play-experiment.js";
@@ -331,7 +331,7 @@ async function playAgent(): Promise<void> {
         base: {...playLoopBase(model, thinking, apiKey, maxTokens, features),beforeToolCall:({toolCall})=>Promise.resolve(features["just-in-time-prompt-v2"]||jit.allowed(toolCall.name)?undefined:{block:true,reason:"This tool was not available for the screen of this decision; inspect the current state and choose an available tool."})},
         requestContext: context=>{const presentation=features["just-in-time-prompt-v2"]?stableJit:jit;const next=presentation.context(context);recorder.recordRequestContext(presentation.receipt());return next;},
         governor,
-        transformContext: context.transformContext,
+        transformContext: battleDecisionContext(features,new StateWatcher(gameServerUrl),tools,context.transformContext,recorder,controller.signal),
         window: context.window,
         emit: recorder.emit,
         signal: controller.signal,

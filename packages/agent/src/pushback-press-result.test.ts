@@ -171,8 +171,8 @@ describe("pushback-press-result-v1 registry and wiring",()=>{
  it("is a default-off guidance switch with no dependency, recorded second to last",()=>{
   expect(featureInfo("pushback-press-result-v1")).toMatchObject({group:"guidance",needs:null,switchable:true});
   expect(featureInfo("pushback-press-result-v1").description).toContain(" Off: ");
-  expect(playHarnessFeatures(ALL_ON,null).at(-47)).toBe("pushback-press-result-v1");
-  expect(dependencyProblems({...ALL_ON,"dialogue-auto-advance-v1":false})).not.toContainEqual(expect.stringContaining("pushback-press-result-v1"));
+  expect(playHarnessFeatures(ALL_ON,null).at(-48)).toBe("pushback-press-result-v1");
+  expect(dependencyProblems({...ALL_ON,"battle-decision-ready-v1":false,"dialogue-auto-advance-v1":false})).not.toContainEqual(expect.stringContaining("pushback-press-result-v1"));
   expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:true})["pushback-press-result-v1"]).toBe(false);
  });
  it("the tool switches carry it from the FeatureSet",()=>{

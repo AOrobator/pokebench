@@ -14,6 +14,7 @@ const owner = vi.hoisted(() => ({ files: new Map<string, string[]>(), loop: null
 vi.mock("node:fs", async (load) => {
   const actual = await load<typeof import("node:fs")>();
   return { ...actual, mkdirSync: () => undefined, readdirSync: () => [],
+    writeFileSync: (path: Parameters<typeof actual.writeFileSync>[0], data: Parameters<typeof actual.writeFileSync>[1]) => { owner.files.set(String(path),[typeof data==="string"?data:"test-owned binary frame"]); },
     appendFileSync: (path: Parameters<typeof actual.appendFileSync>[0], data: Parameters<typeof actual.appendFileSync>[1]) => {
       const key = String(path);const chunks = owner.files.get(key) ?? [];chunks.push(String(data));owner.files.set(key, chunks);
     },
@@ -271,4 +272,46 @@ it.each([false,true])("actual play delivers and records retained-guide reuse (en
  const events=[...owner.files.entries()].filter(([p])=>p.endsWith("/events.jsonl")).flatMap(([,chunks])=>chunks.join("").trim().split("\n").map(parseEvent));
  const response=events.find(e=>e.type==="assistant");expect(response).toMatchObject({request_context:{mode:"jit-v2",scene:"clock",guidance:{reason:reuse?"reused":"scene_change",anchor:reuse?"task":"tool:reentry-1"}}});
  if(response?.type!=="assistant")throw Error("missing recorded assistant");expect(response.request_context?.projected_guidance).toHaveLength(reuse?1:2);
+});
+
+it("production play settles battle text before constructing the model request context",async()=>{
+ vi.resetModules();owner.files.clear();owner.loop=null;
+ const {flagFeatures}=await import("./play-preset.js");
+ const actualFs=await vi.importActual<typeof import("node:fs")>("node:fs");
+ const {gunzipSync}=await import("node:zlib");
+ const {parseGameState}=await import("./game-state.js");
+ const recorded=JSON.parse(gunzipSync(actualFs.readFileSync(new URL("./fixtures/battle-text-show-7753.json.gz",import.meta.url))).toString("utf8")) as {frames:{raw_ram:string;state:unknown}[]};
+ const waiting=parseGameState(recorded.frames.find(f=>f.raw_ram==="00007772.json.gz")?.state);
+ const ready=parseGameState(recorded.frames.find(f=>f.raw_ram==="00007782.json.gz")?.state);
+ for(const state of [waiting,ready]){state.raw_ram={v:1,sequence:1,frame:1,path:"raw-ram/00000001.json.gz",sha256:"a".repeat(64)};state.route103_rival=null;}
+ let current=waiting;const presses:string[]=[];
+ const image=Buffer.alloc(33);Buffer.from([137,80,78,71,13,10,26,10]).copy(image);image.writeUInt32BE(13,8);image.write("IHDR",12);image.writeUInt32BE(240,16);image.writeUInt32BE(160,20);
+ vi.stubGlobal("fetch",((input,init)=>{
+  const path=new URL(typeof input==="string"?input:input instanceof URL?input.href:input.url).pathname;let body:unknown;
+  if(path==="/pokebench/state")body=current;
+  else if(path==="/pokebench/observation")body={state:current,state_text:`Screen: battle; ${current.battle?.text_phase??"unknown"}`,screenshot_base64:image.toString("base64")};
+  else if(path==="/pokebench/battle/messages")body={frame:1,first_id:1,last_id:1,errors:0,last_error:null,entries:[{id:1,frame:1,recorded_ms:0,battle:1,battle_turn:1,text:"Wild WURMPLE appeared!",waited_for_input:true}]};
+  else if(path==="/action"){if(typeof init?.body!=="string")throw new Error("body");presses.push(...(JSON.parse(init.body) as {buttons:string[]}).buttons);current=ready;body={status:"success"};}
+  else if(path==="/queue_status")body={queue_empty:true};
+  else throw new Error(path);
+  return Promise.resolve(new Response(JSON.stringify(body)));
+ }) satisfies typeof fetch);
+ const preset={version:2,id:"battle-ready-entry",target:null,limits:{maxTurns:10,maxWallMs:600000,failureLimit:3},sampling:{thinkingLevel:"medium",maxTokens:100},features:{...flagFeatures({loopGuard:false,activeUi:true,interfaceDocs:true,objectives:false}),"field-dialogue-phase-v1":true,"dialogue-auto-advance-v1":true,"battle-text-auto-advance-v1":true,"battle-decision-ready-v1":true}};
+ owner.files.set("/test-owned/battle-ready-preset.json",[JSON.stringify(preset)]);
+ vi.stubEnv("POKEBENCH_PLAY_PRESET","/test-owned/battle-ready-preset.json");vi.stubEnv("POKEBENCH_RUN_ID","battle-ready-entry");
+ vi.spyOn(console,"log").mockImplementation(()=>undefined);
+ const done=new Promise<RunPlan>((resolve,reject)=>{owner.resolve=resolve;owner.reject=reject;});
+ vi.stubGlobal("process",Object.assign(Object.create(process) as NodeJS.Process,{argv:[...process.argv.slice(0,2),"play"]}));
+ await import("./live.js");await done;
+ expect(presses).toEqual(["B"]);
+ expect(owner.context).toContain("Wild WURMPLE appeared!");
+ expect(owner.context).toContain("battle action menu is ready");
+ expect(owner.context).toContain("input");
+ expect(owner.start?.harness_features).toContain("battle-decision-ready-v1");
+ const events=[...owner.files.entries()].filter(([path])=>path.endsWith("/events.jsonl")).flatMap(([,chunks])=>chunks.join("").trim().split("\n").map(parseEvent));
+ expect(events.find(e=>e.type==="dialogue_auto_advance")).toMatchObject({tool:"observe",stop:"battle_input",battle_auto_presses:1});
+ const snapshot=events.find(e=>e.type==="decision_input");
+ expect(snapshot).toMatchObject({decision_turn:1,text:expect.stringContaining("Wild WURMPLE appeared!") as string,frames:[{path:expect.stringMatching(/frames\//) as string}]});
+ if(snapshot?.type!=="decision_input")throw new Error("missing readiness snapshot");
+ expect(events.find(e=>e.seq===snapshot.state_seq)).toMatchObject({type:"state",battle:{text_phase:"input"}});
 });

@@ -27,7 +27,7 @@ export interface AutoAdvanceRecorder {
  recordDialogueAutoAdvance(body:Advance):Recorded;
  subscribe(observer:(event:RunEvent)=>void):void;
 }
-export interface AutoAdvancePorts {readonly state:StateSource;readonly recorder:AutoAdvanceRecorder;readonly clock?:Clock}
+export interface AutoAdvancePorts {readonly state:StateSource;readonly recorder:AutoAdvanceRecorder;readonly clock?:Clock;readonly gate?:(signal?:AbortSignal)=>Promise<void>}
 type Result=AgentToolResult<unknown>;
 
 const realClock:Clock={sleep:ms=>new Promise(resolve=>setTimeout(resolve,ms)),now:()=>Date.now()};
@@ -356,17 +356,19 @@ export function withDialogueAutoAdvance(tools:readonly AgentTool[],features:Feat
  if(!features["dialogue-auto-advance-v1"])return [...tools];
  const press=tools.find(t=>t.name==="press"),observe=tools.find(t=>t.name==="observe");
  if(press===undefined||observe===undefined||!isCheckedPress(press))throw new Error("Dialogue auto-advance requires ordinary game tools");
- const full:Required<AutoAdvancePorts>={...ports,clock:ports.clock??realClock};
+ const full:Required<AutoAdvancePorts>={...ports,clock:ports.clock??realClock,gate:ports.gate??(()=>Promise.resolve())};
  const switches=toolSwitches(features);
  const record=(s:GameStateSnapshot):Recorded=>full.recorder.recordState(s);
  const truth=features["navigation-truth-v1"];
  const present=features["script-line-presence-v1"]?(s:GameStateSnapshot)=>onScreen(s,features["character-presence-v1"]):null;
- const autoPress=(id:string,carry:BlackoutCarry)=>(signal?:AbortSignal)=>press.execute(id,{buttons:["B"]},signal).then(result=>{carry.remember(stateOf(result));return result;});
+ const ready=features["battle-decision-ready-v1"];
+ const autoPress=(id:string,carry:BlackoutCarry)=>(signal?:AbortSignal)=>(ready?full.gate(signal):Promise.resolve()).then(()=>press.execute(id,{buttons:["B"]},signal).then(result=>{carry.remember(stateOf(result));return result;}));
  // battle-text-auto-advance-v1: the server's battle wait and page journal; the journal cursor carries across calls.
- const battleSource=features["battle-text-auto-advance-v1"]?battleTextSource(full.state):null;
+ const source=features["battle-text-auto-advance-v1"]?battleTextSource(full.state):null;
+ const battleSource=ready&&source!==null?{...source,battleWait:async(signal?:AbortSignal)=>{await full.gate(signal);return source.battleWait(signal);}}:source;
  const known={last:0};
- const openBattle=async(signal?:AbortSignal):Promise<BattleCall|null>=>battleSource===null?null:{journal:await BattleJournal.open(battleSource,known,signal),source:battleSource,known,levelupBox:features["levelup-box-v1"]};
- const finish=async(id:string,tool:"press"|"navigate_to"|"battle_action",outcome:Outcome,pages:Pages,requested:readonly Button[],sent:readonly Button[],dropped:readonly Button[],began:number,carry:BlackoutCarry,signal?:AbortSignal,ignored:readonly Button[]=[])=>{
+ const openBattle=async(signal?:AbortSignal,includeExisting=false):Promise<BattleCall|null>=>battleSource===null?null:{journal:await BattleJournal.open(battleSource,known,signal,includeExisting),source:battleSource,known,levelupBox:features["levelup-box-v1"]};
+ const finish=async(id:string,tool:"press"|"navigate_to"|"battle_action"|"observe",outcome:Outcome,pages:Pages,requested:readonly Button[],sent:readonly Button[],dropped:readonly Button[],began:number,carry:BlackoutCarry,signal?:AbortSignal,ignored:readonly Button[]=[])=>{
   // pushback-press-result-v1: inputs the game ignored under the message's lock count as dropped, not sent.
   const event=full.recorder.recordDialogueAutoAdvance({tool_call_id:id,tool,requested:[...requested],sent:sent.slice(0,sent.length-ignored.length),dropped:[...ignored,...dropped],auto_presses:outcome.presses,...(outcome.battlePresses===undefined?{}:{battle_auto_presses:outcome.battlePresses}),pages:pages.pages,stop:outcome.stop,detail:outcome.detail,duration_ms:Math.max(0,Math.round(full.clock.now()-began))});
   const seen=await observe.execute(id,{},signal);
@@ -430,17 +432,46 @@ export function withDialogueAutoAdvance(tools:readonly AgentTool[],features:Feat
   return {content:[...seen.images,{type:"text",text:`${head.join("\n")}\n${notices.length===0?"":`\n${notices.join("\n")}\n`}\n${seen.text}`},...extras],details:{state:finalState}};
  };
  const wrappedPress:CheckedPressTool={...press,description:`${press.description} Field dialogue advances automatically: once a conversation opens, the harness presses B through every page until the next decision point and lists the pages; inputs left in your batch are not sent.${battleSource===null?"":" Battle text advances the same way: while a battle runs its own messages, the harness presses B through each waiting message until a battle menu, a YES/NO question, another screen or the battle's end, and lists every battle message shown."}`,execute:(id,params,signal,update)=>execute(id,params,signal,update),executeChecked:(id,params,check,signal,update,options)=>execute(id,params,signal,update,check,options)};
+ const settle=async(id:string,state:GameStateSnapshot,signal?:AbortSignal,tool:"observe"|"battle_action"="observe")=>{
+  await full.gate(signal);signal?.throwIfAborted();
+  const began=full.clock.now(),carry=new BlackoutCarry();
+  const battle=await openBattle(signal,true);
+  const pages=new Pages(record,open,present,truth);
+  const outcome=await drive(state,pages,autoPress(id,carry),full,battle,signal);
+  open=pages.openAt(outcome.state);
+  const done=await finish(id,tool,outcome,pages,[],[],[],began,carry,signal);
+  const result:Result={content:[{type:"text",text:done.block},...done.seen.content,...outcome.extras],details:{state:done.state}};
+  return {result,state:done.state,stop:outcome.stop,summary:[{type:"text" as const,text:done.block},...outcome.extras]};
+ };
  const out=tools.map(tool=>{
+  if(ready&&tool===observe)return {...tool,description:`${tool.description} Pending ordinary battle text advances to the next decision; all messages are listed.`,execute:async(id:string,params:unknown,signal?:AbortSignal,update?:Parameters<AgentTool["execute"]>[3])=>{
+   const seen=await tool.execute(id,params,signal,update);
+   const state=stateOf(seen);
+   return battleEngaged(state)?(await settle(id,state,signal)).result:seen;
+  }};
   if(tool===press)return wrappedPress;
   // battle-move-tool-v1: a battle_action result hands the turn's battle text over the way navigate_to's does.
   const battleAction=tool.name==="battle_action"&&battleSource!==null;
   if(tool.name!=="navigate_to"&&!battleAction)return tool;
   const name=battleAction?"battle_action":"navigate_to";
-  return {...tool,description:battleAction?`${tool.description} If the battle then runs its own text, the text advances automatically to the next decision point and its pages are listed.`:`${tool.description} If it ends in dialogue${battleSource===null?"":" or a battle"}, the ${battleSource===null?"dialogue advances":"text advances"} automatically to the next decision point and its pages are listed.`,execute:async(id:string,params:unknown,signal?:AbortSignal,update?:Parameters<AgentTool["execute"]>[3])=>{
+  return {...tool,description:battleAction?`${tool.description}${ready?" Before validating an action, pending ordinary battle text advances to a decision. Those automatic B presses are listed separately. If another choice or a bound is reached, the requested action is not executed.":""} If the battle then runs its own text, the text advances automatically to the next decision point and its pages are listed.`:`${tool.description} If it ends in dialogue${battleSource===null?"":" or a battle"}, the ${battleSource===null?"dialogue advances":"text advances"} automatically to the next decision point and its pages are listed.`,execute:async(id:string,params:unknown,signal?:AbortSignal,update?:Parameters<AgentTool["execute"]>[3])=>{
    const began=full.clock.now();
    const carry=new BlackoutCarry();
+   let preflight:readonly TextContent[]|null=null;
+   if(ready&&battleAction){
+    const before=await full.state.read(signal);
+    if(battleEngaged(before)){
+     const settled=await settle(id,before,signal,"battle_action");preflight=settled.summary;
+     const inputs=settled.state.battle?.player_inputs?.filter(i=>i.ready)??[];
+     if(settled.stop!=="battle_input"||!settled.state.in_battle||settled.state.battle?.text_phase!=="input"||inputs.length!==1||!inputs.every(i=>i.phase==="action"||i.phase==="move"))return {
+      content:[{type:"text",text:"Battle action: requested action not executed; inspect the decision reached after advancing battle text."},...settled.result.content],
+      details:{state:settled.state,battle_action:{refused:true}},
+     };
+    }
+   }
    const battle=await openBattle(signal);
-   const result=await tool.execute(id,params,signal,update);
+   const acted=await tool.execute(id,params,signal,update);
+   const result=preflight===null?acted:{...acted,content:[...acted.content,...preflight]};
    const state=carry.remember(stateOf(result));
    if(!dialogueEngaged(state)&&!(battle!==null&&battleEngaged(state)))return result;
    // battle-move-tool-v1: "nothing pressed" stays true for the whole call (review round 1 note).
@@ -455,7 +486,7 @@ export function withDialogueAutoAdvance(tools:readonly AgentTool[],features:Feat
    const restated=navigationAfter(raw,outcome,switches.pushback===true?scriptMove(state,done.state,switches):null);
    const status=result.content.slice(0,1).filter((part):part is TextContent=>part.type==="text").map(part=>restated===null?part:{...part,text:restated});
    const notices=carry.missingNotices([...status.map(part=>part.text),done.block,seen.text,...outcome.extras.map(part=>part.text)]);
-   return {content:[...status,...seen.images,{type:"text",text:`${done.block}\n${notices.length===0?"":`\n${notices.join("\n")}\n`}\n${seen.text}`},...outcome.extras],details:{...Object(raw) as object,state:done.state}};
+   return {content:[...status,...(preflight??[]),...seen.images,{type:"text",text:`${done.block}\n${notices.length===0?"":`\n${notices.join("\n")}\n`}\n${seen.text}`},...outcome.extras],details:{...Object(raw) as object,state:done.state}};
   }} satisfies AgentTool;
  });
  const dialogues=new DialogueRecord();full.recorder.subscribe(event=>{dialogues.observe(event);});

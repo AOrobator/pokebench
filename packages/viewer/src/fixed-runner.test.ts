@@ -504,6 +504,8 @@ it("enables safe navigation strides only in the canonical bundle treatment",asyn
   expect(features[id]).toBe(arm==="bundle");expect(dependencyProblems(features)).toEqual([]);
   expect(playHarnessFeatures(features,null).includes(id)).toBe(arm==="bundle");
  }
+});
+
 it("rehearses all sixteen starter diagnostic slots with one switch, native early stops and eight choices per arm",async()=>{
  const {definition:def}=parseFixedDefinition(readFileSync(new URL("../../../experiments/fixed/starter-decision-salience.json",import.meta.url),"utf8"));
  const {runsRoot,dir}=setup(def);const host=new Fake(runsRoot,{ending:()=>"milestone",serving:()=>({...RECEIPT,...def.serving})},def.id);

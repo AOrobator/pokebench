@@ -163,4 +163,6 @@ Operator 2026-10-19: enable safe-navigation-strides-v1 in the canonical bundle t
 
 Pending, not queued. STARTER_CHOSEN is only the conservative earliest prerequisite. Reliable arrival at an actual cancellable evolution window is not yet qualified. One retained checkpoint trace establishes the interface failure, not readiness or benefit. No measured runs approved or launched.
 
+## Original-speed deadline pacing — 2026-10-19
 
+PENDING, explicitly blocked and unqueued. Clock policy acts from server boot; NEW_GAME_CREATED is only the earliest registered native activation proxy. No qualifying four-run boot readiness audit or standalone model-benefit design has been performed. The copied eight-per-arm/45-minute registration envelope is not an approved GPU budget; design, power and operator approval remain required before any measured trials. Operator explicitly selects 80 FPS deadline pacing in both future fixed bundle/control arms as a timing policy, not a promotion or evidence of model benefit. Historical omitted presets stay OFF; no active frozen run is changed. Implementation pin e95da966; repin after reviewed landing.

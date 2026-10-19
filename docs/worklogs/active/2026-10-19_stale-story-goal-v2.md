@@ -53,7 +53,7 @@ The authorized outcome is a new default-OFF `stale-story-goal-v2` switch. With v
 - [x] COMMIT: `test(story-goal): define stage-bound v2 lifecycle` (`5b28fe9c`, RED)
 - [x] Implement stage-at-issue tracking, v2 retirement, empty-header omission, and supervisor/destination behavior
 - [x] Gates: agent suite 2531 passed; `just lint` clean; `just build` clean
-- [ ] COMMIT: `feat(story-goal): add stage-bound v2 lifecycle` (GREEN)
+- [x] COMMIT: `feat(story-goal): add stage-bound v2 lifecycle` (`223b9b93`, GREEN)
 - [ ] Observability proof on production-shaped recorded events; no gameplay run
 - [ ] Multi-model review loop until clean
 
@@ -93,6 +93,7 @@ The authorized outcome is a new default-OFF `stale-story-goal-v2` switch. With v
 - 2026-10-19 ET: M1 RED committed as `5b28fe9c` (`test(story-goal): define stage-bound v2 lifecycle`). The managed worktree was initially detached; attached that commit to new branch `codex/stale-story-goal-v2` before further edits.
 - 2026-10-19 ET: M1 GREEN records the native Birch stage attached to each dialogue page's recorded `state_seq`, retires only a pre-stage-3 all-lab episode at stage 3, preserves unknown stages, and lets the v2 presentation omit absent/completed destination goals. Pinned pret/pokeemerald reference is clean at `731ad5bfd6e6f265508d0efcca0ba42f9dcf5881`; `LittlerootTown_ProfessorBirchsLab_EventScript_AgreeToSeeRival` sets stage 3 after the rival-teaching line, Route 103 supplies the later return-to-LAB line, and `LittlerootTown_ProfessorBirchsLab_EventScript_GivePokedex` sets stage 5.
 - 2026-10-19 ET: Delete/restore receipt `m1-destination-block-operand`: removing the completed-v2 block suppression produced 2529 passed / 2 failed, exposing both pre-handoff and post-rival retired lines; restoring it returned 2531/2531 green. Fresh-worktree lint initially lacked `mgba._pylib`; `just build-mgba` installed the pinned local binding, after which lint passed. Build passed with dirty stamp `5b28fe9`.
+- 2026-10-19 ET: M1 GREEN committed as `223b9b93` (`feat(story-goal): add stage-bound v2 lifecycle`). M2 now moves the already-tested policy behind the public default-OFF feature switch and requires the production factory, preset, experiment, viewer card, and explainer route to agree.
 
 ## Surprises
 

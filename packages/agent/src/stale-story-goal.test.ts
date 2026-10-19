@@ -27,6 +27,7 @@ const textOf=(r:AgentToolResult<unknown>)=>r.content.map(c=>c.type==="text"?c.te
 const DOOR="- \"LAB\" = PROF. BIRCH'S POKéMON LAB (map 1/4). Way in: door in LITTLEROOT TOWN (map 0/9) at (7,16).";
 const LAB_QUOTE=`${STORY_HEADER} (turn 5, MOM): "Go see MAY at the LAB."`;
 const ID="stale-story-goal-v1";
+const ID2="stale-story-goal-v2";
 
 function field(map:[number,number],location:string):GameStateSnapshot {
  const result=resultAt(272);
@@ -326,5 +327,62 @@ describe("stale-story-goal-v1 production factory",()=>{
    expect(text).toContain(stale);
   }
   expect(walked.indexOf(stale)).toBeLessThan(walked.indexOf("Navigation:"));
+ });
+});
+
+describe("stale-story-goal-v2 registration and production factory",()=>{
+ const handoff=withStory(dex(field([0,10],"OLDALE TOWN"),false),{birch_lab_stage:3});
+ const invitation="This is not the place to chat, so come by my POKéMON LAB later, okay?";
+ const readout="Location: OLDALE TOWN\nPosition: (10, 1)";
+ const configured=(v2:boolean,inputCuts=false)=>({...Object.fromEntries(SWITCHABLE_FEATURES.map(id=>[id,false])),"story-destinations-v1":true,"harness-trust-v1":true,"stale-story-goal-v1":true,"input-cuts-v1":inputCuts,[ID2]:v2} as unknown as FeatureSet);
+
+ async function result(v2:boolean,inputCuts=false):Promise<string> {
+  const subs:((e:RunEvent)=>void)[]=[];
+  const recorder={subscribe:(fn:(e:RunEvent)=>void)=>{subs.push(fn);},recordState:()=>({seq:1,turn:1}),recordDialogueAutoAdvance:()=>({seq:1,turn:1}),storyGoalAway:()=>undefined,destinationCitation:()=>undefined} as unknown as Parameters<typeof playGameTools>[3];
+  const observe:AgentTool={name:"observe",label:"Observe",description:"d",parameters:Type.Object({}),execute:()=>Promise.resolve({content:[{type:"text",text:readout}],details:{state:handoff}})};
+  const tools=playGameTools([observe],configured(v2,inputCuts),{read:()=>Promise.resolve(handoff),places:()=>Promise.resolve(PLACES)},recorder);
+  const issued=withStory(handoff,{birch_lab_stage:2});
+  const stateSeq=seq++;
+  const dialogue=talk("v2",5,[{...page(invitation,"PROF. BIRCH"),state_seq:stateSeq}]);
+  for(const fn of subs){fn(stateEvent(issued,stateSeq,5));fn(dialogue);fn(delivered("v2",5));}
+  return textOf(await tools[0]?.execute("o",{}) ?? {content:[],details:undefined});
+ }
+
+ it("is last, default off, and depends on v1",()=>{
+  expect(SWITCHABLE_FEATURES.at(-1)).toBe(ID2);
+  expect(playHarnessFeatures({...ALL_ON,[ID2]:true} as FeatureSet,null).at(-1)).toBe(ID2);
+  expect(featureInfo(ID2 as never)).toMatchObject({group:"observation",needs:ID,switchable:true,title:"STAGE-BOUND STORY GOAL"});
+  expect(featureInfo(ID2 as never).description).toContain(" Off: ");
+  expect(dependencyProblems({...ALL_ON,[ID]:false,[ID2]:true} as FeatureSet)).toContain(`${ID2} needs ${ID}`);
+  expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:true})[ID2 as keyof FeatureSet]).toBe(false);
+  expect(normalizeFeatures({...ALL_ON,[ID2]:undefined} as unknown as Parameters<typeof normalizeFeatures>[0])[ID2 as keyof FeatureSet]).toBe(false);
+ });
+
+ it("OFF preserves the current invitation, while ON omits the retired goal and remains compatible with input cuts",async()=>{
+  const off=await result(false);
+  expect(off).toContain(invitation);
+  expect(off).toContain("Way in: door in LITTLEROOT TOWN");
+  for(const on of [await result(true),await result(true,true)]){
+   expect(on).toContain(readout);
+   expect(on).not.toContain(invitation);
+   expect(on).not.toContain("Story goal: none");
+   expect(on).not.toContain(STORY_HEADER);
+  }
+ });
+
+ it("has a pending experiment that flips only v2 and keeps input cuts on in both arms",()=>{
+  const raw=JSON.parse(readFileSync(new URL("../../../experiments/stale-story-goal-v2.json",import.meta.url),"utf8"));
+  const entry=parseExperiment(raw);
+  expect(entry.queuePosition).toBeUndefined();
+  expect(entry.changedFeature).toBe(ID2);
+  expect(entry.activationMilestone).toBe("BIRCH_STARTER_HANDOFF_COMPLETE");
+  const {incumbent,candidate}=experimentArms(entry);
+  expect(Object.keys(candidate.features).filter(id=>candidate.features[id as keyof typeof candidate.features]!==incumbent.features[id as keyof typeof incumbent.features])).toEqual([ID2]);
+  expect(incumbent.features[ID]).toBe(true);
+  expect(incumbent.features[ID2 as keyof typeof incumbent.features]).toBe(false);
+  expect(candidate.features[ID2 as keyof typeof candidate.features]).toBe(true);
+  expect(incumbent.features["input-cuts-v1"]).toBe(true);
+  expect(candidate.features["input-cuts-v1"]).toBe(true);
+  expect(dependencyProblems(presetFeatures(parsePlayPreset(candidate)))).toEqual([]);
  });
 });

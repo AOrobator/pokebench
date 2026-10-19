@@ -141,6 +141,10 @@ export const SWITCHABLE_FEATURES = [
   "deterministic-warp-navigation-v1",
   "battle-refusal-loop-v1",
   "battle-decision-ready-v1",
+  "ineffective-navigation-v2",
+  "supervisor-briefing-v2",
+  "reachable-story-guidance-v1",
+  "text-only-supervisor-v2",
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
 
@@ -361,6 +365,10 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("deterministic-warp-navigation-v1", "guidance", "DETERMINISTIC WARP NAVIGATION", "bounded-navigation-v1", "Bundle arm only, default off. When navigate_to targets a listed warp, it may select the cheapest reachable warp on the same map only when the complete destination tuple, known activation behavior and elevation match exactly. A stable coordinate tie-break makes equal routes deterministic. When the player is already standing on a source-known directional warp, navigate_to presses its required direction exactly once and verifies that the map changed; it never retries a failed transition. Dynamic destinations, unknown behaviors, step-on warps, doors and incomplete geometry retain the existing behavior. Off: navigate_to follows the exact requested coordinate and stops on a directional exit without activating it."),
   on("battle-refusal-loop-v1", "guard", "BATTLE ACTION REFUSALS", null, "Default off. Repeated battle_action refusals that press no buttons and return the same qualified native battle enter the existing bounded rejection warning and recovery lifecycle. Native battle changes recover this episode; missing readouts stay unknown. The refusal names the current waiting control; no button is pressed automatically. Off: successful tool results are excluded from rejection detection."),
   on("battle-decision-ready-v1", "guidance", "BATTLE DECISION READY", "battle-text-auto-advance-v1", "Before each model request and battle_action validation, the harness finishes battle animations and dismisses ordinary waiting battle text with B using the existing bounded battle-text driver. It returns every message and the final decision screen. It stops at every real choice, including YES/NO, move learning, targets, bag, party and naming. A queued action is not executed if settling reaches another choice, a battle end, an unreadable state or a cap. Enabled in both control and bundle by operator request. Off: observe does not advance battle text, requests do not settle the battle and battle_action refuses while a message waits."),
+  on("ineffective-navigation-v2","guard","INEFFECTIVE NAVIGATION V2","deterministic-loop-guard-v1","Three unchanged failed navigation outcomes across distinct or repeated coordinates raise a loop episode. Turns and displacement under four tiles do not clear that episode; changed conditions, a qualified interaction, native story progress or displacement of four tiles do. Uses observed game state, never model reasoning. Off: the existing target-specific and short-cycle checks run unchanged."),
+  on("supervisor-briefing-v2","guidance","FOCUSED SUPERVISOR","loop-guard-supervisor-v1","Loop, stall and text-only briefings show current position, latest place instruction, three recent attempts and up to three untried targets already observed here. Active interfaces retain their owner and controls. Full recording history is untouched. Off: existing full-history briefings are delivered."),
+  on("reachable-story-guidance-v1","guidance","REACHABLE STORY GUIDANCE","harness-trust-v1","The prominent story goal separates destination identity from locally usable exits. Current reach evidence qualifies local ways; unknown reach is stated explicitly. Walk-away notes do not use inaccessible local edges or topology-only map counts. No route is chosen. Off: goal headers and walk-away notes use the existing map-table guidance."),
+  on("text-only-supervisor-v2","guidance","TEXT-ONLY SUPERVISOR V2","text-only-supervisor-v1","Text-only warnings honor the configured reply stopping policy. After three detailed notes, continuing retries receive a short action reminder. Budgets and termination behavior are unchanged. Off: the original third-note stop claim and generic retry prompt remain."),
   measured("story-milestones-v2", "STORY MILESTONES",
     "Records each story milestone the game's own state confirms, with its turn and time. This feeds splits and the score."),
   measured("clock-milestone-v1", "CLOCK MILESTONE",
@@ -549,6 +557,10 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("deterministic-warp-navigation-v1"),
     ...when("battle-refusal-loop-v1"),
     ...when("battle-decision-ready-v1"),
+    ...when("ineffective-navigation-v2"),
+    ...when("supervisor-briefing-v2"),
+    ...when("reachable-story-guidance-v1"),
+    ...when("text-only-supervisor-v2"),
   ];
 }
 

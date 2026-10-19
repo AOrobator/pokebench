@@ -1,6 +1,7 @@
+import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { ALL_ON, SERVER_FEATURES, SWITCHABLE_FEATURES, dependencyProblems, featureInfo, playHarnessFeatures, serverFeatureEnv, stateOnlyProblems, type FeatureSet, type SwitchableFeature } from "./features.js";
+import { SERVER_FEATURES, SWITCHABLE_FEATURES, dependencyProblems, featureInfo, playHarnessFeatures, serverFeatureEnv, stateOnlyProblems, type FeatureSet, type SwitchableFeature} from "./features.js";
 import { MAP_RULE_INDEX, MAP_RULE_SWITCHES, MAP_RULE_TEXTS } from "./map-rules.generated.js";
 import { mapRulesSection } from "./map-rules.js";
 import { playSystemPrompt } from "./play-config.js";
@@ -23,7 +24,7 @@ describe("readout-rules-in-prompt-v1 registry", () => {
     expect(featureInfo(ID)).toMatchObject({ group: "observation", needs: "ram-state-v1", switchable: true });
     expect(featureInfo(ID).description).toContain(" Off: ");
     expect(featureInfo(ID).description).toContain("Map symbols and rules: see the system prompt.");
-    expect(SWITCHABLE_FEATURES.at(-72)).toBe(ID);
+    expect(SWITCHABLE_FEATURES.at(-76)).toBe(ID);
     expect(playHarnessFeatures(ALL_ON,null).at(-72)).toBe(ID);
     expect(playHarnessFeatures(set(ALL_ON, { [ID]: false }), null)).not.toContain(ID);
     expect(SERVER_FEATURES.at(-19)).toBe(ID);

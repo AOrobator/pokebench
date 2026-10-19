@@ -1,3 +1,4 @@
+import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
 import {readFileSync} from "node:fs";
 import {gunzipSync} from "node:zlib";
 import {describe,expect,it} from "vitest";
@@ -5,7 +6,7 @@ import {checkEvent,type RunEvent} from "./events.js";
 import {parseGameState,type GameStateSnapshot} from "./game-state.js";
 import {CARDS_HEADER,PeopleIdCards,isPerson,type IdCard} from "./people-id-cards.js";
 import {PEOPLE_HEADER} from "./people-ledger.js";
-import {ALL_ON,dependencyProblems,featureInfo,playHarnessFeatures,SWITCHABLE_FEATURES,stateOnlyProblems,type FeatureSet} from "./features.js";
+import {dependencyProblems,featureInfo,playHarnessFeatures,SWITCHABLE_FEATURES,stateOnlyProblems,type FeatureSet} from "./features.js";
 import {flagFeatures,parsePlayPreset,presetFeatures} from "./play-preset.js";
 import {IN_GAME} from "../test-support/events.js";
 
@@ -300,7 +301,7 @@ describe("people-id-cards-v1 rules",()=>{
 describe("people-id-cards-v1 registration",()=>{
  const OFF:FeatureSet=Object.fromEntries(SWITCHABLE_FEATURES.map(id=>[id,false])) as Record<(typeof SWITCHABLE_FEATURES)[number],boolean>;
  it("is an observation switch that needs the people ledger, last in the registry and harness feature list, and off unless asked for",()=>{
-  expect(SWITCHABLE_FEATURES.at(-37)).toBe("people-id-cards-v1");
+  expect(SWITCHABLE_FEATURES.at(-41)).toBe("people-id-cards-v1");
   const info=featureInfo("people-id-cards-v1");
   expect(info).toMatchObject({group:"observation",title:"PEOPLE ID CARDS",needs:"people-ledger-v1",switchable:true});
   expect(info.description).toContain(" Off: no cards, no row summaries, no prompt section and no event");

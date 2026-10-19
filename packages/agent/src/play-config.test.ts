@@ -1,7 +1,9 @@
+import {LEGACY_ALL_ON as REGISTRY_ALL_ON} from "../test-support/legacy-features.js";
 import { createHash } from "node:crypto";
 import { expect, it } from "vitest";
-import { ALL_ON as REGISTRY_ALL_ON, type FeatureSet, type SwitchableFeature } from "./features.js";
-const ALL_ON={...REGISTRY_ALL_ON,"semantic-navigation-v1":false,"deterministic-exploration-v1":false,"dialog-button-b-v1":false,"just-in-time-prompt-v1":false,"just-in-time-prompt-v2":false,"jit-guide-reuse-v1":false,"open-goal-prompt-v1":false,"untaken-exits-v1":false,"people-ledger-v1":false,"people-id-cards-v1":false,"trainer-heal-guidance-v1":false,"low-hp-trainer-warning-v1":false,"low-hp-trainer-warning-v2":false,"no-nickname-guidance-v1":false,"battle-text-auto-advance-v1":false,"explorer-guidance-v1":false,"explorer-guidance-v2":false,"readout-rules-in-prompt-v1":false,"navigate-first-prompt-v1":false,"battle-triage-guidance-v1":false,"dialogue-auto-advance-v1":false,"warp-arrival-settle-v1":false,"navigation-evidence-memory-v1":false,"world-destinations-v1":false,"bounded-navigation-v1":false,"game-evidence-priority-v1":false,"dialogue-log-v1":false,"loop-guard-supervisor-v1":false,"instruction-ledger-v1":false,"next-milestone-hint-v1":false};
+import { type FeatureSet, type SwitchableFeature} from "./features.js";
+const ALL_ON={...REGISTRY_ALL_ON,"dialog-button-b-v1":false,"just-in-time-prompt-v1":false,"just-in-time-prompt-v2":false,"jit-guide-reuse-v1":false,"open-goal-prompt-v1":false,"untaken-exits-v1":false,"people-ledger-v1":false,"people-id-cards-v1":false,"trainer-heal-guidance-v1":false,"low-hp-trainer-warning-v1":false,"low-hp-trainer-warning-v2":false,"no-nickname-guidance-v1":false,"battle-text-auto-advance-v1":false,"explorer-guidance-v1":false,"explorer-guidance-v2":false,"readout-rules-in-prompt-v1":false,"navigate-first-prompt-v1":false,"battle-triage-guidance-v1":false,"dialogue-auto-advance-v1":false,"warp-arrival-settle-v1":false,"navigation-evidence-memory-v1":false,"world-destinations-v1":false,"bounded-navigation-v1":false,"game-evidence-priority-v1":false,"dialogue-log-v1":false,"loop-guard-supervisor-v1":false,"instruction-ledger-v1":false,"next-milestone-hint-v1":false};
+Object.assign(ALL_ON,{"semantic-navigation-v1":false,"deterministic-exploration-v1":false});
 import { CONTEXTUAL_CONTROLS, GAME_EVIDENCE_SECTION, NAVIGATE_TO_USAGE, PLAY_SYSTEM_PROMPT, objectiveSwitches, playGoal, playSystemPrompt, playTools, toolSwitches } from "./play-config.js";
 import { OBJECTIVE_PROMPT, objectivePrompt } from "./objective-tools.js";
 
@@ -48,11 +50,6 @@ it("names the goal and the tools for the selected switches", () => {
   expect(playGoal("RIVAL_MET", ALL_ON)).toBe("Reach the native game milestone RIVAL MET.");
   expect(playTools(ALL_ON)).toEqual(["observe", "press", "get_objectives", "set_objective", "update_objective", "battle_action"]);
   expect(playTools(off("objective-tracking-v1"))).toEqual(["observe", "press", "battle_action"]);
-});
-
-it("adds semantic field tools only for their switches",()=>{
- expect(playTools({...ALL_ON,"bounded-navigation-v1":true,"semantic-navigation-v1":true})).toContain("navigate_to_target");
- expect(playTools({...ALL_ON,"bounded-navigation-v1":true,"semantic-navigation-v1":true,"deterministic-exploration-v1":true})).toContain("explore_map");
 });
 
 it("hides objective-record facts whose observation switch is off", () => {

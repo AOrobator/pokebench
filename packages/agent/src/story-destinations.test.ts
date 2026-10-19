@@ -1,3 +1,4 @@
+import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
 import {describe,expect,it} from "vitest";
 import {readFileSync} from "node:fs";
 import type {AgentTool,AgentToolResult} from "@mariozechner/pi-agent-core";
@@ -6,7 +7,7 @@ import {PlacesBodySchema,STORY_HEADER,StoryDestinations,headsOf,placePhrases,wit
 import {playGameTools} from "./play-wiring.js";
 import {checkEvent,type RunEvent} from "./events.js";
 import {StateWatcher,parseGameState,type GameStateSnapshot} from "./game-state.js";
-import {ALL_ON,dependencyProblems,featureInfo,playHarnessFeatures,SWITCHABLE_FEATURES,type FeatureSet} from "./features.js";
+import {dependencyProblems,featureInfo,playHarnessFeatures,SWITCHABLE_FEATURES,type FeatureSet} from "./features.js";
 import {parsePlayPreset,presetFeatures} from "./play-preset.js";
 import {isCheckedPress,type CheckedPressTool} from "./game-tools.js";
 import {Value} from "typebox/value";

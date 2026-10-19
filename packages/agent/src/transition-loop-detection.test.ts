@@ -1,9 +1,10 @@
+import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
 import {describe,expect,it} from "vitest";
 import {readFileSync} from "node:fs";
 import {gunzipSync} from "node:zlib";
 import {fileURLToPath} from "node:url";
 import {attachLoopGuard,Governor} from "./harness.js";
-import {ALL_ON,dependencyProblems,featureInfo,featuresOf,playHarnessFeatures} from "./features.js";
+import {dependencyProblems,featureInfo,featuresOf,playHarnessFeatures} from "./features.js";
 import {flagFeatures} from "./play-preset.js";
 import {checkEvent,type RunEvent} from "./events.js";
 import {LOOP_POLICY,LoopDetector,type LoopNotice} from "./loop-detection.js";

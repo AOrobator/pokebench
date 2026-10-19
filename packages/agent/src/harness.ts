@@ -149,6 +149,7 @@ export interface GovernorDeps {
   readonly wallLimit?: () => number;
   // text-only-supervisor-v1: a recorded note to send instead of ending the run (replies, note number).
   readonly textOnlySupervisor?: (replies: number, note: number) => string;
+  readonly textOnlyReminder?: string;
 }
 
 export class Governor {
@@ -204,7 +205,7 @@ export class Governor {
     const due = this.note;
     this.note = null;
     // The note is built, and recorded, only when it is actually delivered.
-    const content = due === null || this.deps.textOnlySupervisor === undefined ? NUDGE : this.deps.textOnlySupervisor(due.replies, due.note);
+    const content = due === null || this.deps.textOnlySupervisor === undefined ? (this.notes>=TEXT_ONLY_NOTE_LIMIT?this.deps.textOnlyReminder??NUDGE:NUDGE) : this.deps.textOnlySupervisor(due.replies, due.note);
     return [{ role: "user", content, timestamp: Date.now() }];
   }
 
@@ -244,11 +245,11 @@ function firstText(result: ToolResultMessage | undefined): string {
   return part?.type === "text" ? part.text : "";
 }
 
-export function attachLoopGuard(recorder: Pick<RunRecorder, "subscribe" | "recordLoopGuard">, governor: Governor, policy?: LoopPolicy, mode:LoopMode="enforced", interactions=false, supervisor?: (kind: LoopKind, calls: number) => string, transitions=false, pushback=false, battles=false, messageTruth=false, ineffectiveLoops=false, menuLoop=false, clockViews=false, closedDialogue=false,triggerScriptLoops=false,battleRefusals=false): LoopDetector {
+export function attachLoopGuard(recorder: Pick<RunRecorder, "subscribe" | "recordLoopGuard">, governor: Governor, policy?: LoopPolicy, mode:LoopMode="enforced", interactions=false, supervisor?: (kind: LoopKind, calls: number) => string, transitions=false, pushback=false, battles=false, messageTruth=false, ineffectiveLoops=false, menuLoop=false, clockViews=false, closedDialogue=false,triggerScriptLoops=false,battleRefusals=false,ineffectiveNavigation=false): LoopDetector {
   const detector = new LoopDetector((notice) => {
     recorder.recordLoopGuard({...notice,evidence:[...notice.evidence]});
     if (notice.phase === "stop") governor.abort("stuck");
-  }, policy, mode, interactions, supervisor, transitions, pushback, battles, messageTruth, ineffectiveLoops, menuLoop, clockViews, closedDialogue,triggerScriptLoops,battleRefusals);
+  }, policy, mode, interactions, supervisor, transitions, pushback, battles, messageTruth, ineffectiveLoops, menuLoop, clockViews, closedDialogue,triggerScriptLoops,battleRefusals,ineffectiveNavigation);
   recorder.subscribe((event) => { detector.observe(event); });
   return detector;
 }

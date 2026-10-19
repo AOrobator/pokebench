@@ -1,9 +1,10 @@
+import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
 import { readFileSync } from "node:fs";
 import type { AgentMessage } from "@mariozechner/pi-agent-core";
 import type { AssistantMessage, ImageContent, ToolResultMessage } from "@mariozechner/pi-ai";
 import { describe, expect, it } from "vitest";
 import type { RunEvent } from "./events.js";
-import { ALL_ON, dependencyProblems, featureInfo, featuresOf, playHarnessFeatures, type FeatureSet } from "./features.js";
+import { dependencyProblems, featureInfo, featuresOf, playHarnessFeatures, type FeatureSet} from "./features.js";
 import { DOUBLE_WINDOW, OMITTED_FRAME, WINDOW, contextWindow, dialogueUnits, slideWindow, type Window } from "./harness.js";
 import { SupervisorBriefing } from "./loop-supervisor.js";
 import { contextTools } from "./play-wiring.js";

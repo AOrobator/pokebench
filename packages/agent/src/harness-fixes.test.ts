@@ -1,10 +1,11 @@
+import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
 import {mkdtempSync,readFileSync,rmSync} from "node:fs";
 import {tmpdir} from "node:os";
 import {join} from "node:path";
 import {expect,it} from "vitest";
 import {IN_GAME,RUN_START_META} from "../test-support/events.js";
 import {checkEvent,type RunEvent} from "./events.js";
-import {ALL_ON} from "./features.js";
+
 import {DialogueLog} from "./dialogue-log.js";
 import {FrameStore} from "./frames.js";
 import {InstructionLedger} from "./instruction-ledger.js";

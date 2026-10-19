@@ -1,3 +1,4 @@
+import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
 // heal-before-trainers-v1: on the free field, when a trainer the player has not beaten is loaded on this map and the
 // party is weak (a Pokémon fainted, the lead below half HP, or the lead's damaging moves out of PP), the tool result
 // says so and names the nearest place that heals the party that the player has been to. The operator 2026-10-17: "I like the
@@ -9,7 +10,7 @@
 import {readFileSync} from "node:fs";
 import {describe,expect,it} from "vitest";
 import type {AgentTool,AgentToolResult} from "@mariozechner/pi-agent-core";
-import {ALL_ON,SERVER_FEATURES,SWITCHABLE_FEATURES,dependencyProblems,featureInfo,featuresOf,playHarnessFeatures,serverFeatureEnv,type FeatureSet} from "./features.js";
+import {SERVER_FEATURES,SWITCHABLE_FEATURES,dependencyProblems,featureInfo,featuresOf,playHarnessFeatures,serverFeatureEnv,type FeatureSet} from "./features.js";
 import {flagFeatures,normalizeFeatures,parsePlayPreset,presetFeatures} from "./play-preset.js";
 import {parseGameState,type GameStateSnapshot} from "./game-state.js";
 import {eventProblem,type RunEvent} from "./events.js";
@@ -55,7 +56,7 @@ describe("registry",()=>{
   expect(featureInfo(ID)).toMatchObject({group:"guard",needs:"low-hp-trainer-warning-v1",switchable:true,title:"HEAL BEFORE TRAINERS"});
   expect(featureInfo(ID).description).toContain(" Off: ");
   expect(featureInfo(ID).description).toContain(AFTER_TEXT);
-  expect(SWITCHABLE_FEATURES.at(-32)).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-36)).toBe(ID);
   expect(playHarnessFeatures(ALL_ON,null).at(-32)).toBe(ID);
   expect(playHarnessFeatures({...ALL_ON,"battle-decision-ready-v1":false,[ID]:false},null)).not.toContain(ID);
   expect(SERVER_FEATURES).toContain(ID);

@@ -1,7 +1,8 @@
+import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { expect, it } from "vitest";
-import { ALL_ON, SERVER_FEATURES, SWITCHABLE_FEATURES, dependencyProblems, featureInfo, featuresOf, playHarnessFeatures, serverFeatureEnv, type FeatureSet } from "./features.js";
+import { SERVER_FEATURES, SWITCHABLE_FEATURES, dependencyProblems, featureInfo, featuresOf, playHarnessFeatures, serverFeatureEnv, type FeatureSet} from "./features.js";
 import { BATTLE_TRIAGE_SECTION, objectiveSwitches, playSystemPrompt, playTools, toolSwitches } from "./play-config.js";
 import { experimentArms, parseExperiment } from "./experiments.js";
 import { flagFeatures, parsePlayPreset, presetFeatures } from "./play-preset.js";
@@ -21,7 +22,7 @@ it("registers a default-off guidance switch the game server applies, recorded la
   expect(description).toContain(" Off: ");
   expect(description).toContain("below half");
   expect(description).toContain("RUN");
-  expect(SWITCHABLE_FEATURES.at(-74)).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-78)).toBe(ID);
   expect(playHarnessFeatures(ALL_ON,null).at(-74)).toBe(ID);
   expect(playHarnessFeatures(with_(ALL_ON, false), null)).not.toContain(ID);
   expect(SERVER_FEATURES.at(-21)).toBe(ID);

@@ -1,8 +1,9 @@
+import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
 // faced-interaction-history-v1: a movement-plus-A batch that opened attributed dialogue counts as trying
 // the exact faced target. Recorded case: 2026-10-18T01-30-48_qwen36-gpu1_cdb1, turn 84, seq 1537-1577.
 import {describe,expect,it} from "vitest";
 import {readFileSync} from "node:fs";
-import {ALL_ON,SWITCHABLE_FEATURES,featureInfo,playHarnessFeatures,type FeatureSet} from "./features.js";
+import {SWITCHABLE_FEATURES,featureInfo,playHarnessFeatures,type FeatureSet} from "./features.js";
 import {checkEvent,type RunEvent} from "./events.js";
 import {experimentArms,parseExperiment} from "./experiments.js";
 import {SupervisorBriefing} from "./loop-supervisor.js";
@@ -61,7 +62,7 @@ const untried=(text:string):string=>text.split("\n").find(line=>line.startsWith(
 
 describe("faced-interaction-history-v1",()=>{
  it("is registered without disturbing historical ordering, defaults off, remains off in control, and is flipped only by the bundle arm",()=>{
-  expect(SWITCHABLE_FEATURES.at(-10)).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-14)).toBe(ID);
   expect(playHarnessFeatures(ALL_ON,null).at(-10)).toBe(ID);
   expect(featureInfo(ID)).toMatchObject({group:"guard",needs:null,title:"FACED INTERACTION HISTORY"});
   expect(featureInfo(ID).description).toContain(" Off: ");
@@ -73,7 +74,7 @@ describe("faced-interaction-history-v1",()=>{
   const raw=JSON.parse(readFileSync(new URL("../../../experiments/faced-interaction-history.json",import.meta.url),"utf8")) as {queuePosition?:number;blocked?:string;incumbent:{features:Record<string,boolean>}};
   expect(raw.queuePosition).toBeUndefined();
   expect(raw.blocked).toContain("do not queue");
-  expect(Object.keys(raw.incumbent.features).sort()).toEqual(SWITCHABLE_FEATURES.filter(id=>id!=="battle-decision-ready-v1"&&id!=="battle-refusal-loop-v1"&&id!=="deterministic-warp-navigation-v1"&&id!=="battle-effective-damage-v1"&&id!=="scripted-place-guidance-v1"&&id!=="trigger-script-loop-v1"&&id!=="cache-aligned-window-v1"&&id!=="jit-guide-reuse-v1"&&id!=="just-in-time-prompt-v2"&&id!=="save-state-task-truth-v1"&&id!=="stale-story-goal-v2"&&id!=="visited-terrain-navigation-v1").sort());
+  expect(Object.keys(raw.incumbent.features).sort()).toEqual(SWITCHABLE_FEATURES.filter(id=>id!=="ineffective-navigation-v2"&&id!=="supervisor-briefing-v2"&&id!=="reachable-story-guidance-v1"&&id!=="text-only-supervisor-v2"&&id!=="battle-decision-ready-v1"&&id!=="battle-refusal-loop-v1"&&id!=="deterministic-warp-navigation-v1"&&id!=="battle-effective-damage-v1"&&id!=="scripted-place-guidance-v1"&&id!=="trigger-script-loop-v1"&&id!=="cache-aligned-window-v1"&&id!=="jit-guide-reuse-v1"&&id!=="just-in-time-prompt-v2"&&id!=="save-state-task-truth-v1"&&id!=="stale-story-goal-v2"&&id!=="visited-terrain-navigation-v1").sort());
   const {incumbent,candidate}=experimentArms(parseExperiment(raw));
   expect(incumbent.features[ID]).toBe(false);
   expect(candidate.features[ID]).toBe(true);

@@ -29,12 +29,25 @@ const same=(a:MapId,b:MapId)=>a[0]===b[0]&&a[1]===b[1];
 const mapLabel=(name:string,id:MapId)=>`${name} (map ${String(id[0])}/${String(id[1])})`;
 const at=(p:{readonly x:number;readonly y:number})=>`(${String(p.x)},${String(p.y)})`;
 
-export function goalLine(goal:StoryGoal|null,places:readonly Place[]|Error,anyLine:boolean):string {
+export function goalLine(goal:StoryGoal|null,places:readonly Place[]|Error,anyLine:boolean,state?:GameStateSnapshot):string {
  if(places instanceof Error)return anyLine?`Story goal: not known; the game's map table could not be read (${places.message}).`:"Story goal: no story character has named a place yet in this run.";
  if(goal===null)return "Story goal: no story character has named a place yet in this run.";
  if(goal.done===true)return staleGoalLine(goal.line,goal.doneReason);
  const {line,resolved}=goal;
+ if(state!==undefined)return `Story goal: "${line.text}" (${line.speaker}, turn ${String(line.turn)}) -> ${resolved.map(r=>r.target===null?`${r.quote}${r.text}`:`${r.quote} = ${mapLabel(r.target.display,r.target.map_id)}. ${localGoalAccess(state,r.target,places)}`).join(" ")}`;
  return `Story goal: "${line.text}" (${line.speaker}, turn ${String(line.turn)}) -> ${resolved.map(r=>`${r.quote}${r.text}`).join(" ")}`;
+}
+
+// Access facts only for this map. Do not turn disconnected parts of a map into a suggested direct route.
+function localGoalAccess(state:GameStateSnapshot,target:Place,places:readonly Place[]):string {
+ const map=places.find(p=>state.map_id!==null&&same(p.map_id,state.map_id));
+ if(map===undefined)return "Local access is unknown.";
+ if(same(map.map_id,target.map_id))return "The destination is the current map.";
+ const reach=state.exit_reach;
+ const qualified=reach!==undefined&&exitBlock({surf:false,reach:true},state).foot(0,0)!==null;
+ const label=(value:string|undefined)=>!qualified||value===undefined?"reachability unknown":value==="foot"?"listed as reachable on foot":value==="water"?"across water; not reachable on foot":"not reachable on foot from here";
+ const ways=[...map.warps.filter(w=>same(w.to,target.map_id)).map(w=>`door at ${at(w)} (${label(reach?.warps.find(r=>r.x===w.x&&r.y===w.y)?.reach)})`),...map.connections.filter(c=>same(c.to,target.map_id)).map(c=>`${c.direction} edge (${label(reach?.connections.find(r=>r.direction===c.direction&&same(r.destination,c.to))?.reach)})`)];
+ return ways.length===0?"No direct entrance to this destination is listed on the current map; consult the current exits.":`Direct entrances on this map: ${ways.join("; ")}.`;
 }
 
 const CHARACTERS=/^Story characters here \(from this map's own object list\): (.*?)\. Not on this map: /m;
@@ -94,7 +107,7 @@ function adjacent(from:MapId,to:MapId,places:readonly Place[]):boolean {
 interface WayIn {readonly label:string;readonly distance:number}
 // The ways off this map that lead into a target, or (when none does) one map-table step closer to one, each with
 // its straight-line tile distance from the player.
-export function waysHere(state:GameStateSnapshot,targets:readonly Place[],places:readonly Place[]):WayIn[] {
+export function waysHere(state:GameStateSnapshot,targets:readonly Place[],places:readonly Place[],reachable=false):WayIn[] {
  const here=state.map_id,p=state.position;
  if(here===null||p===null)return [];
  const map=places.find(q=>same(q.map_id,here));if(map===undefined)return [];
@@ -105,9 +118,12 @@ export function waysHere(state:GameStateSnapshot,targets:readonly Place[],places
  const name=(to:MapId)=>{const q=places.find(r=>same(r.map_id,to));return q===undefined?mapLabel("a map",to):mapLabel(q.display,to);};
  const size=state.topology??state.map_grid;
  const out:WayIn[]=[];
- for(const w of map.warps)if(toward(w.to))out.push({label:`the door at ${at(w)} (to ${name(w.to)})`,distance:Math.abs(w.x-p.x)+Math.abs(w.y-p.y)});
+ const reach=state.exit_reach;
+ const qualified=reach!==undefined&&exitBlock({surf:false,reach:true},state).foot(0,0)!==null;
+ if(reachable&&!qualified)return [];
+ for(const w of map.warps)if(toward(w.to)&&(!reachable||reach?.warps.some(r=>r.x===w.x&&r.y===w.y&&r.reach==="foot")))out.push({label:`the door at ${at(w)} (to ${name(w.to)})`,distance:Math.abs(w.x-p.x)+Math.abs(w.y-p.y)});
  if(size!=null)for(const c of map.connections){
-  if(!EDGE_SIDES.has(c.direction)||!toward(c.to))continue;
+  if(!EDGE_SIDES.has(c.direction)||!toward(c.to)||(reachable&&!reach?.connections.some(r=>r.direction===c.direction&&same(r.destination,c.to)&&r.reach==="foot")))continue;
   const d=c.direction==="NORTH"?p.y:c.direction==="SOUTH"?size.height-1-p.y:c.direction==="WEST"?p.x:size.width-1-p.x;
   out.push({label:`this map's ${c.direction} edge (to ${name(c.to)})`,distance:d});
  }
@@ -129,6 +145,7 @@ interface Sample {readonly key:string;readonly map:MapId;readonly name:string;re
 
 // Counts the player's own moves farther from the goal's place; two in a row (no closer move between) fire once.
 export class WalkAway {
+ constructor(private readonly reachable=false){}
  private last:Sample|null=null;
  private away:AwayStep[]=[];
  // own: the result is the player's own move: a press or navigate_to that ended with field controls free. Movement seen
@@ -140,7 +157,7 @@ export class WalkAway {
   const key=`${String(goal.line.turn)}\u0000${goal.line.speaker}\u0000${goal.line.text}`;
   const here=state.map_id;
   if(targets.some(t=>same(t.map_id,here))){this.reset(null);return null;}
-  const sample:Sample={key,map:here,name:state.location_display??state.location??"this map",pos:state.position,ways:waysHere(state,targets,places),maps:mapSteps(here,targets.map(t=>t.map_id),places)};
+  const sample:Sample={key,map:here,name:state.location_display??state.location??"this map",pos:state.position,ways:waysHere(state,targets,places,this.reachable),maps:mapSteps(here,targets.map(t=>t.map_id),places)};
   const prev=this.last;this.last=sample;
   if(prev?.key!==key){this.away=[];return null;}
   if(same(prev.map,here)&&prev.pos.x===sample.pos.x&&prev.pos.y===sample.pos.y)return null;
@@ -159,6 +176,7 @@ export class WalkAway {
    }
   }else{
    // Only a walk through one warp or connection counts; a whiteout, a fly or a scripted warp is not a move.
+   if(this.reachable){this.away=[];return null;}
    if(!adjacent(prev.map,here,places)){this.away=[];return null;}
    if(prev.maps===null||sample.maps===null)return null;
    if(sample.maps>prev.maps)step={measure:"maps",from_map:prev.map,to_map:here,from_name:prev.name,to_name:sample.name,from:prev.pos,to:sample.pos,before:prev.maps,after:sample.maps,way:null};
@@ -191,13 +209,13 @@ function stateOf(details:unknown):GameStateSnapshot|null {
 }
 
 // battleAction: harness-trust-v2 also heads battle_action results.
-export interface TrustOptions {readonly supervisor:boolean;readonly battleAction?:boolean;readonly goalOnce?:boolean;readonly retireLab?:boolean;readonly stageBound?:boolean;readonly omitEmptyGoal?:boolean;readonly scriptedGuidance?:boolean}
+export interface TrustOptions {readonly supervisor:boolean;readonly battleAction?:boolean;readonly goalOnce?:boolean;readonly retireLab?:boolean;readonly stageBound?:boolean;readonly omitEmptyGoal?:boolean;readonly scriptedGuidance?:boolean;readonly reachableGoal?:boolean}
 
 // The header (and any walk-away note) put at the top of the result's first text part.
 export class HarnessTrust {
  private readonly story:StoryDestinations;
- private readonly walk=new WalkAway();
- constructor(private readonly options:TrustOptions) {this.story=new StoryDestinations(options.scriptedGuidance===true);}
+ private readonly walk:WalkAway;
+ constructor(private readonly options:TrustOptions) {this.walk=new WalkAway(options.reachableGoal===true);this.story=new StoryDestinations(options.scriptedGuidance===true);}
  observe(event:RunEvent):void {this.story.observe(event);}
  lines(text:string,state:GameStateSnapshot,callId:string,places:readonly Place[]|Error,own=false,seen=text):{readonly header:string;readonly away:StoryGoalAwayFacts|null} {
   const anyLine=this.story.latest(callId,null,state.name)!==null;
@@ -206,7 +224,7 @@ export class HarnessTrust {
   const exits=places instanceof Error?null:exitsLine(state,places);
   const repeated=this.options.goalOnce===true&&goal!==null&&goal.done!==true&&seen.includes(STORY_HEADER)&&seen.includes(`"${goal.line.text}"`);
   const omitGoal=this.options.omitEmptyGoal===true&&!(places instanceof Error)&&(goal===null||goal.done===true);
-  const header=[TRUST_HEADER,...(repeated||omitGoal?[]:[goalLine(goal,places,anyLine)]),...(characters===null?[]:[characters]),...(exits===null?[]:[exits])].join("\n");
+  const header=[TRUST_HEADER,...(repeated||omitGoal?[]:[goalLine(goal,places,anyLine,this.options.reachableGoal===true?state:undefined)]),...(characters===null?[]:[characters]),...(exits===null?[]:[exits])].join("\n");
   const away=this.options.supervisor&&!(places instanceof Error)?this.walk.observe(state,goal?.done===true?null:goal,places,own):null;
   return {header,away};
  }

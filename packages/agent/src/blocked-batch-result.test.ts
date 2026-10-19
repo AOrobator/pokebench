@@ -1,7 +1,8 @@
+import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
 import { readFileSync } from "node:fs";
 import { describe, expect, it, vi } from "vitest";
 import { IN_GAME } from "../test-support/events.js";
-import { ALL_ON, FEATURES, dependencyProblems, featureInfo, featuresOf, playHarnessFeatures, type FeatureSet } from "./features.js";
+import { FEATURES, dependencyProblems, featureInfo, featuresOf, playHarnessFeatures, type FeatureSet} from "./features.js";
 import { ALL_TOOL_SWITCHES, gameTools } from "./game-tools.js";
 import { parseGameState, type GameStateSnapshot } from "./game-state.js";
 import type { Button } from "./events.js";
@@ -183,7 +184,7 @@ describe("registry, presets and production wiring", () => {
   it("is a registered guidance switch that needs press results, second to last in the run record", () => {
     expect(featureInfo(ID)).toMatchObject({ group: "guidance", needs: "press-result-v1", switchable: true });
     expect(featureInfo(ID).description).toContain(" Off: ");
-    expect(FEATURES.filter(f => f.switchable).at(-75)?.id).toBe(ID);
+    expect(FEATURES.filter(f => f.switchable).at(-79)?.id).toBe(ID);
     expect(playHarnessFeatures(ALL_ON, null).at(-75)).toBe(ID);
     expect(playHarnessFeatures({ ...ALL_ON,"battle-decision-ready-v1":false, [ID]: false }, null)).not.toContain(ID);
     expect(dependencyProblems({ ...ALL_ON,"battle-decision-ready-v1":false, "press-result-v1": false })).toContain(`${ID} needs press-result-v1`);

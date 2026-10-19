@@ -1,7 +1,8 @@
+import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
 import {readFileSync} from "node:fs";
 import type {AgentMessage} from "@mariozechner/pi-agent-core";
 import {describe,expect,it} from "vitest";
-import {ALL_ON,SWITCHABLE_FEATURES,dependencyProblems,featureInfo,featuresOf,playHarnessFeatures,type FeatureSet} from "./features.js";
+import {SWITCHABLE_FEATURES,dependencyProblems,featureInfo,featuresOf,playHarnessFeatures,type FeatureSet} from "./features.js";
 import {DisprovedBeliefs,disprovedBeliefs,locatingClaims} from "./disproved-beliefs.js";
 import {checkEvent,type BodyOf,type RunEvent} from "./events.js";
 import {contextTools} from "./play-wiring.js";
@@ -44,7 +45,7 @@ describe("registry and presets",()=>{
   expect(featureInfo(ID)).toMatchObject({group:"guidance",needs:"story-state-v1",switchable:true,title:"DISPROVED BELIEFS LEDGER"});
   expect(featureInfo(ID).description).toContain(" Off: no ledger.");
   expect(featureInfo(ID).description).toContain("Things the game has contradicted");
-  expect(SWITCHABLE_FEATURES.at(-61)).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-65)).toBe(ID);
   expect(playHarnessFeatures(ALL_ON,null).at(-61)).toBe(ID);
   expect(playHarnessFeatures({...ALL_ON,"battle-decision-ready-v1":false,[ID]:false},null)).not.toContain(ID);
   expect(featuresOf(playHarnessFeatures({...ALL_ON,"battle-decision-ready-v1":false,[ID]:false},null))[ID]).toBe(false);

@@ -911,3 +911,10 @@ it("serves the tracked battle readiness explainer through the existing protected
  expect((await get(viewer,`/explainers/${id}.html`,{host:"elsewhere.invalid"})).status).toBe(403);
  expect((await get(viewer,`/explainers/${id}.html`,{method:"PUT"})).status).toBe(405);
 });
+
+it.each(["ineffective-navigation-v2","supervisor-briefing-v2","reachable-story-guidance-v1","text-only-supervisor-v2"])("serves the tracked recovery explainer %s byte for byte",async(id)=>{
+ const tracked=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)));
+ const root=mkdtempSync(join(tmpdir(),"pokebench-recovery-explainer-")),staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});writeFileSync(join(docs,`${id}.html`),tracked);
+ const viewer=await startViewer({runsRoot:join(root,"runs"),staticDir,appDir:join(root,"app"),port:0});open.push(viewer);
+ const reply=await get(viewer,`/explainers/${id}.html`);expect(reply.status).toBe(200);expect(reply.body.equals(tracked)).toBe(true);
+});

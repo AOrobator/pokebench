@@ -1,8 +1,9 @@
+import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
 import { readFileSync } from "node:fs";
 import { Value } from "typebox/value";
 import { expect, it } from "vitest";
 import { BattleMessageSchema } from "./events.js";
-import { ALL_ON, SERVER_FEATURES, SWITCHABLE_FEATURES, dependencyProblems, featureInfo, featuresOf, playHarnessFeatures, serverFeatureEnv, type FeatureSet } from "./features.js";
+import { SERVER_FEATURES, SWITCHABLE_FEATURES, dependencyProblems, featureInfo, featuresOf, playHarnessFeatures, serverFeatureEnv, type FeatureSet} from "./features.js";
 import { flagFeatures, normalizeFeatures, parsePlayPreset, presetFeatures } from "./play-preset.js";
 
 const ID = "battle-message-waiting-v1";
@@ -17,7 +18,7 @@ it("registers a default-off observation switch with no dependency, recorded last
   // As built: a finishing battle keeps its text and gains the message clause (battle_details._input_text).
   expect(description).toContain('finishing (outcome won) · battle message waiting: "Got away safely!"');
   expect(description).not.toContain("finishing and recorded-playback text is unchanged");
-  expect(SWITCHABLE_FEATURES.at(-66)).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-70)).toBe(ID);
   expect(playHarnessFeatures(ALL_ON, null).at(-66)).toBe(ID);
   expect(playHarnessFeatures(off(ID), null)).not.toContain(ID);
   expect(featuresOf(playHarnessFeatures(off(ID), null))[ID]).toBe(false);

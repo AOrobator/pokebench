@@ -9,7 +9,7 @@
  "primaryMilestone": "RIVAL_BATTLE_WON",
  "source": {
   "checkout": "main",
-  "commit": "125f61b25dd6ef41cb863db18fd0e6278a85fdeb"
+  "commit": "1f44618f4a5666037952d9bdffbef371dcd79941"
  },
  "incumbent": {
   "version": 2,

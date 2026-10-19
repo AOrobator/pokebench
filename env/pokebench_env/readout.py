@@ -526,9 +526,7 @@ def format_readout(
                         if (g, n) == (127, 127)
                         else names.get(
                             (g, n),
-                            f"unknown map {g}/{n}"
-                            if destinations is None
-                            else f"map {g}/{n}",
+                            f"unknown map {g}/{n}" if destinations is None else f"map {g}/{n}",
                         )
                     )
                     lines.append(

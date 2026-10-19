@@ -47,6 +47,7 @@ This intentionally does not add a second conversation/history store. A future fe
 - Claude CLI had no active reviewer credential. Cursor Claude Opus and Sonnet both returned the account's monthly usage-limit error; this lane remains unavailable, not green.
 - Grok 4.7 High and isolated GPT-5.6 Sol independently found the same blocker: the optional static `Warp destination at` renderer rebuilt names from `state.destination_names`, bypassing the new `displayed_places` filter.
 - Fix after `2b0830e4`: the world-destination renderer now reuses `destinations` while ON and preserves its incumbent internal-name map while OFF. Added missing internal-only and displayed-name assertions, updated the observation expectation and four affected compatibility fixtures. Focused result: 81 passed / 24 existing ROM-dependent skips.
+- Gate repair after `a6f39202`: formatted the renderer and mechanically rerendered the 35-case readout-rules aggregate so cases with named warps ON expect bare IDs while the named-warp OFF cases retain their byte-identical internal labels. Focused cross-feature result: 63 passed.
 
 ## Gate Notes
 

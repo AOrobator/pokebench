@@ -122,6 +122,27 @@ it("preserves the primary capture failure when the required unpause also fails",
  expect(JSON.parse(String(badDigest.files.get("/runs/cp-run/checkpoints/CLOCK_SET.error.json")))).toMatchObject({error:"checkpoint digest does not match the returned state"});
 });
 
+it("preserves checkpoint and persistence failures when cleanup unpause also fails",async()=>{
+ const failedRequest=fixture();let requestPauses=0;
+ const requestDeps:CheckpointDeps={...failedRequest.deps,fetch:async(url,init)=>{
+  const recorded=await failedRequest.deps.fetch(url,init);
+  if(url.endsWith("/pokebench/checkpoint"))return new Response(JSON.stringify({detail:"native checkpoint unavailable"}),{status:502});
+  if(url.endsWith("/pokebench/pause")&&++requestPauses===2)return new Response(JSON.stringify({paused:true}),{status:503});
+  return recorded;
+ }};
+ const first=new CheckpointCapture({kind:"single",target:"CLOCK_SET"},requestDeps,START);first.observe(milestone("CLOCK_SET",20));await expect(first.settled()).rejects.toThrow(/^checkpoint request failed with HTTP 502$/);
+ expect(failedRequest.calls.at(-1)?.body).toEqual({paused:false});expect(JSON.parse(String(failedRequest.files.get("/runs/cp-run/checkpoints/CLOCK_SET.error.json")))).toMatchObject({error:"checkpoint request failed with HTTP 502"});
+
+ const failedWrite=fixture();let writePauses=0,failPair=true;
+ const writeDeps:CheckpointDeps={...failedWrite.deps,write:(path,data)=>{if(path.endsWith("/CLOCK_SET.json.partial")&&failPair){failPair=false;throw new Error("disk full during checkpoint persistence");}failedWrite.deps.write(path,data);},fetch:async(url,init)=>{
+  const recorded=await failedWrite.deps.fetch(url,init);
+  if(url.endsWith("/pokebench/pause")&&++writePauses===2)return new Response(JSON.stringify({paused:true}),{status:503});
+  return recorded;
+ }};
+ const second=new CheckpointCapture({kind:"single",target:"CLOCK_SET"},writeDeps,START);second.observe(milestone("CLOCK_SET",21));await expect(second.settled()).rejects.toThrow(/^disk full during checkpoint persistence$/);
+ expect(failedWrite.calls.at(-1)?.body).toEqual({paused:false});expect(JSON.parse(String(failedWrite.files.get("/runs/cp-run/checkpoints/CLOCK_SET.error.json")))).toMatchObject({error:"disk full during checkpoint persistence"});
+});
+
 it("rejects successful pause responses that do not confirm the requested state",async()=>{
  const wrongPause=fixture();const pauseDeps:CheckpointDeps={...wrongPause.deps,fetch:(url,init)=>url.endsWith("/pokebench/pause")?Promise.resolve(new Response(JSON.stringify({paused:false}))):wrongPause.deps.fetch(url,init)};
  const first=new CheckpointCapture({kind:"single",target:"CLOCK_SET"},pauseDeps,START);first.observe(milestone("CLOCK_SET",20));await expect(first.settled()).rejects.toThrow(/^pause response did not confirm paused=true$/);expect(wrongPause.calls.some(call=>call.url.endsWith("/pokebench/checkpoint"))).toBe(false);

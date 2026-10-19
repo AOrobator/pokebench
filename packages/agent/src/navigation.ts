@@ -560,7 +560,7 @@ export function navigationTool(ports:NavigationPorts):CheckedNavigationTool {
  const description=ports.navigateFirst===true?`${NAVIGATE_FIRST_DESCRIPTION} ${described}${mode==="local"?COMMAND_LIMIT_HINT:""}`:described;
  const execute=async(id:string,goal:{readonly x:number;readonly y:number;readonly map_id:readonly [number,number];readonly walking?:boolean},signal?:AbortSignal,stop?:NavigationStopCheck):Promise<AgentToolResult<unknown>>=>{
   signal?.throwIfAborted();await ports.gate?.(signal);signal?.throwIfAborted();
-  let state=await ports.read(signal),commands=0,status="command limit",last:AgentToolResult<unknown>|undefined;
+  let state=await ports.read(signal),commands=0,status="command limit",last:AgentToolResult<unknown>|undefined,stopRequested=false;
   const blackout=new BlackoutCarry();
   let shortest=Infinity,stalled=0,unready=false,selectedTarget:Point={x:goal.x,y:goal.y},directionalWarpAttempted=false;
   const origin=state.position;
@@ -568,7 +568,7 @@ export function navigationTool(ports:NavigationPorts):CheckedNavigationTool {
   while(commands<bound){
    signal?.throwIfAborted();await ports.gate?.(signal);signal?.throwIfAborted();
    state=await ports.read(signal);signal?.throwIfAborted();
-   const beforeStop=stop?.(state)??null;if(beforeStop!==null){status=beforeStop;break;}
+   const beforeStop=stop?.(state)??null;if(beforeStop!==null){status=beforeStop;stopRequested=true;break;}
    if(!sameMap()){
     if(ports.crossMapGoal!==true||commands>0){status="map changed; inspect destination";break;}
     if(state.map_id!==null){status=crossMapReason(state,state.map_id,goal);break;}
@@ -591,12 +591,13 @@ export function navigationTool(ports:NavigationPorts):CheckedNavigationTool {
      try {
       last=await ports.press(id,{buttons:[activation]},signal,actual=>{
        if(actual===undefined||!ready(actual,mode)||actual.map_id?.[0]!==goal.map_id[0]||actual.map_id[1]!==goal.map_id[1]||actual.position?.x!==before.x||actual.position.y!==before.y)throw new NavigationPreconditionError("map, position or field input unavailable or changed before action; no command submitted");
+       const requestedStop=stop?.(actual)??null;if(requestedStop!==null){stopRequested=true;throw new NavigationPreconditionError(requestedStop);}
        const current=warpIdentityAt(actual,warpPlan.target,options);
        if(current===null||current.activation!==activation||!sameWarpIdentity(current.identity,warpPlan.identity))throw new NavigationPreconditionError("warp identity or activation changed before action; no command submitted");
       },{automaticRunning:false});
      } catch(error){if(!(error instanceof NavigationPreconditionError))throw error;status=error.message;break;}
      commands++;directionalWarpAttempted=true;state=blackout.remember(resultState(last));
-     const afterWarpStop=stop?.(state)??null;if(afterWarpStop!==null)status=afterWarpStop;
+     const afterWarpStop=stop?.(state)??null;if(afterWarpStop!==null){status=afterWarpStop;stopRequested=true;}
      break;
     }
     status="arrived at requested coordinate";break;
@@ -606,10 +607,11 @@ export function navigationTool(ports:NavigationPorts):CheckedNavigationTool {
    try {
     last=await ports.press(id,{buttons:[direction],...(ports.automaticRunning===true||goal.walking===undefined?{}:{walking:goal.walking})},signal,actual=>{
      if(actual===undefined||!ready(actual,mode)||actual.map_id?.[0]!==goal.map_id[0]||actual.map_id[1]!==goal.map_id[1]||actual.position?.x!==before.x||actual.position.y!==before.y)throw new NavigationPreconditionError("map, position or field input unavailable or changed before action; no command submitted");
+     const requestedStop=stop?.(actual)??null;if(requestedStop!==null){stopRequested=true;throw new NavigationPreconditionError(requestedStop);}
     });
    } catch(error){if(!(error instanceof NavigationPreconditionError))throw error;status=error.message;break;}
    commands++;state=blackout.remember(resultState(last));
-   const afterStop=stop?.(state)??null;if(afterStop!==null){status=afterStop;break;}
+   const afterStop=stop?.(state)??null;if(afterStop!==null){status=afterStop;stopRequested=true;break;}
    if(!sameMap()){status="map changed; inspect destination";break;}
    if(!ready(state,mode)){status=ports.refusalReasons===true?`walk interrupted: ${unreadyReason(state)}`:"field input locked or unavailable; inspect new state";unready=true;break;}
    const after=state.position;if(after===null)throw new Error("Navigation position unavailable");
@@ -630,7 +632,7 @@ export function navigationTool(ports:NavigationPorts):CheckedNavigationTool {
    }
   }
   last=await ports.observe(id,signal);state=blackout.preserve(blackout.remember(resultState(last)));
-  const finalStop=stop?.(state)??null;if(finalStop!==null)status=finalStop;
+  const finalStop=stop?.(state)??null;if(finalStop!==null){status=finalStop;stopRequested=true;}
   if(directionalWarpAttempted){status=state.map_id===null?"directional warp transition unverified; inspect new state":sameMap()?"directional warp did not change map; inspect new state":"directional warp activated; inspect destination";}
   // A composite navigation call can consume the one-shot receipt in an internal
   // press and then replace that observation with a fresh one. Carry the event
@@ -639,7 +641,7 @@ export function navigationTool(ports:NavigationPorts):CheckedNavigationTool {
   // exit-reachability-v1: "call again" only when the goal (or a tile next to it) is on the server's foot area.
   if(truth&&status==="command limit"){const here=state.position;const cut=ports.exitReach===true&&exitBlock({surf:false,reach:true},state).footNear(goal.x,goal.y)===false;status=here!==null&&sameMap()&&ready(state,mode)?`command limit: stopped at ${at(here)} after ${String(commands)} ordinary button attempts, the most one navigate_to call makes; ${cut?`${at(goal)} cannot be reached on foot from where you stand: no walkable way on this map leads from your tile to it or to a tile next to it, so calling navigate_to again will not get there`:`call navigate_to again to continue to ${at(goal)}`}`:`command limit: stopped after ${String(commands)} ordinary button attempts, the most one navigate_to call makes; the field is no longer free to walk, so inspect the new state`;}
   const notices=blackout.missingNotices(last.content.flatMap(part=>part.type==="text"?[part.text]:[]));
-  return {content:[{type:"text",text:`Navigation: ${status}; ${String(commands)} ordinary button attempts.`},...notices.map(text=>({type:"text" as const,text})),...last.content],details:{state,navigation:{status,commands,target:goal,...(ports.deterministicWarps===true?{selected_target:selectedTarget}:{}),unready}}};
+  return {content:[{type:"text",text:`Navigation: ${status}; ${String(commands)} ordinary button attempts.`},...notices.map(text=>({type:"text" as const,text})),...last.content],details:{state,navigation:{status,commands,target:goal,...(stop===undefined?{}:{stop_requested:stopRequested}),...(ports.deterministicWarps===true?{selected_target:selectedTarget,activation_attempted:directionalWarpAttempted}:{}),unready}}};
  };
  return {name:"navigate_to",label:"Walk to a coordinate",description,parameters:(ports.automaticRunning===true?DeterministicRunningArgs:Args) as typeof Args,execute:(id,goal,signal)=>execute(id,goal,signal),executeChecked:(id,goal,check,signal)=>execute(id,goal,signal,check)};
 }

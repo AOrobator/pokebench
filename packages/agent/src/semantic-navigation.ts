@@ -43,6 +43,14 @@ function navigationStatus(result:AgentToolResult<unknown>):string|null {
  const navigation=details.navigation;
  return typeof navigation==="object"&&navigation!==null&&"status" in navigation&&typeof navigation.status==="string"?navigation.status:null;
 }
+function navigationActivationAttempted(result:AgentToolResult<unknown>):boolean {
+ const details=result.details;if(typeof details!=="object"||details===null||!("navigation" in details))return false;
+ const navigation=details.navigation;return typeof navigation==="object"&&navigation!==null&&"activation_attempted" in navigation&&navigation.activation_attempted===true;
+}
+function navigationStopRequested(result:AgentToolResult<unknown>):boolean {
+ const details=result.details;if(typeof details!=="object"||details===null||!("navigation" in details))return false;
+ const navigation=details.navigation;return typeof navigation==="object"&&navigation!==null&&"stop_requested" in navigation&&navigation.stop_requested===true;
+}
 function interrupted(state:GameStateSnapshot):string|null {
  if(state.in_battle)return "battle began";
  if(state.screen!=="overworld")return `screen changed to ${state.screen}`;
@@ -124,6 +132,7 @@ function semanticTool(navigate:CheckedNavigationTool,press:CheckedPressTool,feat
    let walked=await navigate.executeChecked(id,destination,routeStop,signal),current:GameStateSnapshot,reason:string|null;
    for(;;){
     current=stateOf(walked);reason=interrupted(current);
+    if(navigationStopRequested(walked))return withStatus(walked,navigationStatus(walked)??"semantic travel stop requested",selected,false);
     if(reason!==null)return withStatus(walked,`interrupted before activation: ${reason}`,selected,false);
     if(!isMap(current,request.map_id))return withStatus(walked,"interrupted by a map transition",selected,request.target.kind==="warp");
     const changed=identityIssue(current,"travel");if(changed!==null)return withStatus(walked,changed,selected,false);
@@ -146,6 +155,7 @@ function semanticTool(navigate:CheckedNavigationTool,press:CheckedPressTool,feat
     if(fresh===null)return withStatus(walked,"target disappeared before activation",selected,false);
     if(fresh.x!==listed?.x||fresh.y!==listed.y)return withStatus(walked,"target moved before activation; inspect its new position",selected,false);
     if(fresh.kind==="warp"){
+     if(navigationActivationAttempted(walked))return withStatus(walked,"directional warp activation was already attempted by navigation; inspect the unchanged map",selected,true);
      const warpActivation=directionalWarpActivation(current,fresh,options.mode??"local");
      if(warpActivation===null)return withStatus(walked,"arrived at the movement-activated target",selected,true);
      let activated:AgentToolResult<unknown>;

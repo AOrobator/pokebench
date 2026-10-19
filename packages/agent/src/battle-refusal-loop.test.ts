@@ -14,7 +14,7 @@ function rig(on:boolean){
  const recorder={subscribe:(fn:(e:RunEvent)=>void)=>subscribers.push(fn),recordLoopGuard:(n:LoopNotice)=>notices.push(n)};
  attachLoopGuard(recorder,governor,undefined,"enforced",false,undefined,false,false,false,false,false,false,false,false,false,on);
  let seq=0;
- const emit=(body:Record<string,unknown>)=>{const e=checkEvent({v:1,run:"refusal",seq:++seq,t:"2026-10-19T19:00:00Z",turn:seq,...body});subscribers.forEach(f=>f(e));};
+ const emit=(body:Record<string,unknown>)=>{const e=checkEvent({v:1,run:"refusal",seq:++seq,t:"2026-10-19T15:00:00.000-04:00",turn:seq,...body});subscribers.forEach(f=>f(e));};
  const call=(text=refusal,pressed=false,name="battle_action")=>{
   const id=String(seq);emit({type:"tool_call",id,name,args:{action:"fight",move:"TACKLE"}});
   if(pressed)emit({type:"button_press",tool_call_id:id,buttons:["A"]});

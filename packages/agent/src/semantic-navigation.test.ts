@@ -14,10 +14,10 @@ const baseFeatures=():FeatureSet=>({...flagFeatures({loopGuard:true,activeUi:tru
 const result=(state:GameStateSnapshot):AgentToolResult<{state:GameStateSnapshot}>=>({content:[{type:"text",text:"state"}],details:{state}});
 const field=(targets=[target(2,3,0)]):GameStateSnapshot=>({...IN_GAME,screen:"overworld",started:true,map_id:[0,9],position:{x:0,y:0},facing:"right",field_controls_locked:false,interaction_targets:targets,navigation_grid:{elevation:3,tiles:[0,1,2,3,4].flatMap(x=>[tile(x,0),tile(x,1)]),objects:targets.map(t=>({x:t.x,y:t.y})),warps:[]}});
 
-function fixture(afterNavigation?:(state:GameStateSnapshot,attempt:number)=>GameStateSnapshot,features:FeatureSet=baseFeatures()){
+function fixture(afterNavigation?:(state:GameStateSnapshot,attempt:number)=>GameStateSnapshot,features:FeatureSet=baseFeatures(),beforeCheckedPress?:(state:GameStateSnapshot,button:string|undefined)=>GameStateSnapshot){
  let current=field();const navigations:unknown[]=[],buttons:string[][]=[];
  const navigate:AgentTool={name:"navigate_to",label:"nav",description:"nav",parameters:Type.Object({}),execute:(_id,args)=>{navigations.push(args);const goal=args as {x:number;y:number};current={...current,position:{x:goal.x,y:goal.y}};current=afterNavigation?.(current,navigations.length)??current;const arrived=current.position?.x===goal.x&&current.position.y===goal.y;return Promise.resolve({...result(current),details:{state:current,navigation:{status:arrived?"arrived at requested coordinate":"command limit"}}});}};
- const rawPress={name:"press",label:"press",description:"press",parameters:Type.Object({buttons:Type.Array(Type.String())}),execute:(id: string,args:{buttons:("A"|"B"|"START"|"SELECT"|"UP"|"DOWN"|"LEFT"|"RIGHT")[]},signal?:AbortSignal)=>press.executeChecked(id,args,()=>undefined,signal),executeChecked:(_id:string,args:{buttons:("A"|"B"|"START"|"SELECT"|"UP"|"DOWN"|"LEFT"|"RIGHT")[]},check:(state:GameStateSnapshot)=>void)=>{check(current);buttons.push([...args.buttons]);const button=args.buttons[0];if(button!==undefined&&button!=="A")current={...current,facing:button.toLowerCase()};if(button==="A")current={...current,in_battle:true,screen:"battle",field_controls_locked:true};return Promise.resolve(result(current));}};
+ const rawPress={name:"press",label:"press",description:"press",parameters:Type.Object({buttons:Type.Array(Type.String())}),execute:(id: string,args:{buttons:("A"|"B"|"START"|"SELECT"|"UP"|"DOWN"|"LEFT"|"RIGHT")[]},signal?:AbortSignal)=>press.executeChecked(id,args,()=>undefined,signal),executeChecked:(_id:string,args:{buttons:("A"|"B"|"START"|"SELECT"|"UP"|"DOWN"|"LEFT"|"RIGHT")[]},check:(state:GameStateSnapshot)=>void)=>{current=beforeCheckedPress?.(current,args.buttons[0])??current;check(current);buttons.push([...args.buttons]);const button=args.buttons[0];if(button!==undefined&&button!=="A")current={...current,facing:button.toLowerCase()};if(button==="A")current={...current,in_battle:true,screen:"battle",field_controls_locked:true};return Promise.resolve(result(current));}};
  const press=rawPress as unknown as CheckedPressTool;
  const tools=withSemanticNavigation([navigate,press],features,{read:()=>Promise.resolve(current)});
  return {tools,state:()=>current,navigations,buttons};
@@ -37,6 +37,14 @@ it("continues capped navigation segments until the semantic approach is reached"
  await tool.execute("s",{map_id:[0,9],target:{kind:"object",local_id:2}});
  expect(f.navigations).toEqual([{x:2,y:0,map_id:[0,9]},{x:2,y:0,map_id:[0,9]}]);
  expect(f.buttons).toEqual([["A"]]);
+});
+
+it("submits no activation when the checked state changes immediately before the press",async()=>{
+ const f=fixture(undefined,baseFeatures(),(state,button)=>button==="A"?{...state,position:{x:1,y:0}}:state),tool=f.tools.find(t=>t.name==="navigate_to_target");if(tool===undefined)throw new Error("missing semantic tool");
+ const out=await tool.execute("s",{map_id:[0,9],target:{kind:"object",local_id:2}});
+ expect(f.buttons).toEqual([]);
+ const message=out.content[0];expect(message?.type==="text"?message.text:"").toContain("semantic target changed before activation");
+ expect(out.details).toMatchObject({state:{position:{x:1,y:0}},semantic_navigation:{activation_attempted:false}});
 });
 
 it.each([

@@ -37,11 +37,12 @@ Both treatments must immediately return control when the game changes input owne
 - [x] OFF invariance is exact and ON factory wiring is covered.
 - [x] Both explainers, card links, server routes, and real-browser clicks are verified. Static routes and offline-page checks pass; the candidate viewer's Harness Config search opened both explainers at their registered routes.
 - [x] Pending experiment entries validate; no experiment is queued, approved, or launched.
-- [x] Agent/viewer gates pass: 3,810 tests, lint, build, experiment validation, offline-page checks, and 90% coverage floors. The isolated worktree's Python suite cannot resolve vendored porymap/mGBA assets, producing 12 missing-file failures and one missing-module mypy error; no Python production file changed.
+- [x] Agent/viewer gates pass: 3,812 tests, lint, build, experiment validation, offline-page checks, and 90% coverage floors. The isolated worktree's Python suite cannot resolve vendored porymap/mGBA assets, producing 12 missing-file failures and one missing-module mypy error; no Python production file changed.
 - [ ] Frozen multi-model review passes before any landing.
 
 ## Session log
 
+- 2026-10-19: After `04a3960a1d1f7672e054c66f523eb245b17c3ded`, hardened the final checked-input boundary: if position or map identity changes immediately before facing or activation, the press submits no button and semantic navigation returns the fresh verified state. The new race regression passes; the full agent suite is 2,580/2,580, lint and build are green.
 - 2026-10-19: Principles pre-review caught that semantic navigation still inherited the underlying 512-command segment as an end-to-end stop. Corrected it to continue progress-making segments without a semantic hard cap and added a production-path regression test; interruption and non-convergence remain terminators.
 - 2026-10-19: Committed implementation as `9db88de86f3898c779b7812ce4e64b4dba1b11e0`; pinned both pending experiment definitions to that exact candidate implementation commit. They remain unqueued and unapproved.
 - 2026-10-19: Browser proof on the isolated candidate viewer (`127.0.0.1:8793`): Harness Config matched `semantic-navigation-v1` and `deterministic-exploration-v1`; each card's explainer link opened the corresponding titled page. Temporary candidate servers were then stopped.

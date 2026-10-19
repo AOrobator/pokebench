@@ -122,7 +122,7 @@ export function withNoExitHere(tools:readonly AgentTool[],features:FeatureSet):A
   if(tool.name!=="press"&&tool.name!=="navigate_to")return tool;
   const execute:AgentTool["execute"]=async(id,params,signal,update)=>annotate(tool.name,params,await tool.execute(id,params,signal,update),features);
   if(!isCheckedPress(tool))return {...tool,execute};
-  const checked:CheckedPressTool={...tool,execute:async(id,params,signal,update)=>annotate(tool.name,params,await tool.execute(id,params,signal,update),features) as Awaited<ReturnType<CheckedPressTool["execute"]>>,executeChecked:async(id,params,check,signal,update)=>annotate(tool.name,params,await tool.executeChecked(id,params,check,signal,update),features) as Awaited<ReturnType<CheckedPressTool["executeChecked"]>>};
+  const checked:CheckedPressTool={...tool,execute:async(id,params,signal,update)=>annotate(tool.name,params,await tool.execute(id,params,signal,update),features) as Awaited<ReturnType<CheckedPressTool["execute"]>>,executeChecked:async(id,params,check,signal,update,options)=>annotate(tool.name,params,await tool.executeChecked(id,params,check,signal,update,options),features) as Awaited<ReturnType<CheckedPressTool["executeChecked"]>>};
   return checked;
  });
 }

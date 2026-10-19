@@ -116,3 +116,5 @@ The operator approved “ok lets build it” after the concrete proposal: unreco
 - [ ] Fresh multi-model code review; no inferred Claude waiver for this new packet.
 ### Review boundary
 Only no-fallback unknown delivery, truthful receipts and matching documentation. V1 and specialized scene text unchanged. Existing pending experiment remains unapproved/unqueued; no new experiment or silent source pin from old approval.
+
+- M5 RED:34 focused tests,4 fail as intended (unknown startup still full fallback; known→unknown receipt; real window leaves startup fallback; actual production factory main-menu request has extra guide). Transcript runs/reviews/jit-v2-minimal-red.log. No production edits yet.

@@ -220,8 +220,8 @@ it.each([[true,"clock",true],[false,"clock",true],[true,"title",true],[true,"clo
 });
 
 
-it.each([false,true])("actual play routes stable JIT v2 at startup with full tools and no v1 guard (enabled=%s)",async enabled=>{
- vi.resetModules();owner.files.clear();owner.loop=null;owner.screen="clock";owner.seedInitial=true;owner.stateReads=0;
+it.each([[false,"clock"],[true,"clock"],[false,"main_menu"],[true,"main_menu"]] as const)("actual play routes stable JIT v2 at startup with full tools and no v1 guard (enabled=%s screen=%s)",async (enabled,screen)=>{
+ vi.resetModules();owner.files.clear();owner.loop=null;owner.screen=screen;owner.seedInitial=true;owner.stateReads=0;
  const {flagFeatures}=await import("./play-preset.js");
  const preset={version:2,id:"jit-v2-startup",target:null,limits:{maxTurns:20000,maxWallMs:600000,failureLimit:3,replyFailuresEndRun:false},sampling:{thinkingLevel:"medium",maxTokens:100},features:{...flagFeatures({loopGuard:false,activeUi:true,interfaceDocs:true,objectives:false}),"just-in-time-prompt-v1":true,"just-in-time-prompt-v2":enabled,"battle-move-tool-v1":true}};
  owner.files.set("/test-owned/v2-preset.json",[JSON.stringify(preset)]);
@@ -229,11 +229,11 @@ it.each([false,true])("actual play routes stable JIT v2 at startup with full too
  owner.duringPlay=async loop=>{
   const request={systemPrompt:"standing",messages:[{role:"user" as const,content:"Play",timestamp:1}],tools:[{name:"observe",description:"observe",parameters:{type:"object",properties:{}}},{name:"battle_action",description:"fight",parameters:{type:"object",properties:{}}}]};
   const next=loop.requestContext?.(request);
-  expect(next?.tools?.map(t=>t.name)).toEqual(enabled?["observe","battle_action"]:["observe"]);
-  if(enabled){expect(next?.systemPrompt).not.toContain("Clock interface:");expect(next?.messages.at(-1)?.content).toContain("Clock interface:");}
+  expect(next?.tools?.map(t=>t.name)).toEqual(enabled||screen==="main_menu"?["observe","battle_action"]:["observe"]);
+  if(enabled){expect(next?.systemPrompt).not.toContain("Clock interface:");if(screen==="clock")expect(next?.messages.at(-1)?.content).toContain("Clock interface:");else expect(next?.messages).toEqual(request.messages);}
   const call={type:"toolCall" as const,id:"v2-battle",name:"battle_action",arguments:{}};
   const blocked=await loop.base.beforeToolCall?.({assistantMessage:assistant({toolCalls:[call]}),toolCall:call,args:{},context:{...request,tools:loop.tools}});
-  if(enabled)expect(blocked).toBeUndefined();else expect(blocked).toMatchObject({block:true});
+  if(enabled||screen==="main_menu")expect(blocked).toBeUndefined();else expect(blocked).toMatchObject({block:true});
   expect(owner.stateReads).toBe(1);
   await loop.emit({type:"message_end",message:assistant({text:"startup sample"})});
  };
@@ -242,8 +242,9 @@ it.each([false,true])("actual play routes stable JIT v2 at startup with full too
  await import("./live.js");await done;
  const recorded=[...owner.files.entries()].filter(([path])=>path.endsWith("/events.jsonl")).flatMap(([,chunks])=>chunks.join("").trim().split("\n").map(parseEvent));
  const response=recorded.find(e=>e.type==="assistant");
- expect(response).toMatchObject({request_context:{mode:enabled?"jit-v2":"jit",scene:"clock"}});
+ expect(response).toMatchObject({request_context:{mode:enabled?"jit-v2":"jit",scene:screen==="clock"?"clock":"unknown"}});
  if(response?.type!=="assistant"||response.request_context===undefined)throw Error("missing receipt");
- expect(recorded.find(e=>e.seq===response.request_context?.state_seq)).toMatchObject({type:"state",screen:"clock"});
- if(enabled)expect(response.request_context.guidance?.text).toContain("Clock interface:");
+ expect(recorded.find(e=>e.seq===response.request_context?.state_seq)).toMatchObject({type:"state",screen});
+ if(enabled&&screen==="clock")expect(response.request_context.guidance?.text).toContain("Clock interface:");
+ if(enabled&&screen==="main_menu"){expect(response.request_context.guidance).toBeUndefined();expect(response.request_context.projected_guidance).toEqual([]);expect(response.request_context.component_chars?.guidance_text).toBe(0);}
 });

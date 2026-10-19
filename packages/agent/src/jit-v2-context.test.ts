@@ -51,11 +51,43 @@ it("inserts after the entire result batch and records exact component characters
  expect(receipt?.component_chars).toMatchObject({core_text:out.systemPrompt?.length,canonical_history_json:JSON.stringify(input.messages).length,guidance_text:receipt?.guidance?.text.length});
  scene(jit,"clock",11);jit.context(input);expect(jit.receipt()).toMatchObject({state_seq:11,guidance:{source_state_seq:10,reason:"none"}});
 });
-it("unknown keeps full fallback at the tail; transitions at the same anchor append rather than replace",()=>{
- const jit=new StableJitContext(features,null),input=request();const unknown=jit.context(input);
- expect(unknown.messages.at(-1)?.content).toContain("Clock interface:");expect(unknown.messages.at(-1)?.content).toContain("Naming layout,");
- scene(jit,"clock",1);const clock=jit.context(input);expect(clock.messages.slice(0,unknown.messages.length)).toEqual(unknown.messages);
- expect(clock.messages.at(-1)?.content).toContain("applies only");
+it("unknown startup and repeated unknown requests keep only core, tools and canonical history",()=>{
+ const jit=new StableJitContext(features,null),input=request();
+ for(const screen of ["main_menu","birch_speech","starter_choice","town_map","unsupported"]){
+  scene(jit,screen,1);const out=jit.context(input);
+  expect(out.messages).toEqual(input.messages);expect(out.tools).toBe(input.tools);
+  expect(out.systemPrompt).toContain("Loop supervisor:");expect(out.systemPrompt).not.toContain("Clock interface:");
+  expect(jit.receipt()).toMatchObject({scene:"unknown",projected_guidance:[],component_chars:{guidance_text:0}});
+  expect(jit.receipt()?.guidance).toBeUndefined();
+ }
+});
+it("known to unknown to the same known scene appends a fresh guide in observation order",()=>{
+ const jit=new StableJitContext(features,null);scene(jit,"naming",1);
+ const first=jit.context(request([task,result("name")]));const nameGuide=first.messages.at(-1);
+ scene(jit,"birch_speech",2);const unknown=jit.context(request([task,result("name"),result("intro")]));
+ expect(unknown.messages.slice(0,first.messages.length)).toEqual(first.messages);
+ expect(jit.receipt()?.guidance).toBeUndefined();expect(jit.receipt()?.projected_guidance).toHaveLength(1);
+ scene(jit,"naming",3);const again=jit.context(request([task,result("name"),result("intro"),result("name2")]));
+ expect(again.messages.slice(0,unknown.messages.length)).toEqual(unknown.messages);
+ expect(jit.receipt()?.guidance).toMatchObject({scene:"naming",reason:"scene_change",anchor:"tool:name2",ordinal:2});
+ expect(again.messages[3]).toEqual(nameGuide);
+});
+it("real window drops old naming and clock guides without retaining an unknown startup guide",async()=>{
+ const {slideWindow,WINDOW}=await import("./harness.js");const {assistant}=await import("../test-support/pi.js");
+ const jit=new StableJitContext(features,null),history:Message[]=[task];
+ scene(jit,"main_menu",1);jit.context(request(history));
+ for(let turn=1;turn<=21;turn++){
+  history.push(assistant({text:`decision ${String(turn)}`}),result(String(turn)));
+  scene(jit,turn===1?"naming":turn===3?"clock":"overworld",turn+1);
+  jit.context(request(slideWindow(history,WINDOW)));
+  if(turn===3)expect(jit.receipt()?.projected_guidance?.map(g=>g.scene)).toEqual(["naming","overworld","clock"]);
+ }
+ expect(jit.receipt()?.projected_guidance?.map(g=>g.scene)).toEqual(["overworld"]);
+ expect(jit.receipt()?.guidance).toMatchObject({reason:"evicted",anchor:"tool:21"});
+ scene(jit,"town_map",23);jit.context(request(slideWindow(history,WINDOW)));
+ expect(jit.receipt()?.guidance).toBeUndefined();
+ const gone=jit.context(request([task,result("later")]));
+ expect(gone.messages).toEqual([task,result("later")]);expect(jit.receipt()?.projected_guidance).toEqual([]);
 });
 
 

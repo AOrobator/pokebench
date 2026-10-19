@@ -52,8 +52,8 @@ No automatic movement, hidden walkthrough, new timeline mark, milestone change o
 
 ### M3 - Review and land
 
-- [ ] Sync current main, rerun gates, freeze the packet and hold other landings.
-- [ ] Complete principles self-review and the Claude, Grok and GPT cloud-family review lanes on one frozen packet.
+- [x] Sync current main, rerun gates, freeze the packet and hold other landings.
+- [x] Complete principles self-review and the Claude-availability fallback, Grok and GPT review lanes on the frozen behavior packet, then re-review the current-main integration.
 - [ ] Fast-forward local main, run post-landing tests and restart/verify the 8790 viewer.
 
 ### M4 - Rerun
@@ -77,6 +77,7 @@ READY (checkpoint): the shared `PETALBURG_CITY` save is pinned by SHA-1 and load
 - 2026-10-18 EDT: rebased the reviewed behavior over current main without touching the live JIT/cache pilot. Integration review caught viewer defaults and historical assertions that needed the two new switches kept explicitly OFF; repaired those joins while retaining main's cache-alignment and JIT-guide defaults. Post-integration gates remain pending until the protected live runs finish.
 - 2026-10-18 EDT: the same integration review also caught three order-sensitive historical assertions and raw viewer formatting that had selected the new final argument/switch instead of their original feature. Reconciled those assertions, kept reopened-dialogue coverage bound to its own flag, and restored readable `trigger script` event labels. No live process was touched.
 - 2026-10-18 EDT: after the protected pilot ended, the first post-integration agent gate ran 2,527 tests and found one stale pre-hardening expectation (`door in PETALBURG CITY` versus the reviewed `door on this map` output); production behavior was correct. Updated the assertion. Python passed 2,480 tests with 229 ROM-dependent skips.
+- 2026-10-18 EDT: final integration gates passed: agent 161 files / 2,527 tests; viewer 85 files / 1,189 tests; Python 2,480 passed / 229 ROM-dependent skipped; lint, TypeScript builds, schema regeneration, 116 experiment definitions, both explainer checks and vendor verification passed. Fast-forwarded current main to `7e498fc6`; pinned both pending one-switch experiments to that landed source. The unrelated untracked `.tmp_warp_route_audit.mjs` was preserved.
 
 ## Multi-Model Review Log
 

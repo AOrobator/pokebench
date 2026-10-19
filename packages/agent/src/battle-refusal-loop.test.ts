@@ -14,12 +14,12 @@ import {IN_GAME} from "../test-support/events.js";
 const recorded=JSON.parse(gunzipSync(readFileSync(new URL("../test-support/battle-message-refusals.json.gz",import.meta.url))).toString("utf8")) as {state:unknown;result:{text:string};call:unknown}[];
 const waiting=parseGameState(recorded[0]?.state);
 const refusal='Battle action: nothing pressed: the battle is not waiting for a choice; a battle message is waiting for A or B: "Go!".';
-function rig(on:boolean){
+function rig(on:boolean,battles=false){
  const notices:LoopNotice[]=[];
  const subscribers:((e:RunEvent)=>void)[]=[];
  const governor=new Governor({limits:{maxTurns:100,maxWallMs:60000,failureLimit:3},retry:()=>undefined,abort:()=>undefined,now:()=>0});
  const recorder={subscribe:(fn:(e:RunEvent)=>void)=>subscribers.push(fn),recordLoopGuard:(n:LoopNotice)=>notices.push(n)};
- attachLoopGuard(recorder,governor,undefined,"enforced",false,undefined,false,false,false,false,false,false,false,false,false,on);
+ attachLoopGuard(recorder,governor,undefined,"enforced",false,undefined,false,false,battles,false,false,false,false,false,false,on);
  let seq=0;
  const emit=(body:Record<string,unknown>)=>{const e=checkEvent({v:1,run:"refusal",seq:++seq,t:"2026-10-19T15:00:00.000-04:00",turn:seq,...body});subscribers.forEach(f=>{f(e);});};
  const call=(text=refusal,pressed=false,name="battle_action",state:GameStateSnapshot=waiting)=>{
@@ -85,6 +85,19 @@ describe("battle-refusal-loop-v1",()=>{
    const unqualified=rig(true);unqualified.call(refusal,false,"battle_action",{...waiting,battle});unqualified.call(refusal,false,"battle_action",{...waiting,battle});expect(unqualified.notices).toEqual([]);
   }
   const moving=rig(true);moving.call();moving.call(refusal,false,"battle_action",{...waiting,battle:{...waiting.battle,turn:(waiting.battle.turn??0)+1}});expect(moving.notices).toEqual([]);moving.call();expect(moving.notices).toEqual([]);
+ });
+ for(const unknown of [false,true])it(`keeps refusal warning through ${unknown?"initializing readouts":"unchanged observations"} with battle detection enabled`,()=>{
+  if(waiting.battle==null)throw Error("fixture requires battle");
+  const r=rig(true,true);r.call();r.call();
+  expect(r.notices.map(n=>n.phase)).toEqual(["warning"]);
+  if(unknown) {
+   r.call("Initializing battle",false,"observe",{...waiting,battle:{...waiting.battle,initialized:false,phase:"initializing",ready:false,diagnostic:null}});
+   expect(r.notices.map(n=>n.phase)).toEqual(["warning"]);
+  }
+  r.call("Same battle",false,"observe",waiting);
+  expect(r.notices.map(n=>n.phase)).toEqual(["warning"]);
+  r.call("Turn advanced",false,"observe",{...waiting,battle:{...waiting.battle,turn:(waiting.battle.turn??0)+1}});
+  expect(r.notices.map(n=>n.phase)).toEqual(["warning","recovered"]);
  });
  it("registers the new switch OFF in omitted presets and flags",()=>{
   expect(featureInfo("battle-refusal-loop-v1")).toMatchObject({group:"guard",needs:null});

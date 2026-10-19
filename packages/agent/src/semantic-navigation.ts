@@ -48,6 +48,10 @@ function navigationActivationAttempted(result:AgentToolResult<unknown>):boolean 
  const details=result.details;if(typeof details!=="object"||details===null||!("navigation" in details))return false;
  const navigation=details.navigation;return typeof navigation==="object"&&navigation!==null&&"activation_attempted" in navigation&&navigation.activation_attempted===true;
 }
+function navigationCommands(result:AgentToolResult<unknown>):number {
+ const details=result.details;if(typeof details!=="object"||details===null||!("navigation" in details))return 0;
+ const navigation=details.navigation;return typeof navigation==="object"&&navigation!==null&&"commands" in navigation&&typeof navigation.commands==="number"?navigation.commands:0;
+}
 function navigationStopRequested(result:AgentToolResult<unknown>):boolean {
  const details=result.details;if(typeof details!=="object"||details===null||!("navigation" in details))return false;
  const navigation=details.navigation;return typeof navigation==="object"&&navigation!==null&&"stop_requested" in navigation&&navigation.stop_requested===true;
@@ -159,6 +163,7 @@ function withStatus(result:AgentToolResult<unknown>,status:string,selected:strin
  return {...result,content:[{type:"text",text:`Semantic navigation: ${status}. Selected ${selected}.`},...result.content],details:{...inherited,state,semantic_navigation:{status,selected,activation_attempted:activationAttempted}}};
 }
 function isMap(state:GameStateSnapshot,map:readonly [number,number]):boolean{return state.map_id?.[0]===map[0]&&state.map_id[1]===map[1];}
+function isDestinationMap(state:GameStateSnapshot,destination:readonly number[]|null|undefined):boolean{const map=state.map_id;return destination!==null&&destination!==undefined&&map!==null&&map[0]===destination[0]&&map[1]===destination[1];}
 
 function semanticTool(navigate:CheckedNavigationTool,press:CheckedPressTool,features:FeatureSet,stateSource:StateSource):AgentTool<typeof SemanticArgs> {
  const options=navigationOptions(features);
@@ -203,7 +208,7 @@ function semanticTool(navigate:CheckedNavigationTool,press:CheckedPressTool,feat
     current=stateOf(walked);reason=interrupted(current);
     if(navigationStopRequested(walked))return withStatus(walked,navigationStatus(walked)??"semantic travel stop requested",selected,false);
     if(reason!==null)return withStatus(walked,`interrupted before activation: ${reason}`,selected,false);
-    if(!isMap(current,request.map_id))return withStatus(walked,"interrupted by a map transition",selected,navigationActivationAttempted(walked));
+    if(!isMap(current,request.map_id))return withStatus(walked,"interrupted by a map transition",selected,navigationActivationAttempted(walked)||(listed?.kind==="warp"&&isDestinationMap(current,listed.destination)));
     const changed=identityIssue(current,"travel");if(changed!==null)return withStatus(walked,changed,selected,false);
     const status=navigationStatus(walked);
     if(current.position?.x===choice.point.x&&current.position.y===choice.point.y){
@@ -237,7 +242,7 @@ function semanticTool(navigate:CheckedNavigationTool,press:CheckedPressTool,feat
     if(fresh.kind==="warp"){
      if(navigationActivationAttempted(walked))return withStatus(walked,"directional warp activation was already attempted by navigation; inspect the unchanged map",selected,true);
      const warpActivation=directionalWarpActivation(current,fresh,options.mode??"local");
-     if(warpActivation===null)return withStatus(walked,"arrived at the movement-activated target",selected,true);
+     if(warpActivation===null){const attempted=navigationCommands(walked)>0;return withStatus(walked,attempted?"arrived at the movement-activated target":"already standing on the movement-activated target; step away and re-enter it",selected,attempted);}
      let activated:AgentToolResult<unknown>;
      try{activated=await executePress(id,warpActivation,actual=>{checkInput(actual,"activation",null);if(actual===undefined)throw new SemanticPreconditionError("verified state became unavailable before activation");const fresh=resolve(actual,request.target);if(fresh===null||directionalWarpActivation(actual,fresh,options.mode??"local")!==warpActivation)throw new SemanticPreconditionError("directional warp activation changed before input");},signal);}
      catch(error){if(!(error instanceof SemanticPreconditionError))throw error;const state=await stateSource.read(signal);return withStatus({content:[],details:{state}},error.message,selected,false);}
@@ -245,7 +250,7 @@ function semanticTool(navigate:CheckedNavigationTool,press:CheckedPressTool,feat
      const status=reason!==null?`activation handed control back: ${reason}`:!isMap(current,request.map_id)?"activation changed maps; inspect the destination":"directional warp activation did not change maps; inspect the target";
      return withStatus(activated,status,selected,true);
     }
-    if(fresh.activation==="step")return withStatus(walked,"arrived at the movement-activated target",selected,true);
+    if(fresh.activation==="step"){const attempted=navigationCommands(walked)>0;return withStatus(walked,attempted?"arrived at the movement-activated target":"already standing on the movement-activated target; step away and re-enter it",selected,attempted);}
    }
    const facing=choice.facing;if(facing===null)return withStatus(walked,"arrived at the selected target",selected,false);
    if(current.facing!==facing.toLowerCase()){
@@ -254,7 +259,7 @@ function semanticTool(navigate:CheckedNavigationTool,press:CheckedPressTool,feat
     catch(error){if(!(error instanceof SemanticPreconditionError))throw error;const fresh=await stateSource.read(signal);return withStatus({content:[],details:{state:fresh}},error.message,selected,false);}
     current=stateOf(turned);reason=interrupted(current);
     if(reason!==null)return withStatus(turned,`interrupted while facing the target: ${reason}`,selected,false);
-    if(!isMap(current,request.map_id))return withStatus(turned,"interrupted by a map transition while facing the target",selected,false);
+    if(!isMap(current,request.map_id))return withStatus(turned,"interrupted by a map transition while facing the target",selected,request.target.kind==="connection"&&isDestinationMap(current,selectedConnection?.destination));
     const changed=identityIssue(current,"facing input");
     if(changed!==null)return withStatus(turned,changed,selected,false);
     if(current.position?.x!==choice.point.x||current.position.y!==choice.point.y)return withStatus(turned,"facing input moved away from the selected approach",selected,false);

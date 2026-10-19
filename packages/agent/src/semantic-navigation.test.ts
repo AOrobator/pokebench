@@ -20,7 +20,7 @@ const field=(targets:NonNullable<GameStateSnapshot["interaction_targets"]>=[targ
 
 function fixture(afterNavigation?:(state:GameStateSnapshot,attempt:number)=>GameStateSnapshot,features:FeatureSet=baseFeatures(),beforeCheckedPress?:(state:GameStateSnapshot,button:string|undefined)=>GameStateSnapshot,initial:GameStateSnapshot=field(),activationStartsBattle=true){
  let current=initial;const navigations:unknown[]=[],buttons:string[][]=[];
- const navigateExecute=(args:unknown,check?:(state:GameStateSnapshot)=>string|null)=>{const stopped=check?.(current)??null;if(stopped!==null)return Promise.resolve({...result(current),details:{state:current,navigation:{status:stopped}}});navigations.push(args);const goal=args as {x:number;y:number};current={...current,position:{x:goal.x,y:goal.y}};current=afterNavigation?.(current,navigations.length)??current;const afterStop=check?.(current)??null,arrived=current.position?.x===goal.x&&current.position.y===goal.y;return Promise.resolve({...result(current),details:{state:current,navigation:{status:afterStop??(arrived?"arrived at requested coordinate":"command limit")}}});};
+ const navigateExecute=(args:unknown,check?:(state:GameStateSnapshot)=>string|null)=>{const stopped=check?.(current)??null;if(stopped!==null)return Promise.resolve({...result(current),details:{state:current,navigation:{status:stopped,commands:0}}});navigations.push(args);const goal=args as {x:number;y:number},start=current.position,commands=start?.x===goal.x&&start.y===goal.y?0:1;current={...current,position:{x:goal.x,y:goal.y}};current=afterNavigation?.(current,navigations.length)??current;const afterStop=check?.(current)??null,arrived=current.position?.x===goal.x&&current.position.y===goal.y;return Promise.resolve({...result(current),details:{state:current,navigation:{status:afterStop??(arrived?"arrived at requested coordinate":"command limit"),commands}}});};
  const navigate={name:"navigate_to",label:"nav",description:"nav",parameters:Type.Object({}),execute:(_id:string,args:unknown)=>navigateExecute(args),executeChecked:(_id:string,args:unknown,check:(state:GameStateSnapshot)=>string|null)=>navigateExecute(args,check)} as unknown as CheckedNavigationTool;
  const rawPress={name:"press",label:"press",description:"press",parameters:Type.Object({buttons:Type.Array(Type.String())}),execute:(id: string,args:{buttons:("A"|"B"|"START"|"SELECT"|"UP"|"DOWN"|"LEFT"|"RIGHT")[]},signal?:AbortSignal)=>press.executeChecked(id,args,()=>undefined,signal),executeChecked:(_id:string,args:{buttons:("A"|"B"|"START"|"SELECT"|"UP"|"DOWN"|"LEFT"|"RIGHT")[]},check:(state:GameStateSnapshot)=>void)=>{current=beforeCheckedPress?.(current,args.buttons[0])??current;check(current);buttons.push([...args.buttons]);const button=args.buttons[0];if(button!==undefined&&button!=="A")current={...current,facing:button.toLowerCase()};if(button==="A"&&activationStartsBattle)current={...current,in_battle:true,screen:"battle",field_controls_locked:true};return Promise.resolve(result(current));}};
  const press=rawPress as unknown as CheckedPressTool;
@@ -52,6 +52,21 @@ it("walks directly onto a movement-activated warp without an extra press",async(
  expect(out.details).toMatchObject({semantic_navigation:{activation_attempted:true}});
 });
 
+it("does not claim or consume a movement warp when already standing on it",async()=>{
+ const warp:NonNullable<GameStateSnapshot["interaction_targets"]>[number]={kind:"warp",x:2,y:0,elevation:3,activation:"movement",availability:"conditional",facing:null,local_id:null,destination:[1,2,0],name:"Door"},initial={...field([warp]),position:{x:2,y:0}};
+ const f=fixture(undefined,{...baseFeatures(),"deterministic-exploration-v1":true},undefined,initial),explore=f.tools.find(t=>t.name==="explore_map");if(explore===undefined)throw new Error("missing explorer");
+ const first=await explore.execute("e1",{}),second=await explore.execute("e2",{});
+ expect(first.details).toMatchObject({semantic_navigation:{activation_attempted:false}});expect(second.details).toMatchObject({semantic_navigation:{activation_attempted:false}});
+ expect(f.navigations).toHaveLength(2);expect(f.buttons).toEqual([]);
+});
+
+it("records a selected movement warp when travel transitions to its declared map",async()=>{
+ const warp:NonNullable<GameStateSnapshot["interaction_targets"]>[number]={kind:"warp",x:2,y:0,elevation:3,activation:"movement",availability:"conditional",facing:null,local_id:null,destination:[1,2,0],name:"Door"};
+ const f=fixture(state=>({...state,map_id:[1,2]}),baseFeatures(),undefined,field([warp])),tool=f.tools.find(t=>t.name==="navigate_to_target");if(tool===undefined)throw new Error("missing semantic tool");
+ const out=await tool.execute("s",{map_id:[0,9],target:{kind:"warp",x:2,y:0}});
+ expect(out.details).toMatchObject({semantic_navigation:{activation_attempted:true}});
+});
+
 it("submits the game-owned direction when already standing on a directional warp",async()=>{
  const warp:NonNullable<GameStateSnapshot["interaction_targets"]>[number]={kind:"warp",x:2,y:0,elevation:3,activation:"movement",availability:"conditional",facing:null,local_id:null,destination:[1,2,0],name:"Arrow warp"};
  const base=field([warp]),grid=base.navigation_grid;if(grid===null||grid===undefined)throw new Error("missing grid");
@@ -66,6 +81,15 @@ it("chooses a reachable native connection edge and submits one outward step",asy
  const f=fixture(undefined,baseFeatures(),undefined,initial),tool=f.tools.find(t=>t.name==="navigate_to_target");if(tool===undefined)throw new Error("missing semantic tool");
  await tool.execute("s",{map_id:[0,9],target:{kind:"connection",direction:"EAST"}});
  expect(f.navigations).toEqual([{x:4,y:0,map_id:[0,9]}]);expect(f.buttons).toEqual([["RIGHT"]]);
+});
+
+it("records a connection crossed by the outward facing press",async()=>{
+ let current:GameStateSnapshot={...field([]),position:{x:4,y:0},facing:"left",topology:{width:5,height:2,connections:[{direction:"EAST" as const,offset:0,destination:[0,10] as [number,number],destination_name:"ROUTE",edges:[{x:4,y:0}]}]}};const buttons:string[][]=[];
+ const navigate={name:"navigate_to",label:"nav",description:"nav",parameters:Type.Object({}),execute:()=>Promise.resolve(result(current)),executeChecked:()=>Promise.resolve({...result(current),details:{state:current,navigation:{status:"arrived at requested coordinate",commands:0}}})} as unknown as CheckedNavigationTool;
+ const press={name:"press",label:"press",description:"press",parameters:Type.Object({buttons:Type.Array(Type.String())}),execute:()=>Promise.resolve(result(current)),executeChecked:(_id:string,args:{buttons:string[]},check:(state:GameStateSnapshot)=>void)=>{check(current);buttons.push([...args.buttons]);current={...current,map_id:[0,10]};return Promise.resolve(result(current));}} as unknown as CheckedPressTool;
+ const tool=withSemanticNavigation([navigate,press],baseFeatures(),{read:()=>Promise.resolve(current)}).find(t=>t.name==="navigate_to_target");if(tool===undefined)throw new Error("missing semantic tool");
+ const out=await tool.execute("s",{map_id:[0,9],target:{kind:"connection",direction:"EAST"}});
+ expect(buttons).toEqual([["RIGHT"]]);expect(out.details).toMatchObject({semantic_navigation:{activation_attempted:true}});
 });
 
 it("continues capped navigation segments until the semantic approach is reached",async()=>{

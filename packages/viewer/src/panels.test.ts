@@ -491,6 +491,13 @@ it('shows native repeated activity receipts without inventing historical support
  expect(splits(modern,null,BASE_MS+1000).table).not.toContain('first pokemon caught</td><td class="t">not<br>recorded');
 });
 
+it('shows a blackout receipt in Activity History',()=>{
+ const log=new Log();log.add(0,{...START,harness_features:['native-progress-activity-v1','blackout-readout-v1']});
+ const activity=log.add(100,{type:'activity',turn:7,kind:'blackout',count:1,server_timestamp:1,evidence:[4,5]});
+ expect(eventText(activity)).toContain('blackout ×1 · evidence #4, #5 · first observation (upper bound)');
+ const result=view(log);expect(result.activities).toEqual([activity]);
+});
+
 it("shows remaining native splits only for declared or recorded support",()=>{
  const names=["petalburg woods trainer lyle defeated","route 116 trainer joey defeated","route 115","route 116","rusturf tunnel"];
  const historical=splits(view(bare()),null,BASE_MS+1000).table;

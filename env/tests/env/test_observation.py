@@ -212,6 +212,13 @@ def test_raw_archive_precedes_decode_and_shares_frame_lock(tmp_path, monkeypatch
     lock = threading.Lock()
     archive = RawRamArchive(tmp_path, "a" * 40)
     read = reader()
+    original_pair = archive.pair
+
+    def pair(receipt, decoded, screenshot):
+        assert lock.locked(), "OFF-path raw pairing left the frame lock"
+        original_pair(receipt, decoded, screenshot)
+
+    monkeypatch.setattr(archive, "pair", pair)
 
     def capture():
         assert lock.locked()

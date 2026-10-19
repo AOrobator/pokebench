@@ -13,10 +13,18 @@ import { LEASE } from "./lease.js";
 import { parseFixedStatus, type FixedStatus } from "./fixed-status.js";
 import { definition, MODEL_PATH, ROM_SHA1 } from "../test-support/fixed.js";
 import { Log, START } from "../test-support/events.js";
-import { parseFixedDefinition, controlBaseProblems, dryRunDefinition, type FixedDefinition, type FixedLane } from "./fixed-design.js";
+import { armFeatureBits, parseFixedDefinition, controlBaseProblems, dryRunDefinition, type FixedDefinition, type FixedLane } from "./fixed-design.js";
 
 const COMMIT = "0123456789abcdef0123456789abcdef01234567";
 const RECEIPT: ServingReceipt = { model: MODEL_PATH, build: "b10236-1464c62d8", contextTokens: 65536, slots: 1, vision: true, fingerprint: "f".repeat(64) };
+
+it("keeps the improved blackout receipt out of control and in the bundle",()=>{
+ const {definition:def}=parseFixedDefinition(readFileSync(new URL("../../../experiments/fixed/bundle-v-control.json",import.meta.url),"utf8"));
+ expect(def.switches).toContain("blackout-readout-v1");
+ expect(def.onInBoth).not.toContain("blackout-readout-v1");
+ expect(armFeatureBits(def,"control")["blackout-readout-v1"]).toBe(false);
+ expect(armFeatureBits(def,"bundle")["blackout-readout-v1"]).toBe(true);
+});
 
 type Ending = "budget" | "model_error" | "never-started";
 interface FakeOptions {

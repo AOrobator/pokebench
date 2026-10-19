@@ -5,6 +5,7 @@ import gzip
 import hashlib
 import json
 import os
+import threading
 import time
 from pathlib import Path
 from typing import cast
@@ -41,6 +42,9 @@ class RawRamArchive:
         self.directory = directory
         self.rom_sha1 = rom_sha1
         self.sequence = 0
+        # Pairing can come from /state, battle waits, and the slower observation
+        # delivery path. Serialize every durable JSONL append at the archive.
+        self._pair_lock = threading.Lock()
         directory.mkdir(parents=True, exist_ok=True)
         if (directory / "index.jsonl").exists():
             raise ValueError("raw RAM archive already exists; run directories are single-use")
@@ -101,10 +105,11 @@ class RawRamArchive:
             if screenshot is None
             else digest(base64.b64decode(screenshot, validate=True)),
         )
-        with (self.directory / "observations.jsonl").open("ab") as file:
-            file.write(json.dumps(entry, separators=(",", ":")).encode() + b"\n")
-            file.flush()
-            os.fsync(file.fileno())
+        with self._pair_lock:
+            with (self.directory / "observations.jsonl").open("ab") as file:
+                file.write(json.dumps(entry, separators=(",", ":")).encode() + b"\n")
+                file.flush()
+                os.fsync(file.fileno())
 
 
 class ArchivedMemoryReader:

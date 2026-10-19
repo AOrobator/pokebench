@@ -1,3 +1,4 @@
+import {StridePlanSchema} from "./stride.js";
 import { Type, type Static, type TSchema } from "typebox";
 import { Compile } from "typebox/compile";
 import { Value } from "typebox/value";
@@ -124,6 +125,7 @@ const ButtonPress = event("button_press", {
   tool_call_id: Type.String(),
   before_state_seq: Type.Optional(NonNegativeInt),
   automatic_running:Type.Optional(Type.Boolean()),
+  stride:Type.Optional(StridePlanSchema),
   walking:Type.Optional(Type.Boolean()),
   requested_held_buttons:Type.Optional(Type.Array(ButtonSchema,{maxItems:1})),
   buttons: Type.Array(ButtonSchema, { minItems: 1 }),

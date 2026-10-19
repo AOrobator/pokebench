@@ -490,7 +490,8 @@ export function withDialogueAutoAdvance(tools:readonly AgentTool[],features:Feat
    const restated=navigationAfter(raw,outcome,switches.pushback===true?scriptMove(state,done.state,switches):null);
    const status=result.content.slice(0,1).filter((part):part is TextContent=>part.type==="text").map(part=>restated===null?part:{...part,text:restated});
    const notices=carry.missingNotices([...status.map(part=>part.text),...(preflight?.map(part=>part.text)??[]),done.block,seen.text,...outcome.extras.map(part=>part.text)]);
-   return {content:[...status,...(preflight??[]),...seen.images,{type:"text",text:`${done.block}\n${notices.length===0?"":`\n${notices.join("\n")}\n`}\n${seen.text}`},...outcome.extras],details:{...Object(raw) as object,state:done.state}};
+   const strideReceipts=features["safe-navigation-strides-v1"]&&name==="navigate_to"?result.content.filter((part):part is TextContent=>part.type==="text"&&part.text.startsWith("Navigation stride receipt:")):[];
+   return {content:[...status,...strideReceipts,...(preflight??[]),...seen.images,{type:"text",text:`${done.block}\n${notices.length===0?"":`\n${notices.join("\n")}\n`}\n${seen.text}`},...outcome.extras],details:{...Object(raw) as object,state:done.state}};
   }} satisfies AgentTool;
  });
  const dialogues=new DialogueRecord();full.recorder.subscribe(event=>{dialogues.observe(event);});

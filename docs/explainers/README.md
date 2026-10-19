@@ -133,3 +133,5 @@ The original ignored runs/explainers copies remain for existing links. Make futu
 
 - [Battle decision readiness](battle-decision-ready-v1.html): bounded non-choice battle settling before model requests and semantic action validation; shared by control and bundle.
 - [Battle action refusals](battle-refusal-loop-v1.html): default-OFF semantic refusal coverage using the existing rejection lifecycle.
+
+- [Safe planned navigation strides](safe-navigation-strides-v1.html)

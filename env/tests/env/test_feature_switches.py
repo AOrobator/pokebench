@@ -239,6 +239,7 @@ def test_env_list_is_validated() -> None:
             "character-presence-v1",
             "battle-details-v2",
             "battle-effective-damage-v1",
+            "safe-navigation-strides-v1",
             "warp-arrival-settle-v1",
             "displayed-place-names-v1",
             "battle-triage-guidance-v1",

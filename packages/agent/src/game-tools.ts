@@ -5,6 +5,8 @@ import { Value } from "typebox/value";
 import { ButtonSchema, StateBodySchema, type Button } from "./events.js";
 import { parseGameState, type GameStateSnapshot } from "./game-state.js";
 import { ShownStates, pressResult } from "./press-result.js";
+import {randomUUID} from "node:crypto";
+import {STRIDE_MAX_FRAMES,StrideReceiptSchema,type StridePlan,type StrideCorridor,type StrideReceipt} from "./stride.js";
 
 // Which model-visible parts of the observe/press results this run shows.
 export interface ToolSwitches { readonly readout: boolean; readonly pressResult: boolean; readonly position: boolean; readonly fieldLock: boolean; readonly safeInterfaces?: boolean; readonly automaticRunning?: boolean; readonly transitions?: boolean; readonly warpArrival?: boolean; readonly blockedBatch?: boolean; readonly liveMap?: boolean; readonly ledges?: boolean; readonly edgeWalls?: boolean; readonly counters?: boolean; readonly topology?: boolean; readonly pushback?: boolean }
@@ -178,7 +180,7 @@ export function permitsAutomaticRunning(before: GameStateSnapshot | undefined, b
 }
 
 /** Modifiers actually submitted by the harness; raw model arguments remain in the tool_call event. */
-export interface PressModifiers { readonly automatic_running: boolean; readonly walking?: boolean; readonly requested_held_buttons?: readonly Button[] }
+export interface PressModifiers { readonly automatic_running: boolean; readonly walking?: boolean; readonly requested_held_buttons?: readonly Button[];readonly stride?:StridePlan }
 
 export interface PressHooks {
   beforePress(toolCallId: string, buttons: readonly Button[], timing: PressTiming, before?: GameStateSnapshot, modifiers?: PressModifiers): void;
@@ -186,9 +188,9 @@ export interface PressHooks {
 }
 
 export type BeforePressCheck=(before:GameStateSnapshot|undefined)=>void;
-export interface CheckedPressOptions { readonly automaticRunning?: boolean }
+export interface CheckedPressOptions { readonly automaticRunning?: boolean; readonly stride?:StrideCorridor }
 export type CheckedPressTool=AgentTool<typeof PressArgs> & {
- readonly executeChecked:(id:string,params:Static<typeof PressArgs>,check:BeforePressCheck,signal?:AbortSignal,update?:Parameters<AgentTool<typeof PressArgs>["execute"]>[3],options?:CheckedPressOptions)=>Promise<AgentToolResult<{state:GameStateSnapshot|undefined}>>;
+ readonly executeChecked:(id:string,params:Static<typeof PressArgs>,check:BeforePressCheck,signal?:AbortSignal,update?:Parameters<AgentTool<typeof PressArgs>["execute"]>[3],options?:CheckedPressOptions)=>Promise<AgentToolResult<{state:GameStateSnapshot|undefined;stride?:StrideReceipt}>>;
 };
 export function isCheckedPress(tool:AgentTool):tool is CheckedPressTool {return "executeChecked" in tool&&typeof tool.executeChecked==="function";}
 
@@ -205,7 +207,7 @@ export function pressTool(
   switches: ToolSwitches = ALL_TOOL_SWITCHES,
   shown: ShownStates = new ShownStates(),
 ): CheckedPressTool {
-  const execute=async(toolCallId:string,params:Static<typeof PressArgs>,signal?:AbortSignal,_update?:Parameters<AgentTool<typeof PressArgs>["execute"]>[3],check?:BeforePressCheck,checkedOptions?:CheckedPressOptions):Promise<AgentToolResult<{state:GameStateSnapshot|undefined}>>=>{
+  const execute=async(toolCallId:string,params:Static<typeof PressArgs>,signal?:AbortSignal,_update?:Parameters<AgentTool<typeof PressArgs>["execute"]>[3],check?:BeforePressCheck,checkedOptions?:CheckedPressOptions):Promise<AgentToolResult<{state:GameStateSnapshot|undefined;stride?:StrideReceipt}>>=>{
       // A stopped run (budget, operator abort) must not press anything further.
       signal?.throwIfAborted();
       let before: GameStateSnapshot | undefined;
@@ -220,13 +222,16 @@ export function pressTool(
       check?.(before);
       const buttons = submittedButtons(params.buttons,before,switches);
       const automaticRunning = checkedOptions?.automaticRunning===false?false:permitsAutomaticRunning(before, buttons, params.walking, switches.automaticRunning);
-      if (switches.automaticRunning===true || params.walking!==undefined) hooks.beforePress(toolCallId, buttons, PRESS_TIMING, before, {automatic_running:automaticRunning,...(switches.automaticRunning===true?{}:{walking:params.walking===true}),...(automaticRunning?{requested_held_buttons:["B"] as const}:{})});
+      const stride=checkedOptions?.stride===undefined?undefined:{id:randomUUID(),...checkedOptions.stride};
+      const timing=stride===undefined?PRESS_TIMING:{hold_frames:STRIDE_MAX_FRAMES,release_frames:8};
+      if (stride!==undefined || switches.automaticRunning===true || params.walking!==undefined) hooks.beforePress(toolCallId, buttons, timing, before, {automatic_running:automaticRunning,...(stride===undefined?{}:{stride}),...(switches.automaticRunning===true?{}:{walking:params.walking===true}),...(automaticRunning?{requested_held_buttons:["B"] as const}:{})});
       else hooks.beforePress(toolCallId, buttons, PRESS_TIMING, before);
-      const url = `${gameServerUrl}${automaticRunning ? "/pokebench/travel" : "/action"}`;
+      const url = `${gameServerUrl}${stride!==undefined?"/pokebench/stride":automaticRunning ? "/pokebench/travel" : "/action"}`;
+      try {
       const response = await fetchFn(url, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ buttons, ...PRESS_TIMING, ...(automaticRunning ? {automatic_running:true} : {}) }),
+        body: JSON.stringify(stride===undefined?{ buttons, ...PRESS_TIMING, ...(automaticRunning ? {automatic_running:true} : {}) }:{...stride,automatic_running:automaticRunning}),
         signal: deadline(15_000, signal),
       });
       const body: unknown = await response.json();
@@ -235,11 +240,25 @@ export function pressTool(
         throw new Error(`POST ${url} failed: ${detail}`);
       }
       await waitForQueue(gameServerUrl, fetchFn, clock, signal);
+      }
+      catch(error){
+        if(stride!==undefined){
+          const cancelled=await fetchFn(`${gameServerUrl}/pokebench/stride/${stride.id}/cancel`,{method:"POST",signal:AbortSignal.timeout(2000)});
+          if(!cancelled.ok)throw new Error(`Navigation stride cancellation failed: HTTP ${String(cancelled.status)}`,{cause:error});
+        }
+        throw error;
+      }
+      let receipt:StrideReceipt|undefined;
+      if(stride!==undefined){
+        const raw:unknown=await getJson(`${gameServerUrl}/pokebench/stride/${stride.id}`,fetchFn,15_000,signal);
+        if(!Value.Check(StrideReceiptSchema,raw)||raw.id!==stride.id||!raw.stopped||raw.completed>stride.path.length||JSON.stringify(raw.path)!==JSON.stringify(stride.path)||JSON.stringify(raw.origin)!==JSON.stringify(stride.origin)||JSON.stringify(raw.map_id)!==JSON.stringify(stride.map_id)||raw.elevation!==stride.elevation||(raw.reason==="completed"&&raw.completed!==stride.path.length))throw new Error("Navigation stride lacks a matching terminal receipt");
+        receipt=raw;
+      }
       await clock.sleep(STATE_CACHE_SETTLE_MS);
       await hooks.afterPress();
       const content = await observation(gameServerUrl, fetchFn, signal, (after) => `pressed ${buttons.join(", ")}\n${buttons.length < params.buttons.length ? `Interface safety: submitted 1 of ${String(params.buttons.length)} requested inputs; remaining inputs were not sent. Inspect the new state before another input.\n` : ""}${switches.pressResult ? `Press result: ${pressResult(before, after, buttons, switches, shown)}\n` : ""}\n`);
       shown.record(content.state, before);
-      return { content: content.content, details: { state: content.state } };
+      return { content: [...(receipt===undefined?[]:[{type:"text" as const,text:`Navigation stride receipt: ${JSON.stringify(receipt)}`}]),...content.content], details: { state: content.state,...(receipt===undefined?{}:{stride:receipt}) } };
   };
   return {
     name: "press",

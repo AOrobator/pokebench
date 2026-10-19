@@ -2,13 +2,14 @@ import {LEGACY_ALL_ON as LEGACY_ALL_ON_BASE} from "../test-support/legacy-featur
 import {createHash} from "node:crypto";
 import {readFileSync} from "node:fs";
 import {expect,it} from "vitest";
-import {FEATURES,SWITCHABLE_FEATURES,dependencyProblems,featureInfo,playHarnessFeatures,serverFeatureEnv,stateOnlyProblems,type FeatureSet,type SwitchableFeature} from "./features.js";
+import {FEATURES,SWITCHABLE_FEATURES as REGISTERED_SWITCHES,dependencyProblems,featureInfo,playHarnessFeatures,serverFeatureEnv,stateOnlyProblems,type FeatureSet,type SwitchableFeature} from "./features.js";
 import * as config from "./play-config.js";
 import {BATTLE_TRIAGE_SECTION,EXPLORER_GUIDANCE_SECTION,EXPLORER_TALK_IS_CHEAP,TRAINER_HEAL_SECTION,UNTAKEN_EXITS_SECTION,objectiveSwitches,playSystemPrompt} from "./play-config.js";
 import {objectivePrompt} from "./objective-tools.js";
 import {flagFeatures,normalizeFeatures,parsePlayPreset,presetFeatures} from "./play-preset.js";
 
 const ID="explorer-guidance-v2" as SwitchableFeature;
+const SWITCHABLE_FEATURES=REGISTERED_SWITCHES.filter(id=>id!=="safe-navigation-strides-v1");
 const ALL_ON:FeatureSet={...LEGACY_ALL_ON_BASE,"semantic-navigation-v1":false,"deterministic-exploration-v1":false};
 const V1="explorer-guidance-v1" as SwitchableFeature;
 const V2_TEXT="Talk to people: talking to people gives you information about the world and can move the story forward. When you are unsure where to go, or after the story has moved on, talking to the people around you is a good way to learn more. What people tell you is evidence; use it to decide where to go.";
@@ -109,9 +110,9 @@ it("is a default-off standalone guidance switch, recorded third to last (before 
  expect(featureInfo(ID)).toMatchObject({group:"guidance",needs:null,switchable:true,title:"TALK TO PEOPLE V2"});
  expect(featureInfo(ID).description).toContain(" Off: ");
  expect(SWITCHABLE_FEATURES.at(-43)).toBe(ID);
- expect(FEATURES.filter(f=>f.switchable).at(-43)?.id).toBe(ID);
+ expect(FEATURES.filter(f=>f.switchable).at(-44)?.id).toBe(ID);
  expect(playHarnessFeatures(ALL_ON,null).at(-39)).toBe(ID);
- expect(serverFeatureEnv({...ALL_ON,"semantic-navigation-v1":true,"battle-decision-ready-v1":false,"battle-refusal-loop-v1":false,"scripted-place-guidance-v1":false,"trigger-script-loop-v1":false,[ID]:false}).POKEBENCH_FEATURES_OFF).toBe("");
+ expect(serverFeatureEnv({...ALL_ON,"semantic-navigation-v1":true,"battle-decision-ready-v1":false,"battle-refusal-loop-v1":false,"scripted-place-guidance-v1":false,"trigger-script-loop-v1":false,[ID]:false}).POKEBENCH_FEATURES_OFF).toBe("safe-navigation-strides-v1");
  expect(dependencyProblems({...ALL_ON,"battle-decision-ready-v1":false,"battle-refusal-loop-v1":false,"scripted-place-guidance-v1":false,"trigger-script-loop-v1":false,"dialogue-auto-advance-v1":false,"field-dialogue-phase-v1":false,[ID]:true})).not.toContain(expect.stringContaining(ID));
  expect(stateOnlyProblems({...INCUMBENT,"state-only-decisions-v1":true,[ID]:true})).toContain(`state-only-decisions-v1 requires ${ID} OFF`);
  expect(stateOnlyProblems({...INCUMBENT,"state-only-decisions-v1":true,[ID]:false})).not.toContain(`state-only-decisions-v1 requires ${ID} OFF`);
@@ -121,6 +122,6 @@ it("defaults off in presets and the legacy flag presets",()=>{
  const {"explorer-guidance-v2":_omitted,...without}=INCUMBENT;
  expect(_omitted).toBe(false);
  expect(normalizeFeatures(without)[ID]).toBe(false);
- expect(Object.keys(normalizeFeatures(without)).at(-43)).toBe(ID);
+ expect(Object.keys(normalizeFeatures(without)).at(-44)).toBe(ID);
  for(const objectives of [true,false])expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives})[ID]).toBe(false);
 });

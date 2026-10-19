@@ -156,7 +156,8 @@
    "reachable-story-guidance-v1": false,
    "text-only-supervisor-v2": false,
    "semantic-navigation-v1": false,
-   "deterministic-exploration-v1": false
+   "deterministic-exploration-v1": false,
+   "safe-navigation-strides-v1": false
   }
  },
  "switches": [
@@ -197,7 +198,8 @@
   "reachable-story-guidance-v1",
   "text-only-supervisor-v2",
   "semantic-navigation-v1",
-  "deterministic-exploration-v1"
+  "deterministic-exploration-v1",
+  "safe-navigation-strides-v1"
  ],
  "offInBoth": [
   "visited-terrain-navigation-v1",

@@ -421,6 +421,29 @@ describe("viewer app", () => {
     expect(window.location.hash).toBe(`#run=${M4_ID}`);
   });
 
+  it("shows a known-live run from its screen endpoint while its event history catches up", async () => {
+    const second = "2026-10-11T23-05-00_second-live";
+    const runs = [RUNS[0], { id: second, model: "think-swarm", started: "x", ended: false, reason: null, problem: null }];
+    const { app, streams } = await harness("", runs);
+    feed(must(streams[0]), fullRun().events.slice(0, 4));
+
+    const pick = ui("run") as HTMLSelectElement;
+    pick.value = second;
+    pick.dispatchEvent(new Event("change"));
+
+    expect(app.mode).toBe("loading");
+    expect(ui("screen").getAttribute("href")).toMatch(new RegExp(`^/api/runs/${second}/screen\\?n=\\d+$`));
+    expect(ui("screen-note").textContent).toBe("live");
+    feed(must(streams[1]), fullRun().events.slice(0, 10), false);
+    app.tick(500);
+    expect(ui("screen").getAttribute("href")).toMatch(new RegExp(`^/api/runs/${second}/screen\\?n=\\d+$`));
+    expect(ui("replay-controls").hidden).toBe(true);
+    ui("screen").dispatchEvent(new Event("error"));
+    app.tick(100);
+    expect(ui("screen").getAttribute("href")).toBe(`/api/runs/${second}/frames/000009_0.png`);
+    expect(ui("screen-note").textContent).toBe("live screen unavailable · last frame");
+  });
+
   it("says so when there are no runs", async () => {
     document.body.innerHTML = PAGE.slice(PAGE.indexOf("<body>") + 6, PAGE.indexOf("</body>"));
     const app = await mountApp(document, {

@@ -92,6 +92,11 @@ The operator-visible behavior is the existing warning/recovery/stop stream and m
 - Fix batch: observations no longer alter the clock action counter; interface rules now return pattern-state reset facts and the coordinator alone decides recovery; candidate insertion is deliberately reversed so the static registry is the sole priority owner; a real state-cycle/transition collision exercises `LoopDetector.complete`; the facade exposes only its legacy surface.
 - Adversarial receipt `coordinator-registry-bypass-20261019`: replacing the coordinator's `firstLoopHit` call with first-candidate insertion selection made the production collision test fail with the transition-loop message instead of the earlier state-cycle message (1 failed / 4 passed). Restoring the registry call returned the focused architecture, clock, and battle-menu suite to 27/27 green.
 
+### Round 2 preparation — blocked by moved canonical main
+
+- Before resealing, canonical `main` moved from `a7be38f6` to `cd596604`; merged it as required. The loop-owned files merged cleanly and the agent/viewer suites passed (2,535 / 1,196), but the new main tip's Python battle-damage path failed 23 existing archive/readout fixtures with `KeyError: 33702542` while reading newly required RAM cells. `git diff main HEAD -- env` is empty, so the failures are wholly inherited from canonical main.
+- The active `codex/battle-effective-damage` branch contains additional unlanded repair commits, but this loop refactor does not cherry-pick or repair another owner's domain. Round 2 was not sealed or dispatched. Per the landing gate, a red synchronized main blocks review completion and self-merge.
+
 ## Surprises
 
 - A fresh worktree needs the agent and viewer builds before the viewer gate, and its fresh Python venv needs the already-built local mGBA binding for mypy. These are setup dependencies, not product changes.

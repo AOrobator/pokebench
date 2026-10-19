@@ -191,13 +191,13 @@ function stateOf(details:unknown):GameStateSnapshot|null {
 }
 
 // battleAction: harness-trust-v2 also heads battle_action results.
-export interface TrustOptions {readonly supervisor:boolean;readonly battleAction?:boolean;readonly goalOnce?:boolean;readonly retireLab?:boolean}
+export interface TrustOptions {readonly supervisor:boolean;readonly battleAction?:boolean;readonly goalOnce?:boolean;readonly retireLab?:boolean;readonly scriptedGuidance?:boolean}
 
 // The header (and any walk-away note) put at the top of the result's first text part.
 export class HarnessTrust {
- private readonly story=new StoryDestinations();
+ private readonly story:StoryDestinations;
  private readonly walk=new WalkAway();
- constructor(private readonly options:TrustOptions) {}
+ constructor(private readonly options:TrustOptions) {this.story=new StoryDestinations(options.scriptedGuidance===true);}
  observe(event:RunEvent):void {this.story.observe(event);}
  lines(text:string,state:GameStateSnapshot,callId:string,places:readonly Place[]|Error,own=false,seen=text):{readonly header:string;readonly away:StoryGoalAwayFacts|null} {
   const anyLine=this.story.latest(callId,null,state.name)!==null;

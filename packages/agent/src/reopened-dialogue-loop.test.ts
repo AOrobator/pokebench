@@ -38,7 +38,7 @@ describe("reopened-dialogue-loop-v1", () => {
     expect(featureInfo(ID).description).toContain("Bundle arm only");
     expect(flagFeatures({loopGuard: true, activeUi: true, interfaceDocs: true, objectives: false})[ID]).toBe(false);
     expect(normalizeFeatures({} as Parameters<typeof normalizeFeatures>[0])[ID]).toBe(false);
-    const without = Object.fromEntries(Object.entries({...ALL_ON, "state-only-decisions-v1": false}).filter(([id]) => id !== ID)) as FeatureSet;
+    const without = Object.fromEntries(Object.entries({...ALL_ON,"scripted-place-guidance-v1":false,"trigger-script-loop-v1":false, "state-only-decisions-v1": false}).filter(([id]) => id !== ID)) as FeatureSet;
     expect(presetFeatures(parsePlayPreset({version: 2, id: "p", target: null, limits: {maxTurns: 1, maxWallMs: 1, failureLimit: 1}, sampling: {thinkingLevel: "medium", maxTokens: 1}, features: without}))[ID]).toBe(false);
     const bundle = JSON.parse(readFileSync(new URL("../../../experiments/fixed/bundle-v-control.json", import.meta.url), "utf8")) as {base: {features: Record<string, boolean>}; switches: string[]};
     expect(bundle.base.features[ID]).toBe(false);
@@ -47,7 +47,7 @@ describe("reopened-dialogue-loop-v1", () => {
     expect(cook.incumbent.features[ID]).toBe(true);
     const raw = JSON.parse(readFileSync(new URL("../../../experiments/reopened-dialogue-loop.json", import.meta.url), "utf8")) as {queuePosition?: number; incumbent: {features: Record<string, boolean>}};
     expect(raw.queuePosition).toBeUndefined();
-    expect(Object.keys(raw.incumbent.features)).toEqual(SWITCHABLE_FEATURES.filter(id=>id!=="just-in-time-prompt-v2"&&id!=="faced-interaction-history-v1"&&id!=="cache-aligned-window-v1"&&id!=="jit-guide-reuse-v1"));
+    expect(Object.keys(raw.incumbent.features)).toEqual(SWITCHABLE_FEATURES.filter(id=>id!=="scripted-place-guidance-v1"&&id!=="trigger-script-loop-v1"&&id!=="just-in-time-prompt-v2"&&id!=="faced-interaction-history-v1"&&id!=="cache-aligned-window-v1"&&id!=="jit-guide-reuse-v1"));
     const {incumbent, candidate} = experimentArms(parseExperiment(raw));
     expect(incumbent.features[ID]).toBe(false);
     expect(candidate.features[ID]).toBe(true);
@@ -254,15 +254,16 @@ describe("reopened-dialogue-loop-v1", () => {
     };
     for (const source of [live, probe]) {
       const args = argsOf(source);
-      expect(args.at(-1)).toBe('features["reopened-dialogue-loop-v1"]');
-      expect(args.at(-2)).toBe('features["clock-view-loop-v1"]');
+      expect(args.at(-1)).toBe('features["trigger-script-loop-v1"]');
+      expect(args.at(-2)).toBe('features["reopened-dialogue-loop-v1"]');
+      expect(args.at(-3)).toBe('features["clock-view-loop-v1"]');
     }
     const play = (on: boolean) => {
       const notices: LoopNotice[] = [];
       const observers: ((e: RunEvent) => void)[] = [];
       const recorder = {subscribe: (o: (e: RunEvent) => void) => { observers.push(o); }, recordLoopGuard: (n: LoopNotice) => { notices.push(n); }};
       const governor = new Governor({limits: {maxTurns: 50, maxWallMs: 60_000, failureLimit: 3}, retry: () => undefined, abort: () => undefined, now: () => 0});
-      attachLoopGuard(recorder, governor, undefined, "enforced", true, () => "SUPERVISOR", false, false, false, true, false, false, false, on);
+      attachLoopGuard(recorder, governor, undefined, "enforced", true, () => "SUPERVISOR", false, false, false, true, false, false, false, on, false);
       let seq = 0;
       const emit = (body: Record<string, unknown>) => {
         seq += 1;

@@ -294,7 +294,7 @@ describe("ineffective-loops-v1 fixture loading",()=>{
 describe("ineffective-loops-v1 pending experiment",()=>{
  it("names every switch explicitly in registry order and flips only this switch",()=>{
   const raw=JSON.parse(readFileSync(fileURLToPath(new URL("../../../experiments/ineffective-loops.json",import.meta.url)),"utf8")) as {incumbent:{features:Record<string,boolean>}};
-  expect(Object.keys(raw.incumbent.features)).toEqual(SWITCHABLE_FEATURES.filter(id=>id!=="faced-interaction-history-v1").slice(0,Object.keys(raw.incumbent.features).length));expect(Object.keys(raw.incumbent.features)).toContain("ineffective-loops-v1");
+  expect(Object.keys(raw.incumbent.features)).toEqual(SWITCHABLE_FEATURES.filter(id=>id!=="scripted-place-guidance-v1"&&id!=="trigger-script-loop-v1").filter(id=>id!=="faced-interaction-history-v1").slice(0,Object.keys(raw.incumbent.features).length));expect(Object.keys(raw.incumbent.features)).toContain("ineffective-loops-v1");
   const {incumbent,candidate}=experimentArms(parseExperiment(raw));
   expect(incumbent.features[ID]).toBe(false);
   expect(SWITCHABLE_FEATURES.filter(id=>incumbent.features[id]!==candidate.features[id])).toEqual([ID]);

@@ -262,7 +262,7 @@ export function eventText(event: RunEvent, view?: RunView): string | null {
     case "milestone":
       return `★ ${esc(event.name)}${event.kind === undefined ? "" : ` · ${event.kind}`}${event.origin === "present_at_start" ? " · already present when run started" : ""}${event.evidence === undefined ? "" : ` · evidence ${event.evidence.map((seq) => `#${String(seq)}`).join(", ")}`}`;
     case "loop_guard":
-      return view === undefined ? `Loop ${esc(event.kind)} ${esc("mode" in event && event.mode === "diagnostic" ? `diagnostic: ${event.phase.replace("_", " ")}` : event.phase)}: ${esc(event.message)} · evidence ${event.evidence.map(seq=>`#${String(seq)}`).join(", ")}` : esc(view.loopLabel(event));
+      return view === undefined ? `Loop ${esc(event.kind.replaceAll("_"," "))} ${esc("mode" in event && event.mode === "diagnostic" ? `diagnostic: ${event.phase.replace("_", " ")}` : event.phase)}: ${esc(event.message)} · evidence ${event.evidence.map(seq=>`#${String(seq)}`).join(", ")}` : esc(view.loopLabel(event));
     case "retry":
       return `✗ retry ${String(event.attempt)}/${String(event.limit)}: ${esc(event.reason)}`;
     case "telemetry_error":
@@ -458,6 +458,8 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "save-state-task-truth-v1":"save-state-task-truth-v1.html",
  "cache-aligned-window-v1":"cache-aligned-window-v1.html",
  "jit-guide-reuse-v1":"jit-guide-reuse-v1.html",
+ "scripted-place-guidance-v1":"scripted-place-guidance-v1.html",
+ "trigger-script-loop-v1":"trigger-script-loop-v1.html",
 });
 
 export function harnessConfig(view:RunView,registry:readonly FeatureInfo[]=[]):string {

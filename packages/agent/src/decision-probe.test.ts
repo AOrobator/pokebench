@@ -1,7 +1,8 @@
+import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
 import { expect, it } from "vitest";
 import type { AssistantMessage, completeSimple } from "@mariozechner/pi-ai";
 import { checkEvent, type RunEvent } from "./events.js";
-import { ALL_ON } from "./features.js";
+import {} from "./features.js";
 import { contextDiff, decisionOf, distribution, parseRun, parseSwitch, recordedAction, recordedNotes, withSwitches, type DecisionContext, type RecordedRun } from "./decision-probe.js";
 import { MAX_SAMPLES, filePorts, gatewaySampler, parseArgs, reportLines, resolveRun, thinkingLevel, type ProbeReport } from "./probe-decision-cli.js";
 import { assistant, toolCall } from "../test-support/pi.js";

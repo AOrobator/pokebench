@@ -1,6 +1,7 @@
+import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
 import {expect,it} from "vitest";
 import type {Context,Message} from "@mariozechner/pi-ai";
-import {ALL_ON} from "./features.js";
+import {} from "./features.js";
 import {StableJitContext} from "./jit-v2-context.js";
 import {stableJitPrompts} from "./play-config.js";
 

@@ -1,5 +1,6 @@
+import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
 import {describe,expect,it} from "vitest";
-import {ALL_ON,dependencyProblems,featureInfo,playHarnessFeatures,SERVER_FEATURES,serverFeatureEnv,type FeatureSet} from "./features.js";
+import {dependencyProblems,featureInfo,playHarnessFeatures,SERVER_FEATURES,serverFeatureEnv,type FeatureSet} from "./features.js";
 import {flagFeatures,parsePlayPreset,presetFeatures} from "./play-preset.js";
 import {NO_NICKNAME_SECTION,objectiveSwitches,playSystemPrompt} from "./play-config.js";
 import {objectivePrompt} from "./objective-tools.js";

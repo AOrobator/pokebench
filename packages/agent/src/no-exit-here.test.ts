@@ -264,7 +264,7 @@ describe("no-exit-here-v1 through playGameTools",()=>{
 
 describe("no-exit-here-v1 registry",()=>{
  it("is appended last, a guidance switch that needs world destinations, default off, with OFF copy",()=>{
-  expect(SWITCHABLE_FEATURES.at(-21)).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-25)).toBe(ID);
   expect(playHarnessFeatures(ALL_ON,null).at(-21)).toBe(ID);
   expect(FEATURES.filter(f=>f.switchable).at(-25)?.id).toBe(ID);
   expect(featureInfo(ID)).toMatchObject({group:"guidance",needs:"world-destinations-v1",switchable:true,title:"NO EXIT HERE"});

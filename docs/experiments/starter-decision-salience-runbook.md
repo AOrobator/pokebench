@@ -12,7 +12,7 @@ This is a prompt-only diagnostic, separate from starter-selection tooling. The f
 
 ## Before measured execution
 
-The implementation must be reviewed and landed on local main. An unavailable cloud review lane leaves landing pending. Rebuild/restart the main viewer before launching a newer source pin; keep current campaigns undisturbed. Approval and measured launch belong to the operator, not the preparation agent.
+The implementation must be reviewed and landed on local main. The operator explicitly waived the Claude review lane on 2026-10-19; Grok and independent GPT/Codex review and deterministic gates still apply. Rebuild/restart the main viewer before launching a newer source pin; keep current campaigns undisturbed. Approval and measured launch belong to the operator, not the preparation agent.
 
 When ready to launch, follow `.claude/skills/fixed-run-launch/SKILL.md`: check clean main and source dependencies, lane availability, live serving fingerprint, ROM and checkpoint hash, then run:
 

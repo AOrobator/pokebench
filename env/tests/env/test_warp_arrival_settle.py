@@ -310,7 +310,7 @@ def test_frame_driver_stops_at_capture_before_worker_exits(monkeypatch: pytest.M
 
 
 def test_the_default_warp_bound_is_used_in_frames() -> None:
-    # Pin the actual default separately; tiny injected bounds above exercise the production comparison.
+    # Pin the default separately; tiny injected bounds above exercise the production comparison.
     game = Game(synthetic(lock=True, funcs=(EXIT_DOOR,)))
     assert FrameSettle(game.read, warp=True).warp_bound_frames == WARP_SETTLE_BOUND_FRAMES == 300
 

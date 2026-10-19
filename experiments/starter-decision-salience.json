@@ -8,7 +8,7 @@
   "primaryMilestone": "STARTER_CHOSEN",
   "source": {
     "checkout": "main",
-    "commit": "42c4a65a03c3646361d0850917c5a9b87fee59d0"
+    "commit": "d8460d5fa9269479102ccb0a9b88a8b217d7d492"
   },
   "trialsPerArm": 8,
   "modelLane": "/models/Qwen3.6-35B-A3B-UD-Q4_K_M.gguf",
@@ -23,7 +23,7 @@
     "window": 4,
     "minReached": 3
   },
-  "blocked": "Diagnostic checkpoint comparison; use the separately approved fixed definition starter-decision-salience. Not a boot queue screen or promotion candidate. Source pin and current-build qualification must be completed before launch.",
+  "blocked": "Prepared checkpoint diagnostic; use the separately approved fixed definition starter-decision-salience. Not a boot queue screen or promotion candidate. Operator approval and free matching lanes required before launch.",
   "incumbent": {
     "version": 2,
     "id": "starter-decision-salience-control",

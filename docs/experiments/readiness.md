@@ -166,4 +166,4 @@ Pending, not queued. STARTER_CHOSEN is only the conservative earliest prerequisi
 
 ## Starter decision salience · 2026-10-19
 
-Checkpoint diagnostic candidate: first-arrival ROUTE_101, SHA1 0c34433cc305ea5de6fa69aa4a5612bf434a5714, source frontier-acq-a state900/milestone901, empty party. Qualification on current build pending; do not infer readiness from the historical capture alone. Native activation occurs after ROUTE_101 at ready starter_selection. No measured launch or approval.
+Checkpoint diagnostic candidate: first-arrival ROUTE_101, SHA1 0c34433cc305ea5de6fa69aa4a5612bf434a5714, source frontier-acq-a state900/milestone901, empty party. Native OFF/ON checkpoint qualification and the fixed sixteen-slot rehearsal passed; these zero-inference checks do not establish autonomous decision quality. Native activation occurs after ROUTE_101 at ready starter_selection. No measured launch or approval.

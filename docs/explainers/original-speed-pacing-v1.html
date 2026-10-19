@@ -118,7 +118,7 @@
   <h2>What the switch changes</h2>
   <ul class="facts">
     <li><strong>ON:</strong> the thread-local game-loop clock uses an 80 FPS base deadline. A vendor period change starts a fresh cadence; a delay beyond four periods resets the schedule rather than creating an unbounded catch-up burst.</li>
-    <li><strong>OFF:</strong> the same deadline machinery uses the existing 59.7275 FPS base exactly.</li>
+    <li><strong>OFF:</strong> the same deadline machinery uses the existing 59.7275 FPS base exactly. The human reference always retains this nominal clock, matching its recorded timing policy.</li>
     <li><strong>Recorded identity:</strong> the explicit selection belongs in the run’s harness-feature list so historical OFF runs and future ON runs remain distinguishable.</li>
     <li><strong>Unchanged:</strong> prompts, tools, observations, controls, publication cap, frame transport, and browser rendering.</li>
   </ul>

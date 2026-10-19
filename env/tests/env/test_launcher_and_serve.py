@@ -149,7 +149,7 @@ def test_frame_cache_caps_four_x_dialog_encoding_at_delivery_rate() -> None:
         publications += 1
         return publications
 
-    install_on_demand_frame_cache(server, count, clock=lambda: now)
+    install_on_demand_frame_cache(server, count, clock=lambda: now, max_publish_fps=60.0)
     frame = Image.new("RGB", (2, 1), (1, 2, 3))
     for _ in range(240):
         server.update_frame_cache(frame)

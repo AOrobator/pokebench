@@ -79,7 +79,7 @@ def test_publication_factory_default_is_80_without_changing_game_speed(monkeypat
     assert [p["frame_count"] for p in manager.publications] == list(range(80))
 
 
-@pytest.mark.parametrize("phase", [0.0, 1000.0])
+@pytest.mark.parametrize("phase", [0.0, 1000.0, 1_792_446_000.0])
 @pytest.mark.parametrize("pattern", [(1, -1), (1, 0, -1, 0), (1, -1, -1, 1)])
 def test_80hz_source_retains_every_frame_with_quarter_period_jitter(monkeypatch, phase, pattern):
     _, manager, encoded, _, tick = fixture(monkeypatch)

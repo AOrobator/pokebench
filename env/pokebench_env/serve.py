@@ -156,24 +156,28 @@ def install_on_demand_frame_cache(
     frame_count: Callable[[], int],
     *,
     clock: Callable[[], float] = time.time,
-    max_publish_fps: float = 60.0,
+    max_publish_fps: float = 80.0,
 ) -> None:
     """Publish useful source frames only while the WebSocket is observed.
 
     The pinned implementation hard-skips every second call, capping an 80 FPS
     game at 40 display FPS. This adapter instead uses an absolute publication
-    deadline: nominal play retains every ~59.7 FPS frame, while 4x fast-dialog
-    play does at most 60 PNG encodes/second. No image work occurs without a
-    consumer, and a late iteration cannot start an unbounded catch-up burst.
+    deadline with half-period phase tolerance: a slightly early source frame
+    consumes the next deadline rather than being discarded. Each deadline is
+    consumed once, so fast sources remain rate-bounded with constant boundary
+    slack. No image work occurs without a consumer, and a late iteration cannot
+    start an unbounded catch-up burst. This does not change game-loop speed.
     """
 
     if not math.isfinite(max_publish_fps) or max_publish_fps <= 0:
         raise ValueError("max_publish_fps must be finite and positive")
     period = 1.0 / max_publish_fps
     next_publish_at: float | None = None
+    publish_origin = 0.0
+    publish_tick = 0
 
     def update_if_observed(screenshot: object) -> None:
-        nonlocal next_publish_at
+        nonlocal next_publish_at, publish_origin, publish_tick
         with server.frame_manager.lock:
             observed = bool(server.frame_manager.active_connections)
             if not observed:
@@ -184,12 +188,17 @@ def install_on_demand_frame_cache(
         if not observed:
             return
         sampled_at = clock()
-        if next_publish_at is not None and sampled_at < next_publish_at:
-            return
+        if next_publish_at is not None:
+            # Inclusive phase boundaries may round in opposite directions.
+            eligible_at = math.nextafter(next_publish_at - period / 2, -math.inf)
+            if sampled_at < eligible_at:
+                return
         if next_publish_at is None or sampled_at - next_publish_at > 4 * period:
-            next_publish_at = sampled_at + period
+            publish_origin, publish_tick = sampled_at, 1
         else:
-            next_publish_at += (math.floor((sampled_at - next_publish_at) / period) + 1) * period
+            publish_tick += max(1, math.floor((sampled_at - next_publish_at) / period) + 1)
+        # Integer ticks avoid accumulating a floating addition error per frame.
+        next_publish_at = publish_origin + publish_tick * period
         encoded = encode_png_base64(screenshot)
         if encoded is None:
             return
@@ -218,8 +227,9 @@ def install_deadline_frame_stream(
     I/O, so its real period is 16 ms plus work (about 55 FPS on this machine).
     This route uses absolute deadlines: work consumes the frame budget instead
     of extending it, and a badly delayed client cannot trigger an unbounded
-    catch-up loop. It checks at 120 Hz so its sampling phase cannot discard
-    unique 59.7275 Hz source frames; the manager still sends each frame once.
+    catch-up loop. It checks at 120 Hz, above the 80 Hz publication budget;
+    the manager sends each frame once. A delayed client can still miss frames
+    overwritten in the latest-frame slot.
     """
 
     period = 1.0 / polls_per_second
@@ -283,10 +293,13 @@ def run(
     battle_text: tuple[FastAPI, type[SteppedEmulator], ReadMemory] | None = None,
 ) -> None:
     if human is not None:
+        # The recorded human reference declares Emerald's nominal clock.
+        # A legacy explicit OFF list cannot opt it into a new agent policy.
+        original_speed_pacing = False
         # Human play has neither this model tool nor its frame gate. Keep every
         # reader OFF even when the historical human launch list omits the ID.
         os.environ["POKEBENCH_FEATURES_OFF"] = ",".join(
-            sorted(features_off_from_env(os.environ) | {EVOLUTION})
+            sorted(features_off_from_env(os.environ) | {EVOLUTION, "original-speed-pacing-v1"})
         )
     # Agent observations wait out screen fades on emulated frames (never wall
     # time). The human server records its snapshot observation under the

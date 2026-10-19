@@ -117,11 +117,18 @@ def test_human_factory_keeps_recorded_nominal_clock_even_with_legacy_explicit_en
     # list. Absence from that list must not accelerate recorded human play.
     monkeypatch.setenv("POKEBENCH_FEATURES_OFF", "named-interactions-v1")
     monkeypatch.setattr(sys, "argv", ["test"])
-    monkeypatch.setattr(serve, "install_human", lambda *_args, **_kwargs: SimpleNamespace(set_paused=lambda: None))
+    monkeypatch.setattr(
+        serve, "install_human", lambda *_args, **_kwargs: SimpleNamespace(set_paused=lambda: None)
+    )
     monkeypatch.setattr(serve, "install_pause", lambda *_args, **_kwargs: None)
-    serve.run([], SimpleNamespace(run=lambda: None), lambda: server.game_loop(),
-              pacing=server, original_speed_pacing=True,
-              human=(object(), object(), "human-test-token"))
+    serve.run(
+        [],
+        SimpleNamespace(run=lambda: None),
+        lambda: server.game_loop(),
+        pacing=server,
+        original_speed_pacing=True,
+        human=(object(), object(), "human-test-token"),
+    )
     assert clock.sleeps == pytest.approx([1 / EMERALD_REALTIME_FPS - 0.001])
     assert ID in features_off_from_env(os.environ)
 

@@ -124,3 +124,5 @@ rows whenever the frontier advances, and before planning any experiment.
 ## 2026-10-18 — just-in-time-prompt-v2 (preparation)
 
 Pending, unqueued and unapproved. Separate proposed MAIN_MENU early-game screen, activation NEW_GAME_CREATED. V2 starts at request dispatch; checkpoint load/startup and full-tool/catalog tests qualify the implementation path. No new GPU budget is inferred. Fresh runtime readiness, source pin, four-persona design review, cap evidence and operator allocation remain required before launch. Existing jit-10m is unchanged.
+
+- Minimal-unknown revision (operator authorized 2026-10-18): activation still startup/NEW_GAME_CREATED; BLOCKED for launch until the MAIN_MENU checkpoint is requalified on the reviewed source, actual template/token fit and serving parity pass, and a fresh budget is approved. Historical v1 reached NEW_GAME_CREATED from the shared MAIN_MENU start in12/12control trials; this is checkpoint evidence, not boot readiness or current-build save-load proof. No new runs, guides or classifier coverage added.

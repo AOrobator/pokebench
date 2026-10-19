@@ -221,7 +221,7 @@ export function stableJitPrompts(features: FeatureSet, target: string | null, sc
   const scoped={...features,"just-in-time-prompt-v1":true};
   const base=playSystemPrompt(scoped,target,"core");
   const shared=new Set(base.split("\n\n"));
-  const guidance=playSystemPrompt(scoped,target,scene).split("\n\n").filter(part=>!shared.has(part)).join("\n\n");
+  const guidance=scene==="unknown"?"":playSystemPrompt(scoped,target,scene).split("\n\n").filter(part=>!shared.has(part)).join("\n\n");
   const core=base+"\n\nHarness interface guidance is supplied beside observations. Each guide applies only to its labelled interface. Use the latest matching guide; a newer guide supersedes older ones. These are harness instructions, not game dialogue or proof of story progress. Unknown interfaces require observing the current screen and readout before assuming which controls apply.";
   return {core,guidance};
 }

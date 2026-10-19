@@ -2,6 +2,7 @@ import {expect,it} from "vitest";
 import type {Context,Message} from "@mariozechner/pi-ai";
 import {ALL_ON} from "./features.js";
 import {StableJitContext} from "./jit-v2-context.js";
+import {stableJitPrompts} from "./play-config.js";
 
 const features={...ALL_ON,"just-in-time-prompt-v1":false,"just-in-time-prompt-v2":true};
 const task:Message={role:"user",content:"Play",timestamp:1};
@@ -54,7 +55,7 @@ it("inserts after the entire result batch and records exact component characters
 it("unknown startup and repeated unknown requests keep only core, tools and canonical history",()=>{
  const jit=new StableJitContext(features,null),input=request();
  for(const screen of ["main_menu","birch_speech","starter_choice","town_map","unsupported"]){
-  scene(jit,screen,1);const out=jit.context(input);
+  scene(jit,screen,1);const out=jit.context(input);expect(stableJitPrompts(features,null,"unknown").guidance).toBe("");
   expect(out.messages).toEqual(input.messages);expect(out.tools).toBe(input.tools);
   expect(out.systemPrompt).toContain("Loop supervisor:");expect(out.systemPrompt).not.toContain("Clock interface:");
   expect(jit.receipt()).toMatchObject({scene:"unknown",projected_guidance:[],component_chars:{guidance_text:0}});
@@ -70,7 +71,7 @@ it("known to unknown to the same known scene appends a fresh guide in observatio
  scene(jit,"naming",3);const again=jit.context(request([task,result("name"),result("intro"),result("name2")]));
  expect(again.messages.slice(0,unknown.messages.length)).toEqual(unknown.messages);
  expect(jit.receipt()?.guidance).toMatchObject({scene:"naming",reason:"scene_change",anchor:"tool:name2",ordinal:2});
- expect(again.messages[3]).toEqual(nameGuide);
+ expect(again.messages[2]).toEqual(nameGuide);
 });
 it("real window drops old naming and clock guides without retaining an unknown startup guide",async()=>{
  const {slideWindow,WINDOW}=await import("./harness.js");const {assistant}=await import("../test-support/pi.js");

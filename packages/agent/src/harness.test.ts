@@ -854,14 +854,16 @@ it("refreshes request presentation through the real pinned loop before every mod
 });
 
 
-it("stable JIT preserves provider-serialized history across a scene transition in the pinned loop",async()=>{
+it("stable JIT preserves provider-serialized history through unknown, naming and clock scenes in the pinned loop",async()=>{
+ const {assistant}=await import("../test-support/pi.js");
  const {StableJitContext}=await import("./jit-v2-context.js");
  const {streamOpenAICompletions}=await import("@mariozechner/pi-ai/openai-completions");
  const jit=new StableJitContext({...ALL_ON,"just-in-time-prompt-v1":false,"just-in-time-prompt-v2":true},null);
- jit.observe({type:"state",seq:1,screen:"clock",in_battle:false});
- const {g}=governor({maxTurns:2}),controller=new AbortController();
- const payloads:unknown[]=[];const seen:Message[][]=[];const model=scriptedModel([pressReply(["A"]),pressReply(["B"])],seen);
- const loop=piLoop({systemPrompt:"full",tools:[fakePress(()=>{jit.observe({type:"state",seq:2,screen:"naming",in_battle:false});})],base:{model:MODEL,convertToLlm:messages=>messages as Message[]},governor:g,transformContext:messages=>Promise.resolve(messages),emit:()=>undefined,signal:controller.signal,requestContext:context=>jit.context(context),
+ jit.observe({type:"state",seq:1,screen:"main_menu",in_battle:false});
+ const {g}=governor({maxTurns:4}),controller=new AbortController();
+ const payloads:unknown[]=[];const seen:Message[][]=[];const replies=["A","B","A","A"].map((button,index)=>assistant({toolCalls:[{type:"toolCall",id:`jit-${String(index)}`,name:"press",arguments:{buttons:[button]}}]}));const model=scriptedModel(replies,seen);
+ let sceneIndex=0;const scenes=["naming","birch_speech","clock","overworld"];
+ const loop=piLoop({systemPrompt:"full",tools:[fakePress(()=>{jit.observe({type:"state",seq:++sceneIndex+1,screen:scenes[sceneIndex-1]??"overworld",in_battle:false});})],base:{model:MODEL,convertToLlm:messages=>messages as Message[]},governor:g,transformContext:messages=>Promise.resolve(messages),emit:()=>undefined,signal:controller.signal,requestContext:context=>jit.context(context),
  streamFn:async(m,context,options)=>{
   // The provider constructs the real outgoing payload, then aborts before HTTP.
   const probe=streamOpenAICompletions({...MODEL,baseUrl:"http://provider-fixture.invalid/v1"},context,{apiKey:"fixture",onPayload:payload=>{payloads.push(payload);throw new Error("test stops before HTTP");}});
@@ -871,8 +873,14 @@ it("stable JIT preserves provider-serialized history across a scene transition i
  expect(await play(TASK,g,loop)).toBe("budget");
  const schema=Type.Object({messages:Type.Array(Type.Unknown()),tools:Type.Array(Type.Unknown())},{additionalProperties:true});
  const {Value}=await import("typebox/value");
- const [a,b]=payloads.map(payload=>Value.Parse(schema,payload));
- if(a===undefined||b===undefined)throw Error("missing provider payloads");
- expect(b.messages.slice(0,a.messages.length)).toEqual(a.messages);expect(b.tools).toEqual(a.tools);
- expect(JSON.stringify(a.messages)).toContain("Clock interface:");expect(JSON.stringify(b.messages.at(-1))).toContain("Naming layout,");
+ const parsed=payloads.map(payload=>Value.Parse(schema,payload));
+ expect(parsed).toHaveLength(4);
+ for(let i=1;i<parsed.length;i++){
+  const before=parsed[i-1],after=parsed[i];if(before===undefined||after===undefined)throw Error("missing provider payloads");
+  expect(after.messages.slice(0,before.messages.length)).toEqual(before.messages);expect(after.tools).toEqual(before.tools);
+ }
+ expect(parsed.map(p=>JSON.stringify(p.messages).match(/HARNESS INTERFACE GUIDANCE/g)?.length??0)).toEqual([0,1,1,2]);
+ expect(JSON.stringify(parsed[0]?.messages)).not.toContain("Clock interface:");
+ expect(JSON.stringify(parsed[1]?.messages.at(-1))).toContain("Naming layout,");
+ expect(JSON.stringify(parsed[3]?.messages.at(-1))).toContain("Clock interface:");
 });

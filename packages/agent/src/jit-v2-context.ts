@@ -32,6 +32,7 @@ export class StableJitContext {
  private state:ScreenState|null=null;
  private episodes:Episode[]=[];
  private active:Episode|null=null;
+ private lastScene:PromptScene|null=null;
  private ordinal=0;
  private last:PromptReceipt|null=null;
  constructor(private readonly features:FeatureSet,private readonly target:string|null){}
@@ -44,8 +45,10 @@ export class StableJitContext {
   // Empty history occurs in diagnostic callers; it still needs a stable insertion anchor.
   if(context.messages.length===0)retained.set("empty",-1);
   this.episodes=this.episodes.filter(episode=>retained.has(episode.receipt.anchor));
-  const reason:Reason=this.active===null?"first":this.active.receipt.scene!==scene?"scene_change":!this.episodes.includes(this.active)?"evicted":"none";
-  if(reason!=="none"){
+  const reason:Reason=this.lastScene===null?"first":this.lastScene!==scene?"scene_change":this.active===null||!this.episodes.includes(this.active)?"evicted":"none";
+  // Unknown interfaces keep the core and observations; never pin a full fallback to the task.
+  if(scene==="unknown")this.active=null;
+  else if(reason!=="none"){
    const anchor=[...retained.entries()].at(-1)?.[0];
    if(anchor===undefined)throw new Error("JIT v2 requires the task or a tool-result observation anchor");
    const text=`HARNESS INTERFACE GUIDANCE — ${scene}. This applies only to this interface; use the latest matching guide, and the current screenshot/readout to determine input ownership.\n\n${guidance}`;
@@ -53,6 +56,7 @@ export class StableJitContext {
    const episode:Episode={receipt,message:{role:"user",content:text,timestamp:context.messages.at(retained.get(anchor)??-1)?.timestamp??0}};
    this.active=episode;this.episodes.push(episode);
   }
+  this.lastScene=scene;
   const messages:Message[]=[];
   const append=(index:number):void=>{for(const episode of this.episodes)if(retained.get(episode.receipt.anchor)===index)messages.push(episode.message);};
   append(-1);context.messages.forEach((message,index)=>{messages.push(message);append(index);});

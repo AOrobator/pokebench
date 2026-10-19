@@ -48,13 +48,13 @@ No new tools, network calls, subprocesses, game-memory writes, or model privileg
 **M1 — Characterization / RED**
 - [x] Capture production-shaped event-stream replay outputs from the current implementation, including notices, evidence, recovery, stop, and context.
 - [x] Add structural contract tests for the compatibility facade, static priority registry, and rule/coordinator ownership; observe them fail before the new modules exist.
-- [ ] COMMIT: characterization/RED.
+- [x] COMMIT: characterization/RED (`2e0145f2`).
 
 **M2 — GREEN**
-- [ ] Extract types, fingerprints, call tracker, grouped rules, and coordinator without changing public behavior.
-- [ ] Replay the characterized streams and existing focused loop suites.
-- [ ] Delete/disable one changed routing operand, observe the intended focused test fail under a unique receipt, restore it, and rerun green.
-- [ ] Run repository gates and verify vendor.
+- [x] Extract types, fingerprints, call tracker, grouped rules, and coordinator without changing public behavior.
+- [x] Replay the characterized streams and existing focused loop suites.
+- [x] Delete/disable one changed routing operand, observe the intended focused test fail under a unique receipt, restore it, and rerun green.
+- [x] Run repository gates and verify vendor.
 - [ ] COMMIT: implementation/GREEN.
 
 **M3 — Review and land**
@@ -73,6 +73,11 @@ The operator-visible behavior is the existing warning/recovery/stop stream and m
 - 2026-10-19: operator approved a central coordinator with ordered rules, a compatibility facade, and old/new replay equivalence as a behavior-preserving refactor separate from new detector behavior.
 - 2026-10-19: canonical `main` was clean at `f0ff0138`; created isolated worktree `/private/tmp/pokebench-loop-rules` on `codex/loop-rules-refactor` before source edits.
 - 2026-10-19: baseline agent suite passed 2,527 tests across 161 files. Existing recorded-run replay fixtures already assert exact notices, evidence sequences, recovery, and turn-by-turn model contexts. Added a structural RED contract for the ordered registry and rule factory; before extraction it fails at import because `loop/rules/index.ts` does not exist.
+- 2026-10-19: GREEN split: `loop-detection.ts` is a compatibility facade preserving its positional constructor and imports; `LoopCoordinator` now takes a named options object. Call correlation, fingerprints, shared types, and basic/field/interface rule state live in separate modules. The coordinator is 432 lines and remains the sole episode, recovery, stall, notification, context, and stop owner. The registry names all 14 priority positions and its first-hit resolution is directly tested.
+- 2026-10-19: focused replay proof passed 223 tests across 13 loop suites, including the recorded Route 103, push-back, transition, battle-observation, battle-menu, reopened-dialogue, clock-view, trigger-script, diagnostic, recovery, stop, and supervisor paths. Full agent suite passed 2,530 tests across 162 files.
+- 2026-10-19: deletion/restoration receipt `registry-planning-entry-20261019`: removing the `planning` entry made two architecture tests fail (registry shape omitted `planning`; a planning/observation/rejection collision selected `observation` instead of `planning`). Restoring it returned 3/3 green. No receipt was overwritten.
+- 2026-10-19: repository gates after building fresh-worktree artifacts and linking the canonical checkout's existing mGBA Python binding into this disposable venv: `just test` agent 2,530, viewer 1,196, Python 2,709 passed with the configured ROM; `just lint` clean (tsc, eslint, ruff, format check, mypy); `just build` clean; `just coverage` agent lines 99.22 / branches 94.11 / functions 98.18, viewer lines 97.65 / branches 91.49 / functions 93.88, Python lines 97.64 / branches 93.77 / functions 100; `just verify-vendor` OK at `bbab97ad73e460b7cd7c08527d10ced30cc03fbe`.
+- 2026-10-19: two setup-only gate attempts were retained: `git submodule update --init --recursive` found the outer pinned vendor but the vendor's unregistered nested `pokered` path has no URL; non-recursive init is the repo-supported setup. The first `just test` then proved the agent tests but viewer imports could not resolve before agent build; after agent build, the Play asset was still absent until the full viewer build. `just build && just test` passed. No source was changed to accommodate either setup failure.
 
 ## Multi-Model Review Log
 
@@ -80,11 +85,27 @@ Not started.
 
 ## Surprises
 
-None yet.
+- A fresh worktree needs the agent and viewer builds before the viewer gate, and its fresh Python venv needs the already-built local mGBA binding for mypy. These are setup dependencies, not product changes.
 
 ## Principles Adherence
 
-To be scored before review against PB1-PB13.
+Scored against `docs/agent-principles.md` PB1-PB13.
+
+| ID | Score | Why |
+|---|---|---|
+| PB1 | N/A | No milestone or game-progress grading changed. |
+| PB2 | PASS | No run or failure record was discarded or rewritten. |
+| PB3 | N/A | No benchmark claim or measured cohort. |
+| PB4 | PASS | No harness capability changed; replayed event/model output is unchanged. |
+| PB5 | PASS | One structural variable: ownership and module boundaries only. |
+| PB6 | N/A | No context budget or compaction change. |
+| PB7 | PASS | Existing recorded-run fixtures remain the replay oracle; schema and recorder are unchanged. |
+| PB8 | PASS | Warning, recovery, stop, and diagnostic semantics remain bounded and replay-identical. |
+| PB9 | PASS | The operator supplied the architecture and required behavior-preserving boundary. |
+| PB10 | PASS | No skips, excludes, or thresholds changed; all floors pass. |
+| PB11 | N/A | No pinned external API behavior changed. |
+| PB12 | PASS | The configured ROM was read through `POKEBENCH_ROM`; it was not copied. |
+| PB13 | PASS | RED, GREEN, deletion proof, full gates, worklog, and review checkpoint are explicit. |
 
 ## Boy Scout Log
 

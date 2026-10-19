@@ -301,6 +301,13 @@ function stable(value: unknown): string {
   });
 }
 
+function semanticRefusal(call: CompletedCall): string | null {
+  if (call.name !== "battle_action" || call.isError || call.acted !== false) return null;
+  const state = call.state;
+  if (state === undefined || state.battle?.initialized !== true || battleState(state) === null) return null;
+  return call.text.split("\n").find(line => line.startsWith("Battle action: nothing pressed: "))?.slice(0, 2000) ?? null;
+}
+
 function rejectionKey(call: CompletedCall): string | null {
   if (
     !call.isError ||
@@ -377,6 +384,7 @@ export class LoopDetector {
     pushback: boolean;
     revisit: boolean;
     menu: boolean;
+    refusalAnchor: string | null;
   } | null = null;
   // battle-menu-loop-v1: the battle-menu choice last ready, whether the POKéMON or BAG screen has opened since,
   // the returns to that choice, and foe/party HP plus the battle turn (a change clears the count).
@@ -392,6 +400,8 @@ export class LoopDetector {
   private readonly achieved = new Set<string>();
   private latest: GameStateSnapshot | undefined;
   private latestSeq = -1;
+  private lastRefusalSnapshot: string | null = null;
+  private readonly refusalEvidence = new Map<string, number[]>();
   private readonly calls = new Map<
     string,
     {
@@ -429,6 +439,7 @@ export class LoopDetector {
     // reopened-dialogue-loop-v1: lines shown during a call whose result has already closed them.
     private readonly closedDialogue = false,
     private readonly triggerScriptLoops = false,
+    private readonly battleRefusals = false,
   ) {}
 
   observe(event: RunEvent): void {
@@ -531,7 +542,9 @@ export class LoopDetector {
         beforeState: pending?.before,
         acted: pending?.pressed===true,
         state:
-          pending !== undefined &&
+          this.battleRefusals && name === "battle_action"
+            ? pending !== undefined && event.state_seq === this.latestSeq ? this.latest : undefined
+            : pending !== undefined &&
           this.latestSeq >
             ((name === "press" || name === "navigate_to")
               ? (pending.beforeSeq ?? Infinity)
@@ -655,7 +668,18 @@ export class LoopDetector {
     this.completed++;
     if (this.stallNote?.exposed === true) this.stallNote = null;
     const seq = call.seq ?? this.completed;
-    const rejection = rejectionKey(call);
+    const refusal = this.battleRefusals ? semanticRefusal(call) : null;
+    const nativeBattle = call.state === undefined ? null : battleState(call.state);
+    if (this.battleRefusals && nativeBattle !== null && nativeBattle !== this.lastRefusalSnapshot) {
+      for (const key of this.refusalEvidence.keys()) this.rejections.delete(key);
+      this.refusalEvidence.clear();
+      this.lastRefusalSnapshot = nativeBattle;
+    }
+    const rejection = refusal === null ? rejectionKey(call) : `battle_action:${refusal}:${nativeBattle ?? ""}`;
+    if (this.episode?.refusalAnchor != null && !call.isError && call.state !== undefined) {
+      const snapshot = nativeBattle ?? semanticState(call.state, this.interactions);
+      if (snapshot !== null && snapshot !== this.episode.refusalAnchor) this.recover(seq, true);
+    }
     // pushback-loop-detection-v1: what an errored press or navigate_to did is unknown, so the trip ends.
     // State-only mode's `act` tool presses too; an errored result keeps its outer name.
     if (this.pushback && call.isError && (call.name === "press" || call.name === "navigate_to" || (call.name === "act" && call.args["kind"] === "press"))) this.trip = null;
@@ -811,11 +835,19 @@ export class LoopDetector {
     if (rejection !== null) {
       const count = (this.rejections.get(rejection) ?? 0) + 1;
       this.rejections.set(rejection, count);
+      if (refusal !== null) {
+        const evidence = this.refusalEvidence.get(rejection) ?? [];
+        evidence.push(seq);
+        this.refusalEvidence.set(rejection, evidence.slice(-2));
+        if (this.refusalEvidence.size > 16) this.refusalEvidence.delete(this.refusalEvidence.keys().next().value ?? "");
+      }
       if (this.rejections.size > 16)
         this.rejections.delete(this.rejections.keys().next().value ?? "");
       if (count >= this.policy.rejection) hit ??= "rejection";
-    } else if (!call.isError && !PLANNING.has(call.name))
+    } else if (!call.isError && !PLANNING.has(call.name)) {
       this.rejections.clear();
+      this.refusalEvidence.clear();
+    }
     if (
       this.episode?.exposed &&
       this.episode.recovery >= this.episode.window &&
@@ -836,18 +868,19 @@ export class LoopDetector {
     if (this.episode === null) {
       this.episode = {
         kind: hit,
-        message: triggerLooped!==null?TRIGGER_SCRIPT_MESSAGE(triggerLooped.dialogue):menuLooped !== null ? BATTLE_MENU_LOOP_MESSAGE : pushed !== null ? PUSHBACK_MESSAGE : revisited !== null ? REVISIT_MESSAGE : hit === "observation" && waited ? WAITING_MESSAGE : pingPong ? TRANSITION_MESSAGE : hit === "ineffective" && call.name === "navigate_to" ? "Repeated navigation attempts to the same target produced equivalent states. Inspect the destination and obstacle before trying again." : this.interactions && (hit === "ineffective" || hit === "cycle") ? `The same interaction or input pattern is repeating without new game information. Use a single input, inspect the resulting interface, and choose an evidence-supported different approach.${this.messageTruth && !reopened ? "" : " Reopening the same message is not story progress."}` : MESSAGES[hit],
+        message: refusal !== null ? `Repeated battle action refusals pressed no buttons. ${refusal}` : triggerLooped!==null?TRIGGER_SCRIPT_MESSAGE(triggerLooped.dialogue):menuLooped !== null ? BATTLE_MENU_LOOP_MESSAGE : pushed !== null ? PUSHBACK_MESSAGE : revisited !== null ? REVISIT_MESSAGE : hit === "observation" && waited ? WAITING_MESSAGE : pingPong ? TRANSITION_MESSAGE : hit === "ineffective" && call.name === "navigate_to" ? "Repeated navigation attempts to the same target produced equivalent states. Inspect the destination and obstacle before trying again." : this.interactions && (hit === "ineffective" || hit === "cycle") ? `The same interaction or input pattern is repeating without new game information. Use a single input, inspect the resulting interface, and choose an evidence-supported different approach.${this.messageTruth && !reopened ? "" : " Reopening the same message is not story progress."}` : MESSAGES[hit],
         exposed: false,
         recovery: 0,
         threshold: false,
         // The first push-back of the repeated input, or the first of the moves ending on the loop's tile; the notice
         // adds the call that completed the count.
-        evidence: triggerLooped?.evidence??(pushed ?? revisited ?? menuLooped)?.slice(0, 1) ?? [seq],
+        evidence: (refusal === null || rejection === null ? undefined : this.refusalEvidence.get(rejection)) ?? triggerLooped?.evidence??(pushed ?? revisited ?? menuLooped)?.slice(0, 1) ?? [seq],
         window: this.policy.recovery,
         briefing: null,
         pushback: pushed !== null,
         revisit: revisited !== null,
         menu: menuLooped !== null,
+        refusalAnchor: refusal === null ? null : nativeBattle,
       };
       this.notice("warning", seq);
       // Speedrun: the supervisor briefs as soon as a loop is found, then again every window while it lasts.
@@ -1120,6 +1153,7 @@ export class LoopDetector {
     this.episode = null;
     if (novel) {
       this.rejections.clear();
+      this.refusalEvidence.clear();
       this.ineffective = { key: "", count: 0 };
     }
   }

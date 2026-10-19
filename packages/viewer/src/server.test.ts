@@ -625,3 +625,16 @@ it("serves the tracked automatic running explainer byte for byte through the all
  expect((await get(viewer,`/explainers/${id}.html`,{host:"elsewhere.invalid"})).status).toBe(403);
  expect((await get(viewer,`/explainers/${id}.html`,{method:"PUT"})).status).toBe(405);
 });
+
+it("serves the tracked battle refusal explainer byte for byte",async()=>{
+ const id="battle-refusal-loop-v1";
+ const tracked=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)));
+ const root=mkdtempSync(join(tmpdir(),"pokebench-refusal-explainer-"));
+ const staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");
+ mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});writeFileSync(join(docs,`${id}.html`),tracked);
+ const viewer=await startViewer({runsRoot:join(root,"runs"),staticDir,appDir:join(root,"app"),port:0});open.push(viewer);
+ const reply=await get(viewer,`/explainers/${id}.html`);
+ expect(reply.status).toBe(200);expect(reply.body).toEqual(tracked);
+ expect((await get(viewer,`/explainers/${id}.html`,{host:"elsewhere.invalid"})).status).toBe(403);
+ expect((await get(viewer,`/explainers/${id}.html`,{method:"PUT"})).status).toBe(405);
+});

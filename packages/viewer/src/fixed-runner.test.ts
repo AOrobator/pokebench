@@ -34,7 +34,6 @@ it("all four recovery treatments are ON in bundle and OFF in control in the actu
  }
 });
 
-type Ending = "budget" | "model_error" | "never-started";
 type Ending = "budget" | "model_error" | "never-started" | "milestone";
 interface FakeOptions {
   readonly beforeExit?: (launch: FixedLaunch, n: number) => Promise<void>;

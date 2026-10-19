@@ -6,6 +6,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Starter decision salience — experiment overview</title>
 <style>
+code,td{overflow-wrap:anywhere}td:first-child,th:first-child{min-width:110px}@media(max-width:600px){.wrap table{min-width:650px}}.facts{align-items:start}@media(max-width:600px){.facts{grid-template-columns:repeat(2,minmax(0,1fr))}}
 :root { --bg:#f7f8fb; --card:#fff; --ink:#1f2a36; --muted:#5d6b7a; --line:#c9d2dc; --blue:#2f6fb5; --blue-bg:#e6f0fb; --green:#24804a; --green-bg:#e3f5ea; --amber:#9a6200; --amber-bg:#fff2d6; --red:#b23434; --red-bg:#fbe5e5; --gray-bg:#eef1f4; --violet:#6b4fb3; }
 @media (prefers-color-scheme: dark) { :root { --bg:#12161c; --card:#1b2129; --ink:#e4e9ef; --muted:#9aa7b4; --line:#34404d; --blue:#7fb2ea; --blue-bg:#1d2d40; --green:#6fd09a; --green-bg:#173325; --amber:#f0c060; --amber-bg:#3a2e14; --red:#f08a8a; --red-bg:#3a1c1c; --gray-bg:#252c35; --violet:#b9a3f0; } }
 body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
@@ -43,53 +44,54 @@ code { font:13px ui-monospace, SFMono-Regular, Menlo, monospace; background:var(
 <div class="facts">
 <div class="fact"><b>Start</b>ROUTE_101 first-arrival save</div>
 <div class="fact"><b>Runs per arm</b>8</div>
-<div class="fact"><b>Trial cap</b>5 minutes; stop early on native starter choice</div>
-<div class="fact"><b>GPU-hours / wall</b>1.333 maximum trial GPU-hours / about40 trial minutes on two lanes, plus setup/availability</div>
-<div class="fact"><b>Primary outcome</b>Diagnostic mechanism: a recorded, source-supportable goal-related consequence supporting final choice. Native technical gate: STARTER_CHOSEN within300s. Report opportunity and unresolved cases separately.</div>
-<div class="fact"><b>Smallest lift we can see</b>No confirmatory detectable-lift claim</div>
+<div class="fact"><b>Trial cap</b>5 minutes</div>
+<div class="fact"><b>Maximum budget</b>80 GPU-minutes</div>
+<div class="fact"><b>Mechanism</b>Truthful goal-related reason</div>
+<div class="fact"><b>Scope</b>Decision diagnostic</div>
 </div>
 
 <h2>1. What it tests and why</h2>
 <figure>
 <svg viewBox="0 0 860 150" width="860" height="150" role="img" aria-label="From the recorded failure to the switch, the expected behavior and the primary milestone">
 <defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" style="fill:var(--muted)"/></marker></defs>
-<rect class="box b-red" x="10" y="20" width="190" height="100" rx="10"/><text x="24" y="46">Recorded failure</text><text class="small" x="24" y="68">Default accepted as a task</text><text class="small" x="24" y="86">No consequential justification</text><text class="small" x="24" y="104">Complete local census:82 autonomous selections,69 procedural confirmations,11 named choices without a concrete consequence,2 explicit default rationales. Qwen77/77 Torchic and selected controls33/33 Torchic. 90bb seq2912 explicitly chooses the already-selected starter. c0b8 retains relevant prior knowledge and inconsistent intent; no claim of absent model knowledge.</text>
-<rect class="box b-blue" x="230" y="20" width="190" height="100" rx="10"/><text x="244" y="46">Change</text><text class="small" x="244" y="68">Neutral menu reminder</text><text class="small" x="244" y="86">Same facts, tools and goal</text><text class="small" x="244" y="104">starter-decision-salience-v1 only (default OFF)</text>
-<rect class="box b-amber" x="450" y="20" width="190" height="100" rx="10"/><text x="464" y="46">Expected behavior</text><text class="small" x="464" y="68">Coherent stated choice</text><text class="small" x="464" y="86">Verified native execution</text><text class="small" x="464" y="104">visible from Ready starter menu</text>
-<rect class="box b-green" x="670" y="20" width="180" height="100" rx="10"/><text x="684" y="46">Measured as</text><text class="small" x="684" y="68">STARTER_CHOSEN</text><text class="small" x="684" y="86">within 5 minutes; stop early on native starter choice</text><text class="small" x="684" y="104">Fixed diagnostic annotation; native selection is a technical completion gate.</text>
+<rect class="box b-red" x="10" y="20" width="190" height="100" rx="10"/><text x="24" y="46">Recorded failure</text><text class="small" x="24" y="68">Default accepted as a task</text><text class="small" x="24" y="86">No consequential justification</text><text class="small" x="24" y="104">82 choices audited</text>
+<rect class="box b-blue" x="230" y="20" width="190" height="100" rx="10"/><text x="244" y="46">Change</text><text class="small" x="244" y="68">Neutral menu reminder</text><text class="small" x="244" y="86">Same facts, tools and goal</text><text class="small" x="244" y="104">Reminder defaults OFF</text>
+<rect class="box b-amber" x="450" y="20" width="190" height="100" rx="10"/><text x="464" y="46">Expected behavior</text><text class="small" x="464" y="68">Coherent stated choice</text><text class="small" x="464" y="86">Verified native execution</text><text class="small" x="464" y="104">Ready selection only</text>
+<rect class="box b-green" x="670" y="20" width="180" height="100" rx="10"/><text x="684" y="46">Measured as</text><text class="small" x="684" y="68">STARTER_CHOSEN</text><text class="small" x="684" y="86">Within 5 minutes</text><text class="small" x="684" y="104">Reasons scored separately</text>
 <path class="arrow" d="M200,70 H226"/><path class="arrow" d="M420,70 H446"/><path class="arrow" d="M640,70 H666"/>
 </svg>
 <figcaption>The only treatment is a reasoning reminder in the ready menu observation. It never chooses a Pokémon.</figcaption>
 </figure>
 
+<p>Complete local census: 82 autonomous selections, 69 procedural confirmations, 11 named choices without a concrete consequence, 2 explicit default rationales. Qwen 77/77 Torchic and selected controls 33/33 Torchic. 90bb seq 2912 explicitly chooses the already-selected starter. c0b8 retains relevant prior knowledge and inconsistent intent; no claim of absent model knowledge.</p>
 <h2>2. Where runs start and what they cover</h2>
 <figure>
 <svg viewBox="0 0 860 120" width="860" height="120" role="img" aria-label="Story path with the start point, activation milestone and primary milestone">
 <line x1="20" x2="840" y1="50" y2="50" style="stroke:var(--line);stroke-width:6;stroke-linecap:round"/>
 
-<line x1="40" x2="840" y1="50" y2="50" style="stroke:var(--green);stroke-width:6;stroke-linecap:round"/>
+<line x1="140" x2="760" y1="50" y2="50" style="stroke:var(--green);stroke-width:6;stroke-linecap:round"/>
 <circle cx="20" cy="50" r="7" class="box b-gray"/><text class="small" x="20" y="80" text-anchor="middle">boot</text>
-<circle cx="40" cy="50" r="9" class="box b-blue"/><text x="40" y="16" text-anchor="end">start</text><text class="small" x="40" y="32" text-anchor="end">ROUTE_101</text>
-<circle cx="680" cy="50" r="7" class="box b-amber"/><text class="small" x="680" y="80" text-anchor="start">Ready starter menu</text><text class="small" x="680" y="96" text-anchor="start">switch first matters</text>
-<circle cx="840" cy="50" r="9" class="box b-green"/><text x="840" y="28" text-anchor="start">primary</text><text class="small" x="840" y="80" text-anchor="middle">STARTER_CHOSEN</text>
+<circle cx="140" cy="50" r="9" class="box b-blue"/><text x="140" y="16" text-anchor="end">start</text><text class="small" x="140" y="32" text-anchor="end">ROUTE_101</text>
+<circle cx="480" cy="50" r="7" class="box b-amber"/><text class="small" x="480" y="80" text-anchor="start">Ready starter menu</text><text class="small" x="480" y="96" text-anchor="start">switch first matters</text>
+<circle cx="760" cy="50" r="9" class="box b-green"/><text x="760" y="28" text-anchor="start">primary</text><text class="small" x="760" y="80" text-anchor="middle">STARTER_CHOSEN</text>
 </svg>
 <figcaption>Common checkpoint precedes the decision. The model keeps its broad play goal; stopAt ends measurement after the verified choice. Diagram spacing is schematic, not a new timing result.</figcaption>
 </figure>
 
 <h2>3. Arms</h2>
 <div class="wrap"><table>
-<tr><th>Arm</th><th>Switches</th><th>Differs from control by</th><th>Evidence it is ready</th></tr>
+<tr><th>Arm</th><th>Switches</th><th>Differs from control by</th><th>Planned trials</th></tr>
 <tr><td>Control</td><td>Reminder OFF</td><td>Existing observation and buttons</td><td>8 total; 4 per lane</td></tr><tr><td>Reminder</td><td>Reminder ON</td><td>Neutral deliberation reminder; no species advice or new facts</td><td>8 total; 4 per lane</td></tr>
 </table></div>
 
 <h2>4. Outcomes and the decision rule</h2>
 <div class="wrap"><table>
 <tr><th>Role</th><th>Outcome</th><th>Analysis</th></tr>
-<tr><td>Primary</td><td>Diagnostic mechanism: a recorded, source-supportable goal-related consequence supporting final choice. Native technical gate: STARTER_CHOSEN within300s. Report opportunity and unresolved cases separately.</td><td>One descriptive analysis after16 outcomes. Apply the tracked rubric consistently; no p-value, keep/discard promotion or causal gym claim. A deliberate Torchic choice can succeed.</td></tr>
+<tr><td>Primary</td><td>Diagnostic mechanism: a recorded, source-supportable goal-related consequence supporting final choice. Native technical gate: STARTER_CHOSEN within 300s. Report opportunity and unresolved cases separately.</td><td>One descriptive analysis after 16 outcomes. Apply the tracked rubric consistently; no p-value, keep/discard promotion or causal gym claim. A deliberate Torchic choice can succeed.</td></tr>
 <tr><td>Execution</td><td>Stated final species versus actual player-party species; confirmation errors and retries.</td></tr><tr><td>Cost</td><td>Time to menu/choice, calls, tokens, unsupported claims and failures.</td></tr><tr><td>Recognition and uncertainty</td><td>Separate consequential-choice awareness from factual knowledge or honest uncertainty.</td></tr>
 </table></div>
 <p>Mechanism evidence only: compare truthful consequential justification and consistency alongside opportunity/failure/cost counts. Longer prose or choosing Mudkip alone earns no credit.</p>
-<div class="note">Fixed N, one analysis after the last trial. Nothing stops or ejects the experiment early. Every launched trial counts; model errors and crashes count as not reached. Reasoning is a stated belief, not hidden causal evidence. Save starts lose conversation history identically in both arms. Complete all16 before annotation. The queue registration remains blocked against accidental boot screens/promotion; use only the separately approved fixed-run definition.</div>
+<div class="note">Fixed N, one analysis after the last trial. Nothing stops or ejects the experiment early. Every launched trial counts; model errors and crashes count as not reached. Reasoning is a stated belief, not hidden causal evidence. Save starts lose conversation history identically in both arms. Complete all 16 before annotation. The queue registration remains blocked against accidental boot screens/promotion; use only the separately approved fixed-run definition.</div>
 
 <h2>5. How many runs, and why</h2>
 <figure>
@@ -97,13 +99,13 @@ code { font:13px ui-monospace, SFMono-Regular, Menlo, monospace; background:var(
 <figcaption>Fixed diagnostic budget: 16 trials, at most 80 GPU-minutes. This is not a power curve or a confirmatory comparison.</figcaption>
 </figure>
 <div class="wrap"><table>
-<tr><th>True lift</th><th>Runs per arm</th><th>GPU-hours</th><th>Wall hours</th><th>Power at the planned N</th></tr>
+<tr><th>Tier</th><th>Runs per arm</th><th>GPU-hours</th><th>Wall hours</th><th>Power at the planned N</th></tr>
 <tr><td>Diagnostic</td><td>8</td><td>1.333 maximum</td><td>0.667 trial time</td><td>Not a powered claim</td></tr>
 </table></div>
 <p><code>Not applicable: diagnostic trace sampling, not a powered confirmation. Fixed N=8 per arm; sixteen ×300s=4800000ms. A confirmation requires its own effect size, baseline and budget.</code></p>
 
 <h2>6. Order, executors and failures</h2>
-<p>Frozen seed7f31a914d25c806e. Existing fixed runner, balanced randomized blocks; each GPU executes four trials per arm. Same source, save, model artifact/serving fingerprint, sampling, goal and effective flags. Existing running campaigns remain untouched; lanes must be free and qualified before approval.</p>
+<p>Frozen seed 7f31a914d25c806e. Existing fixed runner, balanced randomized blocks; each GPU executes four trials per arm. Same source, save, model artifact/serving fingerprint, sampling, goal and effective flags. Existing running campaigns remain untouched; lanes must be free and qualified before approval.</p>
 <p>Target, cap, declared turn cap, crash/model error or operator stop all remain recorded. Terminal model errors/crashes are retained outcomes; zero replacement reserve. Launcher faults/operator stops hold for review. No silent replacements, rescue, interim arm changes or early cohort stopping.</p>
 
 <h2>7. What could fool us, and what this cannot tell us</h2>
@@ -116,11 +118,11 @@ code { font:13px ui-monospace, SFMono-Regular, Menlo, monospace; background:var(
 <h2>8. Provenance</h2>
 <div class="wrap"><table>
 <tr><th>Item</th><th>Value</th></tr>
-<tr><td>Build</td><td><code>Frozen review pin pending; approval pins the clean final source. Implementation starts from42c4a65a.</code></td></tr>
-<tr><td>Start state</td><td>Source2026-10-18T21-30-00_qwen36-gpu1_frontier-acq-a, seq900/901, empty party at(11,19). SHA1 0c34433cc305ea5de6fa69aa4a5612bf434a5714. Use the registered first-arrival candidate, not later Route101 captures with a starter. Current-build isolated qualification pending.</td></tr>
-<tr><td>Baseline cohort</td><td>Historical taxonomy supplies a mechanism hypothesis; a contemporaneous control is retained. 77 completed Qwen arrival-to-choice median29.690s,p90 43.072s,max311.100s.33 controls median28.564s,max43.612s. One arrival censored after13.502s.</td></tr>
-<tr><td>Grading code</td><td>Existing native StateMilestones and NativeTargetStop. Prompt reminder follows the verified active_ui starter_selection owner. Ordinary tool results, thoughts, frames and raw RAM retain provenance. Annotation rubric and blank16-row CSV are tracked beside this overview.</td></tr>
-<tr><td>Design review</td><td>Pending independent review and real checkpoint qualification. No measured runs have been launched.</td></tr>
+<tr><td>Build</td><td><code>Frozen review pin pending; approval pins the clean final source. Implementation starts from 42c4a65a.</code></td></tr>
+<tr><td>Start state</td><td>Source 2026-10-18T21-30-00_qwen36-gpu1_frontier-acq-a, seq 900/901, empty party at (11,19). SHA1 0c34433cc305ea5de6fa69aa4a5612bf434a5714. Use the registered first-arrival candidate, not later Route101 captures with a starter. Two isolated current-build zero-inference reloads passed: ready menu, cursor changes, decline, acquisition and native proof.</td></tr>
+<tr><td>Baseline cohort</td><td>Historical taxonomy supplies a mechanism hypothesis; a contemporaneous control is retained. 77 completed Qwen arrival-to-choice median 29.690s,p90 43.072s, max 311.100s. 33 controls median 28.564s, max 43.612s. One arrival censored after 13.502s.</td></tr>
+<tr><td>Grading code</td><td>Existing native StateMilestones and NativeTargetStop. Prompt reminder follows the verified active_ui starter_selection owner. Ordinary tool results, thoughts, frames and raw RAM retain provenance. Annotation rubric and blank 16-row CSV are tracked beside this overview.</td></tr>
+<tr><td>Design review</td><td>Checkpoint qualification and sixteen-slot fake rehearsal passed. Independent review and landing remain pending. No measured runs have been launched.</td></tr>
 </table></div>
 </main>
 </body>

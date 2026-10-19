@@ -138,8 +138,8 @@ describe("classifyTrial", () => {
       log.add(900_000,{...end,reason:"budget"});
     }),planned,0);
     expect(run("STARTER_CHOSEN")).toMatchObject({valid:true});
-    expect(run(null)).toMatchObject({valid:false,reason:expect.stringContaining("target")});
-    expect(run("STONE_BADGE")).toMatchObject({valid:false,reason:expect.stringContaining("target")});
+    expect(run(null)).toMatchObject({valid:false,reason:"run_start does not match the plan: stopping target null (planned STARTER_CHOSEN)"});
+    expect(run("STONE_BADGE")).toMatchObject({valid:false,reason:"run_start does not match the plan: stopping target STONE_BADGE (planned STARTER_CHOSEN)"});
   });
 
   it("checks the recorded feature bits against the arm, so a wrong-arm or unrecorded trial is invalid", () => {

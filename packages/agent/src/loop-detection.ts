@@ -301,10 +301,10 @@ function stable(value: unknown): string {
   });
 }
 
-function semanticRefusal(call: CompletedCall): string | null {
+function semanticRefusal(call: CompletedCall, nativeBattle: string | null): string | null {
   if (call.name !== "battle_action" || call.isError || call.acted !== false) return null;
   const state = call.state;
-  if (state === undefined || state.battle?.initialized !== true || battleState(state) === null) return null;
+  if (state === undefined || state.battle?.initialized !== true || nativeBattle === null) return null;
   return call.text.split("\n").find(line => line.startsWith("Battle action: nothing pressed: "))?.slice(0, 2000) ?? null;
 }
 
@@ -668,14 +668,14 @@ export class LoopDetector {
     this.completed++;
     if (this.stallNote?.exposed === true) this.stallNote = null;
     const seq = call.seq ?? this.completed;
-    const refusal = this.battleRefusals ? semanticRefusal(call) : null;
-    const nativeBattle = call.state === undefined ? null : battleState(call.state);
+    const nativeBattle = this.battleRefusals && call.state !== undefined ? battleState(call.state) : null;
+    const refusal = this.battleRefusals ? semanticRefusal(call, nativeBattle) : null;
     if (this.battleRefusals && nativeBattle !== null && nativeBattle !== this.lastRefusalSnapshot) {
       for (const key of this.refusalEvidence.keys()) this.rejections.delete(key);
       this.refusalEvidence.clear();
       this.lastRefusalSnapshot = nativeBattle;
     }
-    const rejection = refusal === null ? rejectionKey(call) : `battle_action:${refusal}:${nativeBattle ?? ""}`;
+    const rejection = refusal === null ? rejectionKey(call) : `battle_action:${refusal}`;
     if (this.episode?.refusalAnchor != null && !call.isError && call.state !== undefined) {
       const snapshot = nativeBattle ?? semanticState(call.state, this.interactions);
       if (snapshot !== null && snapshot !== this.episode.refusalAnchor) this.recover(seq, true);

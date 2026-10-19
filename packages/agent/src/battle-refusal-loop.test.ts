@@ -81,6 +81,9 @@ describe("battle-refusal-loop-v1",()=>{
  it("unknown/unavailable state and changing native battle state cannot establish repeated refusals",()=>{
   const r=rig(true);r.call(refusal,false,"battle_action",{...waiting,battle:null});r.call(refusal,false,"battle_action",{...waiting,battle:null});expect(r.notices).toEqual([]);
   if(waiting.battle==null)throw Error("fixture requires battle");
+  for(const battle of [{...waiting.battle,initialized:false},{...waiting.battle,diagnostic:"harness bug: unavailable"}]) {
+   const unqualified=rig(true);unqualified.call(refusal,false,"battle_action",{...waiting,battle});unqualified.call(refusal,false,"battle_action",{...waiting,battle});expect(unqualified.notices).toEqual([]);
+  }
   const moving=rig(true);moving.call();moving.call(refusal,false,"battle_action",{...waiting,battle:{...waiting.battle,turn:(waiting.battle.turn??0)+1}});expect(moving.notices).toEqual([]);moving.call();expect(moving.notices).toEqual([]);
  });
  it("registers the new switch OFF in omitted presets and flags",()=>{

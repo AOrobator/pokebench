@@ -10,7 +10,7 @@ from test_battle_state import fixture
 from test_game_state import text
 
 from pokebench_env.action_history import NativeActionJournal, read_action_frame
-from pokebench_env.battle_choices import MONS, TYPE_FLAGS
+from pokebench_env.battle_choices import MONS, POSITIONS, TYPE_FLAGS
 from pokebench_env.battle_state import read_battle_state
 from pokebench_env.game_screen import Screen
 from pokebench_env.game_state import MapNames, read_game_state
@@ -18,7 +18,7 @@ from pokebench_env.pokemon import BATTLE_MOVES, MOVE_NAMES
 from pokebench_env.raw_ram import load_raw_ram
 from pokebench_env.readout import state_json
 from pokebench_env.rerender import PORYMAP_MAPS, read_state, render
-from pokebench_env.rom import RomError, resolve_rom
+from pokebench_env.rom import resolve_rom
 from pokebench_env.ui_state import read_active_ui
 
 FIXTURES = Path(__file__).parent / "fixtures"
@@ -76,10 +76,7 @@ def test_game_state_and_active_ui_forward_existing_switch():
 
 def test_real_archived_tutorial_reaches_model_readout():
     provenance = json.loads((FIXTURES / "wally-battle-raw.provenance.json").read_text())
-    try:
-        rom = resolve_rom(os.environ).read_bytes()
-    except RomError:
-        pytest.skip("POKEBENCH_ROM is not set to the Emerald ROM")
+    rom = resolve_rom({"POKEBENCH_ROM": os.environ.get("POKEBENCH_ROM", "")}).read_bytes()
     read = load_raw_ram(
         FIXTURES / "wally-battle-raw.json.gz", provenance["archive"]["sha256"], rom=rom
     )
@@ -137,6 +134,7 @@ def test_native_journal_uses_the_same_tutorial_coverage_switch():
 
 @pytest.mark.parametrize("on", [True, False])
 def test_server_factory_threads_tutorial_switch_to_frame_journal(monkeypatch, on):
+    import sys
     import types
 
     from fastapi import FastAPI
@@ -145,6 +143,7 @@ def test_server_factory_threads_tutorial_switch_to_frame_journal(monkeypatch, on
     from pokebench_env.serve import run
 
     memory = tutorial()
+    monkeypatch.setattr(sys, "argv", list(sys.argv))
     monkeypatch.setenv("POKEBENCH_FEATURES_OFF", "" if on else "tutorial-party-owner-v1")
 
     class Emulator:
@@ -161,3 +160,12 @@ def test_server_factory_threads_tutorial_switch_to_frame_journal(monkeypatch, on
     status, _, body = get(app, "/pokebench/actions")
     assert status == 200
     assert (b"empty battle move has PP" in body) is (not on)
+
+
+def test_tutorial_exception_does_not_apply_to_the_foe_side():
+    memory = tutorial()
+    memory.put(POSITIONS, bytes([1, 0]))
+    assert (
+        read_battle_state(memory.read, tutorial_owner_enabled=True).diagnostic
+        == "harness bug: empty battle move has PP"
+    )

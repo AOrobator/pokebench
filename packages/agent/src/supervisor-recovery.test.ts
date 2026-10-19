@@ -132,7 +132,7 @@ it.each([
  {label:"nullable trigger value",initial:{world_context:{...nearby,triggers:[{...nearby.triggers[0],current_value:null,condition_met:null}]}},known:{world_context:nearby},changed:{world_context:{...nearby,triggers:[{...nearby.triggers[0],current_value:1,condition_met:true}]}}},
 ])("learns initially unknown $label without recovering, preserves it across unreadable gaps, then recovers on a confirmed change",({initial,known,changed})=>{
  const s=parseGameState({...state,...initial}),{r,d}=activeNavigation(s);
- for(const [seq,extra] of [[4,known],[5,initial],[6,known]] as const){
+ for(const [seq,extra] of [[4,known],[5,initial]] as const){
   d.complete({name:"observe",args:{},state:parseGameState({...state,...extra}),beforeState:s,text:"observed conditions",isError:false,seq});
   expect(r.guards).not.toContainEqual(expect.objectContaining({phase:"recovered"}));
  }

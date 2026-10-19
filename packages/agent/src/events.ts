@@ -298,7 +298,7 @@ const DialoguePageSchema = Type.Object({
 }, closed);
 const DialogueAutoAdvance = event("dialogue_auto_advance", {
   tool_call_id: Type.String(),
-  tool: Type.Enum(["press", "navigate_to", "battle_action"] as const),
+  tool: Type.Enum(["press", "navigate_to", "battle_action", "observe"] as const),
   requested: Type.Array(ButtonSchema),
   sent: Type.Array(ButtonSchema),
   dropped: Type.Array(ButtonSchema),

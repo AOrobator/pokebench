@@ -344,7 +344,7 @@ export function fieldContext(view: RunView): string {
 // navigation.ts, navigation-memory.ts, objective-tools.ts and state-decision.ts.
 // Historical run headers contain tool names, not versioned tool schemas.
 const TOOL_REFERENCE: Readonly<Record<string, readonly [description:string, inputs:string, outputs:string, example:string]>> = {
- observe: ["Inspect the current game without pressing a button.", "None. Send an empty object {}.", "A 240×160 screenshot plus observation text. State/map detail depends on the run’s observation switches; decoded state is retained in tool details.", '{}'],
+ observe: ["Inspect the current game. With battle-decision-ready-v1, pending ordinary battle text advances to the next choice.", "None. Send an empty object {}.", "A 240×160 screenshot plus observation text. State/map detail depends on the run’s observation switches; decoded state is retained in tool details.", '{}'],
  press: ["Press Game Boy Advance buttons in order, then inspect the result. Buttons are contextual to the current screen.", "buttons: required array of 1–8 values: A, B, START, SELECT, UP, DOWN, LEFT, RIGHT. walking: optional boolean; true suppresses automatic running. Interface safety may submit only the first requested button.", "A fresh screenshot and observation text, submitted-button acknowledgement, and optional before/after feedback. State is retained in tool details. Invalid requests or server failures return errors.", '{"buttons":["RIGHT"],"walking":true}'],
  navigate_to: ["Walk toward a model-chosen coordinate on the current map using A*. It does not press A or choose a destination.", "x, y: required nonnegative integers. map_id: required [group, number], each integer 0–255, matching the current map. walking: optional boolean. Local mode allows up to 8 button attempts; whole-map mode and terrain support depend on enabled features.", "Navigation status and button-attempt count, final observation/screenshot, and details containing state plus navigation {status, commands, target}. May stop before arrival on a lock, blocked movement or map change.", '{"x":5,"y":1,"map_id":[1,2]}'],
  note_contradiction: ["Record that the game differed from what the model expected. It is pinned in the instruction ledger and changes nothing in the game.", "expected: required, 1–200 characters. observed: required, 1–300 characters. evidence: 1–4 event numbers the model was shown (delivered states or dialogue).", "A confirmation line. Unknown evidence or empty text is rejected; the ledger keeps the newest 8 contradictions.", '{"expected":"The person here would be the professor","observed":"The object at 10,8 is SCIENTIST_1","evidence":[4803]}'],
@@ -473,6 +473,7 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "battle-refusal-loop-v1":"battle-refusal-loop-v1.html",
  "battle-effective-damage-v1":"battle-effective-damage-v1.html",
  "deterministic-warp-navigation-v1":"deterministic-warp-navigation-v1.html",
+ "battle-decision-ready-v1":"battle-decision-ready-v1.html",
 });
 
 export function harnessConfig(view:RunView,registry:readonly FeatureInfo[]=[]):string {

@@ -451,3 +451,15 @@ it("holds both GPU lanes through finite extensions, then chains without replacem
   expect(host.maxRunning).toBe(2);
   expect(parseFixedStatus(JSON.parse(readFileSync(join(dir, "status.json"), "utf8")))).toMatchObject({ state: "finished", invalid: 0, valid: def.plan.length });
 });
+
+it("enables battle decision readiness identically in control and bundle, preserving the frozen control base",async()=>{
+ const {armPreset}=await import("./fixed-design.js");
+ const def=parseFixedDefinition(readFileSync(new URL("../../../experiments/fixed/bundle-v-control.json",import.meta.url),"utf8")).definition;
+ const id="battle-decision-ready-v1";
+ expect(def.onInBoth).toContain(id);expect(def.switches).not.toContain(id);
+ expect(controlBaseProblems(def,readFileSync(new URL(`../../../${def.controlBase.path}`,import.meta.url),"utf8"))).toEqual([]);
+ for(const arm of ["control","bundle"] as const){
+  expect(armFeatureBits(def,arm)[id]).toBe(true);
+  for(const phase of def.phases)expect(armPreset(def,phase.id,arm).features[id]).toBe(true);
+ }
+});

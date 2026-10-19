@@ -45,14 +45,14 @@ describe("registry",()=>{
   expect(featureInfo(ID)).toMatchObject({group:"guard",needs:"low-hp-trainer-warning-v1",switchable:true,title:"STORY BATTLE HEAL WARNING"});
   expect(featureInfo(ID).description).toContain(" Off: ");
   expect(featureInfo(ID).description).toContain(T363_TEXT);
-  expect(SWITCHABLE_FEATURES.at(-35)).toBe(ID);
-  expect(playHarnessFeatures(ALL_ON,null).at(-35)).toBe(ID);
-  expect(playHarnessFeatures({...ALL_ON,[ID]:false},null)).not.toContain(ID);
+  expect(SWITCHABLE_FEATURES.at(-36)).toBe(ID);
+  expect(playHarnessFeatures(ALL_ON,null).at(-36)).toBe(ID);
+  expect(playHarnessFeatures({...ALL_ON,"battle-decision-ready-v1":false,[ID]:false},null)).not.toContain(ID);
   expect(SERVER_FEATURES).not.toContain(ID);
-  expect(dependencyProblems({...ALL_ON,"low-hp-trainer-warning-v1":false})).toContain(`${ID} needs low-hp-trainer-warning-v1`);
+  expect(dependencyProblems({...ALL_ON,"battle-decision-ready-v1":false,"low-hp-trainer-warning-v1":false})).toContain(`${ID} needs low-hp-trainer-warning-v1`);
  });
  it("defaults OFF for presets that omit it and legacy flags; prompt and tools never change",()=>{
-  const without=Object.fromEntries(Object.entries({...ALL_ON,"state-only-decisions-v1":false}).filter(([id])=>id!==ID)) as Omit<FeatureSet,typeof ID>;
+  const without=Object.fromEntries(Object.entries({...ALL_ON,"battle-decision-ready-v1":false,"state-only-decisions-v1":false}).filter(([id])=>id!==ID)) as Omit<FeatureSet,typeof ID>;
   expect(normalizeFeatures(without)[ID]).toBe(false);
   expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:true})[ID]).toBe(false);
   expect(presetFeatures(parsePlayPreset({version:2,id:"p",target:null,limits:{maxTurns:1,maxWallMs:1,failureLimit:1},sampling:{thinkingLevel:"medium",maxTokens:1},features:without}))[ID]).toBe(false);
@@ -202,7 +202,7 @@ describe("recorded event",()=>{
 describe("pending experiment",()=>{
  it("lists every switch registered up to v2 in its raw incumbent, with v1 on (v2 needs it), and flips only v2",()=>{
   const raw=JSON.parse(readFileSync(new URL("../../../experiments/low-hp-trainer-warning-v2.json",import.meta.url),"utf8")) as {changedFeature:string;activationMilestone:string;queuePosition?:number;incumbent:{features:Record<string,boolean>}};
-  const historical=SWITCHABLE_FEATURES.filter(id=>id!=="safe-navigation-strides-v1"&&id!=="deterministic-warp-navigation-v1"&&id!=="battle-effective-damage-v1"&&id!=="scripted-place-guidance-v1"&&id!=="trigger-script-loop-v1");
+  const historical=SWITCHABLE_FEATURES.filter(id=>id!=="safe-navigation-strides-v1"&&id!=="battle-decision-ready-v1"&&id!=="deterministic-warp-navigation-v1"&&id!=="battle-effective-damage-v1"&&id!=="scripted-place-guidance-v1"&&id!=="trigger-script-loop-v1");
   expect(Object.keys(raw.incumbent.features)).toEqual(historical.slice(0,historical.indexOf(ID)+1));
   expect(raw.changedFeature).toBe(ID);
   expect(raw.incumbent.features[ID]).toBe(false);

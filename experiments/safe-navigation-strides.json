@@ -8,7 +8,7 @@
   "primaryMilestone": "RUSTBORO_CITY",
   "source": {
     "checkout": "main",
-    "commit": "0b5ad284f448237800952b95536dfa14b0cde952"
+    "commit": "a6274650f46a1b8fa550752f795544dc938a6065"
   },
   "incumbent": {
     "version": 2,
@@ -155,7 +155,8 @@
       "visited-terrain-navigation-v1": false,
       "safe-navigation-strides-v1": false,
       "deterministic-warp-navigation-v1": true,
-      "battle-refusal-loop-v1": false
+      "battle-refusal-loop-v1": false,
+      "battle-decision-ready-v1": false
     }
   },
   "trialsPerArm": 8,

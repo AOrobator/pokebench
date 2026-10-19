@@ -87,3 +87,9 @@ User-gated; not requested.
 - Final post-fix gates: agent2609, viewer1267, Python2798 tests all pass. TS agent lines99.23 branches94.07 functions98.09; viewer97.60/90.92/93.68; Python97.06/92.65/100. Lint/build/schema,123 experiments and vendor pass. An initial Python invocation omitted POKEBENCH_ROM, yielding one failure/229 skips; corrected invocation with the external ROM symlink passed2798 with no skips, preserving both logs.
 - Owned8097 native server and8858 synthetic UI viewer stopped after evidence capture; live campaign servers/checkouts untouched. Public guide includes source-qualified matrix and zero-call explanation.
 - Round2 will review the cumulative candidate plus fix delta. Claude cloud quota remains a main-landing blocker under execute-worklog even if fallback lanes approve. No measured launch or runtime enablement authorized/executed.
+
+### Current-main integration
+
+- Both bounded Grok attempts in round2 timed out without output (4.7high-fast302seconds,4.5high-fast120seconds), no verdict counted. Three independent GPT-context reviews end LGTM onba07757a; missing Claude/Grok vendor diversity remains explicit. No self-merge.
+- Integrated pinned current maina6274650 (capture/shared-stream and battle-decision-ready). Preserve its snapshot-worker arguments/shutdown and battle behavior; retain safe-strides ON installation/defaultOFF registration. Reconciled append-only feature registry and historical OFF fixture assertions over the new main tests. All22 mutated production guard hashes remain identical.
+- Initial integrated TS coverage found two mechanical expectation mismatches (guidance count and a selective-OFF last-feature index); corrected openly, repeating full TS gates. Python/full build checks running. An owned native ON/OFF smoke on the combined actual server follows before final packet. This integration adds no new safe-strides behavior.

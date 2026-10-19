@@ -19,9 +19,9 @@ const id=(name:string):SwitchableFeature=>{const found=SWITCHABLE_FEATURES.find(
 
 describe("registry and presets",()=>{
  it("appends the five switches, in order, at the end of every registry list",()=>{
-  expect(SWITCHABLE_FEATURES.slice(-27,-22)).toEqual([...NEW]);
-  expect(FEATURES.filter(f=>f.switchable).map(f=>f.id).slice(-27,-22)).toEqual([...NEW]);
-  expect(playHarnessFeatures(ALL_ON,null).slice(-27,-22)).toEqual([...NEW]);
+  expect(SWITCHABLE_FEATURES.slice(-28,-23)).toEqual([...NEW]);
+  expect(FEATURES.filter(f=>f.switchable).map(f=>f.id).slice(-28,-23)).toEqual([...NEW]);
+  expect(playHarnessFeatures(ALL_ON,null).slice(-28,-23)).toEqual([...NEW]);
   expect(SERVER_FEATURES.slice(-7,-2)).toEqual([...NEW]);
  });
  it.each(NEW)("%s is a server observation switch, bundle arm only, whose description says what OFF does",(name)=>{
@@ -29,9 +29,9 @@ describe("registry and presets",()=>{
   expect(info).toMatchObject({group:"observation",switchable:true,needs:NEEDS[name]});
   expect(info.description).toContain(" Off: ");
   expect(info.description).toContain("bundle arm only");
-  expect(serverFeatureEnv({...ALL_ON,[id(name)]:false}).POKEBENCH_FEATURES_OFF.split(",")).toContain(name);
+  expect(serverFeatureEnv({...ALL_ON,"battle-decision-ready-v1":false,[id(name)]:false}).POKEBENCH_FEATURES_OFF.split(",")).toContain(name);
   expect(serverFeatureEnv(ALL_ON).POKEBENCH_FEATURES_OFF.split(",")).not.toContain(name);
-  expect(playHarnessFeatures({...ALL_ON,[id(name)]:false},null)).not.toContain(name);
+  expect(playHarnessFeatures({...ALL_ON,"battle-decision-ready-v1":false,[id(name)]:false},null)).not.toContain(name);
  });
  it.each(NEW)("%s defaults off in presets that omit it and in legacy flag presets",(name)=>{
   const {[id(name)]:omitted,...rest}=ALL_ON;expect(omitted).toBe(true);
@@ -40,13 +40,13 @@ describe("registry and presets",()=>{
  });
  it.each(NEW.filter(n=>NEEDS[n]!==null))("%s reports its unmet dependency, and none once the parent is on",(name)=>{
   const parent=NEEDS[name];if(parent===null)throw new Error(name);
-  expect(dependencyProblems({...ALL_ON,[id(parent)]:false})).toContain(`${name} needs ${parent}`);
-  expect(dependencyProblems({...ALL_ON,[id(parent)]:false,[id(name)]:false}).filter(p=>p.startsWith(`${name} `))).toEqual([]);
+  expect(dependencyProblems({...ALL_ON,"battle-decision-ready-v1":false,[id(parent)]:false})).toContain(`${name} needs ${parent}`);
+  expect(dependencyProblems({...ALL_ON,"battle-decision-ready-v1":false,[id(parent)]:false,[id(name)]:false}).filter(p=>p.startsWith(`${name} `))).toEqual([]);
   expect(dependencyProblems(ALL_ON)).toEqual([]);
  });
  it("surf-gated-exits-v2 needs surf-gated-exits-v1",()=>{
-  expect(dependencyProblems({...ALL_ON,"surf-gated-exits-v1":false})).toContain("surf-gated-exits-v2 needs surf-gated-exits-v1");
-  expect(dependencyProblems({...ALL_ON,"surf-gated-exits-v1":false,[id("surf-gated-exits-v2")]:false})).toEqual([]);
+  expect(dependencyProblems({...ALL_ON,"battle-decision-ready-v1":false,"surf-gated-exits-v1":false})).toContain("surf-gated-exits-v2 needs surf-gated-exits-v1");
+  expect(dependencyProblems({...ALL_ON,"battle-decision-ready-v1":false,"surf-gated-exits-v1":false,[id("surf-gated-exits-v2")]:false})).toEqual([]);
  });
 });
 
@@ -69,7 +69,7 @@ describe("surf-gated-exits-v2: the untaken-exits line names no badge and no move
  const island={...IN_GAME,started:true,screen:"overworld",location:"ROUTE103",map_id:[0,18],position:{x:10,y:21},facing:"up",
   interaction_targets:[warp],topology:{width:80,height:22,connections:[EAST]},
   surf_gate:{can_surf:false,balance_badge:false,party_surf:false,surfing:false,warps:[{x:45,y:6}],connections:["EAST"]}} satisfies GameStateSnapshot;
- const v1=():FeatureSet=>({...ALL_ON,"surf-gated-exits-v1":true,[id("surf-gated-exits-v2")]:false});
+ const v1=():FeatureSet=>({...ALL_ON,"battle-decision-ready-v1":false,"surf-gated-exits-v1":true,[id("surf-gated-exits-v2")]:false});
  it("OFF keeps the v1 line byte for byte",()=>{
   expect(new UntakenExits(v1()).line(island,"")).toBe("Exits here you have not taken: none you can walk to (every exit listed on this map is across water, and you cannot use Surf yet)");
  });
@@ -79,13 +79,13 @@ describe("surf-gated-exits-v2: the untaken-exits line names no badge and no move
   expect(line).not.toMatch(/surf|badge/i);
  });
  it("ON without v1 changes nothing",()=>{
-  const plain={...ALL_ON,"surf-gated-exits-v1":false,[id("surf-gated-exits-v2")]:true};
+  const plain={...ALL_ON,"battle-decision-ready-v1":false,"surf-gated-exits-v1":false,[id("surf-gated-exits-v2")]:true};
   expect(new UntakenExits(plain).line(island,"")).toBe(new UntakenExits({...plain,[id("surf-gated-exits-v2")]:false}).line(island,""));
  });
 });
 
 describe("surf-gated-exits-v2 production wiring: playGameTools adds the untaken-exits line",()=>{
- const BASE:FeatureSet={...ALL_ON,"instruction-ledger-v2":false,"people-ledger-v1":false,"people-id-cards-v1":false,"trainer-heal-guidance-v1":false,"low-hp-trainer-warning-v1":false,"low-hp-trainer-warning-v2":false,"dialogue-auto-advance-v1":false,"bounded-navigation-v1":false,"navigate-first-prompt-v1":false,"blocked-exit-fact-v1":false,"battle-loss-recap-v1":false,"next-milestone-hint-v1":false,"cited-destination-v1":false,"harness-trust-v1":false,"harness-trust-v2":false,"battle-move-tool-v1":false,"surf-gated-exits-v1":true};
+ const BASE:FeatureSet={...ALL_ON,"battle-decision-ready-v1":false,"instruction-ledger-v2":false,"people-ledger-v1":false,"people-id-cards-v1":false,"trainer-heal-guidance-v1":false,"low-hp-trainer-warning-v1":false,"low-hp-trainer-warning-v2":false,"dialogue-auto-advance-v1":false,"bounded-navigation-v1":false,"navigate-first-prompt-v1":false,"blocked-exit-fact-v1":false,"battle-loss-recap-v1":false,"next-milestone-hint-v1":false,"cited-destination-v1":false,"harness-trust-v1":false,"harness-trust-v2":false,"battle-move-tool-v1":false,"surf-gated-exits-v1":true};
  const warp={kind:"warp",x:45,y:6,elevation:0,activation:"movement",availability:"conditional",facing:null,local_id:null,destination:[24,106,0] as [number,number,number],name:"Warp to map 24/106"};
  const EAST={direction:"EAST" as const,offset:-60,destination:[0,25] as [number,number],destination_name:"ROUTE110",edges:[{x:79,y:7}]};
  // Every exit listed on this map is across water and Surf cannot be used.

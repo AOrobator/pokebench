@@ -16,6 +16,9 @@ import type {CheckedPressTool} from "./game-tools.js";
 import {IN_GAME} from "../test-support/events.js";
 
 const RUN=gunzipSync(readFileSync(new URL("./fixtures/people-id-cards-4caa.jsonl.gz",import.meta.url))).toString("utf8").trim().split("\n").map(line=>checkEvent(JSON.parse(line)));
+// All events still reach the history subscriber. Only tool-result states enter
+// the tool wrapper, so avoid validating/retaining internal states a second time.
+const DELIVERED_STATES=new Set(RUN.flatMap(e=>e.type==="tool_result"&&e.state_seq!==undefined?[e.state_seq]:[]));
 const ENVELOPE=new Set(["v","run","seq","t","type","turn"]);
 const snapshot=(e:RunEvent):GameStateSnapshot=>parseGameState(Object.fromEntries(Object.entries(e).filter(([k])=>!ENVELOPE.has(k))));
 const T211=RUN.find((e):e is Extract<RunEvent,{type:"tool_result"}>=>e.type==="tool_result"&&e.turn===211);
@@ -117,7 +120,7 @@ describe("people-id-cards-v1 rehearsal",()=>{
   const tool:AgentTool={name:"press",label:"p",description:"d",parameters:Type.Object({}),execute:()=>Promise.resolve({content:[{type:"text",text:"Location: X\nPosition: X=0, Y=0, facing up"}],details:{state:current}})};
   const [wrapped]=withPeopleIdCards([tool],{...OFF,"character-presence-v1":true,"people-ledger-v1":true,"people-id-cards-v1":true},rec.api);
   for(const e of RUN){
-   if(e.type==="state"&&"started" in e)states.set(e.seq,snapshot(e));
+   if(e.type==="state"&&"started" in e&&DELIVERED_STATES.has(e.seq))states.set(e.seq,snapshot(e));
    if(e.type==="tool_result"&&e.state_seq!==undefined&&states.has(e.state_seq)){current=states.get(e.state_seq);await wrapped?.execute(e.id,{});}
    rec.feed([e]);
   }
@@ -136,7 +139,7 @@ describe("people-id-cards-v1 OFF over the whole recorded run",()=>{
   expect(off[0]).toBe(tool);
   let results=0;
   for(const e of RUN){
-   if(e.type==="state"&&"started" in e)states.set(e.seq,snapshot(e));
+   if(e.type==="state"&&"started" in e&&DELIVERED_STATES.has(e.seq))states.set(e.seq,snapshot(e));
    if(e.type==="tool_result"&&e.state_seq!==undefined&&states.has(e.state_seq)){
     current=states.get(e.state_seq);text=`Location: ${current?.location??""}\nPosition: X=0, Y=0, facing up\n${e.text}`;
     expect(textOf(await off[0]?.execute(e.id,{}) ?? {content:[]})).toBe(text);results++;

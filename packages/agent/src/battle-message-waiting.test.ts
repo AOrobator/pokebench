@@ -6,7 +6,7 @@ import { ALL_ON, SERVER_FEATURES, SWITCHABLE_FEATURES, dependencyProblems, featu
 import { flagFeatures, normalizeFeatures, parsePlayPreset, presetFeatures } from "./play-preset.js";
 
 const ID = "battle-message-waiting-v1";
-const off = (...ids: (typeof SWITCHABLE_FEATURES)[number][]): FeatureSet => ({ ...ALL_ON, ...Object.fromEntries(ids.map((id) => [id, false])) });
+const off = (...ids: (typeof SWITCHABLE_FEATURES)[number][]): FeatureSet => ({ ...ALL_ON,"battle-decision-ready-v1":false,...Object.fromEntries(ids.map((id) => [id, false])) });
 
 it("registers a default-off observation switch with no dependency, recorded last", () => {
   expect(featureInfo(ID)).toMatchObject({ group: "observation", needs: null, switchable: true, title: "BATTLE MESSAGE WAITING" });
@@ -17,12 +17,12 @@ it("registers a default-off observation switch with no dependency, recorded last
   // As built: a finishing battle keeps its text and gains the message clause (battle_details._input_text).
   expect(description).toContain('finishing (outcome won) · battle message waiting: "Got away safely!"');
   expect(description).not.toContain("finishing and recorded-playback text is unchanged");
-  expect(SWITCHABLE_FEATURES.at(-66)).toBe(ID);
-  expect(playHarnessFeatures(ALL_ON, null).at(-66)).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-67)).toBe(ID);
+  expect(playHarnessFeatures(ALL_ON, null).at(-67)).toBe(ID);
   expect(playHarnessFeatures(off(ID), null)).not.toContain(ID);
   expect(featuresOf(playHarnessFeatures(off(ID), null))[ID]).toBe(false);
   // Works whatever the battle readout switches are: the control arm has battle-details-v2 off.
-  expect(dependencyProblems(off("battle-effective-damage-v1", "battle-details-v2", "expanded-menu-battle-information-v1", "status-names-v1"))).toEqual([]);
+  expect(dependencyProblems(off("battle-decision-ready-v1","battle-effective-damage-v1", "battle-details-v2", "expanded-menu-battle-information-v1", "status-names-v1"))).toEqual([]);
 });
 
 it("hands the switch to the game server, which writes the battle readout", () => {

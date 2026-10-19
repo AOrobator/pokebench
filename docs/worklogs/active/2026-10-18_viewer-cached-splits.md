@@ -36,9 +36,9 @@ No new write, network origin, control, or file-system boundary. `/api/workbench`
 - [x] COMMIT: `test(viewer): require atomic cached split bootstrap` (`fccfbe89`) (RED)
 - [x] Implement the display-only cached projection.
 - [x] Gates: targeted tests 86 passed; `just test` 1,189 viewer + 2,515 agent + 2,480 Python passed; `just lint` passed; `just build` passed; viewer coverage 95.41% statements / 91.46% branches / 93.87% functions / 97.65% lines; Python coverage 97.47% lines / 93.37% branches / 99.43% functions. The first combined coverage run hit two unrelated timing failures in `server-stream.test.ts`; the immediate isolated viewer coverage rerun passed all 1,189 tests and all thresholds.
-- [ ] COMMIT: `fix(viewer): show cached splits during replay catch-up` (GREEN)
-- [ ] Real-browser proof at desktop and phone widths, including run switching and two polling cycles.
-- [ ] Read-only before/after check against real run data.
+- [x] COMMIT: `fix(viewer): show cached splits during replay catch-up` (`020af8b7`) (GREEN)
+- [x] Real-browser proof at 1280x900, 1440x900, and 375x812, including pointer run switching, collapsed/expanded split times, and multiple polling/playback cycles. At replay clock 0:00:02, all 23 recorded splits were already visible. Screenshots: `runs/mockups/viewer-cached-splits/shots/` (all five links returned HTTP 200 on the local pages server).
+- [x] Read-only real-data check: run `2026-10-18T22-47-51_qwen36-gpu0_849c` has 23 recorded milestone rows and the candidate viewer showed 23 completed split chips immediately while replay remained near the start; switching to `2026-10-15T19-44-55_qwen36-gpu0_dfb0` changed the selected run and its split projection without retaining the first run's chips.
 - [ ] Multi-model review loop until clean.
 
 ## Closing the Loop
@@ -50,6 +50,7 @@ No new write, network origin, control, or file-system boundary. `/api/workbench`
 - 2026-10-18: Operator reported sequential milestone flashing and asked to render the recorded current state from cache. Traced the behavior to `App.select` resetting `RunView` and the SSE endpoint replaying from byte zero in 2,000-line chunks. Confirmed milestone events and the workbench split snapshot already exist.
 - 2026-10-18: RED targeted run: app tests failed because cached splits were ignored and partial streamed milestones painted during loading. The controls suite also requires the agent package build in this fresh worktree; this setup gap is separate from the two expected behavioral failures.
 - 2026-10-19: GREEN implementation uses the parsed workbench snapshot only while the selected event stream is loading, then uses the completely folded run rather than the replay cursor for the sidebar. Trainer-card art remains optional. Adversarial deletion replaced the complete run with the replay cursor; the focused test failed (`TRUCK EXIT` disappeared) and passed after restoration.
+- 2026-10-19: Browser proof used a scratch clone of two real run recordings on port 8797. At 0:00:02 of the ended replay, the sidebar already showed all 23 completed splits; timeline/screen continued replaying from the start. Run selection replaced the split set cleanly. Inspected 1280, 1440, and 375 px captures with split times both collapsed and expanded; no clipping or narrow-column regression observed. Scratch server stopped and the temporary run copy was removed.
 
 ## Surprises
 

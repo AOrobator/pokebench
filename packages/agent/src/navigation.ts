@@ -459,6 +459,7 @@ function warpIdentityAt(state:GameStateSnapshot,target:Point,options:NavigationO
  if(listed.length!==1)return null;
  const event=listed[0],destination=event?.destination;
  if(event===undefined||destination===null||destination===undefined||dynamicDestination(destination))return null;
+ if(event.elevation!==0&&event.elevation!==geometry.elevation)return null;
  const tile=geometry.tile(target),activation=tile===undefined?undefined:DIRECTIONAL_WARP_PRESSES.get(tile.behavior);
  if(tile===undefined||activation===undefined)return null;
  return {activation,identity:{destination:[...destination],behavior:tile.behavior,elevation:event.elevation}};

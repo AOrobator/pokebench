@@ -99,6 +99,13 @@ describe("deterministic-warp-navigation-v1",()=>{
    const changedOutcome=await identity.execute("nav",{x:3,y:2,map_id:MAP});
    expect(identitySubmissions,name).toBe(0);expect(changedOutcome.details).toMatchObject({navigation:{status:"warp identity or activation changed before action; no command submitted",commands:0}});
   }
+
+  const elevated=room({position:{x:3,y:2},interaction_targets:(current.interaction_targets??[]).map(target=>({...target,elevation:3}))});
+  const elevatedNavigation=elevated.navigation_grid;if(elevatedNavigation===null||elevatedNavigation===undefined)throw new Error("missing elevated navigation grid");
+  const wrongLiveElevation={...elevated,navigation_grid:{...elevatedNavigation,elevation:2}};let elevationSubmissions=0;
+  const liveElevation=navigationTool({deterministicWarps:true,read:()=>Promise.resolve(elevated),press:(_id,_params,_signal,check)=>{check?.(wrongLiveElevation);elevationSubmissions++;return Promise.resolve(result(wrongLiveElevation));},observe:()=>Promise.resolve(result(elevated))});
+  const elevationOutcome=await liveElevation.execute("nav",{x:3,y:2,map_id:MAP});
+  expect(elevationSubmissions).toBe(0);expect(elevationOutcome.details).toMatchObject({navigation:{status:"warp identity or activation changed before action; no command submitted",commands:0}});
  });
 
  it("rejects ambiguous coordinates, incompatible elevations, step-on warps and missing geometry",async()=>{

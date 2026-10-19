@@ -344,6 +344,7 @@ export function fieldContext(view: RunView): string {
 // navigation.ts, navigation-memory.ts, objective-tools.ts and state-decision.ts.
 // Historical run headers contain tool names, not versioned tool schemas.
 const TOOL_REFERENCE: Readonly<Record<string, readonly [description:string, inputs:string, outputs:string, example:string]>> = {
+ choose_evolution:["Choose whether the current POKéMON evolution completes or stops; neither option is recommended.","decision: required evolve or cancel. Acts only at a fresh native cancellation window.","The submitted choice, native outcome when verified, and a fresh screenshot/readout. Refuses when no eligible evolution is waiting.",'{"decision":"evolve"}'],
  observe: ["Inspect the current game without pressing a button.", "None. Send an empty object {}.", "A 240×160 screenshot plus observation text. State/map detail depends on the run’s observation switches; decoded state is retained in tool details.", '{}'],
  press: ["Press Game Boy Advance buttons in order, then inspect the result. Buttons are contextual to the current screen.", "buttons: required array of 1–8 values: A, B, START, SELECT, UP, DOWN, LEFT, RIGHT. walking: optional boolean; true suppresses automatic running. Interface safety may submit only the first requested button.", "A fresh screenshot and observation text, submitted-button acknowledgement, and optional before/after feedback. State is retained in tool details. Invalid requests or server failures return errors.", '{"buttons":["RIGHT"],"walking":true}'],
  navigate_to: ["Walk toward a model-chosen coordinate on the current map using A*. It does not press A or choose a destination.", "x, y: required nonnegative integers. map_id: required [group, number], each integer 0–255, matching the current map. walking: optional boolean. Local mode allows up to 8 button attempts; whole-map mode and terrain support depend on enabled features.", "Navigation status and button-attempt count, final observation/screenshot, and details containing state plus navigation {status, commands, target}. May stop before arrival on a lock, blocked movement or map change.", '{"x":5,"y":1,"map_id":[1,2]}'],
@@ -364,6 +365,7 @@ function toolReference(name:string,automaticRunning:boolean):string {
 }
 
 export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
+ "evolution-decision-v1":"evolution-decision-v1.html",
  "automatic-running-v1":"automatic-running-v1.html",
  "visited-terrain-navigation-v1":"visited-terrain-navigation-v1.html",
  "just-in-time-prompt-v1":"just-in-time-prompt-v1.html",

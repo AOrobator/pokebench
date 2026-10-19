@@ -74,7 +74,7 @@ function resultState(result: AgentToolResult<unknown>) {
 }
 export function objectiveGameTools(tracker: ObjectiveTracker, recorder: Pick<RunRecorder, "recordState" | "buttonPress" | "afterPress">, url: string, fetchFn: typeof fetch = fetch, switches: ToolSwitches = ALL_TOOL_SWITCHES): AgentTool[] {
   const submissions = { count: 0, buttons: [] as readonly Button[] };
-  const [observe, press] = gameTools(url, { beforePress: (id, buttons, timing, before, modifiers) => { submissions.count += 1; submissions.buttons=buttons; recorder.buttonPress(id, buttons, timing, before, modifiers); }, afterPress: () => recorder.afterPress() }, fetchFn, switches);
+  const [observe, press, ...evolution] = gameTools(url, { beforePress: (id, buttons, timing, before, modifiers) => { submissions.count += 1; submissions.buttons=buttons; recorder.buttonPress(id, buttons, timing, before, modifiers); }, afterPress: () => recorder.afterPress() }, fetchFn, switches);
   const perform=async(id:string,params:Parameters<CheckedPressTool["execute"]>[1],signal?:AbortSignal,update?:Parameters<CheckedPressTool["execute"]>[3],check?:BeforePressCheck,options?:Parameters<CheckedPressTool["executeChecked"]>[5])=>{
       signal?.throwIfAborted();
       if (!Value.Check(PressArgs, params)) throw new Error("Invalid press parameters");
@@ -100,6 +100,7 @@ export function objectiveGameTools(tracker: ObjectiveTracker, recorder: Pick<Run
       return result;
     } },
     guarded,
+    ...evolution,
   ];
 }
 

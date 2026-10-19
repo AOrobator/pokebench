@@ -60,10 +60,15 @@ def read_action_frame(
     *,
     include_storage: bool = True,
     storage_cache: StorageDecodeCache | None = None,
+    evolution_decision: bool = False,
 ) -> ActionFrame:
     battle = read_battle_state(read)
     screen = read_screen(read)
-    ui = read_active_ui(read, screen)
+    ui = read_active_ui(read, screen, evolution_decision=evolution_decision)
+    if evolution_decision:
+        from pokebench_env.evolution_decision import decision_ui
+
+        ui = decision_ui(ui, read)
     if screen.kind in PRE_GAME and screen.kind != "naming":
         return ActionFrame(None, None, None, ui, battle=battle)
     index = read(PLAYER_AVATAR + 5, 1)[0]
@@ -153,7 +158,14 @@ def _bag(resources: Resources) -> dict[int, int] | None:
 
 
 class NativeActionJournal:
-    def __init__(self, capacity: int = 16384, clock: Callable[[], float] = time.time) -> None:
+    def __init__(
+        self,
+        capacity: int = 16384,
+        clock: Callable[[], float] = time.time,
+        *,
+        evolution_decision: bool = False,
+    ) -> None:
+        self.evolution_decision = evolution_decision
         self.lock = threading.RLock()
         self.capacity = capacity
         self.clock = clock
@@ -615,7 +627,10 @@ class NativeActionJournal:
                     )
                 self.observe(
                     read_action_frame(
-                        read, include_storage=storage, storage_cache=self.storage_cache
+                        read,
+                        include_storage=storage,
+                        storage_cache=self.storage_cache,
+                        evolution_decision=self.evolution_decision,
                     )
                 )
             except (ValueError, OSError, IndexError, struct.error) as error:
@@ -638,9 +653,13 @@ class FrameEmulator(Protocol):
 
 
 def install_action_history(
-    api: FastAPI, emulator: type[FrameEmulator], read: ReadMemory
+    api: FastAPI,
+    emulator: type[FrameEmulator],
+    read: ReadMemory,
+    *,
+    evolution_decision: bool = False,
 ) -> NativeActionJournal:
-    journal = NativeActionJournal()
+    journal = NativeActionJournal(evolution_decision=evolution_decision)
     step = emulator.run_frame_with_buttons
 
     def step_recording(self: FrameEmulator, buttons: list[str]) -> None:

@@ -31,6 +31,8 @@ from pokebench_env.battle_text import BattleWait, install_battle_text, install_b
 from pokebench_env.blackout_readout import SWITCH as BLACKOUT
 from pokebench_env.blackout_readout import WhiteoutLatch, install_whiteout_latch
 from pokebench_env.checkpoint import install_checkpoint
+from pokebench_env.evolution_decision import SWITCH as EVOLUTION
+from pokebench_env.evolution_decision import install_evolution_decision
 from pokebench_env.frame_pacing import GameLoopServer, install_deadline_pacing
 from pokebench_env.game_screen import ReadMemory
 from pokebench_env.game_state import MapNames
@@ -278,9 +280,21 @@ def run(
         battle_wait = BattleWait(observation[2], levelup_box=LEVELUP_BOX not in off)
         install_battle_wait(frames, battle_wait)
     if actions is not None:
-        install_action_history(*actions)
+        install_action_history(
+            *actions,
+            evolution_decision=human is None and EVOLUTION not in features_off_from_env(os.environ),
+        )
     if travel is not None:
         install_travel(*travel)
+    if (
+        observation is not None
+        and frames is not None
+        and human is None
+        and EVOLUTION not in features_off_from_env(os.environ)
+    ):
+        if len(observation) != 5:
+            raise ValueError("evolution decisions require the emulator memory lock")
+        install_evolution_decision(observation[0], frames, observation[2], observation[4])
     if pause is not None:
         install_pause(
             *pause,

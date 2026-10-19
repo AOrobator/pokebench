@@ -124,3 +124,5 @@ The original ignored runs/explainers copies remain for existing links. Make futu
 - [Deterministic warp navigation](deterministic-warp-navigation-v1.html)
 
 - [Extend an active run (operator control)](extend-run.html)
+
+- [Explicit evolution decision](evolution-decision-v1.html): native decision boundary, both choices, and corrected animation observations.

@@ -143,3 +143,7 @@ Pending, unqueued and unapproved. Separate proposed MAIN_MENU early-game screen,
 | Experiment | Activation / primary | Verdict | Evidence and next gate |
 |---|---|---|---|
 | `visited-terrain-navigation` | `PLAYER_NAME_CONFIRMED` / `RUSTBORO_CITY`; planned external start `PETALBURG_CITY` | PENDING, unqueued, unapproved; checkpoint start itself is qualified, experiment design is not | Both 2026-10-19 45-minute Petalburg reruns reached `TEAM_AQUA_WOODS_EVENT_COMPLETE`, then failed to reach Rustboro; one repeatedly replanned within north Route 104 after rejecting a southward local waypoint. The verified Petalburg state SHA-1 is `f1cf4b8217b7a67f9d48094d21e9fa2c50eebc82`. This supports the activation path and the failure mechanism, not treatment benefit. Before approval: land and repin the switch, run the experiment-design/power workflow for the 45-minute two-GPU external cohort, rehearse the driver, and confirm each arm starts with empty visited-memory state. |
+
+## Explicit evolution decision — 2026-10-19
+
+Pending, not queued. STARTER_CHOSEN is only the conservative earliest prerequisite. Reliable arrival at an actual cancellable evolution window is not yet qualified. One retained checkpoint trace establishes the interface failure, not readiness or benefit. No measured runs approved or launched.

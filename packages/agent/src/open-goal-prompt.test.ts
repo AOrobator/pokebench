@@ -103,7 +103,7 @@ it("the pending experiment's incumbent is the bundle-v-control bundle arm and fl
  expect(raw.changedFeature).toBe(ID);
  expect(raw.queuePosition).toBeUndefined();
  expect(raw.externalCohort).toBeUndefined();
- const historical=SWITCHABLE_FEATURES.filter(id=>id!=="deterministic-warp-navigation-v1"&&id!=="battle-effective-damage-v1"&&id!=="scripted-place-guidance-v1"&&id!=="trigger-script-loop-v1").filter(id=>id!=="just-in-time-prompt-v2"&&id!=="faced-interaction-history-v1");
+ const historical=SWITCHABLE_FEATURES.filter(id=>id!=="evolution-decision-v1"&&id!=="deterministic-warp-navigation-v1"&&id!=="battle-effective-damage-v1"&&id!=="scripted-place-guidance-v1"&&id!=="trigger-script-loop-v1").filter(id=>id!=="just-in-time-prompt-v2"&&id!=="faced-interaction-history-v1");
  const named=historical.slice(0,historical.indexOf(ID)+1);
  expect(named.at(-1)).toBe(ID);
  expect(Object.keys(raw.incumbent.features).slice(0,named.length)).toEqual(named);

@@ -451,3 +451,9 @@ it("holds both GPU lanes through finite extensions, then chains without replacem
   expect(host.maxRunning).toBe(2);
   expect(parseFixedStatus(JSON.parse(readFileSync(join(dir, "status.json"), "utf8")))).toMatchObject({ state: "finished", invalid: 0, valid: def.plan.length });
 });
+
+ it("enables explicit evolution only in the bundle through the production arm builder",()=>{
+ const {definition:def}=parseFixedDefinition(readFileSync(new URL("../../../experiments/fixed/bundle-v-control.json",import.meta.url),"utf8"));
+ expect(armFeatureBits(def,"control")["evolution-decision-v1"]).toBe(false);
+ expect(armFeatureBits(def,"bundle")["evolution-decision-v1"]).toBe(true);
+ });

@@ -1240,3 +1240,11 @@ it("links stable JIT v2's native feature card to its tracked guide and receipt c
  const html=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)),"utf8");
  expect(html).toContain("projected_guidance");expect(html).toContain("canonical_history_json");
 });
+
+it("links the explicit evolution feature to its tracked explainer",()=>{
+ expect(FEATURE_EXPLAINERS["evolution-decision-v1"]).toBe("evolution-decision-v1.html");
+ const html=readFileSync(fileURLToPath(new URL("../../../docs/explainers/evolution-decision-v1.html",import.meta.url)),"utf8");
+ expect(html).toContain("<h1>Explicit evolution decision</h1>");
+ const log=new Log();log.add(0,{...START,harness_features:["ram-state-v1","evolution-decision-v1"]});const rendered=harnessConfig(view(log),FEATURES);
+ expect(rendered).toContain('/explainers/evolution-decision-v1.html');
+});

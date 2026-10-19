@@ -4,10 +4,11 @@ import { Type, type Static } from "typebox";
 import { Value } from "typebox/value";
 import { ButtonSchema, StateBodySchema, type Button } from "./events.js";
 import { parseGameState, type GameStateSnapshot } from "./game-state.js";
+import {evolutionTool} from "./evolution-decision.js";
 import { ShownStates, pressResult } from "./press-result.js";
 
 // Which model-visible parts of the observe/press results this run shows.
-export interface ToolSwitches { readonly readout: boolean; readonly pressResult: boolean; readonly position: boolean; readonly fieldLock: boolean; readonly safeInterfaces?: boolean; readonly automaticRunning?: boolean; readonly transitions?: boolean; readonly warpArrival?: boolean; readonly blockedBatch?: boolean; readonly liveMap?: boolean; readonly ledges?: boolean; readonly edgeWalls?: boolean; readonly counters?: boolean; readonly topology?: boolean; readonly pushback?: boolean }
+export interface ToolSwitches { readonly evolutionDecision?: boolean; readonly readout: boolean; readonly pressResult: boolean; readonly position: boolean; readonly fieldLock: boolean; readonly safeInterfaces?: boolean; readonly automaticRunning?: boolean; readonly transitions?: boolean; readonly warpArrival?: boolean; readonly blockedBatch?: boolean; readonly liveMap?: boolean; readonly ledges?: boolean; readonly edgeWalls?: boolean; readonly counters?: boolean; readonly topology?: boolean; readonly pushback?: boolean }
 export const ALL_TOOL_SWITCHES: ToolSwitches = { readout: true, pressResult: true, position: true, fieldLock: true, automaticRunning: false, transitions: false };
 import type { PressTiming } from "./recorder.js";
 
@@ -218,6 +219,10 @@ export function pressTool(
         if(check!==undefined)throw error;
       }
       check?.(before);
+      if(switches.evolutionDecision===true&&before?.screen==="evolution"&&(before.active_ui?.phase==="evolution_decision"||before.active_ui?.phase==="evolution_cancel_window"||(typeof before.active_ui?.details?.evolution_state==="number"&&before.active_ui.details.evolution_state<=8&&typeof before.active_ui.details.task_flags==="number"&&(before.active_ui.details.task_flags&1)!==0))){
+        const result=await observation(gameServerUrl,fetchFn,signal,"Ordinary buttons are blocked during this evolution animation. Use choose_evolution when the decision is ready. Nothing pressed.\n");
+        return {content:result.content,details:{state:result.state}};
+      }
       const buttons = submittedButtons(params.buttons,before,switches);
       const automaticRunning = checkedOptions?.automaticRunning===false?false:permitsAutomaticRunning(before, buttons, params.walking, switches.automaticRunning);
       if (switches.automaticRunning===true || params.walking!==undefined) hooks.beforePress(toolCallId, buttons, PRESS_TIMING, before, {automatic_running:automaticRunning,...(switches.automaticRunning===true?{}:{walking:params.walking===true}),...(automaticRunning?{requested_held_buttons:["B"] as const}:{})});
@@ -255,7 +260,7 @@ export function pressTool(
 
 
 /** observe and press sharing what the model was last shown. */
-export function gameTools(gameServerUrl: string, hooks: PressHooks, fetchFn: typeof fetch = fetch, switches: ToolSwitches = ALL_TOOL_SWITCHES, clock: Clock = realClock): [AgentTool, CheckedPressTool] {
+export function gameTools(gameServerUrl: string, hooks: PressHooks, fetchFn: typeof fetch = fetch, switches: ToolSwitches = ALL_TOOL_SWITCHES, clock: Clock = realClock): [AgentTool, CheckedPressTool, ...AgentTool[]] {
   const shown = new ShownStates();
-  return [observeTool(gameServerUrl, fetchFn, switches, shown), pressTool(gameServerUrl, hooks, fetchFn, clock, switches, shown)];
+  return [observeTool(gameServerUrl, fetchFn, switches, shown), pressTool(gameServerUrl, hooks, fetchFn, clock, switches, shown), ...(switches.evolutionDecision===true?[evolutionTool(gameServerUrl,fetchFn,hooks,clock,async(signal,prefix)=>{const result=await observation(gameServerUrl,fetchFn,signal,prefix);shown.record(result.state);return {content:result.content,details:{state:result.state}};})]:[])];
 }

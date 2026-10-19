@@ -135,3 +135,5 @@ The original ignored runs/explainers copies remain for existing links. Make futu
 - [Battle action refusals](battle-refusal-loop-v1.html): default-OFF semantic refusal coverage using the existing rejection lifecycle.
 
 - [Safe planned navigation strides](safe-navigation-strides-v1.html)
+- [Explicit evolution decision](evolution-decision-v1.html): native decision boundary, both choices, and corrected animation observations.
+

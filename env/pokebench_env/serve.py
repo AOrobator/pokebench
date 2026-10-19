@@ -31,6 +31,8 @@ from pokebench_env.battle_text import BattleWait, install_battle_text, install_b
 from pokebench_env.blackout_readout import SWITCH as BLACKOUT
 from pokebench_env.blackout_readout import WhiteoutLatch, install_whiteout_latch
 from pokebench_env.checkpoint import install_checkpoint
+from pokebench_env.evolution_decision import SWITCH as EVOLUTION
+from pokebench_env.evolution_decision import install_evolution_decision
 from pokebench_env.frame_pacing import GameLoopServer, install_deadline_pacing
 from pokebench_env.game_screen import ReadMemory
 from pokebench_env.game_state import MapNames
@@ -273,6 +275,12 @@ def run(
     frames: type[SteppedEmulator] | None = None,
     battle_text: tuple[FastAPI, type[SteppedEmulator], ReadMemory] | None = None,
 ) -> None:
+    if human is not None:
+        # Human play has neither this model tool nor its frame gate. Keep every
+        # reader OFF even when the historical human launch list omits the ID.
+        os.environ["POKEBENCH_FEATURES_OFF"] = ",".join(
+            sorted(features_off_from_env(os.environ) | {EVOLUTION})
+        )
     # Agent observations wait out screen fades on emulated frames (never wall
     # time). The human server records its snapshot observation under the
     # journal lock that the frame step also takes, so it captures at once.
@@ -301,6 +309,7 @@ def run(
     if actions is not None:
         install_action_history(
             *actions,
+            evolution_decision=human is None and EVOLUTION not in features_off_from_env(os.environ),
             tutorial_owner_enabled="tutorial-party-owner-v1"
             not in features_off_from_env(os.environ),
         )
@@ -309,6 +318,19 @@ def run(
             *travel,
             safe_strides="safe-navigation-strides-v1" not in features_off_from_env(os.environ),
         )
+    if (
+        observation is not None
+        and frames is not None
+        and human is None
+        and EVOLUTION not in features_off_from_env(os.environ)
+    ):
+        if len(observation) != 5:
+            raise ValueError("evolution decisions require the emulator memory lock")
+        gate = install_evolution_decision(observation[0], frames, observation[2], observation[4])
+        if settle is not None:
+            # The game intentionally waits for a choice; capture that state even
+            # if its palette is still fading/black. Never advance a held frame.
+            settle.capture_held = lambda: gate.pending() is not None
     if pause is not None:
         install_pause(
             *pause,

@@ -114,7 +114,7 @@ export function battleDecisionContext(features:FeatureSet,state:StateSource,tool
  if(observe===undefined)throw new Error("Battle decision readiness requires observe");
  let sequence=0;
  let retained:AgentMessage|null=null,observedAt:string|null=null;
- const gameTools=new Set(["observe","press","navigate_to","battle_action","act"]);
+ const gameTools=new Set(["observe","press","navigate_to","battle_action","act",...(features["evolution-decision-v1"]?["choose_evolution"]:[])]);
  return async messages=>{
   const latest=messages.findLast(message=>message.role==="toolResult"&&gameTools.has(message.toolName)&&!message.isError&&message.content.some(part=>part.type==="image"));
   const anchor=latest?.role==="toolResult"?JSON.stringify([latest.toolName,latest.toolCallId,latest.timestamp]):null;

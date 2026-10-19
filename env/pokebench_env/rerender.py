@@ -67,6 +67,7 @@ def read_state(
         mid_frame_enabled=MID_FRAME not in off,
         unset_warp_enabled=UNSET_WARP not in off,
         semantic_navigation_enabled="semantic-navigation-v1" not in off,
+        evolution_decision_enabled="evolution-decision-v1" not in off,
     )
 
 

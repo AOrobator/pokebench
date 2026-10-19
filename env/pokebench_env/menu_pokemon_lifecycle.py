@@ -60,7 +60,9 @@ def _mon(
     return cast(str, mon.species)
 
 
-def _evolution(read: ReadMemory, callback: int, details: dict[str, MenuValue]) -> "ActiveUi":
+def _evolution(
+    read: ReadMemory, callback: int, details: dict[str, MenuValue], *, explicit: bool = False
+) -> "ActiveUi":
     from pokebench_env.ui_state import ActiveUi, _window_drawn, read_menu
 
     owners = [task for task in task_snapshot(read) if task[1] in (0x0813E571, 0x0813F1B9)]
@@ -107,7 +109,11 @@ def _evolution(read: ReadMemory, callback: int, details: dict[str, MenuValue]) -
         if data[0] == (20 if trade else 22):
             if not 0 <= data[6] <= (11 if trade else 12):
                 raise ValueError("invalid evolution move-learning phase")
-            move = int.from_bytes(read(0x02022F58, 2), "little")
+            # MonTryLearningNewMove (pret pokemon.c) writes gMoveToLearn.
+            # US ROM f3ae0881: BL at 0x0813EA38 -> 0x08069318;
+            # STRH at 0x080693EC, literal 0x0806941C -> 0x020244E2.
+            # Preserve the old incorrect address exactly with the switch OFF.
+            move = int.from_bytes(read(0x020244E2 if explicit else 0x02022F58, 2), "little")
             if not 1 <= move < 355:
                 raise ValueError("invalid evolution learned move")
             details.update(
@@ -251,7 +257,9 @@ def _pokeblock_recipient(
     )
 
 
-def read_pokemon_lifecycle_menu(read: ReadMemory, callback: int) -> "ActiveUi | None":
+def read_pokemon_lifecycle_menu(
+    read: ReadMemory, callback: int, *, evolution_decision: bool = False
+) -> "ActiveUi | None":
     from pokebench_env.ui_state import ActiveUi
 
     if callback not in EVOLUTION_CALLBACKS | HATCH_CALLBACKS | POKEBLOCK_CALLBACKS:
@@ -259,7 +267,7 @@ def read_pokemon_lifecycle_menu(read: ReadMemory, callback: int) -> "ActiveUi | 
     details = owner_details(read, callback)
     try:
         if callback in EVOLUTION_CALLBACKS:
-            return _evolution(read, callback, details)
+            return _evolution(read, callback, details, explicit=evolution_decision)
         if callback in HATCH_CALLBACKS:
             return _hatch(read, callback, details)
         return _pokeblock_recipient(read, callback, details)

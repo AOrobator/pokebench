@@ -136,6 +136,7 @@ def test_read_state_and_render_pass_every_server_switch_through(monkeypatch):
         "mid_frame_enabled": False,
         "unset_warp_enabled": False,
         "semantic_navigation_enabled": False,
+        "evolution_decision_enabled": False,
         "fmt_named_interactions": False,
         "fmt_world_destinations": False,
         "fmt_bounded_navigation": False,

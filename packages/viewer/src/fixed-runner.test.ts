@@ -504,3 +504,9 @@ it("enables safe navigation strides only in the canonical bundle treatment",asyn
   expect(playHarnessFeatures(features,null).includes(id)).toBe(arm==="bundle");
  }
 });
+
+it("enables explicit evolution only in the bundle through the production arm builder",()=>{
+ const {definition:def}=parseFixedDefinition(readFileSync(new URL("../../../experiments/fixed/bundle-v-control.json",import.meta.url),"utf8"));
+ expect(armFeatureBits(def,"control")["evolution-decision-v1"]).toBe(false);
+ expect(armFeatureBits(def,"bundle")["evolution-decision-v1"]).toBe(true);
+ });

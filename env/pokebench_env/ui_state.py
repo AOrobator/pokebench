@@ -359,6 +359,7 @@ def read_active_ui(
     screen: "Screen",
     *,
     truth: bool = False,
+    evolution_decision: bool = False,
     birch_pages: bool = False,
     transition_coherence: bool = True,
     tutorial_owner_enabled: bool = False,
@@ -425,7 +426,9 @@ def read_active_ui(
                 details=owner_details(read, screen.callback2),
             )
 
-    lifecycle_ui = read_pokemon_lifecycle_menu(read, screen.callback2)
+    lifecycle_ui = read_pokemon_lifecycle_menu(
+        read, screen.callback2, evolution_decision=evolution_decision
+    )
     if lifecycle_ui is not None:
         return lifecycle_ui
     legacy_ui = read_legacy_menu(read, screen.callback2)

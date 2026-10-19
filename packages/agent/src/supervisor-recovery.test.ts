@@ -100,7 +100,7 @@ it("keeps qualified interface ownership, name text and controls in focused recov
 // Native nearby lists are clipped to +/-7 tiles. Membership is not a changed game condition.
 const nearby={objects:[{local_id:1,map_id:[0,19] as [number,number],graphics_id:1,sprite_kind:"person",x:23,y:58}],triggers:[{x:23,y:58,elevation:0,variable:16384,required_value:1,current_value:0,condition_met:false,script_pointer:134217728}],dialogue:null};
 const geometry={elevation:0,tiles:[{x:30,y:58,collision:0,behavior:0,elevation:0}],objects:[],warps:[]};
-function activeNavigation(s:typeof state){
+function activeNavigation(s:import("./game-state.js").GameStateSnapshot){
  const r=recording(),g=new Governor({limits:{maxTurns:100,maxWallMs:60000,failureLimit:3},retry:()=>undefined,abort:()=>undefined,now:()=>0});
  const d=attachLoopGuard(r,g,undefined,"enforced",true,()=>"SUPERVISOR",false,false,false,false,false,false,false,false,false,true);
  for(let seq=1;seq<=3;seq++)d.complete({name:"navigate_to",args:{x:31,y:55-seq},state:s,beforeState:s,text:"no path",isError:false,seq});

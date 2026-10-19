@@ -79,3 +79,26 @@ Prior frozen candidate afd3604e: just test 6762 passed; exact-head build/lint pa
 - This one evidence-only commit touches docs/worklogs/ only, permitted by execute-worklog. One viewer-main refresh and operator-surface proof follow this commit; authoritative final outcome/IDs/stamp/HTTP/screenshots are written to canonical runs/reviews/2026-10-19_starter-decision-probe/repair/landing.json. Verify that receipt before calling the operator surface ready.
 - Existing fixed CLI assumes common Git root is the active main checkout; canonical root currently hosts a different working branch. Delegated only an ignored helper around existing exported production dependencies, explicitly using actual main and canonical runs, with exact checkpoint symlink and unchanged operator approval. No generic CLI refactor or change to canonical branch. Final helper check receipt accompanies landing.json.
 - Implementation, source review, deterministic gates, checkpoint qualification and source landing complete. Pending diagnostic remains unqueued/unapproved; no measured probe, experiment launch, promotion or worklog archival.
+
+## Operator launch — 2026-10-19 19:07 New York
+
+The operator ordered a measured launch of 25 control and 25 reminder trials, with permission to prepare the plan and start the runs. The fixed runner requires per-arm counts divisible by the two lanes, so the plan is 24 per arm in balanced blocks plus one seeded single pair. That is 25 and 25. One lane runs 13 control and 12 reminder; the other runs 12 and 13. Same Route 101 save, 300-second cap, and stop at STARTER_CHOSEN. Agent bytes stay the landed pin ecda0eec. The definition change is the trial count only.
+
+The Petalburg continuous campaign held ports 8075 and 8076 on round 11, started 22:54 UTC. Its STOP file is the driver's own operator stop, so those two trials end as operator aborts and the driver does not start another round. The probe cannot share those lanes.
+
+## Result — 2026-10-19 7:36 PM New York
+
+The 25 and 25 launch finished at 23:36:42 UTC. 50 of 50 trials were valid and 0 were invalid. Every trial ended on the native milestone STARTER_CHOSEN. Agent bytes stayed the landed pin ecda0eec.
+
+The Pokémon in the party at the end:
+
+- Control: 25 Torchic, 0 Treecko, 0 Mudkip.
+- Reminder: 25 Torchic, 0 Treecko, 0 Mudkip.
+
+No trial's game state ever contained Treecko or Mudkip, so none of them moved the menu off the starter it already had highlighted. Median wall time was 36.7 seconds for control and 35.7 seconds for the reminder. The slowest reminder trial was 2 minutes 47 seconds (2026-10-19T19-31-39_qwen36-gpu1_4414, 29 turns) and still ended on Torchic. The ledger is runs/experiments/starter-decision-salience/trials.jsonl.
+
+The operator's decision after that result: the reminder had no effect, so turn the prompt off and turn the switch off. starter-decision-salience-v1 was already the default-OFF treatment. It is not promoted. Omitted presets, the next-run draft, and flag features keep it false, and the reminder text is appended only when that switch is on. Nothing running has it on. The launch approval and the ignored launch helper are removed so this experiment does not start the reminder again. The registered switch stays in the tree so the finished trials can still be read. The committed fixed definition stays the reviewed 16-slot file; the 25 and 25 count was the uncommitted plan the runner used and is not a new treatment.
+
+## Archive
+
+Archived 2026-10-19 at the operator's request, after the null species result. The probe branch and its checkouts are removed. The Petalburg STOP file is still in place.

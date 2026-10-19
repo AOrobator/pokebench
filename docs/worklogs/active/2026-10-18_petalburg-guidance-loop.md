@@ -1,6 +1,6 @@
 # Petalburg scripted-place guidance and trigger-loop detection
 
-Branch `codex/petalburg-gym-trigger-loop`, base main `d4eff8de`. Local only. The operator asked on 2026-10-18 to put two harness fixes into the main bundle and rerun the two ten-minute Petalburg checkpoint probes: record the forced Gym introduction as the current place goal, and detect repeated coordinate-trigger scripts before the five-minute milestone-drought supervisor.
+Branch `codex/petalburg-gym-trigger-loop`, base main `d4eff8de`. Local only. The operator asked on 2026-10-18 to put two harness fixes into the main bundle and rerun two 45-minute Petalburg checkpoint continuations: record the forced Gym introduction as the current place goal, and detect repeated coordinate-trigger scripts before the five-minute milestone-drought supervisor.
 
 ## Problem Statement
 
@@ -21,7 +21,7 @@ pokebench-game-state, agent-observability, feature-switch, feature-explainer, ex
 Two independent default-OFF switches, both enabled only in the rerun bundle:
 
 1. `scripted-place-guidance-v1`: admit the exact source-proven forced Petalburg Gym guidance page into the existing `StoryDestinations` owner. Preserve the game's displayed sentence and resolve `PETALBURG CITY's GYM` to the map-table Gym door. Do not admit arbitrary unnamed NPC dialogue, signs, battle text or generic place mentions. OFF preserves the existing story-character-only destination stream.
-2. `trigger-script-loop-v1`: extend the existing `LoopDetector` owner to recognize the same condition-matching coordinate-trigger script completing repeatedly without native progress, even when the action or ending tile varies. On the second recurrence, record the existing typed `loop_guard` event as a `cycle` with bounded evidence and deliver a source-grounded recovery message before the next model decision. Reset on native progress, condition change or a different trigger/script. OFF preserves the current detector exactly.
+2. `trigger-script-loop-v1`: extend the existing `LoopDetector` owner to recognize the same condition-matching coordinate-trigger script completing repeatedly without native progress, even when the action or ending tile varies. On the second recurrence, record the existing typed `loop_guard` event as `trigger_script` with bounded evidence and deliver a source-grounded recovery message before the next model decision. Reset on native progress, condition change or a different trigger/script. OFF preserves the current detector exactly.
 
 No automatic movement, hidden walkthrough, new timeline mark, milestone change or grading change. Activity History and raw-event inspection reuse the existing `loop_guard` consumer.
 
@@ -44,10 +44,10 @@ No automatic movement, hidden walkthrough, new timeline mark, milestone change o
 
 ### M2 - GREEN
 
-- [ ] Implement and register both default-OFF switches, production wiring and OFF/ON tests.
-- [ ] Reuse the existing typed loop-guard event and visible consumers; prove model delivery.
-- [ ] Add both explainers, pending experiment entries and readiness rows.
-- [ ] Perform deletion/restoration checks and full gates.
+- [x] Implement and register both default-OFF switches, production wiring and OFF/ON tests.
+- [x] Reuse the existing typed loop-guard event and visible consumers; prove model delivery.
+- [x] Add both explainers, pending experiment entries and readiness rows.
+- [x] Perform focused RED/GREEN, deletion/restoration coverage and full gates.
 - [ ] Commit GREEN.
 
 ### M3 - Review and land
@@ -58,7 +58,7 @@ No automatic movement, hidden walkthrough, new timeline mark, milestone change o
 
 ### M4 - Rerun
 
-- [ ] Derive a fresh ten-minute two-lane preset from the landed main bundle with only these two switches added.
+- [ ] Derive a fresh 45-minute two-lane preset from the landed main bundle with the two fixes enabled.
 - [ ] Launch from the same qualified `PETALBURG_CITY` checkpoint, verify clean run-start receipts and raw-RAM capture.
 - [ ] Report healing, trigger-loop count/intervention, Gym/Dad/Wally milestones, stop reason and checkpoints for both runs. Preserve the superseded probes.
 
@@ -70,6 +70,7 @@ READY (checkpoint): the shared `PETALBURG_CITY` save is pinned by SHA-1 and load
 
 - 2026-10-18 EDT: qualified both original probes, verified immediate healing, repeated native trigger scripts, delayed generic supervisor intervention, downstream Wally completion, per-milestone checkpoint files and raw-RAM archives.
 - 2026-10-18 EDT: RED focused replay: 28 tests ran, 26 passed and the two intended assertions failed. The exact Gym page remained `null`; the second shared-condition trigger execution emitted no `trigger_script` notice. OFF and negative cases stayed green.
+- 2026-10-18 EDT: GREEN gates: agent 160 files / 2,516 tests; viewer 84 files / 1,183 tests; Python 2,480 passed / 229 ROM-dependent skipped; TypeScript, ESLint, builds, schema, 114 experiment definitions, both self-contained explainer checks and vendor verification passed. ROM verification was unavailable in this worktree because `POKEBENCH_ROM` was not exported; the same local ROM is required at launch.
 
 ## Multi-Model Review Log
 

@@ -319,6 +319,12 @@ it("labels passive thresholds without inventing run termination",()=>{
  expect(view.loopLabel(event as Extract<typeof event,{type:"loop_guard"}>)).toContain("diagnostic: would stop");expect(view.end).toBe(null);expect(view.retry).toBe(null);
 });
 
+it("labels repeated trigger scripts distinctly in Activity History",()=>{
+ const log=new Log();log.add(0,START);const event=log.add(100,{type:"loop_guard",turn:2,kind:"trigger_script",mode:"enforced",phase:"warning",message:"Repeated Gym script",calls:9,evidence:[20,40]});
+ const view=fold(log);expect(view.loopLabel(event as Extract<typeof event,{type:"loop_guard"}>)).toMatch(/^Repeated trigger script warning/);
+ expect(view.errors[0]?.label).toContain("evidence #20, #40");
+});
+
 it("folds human simultaneous intervals and saved samples for replay without inferred release time",()=>{
  const log=new Log();log.add(0,START);
  log.add(210,{type:"human_input",turn:0,id:1,start_frame:0,end_frame:6,buttons:["A","UP"],start_ms:BASE_MS+100,end_ms:BASE_MS+200,request_seq:1,session:"keyboard"});

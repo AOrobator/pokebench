@@ -17,7 +17,7 @@ describe("dialog-button-b-v1", () => {
     expect(featureInfo(ID).description).toContain("Bundle arm only");
     expect(flagFeatures({loopGuard: true, activeUi: true, interfaceDocs: true, objectives: false})[ID]).toBe(false);
     expect(normalizeFeatures({} as Parameters<typeof normalizeFeatures>[0])[ID]).toBe(false);
-    const without = Object.fromEntries(Object.entries({...ALL_ON, "state-only-decisions-v1": false}).filter(([id]) => id !== ID)) as FeatureSet;
+    const without = Object.fromEntries(Object.entries({...ALL_ON,"scripted-place-guidance-v1":false,"trigger-script-loop-v1":false, "state-only-decisions-v1": false}).filter(([id]) => id !== ID)) as FeatureSet;
     expect(presetFeatures(parsePlayPreset({version: 2, id: "p", target: null, limits: {maxTurns: 1, maxWallMs: 1, failureLimit: 1}, sampling: {thinkingLevel: "medium", maxTokens: 1}, features: without}))[ID]).toBe(false);
     const bundle = JSON.parse(readFileSync(new URL("../../../experiments/fixed/bundle-v-control.json", import.meta.url), "utf8")) as {base: {features: Record<string, boolean>}; switches: string[]};
     expect(bundle.base.features[ID]).toBe(false);
@@ -26,7 +26,7 @@ describe("dialog-button-b-v1", () => {
     expect(cook.incumbent.features[ID]).toBe(true);
     const raw = JSON.parse(readFileSync(new URL("../../../experiments/dialog-button-b.json", import.meta.url), "utf8")) as {queuePosition?: number; incumbent: {features: Record<string, boolean>}};
     expect(raw.queuePosition).toBeUndefined();
-    expect(Object.keys(raw.incumbent.features)).toEqual(SWITCHABLE_FEATURES.filter(id=>id!=="just-in-time-prompt-v2"&&id!=="faced-interaction-history-v1"&&id!=="cache-aligned-window-v1"&&id!=="jit-guide-reuse-v1"));
+    expect(Object.keys(raw.incumbent.features)).toEqual(SWITCHABLE_FEATURES.filter(id=>id!=="scripted-place-guidance-v1"&&id!=="trigger-script-loop-v1"&&id!=="just-in-time-prompt-v2"&&id!=="faced-interaction-history-v1"&&id!=="cache-aligned-window-v1"&&id!=="jit-guide-reuse-v1"));
     const {incumbent, candidate} = experimentArms(parseExperiment(raw));
     expect(incumbent.features[ID]).toBe(false);
     expect(candidate.features[ID]).toBe(true);
@@ -34,8 +34,8 @@ describe("dialog-button-b-v1", () => {
   });
 
   it("OFF leaves the prompt byte for byte, and ON adds the section immediately before harness trust", () => {
-    const off = playSystemPrompt({...ALL_ON, [ID]: false, "harness-trust-v1": true}, null);
-    const on = playSystemPrompt({...ALL_ON, [ID]: true, "harness-trust-v1": true}, null);
+    const off = playSystemPrompt({...ALL_ON,"scripted-place-guidance-v1":false,"trigger-script-loop-v1":false, [ID]: false, "harness-trust-v1": true}, null);
+    const on = playSystemPrompt({...ALL_ON,"scripted-place-guidance-v1":false,"trigger-script-loop-v1":false, [ID]: true, "harness-trust-v1": true}, null);
     expect(off).not.toContain("Dialogue button:");
     expect(on.replace(`\n\n${DIALOGUE_BUTTON_B_SECTION}`, "")).toBe(off);
     expect(DIALOGUE_BUTTON_B_SECTION).toContain("B is the button for a message");

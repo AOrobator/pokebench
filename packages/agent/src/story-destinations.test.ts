@@ -29,7 +29,7 @@ const stateAt=(events:readonly RunEvent[],seq:number)=>{const e=events.find(x=>x
 const resultAt=(events:readonly RunEvent[],turn:number)=>{const e=events.find((x):x is ToolResultEvent=>x.type==="tool_result"&&x.turn===turn);if(e===undefined)throw Error(`no result ${String(turn)}`);return e;};
 function replay(story:StoryDestinations,events:readonly RunEvent[],until:number):void {for(const e of events){if(e.seq>until)break;story.observe(e);}}
 const OFF:FeatureSet=Object.fromEntries(SWITCHABLE_FEATURES.map(id=>[id,false])) as Record<(typeof SWITCHABLE_FEATURES)[number],boolean>;
-const ON:FeatureSet={...ALL_ON,"state-only-decisions-v1":false,"story-destinations-v1":true};
+const ON:FeatureSet={...ALL_ON,"scripted-place-guidance-v1":false,"trigger-script-loop-v1":false,"state-only-decisions-v1":false,"story-destinations-v1":true};
 
 const T272_BLOCK=[
  `${STORY_HEADER} (turn 272, MAY): "Well, it's time to head back to the LAB."`,
@@ -232,6 +232,17 @@ describe("scripted-place-guidance-v1",()=>{
  it("ON does not promote an arbitrary unnamed place line",()=>{
   expect(block(true,[page("Go to RUSTBORO CITY.",null,null)])).toBeNull();
  });
+ it("is default-off, registered as a one-switch pending experiment, and included in the bundle",()=>{
+  expect(featureInfo("scripted-place-guidance-v1")).toMatchObject({group:"guidance",needs:null,switchable:true});
+  const entry=parseExperiment(JSON.parse(readFileSync(new URL("../../../experiments/scripted-place-guidance.json",import.meta.url),"utf8")));
+  expect(entry.queuePosition).toBeUndefined();
+  const {incumbent,candidate}=experimentArms(entry);
+  expect(incumbent.features["scripted-place-guidance-v1"]).toBe(false);
+  expect(candidate.features["scripted-place-guidance-v1"]).toBe(true);
+  expect(Object.keys(candidate.features).filter(id=>candidate.features[id as keyof FeatureSet]!==incumbent.features[id as keyof FeatureSet])).toEqual(["scripted-place-guidance-v1"]);
+  const bundle=JSON.parse(readFileSync(new URL("../../../experiments/fixed/bundle-v-control.json",import.meta.url),"utf8")) as {base:{features:Record<string,boolean>};switches:string[]};
+  expect(bundle.base.features["scripted-place-guidance-v1"]).toBe(false);expect(bundle.switches).toContain("scripted-place-guidance-v1");
+ });
 });
 
 type Details={state:GameStateSnapshot|undefined};
@@ -308,7 +319,7 @@ describe("story-destinations-v1 switch",()=>{
   expect(SWITCHABLE_FEATURES).toContain("story-destinations-v1");
   expect(playHarnessFeatures(ON,null)).toContain("story-destinations-v1");
   expect(playHarnessFeatures({...ON,"story-destinations-v1":false,"harness-trust-v1":false,"cited-destination-v1":false,"harness-trust-v2":false,"heal-before-trainers-v1":false,"bag-healing-items-v1":false,"battle-menu-loop-v1":false,"clock-view-loop-v1":false,"stale-story-goal-v1":false,"input-cuts-v1":false,"loop-guard-screen-v1":false,"reopened-dialogue-loop-v1":false,"dialog-button-b-v1":false,"just-in-time-prompt-v1":false,"just-in-time-prompt-v2":false,"jit-guide-reuse-v1":false},null)).not.toContain("story-destinations-v1");
-  const features=Object.fromEntries(Object.entries({...ALL_ON,"state-only-decisions-v1":false}).filter(([id])=>id!=="story-destinations-v1"));
+  const features=Object.fromEntries(Object.entries({...ALL_ON,"scripted-place-guidance-v1":false,"trigger-script-loop-v1":false,"state-only-decisions-v1":false}).filter(([id])=>id!=="story-destinations-v1"));
   const preset=parsePlayPreset({version:2,id:"old",target:null,limits:{maxTurns:1500,maxWallMs:1800000,failureLimit:3},sampling:{thinkingLevel:"medium",maxTokens:4096},features});
   expect(presetFeatures(preset)["story-destinations-v1"]).toBe(false);
  });

@@ -32,10 +32,10 @@ function promptsDigest(base:FeatureSet):string{
 
 it("OFF builds every main prompt byte for byte, from the incumbent and from every switch on",()=>{
  expect(INCUMBENT[ID]).toBe(false);
- expect(MAIN_SWITCHES).toEqual(SWITCHABLE_FEATURES.filter(id=>id!=="cache-aligned-window-v1"&&id!=="jit-guide-reuse-v1"&&id!=="save-state-task-truth-v1"&&id!=="faced-interaction-history-v1"&&id!==ID&&id!=="ineffective-loops-v1"&&id!=="people-id-cards-v1"&&id!=="open-goal-prompt-v1"&&id!=="low-hp-trainer-warning-v2"&&id!=="story-destinations-v1"&&id!=="exit-reachability-v1"&&id!=="harness-trust-v1"&&id!=="cited-destination-v1"&&id!=="harness-trust-v2"&&id!=="heal-before-trainers-v1"&&id!=="battle-move-tool-v1"&&id!=="tutorial-party-owner-v1"&&id!=="mid-frame-readout-v1"&&id!=="unset-dynamic-warp-v1"&&id!=="status-names-v1"&&id!=="surf-gated-exits-v2"&&id!=="instruction-ledger-v2"&&id!=="no-exit-here-v1"&&id!=="bag-healing-items-v1"&&id!=="battle-menu-loop-v1"&&id!=="clock-view-loop-v1"&&id!=="stale-story-goal-v1"&&id!=="input-cuts-v1"&&id!=="loop-guard-screen-v1"&&id!=="reopened-dialogue-loop-v1"&&id!=="dialog-button-b-v1"&&id!=="just-in-time-prompt-v1"&&id!=="just-in-time-prompt-v2"));
+ expect(MAIN_SWITCHES).toEqual(SWITCHABLE_FEATURES.filter(id=>id!=="scripted-place-guidance-v1"&&id!=="trigger-script-loop-v1"&&id!=="cache-aligned-window-v1"&&id!=="jit-guide-reuse-v1"&&id!=="save-state-task-truth-v1"&&id!=="faced-interaction-history-v1"&&id!==ID&&id!=="ineffective-loops-v1"&&id!=="people-id-cards-v1"&&id!=="open-goal-prompt-v1"&&id!=="low-hp-trainer-warning-v2"&&id!=="story-destinations-v1"&&id!=="exit-reachability-v1"&&id!=="harness-trust-v1"&&id!=="cited-destination-v1"&&id!=="harness-trust-v2"&&id!=="heal-before-trainers-v1"&&id!=="battle-move-tool-v1"&&id!=="tutorial-party-owner-v1"&&id!=="mid-frame-readout-v1"&&id!=="unset-dynamic-warp-v1"&&id!=="status-names-v1"&&id!=="surf-gated-exits-v2"&&id!=="instruction-ledger-v2"&&id!=="no-exit-here-v1"&&id!=="bag-healing-items-v1"&&id!=="battle-menu-loop-v1"&&id!=="clock-view-loop-v1"&&id!=="stale-story-goal-v1"&&id!=="input-cuts-v1"&&id!=="loop-guard-screen-v1"&&id!=="reopened-dialogue-loop-v1"&&id!=="dialog-button-b-v1"&&id!=="just-in-time-prompt-v1"&&id!=="just-in-time-prompt-v2"));
  expect(promptsDigest({...INCUMBENT,[ID]:false})).toBe(MAIN_INCUMBENT_SHA);
  // Later switches that add prompt text are off here, so the digest still names main's prompts before them.
- expect(promptsDigest({...ALL_ON,[ID]:false,"people-id-cards-v1":false,"open-goal-prompt-v1":false,"harness-trust-v1":false,"cited-destination-v1":false,"harness-trust-v2":false,"dialog-button-b-v1":false,"just-in-time-prompt-v1":false,"just-in-time-prompt-v2":false,"jit-guide-reuse-v1":false})).toBe(MAIN_ALL_ON_SHA);
+ expect(promptsDigest({...ALL_ON,"scripted-place-guidance-v1":false,"trigger-script-loop-v1":false,[ID]:false,"people-id-cards-v1":false,"open-goal-prompt-v1":false,"harness-trust-v1":false,"cited-destination-v1":false,"harness-trust-v2":false,"dialog-button-b-v1":false,"just-in-time-prompt-v1":false,"just-in-time-prompt-v2":false,"jit-guide-reuse-v1":false})).toBe(MAIN_ALL_ON_SHA);
  expect(promptsDigest({...INCUMBENT,[ID]:true})).not.toBe(MAIN_INCUMBENT_SHA);
 });
 
@@ -77,13 +77,13 @@ it("adds the talking-is-cheap sentence only with dialogue auto-advance, as v1 do
 });
 
 it("supersedes v1: with both on, only v2's section is shown, once",()=>{
- for(const base of [PLAIN,{...PLAIN,"dialogue-auto-advance-v1":true},{...ALL_ON,"state-only-decisions-v1":false}]){
+ for(const base of [PLAIN,{...PLAIN,"dialogue-auto-advance-v1":true},{...ALL_ON,"scripted-place-guidance-v1":false,"trigger-script-loop-v1":false,"state-only-decisions-v1":false}]){
   const both=playSystemPrompt({...base,[V1]:true,[ID]:true},null);
   expect(both).toBe(playSystemPrompt({...base,[V1]:false,[ID]:true},null));
   expect(both).not.toContain(EXPLORER_GUIDANCE_SECTION);
   expect(both.split(V2_TEXT).length).toBe(2);
  }
- expect(dependencyProblems({...ALL_ON,[V1]:true,[ID]:true})).toEqual([]);
+ expect(dependencyProblems({...ALL_ON,"scripted-place-guidance-v1":false,"trigger-script-loop-v1":false,[V1]:true,[ID]:true})).toEqual([]);
 });
 
 it("leaves v1 unchanged, ON and OFF, when v2 is off",()=>{
@@ -109,8 +109,8 @@ it("is a default-off standalone guidance switch, recorded third to last (before 
  expect(SWITCHABLE_FEATURES.at(-33)).toBe(ID);
  expect(FEATURES.filter(f=>f.switchable).at(-33)?.id).toBe(ID);
  expect(playHarnessFeatures(ALL_ON,null).at(-33)).toBe(ID);
- expect(serverFeatureEnv({...ALL_ON,[ID]:false}).POKEBENCH_FEATURES_OFF).toBe("");
- expect(dependencyProblems({...ALL_ON,"dialogue-auto-advance-v1":false,"field-dialogue-phase-v1":false,[ID]:true})).not.toContain(expect.stringContaining(ID));
+ expect(serverFeatureEnv({...ALL_ON,"scripted-place-guidance-v1":false,"trigger-script-loop-v1":false,[ID]:false}).POKEBENCH_FEATURES_OFF).toBe("");
+ expect(dependencyProblems({...ALL_ON,"scripted-place-guidance-v1":false,"trigger-script-loop-v1":false,"dialogue-auto-advance-v1":false,"field-dialogue-phase-v1":false,[ID]:true})).not.toContain(expect.stringContaining(ID));
  expect(stateOnlyProblems({...INCUMBENT,"state-only-decisions-v1":true,[ID]:true})).toContain(`state-only-decisions-v1 requires ${ID} OFF`);
  expect(stateOnlyProblems({...INCUMBENT,"state-only-decisions-v1":true,[ID]:false})).not.toContain(`state-only-decisions-v1 requires ${ID} OFF`);
 });

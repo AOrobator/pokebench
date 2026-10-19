@@ -6,6 +6,8 @@
 export type FeatureGroup = "observation" | "guidance" | "guard" | "measurement";
 
 export const SWITCHABLE_FEATURES = [
+  "scripted-place-guidance-v1",
+  "trigger-script-loop-v1",
   "navigation-evidence-memory-v1",
   "automatic-running-v1",
   "expanded-menu-battle-information-v1",
@@ -174,6 +176,8 @@ function measured(id: MeasurementFeature, title: string, description: string): F
 }
 
 export const FEATURES: readonly FeatureInfo[] = [
+  on("scripted-place-guidance-v1", "guidance", "SCRIPTED PLACE GUIDANCE", null, "Bundle arm only, default off. The forced Petalburg Gym introduction from PetalburgCity_EventScript_ShowGymToPlayer is eligible for the existing Story goal used by story-destinations-v1 or harness-trust-v1: the exact game line \"See? This is PETALBURG CITY's GYM.\" resolves through the game's map table to PETALBURG CITY GYM and its door at (15,8). Eligibility requires the exact source-defined rookie-trainer and Gym-sign pages in the same auto-advanced conversation on Petalburg's map; arbitrary unnamed dialogue, signs and generic place mentions remain ineligible. Off: only the existing story-character destination stream can set this goal, so this introduction leaves \"no story character has named a place yet\"."),
+  on("trigger-script-loop-v1", "guard", "TRIGGER SCRIPT LOOP", null, "Bundle arm only, default off. When one tool call steps onto a condition-matching coordinate trigger while its script holds field controls, the loop guard remembers the map, live variable condition and readable dialogue shown before the call settles. If a later call runs the same condition and shows the same dialogue again without native story progress, even through another row wrapper or action shape, the second execution records a trigger_script loop warning and immediately delivers the existing supervisor briefing. The warning quotes the game's dialogue and says repeating that trigger is not progress. Different conditions or dialogue, one execution and executions separated by native story progress do not warn. Off: repeated coordinate-trigger scripts have no dedicated count and wait for the existing generic loop or milestone-drought checks."),
   on("navigation-evidence-memory-v1", "guidance", "NAVIGATION EVIDENCE MEMORY", RAM, "Pins the recent observed dialogue, visited rooms and attempted-target outcomes (whole entries, never clipped) before each turn; optional remember_destination retains a model hypothesis with evidence references. No route or objective enforcement. Off: ordinary sliding conversation and no memory tool."),
   on("automatic-running-v1", "guidance", "AUTOMATIC RUNNING", RAM, "Adds simultaneous B to ordinary directional travel only when native running permission and controls are verified each frame. walking=true overrides it. Off: ordinary sequential button input."),
   on("expanded-menu-battle-information-v1", "observation", "EXPANDED MENU + BATTLE INFORMATION", RAM, "Adds newly decoded menu selections, contents and continuous battle descriptions to model text. Off: these descriptions are explicitly unprovided; corrected typed RAM, native journals, milestones and diagnostics remain recorded."),
@@ -421,6 +425,7 @@ export const LOOP_POLICY_FEATURE = "deterministic-loop-policy-v1:p6:o3:a3:c3:r2:
 export function playHarnessFeatures(features: FeatureSet, target: string | null): string[] {
   const when = (id: SwitchableFeature): string[] => (features[id] ? [id] : []);
   return [
+    ...when("scripted-place-guidance-v1"), ...when("trigger-script-loop-v1"),
     ...when("ram-state-v1"), ...when("live-map-v1"), ...when("field-control-lock"), ...when("naming-cursor-v1"),
     ...when("live-object-sprites-v1"), ...when("coordinate-script-conditions-v1"), ...when("active-field-message-buffer-v1"),
     ...when("world-targets-v1"), ...when("named-interactions-v1"), ...when("world-destinations-v1"), ...when("bounded-navigation-v1"), ...when("live-player-position-v1"), ...when("world-coordinate-grid-v1"),

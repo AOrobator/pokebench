@@ -90,6 +90,7 @@ interface Lives {readonly subject:string;readonly owner:string|null;readonly oth
 export interface StoryLine {
  readonly turn:number;readonly speaker:string;readonly text:string;
  readonly lives:Lives|null;
+ readonly scriptedPlaces?:readonly {readonly quote:string;readonly resolution:string}[];
 }
 
 // One place a story line names: the quoted words, how they resolve (text as the block prints it after the quote),
@@ -117,6 +118,7 @@ export class StoryDestinations {
  // The story characters each recorded state's sprite kinds are (character-presence-v1's table by graphics id),
  // for states that show one, in recording order.
  private readonly sprites:{readonly seq:number;readonly map:MapId|null;readonly kinds:ReadonlyMap<string,string>}[]=[];
+ constructor(private readonly scriptedGuidance=false){}
  observe(event:RunEvent):void {
   if(event.type==="state"&&"started" in event){
    const kinds=new Map<string,string>();
@@ -148,6 +150,10 @@ export class StoryDestinations {
  // Story characters named on earlier pages of the call (any speaker) are who "He/She lives" can mean.
  private storyLines(turn:number,pages:readonly Page[]):StoryLine[] {
   const out:StoryLine[]=[];const before:string[]=[];
+  // pret/pokeemerald PetalburgCity_EventScript_ShowGymToPlayer: the four VAR_PETALBURG_CITY_STATE
+  // coordinate triggers show this exact guidance and physically lead the player to the Gym.
+  const plain=(page:Page)=>page.text.replace(/\s+/g," ").trim();
+  const forcedGym=this.scriptedGuidance&&pages.some(page=>page.speaker===null&&page.speaker_source===null&&page.map_id?.[0]===0&&page.map_id[1]===0&&plain(page).startsWith("Hiya! Are you maybe… A rookie TRAINER?"))&&pages.some(page=>page.speaker===null&&page.speaker_source===null&&plain(page)==="This is the GYM's sign. Look for it whenever you're looking for a GYM.");
   for(const page of pages){
    if(page.battle_message_id!==undefined||page.battle_turn!==undefined)continue;
    const speaker=this.speaker(page);
@@ -162,6 +168,8 @@ export class StoryDestinations {
      lives=subject==="He"||subject==="She"?{subject,owner:others.length===1?others[0] ?? null:null,others}:{subject,owner:subject,others:[]};
     }
     out.push({turn,speaker,text,lives});
+   }else if(forcedGym&&page.speaker===null&&page.speaker_source===null&&page.map_id?.[0]===0&&page.map_id[1]===0&&text==="See? This is PETALBURG CITY's GYM."){
+    out.push({turn,speaker:"PETALBURG GYM BOY",text,lives:null,scriptedPlaces:[{quote:"PETALBURG CITY's GYM",resolution:"PETALBURG CITY GYM"}]});
    }
    for(const n of namedIn(page.text))if(!before.includes(n))before.push(n);
   }
@@ -173,7 +181,7 @@ export class StoryDestinations {
   for(let i=lines.length-1;i>=0;i--){
    const line=lines[i];
    if(line===undefined)continue;
-   if(line.lives!==null||placePhrases(line.text,heads,[...NAMES,...(player===null?[]:[player])]).length>0)return line;
+   if(line.lives!==null||(line.scriptedPlaces?.length??0)>0||placePhrases(line.text,heads,[...NAMES,...(player===null?[]:[player])]).length>0)return line;
   }
   return null;
  }
@@ -196,7 +204,9 @@ export class StoryDestinations {
     resolved.push({quote,text:`${why}${r.text}`,target:r.target});
    }
   }
-  for(const phrase of placePhrases(line.text,heads,[...NAMES,...(player===null?[]:[player])]))
+  for(const place of line.scriptedPlaces??[])
+   resolved.push({quote:`"${place.quote}"`,...resolve(words(place.resolution.split(" ")),places,here,"no map in the game's map table has this name.")});
+  for(const phrase of placePhrases(line.text,heads,[...NAMES,...(player===null?[]:[player]),...(line.scriptedPlaces??[]).map(place=>place.quote)]))
    resolved.push({quote:`"${phrase}"`,...resolve(words(phrase.split(" ")),places,here,"no map in the game's map table has this name.")});
   const targets=resolved.flatMap(r=>r.target===null?[]:[r.target]);
   const doneReason=retire?retirement(targets,story??null):null;
@@ -313,7 +323,7 @@ function stateOf(details:unknown):GameStateSnapshot|null {
 
 export function withStoryDestinations(tools:readonly AgentTool[],features:FeatureSet,recorder:Pick<RunRecorder,"subscribe">,source:PlaceSource):AgentTool[] {
  if(!features["story-destinations-v1"])return [...tools];
- const story=new StoryDestinations();recorder.subscribe(event=>{story.observe(event);});
+ const story=new StoryDestinations(features["scripted-place-guidance-v1"]);recorder.subscribe(event=>{story.observe(event);});
  // The map table never changes; the names of the player's own house do, so it is read once per player name.
  const tables=new Map<string,Promise<readonly Place[]>>();
  const table=async(player:string):Promise<readonly Place[]|Error>=>{

@@ -115,3 +115,5 @@ The original ignored runs/explainers copies remain for existing links. Make futu
 
 - [Aligned cache window](cache-aligned-window-v1.html)
 - [Retained JIT guide reuse](jit-guide-reuse-v1.html)
+- [Scripted place guidance](scripted-place-guidance-v1.html)
+- [Trigger script loop detection](trigger-script-loop-v1.html)

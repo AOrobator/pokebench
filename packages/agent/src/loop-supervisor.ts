@@ -44,7 +44,7 @@ const MAX_TRIED=8;
 // Only these tools return the game readout; any other text could only quote it.
 const GAME_TOOLS=new Set(["observe","press","navigate_to"]);
 const STEP:Readonly<Record<string,readonly[number,number]>>={up:[0,-1],down:[0,1],left:[-1,0],right:[1,0]};
-const PATTERN:Readonly<Record<LoopKind,string>>={cycle:"the same short cycle of actions",ineffective:"the same input with no effect",planning:"planning without acting",observation:"observing without acting",rejection:"the same rejected tool call"};
+const PATTERN:Readonly<Record<LoopKind,string>>={cycle:"the same short cycle of actions",ineffective:"the same input with no effect",planning:"planning without acting",observation:"observing without acting",rejection:"the same rejected tool call",trigger_script:"the same condition-matching coordinate-trigger dialogue"};
 const at=(x:number,y:number)=>`${String(x)},${String(y)}`;
 const quote=(e:DialogueEntry)=>`turn ${String(e.turn)}, ${e.room}${e.facing===null?"":`, facing ${e.facing}`}${e.presence===undefined?"":`, ${e.presence}`}: "${e.text.replace(/\s+/g," ")}"`;
 type Target=NonNullable<State["interaction_targets"]>[number];

@@ -18,7 +18,8 @@ export type LoopKind =
   | "observation"
   | "ineffective"
   | "cycle"
-  | "rejection";
+  | "rejection"
+  | "trigger_script";
 // stall-briefing-v1: stalls the loop checks above do not see.
 export type StallKind = "map_cycle" | "milestone_drought" | "interface_dwell" | "same_plan";
 export type LoopMode = "enforced" | "diagnostic";
@@ -63,6 +64,7 @@ export interface CompletedCall {
   readonly dialogue?: readonly string[] | undefined;
   // reopened-dialogue-loop-v1: readable dialogue shown during the call. Empty means none; absent means the caller supplied dialogue instead.
   readonly spoken?: readonly string[] | undefined;
+  readonly triggerScript?: {readonly map:readonly [number,number];readonly variable:number;readonly required:number;readonly current:number;readonly pointer:number;readonly stateSeq:number}|undefined;
 }
 export type LoopPolicy = { readonly [K in keyof typeof LOOP_POLICY]: number };
 
@@ -87,6 +89,8 @@ const MESSAGES: Record<LoopKind, string> = {
     "A short state/action pattern is repeating without new game information. Reassess the objective and change the approach using observed evidence.",
   rejection:
     "The same tool rejection recurred after correction. Fix the reported argument or evidence problem before trying again.",
+  trigger_script:
+    "The same condition-matching coordinate trigger has run the same dialogue again without new story progress.",
 };
 
 // Only surfaces with observable interaction state can establish equivalence.
@@ -259,6 +263,7 @@ const wayOut = (action: string | undefined): string => {
 
 export const PUSHBACK_MESSAGE =
   "A game script keeps returning the player to the same place after the same input: each attempt ends back where it started, so repeating it will not get past the script. Read what the script's dialogue says, then choose a different target or approach using observed evidence.";
+export const TRIGGER_SCRIPT_MESSAGE=(dialogue:string)=>`The same condition-matching coordinate trigger has run this dialogue again without new story progress: "${dialogue}" Repeating that trigger is not progress. Use the place or action the game just named, or choose a different destination using observed evidence.`;
 const placeOf = (state: GameStateSnapshot): string | null =>
   state.started && state.map_id !== null && state.position !== null ? JSON.stringify([state.map_id, state.position.x, state.position.y]) : null;
 
@@ -327,6 +332,9 @@ export class LoopDetector {
   private clockLooks = { place: "", count: 0 };
   // reopened-dialogue-loop-v1: the same lines shown and then closed, at one place. The first showing is count 0.
   private closedTalk = { text: "", place: "", count: 0 };
+  // trigger-script-loop-v1: executions since native progress, grouped by live condition and shown dialogue.
+  // Adjacent rows can use different wrapper script pointers for the same gate.
+  private readonly triggerScripts=new Map<string,{readonly evidence:number[];readonly dialogue:string}>();
   private readonly rejections = new Map<string, number>();
   private previous: string | null = null;
   private readonly history: string[] = [];
@@ -395,6 +403,7 @@ export class LoopDetector {
       dialogue?: string[];
       // reopened-dialogue-loop-v1: readable dialogue only. A message identity is not a line.
       spoken?: string[];
+      triggerScript?: {map:readonly [number,number];variable:number;required:number;current:number;pointer:number;stateSeq:number};
     }
   >();
 
@@ -415,6 +424,7 @@ export class LoopDetector {
     private readonly clockViews = false,
     // reopened-dialogue-loop-v1: lines shown during a call whose result has already closed them.
     private readonly closedDialogue = false,
+    private readonly triggerScriptLoops = false,
   ) {}
 
   observe(event: RunEvent): void {
@@ -435,12 +445,17 @@ export class LoopDetector {
           if (said !== "")
             for (const pending of this.calls.values()) if (!(pending.dialogue ??= []).includes(said)) pending.dialogue.push(said);
         }
-        if (this.closedDialogue) {
+        if (this.closedDialogue||this.triggerScriptLoops) {
           const line = event.world_context?.dialogue ?? "";
           for (const pending of this.calls.values()) {
             pending.spoken ??= [];
             if (line !== "" && !pending.spoken.includes(line)) pending.spoken.push(line);
           }
+        }
+        if(this.triggerScriptLoops&&event.map_id!==null&&event.position!==null&&scriptHeld(event)){
+          const position=event.position;
+          const trigger=(event.world_context?.triggers??[]).find(t=>t.x===position.x&&t.y===position.y&&t.condition_met===true&&t.current_value!==null);
+          if(trigger!==undefined)for(const pending of this.calls.values())pending.triggerScript={map:event.map_id,variable:trigger.variable,required:trigger.required_value,current:trigger.current_value??trigger.required_value,pointer:trigger.script_pointer,stateSeq:event.seq};
         }
         this.nativeProgress(event, event.seq);
         this.latest = event;
@@ -481,6 +496,7 @@ export class LoopDetector {
         startState: pending?.navigation === true ? pending.before : pending?.start,
         dialogue: pending?.dialogue,
         spoken: pending?.spoken,
+        triggerScript:pending?.triggerScript,
         isError: event.is_error,
         text: event.text,
         seq: event.seq,
@@ -592,6 +608,19 @@ export class LoopDetector {
     return c.restarts >= this.policy.ineffective;
   }
 
+  private noteTriggerScript(call:CompletedCall,seq:number):{readonly evidence:number[];readonly dialogue:string}|null{
+    if(!this.triggerScriptLoops||call.isError||call.triggerScript===undefined)return null;
+    const dialogue=(call.spoken??call.dialogue??[]).map(line=>line.replace(/\s+/g," ").trim()).filter(Boolean).join(" | ");
+    if(dialogue==="")return null;
+    const t=call.triggerScript;
+    const key=JSON.stringify([t.map,t.variable,t.required,t.current,dialogue]);
+    const before=this.triggerScripts.get(key);
+    const evidence=[...(before?.evidence??[]),seq].slice(-2);
+    this.triggerScripts.set(key,{evidence,dialogue});
+    if(this.triggerScripts.size>8)this.triggerScripts.delete(this.triggerScripts.keys().next().value??"");
+    return evidence.length>=2?{evidence,dialogue}:null;
+  }
+
   complete(call: CompletedCall): void {
     if (this.stopped) return;
     this.completed++;
@@ -643,6 +672,7 @@ export class LoopDetector {
     let pushed: number[] | null = null;
     let revisited: number[] | null = null;
     let menuLooped: number[] | null = null;
+    let triggerLooped:{readonly evidence:number[];readonly dialogue:string}|null=null;
     let waited = false;
     if (!call.isError && PLANNING.has(call.name)) {
       this.planning++;
@@ -727,6 +757,8 @@ export class LoopDetector {
           menuLooped = back;
         }
       }
+      triggerLooped=this.noteTriggerScript(call,seq);
+      if(triggerLooped!==null&&hit===null)hit="trigger_script";
       this.previous = fingerprint;
       if (this.battles) {
         this.previousBattle = battle;
@@ -775,13 +807,13 @@ export class LoopDetector {
     if (this.episode === null) {
       this.episode = {
         kind: hit,
-        message: menuLooped !== null ? BATTLE_MENU_LOOP_MESSAGE : pushed !== null ? PUSHBACK_MESSAGE : revisited !== null ? REVISIT_MESSAGE : hit === "observation" && waited ? WAITING_MESSAGE : pingPong ? TRANSITION_MESSAGE : hit === "ineffective" && call.name === "navigate_to" ? "Repeated navigation attempts to the same target produced equivalent states. Inspect the destination and obstacle before trying again." : this.interactions && (hit === "ineffective" || hit === "cycle") ? `The same interaction or input pattern is repeating without new game information. Use a single input, inspect the resulting interface, and choose an evidence-supported different approach.${this.messageTruth && !reopened ? "" : " Reopening the same message is not story progress."}` : MESSAGES[hit],
+        message: triggerLooped!==null?TRIGGER_SCRIPT_MESSAGE(triggerLooped.dialogue):menuLooped !== null ? BATTLE_MENU_LOOP_MESSAGE : pushed !== null ? PUSHBACK_MESSAGE : revisited !== null ? REVISIT_MESSAGE : hit === "observation" && waited ? WAITING_MESSAGE : pingPong ? TRANSITION_MESSAGE : hit === "ineffective" && call.name === "navigate_to" ? "Repeated navigation attempts to the same target produced equivalent states. Inspect the destination and obstacle before trying again." : this.interactions && (hit === "ineffective" || hit === "cycle") ? `The same interaction or input pattern is repeating without new game information. Use a single input, inspect the resulting interface, and choose an evidence-supported different approach.${this.messageTruth && !reopened ? "" : " Reopening the same message is not story progress."}` : MESSAGES[hit],
         exposed: false,
         recovery: 0,
         threshold: false,
         // The first push-back of the repeated input, or the first of the moves ending on the loop's tile; the notice
         // adds the call that completed the count.
-        evidence: (pushed ?? revisited ?? menuLooped)?.slice(0, 1) ?? [seq],
+        evidence: triggerLooped?.evidence??(pushed ?? revisited ?? menuLooped)?.slice(0, 1) ?? [seq],
         window: this.policy.recovery,
         briefing: null,
         pushback: pushed !== null,
@@ -836,6 +868,7 @@ export class LoopDetector {
     this.moves.length = 0;
     this.movesHeard.clear();
     this.closedTalk = { text: "", place: "", count: 0 };
+    this.triggerScripts.clear();
   }
 
   // pushback-loop-detection-v1: what a state since the last settled result says about the trip away from it.

@@ -138,7 +138,9 @@
    "stale-story-goal-v1": false,
    "input-cuts-v1": false, "loop-guard-screen-v1": false, "reopened-dialogue-loop-v1": false,
    "dialog-button-b-v1": false,
-   "faced-interaction-history-v1": false
+   "faced-interaction-history-v1": false,
+   "scripted-place-guidance-v1": false,
+   "trigger-script-loop-v1": false
   }
  },
  "switches": [
@@ -167,7 +169,9 @@
   "loop-guard-screen-v1",
   "reopened-dialogue-loop-v1",
   "dialog-button-b-v1",
-  "faced-interaction-history-v1"
+  "faced-interaction-history-v1",
+  "scripted-place-guidance-v1",
+  "trigger-script-loop-v1"
  ],
  "offInBoth": [
   "milestone-stall-stop-v1",

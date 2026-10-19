@@ -435,6 +435,11 @@ it("shows escaped loop evidence in the action log",()=>{
   const html=eventText(event);expect(html).toContain("Loop cycle warning");expect(html).toContain("Reassess &lt;now&gt;");expect(html).toContain("#4, #7");expect(stepOf(event)).toMatchObject({status:"error",tone:"orange",category:"guard"});
 });
 
+it("shows trigger-script loop evidence in the raw action log",()=>{
+ const log=bare();const event=log.add(100,{type:"loop_guard",turn:2,kind:"trigger_script",phase:"warning",mode:"enforced",message:"Gym <again>",calls:9,evidence:[20,40]});
+ const html=eventText(event);expect(html).toContain("Loop trigger script warning");expect(html).toContain("Gym &lt;again&gt;");expect(html).toContain("#20, #40");
+});
+
 it("renders verified confirmation selection and unsupported diagnostic", () => {
   const log = bare();
   log.add(0, state({ active_ui: {phase:"name_confirmation",selected:"NO",ready:true,controls:"B declines",diagnostic:null} }));
@@ -575,6 +580,15 @@ it("links save-state task truth to its tracked explainer",()=>{
  expect(FEATURE_EXPLAINERS["save-state-task-truth-v1"]).toBe("save-state-task-truth-v1.html");
  const html=readFileSync(fileURLToPath(new URL("../../../docs/explainers/save-state-task-truth-v1.html",import.meta.url)),"utf8");
  expect(html).toContain("Fresh boot");expect(html).toContain("Verified save state");
+});
+
+it("links Petalburg guidance and trigger-loop cards to tracked explainers",()=>{
+ expect(FEATURE_EXPLAINERS["scripted-place-guidance-v1"]).toBe("scripted-place-guidance-v1.html");
+ expect(FEATURE_EXPLAINERS["trigger-script-loop-v1"]).toBe("trigger-script-loop-v1.html");
+ for(const file of ["scripted-place-guidance-v1.html","trigger-script-loop-v1.html"]){
+  const html=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${file}`,import.meta.url)),"utf8");
+  expect(html).toContain("OFF");expect(html).toContain("ON");
+ }
 });
 
 it("renders every mapped explainer's body as a page, not as stylesheet text",()=>{

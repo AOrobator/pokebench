@@ -458,6 +458,8 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "save-state-task-truth-v1":"save-state-task-truth-v1.html",
  "cache-aligned-window-v1":"cache-aligned-window-v1.html",
  "jit-guide-reuse-v1":"jit-guide-reuse-v1.html",
+ "scripted-place-guidance-v1":"scripted-place-guidance-v1.html",
+ "trigger-script-loop-v1":"trigger-script-loop-v1.html",
 });
 
 export function harnessConfig(view:RunView,registry:readonly FeatureInfo[]=[]):string {

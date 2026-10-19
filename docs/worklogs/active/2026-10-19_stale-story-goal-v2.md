@@ -62,14 +62,14 @@ The authorized outcome is a new default-OFF `stale-story-goal-v2` switch. With v
 - [x] COMMIT: `test(story-goal): require v2 registration and explainer` (`e3c9d17c`, RED)
 - [x] Register switch/presets/defaults, explainer mapping/page, pending experiment, and readiness row
 - [x] Gates: viewer/agent targeted tests, `just experiments-check`, `just pages-check docs/explainers/stale-story-goal-v2.html`
-- [ ] COMMIT: `docs(story-goal): register v2 experiment and explainer` (GREEN)
+- [x] COMMIT: `docs(story-goal): register v2 experiment and explainer` (`5423e717`, GREEN)
 - [x] Browser proof at 1280×900, 1440×900, and 375×812; Harness Config click on isolated viewer
 - [ ] Multi-model review loop until clean
 
 **M3 — Repository gates, frozen review, and landing**
-- [ ] Sync current `main` into the branch
-- [ ] Gates: `just test`, `just lint`, `just build`, `just coverage`, `just verify-vendor`, `just experiments-check`, `just experiments-audit`
-- [ ] Principles self-review PB1–PB13 with zero FAIL
+- [x] Sync current `main` into the branch
+- [x] Gates: `just test`, `just lint`, `just build`, `just coverage`, `just verify-vendor`, `just experiments-check`, `just experiments-audit`
+- [x] Principles self-review PB1–PB13 with zero FAIL
 - [ ] Freeze packet and obtain Claude, Grok, and GPT/Codex `VERDICT: LGTM`
 - [ ] Fast-forward merge reviewed tree into local `main` if every landing condition remains satisfied
 - [ ] Post-land `just test`; coordinate one viewer restart and verify the live build/card/link
@@ -99,6 +99,27 @@ The authorized outcome is a new default-OFF `stale-story-goal-v2` switch. With v
 - 2026-10-19 ET: Added the pending-only experiment definition and readiness row; no queue position, approval, launch, measured run, or incumbent promotion occurred. `just experiments-check` reports 118 valid experiments. Added the self-contained explainer, README/card mapping, and exact viewer route tests; `just pages-check docs/explainers/stale-story-goal-v2.html`, build, and `git diff --check` pass.
 - 2026-10-19 ET: Browser proof: the explainer rendered cleanly at 1280×900 and 1440×900. The first 375×812 check exposed document overflow from the SVG flow; containing the section and making the flow locally scrollable reduced `documentElement.scrollWidth` from 714 to exactly 375. An isolated viewer on port 18764 showed one `STAGE-BOUND STORY GOAL` Harness Config card; its `READ EXPLAINER` link opened `/explainers/stale-story-goal-v2.html` with title and H1 `Stage-bound story goal`. Temporary viewers and tabs were closed; the long-lived viewer was not restarted.
 - 2026-10-19 ET: M2 delete/restore receipt `m2-production-switch-operands`: replacing the production factory's `stageBound` and `omitEmptyGoal` v2 operands with false produced 24 passed / 1 failed in `stale-story-goal.test.ts`, exposing the stale invitation in the v2-on factory path; restoring both operands returned 25/25 green. Viewer targets pass 166/166.
+- 2026-10-19 ET: M2 GREEN committed as `5423e717` (`docs(story-goal): register v2 experiment and explainer`). Synced current `main` at `a7be38f6` into the branch with merge commit `0802eb7a`; the incoming fixed-bundle change adds `automatic-running-v1` only and retains `input-cuts-v1` in the bundle arm.
+- 2026-10-19 ET: The first post-sync `just test` attempt found the managed worktree's git submodule uninitialized: 12 Python tests failed only because `map_groups.json` was absent. `git submodule update --init env/vendor/continual-harness` restored the pinned `bbab97a` dependency; no source changed. The rerun passed 2534 agent, 1198 viewer, and 2480 Python tests, with 229 documented ROM-dependent skips.
+- 2026-10-19 ET: Frozen-gate receipt: `just lint`, `just build`, `just coverage`, `just verify-vendor`, `just experiments-check`, `just experiments-audit`, the v2 page check, and `git diff --check` all pass. Coverage reports agent 98.00% statements / 94.16% branches, viewer 95.43% statements / 91.49% branches, and Python gate 97.47% lines / 93.37% branches / 99.43% functions, all above the 90% floor. The 118 experiment definitions validate and the audit is silent-green.
+
+## Principles Self-Review
+
+| Principle | Verdict | Evidence |
+|---|---|---|
+| PB1 | PASS | Completion is keyed only to recorded native `birch_lab_stage` and Pokédex evidence, never model narration. |
+| PB2 | N/A | No gameplay run was launched, excluded, or summarized. |
+| PB3 | PASS | Archive recurrence is labeled non-causal; the pending experiment makes no benefit claim. |
+| PB4 | PASS | V2 is a named, default-OFF feature in run metadata; OFF preserves v1, and vendor verification is green. |
+| PB5 | PASS | The pending candidate flips only `stale-story-goal-v2`; the fixed bundle is not modified by this branch. |
+| PB6 | N/A | This bounded presentation/lifecycle change does not alter context budgets or compaction. |
+| PB7 | PASS | No live result is claimed; tests use recorded events with native state sequences. |
+| PB8 | N/A | No model-call retry, schema, or fallback behavior changes. |
+| PB9 | PASS | The operator approved the worklog and v2 scope; experiment launch and archive remain explicit checkpoints. |
+| PB10 | PASS | No skips, xfails, gate weakening, coverage carve-outs, or hook bypasses; all required gates pass. |
+| PB11 | PASS | Stage semantics were checked against pinned pret/pokeemerald; the pinned continual-harness submodule is verified clean. |
+| PB12 | PASS | No ROM or protected path was read; ROM-dependent tests stayed in their existing documented skip state. |
+| PB13 | PASS | RED/GREEN commits, delete/restore proofs, worklog, gates, browser proof, and pending experiment evidence are present; model-diverse review follows on this frozen packet. |
 
 ## Surprises
 

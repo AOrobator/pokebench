@@ -350,12 +350,12 @@ describe("stale-story-goal-v2 registration and production factory",()=>{
 
  it("is last, default off, and depends on v1",()=>{
   expect(SWITCHABLE_FEATURES.at(-1)).toBe(ID2);
-  expect(playHarnessFeatures({...ALL_ON,[ID2]:true} as FeatureSet,null).at(-1)).toBe(ID2);
-  expect(featureInfo(ID2 as never)).toMatchObject({group:"observation",needs:ID,switchable:true,title:"STAGE-BOUND STORY GOAL"});
-  expect(featureInfo(ID2 as never).description).toContain(" Off: ");
-  expect(dependencyProblems({...ALL_ON,[ID]:false,[ID2]:true} as FeatureSet)).toContain(`${ID2} needs ${ID}`);
-  expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:true})[ID2 as keyof FeatureSet]).toBe(false);
-  expect(normalizeFeatures({...ALL_ON,[ID2]:undefined} as unknown as Parameters<typeof normalizeFeatures>[0])[ID2 as keyof FeatureSet]).toBe(false);
+  expect(playHarnessFeatures({...ALL_ON,[ID2]:true},null).at(-1)).toBe(ID2);
+  expect(featureInfo(ID2)).toMatchObject({group:"observation",needs:ID,switchable:true,title:"STAGE-BOUND STORY GOAL"});
+  expect(featureInfo(ID2).description).toContain(" Off: ");
+  expect(dependencyProblems({...ALL_ON,[ID]:false,[ID2]:true})).toContain(`${ID2} needs ${ID}`);
+  expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:true})[ID2]).toBe(false);
+  expect(normalizeFeatures({...ALL_ON,[ID2]:undefined} as unknown as Parameters<typeof normalizeFeatures>[0])[ID2]).toBe(false);
  });
 
  it("OFF preserves the current invitation, while ON omits the retired goal and remains compatible with input cuts",async()=>{
@@ -371,7 +371,7 @@ describe("stale-story-goal-v2 registration and production factory",()=>{
  });
 
  it("has a pending experiment that flips only v2 and keeps input cuts on in both arms",()=>{
-  const raw=JSON.parse(readFileSync(new URL("../../../experiments/stale-story-goal-v2.json",import.meta.url),"utf8"));
+  const raw:unknown=JSON.parse(readFileSync(new URL("../../../experiments/stale-story-goal-v2.json",import.meta.url),"utf8"));
   const entry=parseExperiment(raw);
   expect(entry.queuePosition).toBeUndefined();
   expect(entry.changedFeature).toBe(ID2);
@@ -379,7 +379,7 @@ describe("stale-story-goal-v2 registration and production factory",()=>{
   const {incumbent,candidate}=experimentArms(entry);
   expect(Object.keys(candidate.features).filter(id=>candidate.features[id as keyof typeof candidate.features]!==incumbent.features[id as keyof typeof incumbent.features])).toEqual([ID2]);
   expect(incumbent.features[ID]).toBe(true);
-  expect(incumbent.features[ID2 as keyof typeof incumbent.features]).toBe(false);
+  expect(incumbent.features[ID2]).toBe(false);
   expect(candidate.features[ID2 as keyof typeof candidate.features]).toBe(true);
   expect(incumbent.features["input-cuts-v1"]).toBe(true);
   expect(candidate.features["input-cuts-v1"]).toBe(true);

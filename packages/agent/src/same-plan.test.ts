@@ -41,10 +41,10 @@ describe("registry and presets",()=>{
   expect(featureInfo(ID)).toMatchObject({group:"guard",needs:"deterministic-loop-guard-v1",switchable:true,title:"SAME-PLAN BREAKER"});
   expect(featureInfo(ID).description).toContain(" Off: no such note.");
   expect(featureInfo(ID).description).toContain("Your last 3 plans (turns a, b, c) were the same and the game state did not change");
-  expect(SWITCHABLE_FEATURES.at(-59)).toBe(ID);
-  expect(playHarnessFeatures(ALL_ON,null).at(-59)).toBe(ID);
-  expect(featuresOf(playHarnessFeatures({...ALL_ON,[ID]:false},null))[ID]).toBe(false);
-  expect(dependencyProblems({...ALL_ON,"deterministic-loop-guard-v1":false})).toContain(`${ID} needs deterministic-loop-guard-v1`);
+  expect(SWITCHABLE_FEATURES.at(-60)).toBe(ID);
+  expect(playHarnessFeatures(ALL_ON,null).at(-60)).toBe(ID);
+  expect(featuresOf(playHarnessFeatures({...ALL_ON,"battle-decision-ready-v1":false,[ID]:false},null))[ID]).toBe(false);
+  expect(dependencyProblems({...ALL_ON,"battle-decision-ready-v1":false,"deterministic-loop-guard-v1":false})).toContain(`${ID} needs deterministic-loop-guard-v1`);
  });
  it("defaults off for presets that omit it and for legacy flag presets",()=>{
   const older=Object.fromEntries(Object.entries(ALL_ON).filter(([id])=>id!==ID)) as Omit<FeatureSet,typeof ID>;

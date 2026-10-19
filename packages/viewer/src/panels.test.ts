@@ -1258,3 +1258,11 @@ it("links the semantic battle refusal switch to its tracked mechanism",()=>{
  const html=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)),"utf8");
  for(const text of [id,"no button press","paired native battle","Default OFF"])expect(html).toContain(text);
 });
+
+it("links battle decision readiness from its recorded feature card",()=>{
+ const id="battle-decision-ready-v1";
+ expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
+ const log=new Log();log.add(0,{...START,harness_features:["ram-state-v1",id]});
+ const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
+ expect(doc.querySelector(`[data-feature="${id}"] a`)?.getAttribute("href")).toBe(`/explainers/${id}.html`);
+});

@@ -180,16 +180,16 @@ describe("levelup-box-v1 on the recorded T357 level-up (run 54a7)",()=>{
 
 describe("levelup-box-v1 registry, presets and server wiring",()=>{
  it("is the last switch: a default-off observation the game server applies, with OFF copy and no dependency",()=>{
-  expect(SWITCHABLE_FEATURES.at(-58)).toBe(ID);
-  expect(FEATURES.filter(f=>f.switchable).at(-58)?.id).toBe(ID);
-  expect(playHarnessFeatures(ALL_ON,null).at(-58)).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-59)).toBe(ID);
+  expect(FEATURES.filter(f=>f.switchable).at(-59)?.id).toBe(ID);
+  expect(playHarnessFeatures(ALL_ON,null).at(-59)).toBe(ID);
   const info=featureInfo(ID);
   expect([info.group,info.needs,info.title]).toEqual(["observation",null,"LEVEL-UP STATS BOX"]);
   expect(info.description).toContain(" Off: the readout says resolving (no input until the game asks) while the box waits");
   expect(SERVER_FEATURES.at(-14)).toBe(ID);
-  expect(serverFeatureEnv({...ALL_ON,[ID]:false}).POKEBENCH_FEATURES_OFF).toBe(ID);
+  expect(serverFeatureEnv({...ALL_ON,"battle-decision-ready-v1":false,[ID]:false}).POKEBENCH_FEATURES_OFF).toBe(ID);
   expect(serverFeatureEnv(ALL_ON).POKEBENCH_FEATURES_OFF).toBe("");
-  expect(dependencyProblems({...ALL_ON,"battle-effective-damage-v1":false,"battle-text-auto-advance-v1":false,"battle-message-waiting-v1":false,"battle-details-v2":false})).toEqual([]);
+  expect(dependencyProblems({...ALL_ON,"battle-decision-ready-v1":false,"battle-effective-damage-v1":false,"battle-text-auto-advance-v1":false,"battle-message-waiting-v1":false,"battle-details-v2":false})).toEqual([]);
   const readout=readFileSync(new URL("../../../env/pokebench_env/readout.py",import.meta.url),"utf8");
   expect(readout).toContain(`"offscreen-objects-v1",\n    "${ID}",\n    "transition-coherence-v1",\n    "readout-truth-v1",`);
   expect(readout).toContain(`"offscreen-objects-v1,"\n        "${ID},"\n        "transition-coherence-v1,"\n        "readout-truth-v1,`);

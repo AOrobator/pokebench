@@ -495,3 +495,50 @@ describe("battle-text-auto-advance-v1 registry and production wiring",()=>{
   }finally{rmSync(root,{recursive:true,force:true});}
  });
 });
+
+
+describe("battle-decision-ready-v1",()=>{
+ const ready={...ON,"battle-decision-ready-v1":true} as FeatureSet;
+ it("settles an encounter on observe before returning a decision, listing its pages",async()=>{
+  const server=new ScriptServer([WAITING,BUSY,INPUT],[entry(1,2,"Wild WURMPLE appeared!")]);
+  const {tool,rec}=wire(server,ready);
+  const result=await tool("observe").execute("o-ready",{});
+  expect(server.posts.map(p=>p.button)).toEqual(["B"]);
+  expect(stateOfResult(result).battle?.text_phase).toBe("input");
+  expect(textOf(result)).toContain("Wild WURMPLE appeared!");
+  expect(rec.advances()).toMatchObject([{tool:"observe",stop:"battle_input",battle_auto_presses:1}]);
+  expect(()=>checkEvent(rec.advances()[0])).not.toThrow();
+ });
+ it("settles before battle_action validation, and keeps the preflight text in the result",async()=>{
+  const server=new ScriptServer([WAITING,BUSY,INPUT],[entry(1,2,"Wild WURMPLE appeared!")]);
+  let called=0;
+  const action:AgentTool={name:"battle_action",label:"b",description:"choose",parameters:Type.Object({}),execute:()=>{
+   called++;expect(server.now.battle?.text_phase).toBe("input");
+   return Promise.resolve({content:[{type:"text",text:"Battle action: chose SCRATCH"}],details:{state:server.now,battle_action:{refused:false}}});
+  }};
+  const {tool}=wire(server,ready,[action]);
+  const result=await tool("battle_action").execute("b-ready",{});
+  expect(called).toBe(1);expect(server.posts.map(p=>p.button)).toEqual(["B"]);
+  expect(textOf(result)).toContain("Wild WURMPLE appeared!");
+  expect(textOf(result)).toContain("chose SCRATCH");
+ });
+ it.each(["prompt","screen"] as const)("stops at %s without executing a queued battle action",async phase=>{
+  const boundary=battleWith(INPUT,{text_phase:phase},phase==="screen"?{screen:"party_menu"}:{});
+  const server=new ScriptServer([WAITING,boundary],[]);let called=0;
+  const action:AgentTool={name:"battle_action",label:"b",description:"choose",parameters:Type.Object({}),execute:()=>{called++;throw new Error("must not execute");}};
+  const {tool}=wire(server,ready,[action]);
+  const result=await tool("battle_action").execute("b-boundary",{});
+  expect(called).toBe(0);expect(server.posts.map(p=>p.button)).toEqual(["B"]);
+  expect(textOf(result)).toContain("not executed");
+  expect(stateOfResult(result).battle?.text_phase).toBe(phase);
+ });
+ it("OFF keeps observe unchanged and refuses battle_action without advancing",async()=>{
+  const server=new ScriptServer([WAITING,INPUT],[]);
+  const {tool,rec}=wire(server,ON);
+  await tool("observe").execute("o-off",{});
+  expect(server.posts).toEqual([]);expect(rec.advances()).toEqual([]);
+ });
+});
+function stateOfResult(result:AgentToolResult<unknown>):GameStateSnapshot {
+ const d=result.details;if(typeof d!=="object"||d===null||!("state" in d))throw new Error("missing state");return parseGameState(d.state);
+}

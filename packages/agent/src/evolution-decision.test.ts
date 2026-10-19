@@ -76,13 +76,14 @@ describe('explicit native evolution choice',()=>{
  });
 });
 
-it('a fresh evolution result clears the retained pre-decision snapshot when battle readiness is ON',async()=>{
+it.each([false,true])('evolution result snapshot retirement follows its feature switch (ON=%s)',async enabled=>{
+ const features={...ON,[ID]:enabled};
  const pending={...state,screen:'evolution',active_ui:{phase:'evolution_decision',selected:null,ready:true,controls:'choose_evolution',diagnostic:null}};
  const h=host(null,pending);const tools=gameTools('http://test',hooks,h.fetchFn,toolSwitches(ON),clock);
  let entering=true;
  const source={read:()=>Promise.resolve(entering?{...state,screen:'battle_transition'}:state)};
- const transform=battleDecisionContext({...ON,'battle-decision-ready-v1':true},source,tools,m=>Promise.resolve(m),{recordDecisionSnapshot:vi.fn()});
+ const transform=battleDecisionContext({...features,'battle-decision-ready-v1':true},source,tools,m=>Promise.resolve(m),{recordDecisionSnapshot:vi.fn()});
  expect(await transform([])).toHaveLength(1);entering=false;
  const fresh:AgentMessage={role:'toolResult',toolCallId:'evo-result',toolName:'choose_evolution',isError:false,content:[{type:'image',data:png.toString('base64'),mimeType:'image/png'},{type:'text',text:'fresh evolution result'}],timestamp:3};
- const messages=[fresh];expect(await transform(messages)).toBe(messages);
+ const messages=[fresh];const result=await transform(messages);if(enabled)expect(result).toBe(messages);else expect(result).toHaveLength(2);
 });

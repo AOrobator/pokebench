@@ -438,6 +438,10 @@ describe("viewer app", () => {
     app.tick(500);
     expect(ui("screen").getAttribute("href")).toMatch(new RegExp(`^/api/runs/${second}/screen\\?n=\\d+$`));
     expect(ui("replay-controls").hidden).toBe(true);
+    ui("screen").dispatchEvent(new Event("error"));
+    app.tick(100);
+    expect(ui("screen").getAttribute("href")).toBe(`/api/runs/${second}/frames/000009_0.png`);
+    expect(ui("screen-note").textContent).toBe("live screen unavailable · last frame");
   });
 
   it("says so when there are no runs", async () => {

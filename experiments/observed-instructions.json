@@ -8,7 +8,7 @@
  "primaryMilestone": "RIVAL_HOUSE_ENTERED",
  "source": {
   "checkout": "main",
-  "commit": "64ca188afea1c1a34bc688ac6cfc20bf8a18216d"
+  "commit": "f40d8f191ce0dfe6e22062969c5764fdc113006d"
  },
  "incumbent": {
   "version": 2,
@@ -167,5 +167,5 @@
   "window": 4,
   "minReached": 3
  },
- "notes": "Pending correctness-tier implementation, not queued, approved or launched. First effect is Mom after FIRST_TRUCK_EXIT. Dedicated diagnostic/screen design remains blocked pending a validated pre-instruction checkpoint, current lane readiness, observed cap data and operator GPU budget; nominal schema trial fields are placeholders, not a trial authorization. A Norman segment would separately target Gym entry after validated pre-Norman checkpoint; no Gym victory benefit is claimed. Repin after landing; incumbent is current bundle treatment with only observed-instructions-v1 OFF."
+ "notes": "Pending correctness-tier implementation, not queued, approved or launched. First effect is Mom after FIRST_TRUCK_EXIT. Dedicated diagnostic/screen design remains blocked pending a validated pre-instruction checkpoint, current lane readiness, observed cap data and operator GPU budget; nominal schema trial fields are placeholders, not a trial authorization. A Norman segment would separately target Gym entry after validated pre-Norman checkpoint; no Gym victory benefit is claimed. Source pins the integrated feature-code commit; repin before any future queue approval; incumbent is current bundle treatment with only observed-instructions-v1 OFF."
 }

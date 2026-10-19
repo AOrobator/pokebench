@@ -66,6 +66,7 @@ def decision_ui(ui: ActiveUi | None, read: ReadMemory | None = None) -> ActiveUi
         ui,
         phase="evolution_decision" if pending else ui.phase,
         selected=None,
+        ready=True if pending else ui.ready,
         controls=(
             "Evolution is waiting for choose_evolution: evolve or cancel. "
             "Ordinary button input is blocked."
@@ -103,7 +104,7 @@ class EvolutionGate:
         )
         if key != self.key:
             self.key, self.token, self.decision, self.sent = key, None, None, False
-        if ui.phase == "evolution_cancel_window" and ui.ready and self.token is None:
+        if ui.phase == "evolution_cancel_window" and self.token is None:
             self.serial += 1
             self.token = self.serial
         return ui
@@ -114,7 +115,6 @@ class EvolutionGate:
             ui is None
             or ui.diagnostic
             or ui.phase != "evolution_cancel_window"
-            or not ui.ready
             or self.decision is not None
         ):
             return None
@@ -156,7 +156,7 @@ class EvolutionGate:
             return []  # discard all stale queued inputs through the animation
         flags = details.get("task_flags")
         if isinstance(flags, int) and flags & 1 and state <= 8:
-            if ui.phase == "evolution_cancel_window" and ui.ready:
+            if ui.phase == "evolution_cancel_window":
                 return None  # do not advance a single frame until the explicit decision
             return []  # animation reaches the window without held/queued B
         return buttons

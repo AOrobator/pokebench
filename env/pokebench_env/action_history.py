@@ -60,11 +60,17 @@ def read_action_frame(
     *,
     include_storage: bool = True,
     storage_cache: StorageDecodeCache | None = None,
+    tutorial_owner_enabled: bool = False,
     evolution_decision: bool = False,
 ) -> ActionFrame:
-    battle = read_battle_state(read)
+    battle = read_battle_state(read, tutorial_owner_enabled=tutorial_owner_enabled)
     screen = read_screen(read)
-    ui = read_active_ui(read, screen, evolution_decision=evolution_decision)
+    ui = read_active_ui(
+        read,
+        screen,
+        tutorial_owner_enabled=tutorial_owner_enabled,
+        evolution_decision=evolution_decision,
+    )
     if evolution_decision:
         from pokebench_env.evolution_decision import decision_ui
 
@@ -93,7 +99,13 @@ def read_action_frame(
     raw = read(PARTY, count * 100)
     cpu = pokemon_cpu_context(read)
     party = tuple(
-        decode_party_mon(raw[i * 100 : (i + 1) * 100], read, address=PARTY + i * 100, cpu=cpu)
+        decode_party_mon(
+            raw[i * 100 : (i + 1) * 100],
+            read,
+            address=PARTY + i * 100,
+            cpu=cpu,
+            empty_move_pp=tutorial_owner_enabled,
+        )
         for i in range(count)
     )
     resources = read_resources(
@@ -163,9 +175,11 @@ class NativeActionJournal:
         capacity: int = 16384,
         clock: Callable[[], float] = time.time,
         *,
+        tutorial_owner_enabled: bool = False,
         evolution_decision: bool = False,
     ) -> None:
         self.evolution_decision = evolution_decision
+        self.tutorial_owner_enabled = tutorial_owner_enabled
         self.lock = threading.RLock()
         self.capacity = capacity
         self.clock = clock
@@ -605,7 +619,9 @@ class NativeActionJournal:
                     return
                 self.busy_frames = 0
                 screen = read_screen(read)
-                ui = read_active_ui(read, screen)
+                ui = read_active_ui(
+                    read, screen, tutorial_owner_enabled=self.tutorial_owner_enabled
+                )
                 phase = "" if ui is None else ui.phase
                 storage = (
                     self.previous is None
@@ -630,6 +646,7 @@ class NativeActionJournal:
                         read,
                         include_storage=storage,
                         storage_cache=self.storage_cache,
+                        tutorial_owner_enabled=self.tutorial_owner_enabled,
                         evolution_decision=self.evolution_decision,
                     )
                 )
@@ -657,9 +674,12 @@ def install_action_history(
     emulator: type[FrameEmulator],
     read: ReadMemory,
     *,
+    tutorial_owner_enabled: bool = False,
     evolution_decision: bool = False,
 ) -> NativeActionJournal:
-    journal = NativeActionJournal(evolution_decision=evolution_decision)
+    journal = NativeActionJournal(
+        tutorial_owner_enabled=tutorial_owner_enabled, evolution_decision=evolution_decision
+    )
     step = emulator.run_frame_with_buttons
 
     def step_recording(self: FrameEmulator, buttons: list[str]) -> None:

@@ -3,7 +3,7 @@ import {IN_GAME} from '../test-support/events.js';
 import {Value} from 'typebox/value';
 import {readFileSync} from 'node:fs';
 import {gameTools} from './game-tools.js';
-import {ALL_ON,playHarnessFeatures,SWITCHABLE_FEATURES} from './features.js';
+import {ALL_ON,playHarnessFeatures,SWITCHABLE_FEATURES,stateOnlyProblems} from './features.js';
 import {flagFeatures} from './play-preset.js';
 import {playTools,toolSwitches,jitTools,playSystemPrompt} from './play-config.js';
 import type {GameStateSnapshot} from './game-state.js';
@@ -38,6 +38,7 @@ describe('explicit native evolution choice',()=>{
   expect(jitTools(on,'unknown').map(t=>t.name)).toContain('choose_evolution');
   expect(playSystemPrompt(ON,null)).toBe(playSystemPrompt(OFF,null));
   expect(playSystemPrompt(OFF,null)).not.toContain('choose_evolution');
+  expect(stateOnlyProblems({...ON,'state-only-decisions-v1':true})).toContain('state-only-decisions-v1 requires evolution-decision-v1 OFF');
   expect(SWITCHABLE_FEATURES).toContain(ID);expect(playHarnessFeatures(ON,null)).toContain(ID);
   expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false})[ID]).toBe(false);
  });

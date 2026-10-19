@@ -8,7 +8,7 @@
  "primaryMilestone": "STONE_BADGE",
  "source": {
   "checkout": "main",
-  "commit": "0c4156b0278b42facde445e7d145d7163155466c"
+  "commit": "cd649caec246a1628076df386076bb471157decf"
  },
  "incumbent": {
   "version": 2,
@@ -24,6 +24,8 @@
    "maxTokens": 4096
   },
   "features": {
+   "scripted-place-guidance-v1": false,
+   "trigger-script-loop-v1": false,
    "navigation-evidence-memory-v1": false,
    "automatic-running-v1": false,
    "expanded-menu-battle-information-v1": false,
@@ -144,8 +146,16 @@
    "reopened-dialogue-loop-v1": false,
    "dialog-button-b-v1": false,
    "just-in-time-prompt-v1": false,
+   "just-in-time-prompt-v2": false,
+   "faced-interaction-history-v1": false,
    "save-state-task-truth-v1": false,
+   "cache-aligned-window-v1": false,
+   "jit-guide-reuse-v1": false,
+   "battle-effective-damage-v1": false,
+   "visited-terrain-navigation-v1": false,
    "stale-story-goal-v2": false,
+   "deterministic-warp-navigation-v1": false,
+   "battle-refusal-loop-v1": false,
    "evolution-decision-v1": false
   }
  },
@@ -162,5 +172,5 @@
   "window": 4,
   "minReached": 3
  },
- "notes": "Pending, unqueued, unapproved and unlaunched. STARTER_CHOSEN is a conservative earliest prerequisite, not proof of reaching an evolution window: evolution may occur at different points. Actual evolution-window readiness remains unqualified. Historical checkpoint run petalburg-wholemap-probe-a seq 10270 and 10298-10309 grounds the interface defect; it does not establish benefit. Operator explicitly requested this switch ON in the fixed bundle and OFF in control. No strategic recommendation or learnset information is supplied. Source is provisional RED commit; repin after reviewed landing. Design checkpoint and budget before queueing."
+ "notes": "Pending, unqueued, unapproved and unlaunched. STARTER_CHOSEN is a conservative earliest prerequisite, not proof of reaching an evolution window: evolution may occur at different points. Actual evolution-window readiness remains unqualified. Historical checkpoint run petalburg-wholemap-probe-a seq 10270 and 10298-10309 grounds the interface defect; it does not establish benefit. Operator explicitly requested this switch ON in the fixed bundle and OFF in control. No strategic recommendation or learnset information is supplied. Source is provisional GREEN implementation commit; repin after reviewed landing. Design checkpoint and budget before queueing."
 }

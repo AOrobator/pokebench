@@ -218,9 +218,11 @@ def _text_fields(
         return failed, None, None, None
 
 
-def _move(read: ReadMemory, slot: int, move: int, pp: int, bonuses: int) -> BattleMove:
+def _move(
+    read: ReadMemory, slot: int, move: int, pp: int, bonuses: int, *, empty_move_pp: bool = False
+) -> BattleMove:
     if move == 0:
-        if pp:
+        if pp and not (empty_move_pp and pp <= 64):
             raise ValueError("empty battle move has PP")
         return BattleMove(slot, 0, None, 0, 0, None, None, None, None)
     if not 1 <= move <= 354:
@@ -234,7 +236,7 @@ def _move(read: ReadMemory, slot: int, move: int, pp: int, bonuses: int) -> Batt
 
 
 def _battler(
-    read: ReadMemory, index: int, position: int, body: bytes, absent: int
+    read: ReadMemory, index: int, position: int, body: bytes, absent: int, *, tutorial: bool = False
 ) -> BattleBattler:
     species, *stats = struct.unpack_from("<6H", body)
     hp, maximum = struct.unpack_from("<H", body, 0x28)[0], struct.unpack_from("<H", body, 0x2C)[0]
@@ -262,9 +264,15 @@ def _battler(
         or held_item >= 377
     ):
         raise ValueError("invalid battle Pokémon name/stages/type/ability/item")
+    move_ids = struct.unpack_from("<4H", body, 0x0C)
+    # LoadWallyZigzagoon (field_specials.c) keeps CreateMon PP when clearing MOVE2-4.
+    # Qualify the borrowed mon, not unrelated battlers or malformed tutorial moves.
+    wally_mon = (
+        tutorial and position == 0 and species == 288 and level == 7 and move_ids == (33, 0, 0, 0)
+    )
     moves = tuple(
-        _move(read, slot, move, body[0x24 + slot], body[0x3B])
-        for slot, move in enumerate(struct.unpack_from("<4H", body, 0x0C))
+        _move(read, slot, move, body[0x24 + slot], body[0x3B], empty_move_pp=wally_mon)
+        for slot, move in enumerate(move_ids)
     )
     personality, ot = (
         struct.unpack_from("<I", body, 0x48)[0],
@@ -307,7 +315,9 @@ def _initializing(read: ReadMemory, main: int) -> BattleState:
     )
 
 
-def read_battle_state(read: ReadMemory, *, current_battle_only: bool = True) -> BattleState:
+def read_battle_state(
+    read: ReadMemory, *, current_battle_only: bool = True, tutorial_owner_enabled: bool = False
+) -> BattleState:
     """current_battle_only (transition-coherence-v1): the intro is initializing, not stale data."""
     active = bool(number(read, IN_BATTLE, 1) & 2)
     if not active:
@@ -353,7 +363,14 @@ def read_battle_state(read: ReadMemory, *, current_battle_only: bool = True) -> 
                 return _initializing(read, main)
         absent = number(read, 0x02024210, 1)
         battlers = tuple(
-            _battler(read, index, position, raw[index * 0x58 : (index + 1) * 0x58], absent)
+            _battler(
+                read,
+                index,
+                position,
+                raw[index * 0x58 : (index + 1) * 0x58],
+                absent,
+                tutorial=tutorial_owner_enabled and bool(battle_type & (1 << 9)),
+            )
             for index, position in enumerate(positions)
             if index not in trainer_banks
         )

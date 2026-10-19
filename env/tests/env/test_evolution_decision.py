@@ -281,3 +281,18 @@ def test_production_state_reader_propagates_the_correct_move_owner():
     on = read_state(m.read, MapNames({}), active_ui=True, off=frozenset())
     assert off.active_ui.details["new_move"] == "WATER GUN"
     assert on.active_ui.details["new_move"] == "DOUBLE KICK"
+
+
+def test_native_cancellation_window_is_held_even_during_palette_fade():
+    from pokebench_env.menus import PALETTE_FADE
+
+    m = native()
+    m.put(PALETTE_FADE + 7, b"\x80")
+    old = read_pokemon_lifecycle_menu(m.read, 0x0813E3A5)
+    assert old.ready is False
+    assert decision_ui(old).ready is True
+    gate = EvolutionGate(m.read)
+    assert gate.before_frame(["B"]) is None
+    token = gate.pending()["token"]
+    gate.choose(token, "cancel")
+    assert gate.before_frame([]) == ["B"]

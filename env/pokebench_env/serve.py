@@ -283,6 +283,8 @@ def run(
         install_action_history(
             *actions,
             evolution_decision=human is None and EVOLUTION not in features_off_from_env(os.environ),
+            tutorial_owner_enabled="tutorial-party-owner-v1"
+            not in features_off_from_env(os.environ),
         )
     if travel is not None:
         install_travel(*travel)

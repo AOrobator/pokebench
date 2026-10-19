@@ -14,6 +14,7 @@ import {
   type LoopRuleId,
   type StallKind,
 } from "./types.js";
+import { semanticState } from "./fingerprints.js";
 import { CallTracker } from "./call-tracker.js";
 import { BASIC_MESSAGES, BasicRules } from "./rules/basic.js";
 import {
@@ -71,6 +72,7 @@ export class LoopCoordinator {
   private readonly menuLoop: boolean;
   private readonly closedDialogue: boolean;
   private readonly triggerScriptLoops: boolean;
+  private readonly battleRefusals: boolean;
   private readonly basic: BasicRules;
   private readonly rules: readonly LoopRule[];
   private readonly interfaces: InterfaceRules;
@@ -88,6 +90,7 @@ export class LoopCoordinator {
     pushback: boolean;
     revisit: boolean;
     menu: boolean;
+    refusalAnchor: string | null;
   } | null = null;
   private stallNote: { text: string; exposed: boolean } | null = null;
   private run: string | null = null;
@@ -112,6 +115,7 @@ export class LoopCoordinator {
       clockViews = false,
       closedDialogue = false,
       triggerScriptLoops = false,
+      battleRefusals = false,
     } = options;
     this.notify = notify;
     this.policy = policy;
@@ -125,6 +129,7 @@ export class LoopCoordinator {
     this.menuLoop = menuLoop;
     this.closedDialogue = closedDialogue;
     this.triggerScriptLoops = triggerScriptLoops;
+    this.battleRefusals = battleRefusals;
     this.basic = new BasicRules(policy, interactions, battles, ineffectiveLoops, transitions);
     this.interfaces = new InterfaceRules(policy.ineffective, clockViews, closedDialogue, menuLoop);
     this.field = new FieldRules(policy, interactions, transitions, pushback, ineffectiveLoops, triggerScriptLoops);
@@ -185,7 +190,7 @@ export class LoopCoordinator {
         this.field.button(event.buttons, tracked.pending, tracked.started);
       }
     } else if (event.type === "tool_result") {
-      this.complete(this.callTracker.finish(event));
+      this.complete(this.callTracker.finish(event,this.battleRefusals));
     }
   }
 
@@ -210,6 +215,11 @@ export class LoopCoordinator {
     this.completed++;
     if (this.stallNote?.exposed === true) this.stallNote = null;
     const seq = call.seq ?? this.completed;
+    const refusal = this.basic.refusal(call,this.battleRefusals);
+    if (this.episode?.refusalAnchor != null && !call.isError && call.state !== undefined) {
+      const snapshot = refusal.native ?? semanticState(call.state,this.interactions);
+      if (snapshot !== null && snapshot !== this.episode.refusalAnchor) this.recover(seq,true);
+    }
     this.field.error(call);
     if (!this.basic.accepts(call)) return;
     if (this.episode?.exposed) this.episode.recovery++;
@@ -221,8 +231,10 @@ export class LoopCoordinator {
       this.field.novel(recovery.newPlace);
     }
     if (
-      (evaluation.novel && !recovery.held) || recovery.escaped ||
-      (evaluation.game && (call.name === "press" || (call.name === "navigate_to" && call.acted===true)) && this.episode?.kind === "planning")
+      this.episode?.refusalAnchor == null && (
+        (evaluation.novel && !recovery.held) || recovery.escaped ||
+        (evaluation.game && (call.name === "press" || (call.name === "navigate_to" && call.acted===true)) && this.episode?.kind === "planning")
+      )
     )
       this.recover(seq, (evaluation.novel && !recovery.held) || recovery.escaped);
     const candidateIds = new Set<LoopRuleId>();
@@ -271,7 +283,7 @@ export class LoopCoordinator {
       if(triggerLooped!==null)candidateIds.add("trigger-script");
       this.basic.finish(evaluation);
     }
-    if (this.basic.rejectionHit(call)) candidateIds.add("rejection");
+    if (this.basic.rejectionHit(call,refusal.status,seq)) candidateIds.add("rejection");
     const candidates = new Map<LoopRuleId, LoopHit>();
     // Candidate collection order is intentionally not priority order. The static
     // registry below is the sole priority owner, and the production collision
@@ -329,18 +341,19 @@ export class LoopCoordinator {
         kind: hit,
         // Trigger execution is observed after the other checks. The legacy detector
         // always attached that evidence/message when it coincided with an earlier hit.
-        message: triggerLooped !== null ? TRIGGER_SCRIPT_MESSAGE(triggerLooped.dialogue) : selected.hit.message,
+        message: refusal.status !== null ? `Repeated battle action refusals pressed no buttons. ${refusal.status}` : triggerLooped !== null ? TRIGGER_SCRIPT_MESSAGE(triggerLooped.dialogue) : selected.hit.message,
         exposed: false,
         recovery: 0,
         threshold: false,
         // The first push-back of the repeated input, or the first of the moves ending on the loop's tile; the notice
         // adds the call that completed the count.
-        evidence: triggerLooped?.evidence ?? [...selected.hit.evidenceSeqs],
+        evidence: (refusal.status === null ? undefined : this.basic.refusalSequences(refusal.status)) ?? triggerLooped?.evidence ?? [...selected.hit.evidenceSeqs],
         window: this.policy.recovery,
         briefing: null,
         pushback: selected.rule.id === "pushback",
         revisit: selected.rule.id === "revisit",
         menu: selected.rule.id === "battle-menu",
+        refusalAnchor: refusal.status === null ? null : refusal.native,
       };
       this.notice("warning", seq);
       // Speedrun: the supervisor briefs as soon as a loop is found, then again every window while it lasts.

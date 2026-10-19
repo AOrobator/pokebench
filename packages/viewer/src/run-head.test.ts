@@ -215,6 +215,39 @@ describe("phone header in the viewer", () => {
 });
 
 describe("phone header sheet behavior", () => {
+  it("animates dismissal before hiding and allows reopening during dismissal", async () => {
+    await mount(375);
+    const sheet = ui("run-sheet"), shade = ui("run-sheet-shade");
+    // The DOM harness does not load linked stylesheets; expose the exit animation.
+    sheet.style.animationName = "rs-slide-out";
+    ui("run-head").click();
+    ui("run-sheet-close").click();
+    expect(sheet.hidden).toBe(false);
+    expect(shade.hidden).toBe(false);
+    expect(sheet.hasAttribute("data-closing")).toBe(true);
+    expect(sheet.inert).toBe(true);
+    expect(ui("run-head").getAttribute("aria-expanded")).toBe("false");
+    ui("run-head").click();
+    sheet.dispatchEvent(new AnimationEvent("animationend", { animationName: "rs-slide-out" }));
+    expect(sheet.hidden).toBe(false);
+    expect(sheet.inert).toBe(false);
+    ui("run-sheet-shade").click();
+    ui("run-sheet-close").dispatchEvent(new AnimationEvent("animationend", { animationName: "rs-slide-out", bubbles: true }));
+    sheet.dispatchEvent(new AnimationEvent("animationend", { animationName: "rs-slide-in" }));
+    expect(sheet.hidden).toBe(false);
+    sheet.dispatchEvent(new AnimationEvent("animationend", { animationName: "rs-slide-out" }));
+    expect(sheet.hidden).toBe(true);
+    expect(shade.hidden).toBe(true);
+  });
+
+  it("uses half-duration entrance and exit animations with reduced-motion opt-out", () => {
+    expect(CSS).toContain("rs-slide-in 130ms");
+    expect(CSS).toContain("rs-fade-in 90ms");
+    expect(CSS).toContain("rs-slide-out 130ms");
+    expect(CSS).toContain("rs-fade-out 90ms");
+    expect(CSS).toContain("prefers-reduced-motion: reduce");
+    expect(CSS).toContain("animation: none !important");
+  });
   afterEach(() => {
     setViewport(1024, 900);
     document.body.innerHTML = "";

@@ -1,7 +1,7 @@
 # Explicit evolution decision
 
 ## Current status
-Implementation is present in the bundle candidate but **not ready to land**. Round2 found a reproduced fade/hold observation deadlock. Code reviewed at `eebf338b1ce426933ab7a979f3d4d25682f51ef5`; this subsequent worklog-only receipt does not change implementation. No merge, viewer-main restart or measured launch. Operator approval is required before a third fix/review cycle.
+Third fix/review cycle authorized by the operator with “yes”. Implementation remains **not ready to land** pending the targeted correction and review. Round2 found a reproduced fade/hold observation deadlock. Code reviewed at `eebf338b1ce426933ab7a979f3d4d25682f51ef5`; this subsequent worklog-only receipt does not change implementation. No merge, viewer-main restart or measured launch. Operator approval is required before a third fix/review cycle.
 
 ## Problem Statement
 The operator authorized this worklog and implementation on 2026-10-19: add an explicit evolution choice, enable it in the bundle, and repair the observation defect. Historical run `2026-10-19T01-08-57_qwen36-gpu1_petalburg-wholemap-probe-a` seq 10270 shows an invented selected CANCEL menu and mixed controls. Seq 10298 says B would decline stopping evolution; seq 10299 presses B despite the stated intention to evolve. This is interface evidence, not a strategic preference to cancel.
@@ -128,3 +128,8 @@ None.
 - The next authorized correction should let observations capture an intentionally held native decision without advancing the emulator or inventing a default choice, and cover observation requests started before and during the hold. Keep OFF parity, real pause semantics and actual-frame attribution; do not broaden to strategy or move-choice automation. This is a proposal, not an implemented fix.
 - `execute-worklog` says: “If blockers remain after round 2, stop and ask the operator to choose: land as is, fix only the listed bugs, or drop the change.” Both rounds are complete. **STOP: ask approval for one further cycle limited to this reproduced fade/hold observation deadlock.** No landing recommended with this known blocker.
 - Final viewer lint also passed after metadata-only sync (/tmp/evolution-r2-final-viewer-lint.txt). All owned probe/game/scratch-viewer processes terminated; temporary browser tabs closed, explainer kept. The worklog remains active, not archived.
+
+## Round3 authorized scope
+- The operator answered “yes” to one more fix/review cycle limited to the verified fade/hold observation deadlock. This supersedes the round2 STOP for this cycle only; no merge or Claude-lane exception was granted.
+- Fix design: existing FrameSettle gains an optional held-input predicate wired only from the ON native evolution gate. Capture immediately when already held, or at the actual frame entering the hold for existing waiters. Preserve real pause priority, no fake frames, no default evolution choice. Record input_hold as the reason in the existing typed settle receipt; update its cross-stack enum/schema. OFF keeps predicate absent and previous behavior.
+- RED: production serve/install/observation composition for fade/black × request-before/during-hold, with finite thread cleanup, actual frame counts, pending decision unchanged, and real pause priority. Agent schema must accept the native held-input receipt. No new runtime owner/tool/policy.

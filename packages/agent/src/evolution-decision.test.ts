@@ -6,7 +6,7 @@ import {gameTools} from './game-tools.js';
 import {ALL_ON,playHarnessFeatures,SWITCHABLE_FEATURES,stateOnlyProblems} from './features.js';
 import {flagFeatures} from './play-preset.js';
 import {playTools,toolSwitches,jitTools,playSystemPrompt} from './play-config.js';
-import type {GameStateSnapshot} from './game-state.js';
+import {parseGameState,type GameStateSnapshot} from './game-state.js';
 import {EvolutionArgs} from './evolution-decision.js';
 import {battleDecisionContext} from './play-wiring.js';
 import type {AgentMessage} from '@mariozechner/pi-agent-core';
@@ -86,4 +86,8 @@ it.each([false,true])('evolution result snapshot retirement follows its feature 
  expect(await transform([])).toHaveLength(1);entering=false;
  const fresh:AgentMessage={role:'toolResult',toolCallId:'evo-result',toolName:'choose_evolution',isError:false,content:[{type:'image',data:png.toString('base64'),mimeType:'image/png'},{type:'text',text:'fresh evolution result'}],timestamp:3};
  const messages=[fresh];const result=await transform(messages);if(enabled)expect(result).toBe(messages);else expect(result).toHaveLength(2);
+});
+
+it('accepts an observation captured at the held native input boundary',()=>{
+ expect(parseGameState({...state,settle:{frames:0,reason:'input_hold'}}).settle).toEqual({frames:0,reason:'input_hold'});
 });

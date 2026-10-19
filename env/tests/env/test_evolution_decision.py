@@ -345,3 +345,115 @@ def test_human_server_keeps_tool_dependent_evolution_observation_off(monkeypatch
     Emulator().run_frame_with_buttons(["B"])
     assert applied == [["B"]]
     assert get(api, "/pokebench/evolution")[0] == 404
+
+
+@pytest.mark.parametrize("before_hold", [False, True])
+@pytest.mark.parametrize("transition", ["fade", "black"])
+def test_pending_decision_observation_returns_without_advancing_held_frames(
+    monkeypatch, before_hold, transition
+):
+    import os
+    import threading
+    from types import SimpleNamespace
+
+    from pydantic import BaseModel
+
+    from pokebench_env import serve
+    from pokebench_env.game_state import MapNames
+    from pokebench_env.menus import PALETTE_FADE
+    from pokebench_env.readout import SERVER_FEATURES
+    from pokebench_env.screen_settle import FrameSettle, PALETTE_RAM
+
+    waiting, done = threading.Event(), threading.Event()
+    captures, failures, settlements, instances = [], [], [], []
+
+    class ObservedSettle(FrameSettle):
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            instances.append(self)
+
+        def settle_traced(self, capture, memory_lock, on_wait=None):
+            result = super().settle_traced(capture, memory_lock, waiting.set)
+            settlements.append(result[1])
+            return result
+
+    monkeypatch.setattr(serve, "FrameSettle", ObservedSettle)
+    monkeypatch.setenv("POKEBENCH_ACTIVE_UI", "1")
+    monkeypatch.setenv(
+        "POKEBENCH_FEATURES_OFF",
+        ",".join(
+            set(SERVER_FEATURES)
+            - {"ram-state-v1", "evolution-decision-v1", "warp-arrival-settle-v1"}
+        ),
+    )
+    m = native(7 if before_hold else 8)
+    m.put(PALETTE_FADE + 7, b"\x80" if transition == "fade" else b"\x00")
+    m.put(PALETTE_RAM, bytes(0x400) if transition == "black" else b"\x01" + bytes(0x3FF))
+    lock = threading.RLock()
+
+    class Emulator:
+        frames = 0
+
+        def run_frame_with_buttons(self, buttons):
+            self.frames += 1
+            put_task(m, 0, 0x0813E571, [8, 280, 281, 1, 0, 0, 0, 0, 0, 0, 0])
+
+    class Shot(BaseModel):
+        screenshot_base64: str = "cG5n"
+
+    api = FastAPI()
+    serve.run(
+        [],
+        uvicorn=SimpleNamespace(run=lambda *a, **k: None),
+        vendor_main=lambda: None,
+        observation=(api, Shot, m.read, MapNames({}), lock),
+        frames=Emulator,
+    )
+
+    def observe():
+        try:
+            captures.append(get(api, "/pokebench/observation"))
+        except BaseException as error:
+            failures.append(error)
+        finally:
+            done.set()
+
+    thread = threading.Thread(target=observe, daemon=True)
+    thread.start()
+    emulator = Emulator()
+    try:
+        if before_hold:
+            assert waiting.wait(1)
+            with lock:
+                emulator.run_frame_with_buttons(["B"])
+        assert done.wait(1), "observation waited for frames blocked by the pending decision"
+        with lock:
+            for _ in range(200):
+                emulator.run_frame_with_buttons(["B"])
+        assert emulator.frames == int(before_hold)
+        assert not failures
+        status, _headers, body = captures[0]
+        assert status == 200
+        observation = json.loads(body)
+        assert observation["state"]["active_ui"]["phase"] == "evolution_decision"
+        assert "choose_evolution" in observation["state_text"]
+        assert observation["state"]["settle"] == {
+            "frames": int(before_hold),
+            "reason": "input_hold",
+        }
+        assert settlements[0].frames == int(before_hold)
+        # Reading the decision neither chooses nor advances it; ordinary pause remains independent.
+        _status, _headers, pending = get(api, "/pokebench/evolution")
+        assert json.loads(pending)["pending"] is not None
+        instances[0].park()
+        paused, receipt = instances[0].settle_traced(lambda: "paused", lock)
+        assert paused == "paused" and receipt.reason == "paused"
+        instances[0].resume()
+        held, receipt = instances[0].settle_traced(lambda: "held", lock)
+        assert held == "held" and receipt.reason == "input_hold"
+        human_off = os.environ["POKEBENCH_FEATURES_OFF"]
+        assert "evolution-decision-v1" not in human_off.split(",")
+    finally:
+        instances[0].park()
+        thread.join(2)
+    assert not thread.is_alive()

@@ -9,7 +9,7 @@
  "primaryMilestone": "PETALBURG_WOODS",
  "source": {
   "checkout": "main",
-  "commit": "22a976873ee1e63dde9a6b116b9ccb96379b1288"
+  "commit": "635b9095a89ea069f0718b86d41ee0b9f185283e"
  },
  "incumbent": {
   "version": 2,
@@ -167,5 +167,5 @@
   "window": 4,
   "minReached": 3
  },
- "notes": "All four recovery switches are OFF in this standalone incumbent and in fixed control. The fixed bundle enables all four. This candidate flips only reachable-story-guidance-v1. No measured run or approval is authorized. source.commit will be pinned to the implementation commit before review."
+ "notes": "All four recovery switches are OFF in this standalone incumbent and in fixed control. The fixed bundle enables all four. This candidate flips only reachable-story-guidance-v1. No measured run or approval is authorized. source.commit identifies the implementation ancestor containing the reviewed runtime. Bookkeeping commits do not change runtime."
 }

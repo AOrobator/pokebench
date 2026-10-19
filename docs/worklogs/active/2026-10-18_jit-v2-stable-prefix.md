@@ -113,7 +113,7 @@ The operator approved “ok lets build it” after the concrete proposal: unreco
 - [ ] RED: unknown startup minimal; known→unknown→same-known chronology; window eviction and prefix preservation; factory receipt and provider payload.
 - [ ] GREEN: production projection; metadata/explainer/overview corrected; no extra guides.
 - [ ] Gates, mutation, synthetic provider/recording/replay proof, responsive explainer.
-- [ ] Fresh multi-model code review; no inferred Claude waiver for this new packet.
+- [ ] Fresh multi-model code review; carry forward the operator’s explicit Claude-lane waiver for this continuing v2 work, with new GPT/Grok/fallback reviews of the revised packet.
 ### Review boundary
 Only no-fallback unknown delivery, truthful receipts and matching documentation. V1 and specialized scene text unchanged. Existing pending experiment remains unapproved/unqueued; no new experiment or silent source pin from old approval.
 
@@ -129,3 +129,9 @@ Only no-fallback unknown delivery, truthful receipts and matching documentation.
 
 - M5 final gates PASS on implementation9298695d: complete two-worker TS tests/coverage2472agent+1175viewer; Python2707tests/coverage,0skips. Unchanged90floors: agentlines99.23/branches94.20/functions98.33; viewer97.64/91.46/93.83; Python97.66/93.82/100. Build/lint/vendor/112experimentvalidationPASS. Original default-parallel serial-comparison timing failure remains visible.
 - Overview browser check found pre-existing375px table overflow; fixed only the touched overview table with fixed layout and wrapping. Rechecked1280/1440/375bodywidths and saved/opened screenshots; no viewer UI or mobile nav changes. Updated synthetic context-pressure numbers are explicitly synthetic, not tokens or benefit. This final commit changes only overview/worklog, not gated application source. Fresh code review packet follows; no review verdict inferred.
+
+- Authorization interpretation: The operator explicitly approved landing v2 with the unavailable Claude lane waived, then authorized this minimal-unknown revision of the same v2 feature. That existing session authorization continues; it is not a new launch/spending approval and does not waive fresh GPT/Grok/fallback review or gates on the revised source.
+
+- Main advanced independently to e0330c37448a8e49f6c3effe18ee445c382e6604 (named-warp/readout corrections); merged it before review. These are common base, not the JIT delta. Synced full tests2474agent+1175viewer+2707PythonPASS(0skips), build/lint/vendorPASS; complete syncedTScoverage2474+1175PASS(agent99.23/94.20/98.33; viewer97.64/91.46/93.83), Python2707coveragePASS97.64/93.77/100, unchanged90floors.
+- Synced first Python pass hit unchanged frame-settle threaded fade-bound test6vs5; retained failure and complete rerun2707PASS, then independent complete coverage2707PASS. No Python/test edits in the JIT delta. No skip/timeout/assertion/exclusion changes. All successful/failed receipts in runs/reviews/jit-v2-minimal/synced-*.log. Gate chain exit0 verified.
+- Frozen minimal-unknown review identities, boundary, PB1–PB13 and terminal results are recorded in ignored runs/reviews/jit-v2-minimal/. This evidence-only commit adds no application changes after gates. No launch or benefit claim.

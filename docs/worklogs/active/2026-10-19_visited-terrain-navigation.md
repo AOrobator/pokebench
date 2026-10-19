@@ -33,12 +33,19 @@ Authorized by the operator on 2026-10-19: implement a feature-switched treatment
 
 The concurrent whole-map probe showed visibly heavy deliberation while a complete map remained in every model turn. That is motivation for a separate design, not evidence about this treatment: keep the normal observation compact, add explicit on-demand `inspect_map` / `plan_route` access to local plus visited terrain, and have the loop supervisor recommend or attach that view once after a threshold instead of persistently emitting a full map. This branch deliberately does not add those tools or change its approved scope.
 
+## Post-review synchronization
+
+- Merged current `main` at `a7be38f6`, preserving its automatic-running bundle worklog, fixed definition, derived pending experiment, and tests. The visited-terrain pending incumbent now follows that bundle promotion with `automatic-running-v1` ON; the treatment still flips only `visited-terrain-navigation-v1`.
+- RED: the four ledge behaviors rendered `v^<>` instead of the authoritative `><^v` from `tile-rules.ts` and the live-map reader. GREEN: the stitched renderer now imports the shared `LEDGES` directions and covers east, west, north, and south.
+- RED: remembered cells synthesized a non-null grid with elevation 0 when the live grid was unavailable. GREEN: visited navigation preserves `navigation_grid: null` and cannot plan until a current live grid exists.
+- RED: the system prompt described visited navigation as the eight-attempt local planner. GREEN: visited-only wording now declares stitched shown terrain, unknown-cell exclusion, result-delivery timing, re-planning, and the 512-command bound; whole-map wording takes precedence when both switches are ON. The navigate-first section has the same three-way precedence.
+
 ## Evidence
 
 - Source checkout: `/Users/user/dev/pokeemerald`, clean at `731ad5bfd6e6f265508d0efcca0ba42f9dcf5881` on 2026-10-19.
 - RED specification commit: `890d7e91675c2c4ee7da5d287614c253d08ece45`; production implementation commit: `f2384d6bb3edde7d8739732ba1852e7f9d0fdf29`.
 - Feature-complete tests, docs, experiment, and gate-fix commit: `53de6d83a649568e4c847135196f929d20fd9e35`; the pending experiment pins this parent so its subsequent pin-only commit does not create a self-reference.
-- Full tests: agent 2,535 passed; viewer 1,197 passed; environment 2,480 passed and 229 ROM-dependent tests skipped because `POKEBENCH_ROM` was unset.
-- Coverage: agent statements 97.87%, branches 93.96%, functions 98.25%, lines 99.25%; viewer statements 95.43%, branches 91.49%, functions 93.88%, lines 97.65%. The first viewer coverage pass timed out in the pre-existing long-stream abandonment test at its five-second limit; an isolated retry passed all 1,197 tests and all 90% floors.
-- `just lint`, `just build`, `just verify-vendor`, `just experiments-check`, explainer `pages-check`, and `git diff --check` passed. Vendor was clean at `bbab97ad73e460b7cd7c08527d10ced30cc03fbe`.
+- Post-sync full tests: agent 2,538 passed; viewer 1,197 passed; environment 2,480 passed and 229 ROM-dependent tests skipped because `POKEBENCH_ROM` was unset.
+- Post-sync coverage: agent statements 97.88%, branches 94.04%, functions 98.25%, lines 99.25%; viewer statements 95.43%, branches 91.49%, functions 93.88%, lines 97.65%; environment lines 97.47%, branches 93.37%, functions 99.43%. All suites and all 90% floors passed.
+- Post-sync `just lint`, `just build`, `just verify-vendor`, `just experiments-check`, explainer `pages-check`, and `git diff --check` passed. The isolated worktree used the canonical checkout's unchanged mGBA Python binding for strict mypy, matching established worktree practice; no gameplay process or canonical file was changed. Vendor was clean at `bbab97ad73e460b7cd7c08527d10ced30cc03fbe`.
 - Focused test and deletion receipts are under ignored `runs/visited-terrain-navigation/`.

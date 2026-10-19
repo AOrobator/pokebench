@@ -1,4 +1,5 @@
 import {describe,expect,it} from "vitest";
+import {readFileSync} from "node:fs";
 import type {AgentToolResult} from "@mariozechner/pi-agent-core";
 import type {GameStateSnapshot} from "./game-state.js";
 import {planNavigation} from "./navigation.js";
@@ -6,6 +7,7 @@ import {VisitedTerrain,withVisitedTerrain} from "./visited-terrain.js";
 import {observeTool,pressTool} from "./game-tools.js";
 import {flagFeatures} from "./play-preset.js";
 import {playGameTools} from "./play-wiring.js";
+import {experimentArms,parseExperiment} from "./experiments.js";
 
 type Tile=NonNullable<GameStateSnapshot["navigation_grid"]>["tiles"][number];
 const tile=(x:number,y:number,collision=0,behavior=0,elevation=3):Tile=>({x,y,collision,behavior,elevation});
@@ -35,6 +37,21 @@ describe("visited-terrain-navigation-v1",()=>{
   expect(memory.knownCellCount([0,16])).toBe(2);
   memory.delivered(hidden);
   expect(memory.knownCellCount([0,16])).toBe(3);
+ });
+
+ it("renders every ledge in the direction the game permits the jump",()=>{
+  const memory=new VisitedTerrain(),state=field([0,16],{x:0,y:0},[tile(1,1,0,0x38),tile(2,1,0,0x39),tile(3,1,0,0x3a),tile(4,1,0,0x3b)]);
+  memory.delivered(state);
+  // tile-rules.ts and the live-map readout define east, west, north, south.
+  expect(memory.text(state)).toContain("><^v");
+ });
+
+ it("cannot turn remembered terrain into a navigable grid when the current live grid is unavailable",()=>{
+  const memory=new VisitedTerrain(),shown=field([0,16],{x:1,y:1},[tile(1,1),tile(2,1)]);
+  memory.delivered(shown);
+  const unavailable={...shown,navigation_grid:null};
+  expect(memory.navigationState(unavailable).navigation_grid).toBeNull();
+  expect(planNavigation(memory.navigationState(unavailable),{x:2,y:1},{mode:"visited"})).toBeNull();
  });
 
  it("uses only current dynamic objects and current observations replace stale warp facts",()=>{
@@ -90,5 +107,13 @@ describe("visited-terrain-navigation-v1",()=>{
   const whole=playGameTools(base,{...incumbent,"visited-terrain-navigation-v1":true,"full-map-navigation-v1":true},{read:()=>Promise.resolve(state)},rec);
   expect(whole.find(tool=>tool.name==="navigate_to")?.description).toContain("whole current map");
   expect((await observe(whole)).content.flatMap(p=>p.type==="text"?[p.text]:[])).toEqual(["exact incumbent readout"]);
+ });
+
+ it("the pending comparison follows main's automatic-running bundle and flips only visited terrain",()=>{
+  const experiment=parseExperiment(JSON.parse(readFileSync(new URL("../../../experiments/visited-terrain-navigation.json",import.meta.url),"utf8")) as unknown);
+  const {incumbent,candidate}=experimentArms(experiment);
+  expect(incumbent.features["automatic-running-v1"]).toBe(true);
+  expect(candidate.features["automatic-running-v1"]).toBe(true);
+  expect(Object.keys(candidate.features).filter(id=>candidate.features[id as keyof typeof candidate.features]!==incumbent.features[id as keyof typeof incumbent.features])).toEqual(["visited-terrain-navigation-v1"]);
  });
 });

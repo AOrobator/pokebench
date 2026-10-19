@@ -1,5 +1,6 @@
 import type {AgentTool,AgentToolResult} from "@mariozechner/pi-agent-core";
 import {parseGameState,type GameStateSnapshot,type StateSource} from "./game-state.js";
+import {LEDGES,type Direction} from "./tile-rules.js";
 
 type Point={readonly x:number;readonly y:number};
 type Tile=NonNullable<GameStateSnapshot["navigation_grid"]>["tiles"][number];
@@ -7,6 +8,7 @@ interface MapMemory {readonly tiles:Map<string,Tile>;readonly warps:Map<string,P
 const key=(p:Point):string=>`${String(p.x)},${String(p.y)}`;
 const mapKey=(id:readonly [number,number]):string=>`${String(id[0])}/${String(id[1])}`;
 const MAX_RENDER_WIDTH=64,MAX_RENDER_HEIGHT=64;
+const LEDGE_GLYPH:Readonly<Record<Direction,string>>={UP:"^",DOWN:"v",LEFT:"<",RIGHT:">"};
 
 function stateFrom(result:AgentToolResult<unknown>):GameStateSnapshot|null {
  const details=result.details;
@@ -18,8 +20,8 @@ function symbol(tile:Tile|undefined):string {
  if(tile===undefined)return "?";
  if(tile.behavior===2||tile.behavior===3)return '"';
  if(tile.behavior>=0x10&&tile.behavior<=0x15)return "~";
- const ledges=new Map([[0x38,"v"],[0x39,"^"],[0x3a,"<"],[0x3b,">"]]);
- return ledges.get(tile.behavior)??(tile.collision===0?".":"#");
+ const ledge=LEDGES.get(tile.behavior);
+ return ledge===undefined?(tile.collision===0?".":"#"):LEDGE_GLYPH[ledge];
 }
 
 export class VisitedTerrain {
@@ -43,18 +45,16 @@ export class VisitedTerrain {
  }
 
  navigationState(state:GameStateSnapshot):GameStateSnapshot {
-  if(state.map_id===null)return {...state,navigation_grid:null};
-  const memory=this.maps.get(mapKey(state.map_id)),known=new Map(memory?.tiles??[]),current=state.navigation_grid??null;
+  if(state.map_id===null||state.navigation_grid==null)return {...state,map_grid:null,navigation_grid:null};
+  const memory=this.maps.get(mapKey(state.map_id)),known=new Map(memory?.tiles??[]),current=state.navigation_grid;
   // Internal reads may refresh facts for already delivered cells, but cannot disclose a new coordinate.
-  if(current!==null)for(const tile of current.tiles)if(known.has(key(tile)))known.set(key(tile),tile);
-  const objects=current?.objects.filter(point=>known.has(key(point)))??[];
+  for(const tile of current.tiles)if(known.has(key(tile)))known.set(key(tile),tile);
+  const objects=current.objects.filter(point=>known.has(key(point)));
   const warps=new Map(memory?.warps??[]);
-  if(current!==null){
-   const observed=new Set(current.tiles.filter(tile=>known.has(key(tile))).map(key));
-   for(const [at] of warps)if(observed.has(at))warps.delete(at);
-   for(const warp of current.warps)if(known.has(key(warp)))warps.set(key(warp),warp);
-  }
-  return {...state,map_grid:null,navigation_grid:{elevation:current?.elevation??0,tiles:[...known.values()].sort((a,b)=>a.y-b.y||a.x-b.x),objects,warps:[...warps.values()]}};
+  const observed=new Set(current.tiles.filter(tile=>known.has(key(tile))).map(key));
+  for(const [at] of warps)if(observed.has(at))warps.delete(at);
+  for(const warp of current.warps)if(known.has(key(warp)))warps.set(key(warp),warp);
+  return {...state,map_grid:null,navigation_grid:{elevation:current.elevation,tiles:[...known.values()].sort((a,b)=>a.y-b.y||a.x-b.x),objects,warps:[...warps.values()]}};
  }
 
  source(state:StateSource):StateSource{return {read:async signal=>this.navigationState(await state.read(signal))};}

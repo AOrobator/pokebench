@@ -20,7 +20,7 @@
    "active-field-message-buffer-v1": true,
    "active-ui-ownership-v1": true,
    "adjacent-tiles-v1": true,
-   "automatic-running-v1": false,
+   "automatic-running-v1": true,
    "battle-details-v2": true,
    "battle-loss-recap-v1": true,
    "battle-message-waiting-v1": true,

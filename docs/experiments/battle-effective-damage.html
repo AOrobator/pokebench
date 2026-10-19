@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Battle effective damage — experiment overview</title>
+<style>
+:root{--bg:#f7f8fb;--card:#fff;--ink:#1f2a36;--muted:#5d6b7a;--line:#c9d2dc;--blue:#2f6fb5;--bluebg:#e6f0fb;--green:#24804a;--greenbg:#e3f5ea;--amber:#9a6200;--amberbg:#fff2d6;--red:#b23434;--redbg:#fbe5e5}@media(prefers-color-scheme:dark){:root{--bg:#12161c;--card:#1b2129;--ink:#e4e9ef;--muted:#9aa7b4;--line:#34404d;--blue:#7fb2ea;--bluebg:#1d2d40;--green:#6fd09a;--greenbg:#173325;--amber:#f0c060;--amberbg:#3a2e14;--red:#f08a8a;--redbg:#3a1c1c;color-scheme:dark}}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.55 system-ui,sans-serif}main{max-width:900px;margin:auto;padding:30px 16px 60px}h1{margin:0;font-size:2rem}h2{font-size:1.18rem;margin-top:2rem}.lead,.muted{color:var(--muted)}.facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:8px}.fact,figure,.note{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px}.fact b{display:block;color:var(--muted);font-size:.78rem}table{border-collapse:collapse;width:100%;background:var(--card)}th,td{text-align:left;padding:8px 10px;border:1px solid var(--line);vertical-align:top}th{color:var(--muted)}code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:var(--card);border:1px solid var(--line);border-radius:4px;padding:1px 4px}.blocked{background:var(--redbg);border-color:var(--red)}.flow{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.flow div{padding:12px;border-radius:8px;border:1px solid var(--line)}.blue{background:var(--bluebg);border-color:var(--blue)!important}.green{background:var(--greenbg);border-color:var(--green)!important}.amber{background:var(--amberbg);border-color:var(--amber)!important}@media(max-width:650px){.flow{grid-template-columns:1fr}}
+</style></head><body><main>
+<h1>Battle effective damage</h1>
+<p class="lead">Does a target-specific damage matrix help the model choose stronger battle actions and reach the Team Aqua Woods event more reliably from a Petalburg checkpoint?</p>
+<p><code>experiments/battle-effective-damage.json</code> · frontier behavior tier · <strong>blocked, not approved, not queued</strong></p>
+<div class="facts"><div class="fact"><b>Start</b>Petalburg checkpoint, exact file and hash not yet pinned</div><div class="fact"><b>Provisional N</b>8 per arm</div><div class="fact"><b>Cap</b>45 minutes</div><div class="fact"><b>Cost</b>12 GPU-hours / about 6 wall-hours on two GPUs</div><div class="fact"><b>Primary</b>TEAM_AQUA_WOODS_EVENT_COMPLETE</div><div class="fact"><b>Smallest useful lift</b>Not yet specified</div></div>
+
+<h2>1. Mechanism</h2>
+<div class="flow"><div class="blocked">Observed failure<br><span class="muted">gpu1 repeatedly chose SCRATCH while EMBER was available</span></div><div class="blue">One-switch change<br><code>battle-effective-damage-v1</code></div><div class="amber">Expected behavior<br><span class="muted">compare current landed damage by target without harness ranking</span></div><div class="green">Measured result<br><code>TEAM_AQUA_WOODS_EVENT_COMPLETE</code></div></div>
+<p>The failure trace motivates the mechanism but does not prove benefit. The feature exposes deterministic facts; the model still chooses and executes the move.</p>
+
+<h2>2. Start and measured segment</h2>
+<figure><strong>Petalburg checkpoint → Route 104 battles → Petalburg Woods → Team Aqua event</strong><p class="muted">Starting this far back preserves enough fresh model/harness context to navigate, heal, and fight before the frontier while avoiding a full boot run. The exact save file, SHA-1, accumulated-context policy, and model lane must be fixed before launch.</p></figure>
+
+<h2>3. Arms</h2>
+<table><tr><th>Arm</th><th>Configuration</th><th>Difference</th></tr><tr><td>Incumbent</td><td>Current fixed bundle from the eventual landed main commit; <code>battle-details-v2</code> ON</td><td><code>battle-effective-damage-v1</code> OFF</td></tr><tr><td>Candidate</td><td>Same checkpoint, model, bundle, sampling, limits and runner</td><td>Only <code>battle-effective-damage-v1</code> ON</td></tr></table>
+
+<h2>4. Outcomes and decision rule</h2>
+<table><tr><th>Role</th><th>Outcome</th><th>Analysis</th></tr><tr><td>Primary</td><td>Team Aqua Woods event completion by 45 minutes</td><td>Completion count, with every crash, loop, blackout and model error retained as not reached</td></tr><tr><td>Secondary</td><td>Furthest native milestone and time to each milestone</td><td>Paired by ABBA launch order; report median, spread and DNF count</td></tr><tr><td>Mechanism</td><td>Dominated damaging choices when a higher deterministic damage range was visible</td><td>Event-log audit only; never replace native progress as the primary outcome</td></tr></table>
+<p>No promotion rule is final until the operator specifies the minimum worthwhile lift. There is one analysis after fixed N; no early stopping or run ejection.</p>
+
+<h2>5. Runs, power and cost</h2>
+<div class="note blocked"><strong>Not powered yet.</strong> Eight 45-minute trials per arm cost 12 GPU-hours. No comparable checkpoint baseline rate or minimum useful lift has been selected, so that N is a provisional maximum allowed by the queue schema—not a claim of adequate power. Run <code>power.py plan</code> only after those inputs and an operator GPU budget are explicit.</div>
+
+<h2>6. Order, executors and failures</h2>
+<p>Use ABBA blocks across gpu0 and gpu1, balancing arm and launch order. Both executors must serve the same model artifact and load the same checkpoint. Each launched run counts. Preserve terminal reasons and inspect milestone receipts from <code>events.jsonl</code>; never substitute narration for game-owned progress.</p>
+
+<h2>7. Threats and limits</h2>
+<table><tr><th>Threat</th><th>Control</th></tr><tr><td>Different accumulated model state</td><td>Start both arms from the same save and inject the same synthetic harness ledger/context policy; document exactly what is reconstructed.</td></tr><tr><td>Bundle drift</td><td>Build both arms from the same clean landed main commit and record its switch receipt.</td></tr><tr><td>Damage facts change token use</td><td>Report request size and compaction events; this is part of the treatment, not hidden noise.</td></tr><tr><td>Feature acts only in battle</td><td>Retain navigation/healing failures as outcomes; separately audit whether actionable damage blocks were actually observed.</td></tr><tr><td>One motivating run</td><td>Do not use it as a baseline or causal estimate.</td></tr></table>
+<p>This experiment cannot prove that the damage engine covers every scripted move or that the model has learned general battle strategy. It tests the current switch as part of this harness and bundle.</p>
+
+<h2>8. Provenance and launch blockers</h2>
+<table><tr><th>Item</th><th>Value</th></tr><tr><td>Source basis</td><td>pre-change main <code>24232e63b025be83dde539d812345dc5f7580e89</code>; repin to the landing commit</td></tr><tr><td>Game formula</td><td>pret/pokeemerald <code>731ad5bfd6e6f265508d0efcca0ba42f9dcf5881</code></td></tr><tr><td>Failure evidence</td><td><code>2026-10-19T00-04-00_qwen36-gpu1_petalburg-rerun-a</code>, turns 108–111</td></tr><tr><td>Start state</td><td>Petalburg checkpoint requested; file and SHA-1 not yet pinned</td></tr><tr><td>Design review</td><td>Not performed</td></tr></table>
+<p class="note blocked">Do not launch until the checkpoint and reconstructed harness state are pinned, the feature lands on main, the bundle is rebuilt from that commit, readiness is rechecked, power/minimum lift are chosen, review passes, and the operator explicitly approves the GPU budget.</p>
+</main></body></html>

@@ -60,6 +60,12 @@ function navigationStopRequested(result:AgentToolResult<unknown>):boolean {
  const details=result.details;if(typeof details!=="object"||details===null||!("navigation" in details))return false;
  const navigation=details.navigation;return typeof navigation==="object"&&navigation!==null&&"stop_requested" in navigation&&navigation.stop_requested===true;
 }
+function navigationCanContinue(status:string|null):boolean {
+ return status?.startsWith("command limit")===true||status?.startsWith("planned route-step budget reached")===true;
+}
+function movementActivated(target:SnapshotTarget):boolean {
+ return target.activation==="step"||target.activation.startsWith("movement");
+}
 function interrupted(state:GameStateSnapshot):string|null {
  if(state.in_battle)return "battle began";
  if(state.screen!=="overworld")return `screen changed to ${state.screen}`;
@@ -206,7 +212,7 @@ function semanticTool(navigate:CheckedNavigationTool,press:CheckedPressTool,feat
     return identityIssue(actual,"travel");
    };
    const destination={x:choice.point.x,y:choice.point.y,map_id:[request.map_id[0],request.map_id[1]] as [number,number]};
-   const entryActivated=listed!==null&&(listed.activation==="step"||(listed.activation==="movement"&&(listed.kind!=="warp"||directionalWarpActivation(before,listed,options.mode??"local")===null)));
+   const entryActivated=listed!==null&&movementActivated(listed)&&(listed.kind!=="warp"||directionalWarpActivation(before,listed,options.mode??"local")===null);
    let previous=before.position;
    let walked=await navigate.executeChecked(id,destination,routeStop,signal,{exactTarget:true,multiTileRunning:true}),current:GameStateSnapshot,reason:string|null;
    for(;;){
@@ -219,10 +225,10 @@ function semanticTool(navigate:CheckedNavigationTool,press:CheckedPressTool,feat
     const changed=identityIssue(current,"travel");if(changed!==null)return withStatus(walked,changed,selected,false);
     const status=navigationStatus(walked);
     if(current.position?.x===choice.point.x&&current.position.y===choice.point.y){
-     if(status==="arrived at requested coordinate"||status?.startsWith("command limit")===true||navigationActivationAttempted(walked))break;
+     if(status==="arrived at requested coordinate"||navigationCanContinue(status)||navigationActivationAttempted(walked))break;
      return withStatus(walked,`route failed at the selected approach${status===null?"":`: ${status}`}`,selected,false);
     }
-    if(status===null||!status.startsWith("command limit"))return withStatus(walked,"route ended before the selected approach",selected,false);
+    if(!navigationCanContinue(status))return withStatus(walked,"route ended before the selected approach",selected,false);
     if(previous!==null&&current.position?.x===previous.x&&current.position.y===previous.y)return withStatus(walked,"route made no progress before the selected approach",selected,false);
     previous=current.position;
     walked=await navigate.executeChecked(id,destination,routeStop,signal,{exactTarget:true,multiTileRunning:true});

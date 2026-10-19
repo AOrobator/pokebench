@@ -185,4 +185,25 @@ describe("loop rule architecture", () => {
     detector.complete(completed);
     expect(notices.map(({ kind, phase }) => [kind, phase])).toEqual([["planning", "warning"], ["planning", "recovered"]]);
   });
+
+  it.each(["navigate_to_target", "explore_map"])("tracks commandless repeated %s failures as ineffective", (name) => {
+    const tracker = new CallTracker();
+    const state: GameStateSnapshot = {
+      screen: "overworld", started: true, name: "RED", location: "MAP", map_id: [0, 0], position: { x: 0, y: 0 },
+      facing: "right", field_controls_locked: false, in_battle: false, party: [], money: 0, badges: [], play_time_s: 0,
+    };
+    const notices: LoopNotice[] = [];
+    const detector = new LoopDetector((notice) => notices.push(notice), LOOP_POLICY, "enforced");
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const base = attempt * 3;
+      const args = name === "navigate_to_target" ? { map_id: [0, 0], target: { kind: "object", local_id: 1 } } : {};
+      tracker.state({ ...state, type: "state", seq: base + 1 } as unknown as Extract<RunEvent, { type: "state" }>);
+      tracker.start({ type: "tool_call", seq: base + 2, id: `call-${String(attempt)}`, name, args } as unknown as Extract<RunEvent, { type: "tool_call" }>);
+      tracker.state({ ...state, type: "state", seq: base + 3 } as unknown as Extract<RunEvent, { type: "state" }>);
+      const completed = tracker.finish({ type: "tool_result", seq: base + 4, id: `call-${String(attempt)}`, name, args, is_error: false, text: "no route", state_seq: base + 3 } as unknown as Extract<RunEvent, { type: "tool_result" }>);
+      expect(completed).toMatchObject({ name, acted: false, beforeState: state, state });
+      detector.complete(completed);
+    }
+    expect(notices.map(({ kind, phase }) => [kind, phase])).toContainEqual(["ineffective", "warning"]);
+  });
 });

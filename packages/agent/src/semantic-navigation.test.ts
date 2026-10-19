@@ -61,7 +61,7 @@ it("does not claim or consume a movement warp when already standing on it",async
 });
 
 it("records a selected movement warp when travel transitions to its declared map",async()=>{
- const warp:NonNullable<GameStateSnapshot["interaction_targets"]>[number]={kind:"warp",x:2,y:0,elevation:3,activation:"movement",availability:"conditional",facing:null,local_id:null,destination:[1,2,0],name:"Door"};
+ const warp:NonNullable<GameStateSnapshot["interaction_targets"]>[number]={kind:"warp",x:2,y:0,elevation:3,activation:"movement; activation depends on metatile (see local map)",availability:"conditional",facing:null,local_id:null,destination:[1,2,0],name:"Door"};
  const f=fixture(state=>({...state,map_id:[1,2]}),baseFeatures(),undefined,field([warp])),tool=f.tools.find(t=>t.name==="navigate_to_target");if(tool===undefined)throw new Error("missing semantic tool");
  const out=await tool.execute("s",{map_id:[0,9],target:{kind:"warp",x:2,y:0}});
  expect(out.details).toMatchObject({semantic_navigation:{activation_attempted:true}});
@@ -127,13 +127,33 @@ it("continues capped navigation segments until the semantic approach is reached"
 });
 
 it("composes semantic travel with native-validated safe strides",async()=>{
- const initial=field([target(2,4,0)]),navigationGrid=initial.navigation_grid;if(navigationGrid===null||navigationGrid===undefined)throw new Error("missing grid");
- let current:GameStateSnapshot={...initial,running:{permitted:true,controllable:true,reason:"permitted",shoes:true,allow_running:true,avatar_flags:0x41,metatile:0,elevation:3,map_type:3,callback1:0x08085E05,callback2:0x08085E5D,diagnostic:null,raw_hex:null},navigation_grid:{...navigationGrid,tiles:[0,1,2,3,4].flatMap(x=>[tile(x,0),tile(x,1)])}},activationPosts=0;const strides:unknown[]=[];
+ const initial=field([target(2,12,0)]),navigationGrid=initial.navigation_grid;if(navigationGrid===null||navigationGrid===undefined)throw new Error("missing grid");
+ let current:GameStateSnapshot={...initial,running:{permitted:true,controllable:true,reason:"permitted",shoes:true,allow_running:true,avatar_flags:0x41,metatile:0,elevation:3,map_type:3,callback1:0x08085E05,callback2:0x08085E5D,diagnostic:null,raw_hex:null},navigation_grid:{...navigationGrid,tiles:Array.from({length:13},(_,x)=>tile(x,0))}},activationPosts=0;const strides:unknown[]=[];
  const travel=navigationTool({safeStrides:true,automaticRunning:true,read:()=>Promise.resolve(current),press:(id,_params,_signal,check,options)=>{check?.(current);const stride=options?.stride;if(stride===undefined)throw new Error("expected stride");strides.push(stride);const end=stride.path.at(-1);if(end===undefined)throw new Error("empty stride");current={...current,position:{x:end.x,y:end.y}};return Promise.resolve({content:[{type:"text",text:"Navigation stride receipt: completed"}],details:{state:current,stride:{id,...stride,automatic_running:true,completed:stride.path.length,frames:12,reason:"completed",stopped:false}}});},observe:()=>Promise.resolve(result(current))});
  const activation={name:"press",label:"press",description:"press",parameters:Type.Object({buttons:Type.Array(Type.String())}),execute:()=>Promise.resolve(result(current)),executeChecked:(_id:string,_args:unknown,check:(state:GameStateSnapshot)=>void)=>{check(current);activationPosts++;return Promise.resolve(result(current));}} as unknown as CheckedPressTool;
  const tool=withSemanticNavigation([travel,activation],{...baseFeatures(),"safe-navigation-strides-v1":true},{read:()=>Promise.resolve(current)}).find(t=>t.name==="navigate_to_target");if(tool===undefined)throw new Error("missing semantic tool");
  const out=await tool.execute("s",{map_id:[0,9],target:{kind:"object",local_id:2}});
- expect(strides).toMatchObject([{origin:{x:0,y:0},path:[{x:1,y:0},{x:2,y:0},{x:3,y:0}]}]);expect(activationPosts).toBe(1);expect(out.details).toMatchObject({semantic_navigation:{activation_attempted:true}});
+ expect(strides).toMatchObject([{origin:{x:0,y:0},path:Array.from({length:8},(_,i)=>({x:i+1,y:0}))},{origin:{x:8,y:0},path:[{x:9,y:0},{x:10,y:0},{x:11,y:0}]}]);expect(activationPosts).toBe(1);expect(out.details).toMatchObject({semantic_navigation:{activation_attempted:true}});
+});
+
+it("rejects movement beyond the exact native-validated stride corridor",async()=>{
+ const initial=field([target(2,4,0)]),navigationGrid=initial.navigation_grid;if(navigationGrid===null||navigationGrid===undefined)throw new Error("missing grid");
+ let current:GameStateSnapshot={...initial,running:{permitted:true,controllable:true,reason:"permitted",shoes:true,allow_running:true,avatar_flags:0x41,metatile:0,elevation:3,map_type:3,callback1:0x08085E05,callback2:0x08085E5D,diagnostic:null,raw_hex:null},navigation_grid:{...navigationGrid,tiles:[0,1,2,3,4].map(x=>tile(x,0,x===2?0:0,x===2?2:0))}},activationPosts=0;
+ const travel=navigationTool({safeStrides:true,automaticRunning:true,read:()=>Promise.resolve(current),press:(id,_params,_signal,check,options)=>{check?.(current);const stride=options?.stride;if(stride===undefined)throw new Error("expected stride");current={...current,position:{x:2,y:0}};return Promise.resolve({content:[{type:"text",text:"Navigation stride receipt: completed"}],details:{state:current,stride:{id,...stride,automatic_running:true,completed:stride.path.length,frames:12,reason:"completed",stopped:false}}});},observe:()=>Promise.resolve(result(current))});
+ const activation={name:"press",label:"press",description:"press",parameters:Type.Object({}),execute:()=>Promise.resolve(result(current)),executeChecked:()=>{activationPosts++;return Promise.resolve(result(current));}} as unknown as CheckedPressTool;
+ const tool=withSemanticNavigation([travel,activation],{...baseFeatures(),"safe-navigation-strides-v1":true},{read:()=>Promise.resolve(current)}).find(t=>t.name==="navigate_to_target");if(tool===undefined)throw new Error("missing semantic tool");
+ const out=await tool.execute("s",{map_id:[0,9],target:{kind:"object",local_id:2}});
+ expect(activationPosts).toBe(0);expect(out.details).toMatchObject({navigation:{status:"planned stride interrupted; inspect new state"},semantic_navigation:{activation_attempted:false}});
+});
+
+it("walks the final semantic entry when automatic running could cross two tiles",async()=>{
+ const warp:NonNullable<GameStateSnapshot["interaction_targets"]>[number]={kind:"warp",x:2,y:0,elevation:3,activation:"movement; activation depends on metatile (see local map)",availability:"conditional",facing:null,local_id:null,destination:[1,2,0],name:"Door"};
+ let current:GameStateSnapshot={...field([warp]),running:{permitted:true,controllable:true,reason:"permitted",shoes:true,allow_running:true,avatar_flags:0x41,metatile:0,elevation:3,map_type:3,callback1:0x08085E05,callback2:0x08085E5D,diagnostic:null,raw_hex:null}},posts=0;const modifiers:(boolean|undefined)[]=[];
+ const travel=navigationTool({automaticRunning:true,read:()=>Promise.resolve(current),press:(_id,_params,_signal,check,options)=>{check?.(current);posts++;modifiers.push(options?.automaticRunning);current=posts===1?{...current,position:{x:1,y:0}}:{...current,map_id:[1,2]};return Promise.resolve(result(current));},observe:()=>Promise.resolve(result(current))});
+ const activation={name:"press",label:"press",description:"press",parameters:Type.Object({}),execute:()=>Promise.resolve(result(current)),executeChecked:()=>Promise.resolve(result(current))} as unknown as CheckedPressTool;
+ const tool=withSemanticNavigation([travel,activation],baseFeatures(),{read:()=>Promise.resolve(current)}).find(t=>t.name==="navigate_to_target");if(tool===undefined)throw new Error("missing semantic tool");
+ const out=await tool.execute("s",{map_id:[0,9],target:{kind:"warp",x:2,y:0}});
+ expect(posts).toBe(2);expect(modifiers).toEqual([false,false]);expect(out.details).toMatchObject({semantic_navigation:{activation_attempted:true}});
 });
 
 it("does not activate when unexpected movement happens to land on the selected approach",async()=>{

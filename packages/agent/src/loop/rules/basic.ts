@@ -117,12 +117,13 @@ export class BasicRules {
       reopened: false,
     };
     const buttons = call.args["buttons"];
-    const navigation = call.name === "navigate_to";
+    const navigation = call.name === "navigate_to" || call.name === "navigate_to_target" || call.name === "explore_map";
     const single = Array.isArray(buttons) && buttons.length === 1 && typeof buttons[0] === "string";
     const batch = this.interactions && Array.isArray(buttons) && buttons.length >= 1 && buttons.length <= 8 &&
       buttons.every((button: unknown) => typeof button === "string" && ["A", "B", "START", "SELECT", "UP", "DOWN", "LEFT", "RIGHT"].includes(button));
     const eligible = single || batch || navigation;
-    const action: unknown = navigation ? [call.args["map_id"], call.args["x"], call.args["y"]]
+    const action: unknown = call.name === "navigate_to" ? [call.args["map_id"], call.args["x"], call.args["y"]]
+      : navigation ? [call.name, call.requested ?? call.args]
       : batch ? buttons : Array.isArray(buttons) ? buttons[0] : null;
     const before = call.beforeState === undefined ? null : semanticState(call.beforeState, this.interactions);
     const key = eligible && evaluation.fingerprint !== null && evaluation.fingerprint === before

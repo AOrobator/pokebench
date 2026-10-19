@@ -4,11 +4,11 @@
  "title": "Repeated battle action refusal detection",
  "changedFeature": "battle-refusal-loop-v1",
  "hypothesis": "Making repeated no-button battle_action refusals visible to the existing rejection lifecycle may reduce repeated FIGHT calls at message waits. Deterministic coverage correctness is tested first; no gameplay benefit is claimed.",
- "activationMilestone": "PETALBURG_CITY",
- "primaryMilestone": "WALLY_TUTORIAL_COMPLETE",
+ "activationMilestone": "ROUTE_104",
+ "primaryMilestone": "PETALBURG_WOODS",
  "source": {
   "checkout": "main",
-  "commit": "1197238ad674e4483a68a94d03d11402066a8c93"
+  "commit": "351ef2d9eb7a957b7a3adec6cc1b0d242f34e647"
  },
  "incumbent": {
   "version": 2,
@@ -162,5 +162,5 @@
   "window": 4,
   "minReached": 3
  },
- "notes": "Pending only, not queued or approved. Correctness-tier replay uses recorded round-2 visited-map refusals before any cohort. A future diagnostic or measured checkpoint study requires an operator budget and separate approved design; this registration does not authorize a launch. New switch defaults OFF. Tutorial decoder repair remains on the existing tutorial-party-owner-v1 switch."
+ "notes": "Pending only, not queued or approved. Correctness-tier replay uses recorded round-2 visited-map refusals before any cohort. A future diagnostic or measured checkpoint study requires an operator budget and separate approved design; this registration does not authorize a launch. New switch defaults OFF. Tutorial decoder repair remains on the existing tutorial-party-owner-v1 switch. Recorded failure is on ROUTE104 after Wally (native Gym stage2), so the pending future outcome is PETALBURG_WOODS, not already-completed Wally. This does not authorize trials."
 }

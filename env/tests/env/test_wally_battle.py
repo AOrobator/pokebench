@@ -124,10 +124,40 @@ def test_tutorial_exception_requires_source_owned_borrowed_mon(address, data):
 def test_native_journal_uses_the_same_tutorial_coverage_switch():
     memory = tutorial()
     assert read_action_frame(memory.read, tutorial_owner_enabled=True).battle.initialized
-    assert read_action_frame(memory.read, tutorial_owner_enabled=False).battle.phase == "unavailable"
+    assert (
+        read_action_frame(memory.read, tutorial_owner_enabled=False).battle.phase == "unavailable"
+    )
     on = NativeActionJournal(tutorial_owner_enabled=True)
     on.advance(memory.read)
     assert on.previous.battle.initialized and on.previous.ui.diagnostic is None
     off = NativeActionJournal(tutorial_owner_enabled=False)
     off.advance(memory.read)
     assert off.previous.battle.phase == "unavailable"
+
+
+@pytest.mark.parametrize("on", [True, False])
+def test_server_factory_threads_tutorial_switch_to_frame_journal(monkeypatch, on):
+    import types
+
+    from fastapi import FastAPI
+    from test_view import get
+
+    from pokebench_env.serve import run
+
+    memory = tutorial()
+    monkeypatch.setenv("POKEBENCH_FEATURES_OFF", "" if on else "tutorial-party-owner-v1")
+
+    class Emulator:
+        def run_frame_with_buttons(self, buttons):
+            pass
+
+    app = FastAPI()
+    run(
+        [],
+        types.SimpleNamespace(run=lambda *args, **kwargs: None),
+        lambda: Emulator().run_frame_with_buttons([]),
+        actions=(app, Emulator, memory.read),
+    )
+    status, _, body = get(app, "/pokebench/actions")
+    assert status == 200
+    assert (b"empty battle move has PP" in body) is (not on)

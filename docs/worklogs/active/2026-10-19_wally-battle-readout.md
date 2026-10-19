@@ -21,13 +21,13 @@ Read local archives through production hash/layout validation and matching exter
 
 ## Milestones
 ### M1 — Source and RED coverage
-- [ ] Pin reference/source evidence and exact failing archive/model observation.
-- [ ] Add failing tutorial battle decoder and production wiring tests; ordinary invalid-state controls; commit RED.
+- [x] Pin reference/source evidence and exact failing archive/model observation.
+- [x] Add failing tutorial battle decoder and production wiring tests; ordinary invalid-state controls; commit RED.
 ### M2 — Repair and ownership/refusal contract
-- [ ] Implement decoder correctness under existing switch; prove OFF parity and mutation failure.
-- [ ] Inspect tutorial ownership and refusal path; implement missing source-qualified feedback separately if needed, with switch/explainer/pending metadata and production delivery tests. Coordinate scope against current parallel work by reading its receipts.
-- [ ] Reparse real archived Wally state and verify the exact model-facing readout.
-- [ ] Update existing explainer and experiment notes to describe corrected coverage, without performance claims.
+- [x] Implement decoder correctness under existing switch; prove OFF parity and mutation failure.
+- [x] Inspect tutorial ownership and refusal path; implement missing source-qualified feedback separately if needed, with switch/explainer/pending metadata and production delivery tests. Coordinate scope against current parallel work by reading its receipts.
+- [x] Reparse real archived Wally state and verify the exact model-facing readout.
+- [x] Update existing explainer and experiment notes to describe corrected coverage, without performance claims.
 - [ ] Run just test, just lint, just build, just coverage and just verify-vendor; commit GREEN.
 ### M3 — Review and close loop
 - [ ] Score PB1-PB13; freeze packet and complete Claude/Grok/GPT cloud review under repository contract (maximum two rounds).
@@ -63,6 +63,11 @@ Native archive replay must move the real Wally error to truthful decoded battle/
 - Production delivery GREEN:64 focused agent tests, including real pinned pi loop -> RunRecorder -> loop_guard -> next model request. Warning carries A/B status, no button events. Tutorial suite8 tests passes against full hash-validated raw archive with matching external ROM.
 - Additional native-journal consumer found during coverage trace: it calls both readers separately each frame. journal-red.log proves the same switch is not threaded there (1 failing,8 passing). Include this existing consumer so Activity History does not keep emitting the repaired decoder diagnostic. Semantic refusal fixture now includes two actual wrapped r2 results (4070/4096) and their exact paired states, showing wrapper text precedes the Battle action status. Detection must scan the canonical status line, require a qualified identical native battle, and recover when that native state changes; unknown decoding cannot prove repetition or recovery.
 - Native journal RED COMMIT04c8c502; server factory and journal propagation GREEN (22 focused tests). Full test exposed an older sparse 93eb fixture stopping at the original decoder error, so it lacked later battle fields. Extended only that fixture with complete writable regions from its exact hash-validated raw9411 archive (no ROM), preserving original windows and OFF golden text/hash; all135 original readout-fix tests pass with the newly truthful ON battle output asserted.
-- Full g2 test gate GREEN:2583 agent +1243 viewer +2735 Python tests, zero skips (counts to be checked against final log). Native ROM configured. Lint TS/ESLint/ruff passed; fresh venv lacked mGBA binding needed by mypy, so linked the canonical built binding into this worktree venv and verified isolated imports; no tracked dependency or type-ignore changes.
+- Full g2 test gate GREEN:2584 agent +1242 viewer +2735 Python tests, zero skips (counts to be checked against final log). Native ROM configured. Lint TS/ESLint/ruff passed; fresh venv lacked mGBA binding needed by mypy, so linked the canonical built binding into this worktree venv and verified isolated imports; no tracked dependency or type-ignore changes.
 - Browser proof on isolated 8802 scratch runs only, no queue runner: completed synthetic offline replay displays the new rejection warning, both evidence sequences, and selected raw JSON in history/trace. Harness Config search finds the card and clicking READ EXPLAINER opens the tracked page. No measured server/run/restart/launch changed. Screenshots retained under canonical runs/mockups/wally-battle-readout/shots. Native frame128062 archive886 reparses OFF error -> ON resolving, ready=false, moves TACKLE35/empty/empty/empty and game-owned tutorial controls. Proof JSON/readout under this worktree runs/wally-battle-readout.
 - Main advanced with viewer-only performance landings while this isolated branch was under implementation. Sync before sealing the review packet; no unreviewed landing of this candidate.
+
+- GREEN implementation COMMIT74756143; merged current main3c626e32 as351ef2d9 (automatic merge of serve.py and server.test.ts; main itself unchanged). Subsequent pending definitions pin351ef2d9, a runtime ancestor with the repair, and the guard activation/outcome are corrected to ROUTE_104 -> PETALBURG_WOODS because recorded refusals4070/4096 occurred on Route104 after Wally.
+- Per-operand mutations:11 distinct source deletions assertion-RED, each restored; first3 receipts in mutations-first3.json and remaining8 in mutations-remaining.json. First mutation script stopped on a formatter-changed operand before editing that case; corrected it and continued without overwriting earlier receipts. Final restoration11 Python +66 agent focused tests GREEN.
+- Pre-sync coverage GREEN (not final combined-tree evidence): agent/viewer/Python gates passed90 floor; Python95.81 lines/91.37 branches/98.01 functions. Merged viewer/frame-pacing code requires fresh final combined-tree checks. Final gate receipts use g3-* so earlier failures remain separate.
+- Explainer pages checked at1280/1440/375; final refusal mechanism uses wrapping boxes/arrows so phone labels stay readable. Actual card click opened the correct tracked page at scratch8802. Offline replay intentionally has no live emulator/frame; it proves warning/history/raw JSON rendering, not gameplay or runtime speed.

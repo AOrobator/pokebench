@@ -96,3 +96,32 @@ it("keeps qualified interface ownership, name text and controls in focused recov
  r.feed(checkEvent({v:1,run:"ui",seq:2,turn:1,t:"2026-10-19T12:00:00.000-04:00",type:"tool_result",id:"o",name:"observe",state_seq:1,is_error:false,duration_ms:1,text:"naming",frames:[]}));
  expect(brief?.("ineffective",3)).toContain("Open interface: player naming editor; phase naming_editor; text AAA; selected A; controls: START selects OK");
 });
+
+// Native nearby lists are clipped to +/-7 tiles. Membership is not a changed game condition.
+const nearby={objects:[{local_id:1,map_id:[0,19] as [number,number],graphics_id:1,sprite_kind:"person",x:23,y:58}],triggers:[{x:23,y:58,elevation:0,variable:16384,required_value:1,current_value:0,condition_met:false,script_pointer:134217728}],dialogue:null};
+const geometry={elevation:0,tiles:[{x:30,y:58,collision:0,behavior:0,elevation:0}],objects:[],warps:[]};
+function activeNavigation(s:typeof state){
+ const r=recording(),g=new Governor({limits:{maxTurns:100,maxWallMs:60000,failureLimit:3},retry:()=>undefined,abort:()=>undefined,now:()=>0});
+ const d=attachLoopGuard(r,g,undefined,"enforced",true,()=>"SUPERVISOR",false,false,false,false,false,false,false,false,false,true);
+ for(let seq=1;seq<=3;seq++)d.complete({name:"navigate_to",args:{x:31,y:55-seq},state:s,beforeState:s,text:"no path",isError:false,seq});
+ expect(d.context()).toBe("SUPERVISOR");
+ return {r,d};
+}
+it("holds the production episode across clipped object/trigger windows and recovers on a known trigger change",()=>{
+ const s=parseGameState({...state,world_context:nearby}),{r,d}=activeNavigation(s);
+ for(const [seq,context] of [[4,{...nearby,objects:[],triggers:[]}],[5,nearby]] as const){
+  d.complete({name:"press",args:{buttons:["RIGHT"]},state:parseGameState({...s,position:{x:31,y:58},world_context:context}),beforeState:s,text:"small move",isError:false,seq});
+  expect(r.guards).not.toContainEqual(expect.objectContaining({phase:"recovered"}));
+ }
+ d.complete({name:"observe",args:{},state:parseGameState({...s,world_context:{...nearby,triggers:[{...nearby.triggers[0],current_value:1,condition_met:true}]}}),beforeState:s,text:"changed trigger",isError:false,seq:6});
+ expect(r.guards).toContainEqual(expect.objectContaining({phase:"recovered"}));
+});
+it("holds the production episode across unavailable optional observations, then recognizes known geometry recovery",()=>{
+ const s=parseGameState({...state,navigation_grid:geometry,world_context:nearby}),{r,d}=activeNavigation(s);
+ for(const [seq,extra] of [[4,{navigation_grid:null,world_context:null,money:null}],[5,{navigation_grid:undefined,world_context:undefined,money:null}],[6,{navigation_grid:geometry,world_context:nearby,money:state.money}]] as const){
+  d.complete({name:"observe",args:{},state:parseGameState({...s,...extra}),beforeState:s,text:"observation",isError:false,seq});
+  expect(r.guards).not.toContainEqual(expect.objectContaining({phase:"recovered"}));
+ }
+ d.complete({name:"observe",args:{},state:parseGameState({...s,navigation_grid:{...geometry,elevation:1}}),beforeState:s,text:"changed elevation",isError:false,seq:7});
+ expect(r.guards).toContainEqual(expect.objectContaining({phase:"recovered"}));
+});

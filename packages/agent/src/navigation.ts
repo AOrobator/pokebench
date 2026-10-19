@@ -632,12 +632,14 @@ export function navigationTool(ports:NavigationPorts):CheckedNavigationTool {
    const stride=ports.safeStrides===true?planStride(state,path.slice(0,bound-plannedSteps),options):null;
    const span=stride?.path.length??(ports.ledges===true&&hopAhead(planned,mode,before,direction,delta[1],delta[2])?2:1);
    const finalGoalStep=checkedOptions.exactTarget===true&&path.length===span;
+   const goalEntryTile=finalGoalStep?(mode==="full"?fullGeometry(planned):localGeometry(planned))?.tile(goal)??null:null;
    if(finalGoalStep)goalEntryActivation=directionalWarpActivation(planned,goal,mode)??"step";
    const deliberateGoalEntry=checkedOptions.exactTarget===true&&path.length<=2;
    try {
     last=await ports.press(id,{buttons:[direction],...(ports.automaticRunning===true||goal.walking===undefined?{}:{walking:goal.walking})},signal,actual=>{
      if(actual===undefined||!ready(actual,mode)||actual.map_id?.[0]!==goal.map_id[0]||actual.map_id[1]!==goal.map_id[1]||actual.position?.x!==before.x||actual.position.y!==before.y)throw new NavigationPreconditionError("map, position or field input unavailable or changed before action; no command submitted");
      const requestedStop=stop?.(actual)??null;if(requestedStop!==null){stopRequested=true;throw new NavigationPreconditionError(requestedStop);}
+     if(finalGoalStep){const actualTile=(mode==="full"?fullGeometry(actual):localGeometry(actual))?.tile(goal)??null;if(JSON.stringify(actualTile)!==JSON.stringify(goalEntryTile))throw new NavigationPreconditionError("goal entry tile changed before action; no command submitted");}
      if(ports.safeStrides===true&&(actual.running?.controllable!==true||(stride!==null&&JSON.stringify(planStride(actual,path.slice(0,bound-plannedSteps),options))!==JSON.stringify(stride))))throw new NavigationPreconditionError("stride geometry or native input changed before action; no command submitted");
     },ports.safeStrides===true?(stride===null?{automaticRunning:false}:{stride}):deliberateGoalEntry?{automaticRunning:false}:undefined);
    } catch(error){if(!(error instanceof NavigationPreconditionError))throw error;status=error.message;break;}

@@ -118,6 +118,19 @@ it.each([
  expect(out.details).toMatchObject({semantic_navigation:{activation_attempted:true}});
 });
 
+it("submits no entry step when a distant warp changes from step-on to directional in the checked state",async()=>{
+ const warp:NonNullable<GameStateSnapshot["interaction_targets"]>[number]={kind:"warp",x:20,y:0,elevation:3,activation:"movement; activation depends on metatile (see local map)",availability:"conditional",facing:null,local_id:null,destination:[1,2,0],name:"Distant warp"};
+ const grid=(x:number,behavior=0x67)=>({elevation:3,tiles:Array.from({length:Math.min(29,x+7)-Math.max(0,x-7)+1},(_,i)=>{const at=Math.max(0,x-7)+i;return tile(at,0,0,at===20?behavior:0);}),objects:[],warps:[{x:20,y:0}]});
+ let current:GameStateSnapshot={...field([warp]),topology:{width:30,height:1,connections:[]},navigation_grid:grid(0)},travelPosts=0,semanticPosts=0;
+ const travel=navigationTool({read:()=>Promise.resolve(current),press:(_id,params,_signal,check)=>{if(current.position?.x===19)current={...current,navigation_grid:grid(19,0x62)};check?.(current);expect(params.buttons).toEqual(["RIGHT"]);travelPosts++;const x=(current.position?.x??0)+1;current={...current,position:{x,y:0},navigation_grid:grid(x)};return Promise.resolve(result(current));},observe:()=>Promise.resolve(result(current))});
+ const activation={name:"press",label:"press",description:"press",parameters:Type.Object({buttons:Type.Array(Type.String())}),execute:()=>Promise.resolve(result(current)),executeChecked:()=>{semanticPosts++;return Promise.resolve(result(current));}} as unknown as CheckedPressTool;
+ const tool=withSemanticNavigation([travel,activation],baseFeatures(),{read:()=>Promise.resolve(current)}).find(t=>t.name==="navigate_to_target");if(tool===undefined)throw new Error("missing semantic tool");
+ const out=await tool.execute("s",{map_id:[0,9],target:{kind:"warp",x:20,y:0}});
+ expect(travelPosts).toBe(19);expect(semanticPosts).toBe(0);expect(current.position).toEqual({x:19,y:0});
+ expect(out.content[0]?.type==="text"?out.content[0].text:"").toContain("route ended before the selected approach");
+ expect(out.details).toMatchObject({semantic_navigation:{activation_attempted:false}});
+});
+
 it("chooses a reachable native connection edge and submits one outward step",async()=>{
  const initial={...field([]),topology:{width:5,height:2,connections:[{direction:"EAST" as const,offset:0,destination:[0,10] as [number,number],destination_name:"ROUTE",edges:[{x:4,y:0}]}]}};
  const f=fixture(undefined,baseFeatures(),undefined,initial),tool=f.tools.find(t=>t.name==="navigate_to_target");if(tool===undefined)throw new Error("missing semantic tool");

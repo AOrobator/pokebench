@@ -68,6 +68,8 @@ The operator subsequently authorized enabling both switches in the fixed bundle 
 
 ## Session log
 
+- 2026-10-19: The synced tree's agent lint failed one comparison: `explorer-guidance-v2.test.ts` already drops `safe-navigation-strides-v1` from its switch list, then compared that narrowed list to the same id again. TypeScript reported no overlap. Removed only the redundant comparison. Runtime behavior is unchanged; the full suite had already passed 2,764 agent, 1,305 viewer, and 2,826 Python tests before the type fix.
+
 - 2026-10-19: Synced through current `main` `1d3f01b67f090d4e7e94ce361911e0a3b18cb5c1`. The only delta since the previous merge is the starter-probe archive, a worklog rename. Semantic navigation, deterministic exploration, safe strides, and the bundle treatment are unchanged. The combined tree still needs the full gate and a fresh immutable review before landing.
 
 - 2026-10-19: Before the final review freeze, canonical `main` advanced to `2cd3d4391ef993b499007007551bf9d4edc4089a` with the reviewed starter-decision diagnostic. The merge preserves its separate model-goal/termination boundary, switch defaults, fixed-design metadata, and tests while retaining semantic navigation, deterministic exploration, and observed-instruction composition. Conflict-focused agent tests pass 201/201 and viewer tests pass 197/197 after rebuilding the agent package. The combined tree still requires complete gates and a fresh immutable review.

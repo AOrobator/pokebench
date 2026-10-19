@@ -55,11 +55,11 @@ No new tools, network calls, subprocesses, game-memory writes, or model privileg
 - [x] Replay the characterized streams and existing focused loop suites.
 - [x] Delete/disable one changed routing operand, observe the intended focused test fail under a unique receipt, restore it, and rerun green.
 - [x] Run repository gates and verify vendor.
-- [ ] COMMIT: implementation/GREEN.
+- [x] COMMIT: implementation/GREEN (`ba47ac08`).
 
 **M3 — Review and land**
-- [ ] Sync current main and rerun gates.
-- [ ] Principles self-review with zero FAIL rows.
+- [x] Sync current main and rerun gates.
+- [x] Principles self-review with zero FAIL rows.
 - [ ] Multi-model review until Claude, Grok, and GPT cloud lanes return LGTM on one frozen packet.
 - [ ] Fast-forward local main and run post-land tests.
 - [ ] Report merge SHA. Do not launch or alter experiments.
@@ -78,6 +78,8 @@ The operator-visible behavior is the existing warning/recovery/stop stream and m
 - 2026-10-19: deletion/restoration receipt `registry-planning-entry-20261019`: removing the `planning` entry made two architecture tests fail (registry shape omitted `planning`; a planning/observation/rejection collision selected `observation` instead of `planning`). Restoring it returned 3/3 green. No receipt was overwritten.
 - 2026-10-19: repository gates after building fresh-worktree artifacts and linking the canonical checkout's existing mGBA Python binding into this disposable venv: `just test` agent 2,530, viewer 1,196, Python 2,709 passed with the configured ROM; `just lint` clean (tsc, eslint, ruff, format check, mypy); `just build` clean; `just coverage` agent lines 99.22 / branches 94.11 / functions 98.18, viewer lines 97.65 / branches 91.49 / functions 93.88, Python lines 97.64 / branches 93.77 / functions 100; `just verify-vendor` OK at `bbab97ad73e460b7cd7c08527d10ced30cc03fbe`.
 - 2026-10-19: two setup-only gate attempts were retained: `git submodule update --init --recursive` found the outer pinned vendor but the vendor's unregistered nested `pokered` path has no URL; non-recursive init is the repo-supported setup. The first `just test` then proved the agent tests but viewer imports could not resolve before agent build; after agent build, the Play asset was still absent until the full viewer build. `just build && just test` passed. No source was changed to accommodate either setup failure.
+- 2026-10-19: synchronized current `main` at `a7be38f6` with merge commit `35eedbf9`; the intervening automatic-running feature was outside the loop modules and merged cleanly. The synchronized `just build`, `just test`, and `just lint` gates passed with the same 2,530 agent, 1,196 viewer, and 2,709 Python tests.
+- 2026-10-19: the first synchronized coverage run hit the existing five-second per-test limit in two unrelated agent tests (`exit-reachability` serpentine routing and the recorded `4caa` people-card wrapper) while 2,528 tests passed. Running those files unchanged in isolation passed 38/38; the one permitted unchanged full rerun then passed all 2,530 agent, 1,196 viewer, and 2,709 Python tests. Coverage remained agent lines 99.22 / branches 94.11 / functions 98.18, viewer lines 97.65 / branches 91.49 / functions 93.88, and Python lines 97.64 / branches 93.77 / functions 100. No timeout, serialization, test, or threshold was changed. Synchronized `just verify-vendor` also passed.
 
 ## Multi-Model Review Log
 

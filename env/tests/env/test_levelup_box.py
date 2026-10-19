@@ -46,6 +46,7 @@ RECORDED_OFF = frozenset(FIXTURE["recorded_off"]) | {
     "unset-dynamic-warp-v1",
     "status-names-v1",
     "surf-gated-exits-v2",
+    "battle-effective-damage-v1",
 }
 ON = RECORDED_OFF - {SWITCH}
 OFF_TEXT = "Battle details: WILD single · turn 6 · resolving (no input until the game asks)"

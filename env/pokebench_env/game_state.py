@@ -217,6 +217,7 @@ def read_game_state(
     full_map_enabled: bool = False,
     story_characters_enabled: bool = True,
     battle_details_enabled: bool = True,
+    battle_damage_enabled: bool = False,
     dynamic_warp_enabled: bool = True,
     displayed_names_enabled: bool = False,
     connection_edges_enabled: bool = False,
@@ -370,7 +371,14 @@ def read_game_state(
         game_stats=_game_stats(read, save1, save2),
         resources=resources,
         battle=battle,
-        battle_details=read_battle_details(read, battle, party, resources)
+        battle_details=read_battle_details(
+            read,
+            battle,
+            party,
+            resources,
+            badges=badges,
+            damage=battle_damage_enabled,
+        )
         if battle_details_enabled
         else None,
         running=read_running_permission(read),

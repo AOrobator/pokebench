@@ -56,7 +56,7 @@ const RUNS = [
   { id: "2026-10-11T21-00-00_old", model: "think-swarm", started: "x", ended: true, reason: "budget", problem: null },
 ];
 
-async function harness(hash = "", runs: unknown[] = RUNS): Promise<Harness> {
+async function harness(hash = "", runs: unknown[] = RUNS, workbench: unknown = null): Promise<Harness> {
   document.body.innerHTML = PAGE.slice(PAGE.indexOf("<body>") + 6, PAGE.indexOf("</body>"));
   const streams: FakeStream[] = [];
   const fetched: string[] = [];
@@ -67,6 +67,7 @@ async function harness(hash = "", runs: unknown[] = RUNS): Promise<Harness> {
       if (next !== null) return next;
       fetched.push(url);
       if (url === "/api/runs") return runs.length === 1 && runs[0] === "fail" ? Promise.reject(new Error("offline")) : Promise.resolve([...runs]);
+      if (url === "/api/workbench") return workbench === null ? Promise.reject(new Error("workbench unavailable")) : Promise.resolve(workbench);
       if (url.endsWith("/comparisons")) return Promise.resolve({ candidates: [{run: "2026-10-11T21-00-00_old", milestones: []}], baseline: null, best: null });
       if (url.endsWith("/milestones")) {
         return Promise.resolve({ run: "2026-10-11T21-00-00_old", milestones: [{ name: "GAME_RUNNING", offsetMs: 5 }, { name: "PLAYER_NAME_SET", offsetMs: 20_000 }] });
@@ -444,6 +445,59 @@ describe("viewer app", () => {
     expect(ui("screen-note").textContent).toBe("live screen unavailable · last frame");
   });
 
+  it("keeps the selected run's cached splits atomic until its event stream is caught up", async () => {
+    const second = "2026-10-11T23-05-00_second-live";
+    const runs = [RUNS[0], { id: second, model: "think-swarm", started: "x", ended: true, reason: "budget", problem: null }];
+    const split = (name: string, elapsedMs: number, seq: number) => ({ name, elapsedMs, segmentMs: elapsedMs, seq, turn: 1, inputTokens: 0, outputTokens: 0 });
+    const run = (id: string, splits: ReturnType<typeof split>[]) => ({ id, cohort: null, arm: null, model: "think-swarm", started: "2026-10-11T23:00:00.000Z", status: "live", reason: null, problem: null, excluded: null, elapsedMs: 5_000, turn: 1, config: null, splits });
+    const workbench = { version: 1, at: BASE_MS, milestones: [], problems: [], runs: [
+      run(RUNS[0]?.id ?? "", [split("NEW_GAME_CREATED", 1_000, 1), split("PLAYER_NAME_CONFIRMED", 2_000, 2)]),
+      { ...run(second, [split("FIRST_TRUCK_EXIT", 3_000, 3)]), status: "ended", reason: "budget" },
+    ] };
+    const { app, streams } = await harness("", runs, workbench);
+    await app.pollCards();
+    expect(ui("split-strip").textContent).toContain("NEW GAME ✔NAME ✔");
+
+    const first = must(streams[0]);
+    const partial = new Log();
+    partial.add(0, START);
+    partial.add(1_000, { type: "milestone", turn: 1, name: "NEW_GAME_CREATED", server_timestamp: 1, kind: "story", origin: "observed" });
+    feed(first, partial.events, false);
+    app.tick(100);
+    expect(ui("split-strip").textContent).toContain("NEW GAME ✔NAME ✔");
+
+    app.select(second);
+    app.render();
+    expect(ui("split-strip").textContent).toContain("TRUCK EXIT ✔");
+    expect(ui("split-strip").textContent).not.toContain("NAME ✔");
+
+    const secondLog = new Log();
+    secondLog.add(0, START);
+    secondLog.add(3_000, { type: "milestone", turn: 1, name: "FIRST_TRUCK_EXIT", server_timestamp: 3, kind: "story", origin: "observed" });
+    secondLog.add(4_000, { type: "run_end", turn: 1, reason: "budget", furthest_milestone: "FIRST_TRUCK_EXIT", turns: 1, wall_ms: 4_000, tokens: { input: 0, output: 0 }, frames: { saved: 0, bytes: 0 } });
+    feed(must(streams[1]), secondLog.events);
+    app.tick(100);
+    expect(ui("split-strip").textContent).toContain("TRUCK EXIT ✔");
+    app.clock?.seek(BASE_MS);
+    app.render();
+    expect(ui("split-strip").textContent).toContain("TRUCK EXIT ✔");
+  });
+
+  it("holds a stable split-loading state when the cache is unavailable, then trusts the caught-up stream", async () => {
+    const { app, streams } = await harness();
+    await app.pollCards();
+    const log = new Log();
+    log.add(0, START);
+    log.add(1_000, { type: "milestone", turn: 1, name: "NEW_GAME_CREATED", server_timestamp: 1, kind: "story", origin: "observed" });
+    feed(must(streams[0]), log.events, false);
+    app.tick(100);
+    expect(ui("split-strip").textContent).toContain("LOADING RECORDED SPLITS");
+    expect(ui("split-strip").textContent).not.toContain("NEW GAME ✔");
+    must(streams[0]).send("caught_up", {});
+    app.tick(100);
+    expect(ui("split-strip").textContent).toContain("NEW GAME ✔");
+  });
+
   it("says so when there are no runs", async () => {
     document.body.innerHTML = PAGE.slice(PAGE.indexOf("<body>") + 6, PAGE.indexOf("</body>"));
     const app = await mountApp(document, {
@@ -725,7 +779,7 @@ it("does not apply comparisons from a superseded run selection", async () => {
   const pending: ((value: unknown) => void)[] = [];
   const streams: FakeStream[] = [];
   const app = await mountApp(document, {
-    fetchJson: (url) => nextRunReply(url) ?? (url === "/api/runs" ? Promise.resolve(RUNS) : new Promise((resolve) => pending.push(resolve))),
+    fetchJson: (url) => nextRunReply(url) ?? (url === "/api/runs" ? Promise.resolve(RUNS) : url === "/api/workbench" ? Promise.reject(new Error("workbench unavailable")) : new Promise((resolve) => pending.push(resolve))),
     sendJson: noWrites,
     openStream: (url) => { const stream = new FakeStream(url); streams.push(stream); return stream; }, now:()=>BASE_MS, hash:"",
   });
@@ -747,7 +801,7 @@ it("offers only eligible references and preserves none while comparisons are pen
   const pending: ((value:unknown)=>void)[] = [];
   const streams: FakeStream[] = [];
   const app = await mountApp(document, {
-    fetchJson:(url)=>nextRunReply(url) ?? (url === "/api/runs" ? Promise.resolve(RUNS) : url.startsWith("/sprites/") ? Promise.reject(new Error("no card art")) : new Promise((resolve)=>pending.push(resolve))),
+    fetchJson:(url)=>nextRunReply(url) ?? (url === "/api/runs" ? Promise.resolve(RUNS) : url === "/api/workbench" ? Promise.reject(new Error("workbench unavailable")) : url.startsWith("/sprites/") ? Promise.reject(new Error("no card art")) : new Promise((resolve)=>pending.push(resolve))),
     sendJson: noWrites,
     openStream:(url)=>{const s=new FakeStream(url);streams.push(s);return s;},now:()=>BASE_MS,hash:"",
   });

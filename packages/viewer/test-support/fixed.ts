@@ -41,7 +41,7 @@ export function draftDefinition(overrides: Partial<Omit<FixedDefinition, "plan">
     romSha1: ROM_SHA1,
     controlBase: { path: CONTROL_BASE_PATH, presetId: CONTROL_BASE_ID, sha256: CONTROL_BASE_SHA256 },
     base: { target: null, limits: { maxTurns: 20000, failureLimit: 3, replyFailuresEndRun: false }, sampling: { thinkingLevel: "medium", maxTokens: 4096 }, features: INCUMBENT_FEATURES },
-    switches: ["world-destinations-v1", "game-evidence-priority-v1", "named-warp-destinations-v1"],
+    switches: ["automatic-running-v1", "world-destinations-v1", "game-evidence-priority-v1", "named-warp-destinations-v1"],
     offInBoth: ["milestone-stall-stop-v1"],
     onInBoth: [],
     phases: [

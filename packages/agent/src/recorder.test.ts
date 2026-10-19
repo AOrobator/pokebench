@@ -469,20 +469,21 @@ it("preserves and records a one-shot blackout consumed inside production navigat
 
 it("preserves and records every queued blackout consumed through the production dialogue wrapper", async () => {
   const {recorder,log}=harness();
-  const notices=["Whited out once: your party had no usable Pokémon left.","Whited out twice: your party had no usable Pokémon left."];
+  const notice="Whited out: your party had no usable Pokémon left, so your ₽0 remained ₽0.";
   const field:GameStateSnapshot={...STATE,location:"ROUTE 103",map_id:[0,18],position:{x:0,y:0},facing:"right",field_controls_locked:false,blackout_active:false,game_stats:{pokemon_captures:0,evolved_pokemon:0,used_pokecenter:0,saved_game:0},party:[{identity:"12345678:9abcdef0",species:"TORCHIC",level:5,hp:20,max_hp:20}]};
   const home:GameStateSnapshot={...field,location:"HOME",map_id:[1,1],position:{x:2,y:2}};
-  const receipts=[{frame:82,money_before:3000,notice:notices[0]},{frame:99,money_before:1500,notice:notices[1]}];
-  let current=field,pending:typeof receipts[number]|undefined,actions=0;
+  const receipts=[{frame:82,money_before:0,notice},{frame:99,money_before:0,notice}];
+  let current=field,actions=0,observations=0;
   const png=(()=>{const b=Buffer.alloc(33);Buffer.from([137,80,78,71,13,10,26,10]).copy(b);b.writeUInt32BE(13,8);b.write("IHDR",12);b.writeUInt32BE(240,16);b.writeUInt32BE(160,20);return b.toString("base64");})();
   const fetchFn:typeof fetch=(input)=>{
     const url=typeof input==="string"?input:input instanceof URL?input.href:input.url;
-    if(url.endsWith("/action")){actions++;current=home;pending=receipts[actions-1];return Promise.resolve(new Response(JSON.stringify({status:"success"})));}
+    if(url.endsWith("/action")){actions++;current=home;return Promise.resolve(new Response(JSON.stringify({status:"success"})));}
     if(url.endsWith("/queue_status"))return Promise.resolve(new Response(JSON.stringify({queue_empty:true})));
     if(url.endsWith("/pokebench/state"))return Promise.resolve(new Response(JSON.stringify(current)));
     if(url.endsWith("/pokebench/observation")){
-      const state=pending===undefined?home:{...home,blackout_receipt:pending};pending=undefined;
-      return Promise.resolve(new Response(JSON.stringify({state_text:"Current field.",screenshot_base64:png,state})));
+      observations++;const receipt=observations===1?receipts[0]:observations===3?receipts[1]:undefined;
+      const state=receipt===undefined?home:{...home,blackout_receipt:receipt};
+      return Promise.resolve(new Response(JSON.stringify({state_text:receipt===undefined?"Current field.":`${notice}\nCurrent field.`,screenshot_base64:png,state})));
     }
     throw new Error(`unexpected ${url}`);
   };
@@ -496,7 +497,7 @@ it("preserves and records every queued blackout consumed through the production 
   await recorder.emit({type:"tool_execution_end",toolCallId:"p1",toolName:"press",result,isError:false});
   const text=result.content.flatMap(part=>part.type==="text"?[part.text]:[]).join("\n");
   expect(actions).toBe(2);
-  expect(text).toContain(notices[0]);expect(text).toContain(notices[1]);
+  expect(text.split(notice)).toHaveLength(3);
   expect((result.details as {state:GameStateSnapshot}).state.blackout_receipts).toEqual(receipts);
   expect(events(log).filter(event=>event.type==="activity"&&event.kind==="blackout")).toHaveLength(2);
 });

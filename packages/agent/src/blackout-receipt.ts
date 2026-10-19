@@ -26,6 +26,17 @@ export class BlackoutCarry {
  }
 
  missingNotices(texts:readonly string[]):string[] {
-  return [...this.receipts.values()].map(receipt=>receipt.notice).filter(notice=>!texts.some(text=>text.includes(notice)));
+  const present=new Map<string,number>();
+  for(const {notice} of this.receipts.values())if(!present.has(notice))present.set(notice,texts.reduce((total,text)=>{
+   let count=0,at=0;
+   while((at=text.indexOf(notice,at))!==-1){count++;at+=notice.length;}
+   return total+count;
+  },0));
+  const missing:string[]=[];
+  for(const {notice} of this.receipts.values()){
+   const count=present.get(notice)??0;
+   if(count>0)present.set(notice,count-1);else missing.push(notice);
+  }
+  return missing;
  }
 }

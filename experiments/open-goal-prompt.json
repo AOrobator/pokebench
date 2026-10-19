@@ -40,7 +40,7 @@
   },
   "features": {
    "navigation-evidence-memory-v1": false,
-   "automatic-running-v1": false,
+   "automatic-running-v1": true,
    "expanded-menu-battle-information-v1": true,
    "ram-state-v1": true,
    "live-map-v1": true,

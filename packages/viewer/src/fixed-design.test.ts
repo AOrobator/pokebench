@@ -44,6 +44,8 @@ describe("armPreset", () => {
     expect("start" in armPreset(booted, "confirmatory", "control")).toBe(false);
     const differing = Object.keys(INCUMBENT_FEATURES).filter((k) => (control.features as Record<string, boolean>)[k] !== (bundle.features as Record<string, boolean>)[k]);
     expect(differing.sort()).toEqual([...def.switches].sort());
+    expect(control.features["automatic-running-v1"]).toBe(false);
+    expect(bundle.features["automatic-running-v1"]).toBe(true);
     expect((bundle.features as Record<string, boolean>)["milestone-stall-stop-v1"]).toBe(false);
   });
 

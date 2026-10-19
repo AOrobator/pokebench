@@ -17,7 +17,7 @@ export interface CardInput {
   readonly trial: string | null;
   readonly card: WorkbenchCard | null;
   readonly facts: PlateFacts;
-  readonly status: "watching" | "live" | "paused";
+  readonly status: "watching" | "live" | "paused" | "replay";
   readonly trainer: string;
 }
 
@@ -85,8 +85,9 @@ const gt = (text: string, colour: string, height: number, bold = 0): string =>
   `<span class="gtx" data-gt="${esc(text)}" data-c="${colour}" data-h="${String(height)}"${bold > 0 ? ` data-b="${String(bold)}"` : ""}>${esc(text)}</span>`;
 
 function stateChip(status: CardInput["status"]): string {
-  const word = status === "watching" ? "WATCHING" : status === "paused" ? "PAUSED" : "LIVE";
-  return `<span class="tc-chip tc-state${status === "watching" ? "" : " tc-off"}">${status === "paused" ? "" : '<span class="tc-dot"></span>'}${gt(word, "white", 14)}</span>`;
+  const word = status === "watching" ? "WATCHING" : status === "paused" ? "PAUSED" : status === "replay" ? "REPLAY" : "LIVE";
+  const dot = status === "watching" || status === "live" ? '<span class="tc-dot"></span>' : "";
+  return `<span class="tc-chip tc-state${status === "watching" ? "" : " tc-off"}">${dot}${gt(word, "white", 14)}</span>`;
 }
 const badge = (): string => `<span class="tc-chip tc-badge">${gt("NEW MILESTONE!", "badge", 14)}</span>`;
 
@@ -128,6 +129,6 @@ export function cardHtml(input: CardInput, art: CardArt, kind: CardKind, href: s
   const label = `Watch run ${input.runId}: ${input.title}${input.arm === null ? "" : `, ${input.arm}`}`;
   const cls = `tc tc-${kind}${facts.fresh ? " tc-new" : ""}`, frame = `<span class="tc-art" style="--gw:${String(g.w)};aspect-ratio:${String(g.w)}/${String(g.h)};background-image:url(${image})">${body}</span>`;
   return href === null
-    ? `<button type="button" class="${cls}" data-watch="${esc(input.runId)}" aria-pressed="${String(input.status === "watching")}" aria-label="${esc(label)}">${frame}</button>`
+    ? `<button type="button" class="${cls}" data-watch="${esc(input.runId)}" aria-pressed="${String(input.status === "watching" || input.status === "replay")}" aria-label="${esc(label)}">${frame}</button>`
     : `<a class="${cls}" href="${esc(href)}" data-watch="${esc(input.runId)}" aria-label="${esc(label)}">${frame}</a>`;
 }

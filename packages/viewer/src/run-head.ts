@@ -50,7 +50,7 @@ export function headHtml(input: HeadInput): string {
     + `<span class="rh-l2">${meta}<span class="rh-time">${esc(input.time)}</span></span>`;
 }
 
-// cards: the live runs as trainer cards (watched run first) when the card art is built; they take the
+// cards: the watched run and live runs as trainer cards (watched run first) when the card art is built; they take the
 // place of the other-runs list, and of the YOU'RE WATCHING block when the watched run has a card.
 export function sheetHtml(input: HeadInput, startedAt: (iso: string) => string, cards: { readonly html: string; readonly watched: boolean } | null = null): string {
   const { view } = input;
@@ -78,6 +78,6 @@ export function sheetHtml(input: HeadInput, startedAt: (iso: string) => string, 
     }).join("");
   const start = view.start;
   const details = start === null ? "" : `<h4>RUN DETAILS</h4><dl class="rs-details"><dt>Model</dt><dd>${esc(start.model.id)}</dd><dt>Thinking</dt><dd>${esc(start.sampling.thinking_level)}</dd><dt>Run</dt><dd>${esc(input.runId ?? start.run)}</dd></dl>`;
-  if (cards !== null) return `${cards.watched ? "" : now}<h4>LIVE RUNS · TAP TO WATCH</h4><div class="rs-cards">${cards.html}</div>${details}`;
+  if (cards !== null) return `${cards.watched ? "" : now}<h4>RUNS · TAP TO WATCH</h4><div class="rs-cards">${cards.html}</div>${details}`;
   return `${now}<h4>OTHER LIVE RUNS · TAP TO WATCH</h4><div class="rs-others">${others}</div>${details}`;
 }

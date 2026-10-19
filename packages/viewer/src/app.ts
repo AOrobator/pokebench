@@ -368,10 +368,13 @@ export class App {
     const { art, workbench } = this;
     if (art === null || workbench === null) return [];
     const now = this.deps.now();
-    return this.runs.filter(isLive).flatMap((run): CardInput[] => {
+    // Preserve the API's stable run order so selecting a card never moves a focused live card.
+    const candidates = this.runs.filter((run) => run.id === this.runId || isLive(run));
+    return candidates.flatMap((run): CardInput[] => {
       const recorded = workbench.runs.find((r) => r.id === run.id);
-      if (recorded === undefined || (recorded.status !== "live" && recorded.status !== "paused")) return [];
-      return [cardInputFor(recorded, workbench.at, now, run.id === this.runId ? "watching" : recorded.status === "paused" ? "paused" : "live", workbench.runs, art.art)];
+      if (recorded === undefined || (recorded.status !== "live" && recorded.status !== "paused" && !(run.id === this.runId && recorded.status === "ended"))) return [];
+      const status: CardInput["status"] = recorded.status === "ended" ? "replay" : run.id === this.runId ? "watching" : recorded.status === "paused" ? "paused" : "live";
+      return [cardInputFor(recorded, workbench.at, now, status, workbench.runs, art.art)];
     });
   }
 
@@ -941,7 +944,7 @@ export class App {
     this.setHtml("run-head", headHtml(head));
     // The time ticks every render; rebuilding the sheet for it would remount the WATCH buttons under the pointer.
     const cards = this.cardInputs(), art = this.art?.art ?? null;
-    const watched = cards.filter((c) => c.status === "watching"), mini = art === null || cards.length === 0 ? null : [...watched, ...cards.filter((c) => c.status !== "watching")].map((c) => cardHtml(c, art, "mini")).join("");
+    const watched = cards.filter((c) => c.status === "watching" || c.status === "replay"), mini = art === null || cards.length === 0 ? null : [...watched, ...cards.filter((c) => c.status !== "watching" && c.status !== "replay")].map((c) => cardHtml(c, art, "mini")).join("");
     this.setHtml("run-sheet-body", sheetHtml({ ...head, time: "" }, startedAt, mini === null ? null : { html: mini, watched: watched.length > 0 }));
     syncCards(this.ui("run-cards"), art === null ? [] : cards.map((c) => cardHtml(c, art, "wide")), this.cardHtml);
     this.cardsShown = mini !== null;

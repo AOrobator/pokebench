@@ -205,11 +205,11 @@ describe("trainer cards in the viewer", () => {
     expect(ui("run-sheet").hidden).toBe(true); expect(streams.at(-1)?.url).toBe(`/api/runs/${encodeURIComponent(OTHER_ID)}/events`);
   });
 
-  it("without the art, keeps the live-run buttons and the plain sheet, and never polls the workbench", async () => {
+  it("without the art, keeps the live-run buttons and the plain sheet while still loading recorded splits", async () => {
     const { app } = await mount(1280, { art: false });
     await app.pollCards();
     expect(ui("run-cards").hidden).toBe(true); expect(ui("live-runs").hidden).toBe(false);
-    expect(fetched).not.toContain("/api/workbench");
+    expect(fetched).toContain("/api/workbench");
     setWidth(375); app.tick(0);
     expect(ui("run-sheet-body").querySelector(".rs-now")).not.toBeNull();
   });

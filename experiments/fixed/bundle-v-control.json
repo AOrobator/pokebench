@@ -149,6 +149,7 @@
   }
  },
  "switches": [
+  "automatic-running-v1",
   "blackout-readout-v1",
   "low-hp-trainer-warning-v2",
   "counter-talk-v1",

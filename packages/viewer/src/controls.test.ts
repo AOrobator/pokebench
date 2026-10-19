@@ -102,6 +102,17 @@ describe("live side panel", () => {
     expect(splitTimes(v, null)).toContain("no comparable best run yet");
   });
 
+  it("renders an atomic recorded snapshot while the event stream catches up", () => {
+    const partial = view((l) => {
+      l.add(1_000, { type: "milestone", turn: 1, name: "NEW_GAME_CREATED", server_timestamp: 1, kind: "story", origin: "observed" });
+    });
+    const recorded = { run: "selected", milestones: [{ name: "NEW_GAME_CREATED", offsetMs: 1_000 }, { name: "PLAYER_NAME_CONFIRMED", offsetMs: 2_000 }] };
+    expect(splitStrip(partial, recorded)).toContain("NEW GAME ✔</span><span class=\"done\">NAME ✔");
+    expect(splitTimes(partial, null, recorded)).toContain('<span>NAME</span><span class="t">0:00:02</span>');
+    expect(splitStrip(partial, null)).toContain("LOADING RECORDED SPLITS");
+    expect(splitStrip(partial)).not.toContain("NAME ✔");
+  });
+
   const mark = (name: string, origin: "observed" | "present_at_start" = "observed") => ({ type: "milestone" as const, turn: 1, name, server_timestamp: 1, kind: "story" as const, origin });
 
   it("shows every milestone the run recorded in story order, past the starter", () => {

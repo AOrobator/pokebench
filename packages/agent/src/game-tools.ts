@@ -177,6 +177,7 @@ export function permitsAutomaticRunning(before: GameStateSnapshot | undefined, b
   return enabled === true && buttons.length > 0 && buttons.every(button => ["UP", "DOWN", "LEFT", "RIGHT"].includes(button)) && before?.screen === "overworld" && !before.in_battle && before.field_controls_locked === false && before.active_ui == null && before.running?.permitted === true && before.running.controllable === true;
 }
 
+/** Modifiers actually submitted by the harness; raw model arguments remain in the tool_call event. */
 export interface PressModifiers { readonly automatic_running: boolean; readonly walking?: boolean; readonly requested_held_buttons?: readonly Button[] }
 
 export interface PressHooks {

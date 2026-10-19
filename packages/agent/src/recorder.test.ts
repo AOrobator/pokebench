@@ -119,8 +119,11 @@ describe("RunRecorder", () => {
   it("records harness-owned running without inventing a walking request", async () => {
     const { recorder, log } = harness();
     await recorder.start(START_META);
+    await recorder.emit({type:"tool_execution_start",toolCallId:"run",toolName:"press",args:{buttons:["UP"],walking:true}});
     recorder.buttonPress("run", ["UP"], { hold_frames: 10, release_frames: 8 }, undefined, { automatic_running: true, requested_held_buttons: ["B"] });
+    const call=events(log).find(event=>event.type==="tool_call");
     const press=events(log).find(event=>event.type==="button_press");
+    expect(call,"raw stale input remains auditable on the tool call").toMatchObject({type:"tool_call",args:{buttons:["UP"],walking:true}});
     expect(press).toMatchObject({type:"button_press",automatic_running:true,requested_held_buttons:["B"]});
     expect(press,"running receipt must omit the ignored legacy walking modifier").not.toHaveProperty("walking");
   });

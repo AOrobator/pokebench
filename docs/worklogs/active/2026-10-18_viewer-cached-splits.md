@@ -33,10 +33,10 @@ No new write, network origin, control, or file-system boundary. `/api/workbench`
 **M1 — Atomic cached split bootstrap**
 
 - [x] Write tests for cached complete splits, partial stream stability, run scoping, and cache-failure recovery.
-- [x] COMMIT: `test(viewer): require atomic cached split bootstrap` (`fccfbe89`) (RED)
+- [x] COMMIT: `test(viewer): require atomic cached split bootstrap` (`595056f3`) (RED; rebased onto current `main`)
 - [x] Implement the display-only cached projection.
 - [x] Gates: targeted tests 86 passed; `just test` 1,189 viewer + 2,515 agent + 2,480 Python passed; `just lint` passed; `just build` passed; viewer coverage 95.41% statements / 91.46% branches / 93.87% functions / 97.65% lines; Python coverage 97.47% lines / 93.37% branches / 99.43% functions. The first combined coverage run hit two unrelated timing failures in `server-stream.test.ts`; the immediate isolated viewer coverage rerun passed all 1,189 tests and all thresholds.
-- [x] COMMIT: `fix(viewer): show cached splits during replay catch-up` (`020af8b7`) (GREEN)
+- [x] COMMIT: `fix(viewer): show cached splits during replay catch-up` (`371eb1a8`) (GREEN; rebased onto current `main`)
 - [x] Real-browser proof at 1280x900, 1440x900, and 375x812, including pointer run switching, collapsed/expanded split times, and multiple polling/playback cycles. At replay clock 0:00:02, all 23 recorded splits were already visible. Screenshots: `runs/mockups/viewer-cached-splits/shots/` (all five links returned HTTP 200 on the local pages server).
 - [x] Read-only real-data check: run `2026-10-18T22-47-51_qwen36-gpu0_849c` has 23 recorded milestone rows and the candidate viewer showed 23 completed split chips immediately while replay remained near the start; switching to `2026-10-15T19-44-55_qwen36-gpu0_dfb0` changed the selected run and its split projection without retaining the first run's chips.
 - [ ] Multi-model review loop until clean.

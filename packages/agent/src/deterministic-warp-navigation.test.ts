@@ -27,6 +27,10 @@ const fullRoom=(extra:Partial<GameStateSnapshot>={}):GameStateSnapshot=>{
  const rows=[0,1,2].map(y=>[0,1,2,3,4].map(x=>{const t=cells.get(`${String(x)},${String(y)}`);if(t===undefined)throw new Error("missing tile");return ((t.collision<<12)|(t.elevation<<8)|t.behavior).toString(16).padStart(4,"0");}).join(""));
  return {...state,navigation_grid:null,map_grid:{width:5,height:3,elevation:3,rows,objects:grid.objects,warps:grid.warps},topology:{width:5,height:3,connections:[]},...extra};
 };
+const warpField=(position:{x:number;y:number},exits:readonly {x:number;y:number;behavior?:number}[],width:number,height:number,ground:(x:number,y:number)=>number=()=>0):GameStateSnapshot=>{
+ const events=exits.map(({x,y,behavior})=>warp(x,y,DEST,behavior));
+ return room({position,navigation_grid:{elevation:3,tiles:Array.from({length:height},(_,y)=>Array.from({length:width},(_,x)=>tile(x,y,events.find(w=>w.x===x&&w.y===y)?.behavior??ground(x,y)))).flat(),objects:[],warps:events.map(({x,y})=>({x,y}))},interaction_targets:events.map(({kind,x,y,elevation,activation,availability,facing,local_id,destination,name})=>({kind,x,y,elevation,activation,availability,facing,local_id,destination,name}))});
+};
 const result=(state:GameStateSnapshot):AgentToolResult<{state:GameStateSnapshot}>=>({content:[{type:"text",text:"observed"}],details:{state}});
 const run=async(initial:GameStateSnapshot,on=true,goal={x:3,y:2,map_id:MAP},maxCommands?:number,extraPorts:Partial<NavigationPorts>={})=>{
  let current=initial;const buttons:string[][]=[];
@@ -83,13 +87,18 @@ describe("deterministic-warp-navigation-v1",()=>{
   const outcome=await tool.execute("nav",{x:3,y:2,map_id:MAP});
  expect(submitted).toBe(0);expect(outcome.details).toMatchObject({navigation:{status:"map, position or field input unavailable or changed before action; no command submitted",commands:0}});
 
-  let identitySubmissions=0;
-  const identity=navigationTool({deterministicWarps:true,read:()=>Promise.resolve(current),press:(_id,_params,_signal,check)=>{
-   const changed={...current,interaction_targets:(current.interaction_targets??[]).map(t=>t.x===3&&t.y===2?{...t,destination:[0,8,2] as [number,number,number]}:t)};
-   check?.(changed);identitySubmissions++;return Promise.resolve(result(changed));
-  },observe:()=>Promise.resolve(result(current))});
-  const changed=await identity.execute("nav",{x:3,y:2,map_id:MAP});
-  expect(identitySubmissions).toBe(0);expect(changed.details).toMatchObject({navigation:{status:"warp identity or activation changed before action; no command submitted",commands:0}});
+  const navigation=current.navigation_grid;if(navigation===null||navigation===undefined)throw new Error("missing navigation grid");
+  const drifts:[string,GameStateSnapshot][]=[
+   ["destination",{...current,interaction_targets:(current.interaction_targets??[]).map(t=>t.x===3&&t.y===2?{...t,destination:[0,8,2] as [number,number,number]}:t)}],
+   ["behavior",{...current,navigation_grid:{...navigation,tiles:navigation.tiles.map(t=>t.x===3&&t.y===2?{...t,behavior:0x1c}:t)}}],
+   ["elevation",{...current,interaction_targets:(current.interaction_targets??[]).map(t=>t.x===3&&t.y===2?{...t,elevation:3}:t)}],
+  ];
+  for(const [name,changed] of drifts){
+   let identitySubmissions=0;
+   const identity=navigationTool({deterministicWarps:true,read:()=>Promise.resolve(current),press:(_id,_params,_signal,check)=>{check?.(changed);identitySubmissions++;return Promise.resolve(result(changed));},observe:()=>Promise.resolve(result(current))});
+   const changedOutcome=await identity.execute("nav",{x:3,y:2,map_id:MAP});
+   expect(identitySubmissions,name).toBe(0);expect(changedOutcome.details).toMatchObject({navigation:{status:"warp identity or activation changed before action; no command submitted",commands:0}});
+  }
  });
 
  it("rejects ambiguous coordinates, incompatible elevations, step-on warps and missing geometry",async()=>{
@@ -112,11 +121,21 @@ describe("deterministic-warp-navigation-v1",()=>{
   const missing=await run({...base,navigation_grid:null});expect(missing.buttons).toEqual([]);expect(missing.outcome.details).toMatchObject({navigation:{commands:0}});
  });
 
- it("uses whole-map geometry and resolves equal-cost equivalents by y then x",async()=>{
+ it("uses weighted route cost and resolves equal costs by y then x independent of event order",async()=>{
   const whole=await run(fullRoom(),true,{x:3,y:2,map_id:MAP},undefined,{fullMap:true});
   expect(whole.buttons).toEqual([["DOWN"],["DOWN"]]);expect(whole.outcome.details).toMatchObject({navigation:{selected_target:{x:1,y:2}}});
-  const tied=await run(room({position:{x:2,y:1}}));
-  expect(tied.buttons).toEqual([["DOWN"],["LEFT"],["DOWN"]]);expect(tied.outcome.details).toMatchObject({navigation:{selected_target:{x:1,y:2}}});
+
+  const weighted=warpField({x:1,y:1},[{x:5,y:1},{x:1,y:6}],8,8,(x,y)=>y===1&&x>=2&&x<=4?2:0);
+  const cheaper=await run(weighted,true,{x:5,y:1,map_id:MAP},1,{grassCost:true});
+  expect(cheaper.buttons).toEqual([["DOWN"]]);expect(cheaper.outcome.details).toMatchObject({navigation:{selected_target:{x:1,y:6}}});
+
+  const xTied=warpField({x:2,y:1},[{x:3,y:2},{x:1,y:2}],5,3);
+  const byX=await run(xTied,true,{x:3,y:2,map_id:MAP},1);
+  expect(byX.outcome.details).toMatchObject({navigation:{selected_target:{x:1,y:2}}});
+
+  const yTied=warpField({x:2,y:2},[{x:1,y:3},{x:3,y:1}],5,5);
+  const byY=await run(yTied,true,{x:1,y:3,map_id:MAP},1);
+  expect(byY.outcome.details).toMatchObject({navigation:{selected_target:{x:3,y:1}}});
  });
 
  it("fails closed for distinct destinations, dynamic destinations, behavior or elevation mismatches, unknown classes and unreachable candidates",async()=>{

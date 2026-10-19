@@ -49,6 +49,7 @@ export const NO_PROGRESS_PRESSES=16;
 // PokeAgent's GRASS_TILE_COST_MULTIPLIER: entering grass costs more, so routes avoid wild encounters when a detour is cheap.
 export const GRASS_STEP_COST=1.5;
 const GRASS=new Set([2,3]);
+const terrainStepCost=(tile:Tile,options:NavigationOptions):number=>options.grassCost===true&&GRASS.has(tile.behavior)?GRASS_STEP_COST:1;
 
 // navigation-truth-v1: a coordinate trigger whose condition matches now (world_context.triggers,
 // read from the map's coord events and the save's variables). pokeemerald 731ad5b
@@ -200,23 +201,23 @@ const standableTile=(options:NavigationOptions)=>{
 };
 // Replays the planner's moves along a path: the first matching trigger stepped on before its last tile, and the
 // walker's elevation at its end (a multi-level tile keeps the elevation the route brought, GAME_RULE.entered).
-function walked(state:GameStateSnapshot,path:readonly Direction[],options:NavigationOptions):{readonly crossed:MatchingTrigger|null;readonly elevation:number}|null {
+function walked(state:GameStateSnapshot,path:readonly Direction[],options:NavigationOptions):{readonly crossed:MatchingTrigger|null;readonly elevation:number;readonly cost:number}|null {
  const geometry=options.mode==="full"?fullGeometry(state):localGeometry(state);
  const start=state.position;if(geometry===null||start===null)return null;
  let first:MatchingTrigger|null=null;
  const {entered,jumped}=options.elevation==="legacy"?LEGACY_RULE:GAME_RULE;
- let p=start,here=geometry.tile(start)?.elevation??geometry.elevation,elevation=geometry.elevation;
+ let p=start,here=geometry.tile(start)?.elevation??geometry.elevation,elevation=geometry.elevation,cost=0;
  for(const [i,direction] of path.entries()){
   const delta=DIRECTIONS.find(([d])=>d===direction);if(delta===undefined)return null;
   const next={x:p.x+delta[1],y:p.y+delta[2]},tile=geometry.tile(next);if(tile===undefined)return null;
   if(options.ledges===true&&LEDGES.get(tile.behavior)===direction&&!geometry.warps.some(w=>w.x===next.x&&w.y===next.y)){
    const landing={x:next.x+delta[1],y:next.y+delta[2]},land=geometry.tile(landing);if(land===undefined)return null;
-   elevation=jumped(elevation,here,tile.elevation,land.elevation);here=land.elevation;p=landing;
-  }else{elevation=entered(elevation,tile.elevation);here=tile.elevation;p=next;}
+   elevation=jumped(elevation,here,tile.elevation,land.elevation);here=land.elevation;p=landing;cost+=1+terrainStepCost(land,options);
+  }else{elevation=entered(elevation,tile.elevation);here=tile.elevation;p=next;cost+=terrainStepCost(tile,options);}
   const crossed=i<path.length-1?triggerAt(options.triggers,p,elevation):undefined;
   first??=crossed??null;
  }
- return {crossed:first,elevation};
+ return {crossed:first,elevation,cost};
 }
 // navigation-truth-v1: a nearer walkable tile the planner could reach only by crossing a matching trigger.
 function gatedNearer(state:GameStateSnapshot,geometry:Geometry,goal:Point,sorted:readonly Point[],nearest:Point|undefined,loose:(p:Point,plan:NavigationOptions)=>boolean,options:NavigationOptions):string {
@@ -385,7 +386,7 @@ class OpenList<T> {
 // Elevation follows the game's rule. Warps are only ever goals.
 export function planNavigation(state:GameStateSnapshot,goal:Point,options:NavigationOptions={}):Direction[]|null {
  const mode=options.mode??"local",walkable=options.floor===true?FLOOR:LEGACY_WALKING,{mismatch,entered,jumped}=options.elevation==="legacy"?LEGACY_RULE:GAME_RULE;
- const step=(tile:Tile):number=>options.grassCost===true&&GRASS.has(tile.behavior)?GRASS_STEP_COST:1;
+ const step=(tile:Tile):number=>terrainStepCost(tile,options);
  if(!ready(state,mode)||state.position===null)return null;
  const geometry=mode==="full"?fullGeometry(state):localGeometry(state);
  const here=geometry?.tile(state.position);
@@ -445,7 +446,7 @@ const DIRECTIONAL_WARP_PRESSES=new Map<number,Direction>([
 // and old stop semantics even if their destination tuples happen to match.
 const knownWarpBehavior=(behavior:number):boolean=>DIRECTIONAL_WARP_PRESSES.has(behavior);
 interface WarpIdentity {readonly destination:readonly number[];readonly behavior:number;readonly elevation:number}
-type WarpPlan={readonly target:Point;readonly path:Direction[];readonly activation:Direction|null;readonly identity:WarpIdentity};
+type WarpPlan={readonly target:Point;readonly path:Direction[];readonly cost:number;readonly activation:Direction|null;readonly identity:WarpIdentity};
 const samePoint=(a:Point,b:Point):boolean=>a.x===b.x&&a.y===b.y;
 const sameDestination=(a:readonly number[],b:readonly number[]):boolean=>a.length===3&&b.length===3&&a.every((value,index)=>value===b[index]);
 const sameWarpIdentity=(a:WarpIdentity,b:WarpIdentity):boolean=>a.behavior===b.behavior&&a.elevation===b.elevation&&sameDestination(a.destination,b.destination);
@@ -463,10 +464,10 @@ function deterministicWarpPlan(state:GameStateSnapshot,requested:Point,options:N
   if(warps.filter(other=>samePoint(other,target)).length!==1)return [];
   const tile=geometry.tile(target);if(tile===undefined||tile.behavior!==wantedTile.behavior)return [];
   const path=planNavigation(state,target,options);if(path===null)return [];
-  const arrival=walked(state,path,options)?.elevation??geometry.elevation;if(target.elevation!==0&&target.elevation!==arrival)return [];
-  return [{target:{x:target.x,y:target.y},path,activation:DIRECTIONAL_WARP_PRESSES.get(tile.behavior)??null,identity:{destination:[...target.destination],behavior:tile.behavior,elevation:target.elevation}}];
+  const route=walked(state,path,options);if(route===null||(target.elevation!==0&&target.elevation!==route.elevation))return [];
+  return [{target:{x:target.x,y:target.y},path,cost:route.cost,activation:DIRECTIONAL_WARP_PRESSES.get(tile.behavior)??null,identity:{destination:[...target.destination],behavior:tile.behavior,elevation:target.elevation}}];
  });
- candidates.sort((a,b)=>a.path.length-b.path.length||a.target.y-b.target.y||a.target.x-b.target.x);
+ candidates.sort((a,b)=>a.cost-b.cost||a.target.y-b.target.y||a.target.x-b.target.x);
  return candidates[0]??null;
 }
 const Args=Type.Object({x:Type.Integer({minimum:0}),y:Type.Integer({minimum:0}),map_id:Type.Tuple([Type.Integer({minimum:0,maximum:255}),Type.Integer({minimum:0,maximum:255})]),walking:Type.Optional(Type.Boolean({description:"Walk deliberately without automatic running."}))},{additionalProperties:false});

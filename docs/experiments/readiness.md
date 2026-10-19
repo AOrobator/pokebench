@@ -143,3 +143,7 @@ Pending, unqueued and unapproved. Separate proposed MAIN_MENU early-game screen,
 | Experiment | Activation / primary | Verdict | Evidence and next gate |
 |---|---|---|---|
 | `visited-terrain-navigation` | `PLAYER_NAME_CONFIRMED` / `RUSTBORO_CITY`; planned external start `PETALBURG_CITY` | PENDING, unqueued, unapproved; checkpoint start itself is qualified, experiment design is not | Both 2026-10-19 45-minute Petalburg reruns reached `TEAM_AQUA_WOODS_EVENT_COMPLETE`, then failed to reach Rustboro; one repeatedly replanned within north Route 104 after rejecting a southward local waypoint. The verified Petalburg state SHA-1 is `f1cf4b8217b7a67f9d48094d21e9fa2c50eebc82`. This supports the activation path and the failure mechanism, not treatment benefit. Before approval: land and repin the switch, run the experiment-design/power workflow for the 45-minute two-GPU external cohort, rehearse the driver, and confirm each arm starts with empty visited-memory state. |
+
+## 2026-10-19 — safe planned navigation strides
+
+Pending, unqueued and unapproved. Earliest activation PLAYER_NAME_CONFIRMED; intended primary RUSTBORO_CITY. Recorded last50 audit confirms a running/planner contract mismatch and supplies a descriptive two-tile median baseline. Native owned emulator probes verify only correctness. No common-build model ON/OFF comparison exists; >=4 median travel is an unproven target. Source points to preparation base until reviewed landing; design/power and operator approval remain required.

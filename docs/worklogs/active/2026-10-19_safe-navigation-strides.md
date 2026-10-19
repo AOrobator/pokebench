@@ -44,6 +44,8 @@ Use owned separate native checkpoint probe; no measured session input/reload/res
 - Read-only zero-call census: 1,021 zero calls;901 refusal/blocked/no-path,61 interface/control,25 wrong-map,11 battle,11 map transitions,6 arrivals,6 errors. Raw calls remain immutable.
 - Source reference pokeemerald 731ad5bfd6e6f265508d0efcca0ba42f9dcf5881 clean. Existing running reader and live-map decoder own verified US-ROM offsets.
 
+- RED commit51f4d7a5: two planner tests fail because planStride does not exist; captured runs/strides/red-planner.log.
+
 ## Surprises
 
 None yet.
@@ -59,3 +61,10 @@ No unrelated cleanup.
 ## Archive Milestone
 
 User-gated; not requested.
+
+### Candidate integration checkpoint
+
+- Planner/factory tests pass, including full production recorder plan and terminal-text delivery; native controller tests cover stationary motion, endpoint, changed floor/object/script/elevation/map/lock, cancellation, queue isolation and frame budget.
+- Native final diagnostic completed all twelve calls (six fixed goals OFF/ON) from one owned checkpoint. Same sampled-travel calculation: OFF [2,3,3,0,2,2], median2; ON [8,25,12,0,5,1], median6.5. This is 3.25x in a deterministic engineering route matrix, NOT a model-policy result. Unreachable goal stays zero; one-tile goal does not overshoot. Logs/frames/raw RAM preserved under runs/strides; first diagnostic's post-completion script error and second diagnostic's already-acknowledged journal503 remain retained; final proof has terminal completed and no script error.
+- Pre-sync gates: agent2586/viewer1265 tests pass via coverage, Python2770 pass; TS agent lines99.21 branches94.03 functions98.09, viewer lines97.60 branches90.92 functions93.68; Python lines97.01 branches92.53 functions100. Lint/build,123 experiment definitions,vendor and pages-check pass. Final small test-text lint fix follows the coverage pass; repeat affected gates after main sync.
+- main advanced from64ca188a to0b5ad284 with the Wally repair/battle-refusal switch; integrate before frozen cloud review and preserve its behavior. This checkpoint is not reviewed or landed.

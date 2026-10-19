@@ -280,7 +280,10 @@ def run(
     if actions is not None:
         install_action_history(*actions)
     if travel is not None:
-        install_travel(*travel)
+        install_travel(
+            *travel,
+            safe_strides="safe-navigation-strides-v1" not in features_off_from_env(os.environ),
+        )
     if pause is not None:
         install_pause(
             *pause,

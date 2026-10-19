@@ -231,13 +231,13 @@ describe("script-line-presence-v1: the production factory honors the switch",()=
 
 describe("script-line-presence-v1: registry",()=>{
  it("is the last switchable feature, an observation that needs dialogue auto-advance, default off",()=>{
-  expect(SWITCHABLE_FEATURES.at(-63)).toBe("script-line-presence-v1");
+  expect(SWITCHABLE_FEATURES.at(-64)).toBe("script-line-presence-v1");
   const info=featureInfo("script-line-presence-v1");
   expect(info.group).toBe("observation");
   expect(info.needs).toBe("dialogue-auto-advance-v1");
   expect(info.description).toContain(" Off: ");
   expect(FEATURES.filter(f=>f.id==="script-line-presence-v1")).toHaveLength(1);
-  expect(playHarnessFeatures(ALL_ON,null).at(-63)).toBe("script-line-presence-v1");
+  expect(playHarnessFeatures(ALL_ON,null).at(-64)).toBe("script-line-presence-v1");
   expect(playHarnessFeatures({...ALL_ON,"script-line-presence-v1":false},null)).not.toContain("script-line-presence-v1");
   const older=Object.fromEntries(Object.entries(ALL_ON).filter(([id])=>id!=="script-line-presence-v1")) as Omit<FeatureSet,"script-line-presence-v1">;
   expect(normalizeFeatures(older)["script-line-presence-v1"]).toBe(false);
@@ -281,7 +281,7 @@ describe("script-line-presence-v1: pending experiment (review round 1)",()=>{
  it("names every registry switch explicitly, in order, with only this switch flipped in the candidate",()=>{
   const raw=JSON.parse(readFileSync(new URL("../../../experiments/script-line-presence.json",import.meta.url),"utf8")) as {changedFeature:string;incumbent:{features:Record<string,boolean>}};
   expect(raw.changedFeature).toBe("script-line-presence-v1");
-  const historical=SWITCHABLE_FEATURES.filter(id=>id!=="deterministic-warp-navigation-v1"&&id!=="battle-effective-damage-v1"&&id!=="scripted-place-guidance-v1"&&id!=="trigger-script-loop-v1");
+  const historical=SWITCHABLE_FEATURES.filter(id=>id!=="safe-navigation-strides-v1"&&id!=="deterministic-warp-navigation-v1"&&id!=="battle-effective-damage-v1"&&id!=="scripted-place-guidance-v1"&&id!=="trigger-script-loop-v1");
   expect(Object.keys(raw.incumbent.features)).toEqual(historical.slice(0,historical.indexOf("script-line-presence-v1")+1));
   expect(raw.incumbent.features["script-line-presence-v1"]).toBe(false);
   expect(raw.incumbent.features["dialogue-auto-advance-v1"]).toBe(true);

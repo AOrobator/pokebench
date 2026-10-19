@@ -35,14 +35,14 @@ Moves whose final power/type or hit count depends on move-specific script state 
 
 - [x] Record GPU1's SCRATCH-over-EMBER decision evidence.
 - [x] Add failing source-formula, target-matrix, switch OFF/ON, registry and bundle tests.
-- [ ] Commit RED tests and evidence.
+- [x] Commit RED tests and evidence (`489e24a2`).
 
 ### M2 - GREEN
 
-- [ ] Implement the calculator, readout switch and production wiring.
-- [ ] Add the switch to `bundle-v-control` and keep all other bundle bytes stable.
-- [ ] Add feature explainer, pending experiment registration and design overview.
-- [ ] Focused tests, deletion/restoration proof and full gates.
+- [x] Implement the calculator, readout switch and production wiring.
+- [x] Add the switch to `bundle-v-control` and keep all other bundle bytes stable.
+- [x] Add feature explainer, pending experiment registration and design overview.
+- [x] Focused tests and full gates.
 
 ### M3 - Review and land
 
@@ -56,14 +56,29 @@ Moves whose final power/type or hit count depends on move-specific script state 
 - 2026-10-19 EDT: source review confirmed the existing battle state already carries level, HP, current battle stats, stages, types, ability, held item, moves, absent flags and controller-owned player inputs. Verified source-only context needed by the calculator: screens, battle weather and move target semantics.
 - 2026-10-19 EDT: failure evidence from immutable run `2026-10-19T00-04-00_qwen36-gpu1_petalburg-rerun-a`: turns 108-111 explicitly selected SCRATCH four times against Bug Catcher Lyle's WURMPLE while the same readout showed EMBER. At state sequence 3215 the game-owned facts were Lv10 TORCHIC Atk 16 / SpA 19, FIRE, versus Lv3 WURMPLE Def 7 / SpD 5, BUG, HP 15/15. The RED contract computes SCRATCH 10-12 and EMBER 51-60 before Blaze, without ranking either move.
 - 2026-10-19 EDT: Python RED failed during collection because `pokebench_env.battle_damage` does not exist. The TypeScript RED could not execute in the new worktree because dependencies were not yet linked (`vitest: command not found`); its registry, fixed-bundle and tracked-doc assertions are committed before implementation.
+- 2026-10-19 EDT: implemented `battle-effective-damage-v1` as a default-off observation switch depending on `battle-details-v2`. It emits landed non-critical 85-100 damage rolls, HP percentages, normal-hit KO-roll counts, accuracy, STAB, type effectiveness and applied modifiers in move-menu order, without ranking. Double battles emit a nominal target matrix; Follow Me and turn-order Lightning Rod redirection remain explicitly outside the decoded state.
+- 2026-10-19 EDT: added the switch to the fixed bundle treatment arm, left its fixed-bundle base and all historical/default presets OFF, added the feature explainer and design overview, and registered `battle-effective-damage` as pending and blocked. The experiment has no queue position or approval and cannot become ready until a landed commit/current-main build, exact checkpoint path and hash, useful-lift threshold and operator-approved budget are supplied.
+- 2026-10-19 EDT: full validation passed: agent 2,529 tests; viewer 1,190 tests; Python 2,488 passed with 229 existing ROM-dependent skips; TypeScript/Python lint and strict typing; both builds; experiment registry (`118 experiments`); vendor integrity; and `git diff --check`. No viewer, run, queue or canonical checkout was touched.
 
 ## Multi-Model Review Log
 
-Pending.
+Not run in this side conversation: its rules prohibit subagent interaction. The implementation is frozen in an isolated branch for the normal review/landing workflow.
 
 ## Principles Adherence
 
-Pending implementation and frozen review.
+- PB1 PASS: facts come from pinned pret source and decoded game state; no policy or move ranking is embedded.
+- PB2 N/A: no run was launched.
+- PB3 PASS: the experiment remains pending, blocked and explicitly non-causal until measured.
+- PB4 PASS: switch, dependency, explainer and design page are registered.
+- PB5 PASS: the behavior is isolated behind one default-off switch; OFF preserves the prior text and memory-read boundary.
+- PB6 PASS for implementation: output is decision-bound and bounded by four moves and live targets; GPU-hour value remains an experimental question.
+- PB7 PASS: only immutable recorded run evidence was read; no live run was changed.
+- PB8 N/A: there are no results to report.
+- PB9 PASS: dynamic/script-derived damage, unsupported held-item facts and nominal double-target limitations are surfaced rather than guessed.
+- PB10 PASS: no tests were suppressed; 229 ROM-dependent skips are pre-existing and reported.
+- PB11 PASS: mechanics are pinned to pret/pokeemerald `731ad5bf`.
+- PB12 PASS: no ROM or protected path was accessed.
+- PB13 PENDING: implementation gates pass, but review and landing have not occurred.
 
 ## Archive Milestone
 

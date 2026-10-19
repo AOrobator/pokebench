@@ -205,7 +205,7 @@ def test_rerender_reads_battle_details_when_either_switch_is_on() -> None:
             frozenset(),
             frozenset({"battle-details-v2"}),
             OFF,
-            frozenset({"battle-details-v2", SWITCH}),
+            frozenset({"battle-details-v2", SWITCH, "battle-effective-damage-v1"}),
         ):
             rerender.read_state(m.read, None, active_ui=True, off=off)  # type: ignore[arg-type]
     finally:

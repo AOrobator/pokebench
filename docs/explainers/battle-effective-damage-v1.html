@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Battle effective damage</title>
+<style>
+:root{--bg:#f7f6f2;--fg:#202124;--soft:#5f6368;--card:#fff;--line:#d9d6cc;--good:#16734b;--goodbg:#e2f3ea;--warn:#9a6200;--warnbg:#fff1d2} @media(prefers-color-scheme:dark){:root{--bg:#151618;--fg:#ececeb;--soft:#adb0b4;--card:#1d1f22;--line:#36383d;--good:#71d7a4;--goodbg:#173128;--warn:#efc36b;--warnbg:#352b17;color-scheme:dark}}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.55 system-ui,sans-serif}main{max-width:820px;margin:auto;padding:38px 18px 64px}h1{font-size:2.2rem;margin:.2rem 0}h2{margin-top:2rem;font-size:1.25rem}p{max-width:72ch}code,pre{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}code{background:var(--card);border:1px solid var(--line);padding:1px 4px;border-radius:4px}pre{background:var(--card);border:1px solid var(--line);border-radius:9px;padding:14px;white-space:pre-wrap;overflow:auto}.tag{color:var(--soft);font-size:.82rem;text-transform:uppercase;letter-spacing:.06em}.flow{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.box{border:1px solid var(--line);border-radius:9px;padding:10px;background:var(--card)}.good{border-color:var(--good);background:var(--goodbg)}.warn{border-color:var(--warn);background:var(--warnbg)}table{border-collapse:collapse;width:100%;background:var(--card)}th,td{text-align:left;border-bottom:1px solid var(--line);padding:8px;vertical-align:top}th{color:var(--soft)}@media(max-width:620px){.flow{grid-template-columns:1fr}}
+</style></head><body><main>
+<div class="tag">Observation switch · battle-effective-damage-v1 · needs battle-details-v2 · default off</div>
+<h1>Battle effective damage</h1>
+<p>The switch turns the moves the game already exposes into a target-by-target damage matrix. It computes Emerald's landed, non-critical 85–100 damage rolls from current RAM and pinned ROM facts, then leaves the choice to the model. The harness does not rank moves, recommend a move, press a button, or hide weaker options.</p>
+
+<h2>What the model sees</h2>
+<pre>Effective damage (landed, non-critical normal hit; Emerald rolls 85-100; accuracy separate; no move ranking):
+ For TORCHIC:
+  1 SCRATCH · acc 100:
+   -&gt; WURMPLE (foe, screen right): 10-12 HP (66-80% of current 15 HP) · 0/16 normal-hit KO rolls · type ×1 · no STAB
+  2 GROWL · acc 100 · no direct damage
+  4 EMBER · acc 100:
+   -&gt; WURMPLE (foe, screen right): 51-60 HP (340-400% of current 15 HP) · 16/16 normal-hit KO rolls · type ×2 · STAB ×1.5</pre>
+<p>Accuracy is deliberately separate: the range is conditional on the move landing. “KO rolls” counts the sixteen ordinary damage rolls against current HP; it is not a hit-probability or a guarantee through Protect, Endure, Focus Band, or a future action.</p>
+
+<h2>Deterministic pipeline</h2>
+<div class="flow"><div class="box">Current battler stats, stages, status, ability and held item</div><div class="box">Move power, Gen III physical/special category, field weather and screens</div><div class="box good">Emerald integer damage order, STAB, type chart and all 16 rolls</div><div class="box">One factual line per legal current target</div></div>
+<p>Implemented against pret/pokeemerald revision <code>731ad5bfd6e6f265508d0efcca0ba42f9dcf5881</code>, especially <code>CalculateBaseDamage</code>, <code>Cmd_damagecalc</code>, <code>Cmd_typecalc</code>, and <code>ApplyRandomDmgMultiplier</code>. Current modifiers include stat stages, burn, Reflect/Light Screen, rain/sun, spread damage, Charge and Mud/Water Sport, badge boosts, supported held-item effects, common stat/damage abilities, and type or ability immunities.</p>
+
+<h2>Double battles</h2>
+<table><tr><th>Move targeting</th><th>Readout</th></tr><tr><td>Selected target</td><td>Lists each living legal foe separately.</td></tr><tr><td>Random target</td><td>Labels that the game selects one, then shows each possible living target.</td></tr><tr><td>Spread</td><td>Lists every affected living target and applies Emerald's ×0.5 spread modifier only when two defenders remain.</td></tr><tr><td>Self / ally-capable</td><td>Labels self and ally distinctly; absent and fainted battlers are omitted.</td></tr></table>
+
+<h2>Refusal boundary</h2>
+<div class="box warn">Status moves say “no direct damage.” Variable hit-count, fixed-damage, and script-derived power or type cases say “not deterministically computed.” Unknown held-item effects also refuse computation. The harness never fills a missing fact with a guess.</div>
+<p>The calculation is a snapshot before future choices execute. It cannot know a partner's later Helping Hand, whether a move will hit, critical hits, Protect-style success, or script-controlled damage that is not a pure function of the decoded current state.</p>
+<p>In doubles, selectable and random lines are the nominal pre-redirection target matrix. The current Follow Me timer and Lightning Rod turn-order redirection are not decoded; the model must not treat those rows as a promise that its selected target will remain the execution target.</p>
+
+<h2>Switch boundary</h2>
+<p>When OFF, the damage context is not read and the effective-damage block is absent; the previous battle readout remains byte-for-byte unchanged. The fixed bundle records the switch OFF so it can be isolated later. Turning it ON requires <code>battle-details-v2</code>.</p>
+
+<h2>Evaluation status</h2>
+<p>Implementation candidate only. The pending experiment design uses the Petalburg checkpoint and a 45-minute cap, but it is not approved, queued, or launched. Readiness and a worthwhile effect threshold must be fixed before GPU work.</p>
+</main></body></html>

@@ -84,6 +84,7 @@ SERVER_FEATURES = (
     "unset-dynamic-warp-v1",
     "status-names-v1",
     "surf-gated-exits-v2",
+    "battle-effective-damage-v1",
 )
 
 
@@ -103,7 +104,7 @@ def features_off_from_env(env: Mapping[str, str]) -> frozenset[str]:
         "exit-reachability-v1,"
         "heal-before-trainers-v1,"
         "tutorial-party-owner-v1,mid-frame-readout-v1,unset-dynamic-warp-v1,status-names-v1,"
-        "surf-gated-exits-v2",
+        "surf-gated-exits-v2,battle-effective-damage-v1",
     )
     if raw == "":
         return frozenset()
@@ -277,7 +278,12 @@ def format_readout(
         own_line = [] if clause is None else [f"Battle input: {clause}"]
         if details is not None:
             lines += [
-                *details.lines(battle, message_waiting=waiting, levelup_box=levelup),
+                *details.lines(
+                    battle,
+                    message_waiting=waiting,
+                    levelup_box=levelup,
+                    effective_damage="battle-effective-damage-v1" not in off,
+                ),
                 *playback,
                 *execution,
             ]

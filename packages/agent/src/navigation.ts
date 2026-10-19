@@ -579,7 +579,7 @@ export function navigationTool(ports:NavigationPorts):AgentTool<typeof Args> {
     if(warpPlan?.activation!==null&&warpPlan?.activation!==undefined&&state.position!==null&&samePoint(state.position,warpPlan.target)){
      const before=state.position,activation=warpPlan.activation;
      try {
-      last=await ports.press(id,{buttons:[activation]},signal,actual=>{
+      last=await ports.press(id,{buttons:[activation],walking:true},signal,actual=>{
        if(actual===undefined||!ready(actual,mode)||actual.map_id?.[0]!==goal.map_id[0]||actual.map_id[1]!==goal.map_id[1]||actual.position?.x!==before.x||actual.position.y!==before.y)throw new NavigationPreconditionError("map, position or field input unavailable or changed before action; no command submitted");
        const current=warpIdentityAt(actual,warpPlan.target,options);
        if(current===null||current.activation!==activation||!sameWarpIdentity(current.identity,warpPlan.identity))throw new NavigationPreconditionError("warp identity or activation changed before action; no command submitted");

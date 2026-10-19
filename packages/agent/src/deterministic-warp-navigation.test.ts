@@ -57,10 +57,10 @@ describe("deterministic-warp-navigation-v1",()=>{
   for(const [behavior,direction] of [[0x62,"RIGHT"],[0x63,"LEFT"],[0x64,"UP"],[0x65,"DOWN"],[0x1b,"UP"],[0x1c,"DOWN"],[0x6d,"DOWN"]] as const){
    const initial=room(),navigation=initial.navigation_grid;if(navigation===null||navigation===undefined)throw new Error("missing navigation grid");
    const state=room({position:{x:3,y:2},navigation_grid:{...navigation,tiles:navigation.tiles.map(t=>t.x===3&&t.y===2?{...t,behavior}:t)}});
-   let current=state;const buttons:string[][]=[];
-   const tool=navigationTool({deterministicWarps:true,read:()=>Promise.resolve(current),press:(_id,params)=>{buttons.push([...params.buttons]);current={...current,map_id:[0,9]};return Promise.resolve(result(current));},observe:()=>Promise.resolve(result(current))});
+   let current=state;const buttons:string[][]=[];const walking:(boolean|undefined)[]=[];
+   const tool=navigationTool({deterministicWarps:true,read:()=>Promise.resolve(current),press:(_id,params)=>{buttons.push([...params.buttons]);walking.push(params.walking);current={...current,map_id:[0,9]};return Promise.resolve(result(current));},observe:()=>Promise.resolve(result(current))});
    const outcome=await tool.execute("nav",{x:3,y:2,map_id:MAP});
-   expect(buttons,behavior.toString(16)).toEqual([[direction]]);expect(outcome.details).toMatchObject({navigation:{commands:1}});
+   expect(buttons,behavior.toString(16)).toEqual([[direction]]);expect(walking,behavior.toString(16)).toEqual([true]);expect(outcome.details).toMatchObject({navigation:{commands:1}});
   }
   const stuck=room({position:{x:3,y:2}});let presses=0;
   const outcome=await navigationTool({deterministicWarps:true,read:()=>Promise.resolve(stuck),press:()=>{presses++;return Promise.resolve(result(stuck));},observe:()=>Promise.resolve(result(stuck))}).execute("nav",{x:3,y:2,map_id:MAP});
@@ -178,15 +178,15 @@ describe("deterministic-warp-navigation-v1",()=>{
   const off=withNavigation(base,{...features,[ID]:false},{read:()=>Promise.reject(new Error("unused"))}).find(t=>t.name==="navigate_to");
   expect(on?.description).toContain("equivalent warp");expect(off?.description).not.toContain("equivalent warp");
 
-  const start=room({position:{x:3,y:2}});let current=start;const buttons:string[][]=[];
-  const ordinaryPress={name:"press",execute:()=>Promise.reject(new Error("unchecked press")),executeChecked:(_id:string,params:{buttons:string[]},check:(state:GameStateSnapshot)=>void)=>{
-   check(current);buttons.push([...params.buttons]);current={...current,map_id:[0,9]};return Promise.resolve(result(current));
+  const start=room({position:{x:3,y:2}});let current=start;const buttons:string[][]=[];const walking:(boolean|undefined)[]=[];
+  const ordinaryPress={name:"press",execute:()=>Promise.reject(new Error("unchecked press")),executeChecked:(_id:string,params:{buttons:string[];walking?:boolean},check:(state:GameStateSnapshot)=>void)=>{
+   check(current);buttons.push([...params.buttons]);walking.push(params.walking);current={...current,map_id:[0,9]};return Promise.resolve(result(current));
   }} as unknown as CheckedPressTool;
   const ordinaryObserve={name:"observe",execute:()=>Promise.resolve(result(current))} as unknown as AgentTool;
   const produced=withNavigation([ordinaryPress,ordinaryObserve],features as FeatureSet,{read:()=>Promise.resolve(current)}).find(t=>t.name==="navigate_to");
   if(produced===undefined)throw new Error("missing navigate_to");
   const outcome=await produced.execute("nav",{x:3,y:2,map_id:MAP},new AbortController().signal);
-  expect(buttons).toEqual([["DOWN"]]);expect(outcome.details).toMatchObject({state:{map_id:[0,9]},navigation:{status:"directional warp activated; inspect destination",commands:1}});
+  expect(buttons).toEqual([["DOWN"]]);expect(walking).toEqual([true]);expect(outcome.details).toMatchObject({state:{map_id:[0,9]},navigation:{status:"directional warp activated; inspect destination",commands:1}});
 
   const rememberedWarps=[warp(1,2),warp(17,2)];
   const targets=rememberedWarps.map(({kind,x,y,elevation,activation,availability,facing,local_id,destination,name})=>({kind,x,y,elevation,activation,availability,facing,local_id,destination,name}));

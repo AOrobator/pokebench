@@ -1,5 +1,7 @@
 import gzip
 import json
+from concurrent.futures import Future, ThreadPoolExecutor
+from concurrent.futures.process import BrokenProcessPool
 from types import SimpleNamespace
 
 import pytest
@@ -73,7 +75,8 @@ def test_pair_serializes_concurrent_route_writes(tmp_path, monkeypatch):
     import threading
     import time
 
-    archive = RawRamArchive(tmp_path, "a" * 40)
+    executor = ThreadPoolExecutor(max_workers=1)
+    archive = RawRamArchive(tmp_path, "a" * 40, executor=executor)
     original_open = type(tmp_path).open
     guard = threading.Lock()
     active = 0
@@ -121,6 +124,73 @@ def test_pair_serializes_concurrent_route_writes(tmp_path, monkeypatch):
     for thread in threads:
         thread.join()
     assert maximum == 1
+    executor.shutdown()
+
+
+def test_abandoned_snapshot_poison_fails_next_request_without_hanging(tmp_path):
+    with ThreadPoolExecutor(max_workers=1) as executor:
+        archive = RawRamArchive(tmp_path, "a" * 40, executor=executor)
+        with archive.reserve() as reservation:
+            archive.snapshot(reservation, reader(), 1)
+        with pytest.raises(RuntimeError, match="worker failed"):
+            with archive.reserve():
+                pass
+
+
+def test_worker_death_is_propagated_and_poisons_later_requests(tmp_path):
+    class DeadExecutor:
+        def submit(self, _fn, /, *_args):
+            future = Future()
+            future.set_exception(BrokenProcessPool("writer exited"))
+            return future
+
+    archive = RawRamArchive(tmp_path, "a" * 40, executor=DeadExecutor())
+    with pytest.raises(BrokenProcessPool, match="writer exited"):
+        archive.capture(reader(), 1)
+    with pytest.raises(RuntimeError, match="worker failed"):
+        archive.capture(reader(), 2)
+
+
+def test_spawned_worker_exit_fails_capture_promptly_without_hanging(tmp_path):
+    import multiprocessing
+    import os
+    import threading
+    from concurrent.futures import ProcessPoolExecutor
+
+    executor = ProcessPoolExecutor(max_workers=1, mp_context=multiprocessing.get_context("spawn"))
+    death = executor.submit(os._exit, 23)
+    with pytest.raises(BrokenProcessPool):
+        death.result(timeout=10)
+    archive = RawRamArchive(tmp_path, "a" * 40, executor=executor)
+    errors = []
+
+    def capture():
+        try:
+            archive.capture(reader(), 1)
+        except BaseException as error:
+            errors.append(error)
+
+    call = threading.Thread(target=capture)
+    call.start()
+    call.join(10)
+    assert not call.is_alive(), "dead persistence worker hung the request"
+    assert len(errors) == 1 and isinstance(errors[0], BrokenProcessPool)
+    with pytest.raises(RuntimeError, match="worker failed"):
+        archive.capture(reader(), 2)
+    executor.shutdown()
+
+
+def test_pair_failure_is_propagated_and_poisons_later_requests(tmp_path, monkeypatch):
+    def fail_pair(*_args):
+        raise OSError("pair disk full")
+
+    monkeypatch.setattr("pokebench_env.raw_ram._persist_pair", fail_pair)
+    with ThreadPoolExecutor(max_workers=1) as executor:
+        archive = RawRamArchive(tmp_path, "a" * 40, executor=executor)
+        with pytest.raises(OSError, match="pair disk full"):
+            archive.pair({"sequence": 0}, {"screen": "title"}, None)
+        with pytest.raises(RuntimeError, match="worker failed"):
+            archive.capture(reader(), 1)
 
 
 @pytest.mark.parametrize(
@@ -169,6 +239,8 @@ def test_rom_identity_and_cpu_stack(tmp_path):
     receipt = archive.capture(r, 1)
     frozen = load_raw_ram(tmp_path / receipt["path"], rom=rom)
     assert frozen(0x08000000, len(rom)) == rom
+    assert frozen(0x0A000000, len(rom)) == rom
+    assert frozen(0x0C000000, len(rom)) == rom
     assert frozen.pokemon_cpu_context().stack_bytes == r(0x03007F00, 128)
     with pytest.raises(ValueError, match="ROM identity"):
         load_raw_ram(tmp_path / receipt["path"], rom=b"wrong")

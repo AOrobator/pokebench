@@ -24,7 +24,8 @@ import { cardWorkbench, createWorkbenchLoader, workbenchSnapshot, type LoadedRun
 import { MILESTONE_ORDER } from "./model.js";
 import { defaultViewerBuild, skewOf, type Skew, type ViewerBuild } from "./build-stamp.js";
 import { FEATURE_EXPLAINERS } from "./panels.js";
-import WebSocket, { WebSocketServer } from "ws";
+import { WebSocketServer } from "ws";
+import { SharedFrameHub } from "./frame-hub.js";
 
 export const HOST = "127.0.0.1";
 const EXPERIMENTS_CACHE_MS = 5_000;
@@ -73,10 +74,6 @@ export function validFramePng(png: Buffer): boolean {
     chunks += 1;
   }
   return false;
-}
-
-export function frameClientReady(client: Pick<WebSocket, "readyState" | "bufferedAmount">): boolean {
-  return client.readyState === WebSocket.OPEN && client.bufferedAmount === 0;
 }
 
 const SECURITY_HEADERS = {
@@ -578,6 +575,7 @@ export async function startViewer(given: ViewerOptions): Promise<Viewer> {
     });
   });
   const frameSockets = new WebSocketServer({ noServer: true, perMessageDeflate: false, maxPayload: FRAME_MAX_BYTES });
+  const frameHubs = new Map<string, SharedFrameHub>();
   server.on("upgrade", (req, socket, head) => {
     const reject = (status: number, message: string): void => {
       socket.end(`HTTP/1.1 ${String(status)} ${message}\r\nConnection: close\r\n\r\n`);
@@ -592,51 +590,30 @@ export async function startViewer(given: ViewerOptions): Promise<Viewer> {
     catch { reject(404, "Not Found"); return; }
     if (gamePort === null) { reject(409, "Conflict"); return; }
     frameSockets.handleUpgrade(req, socket, head, (client) => {
-      let upstream: WebSocket | null = null;
-      let sending = false;
-      const closeUpstream = (): void => {
-        if (upstream?.readyState === WebSocket.CONNECTING || upstream?.readyState === WebSocket.OPEN) upstream.close();
-      };
-      client.once("close", closeUpstream);
-      client.once("error", closeUpstream);
-      const connectUpstream = (path: string, allowLegacyFallback: boolean): void => {
-        const candidate = new WebSocket(`ws://${HOST}:${String(gamePort)}${path}`, { perMessageDeflate: false, maxPayload: FRAME_MAX_BYTES });
-        upstream = candidate;
-        candidate.on("message", (raw) => {
-          // Keep at most one frame in flight. A slow browser drops obsolete source
-          // frames instead of accumulating latency or unbounded memory.
-          if (sending || !frameClientReady(client)) return;
-          try {
+      let hub = frameHubs.get(runId);
+      if (hub !== undefined && hub.gamePort !== gamePort) {
+        hub.stop();
+        hub = undefined;
+      }
+      if (hub === undefined) {
+        hub = new SharedFrameHub({
+          runId,
+          gamePort,
+          host: HOST,
+          maxPayload: FRAME_MAX_BYTES,
+          decode: (raw) => {
             const encoded = Array.isArray(raw) ? Buffer.concat(raw) : Buffer.from(raw as ArrayBuffer);
             const payload = JSON.parse(encoded.toString("utf8")) as { frame_data?: unknown };
             if (typeof payload.frame_data !== "string") throw new Error("frame_data is missing");
             const png = Buffer.from(payload.frame_data, "base64");
             if (!validFramePng(png)) throw new Error("frame is not a bounded PNG");
-            sending = true;
-            client.send(png, { binary: true }, (error) => {
-              sending = false;
-              // ws reports a successful send as null, not undefined.
-              if (error != null) client.terminate();
-            });
-          } catch {
-            client.close(1003, "invalid upstream frame");
-            closeUpstream();
-          }
+            return png;
+          },
+          onEmpty: (closed) => { if (frameHubs.get(runId) === closed) frameHubs.delete(runId); },
         });
-        candidate.once("unexpected-response", (_request, response) => {
-          response.resume();
-          if (allowLegacyFallback && client.readyState === WebSocket.OPEN) {
-            connectUpstream("/ws/frames", false);
-          } else if (client.readyState === WebSocket.OPEN) client.close(1011, "game frame stream unavailable");
-        });
-        candidate.once("error", () => {
-          if (candidate === upstream && client.readyState === WebSocket.OPEN) client.close(1011, "game frame stream unavailable");
-        });
-        candidate.once("close", () => {
-          if (candidate === upstream && client.readyState === WebSocket.OPEN) client.close(1011, "game frame stream closed");
-        });
-      };
-      connectUpstream("/pokebench/frames", true);
+        frameHubs.set(runId, hub);
+      }
+      hub.add(client);
     });
   });
   const queue = options.queue;
@@ -660,6 +637,8 @@ export async function startViewer(given: ViewerOptions): Promise<Viewer> {
         if (ticker !== null) clearInterval(ticker);
         if (autorunTicker !== null) clearInterval(autorunTicker);
         autorun?.stop();
+        for (const hub of frameHubs.values()) hub.stop(1001, "viewer closing");
+        frameHubs.clear();
         for (const client of frameSockets.clients) client.terminate();
         frameSockets.close();
         server.closeAllConnections();

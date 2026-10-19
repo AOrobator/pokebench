@@ -178,7 +178,9 @@ def test_production_run_reports_the_whiteout_once(
 ) -> None:
     from pokebench_env.serve import run
 
-    monkeypatch.setenv("POKEBENCH_FEATURES_OFF", off)
+    monkeypatch.setenv(
+        "POKEBENCH_FEATURES_OFF", ",".join(filter(None, [off, "evolution-decision-v1"]))
+    )
     m = game(OVERWORLD)
     m.put(0x05000000, b"\x1f\x00")  # a lit palette: the frame settle captures at once
     script = iter([CB2_WHITE_OUT, CB2_WHITE_OUT, OVERWORLD[1]])

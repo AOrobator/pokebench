@@ -62,7 +62,9 @@ Native attribution-only case: action-history journal approximately4.65–4.69ms 
 
 Three alternating15s bus/bulk pairs complete, two native games per case, fixed deadline80 and unchanged publisher/observation load. All12 lanes measured approximately79.97–80.07core FPS. Existing bus step mean5.92–6.03ms versus bulk1.84–1.89ms, consistently about69% less step wall time. This establishes frame-budget headroom, not uncapped FPS or natural-dialog320. Every lane verified512same-frame byte samples (135EWRAM/377IWRAM), zero mismatches/allocation failures; measured read counts/bytes stayed comparable. Whole-region parity and raw archive verification remain pending. Receipt `.cache/frame-budget/bulk-reader-r1/`.
 
-M1 RED independently repeated by parent: targeted run-catalog-cache.test.ts exits1, all16tests fail. Fourteen expose missing createRunCatalog; integration tests show4 and6 unnecessary edge reads on unchanged logs. No production implementation yet. COMMIT planned: `test: expose repeated viewer catalog reads` (RED).
+M1 RED independently repeated by parent: targeted run-catalog-cache.test.ts exits1, all16tests fail. Fourteen expose missing createRunCatalog; integration tests show4 and6 unnecessary edge reads on unchanged logs. COMMIT: `test: expose repeated viewer catalog reads` (9d052d0c, RED).
+
+Synced current main f5518aae into the candidate before implementation. Other chats landed evolution/safe-stride features during investigation; these are not this task's changes. Original performance receipts stay bound to the earlier frozen source. Candidate optimization comparisons must use matched source/schema on both arms, not attribute main's intervening changes to this patch.
 
 No active campaign settings changed in this phase.
 

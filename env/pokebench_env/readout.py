@@ -85,6 +85,8 @@ SERVER_FEATURES = (
     "status-names-v1",
     "surf-gated-exits-v2",
     "battle-effective-damage-v1",
+    "safe-navigation-strides-v1",
+    "evolution-decision-v1",
 )
 
 
@@ -104,7 +106,7 @@ def features_off_from_env(env: Mapping[str, str]) -> frozenset[str]:
         "exit-reachability-v1,"
         "heal-before-trainers-v1,"
         "tutorial-party-owner-v1,mid-frame-readout-v1,unset-dynamic-warp-v1,status-names-v1,"
-        "surf-gated-exits-v2,battle-effective-damage-v1",
+        "surf-gated-exits-v2,battle-effective-damage-v1,safe-navigation-strides-v1,evolution-decision-v1",
     )
     if raw == "":
         return frozenset()
@@ -132,7 +134,18 @@ def _play_seconds(state: GameState) -> int | None:
     return hours * 3600 + minutes * 60 + seconds
 
 
-def _menu(state: GameState, truth: bool = False) -> str:
+def _menu(state: GameState, truth: bool = False, evolution: bool = False) -> str:
+    ui = state.active_ui
+    if (
+        evolution
+        and state.screen == "evolution"
+        and ui is not None
+        and not ui.diagnostic
+        and ui.selected is None
+    ):
+        return "Menu: no selectable menu is open" + (
+            "; use choose_evolution" if ui.phase == "evolution_decision" else ""
+        )
     if state.active_ui is not None and state.active_ui.selected is not None:
         return f"Menu: {state.active_ui.phase}; selected {state.active_ui.selected}"
     # readout-truth-v1: no menu is open, or a non-menu interface owns input.
@@ -192,6 +205,13 @@ def format_readout(
     from pokebench_env.ui_state import BIRCH_PHASES, CLOCK_PHASES
 
     incumbent_phases = {
+        *(
+            (ui.phase,)
+            if "evolution-decision-v1" not in off
+            and ui is not None
+            and ui.phase.startswith("evolution")
+            else ()
+        ),
         *BIRCH_PHASES.values(),
         *CLOCK_PHASES.values(),
         "unsupported",
@@ -211,7 +231,11 @@ def format_readout(
             lines.append(f"STATE COVERAGE ERROR: {ui.diagnostic}")
     else:
         dialog = "none" if state.dialog is None else f'"{state.dialog}"'
-        lines = [f"Screen: {state.screen}", f"Dialog: {dialog}", _menu(state, truth)]
+        lines = [
+            f"Screen: {state.screen}",
+            f"Dialog: {dialog}",
+            _menu(state, truth, "evolution-decision-v1" not in off),
+        ]
         if ui is not None:
             lines.append((ui if expanded else replace(ui, details=None)).text())
     if state.resources is not None:

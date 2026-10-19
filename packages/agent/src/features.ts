@@ -143,6 +143,8 @@ export const SWITCHABLE_FEATURES = [
   "supervisor-briefing-v2",
   "reachable-story-guidance-v1",
   "text-only-supervisor-v2",
+  "safe-navigation-strides-v1",
+  "evolution-decision-v1",
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
 
@@ -365,6 +367,8 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("supervisor-briefing-v2","guidance","FOCUSED SUPERVISOR","loop-guard-supervisor-v1","Loop, stall and text-only briefings show current position, latest place instruction, three recent attempts and up to three untried targets already observed here. Active interfaces retain their owner and controls. Full recording history is untouched. Off: existing full-history briefings are delivered."),
   on("reachable-story-guidance-v1","guidance","REACHABLE STORY GUIDANCE","harness-trust-v1","The prominent story goal separates destination identity from locally usable exits. Current reach evidence qualifies local ways; unknown reach is stated explicitly. Walk-away notes do not use inaccessible local edges or topology-only map counts. No route is chosen. Off: goal headers and walk-away notes use the existing map-table guidance."),
   on("text-only-supervisor-v2","guidance","TEXT-ONLY SUPERVISOR V2","text-only-supervisor-v1","Text-only warnings honor the configured reply stopping policy. After three detailed notes, continuing retries receive a short action reminder. Budgets and termination behavior are unchanged. Off: the original third-note stop claim and generic retry prompt remain."),
+  on("safe-navigation-strides-v1", "guidance", "SAFE NAVIGATION STRIDES", "bounded-navigation-v1", "Default off. Plans straight corridors of at most eight plain-floor tiles and validates every native step and stationary endpoint. Stops before turns, grass, ledges, objects, warps, script coordinates and elevation changes; special steps walk without automatic running. Off: the incumbent one-button navigation and running execution are unchanged."),
+  on("evolution-decision-v1", "guidance", "EXPLICIT EVOLUTION DECISION", null, "Requires choose_evolution with evolve or cancel at a verified native cancellation window. The emulator waits for the choice and blocks ordinary button input through the evolution animation; neither option is recommended. After the explicit choice, the harness acknowledges only native waiting evolution result text with A; move-learning choices stay with the model. Removes the invented selected CANCEL menu and generic confirmation controls. Subsequent move-learning prompts retain their native controls. Default off; explicitly on in the bundle. Off: ordinary evolution timing, button input, tools and observations are unchanged."),
   measured("story-milestones-v2", "STORY MILESTONES",
     "Records each story milestone the game's own state confirms, with its turn and time. This feeds splits and the score."),
   measured("clock-milestone-v1", "CLOCK MILESTONE",
@@ -431,6 +435,8 @@ export const SERVER_FEATURES: readonly SwitchableFeature[] = [
   "heal-before-trainers-v1",
   "tutorial-party-owner-v1", "mid-frame-readout-v1", "unset-dynamic-warp-v1", "status-names-v1", "surf-gated-exits-v2",
   "battle-effective-damage-v1",
+  "safe-navigation-strides-v1",
+  "evolution-decision-v1",
 ];
 
 export function serverFeatureEnv(features: FeatureSet): { POKEBENCH_ACTIVE_UI: "0" | "1"; POKEBENCH_FEATURES_OFF: string } {
@@ -557,6 +563,8 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("supervisor-briefing-v2"),
     ...when("reachable-story-guidance-v1"),
     ...when("text-only-supervisor-v2"),
+    ...when("safe-navigation-strides-v1"),
+    ...when("evolution-decision-v1"),
   ];
 }
 
@@ -567,5 +575,5 @@ export function featuresOf(harnessFeatures: readonly string[]): FeatureSet {
 
 export function stateOnlyProblems(features:FeatureSet):string[]{
  if(!features["state-only-decisions-v1"])return [];
- return (["battle-decision-ready-v1","objective-tracking-v1","deterministic-loop-guard-v1","bounded-navigation-v1","press-result-v1","navigation-evidence-memory-v1","game-evidence-priority-v1","dialogue-log-v1","instruction-ledger-v1","instruction-ledger-v2","disproved-beliefs-v1","next-milestone-hint-v1","double-context-window-v1","fresh-retry-v1","text-only-supervisor-v1","dialogue-auto-advance-v1","readout-rules-in-prompt-v1","explorer-guidance-v1","untaken-exits-v1","explorer-guidance-v2","people-id-cards-v1","harness-trust-v1","cited-destination-v1","harness-trust-v2","input-cuts-v1","just-in-time-prompt-v1","just-in-time-prompt-v2"] as const).filter(id=>features[id]).map(id=>`state-only-decisions-v1 requires ${id} OFF`);
+ return (["battle-decision-ready-v1","objective-tracking-v1","deterministic-loop-guard-v1","bounded-navigation-v1","press-result-v1","navigation-evidence-memory-v1","game-evidence-priority-v1","dialogue-log-v1","instruction-ledger-v1","instruction-ledger-v2","disproved-beliefs-v1","next-milestone-hint-v1","double-context-window-v1","fresh-retry-v1","text-only-supervisor-v1","dialogue-auto-advance-v1","readout-rules-in-prompt-v1","explorer-guidance-v1","untaken-exits-v1","explorer-guidance-v2","people-id-cards-v1","harness-trust-v1","cited-destination-v1","harness-trust-v2","input-cuts-v1","just-in-time-prompt-v1","just-in-time-prompt-v2","evolution-decision-v1"] as const).filter(id=>features[id]).map(id=>`state-only-decisions-v1 requires ${id} OFF`);
 }

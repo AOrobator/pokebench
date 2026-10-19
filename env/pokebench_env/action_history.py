@@ -61,10 +61,20 @@ def read_action_frame(
     include_storage: bool = True,
     storage_cache: StorageDecodeCache | None = None,
     tutorial_owner_enabled: bool = False,
+    evolution_decision: bool = False,
 ) -> ActionFrame:
     battle = read_battle_state(read, tutorial_owner_enabled=tutorial_owner_enabled)
     screen = read_screen(read)
-    ui = read_active_ui(read, screen, tutorial_owner_enabled=tutorial_owner_enabled)
+    ui = read_active_ui(
+        read,
+        screen,
+        tutorial_owner_enabled=tutorial_owner_enabled,
+        evolution_decision=evolution_decision,
+    )
+    if evolution_decision:
+        from pokebench_env.evolution_decision import decision_ui
+
+        ui = decision_ui(ui, read)
     if screen.kind in PRE_GAME and screen.kind != "naming":
         return ActionFrame(None, None, None, ui, battle=battle)
     index = read(PLAYER_AVATAR + 5, 1)[0]
@@ -166,7 +176,9 @@ class NativeActionJournal:
         clock: Callable[[], float] = time.time,
         *,
         tutorial_owner_enabled: bool = False,
+        evolution_decision: bool = False,
     ) -> None:
+        self.evolution_decision = evolution_decision
         self.tutorial_owner_enabled = tutorial_owner_enabled
         self.lock = threading.RLock()
         self.capacity = capacity
@@ -635,6 +647,7 @@ class NativeActionJournal:
                         include_storage=storage,
                         storage_cache=self.storage_cache,
                         tutorial_owner_enabled=self.tutorial_owner_enabled,
+                        evolution_decision=self.evolution_decision,
                     )
                 )
             except (ValueError, OSError, IndexError, struct.error) as error:
@@ -662,8 +675,11 @@ def install_action_history(
     read: ReadMemory,
     *,
     tutorial_owner_enabled: bool = False,
+    evolution_decision: bool = False,
 ) -> NativeActionJournal:
-    journal = NativeActionJournal(tutorial_owner_enabled=tutorial_owner_enabled)
+    journal = NativeActionJournal(
+        tutorial_owner_enabled=tutorial_owner_enabled, evolution_decision=evolution_decision
+    )
     step = emulator.run_frame_with_buttons
 
     def step_recording(self: FrameEmulator, buttons: list[str]) -> None:

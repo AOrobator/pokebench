@@ -1,3 +1,4 @@
+import {StridePlanSchema} from "./stride.js";
 import { Type, type Static, type TSchema } from "typebox";
 import { Compile } from "typebox/compile";
 import { Value } from "typebox/value";
@@ -124,6 +125,7 @@ const ButtonPress = event("button_press", {
   tool_call_id: Type.String(),
   before_state_seq: Type.Optional(NonNegativeInt),
   automatic_running:Type.Optional(Type.Boolean()),
+  stride:Type.Optional(StridePlanSchema),
   walking:Type.Optional(Type.Boolean()),
   requested_held_buttons:Type.Optional(Type.Array(ButtonSchema,{maxItems:1})),
   buttons: Type.Array(ButtonSchema, { minItems: 1 }),
@@ -379,7 +381,7 @@ export const StateBodySchema = Type.Object(
   {
     raw_ram: Type.Optional(RawRamReferenceSchema),
     // warp-arrival-settle-v1 ON only: emulated frames the observation waited and why the wait ended.
-    settle: Type.Optional(Type.Object({ frames: NonNegativeInt, reason: Type.Enum(["immediate", "paused", "fade", "warp", "fade_bound", "warp_bound"]) }, closed)),
+    settle: Type.Optional(Type.Object({ frames: NonNegativeInt, reason: Type.Enum(["immediate", "paused", "fade", "warp", "fade_bound", "warp_bound", "input_hold"]) }, closed)),
     screen: Type.String(),
     active_ui: Type.Optional(Type.Union([Type.Object({
       phase: Type.String(), selected: Type.Union([Type.String(),Type.Null()]),

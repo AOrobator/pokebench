@@ -3,7 +3,7 @@
  "id": "automatic-running",
  "title": "Automatic running",
  "changedFeature": "automatic-running-v1",
- "hypothesis": "Turning automatic running on helps runs reach the rival house more often or in fewer turns. The harness adds simultaneous B to every ordinary directional travel input when native running permission and controls are verified each frame; the model cannot opt out.",
+ "hypothesis": "Turning automatic running on helps runs reach Route 102 more often or in fewer turns after the Running Shoes are received. The harness adds simultaneous B to every ordinary directional travel input when native running permission and controls are verified each frame; the model cannot opt out.",
  "activationMilestone": "RUNNING_SHOES_RECEIVED",
  "primaryMilestone": "ROUTE_102",
  "source": {

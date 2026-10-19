@@ -13,7 +13,7 @@ from pokebench_env.running import FIELD_LOCK, OBJECT_EVENTS
 from pokebench_env.strides import MAX_FRAMES, PREFIX, install_strides
 
 
-def setup():
+def setup(*, short_event_header=False):
     m = loaded()
     m.cells.update(fixture().cells)
     m.put(0x08500000, struct.pack("<IIIIII", 5, 5, 0, 0, 0x02003000, 0x02004000))
@@ -47,7 +47,14 @@ def setup():
     server = SimpleNamespace(
         action_queue=[], action_frames_remaining=0, current_action=None, release_frames_remaining=0
     )
-    install_strides(api, Emulator, server, m.read)
+    install_strides(
+        api,
+        Emulator,
+        server,
+        lambda address, length: b""
+        if short_event_header and address == 0x08501000
+        else m.read(address, length),
+    )
     body = {
         "id": "test",
         "map_id": [1, 0],
@@ -221,3 +228,58 @@ def test_a_foreign_queue_input_does_not_inherit_stride_or_get_truncated():
     assert applied[-1] == ["A"]
     assert server.action_frames_remaining == 10
     assert receipt(api)["reason"] == "queue interrupted"
+
+
+@pytest.mark.parametrize(
+    "hazard",
+    [
+        "missing_map",
+        "missing_tile",
+        "collision",
+        "behavior",
+        "elevation",
+        "object",
+        "warp",
+        "event_pointer",
+        "event_header",
+        "warp_pointer",
+        "coord_pointer",
+        "context",
+        "trigger",
+        "dialogue",
+    ],
+)
+def test_each_live_guard_independently_withholds_direction(monkeypatch, hazard):
+    from pokebench_env import strides
+
+    api, server, m, emu, body, applied = setup(short_event_header=hazard == "event_header")
+    plain = SimpleNamespace(collision=0, behavior=0, elevation=3)
+    tiles = [SimpleNamespace(x=x, y=2, **vars(plain)) for x in (0, 1)]
+    local = SimpleNamespace(tiles=tiles, objects=[], warps=[])
+    context = SimpleNamespace(triggers=[], dialogue=None)
+    if hazard == "missing_map":
+        local = None
+    elif hazard == "missing_tile":
+        local.tiles.pop()
+    elif hazard in ("collision", "behavior", "elevation"):
+        setattr(local.tiles[1], hazard, {"collision": 1, "behavior": 1, "elevation": 4}[hazard])
+    elif hazard == "object":
+        local.objects = [(1, 1, 2)]
+    elif hazard == "warp":
+        local.warps = [(1, 2, 0, 0)]
+    elif hazard == "event_pointer":
+        m.put(strides.MAP_HEADER + 4, bytes(4))
+    elif hazard in ("warp_pointer", "coord_pointer"):
+        m.put(0x08501000 + (1 if hazard == "warp_pointer" else 2), b"\x01")
+    elif hazard == "context":
+        context = None
+    elif hazard == "trigger":
+        context.triggers = [SimpleNamespace(x=1, y=2)]
+    elif hazard == "dialogue":
+        context.dialogue = "script text"
+    monkeypatch.setattr(strides, "read_local_map", lambda *_a, **_k: local)
+    monkeypatch.setattr(strides, "read_world_context", lambda *_a, **_k: context)
+    assert request(api, "/pokebench/stride", body)[0] == 200
+    emu.run_frame_with_buttons([start(server)])
+    assert applied == [[]], (hazard, applied, receipt(api))
+    assert receipt(api)["reason"] == "corridor changed or unsafe", (hazard, receipt(api))

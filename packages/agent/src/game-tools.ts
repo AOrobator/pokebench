@@ -227,6 +227,7 @@ export function pressTool(
       if (stride!==undefined || switches.automaticRunning===true || params.walking!==undefined) hooks.beforePress(toolCallId, buttons, timing, before, {automatic_running:automaticRunning,...(stride===undefined?{}:{stride}),...(switches.automaticRunning===true?{}:{walking:params.walking===true}),...(automaticRunning?{requested_held_buttons:["B"] as const}:{})});
       else hooks.beforePress(toolCallId, buttons, PRESS_TIMING, before);
       const url = `${gameServerUrl}${stride!==undefined?"/pokebench/stride":automaticRunning ? "/pokebench/travel" : "/action"}`;
+      try {
       const response = await fetchFn(url, {
         method: "POST",
         headers: { "content-type": "application/json" },
@@ -238,7 +239,8 @@ export function pressTool(
         const detail = Value.Check(ActionSchema, body) ? (body.message ?? body.status) : `HTTP ${String(response.status)}`;
         throw new Error(`POST ${url} failed: ${detail}`);
       }
-      try {await waitForQueue(gameServerUrl, fetchFn, clock, signal);}
+      await waitForQueue(gameServerUrl, fetchFn, clock, signal);
+      }
       catch(error){
         if(stride!==undefined){
           const cancelled=await fetchFn(`${gameServerUrl}/pokebench/stride/${stride.id}/cancel`,{method:"POST",signal:AbortSignal.timeout(2000)});

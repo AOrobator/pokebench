@@ -9,7 +9,7 @@
  "primaryMilestone": "PETALBURG_WOODS",
  "source": {
   "checkout": "main",
-  "commit": "054b5ba5e7dc1e6ef055c8ad89d8232043a239aa"
+  "commit": "29f74b5b47e2cb692f3a34eccf3ebc0a909e3f79"
  },
  "incumbent": {
   "version": 2,

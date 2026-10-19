@@ -161,7 +161,8 @@
    "ineffective-navigation-v2": false,
    "supervisor-briefing-v2": false,
    "reachable-story-guidance-v1": false,
-   "text-only-supervisor-v2": false
+   "text-only-supervisor-v2": false,
+   "safe-navigation-strides-v1": false
   }
  },
  "trialsPerArm": 8,

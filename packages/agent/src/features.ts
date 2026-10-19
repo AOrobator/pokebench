@@ -143,6 +143,7 @@ export const SWITCHABLE_FEATURES = [
   "supervisor-briefing-v2",
   "reachable-story-guidance-v1",
   "text-only-supervisor-v2",
+  "safe-navigation-strides-v1",
   "evolution-decision-v1",
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
@@ -366,6 +367,7 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("supervisor-briefing-v2","guidance","FOCUSED SUPERVISOR","loop-guard-supervisor-v1","Loop, stall and text-only briefings show current position, latest place instruction, three recent attempts and up to three untried targets already observed here. Active interfaces retain their owner and controls. Full recording history is untouched. Off: existing full-history briefings are delivered."),
   on("reachable-story-guidance-v1","guidance","REACHABLE STORY GUIDANCE","harness-trust-v1","The prominent story goal separates destination identity from locally usable exits. Current reach evidence qualifies local ways; unknown reach is stated explicitly. Walk-away notes do not use inaccessible local edges or topology-only map counts. No route is chosen. Off: goal headers and walk-away notes use the existing map-table guidance."),
   on("text-only-supervisor-v2","guidance","TEXT-ONLY SUPERVISOR V2","text-only-supervisor-v1","Text-only warnings honor the configured reply stopping policy. After three detailed notes, continuing retries receive a short action reminder. Budgets and termination behavior are unchanged. Off: the original third-note stop claim and generic retry prompt remain."),
+  on("safe-navigation-strides-v1", "guidance", "SAFE NAVIGATION STRIDES", "bounded-navigation-v1", "Default off. Plans straight corridors of at most eight plain-floor tiles and validates every native step and stationary endpoint. Stops before turns, grass, ledges, objects, warps, script coordinates and elevation changes; special steps walk without automatic running. Off: the incumbent one-button navigation and running execution are unchanged."),
   on("evolution-decision-v1", "guidance", "EXPLICIT EVOLUTION DECISION", null, "Requires choose_evolution with evolve or cancel at a verified native cancellation window. The emulator waits for the choice and blocks ordinary button input through the evolution animation; neither option is recommended. After the explicit choice, the harness acknowledges only native waiting evolution result text with A; move-learning choices stay with the model. Removes the invented selected CANCEL menu and generic confirmation controls. Subsequent move-learning prompts retain their native controls. Default off; explicitly on in the bundle. Off: ordinary evolution timing, button input, tools and observations are unchanged."),
   measured("story-milestones-v2", "STORY MILESTONES",
     "Records each story milestone the game's own state confirms, with its turn and time. This feeds splits and the score."),
@@ -433,6 +435,7 @@ export const SERVER_FEATURES: readonly SwitchableFeature[] = [
   "heal-before-trainers-v1",
   "tutorial-party-owner-v1", "mid-frame-readout-v1", "unset-dynamic-warp-v1", "status-names-v1", "surf-gated-exits-v2",
   "battle-effective-damage-v1",
+  "safe-navigation-strides-v1",
   "evolution-decision-v1",
 ];
 
@@ -560,6 +563,7 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("supervisor-briefing-v2"),
     ...when("reachable-story-guidance-v1"),
     ...when("text-only-supervisor-v2"),
+    ...when("safe-navigation-strides-v1"),
     ...when("evolution-decision-v1"),
   ];
 }

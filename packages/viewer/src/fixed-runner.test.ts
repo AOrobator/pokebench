@@ -489,6 +489,22 @@ it("enables battle decision readiness identically in control and bundle, preserv
  }
 });
 
+it("enables safe navigation strides only in the canonical bundle treatment",async()=>{
+ const {armPreset}=await import("./fixed-design.js");
+ const {presetFeatures}=await import("@pokebench/agent/play-preset");
+ const {playHarnessFeatures,dependencyProblems}=await import("@pokebench/agent/features");
+ const def=parseFixedDefinition(readFileSync(new URL("../../../experiments/fixed/bundle-v-control.json",import.meta.url),"utf8")).definition;
+ const id="safe-navigation-strides-v1";
+ expect(def.base.features[id]).toBe(false);expect(def.switches).toContain(id);
+ expect(def.offInBoth).not.toContain(id);expect(def.onInBoth).not.toContain(id);
+ expect(controlBaseProblems(def,readFileSync(new URL(`../../../${def.controlBase.path}`,import.meta.url),"utf8"))).toEqual([]);
+ for(const phase of def.phases)for(const arm of ["control","bundle"] as const){
+  const features=presetFeatures(armPreset(def,phase.id,arm));
+  expect(features[id]).toBe(arm==="bundle");expect(dependencyProblems(features)).toEqual([]);
+  expect(playHarnessFeatures(features,null).includes(id)).toBe(arm==="bundle");
+ }
+});
+
 it("enables explicit evolution only in the bundle through the production arm builder",()=>{
  const {definition:def}=parseFixedDefinition(readFileSync(new URL("../../../experiments/fixed/bundle-v-control.json",import.meta.url),"utf8"));
  expect(armFeatureBits(def,"control")["evolution-decision-v1"]).toBe(false);

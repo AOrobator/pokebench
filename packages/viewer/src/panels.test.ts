@@ -591,6 +591,12 @@ it("links Petalburg guidance and trigger-loop cards to tracked explainers",()=>{
  }
 });
 
+it("links deterministic warp navigation to its tracked explainer",()=>{
+ expect(FEATURE_EXPLAINERS["deterministic-warp-navigation-v1"]).toBe("deterministic-warp-navigation-v1.html");
+ const html=readFileSync(fileURLToPath(new URL("../../../docs/explainers/deterministic-warp-navigation-v1.html",import.meta.url)),"utf8");
+ expect(html).toContain("Exact equivalence gate");expect(html).toContain("one checked direction press");
+});
+
 it("renders every mapped explainer's body as a page, not as stylesheet text",()=>{
  for(const file of new Set(Object.values(FEATURE_EXPLAINERS))){
   const html=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${file}`,import.meta.url)),"utf8");

@@ -40,8 +40,8 @@ Local game input only. No ROM/save writes, memory mutation, credentials, public 
 - [x] Register the switch default OFF; add it to the bundle arm only.
 - [x] Delete the production wiring once, observe the factory test fail, restore it and record the mutation receipt.
 - [x] Gates: focused tests, `just test`, `just lint`, `just build`, `just coverage`, `just verify-vendor`.
-- [ ] COMMIT: `feat(navigation): handle equivalent directional warps` (GREEN)
-- [ ] Update this worklog immediately after the commit.
+- [x] COMMIT: `feat(navigation): handle equivalent directional warps` (`8b0a8e26`, GREEN)
+- [x] Update this worklog immediately after the commit.
 
 **M3 — Explain, register pending experiment and close the loop**
 - [x] Add `docs/explainers/deterministic-warp-navigation-v1.html`, index and `FEATURE_EXPLAINERS` mapping with viewer/server tests.

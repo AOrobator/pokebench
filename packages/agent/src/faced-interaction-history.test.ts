@@ -56,7 +56,7 @@ describe("faced-interaction-history-v1",()=>{
   const raw=JSON.parse(readFileSync(new URL("../../../experiments/faced-interaction-history.json",import.meta.url),"utf8")) as {queuePosition?:number;blocked?:string;incumbent:{features:Record<string,boolean>}};
   expect(raw.queuePosition).toBeUndefined();
   expect(raw.blocked).toContain("do not queue");
-  expect(Object.keys(raw.incumbent.features).sort()).toEqual([...SWITCHABLE_FEATURES].sort());
+  expect(Object.keys(raw.incumbent.features).sort()).toEqual(SWITCHABLE_FEATURES.filter(id=>id!=="just-in-time-prompt-v2").sort());
   const {incumbent,candidate}=experimentArms(parseExperiment(raw));
   expect(incumbent.features[ID]).toBe(false);
   expect(candidate.features[ID]).toBe(true);

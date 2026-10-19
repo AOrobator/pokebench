@@ -35,8 +35,8 @@ const transition={phase:"clock_transition",selected:null,ready:false,controls:"C
 
 describe("loop-guard-screen-v1",()=>{
  it("is registered third from the end, default off, and the bundle arm is the one that turns it on",()=>{
-  expect(SWITCHABLE_FEATURES.at(-5)).toBe(ID);
-  expect(playHarnessFeatures(ALL_ON,null).at(-5)).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-6)).toBe(ID);
+  expect(playHarnessFeatures(ALL_ON,null).at(-6)).toBe(ID);
   expect(featureInfo(ID)).toMatchObject({group:"guard",needs:"loop-guard-supervisor-v1",switchable:true,title:"LOOP GUARD SCREEN"});
   expect(featureInfo(ID).description).toContain(" Off: ");
   expect(featureInfo(ID).description).toContain("Bundle arm only");
@@ -49,7 +49,7 @@ describe("loop-guard-screen-v1",()=>{
   expect(bundle.switches.at(-4)).toBe(ID);
   const raw=JSON.parse(readFileSync(new URL("../../../experiments/loop-guard-screen.json",import.meta.url),"utf8")) as {queuePosition?:number;incumbent:{features:Record<string,boolean>}};
   expect(raw.queuePosition).toBeUndefined();
-  expect(Object.keys(raw.incumbent.features)).toEqual(SWITCHABLE_FEATURES.filter(id=>id!=="faced-interaction-history-v1"));
+  expect(Object.keys(raw.incumbent.features)).toEqual(SWITCHABLE_FEATURES.filter(id=>id!=="just-in-time-prompt-v2"&&id!=="faced-interaction-history-v1"));
   const {incumbent,candidate}=experimentArms(parseExperiment(raw));
   expect(incumbent.features[ID]).toBe(false);
   expect(candidate.features[ID]).toBe(true);

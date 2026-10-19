@@ -242,7 +242,7 @@ export class SupervisorBriefing {
   if(this.features["faced-interaction-history-v1"]&&opened!==undefined&&person!==null&&attributed){
    this.touch(this.room(opened),person.tile);
    if(person.object!==null)this.touch(this.room(opened),objectKey(person.object));
-  }else if(opened!==undefined&&person?.object!=null&&(sent.at(-1)==="A"||first?.speaker_source==="faced_sprite"))this.touch(this.room(opened),objectKey(person.object));
+  }else if(opened!==undefined&&person?.object!=null&&(sent.at(-2)==="A"||first?.speaker_source==="faced_sprite"))this.touch(this.room(opened),objectKey(person.object));
   const step=sent[0]===undefined?undefined:STEP[sent[0].toLowerCase()];
   if(step===undefined||!sent.every(b=>STEP[b.toLowerCase()]!==undefined)||before.field_controls_locked===true)return;
   const x=before.position.x+step[0],y=before.position.y+step[1];

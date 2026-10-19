@@ -102,6 +102,7 @@ The deterministic proof is a production-shaped replay of cdb1 turn 84 through th
 - GPT 5.6 Terra xhigh (isolated Codex, read-only fallback): `VERDICT: BLOCKING`. It accepted the four functional round-one repairs but required final-head durable browser evidence; its suggested stronger OFF golden is non-blocking hardening.
 - Round-two blocker set accepted: isolate attributed-interaction bookkeeping from legacy trigger inference; use production-shaped `faced_sprite`/person fixtures with object movement where needed; add an exact-`state_seq` discriminator and mutation receipt; restore the historical inclusive prefix while excluding only the newly appended member; rebuild and repeat desktop/mobile feature-card proof at the final registry position with durable screenshots/console/source identity.
 - Convergence: this is the second blocker-producing round. Per the review contract, do not begin a third repair/review round without explicit operator authorization.
+- 2026-10-18 EDT: the operator authorized a narrowly scoped third round covering only the real push-back side effect and the test-quality defects; final-position browser-evidence work remains outside this repair round. Before editing, canonical main had advanced to `9f711652` with `just-in-time-prompt-v2`. The sync resolution preserves that feature first and appends `faced-interaction-history-v1` after it in every owned registry/default surface.
 
 ## Principles Adherence (round-two candidate)
 

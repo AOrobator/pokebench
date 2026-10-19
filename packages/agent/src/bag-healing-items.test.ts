@@ -69,8 +69,8 @@ describe("registry",()=>{
   expect(featureInfo(ID)).toMatchObject({group:"guard",needs:HBT,switchable:true,title:"HEAL BEFORE TRAINERS: BAG ITEMS"});
   expect(featureInfo(ID).description).toContain(" Off: ");
   expect(featureInfo(ID).description).toContain(POTION_SENTENCE);
-  expect(SWITCHABLE_FEATURES.at(-10)).toBe(ID);
-  expect(playHarnessFeatures(ALL_ON,null).at(-10)).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-11)).toBe(ID);
+  expect(playHarnessFeatures(ALL_ON,null).at(-11)).toBe(ID);
   expect(playHarnessFeatures({...ALL_ON,[ID]:false},null)).not.toContain(ID);
   expect(SERVER_FEATURES).not.toContain(ID);
   expect(dependencyProblems({...ALL_ON,[HBT]:false})).toContain(`${ID} needs ${HBT}`);
@@ -209,7 +209,7 @@ describe("recorded event",()=>{
 describe("the pending experiment",()=>{
  it("flips only bag-healing-items-v1 over the bundle-style incumbent with heal-before-trainers-v1 on, and is not queued",()=>{
   const raw=JSON.parse(readFileSync(new URL("../../../experiments/bag-healing-items.json",import.meta.url),"utf8")) as {incumbent:{features:Record<string,boolean>}};
-  expect(Object.keys(raw.incumbent.features)).toEqual(SWITCHABLE_FEATURES.filter(id=>id!=="faced-interaction-history-v1"));
+  expect(Object.keys(raw.incumbent.features)).toEqual(SWITCHABLE_FEATURES.filter(id=>id!=="just-in-time-prompt-v2"&&id!=="faced-interaction-history-v1"));
   const entry=parseExperiment(raw);
   expect(entry.queuePosition).toBeUndefined();
   expect(entry.changedFeature).toBe(ID);

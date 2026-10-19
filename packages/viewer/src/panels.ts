@@ -359,6 +359,7 @@ function toolReference(name:string):string {
 
 export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "just-in-time-prompt-v1":"just-in-time-prompt-v1.html",
+ "just-in-time-prompt-v2":"just-in-time-prompt-v2.html",
  "navigation-evidence-memory-v1":"navigation-evidence-memory-v1.html",
  "bounded-navigation-v1":"astar-navigation.html",
  "ledge-hops-v1":"ledge-hops-v1.html",

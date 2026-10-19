@@ -186,8 +186,9 @@ export interface PressHooks {
 }
 
 export type BeforePressCheck=(before:GameStateSnapshot|undefined)=>void;
+export interface CheckedPressOptions { readonly automaticRunning?: boolean }
 export type CheckedPressTool=AgentTool<typeof PressArgs> & {
- readonly executeChecked:(id:string,params:Static<typeof PressArgs>,check:BeforePressCheck,signal?:AbortSignal,update?:Parameters<AgentTool<typeof PressArgs>["execute"]>[3])=>Promise<AgentToolResult<{state:GameStateSnapshot|undefined}>>;
+ readonly executeChecked:(id:string,params:Static<typeof PressArgs>,check:BeforePressCheck,signal?:AbortSignal,update?:Parameters<AgentTool<typeof PressArgs>["execute"]>[3],options?:CheckedPressOptions)=>Promise<AgentToolResult<{state:GameStateSnapshot|undefined}>>;
 };
 export function isCheckedPress(tool:AgentTool):tool is CheckedPressTool {return "executeChecked" in tool&&typeof tool.executeChecked==="function";}
 
@@ -204,7 +205,7 @@ export function pressTool(
   switches: ToolSwitches = ALL_TOOL_SWITCHES,
   shown: ShownStates = new ShownStates(),
 ): CheckedPressTool {
-  const execute=async(toolCallId:string,params:Static<typeof PressArgs>,signal?:AbortSignal,_update?:Parameters<AgentTool<typeof PressArgs>["execute"]>[3],check?:BeforePressCheck):Promise<AgentToolResult<{state:GameStateSnapshot|undefined}>>=>{
+  const execute=async(toolCallId:string,params:Static<typeof PressArgs>,signal?:AbortSignal,_update?:Parameters<AgentTool<typeof PressArgs>["execute"]>[3],check?:BeforePressCheck,checkedOptions?:CheckedPressOptions):Promise<AgentToolResult<{state:GameStateSnapshot|undefined}>>=>{
       // A stopped run (budget, operator abort) must not press anything further.
       signal?.throwIfAborted();
       let before: GameStateSnapshot | undefined;
@@ -218,7 +219,7 @@ export function pressTool(
       }
       check?.(before);
       const buttons = submittedButtons(params.buttons,before,switches);
-      const automaticRunning = permitsAutomaticRunning(before, buttons, params.walking, switches.automaticRunning);
+      const automaticRunning = checkedOptions?.automaticRunning===false?false:permitsAutomaticRunning(before, buttons, params.walking, switches.automaticRunning);
       if (switches.automaticRunning===true || params.walking!==undefined) hooks.beforePress(toolCallId, buttons, PRESS_TIMING, before, {automatic_running:automaticRunning,...(switches.automaticRunning===true?{}:{walking:params.walking===true}),...(automaticRunning?{requested_held_buttons:["B"] as const}:{})});
       else hooks.beforePress(toolCallId, buttons, PRESS_TIMING, before);
       const url = `${gameServerUrl}${automaticRunning ? "/pokebench/travel" : "/action"}`;
@@ -248,7 +249,7 @@ export function pressTool(
       : "Press Game Boy Advance buttons in order (up to 8), then see the resulting screen.") + (switches.safeInterfaces ? " Interaction/menu or locked/unknown-interface batches submit only the first input; inspect before continuing." : "") + (switches.automaticRunning===true ? " Direction-only field travel runs whenever native controls permit it; the harness, not the model, owns this choice." : ""),
     parameters: (switches.automaticRunning===true ? DeterministicRunningPressArgs : PressArgs) as typeof PressArgs,
     execute,
-    executeChecked:(id,params,check,signal,update)=>execute(id,params,signal,update,check),
+    executeChecked:(id,params,check,signal,update,options)=>execute(id,params,signal,update,check,options),
   };
 }
 

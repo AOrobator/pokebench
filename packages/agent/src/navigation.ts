@@ -1,7 +1,7 @@
 import type {AgentTool,AgentToolResult} from "@mariozechner/pi-agent-core";
 import {Type} from "typebox";
 import type {Button} from "./events.js";
-import {isCheckedPress,type BeforePressCheck} from "./game-tools.js";
+import {isCheckedPress,type BeforePressCheck,type CheckedPressOptions} from "./game-tools.js";
 import type {FeatureSet} from "./features.js";
 import {parseGameState,type StateSource,type GameStateSnapshot} from "./game-state.js";
 import {COMMAND_LIMIT_HINT,NAVIGATE_FIRST_DESCRIPTION} from "./navigate-first.js";
@@ -499,7 +499,7 @@ export interface NavigationPorts {
  // navigation-refusal-reasons-v2: say when an in-window goal's route leaves the local window.
  readonly windowReasons?:boolean;
  readonly read:(signal?:AbortSignal)=>Promise<GameStateSnapshot>;
- readonly press:(id:string,params:{buttons:Button[];walking?:boolean},signal?:AbortSignal,check?:BeforePressCheck)=>Promise<AgentToolResult<unknown>>;
+ readonly press:(id:string,params:{buttons:Button[];walking?:boolean},signal?:AbortSignal,check?:BeforePressCheck,options?:CheckedPressOptions)=>Promise<AgentToolResult<unknown>>;
  readonly observe:(id:string,signal?:AbortSignal)=>Promise<AgentToolResult<unknown>>;
  readonly gate?:((signal?:AbortSignal)=>Promise<void>)|undefined;
  readonly maxCommands?:number;
@@ -582,11 +582,11 @@ export function navigationTool(ports:NavigationPorts):AgentTool<typeof Args> {
     if(warpPlan?.activation!==null&&warpPlan?.activation!==undefined&&state.position!==null&&samePoint(state.position,warpPlan.target)){
      const before=state.position,activation=warpPlan.activation;
      try {
-      last=await ports.press(id,{buttons:[activation],walking:true},signal,actual=>{
+      last=await ports.press(id,{buttons:[activation]},signal,actual=>{
        if(actual===undefined||!ready(actual,mode)||actual.map_id?.[0]!==goal.map_id[0]||actual.map_id[1]!==goal.map_id[1]||actual.position?.x!==before.x||actual.position.y!==before.y)throw new NavigationPreconditionError("map, position or field input unavailable or changed before action; no command submitted");
        const current=warpIdentityAt(actual,warpPlan.target,options);
        if(current===null||current.activation!==activation||!sameWarpIdentity(current.identity,warpPlan.identity))throw new NavigationPreconditionError("warp identity or activation changed before action; no command submitted");
-      });
+      },{automaticRunning:false});
      } catch(error){if(!(error instanceof NavigationPreconditionError))throw error;status=error.message;break;}
      commands++;directionalWarpAttempted=true;state=blackout.remember(resultState(last));
      break;
@@ -635,5 +635,5 @@ export function withNavigation(base:readonly AgentTool[],features:FeatureSet,sta
  const tools=[...base];if(!features["bounded-navigation-v1"])return tools;
  const press=base.find(tool=>tool.name==="press"),observe=base.find(tool=>tool.name==="observe");
  if(press===undefined||observe===undefined||!isCheckedPress(press))throw new Error("Navigation requires ordinary game tools");
- tools.push(navigationTool({automaticRunning:features["automatic-running-v1"],ledges:features["ledge-hops-v1"],oneWay:features["one-way-tiles-v1"],grassCost:features["grass-cost-navigation-v1"],counters:features["counter-talk-v1"],refusalReasons:features["navigation-refusal-reasons-v1"],connectionEdges:features["connection-edge-tiles-v1"],truth:features["navigation-truth-v1"],triggers:features["coordinate-script-conditions-v1"],windowReasons:features["navigation-refusal-reasons-v2"],floor:features["walkable-floor-v1"],elevation:features["elevation-transitions-v1"]?"game":"legacy",navigateFirst:features["navigate-first-prompt-v1"],crossMapGoal:features["cross-map-goal-v1"],exitReach:features["exit-reachability-v1"],surfGate:features["surf-gated-exits-v1"],deterministicWarps:features["deterministic-warp-navigation-v1"],read:signal=>state.read(signal),press:(id,params,signal,check)=>check===undefined?press.execute(id,params,signal):press.executeChecked(id,params,check,signal),observe:(id,signal)=>observe.execute(id,{},signal),gate,fullMap:features["full-map-navigation-v1"],visitedTerrain:features["visited-terrain-navigation-v1"]}));return tools;
+ tools.push(navigationTool({automaticRunning:features["automatic-running-v1"],ledges:features["ledge-hops-v1"],oneWay:features["one-way-tiles-v1"],grassCost:features["grass-cost-navigation-v1"],counters:features["counter-talk-v1"],refusalReasons:features["navigation-refusal-reasons-v1"],connectionEdges:features["connection-edge-tiles-v1"],truth:features["navigation-truth-v1"],triggers:features["coordinate-script-conditions-v1"],windowReasons:features["navigation-refusal-reasons-v2"],floor:features["walkable-floor-v1"],elevation:features["elevation-transitions-v1"]?"game":"legacy",navigateFirst:features["navigate-first-prompt-v1"],crossMapGoal:features["cross-map-goal-v1"],exitReach:features["exit-reachability-v1"],surfGate:features["surf-gated-exits-v1"],deterministicWarps:features["deterministic-warp-navigation-v1"],read:signal=>state.read(signal),press:(id,params,signal,check,options)=>check===undefined?press.execute(id,params,signal):press.executeChecked(id,params,check,signal,undefined,options),observe:(id,signal)=>observe.execute(id,{},signal),gate,fullMap:features["full-map-navigation-v1"],visitedTerrain:features["visited-terrain-navigation-v1"]}));return tools;
 }

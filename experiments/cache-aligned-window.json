@@ -8,7 +8,7 @@
   "primaryMilestone": "RIVAL_MET",
   "source": {
     "checkout": "main",
-    "commit": "6b4aaa71f214a423986215af259f71c20d32f588"
+    "commit": "ced551c6e0299cd7e7c6bd9ff39ca1e80f65b3b6"
   },
   "incumbent": {
     "version": 2,

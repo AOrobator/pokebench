@@ -38,7 +38,13 @@ from pokebench_env.game_screen import ReadMemory
 from pokebench_env.game_state import MapNames
 from pokebench_env.human import HumanServer, install_human
 from pokebench_env.levelup_box import SWITCH as LEVELUP_BOX
-from pokebench_env.memory_reader import Core, NativeCore, SnapshotMemoryReader, copy_native_region
+from pokebench_env.memory_reader import (
+    Core,
+    NativeCore,
+    SnapshotMemoryReader,
+    copy_native_region,
+    read_canonical_ram,
+)
 from pokebench_env.observation import RawSnapshotFn, ScreenshotFn, install_observation
 from pokebench_env.pause import SteppingServer, install_pause
 from pokebench_env.raw_ram import (
@@ -367,6 +373,14 @@ def run(
             shutdown_persistence_worker()
 
 
+def make_memory_reader(core: Callable[[], NativeCore]) -> SnapshotMemoryReader:
+    return SnapshotMemoryReader(
+        lambda: cast(Core, core()),
+        lambda address, length: copy_native_region(core(), address, length),
+        fast_read=lambda address, length: read_canonical_ram(core(), address, length),
+    )
+
+
 def main() -> None:  # pragma: no cover - entrypoint, exercised by `just smoke`
     import uvicorn
     from pokemon_env.emulator import EmeraldEmulator
@@ -381,10 +395,7 @@ def main() -> None:  # pragma: no cover - entrypoint, exercised by `just smoke`
     )
     token = os.environ.get("POKEBENCH_HUMAN_TOKEN")
 
-    def raw_region(address: int, size: int) -> bytes:
-        return copy_native_region(cast(NativeCore, app.env.core), address, size)
-
-    read_memory = SnapshotMemoryReader(lambda: cast(Core, app.env.core), raw_region)
+    read_memory = make_memory_reader(lambda: cast(NativeCore, app.env.core))
 
     import hashlib
 

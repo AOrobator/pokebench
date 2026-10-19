@@ -35,15 +35,24 @@ class Core(Protocol):
 
 class SnapshotMemoryReader:
     def __init__(
-        self, core: Callable[[], Core], raw_read: Callable[[int, int], bytes] | None = None
+        self,
+        core: Callable[[], Core],
+        raw_read: Callable[[int, int], bytes] | None = None,
+        *,
+        fast_read: Callable[[int, int], bytes | None] | None = None,
     ) -> None:
         self.core = core
         self.raw_read = raw_read
+        self.fast_read = fast_read
 
     def raw_region(self, address: int, length: int) -> bytes:
         return self(address, length) if self.raw_read is None else self.raw_read(address, length)
 
     def __call__(self, address: int, length: int) -> bytes:
+        if self.fast_read is not None:
+            result = self.fast_read(address, length)
+            if result is not None:
+                return result
         return bytes(self.core().memory.u8[address : address + length])
 
     def pokemon_cpu_context(self) -> PokemonCpu | None:
@@ -79,8 +88,34 @@ class NativeCore(Protocol):
     _native: NativeBoard
 
 
-def copy_native_region(core: NativeCore, address: int, size: int) -> bytes:
+def read_canonical_ram(core: NativeCore, address: int, length: int) -> bytes | None:
+    """Read plain canonical RAM only; None retains the original bus semantics."""
+    if type(address) is not int or type(length) is not int or length <= 0:
+        return None
+    if 0x02000000 <= address < 0x02040000:
+        base, size = 0x02000000, 0x40000
+    elif 0x03000000 <= address < 0x03008000:
+        base, size = 0x03000000, 0x8000
+    else:
+        return None
+    offset = address - base
+    if length > size - offset:
+        return None
+
+    # mGBA 0.10.5 GBALoad8 reads these exact wram/iwram backing bytes;
+    # busRead8 passes a null cycle counter. Mirrors and all other regions
+    # deliberately stay on the bus, including side-effectful I/O/Flash.
     from mgba._pylib import ffi  # type: ignore[import-untyped]
+
+    native_size = ffi.new("size_t*")
+    pointer = core._core.getMemoryBlock(core._core, base >> 24, native_size)
+    if pointer == ffi.NULL or native_size[0] != size:
+        return None
+    return bytes(ffi.buffer(ffi.cast("uint8_t*", pointer) + offset, length))
+
+
+def copy_native_region(core: NativeCore, address: int, size: int) -> bytes:
+    from mgba._pylib import ffi
 
     if address == 0x04000000:
         registers = core._native.memory.io

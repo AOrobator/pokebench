@@ -190,7 +190,9 @@ def test_native_allocation_pointer_and_contents_are_refreshed_on_every_call(nati
     assert native.ffi.copies == [(0x23, 4)] * 3
 
 
-def test_production_reader_factory_uses_current_core_and_keeps_full_raw_region_separate(monkeypatch):
+def test_production_reader_factory_uses_current_core_and_keeps_full_raw_region_separate(
+    monkeypatch,
+):
     active = SimpleNamespace(label="first")
     fast = []
     raw = []
@@ -218,8 +220,11 @@ def test_production_reader_factory_uses_current_core_and_keeps_full_raw_region_s
 def test_actual_server_main_constructs_one_shared_optimized_reader(monkeypatch, tmp_path):
     core = SimpleNamespace(frame_counter=0)
     vendor = SimpleNamespace(
-        app=object(), env=SimpleNamespace(core=core), frame_manager=object(),
-        memory_lock=threading.Lock(), main=lambda: None,
+        app=object(),
+        env=SimpleNamespace(core=core),
+        frame_manager=object(),
+        memory_lock=threading.Lock(),
+        main=lambda: None,
     )
     pokemon_package = ModuleType("pokemon_env")
     emulator_module = ModuleType("pokemon_env.emulator")
@@ -232,7 +237,9 @@ def test_actual_server_main_constructs_one_shared_optimized_reader(monkeypatch, 
     monkeypatch.setitem(sys.modules, "server", server_package)
     monkeypatch.setattr(serve, "install_deadline_frame_stream", lambda *_args: None)
     monkeypatch.setattr(serve, "install_battle_journal", lambda *_args: None)
-    monkeypatch.setattr(serve, "resolve_rom", lambda _env: SimpleNamespace(read_bytes=lambda: b"test"))
+    monkeypatch.setattr(
+        serve, "resolve_rom", lambda _env: SimpleNamespace(read_bytes=lambda: b"test")
+    )
     monkeypatch.setattr(serve.MapNames, "load", lambda _path: object())
     monkeypatch.setattr(serve, "RawRamArchive", lambda *_args: object())
     monkeypatch.chdir(tmp_path)

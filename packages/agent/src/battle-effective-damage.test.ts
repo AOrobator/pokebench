@@ -20,7 +20,7 @@ describe(ID,()=>{
  it("is an isolated candidate in the fixed bundle and has tracked operator docs",()=>{
   const bundle=JSON.parse(root("experiments/fixed/bundle-v-control.json")) as {base:{features:Record<string,boolean>};switches:string[]};
   expect(bundle.base.features[ID]).toBe(false);
-  expect(bundle.switches.at(-2)).toBe(ID);
+  expect(bundle.switches).toContain(ID);
   expect(root("docs/explainers/README.md")).toContain("battle-effective-damage-v1.html");
   expect(root("docs/explainers/battle-effective-damage-v1.html")).toContain("The harness does not rank moves");
   expect(root("docs/experiments/README.md")).toContain("battle-effective-damage.html");

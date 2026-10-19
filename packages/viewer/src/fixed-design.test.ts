@@ -46,6 +46,10 @@ describe("armPreset", () => {
     expect(differing.sort()).toEqual([...def.switches].sort());
     expect(control.features["automatic-running-v1"]).toBe(false);
     expect(bundle.features["automatic-running-v1"]).toBe(true);
+    expect(control.features["semantic-navigation-v1"]).toBe(false);
+    expect(control.features["deterministic-exploration-v1"]).toBe(false);
+    expect(bundle.features["semantic-navigation-v1"]).toBe(true);
+    expect(bundle.features["deterministic-exploration-v1"]).toBe(true);
     expect((bundle.features as Record<string, boolean>)["milestone-stall-stop-v1"]).toBe(false);
   });
 

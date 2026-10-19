@@ -9,6 +9,8 @@ On 2026-10-19, the operator authorized two independently switchable navigation t
 
 Both treatments must immediately return control when the game changes input owner. A trainer sightline, wild encounter, battle, dialogue, menu, script lock, map transition, forced movement, unavailable state, or unsupported owner interrupts the composite action and must be reported in the returned verified state. The harness never chooses a battle or dialogue response.
 
+The operator subsequently authorized enabling both switches in the fixed bundle arm. The bundle control keeps both OFF, while the bundle treatment turns both ON; their repository-wide defaults remain OFF and their standalone experiments remain pending.
+
 ## Scope and invariants
 
 - Both switches are default OFF and independently measurable. OFF preserves the existing tool schemas, descriptions, coordinate navigation, and execution exactly.
@@ -37,11 +39,13 @@ Both treatments must immediately return control when the game changes input owne
 - [x] OFF invariance is exact and ON factory wiring is covered.
 - [x] Both explainers, card links, server routes, and real-browser clicks are verified. Static routes and offline-page checks pass; the candidate viewer's Harness Config search opened both explainers at their registered routes.
 - [x] Pending experiment entries validate; no experiment is queued, approved, or launched.
+- [x] The fixed bundle composition keeps both switches OFF in control and turns both ON in the bundle arm.
 - [x] Agent/viewer gates pass: 3,831 tests, lint, build, experiment validation, offline-page checks, and 90% coverage floors. The isolated worktree's Python suite cannot resolve vendored porymap/mGBA assets, producing 12 missing-file failures and one missing-module mypy error; no Python production file changed.
 - [ ] Frozen multi-model review passes before any landing.
 
 ## Session log
 
+- 2026-10-19: At the operator's direction, added `semantic-navigation-v1` and `deterministic-exploration-v1` to the fixed bundle treatment. Both are explicit false bits in the control base and bundle switches, so the generated control remains OFF and the generated bundle arm turns both ON. Regenerated the blocked open-goal pending incumbent's feature snapshot to match that bundle composition. This changes future bundle composition; it does not approve, queue, launch, restart, or inject input into any run.
 - 2026-10-19: Re-pinned both pending experiment definitions to the complete checked-travel implementation commit `c3ab2739d7a4a414a393e21958c84837a8fa348d`; they remain pending and unqueued.
 - 2026-10-19: V3 reviewers BLOCKED `ed389a4597e4105c3668bbb62dc3d227d47a2a40` on three race/composition cases: semantic drift first visible in the press tool's fresh checked state, a detected stop hidden by the final observation, and a deterministic-warp attempt retried by semantic activation. The navigator now applies the semantic stop predicate inside both checked travel callbacks, records a durable internal `stop_requested` receipt across the final observation, and records directional `activation_attempted` so semantic navigation never retries it. New production-path regressions cover all cases. Focused navigation/semantic tests are 96/96 and lint is green. Adversarial deletion separately made the fresh-state tests post one input, made the transient-stop test submit `A`, and made the composition test issue a second activation; all were restored before the green rerun.
 - 2026-10-19: Re-pinned both pending experiment definitions to the per-step/directional-warp implementation commit `776ca8229f9a340d021058ca9575711feb681ed9`; no run was queued, approved, or launched.

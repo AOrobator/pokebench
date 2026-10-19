@@ -187,7 +187,6 @@ export class App {
   private workbench: WorkbenchData | null = null;
   private workbenchLoad: Promise<void> | null = null;
   // The cards replace the live-run buttons; the run list refreshes every few seconds and must not bring them back.
-  private cardsShown = false;
   private readonly cardHtml = new WeakMap<Element, string>();
   // Set when the newest run is opened; a later refresh may list a newer one first.
   private following = false;
@@ -414,27 +413,6 @@ export class App {
     const picker = this.picker("run");
     picker.replaceChildren(...runs.map((run) => option(this.doc, run.id, `${isLive(run) ? "LIVE · " : run.ended === false && run.problem === null ? "NOT RESPONDING · " : ""}${run.id}`)));
     if (this.runId !== null) picker.value = this.runId;
-    const live = runs.filter(isLive);
-    const box = this.ui("live-runs");
-    box.hidden = live.length === 0 || this.cardsShown;
-    box.replaceChildren();
-    for (const run of live) {
-      const button = this.doc.createElement("button");
-      button.dataset.label = run.experiment === undefined ? run.model ?? run.id : `${run.model ?? run.id} · ${run.experiment}`;
-      button.title = run.id;
-      button.dataset.run = run.id;
-      button.addEventListener("click", () => { this.select(run.id); });
-      box.append(button);
-    }
-    this.markSelectedRun();
-  }
-
-  private markSelectedRun(): void {
-    for (const button of this.ui("live-runs").querySelectorAll<HTMLButtonElement>("button")) {
-      const selected = button.dataset.run === this.runId;
-      button.setAttribute("aria-pressed", String(selected));
-      button.textContent = selected ? `WATCHING · ${button.dataset.label ?? ""}` : `LIVE ELSEWHERE · ${button.dataset.label ?? ""} · WATCH ▸`;
-    }
   }
 
   // Runs start after the page loads (a batch of measured runs); pick them up
@@ -709,7 +687,6 @@ export class App {
     this.liveFailedAt = null;
     this.setHtml("inspector", inspector(undefined));
     this.picker("run").value = runId;
-    this.markSelectedRun();
     // References are eligible only after the owned server validates their logs.
     this.picker("baseline").replaceChildren(option(this.doc, "", "none"));
     this.doc.location.hash = `run=${encodeURIComponent(runId)}`;
@@ -1020,9 +997,7 @@ export class App {
     const watched = cards.filter((c) => c.status === "watching" || c.status === "replay"), mini = art === null || cards.length === 0 ? null : [...watched, ...cards.filter((c) => c.status !== "watching" && c.status !== "replay")].map((c) => cardHtml(c, art, "mini")).join("");
     this.setHtml("run-sheet-body", sheetHtml({ ...head, time: "" }, startedAt, mini === null ? null : { html: mini, watched: watched.length > 0 }));
     syncCards(this.ui("run-cards"), art === null ? [] : cards.map((c) => cardHtml(c, art, "wide")), this.cardHtml);
-    this.cardsShown = mini !== null;
-    this.ui("run-cards").hidden = !this.cardsShown;
-    this.ui("live-runs").hidden = this.cardsShown || !this.runs.some(isLive);
+    this.ui("run-cards").hidden = mini === null;
     fillCards([this.ui("run-cards"), this.ui("run-sheet-body")], cards, this.art, (canvas, pixels) => { this.deps.drawGlyphs?.(canvas, pixels); });
     for (const slot of this.ui("run-sheet-body").querySelectorAll(".rh-time")) slot.textContent = time;
     if (clock !== null) {

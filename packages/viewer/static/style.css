@@ -25,10 +25,6 @@ body { background: #4a9fd8; color: #283038; overflow-x: hidden; }
 .bar .clock { min-width: 150px; text-align: right; }
 .bar .problems { flex-basis: 100%; min-width: 0; max-height: 96px; overflow-y: auto; overflow-wrap: anywhere; white-space: pre-wrap; background: #ffecec; color: #a01010; border: 3px solid #d03a3a; border-radius: 8px; padding: 8px; line-height: 1.8; font-size: 8px; }
 
-.bar .live-runs { flex-basis: 100%; display: flex; flex-wrap: wrap; gap: 8px; }
-.bar .live-runs[hidden] { display: none; }
-.bar .live-runs button { background: #d6ffe3; border-color: #388759; }
-.bar .live-runs button[aria-pressed="true"] { background: #ffd447; border-color: #fff0a0; color: #1e2c44; box-shadow: 0 0 0 2px #ffd447; }
 .bar .run-choice { display: flex; align-items: center; gap: 8px; min-width: 0; max-width: 100%; color: #ffd447; }
 .bar .run-choice select { border-color: #ffd447; min-width: 0; }
 .bar select[data-ui="run"] { max-width: min(100%, 600px); }
@@ -810,7 +806,7 @@ b.wb-add, b.wb-rem { white-space:nowrap; }
 @media (prefers-reduced-motion: reduce) { .tc .tc-dot, .tc .tc-mon, .tc.tc-new .tc-art { animation: none !important; } .tc.tc-new .tc-art { filter: drop-shadow(var(--u) 0 0 #ffe060) drop-shadow(calc(var(--u) * -1) 0 0 #ffe060) drop-shadow(0 var(--u) 0 #ffe060) drop-shadow(0 calc(var(--u) * -1) 0 #ffe060); } }
 
 :root[data-phone] .bar { padding: 9px 12px; gap: 8px; }
-:root[data-phone] .bar > .logo, :root[data-phone] .bar > .mode, :root[data-phone] .bar > .clock, :root[data-phone] .bar > .live-runs, :root[data-phone] .bar > .ident { display: none; }
+:root[data-phone] .bar > .logo, :root[data-phone] .bar > .mode, :root[data-phone] .bar > .clock, :root[data-phone] .bar > .ident { display: none; }
 :root[data-phone] .bar > .run-head { display: flex; }
 
 

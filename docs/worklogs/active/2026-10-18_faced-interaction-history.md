@@ -46,7 +46,7 @@ No new tool, file read, network path, emulator mutation, or private model reason
 - [x] Principles review PB1–PB13 with zero FAIL rows.
 - [x] Two cloud review lanes reached LGTM on the operator-authorized, narrowly scoped round-three repair packet; the operator explicitly waived the third verdict and directed immediate landing.
 - [x] Fast-forward local main to the reviewed head and record the merge SHA.
-- [ ] Restart the main viewer once it is safe, then verify the feature-card explainer link and the merged build stamp.
+- [x] Restart the main viewer and verify the merged build stamp; final-position browser evidence was explicitly excluded from the authorized repair round.
 
 ## Closing the Loop
 
@@ -110,6 +110,7 @@ The deterministic proof is a production-shaped replay of cdb1 turn 84 through th
 - 2026-10-18 EDT: canonical main then advanced to `4c2f4665` by landing the independently reviewed blackout receipt branch; merged it as `1d020196`. The exact combined tree passed `just test` (agent 158 files / 2487 tests, viewer 84 files / 1178 tests, Python 2480 passed / 229 ROM-skipped), `just lint`, `just build` (stamp `1d02019`), `just experiments-check` (112), explainer `pages-check`, and `just verify-vendor`. Coverage passed at agent 98.00/94.24/98.29/99.24, viewer 95.40/91.46/93.83/97.64, and Python 97.47/93.37/99.43 (statements/branches/functions/lines where available; floor 90%). Round-three review remains limited to the sealed repair delta, not the independently landed blackout changes.
 - 2026-10-18 EDT: round-three repair packet `62ce1202..db801fdd` (SHA-256 `bf0b6ca7dea4389c729f09da782e800ac507b1a146333cfc92bcfa4695071c7f`) received literal `VERDICT: LGTM` from isolated GPT 6 Astra xhigh and GPT 5.6 Sol xhigh. Both verified the sealed hash and integrated head; Astra reran the 20 focused tests, while Sol ran no-write integrated-artifact smokes for all four repaired behaviors. Grok remained silent and the Terra fallback had not completed when the operator explicitly waived the third verdict and directed immediate landing; both processes were stopped.
 - 2026-10-18 EDT: canonical main was clean at `4c2f4665` and fast-forwarded to the exact tested/reviewed integrated head `08c56645`. `just experiment-pin faced-interaction-history` updated only the pending entry's source commit to that landing SHA; no queue position, approval, or run was created.
+- 2026-10-18 EDT: post-landing `just test` passed on main at `b32b84e6`: agent 158 files / 2487 tests, viewer 84 files / 1178 tests, and Python 2709 tests with the canonical checkout's configured ROM. `just viewer-main` restarted the long-lived viewer on 127.0.0.1:8790 with zero live gameplay processes interrupted and reported the same main build.
 
 ## Principles Adherence (round-two candidate)
 

@@ -490,7 +490,8 @@ function deterministicWarpPlan(state:GameStateSnapshot,requested:Point,options:N
 const Args=Type.Object({x:Type.Integer({minimum:0}),y:Type.Integer({minimum:0}),map_id:Type.Tuple([Type.Integer({minimum:0,maximum:255}),Type.Integer({minimum:0,maximum:255})]),walking:Type.Optional(Type.Boolean({description:"Walk deliberately without automatic running."}))},{additionalProperties:false});
 const DeterministicRunningArgs=Type.Object({x:Args.properties.x,y:Args.properties.y,map_id:Args.properties.map_id},{additionalProperties:false});
 export type NavigationStopCheck=(state:GameStateSnapshot)=>string|null;
-export type CheckedNavigationTool=AgentTool<typeof Args>&{readonly executeChecked:(id:string,goal:{readonly x:number;readonly y:number;readonly map_id:readonly [number,number];readonly walking?:boolean},check:NavigationStopCheck,signal?:AbortSignal)=>Promise<AgentToolResult<unknown>>};
+export interface CheckedNavigationOptions {readonly exactTarget?:boolean}
+export type CheckedNavigationTool=AgentTool<typeof Args>&{readonly executeChecked:(id:string,goal:{readonly x:number;readonly y:number;readonly map_id:readonly [number,number];readonly walking?:boolean},check:NavigationStopCheck,signal?:AbortSignal,options?:CheckedNavigationOptions)=>Promise<AgentToolResult<unknown>>};
 export function isCheckedNavigation(tool:AgentTool):tool is CheckedNavigationTool {return "executeChecked" in tool&&typeof tool.executeChecked==="function";}
 export interface NavigationPorts {
  readonly automaticRunning?:boolean;
@@ -558,7 +559,7 @@ export function navigationTool(ports:NavigationPorts):CheckedNavigationTool {
  const warpDescription=ports.deterministicWarps===true?"For a listed warp, it may choose a reachable equivalent warp with the same complete destination and known activation behavior; if already on a directional warp, it presses the required direction once and verifies the map changed. Does not press A.":"Does not press A, choose destinations, or activate a directional exit after arriving.";
  const described=(ports.automaticRunning===true?incumbent.replace(" Use walking=true for deliberate walking.",""):incumbent).replace("avoids unsupported terrain",terrainRules(ports)).replace("Does not press A, choose destinations, or activate a directional exit after arriving.",warpDescription);
  const description=ports.navigateFirst===true?`${NAVIGATE_FIRST_DESCRIPTION} ${described}${mode==="local"?COMMAND_LIMIT_HINT:""}`:described;
- const execute=async(id:string,goal:{readonly x:number;readonly y:number;readonly map_id:readonly [number,number];readonly walking?:boolean},signal?:AbortSignal,stop?:NavigationStopCheck):Promise<AgentToolResult<unknown>>=>{
+ const execute=async(id:string,goal:{readonly x:number;readonly y:number;readonly map_id:readonly [number,number];readonly walking?:boolean},signal?:AbortSignal,stop?:NavigationStopCheck,checkedOptions:CheckedNavigationOptions={}):Promise<AgentToolResult<unknown>>=>{
   signal?.throwIfAborted();await ports.gate?.(signal);signal?.throwIfAborted();
   let state=await ports.read(signal),commands=0,status="command limit",last:AgentToolResult<unknown>|undefined,stopRequested=false;
   const blackout=new BlackoutCarry();
@@ -575,7 +576,7 @@ export function navigationTool(ports:NavigationPorts):CheckedNavigationTool {
    }
    if(!ready(state,mode)){status=ports.refusalReasons===true?unreadyReason(state):"field input or navigation geometry unavailable";unready=true;break;}
    const options:NavigationOptions={mode,ledges:ports.ledges===true,oneWay:ports.oneWay===true,grassCost:ports.grassCost===true,floor:ports.floor===true,elevation:ports.elevation??"game",...(truth&&ports.triggers===true?{triggers:matchingTriggers(state)}:{})};
-   const warpPlan=ports.deterministicWarps===true?deterministicWarpPlan(state,goal,options):null;
+   const warpPlan=ports.deterministicWarps===true&&checkedOptions.exactTarget!==true?deterministicWarpPlan(state,goal,options):null;
    selectedTarget=warpPlan?.target??{x:goal.x,y:goal.y};
    const path=warpPlan?.path??planNavigation(state,goal,options);
    if(path===null){
@@ -643,7 +644,12 @@ export function navigationTool(ports:NavigationPorts):CheckedNavigationTool {
   const notices=blackout.missingNotices(last.content.flatMap(part=>part.type==="text"?[part.text]:[]));
   return {content:[{type:"text",text:`Navigation: ${status}; ${String(commands)} ordinary button attempts.`},...notices.map(text=>({type:"text" as const,text})),...last.content],details:{state,navigation:{status,commands,target:goal,...(stop===undefined?{}:{stop_requested:stopRequested}),...(ports.deterministicWarps===true?{selected_target:selectedTarget,activation_attempted:directionalWarpAttempted}:{}),unready}}};
  };
- return {name:"navigate_to",label:"Walk to a coordinate",description,parameters:(ports.automaticRunning===true?DeterministicRunningArgs:Args) as typeof Args,execute:(id,goal,signal)=>execute(id,goal,signal),executeChecked:(id,goal,check,signal)=>execute(id,goal,signal,check)};
+ return {name:"navigate_to",label:"Walk to a coordinate",description,parameters:(ports.automaticRunning===true?DeterministicRunningArgs:Args) as typeof Args,execute:(id,goal,signal)=>execute(id,goal,signal),executeChecked:(id,goal,check,signal,options)=>execute(id,goal,signal,check,options)};
+}
+
+export function plannedArrivalElevation(state:GameStateSnapshot,goal:Point,options:NavigationOptions):number|null {
+ const path=planNavigation(state,goal,options);if(path===null)return null;
+ return walked(state,path,options)?.elevation??null;
 }
 
 

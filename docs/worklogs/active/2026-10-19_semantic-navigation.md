@@ -41,7 +41,7 @@ The operator subsequently authorized enabling both switches in the fixed bundle 
 - [x] Pending experiment entries validate; no experiment is queued, approved, or launched.
 - [x] The fixed bundle composition keeps both switches OFF in control and turns both ON in the bundle arm.
 - [x] Agent/viewer gates pass: 2,625 agent tests and 1,232 viewer tests, TypeScript lint, build, all 122 experiment definitions, offline-page checks, and 90% coverage floors. Agent coverage is 97.45% statements, 93.61% branches, 98.26% functions, and 99.19% lines; viewer coverage is 95.45% statements, 91.38% branches, 93.98% functions, and 97.72% lines. The Python suite passes 2,487 tests including the native-slot reader, feature-gating, serialization, and OFF golden checks; the remaining 12 failures are the pre-existing isolated-worktree absence of vendored porymap assets. Python Ruff passes; mypy retains the pre-existing unavailable `mgba._pylib` error (plus its now-mismatched ignore diagnostic).
-- [ ] Frozen multi-model review passes before any landing.
+- [x] Frozen V10 multi-model review passes before any landing: GPT, Astra, and Sol independently returned LGTM on the exact frozen hash and digest; Grok was attempted but returned no output and is recorded as unavailable rather than green.
 
 ### Test-quality audit
 
@@ -54,6 +54,17 @@ The operator subsequently authorized enabling both switches in the fixed bundle 
 7. Diagnostics: refusal/interruption text and `activation_attempted` receipts are asserted alongside absence of navigation/input posts.
 8. Bounded fixtures: synthetic maps are minimal two-row grids; no live run, network, or emulator fixture is needed for the unit boundary.
 9. No cap-filling: tests prove continuation across an internal segment cap and progress/no-progress termination without manufacturing a semantic end-to-end cap.
+
+### V10 review synthesis
+
+- Frozen subject: `a295eafea057b562432c685c7f9f7bca2f369b5d`, base `63b6236fec08dac3e533ad6aa62b585fd3d4480c`, cumulative binary diff SHA-256 `553e55332b4f09d4a36e25eea9ffda283bf0743bc0073afcbfe5f95f2eba6a92`.
+- GPT: LGTM; reproduced the hash/digest, ran 272 immutable-source tests and 11 production-boundary cases, verified counter first-slot rejection, input races, long-route/running composition, exploration, OFF parity, bundle composition, and pending experiment state.
+- Astra fallback: LGTM; ran 49 immutable production-adapter probes, verified pinned Emerald counter behavior, exact recipients, continuation, automatic running, OFF parity, bundle composition, and absence of launch artifacts. It questioned the `open-goal-prompt` ON bits, then resolved them against the operator's explicit bundle direction and the recorded dependent-incumbent update.
+- Sol fallback: LGTM; ran 54 semantic callbacks, 15 real checked-input cases, cross-segment walking/running, 34 exact OFF comparisons, Python slot-receipt checks, all 122 incumbent migration diffs, bundle parsing, and pending/unlaunched state.
+- External Grok 4.7 high: unavailable. The read-only review process returned no output for more than six minutes and was terminated; it is not counted as a pass. Earlier vendor attempts also encountered a logged-out Claude CLI, Cursor Claude/GPT limits, and oversized think-endpoint context, so Astra and Sol were the recorded diverse fallbacks.
+- Findings disposition: V8's beyond-counter recipient bug and V9's pre-filtered player-sentinel ordering bug were blocking and are fixed with source-grounded regressions and mutation proof. V10 reviewers reported no actionable findings. No reviewer edited the repository or touched a live run.
+- Agreement: all three completed reviewers independently agreed the candidate is fail-closed at native ownership/recipient boundaries, preserves ordinary coordinate behavior when OFF, has no semantic end-to-end cap, enables both switches only in the authorized fixed treatment, and leaves experiments pending/unlaunched. There were no unresolved disagreements.
+- Admission state: source review is green; landing, experiment queueing/approval/launch, deployment, and performance benefit remain separate and undone.
 
 ## Session log
 

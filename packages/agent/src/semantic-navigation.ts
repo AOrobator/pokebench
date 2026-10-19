@@ -8,7 +8,7 @@ import {directionalWarpActivation,isCheckedNavigation,planNavigation,type Checke
 
 const MapId=Type.Tuple([Type.Integer({minimum:0,maximum:255}),Type.Integer({minimum:0,maximum:255})]);
 const ObjectTarget=Type.Object({kind:Type.Literal("object"),local_id:Type.Integer({minimum:0,maximum:255})},{additionalProperties:false});
-const FixedTarget=Type.Object({kind:Type.Literal("interaction"),interaction_kind:Type.String({minLength:1}),x:Type.Integer({minimum:0}),y:Type.Integer({minimum:0})},{additionalProperties:false});
+const FixedTarget=Type.Object({kind:Type.Literal("interaction"),interaction_kind:Type.String({minLength:1,pattern:"^(?!(?:object|warp)$).+$"}),x:Type.Integer({minimum:0}),y:Type.Integer({minimum:0})},{additionalProperties:false});
 const WarpTarget=Type.Object({kind:Type.Literal("warp"),x:Type.Integer({minimum:0}),y:Type.Integer({minimum:0})},{additionalProperties:false});
 const ConnectionTarget=Type.Object({kind:Type.Literal("connection"),direction:Type.Enum(["NORTH","SOUTH","EAST","WEST"] as const)},{additionalProperties:false});
 const Target=Type.Union([ObjectTarget,FixedTarget,WarpTarget,ConnectionTarget]);
@@ -76,8 +76,16 @@ function resolve(state:GameStateSnapshot,target:RequestTarget):SnapshotTarget|nu
  const listed=state.interaction_targets??[];
  if(target.kind==="object")return listed.find(item=>item.kind==="object"&&item.local_id===target.local_id)??null;
  if(target.kind==="connection")return null;
+ if(target.kind==="interaction"&&(target.interaction_kind==="object"||target.interaction_kind==="warp"))return null;
  const kind=target.kind==="warp"?"warp":target.interaction_kind;
  return listed.find(item=>item.kind===kind&&item.x===target.x&&item.y===target.y)??null;
+}
+function sameTargetIdentity(before:SnapshotTarget,after:SnapshotTarget):boolean {
+ if(before.kind!==after.kind||before.x!==after.x||before.y!==after.y)return false;
+ if(before.kind==="object")return before.local_id===after.local_id;
+ if(before.kind!=="warp")return true;
+ const a=before.destination,b=after.destination;
+ return before.activation===after.activation&&before.elevation===after.elevation&&(a===null?b===null:b!==null&&a[0]===b[0]&&a[1]===b[1]&&a[2]===b[2]);
 }
 function approaches(state:GameStateSnapshot,target:SnapshotTarget,options:NavigationOptions):Approach[] {
  if(target.kind==="warp"||target.activation==="step"){
@@ -120,7 +128,10 @@ function semanticTool(navigate:CheckedNavigationTool,press:CheckedPressTool,feat
      return connection?.edges?.some(point=>point.x===choice.point.x&&point.y===choice.point.y)===true?null:`semantic connection changed during ${phase}`;
     }
     const fresh=resolve(actual,request.target);
-    return fresh===null?`semantic target disappeared during ${phase}`:fresh.x!==listed?.x||fresh.y!==listed.y?`semantic target moved during ${phase}`:null;
+    if(fresh===null)return `semantic target disappeared during ${phase}`;
+    if(listed===null)return `semantic target changed during ${phase}`;
+    if(fresh.x!==listed.x||fresh.y!==listed.y)return `semantic target moved during ${phase}`;
+    return sameTargetIdentity(listed,fresh)?null:`semantic target changed during ${phase}`;
    };
    const routeStop=(actual:GameStateSnapshot):string|null=>{
     if(!isMap(actual,request.map_id))return null;
@@ -136,8 +147,11 @@ function semanticTool(navigate:CheckedNavigationTool,press:CheckedPressTool,feat
     if(reason!==null)return withStatus(walked,`interrupted before activation: ${reason}`,selected,false);
     if(!isMap(current,request.map_id))return withStatus(walked,"interrupted by a map transition",selected,request.target.kind==="warp");
     const changed=identityIssue(current,"travel");if(changed!==null)return withStatus(walked,changed,selected,false);
-    if(current.position?.x===choice.point.x&&current.position.y===choice.point.y)break;
     const status=navigationStatus(walked);
+    if(current.position?.x===choice.point.x&&current.position.y===choice.point.y){
+     if(status==="arrived at requested coordinate"||status?.startsWith("command limit")===true||navigationActivationAttempted(walked))break;
+     return withStatus(walked,`route failed at the selected approach${status===null?"":`: ${status}`}`,selected,false);
+    }
     if(status===null||!status.startsWith("command limit"))return withStatus(walked,"route ended before the selected approach",selected,false);
     if(previous!==null&&current.position?.x===previous.x&&current.position.y===previous.y)return withStatus(walked,"route made no progress before the selected approach",selected,false);
     previous=current.position;
@@ -153,7 +167,9 @@ function semanticTool(navigate:CheckedNavigationTool,press:CheckedPressTool,feat
    if(request.target.kind!=="connection"){
     const fresh=resolve(current,request.target);
     if(fresh===null)return withStatus(walked,"target disappeared before activation",selected,false);
-    if(fresh.x!==listed?.x||fresh.y!==listed.y)return withStatus(walked,"target moved before activation; inspect its new position",selected,false);
+    if(listed===null)return withStatus(walked,"target changed before activation; inspect its new identity or position",selected,false);
+    if(fresh.x!==listed.x||fresh.y!==listed.y)return withStatus(walked,"target moved before activation; inspect its new position",selected,false);
+    if(!sameTargetIdentity(listed,fresh))return withStatus(walked,"target changed before activation; inspect its new identity",selected,false);
     if(fresh.kind==="warp"){
      if(navigationActivationAttempted(walked))return withStatus(walked,"directional warp activation was already attempted by navigation; inspect the unchanged map",selected,true);
      const warpActivation=directionalWarpActivation(current,fresh,options.mode??"local");

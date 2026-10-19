@@ -18,6 +18,18 @@ import { armFeatures, armFeatureBits, parseFixedDefinition, controlBaseProblems,
 const COMMIT = "0123456789abcdef0123456789abcdef01234567";
 const RECEIPT: ServingReceipt = { model: MODEL_PATH, build: "b10236-1464c62d8", contextTokens: 65536, slots: 1, vision: true, fingerprint: "f".repeat(64) };
 
+it("selects the operator's 80 FPS policy equally in future bundle and control runs",()=>{
+ const {definition:def}=parseFixedDefinition(readFileSync(new URL("../../../experiments/fixed/bundle-v-control.json",import.meta.url),"utf8"));
+ const id="original-speed-pacing-v1";
+ expect(def.onInBoth).toContain(id);
+ expect(def.switches).not.toContain(id);
+ for(const arm of ["control","bundle"] as const){
+  expect(armFeatures(def,arm)[id]).toBe(true);
+  expect(armFeatureBits(def,arm)[id]).toBe(true);
+  expect(armFeatures(def,arm)["visited-terrain-navigation-v1"]).toBe(false);
+ }
+});
+
 it("keeps the improved blackout receipt out of control and in the bundle",()=>{
  const {definition:def}=parseFixedDefinition(readFileSync(new URL("../../../experiments/fixed/bundle-v-control.json",import.meta.url),"utf8"));
  expect(def.switches).toContain("blackout-readout-v1");

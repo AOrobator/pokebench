@@ -20,8 +20,8 @@ export class BaselineError extends Error {
 
 const RUN_ID = new RegExp(RUN_ID_PATTERN);
 const CHUNK = 64 * 1024;
-const RECENT_EVENT_TURNS = 30;
-const RECENT_EVENT_BYTES = 8 * 1024 * 1024;
+export const RECENT_EVENT_TURNS = 30;
+export const RECENT_EVENT_BYTES = 8 * 1024 * 1024;
 
 export interface RunSummary {
   readonly id: string;

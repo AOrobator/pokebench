@@ -516,6 +516,9 @@ describe("viewer app", () => {
     app.render();
     expect(ui("think-body").textContent).toContain("Latest recorded thought.");
     expect(ui("side-trace").textContent).toContain("Older recorded thought.");
+    const cachedRow = [...ui("side-trace").querySelectorAll<HTMLElement>("[data-key]")].find((row) => row.textContent.includes("Older recorded thought."));
+    must(cachedRow?.querySelector<HTMLElement>("summary")).click();
+    expect(ui("inspector").textContent).toContain('"thinking": "Older recorded thought."');
 
     const partial = new Log();
     partial.add(0, START);
@@ -545,6 +548,58 @@ describe("viewer app", () => {
     expect(ui("think-title").textContent).toBe("FINAL · TURN 2");
     expect(ui("think-body").textContent).toContain("Again.");
     expect(ui("trace").textContent).not.toContain("Again.");
+    const cachedRow = [...ui("side-trace").querySelectorAll<HTMLElement>("[data-key]")].find((row) => row.textContent.includes("Press A to start."));
+    must(cachedRow?.querySelector<HTMLElement>("summary")).click();
+    expect(ui("inspector").textContent).toContain('"thinking": "Press A to start."');
+  });
+
+  it("does not let a late recorded-thinking snapshot replace the caught-up stream", async () => {
+    const id = RUNS[0]?.id ?? "missing";
+    let resolveHead: (value: unknown) => void = () => undefined;
+    const head = new Promise<unknown>((resolve) => { resolveHead = resolve; });
+    const { app, streams } = await harness("", RUNS, null, { [id]: head });
+    const live = new Log();
+    live.add(0, START);
+    live.add(1_000, { type: "turn_start", turn: 1, context: { messages: 1, images: 0, est_tokens: 10 } });
+    live.add(2_000, assistant({ turn: 1, thinking: "Authoritative at catch-up." }));
+    feed(must(streams[0]), live.events);
+    expect(ui("think-body").textContent).toContain("Authoritative at catch-up.");
+
+    const stale = new Log();
+    stale.add(0, START);
+    stale.add(1_000, { type: "turn_start", turn: 1, context: { messages: 1, images: 0, est_tokens: 10 } });
+    stale.add(2_000, assistant({ turn: 1, thinking: "Late stale snapshot." }));
+    resolveHead(stale.events.map((event) => ({ ...event, run: id })));
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(ui("think-body").textContent).toContain("Authoritative at catch-up.");
+    expect(ui("think-body").textContent).not.toContain("Late stale snapshot.");
+
+    const next = [
+      live.add(3_000, { type: "turn_start", turn: 2, context: { messages: 2, images: 0, est_tokens: 20 } }),
+      live.add(4_000, assistant({ turn: 2, thinking: "Newest live stream thought." })),
+    ];
+    feed(must(streams[0]), next, false);
+    app.render();
+    expect(ui("think-body").textContent).toContain("Newest live stream thought.");
+  });
+
+  it("does not let a late recorded-thinking failure clear the caught-up stream", async () => {
+    const id = RUNS[0]?.id ?? "missing";
+    let rejectHead: (reason?: unknown) => void = () => undefined;
+    const head = new Promise<unknown>((_resolve, reject) => { rejectHead = reject; });
+    const { streams } = await harness("", RUNS, null, { [id]: head });
+    const live = new Log();
+    live.add(0, START);
+    live.add(1_000, { type: "turn_start", turn: 1, context: { messages: 1, images: 0, est_tokens: 10 } });
+    live.add(2_000, assistant({ turn: 1, thinking: "Authoritative after failure." }));
+    feed(must(streams[0]), live.events);
+
+    rejectHead(new Error("late head failure"));
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(ui("think-body").textContent).toContain("Authoritative after failure.");
+    expect(ui("side-trace").textContent).not.toContain("loading recorded thinking");
   });
 
   it("ignores a recorded-thinking response from a run that is no longer selected", async () => {
@@ -570,6 +625,52 @@ describe("viewer app", () => {
     await Promise.resolve();
     expect(ui("think-body").textContent).toContain("Selected run thought.");
     expect(ui("think-body").textContent).not.toContain("Stale run thought.");
+  });
+
+  it("ignores an older recorded-thinking request when the same run is reselected", async () => {
+    document.body.innerHTML = PAGE.slice(PAGE.indexOf("<body>") + 6, PAGE.indexOf("</body>"));
+    const id = RUNS[0]?.id ?? "missing";
+    let resolveFirst: (value: unknown) => void = () => undefined;
+    const firstHead = new Promise<unknown>((resolve) => { resolveFirst = resolve; });
+    const fresh = new Log();
+    fresh.add(0, START);
+    fresh.add(1_000, { type: "turn_start", turn: 1, context: { messages: 1, images: 0, est_tokens: 10 } });
+    fresh.add(2_000, assistant({ turn: 1, thinking: "Fresh same-run thought." }));
+    const streams: FakeStream[] = [];
+    let headCalls = 0;
+    const app = await mountApp(document, {
+      fetchJson: (url) => nextRunReply(url) ?? (url === "/api/runs" ? Promise.resolve(RUNS) : url === "/api/workbench" ? Promise.reject(new Error("workbench unavailable")) : url.endsWith("/head") ? (++headCalls === 1 ? firstHead : Promise.resolve(fresh.events.map((event) => ({ ...event, run: id })))) : Promise.reject(new Error(`unexpected ${url}`))),
+      sendJson: noWrites,
+      openStream: (url) => { const stream = new FakeStream(url); streams.push(stream); return stream; },
+      now: () => BASE_MS,
+      hash: "",
+    });
+    app.select(id);
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(ui("think-body").textContent).toContain("Fresh same-run thought.");
+
+    const stale = fresh.events.map((event) => event.type === "assistant" ? { ...event, run: id, thinking: "Stale same-run thought." } : { ...event, run: id });
+    resolveFirst(stale);
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(ui("think-body").textContent).toContain("Fresh same-run thought.");
+    expect(ui("think-body").textContent).not.toContain("Stale same-run thought.");
+    expect(streams).toHaveLength(2);
+  });
+
+  it("rejects recorded thinking whose events belong to another run", async () => {
+    const id = RUNS[0]?.id ?? "missing";
+    const foreign = new Log();
+    foreign.add(0, START);
+    foreign.add(1_000, { type: "turn_start", turn: 1, context: { messages: 1, images: 0, est_tokens: 10 } });
+    foreign.add(2_000, assistant({ turn: 1, thinking: "Foreign run thought." }));
+    const { app } = await harness("", RUNS, null, { [id]: foreign.events.map((event) => ({ ...event, run: "someone-else" })) });
+    await Promise.resolve();
+    await Promise.resolve();
+    app.render();
+    expect(ui("think-head").textContent).toContain("LOADING RECORDED THINKING");
+    expect(ui("think-body").textContent).not.toContain("Foreign run thought.");
   });
 
   it("holds a stable thinking-loading state when the head snapshot fails, then trusts the caught-up stream", async () => {

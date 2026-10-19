@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { Log, START, assistant, fullRun, state } from "../test-support/events.js";
 import { rivalRam, writeArchive } from "../test-support/raw-ram.js";
-import { RunsError, baselineOf, createBaselineReader, listRuns, liveScreenPort, readFrom, readRecentEvents, runDir } from "./runs.js";
+import { RECENT_EVENT_BYTES, RECENT_EVENT_TURNS, RunsError, baselineOf, createBaselineReader, listRuns, liveScreenPort, readFrom, readRecentEvents, runDir } from "./runs.js";
 
 function root(): string {
   return mkdtempSync(join(tmpdir(), "pokebench-viewer-runs-"));
@@ -86,6 +86,11 @@ describe("readFrom", () => {
 });
 
 describe("readRecentEvents", () => {
+  it("pins the production snapshot bounds", () => {
+    expect(RECENT_EVENT_TURNS).toBe(30);
+    expect(RECENT_EVENT_BYTES).toBe(8 * 1024 * 1024);
+  });
+
   it("returns the run header plus only complete newest turns from a bounded tail", () => {
     const runsRoot = root();
     const log = new Log();
@@ -107,6 +112,38 @@ describe("readRecentEvents", () => {
     expect(thought(3)).toContain("thought 3");
     expect(thought(4)).toContain("thought 4");
     expect(recent.some((event) => event.turn === 2)).toBe(false);
+  });
+
+  it("drops an oldest turn whose first event was cut by the byte boundary", () => {
+    const runsRoot = root();
+    const log = new Log();
+    log.add(0, START);
+    for (let turn = 1; turn <= 3; turn += 1) {
+      log.add(turn * 1_000, { type: "turn_start", turn, context: { messages: turn, images: 0, est_tokens: turn * 10 } });
+      log.add(turn * 1_000 + 1, assistant({ turn, thinking: `thought ${String(turn)}` }));
+    }
+    const path = writeRun(runsRoot, "boundary", log);
+    const bytes = readFileSync(path);
+    const firstTurnStart = bytes.indexOf(Buffer.from('"type":"turn_start","turn":1'));
+    expect(firstTurnStart).toBeGreaterThan(0);
+
+    const recent = readRecentEvents(runsRoot, "boundary", 5, bytes.length - firstTurnStart - 5);
+    expect([...new Set(recent.slice(1).map((event) => event.turn))]).toEqual([2, 3]);
+  });
+
+  it("rejects a recent event owned by another run", () => {
+    const runsRoot = root();
+    const log = new Log();
+    log.add(0, START);
+    log.add(1_000, { type: "turn_start", turn: 1, context: { messages: 1, images: 0, est_tokens: 10 } });
+    log.add(2_000, assistant({ turn: 1, thinking: "foreign" }));
+    const path = writeRun(runsRoot, "owned", log);
+    const rows = readFileSync(path, "utf8").trim().split("\n").map((line) => JSON.parse(line) as Record<string, unknown>);
+    if (rows[2] === undefined) throw new Error("missing fixture event");
+    rows[2].run = "someone-else";
+    writeFileSync(path, `${rows.map((row) => JSON.stringify(row)).join("\n")}\n`);
+
+    expect(() => readRecentEvents(runsRoot, "owned")).toThrow(/someone-else/);
   });
 });
 

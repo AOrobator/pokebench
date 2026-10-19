@@ -729,6 +729,9 @@ export class App {
     });
     stream.addEventListener("caught_up", () => {
       if (this.stream !== stream) return;
+      // The fully folded stream is authoritative now. A slower optional head
+      // request must not replace or clear it after this handoff.
+      this.recordedThinkingRequest += 1;
       this.setRecordedThinking(this.view, this.view.events);
       if (this.view.end !== null) this.startReplay(false);
       else {
@@ -879,8 +882,9 @@ export class App {
     for (const selected of this.doc.querySelectorAll(".tl.sel")) selected.classList.remove("sel");
     this.rows.selected = row.dataset.key ?? null;
     for (const same of this.doc.querySelectorAll<HTMLElement>(`[data-key="${row.dataset.key ?? ""}"]`)) same.classList.add("sel");
+    const owner = row.closest('[data-ui="side-trace"]') === null ? this.shown : this.recordedThinking;
     const seqs = (row.dataset.seqs ?? "").split(" ").map(Number);
-    this.setHtml("inspector", seqs.map((seq) => inspector(this.shown.bySeq(seq))).join(""));
+    this.setHtml("inspector", seqs.map((seq) => inspector(owner?.bySeq(seq))).join(""));
   }
 
   private renderTrace(nowMs: number): void {

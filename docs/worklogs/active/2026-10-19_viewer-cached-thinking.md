@@ -40,7 +40,7 @@ The endpoint is same-origin, GET-only, uses the existing run-id/path owner, vali
 - [x] Gates: `just test`, `just lint`, `just build`, `just coverage`.
 - [x] COMMIT: `fix(viewer): show recorded thinking during replay catch-up` (GREEN)
 - [x] Real-browser proof at 1280x900, 1440x900, and 375x812 on recorded runs, with run switching and multiple polling/playback cycles.
-- [ ] Multi-model review loop until clean.
+- [ ] Multi-model review loop until clean (round 1 repaired; cumulative round pending).
 - [ ] Fast-forward onto current `main`, restart 8790, and verify the live page.
 
 ## Closing the Loop
@@ -56,6 +56,13 @@ The endpoint is same-origin, GET-only, uses the existing run-id/path owner, vali
 - 2026-10-19: Final full gates passed sequentially: `just test` (2,527 agent tests, 1,202 viewer tests, 2,480 Python tests; 229 ROM-dependent skips), `just lint`, `just build`, and `just coverage` (viewer 97.67% lines; Python gate 97.47% lines / 93.37% branches / 99.43% functions).
 - 2026-10-19: The first real-browser candidate check exposed a handoff defect the initial tests missed: the snapshot showed final turn 260 during `LOADING`, then the run-splits pane fell back to replay turn 0 at `caught_up`. Added a finished-run regression test and kept the pane on the fully folded recorded present while the full trace continues replaying.
 - 2026-10-19: Candidate browser proof on the real 10,090-event `petalburg-rerun-a`: final turn 260 and its latest thought appeared during catch-up, remained final after `REPLAY` began while the full trace stayed at replay start, and `EARLIER` held 30 newest groups. No console-visible problem text or horizontal overflow at 1280x900, 1440x900, or 375x812. Switching to paired run B showed its final turn 229 snapshot, then switching back restored A's final turn 260 snapshot without stale cross-run content.
+- 2026-10-19: Review round 1 found two in-contract UI defects and two proof gaps: a late same-run `/head` success or failure could overwrite the authoritative caught-up stream; cached sidebar rows looked up inspector events in the replay cursor instead of their recorded-thinking owner; the partial-oldest-turn branch was not isolated by the original bounded-tail fixture; and the production 30-turn / 8 MiB defaults were not pinned. All were accepted and repaired within the frozen viewer boundary.
+- 2026-10-19: Added deterministic late-success and late-failure scheduling tests, cached-row inspector tests during loading and finished replay, a same-run reselection test, client/server exact-run rejection tests, an isolated mid-turn byte-boundary fixture, and explicit production-bound assertions. Focused repaired suite: 150 tests passed across `app.test.ts`, `runs.test.ts`, and `server.test.ts`; `git diff --check` passed.
+- 2026-10-19: Adversarial repair proofs, each restored afterward: deleting the catch-up invalidation exposed `Late stale snapshot.` over `Authoritative at catch-up.`; forcing sidebar inspection back to replay-owned `shown` produced the inspector placeholder in both cached-row tests; deleting partial-oldest-turn discard returned turns `[1,2,3]` instead of `[2,3]`; drifting defaults to 29 turns / 7 MiB failed the 30-turn pin; deleting the request-generation guard let `Stale same-run thought.` replace the fresh same-run response; deleting client run-identity validation rendered `Foreign run thought.`; deleting server recent-event ownership validation stopped the expected `someone-else` rejection.
+- 2026-10-19: Repair commit `35b93b95` passed `just test` (2,527 agent, 1,209 viewer, 2,480 Python; 229 ROM-dependent skips). The first `just lint` found two unnecessary optional chains in the new DOM test queries; removed them, reran the 77-test app file, and reran `just lint` clean before amending the repair commit. Build and coverage remain pending for the amended head.
+- 2026-10-19: Repaired head `be7146d1` passed `just build` and `just coverage`: 1,209 viewer tests with 97.67% line coverage; Python 2,480 passed / 229 ROM-dependent skipped with 97.47% lines, 93.37% branches, and 99.43% functions. Together with the prior full test and clean lint rerun, all required gates are green sequentially.
+- 2026-10-19: `main` advanced to `a7be38f6` (`feat(bundle): enable automatic running`), so the four-commit candidate was rebased before final freeze. Rebased head `e985f18` passed `just test`, `just lint`, and `just build`. The first two rebased coverage attempts each hit a different unrelated 5-second agent-test timeout (`people-id-cards-delivery`, then `exit-reachability`); both tests had passed in the full suite and the pre-rebase coverage gate. After stopping this task's two CPU-heavy viewer proof servers, a clean full `just coverage` passed with 1,209 viewer tests / 97.67% lines and Python 2,480 passed / 229 skipped / 97.47% lines / 93.37% branches / 99.43% functions.
+- 2026-10-19: Rebased candidate browser proof on the real 10,090-event `petalburg-rerun-a`: `FINAL · TURN 260` and its latest thought appeared while the mode still read `LOADING`, remained unchanged after `REPLAY`, the full trace stayed at its replay-start content, the problems panel was empty, and there was no page overflow. Clicking the first cached `EARLIER` row opened its exact turn-260 `tool_call` and `button_press` events in the inspector, proving the repaired row owner on real data.
 
 ## Surprises
 
@@ -64,7 +71,9 @@ The endpoint is same-origin, GET-only, uses the existing run-id/path owner, vali
 
 ## Multi-Model Review Log
 
-- Pending.
+- Round 1 frozen head `41075b40`, diff SHA-256 `33a7ff9191305500ed4f32135ec6611b9b5e8fcfbb0931222e4fd4159bfc71c7`: BLOCKING from Grok, GPT, and both standing-authorized Claude-outage fallbacks. Consensus blocker: late `/head` completion could replace or clear the authoritative stream after `caught_up` (PB7 / INV-4). Two fallback reviewers additionally reproduced cached sidebar rows that could not open inspector details. Evidence audit also found the non-isolating boundary fixture, unpinned production limits, and incomplete operand-level break/restore receipts. No reviewer requested scope expansion or found an additional security boundary defect.
+- Claude primary profiles were unavailable due authentication/usage limits; two fresh, isolated fallback reviewers (`gpt-6.1-sol` and `gpt-6-astra`) were used under the documented outage policy. Vendor diversity was therefore reduced and is recorded rather than treated as equivalent Claude coverage.
+- Round 1 disposition: all concrete findings accepted; no contradictions remained after reproductions. Repairs are pending a new frozen-head cumulative re-review.
 
 ## Boy Scout Log
 

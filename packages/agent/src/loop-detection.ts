@@ -45,6 +45,7 @@ export class LoopDetector extends LoopCoordinator {
     closedDialogue = false,
     triggerScriptLoops = false,
     battleRefusals = false,
+    ineffectiveNavigation = false,
   ) {
     super(notify, {
       policy,
@@ -61,6 +62,7 @@ export class LoopDetector extends LoopCoordinator {
       closedDialogue,
       triggerScriptLoops,
       battleRefusals,
+      ineffectiveNavigation,
     });
   }
 }

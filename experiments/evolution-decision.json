@@ -157,7 +157,11 @@
    "deterministic-warp-navigation-v1": false,
    "battle-refusal-loop-v1": false,
    "evolution-decision-v1": false,
-   "battle-decision-ready-v1": false
+   "battle-decision-ready-v1": false,
+   "ineffective-navigation-v2": false,
+   "supervisor-briefing-v2": false,
+   "reachable-story-guidance-v1": false,
+   "text-only-supervisor-v2": false
   }
  },
  "trialsPerArm": 8,

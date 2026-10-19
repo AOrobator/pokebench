@@ -1,9 +1,10 @@
+import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
 import {expect,it,vi} from "vitest";
 import type {AgentMessage} from "@mariozechner/pi-agent-core";
 import {contextTools,loopSupervisor,stallStop,textOnlySupervisor} from "./play-wiring.js";
 import {RunControl,STALL_STOP_MS} from "./run-control.js";
 import {Governor} from "./harness.js";
-import {ALL_ON,type FeatureSet} from "./features.js";
+import {type FeatureSet} from "./features.js";
 import {parsePlayPreset,presetFeatures} from "./play-preset.js";
 import {playTools} from "./play-config.js";
 import {checkEvent,type RunEvent} from "./events.js";

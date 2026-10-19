@@ -476,6 +476,10 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "battle-effective-damage-v1":"battle-effective-damage-v1.html",
  "deterministic-warp-navigation-v1":"deterministic-warp-navigation-v1.html",
  "battle-decision-ready-v1":"battle-decision-ready-v1.html",
+ "ineffective-navigation-v2":"ineffective-navigation-v2.html",
+ "supervisor-briefing-v2":"supervisor-briefing-v2.html",
+ "reachable-story-guidance-v1":"reachable-story-guidance-v1.html",
+ "text-only-supervisor-v2":"text-only-supervisor-v2.html",
 });
 
 export function harnessConfig(view:RunView,registry:readonly FeatureInfo[]=[]):string {

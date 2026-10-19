@@ -1,5 +1,6 @@
+import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
 import {expect,it} from "vitest";
-import {ALL_ON,type FeatureSet} from "./features.js";
+import {type FeatureSet} from "./features.js";
 import {DEFAULT_FINALS,FINALS_MAX_TURNS,WIN_SHARE,compareRuns,decideFinals,finalsConfig,finalsOrder,finalsPlan,finalsPreset,furthestIndex,nominate,parseFinalsLedger,parseNomination,parsePromotions,rankArms,superiority,withPromotion,type ArmRuns,type Promotion,type RunOutcome} from "./experiment-gate.js";
 import {parseExperiment} from "./experiments.js";
 import {MILESTONE_HINTS} from "./milestone-hint.js";

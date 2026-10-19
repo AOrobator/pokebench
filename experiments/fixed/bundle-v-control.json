@@ -151,6 +151,10 @@
    "battle-effective-damage-v1": false,
    "visited-terrain-navigation-v1": false,
    "deterministic-warp-navigation-v1": false,
+   "ineffective-navigation-v2": false,
+   "supervisor-briefing-v2": false,
+   "reachable-story-guidance-v1": false,
+   "text-only-supervisor-v2": false,
    "evolution-decision-v1": false
   }
  },
@@ -187,6 +191,10 @@
   "trigger-script-loop-v1",
   "battle-effective-damage-v1",
   "deterministic-warp-navigation-v1",
+  "ineffective-navigation-v2",
+  "supervisor-briefing-v2",
+  "reachable-story-guidance-v1",
+  "text-only-supervisor-v2",
   "evolution-decision-v1"
  ],
  "offInBoth": [

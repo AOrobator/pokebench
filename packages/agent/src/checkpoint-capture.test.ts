@@ -1,3 +1,4 @@
+import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
 import {createHash} from "node:crypto";
 import {linkSync,mkdtempSync,mkdirSync,readFileSync,renameSync,unlinkSync,writeFileSync} from "node:fs";
 import {tmpdir} from "node:os";
@@ -6,7 +7,7 @@ import {expect,it} from "vitest";
 import {CheckpointCapture,checkpointSelection,checkpointTarget,type CheckpointDeps,type CheckpointSelection} from "./checkpoint-capture.js";
 import {REQUIRED_FRONTIER_MILESTONES} from "./milestones.js";
 import {parsePlayPreset,presetStart} from "./play-preset.js";
-import {ALL_ON} from "./features.js";
+import {} from "./features.js";
 import {checkEvent,type RunEvent} from "./events.js";
 import type {RunStartMeta} from "./recorder.js";
 

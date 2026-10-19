@@ -1,10 +1,11 @@
+import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
 // open-goal-prompt-v1: the system prompt's goal sentence names no town, gym or leader. Run
 // 2026-10-16T12-42-29_qwen36-gpu0_4caa at T273 read "the LAB" as being in Rustboro City, a town no
 // game text in that run had named; the only source was the goal sentence. test-support/open-goal-4caa.json
 // holds that run's run_start (features and system prompt) and its T273 reasoning.
 import {readFileSync} from "node:fs";
 import {expect,it} from "vitest";
-import {ALL_ON,SERVER_FEATURES,SWITCHABLE_FEATURES,dependencyProblems,featureInfo,featuresOf,playHarnessFeatures,type FeatureSet} from "./features.js";
+import {SERVER_FEATURES,SWITCHABLE_FEATURES,dependencyProblems,featureInfo,featuresOf,playHarnessFeatures,type FeatureSet} from "./features.js";
 import {GOAL_SENTENCE,OPEN_GOAL_SENTENCE,OPEN_PLAY_GOAL,PLAY_GOAL,PLAY_SYSTEM_PROMPT,objectiveSwitches,playGoal,playSystemPrompt,playTools,toolSwitches} from "./play-config.js";
 import {deriveStatus,parseExperiment} from "./experiments.js";
 import {flagFeatures,normalizeFeatures,parsePlayPreset,presetFeatures} from "./play-preset.js";

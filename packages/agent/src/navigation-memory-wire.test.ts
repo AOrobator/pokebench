@@ -1,9 +1,10 @@
+import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
 import {createServer} from "node:http";
 import type {AddressInfo} from "node:net";
 import {expect,it} from "vitest";
 import {Type} from "typebox";
 import {navigationMemory} from "./navigation-memory.js";
-import {ALL_ON} from "./features.js";
+import {} from "./features.js";
 import {Governor,piLoop,play} from "./harness.js";
 import {discoverModels,selectModel} from "./gateway.js";
 import {gatewayLoopConfig} from "./provider.js";

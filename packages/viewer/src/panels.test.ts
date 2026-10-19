@@ -1259,6 +1259,10 @@ it("links battle decision readiness from its recorded feature card",()=>{
  expect(doc.querySelector(`[data-feature="${id}"] a`)?.getAttribute("href")).toBe(`/explainers/${id}.html`);
 });
 
+it("links every recovery treatment to its tracked explainer",()=>{
+ for(const id of ["ineffective-navigation-v2","supervisor-briefing-v2","reachable-story-guidance-v1","text-only-supervisor-v2"]){expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);expect(readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)),"utf8")).toContain(id);}
+});
+
 it("links the explicit evolution feature to its tracked explainer",()=>{
  expect(FEATURE_EXPLAINERS["evolution-decision-v1"]).toBe("evolution-decision-v1.html");
  const html=readFileSync(fileURLToPath(new URL("../../../docs/explainers/evolution-decision-v1.html",import.meta.url)),"utf8");

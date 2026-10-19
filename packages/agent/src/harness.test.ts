@@ -1,3 +1,4 @@
+import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
 import {gunzipSync} from "node:zlib";
 import type { AgentMessage, AgentTool, StreamFn } from "@mariozechner/pi-agent-core";
 import {
@@ -15,7 +16,7 @@ import { join } from "node:path";
 import { ControlFile, RunControl, controlLine } from "./run-control.js";
 import { PRESS_TIMING, pressTool } from "./game-tools.js";
 import { DOUBLE_WINDOW, Governor, NUDGE, OMITTED_FRAME, TEXT_ONLY_NOTE_LIMIT, WINDOW, contextWindow, keepCount, piLoop, play, slideWindow, withoutTextOnlyReplies, attachLoopGuard,type Loop, type Window } from "./harness.js";
-import { ALL_ON } from "./features.js";
+import {} from "./features.js";
 
 const usage = {
   input: 0,

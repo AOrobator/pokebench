@@ -1,3 +1,4 @@
+import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
 import {readFileSync} from "node:fs";
 import {gunzipSync} from "node:zlib";
 import {describe,expect,it} from "vitest";
@@ -11,7 +12,7 @@ import {PEOPLE_HEADER} from "./people-ledger.js";
 import {playGameTools} from "./play-wiring.js";
 import {PEOPLE_ID_CARDS_SECTION,UNTAKEN_EXITS_SECTION,playSystemPrompt} from "./play-config.js";
 import {REMINDER,REMINDER_EVERY} from "./navigate-first.js";
-import {ALL_ON,SWITCHABLE_FEATURES,type FeatureSet} from "./features.js";
+import {SWITCHABLE_FEATURES,type FeatureSet} from "./features.js";
 import type {CheckedPressTool} from "./game-tools.js";
 import {IN_GAME} from "../test-support/events.js";
 

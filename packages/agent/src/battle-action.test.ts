@@ -1,3 +1,4 @@
+import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
 import {describe,expect,it} from "vitest";
 import {gunzipSync} from "node:zlib";
 import {mkdtempSync,readFileSync} from "node:fs";
@@ -16,7 +17,7 @@ import {parseGameState,type GameStateSnapshot} from "./game-state.js";
 import type {BeforePressCheck} from "./game-tools.js";
 import {observeTool,pressTool} from "./game-tools.js";
 import type {Button} from "./events.js";
-import {ALL_ON,FEATURES,SWITCHABLE_FEATURES,featureInfo,playHarnessFeatures,type FeatureSet} from "./features.js";
+import {FEATURES,SWITCHABLE_FEATURES,featureInfo,playHarnessFeatures,type FeatureSet} from "./features.js";
 import {flagFeatures,normalizeFeatures,parsePlayPreset,presetFeatures} from "./play-preset.js";
 import {playSystemPrompt,playTools} from "./play-config.js";
 import {playGameTools} from "./play-wiring.js";
@@ -351,8 +352,8 @@ describe("battle-move-tool-v1 registry and production wiring",()=>{
  it("is a default-off guidance switch recorded last, needing no other switch",()=>{
   expect(featureInfo(BATTLE_ACTION_ID)).toMatchObject({group:"guidance",needs:null,switchable:true,title:"BATTLE ACTION TOOL"});
   expect(featureInfo(BATTLE_ACTION_ID).description).toContain(" Off: ");
-  expect(SWITCHABLE_FEATURES.at(-30)).toBe(BATTLE_ACTION_ID);
-  expect(FEATURES.filter(f=>f.switchable).at(-30)?.id).toBe(BATTLE_ACTION_ID);
+  expect(SWITCHABLE_FEATURES.at(-34)).toBe(BATTLE_ACTION_ID);
+  expect(FEATURES.filter(f=>f.switchable).at(-34)?.id).toBe(BATTLE_ACTION_ID);
   expect(playHarnessFeatures({...ALL_ON,"battle-decision-ready-v1":false,[BATTLE_ACTION_ID]:true},null).at(-29)).toBe(BATTLE_ACTION_ID);
   expect(BASE[BATTLE_ACTION_ID]).toBe(false);
   const old=parsePlayPreset({version:2,id:"old",target:null,limits:{maxTurns:1,maxWallMs:1,failureLimit:1},sampling:{thinkingLevel:"medium",maxTokens:1},features:Object.fromEntries(Object.entries({...ALL_ON,"battle-decision-ready-v1":false,"state-only-decisions-v1":false}).filter(([id])=>id!==BATTLE_ACTION_ID))});

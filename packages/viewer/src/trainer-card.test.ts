@@ -111,8 +111,10 @@ describe("one card per workbench run, shared by the viewer and the comparisons p
     const bundle = recorded({ id: "legacy-bundle", experiment: experiment("bundle") });
     const control = recorded({ id: "legacy-control", experiment: experiment("control") });
     const gpuBundle = recorded({ id: "new-gpu0-bundle", experiment: experiment("bundle") });
-    const art = { ...ART, trainers }, legacy = cardInputFor(control, 1000, 1000, "replay", [bundle, control], art).trainer;
-    expect(cardInputFor(control, 1000, 1000, "replay", [bundle, control, gpuBundle], art).trainer).toBe(legacy);
+    const art = { ...ART, trainers }, runs = [bundle, control, gpuBundle];
+    const legacy = cardInputFor(control, 1000, 1000, "replay", [bundle, control], art).trainer;
+    expect(cardInputFor(control, 1000, 1000, "replay", runs, art).trainer).toBe(legacy);
+    expect(new Set(runs.map(run => cardInputFor(run, 1000, 1000, "replay", runs, art).trainer)).size).toBe(3);
   });
   it("keeps a legacy arm stable when another arm exists only on a GPU", () => {
     const trainers = ["brendan", "may", "birch", "wally", "roxanne", "brawly", "wattson", "flannery", "norman", "winona", "sidney", "phoebe", "glacia", "drake"];

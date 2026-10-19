@@ -94,6 +94,15 @@ The deterministic proof is a production-shaped replay of cdb1 turn 84 through th
 | Convergence | Round 1 produced blockers. The cumulative fix changes no production domain; round 2 is allowed under the two-round cap. |
 | Disposition | Rerun full gates, rewrite principles evidence, seal a new packet, and rerun the selected cloud/fallback roster. |
 
+### Round 2 — frozen `67feeac5..816f679d`, SHA-256 `cbc60badfcc43c885f15ef506a5513350158f53ed6d6a23997fdfbf4f2f43f42`
+
+- Claude-family availability remained exhausted. The standing reduced-diversity fallback was attempted with isolated GPT 6.1 Sol and GPT 6 Sol, but the installed Codex client rejected both names before review; neither verdict was counted. Grok 4.7 High remained silent for more than ten minutes and was interrupted without a verdict.
+- GPT 5.6 Sol xhigh (isolated Codex, read-only): `VERDICT: BLOCKING`. Valid blockers: the `faced_sprite` and person-object fixtures pair source categories with targets that the production producer cannot emit; `open-goal-prompt.test.ts` drops the historical feature itself from its inclusive prefix; and the browser receipt predates the final terminal registry position.
+- GPT 6 Astra xhigh (isolated Codex, read-only fallback): `VERDICT: BLOCKING`. It independently found the production-impossible sprite/person pairings and weakened historical prefix, plus two valid functional proof gaps: the widened switch gate can run the unrelated push-back trigger inference when `briefing-exits-v1` is off, and the fixture does not distinguish the attributed page state from the final state.
+- GPT 5.6 Terra xhigh (isolated Codex, read-only fallback): `VERDICT: BLOCKING`. It accepted the four functional round-one repairs but required final-head durable browser evidence; its suggested stronger OFF golden is non-blocking hardening.
+- Round-two blocker set accepted: isolate attributed-interaction bookkeeping from legacy trigger inference; use production-shaped `faced_sprite`/person fixtures with object movement where needed; add an exact-`state_seq` discriminator and mutation receipt; restore the historical inclusive prefix while excluding only the newly appended member; rebuild and repeat desktop/mobile feature-card proof at the final registry position with durable screenshots/console/source identity.
+- Convergence: this is the second blocker-producing round. Per the review contract, do not begin a third repair/review round without explicit operator authorization.
+
 ## Principles Adherence (round-two candidate)
 
 | ID | Score | Evidence / reason |

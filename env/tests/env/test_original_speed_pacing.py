@@ -1,5 +1,6 @@
 """Explicit game-clock policy; publication and dialog activation stay separate."""
 
+import os
 import sys
 import threading
 from types import ModuleType, SimpleNamespace
@@ -99,6 +100,30 @@ def test_clock_policy_does_not_change_readout_bytes_or_state_shape():
     before = state_json(state)
     assert format_readout(state, frozenset({ID})) == format_readout(state, frozenset())
     assert state_json(state) == before
+
+
+def test_human_factory_keeps_recorded_nominal_clock_even_with_legacy_explicit_env(monkeypatch):
+    clock = Clock()
+
+    class Server:
+        time = clock
+
+        def game_loop(self):
+            clock.now += 0.001
+            self.time.sleep(1 / 80)
+
+    server = Server()
+    # The human launcher predates this feature and supplies an explicit OFF
+    # list. Absence from that list must not accelerate recorded human play.
+    monkeypatch.setenv("POKEBENCH_FEATURES_OFF", "named-interactions-v1")
+    monkeypatch.setattr(sys, "argv", ["test"])
+    monkeypatch.setattr(serve, "install_human", lambda *_args, **_kwargs: SimpleNamespace(set_paused=lambda: None))
+    monkeypatch.setattr(serve, "install_pause", lambda *_args, **_kwargs: None)
+    serve.run([], SimpleNamespace(run=lambda: None), lambda: server.game_loop(),
+              pacing=server, original_speed_pacing=True,
+              human=(object(), object(), "human-test-token"))
+    assert clock.sleeps == pytest.approx([1 / EMERALD_REALTIME_FPS - 0.001])
+    assert ID in features_off_from_env(os.environ)
 
 
 @pytest.mark.parametrize(

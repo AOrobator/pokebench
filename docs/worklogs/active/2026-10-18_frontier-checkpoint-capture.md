@@ -45,17 +45,17 @@ All filenames come from the closed milestone catalog and run IDs already validat
 - [x] Preserve the single-target environment behavior and wire explicit all-frontier capture into the runner.
 - [x] Perform deletion/restoration receipts for catalog filtering, serialization, and exclusive first-arrival claiming.
 - [x] Run focused tests and a fake-server/filesystem rehearsal.
-- [ ] COMMIT: `feat(checkpoints): capture required frontier milestones` (GREEN)
+- [x] COMMIT: `feat(checkpoints): capture required frontier milestones` (`6b2e3b7b`, GREEN; includes the shared live-run save-task repair)
 
 **M3 — Save-state initial-task truth**
 - [x] Add RED helper and production-path tests for boot/save-state and open/targeted tasks.
 - [x] Register `save-state-task-truth-v1` default OFF through the complete feature registry/preset/viewer path.
 - [x] Add the self-contained explainer and pending correctness-tier experiment record; do not queue or approve it.
 - [x] COMMIT: `test(play): cover save-state initial task truth` (`c48d4d06`, RED)
-- [ ] COMMIT: `fix(play): tell restored runs they resumed` (GREEN)
+- [x] COMMIT: `fix(play): tell restored runs they resumed` (`6b2e3b7b`, GREEN combined with M2 because both changes share the live-run capture/start wiring)
 
 **M4 — Gates and review**
-- [ ] Run `just test`, `just lint`, `just build`, `just coverage`, and `just verify-vendor`.
+- [x] Run `just test`, `just lint`, `just build`, `just coverage`, and `just verify-vendor` (coverage aggregate limitation recorded below).
 - [ ] Principles self-review with zero FAIL rows.
 - [ ] Run the required cloud multi-model review loop on one frozen packet; triage findings under the two-round rule.
 - [ ] Report the branch commit and evidence to the coordinator; do not launch runs, approve experiments, merge, or touch canonical `main`.
@@ -74,6 +74,8 @@ Proof requires RED then GREEN focused tests, a fake-data capture rehearsal showi
 - 2026-10-18: GREEN focused receipt: checkpoint capture, save-state task truth, lifecycle ordering, the two-run real-filesystem rehearsal, and cold-load argv forwarding passed (3 files, 33 tests). The rehearsal wrote distinct `run-a` and `run-b` local state/sidecar pairs, complete candidates for both, and kept `run-a` in the exclusive first-arrival index.
 - 2026-10-18: Deletion/restoration receipts: (1) replacing the required-frontier membership check with unconditional selection failed the exclusion test with 4 captures instead of 2; (2) removing the promise-chain serialization failed with 2 concurrent captures instead of 1; (3) replacing exclusive first-arrival creation with an ordinary write overwrote the seeded earlier winner and failed; (4) deleting the save-state wording condition made both open and targeted continuation tests return the old boot wording. Each production line was restored and the focused suite returned green.
 - 2026-10-18: `just experiments-check` passed all 111 definitions. The new entry is pending with no queue position and explicitly says the boot runner would produce identical arms; correctness comes from production-path tests. `just pages-check docs/explainers/save-state-task-truth-v1.html` passed. Agent package suite passed 156 files / 2,463 tests; viewer package suite passed 84 files / 1,173 tests after rebuilding the agent dependency.
+- 2026-10-18: GREEN implementation commit `6b2e3b7b` contains both milestones. They share `live.ts`, the recorded feature list and preset fixtures, so one atomic commit keeps the runnable launch interface consistent.
+- 2026-10-18: Full gates after initializing the pinned vendor submodule: `just test` passed agent 2,466, viewer 1,174, and Python 2,478 tests with 229 ROM-dependent skips; `just build`, `just verify-vendor`, `just experiments-check` (111), and the explainer page check passed. The worktree-local `just lint` passed TypeScript and Ruff but its mypy lacked the existing native `mgba._pylib` binding; running the unchanged source through canonical main's binding-equipped mypy passed 92 files. Agent coverage passed at 97.99% statements / 94.24% branches / 98.33% functions / 99.23% lines; `checkpoint-capture.ts` is 96.73% statements / 88.15% branches / 100% functions / 100% lines. Python coverage passed at 97.48% lines / 93.42% branches / 99.43% functions. The aggregate coverage recipe cannot complete because unchanged `packages/viewer/src/server-stream.test.ts` exceeds its fixed 5-second timeout under coverage (one timeout on the aggregate run; a separate viewer-coverage run produced one timeout and one backpressure timing assertion), while all 1,174 viewer tests pass without instrumentation. No retry, timeout widening, serialization, skip, or source workaround was added.
 
 ## Surprises
 

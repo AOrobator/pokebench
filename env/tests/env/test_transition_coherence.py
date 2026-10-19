@@ -120,6 +120,7 @@ def recorded(name: str, run: str, raw: int) -> tuple[dict[str, object], frozense
         "unset-dynamic-warp-v1",
         "status-names-v1",
         "surf-gated-exits-v2",
+        "battle-effective-damage-v1",
     }
     return frame, frozenset(frame["recorded_off"]) | later  # type: ignore[arg-type]
 

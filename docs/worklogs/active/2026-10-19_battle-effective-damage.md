@@ -46,9 +46,9 @@ Moves whose final power/type or hit count depends on move-specific script state 
 
 ### M3 - Review and land
 
-- [ ] Sync current main without touching active runs.
-- [ ] Freeze and complete required review lanes; repair blocking findings within the review cap.
-- [ ] Land only after reviews and gates; do not restart the viewer or launch an experiment here.
+- [x] Sync current main without touching active runs.
+- [x] Repair the operator-requested self-review findings; operator explicitly waived the unavailable independent cloud lanes by directing the branch to land.
+- [x] Land locally without launching an experiment; restore and restart the viewer only after the operator separately made its outage P0.
 
 ## Session Log
 
@@ -61,10 +61,12 @@ Moves whose final power/type or hit count depends on move-specific script state 
 - 2026-10-19 EDT: full validation passed: agent 2,529 tests; viewer 1,190 tests; Python 2,488 passed with 229 existing ROM-dependent skips; TypeScript/Python lint and strict typing; both builds; experiment registry (`118 experiments`); vendor integrity; and `git diff --check`. No viewer, run, queue or canonical checkout was touched.
 - 2026-10-19 EDT: operator-requested self-review found four correctness gaps before landing: dual-type multipliers were collapsed instead of applied sequentially, Substitute could produce false real-HP KO claims, frozen Flash Fire targets were treated as immune, and 0-PP moves were still assigned damage without exposing automatic Struggle. Repaired all four with source-grounded regression tests. The review also tightened source parity for recorded-link badge suppression and Gen III's field-wide Plus/Minus, weather-negation, sport, Damp and alive-side-count behavior. PP availability is now exact; Disable, Encore, Taunt, Torment, Imprison and Choice-lock state remain explicitly undecoded.
 - 2026-10-19 EDT: post-repair gates passed: agent 2,529 tests; viewer 1,190 tests; Python 2,492 passed with 229 existing ROM-dependent skips; lint and strict typing; builds; experiment registry (`118 experiments`); vendor integrity; both HTML pages; and `git diff --check`.
+- 2026-10-19 EDT: synced current main `a7be38f6` into the branch as `cd596604`. The synced gates passed after one unrelated viewer coverage timeout passed on retry: agent 2,529 tests at 97.99% statements / 94.15% branches / 98.32% functions / 99.25% lines; viewer 1,196 tests at 95.43% / 91.49% / 93.88% / 97.65%; Python 2,492 passed with 229 ROM-dependent skips at 96.96% lines / 92.48% branches / 99.44% functions; lint, build, registry, vendor, page and diff checks passed.
+- 2026-10-19 EDT: fast-forwarded local main to `cd596604` under the operator's explicit landing instruction. The required post-merge test first exposed stale TypeScript build output, then after rebuilding exposed a real ROM-fixture integration gap: archives created before `battle-effective-damage-v1` did not list the new default-off switch, so their bounded RAM readers rejected the new reads. Added the switch to every affected historical fixture's later-switch set; the ROM-enabled focused regression is 347/347 green. This corrective commit must land before the viewer moves to the merged build.
 
 ## Multi-Model Review Log
 
-Operator-requested self-review round 1: CHANGES REQUIRED (four findings above). All four were repaired and covered by regressions. Self-review round 2: PASS for the reviewed source paths and fixed-bundle wiring; no remaining blocking self-review finding. This is not the repository's independent multi-model review gate, which cannot run in this side conversation because its rules prohibit subagent interaction.
+Operator-requested self-review round 1: CHANGES REQUIRED (four findings above). All four were repaired and covered by regressions. Self-review round 2: PASS for the reviewed source paths and fixed-bundle wiring; no remaining blocking self-review finding. This was not the repository's independent multi-model review gate, which could not run in this side conversation because its rules prohibit subagent interaction. After that limitation was reported, the operator explicitly instructed `land it`; this is recorded as an operator review waiver, not three independent LGTM verdicts.
 
 ## Principles Adherence
 
@@ -80,7 +82,7 @@ Operator-requested self-review round 1: CHANGES REQUIRED (four findings above). 
 - PB10 PASS: no tests were suppressed; 229 ROM-dependent skips are pre-existing and reported.
 - PB11 PASS: mechanics are pinned to pret/pokeemerald `731ad5bf`.
 - PB12 PASS: no ROM or protected path was accessed.
-- PB13 PENDING: implementation gates pass, but review and landing have not occurred.
+- PB13 PASS with disclosed exception: implementation gates and the operator-requested self-review pass; the operator explicitly authorized landing without the unavailable three-lane independent review.
 
 ## Archive Milestone
 

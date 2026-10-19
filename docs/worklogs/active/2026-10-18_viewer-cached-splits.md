@@ -39,11 +39,12 @@ No new write, network origin, control, or file-system boundary. `/api/workbench`
 - [x] COMMIT: `fix(viewer): show cached splits during replay catch-up` (`8b20705a`) (GREEN; rebased onto current `main`)
 - [x] Real-browser proof at 1280x900, 1440x900, and 375x812, including pointer run switching, collapsed/expanded split times, and multiple polling/playback cycles. At replay clock 0:00:02, all 23 recorded splits were already visible. Screenshots: `runs/mockups/viewer-cached-splits/shots/` (all five links returned HTTP 200 on the local pages server).
 - [x] Read-only real-data check: run `2026-10-18T22-47-51_qwen36-gpu0_849c` has 23 recorded milestone rows and the candidate viewer showed 23 completed split chips immediately while replay remained near the start; switching to `2026-10-15T19-44-55_qwen36-gpu0_dfb0` changed the selected run and its split projection without retaining the first run's chips.
-- [ ] Multi-model review loop until clean.
+- [ ] Multi-model review loop until clean. Grok and GPT/Codex are green on frozen head `125060a3`; Claude-family review is blocked by exhausted Cursor Claude usage and an unauthenticated standalone Claude review profile.
 
 ## Closing the Loop
 
-- Pending.
+- Implementation, deterministic gates, coverage, and real-browser proof are complete.
+- Landing is blocked by the required Claude-family cloud review lane; no merge was attempted.
 
 ## Session Log
 
@@ -59,7 +60,12 @@ No new write, network origin, control, or file-system boundary. `/api/workbench`
 
 ## Multi-Model Review Log
 
-- Pending.
+- Frozen packet `17d7f83e..125060a3`, binary diff SHA-256 `a9f1a8d6e0d0c66812ccf9457c6acfbf5968c1bb8d6e688aae36c6bb1b6419e0`; clean pre/post status and exact HEAD verified.
+- Principles self-review: PB1–PB13 complete, 5 PASS / 8 N/A / 0 FAIL.
+- Claude-family: unavailable. Cursor Claude Opus and Sonnet each stopped before review with the account usage limit; the dedicated standalone Claude review profile reports `loggedIn: false`. Per `CLAUDE.md`, this lane is not waived and self-merge is blocked.
+- Grok-family: Cursor `cursor-grok-4.5-high`, `VERDICT: LGTM`. Non-blocking notes only: optional stale-cache disappearance coverage and speculative timing differences at the cache-to-fold handoff.
+- GPT-family: Cursor GPT hit the same account usage limit, then the standing-authorized isolated Codex subagent (`gpt-5.6-sol`, xhigh, no inherited turns) independently reproduced the digest, verified clean status, reran tests/lint/build, and returned `VERDICT: LGTM` with no findings.
+- Review synthesis: no consensus blocker, contradiction, security defect, scope expansion, or missing deterministic/live evidence. Test quality covered caller seam, adversarial break/restore, absence of shared globals/retries/sleeps/skips, diagnostic assertions, and small in-memory fixture runtime shape. Disposition: implementation-ready but review-incomplete until Claude returns literal `VERDICT: LGTM`; do not merge.
 
 ## Boy Scout Log
 

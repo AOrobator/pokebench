@@ -248,6 +248,34 @@ describe("phone header sheet behavior", () => {
     expect(CSS).toContain("prefers-reduced-motion: reduce");
     expect(CSS).toContain("animation: none !important");
   });
+
+  it("finishes a canceled exit and immediately cleans up when widened during dismissal", async () => {
+    await mount(375);
+    const sheet = ui("run-sheet");
+    sheet.style.animationName = "rs-slide-out";
+    ui("run-head").click();
+    sheet.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+    expect(sheet.hidden).toBe(false);
+    sheet.dispatchEvent(new AnimationEvent("animationcancel", { animationName: "rs-slide-out" }));
+    expect(sheet.hidden).toBe(true);
+    ui("run-head").click();
+    ui("run-sheet-close").click();
+    expect(sheet.hidden).toBe(false);
+    setViewport(1280, 900);
+    window.dispatchEvent(new Event("resize"));
+    expect(sheet.hidden).toBe(true);
+    expect(ui("run-sheet-shade").hidden).toBe(true);
+  });
+
+  it("dismisses immediately when reduced motion removes the exit animation", async () => {
+    await mount(375);
+    ui("run-sheet").style.animationName = "none";
+    ui("run-head").click();
+    ui("run-sheet-close").click();
+    expect(ui("run-sheet").hidden).toBe(true);
+    expect(ui("run-sheet-shade").hidden).toBe(true);
+    expect(document.activeElement).toBe(ui("run-head"));
+  });
   afterEach(() => {
     setViewport(1024, 900);
     document.body.innerHTML = "";

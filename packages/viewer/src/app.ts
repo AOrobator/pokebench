@@ -374,13 +374,30 @@ export class App {
   }
 
   private showSheet(open: boolean, moveFocus = true): void {
-    const sheet = this.ui("run-sheet");
-    if (sheet.hidden === !open) return;
-    sheet.hidden = !open;
-    this.ui("run-sheet-shade").hidden = !open;
+    const sheet = this.ui("run-sheet"), shade = this.ui("run-sheet-shade");
+    if (sheet.hidden && !open) return;
+    if (open) {
+      sheet.removeAttribute("data-closing");
+      shade.removeAttribute("data-closing");
+      sheet.hidden = shade.hidden = false;
+      sheet.inert = false;
+    } else {
+      sheet.dataset.closing = shade.dataset.closing = "";
+      sheet.inert = true;
+      // Reduced motion and non-phone layouts have no exit animation to await.
+      if (!this.doc.documentElement.hasAttribute("data-phone") || this.doc.defaultView?.getComputedStyle(sheet).animationName !== "rs-slide-out") this.hideSheet();
+    }
     const head = this.ui("run-head");
     head.setAttribute("aria-expanded", String(open));
     if (moveFocus) (open ? this.ui("run-sheet-close") : head).focus();
+  }
+
+  private hideSheet(): void {
+    for (const name of ["run-sheet", "run-sheet-shade"]) {
+      const element = this.ui(name);
+      element.hidden = true;
+      element.removeAttribute("data-closing");
+    }
   }
 
   private setupPhoneHeader(): void {
@@ -399,6 +416,11 @@ export class App {
     this.ui("run-head").addEventListener("click", () => { this.showSheet(true); });
     this.ui("run-sheet-shade").addEventListener("click", () => { this.showSheet(false); });
     this.ui("run-sheet-close").addEventListener("click", () => { this.showSheet(false); });
+    const finishSheetAnimation = (event: AnimationEvent): void => {
+      if (event.target === event.currentTarget && event.animationName === "rs-slide-out" && this.ui("run-sheet").hasAttribute("data-closing")) this.hideSheet();
+    };
+    this.ui("run-sheet").addEventListener("animationend", finishSheetAnimation);
+    this.ui("run-sheet").addEventListener("animationcancel", finishSheetAnimation);
     this.ui("run-sheet").addEventListener("keydown", (event) => { if (event.key === "Escape") this.showSheet(false); });
     this.picker("run").addEventListener("change", () => { this.showSheet(false, false); });
     this.ui("run-cards").addEventListener("click", (event) => {

@@ -368,8 +368,10 @@ export class App {
     const { art, workbench } = this;
     if (art === null || workbench === null) return [];
     const now = this.deps.now();
-    // Preserve the API's stable run order so selecting a card never moves a focused live card.
-    const candidates = this.runs.filter((run) => run.id === this.runId || isLive(run));
+    // Preserve the API's stable live-run order. A selected replay is a fallback card,
+    // never an extra card mixed into an active live-run row.
+    const live = this.runs.filter(isLive);
+    const candidates = live.length > 0 ? live : this.runs.filter((run) => run.id === this.runId);
     return candidates.flatMap((run): CardInput[] => {
       const recorded = workbench.runs.find((r) => r.id === run.id);
       if (recorded === undefined || (recorded.status !== "live" && recorded.status !== "paused" && !(run.id === this.runId && recorded.status === "ended"))) return [];

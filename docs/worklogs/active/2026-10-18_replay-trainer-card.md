@@ -23,8 +23,8 @@ The viewer header originally built trainer cards only from runs that are current
 - [x] Subagent review and landing: the operator-authorized fresh `gpt-6-astra` reviewer returned literal `VERDICT: LGTM`; reviewed commit `caabc58f` was fast-forwarded onto local `main`; the complete post-merge suite passed; and the real 8790 viewer showed the selected ended run as a selected, dotless `REPLAY` card alongside both `LIVE` cards.
 
 **M2 — live-card precedence correction**
-- [ ] RED: selecting a replay while live runs exist keeps only the live cards; selecting a replay when no live runs exist shows one selected, dotless `REPLAY` card.
-- [ ] GREEN: card input selection implements live-first, replay-only fallback behavior without changing replay playback.
+- [x] RED: selecting a replay while live runs exist expected two live cards but received three cards because the replay was mixed in; the no-live fallback case was added at the same consumer seam.
+- [x] GREEN: card input selection implements live-first, replay-only fallback behavior without changing replay playback. Focused app result: 14/14.
 - [ ] Gates, owned-preview browser proof, fresh subagent review and landing.
 
 ## Evidence

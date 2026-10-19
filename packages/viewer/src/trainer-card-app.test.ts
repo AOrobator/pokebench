@@ -50,7 +50,7 @@ function cohortRun(): RunEvent[] {
 }
 
 let workbenchDown = false;
-async function mount(width: number, options: { art?: boolean; fresh?: boolean; glyphs?: boolean } = {}): Promise<{ app: App; streams: FakeStream[]; drawn: number[] }> {
+async function mount(width: number, options: { art?: boolean; fresh?: boolean; glyphs?: boolean; runs?: typeof RUNS } = {}): Promise<{ app: App; streams: FakeStream[]; drawn: number[] }> {
   nowMs = BASE_MS + 3_500; setWidth(width); fetched.length = 0; workbenchDown = false;
   document.body.innerHTML = PAGE.slice(PAGE.indexOf("<body>") + 6, PAGE.indexOf("</body>"));
   const streams: FakeStream[] = [], drawn: number[] = [];
@@ -59,7 +59,7 @@ async function mount(width: number, options: { art?: boolean; fresh?: boolean; g
   const deps: AppDeps = {
     fetchJson: (url) => {
       fetched.push(url);
-      if (url === "/api/runs") return Promise.resolve(RUNS);
+      if (url === "/api/runs") return Promise.resolve(options.runs ?? RUNS);
       if (url === "/sprites/manifest.json") return options.art === false ? Promise.reject(new Error("GET /sprites/manifest.json returned HTTP 404")) : Promise.resolve(MANIFEST);
       if (url === "/sprites/font/glyphs.json") return Promise.resolve(FONT);
       if (url === "/api/workbench") return workbenchDown ? Promise.reject(new Error("GET /api/workbench returned HTTP 500")) : Promise.resolve(workbench);
@@ -142,16 +142,23 @@ describe("trainer cards in the viewer", () => {
     expect((ui("run") as HTMLSelectElement).value).toBe(OTHER_ID);
   });
 
-  it("keeps the selected replay as a trainer card without marking it live", async () => {
+  it("keeps live cards visible instead of mixing in the selected replay", async () => {
     const { app } = await mount(1280);
     app.select(REPLAY_ID);
+    const row = ui("run-cards");
+    expect(row.querySelectorAll(".tc.tc-wide")).toHaveLength(2);
+    expect(row.querySelector(`[data-watch="${REPLAY_ID}"]`)).toBeNull();
+    expect(card(row, LIVE_ID).innerHTML).toContain('data-gt="LIVE"');
+    expect(card(row, OTHER_ID).innerHTML).toContain('data-gt="LIVE"');
+  });
+
+  it("shows the selected replay card without marking it live when no live runs exist", async () => {
+    await mount(1280, { runs: [must(RUNS[2])] });
     const row = ui("run-cards"), replay = card(row, REPLAY_ID);
-    expect(row.querySelectorAll(".tc.tc-wide")).toHaveLength(3);
+    expect(row.querySelectorAll(".tc.tc-wide")).toHaveLength(1);
     expect(replay.getAttribute("aria-pressed")).toBe("true");
     expect(replay.innerHTML).toContain('data-gt="REPLAY"');
     expect(replay.querySelector(".tc-dot")).toBeNull();
-    expect(card(row, LIVE_ID).innerHTML).toContain('data-gt="LIVE"');
-    expect(card(row, OTHER_ID).innerHTML).toContain('data-gt="LIVE"');
   });
 
   it("ticks the clock in place without redrawing the card, so its animations keep running", async () => {

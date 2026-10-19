@@ -53,7 +53,10 @@ The concurrent whole-map probe showed visibly heavy deliberation while a complet
 
 ## Main reconciliation at cd596604
 
-- Resolved the additive merge with `battle-effective-damage-v1`: registry and recorded feature order retain visited terrain followed by effective damage; both normalize/default OFF for historical presets and viewer drafts; the battle feature remains a server observation switch while visited terrain remains agent-side only.
+The operator's latest instruction authorizes landing and execution after two self-review rounds. That supersedes this worklog's initial no-landing hold and the unavailable-cloud-review lane for this delivery. The standalone pending experiment remains unqueued and unapproved; the separately authorized checkpoint campaign is owned by the coordinator.
+
+- Resolved the additive merge with `battle-effective-damage-v1`: the append-only registry and recorded feature order preserve all of main through effective damage, then append visited terrain; both normalize/default OFF for historical presets and viewer drafts; the battle feature remains a server observation switch while visited terrain remains agent-side only.
 - The fixed bundle base explicitly names `visited-terrain-navigation-v1: false`. Production still defines deterministic whole-map precedence if both switches are enabled, while the checkpoint campaign owner enforces mutually exclusive arms (whole map ON / visited OFF, or whole map OFF / visited ON).
 - Updated older registry-position contracts for the two appended features and preserved experiment fixtures that intentionally omit both new switch keys. No experiment was approved or launched from this worktree.
 - Reconciliation agent test receipt: 163 files passed, 2,540 tests passed. Viewer, full gates and clean-head receipts follow on the merge commit.
+- Append-only review fix: preserved current main's complete registry prefix by moving visited terrain after effective damage in all three ordered registries; agent remained 2,540/2,540 green. Rebuilt the agent package, then viewer passed 1,197/1,197. `just experiments-check` passed 119 definitions, the visited explainer passed `pages-check`, and `git diff --check` passed.

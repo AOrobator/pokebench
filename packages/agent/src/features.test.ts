@@ -26,9 +26,9 @@ it("describes every switchable and measurement feature exactly once", () => {
 
 it("registers visited terrain as the final default-off guidance treatment",()=>{
  const id="visited-terrain-navigation-v1";
- expect(SWITCHABLE_FEATURES.at(-2)).toBe(id);
- expect(FEATURES.filter(feature=>feature.switchable).at(-2)?.id).toBe(id);
- expect(playHarnessFeatures(ALL_ON,null).at(-2)).toBe(id);
+ expect(SWITCHABLE_FEATURES.at(-1)).toBe(id);
+ expect(FEATURES.filter(feature=>feature.switchable).at(-1)?.id).toBe(id);
+ expect(playHarnessFeatures(ALL_ON,null).at(-1)).toBe(id);
  expect(featureInfo(id)).toMatchObject({group:"guidance",needs:"bounded-navigation-v1",switchable:true});
  expect(featureInfo(id).description).toContain("Off: the existing 15x15 readout");
  expect(dependencyProblems({...ALL_ON,"bounded-navigation-v1":false})).toContain(`${id} needs bounded-navigation-v1`);

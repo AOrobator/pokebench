@@ -443,7 +443,7 @@ describe("dialogue-auto-advance-v1 registry and production wiring",()=>{
  it("is a default-off guidance switch recorded last that needs the message buffer and phase",()=>{
   expect(featureInfo("dialogue-auto-advance-v1")).toMatchObject({group:"guidance",needs:"active-field-message-buffer-v1",switchable:true});
   expect(featureInfo("dialogue-auto-advance-v1").description).toContain(" Off: ");
-  expect(playHarnessFeatures(ALL_ON,null).at(-72)).toBe("dialogue-auto-advance-v1");
+  expect(playHarnessFeatures(ALL_ON,null).at(-74)).toBe("dialogue-auto-advance-v1");
   expect(dependencyProblems({...ON,"field-dialogue-phase-v1":false})).toEqual(["dialogue-auto-advance-v1 needs field-dialogue-phase-v1"]);
   expect(dependencyProblems({...ON,"active-field-message-buffer-v1":false})).toContain("dialogue-auto-advance-v1 needs active-field-message-buffer-v1");
   expect(dependencyProblems({...ON,"dialogue-safe-batches-v1":true})).toEqual([]);

@@ -32,7 +32,7 @@ it("uses the newest state at every request, retaining naming during a battle",()
  expect(jit.allowed("battle_action")).toBe(true);
 });
 it("OFF returns the identical context and permits the original execution path",()=>{
- const jit=new JitContext({...features,"just-in-time-prompt-v1":false,"just-in-time-prompt-v2":false},null);
+ const jit=new JitContext({...features,"just-in-time-prompt-v1":false,"just-in-time-prompt-v2":false,"jit-guide-reuse-v1":false},null);
  jit.observe({type:"state",seq:1,screen:"clock",in_battle:false});
  expect(jit.context(request)).toBe(request);
  expect(jit.receipt()).toMatchObject({mode:"full",system_prompt:"standing prompt"});
@@ -67,7 +67,7 @@ it.each([
  expect(jit.receipt()).toMatchObject({scene:"menu",state_seq:20});
  expect(jit.allowed("battle_action")).toBe(false);
  expect(jit.allowed("press")).toBe(true);
- const off=new JitContext({...features,"just-in-time-prompt-v1":false,"just-in-time-prompt-v2":false},null);
+ const off=new JitContext({...features,"just-in-time-prompt-v1":false,"just-in-time-prompt-v2":false,"jit-guide-reuse-v1":false},null);
  off.observe({type:"state",seq:20,screen,in_battle:true,active_ui});
  expect(off.context(menuRequest)).toBe(menuRequest);
  expect(off.allowed("battle_action")).toBe(true);

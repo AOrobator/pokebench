@@ -798,8 +798,8 @@ describe("control-file requests at the turn boundary", () => {
 });
 
 describe("double-context-window-v1", () => {
-  const off = { ...ALL_ON, "dialogue-context-kept-v1": false, "double-context-window-v1": false };
-  const on = { ...ALL_ON, "dialogue-context-kept-v1": false, "double-context-window-v1": true };
+  const off = { ...ALL_ON,"cache-aligned-window-v1":false, "dialogue-context-kept-v1": false, "double-context-window-v1": false };
+  const on = { ...ALL_ON,"cache-aligned-window-v1":false, "dialogue-context-kept-v1": false, "double-context-window-v1": true };
   const assistants = (window: Window, n: number) => slideWindow([TASK, ...turnsOf(n)], window).filter((m) => m.role === "assistant").length;
   const whole = (window: Window, n: number) => resultTexts(slideWindow([TASK, ...turnsOf(n)], window)).filter((t) => !t.endsWith(OMITTED_FRAME)).length;
 
@@ -858,7 +858,7 @@ it("stable JIT preserves provider-serialized history through unknown, naming and
  const {assistant}=await import("../test-support/pi.js");
  const {StableJitContext}=await import("./jit-v2-context.js");
  const {streamOpenAICompletions}=await import("@mariozechner/pi-ai/openai-completions");
- const jit=new StableJitContext({...ALL_ON,"just-in-time-prompt-v1":false,"just-in-time-prompt-v2":true},null);
+ const jit=new StableJitContext({...ALL_ON,"cache-aligned-window-v1":false,"just-in-time-prompt-v1":false,"just-in-time-prompt-v2":true},null);
  jit.observe({type:"state",seq:1,screen:"main_menu",in_battle:false});
  const {g}=governor({maxTurns:4}),controller=new AbortController();
  const payloads:unknown[]=[];const seen:Message[][]=[];const replies=["A","B","A","A"].map((button,index)=>assistant({toolCalls:[{type:"toolCall",id:`jit-${String(index)}`,name:"press",arguments:{buttons:[button]}}]}));const model=scriptedModel(replies,seen);

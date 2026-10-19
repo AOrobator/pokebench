@@ -4,7 +4,7 @@ import {ALL_ON} from "./features.js";
 import {StableJitContext} from "./jit-v2-context.js";
 import {stableJitPrompts} from "./play-config.js";
 
-const features={...ALL_ON,"just-in-time-prompt-v1":false,"just-in-time-prompt-v2":true};
+const features={...ALL_ON,"cache-aligned-window-v1":false,"jit-guide-reuse-v1":false,"just-in-time-prompt-v1":false,"just-in-time-prompt-v2":true};
 const task:Message={role:"user",content:"Play",timestamp:1};
 const result=(id:string):Message=>({role:"toolResult",toolCallId:id,toolName:"observe",content:[{type:"text",text:"observation"}],isError:false,timestamp:2});
 const request=(messages:Message[]=[task]):Context=>({systemPrompt:"standing",messages,tools:[{name:"observe",description:"observe",parameters:{type:"object",properties:{}}},{name:"navigate_to",description:"walk",parameters:{type:"object",properties:{}}}]});

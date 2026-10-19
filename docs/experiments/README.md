@@ -9,3 +9,5 @@ Readiness verdicts are in [readiness.md](readiness.md).
 - [JIT ten-minute screen](jit-10m.html) — screen; MAIN_MENU start; 12 per arm across both GPUs; launch held.
 
 - [JIT v2 one-pair diagnostic pilot](jit-v2-pair-10m.html) — one ten-minute run per arm; existing runs protected.
+
+- [JIT cache fixes: concurrent twenty-minute pair](jit-v2-cache-20m.html)

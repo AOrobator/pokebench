@@ -22,7 +22,7 @@ const LaneSchema = Type.Object({ id: Type.String({ pattern: "^[A-Z]$" }), gpu: T
 // A phase loads its own pinned save, or powers on.
 const SaveStart = Type.Object({ kind: Type.Literal("save_state"), path: Type.String({ minLength: 1 }), sha1: Type.String({ pattern: "^[0-9a-f]{40}$" }) }, closed);
 const PhaseStart = Type.Union([SaveStart, Type.Object({ kind: Type.Literal("boot") }, closed)]);
-const PhaseSchema = Type.Object({ id: Name, perArm: positive, maxWallMs: Type.Integer({ minimum: 60_000 }), primary: Type.Boolean(), start: PhaseStart }, closed);
+const PhaseSchema = Type.Object({ id: Name, perArm: positive, maxWallMs: Type.Integer({ minimum: 60_000 }), primary: Type.Boolean(), start: PhaseStart, singlePair: Type.Optional(Type.Boolean()) }, closed);
 const SlotSchema = Type.Object({ slot: positive, phase: Name, block: positive, lane: Type.String(), arm: Type.Union([Type.Literal("control"), Type.Literal("bundle")]) }, closed);
 
 const draftShape = {
@@ -77,6 +77,16 @@ export function generatePlan(def: Pick<FixedDefinition, "seed" | "phases" | "lan
   const plan: PlannedSlot[] = [];
   let block = 0;
   for (const phase of def.phases) {
+    if (phase.singlePair === true) {
+      block += 1;
+      const lanes = shuffled(def.lanes, def.seed, phase.id, block);
+      const arms = shuffled([...FIXED_ARMS], def.seed, phase.id, block + 1);
+      lanes.forEach((lane, index) => {
+        const arm = arms[index];
+        if (arm !== undefined) plan.push({ slot: plan.length + 1, phase: phase.id, block, lane: lane.id, arm });
+      });
+      continue;
+    }
     for (let b = 0; b < Math.floor(phase.perArm / def.lanes.length); b++) {
       block += 1;
       const cells = def.lanes.flatMap((lane) => FIXED_ARMS.map((arm) => ({ lane: lane.id, arm })));
@@ -133,7 +143,11 @@ function phaseProblems(def: FixedDefinition): string[] {
   const problems: string[] = [];
   if (new Set(def.phases.map((p) => p.id)).size !== def.phases.length) problems.push("phase ids must be unique");
   if (def.phases.filter((p) => p.primary).length > 1) problems.push("at most one phase may be primary");
-  for (const p of def.phases) if (p.perArm % def.lanes.length !== 0) problems.push(`phase ${p.id}: perArm ${String(p.perArm)} is not a multiple of ${String(def.lanes.length)} lanes`);
+  for (const p of def.phases) {
+    if (p.singlePair === true) {
+      if (p.perArm !== 1 || def.lanes.length !== 2) problems.push(`phase ${p.id}: singlePair requires one trial per arm and two lanes`);
+    } else if (p.perArm % def.lanes.length !== 0) problems.push(`phase ${p.id}: perArm ${String(p.perArm)} is not a multiple of ${String(def.lanes.length)} lanes`);
+  }
   return problems;
 }
 

@@ -6,7 +6,7 @@ import {jitTools,playSystemPrompt,promptScene,type PromptScene} from "./play-con
 
 export interface PromptReceipt {
  readonly mode:"full"|"jit"|"jit-v2";
- readonly guidance?:GuidanceReceipt & {readonly reason:"first"|"scene_change"|"evicted"|"none"};
+ readonly guidance?:GuidanceReceipt & {readonly reason:"first"|"scene_change"|"evicted"|"none"|"reused"};
  readonly projected_guidance?:GuidanceReceipt[];
  readonly component_chars?:{readonly core_text:number;readonly guidance_text:number;readonly canonical_history_json:number};
  readonly scene:PromptScene;

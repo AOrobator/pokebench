@@ -23,6 +23,7 @@ export interface Window {
   readonly results: Chunked;
   // dialogue-context-kept-v1: a collapsed result keeps every dialogue page it showed.
   readonly keepDialogue?: boolean;
+  readonly alignCuts?: boolean;
 }
 
 // Boundaries move in whole chunks so the start of the prompt stays identical
@@ -32,7 +33,8 @@ export const DOUBLE_WINDOW: Window = { turns: { max: 40, chunk: 20 }, results: {
 
 export function contextWindow(features: FeatureSet): Window {
   const window = features["double-context-window-v1"] ? DOUBLE_WINDOW : WINDOW;
-  return features["dialogue-context-kept-v1"] ? { ...window, keepDialogue: true } : window;
+  const legacy = features["dialogue-context-kept-v1"] ? { ...window, keepDialogue: true } : window;
+  return features["cache-aligned-window-v1"] ? { ...legacy, alignCuts: true } : legacy;
 }
 export const OMITTED_FRAME = "[older screenshot omitted]";
 export const NUDGE = "Keep playing: call observe or press. Only tool calls advance the game.";
@@ -84,6 +86,28 @@ function collapsed(message: ToolResultMessage, keepDialogue: boolean): ToolResul
   return { ...message, content: [{ type: "text", text: kept.length === 0 ? line : [line, ...kept].join("\n") }] };
 }
 
+// Replay canonical request boundaries so cuts remain stable as the history grows.
+// A nearby result rewrite can absorb a history cut, without raising either cap.
+function alignedFrom(rest: AgentMessage[], window: Window): number {
+  const starts: number[] = [];
+  let from = 0, results = 0, previousCollapse = 0;
+  const boundary = (): void => {
+    const collapse = results - keepCount(results, window.results);
+    const retained = starts.length - from;
+    const nearCap = Math.max(1, window.turns.max - window.results.chunk + 1);
+    if (retained > window.turns.max || (collapse > previousCollapse && retained >= nearCap)) {
+      from = Math.max(from, starts.length - (window.turns.max - window.turns.chunk + 1));
+    }
+    previousCollapse = collapse;
+  };
+  rest.forEach((message, index) => {
+    if (message.role === "assistant") { boundary(); starts.push(index); }
+    if (message.role === "toolResult") results += 1;
+  });
+  boundary();
+  return starts[from] ?? 0;
+}
+
 export function slideWindow(messages: AgentMessage[], window: Window = WINDOW): AgentMessage[] {
   const [task, ...rest] = messages;
   if (task === undefined) return messages;
@@ -95,7 +119,7 @@ export function slideWindow(messages: AgentMessage[], window: Window = WINDOW): 
     return collapsed(message, window.keepDialogue === true);
   });
   const starts = shown.flatMap((message, i) => (message.role === "assistant" ? [i] : []));
-  const from = starts[starts.length - keepCount(starts.length, window.turns)] ?? 0;
+  const from = window.alignCuts === true ? alignedFrom(rest, window) : starts[starts.length - keepCount(starts.length, window.turns)] ?? 0;
   return [task, ...shown.slice(from)];
 }
 

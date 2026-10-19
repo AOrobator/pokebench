@@ -112,3 +112,6 @@ The original ignored runs/explainers copies remain for existing links. Make futu
 
 - [JIT v2: stable core and appended scene guidance](just-in-time-prompt-v2.html) — default-off instructions-only delivery, immutable guide receipts and cache caveats.
 - [Faced interaction history](faced-interaction-history-v1.html)
+
+- [Aligned cache window](cache-aligned-window-v1.html)
+- [Retained JIT guide reuse](jit-guide-reuse-v1.html)

@@ -248,3 +248,27 @@ it.each([[false,"clock"],[true,"clock"],[false,"main_menu"],[true,"main_menu"]] 
  if(enabled&&screen==="clock")expect(response.request_context.guidance?.text).toContain("Clock interface:");
  if(enabled&&screen==="main_menu"){expect(response.request_context.guidance).toBeUndefined();expect(response.request_context.projected_guidance).toEqual([]);expect(response.request_context.component_chars?.guidance_text).toBe(0);}
 });
+
+it.each([false,true])("actual play delivers and records retained-guide reuse (enabled=%s)",async reuse=>{
+ vi.resetModules();owner.files.clear();owner.loop=null;owner.screen="clock";owner.seedInitial=true;
+ const {flagFeatures}=await import("./play-preset.js");
+ const preset={version:2,id:"reuse-entrypoint",target:null,limits:{maxTurns:20000,maxWallMs:1200000,failureLimit:3},sampling:{thinkingLevel:"medium",maxTokens:100},features:{...flagFeatures({loopGuard:false,activeUi:true,interfaceDocs:true,objectives:false}),"just-in-time-prompt-v2":true,"jit-guide-reuse-v1":reuse}};
+ owner.files.set("/test-owned/reuse.json",[JSON.stringify(preset)]);vi.stubEnv("POKEBENCH_PLAY_PRESET","/test-owned/reuse.json");vi.stubEnv("POKEBENCH_RUN_ID","assigned-reuse");vi.spyOn(console,"log").mockImplementation(()=>undefined);
+ owner.duringPlay=async loop=>{
+  const history:import("@mariozechner/pi-ai").Message[]=[{role:"user",content:"Play",timestamp:1}];
+  const request=()=>loop.requestContext?.({systemPrompt:"standing",messages:history,tools:[{name:"observe",description:"observe",parameters:{type:"object",properties:{}}}]});
+  const first=request();expect(first?.messages.at(-1)?.content).toContain("Clock interface:");
+  for(const [n,screen] of ["main_menu","clock"].entries()){
+   const id=`reentry-${String(n)}`;
+   await loop.emit({type:"tool_execution_start",toolCallId:id,toolName:"observe",args:{}});
+   await loop.emit({type:"tool_execution_end",toolCallId:id,toolName:"observe",isError:false,result:{content:[{type:"text",text:screen}],details:{state:{raw_ram:{v:1,sequence:n+2,frame:n+2,path:`raw-ram/0000000${String(n+2)}.json.gz`,sha256:"a".repeat(64)},story:{...NAME_CONFIRMED.story,name_confirmed:false},game_stats:null,blackout_active:null,route103_rival:null,screen,started:false,name:null,location:null,map_id:null,position:null,facing:null,in_battle:false,party:[],money:null,badges:[],play_time_s:null}}}});
+   history.push(assistant({toolCalls:[{type:"toolCall",id,name:"observe",arguments:{}}]}),{role:"toolResult",toolCallId:id,toolName:"observe",isError:false,timestamp:n+2,content:[{type:"text",text:screen}]});
+   const next=request();if(n===1)expect(next?.messages.filter(m=>m.role==="user"&&typeof m.content==="string"&&m.content.includes("HARNESS INTERFACE GUIDANCE"))).toHaveLength(reuse?1:2);
+  }
+  await loop.emit({type:"message_end",message:assistant({text:"re-entry sample"})});
+ };
+ const done=new Promise<RunPlan>((resolve,reject)=>{owner.resolve=resolve;owner.reject=reject;});vi.stubGlobal("process",Object.assign(Object.create(process) as NodeJS.Process,{argv:[...process.argv.slice(0,2),"play"]}));await import("./live.js");await done;
+ const events=[...owner.files.entries()].filter(([p])=>p.endsWith("/events.jsonl")).flatMap(([,chunks])=>chunks.join("").trim().split("\n").map(parseEvent));
+ const response=events.find(e=>e.type==="assistant");expect(response).toMatchObject({request_context:{mode:"jit-v2",scene:"clock",guidance:{reason:reuse?"reused":"scene_change",anchor:reuse?"task":"tool:reentry-1"}}});
+ if(response?.type!=="assistant")throw Error("missing recorded assistant");expect(response.request_context?.projected_guidance).toHaveLength(reuse?1:2);
+});

@@ -5,7 +5,7 @@ import type {PromptReceipt} from "./jit-context.js";
 import {promptScene,stableJitPrompts,type PromptScene} from "./play-config.js";
 
 type ScreenState={readonly type:string;readonly seq:number;readonly screen?:string;readonly in_battle?:boolean;readonly active_ui?:{phase?:string|null}|null};
-type Reason="first"|"scene_change"|"evicted"|"none";
+type Reason="first"|"scene_change"|"evicted"|"none"|"reused";
 export interface GuidanceReceipt {
  readonly anchor:string;
  readonly ordinal:number;
@@ -45,16 +45,20 @@ export class StableJitContext {
   // Empty history occurs in diagnostic callers; it still needs a stable insertion anchor.
   if(context.messages.length===0)retained.set("empty",-1);
   this.episodes=this.episodes.filter(episode=>retained.has(episode.receipt.anchor));
-  const reason:Reason=this.lastScene===null?"first":this.lastScene!==scene?"scene_change":this.active===null||!this.episodes.includes(this.active)?"evicted":"none";
+  let reason:Reason=this.lastScene===null?"first":this.lastScene!==scene?"scene_change":this.active===null||!this.episodes.includes(this.active)?"evicted":"none";
   // Unknown interfaces keep the core and observations; never pin a full fallback to the task.
   if(scene==="unknown")this.active=null;
   else if(reason!=="none"){
    const anchor=[...retained.entries()].at(-1)?.[0];
    if(anchor===undefined)throw new Error("JIT v2 requires the task or a tool-result observation anchor");
    const text=`HARNESS INTERFACE GUIDANCE — ${scene}. This applies only to this interface; use the latest matching guide, and the current screenshot/readout to determine input ownership.\n\n${guidance}`;
+   const existing=this.features["jit-guide-reuse-v1"]?this.episodes.findLast(episode=>episode.receipt.scene===scene&&episode.receipt.text===text):undefined;
+   if(existing!==undefined){this.active=existing;reason="reused";}
+   else{
    const receipt:GuidanceReceipt={anchor,ordinal:++this.ordinal,scene,source_state_seq:this.state?.seq??null,text,sha256:hash(text)};
    const episode:Episode={receipt,message:{role:"user",content:text,timestamp:context.messages.at(retained.get(anchor)??-1)?.timestamp??0}};
    this.active=episode;this.episodes.push(episode);
+   }
   }
   this.lastScene=scene;
   const messages:Message[]=[];

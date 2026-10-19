@@ -14,7 +14,7 @@ import { newRunId } from "@pokebench/agent/run";
 import { RUN_ID_PATTERN } from "@pokebench/agent/events";
 import { spawnDetached } from "./detached.js";
 import { LEASE, LeaseHeldError, leaseStale, nameLeaseRun, pidAlive, takeLease } from "./lease.js";
-import { listRuns, readStart, readFrom, runDir } from "./runs.js";
+import { listRuns, readStart, readFrom, runDir, type RunCatalog } from "./runs.js";
 
 const positive = Type.Integer({ minimum: 1 });
 export const NextRunSchema = Type.Object({
@@ -87,8 +87,8 @@ export function presetFor(draft: NextRun, runId: string): PlayPresetV2 {
 
 // A run is live while it has no run_end and its own game server is up: a long
 // model call or an operator pause writes nothing, so log age says nothing.
-export async function liveRuns(runsRoot: string, healthy: HealthProbe): Promise<string[]> {
-  const candidates = listRuns(runsRoot).filter((run) => !run.ended && run.problem === null);
+export async function liveRuns(runsRoot: string, healthy: HealthProbe, catalog: RunCatalog = () => listRuns(runsRoot)): Promise<string[]> {
+  const candidates = catalog().filter((run) => !run.ended && run.problem === null);
   const live = await Promise.all(candidates.map(async (run) => {
     try {
       return await healthy(readStart(runsRoot, run.id).isolation.port);
@@ -99,10 +99,10 @@ export async function liveRuns(runsRoot: string, healthy: HealthProbe): Promise<
   return candidates.filter((_, i) => live[i] === true).map((run) => run.id);
 }
 
-export async function appendControl(runsRoot: string, runId: string, action: ControlAction, now: Date, healthy: HealthProbe): Promise<number> {
-  if (!new RegExp(RUN_ID_PATTERN).test(runId) || !(await liveRuns(runsRoot, healthy)).includes(runId)) throw new NextRunError(`run ${runId} is not live`);
+export async function appendControl(runsRoot: string, runId: string, action: ControlAction, now: Date, healthy: HealthProbe, catalog: RunCatalog = () => listRuns(runsRoot)): Promise<number> {
+  if (!new RegExp(RUN_ID_PATTERN).test(runId) || !(await liveRuns(runsRoot, healthy, catalog)).includes(runId)) throw new NextRunError(`run ${runId} is not live`);
   // The run may have ended while its game server was being probed.
-  if (listRuns(runsRoot).find((run) => run.id === runId)?.ended !== false) throw new NextRunError(`run ${runId} is not live`);
+  if (catalog().find((run) => run.id === runId)?.ended !== false) throw new NextRunError(`run ${runId} is not live`);
   if (isExtension(action)) {
     const start = readStart(runsRoot, runId);
     if (start.extend_run !== true || start.controller?.kind === "human") throw new NextRunError("this run does not support extensions; start a run on the newer build");

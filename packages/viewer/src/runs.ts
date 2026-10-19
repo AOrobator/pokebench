@@ -73,11 +73,14 @@ function parseLine(text: string, line: number): LineResult {
   }
 }
 
-function readBytes(path: string, offset: number, maxBytes: number): Buffer {
+interface ReadQuality { complete: boolean }
+
+function readBytes(path: string, offset: number, maxBytes: number, quality?: ReadQuality): Buffer {
   let fd: number;
   try {
     fd = openSync(path, "r");
   } catch {
+    if (quality !== undefined) quality.complete = false;
     return Buffer.alloc(0);
   }
   try {
@@ -87,7 +90,10 @@ function readBytes(path: string, offset: number, maxBytes: number): Buffer {
     let read = 0;
     while (read < length) {
       const n = readSync(fd, buffer, read, length - read, offset + read);
-      if (n === 0) break;
+      if (n === 0) {
+        if (quality !== undefined) quality.complete = false;
+        break;
+      }
       read += n;
     }
     return buffer.subarray(0, read);
@@ -153,10 +159,10 @@ export class LogReader {
   }
 }
 
-function firstLine(path: string): string | null {
+function firstLine(path: string, quality?: ReadQuality): string | null {
   let size = CHUNK;
   for (;;) {
-    const bytes = readBytes(path, 0, size);
+    const bytes = readBytes(path, 0, size, quality);
     const newline = bytes.indexOf(0x0a);
     if (newline >= 0) return bytes.subarray(0, newline).toString("utf8");
     if (bytes.length < size) return null;
@@ -164,9 +170,9 @@ function firstLine(path: string): string | null {
   }
 }
 
-function lastLine(path: string): string | null {
+function lastLine(path: string, quality?: ReadQuality): string | null {
   const start = Math.max(0, sizeOf(path) - CHUNK);
-  const text = readBytes(path, start, CHUNK).toString("utf8").replace(/\n+$/, "");
+  const text = readBytes(path, start, CHUNK, quality).toString("utf8").replace(/\n+$/, "");
   const cut = text.lastIndexOf("\n");
   return text === "" ? null : text.slice(cut + 1);
 }
@@ -203,15 +209,15 @@ function newerStart(runsRoot: string, id: string, path: string, problem: string,
   return { id, model: identity.model, started: identity.t, ended, reason: null, problem: `${skew.head}. It cannot read this run's run_start: line 1: ${problem}` };
 }
 
-function summarize(runsRoot: string, id: string, build: ViewerBuild | null = null): RunSummary {
+function summarize(runsRoot: string, id: string, build: ViewerBuild | null = null, quality?: ReadQuality): RunSummary {
   const path = eventsPath(runsRoot, id);
-  const first = firstLine(path);
+  const first = firstLine(path, quality);
   const empty = { id, model: null, started: null, ended: false, reason: null };
   if (first === null) return { ...empty, problem: "no run_start yet" };
   const start = parseLine(first, 1);
   if (!start.ok) return newerStart(runsRoot, id, path, start.problem, build) ?? { ...empty, problem: start.problem };
   if (start.event.type !== "run_start") return { ...empty, problem: "the first event is not run_start" };
-  const last = lastLine(path);
+  const last = lastLine(path, quality);
   const end = last === null ? null : parseLine(last, 0);
   const ended = end?.ok === true && end.event.type === "run_end" ? end.event : null;
   const evaluation = start.event.evaluation;
@@ -229,16 +235,85 @@ function summarize(runsRoot: string, id: string, build: ViewerBuild | null = nul
 }
 
 // build: this viewer's own build; a run whose run_start only a newer build can read says to restart the viewer.
-export function listRuns(runsRoot: string, build: ViewerBuild | null = null): RunSummary[] {
+function runEntries(runsRoot: string): string[] {
   const entriesAt = (root: string): string[] => {
-    try {
-      return readdirSync(root).filter((id) => RUN_ID.test(id) && existsSync(join(root, id, "events.jsonl")));
-    } catch {
-      return [];
-    }
+    try { return readdirSync(root).filter((id) => RUN_ID.test(id) && existsSync(join(root, id, "events.jsonl"))); }
+    catch { return []; }
   };
   const entries = new Set([...entriesAt(runsRoot), ...entriesAt(join(runsRoot, "human"))]);
-  return [...entries].sort().reverse().map((id) => {
+  return [...entries].sort().reverse();
+}
+
+function summarizeRun(runsRoot: string, id: string, build: ViewerBuild | null, quality?: ReadQuality): RunSummary {
+  try {
+    return summarize(runsRoot, id, build, quality);
+  } catch (error) {
+    if (!(error instanceof RunsError)) throw error;
+    return { id, model: null, started: null, ended: false, reason: null, problem: error.message };
+  }
+}
+
+export type RunCatalog = () => readonly RunSummary[];
+
+interface RunIdentity {
+  readonly dev: bigint;
+  readonly ino: bigint;
+  readonly size: bigint;
+  readonly mtimeNs: bigint;
+  readonly ctimeNs: bigint;
+}
+
+function runIdentity(path: string): RunIdentity | null {
+  try {
+    const stat = statSync(path, { bigint: true });
+    return { dev: stat.dev, ino: stat.ino, size: stat.size, mtimeNs: stat.mtimeNs, ctimeNs: stat.ctimeNs };
+  } catch {
+    return null;
+  }
+}
+
+function sameIdentity(a: RunIdentity, b: RunIdentity): boolean {
+  return a.dev === b.dev && a.ino === b.ino && a.size === b.size && a.mtimeNs === b.mtimeNs && a.ctimeNs === b.ctimeNs;
+}
+
+function frozenSummary(summary: RunSummary): RunSummary {
+  if (summary.cohort !== undefined) Object.freeze(summary.cohort);
+  return Object.freeze(summary);
+}
+
+// Discovery and file identity remain fresh on every request. Only the bounded header/tail reduction
+// is reused, and only when every byte requested was read and the file stayed identical throughout.
+export function createRunCatalog(runsRoot: string, build: ViewerBuild | null = null): RunCatalog {
+  const cache = new Map<string, { readonly identity: RunIdentity; readonly summary: RunSummary }>();
+  return () => {
+    const ids = runEntries(runsRoot), keep = new Set(ids);
+    for (const id of cache.keys()) if (!keep.has(id)) cache.delete(id);
+    return ids.map((id) => {
+      let path: string;
+      try { path = eventsPath(runsRoot, id); }
+      catch (error) {
+        if (!(error instanceof RunsError)) throw error;
+        cache.delete(id);
+        return summarizeRun(runsRoot, id, build);
+      }
+      const before = runIdentity(path), prior = cache.get(id);
+      if (before !== null && prior !== undefined && sameIdentity(prior.identity, before)) return prior.summary;
+      const quality: ReadQuality = { complete: true };
+      const summary = summarizeRun(runsRoot, id, build, quality);
+      const after = runIdentity(path);
+      if (before !== null && after !== null && quality.complete && summary.problem === null && sameIdentity(before, after)) {
+        const frozen = frozenSummary(summary);
+        cache.set(id, { identity: after, summary: frozen });
+        return frozen;
+      }
+      cache.delete(id);
+      return summary;
+    });
+  };
+}
+
+export function listRuns(runsRoot: string, build: ViewerBuild | null = null): RunSummary[] {
+  return runEntries(runsRoot).map((id) => {
     try {
       return summarize(runsRoot, id, build);
     } catch (error) {

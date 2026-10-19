@@ -15,7 +15,7 @@ import { FEATURES } from "@pokebench/agent/features";
 import { CONTROL_ACTIONS } from "@pokebench/agent/events";
 import { finalsRunLabels } from "./experiment-gate-store.js";
 import type { BaselineStore, RunStore } from "./baseline-store.js";
-import { BaselineError, RunsError, createBaselineReader, comparisonsOf, type BaselineCompute, eventsPath, listRuns, liveScreenPort, LogReader, readRecentEvents, readStart, readStartIdentity, runDir, type BaselineReader } from "./runs.js";
+import { BaselineError, RunsError, createBaselineReader, createRunCatalog, comparisonsOf, type BaselineCompute, eventsPath, liveScreenPort, LogReader, readRecentEvents, readStart, readStartIdentity, runDir, type BaselineReader, type RunCatalog } from "./runs.js";
 import { featureHistory } from "./history.js";
 import { localModels } from "./models.js";
 import { NextRunError, appendControl, healthProbe, liveRuns, readDraft, writeDraft, type RunQueue } from "./next-run.js";
@@ -162,7 +162,7 @@ const QUEUE_ACTIONS: readonly string[] = ["approve", "revoke", "finals-withdraw"
 interface QueueApi { read(): Promise<QueuePayload>; change(id: string, action: QueueAction): QueuePayload }
 const EmptyBodySchema = Type.Object({}, { additionalProperties: false });
 
-async function write(req: IncomingMessage, res: ServerResponse, options: ViewerOptions, port: number, parts: string[], origin: string, queueApi: QueueApi): Promise<void> {
+async function write(req: IncomingMessage, res: ServerResponse, options: ViewerOptions, port: number, parts: string[], origin: string, queueApi: QueueApi, catalog: RunCatalog): Promise<void> {
   const [, second, id, leaf] = parts;
   const now = options.now?.() ?? new Date();
   try {
@@ -174,7 +174,7 @@ async function write(req: IncomingMessage, res: ServerResponse, options: ViewerO
     }
     if (req.method === "POST" && parts.length === 4 && second === "runs" && id !== undefined && leaf === "control") {
       if (!Value.Check(ControlBodySchema, body)) throw new RequestError(400, "invalid control action (pause, resume, stop, cancel_stop, abort, extend_30m or extend_60m)");
-      sendJson(res, 200, { request: await appendControl(options.runsRoot, id, body.action, now, healthProbe(options.fetchFn ?? fetch)) });
+      sendJson(res, 200, { request: await appendControl(options.runsRoot, id, body.action, now, healthProbe(options.fetchFn ?? fetch), catalog) });
       return;
     }
     if(req.method==="POST" && parts.length===5 && second==="runs" && id!==undefined && leaf==="human" && parts[4]==="restart") {
@@ -344,7 +344,7 @@ async function liveScreen(res: ServerResponse, port: number, fetchFn: typeof fet
   }
 }
 
-async function route(req: IncomingMessage, res: ServerResponse, options: ViewerOptions, port: number, origins: ReadonlyMap<string, string>, readBaseline: BaselineReader, readWorkbench: (cards?: { selected: string | null }) => Promise<WorkbenchData>, queueApi: QueueApi): Promise<void> {
+async function route(req: IncomingMessage, res: ServerResponse, options: ViewerOptions, port: number, origins: ReadonlyMap<string, string>, readBaseline: BaselineReader, readWorkbench: (cards?: { selected: string | null }) => Promise<WorkbenchData>, queueApi: QueueApi, catalog: RunCatalog, strictCatalog: RunCatalog): Promise<void> {
   const origin = origins.get(req.headers.host ?? "");
   if (origin === undefined) {
     sendJson(res, 403, { error: "the viewer only answers 127.0.0.1 and its published origins" });
@@ -356,7 +356,7 @@ async function route(req: IncomingMessage, res: ServerResponse, options: ViewerO
     return;
   }
   if ((req.method === "POST" || req.method === "PUT") && parts[0] === "api") {
-    await write(req, res, options, port, parts, origin, queueApi);
+    await write(req, res, options, port, parts, origin, queueApi, catalog);
     return;
   }
   if (req.method !== "GET") {
@@ -448,9 +448,9 @@ async function route(req: IncomingMessage, res: ServerResponse, options: ViewerO
     return;
   }
   if (parts.length === 2) {
-    const live = new Set(await liveRuns(options.runsRoot, healthProbe(options.fetchFn ?? fetch)));
+    const live = new Set(await liveRuns(options.runsRoot, healthProbe(options.fetchFn ?? fetch), catalog));
     const finals = finalsRunLabels(options.runsRoot);
-    sendJson(res, 200, listRuns(options.runsRoot, options.build ?? null).map((run) => ({ ...run, ...(finals.has(run.id) ? { experiment: finals.get(run.id) } : {}), live: live.has(run.id) })));
+    sendJson(res, 200, strictCatalog().map((run) => ({ ...run, ...(finals.has(run.id) ? { experiment: finals.get(run.id) } : {}), live: live.has(run.id) })));
     return;
   }
   try {
@@ -519,6 +519,8 @@ export async function startViewer(given: ViewerOptions): Promise<Viewer> {
   let port = 0;
   let origins: ReadonlyMap<string, string> = new Map();
   const readBaseline = createBaselineReader(options.runsRoot, { ...(options.baselines?.compute === undefined ? {} : { compute: options.baselines.compute }), ...(options.baselines?.store === undefined ? {} : { store: options.baselines.store }) });
+  const catalog = createRunCatalog(options.runsRoot, null);
+  const strictCatalog = options.build === null ? catalog : createRunCatalog(options.runsRoot, options.build ?? null);
   const workbenchLoader = createWorkbenchLoader({ build: options.build ?? null, ...(options.workbench?.compute === undefined ? {} : { compute: options.workbench.compute }), ...(options.workbench?.store === undefined ? {} : { store: options.workbench.store }) });
   let snapshot: { until: number; result: Promise<WorkbenchData> } | null = null;
   let cardsSnapshot: { selected: string | null; until: number; result: Promise<WorkbenchData> } | null = null;
@@ -528,8 +530,8 @@ export async function startViewer(given: ViewerOptions): Promise<Viewer> {
     if (cached !== null && now < cached.until) return cached.result;
     const healthy = healthProbe(options.fetchFn ?? fetch);
     const pending = cards === undefined
-      ? Promise.resolve().then(() => workbenchSnapshot(options.runsRoot, healthy, now, undefined, workbenchLoader, { partial: options.workbench?.partial === true }))
-      : liveRuns(options.runsRoot, healthy).then(live => workbenchSnapshot(options.runsRoot, healthy, now, undefined, workbenchLoader, { partial: options.workbench?.partial === true, cards: { ...cards, live: new Set(live) } }));
+      ? Promise.resolve().then(() => workbenchSnapshot(options.runsRoot, healthy, now, undefined, workbenchLoader, { partial: options.workbench?.partial === true }, catalog))
+      : liveRuns(options.runsRoot, healthy, catalog).then(live => workbenchSnapshot(options.runsRoot, healthy, now, undefined, workbenchLoader, { partial: options.workbench?.partial === true, cards: { ...cards, live: new Set(live) } }, catalog));
     if (cards === undefined) {
       const next = { until: Infinity, result: pending }; snapshot = next;
       next.result = next.result.then(data => { next.until = (options.now?.() ?? new Date()).getTime() + WORKBENCH_POLL_MS; return data; }, (error: unknown) => { if (snapshot === next) snapshot = null; throw error; });
@@ -569,7 +571,7 @@ export async function startViewer(given: ViewerOptions): Promise<Viewer> {
   // A failing request (a client that disconnects mid-body, a file error) must
   // never take the viewer and its queue down.
   const server = createServer((req, res) => {
-    route(req, res, options, port, origins, readBaseline, readWorkbench, queueApi).catch((error: unknown) => {
+    route(req, res, options, port, origins, readBaseline, readWorkbench, queueApi, catalog, strictCatalog).catch((error: unknown) => {
       if (res.headersSent || res.destroyed) res.destroy();
       else sendJson(res, 500, { error: error instanceof Error ? error.message : String(error) });
     });
@@ -626,7 +628,7 @@ export async function startViewer(given: ViewerOptions): Promise<Viewer> {
   port = address.port;
   origins = allowedOrigins(port, options.publicOrigins ?? []);
   // Validate the catalog in the background so the first page load finds it ready.
-  if (options.baselines?.warm === true) for (const run of listRuns(options.runsRoot)) if (run.ended && run.problem === null) readBaseline(run.id).catch(() => undefined);
+  if (options.baselines?.warm === true) for (const run of catalog()) if (run.ended && run.problem === null) readBaseline(run.id).catch(() => undefined);
   return {
     server,
     address: address.address,

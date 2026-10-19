@@ -167,12 +167,12 @@ describe("server-owned run summary catalog", () => {
     const firstLineBytes = Buffer.byteLength(fs.readFileSync(path, "utf8").split("\n")[0] ?? "") + 1;
     const catalog = createRunCatalog(runsRoot, null), read = fs.readSync;
     let calls = 0;
-    const short = vi.spyOn(fs, "readSync").mockImplementation((fd, buffer, offset, length, position) => {
+    const short = vi.spyOn(fs, "readSync").mockImplementation(((fd: number, buffer: NodeJS.ArrayBufferView, offset: number, length: number, position: number | null) => {
       calls += 1;
       if (calls === 1) return read(fd, buffer, offset, Math.min(length, firstLineBytes), position);
       if (calls === 2) return 0;
       return read(fd, buffer, offset, length, position);
-    });
+    }) as typeof fs.readSync);
     expect(byId(catalog, "monotonic")).toMatchObject({ model: "complete-looking", ended: true, problem: null });
     short.mockRestore();
     const retry = vi.spyOn(fs, "readSync");
@@ -184,12 +184,12 @@ describe("server-owned run summary catalog", () => {
     const runsRoot = root(), path = writeRun(runsRoot, "prefix", "prefix-model", true);
     const bytes = fs.statSync(path).size, catalog = createRunCatalog(runsRoot, null), read = fs.readSync;
     let calls = 0;
-    const partial = vi.spyOn(fs, "readSync").mockImplementation((fd, buffer, offset, length, position) => {
+    const partial = vi.spyOn(fs, "readSync").mockImplementation(((fd: number, buffer: NodeJS.ArrayBufferView, offset: number, length: number, position: number | null) => {
       calls += 1;
       if (calls === 2) return read(fd, buffer, offset, Math.min(length, Math.max(1, Math.floor(bytes / 2))), position);
       if (calls === 3) return 0;
       return read(fd, buffer, offset, length, position);
-    });
+    }) as typeof fs.readSync);
     expect(byId(catalog, "prefix")).toMatchObject({ model: "prefix-model", ended: false, problem: null });
     partial.mockRestore();
     expect(byId(catalog, "prefix")).toMatchObject({ model: "prefix-model", ended: true, reason: "budget", problem: null });
@@ -199,7 +199,7 @@ describe("server-owned run summary catalog", () => {
     const runsRoot = root();
     writeRun(runsRoot, "chunked", "chunked-model", true);
     const catalog = createRunCatalog(runsRoot, null), read = fs.readSync;
-    const chunks = vi.spyOn(fs, "readSync").mockImplementation((fd, buffer, offset, length, position) => read(fd, buffer, offset, Math.min(length, 7), position));
+    const chunks = vi.spyOn(fs, "readSync").mockImplementation(((fd: number, buffer: NodeJS.ArrayBufferView, offset: number, length: number, position: number | null) => read(fd, buffer, offset, Math.min(length, 7), position)) as typeof fs.readSync);
     expect(byId(catalog, "chunked")).toMatchObject({ model: "chunked-model", ended: true, problem: null });
     expect(chunks.mock.calls.length).toBeGreaterThan(2);
     chunks.mockRestore();
@@ -239,6 +239,55 @@ describe("server-owned run summary catalog", () => {
     expect(() => catalog()).toThrow("transient close");
     closeSpy.mockRestore();
     expect(byId(catalog, "descriptor")).toMatchObject({ model: "descriptor-model", ended: true, problem: null });
+  });
+
+  it("treats a cache-only pre-read stat failure as an optimization miss", () => {
+    const runsRoot = root();
+    writeRun(runsRoot, "pre-stat", "pre-stat-model", true);
+    const catalog = createRunCatalog(runsRoot, null), stat = fs.statSync;
+    let failed = false;
+    const statSpy = vi.spyOn(fs, "statSync").mockImplementation(((path: fs.PathLike, options?: fs.StatOptions) => {
+      if (!failed && options?.bigint === true) { failed = true; throw Object.assign(new Error("cache pre-stat unavailable"), { code: "EIO" }); }
+      return stat(path, options as never);
+    }));
+    expect(byId(catalog, "pre-stat")).toMatchObject({ model: "pre-stat-model", ended: true, problem: null });
+    statSpy.mockRestore();
+    const reads = vi.spyOn(fs, "readSync");
+    expect(byId(catalog, "pre-stat")).toMatchObject({ model: "pre-stat-model", ended: true, problem: null });
+    expect(reads.mock.calls.length).toBeGreaterThan(0);
+  });
+
+  it("treats a cache-only post-read stat failure as an optimization miss", () => {
+    const runsRoot = root();
+    writeRun(runsRoot, "post-stat", "post-stat-model", true);
+    const catalog = createRunCatalog(runsRoot, null), stat = fs.statSync;
+    let metadataCalls = 0;
+    const statSpy = vi.spyOn(fs, "statSync").mockImplementation(((path: fs.PathLike, options?: fs.StatOptions) => {
+      if (options?.bigint === true && ++metadataCalls === 2) throw Object.assign(new Error("cache post-stat unavailable"), { code: "EIO" });
+      return stat(path, options as never);
+    }));
+    expect(byId(catalog, "post-stat")).toMatchObject({ model: "post-stat-model", ended: true, problem: null });
+    statSpy.mockRestore();
+    const reads = vi.spyOn(fs, "readSync");
+    expect(byId(catalog, "post-stat")).toMatchObject({ model: "post-stat-model", ended: true, problem: null });
+    expect(reads.mock.calls.length).toBeGreaterThan(0);
+  });
+
+  it("preserves uncached per-run wire behavior when a run vanishes after discovery", () => {
+    const disappearing = (catalog: boolean): ReturnType<typeof listRuns>[number] | undefined => {
+      const runsRoot = root(), dir = join(runsRoot, "vanished");
+      const path = writeRun(runsRoot, "vanished", "vanishing-model", true), exists = fs.existsSync;
+      let removed = false;
+      const existsSpy = vi.spyOn(fs, "existsSync").mockImplementation((candidate) => {
+        const present = exists(candidate);
+        if (!removed && String(candidate) === path) { removed = true; fs.rmSync(dir, { recursive: true, force: true }); }
+        return present;
+      });
+      const result = catalog ? createRunCatalog(runsRoot, null)()[0] : listRuns(runsRoot, null)[0];
+      existsSpy.mockRestore();
+      return result;
+    };
+    expect(disappearing(true)).toEqual(disappearing(false));
   });
 
   it("isolates roots and viewer builds while preserving unknown-newer-build wire semantics", () => {

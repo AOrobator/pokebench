@@ -42,6 +42,7 @@ it("OFF preserves exact context and records nothing",async()=>{
 it("ignores failed delivery, objects and battle pages",async()=>{
  const h=harness();deliver(h,2,norman,true);deliver(h,10,[page("Sign: Rustboro",null,null)]);
  deliver(h,20,[{...page("DAD: battle text"),battle_turn:1}]);
+ deliver(h,30,[{...page("DAD: another battle page"),battle_message_id:1}]);
  expect(await h.wiring.transformContext([])).toEqual([]);expect(h.recorded).toEqual([]);
 });
 it("reads actual recorded Mom episode through the same production chain",async()=>{
@@ -76,8 +77,9 @@ it("retains actual Norman pages after Rustboro arrival without inventing complet
 it("deduplicates exact repeats, keeps distinct episodes and excludes cross-run input",async()=>{
  const h=harness();deliver(h);deliver(h,10);deliver(h,20,[page("MOM: Another instruction","MOM")]);
  h.send(event({run:"other-run",type:"dialogue_auto_advance",seq:50,tool_call_id:"foreign",pages:[page("DAD: FOREIGN")],tool:"press",requested:[],sent:[],dropped:[],auto_presses:0,stop:"field_free",detail:"",duration_ms:0}));
+ h.send(event({run:"other-run",type:"tool_result",seq:51,id:"foreign",name:"press",text:"Location: FOREIGN",is_error:false,duration_ms:0,frames:[]}));
  await h.wiring.transformContext([]);const text=h.recorded.at(-1)?.text??"";
- expect(text.match(/text: "DAD: Now…"/g)).toHaveLength(1);expect(text).toContain("Another instruction");expect(text).not.toContain("FOREIGN");
+ expect(text.match(/text: "DAD: Now…"/g)).toHaveLength(1);expect(text).toContain("dialogue_events: [2]");expect(text).not.toContain("dialogue_events: [10]");expect(text).toContain("Another instruction");expect(text).not.toContain("FOREIGN");
 });
 it("combines multiple dialogue records from one delivered call and preserves unknown speakers within it",async()=>{
  const h=harness();deliver(h);
@@ -87,4 +89,11 @@ it("combines multiple dialogue records from one delivered call and preserves unk
  h.send(event({type:"tool_result",seq:13,id:"model",name:"remember_destination",text:"Location: FAKE",is_error:false,duration_ms:0,frames:[]}));
  await h.wiring.transformContext([]);const text=h.recorded.at(-1)?.text??"";
  expect(text).toContain("dialogue_events: [10,11]");expect(text).toContain("Unattributed follow-up");expect(text).toContain("speaker: null");expect(text).not.toContain("FAKE");
+});
+
+it("does not select a recognized faced sprite or an unrecognized printed name",async()=>{
+ for(const p of [page("DAD: faced only","DAD","faced_sprite"),page("INTERVIEWER: unrelated broadcast","INTERVIEWER"),page("DAD: no attribution","DAD",null)]){
+  const h=harness();deliver(h,2,[p]);
+  expect(await h.wiring.transformContext([])).toEqual([]);expect(h.recorded).toEqual([]);
+ }
 });

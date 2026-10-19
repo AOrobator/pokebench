@@ -72,7 +72,7 @@ export class BasicRules {
 
   prepare(call: CompletedCall): BasicEvaluation {
     const fingerprint = call.state === undefined ? null : semanticState(call.state, this.interactions);
-    const game = !call.isError && (call.name === "press" || call.name === "navigate_to" || call.name === "observe");
+    const game = !call.isError && (call.name === "press" || call.name === "navigate_to" || call.name === "navigate_to_target" || call.name === "explore_map" || call.name === "observe");
     const changed = game && fingerprint !== null && fingerprint !== this.previous;
     const battle = this.battles && game && call.state !== undefined ? battleState(call.state) : null;
     const waiting = this.ineffectiveLoops && game && call.state !== undefined ? waitingState(call.state) : null;

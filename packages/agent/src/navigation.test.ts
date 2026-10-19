@@ -39,6 +39,17 @@ it("uses ordinary presses, handles turning, and stops after a map change",async(
  expect(buttons).toEqual([["DOWN"],["DOWN"],["RIGHT"]]);expect(outcome.content[0]?.type=== "text" ? outcome.content[0].text : null).toContain("map changed");
 });
 
+it("receipts only a map transition caused by the final exact-target step",async()=>{
+ const corridor:GameStateSnapshot={...field,navigation_grid:{elevation:3,tiles:[tile(0,0),tile(1,0),tile(2,0)],objects:[],warps:[{x:2,y:0}]}};
+ const run=async(transitionOn:number)=>{
+  let current=corridor,presses=0;
+  const tool=navigationTool({read:()=>Promise.resolve(current),press:(_id,_params,_signal,check)=>{check?.(current);presses++;current=presses===transitionOn?{...current,map_id:[1,2]}:{...current,position:{x:presses,y:0}};return Promise.resolve(result(current));},observe:()=>Promise.resolve(result(current))});
+  return tool.executeChecked("nav",{x:2,y:0,map_id:[0,9]},()=>null,undefined,{exactTarget:true});
+ };
+ await expect(run(2)).resolves.toMatchObject({details:{navigation:{goal_entry_attempted:true}}});
+ await expect(run(1)).resolves.toMatchObject({details:{navigation:{goal_entry_attempted:false}}});
+});
+
 
 it("caps ordinary attempts and never advances after abort or a field lock",async()=>{
  let state={...field};let pressed=0;

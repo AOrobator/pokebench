@@ -563,7 +563,7 @@ export function navigationTool(ports:NavigationPorts):CheckedNavigationTool {
   signal?.throwIfAborted();await ports.gate?.(signal);signal?.throwIfAborted();
   let state=await ports.read(signal),commands=0,status="command limit",last:AgentToolResult<unknown>|undefined,stopRequested=false;
   const blackout=new BlackoutCarry();
-  let shortest=Infinity,stalled=0,unready=false,selectedTarget:Point={x:goal.x,y:goal.y},directionalWarpAttempted=false;
+  let shortest=Infinity,stalled=0,unready=false,selectedTarget:Point={x:goal.x,y:goal.y},directionalWarpAttempted=false,goalEntryAttempted=false;
   const origin=state.position;
   const sameMap=():boolean=>state.map_id?.[0]===goal.map_id[0]&&state.map_id[1]===goal.map_id[1];
   while(commands<bound){
@@ -605,6 +605,9 @@ export function navigationTool(ports:NavigationPorts):CheckedNavigationTool {
    }
    if(mode!=="local"){if(path.length<shortest){shortest=path.length;stalled=0;}else if(++stalled>=NO_PROGRESS_PRESSES){status="route not converging; inspect obstacles and choose another approach";break;}}
    const planned=state,previousFacing=state.facing; const before=state.position;if(before===null)throw new Error("Navigation position unavailable");
+   const delta=DIRECTIONS.find(([d])=>d===direction);if(delta===undefined)throw new Error("Unknown navigation direction");
+   const span=ports.ledges===true&&hopAhead(planned,mode,before,direction,delta[1],delta[2])?2:1;
+   const finalGoalStep=checkedOptions.exactTarget===true&&path.length===span;
    try {
     last=await ports.press(id,{buttons:[direction],...(ports.automaticRunning===true||goal.walking===undefined?{}:{walking:goal.walking})},signal,actual=>{
      if(actual===undefined||!ready(actual,mode)||actual.map_id?.[0]!==goal.map_id[0]||actual.map_id[1]!==goal.map_id[1]||actual.position?.x!==before.x||actual.position.y!==before.y)throw new NavigationPreconditionError("map, position or field input unavailable or changed before action; no command submitted");
@@ -612,12 +615,11 @@ export function navigationTool(ports:NavigationPorts):CheckedNavigationTool {
     });
    } catch(error){if(!(error instanceof NavigationPreconditionError))throw error;status=error.message;break;}
    commands++;state=blackout.remember(resultState(last));
+   if(finalGoalStep)goalEntryAttempted=true;
    const afterStop=stop?.(state)??null;if(afterStop!==null){status=afterStop;stopRequested=true;break;}
    if(!sameMap()){status="map changed; inspect destination";break;}
    if(!ready(state,mode)){status=ports.refusalReasons===true?`walk interrupted: ${unreadyReason(state)}`:"field input locked or unavailable; inspect new state";unready=true;break;}
    const after=state.position;if(after===null)throw new Error("Navigation position unavailable");
-   const delta=DIRECTIONS.find(([d])=>d===direction);if(delta===undefined)throw new Error("Unknown navigation direction");
-   const span=ports.ledges===true&&hopAhead(planned,mode,before,direction,delta[1],delta[2])?2:1;
    if(distance(before,after)===0){
     if(state.facing===direction.toLowerCase()&&previousFacing!==state.facing){continue;}
     status=(truth?blocker(state,mode,Array.from({length:span},(_,k)=>({x:before.x+delta[1]*(k+1),y:before.y+delta[2]*(k+1)}))):null)??"blocked; inspect obstacle and choose another approach";break;
@@ -642,7 +644,7 @@ export function navigationTool(ports:NavigationPorts):CheckedNavigationTool {
   // exit-reachability-v1: "call again" only when the goal (or a tile next to it) is on the server's foot area.
   if(truth&&status==="command limit"){const here=state.position;const cut=ports.exitReach===true&&exitBlock({surf:false,reach:true},state).footNear(goal.x,goal.y)===false;status=here!==null&&sameMap()&&ready(state,mode)?`command limit: stopped at ${at(here)} after ${String(commands)} ordinary button attempts, the most one navigate_to call makes; ${cut?`${at(goal)} cannot be reached on foot from where you stand: no walkable way on this map leads from your tile to it or to a tile next to it, so calling navigate_to again will not get there`:`call navigate_to again to continue to ${at(goal)}`}`:`command limit: stopped after ${String(commands)} ordinary button attempts, the most one navigate_to call makes; the field is no longer free to walk, so inspect the new state`;}
   const notices=blackout.missingNotices(last.content.flatMap(part=>part.type==="text"?[part.text]:[]));
-  return {content:[{type:"text",text:`Navigation: ${status}; ${String(commands)} ordinary button attempts.`},...notices.map(text=>({type:"text" as const,text})),...last.content],details:{state,navigation:{status,commands,target:goal,...(stop===undefined?{}:{stop_requested:stopRequested}),...(ports.deterministicWarps===true?{selected_target:selectedTarget,...(stop===undefined?{}:{activation_attempted:directionalWarpAttempted})}:{}),unready}}};
+  return {content:[{type:"text",text:`Navigation: ${status}; ${String(commands)} ordinary button attempts.`},...notices.map(text=>({type:"text" as const,text})),...last.content],details:{state,navigation:{status,commands,target:goal,...(stop===undefined?{}:{stop_requested:stopRequested,goal_entry_attempted:goalEntryAttempted}),...(ports.deterministicWarps===true?{selected_target:selectedTarget,...(stop===undefined?{}:{activation_attempted:directionalWarpAttempted})}:{}),unready}}};
  };
  return {name:"navigate_to",label:"Walk to a coordinate",description,parameters:(ports.automaticRunning===true?DeterministicRunningArgs:Args) as typeof Args,execute:(id,goal,signal)=>execute(id,goal,signal),executeChecked:(id,goal,check,signal,options)=>execute(id,goal,signal,check,options)};
 }

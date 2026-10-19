@@ -88,8 +88,8 @@ export class CallTracker {
       state: battleRefusals && name === "battle_action"
         ? pending !== undefined && event.state_seq === this.latestSeq ? this.latest : undefined
         : pending !== undefined && this.latestSeq >
-        ((name === "press" || name === "navigate_to") ? (pending.beforeSeq ?? Infinity) : pending.seq) &&
-        (name === "press" || name === "navigate_to" || name === "observe") ? this.latest : undefined,
+        ((name === "press" || name === "navigate_to" || name === "navigate_to_target" || name === "explore_map") ? (pending.beforeSeq ?? Infinity) : pending.seq) &&
+        (name === "press" || name === "navigate_to" || name === "navigate_to_target" || name === "explore_map" || name === "observe") ? this.latest : undefined,
     };
   }
 

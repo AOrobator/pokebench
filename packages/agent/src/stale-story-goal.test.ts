@@ -113,17 +113,20 @@ describe("stale-story-goal-v1",()=>{
   expect(early).toContain("Way in");
   expect(early).not.toContain("Route 103 rival battle won");
  });
- it("treats a later ledger line as newer than the place line and does not promote an older place",()=>{
+ it("keeps the active place through incidental later dialogue, while native completion still retires it",()=>{
   const shoes=page("Don't forget your RUNNING SHOES.","MOM");
   const calls=[{turn:5,pages:lab},{turn:6,pages:[shoes]}];
   const on=run(calls,dex(oldale,false),true) ?? "";
-  expect(on).toBe([LAB_QUOTE,"Done: MOM's line from turn 6 (\"Don't forget your RUNNING SHOES.\") is newer. This is not where to go."].join("\n"));
-  expect(on).not.toContain("Way in");
+  expect(on).toBe([LAB_QUOTE,DOOR].join("\n"));
+  expect(on).toContain("Way in");
   expect(on).not.toContain("lives");
+  const clerk=run([{turn:5,pages:lab},{turn:6,pages:[page("Welcome!", "CLERK")]}],dex(oldale,false),true) ?? "";
+  expect(clerk).toBe([LAB_QUOTE,DOOR].join("\n"));
   const off=run(calls,dex(oldale,true),false) ?? "";
   expect(off).toBe([LAB_QUOTE,DOOR].join("\n"));
   const both=run(calls,dex(oldale,true),true) ?? "";
-  expect(both).toContain("Done: Pokédex received. MOM's line from turn 6 (\"Don't forget your RUNNING SHOES.\") is newer. This is not where to go.");
+  expect(both).toContain(STALE_LAB_NOTE);
+  expect(both).not.toContain("is newer");
   expect(both).not.toContain("Way in");
  });
  it("retires Petalburg Woods and the Rustboro Gym when the checklist says those are complete",()=>{

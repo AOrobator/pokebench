@@ -96,8 +96,6 @@ export interface StoryLine {
 // and the map they resolve to (null when not resolved).
 export interface Resolved {readonly quote:string;readonly text:string;readonly target:Place|null}
 export interface StoryGoal {readonly line:StoryLine;readonly resolved:readonly Resolved[];readonly done?:boolean;readonly doneReason?:string}
-interface LedgerLine {readonly turn:number;readonly speaker:string;readonly text:string}
-
 // The middle of the retired-goal sentences. "Pokédex received" is the story checklist's own label.
 export function staleNote(reason="Pokédex received"):string {
  return `Done: ${reason}. This is not where to go.`;
@@ -115,9 +113,7 @@ function namedIn(text:string):string[] {
 
 export class StoryDestinations {
  private readonly lines:StoryLine[]=[];
- private readonly ledger:LedgerLine[]=[];
  private readonly pending=new Map<string,StoryLine[]>();
- private readonly pendingLedger=new Map<string,LedgerLine[]>();
  // The story characters each recorded state's sprite kinds are (character-presence-v1's table by graphics id),
  // for states that show one, in recording order.
  private readonly sprites:{readonly seq:number;readonly map:MapId|null;readonly kinds:ReadonlyMap<string,string>}[]=[];
@@ -131,13 +127,11 @@ export class StoryDestinations {
   if(event.type==="dialogue_auto_advance"){
    const lines=this.storyLines(event.turn,event.pages);
    this.pending.set(event.tool_call_id,lines);
-   this.pendingLedger.set(event.tool_call_id,ledgerOf(event.turn,event.pages,lines));
    return;
   }
   if(event.type!=="tool_result")return;
   const lines=this.pending.get(event.id);this.pending.delete(event.id);
-  const said=this.pendingLedger.get(event.id);this.pendingLedger.delete(event.id);
-  if(lines!==undefined&&!event.is_error){this.lines.push(...lines);this.ledger.push(...(said??[]));}
+  if(lines!==undefined&&!event.is_error)this.lines.push(...lines);
  }
  private speaker(page:Page):string|null {
   if(page.speaker===null||page.speaker_source===null||page.speaker_source==="faced_target")return null;
@@ -183,17 +177,9 @@ export class StoryDestinations {
   }
   return null;
  }
- // A later line the conversation ledger would quote (a story character, or a NAME: the game printed), after this one.
- private newerThan(callId:string,line:StoryLine):LedgerLine|null {
-  let newer:LedgerLine|null=null;
-  for(const other of [...this.ledger,...(this.pendingLedger.get(callId)??[])]){
-   if(other.turn>line.turn&&(newer===null||other.turn>=newer.turn))newer=other;
-  }
-  return newer;
- }
  // The latest story line naming a place, with each place it names resolved against the map table from map `here`.
- // retire: the story checklist and a later ledger line are newer than this quote. A finished milestone, or a
- // later line, retires it. An older place line is not promoted into its slot.
+ // retire: the story checklist retires the quote only when its resolved place's native milestone is finished.
+ // A newer place-naming line supersedes it through latest(); incidental later dialogue does not.
  goal(here:MapId,player:string|null,callId:string,places:readonly Place[],retire=false,story:GameStateSnapshot["story"]=null):StoryGoal|null {
   const heads=headsOf(places);
   const line=this.latest(callId,heads,player);
@@ -213,7 +199,7 @@ export class StoryDestinations {
   for(const phrase of placePhrases(line.text,heads,[...NAMES,...(player===null?[]:[player])]))
    resolved.push({quote:`"${phrase}"`,...resolve(words(phrase.split(" ")),places,here,"no map in the game's map table has this name.")});
   const targets=resolved.flatMap(r=>r.target===null?[]:[r.target]);
-  const doneReason=retire?retirement(targets,story??null,this.newerThan(callId,line)):null;
+  const doneReason=retire?retirement(targets,story??null):null;
   return doneReason===null?{line,resolved}:{line,resolved,done:true,doneReason};
  }
  block(state:GameStateSnapshot,callId:string,places:readonly Place[]|Error,retireLab=false):string|null {
@@ -244,22 +230,6 @@ function isBirchLab(place:Place):boolean {
 }
 
 const GENERIC=new Set(["THE","POKEMON","PROF","CITY","TOWN","MAP","HOUSE"]);
-function spokenText(page:Page):string {
- const prefix=page.speaker===null?"":`${page.speaker}: `;
- return (page.speaker_source==="name_prefix"&&page.text.startsWith(prefix)?page.text.slice(prefix.length):page.text).replace(/\s+/g," ").trim();
-}
-// Lines the conversation ledger would quote: story characters, and any NAME: the game printed.
-function ledgerOf(turn:number,pages:readonly Page[],story:readonly StoryLine[]):LedgerLine[] {
- const out:LedgerLine[]=story.map(line=>({turn:line.turn,speaker:line.speaker,text:line.text}));
- for(const page of pages){
-  if(page.battle_message_id!==undefined||page.battle_turn!==undefined)continue;
-  if(page.speaker_source!=="name_prefix"||page.speaker===null)continue;
-  const text=spokenText(page);
-  if(out.some(line=>line.speaker===page.speaker&&line.text===text))continue;
-  out.push({turn,speaker:page.speaker,text});
- }
- return out;
-}
 type StoryFacts=NonNullable<GameStateSnapshot["story"]>;
 // Checklist labels the readout already prints for a finished milestone (story.py text()). Trainer
 // "defeated" lines are not the place being finished, so they are not here.
@@ -294,7 +264,7 @@ function covers(label:string,place:Place):boolean {
  const dw=distinctive(place);
  return dw.length===named.length&&named.every(w=>dw.includes(w));
 }
-function retirement(targets:readonly Place[],story:GameStateSnapshot["story"],newer:LedgerLine|null):string|null {
+function retirement(targets:readonly Place[],story:GameStateSnapshot["story"]):string|null {
  const labels=story===null||story===undefined?[]:checklistLabels(story);
  const cited:string[]=[];
  const covered=targets.length>0&&targets.every(target=>{
@@ -303,9 +273,7 @@ function retirement(targets:readonly Place[],story:GameStateSnapshot["story"],ne
   if(!cited.includes(hit))cited.push(hit);
   return true;
  });
- const newerText=newer===null?null:`${newer.speaker}'s line from turn ${String(newer.turn)} ("${newer.text}") is newer`;
- if(covered)return newerText===null?cited.join("; "):`${cited.join("; ")}. ${newerText}`;
- return newerText;
+ return covered?cited.join("; "):null;
 }
 
 const same=(a:MapId,b:MapId)=>a[0]===b[0]&&a[1]===b[1];

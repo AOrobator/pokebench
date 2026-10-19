@@ -8,7 +8,7 @@
  "primaryMilestone": "ROUTE_102",
  "source": {
   "checkout": "main",
-  "commit": "44c42815c1e7ed2ea743f20e5d016f881cb0d350"
+  "commit": "35477da6f4ef501285b995d60fdbf12fe7a5c883"
  },
  "incumbent": {
   "version": 2,
@@ -157,5 +157,5 @@
   "window": 4,
   "minReached": 3
  },
- "notes": "Bundle arm of bundle-v-control (operator 2026-10-17). Incumbent: the bag-healing finals incumbent with dialogue-auto-advance-v1, story-destinations-v1 and harness-trust-v1 ON, because this switch changes nothing unless one of those is on; only stale-story-goal-v1 is flipped. Activation stays RECEIVED_POKEDEX because that is the comparison this pending entry is about. A later ledger line can change the Story goal before that flag, so the flag is not the first text change. Not designed (pokebench-experiment-design) and not queued. source.commit is main 44c42815c1e7ed2ea743f20e5d016f881cb0d350 before this branch; repin it to the merge SHA with `just experiment-pin` after landing."
+ "notes": "Bundle arm of bundle-v-control (operator 2026-10-17; narrowed 2026-10-18). Incumbent: the bag-healing finals incumbent with dialogue-auto-advance-v1, story-destinations-v1 and harness-trust-v1 ON, because this switch changes nothing unless one of those is on; only stale-story-goal-v1 is flipped. Activation is RECEIVED_POKEDEX: the candidate retires the lab destination only when that native milestone is complete. Incidental later dialogue does not retire an active destination; a newer place-naming line already supersedes it through the ordinary latest-place rule. Not designed (pokebench-experiment-design) and not queued. source.commit is main 44c42815c1e7ed2ea743f20e5d016f881cb0d350 before this refinement; repin it to the merge SHA after landing."
 }

@@ -60,6 +60,7 @@ function interrupted(state:GameStateSnapshot):string|null {
  if(state.field_controls_locked===true)return "a script or forced field action took control";
  if(state.field_controls_locked!==false)return "field-control ownership became unavailable";
  if(state.running?.controllable===false)return `native field input is not controllable (${state.running.reason})`;
+ if(state.running!==null&&state.running!==undefined&&state.running.controllable!==true)return `native field input ownership is unavailable (${state.running.reason})`;
  return null;
 }
 function targetKey(map:readonly number[],target:RequestTarget):string {
@@ -184,7 +185,7 @@ function semanticTool(navigate:CheckedNavigationTool,press:CheckedPressTool,feat
     if(listed===null)return `semantic target changed during ${phase}`;
     if(fresh.x!==listed.x||fresh.y!==listed.y)return `semantic target moved during ${phase}`;
     if(!sameTargetIdentity(listed,fresh))return `semantic target changed during ${phase}`;
-    if(fresh.kind==="warp"||fresh.activation==="A"){
+    if((fresh.kind==="warp"||fresh.activation==="A")&&actual.position?.x===choice.point.x&&actual.position.y===choice.point.y){
      const recipient=interactionRecipient(actual,fresh,choice,options);
      if(recipient===null||!sameTargetIdentity(fresh,recipient))return `semantic interaction recipient changed during ${phase}`;
     }
@@ -202,7 +203,7 @@ function semanticTool(navigate:CheckedNavigationTool,press:CheckedPressTool,feat
     current=stateOf(walked);reason=interrupted(current);
     if(navigationStopRequested(walked))return withStatus(walked,navigationStatus(walked)??"semantic travel stop requested",selected,false);
     if(reason!==null)return withStatus(walked,`interrupted before activation: ${reason}`,selected,false);
-    if(!isMap(current,request.map_id))return withStatus(walked,"interrupted by a map transition",selected,request.target.kind==="warp");
+    if(!isMap(current,request.map_id))return withStatus(walked,"interrupted by a map transition",selected,navigationActivationAttempted(walked));
     const changed=identityIssue(current,"travel");if(changed!==null)return withStatus(walked,changed,selected,false);
     const status=navigationStatus(walked);
     if(current.position?.x===choice.point.x&&current.position.y===choice.point.y){
@@ -253,6 +254,9 @@ function semanticTool(navigate:CheckedNavigationTool,press:CheckedPressTool,feat
     catch(error){if(!(error instanceof SemanticPreconditionError))throw error;const fresh=await stateSource.read(signal);return withStatus({content:[],details:{state:fresh}},error.message,selected,false);}
     current=stateOf(turned);reason=interrupted(current);
     if(reason!==null)return withStatus(turned,`interrupted while facing the target: ${reason}`,selected,false);
+    if(!isMap(current,request.map_id))return withStatus(turned,"interrupted by a map transition while facing the target",selected,false);
+    const changed=identityIssue(current,"facing input");
+    if(changed!==null)return withStatus(turned,changed,selected,false);
     if(current.position?.x!==choice.point.x||current.position.y!==choice.point.y)return withStatus(turned,"facing input moved away from the selected approach",selected,false);
    }
    const activation=request.target.kind==="connection"?facing:"A";

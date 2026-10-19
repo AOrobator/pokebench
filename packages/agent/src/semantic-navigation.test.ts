@@ -161,6 +161,25 @@ it("preserves a semantic travel stop when the final observation no longer shows 
  expect(out.details).toMatchObject({semantic_navigation:{activation_attempted:false}});
 });
 
+it("does not erase target drift returned by the facing input before activation",async()=>{
+ const original={...field(),facing:"left"};let current:GameStateSnapshot=original,activationPosts=0;
+ const navigate={name:"navigate_to",label:"nav",description:"nav",parameters:Type.Object({}),execute:()=>Promise.resolve(result(current)),executeChecked:(_id:string,args:{x:number;y:number},check:(state:GameStateSnapshot)=>string|null)=>{expect(check(current)).toBeNull();current={...current,position:{x:args.x,y:args.y}};return Promise.resolve({...result(current),details:{state:current,navigation:{status:"arrived at requested coordinate"}}});}} as unknown as CheckedNavigationTool;
+ const press={name:"press",label:"press",description:"press",parameters:Type.Object({buttons:Type.Array(Type.String())}),execute:()=>Promise.resolve(result(current)),executeChecked:(_id:string,args:{buttons:string[]},check:(state:GameStateSnapshot)=>void)=>{check(current);if(args.buttons[0]==="A")activationPosts++;const returned={...current,facing:"right",interaction_targets:[target(2,4,0)]};return Promise.resolve(result(returned));}} as unknown as CheckedPressTool;
+ const tool=withSemanticNavigation([navigate,press],baseFeatures(),{read:()=>Promise.resolve(current)}).find(t=>t.name==="navigate_to_target");if(tool===undefined)throw new Error("missing semantic tool");
+ const out=await tool.execute("s",{map_id:[0,9],target:{kind:"object",local_id:2}});
+ expect(activationPosts).toBe(0);expect(out.content[0]?.type==="text"?out.content[0].text:"").toContain("target moved during facing input");
+ expect(out.details).toMatchObject({semantic_navigation:{activation_attempted:false}});
+});
+
+it("allows visited-map travel while the raw checked state cannot yet see the distant approach",async()=>{
+ const far=target(2,20,0),stitched:GameStateSnapshot={...field([far]),navigation_grid:{elevation:3,tiles:Array.from({length:22},(_,x)=>tile(x,0)),objects:[{x:20,y:0}],warps:[]}},raw:GameStateSnapshot={...stitched,navigation_grid:{elevation:3,tiles:Array.from({length:8},(_,x)=>tile(x,0)),objects:[],warps:[]}};let current=stitched,navigations=0,activations=0;
+ const navigate={name:"navigate_to",label:"nav",description:"nav",parameters:Type.Object({}),execute:()=>Promise.resolve(result(current)),executeChecked:(_id:string,args:{x:number;y:number},check:(state:GameStateSnapshot)=>string|null)=>{expect(check(raw)).toBeNull();navigations++;current={...stitched,position:{x:args.x,y:args.y}};return Promise.resolve({...result(current),details:{state:current,navigation:{status:"arrived at requested coordinate"}}});}} as unknown as CheckedNavigationTool;
+ const press={name:"press",label:"press",description:"press",parameters:Type.Object({buttons:Type.Array(Type.String())}),execute:()=>Promise.resolve(result(current)),executeChecked:(_id:string,_args:unknown,check:(state:GameStateSnapshot)=>void)=>{check(current);activations++;return Promise.resolve(result(current));}} as unknown as CheckedPressTool;
+ const tool=withSemanticNavigation([navigate,press],{...baseFeatures(),"visited-terrain-navigation-v1":true},{read:()=>Promise.resolve(stitched)}).find(t=>t.name==="navigate_to_target");if(tool===undefined)throw new Error("missing semantic tool");
+ const out=await tool.execute("s",{map_id:[0,9],target:{kind:"object",local_id:2}});
+ expect(navigations).toBe(1);expect(activations).toBe(1);expect(out.details).toMatchObject({semantic_navigation:{activation_attempted:true}});
+});
+
 it("activates an exact directional warp once through the semantic checked input",async()=>{
  const warp:NonNullable<GameStateSnapshot["interaction_targets"]>[number]={kind:"warp",x:2,y:0,elevation:3,activation:"movement",availability:"conditional",facing:null,local_id:null,destination:[1,2,0],name:"Arrow warp"};
  const base=field([warp]),grid=base.navigation_grid;if(grid===null||grid===undefined)throw new Error("missing grid");
@@ -340,6 +359,20 @@ it("submits no activation when native avatar control becomes forced before input
  expect(f.buttons).toEqual([]);expect(out.content[0]?.type==="text"?out.content[0].text:"").toContain("native field input is not controllable");expect(out.details).toMatchObject({semantic_navigation:{activation_attempted:false}});
 });
 
+it("submits no activation when native avatar control ownership is unavailable",async()=>{
+ const unavailable={...uncontrollable,permitted:null,controllable:null,reason:"unavailable"};
+ const f=fixture(undefined,baseFeatures(),(state,button)=>button==="A"?{...state,running:unavailable}:state),tool=f.tools.find(t=>t.name==="navigate_to_target");if(tool===undefined)throw new Error("missing semantic tool");
+ const out=await tool.execute("s",{map_id:[0,9],target:{kind:"object",local_id:2}});
+ expect(f.buttons).toEqual([]);expect(out.content[0]?.type==="text"?out.content[0].text:"").toContain("native field input ownership is unavailable");expect(out.details).toMatchObject({semantic_navigation:{activation_attempted:false}});
+});
+
+it("starts no travel when native avatar control ownership is unavailable",async()=>{
+ const unavailable={...uncontrollable,permitted:null,controllable:null,reason:"unavailable"},initial={...field(),running:unavailable};
+ const f=fixture(undefined,baseFeatures(),undefined,initial),tool=f.tools.find(t=>t.name==="navigate_to_target");if(tool===undefined)throw new Error("missing semantic tool");
+ const out=await tool.execute("s",{map_id:[0,9],target:{kind:"object",local_id:2}});
+ expect(f.navigations).toEqual([]);expect(f.buttons).toEqual([]);expect(out.content[0]?.type==="text"?out.content[0].text:"").toContain("native field input ownership is unavailable");expect(out.details).toMatchObject({semantic_navigation:{activation_attempted:false}});
+});
+
 it("does not submit a stale directional-warp input when its live behavior changes",async()=>{
  const warp:NonNullable<GameStateSnapshot["interaction_targets"]>[number]={kind:"warp",x:2,y:0,elevation:3,activation:"movement",availability:"conditional",facing:null,local_id:null,destination:[1,2,0],name:"Arrow warp"};
  const base=field([warp]),grid=base.navigation_grid;if(grid===null||grid===undefined)throw new Error("missing grid");
@@ -384,4 +417,12 @@ it("does not mark an exploration target tried when travel is interrupted before 
  const f=fixture((state,attempt)=>attempt===1?{...state,active_ui:{phase:"field_yes_no",selected:"YES",ready:true,controls:"A confirms",diagnostic:null}}:state,{...baseFeatures(),"deterministic-exploration-v1":true},undefined,field(),false),explore=f.tools.find(t=>t.name==="explore_map");if(explore===undefined)throw new Error("missing explorer");
  await explore.execute("e1",{});f.setState({...f.state(),position:{x:0,y:0},active_ui:null});await explore.execute("e2",{});
  expect(f.navigations).toEqual([{x:2,y:0,map_id:[0,9]},{x:2,y:0,map_id:[0,9]}]);expect(f.buttons).toEqual([["A"]]);
+});
+
+it("does not mark a selected warp tried when an unrelated map transition interrupts travel",async()=>{
+ const warp:NonNullable<GameStateSnapshot["interaction_targets"]>[number]={kind:"warp",x:2,y:0,elevation:3,activation:"movement",availability:"conditional",facing:null,local_id:null,destination:[1,2,0],name:"Door"};
+ const original=field([warp]),f=fixture((state,attempt)=>attempt===1?{...state,map_id:[0,10]}:state,{...baseFeatures(),"deterministic-exploration-v1":true},undefined,original,false),explore=f.tools.find(t=>t.name==="explore_map");if(explore===undefined)throw new Error("missing explorer");
+ const first=await explore.execute("e1",{});f.setState({...original,position:{x:0,y:0}});await explore.execute("e2",{});
+ expect(first.details).toMatchObject({semantic_navigation:{activation_attempted:false}});
+ expect(f.navigations).toEqual([{x:2,y:0,map_id:[0,9]},{x:2,y:0,map_id:[0,9]}]);
 });

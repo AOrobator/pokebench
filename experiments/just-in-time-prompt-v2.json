@@ -8,7 +8,7 @@
  "primaryMilestone": "RIVAL_MET",
  "source": {
   "checkout": "main",
-  "commit": "e307afcc7d4a6b9f78ab740bf09046f907489661"
+  "commit": "fcc9e92ebd1c9f150945d7166bfeb0dab012c3ea"
  },
  "incumbent": {
   "version": 2,
@@ -166,6 +166,6 @@
   "window": 4,
   "minReached": 3
  },
- "notes": "Pending registration, not queued. Separate proposed fixed definition experiments/fixed/jit-v2-10m.json is an exploratory screen of 24 trials/12 per arm, 600000ms/trial, two GPUs, zero replacements, furthest native frontier then exact arrival time. Registry trialsPerArm=8 is a schema default, not the proposed cohort N. Reuses shared MAIN_MENU FAST save before instruction exposure; v1 OFF in both arms, full tools identical. Cache and latency are secondary mechanisms, never promotion criteria. No decision probes. Four GPU hours is a proposed ceiling requiring a fresh operator allocation; no approval or start has been written. Pin source to reviewed implementation before any launch.",
+ "notes": "Pending registration, not queued. Separate proposed fixed definition experiments/fixed/jit-v2-10m.json is an exploratory screen of 24 trials/12 per arm, 600000ms/trial, two GPUs, zero replacements, furthest native frontier then exact arrival time. Registry trialsPerArm=8 is a schema default, not the proposed cohort N. Reuses shared MAIN_MENU FAST save before instruction exposure; v1 OFF in both arms, full tools identical. Cache and latency are secondary mechanisms, never promotion criteria. No decision probes. Four GPU hours is a proposed ceiling requiring a fresh operator allocation; no approval or start has been written. Pin source to reviewed implementation before any launch. Designated mechanism secondary: mean uncached input per terminal request per run; all terminal rows retained plus successful-response sensitivity. Retained guide count/text and serialized history reported separately. Whole-policy comparison, no causal cache-mediator claim. Initial unknown fallback remains; no Birch specialization.",
  "blocked": "Preparation only: no new GPU budget or launch approval. Pending cloud code review, four-persona design review, source pin and fresh two-GPU serving checks."
 }

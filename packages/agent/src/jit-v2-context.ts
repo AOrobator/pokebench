@@ -22,7 +22,7 @@ function anchors(messages:Message[]):Map<string,number> {
  if(messages[0]?.role==="user")found.set("task",0);
  messages.forEach((message,index)=>{
   if(message.role==="toolResult")found.set(`tool:${message.toolCallId}`,index);
-  if(message.role==="assistant")found.set(`assistant:${message.timestamp}:${hash(JSON.stringify(message))}`,index);
+  if(message.role==="assistant")found.set(`assistant:${String(message.timestamp)}:${hash(JSON.stringify(message))}`,index);
  });
  return found;
 }

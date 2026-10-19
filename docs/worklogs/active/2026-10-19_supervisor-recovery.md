@@ -31,7 +31,7 @@ Audit run: 2026-10-19T16-13-42-353Z_qwen36-gpu0_petalburg2h-r6-whole-map, pin b4
 - Worklog written before implementation. Required skills: feature-switch, agent-observability, feature-explainer, experiment-queue and execute-worklog review contract.
 
 ## Multi-Model Review Log
-Pending implementation and gates; no review or landing claimed.
+Review manifests, findings, gate receipts and disposition are recorded below; no landing is claimed without the required approval.
 
 - RED: navigation outcome detector import missing; bundle/default test fails undefined vs false. Exact log runs/supervisor-recovery/red.log.
 
@@ -53,3 +53,8 @@ Pending implementation and gates; no review or landing claimed.
 - Round-2 candidate verification: r2-gates.json records GREEN lint/build/test/coverage/vendor/pages-check/experiments-check. 2584 agent +1236 viewer +2724 Python =6544 tests, zero skips. Coverage lines/branches/functions: agent99.27/93.98/98.20%; viewer97.72/91.37/93.98%; Python97.12/92.85/100%. Two further individual operand mutations are assertion-red with source restored (mutations-r2.json); ten mutations total. Updated recovery explainer served and browser-read; preview copy returns exact bytes/HTTP200. Pending definitions repin repaired runtime ancestor b79b7ef98b45cf22d6a262e7a44565fda6fa4baa. Cumulative round-two frozen review follows; no main landing or benchmark trial claimed.
 
 - Freeze check detected current main advanced to db7234dafd26d182a285de8970dbd448a9b98c5f (authorized finite run-extension work). Aborted newly dispatched review attempt before verdicts; retained in review-round2-aborted-main-moved, not an approval or blocker-producing round. Merged current main; only conflict was explainer-index append and retained both entries. Rerun required combined-tree gates before sealing valid round two.
+
+- Main-sync test/lint/build GREEN:2591 agent+1244 viewer+2724 Python=6559 tests, zero skips. First combined coverage hit unchanged serpentine-navigation body at5095ms vs5000ms (r2-sync-coverage.log); diff confirms only historical feature fixture import/registry offset changed there. Isolated coverage file30 tests passes (its subset global-floor failure is diagnostic, never a gate). Full coverage rerun retains original failure; no timeout/concurrency/retry/threshold/suppression changes. Final full result is in r2-sync-after-diagnostic-gates.json. Pending pins now use merged runtime054b5ba5e7dc1e6ef055c8ad89d8232043a239aa.
+- Round 2 review record: frozen identity at runs/supervisor-recovery/review-round2/manifest.json; per-lane receipts and final synthesis.md in that directory are the authoritative result, written after sealing this tracked log. No previous LGTM transfers. If Claude remains unavailable, the required disposition is operator checkpoint, never self-merge. After main landing, record its SHA/verdicts here in the permitted evidence-only commit and perform the specified branch/worktree cleanup.
+
+- Combined-tree final GREEN: r2-sync-gates.json has lint/build/test; r2-sync-after-diagnostic-gates.json has coverage/vendor/pages-check/experiments-check, all exit0. Full6559 tests and configured-ROM Python coverage zero skips. Original timeout log retained separately, never counted as passing. Seal only against current main db7234da after verifying it is an ancestor.

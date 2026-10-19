@@ -69,8 +69,8 @@ describe("registry",()=>{
   expect(featureInfo(ID)).toMatchObject({group:"guard",needs:HBT,switchable:true,title:"HEAL BEFORE TRAINERS: BAG ITEMS"});
   expect(featureInfo(ID).description).toContain(" Off: ");
   expect(featureInfo(ID).description).toContain(POTION_SENTENCE);
-  expect(SWITCHABLE_FEATURES.at(-11)).toBe(ID);
-  expect(playHarnessFeatures(ALL_ON,null).at(-11)).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-12)).toBe(ID);
+  expect(playHarnessFeatures(ALL_ON,null).at(-12)).toBe(ID);
   expect(playHarnessFeatures({...ALL_ON,[ID]:false},null)).not.toContain(ID);
   expect(SERVER_FEATURES).not.toContain(ID);
   expect(dependencyProblems({...ALL_ON,[HBT]:false})).toContain(`${ID} needs ${HBT}`);

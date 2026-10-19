@@ -61,8 +61,8 @@ const untried=(text:string):string=>text.split("\n").find(line=>line.startsWith(
 
 describe("faced-interaction-history-v1",()=>{
  it("is registered without disturbing historical ordering, defaults off, remains off in control, and is flipped only by the bundle arm",()=>{
-  expect(SWITCHABLE_FEATURES.at(-1)).toBe(ID);
-  expect(playHarnessFeatures(ALL_ON,null).at(-1)).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-2)).toBe(ID);
+  expect(playHarnessFeatures(ALL_ON,null).at(-2)).toBe(ID);
   expect(featureInfo(ID)).toMatchObject({group:"guard",needs:null,title:"FACED INTERACTION HISTORY"});
   expect(featureInfo(ID).description).toContain(" Off: ");
   expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false})[ID]).toBe(false);
@@ -73,7 +73,7 @@ describe("faced-interaction-history-v1",()=>{
   const raw=JSON.parse(readFileSync(new URL("../../../experiments/faced-interaction-history.json",import.meta.url),"utf8")) as {queuePosition?:number;blocked?:string;incumbent:{features:Record<string,boolean>}};
   expect(raw.queuePosition).toBeUndefined();
   expect(raw.blocked).toContain("do not queue");
-  expect(Object.keys(raw.incumbent.features).sort()).toEqual(SWITCHABLE_FEATURES.filter(id=>id!=="just-in-time-prompt-v2").sort());
+  expect(Object.keys(raw.incumbent.features).sort()).toEqual(SWITCHABLE_FEATURES.filter(id=>id!=="just-in-time-prompt-v2"&&id!=="save-state-task-truth-v1").sort());
   const {incumbent,candidate}=experimentArms(parseExperiment(raw));
   expect(incumbent.features[ID]).toBe(false);
   expect(candidate.features[ID]).toBe(true);

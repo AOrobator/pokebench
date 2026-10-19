@@ -1,0 +1,24 @@
+import {expect,it} from "vitest";
+import {NavigationFailure} from "./navigation-failure.js";
+import type {CompletedCall} from "./loop-detection.js";
+import type {GameStateSnapshot} from "./game-state.js";
+const field=(x=30):GameStateSnapshot=>({screen:"overworld",started:true,name:"A",location:"ROUTE104",map_id:[0,19],position:{x,y:58},facing:"left",field_controls_locked:false,in_battle:false,party:[],money:0,badges:[],play_time_s:0});
+const nav=(i:number,extra:Partial<CompletedCall>={}):CompletedCall=>({name:"navigate_to",args:{x:31,y:55-i,map_id:[0,19]},text:"Navigation: no supported path on the current map; 0 ordinary button attempts.",isError:false,state:field(),beforeState:field(),seq:i,...extra});
+it("detects different unreachable targets, retains evidence across a turn and one-tile move, then recovers after sustained displacement",()=>{
+ const f=new NavigationFailure();
+ expect(f.observe(nav(1))).toBeNull();expect(f.observe(nav(2))).toBeNull();
+ expect(f.observe(nav(3))).toEqual({active:true,evidence:[1,2,3]});
+ expect(f.observe(nav(4,{name:"press",args:{buttons:["UP"]},state:{...field(),facing:"up"}}))?.active).toBe(true);
+ expect(f.observe(nav(5,{name:"press",state:field(31)}))?.active).toBe(true);
+ expect(f.observe(nav(6,{name:"press",state:field(34)}))).toEqual({active:false,evidence:[]});
+});
+it("never counts successful partial walks, errors, battles, unknown/locked fields or menus",()=>{
+ for(const change of [{state:field(31)},{isError:true},{state:{...field(),in_battle:true}},{state:{...field(),field_controls_locked:true}},{state:{...field(),field_controls_locked:null}},{state:{...field(),screen:"menu" as const}},{state:undefined}]){
+  const f=new NavigationFailure();for(let i=1;i<=5;i++)expect(f.observe(nav(i,change))?.active??false).toBe(false);
+ }
+});
+it("re-arms on changed story/NPC/geometry conditions and explicit native progress reset",()=>{
+ const f=new NavigationFailure();f.observe(nav(1));f.observe(nav(2));
+ f.observe(nav(3,{state:{...field(),money:5},beforeState:{...field(),money:5}}));expect(f.observe(nav(4))).toBeNull();
+ f.observe(nav(5));expect(f.observe(nav(6))?.active).toBe(true);f.reset();expect(f.observe(nav(7))).toBeNull();
+});

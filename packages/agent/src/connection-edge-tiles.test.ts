@@ -113,11 +113,11 @@ describe("connection-edge-tiles-v1 registry, presets and state schema",()=>{
  it("is a default-off server observation switch recorded last, with OFF copy",()=>{
   expect(featureInfo(ID)).toMatchObject({group:"observation",needs:null,switchable:true});
   expect(featureInfo(ID).description).toContain(" Off: ");
-  expect(playHarnessFeatures({...ALL_ON,[ID]:true},null).at(-68)).toBe(ID);
-  expect(playHarnessFeatures({...ALL_ON,[ID]:false},null)).not.toContain(ID);
+  expect(playHarnessFeatures({...ALL_ON,"observed-instructions-v1":false,[ID]:true},null).at(-68)).toBe(ID);
+  expect(playHarnessFeatures({...ALL_ON,"observed-instructions-v1":false,[ID]:false},null)).not.toContain(ID);
   expect(SERVER_FEATURES).toContain(ID);
-  expect(serverFeatureEnv({...ALL_ON,[ID]:false}).POKEBENCH_FEATURES_OFF.split(",")).toContain(ID);
-  expect(serverFeatureEnv({...ALL_ON,[ID]:true}).POKEBENCH_FEATURES_OFF.split(",")).not.toContain(ID);
+  expect(serverFeatureEnv({...ALL_ON,"observed-instructions-v1":false,[ID]:false}).POKEBENCH_FEATURES_OFF.split(",")).toContain(ID);
+  expect(serverFeatureEnv({...ALL_ON,"observed-instructions-v1":false,[ID]:true}).POKEBENCH_FEATURES_OFF.split(",")).not.toContain(ID);
  });
  it("presets that omit it run with it off",()=>{
   expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false})[ID]).toBe(false);

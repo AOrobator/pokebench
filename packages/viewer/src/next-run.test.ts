@@ -8,7 +8,7 @@ import { processGroup } from "../test-support/process-group.js";
 import { DEFAULT_NEXT_RUN, LEASE, NextRunError, RunQueue, appendControl, healthProbe, liveRuns, presetFor, readDraft, spawnLaunch, writeDraft, type LaunchSpec, type QueueHost } from "./next-run.js";
 
 const NOW = new Date("2026-10-13T16:00:00.000Z");
-const ALL_ON = { ...REGISTERED_ALL_ON, "visited-terrain-navigation-v1": false, "battle-effective-damage-v1": false };
+const ALL_ON = { ...REGISTERED_ALL_ON, "observed-instructions-v1": false, "visited-terrain-navigation-v1": false, "battle-effective-damage-v1": false };
 function root(): string { return mkdtempSync(join(tmpdir(), "next-run-")); }
 // Game servers that answer /health in these tests.
 const UP = new Set([9001, 9003]);

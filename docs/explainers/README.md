@@ -124,3 +124,5 @@ The original ignored runs/explainers copies remain for existing links. Make futu
 - [Deterministic warp navigation](deterministic-warp-navigation-v1.html)
 
 - [Extend an active run (operator control)](extend-run.html)
+
+- [Observed instruction memory](observed-instructions-v1.html): complete delivered story-character episodes in YAML, separated from observed progress.

@@ -24,7 +24,7 @@ function snapshot(e:StateEvent):GameStateSnapshot {
 const stateAt=(seq:number)=>{const e=EVENTS.find(x=>x.seq===seq);if(e?.type!=="state"||!("started" in e))throw Error(`no state ${String(seq)}`);return snapshot(e);};
 const resultAt=(turn:number)=>{const e=EVENTS.find((x):x is ToolResultEvent=>x.type==="tool_result"&&x.turn===turn);if(e===undefined)throw Error(`no result ${String(turn)}`);return e;};
 const OFF:FeatureSet=Object.fromEntries(SWITCHABLE_FEATURES.map(id=>[id,false])) as Record<(typeof SWITCHABLE_FEATURES)[number],boolean>;
-const ON:FeatureSet={...ALL_ON,"state-only-decisions-v1":false,"people-ledger-v1":true};
+const ON:FeatureSet={...ALL_ON,"observed-instructions-v1":false,"state-only-decisions-v1":false,"people-ledger-v1":true};
 
 const T418_BLOCK=[
  "People and objects here (every object the game has loaded on this map; a sprite kind is a graphic, not a name):",
@@ -286,7 +286,7 @@ describe("people-ledger-v1 switch",()=>{
   expect(dependencyProblems({...OFF,"people-ledger-v1":true})).toContain("people-ledger-v1 needs dialogue-auto-advance-v1");
   expect(playHarnessFeatures(ON,null).at(-54)).toBe("people-ledger-v1");
   expect(playHarnessFeatures({...ON,"people-ledger-v1":false,"people-id-cards-v1":false,"trainer-heal-guidance-v1":false,"low-hp-trainer-warning-v1":false,"low-hp-trainer-warning-v2":false},null)).not.toContain("people-ledger-v1");
-  const features=Object.fromEntries(Object.entries({...ALL_ON,"state-only-decisions-v1":false}).filter(([id])=>id!=="people-ledger-v1"&&id!=="people-id-cards-v1"));
+  const features=Object.fromEntries(Object.entries({...ALL_ON,"observed-instructions-v1":false,"state-only-decisions-v1":false}).filter(([id])=>id!=="people-ledger-v1"&&id!=="people-id-cards-v1"));
   const preset=parsePlayPreset({version:2,id:"old",target:null,limits:{maxTurns:1500,maxWallMs:1800000,failureLimit:3},sampling:{thinkingLevel:"medium",maxTokens:4096},features});
   expect(presetFeatures(preset)["people-ledger-v1"]).toBe(false);
  });

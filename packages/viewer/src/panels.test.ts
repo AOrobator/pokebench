@@ -1240,3 +1240,17 @@ it("links stable JIT v2's native feature card to its tracked guide and receipt c
  const html=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)),"utf8");
  expect(html).toContain("projected_guidance");expect(html).toContain("canonical_history_json");
 });
+
+
+it("links the observed instruction memory card to its tracked explainer, which shows omission instead of none",()=>{
+ const id="observed-instructions-v1";
+ expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
+ const log=new Log();log.add(0,{...START,harness_features:["ram-state-v1","stale-story-goal-v1",id]});
+ const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
+ expect(doc.querySelector(`[data-feature="${id}"] a`)?.getAttribute("href")).toBe(`/explainers/${id}.html`);
+ const html=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)),"utf8");
+ expect(html).toContain(id);
+ expect(html).toContain("<title>Observed instruction memory</title>");
+ expect(html).toContain("observed_instruction_episodes:");
+ expect(html).toContain("observed_progress:");
+});

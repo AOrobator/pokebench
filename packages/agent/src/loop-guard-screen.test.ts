@@ -14,7 +14,7 @@ import {IN_GAME} from "../test-support/events.js";
 const ID="loop-guard-screen-v1" as const;
 const ADJUST="LEFT/RIGHT changes time; A opens confirmation";
 const CONFIRM="UP/DOWN selects; A accepts selection; B returns to adjustment";
-const features=(on:boolean):FeatureSet=>({...ALL_ON,"scripted-place-guidance-v1":false,"trigger-script-loop-v1":false,[ID]:on});
+const features=(on:boolean):FeatureSet=>({...ALL_ON,"observed-instructions-v1":false,"scripted-place-guidance-v1":false,"trigger-script-loop-v1":false,[ID]:on});
 const ev=(body:Record<string,unknown>,seq:number):RunEvent=>checkEvent({v:1,run:"screen",t:"2026-10-18T01:30:00.000-04:00",turn:93,seq,...body});
 const field=(seq:number)=>ev({type:"state",...IN_GAME,started:true,screen:"overworld",location:"GREEN's HOUSE 2F",map_id:[1,1],position:{x:7,y:2},facing:"down",field_controls_locked:false,interaction_targets:[],world_context:{objects:[],triggers:[],dialogue:null}},seq);
 const clock=(seq:number,ui:Record<string,unknown>)=>ev({type:"state",...IN_GAME,started:true,screen:"clock",location:"GREEN's HOUSE 2F",map_id:[1,1],position:{x:7,y:2},facing:"down",field_controls_locked:null,active_ui:ui,world_context:{objects:[],triggers:[],dialogue:null}},seq);
@@ -35,26 +35,26 @@ const transition={phase:"clock_transition",selected:null,ready:false,controls:"C
 
 describe("loop-guard-screen-v1",()=>{
  it("is registered third from the end, default off, and the bundle arm is the one that turns it on",()=>{
-  expect(SWITCHABLE_FEATURES.at(-13)).toBe(ID);
-  expect(playHarnessFeatures(ALL_ON,null).at(-13)).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-14)).toBe(ID);
+  expect(playHarnessFeatures(ALL_ON,null).at(-14)).toBe(ID);
   expect(featureInfo(ID)).toMatchObject({group:"guard",needs:"loop-guard-supervisor-v1",switchable:true,title:"LOOP GUARD SCREEN"});
   expect(featureInfo(ID).description).toContain(" Off: ");
   expect(featureInfo(ID).description).toContain("Bundle arm only");
   expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false})[ID]).toBe(false);
   expect(normalizeFeatures({} as Parameters<typeof normalizeFeatures>[0])[ID]).toBe(false);
-  const without=Object.fromEntries(Object.entries({...ALL_ON,"scripted-place-guidance-v1":false,"trigger-script-loop-v1":false,"state-only-decisions-v1":false}).filter(([id])=>id!==ID)) as FeatureSet;
+  const without=Object.fromEntries(Object.entries({...ALL_ON,"observed-instructions-v1":false,"scripted-place-guidance-v1":false,"trigger-script-loop-v1":false,"state-only-decisions-v1":false}).filter(([id])=>id!==ID)) as FeatureSet;
   expect(presetFeatures(parsePlayPreset({version:2,id:"p",target:null,limits:{maxTurns:1,maxWallMs:1,failureLimit:1},sampling:{thinkingLevel:"medium",maxTokens:1},features:without}))[ID]).toBe(false);
   const bundle=JSON.parse(readFileSync(new URL("../../../experiments/fixed/bundle-v-control.json",import.meta.url),"utf8")) as {base:{features:Record<string,boolean>};switches:string[]};
   expect(bundle.base.features[ID]).toBe(false);
   expect(bundle.switches).toContain(ID);
   const raw=JSON.parse(readFileSync(new URL("../../../experiments/loop-guard-screen.json",import.meta.url),"utf8")) as {queuePosition?:number;incumbent:{features:Record<string,boolean>}};
   expect(raw.queuePosition).toBeUndefined();
-  expect(Object.keys(raw.incumbent.features)).toEqual(SWITCHABLE_FEATURES.filter(id=>id!=="deterministic-warp-navigation-v1"&&id!=="battle-effective-damage-v1"&&id!=="scripted-place-guidance-v1"&&id!=="trigger-script-loop-v1"&&id!=="just-in-time-prompt-v2"&&id!=="faced-interaction-history-v1"&&id!=="cache-aligned-window-v1"&&id!=="jit-guide-reuse-v1"&&id!=="stale-story-goal-v2"&&id!=="visited-terrain-navigation-v1"));
+  expect(Object.keys(raw.incumbent.features)).toEqual(SWITCHABLE_FEATURES.filter(id=>id!=="observed-instructions-v1"&&id!=="deterministic-warp-navigation-v1"&&id!=="battle-effective-damage-v1"&&id!=="scripted-place-guidance-v1"&&id!=="trigger-script-loop-v1"&&id!=="just-in-time-prompt-v2"&&id!=="faced-interaction-history-v1"&&id!=="cache-aligned-window-v1"&&id!=="jit-guide-reuse-v1"&&id!=="stale-story-goal-v2"&&id!=="visited-terrain-navigation-v1"));
   const {incumbent,candidate}=experimentArms(parseExperiment(raw));
   expect(incumbent.features[ID]).toBe(false);
   expect(candidate.features[ID]).toBe(true);
   expect(candidate.features["loop-guard-supervisor-v1"]).toBe(true);
-  expect(SWITCHABLE_FEATURES.filter(id=>id!=="deterministic-warp-navigation-v1"&&id!=="battle-effective-damage-v1"&&id!=="scripted-place-guidance-v1"&&id!=="trigger-script-loop-v1"&&incumbent.features[id]!==candidate.features[id])).toEqual([ID]);
+  expect(SWITCHABLE_FEATURES.filter(id=>id!=="observed-instructions-v1"&&id!=="deterministic-warp-navigation-v1"&&id!=="battle-effective-damage-v1"&&id!=="scripted-place-guidance-v1"&&id!=="trigger-script-loop-v1"&&incumbent.features[id]!==candidate.features[id])).toEqual([ID]);
  });
  it("OFF briefs the field while the clock adjustment is open",()=>{
   const text=brief(false,adjustment);

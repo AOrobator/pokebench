@@ -6,11 +6,11 @@ import { flagFeatures, normalizeFeatures, parsePlayPreset, presetFeatures } from
 // readout-truth-v1 and birch-speech-pages-v1 (correctness fixes, ON in both arms) and
 // blackout-readout-v1 (bundle arm only): game-server readout switches, recorded last.
 const IDS = ["readout-truth-v1", "birch-speech-pages-v1", "blackout-readout-v1"] as const;
-const off = (...ids: (typeof SWITCHABLE_FEATURES)[number][]): FeatureSet => ({ ...ALL_ON, ...Object.fromEntries(ids.map((id) => [id, false])) });
+const off = (...ids: (typeof SWITCHABLE_FEATURES)[number][]): FeatureSet => ({ ...ALL_ON,"observed-instructions-v1":false, ...Object.fromEntries(ids.map((id) => [id, false])) });
 
 it("registers three default-off observation switches with no dependency, recorded last in this order", () => {
-  expect(SWITCHABLE_FEATURES.slice(-44,-41)).toEqual([...IDS]);
-  expect(playHarnessFeatures(ALL_ON, null).slice(-44,-41)).toEqual([...IDS]);
+  expect(SWITCHABLE_FEATURES.slice(-45,-42)).toEqual([...IDS]);
+  expect(playHarnessFeatures(ALL_ON, null).slice(-45,-42)).toEqual([...IDS]);
   for (const id of IDS) {
     expect(featureInfo(id)).toMatchObject({ group: "observation", needs: null, switchable: true });
     expect(featureInfo(id).description).toContain(" Off: ");

@@ -9,7 +9,8 @@ import {IN_GAME} from "../test-support/events.js";
 
 const off=Object.fromEntries(SWITCHABLE_FEATURES.map(id=>[id,false])) as FeatureSet;
 const event=(body:Record<string,unknown>):RunEvent=>checkEvent({v:1,run:"instructions",seq:1,t:"2026-10-19T12:00:00.000-04:00",turn:1,...body});
-const page=(text:string,speaker:string|null="DAD",source:"name_prefix"|"faced_sprite"|null="name_prefix")=>({text,speaker,speaker_source:source,map:"PETALBURG CITY GYM",map_id:[8,1],state_seq:1,position:null});
+type Page=Extract<RunEvent,{type:"dialogue_auto_advance"}>["pages"][number];
+const page=(text:string,speaker:string|null="DAD",source:"name_prefix"|"faced_sprite"|null="name_prefix"):Page=>({text,speaker,speaker_source:source,map:"PETALBURG CITY GYM",map_id:[8,1],state_seq:1,position:null});
 const norman=[page("DAD: Now…"),page("Head for RUSTBORO CITY beyond this\ntown."),page("There, you should challenge\nthe GYM LEADER, ROXANNE."),page("We'll battle one day, PLAYER.")];
 function harness(enabled=true){
  const subscribers:((e:RunEvent)=>void)[]=[],recorded:{text:string;evidence:number[]}[]=[];
@@ -18,9 +19,9 @@ function harness(enabled=true){
  return {wiring,recorded,send:(e:RunEvent)=>{for(const fn of subscribers)fn(e);}};
 }
 function deliver(h:ReturnType<typeof harness>,seq=2,pages=norman,error=false){
- h.send(event({type:"dialogue_auto_advance",seq,tool_call_id:`call-${seq}`,pages,tool:"press",requested:["A"],sent:["A"],dropped:[],auto_presses:1,stop:"field_free",detail:"fixture",duration_ms:1}));
+ h.send(event({type:"dialogue_auto_advance",seq,tool_call_id:`call-${String(seq)}`,pages,tool:"press",requested:["A"],sent:["A"],dropped:[],auto_presses:1,stop:"field_free",detail:"fixture",duration_ms:1}));
  h.send(event({type:"state",seq:seq+1,...IN_GAME,location:"RUSTBORO CITY",map_id:[0,3]}));
- h.send(event({type:"tool_result",seq:seq+2,id:`call-${seq}`,name:"press",text:"Location: RUSTBORO CITY\nStory: Wally tutorial complete",is_error:error,duration_ms:1,frames:[],state_seq:seq+1}));
+ h.send(event({type:"tool_result",seq:seq+2,id:`call-${String(seq)}`,name:"press",text:"Location: RUSTBORO CITY\nStory: Wally tutorial complete",is_error:error,duration_ms:1,frames:[],state_seq:seq+1}));
 }
 it("production chain pins whole Norman episode after arrival, newer dialogue and empty/pruned context",async()=>{
  const h=harness();deliver(h);
@@ -48,14 +49,42 @@ it("reads actual recorded Mom episode through the same production chain",async()
  const events=gunzipSync(readFileSync(new URL("./fixtures/instruction-ledger-v2-0e05.jsonl.gz",import.meta.url))).toString("utf8").trim().split("\n").map(line=>checkEvent(JSON.parse(line)));
  for(const e of events){if(e.seq>=1286)break;h.send(e);}
  const text=JSON.stringify(await h.wiring.transformContext([]));
- expect(text).toContain("PROF. BIRCH is his name.");expect(text).toContain("He lives right next door, so you should go over and introduce yourself.");
+ expect(text).toContain("PROF. BIRCH is his name.");expect(text).toContain(JSON.stringify(JSON.stringify("He lives right next door, so you should\ngo over and introduce yourself.")).slice(1,-1));
 });
 it("registers a default-OFF switch with state-only conflict and bundle treatment",()=>{
  expect(SWITCHABLE_FEATURES).toContain("observed-instructions-v1");
- expect(normalizeFeatures({})["observed-instructions-v1"]).toBe(false);
+ const {"observed-instructions-v1":omitted,...legacy}=off;expect(omitted).toBe(false);
+ expect(normalizeFeatures(legacy)["observed-instructions-v1"]).toBe(false);
  expect(flagFeatures({loopGuard:false,activeUi:false,interfaceDocs:false,objectives:false})["observed-instructions-v1"]).toBe(false);
  expect(playHarnessFeatures({...ALL_ON,"observed-instructions-v1":true},null)).toContain("observed-instructions-v1");
  expect(stateOnlyProblems({...ALL_ON,"state-only-decisions-v1":true})).toContain("state-only-decisions-v1 requires observed-instructions-v1 OFF");
  const bundle=JSON.parse(readFileSync(new URL("../../../experiments/fixed/bundle-v-control.json",import.meta.url),"utf8")) as {base:{features:Record<string,boolean>};switches:string[]};
  expect(bundle.base.features["observed-instructions-v1"]).toBe(false);expect(bundle.switches).toContain("observed-instructions-v1");
+});
+
+it("retains actual Norman pages after Rustboro arrival without inventing completion",async()=>{
+ const fixture=JSON.parse(readFileSync(new URL("./fixtures/observed-instructions-norman.json",import.meta.url),"utf8")) as {events:unknown[]};
+ const h=harness();const events=fixture.events.map(checkEvent);
+ for(const e of events)h.send(e);
+ await h.wiring.transformContext([]);const text=h.recorded.at(-1)?.text??"";
+ const dialogue=events[0];expect(dialogue?.type).toBe("dialogue_auto_advance");
+ if(dialogue?.type!=="dialogue_auto_advance")throw Error("missing owned dialogue");
+ for(const p of dialogue.pages)expect(text).toContain(`text: ${JSON.stringify(p.text)}`);
+ expect(text).toContain("ROXANNE");expect(text).toContain('"location":"RUSTBORO CITY"');
+ expect(text).toContain("Missing progress is unknown, not false");expect(text).not.toContain("completed: true");
+});
+it("deduplicates exact repeats, keeps distinct episodes and excludes cross-run input",async()=>{
+ const h=harness();deliver(h);deliver(h,10);deliver(h,20,[page("MOM: Another instruction","MOM")]);
+ h.send(event({run:"other-run",type:"dialogue_auto_advance",seq:50,tool_call_id:"foreign",pages:[page("DAD: FOREIGN")],tool:"press",requested:[],sent:[],dropped:[],auto_presses:0,stop:"field_free",detail:"",duration_ms:0}));
+ await h.wiring.transformContext([]);const text=h.recorded.at(-1)?.text??"";
+ expect(text.match(/text: "DAD: Now…"/g)).toHaveLength(1);expect(text).toContain("Another instruction");expect(text).not.toContain("FOREIGN");
+});
+it("combines multiple dialogue records from one delivered call and preserves unknown speakers within it",async()=>{
+ const h=harness();deliver(h);
+ h.send(event({type:"dialogue_auto_advance",seq:10,tool_call_id:"split",pages:[page("MOM: Listen","MOM")],tool:"press",requested:[],sent:[],dropped:[],auto_presses:0,stop:"field_free",detail:"",duration_ms:0}));
+ h.send(event({type:"dialogue_auto_advance",seq:11,tool_call_id:"split",pages:[page("Unattributed follow-up",null,null)],tool:"press",requested:[],sent:[],dropped:[],auto_presses:0,stop:"field_free",detail:"",duration_ms:0}));
+ h.send(event({type:"tool_result",seq:12,id:"split",name:"press",text:"no location",is_error:false,duration_ms:0,frames:[]}));
+ h.send(event({type:"tool_result",seq:13,id:"model",name:"remember_destination",text:"Location: FAKE",is_error:false,duration_ms:0,frames:[]}));
+ await h.wiring.transformContext([]);const text=h.recorded.at(-1)?.text??"";
+ expect(text).toContain("dialogue_events: [10,11]");expect(text).toContain("Unattributed follow-up");expect(text).toContain("speaker: null");expect(text).not.toContain("FAKE");
 });

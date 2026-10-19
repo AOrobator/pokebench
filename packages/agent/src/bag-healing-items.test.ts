@@ -69,14 +69,14 @@ describe("registry",()=>{
   expect(featureInfo(ID)).toMatchObject({group:"guard",needs:HBT,switchable:true,title:"HEAL BEFORE TRAINERS: BAG ITEMS"});
   expect(featureInfo(ID).description).toContain(" Off: ");
   expect(featureInfo(ID).description).toContain(POTION_SENTENCE);
-  expect(SWITCHABLE_FEATURES.at(-18)).toBe(ID);
-  expect(playHarnessFeatures(ALL_ON,null).at(-18)).toBe(ID);
-  expect(playHarnessFeatures({...ALL_ON,"scripted-place-guidance-v1":false,"trigger-script-loop-v1":false,[ID]:false},null)).not.toContain(ID);
+  expect(SWITCHABLE_FEATURES.at(-19)).toBe(ID);
+  expect(playHarnessFeatures(ALL_ON,null).at(-19)).toBe(ID);
+  expect(playHarnessFeatures({...ALL_ON,"observed-instructions-v1":false,"scripted-place-guidance-v1":false,"trigger-script-loop-v1":false,[ID]:false},null)).not.toContain(ID);
   expect(SERVER_FEATURES).not.toContain(ID);
-  expect(dependencyProblems({...ALL_ON,"scripted-place-guidance-v1":false,"trigger-script-loop-v1":false,[HBT]:false})).toContain(`${ID} needs ${HBT}`);
+  expect(dependencyProblems({...ALL_ON,"observed-instructions-v1":false,"scripted-place-guidance-v1":false,"trigger-script-loop-v1":false,[HBT]:false})).toContain(`${ID} needs ${HBT}`);
  });
  it("defaults OFF for presets that omit it and legacy flags; prompt and tools never change",()=>{
-  const without=Object.fromEntries(Object.entries({...ALL_ON,"scripted-place-guidance-v1":false,"trigger-script-loop-v1":false,"state-only-decisions-v1":false}).filter(([id])=>id!==ID)) as Omit<FeatureSet,typeof ID>;
+  const without=Object.fromEntries(Object.entries({...ALL_ON,"observed-instructions-v1":false,"scripted-place-guidance-v1":false,"trigger-script-loop-v1":false,"state-only-decisions-v1":false}).filter(([id])=>id!==ID)) as Omit<FeatureSet,typeof ID>;
   expect(normalizeFeatures(without)[ID]).toBe(false);
   expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:true})[ID]).toBe(false);
   expect(presetFeatures(parsePlayPreset({version:2,id:"p",target:null,limits:{maxTurns:1,maxWallMs:1,failureLimit:1},sampling:{thinkingLevel:"medium",maxTokens:1},features:without}))[ID]).toBe(false);
@@ -209,7 +209,7 @@ describe("recorded event",()=>{
 describe("the pending experiment",()=>{
  it("flips only bag-healing-items-v1 over the bundle-style incumbent with heal-before-trainers-v1 on, and is not queued",()=>{
   const raw=JSON.parse(readFileSync(new URL("../../../experiments/bag-healing-items.json",import.meta.url),"utf8")) as {incumbent:{features:Record<string,boolean>}};
-  expect(Object.keys(raw.incumbent.features)).toEqual(SWITCHABLE_FEATURES.filter(id=>id!=="deterministic-warp-navigation-v1"&&id!=="battle-effective-damage-v1"&&id!=="scripted-place-guidance-v1"&&id!=="trigger-script-loop-v1"&&id!=="just-in-time-prompt-v2"&&id!=="faced-interaction-history-v1"&&id!=="cache-aligned-window-v1"&&id!=="jit-guide-reuse-v1"&&id!=="stale-story-goal-v2"&&id!=="visited-terrain-navigation-v1"));
+  expect(Object.keys(raw.incumbent.features)).toEqual(SWITCHABLE_FEATURES.filter(id=>id!=="observed-instructions-v1"&&id!=="deterministic-warp-navigation-v1"&&id!=="battle-effective-damage-v1"&&id!=="scripted-place-guidance-v1"&&id!=="trigger-script-loop-v1"&&id!=="just-in-time-prompt-v2"&&id!=="faced-interaction-history-v1"&&id!=="cache-aligned-window-v1"&&id!=="jit-guide-reuse-v1"&&id!=="stale-story-goal-v2"&&id!=="visited-terrain-navigation-v1"));
   const entry=parseExperiment(raw);
   expect(entry.queuePosition).toBeUndefined();
   expect(entry.changedFeature).toBe(ID);

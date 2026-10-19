@@ -110,10 +110,10 @@ The operator approved “ok lets build it” after the concrete proposal: unreco
 - Known-scene creation, stable core/catalog, canonical history, result-batch ordering and v2-OFF behavior stay unchanged. A known-interface startup anchored to a preserved task remains the existing behavior; this revision removes unknown startup retention specifically, not all possible task anchors.
 - Changing the delivery policy invalidates earlier v2 review/launch qualification. Use a fresh packet. No cache or gameplay benefit claim; readiness remains BLOCKED pending checkpoint and actual template/token-fit qualification.
 ### Milestones
-- [ ] RED: unknown startup minimal; known→unknown→same-known chronology; window eviction and prefix preservation; factory receipt and provider payload.
-- [ ] GREEN: production projection; metadata/explainer/overview corrected; no extra guides.
-- [ ] Gates, mutation, synthetic provider/recording/replay proof, responsive explainer.
-- [ ] Fresh multi-model code review; carry forward the operator’s explicit Claude-lane waiver for this continuing v2 work, with new GPT/Grok/fallback reviews of the revised packet.
+- [x] RED: unknown startup minimal; known→unknown→same-known chronology; window eviction and prefix preservation; factory receipt and provider payload.
+- [x] GREEN: production projection; metadata/explainer/overview corrected; no extra guides.
+- [x] Gates, mutation, synthetic provider/recording/replay proof, responsive explainer.
+- [x] Fresh multi-model code review; carry forward the operator’s explicit Claude-lane waiver for this continuing v2 work, with new GPT/Grok/fallback reviews of the revised packet.
 ### Review boundary
 Only no-fallback unknown delivery, truthful receipts and matching documentation. V1 and specialized scene text unchanged. Existing pending experiment remains unapproved/unqueued; no new experiment or silent source pin from old approval.
 
@@ -145,3 +145,12 @@ Only no-fallback unknown delivery, truthful receipts and matching documentation.
 - New cumulative packet needs final integration gates and a bounded second source-review round. Existing Python app/test source byte-identical to the prior integrated PASS; reuse its exact full-suite/coverage receipts and recheck TS/build/lint/vendor for the new common feature registry. No new experimental scope or launch authorization.
 
 - M6 integration build/lint/vendor and completeTScoverage PASS: all2491agent+1178viewer tests, unchanged90floors. Python source/tests byte-identical to b464a50f and its2709test/coveragePASS receipt. Projection/helper/factory/provider/unit test files and v2catalogline byte-identical to fully reviewed M5. New common faced-interaction paths covered by integration-ts-coverage.log. Main's subsequent6db13bb3 commit changes only its unrelated worklog; synced with application/schema/experiment trees byte-identical to tested687c7be0. Second source-review packet follows; no newproductionfixes.
+
+## Minimal-unknown landing receipt — 2026-10-18
+- Final source Round2 base6db13bb39de9601977650b06cb65b2103aad470e→HEAD3ef93970ca9b70027e58d10ad1a151573135f5ec, binarydiffSHA256db7308cc4e0c3475cd0b6593a38494e5ede748aed4d50cd59549de0dbf499767. GPT/Grok/Astra/Sol all literalLGTM on finalpacket. Original sourceRound1 alsoapproved; Sol's sole evidencegap closed with isolatedcopy re-entry deletion/restoration, no productionbugfix. Full verbatim receipts under preparationworktree runs/reviews/jit-v2-minimal/round2/. GrokAsk could not run hashcommands; root and3Codexcontexts independently verified exactbytes; Grok inspected frozenpatch/source and exit0/stderremptyLGTM. Claude CLI/Opus/Sonnet unavailable, retained under the operator's existing explicitwaiver for continuingv2work.
+- Canonical main clean/unchanged at finalbase; fast-forward landed exactly3ef93970. No source change after finalfrozenpacket. Post-main justbuild and justtest PASS:2491agent+1178viewer+2709Python=6378tests,0skips. Complete branchcoverage/lint/vendor remainsqualified; no gates weakened.
+- Sanctioned justviewer-main restarted around21:14:42–21:15EDT from clean3ef93970. Running runtime stamp exactly3ef93970/dirtyfalse, one8790listener,0gameplayprocesses before/after. Launcher ran in a separate process session so the sanctioned viewer survives its launching tool; no alternate viewerCLI, queueapproval or gameplay launch.
+- Live browser: completed5a61selected,REPLAYready; nativeHarnessConfigv2card says unknowninterfacesaddnoguide/fullfallback; actualREADEXPLAINERlink opens correctedtrackedpage. Refreshed originalexplainer tab. Saved/opened landed.png and nativecard replay.png. /api/next-run reports v2false. Both8790/8791canonicalexplainer HTTP200 bytes match trackedsource.
+- Inventory before/after:336rootrunheaders identical, no newruns; workbench includes all24jit-10m cohort rows with no stale-viewer-buildproblem. Historical fullscan stillfillsin and unrelatedmissingnavigation-evidence-memorycomparisonreceipt remains visible; no clean-all-history claim.
+- M5/M6 implementation, gates, two-source-round review, landing and live proof complete. V2 staysOFF, pending/unqueued/unapproved; no experiment/model/GPUrun was launched. Readiness BLOCKED for actualtemplate/token-fit, checkpointload, servingparity, finalsourcepin and freshbudget/launchapproval. No newinterfaceguides or classifierchanges. Existingknown task-only startup anchoring remainsdisclosed. Archive notauthorized.
+- This final commit is evidence-only, confined to docs/worklogs; application tree remains reviewed3ef93970.

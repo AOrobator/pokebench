@@ -8,7 +8,7 @@
  "primaryMilestone": "RUSTBORO_CITY",
  "source": {
   "checkout": "main",
-  "commit": "53de6d83a649568e4c847135196f929d20fd9e35"
+  "commit": "edf51e0e9b81f7761a79500d750213c76ef1e238"
  },
  "incumbent": {
   "version": 2,

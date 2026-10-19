@@ -44,7 +44,8 @@ The concurrent whole-map probe showed visibly heavy deliberation while a complet
 
 - Source checkout: `/Users/user/dev/pokeemerald`, clean at `731ad5bfd6e6f265508d0efcca0ba42f9dcf5881` on 2026-10-19.
 - RED specification commit: `890d7e91675c2c4ee7da5d287614c253d08ece45`; production implementation commit: `f2384d6bb3edde7d8739732ba1852e7f9d0fdf29`.
-- Feature-complete tests, docs, experiment, and gate-fix commit: `53de6d83a649568e4c847135196f929d20fd9e35`; the pending experiment pins this parent so its subsequent pin-only commit does not create a self-reference.
+- Initial feature-complete tests, docs, experiment, and gate-fix commit: `53de6d83a649568e4c847135196f929d20fd9e35`.
+- Main-sync and reviewer-fix commit: `edf51e0e9b81f7761a79500d750213c76ef1e238`; the repinned pending experiment names this feature-complete parent so the final pin-only commit does not create a self-reference.
 - Post-sync full tests: agent 2,538 passed; viewer 1,197 passed; environment 2,480 passed and 229 ROM-dependent tests skipped because `POKEBENCH_ROM` was unset.
 - Post-sync coverage: agent statements 97.88%, branches 94.04%, functions 98.25%, lines 99.25%; viewer statements 95.43%, branches 91.49%, functions 93.88%, lines 97.65%; environment lines 97.47%, branches 93.37%, functions 99.43%. All suites and all 90% floors passed.
 - Post-sync `just lint`, `just build`, `just verify-vendor`, `just experiments-check`, explainer `pages-check`, and `git diff --check` passed. The isolated worktree used the canonical checkout's unchanged mGBA Python binding for strict mypy, matching established worktree practice; no gameplay process or canonical file was changed. Vendor was clean at `bbab97ad73e460b7cd7c08527d10ced30cc03fbe`.

@@ -52,7 +52,7 @@ None yet.
 
 ## Multi-Model Review Log
 
-Pending implementation and gates.
+Round1: concrete cancellation/evidence blockers accepted and fixed. Round2: independent GPT6.1Sol plus fallback Astra/Sol LGTM onba07757a; Claude auth/quota and bounded Grok timeouts remain incomplete vendor lanes. Final integrated packet review receipts are stored under runs/strides/review-integrated; no self-merge is authorized by fallback reviews.
 
 ## Boy Scout Log
 
@@ -93,3 +93,11 @@ User-gated; not requested.
 - Both bounded Grok attempts in round2 timed out without output (4.7high-fast302seconds,4.5high-fast120seconds), no verdict counted. Three independent GPT-context reviews end LGTM onba07757a; missing Claude/Grok vendor diversity remains explicit. No self-merge.
 - Integrated pinned current maina6274650 (capture/shared-stream and battle-decision-ready). Preserve its snapshot-worker arguments/shutdown and battle behavior; retain safe-strides ON installation/defaultOFF registration. Reconciled append-only feature registry and historical OFF fixture assertions over the new main tests. All22 mutated production guard hashes remain identical.
 - Initial integrated TS coverage found two mechanical expectation mismatches (guidance count and a selective-OFF last-feature index); corrected openly, repeating full TS gates. Python/full build checks running. An owned native ON/OFF smoke on the combined actual server follows before final packet. This integration adds no new safe-strides behavior.
+
+
+### Final integrated evidence
+
+- Pinned integration basea6274650. Full gates: agent2621, viewer1282, Python2804 tests pass, zero skips in qualified Python run. Coverage agent99.23/94.06/98.02, viewer97.69/91.03/93.77, Python96.88/92.29/100 (lines/branches/functions). TypeScript and Python lint, build, exact schema,123experiment definitions and vendor checks pass (see integration-* logs; inspect experiment log for exact count).
+- Clean5c3db306 combined-server native smoke: OFF/ON eight-tile goal and one-tile goal, all4calls terminalcompleted. ON exact endpoints21,19 and28,19; OFF stopped27,19 in both. Native journal29actions; twelve integrity-checked raw archives reparse to recorded map/positions under the new capture worker. Existing six-goal matrix remains the broader engineering travel evidence, not model efficacy. No gameplay trial launched.
+- All22 operand-mutated production guard source hashes match after integration. Real feature-card/guide link, desktop/mobile layout and source-qualified public report verified earlier; guide/card production behavior is unchanged by the main sync.
+- Final integration review seals the latest candidate and unchanged original safe-stride boundary. Missing Claude/Grok cloud lanes block self-merge under execute-worklog. Candidate stays defaultOFF, unqueued/unapproved, live runs untouched. Operator decision is required to waive unavailable vendor lanes; future efficacy comparison separately needs design/readiness/launch approval. Do not archive this worklog or delete the worktree.

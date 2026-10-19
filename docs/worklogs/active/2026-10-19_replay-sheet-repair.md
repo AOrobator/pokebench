@@ -31,6 +31,8 @@ Default to a live run when any live run exists. Deliberately opened replays rema
 
 ## Principles adherence
 
+Review correction: a fresh milestone in a retained live workbench record could override the selected replay's badge with NEW MILESTONE and a dot. The new mounted header/sheet regression failed on the missing REPLAY chip (18 passed / 1 failed), then passed 19/19 after `cardInputFor` suppresses live freshness for replay inputs. Existing live milestone decoration remains tested. Also mutation-checked the stale-`#run` default and full-card reuse invariants: reverting the selection guard selected the exact ended fixture ID; swapping the sheet back to mini produced zero wide cards. Both targeted tests failed, then passed 2/2 after restoration. No mutation remains.
+
 PB1 PASS: status remains recorded/discovered data, no agent claims used. PB2 N/A: no result filtering. PB3 N/A: no benchmark claim. PB4 PASS: viewer only. PB5 PASS: no measured runs. PB6 N/A: no context changes. PB7 PASS: scratch replay uses recorded events. PB8 N/A: no agent retry changes. PB9 PASS: operator clarified live default versus deliberate replay navigation and mandated existing full Trainer Cards. PB10 PASS: original regressions observed RED; amended tests assert live default, explicit replay and exact reused full-card markup; gates unchanged. PB11 PASS: no dependency/API change. PB12 PASS: ROM stays outside git and recordings unchanged. PB13 PASS: worklog and independent review track closeout.
 
 ## Review boundary

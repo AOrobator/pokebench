@@ -55,7 +55,7 @@ async function mount(width: number, options: { art?: boolean; fresh?: boolean; g
   document.body.innerHTML = PAGE.slice(PAGE.indexOf("<body>") + 6, PAGE.indexOf("</body>"));
   const streams: FakeStream[] = [], drawn: number[] = [];
   const replayStatus = options.replayStatus ?? "ended";
-  const replay = { ...wbRun(REPLAY_ID, "bundle", 1_000_000, 3_600_000), status: replayStatus, reason: replayStatus === "ended" ? "budget" : null };
+  const replay = { ...wbRun(REPLAY_ID, "bundle", options.fresh === true ? 3_590_000 : 1_000_000, 3_600_000), status: replayStatus, reason: replayStatus === "ended" ? "budget" : null };
   const workbench = { version: 1, at: nowMs, milestones: [], problems: [], runs: [wbRun(LIVE_ID, "bundle", options.fresh === true ? 2_790_000 : 1_000_000, 2_800_000), wbRun(OTHER_ID, "control", 500_000, 2_700_000), replay] };
   if (options.missingLiveCards === true) workbench.runs = [replay];
   const deps: AppDeps = {
@@ -187,6 +187,17 @@ describe("trainer cards in the viewer", () => {
     expect(replay.getAttribute("aria-pressed")).toBe("true");
     expect(replay.innerHTML).toContain('data-gt="REPLAY"');
     expect(replay.querySelector(".tc-dot")).toBeNull();
+  });
+
+  it("keeps a fresh stale-workbench replay dotless in the shared header and mobile cards", async () => {
+    await mount(375, { runs: [must(RUNS[2])], replayStatus: "live", fresh: true });
+    ui("run-head").click();
+    for (const host of [ui("run-cards"), ui("run-sheet-body")]) {
+      const replay = card(host, REPLAY_ID);
+      expect(replay.querySelector('[data-gt="REPLAY"]')).not.toBeNull();
+      expect(replay.querySelector(".tc-dot")).toBeNull();
+      expect(replay.classList.contains("tc-new")).toBe(false);
+    }
   });
 
   it("does not admit an ended workbench record into a stale live run list", async () => {

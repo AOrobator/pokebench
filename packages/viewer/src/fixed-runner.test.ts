@@ -34,7 +34,7 @@ it("all four recovery treatments are ON in bundle and OFF in control in the actu
  }
 });
 
-type Ending = "budget" | "model_error" | "never-started";
+type Ending = "budget" | "model_error" | "never-started" | "milestone";
 interface FakeOptions {
   readonly beforeExit?: (launch: FixedLaunch, n: number) => Promise<void>;
   readonly extensionMs?: number;
@@ -103,17 +103,18 @@ class Fake implements FixedHost {
   }
 }
 
-function writeEvents(runsRoot: string, l: FixedLaunch, ending: "budget" | "model_error", extensionMs = 0): void {
-  const preset = JSON.parse(readFileSync(l.presetPath, "utf8")) as { id: string; limits: { maxWallMs: number }; features: Record<string, boolean>; start?: { path: string; sha1: string } };
+function writeEvents(runsRoot: string, l: FixedLaunch, ending: "budget" | "model_error" | "milestone", extensionMs = 0): void {
+  const preset = JSON.parse(readFileSync(l.presetPath, "utf8")) as { id: string; target?:string|null;stopAt?:string;limits: { maxWallMs: number }; features: Record<string, boolean>; start?: { path: string; sha1: string } };
   const port = Number(new URL(l.env["POKEBENCH_GAME_SERVER_URL"] ?? "").port);
   const log = new Log();
-  log.add(0, { ...START, rom_sha1: ROM_SHA1, model: { ...START.model, id: l.env["POKEBENCH_MODEL"] ?? "" }, start_state: preset.start === undefined ? { kind: "boot" } : { kind: "save_state", path: preset.start.path, sha1: preset.start.sha1 }, budgets: { max_wall_ms: preset.limits.maxWallMs }, isolation: { ...START.isolation, port }, evaluation: { preset_id: preset.id, target: null, failure_limit: 3, reply_failures_end_run: false, flags: { loopGuard: true, activeUi: true, interfaceDocs: true, objectives: false }, features: preset.features } });
+  log.add(0, { ...START, rom_sha1: ROM_SHA1, model: { ...START.model, id: l.env["POKEBENCH_MODEL"] ?? "" }, start_state: preset.start === undefined ? { kind: "boot" } : { kind: "save_state", path: preset.start.path, sha1: preset.start.sha1 }, budgets: { max_wall_ms: preset.limits.maxWallMs }, isolation: { ...START.isolation, port }, evaluation: { preset_id: preset.id, target: preset.stopAt??preset.target??null, failure_limit: 3, reply_failures_end_run: false, flags: { loopGuard: true, activeUi: true, interfaceDocs: true, objectives: false }, features: preset.features } });
+  if(ending==="milestone")log.add(20_000,{type:"milestone",turn:4,name:preset.stopAt??preset.target??"RIVAL_MET",kind:"story",origin:"observed",server_timestamp:1});
   if (ending === "model_error") log.add(10, { type: "retry", turn: 1, reason: "model error: HTTP 502", attempt: 3, limit: 3 });
   if (extensionMs > 0) {
     log.add(1000, { type: "operator_control", turn: 1, action: "extend_30m", status: "applied", request: 1, previous_max_wall_ms: preset.limits.maxWallMs, max_wall_ms: preset.limits.maxWallMs + extensionMs });
     log.add(preset.limits.maxWallMs + 1000, { type: "milestone", turn: 4, name: "STONE_BADGE", kind: "story", origin: "observed", server_timestamp: 1 });
   }
-  log.add(preset.limits.maxWallMs + extensionMs, { type: "run_end", turn: 5, reason: ending, furthest_milestone: null, turns: 5, wall_ms: ending === "budget" ? preset.limits.maxWallMs + extensionMs : 10, tokens: { input: 1, output: 1 }, frames: { saved: 0, bytes: 0 } });
+  log.add(preset.limits.maxWallMs + extensionMs, { type: "run_end", turn: 5, reason: ending, furthest_milestone: null, turns: 5, wall_ms: ending === "budget" ? preset.limits.maxWallMs + extensionMs : ending==="milestone"?20_000:10, tokens: { input: 1, output: 1 }, frames: { saved: 0, bytes: 0 } });
   mkdirSync(join(runsRoot, l.runId), { recursive: true });
   writeFileSync(join(runsRoot, l.runId, "events.jsonl"), log.events.map((e) => JSON.stringify(e)).join("\n") + "\n");
 }
@@ -510,3 +511,15 @@ it("enables explicit evolution only in the bundle through the production arm bui
  expect(armFeatureBits(def,"control")["evolution-decision-v1"]).toBe(false);
  expect(armFeatureBits(def,"bundle")["evolution-decision-v1"]).toBe(true);
  });
+it("rehearses all sixteen starter diagnostic slots with one switch, native early stops and eight choices per arm",async()=>{
+ const {definition:def}=parseFixedDefinition(readFileSync(new URL("../../../experiments/fixed/starter-decision-salience.json",import.meta.url),"utf8"));
+ const {runsRoot,dir}=setup(def);const host=new Fake(runsRoot,{ending:()=>"milestone",serving:()=>({...RECEIPT,...def.serving})},def.id);
+ expect(await runFixed({def,definitionSha256:"d".repeat(64),runsRoot,host,stopRequested:()=>false,pid:77})).toBe("finished");
+ const ledger=readLedger(join(dir,"trials.jsonl")),finished=outcomes(ledger);
+ expect(finished).toHaveLength(16);expect(finished.every(e=>e.valid&&e.endReason==="milestone"&&e.primaryReached&&e.primaryMs===20_000)).toBe(true);
+ for(const lane of def.lanes)for(const arm of ["control","bundle"]){
+  const launches=host.launches.filter(l=>l.lane===lane.id&&l.arm===arm);expect(launches).toHaveLength(4);
+  for(const launch of launches){const p=JSON.parse(readFileSync(launch.presetPath,"utf8")) as {target:null;stopAt:string;features:Record<string,boolean>;limits:{maxWallMs:number}};expect(p.target).toBeNull();expect(p.stopAt).toBe("STARTER_CHOSEN");expect(p.limits.maxWallMs).toBe(300_000);expect(p.features["starter-decision-salience-v1"]).toBe(arm==="bundle");}
+ }
+ expect(host.maxRunning).toBe(2);expect(def.replacementReserveMs).toBe(0);expect(def.terminalErrorsAsOutcomes).toBe(true);
+});

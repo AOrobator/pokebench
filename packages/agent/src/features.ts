@@ -148,6 +148,7 @@ export const SWITCHABLE_FEATURES = [
   "safe-navigation-strides-v1",
   "evolution-decision-v1",
   "observed-instructions-v1",
+  "starter-decision-salience-v1",
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
 
@@ -404,6 +405,7 @@ export const FEATURES: readonly FeatureInfo[] = [
     "Logs every loop the guard would act on, even with the loop guard off, so guard-on and guard-off runs can be compared."),
   on("observed-instructions-v1", "guidance", "OBSERVED INSTRUCTION MEMORY", "dialogue-auto-advance-v1",
     "Pins whole delivered field-dialogue episodes containing a story character's printed name in YAML, with exact text and source references, separately from delivered location/story facts. Keeps earlier episodes after newer dialogue or arrival; infers no objectives or completion. Off: no additional instruction memory or context record."),
+  on("starter-decision-salience-v1", "guidance", "STARTER DECISION SALIENCE", null, "Default off. A coherent ready starter-selection observation adds a neutral request to consider alternatives, explain the choice against the goal and distinguish knowledge from uncertainty. It supplies no species recommendation or comparative facts and executes no inputs. Confirmation, transitions and acquired parties receive no new reminder. Off: the existing model observation, tools and actions are unchanged."),
 ];
 
 export const ALL_ON: FeatureSet = Object.fromEntries(SWITCHABLE_FEATURES.map((id) => [id, true])) as Record<SwitchableFeature, boolean>;
@@ -573,6 +575,7 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("safe-navigation-strides-v1"),
     ...when("evolution-decision-v1"),
     ...when("observed-instructions-v1"),
+    ...when("starter-decision-salience-v1"),
   ];
 }
 
@@ -583,5 +586,5 @@ export function featuresOf(harnessFeatures: readonly string[]): FeatureSet {
 
 export function stateOnlyProblems(features:FeatureSet):string[]{
  if(!features["state-only-decisions-v1"])return [];
- return (["observed-instructions-v1","battle-decision-ready-v1","objective-tracking-v1","deterministic-loop-guard-v1","bounded-navigation-v1","press-result-v1","navigation-evidence-memory-v1","game-evidence-priority-v1","dialogue-log-v1","instruction-ledger-v1","instruction-ledger-v2","disproved-beliefs-v1","next-milestone-hint-v1","double-context-window-v1","fresh-retry-v1","text-only-supervisor-v1","dialogue-auto-advance-v1","readout-rules-in-prompt-v1","explorer-guidance-v1","untaken-exits-v1","explorer-guidance-v2","people-id-cards-v1","harness-trust-v1","cited-destination-v1","harness-trust-v2","input-cuts-v1","just-in-time-prompt-v1","just-in-time-prompt-v2","evolution-decision-v1"] as const).filter(id=>features[id]).map(id=>`state-only-decisions-v1 requires ${id} OFF`);
+ return (["observed-instructions-v1","battle-decision-ready-v1","objective-tracking-v1","deterministic-loop-guard-v1","bounded-navigation-v1","press-result-v1","navigation-evidence-memory-v1","game-evidence-priority-v1","dialogue-log-v1","instruction-ledger-v1","instruction-ledger-v2","disproved-beliefs-v1","next-milestone-hint-v1","double-context-window-v1","fresh-retry-v1","text-only-supervisor-v1","dialogue-auto-advance-v1","readout-rules-in-prompt-v1","explorer-guidance-v1","untaken-exits-v1","explorer-guidance-v2","people-id-cards-v1","harness-trust-v1","cited-destination-v1","harness-trust-v2","input-cuts-v1","just-in-time-prompt-v1","just-in-time-prompt-v2","evolution-decision-v1","starter-decision-salience-v1"] as const).filter(id=>features[id]).map(id=>`state-only-decisions-v1 requires ${id} OFF`);
 }

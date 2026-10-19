@@ -175,6 +175,7 @@ export interface TrialExpectation {
   readonly terminalErrorsAsOutcomes?: boolean;
   readonly progressOrder?: readonly string[];
   readonly primary: string;
+  readonly target?: string | null;
   // Absent for cohorts run before this driver: their configuration is not checked.
   readonly presetId?: string;
   readonly start?: { readonly kind: "save_state"; readonly sha1: string } | { readonly kind: "boot" };
@@ -197,6 +198,7 @@ function configProblems(start: Parsed, expect: TrialExpectation): string[] {
   const model = record(start["model"]);
   const problems: string[] = [];
   const preset = typeof evaluation["preset_id"] === "string" ? evaluation["preset_id"] : "none";
+  if(expect.target!==undefined&&evaluation["target"]!==expect.target)problems.push(`stopping target ${String(evaluation["target"])} (planned ${String(expect.target)})`);
   if (preset !== expect.presetId) problems.push(`preset ${preset} (planned ${expect.presetId})`);
   else if (evaluation["reply_failures_end_run"] !== false) problems.push("preset limits do not keep reply failures from ending the run");
   if (budgets["max_wall_ms"] !== expect.maxWallMs) problems.push(`wall cap ${String(budgets["max_wall_ms"])} ms (planned ${String(expect.maxWallMs)})`);

@@ -13,3 +13,5 @@ Readiness verdicts are in [readiness.md](readiness.md).
 - [JIT v2 one-pair diagnostic pilot](jit-v2-pair-10m.html) — one ten-minute run per arm; existing runs protected.
 
 - [JIT cache fixes: concurrent twenty-minute pair](jit-v2-cache-20m.html)
+
+- [Starter decision salience diagnostic](starter-decision-salience.html) — eight per arm, Route101 checkpoint, five-minute cap; not approved or launched.

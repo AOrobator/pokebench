@@ -1,7 +1,8 @@
 import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
 import {readFileSync} from "node:fs";
 import {gunzipSync} from "node:zlib";
-import {describe,expect,it} from "vitest";
+import {describe,expect,it,vi} from "vitest";
+import * as gameStateModule from "./game-state.js";
 import type {AgentTool,AgentToolResult} from "@mariozechner/pi-agent-core";
 import {Type} from "typebox";
 import {checkEvent,type RunEvent} from "./events.js";
@@ -20,8 +21,15 @@ const RUN=gunzipSync(readFileSync(new URL("./fixtures/people-id-cards-4caa.jsonl
 // All events still reach the history subscriber. Only tool-result states enter
 // the tool wrapper, so avoid validating/retaining internal states a second time.
 const DELIVERED_STATES=new Set(RUN.flatMap(e=>e.type==="tool_result"&&e.state_seq!==undefined?[e.state_seq]:[]));
-const ENVELOPE=new Set(["v","run","seq","t","type","turn"]);
-const snapshot=(e:RunEvent):GameStateSnapshot=>parseGameState(Object.fromEntries(Object.entries(e).filter(([k])=>!ENVELOPE.has(k))));
+// RUN is already validated by checkEvent above. Strip only its event envelope;
+// the actual wrapper still validates every delivered snapshot at the production seam.
+const ENVELOPE=["v","run","seq","t","type","turn"] as const;
+const snapshot=(e:RunEvent):GameStateSnapshot=>{
+ if(e.type!=="state"||!("started" in e))throw new Error("Expected validated game-state event");
+ const state={...e};
+ for(const key of ENVELOPE)Reflect.deleteProperty(state,key);
+ return state;
+};
 const T211=RUN.find((e):e is Extract<RunEvent,{type:"tool_result"}>=>e.type==="tool_result"&&e.turn===211);
 if(T211?.state_seq===undefined)throw new Error("fixture lacks T211");
 const T211_STATE=snapshot(RUN.find(e=>e.seq===T211.state_seq) ?? RUN[0] as RunEvent);
@@ -116,17 +124,23 @@ describe("people-id-cards-v1 delivery",()=>{
 describe("people-id-cards-v1 rehearsal",()=>{
  it("the production wrapper over the whole recorded 4caa run records the same 38 cards, in order",async()=>{
   const rec=recorder();
+  const parse=vi.spyOn(gameStateModule,"parseGameState");
+  try {
+  let executions=0;
   const states=new Map<number,GameStateSnapshot>();
   let current:GameStateSnapshot|undefined;
   const tool:AgentTool={name:"press",label:"p",description:"d",parameters:Type.Object({}),execute:()=>Promise.resolve({content:[{type:"text",text:"Location: X\nPosition: X=0, Y=0, facing up"}],details:{state:current}})};
   const [wrapped]=withPeopleIdCards([tool],{...OFF,"character-presence-v1":true,"people-ledger-v1":true,"people-id-cards-v1":true},rec.api);
   for(const e of RUN){
    if(e.type==="state"&&"started" in e&&DELIVERED_STATES.has(e.seq))states.set(e.seq,snapshot(e));
-   if(e.type==="tool_result"&&e.state_seq!==undefined&&states.has(e.state_seq)){current=states.get(e.state_seq);await wrapped?.execute(e.id,{});}
+   if(e.type==="tool_result"&&e.state_seq!==undefined&&states.has(e.state_seq)){current=states.get(e.state_seq);executions++;await wrapped?.execute(e.id,{});}
    rec.feed([e]);
   }
+  expect(executions).toBe(597);
+  expect(parse).toHaveBeenCalledTimes(executions);
   expect(rec.cards).toHaveLength(38);
   expect(rec.cards.filter(c=>c.card.key==="name:MAY").map(c=>c.card.reason)).toEqual(["first","changed","changed","changed"]);
+  } finally {parse.mockRestore();}
  });
 });
 
@@ -147,7 +161,7 @@ describe("people-id-cards-v1 OFF over the whole recorded run",()=>{
    }
    rec.feed([e]);
   }
-  expect(results).toBeGreaterThan(500);
+  expect(results).toBe(597);
   expect(rec.cards).toEqual([]);
  });
  it("pageLine keeps the dialogue list byte-identical to what the run recorded (4caa T107, 13 pages)",()=>{

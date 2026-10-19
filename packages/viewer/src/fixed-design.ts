@@ -37,7 +37,8 @@ const draftShape = {
   // The preset the control arm reproduces outside the switches and off-in-both flags, pinned by bytes.
   controlBase: Type.Object({ path: Type.String({ minLength: 1 }), presetId: Name, sha256: Type.String({ pattern: "^[0-9a-f]{64}$" }) }, closed),
   base: Type.Object({
-    target: Type.Null(),
+    target: Type.Union([Type.Null(),Type.String({minLength:1})]),
+    stopAt: Type.Optional(Type.String({minLength:1})),
     // Reply failures never end a trial: the wall cap is the only behavioral end.
     limits: Type.Object({ maxTurns: positive, failureLimit: positive, replyFailuresEndRun: Type.Literal(false) }, closed),
     sampling: Type.Object({ thinkingLevel: Type.Enum(["off", "minimal", "low", "medium", "high", "xhigh"] as const), maxTokens: positive }, closed),
@@ -121,7 +122,8 @@ export function armPreset(def: FixedDefinition, phaseId: string, arm: FixedArm):
   return {
     version: 2,
     id: `${def.id}-${phase.id}-${arm}`,
-    target: null,
+    target: def.base.target,
+    ...(def.base.stopAt===undefined?{}:{stopAt:def.base.stopAt}),
     limits: { maxTurns, maxWallMs: phase.maxWallMs, failureLimit, replyFailuresEndRun },
     sampling: def.base.sampling,
     features: armFeatures(def, arm) as PlayPresetV2["features"],
@@ -187,7 +189,7 @@ export function controlBaseProblems(def: FixedDefinition, presetText: string): s
   const { path, presetId, sha256 } = def.controlBase;
   const actual = createHash("sha256").update(presetText).digest("hex");
   if (actual !== sha256) return [`control base ${path} has sha256 ${actual}, the definition records ${sha256}`];
-  let preset: { id?: unknown; target?: unknown; limits?: Record<string, unknown>; sampling?: unknown; features?: Record<string, unknown> };
+  let preset: { id?: unknown; target?: unknown; stopAt?: unknown; limits?: Record<string, unknown>; sampling?: unknown; features?: Record<string, unknown> };
   try {
     preset = JSON.parse(presetText) as typeof preset;
   } catch {
@@ -195,6 +197,7 @@ export function controlBaseProblems(def: FixedDefinition, presetText: string): s
   }
   const problems: string[] = [];
   if (preset.id !== presetId) problems.push(`control base preset id is ${typeof preset.id === "string" ? preset.id : shown(preset.id)}, the definition records ${presetId}`);
+  if(preset.stopAt!==def.base.stopAt)problems.push("base stopAt differs from the control base");
   if (preset.target !== def.base.target) problems.push(`base target is ${shown(def.base.target)}, the control base has ${shown(preset.target)}`);
   if (JSON.stringify(preset.sampling) !== JSON.stringify(def.base.sampling)) problems.push("base sampling differs from the control base");
   for (const key of ["maxTurns", "failureLimit"] as const) {
@@ -211,6 +214,7 @@ export function controlBaseProblems(def: FixedDefinition, presetText: string): s
 
 export function definitionProblems(def: FixedDefinition): string[] {
   const problems = [...laneProblems(def), ...phaseProblems(def), ...featureProblems(def)];
+  if((def.base.stopAt??def.base.target)!==null&&(def.base.stopAt??def.base.target)!==def.primaryMilestone)problems.push("base stopping target must equal primaryMilestone");
   for(const name of def.progressOrder??[])if(!MILESTONE_ORDER.includes(name))problems.push(`unknown progress milestone ${name}`);
   if (!MILESTONE_ORDER.includes(def.primaryMilestone)) problems.push(`unknown primary milestone ${def.primaryMilestone}`);
   if (JSON.stringify(def.plan) !== JSON.stringify(generatePlan(def))) problems.push(`plan does not match seed ${def.seed}: regenerate it with \`just fixed-run plan\``);

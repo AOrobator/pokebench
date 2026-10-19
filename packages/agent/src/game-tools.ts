@@ -164,6 +164,7 @@ export function checkSmoke(transcript: readonly AgentMessage[]): SmokeSummary {
 }
 
 const PressArgs = Type.Object({ buttons: Type.Array(ButtonSchema, { minItems: 1, maxItems: 8 }), walking: Type.Optional(Type.Boolean({description: "Walk deliberately; do not add automatic running to directional travel."})) });
+const DeterministicRunningPressArgs = Type.Object({ buttons: PressArgs.properties.buttons }, { additionalProperties: false });
 
 const ActionSchema = Type.Object({ status: Type.String(), message: Type.Optional(Type.String()) });
 
@@ -172,11 +173,12 @@ const ActionSchema = Type.Object({ status: Type.String(), message: Type.Optional
 export const PRESS_TIMING: PressTiming = { hold_frames: 10, release_frames: 8 };
 
 /** Automatic B is a held modifier, not a second sequential button action. */
-export function permitsAutomaticRunning(before: GameStateSnapshot | undefined, buttons: readonly Button[], walking: boolean | undefined, enabled: boolean | undefined): boolean {
-  return enabled === true && walking !== true && buttons.length > 0 && buttons.every(button => ["UP", "DOWN", "LEFT", "RIGHT"].includes(button)) && before?.screen === "overworld" && !before.in_battle && before.field_controls_locked === false && before.active_ui == null && before.running?.permitted === true && before.running.controllable === true;
+export function permitsAutomaticRunning(before: GameStateSnapshot | undefined, buttons: readonly Button[], _walking: boolean | undefined, enabled: boolean | undefined): boolean {
+  return enabled === true && buttons.length > 0 && buttons.every(button => ["UP", "DOWN", "LEFT", "RIGHT"].includes(button)) && before?.screen === "overworld" && !before.in_battle && before.field_controls_locked === false && before.active_ui == null && before.running?.permitted === true && before.running.controllable === true;
 }
 
-export interface PressModifiers { readonly automatic_running: boolean; readonly walking: boolean; readonly requested_held_buttons?: readonly Button[] }
+/** Modifiers actually submitted by the harness; raw model arguments remain in the tool_call event. */
+export interface PressModifiers { readonly automatic_running: boolean; readonly walking?: boolean; readonly requested_held_buttons?: readonly Button[] }
 
 export interface PressHooks {
   beforePress(toolCallId: string, buttons: readonly Button[], timing: PressTiming, before?: GameStateSnapshot, modifiers?: PressModifiers): void;
@@ -184,8 +186,9 @@ export interface PressHooks {
 }
 
 export type BeforePressCheck=(before:GameStateSnapshot|undefined)=>void;
+export interface CheckedPressOptions { readonly automaticRunning?: boolean }
 export type CheckedPressTool=AgentTool<typeof PressArgs> & {
- readonly executeChecked:(id:string,params:Static<typeof PressArgs>,check:BeforePressCheck,signal?:AbortSignal,update?:Parameters<AgentTool<typeof PressArgs>["execute"]>[3])=>Promise<AgentToolResult<{state:GameStateSnapshot|undefined}>>;
+ readonly executeChecked:(id:string,params:Static<typeof PressArgs>,check:BeforePressCheck,signal?:AbortSignal,update?:Parameters<AgentTool<typeof PressArgs>["execute"]>[3],options?:CheckedPressOptions)=>Promise<AgentToolResult<{state:GameStateSnapshot|undefined}>>;
 };
 export function isCheckedPress(tool:AgentTool):tool is CheckedPressTool {return "executeChecked" in tool&&typeof tool.executeChecked==="function";}
 
@@ -202,7 +205,7 @@ export function pressTool(
   switches: ToolSwitches = ALL_TOOL_SWITCHES,
   shown: ShownStates = new ShownStates(),
 ): CheckedPressTool {
-  const execute=async(toolCallId:string,params:Static<typeof PressArgs>,signal?:AbortSignal,_update?:Parameters<AgentTool<typeof PressArgs>["execute"]>[3],check?:BeforePressCheck):Promise<AgentToolResult<{state:GameStateSnapshot|undefined}>>=>{
+  const execute=async(toolCallId:string,params:Static<typeof PressArgs>,signal?:AbortSignal,_update?:Parameters<AgentTool<typeof PressArgs>["execute"]>[3],check?:BeforePressCheck,checkedOptions?:CheckedPressOptions):Promise<AgentToolResult<{state:GameStateSnapshot|undefined}>>=>{
       // A stopped run (budget, operator abort) must not press anything further.
       signal?.throwIfAborted();
       let before: GameStateSnapshot | undefined;
@@ -216,8 +219,8 @@ export function pressTool(
       }
       check?.(before);
       const buttons = submittedButtons(params.buttons,before,switches);
-      const automaticRunning = permitsAutomaticRunning(before, buttons, params.walking, switches.automaticRunning);
-      if (switches.automaticRunning===true || params.walking!==undefined) hooks.beforePress(toolCallId, buttons, PRESS_TIMING, before, {automatic_running:automaticRunning,walking:params.walking===true,...(automaticRunning?{requested_held_buttons:["B"] as const}:{})});
+      const automaticRunning = checkedOptions?.automaticRunning===false?false:permitsAutomaticRunning(before, buttons, params.walking, switches.automaticRunning);
+      if (switches.automaticRunning===true || params.walking!==undefined) hooks.beforePress(toolCallId, buttons, PRESS_TIMING, before, {automatic_running:automaticRunning,...(switches.automaticRunning===true?{}:{walking:params.walking===true}),...(automaticRunning?{requested_held_buttons:["B"] as const}:{})});
       else hooks.beforePress(toolCallId, buttons, PRESS_TIMING, before);
       const url = `${gameServerUrl}${automaticRunning ? "/pokebench/travel" : "/action"}`;
       const response = await fetchFn(url, {
@@ -243,10 +246,10 @@ export function pressTool(
     label: "Press buttons",
     description: (switches.readout
       ? "Press Game Boy Advance buttons in order (up to 8), then see the resulting screen and game state."
-      : "Press Game Boy Advance buttons in order (up to 8), then see the resulting screen.") + (switches.safeInterfaces ? " Interaction/menu or locked/unknown-interface batches submit only the first input; inspect before continuing." : "") + (switches.automaticRunning===true ? " Direction-only field travel runs when native controls permit it; set walking=true to walk deliberately." : ""),
-    parameters: PressArgs,
+      : "Press Game Boy Advance buttons in order (up to 8), then see the resulting screen.") + (switches.safeInterfaces ? " Interaction/menu or locked/unknown-interface batches submit only the first input; inspect before continuing." : "") + (switches.automaticRunning===true ? " Direction-only field travel runs whenever native controls permit it; the harness, not the model, owns this choice." : ""),
+    parameters: (switches.automaticRunning===true ? DeterministicRunningPressArgs : PressArgs) as typeof PressArgs,
     execute,
-    executeChecked:(id,params,check,signal,update)=>execute(id,params,signal,update,check),
+    executeChecked:(id,params,check,signal,update,options)=>execute(id,params,signal,update,check,options),
   };
 }
 

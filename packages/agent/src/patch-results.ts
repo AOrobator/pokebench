@@ -103,12 +103,14 @@ function assess(trial: PatchTrial, arm: TrialResult["arm"], target: string, prob
     if (issue.evidence.length === 0 || issue.evidence.some((seq) => !bySeq.has(seq))) problems.push(`${run}: issue lacks recorded evidence`);
     if (issue.invalidatesComparison) problems.push(`${run}: ${issue.kind === "harness_bug" ? "harness bug" : "infrastructure"}: ${issue.message}`);
   }
-  const elapsed = marker === undefined ? null : Date.parse(marker.t) - Date.parse(start.t);
+  const extended = es.some(event => event.type === "operator_control" && (event.action === "extend_30m" || event.action === "extend_60m") && event.status === "applied");
+  const pausedMs = extended && marker !== undefined ? es.reduce((sum, event) => sum + (event.seq < marker.seq && event.type === "operator_control" && event.status === "applied" ? event.paused_ms ?? 0 : 0), 0) : 0;
+  const elapsed = marker === undefined ? null : Date.parse(marker.t) - Date.parse(start.t) - pausedMs;
   const invalidTime = elapsed !== null && (!Number.isFinite(elapsed) || elapsed < 0 || elapsed > summary.wallMs);
   if (invalidTime) problems.push(`${run}: invalid target timing`);
   const pastCap=elapsed!==null&&start.evaluation!==undefined&&start.budgets.max_wall_ms!==undefined&&elapsed>start.budgets.max_wall_ms;
   const terminal=es.at(-1);
-  if(pastCap&&terminal?.type==="run_end"&&terminal.reason==="milestone"&&terminal.target_proof?.name===target)problems.push(`${run}: target stop exceeds evaluation wall cap`);
+  if(pastCap&&!extended&&terminal?.type==="run_end"&&terminal.reason==="milestone"&&terminal.target_proof?.name===target)problems.push(`${run}: target stop exceeds evaluation wall cap`);
   const qualified = !human && marker !== undefined && !present && !invalidTime && !pastCap;
   return { arm, run, outcome: human ? "unqualified" : present ? "present_at_start" : unqualified || invalidTime ? "unqualified" : summary.reason === "incomplete" ? "incomplete" : qualified ? "reached" : "not_reached",
     reason: summary.reason, elapsedMs: qualified ? elapsed : null, targetTurn: qualified ? marker.turn : null, evidence: !human&&(qualified||pastCap)&&marker!==undefined ? [...(marker.evidence ?? []), marker.seq] : [],

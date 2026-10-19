@@ -151,7 +151,7 @@ export function withPeopleLedger(tools:readonly AgentTool[],features:FeatureSet,
   if(tool.name!=="observe"&&tool.name!=="press"&&tool.name!=="navigate_to")return tool;
   const execute:AgentTool["execute"]=async(id,params,signal,update)=>annotate(id,await tool.execute(id,params,signal,update));
   if(!isCheckedPress(tool))return {...tool,execute};
-  const checked:CheckedPressTool={...tool,execute:async(id,params,signal,update)=>annotate(id,await tool.execute(id,params,signal,update)),executeChecked:async(id,params,check,signal,update)=>annotate(id,await tool.executeChecked(id,params,check,signal,update))};
+  const checked:CheckedPressTool={...tool,execute:async(id,params,signal,update)=>annotate(id,await tool.execute(id,params,signal,update)),executeChecked:async(id,params,check,signal,update,options)=>annotate(id,await tool.executeChecked(id,params,check,signal,update,options))};
   return checked;
  });
 }

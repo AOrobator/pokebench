@@ -191,7 +191,7 @@ function stateOf(details:unknown):GameStateSnapshot|null {
 }
 
 // battleAction: harness-trust-v2 also heads battle_action results.
-export interface TrustOptions {readonly supervisor:boolean;readonly battleAction?:boolean;readonly goalOnce?:boolean;readonly retireLab?:boolean;readonly scriptedGuidance?:boolean}
+export interface TrustOptions {readonly supervisor:boolean;readonly battleAction?:boolean;readonly goalOnce?:boolean;readonly retireLab?:boolean;readonly stageBound?:boolean;readonly omitEmptyGoal?:boolean;readonly scriptedGuidance?:boolean}
 
 // The header (and any walk-away note) put at the top of the result's first text part.
 export class HarnessTrust {
@@ -201,11 +201,12 @@ export class HarnessTrust {
  observe(event:RunEvent):void {this.story.observe(event);}
  lines(text:string,state:GameStateSnapshot,callId:string,places:readonly Place[]|Error,own=false,seen=text):{readonly header:string;readonly away:StoryGoalAwayFacts|null} {
   const anyLine=this.story.latest(callId,null,state.name)!==null;
-  const goal=places instanceof Error||state.map_id===null?null:this.story.goal(state.map_id,state.name,callId,places,this.options.retireLab===true,state.story??null);
+  const goal=places instanceof Error||state.map_id===null?null:this.story.goal(state.map_id,state.name,callId,places,this.options.retireLab===true,state.story??null,this.options.stageBound===true);
   const characters=charactersLine(text);
   const exits=places instanceof Error?null:exitsLine(state,places);
   const repeated=this.options.goalOnce===true&&goal!==null&&goal.done!==true&&seen.includes(STORY_HEADER)&&seen.includes(`"${goal.line.text}"`);
-  const header=[TRUST_HEADER,...(repeated?[]:[goalLine(goal,places,anyLine)]),...(characters===null?[]:[characters]),...(exits===null?[]:[exits])].join("\n");
+  const omitGoal=this.options.omitEmptyGoal===true&&!(places instanceof Error)&&(goal===null||goal.done===true);
+  const header=[TRUST_HEADER,...(repeated||omitGoal?[]:[goalLine(goal,places,anyLine)]),...(characters===null?[]:[characters]),...(exits===null?[]:[exits])].join("\n");
   const away=this.options.supervisor&&!(places instanceof Error)?this.walk.observe(state,goal?.done===true?null:goal,places,own):null;
   return {header,away};
  }
@@ -251,7 +252,7 @@ export function withHarnessTrust(tools:readonly AgentTool[],on:boolean,recorder:
   if(tool.name!=="observe"&&tool.name!=="press"&&tool.name!=="navigate_to"&&!(options.battleAction===true&&tool.name==="battle_action"))return tool;
   const execute:AgentTool["execute"]=async(id,params,signal,update)=>annotate(tool.name,id,await tool.execute(id,params,signal,update));
   if(!isCheckedPress(tool))return {...tool,execute};
-  const checked:CheckedPressTool={...tool,execute,executeChecked:async(id,params,check,signal,update)=>annotate(tool.name,id,await tool.executeChecked(id,params,check,signal,update))};
+  const checked:CheckedPressTool={...tool,execute,executeChecked:async(id,params,check,signal,update,options)=>annotate(tool.name,id,await tool.executeChecked(id,params,check,signal,update,options))};
   return checked;
  });
 }

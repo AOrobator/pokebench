@@ -15,7 +15,7 @@ import { FEATURES } from "@pokebench/agent/features";
 import { CONTROL_ACTIONS } from "@pokebench/agent/events";
 import { finalsRunLabels } from "./experiment-gate-store.js";
 import type { BaselineStore, RunStore } from "./baseline-store.js";
-import { BaselineError, RunsError, createBaselineReader, comparisonsOf, type BaselineCompute, eventsPath, listRuns, liveScreenPort, LogReader, readStart, readStartIdentity, runDir, type BaselineReader } from "./runs.js";
+import { BaselineError, RunsError, createBaselineReader, comparisonsOf, type BaselineCompute, eventsPath, listRuns, liveScreenPort, LogReader, readRecentEvents, readStart, readStartIdentity, runDir, type BaselineReader } from "./runs.js";
 import { featureHistory } from "./history.js";
 import { localModels } from "./models.js";
 import { NextRunError, appendControl, healthProbe, liveRuns, readDraft, writeDraft, type RunQueue } from "./next-run.js";
@@ -135,7 +135,7 @@ async function write(req: IncomingMessage, res: ServerResponse, options: ViewerO
       return;
     }
     if (req.method === "POST" && parts.length === 4 && second === "runs" && id !== undefined && leaf === "control") {
-      if (!Value.Check(ControlBodySchema, body)) throw new RequestError(400, "action must be pause, resume, stop, cancel_stop or abort");
+      if (!Value.Check(ControlBodySchema, body)) throw new RequestError(400, "invalid control action (pause, resume, stop, cancel_stop, abort, extend_30m or extend_60m)");
       sendJson(res, 200, { request: await appendControl(options.runsRoot, id, body.action, now, healthProbe(options.fetchFn ?? fetch)) });
       return;
     }
@@ -414,6 +414,7 @@ async function route(req: IncomingMessage, res: ServerResponse, options: ViewerO
     if (id === undefined) throw new RunsError("no run id");
     const dir = runDir(options.runsRoot, id);
     if(parts.length===4 && leaf==="start") {sendJson(res,200,readStart(options.runsRoot,id));return;}
+    if (parts.length === 4 && leaf === "head") { sendJson(res, 200, readRecentEvents(options.runsRoot, id)); return; }
     if (parts.length === 4 && leaf === "events") {
       const path = eventsPath(options.runsRoot, id);
       if (!existsSync(path)) throw new RunsError(`run ${id} has no events.jsonl`);

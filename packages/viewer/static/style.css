@@ -25,10 +25,6 @@ body { background: #4a9fd8; color: #283038; overflow-x: hidden; }
 .bar .clock { min-width: 150px; text-align: right; }
 .bar .problems { flex-basis: 100%; min-width: 0; max-height: 96px; overflow-y: auto; overflow-wrap: anywhere; white-space: pre-wrap; background: #ffecec; color: #a01010; border: 3px solid #d03a3a; border-radius: 8px; padding: 8px; line-height: 1.8; font-size: 8px; }
 
-.bar .live-runs { flex-basis: 100%; display: flex; flex-wrap: wrap; gap: 8px; }
-.bar .live-runs[hidden] { display: none; }
-.bar .live-runs button { background: #d6ffe3; border-color: #388759; }
-.bar .live-runs button[aria-pressed="true"] { background: #ffd447; border-color: #fff0a0; color: #1e2c44; box-shadow: 0 0 0 2px #ffd447; }
 .bar .run-choice { display: flex; align-items: center; gap: 8px; min-width: 0; max-width: 100%; color: #ffd447; }
 .bar .run-choice select { border-color: #ffd447; min-width: 0; }
 .bar select[data-ui="run"] { max-width: min(100%, 600px); }
@@ -810,7 +806,7 @@ b.wb-add, b.wb-rem { white-space:nowrap; }
 @media (prefers-reduced-motion: reduce) { .tc .tc-dot, .tc .tc-mon, .tc.tc-new .tc-art { animation: none !important; } .tc.tc-new .tc-art { filter: drop-shadow(var(--u) 0 0 #ffe060) drop-shadow(calc(var(--u) * -1) 0 0 #ffe060) drop-shadow(0 var(--u) 0 #ffe060) drop-shadow(0 calc(var(--u) * -1) 0 #ffe060); } }
 
 :root[data-phone] .bar { padding: 9px 12px; gap: 8px; }
-:root[data-phone] .bar > .logo, :root[data-phone] .bar > .mode, :root[data-phone] .bar > .clock, :root[data-phone] .bar > .live-runs, :root[data-phone] .bar > .ident { display: none; }
+:root[data-phone] .bar > .logo, :root[data-phone] .bar > .mode, :root[data-phone] .bar > .clock, :root[data-phone] .bar > .ident { display: none; }
 :root[data-phone] .bar > .run-head { display: flex; }
 
 
@@ -849,3 +845,29 @@ b.wb-add, b.wb-rem { white-space:nowrap; }
 }
 
 #page-stats .page-content { padding-right:18px; scrollbar-gutter:stable; }
+
+/* Operator extensions use the same Emerald message frame as the live thought box. */
+.extend-dialog { position:fixed; background:#fff; color:#283038; border:4px solid #283038; border-radius:10px; box-shadow:inset 0 0 0 3px #fff,inset 0 0 0 6px #7cc8e8,0 8px 0 #12213866; padding:32px 24px 26px; width:min(520px,calc(100vw - 32px)); max-height:90svh; overflow:auto; box-sizing:border-box; font:14px/1.65 'Inter',system-ui,sans-serif; }
+.extend-dialog::backdrop { background:#0e1626ba; }
+.extend-dialog .emer-name { position:absolute; top:10px; left:14px; background:#1e2c44; color:#ffd447; font:7px/1.7 'Press Start 2P',monospace; padding:4px 8px; border-radius:5px; }
+.extend-dialog h2 { margin:16px 0 10px; font:clamp(11px,2.8vw,14px)/1.9 'Press Start 2P',monospace; color:#283038; }
+.extend-dialog .extend-id { overflow-wrap:anywhere; font:11px/1.5 'JetBrains Mono',monospace; color:#53687b; margin:0 0 18px; }
+.extend-dialog label { display:flex; gap:12px; align-items:center; flex-wrap:wrap; color:#345779; font:8px/1.8 'Press Start 2P',monospace; }
+.extend-dialog select { font:14px/1.5 'Inter',system-ui,sans-serif; padding:10px 12px; border:3px solid #3a6ea5; border-radius:7px; color:#283038; background:#f5f9fc; }
+.extend-dialog [data-ui=extend-preview] { padding:12px; border:2px solid #b6c9db; border-radius:6px; background:#fffbe4; color:#283038; font-variant-numeric:tabular-nums; }
+.extend-actions { display:flex; gap:12px; justify-content:flex-end; margin-top:18px; }
+.extend-dialog button { cursor:pointer; font:8px/1.8 'Press Start 2P',monospace; padding:10px 12px; border:3px solid #3a6ea5; border-radius:8px; background:#fff; color:#283038; box-shadow:0 3px 0 #cad7e3; }
+.extend-dialog [data-ui=extend-confirm] { background:#ffd447; border-color:#b68120; box-shadow:0 3px 0 #7a5410; }
+.extend-dialog :is(button,select):focus-visible { outline:3px solid #2f9e57; outline-offset:3px; }
+.extend-dialog :disabled { opacity:.5; cursor:default; }
+.extend-dialog [data-ui=extend-status] { min-height:24px; color:#345779; font-weight:600; }
+.extend-dialog .emer-arrow { position:absolute; right:14px; bottom:6px; color:#d03a3a; font:10px 'Press Start 2P',monospace; }
+.extension-note { grid-column:1/-1; margin:2px 0 0; font:12px/1.5 'Inter',system-ui,sans-serif; color:#344563; }
+/* Native symbols and pixel labels have different baselines; center the two boxes. */
+.tb-ctl button { display:inline-flex; align-items:center; justify-content:center; gap:6px; }
+.tb-ctl .control-icon { display:inline-flex; align-items:center; justify-content:center; flex:none; font:15px/1 system-ui,sans-serif; }
+.tb-ctl .control-label { display:block; line-height:1.6; }
+.tb-ctl .control-help { display:block; font:6px/1.7 'Press Start 2P',monospace; white-space:nowrap; }
+.stage-controls .tb-ctl button { gap:4px; }
+.stage-controls .tb-ctl .control-icon { font-size:12px; }
+.stage-controls .tb-ctl .control-help { font-size:4px; }

@@ -137,6 +137,13 @@ describe("durable cohort membership and metadata boundaries", () => {
     writeFileSync(c.ledger, JSON.stringify({ type: "launch", runId: "cohort_01", at: "2026-10-14T12:00:00Z", manifestSha256: c.digest }) + "\n"); expect(await cohortOf()).toBe("cohort");
     writeFileSync(c.path, '{"version":1}'); expect(await cohortOf()).toBeNull();
   });
+  it.each(["PETALBURG_CITY", "RUSTBORO_CITY"])("recognizes the exact %s checkpoint filename", async checkpoint => {
+    const r = root(), log = named(), start = log.events[0];
+    if (start?.type !== "run_start") throw new Error("fixture");
+    log.events[0] = { ...start, start_state: { kind: "save_state", path: `/saves/${checkpoint}.state`, sha1: "a".repeat(40) } };
+    write(r, "saved", log);
+    expect((await workbenchSnapshot(r, () => Promise.resolve(false), 42)).runs[0]?.config?.resume).toBe(checkpoint);
+  });
   it("names a Clock set save and leaves every other start unmarked", async () => {
     const r = root();
     const clock = named(); const clockStart = clock.events[0]; if (clockStart?.type !== "run_start") throw new Error("fixture");

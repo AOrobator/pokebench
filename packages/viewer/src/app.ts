@@ -139,6 +139,17 @@ function runChoices(value: unknown): RunChoice[] {
   });
 }
 
+function recordedHead(value: unknown, runId: string): readonly RunEvent[] {
+  if (!Array.isArray(value)) throw new Error("malformed recorded thinking payload");
+  const events: RunEvent[] = [];
+  for (const event of value as unknown[]) {
+    if (!isRunEvent(event) || event.run !== runId) throw new Error("malformed recorded thinking payload");
+    events.push(event);
+  }
+  if (events[0]?.type !== "run_start") throw new Error("malformed recorded thinking payload");
+  return events;
+}
+
 function comparisonLabel(run: string, value: unknown): string {
   const record = value as { controller?: { kind?: unknown }; romIdentity?: unknown };
   return record.controller?.kind === "human" && record.romIdentity === "unverified" ? `${run} (ROM unverified)` : run;
@@ -176,7 +187,6 @@ export class App {
   private workbench: WorkbenchData | null = null;
   private workbenchLoad: Promise<void> | null = null;
   // The cards replace the live-run buttons; the run list refreshes every few seconds and must not bring them back.
-  private cardsShown = false;
   private readonly cardHtml = new WeakMap<Element, string>();
   // Set when the newest run is opened; a later refresh may list a newer one first.
   private following = false;
@@ -192,13 +202,16 @@ export class App {
   private trace = this.newTrace();
   private traced = 0;
   private traceKey = "";
+  private sideKey = "";
+  private recordedThinking: RunView | null = null;
+  private recordedThinkingTrace: TraceBuilder | null = null;
+  private recordedThinkingRequest = 0;
   private traceOn = new Set<TraceCategory>(TRACE_CHIPS.filter((chip) => chip.on).map((chip) => chip.id));
   private traceLimit = TRACE_TURNS;
   private readonly stamps = new WeakMap<HTMLElement, string>();
   // Lists under the pointer hold still while newer turns arrive, so a click lands where aimed.
   private readonly held = new Set<HTMLElement>();
   private readonly heldAtTop = new Set<HTMLElement>();
-  private sideBox: number | null = null;
   private readonly autoScroll = new WeakMap<HTMLElement, number>();
   private rows: RowState = { open: new Set(), folded: new Set(), selected: null };
   private screenTick = 0;
@@ -206,6 +219,8 @@ export class App {
   private liveFailedAt: number | null = null;
   private readonly html = new Map<HTMLElement, string>();
   // Hold-to-confirm abort: when X (or the button) went down; null when released.
+  private extensionPending: { run: string; action: "extend_30m" | "extend_60m"; afterSeq: number; request: number | null } | null = null;
+  private extensionMessage = "";
   private holdStart: number | null = null;
   private overlayClosed = false;
   private wasLive = false;
@@ -246,6 +261,66 @@ export class App {
     } catch (error) {
       this.problem(`${action.replace("_", " ")}: ${String(error)}`);
     }
+  }
+
+  private extensionDialog(): HTMLDialogElement { return this.ui("extend-dialog") as HTMLDialogElement; }
+
+  private openExtension(): void {
+    if (!availableActions(this.view, this.live).has("extend_30m")) return;
+    this.extensionMessage = "";
+    this.updateExtension();
+    this.extensionDialog().showModal();
+    this.ui("extend-duration").focus();
+  }
+
+  private closeExtension(): void {
+    this.extensionDialog().close();
+    this.doc.querySelector<HTMLElement>("[data-extend-open]")?.focus({ preventScroll: true });
+  }
+
+  private updateExtension(): void {
+    const pending = this.extensionPending;
+    if (pending !== null && pending.run === this.runId) {
+      const ack = this.view.events.find(e => e.type === "operator_control" && e.seq > pending.afterSeq && e.action === pending.action && pending.request !== null && e.request === pending.request);
+      if (ack?.type === "operator_control") {
+        this.extensionPending = null;
+        this.extensionMessage = ack.status === "applied" ? "Extension applied." : "Extension was not applied. The run may have reached its limit or be stopping.";
+      } else if (this.view.end !== null) {
+        this.extensionPending = null;
+        this.extensionMessage = "The run ended before an extension was confirmed.";
+      }
+    }
+    const wall = this.view.control.maxWallMs ?? this.view.start?.budgets.max_wall_ms ?? 0;
+    const addition = (this.ui("extend-duration") as HTMLSelectElement).value === "extend_60m" ? 3_600_000 : 1_800_000;
+    this.ui("extend-run").textContent = this.runId;
+    this.ui("extend-preview").textContent = `Time limit: ${hms(wall / 1000)} → ${hms((wall + addition) / 1000)} · remaining after extension: ${hms(Math.max(0, (wall + addition) / 1000 - runSeconds(this.view, this.deps.now())))}`;
+    const waiting = this.extensionPending !== null;
+    const applied = this.extensionMessage === "Extension applied.";
+    this.ui("extend-confirm").hidden = applied;
+    (this.ui("extend-confirm") as HTMLButtonElement).disabled = waiting || !availableActions(this.view, this.live).has("extend_30m");
+    (this.ui("extend-duration") as HTMLSelectElement).disabled = waiting || applied;
+    this.ui("extend-status").textContent = this.extensionMessage || (waiting ? "Waiting for the running agent to confirm…" : "");
+    if (applied) this.ui("extend-preview").textContent = `Time limit: ${hms(wall / 1000)} · remaining: ${hms(Math.max(0, wall / 1000 - runSeconds(this.view, this.deps.now())))}`;
+    this.ui("extend-cancel").textContent = waiting || this.extensionMessage !== "" ? "Close" : "Cancel";
+  }
+
+  private async extendRun(): Promise<void> {
+    if (this.runId === null || this.extensionPending !== null || !availableActions(this.view, this.live).has("extend_30m")) return;
+    const value = (this.ui("extend-duration") as HTMLSelectElement).value;
+    const pending = { run: this.runId, action: value === "extend_60m" ? "extend_60m" as const : "extend_30m" as const, afterSeq: this.view.events.at(-1)?.seq ?? -1, request: null as number | null };
+    this.extensionPending = pending;
+    this.extensionMessage = "";
+    this.updateExtension();
+    try {
+      const reply = await this.deps.sendJson("POST", `/api/runs/${encodeURIComponent(pending.run)}/control`, { action: pending.action });
+      if (this.extensionPending !== pending || this.runId !== pending.run) return;
+      if (typeof reply === "object" && reply !== null && "request" in reply && typeof reply.request === "number") pending.request = reply.request;
+    } catch (error) {
+      if (this.extensionPending !== pending || this.runId !== pending.run) return;
+      // A lost HTTP response may have enqueued the request. Never retry it automatically.
+      this.extensionMessage = `Request could not be confirmed: ${String(error)}. Check Activity History and reload before trying another extension.`;
+    }
+    this.updateExtension();
   }
 
   private holdFraction(): number | null {
@@ -400,27 +475,6 @@ export class App {
     const picker = this.picker("run");
     picker.replaceChildren(...runs.map((run) => option(this.doc, run.id, `${isLive(run) ? "LIVE · " : run.ended === false && run.problem === null ? "NOT RESPONDING · " : ""}${run.id}`)));
     if (this.runId !== null) picker.value = this.runId;
-    const live = runs.filter(isLive);
-    const box = this.ui("live-runs");
-    box.hidden = live.length === 0 || this.cardsShown;
-    box.replaceChildren();
-    for (const run of live) {
-      const button = this.doc.createElement("button");
-      button.dataset.label = run.experiment === undefined ? run.model ?? run.id : `${run.model ?? run.id} · ${run.experiment}`;
-      button.title = run.id;
-      button.dataset.run = run.id;
-      button.addEventListener("click", () => { this.select(run.id); });
-      box.append(button);
-    }
-    this.markSelectedRun();
-  }
-
-  private markSelectedRun(): void {
-    for (const button of this.ui("live-runs").querySelectorAll<HTMLButtonElement>("button")) {
-      const selected = button.dataset.run === this.runId;
-      button.setAttribute("aria-pressed", String(selected));
-      button.textContent = selected ? `WATCHING · ${button.dataset.label ?? ""}` : `LIVE ELSEWHERE · ${button.dataset.label ?? ""} · WATCH ▸`;
-    }
   }
 
   // Runs start after the page loads (a batch of measured runs); pick them up
@@ -446,7 +500,12 @@ export class App {
 
   private wire(): void {
     const controls = this.ui("run-controls");
+    this.ui("extend-duration").addEventListener("change", () => { this.updateExtension(); });
+    this.ui("extend-confirm").addEventListener("click", () => { void this.extendRun(); });
+    this.ui("extend-cancel").addEventListener("click", () => { this.closeExtension(); });
+    this.extensionDialog().addEventListener("cancel", (event) => { event.preventDefault(); this.closeExtension(); });
     controls.addEventListener("click", (event) => {
+      if ((event.target as HTMLElement).closest("[data-extend-open]") !== null) { this.openExtension(); return; }
       if ((event.target as HTMLElement).closest("[data-dismiss-overlay]") !== null) {
         this.overlayClosed = true;
         this.render();
@@ -644,7 +703,34 @@ export class App {
     }
   }
 
+  private async loadRecordedThinking(runId: string): Promise<void> {
+    const request = ++this.recordedThinkingRequest;
+    try {
+      const events = recordedHead(await this.deps.fetchJson(`/api/runs/${encodeURIComponent(runId)}/head`), runId);
+      if (request !== this.recordedThinkingRequest || this.runId !== runId) return;
+      const view = new RunView();
+      for (const event of events) view.apply(event);
+      this.setRecordedThinking(view, events);
+      this.render();
+    } catch {
+      if (request !== this.recordedThinkingRequest || this.runId !== runId) return;
+      this.recordedThinking = null;
+      this.recordedThinkingTrace = null;
+      this.render();
+    }
+  }
+
+  private setRecordedThinking(view: RunView, events: readonly RunEvent[]): void {
+    const trace = new TraceBuilder((event) => view.loopLabel(event).replace(`: ${event.message}`, ""));
+    for (const event of events) trace.add(event);
+    this.recordedThinking = view;
+    this.recordedThinkingTrace = trace;
+  }
+
   select(runId: string): void {
+    this.extensionDialog().close();
+    this.extensionPending = null;
+    this.extensionMessage = "";
     this.stream?.close();
     this.runId = runId;
     this.comparisonRequest += 1; this.comparisonsRun = null;
@@ -656,6 +742,9 @@ export class App {
     this.baseline = null;
     this.best = null;
     this.baselineRequest += 1;
+    this.recordedThinkingRequest += 1;
+    this.recordedThinking = null;
+    this.recordedThinkingTrace = null;
     this.problems = [];
     this.ui("problems").hidden = true;
     this.ui("problems").textContent = "";
@@ -668,7 +757,6 @@ export class App {
     this.liveFailedAt = null;
     this.setHtml("inspector", inspector(undefined));
     this.picker("run").value = runId;
-    this.markSelectedRun();
     // References are eligible only after the owned server validates their logs.
     this.picker("baseline").replaceChildren(option(this.doc, "", "none"));
     this.doc.location.hash = `run=${encodeURIComponent(runId)}`;
@@ -676,6 +764,7 @@ export class App {
     if (comparisons !== null) comparisons.href = `/comparisons?from=${encodeURIComponent(runId)}`;
     const stream = this.deps.openStream(`/api/runs/${encodeURIComponent(runId)}/events`);
     this.stream = stream;
+    void this.loadRecordedThinking(runId);
     stream.addEventListener("ev", (message) => {
       if (this.stream !== stream) return;
       this.receive(message.data);
@@ -687,6 +776,10 @@ export class App {
     });
     stream.addEventListener("caught_up", () => {
       if (this.stream !== stream) return;
+      // The fully folded stream is authoritative now. A slower optional head
+      // request must not replace or clear it after this handoff.
+      this.recordedThinkingRequest += 1;
+      this.setRecordedThinking(this.view, this.view.events);
       if (this.view.end !== null) this.startReplay(false);
       else {
         this.mode = "live";
@@ -720,7 +813,9 @@ export class App {
       this.problem(`event for run ${value.run}`);
       return;
     }
+    const eventCount = this.view.events.length;
     this.view.apply(value);
+    if (this.mode !== "loading" && this.recordedThinking === this.view && this.view.events.length > eventCount) this.recordedThinkingTrace?.add(value);
   }
 
   private problem(text: string): void {
@@ -783,9 +878,9 @@ export class App {
     this.trace = this.newTrace();
     this.traced = 0;
     this.traceKey = "";
+    this.sideKey = "";
     this.traceLimit = TRACE_TURNS;
     this.rows = { open: new Set(), folded: new Set(), selected: null };
-    this.sideBox = null;
     for (const name of ["trace", "side-trace"]) this.doc.querySelector<HTMLElement>(`[data-ui="${name}"]`)?.replaceChildren();
   }
 
@@ -835,8 +930,9 @@ export class App {
     for (const selected of this.doc.querySelectorAll(".tl.sel")) selected.classList.remove("sel");
     this.rows.selected = row.dataset.key ?? null;
     for (const same of this.doc.querySelectorAll<HTMLElement>(`[data-key="${row.dataset.key ?? ""}"]`)) same.classList.add("sel");
+    const owner = row.closest('[data-ui="side-trace"]') === null ? this.shown : this.recordedThinking;
     const seqs = (row.dataset.seqs ?? "").split(" ").map(Number);
-    this.setHtml("inspector", seqs.map((seq) => inspector(this.shown.bySeq(seq))).join(""));
+    this.setHtml("inspector", seqs.map((seq) => inspector(owner?.bySeq(seq))).join(""));
   }
 
   private renderTrace(nowMs: number): void {
@@ -846,21 +942,23 @@ export class App {
     const key = `${String(this.trace.version)}|${[...this.traceOn].sort().join(",")}|${String(this.traceLimit)}|${String(live?.turn ?? "")}`;
     const box = this.ui("trace");
     if (key !== this.traceKey) {
-      const versionChanged = this.traceKey.split("|")[0] !== String(this.trace.version);
       this.traceKey = key;
       this.renderChips();
-      // The side list leaves out the thought the Emerald box shows, so it also redraws when the box moves on.
-      const boxTurn = this.shown.isThinking ? null : this.shown.lastThought?.turn ?? null;
-      if (versionChanged || boxTurn !== this.sideBox) {
-        this.sideBox = boxTurn;
-        const side = this.ui("side-trace");
-        const groups = sideGroups(this.trace.turns, SIDE_TURNS, boxTurn);
-        reconcile(side, groups, groups.length === 0 ? '<p class="nodata">no steps yet</p>' : "", this.stamps, this.held.has(side), this.rows, (top) => { this.scrollTo(side, top); });
-      }
       const startMs = this.shown.startMs;
       const elapsed = startMs === null ? null : (ms: number): number => (ms - startMs - this.shown.control.pausedBefore(ms)) / 1000;
       const { groups, more } = traceGroups(this.trace.turns, this.traceOn, { elapsed, live, limit: this.traceLimit, page: TRACE_TURNS });
       reconcile(box, groups, groups.length === 0 ? '<p class="nodata">no recorded events</p>' : moreButton(more, TRACE_TURNS), this.stamps, this.held.has(box), this.rows, (top) => { this.scrollTo(box, top); });
+    }
+    const sideView = this.recordedThinking;
+    const sideTrace = this.recordedThinkingTrace;
+    const boxTurn = sideView === null || sideView.isThinking ? null : sideView.lastThought?.turn ?? null;
+    const sideKey = `${this.mode}|${String(sideTrace?.version ?? -1)}|${String(boxTurn ?? "")}`;
+    if (sideKey !== this.sideKey) {
+      this.sideKey = sideKey;
+      const side = this.ui("side-trace");
+      const groups = sideTrace === null ? [] : sideGroups(sideTrace.turns, SIDE_TURNS, boxTurn);
+      const empty = this.mode === "loading" && sideTrace === null ? '<p class="nodata">loading recorded thinking…</p>' : '<p class="nodata">no steps yet</p>';
+      reconcile(side, groups, groups.length === 0 ? empty : "", this.stamps, this.held.has(side), this.rows, (top) => { this.scrollTo(side, top); });
     }
     if (live !== null) {
       const { thinking, text } = this.shown.streaming;
@@ -913,15 +1011,19 @@ export class App {
       }
     }
     this.setHtml("stats", sideStats(view, nowMs));
+    if (this.extensionDialog().open || this.extensionPending !== null) this.updateExtension();
     const recordedSplits = this.mode === "loading" ? this.recordedSplits() : undefined;
     const splitView = this.mode === "loading" ? view : this.view;
     this.setHtml("split-strip", splitStrip(splitView, recordedSplits));
     this.setHtml("split-times", splitTimes(splitView, this.best, recordedSplits));
     this.next.setLive(live ? view : null);
     this.ui("brand").textContent = brand(view);
-    const dialog = thinkingDialog(view, nowMs);
+    const thinkingView = this.recordedThinking ?? (this.mode === "loading" ? null : view);
+    const dialog = thinkingView === null
+      ? { head: "LOADING RECORDED THINKING…", body: '<span class="nodata">waiting for the selected run snapshot</span>' }
+      : thinkingDialog(thinkingView, nowMs);
     this.ui("think-head").textContent = dialog.head;
-    this.ui("think-title").textContent = view.start === null ? "NO RUN" : `${view.end === null ? "RIGHT NOW" : "FINAL"} · TURN ${String(view.turn)}`;
+    this.ui("think-title").textContent = thinkingView === null || thinkingView.start === null ? "NO RUN" : `${thinkingView.end === null ? "RIGHT NOW" : "FINAL"} · TURN ${String(thinkingView.turn)}`;
     const ident = runIdentity(view);
     this.setHtml("ident", ident);
     this.ui("ident").hidden = ident === "";
@@ -957,7 +1059,7 @@ export class App {
     play.disabled = clock === null;
     scrub.disabled = clock === null;
     play.textContent = clock?.playing === true ? "❚❚" : "▶";
-    const cap = view.start?.budgets.max_wall_ms;
+    const cap = view.control.maxWallMs ?? view.start?.budgets.max_wall_ms;
     const time = clock !== null ? `${hms((clock.positionMs - clock.startMs) / 1000)} / ${hms((clock.endMs - clock.startMs) / 1000)}` : view.startMs === null ? "" : `${hms(runSeconds(view, nowMs))}${cap === undefined ? "" : ` / ${hms(cap / 1000)}`}`;
     const head = { view, runId: this.runId, label, running: live && view.control.state === "running", time, others: this.runs.filter((run) => isLive(run) && run.id !== this.runId) };
     this.setHtml("run-head", headHtml(head));
@@ -966,9 +1068,7 @@ export class App {
     const watched = cards.filter((c) => c.status === "watching" || c.status === "replay"), mini = art === null || cards.length === 0 ? null : [...watched, ...cards.filter((c) => c.status !== "watching" && c.status !== "replay")].map((c) => cardHtml(c, art, "mini")).join("");
     this.setHtml("run-sheet-body", sheetHtml({ ...head, time: "" }, startedAt, mini === null ? null : { html: mini, watched: watched.length > 0 }));
     syncCards(this.ui("run-cards"), art === null ? [] : cards.map((c) => cardHtml(c, art, "wide")), this.cardHtml);
-    this.cardsShown = mini !== null;
-    this.ui("run-cards").hidden = !this.cardsShown;
-    this.ui("live-runs").hidden = this.cardsShown || !this.runs.some(isLive);
+    this.ui("run-cards").hidden = mini === null;
     fillCards([this.ui("run-cards"), this.ui("run-sheet-body")], cards, this.art, (canvas, pixels) => { this.deps.drawGlyphs?.(canvas, pixels); });
     for (const slot of this.ui("run-sheet-body").querySelectorAll(".rh-time")) slot.textContent = time;
     if (clock !== null) {

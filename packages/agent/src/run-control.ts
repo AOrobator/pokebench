@@ -11,6 +11,11 @@ import { Value } from "typebox/value";
 import { CONTROL_ACTIONS, type BodyOf, type RunEvent } from "./events.js";
 import { MEASUREMENT_ONLY_MILESTONES } from "./milestones.js";
 
+export const EXTENSION_MS = { extend_30m: 1_800_000, extend_60m: 3_600_000 } as const;
+export function isExtension(action: string): action is keyof typeof EXTENSION_MS {
+  return action === "extend_30m" || action === "extend_60m";
+}
+
 export type ControlAction = (typeof CONTROL_ACTIONS)[number];
 export const ControlRequestSchema = Type.Object(
   { v: Type.Literal(1), seq: Type.Integer({ minimum: 1 }), at: Type.String({ format: "date-time" }), action: Type.Enum(CONTROL_ACTIONS) },
@@ -77,6 +82,7 @@ export class ControlFile {
 export type ControlBody = Omit<BodyOf<"operator_control">, "type" | "turn">;
 
 export interface RunControlDeps {
+  budget?: { readonly maxWallMs: number; activeMs(): number; stopped(): boolean };
   record(body: ControlBody): void;
   freeze(paused: boolean): Promise<void>;
   end(reason: "operator_stop" | "operator_abort"): void;
@@ -89,6 +95,8 @@ export interface RunControlDeps {
 export type ControlState = "running" | "pause_pending" | "paused" | "stop_pending" | "ended";
 
 export class RunControl {
+  private extensionMs = 0;
+  private lastExtensionRequest = 0;
   private current: ControlState = "running";
   private pauseRequest = 0;
   private stopRequest = 0;
@@ -104,6 +112,8 @@ export class RunControl {
   private release: (() => void) | null = null;
   private readonly listeners: (() => void)[] = [];
   constructor(private readonly deps: RunControlDeps) {}
+
+  wallLimit(original: number): number { return original + this.extensionMs; }
 
   get state(): ControlState {
     return this.current;
@@ -126,6 +136,18 @@ export class RunControl {
     const { action, seq } = request;
     const ignore = (): void => { this.deps.record({ action, status: "ignored", request: seq }); };
     if (this.current === "ended") { ignore(); return; }
+    if (isExtension(action)) {
+      const budget = this.deps.budget;
+      const previous = budget === undefined ? 0 : this.wallLimit(budget.maxWallMs);
+      const next = previous + EXTENSION_MS[action];
+      if (budget === undefined || seq <= this.lastExtensionRequest || this.current === "stop_pending" || budget.stopped() || budget.activeMs() >= previous || !Number.isSafeInteger(next)) { ignore(); return; }
+      // The acknowledgement is durable before the effective budget changes.
+      this.deps.record({ action, status: "applied", request: seq, previous_max_wall_ms: previous, max_wall_ms: next });
+      this.lastExtensionRequest = seq;
+      this.extensionMs += EXTENSION_MS[action];
+      this.notify();
+      return;
+    }
     if (action === "abort") { this.finish("operator_abort", action, seq); return; }
     if (action === "pause") {
       if (this.current !== "running") { ignore(); return; }
@@ -281,7 +303,11 @@ export class BudgetTimer {
   private arm(): void {
     this.clear();
     if (this.control.holding || this.control.state === "ended") return;
-    this.timer = setTimeout(this.expire, Math.max(0, this.limitMs - (this.elapsed() - this.control.pausedMs())));
+    const remaining = this.control.wallLimit(this.limitMs) - (this.elapsed() - this.control.pausedMs());
+    // Node timers overflow above 2^31-1; chunk long finite deadlines.
+    this.timer = remaining > 2_147_483_647
+      ? setTimeout(() => { this.arm(); }, 2_147_483_647)
+      : setTimeout(this.expire, Math.max(0, remaining));
   }
 
   clear(): void {

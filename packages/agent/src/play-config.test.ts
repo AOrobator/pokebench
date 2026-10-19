@@ -61,13 +61,18 @@ it("maps observation switches onto the observe/press results", () => {
 });
 
 it("describes whole-map navigation only when that treatment is on", () => {
-  const local = playSystemPrompt({ ...ALL_ON, "bounded-navigation-v1": true, "full-map-navigation-v1": false }, null);
+  const local = playSystemPrompt({ ...ALL_ON, "bounded-navigation-v1": true, "full-map-navigation-v1": false, "visited-terrain-navigation-v1": false }, null);
+  const visited = playSystemPrompt({ ...ALL_ON, "bounded-navigation-v1": true, "full-map-navigation-v1": false, "visited-terrain-navigation-v1": true }, null);
   const full = playSystemPrompt({ ...ALL_ON, "bounded-navigation-v1": true, "full-map-navigation-v1": true }, null);
   expect(local).toContain("up to eight ordinary button attempts");
   expect(local).not.toContain("whole current map");
   expect(full).toContain("whole current map");
   expect(full).not.toContain("up to eight ordinary button attempts");
   expect(full).toContain("never crosses a warp unless it is the destination");
+  expect(visited).toContain("stitched terrain already shown to you this run");
+  expect(visited).toContain("up to 512 ordinary button attempts");
+  expect(visited).not.toContain("up to eight ordinary button attempts");
+  expect(playSystemPrompt({ ...ALL_ON, "bounded-navigation-v1": true, "full-map-navigation-v1": true, "visited-terrain-navigation-v1": true }, null)).toContain("whole current map");
 });
 
 it("tells the model navigate_to hops ledges only when ledge hops are on",()=>{

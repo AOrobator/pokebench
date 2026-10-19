@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { runFixed, type FixedHost, type FixedLaunch, type ServingReceipt } from "./fixed-runner.js";
 import { readLedger, queueState, type FixedLedgerEntry } from "./fixed-ledger.js";
 import {checkEvent} from "@pokebench/agent/events";
@@ -28,6 +28,8 @@ it("keeps the improved blackout receipt out of control and in the bundle",()=>{
 
 type Ending = "budget" | "model_error" | "never-started";
 interface FakeOptions {
+  readonly beforeExit?: (launch: FixedLaunch, n: number) => Promise<void>;
+  readonly extensionMs?: number;
   readonly ending?: (launch: FixedLaunch, n: number) => Ending;
   readonly serving?: (lane: FixedLane, n: number) => ServingReceipt;
   readonly verifyBuild?: (n: number) => string | null;
@@ -80,9 +82,10 @@ class Fake implements FixedHost {
     try { l.started(1000 + n); } catch { this.startedThrows += 1; }
     this.snapshot();
     await new Promise((r) => setTimeout(r, 2));
-    this.clock += 60_000;
+    await this.options.beforeExit?.(l, n);
+    this.clock += 60_000 + (this.options.extensionMs ?? 0);
     const ending = this.options.ending?.(l, n) ?? "budget";
-    if (ending !== "never-started") writeEvents(this.runsRoot, l, ending);
+    if (ending !== "never-started") writeEvents(this.runsRoot, l, ending, this.options.extensionMs ?? 0);
     this.running -= 1;
     return ending === "never-started" ? 1 : 0;
   }
@@ -92,13 +95,17 @@ class Fake implements FixedHost {
   }
 }
 
-function writeEvents(runsRoot: string, l: FixedLaunch, ending: "budget" | "model_error"): void {
+function writeEvents(runsRoot: string, l: FixedLaunch, ending: "budget" | "model_error", extensionMs = 0): void {
   const preset = JSON.parse(readFileSync(l.presetPath, "utf8")) as { id: string; limits: { maxWallMs: number }; features: Record<string, boolean>; start?: { path: string; sha1: string } };
   const port = Number(new URL(l.env["POKEBENCH_GAME_SERVER_URL"] ?? "").port);
   const log = new Log();
   log.add(0, { ...START, rom_sha1: ROM_SHA1, model: { ...START.model, id: l.env["POKEBENCH_MODEL"] ?? "" }, start_state: preset.start === undefined ? { kind: "boot" } : { kind: "save_state", path: preset.start.path, sha1: preset.start.sha1 }, budgets: { max_wall_ms: preset.limits.maxWallMs }, isolation: { ...START.isolation, port }, evaluation: { preset_id: preset.id, target: null, failure_limit: 3, reply_failures_end_run: false, flags: { loopGuard: true, activeUi: true, interfaceDocs: true, objectives: false }, features: preset.features } });
   if (ending === "model_error") log.add(10, { type: "retry", turn: 1, reason: "model error: HTTP 502", attempt: 3, limit: 3 });
-  log.add(preset.limits.maxWallMs, { type: "run_end", turn: 5, reason: ending, furthest_milestone: null, turns: 5, wall_ms: ending === "budget" ? preset.limits.maxWallMs : 10, tokens: { input: 1, output: 1 }, frames: { saved: 0, bytes: 0 } });
+  if (extensionMs > 0) {
+    log.add(1000, { type: "operator_control", turn: 1, action: "extend_30m", status: "applied", request: 1, previous_max_wall_ms: preset.limits.maxWallMs, max_wall_ms: preset.limits.maxWallMs + extensionMs });
+    log.add(preset.limits.maxWallMs + 1000, { type: "milestone", turn: 4, name: "STONE_BADGE", kind: "story", origin: "observed", server_timestamp: 1 });
+  }
+  log.add(preset.limits.maxWallMs + extensionMs, { type: "run_end", turn: 5, reason: ending, furthest_milestone: null, turns: 5, wall_ms: ending === "budget" ? preset.limits.maxWallMs + extensionMs : 10, tokens: { input: 1, output: 1 }, frames: { saved: 0, bytes: 0 } });
   mkdirSync(join(runsRoot, l.runId), { recursive: true });
   writeFileSync(join(runsRoot, l.runId, "events.jsonl"), log.events.map((e) => JSON.stringify(e)).join("\n") + "\n");
 }
@@ -423,4 +430,24 @@ it.each([[false,"jit-v2-cache-20m","just-in-time-prompt-v2"],[true,"jit-v2-cache
   expect(preset.features["cache-aligned-window-v1"]).toBe(true);
   expect(preset.features["milestone-stall-stop-v1"]).toBe(false);
  }
+});
+
+it("holds both GPU lanes through finite extensions, then chains without replacements or post-horizon credit", async () => {
+  const { def, runsRoot, dir } = setup();
+  const releases: (() => void)[] = [];
+  const host = new Fake(runsRoot, { extensionMs: 1800000, beforeExit: (_l, n) => n <= 2 ? new Promise<void>(resolve => releases.push(resolve)) : Promise.resolve() });
+  const running = runFixed({ def, definitionSha256: "d".repeat(64), runsRoot, host, stopRequested: () => false, pid: 77 });
+  await vi.waitFor(() => { expect(releases).toHaveLength(2); });
+  expect(host.launches).toHaveLength(2);
+  // Passing the original horizon cannot start the next slot while either child is alive.
+  host.clock += 7200000;
+  await new Promise<void>(r => setImmediate(r));
+  expect(host.launches).toHaveLength(2);
+  for (const release of releases) release();
+  expect(await running).toBe("finished");
+  const entries = readLedger(join(dir, "trials.jsonl"));
+  expect(launchesOf(entries)).toHaveLength(def.plan.length);
+  expect(outcomes(entries).every(o => o.valid && o.furthest !== "STONE_BADGE")).toBe(true);
+  expect(host.maxRunning).toBe(2);
+  expect(parseFixedStatus(JSON.parse(readFileSync(join(dir, "status.json"), "utf8")))).toMatchObject({ state: "finished", invalid: 0, valid: def.plan.length });
 });

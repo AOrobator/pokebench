@@ -75,14 +75,14 @@ function resultState(result: AgentToolResult<unknown>) {
 export function objectiveGameTools(tracker: ObjectiveTracker, recorder: Pick<RunRecorder, "recordState" | "buttonPress" | "afterPress">, url: string, fetchFn: typeof fetch = fetch, switches: ToolSwitches = ALL_TOOL_SWITCHES): AgentTool[] {
   const submissions = { count: 0, buttons: [] as readonly Button[] };
   const [observe, press] = gameTools(url, { beforePress: (id, buttons, timing, before, modifiers) => { submissions.count += 1; submissions.buttons=buttons; recorder.buttonPress(id, buttons, timing, before, modifiers); }, afterPress: () => recorder.afterPress() }, fetchFn, switches);
-  const perform=async(id:string,params:Parameters<CheckedPressTool["execute"]>[1],signal?:AbortSignal,update?:Parameters<CheckedPressTool["execute"]>[3],check?:BeforePressCheck)=>{
+  const perform=async(id:string,params:Parameters<CheckedPressTool["execute"]>[1],signal?:AbortSignal,update?:Parameters<CheckedPressTool["execute"]>[3],check?:BeforePressCheck,options?:Parameters<CheckedPressTool["executeChecked"]>[5])=>{
       signal?.throwIfAborted();
       if (!Value.Check(PressArgs, params)) throw new Error("Invalid press parameters");
       let before = recorder.recordState(await readState(url, fetchFn, signal));
 
       const submittedBefore = submissions.count;
       try {
-        const result = await press.executeChecked(id,params,fresh=>{if(fresh===undefined)throw new Error("Coherent pre-action state unavailable");before=recorder.recordState(fresh);tracker.checkPress(submittedButtons(params.buttons,fresh,switches),before);check?.(fresh);},signal,update);
+        const result = await press.executeChecked(id,params,fresh=>{if(fresh===undefined)throw new Error("Coherent pre-action state unavailable");before=recorder.recordState(fresh);tracker.checkPress(submittedButtons(params.buttons,fresh,switches),before);check?.(fresh);},signal,update,options);
         const after = recorder.recordState(resultState(result));
         const attempt = tracker.attempt(id, submissions.buttons, before, after);
         if (attempt.warning !== null) result.content.push({ type: "text", text: attempt.warning });
@@ -92,7 +92,7 @@ export function objectiveGameTools(tracker: ObjectiveTracker, recorder: Pick<Run
         throw error;
       }
   };
-  const guarded:CheckedPressTool={...press,execute:perform,executeChecked:(id,params,check,signal,update)=>perform(id,params,signal,update,check)};
+  const guarded:CheckedPressTool={...press,execute:perform,executeChecked:(id,params,check,signal,update,options)=>perform(id,params,signal,update,check,options)};
   return [
     { ...observe, execute: async (id, params, signal, update) => {
       const result = await observe.execute(id, params, signal, update);

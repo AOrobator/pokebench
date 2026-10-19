@@ -92,18 +92,18 @@ describe("trainer cards in the viewer", () => {
   it("on desktop, shows a wide card per live run in the header in place of the live-run buttons", async () => {
     await mount(1280);
     const row = ui("run-cards");
-    expect(row.hidden).toBe(false); expect(ui("live-runs").hidden).toBe(true);
+    expect(row.hidden).toBe(false); expect(document.querySelector('[data-ui="live-runs"]')).toBeNull();
     expect(row.querySelectorAll(".tc.tc-wide")).toHaveLength(2);
     const mine = card(row, LIVE_ID), other = card(row, OTHER_ID);
     expect(mine.getAttribute("aria-pressed")).toBe("true"); expect(mine.innerHTML).toContain('data-gt="WATCHING"'); expect(other.innerHTML).toContain('data-gt="LIVE"');
-    expect(mine.innerHTML).toContain("/sprites/trainers/norman.png"); expect(other.innerHTML).toContain("/sprites/trainers/may.png");
+    expect(mine.innerHTML).toContain("/sprites/trainers/wattson.png"); expect(other.innerHTML).toContain("/sprites/trainers/sidney.png");
     expect(mine.innerHTML).toContain(milestone.label); expect(mine.innerHTML).toContain("Oldale Town"); expect(mine.innerHTML).toContain("trial 2/4"); expect(mine.textContent).toContain("RED");
   });
 
-  it("keeps the old live-run buttons hidden when the run list refreshes", async () => {
+  it("never recreates the legacy live-run bars when the run list refreshes", async () => {
     const { app } = await mount(1280);
     await app.refreshRuns();
-    expect(ui("live-runs").hidden).toBe(true); expect(ui("run-cards").hidden).toBe(false);
+    expect(document.querySelector('[data-ui="live-runs"]')).toBeNull(); expect(ui("run-cards").hidden).toBe(false);
   });
 
   it("keeps the last cards, unchanged, when a workbench poll fails, and carries on with the next one", async () => {
@@ -205,10 +205,10 @@ describe("trainer cards in the viewer", () => {
     expect(ui("run-sheet").hidden).toBe(true); expect(streams.at(-1)?.url).toBe(`/api/runs/${encodeURIComponent(OTHER_ID)}/events`);
   });
 
-  it("without the art, keeps the live-run buttons and the plain sheet while still loading recorded splits", async () => {
+  it("without art, keeps the plain sheet and recorded splits without legacy bars", async () => {
     const { app } = await mount(1280, { art: false });
     await app.pollCards();
-    expect(ui("run-cards").hidden).toBe(true); expect(ui("live-runs").hidden).toBe(false);
+    expect(ui("run-cards").hidden).toBe(true); expect(document.querySelector('[data-ui="live-runs"]')).toBeNull();
     expect(fetched).toContain("/api/workbench");
     setWidth(375); app.tick(0);
     expect(ui("run-sheet-body").querySelector(".rs-now")).not.toBeNull();

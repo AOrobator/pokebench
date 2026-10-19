@@ -219,9 +219,9 @@ it("closes by terminating its workers and rejecting running and queued jobs", as
   expect(workers).toHaveLength(1);
 });
 
-it("sizes the pool to leave cores free, between one and four workers", () => {
-  expect(defaultPoolSize(32)).toBe(4);
-  expect(defaultPoolSize(5)).toBe(3);
+it("serializes log reduction so live game servers keep CPU and memory bandwidth", () => {
+  expect(defaultPoolSize(32)).toBe(1);
+  expect(defaultPoolSize(5)).toBe(1);
   expect(defaultPoolSize(2)).toBe(1);
   expect(defaultPoolSize(1)).toBe(1);
   expect(() => createBaselinePool(() => new FakeWorker(), 0)).toThrow(RangeError);

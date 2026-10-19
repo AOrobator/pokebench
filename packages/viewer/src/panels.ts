@@ -105,7 +105,8 @@ export function budgets(view: RunView, nowMs: number): string {
       ? budgetMissing("RETRIES", '<span class="nodata">no retries yet</span>')
       : budgetBar("RETRIES", view.retry.attempt / view.retry.limit, `${String(view.retry.attempt)} / ${String(view.retry.limit)}`),
   );
-  const { max_turns, max_tokens, max_wall_ms } = start.budgets;
+  const { max_turns, max_tokens } = start.budgets;
+  const max_wall_ms = view.control.maxWallMs ?? start.budgets.max_wall_ms;
   if (max_turns !== undefined) rows.push(budgetBar("TURNS", view.turn / max_turns, `${String(view.turn)} / ${num(max_turns)}`));
   if (max_tokens !== undefined) {
     const used = view.tokens.input + view.tokens.output;
@@ -205,8 +206,12 @@ function chip(button: string): string {
   return `<span class="chipb">${ARROW[button] ?? ""}${esc(button)}</span>`;
 }
 
-const CONTROL_ICON = { pause: "⏸", resume: "▶", stop: "■", cancel_stop: "↺", abort: "✖" } as const;
+const CONTROL_ICON = { pause: "⏸", resume: "▶", stop: "■", cancel_stop: "↺", abort: "✖", extend_30m: "＋", extend_60m: "＋" } as const;
 function controlRow(event: Extract<RunEvent, { type: "operator_control" }>): string {
+  if (event.action === "extend_30m" || event.action === "extend_60m") {
+    const limits = event.previous_max_wall_ms !== undefined && event.max_wall_ms !== undefined ? ` · ${hms(event.previous_max_wall_ms / 1000)} → ${hms(event.max_wall_ms / 1000)}` : "";
+    return `＋ Extend ${event.action === "extend_30m" ? "30 minutes" : "1 hour"} · ${esc(event.status)}${limits} · original evaluation horizon unchanged · request ${String(event.request)}`;
+  }
   const name = event.action.replace("_", " ");
   const status = event.status === "pending" ? "requested" : event.status === "failed" ? "FAILED" : event.status;
   const detail = event.status === "failed" ? " · emulator still frozen; the run stays paused" : event.status === "pending"
@@ -352,12 +357,15 @@ const TOOL_REFERENCE: Readonly<Record<string, readonly [description:string, inpu
  act: ["Choose one action from the current snapshot in state-only decision mode.", "Either {kind: press, buttons: [1–8 supported buttons]} or {kind: wait, duration_ms: integer 1–2000}. Do not combine buttons and duration_ms. Waiting measures host time, not guaranteed emulator frames.", "A fresh screenshot and observation text with press feedback or a wait acknowledgement; state is retained in tool details. A fresh snapshot is also supplied for the next decision; invalid action shapes are rejected.", '{"kind":"wait","duration_ms":100}'],
 };
 
-function toolReference(name:string):string {
- const reference=Object.hasOwn(TOOL_REFERENCE,name)?TOOL_REFERENCE[name]:undefined;
+function toolReference(name:string,automaticRunning:boolean):string {
+ const base=Object.hasOwn(TOOL_REFERENCE,name)?TOOL_REFERENCE[name]:undefined;
+ const reference=automaticRunning&&base!==undefined&&name==="press"?[base[0],"buttons: required array of 1–8 values: A, B, START, SELECT, UP, DOWN, LEFT, RIGHT. The harness automatically holds B for ordinary directional travel only when the fresh native readout permits running; the model has no walking override. Interface safety may submit only the first requested button.",base[2],'{"buttons":["RIGHT"]}']as const:automaticRunning&&base!==undefined&&name==="navigate_to"?[base[0],"x, y: required nonnegative integers. map_id: required [group, number], each integer 0–255, matching the current map. The harness automatically runs eligible steps; the model has no walking override. Local mode allows up to 8 button attempts; whole-map mode and terrain support depend on enabled features.",base[2],base[3]]as const:base;
  return `<article class="config-tool" data-tool="${esc(name)}"><h5>${esc(name)}</h5>${reference===undefined?'<p>Documentation unavailable for this recorded tool. Its historical inputs and outputs were not recorded.</p>':`<p>${esc(reference[0])}</p><dl><dt>INPUTS</dt><dd>${esc(reference[1])}</dd><dt>OUTPUTS</dt><dd>${esc(reference[2])}</dd></dl><details><summary>INPUT EXAMPLE</summary><pre>${esc(reference[3])}</pre><p>Illustrative shape only. Coordinates, map IDs and evidence must come from the actual run.</p></details>`}</article>`;
 }
 
 export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
+ "automatic-running-v1":"automatic-running-v1.html",
+ "visited-terrain-navigation-v1":"visited-terrain-navigation-v1.html",
  "just-in-time-prompt-v1":"just-in-time-prompt-v1.html",
  "just-in-time-prompt-v2":"just-in-time-prompt-v2.html",
  "navigation-evidence-memory-v1":"navigation-evidence-memory-v1.html",
@@ -450,6 +458,7 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "battle-menu-loop-v1":"battle-menu-loop-v1.html",
  "clock-view-loop-v1":"clock-view-loop-v1.html",
  "stale-story-goal-v1":"stale-story-goal-v1.html",
+ "stale-story-goal-v2":"stale-story-goal-v2.html",
  "input-cuts-v1":"input-cuts-v1.html",
  "loop-guard-screen-v1":"loop-guard-screen-v1.html",
  "reopened-dialogue-loop-v1":"reopened-dialogue-loop-v1.html",
@@ -461,6 +470,7 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "scripted-place-guidance-v1":"scripted-place-guidance-v1.html",
  "trigger-script-loop-v1":"trigger-script-loop-v1.html",
  "battle-effective-damage-v1":"battle-effective-damage-v1.html",
+ "deterministic-warp-navigation-v1":"deterministic-warp-navigation-v1.html",
 });
 
 export function harnessConfig(view:RunView,registry:readonly FeatureInfo[]=[]):string {
@@ -487,6 +497,6 @@ export function harnessConfig(view:RunView,registry:readonly FeatureInfo[]=[]):s
  const box=(title:string,rows:readonly(readonly[string,string])[])=>`<section class="config-summary-card"><h4>${title}</h4>${kv(rows)}</section>`;
  return `<div class="config-overview"><span class="config-readonly">◈ READ ONLY</span><p>Recorded settings for <strong>${esc(start.run)}</strong></p><div class="config-counts"><span>${String(cards.filter(c=>c.state==="on").length)} ON</span><span>${String(cards.filter(c=>c.state==="off").length)} OFF</span><span>${String(cards.filter(c=>c.state==="unknown").length)} NOT RECORDED</span>${cards.some(c=>c.state==="conflict")?'<span>CONFLICT · inspect raw configuration</span>':""}</div></div><div class="config-summary-grid">`+
  box("MODEL",[["MODEL",esc(start.model.id)],["CONTEXT WINDOW",num(start.model.context_window)],["VISION",start.model.vision?"supported":"not supported"],["THINKING",esc(start.sampling.thinking_level)],["OUTPUT TOKEN CAP",num(start.sampling.max_tokens)]])+
- box("BUDGET & GOAL",[["TIME CAP",start.budgets.max_wall_ms===undefined?missing:hms(start.budgets.max_wall_ms/1000)],["TURN CAP",start.budgets.max_turns===undefined?missing:String(start.budgets.max_turns)],["FAILURE LIMIT",evaluation===undefined?missing:String(evaluation.failure_limit)],["STOP AT MILESTONE",evaluation===undefined?missing:evaluation.target===null?"NONE · play to budget":esc(evaluation.target)]])+
- box("BUILD & PRESET",[["PRESET",esc(evaluation?.preset_id??missing)],["HARNESS SOURCE",esc(start.harness.commit)+(start.harness.dirty?" · dirty":" · clean")],["START STATE",esc(start.start_state.kind)],["VENDOR PIN",esc(start.vendor_pin)],["PI VERSION",esc(start.pi_version)]])+`</div><p class="config-provenance">Statuses come from this run’s recorded header. Missing IDs stay NOT RECORDED, not guessed OFF. Descriptions come from the viewer’s feature catalog and may be newer than a historical run. This page never edits next-run settings.</p>${sections}<section class="config-summary-card"><h4>AVAILABLE TOOLS</h4><p class="config-provenance">Tools listed by this run’s recorded header. Reference documentation reflects this viewer build; names are not recorded with historical tool schemas. Outputs and limits depend on the run’s enabled features.</p><div class="config-tool-grid">${start.tools.map(toolReference).join("")||"none recorded"}</div></section><p class="config-provenance">Model weight digest, endpoint, temperature and other serving defaults: not recorded in this run header.</p><details class="config-raw"><summary>RECORDED SYSTEM PROMPT</summary><pre>${esc(start.system_prompt)}</pre></details><details class="config-raw"><summary>RAW RUN CONFIGURATION</summary>${jsonHtml(start)}</details>`;
+ box("BUDGET & GOAL",[["TIME CAP",(view.control.maxWallMs??start.budgets.max_wall_ms)===undefined?missing:hms((view.control.maxWallMs??start.budgets.max_wall_ms??0)/1000)],...(view.control.maxWallMs===null?[]:[["ORIGINAL EVALUATION CAP",hms((start.budgets.max_wall_ms??0)/1000)]] as [string,string][]),["TURN CAP",start.budgets.max_turns===undefined?missing:String(start.budgets.max_turns)],["FAILURE LIMIT",evaluation===undefined?missing:String(evaluation.failure_limit)],["STOP AT MILESTONE",evaluation===undefined?missing:evaluation.target===null?"NONE · play to budget":esc(evaluation.target)]])+
+ box("BUILD & PRESET",[["PRESET",esc(evaluation?.preset_id??missing)],["HARNESS SOURCE",esc(start.harness.commit)+(start.harness.dirty?" · dirty":" · clean")],["START STATE",esc(start.start_state.kind)],["VENDOR PIN",esc(start.vendor_pin)],["PI VERSION",esc(start.pi_version)]])+`</div><p class="config-provenance">Statuses come from this run’s recorded header. Missing IDs stay NOT RECORDED, not guessed OFF. Descriptions come from the viewer’s feature catalog and may be newer than a historical run. This page never edits next-run settings.</p>${sections}<section class="config-summary-card"><h4>AVAILABLE TOOLS</h4><p class="config-provenance">Tools listed by this run’s recorded header. Reference documentation reflects this viewer build; names are not recorded with historical tool schemas. Outputs and limits depend on the run’s enabled features.</p><div class="config-tool-grid">${start.tools.map(name=>toolReference(name,start.harness_features.includes("automatic-running-v1"))).join("")||"none recorded"}</div></section><p class="config-provenance">Model weight digest, endpoint, temperature and other serving defaults: not recorded in this run header.</p><details class="config-raw"><summary>RECORDED SYSTEM PROMPT</summary><pre>${esc(start.system_prompt)}</pre></details><details class="config-raw"><summary>RAW RUN CONFIGURATION</summary>${jsonHtml(start)}</details>`;
 }

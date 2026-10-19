@@ -56,7 +56,7 @@ const RUNS = [
   { id: "2026-10-11T21-00-00_old", model: "think-swarm", started: "x", ended: true, reason: "budget", problem: null },
 ];
 
-async function harness(hash = "", runs: unknown[] = RUNS, workbench: unknown = null): Promise<Harness> {
+async function harness(hash = "", runs: unknown[] = RUNS, workbench: unknown = null, heads: Readonly<Record<string, unknown>> = {}): Promise<Harness> {
   document.body.innerHTML = PAGE.slice(PAGE.indexOf("<body>") + 6, PAGE.indexOf("</body>"));
   const streams: FakeStream[] = [];
   const fetched: string[] = [];
@@ -68,6 +68,10 @@ async function harness(hash = "", runs: unknown[] = RUNS, workbench: unknown = n
       fetched.push(url);
       if (url === "/api/runs") return runs.length === 1 && runs[0] === "fail" ? Promise.reject(new Error("offline")) : Promise.resolve([...runs]);
       if (url === "/api/workbench") return workbench === null ? Promise.reject(new Error("workbench unavailable")) : Promise.resolve(workbench);
+      if (url.endsWith("/head")) {
+        const id = decodeURIComponent(url.split("/")[3] ?? "");
+        return id in heads ? Promise.resolve(heads[id]) : Promise.reject(new Error("recorded head unavailable"));
+      }
       if (url.endsWith("/comparisons")) return Promise.resolve({ candidates: [{run: "2026-10-11T21-00-00_old", milestones: []}], baseline: null, best: null });
       if (url.endsWith("/milestones")) {
         return Promise.resolve({ run: "2026-10-11T21-00-00_old", milestones: [{ name: "GAME_RUNNING", offsetMs: 5 }, { name: "PLAYER_NAME_SET", offsetMs: 20_000 }] });
@@ -233,10 +237,10 @@ describe("viewer app", () => {
     expect(ui("play").textContent).toBe("❚❚");
     expect(ui("replay-controls").hidden).toBe(false);
     expect(ui("counters").innerHTML).toContain("think-swarm");
-    expect(ui("think-head").textContent).toBe("AGENT is waiting…");
+    expect(ui("think-head").textContent).toBe("AGENT thought for 7.0s · turn 4");
 
     app.tick(2_000);
-    expect(ui("think-head").textContent).toMatch(/^AGENT (is thinking|thought for)/);
+    expect(ui("think-head").textContent).toBe("AGENT thought for 7.0s · turn 4");
     app.tick(10_000);
     expect(ui("screen").getAttribute("href")).toBe(`/api/runs/${M4_ID}/frames/000015_0.png`);
     expect(ui("trace").querySelectorAll("[data-key]").length).toBeGreaterThan(5);
@@ -386,6 +390,7 @@ describe("viewer app", () => {
       fetchJson: (url) =>
         url === "/api/runs"
           ? Promise.resolve(RUNS)
+          : url.endsWith("/head") ? Promise.reject(new Error("recorded head unavailable"))
           : url.endsWith("/comparisons") ? Promise.resolve({ candidates:[{run:"2026-10-11T21-00-00_old",milestones:[]}],baseline:null,best:null }) : new Promise((resolve) => {
               pending.push(resolve);
             }),
@@ -496,6 +501,211 @@ describe("viewer app", () => {
     must(streams[0]).send("caught_up", {});
     app.tick(100);
     expect(ui("split-strip").textContent).toContain("NEW GAME ✔");
+  });
+
+  it("keeps the selected run's recorded thinking atomic until its event stream is caught up", async () => {
+    const id = RUNS[0]?.id ?? "missing";
+    const recorded = new Log();
+    recorded.add(0, START);
+    recorded.add(1_000, { type: "turn_start", turn: 1, context: { messages: 1, images: 0, est_tokens: 10 } });
+    recorded.add(2_000, assistant({ turn: 1, thinking: "Older recorded thought." }));
+    recorded.add(3_000, { type: "turn_start", turn: 2, context: { messages: 2, images: 0, est_tokens: 20 } });
+    recorded.add(4_000, assistant({ turn: 2, thinking: "Latest recorded thought." }));
+    const { app, streams } = await harness("", RUNS, null, { [id]: recorded.events.map((event) => ({ ...event, run: id })) });
+    await Promise.resolve();
+    app.render();
+    expect(ui("think-body").textContent).toContain("Latest recorded thought.");
+    expect(ui("side-trace").textContent).toContain("Older recorded thought.");
+    const cachedRow = [...ui("side-trace").querySelectorAll<HTMLElement>("[data-key]")].find((row) => row.textContent.includes("Older recorded thought."));
+    must(cachedRow?.querySelector<HTMLElement>("summary")).click();
+    expect(ui("inspector").textContent).toContain('"thinking": "Older recorded thought."');
+
+    const partial = new Log();
+    partial.add(0, START);
+    partial.add(1_000, { type: "turn_start", turn: 1, context: { messages: 1, images: 0, est_tokens: 10 } });
+    partial.add(2_000, assistant({ turn: 1, thinking: "Partial stream thought." }));
+    feed(must(streams[0]), partial.events, false);
+    app.tick(100);
+    expect(ui("think-body").textContent).toContain("Latest recorded thought.");
+    expect(ui("think-body").textContent).not.toContain("Partial stream thought.");
+
+    feed(must(streams[0]), recorded.events.slice(partial.events.length), false);
+    must(streams[0]).send("caught_up", {});
+    app.tick(100);
+    expect(ui("think-body").textContent).toContain("Latest recorded thought.");
+  });
+
+  it("keeps the run-splits thinking pane at the recorded present while a finished run replays", async () => {
+    const id = M4_ID;
+    const recorded = fullRun();
+    const head = recorded.events.map((event) => ({ ...event, run: id }));
+    const { app, streams } = await harness(`#run=${id}`, RUNS, null, { [id]: head });
+    await Promise.resolve();
+    feed(must(streams[0]), head);
+    app.clock?.seek(BASE_MS);
+    app.tick(0);
+    expect(ui("mode").textContent).toBe("REPLAY");
+    expect(ui("think-title").textContent).toBe("FINAL · TURN 2");
+    expect(ui("think-body").textContent).toContain("Again.");
+    expect(ui("trace").textContent).not.toContain("Again.");
+    const cachedRow = [...ui("side-trace").querySelectorAll<HTMLElement>("[data-key]")].find((row) => row.textContent.includes("Press A to start."));
+    must(cachedRow?.querySelector<HTMLElement>("summary")).click();
+    expect(ui("inspector").textContent).toContain('"thinking": "Press A to start."');
+  });
+
+  it("does not let a late recorded-thinking snapshot replace the caught-up stream", async () => {
+    const id = RUNS[0]?.id ?? "missing";
+    let resolveHead: (value: unknown) => void = () => undefined;
+    const head = new Promise<unknown>((resolve) => { resolveHead = resolve; });
+    const { app, streams } = await harness("", RUNS, null, { [id]: head });
+    const live = new Log();
+    live.add(0, START);
+    live.add(1_000, { type: "turn_start", turn: 1, context: { messages: 1, images: 0, est_tokens: 10 } });
+    live.add(2_000, assistant({ turn: 1, thinking: "Authoritative at catch-up." }));
+    feed(must(streams[0]), live.events);
+    expect(ui("think-body").textContent).toContain("Authoritative at catch-up.");
+
+    const stale = new Log();
+    stale.add(0, START);
+    stale.add(1_000, { type: "turn_start", turn: 1, context: { messages: 1, images: 0, est_tokens: 10 } });
+    stale.add(2_000, assistant({ turn: 1, thinking: "Late stale snapshot." }));
+    resolveHead(stale.events.map((event) => ({ ...event, run: id })));
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(ui("think-body").textContent).toContain("Authoritative at catch-up.");
+    expect(ui("think-body").textContent).not.toContain("Late stale snapshot.");
+
+    const next = [
+      live.add(3_000, { type: "turn_start", turn: 2, context: { messages: 2, images: 0, est_tokens: 20 } }),
+      live.add(4_000, assistant({ turn: 2, thinking: "Newest live stream thought." })),
+    ];
+    feed(must(streams[0]), next, false);
+    app.render();
+    expect(ui("think-body").textContent).toContain("Newest live stream thought.");
+  });
+
+  it("does not let a late recorded-thinking failure clear the caught-up stream", async () => {
+    const id = RUNS[0]?.id ?? "missing";
+    let rejectHead: (reason?: unknown) => void = () => undefined;
+    const head = new Promise<unknown>((_resolve, reject) => { rejectHead = reject; });
+    const { app, streams } = await harness("", RUNS, null, { [id]: head });
+    feed(must(streams[0]), fullRun().events);
+    app.clock?.seek(BASE_MS);
+    app.render();
+    expect(ui("think-body").textContent).toContain("Again.");
+    expect(ui("side-trace").textContent).toContain("Press A to start.");
+
+    rejectHead(new Error("late head failure"));
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(ui("think-body").textContent).toContain("Again.");
+    expect(ui("side-trace").textContent).toContain("Press A to start.");
+  });
+
+  it("does not duplicate recorded-thinking rows when reconnect backfill repeats accepted events", async () => {
+    const { app, streams } = await harness();
+    const log = fullRun();
+    const throughTurnTwo = log.events.slice(0, 12);
+    feed(must(streams[0]), throughTurnTwo);
+    const earlierThought = (): number => ui("side-trace").querySelectorAll('[data-seqs~="4"]').length;
+    expect(earlierThought()).toBe(1);
+
+    feed(must(streams[0]), throughTurnTwo.slice(0, 5), false);
+    app.render();
+    expect(earlierThought()).toBe(1);
+
+    const fresh = log.add(8_100, { type: "tool_call", turn: 2, id: "fresh", name: "state", args: {} });
+    feed(must(streams[0]), [fresh], false);
+    app.render();
+    expect(ui("side-trace").querySelectorAll(`[data-seqs~="${String(fresh.seq)}"]`)).toHaveLength(1);
+  });
+
+  it("ignores a recorded-thinking response from a run that is no longer selected", async () => {
+    const firstId = RUNS[0]?.id ?? "missing";
+    let resolveFirst: (value: unknown) => void = () => undefined;
+    const firstHead = new Promise<unknown>((resolve) => { resolveFirst = resolve; });
+    const fresh = new Log();
+    fresh.add(0, START);
+    fresh.add(1_000, { type: "turn_start", turn: 1, context: { messages: 1, images: 0, est_tokens: 10 } });
+    fresh.add(2_000, assistant({ turn: 1, thinking: "Selected run thought." }));
+    const { app } = await harness("", RUNS, null, {
+      [firstId]: firstHead,
+      [M4_ID]: fresh.events.map((event) => ({ ...event, run: M4_ID })),
+    });
+    app.select(M4_ID);
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(ui("think-body").textContent).toContain("Selected run thought.");
+
+    const stale = fresh.events.map((event) => event.type === "assistant" ? { ...event, run: firstId, thinking: "Stale run thought." } : { ...event, run: firstId });
+    resolveFirst(stale);
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(ui("think-body").textContent).toContain("Selected run thought.");
+    expect(ui("think-body").textContent).not.toContain("Stale run thought.");
+  });
+
+  it("ignores an older recorded-thinking request when the same run is reselected", async () => {
+    document.body.innerHTML = PAGE.slice(PAGE.indexOf("<body>") + 6, PAGE.indexOf("</body>"));
+    const id = RUNS[0]?.id ?? "missing";
+    let resolveFirst: (value: unknown) => void = () => undefined;
+    const firstHead = new Promise<unknown>((resolve) => { resolveFirst = resolve; });
+    const fresh = new Log();
+    fresh.add(0, START);
+    fresh.add(1_000, { type: "turn_start", turn: 1, context: { messages: 1, images: 0, est_tokens: 10 } });
+    fresh.add(2_000, assistant({ turn: 1, thinking: "Fresh same-run thought." }));
+    const streams: FakeStream[] = [];
+    let headCalls = 0;
+    const app = await mountApp(document, {
+      fetchJson: (url) => nextRunReply(url) ?? (url === "/api/runs" ? Promise.resolve(RUNS) : url === "/api/workbench" ? Promise.reject(new Error("workbench unavailable")) : url.endsWith("/head") ? (++headCalls === 1 ? firstHead : Promise.resolve(fresh.events.map((event) => ({ ...event, run: id })))) : Promise.reject(new Error(`unexpected ${url}`))),
+      sendJson: noWrites,
+      openStream: (url) => { const stream = new FakeStream(url); streams.push(stream); return stream; },
+      now: () => BASE_MS,
+      hash: "",
+    });
+    app.select(id);
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(ui("think-body").textContent).toContain("Fresh same-run thought.");
+
+    const stale = fresh.events.map((event) => event.type === "assistant" ? { ...event, run: id, thinking: "Stale same-run thought." } : { ...event, run: id });
+    resolveFirst(stale);
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(ui("think-body").textContent).toContain("Fresh same-run thought.");
+    expect(ui("think-body").textContent).not.toContain("Stale same-run thought.");
+    expect(streams).toHaveLength(2);
+  });
+
+  it("rejects recorded thinking whose events belong to another run", async () => {
+    const id = RUNS[0]?.id ?? "missing";
+    const foreign = new Log();
+    foreign.add(0, START);
+    foreign.add(1_000, { type: "turn_start", turn: 1, context: { messages: 1, images: 0, est_tokens: 10 } });
+    foreign.add(2_000, assistant({ turn: 1, thinking: "Foreign run thought." }));
+    const { app } = await harness("", RUNS, null, { [id]: foreign.events.map((event) => ({ ...event, run: "someone-else" })) });
+    await Promise.resolve();
+    await Promise.resolve();
+    app.render();
+    expect(ui("think-head").textContent).toContain("LOADING RECORDED THINKING");
+    expect(ui("think-body").textContent).not.toContain("Foreign run thought.");
+  });
+
+  it("holds a stable thinking-loading state when the head snapshot fails, then trusts the caught-up stream", async () => {
+    const { app, streams } = await harness();
+    await Promise.resolve();
+    const log = new Log();
+    log.add(0, START);
+    log.add(1_000, { type: "turn_start", turn: 1, context: { messages: 1, images: 0, est_tokens: 10 } });
+    log.add(2_000, assistant({ turn: 1, thinking: "Recorded after catch-up." }));
+    feed(must(streams[0]), log.events, false);
+    app.tick(100);
+    expect(ui("think-head").textContent).toContain("LOADING RECORDED THINKING");
+    expect(ui("think-body").textContent).not.toContain("Recorded after catch-up.");
+    expect(ui("side-trace").textContent).toContain("loading recorded thinking");
+    must(streams[0]).send("caught_up", {});
+    app.tick(100);
+    expect(ui("think-body").textContent).toContain("Recorded after catch-up.");
   });
 
   it("says so when there are no runs", async () => {
@@ -663,14 +873,14 @@ describe("boot", () => {
 
 // Live discovery and error containment are operator-visible guarantees.
 describe("live discovery and diagnostics", () => {
-  it("keeps every live run visible while replaying a finished probe", async () => {
+  it("keeps live runs selectable in the dropdown while replaying, without legacy bars", async () => {
     const runs = [runRow("probe_g4", true), runRow("active_model", false)];
     const { streams } = await harness("#run=probe_g4", runs);
-    expect(ui("live-runs").hidden).toBe(false);
-    const button = ui("live-runs").querySelector("button");
-    expect(button?.dataset.run).toBe("active_model");
-    expect(ui("run").querySelector("option")?.textContent).toContain("LIVE");
-    button?.click();
+    expect(document.querySelector('[data-ui="live-runs"]')).toBeNull();
+    const picker = ui("run") as HTMLSelectElement;
+    expect(picker.querySelector("option")?.textContent).toContain("LIVE");
+    picker.value = "active_model";
+    picker.dispatchEvent(new Event("change"));
     expect(streams.at(-1)?.url).toBe("/api/runs/active_model/events");
   });
 
@@ -700,23 +910,20 @@ it("ignores queued callbacks from a stream closed by a run switch", async () => 
   expect(app.view.start).toBeNull();
 });
 
-it("marks only the selected live run and retains the mark after discovery refresh", async () => {
+it("retains the selected run in the dropdown after discovery refresh without legacy bars", async () => {
   const runs = [runRow("first_live", false), runRow("second_live", false), runRow(M4_ID, true)];
-  const { app } = await harness("#run=first_live", runs);
-  const selected = () => [...ui("live-runs").querySelectorAll('button[aria-pressed="true"]')].map((button) => (button as HTMLButtonElement).dataset.run);
-  expect(selected()).toEqual(["first_live"]);
-  expect(ui("live-runs").textContent).toContain("WATCHING");
-  (ui("live-runs").querySelector('[data-run="second_live"]') as HTMLButtonElement).click();
-  expect(selected()).toEqual(["second_live"]);
-  expect((ui("live-runs").querySelector('[data-run="first_live"]') as HTMLButtonElement).textContent).toMatch(/^LIVE ELSEWHERE · .* · WATCH ▸$/);
-  expect((ui("live-runs").querySelector('[data-run="second_live"]') as HTMLButtonElement).textContent).toMatch(/^WATCHING · /);
+  const { app, streams } = await harness("#run=first_live", runs);
+  const picker = ui("run") as HTMLSelectElement;
+  expect(picker.value).toBe("first_live");
+  picker.value = "second_live";
+  picker.dispatchEvent(new Event("change"));
+  expect(streams.at(-1)?.url).toBe("/api/runs/second_live/events");
   await app.refreshRuns();
-  expect(selected()).toEqual(["second_live"]);
+  expect(picker.value).toBe("second_live");
+  expect(document.querySelector('[data-ui="live-runs"]')).toBeNull();
   app.select(M4_ID);
-  expect(selected()).toEqual([]);
-  expect((ui("run") as HTMLSelectElement).value).toBe(M4_ID);
-  // Replaying an ended run: every live chip says it is another run, none says WATCHING.
-  expect([...ui("live-runs").querySelectorAll("button")].map((b) => b.textContent)).toEqual([expect.stringMatching(/^LIVE ELSEWHERE · .* · WATCH ▸$/), expect.stringMatching(/^LIVE ELSEWHERE · .* · WATCH ▸$/)]);
+  expect(picker.value).toBe(M4_ID);
+  expect(document.querySelector('[data-ui="live-runs"]')).toBeNull();
 });
 
 
@@ -779,7 +986,7 @@ it("does not apply comparisons from a superseded run selection", async () => {
   const pending: ((value: unknown) => void)[] = [];
   const streams: FakeStream[] = [];
   const app = await mountApp(document, {
-    fetchJson: (url) => nextRunReply(url) ?? (url === "/api/runs" ? Promise.resolve(RUNS) : url === "/api/workbench" ? Promise.reject(new Error("workbench unavailable")) : new Promise((resolve) => pending.push(resolve))),
+    fetchJson: (url) => nextRunReply(url) ?? (url === "/api/runs" ? Promise.resolve(RUNS) : url === "/api/workbench" || url.endsWith("/head") ? Promise.reject(new Error("optional snapshot unavailable")) : new Promise((resolve) => pending.push(resolve))),
     sendJson: noWrites,
     openStream: (url) => { const stream = new FakeStream(url); streams.push(stream); return stream; }, now:()=>BASE_MS, hash:"",
   });
@@ -801,7 +1008,7 @@ it("offers only eligible references and preserves none while comparisons are pen
   const pending: ((value:unknown)=>void)[] = [];
   const streams: FakeStream[] = [];
   const app = await mountApp(document, {
-    fetchJson:(url)=>nextRunReply(url) ?? (url === "/api/runs" ? Promise.resolve(RUNS) : url === "/api/workbench" ? Promise.reject(new Error("workbench unavailable")) : url.startsWith("/sprites/") ? Promise.reject(new Error("no card art")) : new Promise((resolve)=>pending.push(resolve))),
+    fetchJson:(url)=>nextRunReply(url) ?? (url === "/api/runs" ? Promise.resolve(RUNS) : url === "/api/workbench" || url.endsWith("/head") ? Promise.reject(new Error("optional snapshot unavailable")) : url.startsWith("/sprites/") ? Promise.reject(new Error("no card art")) : new Promise((resolve)=>pending.push(resolve))),
     sendJson: noWrites,
     openStream:(url)=>{const s=new FakeStream(url);streams.push(s);return s;},now:()=>BASE_MS,hash:"",
   });

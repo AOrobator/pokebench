@@ -5,7 +5,7 @@ import {Type} from "typebox";
 import {checkEvent,type RunEvent} from "./events.js";
 import {ALL_ON,SWITCHABLE_FEATURES,dependencyProblems,featureInfo,playHarnessFeatures,type FeatureSet} from "./features.js";
 import {parseGameState,type GameStateSnapshot} from "./game-state.js";
-import {TRUST_HEADER,withHarnessTrust,type StoryGoalAwayFacts} from "./harness-trust.js";
+import {HarnessTrust,TRUST_HEADER,withHarnessTrust,type StoryGoalAwayFacts} from "./harness-trust.js";
 import {experimentArms,parseExperiment} from "./experiments.js";
 import {flagFeatures,normalizeFeatures,parsePlayPreset,presetFeatures} from "./play-preset.js";
 import {playGameTools} from "./play-wiring.js";
@@ -27,6 +27,7 @@ const textOf=(r:AgentToolResult<unknown>)=>r.content.map(c=>c.type==="text"?c.te
 const DOOR="- \"LAB\" = PROF. BIRCH'S POKéMON LAB (map 1/4). Way in: door in LITTLEROOT TOWN (map 0/9) at (7,16).";
 const LAB_QUOTE=`${STORY_HEADER} (turn 5, MOM): "Go see MAY at the LAB."`;
 const ID="stale-story-goal-v1";
+const ID2="stale-story-goal-v2";
 
 function field(map:[number,number],location:string):GameStateSnapshot {
  const result=resultAt(272);
@@ -47,26 +48,38 @@ function talk(id:string,turn:number,pages:readonly object[]):RunEvent {
 function delivered(id:string,turn:number):RunEvent {
  return checkEvent({v:1,run:"2026-10-16T12-42-29_qwen36-gpu0_4caa",seq:seq++,t:"2026-10-16T13:07:12.905-04:00",type:"tool_result",turn,id,name:"press",is_error:false,duration_ms:1,text:"pressed A",frames:[]});
 }
-function block(pages:readonly object[],state:GameStateSnapshot,retireLab:boolean):string|null {
- return run([{turn:5,pages}],state,retireLab);
+function block(pages:readonly object[],state:GameStateSnapshot,retireLab:boolean,stageBound=false):string|null {
+ return run([{turn:5,pages}],state,retireLab,stageBound);
 }
-function run(calls:readonly {turn:number;pages:readonly object[]}[],state:GameStateSnapshot,retireLab:boolean):string|null {
+function run(calls:readonly {turn:number;pages:readonly object[]}[],state:GameStateSnapshot,retireLab:boolean,stageBound=false):string|null {
  const story=new StoryDestinations();
  calls.forEach((call,i)=>{const id=`c${String(i)}`;story.observe(talk(id,call.turn,call.pages));story.observe(delivered(id,call.turn));});
- return story.block(state,"later",PLACES.places,retireLab);
+ return story.block(state,"later",PLACES.places,retireLab,stageBound);
+}
+function stateEvent(state:GameStateSnapshot,eventSeq:number,turn:number):RunEvent {
+ return checkEvent({...state,v:1,run:"2026-10-16T12-42-29_qwen36-gpu0_4caa",seq:eventSeq,t:"2026-10-16T13:07:12.905-04:00",type:"state",turn});
+}
+function stagedStory(line:string,issuedStage:number,current:GameStateSnapshot):StoryDestinations {
+ const story=new StoryDestinations();
+ const stateSeq=seq++;
+ story.observe(stateEvent(withStory(current,{birch_lab_stage:issuedStage}),stateSeq,5));
+ const id="staged";
+ story.observe(talk(id,5,[{...page(line,"PROF. BIRCH"),state_seq:stateSeq}]));
+ story.observe(delivered(id,5));
+ return story;
 }
 
 describe("stale-story-goal-v1",()=>{
  const oldale=field([0,10],"OLDALE TOWN");
  const lab=[page("BIRCH lives next door.","MOM"),page("Go see MAY at the LAB.","MOM")];
  it("is registered fifth from the end, default off, and needs nothing",()=>{
-  expect(SWITCHABLE_FEATURES.at(-12)).toBe(ID);
-  expect(playHarnessFeatures(ALL_ON,null).at(-12)).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-15)).toBe(ID);
+  expect(playHarnessFeatures(ALL_ON,null).at(-15)).toBe(ID);
   expect(featureInfo(ID)).toMatchObject({group:"observation",needs:null,switchable:true,title:"STALE STORY GOAL"});
   expect(featureInfo(ID).description).toContain(" Off: ");
   expect(dependencyProblems({...ALL_ON,"scripted-place-guidance-v1":false,"trigger-script-loop-v1":false,[ID]:true,"story-destinations-v1":false,"harness-trust-v1":false})).not.toContain(expect.stringContaining(ID));
   expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:true})[ID]).toBe(false);
-  const without=Object.fromEntries(Object.entries({...ALL_ON,"scripted-place-guidance-v1":false,"trigger-script-loop-v1":false,"state-only-decisions-v1":false}).filter(([id])=>id!==ID)) as Omit<FeatureSet,typeof ID>;
+  const without=Object.fromEntries(Object.entries({...ALL_ON,"scripted-place-guidance-v1":false,"trigger-script-loop-v1":false,"state-only-decisions-v1":false,[ID2]:false}).filter(([id])=>id!==ID)) as Omit<FeatureSet,typeof ID>;
   expect(normalizeFeatures(without)[ID]).toBe(false);
   expect(presetFeatures(parsePlayPreset({version:2,id:"p",target:null,limits:{maxTurns:1,maxWallMs:1,failureLimit:1},sampling:{thinkingLevel:"medium",maxTokens:1},features:without}))[ID]).toBe(false);
  });
@@ -154,6 +167,104 @@ describe("stale-story-goal-v1",()=>{
  });
 });
 
+describe("stale-story-goal-v2 lifecycle",()=>{
+ const oldale=field([0,10],"OLDALE TOWN");
+ const invitation="This is not the place to chat, so come by my POKéMON LAB later, okay?";
+ const returnLine="Well, it's time to head back to the LAB.";
+ const at=(stage:number,received=false)=>withStory(oldale,{birch_lab_stage:stage,pokedex_received:received});
+
+ it("keeps v1 byte-for-byte off, but retires a pre-stage-3 lab episode at the handoff",()=>{
+  const story=stagedStory(invitation,2,at(3));
+  const v1=story.block(at(3),"later",PLACES.places,true,false);
+  expect(v1).toContain(invitation);
+  expect(v1).toContain("Way in");
+  expect(v1).not.toContain("Birch starter handoff complete");
+  expect(story.block(at(3),"later",PLACES.places,true,true)).toBeNull();
+ });
+
+ it("keeps the later stage-3 return episode through stage 4 and retires it at stage 5",()=>{
+  const story=stagedStory(returnLine,3,at(3));
+  for(const stage of [3,4]){
+   const active=story.block(at(stage),"later",PLACES.places,true,true) ?? "";
+   expect(active).toContain(returnLine);
+   expect(active).toContain("Way in");
+  }
+  expect(story.block(at(5,true),"later",PLACES.places,true,true)).toBeNull();
+ });
+
+ it("does not retire from an unreadable issue stage or unreadable current story",()=>{
+  const unknownIssue=new StoryDestinations();
+  const id="unknown";
+  unknownIssue.observe(talk(id,5,[page(invitation,"PROF. BIRCH")]));
+  unknownIssue.observe(delivered(id,5));
+  expect(unknownIssue.block(at(3),"later",PLACES.places,true,true)).toContain("Way in");
+  const knownIssue=stagedStory(invitation,2,at(2));
+  for(const current of [withStory(oldale,{birch_lab_stage:null}),{...oldale,story:null}])
+   expect(knownIssue.block(current,"later",PLACES.places,true,true)).toContain("Way in");
+ });
+
+ it("does not carry a known issue stage across a later unreadable-state boundary",()=>{
+  for(const missingStory of [null,undefined] as const){
+   const story=new StoryDestinations();
+   const knownSeq=seq++,unknownSeq=seq++;
+   story.observe(stateEvent(at(2),knownSeq,5));
+   const unreadable={...oldale,story:null,v:1,run:"2026-10-16T12-42-29_qwen36-gpu0_4caa",seq:unknownSeq,t:"2026-10-16T13:07:12.905-04:00",type:"state" as const,turn:5};
+   if(missingStory===undefined)delete (unreadable as Partial<typeof unreadable>).story;
+   story.observe(checkEvent(unreadable));
+   const id=`unknown-boundary-${String(unknownSeq)}`;
+   story.observe(talk(id,5,[{...page(invitation,"PROF. BIRCH"),state_seq:unknownSeq}]));
+   story.observe(delivered(id,5));
+   expect(story.block(at(3),"later",PLACES.places,true,true)).toContain("Way in");
+  }
+ });
+
+ it("keeps pre-handoff and non-Birch destinations active",()=>{
+  const early=stagedStory(invitation,2,at(2));
+  expect(early.block(at(2),"later",PLACES.places,true,true)).toContain("Way in");
+  const route=stagedStory("Meet me on ROUTE 103.",2,at(2));
+  const active=route.block(withStory(at(3),{rival_battle_won:false}),"later",PLACES.places,true,true) ?? "";
+  expect(active).toContain("ROUTE 103");
+  expect(active).toContain("Way in");
+ });
+
+ it("keeps an unresolved lab phrase active instead of treating an empty target set as Birch's lab",()=>{
+  const unresolved=stagedStory("Meet me at MYSTERY LAB.",2,at(2));
+  const active=unresolved.block(at(3),"later",PLACES.places,true,true) ?? "";
+  expect(active).toContain("MYSTERY LAB");
+  expect(active).toContain("not resolved");
+ });
+
+ it("keeps a mixed resolved and unresolved lab line byte-identical instead of certifying only its known subset",()=>{
+  const mixed="Meet me at the POKéMON LAB, then MYSTERY LAB.";
+  const story=stagedStory(mixed,2,at(2));
+  const expected=[
+   `${STORY_HEADER} (turn 5, PROF. BIRCH): "${mixed}"`,
+   `- "POKéMON LAB" = PROF. BIRCH'S POKéMON LAB (map 1/4). Way in: door in LITTLEROOT TOWN (map 0/9) at (7,16).`,
+   `- "MYSTERY LAB": not resolved: no map in the game's map table has this name.`,
+  ].join("\n");
+  expect(story.block(at(3),"later",PLACES.places,true,false)).toBe(expected);
+  expect(story.block(at(3),"later",PLACES.places,true,true)).toBe(expected);
+ });
+
+ it("omits absent and retired goals from the trust header without inventing a replacement",()=>{
+  const empty=new HarnessTrust({supervisor:false,stageBound:true,omitEmptyGoal:true});
+  expect(empty.lines("Location: OLDALE TOWN",at(3),"empty",PLACES.places).header).toBe(TRUST_HEADER);
+
+  const retired=new HarnessTrust({supervisor:true,retireLab:true,stageBound:true,omitEmptyGoal:true});
+  // Feed the exact episode events to the trust owner as production wiring does.
+  const stateSeq=seq++;
+  retired.observe(stateEvent(at(2),stateSeq,5));
+  const id="retired";
+  retired.observe(talk(id,5,[{...page(invitation,"PROF. BIRCH"),state_seq:stateSeq}]));
+  retired.observe(delivered(id,5));
+  const result=retired.lines("Location: OLDALE TOWN",at(3),"later",PLACES.places,true);
+  expect(result.header).toBe(TRUST_HEADER);
+  expect(result.header).not.toContain("Story goal: none");
+  expect(result.header).not.toContain(invitation);
+  expect(result.away).toBeNull();
+ });
+});
+
 type Details={state:GameStateSnapshot|undefined};
 function scripted(name:"observe"|"navigate_to"):{tool:AgentTool;next:(state:GameStateSnapshot,text:string)=>void} {
  let current:AgentToolResult<Details>={content:[{type:"text",text:""}],details:{state:undefined}};
@@ -224,7 +335,7 @@ describe("stale-story-goal-v1 production factory",()=>{
  });
  it("the pending experiment flips only this switch, with the lab parents on, and is not queued",()=>{
   const raw=JSON.parse(readFileSync(new URL("../../../experiments/stale-story-goal.json",import.meta.url),"utf8")) as {incumbent:{features:Record<string,boolean>}};
-  expect(Object.keys(raw.incumbent.features)).toEqual(SWITCHABLE_FEATURES.filter(id=>id!=="battle-effective-damage-v1"&&id!=="scripted-place-guidance-v1"&&id!=="trigger-script-loop-v1"&&id!=="just-in-time-prompt-v2"&&id!=="faced-interaction-history-v1"&&id!=="cache-aligned-window-v1"&&id!=="jit-guide-reuse-v1"));
+  expect(Object.keys(raw.incumbent.features)).toEqual(SWITCHABLE_FEATURES.filter(id=>id!==ID2&&id!=="deterministic-warp-navigation-v1"&&id!=="battle-effective-damage-v1"&&id!=="scripted-place-guidance-v1"&&id!=="trigger-script-loop-v1"&&id!=="just-in-time-prompt-v2"&&id!=="faced-interaction-history-v1"&&id!=="cache-aligned-window-v1"&&id!=="jit-guide-reuse-v1"&&id!=="visited-terrain-navigation-v1"));
   const entry=parseExperiment(raw);
   expect(entry.queuePosition).toBeUndefined();
   expect(entry.changedFeature).toBe(ID);
@@ -260,5 +371,90 @@ describe("stale-story-goal-v1 production factory",()=>{
    expect(text).toContain(stale);
   }
   expect(walked.indexOf(stale)).toBeLessThan(walked.indexOf("Navigation:"));
+ });
+});
+
+describe("stale-story-goal-v2 registration and production factory",()=>{
+ const handoff=withStory(dex(field([0,10],"OLDALE TOWN"),false),{birch_lab_stage:3});
+ const invitation="This is not the place to chat, so come by my POKéMON LAB later, okay?";
+ const readout="Location: OLDALE TOWN\nPosition: (10, 1)";
+ const configured=(v2:boolean,inputCuts=false)=>({...Object.fromEntries(SWITCHABLE_FEATURES.map(id=>[id,false])),"story-destinations-v1":true,"harness-trust-v1":true,"stale-story-goal-v1":true,"input-cuts-v1":inputCuts,[ID2]:v2} as unknown as FeatureSet);
+
+ async function result(v2:boolean,inputCuts=false):Promise<string> {
+  const subs:((e:RunEvent)=>void)[]=[];
+  const recorder={subscribe:(fn:(e:RunEvent)=>void)=>{subs.push(fn);},recordState:()=>({seq:1,turn:1}),recordDialogueAutoAdvance:()=>({seq:1,turn:1}),storyGoalAway:()=>undefined,destinationCitation:()=>undefined} as unknown as Parameters<typeof playGameTools>[3];
+  const observe:AgentTool={name:"observe",label:"Observe",description:"d",parameters:Type.Object({}),execute:()=>Promise.resolve({content:[{type:"text",text:readout}],details:{state:handoff}})};
+  const tools=playGameTools([observe],configured(v2,inputCuts),{read:()=>Promise.resolve(handoff),places:()=>Promise.resolve(PLACES)},recorder);
+  const issued=withStory(handoff,{birch_lab_stage:2});
+  const stateSeq=seq++;
+  const dialogue=talk("v2",5,[{...page(invitation,"PROF. BIRCH"),state_seq:stateSeq}]);
+  for(const fn of subs){fn(stateEvent(issued,stateSeq,5));fn(dialogue);fn(delivered("v2",5));}
+  return textOf(await tools[0]?.execute("o",{}) ?? {content:[],details:undefined});
+ }
+
+ it("is last, default off, and depends on v1",()=>{
+  expect(SWITCHABLE_FEATURES.at(-2)).toBe(ID2);
+  expect(playHarnessFeatures({...ALL_ON,[ID2]:true},null).at(-2)).toBe(ID2);
+  expect(featureInfo(ID2)).toMatchObject({group:"observation",needs:ID,switchable:true,title:"STAGE-BOUND STORY GOAL"});
+  expect(featureInfo(ID2).description).toContain(" Off: ");
+  expect(dependencyProblems({...ALL_ON,[ID]:false,[ID2]:true})).toContain(`${ID2} needs ${ID}`);
+  expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:true})[ID2]).toBe(false);
+  expect(normalizeFeatures({...ALL_ON,[ID2]:undefined} as unknown as Parameters<typeof normalizeFeatures>[0])[ID2]).toBe(false);
+ });
+
+ it("OFF preserves the current invitation, while ON omits the retired goal and remains compatible with input cuts",async()=>{
+  const off=await result(false);
+  expect(off).toBe([
+   TRUST_HEADER,
+   `Story goal: "${invitation}" (PROF. BIRCH, turn 5) -> "POKéMON LAB" = PROF. BIRCH'S POKéMON LAB (map 1/4). Way in: door in LITTLEROOT TOWN (map 0/9) at (7,16).`,
+   "",
+   readout,
+   `${STORY_HEADER} (turn 5, PROF. BIRCH): "${invitation}"`,
+   `- "POKéMON LAB" = PROF. BIRCH'S POKéMON LAB (map 1/4). Way in: door in LITTLEROOT TOWN (map 0/9) at (7,16).`,
+  ].join("\n"));
+  for(const on of [await result(true),await result(true,true)]){
+   expect(on).toContain(readout);
+   expect(on).not.toContain(invitation);
+   expect(on).not.toContain("Story goal: none");
+   expect(on).not.toContain(STORY_HEADER);
+  }
+ });
+
+ it("production navigation emits no retired-goal warning, but one warning for the live stage-3 return",async()=>{
+  async function walk(line:string,issuedStage:number,currentStage:number):Promise<{texts:string[];away:StoryGoalAwayFacts[]}> {
+   const subs:((e:RunEvent)=>void)[]=[];const away:StoryGoalAwayFacts[]=[];
+   const recorder={subscribe:(fn:(e:RunEvent)=>void)=>{subs.push(fn);},recordState:()=>({seq:1,turn:1}),recordDialogueAutoAdvance:()=>({seq:1,turn:1}),storyGoalAway:(_tool:string,facts:StoryGoalAwayFacts)=>{away.push(facts);},destinationCitation:()=>undefined} as unknown as Parameters<typeof playGameTools>[3];
+   const nav=scripted("navigate_to");
+   const current=(y:number)=>withStory({...handoff,map_id:[0,18],location:"ROUTE103",position:{x:9,y}},{birch_lab_stage:currentStage});
+   const tools=playGameTools([nav.tool],configured(true),{read:()=>Promise.resolve(current(13)),places:()=>Promise.resolve(PLACES)},recorder);
+   const stateSeq=seq++,id=`walk-${String(stateSeq)}`;
+   for(const fn of subs){fn(stateEvent(withStory(handoff,{birch_lab_stage:issuedStage}),stateSeq,5));fn(talk(id,5,[{...page(line,"PROF. BIRCH"),state_seq:stateSeq}]));fn(delivered(id,5));}
+   const texts:string[]=[];
+   for(const y of [13,10,7]){nav.next(current(y),"Location: ROUTE103");texts.push(textOf(await tools[0]?.execute(`n${String(y)}`,{}) ?? {content:[],details:undefined}));}
+   return {texts,away};
+  }
+  const retired=await walk(invitation,2,3);
+  expect(retired.away).toHaveLength(0);
+  expect(retired.texts.join("\n")).not.toContain("SUPERVISOR:");
+  expect(retired.texts.join("\n")).not.toContain(invitation);
+  const live=await walk("Well, it's time to head back to the LAB.",3,4);
+  expect(live.away).toHaveLength(1);
+  expect(live.texts[2]).toContain("SUPERVISOR:");
+ });
+
+ it("has a pending experiment that flips only v2 and keeps input cuts on in both arms",()=>{
+  const raw:unknown=JSON.parse(readFileSync(new URL("../../../experiments/stale-story-goal-v2.json",import.meta.url),"utf8"));
+  const entry=parseExperiment(raw);
+  expect(entry.queuePosition).toBeUndefined();
+  expect(entry.changedFeature).toBe(ID2);
+  expect(entry.activationMilestone).toBe("BIRCH_STARTER_HANDOFF_COMPLETE");
+  const {incumbent,candidate}=experimentArms(entry);
+  expect(Object.keys(candidate.features).filter(id=>candidate.features[id as keyof typeof candidate.features]!==incumbent.features[id as keyof typeof incumbent.features])).toEqual([ID2]);
+  expect(incumbent.features[ID]).toBe(true);
+  expect(incumbent.features[ID2]).toBe(false);
+  expect(candidate.features[ID2 as keyof typeof candidate.features]).toBe(true);
+  expect(incumbent.features["input-cuts-v1"]).toBe(true);
+  expect(candidate.features["input-cuts-v1"]).toBe(true);
+  expect(dependencyProblems(presetFeatures(parsePlayPreset(candidate)))).toEqual([]);
  });
 });

@@ -5,6 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
+import type { RunEvent } from "@pokebench/agent/events";
 import { Log, START, fullRun, state } from "../test-support/events.js";
 import { rivalRam, writeArchive } from "../test-support/raw-ram.js";
 import { QUEUE_FEATURES } from "../test-support/experiments.js";
@@ -190,6 +191,17 @@ describe("viewer server", () => {
     expect(text.trimEnd().endsWith("event: done\ndata: {}")).toBe(true);
   });
 
+  it("serves the selected run's bounded recent recorded-event head", async () => {
+    const { runsRoot, viewer } = await fixture();
+    writeRun(runsRoot, "head", fullRun());
+    const reply = await get(viewer, "/api/runs/head/head");
+    expect(reply.type).toContain("application/json");
+    const events = JSON.parse(reply.body.toString()) as RunEvent[];
+    expect(events[0]?.type).toBe("run_start");
+    expect(events.at(-1)?.type).toBe("run_end");
+    expect(events.every((event) => event.run === "head")).toBe(true);
+  });
+
   it("streams rival values recovered from raw RAM onto the state events that lack them", async () => {
     const { runsRoot, viewer } = await fixture();
     const log = new Log();
@@ -311,10 +323,18 @@ it("serves read-only workbench data from actual recorded runs, without prompts o
 
 
 it("serves only allowlisted tracked feature explainers with existing host and method protections",async()=>{
- const root=mkdtempSync(join(tmpdir(),"pokebench-explainers-"));const staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});writeFileSync(join(docs,"navigation-evidence-memory-v1.html"),"<!doctype html><h1>Memory mechanism</h1>");writeFileSync(join(docs,"private.html"),"not public");writeFileSync(join(docs,"just-in-time-prompt-v2.html"),"<!doctype html><h1>JIT v2 fixture</h1>");writeFileSync(join(docs,"one-way-tiles-v1.html"),"<h1>One-way tiles</h1>");writeFileSync(join(docs,"counter-talk-v1.html"),"<h1>Counter talk</h1>");writeFileSync(join(docs,"walkable-floor-v1.html"),"<h1>Walkable floor</h1>");writeFileSync(join(docs,"grass-cost-switch.html"),"<h1>Grass cost</h1>");writeFileSync(join(docs,"elevation-transitions.html"),"<h1>Elevation</h1>");
+ const root=mkdtempSync(join(tmpdir(),"pokebench-explainers-"));const staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});writeFileSync(join(docs,"navigation-evidence-memory-v1.html"),"<!doctype html><h1>Memory mechanism</h1>");writeFileSync(join(docs,"visited-terrain-navigation-v1.html"),"<!doctype html><h1>Visited terrain</h1>");writeFileSync(join(docs,"private.html"),"not public");writeFileSync(join(docs,"just-in-time-prompt-v2.html"),"<!doctype html><h1>JIT v2 fixture</h1>");writeFileSync(join(docs,"one-way-tiles-v1.html"),"<h1>One-way tiles</h1>");writeFileSync(join(docs,"counter-talk-v1.html"),"<h1>Counter talk</h1>");writeFileSync(join(docs,"walkable-floor-v1.html"),"<h1>Walkable floor</h1>");writeFileSync(join(docs,"grass-cost-switch.html"),"<h1>Grass cost</h1>");writeFileSync(join(docs,"elevation-transitions.html"),"<h1>Elevation</h1>");
  const viewer=await startViewer({runsRoot:join(root,"runs"),staticDir,appDir:join(root,"app"),port:0});open.push(viewer);
- const v2=await get(viewer,"/explainers/just-in-time-prompt-v2.html");expect(v2.status).toBe(200);expect(v2.body.toString()).toContain("JIT v2 fixture");const reply=await get(viewer,"/explainers/navigation-evidence-memory-v1.html");expect(reply.status).toBe(200);expect(reply.type).toContain("text/html");expect(reply.body.toString()).toContain("Memory mechanism");expect((await get(viewer,"/explainers/one-way-tiles-v1.html")).status).toBe(200);expect((await get(viewer,"/explainers/counter-talk-v1.html")).status).toBe(200);const floor=await get(viewer,"/explainers/walkable-floor-v1.html");expect(floor.status).toBe(200);expect(floor.body.toString()).toContain("Walkable floor");expect((await get(viewer,"/explainers/walkable-floor.html")).status).toBe(404);expect((await get(viewer,"/explainers/grass-cost-switch.html")).status).toBe(200);expect((await get(viewer,"/explainers/elevation-transitions.html")).status).toBe(200);
+ const v2=await get(viewer,"/explainers/just-in-time-prompt-v2.html");expect(v2.status).toBe(200);expect(v2.body.toString()).toContain("JIT v2 fixture");const reply=await get(viewer,"/explainers/navigation-evidence-memory-v1.html");expect(reply.status).toBe(200);expect(reply.type).toContain("text/html");expect(reply.body.toString()).toContain("Memory mechanism");expect((await get(viewer,"/explainers/visited-terrain-navigation-v1.html")).status).toBe(200);expect((await get(viewer,"/explainers/one-way-tiles-v1.html")).status).toBe(200);expect((await get(viewer,"/explainers/counter-talk-v1.html")).status).toBe(200);const floor=await get(viewer,"/explainers/walkable-floor-v1.html");expect(floor.status).toBe(200);expect(floor.body.toString()).toContain("Walkable floor");expect((await get(viewer,"/explainers/walkable-floor.html")).status).toBe(404);expect((await get(viewer,"/explainers/grass-cost-switch.html")).status).toBe(200);expect((await get(viewer,"/explainers/elevation-transitions.html")).status).toBe(200);
  expect((await get(viewer,"/explainers/private.html")).status).toBe(404);expect((await get(viewer,"/explainers/ledge-hops-v1.html")).status).toBe(404);expect((await get(viewer,"/explainers/navigation-evidence-memory-v1.html",{host:"elsewhere.invalid"})).status).toBe(403);expect((await get(viewer,"/explainers/navigation-evidence-memory-v1.html",{method:"PUT"})).status).toBe(405);
+});
+
+it("serves the deterministic warp navigation explainer byte for byte",async()=>{
+ const tracked=readFileSync(fileURLToPath(new URL("../../../docs/explainers/deterministic-warp-navigation-v1.html",import.meta.url)));
+ const root=mkdtempSync(join(tmpdir(),"pokebench-explainers-")),staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});writeFileSync(join(docs,"deterministic-warp-navigation-v1.html"),tracked);
+ const viewer=await startViewer({runsRoot:join(root,"runs"),staticDir,appDir:join(root,"app"),port:0});open.push(viewer);
+ const reply=await get(viewer,"/explainers/deterministic-warp-navigation-v1.html");
+ expect(reply.status).toBe(200);expect(reply.body.equals(tracked)).toBe(true);expect(reply.body.toString()).toContain("Deterministic warp navigation");
 });
 
 it("serves the tracked talk to people explainer byte for byte",async()=>{
@@ -520,6 +540,18 @@ it("serves the tracked stale story goal explainer byte for byte through the allo
  expect((await get(viewer,`/explainers/${id}.html`,{method:"PUT"})).status).toBe(405);
 });
 
+it("serves the tracked stage-bound story goal explainer byte for byte through the allowlist",async()=>{
+ const id="stale-story-goal-v2";
+ const tracked=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)));
+ const root=mkdtempSync(join(tmpdir(),"pokebench-explainers-"));const staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});
+ writeFileSync(join(docs,`${id}.html`),tracked);
+ const viewer=await startViewer({runsRoot:join(root,"runs"),staticDir,appDir:join(root,"app"),port:0});open.push(viewer);
+ const reply=await get(viewer,`/explainers/${id}.html`);
+ expect(reply.status).toBe(200);expect(reply.type).toContain("text/html");expect(reply.body.equals(tracked)).toBe(true);expect(reply.body.toString()).toContain("<h1>Stage-bound story goal</h1>");
+ expect((await get(viewer,`/explainers/${id}.html`,{host:"elsewhere.invalid"})).status).toBe(403);
+ expect((await get(viewer,`/explainers/${id}.html`,{method:"PUT"})).status).toBe(405);
+});
+
 it("serves the tracked heal before trainers BAG items explainer byte for byte through the allowlist",async()=>{
  const id="bag-healing-items-v1";
  const tracked=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)));
@@ -578,6 +610,18 @@ it("serves the tracked conversation ledger explainer byte for byte through the a
  const viewer=await startViewer({runsRoot:join(root,"runs"),staticDir,appDir:join(root,"app"),port:0});open.push(viewer);
  const reply=await get(viewer,`/explainers/${id}.html`);
  expect(reply.status).toBe(200);expect(reply.type).toContain("text/html");expect(reply.body.equals(tracked)).toBe(true);expect(reply.body.toString()).toContain("<h1>Conversation ledger</h1>");
+ expect((await get(viewer,`/explainers/${id}.html`,{host:"elsewhere.invalid"})).status).toBe(403);
+ expect((await get(viewer,`/explainers/${id}.html`,{method:"PUT"})).status).toBe(405);
+});
+
+it("serves the tracked automatic running explainer byte for byte through the allowlist",async()=>{
+ const id="automatic-running-v1";
+ const tracked=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)));
+ const root=mkdtempSync(join(tmpdir(),"pokebench-explainers-"));const staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});
+ writeFileSync(join(docs,`${id}.html`),tracked);
+ const viewer=await startViewer({runsRoot:join(root,"runs"),staticDir,appDir:join(root,"app"),port:0});open.push(viewer);
+ const reply=await get(viewer,`/explainers/${id}.html`);
+ expect(reply.status).toBe(200);expect(reply.type).toContain("text/html");expect(reply.body.equals(tracked)).toBe(true);expect(reply.body.toString()).toContain("<h1>Automatic running</h1>");
  expect((await get(viewer,`/explainers/${id}.html`,{host:"elsewhere.invalid"})).status).toBe(403);
  expect((await get(viewer,`/explainers/${id}.html`,{method:"PUT"})).status).toBe(405);
 });

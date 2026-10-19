@@ -5,6 +5,7 @@ export type WorkbenchSplit = RecordingSplit;
 export interface WorkbenchConfig {
   source: string; dirty: boolean; vendor: string; pi: string; preset: string | null; target: string | null;
   thinking: string; maxTokens: number; maxTurns: number | null; maxWallMs: number | null; failureLimit: number | null;
+  extendedWallMs?: number;
   context: number; vision: boolean; start: string; resume?: string | null; tools: string[]; features: { id: string; label: string; on: boolean | null }[];
 }
 export interface WorkbenchRun {
@@ -39,7 +40,7 @@ function measurement(v: unknown): boolean {
   return object(v) && (v.controller === "agent" || v.controller === "human") && strings(v.features) && hash(v.logSha256) && (v.logBytes === undefined || integer(v.logBytes)) && integer(v.pausedMs) && Array.isArray(v.rawSplits) && v.rawSplits.every(s => object(s) && string(s.name) && integer(s.elapsedMs) && Array.isArray(s.evidence) && s.evidence.every(integer)) && (v.receipts === undefined || (Array.isArray(v.receipts) && v.receipts.every(receipt))) && (v.artifact === undefined || (object(v.artifact) && string(v.artifact.id) && string(v.artifact.receipt) && hash(v.artifact.sha256)));
 }
 function config(v: unknown): boolean {
-  return v === null || (object(v) && string(v.source) && typeof v.dirty === "boolean" && string(v.vendor) && string(v.pi) && nullableString(v.preset) && nullableString(v.target) && string(v.thinking) && integer(v.maxTokens) && nullableInteger(v.maxTurns) && nullableNumber(v.maxWallMs) && nullableInteger(v.failureLimit) && integer(v.context) && typeof v.vision === "boolean" && string(v.start) && (v.resume === undefined || v.resume === null || string(v.resume)) && strings(v.tools) && Array.isArray(v.features) && v.features.every(f => object(f) && string(f.id) && string(f.label) && (f.on === null || typeof f.on === "boolean")));
+  return v === null || (object(v) && string(v.source) && typeof v.dirty === "boolean" && string(v.vendor) && string(v.pi) && nullableString(v.preset) && nullableString(v.target) && string(v.thinking) && integer(v.maxTokens) && nullableInteger(v.maxTurns) && nullableNumber(v.maxWallMs) && (v.extendedWallMs === undefined || number(v.extendedWallMs)) && nullableInteger(v.failureLimit) && integer(v.context) && typeof v.vision === "boolean" && string(v.start) && (v.resume === undefined || v.resume === null || string(v.resume)) && strings(v.tools) && Array.isArray(v.features) && v.features.every(f => object(f) && string(f.id) && string(f.label) && (f.on === null || typeof f.on === "boolean")));
 }
 function card(v: unknown): boolean {
   const mon = (m: unknown): boolean => object(m) && (m.speciesId === null || (integer(m.speciesId) && m.speciesId >= 1 && m.speciesId <= 411)) && integer(m.level) && m.level >= 1 && m.level <= 100 && typeof m.egg === "boolean";

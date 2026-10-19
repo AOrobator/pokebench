@@ -260,7 +260,8 @@ export function classifyTrial(text: string | null, expect: TrialExpectation, exi
   const verdict = (valid: boolean, why: string): FixedOutcome => ({ valid, reason: why, endReason: reason, ...metrics });
   if (reason === "budget") {
     if (metrics.wallMs !== null && metrics.wallMs < expect.maxWallMs * 0.98) return verdict(true, `turn cap (${String(metrics.turns)} turns) before the wall cap`);
-    return verdict(true, WALL_CAP);
+    const extended = events.some(e => e.type === "operator_control" && (e["action"] === "extend_30m" || e["action"] === "extend_60m") && e["status"] === "applied");
+    return verdict(true, extended ? `${WALL_CAP} · operator-extended continuation; scored at original horizon` : WALL_CAP);
   }
   if(expect.terminalErrorsAsOutcomes===true&&(reason==="model_error"||reason==="crash"))return verdict(true,`retained terminal error: ${reason}`);
   if (reason === "model_error") {

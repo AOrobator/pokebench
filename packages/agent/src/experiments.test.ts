@@ -4,7 +4,7 @@ import {expect,it} from "vitest";
 import {ALL_ON,type FeatureSet} from "./features.js";
 import {definitionHash,deriveStatus,experimentArms,parseExperiment,parseNewerExperiment,parseLedger,readinessOf,trialOrder,trialProgress,type Experiment,type LedgerEntry,type ReadinessRun} from "./experiments.js";
 
-const features:FeatureSet={...ALL_ON,"state-only-decisions-v1":false,"named-interactions-v1":false,"world-destinations-v1":false,"no-exit-here-v1":false,"bag-healing-items-v1":false,"battle-menu-loop-v1":false,"clock-view-loop-v1":false,"stale-story-goal-v1":false,"input-cuts-v1":false,"loop-guard-screen-v1":false,"reopened-dialogue-loop-v1":false,"dialog-button-b-v1":false,"just-in-time-prompt-v1":false,"just-in-time-prompt-v2":false,"jit-guide-reuse-v1":false,"full-map-navigation-v1":false,"objective-tracking-v1":false,"repeat-attempt-guard-v1":false,"native-objective-completion-v1":false,"unset-dynamic-warp-v1":false};
+const features:FeatureSet={...ALL_ON,"state-only-decisions-v1":false,"named-interactions-v1":false,"world-destinations-v1":false,"no-exit-here-v1":false,"bag-healing-items-v1":false,"battle-menu-loop-v1":false,"clock-view-loop-v1":false,"stale-story-goal-v1":false,"stale-story-goal-v2":false,"input-cuts-v1":false,"loop-guard-screen-v1":false,"reopened-dialogue-loop-v1":false,"dialog-button-b-v1":false,"just-in-time-prompt-v1":false,"just-in-time-prompt-v2":false,"jit-guide-reuse-v1":false,"full-map-navigation-v1":false,"objective-tracking-v1":false,"repeat-attempt-guard-v1":false,"native-objective-completion-v1":false,"unset-dynamic-warp-v1":false};
 const base={
  version:1,id:"full-map",title:"Whole-map navigation",changedFeature:"full-map-navigation-v1",hypothesis:"Seeing the whole map helps.",
  activationMilestone:"FIRST_TRUCK_EXIT",primaryMilestone:"RIVAL_MET",queuePosition:1,
@@ -22,6 +22,14 @@ it("parses a definition and derives two arms that differ in exactly the changed 
  expect(incumbent.features["full-map-navigation-v1"]).toBe(false);expect(candidate.features["full-map-navigation-v1"]).toBe(true);
  expect(Object.entries(candidate.features).filter(([id,on])=>incumbent.features[id as keyof FeatureSet]!==on).map(([id])=>id)).toEqual(["full-map-navigation-v1"]);
  expect(experiment({queuePosition:undefined}).queuePosition).toBeUndefined();
+});
+
+it("keeps the automatic-running hypothesis aligned with its post-shoes grading milestone",()=>{
+ const entry=parseExperiment(JSON.parse(readFileSync(new URL("../../../experiments/automatic-running.json",import.meta.url),"utf8")));
+ expect(entry.activationMilestone).toBe("RUNNING_SHOES_RECEIVED");
+ expect(entry.primaryMilestone).toBe("ROUTE_102");
+ expect(entry.hypothesis).toContain("Route 102");
+ expect(entry.hypothesis).not.toContain("rival house");
 });
 
 it("names a switch this build does not know, so an old viewer says it needs rebuilding",()=>{

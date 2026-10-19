@@ -3,7 +3,7 @@ import { recoveredSignature } from "./recovered-fields.js";
 import { existsSync, lstatSync, readFileSync, readdirSync, realpathSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { FEATURES } from "@pokebench/agent/features";
-import { MILESTONES, qualifiedNativeMilestone } from "@pokebench/agent/milestones";
+import { MILESTONES, REQUIRED_FRONTIER_MILESTONES, qualifiedNativeMilestone } from "@pokebench/agent/milestones";
 import { filesystemComparisonHost, prepareComparison, sha256 } from "@pokebench/agent/serial-comparison";
 import { RUN_END_REASONS, type RunEvent, type StartIdentity } from "@pokebench/agent/events";
 import { configOf } from "./history.js";
@@ -37,7 +37,7 @@ function metadata(path: string): { value: unknown; digest: string } {
 function resumeCheckpoint(start: Extract<RunEvent, { type: "run_start" }>): string | null {
   if (start.start_state.kind !== "save_state") return null;
   const file = start.start_state.path.split(/[/\\]/).pop() ?? "";
-  return file === "CLOCK_SET.state" ? "CLOCK_SET" : file === "MAIN_MENU.state" ? "MAIN_MENU" : null;
+  return file === "MAIN_MENU.state" ? "MAIN_MENU" : REQUIRED_FRONTIER_MILESTONES.find(id => file === `${id}.state`) ?? null;
 }
 function configuration(start: Extract<RunEvent, { type: "run_start" }>): WorkbenchConfig {
   const known = configOf(start);
@@ -93,6 +93,7 @@ export function loadRun(root: string, id: string, viewer: BuildIdentity | null =
     run.splits = recording.splits; run.measurement = recording.measurement;
     const last = recording.last; run.card = last === null ? null : { name: last.name, location: last.location, party: last.party.flatMap(m => m.level === null || m.level < 1 ? [] : [{ speciesId: m.species_id ?? null, level: m.level, egg: m.is_egg === true }]) };
     if (recording.skipped !== null) skew = { commit: start.harness.commit, dirty: start.harness.dirty, ...recording.skipped };
+    if (run.config !== null && view.control.maxWallMs !== null) run.config.extendedWallMs = view.control.maxWallMs;
     run.status = view.end === null ? "unresponsive" : "ended"; run.reason = view.end?.reason ?? null; run.turn = view.turn;
     if (run.reason === "operator_abort") run.excluded ??= "Excluded operator-aborted run";
     timing = { startMs: view.startMs, ended: view.end !== null, lastMs: view.lastMs, paused: view.control.state === "paused", pauses: view.control.pauses.map(p => ({ ...p })) };

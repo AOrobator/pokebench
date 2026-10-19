@@ -42,6 +42,7 @@ RECORDED_OFF = frozenset(FIXTURE["recorded_off"]) | {
     "unset-dynamic-warp-v1",
     "status-names-v1",
     "surf-gated-exits-v2",
+    "battle-effective-damage-v1",
 }
 OFF_TEXT = "Battle details: WILD single · turn 3 · resolving (no input until the game asks)"
 WAITING = 'battle message waiting: "Wild WINGULL fainted!" — press A or B to continue'

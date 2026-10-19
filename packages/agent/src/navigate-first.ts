@@ -19,6 +19,9 @@ export const MOVING_AROUND_LOCAL=`${MOVING_AROUND_HEAD}
 - A destination outside the local map is fine: it walks toward it as far as the local map allows. If it reports no path, choose a reachable tile in that direction.`;
 export const MOVING_AROUND_FULL=`${MOVING_AROUND_HEAD}
 - If it stops early, read its reason, then call it again or choose a reachable tile near the place you want.`;
+export const MOVING_AROUND_VISITED=`${MOVING_AROUND_HEAD}
+- It plans only across stitched terrain already shown to you this run; unknown cells are not routes. It may take up to 512 ordinary button attempts, re-planning before every press.
+- If it stops early, read its reason. Explore until more terrain has been shown, then call it again or choose a reachable known tile nearer the place you want.`;
 
 export const NAVIGATE_FIRST_DESCRIPTION="The main way to move: use it for every walk of two or more tiles; give the destination and it finds the route around walls, ledges, water and people.";
 export const COMMAND_LIMIT_HINT=" After \"command limit\", call it again with the same destination to continue.";

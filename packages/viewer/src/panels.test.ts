@@ -567,8 +567,22 @@ it("documents only recorded tools with input/output contracts and safe unknown f
  const subset=new Log();subset.add(0,{...START,tools:["observe"]});doc.body.innerHTML=harnessConfig(view(subset));expect(doc.querySelectorAll(".config-tool")).toHaveLength(1);expect(doc.querySelector('[data-tool="press"]')).toBeNull();
 });
 
+it("documents harness-owned running only for runs with automatic running enabled",()=>{
+ const render=(features:string[])=>{const log=new Log();log.add(0,{...START,tools:["press","navigate_to"],harness_features:features});const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log));return doc;};
+ const off=render([]);expect(off.querySelector('[data-tool="press"]')?.textContent).toContain("walking: optional boolean");expect(off.querySelector('[data-tool="navigate_to"]')?.textContent).toContain("walking: optional boolean");
+ const on=render(["automatic-running-v1"]);expect(on.querySelector('[data-tool="press"]')?.textContent).toContain("model has no walking override");expect(on.querySelector('[data-tool="navigate_to"]')?.textContent).toContain("model has no walking override");expect(on.querySelector('[data-tool="press"]')?.textContent).not.toContain("walking: optional boolean");expect(on.querySelector('[data-tool="navigate_to"]')?.textContent).not.toContain("walking: optional boolean");
+});
+
 it("links the elevation transitions card to its tracked explainer",()=>{
  expect(FEATURE_EXPLAINERS["elevation-transitions-v1"]).toBe("elevation-transitions.html");
+});
+
+it("links visited terrain navigation to its tracked explainer",()=>{
+ const id="visited-terrain-navigation-v1";
+ expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
+ const html=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)),"utf8");
+ expect(html).toContain("only cells shown to you this run");
+ expect(html).toContain("checkpoint restores the game, not this memory");
 });
 
 it("maps game evidence priority to a tracked explainer, like every other mapped card",()=>{
@@ -589,6 +603,12 @@ it("links Petalburg guidance and trigger-loop cards to tracked explainers",()=>{
   const html=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${file}`,import.meta.url)),"utf8");
   expect(html).toContain("OFF");expect(html).toContain("ON");
  }
+});
+
+it("links deterministic warp navigation to its tracked explainer",()=>{
+ expect(FEATURE_EXPLAINERS["deterministic-warp-navigation-v1"]).toBe("deterministic-warp-navigation-v1.html");
+ const html=readFileSync(fileURLToPath(new URL("../../../docs/explainers/deterministic-warp-navigation-v1.html",import.meta.url)),"utf8");
+ expect(html).toContain("Exact equivalence gate");expect(html).toContain("one checked direction press");
 });
 
 it("renders every mapped explainer's body as a page, not as stylesheet text",()=>{
@@ -1117,6 +1137,19 @@ it("links the stale story goal card to its tracked explainer, which quotes the r
  expect(html).toContain("bundle arm only");
 });
 
+it("links the stage-bound story goal card to its tracked explainer, which shows omission instead of none",()=>{
+ const id="stale-story-goal-v2";
+ expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
+ const log=new Log();log.add(0,{...START,harness_features:["ram-state-v1","stale-story-goal-v1",id]});
+ const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
+ expect(doc.querySelector(`[data-feature="${id}"] a`)?.getAttribute("href")).toBe(`/explainers/${id}.html`);
+ const html=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)),"utf8");
+ expect(html).toContain(id);
+ expect(html).toContain("<title>Stage-bound story goal</title>");
+ expect(html).toContain("Story goal: none");
+ expect(html).toContain("omitted");
+});
+
 it("links the battle menu loop card to its tracked explainer, which quotes the menu sentence",()=>{
  const id="battle-menu-loop-v1";
  expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
@@ -1186,6 +1219,16 @@ it("links the conversation ledger card to its tracked explainer, which quotes th
  const html=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)),"utf8");
  expect(html).toContain(id);
  expect(html).toContain("- ROUTE103 (map 0/18), here turn 446: last heard turn 444, MAY: &quot;Well, it&#39;s time to head back to the LAB.&quot;");
+});
+
+it("links automatic running to its deterministic harness-owned contract",()=>{
+ const id="automatic-running-v1";
+ expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
+ const log=new Log();log.add(0,{...START,harness_features:["ram-state-v1",id]});
+ const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
+ expect(doc.querySelector(`[data-feature="${id}"] a`)?.getAttribute("href")).toBe(`/explainers/${id}.html`);
+ const html=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)),"utf8");
+ for(const text of [id,"running is a harness decision, not a model choice","PlayerNotOnBikeStep","IsRunningDisallowed","experiment remains pending"])expect(html).toContain(text);
 });
 
 

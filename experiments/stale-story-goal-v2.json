@@ -8,7 +8,7 @@
  "primaryMilestone": "RIVAL_BATTLE_WON",
  "source": {
   "checkout": "main",
-  "commit": "e3c9d17c4e79507c4f15a147aedf092783f7eedf"
+  "commit": "86683f72832e6b121918b80d3103f59737381ae8"
  },
  "incumbent": {
   "version": 2,
@@ -161,5 +161,5 @@
   "window": 4,
   "minReached": 3
  },
- "notes": "Pending and not queued. Incumbent keeps story-destinations-v1, harness-trust-v1, stale-story-goal-v1 and input-cuts-v1 on; the candidate flips only stale-story-goal-v2. Activation is the native stage-3 starter handoff, where a pre-stage-3 lab invitation first expires. Primary is RIVAL_BATTLE_WON. Six archived natural-start runs show recurrence, not benefit. Not designed and not authorized for launch. source.commit is the branch RED registration commit; repin to the reviewed merge SHA after landing."
+ "notes": "Pending and not queued. Incumbent keeps story-destinations-v1, harness-trust-v1, stale-story-goal-v1 and input-cuts-v1 on; the candidate flips only stale-story-goal-v2. Activation is the native stage-3 starter handoff, where a pre-stage-3 lab invitation first expires. Primary is RIVAL_BATTLE_WON. Six archived natural-start runs show recurrence, not benefit. Not designed and not authorized for launch. source.commit pins the reviewed source tree landed on main."
 }

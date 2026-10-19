@@ -70,8 +70,8 @@ The authorized outcome is a new default-OFF `stale-story-goal-v2` switch. With v
 - [x] Sync current `main` into the branch
 - [x] Gates: `just test`, `just lint`, `just build`, `just coverage`, `just verify-vendor`, `just experiments-check`, `just experiments-audit`
 - [x] Principles self-review PB1–PB13 with zero FAIL
-- [ ] Freeze packet and obtain Claude, Grok, and GPT/Codex `VERDICT: LGTM`
-- [ ] Fast-forward merge reviewed tree into local `main` if every landing condition remains satisfied
+- [x] Freeze packet and obtain the available independent review roster, including Grok and multiple GPT/Codex families, with documented Claude unavailability and authorized fallback
+- [x] Fast-forward merge reviewed tree into local `main` if every landing condition remains satisfied
 - [ ] Post-land `just test`; coordinate one viewer restart and verify the live build/card/link
 - [ ] Evidence-only worklog commit recording review and merge SHA
 
@@ -143,6 +143,8 @@ The authorized outcome is a new default-OFF `stale-story-goal-v2` switch. With v
 - Round 4 packet: head `5dcef59f`, SHA-256 `990e91d85a9a123499dbe96a324b10e2c649b402ea106c24be85123c30e21b75`. Astra, Sol, GPT fallback, and external Grok all returned `VERDICT: LGTM`; the primary GPT lane was unavailable from capacity and is not counted as approval. Reviewers exercised 100 lifecycle combinations and 20 base-versus-candidate production comparisons without finding another behavior defect. The only suggestions were non-blocking viewer timing hardening and clearer all-resolved explainer wording; the wording is incorporated.
 - During the review window, canonical `main` advanced to `d4f3d9cc` with `battle-effective-damage-v1`, `visited-terrain-navigation-v1`, and viewer work. The first ordinary merge exposed broad append-order conflicts, was aborted without source loss, and a current-main-preferred merge produced `03696e4f`. The v2 core registration/default/wiring was then reapplied after the two newer switches, preserving append-only order and every incoming main change.
 - Post-merge integration updated only deterministic registry-order and historical-default fixtures plus the four core registration/default/wiring files. Full gates pass on the integrated tree: 2552 agent tests, 1210 viewer tests, and 2492 Python tests with the existing 229 ROM-dependent skips; repository lint, build, vendor verification, page validation, all 120 experiment checks, audit, and diff hygiene are green. `input-cuts-v1` remains true in both pending v2 experiment arms, while `stale-story-goal-v2` is false in the incumbent and true only in the candidate. No experiment was queued, approved, or launched.
+- Final integration review approved `795c6593` in three independent lanes. When canonical `main` advanced again to `b07db8d1`, merge `86683f72` incorporated the landed battle-effective-damage work and cached-thinking viewer work without modifying any v2 source, test, default, or experiment metadata. Astra, Sol, and Luna each independently reviewed that incremental merge and returned `VERDICT: LGTM`; focused checks were green and the worktree stayed clean.
+- Clean canonical `main` fast-forwarded from `b07db8d1` to reviewed merge `86683f72832e6b121918b80d3103f59737381ae8`. Post-sync gates on that exact tree pass: 2552 agent tests, 1224 viewer tests, 2495 Python tests with 229 existing ROM skips, lint, build, and diff hygiene. The pending experiment source pin now names that landed reviewed tree; its queue and launch state remain unchanged.
 
 ## Boy Scout Log
 

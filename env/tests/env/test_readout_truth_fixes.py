@@ -46,6 +46,9 @@ ROM_START = 0x08000000
 FIXTURE: dict[str, Any] = json.loads(
     gzip.decompress((Path(__file__).parent / "fixtures/readout-truth-fixes.json.gz").read_bytes())
 )
+CURRENT_READOUTS: dict[str, str] = json.loads(
+    (Path(__file__).parent / "fixtures/readout-truth-current-warp-names.json").read_text()
+)["cases"]
 FRAMES: list[dict[str, Any]] = FIXTURE["frames"]
 UNINITIALIZED = "Save-backed world state unavailable: save data is not initialized or valid."
 MID_FRAME_TEXT = (
@@ -160,7 +163,9 @@ def test_registered_last_in_order() -> None:
 @pytest.mark.parametrize("name", list(BY_KEY))
 def test_off_reproduces_the_golden_readout_and_state(name: str) -> None:
     frame = BY_KEY[name]
-    assert render(name) == frame["off_readout"]
+    # off_readout remains the immutable text rendered when the RAM was archived. Current readout
+    # policy lives in a separate fixture only for frames changed by later game-known warp naming.
+    assert render(name) == CURRENT_READOUTS.get(name, frame["off_readout"])
     assert digest(state_json(state(name))) == frame["off_state_sha256"]
 
 
@@ -179,7 +184,9 @@ def test_each_switch_alone_changes_only_its_own_frames(name: str, switch: str) -
     mine = {
         OWNER: {"dc5a-raw00010618", "dc5a-raw00011525", "f551-raw00008716", "93eb-16529"},
         MID_FRAME: {"b671-8838", "b671-11566", "e962-9904", "fe15-9631"},
-        UNSET_WARP: {"0e05-693", "93eb-758"},
+        # Game-known warp naming now hides both invalid and unset internal dynamic-warp names.
+        # The decoder remains independently covered through typed state below.
+        UNSET_WARP: set(),
         STATUS: {"bd60-18617", "bd60-19141"},
         # bd60 T706 on ROUTE104: surf-gated-exits-v1 was on in that run.
         "surf-gated-exits-v2": {"bd60-19141"},
@@ -330,19 +337,17 @@ def test_on_an_invalid_save_on_an_idle_frame_keeps_the_uninitialized_line() -> N
 @pytest.mark.parametrize("name", ["0e05-693", "93eb-758"])
 def test_on_an_unset_dynamic_warp_is_not_petalburg_city(name: str) -> None:
     off, on = render(name), render(name, frozenset({UNSET_WARP}))
-    assert "PETALBURG CITY (dynamic warp; map 0/0)" in off
-    assert "PETALBURG CITY" not in on
+    assert "PETALBURG CITY" not in off and "PETALBURG CITY" not in on
+    assert off == on
     assert state(name).dynamic_warp == (0, 0, "PETALBURG CITY")
     assert state(name, frozenset({UNSET_WARP})).dynamic_warp is None
-    pairs = changed(name, frozenset({UNSET_WARP}))
-    assert ("Warp destination at (4,1): PETALBURG CITY (dynamic warp; map 0/0)",
-            "Warp destination at (4,1): dynamic destination") in pairs  # fmt: skip
-    assert all("dynamic" in a and "dynamic destination" in b for a, b in pairs)
+    assert "Warp destination at (4,1): dynamic destination" in off
 
 
-def test_on_a_set_dynamic_warp_still_names_littleroot() -> None:
+def test_on_a_set_dynamic_warp_keeps_its_internal_littleroot_identity() -> None:
     assert render("0e05-798", frozenset({UNSET_WARP})) == render("0e05-798")
     assert state("0e05-798", frozenset({UNSET_WARP})).dynamic_warp == (0, 9, "LITTLEROOT TOWN")
+    assert "LITTLEROOT TOWN (dynamic warp; map 0/9)" not in render("0e05-798")
 
 
 def test_v2_rewords_the_route104_south_edge_bd60_t706() -> None:
@@ -484,12 +489,6 @@ ARMS = [
         "Party (tutorial): ZIGZAGOON Lv7 HP 23/23",
     ),
     ("mid-frame-readout", "fe15-9631", UNINITIALIZED, MID_FRAME_TEXT),
-    (
-        "unset-dynamic-warp",
-        "0e05-693",
-        "PETALBURG CITY (dynamic warp; map 0/0)",
-        "Dynamic warp at (4,1), elevation 0",
-    ),
     ("status-names", "bd60-18617", "HP 13/33 · STATUS 8 · ", "HP 13/33 · STATUS PSN · "),
 ]
 
@@ -514,3 +513,18 @@ def test_each_experiment_arm_turns_its_change_on(
     before, after = arm(control), arm(candidate)
     assert before_text in before and before_text not in after
     assert after_text in after and after_text not in before
+
+
+def test_unset_dynamic_warp_experiment_is_superseded_but_still_flips_typed_state() -> None:
+    body = json.loads((EXPERIMENTS / "unset-dynamic-warp.json").read_text())
+    features: dict[str, bool] = body["incumbent"]["features"]
+    assert "superseded" in body["hypothesis"]
+    assert features[UNSET_WARP] is False and features["named-warp-destinations-v1"] is True
+    control = frozenset(f for f in SERVER_FEATURES if not features.get(f, False))
+    candidate = control - {UNSET_WARP}
+    frame = BY_KEY["0e05-693"]
+    read = FixtureMemory(frame, operator_rom())
+    before = rerender.read_state(read, maps(), active_ui=True, off=control)
+    after = rerender.read_state(read, maps(), active_ui=True, off=candidate)
+    assert before.dynamic_warp == (0, 0, "PETALBURG CITY") and after.dynamic_warp is None
+    assert rerender.render(before, control) == rerender.render(after, candidate)

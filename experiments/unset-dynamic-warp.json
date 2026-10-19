@@ -3,7 +3,7 @@
  "id": "unset-dynamic-warp",
  "title": "Unset dynamic warp",
  "changedFeature": "unset-dynamic-warp-v1",
- "hypothesis": "Reading the truck's unset dynamic warp as a dynamic destination instead of PETALBURG CITY (0e05 9 readouts, 93eb 65) removes a false destination from the first map, so runs leave the truck with fewer wasted presses.",
+ "hypothesis": "This standalone comparison is superseded: game-known warp naming makes both arms render the truck exit as a dynamic destination. The switch remains independently correct in typed state and stays in the fixed bundle, but this definition must not launch as an attributable trial.",
  "activationMilestone": "PLAYER_NAME_CONFIRMED",
  "primaryMilestone": "RIVAL_BATTLE_WON",
  "source": {
@@ -124,5 +124,5 @@
   "window": 4,
   "minReached": 3
  },
- "notes": "Uses the finals incumbent with the change named below. Bug fix from the 2026-10-17 top-50 run analysis (runs/reviews/2026-10-17-run-analysis-top50/ram-audit.md) that goes in the bundle arm of bundle-v-control only, default off (operator decision 2026-10-17, the operator: \"They should each be under their own switch, and all the fixes need to be included in the bundle\"); the bundle owner adds it to that experiment's switches. Pending, not queued. source.commit is the reviewed, gated head ecb8e4c3 that main fast-forwards to. Activation: the moving truck, right after the name is confirmed. The finals incumbent has named-warp-destinations-v1 off, which this switch needs (it reads and shows the dynamic warp), so both arms set it on."
+ "notes": "Uses the finals incumbent with the change named below. Bug fix from the 2026-10-17 top-50 run analysis (runs/reviews/2026-10-17-run-analysis-top50/ram-audit.md) that goes in the bundle arm of bundle-v-control only, default off (operator decision 2026-10-17, the operator: \"They should each be under their own switch, and all the fixes need to be included in the bundle\"); the bundle owner adds it to that experiment's switches. Superseded before launch, never queued, and not eligible to launch: game-known warp naming removes the false label in both standalone arms, so there is no agent-visible treatment contrast. The decoder's typed-state correction remains independently tested and the switch stays in the fixed bundle. source.commit is the reviewed, gated head ecb8e4c3 that main fast-forwards to."
 }

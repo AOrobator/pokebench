@@ -1,4 +1,5 @@
 import asyncio
+import time as system_time
 from types import SimpleNamespace
 
 from fastapi import FastAPI
@@ -114,6 +115,20 @@ def test_production_main_registers_view_pcm_and_browser_module_before_vendor_mai
     async def get_screenshot():
         raise AssertionError("not called at startup")
 
+    class FrameManager:
+        lock = threading.Lock()
+        active_connections: list[object] = []
+        latest_frame = None
+
+        async def connect(self, websocket):  # type: ignore[no-untyped-def]
+            pass
+
+        def disconnect(self, websocket):  # type: ignore[no-untyped-def]
+            pass
+
+        async def send_latest_frame(self, websocket):  # type: ignore[no-untyped-def]
+            pass
+
     monkeypatch.setitem(
         sys.modules,
         "server",
@@ -125,10 +140,15 @@ def test_production_main_registers_view_pcm_and_browser_module_before_vendor_mai
                 env=emu,
                 memory_lock=memory_lock,
                 step_environment=lambda actions: None,
+                time=system_time,
+                game_loop=lambda: None,
+                frame_manager=FrameManager(),
+                update_frame_cache=lambda frame: None,
             )
         ),
     )
     main()
+    assert "/pokebench/frames" in [getattr(r, "path", "") for r in app.routes]
     assert "/pokebench/observation" in [getattr(r, "path", "") for r in app.routes]
     assert "/pokebench/pause" in [getattr(r, "path", "") for r in app.routes]
     import json

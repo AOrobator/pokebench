@@ -89,8 +89,9 @@ export function cardInputFor(run: WorkbenchRun, at: number, now: number, status:
   const trainer = experiment === null
     ? trainerFor(title, trainerIdentity("", gpu), [], art.trainers)
     : experimentTrainerFor(title, { arm: experiment.arm, gpu }, runs.flatMap((other) => (other.experiment?.id === experiment.id ? [{ arm: other.experiment.arm, gpu: gpuOf(other.id) }] : [])), art.trainers);
+  const facts = plateFacts(run, at, now);
   return { runId: run.id, title, arm: experiment?.arm ?? null, trial: experiment === null ? null : `trial ${String(experiment.trial)}/${String(experiment.of)}`,
-    card: run.card ?? null, facts: plateFacts(run, at, now), status, trainer };
+    card: run.card ?? null, facts: status === "replay" ? { ...facts, fresh: false } : facts, status, trainer };
 }
 
 export function placeText(location: string | null): string {

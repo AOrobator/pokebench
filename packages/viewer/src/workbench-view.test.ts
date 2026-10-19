@@ -9,7 +9,7 @@ describe("workbench visual contract", () => {
     const lanes = new Map([["run_01", { lane: "A", gpu: "GPU1", arm: "bundle" }]]);
     const html = currentRunHtml([run({ status: "live" })], 1000, 66000, "older", lanes);
     const doc = parse(html), plate = doc.querySelector<HTMLAnchorElement>("a.wb-plate");
-    expect(plate?.getAttribute("href")).toBe("/#run=run_01");
+    expect(plate?.getAttribute("href")).toBe("/#replay=run_01");
     expect(doc.querySelector(".wb-party .wb-kicker")?.textContent).toBe("● 1 CURRENT RUN · Model <img onerror=x>"); expect(html).not.toContain("<img"); expect(html).toContain("CHOOSE A RUN");
     expect(plate?.querySelector(".wb-plate-l1")?.textContent).toBe("LANE A · GPU1Lv2");
     expect(plate?.querySelector(".wb-ty")?.textContent).toBe("TYPE/bundle"); expect(plate?.querySelector(".wb-ty em")?.getAttribute("style")).toBe("--tyc:#7a3fb8");
@@ -49,8 +49,8 @@ describe("workbench visual contract", () => {
     const lanes = new Map([["a", { lane: "A", gpu: "GPU1", arm: "control" }], ["b", { lane: "B", gpu: "GPU0", arm: long }], ["c", { lane: "C", gpu: "GPU2", arm: null }]]);
     const doc = parse(currentRunHtml([run({ id: "a", status: "live" }), run({ id: "b", status: "paused", model: "Other" }), run({ id: "c", status: "live" }), run({ id: "ended" })], 0, 0, null, lanes));
     expect(doc.querySelectorAll(".wb-plate")).toHaveLength(3); expect(doc.querySelector(".wb-party .wb-kicker")?.textContent).toBe("● 3 CURRENT RUNS · Model <img onerror=x> · Other");
-    expect(doc.querySelector('[href="/#run=b"] .wb-ty em')?.textContent).toBe(long); expect(doc.querySelector('[href="/#run=b"] .wb-plate-l1')?.textContent).toBe("LANE B · GPU0 · PAUSEDLv2");
-    expect(doc.querySelector('[href="/#run=a"] .wb-ty em')?.getAttribute("style")).toBe("--tyc:#2f6fb0"); expect(doc.querySelector('[href="/#run=c"] .wb-ty em')?.textContent).toBe("none");
+    expect(doc.querySelector('[href="/#replay=b"] .wb-ty em')?.textContent).toBe(long); expect(doc.querySelector('[href="/#replay=b"] .wb-plate-l1')?.textContent).toBe("LANE B · GPU0 · PAUSEDLv2");
+    expect(doc.querySelector('[href="/#replay=a"] .wb-ty em')?.getAttribute("style")).toBe("--tyc:#2f6fb0"); expect(doc.querySelector('[href="/#replay=c"] .wb-ty em')?.textContent).toBe("none");
     expect(armColor(long)).toBe(armColor(long)); expect(armColor(long)).toMatch(/^hsl\(\d{1,3} 45% 36%\)$/); expect(armColor("x")).not.toBe(armColor("y")); expect(armColor(null)).toBe("#a08020"); expect(armColor("bundle")).toBe("#7a3fb8");
   });
   it("picks the furthest frontier milestone by story order, not record order, and formats compact clocks", () => {
@@ -60,7 +60,7 @@ describe("workbench visual contract", () => {
     expect(clockText(331_999)).toBe("5:31"); expect(clockText(3_723_000)).toBe("1:02:03"); expect(clockText(-5)).toBe("0:00");
   });
   it("does not tick a paused run or mistake unresponsive/ended logs for live, and retains the viewer return selection", () => {
-    expect(currentRunHtml([run({ status: "paused" })], 1000, 6000, null)).toContain("2:00/ 10:00"); expect(currentRunHtml([run({ status: "unresponsive" })], 1000, 6000, "old/run")).toContain('/#run=old%2Frun'); expect(currentRunHtml([], 0, 0, null)).toContain("BACK TO VIEWER");
+    expect(currentRunHtml([run({ status: "paused" })], 1000, 6000, null)).toContain("2:00/ 10:00"); expect(currentRunHtml([run({ status: "unresponsive" })], 1000, 6000, "old/run")).toContain('/#replay=old%2Frun'); expect(currentRunHtml([], 0, 0, null)).toContain("BACK TO VIEWER");
   });
   it("joins lanes from fixed-run status on run id, skipping idle lanes", () => {
     const lane = (id: string, runId: string | null, arm: string | null): FixedLaneStatus => ({ id, gpu: `GPU${id}`, port: 1, state: "running", reason: "", slot: 1, arm, phase: "trial", run: runId, since: "", retryAt: null, lastError: null, valid: 0, total: 1 });

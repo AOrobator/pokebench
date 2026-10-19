@@ -7,7 +7,8 @@ import { createBaselinePool, type BaselineRequest, type BaselineWorkerLike } fro
 import { createWorkbenchStore, workbenchCacheDir } from "./baseline-store.js";
 import { handleBaselineRequest } from "./baseline-worker.js";
 import { startViewer, type Viewer } from "./server.js";
-import { createWorkbenchLoader, loadRun, parseLoadedRun, timingSeconds, workbenchSnapshot, type LoadedRun, type WorkbenchCompute } from "./workbench-store.js";
+import { cardWorkbench, createIncrementalRunLoader, createWorkbenchLoader, loadRun, parseLoadedRun, timingSeconds, workbenchSnapshot, type LoadedRun, type WorkbenchCompute } from "./workbench-store.js";
+import { parseWorkbench } from "./workbench-data.js";
 import { EventEmitter } from "node:events";
 
 const roots: string[] = [], viewers: Viewer[] = [];
@@ -70,6 +71,16 @@ it("produces the same snapshot whether runs load in process or through a compute
   expect(inProcess.runs.map((x) => [x.id, x.status]).sort()).toEqual([["broken", "invalid"], ["done", "ended"], ["held", "paused"], ["live", "live"]]);
 });
 
+it("projects cards without historical measurements while retaining active data and trainer peers", async () => {
+  const r = catalog(), full = await workbenchSnapshot(r, healthy, NOW), done = full.runs.find(run => run.id === "done"), live = full.runs.find(run => run.id === "live");
+  if (done === undefined || live === undefined) throw new Error("fixture");
+  const heavy = { ...done, experiment: { id: "allocation", arm: "control", trial: 1, of: 1 }, measurement: { controller: "agent" as const, features: [], logSha256: "a".repeat(64), pausedMs: 0, rawSplits: Array.from({ length: 5000 }, (_, index) => ({ name: `M${String(index)}`, elapsedMs: index, evidence: [index] })) } };
+  const source = { ...full, runs: [heavy, live] }, projected = parseWorkbench(cardWorkbench(source, "live")), peer = projected.runs.find(run => run.id === "done"), active = projected.runs.find(run => run.id === "live");
+  expect(peer).toMatchObject({ config: null, splits: [], experiment: heavy.experiment }); expect(peer?.measurement).toBeUndefined();
+  expect(active?.splits).toEqual(live.splits); expect(active?.card).toEqual(live.card);
+  expect(JSON.stringify(projected).length * 20).toBeLessThan(JSON.stringify(source).length);
+});
+
 it("returns plain, serializable records that survive validation", () => {
   const r = catalog();
   for (const id of ["live", "done", "held", "broken"]) {
@@ -128,6 +139,59 @@ it("reloads a run whose log changed, and ignores corrupt cache entries", async (
   expect(c.calls).toEqual(["live"]);
   expect(after.runs.find((x) => x.id === "live")?.status).toBe("ended");
   expect(fs.readdirSync(dir).sort()).toEqual(["done.json", "live.json"]);
+});
+
+it("discards incremental state after a same-size in-place rewrite", () => {
+  const r = root(), path = write(r, "live", named()), load = createIncrementalRunLoader();
+  expect(load(r, "live").run.status).toBe("unresponsive");
+  const originalStat = fs.statSync(path), original = fs.readFileSync(path, "utf8"), firstBreak = original.indexOf("\n"), rewritten = original.slice(0, firstBreak + 1) + original.slice(firstBreak + 1).replace('"seq":1', '"seq":9');
+  expect(Buffer.byteLength(rewritten)).toBe(Buffer.byteLength(original));
+  fs.writeFileSync(path, rewritten); fs.utimesSync(path, originalStat.atime, originalStat.mtime);
+  const after = load(r, "live").run;
+  expect(after.status).toBe("invalid"); expect(after.problem).toContain("order");
+});
+
+it("discards a tailer when the path is atomically replaced during reduction", () => {
+  const r = root(), path = write(r, "live", named());
+  let replaced = false;
+  const load = createIncrementalRunLoader({ observeRead: (activePath) => {
+    if (replaced) return;
+    replaced = true;
+    fs.renameSync(activePath, `${activePath}.old`);
+    fs.writeFileSync(activePath, ended().events.map(event => JSON.stringify({ ...event, run: "live" })).join("\n") + "\n");
+  } });
+  const raced = load(r, "live").run;
+  expect(raced.status).toBe("invalid"); expect(raced.problem).toContain("changed during reduction"); expect(load.retained()).toBe(0);
+  expect(load(r, "live").run.status).toBe("ended"); expect(load.retained()).toBe(0);
+  expect(fs.existsSync(`${path}.old`)).toBe(true);
+});
+
+it("discards a tailer when a same-size rewrite races its reduction", () => {
+  const r = root(); write(r, "live", named());
+  let rewritten = false;
+  const load = createIncrementalRunLoader({ observeRead: (activePath) => {
+    if (rewritten) return;
+    rewritten = true;
+    const original = fs.readFileSync(activePath, "utf8"), changed = original.replace('"seq":1', '"seq":9');
+    expect(Buffer.byteLength(changed)).toBe(Buffer.byteLength(original));
+    fs.writeFileSync(activePath, changed);
+  } });
+  const raced = load(r, "live").run;
+  expect(raced.status).toBe("invalid"); expect(raced.problem).toContain("changed during reduction"); expect(load.retained()).toBe(0);
+  const next = load(r, "live").run;
+  expect(next.status).toBe("invalid"); expect(next.problem).toContain("order"); expect(load.retained()).toBe(0);
+});
+
+it("retires terminal reducers, resets after truncation and replacement, and bounds unfinished logs", () => {
+  const r = root(), load = createIncrementalRunLoader();
+  write(r, "done", ended()); expect(load(r, "done").run.status).toBe("ended"); expect(load.retained()).toBe(0);
+  const changed = write(r, "changed", named()); expect(load(r, "changed").run.status).toBe("unresponsive"); expect(load.retained()).toBe(1);
+  fs.truncateSync(changed, 10); expect(load(r, "changed").run.status).toBe("invalid"); expect(load.retained()).toBe(0);
+  const replaced = write(r, "replaced", named()); load(r, "replaced"); fs.rmSync(replaced);
+  fs.writeFileSync(replaced, ended().events.map(event => JSON.stringify({ ...event, run: "replaced" })).join("\n") + "\n");
+  expect(load(r, "replaced").run.status).toBe("ended"); expect(load.retained()).toBe(0);
+  for (let index = 0; index < 10; index++) { const id = `live-${String(index)}`; write(r, id, named()); load(r, id); }
+  expect(load.retained()).toBe(8);
 });
 
 it("answers other routes while workbench runs are still loading", async () => {

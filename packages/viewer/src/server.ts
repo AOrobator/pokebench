@@ -347,7 +347,7 @@ async function liveScreen(res: ServerResponse, port: number, fetchFn: typeof fet
   }
 }
 
-async function route(req: IncomingMessage, res: ServerResponse, options: ViewerOptions, port: number, origins: ReadonlyMap<string, string>, readBaseline: BaselineReader, readWorkbench: () => Promise<WorkbenchData>, queueApi: QueueApi): Promise<void> {
+async function route(req: IncomingMessage, res: ServerResponse, options: ViewerOptions, port: number, origins: ReadonlyMap<string, string>, readBaseline: BaselineReader, readWorkbench: (cards?: { selected: string | null }) => Promise<WorkbenchData>, queueApi: QueueApi): Promise<void> {
   const origin = origins.get(req.headers.host ?? "");
   if (origin === undefined) {
     sendJson(res, 403, { error: "the viewer only answers 127.0.0.1 and its published origins" });
@@ -377,7 +377,7 @@ async function route(req: IncomingMessage, res: ServerResponse, options: ViewerO
   }
   if (parts.length === 2 && head === "api" && second === "cards") {
     const selected = new URL(req.url ?? "/", "http://viewer.invalid").searchParams.get("run");
-    sendJson(res, 200, cardWorkbench(await readWorkbench(), selected));
+    sendJson(res, 200, cardWorkbench(await readWorkbench({ selected }), selected));
     return;
   }
   if (parts.length === 2 && head === "explainers" && Object.values(FEATURE_EXPLAINERS).includes(second ?? "")) {
@@ -524,12 +524,22 @@ export async function startViewer(given: ViewerOptions): Promise<Viewer> {
   const readBaseline = createBaselineReader(options.runsRoot, { ...(options.baselines?.compute === undefined ? {} : { compute: options.baselines.compute }), ...(options.baselines?.store === undefined ? {} : { store: options.baselines.store }) });
   const workbenchLoader = createWorkbenchLoader({ build: options.build ?? null, ...(options.workbench?.compute === undefined ? {} : { compute: options.workbench.compute }), ...(options.workbench?.store === undefined ? {} : { store: options.workbench.store }) });
   let snapshot: { until: number; result: Promise<WorkbenchData> } | null = null;
-  const readWorkbench = (): Promise<WorkbenchData> => {
+  let cardsSnapshot: { selected: string | null; until: number; result: Promise<WorkbenchData> } | null = null;
+  const readWorkbench = (cards?: { selected: string | null }): Promise<WorkbenchData> => {
     const now = (options.now?.() ?? new Date()).getTime();
-    if (snapshot !== null && now < snapshot.until) return snapshot.result;
-    const next = { until: Infinity, result: Promise.resolve().then(() => workbenchSnapshot(options.runsRoot, healthProbe(options.fetchFn ?? fetch), now, undefined, workbenchLoader, { partial: options.workbench?.partial === true })) };
-    snapshot = next;
-    next.result = next.result.then(data => { next.until = (options.now?.() ?? new Date()).getTime() + WORKBENCH_POLL_MS; return data; }, (error: unknown) => { if (snapshot === next) snapshot = null; throw error; });
+    const cached = cards === undefined ? snapshot : cardsSnapshot?.selected === cards.selected ? cardsSnapshot : null;
+    if (cached !== null && now < cached.until) return cached.result;
+    const healthy = healthProbe(options.fetchFn ?? fetch);
+    const pending = cards === undefined
+      ? Promise.resolve().then(() => workbenchSnapshot(options.runsRoot, healthy, now, undefined, workbenchLoader, { partial: options.workbench?.partial === true }))
+      : liveRuns(options.runsRoot, healthy).then(live => workbenchSnapshot(options.runsRoot, healthy, now, undefined, workbenchLoader, { partial: options.workbench?.partial === true, cards: { ...cards, live: new Set(live) } }));
+    if (cards === undefined) {
+      const next = { until: Infinity, result: pending }; snapshot = next;
+      next.result = next.result.then(data => { next.until = (options.now?.() ?? new Date()).getTime() + WORKBENCH_POLL_MS; return data; }, (error: unknown) => { if (snapshot === next) snapshot = null; throw error; });
+      return next.result;
+    }
+    const next = { selected: cards.selected, until: Infinity, result: pending }; cardsSnapshot = next;
+    next.result = next.result.then(data => { next.until = (options.now?.() ?? new Date()).getTime() + WORKBENCH_POLL_MS; return data; }, (error: unknown) => { if (cardsSnapshot === next) cardsSnapshot = null; throw error; });
     return next.result;
   };
   const repo = dirname(options.runsRoot);

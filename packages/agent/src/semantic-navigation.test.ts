@@ -278,6 +278,40 @@ it("refuses a background when a scripted object would receive A first",async()=>
  expect(f.navigations).toEqual([]);expect(f.buttons).toEqual([]);expect(out.content[0]?.type==="text"?out.content[0].text:"").toContain("no supported route");
 });
 
+it("refuses a counter background when a native object behind it would receive A",async()=>{
+ const background:NonNullable<GameStateSnapshot["interaction_targets"]>[number]={kind:"background",x:2,y:0,elevation:3,activation:"A",availability:"conditional",facing:"right",local_id:null,destination:null,name:"Counter"};
+ const base=field([background]),grid=base.navigation_grid;if(grid===null||grid===undefined)throw new Error("missing grid");
+ const initial={...base,interaction_object_slots:[{slot:3,x:3,y:0,elevation:3,local_id:3,map_id:[0,9] as [number,number],is_player:false}],navigation_grid:{...grid,tiles:grid.tiles.map(t=>t.x===2&&t.y===0?{...t,collision:1,behavior:0x80}:t)}};
+ const f=fixture(undefined,baseFeatures(),undefined,initial),tool=f.tools.find(t=>t.name==="navigate_to_target");if(tool===undefined)throw new Error("missing semantic tool");
+ const out=await tool.execute("s",{map_id:[0,9],target:{kind:"interaction",interaction_kind:"background",x:2,y:0}});
+ expect(f.navigations).toEqual([]);expect(f.buttons).toEqual([]);expect(out.content[0]?.type==="text"?out.content[0].text:"").toContain("no supported route");
+});
+
+it("approaches an object through a counter using the native two-tile interaction rule",async()=>{
+ const selected=target(3,3,0),base=field([selected]),grid=base.navigation_grid;if(grid===null||grid===undefined)throw new Error("missing grid");
+ const initial={...base,navigation_grid:{...grid,tiles:grid.tiles.map(t=>t.x===2&&t.y===0?{...t,collision:1,behavior:0x80}:t.x===4&&t.y===0||t.x===3&&t.y===1?{...t,collision:1}:t)}};
+ const f=fixture(undefined,baseFeatures(),undefined,initial),tool=f.tools.find(t=>t.name==="navigate_to_target");if(tool===undefined)throw new Error("missing semantic tool");
+ await tool.execute("s",{map_id:[0,9],target:{kind:"object",local_id:3}});
+ expect(f.navigations).toEqual([{x:1,y:0,map_id:[0,9]}]);expect(f.buttons).toEqual([["A"]]);
+});
+
+it("uses the whole-map counter receipt when selecting a two-tile object approach",async()=>{
+ const selected=target(3,3,0),base=field([selected]);
+ const initial={...base,navigation_grid:null,map_grid:{width:5,height:2,elevation:3,rows:["03000300138003001300","03000300030013000300"],objects:[{x:3,y:0}],warps:[]}};
+ const f=fixture(undefined,{...baseFeatures(),"full-map-navigation-v1":true},undefined,initial),tool=f.tools.find(t=>t.name==="navigate_to_target");if(tool===undefined)throw new Error("missing semantic tool");
+ await tool.execute("s",{map_id:[0,9],target:{kind:"object",local_id:3}});
+ expect(f.navigations).toEqual([{x:1,y:0,map_id:[0,9]}]);expect(f.buttons).toEqual([["A"]]);
+});
+
+it("submits no A when a counter recipient appears in the fresh checked state",async()=>{
+ const background:NonNullable<GameStateSnapshot["interaction_targets"]>[number]={kind:"background",x:2,y:0,elevation:3,activation:"A",availability:"conditional",facing:"right",local_id:null,destination:null,name:"Counter"};
+ const base=field([background]),grid=base.navigation_grid;if(grid===null||grid===undefined)throw new Error("missing grid");
+ const initial={...base,navigation_grid:{...grid,tiles:grid.tiles.map(t=>t.x===2&&t.y===0?{...t,collision:1,behavior:0x80}:t)}};
+ const f=fixture(undefined,baseFeatures(),(state,button)=>button==="A"?{...state,interaction_object_slots:[{slot:3,x:3,y:0,elevation:3,local_id:3,map_id:[0,9],is_player:false}]}:state,initial),tool=f.tools.find(t=>t.name==="navigate_to_target");if(tool===undefined)throw new Error("missing semantic tool");
+ const out=await tool.execute("s",{map_id:[0,9],target:{kind:"interaction",interaction_kind:"background",x:2,y:0}});
+ expect(f.buttons).toEqual([]);expect(out.content[0]?.type==="text"?out.content[0].text:"").toContain("interaction recipient changed");expect(out.details).toMatchObject({semantic_navigation:{activation_attempted:false}});
+});
+
 it("refuses an ambiguous fixed interaction instead of skipping an earlier wrong-facing background",async()=>{
  const background:NonNullable<GameStateSnapshot["interaction_targets"]>[number]={kind:"background",x:3,y:0,elevation:3,activation:"A",availability:"conditional",facing:"up",local_id:null,destination:null,name:"North sign"};
  const television:NonNullable<GameStateSnapshot["interaction_targets"]>[number]={...background,kind:"metatile_television",facing:null,name:"television"};

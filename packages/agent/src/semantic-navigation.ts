@@ -5,6 +5,7 @@ import type {FeatureSet} from "./features.js";
 import {isCheckedPress,type CheckedPressTool} from "./game-tools.js";
 import {parseGameState,type GameStateSnapshot,type StateSource} from "./game-state.js";
 import {directionalWarpActivation,elevationsMatch,isCheckedNavigation,planNavigation,plannedArrivalElevation,type CheckedNavigationTool,type NavigationMode,type NavigationOptions} from "./navigation.js";
+import {COUNTER} from "./tile-rules.js";
 
 const MapId=Type.Tuple([Type.Integer({minimum:0,maximum:255}),Type.Integer({minimum:0,maximum:255})]);
 const ObjectTarget=Type.Object({kind:Type.Literal("object"),local_id:Type.Integer({minimum:0,maximum:255})},{additionalProperties:false});
@@ -88,6 +89,13 @@ function sameTargetIdentity(before:SnapshotTarget,after:SnapshotTarget):boolean 
  const a=before.destination,b=after.destination;
  return before.activation===after.activation&&before.elevation===after.elevation&&(a===null?b===null:b!==null&&a[0]===b[0]&&a[1]===b[1]&&a[2]===b[2]);
 }
+function tileBehavior(state:GameStateSnapshot,point:Point,mode:NavigationMode|undefined):number|null {
+ if(mode==="full"){
+  const grid=state.map_grid;if(grid===null||grid===undefined||point.x<0||point.y<0||point.x>=grid.width||point.y>=grid.height)return null;
+  const cell=grid.rows[point.y]?.slice(point.x*4,point.x*4+4)??"";return /^[0-9a-f]{4}$/.test(cell)?Number.parseInt(cell,16)&0xff:null;
+ }
+ return state.navigation_grid?.tiles.find(tile=>tile.x===point.x&&tile.y===point.y)?.behavior??null;
+}
 function interactionRecipient(state:GameStateSnapshot,target:SnapshotTarget,approach:Approach,options:NavigationOptions):SnapshotTarget|null {
  const elevation=plannedArrivalElevation(state,approach.point,options);if(elevation===null)return null;
  if(target.kind==="warp"){
@@ -95,9 +103,13 @@ function interactionRecipient(state:GameStateSnapshot,target:SnapshotTarget,appr
  }
  if(target.activation!=="A")return target;
  const slots=state.interaction_object_slots;if(slots===undefined)return null;
- const native=slots.find(item=>item.x===target.x&&item.y===target.y&&elevationsMatch(item.elevation,elevation));
+ const step=STEPS.find(([button])=>button===approach.facing);if(step===undefined)return null;
+ const front={x:approach.point.x+step[1],y:approach.point.y+step[2]};
+ const first=slots.find(item=>item.x===front.x&&item.y===front.y&&elevationsMatch(item.elevation,elevation));
+ const beyond={x:front.x+step[1],y:front.y+step[2]};
+ const native=first!==undefined&&first.local_id!==0xff?first:tileBehavior(state,front,options.mode)===COUNTER?slots.find(item=>item.x===beyond.x&&item.y===beyond.y&&elevationsMatch(item.elevation,elevation)&&item.local_id!==0xff):undefined;
  if(target.kind==="object"){
-  return native!==undefined&&target.native_slot!==undefined&&native.slot===target.native_slot&&native.local_id===target.local_id&&native.map_id[0]===state.map_id?.[0]&&native.map_id[1]===state.map_id[1]?target:null;
+  return native!==undefined&&native.x===target.x&&native.y===target.y&&target.native_slot!==undefined&&native.slot===target.native_slot&&native.local_id===target.local_id&&native.map_id[0]===state.map_id?.[0]&&native.map_id[1]===state.map_id[1]?target:null;
  }
  // Native object lookup precedes background and metatile lookup. Conservatively
  // refuse a fixed target whenever any active slot would be selected there.
@@ -115,7 +127,7 @@ function approaches(state:GameStateSnapshot,target:SnapshotTarget,options:Naviga
   const recipient=interactionRecipient(state,target,approach,options);
   return recipient!==null&&sameTargetIdentity(target,recipient)?[approach]:[];
  }
- return STEPS.flatMap(([facing,dx,dy])=>{
+ const ordinary=STEPS.flatMap(([facing,dx,dy])=>{
   if(target.facing!==null&&target.facing!==facing.toLowerCase())return [];
   const point={x:target.x-dx,y:target.y-dy},path=planNavigation(state,point,options);
   if(path===null)return [];
@@ -124,7 +136,15 @@ function approaches(state:GameStateSnapshot,target:SnapshotTarget,options:Naviga
   const approach={point,facing,length:path.length};
   const recipient=interactionRecipient(state,target,approach,options);
   return target.activation==="A"&&(recipient===null||!sameTargetIdentity(target,recipient))?[]:[approach];
- }).sort((a,b)=>a.length-b.length||a.point.y-b.point.y||a.point.x-b.point.x||a.facing.localeCompare(b.facing));
+ });
+ const counters=target.kind!=="object"?[]:STEPS.flatMap(([facing,dx,dy])=>{
+  const counter={x:target.x-dx,y:target.y-dy};if(tileBehavior(state,counter,options.mode)!==COUNTER)return [];
+  const point={x:counter.x-dx,y:counter.y-dy},path=planNavigation(state,point,options);if(path===null)return [];
+  const elevation=plannedArrivalElevation(state,point,options);if(elevation===null||!elevationsMatch(target.elevation,elevation))return [];
+  const approach={point,facing,length:path.length},recipient=interactionRecipient(state,target,approach,options);
+  return recipient!==null&&sameTargetIdentity(target,recipient)?[approach]:[];
+ });
+ return [...ordinary,...counters].sort((a,b)=>a.length-b.length||a.point.y-b.point.y||a.point.x-b.point.x||a.facing.localeCompare(b.facing));
 }
 function connectionApproaches(state:GameStateSnapshot,target:Extract<RequestTarget,{kind:"connection"}>,options:NavigationOptions):Approach[] {
  const connection=state.topology?.connections.find(item=>item.direction===target.direction);

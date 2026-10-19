@@ -65,6 +65,7 @@ Moves whose final power/type or hit count depends on move-specific script state 
 - 2026-10-19 EDT: local main was fast-forwarded to `cd596604` before the repository's independent cloud review gate completed. The required post-merge test first exposed stale TypeScript build output, then after rebuilding exposed a real ROM-fixture integration gap: archives created before `battle-effective-damage-v1` did not list the new default-off switch, so their bounded RAM readers rejected the new reads. Added the switch to every affected historical fixture's later-switch set; the ROM-enabled focused regression is 347/347 green. Main therefore remains an incomplete landing until the corrective tip passes the required cloud lanes and is fast-forwarded.
 - 2026-10-19 EDT: the operator assigned this session ownership to get the complete candidate reviewed and landed. The review boundary is the synced base `a7be38f6` through the corrective topic tip; the existing live probe processes remain out of scope and undisturbed.
 - 2026-10-19 EDT: the commit hook normalized one long set literal in the archived-readout regression after the review-gate correction commit; recorded the formatter-only change before sealing the candidate.
+- 2026-10-19 EDT: responsive browser QA at 1280, 1440 and 375 px found the experiment's long primary milestone escaping its phone-width fact card. Added local overflow wrapping; the feature explainer and experiment overview otherwise rendered cleanly with no external requests.
 
 ## Multi-Model Review Log
 

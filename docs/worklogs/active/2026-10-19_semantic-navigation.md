@@ -37,11 +37,12 @@ Both treatments must immediately return control when the game changes input owne
 - [x] OFF invariance is exact and ON factory wiring is covered.
 - [x] Both explainers, card links, server routes, and real-browser clicks are verified. Static routes and offline-page checks pass; the candidate viewer's Harness Config search opened both explainers at their registered routes.
 - [x] Pending experiment entries validate; no experiment is queued, approved, or launched.
-- [x] Agent/viewer gates pass: 3,815 tests, lint, build, experiment validation, offline-page checks, and 90% coverage floors. The isolated worktree's Python suite cannot resolve vendored porymap/mGBA assets, producing 12 missing-file failures and one missing-module mypy error; no Python production file changed.
+- [x] Agent/viewer gates pass: 3,822 tests, lint, build, experiment validation, offline-page checks, and 90% coverage floors. The isolated worktree's Python suite cannot resolve vendored porymap/mGBA assets, producing 12 missing-file failures and one missing-module mypy error; no Python production file changed.
 - [ ] Frozen multi-model review passes before any landing.
 
 ## Session log
 
+- 2026-10-19: Frozen-head replacement reviewers BLOCKED `7aaf23ebd5313094bd2676cace8f76235b843879`: the final checked callback only guarded map/position, so same-position battle, menu, dialogue, script lock, missing/moved target, or changed facing could still submit `A`. Fixed the owner boundary to recheck all interruption state, target/connection identity and required facing immediately before the press. Expanded the race regression to all eight drift classes; focused semantic tests are 20/20 and lint is green. The cumulative candidate requires full re-review.
 - 2026-10-19: Added direct production-path cases for every advertised semantic target class: fixed interaction by kind/coordinates, movement-activated warp with no extra press, and native map connection with one outward step. Focused semantic tests are 13/13 and agent lint is green.
 - 2026-10-19: Adversarial deletion proof is green. Forcing multi-tile running-prefix acceptance OFF made its regression fail with `unexpected movement` after one command; treating an internal command limit as terminal made the semantic continuation regression observe only one navigation segment; removing the checked activation predicate made the race test submit `A`. Restored the candidate byte-for-byte and reran both test files: 77/77 pass.
 - 2026-10-19: Re-pinned both pending, unqueued experiment definitions to final implementation commit `cd06fec4d0cf292bb336d65bd7f4a3911764d13b`; this metadata-only follow-up does not authorize or launch runs.

@@ -61,12 +61,21 @@ it("continues capped navigation segments until the semantic approach is reached"
  expect(f.buttons).toEqual([["A"]]);
 });
 
-it("submits no activation when the checked state changes immediately before the press",async()=>{
- const f=fixture(undefined,baseFeatures(),(state,button)=>button==="A"?{...state,position:{x:1,y:0}}:state),tool=f.tools.find(t=>t.name==="navigate_to_target");if(tool===undefined)throw new Error("missing semantic tool");
+it.each([
+ ["position",(state:GameStateSnapshot):GameStateSnapshot=>({...state,position:{x:1,y:0}}),"approach changed"],
+ ["battle",(state:GameStateSnapshot):GameStateSnapshot=>({...state,in_battle:true,screen:"battle",field_controls_locked:true}),"battle began"],
+ ["menu",(state:GameStateSnapshot):GameStateSnapshot=>({...state,active_ui:{phase:"field_yes_no",selected:"YES",ready:true,controls:"A confirms",diagnostic:null}}),"interface field_yes_no opened"],
+ ["dialogue",(state:GameStateSnapshot):GameStateSnapshot=>({...state,world_context:{objects:[],triggers:[],dialogue:"Wait!"}}),"dialogue or a field message opened"],
+ ["script ownership",(state:GameStateSnapshot):GameStateSnapshot=>({...state,field_controls_locked:true}),"a script or forced field action took control"],
+ ["missing target",(state:GameStateSnapshot):GameStateSnapshot=>({...state,interaction_targets:[]}),"semantic target changed"],
+ ["moved target",(state:GameStateSnapshot):GameStateSnapshot=>({...state,interaction_targets:[target(2,4,0)]}),"semantic target changed"],
+ ["facing",(state:GameStateSnapshot):GameStateSnapshot=>({...state,facing:"down"}),"player facing changed"],
+] as const)("submits no activation when checked %s changes immediately before the press",async(_name,drift,expected)=>{
+ const f=fixture(undefined,baseFeatures(),(state,button)=>button==="A"?drift(state):state),tool=f.tools.find(t=>t.name==="navigate_to_target");if(tool===undefined)throw new Error("missing semantic tool");
  const out=await tool.execute("s",{map_id:[0,9],target:{kind:"object",local_id:2}});
  expect(f.buttons).toEqual([]);
- const message=out.content[0];expect(message?.type==="text"?message.text:"").toContain("semantic target changed before activation");
- expect(out.details).toMatchObject({state:{position:{x:1,y:0}},semantic_navigation:{activation_attempted:false}});
+ const message=out.content[0];expect(message?.type==="text"?message.text:"").toContain(expected);
+ expect(out.details).toMatchObject({semantic_navigation:{activation_attempted:false}});
 });
 
 it.each([

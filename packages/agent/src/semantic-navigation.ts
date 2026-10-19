@@ -126,9 +126,23 @@ function semanticTool(navigate:AgentTool,press:AgentTool,features:FeatureSet,sta
     if(fresh.kind==="warp"||fresh.activation==="step")return withStatus(walked,"arrived at the movement-activated target",selected,true);
    }
    const facing=choice.facing;if(facing===null)return withStatus(walked,"arrived at the selected target",selected,false);
+   const connectionDirection=request.target.kind==="connection"?request.target.direction:null;
+   const checkInput=(actual:GameStateSnapshot|undefined,phase:"facing input"|"activation",requireFacing:boolean):void=>{
+    if(actual===undefined)throw new SemanticPreconditionError(`verified state became unavailable before ${phase}`);
+    if(!isMap(actual,request.map_id)||actual.position?.x!==choice.point.x||actual.position.y!==choice.point.y)throw new SemanticPreconditionError(`semantic target approach changed before ${phase}`);
+    const interruption=interrupted(actual);if(interruption!==null)throw new SemanticPreconditionError(`semantic navigation was interrupted before ${phase}: ${interruption}`);
+    if(connectionDirection!==null){
+     const connection=actual.topology?.connections.find(item=>item.direction===connectionDirection);
+     if(connection?.edges?.some(point=>point.x===choice.point.x&&point.y===choice.point.y)!==true)throw new SemanticPreconditionError(`semantic connection changed before ${phase}`);
+    }else{
+     const fresh=resolve(actual,request.target);
+     if(fresh===null||fresh.x!==listed?.x||fresh.y!==listed.y)throw new SemanticPreconditionError(`semantic target changed before ${phase}`);
+    }
+    if(requireFacing&&actual.facing!==facing.toLowerCase())throw new SemanticPreconditionError(`player facing changed before ${phase}`);
+   };
    if(current.facing!==facing.toLowerCase()){
     let turned:AgentToolResult<unknown>;
-    try{turned=await executePress(id,facing,actual=>{if(actual===undefined||!isMap(actual,request.map_id)||actual.position?.x!==choice.point.x||actual.position.y!==choice.point.y)throw new SemanticPreconditionError("semantic target approach changed before facing input");},signal);}
+    try{turned=await executePress(id,facing,actual=>{checkInput(actual,"facing input",false);},signal);}
     catch(error){if(!(error instanceof SemanticPreconditionError))throw error;const fresh=await stateSource.read(signal);return withStatus({content:[],details:{state:fresh}},error.message,selected,false);}
     current=stateOf(turned);reason=interrupted(current);
     if(reason!==null)return withStatus(turned,`interrupted while facing the target: ${reason}`,selected,false);
@@ -136,7 +150,7 @@ function semanticTool(navigate:AgentTool,press:AgentTool,features:FeatureSet,sta
    }
    const activation=request.target.kind==="connection"?facing:"A";
    let activated:AgentToolResult<unknown>;
-   try{activated=await executePress(id,activation,actual=>{if(actual===undefined||!isMap(actual,request.map_id)||actual.position?.x!==choice.point.x||actual.position.y!==choice.point.y)throw new SemanticPreconditionError("semantic target changed before activation");},signal);}
+   try{activated=await executePress(id,activation,actual=>{checkInput(actual,"activation",true);},signal);}
    catch(error){if(!(error instanceof SemanticPreconditionError))throw error;const fresh=await stateSource.read(signal);return withStatus({content:[],details:{state:fresh}},error.message,selected,false);}
    current=stateOf(activated);reason=interrupted(current);
    const status=reason!==null?`activation handed control back: ${reason}`:!isMap(current,request.map_id)?"activation changed maps; inspect the destination":"activation completed; inspect the resulting state";

@@ -1,3 +1,4 @@
+import json
 import struct
 from contextlib import nullcontext
 
@@ -334,8 +335,10 @@ def test_human_server_keeps_tool_dependent_evolution_observation_off(monkeypatch
         frames=Emulator,
         human=(api, server, "secret"),
     )
-    assert "evolution-decision-v1" in features_off_from_env(os.environ)
-    status, observation = get(api, "/pokebench/observation")
+    human_off = features_off_from_env(os.environ)
+    assert "evolution-decision-v1" in human_off
+    status, _headers, body = get(api, "/pokebench/observation")
+    observation = json.loads(body)
     assert status == 200
     assert observation["state"]["active_ui"]["selected"] == "CANCEL"
     assert "choose_evolution" not in observation["state_text"]

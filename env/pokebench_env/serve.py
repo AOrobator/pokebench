@@ -275,6 +275,12 @@ def run(
     frames: type[SteppedEmulator] | None = None,
     battle_text: tuple[FastAPI, type[SteppedEmulator], ReadMemory] | None = None,
 ) -> None:
+    if human is not None:
+        # Human play has neither this model tool nor its frame gate. Keep every
+        # reader OFF even when the historical human launch list omits the ID.
+        os.environ["POKEBENCH_FEATURES_OFF"] = ",".join(
+            sorted(features_off_from_env(os.environ) | {EVOLUTION})
+        )
     # Agent observations wait out screen fades on emulated frames (never wall
     # time). The human server records its snapshot observation under the
     # journal lock that the frame step also takes, so it captures at once.

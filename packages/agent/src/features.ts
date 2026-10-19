@@ -145,6 +145,7 @@ export const SWITCHABLE_FEATURES = [
   "text-only-supervisor-v2",
   "safe-navigation-strides-v1",
   "evolution-decision-v1",
+  "original-speed-pacing-v1",
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
 
@@ -369,6 +370,7 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("text-only-supervisor-v2","guidance","TEXT-ONLY SUPERVISOR V2","text-only-supervisor-v1","Text-only warnings honor the configured reply stopping policy. After three detailed notes, continuing retries receive a short action reminder. Budgets and termination behavior are unchanged. Off: the original third-note stop claim and generic retry prompt remain."),
   on("safe-navigation-strides-v1", "guidance", "SAFE NAVIGATION STRIDES", "bounded-navigation-v1", "Default off. Plans straight corridors of at most eight plain-floor tiles and validates every native step and stationary endpoint. Stops before turns, grass, ledges, objects, warps, script coordinates and elevation changes; special steps walk without automatic running. Off: the incumbent one-button navigation and running execution are unchanged."),
   on("evolution-decision-v1", "guidance", "EXPLICIT EVOLUTION DECISION", null, "Requires choose_evolution with evolve or cancel at a verified native cancellation window. The emulator waits for the choice and blocks ordinary button input through the evolution animation; neither option is recommended. After the explicit choice, the harness acknowledges only native waiting evolution result text with A; move-learning choices stay with the model. Removes the invented selected CANCEL menu and generic confirmation controls. Subsequent move-learning prompts retain their native controls. Default off; explicitly on in the bundle. Off: ordinary evolution timing, button input, tools and observations are unchanged."),
+  on("original-speed-pacing-v1", "guidance", "ORIGINAL POKEAGENT SPEED", null, "Targets 80 emulated frames per second using absolute deadlines, as explicitly selected by the operator. Preserves the vendor's conditional 4× cadence (320 if its dialog selector becomes active); the normal --no-ocr launcher still disables that selector. Changes game progression speed, not the separate viewer publication cap. This is a selected clock policy, not an experimental benefit claim. Off: the existing 59.7275 FPS deadline policy and conditional 4× ratio remain unchanged."),
   measured("story-milestones-v2", "STORY MILESTONES",
     "Records each story milestone the game's own state confirms, with its turn and time. This feeds splits and the score."),
   measured("clock-milestone-v1", "CLOCK MILESTONE",
@@ -437,6 +439,7 @@ export const SERVER_FEATURES: readonly SwitchableFeature[] = [
   "battle-effective-damage-v1",
   "safe-navigation-strides-v1",
   "evolution-decision-v1",
+  "original-speed-pacing-v1",
 ];
 
 export function serverFeatureEnv(features: FeatureSet): { POKEBENCH_ACTIVE_UI: "0" | "1"; POKEBENCH_FEATURES_OFF: string } {
@@ -565,6 +568,7 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("text-only-supervisor-v2"),
     ...when("safe-navigation-strides-v1"),
     ...when("evolution-decision-v1"),
+    ...when("original-speed-pacing-v1"),
   ];
 }
 

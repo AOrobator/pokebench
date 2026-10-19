@@ -33,7 +33,7 @@ from pokebench_env.blackout_readout import WhiteoutLatch, install_whiteout_latch
 from pokebench_env.checkpoint import install_checkpoint
 from pokebench_env.evolution_decision import SWITCH as EVOLUTION
 from pokebench_env.evolution_decision import install_evolution_decision
-from pokebench_env.frame_pacing import GameLoopServer, install_deadline_pacing
+from pokebench_env.frame_pacing import VENDOR_BASE_FPS, GameLoopServer, install_deadline_pacing
 from pokebench_env.game_screen import ReadMemory
 from pokebench_env.game_state import MapNames
 from pokebench_env.human import HumanServer, install_human
@@ -264,6 +264,7 @@ def run(
     *,
     frame_cache: tuple[FrameCacheServer, Callable[[], int]] | None = None,
     pacing: GameLoopServer | None = None,
+    original_speed_pacing: bool = False,
     spectator: tuple[FastAPI, type[EmulatorLike]] | None = None,
     observation: tuple[FastAPI, ScreenshotFn, ReadMemory, MapNames]
     | tuple[FastAPI, ScreenshotFn, ReadMemory, MapNames, AbstractContextManager[object]]
@@ -295,7 +296,10 @@ def run(
     if frame_cache is not None:
         install_on_demand_frame_cache(*frame_cache)
     if pacing is not None:
-        install_deadline_pacing(pacing)
+        if original_speed_pacing:
+            install_deadline_pacing(pacing, source_fps=VENDOR_BASE_FPS)
+        else:
+            install_deadline_pacing(pacing)
     if battle_text is not None:
         install_battle_text(*battle_text)
     settle = None
@@ -382,6 +386,8 @@ def make_memory_reader(core: Callable[[], NativeCore]) -> SnapshotMemoryReader:
 
 
 def main() -> None:  # pragma: no cover - entrypoint, exercised by `just smoke`
+    off = features_off_from_env(os.environ)
+
     import uvicorn
     from pokemon_env.emulator import EmeraldEmulator
     from server import app  # vendor module, on PYTHONPATH
@@ -422,6 +428,7 @@ def main() -> None:  # pragma: no cover - entrypoint, exercised by `just smoke`
             lambda: int(app.env.core.frame_counter),
         ),
         pacing=cast(GameLoopServer, app),
+        original_speed_pacing="original-speed-pacing-v1" not in off,
         spectator=(app.app, cast(type[EmulatorLike], EmeraldEmulator)),
         actions=(app.app, cast(type[FrameEmulator], EmeraldEmulator), read_memory),
         observation=(

@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Original-speed deadline pacing</title>
+  <style>
+    :root{color-scheme:light;--bg:#f6f4ee;--fg:#20242a;--muted:#606873;--card:#fff;--line:#d5d2c8;--blue:#1769aa;--blue-bg:#e9f3fb;--green:#176b4b;--green-bg:#e7f5ee;--amber:#8b5a00;--amber-bg:#fff4d8;--red:#9b3b35;--red-bg:#fae9e7;--svg-grid:#d9e0e7;--shadow:0 10px 28px rgba(25,31,38,.08)}
+    @media(prefers-color-scheme:dark){:root{color-scheme:dark;--bg:#14171b;--fg:#edf0f3;--muted:#abb3bd;--card:#1c2127;--line:#373e47;--blue:#78bdf1;--blue-bg:#172d3e;--green:#72d4a9;--green-bg:#173229;--amber:#f2c56e;--amber-bg:#392d15;--red:#f09a94;--red-bg:#3c2423;--svg-grid:#333b45;--shadow:none}}
+    *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.58 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}main{max-width:980px;margin:auto;padding:42px 20px 72px}h1{font-size:clamp(2rem,6vw,3.4rem);line-height:1.05;letter-spacing:-.035em;margin:.25rem 0 1rem}h2{font-size:1.35rem;margin:2.4rem 0 .7rem}h3{font-size:1rem;margin:.2rem 0 .45rem}p{max-width:76ch}.eyebrow{color:var(--blue);font-size:.78rem;font-weight:750;text-transform:uppercase;letter-spacing:.1em}.lede{font-size:1.16rem;color:var(--muted);max-width:70ch}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:1.3rem 0}.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;box-shadow:var(--shadow)}.on{border-color:var(--blue);background:var(--blue-bg)}.off{border-color:var(--green);background:var(--green-bg)}.warn{border-color:var(--amber);background:var(--amber-bg)}.status{border-color:var(--red);background:var(--red-bg)}.number{font:750 1.55rem/1.15 ui-monospace,SFMono-Regular,Menlo,monospace;margin:.2rem 0}.small{font-size:.9rem;color:var(--muted)}code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:var(--card);border:1px solid var(--line);border-radius:5px;padding:.08rem .28rem}.figure{margin:1.25rem 0 1.7rem;overflow-x:auto;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px;box-shadow:var(--shadow)}svg{display:block;min-width:760px;width:100%;height:auto}svg text{font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;fill:var(--fg)}svg .muted{fill:var(--muted)}svg .axis{stroke:var(--muted);stroke-width:2}svg .gridline{stroke:var(--svg-grid);stroke-width:1}svg .work{fill:var(--amber-bg);stroke:var(--amber);stroke-width:2}svg .sleep{fill:var(--blue-bg);stroke:var(--blue);stroke-width:2}svg .offbox{fill:var(--green-bg);stroke:var(--green);stroke-width:2}svg .node{fill:var(--card);stroke:var(--line);stroke-width:2}svg .pending{fill:var(--amber-bg);stroke:var(--amber);stroke-width:2;stroke-dasharray:7 5}svg .arrow{stroke:var(--blue);stroke-width:2.5;fill:none;marker-end:url(#arrow)}figcaption{font-size:.9rem;color:var(--muted);padding:8px 5px 2px}.facts{padding-left:1.2rem}.facts li{margin:.45rem 0}.sources{font-size:.9rem;color:var(--muted)}@media(max-width:680px){main{padding:28px 14px 52px}.grid{grid-template-columns:1fr}.card{padding:15px}.figure{margin-inline:-4px}}
+  </style>
+</head>
+<body><main>
+  <div class="eyebrow">Game-clock switch · original-speed-pacing-v1 · default off</div>
+  <h1>Original-speed deadline pacing</h1>
+  <p class="lede">The operator goal is an actual 80 core frames per second during normal play. The switch changes the game-loop clock policy; it does not promise that frame publication, WebSocket delivery, SVG image-load completion, or compositor paint also run at 80.</p>
+
+  <div class="grid">
+    <section class="card on">
+      <h3>ON · original-speed target</h3>
+      <div class="number">80 FPS · 12.500 ms</div>
+      <p>Each absolute deadline is 12.5 ms after the previous one. Work consumes that budget; sleep uses only the remainder.</p>
+    </section>
+    <section class="card off">
+      <h3>OFF · current comparison clock</h3>
+      <div class="number">59.7275 FPS · 16.743 ms</div>
+      <p>The same deadline algorithm keeps the existing Emerald real-time base. Historical presets that omit the switch remain OFF.</p>
+    </section>
+  </div>
+
+  <h2>Why the deadline matters</h2>
+  <p>The pinned vendor asks for 80 FPS, advances a frame, performs its work, and then sleeps for a full <code>1 / current_fps</code>. That makes the real period <em>work + requested sleep</em>. Deadline pacing instead schedules the next frame boundary first and subtracts elapsed work from the available sleep.</p>
+
+  <figure class="figure">
+    <svg viewBox="0 0 900 340" role="img" aria-labelledby="timing-title timing-desc">
+      <title id="timing-title">Additive sleep compared with deadline pacing</title>
+      <desc id="timing-desc">The old loop adds a full 12.5 millisecond sleep after work. The candidate fits work and remaining sleep inside one 12.5 millisecond deadline period. The OFF policy uses the same method with a 16.743 millisecond period.</desc>
+      <text x="24" y="32" font-size="20" font-weight="700">One normal-play frame</text>
+      <text x="24" y="62" font-size="15" class="muted">Configured 80 FPS means a 12.500 ms period.</text>
+
+      <text x="24" y="112" font-size="16" font-weight="700">Vendor additive reference</text>
+      <rect x="230" y="84" width="180" height="52" rx="8" class="work"/>
+      <text x="320" y="107" text-anchor="middle" font-size="14" font-weight="700">frame work</text>
+      <text x="320" y="126" text-anchor="middle" font-size="12" class="muted">variable time</text>
+      <rect x="410" y="84" width="280" height="52" rx="8" class="sleep"/>
+      <text x="550" y="116" text-anchor="middle" font-size="14" font-weight="700">then sleep 12.500 ms</text>
+      <line x1="230" y1="147" x2="690" y2="147" class="axis"/>
+      <text x="690" y="170" text-anchor="end" font-size="13" class="muted">period = work + 12.500 ms</text>
+
+      <text x="24" y="228" font-size="16" font-weight="700">Deadline policy · ON</text>
+      <rect x="230" y="198" width="180" height="52" rx="8" class="work"/>
+      <text x="320" y="229" text-anchor="middle" font-size="14" font-weight="700">frame work</text>
+      <rect x="410" y="198" width="280" height="52" rx="8" class="sleep"/>
+      <text x="550" y="220" text-anchor="middle" font-size="14" font-weight="700">sleep only the remainder</text>
+      <text x="550" y="240" text-anchor="middle" font-size="12" class="muted">deadline − now</text>
+      <line x1="230" y1="261" x2="690" y2="261" class="axis"/>
+      <line x1="230" y1="190" x2="230" y2="272" class="gridline"/>
+      <line x1="690" y1="190" x2="690" y2="272" class="gridline"/>
+      <text x="230" y="290" text-anchor="middle" font-size="13" class="muted">deadline 0</text>
+      <text x="690" y="290" text-anchor="middle" font-size="13" font-weight="700">deadline +12.500 ms</text>
+
+      <rect x="230" y="307" width="460" height="25" rx="7" class="offbox"/>
+      <text x="460" y="325" text-anchor="middle" font-size="13" font-weight="700">OFF uses the same deadline rule with a 16.743 ms base period</text>
+    </svg>
+    <figcaption>Figure 1. A target rate becomes a frame budget only when frame work is inside the period. The diagram shows scheduling policy, not a measured throughput result.</figcaption>
+  </figure>
+
+  <h2>The 4× selector is conditional—and currently inactive</h2>
+  <p>The vendor function returns four times the base rate only when its cached dialogue flag is true. With the switch ON that request would be 320 FPS. Production launches the server with <code>--no-ocr</code>, which disables the vendor dialogue detector, and no owned replacement currently drives that cached selector. Therefore 320 is preserved as a conditional ratio, not proven natural-dialog behavior.</p>
+  <div class="card warn">
+    <strong>Not part of this claim:</strong> synthetic 320 Hz transport stress does not show that normal production dialogue selects 320. Enabling a RAM-owned selector would be a separate behavior change with separate tests and review.
+  </div>
+
+  <h2>Five rates, five different questions</h2>
+  <figure class="figure">
+    <svg viewBox="0 0 980 330" role="img" aria-labelledby="pipeline-title pipeline-desc">
+      <title id="pipeline-title">Core frames, publication, sockets, SVG load and paint are separate stages</title>
+      <desc id="pipeline-desc">The game clock feeds a publisher capped at 60, then WebSocket delivery, browser SVG image-load completion and compositor paint. An 80 core target does not imply 80 at the later stages.</desc>
+      <defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="var(--blue)"/></marker></defs>
+      <text x="20" y="30" font-size="20" font-weight="700">Measure each boundary independently</text>
+
+      <rect x="20" y="72" width="164" height="104" rx="12" class="node"/>
+      <text x="102" y="100" text-anchor="middle" font-size="15" font-weight="700">Game core</text>
+      <text x="102" y="126" text-anchor="middle" font-size="13">ON goal: actual 80</text>
+      <text x="102" y="149" text-anchor="middle" font-size="12" class="muted">frame counter / time</text>
+
+      <path d="M184 124 H211" class="arrow"/>
+      <rect x="212" y="72" width="164" height="104" rx="12" class="pending"/>
+      <text x="294" y="100" text-anchor="middle" font-size="15" font-weight="700">Publication</text>
+      <text x="294" y="126" text-anchor="middle" font-size="13">currently capped at 60</text>
+      <text x="294" y="149" text-anchor="middle" font-size="12" class="muted">80 comparison pending</text>
+
+      <path d="M376 124 H403" class="arrow"/>
+      <rect x="404" y="72" width="164" height="104" rx="12" class="node"/>
+      <text x="486" y="100" text-anchor="middle" font-size="15" font-weight="700">Socket delivery</text>
+      <text x="486" y="126" text-anchor="middle" font-size="13">unique frames received</text>
+      <text x="486" y="149" text-anchor="middle" font-size="12" class="muted">backpressure / overwrite</text>
+
+      <path d="M568 124 H595" class="arrow"/>
+      <rect x="596" y="72" width="164" height="104" rx="12" class="node"/>
+      <text x="678" y="100" text-anchor="middle" font-size="15" font-weight="700">SVG image load</text>
+      <text x="678" y="126" text-anchor="middle" font-size="13">href decoded / loaded</text>
+      <text x="678" y="149" text-anchor="middle" font-size="12" class="muted">not proof of paint</text>
+
+      <path d="M760 124 H787" class="arrow"/>
+      <rect x="788" y="72" width="172" height="104" rx="12" class="node"/>
+      <text x="874" y="100" text-anchor="middle" font-size="15" font-weight="700">Compositor paint</text>
+      <text x="874" y="126" text-anchor="middle" font-size="13">pixels actually presented</text>
+      <text x="874" y="149" text-anchor="middle" font-size="12" class="muted">not yet directly proven</text>
+
+      <rect x="20" y="220" width="940" height="78" rx="12" class="offbox"/>
+      <text x="40" y="248" font-size="15" font-weight="700">Acceptance order</text>
+      <text x="40" y="273" font-size="14">Prove the core clock under the defined workload, then test 80 Hz publication, socket receipt, browser load, and actual paint separately.</text>
+    </svg>
+    <figcaption>Figure 2. The switch controls only the first box. Today’s publisher has its own 60 FPS cap, so an 80 FPS game-core result cannot be reported as an 80 FPS viewer result.</figcaption>
+  </figure>
+
+  <h2>What the switch changes</h2>
+  <ul class="facts">
+    <li><strong>ON:</strong> the thread-local game-loop clock uses an 80 FPS base deadline. A vendor period change starts a fresh cadence; a delay beyond four periods resets the schedule rather than creating an unbounded catch-up burst.</li>
+    <li><strong>OFF:</strong> the same deadline machinery uses the existing 59.7275 FPS base exactly.</li>
+    <li><strong>Recorded identity:</strong> the explicit selection belongs in the run’s harness-feature list so historical OFF runs and future ON runs remain distinguishable.</li>
+    <li><strong>Unchanged:</strong> prompts, tools, observations, controls, publication cap, frame transport, and browser rendering.</li>
+  </ul>
+
+  <h2>Status</h2>
+  <div class="card status">
+    <strong>Candidate only: unreviewed and unlanded.</strong>
+    <p>This page documents the intended contract. It is not proof that the candidate is on main, deployed, or sustaining 80 FPS. Publication-at-80 comparison and direct paint evidence are still pending.</p>
+  </div>
+
+  <h2>Source grounding</h2>
+  <p class="sources"><code>env/vendor/continual-harness/server/app.py</code> sets the base to 80 and sleeps for <code>1 / current_fps</code> after frame work. <code>env/vendor/continual-harness/pokemon_env/emulator.py</code> defines the cached 4× selector. <code>env/pokebench_env/launcher.py</code> passes <code>--no-ocr</code> in production. <code>env/pokebench_env/frame_pacing.py</code> owns the thread-local absolute-deadline adapter, the 59.7275 constant, period-change handling, and the four-period lateness bound. <code>env/pokebench_env/serve.py</code> separately caps frame publication at 60 FPS.</p>
+</main></body>
+</html>

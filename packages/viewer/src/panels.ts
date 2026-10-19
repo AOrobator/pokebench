@@ -366,6 +366,7 @@ function toolReference(name:string,automaticRunning:boolean):string {
 }
 
 export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
+ "original-speed-pacing-v1":"original-speed-pacing-v1.html",
  "safe-navigation-strides-v1":"safe-navigation-strides-v1.html",
  "evolution-decision-v1":"evolution-decision-v1.html",
  "automatic-running-v1":"automatic-running-v1.html",

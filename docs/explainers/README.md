@@ -134,4 +134,4 @@ The original ignored runs/explainers copies remain for existing links. Make futu
 
 - [Safe planned navigation strides](safe-navigation-strides-v1.html)
 - [Explicit evolution decision](evolution-decision-v1.html): native decision boundary, both choices, and corrected animation observations.
-
+- [Original-speed deadline pacing](original-speed-pacing-v1.html): default-OFF 80 FPS game-clock policy, conditional 4× selector, and separate publication/display boundaries.

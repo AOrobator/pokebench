@@ -22,6 +22,7 @@
    "maxTokens": 4096
   },
   "features": {
+   "original-speed-pacing-v1": true,
    "battle-decision-ready-v1": true,
    "active-field-message-buffer-v1": true,
    "active-ui-ownership-v1": true,
@@ -210,6 +211,7 @@
   "jit-guide-reuse-v1"
  ],
  "onInBoth": [
+  "original-speed-pacing-v1",
   "battle-decision-ready-v1",
   "navigation-truth-v1",
   "surf-gated-exits-v1",

@@ -51,11 +51,18 @@ def test_production_run_selects_explicit_deadline_clock_and_preserves_conditiona
     monkeypatch.setattr(sys, "argv", ["test"])
     cache_installs = []
     monkeypatch.setattr(
-        serve, "install_on_demand_frame_cache",
+        serve,
+        "install_on_demand_frame_cache",
         lambda *args, **kwargs: cache_installs.append((args, kwargs)),
     )
-    serve.run([], SimpleNamespace(run=lambda: None), lambda: server.game_loop(),
-              frame_cache=(object(), lambda: 0), pacing=server, original_speed_pacing=enabled)
+    serve.run(
+        [],
+        SimpleNamespace(run=lambda: None),
+        lambda: server.game_loop(),
+        frame_cache=(object(), lambda: 0),
+        pacing=server,
+        original_speed_pacing=enabled,
+    )
     assert len(cache_installs) == 1 and cache_installs[0][1] == {}
     period = 1 / target
     assert clock.sleeps == pytest.approx(
@@ -75,8 +82,20 @@ def test_default_python_server_selection_is_off_and_transport_rejects_unknown_id
 
 
 def test_clock_policy_does_not_change_readout_bytes_or_state_shape():
-    state = GameState("overworld", True, "MAY", "PETALBURG CITY", (0, 9), (10, 10),
-                      "down", False, (), 1000, (), (0, 5, 0))
+    state = GameState(
+        "overworld",
+        True,
+        "MAY",
+        "PETALBURG CITY",
+        (0, 9),
+        (10, 10),
+        "down",
+        False,
+        (),
+        1000,
+        (),
+        (0, 5, 0),
+    )
     before = state_json(state)
     assert format_readout(state, frozenset({ID})) == format_readout(state, frozenset())
     assert state_json(state) == before
@@ -89,8 +108,13 @@ def test_actual_server_main_validates_feature_transport_and_passes_explicit_cloc
     monkeypatch, tmp_path, disabled, expected
 ):
     native = SimpleNamespace(frame_counter=0)
-    vendor = SimpleNamespace(app=object(), env=SimpleNamespace(core=native),
-                             frame_manager=object(), memory_lock=threading.Lock(), main=lambda: None)
+    vendor = SimpleNamespace(
+        app=object(),
+        env=SimpleNamespace(core=native),
+        frame_manager=object(),
+        memory_lock=threading.Lock(),
+        main=lambda: None,
+    )
     pokemon_package = ModuleType("pokemon_env")
     emulator_module = ModuleType("pokemon_env.emulator")
     emulator_module.EmeraldEmulator = type("FakeEmulator", (), {})
@@ -102,7 +126,9 @@ def test_actual_server_main_validates_feature_transport_and_passes_explicit_cloc
     monkeypatch.setitem(sys.modules, "server", server_package)
     monkeypatch.setattr(serve, "install_deadline_frame_stream", lambda *_args: None)
     monkeypatch.setattr(serve, "install_battle_journal", lambda *_args: None)
-    monkeypatch.setattr(serve, "resolve_rom", lambda _env: SimpleNamespace(read_bytes=lambda: b"test"))
+    monkeypatch.setattr(
+        serve, "resolve_rom", lambda _env: SimpleNamespace(read_bytes=lambda: b"test")
+    )
     monkeypatch.setattr(serve.MapNames, "load", lambda _path: object())
     monkeypatch.setattr(serve, "RawRamArchive", lambda *_args: object())
     monkeypatch.setattr(serve, "make_memory_reader", lambda _owner: object())

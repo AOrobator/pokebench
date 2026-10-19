@@ -112,11 +112,13 @@ def install_deadline_pacing(
     source_fps: float = EMERALD_REALTIME_FPS,
     vendor_base_fps: float = VENDOR_BASE_FPS,
 ) -> TimeProxy:
-    """Install real-time, thread-local pacing without changing unrelated sleeps.
+    """Install explicit, thread-local pacing without changing unrelated sleeps.
 
     The pinned server requests 80 FPS (320 during its fast-dialog mode). Scaling
-    those periods preserves the mode ratio while keeping the base emulator at
-    Emerald's nominal 59.7275 FPS instead of accelerating idle game evolution.
+    those periods preserves the mode ratio. The historical default remains
+    59.7275; the original-speed-pacing-v1 factory explicitly selects 80 instead.
+    This preserves a conditional ratio, not natural dialog activation: the
+    normal --no-ocr launcher still disables the vendor's dialog selector.
     """
 
     if not math.isfinite(source_fps) or source_fps <= 0:

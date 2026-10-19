@@ -69,7 +69,7 @@ describe("faced-interaction-history-v1",()=>{
   expect(normalizeFeatures({} as Parameters<typeof normalizeFeatures>[0])[ID]).toBe(false);
   const bundle=JSON.parse(readFileSync(new URL("../../../experiments/fixed/bundle-v-control.json",import.meta.url),"utf8")) as {base:{features:Record<string,boolean>};switches:string[]};
   expect(bundle.base.features[ID]).toBe(false);
-  expect(bundle.switches.at(-1)).toBe(ID);
+  expect(bundle.switches).toContain(ID);
   const raw=JSON.parse(readFileSync(new URL("../../../experiments/faced-interaction-history.json",import.meta.url),"utf8")) as {queuePosition?:number;blocked?:string;incumbent:{features:Record<string,boolean>}};
   expect(raw.queuePosition).toBeUndefined();
   expect(raw.blocked).toContain("do not queue");

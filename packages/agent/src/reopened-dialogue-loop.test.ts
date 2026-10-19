@@ -254,15 +254,16 @@ describe("reopened-dialogue-loop-v1", () => {
     };
     for (const source of [live, probe]) {
       const args = argsOf(source);
-      expect(args.at(-1)).toBe('features["reopened-dialogue-loop-v1"]');
-      expect(args.at(-2)).toBe('features["clock-view-loop-v1"]');
+      expect(args.at(-1)).toBe('features["trigger-script-loop-v1"]');
+      expect(args.at(-2)).toBe('features["reopened-dialogue-loop-v1"]');
+      expect(args.at(-3)).toBe('features["clock-view-loop-v1"]');
     }
     const play = (on: boolean) => {
       const notices: LoopNotice[] = [];
       const observers: ((e: RunEvent) => void)[] = [];
       const recorder = {subscribe: (o: (e: RunEvent) => void) => { observers.push(o); }, recordLoopGuard: (n: LoopNotice) => { notices.push(n); }};
       const governor = new Governor({limits: {maxTurns: 50, maxWallMs: 60_000, failureLimit: 3}, retry: () => undefined, abort: () => undefined, now: () => 0});
-      attachLoopGuard(recorder, governor, undefined, "enforced", true, () => "SUPERVISOR", false, false, false, true, false, false, false, on);
+      attachLoopGuard(recorder, governor, undefined, "enforced", true, () => "SUPERVISOR", false, false, false, true, false, false, false, on, false);
       let seq = 0;
       const emit = (body: Record<string, unknown>) => {
         seq += 1;

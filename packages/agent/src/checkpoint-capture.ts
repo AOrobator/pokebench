@@ -110,6 +110,7 @@ export class CheckpointCapture {
   try {this.deps.write(partial,JSON.stringify({version:1,run:event.run,milestone:event.name,milestone_seq:event.seq,observed_at:event.t,error:error.message}));this.deps.rename(partial,path);} catch { /* The rejection remains the authoritative surface when disk recording also fails. */ }
  }
  private async capture(event:MilestoneEvent):Promise<void>{
+  let failure:Error|undefined;
   try {
    await this.pause(true);
    const reply=await this.post("/pokebench/checkpoint",{});if(!reply.ok)throw new Error(`checkpoint request failed with HTTP ${String(reply.status)}`);
@@ -118,6 +119,8 @@ export class CheckpointCapture {
    const data=Buffer.from(body.state_base64,"base64");if(data.length===0||data.length>8*1024*1024)throw new Error("checkpoint state size is invalid");
    const sha1=createHash("sha1").update(data).digest("hex"),sha256=createHash("sha256").update(data).digest("hex");if(sha1!==body.sha1||sha256!==body.sha256)throw new Error("checkpoint digest does not match the returned state");
    const meta=JSON.stringify(this.metadata(event,data,sha1,sha256));this.pair(this.deps.dir,event.name,data,meta);this.promote(event,data,meta,sha1,sha256);
-  } finally {await this.pause(false);}
+  } catch(error) {failure=errorOf(error);}
+  try {await this.pause(false);} catch(error) {failure??=errorOf(error);}
+  if(failure!==undefined)throw failure;
  }
 }

@@ -125,7 +125,8 @@ it("preserves the primary capture failure when the required unpause also fails",
 it("rejects successful pause responses that do not confirm the requested state",async()=>{
  const wrongPause=fixture();const pauseDeps:CheckpointDeps={...wrongPause.deps,fetch:(url,init)=>url.endsWith("/pokebench/pause")?Promise.resolve(new Response(JSON.stringify({paused:false}))):wrongPause.deps.fetch(url,init)};
  const first=new CheckpointCapture({kind:"single",target:"CLOCK_SET"},pauseDeps,START);first.observe(milestone("CLOCK_SET",20));await expect(first.settled()).rejects.toThrow(/^pause response did not confirm paused=true$/);expect(wrongPause.calls.some(call=>call.url.endsWith("/pokebench/checkpoint"))).toBe(false);
-
+});
+it("rejects a successful unpause response that still reports the emulator paused",async()=>{
  const wrongUnpause=fixture();let pauses=0;
  const unpauseDeps:CheckpointDeps={...wrongUnpause.deps,fetch:(url,init)=>{if(url.endsWith("/pokebench/pause")&&++pauses===2)return Promise.resolve(new Response(JSON.stringify({paused:true})));return wrongUnpause.deps.fetch(url,init);}};
  const second=new CheckpointCapture({kind:"single",target:"CLOCK_SET"},unpauseDeps,START);second.observe(milestone("CLOCK_SET",21));await expect(second.settled()).rejects.toThrow(/^unpause response did not confirm paused=false$/);

@@ -156,7 +156,10 @@
    "input-cuts-v1": true,
    "loop-guard-screen-v1": true,
    "reopened-dialogue-loop-v1": true,
-   "dialog-button-b-v1": true
+   "dialog-button-b-v1": true,
+   "just-in-time-prompt-v1": false,
+   "just-in-time-prompt-v2": false,
+   "jit-guide-reuse-v1": false
   },
   "start": {
    "kind": "save_state",

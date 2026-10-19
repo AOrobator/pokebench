@@ -103,6 +103,21 @@ it("submits the game-owned direction when already standing on a directional warp
  expect(f.buttons).toEqual([["RIGHT"]]);expect(out.details).toMatchObject({semantic_navigation:{activation_attempted:true}});
 });
 
+it.each([
+ [0x62,1,true],
+ [0x67,0,false],
+] as const)("classifies a distant initially unseen warp from its final-entry snapshot (behavior %#x)",async(behavior,expectedSemanticPresses,staysOnSource)=>{
+ const warp:NonNullable<GameStateSnapshot["interaction_targets"]>[number]={kind:"warp",x:20,y:0,elevation:3,activation:"movement; activation depends on metatile (see local map)",availability:"conditional",facing:null,local_id:null,destination:[1,2,0],name:"Distant warp"};
+ const grid=(x:number)=>({elevation:3,tiles:Array.from({length:Math.min(29,x+7)-Math.max(0,x-7)+1},(_,i)=>{const at=Math.max(0,x-7)+i;return tile(at,0,0,at===20?behavior:0);}),objects:[],warps:[{x:20,y:0}]});
+ let current:GameStateSnapshot={...field([warp]),topology:{width:30,height:1,connections:[]},navigation_grid:grid(0)},travelPosts=0,semanticPosts=0;
+ const travel=navigationTool({read:()=>Promise.resolve(current),press:(_id,params,_signal,check)=>{check?.(current);expect(params.buttons).toEqual(["RIGHT"]);travelPosts++;const x=(current.position?.x??0)+1;current={...current,position:{x,y:0},navigation_grid:grid(x)};if(x===20&&!staysOnSource)current={...current,map_id:[1,2]};return Promise.resolve(result(current));},observe:()=>Promise.resolve(result(current))});
+ const activation={name:"press",label:"press",description:"press",parameters:Type.Object({buttons:Type.Array(Type.String())}),execute:()=>Promise.resolve(result(current)),executeChecked:(_id:string,args:{buttons:string[]},check:(state:GameStateSnapshot)=>void)=>{check(current);expect(args.buttons).toEqual(["RIGHT"]);semanticPosts++;current={...current,map_id:[1,2]};return Promise.resolve(result(current));}} as unknown as CheckedPressTool;
+ const tool=withSemanticNavigation([travel,activation],baseFeatures(),{read:()=>Promise.resolve(current)}).find(t=>t.name==="navigate_to_target");if(tool===undefined)throw new Error("missing semantic tool");
+ const out=await tool.execute("s",{map_id:[0,9],target:{kind:"warp",x:20,y:0}});
+ expect(travelPosts).toBe(20);expect(semanticPosts).toBe(expectedSemanticPresses);expect(current.map_id).toEqual([1,2]);
+ expect(out.details).toMatchObject({semantic_navigation:{activation_attempted:true}});
+});
+
 it("chooses a reachable native connection edge and submits one outward step",async()=>{
  const initial={...field([]),topology:{width:5,height:2,connections:[{direction:"EAST" as const,offset:0,destination:[0,10] as [number,number],destination_name:"ROUTE",edges:[{x:4,y:0}]}]}};
  const f=fixture(undefined,baseFeatures(),undefined,initial),tool=f.tools.find(t=>t.name==="navigate_to_target");if(tool===undefined)throw new Error("missing semantic tool");

@@ -585,7 +585,7 @@ export function navigationTool(ports:NavigationPorts):CheckedNavigationTool {
   let state=await ports.read(signal),commands=0,status="command limit",last:AgentToolResult<unknown>|undefined,stopRequested=false;
   const blackout=new BlackoutCarry();
   const strideReceipts:string[]=[];let plannedSteps=0;
-  let shortest=Infinity,stalled=0,unready=false,selectedTarget:Point={x:goal.x,y:goal.y},directionalWarpAttempted=false,goalEntryAttempted=false;
+  let shortest=Infinity,stalled=0,unready=false,selectedTarget:Point={x:goal.x,y:goal.y},directionalWarpAttempted=false,goalEntryAttempted=false,goalEntryActivation:Direction|"step"|null=null;
   const origin=state.position;
   const sameMap=():boolean=>state.map_id?.[0]===goal.map_id[0]&&state.map_id[1]===goal.map_id[1];
   while(commands<bound&&(ports.safeStrides!==true||plannedSteps<bound)){
@@ -632,6 +632,7 @@ export function navigationTool(ports:NavigationPorts):CheckedNavigationTool {
    const stride=ports.safeStrides===true?planStride(state,path.slice(0,bound-plannedSteps),options):null;
    const span=stride?.path.length??(ports.ledges===true&&hopAhead(planned,mode,before,direction,delta[1],delta[2])?2:1);
    const finalGoalStep=checkedOptions.exactTarget===true&&path.length===span;
+   if(finalGoalStep)goalEntryActivation=directionalWarpActivation(planned,goal,mode)??"step";
    const deliberateGoalEntry=checkedOptions.exactTarget===true&&path.length<=2;
    try {
     last=await ports.press(id,{buttons:[direction],...(ports.automaticRunning===true||goal.walking===undefined?{}:{walking:goal.walking})},signal,actual=>{
@@ -673,7 +674,7 @@ export function navigationTool(ports:NavigationPorts):CheckedNavigationTool {
   if(ports.safeStrides===true&&status==="command limit")status="planned route-step budget reached; inspect the returned state before continuing";
   if(truth&&status==="command limit"){const here=state.position;const cut=ports.exitReach===true&&exitBlock({surf:false,reach:true},state).footNear(goal.x,goal.y)===false;status=here!==null&&sameMap()&&ready(state,mode)?`command limit: stopped at ${at(here)} after ${String(commands)} ordinary button attempts, the most one navigate_to call makes; ${cut?`${at(goal)} cannot be reached on foot from where you stand: no walkable way on this map leads from your tile to it or to a tile next to it, so calling navigate_to again will not get there`:`call navigate_to again to continue to ${at(goal)}`}`:`command limit: stopped after ${String(commands)} ordinary button attempts, the most one navigate_to call makes; the field is no longer free to walk, so inspect the new state`;}
   const notices=blackout.missingNotices(last.content.flatMap(part=>part.type==="text"?[part.text]:[]));
-  return {content:[{type:"text",text:`Navigation: ${status}; ${String(commands)} ${ports.safeStrides===true?"bounded movement actions":"ordinary button attempts"}.`},...strideReceipts.map(text=>({type:"text" as const,text})),...notices.map(text=>({type:"text" as const,text})),...last.content],details:{state,navigation:{status,commands,target:goal,...(stop===undefined?{}:{stop_requested:stopRequested,goal_entry_attempted:goalEntryAttempted}),...(ports.deterministicWarps===true?{selected_target:selectedTarget,...(stop===undefined?{}:{activation_attempted:directionalWarpAttempted})}:{}),unready}}};
+  return {content:[{type:"text",text:`Navigation: ${status}; ${String(commands)} ${ports.safeStrides===true?"bounded movement actions":"ordinary button attempts"}.`},...strideReceipts.map(text=>({type:"text" as const,text})),...notices.map(text=>({type:"text" as const,text})),...last.content],details:{state,navigation:{status,commands,target:goal,...(stop===undefined?{}:{stop_requested:stopRequested,goal_entry_attempted:goalEntryAttempted,goal_entry_activation:goalEntryActivation}),...(ports.deterministicWarps===true?{selected_target:selectedTarget,...(stop===undefined?{}:{activation_attempted:directionalWarpAttempted})}:{}),unready}}};
  };
  return {name:"navigate_to",label:"Walk to a coordinate",description,parameters:(ports.automaticRunning===true?DeterministicRunningArgs:Args) as typeof Args,execute:(id,goal,signal)=>execute(id,goal,signal),executeChecked:(id,goal,check,signal,options)=>execute(id,goal,signal,check,options)};
 }

@@ -52,6 +52,12 @@ function navigationGoalEntryAttempted(result:AgentToolResult<unknown>):boolean {
  const details=result.details;if(typeof details!=="object"||details===null||!("navigation" in details))return false;
  const navigation=details.navigation;return typeof navigation==="object"&&navigation!==null&&"goal_entry_attempted" in navigation&&navigation.goal_entry_attempted===true;
 }
+function navigationGoalEntryActivation(result:AgentToolResult<unknown>):Button|"step"|null {
+ const details=result.details;if(typeof details!=="object"||details===null||!("navigation" in details))return null;
+ const navigation=details.navigation;if(typeof navigation!=="object"||navigation===null||!("goal_entry_activation" in navigation))return null;
+ const activation=navigation.goal_entry_activation;
+ return activation==="step"||activation==="UP"||activation==="DOWN"||activation==="LEFT"||activation==="RIGHT"?activation:null;
+}
 function navigationCommands(result:AgentToolResult<unknown>):number {
  const details=result.details;if(typeof details!=="object"||details===null||!("navigation" in details))return 0;
  const navigation=details.navigation;return typeof navigation==="object"&&navigation!==null&&"commands" in navigation&&typeof navigation.commands==="number"?navigation.commands:0;
@@ -212,14 +218,20 @@ function semanticTool(navigate:CheckedNavigationTool,press:CheckedPressTool,feat
     return identityIssue(actual,"travel");
    };
    const destination={x:choice.point.x,y:choice.point.y,map_id:[request.map_id[0],request.map_id[1]] as [number,number]};
-   const entryActivated=listed!==null&&movementActivated(listed)&&(listed.kind!=="warp"||directionalWarpActivation(before,listed,options.mode??"local")===null);
+   // A listed warp can be farther away than the native local grid currently
+   // describes. Unknown geometry is not evidence that it is an ordinary
+   // step-on warp: use navigation's source-side final-entry receipt before
+   // deciding whether a direction input is required.
+   const listedWarpBehavior=listed?.kind==="warp"?tileBehavior(before,listed,options.mode):null;
+   const initialEntryActivation=listed?.kind!=="warp"?"step":listedWarpBehavior===null?null:directionalWarpActivation(before,listed,options.mode??"local")??"step";
    let previous=before.position;
    let walked=await navigate.executeChecked(id,destination,routeStop,signal,{exactTarget:true,multiTileRunning:true}),current:GameStateSnapshot,reason:string|null;
    for(;;){
     current=stateOf(walked);
-    const entryAttempted=entryActivated&&navigationGoalEntryAttempted(walked);
+    const entryActivation=navigationGoalEntryActivation(walked)??initialEntryActivation;
+    const entryAttempted=listed!==null&&movementActivated(listed)&&entryActivation==="step"&&navigationGoalEntryAttempted(walked);
     if(navigationStopRequested(walked)){const status=navigationStatus(walked)??"semantic travel stop requested";return withStatus(walked,status,selected,entryAttempted&&status.startsWith("semantic navigation interrupted"));}
-    if(!isMap(current,request.map_id))return withStatus(walked,"interrupted by a map transition",selected,navigationActivationAttempted(walked)||entryAttempted);
+    if(!isMap(current,request.map_id))return withStatus(walked,"interrupted by a map transition",selected,navigationActivationAttempted(walked)||(listed!==null&&movementActivated(listed)&&navigationGoalEntryAttempted(walked)));
     if(entryAttempted)return withStatus(walked,"movement-activated target entry was attempted; inspect the resulting state",selected,true);
     reason=interrupted(current);if(reason!==null)return withStatus(walked,`interrupted before activation: ${reason}`,selected,false);
     const changed=identityIssue(current,"travel");if(changed!==null)return withStatus(walked,changed,selected,false);

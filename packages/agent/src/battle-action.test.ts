@@ -428,6 +428,18 @@ describe("the pending experiment",()=>{
 });
 
 describe("battle_action is recorded and recapped like the other game tools",()=>{
+ it("carries a one-shot blackout receipt from an internal press to its outer result",async()=>{
+  const sim=new BattleSim(rec("e046:16609"));sim.instant=true;
+  const notice="Whited out: preserved through battle_action.";
+  const receipt={frame:81,money_before:3000,notice};let delivered=false;
+  const ports=sim.ports({
+   press:(_id,params,_signal,check)=>{check(sim.state());for(const button of params.buttons)sim.press(button);const state=sim.state();const carried=delivered?state:{...state,blackout_receipt:receipt};delivered=true;return Promise.resolve({content:[{type:"text" as const,text:carried.blackout_receipt===undefined?"pressed":notice}],details:{state:carried}});},
+   observe:()=>Promise.resolve({content:[{type:"text" as const,text:"final battle state"}],details:{state:sim.state()}}),
+  });
+  const result=await battleActionTool(ports).execute("b1",{action:"fight",move:"EMBER"});
+  expect((result.details as {state:GameStateSnapshot}).state.blackout_receipt).toEqual(receipt);
+  expect(result.content.flatMap(part=>part.type==="text"?[part.text]:[]).join("\n")).toContain(notice);
+ });
  it("the recorder pairs a battle_action result with the state it returned; presses carry the call id",async()=>{
   const root=mkdtempSync(join(tmpdir(),"pokebench-battle-action-")),log=RunLog.create(root,"battle-action");
   const sim=new BattleSim(rec("e046:16609"));sim.instant=true;

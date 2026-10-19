@@ -33,7 +33,7 @@
    "battle-text-auto-advance-v1": true,
    "battle-triage-guidance-v1": true,
    "birch-speech-pages-v1": true,
-   "blackout-readout-v1": true,
+   "blackout-readout-v1": false,
    "blocked-batch-result-v1": true,
    "blocked-exit-fact-v1": true,
    "bounded-navigation-v1": true,
@@ -141,6 +141,7 @@
   }
  },
  "switches": [
+  "blackout-readout-v1",
   "low-hp-trainer-warning-v2",
   "counter-talk-v1",
   "grass-cost-navigation-v1",
@@ -177,7 +178,6 @@
   "surf-gated-exits-v1",
   "cross-map-goal-v1",
   "open-goal-prompt-v1",
-  "blackout-readout-v1",
   "ineffective-loops-v1",
   "navigation-refusal-reasons-v2",
   "people-id-cards-v1"

@@ -9,6 +9,7 @@ import type {BattleWaitSchema,Button} from "./events.js";
 import type {FeatureSet} from "./features.js";
 import {parseGameState,type GameStateSnapshot,type StateSource} from "./game-state.js";
 import {isCheckedPress,type BeforePressCheck} from "./game-tools.js";
+import {BlackoutCarry} from "./blackout-receipt.js";
 
 export const BATTLE_ACTION_ID="battle-move-tool-v1";
 const ACTIONS=["fight","bag","pokemon","run"] as const;
@@ -199,12 +200,15 @@ export function battleActionTool(ports:BattleActionPorts):AgentTool<typeof Battl
   signal?.throwIfAborted();await ports.gate?.(signal);signal?.throwIfAborted();
   const action=args.action;
   const presses:Button[]=[];
+  const blackout=new BlackoutCarry();
   let s=await ports.read(signal);
   const plan=validate(s,args);
   const finish=async(status:string,refused:boolean)=>{
    const seen=await ports.observe(id,signal);
+   const state=blackout.preserve(blackout.remember(stateOf(seen)));
    const text=/[".!)]$/.test(status)?status:`${status}.`;
-   return {content:[{type:"text" as const,text:`Battle action: ${text}`},...seen.content],details:{state:stateOf(seen),battle_action:{action,move:typeof plan==="string"?null:plan.name,presses:[...presses],refused,status:text}}};
+   const notices=blackout.missingNotices([text,...seen.content.flatMap(part=>part.type==="text"?[part.text]:[])]);
+   return {content:[{type:"text" as const,text:`Battle action: ${text}`},...notices.map(notice=>({type:"text" as const,text:notice})),...seen.content],details:{state,battle_action:{action,move:typeof plan==="string"?null:plan.name,presses:[...presses],refused,status:text}}};
   };
   if(typeof plan==="string")return finish(`nothing pressed: ${plan}`,true);
   const battler=plan.input.battler;
@@ -219,7 +223,7 @@ export function battleActionTool(ports:BattleActionPorts):AgentTool<typeof Battl
     if(now?.battler!==battler||now.phase!==phase||(phase==="action"?now.action_cursor:phase==="move"?now.move_cursor:now.target_cursor)!==cursor)throw new Stop(`${pressed()} the battle input changed before the press, so no button was sent; inspect the new state.`);
    });
    presses.push(button);
-   return stateOf(result);
+   return blackout.remember(stateOf(result));
   };
   let committed:string,waits=0,backed=false;
   const forWhom=plan.double?` for ${plan.mon.species}`:"";

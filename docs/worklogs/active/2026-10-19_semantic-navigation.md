@@ -42,6 +42,7 @@ Both treatments must immediately return control when the game changes input owne
 
 ## Session log
 
+- 2026-10-19: Re-pinned both pending experiment definitions to corrected implementation commit `26133edd9d30d54c41b28e1bb8df0db8286e3577`; they remain unqueued and unapproved.
 - 2026-10-19: Frozen-head replacement reviewers BLOCKED `7aaf23ebd5313094bd2676cace8f76235b843879`: the final checked callback only guarded map/position, so same-position battle, menu, dialogue, script lock, missing/moved target, or changed facing could still submit `A`. Fixed the owner boundary to recheck all interruption state, target/connection identity and required facing immediately before the press. Expanded the race regression to all eight drift classes; focused semantic tests are 20/20 and lint is green. The cumulative candidate requires full re-review.
 - 2026-10-19: Added direct production-path cases for every advertised semantic target class: fixed interaction by kind/coordinates, movement-activated warp with no extra press, and native map connection with one outward step. Focused semantic tests are 13/13 and agent lint is green.
 - 2026-10-19: Adversarial deletion proof is green. Forcing multi-tile running-prefix acceptance OFF made its regression fail with `unexpected movement` after one command; treating an internal command limit as terminal made the semantic continuation regression observe only one navigation segment; removing the checked activation predicate made the race test submit `A`. Restored the candidate byte-for-byte and reran both test files: 77/77 pass.

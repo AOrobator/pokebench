@@ -6,7 +6,7 @@ PokeBench can save one native emulator state selected by `POKEBENCH_CHECKPOINT_A
 
 ## Skills Loaded
 
-`agent-observability`, `pokebench-story-milestones`, `feature-worklog`, `execute-worklog`, and `close-the-loop`. `feature-switch` and `feature-explainer` were inspected and do not apply: this is measurement/recording infrastructure and does not change model input, tools, actions, prompts, or defaults.
+`agent-observability`, `pokebench-story-milestones`, `feature-worklog`, `execute-worklog`, `close-the-loop`, `feature-switch`, `feature-explainer`, `experiment-queue`, and `pokebench-experiment-design`. The checkpoint recorder itself is measurement infrastructure and needs no switch. The later continuation-task correction changes model-facing text and therefore follows the feature-switch contract.
 
 ## Architecture
 
@@ -16,6 +16,8 @@ After the run-local pair is complete, capture writes a complete immutable candid
 
 Native milestone events are produced from a recorded observation and exclude `field_transition` through their game-owned predicates where supported. The current API can pause immediately after that observation, but it does not expose a separate emulator-wide quiescence certificate. This change will preserve that exact first-observed snapshot boundary and will not invent a stronger stability claim.
 
+PokeBench review found that save-state runs receive the boot-only initial user task, including when a target is set. `save-state-task-truth-v1` will be a default-OFF guidance switch: OFF preserves the exact old task; ON tells a save-state run that it resumed from a recorded checkpoint while boot runs remain byte-identical. The two continuation runs must explicitly enable it. This is a deterministic correctness repair with production-path tests; its pending registry entry will remain unqueued and will not pretend that a cohort is needed to prove which start kind the runner supplied.
+
 ## Invariants
 
 - INV-1: All-frontier capture accepts only the canonical required progression catalog; legacy aliases, optional activities, optional trainer milestones, and `present_at_start` never create checkpoints. Test with mixed milestone events.
@@ -24,6 +26,8 @@ Native milestone events are produced from a recorded observation and exclude `fi
 - INV-4: A run-local state is never published without its sidecar provenance. Sidecars bind the event sequence/evidence/time/origin, run start identity, ROM, harness revision, features, start state, and state digests. Test exact metadata and write failure.
 - INV-5: The shared first-arrival winner is never overwritten. Its exclusive index points only to a complete candidate pair; concurrent/losing claims preserve each run-local pair. Test a pre-existing winner and exclusive-create failure.
 - INV-6: Capture failure is surfaced through `settled`/`close`, always attempts to unpause, and does not alter milestone events, stop reasons, or benchmark grading. Test pause, endpoint, digest, disk, and promotion failures.
+- INV-7: Checkpoint capture failures produce a durable run-local failure sidecar and the existing `telemetry_error` event/Activity History path without changing the run's terminal reason. Test the recorder seam and event schema.
+- INV-8: With `save-state-task-truth-v1` OFF, initial task text is byte-identical. With it ON, only save-state starts use resume wording; boot and targeted goals remain truthful. Test the helper and the real `live.ts` production call.
 
 ## Security Review
 
@@ -34,7 +38,7 @@ All filenames come from the closed milestone catalog and run IDs already validat
 **M1 — Contract and RED tests**
 - [x] Define the required-frontier capture contract in failing tests: catalog exclusions, all-frontier queueing, provenance, first-arrival non-overwrite, and explicit failure propagation.
 - [x] Run focused tests and record the expected failures.
-- [ ] COMMIT: `test(checkpoints): cover frontier milestone capture` (RED)
+- [x] COMMIT: `test(checkpoints): cover frontier milestone capture` (`b40692e6`, RED)
 
 **M2 — Runner implementation**
 - [ ] Implement the catalog, capture modes, serialized run-local writes, provenance sidecars, and race-safe first-arrival promotion.
@@ -43,7 +47,14 @@ All filenames come from the closed milestone catalog and run IDs already validat
 - [ ] Run focused tests and a fake-server/filesystem rehearsal.
 - [ ] COMMIT: `feat(checkpoints): capture required frontier milestones` (GREEN)
 
-**M3 — Gates and review**
+**M3 — Save-state initial-task truth**
+- [x] Add RED helper and production-path tests for boot/save-state and open/targeted tasks.
+- [ ] Register `save-state-task-truth-v1` default OFF through the complete feature registry/preset/viewer path.
+- [ ] Add the self-contained explainer and pending correctness-tier experiment record; do not queue or approve it.
+- [ ] COMMIT: `test(play): cover save-state initial task truth` (RED)
+- [ ] COMMIT: `fix(play): tell restored runs they resumed` (GREEN)
+
+**M4 — Gates and review**
 - [ ] Run `just test`, `just lint`, `just build`, `just coverage`, and `just verify-vendor`.
 - [ ] Principles self-review with zero FAIL rows.
 - [ ] Run the required cloud multi-model review loop on one frozen packet; triage findings under the two-round rule.
@@ -57,11 +68,14 @@ Proof requires RED then GREEN focused tests, a fake-data capture rehearsal showi
 
 - 2026-10-18: Created this worklog before implementation. Read `CLAUDE.md` and the five applicable skills. Read-only discovery found the existing single-target `CheckpointCapture` and the viewer-owned required frontier list. The operator's request is the approval for this scoped worklog and implementation; gameplay launch remains excluded from this lane.
 - 2026-10-18: RED receipt: `pnpm --filter @pokebench/agent test -- checkpoint-capture.test.ts` ran the agent suite (2,452 existing tests passed) and the seven new behavior assertions failed: required catalog missing, no all-frontier capture, no full provenance, no promotion, failures did not continue/record, and the new environment selector was absent. The first attempt was tooling-only (`vitest: command not found`); `just setup` installed the isolated worktree dependencies before the valid RED run.
+- 2026-10-18: Coordinator relayed a blocking PokeBench review finding: `live.ts` sends “The game has just booted” after loading a save state. Scope expanded before touching that path. Feature-switch discipline applies because this changes model-facing text. The continuation launches must wait for both the truthful task switch and a cold-load semantic proof.
+- 2026-10-18: Save-state task RED receipt: the agent suite ran 2,460 existing tests green and all three new tests failed because `initialPlayTask` does not exist and `live.ts` still constructs boot wording inline. Cases cover boot/save-state, switch OFF/ON, open play, a native target, and the production call site.
 
 ## Surprises
 
 - The existing checkpoint sidecar binds the milestone sequence and state hashes but not the full run-start provenance needed for a promoted reusable library.
 - The current native checkpoint endpoint returns a state after an immediate pause, but no independent stability/quiescence certificate exists. The implementation will label the capture as first-observed rather than claiming an unprovable stable overworld state.
+- Save-state task wording is not derived from `start.kind` today. This makes a checkpoint continuation internally contradictory even when the state loaded correctly.
 
 ## Multi-Model Review Log
 

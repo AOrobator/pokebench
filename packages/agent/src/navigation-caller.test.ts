@@ -45,6 +45,25 @@ it("the enabled factory executes real ordinary action and recorder seams, preser
  }finally{rmSync(root,{recursive:true,force:true});}
 });
 
+it("the production factories make automatic running harness-owned when the switch is on",async()=>{
+ const running={permitted:true,controllable:true,reason:"permitted",shoes:true,allow_running:true,avatar_flags:1,metatile:0,elevation:3,map_type:3,callback1:0x08085E05,callback2:0x08085E5D,diagnostic:null,raw_hex:null};
+ let current:GameStateSnapshot={...IN_GAME,screen:"overworld",started:true,map_id:[0,9],position:{x:0,y:0},facing:"right",field_controls_locked:false,running,navigation_grid:{elevation:3,tiles:[tile(0,0),tile(1,0)],objects:[],warps:[]}};
+ const posted:{url:string;body:unknown}[]=[];
+ const png=Buffer.alloc(33);Buffer.from([137,80,78,71,13,10,26,10]).copy(png);png.write("IHDR",12);png.writeUInt32BE(240,16);png.writeUInt32BE(160,20);
+ const fetchFn:typeof fetch=(input,init)=>{const url=typeof input==="string"?input:input instanceof URL?input.href:input.url;let body:unknown=current;
+  if(url.endsWith("/pokebench/travel")||url.endsWith("/action")){const parsed=JSON.parse(String(init?.body)) as unknown;posted.push({url,body:parsed});current={...current,position:{x:1,y:0}};body={status:"success"};}
+  else if(url.endsWith("/queue_status"))body={queue_empty:true};
+  else if(url.endsWith("/pokebench/observation"))body={state:current,state_text:"field",screenshot_base64:png.toString("base64")};
+  return Promise.resolve(new Response(JSON.stringify(body)));};
+ const features={...flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false}),"bounded-navigation-v1":true,"automatic-running-v1":true};
+ const press=pressTool("http://127.0.0.1",{beforePress:()=>undefined,afterPress:()=>Promise.resolve()},fetchFn,{now:()=>0,sleep:()=>Promise.resolve()},{readout:true,pressResult:true,position:true,fieldLock:true,automaticRunning:true});
+ const nav=withNavigation([observeTool("http://127.0.0.1",fetchFn),press],features,{read:()=>Promise.resolve(current)}).find(t=>t.name==="navigate_to");if(!nav)throw new Error("Missing navigation");
+ expect(Object.hasOwn(press.parameters.properties,"walking")).toBe(false);
+ expect(Object.hasOwn((nav.parameters as unknown as {properties:Readonly<Record<string,unknown>>}).properties,"walking")).toBe(false);
+ await nav.execute("nav",{x:1,y:0,map_id:[0,9],walking:true} as never);
+ expect(posted).toEqual([{url:"http://127.0.0.1/pokebench/travel",body:{buttons:["RIGHT"],...PRESS_TIMING,automatic_running:true}}]);
+});
+
 it("ordinary press revalidation withholds a stale-map navigation action",async()=>{
  const state:GameStateSnapshot={...IN_GAME,screen:"overworld",started:true,map_id:[0,9],position:{x:0,y:0},facing:"right",field_controls_locked:false,navigation_grid:{elevation:3,tiles:[tile(0,0),tile(1,0)],objects:[],warps:[]}};
  let actions=0,recorded=0;const changed={...state,map_id:[1,0] as [number,number]};

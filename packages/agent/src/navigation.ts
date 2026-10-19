@@ -631,7 +631,7 @@ export function navigationTool(ports:NavigationPorts):CheckedNavigationTool {
    if(ports.safeStrides===true&&state.running?.controllable!==true){status="native movement is not stationary or field control is unavailable; inspect new state";break;}
    const stride=ports.safeStrides===true?planStride(state,path.slice(0,bound-plannedSteps),options):null;
    const span=stride?.path.length??(ports.ledges===true&&hopAhead(planned,mode,before,direction,delta[1],delta[2])?2:1);
-   const finalGoalStep=checkedOptions.exactTarget===true&&path.length===span;
+   const finalGoalStep=checkedOptions.exactTarget===true&&path.length===span&&before.x+delta[1]*span===goal.x&&before.y+delta[2]*span===goal.y;
    const goalEntryTile=finalGoalStep?(mode==="full"?fullGeometry(planned):localGeometry(planned))?.tile(goal)??null:null;
    if(finalGoalStep)goalEntryActivation=directionalWarpActivation(planned,goal,mode)??"step";
    const deliberateGoalEntry=checkedOptions.exactTarget===true&&path.length<=2;

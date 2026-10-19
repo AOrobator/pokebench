@@ -393,8 +393,8 @@ describe("stale-story-goal-v2 registration and production factory",()=>{
  }
 
  it("is last, default off, and depends on v1",()=>{
-  expect(SWITCHABLE_FEATURES.at(-1)).toBe(ID2);
-  expect(playHarnessFeatures({...ALL_ON,[ID2]:true},null).at(-1)).toBe(ID2);
+  expect(SWITCHABLE_FEATURES.at(-2)).toBe(ID2);
+  expect(playHarnessFeatures({...ALL_ON,[ID2]:true},null).at(-2)).toBe(ID2);
   expect(featureInfo(ID2)).toMatchObject({group:"observation",needs:ID,switchable:true,title:"STAGE-BOUND STORY GOAL"});
   expect(featureInfo(ID2).description).toContain(" Off: ");
   expect(dependencyProblems({...ALL_ON,[ID]:false,[ID2]:true})).toContain(`${ID2} needs ${ID}`);

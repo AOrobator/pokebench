@@ -5,7 +5,7 @@ import {Type} from "typebox";
 import {checkEvent,type RunEvent} from "./events.js";
 import {ALL_ON,SWITCHABLE_FEATURES,dependencyProblems,featureInfo,playHarnessFeatures,type FeatureSet} from "./features.js";
 import {parseGameState,type GameStateSnapshot} from "./game-state.js";
-import {TRUST_HEADER,withHarnessTrust,type StoryGoalAwayFacts} from "./harness-trust.js";
+import {HarnessTrust,TRUST_HEADER,withHarnessTrust,type StoryGoalAwayFacts} from "./harness-trust.js";
 import {experimentArms,parseExperiment} from "./experiments.js";
 import {flagFeatures,normalizeFeatures,parsePlayPreset,presetFeatures} from "./play-preset.js";
 import {playGameTools} from "./play-wiring.js";
@@ -47,13 +47,25 @@ function talk(id:string,turn:number,pages:readonly object[]):RunEvent {
 function delivered(id:string,turn:number):RunEvent {
  return checkEvent({v:1,run:"2026-10-16T12-42-29_qwen36-gpu0_4caa",seq:seq++,t:"2026-10-16T13:07:12.905-04:00",type:"tool_result",turn,id,name:"press",is_error:false,duration_ms:1,text:"pressed A",frames:[]});
 }
-function block(pages:readonly object[],state:GameStateSnapshot,retireLab:boolean):string|null {
- return run([{turn:5,pages}],state,retireLab);
+function block(pages:readonly object[],state:GameStateSnapshot,retireLab:boolean,stageBound=false):string|null {
+ return run([{turn:5,pages}],state,retireLab,stageBound);
 }
-function run(calls:readonly {turn:number;pages:readonly object[]}[],state:GameStateSnapshot,retireLab:boolean):string|null {
+function run(calls:readonly {turn:number;pages:readonly object[]}[],state:GameStateSnapshot,retireLab:boolean,stageBound=false):string|null {
  const story=new StoryDestinations();
  calls.forEach((call,i)=>{const id=`c${String(i)}`;story.observe(talk(id,call.turn,call.pages));story.observe(delivered(id,call.turn));});
- return story.block(state,"later",PLACES.places,retireLab);
+ return story.block(state,"later",PLACES.places,retireLab,stageBound);
+}
+function stateEvent(state:GameStateSnapshot,eventSeq:number,turn:number):RunEvent {
+ return checkEvent({...state,v:1,run:"2026-10-16T12-42-29_qwen36-gpu0_4caa",seq:eventSeq,t:"2026-10-16T13:07:12.905-04:00",type:"state",turn});
+}
+function stagedStory(line:string,issuedStage:number,current:GameStateSnapshot):StoryDestinations {
+ const story=new StoryDestinations();
+ const stateSeq=seq++;
+ story.observe(stateEvent(withStory(current,{birch_lab_stage:issuedStage}),stateSeq,5));
+ const id="staged";
+ story.observe(talk(id,5,[{...page(line,"PROF. BIRCH"),state_seq:stateSeq}]));
+ story.observe(delivered(id,5));
+ return story;
 }
 
 describe("stale-story-goal-v1",()=>{
@@ -151,6 +163,60 @@ describe("stale-story-goal-v1",()=>{
   expect(text).toContain("Way in");
   expect(text).not.toContain("is newer");
   expect(text).not.toContain("defeated");
+ });
+});
+
+describe("stale-story-goal-v2 lifecycle",()=>{
+ const oldale=field([0,10],"OLDALE TOWN");
+ const invitation="This is not the place to chat, so come by my POKéMON LAB later, okay?";
+ const returnLine="Well, it's time to head back to the LAB.";
+ const at=(stage:number,received=false)=>withStory(oldale,{birch_lab_stage:stage,pokedex_received:received});
+
+ it("keeps v1 byte-for-byte off, but retires a pre-stage-3 lab episode at the handoff",()=>{
+  const story=stagedStory(invitation,2,at(3));
+  const v1=story.block(at(3),"later",PLACES.places,true,false);
+  expect(v1).toContain(invitation);
+  expect(v1).toContain("Way in");
+  expect(v1).not.toContain("Birch starter handoff complete");
+  expect(story.block(at(3),"later",PLACES.places,true,true)).toBeNull();
+ });
+
+ it("keeps the later stage-3 return episode through stage 4 and retires it at stage 5",()=>{
+  const story=stagedStory(returnLine,3,at(3));
+  for(const stage of [3,4]){
+   const active=story.block(at(stage),"later",PLACES.places,true,true) ?? "";
+   expect(active).toContain(returnLine);
+   expect(active).toContain("Way in");
+  }
+  expect(story.block(at(5,true),"later",PLACES.places,true,true)).toBeNull();
+ });
+
+ it("does not retire from an unreadable issue stage or unreadable current story",()=>{
+  const unknownIssue=new StoryDestinations();
+  const id="unknown";
+  unknownIssue.observe(talk(id,5,[page(invitation,"PROF. BIRCH")]));
+  unknownIssue.observe(delivered(id,5));
+  expect(unknownIssue.block(at(3),"later",PLACES.places,true,true)).toContain("Way in");
+  const knownIssue=stagedStory(invitation,2,at(2));
+  expect(knownIssue.block({...oldale,story:null},"later",PLACES.places,true,true)).toContain("Way in");
+ });
+
+ it("omits absent and retired goals from the trust header without inventing a replacement",()=>{
+  const empty=new HarnessTrust({supervisor:false,stageBound:true,omitEmptyGoal:true});
+  expect(empty.lines("Location: OLDALE TOWN",at(3),"empty",PLACES.places).header).toBe(TRUST_HEADER);
+
+  const retired=new HarnessTrust({supervisor:true,retireLab:true,stageBound:true,omitEmptyGoal:true});
+  // Feed the exact episode events to the trust owner as production wiring does.
+  const stateSeq=seq++;
+  retired.observe(stateEvent(at(2),stateSeq,5));
+  const id="retired";
+  retired.observe(talk(id,5,[{...page(invitation,"PROF. BIRCH"),state_seq:stateSeq}]));
+  retired.observe(delivered(id,5));
+  const result=retired.lines("Location: OLDALE TOWN",at(3),"later",PLACES.places,true);
+  expect(result.header).toBe(TRUST_HEADER);
+  expect(result.header).not.toContain("Story goal: none");
+  expect(result.header).not.toContain(invitation);
+  expect(result.away).toBeNull();
  });
 });
 

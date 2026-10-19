@@ -892,6 +892,18 @@ it("serves the tracked battle refusal explainer byte for byte",async()=>{
  expect((await get(viewer,`/explainers/${id}.html`,{method:"PUT"})).status).toBe(405);
 });
 
+it("serves the tracked battle readiness explainer through the existing protected route",async()=>{
+ const id="battle-decision-ready-v1";
+ const tracked=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)));
+ const root=mkdtempSync(join(tmpdir(),"pokebench-battle-ready-explainer-"));const staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});
+ writeFileSync(join(docs,`${id}.html`),tracked);
+ const viewer=await startViewer({runsRoot:join(root,"runs"),staticDir,appDir:join(root,"app"),port:0});open.push(viewer);
+ const reply=await get(viewer,`/explainers/${id}.html`);
+ expect(reply.status).toBe(200);expect(reply.body.equals(tracked)).toBe(true);
+ expect((await get(viewer,`/explainers/${id}.html`,{host:"elsewhere.invalid"})).status).toBe(403);
+ expect((await get(viewer,`/explainers/${id}.html`,{method:"PUT"})).status).toBe(405);
+});
+
 it("serves the tracked explicit evolution explainer byte for byte through the allowlist",async()=>{
  const id="evolution-decision-v1";
  const tracked=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)));

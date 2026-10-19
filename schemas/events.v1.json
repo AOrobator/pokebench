@@ -4067,7 +4067,8 @@
           "enum": [
             "press",
             "navigate_to",
-            "battle_action"
+            "battle_action",
+            "observe"
           ]
         },
         "requested": {

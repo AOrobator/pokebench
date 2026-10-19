@@ -8,6 +8,8 @@ import {flagFeatures} from './play-preset.js';
 import {playTools,toolSwitches,jitTools,playSystemPrompt} from './play-config.js';
 import type {GameStateSnapshot} from './game-state.js';
 import {EvolutionArgs} from './evolution-decision.js';
+import {battleDecisionContext} from './play-wiring.js';
+import type {AgentMessage} from '@mariozechner/pi-agent-core';
 
 const ID='evolution-decision-v1';
 const OFF={...ALL_ON,[ID]:false};
@@ -72,4 +74,15 @@ describe('explicit native evolution choice',()=>{
   expect(bundle.base.features[ID]).toBe(false);
   expect(bundle.onInBoth).not.toContain(ID);expect(bundle.offInBoth).not.toContain(ID);
  });
+});
+
+it('a fresh evolution result clears the retained pre-decision snapshot when battle readiness is ON',async()=>{
+ const pending={...state,screen:'evolution',active_ui:{phase:'evolution_decision',selected:null,ready:true,controls:'choose_evolution',diagnostic:null}};
+ const h=host(null,pending);const tools=gameTools('http://test',hooks,h.fetchFn,toolSwitches(ON),clock);
+ let entering=true;
+ const source={read:()=>Promise.resolve(entering?{...state,screen:'battle_transition'}:state)};
+ const transform=battleDecisionContext({...ON,'battle-decision-ready-v1':true},source,tools,m=>Promise.resolve(m),{recordDecisionSnapshot:vi.fn()});
+ expect(await transform([])).toHaveLength(1);entering=false;
+ const fresh:AgentMessage={role:'toolResult',toolCallId:'evo-result',toolName:'choose_evolution',isError:false,content:[{type:'image',data:png.toString('base64'),mimeType:'image/png'},{type:'text',text:'fresh evolution result'}],timestamp:3};
+ const messages=[fresh];expect(await transform(messages)).toBe(messages);
 });

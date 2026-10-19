@@ -156,7 +156,8 @@
    "stale-story-goal-v2": false,
    "deterministic-warp-navigation-v1": false,
    "battle-refusal-loop-v1": false,
-   "evolution-decision-v1": false
+   "evolution-decision-v1": false,
+   "battle-decision-ready-v1": false
   }
  },
  "trialsPerArm": 8,

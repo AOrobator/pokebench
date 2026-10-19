@@ -223,7 +223,7 @@ export class StoryDestinations {
   for(const phrase of placePhrases(line.text,heads,[...NAMES,...(player===null?[]:[player]),...(line.scriptedPlaces??[]).map(place=>place.quote)]))
    resolved.push({quote:`"${phrase}"`,...resolve(words(phrase.split(" ")),places,here,"no map in the game's map table has this name.")});
   const targets=resolved.flatMap(r=>r.target===null?[]:[r.target]);
-  const doneReason=stageBound?stageRetirement(line,targets,story??null)??(retire?retirement(targets,story??null):null):retire?retirement(targets,story??null):null;
+  const doneReason=stageBound?stageRetirement(line,resolved,story??null)??(retire?retirement(targets,story??null):null):retire?retirement(targets,story??null):null;
   return doneReason===null?{line,resolved}:{line,resolved,done:true,doneReason};
  }
  block(state:GameStateSnapshot,callId:string,places:readonly Place[]|Error,retireLab=false,stageBound=false):string|null {
@@ -301,10 +301,10 @@ function retirement(targets:readonly Place[],story:GameStateSnapshot["story"]):s
  return covered?cited.join("; "):null;
 }
 
-function stageRetirement(line:StoryLine,targets:readonly Place[],story:GameStateSnapshot["story"]):string|null {
+function stageRetirement(line:StoryLine,resolved:readonly Resolved[],story:GameStateSnapshot["story"]):string|null {
  const current=story?.birch_lab_stage;
  if(line.birchLabStage===undefined||current===null||current===undefined)return null;
- if(line.birchLabStage>=3||current<3||targets.length===0||!targets.every(isBirchLab))return null;
+ if(line.birchLabStage>=3||current<3||resolved.length===0||!resolved.every(r=>r.target!==null&&isBirchLab(r.target)))return null;
  return "Birch starter handoff complete";
 }
 

@@ -234,6 +234,18 @@ describe("stale-story-goal-v2 lifecycle",()=>{
   expect(active).toContain("not resolved");
  });
 
+ it("keeps a mixed resolved and unresolved lab line byte-identical instead of certifying only its known subset",()=>{
+  const mixed="Meet me at the POKéMON LAB, then MYSTERY LAB.";
+  const story=stagedStory(mixed,2,at(2));
+  const expected=[
+   `${STORY_HEADER} (turn 5, PROF. BIRCH): "${mixed}"`,
+   `- "POKéMON LAB" = PROF. BIRCH'S POKéMON LAB (map 1/4). Way in: door in LITTLEROOT TOWN (map 0/9) at (7,16).`,
+   `- "MYSTERY LAB": not resolved: no map in the game's map table has this name.`,
+  ].join("\n");
+  expect(story.block(at(3),"later",PLACES.places,true,false)).toBe(expected);
+  expect(story.block(at(3),"later",PLACES.places,true,true)).toBe(expected);
+ });
+
  it("omits absent and retired goals from the trust header without inventing a replacement",()=>{
   const empty=new HarnessTrust({supervisor:false,stageBound:true,omitEmptyGoal:true});
   expect(empty.lines("Location: OLDALE TOWN",at(3),"empty",PLACES.places).header).toBe(TRUST_HEADER);

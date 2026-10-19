@@ -1,3 +1,4 @@
+import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
 import {describe,expect,it} from "vitest";
 import {Type} from "typebox";
 import {mkdtempSync,readFileSync,rmSync} from "node:fs";
@@ -10,7 +11,7 @@ import {withNavigation} from "./navigation.js";
 import {playGameTools} from "./play-wiring.js";
 import {flagFeatures} from "./play-preset.js";
 import {playSystemPrompt,playTools,toolSwitches} from "./play-config.js";
-import {dependencyProblems,featureInfo,playHarnessFeatures,stateOnlyProblems,ALL_ON,type FeatureSet} from "./features.js";
+import {dependencyProblems,featureInfo,playHarnessFeatures,stateOnlyProblems,type FeatureSet} from "./features.js";
 import {checkEvent,type Button,type RunEvent} from "./events.js";
 import {RunRecorder} from "./recorder.js";
 import {RunLog} from "./run-log.js";

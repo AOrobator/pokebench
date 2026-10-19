@@ -1,5 +1,6 @@
+import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
 import {describe,expect,it} from "vitest";
-import {ALL_ON,FEATURES,SERVER_FEATURES,SWITCHABLE_FEATURES,dependencyProblems,featureInfo,playHarnessFeatures,serverFeatureEnv,type FeatureSet,type SwitchableFeature} from "./features.js";
+import {FEATURES,SERVER_FEATURES,SWITCHABLE_FEATURES,dependencyProblems,featureInfo,playHarnessFeatures,serverFeatureEnv,type FeatureSet,type SwitchableFeature} from "./features.js";
 import {flagFeatures,normalizeFeatures} from "./play-preset.js";
 import {parseGameState,type GameStateSnapshot} from "./game-state.js";
 import {UntakenExits} from "./untaken-exits.js";
@@ -19,8 +20,8 @@ const id=(name:string):SwitchableFeature=>{const found=SWITCHABLE_FEATURES.find(
 
 describe("registry and presets",()=>{
  it("appends the five switches, in order, at the end of every registry list",()=>{
-  expect(SWITCHABLE_FEATURES.slice(-28,-23)).toEqual([...NEW]);
-  expect(FEATURES.filter(f=>f.switchable).map(f=>f.id).slice(-28,-23)).toEqual([...NEW]);
+  expect(SWITCHABLE_FEATURES.slice(-32,-27)).toEqual([...NEW]);
+  expect(FEATURES.filter(f=>f.switchable).map(f=>f.id).slice(-32,-27)).toEqual([...NEW]);
   expect(playHarnessFeatures(ALL_ON,null).slice(-28,-23)).toEqual([...NEW]);
   expect(SERVER_FEATURES.slice(-6,-1)).toEqual([...NEW]);
  });

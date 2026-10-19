@@ -1,3 +1,4 @@
+import {NavigationFailure} from "../navigation-failure.js";
 import type { RunEvent } from "../events.js";
 import { MEASUREMENT_ONLY_MILESTONES, MILESTONES } from "../milestones.js";
 import type { GameStateSnapshot } from "../game-state.js";
@@ -73,6 +74,8 @@ export class LoopCoordinator {
   private readonly closedDialogue: boolean;
   private readonly triggerScriptLoops: boolean;
   private readonly battleRefusals: boolean;
+  private readonly ineffectiveNavigation:boolean;
+  private readonly navigationFailures=new NavigationFailure();
   private readonly basic: BasicRules;
   private readonly rules: readonly LoopRule[];
   private readonly interfaces: InterfaceRules;
@@ -91,6 +94,7 @@ export class LoopCoordinator {
     revisit: boolean;
     menu: boolean;
     refusalAnchor: string | null;
+    navigationFailure:boolean;
   } | null = null;
   private stallNote: { text: string; exposed: boolean } | null = null;
   private run: string | null = null;
@@ -116,6 +120,7 @@ export class LoopCoordinator {
       closedDialogue = false,
       triggerScriptLoops = false,
       battleRefusals = false,
+      ineffectiveNavigation = false,
     } = options;
     this.notify = notify;
     this.policy = policy;
@@ -130,6 +135,7 @@ export class LoopCoordinator {
     this.closedDialogue = closedDialogue;
     this.triggerScriptLoops = triggerScriptLoops;
     this.battleRefusals = battleRefusals;
+    this.ineffectiveNavigation=ineffectiveNavigation;
     this.basic = new BasicRules(policy, interactions, battles, ineffectiveLoops, transitions);
     this.interfaces = new InterfaceRules(policy.ineffective, clockViews, closedDialogue, menuLoop);
     this.field = new FieldRules(policy, interactions, transitions, pushback, ineffectiveLoops, triggerScriptLoops);
@@ -215,6 +221,8 @@ export class LoopCoordinator {
     this.completed++;
     if (this.stallNote?.exposed === true) this.stallNote = null;
     const seq = call.seq ?? this.completed;
+    const failure=this.ineffectiveNavigation?this.navigationFailures.observe({...call,seq}):null;
+    if(failure?.active===false&&this.episode?.navigationFailure===true)this.recover(seq,true);
     const refusal = this.basic.refusal(call,this.battleRefusals);
     if (this.episode?.refusalAnchor != null && !call.isError && call.state !== undefined) {
       const snapshot = refusal.native ?? semanticState(call.state,this.interactions);
@@ -231,7 +239,7 @@ export class LoopCoordinator {
       this.field.novel(recovery.newPlace);
     }
     if (
-      this.episode?.refusalAnchor == null && (
+      this.episode?.refusalAnchor == null && !(this.episode?.navigationFailure===true&&failure?.active!==false) && (
         (evaluation.novel && !recovery.held) || recovery.escaped ||
         (evaluation.game && (call.name === "press" || (call.name === "navigate_to" && call.acted===true)) && this.episode?.kind === "planning")
       )
@@ -255,7 +263,7 @@ export class LoopCoordinator {
     const closedLoop = this.interfaces.closedDialogueHit(evaluation.game, call);
     if (closedLoop) candidateIds.add("closed-dialogue");
     const reopened = action.reopened || closedLoop;
-    if (action.ineffectiveAction) candidateIds.add("ineffective-action");
+    if (action.ineffectiveAction||failure?.active===true) candidateIds.add("ineffective-action");
     if (action.stateCycle) candidateIds.add("state-cycle");
     if (evaluation.game) {
       const pushedBack = this.field.pushbackHit(call, seq);
@@ -294,7 +302,7 @@ export class LoopCoordinator {
           : id === "ineffective-action" ? "ineffective"
             : id === "rejection" ? "rejection"
               : id === "trigger-script" ? "trigger_script" : "cycle";
-      const message = id === "trigger-script" && triggerLooped !== null ? TRIGGER_SCRIPT_MESSAGE(triggerLooped.dialogue)
+      const message = id === "ineffective-action" && failure?.active===true ? "Repeated navigation attempts, including different coordinates, left you in the same area without changing the game conditions. A turn or a small step is not recovery; inspect the observed alternatives." : id === "trigger-script" && triggerLooped !== null ? TRIGGER_SCRIPT_MESSAGE(triggerLooped.dialogue)
         : id === "battle-menu" ? BATTLE_MENU_LOOP_MESSAGE
           : id === "pushback" ? PUSHBACK_MESSAGE
             : id === "revisit" ? REVISIT_MESSAGE
@@ -341,19 +349,20 @@ export class LoopCoordinator {
         kind: hit,
         // Trigger execution is observed after the other checks. The legacy detector
         // always attached that evidence/message when it coincided with an earlier hit.
-        message: refusal.status !== null ? `Repeated battle action refusals pressed no buttons. ${refusal.status}` : triggerLooped !== null ? TRIGGER_SCRIPT_MESSAGE(triggerLooped.dialogue) : selected.hit.message,
+        message: failure?.active===true?"Repeated navigation attempts, including different coordinates, left you in the same area without changing the game conditions. A turn or a small step is not recovery; inspect the observed alternatives.":refusal.status !== null ? `Repeated battle action refusals pressed no buttons. ${refusal.status}` : triggerLooped !== null ? TRIGGER_SCRIPT_MESSAGE(triggerLooped.dialogue) : selected.hit.message,
         exposed: false,
         recovery: 0,
         threshold: false,
         // The first push-back of the repeated input, or the first of the moves ending on the loop's tile; the notice
         // adds the call that completed the count.
-        evidence: (refusal.status === null ? undefined : this.basic.refusalSequences(refusal.status)) ?? triggerLooped?.evidence ?? [...selected.hit.evidenceSeqs],
+        evidence: failure?.active===true?[...failure.evidence]:(refusal.status === null ? undefined : this.basic.refusalSequences(refusal.status)) ?? triggerLooped?.evidence ?? [...selected.hit.evidenceSeqs],
         window: this.policy.recovery,
         briefing: null,
         pushback: selected.rule.id === "pushback",
         revisit: selected.rule.id === "revisit",
         menu: selected.rule.id === "battle-menu",
         refusalAnchor: refusal.status === null ? null : refusal.native,
+        navigationFailure:failure?.active===true,
       };
       this.notice("warning", seq);
       // Speedrun: the supervisor briefs as soon as a loop is found, then again every window while it lasts.
@@ -391,6 +400,7 @@ export class LoopCoordinator {
     }
     this.nativeState = state;
     if (!advanced || this.stopped) return;
+    if(this.ineffectiveNavigation)this.navigationFailures.reset();
     this.recover(seq, true);
     this.basic.resetNativeProgress();
     this.interfaces.resetNativeProgress();

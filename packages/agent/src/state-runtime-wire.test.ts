@@ -1,3 +1,4 @@
+import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
 import {createServer} from "node:http";
 import type {AddressInfo} from "node:net";
 import {mkdtempSync,readFileSync,rmSync} from "node:fs";
@@ -7,7 +8,7 @@ import {expect,it} from "vitest";
 import {Type} from "typebox";
 import {Value} from "typebox/value";
 import {IN_GAME,RUN_START_META} from "../test-support/events.js";
-import {ALL_ON} from "./features.js";
+import {} from "./features.js";
 import {Governor} from "./harness.js";
 import {discoverModels,selectModel} from "./gateway.js";
 import {gatewayLoopConfig} from "./provider.js";

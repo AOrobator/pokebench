@@ -1,7 +1,8 @@
+import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
 import {readFileSync} from "node:fs";
 import type {AgentTool,AgentToolResult} from "@mariozechner/pi-agent-core";
 import {describe,expect,it} from "vitest";
-import {ALL_ON,SWITCHABLE_FEATURES,featureInfo,playHarnessFeatures,type FeatureSet,type SwitchableFeature} from "./features.js";
+import {SWITCHABLE_FEATURES,featureInfo,playHarnessFeatures,type FeatureSet,type SwitchableFeature} from "./features.js";
 import type {GameStateSnapshot} from "./game-state.js";
 import {ALL_TOOL_SWITCHES,observeTool,pressTool,PRESS_TIMING,type CheckedPressTool} from "./game-tools.js";
 import {navigationTool,withNavigation,type NavigationPorts} from "./navigation.js";
@@ -220,7 +221,7 @@ describe("deterministic-warp-navigation-v1",()=>{
 
  it("is appended, default OFF, bundle-only, and registered as a pending one-switch experiment",()=>{
   const id=ID as SwitchableFeature;
-  expect(SWITCHABLE_FEATURES.at(-4)).toBe(ID);expect(playHarnessFeatures(ALL_ON,null).at(-4)).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-8)).toBe(ID);expect(playHarnessFeatures(ALL_ON,null).at(-4)).toBe(ID);
   expect(featureInfo(id)).toMatchObject({group:"guidance",needs:"bounded-navigation-v1",switchable:true,title:"DETERMINISTIC WARP NAVIGATION"});expect(featureInfo(id).description).toContain(" Off: ");
   expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false})[id]).toBe(false);expect(normalizeFeatures({} as Parameters<typeof normalizeFeatures>[0])[id]).toBe(false);
   const legacy=flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false});

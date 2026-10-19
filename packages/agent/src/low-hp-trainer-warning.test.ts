@@ -1,3 +1,4 @@
+import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
 // low-hp-trainer-warning-v1: a one-time SUPERVISOR paragraph on a game-tool result when the lead Pokémon is
 // below half HP and the Route 103 rival, not yet beaten, is on the map. Round 2 bundle run
 // 2026-10-16T04-51-03_qwen36-gpu0_54a7 saw MAY at (10,3) with TORCHIC at 3/21 HP (T363), talked to her (T369),
@@ -5,7 +6,7 @@
 import {readFileSync} from "node:fs";
 import {describe,expect,it} from "vitest";
 import type {AgentTool,AgentToolResult} from "@mariozechner/pi-agent-core";
-import {ALL_ON,SERVER_FEATURES,SWITCHABLE_FEATURES,dependencyProblems,featureInfo,featuresOf,playHarnessFeatures,type FeatureSet} from "./features.js";
+import {SERVER_FEATURES,SWITCHABLE_FEATURES,dependencyProblems,featureInfo,featuresOf,playHarnessFeatures,type FeatureSet} from "./features.js";
 import {flagFeatures,normalizeFeatures,parsePlayPreset,presetFeatures} from "./play-preset.js";
 import {parseGameState,type GameStateSnapshot} from "./game-state.js";
 import {eventProblem,type RunEvent} from "./events.js";

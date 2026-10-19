@@ -13,7 +13,7 @@ import { LEASE } from "./lease.js";
 import { parseFixedStatus, type FixedStatus } from "./fixed-status.js";
 import { definition, MODEL_PATH, ROM_SHA1 } from "../test-support/fixed.js";
 import { Log, START } from "../test-support/events.js";
-import { armFeatureBits, parseFixedDefinition, controlBaseProblems, dryRunDefinition, type FixedDefinition, type FixedLane } from "./fixed-design.js";
+import { armFeatures, armFeatureBits, parseFixedDefinition, controlBaseProblems, dryRunDefinition, type FixedDefinition, type FixedLane } from "./fixed-design.js";
 
 const COMMIT = "0123456789abcdef0123456789abcdef01234567";
 const RECEIPT: ServingReceipt = { model: MODEL_PATH, build: "b10236-1464c62d8", contextTokens: 65536, slots: 1, vision: true, fingerprint: "f".repeat(64) };
@@ -26,6 +26,15 @@ it("keeps the improved blackout receipt out of control and in the bundle",()=>{
  expect(armFeatureBits(def,"bundle")["blackout-readout-v1"]).toBe(true);
 });
 
+it("all four recovery treatments are ON in bundle and OFF in control in the actual fixed runner design",()=>{
+ const {definition:def}=parseFixedDefinition(readFileSync(new URL("../../../experiments/fixed/bundle-v-control.json",import.meta.url),"utf8"));
+ for(const id of ["ineffective-navigation-v2","supervisor-briefing-v2","reachable-story-guidance-v1","text-only-supervisor-v2"]){
+  expect(armFeatures(def,"control")[id]).toBe(false);expect(armFeatures(def,"bundle")[id]).toBe(true);
+  expect(armFeatureBits(def,"control")[id]).toBe(false);expect(armFeatureBits(def,"bundle")[id]).toBe(true);
+ }
+});
+
+type Ending = "budget" | "model_error" | "never-started";
 type Ending = "budget" | "model_error" | "never-started" | "milestone";
 interface FakeOptions {
   readonly beforeExit?: (launch: FixedLaunch, n: number) => Promise<void>;

@@ -1,9 +1,10 @@
+import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
 import {gunzipSync} from "node:zlib";
 import {describe,it,expect} from "vitest";
 import {LoopDetector,type LoopNotice} from "./loop-detection.js";
 import {attachLoopGuard,Governor} from "./harness.js";
 import {checkEvent,type RunEvent} from "./events.js";
-import {ALL_ON,featureInfo,type FeatureSet} from "./features.js";
+import {featureInfo,type FeatureSet} from "./features.js";
 import {parsePlayPreset,presetFeatures,flagFeatures} from "./play-preset.js";
 import {readFileSync} from "node:fs";
 import {withBattleAction,BATTLE_ACTION_DESCRIPTION} from "./battle-action.js";

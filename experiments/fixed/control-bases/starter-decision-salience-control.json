@@ -146,7 +146,11 @@
     "deterministic-warp-navigation-v1": false,
     "battle-refusal-loop-v1": false,
     "battle-decision-ready-v1": false,
-    "starter-decision-salience-v1": false
+    "starter-decision-salience-v1": false,
+    "ineffective-navigation-v2": false,
+    "supervisor-briefing-v2": false,
+    "reachable-story-guidance-v1": false,
+    "text-only-supervisor-v2": false
   },
   "start": {
     "kind": "save_state",

@@ -1,3 +1,4 @@
+import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
 // no-exit-here-v1: a press into a map edge, or navigate_to aimed at or past one, on a side of the map with no map
 // connection adds one line saying so, with the ways off the map the readout already lists.
 // Fixture no-exit-here-states.json.gz: recorded state bodies (envelope stripped), the tool call and the tool result text
@@ -21,7 +22,7 @@ import {readFileSync} from "node:fs";
 import {gunzipSync} from "node:zlib";
 import {describe,expect,it} from "vitest";
 import type {AgentTool,AgentToolResult} from "@mariozechner/pi-agent-core";
-import {ALL_ON,FEATURES,SWITCHABLE_FEATURES,dependencyProblems,featureInfo,featuresOf,playHarnessFeatures,type FeatureSet} from "./features.js";
+import {FEATURES,SWITCHABLE_FEATURES,dependencyProblems,featureInfo,featuresOf,playHarnessFeatures,type FeatureSet} from "./features.js";
 import {flagFeatures,normalizeFeatures} from "./play-preset.js";
 import {parseGameState,type GameStateSnapshot} from "./game-state.js";
 import {playGameTools} from "./play-wiring.js";
@@ -263,9 +264,9 @@ describe("no-exit-here-v1 through playGameTools",()=>{
 
 describe("no-exit-here-v1 registry",()=>{
  it("is appended last, a guidance switch that needs world destinations, default off, with OFF copy",()=>{
-  expect(SWITCHABLE_FEATURES.at(-22)).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-26)).toBe(ID);
   expect(playHarnessFeatures(ALL_ON,null).at(-22)).toBe(ID);
-  expect(FEATURES.filter(f=>f.switchable).at(-22)?.id).toBe(ID);
+  expect(FEATURES.filter(f=>f.switchable).at(-26)?.id).toBe(ID);
   expect(featureInfo(ID)).toMatchObject({group:"guidance",needs:"world-destinations-v1",switchable:true,title:"NO EXIT HERE"});
   expect(featureInfo(ID).description).toContain(" Off: ");
   expect(featureInfo(ID).description).toContain("There is no way off OLDALE TOWN to the east; the ways off this map are: NORTH edge -> ROUTE103 (map 0/18)");

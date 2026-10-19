@@ -1,10 +1,11 @@
+import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
 // trainer-heal-guidance-v1: the system prompt says trainer and rival battles cannot be fled, what a blackout
 // costs, and to heal before talking to a trainer or the rival when below half HP. Round 2 bundle run
 // 2026-10-16T04-51-03_qwen36-gpu0_54a7 talked to MAY at 3/21 HP (T369), blacked out and lost ₽1500.
 // test-support/trainer-heal-54a7.json holds its run_start.
 import {readFileSync} from "node:fs";
 import {expect,it} from "vitest";
-import {ALL_ON,SERVER_FEATURES,SWITCHABLE_FEATURES,dependencyProblems,featureInfo,featuresOf,playHarnessFeatures,type FeatureSet} from "./features.js";
+import {SERVER_FEATURES,SWITCHABLE_FEATURES,dependencyProblems,featureInfo,featuresOf,playHarnessFeatures,type FeatureSet} from "./features.js";
 import {BATTLE_TRIAGE_SECTION,TRAINER_HEAL_SECTION,objectiveSwitches,playSystemPrompt,playTools,toolSwitches} from "./play-config.js";
 import {flagFeatures,normalizeFeatures,parsePlayPreset,presetFeatures} from "./play-preset.js";
 

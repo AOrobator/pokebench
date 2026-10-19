@@ -1,3 +1,4 @@
+import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
 import {expect,it} from "vitest";
 import {readFileSync} from "node:fs";
 import {fileURLToPath} from "node:url";
@@ -5,7 +6,7 @@ import {attachLoopGuard,Governor} from "./harness.js";
 import {loopSupervisor,stallBriefing} from "./play-wiring.js";
 import {STALL_DROUGHT_MS,STALL_ROUND_TRIPS,StallBriefing} from "./stall-briefing.js";
 import {SupervisorBriefing} from "./loop-supervisor.js";
-import {ALL_ON,featureInfo,type FeatureSet} from "./features.js";
+import {featureInfo,type FeatureSet} from "./features.js";
 import {checkEvent,parseEvent,type RunEvent} from "./events.js";
 import {LoopDetector,type LoopNotice} from "./loop-detection.js";
 import {IN_GAME} from "../test-support/events.js";

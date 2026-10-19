@@ -79,7 +79,7 @@ code { font:13px ui-monospace, SFMono-Regular, Menlo, monospace; background:var(
 <h2>3. Arms</h2>
 <div class="wrap"><table>
 <tr><th>Arm</th><th>Switches</th><th>Differs from control by</th><th>Evidence it is ready</th></tr>
-<tr><td>Control</td><td>Existing ready-menu observation and buttons</td><td>8 total;4 per lane</td></tr><tr><td>Reminder</td><td>Same observation plus neutral deliberation reminder; no Pokémon recommendation or facts</td><td>8 total;4 per lane</td></tr>
+<tr><td>Control</td><td>Reminder OFF</td><td>Existing observation and buttons</td><td>8 total; 4 per lane</td></tr><tr><td>Reminder</td><td>Reminder ON</td><td>Neutral deliberation reminder; no species advice or new facts</td><td>8 total; 4 per lane</td></tr>
 </table></div>
 
 <h2>4. Outcomes and the decision rule</h2>
@@ -94,11 +94,11 @@ code { font:13px ui-monospace, SFMono-Regular, Menlo, monospace; background:var(
 <h2>5. How many runs, and why</h2>
 <figure>
 <svg viewBox="0 0 800 75" role="img" aria-label="Sixteen fixed diagnostic trials"><rect x="5" y="10" width="390" height="28" fill="#2f6fb5"/><rect x="405" y="10" width="390" height="28" fill="#24804a"/><text x="15" y="62" fill="currentColor">8 control · 40 GPU-min max</text><text x="415" y="62" fill="currentColor">8 reminder · 40 GPU-min max</text></svg>
-<figcaption>Exact Fisher power against GPU-hours from <code>power.py plan</code>. Baseline Unknown for a new fresh-context checkpoint treatment from Historical taxonomy supplies a mechanism hypothesis; a contemporaneous control is retained. 77 completed Qwen arrival-to-choice median29.690s,p90 43.072s,max311.100s.33 controls median28.564s,max43.612s. One arrival censored after13.502s.. Dashed line: target power. Red line: the operator's budget.</figcaption>
+<figcaption>Fixed diagnostic budget: 16 trials, at most 80 GPU-minutes. This is not a power curve or a confirmatory comparison.</figcaption>
 </figure>
 <div class="wrap"><table>
-<tr><th>True lift</th><th>Runs per arm for N/A: fixed diagnostic</th><th>GPU-hours</th><th>Wall hours</th><th>Power at the planned N</th></tr>
-<tr><td>Diagnostic</td><td>8 per arm</td><td>16 trials</td><td>80 GPU-minutes maximum</td></tr>
+<tr><th>True lift</th><th>Runs per arm</th><th>GPU-hours</th><th>Wall hours</th><th>Power at the planned N</th></tr>
+<tr><td>Diagnostic</td><td>8</td><td>1.333 maximum</td><td>0.667 trial time</td><td>Not a powered claim</td></tr>
 </table></div>
 <p><code>Not applicable: diagnostic trace sampling, not a powered confirmation. Fixed N=8 per arm; sixteen ×300s=4800000ms. A confirmation requires its own effect size, baseline and budget.</code></p>
 

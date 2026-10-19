@@ -33,3 +33,5 @@ Pending.
 - Correction to initial RED note: the first fixed-definition run failed on an unbuilt imported agent package, not yet on the target schema. A deliberate production mutation will establish the actual stopping-boundary regression before final review.
 - Checkpoint qualification: real current-build reload confirms native map [0,16], (11,19), empty party. Manual harness script metadata/location assertions were repaired; menu/cancel/native acquisition qualification is still in progress. These zero-inference manual probes are excluded from autonomous outcomes.
 - Main advanced with supervisor-recovery work while implementation was underway. Integrate it before sealing review; do not claim current combined-tree gates yet.
+
+- Integrated main supervisor-recovery changes, keeping its four switches OFF identically in both frozen diagnostic arms. Historical tests retain exact inventory and ordering with the newly appended switch excluded where omitted historically. Main's fresh UI card/server tests preserved alongside the new starter links. Current combined-tree verification underway.

@@ -1,6 +1,7 @@
+import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
 import {expect,it} from "vitest";
 import {NavigationMemory} from "./navigation-memory.js";
-import {ALL_ON} from "./features.js";
+import {} from "./features.js";
 import {IN_GAME} from "../test-support/events.js";
 import {checkEvent,type RunEvent} from "./events.js";
 const event=(body:Record<string,unknown>,seq:number):RunEvent=>checkEvent({v:1,run:"memory-test",t:"2026-10-14T12:00:00.000-04:00",turn:1,seq,...body});

@@ -64,6 +64,10 @@ it("keeps a retained navigation receipt after its execution checkout is archived
   const retained = await workbenchSnapshot(root, () => Promise.resolve(false), Date.now());
   expect(retained.problems).toEqual([]);
   expect(retained.runs[0]?.cohort).toBe(f.manifest.id);
+  writeFileSync(join(root, "real_run", "events.jsonl"), readFileSync(join(root, "real_run", "events.jsonl"), "utf8").replace(f.manifest.model.id, "different-model"));
+  const mismatchedModel = await workbenchSnapshot(root, () => Promise.resolve(false), Date.now());
+  expect(mismatchedModel.problems.join()).toContain("source/model");
+  expect(mismatchedModel.runs[0]?.cohort).toBeNull();
 });
 
 it("rejects an empty execution root and filesystem failures other than a missing checkout", async () => {

@@ -106,6 +106,15 @@ it("forwards deliberate walking to the ordinary press without creating a separat
  expect(seen).toEqual([{buttons:["DOWN"],walking:true}]);
 });
 
+it("removes the model walking choice and drops stale walking input when automatic running is enabled",async()=>{
+ const seen:unknown[]=[];
+ const tool=navigationTool({automaticRunning:true,read:()=>Promise.resolve(field),press:(_id,params)=>{seen.push(params);return Promise.resolve(result({...field,position:{x:0,y:1}}));},observe:()=>Promise.resolve(result({...field,position:{x:0,y:1}}))});
+ expect(Object.hasOwn(tool.parameters.properties,"walking")).toBe(false);
+ await tool.execute("nav",{x:0,y:1,map_id:[0,9],walking:true});
+ expect(seen).toEqual([{buttons:["DOWN"]}]);
+ expect(Object.hasOwn(navigationTool({read:()=>Promise.resolve(field),press:()=>Promise.resolve(result(field)),observe:()=>Promise.resolve(result(field))}).parameters.properties,"walking")).toBe(true);
+});
+
 // pokeemerald 731ad5b metatile_behaviors.h values. The readout draws all of these as '.'.
 const corridor=(behavior:number)=>({...field,navigation_grid:{elevation:3,tiles:[tile(0,0),tile(1,0,0,behavior),tile(2,0)],objects:[],warps:[]}});
 it("walks the ordinary floor the game lets the player walk: sand, cave, mountain top, puddles and bridges",()=>{

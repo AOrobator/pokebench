@@ -3,12 +3,12 @@
  "id": "automatic-running",
  "title": "Automatic running",
  "changedFeature": "automatic-running-v1",
- "hypothesis": "Turning automatic running on helps runs reach the rival house more often or in fewer turns. Adds simultaneous B to ordinary directional travel only when native running permission and controls are verified each frame. walking=true overrides it.",
+ "hypothesis": "Turning automatic running on helps runs reach Route 102 more often or in fewer turns after the Running Shoes are received. The harness adds simultaneous B to every ordinary directional travel input when native running permission and controls are verified each frame; the model cannot opt out.",
  "activationMilestone": "RUNNING_SHOES_RECEIVED",
  "primaryMilestone": "ROUTE_102",
  "source": {
   "checkout": "main",
-  "commit": "a3c343bdbe245dbe4d22dd2fe413a1bed66fa36d"
+  "commit": "8ea2860c4c1bf1c2ce92c1138ccac5f2fa0bcdce"
  },
  "incumbent": {
   "version": 2,
@@ -74,5 +74,5 @@
   "window": 4,
   "minReached": 3
  },
- "notes": "Registered 2026-10-15 in the switch audit: merged behind a switch with no experiment. Activation (2026-10-15 audit): Native running needs the Running Shoes, which Mom gives after the Pok\u00e9dex; before that the switch never adds B."
+ "notes": "Registered 2026-10-15 in the switch audit: merged behind a switch with no experiment. Activation (2026-10-15 audit): Native running needs the Running Shoes, which Mom gives after the Pok\u00e9dex; before that the switch never adds B. Contract corrected 2026-10-19 after live trial A supplied walking=true on 30 consecutive navigate_to calls: ON now makes the harness solely responsible for running and removes the model opt-out; OFF preserves the previous public tool shape."
 }

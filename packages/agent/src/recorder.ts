@@ -318,7 +318,7 @@ export class RunRecorder {
       turn: this.turn,
       tool_call_id: toolCallId,
       ...(beforeSeq===undefined?{}:{before_state_seq:beforeSeq}),
-      ...(modifiers===undefined?{}:{automatic_running:modifiers.automatic_running,walking:modifiers.walking,...(modifiers.requested_held_buttons===undefined?{}:{requested_held_buttons:[...modifiers.requested_held_buttons]})}),
+      ...(modifiers===undefined?{}:{automatic_running:modifiers.automatic_running,...(modifiers.walking===undefined?{}:{walking:modifiers.walking}),...(modifiers.requested_held_buttons===undefined?{}:{requested_held_buttons:[...modifiers.requested_held_buttons]})}),
       buttons: [...buttons],
       hold_frames: timing.hold_frames,
       release_frames: timing.release_frames,

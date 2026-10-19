@@ -24,6 +24,14 @@ it("parses a definition and derives two arms that differ in exactly the changed 
  expect(experiment({queuePosition:undefined}).queuePosition).toBeUndefined();
 });
 
+it("keeps the automatic-running hypothesis aligned with its post-shoes grading milestone",()=>{
+ const entry=parseExperiment(JSON.parse(readFileSync(new URL("../../../experiments/automatic-running.json",import.meta.url),"utf8")));
+ expect(entry.activationMilestone).toBe("RUNNING_SHOES_RECEIVED");
+ expect(entry.primaryMilestone).toBe("ROUTE_102");
+ expect(entry.hypothesis).toContain("Route 102");
+ expect(entry.hypothesis).not.toContain("rival house");
+});
+
 it("names a switch this build does not know, so an old viewer says it needs rebuilding",()=>{
  const stale="Invalid experiment: future-switch-v1 is not a switch in this build; if it landed after this build, rebuild on current main (just viewer-main)";
  expect(()=>parseExperiment({...base,changedFeature:"future-switch-v1"})).toThrow(stale);

@@ -459,12 +459,13 @@ export class App {
     // Preserve the API's stable live-run order. A selected replay is a fallback card,
     // never an extra card mixed into an active live-run row.
     const live = this.runs.filter(isLive);
-    if (live.length > 0) return live.flatMap((run): CardInput[] => {
+    const liveCards = live.flatMap((run): CardInput[] => {
       const recorded = workbench.runs.find((r) => r.id === run.id);
       if (recorded === undefined || (recorded.status !== "live" && recorded.status !== "paused")) return [];
       const status: CardInput["status"] = run.id === this.runId ? "watching" : recorded.status === "paused" ? "paused" : "live";
       return [cardInputFor(recorded, workbench.at, now, status, workbench.runs, art.art)];
     });
+    if (liveCards.length > 0) return liveCards;
     const replay = this.runs.find((run) => run.id === this.runId && run.ended === true);
     const recorded = replay === undefined ? undefined : workbench.runs.find((run) => run.id === replay.id);
     return recorded === undefined ? [] : [cardInputFor(recorded, workbench.at, now, "replay", workbench.runs, art.art)];
@@ -1065,8 +1066,17 @@ export class App {
     this.setHtml("run-head", headHtml(head));
     // The time ticks every render; rebuilding the sheet for it would remount the WATCH buttons under the pointer.
     const cards = this.cardInputs(), art = this.art?.art ?? null;
-    const watched = cards.filter((c) => c.status === "watching" || c.status === "replay"), mini = art === null || cards.length === 0 ? null : [...watched, ...cards.filter((c) => c.status !== "watching" && c.status !== "replay")].map((c) => cardHtml(c, art, "mini")).join("");
-    this.setHtml("run-sheet-body", sheetHtml({ ...head, time: "" }, startedAt, mini === null ? null : { html: mini, watched: watched.length > 0 }));
+    const watched = cards.filter((c) => c.status === "watching" || c.status === "replay");
+    const mini = art === null || cards.length === 0 ? null : [...watched, ...cards.filter((c) => c.status !== "watching" && c.status !== "replay")].map((c) => cardHtml(c, art, "mini"));
+    const sheetBody = this.ui("run-sheet-body"), previousCards = sheetBody.querySelector(".rs-cards");
+    const focusedCard = previousCards?.contains(this.doc.activeElement) === true ? this.doc.activeElement?.closest<HTMLElement>("[data-watch]")?.dataset.watch : undefined;
+    this.setHtml("run-sheet-body", sheetHtml({ ...head, time: "" }, startedAt, mini === null ? null : { html: "", watched: watched.length > 0 }));
+    const sheetCards = sheetBody.querySelector(".rs-cards");
+    if (sheetCards !== null) {
+      if (previousCards !== null && previousCards !== sheetCards) sheetCards.replaceWith(previousCards);
+      syncCards(previousCards ?? sheetCards, mini ?? [], this.cardHtml);
+      if (focusedCard !== undefined && this.doc.activeElement === this.doc.body) sheetBody.querySelector<HTMLElement>(`[data-watch="${CSS.escape(focusedCard)}"]`)?.focus({ preventScroll: true });
+    }
     syncCards(this.ui("run-cards"), art === null ? [] : cards.map((c) => cardHtml(c, art, "wide")), this.cardHtml);
     this.ui("run-cards").hidden = mini === null;
     fillCards([this.ui("run-cards"), this.ui("run-sheet-body")], cards, this.art, (canvas, pixels) => { this.deps.drawGlyphs?.(canvas, pixels); });

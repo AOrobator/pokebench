@@ -735,6 +735,11 @@ b.wb-add, b.wb-rem { white-space:nowrap; }
 .stage-controls .replay-controls input[type=range] { flex: 1; accent-color: #d03a3a; }
 .run-sheet-shade { position: fixed; inset: 0; z-index: 40; background: rgba(5,8,15,.55); }
 .run-sheet { position: fixed; left: 0; right: 0; bottom: 0; z-index: 41; max-height: 86vh; overflow-y: auto; background: #1e2c44; color: #dfe8f5; border-top: 3px solid #ffd447; border-radius: 18px 18px 0 0; padding: 10px 16px 22px; font: 12px/1.5 'Inter', system-ui, sans-serif; }
+:root[data-phone] .run-sheet:not([hidden]) { animation: rs-slide-in 260ms cubic-bezier(.2,.8,.2,1); }
+:root[data-phone] .run-sheet-shade:not([hidden]) { animation: rs-fade-in 180ms ease-out; }
+@keyframes rs-slide-in { from { transform: translateY(100%); } to { transform: translateY(0); } }
+@keyframes rs-fade-in { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { :root[data-phone] .run-sheet, :root[data-phone] .run-sheet-shade { animation: none !important; } }
 .rs-grab { display: block; width: 64px; height: 20px; margin: 0 auto 10px; border: 0; background: linear-gradient(#4d6a96, #4d6a96) center / 44px 5px no-repeat; cursor: pointer; }
 .run-sheet h4 { font: 7px/1.6 'Press Start 2P', monospace; color: #9fb3cf; margin: 24px 0 10px; }
 .rs-now { display: flex; flex-direction: column; gap: 10px; border: 3px solid #ff4b4b; border-radius: 12px; padding: 12px; background: #26375a; }
@@ -766,12 +771,12 @@ b.wb-add, b.wb-rem { white-space:nowrap; }
 .rs-cards { display: grid; gap: 12px; padding: 2px 4px 6px; }
 .tc.tc { all: unset; position: relative; display: block; width: 100%; container-type: inline-size; cursor: pointer; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 .tc.tc:focus-visible { outline: 3px solid #ffd447; outline-offset: 3px; }
-.tc .tc-art { --u: calc(100cqw / var(--gw)); position: relative; display: block; width: 100%; background-size: 100% 100%; image-rendering: pixelated; }
+.tc .tc-art { --u: calc(100cqw / var(--gw)); position: relative; display: block; width: 100%; background-color: #e8dfba; background-size: 100% 100%; image-rendering: pixelated; }
 .tc .tc-abs { position: absolute; display: block; }
 .tc img { display: block; width: 100%; height: 100%; image-rendering: pixelated; }
 .tc .tc-line { display: flex; align-items: center; gap: calc(var(--u) * 4); min-width: 0; height: 100%; white-space: nowrap; }
 .tc .tc-line.tc-end { justify-content: flex-end; }
-.tc .tc-tab { position: absolute; display: flex; align-items: center; box-sizing: border-box; padding: 0 calc(var(--u) * 6); background: #6abdff; border: calc(var(--u) * 1) solid #418bc5; }
+.tc .tc-tab { position: absolute; display: flex; align-items: center; box-sizing: border-box; overflow: hidden; padding: 0 calc(var(--u) * 6); background: #6abdff; border: calc(var(--u) * 1) solid #418bc5; }
 /* Game-font text: plain text until the glyph sheet paints it, then only the canvas shows. */
 .tc .gtx { display: inline-flex; align-items: center; font: calc(var(--u) * 6)/1 'Press Start 2P', monospace; color: #183060; white-space: nowrap; }
 .tc .gtx[data-painted] { font-size: 0; line-height: 0; }

@@ -573,7 +573,17 @@ export async function workbenchSnapshot(root: string, healthy: HealthProbe, now:
     if (reducedIds?.has(summary.id) === true || summary.cohort === undefined) continue;
     runs.push({ id: summary.id, cohort: null, arm: null, model: null, started: null, status: "ended", reason: null, problem: null, excluded: null, elapsedMs: null, turn: 0, config: null, splits: [], experiment: { ...summary.cohort } });
   }
-  loader.forget(path => summaries.some(s => eventsPath(root, s.id) === path) || !path.startsWith(root + "/"));
+  let retainedPaths: ReadonlySet<string> | null | undefined;
+  loader.forget(path => {
+    if (retainedPaths === undefined) {
+      try { retainedPaths = new Set(summaries.map(summary => eventsPath(root, summary.id))); }
+      catch { retainedPaths = null; }
+    }
+    const retained = retainedPaths === null
+      ? summaries.some(summary => eventsPath(root, summary.id) === path)
+      : retainedPaths.has(path);
+    return retained || !path.startsWith(root + "/");
+  });
   runs.sort((a, b) => Date.parse(b.started ?? "") - Date.parse(a.started ?? "") || b.id.localeCompare(a.id));
   const problems = [...(waiting > 0 ? [`Still loading ${String(waiting)} of ${String(found.length)} recorded runs; this page fills in as they finish.`] : []), ...cohorts.problems, ...runs.flatMap(run => run.status !== "invalid" && run.problem !== null ? [`Run ${run.id}: ${run.problem}`] : [])], taggedValues = new Set(tagged.cohorts.map(c => c.id)), legacy = new Map<string, WorkbenchCohort>();
   for (const run of runs) {

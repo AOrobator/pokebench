@@ -447,12 +447,12 @@ describe("viewer app", () => {
 
   it("keeps the selected run's cached splits atomic until its event stream is caught up", async () => {
     const second = "2026-10-11T23-05-00_second-live";
-    const runs = [RUNS[0], { id: second, model: "think-swarm", started: "x", ended: false, reason: null, problem: null }];
+    const runs = [RUNS[0], { id: second, model: "think-swarm", started: "x", ended: true, reason: "budget", problem: null }];
     const split = (name: string, elapsedMs: number, seq: number) => ({ name, elapsedMs, segmentMs: elapsedMs, seq, turn: 1, inputTokens: 0, outputTokens: 0 });
     const run = (id: string, splits: ReturnType<typeof split>[]) => ({ id, cohort: null, arm: null, model: "think-swarm", started: "2026-10-11T23:00:00.000Z", status: "live", reason: null, problem: null, excluded: null, elapsedMs: 5_000, turn: 1, config: null, splits });
     const workbench = { version: 1, at: BASE_MS, milestones: [], problems: [], runs: [
       run(RUNS[0]?.id ?? "", [split("NEW_GAME_CREATED", 1_000, 1), split("PLAYER_NAME_CONFIRMED", 2_000, 2)]),
-      run(second, [split("FIRST_TRUCK_EXIT", 3_000, 3)]),
+      { ...run(second, [split("FIRST_TRUCK_EXIT", 3_000, 3)]), status: "ended", reason: "budget" },
     ] };
     const { app, streams } = await harness("", runs, workbench);
     await app.pollCards();
@@ -468,15 +468,19 @@ describe("viewer app", () => {
 
     app.select(second);
     app.render();
-    expect(ui("split-strip").textContent).toContain("LEAVE TRUCK ✔");
+    expect(ui("split-strip").textContent).toContain("TRUCK EXIT ✔");
     expect(ui("split-strip").textContent).not.toContain("NAME ✔");
 
     const secondLog = new Log();
     secondLog.add(0, START);
     secondLog.add(3_000, { type: "milestone", turn: 1, name: "FIRST_TRUCK_EXIT", server_timestamp: 3, kind: "story", origin: "observed" });
+    secondLog.add(4_000, { type: "run_end", turn: 1, reason: "budget", furthest_milestone: "FIRST_TRUCK_EXIT", turns: 1, wall_ms: 4_000, tokens: { input: 0, output: 0 }, frames: { saved: 0, bytes: 0 } });
     feed(must(streams[1]), secondLog.events);
     app.tick(100);
-    expect(ui("split-strip").textContent).toContain("LEAVE TRUCK ✔");
+    expect(ui("split-strip").textContent).toContain("TRUCK EXIT ✔");
+    app.clock?.seek(BASE_MS);
+    app.render();
+    expect(ui("split-strip").textContent).toContain("TRUCK EXIT ✔");
   });
 
   it("holds a stable split-loading state when the cache is unavailable, then trusts the caught-up stream", async () => {
@@ -775,7 +779,7 @@ it("does not apply comparisons from a superseded run selection", async () => {
   const pending: ((value: unknown) => void)[] = [];
   const streams: FakeStream[] = [];
   const app = await mountApp(document, {
-    fetchJson: (url) => nextRunReply(url) ?? (url === "/api/runs" ? Promise.resolve(RUNS) : new Promise((resolve) => pending.push(resolve))),
+    fetchJson: (url) => nextRunReply(url) ?? (url === "/api/runs" ? Promise.resolve(RUNS) : url === "/api/workbench" ? Promise.reject(new Error("workbench unavailable")) : new Promise((resolve) => pending.push(resolve))),
     sendJson: noWrites,
     openStream: (url) => { const stream = new FakeStream(url); streams.push(stream); return stream; }, now:()=>BASE_MS, hash:"",
   });
@@ -797,7 +801,7 @@ it("offers only eligible references and preserves none while comparisons are pen
   const pending: ((value:unknown)=>void)[] = [];
   const streams: FakeStream[] = [];
   const app = await mountApp(document, {
-    fetchJson:(url)=>nextRunReply(url) ?? (url === "/api/runs" ? Promise.resolve(RUNS) : url.startsWith("/sprites/") ? Promise.reject(new Error("no card art")) : new Promise((resolve)=>pending.push(resolve))),
+    fetchJson:(url)=>nextRunReply(url) ?? (url === "/api/runs" ? Promise.resolve(RUNS) : url === "/api/workbench" ? Promise.reject(new Error("workbench unavailable")) : url.startsWith("/sprites/") ? Promise.reject(new Error("no card art")) : new Promise((resolve)=>pending.push(resolve))),
     sendJson: noWrites,
     openStream:(url)=>{const s=new FakeStream(url);streams.push(s);return s;},now:()=>BASE_MS,hash:"",
   });

@@ -6,7 +6,7 @@
  "hypothesis": "Choosing one untried reachable interaction or exit per explore_map call increases Rustboro City reach or reduces turns without reducing completion reliability.",
  "activationMilestone": "PLAYER_NAME_CONFIRMED",
  "primaryMilestone": "RUSTBORO_CITY",
- "source": {"checkout":"main","commit":"9932996f2f826a458d801d92c7cfd1663d6d5890"},
+ "source": {"checkout":"main","commit":"9a23454da91150bd7c6c9f2c1bd2ebe72a029c07"},
  "incumbent": {
   "version":2,"id":"deterministic-exploration-incumbent","target":null,
   "limits":{"maxTurns":20000,"maxWallMs":2700000,"failureLimit":3,"replyFailuresEndRun":false},

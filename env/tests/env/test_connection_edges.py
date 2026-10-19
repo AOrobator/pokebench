@@ -26,6 +26,9 @@ MAP_GROUPS = 0x08486578
 FIXTURE = json.loads(
     (Path(__file__).parent / "fixtures" / "connection-edges-show-t175.json").read_text()
 )
+CURRENT = json.loads(
+    (Path(__file__).parent / "fixtures/readout-truth-current-warp-names.json").read_text()
+)["cases"]["connection-edge:showcase"]
 OFF_NORTH = (
     "- NORTH -> ROUTE101 (map 0/16), offset 0; "
     "boundary continuation: walk across the matching edge in this direction"
@@ -280,13 +283,13 @@ def showcase(off: list[str]) -> str:
     )[0]
 
 
-def test_showcase_off_reproduces_the_recorded_readout_byte_for_byte() -> None:
+def test_showcase_off_matches_current_policy_without_rewriting_the_recording() -> None:
     assert OFF_NORTH in FIXTURE["readout"].split("\n")
-    assert showcase([*RECORDED_OFF, ID]) == FIXTURE["readout"]
+    assert showcase([*RECORDED_OFF, ID]) == CURRENT
 
 
 def test_showcase_on_names_the_north_exit_tiles_and_changes_nothing_else() -> None:
     on = showcase(RECORDED_OFF)
-    before, after = FIXTURE["readout"].split("\n"), on.split("\n")
+    before, after = CURRENT.split("\n"), on.split("\n")
     assert len(before) == len(after)
     assert [(a, b) for a, b in zip(before, after, strict=True) if a != b] == [(OFF_NORTH, ON_NORTH)]

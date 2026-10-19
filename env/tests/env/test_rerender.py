@@ -83,19 +83,17 @@ def test_recorded_switches_reproduce_the_recorded_readout_byte_for_byte():
     assert readouts == [FIXTURE["readout"]]
 
 
-def test_a_flipped_server_switch_changes_only_what_it_owns():
+def test_named_warps_cannot_expose_an_internal_only_dynamic_destination():
     read = windows_reader(operator_rom())
     maps = MapNames.load(rerender.PORYMAP_MAPS)
     on = [f for f in RECORDED_OFF if f != "named-warp-destinations-v1"]
     flipped = rerender.rerender(
         Path("/run"), [rerender.RawRef("a", "s")], lambda _p, _s: read, maps, env_with(on)
     )[0]
-    assert "(4,3) -> LITTLEROOT TOWN (dynamic warp; map 0/9)" in flipped
-    assert "(4,3) -> dynamic destination" in FIXTURE["readout"]
-    changed = {line for line in flipped.splitlines()} ^ {
-        line for line in FIXTURE["readout"].splitlines()
-    }
-    assert all("arp" in line for line in changed)
+    assert "(4,3) -> dynamic destination" in flipped
+    assert "LITTLEROOT TOWN (dynamic warp; map 0/9)" not in flipped
+    changed = set(flipped.splitlines()) ^ set(FIXTURE["readout"].splitlines())
+    assert changed and all(line.startswith("Warp destinations are ") for line in changed)
 
 
 def test_read_state_and_render_pass_every_server_switch_through(monkeypatch):

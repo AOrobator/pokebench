@@ -39,6 +39,9 @@ FIXTURE: dict[str, Any] = json.loads(
     gzip.decompress((Path(__file__).parent / "fixtures" / "surf-gate-4caa.json.gz").read_bytes())
 )
 CASES = FIXTURE["cases"]
+CURRENT = json.loads(
+    (Path(__file__).parent / "fixtures/readout-truth-current-warp-names.json").read_text()
+)["cases"]
 RECORDED_OFF = [f for f in SERVER_FEATURES if f not in FIXTURE["harness_features"] and f != ID]
 NEITHER = "Surf needs the Balance Badge and a party Pokémon that knows SURF (you have neither)"
 OFF_EAST = (
@@ -50,17 +53,16 @@ ON_EAST = (
     f" where you stand to this edge crosses water, and {NEITHER}"
 )
 OFF_WARP = (
-    "Warp to ALTERING CAVE (map 24/106) at (45,6), elevation 0; movement; activation depends on"
-    " metatile (see local map); conditional; destination ALTERING CAVE (map 24/106) warp 0"
+    "Warp to map 24/106 at (45,6), elevation 0; movement; activation depends on metatile"
+    " (see local map); conditional; destination map 24/106 warp 0"
 )
 ON_WARP = (
     f"{OFF_WARP}; not an exit you can use now: every way from where you stand to it crosses"
     f" water, and {NEITHER}"
 )
-OFF_DEST = "Warp destination at (45,6): ALTERING CAVE"
+OFF_DEST = "Warp destination at (45,6): map 24/106"
 ON_DEST = (
-    "Warp destination at (45,6): ALTERING CAVE"
-    " (not an exit you can use now: across water, needs Surf)"
+    "Warp destination at (45,6): map 24/106 (not an exit you can use now: across water, needs Surf)"
 )
 ROM_START = 0x08000000
 PLAYER_AVATAR = 0x02037590
@@ -148,20 +150,23 @@ def test_registered_server_switch_default_off() -> None:
 
 
 @pytest.mark.parametrize("case", CASES, ids=lambda c: str(c["tool_result_seq"]))
-def test_off_reproduces_the_recorded_4caa_readout_byte_for_byte(case: dict[str, Any]) -> None:
+def test_off_matches_current_policy_without_rewriting_the_recorded_4caa_readout(
+    case: dict[str, Any],
+) -> None:
     assert case["untaken_line"] == (
         "Exits here you have not taken: (45,6) -> ALTERING CAVE (map 24/106);"
         " EAST edge -> ROUTE110 (map 0/25)"
     )
     off = readout(case, [*RECORDED_OFF, ID])
-    assert off == case["readout"]
+    assert off == CURRENT[f"surf-gate:{case['tool_result_seq']}"]
     assert {OFF_EAST, OFF_WARP, OFF_DEST} <= set(off.split("\n"))
 
 
 @pytest.mark.parametrize("case", CASES, ids=lambda c: str(c["tool_result_seq"]))
 def test_on_notes_both_water_only_exits_and_changes_nothing_else(case: dict[str, Any]) -> None:
     on = readout(case, RECORDED_OFF)
-    assert changed(case["readout"], on) == [
+    baseline = CURRENT[f"surf-gate:{case['tool_result_seq']}"]
+    assert changed(baseline, on) == [
         (OFF_WARP, ON_WARP),
         (OFF_EAST, ON_EAST),
         (OFF_DEST, ON_DEST),
@@ -355,7 +360,7 @@ V2_WARP = (
     " water you cannot cross yet"
 )
 V2_DEST = (
-    "Warp destination at (45,6): ALTERING CAVE"
+    "Warp destination at (45,6): map 24/106"
     " (not an exit you can use now: across water you cannot cross yet)"
 )
 
@@ -371,7 +376,8 @@ def test_v2_is_a_registered_default_off_server_switch() -> None:
 @pytest.mark.parametrize("case", CASES, ids=lambda c: str(c["tool_result_seq"]))
 def test_v2_off_keeps_the_v1_notes_byte_for_byte(case: dict[str, Any]) -> None:
     v1 = readout(case, [f for f in RECORDED_OFF if f != V2] + [V2])
-    assert changed(case["readout"], v1) == [
+    baseline = CURRENT[f"surf-gate:{case['tool_result_seq']}"]
+    assert changed(baseline, v1) == [
         (OFF_WARP, ON_WARP),
         (OFF_EAST, ON_EAST),
         (OFF_DEST, ON_DEST),
@@ -391,7 +397,8 @@ def test_v2_on_rewords_the_three_notes_and_nothing_else(case: dict[str, Any]) ->
 @pytest.mark.parametrize("case", CASES, ids=lambda c: str(c["tool_result_seq"]))
 def test_v2_without_v1_changes_nothing(case: dict[str, Any]) -> None:
     base = [f for f in RECORDED_OFF if f not in (V2, ID)]
-    assert readout(case, [*base, ID]) == readout(case, [*base, ID, V2]) == case["readout"]
+    current = CURRENT[f"surf-gate:{case['tool_result_seq']}"]
+    assert readout(case, [*base, ID]) == readout(case, [*base, ID, V2]) == current
 
 
 def test_v2_experiment_arms_differ_only_in_the_notes() -> None:

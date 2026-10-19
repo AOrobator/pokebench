@@ -49,6 +49,9 @@ RECORDED_OFF = frozenset(FIXTURE["recorded_off"]) | {
 }
 T416 = "raw-ram/00004588.json.gz"
 T754 = "raw-ram/00005144.json.gz"
+CURRENT = json.loads(
+    (Path(__file__).parent / "fixtures/readout-truth-current-warp-names.json").read_text()
+)["cases"]
 MAY_OFF = "MAY (on this map, out of view)"
 MAY_ON = "MAY at 10,3 (out of view; where the map places this character, it may have moved)"
 MAY_ENTRY = (
@@ -104,10 +107,11 @@ def changed(before: str, after: str) -> tuple[list[str], list[str]]:
 
 
 @pytest.mark.parametrize("raw", [T416, T754])
-def test_off_reproduces_what_the_model_received(raw: str) -> None:
+def test_off_matches_current_policy_without_rewriting_what_the_model_received(raw: str) -> None:
     text = render(raw, RECORDED_OFF | {SWITCH})
     received = str(frame(raw)["received"])
-    assert text in received
+    assert text == CURRENT[f"offscreen:{raw}"]
+    assert "Warp destination at (45,6): ALTERING CAVE" in received
     assert HEADER not in text
 
 

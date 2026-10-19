@@ -202,6 +202,30 @@ describe("stale-story-goal-v2 lifecycle",()=>{
   expect(knownIssue.block({...oldale,story:null},"later",PLACES.places,true,true)).toContain("Way in");
  });
 
+ it("does not carry a known issue stage across a later unreadable-state boundary",()=>{
+  for(const missingStory of [null,undefined] as const){
+   const story=new StoryDestinations();
+   const knownSeq=seq++,unknownSeq=seq++;
+   story.observe(stateEvent(at(2),knownSeq,5));
+   const unreadable={...oldale,story:null,v:1,run:"2026-10-16T12-42-29_qwen36-gpu0_4caa",seq:unknownSeq,t:"2026-10-16T13:07:12.905-04:00",type:"state" as const,turn:5};
+   if(missingStory===undefined)delete (unreadable as Partial<typeof unreadable>).story;
+   story.observe(checkEvent(unreadable));
+   const id=`unknown-boundary-${String(unknownSeq)}`;
+   story.observe(talk(id,5,[{...page(invitation,"PROF. BIRCH"),state_seq:unknownSeq}]));
+   story.observe(delivered(id,5));
+   expect(story.block(at(3),"later",PLACES.places,true,true)).toContain("Way in");
+  }
+ });
+
+ it("keeps pre-handoff and non-Birch destinations active",()=>{
+  const early=stagedStory(invitation,2,at(2));
+  expect(early.block(at(2),"later",PLACES.places,true,true)).toContain("Way in");
+  const route=stagedStory("Meet me on ROUTE 103.",2,at(2));
+  const active=route.block(withStory(at(3),{rival_battle_won:false}),"later",PLACES.places,true,true) ?? "";
+  expect(active).toContain("ROUTE 103");
+  expect(active).toContain("Way in");
+ });
+
  it("omits absent and retired goals from the trust header without inventing a replacement",()=>{
   const empty=new HarnessTrust({supervisor:false,stageBound:true,omitEmptyGoal:true});
   expect(empty.lines("Location: OLDALE TOWN",at(3),"empty",PLACES.places).header).toBe(TRUST_HEADER);
@@ -360,14 +384,42 @@ describe("stale-story-goal-v2 registration and production factory",()=>{
 
  it("OFF preserves the current invitation, while ON omits the retired goal and remains compatible with input cuts",async()=>{
   const off=await result(false);
-  expect(off).toContain(invitation);
-  expect(off).toContain("Way in: door in LITTLEROOT TOWN");
+  expect(off).toBe([
+   TRUST_HEADER,
+   `Story goal: "${invitation}" (PROF. BIRCH, turn 5) -> "POKéMON LAB" = PROF. BIRCH'S POKéMON LAB (map 1/4). Way in: door in LITTLEROOT TOWN (map 0/9) at (7,16).`,
+   "",
+   readout,
+   `${STORY_HEADER} (turn 5, PROF. BIRCH): "${invitation}"`,
+   `- "POKéMON LAB" = PROF. BIRCH'S POKéMON LAB (map 1/4). Way in: door in LITTLEROOT TOWN (map 0/9) at (7,16).`,
+  ].join("\n"));
   for(const on of [await result(true),await result(true,true)]){
    expect(on).toContain(readout);
    expect(on).not.toContain(invitation);
    expect(on).not.toContain("Story goal: none");
    expect(on).not.toContain(STORY_HEADER);
   }
+ });
+
+ it("production navigation emits no retired-goal warning, but one warning for the live stage-3 return",async()=>{
+  async function walk(line:string,issuedStage:number,currentStage:number):Promise<{texts:string[];away:StoryGoalAwayFacts[]}> {
+   const subs:((e:RunEvent)=>void)[]=[];const away:StoryGoalAwayFacts[]=[];
+   const recorder={subscribe:(fn:(e:RunEvent)=>void)=>{subs.push(fn);},recordState:()=>({seq:1,turn:1}),recordDialogueAutoAdvance:()=>({seq:1,turn:1}),storyGoalAway:(_tool:string,facts:StoryGoalAwayFacts)=>{away.push(facts);},destinationCitation:()=>undefined} as unknown as Parameters<typeof playGameTools>[3];
+   const nav=scripted("navigate_to");
+   const current=(y:number)=>withStory({...handoff,map_id:[0,18],location:"ROUTE103",position:{x:9,y}},{birch_lab_stage:currentStage});
+   const tools=playGameTools([nav.tool],configured(true),{read:()=>Promise.resolve(current(13)),places:()=>Promise.resolve(PLACES)},recorder);
+   const stateSeq=seq++,id=`walk-${String(stateSeq)}`;
+   for(const fn of subs){fn(stateEvent(withStory(handoff,{birch_lab_stage:issuedStage}),stateSeq,5));fn(talk(id,5,[{...page(line,"PROF. BIRCH"),state_seq:stateSeq}]));fn(delivered(id,5));}
+   const texts:string[]=[];
+   for(const y of [13,10,7]){nav.next(current(y),"Location: ROUTE103");texts.push(textOf(await tools[0]?.execute(`n${String(y)}`,{}) ?? {content:[],details:undefined}));}
+   return {texts,away};
+  }
+  const retired=await walk(invitation,2,3);
+  expect(retired.away).toHaveLength(0);
+  expect(retired.texts.join("\n")).not.toContain("SUPERVISOR:");
+  expect(retired.texts.join("\n")).not.toContain(invitation);
+  const live=await walk("Well, it's time to head back to the LAB.",3,4);
+  expect(live.away).toHaveLength(1);
+  expect(live.texts[2]).toContain("SUPERVISOR:");
  });
 
  it("has a pending experiment that flips only v2 and keeps input cuts on in both arms",()=>{

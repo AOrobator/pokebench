@@ -102,6 +102,10 @@ The authorized outcome is a new default-OFF `stale-story-goal-v2` switch. With v
 - 2026-10-19 ET: M2 GREEN committed as `5423e717` (`docs(story-goal): register v2 experiment and explainer`). Synced current `main` at `a7be38f6` into the branch with merge commit `0802eb7a`; the incoming fixed-bundle change adds `automatic-running-v1` only and retains `input-cuts-v1` in the bundle arm.
 - 2026-10-19 ET: The first post-sync `just test` attempt found the managed worktree's git submodule uninitialized: 12 Python tests failed only because `map_groups.json` was absent. `git submodule update --init env/vendor/continual-harness` restored the pinned `bbab97a` dependency; no source changed. The rerun passed 2534 agent, 1198 viewer, and 2480 Python tests, with 229 documented ROM-dependent skips.
 - 2026-10-19 ET: Frozen-gate receipt: `just lint`, `just build`, `just coverage`, `just verify-vendor`, `just experiments-check`, `just experiments-audit`, the v2 page check, and `git diff --check` all pass. Coverage reports agent 98.00% statements / 94.16% branches, viewer 95.43% statements / 91.49% branches, and Python gate 97.47% lines / 93.37% branches / 99.43% functions, all above the 90% floor. The 118 experiment definitions validate and the audit is silent-green.
+- 2026-10-19 ET: Review round 1 blocked the frozen `a5301712` packet on a real unknown-state regression and proof gaps. A dialogue page after a null/absent story-state event could inherit an older known Birch stage; the production supervisor test sampled only once; the pre-stage-3 and non-Birch guards lacked direct fixtures; OFF output was only substring-checked; and the two trust operands had only been mutated together.
+- 2026-10-19 ET: The repair records explicit null stage boundaries, adds direct current-stage and all-Birch-target guard fixtures, asserts the complete production-shaped OFF string, and drives three production `navigate_to` results through `playGameTools`. The recorder now proves zero `story_goal_away` events for a retired stage-2 invitation and exactly one for a live stage-3 return episode. The focused file passes 28/28.
+- 2026-10-19 ET: Independent delete/restore receipts all fail their intended focused assertion: `mutation-unknown-boundary`, `mutation-current-stage`, `mutation-target-guard`, `mutation-destination-wire`, `mutation-stagebound-wire`, `mutation-omit-wire`, and `mutation-supervisor-seam`. Each operand was restored before the next mutation; the final focused rerun and `git diff --check` are green.
+- 2026-10-19 ET: Post-repair full tests pass: 2537 agent, 1198 viewer, and 2480 Python tests, with the same 229 ROM-dependent skips. Lint, build, vendor verification, 118 experiment checks, audit, page validation, and diff hygiene pass. Agent coverage is 98.00% statements / 94.17% branches and Python coverage is 97.47% lines / 93.37% branches / 99.43% functions. Viewer coverage retries exposed unrelated timing sensitivity in the unchanged `server-stream.test.ts` (different 5-second timeout/assertion failures across attempts); the ordinary viewer suite is green and the same viewer tree's frozen pre-review coverage receipt remains 95.43% statements / 91.49% branches. No timeout, skip, or gate was weakened.
 
 ## Principles Self-Review
 
@@ -119,7 +123,7 @@ The authorized outcome is a new default-OFF `stale-story-goal-v2` switch. With v
 | PB10 | PASS | No skips, xfails, gate weakening, coverage carve-outs, or hook bypasses; all required gates pass. |
 | PB11 | PASS | Stage semantics were checked against pinned pret/pokeemerald; the pinned continual-harness submodule is verified clean. |
 | PB12 | PASS | No ROM or protected path was read; ROM-dependent tests stayed in their existing documented skip state. |
-| PB13 | PASS | RED/GREEN commits, delete/restore proofs, worklog, gates, browser proof, and pending experiment evidence are present; model-diverse review follows on this frozen packet. |
+| PB13 | PASS | RED/GREEN commits, seven independent delete/restore proofs, worklog, gates, browser proof, and pending experiment evidence are present; review round 1 findings are recorded and a cumulative round 2 follows. |
 
 ## Surprises
 
@@ -127,7 +131,10 @@ The authorized outcome is a new default-OFF `stale-story-goal-v2` switch. With v
 
 ## Multi-Model Review Log
 
-- Not started.
+- Round 1 frozen packet: base `a7be38f6`, head `a5301712`, SHA-256 `979bc414986e596faf005fa35a3b142c6b7d0b99f252f06ea4e50e3d3d58bcf0`, 249422 bytes / 1885 lines / 67 files.
+- Claude CLI was logged out; Cursor Claude Opus, Claude Sonnet, and GPT 5.6 Sol were account-limited; local think-fast and think-swarm rejected the canonical 76098-token packet against their 65536-token context. These are availability receipts, not approvals.
+- External Grok 4.7 and isolated GPT, Sol-fallback, and Astra-fallback reviewers all returned `VERDICT: BLOCKING`. Accepted blockers: preserve unknown stage boundaries; prove the production supervisor over a real three-position sequence; add current-stage and all-Birch guard fixtures; assert complete OFF output; mutate destination wiring, each trust operand, the new boundary/guards, and supervisor seam independently. No reviewer found a scope-expansion or security defect. Reduced vendor diversity is explicit.
+- Round 1 repair is complete locally; full gates and cumulative round 2 review remain pending.
 
 ## Boy Scout Log
 

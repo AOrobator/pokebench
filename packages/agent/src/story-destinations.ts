@@ -121,12 +121,13 @@ export class StoryDestinations {
  private readonly sprites:{readonly seq:number;readonly map:MapId|null;readonly kinds:ReadonlyMap<string,string>}[]=[];
  // Native Birch-lab story stages paired to the dialogue pages recorded from those states. A missing stage stays
  // unknown; it never becomes evidence that an instruction is complete.
- private readonly birchLabStages:{readonly seq:number;readonly stage:number}[]=[];
+ private readonly birchLabStages:{readonly seq:number;readonly stage:number|null}[]=[];
  constructor(private readonly scriptedGuidance=false){}
  observe(event:RunEvent):void {
   if(event.type==="state"&&"started" in event){
-   const stage=event.story?.birch_lab_stage;
-   if(stage!==null&&stage!==undefined&&this.birchLabStages.at(-1)?.stage!==stage)this.birchLabStages.push({seq:event.seq,stage});
+   // An unreadable state is a boundary, not permission to reuse an older known stage for later dialogue.
+   const stage=event.story?.birch_lab_stage ?? null;
+   if(this.birchLabStages.at(-1)?.stage!==stage)this.birchLabStages.push({seq:event.seq,stage});
    const kinds=new Map<string,string>();
    for(const o of event.world_context?.objects??[]){const name=o.sprite_kind===null?null:storyCharacter(o.graphics_id,event.location);if(name!==null&&o.sprite_kind!==null)kinds.set(o.sprite_kind,name);}
    if(kinds.size>0)this.sprites.push({seq:event.seq,map:event.map_id,kinds});
@@ -156,7 +157,7 @@ export class StoryDestinations {
   const stateSeq=page.state_seq;
   if(stateSeq===null)return line;
   const stage=this.birchLabStages.findLast(s=>s.seq<=stateSeq)?.stage;
-  return stage===undefined?line:{...line,birchLabStage:stage};
+  return stage===undefined||stage===null?line:{...line,birchLabStage:stage};
  }
  // Every field page a story character speaks in one call, with its "lives" clause; battle text is no one's line.
  // Story characters named on earlier pages of the call (any speaker) are who "He/She lives" can mean.

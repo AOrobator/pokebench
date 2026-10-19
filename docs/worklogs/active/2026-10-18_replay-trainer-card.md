@@ -25,3 +25,23 @@ The viewer header builds trainer cards only from runs that are currently live. W
 ## Evidence
 
 - Baseline on the existing 8790 viewer, run `2026-10-18T22-47-51_qwen36-gpu0_849c`: the page reached `REPLAY`, but `data-ui="run-cards"` contained only the two live dry-run cards and no card for the selected replay.
+
+## Multi-Model Review Log
+
+### Round 1 — blocked by cloud reviewer availability
+
+- Frozen code packet: base `5e2701f3cae372983e8314c2ffd18eea209a7b0f`, head `cad7fd38a404224db4f223aa4f608163768343d5`, binary-diff SHA-256 `b4de3fc10681beafad2ea7588dc6f9770923a4259511eaa9a08fa34b929e8085`.
+- Principles Adherence covered PB1–PB13: 6 PASS, 7 N/A, 0 FAIL.
+- Claude-family: unavailable. The standalone Claude reviewer profile reported `loggedIn: false`; Cursor Opus, Sonnet, Haiku and Fable each returned the account usage-limit error before producing reviewer output.
+- GPT-family: unavailable. Cursor `gpt-5.6-sol-xhigh` returned the same account usage-limit error before producing reviewer output.
+- Grok-family: incomplete. Cursor `cursor-grok-4.5-high` remained active without stdout or stderr for more than eight minutes; it was stopped once the two other unavailable mandatory cloud lanes had already made self-landing impossible. No verdict was inferred from silence.
+- Frozen-packet post-check: candidate remained clean at `cad7fd38`; diff digest remained byte-identical.
+
+### Review Synthesis
+
+- Contract being proved: a selected ended replay remains visible as a selected, dotless `REPLAY` trainer card alongside current live cards.
+- Frozen boundary: viewer card-input and presentation owners only; no discovery, persistence, playback, lifecycle, harness or API changes.
+- Test quality: the new app integration test reaches the real card consumer seam, uses exact fixture-owned run IDs and exact card counts, and was observed RED before the production change; it adds no globals, concurrency, suppression, loops, I/O or production-sized bounds.
+- Findings: none were returned because no reviewer completed. This is not a green review.
+- Missing evidence: literal `VERDICT: LGTM` from Claude-, Grok- and GPT-family cloud lanes on one frozen packet.
+- Disposition: implementation and deterministic/browser evidence are complete, but review and local-main landing remain blocked by reviewer availability under the PokeBench landing contract.

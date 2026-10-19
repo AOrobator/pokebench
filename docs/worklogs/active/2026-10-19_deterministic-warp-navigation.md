@@ -48,7 +48,7 @@ Local game input only. No ROM/save writes, memory mutation, credentials, public 
 - [x] Add `docs/explainers/deterministic-warp-navigation-v1.html`, index and `FEATURE_EXPLAINERS` mapping with viewer/server tests.
 - [x] Add the pending experiment entry and readiness row; run `just experiments-check`. Do not queue or approve it.
 - [x] Run `just pages-check` and verify the Harness Config card link in the real browser at desktop and phone widths.
-- [x] Run all required gates again; source pin updated to the committed integrated review-fix implementation `55fa3969`.
+- [x] Run all required gates again; source pin updated to the committed integrated review-fix implementation `15cccbf9`.
 - [x] COMMIT: `docs(navigation): explain deterministic warp handling` (`f39ad26d`)
 - [ ] Complete PB1–PB13 self-review and the three-lane cloud multi-model review; fix only accepted in-scope defects and re-review the cumulative packet.
 - [ ] Fast-forward land only if every required lane returns `VERDICT: LGTM`; run post-merge tests and refresh the viewer without disturbing a live run.
@@ -84,6 +84,7 @@ Done means switch OFF preserves the incumbent, ON passes source-grounded warp te
 - 2026-10-19: Clean-head integrated-fix gates at `9ad95913`: `just test` passed (agent 2,550; viewer 1,206; Python 2,492 passed / 229 ROM-dependent skipped). The focused ten-test regression suite, agent TypeScript/ESLint, build, vendor verification, 120 experiment definitions, explainer page validation and whitespace checks also passed.
 - 2026-10-19: Before final re-review, canonical `main` advanced again to `6eb85314` with the independently landed battle-effective-damage and trainer-card work. Merged that exact main without conflicts at `9e6388cc`; the warp implementation and pending experiment registration were unchanged. Final review and landing remain gated on the post-merge tree.
 - 2026-10-19: Integrated-tree re-review accepted one further safety finding: narrowing the checked press to the selected tile had stopped comparing a nonzero warp-event elevation with the player's fresh live elevation. The selected-tile check now rejects that drift while preserving event elevation `0` as the game wildcard. A regression changes only the live navigation elevation from 3 to 2 and proves zero submissions; deleting the new comparison made it submit one press, and restoring it returned the focused ten-test suite to green.
+- 2026-10-19: Committed the live-elevation repair as `15cccbf9` and repinned the pending, unqueued experiment source to that exact implementation commit. This metadata update does not queue, approve or launch a run.
 
 ## Surprises
 - The exact-destination inventory includes older states without tile behavior and the dynamic truck placeholder. Full destination equality alone is therefore insufficient; current behavior evidence must also agree.

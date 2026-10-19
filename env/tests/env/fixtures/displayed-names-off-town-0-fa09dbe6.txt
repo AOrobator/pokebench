@@ -32,4 +32,4 @@ background (identity unavailable) at (3,1), elevation 3; A; conditional
 Current map bounds: X=0..4, Y=0..4
 Map connections (game-defined; terrain and story conditions may block passage):
 - none defined; inspect doors/warps instead
-Warp destination at (0,1): LITTLEROOT TOWN MAYS HOUSE 1F
+Warp destination at (0,1): map 1/2

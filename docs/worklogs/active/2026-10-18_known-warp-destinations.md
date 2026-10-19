@@ -43,7 +43,10 @@ This intentionally does not add a second conversation/history store. A future fe
 
 ## Review Log
 
-Not started.
+- Round 1 frozen packet: `b9e501dfd25ba68dca65fed086b3bc9c9c0fc498..2b0830e4fb5556b62602918a6a0c6ca68dc66335`, SHA-256 `a786335067e01ae3a432bbdf6e60ff3a58c820f9cb3d267374d54c060b2c865d`.
+- Claude CLI had no active reviewer credential. Cursor Claude Opus and Sonnet both returned the account's monthly usage-limit error; this lane remains unavailable, not green.
+- Grok 4.7 High and isolated GPT-5.6 Sol independently found the same blocker: the optional static `Warp destination at` renderer rebuilt names from `state.destination_names`, bypassing the new `displayed_places` filter.
+- Fix after `2b0830e4`: the world-destination renderer now reuses `destinations` while ON and preserves its incumbent internal-name map while OFF. Added missing internal-only and displayed-name assertions, updated the observation expectation and four affected compatibility fixtures. Focused result: 81 passed / 24 existing ROM-dependent skips.
 
 ## Gate Notes
 

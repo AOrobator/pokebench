@@ -511,14 +511,25 @@ def format_readout(
             else state.topology.text(notes or None)
         )
         if state.interaction_targets is not None:
-            names = {(g, n): places.get((g, n), name) for g, n, name in state.destination_names}
+            # ON reuses the same provenance-filtered owner as the map and interaction lines.
+            # OFF preserves the incumbent internal-map-table rendering byte for byte.
+            names = (
+                {(g, n): places.get((g, n), name) for g, n, name in state.destination_names}
+                if destinations is None
+                else destinations
+            )
             for target in state.interaction_targets:
                 if target.destination is not None:
                     g, n, _ = target.destination
                     name = (
                         dynamic or "dynamic destination"
                         if (g, n) == (127, 127)
-                        else names.get((g, n), f"unknown map {g}/{n}")
+                        else names.get(
+                            (g, n),
+                            f"unknown map {g}/{n}"
+                            if destinations is None
+                            else f"map {g}/{n}",
+                        )
                     )
                     lines.append(
                         f"Warp destination at ({target.x},{target.y}): {name}"

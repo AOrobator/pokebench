@@ -70,6 +70,9 @@ def test_on_keeps_an_internal_only_destination_unnamed() -> None:
         assert ON_GUIDANCE in lines(text) and OFF_GUIDANCE not in lines(text)
         named = format_readout(state, named_warps=True, named_interactions=True)
         assert any(line.startswith("Warp to map 0/9 at (0,1)") for line in lines(named)), named
+        world = format_readout(state, named_warps=True, world_destinations=True)
+        assert "Warp destination at (0,1): map 0/9" in lines(world), world
+        assert "Warp destination at (0,1): LITTLEROOT TOWN" not in lines(world), world
 
 
 def test_on_uses_a_destination_name_the_game_displays() -> None:
@@ -91,6 +94,8 @@ def test_on_uses_a_destination_name_the_game_displays() -> None:
             f"Warp to LITTLEROOT TOWN (map 0/9){candidate}LITTLEROOT TOWN (map 0/9) warp 0",
         ),
     ]
+    world = format_readout(state, named_warps=True, world_destinations=True)
+    assert "Warp destination at (0,1): LITTLEROOT TOWN" in lines(world), world
 
 
 def test_unknown_and_dynamic_destinations_are_never_named() -> None:

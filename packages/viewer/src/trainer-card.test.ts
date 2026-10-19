@@ -88,6 +88,43 @@ describe("one card per workbench run, shared by the viewer and the comparisons p
     expect(plain).toMatchObject({ title: "Model <img onerror=x>", arm: null, trial: null, card: null, status: "paused" });
     expect(cardInputFor(recorded({ id: "q", experiment: null, model: null }), 1000, 1000, "live", [], ART).title).toBe("q");
   });
+  it("uses the run's GPU identity so same-model live cards are visually distinct", () => {
+    const model = "/models/Qwen3.6-35B-A3B-UD-Q4_K_M.gguf";
+    const gpu1 = recorded({ id: "2026-10-19T00-04-00_qwen36-gpu1_petalburg-rerun-a", status: "live", experiment: null, model });
+    const gpu0 = recorded({ id: "2026-10-19T00-04-00_qwen36-gpu0_petalburg-rerun-b", status: "live", experiment: null, model });
+    const runs = [gpu1, gpu0];
+    const art = { ...ART, trainers: ["brendan", "may", "birch", "wally", "roxanne", "brawly", "wattson", "flannery", "norman", "winona", "sidney", "phoebe", "glacia", "drake"] };
+    expect(cardInputFor(gpu1, 1000, 1000, "live", runs, art).trainer).toBe("wally");
+    expect(cardInputFor(gpu0, 1000, 1000, "live", runs, art).trainer).toBe("glacia");
+    expect(cardInputFor(gpu1, 1000, 2000, "watching", runs, art).trainer).toBe("wally");
+  });
+  it("keeps experiment arms distinct when their runs use different GPUs", () => {
+    const trainers = ["brendan", "may", "birch", "wally", "roxanne", "brawly", "wattson", "flannery", "norman", "winona", "sidney", "phoebe", "glacia", "drake"];
+    const bundle = recorded({ id: "2026-10-19T00-04-00_qwen36-gpu0_test-a", status: "live", experiment: { id: "experiment-0", arm: "bundle", trial: 1, of: 2 } });
+    const control = recorded({ id: "2026-10-19T00-04-00_qwen36-gpu1_test-b", status: "live", experiment: { id: "experiment-0", arm: "control", trial: 1, of: 2 } });
+    const runs = [bundle, control], art = { ...ART, trainers };
+    expect(cardInputFor(bundle, 1000, 1000, "live", runs, art).trainer).not.toBe(cardInputFor(control, 1000, 1000, "live", runs, art).trainer);
+  });
+  it("does not reshuffle legacy experiment cards when a GPU-qualified sibling appears", () => {
+    const trainers = ["brendan", "may", "birch", "wally", "roxanne", "brawly", "wattson", "flannery", "norman", "winona", "sidney", "phoebe", "glacia", "drake"];
+    const experiment = (arm: string) => ({ id: "experiment-10", arm, trial: 1, of: 2 });
+    const bundle = recorded({ id: "legacy-bundle", experiment: experiment("bundle") });
+    const control = recorded({ id: "legacy-control", experiment: experiment("control") });
+    const gpuBundle = recorded({ id: "new-gpu0-bundle", experiment: experiment("bundle") });
+    const art = { ...ART, trainers }, runs = [bundle, control, gpuBundle];
+    const legacy = cardInputFor(control, 1000, 1000, "replay", [bundle, control], art).trainer;
+    expect(cardInputFor(control, 1000, 1000, "replay", runs, art).trainer).toBe(legacy);
+    expect(new Set(runs.map(run => cardInputFor(run, 1000, 1000, "replay", runs, art).trainer)).size).toBe(3);
+  });
+  it("keeps a legacy arm stable when another arm exists only on a GPU", () => {
+    const trainers = ["brendan", "may", "birch", "wally", "roxanne", "brawly", "wattson", "flannery", "norman", "winona", "sidney", "phoebe", "glacia", "drake"];
+    const experiment = (arm: string) => ({ id: "experiment-0", arm, trial: 1, of: 2 });
+    const local = recorded({ id: "legacy-local", experiment: experiment("local") });
+    const control = recorded({ id: "new-gpu0-control", experiment: experiment("control") });
+    const art = { ...ART, trainers }, runs = [local, control];
+    expect(cardInputFor(local, 1000, 1000, "replay", runs, art).trainer).toBe(trainerFor("experiment-0", "local", ["local", "control"], trainers));
+    expect(cardInputFor(local, 1000, 1000, "replay", runs, art).trainer).not.toBe(cardInputFor(control, 1000, 1000, "live", runs, art).trainer);
+  });
   it("draws a link instead of a button when given a destination", () => {
     const html = cardHtml(input(), ART, "wide", "/#run=run-a");
     expect(html.startsWith('<a class="tc tc-wide" href="/#run=run-a" data-watch="run-a"')).toBe(true); expect(html).not.toContain("aria-pressed"); expect(html.endsWith("</a>")).toBe(true);

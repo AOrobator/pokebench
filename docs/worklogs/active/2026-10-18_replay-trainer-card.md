@@ -18,8 +18,8 @@ The viewer header builds trainer cards only from runs that are currently live. W
 **M1 — selected replay card**
 - [x] RED: `trainer-card-app.test.ts` adds an ended selected run and requires its selected `REPLAY` card without a live dot while both live cards remain `LIVE`. Focused result: 1 failed / 12 passed because the replay card was absent.
 - [x] GREEN: the selected ended run joins the stable card row as a selected `REPLAY` card; replay and paused states have no live dot, and the phone sheet calls the mixed collection `RUNS`. Focused trainer-card/app/header tests: 47 passed.
-- [ ] Gates: focused tests, `just test`, `just lint`, `just build`, `just coverage`, `just verify-vendor`.
-- [ ] Browser proof on an owned preview: replay selection and live selection, pointer and keyboard, two polling cycles, screenshots at 1280, 1440 and 375.
+- [x] Gates: focused 47/47; `just build`; `just test` (agent 2,515, viewer 1,185, Python 2,709); `just lint`; `just coverage` (agent 98.00/94.19/98.31/99.24, viewer 95.41/91.49/93.84/97.64, Python lines 97.64 / branches 93.77 / functions 100); `just verify-vendor`.
+- [x] Browser proof on owned preview 8798 over a clone-on-write scratch copy of the selected replay plus two live runs. The replay reached `REPLAY`, showed its recorded frame, was selected, said `REPLAY`, had zero live dots, and remained so through two 5-second workbench polling cycles. Pointer and keyboard activation each selected a live card, retained keyboard focus, reached `RUNNING`, showed the live screen endpoint and restored `WATCHING` plus one live dot. Screenshots at 1280, 1440 and 375 were captured and visually inspected; at 375 the open phone sheet showed the replay first under `RUNS · TAP TO WATCH`, followed by two live cards. No application console errors; browser-extension warnings only. The browser-control surface did not expose persistent screenshot paths, so the inspected captures are in the task tool record rather than `runs/`.
 - [ ] Multi-model review and landing.
 
 ## Evidence

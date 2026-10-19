@@ -50,11 +50,12 @@ function cohortRun(): RunEvent[] {
 }
 
 let workbenchDown = false;
-async function mount(width: number, options: { art?: boolean; fresh?: boolean; glyphs?: boolean; runs?: typeof RUNS } = {}): Promise<{ app: App; streams: FakeStream[]; drawn: number[] }> {
+async function mount(width: number, options: { art?: boolean; fresh?: boolean; glyphs?: boolean; runs?: typeof RUNS; replayStatus?: "ended" | "live" } = {}): Promise<{ app: App; streams: FakeStream[]; drawn: number[] }> {
   nowMs = BASE_MS + 3_500; setWidth(width); fetched.length = 0; workbenchDown = false;
   document.body.innerHTML = PAGE.slice(PAGE.indexOf("<body>") + 6, PAGE.indexOf("</body>"));
   const streams: FakeStream[] = [], drawn: number[] = [];
-  const replay = { ...wbRun(REPLAY_ID, "bundle", 1_000_000, 3_600_000), status: "ended" as const, reason: "budget" };
+  const replayStatus = options.replayStatus ?? "ended";
+  const replay = { ...wbRun(REPLAY_ID, "bundle", 1_000_000, 3_600_000), status: replayStatus, reason: replayStatus === "ended" ? "budget" : null };
   const workbench = { version: 1, at: nowMs, milestones: [], problems: [], runs: [wbRun(LIVE_ID, "bundle", options.fresh === true ? 2_790_000 : 1_000_000, 2_800_000), wbRun(OTHER_ID, "control", 500_000, 2_700_000), replay] };
   const deps: AppDeps = {
     fetchJson: (url) => {
@@ -159,6 +160,23 @@ describe("trainer cards in the viewer", () => {
     expect(replay.getAttribute("aria-pressed")).toBe("true");
     expect(replay.innerHTML).toContain('data-gt="REPLAY"');
     expect(replay.querySelector(".tc-dot")).toBeNull();
+  });
+
+  it("keeps replay fallback semantics when the retained workbench snapshot still says live", async () => {
+    await mount(1280, { runs: [must(RUNS[2])], replayStatus: "live" });
+    const replay = card(ui("run-cards"), REPLAY_ID);
+    expect(replay.getAttribute("aria-pressed")).toBe("true");
+    expect(replay.innerHTML).toContain('data-gt="REPLAY"');
+    expect(replay.querySelector(".tc-dot")).toBeNull();
+  });
+
+  it("does not admit an ended workbench record into a stale live run list", async () => {
+    const staleRuns = RUNS.map((run) => run.id === REPLAY_ID ? { ...run, ended: false, live: true } : run);
+    const { app } = await mount(1280, { runs: staleRuns });
+    app.select(REPLAY_ID);
+    const row = ui("run-cards");
+    expect(row.querySelectorAll(".tc.tc-wide")).toHaveLength(2);
+    expect(row.querySelector(`[data-watch="${REPLAY_ID}"]`)).toBeNull();
   });
 
   it("ticks the clock in place without redrawing the card, so its animations keep running", async () => {

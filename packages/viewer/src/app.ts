@@ -371,13 +371,15 @@ export class App {
     // Preserve the API's stable live-run order. A selected replay is a fallback card,
     // never an extra card mixed into an active live-run row.
     const live = this.runs.filter(isLive);
-    const candidates = live.length > 0 ? live : this.runs.filter((run) => run.id === this.runId);
-    return candidates.flatMap((run): CardInput[] => {
+    if (live.length > 0) return live.flatMap((run): CardInput[] => {
       const recorded = workbench.runs.find((r) => r.id === run.id);
-      if (recorded === undefined || (recorded.status !== "live" && recorded.status !== "paused" && !(run.id === this.runId && recorded.status === "ended"))) return [];
-      const status: CardInput["status"] = recorded.status === "ended" ? "replay" : run.id === this.runId ? "watching" : recorded.status === "paused" ? "paused" : "live";
+      if (recorded === undefined || (recorded.status !== "live" && recorded.status !== "paused")) return [];
+      const status: CardInput["status"] = run.id === this.runId ? "watching" : recorded.status === "paused" ? "paused" : "live";
       return [cardInputFor(recorded, workbench.at, now, status, workbench.runs, art.art)];
     });
+    const replay = this.runs.find((run) => run.id === this.runId && run.ended === true);
+    const recorded = replay === undefined ? undefined : workbench.runs.find((run) => run.id === replay.id);
+    return recorded === undefined ? [] : [cardInputFor(recorded, workbench.at, now, "replay", workbench.runs, art.art)];
   }
 
   private listRuns(runs: RunChoice[]): void {

@@ -66,3 +66,6 @@ The viewer header originally built trainer cards only from runs that are current
 ### Round 3 — live-card precedence correction
 
 - Operator clarification (2026-10-19): "the replay card shouldn't be visible when there are live runs". The corrected contract is live cards only whenever any live cards exist, otherwise the selected ended run appears as the sole dotless `REPLAY` card.
+- First frozen packet: base `24232e63b025be83dde539d812345dc5f7580e89`, head `01383dd4095ca41de1fc0e2e5d5e797f4684014b`, binary-diff SHA-256 `6912a850533f9013cc4fbd2de3d6dd5b13ab56b7dc8e43cc8515efbc494b549f`.
+- Fresh read-only subagent review returned `VERDICT: CHANGES REQUESTED`: `/api/runs` and the retained workbench snapshot can temporarily disagree, allowing a stale-live workbench record to mark replay fallback `WATCHING`, or an ended workbench record to enter a stale live row.
+- Fix: run discovery now selects the mode, but workbench records must match it. The live branch admits only `live`/`paused` workbench records; the ended-run fallback always presents as `REPLAY`. Two disagreement tests cover stale workbench-live fallback and stale run-list-live exclusion. Focused app result: 16/16.

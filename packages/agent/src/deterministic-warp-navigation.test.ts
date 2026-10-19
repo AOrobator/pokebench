@@ -5,7 +5,7 @@ import {ALL_ON,SWITCHABLE_FEATURES,featureInfo,playHarnessFeatures,type FeatureS
 import type {GameStateSnapshot} from "./game-state.js";
 import {observeTool,pressTool,type CheckedPressTool} from "./game-tools.js";
 import {navigationTool,withNavigation,type NavigationPorts} from "./navigation.js";
-import {experimentArms,parseExperiment} from "./experiments.js";
+import {deriveStatus,experimentArms,parseExperiment} from "./experiments.js";
 import {flagFeatures,normalizeFeatures,presetFeatures,parsePlayPreset} from "./play-preset.js";
 
 const ID="deterministic-warp-navigation-v1";
@@ -215,7 +215,9 @@ describe("deterministic-warp-navigation-v1",()=>{
   const bundle=JSON.parse(readFileSync(new URL("../../../experiments/fixed/bundle-v-control.json",import.meta.url),"utf8")) as {base:{features:Record<string,boolean>};switches:string[];onInBoth:string[]};
   expect(bundle.base.features[ID]).toBe(false);expect(bundle.switches).toContain(ID);expect(bundle.onInBoth).not.toContain(ID);
   const raw=JSON.parse(readFileSync(new URL("../../../experiments/deterministic-warp-navigation.json",import.meta.url),"utf8")) as {queuePosition?:number;changedFeature:string;incumbent:{features:Record<string,boolean>}};
-  expect(raw.queuePosition).toBeUndefined();expect(raw.changedFeature).toBe(ID);const arms=experimentArms(parseExperiment(raw));expect(arms.incumbent.features[id]).toBe(false);expect(arms.candidate.features[id]).toBe(true);expect(SWITCHABLE_FEATURES.filter(feature=>arms.incumbent.features[feature]!==arms.candidate.features[feature])).toEqual([ID]);
+  expect(raw.queuePosition).toBeUndefined();expect(raw.changedFeature).toBe(ID);const experiment=parseExperiment(raw),arms=experimentArms(experiment);expect(arms.incumbent.features[id]).toBe(false);expect(arms.candidate.features[id]).toBe(true);expect(SWITCHABLE_FEATURES.filter(feature=>arms.incumbent.features[feature]!==arms.candidate.features[feature])).toEqual([ID]);
+  const ready={ready:true,basis:"comparable",milestone:"CLOCK_SET",window:4,minReached:3,reached:4,considered:["r1","r2","r3","r4"]} as const;
+  const status=deriveStatus({experiment,approval:null,ledger:[],runner:null,readiness:ready});expect(status.state).toBe("blocked");expect(status.reason).toContain("bundle arm");
   const explainer=readFileSync(new URL("../../../docs/explainers/deterministic-warp-navigation-v1.html",import.meta.url),"utf8");expect(explainer).toContain("weighted terrain/ledge cost");expect(explainer).not.toContain("Route length wins");
  });
 });

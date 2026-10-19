@@ -2,13 +2,14 @@
  "version": 1,
  "id": "deterministic-warp-navigation",
  "title": "Deterministic equivalent warp navigation",
+ "blocked": "Measured in the bundle arm of bundle-v-control; this standalone registration must remain off the experiment queue.",
  "changedFeature": "deterministic-warp-navigation-v1",
  "hypothesis": "Selecting the cheapest safely equivalent warp and completing a known directional warp with one verified direction press reduces unnecessary navigation commands without reducing rival-house entry completion.",
  "activationMilestone": "CLOCK_SET",
  "primaryMilestone": "RIVAL_HOUSE_ENTERED",
  "source": {
   "checkout": "main",
-  "commit": "15cccbf9953d5f63f939d409cd6b98f0e8408832"
+  "commit": "4d2d69d906f09629566a48b19e50c7aa18952603"
  },
  "incumbent": {
   "version": 2,

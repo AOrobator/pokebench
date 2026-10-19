@@ -5,13 +5,13 @@ import {gunzipSync} from "node:zlib";
 import {mkdtempSync,readFileSync,rmSync} from "node:fs";
 import {tmpdir} from "node:os";
 import {join} from "node:path";
-import type {AgentTool,AgentToolResult} from "@mariozechner/pi-agent-core";
+import type {AgentMessage,AgentTool,AgentToolResult} from "@mariozechner/pi-agent-core";
 import {BATTLE_BUSY_BOUNDS,BattleJournal,advanceBattle,battleEngaged,battlePage,classifyBattle,type BattleRun,type BattleTextEntry,type BattleTextSource} from "./battle-text-auto-advance.js";
 import {AUTO_ADVANCE_LIMITS,DialogueRecord,withDialogueAutoAdvance,type AutoAdvanceRecorder} from "./dialogue-auto-advance.js";
 import {DialogueLog} from "./dialogue-log.js";
 import {observeTool,pressTool,type Clock} from "./game-tools.js";
 import {StateWatcher,parseGameState,type GameStateSnapshot} from "./game-state.js";
-import {playGameTools} from "./play-wiring.js";
+import {battleDecisionContext,playGameTools} from "./play-wiring.js";
 import {flagFeatures,normalizeFeatures,parsePlayPreset,presetFeatures} from "./play-preset.js";
 import {playSystemPrompt} from "./play-config.js";
 import {FEATURES,SERVER_FEATURES,SWITCHABLE_FEATURES,dependencyProblems,featureInfo,playHarnessFeatures,type FeatureSet} from "./features.js";
@@ -426,10 +426,10 @@ describe("battle-text-auto-advance-v1 registry and production wiring",()=>{
  it("is a default-off guidance switch, recorded last, that needs dialogue auto-advance and no server switch",()=>{
   expect(featureInfo(ID)).toMatchObject({group:"guidance",needs:"dialogue-auto-advance-v1",switchable:true,title:"BATTLE TEXT AUTO-ADVANCE"});
   expect(featureInfo(ID).description).toContain(" Off: field auto-advance stops when a battle starts");
-  expect(SWITCHABLE_FEATURES.at(-69)).toBe(ID);
-  expect(FEATURES.filter(f=>f.switchable).at(-69)?.id).toBe(ID);
-  expect(playHarnessFeatures(ALL_ON,null).at(-65)).toBe(ID);
-  expect(playHarnessFeatures({...ALL_ON,[ID]:false},null)).not.toContain(ID);
+  expect(SWITCHABLE_FEATURES.at(-67)).toBe(ID);
+  expect(FEATURES.filter(f=>f.switchable).at(-71)?.id).toBe(ID);
+  expect(playHarnessFeatures(ALL_ON,null).at(-67)).toBe(ID);
+  expect(playHarnessFeatures({...ALL_ON,"battle-decision-ready-v1":false,[ID]:false},null)).not.toContain(ID);
   expect(SERVER_FEATURES).not.toContain(ID);
   expect(dependencyProblems({...ON,"dialogue-auto-advance-v1":false})).toContain(`${ID} needs dialogue-auto-advance-v1`);
   expect(dependencyProblems(ON)).toEqual([]);
@@ -442,19 +442,19 @@ describe("battle-text-auto-advance-v1 registry and production wiring",()=>{
  it("normalized presets list every switch in registry order, so this switch comes just before battle-message-waiting-v1, even from a preset that already names it",()=>{
   // Codex merge review round 5: a preset written before the newest switches, which already names this one.
   const newer=new Set<string>(["explorer-guidance-v1","connection-edge-tiles-v1","in-game-naming-readout-v1","no-nickname-guidance-v1","offscreen-objects-v1","navigate-first-prompt-v1","presence-penalty-v1"]);
-  const frozen=Object.fromEntries(Object.entries({...ALL_ON,[ID]:false}).filter(([id])=>!newer.has(id)));
+  const frozen=Object.fromEntries(Object.entries({...ALL_ON,"battle-decision-ready-v1":false,[ID]:false}).filter(([id])=>!newer.has(id)));
   const preset=parsePlayPreset({version:2,id:"frozen-base",target:null,limits:{maxTurns:10,maxWallMs:60000,failureLimit:3},sampling:{thinkingLevel:"medium",maxTokens:4096},features:{...frozen,"state-only-decisions-v1":false}});
   expect(Object.keys(presetFeatures(preset))).toEqual([...SWITCHABLE_FEATURES]);
-  expect(Object.keys(presetFeatures(preset)).slice(-69,-63)).toEqual([ID,"battle-message-waiting-v1","script-line-presence-v1","offscreen-objects-v1","navigate-first-prompt-v1","presence-penalty-v1"]);
+  expect(Object.keys(presetFeatures(preset)).slice(-67,-61)).toEqual([ID,"battle-message-waiting-v1","script-line-presence-v1","offscreen-objects-v1","navigate-first-prompt-v1","presence-penalty-v1"]);
   for(const id of ["offscreen-objects-v1","navigate-first-prompt-v1","presence-penalty-v1"] as const)expect(presetFeatures(preset)[id]).toBe(false);
  });
 
  it("is the key before battle-message-waiting-v1 wherever a preset or default lists switches, and in the registry",()=>{
   const later=new Set<string>(["battle-triage-guidance-v1","adjacent-tiles-v1","readout-rules-in-prompt-v1","explorer-guidance-v1","connection-edge-tiles-v1","in-game-naming-readout-v1","no-nickname-guidance-v1",ID,"script-line-presence-v1","offscreen-objects-v1","navigate-first-prompt-v1","presence-penalty-v1"]);
   const old=Object.fromEntries(Object.entries(ALL_ON).filter(([id])=>!later.has(id))) as Omit<FeatureSet,"battle-triage-guidance-v1"|"adjacent-tiles-v1"|"readout-rules-in-prompt-v1"|"explorer-guidance-v1"|"connection-edge-tiles-v1"|"in-game-naming-readout-v1"|"no-nickname-guidance-v1"|typeof ID|"script-line-presence-v1"|"offscreen-objects-v1"|"navigate-first-prompt-v1"|"presence-penalty-v1">;
-  expect(Object.keys(normalizeFeatures(old)).slice(-69,-63)).toEqual([ID,"battle-message-waiting-v1","script-line-presence-v1","offscreen-objects-v1","navigate-first-prompt-v1","presence-penalty-v1"]);
+  expect(Object.keys(normalizeFeatures(old)).slice(-67,-61)).toEqual([ID,"battle-message-waiting-v1","script-line-presence-v1","offscreen-objects-v1","navigate-first-prompt-v1","presence-penalty-v1"]);
   for(const id of ["offscreen-objects-v1","navigate-first-prompt-v1","presence-penalty-v1"] as const)expect(normalizeFeatures(old)[id]).toBe(false);
-  expect(Object.keys(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:true})).at(-69)).toBe(ID);
+  expect(Object.keys(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:true})).at(-67)).toBe(ID);
   expect(SWITCHABLE_FEATURES.indexOf(ID)).toBe(SWITCHABLE_FEATURES.indexOf("no-nickname-guidance-v1")+1);
  });
 
@@ -495,4 +495,139 @@ describe("battle-text-auto-advance-v1 registry and production wiring",()=>{
    expect(offServer.battlePaths()).toEqual([]);
   }finally{rmSync(root,{recursive:true,force:true});}
  });
+});
+
+
+describe("battle-decision-ready-v1",()=>{
+ const ready={...ON,"battle-decision-ready-v1":true} as FeatureSet;
+ it("settles an encounter on observe before returning a decision, listing its pages",async()=>{
+  const server=new ScriptServer([WAITING,BUSY,INPUT],[entry(1,1,"Wild WURMPLE appeared!")]);
+  const {tool,rec}=wire(server,ready);
+  const result=await tool("observe").execute("o-ready",{});
+  expect(server.posts.map(p=>p.button)).toEqual(["B"]);
+  expect(stateOfResult(result).battle?.text_phase).toBe("input");
+  expect(textOf(result)).toContain("Wild WURMPLE appeared!");
+  expect(rec.advances()).toMatchObject([{tool:"observe",stop:"battle_input",battle_auto_presses:1}]);
+  expect(()=>checkEvent(rec.advances()[0])).not.toThrow();
+ });
+ it("settles before battle_action validation, and keeps the preflight text in the result",async()=>{
+  const server=new ScriptServer([WAITING,BUSY,INPUT],[entry(1,1,"Wild WURMPLE appeared!")]);
+  let called=0;
+  const action:AgentTool={name:"battle_action",label:"b",description:"choose",parameters:Type.Object({}),execute:()=>{
+   called++;expect(server.now.battle?.text_phase).toBe("input");
+   return Promise.resolve({content:[{type:"text",text:"Battle action: chose SCRATCH"}],details:{state:server.now,battle_action:{refused:false}}});
+  }};
+  const {tool}=wire(server,ready,[action]);
+  const result=await tool("battle_action").execute("b-ready",{});
+  expect(called).toBe(1);expect(server.posts.map(p=>p.button)).toEqual(["B"]);
+  expect(textOf(result)).toContain("Wild WURMPLE appeared!");
+  expect(textOf(result)).toContain("chose SCRATCH");
+ });
+ it.each(["prompt","screen"] as const)("stops at %s without executing a queued battle action",async phase=>{
+  const boundary=battleWith(INPUT,{text_phase:phase},phase==="screen"?{screen:"party_menu"}:{});
+  const server=new ScriptServer([WAITING,boundary],[]);let called=0;
+  const action:AgentTool={name:"battle_action",label:"b",description:"choose",parameters:Type.Object({}),execute:()=>{called++;throw new Error("must not execute");}};
+  const {tool}=wire(server,ready,[action]);
+  const result=await tool("battle_action").execute("b-boundary",{});
+  expect(called).toBe(0);expect(server.posts.map(p=>p.button)).toEqual(["B"]);
+  expect(textOf(result)).toContain("not executed");
+  expect(stateOfResult(result).battle?.text_phase).toBe(phase);
+ });
+ it("OFF keeps observe unchanged and refuses battle_action without advancing",async()=>{
+  const server=new ScriptServer([WAITING,INPUT],[]);
+  const {tool,rec}=wire(server,ON);
+  await tool("observe").execute("o-off",{});
+  expect(server.posts).toEqual([]);expect(rec.advances()).toEqual([]);
+ });
+});
+function stateOfResult(result:AgentToolResult<unknown>):GameStateSnapshot {
+ const d=result.details;if(typeof d!=="object"||d===null||!("state" in d))throw new Error("missing state");return parseGameState(d.state);
+}
+
+
+it("battle decision request context settles through the production factory before ledgers and preserves OFF identity",async()=>{
+ const ready={...ON,"battle-decision-ready-v1":true} as FeatureSet;
+ const server=new ScriptServer([WAITING,BUSY,INPUT],[entry(1,1,"Wild WURMPLE appeared!")]);
+ const clock=fakeClock(),rec=memoryRecorder(),source=new StateWatcher(URL_BASE,server.fetch);
+ const base=[observeTool(URL_BASE,server.fetch),pressTool(URL_BASE,{beforePress:()=>undefined,afterPress:()=>Promise.resolve()},server.fetch,clock)];
+ const tools=playGameTools(base,ready,source,rec.api);
+ const received:unknown[]=[];
+ const snapshots:unknown[]=[];const snapshotRecorder={recordDecisionSnapshot:(snapshot:unknown)=>{snapshots.push(snapshot);}};
+ const chain:Parameters<typeof battleDecisionContext>[3]=messages=>{received.push(server.now.battle?.text_phase);return Promise.resolve(messages);};
+ expect(battleDecisionContext(ON,source,tools,chain,snapshotRecorder)).toBe(chain);
+ const transform=battleDecisionContext(ready,source,tools,chain,snapshotRecorder);
+ const messages=await transform([]);
+ expect(received).toEqual(["input"]);
+ expect(snapshots).toMatchObject([{state:{battle:{text_phase:"input"}}}]);
+ expect(JSON.stringify(messages)).toContain("Wild WURMPLE appeared!");
+ expect(JSON.stringify(messages)).toContain("Harness battle update");
+ const canonical:AgentMessage[]=[];
+ const next=await transform(canonical);
+ expect(JSON.stringify(next)).toContain("Wild WURMPLE appeared!");
+ expect(next).toHaveLength(1);expect(server.posts).toHaveLength(1);
+ const contextTool:AgentMessage={role:"toolResult",toolCallId:"memory-1",toolName:"get_dialogue",isError:false,content:[{type:"text",text:"memory result"}],timestamp:2};
+ const afterMemory=await transform([contextTool]);expect(JSON.stringify(afterMemory)).toContain("Wild WURMPLE appeared!");
+ const failedObserve:AgentMessage={...contextTool,toolName:"observe",isError:true};
+ expect(JSON.stringify(await transform([failedObserve]))).toContain("Wild WURMPLE appeared!");
+ const gameResult:AgentMessage={role:"toolResult",toolCallId:"observe-new",toolName:"observe",isError:false,content:[{type:"image",data:png,mimeType:"image/png"},{type:"text",text:"newer game observation"}],timestamp:3};
+ const observed=[gameResult];expect(await transform(observed)).toBe(observed);
+ const cancelled=new AbortController();cancelled.abort();
+ await expect(battleDecisionContext(ready,source,tools,chain,snapshotRecorder,cancelled.signal)([])).rejects.toThrow();
+ expect(server.posts).toHaveLength(1);
+});
+
+it("battle readiness never executes a queued action after a cap or battle end",async()=>{
+ const ready={...ON,"battle-decision-ready-v1":true} as FeatureSet;
+ for(const states of [[WAITING],[WAITING,FIELD]]){
+  const server=new ScriptServer(states,[]);let called=0;
+  const action:AgentTool={name:"battle_action",label:"b",description:"choose",parameters:Type.Object({}),execute:()=>{called++;throw new Error("must not execute");}};
+  const {tool}=wire(server,ready,[action]);
+  const result=await tool("battle_action").execute("b-cap",{});
+  expect(called).toBe(0);expect(textOf(result)).toContain("not executed");
+  expect(server.posts.length).toBeLessThanOrEqual(AUTO_ADVANCE_LIMITS.presses);
+ }
+});
+
+it("battle readiness is append-only, default OFF for historical presets and dependent on native text advancing",()=>{
+ const id="battle-decision-ready-v1" as const;
+ expect(SWITCHABLE_FEATURES.at(-1)).toBe(id);
+ expect(playHarnessFeatures(ALL_ON,null).at(-1)).toBe(id);
+ expect(featureInfo(id)).toMatchObject({needs:ID,group:"guidance"});
+ const flags=flagFeatures({loopGuard:false,activeUi:true,interfaceDocs:true,objectives:false});
+ expect(flags[id]).toBe(false);
+ const legacy=Object.fromEntries(Object.entries(flags).filter(([key])=>key!==id)) as Omit<FeatureSet,typeof id>;
+ expect(normalizeFeatures(legacy)[id]).toBe(false);
+ expect(dependencyProblems({...flags,[id]:true})).toContain(`${id} needs ${ID}`);
+});
+
+it("production battle readiness waits for the operator pause gate before automatic inputs",async()=>{
+ const ready={...ON,"battle-decision-ready-v1":true} as FeatureSet;
+ const server=new ScriptServer([WAITING,BUSY,INPUT],[]),source=new StateWatcher(URL_BASE,server.fetch),rec=memoryRecorder(),clock=fakeClock();
+ let resume:()=>void=()=>{throw new Error("gate not installed");};
+ const paused=new Promise<void>(resolve=>{resume=resolve;});let gates=0;
+ const base=[observeTool(URL_BASE,server.fetch),pressTool(URL_BASE,{beforePress:()=>undefined,afterPress:()=>Promise.resolve()},server.fetch,clock)];
+ const tools=playGameTools(base,ready,source,rec.api,()=>{gates++;return paused;});
+ const observe=tools.find(t=>t.name==="observe");if(observe===undefined)throw new Error("observe missing");
+ const result=observe.execute("paused-readiness",{});
+ await new Promise<void>(resolve=>setImmediate(resolve));
+ expect(gates).toBeGreaterThan(0);expect(server.posts).toEqual([]);expect(rec.advances()).toEqual([]);
+ resume();await result;
+ expect(server.posts.map(p=>p.button)).toEqual(["B"]);
+ expect(server.now.battle?.text_phase).toBe("input");
+});
+
+
+it.each(["observe","battle_action"] as const)("battle settling preserves an intermediate whiteout notice for %s",async name=>{
+ const notice="Whited out: your party had no usable Pokémon left; money halved: ₽3000 → ₽1500.";
+ const receipt={frame:81,money_before:3000,notice};
+ const recovery={...fieldMessage("You should rest your POKéMON.",true),blackout_receipt:receipt};
+ const server=new ScriptServer([WAITING,recovery,FIELD],[]);
+ server.readout=state=>`Screen: ${state.screen}${state.blackout_receipt===undefined?"":`\n${state.blackout_receipt.notice}`}`;
+ const action:AgentTool={name:"battle_action",label:"b",description:"choose",parameters:Type.Object({}),execute:()=>{throw new Error("queued action must not execute across battle end");}};
+ const ready={...ON,"battle-decision-ready-v1":true} as FeatureSet;
+ const {tool}=wire(server,ready,[action]);
+ const result=await tool(name).execute("whiteout-ready",{});
+ expect(textOf(result)).toContain(notice);
+ expect(stateOfResult(result).blackout_receipt).toEqual(receipt);
+ expect(server.posts.map(p=>p.button)).toEqual(["B","B"]);
 });

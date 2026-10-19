@@ -1,7 +1,8 @@
 import type {AgentMessage,AgentTool} from "@mariozechner/pi-agent-core";
+import {battleEngaged} from "./battle-text-auto-advance.js";
 import {withDialogueAutoAdvance,type AutoAdvanceRecorder} from "./dialogue-auto-advance.js";
 import {dialogueLog} from "./dialogue-log.js";
-import type {StateSource} from "./game-state.js";
+import {parseGameState,type StateSource} from "./game-state.js";
 import {withNavigation,type NavigationPorts} from "./navigation.js";
 import {withNavigateFirst} from "./navigate-first.js";
 import {withLowHpTrainerWarning,type WarningRecorder} from "./low-hp-trainer-warning.js";
@@ -98,8 +99,36 @@ export function stallStop(features:FeatureSet,recorder:Pick<RunRecorder,"subscri
 export function playGameTools(base:readonly AgentTool[],features:FeatureSet,state:StateSource,recorder:AutoAdvanceRecorder&WarningRecorder&IdCardRecorder&TrustRecorder&Pick<CitationRecorder,"destinationCitation">,gate?:NavigationPorts["gate"],extra:readonly AgentTool[]=[]):AgentTool[]{
  const terrain=features["visited-terrain-navigation-v1"]&&!features["full-map-navigation-v1"]?new VisitedTerrain():null;
  const navigationState=terrain?.source(state)??state;
- const facts=[...withResultFacts(withLowHpTrainerWarning(withNavigateFirst([...withInstructionLedgerV2(withStoryDestinations(withPeopleIdCards(withUntakenExits(withPeopleLedger(withDialogueAutoAdvance(withBattleAction(withNoExitHere(withNavigation(base,features,navigationState,gate),features),features,state,gate),features,{state,recorder}),features,recorder),features,recorder),features,recorder),features,recorder,state),features,recorder),...extra],features),features,recorder,state),features,recorder)];
+ const facts=[...withResultFacts(withLowHpTrainerWarning(withNavigateFirst([...withInstructionLedgerV2(withStoryDestinations(withPeopleIdCards(withUntakenExits(withPeopleLedger(withDialogueAutoAdvance(withBattleAction(withNoExitHere(withNavigation(base,features,navigationState,gate),features),features,state,gate),features,{state,recorder,...(gate===undefined?{}:{gate})}),features,recorder),features,recorder),features,recorder),features,recorder,state),features,recorder),...extra],features),features,recorder,state),features,recorder)];
  const visible=terrain===null?facts:withVisitedTerrain(facts,terrain);
  const cited=withCitedDestination(visible,features["cited-destination-v1"],recorder,{fullMap:features["full-map-navigation-v1"],exitReach:features["exit-reachability-v1"],silenceMiss:features["input-cuts-v1"]});
  return withHarnessTrust(cited,features["harness-trust-v1"],recorder,state,{supervisor:true,battleAction:features["harness-trust-v2"],goalOnce:features["input-cuts-v1"],retireLab:features["stale-story-goal-v1"],stageBound:features["stale-story-goal-v2"],omitEmptyGoal:features["stale-story-goal-v2"],scriptedGuidance:features["scripted-place-guidance-v1"],reachableGoal:features["reachable-story-guidance-v1"]});
+}
+
+
+export function battleDecisionContext(features:FeatureSet,state:StateSource,tools:readonly AgentTool[],base:Transform,recorder:Pick<RunRecorder,"recordDecisionSnapshot">,signal?:AbortSignal):Transform {
+ if(!features["battle-decision-ready-v1"])return base;
+ const observe=tools.find(t=>t.name==="observe");
+ if(observe===undefined)throw new Error("Battle decision readiness requires observe");
+ let sequence=0;
+ let retained:AgentMessage|null=null,observedAt:string|null=null;
+ const gameTools=new Set(["observe","press","navigate_to","battle_action","act"]);
+ return async messages=>{
+  const latest=messages.findLast(message=>message.role==="toolResult"&&gameTools.has(message.toolName)&&!message.isError&&message.content.some(part=>part.type==="image"));
+  const anchor=latest?.role==="toolResult"?JSON.stringify([latest.toolName,latest.toolCallId,latest.timestamp]):null;
+  if(anchor!==null&&anchor!==observedAt)retained=null;
+  signal?.throwIfAborted();
+  const current=await state.read(signal);
+  if(!battleEngaged(current))return base(retained===null?messages:[...messages,retained]);
+  const result=await observe.execute(`battle-ready-${String(++sequence)}`,{},signal);
+  const image=result.content.find(c=>c.type==="image");
+  const details:unknown=result.details;
+  if(image===undefined||typeof details!=="object"||details===null||!("state" in details))throw new Error("Battle readiness observation lacks a coherent snapshot");
+  const text=result.content.flatMap(c=>c.type==="text"?[c.text]:[]).join("\n");
+  const snapshot={state:parseGameState(details.state),content:[image,{type:"text" as const,text}]} as const;
+  recorder.recordDecisionSnapshot(snapshot);
+  observedAt=anchor;
+  retained={role:"user",content:[{type:"text",text:"Harness battle update before your next decision:"},...snapshot.content],timestamp:Date.now()};
+  return base([...messages,retained]);
+ };
 }

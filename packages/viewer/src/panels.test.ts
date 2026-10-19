@@ -1241,6 +1241,24 @@ it("links stable JIT v2's native feature card to its tracked guide and receipt c
  expect(html).toContain("projected_guidance");expect(html).toContain("canonical_history_json");
 });
 
+it("links the semantic battle refusal switch to its tracked mechanism",()=>{
+ const id="battle-refusal-loop-v1";
+ expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
+ const log=new Log();log.add(0,{...START,harness_features:["ram-state-v1",id]});
+ const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
+ expect(doc.querySelector(`[data-feature="${id}"] a`)?.getAttribute("href")).toBe(`/explainers/${id}.html`);
+ const html=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)),"utf8");
+ for(const text of [id,"no button press","paired native battle","Default OFF"])expect(html).toContain(text);
+});
+
+it("links battle decision readiness from its recorded feature card",()=>{
+ const id="battle-decision-ready-v1";
+ expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
+ const log=new Log();log.add(0,{...START,harness_features:["ram-state-v1",id]});
+ const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
+ expect(doc.querySelector(`[data-feature="${id}"] a`)?.getAttribute("href")).toBe(`/explainers/${id}.html`);
+});
+
 it("links every recovery treatment to its tracked explainer",()=>{
  for(const id of ["ineffective-navigation-v2","supervisor-briefing-v2","reachable-story-guidance-v1","text-only-supervisor-v2"]){expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);expect(readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)),"utf8")).toContain(id);}
 });

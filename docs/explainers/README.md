@@ -128,3 +128,6 @@ The original ignored runs/explainers copies remain for existing links. Make futu
 - [Reachable story guidance](reachable-story-guidance-v1.html) — default-OFF recovery treatment; fixed bundle ON / control OFF.
 - [Truthful text-only supervisor](text-only-supervisor-v2.html) — default-OFF recovery treatment; fixed bundle ON / control OFF.
 - [Extend an active run (operator control)](extend-run.html)
+
+- [Battle decision readiness](battle-decision-ready-v1.html): bounded non-choice battle settling before model requests and semantic action validation; shared by control and bundle.
+- [Battle action refusals](battle-refusal-loop-v1.html): default-OFF semantic refusal coverage using the existing rejection lifecycle.

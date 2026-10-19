@@ -28,7 +28,7 @@ code{font-family:var(--mono);font-size:.88em}
 section{display:flex;flex-direction:column;gap:12px}
 figure{margin:0;display:flex;flex-direction:column;gap:8px}
 .scroll{overflow-x:auto}
-svg{display:block;max-width:100%;height:auto}
+svg{display:block;min-width:700px;max-width:100%;height:auto}
 figcaption{font-size:.88rem;color:var(--soft)}
 svg text{font-family:var(--body);font-size:12px;fill:var(--fg)}
 svg .s{fill:var(--soft);font-size:11px}
@@ -71,7 +71,7 @@ Party (tutorial): ZIGZAGOON Lv7 HP 23/23 · moves TACKLE PP 35 · nickname ZIGZA
 state JSON: party_owner "tutorial" (source native_wally_tutorial_script)</pre><pre class="off">OFF, 93eb seq 16529 (tutorial battle)
 Party (tutorial): UNKNOWN LvNone HP None/None · HARNESS BUG: harness bug: Pokémon invalid move or PP</pre><pre class="on">ON, 93eb seq 16529
 Party (tutorial): ZIGZAGOON Lv7 HP 24/24 · moves TACKLE PP 33 · nickname ZIGZAGOON</pre>
-  <figcaption>Recorded RAM re-rendered on the real ROM with the switch off and on (env/tests/env/test_readout_truth_fixes.py). Nothing else in the readout changes.</figcaption>
+  <figcaption>Recorded RAM re-rendered on the real ROM with the switch off and on (env/tests/env/test_readout_truth_fixes.py). The original party-only comparison is shown here. The October 19 repair below also restores battle details.</figcaption>
  </figure>
 </section>
 
@@ -95,13 +95,14 @@ Party (tutorial): ZIGZAGOON Lv7 HP 24/24 · moves TACKLE PP 33 · nickname ZIGZA
 
 <section>
  <h2>Limits</h2>
- <ul><li>An owner that cannot be established still reads <code>Party (unknown)</code>; the switch only stops the agent losing the observation.</li><li>Measurement decoders other than the readout's party read (menus, action history) are unchanged.</li></ul>
+ <ul><li>An owner that cannot be established still reads <code>Party (unknown)</code>; the switch only stops the agent losing the observation.</li><li>The October 19 extension threads the same switch through the battle reader, active UI and native action journal; unrelated menu decoders retain their contracts.</li></ul>
 </section>
 
 <section>
  <h2>Status</h2>
- <p>Branch <code>claude/readout-truth-fixes</code> (2026-10-17 top-50 run analysis, Group A); gates in <code>docs/worklogs/active/2026-10-17_readout-truth-fixes.md</code>. Server switch, default off, bundle arm only; registered as a pending experiment, not queued. Not reviewed or measured yet.</p>
+ <p>Original party repair: October 17 top-50 audit. Current battle-coverage candidate: <code>codex/wally-battle-readout</code>, worklog <code>docs/worklogs/active/2026-10-19_wally-battle-readout.md</code>. Existing server switch, default off; experiment pending. Correctness tests and native archive readback are separate from cloud review, main landing and measured benefit.</p>
 </section>
+<section><h2>Battle decoder coverage repair · October 19</h2><p>The same switch now reaches the battle reader and active UI reader. The native Wally tutorial flag, player-side ZIGZAGOON at level 7 and TACKLE followed by three empty slots qualify the retained PP exception. Ordinary battles and invalid PP still fail validation.</p><p>Verified archive: round 1 whole-map, turn 47, state 971, raw archive 886. Its move IDs are 33, 0, 0, 0 and PP bytes 35, 40, 30, 0. Empty slots stay empty in observations. When no player choice is waiting, the active UI says the game controls the tutorial.</p><p>Source: pret/pokeemerald 731ad5bf, LoadWallyZigzagoon and Wally battle controller. OFF retains the original battle decoder error. This repair establishes observation correctness; it does not establish runtime or milestone-speed recovery.</p></section>
 </main>
 </body>
 </html>

@@ -22,11 +22,13 @@
    "maxTokens": 4096
   },
   "features": {
+   "battle-decision-ready-v1": true,
    "active-field-message-buffer-v1": true,
    "active-ui-ownership-v1": true,
    "adjacent-tiles-v1": true,
    "automatic-running-v1": false,
    "battle-details-v2": true,
+   "battle-refusal-loop-v1": false,
    "battle-loss-recap-v1": true,
    "battle-message-waiting-v1": true,
    "battle-observation-loop-v1": true,
@@ -147,7 +149,6 @@
    "just-in-time-prompt-v2": false,
    "jit-guide-reuse-v1": false,
    "battle-effective-damage-v1": false,
-   "visited-terrain-navigation-v1": false,
    "deterministic-warp-navigation-v1": false,
    "ineffective-navigation-v2": false,
    "supervisor-briefing-v2": false,
@@ -166,6 +167,7 @@
   "harness-trust-v1",
   "cited-destination-v1",
   "battle-move-tool-v1",
+  "battle-refusal-loop-v1",
   "harness-trust-v2",
   "tutorial-party-owner-v1",
   "mid-frame-readout-v1",
@@ -202,6 +204,7 @@
   "jit-guide-reuse-v1"
  ],
  "onInBoth": [
+  "battle-decision-ready-v1",
   "navigation-truth-v1",
   "surf-gated-exits-v1",
   "cross-map-goal-v1",

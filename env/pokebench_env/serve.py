@@ -6,17 +6,22 @@ would expose emulator control (save/load state, actions) on the LAN. Wrapping
 checkout on `sys.path`; the working directory is the run's server dir (INV-7).
 """
 
+import asyncio
 import base64
+import math
 import os
 import sys
+import threading
+import time
 from collections.abc import Callable, Sequence
 from contextlib import AbstractContextManager
 from io import BytesIO
 from pathlib import Path
 from typing import Protocol, cast
 
-from fastapi import FastAPI, HTTPException
-from PIL.Image import Image
+import numpy as np
+from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
+from PIL import Image
 from pydantic import BaseModel
 
 from pokebench_env.action_history import install_action_history
@@ -26,14 +31,20 @@ from pokebench_env.battle_text import BattleWait, install_battle_text, install_b
 from pokebench_env.blackout_readout import SWITCH as BLACKOUT
 from pokebench_env.blackout_readout import WhiteoutLatch, install_whiteout_latch
 from pokebench_env.checkpoint import install_checkpoint
+from pokebench_env.frame_pacing import GameLoopServer, install_deadline_pacing
 from pokebench_env.game_screen import ReadMemory
 from pokebench_env.game_state import MapNames
 from pokebench_env.human import HumanServer, install_human
 from pokebench_env.levelup_box import SWITCH as LEVELUP_BOX
 from pokebench_env.memory_reader import Core, NativeCore, SnapshotMemoryReader, copy_native_region
-from pokebench_env.observation import ScreenshotFn, install_observation
+from pokebench_env.observation import RawSnapshotFn, ScreenshotFn, install_observation
 from pokebench_env.pause import SteppingServer, install_pause
-from pokebench_env.raw_ram import RawRamArchive
+from pokebench_env.raw_ram import (
+    RawRamArchive,
+    RawRamSnapshot,
+    Reservation,
+    shutdown_persistence_worker,
+)
 from pokebench_env.readout import features_off_from_env
 from pokebench_env.rom import resolve_rom
 from pokebench_env.screen_settle import (
@@ -53,7 +64,7 @@ PORYMAP_MAPS = (
 
 
 class FrameSource(Protocol):
-    def get_screenshot(self) -> Image | None: ...
+    def get_screenshot(self) -> Image.Image | None: ...
 
 
 class NativeScreenshot(BaseModel):
@@ -64,9 +75,38 @@ def native_screenshot(emulator: FrameSource) -> NativeScreenshot:
     image = emulator.get_screenshot()
     if image is None:
         raise HTTPException(status_code=503, detail="no screenshot available")
+    return native_screenshot_image(image)
+
+
+def native_screenshot_image(image: Image.Image) -> NativeScreenshot:
+    encoded = encode_png_base64(image)
+    if encoded is None:  # pragma: no cover - FrameSource promises a PIL image
+        raise HTTPException(status_code=503, detail="unsupported screenshot")
+    return NativeScreenshot(screenshot_base64=encoded)
+
+
+def frozen_native_screenshot(emulator: FrameSource) -> Callable[[], NativeScreenshot]:
+    """Copy framebuffer pixels under the emulator lock; encode afterward."""
+
+    image = emulator.get_screenshot()
+    if image is None:
+        raise HTTPException(status_code=503, detail="no screenshot available")
+    frozen = image.copy()
+    return lambda: native_screenshot_image(frozen)
+
+
+def encode_png_base64(screenshot: object) -> str | None:
+    """Encode the two frame shapes accepted by the pinned vendor producer."""
+
+    if isinstance(screenshot, Image.Image):
+        image = screenshot
+    elif isinstance(screenshot, np.ndarray):
+        image = Image.fromarray(screenshot)
+    else:
+        return None
     buffer = BytesIO()
     image.save(buffer, format="PNG")
-    return NativeScreenshot(screenshot_base64=base64.b64encode(buffer.getvalue()).decode("ascii"))
+    return base64.b64encode(buffer.getvalue()).decode("ascii")
 
 
 def _both(
@@ -86,6 +126,119 @@ class UvicornLike(Protocol):
     run: Callable[..., object]
 
 
+class FrameManagerLike(Protocol):
+    lock: threading.Lock
+    active_connections: list[object]
+    latest_frame: dict[str, object] | None
+
+    async def connect(self, websocket: WebSocket) -> None: ...
+
+    def disconnect(self, websocket: WebSocket) -> None: ...
+
+    async def send_latest_frame(self, websocket: WebSocket) -> None: ...
+
+
+class FrameCacheServer(Protocol):
+    frame_manager: FrameManagerLike
+    update_frame_cache: Callable[[object], None]
+
+
+def install_on_demand_frame_cache(
+    server: FrameCacheServer,
+    frame_count: Callable[[], int],
+    *,
+    clock: Callable[[], float] = time.time,
+    max_publish_fps: float = 60.0,
+) -> None:
+    """Publish useful source frames only while the WebSocket is observed.
+
+    The pinned implementation hard-skips every second call, capping an 80 FPS
+    game at 40 display FPS. This adapter instead uses an absolute publication
+    deadline: nominal play retains every ~59.7 FPS frame, while 4x fast-dialog
+    play does at most 60 PNG encodes/second. No image work occurs without a
+    consumer, and a late iteration cannot start an unbounded catch-up burst.
+    """
+
+    if not math.isfinite(max_publish_fps) or max_publish_fps <= 0:
+        raise ValueError("max_publish_fps must be finite and positive")
+    period = 1.0 / max_publish_fps
+    next_publish_at: float | None = None
+
+    def update_if_observed(screenshot: object) -> None:
+        nonlocal next_publish_at
+        with server.frame_manager.lock:
+            observed = bool(server.frame_manager.active_connections)
+            if not observed:
+                # A later subscriber must wait for a current frame rather than
+                # receiving the last subscriber's arbitrarily old payload.
+                server.frame_manager.latest_frame = None
+                next_publish_at = None
+        if not observed:
+            return
+        sampled_at = clock()
+        if next_publish_at is not None and sampled_at < next_publish_at:
+            return
+        if next_publish_at is None or sampled_at - next_publish_at > 4 * period:
+            next_publish_at = sampled_at + period
+        else:
+            next_publish_at += (math.floor((sampled_at - next_publish_at) / period) + 1) * period
+        encoded = encode_png_base64(screenshot)
+        if encoded is None:
+            return
+        payload: dict[str, object] = {
+            "frame_data": encoded,
+            "frame_count": frame_count(),
+            "timestamp": sampled_at,
+        }
+        # A disconnect may race the encoder. Never retain an unobservable
+        # payload that a later subscriber could mistake for a current frame.
+        with server.frame_manager.lock:
+            if server.frame_manager.active_connections:
+                server.frame_manager.latest_frame = payload
+            else:
+                server.frame_manager.latest_frame = None
+
+    server.update_frame_cache = update_if_observed
+
+
+def install_deadline_frame_stream(
+    api: FastAPI, manager: FrameManagerLike, *, polls_per_second: float = 120.0
+) -> None:
+    """Expose the compatible frame stream without adding work to its period.
+
+    The pinned vendor route sleeps 16 ms *after* JSON serialization and socket
+    I/O, so its real period is 16 ms plus work (about 55 FPS on this machine).
+    This route uses absolute deadlines: work consumes the frame budget instead
+    of extending it, and a badly delayed client cannot trigger an unbounded
+    catch-up loop. It checks at 120 Hz so its sampling phase cannot discard
+    unique 59.7275 Hz source frames; the manager still sends each frame once.
+    """
+
+    period = 1.0 / polls_per_second
+
+    @api.websocket("/pokebench/frames")
+    async def deadline_frames(websocket: WebSocket) -> None:
+        await manager.connect(websocket)
+        loop = asyncio.get_running_loop()
+        deadline = loop.time()
+        try:
+            while True:
+                try:
+                    await manager.send_latest_frame(websocket)
+                    deadline += period
+                    remaining = deadline - loop.time()
+                    if remaining > 0:
+                        await asyncio.sleep(remaining)
+                    elif remaining < -(4 * period):
+                        deadline = loop.time()
+                except WebSocketDisconnect:
+                    break
+                except Exception:
+                    break
+        finally:
+            manager.disconnect(websocket)
+
+
 def pin_localhost(uvicorn: UvicornLike) -> None:
     real_run = uvicorn.run
 
@@ -101,6 +254,8 @@ def run(
     uvicorn: UvicornLike,
     vendor_main: Callable[[], None],
     *,
+    frame_cache: tuple[FrameCacheServer, Callable[[], int]] | None = None,
+    pacing: GameLoopServer | None = None,
     spectator: tuple[FastAPI, type[EmulatorLike]] | None = None,
     observation: tuple[FastAPI, ScreenshotFn, ReadMemory, MapNames]
     | tuple[FastAPI, ScreenshotFn, ReadMemory, MapNames, AbstractContextManager[object]]
@@ -111,6 +266,8 @@ def run(
     checkpoint: Callable[[], bytes | None] | None = None,
     raw_archive: RawRamArchive | None = None,
     raw_capture: Callable[[], dict[str, object]] | None = None,
+    raw_snapshot: RawSnapshotFn | None = None,
+    raw_rom: bytes | None = None,
     travel: tuple[FastAPI, type[FrameEmulator], TravelServer, ReadMemory] | None = None,
     agent_checkpoint: tuple[FastAPI, Callable[[], bytes | None]] | None = None,
     frames: type[SteppedEmulator] | None = None,
@@ -121,6 +278,10 @@ def run(
     # journal lock that the frame step also takes, so it captures at once.
     # The battle text journal steps first, so a battle wait released on a frame
     # finds that frame's page already recorded.
+    if frame_cache is not None:
+        install_on_demand_frame_cache(*frame_cache)
+    if pacing is not None:
+        install_deadline_pacing(pacing)
     if battle_text is not None:
         install_battle_text(*battle_text)
     settle = None
@@ -138,7 +299,11 @@ def run(
         battle_wait = BattleWait(observation[2], levelup_box=LEVELUP_BOX not in off)
         install_battle_wait(frames, battle_wait)
     if actions is not None:
-        install_action_history(*actions)
+        install_action_history(
+            *actions,
+            tutorial_owner_enabled="tutorial-party-owner-v1"
+            not in features_off_from_env(os.environ),
+        )
     if travel is not None:
         install_travel(*travel)
     if pause is not None:
@@ -157,6 +322,8 @@ def run(
             *observation,
             raw_archive=raw_archive,
             raw_capture=raw_capture,
+            raw_snapshot=raw_snapshot,
+            raw_rom=raw_rom,
             settle=settle,
             battle_wait=battle_wait,
             whiteout=whiteout,
@@ -167,13 +334,20 @@ def run(
         install_pause(api, server, input_pause=controller.set_paused)
     pin_localhost(uvicorn)
     sys.argv = ["server.app", *argv]
-    vendor_main()
+    try:
+        vendor_main()
+    finally:
+        if raw_archive is not None:
+            raw_archive.close()
+            shutdown_persistence_worker()
 
 
 def main() -> None:  # pragma: no cover - entrypoint, exercised by `just smoke`
     import uvicorn
     from pokemon_env.emulator import EmeraldEmulator
     from server import app  # vendor module, on PYTHONPATH
+
+    install_deadline_frame_stream(app.app, cast(FrameManagerLike, app.frame_manager))
 
     install_battle_journal(
         app.app,
@@ -189,13 +363,14 @@ def main() -> None:  # pragma: no cover - entrypoint, exercised by `just smoke`
 
     import hashlib
 
+    rom = resolve_rom(os.environ).read_bytes()
     archive = RawRamArchive(
         Path.cwd().parent / "raw-ram",
-        hashlib.sha1(resolve_rom(os.environ).read_bytes(), usedforsecurity=False).hexdigest(),
+        hashlib.sha1(rom, usedforsecurity=False).hexdigest(),
     )
 
-    def raw_capture() -> dict[str, object]:
-        return archive.capture(read_memory, int(app.env.core.frame_counter))
+    def raw_snapshot(reservation: Reservation) -> RawRamSnapshot:
+        return archive.snapshot(reservation, read_memory, int(app.env.core.frame_counter))
 
     def checkpoint() -> bytes | None:
         with app.memory_lock:
@@ -206,11 +381,16 @@ def main() -> None:  # pragma: no cover - entrypoint, exercised by `just smoke`
         sys.argv[1:],
         uvicorn=cast(UvicornLike, uvicorn),
         vendor_main=app.main,
+        frame_cache=(
+            cast(FrameCacheServer, app),
+            lambda: int(app.env.core.frame_counter),
+        ),
+        pacing=cast(GameLoopServer, app),
         spectator=(app.app, cast(type[EmulatorLike], EmeraldEmulator)),
         actions=(app.app, cast(type[FrameEmulator], EmeraldEmulator), read_memory),
         observation=(
             app.app,
-            lambda: native_screenshot(cast(FrameSource, app.env)),
+            lambda: frozen_native_screenshot(cast(FrameSource, app.env)),
             # The vendor creates `env` at startup, after routes are installed.
             read_memory,
             MapNames.load(PORYMAP_MAPS),
@@ -218,7 +398,8 @@ def main() -> None:  # pragma: no cover - entrypoint, exercised by `just smoke`
         ),
         checkpoint=checkpoint if token else None,
         raw_archive=archive,
-        raw_capture=raw_capture,
+        raw_snapshot=raw_snapshot,
+        raw_rom=rom,
         travel=(
             app.app,
             cast(type[FrameEmulator], EmeraldEmulator),

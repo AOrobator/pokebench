@@ -32,14 +32,14 @@ function detector(on: boolean, messageTruth = false) {
 
 describe("reopened-dialogue-loop-v1", () => {
   it("is registered second to last, default off, and the bundle arm is the one that turns it on", () => {
-    expect(SWITCHABLE_FEATURES.at(-16)).toBe(ID);
-    expect(playHarnessFeatures(ALL_ON, null).at(-12)).toBe(ID);
+    expect(SWITCHABLE_FEATURES.at(-14)).toBe(ID);
+    expect(playHarnessFeatures(ALL_ON, null).at(-14)).toBe(ID);
     expect(featureInfo(ID)).toMatchObject({group: "guard", needs: null, switchable: true, title: "REOPENED DIALOGUE LOOP"});
     expect(featureInfo(ID).description).toContain(" Off: ");
     expect(featureInfo(ID).description).toContain("Bundle arm only");
     expect(flagFeatures({loopGuard: true, activeUi: true, interfaceDocs: true, objectives: false})[ID]).toBe(false);
     expect(normalizeFeatures({} as Parameters<typeof normalizeFeatures>[0])[ID]).toBe(false);
-    const without = Object.fromEntries(Object.entries({...ALL_ON,"scripted-place-guidance-v1":false,"trigger-script-loop-v1":false, "state-only-decisions-v1": false}).filter(([id]) => id !== ID)) as FeatureSet;
+    const without = Object.fromEntries(Object.entries({...ALL_ON,"battle-decision-ready-v1":false,"scripted-place-guidance-v1":false,"trigger-script-loop-v1":false, "state-only-decisions-v1": false}).filter(([id]) => id !== ID)) as FeatureSet;
     expect(presetFeatures(parsePlayPreset({version: 2, id: "p", target: null, limits: {maxTurns: 1, maxWallMs: 1, failureLimit: 1}, sampling: {thinkingLevel: "medium", maxTokens: 1}, features: without}))[ID]).toBe(false);
     const bundle = JSON.parse(readFileSync(new URL("../../../experiments/fixed/bundle-v-control.json", import.meta.url), "utf8")) as {base: {features: Record<string, boolean>}; switches: string[]};
     expect(bundle.base.features[ID]).toBe(false);
@@ -48,7 +48,7 @@ describe("reopened-dialogue-loop-v1", () => {
     expect(cook.incumbent.features[ID]).toBe(true);
     const raw = JSON.parse(readFileSync(new URL("../../../experiments/reopened-dialogue-loop.json", import.meta.url), "utf8")) as {queuePosition?: number; incumbent: {features: Record<string, boolean>}};
     expect(raw.queuePosition).toBeUndefined();
-    expect(Object.keys(raw.incumbent.features)).toEqual(SWITCHABLE_FEATURES.filter(id=>id!=="ineffective-navigation-v2"&&id!=="supervisor-briefing-v2"&&id!=="reachable-story-guidance-v1"&&id!=="text-only-supervisor-v2"&&id!=="deterministic-warp-navigation-v1"&&id!=="battle-effective-damage-v1"&&id!=="scripted-place-guidance-v1"&&id!=="trigger-script-loop-v1"&&id!=="just-in-time-prompt-v2"&&id!=="faced-interaction-history-v1"&&id!=="cache-aligned-window-v1"&&id!=="jit-guide-reuse-v1"&&id!=="stale-story-goal-v2"&&id!=="visited-terrain-navigation-v1"));
+    expect(Object.keys(raw.incumbent.features)).toEqual(SWITCHABLE_FEATURES.filter(id=>id!=="battle-decision-ready-v1"&&id!=="battle-refusal-loop-v1"&&id!=="deterministic-warp-navigation-v1"&&id!=="battle-effective-damage-v1"&&id!=="scripted-place-guidance-v1"&&id!=="trigger-script-loop-v1"&&id!=="just-in-time-prompt-v2"&&id!=="faced-interaction-history-v1"&&id!=="cache-aligned-window-v1"&&id!=="jit-guide-reuse-v1"&&id!=="stale-story-goal-v2"&&id!=="visited-terrain-navigation-v1"));
     const {incumbent, candidate} = experimentArms(parseExperiment(raw));
     expect(incumbent.features[ID]).toBe(false);
     expect(candidate.features[ID]).toBe(true);
@@ -256,7 +256,6 @@ describe("reopened-dialogue-loop-v1", () => {
     for (const source of [live, probe]) {
       const args = argsOf(source);
       expect(args.at(-2)).toBe('features["trigger-script-loop-v1"]');
-      expect(args.at(-1)).toBe('features["ineffective-navigation-v2"]');
       expect(args.at(-3)).toBe('features["reopened-dialogue-loop-v1"]');
       expect(args.at(-4)).toBe('features["clock-view-loop-v1"]');
     }

@@ -7,11 +7,11 @@ import { flagFeatures, normalizeFeatures, parsePlayPreset, presetFeatures } from
 // readout-truth-v1 and birch-speech-pages-v1 (correctness fixes, ON in both arms) and
 // blackout-readout-v1 (bundle arm only): game-server readout switches, recorded last.
 const IDS = ["readout-truth-v1", "birch-speech-pages-v1", "blackout-readout-v1"] as const;
-const off = (...ids: (typeof SWITCHABLE_FEATURES)[number][]): FeatureSet => ({ ...ALL_ON, ...Object.fromEntries(ids.map((id) => [id, false])) });
+const off = (...ids: (typeof SWITCHABLE_FEATURES)[number][]): FeatureSet => ({ ...ALL_ON,"battle-decision-ready-v1":false,...Object.fromEntries(ids.map((id) => [id, false])) });
 
 it("registers three default-off observation switches with no dependency, recorded last in this order", () => {
-  expect(SWITCHABLE_FEATURES.slice(-48,-45)).toEqual([...IDS]);
-  expect(playHarnessFeatures(ALL_ON, null).slice(-44,-41)).toEqual([...IDS]);
+  expect(SWITCHABLE_FEATURES.slice(-46,-43)).toEqual([...IDS]);
+  expect(playHarnessFeatures(ALL_ON, null).slice(-46,-43)).toEqual([...IDS]);
   for (const id of IDS) {
     expect(featureInfo(id)).toMatchObject({ group: "observation", needs: null, switchable: true });
     expect(featureInfo(id).description).toContain(" Off: ");
@@ -19,7 +19,7 @@ it("registers three default-off observation switches with no dependency, recorde
     expect(featuresOf(playHarnessFeatures(off(id), null))[id]).toBe(false);
   }
   // No dependency: the control arm of bundle-v-control has expanded menu text off.
-  expect(dependencyProblems(off("battle-effective-damage-v1", "expanded-menu-battle-information-v1", "battle-details-v2", "battle-triage-guidance-v1", "status-names-v1"))).toEqual([]);
+  expect(dependencyProblems(off("battle-decision-ready-v1","battle-effective-damage-v1", "expanded-menu-battle-information-v1", "battle-details-v2", "battle-triage-guidance-v1", "status-names-v1"))).toEqual([]);
 });
 
 it("describes each switch with the exact lines the game server writes", () => {

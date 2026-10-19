@@ -8,7 +8,7 @@
   "primaryMilestone": "STARTER_CHOSEN",
   "source": {
     "checkout": "main",
-    "commit": "d8460d5fa9269479102ccb0a9b88a8b217d7d492"
+    "commit": "21572d5550682e56cc38491e5cc8ea32c9b4942d"
   },
   "trialsPerArm": 8,
   "modelLane": "/models/Qwen3.6-35B-A3B-UD-Q4_K_M.gguf",

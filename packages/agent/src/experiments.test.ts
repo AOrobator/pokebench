@@ -1,4 +1,5 @@
 import {createHash} from "node:crypto";
+import {readFileSync} from "node:fs";
 import {expect,it} from "vitest";
 import {ALL_ON,type FeatureSet} from "./features.js";
 import {definitionHash,deriveStatus,experimentArms,parseExperiment,parseNewerExperiment,parseLedger,readinessOf,trialOrder,trialProgress,type Experiment,type LedgerEntry,type ReadinessRun} from "./experiments.js";
@@ -134,6 +135,14 @@ it("folds the ledger into per-trial progress, retrying interrupted and failed la
 
 const ready={ready:true,basis:"comparable",milestone:"FIRST_TRUCK_EXIT",window:4,minReached:3,reached:4,considered:["r1","r2","r3","r4"]} as const;
 const notReady={...ready,ready:false,reached:0};
+it("keeps the superseded unset-warp comparison out of the launch queue",()=>{
+ const raw=JSON.parse(readFileSync(new URL("../../../experiments/unset-dynamic-warp.json",import.meta.url),"utf8")) as unknown;
+ const e=parseExperiment(raw);
+ const status=deriveStatus({experiment:e,approval:null,ledger:[],runner:null,readiness:ready});
+ expect(status.state).toBe("discarded");
+ expect(status.reason).toContain("no attributable treatment contrast");
+});
+
 it("derives one status from the definition, approval, ledger, runner and readiness",()=>{
  const e=experiment(),hash=definitionHash(e),approval={experiment:"full-map",sha256:hash,approvedAt:"t",approvedBy:"operator"};
  const all=trialOrder(e).flatMap((arm,i)=>[launch(i,`r${String(i)}`,arm),outcome(i,`r${String(i)}`,arm)]);

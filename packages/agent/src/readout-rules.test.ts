@@ -14,7 +14,7 @@ const SHOWCASE = set(ALL_ON, { "full-map-navigation-v1": false, "counter-talk-v1
 const OFF = set(SHOWCASE, { [ID]: false });
 const LEGEND = "@ player; N live object; W warp location (each warp's activation is listed in the readout's Warps line); # collision; g grass; ~ water; v ^ < > ledge: a one-way hop in the arrow's direction (move into it that way to jump over it, landing 2 tiles on); impassable from any other side; + edge walls: walkable, but movement across a walled side is refused in both directions (sides listed in the readout's Edge walls line); . clear terrain (may have script triggers); ? outside current map.";
 const TERRAIN = "Terrain rules, elevation and objects can still block movement.";
-const NAMED_WARPS = "Warp destinations are the map you arrive on: its name when the game's map table has one, then its group/number ID in parentheses; not warp indexes. Activation also requires matching elevation and available field controls; W alone does not guarantee a transition. After a transition, check the new map and position.";
+const NAMED_WARPS = "Warp destinations are the map you arrive on: a name the game displays when one is available, then its group/number ID in parentheses; not warp indexes. Activation also requires matching elevation and available field controls; W alone does not guarantee a transition. After a transition, check the new map and position.";
 const TRIGGERS = "Trigger elevation must also match the player on entry (0 matches any elevation).";
 const HEADER = "Map symbols and rules (the readout's map and lists use these every turn; the readout does not repeat them):";
 

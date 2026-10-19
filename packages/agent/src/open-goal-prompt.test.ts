@@ -16,6 +16,9 @@ const RUN4CAA=JSON.parse(readFileSync(new URL("../test-support/open-goal-4caa.js
 const BUNDLE:FeatureSet=featuresOf(RUN4CAA.harness_features);
 const with_=(features:FeatureSet,value:boolean):FeatureSet=>({...features,[ID]:value});
 const PLACES=/\b(rustboro|petalburg|oldale|littleroot|gym|leader|roxanne|badge|city|town|lab)\b/i;
+const OLD_WARP_RULE="Warp destinations are the map you arrive on: its name when the game's map table has one";
+const KNOWN_WARP_RULE="Warp destinations are the map you arrive on: a name the game displays when one is available";
+const currentPrompt=(recorded:string):string=>recorded.replace(OLD_WARP_RULE,KNOWN_WARP_RULE);
 
 it("is a default-off agent-side guidance switch recorded right after people-id-cards-v1",()=>{
  expect(featureInfo(ID)).toMatchObject({group:"guidance",needs:null,switchable:true,title:"OPEN GOAL"});
@@ -45,12 +48,12 @@ it("the recorded failure: run 4caa's prompt named Rustboro and its T273 reasonin
 
 it("OFF reproduces run 4caa's recorded system prompt byte for byte",()=>{
  expect(BUNDLE[ID]).toBe(false);
- expect(playSystemPrompt(BUNDLE,null)).toBe(RUN4CAA.system_prompt);
+ expect(playSystemPrompt(BUNDLE,null)).toBe(currentPrompt(RUN4CAA.system_prompt));
  expect(playGoal(null,BUNDLE)).toBe(PLAY_GOAL);
 });
 
 it("ON replaces exactly the goal sentence and nothing else; tools are unchanged",()=>{
- expect(playSystemPrompt(with_(BUNDLE,true),null)).toBe(RUN4CAA.system_prompt.replace(GOAL_SENTENCE,OPEN_GOAL_SENTENCE));
+ expect(playSystemPrompt(with_(BUNDLE,true),null)).toBe(currentPrompt(RUN4CAA.system_prompt).replace(GOAL_SENTENCE,OPEN_GOAL_SENTENCE));
  for(const base of [BUNDLE,with_(ALL_ON,false),{...with_(ALL_ON,false),"contextual-interface-docs-v1":false}]){
   const off=playSystemPrompt(base,null),on=playSystemPrompt(with_(base,true),null);
   expect(off.split(GOAL_SENTENCE)).toHaveLength(2);

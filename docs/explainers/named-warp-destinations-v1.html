@@ -58,7 +58,7 @@ th{font:500 .75rem var(--mono);letter-spacing:.06em;text-transform:uppercase;col
 <div class="eyebrow">Harness switch · observation · <code>named-warp-destinations-v1</code> · off by default</div>
 <h1>Named warp destinations</h1>
 </div>
-<p class="lede">The readout lists every door and staircase on the map. Today it says only where each one leads by number, such as <code>map 1/2</code>. With this switch on, it also gives the place's name from the game's own map table, such as <code>LITTLEROOT TOWN MAYS HOUSE 1F (map 1/2)</code>. That is the same name the Location line shows after walking through.</p>
+<p class="lede">The readout lists every door and staircase by map ID. With this switch on, it adds a name only when the game itself displays one, such as the save-specific <code>PROF. BIRCH'S HOUSE 1F (map 1/2)</code> from Littleroot's sign. Internal map-table names alone are not shown.</p>
 
 <section>
 <h2>Why it exists</h2>
@@ -94,16 +94,16 @@ th{font:500 .75rem var(--mono);letter-spacing:.06em;text-transform:uppercase;col
 <text x="340" y="92" class="m">(7,16) -&gt; map 1/4</text>
 <text x="340" y="112" class="s">Signs (S) are listed separately: Brendans House Sign (7,8),</text>
 <text x="340" y="126" class="s">Mays House Sign (12,8), Birchs Lab Sign (6,17).</text>
-<text x="340" y="176" class="t">ON: the same three doors</text>
+<text x="340" y="176" class="t">ON: names grounded in the nearby signs</text>
 <rect x="336" y="186" width="350" height="76" rx="6" class="game"/>
-<text x="344" y="206" class="m">(5,8)  -&gt; LITTLEROOT TOWN BRENDANS HOUSE 1F</text>
-<text x="344" y="226" class="m">(14,8) -&gt; LITTLEROOT TOWN MAYS HOUSE 1F</text>
-<text x="344" y="246" class="m">(7,16) -&gt; LITTLEROOT TOWN PROFESSOR BIRCHS LAB</text>
+<text x="344" y="206" class="m">(5,8)  -&gt; RED's HOUSE 1F</text>
+<text x="344" y="226" class="m">(14,8) -&gt; PROF. BIRCH'S HOUSE 1F</text>
+<text x="344" y="246" class="m">(7,16) -&gt; PROF. BIRCH'S POKéMON LAB</text>
 <text x="340" y="282" class="s">Each keeps its ID in parentheses, e.g. "(map 1/2)", so nothing</text>
 <text x="340" y="296" class="s">the model already relies on disappears.</text>
 </svg>
 </div>
-<figcaption>The red door is May's. OFF, it is only "map 1/2"; ON, the readout names it. Building outlines are approximate; door and sign coordinates are exact.</figcaption>
+<figcaption>The red door is the rival's house. OFF, it is only "map 1/2"; ON, its label comes from the sign text the game supplies for this save. Building outlines are approximate; door and sign coordinates are exact.</figcaption>
 </figure>
 </section>
 
@@ -116,21 +116,21 @@ Warp destinations are map group/number IDs, not warp indexes. Activation also �
 Warp to map 1/2 at (14,8), elevation 0; movement; …; destination map 1/2 warp 1
 
 ON
-Warps: (14,8) -&gt; LITTLEROOT TOWN MAYS HOUSE 1F (map 1/2) [door: approach from below and press UP toward door], …
-Warp destinations are the map you arrive on: its name when the game's map table has one, then its group/number ID in parentheses; not warp indexes. Activation also …
-Warp to LITTLEROOT TOWN MAYS HOUSE 1F (map 1/2) at (14,8), elevation 0; movement; …; destination LITTLEROOT TOWN MAYS HOUSE 1F (map 1/2) warp 1</pre>
+Warps: (14,8) -&gt; PROF. BIRCH'S HOUSE 1F (map 1/2) [door: approach from below and press UP toward door], …
+Warp destinations are the map you arrive on: a name the game displays when one is available, then its group/number ID in parentheses; not warp indexes. Activation also …
+Warp to PROF. BIRCH'S HOUSE 1F (map 1/2) at (14,8), elevation 0; movement; …; destination PROF. BIRCH'S HOUSE 1F (map 1/2) warp 1</pre>
 <p>The "Warp to …" label appears when named interactions are on (as in the 2×2). With them off, only the destination at the end of that line is named. Only these three lines change; the JSON state used for grading is identical.</p>
 </section>
 
 <section>
 <h2>Where the names come from</h2>
-<p>The game stores each map as a group and number. The name is looked up in the game's own map list (<code>data/maps/map_groups.json</code> in pret/pokeemerald, vendored with PokeAgent), using the same lookup that writes the Location line. No name is written by hand.</p>
+<p>The game stores each map as a group and number, but those internal identifiers are not automatically player knowledge. This switch accepts only the destination names supplied by <code>displayed-place-names-v1</code>, which reads the exact sign scripts and follows the saved player-gender and <code>{PLAYER}</code> branches. The internal table remains available for map identity and navigation.</p>
 <table>
-<tr><th>Warp ID</th><th>Map list entry</th><th>Name shown</th></tr>
-<tr><td><code>1/0</code></td><td>gMapGroup_IndoorLittleroot[0]</td><td>LITTLEROOT TOWN BRENDANS HOUSE 1F</td></tr>
-<tr><td><code>1/2</code></td><td>gMapGroup_IndoorLittleroot[2]</td><td>LITTLEROOT TOWN MAYS HOUSE 1F</td></tr>
-<tr><td><code>1/4</code></td><td>gMapGroup_IndoorLittleroot[4]</td><td>LITTLEROOT TOWN PROFESSOR BIRCHS LAB</td></tr>
-<tr><td><code>127/127</code>, game's dynamic warp set</td><td>dynamic warp: the game takes the destination from <code>SaveBlock1.dynamicWarp</code> (offset 0x14, <code>struct WarpData</code>, include/global.h), which map scripts set with <code>setdynamicwarp</code> (InsideOfTruck/scripts.inc sets MAP_LITTLEROOT_TOWN)</td><td>named from that warp: <code>(4,3) -&gt; LITTLEROOT TOWN (dynamic warp; map 0/9)</code>, in the Warps line, the interaction candidate and the warp destination line</td></tr>
+<tr><th>Warp ID</th><th>Player-facing evidence</th><th>Name shown</th></tr>
+<tr><td><code>1/0</code></td><td>Littleroot house sign, save-specific branch</td><td><code>{PLAYER}'s HOUSE 1F</code></td></tr>
+<tr><td><code>1/2</code></td><td>Littleroot rival-house sign, save-specific branch</td><td><code>PROF. BIRCH'S HOUSE 1F</code></td></tr>
+<tr><td><code>1/4</code></td><td>Littleroot lab sign</td><td><code>PROF. BIRCH'S POKéMON LAB</code></td></tr>
+<tr><td><code>127/127</code>, game's dynamic warp set</td><td><code>InsideOfTruck_EventScript_SetIntroFlags</code> sets map 0/9 internally before MOM says “Well, this is LITTLEROOT TOWN.”</td><td><code>dynamic destination</code>; the internal set value is not enough to reveal the town name</td></tr>
 <tr><td><code>127/127</code>, dynamic warp unset or not in the map table</td><td>nothing to name</td><td>unchanged: "dynamic destination"</td></tr>
 <tr><td>not in the list</td><td>—</td><td>unchanged: bare ID</td></tr>
 </table>
@@ -157,13 +157,13 @@ Warp to LITTLEROOT TOWN MAYS HOUSE 1F (map 1/2) at (14,8), elevation 0; movement
 
 <section>
 <h2>How it differs from map destinations</h2>
-<p><code>world-destinations-v1</code> already prints the same names, but as separate lines at the very end of the readout (<code>Warp destination at (14,8): LITTLEROOT TOWN MAYS HOUSE 1F</code>), together with map bounds and connections. This switch puts the name inside the lines the model reads when it picks a door, and changes nothing else. Both can be on at once; the name then appears twice. The operator asked for this one to be tested first.</p>
+<p><code>world-destinations-v1</code> prints the same eligible name as a separate line at the end of the readout (<code>Warp destination at (14,8): PROF. BIRCH'S HOUSE 1F</code>), together with map bounds and connections. This switch puts the name inside the lines the model reads when it picks a door. Both consumers use the same filtered destination map.</p>
 </section>
 
 <section>
 <h2>Status</h2>
-<p><span class="tag">branch claude/named-warp-destinations</span> <span class="tag">default OFF</span> <span class="tag">queued experiment, position 4</span></p>
-<p>Unit, wiring and coverage gates pass, and a live smoke on the real game shows the names. No measured runs yet. Whether it gets more runs into May's house, and more of them to meet her, is for the experiment queue (8 runs per arm, think-fast).</p>
+<p><span class="tag">branch codex/known-warp-destinations</span> <span class="tag">default OFF</span> <span class="tag">bundle ON · control OFF</span></p>
+<p>The revised standalone definition has no measured runs. Its prior approval is stale because the behavior and hypothesis changed. Whether the sign-backed labels improve rival-house progress remains an experiment question.</p>
 </section>
 </main>
 </body>

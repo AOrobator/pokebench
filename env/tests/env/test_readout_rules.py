@@ -89,7 +89,8 @@ def observe(name: str, off: frozenset[str]) -> str:
 GOLDEN = Path(__file__).resolve().parent / "fixtures/readout-rules-off-ef9244e2.json"
 GENERATED = Path(__file__).resolve().parents[3] / "packages/agent/src/map-rules.generated.ts"
 LEGEND = "@ player; N live object; "
-# Switches registered after the goldens were rendered at ef9244e2; OFF is their previous behavior.
+# Switches registered after the original ef9244e2 goldens; OFF is their previous behavior. The
+# fixture was mechanically rerendered on 2026-10-18 for game-known named-warp semantics.
 ADJACENT = "adjacent-tiles-v1"
 LATER = frozenset(
     {

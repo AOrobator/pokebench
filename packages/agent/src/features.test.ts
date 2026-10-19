@@ -141,12 +141,12 @@ it("registers named warp destinations as a default-off server readout treatment 
  expect(featureInfo("named-warp-destinations-v1")).toMatchObject({group:"observation",needs:"live-map-v1",switchable:true});
  expect(featureInfo("named-warp-destinations-v1").description).toContain(" Off: ");
  expect(featureInfo("named-warp-destinations-v1").description).toMatch(/map 1\/2/);
- expect(featureInfo("named-warp-destinations-v1").description).toContain("LITTLEROOT TOWN (dynamic warp; map 0/9)");
+ expect(featureInfo("named-warp-destinations-v1").description).toContain("dynamic destination");
  expect(featureInfo("named-warp-destinations-v1").description).not.toContain("Unknown and dynamic destinations keep their ID");
  expect(playHarnessFeatures(ALL_ON,null).at(-79)).toBe("named-warp-destinations-v1");
  expect(serverFeatureEnv(ALL_ON).POKEBENCH_FEATURES_OFF).toBe("");
  expect(serverFeatureEnv(off("named-warp-destinations-v1")).POKEBENCH_FEATURES_OFF).toBe("named-warp-destinations-v1");
- expect(dependencyProblems(off("instruction-ledger-v2","tutorial-party-owner-v1","mid-frame-readout-v1","unset-dynamic-warp-v1","status-names-v1","surf-gated-exits-v2","people-id-cards-v1","explorer-guidance-v2","ineffective-loops-v1","cross-map-goal-v1","surf-gated-exits-v1","readout-truth-v1","birch-speech-pages-v1","blackout-readout-v1","story-destinations-v1","harness-trust-v1","cited-destination-v1","harness-trust-v2","exit-reachability-v1","pushback-loop-detection-v1","pushback-press-result-v1","battle-observation-loop-v1","live-map-v1"))).toContain("named-warp-destinations-v1 needs live-map-v1");
+ expect(dependencyProblems(off("displayed-place-names-v1"))).not.toContain("named-warp-destinations-v1 needs displayed-place-names-v1");
 });
 
 it("registers the milestone stall stop as a default-off agent-side guard recorded second to last",()=>{

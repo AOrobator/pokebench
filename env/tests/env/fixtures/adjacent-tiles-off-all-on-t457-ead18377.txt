@@ -31,7 +31,7 @@ Local map from live memory; top-left (1,0), north is up:
 Terrain rules, elevation and objects can still block movement.
 Live objects: id 6 at (2,13)
 Warps: none nearby
-Warp destinations are the map you arrive on: its name when the game's map table has one, then its group/number ID in parentheses; not warp indexes. Activation also requires matching elevation and available field controls; W alone does not guarantee a transition. After a transition, check the new map and position.
+Warp destinations are the map you arrive on: a name the game displays when one is available, then its group/number ID in parentheses; not warp indexes. Activation also requires matching elevation and available field controls; W alone does not guarantee a transition. After a transition, check the new map and position.
 Metatile behaviors present: 0x00, 0x02, 0x3B, 0x3E
 Navigation map_id: [0,16] (current map only)
 Current map bounds: X=0..19, Y=0..19

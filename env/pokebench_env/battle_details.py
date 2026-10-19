@@ -10,6 +10,7 @@ import struct
 from dataclasses import dataclass
 
 from pokebench_env.battle_choices import exact
+from pokebench_env.battle_damage import DamageContext, effective_damage_lines, read_damage_context
 from pokebench_env.battle_message_waiting import input_clause, message_clause
 from pokebench_env.battle_state import BattleBattler, BattleInput, BattleState
 from pokebench_env.game_screen import ReadMemory
@@ -132,6 +133,7 @@ class HeldItem:
     battler: int
     name: str | None
     hold_effect: int | None
+    parameter: int | None = None
 
 
 @dataclass(frozen=True)
@@ -141,12 +143,22 @@ class BattleDetails:
     held: tuple[HeldItem, ...]
     storage_full: bool | None
     diagnostic: str | None = None
+    damage: DamageContext | None = None
 
     def lines(
-        self, battle: BattleState, *, message_waiting: bool = False, levelup_box: bool = False
+        self,
+        battle: BattleState,
+        *,
+        message_waiting: bool = False,
+        levelup_box: bool = False,
+        effective_damage: bool = False,
     ) -> list[str]:
         return battle_details_lines(
-            battle, self, message_waiting=message_waiting, levelup_box=levelup_box
+            battle,
+            self,
+            message_waiting=message_waiting,
+            levelup_box=levelup_box,
+            effective_damage=effective_damage,
         )
 
 
@@ -196,13 +208,14 @@ def _member(read: ReadMemory, slot: int, mon: PartyMon) -> MemberFacts:
     )  # fmt: skip
 
 
-def _held(read: ReadMemory, battler: BattleBattler) -> HeldItem:
+def _held(read: ReadMemory, battler: BattleBattler, *, parameter: bool) -> HeldItem:
     if not battler.held_item:
         return HeldItem(battler.battler, None, 0)
     name = read_item_name(read, battler.held_item)
     if battler.held_item == ENIGMA_BERRY:
-        return HeldItem(battler.battler, name, None)
-    return HeldItem(battler.battler, name, exact(read, ITEMS + 44 * battler.held_item + 18, 1)[0])
+        return HeldItem(battler.battler, name, None, None)
+    item = exact(read, ITEMS + 44 * battler.held_item + 18, 2 if parameter else 1)
+    return HeldItem(battler.battler, name, item[0], item[1] if parameter else None)
 
 
 def read_battle_details(
@@ -210,6 +223,9 @@ def read_battle_details(
     battle: BattleState | None,
     party: tuple[PartyMon, ...] | None,
     resources: Resources | None,
+    *,
+    badges: tuple[str, ...] = (),
+    damage: bool = False,
 ) -> BattleDetails | None:
     if battle is None or battle.battlers is None:
         return None
@@ -233,8 +249,9 @@ def read_battle_details(
             full = False
         elif party is not None and resources is not None and resources.storage is not None:
             full = len(resources.storage.occupied) >= BOX_SLOTS
-        held = tuple(_held(read, battler) for battler in battle.battlers)
-        return BattleDetails(members, bag, held, full)
+        held = tuple(_held(read, battler, parameter=damage) for battler in battle.battlers)
+        context = read_damage_context(read, badges) if damage else None
+        return BattleDetails(members, bag, held, full, damage=context)
     except (ValueError, OSError, struct.error) as error:
         return BattleDetails(None, None, (), None, f"harness bug: {error}")
 
@@ -554,6 +571,7 @@ def battle_details_lines(
     *,
     message_waiting: bool = False,
     levelup_box: bool = False,
+    effective_damage: bool = False,
 ) -> list[str]:
     flags = battle.battle_type or 0
     lines = [
@@ -616,6 +634,8 @@ def battle_details_lines(
             mark = "▶" if cursor == slot else " "
             refused = f' — REFUSED: "{NO_PP}"' if move.pp == 0 else ""
             lines.append(f" {mark}{slot + 1} {move_text(move)}{refused}")
+    if effective_damage:
+        lines.extend(effective_damage_lines(battle, details))
     if details.party is None:
         lines.append("Party: unreadable")
     else:

@@ -19,10 +19,10 @@ const id=(name:string):SwitchableFeature=>{const found=SWITCHABLE_FEATURES.find(
 
 describe("registry and presets",()=>{
  it("appends the five switches, in order, at the end of every registry list",()=>{
-  expect(SWITCHABLE_FEATURES.slice(-22,-17)).toEqual([...NEW]);
-  expect(FEATURES.filter(f=>f.switchable).map(f=>f.id).slice(-22,-17)).toEqual([...NEW]);
-  expect(playHarnessFeatures(ALL_ON,null).slice(-22,-17)).toEqual([...NEW]);
-  expect(SERVER_FEATURES.slice(-5)).toEqual([...NEW]);
+  expect(SWITCHABLE_FEATURES.slice(-23,-18)).toEqual([...NEW]);
+  expect(FEATURES.filter(f=>f.switchable).map(f=>f.id).slice(-23,-18)).toEqual([...NEW]);
+  expect(playHarnessFeatures(ALL_ON,null).slice(-23,-18)).toEqual([...NEW]);
+  expect(SERVER_FEATURES.slice(-6,-1)).toEqual([...NEW]);
  });
  it.each(NEW)("%s is a server observation switch, bundle arm only, whose description says what OFF does",(name)=>{
   const info=featureInfo(id(name));

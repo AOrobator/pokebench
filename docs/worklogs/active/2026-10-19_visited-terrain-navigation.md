@@ -50,3 +50,10 @@ The concurrent whole-map probe showed visibly heavy deliberation while a complet
 - Post-sync coverage: agent statements 97.88%, branches 94.04%, functions 98.25%, lines 99.25%; viewer statements 95.43%, branches 91.49%, functions 93.88%, lines 97.65%; environment lines 97.47%, branches 93.37%, functions 99.43%. All suites and all 90% floors passed.
 - Post-sync `just lint`, `just build`, `just verify-vendor`, `just experiments-check`, explainer `pages-check`, and `git diff --check` passed. The isolated worktree used the canonical checkout's unchanged mGBA Python binding for strict mypy, matching established worktree practice; no gameplay process or canonical file was changed. Vendor was clean at `bbab97ad73e460b7cd7c08527d10ced30cc03fbe`.
 - Focused test and deletion receipts are under ignored `runs/visited-terrain-navigation/`.
+
+## Main reconciliation at cd596604
+
+- Resolved the additive merge with `battle-effective-damage-v1`: registry and recorded feature order retain visited terrain followed by effective damage; both normalize/default OFF for historical presets and viewer drafts; the battle feature remains a server observation switch while visited terrain remains agent-side only.
+- The fixed bundle base explicitly names `visited-terrain-navigation-v1: false`. Production still defines deterministic whole-map precedence if both switches are enabled, while the checkpoint campaign owner enforces mutually exclusive arms (whole map ON / visited OFF, or whole map OFF / visited ON).
+- Updated older registry-position contracts for the two appended features and preserved experiment fixtures that intentionally omit both new switch keys. No experiment was approved or launched from this worktree.
+- Reconciliation agent test receipt: 163 files passed, 2,540 tests passed. Viewer, full gates and clean-head receipts follow on the merge commit.

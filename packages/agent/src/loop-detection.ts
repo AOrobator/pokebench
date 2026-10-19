@@ -668,7 +668,7 @@ export class LoopDetector {
     this.completed++;
     if (this.stallNote?.exposed === true) this.stallNote = null;
     const seq = call.seq ?? this.completed;
-    const nativeBattle = this.battleRefusals && call.state !== undefined ? battleState(call.state) : null;
+    const nativeBattle = this.battleRefusals && call.state?.battle?.initialized === true ? battleState(call.state) : null;
     const refusal = this.battleRefusals ? semanticRefusal(call, nativeBattle) : null;
     if (this.battleRefusals && nativeBattle !== null && nativeBattle !== this.lastRefusalSnapshot) {
       for (const key of this.refusalEvidence.keys()) this.rejections.delete(key);
@@ -715,8 +715,10 @@ export class LoopDetector {
     // Out of the loop: its push-backs no longer count toward the next warning.
     if (escaped) this.pushbacks.length = 0;
     if (
-      (novel && !held) || escaped ||
-      (game && (call.name === "press" || (call.name === "navigate_to" && call.acted===true)) && this.episode?.kind === "planning")
+      this.episode?.refusalAnchor == null && (
+        (novel && !held) || escaped ||
+        (game && (call.name === "press" || (call.name === "navigate_to" && call.acted===true)) && this.episode?.kind === "planning")
+      )
     )
       this.recover(seq, (novel && !held) || escaped);
     let hit: LoopKind | null = null;

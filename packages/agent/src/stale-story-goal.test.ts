@@ -199,7 +199,8 @@ describe("stale-story-goal-v2 lifecycle",()=>{
   unknownIssue.observe(delivered(id,5));
   expect(unknownIssue.block(at(3),"later",PLACES.places,true,true)).toContain("Way in");
   const knownIssue=stagedStory(invitation,2,at(2));
-  expect(knownIssue.block({...oldale,story:null},"later",PLACES.places,true,true)).toContain("Way in");
+  for(const current of [withStory(oldale,{birch_lab_stage:null}),{...oldale,story:null}])
+   expect(knownIssue.block(current,"later",PLACES.places,true,true)).toContain("Way in");
  });
 
  it("does not carry a known issue stage across a later unreadable-state boundary",()=>{
@@ -224,6 +225,13 @@ describe("stale-story-goal-v2 lifecycle",()=>{
   const active=route.block(withStory(at(3),{rival_battle_won:false}),"later",PLACES.places,true,true) ?? "";
   expect(active).toContain("ROUTE 103");
   expect(active).toContain("Way in");
+ });
+
+ it("keeps an unresolved lab phrase active instead of treating an empty target set as Birch's lab",()=>{
+  const unresolved=stagedStory("Meet me at MYSTERY LAB.",2,at(2));
+  const active=unresolved.block(at(3),"later",PLACES.places,true,true) ?? "";
+  expect(active).toContain("MYSTERY LAB");
+  expect(active).toContain("not resolved");
  });
 
  it("omits absent and retired goals from the trust header without inventing a replacement",()=>{

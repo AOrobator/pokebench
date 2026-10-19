@@ -48,7 +48,7 @@ Local game input only. No ROM/save writes, memory mutation, credentials, public 
 - [x] Add the pending experiment entry and readiness row; run `just experiments-check`. Do not queue or approve it.
 - [x] Run `just pages-check` and verify the Harness Config card link in the real browser at desktop and phone widths.
 - [ ] Run all required gates again; update source pin as required by the landing workflow.
-- [ ] COMMIT: `docs(navigation): explain deterministic warp handling`
+- [x] COMMIT: `docs(navigation): explain deterministic warp handling` (`f39ad26d`)
 - [ ] Complete PB1–PB13 self-review and the three-lane cloud multi-model review; fix only accepted in-scope defects and re-review the cumulative packet.
 - [ ] Fast-forward land only if every required lane returns `VERDICT: LGTM`; run post-merge tests and refresh the viewer without disturbing a live run.
 

@@ -64,7 +64,7 @@ describe("mounted runs and comparisons workbench", () => {
     open(); fetch.mockResolvedValue({ ...data(), at: 3000, runs: [] }); await wb.refresh(); ui("detail").dispatchEvent(new MouseEvent("click", { bubbles: true })); expect(ui("detail").hidden).toBe(true); wb.destroy();
   });
   it("renders a ticking live-run meta card, then a normal back link when the run ends", async () => {
-    const { wb, fetch } = mount({ ...data(), runs: [run({ status: "live" })] }); await wb.refresh(); wb.clock(); expect(ui("current").textContent).toContain("2:05/ 10:00"); expect(ui("current").textContent).not.toContain("OBJECTIVE"); expect(ui("current").querySelector("a")?.getAttribute("href")).toBe("/#run=run_01"); fetch.mockResolvedValue({ ...data(), at: 2000 }); await wb.refresh(); expect(ui("current").textContent).toContain("BACK TO VIEWER"); wb.destroy();
+    const { wb, fetch } = mount({ ...data(), runs: [run({ status: "live" })] }); await wb.refresh(); wb.clock(); expect(ui("current").textContent).toContain("2:05/ 10:00"); expect(ui("current").textContent).not.toContain("OBJECTIVE"); expect(ui("current").querySelector("a")?.getAttribute("href")).toBe("/#replay=run_01"); fetch.mockResolvedValue({ ...data(), at: 2000 }); await wb.refresh(); expect(ui("current").textContent).toContain("BACK TO VIEWER"); wb.destroy();
   });
   it("retains verified data after bad JSON/network/stale snapshots and bounds visible errors", async () => {
     const { wb, fetch } = mount(); await wb.refresh(); fetch.mockResolvedValue({ nonsense: true }); await wb.refresh(); expect(ui("problem").hidden).toBe(false); expect(ui("frontier-full").querySelector('[data-run="run_01"]')).not.toBeNull(); fetch.mockResolvedValue({ ...data(), at: 1 }); await wb.refresh(); expect(ui("problem").textContent).toContain("Outdated"); fetch.mockRejectedValue(new Error("offline")); await wb.refresh(); expect(ui("problem").textContent).toBe("offline"); wb.destroy();
@@ -131,13 +131,13 @@ it("keeps the plate link and keyboard focus stable through clock ticks, lane joi
 
 it("keeps the focused plate when other runs join or leave the party, reconciling plates by run id", async () => {
   const { wb, fetch } = mount({ ...data(), runs: [run({ status: "live" })] }); await wb.refresh();
-  const link = ui("current").querySelector<HTMLAnchorElement>('.wb-plate[href="/#run=run_01"]'); if (link === null) throw Error("missing plate"); link.focus();
+  const link = ui("current").querySelector<HTMLAnchorElement>('.wb-plate[href="/#replay=run_01"]'); if (link === null) throw Error("missing plate"); link.focus();
   fetch.mockResolvedValue({ ...data(), at: 2000, runs: [run({ id: "first", status: "live" }), run({ status: "live" }), run({ id: "third", status: "live" })] }); await wb.refresh();
-  expect([...ui("current").querySelectorAll(".wb-plate")].map(p => p.getAttribute("href"))).toEqual(["/#run=first", "/#run=run_01", "/#run=third"]);
-  expect(ui("current").querySelector('.wb-plate[href="/#run=run_01"]')).toBe(link); expect(document.activeElement).toBe(link); expect(ui("current").querySelector(".wb-party .wb-kicker")?.textContent).toContain("3 CURRENT RUNS");
+  expect([...ui("current").querySelectorAll(".wb-plate")].map(p => p.getAttribute("href"))).toEqual(["/#replay=first", "/#replay=run_01", "/#replay=third"]);
+  expect(ui("current").querySelector('.wb-plate[href="/#replay=run_01"]')).toBe(link); expect(document.activeElement).toBe(link); expect(ui("current").querySelector(".wb-party .wb-kicker")?.textContent).toContain("3 CURRENT RUNS");
   fetch.mockResolvedValue({ ...data(), at: 3000, runs: [run({ id: "third", status: "live" }), run({ status: "paused" })] }); await wb.refresh();
-  expect([...ui("current").querySelectorAll(".wb-plate")].map(p => p.getAttribute("href"))).toEqual(["/#run=third", "/#run=run_01"]);
-  expect(ui("current").querySelector('.wb-plate[href="/#run=run_01"]')).toBe(link); expect(document.activeElement).toBe(link); expect(link.querySelector(".wb-plate-l1")?.textContent).toContain("PAUSED");
+  expect([...ui("current").querySelectorAll(".wb-plate")].map(p => p.getAttribute("href"))).toEqual(["/#replay=third", "/#replay=run_01"]);
+  expect(ui("current").querySelector('.wb-plate[href="/#replay=run_01"]')).toBe(link); expect(document.activeElement).toBe(link); expect(link.querySelector(".wb-plate-l1")?.textContent).toContain("PAUSED");
   const saved = run({ status: "paused" }); if (saved.config === null) throw new Error("config"); saved.config = { ...saved.config, resume: "CLOCK_SET" };
   fetch.mockResolvedValue({ ...data(), at: 4000, runs: [saved] }); await wb.refresh();
   expect(ui("current").querySelectorAll(".wb-plate")).toHaveLength(1); expect(ui("current").querySelector(".wb-plate")).toBe(link); expect(document.activeElement).toBe(link); expect(link.textContent).toContain("NOT FROM ZERO");
@@ -174,7 +174,7 @@ describe("live runs as trainer cards on the comparisons page", () => {
   it("draws each live or paused run as the viewer's trainer card, linking to the viewer, with its notes under it", async () => {
     const { wb } = mountCards(); await wb.refresh(); wb.clock();
     const cards = [...ui("current").querySelectorAll<HTMLAnchorElement>("a.tc.tc-wide")];
-    expect(cards.map(c => c.getAttribute("href"))).toEqual(["/#run=run_live", "/#run=run_other"]);
+    expect(cards.map(c => c.getAttribute("href"))).toEqual(["/#replay=run_live", "/#replay=run_other"]);
     expect(cards[0]?.innerHTML).toContain("/sprites/trainers/norman.png"); expect(cards[0]?.innerHTML).toContain('data-gt="LIVE"'); expect(cards[1]?.innerHTML).toContain('data-gt="PAUSED"');
     expect(cards[0]?.innerHTML).toContain("trial 2/4"); expect(cards[0]?.textContent).toContain("RED");
     expect(ui("current").textContent).toContain("NOT FROM ZERO"); expect(ui("current").textContent).toContain("2 CURRENT RUNS");

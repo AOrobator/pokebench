@@ -4,7 +4,8 @@ pret/pokeemerald 731ad5b:
 
 - SaveBlock1.lastHealLocation (+0x1C, struct WarpData: s8 mapGroup, s8 mapNum, s8 warpId, pad,
   s16 x, s16 y; include/global.h). SetLastHealLocationWarp (src/overworld.c) stores a heal
-  location from src/data/heal_locations.json when a script runs setrespawn.
+  location from src/data/heal_locations.json when a script runs setrespawn, always with warpId
+  WARP_ID_NONE; a new game's zeroed save (warpId 0) is unset, not PETALBURG CITY (0,0).
 - setrespawn runs in every *_PokemonCenter_1F OnTransition (data/maps/RustboroCity_PokemonCenter_1F/
   scripts.inc: setrespawn HEAL_LOCATION_RUSTBORO_CITY), in EverGrandeCity_PokemonLeague_1F and
   BattleFrontier_PokemonCenter_1F, and for the bedroom in InsideOfTruck and the Hall of Fame. A
@@ -35,6 +36,9 @@ if TYPE_CHECKING:
 
 SWITCH = "respawn-readout-v1"
 LAST_HEAL = 0x1C
+# SetLastHealLocationWarp always stores WARP_ID_NONE (include/constants/maps.h); the zeroed save of
+# a new game (ClearSav1, src/new_game.c) holds warpId 0 until the truck's setrespawn runs.
+WARP_ID_NONE = -1
 
 MapId = tuple[int, int]
 HealKey = tuple[str, int, int]
@@ -150,7 +154,7 @@ def read_respawn(
         group, number, _warp, x, y = struct.unpack("<bbbxhh", read(save1 + LAST_HEAL, 8))
     except struct.error:
         return None
-    if group < 0 or number < 0:
+    if group < 0 or number < 0 or _warp != WARP_ID_NONE:
         return None
     name = maps.name((group, number))
     if name is None:

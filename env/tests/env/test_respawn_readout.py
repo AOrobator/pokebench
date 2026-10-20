@@ -141,6 +141,18 @@ def test_an_unset_or_unknown_heal_location_gives_nothing(heal: tuple[int, int, i
     assert read_respawn(m.read, SB1, RUSTBORO, MAPS, LINKS) is None
 
 
+def test_the_zeroed_new_game_save_is_unset_not_petalburg_city() -> None:
+    # ClearSav1 (src/new_game.c) zeroes SaveBlock1; the truck's setrespawn runs only at its door.
+    # SetLastHealLocationWarp always stores warpId WARP_ID_NONE (-1); warpId 0 is no heal location.
+    m = at(RUSTBORO, (15, 59), (0, 0, 0, 0))
+    m.put(SB1 + 0x1C, bytes(8))
+    maps = MapNames({**{i: MAPS.name(i) or "" for i in MAPS.ids()}, (0, 0): "PETALBURG CITY"})
+    assert read_respawn(m.read, SB1, RUSTBORO, maps, LINKS) is None
+    on = features_off_from_env({}) - {SWITCH}
+    state = read_state(m.read, maps, active_ui=True, off=on, links=LinkCache(LINKS))
+    assert "If your party faints" not in render(state, on)
+
+
 def test_a_short_read_gives_nothing() -> None:
     assert read_respawn(lambda _a, _n: b"", SB1, RUSTBORO, MAPS, LINKS) is None
 

@@ -48,7 +48,7 @@ screen, out of battle:
 - [x] M1 GREEN: `env/pokebench_env/respawn.py`, GameState/read_game_state/readout/rerender/observation wiring,
       registry, presets, defaults.
 - [x] Explainer `docs/explainers/respawn-readout-v1.html`, FEATURE_EXPLAINERS, pending `experiments/respawn-readout.json`.
-- [ ] b300 replay at state seqs 14716 (turn of seq 14724), 15196 (after seq 15195) and 15755 (turn of seq 15776).
+- [x] b300 replay at state seqs 14716 (turn of seq 14724), 15196 (after seq 15195) and 15755 (turn of seq 15776).
 - [ ] Gates, sync main, Claude + Grok review (2 rounds max).
 
 ## Session log
@@ -88,5 +88,17 @@ screen, out of battle:
 - Emerald's blackout loss really is half (`DoWhiteOut`), not the later games' badge/level table.
 
 ## Multi-Model Review Log
+
+Round 1, packet base ee95b866 head 6e501415, diff sha256 cd7c97d8...560ca (after `git merge main`, gates green).
+- Grok (cursor-agent cursor-grok-4.5-high): VERDICT: LGTM. Non-blocking: adjacency rebuilt per call, unlocked
+  `knows()`, worklog checkboxes (follow-ups / fixed in worklog).
+- Claude: `claude -p` (default and ~/.claude-review) failed: OAuth session expired. Cursor Claude (opus-5, sonnet-5):
+  usage limit until 11/17. Fallback: fresh read-only Claude subagent (Plan type) on the same packet:
+  VERDICT: BLOCKING. B1 (Fix): a new game's zeroed SaveBlock1 (ClearSav1) reads as PETALBURG CITY (0,0) in the
+  truck before its setrespawn runs. Fixed: lastHealLocation counts only with warpId == WARP_ID_NONE, which
+  SetLastHealLocationWarp always stores; RED test with 8 zero bytes (failed, then passes); b300 truck states 813,
+  823, 831 now give no line. H1-H4 follow-ups (SSTidalCorridor/Lavaridge setrespawn without a center entry,
+  field-poison Lavaridge respawn, missed center between observations, unlocked LinkCache fill): not in the
+  Roxanne window; recorded, not changed.
 
 ## Boy Scout Log

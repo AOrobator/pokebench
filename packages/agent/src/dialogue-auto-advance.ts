@@ -34,6 +34,8 @@ const realClock:Clock={sleep:ms=>new Promise(resolve=>setTimeout(resolve,ms)),no
 const DIRECTIONS:ReadonlySet<Button>=new Set(["UP","DOWN","LEFT","RIGHT"]);
 const STEP:Readonly<Record<string,readonly[number,number]>>={up:[0,-1],down:[0,1],left:[-1,0],right:[1,0]};
 const NAME_PREFIX=/^([A-Z][A-Z0-9.'&-]*(?: [A-Z0-9.'&-]+){0,2}):\s/;
+// fail-open-input-v1: stops on a hold the harness cannot name; the model's own inputs decide what happens next.
+const UNRECOGNIZED:ReadonlySet<Stop>=new Set(["battle_busy","battle_unreadable","interface_not_ready","message_not_ready","locked_no_message"]);
 const UNSHOWN:ReadonlySet<Stop>=new Set(["press_cap","time_cap","message_not_ready","error"]);
 
 function stateOf(result:Result):GameStateSnapshot {
@@ -357,7 +359,7 @@ export function withDialogueAutoAdvance(tools:readonly AgentTool[],features:Feat
  const press=tools.find(t=>t.name==="press"),observe=tools.find(t=>t.name==="observe");
  if(press===undefined||observe===undefined||!isCheckedPress(press))throw new Error("Dialogue auto-advance requires ordinary game tools");
  const full:Required<AutoAdvancePorts>={...ports,clock:ports.clock??realClock,gate:ports.gate??(()=>Promise.resolve())};
- const switches=toolSwitches(features),semanticV2=features["semantic-navigation-v2"];
+ const switches=toolSwitches(features),semanticV2=features["semantic-navigation-v2"],failOpen=features["fail-open-input-v1"];
  const record=(s:GameStateSnapshot):Recorded=>full.recorder.recordState(s);
  const truth=features["navigation-truth-v1"];
  const present=features["script-line-presence-v1"]?(s:GameStateSnapshot)=>onScreen(s,features["character-presence-v1"]):null;
@@ -410,12 +412,19 @@ export function withDialogueAutoAdvance(tools:readonly AgentTool[],features:Feat
   if(!engaged&&before!==undefined)open=pages.openAt(after);
   if(!engaged&&(walk||plan.length===1)&&plan.length===params.buttons.length)return last as AgentToolResult<{state:GameStateSnapshot|undefined}>;
   // Every requested input that was not sent: cut by engaged dialogue or withheld by the safe-batch rule.
-  const dropped=params.buttons.slice(sent.length);
+  let dropped=params.buttons.slice(sent.length);
   let block:string|null=null,final:Result,detail:string|null=null;
   if(engaged){
-   const outcome=await drive(after,pages,autoPress(id,carry),full,battle,signal);detail=outcome.detail;
+   let outcome=await drive(after,pages,autoPress(id,carry),full,battle,signal);detail=outcome.detail;
    open=pages.openAt(outcome.state);
    extras.push(...outcome.extras);
+   // fail-open-input-v1: after a hold the harness does not recognize, the rest of the batch is the model's call.
+   if(failOpen&&UNRECOGNIZED.has(outcome.stop)&&dropped.length>0){
+    const rest=dropped;
+    for(const button of rest){const result=await run([button],false);sent.push(button);results.push({buttons:[button],line:pressLineOf(result)});extras.push(...extraText(result));}
+    dropped=[];
+    outcome={...outcome,note:[outcome.note,`The harness does not recognize what the game is waiting for, so it sent the rest of your inputs as you asked: ${rest.join(", ")}. Decide from the screen what they did.`].filter(line=>line!=null).join("\n")};
+   }
    // pushback-press-result-v1: a walk batch is one submission; once its first step opened a message, the steps
    // the player did not take were pressed under the message's lock.
    const ignored=switches.pushback===true&&walk?ignoredSteps(before,after,sent):[];

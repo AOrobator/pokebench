@@ -203,14 +203,14 @@ class BattleState:
 
 
 def _text_fields(
-    read: ReadMemory,
+    read: ReadMemory, finish_battle: bool = False
 ) -> tuple[BattleMessage, BattlePrompt | None, str | None, LevelUpBox | None]:
     """Message window, YES/NO prompt, advance phase and level-up box; a failed read stays local."""
     try:
         return (
             read_battle_message(read),
-            read_battle_prompt(read),
-            battle_text_phase(read),
+            read_battle_prompt(read, finish_battle=finish_battle),
+            battle_text_phase(read, finish_battle=finish_battle),
             read_levelup_box(read),
         )
     except (ValueError, OSError, IndexError) as error:
@@ -301,8 +301,8 @@ def _battler(
     )
 
 
-def _initializing(read: ReadMemory, main: int) -> BattleState:
-    message, prompt, text_phase, levelup_box = _text_fields(read)
+def _initializing(read: ReadMemory, main: int, finish_battle: bool = False) -> BattleState:
+    message, prompt, text_phase, levelup_box = _text_fields(read, finish_battle)
     return BattleState(
         True,
         phase="initializing",
@@ -316,8 +316,13 @@ def _initializing(read: ReadMemory, main: int) -> BattleState:
 
 
 def read_battle_state(
-    read: ReadMemory, *, current_battle_only: bool = True, tutorial_owner_enabled: bool = False
+    read: ReadMemory,
+    *,
+    current_battle_only: bool = True,
+    tutorial_owner_enabled: bool = False,
+    finish_battle_prompt: bool = False,
 ) -> BattleState:
+    """finish_battle_prompt: caught-nickname-prompt-v1 (battle_text.read_battle_prompt)."""
     """current_battle_only (transition-coherence-v1): the intro is initializing, not stale data."""
     active = bool(number(read, IN_BATTLE, 1) & 2)
     if not active:
@@ -329,11 +334,11 @@ def read_battle_state(
         # Before BattleIntro has copied party/enemy data, an empty battle is a
         # genuine initialization phase, not a decoded Pokémon with species0.
         if count == 0 or main == 0:
-            return _initializing(read, main)
+            return _initializing(read, main, finish_battle_prompt)
         # Until BattleIntroDrawTrainersOrMonsSprites has run, outcome, turn and battlers may
         # still be the previous battle's (battle_main.c BeginBattleIntro, line 3017).
         if current_battle_only and main in BATTLE_INTRO_MAIN_FUNCS:
-            return _initializing(read, main)
+            return _initializing(read, main, finish_battle_prompt)
         if count not in (2, 4) or not 0x08000001 <= main < 0x0A000000 or not main & 1:
             raise ValueError("invalid battle count or main owner")
         battle_type = number(read, TYPE_FLAGS)
@@ -344,7 +349,7 @@ def read_battle_state(
         # SetUpBattleVarsAndBirchZigzagoon clears every position to 0xFF before the controllers
         # are set up; gBattlersCount is not reset, so it can still say 2.
         if current_battle_only and all(p == CLEARED_POSITION for p in positions):
-            return _initializing(read, main)
+            return _initializing(read, main, finish_battle_prompt)
         if len(set(positions)) != count or any(position > 3 for position in positions):
             raise ValueError("invalid battle positions")
         raw = exact(read, MONS, count * 0x58)
@@ -360,7 +365,7 @@ def read_battle_state(
             if index not in trainer_banks
         ):
             if main not in (SELECT_ACTION, 0x0803D2E9, 0x0803D819, *SCRIPT_OWNERS):
-                return _initializing(read, main)
+                return _initializing(read, main, finish_battle_prompt)
         absent = number(read, 0x02024210, 1)
         battlers = tuple(
             _battler(
@@ -560,7 +565,7 @@ def read_battle_state(
             playback,
             None,
             None,
-            *_text_fields(read),
+            *_text_fields(read, finish_battle_prompt),
         )
     except (ValueError, OSError, struct.error) as error:
         return BattleState(

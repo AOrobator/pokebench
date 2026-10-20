@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Caught nickname question</title>
+<style>
+:root{--bg:#fbfaf7;--fg:#1d1d1b;--muted:#5d5b55;--line:#d9d5cc;--panel:#ffffff;--keep:#2f7d4f;--drop:#b4442f;--accent:#2d5f9a;--fill:#eef3f8;--wall:#8f8a7f;--floor:#f4f1ea;}
+@media (prefers-color-scheme: dark){:root{--bg:#161614;--fg:#ecebe6;--muted:#a8a59c;--line:#3a3833;--panel:#1f1e1b;--keep:#6cc08f;--drop:#e98a74;--accent:#86b3e6;--fill:#22303f;--wall:#55524b;--floor:#2a2925}}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif}
+main{max-width:900px;margin:0 auto;padding:24px 16px 48px}
+h1{font-size:1.6rem;margin:0 0 4px}h2{font-size:1.15rem;margin:32px 0 8px}
+.muted{color:var(--muted)}
+figure{margin:16px 0;padding:12px;background:var(--panel);border:1px solid var(--line);border-radius:8px;overflow-x:auto}
+figcaption{color:var(--muted);font-size:.9rem;margin-top:8px}
+code{font:13px ui-monospace,SFMono-Regular,Menlo,monospace}
+table{border-collapse:collapse;width:100%;font-size:.95rem}td,th{border-bottom:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top}
+.tablewrap{overflow-x:auto}
+svg text{fill:var(--fg);font:13px -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif}
+svg .small{font-size:11px;fill:var(--muted)}svg .tiny{font-size:10px;fill:#fff;font-weight:600}
+.note{border-left:3px solid var(--accent);padding:6px 10px;background:var(--fill);font:13px ui-monospace,SFMono-Regular,Menlo,monospace;white-space:pre-wrap;word-break:break-word}
+.off{border-left-color:var(--drop)}.on{border-left-color:var(--keep)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}@media (max-width:640px){.grid2{grid-template-columns:1fr}}
+</style>
+</head>
+<body><main>
+<h1>Caught nickname question</h1>
+<p class="muted"><code>caught-nickname-prompt-v1</code> · server readout switch · bundle-only, default off</p>
+
+<p>After a catch the game asks <em>Give a nickname to the captured ZIGZAGOON?</em> with a YES/NO box. The readout did not see the box: it said the battle was busy, so the battle text advance waited and dropped the model's A. Run <code>2026-10-20T16-14-34_qwen36-gpu1_c6c2</code> sat on this box from 4:58 PM for about 40 minutes.</p>
+
+<h2>Why the readout missed it</h2>
+<figure>
+<svg viewBox="0 0 860 250" width="860" height="250" role="img" aria-label="Which battle main functions the prompt reader accepts">
+<rect x="10" y="20" width="250" height="60" rx="6" fill="var(--fill)" stroke="var(--line)"/>
+<text x="24" y="44">Script runner 0x0803E019</text><text x="24" y="66" class="small">RunBattleScriptCommands_PopCallbacksStack</text>
+<rect x="10" y="100" width="250" height="60" rx="6" fill="var(--fill)" stroke="var(--line)"/>
+<text x="24" y="124">Script runner 0x0803E08D</text><text x="24" y="146" class="small">RunBattleScriptCommands</text>
+<rect x="10" y="180" width="250" height="60" rx="6" fill="var(--panel)" stroke="var(--drop)" stroke-width="2"/>
+<text x="24" y="204">HandleEndTurn_FinishBattle 0x0803D819</text><text x="24" y="226" class="small">gBattleOutcome = CAUGHT; action 10 = EXEC_SCRIPT</text>
+<rect x="330" y="90" width="220" height="80" rx="6" fill="var(--panel)" stroke="var(--accent)" stroke-width="2"/>
+<text x="344" y="116">read_battle_prompt</text><text x="344" y="138" class="small">script op 0xF3 trygivecaughtmonnick</text><text x="344" y="156" class="small">state 1 = input, cursor byte 0 YES / 1 NO</text>
+<line x1="260" y1="50" x2="330" y2="110" stroke="var(--keep)" stroke-width="2"/><text x="270" y="72" class="small">accepted</text>
+<line x1="260" y1="130" x2="330" y2="130" stroke="var(--keep)" stroke-width="2"/>
+<line x1="260" y1="210" x2="330" y2="150" stroke="var(--drop)" stroke-width="2" stroke-dasharray="6 4"/><text x="268" y="236" class="small">OFF: rejected · ON: accepted</text>
+<rect x="620" y="40" width="230" height="60" rx="6" fill="var(--panel)" stroke="var(--drop)"/>
+<text x="634" y="64">OFF: text phase busy</text><text x="634" y="86" class="small">"resolving", battle wait bound</text>
+<rect x="620" y="160" width="230" height="60" rx="6" fill="var(--panel)" stroke="var(--keep)"/>
+<text x="634" y="184">ON: text phase prompt</text><text x="634" y="206" class="small">YES/NO box open, cursor on NO</text>
+<line x1="550" y1="115" x2="620" y2="75" stroke="var(--drop)" stroke-width="2"/><line x1="550" y1="145" x2="620" y2="185" stroke="var(--keep)" stroke-width="2"/>
+</svg>
+<figcaption>The box is drawn by battle script opcode 0xF3 (<code>Cmd_trygivecaughtmonnick</code>, <code>BattleScript_SuccessBallThrow</code>). After a catch, <code>sEndTurnFuncsTable[B_OUTCOME_CAUGHT]</code> sends the battle to <code>HandleEndTurn_FinishBattle</code>, which runs the script through <code>sTurnActionsFuncsTable[B_ACTION_EXEC_SCRIPT]</code>. The reader only accepted the two script runners.</figcaption>
+</figure>
+
+<h2>The recorded frame</h2>
+<div class="tablewrap"><table>
+<tr><th>Read</th><th>Address</th><th>c6c2 raw-ram 5834 (turn 406)</th></tr>
+<tr><td>gBattleMainFunc</td><td><code>0x03005D04</code></td><td><code>0x0803D819</code> HandleEndTurn_FinishBattle</td></tr>
+<tr><td>gCurrentActionFuncId</td><td><code>0x02024083</code></td><td>10 (B_ACTION_EXEC_SCRIPT)</td></tr>
+<tr><td>script op at gBattlescriptCurrInstr</td><td><code>0x02024214</code> → <code>0x082DBDAF</code></td><td><code>0xF3</code> trygivecaughtmonnick</td></tr>
+<tr><td>gBattleCommunication[0..1]</td><td><code>0x02024332</code></td><td>1 (input state), 1 (cursor on NO)</td></tr>
+</table></div>
+
+<h2>What the model reads</h2>
+<div class="grid2">
+<div class="note off">OFF
+Battle details: WILD single · turn 3 · resolving (the game is playing animations or a message that closes on its own; no input until the game asks)</div>
+<div class="note on">ON
+Battle details: … battle YES/NO box open (nickname the caught Pokémon), cursor on NO — UP or DOWN moves the cursor, A answers the highlighted choice, B answers NO</div>
+</div>
+<p>With the switch on, the battle wait ends on the box (<code>reason: prompt</code>) and battle text auto-advance stops with <code>battle_prompt</code>, so the model's next press reaches the box. HandleEndTurn_FinishBattle running anything other than a script action is still read as before.</p>
+
+<h2>Wiring</h2>
+<p><code>POKEBENCH_FEATURES_OFF</code> → <code>rerender.read_state(caught_nickname_enabled)</code> → <code>read_game_state</code> → <code>read_battle_state(finish_battle_prompt)</code> → <code>read_battle_prompt(finish_battle)</code>; and <code>serve.py</code> → <code>BattleWait(finish_battle)</code> → <code>wait_phase</code>. Off is byte-identical.</p>
+
+<h2>Status</h2>
+<p>Branch <code>claude/nickname-fail-open</code>. Tests: <code>env/tests/env/test_caught_nickname.py</code> on the c6c2 fixture (OFF busy, ON prompt with cursor NO, non-script finish ignored, production state read and battle wait honour the switch). Pending experiment <code>experiments/caught-nickname-prompt-v1.json</code>; no measured runs yet.</p>
+</main></body></html>

@@ -30,6 +30,7 @@ from pokebench_env.battle_choices import FrameEmulator, install_battle_journal
 from pokebench_env.battle_text import BattleWait, install_battle_text, install_battle_wait
 from pokebench_env.blackout_readout import SWITCH as BLACKOUT
 from pokebench_env.blackout_readout import WhiteoutLatch, install_whiteout_latch
+from pokebench_env.caught_nickname import SWITCH as CAUGHT_NICKNAME
 from pokebench_env.checkpoint import install_checkpoint
 from pokebench_env.evolution_decision import SWITCH as EVOLUTION
 from pokebench_env.evolution_decision import install_evolution_decision
@@ -327,7 +328,11 @@ def run(
             install_whiteout_latch(frames, whiteout)
         settle = FrameSettle(observation[2], warp=WARP_FEATURE not in off)
         install_frame_settle(frames, settle)
-        battle_wait = BattleWait(observation[2], levelup_box=LEVELUP_BOX not in off)
+        battle_wait = BattleWait(
+            observation[2],
+            levelup_box=LEVELUP_BOX not in off,
+            finish_battle=CAUGHT_NICKNAME not in off,
+        )
         install_battle_wait(frames, battle_wait)
     if actions is not None:
         install_action_history(

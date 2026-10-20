@@ -20,8 +20,8 @@
 ## M1
 
 - [x] RED: c6c2 raw-ram 5834 fixture (OFF busy, ON prompt with cursor NO, non-script finish ignored, production state read and battle wait honour the switch); fail-open on the 54a7 level-up box with levelup-box-v1 OFF (A and B sent after battle_busy, OFF drops, recognized stop still drops, registry); play returns operator_abort on an aborted rejection, still throws with no stop
-- [ ] GREEN
-- [ ] Explainer, pending experiments, readiness
-- [ ] Gates
+- [x] GREEN: `caught_nickname.py` + `read_battle_prompt/battle_text_phase/wait_phase/BattleWait(finish_battle)`, `read_battle_state(finish_battle_prompt)`, `read_game_state(caught_nickname_enabled)`, rerender and serve wiring; `fail-open-input-v1` in `withDialogueAutoAdvance` (UNRECOGNIZED stops send the rest of the batch one press at a time, note in the result, event lists them as sent); `play` returns the governor's stop when the loop rejects after a stop. Both switches bundle-only in bundle-v-control and bundle-cook-1h. Registry churn across 52 agent tests, 8 Python tests, legacy-features and open-goal-prompt. Wiring deletions: fail-open `failOpen=false` turns 2 levelup-box tests red; rerender `caught_nickname_enabled=False` turns the production state-read test red; both restored.
+- [x] Explainers `docs/explainers/caught-nickname-prompt-v1.html`, `fail-open-input-v1.html` (pages-check clean), FEATURE_EXPLAINERS + server test; pending `experiments/caught-nickname-prompt-v1.json`, `fail-open-input-v1.json`; readiness rows
+- [x] Gates: lint clean; agent 2963, viewer 1435, pytest 2998; coverage above 90 (agent 97/93/98/99, viewer 95/91/94/98, Python 97/93/100)
 - [ ] Review: Claude and Grok LGTM (max 2 rounds)
 - [ ] features.ts slot, rebase, land ff-only

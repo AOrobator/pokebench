@@ -1,11 +1,12 @@
 """caught-nickname-prompt-v1: the post-catch nickname YES/NO box is an open battle question.
 
-The fixture is read-only raw RAM from 2026-10-20T16-14-34_qwen36-gpu1_c6c2 (raw-ram 5834, turn 406),
-cut to the addresses the readers use. Cmd_trygivecaughtmonnick (battle script opcode 0xF3,
-BattleScript_SuccessBallThrow) waits in its input state (gBattleCommunication[0] == 1) with the cursor
-on NO, but the script runs under HandleEndTurn_FinishBattle (gBattleOutcome is B_OUTCOME_CAUGHT) with
-gCurrentActionFuncId == B_ACTION_EXEC_SCRIPT, not under the battle script runners. The run sat on this
-box from 4:58 PM with the readout saying "controller_busy" and every A dropped.
+The fixture is read-only raw RAM from 2026-10-20T16-14-34_qwen36-gpu1_c6c2 (raw-ram 5834, turn
+406), cut to the addresses the readers use. Cmd_trygivecaughtmonnick (battle script opcode 0xF3,
+BattleScript_SuccessBallThrow) waits in its input state (gBattleCommunication[0] == 1) with the
+cursor on NO, but the script runs under HandleEndTurn_FinishBattle (gBattleOutcome is
+B_OUTCOME_CAUGHT) with gCurrentActionFuncId == B_ACTION_EXEC_SCRIPT, not under the battle script
+runners. The run sat on this box from 4:58 PM with the readout saying "controller_busy" and
+every A dropped.
 """
 
 import json
@@ -107,56 +108,52 @@ def test_production_state_read_honours_the_switch(monkeypatch: pytest.MonkeyPatc
     assert seen == [False, True]
 
 
-def _production(monkeypatch: pytest.MonkeyPatch, off: str) -> FastAPI:
+def test_production_battle_wait_honours_the_switch(monkeypatch: pytest.MonkeyPatch) -> None:
     from test_observation import Shot
 
-    from pokebench_env.serve import run
+    from pokebench_env import serve
 
-    monkeypatch.setenv("POKEBENCH_FEATURES_OFF", off)
-    memory = box()
-    app = FastAPI()
+    made: list[bool] = []
+
+    class Capture(bt.BattleWait):
+        def __init__(self, read: bt.ReadMemory, **options: bool) -> None:
+            made.append(options["finish_battle"])
+            super().__init__(read, **options)
+
+    monkeypatch.setattr(serve, "BattleWait", Capture)
 
     class Emulator:
         def run_frame_with_buttons(self, buttons: list[str]) -> None:
             pass
 
-    run(
-        [],
-        uvicorn=types.SimpleNamespace(run=lambda *a, **k: None),
-        vendor_main=lambda: None,
-        observation=(app, Shot, memory.read, MapNames({}), threading.Lock()),
-        pause=(app, types.SimpleNamespace(step_environment=lambda actions: None)),
-        frames=Emulator,
-        battle_text=(app, Emulator, memory.read),
-    )
-    app.state.emulator = Emulator
-    return app
+    for off in (SWITCH, ""):
+        monkeypatch.setenv("POKEBENCH_FEATURES_OFF", off)
+        app = FastAPI()
+        serve.run(
+            [],
+            uvicorn=types.SimpleNamespace(run=lambda *a, **k: None),
+            vendor_main=lambda: None,
+            observation=(app, Shot, box().read, MapNames({}), threading.Lock()),
+            pause=(app, types.SimpleNamespace(step_environment=lambda actions: None)),
+            frames=Emulator,
+            battle_text=(app, Emulator, box().read),
+        )
+    assert made == [False, True]
 
 
-def _wait(app: FastAPI) -> tuple[threading.Thread, dict[str, object]]:
-    from test_view import get
-
+def test_the_battle_wait_ends_on_the_box_only_with_the_switch() -> None:
+    read = box().read
+    on = bt.BattleWait(read, finish_battle=True)
+    assert on.wait(lambda: "now", threading.Lock()) == ("now", "prompt", 0)
+    off = bt.BattleWait(read)
     result: dict[str, object] = {}
     thread = threading.Thread(
-        target=lambda: result.update(r=get(app, "/pokebench/battle/wait", b"max_frames=1")),
+        target=lambda: result.update(r=off.wait(lambda: "late", threading.Lock(), bound_frames=1)),
         daemon=True,
     )
     thread.start()
-    return thread, result
-
-
-def test_production_battle_wait_ends_on_the_box_only_with_the_switch(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    thread, result = _wait(_production(monkeypatch, ""))
-    thread.join(5)
-    assert not thread.is_alive()
-    payload = json.loads(result["r"][2])  # type: ignore[index]
-    assert (payload["reason"], payload["frames"]) == ("prompt", 0)
-    off = _production(monkeypatch, SWITCH)
-    thread, result = _wait(off)
-    thread.join(0.2)
+    thread.join(0.1)
     assert thread.is_alive()
-    off.state.emulator().run_frame_with_buttons([])
+    off.on_frame()
     thread.join(5)
-    assert json.loads(result["r"][2])["reason"] == "bound"  # type: ignore[index]
+    assert result["r"] == ("late", "bound", 1)

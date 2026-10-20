@@ -249,6 +249,7 @@ def read_game_state(
     semantic_navigation_enabled: bool = False,
     evolution_decision_enabled: bool = False,
     exit_labels_enabled: bool = False,
+    caught_nickname_enabled: bool = False,
     respawn_links: LinkCache | None = None,
 ) -> GameState:
     screen = read_screen(read)
@@ -262,7 +263,10 @@ def read_game_state(
     in_battle = bool(read(IN_BATTLE, 1)[0] & 0x02)
     battle = (
         read_battle_state(
-            read, current_battle_only=coherent, tutorial_owner_enabled=tutorial_owner_enabled
+            read,
+            current_battle_only=coherent,
+            tutorial_owner_enabled=tutorial_owner_enabled,
+            finish_battle_prompt=caught_nickname_enabled,
         )
         if in_battle
         else None

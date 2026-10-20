@@ -154,3 +154,5 @@ The original ignored runs/explainers copies remain for existing links. Make futu
 - [Exit labels v2](exit-labels-v2.html) — bundle-only: every warp names its map as the location popup does, plus the map ID; exits that share a name add their landing tile and what can be walked to from it.
 - [Respawn readout](respawn-readout-v1.html) — bundle-only readout line: where a blackout sends the player (saved heal location, map changes, money / 2 lost) and an exit POKéMON CENTER that would move it.
 - [Trainer sight check](trainer-sight-check-v1.html) — bundle-only: navigate_to does not walk a route an unbeaten trainer can see (trainer_see.c rule) unless called again with confirm_trainer_sight: true.
+- [Caught nickname question](caught-nickname-prompt-v1.html) — bundle-only readout fix: the post-catch nickname YES/NO box (run under HandleEndTurn_FinishBattle) reads as an open battle question, not a busy battle.
+- [Fail-open input](fail-open-input-v1.html) — bundle-only: after a hold the harness does not recognize, the rest of the model's batch is sent (B included) instead of dropped.

@@ -39,6 +39,7 @@ from typing import Literal, Protocol, TypeVar, cast
 
 from fastapi import FastAPI, HTTPException, Query
 
+from pokebench_env.caught_nickname import ACTION_FUNC, EXEC_SCRIPT, FINISH_BATTLE
 from pokebench_env.game_screen import GMAIN, ReadMemory
 from pokebench_env.native_text import CONTROL_ARGS, decode_native_text, native_text_payload
 
@@ -252,8 +253,19 @@ def read_battle_message(read: ReadMemory) -> BattleMessage:
         )
 
 
-def read_battle_prompt(read: ReadMemory) -> BattlePrompt | None:
-    if _u32(_exact(read, MAIN_FUNC, 4)) not in SCRIPT_OWNERS:
+def _script_running(read: ReadMemory, finish_battle: bool) -> bool:
+    """The battle script runs this frame: under a script runner or, with caught-nickname-prompt-v1
+    (`finish_battle`), under HandleEndTurn_FinishBattle running a script action."""
+    main = _u32(_exact(read, MAIN_FUNC, 4))
+    if main in SCRIPT_OWNERS:
+        return True
+    return (
+        finish_battle and main == FINISH_BATTLE and _exact(read, ACTION_FUNC, 1)[0] == EXEC_SCRIPT
+    )
+
+
+def read_battle_prompt(read: ReadMemory, *, finish_battle: bool = False) -> BattlePrompt | None:
+    if not _script_running(read, finish_battle):
         return None
     script = _u32(_exact(read, SCRIPT_PC, 4))
     if not 0x08000000 <= script < 0x0A000000:
@@ -340,14 +352,14 @@ def battle_input_ready(read: ReadMemory) -> bool:
     )
 
 
-def battle_text_phase(read: ReadMemory) -> TextPhase:
+def battle_text_phase(read: ReadMemory, *, finish_battle: bool = False) -> TextPhase:
     """Inside a battle: what the battle text advance does next."""
     callback = _u32(_exact(read, GMAIN + 4, 4))
     if callback in BATTLE_HANDOFFS:
         return "busy"
     if callback != BATTLE_MAIN_CB2:
         return "screen"
-    prompt = read_battle_prompt(read)
+    prompt = read_battle_prompt(read, finish_battle=finish_battle)
     if prompt is not None and prompt.ready:
         return "prompt"
     if battle_input_ready(read):
@@ -358,13 +370,16 @@ def battle_text_phase(read: ReadMemory) -> TextPhase:
     return "busy"
 
 
-def wait_phase(read: ReadMemory, *, levelup_box: bool = False) -> WaitPhase:
+def wait_phase(
+    read: ReadMemory, *, levelup_box: bool = False, finish_battle: bool = False
+) -> WaitPhase:
     """Any screen: "busy" while a battle (or its entry or exit) runs on its own.
 
     levelup-box-v1 (`levelup_box`): a level-up stats box waiting for a button ends the wait.
+    caught-nickname-prompt-v1 (`finish_battle`): see read_battle_prompt.
     """
     if _exact(read, IN_BATTLE, 1)[0] & 2:
-        phase: WaitPhase = battle_text_phase(read)
+        phase: WaitPhase = battle_text_phase(read, finish_battle=finish_battle)
         if phase == "busy" and levelup_box:
             box = read_levelup_box(read)
             if box is not None and box.waiting:
@@ -513,9 +528,12 @@ class BattleWait:
     or returns to the field; or until a frame bound. With levelup-box-v1 a level-up stats box
     waiting for a button also ends it."""
 
-    def __init__(self, read: ReadMemory, *, levelup_box: bool = False) -> None:
+    def __init__(
+        self, read: ReadMemory, *, levelup_box: bool = False, finish_battle: bool = False
+    ) -> None:
         self.read = read
         self.levelup_box = levelup_box
+        self.finish_battle = finish_battle
         self._lock = threading.Lock()
         self._waiters: list[_Waiter] = []
         self._parked = False
@@ -527,7 +545,9 @@ class BattleWait:
             if not self._waiters:
                 return
             try:
-                phase: WaitPhase = wait_phase(self.read, levelup_box=self.levelup_box)
+                phase: WaitPhase = wait_phase(
+                    self.read, levelup_box=self.levelup_box, finish_battle=self.finish_battle
+                )
             except (ValueError, IndexError) as error:
                 for waiter in self._waiters:
                     waiter.error = error
@@ -570,7 +590,9 @@ class BattleWait:
             with self._lock:
                 if self._parked:
                     return capture(), "paused", 0
-                phase = wait_phase(self.read, levelup_box=self.levelup_box)
+                phase = wait_phase(
+                    self.read, levelup_box=self.levelup_box, finish_battle=self.finish_battle
+                )
                 if phase != "busy":
                     return capture(), phase, 0
                 waiter = _Waiter(capture, bound_frames)

@@ -98,6 +98,7 @@ SERVER_FEATURES = (
     "exit-labels-v2",
     "heal-before-trainers-v2",
     "respawn-readout-v1",
+    "caught-nickname-prompt-v1",
 )
 
 
@@ -118,7 +119,8 @@ def features_off_from_env(env: Mapping[str, str]) -> frozenset[str]:
         "heal-before-trainers-v1,"
         "tutorial-party-owner-v1,mid-frame-readout-v1,unset-dynamic-warp-v1,status-names-v1,"
         "surf-gated-exits-v2,battle-effective-damage-v1,safe-navigation-strides-v1,evolution-decision-v1,original-speed-pacing-v1,"
-        "semantic-navigation-v2,exit-labels-v2,heal-before-trainers-v2,respawn-readout-v1",
+        "semantic-navigation-v2,exit-labels-v2,heal-before-trainers-v2,respawn-readout-v1,"
+        "caught-nickname-prompt-v1",
     )
     if raw == "":
         return frozenset()

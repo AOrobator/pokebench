@@ -335,8 +335,21 @@ export function piLoop(options: PiLoopOptions): Loop {
   };
 }
 
+// A stop (operator abort, budget) aborts the loop's signal; an abort thrown where the loop does not catch it
+// (pi's transformContext hook) rejects the loop, and that rejection is the stop, not a crash.
+async function untilStopped(governor: Governor, pending: () => Promise<AgentMessage[]>): Promise<AgentMessage[] | RunEndReason> {
+  try {
+    return await pending();
+  } catch (error) {
+    if (governor.stopReason !== null) return governor.stopReason;
+    throw error;
+  }
+}
+
 export async function play(task: AgentMessage, governor: Governor, loop: Loop): Promise<RunEndReason> {
-  let messages = await loop.start([task], []);
+  const started = await untilStopped(governor, () => loop.start([task], []));
+  if (typeof started === "string") return started;
+  let messages = started;
   for (;;) {
     if (governor.stopReason !== null) return governor.stopReason;
     const last = messages.at(-1);
@@ -345,6 +358,8 @@ export async function play(task: AgentMessage, governor: Governor, loop: Loop): 
     }
     messages = messages.slice(0, -1);
     if (governor.modelError(last)) continue;
-    messages = [...messages, ...(await loop.resume([...messages]))];
+    const more = await untilStopped(governor, () => loop.resume([...messages]));
+    if (typeof more === "string") return more;
+    messages = [...messages, ...more];
   }
 }

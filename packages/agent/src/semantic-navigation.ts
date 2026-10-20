@@ -235,6 +235,7 @@ function semanticTool(navigate:CheckedNavigationTool,press:CheckedPressTool,feat
    const listedWarpBehavior=listed?.kind==="warp"?tileBehavior(before,listed,options.mode):null;
    const initialEntryActivation=listed?.kind!=="warp"?"step":listedWarpBehavior===null?null:directionalWarpActivation(before,listed,options.mode??"local")??"step";
    let previous=before.position;
+   const segmentEnds=new Set<string>(previous===null?[]:[`${String(previous.x)},${String(previous.y)}`]);
    let walked=await navigate.executeChecked(id,destination,routeStop,signal,{exactTarget:true,multiTileRunning:true}),current:GameStateSnapshot,reason:string|null;
    for(;;){
     current=stateOf(walked);
@@ -252,6 +253,11 @@ function semanticTool(navigate:CheckedNavigationTool,press:CheckedPressTool,feat
     }
     if(!navigationCanContinue(status))return withStatus(walked,"route ended before the selected approach",selected,false);
     if(previous!==null&&current.position?.x===previous.x&&current.position.y===previous.y)return withStatus(walked,"route made no progress before the selected approach",selected,false);
+    if(current.position!==null){
+     const end=`${String(current.position.x)},${String(current.position.y)}`;
+     if(segmentEnds.has(end))return withStatus(walked,"route returned to an earlier segment end before the selected approach",selected,false);
+     segmentEnds.add(end);
+    }
     previous=current.position;
     walked=await navigate.executeChecked(id,destination,routeStop,signal,{exactTarget:true,multiTileRunning:true});
    }

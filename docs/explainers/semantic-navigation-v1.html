@@ -13,7 +13,7 @@
 <body><main>
   <p class="eyebrow">DEFAULT-OFF HARNESS SWITCH</p>
   <h1>Semantic navigation v1</h1>
-  <p>The model chooses a game-owned target. The harness owns current identity, route, running, approach tile, facing, and one activation. It continues progress-making route segments without an end-to-end move cap and rechecks ownership, target identity, and the native interaction recipient before every travel, facing, or activation input.</p>
+  <p>The model chooses a game-owned target. The harness owns current identity, route, running, approach tile, facing, and one activation. It continues progress-making route segments without an end-to-end move cap (a call ends, without activating, when a segment makes no progress or ends on a tile an earlier segment already ended on, so cycling routes cannot loop) and rechecks ownership, target identity, and the native interaction recipient before every travel, facing, or activation input.</p>
   <section class="card flow" aria-label="Target resolution and interruption flow">
     <div class="node"><strong>Model selects</strong><br><span class="muted">object id, interaction, warp, or edge</span></div><div class="arrow">→</div>
     <div class="node"><strong>Harness proves</strong><br><span class="muted">route, elevation, native slot priority</span></div><div class="arrow">→</div>

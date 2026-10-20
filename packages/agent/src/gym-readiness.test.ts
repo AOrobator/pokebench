@@ -36,10 +36,11 @@ describe("gym-readiness-readout-v1 on the recorded Rustboro gym (run a8f9)",()=>
   expect(replay(early).block(STATE)).toBe(["Gym: RUSTBORO CITY GYM","Your party: TORCHIC Lv15 HP 41/41","The GYM LEADER's POKéMON seen in battle this run: none yet"].join("\n"));
  });
  it("lists the map's trainers from the game's trainer flags, by the name a battle showed, else the sprite kind",()=>{
-  const trainers=[{local_id:2,x:5,y:13,graphics_id:4,sprite_kind:"YOUNGSTER",trainer_id:320,defeated:true},{local_id:3,x:2,y:9,graphics_id:4,sprite_kind:"YOUNGSTER",trainer_id:321,defeated:false},{local_id:5,x:8,y:6,graphics_id:9,sprite_kind:"HIKER",trainer_id:571,defeated:false}];
+  const trainers=[{local_id:2,x:5,y:13,graphics_id:4,sprite_kind:"YOUNGSTER",trainer_id:320,defeated:true},{local_id:3,x:2,y:9,graphics_id:4,sprite_kind:"YOUNGSTER",trainer_id:321,defeated:false},{local_id:5,x:8,y:6,graphics_id:9,sprite_kind:"HIKER",trainer_id:571,defeated:false},{local_id:1,x:5,y:2,graphics_id:80,sprite_kind:"ROXANNE",trainer_id:265,defeated:false}];
+  // ROXANNE beat the player three times in a8f9: her flag is clear, but a battle showed her name (Claude review round 1).
   const facts={trainers,move_power:[],last_heal:null,home:null,mom_heals:false};
   const state:GameStateSnapshot={...STATE,heal_before_trainers:facts};
-  expect(replay().block(state)?.split("\n").at(-1)).toBe("Trainers on this map: JOSH at (5,13) (beaten), YOUNGSTER at (2,9) (not battled), HIKER at (8,6) (not battled)");
+  expect(replay().block(state)?.split("\n").at(-1)).toBe("Trainers on this map: JOSH at (5,13) (beaten), YOUNGSTER at (2,9) (not beaten), HIKER at (8,6) (not beaten), ROXANNE at (5,2) (battled, not beaten)");
   const nobody:GameStateSnapshot={...state,heal_before_trainers:{...facts,trainers:[]}};
   expect(replay().block(nobody)?.split("\n").at(-1)).toBe(GUIDE);
  });

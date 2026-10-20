@@ -31,7 +31,7 @@ Gym: RUSTBORO CITY GYM · GYM LEADER ROXANNE
 Your party: TORCHIC Lv15 HP 41/41
 ROXANNE's POKéMON seen in battle this run: GEODUDE Lv12 ×2; any others not seen yet
 Said on this map: "ROXANNE, the GYM LEADER, is a user of ROCK-type POKéMON." "The ROCK type is very durable, but it can't stand WATER-type and GRASS-type moves."</div>
-<p>With heal-before-trainers facts in the state, a last line lists the map's trainers, for example <code>Trainers on this map: JOSH at (5,13) (beaten), YOUNGSTER at (2,9) (not battled), HIKER at (8,6) (not battled)</code>. A trainer is named only if a battle showed the name; otherwise the sprite kind is used.</p>
+<p>With heal-before-trainers facts in the state, a last line lists the map's trainers, for example <code>Trainers on this map: JOSH at (5,13) (beaten), YOUNGSTER at (2,9) (not beaten), ROXANNE at (5,2) (battled, not beaten)</code>. A trainer is named only if a battle showed the name; otherwise the sprite kind is used.</p>
 
 <h2>Where each part comes from</h2>
 <figure>
@@ -45,7 +45,7 @@ Said on this map: "ROXANNE, the GYM LEADER, is a user of ROCK-type POKéMON." "T
 <text x="414" y="67">Your party: species, level, HP</text>
 <text x="414" y="97">Leader's POKéMON seen: per party slot, highest level</text>
 <text x="414" y="157">Said on this map: pages naming an X-type, once each</text>
-<text x="414" y="217">Trainers on this map: beaten / not battled</text>
+<text x="414" y="217">Trainers: beaten / battled, not beaten / not beaten</text>
 <line x1="300" y1="32" x2="400" y2="62" stroke="var(--fg)"/><line x1="300" y1="92" x2="400" y2="34" stroke="var(--fg)"/><line x1="300" y1="92" x2="400" y2="94" stroke="var(--fg)"/><line x1="300" y1="152" x2="400" y2="154" stroke="var(--fg)"/><line x1="300" y1="212" x2="400" y2="214" stroke="var(--fg)"/>
 </svg>
 <figcaption>The block is built only from recorded events this run. It never reads the ROM's trainer parties (<code>sParty_Roxanne1</code>), so before the first leader battle it says "none yet". It gives no advice and no level targets.</figcaption>

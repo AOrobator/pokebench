@@ -72,7 +72,9 @@ export class GymReadiness {
   if(said!==undefined)lines.push(`Said on this map: ${said.map(text=>`"${text}"`).join(" ")}`);
   const trainers=state.heal_before_trainers?.trainers;
   if(trainers!=null&&trainers.length>0){
-   lines.push(`Trainers on this map: ${trainers.map(t=>`${this.names.get(t.trainer_id)??t.sprite_kind??"a trainer"} at (${String(t.x)},${String(t.y)}) (${t.defeated?"beaten":"not battled"})`).join(", ")}`);
+   // The trainer flag is set only by a win; a battle this run that left it clear was a loss.
+   const status=(t:{trainer_id:number;defeated:boolean})=>t.defeated?"beaten":this.names.has(t.trainer_id)?"battled, not beaten":"not beaten";
+   lines.push(`Trainers on this map: ${trainers.map(t=>`${this.names.get(t.trainer_id)??t.sprite_kind??"a trainer"} at (${String(t.x)},${String(t.y)}) (${status(t)})`).join(", ")}`);
   }
   return lines.join("\n");
  }

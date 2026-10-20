@@ -11,7 +11,7 @@ Agent-side readout block (like people-ledger-v1), on a gym map's field only (loc
 - `Your party:` species, level, HP
 - `<leader>'s POKéMON seen in battle this run:` each party slot she sent out, highest level seen, or `none yet`
 - `Said on this map:` field pages printed on this map that name a type ("X-type"), quoted once each
-- `Trainers on this map:` from heal-before-trainers facts when present: name from a battle, else sprite kind, beaten / not battled
+- `Trainers on this map:` from heal-before-trainers facts when present: name from a battle, else sprite kind, beaten / battled, not beaten / not beaten
 No ROM trainer parties, no advice, no level targets.
 
 ## M1
@@ -20,5 +20,5 @@ No ROM trainer parties, no advice, no level targets.
 - [x] GREEN: `gym-readiness.ts` (GymReadiness, gymEvent, withGymReadiness) wired in `playGameTools` around the people ledger; registered last (observation, needs null, default off); registry churn redone on main 5c26dc62 after whiteout-healed-v1 landed (46 agent tests, legacy-features and open-goal-prompt. Wiring deletion in play-wiring turns the production factory test red; restored.
 - [x] Explainer `docs/explainers/gym-readiness-readout-v1.html` (pages-check clean), FEATURE_EXPLAINERS + server test; pending `experiments/gym-readiness-readout-v1.json` (activation RUSTBORO_CITY_GYM); readiness row; bundle switch in bundle-v-control and bundle-cook-1h
 - [x] Gates (on 5c26dc62): lint clean; agent 2988, viewer 1437, pytest 2998; coverage above 90 (agent 97/93/98/99, viewer 95/91/94/98)
-- [ ] Review: Claude and Grok LGTM
+- [ ] Review: Claude and Grok LGTM. Round 1 (packet 7a925b4b…): Grok LGTM; Claude BLOCKING: the trainer flag is set only by a win, so a trainer the player lost to (ROXANNE in a8f9) read "not battled" next to her seen POKéMON. Fixed: beaten / battled, not beaten (a battle this run showed the name) / not beaten; test covers ROXANNE lost-to; copy, explainer updated. Deferred: dropping "any others not seen yet" after a win.
 - [ ] features.ts slot, land ff-only

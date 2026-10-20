@@ -90,3 +90,11 @@ Tests per milestone; probe receipts for M4; explainer pages checked with `just p
 ## Archive Milestone (user-gated)
 - 11:47 ET: breaker no-tool fold-in, RED d4476bb3.
 - Review r1 on 8e3bed94 (diff 56a42ff8…): Grok LGTM (non-blocking: not_free consumed the loop's one auto-talk attempt). Claude CLI OAuth expired. Fixed: a not-free field leaves the attempt for a later request (test added).
+
+## Review and landing (M1-M5)
+
+- Frozen packet r2: base 688b1764, head 5d07a65a, diff SHA-256 fdb010c0fd3f5efabc0f04f3febe16ad75c1538e074fb0b7b6e3a1e53da7a60f; artifacts in runs/reviews/loop-breaker/r2/.
+- Grok (Cursor cursor-grok-4.5-high): VERDICT: LGTM (r1 on 8e3bed94 also LGTM; its auto-talk not_free note fixed in 5d07a65a).
+- Claude: CLI OAuth expired; read-only Claude subagent: VERDICT: LGTM. Non-blocking: auto-talk's trainer exclusion relies on heal-before-trainers-v1 (on in the bundle); long closer/untalked holds to watch; transform-side errors as in battleDecisionContext; diagnostic event volume.
+- Coordinator merge slot 2026-10-20 12:01 PM ET. Landed git merge --ff-only 5d07a65a on main. just build, then pnpm -r test on main: agent 2826, viewer 1363 passed.
+- fresh-retry behavior is folded into fixed-point-breaker-v1 (replies with no tool call are left out while it is on); fresh-retry-v1 need not be added separately.

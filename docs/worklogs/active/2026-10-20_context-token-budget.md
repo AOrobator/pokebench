@@ -34,3 +34,4 @@ The launch itself followed the fixed-run skill. Its run data stays where it is.
 
 - [x] Definition (validated with the branch build: no problems, control base clean, plan regenerated from seed `bf0f7a4b141ab632`, control B/GPU0, bundle A/GPU1): copy of `bundle-cook-6h` with `tutorial-party-owner-v1` and `context-token-budget-v1` in `onInBoth`
 - [ ] `just fixed-run check`, launch via the fixed-run-launch skill, dropdown check
+  - Pending entry pinned to implementation commit 9c452544e0ca1aaade988c1e696b582b82fafde1.

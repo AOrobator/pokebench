@@ -31,8 +31,8 @@ it("describes every switchable and measurement feature exactly once", () => {
 
 it("keeps visited terrain immediately before deterministic warps and the final story treatment",()=>{
  const id="visited-terrain-navigation-v1";
- expect(SWITCHABLE_FEATURES.at(-25)).toBe(id);
- expect(FEATURES.filter(feature=>feature.switchable).at(-25)?.id).toBe(id);
+ expect(SWITCHABLE_FEATURES.at(-26)).toBe(id);
+ expect(FEATURES.filter(feature=>feature.switchable).at(-26)?.id).toBe(id);
  expect(playHarnessFeatures(ALL_ON,null).at(-11)).toBe(id);
  expect(featureInfo(id)).toMatchObject({group:"guidance",needs:"bounded-navigation-v1",switchable:true});
  expect(featureInfo(id).description).toContain("Off: the existing 15x15 readout");
@@ -217,7 +217,7 @@ it("registers battle details v2 as a default-off server readout treatment that n
  expect(playHarnessFeatures(off("battle-refusal-loop-v1","instruction-ledger-v2","tutorial-party-owner-v1","mid-frame-readout-v1","unset-dynamic-warp-v1","status-names-v1","surf-gated-exits-v2","battle-move-tool-v1","people-id-cards-v1","explorer-guidance-v2","ineffective-loops-v1","cross-map-goal-v1","surf-gated-exits-v1","readout-truth-v1","birch-speech-pages-v1","blackout-readout-v1","story-destinations-v1","harness-trust-v1","cited-destination-v1","harness-trust-v2","exit-reachability-v1","pushback-loop-detection-v1","pushback-press-result-v1","battle-observation-loop-v1","battle-details-v2"),null)).not.toContain("battle-details-v2");
  expect(serverFeatureEnv(ALL_ON).POKEBENCH_FEATURES_OFF).toBe("original-speed-pacing-v1,exit-labels-v2,heal-before-trainers-v2");
  expect(serverFeatureEnv(off("battle-refusal-loop-v1","battle-details-v2")).POKEBENCH_FEATURES_OFF).toBe("battle-details-v2,original-speed-pacing-v1,exit-labels-v2,heal-before-trainers-v2");
- expect(SERVER_FEATURES.at(-29)).toBe("battle-details-v2");
+ expect(SERVER_FEATURES.at(-30)).toBe("battle-details-v2");
  expect(dependencyProblems(off("battle-refusal-loop-v1","instruction-ledger-v2","tutorial-party-owner-v1","mid-frame-readout-v1","unset-dynamic-warp-v1","status-names-v1","surf-gated-exits-v2","people-id-cards-v1","explorer-guidance-v2","ineffective-loops-v1","cross-map-goal-v1","surf-gated-exits-v1","readout-truth-v1","birch-speech-pages-v1","blackout-readout-v1","story-destinations-v1","harness-trust-v1","cited-destination-v1","harness-trust-v2","exit-reachability-v1","pushback-loop-detection-v1","pushback-press-result-v1","battle-observation-loop-v1","expanded-menu-battle-information-v1"))).toContain("battle-details-v2 needs expanded-menu-battle-information-v1");
 });
 
@@ -227,7 +227,7 @@ it("registers warp arrival settle as a default-off server observation treatment 
  expect(featureInfo("warp-arrival-settle-v1").description).toContain("Field controls: locked (door/stairs/warp animation still running; observe again)");
  expect(playHarnessFeatures(ALL_ON,null).at(-85)).toBe("warp-arrival-settle-v1");
  expect(playHarnessFeatures(off("battle-refusal-loop-v1","instruction-ledger-v2","tutorial-party-owner-v1","mid-frame-readout-v1","unset-dynamic-warp-v1","status-names-v1","surf-gated-exits-v2","battle-move-tool-v1","people-id-cards-v1","explorer-guidance-v2","ineffective-loops-v1","cross-map-goal-v1","surf-gated-exits-v1","readout-truth-v1","birch-speech-pages-v1","blackout-readout-v1","story-destinations-v1","harness-trust-v1","cited-destination-v1","harness-trust-v2","exit-reachability-v1","pushback-loop-detection-v1","pushback-press-result-v1","battle-observation-loop-v1","warp-arrival-settle-v1"),null)).not.toContain("warp-arrival-settle-v1");
- expect(SERVER_FEATURES.at(-28)).toBe("warp-arrival-settle-v1");
+ expect(SERVER_FEATURES.at(-29)).toBe("warp-arrival-settle-v1");
  expect(serverFeatureEnv(ALL_ON).POKEBENCH_FEATURES_OFF).toBe("original-speed-pacing-v1,exit-labels-v2,heal-before-trainers-v2");
  expect(serverFeatureEnv(off("battle-refusal-loop-v1","battle-text-auto-advance-v1","warp-arrival-settle-v1")).POKEBENCH_FEATURES_OFF).toBe("warp-arrival-settle-v1,original-speed-pacing-v1,exit-labels-v2,heal-before-trainers-v2");
 });
@@ -237,10 +237,10 @@ it("registers displayed place names as a default-off server readout treatment, r
  expect(featureInfo("displayed-place-names-v1").description).toContain(" Off: ");
  expect(featureInfo("displayed-place-names-v1").description).toContain("PROF. BIRCH'S HOUSE");
  expect(featureInfo("displayed-place-names-v1").description).toContain("Mays House Sign");
- expect(SWITCHABLE_FEATURES.at(-97)).toBe("displayed-place-names-v1");
+ expect(SWITCHABLE_FEATURES.at(-98)).toBe("displayed-place-names-v1");
  expect(playHarnessFeatures(ALL_ON,null).at(-83)).toBe("displayed-place-names-v1");
  expect(playHarnessFeatures(off("battle-refusal-loop-v1","instruction-ledger-v2","tutorial-party-owner-v1","mid-frame-readout-v1","unset-dynamic-warp-v1","status-names-v1","surf-gated-exits-v2","battle-move-tool-v1","people-id-cards-v1","explorer-guidance-v2","ineffective-loops-v1","cross-map-goal-v1","surf-gated-exits-v1","readout-truth-v1","birch-speech-pages-v1","blackout-readout-v1","story-destinations-v1","harness-trust-v1","cited-destination-v1","harness-trust-v2","exit-reachability-v1","pushback-loop-detection-v1","pushback-press-result-v1","battle-observation-loop-v1","displayed-place-names-v1"),null)).not.toContain("displayed-place-names-v1");
  expect(serverFeatureEnv(off("battle-refusal-loop-v1","displayed-place-names-v1")).POKEBENCH_FEATURES_OFF).toBe("displayed-place-names-v1,original-speed-pacing-v1,exit-labels-v2,heal-before-trainers-v2");
- expect(SERVER_FEATURES.at(-27)).toBe("displayed-place-names-v1");
+ expect(SERVER_FEATURES.at(-28)).toBe("displayed-place-names-v1");
  expect(dependencyProblems(off("battle-refusal-loop-v1","instruction-ledger-v2","tutorial-party-owner-v1","mid-frame-readout-v1","unset-dynamic-warp-v1","status-names-v1","surf-gated-exits-v2","people-id-cards-v1","explorer-guidance-v2","ineffective-loops-v1","cross-map-goal-v1","surf-gated-exits-v1","readout-truth-v1","birch-speech-pages-v1","blackout-readout-v1","story-destinations-v1","harness-trust-v1","cited-destination-v1","harness-trust-v2","exit-reachability-v1","pushback-loop-detection-v1","pushback-press-result-v1","battle-observation-loop-v1","ram-state-v1"))).toContain("displayed-place-names-v1 needs ram-state-v1");
 });

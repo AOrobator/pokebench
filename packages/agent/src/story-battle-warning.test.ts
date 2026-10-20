@@ -46,7 +46,7 @@ describe("registry",()=>{
   expect(featureInfo(ID)).toMatchObject({group:"guard",needs:"low-hp-trainer-warning-v1",switchable:true,title:"STORY BATTLE HEAL WARNING"});
   expect(featureInfo(ID).description).toContain(" Off: ");
   expect(featureInfo(ID).description).toContain(T363_TEXT);
-  expect(SWITCHABLE_FEATURES.at(-55)).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-56)).toBe(ID);
   expect(playHarnessFeatures(ALL_ON,null).at(-40)).toBe(ID);
   expect(playHarnessFeatures({...ALL_ON,"battle-decision-ready-v1":false,[ID]:false},null)).not.toContain(ID);
   expect(SERVER_FEATURES).not.toContain(ID);

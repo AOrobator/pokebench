@@ -16,7 +16,7 @@
 - [x] M1: registry, presets, defaults, server switch, dependency, tool enablement; v1 off everywhere, v2 on in bundle-v-control.
 - [x] M2: what the model reads: system prompt tool list, Moving around, Talk to people, untaken exits, dialogue auto-advance wording, tool descriptions, and readout lines that state each listed target's `navigate_to_target` argument.
 - [x] M3: navigate_to_target and explore_map results get the same result handling as navigate_to (dialogue auto-advance, trust lines, ledgers, ID cards, untaken exits, story destinations, result facts, loop supervisor, recorder).
-- [ ] Gates, explainer, pending experiment, Claude + Grok review, merge slot, ff landing, viewer restart.
+- [x] Gates, explainer, pending experiment, Claude + Grok review, merge slot, ff landing, viewer restart.
 
 ## Log
 
@@ -35,3 +35,4 @@
 - 2026-10-20: Round 4 on `46b06ad5`: Claude LGTM. Grok BLOCKING (accepted): a step trigger sharing a tile with a warp (Brendan's/May's house 1F front mat, trigger for VAR_LITTLEROOT_INTRO_STATE==4) got a target; after the intro the step takes the door instead. Fix: a non-object, non-warp interaction gets a target only when it is the only listed target on its tile (Python and agent; tests for the mat case). explore_map's own ranking is unchanged (deterministic-exploration-v1 behavior, out of this switch). Agent 2,868, pytest 2,906 pass; lint clean.
 - 2026-10-20: Merged main (collapsible splits, viewer only, no conflicts). Agent 2,868, viewer 1,399 pass; lint clean.
 - 2026-10-20: Round 5 on `06c6e731` (packet c3c0c7a7…789b): Claude lane LGTM. Grok first pass gave findings without a verdict line (Littleroot front-door warp targets during VAR_LITTLEROOT_INTRO_STATE 4: the mat runs GoSeeRoom, Mom stands on the other door tile). Author rebuttal: correct targets blocked by the game's own story state, reported truthfully; hiding them would be harness story guidance (no walkthroughs). Grok re-run with the rebuttal: VERDICT: LGTM. Past the 2-round rule, so the operator was asked; The operator said "land it" (2026-10-20 3:06 PM ET). Landing merges main's docs-only commit `0924e149` (one worklog file) and fast-forwards.
+- 2026-10-20: Landed: local main fast-forwarded to `c124ed3f` (code identical to reviewed `06c6e731`). Post-merge from main: fixed-run check for bundle-v-control and bundle-cook-1h shows v2 and exploration in the bundle switches and v1 off in both. `just viewer-main` (coordinator OK; whole-map pair trials still playing, 3 live gameplay processes kept) restarted 8790 at `c124ed3f`. Harness Config shows SEMANTIC NAVIGATION V2 with its explainer link; the explainer returns 200 on 8790 and on `just pages` (8791).

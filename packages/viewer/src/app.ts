@@ -500,7 +500,11 @@ export class App {
       const slot = this.doc.querySelector(`[data-slot="${element.matches(".tb-ctl, .replay-controls") ? "phone-controls" : "phone-picker"}"]`);
       if (!phone || slot === null) home.after(element);
       else if (element.matches(".run-choice")) (slot.querySelector("h4") ?? slot).after(element);
-      else slot.append(element);
+      else {
+        // The sheet's own REPORTS link stays last, after RUNS & COMPARISONS.
+        const reports = slot.querySelector('[data-ui="reports-link"]');
+        if (reports === null) slot.append(element); else reports.before(element);
+      }
     }
   }
 

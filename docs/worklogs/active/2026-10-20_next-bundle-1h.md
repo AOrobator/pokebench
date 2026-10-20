@@ -16,10 +16,10 @@
 
 - [x] `bundle-v-control.json`: the four control gains move to `onInBoth`; the two dropped switches move to `offInBoth`; `stale-story-goal-v2` joins the switches after v1. Its 20-per-arm cook phase keeps 2 h because the pending `open-goal-prompt` incumbent is frozen to it; one-hour cooks use `bundle-cook-1h`.
 - [x] `bundle-cook-1h.json`: `bundle-cook-6h-v2` with the same switch changes, `maxWallMs` 3,600,000, new seed `b90edf21281900ca`, plan regenerated with `fixed-run plan` (control B/GPU0, bundle A/GPU1).
-- [x] Tests: supervisor-recovery, fixed-runner, battle-effective-damage and open-goal-prompt guards follow the decision; new fixed-runner test pins the control gains, story-goal v1+v2 and the one-hour cap.
+- [x] Tests: supervisor-recovery, fixed-runner and open-goal-prompt guards (the battle-effective-damage edit was already on main from semantic nav) follow the decision; new fixed-runner test pins the control gains, story-goal v1+v2 and the one-hour cap.
 - [x] `fixed-run check` on the branch build: both definitions clean, control base matches.
 - [x] Exit reachability joins `onInBoth` in both files; `bundle-cook-1h` becomes two pairs per arm (`perArm` 2, `singlePair` dropped), plan regenerated (bundle A+B, then control A+B).
 - [x] Rebased onto main 48309d51 after semantic nav landed; `semantic-navigation-v1` and `deterministic-exploration-v1` are bundle switches in `bundle-cook-1h` (already in `bundle-v-control`). The cook file now matches `bundle-v-control` except `original-speed-pacing-v1`, as in every cook pair.
 - [x] Gates: lint clean; agent 2787, viewer 1359, pytest 2896 pass; `fixed-run check` clean for both (cook-1h sha256 recorded at review)
-- [ ] Review: Claude and Grok lanes LGTM on the frozen packet
-- [ ] Land ff-only, `just viewer-main`
+- [x] Review: Grok (cursor-grok-4.5-high) and Claude (subagent; `claude -p` OAuth expired) `VERDICT: LGTM` on packet sha256 9a469832…80c2, logs in runs/reviews/next-bundle-1h/
+- [x] Landed ff-only on main at 6ee8bf6b (packet hash unchanged after rebase onto 957b5626); `just viewer-main` reports viewer at 6ee8bf6b; `fixed-run check bundle-cook-1h` on main exits 0

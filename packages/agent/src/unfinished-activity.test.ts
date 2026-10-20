@@ -5,7 +5,7 @@ import {describe,expect,it} from "vitest";
 import type {AgentTool,AgentToolResult} from "@mariozechner/pi-agent-core";
 import {dependencyProblems,featureInfo,playHarnessFeatures,SWITCHABLE_FEATURES,type FeatureSet} from "./features.js";
 import {flagFeatures,normalizeFeatures} from "./play-preset.js";
-import {UNFINISHED_HEADER,UnfinishedActivity} from "./unfinished-activity.js";
+import {UNFINISHED_HEADER,UnfinishedActivity,withUnfinishedActivity} from "./unfinished-activity.js";
 import {playGameTools} from "./play-wiring.js";
 import {StoryDestinations,type Place} from "./story-destinations.js";
 import {goalLine} from "./harness-trust.js";
@@ -39,7 +39,7 @@ function replay(events:readonly RunEvent[],features:FeatureSet,until=Infinity):{
  const out:{result:Result;block:string|null}[]=[];
  for(const e of events){
   if(e.seq>until)break;
-  if(e.type==="tool_result"&&GAME.has(e.name)&&e.state_seq!==undefined)out.push({result:e,block:fold.block(stateAt(events,e.state_seq) as unknown as GameStateSnapshot,PLACES)});
+  if(e.type==="tool_result"&&GAME.has(e.name)&&e.state_seq!==undefined)out.push({result:e,block:fold.block(stateAt(events,e.state_seq),PLACES)});
   fold.observe(e);
  }
  return out;
@@ -136,8 +136,8 @@ describe("unfinished-activity-v1 in supervisor notes",()=>{
 
 // A recorded state as the game server sends it: no event envelope; fields the fixture trimmed get neutral values.
 function body(s:RecordedState):Record<string,unknown>{
- const {v:_v,run:_r,seq:_s,t:_t,type:_y,turn:_n,...rest}=s as unknown as Record<string,unknown>;
- return {money:0,play_time_s:0,...rest};
+ const envelope=new Set(["v","run","seq","t","type","turn"]);
+ return {money:0,play_time_s:0,...Object.fromEntries(Object.entries(s).filter(([k])=>!envelope.has(k)))};
 }
 describe("unfinished-activity-v1 through playGameTools",()=>{
  const text=(r:AgentToolResult<unknown>)=>r.content.flatMap(c=>c.type==="text"?[c.text]:[]).join("\n");
@@ -178,5 +178,72 @@ describe("unfinished-activity-v1 registry",()=>{
   expect(normalizeFeatures(older)[ID]).toBe(false);
   expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:true})[ID]).toBe(false);
   expect(dependencyProblems({...ALL_ON,[ID]:true,"ram-state-v1":false})).toContain(`${ID} needs ram-state-v1`);
+ });
+});
+
+describe("unfinished-activity-v1 rules",()=>{
+ const F:FeatureSet={...ALL_ON,[ID]:true,"bounded-navigation-v1":true,"displayed-place-names-v1":false};
+ let seq=0;
+ const st=(turn:number,fields:Record<string,unknown>={}):RecordedState=>({v:1,run:"r",seq:++seq,t:"t",type:"state",turn,started:true,screen:"overworld",in_battle:false,location:"ROUTE101",map_id:[0,16],position:{x:5,y:5},facing:"up",battle:null,party:[{species:"TORCHIC",level:5,hp:20,max_hp:20}],trainer_opponent:null,...fields} as unknown as RecordedState);
+ const fight=(turn:number,outcome:string,id:number,name:string|null,defeated=false)=>st(turn,{screen:"battle",in_battle:true,battle:{active:true,outcome,battle_type:8,battlers:[{battler:0,species:"TORCHIC"},{battler:1,species:"ZIGZAGOON"}]},trainer_opponent:{trainer_id:id,trainer_class:5,name,defeated,battle_active:true}});
+ const after=(turn:number,id:number,name:string|null,defeated:boolean)=>st(turn,{trainer_opponent:{trainer_id:id,trainer_class:5,name,defeated,battle_active:false}});
+ const fold=(events:readonly RunEvent[])=>{const f=new UnfinishedActivity(F);for(const e of events)f.observe(e);return f;};
+ it("a draw opens an item with no words when no dialogue was delivered; a later loss updates it; a win retires it",()=>{
+  const f=fold([st(1),fight(2,"ongoing",1,"SAWYER"),fight(3,"drew",1,"SAWYER"),after(4,1,"SAWYER",false)]);
+  const now=after(4,1,"SAWYER",false) as unknown as GameStateSnapshot;
+  expect(f.block(now,null)).toBe([UNFINISHED_HEADER,"- On ROUTE101 (map 0/16): turn 1 you came in; turn 3 you drew with SAWYER (trainer 1).","- Still open: SAWYER (trainer 1) on ROUTE101 (map 0/16): you drew at turn 3. The game last showed SAWYER (trainer 1) not defeated (turn 4)."].join("\n"));
+  for(const e of [fight(5,"ongoing",1,"SAWYER"),fight(6,"lost",1,"SAWYER"),after(7,1,"SAWYER",false)])f.observe(e);
+  expect(f.block(now,null)).toContain("- Still open: SAWYER (trainer 1) on ROUTE101 (map 0/16): you lost at turn 6.");
+  for(const e of [fight(8,"ongoing",1,"SAWYER"),fight(9,"won",1,"SAWYER")])f.observe(e);
+  expect(f.changes().map(c=>c.change)).toEqual(["opened","updated"]);
+  f.observe(after(10,1,"SAWYER",true));
+  expect(f.changes().map(c=>c.change)).toEqual(["opened","updated","retired"]);
+  expect(f.block(after(10,1,"SAWYER",true) as unknown as GameStateSnapshot,null)).toBeNull();
+ });
+ it("an unnamed trainer is named by its number; wild battles never open an item",()=>{
+  const wild=st(3,{screen:"battle",in_battle:true,battle:{active:true,outcome:"lost",battle_type:4,battlers:[{battler:1,species:"POOCHYENA"}]}});
+  const f=fold([st(1),st(2,{screen:"battle",in_battle:true,battle:{active:true,outcome:"ongoing",battle_type:4,battlers:null}}),wild,st(4),fight(5,"ongoing",7,null),fight(6,"lost",7,null),after(7,7,null,false)]);
+  expect(f.changes()).toEqual([{change:"opened",trainer_id:7,trainer:"trainer 7",map_id:[0,16],text:"trainer 7 on ROUTE101 (map 0/16): you lost at turn 6."}]);
+  expect(f.block(st(8,{trainer_opponent:null}) as unknown as GameStateSnapshot,null)).toContain("The game last showed trainer 7 not defeated (turn 7).");
+ });
+ it("no walk line without the map table, on the open item's own map, or when no walk reached it; a map the table lacks keeps the readout's name",()=>{
+  const f=fold([st(1,{map_id:[9,9],location:"NOWHERE"}),st(2),fight(3,"ongoing",1,"SAWYER"),fight(4,"lost",1,"SAWYER"),after(5,1,"SAWYER",false)]);
+  const here=after(5,1,"SAWYER",false) as unknown as GameStateSnapshot;
+  expect(f.block(here,PLACES)).not.toContain("own last walk");
+  const away={...here,map_id:[0,10],location:"OLDALE TOWN"} as unknown as GameStateSnapshot;
+  expect(f.block(away,null)).not.toContain("own last walk");
+  expect(f.block(away,PLACES)).not.toContain("own last walk");
+  expect(f.block({...here,map_id:null},PLACES)).toBeNull();
+ });
+ it("a heal while on the open item's map is not listed as a heal elsewhere; the party's species may be unread",()=>{
+  const heal:RunEvent={v:1,run:"r",seq:++seq,t:"t",type:"activity",turn:2,kind:"heal",count:1,evidence:[]} as unknown as RunEvent;
+  const f=fold([st(1),heal,fight(3,"ongoing",1,"SAWYER"),fight(4,"lost",1,"SAWYER"),after(5,1,"SAWYER",false),st(5,{party:[{species:null,level:5,hp:3,max_hp:20}]}),st(6,{map_id:[0,10],location:"OLDALE TOWN"})]);
+  const text=f.block(st(7,{map_id:[0,10],location:"OLDALE TOWN"}),null)??"";
+  expect(text).not.toContain("healed");
+  expect(text).toContain("turn 6 you left with unknown species at 3/20 HP");
+ });
+});
+
+describe("withUnfinishedActivity edges",()=>{
+ const F:FeatureSet={...ALL_ON,[ID]:true};
+ const ok=(details:unknown):AgentToolResult<unknown>=>({content:[{type:"text",text:"x"}],details});
+ const recorder=()=>({subscribe:()=>undefined});
+ it("OFF returns the same tools; a non-game tool and a result without a state pass through; a missing or failing map table is no walk",async()=>{
+  const tool:AgentTool={name:"observe",label:"o",description:"d",parameters:{},execute:()=>Promise.resolve(ok({}))};
+  const other:AgentTool={name:"recall_dialogue",label:"r",description:"d",parameters:{},execute:()=>Promise.resolve(ok({}))};
+  const tools=[tool,other];
+  expect(withUnfinishedActivity(tools,{...F,[ID]:false},recorder(),{})).toBe(tools);
+  const on=withUnfinishedActivity(tools,F,recorder(),{});
+  expect(on[1]).toBe(other);
+  expect((await on[0]?.execute("1",{}))?.content).toEqual([{type:"text",text:"x"}]);
+  const failing=withUnfinishedActivity([{...tool,execute:()=>Promise.resolve(ok({state:{started:true,map_id:[0,16]}}))}],F,recorder(),{places:()=>Promise.reject(new Error("down"))});
+  expect((await failing[0]?.execute("2",{}))?.content).toEqual([{type:"text",text:"x"}]);
+ });
+ it("a checked press is wrapped on both of its paths",async()=>{
+  const press={name:"press",label:"p",description:"d",parameters:{},execute:()=>Promise.resolve(ok({})),executeChecked:()=>Promise.resolve(ok({}))} as unknown as AgentTool;
+  const [wrapped]=withUnfinishedActivity([press],F,recorder(),{});
+  expect(wrapped).not.toBe(press);
+  const checked=wrapped as unknown as {executeChecked:(...a:unknown[])=>Promise<AgentToolResult<unknown>>};
+  expect((await checked.executeChecked("1",{},()=>true)).content).toEqual([{type:"text",text:"x"}]);
  });
 });

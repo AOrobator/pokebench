@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Unfinished activity memory</title>
+<style>
+:root{--bg:#fbfaf7;--fg:#1d1d1b;--muted:#5d5b55;--line:#d9d5cc;--panel:#ffffff;--keep:#2f7d4f;--drop:#b4442f;--accent:#2d5f9a;--fill:#eef3f8;--warn:#a86b12}
+@media (prefers-color-scheme: dark){:root{--bg:#161614;--fg:#ecebe6;--muted:#a8a59c;--line:#3a3833;--panel:#1f1e1b;--keep:#6cc08f;--drop:#e98a74;--accent:#86b3e6;--fill:#22303f;--warn:#e0a94f}}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif}
+main{max-width:880px;margin:0 auto;padding:24px 16px 48px}
+h1{font-size:1.6rem;margin:0 0 4px}h2{font-size:1.15rem;margin:32px 0 8px}
+p,li{color:var(--fg)}.muted{color:var(--muted)}
+figure{margin:16px 0;padding:12px;background:var(--panel);border:1px solid var(--line);border-radius:8px;overflow-x:auto}
+figcaption{color:var(--muted);font-size:.9rem;margin-top:8px}
+code{font:13px ui-monospace,SFMono-Regular,Menlo,monospace}
+table{border-collapse:collapse;width:100%;font-size:.95rem}td,th{border-bottom:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top}
+svg text{fill:var(--fg);font:13px -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif}
+svg .small{font-size:11px;fill:var(--muted)}
+.note{border-left:3px solid var(--accent);padding:6px 10px;background:var(--fill);font:13px ui-monospace,SFMono-Regular,Menlo,monospace;white-space:pre-wrap;word-break:break-word}
+.off{border-left-color:var(--drop)}.on{border-left-color:var(--keep)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}@media (max-width:640px){.grid2{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<main>
+<h1>Unfinished activity memory</h1>
+<p class="muted"><code>unfinished-activity-v1</code> · guidance · bundle arm only · default off · needs <code>ram-state-v1</code></p>
+<p>The agent remembers what it started and did not finish, across detours, in the game's own words. It is memory of what the agent did, not a walkthrough: it never says go, fight or return, and it never names a place the agent has not been.</p>
+
+<h2>What happened in r10</h2>
+<p>Checkpoint run <code>…gpu0_petalburg2h-r10-whole-map</code>. The heal detour did resume. The gym was dropped after a second detour, and then the agent could not find its own way back.</p>
+<figure>
+<svg viewBox="0 0 820 230" width="100%" style="min-width:640px" role="img" aria-label="r10 timeline from turn 162 to 1224">
+<line x1="30" y1="110" x2="800" y2="110" stroke="var(--line)" stroke-width="2"/>
+<g><circle cx="40" cy="110" r="6" fill="var(--accent)"/><text x="30" y="90">162</text><text x="20" y="140" class="small">enters</text><text x="20" y="154" class="small">RUSTBORO</text></g>
+<g><circle cx="120" cy="110" r="6" fill="var(--keep)"/><text x="108" y="90">220</text><text x="96" y="140" class="small">beats JOSH,</text><text x="96" y="154" class="small">TORCHIC 7/37</text></g>
+<g><circle cx="195" cy="110" r="6" fill="var(--accent)"/><text x="180" y="90">239</text><text x="168" y="140" class="small">heals at the</text><text x="168" y="154" class="small">POKéMON CENTER</text></g>
+<g><circle cx="265" cy="110" r="6" fill="var(--keep)"/><text x="252" y="90">256</text><text x="248" y="140" class="small">back in</text><text x="248" y="154" class="small">the gym</text></g>
+<g><circle cx="330" cy="110" r="6" fill="var(--drop)"/><text x="318" y="90">261</text><text x="306" y="140" class="small">loses to</text><text x="306" y="154" class="small">ROXANNE</text></g>
+<g><circle cx="410" cy="110" r="6" fill="var(--warn)"/><text x="398" y="90">323</text><text x="372" y="140" class="small">stall briefing: "do</text><text x="372" y="154" class="small">not try it again"</text></g>
+<g><circle cx="480" cy="110" r="6" fill="var(--drop)"/><text x="468" y="90">324</text><text x="456" y="140" class="small">heads for</text><text x="456" y="154" class="small">NORMAN instead</text></g>
+<g><circle cx="560" cy="110" r="6" fill="var(--accent)"/><text x="548" y="90">387</text><text x="530" y="140" class="small">NORMAN: "Aren't you</text><text x="530" y="154" class="small">going to the GYM…?"</text></g>
+<rect x="620" y="100" width="170" height="20" fill="var(--drop)" opacity=".25"/>
+<text x="630" y="90">388–1224</text><text x="626" y="140" class="small">stuck on the south half</text><text x="626" y="154" class="small">of ROUTE104, 800 turns</text>
+<text x="30" y="40">Story goal line the model was shown:</text>
+<text x="30" y="60" class="small">162–259 DAD "Head for RUSTBORO CITY" → "You are in it now" · 261–386 ROXANNE's TRAINER'S SCHOOL line → "not resolved"</text>
+</svg>
+<figcaption>Turns from the recorded events. The battle recap line about ROXANNE was on screen at 323; the plan still changed at 324.</figcaption>
+</figure>
+
+<h2>What the model sees at turn 323, off and on</h2>
+<div class="grid2">
+<div><p class="muted">OFF (as recorded)</p>
+<div class="note off">Story goal: "I became a GYM LEADER so that I might apply what I learned at the POKéMON TRAINER'S SCHOOL in battle." (ROXANNE, turn 259) -> "POKéMON TRAINER'S SCHOOL": not resolved: no map in the game's map table has this name.
+…readout…
+Battle recap: you lost to ROXANNE (trainer 265) on RUSTBORO CITY GYM (map 11/3) at turn 261 and whited out; …</div></div>
+<div><p class="muted">ON (exact test output)</p>
+<div class="note on">Story line heard (DAD, turn 20): "Head for RUSTBORO CITY beyond this town." Reached: RUSTBORO CITY (map 0/3), first entered at turn 162.
+…readout…
+Unfinished activity (what you did and what the game recorded; it is not an order or a route):
+- On RUSTBORO CITY GYM (map 11/3): turn 212 you came in; turn 220 you beat JOSH (trainer 320); turn 221 you left with TORCHIC at 7/37 HP; turn 239 your party was healed on RUSTBORO CITY POKEMON CENTER 1F (map 11/5); turn 255 you came back; turn 261 you lost to ROXANNE (trainer 265) and whited out; the game returned you to RUSTBORO CITY (map 0/3).
+- Still open: ROXANNE (trainer 265) on RUSTBORO CITY GYM (map 11/3): you lost at turn 261. Before that battle, at turn 259, the game showed: "Hello, I am ROXANNE, the RUSTBORO POKéMON GYM LEADER." "I became a GYM LEADER so that I might apply what I learned at the POKéMON TRAINER'S SCHOOL in battle." "Would you kindly demonstrate how you battle, and with which POKéMON?" The game last showed ROXANNE (trainer 265) not defeated (turn 323).
+- Your own last walk to RUSTBORO CITY GYM (map 11/3), from an exit of this map you can reach on foot now (turns 162-255): ROUTE104 (map 0/19) NORTH edge -> RUSTBORO CITY (map 0/3) door at (27,19) -> RUSTBORO CITY GYM (map 11/3).
+Battle recap: …</div></div>
+</div>
+<p>The four things the review asked to keep apart each have their own line: the <b>heard</b> instruction, the place <b>reached</b>, what was <b>started</b> there, and what is <b>still open</b>.</p>
+
+<h2>The agent's own walk back</h2>
+<figure>
+<svg viewBox="0 0 820 300" width="100%" style="min-width:640px" role="img" aria-label="Own walk from the south half of Route 104 to the Rustboro gym">
+<defs><marker id="a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10z" fill="var(--keep)"/></marker>
+<marker id="x" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10z" fill="var(--drop)"/></marker></defs>
+<rect x="20" y="190" width="170" height="70" rx="6" fill="var(--fill)" stroke="var(--line)"/><text x="30" y="212">ROUTE104, south half</text><text x="30" y="232" class="small">you are here at turn 400</text><text x="30" y="248" class="small">door (10,38) reachable on foot</text>
+<rect x="240" y="190" width="150" height="70" rx="6" fill="var(--panel)" stroke="var(--line)"/><text x="250" y="212">PETALBURG WOODS</text><text x="250" y="232" class="small">left by door (15,5)</text>
+<rect x="440" y="100" width="170" height="70" rx="6" fill="var(--panel)" stroke="var(--line)"/><text x="450" y="122">ROUTE104, north half</text><text x="450" y="142" class="small">left by the NORTH edge</text>
+<rect x="440" y="10" width="170" height="60" rx="6" fill="var(--panel)" stroke="var(--line)"/><text x="450" y="32">RUSTBORO CITY</text><text x="450" y="52" class="small">left by door (27,19)</text>
+<rect x="660" y="10" width="140" height="60" rx="6" fill="var(--fill)" stroke="var(--keep)"/><text x="670" y="32">RUSTBORO CITY GYM</text><text x="670" y="52" class="small">ROXANNE still open</text>
+<path d="M190 225 L236 225" stroke="var(--keep)" stroke-width="3" marker-end="url(#a)"/>
+<path d="M390 210 L436 150" stroke="var(--keep)" stroke-width="3" marker-end="url(#a)"/>
+<path d="M525 100 L525 74" stroke="var(--keep)" stroke-width="3" marker-end="url(#a)"/>
+<path d="M610 40 L656 40" stroke="var(--keep)" stroke-width="3" marker-end="url(#a)"/>
+<path d="M105 190 C105 120 300 135 436 135" stroke="var(--drop)" stroke-width="2" stroke-dasharray="6 4" fill="none" marker-end="url(#x)"/>
+<text x="120" y="120" fill="var(--drop)">readout: "Way in: this map's NORTH edge"</text><text x="120" y="136" class="small">not reachable on foot from the south half</text>
+<path d="M440 30 C380 30 380 80 440 80" stroke="var(--muted)" stroke-width="1.5" stroke-dasharray="3 3" fill="none"/><text x="300" y="58" class="small">POKéMON CENTER round trips</text><text x="300" y="72" class="small">taken out as loops</text>
+</svg>
+<figcaption>The ON line at turn 400 (exact test output): "Your own last walk to RUSTBORO CITY GYM (map 11/3), from an exit of this map you can reach on foot now (turns 70-255): ROUTE104 (map 0/19) door at (10,38) -> PETALBURG WOODS (map 24/11) door at (15,5) -> ROUTE104 (map 0/19) NORTH edge -> RUSTBORO CITY (map 0/3) door at (27,19) -> RUSTBORO CITY GYM (map 11/3)."</figcaption>
+</figure>
+
+<h2>Rules</h2>
+<table>
+<tr><th>Part</th><th>Comes from</th><th>Rule</th></tr>
+<tr><td>Opens</td><td>recorded battle states (<code>BattleOutcomes</code>), trainer from <code>trainer_opponent</code></td><td>A trainer battle the agent lost or drew. A later loss to the same trainer updates it. Wild battles never open one.</td></tr>
+<tr><td>Closes</td><td>the trainer's defeated flag the game sets</td><td>Only when a state shows that trainer defeated, or a later win against it. Detours, story milestones, briefings and context trims never close it.</td></tr>
+<tr><td>Started</td><td>map arrivals, party HP, <code>activity</code> heal and blackout events</td><td>From the arrival before the first trainer battle on that map: came in, beat or lost to a trainer, left with each party member's HP, heals recorded elsewhere, came back.</td></tr>
+<tr><td>Still open</td><td>delivered field dialogue</td><td>The field pages the game showed on that map in the call that started the battle, whole, then the latest reading of the trainer's flag.</td></tr>
+<tr><td>Own walk</td><td>arrivals plus the game's map table</td><td>A step is a map-table door within two tiles of where the player last stood, or a map edge. A whiteout or scripted move starts over. Coming back through the exit it left by removes that loop. The walk starts at the latest exit of the current map in it that <code>exit_reach</code> lists as reachable on foot; with none, the whole walk is shown.</td></tr>
+<tr><td>Story line</td><td>story-destinations' resolver</td><td>A line whose every place is a map entered since it was said (or the map you are in) reads "Story line heard … Reached …" and does not drive the walk-away note. A newer line none of whose places resolves does not replace an older one that does.</td></tr>
+<tr><td>Supervisor notes</td><td><code>unfinished_activity</code> events</td><td>Loop, stall and text-only notes add "- Unfinished activity (what you did and what the game recorded): " with each open item.</td></tr>
+</table>
+<p>Nothing is clipped. Each opening, update and retirement is one <code>unfinished_activity</code> event in Activity History and the raw-event inspector; there is no timeline mark.</p>
+
+<h2>Wiring</h2>
+<figure>
+<svg viewBox="0 0 820 120" width="100%" style="min-width:640px" role="img" aria-label="Wiring">
+<rect x="10" y="40" width="140" height="44" rx="6" fill="var(--panel)" stroke="var(--line)"/><text x="20" y="66">bundle preset</text>
+<rect x="190" y="40" width="160" height="44" rx="6" fill="var(--panel)" stroke="var(--line)"/><text x="200" y="66">FeatureSet</text>
+<rect x="390" y="10" width="200" height="44" rx="6" fill="var(--fill)" stroke="var(--keep)"/><text x="400" y="36">withUnfinishedActivity</text>
+<rect x="390" y="66" width="200" height="44" rx="6" fill="var(--fill)" stroke="var(--keep)"/><text x="400" y="92">HarnessTrust Story line</text>
+<rect x="630" y="40" width="180" height="44" rx="6" fill="var(--panel)" stroke="var(--line)"/><text x="640" y="66">game tool results</text>
+<path d="M150 62 L186 62" stroke="var(--muted)" stroke-width="2"/><path d="M350 62 L386 32" stroke="var(--muted)" stroke-width="2"/><path d="M350 62 L386 88" stroke="var(--muted)" stroke-width="2"/>
+<path d="M590 32 L626 56" stroke="var(--muted)" stroke-width="2"/><path d="M590 88 L626 68" stroke="var(--muted)" stroke-width="2"/>
+</svg>
+<figcaption><code>playGameTools</code> puts the block inside <code>withResultFacts</code>, so it sits after the low-HP paragraph and before the battle recap. The supervisor reads the recorded events.</figcaption>
+</figure>
+
+<h2>Status</h2>
+<p>Branch <code>claude/unfinished-activity</code>. RED then GREEN on a fixture cut from r10 turns 0–420; full agent suite passes. Pending experiment <code>experiments/unfinished-activity-v1.json</code> (activation <code>RUSTBORO_GYM_TRAINER_JOSH_DEFEATED</code>, primary <code>ROXANNE_DEFEATED</code>), not queued. Bundle arm only. No measured runs yet, so no claim that it helps.</p>
+</main>
+</body>
+</html>

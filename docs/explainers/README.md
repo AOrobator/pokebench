@@ -146,3 +146,4 @@ The original ignored runs/explainers copies remain for existing links. Make futu
 - [Original-speed deadline pacing](original-speed-pacing-v1.html): default-OFF 80 FPS game-clock policy, conditional 4× selector, and separate publication/display boundaries.
 - [Fixed-point breaker](fixed-point-breaker-v1.html) — bundle-only guard: collapses identical repeated turns, sends a positive note with the count, then once per loop talks to the nearest untalked person.
 - [Story-character stall gate](story-character-stall-gate-v1.html) — bundle-only guard: no stall or ways-off briefing while an untalked story character is on the map.
+- [Unfinished activity memory](unfinished-activity-v1.html) — bundle-only: the agent's own lost trainer battle, what it did on that map and its own walk back, kept across detours; reached places read as heard and reached.

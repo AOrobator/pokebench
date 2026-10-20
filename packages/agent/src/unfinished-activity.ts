@@ -28,7 +28,7 @@ interface Arrival {
  readonly carried:boolean;
 }
 interface TrainerBattle {
- readonly seq:number;readonly trainer:{readonly id:number;readonly name:string};readonly map:MapId;readonly label:string;
+ readonly seq:number;readonly trainer:{readonly id:number;readonly name:string|null};readonly map:MapId;readonly label:string;
  readonly start:number;readonly end:number;readonly outcome:string|null;readonly whiteout:string|null;readonly words:readonly string[];
 }
 interface Heal {readonly seq:number;readonly turn:number;readonly label:string}
@@ -41,19 +41,18 @@ const key=(id:MapId)=>`${String(id[0])}/${String(id[1])}`;
 const EDGES=new Set(["NORTH","SOUTH","EAST","WEST"]);
 const near=(a:Pos,b:Pos,d:number)=>Math.abs(a.x-b.x)+Math.abs(a.y-b.y)<=d;
 const plain=(text:string)=>text.replace(/\s+/g," ").trim();
-const who=(t:TrainerBattle["trainer"])=>`${t.name} (trainer ${String(t.id)})`;
-const partyText=(s:Pick<Snapshot,"party">)=>(s.party??[]).map(p=>`${p.species} at ${String(p.hp)}/${String(p.max_hp)} HP`).join(", ");
+const who=(t:TrainerBattle["trainer"])=>t.name===null?`trainer ${String(t.id)}`:`${t.name} (trainer ${String(t.id)})`;
+const partyText=(s:Pick<Snapshot,"party">)=>s.party.map(p=>`${p.species ?? "unknown species"} at ${String(p.hp)}/${String(p.max_hp)} HP`).join(", ");
 
 export class UnfinishedActivity {
  private readonly outcomes:BattleOutcomes;
  private turn=0;
- private last:State|null=null;
+ private last:(State&{readonly map_id:MapId})|null=null;
  private blackout=false;
- private start:{readonly turn:number;readonly map:MapId;readonly label:string;readonly id:number;readonly name:string}|null=null;
+ private start:{readonly turn:number;readonly map:MapId;readonly label:string;readonly id:number}|null=null;
  private readonly arrivals:Arrival[]=[];
  private readonly battles:TrainerBattle[]=[];
  private readonly heals:Heal[]=[];
- private readonly labels=new Map<number,string>();
  private readonly delivered:{readonly turn:number;readonly pages:readonly Page[]}[]=[];
  private readonly pending=new Map<string,{readonly turn:number;readonly pages:readonly Page[]}>();
  private readonly flags=new Map<number,{readonly turn:number;readonly defeated:boolean}>();
@@ -68,7 +67,8 @@ export class UnfinishedActivity {
   if(event.type==="activity"){
    // The blackout activity follows the state that already shows the player back in town.
    if(event.kind==="blackout"){const a=this.arrivals.at(-1);if(a!==undefined&&event.evidence.includes(a.seq))this.carry(a);else this.blackout=true;}
-   if(event.kind==="heal"){const at=event.evidence[0];const label=at===undefined?undefined:this.labels.get(at);if(label!==undefined)this.heals.push({seq:event.seq,turn:event.turn,label});}
+   // Recorded right after the heal's own states, so the latest state is where the party was healed.
+   if(event.kind==="heal"&&this.last!==null)this.heals.push({seq:event.seq,turn:event.turn,label:roomOf(this.last,this.features)});
    return;
   }
   if(event.type==="dialogue_auto_advance"){this.pending.set(event.tool_call_id,{turn:event.turn,pages:event.pages});return;}
@@ -78,46 +78,38 @@ export class UnfinishedActivity {
  }
 
  private state(s:State,done:number):void {
-  if(s.map_id!==null){
-   this.labels.set(s.seq,roomOf(s,this.features));
-   if(this.labels.size>512)this.labels.delete(this.labels.keys().next().value ?? -1);
-  }
   if(s.blackout_active===true)this.blackout=true;
   const o=s.trainer_opponent;
   if(o!=null){
    this.flags.set(o.trainer_id,{turn:s.turn,defeated:o.defeated});
-   if(o.battle_active&&this.start===null&&this.last?.map_id!=null)this.start={turn:s.turn,map:this.last.map_id,label:roomOf(this.last,this.features),id:o.trainer_id,name:o.name ?? `trainer ${String(o.trainer_id)}`};
+   if(o.battle_active&&this.start===null&&this.last!==null)this.start={turn:s.turn,map:this.last.map_id,label:roomOf(this.last,this.features),id:o.trainer_id};
    if(o.defeated)this.retire(o.trainer_id,s.turn);
   }
-  if(s.map_id!==null&&this.last?.map_id!=null&&!same(s.map_id,this.last.map_id))this.arrive(s,this.last);
-  else if(s.map_id!==null&&this.arrivals.length===0)this.arrivals.push({seq:s.seq,turn:s.turn,map:s.map_id,label:roomOf(s,this.features),pos:s.position,from:null,carried:true});
-  if(s.map_id!==null)this.last=s;
+  const map=s.map_id;
+  if(map!==null){
+   const prev=this.last;
+   if(prev===null||!same(map,prev.map_id))this.arrivals.push({seq:s.seq,turn:s.turn,map,label:roomOf(s,this.features),pos:s.position,from:prev===null?null:{map:prev.map_id,label:roomOf(prev,this.features),pos:prev.position,party:partyText(prev)},carried:prev===null||this.blackout});
+   if(prev===null||!same(map,prev.map_id))this.blackout=false;
+   this.last={...s,map_id:map};
+  }
   const battles=this.outcomes.battles();
-  if(battles.length>done){const b=battles.at(-1);if(b!==undefined)this.finish(b);if(b?.whiteout!=null){const a=this.arrivals.at(-1);if(a?.seq===s.seq)this.carry(a);}}
+  const b=battles.length>done?battles.at(-1):undefined;
+  if(b!==undefined){this.finish(b);const a=this.arrivals.at(-1);if(b.whiteout!==null&&a?.seq===s.seq)this.carry(a);}
  }
 
- private carry(a:Arrival):void {
-  const i=this.arrivals.lastIndexOf(a);
-  if(i>=0)this.arrivals[i]={...a,carried:true};
- }
-
- private arrive(s:State,prev:State):void {
-  if(s.map_id===null||prev.map_id===null)return;
-  const carried=this.blackout;this.blackout=false;
-  const a:Arrival={seq:s.seq,turn:s.turn,map:s.map_id,label:roomOf(s,this.features),pos:s.position,from:{map:prev.map_id,label:roomOf(prev,this.features),pos:prev.position,party:partyText(prev)},carried};
-  this.arrivals.push(a);
- }
+ // The latest arrival was the game moving the player, not a walk.
+ private carry(a:Arrival):void {this.arrivals[this.arrivals.length-1]={...a,carried:true};}
 
  private finish(b:Battle):void {
   const s=this.start;this.start=null;
   if(b.trainer===null||s===null||s.id!==b.trainer.id)return;
   const words=this.wordsBefore(s.turn,s.map);
-  const t:TrainerBattle={seq:b.seq,trainer:{id:b.trainer.id,name:b.trainer.name ?? s.name},map:s.map,label:s.label,start:s.turn,end:b.turn,outcome:b.outcome,whiteout:b.whiteout?.place ?? null,words};
+  const t:TrainerBattle={seq:b.seq,trainer:{id:b.trainer.id,name:b.trainer.name},map:s.map,label:s.label,start:s.turn,end:b.turn,outcome:b.outcome,whiteout:b.whiteout?.place ?? null,words};
   this.battles.push(t);
   if(t.outcome==="lost"||t.outcome==="drew"||t.whiteout!==null){
    const was=this.open.has(t.trainer.id);
    this.open.set(t.trainer.id,t);
-   this.changed.push({change:was?"updated":"opened",trainer_id:t.trainer.id,trainer:t.trainer.name,map_id:t.map,text:openText(t)});
+   this.changed.push({change:was?"updated":"opened",trainer_id:t.trainer.id,trainer:t.trainer.name ?? who(t.trainer),map_id:t.map,text:openText(t)});
   }else if(t.outcome==="won")this.retire(t.trainer.id,t.end);
  }
 
@@ -125,7 +117,7 @@ export class UnfinishedActivity {
   const t=this.open.get(id);
   if(t===undefined)return;
   this.open.delete(id);
-  this.changed.push({change:"retired",trainer_id:id,trainer:t.trainer.name,map_id:t.map,text:`${who(t.trainer)}: the game shows ${who(t.trainer)} defeated (turn ${String(turn)}).`});
+  this.changed.push({change:"retired",trainer_id:id,trainer:t.trainer.name ?? who(t.trainer),map_id:t.map,text:`${who(t.trainer)}: the game shows ${who(t.trainer)} defeated (turn ${String(turn)}).`});
  }
 
  // The field pages the game showed on that map in the call that started the battle, before the battle's own text.
@@ -169,13 +161,11 @@ export class UnfinishedActivity {
    if(same(a.map,map)){facts.push({seq:a.seq,text:`turn ${String(a.turn)} you ${came?"came back":"came in"}`});came=true;}
    else if(a.from!==null&&same(a.from.map,map)&&!a.carried)facts.push({seq:a.seq,text:`turn ${String(a.turn)} you left with ${a.from.party}`});
   }
-  let away=false;
   const visits=this.arrivals.filter(a=>a.seq>=startSeq);
   for(const h of this.heals){
    if(h.seq<startSeq)continue;
    const at=visits.findLast(a=>a.seq<=h.seq);
-   away=at!==undefined&&!same(at.map,map);
-   if(away)facts.push({seq:h.seq,text:`turn ${String(h.turn)} your party was healed on ${h.label}`});
+   if(at!==undefined&&!same(at.map,map))facts.push({seq:h.seq,text:`turn ${String(h.turn)} your party was healed on ${h.label}`});
   }
   for(const b of this.battles){
    if(!same(b.map,map)||b.seq<startSeq)continue;

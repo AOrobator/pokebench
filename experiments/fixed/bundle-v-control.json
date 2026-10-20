@@ -46,7 +46,7 @@
    "connection-edge-tiles-v1": true,
    "contextual-interface-docs-v1": true,
    "coordinate-script-conditions-v1": true,
-   "counter-talk-v1": false,
+   "counter-talk-v1": true,
    "deterministic-loop-guard-v1": true,
    "dialogue-auto-advance-v1": true,
    "dialogue-context-kept-v1": true,
@@ -186,7 +186,6 @@
   "automatic-running-v1",
   "blackout-readout-v1",
   "low-hp-trainer-warning-v2",
-  "counter-talk-v1",
   "grass-cost-navigation-v1",
   "heal-before-trainers-v1",
   "harness-trust-v1",
@@ -263,7 +262,8 @@
   "context-token-budget-v1",
   "exit-reachability-v1",
   "duplicate-turn-collapse-v1",
-  "evolution-decision-v1"
+  "evolution-decision-v1",
+  "counter-talk-v1"
  ],
  "phases": [
   {

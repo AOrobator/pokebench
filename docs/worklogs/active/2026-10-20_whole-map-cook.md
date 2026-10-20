@@ -42,3 +42,6 @@ The control model cancelled Torchic's Lv16 evolution in a8f9 (turn 1170, B in th
 - Current definition sha256 after both edits: whole-map-pair-1h-v4 4632a7a61a7e, whole-map-cook-1h 7c12ca8d7dbd. Round-2 review fixes: explainer and overview text, worklog hashes, bundle-v-control title arrow restored.
 - 18:57 NY: rebased on main 5c26dc62 (whiteout-healed-v1 in the bundle). Regenerated whole-map defs from bundle-cook-1h with seeds/plans kept: whole-map-pair-1h-v4 sha256 ddedef847c1d, whole-map-cook-1h eda3fa2969a8. Round-3 reviews of the earlier changes: Grok LGTM, Claude LGTM.
 - Round 4: Grok LGTM, Claude LGTM. Landing.
+
+## counter-talk-v1 on in both arms (the operator 2026-10-20 19:17 NY)
+Moved from bundle switches to onInBoth (base true) in bundle-v-control.json and whole-map-cook-1h.json; evidence in the 'Counter-talk effect in control' thread (stalled 1/45 with it on vs 23/47 off). Running pair v4 unchanged. New sha256: bundle-v-control b1e24b405b6b, whole-map-cook-1h d5ceed05b7f8. pnpm -r test: agent 2977, viewer 1436 pass.

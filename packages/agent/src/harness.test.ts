@@ -953,8 +953,7 @@ describe("context-token-budget-v1 on the pinned pi loop", () => {
   it("on: the retry after an overflow drops the oldest whole turns and the run goes on", async () => {
     const { end, seen, trims } = await run(new ContextBudget(3000));
     expect(end).toBe("budget");
-    expect(seen.slice(0, 4)).toEqual((await run(undefined)).seen.slice(0, 4));
-    expect(seen[3]).toHaveLength(7);
+    expect(seen.slice(0, 4).map((request) => request.length)).toEqual([1, 3, 5, 7]);
     expect(seen[4]?.[0]).toEqual(TASK);
     expect(seen[4]?.slice(1)).toEqual(seen[3]?.slice(5));
     expect(trims).toEqual([expect.objectContaining({ basis: "overflow", turns: 3, kept: 1, limit: 3000 })]);

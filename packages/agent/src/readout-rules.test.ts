@@ -24,8 +24,8 @@ describe("readout-rules-in-prompt-v1 registry", () => {
     expect(featureInfo(ID)).toMatchObject({ group: "observation", needs: "ram-state-v1", switchable: true });
     expect(featureInfo(ID).description).toContain(" Off: ");
     expect(featureInfo(ID).description).toContain("Map symbols and rules: see the system prompt.");
-    expect(SWITCHABLE_FEATURES.at(-80)).toBe(ID);
-    expect(playHarnessFeatures(ALL_ON,null).at(-73)).toBe(ID);
+    expect(SWITCHABLE_FEATURES.at(-81)).toBe(ID);
+    expect(playHarnessFeatures(ALL_ON,null).at(-74)).toBe(ID);
     expect(playHarnessFeatures(set(ALL_ON, { [ID]: false }), null)).not.toContain(ID);
     expect(SERVER_FEATURES.at(-21)).toBe(ID);
     expect(serverFeatureEnv(set(ALL_ON, { [ID]: false })).POKEBENCH_FEATURES_OFF).toBe(`${ID},safe-navigation-strides-v1`);

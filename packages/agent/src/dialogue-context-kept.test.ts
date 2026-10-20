@@ -151,7 +151,7 @@ describe("dialogue-context-kept-v1 registry and production wiring", () => {
   it("is a default-off guidance switch recorded last that needs no other switch", () => {
     expect(featureInfo("dialogue-context-kept-v1")).toMatchObject({ group: "guidance", needs: null, switchable: true });
     expect(featureInfo("dialogue-context-kept-v1").description).toContain(" Off: ");
-    expect(playHarnessFeatures(ALL_ON, null).at(-79)).toBe("dialogue-context-kept-v1");
+    expect(playHarnessFeatures(ALL_ON, null).at(-80)).toBe("dialogue-context-kept-v1");
     expect(playHarnessFeatures({ ...ALL_ON,"battle-decision-ready-v1":false,"cache-aligned-window-v1":false, "dialogue-context-kept-v1": false }, null)).not.toContain("dialogue-context-kept-v1");
     expect(dependencyProblems({ ...ALL_ON,"battle-decision-ready-v1":false,"cache-aligned-window-v1":false, "dialogue-context-kept-v1": true })).toEqual([]);
     const older = Object.fromEntries(Object.entries(ALL_ON).filter(([id]) => id !== "dialogue-context-kept-v1")) as Parameters<typeof normalizeFeatures>[0];

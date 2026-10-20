@@ -22,8 +22,8 @@ it("registers a default-off guidance switch the game server applies, recorded la
   expect(description).toContain(" Off: ");
   expect(description).toContain("below half");
   expect(description).toContain("RUN");
-  expect(SWITCHABLE_FEATURES.at(-82)).toBe(ID);
-  expect(playHarnessFeatures(ALL_ON,null).at(-75)).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-83)).toBe(ID);
+  expect(playHarnessFeatures(ALL_ON,null).at(-76)).toBe(ID);
   expect(playHarnessFeatures(with_(ALL_ON, false), null)).not.toContain(ID);
   expect(SERVER_FEATURES.at(-23)).toBe(ID);
   expect(serverFeatureEnv(with_(ALL_ON, false)).POKEBENCH_FEATURES_OFF).toBe(`${ID},safe-navigation-strides-v1`);

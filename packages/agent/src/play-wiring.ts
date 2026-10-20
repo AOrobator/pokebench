@@ -7,6 +7,7 @@ import {withNavigation,type NavigationPorts} from "./navigation.js";
 import {withNavigateFirst} from "./navigate-first.js";
 import {withLowHpTrainerWarning,type WarningRecorder} from "./low-hp-trainer-warning.js";
 import type {FeatureSet} from "./features.js";
+import {ContextBudget,budgetLimit,type BudgetTrim} from "./context-budget.js";
 import {instructionLedger} from "./instruction-ledger.js";
 import {disprovedBeliefs} from "./disproved-beliefs.js";
 import {SamePlanBreaker} from "./same-plan.js";
@@ -51,6 +52,12 @@ export function contextTools(features:FeatureSet,recorder:WiringRecorder,base:Tr
  const hinted=hint?.transformContext??ledger?.transformContext??memory?.transformContext??observedBase;
  const chain=disprovedBeliefs(features,recorder,hinted)?.transformContext??hinted;
  return {tools,transformContext:features["fresh-retry-v1"]?messages=>chain(withoutTextOnlyReplies(messages)):chain,window:contextWindow(features)};
+}
+
+// context-token-budget-v1: fit each request to the served context; each trim is recorded as a compaction.
+export function contextBudget(features:FeatureSet,model:{readonly contextWindow:number},maxTokens:number,recorder:Pick<RunRecorder,"compaction">):{budget?:ContextBudget;onBudgetTrim?:(trim:BudgetTrim)=>void}{
+ if(!features["context-token-budget-v1"])return {};
+ return {budget:new ContextBudget(budgetLimit(model.contextWindow,maxTokens)),onBudgetTrim:trim=>{recorder.compaction(trim.from,trim.predicted);}};
 }
 
 // The loop guard's supervisor briefing, when that switch is on.

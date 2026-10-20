@@ -171,3 +171,4 @@ BLOCKED for a dedicated comparison: no current qualifying boot-readiness count o
 ## Starter decision salience · 2026-10-19
 
 Checkpoint diagnostic candidate: first-arrival ROUTE_101, SHA1 0c34433cc305ea5de6fa69aa4a5612bf434a5714, source frontier-acq-a state900/milestone901, empty party. Native OFF/ON checkpoint qualification and the fixed sixteen-slot rehearsal passed; these zero-inference checks do not establish autonomous decision quality. Native activation occurs after ROUTE_101 at ready starter_selection. No measured launch or approval.
+| `context-token-budget-v1` | `RIVAL_MET` (the 2026-10-19 bundle cook trials overflowed after about 1.5 hours, past this milestone) | PENDING until `just experiments` runs after landing | Registered 2026-10-20, pending and not queued. The candidate flips only `context-token-budget-v1`. Operator decision 2026-10-20: ship it on in both arms of the six-hour cook pair instead of measuring it alone first. |

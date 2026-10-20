@@ -14,7 +14,7 @@ const usage = (prompt = 0) => ({ input: prompt, output: 0, cacheRead: 0, cacheWr
 function assistant(text: string, prompt = 0, stopReason: AssistantMessage["stopReason"] = "toolUse", errorMessage?: string): AssistantMessage {
   return {
     role: "assistant",
-    content: [{ type: "thinking", thinking: text }, { type: "toolCall", id: `c${text.length}`, name: "press", arguments: { buttons: ["A"] } }],
+    content: [{ type: "thinking", thinking: text }, { type: "toolCall", id: `c${String(text.length)}`, name: "press", arguments: { buttons: ["A"] } }],
     api: "openai-completions", provider: "local", model: "m", usage: usage(prompt), stopReason, timestamp: 0,
     ...(errorMessage === undefined ? {} : { errorMessage }),
   };
@@ -24,7 +24,7 @@ function result(text: string, images = 0): ToolResultMessage {
 }
 // n turns, each an assistant reply of `chars` characters and one result of `chars` characters.
 function turns(n: number, chars: number): AgentMessage[] {
-  return Array.from({ length: n }, (_, i) => [assistant(`${String(i)}`.padEnd(chars, "t")), result(`${String(i)}`.padEnd(chars, "r"))]).flat();
+  return Array.from({ length: n }, (_, i) => [assistant(String(i).padEnd(chars, "t")), result(String(i).padEnd(chars, "r"))]).flat();
 }
 
 describe("context-token-budget-v1 budget", () => {
@@ -81,7 +81,7 @@ describe("context-token-budget-v1 budget", () => {
     const fitted = budget.fit(grown);
     expect(fitted.trim?.basis).toBe("usage");
     expect(fitted.trim?.predicted).toBe(25_000 + requestWeight(fitted.messages) - sent);
-    expect(fitted.trim!.predicted).toBeLessThanOrEqual(20_000);
+    expect(fitted.trim?.predicted).toBeLessThanOrEqual(20_000);
     expect(fitted.messages.length).toBeLessThan(grown.length);
   });
 
@@ -92,7 +92,7 @@ describe("context-token-budget-v1 budget", () => {
     budget.observe({ ...assistant("x"), usage: { ...usage(10), cacheRead: 69_000, cacheWrite: 5 } });
     const fitted = budget.fit([...messages, ...turns(1, 3000)]);
     expect(fitted.trim?.basis).toBe("usage");
-    expect(fitted.trim!.predicted).toBe(69_015 + requestWeight(fitted.messages) - requestWeight(messages));
+    expect(fitted.trim?.predicted).toBe(69_015 + requestWeight(fitted.messages) - requestWeight(messages));
   });
 
   it("calibrates from a context-size overflow error and fits the retry", () => {
@@ -102,8 +102,8 @@ describe("context-token-budget-v1 budget", () => {
     budget.observe(assistant("", 0, "error", "400 request (67511 tokens) exceeds the available context size (65536 tokens), try increasing it"));
     const retry = budget.fit(messages);
     expect(retry.trim?.basis).toBe("overflow");
-    expect(retry.trim!.predicted).toBeLessThanOrEqual(59_392);
-    expect(retry.trim!.predicted).toBe(67_511 + requestWeight(retry.messages) - requestWeight(messages));
+    expect(retry.trim?.predicted).toBeLessThanOrEqual(59_392);
+    expect(retry.trim?.predicted).toBe(67_511 + requestWeight(retry.messages) - requestWeight(messages));
   });
 
   it("ignores replies that report no prompt tokens and errors that are not an overflow", () => {

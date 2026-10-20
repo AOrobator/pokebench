@@ -23,13 +23,14 @@ The launch itself followed the fixed-run skill. Its run data stays where it is.
 
 - [x] RED: budget trims oldest whole turns, keeps task and newest turn, calibrates from usage and from the overflow error, OFF is byte-identical, production factory honors the switch, `context_budget` event recorded and shown in Activity History
   - RED run: context-budget, harness and play-wiring test files fail (module and factory missing). The trim reuses the existing `compaction` event (from/to tokens), already in Activity History, so no schema or viewer change.
-- [ ] GREEN
-- [ ] Explainer, pending experiment entry, readiness row
-- [ ] Gates: `just test`, `just coverage`, `just lint`
+- [x] GREEN: `ContextBudget` in `context-budget.ts`, applied in `piLoop` after the slide window, anchored on usage or the overflow error; `contextBudget` factory in `play-wiring.ts`, wired in `live.ts`. Registry tests shifted by one for the appended switch.
+  - Wiring deletions: removing `options.budget?.fit` fails the piLoop ON test; making the factory ignore the switch fails the factory test. Both restored.
+- [x] Explainer `docs/explainers/context-token-budget-v1.html` (pages-check clean), pending `experiments/context-token-budget-v1.json`, readiness row
+- [x] Gates: `just lint` clean; `just coverage` passes (agent 2698 tests, viewer 1307, env 2824; Python 96%)
 - [ ] Review: Claude, Grok, GPT lanes LGTM on the frozen packet
 - [ ] Land ff-only on main
 
 ### M2 `bundle-cook-6h-v2`
 
-- [ ] Definition: copy of `bundle-cook-6h` with `tutorial-party-owner-v1` and `context-token-budget-v1` in `onInBoth`
+- [x] Definition (validated with the branch build: no problems, control base clean, plan regenerated from seed `bf0f7a4b141ab632`, control B/GPU0, bundle A/GPU1): copy of `bundle-cook-6h` with `tutorial-party-owner-v1` and `context-token-budget-v1` in `onInBoth`
 - [ ] `just fixed-run check`, launch via the fixed-run-launch skill, dropdown check

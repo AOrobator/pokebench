@@ -113,11 +113,12 @@ describe("the reports page", () => {
 });
 
 describe("the header chips", () => {
-  const chips = (html: string): string[][] => [...new DOMParser().parseFromString(html, "text/html").querySelectorAll<HTMLAnchorElement>("header.bar nav.nav-chips a.nav-chip")]
-    .map(a => [a.textContent, a.getAttribute("href") ?? "", a.getAttribute("aria-current") ?? ""]);
-  it("show the same two pages on both headers, the current one filled", () => {
-    expect(chips(STATS)).toEqual([["RUNS & COMPARISONS", "/comparisons", "page"], ["REPORTS", "/reports", ""]]);
-    expect(chips(PAGE)).toEqual([["RUNS & COMPARISONS", "/comparisons", ""], ["REPORTS", "/reports", "page"]]);
+  const chips = (html: string): string[][] => [...new DOMParser().parseFromString(html, "text/html").querySelectorAll<HTMLElement>('header.bar nav.nav-chips[aria-label="Pages"] .nav-chip')]
+    .map(a => [a.tagName, a.textContent, a.getAttribute("href") ?? "", a.getAttribute("aria-current") ?? ""]);
+  // The current page is not a link: following it would drop ?from= (the stats page's way back to a run) or ?open=.
+  it("show the same two pages on both headers, the current one filled and not a link", () => {
+    expect(chips(STATS)).toEqual([["SPAN", "RUNS & COMPARISONS", "", "page"], ["A", "REPORTS", "/reports", ""]]);
+    expect(chips(PAGE)).toEqual([["A", "RUNS & COMPARISONS", "/comparisons", ""], ["SPAN", "REPORTS", "", "page"]]);
     expect(STATS).not.toContain("viewer-workbench-link"); expect(PAGE).not.toContain("viewer-workbench-link"); expect(PAGE).not.toContain("rp-here");
   });
   it("style a link as the outline of the filled chip", () => {

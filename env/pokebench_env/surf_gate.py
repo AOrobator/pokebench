@@ -25,6 +25,7 @@ from pokebench_env.field_moves import (
     SURFING,
     WATER,
     Edges,
+    FloodRules,
     Reached,
     SurfUse,
     Tile,
@@ -174,13 +175,16 @@ def surf_gate_from(
     flood: FloodInputs,
     badges: tuple[str, ...] | None,
     party: tuple[PartyMon, ...] | None,
+    rules: FloodRules | None = None,
 ) -> SurfGate:
     # surf-gated-exits-v1 keys connections by direction, as it always has (a later one on the
-    # same side replaces an earlier one).
+    # same side replaces an earlier one). field-move-gates-v1 floods with its rules.
     by_direction: dict[str, Edges] = {}
     for (direction, _, _), edges in flood.connections.items():
         by_direction[direction] = edges
-    warps, gated = water_only(flood.tiles, flood.start, warps=flood.warps, connections=by_direction)
+    warps, gated = water_only(
+        flood.tiles, flood.start, warps=flood.warps, connections=by_direction, rules=rules
+    )
     use = surf_use(badges, party, read(PLAYER_AVATAR, 1)[0])
     return SurfGate(use.can_surf, use.balance_badge, use.party_surf, use.surfing, warps, gated)
 

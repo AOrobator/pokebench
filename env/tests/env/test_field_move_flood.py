@@ -11,6 +11,7 @@ Real RAM: field-moves-a8f9.json.gz (see test_field_moves.py). ROM layouts: GRANI
 """
 
 import random
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
@@ -21,6 +22,7 @@ from pokebench_env.exit_labels import arrival_text, read_rom_map, section_name
 from pokebench_env.field_moves import (
     SWITCH,
     Capabilities,
+    FieldObstacles,
     MapGates,
     Obstacle,
     capabilities,
@@ -32,8 +34,9 @@ from pokebench_env.field_moves import (
     terrain_obstacles,
 )
 from pokebench_env.game_state import MapNames
-from pokebench_env.readout import SERVER_FEATURES, features_off_from_env, state_json
+from pokebench_env.readout import SERVER_FEATURES, features_off_from_env, format_readout, state_json
 from pokebench_env.rom import EMERALD_SHA1
+from pokebench_env.world import InteractionTarget
 
 ROM_START = 0x08000000
 ALL_CLOSED = capabilities((), (), (), 0)
@@ -127,7 +130,8 @@ def test_a_slope_is_one_way_south_on_foot_until_the_mach_bike_opens_it() -> None
     )
     closed = map_gates(ALL_CLOSED, (), tiles, None).rules()
     assert reachable(tiles, (1, 0), water=False, rules=closed) == set(tiles)
-    assert reachable(tiles, (1, 3), water=False, rules=closed) == {(1, 3)}
+    # Stepping up onto the slope is allowed; it slides you straight back down.
+    assert reachable(tiles, (1, 3), water=False, rules=closed) == {(1, 2), (1, 3)}
     opened = map_gates(ALL_OPEN, (), tiles, None).rules()
     assert reachable(tiles, (1, 3), water=False, rules=opened) == set(tiles)
 
@@ -171,7 +175,7 @@ def test_the_route111_sandstorm_pushes_back_without_the_go_goggles() -> None:
     closed = map_gates(ALL_CLOSED, (), tiles, "ROUTE111").rules()
     assert reachable(tiles, (12, 63), water=False, rules=closed) == {(12, 61), (12, 62), (12, 63)}
     assert reachable(tiles, (12, 59), water=False, rules=closed) == set(tiles)
-    goggles = map_gates(capabilities((), (), (), None), (), tiles, "ROUTE111")
+    goggles = map_gates(capabilities((), (), None, None), (), tiles, "ROUTE111")
     assert goggles.caps.of("go_goggles") is None
     assert reachable(tiles, (12, 63), water=False, rules=goggles.rules()) == set(tiles)
     # VAR_TEMP_3 = 1: the trigger already passed this visit.
@@ -229,14 +233,18 @@ def test_granite_cave_b1f_upper_ladders_need_the_mach_bike() -> None:
     rom_map, tiles = rom_tiles((24, 8))
     warps = [w[:2] for w in rom_map.warps]
     assert warps == [(25, 13), (4, 21), (29, 13), (28, 21), (8, 5), (12, 3), (29, 2)]
+    # The west half: ladder #1 (4,21) from 1F; #0 and #2 are a separate east room.
     gated = map_gates(ALL_CLOSED, (), tiles, "GRANITE CAVE B1F")
-    labels = dict(classify(tiles, (25, 13), warps=warps, connections={}, rules=gated.rules()).warps)
-    assert [labels[w] for w in warps] == ["foot"] * 4 + ["none"] * 3
+    labels = dict(classify(tiles, (4, 21), warps=warps, connections={}, rules=gated.rules()).warps)
+    assert [labels[w] for w in warps] == ["none", "foot", "none", "foot", "none", "none", "none"]
+    ungated = dict(classify(tiles, (4, 21), warps=warps, connections={}).warps)
+    assert [ungated[w] for w in warps] == ["none", "foot", "none", "foot", "foot", "foot", "foot"]
     opened = map_gates(ALL_OPEN, (), tiles, "GRANITE CAVE B1F")
-    labels = dict(
-        classify(tiles, (25, 13), warps=warps, connections={}, rules=opened.rules()).warps
-    )
-    assert set(labels.values()) == {"foot"}
+    labels = dict(classify(tiles, (4, 21), warps=warps, connections={}, rules=opened.rules()).warps)
+    assert labels == ungated
+    # From the top ladder #4 (8,5) the slope slides you down to the lower ladders.
+    top = dict(classify(tiles, (8, 5), warps=warps, connections={}, rules=gated.rules()).warps)
+    assert [top[w] for w in warps] == ["none", "foot", "none", "foot", "foot", "none", "none"]
     slopes = [o for o in gated.obstacles if o.name.startswith("slope")]
     assert [o.tiles for o in slopes] == [((9, 9), (9, 10))]
     cracked = [t for o in gated.obstacles if o.name.startswith("cracked") for t in o.tiles]
@@ -308,7 +316,13 @@ def test_switch_is_a_default_off_server_feature() -> None:
 
 
 def test_off_is_the_recorded_a8f9_readout_and_state_byte_for_byte() -> None:
-    assert a8f9_readout(gates=False) == fixture()["cases"][0]["readout"]
+    recorded = fixture()["cases"][0]["readout"].split("\n")
+    # The agent adds the untaken-exits, people-ledger and story-character lines after Position.
+    added = recorded[8:12]
+    assert added[0].startswith("Exits here you have not taken:")
+    assert added[1].startswith("People and objects here")
+    assert added[3].startswith("Story characters here: none.")
+    assert a8f9_readout(gates=False) == "\n".join(recorded[:8] + recorded[12:])
     body = state_json(a8f9_state(gates=False))
     assert "field_obstacles" not in body
     assert body["exit_reach"] == fixture()["cases"][0]["exit_reach"]
@@ -401,3 +415,135 @@ def test_rock_smash_usable_opens_the_rocks() -> None:
 def test_cracked_floor_maps_are_the_ones_that_set_the_step_callback(location: str) -> None:
     tiles = {(0, 0): (0, 0), (1, 0): (0, 0xD2)}
     assert [o.gate for o in map_gates(ALL_CLOSED, (), tiles, location).obstacles] == ["mach_bike"]
+
+
+def test_a_rock_on_the_only_water_way_cuts_a_surf_exit_off_too() -> None:
+    # (0,0) land, then water; a rock object sits on (2,0); the warp (4,0) is on the far shore.
+    tiles = {
+        (0, 0): (0, 0),
+        (1, 0): (0, 0x10),
+        (2, 0): (0, 0x10),
+        (3, 0): (0, 0x10),
+        (4, 0): (0, 0),
+    }
+    gates = map_gates(ALL_CLOSED, (rock(2, 0),), tiles, None)
+    found = survey(tiles, (0, 0), gates, warps=((4, 0),), connections={})
+    assert found.open.warps == (((4, 0), "water"),) and found.gated.warps == (((4, 0), "none"),)
+    assert found.warp_blocks == {(4, 0): (0,)}
+    # Nothing past the rock on foot: it lies in water.
+    assert found.beyond == {}
+
+
+def test_a_cut_off_map_connection_carries_the_obstacles_and_a_note() -> None:
+    tiles = floor(6, 3)
+    rocks = tuple(rock(2, y, y + 1) for y in range(3))
+    slope = {(1, y): (0, 0) for y in range(3)}
+    tiles.update(slope)
+    key = ("EAST", (0, 3), 0)
+    edges = (((5, 0), (5, 1), (5, 2)), ((5, 0), (5, 1), (5, 2)))
+    gates = map_gates(ALL_CLOSED, rocks, tiles, None)
+    found = survey(tiles, (0, 0), gates, warps=(), connections={key: edges})
+    assert found.connection_blocks == {key: (0, 1, 2)}
+    field = FieldObstacles(gates, found, 6, 3)
+    assert field.connection_note(key) == (
+        "not reachable on foot from where you stand: every way on this map to this edge passes"
+        " BREAKABLE_ROCK at (2,0), (2,1) or (2,2), which needs a field move you cannot use yet"
+    )
+    assert field.connection_note(("WEST", (0, 3), 0)) is None and field.warp_note(0, 0) is None
+    assert field.lines(str, lambda k: f"{k[0]} edge") == [
+        HEADER,
+        "- BREAKABLE_ROCK at (2,0), (2,1) and (2,2) close every way on foot to EAST edge: it needs"
+        f' a field move you cannot use yet; the game says: "{ROCK_TEXT}"',
+    ]
+
+
+def test_terrain_is_named_only_when_it_cuts_off_an_exit_and_mixed_needs_say_so() -> None:
+    # A corridor: rock at (1,0) or the slope column at x=3 must be passed to reach the warp (5,0).
+    tiles = {(x, 0): (0, 0) for x in range(6)}
+    tiles[(3, 0)] = (0, 0xD0)
+    gates = map_gates(ALL_CLOSED, (rock(1, 0),), tiles, None)
+    found = survey(tiles, (0, 0), gates, warps=((5, 0),), connections={})
+    field = FieldObstacles(gates, found, 6, 1)
+    # The rock is on the frontier; the slope lies past it.
+    assert found.warp_blocks == {(5, 0): (0,)}
+    assert [line.split(" close")[0] for line in field.lines(str, str)] == [
+        HEADER,
+        "- BREAKABLE_ROCK at (1,0)",
+    ]
+    mixed = FieldObstacles(gates, replace(found, warp_blocks={(5, 0): (0, 1)}), 6, 1)
+    note = mixed.warp_note(5, 0)
+    assert note is not None and note.endswith(
+        "passes BREAKABLE_ROCK at (1,0) or slope tiles (metatile behavior 0xD0) at (3,0), which"
+        " needs a field move or an item you cannot use yet"
+    )
+    slope_only = map_gates(ALL_CLOSED, (), tiles, None)
+    alone = survey(tiles, (5, 0), slope_only, warps=((0, 0),), connections={})
+    lines = FieldObstacles(slope_only, alone, 6, 1).lines(str, str)
+    assert lines == [
+        HEADER,
+        "- slope tiles (metatile behavior 0xD0) at (3,0), which you slide down to the south on"
+        " foot, closes every way on foot to (0, 0): it needs an item you do not have yet; the game"
+        " shows no message there",
+    ]
+    assert FieldObstacles(map_gates(ALL_OPEN, (), tiles, None), alone, 6, 1).lines(str, str) == []
+
+
+def test_rom_templates_skip_hidden_flags_other_sprites_and_the_bridge_kecleon() -> None:
+    objects = [
+        (1, 86, 4, 4, 0x3A3),  # BREAKABLE_ROCK, flag set below
+        (2, 86, 5, 5, 0),
+        (3, 59, 6, 6, 0),  # ITEM_BALL
+        (4, 204, 12, 16, 0),  # the bridge Kecleon
+        (5, 204, 20, 11, 0),
+    ]
+    found = rom_object_obstacles(objects, lambda flag: flag == 0x3A3, "ROUTE120")
+    assert [(o.gate, o.tiles) for o in found] == [
+        ("rock_smash", ((5, 5),)),
+        ("devon_scope", ((20, 11),)),
+    ]
+    assert [o.gate for o in rom_object_obstacles(objects, lambda _f: False, "ROUTE104")] == [
+        "rock_smash",
+        "rock_smash",
+    ]
+
+
+def test_readout_names_unknown_dynamic_warps_and_connections_it_cuts_off() -> None:
+    state = a8f9_state(gates=True)
+    field = state.field_obstacles
+    assert field is not None
+    dynamic = InteractionTarget("warp", 7, 7, 3, "movement", destination=(127, 127, 0))
+    blocks = {(29, 16): (0,), (7, 7): (0,), (99, 99): (0,)}
+    reshaped = FieldObstacles(
+        field.gates,
+        replace(field.survey, warp_blocks=blocks, connection_blocks={("NORTH", (0, 3), 0): (1,)}),
+        field.width,
+        field.height,
+    )
+    targets = (*(state.interaction_targets or ()), dynamic)
+    text = format_readout(
+        replace(state, field_obstacles=reshaped, interaction_targets=targets),
+        run_off(gates=True),
+    )
+    assert (
+        "- BREAKABLE_ROCK at (24,5) closes every way on foot to (29,16) -> VERDANTURF TOWN"
+        " (map 0/14), (7,7) -> dynamic destination and (99,99): it needs a field move"
+    ) in text
+    assert (
+        "- BREAKABLE_ROCK at (24,4) closes every way on foot to NORTH edge -> map 0/3 (map 0/3)"
+        in text
+    )
+
+
+def test_unreadable_templates_leave_the_flood_ungated() -> None:
+    maps = MapNames.load(rerender.PORYMAP_MAPS)
+    read = a8f9()
+    save1 = int.from_bytes(read(0x03005D8C, 4), "little")
+
+    def blind(address: int, length: int) -> bytes:
+        if save1 + 0xC70 <= address < save1 + 0xC70 + 64 * 24:
+            raise ValueError("templates unreadable")
+        return read(address, length)
+
+    state = rerender.read_state(blind, maps, active_ui=True, off=run_off(gates=True))
+    assert state.field_obstacles is None and state.exit_reach is not None
+    assert [how for _, how in state.exit_reach.warps] == ["foot", "foot", "foot"]

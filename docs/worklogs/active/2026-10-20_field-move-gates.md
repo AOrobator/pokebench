@@ -112,8 +112,36 @@ No new subprocesses, network or file writes; reads RAM the server already reads.
       Route 115 and Granite Cave B1F muddy slopes one-way; cracked floor; exit-labels-v2 arrival reach
       uses destination templates; OFF golden. (env/tests/env/test_field_move_flood.py, plus rails,
       waterfall, Route 111 sandstorm, survey/blocked_by and the superset property on random maps.)
-- [ ] COMMIT RED / implement / gates / COMMIT GREEN
+- [x] COMMIT RED / implement / gates / COMMIT GREEN
   RED: test_field_move_flood.py fails at import (no MapGates/map_gates/survey/terrain_obstacles).
+  COMMIT: `test: field-move-gates-v1 gated flood, blocked_by, field_obstacles and readout on a8f9 (RED)` (2f7c4e46)
+  GREEN: field_moves gains terrain_obstacles, rom_object_obstacles, FloodRules/MapGates, survey
+  (gated and open floods, what lies past each closed frontier obstacle, blocked_by per cut-off
+  exit) and FieldObstacles (state JSON, readout lines, warp/connection notes). exit_reach,
+  surf_gate and exit-labels-v2's arrival flood take the gates; game_state/rerender/readout wire
+  field-move-gates-v1 (needs exit-reachability-v1; unreadable templates leave the flood ungated).
+  Registration moved here (see deviation): Python SERVER_FEATURES + default-off list, agent
+  SWITCHABLE_FEATURES/FEATURES/playHarnessFeatures/SERVER_FEATURES, presets, flagFeatures,
+  LEGACY_ALL_ON, viewer DEFAULT_NEXT_RUN; 79 agent registry tests re-indexed by one (scripted:
+  bump negative indices on the failing lines, append the id to the server-env strings and the
+  experiment-incumbent filters; two lines with two indices fixed by hand).
+  RED-test corrections made in GREEN (test bugs, not behavior): Granite Cave B1F is two rooms, so
+  the ladder test starts from #1 (4,21) and checks #4-#6 none gated / foot ungated, plus the slope
+  from #4; stepping up onto a slope is allowed and slides back (flood superset), so (1,2) is
+  reached from (1,3); the Go-Goggles unknown case passes bag None; the OFF golden drops the four
+  lines the agent adds after Position (untaken exits, people ledger x2, story characters).
+  Gates: just lint 0, just build 0, just coverage 0 (one rerun: a viewer server.test.ts socket
+  timing flake "received only 2 frames", passed on rerun, unrelated). Tests: env 3054 passed;
+  agent 2977; viewer 1436. Coverage: env lines 97.19 / branches 92.79 / functions 100; agent
+  97.21 / 92.96 / 97.6 / 99.16; viewer 95.09 / 91.06 / 93.85 / 97.7.
+  Golden: the a8f9 state body re-read from RAM with the switch off equals the recorded state 41177
+  byte for byte (agent fixture builder asserts it); the readout equals the recorded tool result
+  minus the agent's lines.
+  ON (a8f9): (4,10) foot; (29,16) and (18,20) none, blocked_by [0, 1]; readout adds
+  "Field obstacles on this map (from the map's own object list and its tiles):" and "- BREAKABLE_ROCK
+  at (24,4) and (24,5) close every way on foot to (29,16) -> VERDANTURF TOWN (map 0/14) and (18,20)
+  -> ROUTE116 (map 0/31): it needs a field move you cannot use yet; the game says: "It's a rugged
+  rock, but a POKéMON may be able to smash it.""
   Deviation (recorded before GREEN): the switch registration moves from M3 into M2 GREEN, because
   test_feature_switches.py requires the Python and TypeScript SERVER_FEATURES lists to match, and
   the Python default-off list is what keeps the switch off by default.

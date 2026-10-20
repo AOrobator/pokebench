@@ -26,3 +26,6 @@ Base it on bundle-cook-1h after the loop thread lands: duplicate-turn-collapse-v
 ## Rerun pair (the operator 2026-10-20 16:09 NY: "stop and re run")
 whole-map-pair-1h stopped at 16:09 (both runs operator_abort; bundle furthest RUSTBORO_GYM_TRAINER_TOMMY_DEFEATED at 63 min, then whiteout; control furthest RUSTBORO_GYM_TRAINER_JOSH_DEFEATED at ~1h52m). experiments/fixed/whole-map-pair-1h-v2.json: current main bundle-cook-1h (semantic-navigation-v2, auto-talk-v1, duplicate-turn-collapse-v1 both arms, unfinished-activity-v1) + full-map-navigation-v1 in the bundle. One pair, 1 hour. Seed fe9b6116f9857e59, definition sha256 6dc8ec6d15a1.
 Reviews (runs/reviews/whole-map-pair-1h-v2/): Grok cursor-grok-4.5-high LGTM; Claude subagent LGTM.
+
+## Pair v3 (the operator 2026-10-20 18:05 NY: restart the bundle arm, keep GPUs busy)
+experiments/fixed/whole-map-pair-1h-v3.json: main 0e1a9261 bundle-cook-1h (five whiteout fixes) + full-map-navigation-v1, one pair, 1 hour. Seed 2ca46c70b53028e8, sha256 61aa4b3bc5ce. Fixed-run definitions always run both arms, so the bundle restart is a fresh pair launched when control a8f9 ended. Nickname fix not yet in.

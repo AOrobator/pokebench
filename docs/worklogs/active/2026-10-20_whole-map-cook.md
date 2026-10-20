@@ -19,3 +19,6 @@ Design: docs/experiments/whole-map-cook-1h.html. Operator: The operator approved
 experiments/fixed/whole-map-pair-1h.json: control vs the bundle at 59cfcc62 + full-map-navigation-v1, semantic-navigation-v1 and deterministic-exploration-v1 off in both (the operator: v1's prompting is a bug). One pair, 1 hour, MAIN_MENU fast-text save. Plan seed 163a5a8a0d173130, definition sha256 0ef8f6b34f6d.
 
 Reviews (frozen packet runs/reviews/whole-map-pair-1h/): Grok cursor-grok-4.5-high VERDICT: LGTM; Claude (subagent; CLI login expired) VERDICT: LGTM. GPT optional per coordinator.
+
+## 12-pair definition plan (coordinator 2026-10-20 13:34 NY)
+Base it on bundle-cook-1h after the loop thread lands: duplicate-turn-collapse-v1 on in both arms, fixed-point-breaker-v1 off in both, auto-talk-v1 bundle only, plus semantic-navigation-v2 and full-map-navigation-v1 in the bundle. whole-map-pair-1h stays as pinned.

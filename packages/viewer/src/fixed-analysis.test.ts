@@ -139,6 +139,15 @@ describe("rescoreTrials", () => {
     expect(trials).toEqual([{ ...trial("complete", "ROUTE_103", DEPTH_ORDER.indexOf("ROUTE_103")), furthestMs: 1000 }]);
     expect(unscored).toEqual([]);
   });
+  it("re-grades from one pass over the log, so a one-shot stream grades and a log that changes between passes cannot", () => {
+    const once = (text: string) => (function* () { yield* text.split("\n"); })();
+    expect(rescoreTrials([trial("complete", "FIRST_POKECENTER_HEAL", oldDepth("FIRST_POKECENTER_HEAL"))], () => once(logs["complete"] ?? "")).trials).toEqual([{ ...trial("complete", "ROUTE_103", DEPTH_ORDER.indexOf("ROUTE_103")), furthestMs: 1000 }]);
+    let pass = 0;
+    const swapped: Iterable<string> = { [Symbol.iterator]: () => ((pass += 1) === 1 ? log("victim", true) : log("someone-else", true)).split("\n")[Symbol.iterator]() };
+    const { trials } = rescoreTrials([trial("victim", "RIVAL_MET", oldDepth("RIVAL_MET"))], () => swapped);
+    expect(trials.map((t) => [t.furthest, t.furthestMs])).toEqual([["ROUTE_103", 1000]]);
+    expect(pass).toBe(1);
+  });
   it("never re-grades from a log whose first event is not run_start, even one with a null type", () => {
     const { trials } = rescoreTrials([trial("untyped", "RIVAL_MET", oldDepth("RIVAL_MET"))], read);
     expect(trials.map((t) => [t.furthest, t.furthestDepth, t.furthestMs])).toEqual([["RIVAL_MET", DEPTH_ORDER.indexOf("RIVAL_MET"), 7]]);

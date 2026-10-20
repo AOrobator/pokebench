@@ -19,6 +19,6 @@ The side card's reference comes from `/comparisons`, which the app requests only
 - [x] RED: app picks a run → one /frontier request, no /comparisons, card shows the delta; a superseded run's frontier never lands; server /frontier route (selected, self-excluded, invalid id 404, cold partial viewer); /comparisons has no frontier. 5 failing.
 - [x] GREEN: `/frontier` route (404 for an unknown run), `/comparisons` back to candidates + baseline, `loadFrontier` on every selection with its own request token; comparisons tests now route /frontier separately
 - [x] Gates: viewer 1358, agent 2702, python 2894 passed; coverage viewer 95.14/91.16/93.88; lint clean
-- [ ] Proof: real browser, desktop and phone, replay with splits page closed
-- [ ] Review: Claude, Grok
+- [x] Proof: branch viewer 8796, replay of `…gpu1_f28d` with the AGENT TRACE page open (splits page never opened): card shows VS FRONTIER deltas against `…gpu1_e046`; 375 px phone, no horizontal scroll
+- [x] Review on packet 5a252907… (base 2a2fe257, head 025aaeec): Grok cursor-grok-4.5-high VERDICT: LGTM; Claude lane via Claude subagent VERDICT: LGTM. Non-blocking: complete snapshot per pick is not memoized; some app test doubles answer /frontier with comparisons-shaped payloads. Logs under runs/reviews/frontier-on-select/
 - [ ] Land, viewer-main, live check

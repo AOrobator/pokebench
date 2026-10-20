@@ -25,7 +25,7 @@ coordinator; max 2 rounds), features.ts merge slot from the coordinator, ff-only
 - [x] Explainers (pages-check clean), pending experiments, readiness rows, FEATURE_EXPLAINERS
 - [x] Gates: TS coverage agent 2,712 tests 97.61/93.77/97.87 (stmts/branches/funcs), viewer 1,356 tests 95.15/91.17/93.88; Python 2,894 tests, lines 96.94 branches 92.45 functions 100; lint clean (Python lint and pytest via the main checkout's mGBA venv, Python unchanged); verify-vendor OK; verify-rom OK. Wiring deletion turned both factory tests red, then restored.
 Rebased onto main 48309d51 (semantic navigation landed); re-ran all gates: agent 2,797 tests 97.27/93.33/97.88, viewer 1,358 tests 95.15/91.17/93.88, Python 2,896 tests 96.95/92.46/100; lint clean; verify-vendor OK.
-- [ ] Reviews: r1 Grok (cursor-grok-4.5-high) VERDICT: LGTM, non-blocking note: duplicated </head> in both explainers (fixed). r1 Claude CLI failed: "OAuth session expired and could not be refreshed"; Claude lane moves to Cursor Claude on r2.
+- [x] Reviews: r1 Grok (cursor-grok-4.5-high) VERDICT: LGTM, non-blocking note: duplicated </head> in both explainers (fixed). r1 Claude CLI failed: "OAuth session expired and could not be refreshed"; Claude lane moves to Cursor Claude on r2.
 - [ ] Land ff-only on main
 
 ## Review round 2 fixes
@@ -36,3 +36,9 @@ r2 Claude lane (Claude CLI OAuth expired; Cursor Opus and Sonnet usage-capped; f
 - [x] RED: semantic navigation on the approach tile with the switch ON still activates (fails: "route failed at the selected approach")
 - [x] GREEN: the already-here status applies only to the model's own navigate_to call (no stop check, not exactTarget); audited every reader of navigation.status (only semantic-navigation.ts). Gates on main dd3d701b: agent 2,798 tests 97.27/93.33/97.88, viewer 1,361 tests 95.14/91.16/93.88, Python 2,896 tests 96.95/92.46/100, lint clean.
 - Bundle edits (bundle-v-control, bundle-cook-1h) left to the coordinator: the operator's brief said not to edit bundle-v-control here.
+
+## Review round 3 and landing
+
+- r3 packet runs/reviews/2026-10-20-supervisor-nav-truth/r3 (base dd3d701b, head 056b778e, diff SHA-256 4e063e33…2853): Grok (cursor-grok-4.5-high) VERDICT: LGTM; Claude lane (fresh Claude subagent fallback; Claude CLI OAuth expired, Cursor Opus/Sonnet usage-capped) VERDICT: LGTM. Codex lane waived for this task by the operator's brief.
+- [x] Landed fast-forward on local main: 056b778e (2026-10-20, NY time). Pending experiments repinned to 056b778e with `just experiment-pin`.
+- Bundle arms: the "Control and bundle preset update" thread adds both switches to bundle-v-control and bundle-cook-1h.

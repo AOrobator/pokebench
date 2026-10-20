@@ -29,6 +29,8 @@ from pokebench_env.offscreen_objects import offscreen_text
 from pokebench_env.readout_fixes import MID_FRAME, MID_FRAME_TEXT
 from pokebench_env.readout_truth import SWITCH as TRUTH
 from pokebench_env.readout_truth import lock_line, menu_line
+from pokebench_env.respawn import SWITCH as RESPAWN
+from pokebench_env.respawn import RespawnMemory, respawn_line
 from pokebench_env.semantic_targets import SWITCH as SEMANTIC_V2
 from pokebench_env.semantic_targets import interaction_suffix, listed_objects, same_tile
 from pokebench_env.status_names import SWITCH as STATUS_NAMES
@@ -92,6 +94,7 @@ SERVER_FEATURES = (
     "evolution-decision-v1",
     "original-speed-pacing-v1",
     "semantic-navigation-v2",
+    "respawn-readout-v1",
 )
 
 
@@ -112,7 +115,7 @@ def features_off_from_env(env: Mapping[str, str]) -> frozenset[str]:
         "heal-before-trainers-v1,"
         "tutorial-party-owner-v1,mid-frame-readout-v1,unset-dynamic-warp-v1,status-names-v1,"
         "surf-gated-exits-v2,battle-effective-damage-v1,safe-navigation-strides-v1,evolution-decision-v1,original-speed-pacing-v1,"
-        "semantic-navigation-v2",
+        "semantic-navigation-v2,respawn-readout-v1",
     )
     if raw == "":
         return frozenset()
@@ -179,6 +182,7 @@ def format_readout(
     adjacent_tiles: bool = False,
     rules_in_prompt: bool = False,
     whiteout: Whiteout | None = None,
+    respawn_memory: RespawnMemory | None = None,
 ) -> str:
     if "ram-state-v1" in off:
         return ""
@@ -410,8 +414,13 @@ def format_readout(
     )
     if triage is not None:
         lines.append(triage)
+    lines.append(f"Money: ₽{state.money}")
+    # respawn-readout-v1: where a blackout sends the player, beside the money it would halve.
+    if state.respawn is not None and RESPAWN not in off:
+        lines.append(
+            respawn_line(state.respawn, state.money, respawn_memory, places, here=state.location)
+        )
     lines += [
-        f"Money: ₽{state.money}",
         f"Badges: {', '.join(state.badges or ()) or 'none'}",
         f"In battle: {'yes' if state.in_battle else 'no'}",
         f"Play time: {_clock(_play_seconds(state) or 0)}",

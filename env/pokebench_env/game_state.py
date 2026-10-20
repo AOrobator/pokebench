@@ -26,6 +26,7 @@ from pokebench_env.party_ownership import PartyOwnership, read_party_ownership
 from pokebench_env.pokemon import SPECIES_NAMES as SPECIES_NAMES
 from pokebench_env.pokemon import PartyMon, decode_party_mon, pokemon_cpu_context
 from pokebench_env.resources import Resources, read_resources
+from pokebench_env.respawn import LinkCache, Respawn, read_respawn
 from pokebench_env.route103_rival import Route103Rival, read_route103_rival
 from pokebench_env.running import RunningPermission, read_running_permission
 from pokebench_env.story import StoryState, read_story
@@ -144,6 +145,8 @@ class GameState:
     exit_reach: ExitReach | None = None
     # heal-before-trainers-v1: present only with the switch, on the field.
     heal_trainers: HealFacts | None = None
+    # respawn-readout-v1: the saved heal location and the centers that would move it; text only.
+    respawn: Respawn | None = None
     # mid-frame-readout-v1: the save was not read only because the snapshot was mid-frame.
     mid_frame: bool = False
 
@@ -241,6 +244,7 @@ def read_game_state(
     unset_warp_enabled: bool = False,
     semantic_navigation_enabled: bool = False,
     evolution_decision_enabled: bool = False,
+    respawn_links: LinkCache | None = None,
 ) -> GameState:
     screen = read_screen(read)
     coherent = transition_coherence_enabled
@@ -494,5 +498,8 @@ def read_game_state(
         exit_reach=exit_reach,
         heal_trainers=read_heal_facts(read, save1, save2, map_id, party)
         if heal_trainers_enabled and screen.kind == "overworld" and not in_battle
+        else None,
+        respawn=read_respawn(read, save1, map_id, maps, respawn_links.get(read, maps))
+        if respawn_links is not None and screen.kind == "overworld" and not in_battle
         else None,
     )

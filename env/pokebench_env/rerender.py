@@ -24,6 +24,8 @@ from pokebench_env.heal_trainers import SWITCH as HEAL_TRAINERS
 from pokebench_env.raw_ram import load_raw_ram
 from pokebench_env.readout import features_off_from_env, format_readout
 from pokebench_env.readout_fixes import MID_FRAME, OWNER, UNSET_WARP
+from pokebench_env.respawn import SWITCH as RESPAWN
+from pokebench_env.respawn import LinkCache, RespawnMemory
 from pokebench_env.rom import resolve_rom
 from pokebench_env.screen_settle import WARP_FEATURE, warp_animating
 from pokebench_env.surf_gate import SWITCH as SURF_GATE
@@ -35,7 +37,12 @@ PORYMAP_MAPS = (
 
 
 def read_state(
-    read: ReadMemory, maps: MapNames, *, active_ui: bool, off: frozenset[str]
+    read: ReadMemory,
+    maps: MapNames,
+    *,
+    active_ui: bool,
+    off: frozenset[str],
+    links: LinkCache | None = None,
 ) -> GameState:
     return read_game_state(
         read,
@@ -68,6 +75,7 @@ def read_state(
         unset_warp_enabled=UNSET_WARP not in off,
         semantic_navigation_enabled=not {"semantic-navigation-v1", "semantic-navigation-v2"} <= off,
         evolution_decision_enabled="evolution-decision-v1" not in off,
+        respawn_links=links if RESPAWN not in off else None,
     )
 
 
@@ -77,6 +85,7 @@ def render(
     *,
     warp_animation: bool = False,
     whiteout: Whiteout | None = None,
+    respawn_memory: RespawnMemory | None = None,
 ) -> str:
     return format_readout(
         state,
@@ -90,6 +99,7 @@ def render(
         adjacent_tiles="adjacent-tiles-v1" not in off,
         rules_in_prompt="readout-rules-in-prompt-v1" not in off,
         whiteout=whiteout,
+        respawn_memory=respawn_memory,
     )
 
 
@@ -130,11 +140,15 @@ def rerender(
 ) -> list[str]:
     off = features_off_from_env(env)
     active_ui = active_ui_enabled_from_env(env)
+    # respawn-readout-v1: one archive carries no history of entered centers (RespawnMemory).
+    links = LinkCache()
 
     def one(read: ReadMemory) -> str:
         animation = WARP_FEATURE not in off and warp_animating(read)
         return render(
-            read_state(read, maps, active_ui=active_ui, off=off), off, warp_animation=animation
+            read_state(read, maps, active_ui=active_ui, off=off, links=links),
+            off,
+            warp_animation=animation,
         )
 
     return [one(load(run_dir / ref.path, ref.sha256)) for ref in refs]

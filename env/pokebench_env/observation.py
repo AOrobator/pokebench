@@ -19,6 +19,8 @@ from pokebench_env.places import PlaceDirectory
 from pokebench_env.raw_ram import RawRamArchive, RawRamSnapshot, Reservation, raw_reference
 from pokebench_env.readout import features_off_from_env, state_json
 from pokebench_env.rerender import read_state, render
+from pokebench_env.respawn import SWITCH as RESPAWN
+from pokebench_env.respawn import LinkCache, RespawnMemory
 from pokebench_env.screen_settle import (
     WARP_FEATURE,
     FrameSettle,
@@ -56,12 +58,21 @@ def install_observation(
     enabled = active_ui_enabled_from_env(os.environ)
     off = features_off_from_env(os.environ)
     warp = WARP_FEATURE not in off
+    # respawn-readout-v1: the map table read once, and the centers this server saw entered.
+    links = LinkCache() if RESPAWN not in off else None
+    memory = RespawnMemory() if RESPAWN not in off else None
+
+    def decode(read: ReadMemory) -> GameState:
+        state = read_state(read, maps, active_ui=enabled, off=off, links=links)
+        if memory is not None:
+            memory.note(state)
+        return state
 
     def realize_screenshot(value: BaseModel | Callable[[], BaseModel]) -> dict[str, object]:
         return (value() if callable(value) else value).model_dump()
 
     def decode_snapshot(snapshot: RawRamSnapshot) -> tuple[GameState, dict[str, object]]:
-        state = read_state(snapshot.reader(raw_rom), maps, active_ui=enabled, off=off)
+        state = decode(snapshot.reader(raw_rom))
         return state, state_json(state)
 
     def finish_snapshot(
@@ -96,7 +107,7 @@ def install_observation(
     def serialize() -> dict[str, object]:
         """The typed state; the caller holds the memory lock."""
         receipt = None if raw_capture is None else raw_capture()
-        decoded = read_state(read_memory, maps, active_ui=enabled, off=off)
+        decoded = decode(read_memory)
         serialized = state_json(decoded)
         if receipt is not None:
             serialized["raw_ram"] = raw_reference(receipt)
@@ -122,7 +133,7 @@ def install_observation(
         receipt = None if raw_capture is None else raw_capture()
         # blackout-readout-v1: the frame this state dates from, read under the same lock.
         seen = 0 if whiteout is None else whiteout.mark()
-        state = read_state(read_memory, maps, active_ui=enabled, off=off)
+        state = decode(read_memory)
         serialized = state_json(state)
         if receipt is not None:
             serialized["raw_ram"] = raw_reference(receipt)
@@ -201,7 +212,9 @@ def install_observation(
         with whiteout.delivering if whiteout is not None else nullcontext():
             event: Whiteout | None = None if whiteout is None else whiteout.take(state, seen)
             try:
-                text = render(state, off, warp_animation=animation, whiteout=event)
+                text = render(
+                    state, off, warp_animation=animation, whiteout=event, respawn_memory=memory
+                )
                 if event is not None:
                     serialized["blackout_receipt"] = {
                         "frame": event.frame,

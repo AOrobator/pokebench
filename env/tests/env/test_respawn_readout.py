@@ -1,4 +1,4 @@
-"""respawn-readout-v1: where a blackout sends the player, and the POKéMON CENTERs that would move it.
+"""respawn-readout-v1: where a blackout sends the player, and the centers that would move it.
 
 pret/pokeemerald 731ad5b. SaveBlock1.lastHealLocation (+0x1C, struct WarpData: s8 mapGroup, s8
 mapNum, s8 warpId, pad, s16 x, s16 y; include/global.h) is set by setrespawn, which every
@@ -52,8 +52,8 @@ MAPS = MapNames(
         MART: "RUSTBORO CITY MART",
     }
 )
-# A small map table: house 2F - 1F - LITTLEROOT - ROUTE101 - OLDALE (+ center) - ROUTE103 - RUSTBORO
-# (+ gym, center, mart). Warps listed one way only, connections one way only: map changes count both.
+# A small map table: house 2F - 1F - LITTLEROOT - ROUTE101 - OLDALE (+ center) - ROUTE103 -
+# RUSTBORO (+ gym, center, mart). Each link is listed one way only: map changes count both.
 LINKS = {
     HOUSE_2F: Links(((7, 1, HOUSE_1F),), ()),
     HOUSE_1F: Links(((8, 8, LITTLEROOT),), ()),
@@ -93,9 +93,9 @@ def test_heal_points_are_the_game_heal_locations_setrespawn_stores() -> None:
     assert HEAL_POINTS[("EVER GRANDE CITY", 27, 49)].center == "EVER GRANDE CITY POKEMON CENTER 1F"
     assert HEAL_POINTS[("BATTLE FRONTIER OUTSIDE EAST", 3, 52)].town == "BATTLE FRONTIER"
     assert ("LITTLEROOT TOWN", 5, 9) not in HEAL_POINTS  # fly only; no setrespawn names it
-    assert len([p for p in HEAL_POINTS.values() if p.kind != "home"]) == 18
+    assert len([p for p in HEAL_POINTS.values() if p.kind != "home"]) == 17
     assert CENTERS["RUSTBORO CITY POKEMON CENTER 1F"] == ("RUSTBORO CITY", 16, 39)
-    assert len(CENTERS) == 18
+    assert len(CENTERS) == 17
 
 
 def test_map_changes_count_fewest_changes_both_ways_like_hops_from() -> None:
@@ -170,9 +170,7 @@ def test_home_line_in_operators_words_with_the_game_money_rule() -> None:
     )
 
 
-@pytest.mark.parametrize(
-    ("money", "loss"), [(6445, 3223), (1, 1), (0, 0), (999999, 500000)]
-)
+@pytest.mark.parametrize(("money", "loss"), [(6445, 3223), (1, 1), (0, 0), (999999, 500000)])
 def test_the_loss_is_what_money_div_2_leaves(money: int, loss: int) -> None:
     assert f"(₽{loss} of ₽{money})" in respawn_line(HOME, money, None, {})
 
@@ -348,7 +346,9 @@ def test_readout_places_the_line_after_money_and_off_is_byte_for_byte() -> None:
     default = features_off_from_env({})
     on = default - {SWITCH}
     before = render(read_state(m.read, MAPS, active_ui=True, off=default), default)
-    unwired = render(read_state(m.read, MAPS, active_ui=True, off=default, links=LinkCache(LINKS)), default)
+    unwired = render(
+        read_state(m.read, MAPS, active_ui=True, off=default, links=LinkCache(LINKS)), default
+    )
     assert unwired == before
     state = read_state(m.read, MAPS, active_ui=True, off=on, links=LinkCache(LINKS))
     after = render(state, on)
@@ -385,3 +385,64 @@ def test_no_line_in_battle_or_off_the_field() -> None:
     state = read_state(m.read, MAPS, active_ui=True, off=on, links=LinkCache(LINKS))
     assert state.respawn is None
     assert "If your party faints" not in render(state, on)
+
+
+def test_no_line_in_battle() -> None:
+    from pokebench_env.game_state import IN_BATTLE
+
+    m = at(RUSTBORO, (15, 59), (1, 1, 4, 2))
+    m.put(IN_BATTLE, bytes([0x02]))
+    on = features_off_from_env({}) - {SWITCH}
+    assert read_state(m.read, MAPS, active_ui=True, off=on, links=LinkCache(LINKS)).respawn is None
+
+
+def test_the_observation_endpoint_learns_from_every_read_and_renders_with_its_memory(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import json
+
+    from fastapi import FastAPI
+
+    from pokebench_env import observation as observation_module
+    from pokebench_env.observation import install_observation
+    from tests.env.test_feature_switches import _Shot
+    from tests.env.test_game_state import NAMING
+    from tests.env.test_view import get
+
+    monkeypatch.setenv("POKEBENCH_FEATURES_OFF", "")
+    monkeypatch.setattr(observation_module, "LinkCache", lambda: LinkCache(LINKS))
+    m = at(RUSTBORO, (15, 59), (1, 1, 4, 2))
+    m.put(0x030022C0, struct.pack("<II", *NAMING))
+    app = FastAPI()
+    install_observation(app, lambda: _Shot(), m.read, MAPS)
+    assert get(app, "/pokebench/state")[0] == 200  # before the save existed: a complete history
+    m.put(0x030022C0, struct.pack("<II", *OVERWORLD))
+    status, _, body = get(app, "/pokebench/observation")
+    text = json.loads(body)["state_text"]
+    assert status == 200
+    assert "This town has a POKéMON CENTER you have not entered: RUSTBORO CITY" in text
+    assert "respawn" not in json.loads(body)["state"]
+
+
+def test_the_observation_endpoint_without_the_switch_reads_no_map_table(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import json
+
+    from fastapi import FastAPI
+
+    from pokebench_env import observation as observation_module
+    from pokebench_env.observation import install_observation
+    from tests.env.test_feature_switches import _Shot
+    from tests.env.test_view import get
+
+    def refuse() -> LinkCache:
+        raise AssertionError("map table read with the switch off")
+
+    monkeypatch.delenv("POKEBENCH_FEATURES_OFF", raising=False)
+    monkeypatch.setattr(observation_module, "LinkCache", refuse)
+    m = at(RUSTBORO, (15, 59), (1, 1, 4, 2))
+    app = FastAPI()
+    install_observation(app, lambda: _Shot(), m.read, MAPS)
+    status, _, body = get(app, "/pokebench/observation")
+    assert status == 200 and "If your party faints" not in json.loads(body)["state_text"]

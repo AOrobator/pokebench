@@ -1,6 +1,6 @@
 # Respawn readout (`respawn-readout-v1`)
 
-Status: M1 RED. Part of `heal-respawn-sight` (M2 there). The operator approved the plan at 3:41 PM ET on 2026-10-20.
+Status: M1 GREEN. Part of `heal-respawn-sight` (M2 there). The operator approved the plan at 3:41 PM ET on 2026-10-20.
 Shared design and evidence: the coordinator's `2026-10-20_heal-respawn-sight.md` (scratchpad). Worktree
 `~/dev/pokebench-worktrees/respawn-readout-v1`, branch `claude/respawn-readout-v1`, from main 6c88d424.
 
@@ -43,9 +43,9 @@ screen, out of battle:
 
 ## Milestones
 
-- [ ] M1 RED: `env/tests/env/test_respawn_readout.py` (hops, heal kinds, wording, money rule, placement, OFF bytes,
+- [x] M1 RED: `env/tests/env/test_respawn_readout.py` (hops, heal kinds, wording, money rule, placement, OFF bytes,
       memory) + registry/preset tests.
-- [ ] M1 GREEN: `env/pokebench_env/respawn.py`, GameState/read_game_state/readout/rerender/observation wiring,
+- [x] M1 GREEN: `env/pokebench_env/respawn.py`, GameState/read_game_state/readout/rerender/observation wiring,
       registry, presets, defaults.
 - [ ] Explainer `docs/explainers/respawn-readout-v1.html`, FEATURE_EXPLAINERS, pending `experiments/respawn-readout.json`.
 - [ ] b300 replay at state seqs 14716 (turn of seq 14724), 15196 (after seq 15195) and 15755 (turn of seq 15776).
@@ -59,6 +59,19 @@ screen, out of battle:
 - RED: `env/tests/env/test_respawn_readout.py` 27 failing against a stub `respawn.py` (heal points, map changes,
   reading, wording, money rule, memory, placement, OFF bytes, battle/off-field); `packages/agent/src/respawn-readout.test.ts`
   2 failing (registry, order).
+  COMMIT: `test(respawn-readout-v1): RED for the respawn readout line and its registry entry` (2bc8c3f1)
+- GREEN: `respawn.py` (HEAL_POINTS/CENTERS from heal_locations.json + setrespawn scripts, map_changes port of
+  hopsFrom, LinkCache, read_respawn, RespawnMemory, respawn_line); GameState.respawn; read_game_state
+  `respawn_links`; readout line after Money; rerender/observation wiring (LinkCache + RespawnMemory only when ON).
+  Registry, presets, DEFAULT_NEXT_RUN, LEGACY_ALL_ON (off). Server-list suffix indexes and features-off strings in
+  older tests advance by one; historical experiment vectors exclude the new switch; dc0e rerender fixture runs it off.
+- Tests: respawn 30/30; agent vitest 2899/2899; viewer 1423/1423; pytest 2935 passed + 1 pre-existing failure
+  (test_view: the fresh worktree venv had no mgba binding; `just build-mgba` run, rechecked under coverage).
+- Wiring mutations: observation render with `respawn_memory=None` -> 1 failed (endpoint memory test); rerender
+  `respawn_links=None` -> 3 failed. Both restored, 40/40 (respawn + rerender).
+- b300 replay (raw RAM, run's own server switches + this one, memory folded from the recorded states):
+  14716 RUSTBORO CITY: house, 8 changes, ₽3142 of ₽6284, + the unentered center at (16,38);
+  15196 GYM: house, 9 changes, ₽3222 of ₽6444; 15755 bedroom: house (on this map), ₽1643 of ₽3286.
 
 ## Surprises
 

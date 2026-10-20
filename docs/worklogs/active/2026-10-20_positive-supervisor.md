@@ -35,6 +35,8 @@ Probes decide bundle inclusion.
 
 ## Surprises
 - Probe r1 (runs/decision-probes/2026-10-20_positive-supervisor/, 16 a side): f28d 451/2301/2862 no change over breaker+gate; control 827 16/16 back out of the party menu with B vs 2/16; 3411 9/16 north vs ~6/16, 0 vs 2 wrong south warp; 3259 worse: 13/16 repeat the navigate_to (0,6) that failed 3 times and 13 copy thinking (vs 4 and 1). Revised: the newest attempt, when repeated with the same result, gets "Choose a call other than <attempt>: it gave the same result (...) N times in a row."
+- Probe r2 on f2e11d3a (coordinator relay 12:10 PM ET, off vs on): T3259 repeats navigate_to (0,6) 10/16 vs 7/16 (p=0.48), word-for-word copied thinking 6/16 vs 1/16 (p=0.08), judged still worse than off; T827 16/16 vs 3/16 hold; T3411 north 12/16 vs ~10/16, wrong south warp 0 vs 3. Misses the bar: stays out of the bundle for the 12-hour cook (the operator's rule). Resume after the cook.
+
 ## Multi-Model Review Log
 ## Boy Scout Log
 ## Archive Milestone (user-gated)

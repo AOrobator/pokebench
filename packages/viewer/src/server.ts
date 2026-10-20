@@ -298,6 +298,7 @@ function streamEvents(req: IncomingMessage, res: ServerResponse, path: string, p
   let pending: string[] = [], cursor = 0;
   const empty = (): boolean => cursor >= pending.length;
   const message = (type: string, data: unknown): string => `event: ${type}\ndata: ${JSON.stringify(data)}\n\n`;
+  const location = (line: number): number | string => offset === 0 ? line : `${String(line)} within tail starting at byte ${String(offset)}`;
   if (head !== undefined) pending.push(message("head", head.map(recovered)));
   // Parses the next bounded piece of the log into the queue; true when there was nothing new.
   const fill = (): boolean => {
@@ -307,10 +308,10 @@ function streamEvents(req: IncomingMessage, res: ServerResponse, path: string, p
         pending.push(message("ev", recovered(result.event)));
         endRead ||= result.event.type === "run_end";
       } else if (skew === null) {
-        pending.push(message("problem", { line: result.line, problem: result.problem }));
+        pending.push(message("problem", { line: location(result.line), problem: result.problem }));
       } else if (!skewReported) {
         skewReported = true;
-        pending.push(message("problem", { line: result.line, problem: `${skew.head}. First event it cannot read: line ${String(result.line)}: ${result.problem}` }));
+        pending.push(message("problem", { line: location(result.line), problem: `${skew.head}. First event it cannot read: line ${String(location(result.line))}: ${result.problem}` }));
       }
     }
     return lines === 0;

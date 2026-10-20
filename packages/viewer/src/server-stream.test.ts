@@ -355,3 +355,37 @@ it("falls back to the diagnostic stream when the compact head is malformed", asy
   expect(text).toContain("event: done");
   expect(events(text)).toHaveLength(4);
 });
+
+it("labels malformed appends relative to the head byte cursor after history catch-up", async () => {
+  const log = longRun(4); log.events.pop();
+  const viewer = await serve("tail-location", log, 128);
+  const path = join(roots.at(-1) ?? "", "runs", "tail-location", "events.jsonl");
+  const offset = fs.statSync(path).size;
+  const headAbort = new AbortController(), historyAbort = new AbortController();
+  const response = await fetch(new URL("api/runs/tail-location/events?head=1", viewer.url), { signal: headAbort.signal });
+  const reader = response.body?.getReader();
+  if (reader === undefined) throw new Error("no head stream");
+  const readUntil = async (source: ReadableStreamDefaultReader<Uint8Array>, marker: string): Promise<string> => {
+    const decoder = new TextDecoder(); let text = "";
+    while (!text.includes(marker)) {
+      const part = await source.read(); if (part.done) throw new Error(`stream ended before ${marker}`);
+      text += decoder.decode(part.value, { stream: true });
+    }
+    return text;
+  };
+  try {
+    await readUntil(reader, "event: caught_up");
+    const history = await fetch(new URL("api/runs/tail-location/events", viewer.url), { signal: historyAbort.signal });
+    const historyReader = history.body?.getReader();
+    if (historyReader === undefined) throw new Error("no history stream");
+    await readUntil(historyReader, "event: caught_up");
+    historyAbort.abort(); await historyReader.cancel().catch(() => undefined);
+    fs.appendFileSync(path, "{broken\n");
+    const text = await readUntil(reader, "event: problem");
+    const raw = /^event: problem\ndata: (.*)$/m.exec(text)?.[1];
+    if (raw === undefined) throw new Error(`missing problem in ${text}`);
+    const problem = JSON.parse(raw) as { line: unknown; problem: unknown };
+    expect(problem.line).toBe(`1 within tail starting at byte ${String(offset)}`);
+    expect(problem.problem).toContain("event line is not JSON");
+  } finally { headAbort.abort(); historyAbort.abort(); await reader.cancel().catch(() => undefined); }
+});

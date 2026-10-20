@@ -27,3 +27,15 @@ RED: built agent dependency first; targeted server-stream test fails (missing he
 ## Review/landing boundary
 
 Main remains 0924e149; this task owns no other landings or 8790 restarts. Freeze against that base, independently review the exact committed diff, then re-check main before fast-forward. Cloud Claude standalone auth probe is loggedIn=false; try the approved Cursor Claude harness on the frozen packet. No unavailable lane is approval. GPT/Codex lane uses a fresh read-only no-history reviewer. Boundary and every-PB principles table are in `.cache/head-evidence/`. No merge/restart claimed yet.
+
+## Review round 1 and bounded fix
+
+Frozen9178b929 / base0924e149 / diff SHA256 3d96ea37413068560cbd8653fcfec877736d14037c4ac84e155fc0899c4dfeee.
+GPT/Codex LGTM (reran1410 tests); fallback Sol LGTM. Astra BLOCKING P2; Grok BLOCKING on the same diagnostic-location defect. Offset-tail LogReader numbers start at1 but were displayed as absolute file lines. Accepted Fix: preserve numeric absolute lines on from-zero streams and explicitly name tail-relative line plus starting byte offset on head-tail streams. No prefix line-count scan or new subsystem. Real HTTP regression waits for head and history catch-up, appends malformed JSON, and asserts the truthful relative location; observed RED before repair and21 server-stream tests GREEN after repair in a disposable checkout at the exact frozen head, then applied the identical patch here.
+Grok's other observations (history failure UX, regex prefilter, reconnect load) are unproven adjacent hardening/speculation, not fixes in this batch. No production path/domain growth. The two rounds cap remains in force.
+
+Claude standalone loggedIn=false; Cursor discovered Opus5.5, Sonnet5 and Haiku5.5 all returned explicit usage-limit errors. Available cloud Grok retained. Two distinct fresh no-history fallback models (gpt-6-astra and gpt-6-sol) reviewed in addition to normal GPT/Codex; reduced vendor diversity is explicit and does not authorize self-merge without Claude.
+
+Final clean9178 browser rerun:540ms live switch with current turn, all controls, cached full splits and existing timeline while history visibly pending; no problems. 1.199GB completed recording opened final turn4023 and recorded frame110117_0.png with29 timeline marks before history finished; after hydration the replay clock was6h/6h, keyboard Home rewound to0 and End restored6h and the exact final frame. No console errors.
+
+Main advanced independently to37211ba7 during round1 (semantic-navigation-v2 landing). Before round2, sync that already-landed main and rerun full gates on the integrated tip. The diagnostic fix stays in the same server/test paths; final packet will review our cumulative viewer diff against the new main, plus the bounded fix delta against9178b929.

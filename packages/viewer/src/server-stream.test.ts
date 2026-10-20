@@ -296,3 +296,21 @@ it("still yields between steps when the socket asks the stream to wait for drain
   expect(text).toContain("event: done");
   expect(new Set(seen).size).toBeGreaterThan(10);
 });
+
+it("boots at the recorded head and tails appends without replaying the prefix", async () => {
+  const log = new Log();
+  log.add(0, START);
+  for (let turn = 1; turn <= 40; turn++) {
+    log.add(turn * 1000, { type: "turn_start", turn, context: { messages: 1, images: 0, est_tokens: 10 } });
+    log.add(turn * 1000 + 1, assistant({ turn, thinking: `Turn ${String(turn)}` }));
+  }
+  log.add(50000, END);
+  const viewer = await serve("head-first", log, 512);
+  const text = await (await fetch(new URL("api/runs/head-first/events?head=1", viewer.url))).text();
+  const heads = [...text.matchAll(/^event: head\ndata: (.*)$/gm)].map(m => JSON.parse(m[1] ?? "null") as unknown);
+  expect(heads).toHaveLength(1);
+  expect(JSON.stringify(heads)).toContain("Turn 40");
+  expect(JSON.stringify(heads)).not.toContain('Turn 1"');
+  expect(events(text)).toEqual([]);
+  expect(text).toContain("event: done");
+});

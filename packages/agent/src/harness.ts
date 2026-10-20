@@ -12,6 +12,7 @@ import { LoopDetector, type LoopKind, type LoopPolicy, type LoopMode } from "./l
 import type { RunRecorder } from "./recorder.js";
 import type { RunEndReason } from "./events.js";
 import type { FeatureSet } from "./features.js";
+import type { BudgetTrim, ContextBudget } from "./context-budget.js";
 
 export interface Chunked {
   readonly max: number;
@@ -273,6 +274,9 @@ export interface PiLoopOptions {
   readonly window?: Window;
   // Awaited before every model call (operator pause).
   readonly gate?: (signal?: AbortSignal) => Promise<void>;
+  // context-token-budget-v1: fits each request to the served context; each trim is reported after the turn starts.
+  readonly budget?: ContextBudget;
+  readonly onBudgetTrim?: (trim: BudgetTrim) => void;
 }
 
 function abortedReply(model: Model<Api>): AssistantMessage {
@@ -293,7 +297,12 @@ function streamFn(inner: StreamFn | undefined, requestContext?: (context: Contex
 }
 
 export function piLoop(options: PiLoopOptions): Loop {
-  const { systemPrompt, tools, governor, emit, signal } = options;
+  const { systemPrompt, tools, governor, signal } = options;
+  const budget = options.budget;
+  const emit = budget === undefined ? options.emit : (event: AgentEvent): Promise<void> | void => {
+    if (event.type === "message_end") budget.observe(event.message);
+    return options.emit(event);
+  };
   const model = streamFn(options.streamFn, options.requestContext);
   const config: AgentLoopConfig = {
     ...options.base,
@@ -301,9 +310,13 @@ export function piLoop(options: PiLoopOptions): Loop {
     transformContext: async (messages, loopSignal) => {
       await options.gate?.(loopSignal ?? signal);
       const warning = options.loopDetector?.context();
-      const context = slideWindow(messages, options.window ?? WINDOW);
+      const windowed = slideWindow(messages, options.window ?? WINDOW);
+      const fitted = options.budget?.fit(windowed) ?? { messages: windowed, trim: null };
+      const context = fitted.messages;
       if (warning) context.push({role:"user",content:warning,timestamp:Date.now()});
-      return options.transformContext(context);
+      const sent = await options.transformContext(context);
+      if (fitted.trim !== null) options.onBudgetTrim?.(fitted.trim);
+      return sent;
     },
     beforeToolCall: async (context, signal) => {
       if (options.loopDetector?.stopped) return {block:true,reason:"Loop guard stopped the run; no further tool execution."};

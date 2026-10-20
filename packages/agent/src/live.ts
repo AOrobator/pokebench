@@ -1,6 +1,6 @@
 import {StableJitContext} from "./jit-v2-context.js";
 import {JitContext} from "./jit-context.js";
-import {battleDecisionContext,contextTools,loopSupervisor,playGameTools,stallBriefing,stallStop,textOnlySupervisor} from "./play-wiring.js";
+import {battleDecisionContext,contextBudget,contextTools,loopSupervisor,playGameTools,stallBriefing,stallStop,textOnlySupervisor} from "./play-wiring.js";
 import { operatorSignalLatch } from "./operator-signals.js";
 import {CheckpointCapture,checkpointSelection} from "./checkpoint-capture.js";
 import {experimentFromEnv} from "./play-experiment.js";
@@ -335,6 +335,7 @@ async function playAgent(): Promise<void> {
         governor,
         transformContext: battleDecisionContext(features,new StateWatcher(gameServerUrl),tools,context.transformContext,recorder,controller.signal),
         window: context.window,
+        ...contextBudget(features, model, maxTokens, recorder),
         emit: recorder.emit,
         signal: controller.signal,
         gate: (signal) => runControl.gate(signal),

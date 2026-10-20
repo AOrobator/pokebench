@@ -89,3 +89,4 @@ Tests per milestone; probe receipts for M4; explainer pages checked with `just p
 
 ## Archive Milestone (user-gated)
 - 11:47 ET: breaker no-tool fold-in, RED d4476bb3.
+- Review r1 on 8e3bed94 (diff 56a42ff8…): Grok LGTM (non-blocking: not_free consumed the loop's one auto-talk attempt). Claude CLI OAuth expired. Fixed: a not-free field leaves the attempt for a later request (test added).

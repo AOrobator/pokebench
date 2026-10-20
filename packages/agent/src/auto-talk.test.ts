@@ -100,6 +100,8 @@ describe("fixed-point-breaker-v1 stage 3: auto-talk",()=>{
   await battle.send();
   expect(battle.talks.map(t=>t.outcome)).toEqual(["not_free"]);
   expect(battle.calls).toEqual([]);
+  await battle.send();
+  expect(battle.talks.map(t=>t.outcome)).toEqual(["not_free","not_free"]);
   const silent=rig([person(2,"RIVAL_MAY_NORMAL",10,3)]);
   silent.silent(AUTO_TALK_REPLIES-1);
   await silent.send();

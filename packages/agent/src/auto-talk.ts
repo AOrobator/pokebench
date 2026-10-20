@@ -49,8 +49,9 @@ export class AutoTalk {
    if(this.retained!==null&&this.retained.anchor!==anchor)this.retained=null;
    const due=this.due();
    if(due!==null){
-    this.acted=due.loop;
-    const message=await this.talk(due,signal);
+    const {message,settled}=await this.talk(due,signal);
+    // A field that was not free (a battle, a menu) leaves the loop's one attempt for a later request.
+    if(settled)this.acted=due.loop;
     if(message!==null)this.retained={message,anchor};
    }
    return this.retained===null?out:[...out,this.retained.message];
@@ -98,13 +99,13 @@ export class AutoTalk {
   return out.sort((a,b)=>a.rank-b.rank||a.distance-b.distance).slice(0,AUTO_TALK_CANDIDATES);
  }
 
- private async talk(due:{readonly trigger:Body["trigger"];readonly repeats:number},signal?:AbortSignal):Promise<AgentMessage|null> {
+ private async talk(due:{readonly trigger:Body["trigger"];readonly repeats:number},signal?:AbortSignal):Promise<{readonly message:AgentMessage|null;readonly settled:boolean}> {
   const record=(outcome:Body["outcome"],target:Target|null,walks:number,tried:number,text:string|null):void=>{this.recorder.recordAutoTalk({trigger:due.trigger,repeats:due.repeats,outcome,target,walks,tried,text});};
   const navigate=this.tools.find(t=>t.name==="navigate_to"),press=this.tools.find(t=>t.name==="press");
   let s=await this.state.read(signal);
-  if(navigate===undefined||press===undefined||!free(s)){record("not_free",null,0,0,null);return null;}
+  if(navigate===undefined||press===undefined||!free(s)){record("not_free",null,0,0,null);return {message:null,settled:navigate===undefined||press===undefined};}
   const candidates=this.candidates(s);
-  if(candidates.length===0){record("none",null,0,0,null);return null;}
+  if(candidates.length===0){record("none",null,0,0,null);return {message:null,settled:true};}
   let walks=0,tried=0;
   for(const {target} of candidates){
    tried++;
@@ -112,7 +113,7 @@ export class AutoTalk {
    const reached=await this.approach(target,navigate,s,signal,()=>{walks++;});
    s=reached.state;
    // A wild battle or a script took the field mid-walk: stop here, the game has something new to show.
-   if(!free(s)){record("not_free",target,walks,tried,null);return null;}
+   if(!free(s)){record("not_free",target,walks,tried,null);return {message:null,settled:true};}
    if(reached.facing===null)continue;
    const turn=s.facing?.toUpperCase()===reached.facing?[]:[reached.facing];
    if(turn.length>0)await press.execute(this.id("turn"),{buttons:turn},signal);
@@ -121,10 +122,10 @@ export class AutoTalk {
    record("talked",target,walks,tried,text);
    const images=result.content.filter((p):p is ImageContent=>p.type==="image");
    const content:(TextContent|ImageContent)[]=[...images,{type:"text",text}];
-   return {role:"user",content,timestamp:Date.now()};
+   return {message:{role:"user",content,timestamp:Date.now()},settled:true};
   }
   record("unreachable",candidates[0]?.target??null,walks,tried,null);
-  return null;
+  return {message:null,settled:true};
  }
 
  // Walks to a free tile next to the target, nearest first; the facing that then looks at it, or null when none is reached.

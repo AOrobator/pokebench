@@ -41,5 +41,5 @@ Coordinator relay after the loop breaker landed (5d07a65a, 83695092): add its sw
 - [x] `fixed-point-breaker-v1` and `story-character-stall-gate-v1` are bundle switches (base false) in `bundle-v-control` and `bundle-cook-1h`; `stall-briefing-v1` (its parent) is on in base; `heal-before-trainers-v1` stays a bundle switch; plan unchanged.
 - [x] Tests: fixed-runner pin covers both plus heal-before-trainers; open-goal-prompt exclusion list gains both.
 - [x] Gates: lint clean; agent 2826, viewer 1363, pytest 2896; `fixed-run check` clean for both.
-- [ ] Review: Claude and Grok LGTM
-- [ ] Land ff-only, `just viewer-main`
+- [x] Review: Grok and Claude (subagent) `VERDICT: LGTM` on packet b517eedd…f5e9 (runs/reviews/next-bundle-1h-m3/)
+- [x] Landed ff-only on main at 0b34087b; `just viewer-main` restarted the viewer

@@ -156,6 +156,8 @@
    "supervisor-briefing-v2": false,
    "reachable-story-guidance-v1": false,
    "text-only-supervisor-v2": false,
+   "semantic-navigation-v1": false,
+   "deterministic-exploration-v1": false,
    "safe-navigation-strides-v1": false,
    "evolution-decision-v1": false,
    "observed-instructions-v1": false
@@ -198,6 +200,8 @@
   "supervisor-briefing-v2",
   "reachable-story-guidance-v1",
   "text-only-supervisor-v2",
+  "semantic-navigation-v1",
+  "deterministic-exploration-v1",
   "safe-navigation-strides-v1",
   "evolution-decision-v1",
   "observed-instructions-v1"

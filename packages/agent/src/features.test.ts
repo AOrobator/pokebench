@@ -10,7 +10,8 @@ const LEGACY_DEFAULT = ["ram-state-v1", "live-map-v1", "field-control-lock", "na
 const off = (...ids: (typeof SWITCHABLE_FEATURES)[number][]): FeatureSet => {
   // Each switch is named once per list, so a list never hides a duplicate.
   if (new Set(ids).size !== ids.length) throw new Error(`off() names a switch twice: ${ids.join(",")}`);
-  return { ...ALL_ON,...Object.fromEntries(ids.map((id) => [id, false])) };
+  const disabled=new Set(ids);if(disabled.has("bounded-navigation-v1")){disabled.add("semantic-navigation-v1");disabled.add("deterministic-exploration-v1");}
+  return { ...ALL_ON,...Object.fromEntries([...disabled].map((id) => [id, false])) };
 };
 
 it("describes every switchable and measurement feature exactly once", () => {
@@ -18,7 +19,7 @@ it("describes every switchable and measurement feature exactly once", () => {
   expect(FEATURES.filter((f) => f.switchable).map((f) => f.id)).toEqual([...SWITCHABLE_FEATURES]);
 
   expect(FEATURES.filter((f) => f.group === "observation")).toHaveLength(49);
-  expect(FEATURES.filter((f) => f.group === "guidance")).toHaveLength(63);
+  expect(FEATURES.filter((f) => f.group === "guidance")).toHaveLength(65);
   expect(FEATURES.filter((f) => f.group === "guard")).toHaveLength(31);
   for (const f of FEATURES) {
     expect(f.title).not.toBe("");

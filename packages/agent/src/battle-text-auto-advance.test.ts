@@ -576,6 +576,17 @@ it("battle decision request context settles through the production factory befor
  expect(server.posts).toHaveLength(1);
 });
 
+it.each(["navigate_to_target","explore_map"])("retires a retained battle snapshot after %s delivers a newer game frame",async toolName=>{
+ const ready={...ON,"battle-decision-ready-v1":true} as FeatureSet;
+ const server=new ScriptServer([WAITING,BUSY,INPUT],[entry(1,1,"Wild WURMPLE appeared!")]);
+ const clock=fakeClock(),rec=memoryRecorder(),source=new StateWatcher(URL_BASE,server.fetch);
+ const tools=playGameTools([observeTool(URL_BASE,server.fetch),pressTool(URL_BASE,{beforePress:()=>undefined,afterPress:()=>Promise.resolve()},server.fetch,clock)],ready,source,rec.api);
+ const transform=battleDecisionContext(ready,source,tools,messages=>Promise.resolve(messages),{recordDecisionSnapshot:()=>undefined});
+ expect(JSON.stringify(await transform([]))).toContain("Harness battle update");
+ const semanticResult:AgentMessage={role:"toolResult",toolCallId:"semantic-new",toolName,isError:false,content:[{type:"image",data:png,mimeType:"image/png"},{type:"text",text:"newer semantic navigation frame"}],timestamp:3};
+ const messages=[semanticResult];expect(await transform(messages)).toBe(messages);
+});
+
 it("battle readiness never executes a queued action after a cap or battle end",async()=>{
  const ready={...ON,"battle-decision-ready-v1":true} as FeatureSet;
  for(const states of [[WAITING],[WAITING,FIELD]]){

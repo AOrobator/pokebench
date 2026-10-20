@@ -24,6 +24,7 @@ import {withBattleAction} from "./battle-action.js";
 import {withHarnessTrust,type TrustRecorder} from "./harness-trust.js";
 import {withCitedDestination,type CitationRecorder} from "./cited-destination.js";
 import {withUntakenExits} from "./untaken-exits.js";
+import {withSemanticNavigation} from "./semantic-navigation.js";
 import {withNoExitHere} from "./no-exit-here.js";
 import {withResultFacts} from "./result-facts.js";
 import type {RunRecorder} from "./recorder.js";
@@ -110,7 +111,8 @@ export function stallStop(features:FeatureSet,recorder:Pick<RunRecorder,"subscri
 export function playGameTools(base:readonly AgentTool[],features:FeatureSet,state:StateSource,recorder:AutoAdvanceRecorder&WarningRecorder&IdCardRecorder&TrustRecorder&Pick<CitationRecorder,"destinationCitation">,gate?:NavigationPorts["gate"],extra:readonly AgentTool[]=[]):AgentTool[]{
  const terrain=features["visited-terrain-navigation-v1"]&&!features["full-map-navigation-v1"]?new VisitedTerrain():null;
  const navigationState=terrain?.source(state)??state;
- const facts=[...withResultFacts(withLowHpTrainerWarning(withNavigateFirst([...withInstructionLedgerV2(withStoryDestinations(withPeopleIdCards(withUntakenExits(withPeopleLedger(withDialogueAutoAdvance(withBattleAction(withNoExitHere(withNavigation(base,features,navigationState,gate),features),features,state,gate),features,{state,recorder,...(gate===undefined?{}:{gate})}),features,recorder),features,recorder),features,recorder),features,recorder,state),features,recorder),...extra],features),features,recorder,state),features,recorder)];
+ const navigated=withSemanticNavigation(withNavigation(base,features,navigationState,gate),features,navigationState);
+ const facts=[...withResultFacts(withLowHpTrainerWarning(withNavigateFirst([...withInstructionLedgerV2(withStoryDestinations(withPeopleIdCards(withUntakenExits(withPeopleLedger(withDialogueAutoAdvance(withBattleAction(withNoExitHere(navigated,features),features,state,gate),features,{state,recorder,...(gate===undefined?{}:{gate})}),features,recorder),features,recorder),features,recorder),features,recorder,state),features,recorder),...extra],features),features,recorder,state),features,recorder)];
  const visible=terrain===null?facts:withVisitedTerrain(facts,terrain);
  const cited=withCitedDestination(visible,features["cited-destination-v1"],recorder,{fullMap:features["full-map-navigation-v1"],exitReach:features["exit-reachability-v1"],silenceMiss:features["input-cuts-v1"]});
  return withStarterDecision(withHarnessTrust(cited,features["harness-trust-v1"],recorder,state,{supervisor:true,battleAction:features["harness-trust-v2"],goalOnce:features["input-cuts-v1"],retireLab:features["stale-story-goal-v1"],stageBound:features["stale-story-goal-v2"],omitEmptyGoal:features["stale-story-goal-v2"],scriptedGuidance:features["scripted-place-guidance-v1"],reachableGoal:features["reachable-story-guidance-v1"]}),features);
@@ -123,7 +125,7 @@ export function battleDecisionContext(features:FeatureSet,state:StateSource,tool
  if(observe===undefined)throw new Error("Battle decision readiness requires observe");
  let sequence=0;
  let retained:AgentMessage|null=null,observedAt:string|null=null;
- const gameTools=new Set(["observe","press","navigate_to","battle_action","act",...(features["evolution-decision-v1"]?["choose_evolution"]:[])]);
+ const gameTools=new Set(["observe","press","navigate_to","navigate_to_target","explore_map","battle_action","act",...(features["evolution-decision-v1"]?["choose_evolution"]:[])]);
  return async messages=>{
   const latest=messages.findLast(message=>message.role==="toolResult"&&gameTools.has(message.toolName)&&!message.isError&&message.content.some(part=>part.type==="image"));
   const anchor=latest?.role==="toolResult"?JSON.stringify([latest.toolName,latest.toolCallId,latest.timestamp]):null;

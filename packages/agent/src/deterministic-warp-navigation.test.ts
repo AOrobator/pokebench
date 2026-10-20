@@ -48,6 +48,11 @@ const run=async(initial:GameStateSnapshot,on=true,goal={x:3,y:2,map_id:MAP},maxC
 };
 
 describe("deterministic-warp-navigation-v1",()=>{
+ it("does not add the checked semantic activation receipt to ordinary navigate_to",async()=>{
+  const {outcome}=await run(room());
+  expect(outcome.details).toMatchObject({navigation:{selected_target:{x:1,y:2}}});
+  expect((outcome.details as {navigation:Record<string,unknown>}).navigation).not.toHaveProperty("activation_attempted");
+ });
  it("selects the cheapest exact equivalent lab exit and activates its SOUTH_ARROW_WARP",async()=>{
   const {buttons,outcome}=await run(room());
   expect(buttons).toEqual([["DOWN"],["DOWN"]]);

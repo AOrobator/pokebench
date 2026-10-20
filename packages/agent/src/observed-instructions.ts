@@ -44,7 +44,7 @@ export class ObservedInstructions {
  private progress(event:Result):void {
   // Only copy model-delivered lines. Do not expose additional RAM fields or infer
   // progress from model narration, a dialogue buffer, a tool name or a plan.
-  if(!["observe","press","navigate_to","battle_action"].includes(event.name))return;
+  if(!["observe","press","navigate_to","navigate_to_target","explore_map","battle_action"].includes(event.name))return;
   const location=/^Location: (.*)$/m.exec(event.text)?.[1]??null;
   if(location===null)return;
   this.current={result_event:event.seq,state_event:event.state_seq??null,location,story:/^Story: (.*)$/m.exec(event.text)?.[1]??null};

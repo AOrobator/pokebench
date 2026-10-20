@@ -8188,6 +8188,11 @@
                       }
                     ]
                   },
+                  "native_slot": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 15
+                  },
                   "destination": {
                     "anyOf": [
                       {
@@ -8219,6 +8224,66 @@
               "type": "null"
             }
           ]
+        },
+        "interaction_object_slots": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "slot",
+              "x",
+              "y",
+              "elevation",
+              "local_id",
+              "map_id",
+              "is_player"
+            ],
+            "properties": {
+              "slot": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 15
+              },
+              "x": {
+                "type": "integer"
+              },
+              "y": {
+                "type": "integer"
+              },
+              "elevation": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 15
+              },
+              "local_id": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 255
+              },
+              "map_id": {
+                "type": "array",
+                "additionalItems": false,
+                "items": [
+                  {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 255
+                  },
+                  {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 255
+                  }
+                ],
+                "minItems": 2
+              },
+              "is_player": {
+                "type": "boolean"
+              }
+            },
+            "additionalProperties": false
+          },
+          "maxItems": 16
         },
         "navigation_grid": {
           "anyOf": [

@@ -605,6 +605,14 @@ it("serves the deterministic warp navigation explainer byte for byte",async()=>{
  expect(reply.status).toBe(200);expect(reply.body.equals(tracked)).toBe(true);expect(reply.body.toString()).toContain("Deterministic warp navigation");
 });
 
+it("serves both semantic navigation explainers byte for byte",async()=>{
+ const root=mkdtempSync(join(tmpdir(),"pokebench-explainers-")),staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});
+ const files=["semantic-navigation-v1.html","deterministic-exploration-v1.html"];
+ for(const file of files)writeFileSync(join(docs,file),readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${file}`,import.meta.url))));
+ const viewer=await startViewer({runsRoot:join(root,"runs"),staticDir,appDir:join(root,"app"),port:0});open.push(viewer);
+ for(const file of files){const tracked=readFileSync(join(docs,file)),reply=await get(viewer,`/explainers/${file}`);expect(reply.status).toBe(200);expect(reply.body.equals(tracked)).toBe(true);}
+});
+
 it("serves the safe navigation strides explainer byte for byte",async()=>{
  const tracked=readFileSync(fileURLToPath(new URL("../../../docs/explainers/safe-navigation-strides-v1.html",import.meta.url)));
  const root=mkdtempSync(join(tmpdir(),"pokebench-explainers-")),staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});writeFileSync(join(docs,"safe-navigation-strides-v1.html"),tracked);

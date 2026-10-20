@@ -138,6 +138,13 @@ Pending, unqueued and unapproved. Separate proposed MAIN_MENU early-game screen,
 
 | `cache-aligned-window-v1` / `jit-guide-reuse-v1` concurrent diagnostic | Initial request / NEW_GAME_CREATED; MAIN_MENU start | READY (checkpoint, diagnostic only) | 2026-10-18: reviewed implementation `fd43960d` loaded MAIN_MENU SHA1 `b3a6cc1c19836600a15febf41b8f8b19661ce5d4` on isolated port18079; opened frame shows NEW GAME selected (coarse state TITLE_SEQUENCE). Current production window/catalog/provider rebuilt949 recorded requests; representative largest actual templates accepted52332control onGPU0 /51690JIT onGPU1 plus4096output below65536. Both live servers bind the same host GGUF/mmproj paths and match build/context/vision/slots. Operator authorizes exactly1/arm1200000ms concurrent,40GPUminutes plus setup. Pending queue entries remainblocked/unqueued; only fixed `jit-v2-cache-20m` is authorized. Final cleanmain pin/viewer/lease/exclusive-lane and run_start/dropdown/audit proofs still required. Not boot readiness, powered benefit or isolated shared-window evidence. |
 
+## 2026-10-19 — semantic navigation and deterministic exploration
+
+| Experiment | Activation / primary | Verdict | Evidence and next gate |
+|---|---|---|---|
+| `semantic-navigation` | `PLAYER_NAME_CONFIRMED` / `RUSTBORO_CITY`; planned checkpoint start `PETALBURG_CITY` | READY (checkpoint) for design, pending and unqueued | The verified Petalburg checkpoint SHA-1 `f1cf4b8217b7a67f9d48094d21e9fa2c50eebc82` is after activation and before the primary frontier. Design and power the external cohort, re-pin the reviewed merge, and rehearse interruption receipts before operator approval. |
+| `deterministic-exploration` | `PLAYER_NAME_CONFIRMED` / `RUSTBORO_CITY`; planned checkpoint start `PETALBURG_CITY` | READY (checkpoint) for design, pending and unqueued | Uses the same qualified checkpoint and keeps semantic navigation ON in both arms. Before approval, prove one-target-only execution and return-on-battle/dialogue/menu/script/map-transition in the frozen build, then complete experiment design. |
+
 ## 2026-10-19 — visited terrain navigation
 
 | Experiment | Activation / primary | Verdict | Evidence and next gate |

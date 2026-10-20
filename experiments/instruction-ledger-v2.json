@@ -36,6 +36,8 @@
       "named-interactions-v1": true,
       "world-destinations-v1": true,
       "bounded-navigation-v1": true,
+      "semantic-navigation-v1": false,
+      "deterministic-exploration-v1": false,
       "grass-cost-navigation-v1": true,
       "field-dialogue-phase-v1": true,
       "dialogue-safe-batches-v1": false,

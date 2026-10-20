@@ -157,6 +157,7 @@ def test_off_is_todays_readout_byte_for_byte() -> None:
                     "surf-gated-exits-v2",
                     "battle-effective-damage-v1",
                     "semantic-navigation-v1",
+                    "semantic-navigation-v2",
                 }
             )
             state = read_state(memory.read, MAPS, active_ui=True, off=off)

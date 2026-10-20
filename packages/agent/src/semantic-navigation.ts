@@ -1,7 +1,7 @@
 import type {AgentTool,AgentToolResult} from "@mariozechner/pi-agent-core";
 import {Type} from "typebox";
 import type {Button} from "./events.js";
-import type {FeatureSet} from "./features.js";
+import {semanticNavigation,type FeatureSet} from "./features.js";
 import {isCheckedPress,type CheckedPressTool} from "./game-tools.js";
 import {parseGameState,type GameStateSnapshot,type StateSource} from "./game-state.js";
 import {directionalWarpActivation,elevationsMatch,isCheckedNavigation,planNavigation,plannedArrivalElevation,type CheckedNavigationTool,type NavigationMode,type NavigationOptions} from "./navigation.js";
@@ -341,7 +341,7 @@ function explorationTool(semantic:AgentTool<typeof SemanticArgs>,features:Featur
 }
 
 export function withSemanticNavigation(tools:readonly AgentTool[],features:FeatureSet,state:StateSource):AgentTool[] {
- if(!features["semantic-navigation-v1"])return [...tools];
+ if(!semanticNavigation(features))return [...tools];
  const navigate=tools.find(tool=>tool.name==="navigate_to"),press=tools.find(tool=>tool.name==="press");
  // State-only probes and historical replay builders intentionally construct partial tool sets.
  // Production feature validation requires bounded navigation, and live play always supplies both.

@@ -20,6 +20,7 @@ from dataclasses import dataclass
 from typing import Protocol
 
 from pokebench_env.game_screen import ReadMemory
+from pokebench_env.semantic_targets import object_argument
 from pokebench_env.world_context import SAVE_VARIABLES, LiveObject
 
 TEMPLATES = 0xC70
@@ -53,6 +54,12 @@ class MapObjectTile(Protocol):
 
     @property
     def loaded(self) -> bool: ...
+
+
+def _targeted(entry: str, local_id: int, targets: frozenset[int]) -> str:
+    if local_id not in targets:
+        return entry
+    return f"{entry} (navigate_to_target target {object_argument(local_id)})"
 
 
 def _placed(entry: str, tiles: Mapping[str, MapObjectTile | None]) -> str:
@@ -135,13 +142,26 @@ class StoryCharacters:
     absent: tuple[str, ...]
     # Characters on this map but out of view, with their template's local id.
     out_of_view: tuple[tuple[str, int], ...] = ()
+    # Every character here with its template's local id.
+    ids: tuple[tuple[str, int], ...] = ()
 
-    def text(self, placed: "Mapping[int, MapObjectTile] | None" = None) -> str:
+    def text(
+        self,
+        placed: "Mapping[int, MapObjectTile] | None" = None,
+        targets: frozenset[int] | None = None,
+    ) -> str:
         # offscreen-objects-v1: an out-of-view character gets its tile; None keeps today's line.
         shown = self.here
         if placed is not None:
             tiles = {name: placed.get(local_id) for name, local_id in self.out_of_view}
             shown = tuple(_placed(entry, tiles) for entry in self.here)
+        # semantic-navigation-v2: a character the readout lists as an object gets the tool's
+        # argument; None keeps today's line.
+        if targets is not None and len(self.ids) == len(shown):
+            shown = tuple(
+                _targeted(entry, local_id, targets)
+                for entry, (_, local_id) in zip(shown, self.ids, strict=True)
+            )
         here = ", ".join(shown) if shown else "none"
         absent = ", ".join(self.absent) if self.absent else "none"
         return (
@@ -185,6 +205,7 @@ def read_story_characters(
             for name, _, _ in CHARACTERS
             if name in present and present[name][0].endswith(OUT_OF_VIEW)
         ),
+        ids=tuple((name, present[name][1]) for name, _, _ in CHARACTERS if name in present),
     )
 
 

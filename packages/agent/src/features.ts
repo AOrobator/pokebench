@@ -153,6 +153,7 @@ export const SWITCHABLE_FEATURES = [
   "briefing-repeat-count-v1",
   "navigate-already-here-v1",
   "original-speed-pacing-v1",
+  "semantic-navigation-v2",
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
 
@@ -220,7 +221,7 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("bounded-navigation-v1", "guidance", "BOUNDED NAVIGATION", "live-map-v1",
     "Adds navigate_to for up to eight ordinary walking attempts using the live local map, plus the current map ID needed by the tool. The model chooses destinations. Stops on blocked movement, locks or map changes; unsupported terrain is avoided. Off: no navigate_to tool."),
   on("semantic-navigation-v1", "guidance", "SEMANTIC NAVIGATION", "bounded-navigation-v1", "Default off. Adds navigate_to_target and exact native object-slot receipts. The model selects a person by current map-object id, another listed interaction by its kind and tile, a listed warp by its tile, or a walking map connection by direction. The harness chooses a reachable approach, proves the selected target is the native interaction recipient, runs there, faces the target and submits at most one activation. It returns control immediately when battle, dialogue, a menu, a script or forced movement, a map transition, unavailable input, a moved or missing target, or an incomplete route interrupts the request. Off: native slot receipts and navigate_to_target are absent; the existing coordinate navigate_to tool and its execution are unchanged."),
-  on("deterministic-exploration-v1", "guidance", "DETERMINISTIC EXPLORATION", "semantic-navigation-v1", "Default off. Adds explore_map. Each call chooses exactly one supported reachable target in stable order: an interaction not previously attempted by this explorer, then a warp, then a walking map connection. It delegates that one target to semantic navigation and returns on the first activation or interruption; it never chooses a battle or dialogue response and never interacts with a second target in the same call. When no untried listed target has a supported route it says so. Needs semantic-navigation-v1. Off: the exploration tool and its per-run attempted-target memory are absent."),
+  on("deterministic-exploration-v1", "guidance", "DETERMINISTIC EXPLORATION", null, "Default off. Adds explore_map. Each call chooses exactly one supported reachable target in stable order: an interaction not previously attempted by this explorer, then a warp, then a walking map connection. It delegates that one target to semantic navigation and returns on the first activation or interruption; it never chooses a battle or dialogue response and never interacts with a second target in the same call. When no untried listed target has a supported route it says so. Needs semantic-navigation-v1 or semantic-navigation-v2. Off: the exploration tool and its per-run attempted-target memory are absent."),
   on("grass-cost-navigation-v1", "guidance", "GRASS-AVOIDING NAVIGATION", "bounded-navigation-v1",
     "navigate_to counts each step into tall or long grass as 1.5 steps, so it takes a slightly longer route around grass when one exists, to avoid wild encounters. Adapted from PokeAgent's grass penalty, which leaves long grass at 1. Off: every walkable step costs the same."),
   on("field-dialogue-phase-v1", "observation", "DIALOGUE PHASE", RAM,
@@ -414,6 +415,7 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("briefing-repeat-count-v1", "guidance", "BRIEFING REPEAT COUNT", null, "Default off. Acts only with supervisor-briefing-v2 on. The focused supervisor briefing's recent attempts carry the same repeat count the full briefing shows, so an attempt made many times with the same result reads \"navigate_to 10,5 ×4 → no change\"; repeated presses inside an open interface carry their count too. Off: the focused briefing lists each recent attempt once, with no count."),
   on("navigate-already-here-v1", "guidance", "NAVIGATE ALREADY HERE", null, "Default off. Acts only with bounded-navigation-v1 on. navigate_to to the tile the player already stands on, before any press, says \"you are already standing on (10,5), the coordinate you asked for, so no movement was needed\". A walk that moved and ended on the coordinate still says it arrived, and a deterministic warp choice is unchanged. Off: \"arrived at requested coordinate\" with 0 presses."),
   on("original-speed-pacing-v1", "guidance", "ORIGINAL POKEAGENT SPEED", null, "Targets 80 emulated frames per second using absolute deadlines, as explicitly selected by the operator. Preserves the vendor's conditional 4× cadence (320 if its dialog selector becomes active); the normal --no-ocr launcher still disables that selector. Changes game progression speed, not the separate viewer publication cap. This is a selected clock policy, not an experimental benefit claim. Off: the existing 59.7275 FPS deadline policy and conditional 4× ratio remain unchanged."),
+  on("semantic-navigation-v2", "guidance", "SEMANTIC NAVIGATION V2", "bounded-navigation-v1", "Default off; bundle arm only. Semantic navigation with the prompting that makes it the way to reach listed things. Adds navigate_to_target and its native object-slot receipts on its own, without semantic-navigation-v1. The system prompt's tool list, Moving around, Talk to people and untaken-exit lines, and the navigate_to and navigate_to_target tool descriptions say to use navigate_to_target for a listed person, object, warp or map connection and navigate_to only for a plain tile. Each listed interaction candidate, map connection and story character in the readout states its navigate_to_target argument. navigate_to_target and explore_map results get the same handling as navigate_to results: dialogue auto-advance, the Story goal and trust lines, the conversation ledger, ID cards, untaken exits, story destinations, result facts and the loop supervisor. Names no place, person or story step the game has not listed. Off: none of this; semantic-navigation-v1, if on, behaves as before."),
 ];
 
 export const ALL_ON: FeatureSet = Object.fromEntries(SWITCHABLE_FEATURES.map((id) => [id, true])) as Record<SwitchableFeature, boolean>;
@@ -424,13 +426,19 @@ export function featureInfo(id: FeatureId): FeatureInfo {
   return info;
 }
 
+// semantic-navigation-v1 or -v2: either one provides navigate_to_target.
+export function semanticNavigation(features: FeatureSet): boolean {
+  return features["semantic-navigation-v1"] || features["semantic-navigation-v2"];
+}
+
 export function dependencyProblems(features: FeatureSet): string[] {
   return [...SWITCHABLE_FEATURES.flatMap((id) => {
     const needs = featureInfo(id).needs;
     return features[id] && needs !== null && !features[needs] ? [`${id} needs ${needs}`] : [];
   }),
   // Waiting for a page to finish printing reads the dialogue phase as well as the buffer.
-  ...(features["dialogue-auto-advance-v1"] && !features["field-dialogue-phase-v1"] ? ["dialogue-auto-advance-v1 needs field-dialogue-phase-v1"] : [])];
+  ...(features["dialogue-auto-advance-v1"] && !features["field-dialogue-phase-v1"] ? ["dialogue-auto-advance-v1 needs field-dialogue-phase-v1"] : []),
+  ...(features["deterministic-exploration-v1"] && !semanticNavigation(features) ? ["deterministic-exploration-v1 needs semantic-navigation-v1 or semantic-navigation-v2"] : [])];
 }
 
 // Observation switches the game server applies to its readout.
@@ -455,6 +463,7 @@ export const SERVER_FEATURES: readonly SwitchableFeature[] = [
   "safe-navigation-strides-v1",
   "evolution-decision-v1",
   "original-speed-pacing-v1",
+  "semantic-navigation-v2",
 ];
 
 export function serverFeatureEnv(features: FeatureSet): { POKEBENCH_ACTIVE_UI: "0" | "1"; POKEBENCH_FEATURES_OFF: string } {
@@ -589,6 +598,7 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("briefing-repeat-count-v1"),
     ...when("navigate-already-here-v1"),
     ...when("original-speed-pacing-v1"),
+    ...when("semantic-navigation-v2"),
   ];
 }
 

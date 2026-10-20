@@ -27,6 +27,7 @@ from pokebench_env.live_map import (
     _layout,
 )
 from pokebench_env.menu_prelude import MAP_GROUP_SIZES
+from pokebench_env.semantic_targets import connection_argument
 
 DIRECTIONS = {1: "SOUTH", 2: "NORTH", 3: "WEST", 4: "EAST", 5: "DIVE", 6: "EMERGE"}
 MAX_CONNECTIONS = 16
@@ -84,7 +85,7 @@ class Connection:
             body["edges"] = [{"x": x, "y": y} for x, y in self.edges]
         return body
 
-    def line(self, note: str | None = None) -> str:
+    def line(self, note: str | None = None, *, target: bool = False) -> str:
         head = (
             f"- {self.direction} -> {self.destination_name} "
             f"(map {self.destination[0]}/{self.destination[1]}), offset {self.offset}; "
@@ -101,10 +102,13 @@ class Connection:
                 "no tile on this edge can be walked across"
                 " (solid, water, a wall or outside the connected map)"
             )
+        # semantic-navigation-v2: the tool's argument for a connection it can walk off.
+        argument = connection_argument(self.direction) if target else None
         return (
             head
             + f"walk off the map from {edge_phrase(self.edges)}: stand on one of these edge tiles"
             + f" and press {STEPS[self.direction][4]}"
+            + ("" if argument is None else f"; navigate_to_target target {argument}")
         )
 
 
@@ -143,14 +147,15 @@ class Topology:
             "connections": tuple(c.json() for c in self.connections),
         }
 
-    def text(self, notes: Mapping[int, str] | None = None) -> str:
+    def text(self, notes: Mapping[int, str] | None = None, *, targets: bool = False) -> str:
         """notes: a note per connection, by its index in self.connections."""
         lines = [f"Current map bounds: X=0..{self.width - 1}, Y=0..{self.height - 1}"]
         lines.append(
             "Map connections (game-defined; terrain and story conditions may block passage):"
         )
         lines.extend(
-            c.line(None if notes is None else notes.get(i)) for i, c in enumerate(self.connections)
+            c.line(None if notes is None else notes.get(i), target=targets)
+            for i, c in enumerate(self.connections)
         )
         if not self.connections:
             lines.append("- none defined; inspect doors/warps instead")

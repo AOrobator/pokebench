@@ -458,6 +458,7 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "story-destinations-v1":"story-destinations-v1.html",
  "exit-reachability-v1":"exit-reachability-v1.html",
  "heal-before-trainers-v1":"heal-before-trainers-v1.html",
+ "heal-before-trainers-v2":"heal-before-trainers-v2.html",
  "harness-trust-v1":"harness-trust-v1.html",
  "cited-destination-v1":"cited-destination-v1.html",
  "harness-trust-v2":"harness-trust-v1.html",

@@ -133,6 +133,7 @@ def test_read_state_and_render_pass_every_server_switch_through(monkeypatch):
         "surf_gate_enabled": False,
         "exit_reach_enabled": False,
         "heal_trainers_enabled": False,
+        "heal_trainers_v2_enabled": False,
         "tutorial_owner_enabled": False,
         "mid_frame_enabled": False,
         "unset_warp_enabled": False,

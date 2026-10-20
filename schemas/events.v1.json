@@ -4090,6 +4090,13 @@
                     "type": "null"
                   }
                 ]
+              },
+              "loaded": {
+                "type": "boolean"
+              },
+              "story": {
+                "type": "string",
+                "minLength": 1
               }
             },
             "additionalProperties": false
@@ -4182,8 +4189,35 @@
               }
             ]
           },
-          "minItems": 1,
           "maxItems": 8
+        },
+        "hurt": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "species",
+              "hp",
+              "max_hp"
+            ],
+            "properties": {
+              "species": {
+                "type": "string",
+                "minLength": 1
+              },
+              "hp": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "max_hp": {
+                "type": "integer",
+                "minimum": 1
+              }
+            },
+            "additionalProperties": false
+          },
+          "minItems": 1,
+          "maxItems": 6
         },
         "heal": {
           "anyOf": [
@@ -4222,6 +4256,41 @@
                 "hops": {
                   "type": "integer",
                   "minimum": 0
+                },
+                "shown": {
+                  "type": "object",
+                  "required": [
+                    "map_id",
+                    "map",
+                    "x",
+                    "y"
+                  ],
+                  "properties": {
+                    "map_id": {
+                      "type": "array",
+                      "additionalItems": false,
+                      "items": [
+                        {
+                          "type": "integer"
+                        },
+                        {
+                          "type": "integer"
+                        }
+                      ],
+                      "minItems": 2
+                    },
+                    "map": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "x": {
+                      "type": "integer"
+                    },
+                    "y": {
+                      "type": "integer"
+                    }
+                  },
+                  "additionalProperties": false
                 }
               },
               "additionalProperties": false
@@ -9777,6 +9846,9 @@
                     "maximum": 854
                   },
                   "defeated": {
+                    "type": "boolean"
+                  },
+                  "loaded": {
                     "type": "boolean"
                   }
                 },

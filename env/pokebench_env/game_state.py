@@ -236,6 +236,7 @@ def read_game_state(
     surf_gate_enabled: bool = False,
     exit_reach_enabled: bool = False,
     heal_trainers_enabled: bool = False,
+    heal_trainers_v2_enabled: bool = False,
     tutorial_owner_enabled: bool = False,
     mid_frame_enabled: bool = False,
     unset_warp_enabled: bool = False,
@@ -492,7 +493,9 @@ def read_game_state(
         menu_window_drawn=window_drawn,
         surf_gate=surf_gate,
         exit_reach=exit_reach,
-        heal_trainers=read_heal_facts(read, save1, save2, map_id, party)
+        heal_trainers=read_heal_facts(
+            read, save1, save2, map_id, party, whole_map=heal_trainers_v2_enabled
+        )
         if heal_trainers_enabled and screen.kind == "overworld" and not in_battle
         else None,
     )

@@ -56,7 +56,7 @@ describe("registry",()=>{
   expect(featureInfo(ID)).toMatchObject({group:"guard",needs:"low-hp-trainer-warning-v1",switchable:true,title:"HEAL BEFORE TRAINERS"});
   expect(featureInfo(ID).description).toContain(" Off: ");
   expect(featureInfo(ID).description).toContain(AFTER_TEXT);
-  expect(SWITCHABLE_FEATURES.at(-51)).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-52)).toBe(ID);
   expect(playHarnessFeatures(ALL_ON,null).at(-37)).toBe(ID);
   expect(playHarnessFeatures({...ALL_ON,"battle-decision-ready-v1":false,[ID]:false},null)).not.toContain(ID);
   expect(SERVER_FEATURES).toContain(ID);
@@ -278,7 +278,8 @@ describe("recorded event",()=>{
   const f=must(healBeforeTrainers(AFTER,{entered:new Set(),places:PLACES,skip:null}));
   const event={v:1,run:"r",seq:9,t:"2026-10-17T14:20:00.000-04:00",type:"heal_before_trainers_warning",turn:582,tool:"press",...f,map_id:[0,19],trainers:f.trainers.map(t=>({...t})),weak:f.weak.map(w=>({...w})),heal:f.heal===null?null:{...f.heal,map_id:[2,2]},text:healBeforeTrainersText(f)} as RunEvent;
   expect(eventProblem(event)).toBeNull();
-  expect(eventProblem({...event,weak:[]})).not.toBeNull();
+  // heal-before-trainers-v2 records weak: [] when it names only a story opponent below full HP; trainers stay required.
+  expect(eventProblem({...event,trainers:[]})).not.toBeNull();
   expect(formatEvent(event)).toBe("14:20:00 t582 SUPERVISOR heal before trainers · LASS (31,24) · TORCHIC 14/38 below half · POKéMON CENTER in OLDALE TOWN");
  });
 });

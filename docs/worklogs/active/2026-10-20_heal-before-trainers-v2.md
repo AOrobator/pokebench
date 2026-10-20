@@ -30,7 +30,8 @@ Run `2026-10-20T13-54-28_qwen36-gpu0_b300` (bundle arm of whole-map-pair-1h; low
 
 ## Milestones
 
-- [ ] M1 heal-before-trainers-v2: RED, GREEN, gates, explainer, pending experiment, Claude + Grok review
+- [x] M1 RED (742c6071), GREEN, gates, explainer, pending experiment
+- [ ] M1 Claude + Grok review
 - [ ] M2 gym-heal-warning-v1: RED, GREEN, gates, explainer, pending experiment, Claude + Grok review
 - [ ] Sync with main, final gates, report b300 texts
 
@@ -40,7 +41,15 @@ Run `2026-10-20T13-54-28_qwen36-gpu0_b300` (bundle arm of whole-map-pair-1h; low
 - Worktree setup: `git submodule update --init` (vendor at pin, `just verify-vendor` OK), gitignored `.env` copied from main, `just build-mgba` (source copied from main's `.cache/mgba/src`).
 - M1 RED: pytest v2 cases plus b300 real RAM (fixture `env/tests/env/fixtures/heal-trainers-b300.json`, RAM windows only, states 14716/14880/15196); vitest `heal-before-trainers-v2.test.ts` (b300 replay over results 14698-15600, fixture `test-support/heal-before-trainers-b300.json.gz`) and `heal-before-trainers-v2-wire.test.ts` (playGameTools). Against HEAD's implementation: pytest collection error (no SWITCH_V2), vitest 2 files fail (state schema refuses `loaded`, missing exports).
 
+  COMMIT: `test: heal-before-trainers-v2 RED on b300 RAM and recorded results` (742c6071)
+- M1 GREEN: server `read_map_trainers(whole_map=True)` behind SERVER switch `heal-before-trainers-v2` (default off, `loaded` in JSON only with v2); agent `HealBeforeTrainers` v2 (shown centers from delivered results, story threshold, partial re-arm), `healBeforeTrainersV2Text`; event gains optional `loaded`/`story`/`hurt`/`shown`, `weak` may be empty (v1's `weak: []` rejection test now rejects `trainers: []`); auto-talk keeps loaded trainers only; registry/presets/defaults/legacy; explainer `docs/explainers/heal-before-trainers-v2.html` mapped in FEATURE_EXPLAINERS; pending `experiments/heal-before-trainers-v2.json` (source.commit zeros, filled at landing); readiness row. Registry suffix indexes and server-off strings advanced in ~45 older tests (mechanical).
+- b300 replay OFF reproduces the recorded v1 paragraph at 15195 byte for byte; ON fires at 14882 (ROXANNE) and 15198 (ROXANNE, TOMMY, MARC), both naming the RUSTBORO CITY POKéMON CENTER (2 map changes) shown at (16,38) in result 14717.
+- Wiring mutation: `const v2=false` in withLowHpTrainerWarning turns the playGameTools test red (1 failed); restored (sha1 7d6eaa5d), green.
+- Gates: `just lint` OK, `just build` OK, `just coverage`: agent 2917/2917 (97.21 st / 92.92 br / 97.7 fn / 99.17 ln), viewer 1425/1425 (95.09 / 91.04 / 93.85 / 97.7), python 2915 passed, gate lines 96.97 branches 92.50 functions 100.00. heal_trainers.py 100%.
+
 ## Surprises
+
+- The worktree had no vendor submodule checkout and no mGBA binding; 210 Python failures and the mypy import error were environment, fixed by `git submodule update --init` and `just build-mgba`.
 
 ## Multi-Model Review Log
 

@@ -285,13 +285,18 @@ const StoryBattleWarningEvent = event("story_battle_warning", {
 // heal-before-trainers-v1: the SUPERVISOR paragraph a game-tool result gained, with the facts it states.
 const HealBeforeTrainersWarningEvent = event("heal_before_trainers_warning", {
   tool: Type.String({ minLength: 1 }), map_id: Type.Tuple([Type.Integer(), Type.Integer()]),
-  trainers: Type.Array(Type.Object({ local_id: NonNegativeInt, x: Type.Integer(), y: Type.Integer(), sprite_kind: Type.Union([Type.String(), Type.Null()]) }, closed), { minItems: 1, maxItems: 64 }),
+  // heal-before-trainers-v2 adds loaded (false: the template's tile) and story (a story battle's opponent).
+  trainers: Type.Array(Type.Object({ local_id: NonNegativeInt, x: Type.Integer(), y: Type.Integer(), sprite_kind: Type.Union([Type.String(), Type.Null()]), loaded: Type.Optional(Type.Boolean()), story: Type.Optional(Type.String({ minLength: 1 })) }, closed), { minItems: 1, maxItems: 64 }),
+  // Empty only with heal-before-trainers-v2, when the paragraph names a story opponent for a party below full HP (hurt).
   weak: Type.Array(Type.Union([
     Type.Object({ kind: Type.Literal("fainted"), species: Type.String({ minLength: 1 }), max_hp: Type.Integer({ minimum: 1 }) }, closed),
     Type.Object({ kind: Type.Literal("lead_below_half"), species: Type.String({ minLength: 1 }), hp: NonNegativeInt, max_hp: Type.Integer({ minimum: 1 }) }, closed),
     Type.Object({ kind: Type.Literal("lead_no_pp"), species: Type.String({ minLength: 1 }), moves: Type.Array(Type.String({ minLength: 1 }), { minItems: 1, maxItems: 4 }) }, closed),
-  ]), { minItems: 1, maxItems: 8 }),
-  heal: Type.Union([Type.Object({ kind: Type.Enum(["pokemon_center", "home"]), town: Type.String({ minLength: 1 }), map_id: Type.Tuple([Type.Integer(), Type.Integer()]), hops: NonNegativeInt }, closed), Type.Null()]),
+  ]), { maxItems: 8 }),
+  hurt: Type.Optional(Type.Array(Type.Object({ species: Type.String({ minLength: 1 }), hp: NonNegativeInt, max_hp: Type.Integer({ minimum: 1 }) }, closed), { minItems: 1, maxItems: 6 })),
+  // heal-before-trainers-v2: shown is the exit a delivered result listed for a POKéMON CENTER the player has not entered.
+  heal: Type.Union([Type.Object({ kind: Type.Enum(["pokemon_center", "home"]), town: Type.String({ minLength: 1 }), map_id: Type.Tuple([Type.Integer(), Type.Integer()]), hops: NonNegativeInt,
+    shown: Type.Optional(Type.Object({ map_id: Type.Tuple([Type.Integer(), Type.Integer()]), map: Type.String({ minLength: 1 }), x: Type.Integer(), y: Type.Integer() }, closed)) }, closed), Type.Null()]),
   mom_heals: Type.Boolean(),
   money: Type.Union([NonNegativeInt, Type.Null()]),
   // bag-healing-items-v1 only: the BAG items the paragraph names, with the game's description of each.
@@ -587,7 +592,8 @@ export const StateBodySchema = Type.Object(
     // trainer flag, the power of each party move, SaveBlock1.lastHealLocation's map, the player's house 1F and whether
     // talking to MOM heals now. Present only with the switch, on the field.
     heal_before_trainers: Type.Optional(Type.Object({
-      trainers: Type.Array(Type.Object({local_id:NonNegativeInt,x:Type.Integer(),y:Type.Integer(),graphics_id:NonNegativeInt,sprite_kind:Type.Union([Type.String(),Type.Null()]),trainer_id:Type.Integer({minimum:1,maximum:854}),defeated:Type.Boolean()},closed),{maxItems:64}),
+      // heal-before-trainers-v2: every template of the map, loaded false for one the game has not loaded.
+      trainers: Type.Array(Type.Object({local_id:NonNegativeInt,x:Type.Integer(),y:Type.Integer(),graphics_id:NonNegativeInt,sprite_kind:Type.Union([Type.String(),Type.Null()]),trainer_id:Type.Integer({minimum:1,maximum:854}),defeated:Type.Boolean(),loaded:Type.Optional(Type.Boolean())},closed),{maxItems:64}),
       move_power: Type.Array(Type.Object({move_id:Type.Integer({minimum:1,maximum:354}),power:Type.Integer({minimum:0,maximum:255})},closed),{maxItems:24}),
       last_heal: Type.Union([Type.Tuple([Type.Integer({minimum:0}),Type.Integer({minimum:0})]),Type.Null()]),
       home: Type.Union([Type.Tuple([Type.Integer({minimum:0}),Type.Integer({minimum:0})]),Type.Null()]),

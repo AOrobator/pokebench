@@ -196,3 +196,9 @@ PENDING, explicitly blocked and unqueued. Clock policy acts from server boot; NE
 | `auto-talk-v1` | `BIRCH_STARTER_HANDOFF_COMPLETE` | PENDING until `just experiments` runs after landing | Registered 2026-10-20; the breaker's stage 3 as its own switch. It acts while fixed-point-breaker-v1 or duplicate-turn-collapse-v1 is on; a preset that omits it takes its fixed-point-breaker-v1 value. |
 | `duplicate-turn-collapse-v1` | `BIRCH_STARTER_HANDOFF_COMPLETE` | PENDING until `just experiments` runs after landing | Registered 2026-10-20; the breaker stage 1 without its note; on in both arms by operator decision. |
 | `unfinished-activity-v1` | `RUSTBORO_GYM_TRAINER_JOSH_DEFEATED` (it only acts after a trainer battle the agent lost on a map it had been fighting on) | PENDING until `just experiments` runs after landing | Registered 2026-10-20, pending and not queued; bundle-only. Evidence: r10 whole-map, turns 220-1224. |
+
+## Heal before trainers v2 and gym heal warning — 2026-10-20
+
+| Switch | Activation milestone | Readiness | Notes |
+|---|---|---|---|
+| `heal-before-trainers-v2` | `ROUTE_103` (the rival is named whenever the party is below full HP; the b300 effect is in RUSTBORO CITY and its GYM) | PENDING until `just experiments` runs after landing | Registered 2026-10-20, pending and not queued; bundle-only. Evidence: b300, results 14717, 14882 and 15198. |

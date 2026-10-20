@@ -480,7 +480,7 @@ export class RunRecorder {
   }
   // heal-before-trainers-v1: recorded as the paragraph is added to the tool result.
   healBeforeTrainersWarning(tool: string, facts: HealBeforeTrainersFacts, text: string): void {
-    this.append({ type: "heal_before_trainers_warning", turn: this.turn, tool, map_id: [facts.map_id[0], facts.map_id[1]], trainers: facts.trainers.map((t) => ({ ...t })), weak: facts.weak.map((w) => (w.kind === "lead_no_pp" ? { ...w, moves: [...w.moves] } : { ...w })), heal: facts.heal === null ? null : { ...facts.heal, map_id: [facts.heal.map_id[0], facts.heal.map_id[1]] }, mom_heals: facts.mom_heals, money: facts.money, ...(facts.items === undefined ? {} : { items: facts.items.map((i) => ({ ...i })) }), text });
+    this.append({ type: "heal_before_trainers_warning", turn: this.turn, tool, map_id: [facts.map_id[0], facts.map_id[1]], trainers: facts.trainers.map((t) => ({ ...t })), weak: facts.weak.map((w) => (w.kind === "lead_no_pp" ? { ...w, moves: [...w.moves] } : { ...w })), ...(facts.hurt === undefined ? {} : { hurt: facts.hurt.map((h) => ({ ...h })) }), heal: facts.heal === null ? null : { kind: facts.heal.kind, town: facts.heal.town, map_id: [facts.heal.map_id[0], facts.heal.map_id[1]], hops: facts.heal.hops, ...(facts.heal.shown === undefined ? {} : { shown: { map_id: [facts.heal.shown.map_id[0], facts.heal.shown.map_id[1]], map: facts.heal.shown.map, x: facts.heal.shown.x, y: facts.heal.shown.y } }) }, mom_heals: facts.mom_heals, money: facts.money, ...(facts.items === undefined ? {} : { items: facts.items.map((i) => ({ ...i })) }), text });
   }
 
   // harness-trust-v1: recorded as the walk-away note is added under the result's header.

@@ -75,7 +75,8 @@ export class AutoTalk {
   const map=s.map_id,p=s.position;
   if(map===null||p===null)return [];
   const id:[number,number]=[map[0],map[1]];
-  const unbeaten=new Set((s.heal_before_trainers?.trainers??[]).filter(t=>!t.defeated).map(t=>t.local_id));
+  // Loaded trainers only: heal-before-trainers-v2 also lists ones the game has not loaded, which auto-talk never sees.
+  const unbeaten=new Set((s.heal_before_trainers?.trainers??[]).filter(t=>!t.defeated&&t.loaded!==false).map(t=>t.local_id));
   const characters=this.gate.untalkedCharacters();
   const out:Candidate[]=[];
   const add=(target:Target,rank:number):void=>{

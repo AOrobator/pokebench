@@ -158,7 +158,8 @@ describe("phone header in the viewer", () => {
     expect(ui("run-sheet").contains(ui("run"))).toBe(true);
     expect(ui("run-sheet").contains(ui("comparisons-link"))).toBe(true);
     const all = Array.from(must(document.querySelector('[data-slot="phone-picker"]')).children, (el) => el.getAttribute("data-ui") ?? (el.className || el.tagName));
-    expect(all).toEqual(["H4", "run-choice", "comparisons-link"]);
+    expect(all).toEqual(["H4", "run-choice", "comparisons-link", "reports-link"]);
+    expect(ui("reports-link").getAttribute("href")).toBe("/reports");
   });
 
   it("opens the sheet from anywhere on the header and switches runs from it", async () => {
@@ -211,6 +212,7 @@ describe("phone header in the viewer", () => {
     const order = Array.from(bar.children, (el) => el.getAttribute("data-ui") ?? el.className);
     expect(order.indexOf("comparisons-link")).toBeLessThan(order.indexOf("run-choice"));
     expect(order.indexOf("replay-controls")).toBeLessThan(order.indexOf("run-controls"));
+    expect(ui("run-sheet").contains(ui("reports-link"))).toBe(true);
   });
 });
 

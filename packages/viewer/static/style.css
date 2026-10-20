@@ -768,7 +768,7 @@ b.wb-add, b.wb-rem { white-space:nowrap; }
 .rs-all .run-choice { display: flex; flex-direction: column; align-items: stretch; gap: 8px; font: 7px 'Press Start 2P', monospace; color: #ffd447; }
 .rs-all .run-choice { font-size: 0; }
 .rs-all select { font: 8px 'Press Start 2P', monospace; padding: 8px; border: 3px solid #ffd447; border-radius: 8px; background: #fff; color: #283038; max-width: 100%; }
-.rs-all .viewer-workbench-link { display: inline-block; margin-top: 18px; font: 7px 'Press Start 2P', monospace; color: #ffd447; }
+.rs-all .viewer-workbench-link { display: inline-block; margin: 18px 14px 0 0; font: 7px 'Press Start 2P', monospace; color: #ffd447; }
 @media (prefers-reduced-motion: reduce) { .rh-state.dot, .rs-pill.live::before { animation: none; } }
 /* Trainer cards (design: runs/mockups/viewer-header-desktop/trainer-cards-9.html, option 1). The art is the game's
    own card, built from the ROM into runs/sprites by `just trainer-card-art`; --u is one game pixel of the card. */

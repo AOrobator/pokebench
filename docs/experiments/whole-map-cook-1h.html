@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Whole-map navigation cook, 1 hour — experiment overview</title>
+<style>
+:root { --bg:#f7f8fb; --card:#fff; --ink:#1f2a36; --muted:#5d6b7a; --line:#c9d2dc; --blue:#2f6fb5; --blue-bg:#e6f0fb; --green:#24804a; --green-bg:#e3f5ea; --amber:#9a6200; --amber-bg:#fff2d6; --red:#b23434; --red-bg:#fbe5e5; --gray-bg:#eef1f4; --violet:#6b4fb3; }
+@media (prefers-color-scheme: dark) { :root { --bg:#12161c; --card:#1b2129; --ink:#e4e9ef; --muted:#9aa7b4; --line:#34404d; --blue:#7fb2ea; --blue-bg:#1d2d40; --green:#6fd09a; --green-bg:#173325; --amber:#f0c060; --amber-bg:#3a2e14; --red:#f08a8a; --red-bg:#3a1c1c; --gray-bg:#252c35; --violet:#b9a3f0; } }
+body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+main { max-width:900px; margin:0 auto; padding:24px 16px 48px; }
+h1 { font-size:26px; margin:0 0 4px; } h2 { font-size:18px; margin:32px 0 8px; }
+p.lead { color:var(--muted); margin:0 0 16px; }
+figure { margin:12px 0 20px; background:var(--card); border:1px solid var(--line); border-radius:12px; padding:12px; overflow-x:auto; }
+figcaption { color:var(--muted); font-size:13px; margin-top:8px; }
+svg text { fill:var(--ink); font:13px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+svg .small { font-size:11px; fill:var(--muted); }
+.box { stroke:var(--line); stroke-width:1.5; fill:var(--card); }
+.b-blue { fill:var(--blue-bg); stroke:var(--blue); } .b-green { fill:var(--green-bg); stroke:var(--green); } .b-amber { fill:var(--amber-bg); stroke:var(--amber); } .b-gray { fill:var(--gray-bg); stroke:var(--line); } .b-red { fill:var(--red-bg); stroke:var(--red); }
+.arrow { stroke:var(--muted); stroke-width:1.5; fill:none; marker-end:url(#a); }
+.grid { stroke:var(--line); stroke-width:1; } .target { stroke:var(--muted); stroke-dasharray:4 4; } .budget { stroke:var(--red); stroke-dasharray:2 3; }
+.curve { fill:none; stroke-width:2; } .curve.c0 { stroke:var(--blue); } .curve.c1 { stroke:var(--green); } .curve.c2 { stroke:var(--amber); } .curve.c3 { stroke:var(--violet); }
+.key.c0 { fill:var(--blue); } .key.c1 { fill:var(--green); } .key.c2 { fill:var(--amber); } .key.c3 { fill:var(--violet); }
+table { border-collapse:collapse; width:100%; background:var(--card); border:1px solid var(--line); border-radius:12px; overflow:hidden; font-size:14px; }
+th, td { text-align:left; padding:8px 10px; border-bottom:1px solid var(--line); vertical-align:top; }
+th { background:var(--gray-bg); }
+code { font:13px ui-monospace, SFMono-Regular, Menlo, monospace; background:var(--gray-bg); padding:1px 4px; border-radius:4px; }
+.wrap { overflow-x:auto; }
+.facts { display:grid; grid-template-columns:repeat(auto-fit, minmax(128px, 1fr)); gap:8px; margin:12px 0 4px; }
+.fact { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:8px 10px; }
+.fact b { display:block; font-size:12px; color:var(--muted); font-weight:600; }
+.tier { display:inline-block; padding:1px 8px; border-radius:999px; font-size:13px; font-weight:600; background:var(--blue-bg); color:var(--blue); border:1px solid var(--blue); }
+.note { background:var(--amber-bg); border:1px solid var(--amber); border-radius:10px; padding:8px 12px; margin:12px 0; }
+</style>
+</head>
+<body>
+<main>
+<h1>Whole-map navigation cook, 1 hour</h1>
+<p class="lead">From the fast-text MAIN_MENU save, does the next bundle (all planned fixes, with whole-map navigation, semantic navigation and deterministic exploration) get further in one hour than the control, and do its navigation calls actually cover more ground?</p>
+<p><span class="tier">Screen (12 one-hour pairs)</span> &nbsp;<code>experiments/fixed/whole-map-cook-1h.json</code> (written at launch) &nbsp;·&nbsp; status: approved by the operator for 12 wall hours (10/20); launch gated on the planned bundle fixes landing. Nothing launched.</p>
+
+<div class="facts">
+<div class="fact"><b>Start</b>fast-text MAIN_MENU save</div>
+<div class="fact"><b>Runs per arm</b>12 (12 pairs)</div>
+<div class="fact"><b>Trial cap</b>60 min</div>
+<div class="fact"><b>GPU-hours / wall</b>24 / 12</div>
+<div class="fact"><b>Primary outcome</b>ROUTE_102 within 60 min</div>
+<div class="fact"><b>Smallest lift we can see</b>42% power at +40 pts</div>
+</div>
+
+<h2>1. What it tests and why</h2>
+<figure>
+<svg viewBox="0 0 860 150" width="860" height="150" role="img" aria-label="From the recorded failure to the switch, the expected behavior and the primary milestone">
+<defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" style="fill:var(--muted)"/></marker></defs>
+<rect class="box b-red" x="10" y="20" width="190" height="100" rx="10"/><text x="24" y="46">Recorded failure</text><text class="small" x="24" y="68">Strides are short: longest</text><text class="small" x="24" y="86">move 10 tiles; bundle 72% zero</text><text class="small" x="24" y="104">f28d turn 415; 8d39 turn 1625</text>
+<rect class="box b-blue" x="230" y="20" width="190" height="100" rx="10"/><text x="244" y="46">Change</text><text class="small" x="244" y="68">Whole map, 512-press routes;</text><text class="small" x="244" y="86">name targets; explore_map</text><text class="small" x="244" y="104">3 switches on (see Arms)</text>
+<rect class="box b-amber" x="450" y="20" width="190" height="100" rx="10"/><text x="464" y="46">Expected behavior</text><text class="small" x="464" y="68">Longer moves per call, fewer</text><text class="small" x="464" y="86">zero-tile and refused targets</text><text class="small" x="464" y="104">visible from FIRST_TRUCK_EXIT</text>
+<rect class="box b-green" x="670" y="20" width="180" height="100" rx="10"/><text x="684" y="46">Measured as</text><text class="small" x="684" y="68">ROUTE_102</text><text class="small" x="684" y="86">within 60 min</text><text class="small" x="684" y="104">read per pair, no test</text>
+<path class="arrow" d="M200,70 H226"/><path class="arrow" d="M420,70 H446"/><path class="arrow" d="M640,70 H666"/>
+</svg>
+<figcaption>The 2026-10-20 cook analysis found no arm can take long strides: bounded navigation plans inside the 15×15 window with at most 8 attempts per call, and the bundle’s navigate_to calls moved 0 tiles 72% of the time (mean 1.27 tiles; control 4.21). Its hypothesis: long strides need whole-map planning, not a bigger cap. Whole-map navigation (full-map-navigation-v1) gives the whole current map and full routes; semantic navigation (semantic-navigation-v1) lets the model pick a person, warp or map edge and lets the harness walk there; deterministic exploration (deterministic-exploration-v1) adds explore_map, which walks to the next untried target. The operator asked for all three together.</figcaption>
+</figure>
+
+<h2>2. Where runs start and what they cover</h2>
+<figure>
+<svg viewBox="0 0 860 120" width="860" height="120" role="img" aria-label="Story path with the start point, activation milestone and primary milestone">
+<line x1="20" x2="840" y1="50" y2="50" style="stroke:var(--line);stroke-width:6;stroke-linecap:round"/>
+<!-- Shade the measured segment: x from the start point to the primary milestone. -->
+<line x1="110" x2="640" y1="50" y2="50" style="stroke:var(--green);stroke-width:6;stroke-linecap:round"/>
+<circle cx="20" cy="50" r="7" class="box b-gray"/><text class="small" x="20" y="80" text-anchor="middle">boot</text>
+<circle cx="110" cy="50" r="9" class="box b-blue"/><text x="110" y="16" text-anchor="end">start</text><text class="small" x="110" y="32" text-anchor="end">MAIN_MENU save</text>
+<circle cx="160" cy="50" r="7" class="box b-amber"/><text class="small" x="160" y="80" text-anchor="start">FIRST_TRUCK_EXIT</text><text class="small" x="160" y="96" text-anchor="start">switch first matters</text>
+<circle cx="640" cy="50" r="9" class="box b-green"/><text x="640" y="28" text-anchor="start">primary</text><text class="small" x="640" y="80" text-anchor="middle">ROUTE_102</text>
+</svg>
+<figcaption>Every run loads the same fast-text MAIN_MENU save, so this covers the whole route from naming; nothing is present at start except the save itself. Whole-map navigation first matters at the truck exit in Littleroot (control median about 2–6 min). ROUTE_102 needs the full early story (rival, Birch, rival battle, Pokédex) plus the walk west from Oldale, so it rewards navigation across many maps. The x positions are approximate story order, not time.</figcaption>
+</figure>
+
+<h2>3. Arms</h2>
+<div class="wrap"><table>
+<tr><th>Arm</th><th>Switches</th><th>Differs from control by</th><th>Evidence it is ready</th></tr>
+<tr><td>Control</td><td>The current control preset at the launch pin (frontier-incumbent-4caa today; if the preset thread lands exit-reachability-v1 into the control first, that new control is used for both arms)</td><td>—</td><td>8d39 played 6 h valid on this save on 10/20</td></tr>
+<tr><td>Bundle + whole-map nav</td><td>The bundle preset at the launch pin + <code>full-map-navigation-v1</code>. The bundle must already carry <code>semantic-navigation-v1</code>, <code>deterministic-exploration-v1</code>, <code>stale-story-goal-v2</code>, <code>briefing-repeat-count-v1</code> (inert here: it acts only with supervisor-briefing-v2, which the bundle dropped), <code>navigate-already-here-v1</code>, <code>fixed-point-breaker-v1</code> (with auto talk), <code>story-character-stall-gate-v1</code> and the supervisor exit-list fix</td><td>The whole bundle; per-switch effects cannot be separated</td><td>Whole-map nominated in the 10/15 factorial (think-fast); semantic nav and exploration are on main at <code>4565f9ef</code>. A dry-run per arm is part of the launch check.</td></tr>
+</table></div>
+
+<h2>4. Outcomes and the decision rule</h2>
+<div class="wrap"><table>
+<tr><th>Role</th><th>Outcome</th><th>Analysis</th></tr>
+<tr><td>Primary</td><td>ROUTE_102 within 60 min</td><td>Reached or not by 60 min. Two-sided Fisher exact test at 0.05; k/12 per arm with the Newcombe interval. At 12 per arm power is 42% for +40 pts, so a miss is not evidence of no effect.</td></tr>
+<tr><td>Secondary</td><td>Furthest main-story milestone</td><td>Depth first, then time; the frontier graph split view</td></tr>
+<tr><td>Secondary</td><td>Time to ROUTE_102</td><td>Censored at 60 min; "not reached" if fewer than half reach it</td></tr>
+<tr><td>Mechanism</td><td>Tiles moved per navigation call; share of calls that move 0 tiles; refused targets</td><td>Same counting as the 10/20 cook analysis (control 4.21 mean, 20% zero)</td></tr>
+<tr><td>Exploratory</td><td>Use of navigate_to_target and explore_map; copy loops (identical thinking)</td><td>Labelled exploratory</td></tr>
+</table></div>
+<p>Decision: Fisher p &lt; 0.05 on the primary nominates the bundle for a confirmation; anything else reports direction and intervals only. Promotion into the control still needs its own confirm-tier test. Secondaries (log-rank on time to ROUTE_102, Mann-Whitney on furthest milestone) are reported but never change the decision.</p>
+<div class="note">Fixed N, one analysis after the last trial. Nothing stops or ejects the experiment early. Every launched trial counts; model errors and crashes count as not reached. Trials end only at the 60 min wall cap, a crash, a model error or an operator stop; maxTurns 20000 does not bind; milestone-stall-stop-v1 stays off in both arms; no target stop.</div>
+
+<h2>5. How many runs, and why</h2>
+<figure>
+<svg viewBox="0 0 640 300" width="640" height="300" role="img" aria-label="Exact power against GPU-hours">
+<line class="grid" x1="48" x2="520" y1="260.0" y2="260.0"/>
+<text class="small" x="42" y="264.0" text-anchor="end">0%</text>
+<line class="grid" x1="48" x2="520" y1="211.2" y2="211.2"/>
+<text class="small" x="42" y="215.2" text-anchor="end">20%</text>
+<line class="grid" x1="48" x2="520" y1="162.4" y2="162.4"/>
+<text class="small" x="42" y="166.4" text-anchor="end">40%</text>
+<line class="grid" x1="48" x2="520" y1="113.6" y2="113.6"/>
+<text class="small" x="42" y="117.6" text-anchor="end">60%</text>
+<line class="grid" x1="48" x2="520" y1="64.8" y2="64.8"/>
+<text class="small" x="42" y="68.8" text-anchor="end">80%</text>
+<line class="grid" x1="48" x2="520" y1="16.0" y2="16.0"/>
+<text class="small" x="42" y="20.0" text-anchor="end">100%</text>
+<text class="small" x="48.0" y="276" text-anchor="middle">0</text>
+<text class="small" x="166.0" y="276" text-anchor="middle">54</text>
+<text class="small" x="284.0" y="276" text-anchor="middle">107</text>
+<text class="small" x="402.0" y="276" text-anchor="middle">161</text>
+<text class="small" x="520.0" y="276" text-anchor="middle">215</text>
+<text class="small" x="284" y="294" text-anchor="middle">GPU-hours (cap 60 min, both arms)</text>
+<line class="target" x1="48" x2="520" y1="64.8" y2="64.8"/>
+<line class="budget" x1="100.8" x2="100.8" y1="16" y2="260"/>
+<text class="small" x="104.8" y="28">budget</text>
+<polyline class="curve c0" points="66.5,256.3 71.1,249.6 85.0,245.1 94.3,246.7 108.2,231.3 117.4,236.5 131.3,221.4 140.5,220.2 154.4,212.8 168.3,203.2 177.6,201.3 191.5,192.1 200.7,183.0 214.6,184.6 223.8,177.1 237.7,165.7 247.0,162.5 260.9,160.3 270.1,154.8 284.0,143.0 297.9,139.8 307.1,137.4 321.0,130.2 330.3,124.3 344.2,116.8 353.4,116.0 367.3,112.9 376.5,108.3 390.4,100.1 399.7,96.2 413.6,95.0 427.5,91.7 436.7,87.8 450.6,81.1 459.8,77.7 473.7,76.9 483.0,75.2 496.9,71.7 506.1,68.2 520.0,63.3"/>
+<text class="small" x="528" y="32"><tspan class="key c0">━</tspan> +20 pts</text>
+<polyline class="curve c1" points="66.5,253.8 71.1,241.9 85.0,230.6 94.3,227.8 108.2,197.7 117.4,200.0 131.3,172.4 140.5,160.1 154.4,147.3 168.3,128.9 177.6,119.8 191.5,108.6 200.7,99.6 214.6,90.1 223.8,81.8 237.7,73.0 247.0,65.8 260.9,60.3 270.1,57.2 284.0,49.5 297.9,43.9 307.1,40.9 321.0,37.5 330.3,35.6 344.2,32.0 353.4,29.9 367.3,28.0 376.5,27.0 390.4,25.2 399.7,23.8 413.6,22.3 427.5,21.4 436.7,20.9 450.6,19.9 459.8,19.5 473.7,18.8 483.0,18.4 496.9,18.1 506.1,17.8 520.0,17.5"/>
+<text class="small" x="528" y="50"><tspan class="key c1">━</tspan> +30 pts</text>
+<polyline class="curve c2" points="66.5,250.0 71.1,230.5 85.0,207.0 94.3,188.0 108.2,140.5 117.4,129.3 131.3,96.9 140.5,78.9 154.4,62.0 168.3,51.4 177.6,42.7 191.5,34.3 200.7,31.7 214.6,26.1 223.8,23.4 237.7,21.1 247.0,19.9 260.9,18.7 270.1,18.0 284.0,17.3 297.9,16.9 307.1,16.6 321.0,16.4 330.3,16.3 344.2,16.2 353.4,16.2 367.3,16.1 376.5,16.1 390.4,16.0 399.7,16.0 413.6,16.0 427.5,16.0 436.7,16.0 450.6,16.0 459.8,16.0 473.7,16.0 483.0,16.0 496.9,16.0 506.1,16.0 520.0,16.0"/>
+<text class="small" x="528" y="68"><tspan class="key c2">━</tspan> +40 pts</text>
+</svg>
+<figcaption>Exact Fisher power against GPU-hours from <code>power.py plan</code>. Baseline 50% (7/14) from 14 control runs from the MAIN_MENU save: 12 from bundle-v-control-dryrun-cook (10/17–18), 86ac (bundle-cook-4h) and 8d39 (bundle-cook-6h-v2). 7 reached ROUTE_102 by 60 min; the latest 8d39 did at 31.7 min. Dashed line: target power. Red line: a 24 GPU-hour budget (12 wall hours on both GPUs), the planned budget.</figcaption>
+</figure>
+<div class="wrap"><table>
+<tr><th>True lift</th><th>Runs per arm for 80%</th><th>GPU-hours</th><th>Wall hours</th><th>Power at the planned N</th></tr>
+<tr><td>+20 pts</td><td>102</td><td>215</td><td>107</td><td>0%</td></tr>
+<tr><td>+30 pts</td><td>44</td><td>93</td><td>46</td><td>0%</td></tr>
+<tr><td>+40 pts</td><td>23</td><td>48</td><td>24</td><td>0%</td></tr>
+</table></div>
+
+<h3>Power at the decision rule (Fisher p &lt; 0.05, two-sided) by budget</h3>
+<div class="wrap"><table>
+<tr><th>GPU-hours (wall)</th><th>Runs per arm</th><th>+20 pts</th><th>+30 pts</th><th>+40 pts</th></tr>
+<tr><td>4 (2 h)</td><td>2</td><td>0%</td><td>0%</td><td>0%</td></tr>
+<tr><td>8 (4 h)</td><td>3</td><td>0%</td><td>0%</td><td>0%</td></tr>
+<tr><td>16 (8 h)</td><td>7</td><td>4%</td><td>7%</td><td>13%</td></tr>
+<tr><td><b>24 (12 h), planned</b></td><td>12 (no outage reserve; 11 with 5% reserve)</td><td>9%</td><td>21%</td><td>42%</td></tr>
+<tr><td>36 (18 h)</td><td>17</td><td>14%</td><td>32%</td><td>63%</td></tr>
+<tr><td>48 (24 h)</td><td>22</td><td>17%</td><td>43%</td><td>79%</td></tr>
+</table></div>
+<p>Runs per arm are what each budget buys after 5% outage reruns; every trial is charged the full 60 min cap.</p>
+<p><code>python3 .claude/skills/pokebench-experiment-design/power.py plan --control 0.5 --lifts 0.2,0.3,0.4 --cap-min 60 --executors 2 --failure-rate 0.05 --budget-gpu-hours 4</code></p>
+
+<h2>6. Order, executors and failures</h2>
+<p>Twelve blocks of one pair each, both GPUs at once. Arms alternate lanes in a seeded balanced order, so each GPU runs each arm 6 times. Before launch both lanes must report the same model file, build, context and slots in /props (today: Qwen3.6-35B-A3B-UD-Q4_K_M, 65536 context, 1 slot). Results are reported per lane too.</p>
+<p>Every launched trial counts. A crash or model error counts as not reached. Only an outage outside the arm (llama-server down, an emulator crash with no model call) is re-run at the end and reported. Max 1 hour per run. Launch only via <code>just fixed-run run</code> from an isolated checkout pinned to one main commit; a launch mistake taints the experiment and it restarts clean. The viewer is not restarted during the pin window.</p>
+
+<h2>7. What could fool us, and what this cannot tell us</h2>
+<div class="wrap"><table>
+<tr><th>Threat</th><th>Control in this design</th></tr>
+<tr><td>12 per arm is underpowered for modest gains</td><td>Power stated up front; secondaries and mechanism counts reported; no claim of "no effect" from a miss</td></tr>
+<tr><td>Many switches together</td><td>Can only nominate the bundle; each switch is confirmed alone before promotion (PB5)</td></tr>
+<tr><td>GPU or time-of-day drift</td><td>Each GPU runs each arm 6 times; pairs run concurrently</td></tr>
+<tr><td>Build changes mid-cook</td><td>One pinned checkout for all 12 blocks, after every gated fix lands</td></tr>
+<tr><td>Control changes before launch (exit-reachability)</td><td>Both arms use the same control preset at the pin; the baseline cohort predates it</td></tr>
+<tr><td>Baseline cohort on older builds</td><td>Only used to choose the primary and the cap, not as a comparison</td></tr>
+</table></div>
+<p>This cannot say whether any one of the three switches helps, whether the gain holds past one hour, or whether it changes the rival battle or later fights. It also cannot test the stride-length hypothesis on the bundle, since the bundle is not an arm.</p>
+
+<h2>8. Provenance</h2>
+<div class="wrap"><table>
+<tr><th>Item</th><th>Value</th></tr>
+<tr><td>Build</td><td><code>main at launch (currently 4565f9ef); frozen for all blocks</code></td></tr>
+<tr><td>Start state</td><td><code>runs/launch-receipts/fast-text/MAIN_MENU.state</code>, SHA-1 <code>b3a6cc1c19836600a15febf41b8f8b19661ce5d4</code> (checked 10/20), the same save as bundle-cook-6h-v2</td></tr>
+<tr><td>Baseline cohort</td><td>14 control runs from the MAIN_MENU save: 12 from bundle-v-control-dryrun-cook (10/17–18), 86ac (bundle-cook-4h) and 8d39 (bundle-cook-6h-v2). 7 reached ROUTE_102 by 60 min; the latest 8d39 did at 31.7 min</td></tr>
+<tr><td>Grading code</td><td>native milestones and fixed-run analyze at the launch pin</td></tr>
+<tr><td>Design review</td><td>Not run: 4 GPU-hours, exploratory, no promotion claim</td></tr>
+</table></div>
+</main>
+</body>
+</html>

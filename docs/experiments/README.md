@@ -15,3 +15,5 @@ Readiness verdicts are in [readiness.md](readiness.md).
 - [JIT cache fixes: concurrent twenty-minute pair](jit-v2-cache-20m.html)
 
 - [Starter decision salience diagnostic](starter-decision-salience.html) — eight per arm, Route101 checkpoint, five-minute cap; not approved or launched.
+
+- [Whole-map navigation cook, 1 hour](whole-map-cook-1h.html) — screen; MAIN_MENU start; 12 one-hour pairs; gated on bundle fixes.

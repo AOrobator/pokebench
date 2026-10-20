@@ -34,3 +34,5 @@ r2 Claude lane (Claude CLI OAuth expired; Cursor Opus and Sonnet usage-capped; f
 1. navigate-already-here-v1 changed the status semantic navigation reads (`semantic-navigation.ts` accepts only "arrived at requested coordinate" at the approach), so navigate_to_target/explore_map already on the approach tile failed without activating. Accepted.
 2. Packet base 957b5626 was not an ancestor of the head; branch rebased onto main dd3d701b. Accepted.
 - [x] RED: semantic navigation on the approach tile with the switch ON still activates (fails: "route failed at the selected approach")
+- [x] GREEN: the already-here status applies only to the model's own navigate_to call (no stop check, not exactTarget); audited every reader of navigation.status (only semantic-navigation.ts). Gates on main dd3d701b: agent 2,798 tests 97.27/93.33/97.88, viewer 1,361 tests 95.14/91.16/93.88, Python 2,896 tests 96.95/92.46/100, lint clean.
+- Bundle edits (bundle-v-control, bundle-cook-1h) left to the coordinator: the operator's brief said not to edit bundle-v-control here.

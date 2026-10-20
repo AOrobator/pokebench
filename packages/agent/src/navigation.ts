@@ -625,8 +625,8 @@ export function navigationTool(ports:NavigationPorts):CheckedNavigationTool {
      const afterWarpStop=stop?.(state)??null;if(afterWarpStop!==null){status=afterWarpStop;stopRequested=true;}
      break;
     }
-    // navigate-already-here-v1: no press yet and the player is on the requested tile itself.
-    status=ports.alreadyHere===true&&commands===0&&state.position!==null&&samePoint(state.position,goal)?`you are already standing on ${at(goal)}, the coordinate you asked for, so no movement was needed`:"arrived at requested coordinate";break;
+    // navigate-already-here-v1: the model's own call, no press yet, on the requested tile; semantic travel keeps the status it checks.
+    status=ports.alreadyHere===true&&stop===undefined&&checkedOptions.exactTarget!==true&&commands===0&&state.position!==null&&samePoint(state.position,goal)?`you are already standing on ${at(goal)}, the coordinate you asked for, so no movement was needed`:"arrived at requested coordinate";break;
    }
    if(mode!=="local"){if(path.length<shortest){shortest=path.length;stalled=0;}else if(++stalled>=NO_PROGRESS_PRESSES){status="route not converging; inspect obstacles and choose another approach";break;}}
    const planned=state,previousFacing=state.facing; const before=state.position;if(before===null)throw new Error("Navigation position unavailable");

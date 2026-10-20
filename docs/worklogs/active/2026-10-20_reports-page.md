@@ -31,6 +31,6 @@ No harness change, so no feature switch.
 - [x] Browser proof at 1280/1440/375 on copies of the 11 reports: runs/reviews/2026-10-20-reports-page-e2e/receipt.md. Found and fixed: hash navigation and Back not updating the card (test), the phone tap leaving the card off-screen (test), the intro in the pixel font, the card scrolling away on desktop (sticky), and the opened report scrolling the page (fits the window)
 
 **M3: land**
+- Review round 1 (packet 8c20ee0c, head c16b1ad9): Claude LGTM; Grok BLOCKING (a report folder that is a symlink widens the file jail); GPT BLOCKING (evidence .csv/.mjs links 404; a malformed hash stops the page). All three were fixed as concrete bugs, RED 2148634a, then GREEN.
 - [ ] Reviews (round cap 2), ff-only land, restart, live check
 - [ ] report.json for the existing reports (data under runs/); propose the run-analysis skill edit
-- Review round 1 RED: symlinked report folder, evidence file types, malformed hash

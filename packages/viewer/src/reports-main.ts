@@ -4,6 +4,11 @@ import { detailHtml, listHtml, openedHtml, parseReportList } from "./reports-vie
 
 export interface ReportsDeps { readonly search: string; readonly hash: string; fetchJson(url: string): Promise<unknown> }
 
+// The report a hash names, or "" when the hash is not valid percent-encoding (a hand-typed address).
+function hashSlug(hash: string): string {
+  try { return decodeURIComponent(hash.replace(/^#/, "")); } catch { return ""; }
+}
+
 export async function mountReports(doc: Document, deps: ReportsDeps): Promise<void> {
   const part = (name: string): HTMLElement => {
     const el = doc.querySelector<HTMLElement>(`[data-rp="${name}"]`);
@@ -16,14 +21,14 @@ export async function mountReports(doc: Document, deps: ReportsDeps): Promise<vo
   part("open").hidden = open === null;
   if (open !== null) { part("open").innerHTML = openedHtml(entries, open); return; }
   const art = (await loadCardArt((url) => deps.fetchJson(url)))?.art ?? null;
-  const wanted = decodeURIComponent(deps.hash.replace(/^#/, ""));
+  const wanted = hashSlug(deps.hash);
   const show = (slug: string): void => {
     const i = Math.max(0, entries.findIndex(r => r.slug === slug)), entry = entries[i];
     part("list").innerHTML = listHtml(entries, entry?.slug ?? "");
     part("detail").innerHTML = entry === undefined ? '<p class="rp-empty">No reports yet. The run-analysis skill writes them to runs/reports/run-analysis/.</p>' : detailHtml(entry, entries.length - i, art);
   };
   show(wanted);
-  doc.defaultView?.addEventListener("hashchange", () => { show(decodeURIComponent(doc.defaultView?.location.hash.replace(/^#/, "") ?? "")); });
+  doc.defaultView?.addEventListener("hashchange", () => { show(hashSlug(doc.defaultView?.location.hash ?? "")); });
   part("list").addEventListener("click", (event) => {
     const row = (event.target as Element).closest<HTMLElement>("[data-report]");
     if (row === null) return;

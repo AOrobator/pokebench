@@ -1,7 +1,7 @@
 // The run-analysis reports (runs/reports/run-analysis/<YYYY-MM-DD_slug>/index.html) the viewer lists and serves.
 // Each report may carry a report.json written by the run-analysis skill; without one (or with one that does not
 // validate) the list falls back to the page's own <title> and the folder's date.
-import { closeSync, existsSync, openSync, readFileSync, readSync, readdirSync, realpathSync, statSync } from "node:fs";
+import { closeSync, existsSync, lstatSync, openSync, readFileSync, readSync, readdirSync, realpathSync, statSync } from "node:fs";
 import { extname, join, sep } from "node:path";
 
 export interface ReportEntry {
@@ -22,6 +22,8 @@ const SEGMENT = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
 const TYPES: Readonly<Record<string, string>> = {
   ".html": "text/html; charset=utf-8", ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".svg": "image/svg+xml",
   ".css": "text/css; charset=utf-8", ".json": "application/json; charset=utf-8", ".txt": "text/plain; charset=utf-8", ".md": "text/plain; charset=utf-8",
+  // Evidence a report links to: tables, and the scripts that made it, shown as text so they never run.
+  ".csv": "text/csv; charset=utf-8", ".mjs": "text/plain; charset=utf-8", ".js": "text/plain; charset=utf-8", ".py": "text/plain; charset=utf-8",
 };
 const TITLE_BYTES = 16 * 1024;
 
@@ -58,10 +60,15 @@ function meta(dir: string): Meta {
   return v;
 }
 
+// A report folder that is itself a link could point anywhere, so only a real directory counts as a report.
+function realFolder(dir: string, slug: string): boolean {
+  try { return lstatSync(join(dir, slug)).isDirectory(); } catch { return false; }
+}
+
 export function listReports(runsRoot: string): ReportEntry[] {
   const dir = reportsDir(runsRoot);
   if (!existsSync(dir)) return [];
-  return readdirSync(dir).filter(slug => SLUG.test(slug) && existsSync(join(dir, slug, "index.html"))).sort().reverse().map((slug): ReportEntry => {
+  return readdirSync(dir).filter(slug => SLUG.test(slug) && realFolder(dir, slug) && existsSync(join(dir, slug, "index.html"))).sort().reverse().map((slug): ReportEntry => {
     const m = meta(join(dir, slug));
     return { slug, date: SLUG.exec(slug)?.[1] ?? "", title: m.title ?? pageTitle(join(dir, slug, "index.html")) ?? slug, kind: m.kind ?? "REPORT",
       verdict: m.verdict ?? null, frontier: m.frontier ?? null, facts: m.facts ?? [], trainer: m.trainer ?? null };
@@ -77,8 +84,9 @@ export function reportFile(runsRoot: string, slug: string, parts: readonly strin
   const type = TYPES[extname(wanted[wanted.length - 1] ?? "").toLowerCase()];
   if (type === undefined) return null;
   const folder = join(reportsDir(runsRoot), slug), path = join(folder, ...wanted);
+  if (!realFolder(reportsDir(runsRoot), slug)) return null;
   try {
-    const real = realpathSync(path), base = realpathSync(folder);
+    const real = realpathSync(path), base = join(realpathSync(reportsDir(runsRoot)), slug);
     if (!real.startsWith(base + sep) || !statSync(real).isFile()) return null;
   } catch { return null; }
   return { path, type };

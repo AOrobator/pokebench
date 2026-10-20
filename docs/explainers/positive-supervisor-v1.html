@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Positive supervisor</title>
+<style>
+:root{--bg:#fbfaf7;--fg:#1d1d1b;--muted:#5d5b55;--line:#d9d5cc;--panel:#ffffff;--keep:#2f7d4f;--drop:#b4442f;--accent:#2d5f9a;--fill:#eef3f8}
+@media (prefers-color-scheme: dark){:root{--bg:#161614;--fg:#ecebe6;--muted:#a8a59c;--line:#3a3833;--panel:#1f1e1b;--keep:#6cc08f;--drop:#e98a74;--accent:#86b3e6;--fill:#22303f}}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif}
+main{max-width:860px;margin:0 auto;padding:24px 16px 48px}
+h1{font-size:1.6rem;margin:0 0 4px}h2{font-size:1.15rem;margin:32px 0 8px}
+p,li{color:var(--fg)}.muted{color:var(--muted)}
+figure{margin:16px 0;padding:12px;background:var(--panel);border:1px solid var(--line);border-radius:8px;overflow-x:auto}
+figcaption{color:var(--muted);font-size:.9rem;margin-top:8px}
+code{font:13px ui-monospace,SFMono-Regular,Menlo,monospace}
+table{border-collapse:collapse;width:100%;font-size:.95rem}td,th{border-bottom:1px solid var(--line);padding:6px 8px;text-align:left}
+svg text{fill:var(--fg);font:13px -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif}
+.note{border-left:3px solid var(--accent);padding:6px 10px;background:var(--fill);font:13px ui-monospace,SFMono-Regular,Menlo,monospace;white-space:pre-wrap;word-break:break-word}
+.off{border-left-color:var(--drop)}.on{border-left-color:var(--keep)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}@media (max-width:640px){.grid2{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<main>
+<h1>Positive supervisor</h1>
+<p class="muted"><code>positive-supervisor-v1</code> · guidance · bundle arm only · default off</p>
+<p>Today's learning (the operator, 2026-10-20): telling the model what to do, and changing what it sees, beat warnings that it is looping. Loop-guard fires were followed by a story milestone only about as often as any turn. This switch keeps every loop detector and rewrites only what the supervisors send.</p>
+
+<h2>The same note, off and on</h2>
+<div class="grid2">
+<p class="note off">SUPERVISOR: You are currently looping. You keep repeating the same input with no effect, and the game is not moving forward (loop guard, 3243 calls into the run). What you have been trying is not working, so do not try it again.
+Stop and get your bearings:
+- Where you are: ROUTE102 (map 0/17) at 35,6 facing down
+- Last story progress: …
+- Story steps the game confirms are done: …
+- Dialogue you were shown leading up to the last story step …
+- What you tried recently, newest first: navigate_to 0,6 ×3 … → no change; …
+- Listed here that you have not tried yet: …
+- Ways off this map across its edge (the game's map connections): WEST -&gt; PETALBURG CITY …
+Before your next action, look back at your goal … Make a new plan that is different from what you have been trying …</p>
+<p class="note on">SUPERVISOR: Make one tool call based on the game state and what you observed. The game state has not changed after your recent calls (the same input with no effect).
+- Where you are: ROUTE102 (map 0/17) at 35,6 facing down
+- Shown here and not tried yet: BOY_1 at 36,3 (A); YOUNGSTER at 33,14 (A); Sign text "ROUTE 102 | ← PETALBURG CITY" at 17,2 (A)
+- Your latest attempts: navigate_to 0,6 ×3 → no change; navigate_to 0,6 ×2 → moved to 35,6; press UP,LEFT,LEFT,LEFT,LEFT,LEFT,LEFT,LEFT → moved to 35,4
+- Choose a call other than navigate_to 0,6: it answered "no supported local path; choose a reachable local waypoint" 3 times in a row.</p>
+</div>
+<p class="muted">Control run <code>2026-10-20T03-02-13_qwen36-gpu0_8d39</code>, turn 3258, rebuilt from the recorded events (left shortened with …; right whole).</p>
+
+<h2>What changes</h2>
+<table>
+<tr><th>Note</th><th>Off</th><th>On</th></tr>
+<tr><td>Loop guard (cycle, ineffective, …)</td><td>"You are currently looping … do not try it again" plus a long bearings list, ways off the map and the story goal</td><td>"Make one tool call …", one fact, where you are, untalked story characters here, up to 3 untried targets (warps left out), the latest 3 attempts; when the newest attempt repeated, which call to replace and what it answered</td></tr>
+<tr><td>Text-only supervisor</td><td>"Your last N replies called no tool, so nothing happened …"</td><td>"Make one tool call … Your last N replies called no tool." plus the same facts</td></tr>
+<tr><td>Interface dwell</td><td>"You are stalling …" bearings</td><td>"Make one tool call … You have made N calls in the …" plus the open interface and how to finish naming</td></tr>
+<tr><td>Milestone drought, map back-and-forth</td><td>sent</td><td>not sent</td></tr>
+</table>
+<p>Detection, recovery rules and recorded loop_guard events are unchanged; only the message text differs. Nothing is clipped.</p>
+
+<h2>Decision probes</h2>
+<figure>
+<svg viewBox="0 0 640 220" width="100%" role="img" aria-label="Probe results, 32 samples a side">
+<g font-size="12">
+<text x="0" y="20">Party menu mid-battle (827): backs out with B</text>
+<rect x="300" y="8" width="62" height="14" fill="var(--muted)"/><text x="368" y="20">off 10/32</text>
+<rect x="300" y="26" width="200" height="14" fill="var(--keep)"/><text x="506" y="38">on 32/32</text>
+<text x="0" y="80">Woods cycle (3411): takes the wrong south warp</text>
+<rect x="300" y="68" width="31" height="14" fill="var(--muted)"/><text x="337" y="80">off 5/32</text>
+<rect x="300" y="86" width="1" height="14" fill="var(--keep)"/><text x="306" y="98">on 0/32</text>
+<text x="0" y="140">Route 102 ledge pocket (3259): repeats the failed walk</text>
+<rect x="300" y="128" width="56" height="14" fill="var(--muted)"/><text x="362" y="140">off 9/32</text>
+<rect x="300" y="146" width="131" height="14" fill="var(--drop)"/><text x="437" y="158">on 21/32</text>
+<text x="0" y="200">Bundle loops (f28d 451, 2301, 2862): no change over the breaker and stall gate</text>
+</g>
+</svg>
+<figcaption>Raw samples in <code>runs/decision-probes/2026-10-20_positive-supervisor/</code>. The ledge loop comes from the 15×15 planner (a flood fill reaches the west exit); operator decision 2026-10-20: ship it in the bundle, whose whole-map navigation should keep that loop from forming. Watch it in the cook.</figcaption>
+</figure>
+
+<h2>Off</h2>
+<p>The supervisors' notes are byte-for-byte today's.</p>
+
+<h2>Status</h2>
+<p>Branch <code>claude/positive-supervisor</code>. Tests: <code>positive-supervisor.test.ts</code> (real f28d events). Three probe rounds; variant A (the repeated-attempt line last) chosen.</p>
+</main>
+</body>
+</html>

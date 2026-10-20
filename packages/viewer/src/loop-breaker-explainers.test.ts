@@ -9,7 +9,7 @@ import { RunView } from "./model.js";
 import { DEFAULT_NEXT_RUN } from "./next-run.js";
 import { FEATURE_EXPLAINERS, harnessConfig } from "./panels.js";
 
-for (const [ID, phrase] of [["fixed-point-breaker-v1", "Stage 3: walk to the nearest untalked person and press A"], ["story-character-stall-gate-v1", "The turn 450 note, off and on"]] as const) {
+for (const [ID, phrase] of [["fixed-point-breaker-v1", "Stage 3: walk to the nearest untalked person and press A"], ["story-character-stall-gate-v1", "The turn 450 note, off and on"], ["positive-supervisor-v1", "The same note, off and on"]] as const) {
   it(`starts ${ID} OFF for the next run and links its card to the tracked explainer`, () => {
     expect(DEFAULT_NEXT_RUN.features[ID]).toBe(false);
     expect(FEATURE_EXPLAINERS[ID]).toBe(`${ID}.html`);

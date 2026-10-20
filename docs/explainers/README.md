@@ -146,3 +146,4 @@ The original ignored runs/explainers copies remain for existing links. Make futu
 - [Original-speed deadline pacing](original-speed-pacing-v1.html): default-OFF 80 FPS game-clock policy, conditional 4× selector, and separate publication/display boundaries.
 - [Fixed-point breaker](fixed-point-breaker-v1.html) — bundle-only guard: collapses identical repeated turns, sends a positive note with the count, then once per loop talks to the nearest untalked person.
 - [Story-character stall gate](story-character-stall-gate-v1.html) — bundle-only guard: no stall or ways-off briefing while an untalked story character is on the map.
+- [Positive supervisor](positive-supervisor-v1.html) — bundle-only: supervisor notes become one instruction plus what the game shows; drought and map back-and-forth briefings stop.

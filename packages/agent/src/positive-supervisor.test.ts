@@ -8,7 +8,7 @@ import {attachLoopGuard,Governor} from "./harness.js";
 import type {LoopNotice} from "./loop-detection.js";
 import {flagFeatures,normalizeFeatures} from "./play-preset.js";
 import {loopSupervisor,stallBriefing} from "./play-wiring.js";
-import {SupervisorBriefing} from "./loop-supervisor.js";
+import {SupervisorBriefing,navigationSaid} from "./loop-supervisor.js";
 
 const ID="positive-supervisor-v1";
 interface Fixture {readonly source:string;readonly events:readonly RunEvent[]}
@@ -78,5 +78,13 @@ describe("positive-supervisor-v1 on run f28d, Route 103 with MAY at (10,3)",()=>
   expect(note).not.toContain("the run ends");
   expect(b.stallText({kind:"interface_dwell",name:"party menu interface",calls:30},9).split("\n")[0]).toBe("SUPERVISOR: Make one tool call based on the game state and what you observed. You have made 30 calls in the party menu interface.");
   expect(b.textOnly(1,1,3).split("\n")[0]).toBe("SUPERVISOR: Make one tool call based on the game state and what you observed. Your last 1 reply called no tool.");
+ });
+ it("quotes navigate_to's own answer for a repeated walk",()=>{
+  const on=replay({...RUN,[ID]:true});
+  const note=on.at(417)[0]?.message??"";
+  expect(note.split("\n").at(-1)).toMatch(/^- Choose a call other than navigate_to 10,4: it answered "no route to \(10,4\) lies inside the 15x15 local map navigate_to plans over.*" [0-9]+ times in a row\.$/);
+  expect(navigationSaid("Screen\nNavigation: no supported local path; choose a reachable local waypoint; 0 ordinary button attempts.\nX")).toBe("no supported local path; choose a reachable local waypoint");
+  expect(navigationSaid("Navigation: arrived at requested coordinate; 1 bounded movement actions.")).toBe("arrived at requested coordinate");
+  expect(navigationSaid("pressed A")).toBeUndefined();
  });
 });

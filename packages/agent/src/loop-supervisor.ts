@@ -73,8 +73,6 @@ export function navigationSaid(text:string):string|undefined {
  const line=/^Navigation: (.*)$/m.exec(text)?.[1];
  return line?.replace(/;? ?\d+ (?:ordinary button attempts?|bounded movement actions?)\.?$/,"").replace(/[;.]\s*$/,"");
 }
-// Probe layouts of the repeated-attempt line: "a" last, "b" right under the instruction, "c" as "b" with a plan-first instruction.
-const REPEAT_LAYOUT:"a"|"b"|"c"="a";
 const counted=(event:Extract<RunEvent,{type:"milestone"}>):boolean=>event.origin!=="present_at_start"&&event.name!=="GAME_RUNNING"&&!MEASUREMENT_ONLY_MILESTONES.has(event.name);
 
 // A deterministic summary for a looping agent: facts it was shown, never a route or story goal.
@@ -505,17 +503,15 @@ export class SupervisorBriefing {
   const repeated=newest!==undefined&&newest.count>1?newest:undefined;
   const untried=ui!==undefined||this.latest===null||!this.features["world-targets-v1"]?[]:this.open(this.latest).filter(t=>!t.startsWith("Warp")&&!t.startsWith("warp")).slice(0,3);
   const again=repeated===undefined?[]:[`- Choose a call other than ${repeated.label}: ${repeated.said===undefined?`it gave the same result (${repeated.outcome})`:`it answered "${repeated.said}"`} ${String(repeated.count)} times in a row.`];
-  const head=REPEAT_LAYOUT==="c"?"SUPERVISOR: Write a new plan from the game state and what you observed, then make one tool call.":"SUPERVISOR: Make one tool call based on the game state and what you observed.";
   const lines=[
-   `${head}${fact===""?"":` ${fact}`}`,
-   ...(REPEAT_LAYOUT==="a"?[]:again),
+   `SUPERVISOR: Make one tool call based on the game state and what you observed.${fact===""?"":` ${fact}`}`,
    `- Where you are: ${ui===undefined?this.where():`in the ${ui.name}; your last field position was ${this.where()}`}`,
    ...(ui===undefined?[]:[`- Open interface: ${ui.name}; phase ${ui.phase}; text ${ui.text??"unknown"}; selected ${ui.selected??"unknown"}; controls: ${ui.controls??"unknown"}`]),
    ...(ui?.naming===true?[`- How to finish: press START to move the cursor to OK, then press A on OK${ui.owner==="nickname"?"; with no text entered the Pokémon keeps its current name":""}`]:[]),
    ...this.untalked().split("\n").filter(l=>l!==""),
    ...(untried.length===0?[]:[`- Shown here and not tried yet: ${untried.join("; ")}`]),
    ...(recent===""?[]:[`- Your latest attempts: ${recent}`]),
-   ...(REPEAT_LAYOUT==="a"?again:[]),
+   ...again,
   ];
   return lines.join("\n");
  }

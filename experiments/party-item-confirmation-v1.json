@@ -8,7 +8,7 @@
   "primaryMilestone": "ROXANNE_DEFEATED",
   "source": {
     "checkout": "main",
-    "commit": "5f7a2acaca12ec56e6e6c7d1981af3c395d747ba"
+    "commit": "57b9f7209d44c854d572ae1fe0b1d766429402a9"
   },
   "incumbent": {
     "version": 2,
@@ -201,5 +201,5 @@
     "window": 4,
     "minReached": 3
   },
-  "notes": "Pending, unqueued correctness repair. No launch authorized. STARTER_CHOSEN is a conservative earliest milestone for a party item use; readiness to reach it does not establish repeated exposure to this message. source.commit is the base pin until eligible landing; repin afterwards."
+  "notes": "Pending, unqueued correctness repair. No launch authorized. STARTER_CHOSEN is a conservative earliest milestone for a party item use; readiness to reach it does not establish repeated exposure to this message. source.commit pins the repair implementation; repin to the final merge SHA after eligible landing."
 }

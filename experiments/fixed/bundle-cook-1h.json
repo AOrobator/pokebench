@@ -174,7 +174,8 @@
    "exit-labels-v2": false,
    "heal-before-trainers-v2": false,
    "gym-heal-warning-v1": false,
-   "respawn-readout-v1": false
+   "respawn-readout-v1": false,
+   "trainer-sight-check-v1": false
   }
  },
  "switches": [
@@ -223,7 +224,8 @@
   "exit-labels-v2",
   "heal-before-trainers-v2",
   "gym-heal-warning-v1",
-  "respawn-readout-v1"
+  "respawn-readout-v1",
+  "trainer-sight-check-v1"
  ],
  "offInBoth": [
   "semantic-navigation-v1",

@@ -8,7 +8,7 @@ Source: pret/pokeemerald 731ad5bfd6e6f265508d0efcca0ba42f9dcf5881, RustboroCity_
 
 Plan: RED graph/ranking and historical recovery tests; GREEN smallest owner repair; full gates; frozen three-cloud-lane review; ff-only local main landing; viewer-main and live browser evidence.
 
-Status: implementation and historical reconciliation complete; review and landing pending.
+Status: reviewed, Claude waived by operator, fast-forward landed78f70088; post-main tests pass; live viewer verification follows in runs/rustboro-trainers/live-receipt.md.
 
 RED: graph and native-ingestion tests now require trainer points and frontier selection; initial run could not resolve the unbuilt agent package; reran after building to obtain assertion failures before the catalog update. Real snapshot has 437 runs: b300 records Josh at 60.65 active min and Tommy at 62.58; r10 and r5 each record Josh. Human baseline already has three labeled visual reconstructions. No new decoder required if full log audit confirms no missing native marks.
 
@@ -18,6 +18,12 @@ GREEN: 37 focused tests pass, 4,245 TypeScript tests pass. Lint/build/vendor pas
 
 Main advanced independently during gates; syncing before frozen review.
 
-Final code after main sync: 2,868 agent + 1,399 viewer + 2,906 Python tests pass (7,173 total). Lint/build/vendor pass. Coverage rerun on identical production tree: TS both stacks pass 90% in each metric; Python completion pending when sealing. Earlier coverage hit an unchanged 100ms child-startup test under simultaneous host test load (empty stdout before timeout); preserved failure, changed no source, tests or runner settings, reran full coverage normally. Native mGBA binding linked into worktree-local venv; original logs unchanged.
+Final code after main sync: 2,868 agent + 1,399 viewer + 2,906 Python tests pass (7,173 total). Lint/build/vendor pass. Coverage rerun on identical production tree: TS both stacks pass 90% in each metric; Python coverage completed: lines96.96%, branches92.49%, functions100%. Earlier coverage hit an unchanged 100ms child-startup test under simultaneous host test load (empty stdout before timeout); preserved failure, changed no source, tests or runner settings, reran full coverage normally. Native mGBA binding linked into worktree-local venv; original logs unchanged.
 
 Browser preview: pointer Tommy and keyboard Enter Josh both open exact native state receipts; two polling cycles retain points. Desktop 1280/1440 and phone 375 screenshots (expanded/collapsed) inspected, zero console errors. Existing original comparison tab is owned by another browser session; preview is a separate tab, no original-tab repair claimed. Evidence under canonical runs/rustboro-trainers and runs/mockups/rustboro-trainers/shots. Real runs experiments audit prints nothing.
+
+## Review and landing receipt
+
+Frozen base37211ba7817c9e787d24db67f0fa70c47e243c44; head78f7008817e60243b72922bb0dd8eb2d6bb55d35; exact binary diff SHA256 cd428f9511337d2c839b382e48956af8df4c8960550833b99fddf22bb5a6520a. Grok4.5 Cursor and isolated GPT5.6 Sol xhigh each returned LGTM. Claude CLI logged out and Cursor Opus/Sonnet/Haiku usage-capped; independent gpt-6-sol and gpt-6-astra no-history fallback reviewers both returned LGTM. Astra independently passed111 focused tests; GPT passed37. No blockers or scope expansion; optional stale comments and more isolated ranking assertion retained as nonblocking follow-ups. Grok could read packet/tree but its shell was rejected; implementer verified exact immutable digest before/after. Packet, identities, gate logs and full synthesis: runs/rustboro-trainers/review.
+
+Operator explicitly replied "claude is waived" on2026-10-20. Clean main fast-forward landed exact reviewed78f70088. Post-merge build and all7173 tests (2868 agent1399 viewer2906 Python) pass on canonical main. Evidence-only closeout commit precedes viewer-main so the live viewer gets the final main build stamp. Viewer restart, process survival and browser/native point checks will be recorded under runs/rustboro-trainers/live-receipt.md. No game/run restart authorized or performed. Scratch preview8794 stopped.

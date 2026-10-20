@@ -1,4 +1,5 @@
 import { createHash, type Hash } from "node:crypto";
+import { RUN_LOG_MAX_BYTES } from "./run-log.js";
 import { closeSync, fstatSync, openSync, readSync } from "node:fs";
 import { eventEnvelope, eventProblem, type EventEnvelope, type RunEvent } from "@pokebench/agent/events";
 import { readVisualPlan, verifiedVisuals, visualEvidenceSignature, type ScreenshotEvidence } from "./frontier-visual.js";
@@ -119,7 +120,7 @@ export function createNativeRecordingTailer(path: string, id: string, qualified:
   const append = (): void => {
     const fd = openSync(path, "r");
     try {
-      const before = fstatSync(fd), maxBytes = 512 * 1024 * 1024, lineBytes = 1024 * 1024, chunkBytes = 64 * 1024;
+      const before = fstatSync(fd), maxBytes = RUN_LOG_MAX_BYTES, lineBytes = 1024 * 1024, chunkBytes = 64 * 1024;
       if (before.size > maxBytes) throw new Error("Run log exceeds the streaming byte bound; no split graded");
       if (before.size < offset) throw new Error("Run log changed during reduction; snapshot unavailable");
       const chunk = Buffer.alloc(Math.min(chunkBytes, maxBytes));

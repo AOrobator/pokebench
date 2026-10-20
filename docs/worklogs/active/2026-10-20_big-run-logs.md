@@ -17,9 +17,9 @@
 
 - [x] RED: a re-iterable streaming line reader; `classifyTrial` grades from lines in one pass; the runner, `fixed-run analyze` and receipt analysis read logs through it; the viewer bound is a shared constant above the six-hour logs
   - RED run: run-log.test.ts fails to load (no module); 7 classifyTrial cases fail because a one-shot line stream does not grade like the whole text.
-- [ ] GREEN
-- [ ] Gates: `just test`, `just coverage`, `just lint`
-- [ ] Proof: classify the real 1.2 GB log with the built code
+- [x] GREEN: `run-log.ts` (`RUN_LOG_MAX_BYTES` 8 GiB, `fileLines` re-iterable chunked line reader, `linesOf`); `classifyTrial` grades in one pass from lines; runner `events()`, `fixed-run analyze` (`rescoreTrials`/`completeLog`) and receipt analysis read through `fileLines`; workbench and frontier readers use the shared bound.
+- [x] Gates: `just lint` clean; `just coverage` passes (agent 2702, viewer 1352, env 2894; Python 96%)
+- [x] Proof (built code, real logs): control `…gpu0_8d39` valid, wall cap, furthest TEAM_AQUA_WOODS_EVENT_COMPLETE, 2.2 s; bundle `…gpu1_f28d` valid, wall cap, furthest RUNNING_SHOES_RECEIVED, 1.0 s. Workbench reader streams 110,122 and 79,167 events at ~185 MB RSS.
 - [ ] Review: Claude, Grok, GPT
 - [ ] Land, restart viewer, restart the runner so it records both outcomes, confirm both runs on the frontier graph
 

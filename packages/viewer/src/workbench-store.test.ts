@@ -1,3 +1,4 @@
+import { RUN_LOG_MAX_BYTES } from "./run-log.js";
 import { appendFileSync, cpSync, mkdirSync, mkdtempSync, rmSync, symlinkSync, truncateSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -157,7 +158,7 @@ describe("durable cohort membership and metadata boundaries", () => {
     expect(d.runs.find(x => x.id === "boot")?.config).toMatchObject({ start: "boot", resume: null });
   });
   it("rejects oversized and symlinked receipts/logs without reading arbitrary files", async () => {
-    const r = root(), p = write(r, "large", named()); truncateSync(p, 513 * 1024 * 1024); const c = cohort(r, [{ type: "launch", runId: "cohort_01" }]); truncateSync(c.path, 2 * 1024 * 1024);
+    const r = root(), p = write(r, "large", named()); truncateSync(p, RUN_LOG_MAX_BYTES + 1); const c = cohort(r, [{ type: "launch", runId: "cohort_01" }]); truncateSync(c.path, 2 * 1024 * 1024);
     const d = await workbenchSnapshot(r, () => Promise.resolve(false), 42); expect(d.runs[0]?.problem).toContain("streaming byte bound"); expect(d.problems[0]).toContain("metadata size");
     mkdirSync(join(r, "linked")); symlinkSync(p, join(r, "linked/events.jsonl")); expect((await workbenchSnapshot(r, () => Promise.resolve(false), 42)).runs.find(x => x.id === "linked")?.status).toBe("invalid");
   });

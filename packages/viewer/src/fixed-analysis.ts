@@ -4,6 +4,7 @@
 import { phaseOf, type FixedArm, type FixedDefinition } from "./fixed-design.js";
 import { DEPTH_ORDER } from "@pokebench/agent/milestones";
 import { classifyTrial, queueState, WALL_CAP, type FixedLedgerEntry } from "./fixed-ledger.js";
+import { linesOf, type LogLines } from "./run-log.js";
 
 export interface AnalysisTrial {
   readonly slot: number;
@@ -222,7 +223,7 @@ export function renderAnalysis(report: AnalysisReport, title: string, options?:R
 // depth from the trial's own complete log (run_start first, run_end last); otherwise re-map the
 // stored furthest name onto DEPTH_ORDER. A stored activity name with no usable log cannot be
 // re-graded, so it is listed. The primary outcome and validity always stay as the ledger has them.
-export function rescoreTrials(trials: readonly AnalysisTrial[], events: (run: string) => string | null, progressOrder?:readonly string[]): { trials: AnalysisTrial[]; unscored: string[] } {
+export function rescoreTrials(trials: readonly AnalysisTrial[], events: (run: string) => LogLines | null, progressOrder?:readonly string[]): { trials: AnalysisTrial[]; unscored: string[] } {
   const unscored: string[] = [];
   const rescored = trials.map((t) => {
     const text = events(t.run);
@@ -239,16 +240,16 @@ export function rescoreTrials(trials: readonly AnalysisTrial[], events: (run: st
 }
 
 // Every line is one of this run's events, the first is run_start and the last is run_end.
-function completeLog(text: string, run: string): boolean {
-  const types: unknown[] = [];
-  for (const line of text.split("\n")) {
+function completeLog(log: LogLines, run: string): boolean {
+  let first: unknown, last: unknown;
+  for (const line of linesOf(log)) {
     if (line.trim() === "") continue;
     let e: unknown;
     try { e = JSON.parse(line); } catch { return false; }
     if (typeof e !== "object" || e === null || !("run" in e) || e.run !== run || !("type" in e)) return false;
-    types.push(e.type);
+    first ??= e.type; last = e.type;
   }
-  return types[0] === "run_start" && types.at(-1) === "run_end";
+  return first === "run_start" && last === "run_end";
 }
 
 export function trialsFromLedger(def: FixedDefinition, entries: readonly FixedLedgerEntry[], phase: string): AnalysisTrial[] {

@@ -47,7 +47,7 @@ screen, out of battle:
       memory) + registry/preset tests.
 - [x] M1 GREEN: `env/pokebench_env/respawn.py`, GameState/read_game_state/readout/rerender/observation wiring,
       registry, presets, defaults.
-- [ ] Explainer `docs/explainers/respawn-readout-v1.html`, FEATURE_EXPLAINERS, pending `experiments/respawn-readout.json`.
+- [x] Explainer `docs/explainers/respawn-readout-v1.html`, FEATURE_EXPLAINERS, pending `experiments/respawn-readout.json`.
 - [ ] b300 replay at state seqs 14716 (turn of seq 14724), 15196 (after seq 15195) and 15755 (turn of seq 15776).
 - [ ] Gates, sync main, Claude + Grok review (2 rounds max).
 
@@ -72,6 +72,14 @@ screen, out of battle:
 - b300 replay (raw RAM, run's own server switches + this one, memory folded from the recorded states):
   14716 RUSTBORO CITY: house, 8 changes, ₽3142 of ₽6284, + the unentered center at (16,38);
   15196 GYM: house, 9 changes, ₽3222 of ₽6444; 15755 bedroom: house (on this map), ₽1643 of ₽3286.
+
+- Coverage after GREEN: agent 97.19/92.89/97.68 (stmts/branch/funcs), viewer 95.09/91.04/93.85, Python lines 97.00
+  branches 92.56 functions 100 (respawn.py 99%). pytest 2936 passed once mgba was built.
+- Explainer `docs/explainers/respawn-readout-v1.html` (b300 replay text, map-change chain, game grounding, wording
+  table, wiring), README entry, FEATURE_EXPLAINERS + panels/server tests; `just pages-check` clean. Pending
+  `experiments/respawn-readout.json` (shared incumbent, flips only this switch, no queuePosition; source.commit =
+  implementation commit, repin on landing) and a readiness.md row. `experiment-cli check`: only the pre-existing
+  starter-decision-salience ledger problems.
 
 ## Surprises
 

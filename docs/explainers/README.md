@@ -149,3 +149,4 @@ The original ignored runs/explainers copies remain for existing links. Make futu
 - [Story-character stall gate](story-character-stall-gate-v1.html) — bundle-only guard: no stall or ways-off briefing while an untalked story character is on the map.
 - [Positive supervisor](positive-supervisor-v1.html) — bundle-only: supervisor notes become one instruction plus what the game shows; drought and map back-and-forth briefings stop.
 - [Unfinished activity memory](unfinished-activity-v1.html) — bundle-only: the agent's own lost trainer battle, what it did on that map and its own walk back, kept across detours; reached places read as heard and reached.
+- [Respawn readout](respawn-readout-v1.html) — bundle-only readout line: where a blackout sends the player (saved heal location, map changes, money / 2 lost) and an exit POKéMON CENTER that would move it.

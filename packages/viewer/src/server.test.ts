@@ -872,9 +872,9 @@ it("serves the tracked battle action tool explainer byte for byte through the al
  expect((await get(viewer,`/explainers/${id}.html`,{method:"PUT"})).status).toBe(405);
 });
 
-it("serves the 2026-10-17 readout-fix explainers byte for byte through the allowlist",async()=>{
+it("serves the 2026-10-17 readout-fix and respawn readout explainers byte for byte through the allowlist",async()=>{
  const root=mkdtempSync(join(tmpdir(),"pokebench-explainers-"));const staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});
- const pages={"tutorial-party-owner-v1":"Tutorial party owner","mid-frame-readout-v1":"Mid-frame readout","unset-dynamic-warp-v1":"Unset dynamic warp","status-names-v1":"Status names","surf-gated-exits-v2":"Surf-gated exits v2"};
+ const pages={"respawn-readout-v1":"Respawn readout","tutorial-party-owner-v1":"Tutorial party owner","mid-frame-readout-v1":"Mid-frame readout","unset-dynamic-warp-v1":"Unset dynamic warp","status-names-v1":"Status names","surf-gated-exits-v2":"Surf-gated exits v2"};
  const tracked=new Map(Object.keys(pages).map(id=>[id,readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)))]));
  for(const [id,body] of tracked)writeFileSync(join(docs,`${id}.html`),body);
  const viewer=await startViewer({runsRoot:join(root,"runs"),staticDir,appDir:join(root,"app"),port:0});open.push(viewer);

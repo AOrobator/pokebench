@@ -1210,6 +1210,7 @@ it.each([
  ["unset-dynamic-warp-v1",["setdynamicwarp MAP_LITTLEROOT_TOWN, 3, 10","Warp destination at (4,1): dynamic destination","PETALBURG CITY (dynamic warp; map 0/0)"]],
  ["status-names-v1",["GetAilmentFromStatus","gText_Psn","STATUS PSN","STATUS 8"]],
  ["surf-gated-exits-v2",["GetInteractedWaterScript","FLAG_BADGE05_GET","PartyHasMonWithSurf","crosses water you cannot cross yet"]],
+ ["respawn-readout-v1",["lastHealLocation","setrespawn","DoWhiteOut","If your party faints, you wake up at your house in LITTLEROOT TOWN (9 map changes from here) and lose half your money (₽3222 of ₽6444).","This town has a POKéMON CENTER you have not entered: RUSTBORO CITY POKEMON CENTER 1F at (16,38)."]],
 ] as const)("links the %s card to its tracked explainer, which quotes the recorded lines and the game source",(id,quotes)=>{
  expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
  const log=new Log();log.add(0,{...START,harness_features:["ram-state-v1",id]});

@@ -23,3 +23,13 @@
 - [x] Gates: lint clean; agent 2787, viewer 1359, pytest 2896 pass; `fixed-run check` clean for both (cook-1h sha256 recorded at review)
 - [x] Review: Grok (cursor-grok-4.5-high) and Claude (subagent; `claude -p` OAuth expired) `VERDICT: LGTM` on packet sha256 9a469832…80c2, logs in runs/reviews/next-bundle-1h/
 - [x] Landed ff-only on main at 6ee8bf6b (packet hash unchanged after rebase onto 957b5626); `just viewer-main` reports viewer at 6ee8bf6b; `fixed-run check bundle-cook-1h` on main exits 0
+
+### M2 Supervisor and navigate_to fixes into the bundle
+
+2026-10-20, coordinator relay after "Supervisor and navigate_to bug fixes" landed (056b778e, 6ca9661a): The operator wants every planned bundle fix in before the 12-hour cook.
+
+- [x] `briefing-repeat-count-v1` and `navigate-already-here-v1` are bundle switches (base false) in `bundle-v-control` and `bundle-cook-1h`; plan regenerated (unchanged, 4 trials). Note: `briefing-repeat-count-v1` acts only with `supervisor-briefing-v2`, which is off in both arms, so it is inert in this bundle.
+- [x] Tests: fixed-runner next-bundle pin covers both; open-goal-prompt exclusion list gains both.
+- [x] Gates: lint clean; agent 2798, viewer 1361, pytest 2896 pass; `fixed-run check` clean for both.
+- [ ] Review: Claude and Grok LGTM
+- [ ] Land ff-only, `just viewer-main`

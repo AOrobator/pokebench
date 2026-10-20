@@ -6,6 +6,8 @@ import {SWITCHABLE_FEATURES,featureInfo,playHarnessFeatures} from "./features.js
 import type {GameStateSnapshot} from "./game-state.js";
 import type {CheckedPressTool} from "./game-tools.js";
 import {navigationTool,withNavigation} from "./navigation.js";
+import {withSemanticNavigation} from "./semantic-navigation.js";
+import {Type} from "typebox";
 import {SupervisorBriefing} from "./loop-supervisor.js";
 import {loopSupervisor} from "./play-wiring.js";
 import {experimentArms,parseExperiment} from "./experiments.js";
@@ -83,6 +85,17 @@ describe(HERE,()=>{
  it("ON: a walk that moved still says it arrived",async()=>{
   const walked=await run(true,{...field,position:{x:11,y:5}});
   expect(walked.buttons).toEqual([["LEFT"]]);expect(walked.text).toBe("Navigation: arrived at requested coordinate; 1 ordinary button attempts.");
+ });
+ it("ON: semantic navigation already on the approach tile still faces and activates the target",async()=>{
+  const person={kind:"object",x:3,y:0,elevation:3,activation:"A",availability:"conditional",facing:null,local_id:2,native_slot:2,destination:null,name:"PERSON_2"};
+  let current:GameStateSnapshot={...field,map_id:[0,9],position:{x:2,y:0},facing:"right",interaction_targets:[person],interaction_object_slots:[{slot:2,x:3,y:0,elevation:3,local_id:2,map_id:[0,9],is_player:false}],navigation_grid:{elevation:3,tiles:[0,1,2,3,4].flatMap(x=>[tile(x,0),tile(x,1)]),objects:[{x:3,y:0}],warps:[]}};
+  const buttons:string[][]=[];
+  const travel=navigationTool({alreadyHere:true,read:()=>Promise.resolve(current),press:()=>Promise.reject(new Error("no walk expected")),observe:()=>Promise.resolve(result(current))});
+  const activation={name:"press",label:"press",description:"press",parameters:Type.Object({}),execute:()=>Promise.resolve(result(current)),executeChecked:(_id:string,args:{buttons:string[]},check:(state:GameStateSnapshot)=>void)=>{check(current);buttons.push([...args.buttons]);current={...current,in_battle:true};return Promise.resolve(result(current));}} as unknown as CheckedPressTool;
+  const features={...flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false}),"bounded-navigation-v1":true,"walkable-floor-v1":true,"semantic-navigation-v1":true,[HERE]:true};
+  const tool=withSemanticNavigation([travel,activation],features,{read:()=>Promise.resolve(current)}).find(t=>t.name==="navigate_to_target");if(tool===undefined)throw new Error("missing semantic tool");
+  const out=await tool.execute("s",{map_id:[0,9],target:{kind:"object",local_id:2}});
+  expect(first(out)).not.toContain("route failed");expect(buttons).toEqual([["A"]]);expect(out.details).toMatchObject({semantic_navigation:{activation_attempted:true}});
  });
  it("is wired through the production factory",async()=>{
   let current=field;

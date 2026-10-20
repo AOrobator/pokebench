@@ -510,6 +510,7 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "respawn-readout-v1":"respawn-readout-v1.html",
  "trainer-sight-check-v1":"trainer-sight-check-v1.html",
  "caught-nickname-prompt-v1":"caught-nickname-prompt-v1.html",
+ "party-item-confirmation-v1":"party-item-confirmation-v1.html",
  "fail-open-input-v1":"fail-open-input-v1.html",
 });
 

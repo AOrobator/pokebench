@@ -1347,3 +1347,14 @@ it("links the recorded original-speed policy without inferring historical ON",()
  doc.body.innerHTML=harnessConfig(view(legacy),FEATURES);
  expect(doc.querySelector(`[data-feature="${id}"]`)?.classList.contains("config-on")).toBe(false);
 });
+
+it("keeps party confirmation readiness in the existing replay interface and links its feature card",()=>{
+ const log=bare();
+ log.add(1000,state({active_ui:{phase:"party_item_message",selected:"A/B: CONTINUE",ready:true,controls:"A or B continues the message",diagnostic:null,value:null,details:{message:"TORCHIC's HP was restored by 20 point(s)."}}}));
+ const current=view(log);
+ const doc=new Window().document;doc.body.innerHTML=trainerCard(current,END)+harnessConfig(current,FEATURES);
+ expect(doc.body.textContent).toContain("party_item_message");
+ expect(doc.body.textContent).toContain("A/B: CONTINUE");
+ expect(doc.body.textContent).toContain("ready");
+ expect(doc.querySelector('[data-feature="party-item-confirmation-v1"] a')?.getAttribute("href")).toBe("/explainers/party-item-confirmation-v1.html");
+});

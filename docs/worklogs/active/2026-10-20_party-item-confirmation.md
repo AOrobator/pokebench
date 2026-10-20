@@ -24,3 +24,25 @@ Reproduced from matching-ROM hash-validated raw archives 6468,6472,6507 of run 2
 ## Open questions
 
 Validate message-pointer bounds/consumed wait bytes against raw receipts, and fail closed for invalid native printer ownership. Review availability and concurrent main movement may block landing; neither is approval.
+
+## RED/GREEN and verification receipts
+
+COMMIT: `test: reproduce party item confirmation readiness error` (f09b971f). Eight new tests fail before implementation (missing native readiness path).
+
+Implementation: exact message owner and window-6 printer WAIT after FC09, bounded to the current terminated message, no fade/autoScroll. HP/printing/handoff stay passive. Feature registered default OFF through server factory and viewer; no active preset edits. Existing fixed registry/order tests shift by one; frozen experiment fixture lists exclude new switch without rewriting the old definitions.
+
+Native integration test cuts 89 exact read requests from hash-validated archive6507 into a tracked provenance fixture; full production read_state→state_json/readout asserts ON and exact OFF. Independently ran canonical pre-repair reader over the fixture: OFF readout matches byte for byte. Three archives reparsed before changes, screenshot opened. Synthetic cases cover printing, timed pause, inactive printer, autoScroll, HP animation, handoffs, fade, wrong window/cursor/state, short printer and duplicate tasks. No automatic press.
+
+Mutation receipts: initial run ten failures/restoration green; a second run accidentally reused some filenames and then stopped at a changed search string. Earlier overwritten receipts are not claimed preserved. Fresh uniquely named `mutation-r3-*.txt` receipts independently show ten failing guard/wiring deletions with all restored tests green; summary in `runs/party-item-confirmation/mutations-summary-3.txt`.
+
+Initial full Python run without configured ROM had 247 skips and 10 failures (nine registry expectations + ROM test). Configured external ROM, updated registry collateral and reran: 3011 passed, zero skips (before four additional focused cases). Python coverage lines97.09/branches92.63/functions100. Initial TS coverage passed agent2965/viewer1436, with agent97.21 statements/92.95 branches/97.60 functions/99.16 lines and viewer95.09/91.06/93.85/97.70. A later full coverage run hit an unrelated existing viewer stream timeout (`keeps the downstream socket open...`, received2 frames; server.test.ts445), recorded in final-coverage.txt. No timing threshold, skips or streaming implementation changed. Final gates recorded below after completion.
+
+Browser: isolated direct startViewer server at scratch port49481 (no queue/autorun), scratch replay copy only, no approvals/ledgers or canonical runtime access. Expanded Activity History and raw inspector show exact corrected Interface string. Searched Harness Config by exact switch ID and clicked its READ EXPLAINER link; expected tracked document opened. 375/1280/1440 screenshots retained and visually opened; wide diagram scrolls within card at phone width. Browser error/warn log empty. Canonical 8791 mockup copy returns200; pages-check clean. No live runtime claim.
+
+`just experiments-check` resolves canonical main, so it reports pre-existing starter-decision-salience invalid ledger rows1–150 rather than checking this unlanded entry. No ledger edits. Direct current parseExperiment validates this branch's new pending entry, queuePosition undefined; incumbent normalized with every switch explicit. Readiness remains PENDING; no approval, queue or gameplay.
+
+Final lint passes (TS, eslint, ruff, format, mypy101 files). Build and vendor verification pass. Viewer coverage confirmation: 1436 passed, all metrics >=90%; the earlier stream timeout remains retained as an unrelated gate flake, not hidden. Agent final coverage2965 passed, all metrics >=90%. Final Python coverage receipt recorded separately. Focused native suite now17 cases.
+
+ROM address checks: exact ROM bytes retained in source-addresses.txt, no ROM added to git. Task_PrintAndWaitForText at081B1B8C has MOV r0,#6 and BL08121F20 (RunTextPrintersRetIsActive); Task_ClosePartyMenuAfterText at081B6794 calls081B1BD4 (IsPartyMenuTextPrinterActive), then081B12C0 (close). That helper calls080A91E4 (FuncIsActiveTask). Existing sTextPrinters020201B0 and gTextFlags03003014 literals are present in this matching ROM. Native archive window6 is active/state1 with currentChar02021FEF after FC09, matching text.h layout. C and native receipts agree.
+
+GREEN implementation prepared; final configured full-test and Python coverage commands running on unchanged implementation. All receipt files under this worktree's ignored runs/party-item-confirmation. Source no-new-activity boundary preserved. Review principles/boundary artifacts prepared under review-r1; reviewers receive frozen base/head/diff digest after commit. Claude dedicated review profile auth status logged out; equivalent Cursor Claude will be tried on the sealed packet. No cloud approval inferred.

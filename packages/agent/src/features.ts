@@ -167,6 +167,7 @@ export const SWITCHABLE_FEATURES = [
   "trainer-sight-check-v1",
   "caught-nickname-prompt-v1",
   "fail-open-input-v1",
+  "party-item-confirmation-v1",
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
 
@@ -444,6 +445,7 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("trainer-sight-check-v1", "guidance", "TRAINER SIGHT CHECK", "bounded-navigation-v1", "Bundle arm only, default off (the operator 2026-10-20: something deterministic for walking into a trainer's line of sight). Before a navigate_to call walks, the game server tests every tile of its first planned route against every trainer on the current map the player has not beaten, by the game's own rule (trainer_see.c CheckTrainer): an object whose trainerType is NORMAL or BURIED and whose trainer flag is clear, looking along its facing direction (all four for BURIED) up to its sight range (trainerRange_berryTreeId), with no collision, other elevation or other object on the tiles between. Objects the game has not loaded are tested at the map's template tile with every direction their movement type faces; loaded ones at their tile now. If one can see a route tile, navigate_to does not walk and returns which trainer (object id, sprite, tile, facing, sight range), the first route tile it can see, the game's \"No! There's no running from a TRAINER battle!\", and the party HP. navigate_to gains an optional confirm_trainer_sight argument: with it true the walk runs normally. Run b300's turn 501 (navigate_to to (5,2) on map 11/3 from (5,15)) would have read: \"Navigation: not walked: a trainer you have not beaten can see the planned route; 0 bounded movement actions.\" then \"Trainer sight: the route navigate_to planned from (5,15) to (5,2) (23 steps) passes tiles trainers you have not beaten can see. … - object 3, sprite YOUNGSTER at (3,9) (loaded, its tile now), facing LEFT, sight 3 tiles: it can see (1,9), step 12 of 23 on the route. - object 5, sprite HIKER at (1,6) (not loaded; where the map places it, it may have moved), facing DOWN, sight 3 tiles: it can see (1,9), step 12 of 23 on the route. Your party: TORCHIC 11/35 HP.\" navigate_to_target and other internal walks are not checked, re-plans after the first press are not checked, and press is not checked. Each check is recorded as a trainer_sight_check event (Activity History, raw-event inspector); no timeline mark. The tool description and system prompt gain one sentence each. Needs bounded-navigation-v1. Off: navigate_to's arguments, description, results and the system prompt are unchanged, no event is recorded and the game server is never asked."),
   on("caught-nickname-prompt-v1", "observation", "CAUGHT NICKNAME QUESTION", RAM, "Bundle arm only, default off. After a catch the game asks whether to give the caught POKéMON a nickname with a YES/NO box (Cmd_trygivecaughtmonnick). The thrown ball is a turn action, so its script, box included, runs under RunTurnActionsFunctions rather than the battle script runners, and the readout read the open box as a busy battle (run c6c2 sat on it for 40 minutes, every A dropped). With the switch the box reads as an open battle question, like the learn-move box: Battle details: battle YES/NO box open (nickname the caught Pokémon), cursor on NO — UP or DOWN moves the cursor, A answers the highlighted choice, B answers NO. The battle wait and battle text auto-advance stop on it, so the model's presses reach it. Off: the box reads as a busy battle (resolving), as before."),
   on("fail-open-input-v1", "guidance", "FAIL-OPEN INPUT", null, "Bundle arm only, default off (the operator 2026-10-20: fail open for boxes or UI the harness does not recognize; B must be able to dismiss them). When the press tool's automatic advance stops on a hold the harness does not recognize (the battle keeps running with no message or input it can read, the battle state is unreadable, an interface or message stays not ready, or field controls stay locked with no message), the inputs left in the model's batch are sent as it asked, B included, and the result says: The harness does not recognize what the game is waiting for, so it sent the rest of your inputs as you asked: <inputs>. Decide from the screen what they did. A stop the harness recognizes (a menu, a battle question, the battle's end, free field controls) still drops the rest of the batch. Off: the rest of the batch is dropped after any stop (N remaining inputs not sent), as before."),
+  on("party-item-confirmation-v1", "observation", "PARTY ITEM CONFIRMATION", RAM, "Default off. Reads the party message printer: A or B continues only an active, drawn HP-restoration message at its native button wait. Printing, HP animation, fades and handoffs stay passive. No automatic presses. Off: the previous passive party_item_message readout is unchanged."),
 ];
 
 export const ALL_ON: FeatureSet = Object.fromEntries(SWITCHABLE_FEATURES.map((id) => [id, true])) as Record<SwitchableFeature, boolean>;
@@ -496,6 +498,7 @@ export const SERVER_FEATURES: readonly SwitchableFeature[] = [
   "heal-before-trainers-v2",
   "respawn-readout-v1",
   "caught-nickname-prompt-v1",
+  "party-item-confirmation-v1",
 ];
 
 export function serverFeatureEnv(features: FeatureSet): { POKEBENCH_ACTIVE_UI: "0" | "1"; POKEBENCH_FEATURES_OFF: string } {
@@ -644,6 +647,7 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("trainer-sight-check-v1"),
     ...when("caught-nickname-prompt-v1"),
     ...when("fail-open-input-v1"),
+    ...when("party-item-confirmation-v1"),
   ];
 }
 

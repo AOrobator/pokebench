@@ -156,3 +156,5 @@ The original ignored runs/explainers copies remain for existing links. Make futu
 - [Trainer sight check](trainer-sight-check-v1.html) — bundle-only: navigate_to does not walk a route an unbeaten trainer can see (trainer_see.c rule) unless called again with confirm_trainer_sight: true.
 - [Caught nickname question](caught-nickname-prompt-v1.html) — bundle-only readout fix: the post-catch nickname YES/NO box (the ball's turn-action script, run under RunTurnActionsFunctions) reads as an open battle question, not a busy battle.
 - [Fail-open input](fail-open-input-v1.html) — bundle-only: after a hold the harness does not recognize, the rest of the model's batch is sent (B included) instead of dropped.
+
+- [party-item-confirmation-v1](party-item-confirmation-v1.html): native party item message confirmation readiness.

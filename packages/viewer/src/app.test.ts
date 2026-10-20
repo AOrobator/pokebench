@@ -1696,7 +1696,7 @@ describe("side panel", () => {
     const fold = must(document.querySelector<HTMLDetailsElement>(".side details.split-times"));
     expect(fold.open).toBe(false);
     expect(fold.contains(ui("split-times"))).toBe(true);
-    expect(ui("split-times").textContent).toContain("VS BEST");
+    expect(ui("split-times").textContent).toContain("VS FRONTIER");
     expect(ui("split-strip").querySelector(".mspl")).not.toBeNull();
     fold.open = true;
     app.tick(60_000);

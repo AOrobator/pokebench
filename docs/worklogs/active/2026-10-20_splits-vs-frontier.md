@@ -15,8 +15,8 @@
 ## M1
 
 - [x] RED: frontier.test (frontierSplits), controls/panels/app labels and `frontier` key, server /comparisons returns frontier; 12 failing
-- [ ] GREEN
-- [ ] Gates: test, coverage, lint
+- [x] GREEN: `frontierSplits` in frontier.ts; /comparisons adds `frontier` from the workbench snapshot; `comparisonsOf` drops `best`; card, page, table and note relabelled; sub-second ties uncolored
+- [x] Gates: agent 2702, viewer 1356, python 2894 passed; coverage viewer 95.14/91.17/93.87, agent 97.61/93.75/97.87, python 96.94/92.45/100; lint clean
 - [ ] Proof: real browser, desktop and phone
 - [ ] Review: Claude, Grok (GPT waived for this thread)
 - [ ] Land ff-only, viewer-main, live check

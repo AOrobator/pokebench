@@ -217,7 +217,7 @@ export class App {
   private stream: StreamLike | null = null;
   private baseline: Baseline | null = null;
   private baselineRequest = 0;
-  private best: Baseline | null = null;
+  private frontier: Baseline | null = null;
   private comparisonRequest = 0;
   private comparisonsRun: string | null = null;
   private problems: string[] = [];
@@ -838,14 +838,14 @@ export class App {
     const baselineRequest = this.baselineRequest;
     try {
       const value = await this.deps.fetchJson(`/api/runs/${encodeURIComponent(runId)}/comparisons`);
-      const record = value as { candidates?: unknown; baseline?: unknown; best?: unknown };
+      const record = value as { candidates?: unknown; baseline?: unknown; frontier?: unknown };
       if (!Array.isArray(record.candidates)) throw new Error("malformed comparisons");
       const rawCandidates: unknown[] = record.candidates;
       const candidates = rawCandidates.map(baselineOf);
       const baseline = record.baseline === null ? null : baselineOf(record.baseline);
-      const best = record.best === null ? null : baselineOf(record.best);
+      const frontier = record.frontier === null ? null : baselineOf(record.frontier);
       if (request !== this.comparisonRequest) return;
-      this.best = best;
+      this.frontier = frontier;
       // Populate only validated references, even when the user disabled the
       // automatic default while loading. Never expose unchecked run choices.
       this.picker("baseline").replaceChildren(option(this.doc, "", "none"), ...candidates.map((c, i) => option(this.doc, c.run, comparisonLabel(c.run, rawCandidates[i]))));
@@ -895,7 +895,7 @@ export class App {
     this.clock = null;
     this.mode = "loading";
     this.baseline = null;
-    this.best = null;
+    this.frontier = null;
     this.baselineRequest += 1;
     this.recordedThinkingRequest += 1;
     this.recordedThinking = null;
@@ -1169,7 +1169,7 @@ export class App {
     const recordedSplits = this.mode === "loading" ? this.recordedSplits() : undefined;
     const splitView = this.mode === "loading" ? view : this.view;
     this.setHtml("split-strip", splitStrip(splitView, recordedSplits));
-    this.setHtml("split-times", splitTimes(splitView, this.best, recordedSplits));
+    this.setHtml("split-times", splitTimes(splitView, this.frontier, recordedSplits));
     this.next.setLive(live ? view : null);
     this.ui("brand").textContent = brand(view);
     const thinkingView = this.recordedThinking ?? (this.mode === "loading" ? null : view);
@@ -1197,7 +1197,7 @@ export class App {
     this.setHtml("budgets", budgets(view, nowMs));
     this.setHtml("counters", counters(view));
     this.setHtml("metric-history", metricHistory(view));
-    const split = splits(view, this.baseline, nowMs, this.best);
+    const split = splits(view, this.baseline, nowMs, this.frontier);
     this.setHtml("splits-summary", split.summary);
     this.setHtml("splits", split.table);
     this.setHtml("lanes", lanesSvg(view, nowMs));

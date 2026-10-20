@@ -144,15 +144,15 @@ export function counters(view: RunView): string {
 const splitName = (name: string): string => esc(name.replace(/_/g, " ").toLowerCase()) + (name === "PLAYER_NAME_SET" ? " (gameplay start)" : "");
 
 function deltaSpan(seconds: number): string {
-  return `<span class="${seconds <= 0 ? "d-ahead" : "d-behind"}">${signedDelta(seconds)}</span>`;
+  return Math.abs(seconds) < 1 ? `<span>${signedDelta(seconds)}</span>` : `<span class="${seconds < 0 ? "d-ahead" : "d-behind"}">${signedDelta(seconds)}</span>`;
 }
 
-export function splits(view: RunView, baseline: Baseline | null, nowMs: number, best: Baseline | null = null, compact = false): { summary: string; table: string } {
+export function splits(view: RunView, baseline: Baseline | null, nowMs: number, frontier: Baseline | null = null, compact = false): { summary: string; table: string } {
   const startMs = view.startMs;
   if (startMs === null) return { summary: "no data", table: `<p>${NO_DATA}</p>` };
   const reached = new Map(view.milestones.filter((m) => m.origin !== "present_at_start").map((m) => [m.name, (m.ms - startMs - view.control.pausedBefore(m.ms)) / 1000]));
   const reference = (run: Baseline | null) => new Map(run?.milestones.map((m) => [m.name, m]) ?? []);
-  const bases = reference(baseline), bests = reference(best);
+  const bases = reference(baseline), bests = reference(frontier);
   const names = new Set<string>([...MILESTONE_ORDER, ...reached.keys(), ...bases.keys(), ...bests.keys()]);
   const elapsed = wallSeconds(view, nowMs);
   const newStory = new Set(["PLAYER_NAME_CONFIRMED", "FIRST_TRUCK_EXIT", "MOM_CLOCK_INSTRUCTION", "MOM_RIVAL_INSTRUCTION", "RIVAL_MET", "BIRCH_RESCUE_COMPLETE", "BIRCH_STARTER_HANDOFF_COMPLETE", "RIVAL_BATTLE_WON", "RECEIVED_POKEDEX", "STARTER_TUTORIAL_COMPLETE", "RUNNING_SHOES_RECEIVED", "DAD_FIRST_MEETING", "WALLY_TUTORIAL_COMPLETE", "TEAM_AQUA_WOODS_EVENT_COMPLETE", "RUSTBORO_GYM_COMPLETE", "ROCK_TOMB_RECEIVED"]);
@@ -176,9 +176,9 @@ export function splits(view: RunView, baseline: Baseline | null, nowMs: number, 
     const note = current?.derived === true ? ` title="Recovered from recorded game state · evidence ${current.evidence?.map(seq => `#${String(seq)}`).join(", ") ?? `#${String(current.seq)}`} · first observation (upper bound)"` : "";
     return `<tr class="${cls}"><td class="n">${splitName(name)}${current?.derived === true ? "*" : ""}</td><td class="t"${note}>${time}</td>${compact ? "" : `${cell(name, at, bases)}${cell(name, at, bests)}`}</tr>`;
   });
-  const summary = `${String(view.milestones.filter((m) => m.origin !== "present_at_start").length)} reached${next === undefined ? "" : ` · next ${splitName(next)}`} · ${baseline === null ? "no baseline" : "vs baseline"}${best === null ? "" : " + best"}`;
-  const labels = `<p class="comparison-note">Baseline: ${baseline === null ? "none eligible" : esc(baseline.run)}<br>Best historical run: ${best === null ? "none eligible" : esc(best.run)}<br>Same start; harness versions may differ. Best = furthest progress, then fastest to that point. — = not recorded/reached; no delta until reached. * = recovered from recorded game state; first observation time is an upper bound.</p>`;
-  return { summary, table: `${compact ? "" : labels}<table class="splits"><thead><tr><th>Milestone</th><th>Current</th>${compact ? "" : "<th>Baseline<br>time / Δ</th><th>Best<br>time / Δ</th>"}</tr></thead><tbody>${rows.join("")}</tbody></table>` };
+  const summary = `${String(view.milestones.filter((m) => m.origin !== "present_at_start").length)} reached${next === undefined ? "" : ` · next ${splitName(next)}`} · ${baseline === null ? "no baseline" : "vs baseline"}${frontier === null ? "" : " + frontier"}`;
+  const labels = `<p class="comparison-note">Baseline: ${baseline === null ? "none eligible" : esc(baseline.run)}<br>Frontier run: ${frontier === null ? "none eligible" : esc(frontier.run)}<br>The baseline shares this run's start. The frontier is the frontier graph's agent frontier: furthest New Game start, then fastest. Harness versions may differ. — = not recorded/reached; no delta until reached. * = recovered from recorded game state; first observation time is an upper bound.</p>`;
+  return { summary, table: `${compact ? "" : labels}<table class="splits"><thead><tr><th>Milestone</th><th>Current</th>${compact ? "" : "<th>Baseline<br>time / Δ</th><th>Frontier<br>time / Δ</th>"}</tr></thead><tbody>${rows.join("")}</tbody></table>` };
 }
 
 export function thinkingDialog(view: RunView, nowMs: number): { head: string; body: string } {

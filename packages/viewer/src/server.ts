@@ -15,6 +15,7 @@ import { FEATURES } from "@pokebench/agent/features";
 import { CONTROL_ACTIONS } from "@pokebench/agent/events";
 import { finalsRunLabels } from "./experiment-gate-store.js";
 import type { BaselineStore, RunStore } from "./baseline-store.js";
+import { frontierSplits } from "./frontier.js";
 import { BaselineError, RunsError, createBaselineReader, createRunCatalog, comparisonsOf, type BaselineCompute, eventsPath, liveScreenPort, LogReader, readRecentEvents, readStart, readStartIdentity, runDir, type BaselineReader, type RunCatalog } from "./runs.js";
 import { featureHistory } from "./history.js";
 import { localModels } from "./models.js";
@@ -469,7 +470,8 @@ async function route(req: IncomingMessage, res: ServerResponse, options: ViewerO
       return;
     }
     if (parts.length === 4 && leaf === "comparisons") {
-      sendJson(res, 200, await comparisonsOf(options.runsRoot, id, readBaseline));
+      const [comparisons, workbench] = await Promise.all([comparisonsOf(options.runsRoot, id, readBaseline), readWorkbench()]);
+      sendJson(res, 200, { ...comparisons, frontier: frontierSplits(workbench.runs, id) });
       return;
     }
     if (parts.length === 4 && leaf === "milestones") {

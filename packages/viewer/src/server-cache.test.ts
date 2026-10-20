@@ -35,9 +35,11 @@ it("shares cached validated splits across HTTP comparisons, milestones and featu
     expect(response.status).toBe(200);
     return response.json() as Promise<unknown>;
   };
+  // The frontier comes from the workbench snapshot, read once per poll; warm it so the counts below are the baselines' own.
+  await get("api/workbench");
   const io = vi.spyOn(fs, "readSync");
   const comparisons = await get("api/runs/selected/comparisons");
-  expect(comparisons).toMatchObject({ candidates: [{ run: "reference", milestones: [{ name: "GAME_RUNNING", offsetMs: 10 }, { name: "PLAYER_NAME_SET", offsetMs: 3100 }] }], best: { run: "reference" }, baseline: null });
+  expect(comparisons).toMatchObject({ candidates: [{ run: "reference", milestones: [{ name: "GAME_RUNNING", offsetMs: 10 }, { name: "PLAYER_NAME_SET", offsetMs: 3100 }] }], frontier: null, baseline: null });
   const coldReads = io.mock.calls.length;
   io.mockClear();
   expect(await get("api/runs/selected/comparisons")).toEqual(comparisons);
@@ -52,6 +54,7 @@ it("shares cached validated splits across HTTP comparisons, milestones and featu
   expect(io).not.toHaveBeenCalled();
   const freshViewer = await startViewer({ runsRoot: root, staticDir: root, appDir: root, port: 0 });
   viewers.push(freshViewer);
+  await (await fetch(new URL("api/workbench", freshViewer.url))).json();
   io.mockClear();
   const fresh = await fetch(new URL("api/runs/selected/comparisons", freshViewer.url));
   expect(fresh.status).toBe(200);
@@ -59,7 +62,7 @@ it("shares cached validated splits across HTTP comparisons, milestones and featu
   expect(io.mock.calls.length).toBe(coldReads);
   const path = join(root, "reference", "events.jsonl");
   fs.writeFileSync(path, fs.readFileSync(path, "utf8").replace('"name":"PLAYER_NAME_SET"', '"name":42'));
-  expect(await get("api/runs/selected/comparisons")).toEqual({ candidates: [], best: null, baseline: null });
+  expect(await get("api/runs/selected/comparisons")).toEqual({ candidates: [], frontier: null, baseline: null });
   const malformed = await fetch(new URL("api/runs/reference/milestones", viewer.url));
   expect(malformed.status).toBe(422);
 });

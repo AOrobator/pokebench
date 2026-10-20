@@ -24,3 +24,4 @@
 - [ ] Land, restart viewer, restart the runner so it records both outcomes, confirm both runs on the frontier graph
 
 Non-goals: shrinking `state` events (a recorder change; follow-up), timeline changes, any change to run data.
+- Review round 1: Claude LGTM; Grok and GPT BLOCKING on one finding: `completeLog` used `first ??= e.type`, so a first event with `type: null` let a later run_start count as first. RED test added.

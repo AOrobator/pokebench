@@ -407,6 +407,26 @@ describe("navigate_to and the dialogue record",()=>{
   expect(result.details).toMatchObject({navigation:{target:{x:13,y:14}}});
  });
 
+ it("semantic-navigation-v2: advances dialogue a navigate_to_target activation opens, keeping its own status line; OFF leaves the result alone",async()=>{
+  for(const v2 of [true,false]){
+   const game=new FakeGame(SCIENTIST);const rec=memoryRecorder();
+   const target:AgentTool={name:"navigate_to_target",label:"t",description:"target",parameters:Type.Object({}),execute:()=>{game.openNow();return Promise.resolve({content:[{type:"text" as const,text:"Semantic navigation: activation handed control back: dialogue or a field message opened. Selected map object 2."}],details:{state:game.state(),semantic_navigation:{status:"activation handed control back",selected:"map object 2",activation_attempted:true}}});}};
+   const press=pressTool(URL_BASE,{beforePress:()=>undefined,afterPress:()=>Promise.resolve()},game.fetch,{now:()=>0,sleep:()=>Promise.resolve()});
+   const tools=withDialogueAutoAdvance([observeTool(URL_BASE,game.fetch),press,target],{...ON,"semantic-navigation-v2":v2},{state:game.read,recorder:rec.api,clock:fakeClock()});
+   const result=await tools.find(t=>t.name==="navigate_to_target")?.execute("t1",{});
+   if(result===undefined)throw new Error("no tool");
+   expect(textOf(result).split("\n")[0]).toBe("Semantic navigation: activation handed control back: dialogue or a field message opened. Selected map object 2.");
+   if(v2){
+    expect(textOf(result)).toContain("Dialogue shown during this call");
+    expect(rec.advances()[0]).toMatchObject({tool:"navigate_to_target",requested:[],sent:[],dropped:[]});
+    expect(result.details).toMatchObject({semantic_navigation:{activation_attempted:true}});
+   }else{
+    expect(textOf(result)).not.toContain("Dialogue shown during this call");
+    expect(rec.advances()).toHaveLength(0);
+   }
+  }
+ });
+
  it("leaves a navigate_to result alone when no dialogue opens",async()=>{
   const game=new FakeGame(SCIENTIST);const rec=memoryRecorder();
   const result={content:[{type:"text" as const,text:"Navigation: arrived"}],details:{state:game.state()}};

@@ -23,6 +23,26 @@ export const MOVING_AROUND_VISITED=`${MOVING_AROUND_HEAD}
 - It plans only across stitched terrain already shown to you this run; unknown cells are not routes. It may take up to 512 ordinary button attempts, re-planning before every press.
 - If it stops early, read its reason. Explore until more terrain has been shown, then call it again or choose a reachable known tile nearer the place you want.`;
 
+// semantic-navigation-v2: navigate_to_target is how to reach anything the readout lists; navigate_to is for a plain tile.
+export const SEMANTIC_TOOL_LINE="- navigate_to_target: walks you to a person, object, door, stairs, other warp or map exit the readout lists, then talks to it, uses it or goes through it. This is how you reach anything the readout lists: give its target exactly as the readout writes it.";
+export const SEMANTIC_NAVIGATE_TOOL_LINE="- navigate_to: walks you to a plain tile on the current map that nothing in the readout lists. Give the destination and it finds the route around walls, ledges, water and people.";
+const SEMANTIC_MOVING_AROUND_HEAD=`Moving around: to reach a person, object, door, stairs, other warp or map exit the readout lists, call navigate_to_target with the target the readout writes for it; it walks there, faces it and talks to it, uses it or goes through it. To go to a plain tile two or more tiles away that nothing lists, call navigate_to with that tile. Do not trace routes tile by tile in your thinking, and do not walk with runs of direction presses: both tools plan the route from the game's memory, which is more reliable than reading the ASCII map.
+- If navigate_to_target stops early, read its reason. When the way is free again, call it again with the same target.
+- If navigate_to refuses a tile (a ledge, wall, water or a person), choose a walkable tile beside the place you want, or the tile its reason names.`;
+const LOCAL_TAIL=`
+- If navigate_to stops with "command limit", call it again with the same destination; it carries on from where it stopped.
+- A navigate_to destination outside the local map is fine: it walks toward it as far as the local map allows. If it reports no path, choose a reachable tile in that direction.`;
+const FULL_TAIL=`
+- If navigate_to stops early, read its reason, then call it again or choose a reachable tile near the place you want.`;
+const VISITED_TAIL=`
+- navigate_to plans only across stitched terrain already shown to you this run; unknown cells are not routes. It may take up to 512 ordinary button attempts, re-planning before every press.
+- If navigate_to stops early, read its reason. Explore until more terrain has been shown, then call it again or choose a reachable known tile nearer the place you want.`;
+export const SEMANTIC_MOVING_AROUND_LOCAL=`${SEMANTIC_MOVING_AROUND_HEAD}${LOCAL_TAIL}`;
+export const SEMANTIC_MOVING_AROUND_FULL=`${SEMANTIC_MOVING_AROUND_HEAD}${FULL_TAIL}`;
+export const SEMANTIC_MOVING_AROUND_VISITED=`${SEMANTIC_MOVING_AROUND_HEAD}${VISITED_TAIL}`;
+export const SEMANTIC_NAVIGATE_DESCRIPTION="Walks to a plain tile two or more tiles away that nothing in the readout lists; give the destination and it finds the route around walls, ledges, water and people. For a person, object, warp or map exit the readout lists, use navigate_to_target instead.";
+export const SEMANTIC_REMINDER="Reminder: to reach anything the readout lists, call navigate_to_target with its target; to walk two or more tiles to a plain tile, call navigate_to with the destination.";
+
 export const NAVIGATE_FIRST_DESCRIPTION="The main way to move: use it for every walk of two or more tiles; give the destination and it finds the route around walls, ledges, water and people.";
 export const COMMAND_LIMIT_HINT=" After \"command limit\", call it again with the same destination to continue.";
 
@@ -33,12 +53,13 @@ const OBSERVE_HEAD="- observe: ";
 const PRESS_HEAD="- press: presses up to 8 buttons in order";
 
 // The tool list gains navigate_to before press, and press says it is not for walking.
-export function navigateFirstToolList(prompt:string):string {
+// semantic-navigation-v2: navigate_to_target comes first and navigate_to is for a plain tile.
+export function navigateFirstToolList(prompt:string,semantic=false):string {
  const start=prompt.indexOf(PRESS_HEAD);
  if(start<0||prompt.indexOf(OBSERVE_HEAD)<0)throw new Error("navigate-first-prompt-v1 needs the observe and press tool lines");
  const end=prompt.indexOf("\n",start);
  const line=prompt.slice(start,end<0?undefined:end);
- return `${prompt.slice(0,start)}${NAVIGATE_FIRST_TOOL_LINE}\n${line}${PRESS_NOT_WALKING}${end<0?"":prompt.slice(end)}`;
+ return `${prompt.slice(0,start)}${semantic?`${SEMANTIC_TOOL_LINE}\n${SEMANTIC_NAVIGATE_TOOL_LINE}`:NAVIGATE_FIRST_TOOL_LINE}\n${line}${PRESS_NOT_WALKING}${end<0?"":prompt.slice(end)}`;
 }
 
 const DIRECTIONS=new Set(["UP","DOWN","LEFT","RIGHT"]);
@@ -57,6 +78,7 @@ function buttonsOf(params:unknown):readonly string[] {
 
 export function withNavigateFirst(tools:readonly AgentTool[],features:FeatureSet):readonly AgentTool[] {
  if(!features["navigate-first-prompt-v1"])return tools;
+ const reminder=features["semantic-navigation-v2"]?SEMANTIC_REMINDER:REMINDER;
  let streak=0;
  return tools.map(tool=>{
   // Any other tool call (navigate_to, observe, ...) ends the run of presses.
@@ -70,7 +92,7 @@ export function withNavigateFirst(tools:readonly AgentTool[],features:FeatureSet
    if(buttons.length===0||!buttons.every(b=>DIRECTIONS.has(b))||!freeField(stateOf(result))){streak=0;return result;}
    streak++;
    if(streak%REMINDER_EVERY!==0)return result;
-   return {...result,content:[...result.content,{type:"text",text:REMINDER}]};
+   return {...result,content:[...result.content,{type:"text",text:reminder}]};
   }};
  });
 }

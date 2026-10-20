@@ -1,5 +1,6 @@
 // semantic-navigation-v2: the navigate_to_target argument for a listed game target, written exactly
 // as the tool's schema takes it (and as the game server's readout writes it), so it can be copied.
+import type {FeatureSet} from "./features.js";
 import type {GameStateSnapshot} from "./game-state.js";
 
 type Listed=NonNullable<GameStateSnapshot["interaction_targets"]>[number];
@@ -17,4 +18,9 @@ export function connectionArgument(direction:string):string|null {
 
 export function targetSuffix(argument:string|null):string {
  return argument===null?"":` [navigate_to_target target ${argument}]`;
+}
+
+// semantic-navigation-v2: navigate_to_target and explore_map results get every annotation navigate_to results get.
+export function semanticWalk(name:string,features:Pick<FeatureSet,"semantic-navigation-v2">):boolean {
+ return features["semantic-navigation-v2"]&&(name==="navigate_to_target"||name==="explore_map");
 }

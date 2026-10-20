@@ -33,14 +33,14 @@ const msg=(dialogue:string|null,phase:string|null,cursor=0)=>({world_context:{ob
 const AIDE="The PROF isn't one for doing desk work. He's the type of person who would rather go outside and experience things than read about them here.";
 
 it("states the story steps exactly as the readout's Story line does, including staged steps like rival met",()=>{
- const b=new SupervisorBriefing(ALL_ON);
+ const b=new SupervisorBriefing({...ALL_ON,"semantic-navigation-v2":false});
  result(b,1);
  expect(b.text("cycle",3)).toContain("- Story steps the game confirms are done: player name confirmed; Mom clock instruction received; clock set; Mom rival instruction received; rival met\n");
  expect(b.textOnly(3,1,3)).toContain("rival met");
 });
 
 it("keeps the last available story line while a map loads",()=>{
- const b=new SupervisorBriefing(ALL_ON);
+ const b=new SupervisorBriefing({...ALL_ON,"semantic-navigation-v2":false});
  result(b,1);
  result(b,3,{},"t2","ok\nStory: unavailable (story state not readable right now)");
  expect(b.text("cycle",5)).toContain("Mom rival instruction received; rival met");
@@ -48,7 +48,7 @@ it("keeps the last available story line while a map loads",()=>{
 });
 
 it("grades reading a conversation with B as progress, and a repeat A as a restarted conversation",()=>{
- const b=new SupervisorBriefing(ALL_ON);
+ const b=new SupervisorBriefing({...ALL_ON,"semantic-navigation-v2":false});
  result(b,1,msg(null,null));
  press(b,3,["A"],msg(AIDE,"printing",9),"a1");
  press(b,6,["B"],msg(AIDE,"scroll_wait",74),"b1");
@@ -63,7 +63,7 @@ it("grades reading a conversation with B as progress, and a repeat A as a restar
 });
 
 it("calls the same text at another tile or map a new conversation, not a restart",()=>{
- const b=new SupervisorBriefing(ALL_ON);
+ const b=new SupervisorBriefing({...ALL_ON,"semantic-navigation-v2":false});
  result(b,1,msg(null,null));
  press(b,3,["A"],msg(AIDE,"printing",9),"a1");
  press(b,6,["B"],msg(null,null),"b1");
@@ -81,7 +81,7 @@ it("calls the same text at another tile or map a new conversation, not a restart
 
 it("counts only actions as tried: standing on a door mat leaves that exit untried, and story progress clears the list",()=>{
  // Today's rule; briefing-exits-v1 keeps tried things across a story step (briefing-exits.test.ts).
- const b=new SupervisorBriefing({...ALL_ON,"briefing-exits-v1":false});
+ const b=new SupervisorBriefing({...ALL_ON,"semantic-navigation-v2":false,"briefing-exits-v1":false});
  result(b,1,{position:{x:8,y:8}});
  const untried=(t:string)=>t.slice(t.indexOf("not tried yet"));
  expect(untried(b.text("cycle",3))).toContain("warp at 8,8");
@@ -97,7 +97,7 @@ it("counts only actions as tried: standing on a door mat leaves that exit untrie
 
 it("never cuts text it sends: long dialogue, every target and every attempt arrive whole",()=>{
  const may=`Huh? Who… Who are you? ${"… ".repeat(16)}Oh, you're AAA. So your move was today. Um… I'm MAY. Glad to meet you! I heard about you from my dad, PROF. BIRCH. I was supposed to go help Dad catch some wild POKéMON!`;
- const b=new SupervisorBriefing(ALL_ON);
+ const b=new SupervisorBriefing({...ALL_ON,"semantic-navigation-v2":false});
  const many=Array.from({length:30},(_,i)=>({...SCIENTIST,name:`NPC${String(i)}`,x:i,y:i}));
  result(b,1,{interaction_targets:many,...msg(may,"dismiss_wait",200)});
  for(let i=0;i<20;i++)press(b,10+i*4,[i%2===0?"UP":"DOWN","LEFT","RIGHT","UP","DOWN","LEFT","RIGHT","A"],{interaction_targets:many},`c${String(i)}`);
@@ -110,16 +110,16 @@ it("never cuts text it sends: long dialogue, every target and every attempt arri
 
 it("keeps the instruction ledger, dialogue log and navigation memory whole",()=>{
  const long=`MOM: ${"PROF. BIRCH is his name. He lives right next door. ".repeat(40)}END`;
- const ledger=new InstructionLedger({...ALL_ON,"instruction-ledger-v1":true});
+ const ledger=new InstructionLedger({...ALL_ON,"semantic-navigation-v2":false,"instruction-ledger-v1":true});
  result(ledger,1,msg(long,"dismiss_wait",500));
  expect(ledger.text()).toContain(long);
  expect(ledger.text().match(new RegExp(long.slice(-60).replace(/[.]/g,"\\."),"g"))?.length).toBeGreaterThanOrEqual(2);
- const log=new DialogueLog(ALL_ON);
+ const log=new DialogueLog({...ALL_ON,"semantic-navigation-v2":false});
  for(let i=0;i<20;i++)result(log,1+i*2,msg(`${long} #${String(i)}`,"dismiss_wait",500));
  const recalled=log.recall({last:20});
  for(let i=0;i<20;i++)expect(recalled).toContain(`${long} #${String(i)}`);
  expect(recalled).not.toMatch(/truncated|omitted/);
- const memory=new NavigationMemory({...ALL_ON,"navigation-evidence-memory-v1":true});
+ const memory=new NavigationMemory({...ALL_ON,"semantic-navigation-v2":false,"navigation-evidence-memory-v1":true});
  const targets=Array.from({length:20},(_,i)=>({...SCIENTIST,name:`OBJ${String(i)}`,x:i,y:1}));
  result(memory,1,{interaction_targets:targets,...msg(long,"dismiss_wait",500)});
  const shown=memory.text();
@@ -143,7 +143,7 @@ it("replays milestones present at the start to observers that subscribe later",a
 
 it("tells the model how navigate_to targets work, in the prompt and the tool",()=>{
  for(const full of [true,false]){
-  const prompt=playSystemPrompt({...ALL_ON,"full-map-navigation-v1":full,"bounded-navigation-v1":true},null);
+  const prompt=playSystemPrompt({...ALL_ON,"semantic-navigation-v2":false,"full-map-navigation-v1":full,"bounded-navigation-v1":true},null);
   expect(prompt).toContain("target the walkable tile next to it, face it and press A");
   expect(prompt).toContain("cannot walk while a message is open");
   expect(prompt).toContain("target the warp's own coordinates");
@@ -164,7 +164,7 @@ it("records long ledger and navigation contexts as valid events",()=>{
 });
 
 it("takes the story line only from a game readout paired with its state, never from other tools or errors",()=>{
- const b=new SupervisorBriefing(ALL_ON);
+ const b=new SupervisorBriefing({...ALL_ON,"semantic-navigation-v2":false});
  result(b,1);
  b.observe(ev({type:"tool_result",id:"m",name:"remember_destination",is_error:false,duration_ms:1,text:"x\nStory: ROXANNE defeated",frames:[]},3));
  b.observe(st(4));b.observe(ev({type:"tool_result",id:"r",name:"recall_dialogue",is_error:false,duration_ms:1,text:"Story: ROXANNE defeated",frames:[],state_seq:4},5));
@@ -185,7 +185,7 @@ it("delivers objective evidence whole",()=>{
 it("puts the navigate_to rules in both tool descriptions",()=>{
  const state={read:()=>Promise.resolve({...IN_GAME})};
  for(const full of [true,false]){
-  const tools=withNavigation([observeTool("http://127.0.0.1"),pressTool("http://127.0.0.1",{beforePress:()=>undefined,afterPress:()=>Promise.resolve()})],{...ALL_ON,"bounded-navigation-v1":true,"full-map-navigation-v1":full},state);
+  const tools=withNavigation([observeTool("http://127.0.0.1"),pressTool("http://127.0.0.1",{beforePress:()=>undefined,afterPress:()=>Promise.resolve()})],{...ALL_ON,"semantic-navigation-v2":false,"bounded-navigation-v1":true,"full-map-navigation-v1":full},state);
   expect(tools.find(t=>t.name==="navigate_to")?.description).toContain(NAVIGATE_RULES);
  }
 });
@@ -214,23 +214,23 @@ it("carries the corrected briefing through the production recorder, loop guard a
 it("never cuts any context builder's entry, whatever its length (INV-1)",()=>{
  for(const n of [10_000,40_000]){
   const long=`${"Q".repeat(n)}END`;
-  const sup=new SupervisorBriefing(ALL_ON);result(sup,1,msg(long,"dismiss_wait",9));
-  const ledger=new InstructionLedger(ALL_ON);result(ledger,1,msg(long,"dismiss_wait",9));
-  const log=new DialogueLog(ALL_ON);result(log,1,msg(long,"dismiss_wait",9));
-  const memory=new NavigationMemory(ALL_ON);result(memory,1,msg(long,"dismiss_wait",9));
+  const sup=new SupervisorBriefing({...ALL_ON,"semantic-navigation-v2":false});result(sup,1,msg(long,"dismiss_wait",9));
+  const ledger=new InstructionLedger({...ALL_ON,"semantic-navigation-v2":false});result(ledger,1,msg(long,"dismiss_wait",9));
+  const log=new DialogueLog({...ALL_ON,"semantic-navigation-v2":false});result(log,1,msg(long,"dismiss_wait",9));
+  const memory=new NavigationMemory({...ALL_ON,"semantic-navigation-v2":false});result(memory,1,msg(long,"dismiss_wait",9));
   for(const text of [sup.text("cycle",2),sup.textOnly(3,1,3),ledger.text(),log.recall({}),memory.text()])expect(text).toContain(long);
  }
 });
 
 it("repeats every staged Story line the readout prints, word for word (INV-2)",()=>{
  const lines=["Story: no completion confirmed","Story: player name confirmed; Mom clock instruction received","Story: player name confirmed; Mom clock instruction received; clock set","Story: player name confirmed; Mom clock instruction received; clock set; Mom rival instruction received",STORY_RIVAL,`${STORY_RIVAL}; sent to save Birch; Birch rescue complete; Birch starter handoff complete`];
- for(const line of lines){const b=new SupervisorBriefing(ALL_ON);result(b,1,{},"t",`ok\n${line}`);expect(b.text("cycle",2)).toContain(`- Story steps the game confirms are done: ${line.slice("Story: ".length)}\n`);}
+ for(const line of lines){const b=new SupervisorBriefing({...ALL_ON,"semantic-navigation-v2":false});result(b,1,{},"t",`ok\n${line}`);expect(b.text("cycle",2)).toContain(`- Story steps the game confirms are done: ${line.slice("Story: ".length)}\n`);}
 });
 
 it("lists a room's exits before its objects among the targets not tried yet (truck run dc0e)",()=>{
  const box=(x:number,y:number)=>({...SCIENTIST,name:"MOVING_BOX",x,y});
  const exit=(y:number)=>({...EXIT,name:"Dynamic warp",x:4,y,destination:[127,127,0]});
- const b=new SupervisorBriefing(ALL_ON);
+ const b=new SupervisorBriefing({...ALL_ON,"semantic-navigation-v2":false});
  result(b,1,{location:"INSIDE OF TRUCK",map_id:[25,40],position:{x:3,y:3},interaction_targets:[box(0,0),box(0,3),box(2,3),exit(1),exit(2),exit(3)]});
  const listed=b.text("cycle",2).split("not tried yet: ")[1]?.split("\n")[0]??"";
  expect(listed.indexOf("Dynamic warp at 4,1")).toBe(0);
@@ -248,7 +248,7 @@ const autoAdvance=(b:{observe:(e:RunEvent)=>void},seq:number,id:string,texts:str
  return at+3;
 };
 it("grades an auto-advanced conversation from its pages, and a repeat as a restarted conversation",()=>{
- const b=new SupervisorBriefing(ALL_ON);
+ const b=new SupervisorBriefing({...ALL_ON,"semantic-navigation-v2":false});
  result(b,1,msg(null,null));
  const next=autoAdvance(b,3,"a1",["The PROF isn't one for doing desk work.","He's the type of person who would rather go outside."]);
  let text=b.text("cycle",20);
@@ -260,7 +260,7 @@ it("grades an auto-advanced conversation from its pages, and a repeat as a resta
  expect(text).not.toMatch(/A facing SCIENTIST_1[^;]*→ no change/);
 });
 it("lets the dialogue log and the instruction ledger cite auto-advanced pages",()=>{
- const log=new DialogueLog(ALL_ON);const ledger=new InstructionLedger(ALL_ON);
+ const log=new DialogueLog({...ALL_ON,"semantic-navigation-v2":false});const ledger=new InstructionLedger({...ALL_ON,"semantic-navigation-v2":false});
  const both={observe:(e:RunEvent)=>{log.observe(e);ledger.observe(e);}};
  result(both,1,msg(null,null));
  autoAdvance(both,3,"a1",["Go see your father at the GYM."]);
@@ -270,7 +270,7 @@ it("lets the dialogue log and the instruction ledger cite auto-advanced pages",(
 });
 
 it("battle-text-auto-advance-v1: battle pages stay out of the supervisor's dialogue, the dialogue log and the ledger",()=>{
- const b=new SupervisorBriefing(ALL_ON);const log=new DialogueLog(ALL_ON);
+ const b=new SupervisorBriefing({...ALL_ON,"semantic-navigation-v2":false});const log=new DialogueLog({...ALL_ON,"semantic-navigation-v2":false});
  const both={observe:(e:RunEvent)=>{b.observe(e);log.observe(e);}};
  result(both,1,msg(null,null));
  both.observe(ev({type:"tool_call",id:"w1",name:"press",args:{buttons:["A"]}},3));
@@ -285,7 +285,7 @@ it("battle-text-auto-advance-v1: battle pages stay out of the supervisor's dialo
 });
 
 it("counts auto-advanced pages as shown only when their result reached the model",()=>{
- const b=new SupervisorBriefing(ALL_ON);const log=new DialogueLog(ALL_ON);const ledger=new InstructionLedger(ALL_ON);
+ const b=new SupervisorBriefing({...ALL_ON,"semantic-navigation-v2":false});const log=new DialogueLog({...ALL_ON,"semantic-navigation-v2":false});const ledger=new InstructionLedger({...ALL_ON,"semantic-navigation-v2":false});
  const all={observe:(e:RunEvent)=>{b.observe(e);log.observe(e);ledger.observe(e);}};
  result(all,1,msg(null,null));
  all.observe(ev({type:"tool_call",id:"a1",name:"press",args:{buttons:["A"]}},3));
@@ -298,7 +298,7 @@ it("counts auto-advanced pages as shown only when their result reached the model
  expect(b.text("cycle",20)).toMatch(/A facing SCIENTIST_1 at 9,7 in LAB \(map 1\/4\) → dialogue shown \(1 page, advanced automatically\)/);
 });
 it("does not log the whole message buffer again when auto-advance stops at a decision with the pages already listed",()=>{
- const log=new DialogueLog(ALL_ON);
+ const log=new DialogueLog({...ALL_ON,"semantic-navigation-v2":false});
  result(log,1,msg(null,null));
  log.observe(ev({type:"tool_call",id:"a1",name:"press",args:{buttons:["A"]}},3));
  log.observe(st(4,msg("Will you help?",null)));
@@ -308,7 +308,7 @@ it("does not log the whole message buffer again when auto-advance stops at a dec
 });
 
 it("logs every auto-advanced page, even two pages with the same text on the same map",()=>{
- const log=new DialogueLog(ALL_ON);
+ const log=new DialogueLog({...ALL_ON,"semantic-navigation-v2":false});
  result(log,1,msg(null,null));
  log.observe(ev({type:"tool_call",id:"a1",name:"press",args:{buttons:["A"]}},3));
  const page=(seq:number)=>({state_seq:seq,map:"LAB",map_id:[1,4] as [number,number],position:{x:9,y:8},speaker:null,speaker_source:null,text:"..."});

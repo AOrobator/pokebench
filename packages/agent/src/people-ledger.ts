@@ -8,6 +8,7 @@ import {isCheckedPress,type CheckedPressTool} from "./game-tools.js";
 import {parseGameState,type GameStateSnapshot} from "./game-state.js";
 import type {RunRecorder} from "./recorder.js";
 import {COUNTER} from "./tile-rules.js";
+import {semanticWalk} from "./semantic-targets.js";
 
 type Snapshot=Pick<GameStateSnapshot,"map_id"|"position"|"facing"|"interaction_targets"|"navigation_grid">;
 export interface MapObject {readonly key:string;readonly local_id:number;readonly sprite:string|null;readonly x:number;readonly y:number;readonly elevation:number}
@@ -148,7 +149,7 @@ export function withPeopleLedger(tools:readonly AgentTool[],features:FeatureSet,
   return {...result,content};
  };
  return tools.map(tool=>{
-  if(tool.name!=="observe"&&tool.name!=="press"&&tool.name!=="navigate_to")return tool;
+  if(tool.name!=="observe"&&tool.name!=="press"&&tool.name!=="navigate_to"&&!semanticWalk(tool.name,features))return tool;
   const execute:AgentTool["execute"]=async(id,params,signal,update)=>annotate(id,await tool.execute(id,params,signal,update));
   if(!isCheckedPress(tool))return {...tool,execute};
   const checked:CheckedPressTool={...tool,execute:async(id,params,signal,update)=>annotate(id,await tool.execute(id,params,signal,update)),executeChecked:async(id,params,check,signal,update,options)=>annotate(id,await tool.executeChecked(id,params,check,signal,update,options))};

@@ -4164,7 +4164,9 @@
             "press",
             "navigate_to",
             "battle_action",
-            "observe"
+            "observe",
+            "navigate_to_target",
+            "explore_map"
           ]
         },
         "requested": {

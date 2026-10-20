@@ -209,6 +209,7 @@
   "navigate-already-here-v1"
  ],
  "offInBoth": [
+  "semantic-navigation-v1",
   "visited-terrain-navigation-v1",
   "milestone-stall-stop-v1",
   "same-plan-breaker-v1",

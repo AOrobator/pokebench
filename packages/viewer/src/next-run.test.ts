@@ -10,7 +10,7 @@ import { DEFAULT_NEXT_RUN, LEASE, NextRunError, RunQueue, appendControl, healthP
 
 const NOW = new Date("2026-10-13T16:00:00.000Z");
 const ALL_ON = { ...REGISTERED_ALL_ON, "visited-terrain-navigation-v1": false, "battle-effective-damage-v1": false, "semantic-navigation-v1":false, "deterministic-exploration-v1":false };
-Object.assign(ALL_ON,{"safe-navigation-strides-v1":false});
+Object.assign(ALL_ON,{"safe-navigation-strides-v1":false,"auto-talk-v1":true});
 function root(): string { return mkdtempSync(join(tmpdir(), "next-run-")); }
 // Game servers that answer /health in these tests.
 const UP = new Set([9001, 9003]);

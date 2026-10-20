@@ -33,7 +33,7 @@ The launch itself followed the fixed-run skill. Its run data stays where it is.
 ### M2 `bundle-cook-6h-v2`
 
 - [x] Definition (validated with the branch build: no problems, control base clean, plan regenerated from seed `bf0f7a4b141ab632`, control B/GPU0, bundle A/GPU1): copy of `bundle-cook-6h` with `tutorial-party-owner-v1` and `context-token-budget-v1` in `onInBoth`
-- [ ] `just fixed-run check`, launch via the fixed-run-launch skill, dropdown check
+- [x] `just fixed-run check`, launch via the fixed-run-launch skill, dropdown check
   - Pending entry pinned to implementation commit 9c452544e0ca1aaade988c1e696b582b82fafde1.
 
 ## Review and landing (M1)
@@ -44,3 +44,12 @@ The launch itself followed the fixed-run skill. Its run data stays where it is.
 - GPT: Cursor `gpt-5.6-sol-xhigh` hit its usage limit; Codex CLI `gpt-5.6-sol` xhigh, read-only: VERDICT: LGTM.
 - Non-blocking notes: image weight and post-fit transforms (battle decision image) are covered by the margin plus the overflow anchor; trims draw the existing compaction mark kind.
 - Landed `git merge --ff-only c07b747c` on main. `just build` then `just test` on main: agent 2698, viewer 1307, env 2824 passed.
+
+## Launch (M2)
+
+- Old `bundle-cook-6h` runner (pid 4462, paused since 12:48 AM ET with both trials invalid) stopped with SIGTERM; its run dirs stay in `runs/`.
+- `just viewer-main` → viewer at `eb1b225f`. `just fixed-run check bundle-cook-6h-v2` clean (definition sha256 `70f47c61e6c2`). Approved 2026-10-20 3:01 AM ET after the operator's go-ahead in the "no runs running" thread.
+- Launched 3:02 AM ET from main `eb1b225f` via `just fixed-run run`; runner pid 68351.
+  - Control, lane B, GPU0, port 8076: `2026-10-20T03-02-13_qwen36-gpu0_8d39`
+  - Bundle, lane A, GPU1, port 8075: `2026-10-20T03-02-13_qwen36-gpu1_f28d`
+- Both run_start rows: experiment `bundle-cook-6h-v2`, cap 21600000 ms, harness `eb1b225f` dirty false, start sha1 `b3a6cc1c…`, harness features include `tutorial-party-owner-v1` and `context-token-budget-v1`. No FAILED in logs. `/api/workbench` lists both live with cohort `experiment:bundle-cook-6h-v2@eb1b225f3a55`, no problems; `just experiments-audit` clean; the comparisons page dropdown shows "Bundle vs control, let it cook (6 hour pair, v2)" and selecting it shows both LIVE runs.

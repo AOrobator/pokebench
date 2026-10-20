@@ -188,7 +188,7 @@ describe("persistent actual native frontier", () => {
     document.body.innerHTML = frontierPlot(frontierReferences([best()]), [resumed], 900);
     expect(document.querySelector(`[data-resume="${checkpoint}"]`)).not.toBeNull();
     expect(document.querySelector(`[data-resume-origin="${checkpoint}"]`)).not.toBeNull();
-    expect(document.querySelector(`[data-resume-notice="${checkpoint}"]`)?.textContent).toContain("did not start from New game");
+    expect(document.querySelector("[data-resume-notice]")).toBeNull();
     expect(document.querySelector('[data-run="later-save"][data-split="CLOCK_SET"]')).toBeNull();
     expect(document.querySelector('[data-run="later-save"][data-split="PLAYER_NAME_CONFIRMED"]')).toBeNull();
     expect(document.querySelector('[data-series="later-save"]')?.getAttribute("stroke-dasharray")).toBe("8 5");
@@ -202,7 +202,7 @@ describe("persistent actual native frontier", () => {
     resumed.status = "live";
     expect(frontierReferences([human(), best(), resumed]).best?.id).toBe("dea1");
     document.body.innerHTML = frontierPlot(frontierReferences([human(), best()]), [resumed], 900, undefined, [resumed], false);
-    expect(document.querySelector('[data-resume-notice="CLOCK_SET"]')?.textContent).toContain("did not start from New game");
+    expect(document.querySelector("[data-resume-notice]")).toBeNull();
     expect(document.querySelector('[data-live-run="clock"]')?.getAttribute("data-resume")).toBe("CLOCK_SET");
     expect(document.querySelector('polyline[data-series="clock"]')?.getAttribute("stroke-dasharray")).toBe("8 5");
     expect(document.querySelector('[data-run="clock"][data-split="PLAYER_NAME_CONFIRMED"]')).toBeNull();
@@ -447,7 +447,7 @@ describe("invalid fixed-run trials", () => {
     expect(series?.classList.contains("wb-invalid-run")).toBe(true);
     expect(series?.getAttribute("data-invalid")).toBe("emulator or game server crash");
     expect(document.querySelector(`[data-run="${crashed.id}"][data-split="RIVAL_MET"]`)?.getAttribute("aria-label")).toContain("invalid trial: emulator or game server crash");
-    expect(document.querySelector("[data-invalid-notice]")?.textContent).toContain("Dotted runs are invalid trials");
+    expect(document.querySelector("[data-invalid-notice]")).toBeNull();
   });
   it("gives invalid trials a version color and a legend count, and explains the dotted line", () => {
     const crashed = invalid("crashed", "emulator or game server crash");

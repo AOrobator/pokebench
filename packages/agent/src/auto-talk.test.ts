@@ -51,7 +51,7 @@ describe("auto-talk-v1 (the fixed-point breaker's stage 3)",()=>{
  it("is a guard after positive-supervisor-v1 that needs no switch, so presets that omit it keep stage 3 when the breaker is on",()=>{
   expect(featureInfo("auto-talk-v1")).toMatchObject({group:"guard",needs:null,switchable:true,title:"AUTO-TALK"});
   expect(featureInfo("auto-talk-v1").description).toContain(" Off: the harness never walks or presses on its own; the breaker or the collapse still act as their own switches say.");
-  expect(SWITCHABLE_FEATURES.indexOf("auto-talk-v1")).toBe(SWITCHABLE_FEATURES.indexOf("positive-supervisor-v1")+1);
+  expect(SWITCHABLE_FEATURES.indexOf("auto-talk-v1")).toBe(SWITCHABLE_FEATURES.indexOf("semantic-navigation-v2")+1);
   const older=Object.fromEntries(Object.entries(ALL_ON).filter(([id])=>id!=="auto-talk-v1")) as Omit<FeatureSet,"auto-talk-v1">;
   expect(normalizeFeatures(older)["auto-talk-v1"]).toBe(true);
   expect(normalizeFeatures({...older,"auto-talk-v1":false})["auto-talk-v1"]).toBe(false);

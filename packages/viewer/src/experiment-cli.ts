@@ -11,11 +11,11 @@ import { HUMAN_GAMEPLAY_LEASE_NAME, newRunId } from "@pokebench/agent/run";
 import { experimentDir, queueSnapshot, recordedRuns, winnerGateOn, type ExperimentView, type QueuePaths, type RunSource } from "./experiment-store.js";
 import { approveExperiment } from "./experiment-approval.js";
 import { spawnDetached } from "./detached.js";
-import { RunnerError, runQueue, sha256, type DiscoveredModel, type RunnerHost, type TrialLaunch } from "./experiment-runner.js";
+import { GATEWAY, RunnerError, runQueue, sha256, type DiscoveredModel, type RunnerHost, type TrialLaunch } from "./experiment-runner.js";
 import { healthProbe, liveRuns, randomSuffix } from "./next-run.js";
 
 export const EXPERIMENT_GAME_PORT = 8074;
-export const GATEWAY = "http://inference.example/v1";
+export { GATEWAY };
 
 export interface CliDeps {
   readonly paths: QueuePaths;

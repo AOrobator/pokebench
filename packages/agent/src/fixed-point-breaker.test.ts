@@ -51,7 +51,7 @@ describe("registry and presets",()=>{
   expect(featureInfo(ID).description).toContain(" Off: every turn stays in the request and the nudge and notes are unchanged. Stage 3 (auto-talk) is its own switch, auto-talk-v1, which acts while this switch or duplicate-turn-collapse-v1 is on.");
   expect(featureInfo(ID).description).toContain(BREAKER_NOTE);
   expect(SWITCHABLE_FEATURES.indexOf(ID)).toBe(SWITCHABLE_FEATURES.indexOf("original-speed-pacing-v1")+1);
-  expect(playHarnessFeatures({...ALL_ON,[ID]:true,"story-character-stall-gate-v1":true},null).slice(-2)).toEqual([ID,"story-character-stall-gate-v1"]);
+  expect(playHarnessFeatures({...ALL_ON,[ID]:true,"story-character-stall-gate-v1":true},null).slice(-3,-1)).toEqual([ID,"story-character-stall-gate-v1"]);
   expect(featuresOf(playHarnessFeatures({...ALL_ON,[ID]:false},null))[ID]).toBe(false);
   expect(dependencyProblems({...ALL_ON,"battle-decision-ready-v1":false})).not.toContain(`${ID} needs`);
  });

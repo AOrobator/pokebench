@@ -66,7 +66,7 @@ describe("frozen naming cohort",()=>{
   });
 });
 
-import { mkdtemp, mkdir, writeFile, readFile, rm, realpath } from "node:fs/promises";
+import { mkdtemp, mkdir, writeFile, readFile, rm, realpath, access } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { filesystemComparisonHost, verifyComparisonFiles, sha256, distDigest, type ComparisonManifest } from "./serial-comparison.js";
@@ -112,6 +112,9 @@ describe("real filesystem and child boundaries",()=>{
   it("owns one real exclusive lock, fsyncs append-only rows and executes normal child argv",async()=>{
     const m=await diskFixture();const h=filesystemComparisonHost(m,{verify:async()=>{}}),release=await h.acquire();
     await expect(filesystemComparisonHost(m).acquire()).rejects.toThrow();
+    const lock=join(m.repoRoot,"runs",".naming-gameplay.inference.example-80.lock");
+    expect(JSON.parse(await readFile(join(lock,"owner.json"),"utf8"))).toMatchObject({owner:`cohort:${m.id}`});
+    await expect(access(join(m.repoRoot,"runs",".naming-gameplay.lock"))).rejects.toThrow();
     expect(await h.readLedger()).toEqual([]);expect(await h.runExists("missing")).toBe(false);
     const trial=defined(m.trials[0]);const command={runId:trial.runId,argv:[m.build.path,"play"],cwd:m.repoRoot,env:{POKEBENCH_RUN_ID:trial.runId,POKEBENCH_MODEL:"one",POKEBENCH_PLAY_PRESET:m.presets.diagnostic.path}};
     const outcome=await h.launch(command);expect(outcome).toMatchObject({exitCode:0,reason:"budget"});expect(outcome.eventsSha256).toMatch(/^[a-f0-9]{64}$/);

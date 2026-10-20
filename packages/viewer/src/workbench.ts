@@ -62,6 +62,7 @@ export class Workbench {
   private model = "all";
   private preset = "all";
   private zoom = true;
+  private hideTimeOutliers = true;
   private runLanes: RunLanes | LaneUnknown = "loading";
   constructor(private readonly doc: Document, private readonly deps: WorkbenchDeps, private readonly back: string | null = null) {
     doc.addEventListener("change", this.onChange); doc.addEventListener("click", this.onClick); doc.addEventListener("keydown", this.onKey);
@@ -175,7 +176,13 @@ export class Workbench {
     replaceKeepingFocus(host, frontierLegend(refs, [...overlays, ...current], this.versions, state, status, this.descriptions));
     if (this.hovered !== null && host.querySelector(`[data-ver="${this.hovered}"]`) === null) this.hovered = null;
     if (this.isolated !== null && host.querySelector(`[data-ver="${this.isolated}"]`) === null) { this.isolated = null; this.renderCharts(); return; }
-    this.ui("frontier-full").innerHTML = frontierPlot(refs, overlays, width, this.versions, current, this.zoom, status, this.isolated ?? this.hovered);
+    this.ui("frontier-full").innerHTML = frontierPlot(refs, overlays, width, this.versions, current, this.zoom, status, this.isolated ?? this.hovered, this.hideTimeOutliers);
+    const outliers = this.doc.querySelector<HTMLButtonElement>("[data-frontier-outliers]"), chart = this.ui("frontier-full").querySelector<SVGElement>("[data-hidden-outliers]");
+    if (outliers !== null) {
+      const count = chart?.dataset.hiddenOutliers ?? "0";
+      outliers.textContent = `HIDE TIME OUTLIERS${count === "0" ? "" : ` (${count})`}`;
+      outliers.title = chart?.dataset.outlierSummary || "Hide extreme ended overlay runs; references and current runs stay visible";
+    }
     this.pressed();
   }
   // Fades every series but the hovered (else the isolated) version, without rebuilding the chart.
@@ -185,7 +192,7 @@ export class Workbench {
     for (const series of plot.querySelectorAll<SVGGElement>(".wb-series")) series.classList.toggle("wb-on", focus !== null && (series.dataset.version === focus || series.dataset.member === focus));
   }
   private isolate(id: string | null): void { this.isolated = id === this.isolated ? null : id; this.renderCharts(); }
-  private pressed(): void { for (const button of this.ui("frontier-view").querySelectorAll("button")) button.setAttribute("aria-pressed", String((button.dataset.frontierView === "zoom") === this.zoom)); }
+  private pressed(): void { for (const button of this.ui("frontier-view").querySelectorAll("button")) button.setAttribute("aria-pressed", String(button.hasAttribute("data-frontier-outliers") ? this.hideTimeOutliers : (button.dataset.frontierView === "zoom") === this.zoom)); }
   private render(): void {
     // Newest experiment first: each entry is placed by its first trial; undated entries go last.
     const first = new Map<string, number>();
@@ -233,6 +240,7 @@ export class Workbench {
     if (more !== null) { const id = more.dataset.verMore ?? ""; if (!this.expanded.delete(id)) this.expanded.add(id); this.renderCharts(); return; }
     const version = target.closest<HTMLElement>("[data-ver]");
     if (version !== null) { const inner = target.closest("details, summary, a, button"); if (inner === null || !version.contains(inner)) this.isolate(version.dataset.ver ?? null); return; }
+    if (target.closest("[data-frontier-outliers]") !== null) { this.hideTimeOutliers = !this.hideTimeOutliers; if (this.initialized) this.renderCharts(); else this.pressed(); return; }
     const view = target.closest<HTMLElement>("[data-frontier-view]"); if (view !== null) { this.zoom = view.dataset.frontierView === "zoom"; if (this.initialized) this.renderCharts(); else this.pressed(); return; }
     const mark = target.closest<HTMLElement>("[data-run]"); if (mark !== null) { event.preventDefault(); this.detail(mark.dataset.run ?? "", mark.dataset.split ?? null); }
   };

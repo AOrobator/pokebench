@@ -40,7 +40,14 @@ export function resumeMilestone(run: WorkbenchRun): (typeof FRONTIER_MILESTONES)
   return FRONTIER_MILESTONES.find(m => m.id === run.config?.resume) ?? null;
 }
 export const checkpointResume = (run: WorkbenchRun): boolean => run.excluded === null && run.problem === null && run.measurement?.controller === "agent" && resumeMilestone(run) !== null;
-export const shownAgent = (run: WorkbenchRun): boolean => plottedAgent(run) || checkpointResume(run);
+// A fixed-run trial the driver judged invalid (crash, model error, operator stop) keeps its real story progress on the chart, dotted and never the frontier.
+const INVALID_TRIAL = "Invalid fixed-run trial: ";
+export function invalidTrial(run: WorkbenchRun): string | null {
+  if (run.problem !== null || run.excluded?.startsWith(INVALID_TRIAL) !== true || run.measurement?.controller !== "agent") return null;
+  return run.config?.start === "boot" || run.config?.resume === "MAIN_MENU" || resumeMilestone(run) !== null ? run.excluded.slice(INVALID_TRIAL.length) : null;
+}
+export const shownAgent = (run: WorkbenchRun): boolean => plottedAgent(run) || checkpointResume(run) || invalidTrial(run) !== null;
+const resumedRun = (run: WorkbenchRun): boolean => checkpointResume(run) || (invalidTrial(run) !== null && resumeMilestone(run) !== null);
 // Harness versions of every run the frontier can draw; previous keeps colors already given out (version key → color).
 export function frontierVersions(runs: readonly WorkbenchRun[], previous: ReadonlyMap<string, string> = new Map()): VersionIndex {
   return harnessVersions(runs.filter(shownAgent), previous);
@@ -74,8 +81,9 @@ export function markerShape(shape: "human" | "best" | "overlay" | "resumed", x: 
 }
 function mark(run: WorkbenchRun, name: string, x: number, y: number, color: string, shape: "human" | "best" | "overlay" | "resumed"): string {
   const split = run.splits.find(s => s.name === name); if (split === undefined) return "";
+  const invalid = invalidTrial(run), why = invalid === null ? "" : ` · invalid trial: ${invalid}`;
   const sinceSave = resumeMilestone(run) !== null ? ` · resumed at ${resumeMilestone(run)?.label ?? ""}, not from New game; minutes since the save loaded` : run.config?.resume === "MAIN_MENU" ? " · started from the main-menu save (text speed FAST), not power-on; minutes since the save loaded" : "";
-  const title = `${run.id} · ${name} · active ${split.derived === true ? "≤ " : ""}${preciseTime(split.elapsedMs)} · ${split.derived === true ? (split.screenshotEvidence === undefined ? "recovered native state (first observation upper bound)" : "reviewed screenshot (observation upper bound)") : "native milestone"} #${String(split.seq)}${sinceSave}`;
+  const title = `${run.id} · ${name} · active ${split.derived === true ? "≤ " : ""}${preciseTime(split.elapsedMs)} · ${split.derived === true ? (split.screenshotEvidence === undefined ? "recovered native state (first observation upper bound)" : "reviewed screenshot (observation upper bound)") : "native milestone"} #${String(split.seq)}${sinceSave}${why}`;
   const body = markerShape(shape, x, y, color);
   return `<g class="wb-mark" role="button" tabindex="0" data-run="${esc(run.id)}" data-split="${esc(name)}" aria-label="${esc(title)}" fill="${color}" stroke="${color}" stroke-width="${shape === "best" ? "2" : "1"}"><title>${esc(title)}</title>${body}</g>`;
 }
@@ -96,7 +104,7 @@ export function frontierPlot(refs: ReferencePair, overlays: readonly WorkbenchRu
   const series: { run: WorkbenchRun; color: string; kind: "human" | "best" | "overlay" | "live" | "paused" | "resumed"; resumed: boolean }[] = [];
   const current = currentRuns.filter(r => shownAgent(r) && (r.status === "live" || r.status === "paused") && r.id !== refs.best?.id);
   const currentIds = new Set(current.map(r => r.id));
-  for (const run of overlays) if (!currentIds.has(run.id) && run.id !== refs.human?.id && run.id !== refs.best?.id && shownAgent(run)) series.push({ run, color: versions.byRun.get(run.id)?.color ?? OTHER_COLOR, kind: checkpointResume(run) ? "resumed" : "overlay", resumed: checkpointResume(run) });
+  for (const run of overlays) if (!currentIds.has(run.id) && run.id !== refs.human?.id && run.id !== refs.best?.id && shownAgent(run)) series.push({ run, color: versions.byRun.get(run.id)?.color ?? OTHER_COLOR, kind: resumedRun(run) ? "resumed" : "overlay", resumed: resumedRun(run) });
   if (refs.human !== null) series.push({ run: refs.human, color: "#304f7a", kind: "human", resumed: false });
   if (refs.best !== null) series.push({ run: refs.best, color: "#af8915", kind: "best", resumed: false });
   for (const run of current) series.push({ run, color: versions.byRun.get(run.id)?.color ?? OTHER_COLOR, kind: run.status === "live" ? "live" : "paused", resumed: checkpointResume(run) });
@@ -135,10 +143,10 @@ export function frontierPlot(refs: ReferencePair, overlays: readonly WorkbenchRu
   for (const { run, color, kind, resumed } of series) {
     const active = kind === "live" || (kind === "best" && frontierStatus === "live"), isCurrent = active || kind === "paused" || (kind === "best" && frontierStatus !== null);
     const group = kind === "human" ? "__human" : kind === "best" ? "__best" : versions.byRun.get(run.id)?.id ?? "__other", member = kind === "best" ? versions.byRun.get(run.id)?.id : undefined;
-    const on = focus !== null && (group === focus || member === focus);
-    body += `<g class="${["wb-series", on ? "wb-on" : "", active ? "wb-live-run" : "", isCurrent && !active ? "wb-paused-run" : "", resumed ? "wb-resumed-run" : ""].filter(c => c !== "").join(" ")}" data-version="${group}"${member === undefined ? "" : ` data-member="${member}"`}${isCurrent ? ` data-current-run="${esc(run.id)}"` : ""}${active ? ` data-live-run="${esc(run.id)}"` : ""}${resumed ? ` data-resume="${esc(run.config?.resume ?? "")}"` : ""} style="--wb-run-color:${color}">`;
+    const on = focus !== null && (group === focus || member === focus), invalid = invalidTrial(run);
+    body += `<g class="${["wb-series", on ? "wb-on" : "", active ? "wb-live-run" : "", isCurrent && !active ? "wb-paused-run" : "", resumed ? "wb-resumed-run" : "", invalid === null ? "" : "wb-invalid-run"].filter(c => c !== "").join(" ")}" data-version="${group}"${member === undefined ? "" : ` data-member="${member}"`}${isCurrent ? ` data-current-run="${esc(run.id)}"` : ""}${active ? ` data-live-run="${esc(run.id)}"` : ""}${resumed ? ` data-resume="${esc(run.config?.resume ?? "")}"` : ""}${invalid === null ? "" : ` data-invalid="${esc(invalid)}"`} style="--wb-run-color:${color}">`;
     let points: string[] = [];
-    const flush = (): void => { if (points.length > 1) body += `<polyline data-series="${esc(run.id)}" fill="none" stroke="${color}" stroke-width="${kind === "overlay" || kind === "resumed" ? "1.5" : "2.5"}"${kind === "overlay" ? ' opacity=".45"' : ""}${resumed ? ' stroke-dasharray="8 5"' : ""} points="${points.join(" ")}"/>`; points = []; };
+    const flush = (): void => { if (points.length > 1) body += `<polyline data-series="${esc(run.id)}" fill="none" stroke="${color}" stroke-width="${kind === "overlay" || kind === "resumed" ? "1.5" : "2.5"}"${kind === "overlay" ? ' opacity=".45"' : ""}${invalid !== null ? ' stroke-dasharray="2 4"' : resumed ? ' stroke-dasharray="8 5"' : ""} points="${points.join(" ")}"/>`; points = []; };
     milestones.forEach((m, i) => { if (!onChart(run, m.id)) { flush(); return; } const split = run.splits.find(s => s.name === m.id); if (split === undefined) { if (milestoneStatus(run, m.id) !== "unsupported") flush(); return; } const atX = x(i), atY = y(split.elapsedMs / 60000); points.push(`${String(atX)},${String(atY)}`); }); flush();
     milestones.forEach((m, i) => { if (!onChart(run, m.id)) return; const split = run.splits.find(s => s.name === m.id); if (split !== undefined) body += mark(run, m.id, x(i), y(split.elapsedMs / 60000), color, kind === "human" || kind === "best" ? kind : resumed ? "resumed" : "overlay"); });
     if (active) {
@@ -150,7 +158,8 @@ export function frontierPlot(refs: ReferencePair, overlays: readonly WorkbenchRu
   }
   const unavailable = `${refs.human === null ? '<p class="wb-notice">Human reference unavailable: recorded baseline is missing or invalid.</p>' : ""}${refs.best === null ? '<p class="wb-notice">Agent frontier unavailable: no valid New Game-start agent run has reached a story checkpoint yet.</p>' : ""}`;
   const resumeNotice = origins.map(id => `<p class="wb-notice" data-resume-notice="${esc(id ?? "")}">Dashed runs loaded a ${esc(FRONTIER_MILESTONES.find(m => m.id === id)?.label ?? "checkpoint")} save. They did not start from New game. Minutes on a dashed line start when that save loaded, so a low line is not a faster fresh start.</p>`).join("");
+  const invalidNotice = series.some(s => invalidTrial(s.run) !== null) ? '<p class="wb-notice" data-invalid-notice>Dotted runs are invalid trials: the fixed-run driver discarded them (a crash, a model error or an operator stop). They show the story progress they made before that, and never count as the agent frontier.</p>' : "";
   const currentKeys = current.map(run => { const color = versions.byRun.get(run.id)?.color ?? OTHER_COLOR; return `<span class="wb-current-key ${run.status === "live" ? "wb-live-key" : ""}" style="--wb-run-color:${color}" title="${esc(run.id)}"><i style="background:${color}"></i>${run.status === "live" ? "LIVE" : "PAUSED"}${checkpointResume(run) ? " · NOT FROM ZERO" : ""} · ${esc(versionLabel(run, versions))} · ${esc(run.id.slice(-4))}${run.splits.some(s => onChart(run, s.name) && milestones.some(m => m.id === s.name)) ? "" : " · waiting for first story checkpoint"}</span>`; }).join("");
   const legend = currentKeys === "" ? "" : `<div class="wb-model-legend wb-current-keys" aria-label="Runs in progress">${currentKeys}</div>`;
-  return `${unavailable}${resumeNotice}${legend}<svg class="wb-chart wb-frontier-chart${focus === null ? "" : " wb-dim"}" viewBox="0 0 ${String(width)} ${String(height)}" role="img" aria-label="${hidden === 0 ? "Full story frontier through gym and badge" : `Story frontier zoomed to ${FRONTIER_MILESTONES[0].label} through ${last}`}">${body}</svg><p class="wb-muted">${hidden === 0 ? `${String(milestones.length)} required progression checkpoints.` : `Zoomed to the frontier: ${FRONTIER_MILESTONES[0].label} → ${last}, ${String(milestones.length)} of ${String(FRONTIER_MILESTONES.length)} checkpoints. ${String(hidden)} later checkpoints hidden; choose FULL BASELINE for the whole human run.`}${labelEvery === 1 ? "" : ` Some axis labels are hidden to fit this width; all ${hidden === 0 ? "recorded" : "visible"} points remain plotted.`} Recovered first-observation times are upper bounds (≤ in point details). A checkpoint the run recorded but missed breaks the line; one its build never recorded is skipped.</p>`;
+  return `${unavailable}${resumeNotice}${invalidNotice}${legend}<svg class="wb-chart wb-frontier-chart${focus === null ? "" : " wb-dim"}" viewBox="0 0 ${String(width)} ${String(height)}" role="img" aria-label="${hidden === 0 ? "Full story frontier through gym and badge" : `Story frontier zoomed to ${FRONTIER_MILESTONES[0].label} through ${last}`}">${body}</svg><p class="wb-muted">${hidden === 0 ? `${String(milestones.length)} required progression checkpoints.` : `Zoomed to the frontier: ${FRONTIER_MILESTONES[0].label} → ${last}, ${String(milestones.length)} of ${String(FRONTIER_MILESTONES.length)} checkpoints. ${String(hidden)} later checkpoints hidden; choose FULL BASELINE for the whole human run.`}${labelEvery === 1 ? "" : ` Some axis labels are hidden to fit this width; all ${hidden === 0 ? "recorded" : "visible"} points remain plotted.`} Recovered first-observation times are upper bounds (≤ in point details). A checkpoint the run recorded but missed breaks the line; one its build never recorded is skipped.</p>`;
 }

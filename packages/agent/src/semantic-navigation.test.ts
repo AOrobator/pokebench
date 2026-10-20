@@ -403,12 +403,17 @@ it("refuses a visible object intercepted by an earlier invisible native slot",as
  expect(f.navigations).toEqual([]);expect(f.buttons).toEqual([]);expect(out.content[0]?.type==="text"?out.content[0].text:"").toContain("no supported route");
 });
 
-it("refuses a warp coordinate when a different native elevation entry wins",async()=>{
+it("enters the first elevation-compatible warp when an earlier event is on another elevation",async()=>{
  const first:NonNullable<GameStateSnapshot["interaction_targets"]>[number]={kind:"warp",x:2,y:0,elevation:4,activation:"movement",availability:"conditional",facing:null,local_id:null,destination:[1,2,0],name:"High"};
  const eligible={...first,elevation:3,destination:[1,3,0] as [number,number,number],name:"Low"};
- const f=fixture(undefined,baseFeatures(),undefined,field([first,eligible])),tool=f.tools.find(t=>t.name==="navigate_to_target");if(tool===undefined)throw new Error("missing semantic tool");
+ const initial=field([first,eligible]);
+ const f=fixture(undefined,baseFeatures(),undefined,initial),tool=f.tools.find(t=>t.name==="navigate_to_target");if(tool===undefined)throw new Error("missing semantic tool");
  const out=await tool.execute("s",{map_id:[0,9],target:{kind:"warp",x:2,y:0}});
- expect(f.navigations).toEqual([]);expect(f.buttons).toEqual([]);expect(out.content[0]?.type==="text"?out.content[0].text:"").toContain("no supported route");
+ expect(f.navigations).toEqual([{x:2,y:0,map_id:[0,9]}]);expect(f.buttons).toEqual([]);
+ expect(out.details).toMatchObject({semantic_navigation:{selected:"warp at (2,0)",activation_attempted:true}});
+ const explore=fixture(undefined,{...baseFeatures(),"deterministic-exploration-v1":true},undefined,initial).tools.find(t=>t.name==="explore_map");if(explore===undefined)throw new Error("missing explorer");
+ const explored=await explore.execute("e",{});
+ expect(explored.details).toMatchObject({semantic_navigation:{activation_attempted:true}});
 });
 
 it("refuses a background when a scripted object would receive A first",async()=>{

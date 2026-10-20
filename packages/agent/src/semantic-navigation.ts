@@ -95,13 +95,23 @@ function label(target:RequestTarget):string {
  if(target.kind==="warp")return `warp at (${String(target.x)},${String(target.y)})`;
  return `${target.interaction_kind.replaceAll("_"," ")} at (${String(target.x)},${String(target.y)})`;
 }
-function resolve(state:GameStateSnapshot,target:RequestTarget):SnapshotTarget|null {
+function resolve(state:GameStateSnapshot,target:RequestTarget,options:NavigationOptions):SnapshotTarget|null {
  const listed=state.interaction_targets??[];
  if(target.kind==="object")return listed.find(item=>item.kind==="object"&&item.local_id===target.local_id)??null;
  if(target.kind==="connection")return null;
  if(target.kind==="interaction"&&(target.interaction_kind==="object"||target.interaction_kind==="warp"))return null;
- const kind=target.kind==="warp"?"warp":target.interaction_kind;
- return listed.find(item=>item.kind===kind&&item.x===target.x&&item.y===target.y)??null;
+ if(target.kind==="warp"){
+  // Emerald GetWarpEventAtPosition keeps scanning and returns the first warp at
+  // the coordinate whose elevation matches the player or is the transition wildcard.
+  // A blocked remainder has no arrival path, so the player's current elevation
+  // still identifies the event; it does not make the warp disappear.
+  const here=state.position;
+  const standing=here===null?undefined:state.navigation_grid?.tiles.find(tile=>tile.x===here.x&&tile.y===here.y)?.elevation??state.navigation_grid?.elevation??state.map_grid?.elevation;
+  const elevation=plannedArrivalElevation(state,{x:target.x,y:target.y},options)??standing??null;
+  if(elevation===null)return null;
+  return listed.find(item=>item.kind==="warp"&&item.x===target.x&&item.y===target.y&&(item.elevation===0||item.elevation===elevation))??null;
+ }
+ return listed.find(item=>item.kind===target.interaction_kind&&item.x===target.x&&item.y===target.y)??null;
 }
 function sameTargetIdentity(before:SnapshotTarget,after:SnapshotTarget):boolean {
  if(before.kind!==after.kind||before.x!==after.x||before.y!==after.y)return false;
@@ -188,7 +198,7 @@ function semanticTool(navigate:CheckedNavigationTool,press:CheckedPressTool,feat
   execute:async(id,request,signal)=>{
    signal?.throwIfAborted();const before=await stateSource.read(signal),selected=label(request.target);
    if(!isMap(before,request.map_id))return withStatus({content:[],details:{state:before}},"refused because the requested map is not current",selected,false);
-   const listed=request.target.kind==="connection"?null:resolve(before,request.target);
+   const listed=request.target.kind==="connection"?null:resolve(before,request.target,options);
    if(request.target.kind!=="connection"&&listed===null)return withStatus({content:[],details:{state:before}},"target is not listed in the current verified state",selected,false);
    const choices=request.target.kind==="connection"?connectionApproaches(before,request.target,options):approaches(before,listed as SnapshotTarget,options);
    const choice=choices[0];if(choice===undefined)return withStatus({content:[],details:{state:before}},"no supported route to a valid approach",selected,false);
@@ -201,7 +211,7 @@ function semanticTool(navigate:CheckedNavigationTool,press:CheckedPressTool,feat
      const sameDestination=a!==undefined&&b!==undefined&&a[0]===b[0]&&a[1]===b[1];
      return sameDestination&&connection?.edges?.some(point=>point.x===choice.point.x&&point.y===choice.point.y)===true?null:`semantic connection changed during ${phase}`;
     }
-    const fresh=resolve(actual,request.target);
+    const fresh=resolve(actual,request.target,options);
     if(fresh===null)return `semantic target disappeared during ${phase}`;
     if(listed===null)return `semantic target changed during ${phase}`;
     if(fresh.x!==listed.x||fresh.y!==listed.y)return `semantic target moved during ${phase}`;
@@ -259,7 +269,7 @@ function semanticTool(navigate:CheckedNavigationTool,press:CheckedPressTool,feat
     if(requiredFacing!==null&&actual.facing!==requiredFacing.toLowerCase())throw new SemanticPreconditionError(`player facing changed before ${phase}`);
    };
    if(request.target.kind!=="connection"){
-    const fresh=resolve(current,request.target);
+    const fresh=resolve(current,request.target,options);
     if(fresh===null)return withStatus(walked,"target disappeared before activation",selected,false);
     if(listed===null)return withStatus(walked,"target changed before activation; inspect its new identity or position",selected,false);
     if(fresh.x!==listed.x||fresh.y!==listed.y)return withStatus(walked,"target moved before activation; inspect its new position",selected,false);
@@ -269,7 +279,7 @@ function semanticTool(navigate:CheckedNavigationTool,press:CheckedPressTool,feat
      const warpActivation=directionalWarpActivation(current,fresh,options.mode??"local");
      if(warpActivation===null){const attempted=navigationCommands(walked)>0;return withStatus(walked,attempted?"arrived at the movement-activated target":"already standing on the movement-activated target; step away and re-enter it",selected,attempted);}
      let activated:AgentToolResult<unknown>;
-     try{activated=await executePress(id,warpActivation,actual=>{checkInput(actual,"activation",null);if(actual===undefined)throw new SemanticPreconditionError("verified state became unavailable before activation");const fresh=resolve(actual,request.target);if(fresh===null||directionalWarpActivation(actual,fresh,options.mode??"local")!==warpActivation)throw new SemanticPreconditionError("directional warp activation changed before input");},signal);}
+     try{activated=await executePress(id,warpActivation,actual=>{checkInput(actual,"activation",null);if(actual===undefined)throw new SemanticPreconditionError("verified state became unavailable before activation");const fresh=resolve(actual,request.target,options);if(fresh===null||directionalWarpActivation(actual,fresh,options.mode??"local")!==warpActivation)throw new SemanticPreconditionError("directional warp activation changed before input");},signal);}
      catch(error){if(!(error instanceof SemanticPreconditionError))throw error;const state=await stateSource.read(signal);return withStatus({content:[],details:{state}},error.message,selected,false);}
      current=stateOf(activated);reason=interrupted(current);
      const status=reason!==null?`activation handed control back: ${reason}`:!isMap(current,request.map_id)?"activation changed maps; inspect the destination":"directional warp activation did not change maps; inspect the target";

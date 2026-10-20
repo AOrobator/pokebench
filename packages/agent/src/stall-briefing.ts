@@ -73,7 +73,10 @@ export class StallBriefing {
  }
 
  private check(seq:number):void {
+  // positive-supervisor-v1: map back-and-forth and milestone-drought briefings are retired; interface dwell stays.
+  const retired=this.features["positive-supervisor-v1"];
   for(const pair of this.pairs.values()){
+   if(retired)break;
    const level=Math.floor(pair.moves/(2*STALL_ROUND_TRIPS));
    if(level<=pair.briefed)continue;
    const hold=this.gate?.holds()??null;
@@ -88,6 +91,7 @@ export class StallBriefing {
    if(this.detector.stall("interface_dwell",calls=>this.text(stall,calls),[dwell.firstSeq,seq]))dwell.briefed=Math.floor(dwell.calls/INTERFACE_DWELL_CALLS);
    return;
   }
+  if(retired)return;
   const level=Math.floor((this.active()-this.progressAt)/STALL_DROUGHT_MS);
   if(level<=this.droughts)return;
   const hold=this.gate?.holds()??null;

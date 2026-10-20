@@ -111,7 +111,7 @@ export class SupervisorBriefing {
  private readonly battles:BattleOutcomes|null;
  // story-character-stall-gate-v1: while it holds, no way off the map is listed, and a walk that moved nowhere tries nothing.
  private readonly gate:StoryCharacterGate|null;
- constructor(private readonly features:FeatureSet){this.dialogue=new DialogueLog(features);this.hint=features["next-milestone-hint-v1"]?new NextMilestoneHint():null;this.exits=features["briefing-exits-v1"]?new ExitHistory():null;this.battles=features["briefing-battle-outcomes-v1"]?new BattleOutcomes(features):null;this.gate=features["story-character-stall-gate-v1"]?new StoryCharacterGate({recordStallGate:()=>undefined}):null;}
+ constructor(private readonly features:FeatureSet){this.dialogue=new DialogueLog(features);this.hint=features["next-milestone-hint-v1"]?new NextMilestoneHint():null;this.exits=features["briefing-exits-v1"]?new ExitHistory():null;this.battles=features["briefing-battle-outcomes-v1"]?new BattleOutcomes(features):null;this.gate=features["story-character-stall-gate-v1"]||features["positive-supervisor-v1"]?new StoryCharacterGate({recordStallGate:()=>undefined}):null;}
  observe(event:RunEvent):void {
   this.gate?.observe(event);
   this.dialogue.observe(event);
@@ -166,7 +166,7 @@ export class SupervisorBriefing {
    const where=call.before??after;
    this.remember(this.room(where),roomOf(where,this.features),label,this.outcome(call.before,after,auto?.pages??[]));
    if(call.before!==null&&this.room(call.before)===this.room(after)&&this.moved(call.before,after))this.touchSteppedTrigger(after);
-   if(this.gate!==null)this.reached(call,after);
+   if(this.features["story-character-stall-gate-v1"])this.reached(call,after);
    if(this.exits!==null||this.features["faced-interaction-history-v1"])this.scriptedTrigger(call,after,auto);
   }
   for(const page of auto?.pages??[])this.heard.add(this.pageOpening(page));
@@ -282,7 +282,7 @@ export class SupervisorBriefing {
   if(call.name==="navigate_to"){
    const x=call.args["x"],y=call.args["y"];
    if(typeof x!=="number"||typeof y!=="number")return "navigate_to (invalid target)";
-   if(call.before!==null&&this.gate===null)this.touch(this.room(call.before),at(x,y));
+   if(call.before!==null&&!this.features["story-character-stall-gate-v1"])this.touch(this.room(call.before),at(x,y));
    return `navigate_to ${at(x,y)}`;
   }
   const buttons=call.args["buttons"];
@@ -463,9 +463,9 @@ export class SupervisorBriefing {
   if(call.name!=="navigate_to"||call.before===null||typeof x!=="number"||typeof y!=="number"||p===null||this.room(call.before)!==this.room(after))return;
   if(Math.abs(p.x-x)+Math.abs(p.y-y)<=1)this.touch(this.room(after),at(x,y));
  }
- private staying():boolean {return this.gate?.holds()!=null;}
+ private staying():boolean {return this.features["story-character-stall-gate-v1"]&&this.gate?.holds()!=null;}
  private untalked():string {
-  const names=this.gate?.untalked()??[];
+  const names=this.staying()||this.features["positive-supervisor-v1"]?this.gate?.untalked()??[]:[];
   return names.length===0?"":`- Story characters on this map you have not talked to since your last story milestone: ${names.join("; ")}\n`;
  }
  private edges():string {
@@ -477,14 +477,33 @@ export class SupervisorBriefing {
   return line===null?"":`- Ways off this map across its edge (the game's map connections): ${line}\n`;
  }
  text(kind:LoopKind,calls:number):string {
+  if(this.features["positive-supervisor-v1"])return this.positive(`The game state has not changed after your recent calls (${PATTERN[kind]}).`);
   return this.bearings(`SUPERVISOR: You are currently looping. You keep repeating ${PATTERN[kind]}, and the game is not moving forward (loop guard, ${String(calls)} calls into the run).`);
  }
 
  // stall-briefing-v1: the same facts, headed by which stall it is, plus the dialogue of the last story step
  // and what lies on the maps walked since the last progress.
  stallText(stall:Stall,calls:number):string {
+  if(this.features["positive-supervisor-v1"])return this.positive(stall.kind==="interface_dwell"?`You have made ${String(stall.calls)} calls in the ${stall.name}.`:"");
   const what=stall.kind==="map_cycle"?`You have walked between ${stall.from} and ${stall.to} ${String(stall.roundTrips)} times${stall.consecutive?", out and back,":" (with other maps in between),"} with no new story milestone`:stall.kind==="interface_dwell"?`You have made ${String(stall.calls)} calls in the ${stall.name} without leaving it, with no new story milestone`:`There has been no new story milestone for ${String(stall.minutes)} minutes of play`;
   return this.bearings(`SUPERVISOR: You are stalling. ${what}, and the game is not moving forward (stall briefing, ${String(calls)} calls into the run).`,true);
+ }
+
+ // positive-supervisor-v1: what to do and what the game shows, never that it is looping, a route, or a way off the map.
+ private positive(fact:string):string {
+  const ui=this.screenNow?.ui;
+  const recent=(ui===undefined?this.tried:this.uiTried).slice(-3).reverse().map(t=>`${t.label}${t.count>1?` ×${String(t.count)}`:""} → ${t.outcome}`).join("; ");
+  const untried=ui!==undefined||this.latest===null||!this.features["world-targets-v1"]?[]:this.open(this.latest).filter(t=>!t.startsWith("Warp")&&!t.startsWith("warp")).slice(0,3);
+  const lines=[
+   `SUPERVISOR: Make one tool call based on the game state and what you observed.${fact===""?"":` ${fact}`}`,
+   `- Where you are: ${ui===undefined?this.where():`in the ${ui.name}; your last field position was ${this.where()}`}`,
+   ...(ui===undefined?[]:[`- Open interface: ${ui.name}; phase ${ui.phase}; text ${ui.text??"unknown"}; selected ${ui.selected??"unknown"}; controls: ${ui.controls??"unknown"}`]),
+   ...(ui?.naming===true?[`- How to finish: press START to move the cursor to OK, then press A on OK${ui.owner==="nickname"?"; with no text entered the Pokémon keeps its current name":""}`]:[]),
+   ...this.untalked().split("\n").filter(l=>l!==""),
+   ...(untried.length===0?[]:[`- Shown here and not tried yet: ${untried.join("; ")}`]),
+   ...(recent===""?[]:[`- Your latest attempts: ${recent}`]),
+  ];
+  return lines.join("\n");
  }
 
  private focused(headline:string):string {
@@ -542,6 +561,7 @@ Before your next action, look back at your goal and at what the game has told yo
  }
 
  textOnly(replies:number,note:number,limit:number,replyFailuresEndRun=true):string {
+  if(this.features["positive-supervisor-v1"])return this.positive(`Your last ${String(replies)} ${replies===1?"reply":"replies"} called no tool.`);
   const policy=replyFailuresEndRun?`If replies keep calling no tool after note ${String(limit)} of ${String(limit)}, the run ends.`:"Reply-based stopping is disabled for this run; the configured turn and time budgets still apply.";
   if(this.features["supervisor-briefing-v2"]){
    const head=`SUPERVISOR: Your last ${String(replies)} replies called no tool, so nothing happened in the game (text-only supervisor, note ${String(note)} of ${String(limit)}).`;

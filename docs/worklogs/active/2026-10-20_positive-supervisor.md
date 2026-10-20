@@ -23,7 +23,7 @@ No new I/O.
 ## Milestones
 **M1 — positive-supervisor-v1**
 - [x] RED: positive-supervisor.test.ts (registry, f28d replay T450 exact text, banned phrases, no drought/map-cycle briefings, text-only and dwell notes); registry +1 shifts.
-- [ ] GREEN
+- [x] GREEN: SupervisorBriefing.positive, stall briefing retirement, registry, presets, next-run. Agent 2830 tests pass.
 - [ ] Probes (GPU queue, 16 a side): f28d T451, T2301, T2862, control 8d39 Route 104 battle-menu and woods party-menu loops
 - [ ] Explainer, pending experiment, review, landing after claude/loop-breaker
 

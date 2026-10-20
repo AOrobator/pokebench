@@ -27,3 +27,4 @@ auto-talk-v1 (guard), retroactive and default ON (feature-switch rule for landed
 ## Archive Milestone (user-gated)
 - Pending experiment pinned to 54c7e9d9bd9fc58e1d9ee6950dac0e6bdf7026d7.
 - Gates: agent 2834, viewer 1387 (server-stream timing test flaked once, passes on rerun twice); lint clean; coverage agent 97.1/93.0/97.6, viewer 95.1/91.1/93.9.
+- Gates after the collapse split and main sync: agent 2837, viewer pass; lint clean; coverage agent 97.1/93.0/97.6, viewer 95.1/91.1/93.9.

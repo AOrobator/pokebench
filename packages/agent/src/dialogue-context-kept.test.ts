@@ -168,7 +168,7 @@ describe("dialogue-context-kept-v1 registry and production wiring", () => {
   });
 
   it("the play wiring hands the loop the switch's window", () => {
-    const recorder = { subscribe: () => () => undefined, recordNavigationContext: () => undefined, recordLedgerContext: () => undefined, recordMilestoneHint: () => undefined, recordBeliefLedger: () => undefined };
+    const recorder = { subscribe: () => () => undefined, recordNavigationContext: () => undefined, recordLedgerContext: () => undefined, recordMilestoneHint: () => undefined, recordLoopBreaker:()=>undefined,recordBeliefLedger: () => undefined };
     const wiring = (features: FeatureSet) => contextTools(features, recorder, (m) => Promise.resolve(m)).window;
     expect(wiring(ON).keepDialogue).toBe(true);
     expect(wiring(OFF)).toBe(contextWindow(OFF));

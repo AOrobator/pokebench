@@ -46,7 +46,7 @@ const must=<T>(value:T|undefined):T=>{if(value===undefined)throw new Error("miss
 
 describe("registry and presets",()=>{
  it("both switches are registered last, in order, with copy that says what OFF does",()=>{
-  expect(SWITCHABLE_FEATURES.slice(-43,-39)).toEqual(["exit-reachability-v1","heal-before-trainers-v1",TRUST,CITED]);
+  expect(SWITCHABLE_FEATURES.slice(-45,-41)).toEqual(["exit-reachability-v1","heal-before-trainers-v1",TRUST,CITED]);
   expect(featureInfo(TRUST)).toMatchObject({switchable:true,group:"guidance",needs:"dialogue-auto-advance-v1",title:"HARNESS TRUST"});
   expect(featureInfo(CITED)).toMatchObject({switchable:true,group:"guidance",needs:"bounded-navigation-v1",title:"CITED DESTINATION"});
   for(const id of [TRUST,CITED])expect(featureInfo(id).description).toContain(" Off: ");

@@ -9,13 +9,13 @@ import { parseEvent } from "./events.js";
 import { RUN_START_META } from "../test-support/events.js";
 
 const ID = "original-speed-pacing-v1" as SwitchableFeature;
-const OFF = { ...ALL_ON, [ID]: false };
+const OFF = { ...ALL_ON, [ID]: false, "fixed-point-breaker-v1": false, "story-character-stall-gate-v1": false };
 const ON = { ...OFF, [ID]: true };
 const flags = { loopGuard: true, activeUi: true, interfaceDocs: true, objectives: false };
 
 it("appends the independent speed policy without reordering recorded feature identity", () => {
-  expect(SWITCHABLE_FEATURES.at(-1)).toBe(ID);
-  expect(SWITCHABLE_FEATURES.at(-5)).toBe("evolution-decision-v1");
+  expect(SWITCHABLE_FEATURES.at(-3)).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-7)).toBe("evolution-decision-v1");
   expect(FEATURES.filter(feature => feature.switchable).map(feature => feature.id)).toEqual([...SWITCHABLE_FEATURES]);
   expect(featureInfo(ID)).toMatchObject({ group: "guidance", needs: null, switchable: true });
   expect(featureInfo(ID).description).toMatch(/80/);

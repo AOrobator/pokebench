@@ -181,8 +181,8 @@ describe("levelup-box-v1 on the recorded T357 level-up (run 54a7)",()=>{
 
 describe("levelup-box-v1 registry, presets and server wiring",()=>{
  it("is the last switch: a default-off observation the game server applies, with OFF copy and no dependency",()=>{
-  expect(SWITCHABLE_FEATURES.at(-69)).toBe(ID);
-  expect(FEATURES.filter(f=>f.switchable).at(-69)?.id).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-71)).toBe(ID);
+  expect(FEATURES.filter(f=>f.switchable).at(-71)?.id).toBe(ID);
   expect(playHarnessFeatures(ALL_ON,null).at(-61)).toBe(ID);
   const info=featureInfo(ID);
   expect([info.group,info.needs,info.title]).toEqual(["observation",null,"LEVEL-UP STATS BOX"]);

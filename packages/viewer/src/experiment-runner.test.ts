@@ -8,7 +8,8 @@ import { Log, START } from "../test-support/events.js";
 import { QUEUE_FEATURES, definition, writeDefinition } from "../test-support/experiments.js";
 import { experimentDir, runnerPath, type QueuePaths, type RunSource, type TrialMetrics } from "./experiment-store.js";
 import { gradeExperiment, nextExperiment, runQueue, type RunnerHost, type TrialLaunch } from "./experiment-runner.js";
-import { LEASE } from "./next-run.js";
+import { leaseDir } from "./lease.js";
+import { EXPERIMENT_POOL } from "./experiment-runner.js";
 
 function setup(over: Record<string, unknown> = {}, approve = true): { paths: QueuePaths; metrics: Map<string, TrialMetrics>; source: RunSource } {
   const root = mkdtempSync(join(tmpdir(), "pokebench-runner-"));
@@ -56,12 +57,12 @@ function host(paths: QueuePaths, metrics: Map<string, TrialMetrics>, over: Parti
     discover: (lane) => Promise.resolve({ id: lane, fingerprint: "f".repeat(64) }),
     launch: (trial) => {
       launches.push(trial);
-      expect(existsSync(join(paths.runsRoot, LEASE, "owner.json"))).toBe(true);
+      expect(existsSync(join(leaseDir(paths.runsRoot, EXPERIMENT_POOL), "owner.json"))).toBe(true);
       expect(JSON.parse(readFileSync(runnerPath(paths.runsRoot), "utf8"))).toMatchObject({ trial: expect.any(Number) as number, run: trial.runId });
-      expect(JSON.parse(readFileSync(join(paths.runsRoot, LEASE, "owner.json"), "utf8"))).toMatchObject({ owner: "experiment-queue", run: trial.runId });
+      expect(JSON.parse(readFileSync(join(leaseDir(paths.runsRoot, EXPERIMENT_POOL), "owner.json"), "utf8"))).toMatchObject({ owner: "experiment-queue", run: trial.runId });
       trial.started?.(4321);
       expect(JSON.parse(readFileSync(runnerPath(paths.runsRoot), "utf8"))).toMatchObject({ run: trial.runId, child: 4321 });
-      expect(JSON.parse(readFileSync(join(paths.runsRoot, LEASE, "owner.json"), "utf8"))).toMatchObject({ pid: process.pid, owner: "experiment-queue", run: trial.runId, child: 4321 });
+      expect(JSON.parse(readFileSync(join(leaseDir(paths.runsRoot, EXPERIMENT_POOL), "owner.json"), "utf8"))).toMatchObject({ pid: process.pid, owner: "experiment-queue", run: trial.runId, child: 4321 });
       writeRun(paths, trial.runId, (JSON.parse(readFileSync(trial.presetPath, "utf8")) as { features: typeof QUEUE_FEATURES }).features);
       metrics.set(trial.runId, { reached: [], milestoneMs: {}, turns: 9, wallMs: 60_000 });
       return Promise.resolve(0);
@@ -101,7 +102,7 @@ describe("experiment runner", () => {
     const empty = setup();
     writeDefinition(empty.paths.experimentsDir, definition("full-map", { queuePosition: undefined }));
     expect((await runQueue({ paths: empty.paths, source: { ...empty.source, recent: () => [] }, host: host(empty.paths, empty.metrics) })).stopped).toBe("nothing to run: the queue is empty");
-    expect(existsSync(join(draft.paths.runsRoot, LEASE))).toBe(false);
+    expect(existsSync(leaseDir(draft.paths.runsRoot, EXPERIMENT_POOL))).toBe(false);
   });
 
   it("prints the plan on a dry run without launching or writing", async () => {
@@ -127,7 +128,7 @@ describe("experiment runner", () => {
     expect(Object.keys(preset("incumbent").features).filter((k) => preset("incumbent").features[k] !== preset("candidate").features[k])).toEqual(["full-map-navigation-v1"]);
     const result = JSON.parse(readFileSync(join(experimentDir(paths.runsRoot, "full-map"), "result.json"), "utf8")) as { result: { verdict: string; incumbent: { launched: number } } | null };
     expect(result.result?.incumbent.launched).toBe(4);
-    expect(existsSync(join(paths.runsRoot, LEASE))).toBe(false);
+    expect(existsSync(leaseDir(paths.runsRoot, EXPERIMENT_POOL))).toBe(false);
     expect(existsSync(runnerPath(paths.runsRoot))).toBe(false);
     expect((await runQueue({ paths, source, host: fake })).stopped).toBe("nothing to run: the queue is empty");
   });
@@ -148,14 +149,14 @@ describe("experiment runner", () => {
     // A pid no process has (the dead viewer) and this test process standing in for the trial still playing.
     const gone = 2 ** 22 + 7;
     writeFileSync(runnerPath(paths.runsRoot), JSON.stringify({ pid: gone, experiment: "full-map", trial: 0, run: "orphan0", child: process.pid }));
-    mkdirSync(join(paths.runsRoot, LEASE));
-    writeFileSync(join(paths.runsRoot, LEASE, "owner.json"), JSON.stringify({ pid: gone, owner: "experiment-queue", experiment: "full-map" }));
+    mkdirSync(leaseDir(paths.runsRoot, EXPERIMENT_POOL));
+    writeFileSync(join(leaseDir(paths.runsRoot, EXPERIMENT_POOL), "owner.json"), JSON.stringify({ pid: gone, owner: "experiment-queue", experiment: "full-map" }));
     let polls = 0;
     const fake = host(paths, metrics, {
       alive: (pid) => pid === process.pid && polls < 2,
       liveRuns: () => Promise.resolve(polls < 2 ? ["orphan0"] : []),
       wait: () => {
-        expect(JSON.parse(readFileSync(join(paths.runsRoot, LEASE, "owner.json"), "utf8"))).toMatchObject({ pid: process.pid, run: "orphan0", child: process.pid });
+        expect(JSON.parse(readFileSync(join(leaseDir(paths.runsRoot, EXPERIMENT_POOL), "owner.json"), "utf8"))).toMatchObject({ pid: process.pid, run: "orphan0", child: process.pid });
         expect(JSON.parse(readFileSync(runnerPath(paths.runsRoot), "utf8"))).toMatchObject({ pid: process.pid, trial: 0, run: "orphan0", child: process.pid });
         polls += 1;
         if (polls === 2) { writeRun(paths, "orphan0", QUEUE_FEATURES); metrics.set("orphan0", { reached: [], milestoneMs: {}, turns: 9, wallMs: 60_000 }); }
@@ -169,7 +170,7 @@ describe("experiment runner", () => {
     expect(ledger(paths).slice(0, 2)).toMatchObject([{ type: "launch", trial: 0, run: "orphan0" }, { type: "outcome", trial: 0, run: "orphan0", reason: "budget" }]);
     expect(ledger(paths).filter((e) => e.type === "launcher_error")).toEqual([]);
     expect(outcome.ran).toBe(trialOrder(parseExperiment(definition("full-map"))).length);
-    expect(existsSync(join(paths.runsRoot, LEASE))).toBe(false);
+    expect(existsSync(leaseDir(paths.runsRoot, EXPERIMENT_POOL))).toBe(false);
   });
 
   it("records a trial that finished while no viewer was up instead of relaunching it", async () => {
@@ -202,7 +203,7 @@ describe("experiment runner", () => {
       verifySource: () => Promise.resolve("the main checkout has uncommitted changes"),
       liveRuns: () => Promise.resolve(polls < 1 ? ["orphan0"] : []),
       wait: () => {
-        expect(existsSync(join(paths.runsRoot, LEASE, "owner.json"))).toBe(true);
+        expect(existsSync(join(leaseDir(paths.runsRoot, EXPERIMENT_POOL), "owner.json"))).toBe(true);
         polls += 1;
         writeRun(paths, "orphan0", QUEUE_FEATURES);
         metrics.set("orphan0", { reached: [], milestoneMs: {}, turns: 9, wallMs: 60_000 });
@@ -219,8 +220,8 @@ describe("experiment runner", () => {
     const a = setup();
     await expect(runQueue({ paths: a.paths, source: a.source, host: host(a.paths, a.metrics, { verifySource: () => Promise.resolve("main moved") }) })).rejects.toThrow("full-map: main moved");
     await expect(runQueue({ paths: a.paths, source: a.source, host: host(a.paths, a.metrics, { liveRuns: () => Promise.resolve(["someone"]) }) })).rejects.toThrow("live run someone is still running");
-    expect(existsSync(join(a.paths.runsRoot, LEASE))).toBe(false);
-    mkdirSync(join(a.paths.runsRoot, LEASE));
+    expect(existsSync(leaseDir(a.paths.runsRoot, EXPERIMENT_POOL))).toBe(false);
+    mkdirSync(leaseDir(a.paths.runsRoot, EXPERIMENT_POOL));
     let verified = 0;
     await expect(runQueue({ paths: a.paths, source: a.source, host: host(a.paths, a.metrics, { verifySource: () => { verified += 1; return Promise.resolve(null); } }) })).rejects.toThrow("the gameplay lease is held");
     expect(verified).toBe(0);
@@ -231,7 +232,7 @@ describe("experiment runner", () => {
     const failing = setup();
     expect((await runQueue({ paths: failing.paths, source: failing.source, host: host(failing.paths, failing.metrics, { launch: () => Promise.reject(new Error("spawn failed")) }) })).stopped).toBe("held: trial 1 failed to launch");
     expect(ledger(failing.paths).at(-1)).toMatchObject({ type: "launcher_error", message: "spawn failed" });
-    expect(existsSync(join(failing.paths.runsRoot, LEASE))).toBe(false);
+    expect(existsSync(leaseDir(failing.paths.runsRoot, EXPERIMENT_POOL))).toBe(false);
     const crashing = setup();
     expect((await runQueue({ paths: crashing.paths, source: crashing.source, host: host(crashing.paths, crashing.metrics, { launch: () => Promise.resolve(2) }) })).stopped).toBe("held: trial 1 exited with 2");
     expect(ledger(crashing.paths).at(-1)).toMatchObject({ type: "launcher_error", message: "play exited with 2" });
@@ -312,7 +313,7 @@ describe("experiment runner", () => {
     expect((await runQueue({ paths, source, host: fake })).stopped).toMatch(/^full-map finished; result in /);
     expect(fake.launches).toEqual([]);
     expect(existsSync(resultPath)).toBe(true);
-    expect(existsSync(join(paths.runsRoot, LEASE))).toBe(false);
+    expect(existsSync(leaseDir(paths.runsRoot, EXPERIMENT_POOL))).toBe(false);
   });
 
   it("holds when play exits cleanly without recording run_end", async () => {
@@ -391,7 +392,7 @@ describe("experiment runner", () => {
     mkdirSync(join(experimentDir(paths.runsRoot, "full-map"), "presets"), { recursive: true });
     writeFileSync(join(experimentDir(paths.runsRoot, "full-map"), "presets", "incumbent.json"), "{}");
     await expect(runQueue({ paths, source, host: host(paths, metrics) })).rejects.toThrow("full-map: incumbent preset on disk differs from the definition");
-    expect(existsSync(join(paths.runsRoot, LEASE))).toBe(false);
+    expect(existsSync(leaseDir(paths.runsRoot, EXPERIMENT_POOL))).toBe(false);
   });
 
   it("reports grading problems instead of a verdict and picks held before later approved entries", () => {
@@ -404,4 +405,11 @@ describe("experiment runner", () => {
     expect(nextExperiment([view("a", "draft"), view("b", "held"), view("c", "approved")])?.id).toBe("b");
     expect(nextExperiment([view("a", "done")])).toBeNull();
   });
+});
+
+it("takes the experiment queue's lease for the gateway's compute pool", async () => {
+  const { GATEWAY } = await import("./experiment-cli.js");
+  const { leasePool } = await import("@pokebench/agent/lease-pool");
+  expect(EXPERIMENT_POOL).toBe(leasePool(GATEWAY));
+  expect(EXPERIMENT_POOL).toBe("inference.example:80");
 });

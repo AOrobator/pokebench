@@ -41,3 +41,9 @@ Final clean9178 browser rerun:540ms live switch with current turn, all controls,
 Main advanced independently to37211ba7 during round1 (semantic-navigation-v2 landing). Before round2, sync that already-landed main and rerun full gates on the integrated tip. The diagnostic fix stays in the same server/test paths; final packet will review our cumulative viewer diff against the new main, plus the bounded fix delta against9178b929.
 
 Integrated main37211ba7 without conflicts. Full post-sync gates running before sealing the round2 packet.
+
+## Integrated final gates before round2
+
+On integrated ef0e900: 2,868 agent +1,411 viewer +2,906 Python =7,185 tests, zero skips. Full `just test`, `just coverage`, `just lint`, `just build`, `just verify-vendor` pass. Coverage: agent lines99.17/branches92.84/functions97.63%; viewer lines97.70/branches91.00/functions93.85%; Python lines96.96/branches92.49/functions100%. The first post-sync test attempt used stale agent dist and rejected the newly landed semantic-navigation-v2 preset; it was superseded by rebuilding both packages first and the complete green gates above, with no source workaround.
+
+Browser at clean integrated build: malformed append after history catch-up on scratch diagnostic-head displayed `line 1 within tail starting at byte 24015`; its offline frame-stream errors are expected fixture failures. Switching back to copied gpu0 restored RUNNING, enabled controls, visible live frame and empty problems. Original games and recordings remain untouched. Disposable diagnostic worktree removed after preserving/applying its patch and RED/GREEN logs. Round2 reviews the same bounded viewer scope against main37211ba7.

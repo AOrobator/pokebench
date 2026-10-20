@@ -391,6 +391,10 @@ select.p, .field input { font: 8px 'Press Start 2P', monospace; padding: 6px 8px
 @media(max-width: 900px) { .wb-heading { grid-template-columns: 1fr; }.wb-heading [data-wb=current] { max-width: none; }.wb-filters { grid-template-columns: repeat(2, minmax(0,1fr)); } }
 @media(max-width: 600px) { .wb-workspace { padding: 16px; gap: 16px; }.wb-page h1 { font-size: 13px; }.wb-page .box { padding: 18px; }.wb-pairs { grid-template-columns: 1fr; gap: 4px; }.wb-pairs dd { margin-bottom: 10px; }.wb-drawer { padding: 22px; } }
 
+.nav-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.nav-chip { font: 8px/1 'Press Start 2P', monospace; color: #ffd447; border: 2px solid #ffd447; border-radius: 4px; padding: 5px 7px; text-decoration: none; }
+.nav-chip[aria-current="page"] { color: #283038; background: #ffd447; }
+.nav-chip:focus-visible { outline: 3px solid #ffd447; outline-offset: 2px; }
 .viewer-workbench-link { font: 8px/1.8 'Press Start 2P', monospace; padding: 9px 12px; border: 3px solid #ffd447; border-radius: 8px; color: #ffd447; text-decoration: none; }
 
 .wb-frontier-panel { min-width:0; }
@@ -764,7 +768,7 @@ b.wb-add, b.wb-rem { white-space:nowrap; }
 .rs-all .run-choice { display: flex; flex-direction: column; align-items: stretch; gap: 8px; font: 7px 'Press Start 2P', monospace; color: #ffd447; }
 .rs-all .run-choice { font-size: 0; }
 .rs-all select { font: 8px 'Press Start 2P', monospace; padding: 8px; border: 3px solid #ffd447; border-radius: 8px; background: #fff; color: #283038; max-width: 100%; }
-.rs-all .viewer-workbench-link { display: inline-block; margin-top: 18px; font: 7px 'Press Start 2P', monospace; color: #ffd447; }
+.rs-all .viewer-workbench-link { display: inline-block; margin: 18px 14px 0 0; font: 7px 'Press Start 2P', monospace; color: #ffd447; }
 @media (prefers-reduced-motion: reduce) { .rh-state.dot, .rs-pill.live::before { animation: none; } }
 /* Trainer cards (design: runs/mockups/viewer-header-desktop/trainer-cards-9.html, option 1). The art is the game's
    own card, built from the ROM into runs/sprites by `just trainer-card-art`; --u is one game pixel of the card. */
@@ -886,7 +890,6 @@ b.wb-add, b.wb-rem { white-space:nowrap; }
 .rp-main { display: grid; gap: 12px; padding: 18px; max-width: 1200px; margin: 0 auto; }
 .rp-h1 { margin: 0; font: 14px/1.6 'Press Start 2P', monospace; color: #ffd447; }
 .rp-lede { margin: 0; color: #c9d5e6; max-width: 70ch; font: 14px/1.5 Inter, system-ui, sans-serif; }
-.rp-here { font: 8px 'Press Start 2P', monospace; color: #283038; background: #ffd447; border-radius: 4px; padding: 5px 7px; }
 .rp-split { display: grid; grid-template-columns: minmax(0, 300px) minmax(0, 1fr); gap: 14px; align-items: start; }
 .rp-list { display: grid; gap: 6px; }
 .rp-detail { position: sticky; top: 64px; scroll-margin-top: 64px; }

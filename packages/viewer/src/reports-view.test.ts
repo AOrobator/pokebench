@@ -111,3 +111,18 @@ describe("the reports page", () => {
     expect(CSS).toContain(":root[data-phone] .rp-split { grid-template-columns: minmax(0, 1fr); }"); expect(CSS).toContain(":root[data-phone] .rp-list { order: 2; }");
   });
 });
+
+describe("the header chips", () => {
+  const chips = (html: string): string[][] => [...new DOMParser().parseFromString(html, "text/html").querySelectorAll<HTMLElement>('header.bar nav.nav-chips[aria-label="Pages"] .nav-chip')]
+    .map(a => [a.tagName, a.textContent, a.getAttribute("href") ?? "", a.getAttribute("aria-current") ?? ""]);
+  // The current page is not a link: following it would drop ?from= (the stats page's way back to a run) or ?open=.
+  it("show the same two pages on both headers, the current one filled and not a link", () => {
+    expect(chips(STATS)).toEqual([["SPAN", "RUNS & COMPARISONS", "", "page"], ["A", "REPORTS", "/reports", ""]]);
+    expect(chips(PAGE)).toEqual([["A", "RUNS & COMPARISONS", "/comparisons", ""], ["SPAN", "REPORTS", "", "page"]]);
+    expect(STATS).not.toContain("viewer-workbench-link"); expect(PAGE).not.toContain("viewer-workbench-link"); expect(PAGE).not.toContain("rp-here");
+  });
+  it("style a link as the outline of the filled chip", () => {
+    expect(CSS).toContain(".nav-chip { font: 8px/1 'Press Start 2P', monospace; color: #ffd447; border: 2px solid #ffd447; border-radius: 4px; padding: 5px 7px; text-decoration: none; }");
+    expect(CSS).toContain('.nav-chip[aria-current="page"] { color: #283038; background: #ffd447; }');
+  });
+});

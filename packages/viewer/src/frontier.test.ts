@@ -18,7 +18,7 @@ const human = (): WorkbenchRun => measured(HUMAN_REFERENCE, [92246, 132921, 1809
 const best = (): WorkbenchRun => measured("dea1", [153477, 200600, 496944, 579200, 1301593, 1328664, 1477567]);
 describe("persistent actual native frontier", () => {
   it("shares the exact required milestone axis with automatic checkpoint capture", () => {
-    expect(FRONTIER_MILESTONES.map((milestone) => milestone.id)).toEqual(REQUIRED_FRONTIER_MILESTONES);
+    expect(FRONTIER_MILESTONES.filter(milestone => !milestone.id.startsWith("RUSTBORO_GYM_TRAINER_")).map((milestone) => milestone.id)).toEqual(REQUIRED_FRONTIER_MILESTONES);
   });
   it("selects progress before speed and keeps one actual run, with stable ties", () => {
     const fast = measured("early", [1000, 2000, 3000]);
@@ -120,19 +120,20 @@ describe("persistent actual native frontier", () => {
   it("includes the full required progression instead of skipping the human run's middle and finish", () => {
     const names = FRONTIER_MILESTONES.map(m => m.id);
     for (const name of ["NEW_GAME_CREATED", "LITTLEROOT_TOWN", "PLAYER_HOUSE_ENTERED", "MOM_CLOCK_INSTRUCTION", "PLAYER_BEDROOM", "MOM_RIVAL_INSTRUCTION", "ROUTE_101", "BIRCH_RESCUE_COMPLETE", "BIRCH_STARTER_HANDOFF_COMPLETE", "OLDALE_TOWN", "ROUTE_103", "RIVAL_BATTLE_WON", "RECEIVED_POKEDEX", "STARTER_TUTORIAL_COMPLETE", "RUNNING_SHOES_RECEIVED", "ROUTE_102", "PETALBURG_CITY", "DAD_FIRST_MEETING", "WALLY_TUTORIAL_COMPLETE", "ROUTE_104", "PETALBURG_WOODS", "TEAM_AQUA_WOODS_EVENT_COMPLETE", "RUSTBORO_CITY", "ROXANNE_DEFEATED", "RUSTBORO_GYM_COMPLETE", "ROCK_TOMB_RECEIVED"]) expect(names).toContain(name);
-    expect(names.some(name => /TRAINER|FIRST_POKEMON|EVOLUTION|HEAL|ROUTE_115|ROUTE_116|RUSTURF/.test(name))).toBe(false);
+    expect(names.some(name => /^(?!RUSTBORO_GYM_TRAINER_).*TRAINER|FIRST_POKEMON|EVOLUTION|HEAL|ROUTE_115|ROUTE_116|RUSTURF/.test(name))).toBe(false);
     const recorded = human(); recorded.splits = names.map((name, i) => ({ name, elapsedMs: i * 1000, segmentMs: 1000, seq: i, turn: 0, inputTokens: 0, outputTokens: 0 }));
     document.body.innerHTML = frontierPlot({human: recorded, best: null}, [], 340);
     expect(document.querySelectorAll(`[data-run="${HUMAN_REFERENCE}"]`)).toHaveLength(names.length);
   });
-  it("omits optional gym battles and preserves their exclusion from story rank", () => {
-    const trainer = measured("trainer", [1000]);
-    trainer.splits.push({name:"RUSTBORO_GYM_TRAINER_JOSH_DEFEATED",elapsedMs:2000,segmentMs:1000,seq:20,turn:2,inputTokens:0,outputTokens:0});
-    document.body.innerHTML=frontierPlot({human:human(),best:best()},[trainer],900);
-    expect(document.body.textContent).not.toContain("exact times");
-    expect(document.body.textContent).not.toContain("GYM TRAINER BATTLES");
-    expect(document.querySelector('.wb-gym-checkpoints')).toBeNull();
-    expect(frontierReferences([trainer,best()]).best?.id).toBe("dea1");
+  it("plots gym trainer victories and ranks the newly reached gym frontier", () => {
+    const trainer = { ...best(), id: "two-gym-wins" };
+    trainer.splits.push({name:"RUSTBORO_CITY_GYM",elapsedMs:1500,segmentMs:500,seq:19,turn:2,inputTokens:0,outputTokens:0});
+    for (const [i, name] of ["RUSTBORO_GYM_TRAINER_JOSH_DEFEATED", "RUSTBORO_GYM_TRAINER_TOMMY_DEFEATED"].entries()) trainer.splits.push({name,elapsedMs:2000+i*1000,segmentMs:1000,seq:20+i,turn:2,inputTokens:0,outputTokens:0});
+    expect(frontierReferences([trainer,best()]).best?.id).toBe("two-gym-wins");
+    document.body.innerHTML=frontierPlot({human:human(),best:trainer},[],900);
+    for (const name of ["RUSTBORO_GYM_TRAINER_JOSH_DEFEATED", "RUSTBORO_GYM_TRAINER_TOMMY_DEFEATED"]) expect(document.querySelector(`[data-run="two-gym-wins"][data-split="${name}"]`)).not.toBeNull();
+    const names = FRONTIER_MILESTONES.map(m => m.id);
+    expect(names.slice(names.indexOf("RUSTBORO_CITY_GYM"), names.indexOf("ROXANNE_DEFEATED")+1)).toEqual(["RUSTBORO_CITY_GYM", "RUSTBORO_GYM_TRAINER_JOSH_DEFEATED", "RUSTBORO_GYM_TRAINER_TOMMY_DEFEATED", "RUSTBORO_GYM_TRAINER_MARC_DEFEATED", "ROXANNE_DEFEATED"]);
   });
   it("identifies reached, unsupported, pending, censored and excluded milestone outcomes", () => {
     const failed = measured("failed", []), running = measured("running", []), interrupted = measured("interrupted", []); running.status = "live"; interrupted.status = "unresponsive";
@@ -336,8 +337,8 @@ describe("zoom to frontier", () => {
     expect(axis()).toContain("Starter"); expect(axis()).not.toContain("Oldale"); expect(axis()).not.toContain("Badge");
     expect(axis()).toContain("30"); expect(axis()).not.toContain("120");
     expect(document.querySelector(".wb-frontier-chart")?.getAttribute("aria-label")).toBe("Story frontier zoomed to New game through Starter");
-    expect(document.body.textContent).toContain("Zoomed to the frontier: New game → Starter, 18 of 45 checkpoints");
-    expect(document.body.textContent).toContain("27 later checkpoints hidden");
+    expect(document.body.textContent).toContain("Zoomed to the frontier: New game → Starter, 18 of 48 checkpoints");
+    expect(document.body.textContent).toContain("30 later checkpoints hidden");
     document.body.innerHTML = frontierPlot(refs, [], 2000);
     expect(document.querySelectorAll(`[data-run="${HUMAN_REFERENCE}"]`)).toHaveLength(10);
     expect(axis()).toContain("120"); expect(document.body.textContent).not.toContain("Zoomed");
@@ -352,15 +353,15 @@ describe("zoom to frontier", () => {
     expect(document.body.textContent).not.toContain("Zoomed");
     document.body.innerHTML = frontierPlot({ human: human(), best: null }, [], 2000, undefined, [], true);
     expect(axis()).toContain("New game"); expect(axis()).toContain("Name"); expect(axis()).not.toContain("Truck exit");
-    expect(document.body.textContent).toContain("2 of 45 checkpoints");
+    expect(document.body.textContent).toContain("2 of 48 checkpoints");
   });
   it("ends at the next dense human checkpoint and widens for paused runs, keeping narrow labels honest", () => {
     const dense = human(); dense.splits = FRONTIER_MILESTONES.map((m, i) => ({ name: m.id, elapsedMs: (i + 1) * 1000, segmentMs: 1000, seq: i, turn: 0, inputTokens: 0, outputTokens: 0 }));
     document.body.innerHTML = frontierPlot({ human: dense, best: best() }, [], 2000, undefined, [], true);
-    expect(document.body.textContent).toContain("New game → Left rival house, 15 of 45 checkpoints");
+    expect(document.body.textContent).toContain("New game → Left rival house, 15 of 48 checkpoints");
     const paused = { ...measured("paused", [1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000]), status: "paused" as const };
     document.body.innerHTML = frontierPlot({ human: dense, best: best() }, [], 300, undefined, [paused], true);
-    expect(document.body.textContent).toContain("New game → Birch rescue, 19 of 45 checkpoints");
+    expect(document.body.textContent).toContain("New game → Birch rescue, 19 of 48 checkpoints");
     expect(document.body.textContent).toContain("all visible points remain plotted");
   });
   it("labels the checkpoint where lines stop between rival instruction and rival house", () => {

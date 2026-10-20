@@ -74,7 +74,7 @@ it("carries modern detector-produced route and Roxanne milestones through schema
   const root=mkdtempSync(join(tmpdir(),"frontier-modern-")),id=log.events[0]?.run??"";mkdirSync(join(root,id));writeFileSync(join(root,id,"events.jsonl"),log.events.map(e=>JSON.stringify(e)).join("\n")+"\n");
   const result=parseWorkbench(await workbenchSnapshot(root,()=>Promise.resolve(false), Date.now())),record=result.runs[0];if(record===undefined)throw Error("run");
   const graph=frontierPlot({human:null,best:null},[record],900);
-  for(const name of targets){expect(record.splits.find(s=>s.name===name)).toBeDefined();expect(record.splits.find(s=>s.name===name)?.derived).toBeUndefined();if(name.startsWith("RUSTBORO_GYM_TRAINER_"))expect(graph).not.toContain(`data-split="${name}"`);else expect(graph).toContain(`data-split="${name}"`);}
+  for(const name of targets){expect(record.splits.find(s=>s.name===name)).toBeDefined();expect(record.splits.find(s=>s.name===name)?.derived).toBeUndefined();expect(graph).toContain(`data-split="${name}"`);}
 });
 
 it("keeps recovered historical evidence and upper-bound labels through the wire contract and point details", async () => {

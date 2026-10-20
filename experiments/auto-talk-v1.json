@@ -167,5 +167,5 @@
     "window": 4,
     "minReached": 3
   },
-  "notes": "Pending and not queued. Split out of fixed-point-breaker-v1 stage 3 (follow-up item 4, the operator yes 2026-10-20 12:44 PM ET); retroactive switch, default on, acting only with the breaker on. The incumbent has the breaker on and this switch off. source.commit pins the implementation commit."
+  "notes": "Pending and not queued. Split out of fixed-point-breaker-v1 stage 3 (follow-up item 4, the operator yes 2026-10-20 12:44 PM ET). It acts while fixed-point-breaker-v1 or duplicate-turn-collapse-v1 is on; a preset that omits it takes its fixed-point-breaker-v1 value. The incumbent has the breaker on and this switch off. source.commit pins the implementation commit."
 }

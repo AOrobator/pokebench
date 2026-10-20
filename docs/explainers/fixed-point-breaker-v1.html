@@ -118,7 +118,7 @@ Dialogue shown during this call (… pages, in order, whole): …</p>
 <p class="muted">No timeline marks (operator decision 2026-10-16). The decision probe rebuilds stages 1 and 2 from the recorded stream; stage 3 acts on the game, so probes cannot sample it.</p>
 
 <h2>Off</h2>
-<p>Every turn stays in the request and the nudge and notes are unchanged; with the breaker off, <code>auto-talk-v1</code> does nothing. With the breaker on and <code>auto-talk-v1</code> off, stages 1 and 2 act and the harness never walks or presses on its own.</p>
+<p>Every turn stays in the request and the nudge and notes are unchanged. <code>auto-talk-v1</code> acts only while this switch or <code>duplicate-turn-collapse-v1</code> is on; with it off, the harness never walks or presses on its own.</p>
 
 <h2>Status</h2>
 <p>Branch <code>claude/loop-breaker</code>. Tests: <code>fixed-point-breaker.test.ts</code>, <code>auto-talk.test.ts</code>; wiring deletions go red. Decision probes above. Not yet reviewed or measured in runs.</p>

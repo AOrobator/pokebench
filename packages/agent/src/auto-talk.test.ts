@@ -1,3 +1,5 @@
+import {readFileSync} from "node:fs";
+import {experimentArms,parseExperiment} from "./experiments.js";
 import type {AgentMessage,AgentTool} from "@mariozechner/pi-agent-core";
 import {Type} from "@mariozechner/pi-ai";
 import {describe,expect,it} from "vitest";
@@ -48,7 +50,7 @@ const last=(out:readonly AgentMessage[]):string=>{const m=out.at(-1);return m!==
 describe("auto-talk-v1 (the fixed-point breaker's stage 3)",()=>{
  it("is a guard after positive-supervisor-v1 that needs no switch, so presets that omit it keep stage 3 when the breaker is on",()=>{
   expect(featureInfo("auto-talk-v1")).toMatchObject({group:"guard",needs:null,switchable:true,title:"AUTO-TALK"});
-  expect(featureInfo("auto-talk-v1").description).toContain(" Off: the breaker's stages 1 and 2 still act; the harness never walks or presses on its own.");
+  expect(featureInfo("auto-talk-v1").description).toContain(" Off: the harness never walks or presses on its own; the breaker or the collapse still act as their own switches say.");
   expect(SWITCHABLE_FEATURES.indexOf("auto-talk-v1")).toBe(SWITCHABLE_FEATURES.indexOf("positive-supervisor-v1")+1);
   const older=Object.fromEntries(Object.entries(ALL_ON).filter(([id])=>id!=="auto-talk-v1")) as Omit<FeatureSet,"auto-talk-v1">;
   expect(normalizeFeatures(older)["auto-talk-v1"]).toBe(true);
@@ -64,6 +66,13 @@ describe("auto-talk-v1 (the fixed-point breaker's stage 3)",()=>{
   expect(normalizeFeatures({...control,"fixed-point-breaker-v1":true})["auto-talk-v1"]).toBe(true);
   expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:true})["auto-talk-v1"]).toBe(false);
   expect(autoTalkContext({...normalized,"auto-talk-v1":true},{read:()=>Promise.reject(new Error("no"))},[],base,fake,{subscribe:()=>undefined,recordAutoTalk:()=>undefined})).not.toBe(base);
+ });
+ it("leaves auto-talk out of the fixed-point-breaker-v1 experiment, which measures stages 1 and 2",()=>{
+  const raw=JSON.parse(readFileSync(new URL("../../../experiments/fixed-point-breaker-v1.json",import.meta.url),"utf8")) as unknown;
+  const {candidate}=experimentArms(parseExperiment(raw));
+  expect(candidate.features["fixed-point-breaker-v1"]).toBe(true);
+  expect(candidate.features["auto-talk-v1"]).toBe(false);
+  expect(featureInfo("fixed-point-breaker-v1").description).not.toContain("walks with navigate_to");
  });
  it("is the base transform when either switch is off",()=>{
   const base=(m:AgentMessage[])=>Promise.resolve(m);

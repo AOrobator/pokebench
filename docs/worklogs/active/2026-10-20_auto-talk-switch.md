@@ -4,10 +4,10 @@
 Follow-up item 4 (ChatGPT review list, the operator "yes" 2026-10-20 12:44 PM ET): split auto-talk out of fixed-point-breaker-v1 into its own switch, log every intervention, and keep the bundle's behavior unchanged.
 
 ## Architecture
-auto-talk-v1 (guard), retroactive and default ON (feature-switch rule for landed behavior), needs null so presets with the breaker off stay valid. autoTalkContext returns the base transform unless fixed-point-breaker-v1 AND auto-talk-v1 are on, so control and any preset with the breaker off are unaffected. Every attempt is already an auto_talk event; run_start lists the switch.
+auto-talk-v1 (guard, needs null). When a preset omits it, it takes the preset's fixed-point-breaker-v1 value (presets with the breaker on keep stage 3; control stays off). autoTalkContext returns the base transform unless auto-talk-v1 and (fixed-point-breaker-v1 or duplicate-turn-collapse-v1) are on. duplicate-turn-collapse-v1 is stage 1 alone. Every attempt is already an auto_talk event; run_start lists the switch.
 
 ## Invariants
-- INV-1: breaker ON + auto-talk ON = today's behavior; breaker OFF = no auto-talk whatever this switch says.
+- INV-1: breaker ON + auto-talk ON = today's behavior; breaker and collapse both OFF = no auto-talk whatever this switch says; control (collapse on, breaker off, auto-talk omitted) = no auto-talk.
 
 ## Milestones
 **M1**
@@ -21,6 +21,8 @@ auto-talk-v1 (guard), retroactive and default ON (feature-switch rule for landed
 - Review r1 on 588f083c: Grok LGTM, Claude LGTM (non-blocking: old breaker-on runs read back with auto-talk off by featuresOf; toggling auto-talk with the breaker off does nothing).
 - The operator 1:06-1:07 PM ET (via coordinator): split the collapse into its own switch, on in both arms; remove the breaker's short instruction from both arms. Coordinator: control must not pick up auto-talk. Done: duplicate-turn-collapse-v1 (stage 1 only); fixed-point-breaker-v1 unchanged (collapse + note), presets turn it off; auto-talk-v1 acts with the breaker or the collapse, and when omitted takes the preset's breaker value (so control stays off; DEFAULT_NEXT_RUN and flagFeatures off). positive-supervisor-v1 is a separate code path, unaffected.
 
+- Review r2 (cd32a1f6): Grok LGTM; Claude BLOCKING: fixed-point-breaker-v1.json still described stages 1-3 though its candidate now runs 1-2. Fixed the hypothesis and notes, stale copy (breaker, auto-talk Off, readiness, explainer, duplicated sentence); test that the experiment's candidate has auto-talk off.
+
 ## Surprises
 ## Multi-Model Review Log
 ## Boy Scout Log
@@ -28,3 +30,4 @@ auto-talk-v1 (guard), retroactive and default ON (feature-switch rule for landed
 - Pending experiment pinned to 54c7e9d9bd9fc58e1d9ee6950dac0e6bdf7026d7.
 - Gates: agent 2834, viewer 1387 (server-stream timing test flaked once, passes on rerun twice); lint clean; coverage agent 97.1/93.0/97.6, viewer 95.1/91.1/93.9.
 - Gates after the collapse split and main sync: agent 2837, viewer pass; lint clean; coverage agent 97.1/93.0/97.6, viewer 95.1/91.1/93.9.
+- Preset change in the same landing (coordinator 1:26 PM ET): bundle-v-control and bundle-cook-1h: duplicate-turn-collapse-v1 on in both (onInBoth, base true), fixed-point-breaker-v1 off in both (offInBoth), auto-talk-v1 a bundle switch (base false, bundle true). Control base unchanged (controlBaseProblems clean). Tests: fixed-runner arm bits; open-goal-prompt incumbent comparison excludes the two new keys. Agent 2848, viewer 1389; lint clean.

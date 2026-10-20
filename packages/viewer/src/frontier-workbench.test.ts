@@ -264,3 +264,32 @@ it("fetches the switch catalog once, describes each switch in the legend and kee
   const none = new Workbench(document, { fetchSnapshot: deps.fetchSnapshot, now: deps.now, width: deps.width }); await none.features(); await none.refresh();
   expect(legend.querySelector(".wb-sw-desc")).toBeNull(); none.destroy();
 });
+
+
+it("hides extreme time overlays by default, restores them without losing data, and retains the choice and focus across polling failures", async () => {
+  const measurement = { controller: "agent" as const, features: ["story-milestones-v2"], logSha256: "a".repeat(64), pausedMs: 0, rawSplits: [] };
+  const normal = Array.from({length: 20}, (_, i) => Object.assign(run({id: `normal-${String(i)}`}), {measurement}));
+  const outlier = Object.assign(run({id: "extreme", splits: run().splits.map(s => ({...s, elapsedMs: s.elapsedMs * 100}))}), {measurement});
+  let fail = false;
+  const wb = new Workbench(document, {fetchSnapshot: () => fail ? Promise.reject(Error("offline")) : Promise.resolve({version:1, at:1000, milestones:[], runs:[...normal,outlier], problems:[]}), now:()=>1000, width:()=>900});
+  await wb.refresh();
+  const button = document.querySelector<HTMLButtonElement>("[data-frontier-outliers]");
+  expect(button).not.toBeNull();
+  expect(button?.getAttribute("aria-pressed")).toBe("true");
+  expect(ui("frontier-full").querySelector('[data-run="extreme"]')).toBeNull();
+  expect(ui("frontier-full").textContent).toContain("1 time outlier hidden");
+  expect(ui("frontier-full").textContent).toContain("extreme");
+  button?.click(); button?.focus();
+  expect(button?.getAttribute("aria-pressed")).toBe("false");
+  expect(ui("frontier-full").querySelector('[data-run="extreme"]')).not.toBeNull();
+  await wb.refresh(); fail = true; await wb.refresh();
+  expect(document.activeElement).toBe(button);
+  expect(button?.getAttribute("aria-pressed")).toBe("false");
+  document.querySelector<HTMLElement>('[data-frontier-view="full"]')?.click();
+  expect(button?.getAttribute("aria-pressed")).toBe("false");
+  expect(ui("frontier-full").querySelector('[data-run="extreme"]')).not.toBeNull();
+  button?.click();
+  expect(ui("frontier-full").querySelector('[data-run="extreme"]')).toBeNull();
+  expect(outlier.splits).toHaveLength(2);
+  wb.destroy();
+});

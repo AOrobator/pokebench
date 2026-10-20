@@ -15,7 +15,7 @@ const norman=[page("DAD: Now…"),page("Head for RUSTBORO CITY beyond this\ntown
 function harness(enabled=true){
  const subscribers:((e:RunEvent)=>void)[]=[],recorded:{text:string;evidence:number[]}[]=[];
  const features={...off,"observed-instructions-v1":enabled} as FeatureSet;
- const wiring=contextTools(features,{subscribe:fn=>{subscribers.push(fn);},recordLedgerContext:body=>{recorded.push(body);},recordNavigationContext:()=>{},recordMilestoneHint:()=>{},recordBeliefLedger:()=>{}},messages=>Promise.resolve(messages));
+ const wiring=contextTools(features,{subscribe:fn=>{subscribers.push(fn);},recordLedgerContext:body=>{recorded.push(body);},recordNavigationContext:()=>{},recordMilestoneHint:()=>{},recordLoopBreaker:()=>undefined,recordBeliefLedger:()=>{}},messages=>Promise.resolve(messages));
  return {wiring,recorded,send:(e:RunEvent)=>{for(const fn of subscribers)fn(e);}};
 }
 function deliver(h:ReturnType<typeof harness>,seq=2,pages=norman,error=false){

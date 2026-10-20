@@ -25,7 +25,7 @@ function rig(features:FeatureSet,wire=true){
  const observers:{fn:(e:RunEvent)=>void}[]=[];const events:RunEvent[]=[];
  let seq=0,turn=0,clock=0,paused=0,call=0,stateSeq=0;
  const emit=(body:Record<string,unknown>):RunEvent=>{const e=checkEvent({v:1,run:"stall",t:"2026-10-15T12:00:00.000-04:00",turn,seq:++seq,...body});events.push(e);for(const o of observers)o.fn(e);return e;};
- const recorder={subscribe:(fn:(e:RunEvent)=>void)=>{observers.push({fn});},recordLoopGuard:(n:LoopNotice)=>{emit({type:"loop_guard",...n,evidence:[...n.evidence]});}};
+ const recorder={subscribe:(fn:(e:RunEvent)=>void)=>{observers.push({fn});},recordStallGate:()=>undefined,recordLoopGuard:(n:LoopNotice)=>{emit({type:"loop_guard",...n,evidence:[...n.evidence]});}};
  const governor=new Governor({limits:{maxTurns:5000,maxWallMs:6*3_600_000,failureLimit:3},retry:()=>undefined,abort:()=>undefined,now:()=>clock});
  const detector=attachLoopGuard(recorder,governor,undefined,"enforced",features["interaction-loop-detection-v1"],loopSupervisor(features,recorder));
  const wired=wire?stallBriefing(features,recorder,detector,{pausedMs:()=>paused},()=>clock):null;
@@ -176,7 +176,7 @@ it("with the switch OFF records the same events and shows the model the same con
 });
 
 it("adds no subscriber with the switch OFF, and never briefs in diagnostic mode",()=>{
- const observers:unknown[]=[];const recorder={subscribe:(fn:unknown)=>{observers.push(fn);}};
+ const observers:unknown[]=[];const recorder={subscribe:(fn:unknown)=>{observers.push(fn);},recordStallGate:()=>undefined};
  const detector=new LoopDetector(()=>undefined);
  expect(stallBriefing(OFF,recorder,detector,{pausedMs:()=>0},()=>0)).toBeNull();
  expect(observers).toHaveLength(0);

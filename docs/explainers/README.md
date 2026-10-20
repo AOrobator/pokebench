@@ -145,3 +145,5 @@ The original ignored runs/explainers copies remain for existing links. Make futu
 - [Briefing repeat count](briefing-repeat-count-v1.html) — default-OFF fix: the focused supervisor briefing shows ×N for repeated attempts, as the full briefing does.
 - [Navigate already here](navigate-already-here-v1.html) — default-OFF fix: navigate_to to the player's own tile says the player is already there, not that it arrived.
 - [Original-speed deadline pacing](original-speed-pacing-v1.html): default-OFF 80 FPS game-clock policy, conditional 4× selector, and separate publication/display boundaries.
+- [Fixed-point breaker](fixed-point-breaker-v1.html) — bundle-only guard: collapses identical repeated turns, sends a positive note with the count, then once per loop talks to the nearest untalked person.
+- [Story-character stall gate](story-character-stall-gate-v1.html) — bundle-only guard: no stall or ways-off briefing while an untalked story character is on the map.

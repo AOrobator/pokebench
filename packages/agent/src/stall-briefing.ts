@@ -4,6 +4,7 @@ import type {RunEvent} from "./events.js";
 import type {FeatureSet} from "./features.js";
 import type {LoopDetector} from "./loop-detection.js";
 import {interfaceOf,type Stall} from "./loop-supervisor.js";
+import type {StoryCharacterGate} from "./stall-gate.js";
 
 // A pair of maps briefs on this many round trips between them, then again every as many more.
 export const STALL_ROUND_TRIPS=2;
@@ -35,6 +36,8 @@ export class StallBriefing {
   private readonly active:()=>number,
   private readonly detector:Pick<LoopDetector,"stall">,
   private readonly text:(stall:Stall,calls:number)=>string,
+  // story-character-stall-gate-v1: holds a due map_cycle or milestone_drought briefing.
+  private readonly gate:Pick<StoryCharacterGate,"holds"|"held">|null=null,
  ){}
 
  observe(event:RunEvent):void {
@@ -73,6 +76,8 @@ export class StallBriefing {
   for(const pair of this.pairs.values()){
    const level=Math.floor(pair.moves/(2*STALL_ROUND_TRIPS));
    if(level<=pair.briefed)continue;
+   const hold=this.gate?.holds()??null;
+   if(hold!==null){this.gate?.held("map_cycle",level,[pair.from,pair.to].join("\n"),hold);return;}
    const stall:Stall={kind:"map_cycle",from:pair.from,to:pair.to,roundTrips:Math.floor(pair.moves/2),consecutive:pair.consecutive};
    if(this.detector.stall("map_cycle",calls=>this.text(stall,calls),[pair.lastSeq,seq]))pair.briefed=level;
    return;
@@ -85,6 +90,8 @@ export class StallBriefing {
   }
   const level=Math.floor((this.active()-this.progressAt)/STALL_DROUGHT_MS);
   if(level<=this.droughts)return;
+  const hold=this.gate?.holds()??null;
+  if(hold!==null){this.gate?.held("milestone_drought",level,String(this.progressSeq??-1),hold);return;}
   const stall:Stall={kind:"milestone_drought",minutes:level*STALL_DROUGHT_MS/60_000};
   if(this.detector.stall("milestone_drought",calls=>this.text(stall,calls),[this.progressSeq??seq,seq]))this.droughts=level;
  }

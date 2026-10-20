@@ -185,3 +185,10 @@ Checkpoint diagnostic candidate: first-arrival ROUTE_101, SHA1 0c34433cc305ea5de
 ## Original-speed deadline pacing — 2026-10-19
 
 PENDING, explicitly blocked and unqueued. Clock policy acts from server boot; NEW_GAME_CREATED is only the earliest registered native activation proxy. No qualifying four-run boot readiness audit or standalone model-benefit design has been performed. The copied eight-per-arm/45-minute registration envelope is not an approved GPU budget; design, power and operator approval remain required before any measured trials. Operator explicitly selects 80 FPS deadline pacing in both future fixed bundle/control arms as a timing policy, not a promotion or evidence of model benefit. Historical omitted presets stay OFF; no active frozen run is changed. Implementation pin e95da966; repin after reviewed landing.
+
+## Fixed-point breaker and story-character stall gate — 2026-10-20
+
+| Switch | Activation milestone | Readiness | Notes |
+|---|---|---|---|
+| `fixed-point-breaker-v1` | `BIRCH_STARTER_HANDOFF_COMPLETE` (the 6h-v2 bundle's fixed-point loops came after the handoff) | PENDING until `just experiments` runs after landing | Registered 2026-10-20, pending and not queued; bundle-only (operator decision 2026-10-20). Decision probes at f28d turns 2301 and 2862 go through the GPU queue thread. |
+| `story-character-stall-gate-v1` | `BIRCH_STARTER_HANDOFF_COMPLETE` | PENDING until `just experiments` runs after landing | Registered 2026-10-20, pending and not queued; bundle-only. Probes at f28d turns 451 and 453. |

@@ -9,13 +9,13 @@ import { parseEvent } from "./events.js";
 import { RUN_START_META } from "../test-support/events.js";
 
 const ID = "original-speed-pacing-v1" as SwitchableFeature;
-const OFF = { ...ALL_ON, [ID]: false };
+const OFF = { ...ALL_ON, [ID]: false, "fixed-point-breaker-v1": false, "story-character-stall-gate-v1": false, "semantic-navigation-v2": false };
 const ON = { ...OFF, [ID]: true };
 const flags = { loopGuard: true, activeUi: true, interfaceDocs: true, objectives: false };
 
 it("appends the independent speed policy without reordering recorded feature identity", () => {
-  expect(SWITCHABLE_FEATURES.at(-2)).toBe(ID);
-  expect(SWITCHABLE_FEATURES.at(-8)).toBe("evolution-decision-v1");
+  expect(SWITCHABLE_FEATURES.at(-4)).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-10)).toBe("evolution-decision-v1");
   expect(FEATURES.filter(feature => feature.switchable).map(feature => feature.id)).toEqual([...SWITCHABLE_FEATURES]);
   expect(featureInfo(ID)).toMatchObject({ group: "guidance", needs: null, switchable: true });
   expect(featureInfo(ID).description).toMatch(/80/);
@@ -36,12 +36,12 @@ it("defaults omitted historical presets and legacy flags OFF", () => {
 });
 
 it("transports only the explicit server selection and records ON at the end", () => {
-  expect(serverFeatureEnv(OFF).POKEBENCH_FEATURES_OFF).toBe(ID);
-  expect(serverFeatureEnv(ON).POKEBENCH_FEATURES_OFF).toBe("");
+  expect(serverFeatureEnv(OFF).POKEBENCH_FEATURES_OFF).toBe(`${ID},semantic-navigation-v2`);
+  expect(serverFeatureEnv(ON).POKEBENCH_FEATURES_OFF).toBe("semantic-navigation-v2");
   const off = playHarnessFeatures(OFF, null);
   const on = playHarnessFeatures(ON, null);
   expect(off).not.toContain(ID);
-  expect(on).toEqual([...off.slice(0, -1), ID, "semantic-navigation-v2"]);
+  expect(on).toEqual([...off, ID]);
   expect(featuresOf(on)[ID]).toBe(true);
   expect(featuresOf(off)[ID]).toBe(false);
   const event = parseEvent(JSON.stringify({ v: 1, run: "speed-policy-recorded", seq: 0,

@@ -54,7 +54,7 @@ it("records reuse truthfully and reinjects only after its anchor leaves",()=>{
 });
 it("the production context factory carries the window switch and legacy presets omit both treatments",async()=>{
  const {contextTools}=await import("./play-wiring.js");const {normalizeFeatures,flagFeatures}=await import("./play-preset.js");
- const recorder={subscribe:()=>{},recordNavigationContext:()=>{},recordLedgerContext:()=>{},recordMilestoneHint:()=>{},recordBeliefLedger:()=>{}};
+ const recorder={subscribe:()=>{},recordNavigationContext:()=>{},recordLedgerContext:()=>{},recordMilestoneHint:()=>{},recordLoopBreaker:()=>undefined,recordBeliefLedger:()=>{}};
  for(const enabled of [false,true])expect(contextTools({...base,"cache-aligned-window-v1":enabled},recorder,m=>Promise.resolve(m)).window.alignCuts===true).toBe(enabled);
  const {"cache-aligned-window-v1":_a,"jit-guide-reuse-v1":_b,...legacy}=base;
  expect([_a,_b]).toEqual([false,false]);expect(normalizeFeatures(legacy)).toMatchObject({"cache-aligned-window-v1":false,"jit-guide-reuse-v1":false});expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false})).toMatchObject({"cache-aligned-window-v1":false,"jit-guide-reuse-v1":false});

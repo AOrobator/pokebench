@@ -16,7 +16,7 @@ const NEW=["game-evidence-priority-v1","dialogue-log-v1","loop-guard-supervisor-
 const OFF:FeatureSet={...ALL_ON,"cache-aligned-window-v1":false,"navigation-evidence-memory-v1":false,...Object.fromEntries(NEW.map(id=>[id,false]))};
 function recorder(){
  const subscribers:((e:RunEvent)=>void)[]=[];const delivered:string[]=[];
- return {subscribers,delivered,api:{subscribe:(fn:(e:RunEvent)=>void)=>{subscribers.push(fn);},recordNavigationContext:()=>{delivered.push("navigation");},recordLedgerContext:()=>{delivered.push("ledger");},recordMilestoneHint:()=>{delivered.push("hint");},recordBeliefLedger:()=>{delivered.push("beliefs");}}};
+ return {subscribers,delivered,api:{subscribe:(fn:(e:RunEvent)=>void)=>{subscribers.push(fn);},recordNavigationContext:()=>{delivered.push("navigation");},recordLedgerContext:()=>{delivered.push("ledger");},recordMilestoneHint:()=>{delivered.push("hint");},recordLoopBreaker:()=>undefined,recordBeliefLedger:()=>{delivered.push("beliefs");}}};
 }
 const base=(messages:AgentMessage[])=>Promise.resolve(messages);
 

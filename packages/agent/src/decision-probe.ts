@@ -134,6 +134,8 @@ export class Replay {
   readonly recordLedgerContext = (body: Omit<Extract<EventBody, { type: "ledger_context" }>, "type">): void => { this.own({ type: "ledger_context", ...body }, this.upcoming); };
   readonly recordMilestoneHint = (body: Omit<Extract<EventBody, { type: "milestone_hint" }>, "type">): void => { this.own({ type: "milestone_hint", ...body }, this.upcoming); };
   readonly recordBeliefLedger = (body: Omit<Extract<EventBody, { type: "belief_ledger" }>, "type">): void => { this.own({ type: "belief_ledger", ...body }, this.upcoming); };
+  readonly recordLoopBreaker = (body: Omit<Extract<EventBody, { type: "loop_breaker" }>, "type" | "turn">): void => { this.own({ type: "loop_breaker", ...body }, this.upcoming); };
+  readonly recordStallGate = (body: Omit<Extract<EventBody, { type: "stall_gate" }>, "type" | "turn">): void => { this.own({ type: "stall_gate", ...body, map_id: [body.map_id[0], body.map_id[1]] }, this.current.turn); };
   // Tool construction ports; a probe never executes a tool.
   readonly recordState = (): never => { throw new Error("probe tools never execute"); };
   readonly recordDialogueAutoAdvance = (): never => { throw new Error("probe tools never execute"); };
@@ -145,7 +147,7 @@ export class Replay {
   readonly destinationCitation = (): never => { throw new Error("probe tools never execute"); };
 }
 // What the wiring itself records; the replay regenerates these instead of reading them.
-const DERIVED: readonly RunEvent["type"][] = ["loop_guard", "navigation_context", "ledger_context", "milestone_hint", "text_only_supervisor", "belief_ledger"];
+const DERIVED: readonly RunEvent["type"][] = ["loop_guard", "navigation_context", "ledger_context", "milestone_hint", "text_only_supervisor", "belief_ledger", "loop_breaker", "stall_gate"];
 
 const inert = (): Promise<never> => Promise.reject(new Error("probe tools never execute"));
 

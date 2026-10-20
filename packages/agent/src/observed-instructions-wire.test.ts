@@ -28,7 +28,7 @@ it("sends exact recorded YAML through pinned pi HTTP on every turn, with no adde
   for(const enabled of [false,true]){
    requests.length=0;const subscribers:((event:RunEvent)=>void)[]=[],records:{text:string;evidence:number[]}[]=[];
    const features={...Object.fromEntries(SWITCHABLE_FEATURES.map(id=>[id,false])),"observed-instructions-v1":enabled} as FeatureSet;
-   const wiring=contextTools(features,{subscribe:fn=>{subscribers.push(fn);},recordLedgerContext:body=>{records.push(body);},recordNavigationContext:()=>{},recordMilestoneHint:()=>{},recordBeliefLedger:()=>{}},messages=>Promise.resolve(messages));
+   const wiring=contextTools(features,{subscribe:fn=>{subscribers.push(fn);},recordLedgerContext:body=>{records.push(body);},recordNavigationContext:()=>{},recordMilestoneHint:()=>{},recordLoopBreaker:()=>undefined,recordBeliefLedger:()=>{}},messages=>Promise.resolve(messages));
    for(const e of fixture.events.map(checkEvent))for(const fn of subscribers)fn(e);
    const abort=new AbortController();const governor=new Governor({limits:{maxTurns:2,maxWallMs:10000,failureLimit:3},retry:()=>{},abort:()=>{abort.abort();},now:()=>0});
    const observe={name:"observe",label:"Observe",description:"Observe",parameters:Type.Object({}),execute:()=>Promise.resolve({content:[{type:"text" as const,text:"ordinary observation"}],details:undefined})};

@@ -38,7 +38,8 @@ import { BudgetTimer, ControlFile, RunControl, freezeGame, watchControl, control
 import {RUN_ID_PATTERN} from "./events.js";
 import { StateMilestones } from "./milestones.js";
 import { readLoopMode } from "./loop-detection.js";
-import { attachLoopGuard, Governor, piLoop, play } from "./harness.js";
+import { attachLoopGuard, Governor, TEXT_ONLY_REMINDER, piLoop, play } from "./harness.js";
+import { autoTalkContext } from "./auto-talk.js";
 import { discoverLocal, readEndpoint } from "./local-endpoint.js";
 import { gatewayLoopConfig, playLoopBase } from "./provider.js";
 import { playSampling } from "./presence-penalty.js";
@@ -266,7 +267,7 @@ async function playAgent(): Promise<void> {
       const textOnly = textOnlySupervisor(features, recorder,limits.replyFailuresEndRun!==false);
       const governor = new Governor({
         limits,
-        ...(features["text-only-supervisor-v2"]?{textOnlyReminder:"SUPERVISOR: No tool was called. Keep the next reply short and end it with one listed game tool call. The configured run budgets and stopping policy still apply."}:{}),
+        ...(features["text-only-supervisor-v2"]?{textOnlyReminder:TEXT_ONLY_REMINDER}:{}),
         retry: (why, attempt, limit) => {
           recorder.retry(why, attempt, limit);
           console.log(`retry ${String(attempt)}/${String(limit)}: ${why}`);
@@ -333,7 +334,7 @@ async function playAgent(): Promise<void> {
         base: {...playLoopBase(model, thinking, apiKey, maxTokens, features),beforeToolCall:({toolCall})=>Promise.resolve(features["just-in-time-prompt-v2"]||jit.allowed(toolCall.name)?undefined:{block:true,reason:"This tool was not available for the screen of this decision; inspect the current state and choose an available tool."})},
         requestContext: context=>{const presentation=features["just-in-time-prompt-v2"]?stableJit:jit;const next=presentation.context(context);recorder.recordRequestContext(presentation.receipt());return next;},
         governor,
-        transformContext: battleDecisionContext(features,new StateWatcher(gameServerUrl),tools,context.transformContext,recorder,controller.signal),
+        transformContext: autoTalkContext(features,new StateWatcher(gameServerUrl),tools,battleDecisionContext(features,new StateWatcher(gameServerUrl),tools,context.transformContext,recorder,controller.signal),context.breaker,recorder,controller.signal),
         window: context.window,
         ...contextBudget(features, model, maxTokens, recorder),
         emit: recorder.emit,

@@ -39,6 +39,8 @@ export function contextWindow(features: FeatureSet): Window {
 }
 export const OMITTED_FRAME = "[older screenshot omitted]";
 export const NUDGE = "Keep playing: call observe or press. Only tool calls advance the game.";
+// text-only-supervisor-v2: the nudge after the last note.
+export const TEXT_ONLY_REMINDER = "SUPERVISOR: No tool was called. Keep the next reply short and end it with one listed game tool call. The configured run budgets and stopping policy still apply.";
 // text-only-supervisor-v1: notes in a row, with no successful tool call between them, before the run ends.
 export const TEXT_ONLY_NOTE_LIMIT = 3;
 

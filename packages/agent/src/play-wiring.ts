@@ -15,6 +15,8 @@ import {nextMilestoneHint} from "./milestone-hint.js";
 import type {LoopDetector,LoopKind} from "./loop-detection.js";
 import {SupervisorBriefing} from "./loop-supervisor.js";
 import {StallBriefing} from "./stall-briefing.js";
+import {StoryCharacterGate} from "./stall-gate.js";
+import {fixedPointBreaker,type FixedPointBreaker} from "./fixed-point-breaker.js";
 import {navigationMemory} from "./navigation-memory.js";
 import {withPeopleLedger} from "./people-ledger.js";
 import {withPeopleIdCards,type IdCardRecorder} from "./people-id-cards.js";
@@ -36,10 +38,10 @@ import {VisitedTerrain,withVisitedTerrain} from "./visited-terrain.js";
 import {observedInstructions} from "./observed-instructions.js";
 
 type Transform=(messages:AgentMessage[])=>Promise<AgentMessage[]>;
-type WiringRecorder=Pick<RunRecorder,"subscribe"|"recordNavigationContext"|"recordLedgerContext"|"recordMilestoneHint"|"recordBeliefLedger">;
+type WiringRecorder=Pick<RunRecorder,"subscribe"|"recordNavigationContext"|"recordLedgerContext"|"recordMilestoneHint"|"recordBeliefLedger"|"recordLoopBreaker">;
 
 // The switch-dependent memory tools and the context chain a play run delivers to the model.
-export function contextTools(features:FeatureSet,recorder:WiringRecorder,base:Transform):{tools:AgentTool[];transformContext:Transform;window:Window}{
+export function contextTools(features:FeatureSet,recorder:WiringRecorder,base:Transform):{tools:AgentTool[];transformContext:Transform;window:Window;breaker:FixedPointBreaker|null}{
  const tools:AgentTool[]=[];
  const observedBase=observedInstructions(features,recorder,base);
  const memory=navigationMemory(features,recorder,observedBase);
@@ -52,7 +54,10 @@ export function contextTools(features:FeatureSet,recorder:WiringRecorder,base:Tr
  if(hint!==null)tools.push(hint.tool);
  const hinted=hint?.transformContext??ledger?.transformContext??memory?.transformContext??observedBase;
  const chain=disprovedBeliefs(features,recorder,hinted)?.transformContext??hinted;
- return {tools,transformContext:features["fresh-retry-v1"]?messages=>chain(withoutTextOnlyReplies(messages)):chain,window:contextWindow(features)};
+ const inner:Transform=features["fresh-retry-v1"]?messages=>chain(withoutTextOnlyReplies(messages)):chain;
+ // fixed-point-breaker-v1: duplicate turns collapse before every other step; its note is the request's last message.
+ const breaker=fixedPointBreaker(features,recorder);
+ return {tools,transformContext:breaker===null?inner:async messages=>breaker.note(await inner(breaker.collapse(messages))),window:contextWindow(features),breaker};
 }
 
 // context-token-budget-v1: fit each request to the served context; each trim is recorded as a compaction.
@@ -70,11 +75,14 @@ export function loopSupervisor(features:FeatureSet,recorder:Pick<RunRecorder,"su
 
 // stall-briefing-v1: supervisor notes for map ping-pong and milestone droughts, timed on unpaused play.
 // same-plan-breaker-v1: a supervisor note when the stated plan repeats while the game does not move on.
-export function stallBriefing(features:FeatureSet,recorder:Pick<RunRecorder,"subscribe">,detector:Pick<LoopDetector,"stall">,control:Pick<RunControl,"pausedMs">,elapsed:()=>number):StallBriefing|null {
+export function stallBriefing(features:FeatureSet,recorder:Pick<RunRecorder,"subscribe"|"recordStallGate">,detector:Pick<LoopDetector,"stall">,control:Pick<RunControl,"pausedMs">,elapsed:()=>number):StallBriefing|null {
  if(features["same-plan-breaker-v1"]){const plans=new SamePlanBreaker(features,detector);recorder.subscribe(event=>{plans.observe(event);});}
  if(!features["stall-briefing-v1"])return null;
  const briefing=new SupervisorBriefing(features);recorder.subscribe(event=>{briefing.observe(event);},true);
- const stall=new StallBriefing(features,()=>elapsed()-control.pausedMs(),detector,(kind,calls)=>briefing.stallText(kind,calls));
+ // story-character-stall-gate-v1: the gate reads each event before the stall check that the same event runs.
+ const gate=features["story-character-stall-gate-v1"]?new StoryCharacterGate(recorder):null;
+ if(gate!==null)recorder.subscribe(event=>{gate.observe(event);});
+ const stall=new StallBriefing(features,()=>elapsed()-control.pausedMs(),detector,(kind,calls)=>briefing.stallText(kind,calls),gate);
  recorder.subscribe(event=>{stall.observe(event);});
  return stall;
 }

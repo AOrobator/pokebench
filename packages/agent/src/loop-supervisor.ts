@@ -452,7 +452,7 @@ export class SupervisorBriefing {
     .map(t=>`${this.target(t)} at ${at(t.x,t.y)} (${t.activation}${dead(t)?"; its condition did not match when the readout last showed it, so stepping on it then did nothing":""})${use(t)}`);
   }
   // semantic-navigation-v2 marks a person it talked to by object id.
-  const open=targets.filter(t=>!done.has(at(t.x,t.y))&&!(t.kind==="object"&&t.local_id!==null&&done.has(objectKey(t.local_id)))).sort((a,b)=>Number(b.kind==="warp")-Number(a.kind==="warp"));
+  const open=targets.filter(t=>!done.has(at(t.x,t.y))&&!(this.features["semantic-navigation-v2"]&&t.kind==="object"&&t.local_id!==null&&done.has(objectKey(t.local_id)))).sort((a,b)=>Number(b.kind==="warp")-Number(a.kind==="warp"));
   return open.map(t=>`${this.target(t)} at ${at(t.x,t.y)} (${t.activation})${use(t)}`);
  }
  private target(t:{readonly kind:string;readonly name?:string|null;readonly destination?:readonly number[]|null}):string {

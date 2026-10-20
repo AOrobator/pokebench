@@ -137,3 +137,11 @@ def test_a_tile_with_two_kinds_of_interaction_gets_no_target():
     assert same_tile(targets, shelf) == 2 and same_tile(targets, metatile) == 2
     assert same_tile(targets, door) == 1
     assert same_tile((SIGN, MAY), SIGN) == 1
+
+
+def test_a_fixed_interaction_under_a_listed_object_gets_no_target():
+    from pokebench_env.semantic_targets import same_tile
+
+    item = InteractionTarget("hidden_item", 10, 3, 3, "A")
+    assert same_tile((item, MAY), item) == 2
+    assert same_tile((item,), item) == 1

@@ -37,10 +37,11 @@ export function uniqueTile(targets:readonly Pick<Listed,"kind"|"x"|"y">[]|null|u
 }
 
 // The target for a listed interaction, or null when the tool could not tell it apart.
-// A warp must be the only warp on its tile; any other interaction the only non-object, non-warp target there.
+// A warp must be the only warp on its tile; any other interaction the only non-warp target there, objects included.
 export function listedArgument(target:Pick<Listed,"kind"|"x"|"y"|"local_id">,targets:readonly Pick<Listed,"kind"|"x"|"y">[]|null|undefined):string|null {
  if(target.kind==="object")return targetArgument(target);
  if(target.kind==="warp")return uniqueTile(targets,"warp",target.x,target.y)?targetArgument(target):null;
- const fixed=(targets??[]).filter(t=>t.kind!=="object"&&t.kind!=="warp"&&t.x===target.x&&t.y===target.y).length;
+ // A person or object on the tile answers A before any background or metatile does.
+ const fixed=(targets??[]).filter(t=>t.kind!=="warp"&&t.x===target.x&&t.y===target.y).length;
  return fixed===1?targetArgument(target):null;
 }

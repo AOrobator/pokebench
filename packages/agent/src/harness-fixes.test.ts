@@ -94,6 +94,17 @@ it("semantic-navigation-v2: a navigate_to_target or explore_map receipt counts i
  }
 });
 
+it("semantic-navigation-v2 OFF: without briefing exits, an object key the faced history writes does not hide a person who moved",()=>{
+ const b=new SupervisorBriefing({...ALL_ON,"semantic-navigation-v2":false,"briefing-exits-v1":false,"faced-interaction-history-v1":true});
+ const internal=b as unknown as {touch(room:string,key:string):void;room(s:unknown):string;latest:unknown};
+ result(b,1);
+ const moved={...SCIENTIST,x:10,y:7};
+ result(b,3,{interaction_targets:[moved,EXIT]});
+ internal.touch(internal.room(internal.latest),"object:1");
+ const text=b.text("cycle",5);
+ expect(text.slice(text.indexOf("not tried yet")).split("\n")[0]).toContain("SCIENTIST_1");
+});
+
 it("semantic-navigation-v2: a talk that starts a battle still counts its target as tried, with or without briefing exits",()=>{
  for(const exits of [true,false]){
   const b=new SupervisorBriefing({...ALL_ON,"semantic-navigation-v2":true,"briefing-exits-v1":exits});

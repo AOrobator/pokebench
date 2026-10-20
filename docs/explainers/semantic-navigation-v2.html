@@ -20,7 +20,7 @@ ul{padding-left:20px}li{margin:3px 0}
 </style></head><body><main>
 <span class="tag">DEFAULT-OFF · BUNDLE ARM ONLY · REPLACES V1</span>
 <h1>Semantic navigation v2</h1>
-<p><code>semantic-navigation-v2</code> gives the model <code>navigate_to_target</code> and makes it the way to reach anything the readout lists: a person, an object, a door or stairs, another warp, or a walkable map exit. <code>navigate_to</code> stays, for a plain tile that nothing lists. Version 1 added the tool but kept every prompt line pointing at coordinates, so the model almost never used it. The operator called that a bug, so v1 is now off everywhere and v2 takes its place in the bundle arm.</p>
+<p><code>semantic-navigation-v2</code> gives the model <code>navigate_to_target</code> and makes it the way to reach anything the readout lists: a person, an object, a door or stairs, another warp, or a walkable map exit. <code>navigate_to</code> stays for everything else. Version 1 added the tool but kept every prompt line pointing at coordinates, so the model almost never used it. The operator called that a bug, so v1 is now off everywhere and v2 takes its place in the bundle arm.</p>
 
 <h2>Why v1 was not enough</h2>
 <section>
@@ -50,11 +50,11 @@ Moving around: to go anywhere two or more tiles away on the current map, call na
 <pre>RIVAL_MAY_NORMAL id 2 at (10,3), elevation 3; A; conditional; navigate_to_target target {"kind":"object","local_id":2}
 - NORTH -> ROUTE103 (map 0/17), offset 0; walk off the map from any tile from (4,0) to (6,0): stand on one of these edge tiles and press UP; navigate_to_target target {"kind":"connection","direction":"NORTH"}
 Story characters here (from this map's own object list): MAY at 10,3 (navigate_to_target target {"kind":"object","local_id":2}). …</pre>
-<pre>- navigate_to_target: walks you to a person, object, door, stairs, other warp or map exit the readout lists, then talks to it, uses it or goes through it. …
-- navigate_to: walks you to a plain tile on the current map that nothing in the readout lists. …
-Moving around: to reach a person, object, door, stairs, other warp or map exit the readout lists, call navigate_to_target with the target the readout writes for it …</pre></div>
+<pre>- navigate_to_target: walks you to a person, object, door, stairs, other warp or map exit that the readout lists with a navigate_to_target target, then talks to it, uses it or goes through it. …
+- navigate_to: walks you to any other tile on the current map. …
+Moving around: to reach a person, object, door, stairs, other warp or map exit that the readout lists with a navigate_to_target target, call navigate_to_target with that target …</pre></div>
 </div>
-<p class="cap">Illustrative lines in the exact formats the code writes (map and ids are examples, not a recorded readout). Only targets the tool can resolve get an argument: a listed object with a local id, a listed warp, another listed interaction by kind and tile, and a walking connection with walkable edge tiles. Exits cut off or across water get none.</p>
+<p class="cap">Illustrative lines in the exact formats the code writes (map and ids are examples, not a recorded readout). Only targets the tool can tell apart and reach get an argument: a listed object by its local id; a warp that is the only warp on its tile; another interaction that is the only non-warp target on its tile; a walking connection that is the only one on its side and has walkable edge tiles. Exits cut off or across water get none.</p>
 </section>
 
 <h2>Every place navigation is mentioned</h2>

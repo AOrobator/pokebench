@@ -166,14 +166,15 @@ describe("review round 1 fixes",()=>{
   expect(listedArgument({kind:"background",x:3,y:1,local_id:null},shelf)).toBeNull();
   expect(listedArgument({kind:"metatile_bookshelf",x:3,y:1,local_id:null},shelf)).toBeNull();
   expect(listedArgument({kind:"warp",x:3,y:1,local_id:null},shelf)).toBe('{"kind":"warp","x":3,"y":1}');
-  expect(listedArgument({kind:"background",x:6,y:6,local_id:null},shelf)).toBe('{"kind":"interaction","interaction_kind":"background","x":6,"y":6}');
+  expect(listedArgument({kind:"background",x:6,y:6,local_id:null},shelf)).toBeNull();
+  expect(listedArgument({kind:"hidden_item",x:8,y:8,local_id:null},[{kind:"hidden_item",x:8,y:8}])).toBe('{"kind":"interaction","interaction_kind":"hidden_item","x":8,"y":8}');
  });
  it("promises dialogue advance only with dialogue auto-advance on",()=>{
   const on=tools(ON).find(t=>t.name==="navigate_to_target")?.description??"";
   const off=tools({...ON,"dialogue-auto-advance-v1":false}).find(t=>t.name==="navigate_to_target")?.description??"";
   expect(on).toContain("Dialogue the activation opens is advanced for you");
   expect(off).not.toContain("Dialogue");
-  expect(off.endsWith("For a plain tile nothing lists, use navigate_to.")).toBe(true);
+  expect(off.endsWith("For anything without a navigate_to_target target, use navigate_to.")).toBe(true);
  });
  it("a side with two connections gets no connection target",()=>{
   expect(uniqueDirection([{direction:"WEST"},{direction:"WEST"},{direction:"SOUTH"}],"WEST")).toBe(false);

@@ -87,16 +87,27 @@ export function presetFor(draft: NextRun, runId: string): PlayPresetV2 {
 
 // A run is live while it has no run_end and its own game server is up: a long
 // model call or an operator pause writes nothing, so log age says nothing.
+// A killed run never writes run_end, and a later run can bind its port, so a
+// port belongs only to the newest unended run that recorded it.
 export async function liveRuns(runsRoot: string, healthy: HealthProbe): Promise<string[]> {
-  const candidates = listRuns(runsRoot).filter((run) => !run.ended && run.problem === null);
-  const live = await Promise.all(candidates.map(async (run) => {
+  const owners = new Map<number, { id: string; at: number }>(), ports = new Map<string, number>();
+  for (const run of listRuns(runsRoot)) {
+    if (run.ended || run.problem !== null) continue;
+    let port: number;
+    try { port = readStart(runsRoot, run.id).isolation.port; } catch { continue; }
+    ports.set(run.id, port);
+    const at = Date.parse(run.started ?? ""), owner = owners.get(port), when = Number.isNaN(at) ? -Infinity : at;
+    if (owner === undefined || when > owner.at || (when === owner.at && run.id > owner.id)) owners.set(port, { id: run.id, at: when });
+  }
+  const candidates = [...ports].filter(([id, port]) => owners.get(port)?.id === id);
+  const live = await Promise.all(candidates.map(async ([, port]) => {
     try {
-      return await healthy(readStart(runsRoot, run.id).isolation.port);
+      return await healthy(port);
     } catch {
       return false;
     }
   }));
-  return candidates.filter((_, i) => live[i] === true).map((run) => run.id);
+  return candidates.filter((_, i) => live[i] === true).map(([id]) => id);
 }
 
 export async function appendControl(runsRoot: string, runId: string, action: ControlAction, now: Date, healthy: HealthProbe): Promise<number> {

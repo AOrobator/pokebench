@@ -16,7 +16,7 @@ The operator, 11:34 PM ET: "the viewer also says +3 live and thats wrong". `live
 
 - [x] RED: frontier tests for invalid trials plotted, labelled, never best; other exclusions still hidden.
 - [x] GREEN: `invalidTrial` admitted by `shownAgent`; dotted line, title reason, notice and legend row.
-- [ ] RED/GREEN: newest unended run per port is the only live candidate.
+- [x] RED/GREEN: newest unended run per port is the only live candidate.
 - [ ] Gates: build, test, lint, coverage, verify-vendor.
 - [ ] Cloud review (Claude, Grok, GPT/Codex) LGTM on the frozen diff; ff-only landing.
 - [ ] `just viewer-main`; real-browser desktop and phone check that the 4h pair is drawn.
@@ -25,3 +25,6 @@ The operator, 11:34 PM ET: "the viewer also says +3 live and thats wrong". `live
 - RED: COMMIT: `test: invalid fixed-run trials stay on the frontier chart (RED)` (1d7f07e4). `vitest run src/frontier.test.ts`: 3 new tests failed (no dotted series, no version, no dasharray), 29 passed.
 - GREEN: `invalidTrial()` admits only `excluded` starting `Invalid fixed-run trial: ` for agent runs with a New Game or known checkpoint start; `frontierCandidate` still requires `excluded === null`. `vitest run src/frontier src/workbench`: 246 passed (legend list test updated for the new "Dotted line" row).
 - Real data, scratch branch viewer on 127.0.0.1:8796 over the shared runs root: choosing EXPERIMENT "Bundle vs control, let it cook (4 hour pair)" draws both 4h trials dotted (4cd7: 38 points to Petalburg Woods at ~132 min; 86ac: 34 points to Petalburg) with the invalid notice; gold frontier is still e046. Phone 375×812: no horizontal overflow.
+- Port reuse RED: COMMIT: `test: a reused game-server port does not keep an abandoned run live (RED)` (33ac477e); the new next-run test failed with 3 live runs instead of 2.
+- Port reuse GREEN: `liveRuns` keeps only the newest unended claimant per recorded port (start time, then id) before probing `/health`. next-run, experiment-runner/cli/gate, server and app tests: 238 passed.
+- Review lanes round 0 (on the frontier-only packet) did not complete: Claude CLI OAuth expired, Cursor GPT usage-capped; Grok stopped to re-review the cumulative packet.

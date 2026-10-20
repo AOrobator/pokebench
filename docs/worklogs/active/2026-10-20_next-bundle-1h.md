@@ -31,5 +31,5 @@
 - [x] `briefing-repeat-count-v1` and `navigate-already-here-v1` are bundle switches (base false) in `bundle-v-control` and `bundle-cook-1h`; plan regenerated (unchanged, 4 trials). Note: `briefing-repeat-count-v1` acts only with `supervisor-briefing-v2`, which is off in both arms, so it is inert in this bundle.
 - [x] Tests: fixed-runner next-bundle pin covers both; open-goal-prompt exclusion list gains both.
 - [x] Gates: lint clean; agent 2798, viewer 1361, pytest 2896 pass; `fixed-run check` clean for both.
-- [ ] Review: Claude and Grok LGTM
-- [ ] Land ff-only, `just viewer-main`
+- [x] Review: Grok and Claude (subagent) `VERDICT: LGTM` on packet 77f40444…48d9 (runs/reviews/next-bundle-1h-m2/)
+- [x] Landed ff-only on main at d2e9bf6d; `just viewer-main` restarted the viewer

@@ -644,7 +644,8 @@ export function navigationTool(ports:NavigationPorts):CheckedNavigationTool {
     },ports.safeStrides===true?(stride===null?{automaticRunning:false}:{stride}):deliberateGoalEntry?{automaticRunning:false}:undefined);
    } catch(error){if(!(error instanceof NavigationPreconditionError))throw error;status=error.message;break;}
    commands++;plannedSteps+=stride?.path.length??1;state=blackout.remember(resultState(last));
-   if(finalGoalStep&&stride===null)goalEntryAttempted=true;
+   // A final press that only turns or bumps leaves the player on the same tile of the same map with input free: no entry happened.
+   if(finalGoalStep&&stride===null&&(state.position?.x!==before.x||state.position.y!==before.y||!sameMap()||!ready(state,mode)))goalEntryAttempted=true;
    if(ports.safeStrides===true)strideReceipts.push(...last.content.flatMap(p=>p.type==="text"&&p.text.startsWith("Navigation stride receipt:")?[p.text]:[]));
    const afterStop=stop?.(state)??null;if(afterStop!==null){status=afterStop;stopRequested=true;break;}
    if(!sameMap()){status="map changed; inspect destination";break;}

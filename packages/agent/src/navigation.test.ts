@@ -59,7 +59,7 @@ it("does not receipt a final exact-target entry when that press only turns or is
   return tool.executeChecked("nav",{x:1,y:0,map_id:[0,9]},state=>state.facing==="right"?"interrupted after turning":null,undefined,{exactTarget:true});
  };
  const bumped=async()=>{
-  let current={...corridor,facing:"right"};
+  const current={...corridor,facing:"right"};
   const tool=navigationTool({read:()=>Promise.resolve(current),press:(_id,_params,_signal,check)=>{check?.(current);return Promise.resolve(result(current));},observe:()=>Promise.resolve(result(current))});
   return tool.executeChecked("nav",{x:1,y:0,map_id:[0,9]},()=>null,undefined,{exactTarget:true});
  };

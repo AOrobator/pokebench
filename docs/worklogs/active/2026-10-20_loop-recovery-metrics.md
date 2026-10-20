@@ -21,3 +21,4 @@ Measurement only, no switch (feature-switch skill: measurement features do not c
 ## Archive Milestone (user-gated)
 - Gates: agent 2841, viewer 1386 (server-human needs a built viewer dist in a fresh worktree; passes after pnpm -r build); lint clean; agent coverage 97.2/92.9/97.6 (loop-recovery.ts 98.7/90.7/100).
 - Review r1 (f08aa162): Grok and Claude BLOCKING on the same bug: breaker and auto-talk events are stamped turn+1, so each fire counted itself as a relapse. Fixed: relapse = same source with a later seq within the window from the fire; safety ignores a run end before the fire; test in the recorder's shape. Agent tests pass.
+- Review r2 (41a7a90f): Claude LGTM; Grok BLOCKING: a fire right after the readout that changed the Story characters line was typed from the older roster. Fixed: the latest roster before the fire types it; recorder-order test (MAY line then stall_gate; none line then drought). Also: the CLI reports a bad line and exits 2.

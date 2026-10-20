@@ -17,7 +17,7 @@ export interface Rate {readonly type:LoopType;readonly source:string;readonly n:
 type State=Extract<RunEvent,{type:"state";started:boolean}>;
 // The few facts of a recorded state the tests read, so a long log is held compactly.
 interface Facts {readonly tile:string|null;readonly battle:boolean;readonly battleTurn:number|null;readonly dialogue:boolean;readonly locked:boolean;readonly ui:boolean;readonly naming:boolean}
-interface Snapshot {readonly turn:number;readonly seq:number;readonly state:Facts;readonly characters:readonly string[]}
+interface Snapshot {readonly turn:number;readonly seq:number;readonly map:string|null;readonly state:Facts;readonly characters:readonly string[]}
 interface Fire {readonly seq:number;readonly turn:number;readonly source:string}
 
 const STORY=(e:Extract<RunEvent,{type:"milestone"}>):boolean=>e.kind==="story"&&e.origin!=="present_at_start"&&!MEASUREMENT_ONLY_MILESTONES.has(e.name);
@@ -63,6 +63,8 @@ export function recoveryCollector(window:number=RECOVERY_TURNS):{observe(e:RunEv
  const fires:Fire[]=[];
  const stories:number[]=[];
  const talks:{turn:number;speaker:string}[]=[];
+ // Each Story characters line, in order: a fire right after the readout that changed it is typed by that readout.
+ const rosters:{seq:number;map:string;names:readonly string[]}[]=[];
  const whiteouts:number[]=[];
  let characters:readonly string[]=[];
  let charactersMap:string|null=null;
@@ -75,11 +77,11 @@ export function recoveryCollector(window:number=RECOVERY_TURNS):{observe(e:RunEv
    maps.set(e.seq,here);if(maps.size>256)maps.delete(maps.keys().next().value??-1);
    if(e.blackout_active===true&&!blackout)whiteouts.push(e.turn);
    blackout=e.blackout_active===true;
-   snapshots.push({turn:e.turn,seq:e.seq,state:factsOf(e),characters:here!==null&&here===charactersMap?characters:[]});
+   snapshots.push({turn:e.turn,seq:e.seq,map:here,state:factsOf(e),characters:here!==null&&here===charactersMap?characters:[]});
   }else if(e.type==="tool_result"&&!e.is_error){
    const found=storyCharacters(e.text);
    const map=e.state_seq===undefined?undefined:maps.get(e.state_seq);
-   if(found!==null&&map!=null){characters=found.map(c=>c.name);charactersMap=map;}
+   if(found!==null&&map!=null){characters=found.map(c=>c.name);charactersMap=map;rosters.push({seq:e.seq,map,names:characters});}
   }else if(e.type==="milestone"&&STORY(e))stories.push(e.turn);
   else if(e.type==="dialogue_auto_advance"){for(const p of e.pages)if(p.speaker!==null)talks.push({turn:e.turn,speaker:p.speaker});}
   else if(e.type==="auto_talk"&&e.outcome==="talked"&&e.target?.character!=null)talks.push({turn:e.turn,speaker:e.target.character});
@@ -125,8 +127,10 @@ export function recoveryCollector(window:number=RECOVERY_TURNS):{observe(e:RunEv
  const interventions=fires.flatMap(f=>{
   const at=before(f.seq);
   if(at===undefined)return [];
-  const type=loopType(at.state,at.characters);
-  const {ok,detail}=recovered(at,type);
+  const roster=rosters.findLast(r=>r.seq<f.seq);
+  const now=roster===undefined||roster.seq<at.seq?at:{...at,characters:roster.map===at.map?roster.names:[]};
+  const type=loopType(now.state,now.characters);
+  const {ok,detail}=recovered(now,type);
   // Windows run from the fire: breaker and auto-talk events carry the turn their request is for, one past the latest state.
   const from=Math.max(at.turn,f.turn),until=from+window;
   const safe=!whiteouts.some(t=>t>at.turn&&t<=until)&&!(end!==null&&end.bad&&end.turn>at.turn&&end.turn<=until);

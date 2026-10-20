@@ -19,8 +19,11 @@ export async function loopRecoveryCli(argv: readonly string[], defaultRoot: stri
     const file = RUN_ID.test(id) ? join(locateRunDir(runsRoot, id), "events.jsonl") : null;
     if (file === null || !existsSync(file)) { print(`${file === null ? "invalid run id" : "no event log for run"}: ${id}`); return 2; }
     const collector = recoveryCollector();
+    let n = 0;
     for await (const line of createInterface({ input: createReadStream(file), crlfDelay: Infinity })) {
-      if (line.trim() !== "") collector.observe(checkEvent(JSON.parse(line)));
+      n++;
+      if (line.trim() === "") continue;
+      try { collector.observe(checkEvent(JSON.parse(line))); } catch (error) { print(`${id}: line ${String(n)} is not a valid event: ${error instanceof Error ? error.message : String(error)}`); return 2; }
     }
     const { interventions, rates } = collector.result();
     print(`${id}: ${String(interventions.length)} interventions`);

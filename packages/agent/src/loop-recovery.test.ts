@@ -93,6 +93,19 @@ describe("recovery tests per loop type",()=>{
  });
 });
 
+describe("story-character typing in the recorder's order",()=>{
+ it("uses the Story characters line of the result that came right before the fire",()=>{
+  const l=log();
+  const s=l.state(1,{map_id:[0,18]});
+  l.add({type:"tool_result",turn:1,id:"c",name:"observe",is_error:false,duration_ms:1,text:"Story characters here: MAY at 10,3. Not on this map: MOM.",frames:[],state_seq:s.seq});
+  l.add({type:"stall_gate",turn:1,kind:"milestone_drought",level:1,reason:"untalked",character:"MAY",map_id:[0,18]});
+  const s2=l.state(2,{map_id:[0,18]});
+  l.add({type:"tool_result",turn:2,id:"d",name:"observe",is_error:false,duration_ms:1,text:"Story characters here: none. Not on this map: MAY.",frames:[],state_seq:s2.seq});
+  l.guard(2,"milestone_drought","supervisor");
+  expect(loopRecoveries(l.events).interventions.map(i=>i.type)).toEqual(["story_character","navigation"]);
+ });
+});
+
 describe("relapse",()=>{
  it("is the same source firing again, never the fire itself, with breaker and auto-talk events stamped a turn past the latest state",()=>{
   const l=log();
@@ -131,5 +144,9 @@ describe("the CLI",()=>{
   expect(await loopRecoveryCli(["--runs-root",root,"2026-10-20T03-02-13_qwen36-gpu1_aaaa"],"/nowhere",l=>{bad.push(l);})).toBe(2);
   expect(await loopRecoveryCli([],root,l=>{bad.push(l);})).toBe(2);
   expect(bad).toEqual(["invalid run id: ../nope","no event log for run: 2026-10-20T03-02-13_qwen36-gpu1_aaaa","usage: loop-recovery [--runs-root DIR] <run_id> [...]"]);
+  const broken="2026-10-20T03-02-13_qwen36-gpu1_bbbb";mkdirSync(join(root,broken));writeFileSync(join(root,broken,"events.jsonl"),"{not json\n");
+  const out:string[]=[];
+  expect(await loopRecoveryCli(["--runs-root",root,broken],"/nowhere",l=>{out.push(l);})).toBe(2);
+  expect(out[0]).toMatch(new RegExp(`^${broken}: line 1 is not a valid event: `));
  });
 });

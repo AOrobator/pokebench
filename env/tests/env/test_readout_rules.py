@@ -101,6 +101,7 @@ LATER = frozenset(
         "birch-speech-pages-v1",
         "blackout-readout-v1",
         "semantic-navigation-v2",
+        "exit-labels-v2",
     }
 )
 

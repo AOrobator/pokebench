@@ -66,3 +66,7 @@ Run `2026-10-20T13-54-28_qwen36-gpu0_b300` (bundle arm of whole-map-pair-1h; low
   - Brief limit reached (2 rounds): stopped. The B2 fix is not re-reviewed. M2 gym-heal-warning-v1 was started (uncommitted draft saved in gitignored runs/probe/m2backup) and is not built.
 
 ## Boy Scout Log
+
+## Landing
+
+- Merged main (ad79c737, exit-labels-v2) into the branch: append-only conflicts in the registry, presets, defaults and ~25 test files; exit-labels-v2 stays before heal-before-trainers-v2 everywhere.

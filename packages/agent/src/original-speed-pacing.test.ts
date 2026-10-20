@@ -9,7 +9,7 @@ import { parseEvent } from "./events.js";
 import { RUN_START_META } from "../test-support/events.js";
 
 const ID = "original-speed-pacing-v1" as SwitchableFeature;
-const OFF = { ...ALL_ON, [ID]: false, "fixed-point-breaker-v1": false, "story-character-stall-gate-v1": false, "positive-supervisor-v1": false, "semantic-navigation-v2": false, "auto-talk-v1": false, "duplicate-turn-collapse-v1": false, "unfinished-activity-v1": false, "heal-before-trainers-v2": false };
+const OFF = { ...ALL_ON, [ID]: false, "fixed-point-breaker-v1": false, "story-character-stall-gate-v1": false, "positive-supervisor-v1": false, "semantic-navigation-v2": false, "auto-talk-v1": false, "duplicate-turn-collapse-v1": false, "unfinished-activity-v1": false, "exit-labels-v2": false, "heal-before-trainers-v2": false };
 const ON = { ...OFF, [ID]: true };
 const flags = { loopGuard: true, activeUi: true, interfaceDocs: true, objectives: false };
 
@@ -36,8 +36,8 @@ it("defaults omitted historical presets and legacy flags OFF", () => {
 });
 
 it("transports only the explicit server selection and records ON at the end", () => {
-  expect(serverFeatureEnv(OFF).POKEBENCH_FEATURES_OFF).toBe(`${ID},semantic-navigation-v2,heal-before-trainers-v2`);
-  expect(serverFeatureEnv(ON).POKEBENCH_FEATURES_OFF).toBe("semantic-navigation-v2,heal-before-trainers-v2");
+  expect(serverFeatureEnv(OFF).POKEBENCH_FEATURES_OFF).toBe(`${ID},semantic-navigation-v2,exit-labels-v2,heal-before-trainers-v2`);
+  expect(serverFeatureEnv(ON).POKEBENCH_FEATURES_OFF).toBe("semantic-navigation-v2,exit-labels-v2,heal-before-trainers-v2");
   const off = playHarnessFeatures(OFF, null);
   const on = playHarnessFeatures(ON, null);
   expect(off).not.toContain(ID);

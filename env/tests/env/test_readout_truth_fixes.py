@@ -117,6 +117,7 @@ LATER = frozenset(
         "battle-effective-damage-v1",
         "semantic-navigation-v1",
         "semantic-navigation-v2",
+        "exit-labels-v2",
     }
 )
 

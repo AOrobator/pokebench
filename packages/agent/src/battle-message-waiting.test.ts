@@ -28,8 +28,8 @@ it("registers a default-off observation switch with no dependency, recorded last
 
 it("hands the switch to the game server, which writes the battle readout", () => {
   expect(SERVER_FEATURES.at(-21)).toBe(ID);
-  expect(serverFeatureEnv(off(ID)).POKEBENCH_FEATURES_OFF).toBe(`${ID},safe-navigation-strides-v1,original-speed-pacing-v1,heal-before-trainers-v2`);
-  expect(serverFeatureEnv(ALL_ON).POKEBENCH_FEATURES_OFF).toBe("safe-navigation-strides-v1,original-speed-pacing-v1,heal-before-trainers-v2");
+  expect(serverFeatureEnv(off(ID)).POKEBENCH_FEATURES_OFF).toBe(`${ID},safe-navigation-strides-v1,original-speed-pacing-v1,exit-labels-v2,heal-before-trainers-v2`);
+  expect(serverFeatureEnv(ALL_ON).POKEBENCH_FEATURES_OFF).toBe("safe-navigation-strides-v1,original-speed-pacing-v1,exit-labels-v2,heal-before-trainers-v2");
   // The Python server's own list and default-off set name it too.
   const readout = readFileSync(new URL("../../../env/pokebench_env/readout.py", import.meta.url), "utf8");
   expect(readout).toContain(`"${ID}",\n    "offscreen-objects-v1",\n    "levelup-box-v1",\n    "transition-coherence-v1",\n    "readout-truth-v1",`);

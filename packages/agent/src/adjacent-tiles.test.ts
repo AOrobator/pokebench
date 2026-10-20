@@ -19,8 +19,8 @@ it("registers adjacent tiles as a default-off observation switch that needs the 
 
 it("hands the switch to the game server, which draws the map", () => {
   expect(SERVER_FEATURES.at(-25)).toBe(ID);
-  expect(serverFeatureEnv(off(ID)).POKEBENCH_FEATURES_OFF).toBe(`${ID},safe-navigation-strides-v1,original-speed-pacing-v1,heal-before-trainers-v2`);
-  expect(serverFeatureEnv(ALL_ON).POKEBENCH_FEATURES_OFF).toBe("safe-navigation-strides-v1,original-speed-pacing-v1,heal-before-trainers-v2");
+  expect(serverFeatureEnv(off(ID)).POKEBENCH_FEATURES_OFF).toBe(`${ID},safe-navigation-strides-v1,original-speed-pacing-v1,exit-labels-v2,heal-before-trainers-v2`);
+  expect(serverFeatureEnv(ALL_ON).POKEBENCH_FEATURES_OFF).toBe("safe-navigation-strides-v1,original-speed-pacing-v1,exit-labels-v2,heal-before-trainers-v2");
 });
 
 it("defaults OFF for presets that omit it and for legacy flag presets", () => {

@@ -29,8 +29,8 @@ it("registers a default-off observation switch with no dependency, recorded last
 
 it("hands the switch to the game server, which owns the decoding", () => {
   expect(SERVER_FEATURES.at(-18)).toBe(ID);
-  expect(serverFeatureEnv(off(ID)).POKEBENCH_FEATURES_OFF).toBe(`${ID},safe-navigation-strides-v1,original-speed-pacing-v1,heal-before-trainers-v2`);
-  expect(serverFeatureEnv(ALL_ON).POKEBENCH_FEATURES_OFF).toBe("safe-navigation-strides-v1,original-speed-pacing-v1,heal-before-trainers-v2");
+  expect(serverFeatureEnv(off(ID)).POKEBENCH_FEATURES_OFF).toBe(`${ID},safe-navigation-strides-v1,original-speed-pacing-v1,exit-labels-v2,heal-before-trainers-v2`);
+  expect(serverFeatureEnv(ALL_ON).POKEBENCH_FEATURES_OFF).toBe("safe-navigation-strides-v1,original-speed-pacing-v1,exit-labels-v2,heal-before-trainers-v2");
   const readout = readFileSync(new URL("../../../env/pokebench_env/readout.py", import.meta.url), "utf8");
   expect(readout).toContain(`"levelup-box-v1",\n    "${ID}",\n    "readout-truth-v1",`);
   expect(readout).toContain(`"levelup-box-v1,"\n        "${ID},"\n        "readout-truth-v1,`);

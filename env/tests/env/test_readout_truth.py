@@ -77,6 +77,7 @@ NEW = frozenset(
         "surf-gated-exits-v2",
         "battle-effective-damage-v1",
         "semantic-navigation-v2",
+        "exit-labels-v2",
     }
 )
 ROM_START = 0x08000000

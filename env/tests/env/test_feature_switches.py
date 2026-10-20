@@ -243,6 +243,7 @@ def test_env_list_is_validated() -> None:
             "evolution-decision-v1",
             "original-speed-pacing-v1",
             "semantic-navigation-v2",
+            "exit-labels-v2",
             "warp-arrival-settle-v1",
             "displayed-place-names-v1",
             "battle-triage-guidance-v1",

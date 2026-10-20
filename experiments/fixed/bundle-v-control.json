@@ -1,7 +1,7 @@
 {
  "version": 1,
  "id": "bundle-v-control",
- "title": "Harness-fixes bundle vs fixed control (CLOCK_SET → RIVAL_MET)",
+ "title": "Harness-fixes bundle vs fixed control (CLOCK_SET \u2192 RIVAL_MET)",
  "worklog": "docs/worklogs/active/2026-10-15_bundle-v-control.md",
  "primaryMilestone": "RIVAL_MET",
  "romSha1": "f3ae088181bf583e55daf962a92bb46f4f1d07b7",
@@ -160,7 +160,7 @@
    "semantic-navigation-v2": false,
    "deterministic-exploration-v1": false,
    "safe-navigation-strides-v1": false,
-   "evolution-decision-v1": false,
+   "evolution-decision-v1": true,
    "observed-instructions-v1": false,
    "stale-story-goal-v2": false,
    "context-token-budget-v1": true,
@@ -217,7 +217,6 @@
   "semantic-navigation-v2",
   "deterministic-exploration-v1",
   "safe-navigation-strides-v1",
-  "evolution-decision-v1",
   "observed-instructions-v1",
   "briefing-repeat-count-v1",
   "navigate-already-here-v1",
@@ -263,7 +262,8 @@
   "tutorial-party-owner-v1",
   "context-token-budget-v1",
   "exit-reachability-v1",
-  "duplicate-turn-collapse-v1"
+  "duplicate-turn-collapse-v1",
+  "evolution-decision-v1"
  ],
  "phases": [
   {

@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Semantic navigation v2</title>
+<style>
+:root{color-scheme:light dark;--bg:#f4f6fb;--card:#fff;--ink:#182033;--muted:#5e687a;--line:#ccd3df;--accent:#2f7a5b;--old:#9a5b16;--stop:#b23b3b;--code:#eef1f7}
+@media(prefers-color-scheme:dark){:root{--bg:#111521;--card:#1a2030;--ink:#eef2fb;--muted:#a5aec0;--line:#343d52;--accent:#6fcf9f;--old:#e2a765;--stop:#ef8080;--code:#232a3c}}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:920px;margin:0 auto;padding:24px 16px 48px}
+h1{font-size:1.7rem;margin:0 0 4px}h2{font-size:1.15rem;margin:28px 0 8px}
+.tag{display:inline-block;font-size:.75rem;letter-spacing:.06em;color:var(--muted);border:1px solid var(--line);border-radius:4px;padding:1px 6px}
+section{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px;margin:14px 0}
+code,pre{font:13px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace;background:var(--code);border-radius:4px}
+code{padding:1px 4px}pre{padding:10px;overflow-x:auto;white-space:pre-wrap;word-break:break-word}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:12px}@media(max-width:700px){.cols{grid-template-columns:1fr}}
+.off{border-left:4px solid var(--old);padding-left:10px}.on{border-left:4px solid var(--accent);padding-left:10px}
+.fig{overflow-x:auto}svg text{fill:var(--ink);font:13px system-ui,sans-serif}svg .muted{fill:var(--muted)}
+svg .box{fill:var(--code);stroke:var(--line)}svg .hot{fill:none;stroke:var(--accent);stroke-width:2.5}svg .arr{stroke:var(--muted);stroke-width:1.5;fill:none}
+.cap{color:var(--muted);font-size:.9rem;margin-top:6px}
+ul{padding-left:20px}li{margin:3px 0}
+</style></head><body><main>
+<span class="tag">DEFAULT-OFF · BUNDLE ARM ONLY · REPLACES V1</span>
+<h1>Semantic navigation v2</h1>
+<p><code>semantic-navigation-v2</code> gives the model <code>navigate_to_target</code> and makes it the way to reach anything the readout lists: a person, an object, a door or stairs, another warp, or a walkable map exit. <code>navigate_to</code> stays, for a plain tile that nothing lists. Version 1 added the tool but kept every prompt line pointing at coordinates, so the model almost never used it. The operator called that a bug, so v1 is now off everywhere and v2 takes its place in the bundle arm.</p>
+
+<h2>Why v1 was not enough</h2>
+<section>
+<p>Recorded probe, run f28d turn 443: Birch has just said to go see MAY, and she is on the same map. The same context was re-sampled 8 times with v1 on:</p>
+<div class="fig"><svg viewBox="0 0 640 130" width="640" height="130" role="img" aria-label="8 samples: 7 navigate_to or press, 1 navigate_to_target with a wrong shape">
+<text x="0" y="16">8 samples with semantic-navigation-v1 on</text>
+<g transform="translate(0,30)">
+<rect class="box" x="0" y="0" width="230" height="34"/><text x="10" y="22">3 × press, RIGHT UP UP UP …</text>
+<rect class="box" x="240" y="0" width="160" height="34"/><text x="250" y="22">1 × press</text>
+<rect class="box" x="410" y="0" width="230" height="34"/><text x="420" y="22">3 × navigate_to (10,3)</text>
+<rect class="box" x="0" y="48" width="640" height="34" style="stroke:var(--stop)"/><text x="10" y="70">1 × navigate_to_target {"kind":"interaction","interaction_kind":"RIVAL_MAY_NORMAL",…}: wrong shape (she is an object, local id)</text>
+</g></svg></div>
+<p class="cap">The tool was offered but nothing told the model which argument a listed person takes. The prompt named navigate_to six times and navigate_to_target once.</p>
+</section>
+
+<h2>What the model reads: before and after</h2>
+<section>
+<div class="cols">
+<div class="off"><strong>Off (today)</strong>
+<pre>RIVAL_MAY_NORMAL id 2 at (10,3), elevation 3; A; conditional
+- NORTH -> ROUTE103 (map 0/17), offset 0; walk off the map from any tile from (4,0) to (6,0): stand on one of these edge tiles and press UP
+Story characters here (from this map's own object list): MAY at 10,3. …</pre>
+<pre>- navigate_to: walks you to a tile on the current map. This is how you move …
+Moving around: to go anywhere two or more tiles away on the current map, call navigate_to with that tile. …
+- To talk to someone, target a free tile next to them, then press the direction that faces them and press A.</pre></div>
+<div class="on"><strong>On (v2)</strong>
+<pre>RIVAL_MAY_NORMAL id 2 at (10,3), elevation 3; A; conditional; navigate_to_target target {"kind":"object","local_id":2}
+- NORTH -> ROUTE103 (map 0/17), offset 0; walk off the map from any tile from (4,0) to (6,0): stand on one of these edge tiles and press UP; navigate_to_target target {"kind":"connection","direction":"NORTH"}
+Story characters here (from this map's own object list): MAY at 10,3 (navigate_to_target target {"kind":"object","local_id":2}). …</pre>
+<pre>- navigate_to_target: walks you to a person, object, door, stairs, other warp or map exit the readout lists, then talks to it, uses it or goes through it. …
+- navigate_to: walks you to a plain tile on the current map that nothing in the readout lists. …
+Moving around: to reach a person, object, door, stairs, other warp or map exit the readout lists, call navigate_to_target with the target the readout writes for it …</pre></div>
+</div>
+<p class="cap">Illustrative lines in the exact formats the code writes (map and ids are examples, not a recorded readout). Only targets the tool can resolve get an argument: a listed object with a local id, a listed warp, another listed interaction by kind and tile, and a walking connection with walkable edge tiles. Exits cut off or across water get none.</p>
+</section>
+
+<h2>Every place navigation is mentioned</h2>
+<section>
+<ul>
+<li><strong>System prompt:</strong> tool list (navigate_to_target first), the navigate_to_target section, the navigate_to section's rules, Moving around, dialogue auto-advance, Talk to people ("talking is cheap"), Exits you have not taken, the usage rule when Moving around is off, and the press reminder.</li>
+<li><strong>Tool descriptions:</strong> navigate_to says it is for a plain tile; navigate_to_target says to copy the target after "navigate_to_target target".</li>
+<li><strong>Game server readout:</strong> interaction candidates, map connections, story characters.</li>
+<li><strong>Harness lines:</strong> untaken exits, the trust header's walkable exits and the Story goal's entrances, and the loop supervisor's "Listed here that you have not tried yet" (current map only).</li>
+</ul>
+</section>
+
+<h2>Results are handled like navigate_to's</h2>
+<section>
+<div class="fig"><svg viewBox="0 0 640 210" width="640" height="210" role="img" aria-label="Result wrappers now include navigate_to_target and explore_map">
+<rect class="box" x="0" y="80" width="150" height="44"/><text x="12" y="100">navigate_to_target</text><text x="12" y="116" class="muted">or explore_map</text>
+<path class="arr" d="M150 102 H200"/>
+<rect class="hot" x="200" y="10" width="250" height="190" rx="8"/>
+<text x="214" y="34">dialogue auto-advance</text><text x="214" y="56">Story goal + trust header</text><text x="214" y="78">conversation ledger, people ledger</text>
+<text x="214" y="100">ID cards, untaken exits</text><text x="214" y="122">story destinations, result facts</text><text x="214" y="144">loop supervisor (target counts as tried)</text><text x="214" y="166">recorder: state, frames</text><text x="214" y="188" class="muted">same wrappers navigate_to already had</text>
+<path class="arr" d="M450 102 H500"/>
+<rect class="box" x="500" y="80" width="140" height="44"/><text x="512" y="100">model's next</text><text x="512" y="116">result</text>
+</svg></div>
+<p class="cap">With v1 these results skipped every wrapper, so a conversation opened by the tool was left on screen unread, and the Story goal and exits lines were missing. With v2 off, nothing here changes.</p>
+</section>
+
+<h2>Rules kept</h2>
+<section><ul>
+<li><strong>No walkthroughs:</strong> every target comes from the game's own lists (map objects, warp events, connections); no person, place or step is named by the harness.</li>
+<li><strong>Deterministic:</strong> the arguments are exact copies of game identities; deterministic exploration runs with v2 the same way it ran with v1.</li>
+<li><strong>No truncation:</strong> lines only gain a suffix; nothing is clipped.</li>
+</ul></section>
+
+<h2>Status</h2>
+<section><ul>
+<li>Bundle arm: <code>semantic-navigation-v2</code> and <code>deterministic-exploration-v1</code> on; control arm: both off. <code>semantic-navigation-v1</code> is off in both arms and in every preset.</li>
+<li>Pending experiment <code>semantic-navigation-v2</code> registered, not queued.</li>
+<li>Not yet measured: no claim that it helps until the bundle runs or the experiment says so.</li>
+</ul></section>
+</main></body></html>

@@ -46,7 +46,7 @@ const texts=(r:AgentToolResult<unknown>):string[]=>r.content.flatMap(p=>p.type==
 // The production tools for b300's switches: ordinary press and observe stand-ins whose press moves along the route.
 function b300Tools(reply:TrainerSightReply|Error,state:GameStateSnapshot=START,features:FeatureSet=FEATURES){
  let current=state;const pressed:string[][]=[],asked:{x:number;y:number}[][]=[],records:TrainerSightCheck[]=[];
- const step=(button:string):void=>{const p=current.position;if(p===null)return;const [dx,dy]=button==="UP"?[0,-1]:button==="DOWN"?[0,1]:button==="LEFT"?[-1,0]:[1,0];current={...current,position:{x:p.x+(dx??0),y:p.y+(dy??0)}};};
+ const step=(button:string):void=>{const p=current.position;if(p===null)return;const [dx,dy]:[number,number]=button==="UP"?[0,-1]:button==="DOWN"?[0,1]:button==="LEFT"?[-1,0]:[1,0];current={...current,position:{x:p.x+dx,y:p.y+dy}};};
  const press={name:"press",label:"press",description:"press",parameters:{} as never,execute:()=>Promise.reject(new Error("unchecked press")),
   executeChecked:(_id:string,params:{buttons:string[]},check:(s:GameStateSnapshot)=>void,_signal?:AbortSignal,_update?:unknown,options?:{stride?:{path:readonly unknown[]}})=>{
    check(current);pressed.push([...params.buttons]);
@@ -95,7 +95,7 @@ describe("b300 turn 501",()=>{
 
  it("walks the route with confirm_trainer_sight: true and records the confirmed check",async()=>{
   const tools=b300Tools(TURN501,START,WALK);
-  const out=await tools.navigate.execute("nav-501",{...GOAL,confirm_trainer_sight:true} as typeof GOAL);
+  const out=await tools.navigate.execute("nav-501",{...GOAL,confirm_trainer_sight:true});
   expect(tools.pressed.length).toBeGreaterThan(0);
   expect(tools.pressed[0]).toEqual(["DOWN"]);
   expect(texts(out).some(t=>t.startsWith("Trainer sight:"))).toBe(false);
@@ -201,9 +201,9 @@ describe("game server client",()=>{
   const watcher=new StateWatcher("http://127.0.0.1:8000",fetchFn);
   await expect(watcher.trainerSight([11,3],[{x:5,y:16}])).resolves.toEqual(TURN501);
   expect(calls).toEqual([{url:"http://127.0.0.1:8000/pokebench/trainer-sight",body:JSON.stringify({map_id:[11,3],tiles:[[5,16]]})}]);
-  const bad=new StateWatcher("http://x",(()=>Promise.resolve(new Response("{}"))) as unknown as typeof fetch);
+  const bad=new StateWatcher("http://x",()=>Promise.resolve(new Response("{}")));
   await expect(bad.trainerSight([11,3],[])).rejects.toThrow("Malformed trainer sight reply");
-  const down=new StateWatcher("http://x",(()=>Promise.resolve(new Response("",{status:500}))) as unknown as typeof fetch);
+  const down=new StateWatcher("http://x",()=>Promise.resolve(new Response("",{status:500})));
   await expect(down.trainerSight([11,3],[],new AbortController().signal)).rejects.toThrow("Trainer sight returned HTTP 500");
  });
 });
@@ -213,8 +213,8 @@ describe("registry, prompt and event",()=>{
   expect(SWITCHABLE_FEATURES.at(-1)).toBe(ID);
   expect(featureInfo(ID)).toMatchObject({group:"guidance",needs:"bounded-navigation-v1"});
   expect(featureInfo(ID).description).toContain(" Off: ");
-  const {[ID]:_omitted,...omitted}=FEATURES;void _omitted;
-  expect(normalizeFeatures(omitted)[ID]).toBe(false);
+  const omitted=Object.fromEntries(Object.entries(FEATURES).filter(([id])=>id!==ID));
+  expect(normalizeFeatures(omitted as Parameters<typeof normalizeFeatures>[0])[ID]).toBe(false);
   expect(playHarnessFeatures(FEATURES,null).at(-1)).toBe(ID);
   expect(playHarnessFeatures({...FEATURES,[ID]:false},null)).not.toContain(ID);
  });
@@ -231,3 +231,25 @@ describe("registry, prompt and event",()=>{
   expect(checkEvent(event)).toMatchObject({type:"trainer_sight_check",outcome:"refused"});
  });
 });
+
+describe("text and route details",()=>{
+ it("skips a sighting whose trainer the reply does not list, and spells unknown party values and one-tile sight",async()=>{
+  const {seenTrainers,sightText}=await import("./trainer-sight.js");
+  const reply={available:true as const,map_id:[11,3] as [number,number],trainers:[{local_id:3,graphics_id:35,sprite_kind:null,trainer_id:321,double:false,x:3,y:9,facing:"LEFT" as const,sight:1,loaded:true}],sightings:[{local_id:9,step:1,tile:[1,9] as [number,number],from:[3,9] as [number,number],facing:"LEFT" as const},{local_id:3,step:2,tile:[2,9] as [number,number],from:[3,8] as [number,number],facing:"DOWN" as const}]};
+  const seen=seenTrainers(reply,START);
+  expect(seen.map(s=>s.local_id)).toEqual([3]);
+  const text=sightText(seen,{x:2,y:7},{x:2,y:9},1,{...START,party:[{...must(START.party[0]),hp:null,max_hp:null,species:null}]});
+  expect(text).toContain("(1 step) passes tiles a trainer you have not beaten can see.");
+  expect(text).toContain("- object 3, sprite unknown at (3,9) (loaded, its tile now), facing LEFT, sight 1 tile: it can see (2,9) when it faces DOWN from (3,8), step 2 of 1 on the route.");
+  expect(text).toContain("Your party: unknown ?/? HP.");
+  expect(sightText(seen,{x:2,y:7},{x:2,y:9},2,{...START,party:[]})).toContain("Your party: none.");
+ });
+ it("route tiles land past a ledge hop and stop on an unknown direction or position",()=>{
+  const ledge:GameStateSnapshot={...START,position:{x:1,y:1},navigation_grid:{elevation:3,tiles:[{x:1,y:1,collision:0,behavior:0,elevation:3},{x:1,y:2,collision:1,behavior:0x3b,elevation:3},{x:1,y:3,collision:0,behavior:0,elevation:3}],objects:[],warps:[]}};
+  expect(routeTiles(ledge,["DOWN"],{ledges:true})).toEqual([{x:1,y:3}]);
+  expect(routeTiles(ledge,["DOWN"],{})).toEqual([{x:1,y:2}]);
+  expect(routeTiles(ledge,["NORTHWEST" as "UP"],{})).toBeNull();
+  expect(routeTiles({...ledge,position:null},["DOWN"],{})).toBeNull();
+ });
+});
+function must<T>(value:T|undefined):T{if(value===undefined)throw new Error("missing");return value;}

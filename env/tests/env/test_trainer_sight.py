@@ -1,4 +1,4 @@
-"""trainer-sight-check-v1: which planned route tiles an unbeaten trainer can see, by the game's own rule.
+"""trainer-sight-check-v1: which planned route tiles an unbeaten trainer can see, by the game rule.
 
 pret/pokeemerald 731ad5bf src/trainer_see.c (CheckForTrainersWantingBattle, CheckTrainer,
 GetTrainerApproachDistance, CheckPathBetweenTrainerAndPlayer) and src/event_object_movement.c
@@ -268,7 +268,9 @@ def test_beaten_hidden_and_non_seeing_trainers_are_left_out() -> None:
     assert seen(m, ROW) == []
     for kwargs in [
         {"trainer_type": 0},
-        {"trainer_type": 2},  # TRAINER_TYPE_SEE_ALL_DIRECTIONS: CheckForTrainersWantingBattle skips it
+        {
+            "trainer_type": 2
+        },  # TRAINER_TYPE_SEE_ALL_DIRECTIONS: CheckForTrainersWantingBattle skips it
         {"script": SCRIPT_NONE},
         {"script": 0x02000000},
         {"hide": 0x21},
@@ -427,7 +429,16 @@ def test_b300_turn_501_route_walks_into_tommy_and_marc_at_1_9() -> None:
     trainers = report["trainers"]
     assert isinstance(trainers, list)
     assert [
-        (t["local_id"], t["sprite_kind"], t["trainer_id"], t["x"], t["y"], t["facing"], t["sight"], t["loaded"])
+        (
+            t["local_id"],
+            t["sprite_kind"],
+            t["trainer_id"],
+            t["x"],
+            t["y"],
+            t["facing"],
+            t["sight"],
+            t["loaded"],
+        )
         for t in trainers
     ] == [
         (3, "YOUNGSTER", 321, 3, 9, "LEFT", 3, True),
@@ -447,3 +458,29 @@ def test_b300_with_tommy_beaten_marc_sees_the_next_tile_up_from_1_9() -> None:
     assert report["sightings"] == [
         {"local_id": 5, "step": 1, "tile": [1, 8], "from": [1, 6], "facing": "DOWN"}
     ]
+
+
+def test_a_loaded_buried_trainer_looks_all_ways_and_a_bad_facing_falls_back() -> None:
+    m = world()
+    template(m, 0, 3, 4, 4, trainer_type=3, movement=0x3F)
+    loaded(m, 1, 3, 4, 4, facing=1, trainer_type=3, movement=0x3F)
+    assert seen(m, [(4, 2)]) == [(3, 1, (4, 2))]
+    m = world()
+    template(m, 0, 3, 4, 4, movement=0x08)
+    loaded(m, 1, 3, 4, 4, facing=0, movement=0x08)  # facing 0 is DIR_NONE
+    trainers = sight_report(m, MAP, [(4, 6)])["trainers"]
+    assert isinstance(trainers, list)
+    assert trainers[0]["facing"] == "DOWN"
+
+
+def test_a_short_template_read_gives_no_report() -> None:
+    m = world()
+
+    def short(address: int, length: int) -> bytes:
+        data = m.read(address, length)
+        return data[:-1] if address == SB1 + 0xC70 else data
+
+    assert sight_report(short, MAP, ROW) == {
+        "available": False,
+        "reason": "game memory unreadable",
+    }

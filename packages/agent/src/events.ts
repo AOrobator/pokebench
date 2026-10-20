@@ -272,6 +272,21 @@ const UnfinishedActivityEvent = event("unfinished_activity", {
   map_id: Type.Tuple([Type.Integer(), Type.Integer()]), text: Type.String({ minLength: 1 }),
 });
 
+// trainer-sight-check-v1: one checked navigate_to call: the route's tiles, what the game server found and the outcome.
+const SightPoint = Type.Object({ x: Type.Integer(), y: Type.Integer() }, closed);
+const SightFacing = Type.Enum(["DOWN", "UP", "LEFT", "RIGHT"] as const);
+const TrainerSightCheckEvent = event("trainer_sight_check", {
+  tool_call_id: Type.String({ minLength: 1 }), map_id: Type.Tuple([Type.Integer(), Type.Integer()]), origin: SightPoint, goal: SightPoint,
+  route_tiles: NonNegativeInt, confirmed: Type.Boolean(), outcome: Type.Enum(["clear", "refused", "confirmed", "unavailable"] as const),
+  reason: Type.Union([Type.String({ minLength: 1 }), Type.Null()]),
+  sightings: Type.Array(Type.Object({
+    local_id: NonNegativeInt, sprite_kind: Type.Union([Type.String({ minLength: 1 }), Type.Null()]), trainer_id: NonNegativeInt,
+    x: Type.Integer(), y: Type.Integer(), facing: SightFacing, sight: NonNegativeInt, loaded: Type.Boolean(),
+    step: Type.Integer({ minimum: 1 }), tile: SightPoint, from: SightPoint, seen_facing: SightFacing,
+  }, closed), { maxItems: 64 }),
+  text: Type.Union([Type.String({ minLength: 1 }), Type.Null()]),
+});
+
 // low-hp-trainer-warning-v2: the story-battle SUPERVISOR paragraph a game-tool result gained, with the facts it states.
 const StoryBattleWarningEvent = event("story_battle_warning", {
   tool: Type.String({ minLength: 1 }), kind: Type.Enum(["rival", "aqua_grunt", "gym_leader"]), opponent: Type.String({ minLength: 1 }),
@@ -683,6 +698,7 @@ export const RunEventSchema = Type.Union([
   LoopBreaker,
   StallGate,
   UnfinishedActivityEvent,
+  TrainerSightCheckEvent,
   AutoTalk,
   StoryBattleWarningEvent,
   HealBeforeTrainersWarningEvent,

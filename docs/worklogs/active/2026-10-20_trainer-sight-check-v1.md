@@ -1,6 +1,6 @@
 # Trainer sight check (`trainer-sight-check-v1`)
 
-Status: M1 RED. Milestone 5 of `heal-respawn-sight` (scratch plan approved by the operator 3:41 PM ET 2026-10-20). Worktree `~/dev/pokebench-worktrees/trainer-sight-check-v1`, branch `claude/trainer-sight-check-v1`, from main 6c88d424.
+Status: M1 GREEN, gates pass; review next. Milestone 5 of `heal-respawn-sight` (scratch plan approved by the operator 3:41 PM ET 2026-10-20). Worktree `~/dev/pokebench-worktrees/trainer-sight-check-v1`, branch `claude/trainer-sight-check-v1`, from main 6c88d424.
 
 ## Ask
 
@@ -36,9 +36,9 @@ A press is not checked. (1) A direction press moves at most one tile per button,
 ## Milestones
 
 - [x] M1 RED: Python reader/sight tests (synthetic + b300 raw-RAM fixture) and agent tests (refusal text, confirm, OFF identity, event, factory wiring), failing.
-- [ ] M1 GREEN: server module and endpoint, agent check, events, recorder, viewer activity text, registry/presets/defaults.
-- [ ] Gates: `just test`, `just lint`, `just build`, `just coverage` (90).
-- [ ] Explainer `docs/explainers/trainer-sight-check-v1.html`, FEATURE_EXPLAINERS, pending `experiments/trainer-sight-check-v1.json`, readiness note.
+- [x] M1 GREEN: server module and endpoint, agent check, events, recorder, viewer activity text, registry/presets/defaults.
+- [x] Gates: `just test`, `just lint`, `just build`, `just coverage` (90).
+- [x] Explainer `docs/explainers/trainer-sight-check-v1.html`, FEATURE_EXPLAINERS, pending `experiments/trainer-sight-check-v1.json`, readiness note.
 - [ ] Sync with main, Claude + Grok review (2 rounds max).
 
 ## Session Log
@@ -47,7 +47,17 @@ A press is not checked. (1) A direction press moves at most one tile per button,
 
 - RED: `env/tests/env/test_trainer_sight.py` (22: synthetic sight rule, endpoint, b300 raw RAM with the operator's ROM) and `packages/agent/src/trainer-sight.test.ts` (17: b300 turn 501 refusal text, TOMMY-beaten-from-(1,9), confirm, clear/unavailable/double, OFF schema/description/prompt, withNavigation and playGameTools wiring, client, registry, event) on stub modules: Python 21 failed / 1 passed (the switch id), agent file fails to load (stub parse throws). Fixtures: `env/tests/env/fixtures/trainer-sight-b300.json` (RAM windows only, from raw-ram 6600), `packages/agent/test-support/trainer-sight-b300.json` (state 15233 and the server replies).
 
+- COMMIT: `test: trainer-sight-check-v1 sight rule, endpoint and navigate_to refusal from b300 turn 501 (RED)` (e07a6e93)
+- GREEN: `env/pokebench_env/trainer_sight.py` + `POST /pokebench/trainer-sight` (observation.py), agent `trainer-sight.ts`, navigate_to check (`checkSight`, `routeTiles`, confirm argument and description sentence only with the port), `StateWatcher.trainerSight`, playGameTools ports, `trainer_sight_check` event/recorder/tail, viewer Activity History text, model, trace category, registry/presets/defaults, system-prompt section, schema regenerated. Registry suffix indexes in older tests advance by one; LEGACY_ALL_ON keeps the switch OFF; experiment-vector filters exclude it.
+- Wiring mutation: dropping `trainerSight:sight` from withNavigation fails 8 of 19 trainer-sight tests (refusals, confirm, clear/unavailable/double, withNavigation, playGameTools); restored (sha1 67584e35 identical) and 19/19.
+- Gates: `just lint` 0, `just build` 0, `just coverage` 0: agent 2916 tests (statements 97.17, branches 92.91, functions 97.56, lines 99.15), viewer 1427 (95.08 / 91.04 / 93.85 / 97.70), Python 2930 (lines 97.02, branches 92.59, functions 100); trainer_sight.py and trainer-sight.ts 100%. `src/serial-comparison.test.ts` "real hung child" (100 ms watchdog) failed once under machine load 13-18 and passed alone and on the rerun; unrelated to this switch.
+- Env setup in this worktree: vendor submodule initialised from the main checkout's clone (`--reference`, pinned bbab97ad), mgba binding copied from the main checkout's venv (same as `just build-mgba` output), `.env` copied (gitignored).
+- Explainer `docs/explainers/trainer-sight-check-v1.html` (`just pages-check` clean), FEATURE_EXPLAINERS, README entry, card and server tests. Pending `experiments/trainer-sight-check-v1.json` (activation ROUTE_102, no queuePosition, source pinned to e07a6e93 until landing), readiness row.
+
 ## Surprises
+
+- The planner routes through MARC's template tile (1,6): MARC is not loaded at seq 15233, so the map grid shows no object there. Out of scope here; the sight check flags (1,9) before that.
+- b300's state at seq 15569 (after TOMMY) already has MARC loaded at (1,8), walking up: the game spotted the player on the first frame field input resumed, so no tool call could have come between the battles. The "from (1,9)" text is therefore a what-if on seq 15233's RAM with TOMMY's flag set.
 
 ## Multi-Model Review Log
 

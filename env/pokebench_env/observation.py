@@ -9,7 +9,7 @@ from collections.abc import Callable
 from contextlib import AbstractContextManager, nullcontext
 
 from fastapi import FastAPI, HTTPException, Query
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from pokebench_env.battle_text import WAIT_BOUND_FRAMES, BattleWait
 from pokebench_env.blackout_readout import Whiteout, WhiteoutLatch, whiteout_line
@@ -28,10 +28,16 @@ from pokebench_env.screen_settle import (
     screen_note,
     warp_animating,
 )
+from pokebench_env.trainer_sight import MAX_ROUTE_TILES, sight_report
 from pokebench_env.ui_state import active_ui_enabled_from_env
 
 ScreenshotFn = Callable[[], BaseModel | Callable[[], BaseModel]]
 RawSnapshotFn = Callable[[Reservation], RawRamSnapshot]
+
+
+class TrainerSightRequest(BaseModel):
+    map_id: tuple[int, int]
+    tiles: list[tuple[int, int]] = Field(max_length=MAX_ROUTE_TILES)
 
 
 def install_observation(
@@ -238,6 +244,13 @@ def install_observation(
     def places() -> dict[str, object]:
         with memory_lock if memory_lock is not None else nullcontext():
             return {"places": [place.json() for place in directory.places(displayed=displayed)]}
+
+    # trainer-sight-check-v1 (agent side) posts navigate_to's planned route here before it walks; it
+    # changes nothing the model sees and is called only with that switch on.
+    @app.post("/pokebench/trainer-sight")
+    def trainer_sight(body: TrainerSightRequest) -> dict[str, object]:
+        with memory_lock if memory_lock is not None else nullcontext():
+            return sight_report(read_memory, body.map_id, body.tiles)
 
     if battle_wait is not None:
         wait = battle_wait

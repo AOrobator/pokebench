@@ -138,6 +138,8 @@ export const DIALOGUE_BUTTON_B_SECTION = "Dialogue button: B is the button for a
 // trainer-heal-guidance-v1: trainer and rival battles cannot be fled; a blackout's cost; heal first. Game rules, no destinations.
 export const TRAINER_HEAL_SECTION = "Trainer battles and your rival: a battle against a trainer, including your rival, cannot be run from. If every Pokémon in your party faints, you black out: you lose half your money and wake up back at the last POKéMON CENTER you entered, or at home, far from where you were. Your rival usually battles you when you talk to them. Before you talk to a trainer or your rival, check your party HP in the readout, and if your Pokémon is below half its maximum HP, heal first: talking to the nurse at a POKéMON CENTER heals your whole party, and so does talking to MOM at home; a POTION or an ORAN BERRY from your BAG restores some HP.";
 
+// trainer-sight-check-v1: trainer_see.c CheckTrainer, in the player's terms; names no trainer, place or route.
+export const TRAINER_SIGHT_SECTION = "Trainer sight: a trainer you have not beaten battles you as soon as you step into its line of sight. Before navigate_to walks, it checks the route against every such trainer on this map; when one can see a tile of the route, it does not walk and says which trainer can see which tile. To walk that route anyway, call navigate_to again with confirm_trainer_sight: true.";
 // cited-destination-v1: navigate_to's required because, in one rule.
 export const CITED_DESTINATION_SECTION = "navigate_to's because: quote, word for word, the line the game showed you that makes the destination the place to go. When nothing the game has shown you has those words, the result says so; the walk still runs.";
 
@@ -219,6 +221,7 @@ export function playSystemPrompt(features: FeatureSet, target: string | null, sc
   if (features["objective-tracking-v1"]) prompt += `\n\n${objectivePrompt(objectiveSwitches(features))}`;
   if (show("overworld") && features["cited-destination-v1"] && features["bounded-navigation-v1"]) prompt += `\n\n${CITED_DESTINATION_SECTION}`;
   if (show("overworld", "menu") && features["dialog-button-b-v1"]) prompt += `\n\n${DIALOGUE_BUTTON_B_SECTION}`;
+  if (show("overworld") && features["trainer-sight-check-v1"] && features["bounded-navigation-v1"]) prompt += `\n\n${TRAINER_SIGHT_SECTION}`;
   // harness-trust-v1: last, so the trust order is the final thing the system prompt says.
   if (features["harness-trust-v1"]) prompt += `\n\n${trustSection(features["game-evidence-priority-v1"], true)}`;
   return prompt;

@@ -37,6 +37,7 @@ import {VisitedTerrain,withVisitedTerrain} from "./visited-terrain.js";
 
 import {observedInstructions} from "./observed-instructions.js";
 import {withUnfinishedActivity,type ActivityRecorder} from "./unfinished-activity.js";
+import type {TrainerSightCheck,TrainerSightPorts} from "./trainer-sight.js";
 
 type Transform=(messages:AgentMessage[])=>Promise<AgentMessage[]>;
 type WiringRecorder=Pick<RunRecorder,"subscribe"|"recordNavigationContext"|"recordLedgerContext"|"recordMilestoneHint"|"recordBeliefLedger"|"recordLoopBreaker">;
@@ -121,10 +122,20 @@ export function stallStop(features:FeatureSet,recorder:Pick<RunRecorder,"subscri
 // its line sits right under the Press result or Navigation line, before any other wrapper adds text.
 // cited-destination-v1 wraps all of that, so its line sits right under harness-trust-v1's header, which is outermost and
 // therefore the first thing in every result.
-export function playGameTools(base:readonly AgentTool[],features:FeatureSet,state:StateSource,recorder:AutoAdvanceRecorder&WarningRecorder&IdCardRecorder&TrustRecorder&Pick<CitationRecorder,"destinationCitation">&Pick<ActivityRecorder,"unfinishedActivity">,gate?:NavigationPorts["gate"],extra:readonly AgentTool[]=[]):AgentTool[]{
+// trainer-sight-check-v1 asks the game server through the same state source (POST /pokebench/trainer-sight) and records
+// each check as a trainer_sight_check event.
+export interface SightRecorder {trainerSightCheck?(check:TrainerSightCheck):void}
+function trainerSight(state:StateSource,recorder:SightRecorder):TrainerSightPorts {
+ return {
+  check:(mapId,tiles,signal)=>state.trainerSight===undefined?Promise.reject(new Error("trainer-sight-check-v1 needs a game server that serves /pokebench/trainer-sight")):state.trainerSight(mapId,tiles,signal),
+  record:check=>{if(recorder.trainerSightCheck===undefined)throw new Error("trainer-sight-check-v1 needs a recorder for trainer_sight_check events");recorder.trainerSightCheck(check);},
+ };
+}
+export function playGameTools(base:readonly AgentTool[],features:FeatureSet,state:StateSource,recorder:AutoAdvanceRecorder&WarningRecorder&IdCardRecorder&TrustRecorder&Pick<CitationRecorder,"destinationCitation">&Pick<ActivityRecorder,"unfinishedActivity">&SightRecorder,gate?:NavigationPorts["gate"],extra:readonly AgentTool[]=[]):AgentTool[]{
  const terrain=features["visited-terrain-navigation-v1"]&&!features["full-map-navigation-v1"]?new VisitedTerrain():null;
  const navigationState=terrain?.source(state)??state;
- const navigated=withSemanticNavigation(withNavigation(base,features,navigationState,gate),features,navigationState);
+ const sight=features["trainer-sight-check-v1"]?trainerSight(state,recorder):undefined;
+ const navigated=withSemanticNavigation(withNavigation(base,features,navigationState,gate,sight),features,navigationState);
  const facts=[...withResultFacts(withUnfinishedActivity(withLowHpTrainerWarning(withNavigateFirst([...withInstructionLedgerV2(withStoryDestinations(withPeopleIdCards(withUntakenExits(withPeopleLedger(withDialogueAutoAdvance(withBattleAction(withNoExitHere(navigated,features),features,state,gate),features,{state,recorder,...(gate===undefined?{}:{gate})}),features,recorder),features,recorder),features,recorder),features,recorder,state),features,recorder),...extra],features),features,recorder,state),features,recorder,state),features,recorder)];
  const visible=terrain===null?facts:withVisitedTerrain(facts,terrain);
  const cited=withCitedDestination(visible,features["cited-destination-v1"],recorder,{fullMap:features["full-map-navigation-v1"],exitReach:features["exit-reachability-v1"],silenceMiss:features["input-cuts-v1"]});

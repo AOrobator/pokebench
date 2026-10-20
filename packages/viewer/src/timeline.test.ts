@@ -174,3 +174,11 @@ it("leaves heal-before-trainers warnings off the timeline (closed to new marks, 
  expect(lanesSvg(view(log),BASE_MS+2000)).toBe(lanesSvg(view(without),BASE_MS+2000));
  expect(view(log).errors).toEqual([]);
 });
+
+it("leaves trainer sight checks off the timeline (closed to new marks, operator decision 2026-10-16)",()=>{
+ const log=new Log();log.add(0,START);
+ log.add(1000,{type:"trainer_sight_check",turn:2,tool_call_id:"n",map_id:[11,3],origin:{x:5,y:15},goal:{x:5,y:2},route_tiles:23,confirmed:false,outcome:"refused",reason:null,sightings:[],text:"Trainer sight: ..."});
+ const without=new Log();without.add(0,START);
+ expect(lanesSvg(view(log),BASE_MS+2000)).toBe(lanesSvg(view(without),BASE_MS+2000));
+ expect(view(log).errors).toEqual([]);
+});

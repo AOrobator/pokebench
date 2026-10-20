@@ -1,3 +1,4 @@
+import type { TrainerSightCheck } from "./trainer-sight.js";
 import type {PromptReceipt} from "./jit-context.js";
 import type { IdCard } from "./people-id-cards.js";
 import type { HealBeforeTrainersFacts, LowHpTrainerWarningFacts, StoryBattleWarningFacts } from "./low-hp-trainer-warning.js";
@@ -508,6 +509,10 @@ export class RunRecorder {
   // unfinished-activity-v1: an open item opened, updated or retired, recorded at the next game result.
   unfinishedActivity(body: Omit<BodyOf<"unfinished_activity">, "type" | "turn">): void {
     this.append({ type: "unfinished_activity", turn: this.turn, ...body, map_id: [body.map_id[0], body.map_id[1]] });
+  }
+  // trainer-sight-check-v1: one per checked navigate_to call, before it walks or refuses.
+  trainerSightCheck(check: TrainerSightCheck): void {
+    this.append({ type: "trainer_sight_check", turn: this.turn, ...check, map_id: [check.map_id[0], check.map_id[1]], origin: { ...check.origin }, goal: { ...check.goal }, sightings: check.sightings.map((s) => ({ ...s, tile: { ...s.tile }, from: { ...s.from } })) });
   }
   // story-character-stall-gate-v1: recorded once for each stall briefing it holds back.
   recordStallGate(body: Omit<BodyOf<"stall_gate">, "type" | "turn">): void {

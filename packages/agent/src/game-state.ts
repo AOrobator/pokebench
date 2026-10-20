@@ -1,6 +1,7 @@
 import type { Static } from "typebox";
 import { Value } from "typebox/value";
 import { BattleJournalSchema, BattleTextJournalSchema, BattleWaitSchema, NativeActionJournalSchema, StateBodySchema } from "./events.js";
+import { parseTrainerSight, type TrainerSightReply } from "./trainer-sight.js";
 
 export class GameStateError extends Error {
   override readonly name = "GameStateError";
@@ -16,6 +17,8 @@ export interface StateSource {
   battleWait?(signal?:AbortSignal):Promise<Static<typeof BattleWaitSchema>>;
   // story-destinations-v1: the game's map table (GET /pokebench/places), validated by its reader.
   places?(signal?:AbortSignal):Promise<unknown>;
+  // trainer-sight-check-v1: which planned route tiles an unbeaten trainer can see (POST /pokebench/trainer-sight).
+  trainerSight?(mapId:readonly [number,number],tiles:readonly {readonly x:number;readonly y:number}[],signal?:AbortSignal):Promise<TrainerSightReply>;
 }
 
 export function parseGameState(body: unknown): GameStateSnapshot {
@@ -71,6 +74,12 @@ export class StateWatcher implements StateSource {
     const response=await this.fetchFn(`${this.gameServerUrl}/pokebench/places`,{signal:signal===undefined?AbortSignal.timeout(15_000):AbortSignal.any([signal,AbortSignal.timeout(15_000)])});
     if(!response.ok)throw new GameStateError(`Map table returned HTTP ${String(response.status)}`);
     return response.json() as Promise<unknown>;
+  }
+
+  async trainerSight(mapId:readonly [number,number],tiles:readonly {readonly x:number;readonly y:number}[],signal?:AbortSignal):Promise<TrainerSightReply> {
+    const response=await this.fetchFn(`${this.gameServerUrl}/pokebench/trainer-sight`,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({map_id:[mapId[0],mapId[1]],tiles:tiles.map(t=>[t.x,t.y])}),signal:signal===undefined?AbortSignal.timeout(15_000):AbortSignal.any([signal,AbortSignal.timeout(15_000)])});
+    if(!response.ok)throw new GameStateError(`Trainer sight returned HTTP ${String(response.status)}`);
+    return parseTrainerSight(await response.json());
   }
 
   async read(signal?:AbortSignal): Promise<GameStateSnapshot> {

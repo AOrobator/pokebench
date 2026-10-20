@@ -558,17 +558,19 @@ it("serves validated comparisons for the selected start, excluding self", async 
   writeRun(runsRoot, "reference", frontier);
   const reply = await get(viewer, "/api/runs/selected/comparisons");
   expect(reply.status).toBe(200);
-  const result = JSON.parse(reply.body.toString()) as { candidates: {run:string}[]; frontier:{run:string; milestones:{name:string; offsetMs:number}[]}; baseline:unknown };
+  const result = JSON.parse(reply.body.toString()) as { candidates: {run:string}[]; baseline:unknown };
   expect(result.candidates.map((c) => c.run)).toEqual(["reference"]);
-  // The splits race the frontier graph's agent frontier, never the selected run itself.
-  expect(result.frontier.run).toBe("reference");
-  expect(result.frontier.milestones).toContainEqual({ name: "PLAYER_NAME_CONFIRMED", offsetMs: 4000 });
   expect(result.baseline).toBeNull(); // equal start timestamp, no previous run
-  expect(JSON.parse((await get(viewer, "/api/runs/reference/comparisons")).body.toString())).toMatchObject({ frontier: null });
+  expect(result).not.toHaveProperty("frontier");
+  // The splits race the frontier graph's agent frontier, never the selected run itself; it has its own cheap route.
+  const frontierOf = async (v: Viewer, id: string): Promise<unknown> => JSON.parse((await get(v, `/api/runs/${id}/frontier`)).body.toString());
+  expect(await frontierOf(viewer, "selected")).toEqual({ frontier: { run: "reference", milestones: [{ name: "PLAYER_NAME_CONFIRMED", offsetMs: 4000 }] } });
+  expect(await frontierOf(viewer, "reference")).toEqual({ frontier: null });
+  expect((await get(viewer, "/api/runs/..%2Fsecrets/frontier")).status).toBe(404);
   // A cold partial workbench still loading its runs must not hide the frontier from a run picked meanwhile.
   const partial = await startViewer({ runsRoot, staticDir: runsRoot, appDir: runsRoot, port: 0, workbench: { partial: true } });
   open.push(partial);
-  expect(JSON.parse((await get(partial, "/api/runs/selected/comparisons")).body.toString())).toMatchObject({ frontier: { run: "reference" } });
+  expect(await frontierOf(partial, "selected")).toMatchObject({ frontier: { run: "reference" } });
 });
 
 it("serves read-only workbench data from actual recorded runs, without prompts or arbitrary paths", async () => {

@@ -53,7 +53,11 @@ No new subprocesses, network or file paths. Model text is only compared, never e
 - [x] GREEN: `fixed-point-breaker.ts`, `stall-gate.ts`, gate in `StallBriefing` and `SupervisorBriefing`, `loop_breaker` and `stall_gate` events (recorder, probe replay, viewer Activity History, tail), registry, presets, next-run defaults, `TEXT_ONLY_REMINDER` constant moved to harness.ts. Agent 2722, viewer 1356 tests pass; lint clean.
 - [ ] Gates
 **M3 — explainers, pending experiments, readiness rows**
-**M4 — probes** (GPU only with the coordinator's OK): gate at f28d turn 452; breaker on planted repetition
+- [x] `docs/explainers/fixed-point-breaker-v1.html`, `docs/explainers/story-character-stall-gate-v1.html` (pages-check clean), README rows, `FEATURE_EXPLAINERS` entries plus `loop-breaker-explainers.test.ts`; pending `experiments/fixed-point-breaker-v1.json` and `experiments/story-character-stall-gate-v1.json` (not queued); readiness rows. Auto-talk stops when a battle starts mid-walk (test added). Agent 2730, viewer 1358 pass; lint clean.
+**M4 — probes** (GPU queue thread, 16 per side, runs/decision-probes/2026-10-20_pre-cook/)
+- Breaker T2301: off 16/16 repeat with identical thinking; on 14/16 do something else, none copy the thinking (p<0.001).
+- Breaker T2862 (no tool call): 16/16 text only in both arms. The samples are one reply's thinking looping to the output cap, so no note can fix it. Asked for T2862 with fresh-retry-v1 and with presence-penalty-v1.
+- Gate T451: 10/16 leave south off vs 4/16 on (p=0.07); none go to MAY (unreachable inside the 15x15 window). T453: no change.
 **M5 — stage 3 auto-talk** (the operator OK 11:04 and 11:16 AM ET; signs last per run evidence, runs/reviews/2026-10-20-loop-breaker/sign-evidence.md)
 - [x] RED: `auto-talk.test.ts` (7): off is the base transform; 8th identical turn walks next to MAY, faces, presses A, message last with screenshot; once per loop and retained until a newer game result; ranking story > person > sign, no item balls or unbeaten trainers; next side and next person when a walk goes nowhere; not_free in battle; 3 silent replies; gate learns from auto_talk.
   - COMMIT: `test: fixed-point breaker stage 3 auto-talk (RED)` (00b5d70b); fails to load without auto-talk.ts.

@@ -140,3 +140,5 @@ The original ignored runs/explainers copies remain for existing links. Make futu
 - [Starter decision salience](starter-decision-salience-v1.html) — default-OFF neutral reminder at the ready starter menu.
 - [Context token budget](context-token-budget-v1.html) — default-OFF backstop that drops the oldest whole turns when a request would not fit the served context.
 - [Original-speed deadline pacing](original-speed-pacing-v1.html): default-OFF 80 FPS game-clock policy, conditional 4× selector, and separate publication/display boundaries.
+- [Fixed-point breaker](fixed-point-breaker-v1.html) — bundle-only guard: collapses identical repeated turns, sends a positive note with the count, then once per loop talks to the nearest untalked person.
+- [Story-character stall gate](story-character-stall-gate-v1.html) — bundle-only guard: no stall or ways-off briefing while an untalked story character is on the map.

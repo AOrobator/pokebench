@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Story-character stall gate</title>
+<style>
+:root{--bg:#fbfaf7;--fg:#1d1d1b;--muted:#5d5b55;--line:#d9d5cc;--panel:#ffffff;--keep:#2f7d4f;--drop:#b4442f;--accent:#2d5f9a;--fill:#eef3f8}
+@media (prefers-color-scheme: dark){:root{--bg:#161614;--fg:#ecebe6;--muted:#a8a59c;--line:#3a3833;--panel:#1f1e1b;--keep:#6cc08f;--drop:#e98a74;--accent:#86b3e6;--fill:#22303f}}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif}
+main{max-width:860px;margin:0 auto;padding:24px 16px 48px}
+h1{font-size:1.6rem;margin:0 0 4px}h2{font-size:1.15rem;margin:32px 0 8px}
+p,li{color:var(--fg)}.muted{color:var(--muted)}
+figure{margin:16px 0;padding:12px;background:var(--panel);border:1px solid var(--line);border-radius:8px;overflow-x:auto}
+figcaption{color:var(--muted);font-size:.9rem;margin-top:8px}
+code{font:13px ui-monospace,SFMono-Regular,Menlo,monospace}
+table{border-collapse:collapse;width:100%;font-size:.95rem}td,th{border-bottom:1px solid var(--line);padding:6px 8px;text-align:left}
+svg text{fill:var(--fg);font:13px -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif}
+.note{border-left:3px solid var(--accent);padding:6px 10px;background:var(--fill);font:13px ui-monospace,SFMono-Regular,Menlo,monospace;white-space:pre-wrap;word-break:break-word}
+.off{border-left-color:var(--drop)}.on{border-left-color:var(--keep)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}@media (max-width:640px){.grid2{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<main>
+<h1>Story-character stall gate</h1>
+<p class="muted"><code>story-character-stall-gate-v1</code> · guard · bundle arm only · default off · needs <code>stall-briefing-v1</code></p>
+<p>The loop guard should do no harm. In the 6h-v2 bundle (<code>…gpu1_f28d</code>) the player was on Route 103 with MAY at (10,3), the next story step. At turn 450 a loop-guard note listed the way south, and at 452 a 5-minute stall briefing fired. At turn 455 the model wrote "I am looping on ROUTE103 and need to leave" and walked away. The rival battle came 299 minutes later.</p>
+
+<h2>Route 103, turns 414–455</h2>
+<figure>
+<svg viewBox="0 0 480 320" width="100%" style="max-width:560px" role="img" aria-label="Route 103 positions">
+<rect x="20" y="20" width="440" height="280" fill="var(--panel)" stroke="var(--line)"/>
+<line x1="20" y1="120" x2="300" y2="120" stroke="var(--muted)" stroke-width="3" stroke-dasharray="8 4"/><text x="28" y="114">one-way ledges (rows 5–6)</text>
+<rect x="200" y="50" width="16" height="16" fill="var(--drop)"/><text x="222" y="63">MAY (10,3)</text>
+<circle cx="296" cy="174" r="6" fill="var(--accent)"/><text x="306" y="178">414 (14,10)</text>
+<circle cx="188" cy="138" r="6" fill="var(--accent)"/><text x="80" y="152">443 (9,6)</text>
+<circle cx="436" cy="214" r="6" fill="var(--accent)"/><text x="340" y="232">450 (21,12)</text>
+<path d="M200 230 L200 296" stroke="var(--drop)" stroke-width="3" marker-end="url(#d)"/><text x="210" y="280" fill="var(--drop)">455: walks south to Oldale</text>
+<defs><marker id="d" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10z" fill="var(--drop)"/></marker></defs>
+</svg>
+<figcaption>Positions from the recorded results (sketch, not to scale). navigate_to refused (10,4) four times: no route inside the 15×15 window it plans over, because the ledges cut the upper area off.</figcaption>
+</figure>
+
+<h2>The turn 450 note, off and on</h2>
+<div class="grid2">
+<p class="note off">- Untried targets already shown here (up to 3; not a route recommendation): BOY_1 at 19,11 (A); Sign text "ROUTE 103 | ↓ OLDALE TOWN" at 11,9 (A)
+- Ways off this map across its edge (the game's map connections): SOUTH -&gt; OLDALE TOWN (map 0/10): stand on any tile from (8,21) to (11,21) and press DOWN</p>
+<p class="note on">- Untried targets already shown here (up to 3; not a route recommendation): BOY_1 at 19,11 (A); Sign text "ROUTE 103 | ↓ OLDALE TOWN" at 11,9 (A)
+- Story characters on this map you have not talked to since your last story milestone: MAY at 10,3 (out of view; where the map places this character, it may have moved)</p>
+</div>
+<p class="muted">Both are the real note rebuilt from the recorded events (test <code>stall-gate.test.ts</code>). The GPU queue's probe at turn 451 (8 samples a side): as recorded 4 of 8 left the route; with the note removed 0 of 8; with only the ways-off line removed 1 of 8.</p>
+
+<h2>The rule</h2>
+<table>
+<tr><th>While this holds</th><th>What changes</th></tr>
+<tr><td>A story character the readout's own <em>Story characters</em> line places on this map has not been talked to since the latest story milestone</td><td rowspan="2">A due map back-and-forth or milestone-drought briefing waits (recorded once as <code>stall_gate</code>). Supervisor notes leave out the ways off the map (edge line, exits to maps not entered, untried targets on other maps) and list the untalked characters.</td></tr>
+<tr><td>The player's latest step on this map went toward a story character the line places on a tile</td></tr>
+<tr><td>Always, when the switch is on</td><td>A navigate_to counts its target as tried only when the walk ended on it or next to it, so a refused or partial walk toward MAY leaves her untried.</td></tr>
+</table>
+<p>Talked to means the people ledger's rule (the first page of an auto-advanced conversation came from facing that character after an A press, or from the faced sprite), a page spoken under the character's name, or a stage-3 auto-talk of the fixed-point breaker. A result without the line (a battle) keeps the last one; leaving the map ends it. Interface-dwell briefings are unchanged, and the briefing goes out at the next check once neither condition holds.</p>
+
+<h2>Off</h2>
+<p>Stall briefings go out as soon as they are due, supervisor notes list the ways off the map, and a navigate_to tries its target tile whatever it reached.</p>
+
+<h2>Status</h2>
+<p>Branch <code>claude/loop-breaker</code>. Tests on real f28d events (turns 383–455) plus unit cases; wiring deletions go red. Decision probes at turns 451 and 453 (16 samples a side) go through the GPU queue. Not yet reviewed or measured.</p>
+</main>
+</body>
+</html>

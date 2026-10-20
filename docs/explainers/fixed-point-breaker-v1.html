@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fixed-point breaker</title>
+<style>
+:root{--bg:#fbfaf7;--fg:#1d1d1b;--muted:#5d5b55;--line:#d9d5cc;--panel:#ffffff;--keep:#2f7d4f;--drop:#b4442f;--accent:#2d5f9a;--fill:#eef3f8}
+@media (prefers-color-scheme: dark){:root{--bg:#161614;--fg:#ecebe6;--muted:#a8a59c;--line:#3a3833;--panel:#1f1e1b;--keep:#6cc08f;--drop:#e98a74;--accent:#86b3e6;--fill:#22303f}}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif}
+main{max-width:860px;margin:0 auto;padding:24px 16px 48px}
+h1{font-size:1.6rem;margin:0 0 4px}h2{font-size:1.15rem;margin:32px 0 8px}
+p,li{color:var(--fg)}.muted{color:var(--muted)}
+figure{margin:16px 0;padding:12px;background:var(--panel);border:1px solid var(--line);border-radius:8px;overflow-x:auto}
+figcaption{color:var(--muted);font-size:.9rem;margin-top:8px}
+code{font:13px ui-monospace,SFMono-Regular,Menlo,monospace}
+table{border-collapse:collapse;width:100%;font-size:.95rem}td,th{border-bottom:1px solid var(--line);padding:6px 8px;text-align:left}
+svg text{fill:var(--fg);font:13px -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif}
+.note{border-left:3px solid var(--accent);padding:6px 10px;background:var(--fill);font:13px ui-monospace,SFMono-Regular,Menlo,monospace;white-space:pre-wrap;word-break:break-word}
+.off{border-left-color:var(--drop)}.on{border-left-color:var(--keep)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}@media (max-width:640px){.grid2{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<main>
+<h1>Fixed-point breaker</h1>
+<p class="muted"><code>fixed-point-breaker-v1</code> · guard · bundle arm only · default off</p>
+<p>A fixed point is a turn the model keeps repeating: the same call, and the game state the same afterwards. In the 6h-v2 bundle (<code>2026-10-20T03-02-13_qwen36-gpu1_f28d</code>) it called <code>navigate_to (10,5)</code> while standing on (10,5) for 400 turns, with the same 1,151 characters of thinking each time, and later sent runs of replies with no tool call. The loop guard sent 67 notes; none broke it. The switch acts in three stages, all from recorded events, with no sleeps.</p>
+
+<h2>When each stage acts</h2>
+<figure>
+<svg viewBox="0 0 800 150" width="100%" role="img" aria-label="Stages by repeat count">
+<line x1="40" y1="60" x2="780" y2="60" stroke="var(--line)" stroke-width="2"/>
+<g font-size="12">
+<circle cx="80" cy="60" r="6" fill="var(--muted)"/><text x="62" y="86">turn 1</text>
+<circle cx="170" cy="60" r="6" fill="var(--muted)"/><text x="152" y="86">2</text>
+<circle cx="260" cy="60" r="8" fill="var(--accent)"/><text x="230" y="86">3: stage 1</text>
+<circle cx="350" cy="60" r="8" fill="var(--keep)"/><text x="320" y="86">4: stage 2</text>
+<circle cx="440" cy="60" r="6" fill="var(--keep)"/><text x="432" y="86">5</text>
+<circle cx="530" cy="60" r="6" fill="var(--keep)"/><text x="522" y="86">6</text>
+<circle cx="620" cy="60" r="6" fill="var(--keep)"/><text x="612" y="86">7</text>
+<circle cx="710" cy="60" r="9" fill="var(--drop)"/><text x="680" y="86">8: stage 3</text>
+</g>
+<text x="40" y="24">Same tool calls (names and arguments) and the same game state after each, turn after turn</text>
+<text x="40" y="124">A reply with no tool call: stage 2 at once, stage 3 after 3 in a row. Stage 3 acts once per loop.</text>
+</svg>
+<figcaption>Thresholds from <code>FIXED_POINT_TURNS = 3</code>, <code>FIXED_POINT_NOTE_TURNS = 4</code>, <code>AUTO_TALK_TURNS = 8</code> and <code>AUTO_TALK_REPLIES = 3</code>. A different call, or the same call reaching a new state, starts the count again.</figcaption>
+</figure>
+
+<h2>Stage 1: duplicate turns collapse to the newest copy</h2>
+<figure>
+<svg viewBox="0 0 800 170" width="100%" role="img" aria-label="Request before and after collapse">
+<text x="0" y="16">Off: every copy is in the request</text>
+<rect x="0" y="26" width="60" height="30" fill="var(--fill)" stroke="var(--line)"/><text x="12" y="46">task</text>
+<rect x="66" y="26" width="90" height="30" fill="var(--fill)" stroke="var(--line)"/><text x="72" y="46">walk north</text>
+<g fill="var(--fill)" stroke="var(--drop)"><rect x="162" y="26" width="110" height="30"/><rect x="278" y="26" width="110" height="30"/><rect x="394" y="26" width="110" height="30"/><rect x="510" y="26" width="110" height="30"/></g>
+<text x="170" y="46">nav (10,5) ×1</text><text x="286" y="46">nav (10,5) ×2</text><text x="402" y="46">nav (10,5) ×3</text><text x="518" y="46">nav (10,5) ×4</text>
+<text x="0" y="104">On: one copy, the newest, byte for byte; then the note</text>
+<rect x="0" y="114" width="60" height="30" fill="var(--fill)" stroke="var(--keep)"/><text x="12" y="134">task</text>
+<rect x="66" y="114" width="90" height="30" fill="var(--fill)" stroke="var(--keep)"/><text x="72" y="134">walk north</text>
+<rect x="162" y="114" width="110" height="30" fill="var(--fill)" stroke="var(--keep)"/><text x="170" y="134">nav (10,5) ×4</text>
+<rect x="278" y="114" width="330" height="30" fill="none" stroke="var(--keep)" stroke-dasharray="4 3"/><text x="286" y="134">SUPERVISOR: Make one tool call based on …</text>
+</svg>
+<figcaption>Only runs of 3 or more turns that match exactly (thinking, text, tool calls and the state every result left) collapse. Two copies, or copies that differ by one character or one tile, all stay. Thinking is never dropped in general and nothing inside a kept message changes. Identical replies with no tool call collapse with their nudges; a supervisor note between them stays.</figcaption>
+</figure>
+
+<h2>Stage 2: a short, positive note with the count</h2>
+<p class="note on">SUPERVISOR: Make one tool call based on the game state and what you observed. Your last 4 turns made the same navigate_to call and the game state stayed the same after each one.</p>
+<p class="note on">SUPERVISOR: Make one tool call based on the game state and what you observed. Your last 3 replies called no tool.</p>
+<p>The first goes at the very end of the request. The second replaces the generic nudge after the reply ("Keep playing: call observe or press…"), also when <code>fresh-retry-v1</code> leaves that reply out. The count changes every turn, so the prompt is never the same twice.</p>
+
+<h2>Stage 3: walk to the nearest untalked person and press A</h2>
+<figure>
+<svg viewBox="0 0 420 300" width="100%" style="max-width:520px" role="img" aria-label="Auto-talk on Route 103">
+<g stroke="var(--line)">
+<rect x="20" y="20" width="380" height="260" fill="var(--panel)"/>
+</g>
+<rect x="180" y="40" width="20" height="20" fill="var(--drop)"/><text x="206" y="55">MAY (10,3)</text>
+<rect x="180" y="60" width="20" height="20" fill="none" stroke="var(--keep)" stroke-width="2"/><text x="206" y="75">stand here, face UP, press A</text>
+<rect x="260" y="160" width="20" height="20" fill="var(--accent)"/><text x="286" y="175">BOY_1 (second)</text>
+<rect x="140" y="200" width="20" height="20" fill="var(--muted)"/><text x="40" y="236">sign (last; read from below)</text>
+<circle cx="290" cy="130" r="9" fill="var(--fg)"/><text x="304" y="134">player</text>
+<path d="M290 130 L190 130 L190 80" fill="none" stroke="var(--keep)" stroke-width="3" marker-end="url(#a)"/>
+<defs><marker id="a" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10z" fill="var(--keep)"/></marker></defs>
+</svg>
+<figcaption>Illustrative layout. The harness calls the model's own <code>navigate_to</code> (at most 6 walks per side, trying the nearest free side first), turns to face the target, and presses A. A wild battle or script mid-walk stops it.</figcaption>
+</figure>
+<table>
+<tr><th>Rank</th><th>Who</th><th>Evidence (99 recorded runs, first talk, story milestone within 30 turns vs nearby turns)</th></tr>
+<tr><td>1</td><td>Story characters the readout's own Story characters line places on this map, not talked to since the latest story milestone</td><td>+21.3 points [+18.5, +24.1]; when stuck +16.7 [+9.8, +24.1]</td></tr>
+<tr><td>2</td><td>Other people not talked to (never item balls, never a trainer the game lists as unbeaten)</td><td>−1.4 [−3.4, +0.7]; when stuck +2.1 [−0.5, +5.0]</td></tr>
+<tr><td>3</td><td>Signs</td><td>−18.6 [−26.7, −10.6]; the readout already prints the whole sign text</td></tr>
+</table>
+<p>The model then gets one message, kept in the request until a newer game result arrives:</p>
+<p class="note on">SUPERVISOR: Your last 8 turns made the same call and the game state stayed the same, so the harness walked you to MAY at (10,3) and pressed A. It has not chosen where to go next; this is what they said.
+
+pressed A
+Dialogue shown during this call (… pages, in order, whole): …</p>
+<p>The A press's whole result and screenshot follow, unclipped. It never runs in a battle, menu or dialogue, or with controls locked, and it never chooses a destination, exit or map.</p>
+
+<h2>What gets recorded</h2>
+<table>
+<tr><th>Event</th><th>When</th><th>Where it shows</th></tr>
+<tr><td><code>loop_breaker</code> stage 1</td><td>new turns collapsed (count, run length)</td><td>Activity History, raw inspector</td></tr>
+<tr><td><code>loop_breaker</code> stage 2</td><td>each note delivered, with its text</td><td>Activity History, raw inspector</td></tr>
+<tr><td><code>auto_talk</code></td><td>each stage 3 attempt: talked, unreachable, none or not_free, the target, walks and text</td><td>Activity History, raw inspector</td></tr>
+</table>
+<p class="muted">No timeline marks (operator decision 2026-10-16). The decision probe rebuilds stages 1 and 2 from the recorded stream; stage 3 acts on the game, so probes cannot sample it.</p>
+
+<h2>Off</h2>
+<p>Every turn stays in the request, the nudge and notes are unchanged, and the harness never walks or presses on its own.</p>
+
+<h2>Status</h2>
+<p>Branch <code>claude/loop-breaker</code>. Tests: <code>fixed-point-breaker.test.ts</code>, <code>auto-talk.test.ts</code>; wiring deletions go red. Decision probes at f28d turns 2301 and 2862 (16 samples a side) go through the GPU queue. Not yet reviewed or measured.</p>
+</main>
+</body>
+</html>

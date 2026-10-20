@@ -111,6 +111,8 @@ export class AutoTalk {
    this.tried.add(target.key??`${target.map_id.join("/")}@${String(target.x)},${String(target.y)}`);
    const reached=await this.approach(target,navigate,s,signal,()=>{walks++;});
    s=reached.state;
+   // A wild battle or a script took the field mid-walk: stop here, the game has something new to show.
+   if(!free(s)){record("not_free",target,walks,tried,null);return null;}
    if(reached.facing===null)continue;
    const turn=s.facing?.toUpperCase()===reached.facing?[]:[reached.facing];
    if(turn.length>0)await press.execute(this.id("turn"),{buttons:turn},signal);

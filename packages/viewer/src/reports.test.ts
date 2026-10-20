@@ -46,15 +46,28 @@ describe("the run-analysis report list", () => {
 });
 
 describe("files inside one report", () => {
+  it("serves the evidence files reports link to: tables as CSV, scripts as plain text so they show and never run", () => {
+    const runs = root(), d = report(runs, "2026-10-19_census", "<title>x</title>");
+    mkdirSync(join(d, "scratch")); writeFileSync(join(d, "starter-census.csv"), "a,b"); writeFileSync(join(d, "scratch", "population.mjs"), "x"); writeFileSync(join(d, "analyze.py"), "x"); writeFileSync(join(d, "render.js"), "x");
+    expect(reportFile(runs, "2026-10-19_census", ["starter-census.csv"])?.type).toBe("text/csv; charset=utf-8");
+    for (const parts of [["scratch", "population.mjs"], ["analyze.py"], ["render.js"]]) expect(reportFile(runs, "2026-10-19_census", parts)?.type, parts.join("/")).toBe("text/plain; charset=utf-8");
+  });
+  it("refuses a report folder that is itself a link to somewhere else", () => {
+    const runs = root(), elsewhere = mkdtempSync(join(tmpdir(), "escape-"));
+    writeFileSync(join(elsewhere, "index.html"), "<title>x</title>"); writeFileSync(join(elsewhere, "secret.md"), "no");
+    symlinkSync(elsewhere, join(runs, "reports", "run-analysis", "2026-10-01_evil"));
+    expect(reportFile(runs, "2026-10-01_evil", ["secret.md"])).toBeNull(); expect(reportFile(runs, "2026-10-01_evil", ["index.html"])).toBeNull();
+    expect(listReports(runs).map(r => r.slug)).not.toContain("2026-10-01_evil");
+  });
   it("resolves the report's own pages and assets, and nothing outside it", () => {
     const runs = root(), d = report(runs, "2026-10-17_cook", "<title>x</title>");
-    mkdirSync(join(d, "shots")); writeFileSync(join(d, "shots", "a-1.png"), "png"); writeFileSync(join(d, "notes.md"), "#"); writeFileSync(join(d, "run.py"), "x");
+    mkdirSync(join(d, "shots")); writeFileSync(join(d, "shots", "a-1.png"), "png"); writeFileSync(join(d, "notes.md"), "#"); writeFileSync(join(d, "run.exe"), "x");
     writeFileSync(join(runs, "reports", "run-analysis", "secret.html"), "no");
     symlinkSync(join(runs, "reports", "run-analysis", "secret.html"), join(d, "escape.html"));
     expect(reportFile(runs, "2026-10-17_cook", ["index.html"])).toEqual({ path: join(d, "index.html"), type: "text/html; charset=utf-8" });
     expect(reportFile(runs, "2026-10-17_cook", ["shots", "a-1.png"])?.type).toBe("image/png");
     expect(reportFile(runs, "2026-10-17_cook", [])?.path).toBe(join(d, "index.html"));
-    for (const parts of [["run.py"], ["..", "secret.html"], ["escape.html"], ["missing.html"], [".hidden.html"], ["shots", ""], ["a/b.html"]]) expect(reportFile(runs, "2026-10-17_cook", parts), parts.join("/")).toBeNull();
+    for (const parts of [["run.exe"], ["..", "secret.html"], ["escape.html"], ["missing.html"], [".hidden.html"], ["shots", ""], ["a/b.html"]]) expect(reportFile(runs, "2026-10-17_cook", parts), parts.join("/")).toBeNull();
     for (const slug of ["../runs", "2026-10-17", "x_2026-10-17", "2026-10-17_Cook", "2026-10-17_missing"]) expect(reportFile(runs, slug, ["index.html"]), slug).toBeNull();
   });
 });

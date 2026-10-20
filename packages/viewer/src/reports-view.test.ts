@@ -91,6 +91,12 @@ describe("the reports page", () => {
     expect(scrolled).toBe(true);
     document.documentElement.removeAttribute("data-phone");
   });
+  it("shows the newest report when the address carries a hash it cannot read", async () => {
+    await mount("", "#%");
+    expect(q('[data-rp="detail"]').innerHTML).toContain("Cook runs &lt;analysis&gt;");
+    window.location.hash = "#%E0%A4%A"; window.dispatchEvent(new HashChangeEvent("hashchange"));
+    expect(q('[data-rp="detail"]').innerHTML).toContain("Cook runs &lt;analysis&gt;");
+  });
   it("opens a report inside the page", async () => {
     await mount("?open=2026-10-17_top50", "");
     expect(q('[data-rp="open"]').hidden).toBe(false); expect(q('[data-rp="index"]').hidden).toBe(true);

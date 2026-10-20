@@ -161,6 +161,6 @@ export class AutoTalk {
 }
 
 export function autoTalkContext(features:FeatureSet,state:StateSource,tools:readonly AgentTool[],base:Transform,breaker:FixedPointBreaker|null,recorder:AutoTalkRecorder,signal?:AbortSignal):Transform {
- if(!features["fixed-point-breaker-v1"]||breaker===null)return base;
+ if(!features["fixed-point-breaker-v1"]||!features["auto-talk-v1"]||breaker===null)return base;
  return new AutoTalk(features,state,tools,breaker,recorder).transform(base,signal);
 }

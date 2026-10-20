@@ -12,7 +12,7 @@ auto-talk-v1 (guard), retroactive and default ON (feature-switch rule for landed
 ## Milestones
 **M1**
 - [x] RED: auto-talk.test.ts registry/default/both-switches cases, viewer default and explainer link, preset expectations, registry +1 shifts.
-- [ ] GREEN
+- [x] GREEN: registry, presets (default true), next-run, autoTalkContext gate, explainer note and link, pending experiment, readiness row.
 - [ ] Review (Claude + Grok), merge slot, ff-only
 
 ## Session Log

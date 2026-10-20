@@ -19,5 +19,8 @@ This is an exploratory pair. It does not start the pre-registered `bundle-v-cont
 ## Launch
 
 - [x] `just fixed-run check bundle-cook-4h` (seed `c409c7f2d0dadf59`, 1 control on lane A / GPU1, 1 bundle on lane B / GPU0, 14400000 ms)
-- [ ] Approved in this session after the operator said to start the runs
-- [ ] Both lanes running, run_start matches the pin, and the experiment is in the viewer dropdown
+- [x] Approved in this session after the operator said to start the runs
+- [x] Launched 2026-10-19 20:12 ET from main `08287126`. Runner pid 43157.
+  - Control, lane A, GPU1, port 8075: `2026-10-19T20-12-11_qwen36-gpu1_86ac`
+  - Bundle, lane B, GPU0, port 8076: `2026-10-19T20-12-11_qwen36-gpu0_4cd7`
+- [x] Both `run_start` rows: experiment `bundle-cook-4h`, wall cap 14400000 ms, harness `08287126` dirty false, start sha1 `b3a6cc1c19836600a15febf41b8f8b19661ce5d4`. `just experiments-audit` printed nothing. The viewer dropdown lists `Bundle vs control, let it cook (4 hour pair)`.

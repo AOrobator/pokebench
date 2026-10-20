@@ -118,3 +118,30 @@ Codex stopped at its usage limit (~6:10pm NY Oct 19) with M1c GREEN and its revi
 M1c GREEN: request-local discovery reads each root once, records directory identity before and after, and passes the discovered events path into summarization when the roots were stable and the id is unambiguous; otherwise falls back to the original per-id resolution. `/api/runs` computes one build-aware catalog and reuses it for the live filter (candidate set is identical: both catalogs give `problem === null` for the same runs). RED re-run by Claude on the old runs.ts/server.ts: 3 fail / 29 pass in the discovery suite. GREEN: 35/35 in catalog-cache, discovery and forget-cache suites. COMMIT: `perf: discover the run catalog in one request-local scan` (GREEN).
 
 M1c committed as 22360cd1. Merged main f3842160 (39 commits; observed-instructions-v1 and starter-decision-salience-v1 registered meanwhile). Conflicts were append-only registries/docs (ours placed after main's two switches, registry order kept consistent with SWITCHABLE_FEATURES) and `liveRuns`, where main's newest-unended-run port ownership now reads the injected catalog instead of a fresh `listRuns`. Codex's M3 switch had only been checked with focused tests; the full suites exposed 52 agent, 1 viewer and 7 Python positional/OFF-list assertions it shifted, all updated. `test_view`'s fake core gained a NULL native block so its recorded-bus assertions keep testing the bus path under M2. Codex's uncommitted M1c test referenced an undefined `path` (tsc error), fixed. Gates after merge: agent 2,685, viewer 1,347, Python 2,894 (ROM set) all pass; lint clean. COMMIT: merge main into claude/viewer-frame-budget.
+
+### Before/after measurements (Claude, 2026-10-20, scratch only; receipts in ignored `.cache/frame-budget/`)
+
+Merge commit 61c461d2. No live runs existed (both cook runs had ended); the 8790 viewer was not touched.
+
+Viewer (`before-after-pairs/`): frozen main f3842160 viewer dist vs branch dist, same harness as M1b (`replay-catalog.mjs` = Codex replay-m1b-catalog.mjs), warm 372-run catalog, two 80 Hz PNG sources × two clients, polling, three alternating 15 s pairs, fresh processes with forced GC.
+
+| arm | delivered FPS | viewer CPU % core | max loop stall | p99 loop | overwrites |
+|---|---|---|---|---|---|
+| main | 72.63 / 72.46 / 73.09 | 27.6 / 28.5 / 28.7 | 290 / 323 / 269 ms | 71–81 ms | 418–456 |
+| branch | 80.06 / 80.06 / 80.06 | 14.5 / 14.1 / 12.7 | 26 / 27 / 22 ms | 13 ms | 0 |
+
+Per-request work (`before-after-diagnostic/`, main-thread fs counters): `/api/runs` 126 ms mean → 9 ms; 3,073 exists / 2,300 opens / 98 MB read → 381 exists / 376 stats / 2 opens / 128 KB. `/api/cards` 597 ms → 22.5 ms; 105,569 exists / 1,117 opens / 47 MB → 944 exists / 377 stats / 1 open / 64 KB. Remaining work is one O(N) stat pass over run directories.
+
+Real game (`realgame-ab/`, `realgame-ab.mjs`): production launcher, PETALBURG_CITY checkpoint, two concurrent scratch servers per arm, two direct /pokebench/frames clients and 4 Hz full observations per server, three rotated 15 s reps. Arms: main f3842160, branch with original-speed-pacing-v1 OFF, branch ON.
+
+| arm | core FPS | delivered FPS (min) | server CPU % core | CPU ms / emulated frame | observations ok/fail |
+|---|---|---|---|---|---|
+| main | 59.68 | 56.75 (55.1) | 40.0 | 6.71 | 426/0 |
+| branch OFF | 59.70 | 59.76 (59.7) | 20.5 | 3.44 | 426/0 |
+| branch ON | 79.97 | 79.30 (76.7) | 24.1 | 3.01 | 426/0 |
+
+OFF keeps the 59.7275 cadence while halving per-frame CPU (M2 bulk reads); ON reaches the operator's 80 target on both lanes in every rep.
+
+M4 isolated (`publication-jitter-r1/`, Codex's real-game-publication-jitter.mjs unchanged, branch viewer dist): fixed deadline80, strict80 vs tolerant80 publication installer only, three alternating reps. Core 79.95–80.04 in all. Delivered: strict80 49.8–66.4 FPS; tolerant80 78.8–79.97 FPS.
+
+Gates on 61c461d2: `just test` (agent 2,685, viewer 1,347, Python 2,894 with ROM), `just lint`, `just build`, `just verify-vendor` and `just coverage` all pass (agent 97.62/93.78/97.86, viewer 95.11/91.11/93.86, Python 96.94/92.45/100 lines/branches/functions; floor 90). COMMIT: `docs: record viewer frame-budget before/after measurements`.

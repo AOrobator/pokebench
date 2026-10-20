@@ -344,7 +344,11 @@ export class SupervisorBriefing {
   if(this.exits!==null)return;
   if((after.interaction_targets??[]).some(t=>t.activation==="step"&&t.x===p.x&&t.y===p.y))this.touch(this.room(after),at(p.x,p.y));
  }
+ // positive-supervisor-v1: the newest field attempt and how many times in a row it gave this same result.
+ private streak:{readonly key:string;readonly label:string;readonly outcome:string;readonly said?:string;count:number}|null=null;
  private remember(key:string,room:string,label:string,outcome:string,said?:string):void {
+  const same=this.streak!==null&&this.streak.key===key&&this.streak.label===label&&this.streak.outcome===outcome&&this.streak.said===said;
+  this.streak=same&&this.streak!==null?{...this.streak,count:this.streak.count+1}:{key,label,outcome,...(said===undefined?{}:{said}),count:1};
   const index=this.tried.findIndex(t=>t.key===key&&t.label===label&&t.outcome===outcome);
   const existing=index>=0?this.tried.splice(index,1)[0]:undefined;
   this.tried.push({key,room,label,count:(existing?.count??0)+1,outcome,...(said===undefined?{}:{said})});
@@ -500,8 +504,8 @@ export class SupervisorBriefing {
   const ui=this.screenNow?.ui;
   const recent=(ui===undefined?this.tried:this.uiTried).slice(-3).reverse().map(t=>`${t.label}${t.count>1?` ×${String(t.count)}`:""} → ${t.outcome}`).join("; ");
   // The newest attempt, when it repeated with the same result: the one thing not to do again, said as what to do.
-  const newest=(ui===undefined?this.tried:this.uiTried).at(-1);
-  const repeated=newest!==undefined&&newest.count>1?newest:undefined;
+  // Only consecutive field attempts with one result; an interface's presses each change what it shows.
+  const repeated=ui===undefined&&this.streak!==null&&this.streak.count>1?this.streak:undefined;
   const untried=ui!==undefined||this.latest===null||!this.features["world-targets-v1"]?[]:this.open(this.latest,false).slice(0,3);
   const again=repeated===undefined?[]:[`- Choose a call other than ${repeated.label}: ${repeated.said===undefined?`it gave the same result (${repeated.outcome})`:`it answered "${repeated.said}"`} ${String(repeated.count)} times in a row.`];
   const lines=[

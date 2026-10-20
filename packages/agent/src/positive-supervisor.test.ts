@@ -101,4 +101,26 @@ describe("positive-supervisor-v1 on run f28d, Route 103 with MAY at (10,3)",()=>
   expect(note).toContain("- Shown here and not tried yet: ");
   for(const name of ["Dynamic warp","Warp to","warp at"])expect(note).not.toContain(name);
  });
+ it("names a repeated attempt only when it repeated in a row with one result",()=>{
+  let state:Extract<RunEvent,{type:"state";started:boolean}>|undefined;
+  for(const e of FIXTURE.events)if(e.type==="state"&&"started"in e&&e.started&&e.screen==="overworld"&&e.position!==null&&!e.in_battle)state=e;
+  if(state===undefined)throw new Error("fixture has no overworld state");
+  const base=state;
+  const b=new SupervisorBriefing({...RUN,[ID]:true});
+  let seq=900100;
+  const stamp=(body:Record<string,unknown>)=>checkEvent({v:1,run:base.run,t:base.t,turn:base.turn,seq:++seq,...body});
+  const press=(button:string)=>{
+   const id=`p${String(seq)}`;
+   b.observe(stamp({type:"tool_call",id,name:"press",args:{buttons:[button]}}));
+   const before=stamp({...base,type:"state"});b.observe(before);
+   b.observe(stamp({type:"button_press",tool_call_id:id,buttons:[button],before_state_seq:before.seq}));
+   const after=stamp({...base,type:"state"});b.observe(after);
+   b.observe(stamp({type:"tool_result",id,name:"press",is_error:false,duration_ms:1,text:"pressed",frames:[],state_seq:after.seq}));
+  };
+  const last=()=>b.text("ineffective",1).split("\n").at(-1)??"";
+  press("A");press("B");press("A");
+  expect(last()).not.toContain("Choose a call other than");
+  press("A");
+  expect(last()).toMatch(/^- Choose a call other than .*: it gave the same result \(no change\) 2 times in a row\.$/);
+ });
 });

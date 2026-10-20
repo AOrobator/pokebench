@@ -400,8 +400,8 @@ select.p, .field input { font: 8px 'Press Start 2P', monospace; padding: 6px 8px
 .wb-frontier-panel { min-width:0; }
 .wb-frontier-head { display:flex; align-items:center; justify-content:space-between; gap:12px 18px; flex-wrap:wrap; }
 .wb-frontier-head h2 { margin:0; }
-.wb-segmented { display:inline-flex; border:3px solid #3a6ea5; border-radius:8px; overflow:hidden; }
-.wb-segmented button { font:8px/1.8 'Press Start 2P', monospace; padding:9px 12px; border:0; background:#fff; color:#3a6ea5; cursor:pointer; }
+.wb-segmented { display:inline-flex; flex-wrap:wrap; max-width:100%; border:3px solid #3a6ea5; border-radius:8px; overflow:hidden; }
+.wb-segmented button { flex:1 0 auto; font:8px/1.8 'Press Start 2P', monospace; padding:9px 12px; border:0; background:#fff; color:#3a6ea5; cursor:pointer; }
 .wb-segmented button[aria-pressed="true"] { background:#3a6ea5; color:#fff; }
 .wb-segmented button:focus-visible { outline:none; box-shadow:inset 0 0 0 2px #283038, inset 0 0 0 5px #ffd447; }
 .wb-overlay-label { display:grid; gap:8px; font-size:12px; color:#345471; }
@@ -928,3 +928,11 @@ b.wb-add, b.wb-rem { white-space:nowrap; }
 .rp-bar a { color: #ffd447; text-decoration: none; } .rp-bar b { flex: 1 1 auto; min-width: 0; } .rp-nav { display: flex; gap: 12px; } .rp-bar .off { color: #5a6b85; }
 .rp-frame { width: 100%; height: 100%; border: 0; background: #fff; }
 :root[data-phone] .rp-split { grid-template-columns: minmax(0, 1fr); } :root[data-phone] .rp-list { order: 2; } :root[data-phone] .rp-detail { position: static; } :root[data-phone] .rp-main { padding: 12px; }
+
+/* Keep the disclosure itself stable while live split content updates. */
+.run-splits > summary { cursor: pointer; font-size: 8px; color: #3a6ea5; line-height: 1.8; }
+.run-splits > summary:focus-visible { outline: 2px solid #3a6ea5; outline-offset: 3px; }
+.run-splits + .split-preview { margin-top: 6px; }
+.run-splits[open] > summary { margin-bottom: 6px; }
+.run-splits[open] + .split-preview { display: none; }
+.mspl span { overflow-wrap: anywhere; min-width: 0; }

@@ -10,6 +10,7 @@ import {pageLine,type DialoguePage} from "./dialogue-auto-advance.js";
 import {PEOPLE_HEADER,facedObject} from "./people-ledger.js";
 import {STORY_CHARACTERS,onScreen,storyCharacter} from "./script-line-presence.js";
 import type {RunRecorder} from "./recorder.js";
+import {semanticWalk} from "./semantic-targets.js";
 
 export const CARDS_HEADER="ID cards for people who just came into view (only what the game has shown or stored in this run):";
 
@@ -243,7 +244,7 @@ export function withPeopleIdCards(tools:readonly AgentTool[],features:FeatureSet
   return {...result,content};
  };
  return tools.map(tool=>{
-  if(tool.name!=="observe"&&tool.name!=="press"&&tool.name!=="navigate_to")return tool;
+  if(tool.name!=="observe"&&tool.name!=="press"&&tool.name!=="navigate_to"&&!semanticWalk(tool.name,features))return tool;
   const execute:AgentTool["execute"]=async(id,params,signal,update)=>annotate(tool.name,id,await tool.execute(id,params,signal,update));
   if(!isCheckedPress(tool))return {...tool,execute};
   const checked:CheckedPressTool={...tool,execute,executeChecked:async(id,params,check,signal,update,options)=>annotate(tool.name,id,await tool.executeChecked(id,params,check,signal,update,options))};

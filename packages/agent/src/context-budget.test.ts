@@ -137,8 +137,8 @@ describe("context-token-budget-v1 budget", () => {
 describe("context-token-budget-v1 registration", () => {
   const ID = "context-token-budget-v1";
   it("is registered just before original-speed-pacing-v1, a default-off guard with no dependency", () => {
-    expect(SWITCHABLE_FEATURES.at(-8)).toBe(ID);
-    expect(playHarnessFeatures({ ...ALL_ON, "battle-decision-ready-v1": false, [ID]: true }, null).at(-3)).toBe(ID);
+    expect(SWITCHABLE_FEATURES.at(-11)).toBe(ID);
+    expect(playHarnessFeatures({ ...ALL_ON, "battle-decision-ready-v1": false, [ID]: true }, null).at(-4)).toBe(ID);
     expect(playHarnessFeatures({ ...ALL_ON, "battle-decision-ready-v1": false, [ID]: false }, null)).not.toContain(ID);
     expect(featureInfo(ID)).toMatchObject({ group: "guard", needs: null, switchable: true, title: "CONTEXT TOKEN BUDGET" });
     expect(featureInfo(ID).description).toContain(" Off: ");

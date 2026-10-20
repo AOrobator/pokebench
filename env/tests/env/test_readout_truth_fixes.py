@@ -116,6 +116,7 @@ LATER = frozenset(
         "heal-before-trainers-v1",
         "battle-effective-damage-v1",
         "semantic-navigation-v1",
+        "semantic-navigation-v2",
     }
 )
 
@@ -155,7 +156,7 @@ def test_each_switch_is_a_registered_default_off_server_feature(switch: str) -> 
 
 
 def test_registered_last_in_order() -> None:
-    assert SERVER_FEATURES[-9:-4] == (
+    assert SERVER_FEATURES[-10:-5] == (
         OWNER,
         MID_FRAME,
         UNSET_WARP,

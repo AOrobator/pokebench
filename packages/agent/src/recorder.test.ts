@@ -726,3 +726,24 @@ it("replays only the latest existing state when a late subscriber explicitly req
  const next=recorder.recordState({...STATE,screen:"naming"});
  expect(normal).toEqual([next]);expect(seeded).toEqual([latest,next]);
 });
+
+it("semantic-navigation-v2: navigate_to_target and explore_map results record their state and receipt; without v2 they do not", async () => {
+  for (const v2 of [true, false]) for (const name of ["navigate_to_target", "explore_map"]) {
+    const { recorder, log } = harness();
+    await recorder.start({ ...START_META, harness_features: v2 ? ["semantic-navigation-v2"] : [] }, false);
+    await recorder.emit({ type: "tool_execution_start", toolCallId: "s1", toolName: name, args: {} });
+    await recorder.emit({ type: "tool_execution_end", toolCallId: "s1", toolName: name, isError: false, result: {
+      content: [{ type: "text", text: "Semantic navigation: activation completed; inspect the resulting state. Selected map object 2." }],
+      details: { state: STATE, semantic_navigation: { status: "activation completed", selected: "map object 2", activation_attempted: true, target: { kind: "object", local_id: 2 } } },
+    } });
+    const result = events(log).findLast((e) => e.type === "tool_result");
+    if (result?.type !== "tool_result") throw new Error("no result");
+    if (v2) {
+      expect(result.semantic_navigation).toEqual({ target: { kind: "object", local_id: 2 }, activation_attempted: true });
+      expect(result.state_seq).toBeDefined();
+    } else {
+      expect(result.semantic_navigation).toBeUndefined();
+      expect(result.state_seq).toBeUndefined();
+    }
+  }
+});

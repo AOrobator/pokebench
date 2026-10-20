@@ -9,6 +9,7 @@ import {isCheckedPress,type CheckedPressTool} from "./game-tools.js";
 import {parseGameState,type GameStateSnapshot} from "./game-state.js";
 import {exitReach,type Cut} from "./surf-gate.js";
 import type {RunRecorder} from "./recorder.js";
+import {connectionArgument,semanticWalk,targetSuffix,uniqueDirection,uniqueTile} from "./semantic-targets.js";
 
 export const UNTAKEN_HEADER="Exits here you have not taken";
 type Snapshot=Pick<GameStateSnapshot,"started"|"screen"|"location"|"map_id"|"position"|"interaction_targets"|"topology"|"surf_gate"|"exit_reach">;
@@ -30,12 +31,13 @@ export class UntakenExits {
  line(state:Snapshot,readout:string):string|null {
   if(!state.started||state.screen!=="overworld"||state.map_id===null||state.interaction_targets==null)return null;
   readoutNames(readout,state.map_id,this.names);
-  const map=mapKey(state.map_id);
+  const map=mapKey(state.map_id),semantic=this.features["semantic-navigation-v2"];
   const groups=new Map<string,{tiles:string[];warps:{x:number;y:number}[];destination:readonly number[];taken:boolean}>();
   for(const warp of warpsOf(state)){
    const key=JSON.stringify(warp.destination);
    const group=groups.get(key)??{tiles:[],warps:[],destination:warp.destination,taken:false};
-   group.tiles.push(`(${tileKey(warp.x,warp.y)})`);group.warps.push(warp);
+   // semantic-navigation-v2: each warp tile with the target navigate_to_target takes.
+   group.tiles.push(`(${tileKey(warp.x,warp.y)})${semantic&&uniqueTile(state.interaction_targets,"warp",warp.x,warp.y)?targetSuffix(JSON.stringify({kind:"warp",x:warp.x,y:warp.y})):""}`);group.warps.push(warp);
    group.taken||=this.history.taken(map,warp.x,warp.y);
    groups.set(key,group);
   }
@@ -53,7 +55,7 @@ export class UntakenExits {
   const shown=(g:{tiles:string[];warps:{x:number;y:number}[]}):string[]=>this.features["exit-reachability-v1"]?g.tiles.filter((_,i)=>{const w=g.warps[i];return w===undefined||block.warpCut(w.x,w.y)!=="none";}):g.tiles;
   const open=[
    ...warps.filter(g=>!g.taken).map(g=>`${shown(g).join(" or ")} -> ${mapKey(g.destination)==="127/127"?"dynamic destination":this.place(g.destination)}`),
-   ...connections.filter(c=>!this.history.crossed(map,mapKey(c.destination))).map(c=>`${c.direction}${EDGES.has(c.direction)?" edge":""} -> ${this.place(c.destination)}`),
+   ...connections.filter(c=>!this.history.crossed(map,mapKey(c.destination))).map(c=>`${c.direction}${EDGES.has(c.direction)?" edge":""} -> ${this.place(c.destination)}${semantic&&(c.edges?.length??0)>0&&uniqueDirection(state.topology?.connections,c.direction)?targetSuffix(connectionArgument(c.direction)):""}`),
   ];
   const none=warps.length+connections.length>0?`none (you have taken every exit ${across>0?"you can walk to ":""}on this map this run)`:across>0?`none you can walk to (${why})`:"none (no exits are listed on this map)";
   return `${UNTAKEN_HEADER}: ${open.length===0?none:open.join("; ")}`;
@@ -90,7 +92,7 @@ export function withUntakenExits(tools:readonly AgentTool[],features:FeatureSet,
   return {...result,content};
  };
  return tools.map(tool=>{
-  if(tool.name!=="observe"&&tool.name!=="press"&&tool.name!=="navigate_to")return tool;
+  if(tool.name!=="observe"&&tool.name!=="press"&&tool.name!=="navigate_to"&&!semanticWalk(tool.name,features))return tool;
   const execute:AgentTool["execute"]=async(id,params,signal,update)=>annotate(await tool.execute(id,params,signal,update));
   if(!isCheckedPress(tool))return {...tool,execute};
   const checked:CheckedPressTool={...tool,execute:async(id,params,signal,update)=>annotate(await tool.execute(id,params,signal,update)),executeChecked:async(id,params,check,signal,update,options)=>annotate(await tool.executeChecked(id,params,check,signal,update,options))};

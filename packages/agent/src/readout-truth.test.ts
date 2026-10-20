@@ -10,8 +10,8 @@ const IDS = ["readout-truth-v1", "birch-speech-pages-v1", "blackout-readout-v1"]
 const off = (...ids: (typeof SWITCHABLE_FEATURES)[number][]): FeatureSet => ({ ...ALL_ON,"battle-decision-ready-v1":false,...Object.fromEntries(ids.map((id) => [id, false])) });
 
 it("registers three default-off observation switches with no dependency, recorded last in this order", () => {
-  expect(SWITCHABLE_FEATURES.slice(-62,-59)).toEqual([...IDS]);
-  expect(playHarnessFeatures(ALL_ON, null).slice(-50,-47)).toEqual([...IDS]);
+  expect(SWITCHABLE_FEATURES.slice(-65,-62)).toEqual([...IDS]);
+  expect(playHarnessFeatures(ALL_ON, null).slice(-51,-48)).toEqual([...IDS]);
   for (const id of IDS) {
     expect(featureInfo(id)).toMatchObject({ group: "observation", needs: null, switchable: true });
     expect(featureInfo(id).description).toContain(" Off: ");
@@ -59,7 +59,7 @@ it("states each switch's intended arms and the whiteout frame scope (operator de
 });
 
 it("hands all three to the game server, whose list and default-off set name them", () => {
-  expect(SERVER_FEATURES.slice(-15,-12)).toEqual([...IDS]);
+  expect(SERVER_FEATURES.slice(-16,-13)).toEqual([...IDS]);
   for (const id of IDS) expect(serverFeatureEnv(off(id)).POKEBENCH_FEATURES_OFF).toBe(`${id},safe-navigation-strides-v1,original-speed-pacing-v1`);
   expect(serverFeatureEnv(ALL_ON).POKEBENCH_FEATURES_OFF).toBe("safe-navigation-strides-v1,original-speed-pacing-v1");
   const readout = readFileSync(new URL("../../../env/pokebench_env/readout.py", import.meta.url), "utf8");

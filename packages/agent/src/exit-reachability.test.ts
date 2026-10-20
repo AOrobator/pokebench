@@ -317,10 +317,10 @@ describe("exit-reachability-v1 schema, registry and presets",()=>{
   expect(description).toContain(" Off: ");
   expect(description).toContain("bundle arm only");
   expect(description).not.toContain("both arms");
-  expect(FEATURES.filter(f=>f.switchable).at(-49)?.id).toBe(ID);
-  expect(playHarnessFeatures(ALL_ON,null).at(-37)).toBe(ID);
-  expect(SERVER_FEATURES.at(-11)).toBe(ID);
-  expect(serverFeatureEnv({...ALL_ON,"battle-decision-ready-v1":false,[ID]:false}).POKEBENCH_FEATURES_OFF.split(",")).toContain(ID);
+  expect(FEATURES.filter(f=>f.switchable).at(-52)?.id).toBe(ID);
+  expect(playHarnessFeatures(ALL_ON,null).at(-38)).toBe(ID);
+  expect(SERVER_FEATURES.at(-12)).toBe(ID);
+  expect(serverFeatureEnv({...ALL_ON,"semantic-navigation-v2":false,"battle-decision-ready-v1":false,[ID]:false}).POKEBENCH_FEATURES_OFF.split(",")).toContain(ID);
   expect(serverFeatureEnv(ALL_ON).POKEBENCH_FEATURES_OFF.split(",")).not.toContain(ID);
  });
  it("defaults off in presets that omit it and in legacy flag presets",()=>{
@@ -331,7 +331,7 @@ describe("exit-reachability-v1 schema, registry and presets",()=>{
 });
 
 describe("exit-reachability-v1 production wiring (playGameTools and loopSupervisor)",()=>{
- const BASE:FeatureSet={...ALL_ON,"battle-decision-ready-v1":false,"battle-move-tool-v1":false,"people-ledger-v1":false,"people-id-cards-v1":false,"trainer-heal-guidance-v1":false,"low-hp-trainer-warning-v1":false,"low-hp-trainer-warning-v2":false,"dialogue-auto-advance-v1":false,"bounded-navigation-v1":false,"navigate-first-prompt-v1":false,"blocked-exit-fact-v1":false,"battle-loss-recap-v1":false,"next-milestone-hint-v1":false,"story-destinations-v1":false,"harness-trust-v1":false,"cited-destination-v1":false,"harness-trust-v2":false};
+ const BASE:FeatureSet={...ALL_ON,"semantic-navigation-v2":false,"battle-decision-ready-v1":false,"battle-move-tool-v1":false,"people-ledger-v1":false,"people-id-cards-v1":false,"trainer-heal-guidance-v1":false,"low-hp-trainer-warning-v1":false,"low-hp-trainer-warning-v2":false,"dialogue-auto-advance-v1":false,"bounded-navigation-v1":false,"navigate-first-prompt-v1":false,"blocked-exit-fact-v1":false,"battle-loss-recap-v1":false,"next-milestone-hint-v1":false,"story-destinations-v1":false,"harness-trust-v1":false,"cited-destination-v1":false,"harness-trust-v2":false};
  const snapshot=recorded("0e05:22579");
  const readout="Screen: overworld\nLocation: ROUTE104\nPosition: X=18, Y=42, facing left\nMoney: 1";
  const tool=(name:string):AgentTool=>({name,label:name,description:name,parameters:{},execute:()=>Promise.resolve({content:[{type:"text",text:readout}],details:{state:snapshot}})}) as unknown as AgentTool;

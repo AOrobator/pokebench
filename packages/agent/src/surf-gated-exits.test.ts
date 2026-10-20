@@ -130,26 +130,26 @@ const shown=(s:GameStateSnapshot):RunEvent[]=>[
 
 describe("surf-gated-exits-v1 rules",()=>{
  it("blocks a listed water-only exit only while Surf cannot be used, and only with the switch on",()=>{
-  const block=surfBlock({...ALL_ON,"battle-decision-ready-v1":false,[ID]:true},{...ROUTE,surf_gate:GATED});
+  const block=surfBlock({...ALL_ON,"semantic-navigation-v2":false,"battle-decision-ready-v1":false,[ID]:true},{...ROUTE,surf_gate:GATED});
   expect([block.warp(45,6),block.warp(3,3),block.connection("EAST"),block.connection("SOUTH")]).toEqual([true,false,true,false]);
   for(const gate of [{...GATED,can_surf:true},{...GATED,can_surf:null},{...GATED,surfing:true,can_surf:true}]){
-   const open=surfBlock({...ALL_ON,"battle-decision-ready-v1":false,[ID]:true},{...ROUTE,surf_gate:gate});
+   const open=surfBlock({...ALL_ON,"semantic-navigation-v2":false,"battle-decision-ready-v1":false,[ID]:true},{...ROUTE,surf_gate:gate});
    expect([open.warp(45,6),open.connection("EAST")]).toEqual([false,false]);
   }
-  const off=surfBlock({...ALL_ON,"battle-decision-ready-v1":false,[ID]:false},{...ROUTE,surf_gate:GATED});
+  const off=surfBlock({...ALL_ON,"semantic-navigation-v2":false,"battle-decision-ready-v1":false,[ID]:false},{...ROUTE,surf_gate:GATED});
   expect([off.warp(45,6),off.connection("EAST")]).toEqual([false,false]);
-  const absent=surfBlock({...ALL_ON,"battle-decision-ready-v1":false,[ID]:true},ROUTE);
+  const absent=surfBlock({...ALL_ON,"semantic-navigation-v2":false,"battle-decision-ready-v1":false,[ID]:true},ROUTE);
   expect([absent.warp(45,6),absent.connection("EAST")]).toEqual([false,false]);
  });
  it("once Surf can be used (Balance Badge and a party SURF), the untaken-exits line lists them again",()=>{
-  const features={...ALL_ON,"battle-decision-ready-v1":false,[ID]:true};
+  const features={...ALL_ON,"semantic-navigation-v2":false,"battle-decision-ready-v1":false,[ID]:true};
   const usable={...ROUTE,surf_gate:{...GATED,can_surf:true,balance_badge:true,party_surf:true}};
   const text="- SOUTH -> OLDALE TOWN (map 0/10)\n- EAST -> ROUTE110 (map 0/25)\nWarp to ALTERING CAVE (map 24/106)";
   expect(new UntakenExits(features).line(usable,text)).toBe("Exits here you have not taken: (45,6) -> ALTERING CAVE (map 24/106); (3,3) -> map 2/2; SOUTH edge -> OLDALE TOWN (map 0/10); EAST edge -> ROUTE110 (map 0/25)");
   expect(new UntakenExits(features).line({...ROUTE,surf_gate:GATED},text)).toBe("Exits here you have not taken: (3,3) -> map 2/2; SOUTH edge -> OLDALE TOWN (map 0/10)");
  });
  it("says how many it left out only when no other exit is left: none to walk to at all, or every walkable one taken",()=>{
-  const features={...ALL_ON,"battle-decision-ready-v1":false,[ID]:true,"surf-gated-exits-v2":false};
+  const features={...ALL_ON,"semantic-navigation-v2":false,"battle-decision-ready-v1":false,[ID]:true,"surf-gated-exits-v2":false};
   const island={...ROUTE,interaction_targets:[warp(45,6,[24,106,0])],topology:{...ROUTE.topology,connections:[EAST]},surf_gate:GATED} satisfies GameStateSnapshot;
   expect(new UntakenExits(features).line(island,"")).toBe("Exits here you have not taken: none you can walk to (every exit listed on this map is across water, and you cannot use Surf yet)");
   expect(new UntakenExits({...features,[ID]:false}).line(island,"")).toBe("Exits here you have not taken: (45,6) -> map 24/106; EAST edge -> map 0/25");
@@ -157,7 +157,7 @@ describe("surf-gated-exits-v1 rules",()=>{
   expect(new UntakenExits(features).line(nothing,"")).toBe("Exits here you have not taken: none (no exits are listed on this map)");
  });
  it("the supervisor's untried list drops a water-only warp nobody tried; edge bearings drop the water-only edge",()=>{
-  const features={...ALL_ON,"battle-decision-ready-v1":false,[ID]:true,"briefing-exits-v1":true};
+  const features={...ALL_ON,"semantic-navigation-v2":false,"battle-decision-ready-v1":false,[ID]:true,"briefing-exits-v1":true};
   const gated={...ROUTE,surf_gate:GATED};
   const listed=(f:FeatureSet)=>{const b=new SupervisorBriefing(f);for(const e of shown(gated))b.observe(e);return line(b.text("cycle",9),"- Listed here that you have not tried yet");};
   expect(listed(features)).toBe("- Listed here that you have not tried yet: Warp to map 2/2 at 3,3 (movement)");
@@ -168,7 +168,7 @@ describe("surf-gated-exits-v1 rules",()=>{
 });
 
 describe("surf-gated-exits-v1 production wiring",()=>{
- const BASE:FeatureSet={...ALL_ON,"battle-decision-ready-v1":false,"battle-move-tool-v1":false,"harness-trust-v1":false,"cited-destination-v1":false,"harness-trust-v2":false,"people-ledger-v1":false,"people-id-cards-v1":false,"trainer-heal-guidance-v1":false,"low-hp-trainer-warning-v1":false,"low-hp-trainer-warning-v2":false,"dialogue-auto-advance-v1":false,"bounded-navigation-v1":false,"navigate-first-prompt-v1":false,"blocked-exit-fact-v1":false,"battle-loss-recap-v1":false,"next-milestone-hint-v1":false};
+ const BASE:FeatureSet={...ALL_ON,"semantic-navigation-v2":false,"battle-decision-ready-v1":false,"battle-move-tool-v1":false,"harness-trust-v1":false,"cited-destination-v1":false,"harness-trust-v2":false,"people-ledger-v1":false,"people-id-cards-v1":false,"trainer-heal-guidance-v1":false,"low-hp-trainer-warning-v1":false,"low-hp-trainer-warning-v2":false,"dialogue-auto-advance-v1":false,"bounded-navigation-v1":false,"navigate-first-prompt-v1":false,"blocked-exit-fact-v1":false,"battle-loss-recap-v1":false,"next-milestone-hint-v1":false};
  const snapshot={...ROUTE,surf_gate:GATED} satisfies GameStateSnapshot;
  const readout="Screen: overworld\nLocation: ROUTE103\nPosition: X=10, Y=21, facing up\nMoney: 1";
  const tool=(name:string):AgentTool=>({name,label:name,description:name,parameters:{},execute:()=>Promise.resolve({content:[{type:"text",text:readout}],details:{state:snapshot}})});
@@ -202,10 +202,10 @@ describe("surf-gated-exits-v1 registry and presets",()=>{
   expect(description).toContain("bundle arm only");
   expect(description).not.toContain("both arms");
   const ids=FEATURES.filter(f=>f.switchable).map(f=>f.id);
-  expect(ids.at(-59)).toBe(ID);
-  expect(playHarnessFeatures(ALL_ON,null).at(-47)).toBe(ID);
+  expect(ids.at(-62)).toBe(ID);
+  expect(playHarnessFeatures(ALL_ON,null).at(-48)).toBe(ID);
   expect(SERVER_FEATURES).toContain(ID);
-  expect(serverFeatureEnv({...ALL_ON,"battle-decision-ready-v1":false,[ID]:false}).POKEBENCH_FEATURES_OFF.split(",")).toContain(ID);
+  expect(serverFeatureEnv({...ALL_ON,"semantic-navigation-v2":false,"battle-decision-ready-v1":false,[ID]:false}).POKEBENCH_FEATURES_OFF.split(",")).toContain(ID);
   expect(serverFeatureEnv(ALL_ON).POKEBENCH_FEATURES_OFF.split(",")).not.toContain(ID);
  });
  it("defaults off in presets that omit it and in legacy flag presets",()=>{

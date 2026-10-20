@@ -56,9 +56,11 @@ export function contextTools(features:FeatureSet,recorder:WiringRecorder,base:Tr
  const hinted=hint?.transformContext??ledger?.transformContext??memory?.transformContext??observedBase;
  const chain=disprovedBeliefs(features,recorder,hinted)?.transformContext??hinted;
  const inner:Transform=features["fresh-retry-v1"]?messages=>chain(withoutTextOnlyReplies(messages)):chain;
- // fixed-point-breaker-v1: duplicate turns collapse before every other step; its note is the request's last message.
+ // fixed-point-breaker-v1 or duplicate-turn-collapse-v1: duplicate turns collapse before every other step;
+ // fixed-point-breaker-v1 alone ends the request with its note.
  const breaker=fixedPointBreaker(features,recorder);
- return {tools,transformContext:breaker===null?inner:async messages=>breaker.note(await inner(breaker.collapse(messages))),window:contextWindow(features),breaker};
+ const note=features["fixed-point-breaker-v1"];
+ return {tools,transformContext:breaker===null?inner:async messages=>{const out=await inner(breaker.collapse(messages));return note?breaker.note(out):out;},window:contextWindow(features),breaker};
 }
 
 // context-token-budget-v1: fit each request to the served context; each trim is recorded as a compaction.
@@ -126,7 +128,7 @@ export function playGameTools(base:readonly AgentTool[],features:FeatureSet,stat
  const facts=[...withResultFacts(withUnfinishedActivity(withLowHpTrainerWarning(withNavigateFirst([...withInstructionLedgerV2(withStoryDestinations(withPeopleIdCards(withUntakenExits(withPeopleLedger(withDialogueAutoAdvance(withBattleAction(withNoExitHere(navigated,features),features,state,gate),features,{state,recorder,...(gate===undefined?{}:{gate})}),features,recorder),features,recorder),features,recorder),features,recorder,state),features,recorder),...extra],features),features,recorder,state),features,recorder,state),features,recorder)];
  const visible=terrain===null?facts:withVisitedTerrain(facts,terrain);
  const cited=withCitedDestination(visible,features["cited-destination-v1"],recorder,{fullMap:features["full-map-navigation-v1"],exitReach:features["exit-reachability-v1"],silenceMiss:features["input-cuts-v1"]});
- return withStarterDecision(withHarnessTrust(cited,features["harness-trust-v1"],recorder,state,{supervisor:true,battleAction:features["harness-trust-v2"],goalOnce:features["input-cuts-v1"],retireLab:features["stale-story-goal-v1"],stageBound:features["stale-story-goal-v2"],omitEmptyGoal:features["stale-story-goal-v2"],scriptedGuidance:features["scripted-place-guidance-v1"],reachableGoal:features["reachable-story-guidance-v1"],activity:features["unfinished-activity-v1"]}),features);
+ return withStarterDecision(withHarnessTrust(cited,features["harness-trust-v1"],recorder,state,{supervisor:true,semanticTargets:features["semantic-navigation-v2"],battleAction:features["harness-trust-v2"],goalOnce:features["input-cuts-v1"],retireLab:features["stale-story-goal-v1"],stageBound:features["stale-story-goal-v2"],omitEmptyGoal:features["stale-story-goal-v2"],scriptedGuidance:features["scripted-place-guidance-v1"],reachableGoal:features["reachable-story-guidance-v1"],activity:features["unfinished-activity-v1"]}),features);
 }
 
 

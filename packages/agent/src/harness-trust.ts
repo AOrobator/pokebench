@@ -10,6 +10,7 @@ import type {RunEvent} from "./events.js";
 import {STORY_HEADER,StoryDestinations,PlacesBodySchema,reachedText,staleGoalLine,type MapId,type Place,type PlaceSource,type StoryGoal} from "./story-destinations.js";
 import {Value} from "typebox/value";
 import {exitBlock} from "./surf-gate.js";
+import {connectionArgument,targetSuffix,uniqueDirection,uniqueTile} from "./semantic-targets.js";
 
 export const TRUST_HEADER="Read from game memory, always true:";
 
@@ -25,29 +26,34 @@ export function trustSection(gameEvidence:boolean,supervisor:boolean):string {
  ].join("\n");
 }
 
+const warpArgument=(w:{readonly x:number;readonly y:number}):string=>JSON.stringify({kind:"warp",x:w.x,y:w.y});
+// A connection navigate_to_target can walk off: the readout lists its edge tiles.
+// It resolves a connection by direction alone, so the side must have exactly one.
+const walkOff=(state:Pick<GameStateSnapshot,"topology">,direction:string):boolean=>uniqueDirection(state.topology?.connections,direction)&&(state.topology?.connections.find(c=>c.direction===direction)?.edges?.length??0)>0;
 const same=(a:MapId,b:MapId)=>a[0]===b[0]&&a[1]===b[1];
 const mapLabel=(name:string,id:MapId)=>`${name} (map ${String(id[0])}/${String(id[1])})`;
 const at=(p:{readonly x:number;readonly y:number})=>`(${String(p.x)},${String(p.y)})`;
 
-export function goalLine(goal:StoryGoal|null,places:readonly Place[]|Error,anyLine:boolean,state?:GameStateSnapshot):string {
+export function goalLine(goal:StoryGoal|null,places:readonly Place[]|Error,anyLine:boolean,state?:GameStateSnapshot,semantic=false):string {
  if(places instanceof Error)return anyLine?`Story goal: not known; the game's map table could not be read (${places.message}).`:"Story goal: no story character has named a place yet in this run.";
  if(goal===null)return "Story goal: no story character has named a place yet in this run.";
  if(goal.done===true)return staleGoalLine(goal.line,goal.doneReason);
  if(goal.reached!==undefined)return reachedText(goal.line,goal.reached);
  const {line,resolved}=goal;
- if(state!==undefined)return `Story goal: "${line.text}" (${line.speaker}, turn ${String(line.turn)}) -> ${resolved.map(r=>r.target===null?`${r.quote}${r.text}`:`${r.quote} = ${mapLabel(r.target.display,r.target.map_id)}. ${localGoalAccess(state,r.target,places)}`).join(" ")}`;
+ if(state!==undefined)return `Story goal: "${line.text}" (${line.speaker}, turn ${String(line.turn)}) -> ${resolved.map(r=>r.target===null?`${r.quote}${r.text}`:`${r.quote} = ${mapLabel(r.target.display,r.target.map_id)}. ${localGoalAccess(state,r.target,places,semantic)}`).join(" ")}`;
  return `Story goal: "${line.text}" (${line.speaker}, turn ${String(line.turn)}) -> ${resolved.map(r=>`${r.quote}${r.text}`).join(" ")}`;
 }
 
 // Access facts only for this map. Do not turn disconnected parts of a map into a suggested direct route.
-function localGoalAccess(state:GameStateSnapshot,target:Place,places:readonly Place[]):string {
+// semantic-navigation-v2: each entrance carries the target navigate_to_target takes.
+function localGoalAccess(state:GameStateSnapshot,target:Place,places:readonly Place[],semantic=false):string {
  const map=places.find(p=>state.map_id!==null&&same(p.map_id,state.map_id));
  if(map===undefined)return "Local access is unknown.";
  if(same(map.map_id,target.map_id))return "The destination is the current map.";
  const reach=state.exit_reach;
  const qualified=reach!==undefined&&exitBlock({surf:false,reach:true},state).foot(0,0)!==null;
  const label=(value:string|undefined)=>!qualified||value===undefined?"reachability unknown":value==="foot"?"listed as reachable on foot":value==="water"?"across water; not reachable on foot":"not reachable on foot from here";
- const ways=[...map.warps.filter(w=>same(w.to,target.map_id)).map(w=>`door at ${at(w)} (${label(reach?.warps.find(r=>r.x===w.x&&r.y===w.y)?.reach)})`),...map.connections.filter(c=>same(c.to,target.map_id)).map(c=>`${c.direction} edge (${label(reach?.connections.find(r=>r.direction===c.direction&&same(r.destination,c.to))?.reach)})`)];
+ const ways=[...map.warps.filter(w=>same(w.to,target.map_id)).map(w=>{const by=reach?.warps.find(r=>r.x===w.x&&r.y===w.y)?.reach;return `door at ${at(w)} (${label(by)})${semantic&&qualified&&by==="foot"&&uniqueTile(state.interaction_targets,"warp",w.x,w.y)?targetSuffix(warpArgument(w)):""}`;}),...map.connections.filter(c=>same(c.to,target.map_id)).map(c=>`${c.direction} edge (${label(reach?.connections.find(r=>r.direction===c.direction&&same(r.destination,c.to))?.reach)})`)];
  return ways.length===0?"No direct entrance to this destination is listed on the current map; consult the current exits.":`Direct entrances on this map: ${ways.join("; ")}.`;
 }
 
@@ -61,7 +67,7 @@ export function charactersLine(text:string):string|null {
 // exit-reachability-v1's labels: the warps and connections of this map the server's flood reaches on foot from the
 // player's tile, named from the map table. Null without exit_reach, with a malformed foot mask, or for a map the table
 // lacks. A warp the table does not list, or one to a dynamic destination, is left out rather than guessed.
-export function exitsLine(state:Pick<GameStateSnapshot,"map_id"|"exit_reach"|"topology"|"surf_gate">,places:readonly Place[]):string|null {
+export function exitsLine(state:Pick<GameStateSnapshot,"map_id"|"exit_reach"|"topology"|"surf_gate"|"interaction_targets">,places:readonly Place[],semantic=false):string|null {
  const reach=state.exit_reach,here=state.map_id;
  if(reach===undefined||here===null||exitBlock({surf:false,reach:true},state).foot(0,0)===null)return null;
  const map=places.find(p=>same(p.map_id,here));if(map===undefined)return null;
@@ -72,9 +78,9 @@ export function exitsLine(state:Pick<GameStateSnapshot,"map_id"|"exit_reach"|"to
   const to=map.warps.find(m=>m.x===w.x&&m.y===w.y)?.to;
   const label=to===undefined?null:name(to);if(to===undefined||label===null)continue;
   const key=`${String(to[0])}/${String(to[1])}`;const door=doors.get(key)??{tiles:[],label};
-  door.tiles.push(at(w));doors.set(key,door);
+  door.tiles.push(`${at(w)}${semantic&&uniqueTile(state.interaction_targets,"warp",w.x,w.y)?targetSuffix(warpArgument(w)):""}`);doors.set(key,door);
  }
- const edges=reach.connections.flatMap(c=>{const label=c.reach==="foot"?name(c.destination):null;return label===null?[]:[`${c.direction} edge -> ${label}`];});
+ const edges=reach.connections.flatMap(c=>{const label=c.reach==="foot"?name(c.destination):null;return label===null?[]:[`${c.direction} edge -> ${label}${semantic&&walkOff(state,c.direction)?targetSuffix(connectionArgument(c.direction)):""}`];});
  const all=[...[...doors.values()].map(d=>`${d.tiles.join(" or ")} -> ${d.label}`),...edges];
  return `Exits you can walk to from where you stand: ${all.length===0?"none (no exit of this map can be reached on foot from your tile)":all.join("; ")}.`;
 }
@@ -210,7 +216,7 @@ function stateOf(details:unknown):GameStateSnapshot|null {
 }
 
 // battleAction: harness-trust-v2 also heads battle_action results.
-export interface TrustOptions {readonly supervisor:boolean;readonly battleAction?:boolean;readonly goalOnce?:boolean;readonly retireLab?:boolean;readonly stageBound?:boolean;readonly omitEmptyGoal?:boolean;readonly scriptedGuidance?:boolean;readonly reachableGoal?:boolean;readonly activity?:boolean}
+export interface TrustOptions {readonly supervisor:boolean;readonly battleAction?:boolean;readonly goalOnce?:boolean;readonly retireLab?:boolean;readonly stageBound?:boolean;readonly omitEmptyGoal?:boolean;readonly scriptedGuidance?:boolean;readonly reachableGoal?:boolean;readonly semanticTargets?:boolean;readonly activity?:boolean}
 
 // The header (and any walk-away note) put at the top of the result's first text part.
 export class HarnessTrust {
@@ -222,10 +228,10 @@ export class HarnessTrust {
   const anyLine=this.story.latest(callId,null,state.name)!==null;
   const goal=places instanceof Error||state.map_id===null?null:this.story.goal(state.map_id,state.name,callId,places,this.options.retireLab===true,state.story??null,this.options.stageBound===true);
   const characters=charactersLine(text);
-  const exits=places instanceof Error?null:exitsLine(state,places);
+  const exits=places instanceof Error?null:exitsLine(state,places,this.options.semanticTargets===true);
   const repeated=this.options.goalOnce===true&&goal!==null&&goal.done!==true&&seen.includes(STORY_HEADER)&&seen.includes(`"${goal.line.text}"`);
   const omitGoal=this.options.omitEmptyGoal===true&&!(places instanceof Error)&&(goal===null||goal.done===true);
-  const header=[TRUST_HEADER,...(repeated||omitGoal?[]:[goalLine(goal,places,anyLine,this.options.reachableGoal===true?state:undefined)]),...(characters===null?[]:[characters]),...(exits===null?[]:[exits])].join("\n");
+  const header=[TRUST_HEADER,...(repeated||omitGoal?[]:[goalLine(goal,places,anyLine,this.options.reachableGoal===true?state:undefined,this.options.semanticTargets===true)]),...(characters===null?[]:[characters]),...(exits===null?[]:[exits])].join("\n");
   const away=this.options.supervisor&&!(places instanceof Error)?this.walk.observe(state,goal?.done===true||goal?.reached!==undefined?null:goal,places,own):null;
   return {header,away};
  }
@@ -260,15 +266,16 @@ export function withHarnessTrust(tools:readonly AgentTool[],on:boolean,recorder:
   // navigate_to puts "Navigation:" first and the story-destinations block in a later part. input-cuts-v1's goal
   // check has to see that later part. Characters still come from the first part.
   const readout=tool==="battle_action"?result.content.flatMap(c=>c.type==="text"?[c.text]:[]).join("\n"):part.text;
-  const seen=tool==="navigate_to"&&options.goalOnce===true?result.content.flatMap(c=>c.type==="text"?[c.text]:[]).join("\n"):readout;
-  const {header,away}=trust.lines(readout,state,id,await places(state.name ?? ""),tool==="press"||tool==="navigate_to",seen);
+  const walk=tool==="navigate_to"||(options.semanticTargets===true&&(tool==="navigate_to_target"||tool==="explore_map"));
+  const seen=walk&&options.goalOnce===true?result.content.flatMap(c=>c.type==="text"?[c.text]:[]).join("\n"):readout;
+  const {header,away}=trust.lines(readout,state,id,await places(state.name ?? ""),tool==="press"||walk,seen);
   const note=away===null?null:awayText(away);
   if(away!==null&&note!==null)record?.(tool,away,note);
   const content=[...result.content];content[index]={...part,text:`${header}\n${note===null?"":`${note}\n`}\n${part.text}`};
   return {...result,content};
  };
  return tools.map(tool=>{
-  if(tool.name!=="observe"&&tool.name!=="press"&&tool.name!=="navigate_to"&&!(options.battleAction===true&&tool.name==="battle_action"))return tool;
+  if(tool.name!=="observe"&&tool.name!=="press"&&tool.name!=="navigate_to"&&!(options.battleAction===true&&tool.name==="battle_action")&&!(options.semanticTargets===true&&(tool.name==="navigate_to_target"||tool.name==="explore_map")))return tool;
   const execute:AgentTool["execute"]=async(id,params,signal,update)=>annotate(tool.name,id,await tool.execute(id,params,signal,update));
   if(!isCheckedPress(tool))return {...tool,execute};
   const checked:CheckedPressTool={...tool,execute,executeChecked:async(id,params,check,signal,update,options)=>annotate(tool.name,id,await tool.executeChecked(id,params,check,signal,update,options))};

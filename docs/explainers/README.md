@@ -123,6 +123,7 @@ The original ignored runs/explainers copies remain for existing links. Make futu
 - [Visited terrain navigation](visited-terrain-navigation-v1.html)
 - [Deterministic warp navigation](deterministic-warp-navigation-v1.html)
 - [Semantic navigation](semantic-navigation-v1.html)
+- [Semantic navigation v2](semantic-navigation-v2.html) — replaces v1 (off everywhere); fixed bundle ON / control OFF.
 - [Deterministic exploration](deterministic-exploration-v1.html)
 
 - [Failed navigation outcomes](ineffective-navigation-v2.html) — default-OFF recovery treatment; fixed bundle ON / control OFF.

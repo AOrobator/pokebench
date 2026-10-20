@@ -1186,6 +1186,7 @@ export class App {
     if (this.extensionDialog().open || this.extensionPending !== null) this.updateExtension();
     const recordedSplits = this.mode === "loading" ? this.recordedSplits() : undefined;
     const splitView = this.mode === "loading" ? view : this.view;
+    this.setHtml("split-preview", splitStrip(splitView, recordedSplits, true));
     this.setHtml("split-strip", splitStrip(splitView, recordedSplits));
     this.setHtml("split-times", splitTimes(splitView, this.frontier, recordedSplits));
     this.next.setLive(live ? view : null);

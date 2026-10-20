@@ -13,6 +13,7 @@ import {isCheckedPress,type CheckedPressTool} from "./game-tools.js";
 import {parseGameState,type GameStateSnapshot} from "./game-state.js";
 import type {RunRecorder} from "./recorder.js";
 import {roomKey,roomOf} from "./dialogue-log.js";
+import {semanticWalk} from "./semantic-targets.js";
 
 type State=Extract<RunEvent,{type:"state";started:boolean}>;
 type Page=Extract<RunEvent,{type:"dialogue_auto_advance"}>["pages"][number];
@@ -200,7 +201,7 @@ export function withInstructionLedgerV2(tools:readonly AgentTool[],features:Feat
   return {...result,content};
  };
  return tools.map(tool=>{
-  if(tool.name!=="observe"&&tool.name!=="press"&&tool.name!=="navigate_to")return tool;
+  if(tool.name!=="observe"&&tool.name!=="press"&&tool.name!=="navigate_to"&&!semanticWalk(tool.name,features))return tool;
   const execute:AgentTool["execute"]=async(id,params,signal,update)=>annotate(id,await tool.execute(id,params,signal,update));
   if(!isCheckedPress(tool))return {...tool,execute};
   const checked:CheckedPressTool={...tool,execute,executeChecked:async(id,params,check,signal,update,options)=>annotate(id,await tool.executeChecked(id,params,check,signal,update,options))};

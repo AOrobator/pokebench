@@ -614,10 +614,10 @@ it("links deterministic warp navigation to its tracked explainer",()=>{
 });
 
 it("links both semantic navigation cards to their tracked explainers",()=>{
- for(const id of ["semantic-navigation-v1","deterministic-exploration-v1"]){
+ for(const id of ["semantic-navigation-v1","semantic-navigation-v2","deterministic-exploration-v1"]){
   expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
   const html=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)),"utf8");
-  expect(html).toContain(id==="semantic-navigation-v1"?"Semantic navigation v1":"Deterministic exploration v1");
+  expect(html).toContain(id==="semantic-navigation-v1"?"Semantic navigation v1":id==="semantic-navigation-v2"?"Semantic navigation v2":"Deterministic exploration v1");
  }
 });
 

@@ -257,6 +257,15 @@ describe("harness-trust-v1 exits line (exit-reachability-v1's foot labels)",()=>
  it("0e05 Route 104 south half: only the exits the server reaches on foot, never the cut-off NORTH edge or the water SOUTH edge",()=>{
   expect(exitsLine(recorded("0e05:22579"),PLACES.places)).toBe("Exits you can walk to from where you stand: (17,50) -> ROUTE104 MR BRINEYS HOUSE (map 17/0); (10,38) or (11,38) -> PETALBURG WOODS (map 24/11); EAST edge -> PETALBURG CITY (map 0/0).");
  });
+ it("semantic-navigation-v2: each reachable door tile and walkable edge carries its navigate_to_target target; off, the line is unchanged",()=>{
+  const state=recorded("0e05:22579");
+  const on=exitsLine(state,PLACES.places,true)??"";
+  expect(on).toContain('(17,50) [navigate_to_target target {"kind":"warp","x":17,"y":50}] -> ROUTE104 MR BRINEYS HOUSE (map 17/0)');
+  expect(on).toContain('(10,38) [navigate_to_target target {"kind":"warp","x":10,"y":38}] or (11,38) [navigate_to_target target {"kind":"warp","x":11,"y":38}]');
+  const edges=(state.topology?.connections.find(c=>c.direction==="EAST")?.edges?.length??0)>0;
+  expect(on.includes('EAST edge -> PETALBURG CITY (map 0/0) [navigate_to_target target {"kind":"connection","direction":"EAST"}]')).toBe(edges);
+  expect(exitsLine(state,PLACES.places,false)).toBe(exitsLine(state,PLACES.places));
+ });
  it("4198 Route 103: the SOUTH edge only; Altering Cave and the EAST edge are across water",()=>{
   expect(exitsLine(recorded("4198:23325"),PLACES.places)).toBe("Exits you can walk to from where you stand: SOUTH edge -> OLDALE TOWN (map 0/10).");
  });

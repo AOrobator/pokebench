@@ -379,6 +379,7 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "automatic-running-v1":"automatic-running-v1.html",
  "visited-terrain-navigation-v1":"visited-terrain-navigation-v1.html",
  "semantic-navigation-v1":"semantic-navigation-v1.html",
+ "semantic-navigation-v2":"semantic-navigation-v2.html",
  "deterministic-exploration-v1":"deterministic-exploration-v1.html",
  "just-in-time-prompt-v1":"just-in-time-prompt-v1.html",
  "just-in-time-prompt-v2":"just-in-time-prompt-v2.html",
@@ -498,6 +499,8 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "fixed-point-breaker-v1":"fixed-point-breaker-v1.html",
  "story-character-stall-gate-v1":"story-character-stall-gate-v1.html",
  "positive-supervisor-v1":"positive-supervisor-v1.html",
+ "auto-talk-v1":"fixed-point-breaker-v1.html",
+ "duplicate-turn-collapse-v1":"fixed-point-breaker-v1.html",
  "unfinished-activity-v1":"unfinished-activity-v1.html",
 });
 

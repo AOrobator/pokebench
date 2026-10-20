@@ -14,6 +14,20 @@ const control = (action: "pause" | "resume" | "stop" | "cancel_stop" | "abort", 
 const draft: NextRunDraft = { model: "Qwen", thinking: "medium", maxTurns: 300, maxWallMs: 1_800_000, failureLimit: 3, maxTokens: 4096, target: null, features: { ...ALL_ON, "state-only-decisions-v1": false } };
 
 describe("run controls", () => {
+  it("summarizes only the current split and next checkpoint", () => {
+    const recorded = { run: "test", milestones: [
+      { name: "NEW_GAME_CREATED", offsetMs: 1000 },
+      { name: "PLAYER_NAME_CONFIRMED", offsetMs: 2000 },
+    ] };
+    const compact = splitStrip(view(), recorded, true);
+    expect(compact).not.toContain("NEW GAME");
+    expect(compact).toContain("NAME ✔");
+    expect(compact).toContain('class="next"');
+    expect(splitStrip(view(), recorded)).toContain("NEW GAME ✔");
+    expect(splitStrip(view(), null, true)).toContain("LOADING RECORDED SPLITS");
+    expect(splitStrip(view(), { run: "test", milestones: [] }, true)).toContain("NEW GAME");
+  });
+
   it("offers only the controls that apply to the recorded state", () => {
     expect([...availableActions(view(), true)]).toEqual(["pause", "stop", "abort"]);
     expect([...availableActions(view(), false)]).toEqual([]);

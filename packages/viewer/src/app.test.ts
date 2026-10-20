@@ -559,6 +559,13 @@ describe("viewer app", () => {
     const { app, streams } = await harness("", runs, workbench);
     await app.pollCards();
     expect(ui("split-strip").textContent).toContain("NEW GAME ✔NAME ✔");
+    const disclosure = document.querySelector<HTMLDetailsElement>("details.run-splits");
+    expect(disclosure).not.toBeNull();
+    expect(disclosure?.open).toBe(false);
+    expect(ui("split-preview").textContent).toContain("NAME ✔");
+    expect(ui("split-preview").textContent).not.toContain("NEW GAME ✔");
+    if (disclosure) disclosure.open = true;
+
 
     const first = must(streams[0]);
     const partial = new Log();
@@ -568,8 +575,12 @@ describe("viewer app", () => {
     app.tick(100);
     expect(ui("split-strip").textContent).toContain("NEW GAME ✔NAME ✔");
 
+    expect(disclosure?.open).toBe(true);
     app.select(second);
     app.render();
+    expect(disclosure?.open).toBe(true);
+    expect(ui("split-preview").textContent).toContain("TRUCK EXIT ✔");
+    expect(ui("split-preview").textContent).not.toContain("NAME ✔");
     expect(ui("split-strip").textContent).toContain("TRUCK EXIT ✔");
     expect(ui("split-strip").textContent).not.toContain("NAME ✔");
 

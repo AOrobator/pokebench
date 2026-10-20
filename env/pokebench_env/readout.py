@@ -29,6 +29,8 @@ from pokebench_env.offscreen_objects import offscreen_text
 from pokebench_env.readout_fixes import MID_FRAME, MID_FRAME_TEXT
 from pokebench_env.readout_truth import SWITCH as TRUTH
 from pokebench_env.readout_truth import lock_line, menu_line
+from pokebench_env.semantic_targets import SWITCH as SEMANTIC_V2
+from pokebench_env.semantic_targets import interaction_suffix, listed_objects, same_tile
 from pokebench_env.status_names import SWITCH as STATUS_NAMES
 from pokebench_env.status_names import status_text
 from pokebench_env.surf_gate import SWITCH as SURF_GATE
@@ -89,6 +91,7 @@ SERVER_FEATURES = (
     "safe-navigation-strides-v1",
     "evolution-decision-v1",
     "original-speed-pacing-v1",
+    "semantic-navigation-v2",
 )
 
 
@@ -108,7 +111,8 @@ def features_off_from_env(env: Mapping[str, str]) -> frozenset[str]:
         "exit-reachability-v1,"
         "heal-before-trainers-v1,"
         "tutorial-party-owner-v1,mid-frame-readout-v1,unset-dynamic-warp-v1,status-names-v1,"
-        "surf-gated-exits-v2,battle-effective-damage-v1,safe-navigation-strides-v1,evolution-decision-v1,original-speed-pacing-v1",
+        "surf-gated-exits-v2,battle-effective-damage-v1,safe-navigation-strides-v1,evolution-decision-v1,original-speed-pacing-v1,"
+        "semantic-navigation-v2",
     )
     if raw == "":
         return frozenset()
@@ -489,10 +493,13 @@ def format_readout(
     )
     if offscreen is not None and state.map_id is not None:
         lines.append(offscreen_text(offscreen, state.map_id))
+    # semantic-navigation-v2: listed targets carry the navigate_to_target argument.
+    semantic = SEMANTIC_V2 not in off and "world-targets-v1" not in off
     if state.story_characters is not None and "character-presence-v1" not in off:
         lines.append(
             state.story_characters.text(
-                None if offscreen is None else {o.local_id: o for o in offscreen}
+                None if offscreen is None else {o.local_id: o for o in offscreen},
+                listed_objects(state.interaction_targets) if semantic else None,
             )
         )
     # surf-gated-exits-v1: exits reachable only across water while Surf cannot be used.
@@ -518,6 +525,10 @@ def format_readout(
             else ""
         )
 
+    def distinct(t: InteractionTarget) -> bool:
+        # semantic-navigation-v2: the tool tells these apart by kind and tile only.
+        return t.kind == "object" or same_tile(state.interaction_targets, t) == 1
+
     if state.interaction_targets is not None and "world-targets-v1" not in off:
         lines.append("Map interaction candidates (world coordinates; flags/scripts may gate use):")
         lines.extend(
@@ -527,6 +538,11 @@ def format_readout(
                 dynamic=dynamic,
             )
             + warp_note(t)
+            + (
+                interaction_suffix(t)
+                if semantic and not cut_off(t) and not across(t) and distinct(t)
+                else ""
+            )
             for t in state.interaction_targets
         )
     if bounded_navigation and "bounded-navigation-v1" not in off and state.map_id is not None:
@@ -540,7 +556,7 @@ def format_readout(
         lines.append(
             "Map topology: unavailable"
             if state.topology is None
-            else state.topology.text(notes or None)
+            else state.topology.text(notes or None, targets=SEMANTIC_V2 not in off)
         )
         if state.interaction_targets is not None:
             # ON reuses the same provenance-filtered owner as the map and interaction lines.

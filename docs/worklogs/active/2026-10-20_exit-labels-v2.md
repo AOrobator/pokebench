@@ -219,3 +219,6 @@ Local inference reviewers not used.
   not a popup on arrival. Principles PB6 evidence corrected: only RomMap reads are cached.
 
 ## Surprises
+
+## Landing
+- 2026-10-20 4:35 PM EDT: exit-labels-v2 joins the bundle arm of experiments/fixed/bundle-v-control.json and bundle-cook-1h.json (coordinator slot; control untouched; whole-map-pair definitions frozen). Naming: The operator did not object to option 1 (name every destination by its location-popup name).

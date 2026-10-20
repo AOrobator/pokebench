@@ -70,6 +70,20 @@ function presence(readout:string):Presence|null {
  return {here,absent,placed};
 }
 
+// story-character-stall-gate-v1: each story character the readout places on this map, with its tile when it gives one,
+// from character-presence-v1's own line or the ledger's shorter copy of it.
+const CHARACTERS=/^Story characters here(?: \(from this map's own object list\))?: (.+?)\. Not on this map: /m;
+export function storyCharacters(readout:string):{readonly name:string;readonly tile:{readonly x:number;readonly y:number}|null;readonly text:string}[]|null {
+ const found=CHARACTERS.exec(readout)?.[1];
+ if(found===undefined)return null;
+ if(found==="none")return [];
+ return entries(found).map(item=>{
+  const at=/^(.+?) at (-?\d+),(-?\d+)(?: \(.*\))?$/.exec(item);
+  if(at!==null)return {name:at[1]??"",tile:{x:Number(at[2]),y:Number(at[3])},text:item};
+  return {name:item.replace(/ \(.*\)$/,""),tile:null,text:item};
+ });
+}
+
 const plural=(n:number,word:string)=>`${String(n)} ${word}${n===1?"":"s"}`;
 
 export class PeopleLedger {

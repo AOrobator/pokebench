@@ -229,6 +229,19 @@ const PeopleIdCard = event("people_id_card", {
   text: Type.String({ minLength: 1 }),
 });
 
+// fixed-point-breaker-v1: duplicate turns collapsed from a request (stage 1), or the note it ended with (stage 2).
+const LoopBreaker = event("loop_breaker", {
+  stage: Type.Enum([1, 2] as const), trigger: Type.Enum(["fixed_point", "no_tool_call"] as const),
+  repeats: Type.Integer({ minimum: 1 }), collapsed: NonNegativeInt, text: Type.Union([Type.String({ minLength: 1 }), Type.Null()]),
+});
+
+// story-character-stall-gate-v1: a due stall briefing held back while a named story character is on the map.
+const StallGate = event("stall_gate", {
+  kind: Type.Enum(["map_cycle", "milestone_drought"] as const), level: Type.Integer({ minimum: 1 }),
+  reason: Type.Enum(["untalked", "closer"] as const), character: Type.String({ minLength: 1 }),
+  map_id: Type.Tuple([Type.Integer(), Type.Integer()]),
+});
+
 // low-hp-trainer-warning-v2: the story-battle SUPERVISOR paragraph a game-tool result gained, with the facts it states.
 const StoryBattleWarningEvent = event("story_battle_warning", {
   tool: Type.String({ minLength: 1 }), kind: Type.Enum(["rival", "aqua_grunt", "gym_leader"]), opponent: Type.String({ minLength: 1 }),
@@ -630,6 +643,8 @@ export const RunEventSchema = Type.Union([
   TextOnlySupervisor,
   LowHpTrainerWarning,
   PeopleIdCard,
+  LoopBreaker,
+  StallGate,
   StoryBattleWarningEvent,
   HealBeforeTrainersWarningEvent,
   StoryGoalAwayEvent,

@@ -49,7 +49,8 @@ No new subprocesses, network or file paths. Model text is only compared, never e
 
 **M1 — fixed-point-breaker-v1 stages 1-2** and **M2 — story-character-stall-gate-v1** (one RED and one GREEN commit for both: they share the registry shift)
 - [x] RED tests: `fixed-point-breaker.test.ts` (12), `stall-gate.test.ts` (8, real f28d events turns 383-455 in `test-support/stall-gate-f28d.json.gz`), registry position shifts (+2) in older switch tests, viewer trace sample. LEGACY_ALL_ON keeps both switches off.
-- [ ] GREEN
+  - COMMIT: `test: fixed-point breaker and story-character stall gate (RED)` (e57e8899). RED run on a scratch checkout of e57e8899: both new files fail to load (modules missing), features.test.ts fails 3 registry tests.
+- [x] GREEN: `fixed-point-breaker.ts`, `stall-gate.ts`, gate in `StallBriefing` and `SupervisorBriefing`, `loop_breaker` and `stall_gate` events (recorder, probe replay, viewer Activity History, tail), registry, presets, next-run defaults, `TEXT_ONLY_REMINDER` constant moved to harness.ts. Agent 2722, viewer 1356 tests pass; lint clean.
 - [ ] Gates
 **M3 — explainers, pending experiments, readiness rows**
 **M4 — probes** (GPU only with the coordinator's OK): gate at f28d turn 452; breaker on planted repetition

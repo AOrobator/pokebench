@@ -8,10 +8,15 @@ The operator (2026-10-19, 11:27 PM ET): "the latest cook runs aren't showing up 
 
 An agent run excluded only because the fixed-run driver judged its trial invalid is plotted as a dotted line, labelled with the invalid reason, colored by its harness version and counted in the legend. It never competes for the agent frontier (gold line), and every other exclusion (probe, operator-aborted hand runs, problems) stays hidden. Viewer-only change: no harness switch (feature-switch skill exempts viewer-only changes); the timeline is untouched.
 
+## Second bug (same thread)
+
+The operator, 11:34 PM ET: "the viewer also says +3 live and thats wrong". `liveRuns` calls a run live when it has no `run_end` and `/health` answers on its recorded port. Two Oct 18 round-loop runs (`2026-10-18T01-29-44_qwen36-gpu{0_4ac1,1_5f5c}`) never wrote `run_end` and recorded ports 8076/8075, which the 6 hour pair's game servers now hold, so they count as live. Invariant: a port belongs to the newest unended run that recorded it (an older run could not still hold a port a newer server bound); older claimants are not live.
+
 ## Milestone
 
 - [x] RED: frontier tests for invalid trials plotted, labelled, never best; other exclusions still hidden.
 - [x] GREEN: `invalidTrial` admitted by `shownAgent`; dotted line, title reason, notice and legend row.
+- [ ] RED/GREEN: newest unended run per port is the only live candidate.
 - [ ] Gates: build, test, lint, coverage, verify-vendor.
 - [ ] Cloud review (Claude, Grok, GPT/Codex) LGTM on the frozen diff; ff-only landing.
 - [ ] `just viewer-main`; real-browser desktop and phone check that the 4h pair is drawn.

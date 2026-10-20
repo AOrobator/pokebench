@@ -14,8 +14,8 @@ function root(): string { return mkdtempSync(join(tmpdir(), "next-run-")); }
 // Game servers that answer /health in these tests.
 const UP = new Set([9001, 9003]);
 const healthy = (port: number): Promise<boolean> => Promise.resolve(UP.has(port));
-function liveRun(runsRoot: string, id: string, ended = false, port = 9001, tail: "none" | "paused" = "none"): void {
-  const log = new Log(); log.add(0, { ...START, isolation: { ...START.isolation, port } });
+function liveRun(runsRoot: string, id: string, ended = false, port = 9001, tail: "none" | "paused" = "none", startMs = 0): void {
+  const log = new Log(); log.add(startMs, { ...START, isolation: { ...START.isolation, port } });
   if (tail === "paused") log.add(1, { type: "operator_control", turn: 0, action: "pause", status: "applied", request: 1, emulator_frozen: true });
   if (ended) log.add(2, { type: "run_end", turn: 0, reason: "budget", furthest_milestone: null, turns: 0, wall_ms: 1, tokens: { input: 0, output: 0 }, frames: { saved: 0, bytes: 0 } });
   mkdirSync(join(runsRoot, id), { recursive: true });
@@ -65,6 +65,16 @@ describe("operator control requests", () => {
     mkdirSync(join(runsRoot, "unreadable"));
     writeFileSync(join(runsRoot, "unreadable", "events.jsonl"), "");
     expect(await liveRuns(runsRoot, () => Promise.reject(new Error("probe failed")))).toEqual([]);
+  });
+
+  it("gives a reused game-server port to the newest unended run only", async () => {
+    const runsRoot = root();
+    liveRun(runsRoot, "2026-10-18T01-29-44_abandoned", false, 9001, "none", 0);
+    liveRun(runsRoot, "2026-10-19T23-16-14_current", false, 9001, "none", 60_000);
+    liveRun(runsRoot, "2026-10-19T23-16-14_other", false, 9003, "none", 60_000);
+    liveRun(runsRoot, "2026-10-19T23-30-00_later-but-dead", false, 9002, "none", 120_000);
+    expect((await liveRuns(runsRoot, healthy)).sort()).toEqual(["2026-10-19T23-16-14_current", "2026-10-19T23-16-14_other"]);
+    await expect(appendControl(runsRoot, "2026-10-18T01-29-44_abandoned", "stop", NOW, healthy)).rejects.toThrow(/not live/);
   });
 
   it("asks the run's game server for /health on loopback", async () => {

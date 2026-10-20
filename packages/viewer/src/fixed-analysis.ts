@@ -241,13 +241,14 @@ export function rescoreTrials(trials: readonly AnalysisTrial[], events: (run: st
 
 // Every line is one of this run's events, the first is run_start and the last is run_end.
 function completeLog(log: LogLines, run: string): boolean {
-  let first: unknown, last: unknown;
+  let seen = false, first: unknown, last: unknown;
   for (const line of linesOf(log)) {
     if (line.trim() === "") continue;
     let e: unknown;
     try { e = JSON.parse(line); } catch { return false; }
     if (typeof e !== "object" || e === null || !("run" in e) || e.run !== run || !("type" in e)) return false;
-    first ??= e.type; last = e.type;
+    if (!seen) { seen = true; first = e.type; }
+    last = e.type;
   }
   return first === "run_start" && last === "run_end";
 }

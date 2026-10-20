@@ -25,3 +25,4 @@
 
 Non-goals: shrinking `state` events (a recorder change; follow-up), timeline changes, any change to run data.
 - Review round 1: Claude LGTM; Grok and GPT BLOCKING on one finding: `completeLog` used `first ??= e.type`, so a first event with `type: null` let a later run_start count as first. RED test added.
+- Fix: `completeLog` takes the first event's type with a seen flag. Gates rerun: lint clean, coverage passes.

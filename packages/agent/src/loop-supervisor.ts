@@ -164,7 +164,13 @@ export class SupervisorBriefing {
   // briefing-exits-v1: the latest result state, so a battle (which keeps the overworld snapshot stale) is placed now.
   if(this.exits!==null&&after.started&&after.map_id!==null)this.shown=after;
   // positive-supervisor-v1: a battle, a menu or another screen ends a run of field attempts.
-  if(!after.started||after.screen!=="overworld"){this.streak=null;return;}
+  if(!after.started||after.screen!=="overworld"){
+   this.streak=null;
+   // semantic-navigation-v2: a talk that starts a battle or opens a screen still acted on its target.
+   const call=this.calls.get(event.id);
+   if(call!==undefined&&(call.name==="navigate_to_target"||call.name==="explore_map")){this.calls.delete(event.id);this.semanticTried(call,event.semantic_navigation);}
+   return;
+  }
   this.latest=after;
   const key=this.room(after);this.path.delete(key);this.path.set(key,after);
   const map=mapOf(after);if(map!==null)this.entered.add(map);
@@ -287,13 +293,17 @@ export class SupervisorBriefing {
  private touch(room:string,tile:string):void {
   const tiles=this.touched.get(room)??new Set<string>();tiles.add(tile);this.touched.set(room,tiles);
  }
+ // semantic-navigation-v2: the recorded receipt names the target the call selected (explore_map's own choice
+ // too); it counts as tried only once the call acted on it, the way a faced A press does.
+ private semanticTried(call:Call,receipt:SemanticReceipt|undefined):SemanticReceipt["target"]|undefined {
+  const target=receipt?.target;
+  const key=target===undefined?null:target.kind==="object"?objectKey(target.local_id):target.kind==="connection"?null:at(target.x,target.y);
+  if(receipt?.activation_attempted===true&&call.before!==null&&key!==null)this.touch(this.room(call.before),key);
+  return target;
+ }
  private label(call:Call,receipt?:SemanticReceipt):string|null {
-  // semantic-navigation-v2: the recorded receipt names the target the call selected (explore_map's own choice
-  // too); it counts as tried only once the call acted on it, the way a faced A press does.
   if(call.name==="navigate_to_target"||call.name==="explore_map"){
-   const target=receipt?.target;
-   const key=target===undefined?null:target.kind==="object"?objectKey(target.local_id):target.kind==="connection"?null:at(target.x,target.y);
-   if(receipt?.activation_attempted===true&&call.before!==null&&key!==null)this.touch(this.room(call.before),key);
+   const target=this.semanticTried(call,receipt);
    return target===undefined?call.name:`${call.name} ${JSON.stringify(target)}`;
   }
   if(call.name==="navigate_to"){
@@ -441,7 +451,8 @@ export class SupervisorBriefing {
    return targets.filter(t=>!tried(t)).sort((a,b)=>rank(a)-rank(b))
     .map(t=>`${this.target(t)} at ${at(t.x,t.y)} (${t.activation}${dead(t)?"; its condition did not match when the readout last showed it, so stepping on it then did nothing":""})${use(t)}`);
   }
-  const open=targets.filter(t=>!done.has(at(t.x,t.y))).sort((a,b)=>Number(b.kind==="warp")-Number(a.kind==="warp"));
+  // semantic-navigation-v2 marks a person it talked to by object id.
+  const open=targets.filter(t=>!done.has(at(t.x,t.y))&&!(t.kind==="object"&&t.local_id!==null&&done.has(objectKey(t.local_id)))).sort((a,b)=>Number(b.kind==="warp")-Number(a.kind==="warp"));
   return open.map(t=>`${this.target(t)} at ${at(t.x,t.y)} (${t.activation})${use(t)}`);
  }
  private target(t:{readonly kind:string;readonly name?:string|null;readonly destination?:readonly number[]|null}):string {

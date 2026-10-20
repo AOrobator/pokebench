@@ -125,3 +125,15 @@ def test_stacked_warps_on_one_tile_get_no_target():
     lines = format_readout(state).splitlines()
     assert not any("navigate_to_target" in line and "(5,8)" in line for line in lines)
     assert any(line.startswith("object id 2") and '"local_id":2}' in line for line in lines)
+
+
+def test_a_tile_with_two_kinds_of_interaction_gets_no_target():
+    from pokebench_env.semantic_targets import same_tile
+
+    shelf = InteractionTarget("background", 3, 1, 3, "A", facing="up")
+    metatile = InteractionTarget("metatile_bookshelf", 3, 1, 3, "A", facing="up")
+    door = InteractionTarget("warp", 3, 1, 0, "movement", destination=(1, 2, 0))
+    targets = (shelf, metatile, door, MAY)
+    assert same_tile(targets, shelf) == 2 and same_tile(targets, metatile) == 2
+    assert same_tile(targets, door) == 1
+    assert same_tile((SIGN, MAY), SIGN) == 1

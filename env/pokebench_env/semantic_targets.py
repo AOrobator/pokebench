@@ -54,5 +54,15 @@ def object_argument(local_id: int) -> str:
 
 
 def same_tile(targets: Iterable[InteractionTarget] | None, target: InteractionTarget) -> int:
-    """How many listed targets share this one's kind and tile."""
-    return sum(t.kind == target.kind and (t.x, t.y) == (target.x, target.y) for t in targets or ())
+    """How many listed targets the tool could confuse with this one on its tile.
+
+    A warp is told apart from other warps. Any other interaction (background, bookshelf
+    metatile, trigger) must be the only non-object, non-warp target on its tile.
+    """
+
+    def rival(t: InteractionTarget) -> bool:
+        if target.kind == "warp":
+            return t.kind == "warp"
+        return t.kind not in ("object", "warp")
+
+    return sum(rival(t) and (t.x, t.y) == (target.x, target.y) for t in targets or ())

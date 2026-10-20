@@ -94,6 +94,19 @@ it("semantic-navigation-v2: a navigate_to_target or explore_map receipt counts i
  }
 });
 
+it("semantic-navigation-v2: a talk that starts a battle still counts its target as tried, with or without briefing exits",()=>{
+ for(const exits of [true,false]){
+  const b=new SupervisorBriefing({...ALL_ON,"semantic-navigation-v2":true,"briefing-exits-v1":exits});
+  result(b,1);
+  b.observe(ev({type:"tool_call",id:"s",name:"navigate_to_target",args:{map_id:[1,4],target:{kind:"object",local_id:1}}},3));
+  b.observe(st(4,{screen:"battle",in_battle:true}));
+  b.observe(ev({type:"tool_result",id:"s",name:"navigate_to_target",is_error:false,duration_ms:1,text:"Semantic navigation: activation handed control back: battle began. Selected map object 1.",frames:[],state_seq:4,semantic_navigation:{target:{kind:"object",local_id:1},activation_attempted:true}},5));
+  result(b,6);
+  const text=b.text("cycle",8);
+  expect(text.slice(text.indexOf("not tried yet")).split("\n")[0]).not.toContain("SCIENTIST_1");
+ }
+});
+
 it("counts only actions as tried: standing on a door mat leaves that exit untried, and story progress clears the list",()=>{
  // Today's rule; briefing-exits-v1 keeps tried things across a story step (briefing-exits.test.ts).
  const b=new SupervisorBriefing({...ALL_ON,"semantic-navigation-v2":false,"briefing-exits-v1":false});

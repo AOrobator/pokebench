@@ -162,6 +162,11 @@ describe("review round 1 fixes",()=>{
   expect(listedArgument({kind:"warp",x:2,y:2,local_id:null},listed)).toBeNull();
   expect(listedArgument({kind:"warp",x:4,y:4,local_id:null},listed)).toBe('{"kind":"warp","x":4,"y":4}');
   expect(listedArgument({kind:"object",x:4,y:4,local_id:3},listed)).toBe('{"kind":"object","local_id":3}');
+  const shelf=[{kind:"background",x:3,y:1},{kind:"metatile_bookshelf",x:3,y:1},{kind:"warp",x:3,y:1},{kind:"background",x:6,y:6},{kind:"object",x:6,y:6}];
+  expect(listedArgument({kind:"background",x:3,y:1,local_id:null},shelf)).toBeNull();
+  expect(listedArgument({kind:"metatile_bookshelf",x:3,y:1,local_id:null},shelf)).toBeNull();
+  expect(listedArgument({kind:"warp",x:3,y:1,local_id:null},shelf)).toBe('{"kind":"warp","x":3,"y":1}');
+  expect(listedArgument({kind:"background",x:6,y:6,local_id:null},shelf)).toBe('{"kind":"interaction","interaction_kind":"background","x":6,"y":6}');
  });
  it("promises dialogue advance only with dialogue auto-advance on",()=>{
   const on=tools(ON).find(t=>t.name==="navigate_to_target")?.description??"";

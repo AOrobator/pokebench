@@ -13,9 +13,11 @@ import {
   type LoopHit,
   type LoopRule,
   type LoopRuleId,
+  type NavigationLoopKind,
   type StallKind,
 } from "./types.js";
 import { semanticState } from "./fingerprints.js";
+import { SameTargetNoProgress, type SameTargetWarning } from "./same-target.js";
 import { CallTracker } from "./call-tracker.js";
 import { BASIC_MESSAGES, BasicRules } from "./rules/basic.js";
 import {
@@ -44,6 +46,7 @@ export {
   type LoopMode,
   type LoopNotice,
   type LoopPolicy,
+  type NavigationLoopKind,
   type StallKind,
 } from "./types.js";
 
@@ -76,13 +79,15 @@ export class LoopCoordinator {
   private readonly battleRefusals: boolean;
   private readonly ineffectiveNavigation:boolean;
   private readonly navigationFailures=new NavigationFailure();
+  private readonly sameTarget: SameTargetNoProgress | null;
+  private turn = 0;
   private readonly basic: BasicRules;
   private readonly rules: readonly LoopRule[];
   private readonly interfaces: InterfaceRules;
   private readonly field: FieldRules;
   private completed = 0;
   private episode: {
-    kind: LoopKind;
+    kind: LoopKind | NavigationLoopKind;
     message: string;
     exposed: boolean;
     recovery: number;
@@ -95,6 +100,8 @@ export class LoopCoordinator {
     menu: boolean;
     refusalAnchor: string | null;
     navigationFailure:boolean;
+    // same-target-no-progress-v1: the warned target; such an episode closes only on that guard's resets.
+    sameTarget: string | null;
   } | null = null;
   private stallNote: { text: string; exposed: boolean } | null = null;
   private run: string | null = null;
@@ -121,6 +128,7 @@ export class LoopCoordinator {
       triggerScriptLoops = false,
       battleRefusals = false,
       ineffectiveNavigation = false,
+      sameTargetNoProgress = false,
     } = options;
     this.notify = notify;
     this.policy = policy;
@@ -136,6 +144,7 @@ export class LoopCoordinator {
     this.triggerScriptLoops = triggerScriptLoops;
     this.battleRefusals = battleRefusals;
     this.ineffectiveNavigation=ineffectiveNavigation;
+    this.sameTarget = sameTargetNoProgress ? new SameTargetNoProgress(supervisor !== undefined && mode === "enforced") : null;
     this.basic = new BasicRules(policy, interactions, battles, ineffectiveLoops, transitions);
     this.interfaces = new InterfaceRules(policy.ineffective, clockViews, closedDialogue, menuLoop);
     this.field = new FieldRules(policy, interactions, transitions, pushback, ineffectiveLoops, triggerScriptLoops);
@@ -157,10 +166,15 @@ export class LoopCoordinator {
     this.run ??= event.run;
     if (event.run !== this.run || event.seq <= this.eventSeq) return;
     this.eventSeq = event.seq;
+    this.turn = event.turn;
     if (event.type === "turn_start" && this.episode !== null)
       this.episode.exposed = true;
     if (this.transitions && event.type === "milestone" && event.origin !== "present_at_start" && event.name !== "GAME_RUNNING" && !MEASUREMENT_ONLY_MILESTONES.has(event.name))
       this.field.milestone();
+    if (this.sameTarget !== null && event.type === "milestone" && event.kind === "story" && event.origin !== "present_at_start" && !MEASUREMENT_ONLY_MILESTONES.has(event.name)) {
+      this.sameTarget.reset();
+      if (this.episode?.sameTarget != null) this.recover(event.seq, false);
+    }
     if (event.type === "state") {
       if ("started" in event) {
         this.field.observeState(event, event.seq, [...this.callTracker.pending()]);
@@ -178,6 +192,7 @@ export class LoopCoordinator {
             if (line !== "" && !pending.spoken.includes(line)) pending.spoken.push(line);
           }
         }
+        if (this.sameTarget?.state(event) === true && this.episode?.sameTarget != null) this.recover(event.seq, false);
         this.nativeProgress(event, event.seq);
         this.callTracker.state(event);
       } else {
@@ -221,6 +236,8 @@ export class LoopCoordinator {
     this.completed++;
     if (this.stallNote?.exposed === true) this.stallNote = null;
     const seq = call.seq ?? this.completed;
+    const same = this.sameTarget?.complete(call, this.turn, this.episode?.sameTarget ?? null) ?? null;
+    if (same?.cleared === true && this.episode?.sameTarget != null) this.recover(seq, false);
     const failure=this.ineffectiveNavigation?this.navigationFailures.observe({...call,seq}):null;
     if(failure?.active===false&&this.episode?.navigationFailure===true)this.recover(seq,true);
     const refusal = this.basic.refusal(call,this.battleRefusals);
@@ -239,7 +256,7 @@ export class LoopCoordinator {
       this.field.novel(recovery.newPlace);
     }
     if (
-      this.episode?.refusalAnchor == null && !(this.episode?.navigationFailure===true&&failure?.active!==false) && (
+      this.episode?.refusalAnchor == null && this.episode?.sameTarget == null && !(this.episode?.navigationFailure===true&&failure?.active!==false) && (
         (evaluation.novel && !recovery.held) || recovery.escaped ||
         (evaluation.game && (call.name === "press" || (call.name === "navigate_to" && call.acted===true)) && this.episode?.kind === "planning")
       )
@@ -327,8 +344,13 @@ export class LoopCoordinator {
     }
     const selected = firstLoopHit(this.rules, call, { seq, policy: this.policy, candidates });
     const hit = selected?.hit.kind ?? null;
+    if (same?.warning != null && (this.episode === null || this.episode.sameTarget !== null)) {
+      this.sameTargetWarning(same.warning, seq);
+      return;
+    }
     if (
       this.episode?.exposed &&
+      this.episode.kind !== "same_target_no_progress" &&
       this.episode.recovery >= this.episode.window &&
       !this.episode.threshold
     ) {
@@ -363,6 +385,7 @@ export class LoopCoordinator {
         menu: selected.rule.id === "battle-menu",
         refusalAnchor: refusal.status === null ? null : refusal.native,
         navigationFailure:failure?.active===true,
+        sameTarget: null,
       };
       this.notice("warning", seq);
       // Speedrun: the supervisor briefs as soon as a loop is found, then again every window while it lasts.
@@ -401,10 +424,29 @@ export class LoopCoordinator {
     this.nativeState = state;
     if (!advanced || this.stopped) return;
     if(this.ineffectiveNavigation)this.navigationFailures.reset();
+    this.sameTarget?.reset();
     this.recover(seq, true);
     this.basic.resetNativeProgress();
     this.interfaces.resetNativeProgress();
     this.field.resetNativeProgress(this.callTracker.pending());
+  }
+
+  // same-target-no-progress-v1: the note is the briefing; a later warning for any target rebriefs the open episode.
+  private sameTargetWarning(warning: SameTargetWarning, seq: number): void {
+    const supervised = this.supervisor !== undefined && this.mode === "enforced";
+    const evidence = warning.evidence.slice(0, 1);
+    if (this.episode !== null) {
+      Object.assign(this.episode, { message: warning.text, briefing: supervised ? warning.text : null, evidence, sameTarget: warning.key });
+      this.notice(supervised ? "supervisor" : "warning", seq);
+      return;
+    }
+    this.episode = {
+      kind: "same_target_no_progress", message: warning.text, exposed: false, recovery: 0, threshold: false, evidence,
+      window: this.policy.recovery, briefing: supervised ? warning.text : null, pushback: false, revisit: false, menu: false,
+      refusalAnchor: null, navigationFailure: false, sameTarget: warning.key,
+    };
+    this.notice("warning", seq);
+    if (supervised) this.notice("supervisor", seq);
   }
 
   private noticeMessage(phase: "warning" | "recovered" | "stop" | "supervisor", episode: NonNullable<LoopCoordinator["episode"]>): string {

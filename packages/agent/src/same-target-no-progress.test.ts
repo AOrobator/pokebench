@@ -10,12 +10,20 @@ import {recorded} from "../test-support/battle-facts.js";
 import {checkEvent,type RunEvent} from "./events.js";
 import {ALL_ON as CURRENT_ON,FEATURES,SWITCHABLE_FEATURES,dependencyProblems,featureInfo,featuresOf,playHarnessFeatures,type FeatureSet} from "./features.js";
 import type {GameStateSnapshot} from "./game-state.js";
-import {Governor} from "./harness.js";
+import {readFileSync} from "node:fs";
+import {Governor,attachLoopGuard} from "./harness.js";
 import {LoopCoordinator} from "./loop/coordinator.js";
 import {SAME_TARGET_CALLS,SAME_TARGET_TILES,SameTargetNoProgress} from "./loop/same-target.js";
 import type {CompletedCall,LoopNotice} from "./loop-detection.js";
+import {experimentArms,parseExperiment} from "./experiments.js";
 import {flagFeatures,normalizeFeatures} from "./play-preset.js";
-import {playLoopGuard} from "./play-wiring.js";
+import {loopSupervisor} from "./play-wiring.js";
+import type {RunRecorder} from "./recorder.js";
+
+// The loop guard exactly as live.ts and decision-probe.ts attach it (the source test below pins those calls).
+function playLoopGuard(features:FeatureSet,recorder:Pick<RunRecorder,"subscribe"|"recordLoopGuard">,governor:Governor){
+ return attachLoopGuard(recorder,governor,undefined,"enforced",features["interaction-loop-detection-v1"],loopSupervisor(features,recorder),features["transition-loop-detection-v1"],features["pushback-loop-detection-v1"],features["battle-observation-loop-v1"],features["navigation-truth-v1"],features["ineffective-loops-v1"],features["battle-menu-loop-v1"],features["clock-view-loop-v1"],features["reopened-dialogue-loop-v1"],features["trigger-script-loop-v1"],features["battle-refusal-loop-v1"],features["ineffective-navigation-v2"],features["same-target-no-progress-v1"]);
+}
 
 const ID="same-target-no-progress-v1";
 const at=(x:number,y:number,extra:Partial<GameStateSnapshot>={}):GameStateSnapshot=>({screen:"overworld",started:true,name:"A",location:"RUSTURF TUNNEL",map_id:[24,4],position:{x,y},facing:"up",field_controls_locked:false,in_battle:false,party:[],money:0,badges:[],play_time_s:0,...extra});
@@ -126,7 +134,7 @@ describe("SameTargetNoProgress counter",()=>{
  it("keys navigate_to_target by its resolved tile, falls back to the current map and leaves connections untracked",()=>{
   const g=new SameTargetNoProgress(true);
   const objects={objects:[{local_id:3,map_id:[24,4] as [number,number],graphics_id:1,sprite_kind:"ITEM_BALL",x:3,y:1}],triggers:[],dialogue:"",message:null};
-  const start=at(4,9,{world_context:objects as unknown as GameStateSnapshot["world_context"]});
+  const start=at(4,9,{world_context:objects as unknown as NonNullable<GameStateSnapshot["world_context"]>});
   const target=(seq:number,t:Record<string,unknown>):CompletedCall=>({...walk(seq,start,at(4,8)),name:"navigate_to_target",args:{map_id:[24,4],target:t},text:"Target: stopped\nScreen: overworld"});
   for(let i=1;i<=3;i++)expect(g.complete(target(i,{kind:"object",local_id:3}),1,null).warning).toBeNull();
   const fired=g.complete(walk(4,start,at(4,8),{x:3,y:1},{text:"Target: stopped"}),1,null).warning;
@@ -202,7 +210,8 @@ describe("LoopCoordinator with same-target-no-progress-v1",()=>{
   const {c,notices}=run(true);
   for(let i=1;i<=6;i++)c.complete({name:"observe",args:{},isError:false,text:"",state:at(4,9),seq:i});
   expect(notices.map(n=>n.kind)).toContain("observation");
-  drive(c,shape,10);
+  for(let i=0;i<8;i++)c.complete(walk(10+i,at(4,9),at(4,9)));
+  expect(c.context()).toBe("SUPERVISOR: generic observation");
   expect(notices.map(n=>n.kind)).not.toContain("same_target_no_progress");
  });
  it("a diagnostic coordinator only would_warn",()=>{
@@ -227,7 +236,7 @@ describe("same-target-no-progress-v1 on run a8f9 (RUSTURF TUNNEL, navigate_to (2
   let current:RunEvent=events[0] as RunEvent;
   const recorder={subscribe:(fn:(e:RunEvent)=>void)=>{subscribers.push(fn);},recordLoopGuard:(n:LoopNotice)=>{guards.push(checkEvent({v:1,run:current.run,seq:current.seq,t:current.t,turn:current.turn,type:"loop_guard",...n,evidence:[...n.evidence]}) as Guard);}};
   const governor=new Governor({limits:{maxTurns:5000,maxWallMs:1e12,failureLimit:3},retry:()=>undefined,abort:()=>undefined,now:()=>0});
-  const detector=playLoopGuard(features,recorder,governor,"enforced");
+  const detector=playLoopGuard(features,recorder,governor);
   for(const e of events){
    if(e.type==="loop_guard"||e.type==="run_start")continue;
    current=e;
@@ -249,7 +258,7 @@ describe("same-target-no-progress-v1 on run a8f9 (RUSTURF TUNNEL, navigate_to (2
   expect(replay(RUN).guards).toEqual([]);
  });
  it("warns at the 4th counted (29,16) call after turn 1282 (result 41310, turn 1286) with a note that matches the state",()=>{
-  const {guards,contexts}=replay({...RUN,[ID]:true} as FeatureSet);
+  const {guards,contexts}=replay({...RUN,[ID]:true});
   const first=guards[0];
   expect(first).toMatchObject({kind:"same_target_no_progress",phase:"warning",seq:41310,turn:1286,evidence:[41131,41310],mode:"enforced"});
   const note=`SUPERVISOR: Since turn 1282, when you were at (4,9), 4 of your navigate_to calls to (29,16) on RUSTURF TUNNEL (map 24/4) have ended within 3 tiles of (4,9). The latest 4 ended at (5,8), (4,7), (4,8) when a battle began, and (5,9). Their results said: "${result(41131)}"; "${result(41178)}"; "${result(41204)}"; "${result(41310)}".`;
@@ -261,7 +270,8 @@ describe("same-target-no-progress-v1 on run a8f9 (RUSTURF TUNNEL, navigate_to (2
   const second=guards[2];
   expect(second).toMatchObject({phase:"supervisor",seq:41605,turn:1292,evidence:[41131,41605]});
   expect(second?.message).toBe(`SUPERVISOR: Since turn 1282, when you were at (4,9), 8 of your navigate_to calls to (29,16) on RUSTURF TUNNEL (map 24/4) have ended within 3 tiles of (4,9). The latest 4 ended at (5,9) when a battle began, (5,7), (5,7) when a battle began, and (4,8). Their results said: "${result(41336)}"; "${result(41448)}"; "${result(41499)}"; "${result(41605)}". 3 of the 8 stopped when a battle began.`);
-  expect(guards.every(g=>g.kind==="same_target_no_progress"&&g.phase!=="stop")).toBe(true);
+  expect(guards.every(g=>g.kind==="same_target_no_progress"&&g.phase!=="stop"&&g.phase!=="recovered")).toBe(true);
+  expect(guards.filter(g=>g.phase==="supervisor").map(g=>[g.turn,g.seq])).toEqual([[1286,41310],[1292,41605],[1296,41793],[1302,42098],[1308,42403],[1318,42758]]);
  });
 });
 
@@ -278,11 +288,31 @@ describe("same-target-no-progress-v1 registry and wiring",()=>{
   expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false})[ID]).toBe(false);
   expect(ALL_ON[ID]).toBe(false);
  });
- it("the production loop guard factory honors the switch",()=>{
+ it("is registered as a pending one-switch experiment and joins only the bundle arm of the fixed experiments",()=>{
+  const entry=parseExperiment(JSON.parse(readFileSync(new URL(`../../../experiments/${ID}.json`,import.meta.url),"utf8")));
+  expect(entry.queuePosition).toBeUndefined();
+  expect(entry.activationMilestone).toBe("STARTER_CHOSEN");
+  const {incumbent,candidate}=experimentArms(entry);
+  expect(incumbent.features["deterministic-loop-guard-v1"]).toBe(true);
+  expect(Object.keys(candidate.features).filter(id=>candidate.features[id as keyof FeatureSet]!==incumbent.features[id as keyof FeatureSet])).toEqual([ID]);
+  for(const name of ["bundle-v-control","bundle-cook-1h"]){
+   const fixed=JSON.parse(readFileSync(new URL(`../../../experiments/fixed/${name}.json`,import.meta.url),"utf8")) as {base:{features:Record<string,boolean>};switches:string[]};
+   expect(fixed.base.features[ID]).toBe(false);expect(fixed.switches.at(-1)).toBe(ID);
+   expect(fixed.base.features["deterministic-loop-guard-v1"]).toBe(true);
+  }
+ });
+ it("live play and the decision probe pass the switch as the loop guard's last argument",()=>{
+  for(const file of ["live.ts","decision-probe.ts"]){
+   const source=readFileSync(new URL(`./${file}`,import.meta.url),"utf8");
+   const call=source.slice(source.indexOf("attachLoopGuard("));
+   expect(call.slice(0,call.indexOf(");")).endsWith(`features["ineffective-navigation-v2"],features["${ID}"]`),file).toBe(true);
+  }
+ });
+ it("the production loop guard honors the switch",()=>{
   const build=(on:boolean)=>{
    const notices:LoopNotice[]=[];const subs:((e:RunEvent)=>void)[]=[];
    const governor=new Governor({limits:{maxTurns:50,maxWallMs:1e12,failureLimit:3},retry:()=>undefined,abort:()=>undefined,now:()=>0});
-   const d=playLoopGuard({...ALL_ON,[ID]:on,"loop-guard-supervisor-v1":false},{subscribe:fn=>{subs.push(fn);},recordLoopGuard:n=>{notices.push(n);}},governor,"enforced");
+   const d=playLoopGuard({...ALL_ON,[ID]:on,"loop-guard-supervisor-v1":false},{subscribe:fn=>{subs.push(fn);},recordLoopGuard:n=>{notices.push(n);}},governor);
    [at(5,8),at(4,7),battle(4,8),at(5,9)].forEach((to,i)=>{d.complete(walk(i+1,at(4,9),to));});
    return notices.map(n=>n.kind);
   };

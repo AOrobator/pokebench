@@ -43,11 +43,12 @@ No new inputs, subprocesses, network or file access. Model-facing text quotes ha
 
 **M1 — same-target-no-progress-v1**
 - [x] Write tests (unit counter cases; a8f9 evidence replay; registry; production wiring; viewer timeline/Activity History). Agent: `src/same-target-no-progress.test.ts` (18 tests; red: `./loop/same-target.js` and `playLoopGuard` do not exist). Viewer: `src/same-target-no-progress.test.ts` (1 test; red: the schema has no `same_target_no_progress` kind and the viewer has no label).
-- [x] COMMIT: `test: same-target-no-progress-v1 counter, coordinator episode and a8f9 replay (RED)` (sha in next entry)
-- [ ] Implement
-- [ ] Gates: `just test`, `just lint`, `just build`, `just coverage` (90 floor both stacks)
-- [ ] COMMIT: `feat: ... (GREEN)`
-- [ ] Explainer, FEATURE_EXPLAINERS, pending experiment entry, readiness row, bundle arm
+- [x] COMMIT: `test: same-target-no-progress-v1 counter, coordinator episode and a8f9 replay (RED)` (ba17f7bf)
+- [x] Implement: `loop/same-target.ts` (counter + note); `LoopCoordinator` option `sameTargetNoProgress` (episode kind `same_target_no_progress`, shielded from generic recovery and the window stop, closed on the counter's resets, rebriefed every 4th counted call); `LoopDetector`/`attachLoopGuard` take it as the last positional argument; live.ts and decision-probe.ts pass `features["same-target-no-progress-v1"]`. Schema enum extended (`just schema`). Viewer: label in `loopLabel` and the trace; `RunView` does not push this kind to `errors` (the timeline's only loop source), so no timeline mark. Registry: SWITCHABLE_FEATURES/FEATURES/playHarnessFeatures last, guard, needs deterministic-loop-guard-v1; presets, flagFeatures, legacy fixture, DEFAULT_NEXT_RUN off. Registry index churn across ~45 agent tests and one viewer test (open-goal-prompt bundle arm list).
+- [x] Guard-deletion checks (each restored, tests green again): (1) coordinator `this.sameTargetWarning(...)` replaced by `void same;` → 6 red (coordinator episode tests, a8f9 evidence, production wiring); (2) live.ts without the new argument → the source test red; (3) the generic-recovery shield (`this.episode?.sameTarget == null`) removed → 2 red, including the a8f9 evidence test (the generic novel-state recovery would have closed the note right away); (4) viewer `RunView` errors filter removed → the viewer timeline test red.
+- [x] Gates: `just build`, `just lint` clean; `just test` agent 2998, viewer 1437, pytest 2998; `just coverage` agent 97.22/92.97/97.62/99.17 (stmts/branches/funcs/lines; `loop/same-target.ts` 99.09/94.28/100/100), viewer 95.09/91.06/93.85/97.7, Python lines 97.09 branches 92.62 functions 100. Worktree setup for the Python gates: the vendor submodule was not checked out in this worktree, so its pinned files were copied from the main checkout's submodule (rsync without `.git`, gitlink unchanged), and the native mGBA binding was copied from the main env/.venv into this worktree's env/.venv (mypy needs `mgba._pylib`). No Python source changed on this branch.
+- [x] COMMIT: `feat: same-target-no-progress-v1 ... (GREEN)` (sha in next entry)
+- [x] Explainer `docs/explainers/same-target-no-progress-v1.html` (`just pages-check` prints nothing), README line, FEATURE_EXPLAINERS + server test; pending `experiments/same-target-no-progress-v1.json` (incumbent copied from whiteout-healed-v1's, this switch off); readiness row (PENDING until `just experiments` runs after landing: the experiment CLI reads the main checkout); bundle arm (switches) of bundle-v-control and bundle-cook-1h, off in their base.
 - [ ] Multi-model review loop (principles, claude -p, Grok, GPT/Codex)
 
 ## Closing the Loop
@@ -59,6 +60,10 @@ Tests for code; the explainer checked with `just pages-check`; viewer behavior b
 - 2026-10-20 ~7:05 PM ET: discovery; fixture `packages/agent/src/fixtures/same-target-a8f9.jsonl.gz` made from a8f9 seq 41060–43000 plus run_start.
 
 ## Surprises
+
+- The generic novel-state recovery closes any episode when a walk ends on a new tile, so without a shield the note would be withdrawn at the next call (deletion check 3). The episode is therefore owned by the guard's resets.
+- While the note is open, other loop rules cannot open an episode and `stall()` refuses stall briefings (existing coordinator rule: one episode at a time). In the a8f9 replay the milestone-drought note at turn 1309 would not have been sent with the switch on.
+- Design choice beyond the spec: an open note also closes when a completed call leaves the player in a free field 4 or more tiles from its anchor (otherwise a note could outlive a walk away by presses until a map change).
 
 ## Multi-Model Review Log
 

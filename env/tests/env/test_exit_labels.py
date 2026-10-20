@@ -99,9 +99,10 @@ def test_on_no_warp_prints_a_bare_map_id(seq: str) -> None:
     warps = line(text, "Warps: ")
     assert "-> map " not in warps
     for x in text.split("\n"):
-        if x.startswith("Warp to ") or x.startswith("Warp destination at "):
-            assert not x.split(":", 1)[1].lstrip().startswith("map ")
-            assert "Warp to map" not in x and "destination map " not in x
+        if x.startswith("Warp destination at "):
+            assert not x.split(": ", 1)[1].startswith("map ")
+        if x.startswith("Warp to "):
+            assert not x.startswith("Warp to map") and "destination map " not in x
 
 
 def test_on_woods_names_route_104_with_map_id_everywhere() -> None:
@@ -116,7 +117,8 @@ def test_on_woods_north_exit_reaches_rustboro_south_exit_does_not() -> None:
     text = readout(WOODS, switch=True)
     north = line(text, "Warp destination at (14,5): ")
     assert north.startswith(
-        "Warp destination at (14,5): ROUTE 104 (map 0/19), arriving at (10,30); from there, on foot:"
+        "Warp destination at (14,5): ROUTE 104 (map 0/19), arriving at (10,30);"
+        " from there, on foot:"
     )
     assert "NORTH edge -> RUSTBORO CITY (map 0/3)" in north
     assert "(10,30) or (11,30) -> this map at (14,5) or (15,5)" in north
@@ -204,7 +206,9 @@ def build_map(
     warp_bytes = mem.alloc(
         b"".join(struct.pack("<hhBBBB", x, y, 0, wid, n, g) for x, y, wid, g, n in warps) or b"\0"
     )
-    events = mem.alloc(bytes([0, len(warps), 0, 0]) + struct.pack("<III", 0, warp_bytes, 0) + bytes(4))
+    events = mem.alloc(
+        bytes([0, len(warps), 0, 0]) + struct.pack("<III", 0, warp_bytes, 0) + bytes(4)
+    )
     table = 0
     if connections:
         entries = mem.alloc(
@@ -339,10 +343,10 @@ def test_arrival_text_handles_unreadable_and_out_of_range() -> None:
     cache: dict[tuple[int, int], RomMap | None] = {}
     assert arrival_text(mem.read, (0, 0), here, (0, 1, 9), shown, cache) is None
     assert arrival_text(mem.read, (0, 0), here, (0, 9, 0), shown, cache) is None
-    # An unnamed destination map is still described by its map ID.
+    # A map the popup does not name says so, with its map ID.
     assert arrival_text(mem.read, (0, 0), here, (0, 1, 1), lambda _m: None, cache) == (
         ", arriving at (4,1); from there, on foot: (4,1) -> this map at (3,0);"
-        " (4,2) -> map 0/3"
+        " (4,2) -> a map with no location name (map 0/3)"
     )
 
 
@@ -352,3 +356,66 @@ def test_read_exit_labels_without_a_readable_current_map_names_only() -> None:
     labels = read_exit_labels(mem.read, (0, 7), targets, None, shown)
     assert labels.name_map() == {(0, 1): "CAVE"}
     assert labels.arrivals == ()
+
+
+def test_unnamed_maps_say_so_and_never_share_a_name() -> None:
+    mem, shown = two_rooms()
+    blank = build_map(mem, [[FLOOR]], [], mapsec=MAPSEC_NONE)
+    blank2 = build_map(mem, [[FLOOR]], [], mapsec=87)
+    a = read_rom_map(mem.read, (0, 0))
+    assert a is not None
+    install(
+        mem,
+        {
+            (0, 0): build_map(mem, [[FLOOR] * 4], [(0, 0, 0, 0, 5), (3, 0, 0, 0, 6)], mapsec=1),
+            (0, 5): blank,
+            (0, 6): blank2,
+        },
+    )
+    targets = (target(0, 0, (0, 5, 0)), target(3, 0, (0, 6, 0)), target(1, 0, (0, 40, 0)))
+    labels = read_exit_labels(mem.read, (0, 0), targets, None, shown)
+    assert labels.name_map() == {
+        (0, 5): "a map with no location name",
+        (0, 6): "a map with no location name",
+    }
+    assert labels.arrivals == ()
+
+
+def test_warps_to_the_current_map_read_this_map_and_count_by_doorway() -> None:
+    mem = Mem()
+    # One map whose two separate rooms are joined by warps to itself (as the Petalburg Gym is),
+    # plus a two-tile doorway out to map 0/1.
+    rows = [[FLOOR, WALL, FLOOR], [FLOOR, WALL, FLOOR]]
+    room = build_map(
+        mem, rows, [(0, 0, 1, 0, 0), (2, 0, 0, 0, 0), (0, 1, 0, 0, 1), (0, 1, 0, 0, 1)], mapsec=1
+    )
+    out = build_map(mem, [[FLOOR, FLOOR]], [(0, 0, 2, 0, 0), (1, 0, 2, 0, 0)], mapsec=2)
+    install(mem, {(0, 0): room, (0, 1): out})
+    name_sections(mem, {1: "TOWN A", 2: "TOWN B"})
+
+    def shown(m: tuple[int, int]) -> str | None:
+        return section_name(mem.read, m)
+
+    targets = (
+        target(0, 0, (0, 0, 1)),
+        target(2, 0, (0, 0, 0)),
+        target(0, 1, (0, 1, 0)),
+    )
+    labels = read_exit_labels(mem.read, (0, 0), targets, None, shown)
+    assert labels.name_map() == {(0, 0): "this map", (0, 1): "TOWN B"}
+    assert labels.arrival(0, 0) == (
+        ", arriving at (2,0); from there, on foot: (2,0) -> this map at (0,0)"
+    )
+    assert labels.arrival(0, 1) is None
+    # Adjacent warp tiles to one map are one exit, so a lone doorway gets no arrival note.
+    door = read_exit_labels(
+        mem.read, (0, 1), (target(0, 0, (0, 0, 2)), target(1, 0, (0, 0, 2))), None, shown
+    )
+    assert door.name_map() == {(0, 0): "TOWN A"}
+    assert door.arrivals == ()
+
+
+def test_needs_named_warp_destinations_on_the_production_path() -> None:
+    without = frozenset([*off(True), "named-warp-destinations-v1"])
+    state = rerender.read_state(reader(WOODS), maps(), active_ui=True, off=without)
+    assert state.exit_labels is None

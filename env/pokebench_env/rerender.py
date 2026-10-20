@@ -17,6 +17,7 @@ from pathlib import Path
 from typing import TextIO
 
 from pokebench_env.blackout_readout import Whiteout
+from pokebench_env.exit_labels import SWITCH as EXIT_LABELS
 from pokebench_env.exit_reach import SWITCH as EXIT_REACH
 from pokebench_env.game_screen import ReadMemory
 from pokebench_env.game_state import GameState, MapNames, read_game_state
@@ -68,6 +69,8 @@ def read_state(
         unset_warp_enabled=UNSET_WARP not in off,
         semantic_navigation_enabled=not {"semantic-navigation-v1", "semantic-navigation-v2"} <= off,
         evolution_decision_enabled="evolution-decision-v1" not in off,
+        # exit-labels-v2 renames named-warp-destinations-v1's labels, so it needs that switch.
+        exit_labels_enabled=EXIT_LABELS not in off and "named-warp-destinations-v1" not in off,
     )
 
 

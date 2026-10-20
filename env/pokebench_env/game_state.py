@@ -15,6 +15,7 @@ from pokebench_env.battle_details import BattleDetails, read_battle_details
 from pokebench_env.battle_state import BattleState, read_battle_state
 from pokebench_env.character_presence import StoryCharacters, read_story_characters
 from pokebench_env.displayed_names import place_name, player_gender, sign_labeler
+from pokebench_env.exit_labels import ExitLabels, read_exit_labels, section_name
 from pokebench_env.exit_reach import ExitReach, build_exit_reach
 from pokebench_env.game_screen import ReadMemory, read_screen
 from pokebench_env.gba_text import GBA_TEXT, decode_text
@@ -146,6 +147,8 @@ class GameState:
     heal_trainers: HealFacts | None = None
     # mid-frame-readout-v1: the save was not read only because the snapshot was mid-frame.
     mid_frame: bool = False
+    # exit-labels-v2: popup names for warp destinations and arrival reach; None when off.
+    exit_labels: ExitLabels | None = None
 
 
 DYNAMIC_WARP = 0x14
@@ -241,6 +244,7 @@ def read_game_state(
     unset_warp_enabled: bool = False,
     semantic_navigation_enabled: bool = False,
     evolution_decision_enabled: bool = False,
+    exit_labels_enabled: bool = False,
 ) -> GameState:
     screen = read_screen(read)
     coherent = transition_coherence_enabled
@@ -494,5 +498,17 @@ def read_game_state(
         exit_reach=exit_reach,
         heal_trainers=read_heal_facts(read, save1, save2, map_id, party)
         if heal_trainers_enabled and screen.kind == "overworld" and not in_battle
+        else None,
+        exit_labels=read_exit_labels(
+            read,
+            map_id,
+            targets,
+            topology,
+            lambda m: (
+                place_name(maps.name(m), gender, player) if displayed_names_enabled else None
+            )
+            or section_name(read, m),
+        )
+        if exit_labels_enabled and nearby is not None
         else None,
     )

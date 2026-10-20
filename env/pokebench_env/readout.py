@@ -18,6 +18,7 @@ from pokebench_env.birch_pages import PHASE as BIRCH_PAGE
 from pokebench_env.birch_pages import SWITCH as BIRCH_PAGES
 from pokebench_env.blackout_readout import SWITCH as BLACKOUT
 from pokebench_env.blackout_readout import WHITING_OUT, Whiteout, whiteout_line
+from pokebench_env.exit_labels import SWITCH as EXIT_LABELS
 from pokebench_env.exit_reach import SWITCH as EXIT_REACH
 from pokebench_env.exit_reach import ExitReach
 from pokebench_env.game_state import GameState
@@ -92,6 +93,7 @@ SERVER_FEATURES = (
     "evolution-decision-v1",
     "original-speed-pacing-v1",
     "semantic-navigation-v2",
+    "exit-labels-v2",
 )
 
 
@@ -112,7 +114,7 @@ def features_off_from_env(env: Mapping[str, str]) -> frozenset[str]:
         "heal-before-trainers-v1,"
         "tutorial-party-owner-v1,mid-frame-readout-v1,unset-dynamic-warp-v1,status-names-v1,"
         "surf-gated-exits-v2,battle-effective-damage-v1,safe-navigation-strides-v1,evolution-decision-v1,original-speed-pacing-v1,"
-        "semantic-navigation-v2",
+        "semantic-navigation-v2,exit-labels-v2",
     )
     if raw == "":
         return frozenset()
@@ -198,6 +200,11 @@ def format_readout(
         if named_warps and "named-warp-destinations-v1" not in off
         else None
     )
+    # exit-labels-v2: every destination named as the location popup names it (a displayed
+    # place name first), plus arrival reach for warps whose destination shares its name.
+    labels = state.exit_labels if destinations is not None and EXIT_LABELS not in off else None
+    if labels is not None and destinations is not None:
+        destinations = {**labels.name_map(), **destinations}
     # The game's own dynamic warp (SaveBlock1.dynamicWarp) for MAP_DYNAMIC warps; ON side only.
     dynamic = None
     if destinations is not None and state.dynamic_warp is not None:
@@ -577,13 +584,20 @@ def format_readout(
                             f"unknown map {g}/{n}" if destinations is None else f"map {g}/{n}",
                         )
                     )
+                    labelled = labels is not None and name == names.get((g, n))
                     lines.append(
                         f"Warp destination at ({target.x},{target.y}): {name}"
+                        + (f" (map {g}/{n})" if labelled else "")
                         + (
                             gate.destination_note(plain=plain)
                             if gate is not None and across(target)
                             else reach.destination_note()
                             if reach is not None and cut_off(target)
+                            else ""
+                        )
+                        + (
+                            (labels.arrival(target.x, target.y) or "")
+                            if labels is not None and labelled
                             else ""
                         )
                     )

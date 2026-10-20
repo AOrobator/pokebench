@@ -502,6 +502,7 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "auto-talk-v1":"fixed-point-breaker-v1.html",
  "duplicate-turn-collapse-v1":"fixed-point-breaker-v1.html",
  "unfinished-activity-v1":"unfinished-activity-v1.html",
+ "exit-labels-v2":"exit-labels-v2.html",
 });
 
 export function harnessConfig(view:RunView,registry:readonly FeatureInfo[]=[]):string {

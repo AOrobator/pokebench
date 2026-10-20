@@ -141,7 +141,7 @@ describe("trainer cards in the viewer", () => {
   it("clicking a card watches that run", async () => {
     const { streams } = await mount(1280);
     card(ui("run-cards"), OTHER_ID).click();
-    expect(streams.at(-1)?.url).toBe(`/api/runs/${encodeURIComponent(OTHER_ID)}/events`);
+    expect(streams.at(-1)?.url).toBe(`/api/runs/${encodeURIComponent(OTHER_ID)}/events?head=1`);
     expect((ui("run") as HTMLSelectElement).value).toBe(OTHER_ID);
   });
 
@@ -233,7 +233,7 @@ describe("trainer cards in the viewer", () => {
     expect(body.querySelector(".rs-now, .rs-other")).toBeNull();
     ui("run-head").click(); expect(ui("run-sheet").hidden).toBe(false);
     card(body, OTHER_ID).click();
-    expect(ui("run-sheet").hidden).toBe(true); expect(streams.at(-1)?.url).toBe(`/api/runs/${encodeURIComponent(OTHER_ID)}/events`);
+    expect(ui("run-sheet").hidden).toBe(true); expect(streams.at(-1)?.url).toBe(`/api/runs/${encodeURIComponent(OTHER_ID)}/events?head=1`);
   });
 
   it("without art, keeps the plain sheet and recorded splits without legacy bars", async () => {

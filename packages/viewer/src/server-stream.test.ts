@@ -296,3 +296,96 @@ it("still yields between steps when the socket asks the stream to wait for drain
   expect(text).toContain("event: done");
   expect(new Set(seen).size).toBeGreaterThan(10);
 });
+
+it("boots at the recorded head and tails appends without replaying the prefix", async () => {
+  const log = new Log();
+  log.add(0, START);
+  for (let turn = 1; turn <= 40; turn++) {
+    log.add(turn * 1000, { type: "turn_start", turn, context: { messages: 1, images: 0, est_tokens: 10 } });
+    log.add(turn * 1000 + 1, assistant({ turn, thinking: `Turn ${String(turn)}` }));
+  }
+  log.add(50000, END);
+  const viewer = await serve("head-first", log, 512);
+  const text = await (await fetch(new URL("api/runs/head-first/events?head=1", viewer.url))).text();
+  const heads = [...text.matchAll(/^event: head\ndata: (.*)$/gm)].map(m => JSON.parse(m[1] ?? "null") as unknown);
+  expect(heads).toHaveLength(1);
+  expect(JSON.stringify(heads)).toContain("Turn 40");
+  expect(JSON.stringify(heads)).not.toContain('Turn 1"');
+  expect(events(text)).toEqual([]);
+  expect(text).toContain("event: done");
+});
+
+
+it("tails a line torn across the head cursor exactly once", async () => {
+  const log = new Log(); log.add(0, START);
+  const viewer = await serve("head-append", log, 128);
+  const path = join(roots.at(-1) ?? "", "runs", "head-append", "events.jsonl");
+  const fresh = { ...log.add(1000, assistant({ thinking: "Pokémon 🎮" })), run: "head-append" };
+  const line = JSON.stringify(fresh) + "\n";
+  const cut = line.indexOf("Pokémon") + 4;
+  fs.appendFileSync(path, line.slice(0, cut));
+  const controller = new AbortController();
+  const response = await fetch(new URL("api/runs/head-append/events?head=1", viewer.url), { signal: controller.signal });
+  const reader = response.body?.getReader();
+  if (reader === undefined) throw new Error("no stream body");
+  const decoder = new TextDecoder(); let text = "";
+  try {
+    while (!text.includes("event: caught_up")) {
+      const part = await reader.read(); if (part.done) throw new Error("stream ended before catch-up");
+      text += decoder.decode(part.value, { stream: true });
+    }
+    expect(events(text)).toEqual([]);
+    fs.appendFileSync(path, line.slice(cut));
+    while (!text.includes("event: ev")) {
+      const part = await reader.read(); if (part.done) throw new Error("stream ended before append");
+      text += decoder.decode(part.value, { stream: true });
+    }
+    expect(events(text)).toEqual([fresh]);
+  } finally { controller.abort(); await reader.cancel().catch(() => undefined); }
+});
+
+
+it("falls back to the diagnostic stream when the compact head is malformed", async () => {
+  const viewer = await serve("bad-head", longRun(2), 128);
+  const path = join(roots.at(-1) ?? "", "runs", "bad-head", "events.jsonl");
+  const lines = fs.readFileSync(path, "utf8").split("\n");
+  lines.splice(1, 0, "{broken"); fs.writeFileSync(path, lines.join("\n"));
+  const text = await (await fetch(new URL("api/runs/bad-head/events?head=1", viewer.url))).text();
+  expect(text).toContain('event: problem\ndata: {"line":2');
+  expect(text).toContain("event: done");
+  expect(events(text)).toHaveLength(4);
+});
+
+it("labels malformed appends relative to the head byte cursor after history catch-up", async () => {
+  const log = longRun(4); log.events.pop();
+  const viewer = await serve("tail-location", log, 128);
+  const path = join(roots.at(-1) ?? "", "runs", "tail-location", "events.jsonl");
+  const offset = fs.statSync(path).size;
+  const headAbort = new AbortController(), historyAbort = new AbortController();
+  const response = await fetch(new URL("api/runs/tail-location/events?head=1", viewer.url), { signal: headAbort.signal });
+  const reader = response.body?.getReader();
+  if (reader === undefined) throw new Error("no head stream");
+  const readUntil = async (source: ReadableStreamDefaultReader<Uint8Array>, marker: string): Promise<string> => {
+    const decoder = new TextDecoder(); let text = "";
+    while (!text.includes(marker)) {
+      const part = await source.read(); if (part.done) throw new Error(`stream ended before ${marker}`);
+      text += decoder.decode(part.value, { stream: true });
+    }
+    return text;
+  };
+  try {
+    await readUntil(reader, "event: caught_up");
+    const history = await fetch(new URL("api/runs/tail-location/events", viewer.url), { signal: historyAbort.signal });
+    const historyReader = history.body?.getReader();
+    if (historyReader === undefined) throw new Error("no history stream");
+    await readUntil(historyReader, "event: caught_up");
+    historyAbort.abort(); await historyReader.cancel().catch(() => undefined);
+    fs.appendFileSync(path, "{broken\n");
+    const text = await readUntil(reader, "event: problem");
+    const raw = /^event: problem\ndata: (.*)$/m.exec(text)?.[1];
+    if (raw === undefined) throw new Error(`missing problem in ${text}`);
+    const problem = JSON.parse(raw) as { line: unknown; problem: unknown };
+    expect(problem.line).toBe(`1 within tail starting at byte ${String(offset)}`);
+    expect(problem.problem).toContain("event line is not JSON");
+  } finally { headAbort.abort(); historyAbort.abort(); await reader.cancel().catch(() => undefined); }
+});

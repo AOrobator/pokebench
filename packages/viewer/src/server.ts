@@ -13,11 +13,11 @@ import { pidAlive } from "./lease.js";
 import { Type } from "typebox";
 import { Value } from "typebox/value";
 import { FEATURES } from "@pokebench/agent/features";
-import { CONTROL_ACTIONS } from "@pokebench/agent/events";
+import { CONTROL_ACTIONS, type RunEvent } from "@pokebench/agent/events";
 import { finalsRunLabels } from "./experiment-gate-store.js";
 import type { BaselineStore, RunStore } from "./baseline-store.js";
 import { frontierSplits } from "./frontier.js";
-import { BaselineError, RunsError, createBaselineReader, createRunCatalog, comparisonsOf, type BaselineCompute, eventsPath, liveScreenPort, LogReader, readRecentEvents, readStart, readStartIdentity, runDir, type BaselineReader, type RunCatalog } from "./runs.js";
+import { BaselineError, RunsError, createBaselineReader, createRunCatalog, comparisonsOf, type BaselineCompute, eventsPath, liveScreenPort, LogReader, readRecentEvents, readHeadEvents, readStart, readStartIdentity, runDir, type BaselineReader, type RunCatalog } from "./runs.js";
 import { featureHistory } from "./history.js";
 import { localModels } from "./models.js";
 import { NextRunError, appendControl, healthProbe, liveRuns, readDraft, writeDraft, type RunQueue } from "./next-run.js";
@@ -288,16 +288,18 @@ function segments(rawUrl: string): string[] | null {
 // A recorded log can be hundreds of MB: it is read, validated and sent a bounded chunk at a time,
 // yielding to the event loop between chunks and waiting for the socket to drain, so opening one
 // run never stalls every other request.
-function streamEvents(req: IncomingMessage, res: ServerResponse, path: string, pollMs: number, skew: Skew | null, chunkBytes: number): void {
+function streamEvents(req: IncomingMessage, res: ServerResponse, path: string, pollMs: number, skew: Skew | null, chunkBytes: number, head?: readonly RunEvent[], offset = 0): void {
   res.writeHead(200, { ...SECURITY_HEADERS, "content-type": "text/event-stream; charset=utf-8", connection: "keep-alive" });
   let closed = false, timer: NodeJS.Timeout | null = null;
-  const reader = new LogReader(path, chunkBytes);
+  const reader = new LogReader(path, chunkBytes, offset);
   const recovered = recoveredAttacher(dirname(path));
-  let skewReported = false, endRead = false, caughtUp = false, closing = false;
+  let skewReported = false, endRead = head?.some(event => event.type === "run_end") ?? false, caughtUp = false, closing = false;
   // A queue with a read cursor: shifting a large array on every write would be quadratic.
   let pending: string[] = [], cursor = 0;
   const empty = (): boolean => cursor >= pending.length;
   const message = (type: string, data: unknown): string => `event: ${type}\ndata: ${JSON.stringify(data)}\n\n`;
+  const location = (line: number): number | string => offset === 0 ? line : `${String(line)} within tail starting at byte ${String(offset)}`;
+  if (head !== undefined) pending.push(message("head", head.map(recovered)));
   // Parses the next bounded piece of the log into the queue; true when there was nothing new.
   const fill = (): boolean => {
     const { results, lines } = reader.next(STREAM_STEP_LINES);
@@ -306,10 +308,10 @@ function streamEvents(req: IncomingMessage, res: ServerResponse, path: string, p
         pending.push(message("ev", recovered(result.event)));
         endRead ||= result.event.type === "run_end";
       } else if (skew === null) {
-        pending.push(message("problem", { line: result.line, problem: result.problem }));
+        pending.push(message("problem", { line: location(result.line), problem: result.problem }));
       } else if (!skewReported) {
         skewReported = true;
-        pending.push(message("problem", { line: result.line, problem: `${skew.head}. First event it cannot read: line ${String(result.line)}: ${result.problem}` }));
+        pending.push(message("problem", { line: location(result.line), problem: `${skew.head}. First event it cannot read: line ${String(location(result.line))}: ${result.problem}` }));
       }
     }
     return lines === 0;
@@ -496,7 +498,14 @@ async function route(req: IncomingMessage, res: ServerResponse, options: ViewerO
       // run_start read loosely, so a newer harness's run_start the schema rejects still names its build.
       const identity = readStartIdentity(options.runsRoot, id);
       const skew: Skew | null = identity === null ? null : skewOf(options.build ?? null, identity);
-      streamEvents(req, res, path, options.pollMs ?? 250, skew, options.streamChunkBytes ?? STREAM_CHUNK_BYTES);
+      const cursor = { offset: 0 };
+      let head: RunEvent[] | undefined;
+      if (new URL(req.url ?? "/", "http://viewer.invalid").searchParams.has("head")) {
+        try { head = await readHeadEvents(options.runsRoot, id, cursor); }
+        catch { cursor.offset = 0; } // The diagnostic stream still reports malformed/skewed lines.
+      }
+      if (res.destroyed) return;
+      streamEvents(req, res, path, options.pollMs ?? 250, skew, options.streamChunkBytes ?? STREAM_CHUNK_BYTES, head, cursor.offset);
       return;
     }
     if (parts.length === 4 && leaf === "comparisons") {

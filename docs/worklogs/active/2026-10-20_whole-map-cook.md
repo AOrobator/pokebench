@@ -31,11 +31,12 @@ Reviews (runs/reviews/whole-map-pair-1h-v2/): Grok cursor-grok-4.5-high LGTM; Cl
 experiments/fixed/whole-map-pair-1h-v3.json: main 0e1a9261 bundle-cook-1h (five whiteout fixes) + full-map-navigation-v1, one pair, 1 hour. Seed 2ca46c70b53028e8, sha256 61aa4b3bc5ce. Fixed-run definitions always run both arms, so the bundle restart is a fresh pair launched when control a8f9 ended. Nickname fix not yet in.
 
 ## Definitions from main bdf6b313 (nickname + fail-open fixes in, 2026-10-20 18:25 NY)
-- whole-map-pair-1h-v4.json: replaces v3 (never launched); bundle adds caught-nickname-prompt-v1 and fail-open-input-v1. Seed 695536385330ad9b, sha256 21d40f1bdd83.
-- whole-map-cook-1h.json: 12 one-hour pairs, same bundle + full-map-navigation-v1, duplicate-turn-collapse-v1 on in both, fixed-point-breaker-v1 off in both. Seed 1415772d5e90722e, sha256 dc2230899760; each lane runs 6 of each arm. Supersedes the unlanded 0e1a9261 draft. Launch waits on the operator's call on positive-supervisor-v1.
+- whole-map-pair-1h-v4.json: replaces v3 (never launched); bundle adds caught-nickname-prompt-v1 and fail-open-input-v1. Seed 695536385330ad9b (sha256 superseded below).
+- whole-map-cook-1h.json: 12 one-hour pairs, same bundle + full-map-navigation-v1, duplicate-turn-collapse-v1 on in both, fixed-point-breaker-v1 off in both. Seed 1415772d5e90722e; each lane runs 6 of each arm. Supersedes the unlanded 0e1a9261 draft.
 - Held-out probes on the cook bundle config (positive-supervisor off vs on, 32/side): 4cd7 T313 17→12, 0389 T740 17→13, 4865 T327 11→18, 0389 T164 6→18 (p=0.004). runs/decision-probes/2026-10-20_heldout-cook-config/.
 - Reviews (runs/reviews/whole-map-defs-bdf6b313/): Grok LGTM; Claude subagent LGTM.
 
 ## evolution-decision-v1 on in both arms (the operator 2026-10-20 18:42 NY)
 The control model cancelled Torchic's Lv16 evolution in a8f9 (turn 1170, B in the native cancel window). evolution-decision-v1 moved from bundle switches to onInBoth (base true) in bundle-v-control, bundle-cook-1h, whole-map-pair-1h-v4 and whole-map-cook-1h. The control base now differs from the frontier incumbent (frontier-incumbent-4caa, run 0e05) by this switch.
 - The operator 18:44 NY: exclude the supervisor redesign. positive-supervisor-v1 moved to offInBoth in whole-map-pair-1h-v4 and whole-map-cook-1h (bundle-v-control and bundle-cook-1h unchanged). The operator 18:45 NY: evolution switch in both arms (above).
+- Current definition sha256 after both edits: whole-map-pair-1h-v4 4632a7a61a7e, whole-map-cook-1h 7c12ca8d7dbd. Round-2 review fixes: explainer and overview text, worklog hashes, bundle-v-control title arrow restored.

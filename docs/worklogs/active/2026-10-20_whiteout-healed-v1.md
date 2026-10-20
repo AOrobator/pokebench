@@ -23,3 +23,7 @@
 - [x] Explainer `docs/explainers/whiteout-healed-v1.html` (pages-check clean), README, FEATURE_EXPLAINERS + server test; pending `experiments/whiteout-healed-v1.json` (incumbent with battle-loss-recap-v1 and trainer-heal-guidance-v1 on); readiness row; bundle arm of bundle-v-control and bundle-cook-1h. `just fixed-run check` reads the main checkout's definitions (fixed-cli `mainCheckout`), so the worktree definitions were checked by calling the same `main(["check",id])` with root = worktree and start saves from the main runs dir: both pass (sha256 1f3e9fe2… and f135b120…), whiteout-healed-v1 last in bundle switches.
 - [x] Gates: build, lint clean; agent 2977, viewer 1436, pytest 2998; coverage agent 97.21/92.96/97.6/99.16 (stmts/branches/funcs/lines), viewer 95.09/91.06/93.85/97.7, Python 97.09/92.62/100
 - [ ] Review: Claude + Grok (max 2 rounds)
+
+## Review and landing
+- Round 1 (packet1 sha256 3d6985e0…6e26545): Grok (cursor-grok-4.5-high) LGTM; Claude lane (read-only Claude subagent, claude -p OAuth expired) LGTM, no blockers. Non-blocking: 0/0 HP slot would read as full (speculation); clause repeats until replaced (boundary non-goal).
+- source.commit repinned to the feat commit a2267739. Landing ff-only onto main 5f7a2aca.

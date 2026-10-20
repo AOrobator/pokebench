@@ -8,7 +8,7 @@ import {MEASUREMENT_ONLY_MILESTONES} from "./milestones.js";
 import {STORY_CHARACTERS} from "./script-line-presence.js";
 
 type State=Extract<RunEvent,{type:"state";started:boolean}>;
-type Snapshot=Pick<GameStateSnapshot,"started"|"screen"|"in_battle"|"location"|"location_display"|"map_id"|"battle"|"trainer_opponent"|"blackout_active">;
+type Snapshot=Pick<GameStateSnapshot,"started"|"screen"|"in_battle"|"location"|"location_display"|"map_id"|"battle"|"trainer_opponent"|"blackout_active"|"party">;
 // pokeemerald include/constants/battle.h BATTLE_TYPE_TRAINER.
 const BATTLE_TYPE_TRAINER=1<<3;
 const STORY=new Set(STORY_CHARACTERS.map(c=>c.name));
@@ -30,8 +30,10 @@ export interface Battle {
  // The outcome the game wrote (battle.outcome), a win read from the trainer's flag afterwards, or the
  // raw outcome for the others (ran, caught, ...); null when no recorded state showed one.
  readonly outcome:string|null;
- readonly whiteout:{readonly place:string;readonly turn:number}|null;
+ readonly whiteout:{readonly place:string;readonly turn:number;readonly party:readonly PartyHp[]}|null;
 }
+// whiteout-healed-v1: a party Pokémon's HP as the first overworld state after a whiteout's warp read it.
+interface PartyHp {readonly species:string|null;readonly hp:number|null;readonly max_hp:number|null}
 
 const inBattle=(s:Snapshot):boolean=>s.started&&(s.in_battle||s.screen==="battle");
 const overworld=(s:Snapshot):boolean=>s.started&&!s.in_battle&&s.screen==="overworld"&&s.map_id!==null;
@@ -80,7 +82,7 @@ export class BattleOutcomes {
   const blackout=run.blackout||s.blackout_active===true;
   const won=!blackout&&run.unbeaten&&opponent!=null&&opponent.trainer_id===run.trainer?.id&&opponent.defeated;
   const outcome=run.outcome!==null?run.outcome:blackout?"lost":won?"won":null;
-  const whiteout=(outcome==="lost"||outcome==="drew")&&roomKey(s)!==run.key?{place:roomOf(s,this.features),turn:run.turn}:null;
+  const whiteout=(outcome==="lost"||outcome==="drew")&&roomKey(s)!==run.key?{place:roomOf(s,this.features),turn:run.turn,party:this.features["whiteout-healed-v1"]?s.party.flatMap(m=>m.is_egg===true?[]:[{species:m.species,hp:m.hp,max_hp:m.max_hp}]):[]}:null;
   return {trainerBattle:run.trainerBattle,trainer:run.trainer,foe:run.foe,place:run.place,turn:run.turn,seq,outcome,whiteout};
  }
 
@@ -102,8 +104,8 @@ export class BattleOutcomes {
   if(lost===undefined||lost.seq<=this.storySeq)return null;
   const head=`Battle recap: you ${lost.outcome==="drew"?"drew with":"lost to"} ${opponentOf(lost)} on ${lost.place} at turn ${String(lost.turn)}${lost.whiteout===null?"":` and whited out; the game returned you to ${lost.whiteout.place}`}.`;
   const t=lost.trainer,o=now?.trainer_opponent;
-  if(t===null||o==null||o.trainer_id!==t.id)return head;
-  return `${head} ${o.defeated?`The game now shows ${opponentOf(lost)} defeated.`:`The game shows ${opponentOf(lost)} has not been defeated.`}`;
+  const line=t===null||o==null||o.trainer_id!==t.id?head:`${head} ${o.defeated?`The game now shows ${opponentOf(lost)} defeated.`:`The game shows ${opponentOf(lost)} has not been defeated.`}`;
+  return this.features["whiteout-healed-v1"]&&lost.whiteout!==null&&lost.whiteout.party.length>0?`${line} ${healedParty(lost.whiteout.party)}`:line;
  }
 
  private describe(b:Battle):string {
@@ -120,4 +122,12 @@ function opponentOf(b:Battle):string {
  if(b.trainer!==null)return b.trainer.name===null?`trainer ${String(b.trainer.id)}`:`${b.trainer.name} (trainer ${String(b.trainer.id)})`;
  if(b.trainerBattle)return "a trainer";
  return b.foe===null?"a wild Pokémon":`a wild ${b.foe}`;
+}
+
+// whiteout-healed-v1: DoWhiteOut (src/overworld.c) runs HealPlayerParty() before the warp, so the state after it
+// shows every Pokémon at max HP; anything else is said as the state showed it.
+function healedParty(party:readonly PartyHp[]):string {
+ const full=party.every(m=>m.hp!==null&&m.max_hp!==null&&m.hp===m.max_hp);
+ const list=party.map(m=>`${m.species??"a Pokémon whose species was not read"} ${m.hp===null||m.max_hp===null?"HP not read":`${String(m.hp)}/${String(m.max_hp)} HP`}`).join(", ");
+ return full?`Whiting out restored your whole party: ${list}.`:`After whiting out, the game state showed your party: ${list}.`;
 }

@@ -138,6 +138,10 @@ export const DIALOGUE_BUTTON_B_SECTION = "Dialogue button: B is the button for a
 // trainer-heal-guidance-v1: trainer and rival battles cannot be fled; a blackout's cost; heal first. Game rules, no destinations.
 export const TRAINER_HEAL_SECTION = "Trainer battles and your rival: a battle against a trainer, including your rival, cannot be run from. If every Pokémon in your party faints, you black out: you lose half your money and wake up back at the last POKéMON CENTER you entered, or at home, far from where you were. Your rival usually battles you when you talk to them. Before you talk to a trainer or your rival, check your party HP in the readout, and if your Pokémon is below half its maximum HP, heal first: talking to the nurse at a POKéMON CENTER heals your whole party, and so does talking to MOM at home; a POTION or an ORAN BERRY from your BAG restores some HP.";
 
+// whiteout-healed-v1: DoWhiteOut (src/overworld.c) calls HealPlayerParty() before the warp.
+const BLACKOUT_FAR = "or at home, far from where you were";
+const WHITEOUT_HEALED = ", with your whole party healed";
+
 // trainer-sight-check-v1: trainer_see.c CheckTrainer, in the player's terms; names no trainer, place or route.
 export const TRAINER_SIGHT_SECTION = "Trainer sight: a trainer you have not beaten battles you as soon as you step into its line of sight. Before navigate_to walks, it checks the route against every such trainer on this map; when one can see a tile of the route, it does not walk and says which trainer can see which tile. To walk that route anyway, call navigate_to again with confirm_trainer_sight: true.";
 // cited-destination-v1: navigate_to's required because, in one rule.
@@ -210,7 +214,7 @@ export function playSystemPrompt(features: FeatureSet, target: string | null, sc
   const mapRules = show("overworld") && features["readout-rules-in-prompt-v1"] ? mapRulesSection(features) : "";
   if (mapRules !== "") prompt += `\n\n${mapRules}`;
   if (show("battle") && features["battle-triage-guidance-v1"]) prompt += `\n\n${BATTLE_TRIAGE_SECTION}`;
-  if (show("overworld", "battle") && features["trainer-heal-guidance-v1"]) prompt += `\n\n${TRAINER_HEAL_SECTION}`;
+  if (show("overworld", "battle") && features["trainer-heal-guidance-v1"]) prompt += `\n\n${features["whiteout-healed-v1"] ? TRAINER_HEAL_SECTION.replace(BLACKOUT_FAR, `${BLACKOUT_FAR}${WHITEOUT_HEALED}`) : TRAINER_HEAL_SECTION}`;
   // explorer-guidance-v2 supersedes v1 in the same slot: with both on, only v2's section is shown.
   const explorer = features["explorer-guidance-v2"] ? EXPLORER_GUIDANCE_V2_SECTION : features["explorer-guidance-v1"] ? EXPLORER_GUIDANCE_SECTION : null;
   if (show("overworld") && explorer !== null) prompt += `\n\n${explorer}${features["dialogue-auto-advance-v1"] ? ` ${semantic2 ? SEMANTIC_TALK_IS_CHEAP : EXPLORER_TALK_IS_CHEAP}` : ""}`;

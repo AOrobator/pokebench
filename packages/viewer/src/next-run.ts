@@ -13,7 +13,7 @@ import { controlLine, isExtension, type ControlAction } from "@pokebench/agent/r
 import { newRunId } from "@pokebench/agent/run";
 import { RUN_ID_PATTERN } from "@pokebench/agent/events";
 import { spawnDetached } from "./detached.js";
-import { LEASE, LeaseHeldError, leaseStale, nameLeaseRun, pidAlive, takeLease } from "./lease.js";
+import { LeaseHeldError, leaseDir, leaseHolder, leaseStale, nameLeaseRun, pidAlive, readLeaseOwner, takeLease } from "./lease.js";
 import { listRuns, readStart, readFrom, runDir, type RunCatalog } from "./runs.js";
 
 const positive = Type.Integer({ minimum: 1 });
@@ -28,7 +28,6 @@ export type NextRun = Omit<Static<typeof NextRunSchema>, "features"> & {features
 
 export const DEFAULT_NEXT_RUN: NextRun = { model: "", thinking: "medium", maxTurns: 300, maxWallMs: 30 * 60_000, failureLimit: 3, maxTokens: 4096, target: null, features: { ...ALL_ON, "safe-navigation-strides-v1":false, "battle-refusal-loop-v1":false, "scripted-place-guidance-v1":false, "trigger-script-loop-v1":false, "cache-aligned-window-v1":false, "jit-guide-reuse-v1":false, "save-state-task-truth-v1":false, "state-only-decisions-v1":false, "pushback-loop-detection-v1": false, "pushback-press-result-v1": false, "battle-observation-loop-v1": false, "explorer-guidance-v1": false, "in-game-naming-readout-v1": false, "no-nickname-guidance-v1": false, "battle-message-waiting-v1": false, "connection-edge-tiles-v1": false, "named-interactions-v1": false, "world-destinations-v1": false, "bounded-navigation-v1": false, "full-map-navigation-v1": false, "grass-cost-navigation-v1": false, "game-evidence-priority-v1": false, "dialogue-log-v1": false, "loop-guard-supervisor-v1": false, "instruction-ledger-v1": false, "next-milestone-hint-v1": false, "double-context-window-v1": false, "fresh-retry-v1": false, "named-warp-destinations-v1": false, "milestone-stall-stop-v1": false, "text-only-supervisor-v1": false, "character-presence-v1": false, "navigation-refusal-reasons-v1": false, "transition-press-result-v1": false, "stall-briefing-v1": false, "battle-details-v2": false, "dialogue-auto-advance-v1": false, "warp-arrival-settle-v1": false, "dialogue-context-kept-v1": false, "displayed-place-names-v1": false, "transition-loop-detection-v1": false, "blocked-batch-result-v1": false, "adjacent-tiles-v1": false,"battle-triage-guidance-v1":false, "readout-rules-in-prompt-v1": false, "script-line-presence-v1": false, "offscreen-objects-v1": false, "navigate-first-prompt-v1": false, "presence-penalty-v1": false, "levelup-box-v1": false, "disproved-beliefs-v1": false, "same-plan-breaker-v1": false, "navigation-truth-v1": false, "navigation-refusal-reasons-v2": false, "low-hp-trainer-warning-v2": false, "battle-text-auto-advance-v1": false, "transition-coherence-v1": false, "briefing-exits-v1": false, "untaken-exits-v1": false, "people-ledger-v1": false, "trainer-heal-guidance-v1": false, "low-hp-trainer-warning-v1": false, "briefing-battle-outcomes-v1": false, "blocked-exit-fact-v1": false, "battle-loss-recap-v1": false, "readout-truth-v1": false, "birch-speech-pages-v1": false, "blackout-readout-v1": false, "surf-gated-exits-v1": false, "story-destinations-v1": false, "exit-reachability-v1": false, "cross-map-goal-v1": false, "explorer-guidance-v2": false, "ineffective-loops-v1": false, "people-id-cards-v1": false, "open-goal-prompt-v1": false, "heal-before-trainers-v1": false, "harness-trust-v1": false, "cited-destination-v1": false, "harness-trust-v2": false, "battle-move-tool-v1": false, "tutorial-party-owner-v1": false, "mid-frame-readout-v1": false, "unset-dynamic-warp-v1": false, "status-names-v1": false, "surf-gated-exits-v2": false, "instruction-ledger-v2": false, "no-exit-here-v1": false, "bag-healing-items-v1": false, "battle-menu-loop-v1": false, "clock-view-loop-v1": false,"stale-story-goal-v1": false, "input-cuts-v1": false, "loop-guard-screen-v1": false, "reopened-dialogue-loop-v1": false, "just-in-time-prompt-v1": false,"just-in-time-prompt-v2":false,"faced-interaction-history-v1":false,"dialog-button-b-v1": false } };
 Object.assign(DEFAULT_NEXT_RUN.features, {"original-speed-pacing-v1":false,"semantic-navigation-v2":false,"evolution-decision-v1":false,"observed-instructions-v1":false,"starter-decision-salience-v1":false,"semantic-navigation-v1":false,"deterministic-exploration-v1":false,"ineffective-navigation-v2":false,"supervisor-briefing-v2":false,"reachable-story-guidance-v1":false,"text-only-supervisor-v2":false,"battle-decision-ready-v1":false, "visited-terrain-navigation-v1": false, "battle-effective-damage-v1": false, "deterministic-warp-navigation-v1": false, "stale-story-goal-v2": false, "context-token-budget-v1": false, "briefing-repeat-count-v1": false, "navigate-already-here-v1": false, "fixed-point-breaker-v1": false, "story-character-stall-gate-v1": false, "positive-supervisor-v1": false });
-export { LEASE } from "./lease.js";
 // Whether a run's own game server answers on 127.0.0.1:<port>.
 export type HealthProbe = (port: number) => Promise<boolean>;
 
@@ -129,6 +128,8 @@ export interface QueueHost {
   readonly runsRoot: string;
   readonly liveJs: string;
   readonly endpointFile: string | null;
+  // The compute pool of the endpoint file's model server, whose gameplay lease a queued run takes.
+  leasePool(): string;
   readonly gamePort: number;
   healthy: HealthProbe;
   now(): Date;
@@ -189,13 +190,20 @@ export class RunQueue {
 
   private async step(): Promise<void> {
     const { runsRoot } = this.host;
-    const lease = join(runsRoot, LEASE);
     const live = await liveRuns(runsRoot, (port) => this.host.healthy(port));
     const queued = this.queued;
     // A cancel during the probes clears the queued entry.
     if (queued === null) return;
+    let pool: string;
+    try {
+      pool = this.host.leasePool();
+    } catch (error) {
+      this.current = { state: "queued", runId: queued.runId, waitingFor: `the model endpoint: ${(error as Error).message}` };
+      return;
+    }
+    const lease = leaseDir(runsRoot, pool);
     const alive = (pid: number): boolean => (this.host.alive ?? pidAlive)(pid);
-    const waitingFor = existsSync(lease) && !leaseStale(runsRoot, alive) ? "the gameplay lease (a benchmark cohort is running)" : live.length > 0 ? `live run ${live[0] ?? ""}` : null;
+    const waitingFor = existsSync(lease) && !leaseStale(runsRoot, pool, alive) ? `the gameplay lease for ${pool}, held by ${leaseHolder(readLeaseOwner(runsRoot, pool))}` : live.length > 0 ? `live run ${live[0] ?? ""}` : null;
     if (waitingFor !== null) {
       this.current = { state: "queued", runId: queued.runId, waitingFor };
       return;
@@ -203,11 +211,11 @@ export class RunQueue {
     const { runId, draft } = queued;
     this.queued = null;
     try {
-      takeLease(runsRoot, { pid: process.pid, owner: "viewer-queue", run: runId }, alive);
+      takeLease(runsRoot, pool, { pid: process.pid, owner: "viewer-queue", run: runId }, alive);
     } catch (error) {
       if (!(error instanceof LeaseHeldError)) throw error;
       this.queued = { runId, draft };
-      this.current = { state: "queued", runId, waitingFor: "the gameplay lease" };
+      this.current = { state: "queued", runId, waitingFor: `the gameplay lease for ${pool}, held by ${leaseHolder(error.holder)}` };
       return;
     }
     this.current = { state: "launching", runId };

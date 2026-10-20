@@ -14,9 +14,13 @@ import type { PlayPresetV2 } from "@pokebench/agent/play-preset";
 import { finalsPreset, type FinalsEntry, type Nomination } from "@pokebench/agent/experiment-gate";
 import { experimentDir, loadExperiments, queueSnapshot, readRunnerFile, runnerPath, type ExperimentView, type QueuePaths, type QueueSnapshot, type RunSource } from "./experiment-store.js";
 import { cohortNomination, decide, effectiveExperiment, finalsLedger, finalsLedgerPath, finalsResultPath, finalsRunner, finalsTrials, finalsWithdrawnPath, findCohort, nominationPath, promotionsPath, queueNomination, readNomination, readPromotions, type FinalsResult } from "./experiment-gate-store.js";
-import { nameLeaseRun, pidAlive, takeLease } from "./lease.js";
+import { leasePool, nameLeaseRun, pidAlive, takeLease } from "./lease.js";
 
 export interface DiscoveredModel { readonly id: string; readonly fingerprint: string }
+// Experiment trials talk to the inference gateway; their gameplay lease is that endpoint's pool.
+export const GATEWAY = "http://inference.example/v1";
+export const EXPERIMENT_POOL = leasePool(GATEWAY);
+
 export interface TrialLaunch { readonly runId: string; readonly presetPath: string; readonly model: string; readonly stdout: string; readonly stderr: string; readonly started?: (pid: number) => void }
 export interface RunnerHost {
   now(): Date;
@@ -200,7 +204,7 @@ async function runNext(options: RunnerOptions): Promise<RunnerOutcome & { finish
   if (live.length > 0) throw new RunnerError(`live run ${live[0] ?? ""} is still running`);
   // The lease comes first: verifying the source may rebuild the agent dist every gameplay launcher loads.
   const owner = { pid: process.pid, owner: "experiment-queue", experiment: experiment.id };
-  const lease = takeLease(paths.runsRoot, owner, (pid) => (host.alive ?? pidAlive)(pid), adoptable);
+  const lease = takeLease(paths.runsRoot, EXPERIMENT_POOL, owner, (pid) => (host.alive ?? pidAlive)(pid), adoptable);
   const holder: Holder = { lease, owner };
   let ran = 0;
   try {
@@ -327,7 +331,7 @@ async function runFinals({ paths, source, host, once = false, stopRequested = ()
   const live = (await host.liveRuns()).filter((run) => !adoptable.has(run));
   if (live.length > 0) throw new RunnerError(`live run ${live[0] ?? ""} is still running`);
   const owner = { pid: process.pid, owner: "experiment-queue", experiment: id, finals: true };
-  const lease = takeLease(paths.runsRoot, owner, (pid) => (host.alive ?? pidAlive)(pid), adoptable);
+  const lease = takeLease(paths.runsRoot, EXPERIMENT_POOL, owner, (pid) => (host.alive ?? pidAlive)(pid), adoptable);
   const holder: Holder = { lease, owner };
   let ran = 0;
   try {

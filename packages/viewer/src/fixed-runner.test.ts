@@ -9,7 +9,7 @@ import {cohortIndex} from "./workbench-store.js";
 import {experimentsAudit} from "./experiments-audit.js";
 import {fileURLToPath} from "node:url";
 import {FRONTIER_MILESTONES} from "./frontier.js";
-import { LEASE } from "./lease.js";
+import { LEGACY_LEASE, leaseDir } from "./lease.js";
 import { parseFixedStatus, type FixedStatus } from "./fixed-status.js";
 import { definition, MODEL_PATH, ROM_SHA1 } from "../test-support/fixed.js";
 import { Log, START } from "../test-support/events.js";
@@ -191,7 +191,7 @@ describe("runFixed", () => {
     expect(status.lanes.map((l) => [l.id, l.state, l.valid, l.total])).toEqual([["A", "done", 6, 6], ["B", "done", 6, 6]]);
     expect(host.statuses.some((s) => s.lanes.every((l) => l.state === "running"))).toBe(true);
     expect(existsSync(join(runsRoot, "experiments", "runner.json"))).toBe(false);
-    expect(existsSync(join(runsRoot, LEASE))).toBe(false);
+    for (const lane of def.lanes) expect(existsSync(leaseDir(runsRoot, lane.modelUrl.replace(/^http:\/\//, "")))).toBe(false);
   });
 
   it("replaces an invalid trial with the same arm on the same lane at the end of its phase, after a backoff", async () => {
@@ -335,15 +335,28 @@ describe("runFixed", () => {
     expect(checks).toBe(3);
   });
 
-  it("waits for the gameplay lease, saying who holds it", async () => {
+  it("waits for the gameplay lease of a lane's model pool, saying which pool and who holds it", async () => {
     const { def, runsRoot, dir } = setup();
-    mkdirSync(join(runsRoot, LEASE), { recursive: true });
-    writeFileSync(join(runsRoot, LEASE, "owner.json"), JSON.stringify({ pid: 999, owner: "experiment-queue" }));
+    const pool = def.lanes[1]?.modelUrl.replace(/^http:\/\//, "") ?? "";
+    mkdirSync(leaseDir(runsRoot, pool), { recursive: true });
+    writeFileSync(join(leaseDir(runsRoot, pool), "owner.json"), JSON.stringify({ pid: 999, owner: "experiment-queue" }));
     const holder = { sleeps: (): number => 0 };
     const host: Fake = new Fake(runsRoot, { alive: (pid: number): boolean => pid === 999 && holder.sleeps() < 3 });
     holder.sleeps = () => host.sleeps;
     await runFixed({ def, definitionSha256: "d".repeat(64), runsRoot, host, stopRequested: () => false, pid: 77 });
-    expect(host.statuses.some((s) => s.state === "waiting" && s.lanes.every((l) => l.reason === "waiting for the gameplay lease, held by experiment-queue (pid 999)"))).toBe(true);
+    expect(host.statuses.some((s) => s.state === "waiting" && s.lanes.every((l) => l.reason === `waiting for the gameplay lease for ${pool}, held by experiment-queue (pid 999)`))).toBe(true);
+    expect(outcomes(readLedger(join(dir, "trials.jsonl")))).toHaveLength(12);
+  });
+
+  it("runs while another compute pool or the old single lease is held", async () => {
+    const { def, runsRoot, dir } = setup();
+    mkdirSync(leaseDir(runsRoot, "127.0.0.1:18434"), { recursive: true });
+    writeFileSync(join(leaseDir(runsRoot, "127.0.0.1:18434"), "owner.json"), JSON.stringify({ pid: 999, owner: "qwen38-mac" }));
+    mkdirSync(join(runsRoot, LEGACY_LEASE), { recursive: true });
+    writeFileSync(join(runsRoot, LEGACY_LEASE, "owner.json"), JSON.stringify({ pid: 999, owner: "qwen38-mac" }));
+    const host = new Fake(runsRoot, { alive: (pid: number): boolean => pid === 999 });
+    expect(await runFixed({ def, definitionSha256: "d".repeat(64), runsRoot, host, stopRequested: () => false, pid: 77 })).toBe("finished");
+    expect(host.statuses.some((s) => s.state === "waiting" && s.lanes.some((l) => l.reason.startsWith("waiting for the gameplay lease")))).toBe(false);
     expect(outcomes(readLedger(join(dir, "trials.jsonl")))).toHaveLength(12);
   });
 

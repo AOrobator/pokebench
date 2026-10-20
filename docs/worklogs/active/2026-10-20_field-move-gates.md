@@ -147,8 +147,11 @@ No new subprocesses, network or file writes; reads RAM the server already reads.
   the Python default-off list is what keeps the switch off by default.
 
 **M3 — planners, navigation messages, switch registration (TypeScript)**
-- [ ] Tests: local and full planners route around a closed rock not yet loaded; a8f9 navigate_to
+- [x] Tests: local and full planners route around a closed rock not yet loaded; a8f9 navigate_to
       result says (29,16) cannot be reached on foot and names the rock; untaken exits omit it.
+      (packages/agent/src/field-move-gates.test.ts; fixture src/fixtures/field-moves-a8f9-states.json.gz
+      built by scratchpad fmg_agent_fixture.py, which asserts states.off equals the recorded state body.)
+  RED: 11 of 13 fail (schema rejects field_obstacles, no gatedState/slopes/obstacles in exitBlock).
 - [ ] Register `field-move-gates-v1` (observation, bundle arm only, default off, needs
       exit-reachability-v1); feature card text.
 - [ ] COMMIT RED / implement / gates / COMMIT GREEN

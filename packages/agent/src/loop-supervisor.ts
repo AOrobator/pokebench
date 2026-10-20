@@ -6,10 +6,10 @@ import {exitReach} from "./surf-gate.js";
 import {MEASUREMENT_ONLY_MILESTONES} from "./milestones.js";
 import {BattleOutcomes} from "./battle-outcomes.js";
 import {StoryCharacterGate} from "./stall-gate.js";
-import type {RunEvent} from "./events.js";
+import type {RunEvent,SemanticReceipt} from "./events.js";
 import type {FeatureSet} from "./features.js";
 import type {LoopKind} from "./loop-detection.js";
-import {semanticRefusal,semanticWalk,targetArgument,targetSuffix} from "./semantic-targets.js";
+import {listedArgument,semanticWalk,targetSuffix} from "./semantic-targets.js";
 
 export type Stall=
  | {readonly kind:"map_cycle";readonly from:string;readonly to:string;readonly roundTrips:number;readonly consecutive:boolean}
@@ -163,7 +163,7 @@ export class SupervisorBriefing {
   const key=this.room(after);this.path.delete(key);this.path.set(key,after);
   const map=mapOf(after);if(map!==null)this.entered.add(map);
   const call=this.calls.get(event.id);this.calls.delete(event.id);
-  const label=call===undefined?null:this.label(call,event.text);
+  const label=call===undefined?null:this.label(call,event.semantic_navigation);
   if(call!==undefined&&label!==null){
    const where=call.before??after;
    this.remember(this.room(where),roomOf(where,this.features),label,this.outcome(call.before,after,auto?.pages??[]));
@@ -280,19 +280,15 @@ export class SupervisorBriefing {
  private touch(room:string,tile:string):void {
   const tiles=this.touched.get(room)??new Set<string>();tiles.add(tile);this.touched.set(room,tiles);
  }
- private label(call:Call,text=""):string|null {
-  // semantic-navigation-v2: the selected game target counts as tried, the way a faced A press does.
-  if(call.name==="navigate_to_target"){
-   const target=call.args["target"];
-   if(typeof target!=="object"||target===null)return "navigate_to_target (invalid target)";
-   const t=target as Record<string,unknown>;
-   const key=t["kind"]==="object"&&typeof t["local_id"]==="number"?objectKey(t["local_id"]):typeof t["x"]==="number"&&typeof t["y"]==="number"?at(t["x"],t["y"]):null;
-   // A refusal before any travel or input tried nothing.
-   const refused=semanticRefusal(text);
-   if(call.before!==null&&key!==null&&!refused)this.touch(this.room(call.before),key);
-   return `navigate_to_target ${JSON.stringify(target)}`;
+ private label(call:Call,receipt?:SemanticReceipt):string|null {
+  // semantic-navigation-v2: the recorded receipt names the target the call selected (explore_map's own choice
+  // too); it counts as tried only once the call acted on it, the way a faced A press does.
+  if(call.name==="navigate_to_target"||call.name==="explore_map"){
+   const target=receipt?.target;
+   const key=target===undefined?null:target.kind==="object"?objectKey(target.local_id):target.kind==="connection"?null:at(target.x,target.y);
+   if(receipt?.activation_attempted===true&&call.before!==null&&key!==null)this.touch(this.room(call.before),key);
+   return target===undefined?call.name:`${call.name} ${JSON.stringify(target)}`;
   }
-  if(call.name==="explore_map")return "explore_map";
   if(call.name==="navigate_to"){
    const x=call.args["x"],y=call.args["y"];
    if(typeof x!=="number"||typeof y!=="number")return "navigate_to (invalid target)";
@@ -420,7 +416,7 @@ export class SupervisorBriefing {
  }
  // semantic-navigation-v2: on the current map, each item carries the target navigate_to_target takes.
  private open(s:State,here=false):string[] {
-  const use=(t:Target)=>here&&this.features["semantic-navigation-v2"]?targetSuffix(targetArgument(t)):"";
+  const use=(t:Target)=>here&&this.features["semantic-navigation-v2"]?targetSuffix(listedArgument(t,s.interaction_targets)):"";
   const done=this.touched.get(this.room(s))??new Set<string>();
   // Exits first: ordering only, so a briefing never buries the way out under room furniture.
   // surf-gated-exits-v1: a warp reachable only across water is not listed while Surf cannot be used.

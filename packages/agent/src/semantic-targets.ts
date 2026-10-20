@@ -30,8 +30,13 @@ export function uniqueDirection(connections:readonly {readonly direction:string}
  return (connections??[]).filter(c=>c.direction===direction).length===1;
 }
 
-// navigate_to_target statuses that end the call before any travel or input: nothing was tried.
-export const SEMANTIC_REFUSALS=["refused because the requested map is not current","target is not listed in the current verified state","no supported route to a valid approach"] as const;
-export function semanticRefusal(text:string):boolean {
- return text.split("\n").some(line=>SEMANTIC_REFUSALS.some(r=>line.startsWith(`Semantic navigation: ${r}.`)));
+
+// A warp or fixed interaction is resolved by kind and tile, so a tile listing two of that kind gets no target.
+export function uniqueTile(targets:readonly Pick<Listed,"kind"|"x"|"y">[]|null|undefined,kind:string,x:number,y:number):boolean {
+ return (targets??[]).filter(t=>t.kind===kind&&t.x===x&&t.y===y).length===1;
+}
+
+// The target for a listed interaction, or null when the tool could not tell it apart.
+export function listedArgument(target:Pick<Listed,"kind"|"x"|"y"|"local_id">,targets:readonly Pick<Listed,"kind"|"x"|"y">[]|null|undefined):string|null {
+ return target.kind==="object"||uniqueTile(targets,target.kind,target.x,target.y)?targetArgument(target):null;
 }

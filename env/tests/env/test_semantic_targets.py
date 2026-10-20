@@ -107,3 +107,21 @@ def test_a_side_with_two_connections_gets_no_target():
     text = Topology(20, 80, (west_a, west_b, SOUTH)).text(targets=True)
     assert "WEST" not in "".join(line for line in text.splitlines() if "navigate_to_target" in line)
     assert text.splitlines()[-1].endswith('"direction":"SOUTH"}')
+
+
+def test_stacked_warps_on_one_tile_get_no_target():
+    from test_game_state import MAPS, OVERWORLD, game
+
+    from pokebench_env.game_state import read_game_state
+
+    low = InteractionTarget("warp", 5, 8, 3, "movement", destination=(1, 2, 0))
+    high = InteractionTarget("warp", 5, 8, 4, "movement", destination=(1, 3, 0))
+    state = replace(
+        read_game_state(game(OVERWORLD).read, MAPS),
+        interaction_targets=(low, high, MAY),
+        topology=None,
+        story_characters=None,
+    )
+    lines = format_readout(state).splitlines()
+    assert not any("navigate_to_target" in line and "(5,8)" in line for line in lines)
+    assert any(line.startswith("object id 2") and '"local_id":2}' in line for line in lines)

@@ -30,7 +30,7 @@ from pokebench_env.readout_fixes import MID_FRAME, MID_FRAME_TEXT
 from pokebench_env.readout_truth import SWITCH as TRUTH
 from pokebench_env.readout_truth import lock_line, menu_line
 from pokebench_env.semantic_targets import SWITCH as SEMANTIC_V2
-from pokebench_env.semantic_targets import interaction_suffix, listed_objects
+from pokebench_env.semantic_targets import interaction_suffix, listed_objects, same_tile
 from pokebench_env.status_names import SWITCH as STATUS_NAMES
 from pokebench_env.status_names import status_text
 from pokebench_env.surf_gate import SWITCH as SURF_GATE
@@ -525,6 +525,10 @@ def format_readout(
             else ""
         )
 
+    def distinct(t: InteractionTarget) -> bool:
+        # semantic-navigation-v2: the tool tells these apart by kind and tile only.
+        return t.kind == "object" or same_tile(state.interaction_targets, t) == 1
+
     if state.interaction_targets is not None and "world-targets-v1" not in off:
         lines.append("Map interaction candidates (world coordinates; flags/scripts may gate use):")
         lines.extend(
@@ -534,7 +538,11 @@ def format_readout(
                 dynamic=dynamic,
             )
             + warp_note(t)
-            + (interaction_suffix(t) if semantic and not cut_off(t) and not across(t) else "")
+            + (
+                interaction_suffix(t)
+                if semantic and not cut_off(t) and not across(t) and distinct(t)
+                else ""
+            )
             for t in state.interaction_targets
         )
     if bounded_navigation and "bounded-navigation-v1" not in off and state.map_id is not None:

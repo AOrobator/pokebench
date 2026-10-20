@@ -10,7 +10,7 @@ import type {RunEvent} from "./events.js";
 import {STORY_HEADER,StoryDestinations,PlacesBodySchema,staleGoalLine,type MapId,type Place,type PlaceSource,type StoryGoal} from "./story-destinations.js";
 import {Value} from "typebox/value";
 import {exitBlock} from "./surf-gate.js";
-import {connectionArgument,targetSuffix,uniqueDirection} from "./semantic-targets.js";
+import {connectionArgument,targetSuffix,uniqueDirection,uniqueTile} from "./semantic-targets.js";
 
 export const TRUST_HEADER="Read from game memory, always true:";
 
@@ -52,7 +52,7 @@ function localGoalAccess(state:GameStateSnapshot,target:Place,places:readonly Pl
  const reach=state.exit_reach;
  const qualified=reach!==undefined&&exitBlock({surf:false,reach:true},state).foot(0,0)!==null;
  const label=(value:string|undefined)=>!qualified||value===undefined?"reachability unknown":value==="foot"?"listed as reachable on foot":value==="water"?"across water; not reachable on foot":"not reachable on foot from here";
- const ways=[...map.warps.filter(w=>same(w.to,target.map_id)).map(w=>`door at ${at(w)} (${label(reach?.warps.find(r=>r.x===w.x&&r.y===w.y)?.reach)})${semantic?targetSuffix(warpArgument(w)):""}`),...map.connections.filter(c=>same(c.to,target.map_id)).map(c=>`${c.direction} edge (${label(reach?.connections.find(r=>r.direction===c.direction&&same(r.destination,c.to))?.reach)})`)];
+ const ways=[...map.warps.filter(w=>same(w.to,target.map_id)).map(w=>{const by=reach?.warps.find(r=>r.x===w.x&&r.y===w.y)?.reach;return `door at ${at(w)} (${label(by)})${semantic&&qualified&&by==="foot"&&uniqueTile(state.interaction_targets,"warp",w.x,w.y)?targetSuffix(warpArgument(w)):""}`;}),...map.connections.filter(c=>same(c.to,target.map_id)).map(c=>`${c.direction} edge (${label(reach?.connections.find(r=>r.direction===c.direction&&same(r.destination,c.to))?.reach)})`)];
  return ways.length===0?"No direct entrance to this destination is listed on the current map; consult the current exits.":`Direct entrances on this map: ${ways.join("; ")}.`;
 }
 
@@ -66,7 +66,7 @@ export function charactersLine(text:string):string|null {
 // exit-reachability-v1's labels: the warps and connections of this map the server's flood reaches on foot from the
 // player's tile, named from the map table. Null without exit_reach, with a malformed foot mask, or for a map the table
 // lacks. A warp the table does not list, or one to a dynamic destination, is left out rather than guessed.
-export function exitsLine(state:Pick<GameStateSnapshot,"map_id"|"exit_reach"|"topology"|"surf_gate">,places:readonly Place[],semantic=false):string|null {
+export function exitsLine(state:Pick<GameStateSnapshot,"map_id"|"exit_reach"|"topology"|"surf_gate"|"interaction_targets">,places:readonly Place[],semantic=false):string|null {
  const reach=state.exit_reach,here=state.map_id;
  if(reach===undefined||here===null||exitBlock({surf:false,reach:true},state).foot(0,0)===null)return null;
  const map=places.find(p=>same(p.map_id,here));if(map===undefined)return null;
@@ -77,7 +77,7 @@ export function exitsLine(state:Pick<GameStateSnapshot,"map_id"|"exit_reach"|"to
   const to=map.warps.find(m=>m.x===w.x&&m.y===w.y)?.to;
   const label=to===undefined?null:name(to);if(to===undefined||label===null)continue;
   const key=`${String(to[0])}/${String(to[1])}`;const door=doors.get(key)??{tiles:[],label};
-  door.tiles.push(`${at(w)}${semantic?targetSuffix(warpArgument(w)):""}`);doors.set(key,door);
+  door.tiles.push(`${at(w)}${semantic&&uniqueTile(state.interaction_targets,"warp",w.x,w.y)?targetSuffix(warpArgument(w)):""}`);doors.set(key,door);
  }
  const edges=reach.connections.flatMap(c=>{const label=c.reach==="foot"?name(c.destination):null;return label===null?[]:[`${c.direction} edge -> ${label}${semantic&&walkOff(state,c.direction)?targetSuffix(connectionArgument(c.direction)):""}`];});
  const all=[...[...doors.values()].map(d=>`${d.tiles.join(" or ")} -> ${d.label}`),...edges];

@@ -10,7 +10,8 @@ import type { AgentEvent, AgentMessage } from "@mariozechner/pi-agent-core";
 import type { AssistantMessage, AssistantMessageEvent, ImageContent, TextContent } from "@mariozechner/pi-ai";
 import type { TargetProof } from "./target-stop.js";
 import type { LoopNotice } from "./loop-detection.js";
-import type { BodyOf, Button, RunEndReason, RunEvent, EventBody } from "./events.js";
+import { SemanticReceiptSchema, type BodyOf, type Button, type RunEndReason, type RunEvent, type EventBody, type SemanticReceipt } from "./events.js";
+import { Value } from "typebox/value";
 import type { FrameRef, FrameStore } from "./frames.js";
 import { parseGameState, type GameStateSnapshot, type StateSource } from "./game-state.js";
 import { deeperMilestone, type MilestoneSource, type SeenMilestone } from "./milestones.js";
@@ -74,6 +75,15 @@ interface ToolResultPayload {
   readonly content: readonly (TextContent | ImageContent)[];
 }
 
+// semantic-navigation-v2: the selected game target and whether it was acted on, from the tool's own details.
+function semanticReceipt(name: string, result: unknown): SemanticReceipt | null {
+  if ((name !== "navigate_to_target" && name !== "explore_map") || !isRecord(result) || !isRecord(result.details)) return null;
+  const { semantic_navigation: receipt } = result.details;
+  if (!isRecord(receipt)) return null;
+  const picked = { target: receipt.target, activation_attempted: receipt.activation_attempted };
+  return Value.Check(SemanticReceiptSchema, picked) ? picked : null;
+}
+
 function toolResultPayload(result: unknown): ToolResultPayload {
   if (!isRecord(result) || !Array.isArray(result.content)) {
     throw new RecorderError("tool result has no content list");
@@ -106,6 +116,8 @@ export class RunRecorder {
   private activityEnabled=false;
   private route103Required=false;
   private nativeActionsEnabled=false;
+  // semantic-navigation-v2: navigate_to_target and explore_map results record their state and receipt.
+  private semanticV2=false;
   private nativeActionCursor=0;
   private nativeActionFrame=0;
   private nativeActionTime=0;
@@ -182,6 +194,7 @@ export class RunRecorder {
     this.route103Required=meta.harness_features.includes("route103-rival-splits-v1");
     this.battleEnabled=meta.harness_features.includes("battle-choices-v1");
     this.nativeActionsEnabled=meta.harness_features.includes("native-action-history-v1");
+    this.semanticV2=meta.harness_features.includes("semantic-navigation-v2");
     this.append({ type: "run_start", turn: 0, ...meta });
     this.milestones.initialize?.(meta.start_state.kind);
     if (captureState) await this.checkMilestones();
@@ -278,7 +291,7 @@ export class RunRecorder {
     let stateSeq:number|undefined;
     // Reuse the state paired with the exact returned frame/text, including an
     // observe-only turn and play runs with objective tracking disabled.
-    if ((name === "observe" || name === "press" || name === "navigate_to" || name === "navigate_to_target" || name === "explore_map" || name === "act" || name === "battle_action") && isRecord(result) && isRecord(result.details) && result.details.state !== undefined) {
+    if ((name === "observe" || name === "press" || name === "navigate_to" || (this.semanticV2 && (name === "navigate_to_target" || name === "explore_map")) || name === "act" || name === "battle_action") && isRecord(result) && isRecord(result.details) && result.details.state !== undefined) {
       try { stateSeq=this.recordState(parseGameState(result.details.state)).seq; }
       catch (error) { this.telemetryError("state", error); }
     }
@@ -297,9 +310,11 @@ export class RunRecorder {
       this.saved = { saved: this.saved.saved + 1, bytes: this.saved.bytes + Buffer.from(data, "base64").length };
       return `<frame ${ref.path}>`;
     });
+    const semantic = this.semanticV2 ? semanticReceipt(name, result) : null;
     this.append({
       type: "tool_result",
       ...(stateSeq===undefined?{}:{state_seq:stateSeq}),
+      ...(semantic===null?{}:{semantic_navigation:semantic}),
       turn: this.turn,
       id,
       name,

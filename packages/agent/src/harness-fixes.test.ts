@@ -79,6 +79,21 @@ it("calls the same text at another tile or map a new conversation, not a restart
  expect(b.text("cycle",26)).toMatch(/restarted a conversation already shown/);
 });
 
+it("semantic-navigation-v2: a navigate_to_target or explore_map receipt counts its target as tried only once it acted on it",()=>{
+ const run=(name:string,attempted:boolean)=>{
+  const b=new SupervisorBriefing({...ALL_ON,"semantic-navigation-v2":true});
+  result(b,1);
+  b.observe(ev({type:"tool_call",id:"s",name,args:name==="explore_map"?{}:{map_id:[1,4],target:{kind:"object",local_id:1}}},3));
+  b.observe(st(4));
+  b.observe(ev({type:"tool_result",id:"s",name,is_error:false,duration_ms:1,text:`Semantic navigation: x. Selected map object 1.\n${STORY_RIVAL}`,frames:[],state_seq:4,semantic_navigation:{target:{kind:"object",local_id:1},activation_attempted:attempted}},5));
+  const text=b.text("cycle",6);return text.slice(text.indexOf("not tried yet"));
+ };
+ for(const name of ["navigate_to_target","explore_map"]){
+  expect(run(name,true).split("\n")[0]).not.toContain("SCIENTIST_1");
+  expect(run(name,false).split("\n")[0]).toContain("SCIENTIST_1");
+ }
+});
+
 it("counts only actions as tried: standing on a door mat leaves that exit untried, and story progress clears the list",()=>{
  // Today's rule; briefing-exits-v1 keeps tried things across a story step (briefing-exits.test.ts).
  const b=new SupervisorBriefing({...ALL_ON,"semantic-navigation-v2":false,"briefing-exits-v1":false});

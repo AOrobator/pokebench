@@ -9,7 +9,7 @@ import {isCheckedPress,type CheckedPressTool} from "./game-tools.js";
 import {parseGameState,type GameStateSnapshot} from "./game-state.js";
 import {exitReach,type Cut} from "./surf-gate.js";
 import type {RunRecorder} from "./recorder.js";
-import {connectionArgument,semanticWalk,targetSuffix,uniqueDirection} from "./semantic-targets.js";
+import {connectionArgument,semanticWalk,targetSuffix,uniqueDirection,uniqueTile} from "./semantic-targets.js";
 
 export const UNTAKEN_HEADER="Exits here you have not taken";
 type Snapshot=Pick<GameStateSnapshot,"started"|"screen"|"location"|"map_id"|"position"|"interaction_targets"|"topology"|"surf_gate"|"exit_reach">;
@@ -37,7 +37,7 @@ export class UntakenExits {
    const key=JSON.stringify(warp.destination);
    const group=groups.get(key)??{tiles:[],warps:[],destination:warp.destination,taken:false};
    // semantic-navigation-v2: each warp tile with the target navigate_to_target takes.
-   group.tiles.push(`(${tileKey(warp.x,warp.y)})${semantic?targetSuffix(JSON.stringify({kind:"warp",x:warp.x,y:warp.y})):""}`);group.warps.push(warp);
+   group.tiles.push(`(${tileKey(warp.x,warp.y)})${semantic&&uniqueTile(state.interaction_targets,"warp",warp.x,warp.y)?targetSuffix(JSON.stringify({kind:"warp",x:warp.x,y:warp.y})):""}`);group.warps.push(warp);
    group.taken||=this.history.taken(map,warp.x,warp.y);
    groups.set(key,group);
   }

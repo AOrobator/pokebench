@@ -51,3 +51,8 @@ def listed_objects(targets: Iterable[InteractionTarget] | None) -> frozenset[int
 
 def object_argument(local_id: int) -> str:
     return _argument({"kind": "object", "local_id": local_id})
+
+
+def same_tile(targets: Iterable[InteractionTarget] | None, target: InteractionTarget) -> int:
+    """How many listed targets share this one's kind and tile."""
+    return sum(t.kind == target.kind and (t.x, t.y) == (target.x, target.y) for t in targets or ())

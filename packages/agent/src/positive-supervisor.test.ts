@@ -35,7 +35,7 @@ function replay(features:FeatureSet){
   for(const s of subscribers)s(e);
  }
  const briefings=guards.filter(g=>g.phase==="supervisor");
- return {briefings,held,at:(turn:number)=>briefings.filter(g=>g.turn===turn)};
+ return {guards,briefings,held,at:(turn:number)=>briefings.filter(g=>g.turn===turn)};
 }
 
 describe("registry and presets",()=>{
@@ -69,6 +69,8 @@ describe("positive-supervisor-v1 on run f28d, Route 103 with MAY at (10,3)",()=>
    for(const banned of ["looping","stalling","do not try","Ways off","Exits to maps","Latest recorded place instruction","Story goal"])expect(g.message).not.toContain(banned);
   }
   expect(on.briefings.filter(g=>g.kind==="milestone_drought"||g.kind==="map_cycle")).toEqual([]);
+  // The retired drought briefing stays in the record as a diagnostic the model is not sent.
+  expect(on.guards.filter(g=>g.turn===452).map(g=>[g.kind,"mode"in g?g.mode:null,g.phase,g.message])).toEqual([["milestone_drought","diagnostic","would_warn","Not sent (positive-supervisor-v1): No new story milestone for 5 minutes of play."]]);
  });
  it("rewrites the text-only and interface-dwell notes the same way",()=>{
   const b=new SupervisorBriefing({...RUN,[ID]:true});

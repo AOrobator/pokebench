@@ -176,7 +176,7 @@ it("with the switch OFF records the same events and shows the model the same con
 });
 
 it("adds no subscriber with the switch OFF, and never briefs in diagnostic mode",()=>{
- const observers:unknown[]=[];const recorder={subscribe:(fn:unknown)=>{observers.push(fn);},recordStallGate:()=>undefined};
+ const observers:unknown[]=[];const recorder={subscribe:(fn:unknown)=>{observers.push(fn);},recordStallGate:()=>undefined,recordLoopGuard:()=>undefined};
  const detector=new LoopDetector(()=>undefined);
  expect(stallBriefing(OFF,recorder,detector,{pausedMs:()=>0},()=>0)).toBeNull();
  expect(observers).toHaveLength(0);

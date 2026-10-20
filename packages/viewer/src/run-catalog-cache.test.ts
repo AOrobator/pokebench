@@ -246,9 +246,9 @@ describe("server-owned run summary catalog", () => {
     writeRun(runsRoot, "pre-stat", "pre-stat-model", true);
     const catalog = createRunCatalog(runsRoot, null), stat = fs.statSync;
     let failed = false;
-    const statSpy = vi.spyOn(fs, "statSync").mockImplementation(((path: fs.PathLike, options?: fs.StatOptions) => {
-      if (!failed && options?.bigint === true) { failed = true; throw Object.assign(new Error("cache pre-stat unavailable"), { code: "EIO" }); }
-      return stat(path, options as never);
+    const statSpy = vi.spyOn(fs, "statSync").mockImplementation(((candidate: fs.PathLike, options?: fs.StatOptions) => {
+      if (!failed && String(candidate) === path && options?.bigint === true) { failed = true; throw Object.assign(new Error("cache pre-stat unavailable"), { code: "EIO" }); }
+      return stat(candidate, options as never);
     }));
     expect(byId(catalog, "pre-stat")).toMatchObject({ model: "pre-stat-model", ended: true, problem: null });
     statSpy.mockRestore();
@@ -259,12 +259,12 @@ describe("server-owned run summary catalog", () => {
 
   it("treats a cache-only post-read stat failure as an optimization miss", () => {
     const runsRoot = root();
-    writeRun(runsRoot, "post-stat", "post-stat-model", true);
+    const path = writeRun(runsRoot, "post-stat", "post-stat-model", true);
     const catalog = createRunCatalog(runsRoot, null), stat = fs.statSync;
     let metadataCalls = 0;
-    const statSpy = vi.spyOn(fs, "statSync").mockImplementation(((path: fs.PathLike, options?: fs.StatOptions) => {
-      if (options?.bigint === true && ++metadataCalls === 2) throw Object.assign(new Error("cache post-stat unavailable"), { code: "EIO" });
-      return stat(path, options as never);
+    const statSpy = vi.spyOn(fs, "statSync").mockImplementation(((candidate: fs.PathLike, options?: fs.StatOptions) => {
+      if (String(candidate) === path && options?.bigint === true && ++metadataCalls === 2) throw Object.assign(new Error("cache post-stat unavailable"), { code: "EIO" });
+      return stat(candidate, options as never);
     }));
     expect(byId(catalog, "post-stat")).toMatchObject({ model: "post-stat-model", ended: true, problem: null });
     statSpy.mockRestore();

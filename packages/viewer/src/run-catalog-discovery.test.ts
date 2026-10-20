@@ -78,6 +78,76 @@ describe("path-aware run catalog discovery", () => {
     expect(createRunCatalog(runsRoot, null)()[0]?.problem).toContain("ambiguous run id");
   });
 
+  it("keeps the path shortcut when the human root is stably absent", () => {
+    const runsRoot = root(), id = "model-only";
+    writeRun(runsRoot, id, "model only");
+    const catalog = createRunCatalog(runsRoot, null);
+    expect(catalog()[0]).toMatchObject({ id, model: "model only", problem: null });
+    const exists = vi.spyOn(fs, "existsSync");
+
+    expect(catalog()[0]).toMatchObject({ id, model: "model only", problem: null });
+    expect(exists.mock.calls.some(([path]) => [join(runsRoot, id), join(runsRoot, "human", id)].includes(String(path)))).toBe(false);
+  });
+
+  it("falls back to legacy ambiguity when the human root appears during its missing-root scan", () => {
+    const runsRoot = root(), humanRoot = join(runsRoot, "human"), id = "appearing-root";
+    writeRun(runsRoot, id, "model copy");
+    const readdir = fs.readdirSync;
+    let appeared = false;
+    const read = vi.spyOn(fs, "readdirSync").mockImplementation(((path: fs.PathLike, options?: unknown) => {
+      try {
+        return readdir(path, options as never);
+      } catch (error) {
+        if (!appeared && String(path) === humanRoot) {
+          appeared = true;
+          writeRun(runsRoot, id, "human copy", true, true);
+        }
+        throw error;
+      }
+    }) as unknown as typeof fs.readdirSync);
+
+    expect(createRunCatalog(runsRoot, null)()[0]?.problem).toContain("ambiguous run id");
+    read.mockRestore();
+  });
+
+  it("uses constant-time membership for each discovered physical root", () => {
+    class MembershipGuard extends Array<string> {
+      override includes(): boolean { throw new Error("linear root membership"); }
+    }
+    const runsRoot = root();
+    writeRun(runsRoot, "one");
+    writeRun(runsRoot, "two");
+    const readdir = fs.readdirSync;
+    const read = vi.spyOn(fs, "readdirSync").mockImplementation(((path: fs.PathLike, options?: unknown) => {
+      return new MembershipGuard(...readdir(path, options as never));
+    }) as unknown as typeof fs.readdirSync);
+
+    expect(createRunCatalog(runsRoot, null)().map(run => run.id)).toEqual(["two", "one"]);
+    read.mockRestore();
+  });
+
+  it("follows a symlinked root when guarding against a peer inserted after discovery", () => {
+    const base = root(), target = join(base, "target"), runsRoot = join(base, "runs"), id = "symlink-race";
+    fs.mkdirSync(target);
+    fs.symlinkSync(target, runsRoot, "dir");
+    writeRun(runsRoot, id, "human copy", true, true);
+    const readdir = fs.readdirSync;
+    let appeared = false;
+    const read = vi.spyOn(fs, "readdirSync").mockImplementation(((path: fs.PathLike, options?: unknown) => {
+      const entries = readdir(path, options as never);
+      if (!appeared && String(path) === runsRoot) {
+        appeared = true;
+        writeRun(runsRoot, id, "model copy");
+        const before = fs.statSync(target);
+        fs.utimesSync(target, before.atime, new Date(before.mtimeMs + 2_000));
+      }
+      return entries;
+    }) as typeof fs.readdirSync);
+
+    expect(createRunCatalog(runsRoot, null)()[0]?.problem).toContain("ambiguous run id");
+    read.mockRestore();
+  });
+
   it("does not trust a unique path when an ambiguous peer appears just after discovery", () => {
     const runsRoot = root(), id = "racy", humanRoot = join(runsRoot, "human");
     writeRun(runsRoot, id, "model copy");
@@ -97,8 +167,50 @@ describe("path-aware run catalog discovery", () => {
     read.mockRestore();
   });
 
+  it("treats a pre-discovery root identity failure as an optimization miss", () => {
+    const runsRoot = root(), humanRoot = join(runsRoot, "human"), id = "pre-guard";
+    writeRun(runsRoot, id, "pre guard");
+    fs.mkdirSync(humanRoot);
+    const stat = fs.statSync;
+    let failed = false;
+    const metadata = vi.spyOn(fs, "statSync").mockImplementation(((path: fs.PathLike, options?: fs.StatOptions) => {
+      if (!failed && String(path) === runsRoot && options?.bigint === true) {
+        failed = true;
+        throw Object.assign(new Error("root identity unavailable"), { code: "EIO" });
+      }
+      return stat(path, options as never);
+    }));
+    const exists = vi.spyOn(fs, "existsSync");
+
+    expect(createRunCatalog(runsRoot, null)()[0]).toEqual(listRuns(runsRoot, null)[0]);
+    expect(exists.mock.calls.some(([path]) => String(path) === join(runsRoot, id))).toBe(true);
+    metadata.mockRestore();
+  });
+
+  it("treats a post-discovery root identity failure as an optimization miss and retries discovery", () => {
+    const runsRoot = root(), humanRoot = join(runsRoot, "human"), id = "post-guard";
+    writeRun(runsRoot, id, "post guard");
+    fs.mkdirSync(humanRoot);
+    const stat = fs.statSync;
+    let rootStats = 0;
+    const metadata = vi.spyOn(fs, "statSync").mockImplementation(((path: fs.PathLike, options?: fs.StatOptions) => {
+      if (String(path) === runsRoot && options?.bigint === true && ++rootStats === 2) {
+        throw Object.assign(new Error("root identity unavailable"), { code: "EIO" });
+      }
+      return stat(path, options as never);
+    }));
+    const catalog = createRunCatalog(runsRoot, null), exists = vi.spyOn(fs, "existsSync");
+
+    expect(catalog()[0]).toMatchObject({ id, model: "post guard", problem: null });
+    expect(exists.mock.calls.some(([path]) => String(path) === join(runsRoot, id))).toBe(true);
+    metadata.mockRestore();
+    exists.mockClear();
+    expect(catalog()[0]).toMatchObject({ id, model: "post guard", problem: null });
+    expect(exists.mock.calls.some(([path]) => String(path) === join(runsRoot, id))).toBe(false);
+  });
+
   it("keeps the surviving physical root when the other root cannot be listed", () => {
-    const runsRoot = root(), humanRoot = join(runsRoot, "human");
+    const runsRoot = root();
     writeRun(runsRoot, "model-hidden", "hidden model");
     writeRun(runsRoot, "human-visible", "visible human", true, true);
     const readdir = fs.readdirSync;

@@ -448,9 +448,10 @@ async function route(req: IncomingMessage, res: ServerResponse, options: ViewerO
     return;
   }
   if (parts.length === 2) {
-    const live = new Set(await liveRuns(options.runsRoot, healthProbe(options.fetchFn ?? fetch), catalog));
+    const summaries = strictCatalog();
+    const live = new Set(await liveRuns(options.runsRoot, healthProbe(options.fetchFn ?? fetch), () => summaries));
     const finals = finalsRunLabels(options.runsRoot);
-    sendJson(res, 200, strictCatalog().map((run) => ({ ...run, ...(finals.has(run.id) ? { experiment: finals.get(run.id) } : {}), live: live.has(run.id) })));
+    sendJson(res, 200, summaries.map((run) => ({ ...run, ...(finals.has(run.id) ? { experiment: finals.get(run.id) } : {}), live: live.has(run.id) })));
     return;
   }
   try {

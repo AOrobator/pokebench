@@ -21,6 +21,8 @@ POST /pokebench/trainer-sight before it walks; nothing here reaches the readout 
   types); a wandering type anywhere in its movement range. Loaded objects (gObjectEvents) are
   tested at their tile now with their facing now plus their movement type's directions, since
   the trainer can turn or move before the player gets there.
+- Only loaded objects block a line (DoesObjectCollideWithObjectAt walks the active gObjectEvents);
+  a template that is not loaded never does.
 """
 
 import struct
@@ -88,7 +90,8 @@ _TURNING: dict[int, tuple[int, ...]] = {
     **{t: ALL for t in range(0x1D, 0x35)},  # WALK_SEQUENCE_*
     **{t: ALL for t in (0x35, 0x36, 0x37, 0x38, 0x3B, 0x3C, 0x3D, 0x3E)},  # COPY_PLAYER*
 }
-# Movement types that walk away from their tile, within the movement range.
+# Movement types that walk away from their tile, within the movement range: sMovementTypeHasRange
+# (src/event_object_movement.c), which also raises a range of 0 to 1 as the object spawns.
 _MOVING = frozenset(
     {
         0x02,
@@ -306,6 +309,7 @@ def _area(center: Point, range_x: int, range_y: int, moving: bool) -> list[Point
     if not moving:
         return [center]
     cx, cy = center
+    range_x, range_y = max(range_x, 1), max(range_y, 1)
     return [
         (cx + dx, cy + dy)
         for dy in range(-range_y, range_y + 1)
@@ -345,8 +349,6 @@ def read_sight_trainers(
         if body is None and hide != 0 and _flag(read, save1, hide):
             continue
         tx, ty = struct.unpack_from("<hh", entry, 4)
-        if body is None:
-            blockers.append(_Blocker(local_id, ((tx, ty),), entry[8]))
         trainer_type = body.trainer_type if body is not None else entry[0x0C]
         if trainer_type not in SIGHT_TYPES:
             continue

@@ -232,13 +232,24 @@ def test_objects_between_block_the_line_at_their_tile_now_or_their_previous_tile
     assert seen(m, [(2, 2)]) == [(3, 1, (2, 2))]
 
 
-def test_an_object_not_loaded_blocks_at_its_template_tile_unless_hidden() -> None:
+def test_an_object_not_loaded_never_blocks_the_line() -> None:
+    # DoesObjectCollideWithObjectAt walks only the active gObjectEvents.
     m = world()
     template(m, 0, 3, 5, 2)
-    template(m, 1, 8, 3, 2, trainer_type=0, script=SCRIPT_NONE, hide=0x20)
-    assert seen(m, [(2, 2)]) == []
-    flag(m, 0x20)
+    template(m, 1, 8, 3, 2, trainer_type=0, script=SCRIPT_NONE)
     assert seen(m, [(2, 2)]) == [(3, 1, (2, 2))]
+    loaded(m, 0, 8, 3, 2)
+    assert seen(m, [(2, 2)]) == []
+
+
+def test_a_wandering_template_with_range_zero_wanders_one_tile_as_it_spawns() -> None:
+    # sMovementTypeHasRange: a range of 0 becomes 1 when the object is loaded.
+    m = world()
+    template(m, 0, 3, 4, 4, movement=0x05, range_xy=0x00)  # WANDER_LEFT_AND_RIGHT
+    assert seen(m, [(0, 3)]) == [(3, 1, (0, 3))]
+    m = world()
+    template(m, 0, 3, 4, 4, movement=0x09, range_xy=0x00)  # FACE_LEFT does not move
+    assert seen(m, [(1, 3)]) == []
 
 
 def test_the_player_never_blocks_the_line() -> None:

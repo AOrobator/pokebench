@@ -62,3 +62,12 @@ A press is not checked. (1) A direction press moves at most one tile per button,
 ## Multi-Model Review Log
 
 ## Boy Scout Log
+
+## Multi-Model Review Log (round 1)
+
+- Packet: base ee95b866 (main), head e2febce2 (merge of main), diff sha256 3c29f644..., frozen boundary and principles adherence under runs/reviews/trainer-sight-check-v1/.
+- Claude lane: `claude -p` failed ("OAuth session expired"); Cursor claude-opus-5-thinking-high and claude-sonnet-5-thinking-high failed (Cursor usage limit). Standing fallback: a fresh read-only Claude (Opus) subagent on the same packet.
+- Grok lane (cursor-grok-4.5-high): BLOCKING, two findings, both accepted as real (each under-warns):
+  1. Templates that are not loaded were treated as line-of-sight blockers; DoesObjectCollideWithObjectAt walks only active gObjectEvents. Fixed: only loaded objects block.
+  2. Moving types spawn with range 0 raised to 1 (sMovementTypeHasRange); unloaded wanderers used the raw nibble. Fixed in `_area`.
+  Tests: template-blocker test flipped, range-bump test added; test_trainer_sight 25/25, trainer_sight.py 100%. b300 texts unchanged.

@@ -319,7 +319,7 @@ describe("exit-reachability-v1 schema, registry and presets",()=>{
   expect(description).not.toContain("both arms");
   expect(FEATURES.filter(f=>f.switchable).at(-54)?.id).toBe(ID);
   expect(playHarnessFeatures(ALL_ON,null).at(-38)).toBe(ID);
-  expect(SERVER_FEATURES.at(-13)).toBe(ID);
+  expect(SERVER_FEATURES.at(-14)).toBe(ID);
   expect(serverFeatureEnv({...ALL_ON,"semantic-navigation-v2":false,"battle-decision-ready-v1":false,[ID]:false}).POKEBENCH_FEATURES_OFF.split(",")).toContain(ID);
   expect(serverFeatureEnv(ALL_ON).POKEBENCH_FEATURES_OFF.split(",")).not.toContain(ID);
  });

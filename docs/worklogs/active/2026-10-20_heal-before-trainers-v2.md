@@ -84,3 +84,9 @@ Run `2026-10-20T13-54-28_qwen36-gpu0_b300` (bundle arm of whole-map-pair-1h; low
 - main still at ee95b866 (v2 not landed), so no merge was needed before the final review. Branch ready for the coordinator's landing step after v2; source.commit in experiments/gym-heal-warning-v1.json is zeros, to fill at landing.
 
 ## Boy Scout Log
+
+## Landing
+
+- Merged main (ad79c737, exit-labels-v2) into the branch: append-only conflicts in the registry, presets, defaults and ~25 test files; exit-labels-v2 stays before heal-before-trainers-v2 everywhere.
+- Joined the bundle arm of bundle-v-control and bundle-cook-1h (base.features false, appended to switches); experiments/heal-before-trainers-v2.json source.commit pinned to the feat commit c42e40a8. Registry suffix indexes advanced once more where both sides had moved them, exit-labels-v2 tests now expect it second to last, and the open-goal-prompt incumbent test excludes exit-labels-v2 and heal-before-trainers-v2 like the other bundle-only switches (it failed on main since exit-labels-v2 joined the bundle). Gates: agent 2921, viewer 1425, env 2934 tests pass; lint and build clean; coverage agent 97.21/92.92/97.70 (stmts/branches/functions), viewer 95.08/91.03/93.85, env lines 97.00 branches 92.45 functions 100.
+- gym-heal-warning-v1: merged main (348af0fc, heal-before-trainers-v2 landed) into claude/gym-heal-warning-v1; append-only conflicts, exit-labels-v2 then heal-before-trainers-v2 then gym-heal-warning-v1; registry suffix indexes advanced once more where both sides moved them.

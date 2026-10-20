@@ -23,7 +23,7 @@ describe("registry and presets",()=>{
   expect(SWITCHABLE_FEATURES.slice(-48,-43)).toEqual([...NEW]);
   expect(FEATURES.filter(f=>f.switchable).map(f=>f.id).slice(-48,-43)).toEqual([...NEW]);
   expect(playHarnessFeatures(ALL_ON,null).slice(-32,-27)).toEqual([...NEW]);
-  expect(SERVER_FEATURES.slice(-11,-6)).toEqual([...NEW]);
+  expect(SERVER_FEATURES.slice(-12,-7)).toEqual([...NEW]);
  });
  it.each(NEW)("%s is a server observation switch, bundle arm only, whose description says what OFF does",(name)=>{
   const info=featureInfo(id(name));

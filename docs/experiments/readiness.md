@@ -196,6 +196,7 @@ PENDING, explicitly blocked and unqueued. Clock policy acts from server boot; NE
 | `auto-talk-v1` | `BIRCH_STARTER_HANDOFF_COMPLETE` | PENDING until `just experiments` runs after landing | Registered 2026-10-20; the breaker's stage 3 as its own switch. It acts while fixed-point-breaker-v1 or duplicate-turn-collapse-v1 is on; a preset that omits it takes its fixed-point-breaker-v1 value. |
 | `duplicate-turn-collapse-v1` | `BIRCH_STARTER_HANDOFF_COMPLETE` | PENDING until `just experiments` runs after landing | Registered 2026-10-20; the breaker stage 1 without its note; on in both arms by operator decision. |
 | `unfinished-activity-v1` | `RUSTBORO_GYM_TRAINER_JOSH_DEFEATED` (it only acts after a trainer battle the agent lost on a map it had been fighting on) | PENDING until `just experiments` runs after landing | Registered 2026-10-20, pending and not queued; bundle-only. Evidence: r10 whole-map, turns 220-1224. |
+| `exit-labels-v2` | `PETALBURG_WOODS` (the same-name arrival notes matter first at the woods mouths, which all lead to ROUTE104) | PENDING until `just experiments` runs after landing | Registered 2026-10-20, pending and not queued; bundle-only. Evidence: b300 turns 581-596, six walks into PETALBURG WOODS and straight back out. |
 
 ## Heal before trainers v2 and gym heal warning — 2026-10-20
 

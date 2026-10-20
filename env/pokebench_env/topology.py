@@ -223,26 +223,29 @@ def _edges(
         along = x if dx == 0 else y
         if not 0 <= along - offset < span:
             continue
-        here, beyond = block(x, y), block(x + dx, y + dy)
-        # Surfing onto or off water changes height: a crossing that touches water skips that check.
-        wet = water and (here[3] in SURFABLE or beyond[3] in SURFABLE)
-        if (
-            MAPGRID_UNDEFINED in (here[0], beyond[0])
-            or here[1]
-            or beyond[1]
-            or (not wet and (here[3] in SURFABLE or beyond[3] in SURFABLE))
-            or leaving in EDGE_WALLS.get(here[3], ())
-            or entering in EDGE_WALLS.get(beyond[3], ())
-            or (
-                not wet
-                and here[2] not in (0, 15)
-                and beyond[2] not in (0, 15)
-                and here[2] != beyond[2]
-            )
-        ):
-            continue
-        found.append((x, y))
+        if crossable(block(x, y), block(x + dx, y + dy), leaving, entering, water=water):
+            found.append((x, y))
     return tuple(found)
+
+
+Block = tuple[int, int, int, int]
+
+
+def crossable(here: Block, beyond: Block, leaving: str, entering: str, *, water: bool) -> bool:
+    """One step across a map edge, each block as (metatile, collision, elevation, behavior)."""
+    # Surfing onto or off water changes height: a crossing that touches water skips that check.
+    wet = water and (here[3] in SURFABLE or beyond[3] in SURFABLE)
+    return not (
+        MAPGRID_UNDEFINED in (here[0], beyond[0])
+        or here[1]
+        or beyond[1]
+        or (not wet and (here[3] in SURFABLE or beyond[3] in SURFABLE))
+        or leaving in EDGE_WALLS.get(here[3], ())
+        or entering in EDGE_WALLS.get(beyond[3], ())
+        or (
+            not wet and here[2] not in (0, 15) and beyond[2] not in (0, 15) and here[2] != beyond[2]
+        )
+    )
 
 
 def read_topology(read: ReadMemory, maps: NameLookup, *, edges: bool = False) -> Topology | None:

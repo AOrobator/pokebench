@@ -25,9 +25,9 @@ it("registers a default-off guidance switch the game server applies, recorded la
   expect(SWITCHABLE_FEATURES.at(-95)).toBe(ID);
   expect(playHarnessFeatures(ALL_ON,null).at(-79)).toBe(ID);
   expect(playHarnessFeatures(with_(ALL_ON, false), null)).not.toContain(ID);
-  expect(SERVER_FEATURES.at(-26)).toBe(ID);
-  expect(serverFeatureEnv(with_(ALL_ON, false)).POKEBENCH_FEATURES_OFF).toBe(`${ID},safe-navigation-strides-v1,original-speed-pacing-v1,heal-before-trainers-v2`);
-  expect(serverFeatureEnv(ALL_ON).POKEBENCH_FEATURES_OFF).toBe("safe-navigation-strides-v1,original-speed-pacing-v1,heal-before-trainers-v2");
+  expect(SERVER_FEATURES.at(-27)).toBe(ID);
+  expect(serverFeatureEnv(with_(ALL_ON, false)).POKEBENCH_FEATURES_OFF).toBe(`${ID},safe-navigation-strides-v1,original-speed-pacing-v1,exit-labels-v2,heal-before-trainers-v2`);
+  expect(serverFeatureEnv(ALL_ON).POKEBENCH_FEATURES_OFF).toBe("safe-navigation-strides-v1,original-speed-pacing-v1,exit-labels-v2,heal-before-trainers-v2");
   expect(dependencyProblems(with_(ALL_ON, true))).toEqual([]);
 });
 

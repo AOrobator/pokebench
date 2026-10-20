@@ -470,8 +470,12 @@ async function route(req: IncomingMessage, res: ServerResponse, options: ViewerO
       return;
     }
     if (parts.length === 4 && leaf === "comparisons") {
-      const [comparisons, workbench] = await Promise.all([comparisonsOf(options.runsRoot, id, readBaseline), readCompleteWorkbench()]);
-      sendJson(res, 200, { ...comparisons, frontier: frontierSplits(workbench.runs, id) });
+      sendJson(res, 200, await comparisonsOf(options.runsRoot, id, readBaseline));
+      return;
+    }
+    if (parts.length === 4 && leaf === "frontier") {
+      if (!existsSync(dir)) throw new RunsError(`no run ${id}`);
+      sendJson(res, 200, { frontier: frontierSplits((await readCompleteWorkbench()).runs, id) });
       return;
     }
     if (parts.length === 4 && leaf === "milestones") {

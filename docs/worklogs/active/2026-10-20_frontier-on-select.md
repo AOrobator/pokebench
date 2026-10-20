@@ -17,8 +17,8 @@ The side card's reference comes from `/comparisons`, which the app requests only
 ## M1
 
 - [x] RED: app picks a run → one /frontier request, no /comparisons, card shows the delta; a superseded run's frontier never lands; server /frontier route (selected, self-excluded, invalid id 404, cold partial viewer); /comparisons has no frontier. 5 failing.
-- [ ] GREEN
-- [ ] Gates
+- [x] GREEN: `/frontier` route (404 for an unknown run), `/comparisons` back to candidates + baseline, `loadFrontier` on every selection with its own request token; comparisons tests now route /frontier separately
+- [x] Gates: viewer 1358, agent 2702, python 2894 passed; coverage viewer 95.14/91.16/93.88; lint clean
 - [ ] Proof: real browser, desktop and phone, replay with splits page closed
 - [ ] Review: Claude, Grok
 - [ ] Land, viewer-main, live check

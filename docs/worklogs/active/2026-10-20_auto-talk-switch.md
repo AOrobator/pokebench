@@ -18,6 +18,9 @@ auto-talk-v1 (guard), retroactive and default ON (feature-switch rule for landed
 ## Session Log
 - Branch claude/auto-talk-switch from claude/positive-supervisor ddb2b4b2 (now on main).
 
+- Review r1 on 588f083c: Grok LGTM, Claude LGTM (non-blocking: old breaker-on runs read back with auto-talk off by featuresOf; toggling auto-talk with the breaker off does nothing).
+- The operator 1:06-1:07 PM ET (via coordinator): split the collapse into its own switch, on in both arms; remove the breaker's short instruction from both arms. Coordinator: control must not pick up auto-talk. Done: duplicate-turn-collapse-v1 (stage 1 only); fixed-point-breaker-v1 unchanged (collapse + note), presets turn it off; auto-talk-v1 acts with the breaker or the collapse, and when omitted takes the preset's breaker value (so control stays off; DEFAULT_NEXT_RUN and flagFeatures off). positive-supervisor-v1 is a separate code path, unaffected.
+
 ## Surprises
 ## Multi-Model Review Log
 ## Boy Scout Log

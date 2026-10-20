@@ -48,6 +48,7 @@ svg text{fill:var(--fg);font:13px -apple-system,BlinkMacSystemFont,"Segoe UI",He
 </figure>
 
 <h2>Stage 1: duplicate turns collapse to the newest copy</h2>
+<p class="muted">Stage 1 is also its own switch, <code>duplicate-turn-collapse-v1</code>, without the note. A 2×2 decision probe at f28d turn 2301 (16 a cell) credits it with nearly all of the effect: the 400-turn loop repeated 16 times with neither, 13 with the note only, 1 with the collapse only, 2 with both. Operator decision 2026-10-20: the collapse goes in both arms, and the note comes off in both.</p>
 <figure>
 <svg viewBox="0 0 800 170" width="100%" role="img" aria-label="Request before and after collapse">
 <text x="0" y="16">Off: every copy is in the request</text>
@@ -78,7 +79,7 @@ svg text{fill:var(--fg);font:13px -apple-system,BlinkMacSystemFont,"Segoe UI",He
 <p>The first goes at the very end of the request. The second replaces the generic nudge after the reply ("Keep playing: call observe or press…"), also when <code>fresh-retry-v1</code> leaves that reply out. The count changes every turn, so the prompt is never the same twice.</p>
 
 <h2>Stage 3: walk to the nearest untalked person and press A</h2>
-<p class="muted">Stage 3 is its own switch, <code>auto-talk-v1</code> (default on, so presets keep it), and acts only while <code>fixed-point-breaker-v1</code> is on. Every walk and press it makes is recorded as an <code>auto_talk</code> event.</p>
+<p class="muted">Stage 3 is its own switch, <code>auto-talk-v1</code>. When a preset omits it, it takes the preset's <code>fixed-point-breaker-v1</code> value; it acts only while the breaker or <code>duplicate-turn-collapse-v1</code> is on. Every walk and press it makes is recorded as an <code>auto_talk</code> event.</p>
 <figure>
 <svg viewBox="0 0 420 300" width="100%" style="max-width:520px" role="img" aria-label="Auto-talk on Route 103">
 <g stroke="var(--line)">

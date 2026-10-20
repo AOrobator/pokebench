@@ -22,7 +22,7 @@ it("registers a default-off guidance switch the game server applies, recorded la
   expect(description).toContain(" Off: ");
   expect(description).toContain("below half");
   expect(description).toContain("RUN");
-  expect(SWITCHABLE_FEATURES.at(-90)).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-91)).toBe(ID);
   expect(playHarnessFeatures(ALL_ON,null).at(-78)).toBe(ID);
   expect(playHarnessFeatures(with_(ALL_ON, false), null)).not.toContain(ID);
   expect(SERVER_FEATURES.at(-24)).toBe(ID);

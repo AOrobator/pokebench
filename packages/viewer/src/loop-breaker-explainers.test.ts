@@ -26,7 +26,8 @@ for (const [ID, phrase] of [["fixed-point-breaker-v1", "Stage 3: walk to the nea
   });
 }
 
-it("starts auto-talk-v1 ON for the next run, so a run with the breaker on keeps stage 3, and links it to the breaker's explainer", () => {
-  expect(DEFAULT_NEXT_RUN.features["auto-talk-v1"]).toBe(true);
+it("starts auto-talk-v1 and duplicate-turn-collapse-v1 OFF for the next run and links auto-talk to the breaker's explainer", () => {
+  expect(DEFAULT_NEXT_RUN.features["auto-talk-v1"]).toBe(false);
+  expect(DEFAULT_NEXT_RUN.features["duplicate-turn-collapse-v1"]).toBe(false);
   expect(FEATURE_EXPLAINERS["auto-talk-v1"]).toBe("fixed-point-breaker-v1.html");
 });

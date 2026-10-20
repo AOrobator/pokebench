@@ -150,7 +150,8 @@
       "fixed-point-breaker-v1": true,
       "story-character-stall-gate-v1": false,
       "positive-supervisor-v1": false,
-      "auto-talk-v1": false
+      "auto-talk-v1": false,
+      "duplicate-turn-collapse-v1": false
     }
   },
   "trialsPerArm": 8,

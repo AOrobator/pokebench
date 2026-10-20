@@ -5,7 +5,7 @@ import {IN_GAME} from "../test-support/events.js";
 import {userText} from "../test-support/pi.js";
 import {checkEvent,type EventBody,type RunEvent} from "./events.js";
 import {ALL_ON,SWITCHABLE_FEATURES,featureInfo,type FeatureSet} from "./features.js";
-import {normalizeFeatures} from "./play-preset.js";
+import {flagFeatures,normalizeFeatures} from "./play-preset.js";
 import type {GameStateSnapshot} from "./game-state.js";
 import {AUTO_TALK_REPLIES,AUTO_TALK_TURNS,autoTalkContext} from "./auto-talk.js";
 import {StoryCharacterGate} from "./stall-gate.js";
@@ -46,13 +46,24 @@ function rig(targets:Target[],options:Parameters<typeof world>[1]={},features:Fe
 const last=(out:readonly AgentMessage[]):string=>{const m=out.at(-1);return m!==undefined&&"role"in m&&m.role==="user"&&Array.isArray(m.content)?m.content.flatMap(p=>p.type==="text"?[p.text]:[]).join(""):"";};
 
 describe("auto-talk-v1 (the fixed-point breaker's stage 3)",()=>{
- it("is a default-on guard after positive-supervisor-v1 that needs no switch, so presets that omit it keep stage 3",()=>{
+ it("is a guard after positive-supervisor-v1 that needs no switch, so presets that omit it keep stage 3 when the breaker is on",()=>{
   expect(featureInfo("auto-talk-v1")).toMatchObject({group:"guard",needs:null,switchable:true,title:"AUTO-TALK"});
   expect(featureInfo("auto-talk-v1").description).toContain(" Off: the breaker's stages 1 and 2 still act; the harness never walks or presses on its own.");
   expect(SWITCHABLE_FEATURES.indexOf("auto-talk-v1")).toBe(SWITCHABLE_FEATURES.indexOf("positive-supervisor-v1")+1);
   const older=Object.fromEntries(Object.entries(ALL_ON).filter(([id])=>id!=="auto-talk-v1")) as Omit<FeatureSet,"auto-talk-v1">;
   expect(normalizeFeatures(older)["auto-talk-v1"]).toBe(true);
   expect(normalizeFeatures({...older,"auto-talk-v1":false})["auto-talk-v1"]).toBe(false);
+ });
+ it("follows the breaker when a preset omits it, so the control (collapse on, breaker off) never auto-talks",()=>{
+  const control=Object.fromEntries(Object.entries({...NONE,"duplicate-turn-collapse-v1":true}).filter(([id])=>id!=="auto-talk-v1")) as Omit<FeatureSet,"auto-talk-v1">;
+  const normalized=normalizeFeatures(control);
+  expect(normalized["auto-talk-v1"]).toBe(false);
+  const base=(m:AgentMessage[])=>Promise.resolve(m);
+  const fake={fixedPoint:()=>({turns:9,loop:"a",names:[]}),noTool:()=>({replies:0,loop:"s"})} as never;
+  expect(autoTalkContext(normalized,{read:()=>Promise.reject(new Error("no"))},[],base,fake,{subscribe:()=>undefined,recordAutoTalk:()=>undefined})).toBe(base);
+  expect(normalizeFeatures({...control,"fixed-point-breaker-v1":true})["auto-talk-v1"]).toBe(true);
+  expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:true})["auto-talk-v1"]).toBe(false);
+  expect(autoTalkContext({...normalized,"auto-talk-v1":true},{read:()=>Promise.reject(new Error("no"))},[],base,fake,{subscribe:()=>undefined,recordAutoTalk:()=>undefined})).not.toBe(base);
  });
  it("is the base transform when either switch is off",()=>{
   const base=(m:AgentMessage[])=>Promise.resolve(m);
@@ -61,6 +72,7 @@ describe("auto-talk-v1 (the fixed-point breaker's stage 3)",()=>{
   expect(autoTalkContext(NONE,none,[],base,null,rec)).toBe(base);
   expect(autoTalkContext({...ON,"auto-talk-v1":false},none,[],base,{fixedPoint:()=>({turns:9,loop:"a",names:[]}),noTool:()=>({replies:0,loop:"s"})} as never,rec)).toBe(base);
   expect(autoTalkContext({...ON,"fixed-point-breaker-v1":false},none,[],base,null,rec)).toBe(base);
+  expect(autoTalkContext({...ON,"fixed-point-breaker-v1":false},none,[],base,{fixedPoint:()=>({turns:9,loop:"a",names:[]}),noTool:()=>({replies:0,loop:"s"})} as never,rec)).toBe(base);
  });
  it("does nothing before the 8th identical turn, then walks next to MAY, faces her, presses A and ends the request with what she said",async()=>{
   const r=rig([person(2,"RIVAL_MAY_NORMAL",10,3),person(3,"BOY_1",13,10)]);

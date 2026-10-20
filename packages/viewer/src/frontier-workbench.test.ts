@@ -277,8 +277,9 @@ it("hides extreme time overlays by default, restores them without losing data, a
   expect(button).not.toBeNull();
   expect(button?.getAttribute("aria-pressed")).toBe("true");
   expect(ui("frontier-full").querySelector('[data-run="extreme"]')).toBeNull();
-  expect(ui("frontier-full").textContent).toContain("1 time outlier hidden");
-  expect(ui("frontier-full").textContent).toContain("extreme");
+  expect(ui("frontier-full").querySelector(".wb-notice")).toBeNull();
+  expect(button?.textContent).toContain("(1)");
+  expect(button?.title).toContain("extreme");
   button?.click(); button?.focus();
   expect(button?.getAttribute("aria-pressed")).toBe("false");
   expect(ui("frontier-full").querySelector('[data-run="extreme"]')).not.toBeNull();
@@ -291,5 +292,24 @@ it("hides extreme time overlays by default, restores them without losing data, a
   button?.click();
   expect(ui("frontier-full").querySelector('[data-run="extreme"]')).toBeNull();
   expect(outlier.splits).toHaveLength(2);
+  wb.destroy();
+});
+
+
+it("retains extreme frontier and live runs, and leaves small cohorts unfiltered", async () => {
+  const measurement = { controller: "agent" as const, features: ["story-milestones-v2"], logSha256: "a".repeat(64), pausedMs: 0, rawSplits: [] };
+  const split = run().splits[0]; if (split === undefined) throw new Error("missing fixture split");
+  const make = (id: string, minutes: number, status: "live" | "ended" = "ended") => Object.assign(run({id, status, splits:[{...split, elapsedMs:minutes * 60000}]}), {measurement});
+  const normal = Array.from({length:40}, (_, i) => make(`n-${String(i)}`,2));
+  const best = make("best-extreme",400); best.splits.push({...split, name:"STONE_BADGE"});
+  const live = make("live-extreme",500,"live"), ended = make("ended-extreme",600);
+  let runs = [...normal,best,live,ended];
+  const wb = new Workbench(document, {fetchSnapshot:()=>Promise.resolve({version:1,at:1000,milestones:[],runs,problems:[]}),now:()=>1000,width:()=>900});
+  await wb.refresh();
+  const plotted = (id: string) => ui("frontier-full").querySelector(`[data-run="${id}"]`);
+  expect(plotted("best-extreme")).not.toBeNull(); expect(plotted("live-extreme")).not.toBeNull();
+  expect(plotted("ended-extreme")).toBeNull();
+  runs = [make("small",2), ended]; await wb.refresh();
+  expect(plotted("ended-extreme")).not.toBeNull();
   wb.destroy();
 });

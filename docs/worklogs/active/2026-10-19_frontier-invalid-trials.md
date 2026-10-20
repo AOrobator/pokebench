@@ -17,8 +17,8 @@ The operator, 11:34 PM ET: "the viewer also says +3 live and thats wrong". `live
 - [x] RED: frontier tests for invalid trials plotted, labelled, never best; other exclusions still hidden.
 - [x] GREEN: `invalidTrial` admitted by `shownAgent`; dotted line, title reason, notice and legend row.
 - [x] RED/GREEN: newest unended run per port is the only live candidate.
-- [ ] Gates: build, test, lint, coverage, verify-vendor.
-- [ ] Cloud review (Claude, Grok, GPT/Codex) LGTM on the frozen diff; ff-only landing.
+- [x] Gates: build, test, lint, coverage, verify-vendor.
+- [x] Cloud review (Claude, Grok, GPT/Codex) LGTM on the frozen diff; ff-only landing.
 - [ ] `just viewer-main`; real-browser desktop and phone check that the 4h pair is drawn.
 
 ## Session log
@@ -31,3 +31,6 @@ The operator, 11:34 PM ET: "the viewer also says +3 live and thats wrong". `live
 - Operator waiver, the operator 11:34 PM ET: "chatgpt reviews are waived, im outta tokens there". GPT/Codex lane dropped; Claude (subagent; CLI OAuth expired) and Grok remain required.
 - Gates round 1 on 8e6e49a2: lint passed; agent 2,681 tests passed; viewer server-controls fixture put two live runs on one port (8011), so the port-owner rule hid the older one. Fixture now gives the second run 8012 (INV-7). Review round 1: Claude subagent LGTM; Grok BLOCKING, real: invalid trials broke lines at never-recorded checkpoints because milestoneStatus returns excluded. RED added to the bridge test (got [2, 2], want [4]).
 - GREEN: the plot's gap rule reads milestoneStatus with the invalid trial's exclusion lifted, so never-recorded checkpoints bridge as for valid runs. Frontier tests 114 passed.
+- Gates on 9db9bdba: lint passed; agent 2,681, viewer 1,307, Python 2,824 tests passed; coverage agent 99.25/93.77/97.86, viewer 97.7/91.06/93.78 (lines/branches/functions), Python lines 96.91 branches 92.35 functions 100; verify-vendor OK.
+- Review round 2 Claude subagent: LGTM.
+- Review round 2 Grok (cursor-grok-4.5-high) on packet e73750b5 (head 9db9bdba): LGTM. Non-blocking follow-ups (copy, symmetry test, live invalid resume styling) left as is. GPT lane waived by the operator. Landing 9db9bdba plus this worklog record by fast-forward.

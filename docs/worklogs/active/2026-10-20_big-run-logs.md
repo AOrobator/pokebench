@@ -27,3 +27,4 @@ Non-goals: shrinking `state` events (a recorder change; follow-up), timeline cha
 - Review round 1: Claude LGTM; Grok and GPT BLOCKING on one finding: `completeLog` used `first ??= e.type`, so a first event with `type: null` let a later run_start count as first. RED test added.
 - Fix: `completeLog` takes the first event's type with a seen flag. Gates rerun: lint clean, coverage passes.
 - Review round 2: Claude and Grok LGTM; GPT BLOCKING: `rescoreTrials` read the log twice (`completeLog`, then `classifyTrial`), so a one-shot stream or a log replaced between passes could be graded on different bytes than were checked. RED test added.
+- Fix: `rescoreTrials` grades and checks completeness in one pass (`Completeness.tap` feeds `classifyTrial`). Gates rerun: lint clean, coverage passes.

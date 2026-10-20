@@ -151,7 +151,7 @@ export class NextRunPanel {
       thinking: start.sampling.thinking_level as NextRunDraft["thinking"],
       maxTokens: start.sampling.max_tokens,
       maxTurns: start.budgets.max_turns ?? draft.maxTurns,
-      maxWallMs: start.budgets.max_wall_ms ?? draft.maxWallMs,
+      maxWallMs: this.liveView?.control.maxWallMs ?? start.budgets.max_wall_ms ?? draft.maxWallMs,
       failureLimit: start.evaluation?.failure_limit ?? draft.failureLimit,
       target: start.evaluation?.target ?? null,
       features: Object.fromEntries(this.registry.filter((f) => f.switchable).map((f) => [f.id, start.harness_features.includes(f.id)])) as Record<SwitchableFeature, boolean>,

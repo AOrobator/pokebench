@@ -628,7 +628,11 @@ export class App {
       const recorded = workbench.runs.find((r) => r.id === run.id);
       if (recorded === undefined || (recorded.status !== "live" && recorded.status !== "paused")) return [];
       const status: CardInput["status"] = run.id === this.runId ? "watching" : recorded.status === "paused" ? "paused" : "live";
-      return [cardInputFor(recorded, workbench.at, now, status, workbench.runs, art.art)];
+      const input = cardInputFor(recorded, workbench.at, now, status, workbench.runs, art.art);
+      // Applied controls arrive on the selected stream before the next card snapshot.
+      // A snapshot may also be ahead of that stream, so never reduce its cap.
+      const streamedCap = run.id === this.runId ? this.view.control.maxWallMs : null;
+      return [streamedCap === null ? input : { ...input, facts: { ...input.facts, cap: Math.max(input.facts.cap ?? 0, streamedCap) } }];
     });
     return liveCards;
   }
@@ -1210,7 +1214,7 @@ export class App {
     this.setHtml("harness-config", harnessConfig(view, this.next.registry));
     this.filterFeatures();
     this.setHtml("party", party(view));
-    this.setHtml("run-details", `<details><summary>RUN METADATA · PROMPT · TOOLS · BUDGETS</summary><pre>${esc(JSON.stringify(view.start, null, 2))}</pre></details><details><summary>LATEST RECORDED STATE</summary><pre>${esc(JSON.stringify(view.state, null, 2))}</pre></details><details><summary>TERMINAL EVENT</summary><pre>${esc(JSON.stringify(view.end, null, 2))}</pre></details>`);
+    this.setHtml("run-details", `<details><summary>ORIGINAL RECORDED CONFIGURATION · PROMPT · TOOLS · BUDGETS</summary><pre>${esc(JSON.stringify(view.start, null, 2))}</pre></details><details><summary>CURRENT EFFECTIVE WALL LIMIT</summary><pre>${esc(JSON.stringify({ max_wall_ms: view.control.maxWallMs ?? view.start?.budgets.max_wall_ms ?? null }, null, 2))}</pre></details><details><summary>LATEST RECORDED STATE</summary><pre>${esc(JSON.stringify(view.state, null, 2))}</pre></details><details><summary>TERMINAL EVENT</summary><pre>${esc(JSON.stringify(view.end, null, 2))}</pre></details>`);
     const barHeight = this.doc.querySelector(".bar")?.getBoundingClientRect().height ?? 0;
     this.doc.documentElement.style.setProperty("--viewer-bar-height", `${String(barHeight || 110)}px`);
     this.setHtml("budgets", budgets(view, nowMs));

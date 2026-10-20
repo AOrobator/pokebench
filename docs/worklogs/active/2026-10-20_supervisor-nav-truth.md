@@ -25,5 +25,5 @@ coordinator; max 2 rounds), features.ts merge slot from the coordinator, ff-only
 - [x] Explainers (pages-check clean), pending experiments, readiness rows, FEATURE_EXPLAINERS
 - [x] Gates: TS coverage agent 2,712 tests 97.61/93.77/97.87 (stmts/branches/funcs), viewer 1,356 tests 95.15/91.17/93.88; Python 2,894 tests, lines 96.94 branches 92.45 functions 100; lint clean (Python lint and pytest via the main checkout's mGBA venv, Python unchanged); verify-vendor OK; verify-rom OK. Wiring deletion turned both factory tests red, then restored.
 Rebased onto main 48309d51 (semantic navigation landed); re-ran all gates: agent 2,797 tests 97.27/93.33/97.88, viewer 1,358 tests 95.15/91.17/93.88, Python 2,896 tests 96.95/92.46/100; lint clean; verify-vendor OK.
-- [ ] Reviews: Claude, Grok (packet runs/reviews/2026-10-20-supervisor-nav-truth/r1)
+- [ ] Reviews: r1 Grok (cursor-grok-4.5-high) VERDICT: LGTM, non-blocking note: duplicated </head> in both explainers (fixed). r1 Claude CLI failed: "OAuth session expired and could not be refreshed"; Claude lane moves to Cursor Claude on r2.
 - [ ] Land ff-only on main

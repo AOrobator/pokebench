@@ -51,5 +51,5 @@ Coordinator relay after positive-supervisor-v1 (variant A) landed (ddb2b4b2, 267
 - [x] `positive-supervisor-v1` is a bundle switch (base false) in `bundle-v-control` and `bundle-cook-1h`; plan unchanged.
 - [x] Tests: fixed-runner pin and open-goal-prompt exclusion list gain it.
 - [x] Gates: lint clean; agent 2833, viewer 1386, pytest 2896; `fixed-run check` clean for both.
-- [ ] Review: Claude and Grok LGTM
-- [ ] Land ff-only, `just viewer-main`
+- [x] Review: Grok and Claude (subagent) `VERDICT: LGTM` on packet c3d78996…4a41 (runs/reviews/next-bundle-1h-m4/)
+- [x] Landed ff-only on main at 2826e466; `just viewer-main` restarted the viewer

@@ -555,3 +555,11 @@ it("does not mark a selected warp tried when an earlier transition reaches the s
  expect(first.details).toMatchObject({semantic_navigation:{activation_attempted:false}});
  expect(calls).toBe(2);
 });
+
+it("stops when route segments cycle back to an earlier end tile instead of looping",async()=>{
+ const f=fixture((state,attempt)=>attempt>=10?state:{...state,position:attempt%2===1?{x:1,y:0}:{x:0,y:1}}),tool=f.tools.find(t=>t.name==="navigate_to_target");if(tool===undefined)throw new Error("missing semantic tool");
+ const out=await tool.execute("s",{map_id:[0,9],target:{kind:"object",local_id:2}});
+ expect(f.navigations).toHaveLength(3);expect(f.buttons).toEqual([]);
+ const message=out.content[0];expect(message?.type==="text"?message.text:"").toContain("route returned to an earlier segment end before the selected approach");
+ expect(out.details).toMatchObject({semantic_navigation:{activation_attempted:false}});
+});

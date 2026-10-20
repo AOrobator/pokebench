@@ -153,3 +153,11 @@ Second sync: merged main c07b747c (context-token-budget-v1 and the 6-hour v2 par
 Gates on 51e1fe86 (after second sync): lint, build, verify-vendor pass; coverage run passes with agent 2,702, viewer 1,347, Python 2,894 tests (agent 97.61/93.75/97.87, viewer 95.11/91.11/93.86, Python 96.94/92.45/100). Review roster: Claude (Cursor Claude Opus 5.5; Claude CLI OAuth expired) and Grok (Cursor grok-4.7-high). GPT/Codex lane waived by the operator ("chatgpt reviews are waived, im outta tokens there", 2026-10-19 11:34 PM NY, relayed by the coordinator). COMMIT: `docs: record viewer frame-budget gates and review roster`.
 
 ## Multi-Model Review Log
+
+### Round 1 (packet bd8258ca..9224dfb9, SHA-256 5fc3f5cdc5fcd93b78551346667b8e44412480ee5e86bf41c39ba80d2804dc61)
+
+- Grok (Cursor grok-4.7-high): VERDICT: LGTM. Follow-ups only: battle journal still slices `memory.u8`; `cohortIndex`/`comparisonsOf`/fixed runner still call uncached `listRuns`.
+- Claude: Claude CLI OAuth expired; Cursor Opus 5.5 and Sonnet 5 usage-capped until 11/17. Claude lane run as a read-only Claude subagent per the operator's standing rule (memory claude-review-lane, 2026-10-16). VERDICT: LGTM. Principles notes: PB2 should be PASS with the wire-equality tests as evidence; PB5 should say M4's 80 publication cap applies outside the switch (viewer-only, encode count unchanged at 59.7 with --no-ocr); PB13 live check was then pending; PB11's ws-callback citation is not in this diff. Follow-ups: publication uses wall clock (pre-existing); `read_canonical_ram` raises on cores without `_core` (test fakes only); `/api/runs` summaries are taken before health probes (one-response staleness window).
+- GPT/Codex: waived by the operator.
+
+Landed: `git merge --ff-only 9224dfb9` on local main (2026-10-20 ~3:28 AM NY). Post-merge `just test` on main: agent 2,702, viewer 1,347, Python 2,894 pass. `just viewer-main` restarted 8790 at 9224dfb9 and kept the 2 live 6h-v2 gameplay processes (pids 68795, 68800 alive); both runs still live with no problem and no version-skew problem. Browser on 8790: gpu0_8d39 RUNNING at 52 presented frames/s. That pair's game servers run the earlier pin eb1b225 (bus reads, strict 60 publication cap, 59.7 FPS) under live model load, so the new game-side gains apply from the next launch.

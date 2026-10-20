@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { describe, expect, it } from "vitest";
 import type { FixedLaneStatus, FixedStatusView } from "./fixed-status.js";
-import { armColor, clockText, currentRunHtml, furthestMilestone, runDetails, runLanes, viewerUrl } from "./workbench-view.js";
+import { armColor, clockText, currentRunHtml, furthestMilestone, plateFacts, runDetails, runLanes, viewerUrl } from "./workbench-view.js";
 import { run } from "../test-support/workbench.js";
 const parse = (html: string): Document => new DOMParser().parseFromString(html, "text/html");
 describe("workbench visual contract", () => {
@@ -104,5 +104,36 @@ describe("workbench visual contract", () => {
     expect(currentRunHtml([run({ status: "live", config: null, elapsedMs: null })], 0, 0, null)).toContain("0:00/ no cap");
     const detail = runDetails(legacy, null); expect(detail).toContain("(dirty)"); expect(detail).toContain("not supported"); expect(detail).toContain("not recorded / play to budget"); expect(detail).toContain("no terminal outcome");
     expect(viewerUrl(null)).toBe("/");
+  });
+});
+
+
+describe("operator extension timing", () => {
+  it.each(["live", "paused", "ended"] as const)("uses the applied continuation cap for %s run facts", status => {
+    const original = run({ status, elapsedMs: 900_000 });
+    if (original.config === null) throw new Error("fixture");
+    const extended = { ...original, config: { ...original.config, extendedWallMs: 2_400_000 } };
+    expect(plateFacts(extended, 1000, 6000)).toMatchObject({ cap: 2_400_000, elapsed: status === "live" ? 905_000 : 900_000 });
+    expect(original.config.maxWallMs).toBe(600_000);
+    expect(plateFacts(original, 1000, 6000).cap).toBe(600_000);
+  });
+  it("expands the displayed plate denominator and time bar after an extension", () => {
+    const original = run({ status: "paused", elapsedMs: 900_000 });
+    if (original.config === null) throw new Error("fixture");
+    const extended = { ...original, config: { ...original.config, extendedWallMs: 2_400_000 } };
+    const doc = parse(currentRunHtml([extended], 1000, 6000, null));
+    expect(doc.querySelector('[data-current-field="time"]')?.textContent).toBe("15:00/ 40:00");
+    expect(doc.querySelector('[data-current-field="time-bar"]')?.getAttribute("style")).toBe("width:37.5%");
+  });
+  it("labels the effective cap separately from the original evaluation horizon in details", () => {
+    const original = run();
+    if (original.config === null) throw new Error("fixture");
+    const extended = { ...original, config: { ...original.config, extendedWallMs: 2_400_000 } };
+    const detail = parse(runDetails(extended, null));
+    const rows = new Map([...detail.querySelectorAll("dt")].map(term => [term.textContent, term.nextElementSibling?.textContent]));
+    expect(rows.get("Time cap")).toBe("0:40:00");
+    expect(rows.get("Original evaluation cap")).toBe("0:10:00");
+    expect(rows.get("Operator-extended continuation")).toContain("original evaluation horizon unchanged");
+    expect(runDetails(original, null)).not.toContain("Original evaluation cap");
   });
 });

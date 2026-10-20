@@ -173,3 +173,19 @@ it("invalidates an old history response immediately while the settings write is 
  write.resolve({draft:p.draft,queue:{state:"idle"}});await Promise.resolve();await Promise.resolve();await Promise.resolve();await Promise.resolve();
  expect(requests).toBe(2);expect(p.history).toEqual(history(11));expect(ui("switchboard").textContent).toContain("runs with it ON (11)");
 });
+
+
+it("copies the effective live cap after applied extensions while preserving the recorded budget", async () => {
+  const { panel: p } = panel(ok); await p.load();
+  const log = new Log(); log.add(0, START);
+  const view = new RunView(); for (const event of log.events) view.apply(event);
+  p.setLive(view);
+  for (const [index, status] of (["pending", "ignored", "failed", "applied", "applied"] as const).entries()) {
+    const max = index === 4 ? 3_660_000 : 1_860_000;
+    view.apply(log.add(index + 1, { type: "operator_control", action: "extend_30m", status, request: index + 1, turn: 1, previous_max_wall_ms: max - 1_800_000, max_wall_ms: max }));
+    p.copyLive();
+    expect(p.draft?.maxWallMs).toBe(index < 3 ? 60_000 : max);
+    expect(view.start?.budgets.max_wall_ms).toBe(60_000);
+    await Promise.resolve(); await Promise.resolve();
+  }
+});

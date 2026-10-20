@@ -130,3 +130,15 @@ describe("one card per workbench run, shared by the viewer and the comparisons p
     expect(html.startsWith('<a class="tc tc-wide" href="/#run=run-a" data-watch="run-a"')).toBe(true); expect(html).not.toContain("aria-pressed"); expect(html.endsWith("</a>")).toBe(true);
   });
 });
+
+
+it("updates shared card clocks and bars to the latest continuation limit without changing compact text", () => {
+  const original = recorded({ status: "paused", elapsedMs: 900_000 });
+  if (original.config === null) throw new Error("fixture");
+  for (const cap of [2_400_000, 6_000_000]) {
+    const extended = { ...original, config: { ...original.config, extendedWallMs: cap } };
+    const card = cardInputFor(extended, 1000, 6000, "paused", [extended], ART);
+    expect(clockParts(card.facts, "wide")).toEqual({ text: cap === 2_400_000 ? "15:00/40:00" : "15:00/1:40:00", width: cap === 2_400_000 ? "37.5%" : "15.0%" });
+    expect(clockParts(card.facts, "mini").text).toBe("15:00");
+  }
+});

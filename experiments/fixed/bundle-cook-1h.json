@@ -161,6 +161,7 @@
    "context-token-budget-v1": true,
    "stale-story-goal-v2": false,
    "semantic-navigation-v1": false,
+   "semantic-navigation-v2": false,
    "deterministic-exploration-v1": false,
    "briefing-repeat-count-v1": false,
    "navigate-already-here-v1": false,
@@ -201,7 +202,7 @@
   "deterministic-warp-navigation-v1",
   "reachable-story-guidance-v1",
   "text-only-supervisor-v2",
-  "semantic-navigation-v1",
+  "semantic-navigation-v2",
   "deterministic-exploration-v1",
   "safe-navigation-strides-v1",
   "evolution-decision-v1",
@@ -213,6 +214,7 @@
   "positive-supervisor-v1"
  ],
  "offInBoth": [
+  "semantic-navigation-v1",
   "visited-terrain-navigation-v1",
   "milestone-stall-stop-v1",
   "same-plan-breaker-v1",

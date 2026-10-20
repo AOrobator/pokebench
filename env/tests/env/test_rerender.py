@@ -67,8 +67,9 @@ def operator_rom() -> bytes:
 
 
 def env_with(off: list[str]) -> dict[str, str]:
-    # The recorded run predates warp-arrival-settle-v1, so it ran with that switch off.
-    off = [*off, "warp-arrival-settle-v1"]
+    # The recorded run predates warp-arrival-settle-v1 and semantic-navigation-v2, so it ran
+    # with those switches off.
+    off = [*off, "warp-arrival-settle-v1", "semantic-navigation-v2"]
     return {"POKEBENCH_FEATURES_OFF": ",".join(off), "POKEBENCH_ACTIVE_UI": "1"}
 
 

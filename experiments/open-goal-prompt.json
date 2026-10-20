@@ -51,7 +51,7 @@
    "named-interactions-v1": true,
    "world-destinations-v1": true,
    "bounded-navigation-v1": true,
-   "semantic-navigation-v1": true,
+   "semantic-navigation-v1": false,
    "deterministic-exploration-v1": true,
    "grass-cost-navigation-v1": true,
    "field-dialogue-phase-v1": true,
@@ -162,7 +162,8 @@
    "just-in-time-prompt-v1": false,
    "just-in-time-prompt-v2": false,
    "jit-guide-reuse-v1": false,
-   "battle-refusal-loop-v1": true
+   "battle-refusal-loop-v1": true,
+   "semantic-navigation-v2": true
   },
   "start": {
    "kind": "save_state",

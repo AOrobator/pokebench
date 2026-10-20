@@ -50,8 +50,8 @@ function cohortRun(): RunEvent[] {
 }
 
 let workbenchDown = false;
-async function mount(width: number, options: { art?: boolean; fresh?: boolean; glyphs?: boolean; runs?: typeof RUNS; replayStatus?: "ended" | "live"; missingLiveCards?: boolean } = {}): Promise<{ app: App; streams: FakeStream[]; drawn: number[] }> {
-  nowMs = BASE_MS + 3_500; setWidth(width); fetched.length = 0; workbenchDown = false;
+async function mount(width: number, options: { art?: boolean; fresh?: boolean; glyphs?: boolean; runs?: typeof RUNS; replayStatus?: "ended" | "live"; missingLiveCards?: boolean; cardsDown?: boolean } = {}): Promise<{ app: App; streams: FakeStream[]; drawn: number[] }> {
+  nowMs = BASE_MS + 3_500; setWidth(width); fetched.length = 0; workbenchDown = options.cardsDown === true;
   document.body.innerHTML = PAGE.slice(PAGE.indexOf("<body>") + 6, PAGE.indexOf("</body>"));
   const streams: FakeStream[] = [], drawn: number[] = [];
   const replayStatus = options.replayStatus ?? "ended";
@@ -99,6 +99,28 @@ describe("trainer cards in the viewer", () => {
     expect(mine.getAttribute("aria-pressed")).toBe("true"); expect(mine.innerHTML).toContain('data-gt="WATCHING"'); expect(other.innerHTML).toContain('data-gt="LIVE"');
     expect(mine.innerHTML).toContain("/sprites/trainers/wattson.png"); expect(other.innerHTML).toContain("/sprites/trainers/sidney.png");
     expect(mine.innerHTML).toContain(milestone.label); expect(mine.innerHTML).toContain("Oldale Town"); expect(mine.innerHTML).toContain("trial 2/4"); expect(mine.textContent).toContain("RED");
+  });
+
+  it("retries missing artwork on the next card poll and clears the retry notice", async () => {
+    const options = { art: false };
+    const { app } = await mount(1280, options);
+    expect(ui("run-cards").hidden).toBe(true);
+    expect(ui("card-status").textContent).toContain("artwork unavailable");
+    options.art = true;
+    await app.pollCards();
+    expect(ui("run-cards").querySelectorAll(".tc")).toHaveLength(2);
+    expect(ui("card-status").hidden).toBe(true);
+    expect(fetched.filter(url => url === "/sprites/manifest.json")).toHaveLength(2);
+  });
+
+  it("shows an initial card-data failure and recovers on the existing polling cadence", async () => {
+    const { app } = await mount(1280, { cardsDown: true });
+    expect(ui("card-status").textContent).toContain("Trainer cards unavailable");
+    expect(ui("card-status").hidden).toBe(false);
+    workbenchDown = false;
+    await app.pollCards();
+    expect(ui("run-cards").querySelectorAll(".tc")).toHaveLength(2);
+    expect(ui("card-status").hidden).toBe(true);
   });
 
   it("never recreates the legacy live-run bars when the run list refreshes", async () => {

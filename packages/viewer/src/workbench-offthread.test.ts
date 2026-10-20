@@ -439,3 +439,23 @@ it("serves disk-cached runs in the very first partial snapshot without loading t
   expect(h.calls).not.toContain("done");
   h.release();
 });
+
+
+it("promotes already queued card runs over historical work without adding a worker", async () => {
+  const workers: FakeWorker[] = [];
+  const pool = createBaselinePool(() => { const worker = new FakeWorker(); workers.push(worker); return worker; }, 1);
+  const jobs = [pool.compute("/r", "busy"), pool.load("/r", "history", null), pool.load("/r", "selected", null), pool.load("/other", "selected", null)];
+  for (const job of jobs) void job.catch(() => undefined);
+  try {
+    pool.prioritize("/r", ["selected"]);
+    workers[0]?.emit("message", { id: workers[0].posted[0]?.id, outcome: { baseline: { run: "busy", milestones: [] } } });
+    await jobs[0];
+    expect(workers).toHaveLength(1);
+    expect(workers[0]?.posted.map(job => job.runId)).toEqual(["busy", "selected"]);
+    // A later selection replaces the priority; identities are scoped to the runs root.
+    pool.prioritize("/other", ["selected"]);
+    workers[0]?.emit("message", { id: workers[0].posted[1]?.id, failure: "test finished" });
+    await jobs[2]?.catch(() => undefined);
+    expect(workers[0]?.posted[2]?.runsRoot).toBe("/other");
+  } finally { await pool.close(); }
+});

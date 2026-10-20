@@ -40,3 +40,4 @@ Probes decide bundle inclusion.
 ## Multi-Model Review Log
 ## Boy Scout Log
 ## Archive Milestone (user-gated)
+- Round 3 variants (the operator 12:12 PM ET: iterate on 3259's observed failings, 32 samples a side, several prompt variations): the repeated-attempt line quotes navigate_to's own answer; layout a = last line (this branch), b = right under the instruction (claude/positive-supervisor-b), c = b with "Write a new plan ..., then make one tool call" (claude/positive-supervisor-c).

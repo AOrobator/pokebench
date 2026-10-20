@@ -38,7 +38,7 @@ type State=Extract<RunEvent,{type:"state";started:boolean}>;
 interface Call {readonly name:string;readonly args:Record<string,unknown>;before:State|null;pressed:boolean;readonly uiBefore:string|null;conditions?:ReadonlyMap<string,boolean>}
 type Advance=Extract<RunEvent,{type:"dialogue_auto_advance"}>;
 type Page=Advance["pages"][number];
-interface Tried {readonly key:string;readonly room:string;readonly label:string;count:number;outcome:string}
+interface Tried {readonly key:string;readonly room:string;readonly label:string;count:number;outcome:string;said?:string}
 interface Instruction {readonly name:string;readonly turn:number;readonly pages:readonly {readonly speaker:string|null;readonly text:string}[]}
 
 const MAX_TRIED=8;
@@ -68,6 +68,13 @@ function turned(before:State,after:State):string|null {
  return before.facing!==null&&after.facing!==null&&before.facing!==after.facing?`turned ${before.facing.toLowerCase()} -> ${after.facing.toLowerCase()}`:null;
 }
 const mapOf=(state:{map_id:readonly number[]|null}):string|null=>state.map_id===null?null:state.map_id.join("/");
+// positive-supervisor-v1: navigate_to's own answer, its Navigation line without the button-attempt count.
+export function navigationSaid(text:string):string|undefined {
+ const line=/^Navigation: (.*)$/m.exec(text)?.[1];
+ return line?.replace(/;? ?\d+ (?:ordinary button attempts?|bounded movement actions?)\.?$/,"").replace(/[;.]\s*$/,"");
+}
+// Probe layouts of the repeated-attempt line: "a" last, "b" right under the instruction, "c" as "b" with a plan-first instruction.
+const REPEAT_LAYOUT:"a"|"b"|"c"="a";
 const counted=(event:Extract<RunEvent,{type:"milestone"}>):boolean=>event.origin!=="present_at_start"&&event.name!=="GAME_RUNNING"&&!MEASUREMENT_ONLY_MILESTONES.has(event.name);
 
 // A deterministic summary for a looping agent: facts it was shown, never a route or story goal.
@@ -164,7 +171,7 @@ export class SupervisorBriefing {
   const label=call===undefined?null:this.label(call);
   if(call!==undefined&&label!==null){
    const where=call.before??after;
-   this.remember(this.room(where),roomOf(where,this.features),label,this.outcome(call.before,after,auto?.pages??[]));
+   this.remember(this.room(where),roomOf(where,this.features),label,this.outcome(call.before,after,auto?.pages??[]),this.features["positive-supervisor-v1"]?navigationSaid(event.text):undefined);
    if(call.before!==null&&this.room(call.before)===this.room(after)&&this.moved(call.before,after))this.touchSteppedTrigger(after);
    if(this.features["story-character-stall-gate-v1"])this.reached(call,after);
    if(this.exits!==null||this.features["faced-interaction-history-v1"])this.scriptedTrigger(call,after,auto);
@@ -339,10 +346,10 @@ export class SupervisorBriefing {
   if(this.exits!==null)return;
   if((after.interaction_targets??[]).some(t=>t.activation==="step"&&t.x===p.x&&t.y===p.y))this.touch(this.room(after),at(p.x,p.y));
  }
- private remember(key:string,room:string,label:string,outcome:string):void {
+ private remember(key:string,room:string,label:string,outcome:string,said?:string):void {
   const index=this.tried.findIndex(t=>t.key===key&&t.label===label&&t.outcome===outcome);
   const existing=index>=0?this.tried.splice(index,1)[0]:undefined;
-  this.tried.push({key,room,label,count:(existing?.count??0)+1,outcome});
+  this.tried.push({key,room,label,count:(existing?.count??0)+1,outcome,...(said===undefined?{}:{said})});
   if(this.tried.length>MAX_TRIED)this.tried.shift();
  }
  private lastProgress():string {
@@ -497,15 +504,18 @@ export class SupervisorBriefing {
   const newest=(ui===undefined?this.tried:this.uiTried).at(-1);
   const repeated=newest!==undefined&&newest.count>1?newest:undefined;
   const untried=ui!==undefined||this.latest===null||!this.features["world-targets-v1"]?[]:this.open(this.latest).filter(t=>!t.startsWith("Warp")&&!t.startsWith("warp")).slice(0,3);
+  const again=repeated===undefined?[]:[`- Choose a call other than ${repeated.label}: ${repeated.said===undefined?`it gave the same result (${repeated.outcome})`:`it answered "${repeated.said}"`} ${String(repeated.count)} times in a row.`];
+  const head=REPEAT_LAYOUT==="c"?"SUPERVISOR: Write a new plan from the game state and what you observed, then make one tool call.":"SUPERVISOR: Make one tool call based on the game state and what you observed.";
   const lines=[
-   `SUPERVISOR: Make one tool call based on the game state and what you observed.${fact===""?"":` ${fact}`}`,
+   `${head}${fact===""?"":` ${fact}`}`,
+   ...(REPEAT_LAYOUT==="a"?[]:again),
    `- Where you are: ${ui===undefined?this.where():`in the ${ui.name}; your last field position was ${this.where()}`}`,
    ...(ui===undefined?[]:[`- Open interface: ${ui.name}; phase ${ui.phase}; text ${ui.text??"unknown"}; selected ${ui.selected??"unknown"}; controls: ${ui.controls??"unknown"}`]),
    ...(ui?.naming===true?[`- How to finish: press START to move the cursor to OK, then press A on OK${ui.owner==="nickname"?"; with no text entered the Pokémon keeps its current name":""}`]:[]),
    ...this.untalked().split("\n").filter(l=>l!==""),
    ...(untried.length===0?[]:[`- Shown here and not tried yet: ${untried.join("; ")}`]),
    ...(recent===""?[]:[`- Your latest attempts: ${recent}`]),
-   ...(repeated===undefined?[]:[`- Choose a call other than ${repeated.label}: it gave the same result (${repeated.outcome}) ${String(repeated.count)} times in a row.`]),
+   ...(REPEAT_LAYOUT==="a"?again:[]),
   ];
   return lines.join("\n");
  }

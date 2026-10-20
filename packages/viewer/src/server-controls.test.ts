@@ -10,7 +10,7 @@ import { connect } from "node:net";
 import { HOST, startViewer, type Viewer, type ViewerOptions } from "./server.js";
 
 // The fixture run's game server (port 8011 in START) answers /health.
-const gameUp: typeof fetch = (input) => Promise.resolve(new Response("{}", { status: typeof input === "string" && input === "http://127.0.0.1:8011/health" ? 200 : 404 }));
+const gameUp: typeof fetch = (input) => Promise.resolve(new Response("{}", { status: typeof input === "string" && /^http:\/\/127\.0\.0\.1:801[12]\/health$/.test(input) ? 200 : 404 }));
 
 const open: Viewer[] = [];
 afterEach(async () => { while (open.length > 0) await open.pop()?.close(); });
@@ -37,8 +37,9 @@ function call(v: Viewer, method: string, path: string, body?: unknown, headers: 
   });
 }
 
-function liveRun(runsRoot: string, id: string, extend = false): void {
-  const log = new Log(); log.add(0, { ...START, ...(extend ? { extend_run: true as const } : {}) });
+// Each run owns its own game-server port (INV-7); a second live run gets 8012.
+function liveRun(runsRoot: string, id: string, extend = false, port = 8011): void {
+  const log = new Log(); log.add(0, { ...START, isolation: { ...START.isolation, port }, ...(extend ? { extend_run: true as const } : {}) });
   mkdirSync(join(runsRoot, id), { recursive: true });
   writeFileSync(join(runsRoot, id, "events.jsonl"), log.events.map((e) => JSON.stringify({ ...e, run: id })).join("\n") + "\n");
 }
@@ -212,7 +213,7 @@ describe("public origins", () => {
 
 it("enqueues only finite extensions for capable live agents", async () => {
   const { viewer: v, runsRoot } = await viewer({ fetchFn: gameUp, now: () => new Date("2026-10-19T17:00:00Z") });
-  liveRun(runsRoot, "capable", true); liveRun(runsRoot, "old");
+  liveRun(runsRoot, "capable", true); liveRun(runsRoot, "old", false, 8012);
   expect(await call(v, "POST", "/api/runs/capable/control", { action: "extend_30m" })).toEqual({ status: 200, json: { request: 1 } });
   expect(await call(v, "POST", "/api/runs/capable/control", { action: "extend_60m" })).toEqual({ status: 200, json: { request: 2 } });
   expect((await call(v, "POST", "/api/runs/old/control", { action: "extend_30m" })).status).toBe(409);

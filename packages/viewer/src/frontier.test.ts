@@ -372,6 +372,8 @@ describe("zoom to frontier", () => {
     expect(document.querySelector('[data-run="older"][data-split="BIRCH_RESCUE_REQUESTED"]')).toBeNull();
     document.body.innerHTML = frontierPlot({ human: null, best: null }, [route("newer", ["birch-rescue-requested-v1"])], 900);
     expect(points("newer")).toEqual([2, 2]);
+    document.body.innerHTML = frontierPlot({ human: null, best: null }, [{ ...route("invalid-older", []), excluded: "Invalid fixed-run trial: crash" }], 900);
+    expect(points("invalid-older")).toEqual([4]);
   });
   it("connects proved Clock-set checkpoints and keeps a real missing rival house broken", () => {
     const points = (id: string): number[] => Array.from(document.querySelectorAll(`polyline[data-series="${id}"]`)).map(line => (line.getAttribute("points") ?? "").trim().split(/\s+/).filter(point => point !== "").length);

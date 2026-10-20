@@ -41,7 +41,7 @@ from the south ones.
   97.68 functions / 99.17 lines; viewer 95.08 / 91.03 / 93.85 / 97.7. Gate PASS (floor 90).
   Wiring check: removing `exit_labels_enabled=` from rerender.read_state turned 8 of
   test_exit_labels.py red; restored, 19 green.
-- [ ] Sync with main, Claude + Grok review (2 rounds max)
+- [x] Sync with main (79a2fc3a), Claude + Grok review: round 1 LGTM on both lanes
 
 ## Session Log
 
@@ -202,5 +202,20 @@ TERRA CAVE (Route 116), ALTERING CAVE, ISLAND CAVE, GRANITE CAVE, VERDANTURF TOW
 | DEWFORD TOWN HOUSE2 (3/5) | (3,8) or (4,8) | 0/11 DEWFORD TOWN | DEWFORD TOWN | no |
 
 ## Multi-Model Review Log
+
+Round 1, frozen packet base ee95b866 (main) .. head 79a2fc3a, `git diff --binary` SHA-256
+d1dbec8402905b281c73e16347b1f422ae85d018ec83d51bae34c845504bf5df. Codex waived (coordinator).
+Local inference reviewers not used.
+- Grok lane: cursor-agent `cursor-grok-4.5-high`, --mode ask: VERDICT: LGTM. Non-blocking:
+  test reader not cached; flood not memoised per (map, start).
+- Claude lane: `claude -p` unavailable (OAuth expired, both default and ~/.claude-review);
+  Cursor `claude-opus-5-thinking-high` and `claude-sonnet-5-thinking-high` hit Cursor usage
+  limits; standing-authorized fallback, a fresh read-only Claude subagent on the same packet
+  (HEAD/status/digest verified before and after): VERDICT: LGTM. Hardening follow-ups (not
+  fixed, outside the frozen contract or no failing case): current-map ROM read even when no name
+  repeats; flood rebuilt per warp; DIVE/EMERGE connections would count toward shared names (none
+  Littleroot..Dewford); two warp events on one tile would print twice. Operator wording note:
+  interiors have show_map_name false, so their section name is what the save/start screens show,
+  not a popup on arrival. Principles PB6 evidence corrected: only RomMap reads are cached.
 
 ## Surprises

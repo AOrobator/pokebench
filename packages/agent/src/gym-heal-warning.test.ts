@@ -50,7 +50,7 @@ const full=(s:GameStateSnapshot):GameStateSnapshot=>({...s,party:s.party.map(m=>
 
 const RUN_HEAL="The nearest place you know of that heals your party is the POKéMON CENTER in RUSTBORO CITY (map 11/5)";
 const NURSE="its nurse says \"We restore your tired POKéMON to full health.\"";
-const CITY_TEXT=`SUPERVISOR: An exit on this map at (27,19) leads to RUSTBORO CITY GYM (map 11/3), and your party is not at full HP: TORCHIC 25/33. If your whole party faints in a battle, the game says "RED is out of usable POKéMON!" and "RED whited out!"; you lose half your money (₽3142 of ₽6284) and wake up in RED's HOUSE 2F (map 1/1), 8 map changes from here. ${RUN_HEAL}, 1 map change from here in the game's map table; you have not entered it, but an earlier result listed it as an exit at (16,38) on this map; ${NURSE}`;
+const CITY_TEXT=`SUPERVISOR: An exit on this map at (27,19) leads to RUSTBORO CITY GYM (map 11/3), and your party is not at full HP: TORCHIC 25/33. If your whole party faints in a battle, the game says "RED is out of usable POKéMON!" and "RED whited out!"; you lose half your money (₽3142 of ₽6284) and wake up in RED's HOUSE 2F (map 1/1), 8 map changes from here. ${RUN_HEAL}, 1 map change from here in the game's map table; you have not entered it; this result lists it as an exit at (16,38) on this map; ${NURSE}`;
 const GYM_TEXT=`SUPERVISOR: You are in RUSTBORO CITY GYM (map 11/3), and your party is not at full HP: TORCHIC 25/33. If your whole party faints in a battle, the game says "RED is out of usable POKéMON!" and "RED whited out!"; you lose half your money (₽3142 of ₽6284) and wake up in RED's HOUSE 2F (map 1/1), 9 map changes from here. ${RUN_HEAL}, 2 map changes from here in the game's map table; you have not entered it, but an earlier result listed it as an exit at (16,38) in RUSTBORO CITY; ${NURSE}`;
 
 describe("registry",()=>{
@@ -90,7 +90,10 @@ describe("b300 replay",()=>{
   const [tool]=withLowHpTrainerWarning([replay(ROWS)],ON,rec,places);
   for(let i=0;i<ROWS.length;i++)await must(tool).execute("c",{});
   expect(rec.gym.map(g=>[g[0],g[2]])).toEqual([["press",CITY_TEXT],["press",GYM_TEXT]]);
-  expect(must(rec.gym[1])[1]).toEqual({map_id:[11,3],gym:{name:"RUSTBORO CITY GYM",map_id:[11,3],here:true,x:null,y:null},hurt:[{species:"TORCHIC",hp:25,max_hp:33}],player:"RED",money:6284,wake:{name:"RED's HOUSE 2F",map_id:[1,1],hops:9},heal:{kind:"pokemon_center",town:"RUSTBORO CITY",map_id:[11,5],hops:2,shown:{map_id:[0,3],map:"RUSTBORO CITY",x:16,y:38}},mom_heals:true});
+  expect(must(rec.gym[1])[1]).toEqual({map_id:[11,3],gym:{name:"RUSTBORO CITY GYM",map_id:[11,3],here:true,x:null,y:null},hurt:[{species:"TORCHIC",hp:25,max_hp:33}],player:"RED",money:6284,wake:{name:"RED's HOUSE 2F",map_id:[1,1],hops:9},heal:{kind:"pokemon_center",town:"RUSTBORO CITY",map_id:[11,5],hops:2,shown:{map_id:[0,3],map:"RUSTBORO CITY",x:16,y:38}},listed_now:false,mom_heals:true});
+  // Result 14717 is the first b300 result that lists the center door (16,38), so it says so, not "an earlier result".
+  expect(must(rec.gym[0])[1].listed_now).toBe(true);
+  expect(must(rec.gym[0])[2]).not.toContain("earlier result");
  });
  it("needs a recorder that can record its event",()=>{
   expect(()=>withLowHpTrainerWarning([replay([])],ON,{lowHpTrainerWarning:()=>undefined,healBeforeTrainersWarning:()=>undefined,storyBattleWarning:()=>undefined},places)).toThrow("gym_heal_warning");
@@ -121,6 +124,7 @@ describe("condition",()=>{
  it("states what it cannot read without guessing: no name, no money, no saved heal place, no map table route",()=>{
   const f=must(gymHealWarning(GYM,PLACES,null));
   const facts=must(GYM.heal_before_trainers);
+  expect(f.listed_now).toBe(false);
   expect(gymHealText({...f,player:null,money:null,wake:null})).toContain("If your whole party faints in a battle, you white out; you lose half your money. Heal before you battle: the nurse at a POKéMON CENTER heals your whole party, and so does MOM at home.");
   expect(gymHealText({...f,mom_heals:false})).toMatch(/heals your whole party\.$/);
   expect(gymHealText({...f,wake:{name:"X",map_id:[1,1],hops:null}})).toContain("wake up in X (map 1/1).");
@@ -143,6 +147,12 @@ describe("the arm",()=>{
   expect((await w.observe(CITY))?.gym.here).toBe(false);
   expect(await w.observe(GYM)).not.toBeNull();
  });
+ it("a state on a map with no GYM re-arms it too: GYM, ROUTE104, GYM fires twice",async()=>{
+  const w=arm();
+  expect(await w.observe(GYM)).not.toBeNull();
+  expect(await w.observe({...CITY,map_id:[0,19],location:"ROUTE104"})).toBeNull();
+  expect(await w.observe(GYM)).not.toBeNull();
+ });
  it("is silent without a state, an unstarted game or a map table",async()=>{
   const w=arm();
   expect(await w.observe(undefined)).toBeNull();
@@ -159,7 +169,7 @@ describe("recorded event",()=>{
   const [tool]=withLowHpTrainerWarning([replay(ROWS)],ON,rec,places);
   for(let i=0;i<ROWS.length;i++)await must(tool).execute("c",{});
   const [name,f,text]=must(rec.gym[0]);
-  const event={v:1,run:"r",seq:9,t:"2026-10-20T14:53:52.000-04:00",type:"gym_heal_warning",turn:491,tool:name,map_id:[0,3],gym:{name:f.gym.name,map_id:[11,3],here:false,x:27,y:19},hurt:[{species:"TORCHIC",hp:25,max_hp:33}],player:"RED",money:6284,wake:{name:"RED's HOUSE 2F",map_id:[1,1],hops:8},heal:{kind:"pokemon_center",town:"RUSTBORO CITY",map_id:[11,5],hops:1,shown:{map_id:[0,3],map:"RUSTBORO CITY",x:16,y:38}},mom_heals:true,text} as RunEvent;
+  const event={v:1,run:"r",seq:9,t:"2026-10-20T14:53:52.000-04:00",type:"gym_heal_warning",turn:491,tool:name,map_id:[0,3],gym:{name:f.gym.name,map_id:[11,3],here:false,x:27,y:19},hurt:[{species:"TORCHIC",hp:25,max_hp:33}],player:"RED",money:6284,wake:{name:"RED's HOUSE 2F",map_id:[1,1],hops:8},heal:{kind:"pokemon_center",town:"RUSTBORO CITY",map_id:[11,5],hops:1,shown:{map_id:[0,3],map:"RUSTBORO CITY",x:16,y:38}},listed_now:true,mom_heals:true,text} as RunEvent;
   expect(eventProblem(event)).toBeNull();
   expect(eventProblem({...event,hurt:[]})).not.toBeNull();
   expect(formatEvent(event)).toBe("14:53:52 t491 SUPERVISOR gym heal warning · RUSTBORO CITY GYM exit (27,19) · TORCHIC 25/33 · wake RED's HOUSE 2F · POKéMON CENTER in RUSTBORO CITY");

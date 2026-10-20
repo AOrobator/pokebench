@@ -4365,6 +4365,7 @@
         "money",
         "wake",
         "heal",
+        "listed_now",
         "mom_heals",
         "text"
       ],
@@ -4639,6 +4640,9 @@
               "type": "null"
             }
           ]
+        },
+        "listed_now": {
+          "type": "boolean"
         },
         "mom_heals": {
           "type": "boolean"

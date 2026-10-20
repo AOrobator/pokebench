@@ -169,7 +169,7 @@ it("leaves story battle warnings off the timeline (closed to new marks, operator
 
 it("leaves gym heal warnings off the timeline (closed to new marks, operator decision 2026-10-16)",()=>{
  const log=new Log();log.add(0,START);
- log.add(1000,{type:"gym_heal_warning",turn:2,tool:"press",map_id:[11,3],gym:{name:"RUSTBORO CITY GYM",map_id:[11,3],here:true,x:null,y:null},hurt:[{species:"TORCHIC",hp:25,max_hp:33}],player:"RED",money:6284,wake:null,heal:null,mom_heals:true,text:"SUPERVISOR: You are in RUSTBORO CITY GYM"});
+ log.add(1000,{type:"gym_heal_warning",turn:2,tool:"press",map_id:[11,3],gym:{name:"RUSTBORO CITY GYM",map_id:[11,3],here:true,x:null,y:null},hurt:[{species:"TORCHIC",hp:25,max_hp:33}],player:"RED",money:6284,wake:null,heal:null,listed_now:false,mom_heals:true,text:"SUPERVISOR: You are in RUSTBORO CITY GYM"});
  const without=new Log();without.add(0,START);
  expect(lanesSvg(view(log),BASE_MS+2000)).toBe(lanesSvg(view(without),BASE_MS+2000));
  expect(view(log).errors).toEqual([]);

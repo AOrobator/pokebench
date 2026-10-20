@@ -56,6 +56,7 @@ Run `2026-10-20T13-54-28_qwen36-gpu0_b300` (bundle arm of whole-map-pair-1h; low
 - M2 GREEN: `gymHealWarning`/`gymHealText`/`GymHealWarning` in low-hp-trainer-warning.ts, wired after heal-before-trainers in the same wrapper, sharing its map table read and heal list (`HealBeforeTrainers.nearest`). Event `gym_heal_warning` (schema, recorder, tail, Activity History, trace label, timeline-closed test), registry (guard, needs heal-before-trainers-v2, agent only), presets/defaults/legacy, explainer `docs/explainers/gym-heal-warning-v1.html` mapped, pending `experiments/gym-heal-warning-v1.json` (activation PETALBURG_CITY, first GYM door on the way), readiness row. Registry suffix indexes advanced in older tests (mechanical).
 - b300 replay ON: fires at 14717 (gym door at (27,19), center 1 change, RED's HOUSE 2F 8 changes) and 14882 (in the gym, 9 changes); silent at 15198 (same map entry, never at full HP). OFF: v2's paragraphs only.
 - Gates: lint OK, build OK, coverage: agent 2931/2931 (97.22/92.93/97.72/99.18), viewer 1429/1429 (95.09/91.04/93.85/97.7), python 2915 passed, gate lines 96.97 branches 92.50 functions 100.
+  COMMIT: `feat: gym-heal-warning-v1 warns on or next to a GYM below full HP with the whiteout cost and nearest heal` (90a397df)
 
 ## Surprises
 
@@ -72,5 +73,10 @@ Run `2026-10-20T13-54-28_qwen36-gpu0_b300` (bundle arm of whole-map-pair-1h; low
   - Grok: `VERDICT: LGTM` (follow-ups: hurt required when weak is empty, stale worklog thresholds line, a direct no-PP test).
   - Claude subagent (same fallback; claude -p and Cursor Claude unavailable as in R1): `VERDICT: BLOCKING` on B2: the experiment notes and readiness row said v2 changes nothing on Route 103, but its nine route trainers (DAISY…PETE, all trainerbattle scripts, far east of the arrival) are unloaded there and v2 names them. Verified and accepted; activation moved back to ROUTE_103 with the true reason (docs and experiment JSON only, no code).
   - Brief limit reached (2 rounds): stopped. The B2 fix is not re-reviewed. M2 gym-heal-warning-v1 was started (uncommitted draft saved in gitignored runs/probe/m2backup) and is not built.
+
+- M2 R1, packet `runs/reviews/gym-heal-warning-v1/r1/packet.diff` (git diff 315940b9 90a397df, sha256 640a4a4e…f8ba4).
+  - Grok (cursor-grok-4.5-high): `VERDICT: LGTM` (follow-ups: runtime v2 gate, arm set before nearest resolves, no parseExperiment test).
+  - Claude lane: claude -p still OAuth-expired (both config dirs); Cursor Claude capped earlier today; fresh read-only Claude subagent: `VERDICT: BLOCKING`. B1: the 14717 paragraph said "an earlier result listed it" though 14717 itself first listed the center. B2: deleting the map-change re-arm line passed every test. Both accepted.
+  - Fix: HealBeforeTrainers tracks the keys a result lists for the first time; the gym paragraph says "this result lists it as an exit at (16,38) on this map" then (`listed_now` in facts and event); v2's own text unchanged. New arm test GYM, ROUTE104, GYM. Mutations: removing the re-arm line fails the new test; forcing listed_now false fails 2 tests; restored green 13/13. Gates: lint, build, pages-check OK; coverage agent 2932/2932 (97.22/92.93/97.72/99.18), viewer 1429/1429 (95.08/91.03/93.85/97.7), python 2915, gate 96.97/92.50/100.
 
 ## Boy Scout Log

@@ -292,6 +292,8 @@ const GymHealWarningEvent = event("gym_heal_warning", {
   wake: Type.Union([Type.Object({ name: Type.String({ minLength: 1 }), map_id: Type.Tuple([Type.Integer(), Type.Integer()]), hops: Type.Union([NonNegativeInt, Type.Null()]) }, closed), Type.Null()]),
   heal: Type.Union([Type.Object({ kind: Type.Enum(["pokemon_center", "home"]), town: Type.String({ minLength: 1 }), map_id: Type.Tuple([Type.Integer(), Type.Integer()]), hops: NonNegativeInt,
     shown: Type.Optional(Type.Object({ map_id: Type.Tuple([Type.Integer(), Type.Integer()]), map: Type.String({ minLength: 1 }), x: Type.Integer(), y: Type.Integer() }, closed)) }, closed), Type.Null()]),
+  // The heal place's exit was first listed in this very result.
+  listed_now: Type.Boolean(),
   mom_heals: Type.Boolean(),
   text: Type.String({ minLength: 1 }),
 });

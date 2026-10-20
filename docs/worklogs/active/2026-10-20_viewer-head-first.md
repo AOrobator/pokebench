@@ -39,3 +39,5 @@ Claude standalone loggedIn=false; Cursor discovered Opus5.5, Sonnet5 and Haiku5.
 Final clean9178 browser rerun:540ms live switch with current turn, all controls, cached full splits and existing timeline while history visibly pending; no problems. 1.199GB completed recording opened final turn4023 and recorded frame110117_0.png with29 timeline marks before history finished; after hydration the replay clock was6h/6h, keyboard Home rewound to0 and End restored6h and the exact final frame. No console errors.
 
 Main advanced independently to37211ba7 during round1 (semantic-navigation-v2 landing). Before round2, sync that already-landed main and rerun full gates on the integrated tip. The diagnostic fix stays in the same server/test paths; final packet will review our cumulative viewer diff against the new main, plus the bounded fix delta against9178b929.
+
+Integrated main37211ba7 without conflicts. Full post-sync gates running before sealing the round2 packet.

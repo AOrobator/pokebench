@@ -43,7 +43,14 @@ FIXTURES = Path(__file__).resolve().parent / "fixtures"
 
 
 # Switches registered after 224ee68; OFF is their previous behavior.
-LATER = ("readout-truth-v1", "birch-speech-pages-v1", "blackout-readout-v1")
+LATER = (
+    "readout-truth-v1",
+    "birch-speech-pages-v1",
+    "blackout-readout-v1",
+    "semantic-navigation-v2",
+)
+# semantic-navigation-v2 postdates the ON expectations below, which pin named-warp text only.
+NO_SEMNAV2 = frozenset({"semantic-navigation-v2"})
 
 
 def test_off_equals_the_readout_rendered_by_the_previous_commit() -> None:
@@ -80,8 +87,8 @@ def test_on_uses_a_destination_name_the_game_displays() -> None:
         read_game_state(map_memory().read, MAPS),
         displayed_places=((0, 9, "LITTLEROOT TOWN"),),
     )
-    before = lines(format_readout(state, named_interactions=True))
-    after = lines(format_readout(state, named_interactions=True, named_warps=True))
+    before = lines(format_readout(state, NO_SEMNAV2, named_interactions=True))
+    after = lines(format_readout(state, NO_SEMNAV2, named_interactions=True, named_warps=True))
     candidate = (
         " at (0,1), elevation 0; movement; activation depends on metatile (see local map);"
         " conditional; destination "
@@ -184,7 +191,7 @@ def test_the_truck_exit_does_not_reveal_the_internal_dynamic_warp_name() -> None
     state = read_game_state(truck().read, maps)
     assert state.location == "INSIDE OF TRUCK"
     assert state.dynamic_warp == (0, 9, "LITTLEROOT TOWN")
-    text = format_readout(state, named_warps=True, world_destinations=True)
+    text = format_readout(state, NO_SEMNAV2, named_warps=True, world_destinations=True)
     assert f"Warps: (0,1) -> dynamic destination {EXIT}" in lines(text)
     assert (
         "warp at (0,1), elevation 0; movement; activation depends on metatile (see local map);"
@@ -217,7 +224,7 @@ def test_an_unset_or_unknown_dynamic_warp_keeps_dynamic_destination() -> None:
     for dynamic in ((-1, -1, -1), (127, 127, 127), (60, 1, 0)):
         state = read_game_state(truck(dynamic).read, maps)
         assert state.dynamic_warp is None, dynamic
-        text = format_readout(state, named_warps=True, world_destinations=True)
+        text = format_readout(state, NO_SEMNAV2, named_warps=True, world_destinations=True)
         assert f"Warps: (0,1) -> dynamic destination {EXIT}" in lines(text)
         assert "Warp destination at (0,1): dynamic destination" in lines(text)
         assert any(line.endswith("; dynamic destination") for line in lines(text)), text

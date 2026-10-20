@@ -4,6 +4,7 @@ import type {AgentTool,AgentToolResult} from "@mariozechner/pi-agent-core";
 import type {FeatureSet} from "./features.js";
 import {isCheckedPress,type CheckedPressTool} from "./game-tools.js";
 import {parseGameState,type GameStateSnapshot} from "./game-state.js";
+import {semanticWalk} from "./semantic-targets.js";
 export const STARTER_DECISION_PROMPT="Starter decision: This choice determines your starting Pokémon and affects later play. Before confirming, consider the alternatives and briefly explain how your choice supports your goal. Distinguish what you know from what you are uncertain about.";
 const SUFFIX=`\n\n${STARTER_DECISION_PROMPT}`;
 export function starterDecisionText(text:string,state:GameStateSnapshot|null,enabled:boolean):string {
@@ -26,7 +27,7 @@ export function withStarterDecision(tools:readonly AgentTool[],features:FeatureS
   return {...result,content};
  };
  return tools.map(tool=>{
-  if(!["observe","press","navigate_to"].includes(tool.name))return tool;
+  if(!["observe","press","navigate_to"].includes(tool.name)&&!semanticWalk(tool.name,features))return tool;
   const execute:AgentTool["execute"]=async(id,params,signal,update)=>annotate(await tool.execute(id,params,signal,update));
   if(!isCheckedPress(tool))return {...tool,execute};
   const checked:CheckedPressTool={...tool,execute:async(id,params,signal,update)=>annotate(await tool.execute(id,params,signal,update)),executeChecked:async(id,params,check,signal,update,options)=>annotate(await tool.executeChecked(id,params,check,signal,update,options))};

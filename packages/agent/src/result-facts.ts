@@ -7,6 +7,7 @@ import {BlockedExits} from "./blocked-exit-fact.js";
 import type {RunEvent} from "./events.js";
 import type {FeatureSet} from "./features.js";
 import type {GameStateSnapshot} from "./game-state.js";
+import {semanticWalk} from "./semantic-targets.js";
 
 const GAME=new Set(["observe","press","navigate_to","battle_action"]);
 
@@ -25,7 +26,7 @@ export function withResultFacts(tools:readonly AgentTool[],features:FeatureSet,r
  const losses=features["battle-loss-recap-v1"]?new BattleOutcomes(features):null;
  if(exits===null&&losses===null)return tools;
  recorder.subscribe(event=>{exits?.observe(event);losses?.observe(event);});
- return tools.map(tool=>!GAME.has(tool.name)?tool:{...tool,execute:async(...args:Parameters<AgentTool["execute"]>)=>{
+ return tools.map(tool=>!GAME.has(tool.name)&&!semanticWalk(tool.name,features)?tool:{...tool,execute:async(...args:Parameters<AgentTool["execute"]>)=>{
   const [id,params]=args;
   exits?.begin(id,tool.name,params);
   const result=await tool.execute(...args);

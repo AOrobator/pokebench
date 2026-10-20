@@ -9,7 +9,7 @@ import type {AgentTool,AgentToolResult} from "@mariozechner/pi-agent-core";
 import {SERVER_FEATURES,SWITCHABLE_FEATURES,dependencyProblems,featureInfo,featuresOf,playHarnessFeatures,type FeatureSet} from "./features.js";
 import {flagFeatures,normalizeFeatures,parsePlayPreset,presetFeatures} from "./play-preset.js";
 import {NAVIGATE_TO_USAGE,playSystemPrompt,toolSwitches} from "./play-config.js";
-import {MOVING_AROUND_FULL,MOVING_AROUND_LOCAL,MOVING_AROUND_VISITED,NAVIGATE_FIRST_DESCRIPTION,NAVIGATE_FIRST_TOOL_LINE,PRESS_NOT_WALKING,REMINDER,REMINDER_EVERY,navigateFirstToolList,withNavigateFirst} from "./navigate-first.js";
+import {MOVING_AROUND_FULL,MOVING_AROUND_LOCAL,MOVING_AROUND_VISITED,NAVIGATE_FIRST_DESCRIPTION,NAVIGATE_FIRST_TOOL_LINE,PRESS_NOT_WALKING,REMINDER,REMINDER_EVERY,SEMANTIC_REMINDER,navigateFirstToolList,withNavigateFirst} from "./navigate-first.js";
 import {navigationTool,type NavigationPorts} from "./navigation.js";
 import {gameTools} from "./game-tools.js";
 import {playGameTools} from "./play-wiring.js";
@@ -133,6 +133,12 @@ describe("press reminder",()=>{
   expect(REMINDER_EVERY).toBe(3);
   expect(shown).toEqual([false,false,true,false,false,true]);
   expect(textOf(await press(tools,["LEFT","UP"]))).not.toContain(REMINDER);
+ });
+ it("semantic-navigation-v2: the reminder names navigate_to_target first",async()=>{
+  const tools=withNavigateFirst(fakes(()=>FIELD),{...ON,"semantic-navigation-v2":true});
+  const shown:string[]=[];
+  for(let i=0;i<REMINDER_EVERY;i++)shown.push(textOf(await press(tools,["UP"])));
+  expect(shown.at(-1)).toContain(SEMANTIC_REMINDER);expect(shown.at(-1)).not.toContain(REMINDER);
  });
  it("is reset by any other tool call (navigate_to, observe) and by any non-direction press",async()=>{
   const tools=withNavigateFirst(fakes(()=>FIELD),ON);

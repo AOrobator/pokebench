@@ -87,7 +87,7 @@ describe("live side panel", () => {
     expect(sideStats(v, BASE_MS + 3_000)).toContain("CONTEXT<b>7k</b>of 10k");
   });
 
-  it("lists splits this run against the best run, pauses excluded", () => {
+  it("lists splits this run against the frontier, pauses excluded", () => {
     const v = view((l) => {
       l.add(1_000, control("pause", "applied", { emulator_frozen: true }));
       l.add(6_000, control("resume", "applied", { paused_ms: 5_000 }));
@@ -99,7 +99,9 @@ describe("live side panel", () => {
     expect(html).toContain('<span class="next">NAME</span>');
     expect(html).not.toContain("splitrows");
     expect(splitTimes(v, best)).toContain('<span class="t">0:00:05</span><span class="d g">−0:00:02</span>');
-    expect(splitTimes(v, null)).toContain("no comparable best run yet");
+    expect(splitTimes(v, null)).toContain("no frontier run to compare yet");
+    expect(splitTimes(v, best)).toContain("VS FRONTIER");
+    expect(splitTimes(v, { run: "tie", milestones: [{ name: "NEW_GAME_CREATED", offsetMs: 5_400 }] })).toContain('<span class="d">±0:00:00</span>');
   });
 
   it("renders an atomic recorded snapshot while the event stream catches up", () => {

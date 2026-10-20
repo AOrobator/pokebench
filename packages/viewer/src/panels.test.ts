@@ -218,8 +218,10 @@ describe("splits", () => {
     expect(table).toContain('0:00:02<br><span class="d-behind">+0:01</span>');
     expect(table).toContain('<tr class="next"><td class="n">intro cutscene complete</td><td class="t">0:00:07…</td>');
     expect(table).toContain('<tr class="todo"><td class="n">route 101</td><td class="t">—</td><td class="d" title="Recorded milestone">0:00:09</td>');
-    expect(summary).toBe("2 reached · next intro cutscene complete · vs baseline + best");
-    expect(table).toContain("Best historical run: record");
+    expect(summary).toBe("2 reached · next intro cutscene complete · vs baseline + frontier");
+    expect(table).toContain("Frontier run: record");
+    expect(table).toContain("<th>Frontier<br>time / Δ</th>");
+    expect(table).not.toContain("Best");
   });
 
   it("marks a reached milestone slower than the baseline as behind, and keeps extra ones", () => {
@@ -413,7 +415,7 @@ it("shows game-owned story values and milestone evidence without inventing old o
 });
 
 
-it("shows creation before name confirmation with recorded baseline and best deltas", () => {
+it("shows creation before name confirmation with recorded baseline and frontier deltas", () => {
   const log = new Log();
   log.add(0, { ...START, harness_features: ["new-game-created-v1"] });
   log.add(1, { type: "milestone", turn: 0, name: "GAME_RUNNING", server_timestamp: 0 });

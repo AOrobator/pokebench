@@ -15,6 +15,7 @@ import { FEATURES } from "@pokebench/agent/features";
 import { CONTROL_ACTIONS } from "@pokebench/agent/events";
 import { finalsRunLabels } from "./experiment-gate-store.js";
 import type { BaselineStore, RunStore } from "./baseline-store.js";
+import { frontierSplits } from "./frontier.js";
 import { BaselineError, RunsError, createBaselineReader, createRunCatalog, comparisonsOf, type BaselineCompute, eventsPath, liveScreenPort, LogReader, readRecentEvents, readStart, readStartIdentity, runDir, type BaselineReader, type RunCatalog } from "./runs.js";
 import { featureHistory } from "./history.js";
 import { localModels } from "./models.js";
@@ -344,7 +345,7 @@ async function liveScreen(res: ServerResponse, port: number, fetchFn: typeof fet
   }
 }
 
-async function route(req: IncomingMessage, res: ServerResponse, options: ViewerOptions, port: number, origins: ReadonlyMap<string, string>, readBaseline: BaselineReader, readWorkbench: (cards?: { selected: string | null }) => Promise<WorkbenchData>, queueApi: QueueApi, catalog: RunCatalog, strictCatalog: RunCatalog): Promise<void> {
+async function route(req: IncomingMessage, res: ServerResponse, options: ViewerOptions, port: number, origins: ReadonlyMap<string, string>, readBaseline: BaselineReader, readWorkbench: (cards?: { selected: string | null }) => Promise<WorkbenchData>, readCompleteWorkbench: () => Promise<WorkbenchData>, queueApi: QueueApi, catalog: RunCatalog, strictCatalog: RunCatalog): Promise<void> {
   const origin = origins.get(req.headers.host ?? "");
   if (origin === undefined) {
     sendJson(res, 403, { error: "the viewer only answers 127.0.0.1 and its published origins" });
@@ -469,7 +470,8 @@ async function route(req: IncomingMessage, res: ServerResponse, options: ViewerO
       return;
     }
     if (parts.length === 4 && leaf === "comparisons") {
-      sendJson(res, 200, await comparisonsOf(options.runsRoot, id, readBaseline));
+      const [comparisons, workbench] = await Promise.all([comparisonsOf(options.runsRoot, id, readBaseline), readCompleteWorkbench()]);
+      sendJson(res, 200, { ...comparisons, frontier: frontierSplits(workbench.runs, id) });
       return;
     }
     if (parts.length === 4 && leaf === "milestones") {
@@ -525,6 +527,8 @@ export async function startViewer(given: ViewerOptions): Promise<Viewer> {
   const workbenchLoader = createWorkbenchLoader({ build: options.build ?? null, ...(options.workbench?.compute === undefined ? {} : { compute: options.workbench.compute }), ...(options.workbench?.store === undefined ? {} : { store: options.workbench.store }) });
   let snapshot: { until: number; result: Promise<WorkbenchData> } | null = null;
   let cardsSnapshot: { selected: string | null; until: number; result: Promise<WorkbenchData> } | null = null;
+  // The splits' frontier must not depend on how far a cold partial snapshot has loaded: wait for every run (the loader caches them).
+  const readCompleteWorkbench = (): Promise<WorkbenchData> => workbenchSnapshot(options.runsRoot, healthProbe(options.fetchFn ?? fetch), (options.now?.() ?? new Date()).getTime(), undefined, workbenchLoader, {}, catalog);
   const readWorkbench = (cards?: { selected: string | null }): Promise<WorkbenchData> => {
     const now = (options.now?.() ?? new Date()).getTime();
     const cached = cards === undefined ? snapshot : cardsSnapshot?.selected === cards.selected ? cardsSnapshot : null;
@@ -572,7 +576,7 @@ export async function startViewer(given: ViewerOptions): Promise<Viewer> {
   // A failing request (a client that disconnects mid-body, a file error) must
   // never take the viewer and its queue down.
   const server = createServer((req, res) => {
-    route(req, res, options, port, origins, readBaseline, readWorkbench, queueApi, catalog, strictCatalog).catch((error: unknown) => {
+    route(req, res, options, port, origins, readBaseline, readWorkbench, readCompleteWorkbench, queueApi, catalog, strictCatalog).catch((error: unknown) => {
       if (res.headersSent || res.destroyed) res.destroy();
       else sendJson(res, 500, { error: error instanceof Error ? error.message : String(error) });
     });

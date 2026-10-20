@@ -2,7 +2,6 @@
 import { closeSync, existsSync, fstatSync, openSync, readSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { RUN_ID_PATTERN, eventEnvelope, parseEvent, startIdentity, type RunEvent, type StartIdentity } from "@pokebench/agent/events";
-import { DEPTH_ORDER } from "@pokebench/agent/milestones";
 import { locateRunDir } from "@pokebench/agent/run";
 import type { Baseline } from "./panels.js";
 import { RunView, MILESTONE_ORDER } from "./model.js";
@@ -560,7 +559,6 @@ export interface ComparisonRun extends Baseline {
 export interface Comparisons {
   readonly candidates: readonly ComparisonRun[];
   readonly baseline: ComparisonRun | null;
-  readonly best: ComparisonRun | null;
 }
 
 function sameStart(a: ReturnType<typeof readStart>, b: ReturnType<typeof readStart>): boolean {
@@ -571,7 +569,7 @@ function sameStart(a: ReturnType<typeof readStart>, b: ReturnType<typeof readSta
 // DNFs remain eligible for partial splits; probes and unverified logs do not.
 export async function comparisonsOf(runsRoot: string, runId: string, readBaseline: BaselineReader = (id) => Promise.resolve().then(() => baselineOf(runsRoot, id))): Promise<Comparisons> {
   const current = readStart(runsRoot, runId);
-  if (current.harness_features.includes("probe")) return { candidates: [], baseline: null, best: null };
+  if (current.harness_features.includes("probe")) return { candidates: [], baseline: null };
   // Every candidate is requested at once so a worker pool validates them in parallel.
   const found = await Promise.all(listRuns(runsRoot).map(async (summary): Promise<ComparisonRun | null> => {
     if (summary.id === runId || !summary.ended || summary.problem !== null) return null;
@@ -595,11 +593,5 @@ export async function comparisonsOf(runsRoot: string, runId: string, readBaselin
   const models = candidates.filter((c) => c.controller?.kind !== "human");
   const previous = models.filter((c) => Date.parse(c.started) < Date.parse(current.t));
   const baseline = previous.find((c) => c.model === current.model.id) ?? previous[0] ?? null;
-  const score = (run: ComparisonRun) => {
-    const deepest = run.milestones.reduce((depth, m) => Math.max(depth, DEPTH_ORDER.indexOf(m.name)), -1);
-    const time = run.milestones.find((m) => m.name === DEPTH_ORDER[deepest])?.offsetMs ?? Infinity;
-    return { deepest, time };
-  };
-  const best = models.slice().sort((a, b) => score(b).deepest - score(a).deepest || score(a).time - score(b).time || a.run.localeCompare(b.run))[0] ?? null;
-  return { candidates, baseline, best };
+  return { candidates, baseline };
 }

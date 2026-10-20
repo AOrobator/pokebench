@@ -30,7 +30,7 @@ async function mount(history: unknown = {}, refuse = false, gameUp = true, exten
       if (url === "/api/next-run") return Promise.resolve({ draft, queue: { state: "idle" } });
       if (url === "/api/models") return Promise.resolve({ models: [{ id: "Qwen", status: "loaded", vision: true, contextWindow: 262144 }] });
       if (url === "/api/features/history") return Promise.resolve(history);
-      if (url.endsWith("/comparisons")) return Promise.resolve({ candidates: [], baseline: null, best: null });
+      if (url.endsWith("/comparisons")) return Promise.resolve({ candidates: [], baseline: null, frontier: null });
       return Promise.reject(new Error(`unexpected ${url}`));
     },
     sendJson: (method, url, body) => {

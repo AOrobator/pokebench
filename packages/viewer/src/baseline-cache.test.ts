@@ -107,7 +107,6 @@ it("preserves exact comparisons while discovering new completions and changed ca
   expect((await comparisons())).toEqual((await comparisonsOf(dir, "selected")));
   write(dir, "new", 2100);
   expect((await comparisons()).candidates.map((c) => c.run).sort()).toEqual(["new", "reference"]);
-  expect((await comparisons()).best?.run).toBe("new");
   fs.writeFileSync(path, fs.readFileSync(path, "utf8").replace('"name":"PLAYER_NAME_SET"', '"name":42'));
   expect((await comparisons()).candidates.map((c) => c.run)).toEqual(["new"]);
   expect((await comparisons())).toEqual((await comparisonsOf(dir, "selected")));

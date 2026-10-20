@@ -6,7 +6,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
 import type { RunEvent } from "@pokebench/agent/events";
-import { Log, START, fullRun, state } from "../test-support/events.js";
+import { Log, START, assistant, fullRun, state } from "../test-support/events.js";
 import { rivalRam, writeArchive } from "../test-support/raw-ram.js";
 import { QUEUE_FEATURES } from "../test-support/experiments.js";
 import { BROWSER_MODULES, HOST, startViewer, validFramePng, type Viewer } from "./server.js";
@@ -549,13 +549,26 @@ describe("viewer server", () => {
 it("serves validated comparisons for the selected start, excluding self", async () => {
   const { runsRoot, viewer } = await fixture();
   writeRun(runsRoot, "selected", fullRun());
-  writeRun(runsRoot, "reference", fullRun());
+  const frontier = new Log();
+  frontier.add(0, START);
+  frontier.add(1000, assistant());
+  const named = frontier.add(3000, state({ story: { name_confirmed: true, intro_stage: null, rival_stage: null, birch_lab_stage: null, petalburg_gym_stage: null, woods_stage: null, clock_set: null, rival_battle_won: null, pokedex_received: null, running_shoes_received: null, starter_tutorial_complete: null, rustboro_gym_complete: null, stone_badge: null, rock_tomb_received: null } }));
+  frontier.add(4000, { type: "milestone", turn: 1, name: "PLAYER_NAME_CONFIRMED", kind: "story", origin: "observed", server_timestamp: 4, evidence: [named.seq] });
+  frontier.add(9000, { type: "run_end", turn: 1, reason: "budget", furthest_milestone: "PLAYER_NAME_CONFIRMED", turns: 1, wall_ms: 9000, tokens: { input: 500, output: 100 }, frames: { saved: 0, bytes: 0 } });
+  writeRun(runsRoot, "reference", frontier);
   const reply = await get(viewer, "/api/runs/selected/comparisons");
   expect(reply.status).toBe(200);
-  const result = JSON.parse(reply.body.toString()) as { candidates: {run:string}[]; best:{run:string}; baseline:unknown };
+  const result = JSON.parse(reply.body.toString()) as { candidates: {run:string}[]; frontier:{run:string; milestones:{name:string; offsetMs:number}[]}; baseline:unknown };
   expect(result.candidates.map((c) => c.run)).toEqual(["reference"]);
-  expect(result.best.run).toBe("reference");
+  // The splits race the frontier graph's agent frontier, never the selected run itself.
+  expect(result.frontier.run).toBe("reference");
+  expect(result.frontier.milestones).toContainEqual({ name: "PLAYER_NAME_CONFIRMED", offsetMs: 4000 });
   expect(result.baseline).toBeNull(); // equal start timestamp, no previous run
+  expect(JSON.parse((await get(viewer, "/api/runs/reference/comparisons")).body.toString())).toMatchObject({ frontier: null });
+  // A cold partial workbench still loading its runs must not hide the frontier from a run picked meanwhile.
+  const partial = await startViewer({ runsRoot, staticDir: runsRoot, appDir: runsRoot, port: 0, workbench: { partial: true } });
+  open.push(partial);
+  expect(JSON.parse((await get(partial, "/api/runs/selected/comparisons")).body.toString())).toMatchObject({ frontier: { run: "reference" } });
 });
 
 it("serves read-only workbench data from actual recorded runs, without prompts or arbitrary paths", async () => {

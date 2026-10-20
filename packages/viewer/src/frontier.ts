@@ -1,5 +1,6 @@
 import { esc } from "./format.js";
 import { harnessVersions, type VersionIndex } from "./frontier-versions.js";
+import type { Baseline } from "./panels.js";
 import type { WorkbenchRun } from "./workbench-data.js";
 export const HUMAN_REFERENCE = "2026-10-13T23-50-13_human_1848";
 export const ROUTE103_RIVAL_SPLITS: ReadonlySet<string> = new Set(["RIVAL_BATTLE_STARTED", "RIVAL_BATTLE_DEFEATED", "RIVAL_OLDALE_SEND_OFF", "ROUTE_101_AFTER_RIVAL_BATTLE", "LITTLEROOT_AFTER_RIVAL_BATTLE"]);
@@ -67,6 +68,15 @@ export function frontierReferences(runs: readonly WorkbenchRun[]): ReferencePair
   const agents = runs.filter(r => frontierCandidate(r) && rank(r) >= 0);
   agents.sort((a, b) => rank(b) - rank(a) || time(a) - time(b) || a.id.localeCompare(b.id));
   return { human: runs.find(r => r.id === HUMAN_REFERENCE && recordedRun(r) && r.status === "ended" && r.config?.start === "boot" && r.measurement?.controller === "human") ?? null, best: agents[0] ?? null };
+}
+// The frontier a run's splits race: the frontier graph's agent frontier among the other runs (a frontier run races
+// the next one, not itself), with its native splits; a checkpoint resume's clock starts mid-game, so it has none.
+export function frontierSplits(runs: readonly WorkbenchRun[], current: string): Baseline | null {
+  const self = runs.find(r => r.id === current);
+  if (self !== undefined && resumeMilestone(self) !== null) return null;
+  const best = frontierReferences(runs.filter(r => r.id !== current)).best;
+  if (best === null) return null;
+  return { run: best.id, milestones: best.splits.filter(s => s.screenshotEvidence === undefined).map(s => ({ name: s.name, offsetMs: s.elapsedMs, ...(s.derived === true ? { derived: true } : {}) })) };
 }
 export function milestoneStatus(run: WorkbenchRun, name: string): "reached" | "unsupported" | "pending" | "censored" | "not reached" | "excluded" {
   if (run.excluded !== null || run.problem !== null) return "excluded";

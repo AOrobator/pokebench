@@ -1,6 +1,6 @@
 # Heal before trainers v2 and gym heal warning (`heal-before-trainers-v2`, `gym-heal-warning-v1`)
 
-Status: M1 review stopped after 2 rounds (Claude lane BLOCKING on B2, fixed but not re-reviewed); M2 not built. Part of `heal-respawn-sight` (milestones M3 and M4), approved by the operator at 3:41 PM ET on 2026-10-20.
+Status: M1 on claude/heal-before-trainers-v2 at 315940b9 (stopped after 2 review rounds, B2 fixed, not re-reviewed). M2 in progress on claude/gym-heal-warning-v1 from 315940b9 (coordinator, 2026-10-20). Part of `heal-respawn-sight` (milestones M3 and M4), approved by the operator at 3:41 PM ET on 2026-10-20.
 
 Worktree `~/dev/pokebench-worktrees/heal-before-trainers-v2`, branch `claude/heal-before-trainers-v2`, from main 6c88d424.
 
@@ -48,6 +48,9 @@ Run `2026-10-20T13-54-28_qwen36-gpu0_b300` (bundle arm of whole-map-pair-1h; low
 - Gates: `just lint` OK, `just build` OK, `just coverage`: agent 2917/2917 (97.21 st / 92.92 br / 97.7 fn / 99.17 ln), viewer 1425/1425 (95.09 / 91.04 / 93.85 / 97.7), python 2915 passed, gate lines 96.97 branches 92.50 functions 100.00. heal_trainers.py 100%.
   COMMIT: `feat: heal-before-trainers-v2 names every trainer of the map and every POKéMON CENTER a result listed` (c42e40a8)
 - Self-review fix: the story-opponent id set is cleared with the warned set on a map change (a local id that is ROXANNE in the gym can be an ordinary trainer elsewhere). Test added; reverting the clear turns it red (1 failed), restored green (20/20).
+
+- M2 (coordinator: build gym-heal-warning-v1 on `claude/gym-heal-warning-v1` from 315940b9, leave the v2 branch alone). Restored the draft from runs/probe/m2backup.
+- M2 RED: `gym-heal-warning.test.ts` (registry, b300 replay on/off, conditions, arm, event) and `gym-heal-warning-wire.test.ts` (playGameTools). They import exports HEAD lacks, so both fail on HEAD. Wiring mutation (gym block disabled) turns the wire test red; restored green.
 
 ## Surprises
 

@@ -4,7 +4,7 @@
  "title": "Heal before trainers v2",
  "changedFeature": "heal-before-trainers-v2",
  "hypothesis": "Naming every unbeaten trainer of the map whether or not the game has loaded it, naming the Gym Leader ROXANNE whenever the party is below full HP, and naming the nearest POKéMON CENTER a result has listed as an exit even when never entered, gets the agent to heal before trainer battles it would otherwise walk into hurt, as in run b300, which entered the RUSTBORO CITY GYM at TORCHIC 25/33, was told only about TOMMY and a house 8 map changes away, and lost to HIKER MARC with used_pokecenter 0.",
- "activationMilestone": "ROUTE_102",
+ "activationMilestone": "ROUTE_103",
  "primaryMilestone": "ROXANNE_DEFEATED",
  "source": {
   "checkout": "main",
@@ -166,5 +166,5 @@
   "window": 4,
   "minReached": 3
  },
- "notes": "Pending and not queued. The candidate flips only heal-before-trainers-v2 (needs heal-before-trainers-v1, on in this incumbent). Activation is ROUTE_102: its trainers the game has not loaded yet are named with v2 (the Route 103 rival never passes the trainer test, so v2 changes nothing there); the b300 effect is in RUSTBORO CITY and its GYM. Operator decision 2026-10-20: bundle-only. source.commit is filled at landing."
+ "notes": "Pending and not queued. The candidate flips only heal-before-trainers-v2 (needs heal-before-trainers-v1, on in this incumbent). Activation is ROUTE_103: its nine route trainers (DAISY, AMY, LIV, ANDREW, MIGUEL, RHETT, MARCOS, ISABELLE, PETE; data/maps/Route103) stand far east of where the player arrives, so v1 never names them; v2 names them as not loaded while the party is weak. The rival is never named (Route103_EventScript_Rival starts with lockall, not trainerbattle). The b300 effect is in RUSTBORO CITY and its GYM. Operator decision 2026-10-20: bundle-only. source.commit is filled at landing."
 }

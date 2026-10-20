@@ -1,6 +1,6 @@
 # Heal before trainers v2 and gym heal warning (`heal-before-trainers-v2`, `gym-heal-warning-v1`)
 
-Status: M1 RED. Part of `heal-respawn-sight` (milestones M3 and M4), approved by the operator at 3:41 PM ET on 2026-10-20.
+Status: M1 review stopped after 2 rounds (Claude lane BLOCKING on B2, fixed but not re-reviewed); M2 not built. Part of `heal-respawn-sight` (milestones M3 and M4), approved by the operator at 3:41 PM ET on 2026-10-20.
 
 Worktree `~/dev/pokebench-worktrees/heal-before-trainers-v2`, branch `claude/heal-before-trainers-v2`, from main 6c88d424.
 
@@ -19,7 +19,7 @@ Run `2026-10-20T13-54-28_qwen36-gpu0_b300` (bundle arm of whole-map-pair-1h; low
 
 - Server: with the switch, `heal_before_trainers.trainers` comes from every object template of the map (SaveBlock1.objectEventTemplates, the same reading offscreen-objects-v1 uses): a template hidden by its set flag is left out, a loaded object gives its tile now, an unloaded one its template tile, and each trainer gains `loaded`. Trainer test unchanged (trainerbattle script, field battle type, flag 0x500 + id).
 - Agent heal places: centers entered, the center of the save's last heal location, every POKéMON CENTER 1F that a delivered non-error game-tool result showed as an exit or warp destination this run (a warp of that result's map leads to it and the result text names its `map G/N`), and home while MOM heals. Nearest by fewest map changes.
-- Thresholds: a story-battle opponent (STORY_BATTLES: rival, ROXANNE) is named while any party Pokémon is below max HP; others while the party is weak (v1). With low-hp-trainer-warning-v2 on, a story opponent whose object is loaded stays with that warning.
+- Thresholds: the Gym Leader ROXANNE (the only story opponent that passes the trainerbattle test) is named while any party Pokémon is below max HP; others while the party is weak (v1). With low-hp-trainer-warning-v2 on, a story opponent whose object is loaded stays with that warning.
 - Off: v1 exactly (same state JSON, same text, same events).
 
 ### M2 gym-heal-warning-v1 (guard, needs heal-before-trainers-v2, agent only)
@@ -59,5 +59,10 @@ Run `2026-10-20T13-54-28_qwen36-gpu0_b300` (bundle arm of whole-map-pair-1h; low
   - Grok (cursor-agent cursor-grok-4.5-high, ask mode): `VERDICT: LGTM`. Follow-ups only: `weak` minItems widening (documented), replay re-parses states, no parseExperiment test, invisible-loaded edge, grunt not story (both match copy).
   - Claude lane: `claude -p` default and `~/.claude-review` both "OAuth session expired and could not be refreshed"; Cursor claude-opus-5-thinking-high and claude-sonnet-5-thinking-high both usage-capped (ActionRequiredError). Standing fallback: fresh read-only Claude subagent, `VERDICT: BLOCKING` on B1: the copy, explainer, experiment notes and readiness row claimed v2 names the Route 103 rival, but Route103_EventScript_Rival starts with lockall, so the server's trainer test never lists the rival (verified in pret). Accepted.
   - Fix: storyName only for the gym leader; rival test now asserts the rival is never a story opponent (old code makes it fail); copy, explainer, experiment (activation ROUTE_102) and readiness corrected; the copy now says a lead out of PP at full HP no longer names ROXANNE.
+
+- M1 R2, cumulative packet `m1r2/packet.diff` (git diff ee95b866 ca9134a0, sha256 ca66afb6…85d1b), delta `m1r2/delta.diff`.
+  - Grok: `VERDICT: LGTM` (follow-ups: hurt required when weak is empty, stale worklog thresholds line, a direct no-PP test).
+  - Claude subagent (same fallback; claude -p and Cursor Claude unavailable as in R1): `VERDICT: BLOCKING` on B2: the experiment notes and readiness row said v2 changes nothing on Route 103, but its nine route trainers (DAISY…PETE, all trainerbattle scripts, far east of the arrival) are unloaded there and v2 names them. Verified and accepted; activation moved back to ROUTE_103 with the true reason (docs and experiment JSON only, no code).
+  - Brief limit reached (2 rounds): stopped. The B2 fix is not re-reviewed. M2 gym-heal-warning-v1 was started (uncommitted draft saved in gitignored runs/probe/m2backup) and is not built.
 
 ## Boy Scout Log

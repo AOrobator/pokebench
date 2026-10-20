@@ -9,8 +9,12 @@ pret/pokeemerald 731ad5bf. Nothing here reaches the readout text; the state JSON
   trainer id as a u16; asm/macros/event.inc). GetTrainerFlagFromScriptPointer (src/battle_setup.c)
   reads that id and checks TRAINER_FLAGS_START (0x500) + id, as trainer_see.c does for every object
   that can spot the player. Only objects the game has loaded and shows (gObjectEvents) are listed,
-  at their tile now. The battle types kept are the field ones, TRAINER_BATTLE_SINGLE (0) through
-  TRAINER_BATTLE_CONTINUE_SCRIPT_DOUBLE_NO_MUSIC (8); Pyramid, Hill and SET_TRAINER scripts are not.
+  at their tile now. heal-before-trainers-v2 lists every template of the map instead, as
+  offscreen-objects-v1 reads them: a template whose flagId (+0x14) is set is hidden
+  (TrySpawnObjectEvents), a loaded object gives its tile now and an unloaded one its template tile
+  (x, y as s16 at +4/+6), and each trainer says whether it is loaded. The battle types kept are
+  the field ones, TRAINER_BATTLE_SINGLE (0) through TRAINER_BATTLE_CONTINUE_SCRIPT_DOUBLE_NO_MUSIC
+  (8); Pyramid, Hill and SET_TRAINER scripts are not.
 - Move power: gBattleMoves (src/data/battle_moves.h), power at +1 of each 12-byte entry.
 - lastHealLocation: SaveBlock1 +0x1C (struct WarpData, s8 mapGroup and mapNum), set by
   SetLastHealLocationWarp from setrespawn, which every POKéMON CENTER 1F map runs as it loads
@@ -35,6 +39,7 @@ from pokebench_env.pokemon import BATTLE_MOVES, PartyMon
 from pokebench_env.world_context import GRAPHICS, SAVE_VARIABLES
 
 SWITCH = "heal-before-trainers-v1"
+SWITCH_V2 = "heal-before-trainers-v2"
 TRAINERBATTLE = 0x5C
 FIELD_BATTLE_TYPES = range(0, 9)
 TRAINER_FLAGS_START = 0x500
@@ -64,6 +69,8 @@ class MapTrainer:
     sprite_kind: str | None
     trainer_id: int
     defeated: bool
+    # heal-before-trainers-v2: False for a template the game has not loaded (its template tile).
+    loaded: bool = True
 
 
 @dataclass(frozen=True)
@@ -73,6 +80,8 @@ class HealFacts:
     last_heal: MapId | None
     home: MapId | None
     mom_heals: bool
+    # heal-before-trainers-v2: every template of the map, each trainer with its `loaded`.
+    whole_map: bool = False
 
     def json(self) -> dict[str, object]:
         return {
@@ -85,6 +94,7 @@ class HealFacts:
                     "sprite_kind": t.sprite_kind,
                     "trainer_id": t.trainer_id,
                     "defeated": t.defeated,
+                    **({"loaded": t.loaded} if self.whole_map else {}),
                 }
                 for t in self.trainers
             ],
@@ -123,7 +133,23 @@ def _trainer_id(read: ReadMemory, script: int) -> int | None:
     return trainer if 0 < trainer < TRAINERS_COUNT else None
 
 
-def read_map_trainers(read: ReadMemory, save1: int, map_id: MapId) -> tuple[MapTrainer, ...]:
+def _template_tile(
+    read: ReadMemory, save1: int, entry: bytes, loaded: dict[int, tuple[int, int] | None]
+) -> tuple[int, int, bool] | None:
+    """v2: a loaded object's tile now, else the template's tile unless its flag hides it."""
+    if entry[0] in loaded:
+        tile = loaded[entry[0]]
+        return None if tile is None else (tile[0], tile[1], True)
+    flag = struct.unpack_from("<H", entry, 0x14)[0]
+    if flag != 0 and _flag(read, save1, flag):
+        return None
+    x, y = struct.unpack_from("<hh", entry, 4)
+    return (x, y, False)
+
+
+def read_map_trainers(
+    read: ReadMemory, save1: int, map_id: MapId, *, whole_map: bool = False
+) -> tuple[MapTrainer, ...]:
     raw = read(save1 + TEMPLATES, TEMPLATE_COUNT * 24)
     if len(raw) != TEMPLATE_COUNT * 24:
         raise ValueError("short object template read")
@@ -132,8 +158,14 @@ def read_map_trainers(read: ReadMemory, save1: int, map_id: MapId) -> tuple[MapT
     for slot in range(TEMPLATE_COUNT):
         entry = raw[slot * 24 : slot * 24 + 24]
         local_id, graphics = entry[0], entry[1]
-        tile = loaded.get(local_id)
-        if (local_id == 0 and graphics == 0) or tile is None:
+        if local_id == 0 and graphics == 0:
+            continue
+        if whole_map:
+            tile = _template_tile(read, save1, entry, loaded)
+        else:
+            here = loaded.get(local_id)
+            tile = None if here is None else (here[0], here[1], True)
+        if tile is None:
             continue
         trainer = _trainer_id(read, struct.unpack_from("<I", entry, 0x10)[0])
         if trainer is None:
@@ -148,6 +180,7 @@ def read_map_trainers(read: ReadMemory, save1: int, map_id: MapId) -> tuple[MapT
                 GRAPHICS.get(resolved),
                 trainer,
                 _flag(read, save1, TRAINER_FLAGS_START + trainer),
+                tile[2],
             )
         )
     return tuple(found)
@@ -166,17 +199,24 @@ def read_move_power(read: ReadMemory, party: tuple[PartyMon, ...]) -> tuple[tupl
 
 
 def read_heal_facts(
-    read: ReadMemory, save1: int, save2: int, map_id: MapId, party: tuple[PartyMon, ...]
+    read: ReadMemory,
+    save1: int,
+    save2: int,
+    map_id: MapId,
+    party: tuple[PartyMon, ...],
+    *,
+    whole_map: bool = False,
 ) -> HealFacts | None:
     """The facts for the current map, or None when any of them cannot be read."""
     try:
         group, number = struct.unpack("<bb", read(save1 + LAST_HEAL, 2))
         return HealFacts(
-            trainers=read_map_trainers(read, save1, map_id),
+            trainers=read_map_trainers(read, save1, map_id, whole_map=whole_map),
             move_power=read_move_power(read, party),
             last_heal=None if group < 0 or number < 0 else (group, number),
             home=HOMES.get(read(save2 + PLAYER_GENDER, 1)[0]),
             mom_heals=mom_heals(read, save1),
+            whole_map=whole_map,
         )
     except (ValueError, OSError, struct.error, IndexError):
         return None

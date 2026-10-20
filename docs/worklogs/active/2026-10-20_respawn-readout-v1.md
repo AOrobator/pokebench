@@ -110,3 +110,7 @@ Python lines 97.00 branches 92.56 functions 100; lint and build clean.
 - Codex lane waived by the coordinator (2026-10-20). This commit touches only this worklog.
 
 ## Boy Scout Log
+
+## Landing
+
+- Merged main (da727130: exit-labels-v2, heal-before-trainers-v2, gym-heal-warning-v1) into the branch: append-only conflicts in the registry, presets, defaults, game_state/rerender keyword lists and test files; respawn-readout-v1 goes after gym-heal-warning-v1 (and after heal-before-trainers-v2 in SERVER_FEATURES). Registry suffix indexes and counts advanced for both sides; the exit-labels, heal-before-trainers-v2 and gym-heal-warning-v1 registry tests now expect respawn-readout-v1 after them.

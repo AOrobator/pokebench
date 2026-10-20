@@ -70,7 +70,13 @@ def operator_rom() -> bytes:
 def env_with(off: list[str]) -> dict[str, str]:
     # The recorded run predates warp-arrival-settle-v1, semantic-navigation-v2 and
     # respawn-readout-v1, so it ran with those switches off.
-    off = [*off, "warp-arrival-settle-v1", "semantic-navigation-v2", "respawn-readout-v1"]
+    off = [
+        *off,
+        "warp-arrival-settle-v1",
+        "semantic-navigation-v2",
+        "exit-labels-v2",
+        "respawn-readout-v1",
+    ]
     return {"POKEBENCH_FEATURES_OFF": ",".join(off), "POKEBENCH_ACTIVE_UI": "1"}
 
 
@@ -134,11 +140,13 @@ def test_read_state_and_render_pass_every_server_switch_through(monkeypatch):
         "surf_gate_enabled": False,
         "exit_reach_enabled": False,
         "heal_trainers_enabled": False,
+        "heal_trainers_v2_enabled": False,
         "tutorial_owner_enabled": False,
         "mid_frame_enabled": False,
         "unset_warp_enabled": False,
         "semantic_navigation_enabled": False,
         "evolution_decision_enabled": False,
+        "exit_labels_enabled": False,
         "respawn_links": None,
         "fmt_named_interactions": False,
         "fmt_world_destinations": False,

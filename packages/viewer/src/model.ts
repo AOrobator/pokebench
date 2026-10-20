@@ -85,6 +85,7 @@ const KNOWN: Record<RunEvent["type"], true> = {
   auto_talk: true,
   story_battle_warning: true,
   heal_before_trainers_warning: true,
+  gym_heal_warning: true,
   story_goal_away: true,
   destination_citation: true,
   dialogue_auto_advance: true,

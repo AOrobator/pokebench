@@ -103,7 +103,7 @@ it("re-renders through the env renderer with argv only and the server switch env
   expect(ports.frame("frames/1.png")).toBe(Buffer.from("/runs/x/frames/1.png").toString("base64"));
   expect(ports.thinkingSignature).toBe("reasoning_content");
   expect(await ports.rerender([{ path: "raw-ram/1.json.gz", sha256: "s" }], { ...ALL_ON, "battle-details-v2": false })).toEqual(["one"]);
-  expect(calls).toEqual([{ file: "uv", args: ["run", "--project", "/repo/env", "python", "-m", "pokebench_env.rerender"], cwd: "/repo/env", off: "battle-details-v2,safe-navigation-strides-v1,original-speed-pacing-v1,respawn-readout-v1", input: JSON.stringify({ run_dir: "/runs/x", raw_ram: [{ path: "raw-ram/1.json.gz", sha256: "s" }] }) }]);
+  expect(calls).toEqual([{ file: "uv", args: ["run", "--project", "/repo/env", "python", "-m", "pokebench_env.rerender"], cwd: "/repo/env", off: "battle-details-v2,safe-navigation-strides-v1,original-speed-pacing-v1,exit-labels-v2,heal-before-trainers-v2,respawn-readout-v1", input: JSON.stringify({ run_dir: "/runs/x", raw_ram: [{ path: "raw-ram/1.json.gz", sha256: "s" }] }) }]);
   for (const body of ["{}", "[]", "null", JSON.stringify({ readouts: [1] }), JSON.stringify({ readouts: ["a", "b"] })]) {
     expect(() => filePorts("/r", "/e", "s", () => body).rerender([{ path: "p", sha256: "s" }], ALL_ON)).toThrow(/unexpected body/);
   }

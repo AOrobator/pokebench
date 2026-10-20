@@ -170,7 +170,10 @@
    "positive-supervisor-v1": false,
    "auto-talk-v1": false,
    "duplicate-turn-collapse-v1": true,
-   "unfinished-activity-v1": false
+   "unfinished-activity-v1": false,
+   "exit-labels-v2": false,
+   "heal-before-trainers-v2": false,
+   "gym-heal-warning-v1": false
   }
  },
  "switches": [
@@ -215,7 +218,10 @@
   "auto-talk-v1",
   "story-character-stall-gate-v1",
   "positive-supervisor-v1",
-  "unfinished-activity-v1"
+  "unfinished-activity-v1",
+  "exit-labels-v2",
+  "heal-before-trainers-v2",
+  "gym-heal-warning-v1"
  ],
  "offInBoth": [
   "semantic-navigation-v1",

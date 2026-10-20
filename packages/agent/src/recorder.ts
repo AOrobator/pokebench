@@ -1,6 +1,6 @@
 import type {PromptReceipt} from "./jit-context.js";
 import type { IdCard } from "./people-id-cards.js";
-import type { HealBeforeTrainersFacts, LowHpTrainerWarningFacts, StoryBattleWarningFacts } from "./low-hp-trainer-warning.js";
+import type { GymHealFacts, HealBeforeTrainersFacts, LowHpTrainerWarningFacts, StoryBattleWarningFacts } from "./low-hp-trainer-warning.js";
 import type { StoryGoalAwayFacts } from "./harness-trust.js";
 import type { DestinationCitationFacts } from "./cited-destination.js";
 import type { PressModifiers } from "./game-tools.js";
@@ -480,7 +480,13 @@ export class RunRecorder {
   }
   // heal-before-trainers-v1: recorded as the paragraph is added to the tool result.
   healBeforeTrainersWarning(tool: string, facts: HealBeforeTrainersFacts, text: string): void {
-    this.append({ type: "heal_before_trainers_warning", turn: this.turn, tool, map_id: [facts.map_id[0], facts.map_id[1]], trainers: facts.trainers.map((t) => ({ ...t })), weak: facts.weak.map((w) => (w.kind === "lead_no_pp" ? { ...w, moves: [...w.moves] } : { ...w })), heal: facts.heal === null ? null : { ...facts.heal, map_id: [facts.heal.map_id[0], facts.heal.map_id[1]] }, mom_heals: facts.mom_heals, money: facts.money, ...(facts.items === undefined ? {} : { items: facts.items.map((i) => ({ ...i })) }), text });
+    this.append({ type: "heal_before_trainers_warning", turn: this.turn, tool, map_id: [facts.map_id[0], facts.map_id[1]], trainers: facts.trainers.map((t) => ({ ...t })), weak: facts.weak.map((w) => (w.kind === "lead_no_pp" ? { ...w, moves: [...w.moves] } : { ...w })), ...(facts.hurt === undefined ? {} : { hurt: facts.hurt.map((h) => ({ ...h })) }), heal: facts.heal === null ? null : { kind: facts.heal.kind, town: facts.heal.town, map_id: [facts.heal.map_id[0], facts.heal.map_id[1]], hops: facts.heal.hops, ...(facts.heal.shown === undefined ? {} : { shown: { map_id: [facts.heal.shown.map_id[0], facts.heal.shown.map_id[1]], map: facts.heal.shown.map, x: facts.heal.shown.x, y: facts.heal.shown.y } }) }, mom_heals: facts.mom_heals, money: facts.money, ...(facts.items === undefined ? {} : { items: facts.items.map((i) => ({ ...i })) }), text });
+  }
+
+  // gym-heal-warning-v1: recorded as the paragraph is added to the tool result.
+  gymHealWarning(tool: string, facts: GymHealFacts, text: string): void {
+    const pair = (id: readonly [number, number]): [number, number] => [id[0], id[1]];
+    this.append({ type: "gym_heal_warning", turn: this.turn, tool, map_id: pair(facts.map_id), gym: { name: facts.gym.name, map_id: pair(facts.gym.map_id), here: facts.gym.here, x: facts.gym.x, y: facts.gym.y }, hurt: facts.hurt.map((h) => ({ ...h })), player: facts.player, money: facts.money, wake: facts.wake === null ? null : { name: facts.wake.name, map_id: pair(facts.wake.map_id), hops: facts.wake.hops }, heal: facts.heal === null ? null : { kind: facts.heal.kind, town: facts.heal.town, map_id: pair(facts.heal.map_id), hops: facts.heal.hops, ...(facts.heal.shown === undefined ? {} : { shown: { map_id: pair(facts.heal.shown.map_id), map: facts.heal.shown.map, x: facts.heal.shown.x, y: facts.heal.shown.y } }) }, listed_now: facts.listed_now, mom_heals: facts.mom_heals, text });
   }
 
   // harness-trust-v1: recorded as the walk-away note is added under the result's header.

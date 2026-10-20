@@ -34,3 +34,4 @@ experiments/fixed/whole-map-pair-1h-v3.json: main 0e1a9261 bundle-cook-1h (five 
 - whole-map-pair-1h-v4.json: replaces v3 (never launched); bundle adds caught-nickname-prompt-v1 and fail-open-input-v1. Seed 695536385330ad9b, sha256 21d40f1bdd83.
 - whole-map-cook-1h.json: 12 one-hour pairs, same bundle + full-map-navigation-v1, duplicate-turn-collapse-v1 on in both, fixed-point-breaker-v1 off in both. Seed 1415772d5e90722e, sha256 dc2230899760; each lane runs 6 of each arm. Supersedes the unlanded 0e1a9261 draft. Launch waits on the operator's call on positive-supervisor-v1.
 - Held-out probes on the cook bundle config (positive-supervisor off vs on, 32/side): 4cd7 T313 17→12, 0389 T740 17→13, 4865 T327 11→18, 0389 T164 6→18 (p=0.004). runs/decision-probes/2026-10-20_heldout-cook-config/.
+- Reviews (runs/reviews/whole-map-defs-bdf6b313/): Grok LGTM; Claude subagent LGTM.

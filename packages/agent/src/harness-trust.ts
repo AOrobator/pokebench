@@ -10,7 +10,7 @@ import type {RunEvent} from "./events.js";
 import {STORY_HEADER,StoryDestinations,PlacesBodySchema,staleGoalLine,type MapId,type Place,type PlaceSource,type StoryGoal} from "./story-destinations.js";
 import {Value} from "typebox/value";
 import {exitBlock} from "./surf-gate.js";
-import {connectionArgument,targetSuffix} from "./semantic-targets.js";
+import {connectionArgument,targetSuffix,uniqueDirection} from "./semantic-targets.js";
 
 export const TRUST_HEADER="Read from game memory, always true:";
 
@@ -28,7 +28,8 @@ export function trustSection(gameEvidence:boolean,supervisor:boolean):string {
 
 const warpArgument=(w:{readonly x:number;readonly y:number}):string=>JSON.stringify({kind:"warp",x:w.x,y:w.y});
 // A connection navigate_to_target can walk off: the readout lists its edge tiles.
-const walkOff=(state:Pick<GameStateSnapshot,"topology">,direction:string):boolean=>(state.topology?.connections.find(c=>c.direction===direction)?.edges?.length??0)>0;
+// It resolves a connection by direction alone, so the side must have exactly one.
+const walkOff=(state:Pick<GameStateSnapshot,"topology">,direction:string):boolean=>uniqueDirection(state.topology?.connections,direction)&&(state.topology?.connections.find(c=>c.direction===direction)?.edges?.length??0)>0;
 const same=(a:MapId,b:MapId)=>a[0]===b[0]&&a[1]===b[1];
 const mapLabel=(name:string,id:MapId)=>`${name} (map ${String(id[0])}/${String(id[1])})`;
 const at=(p:{readonly x:number;readonly y:number})=>`(${String(p.x)},${String(p.y)})`;

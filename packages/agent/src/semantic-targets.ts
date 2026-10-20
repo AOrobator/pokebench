@@ -24,3 +24,14 @@ export function targetSuffix(argument:string|null):string {
 export function semanticWalk(name:string,features:Pick<FeatureSet,"semantic-navigation-v2">):boolean {
  return features["semantic-navigation-v2"]&&(name==="navigate_to_target"||name==="explore_map");
 }
+
+// navigate_to_target resolves a connection by its direction alone, so a side with two connections gets no target.
+export function uniqueDirection(connections:readonly {readonly direction:string}[]|undefined,direction:string):boolean {
+ return (connections??[]).filter(c=>c.direction===direction).length===1;
+}
+
+// navigate_to_target statuses that end the call before any travel or input: nothing was tried.
+export const SEMANTIC_REFUSALS=["refused because the requested map is not current","target is not listed in the current verified state","no supported route to a valid approach"] as const;
+export function semanticRefusal(text:string):boolean {
+ return text.split("\n").some(line=>SEMANTIC_REFUSALS.some(r=>line.startsWith(`Semantic navigation: ${r}.`)));
+}

@@ -9,7 +9,7 @@ import {StoryCharacterGate} from "./stall-gate.js";
 import type {RunEvent} from "./events.js";
 import type {FeatureSet} from "./features.js";
 import type {LoopKind} from "./loop-detection.js";
-import {semanticWalk,targetArgument,targetSuffix} from "./semantic-targets.js";
+import {semanticRefusal,semanticWalk,targetArgument,targetSuffix} from "./semantic-targets.js";
 
 export type Stall=
  | {readonly kind:"map_cycle";readonly from:string;readonly to:string;readonly roundTrips:number;readonly consecutive:boolean}
@@ -163,7 +163,7 @@ export class SupervisorBriefing {
   const key=this.room(after);this.path.delete(key);this.path.set(key,after);
   const map=mapOf(after);if(map!==null)this.entered.add(map);
   const call=this.calls.get(event.id);this.calls.delete(event.id);
-  const label=call===undefined?null:this.label(call);
+  const label=call===undefined?null:this.label(call,event.text);
   if(call!==undefined&&label!==null){
    const where=call.before??after;
    this.remember(this.room(where),roomOf(where,this.features),label,this.outcome(call.before,after,auto?.pages??[]));
@@ -280,14 +280,16 @@ export class SupervisorBriefing {
  private touch(room:string,tile:string):void {
   const tiles=this.touched.get(room)??new Set<string>();tiles.add(tile);this.touched.set(room,tiles);
  }
- private label(call:Call):string|null {
+ private label(call:Call,text=""):string|null {
   // semantic-navigation-v2: the selected game target counts as tried, the way a faced A press does.
   if(call.name==="navigate_to_target"){
    const target=call.args["target"];
    if(typeof target!=="object"||target===null)return "navigate_to_target (invalid target)";
    const t=target as Record<string,unknown>;
    const key=t["kind"]==="object"&&typeof t["local_id"]==="number"?objectKey(t["local_id"]):typeof t["x"]==="number"&&typeof t["y"]==="number"?at(t["x"],t["y"]):null;
-   if(call.before!==null&&key!==null)this.touch(this.room(call.before),key);
+   // A refusal before any travel or input tried nothing.
+   const refused=semanticRefusal(text);
+   if(call.before!==null&&key!==null&&!refused)this.touch(this.room(call.before),key);
    return `navigate_to_target ${JSON.stringify(target)}`;
   }
   if(call.name==="explore_map")return "explore_map";

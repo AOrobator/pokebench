@@ -9,7 +9,7 @@ import {isCheckedPress,type CheckedPressTool} from "./game-tools.js";
 import {parseGameState,type GameStateSnapshot} from "./game-state.js";
 import {exitReach,type Cut} from "./surf-gate.js";
 import type {RunRecorder} from "./recorder.js";
-import {connectionArgument,targetSuffix,semanticWalk} from "./semantic-targets.js";
+import {connectionArgument,semanticWalk,targetSuffix,uniqueDirection} from "./semantic-targets.js";
 
 export const UNTAKEN_HEADER="Exits here you have not taken";
 type Snapshot=Pick<GameStateSnapshot,"started"|"screen"|"location"|"map_id"|"position"|"interaction_targets"|"topology"|"surf_gate"|"exit_reach">;
@@ -55,7 +55,7 @@ export class UntakenExits {
   const shown=(g:{tiles:string[];warps:{x:number;y:number}[]}):string[]=>this.features["exit-reachability-v1"]?g.tiles.filter((_,i)=>{const w=g.warps[i];return w===undefined||block.warpCut(w.x,w.y)!=="none";}):g.tiles;
   const open=[
    ...warps.filter(g=>!g.taken).map(g=>`${shown(g).join(" or ")} -> ${mapKey(g.destination)==="127/127"?"dynamic destination":this.place(g.destination)}`),
-   ...connections.filter(c=>!this.history.crossed(map,mapKey(c.destination))).map(c=>`${c.direction}${EDGES.has(c.direction)?" edge":""} -> ${this.place(c.destination)}${semantic&&(c.edges?.length??0)>0?targetSuffix(connectionArgument(c.direction)):""}`),
+   ...connections.filter(c=>!this.history.crossed(map,mapKey(c.destination))).map(c=>`${c.direction}${EDGES.has(c.direction)?" edge":""} -> ${this.place(c.destination)}${semantic&&(c.edges?.length??0)>0&&uniqueDirection(state.topology?.connections,c.direction)?targetSuffix(connectionArgument(c.direction)):""}`),
   ];
   const none=warps.length+connections.length>0?`none (you have taken every exit ${across>0?"you can walk to ":""}on this map this run)`:across>0?`none you can walk to (${why})`:"none (no exits are listed on this map)";
   return `${UNTAKEN_HEADER}: ${open.length===0?none:open.join("; ")}`;

@@ -98,3 +98,12 @@ def test_readout_off_is_unchanged_and_on_states_each_target():
 def test_switch_is_a_default_off_server_observation_switch():
     assert SERVER_FEATURES[-1] == SWITCH
     assert SWITCH in features_off_from_env({})
+
+
+def test_a_side_with_two_connections_gets_no_target():
+    # Route 111 has two WEST connections; the tool resolves a connection by direction only.
+    west_a = Connection("WEST", 0, (0, 30), "ROUTE113", edges=((0, 4),))
+    west_b = Connection("WEST", 40, (0, 31), "ROUTE112", edges=((0, 44),))
+    text = Topology(20, 80, (west_a, west_b, SOUTH)).text(targets=True)
+    assert "WEST" not in "".join(line for line in text.splitlines() if "navigate_to_target" in line)
+    assert text.splitlines()[-1].endswith('"direction":"SOUTH"}')

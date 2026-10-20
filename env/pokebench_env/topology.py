@@ -154,7 +154,11 @@ class Topology:
             "Map connections (game-defined; terrain and story conditions may block passage):"
         )
         lines.extend(
-            c.line(None if notes is None else notes.get(i), target=targets)
+            c.line(
+                None if notes is None else notes.get(i),
+                # navigate_to_target resolves a connection by direction alone: one per side only.
+                target=targets and sum(o.direction == c.direction for o in self.connections) == 1,
+            )
             for i, c in enumerate(self.connections)
         )
         if not self.connections:

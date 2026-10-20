@@ -10,7 +10,7 @@ import {DIALOGUE_AUTO_ADVANCE_SECTION,EXPLORER_TALK_IS_CHEAP,NAVIGATE_TO_USAGE,P
 import {flagFeatures,normalizeFeatures} from "./play-preset.js";
 import {playGameTools} from "./play-wiring.js";
 import {withSemanticNavigation} from "./semantic-navigation.js";
-import {connectionArgument,semanticWalk,targetArgument,targetSuffix} from "./semantic-targets.js";
+import {connectionArgument,semanticRefusal,semanticWalk,targetArgument,targetSuffix,uniqueDirection} from "./semantic-targets.js";
 import {withUntakenExits} from "./untaken-exits.js";
 
 const ID="semantic-navigation-v2";
@@ -145,5 +145,36 @@ describe("results",()=>{
   const off=playGameTools(base,{...features,[ID]:false},{read:()=>Promise.resolve(snapshot)},r).find(t=>t.name==="navigate_to_target");
   expect(on).not.toBe(base[2]);
   expect(off?.execute).toBe(base[2]?.execute);
+ });
+});
+
+describe("review round 1 fixes",()=>{
+ const read={read:()=>Promise.resolve({...IN_GAME,screen:"overworld",field_controls_locked:false,map_id:[3,3],interaction_targets:[]} as GameStateSnapshot)};
+ const fake=(name:string):AgentTool=>({name,label:name,description:name,parameters:Type.Object({}),execute:()=>Promise.resolve({content:[],details:{}})});
+ const tools=(features:FeatureSet)=>{
+  const nav=navigationTool({...read,press:()=>Promise.reject(new Error("no")),observe:()=>Promise.reject(new Error("no"))});
+  const press={...fake("press"),executeChecked:()=>Promise.reject(new Error("no"))} as AgentTool;
+  return withSemanticNavigation([nav,press],features,read);
+ };
+ it("a refusal before any travel is recognised, so the supervisor does not count its target as tried",async()=>{
+  const semantic=tools(ON).find(t=>t.name==="navigate_to_target");if(semantic===undefined)throw new Error("tool");
+  const text=async(args:unknown)=>{const r=await semantic.execute("s",args as never);return r.content.flatMap(p=>p.type==="text"?[p.text]:[]).join("\n");};
+  const wrongMap=await text({map_id:[9,9],target:{kind:"object",local_id:2}});
+  const unlisted=await text({map_id:[3,3],target:{kind:"object",local_id:2}});
+  expect(semanticRefusal(wrongMap)).toBe(true);expect(semanticRefusal(unlisted)).toBe(true);
+  expect(semanticRefusal(`HEADER\n${unlisted}`)).toBe(true);
+  expect(semanticRefusal("Semantic navigation: activation completed; inspect the resulting state. Selected map object 2.")).toBe(false);
+ });
+ it("promises dialogue advance only with dialogue auto-advance on",()=>{
+  const on=tools(ON).find(t=>t.name==="navigate_to_target")?.description??"";
+  const off=tools({...ON,"dialogue-auto-advance-v1":false}).find(t=>t.name==="navigate_to_target")?.description??"";
+  expect(on).toContain("Dialogue the activation opens is advanced for you");
+  expect(off).not.toContain("Dialogue");
+  expect(off.endsWith("For a plain tile nothing lists, use navigate_to.")).toBe(true);
+ });
+ it("a side with two connections gets no connection target",()=>{
+  expect(uniqueDirection([{direction:"WEST"},{direction:"WEST"},{direction:"SOUTH"}],"WEST")).toBe(false);
+  expect(uniqueDirection([{direction:"WEST"},{direction:"SOUTH"}],"WEST")).toBe(true);
+  expect(uniqueDirection(undefined,"WEST")).toBe(false);
  });
 });

@@ -68,11 +68,11 @@ describe('explicit native evolution choice',()=>{
   expect(h.posts).toEqual([]);expect(hooks.beforePress).not.toHaveBeenCalled();
   expect(JSON.stringify(result.content)).toContain('Nothing pressed');
  });
- it('bundle enables the intervention while control remains OFF',()=>{
+ it('the intervention is on in both arms (operator decision 2026-10-20)',()=>{
   const bundle=JSON.parse(readFileSync(new URL('../../../experiments/fixed/bundle-v-control.json',import.meta.url),'utf8')) as {switches:string[];base:{features:Record<string,boolean>};onInBoth:string[];offInBoth:string[]};
-  expect(bundle.switches).toContain(ID);
-  expect(bundle.base.features[ID]).toBe(false);
-  expect(bundle.onInBoth).not.toContain(ID);expect(bundle.offInBoth).not.toContain(ID);
+  expect(bundle.switches).not.toContain(ID);
+  expect(bundle.base.features[ID]).toBe(true);
+  expect(bundle.onInBoth).toContain(ID);expect(bundle.offInBoth).not.toContain(ID);
  });
 });
 

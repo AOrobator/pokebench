@@ -4,7 +4,7 @@
  "title": "Same target, no progress",
  "changedFeature": "same-target-no-progress-v1",
  "hypothesis": "A factual supervisor note after the 4th navigate_to call to one target that ended within 3 tiles of where the first began (battles in between included) gets the model out of the walk-battle-walk loop sooner, so more runs reach ROXANNE_DEFEATED, or reach it sooner, than the incumbent.",
- "activationMilestone": "STARTER_CHOSEN",
+ "activationMilestone": "PLAYER_NAME_CONFIRMED",
  "primaryMilestone": "ROXANNE_DEFEATED",
  "source": {
   "checkout": "main",
@@ -170,5 +170,5 @@
   "window": 4,
   "minReached": 3
  },
- "notes": "Pending and not queued. The candidate flips only same-target-no-progress-v1 (agent guard; needs deterministic-loop-guard-v1, on in both arms; the note is the SUPERVISOR briefing when loop-guard-supervisor-v1 is on). Activation is STARTER_CHOSEN: wild battles interrupting a walk need a party, and the a8f9 loop was in RUSTURF TUNNEL, past it. Evidence: a8f9 turn 1282 onward, navigate_to (29,16) 39 times, every call ending within 3 tiles of (4,9). source.commit is the branch base until landing fills the merge SHA."
+ "notes": "Pending and not queued. The candidate flips only same-target-no-progress-v1 (agent guard; needs deterministic-loop-guard-v1, on in both arms; the note is the SUPERVISOR briefing when loop-guard-supervisor-v1 is on). Activation is PLAYER_NAME_CONFIRMED: navigate_to is usable from the truck, and four calls to one target can fire the guard without any battle. Evidence: a8f9 turn 1282 onward, navigate_to (29,16) 39 times, every call ending within 3 tiles of (4,9). source.commit is the branch base until landing fills the merge SHA."
 }

@@ -348,6 +348,9 @@ export class LoopCoordinator {
       this.sameTargetWarning(same.warning, seq);
       return;
     }
+    // One episode at a time: with another loop episode open the note is not sent, but the record keeps it.
+    if (same?.warning != null)
+      this.notify({ kind: "same_target_no_progress", message: `Not sent (another loop episode is open): ${same.warning.text}`, calls: this.completed, evidence: [...same.warning.evidence], mode: "diagnostic", phase: "would_warn" });
     if (
       this.episode?.exposed &&
       this.episode.kind !== "same_target_no_progress" &&

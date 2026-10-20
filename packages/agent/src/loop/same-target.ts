@@ -73,7 +73,9 @@ function targetOf(call: CompletedCall, start: GameStateSnapshot): Tile | null {
   const t = target as Record<string, unknown>;
   if ((t["kind"] === "warp" || t["kind"] === "interaction") && integer(t["x"]) && integer(t["y"])) return { x: t["x"], y: t["y"] };
   if (t["kind"] !== "object") return null;
-  const object = start.world_context?.objects.find((o) => o.local_id === t["local_id"]);
+  // The same listing navigate_to_target resolves an object from, then the nearby objects.
+  const object = start.interaction_targets?.find((o) => o.kind === "object" && o.local_id === t["local_id"])
+    ?? start.world_context?.objects.find((o) => o.local_id === t["local_id"]);
   return object === undefined ? null : { x: object.x, y: object.y };
 }
 
@@ -116,29 +118,28 @@ export class SameTargetNoProgress {
 
   complete(call: CompletedCall, turn: number, open: string | null): SameTargetStep {
     const end = located(call.state);
-    let cleared = false;
-    // An open warning goes stale once the player stands in a free field 4 or more tiles from its anchor.
-    if (open !== null && end !== null && ending(end) === "field") {
-      const warned = this.episodes.get(open);
-      if (warned !== undefined && mapKey(end.map_id) === mapKey(warned.map) && distance(end.position, warned.anchor) > SAME_TARGET_TILES) {
-        this.episodes.delete(open);
-        cleared = true;
-      }
-    }
-    if (call.isError || (call.name !== "navigate_to" && call.name !== "navigate_to_target")) return { warning: null, cleared };
+    // An open warning goes stale once a call other than a walk to its own target leaves the player in a free field
+    // 4 or more tiles from its anchor; a walk to that target is judged by the displacement reset below.
+    const stale = (): boolean => {
+      const warned = open === null ? undefined : this.episodes.get(open);
+      if (open === null || warned === undefined || end === null || ending(end) !== "field" || mapKey(end.map_id) !== mapKey(warned.map) || distance(end.position, warned.anchor) <= SAME_TARGET_TILES) return false;
+      this.episodes.delete(open);
+      return true;
+    };
+    if (call.isError || (call.name !== "navigate_to" && call.name !== "navigate_to_target")) return { warning: null, cleared: stale() };
     const start = located(call.startState ?? call.beforeState);
-    if (start === null) return { warning: null, cleared };
+    if (start === null) return { warning: null, cleared: stale() };
     const target = targetOf(call, start);
     const map = call.args["map_id"] === undefined ? start.map_id : mapArg(call.args["map_id"]);
-    if (target === null || map === null || mapKey(map) !== mapKey(start.map_id)) return { warning: null, cleared };
+    if (target === null || map === null || mapKey(map) !== mapKey(start.map_id)) return { warning: null, cleared: stale() };
     const key = tileKey(target, map);
+    const cleared = key !== open && stale();
     let episode = this.episodes.get(key);
     if (episode === undefined) {
       episode = { target, map, anchor: start.position, turn, tools: [], counted: [] };
       this.episodes.set(key, episode);
       this.map = mapKey(map);
     }
-    if (!episode.tools.includes(call.name)) episode.tools.push(call.name);
     const how = end === null ? null : ending(end);
     if (end === null || how === null || mapKey(end.map_id) !== mapKey(map)) return { warning: null, cleared };
     const reach = call.name === "navigate_to" ? 0 : 1;
@@ -150,6 +151,7 @@ export class SameTargetNoProgress {
       this.episodes.delete(key);
       return { warning: null, cleared: cleared || key === open };
     }
+    if (!episode.tools.includes(call.name)) episode.tools.push(call.name);
     episode.counted.push({ seq: call.seq ?? 0, tile: end.position, ending: how, said: navigationLine(call.text), location: end.location });
     const calls = episode.counted.length;
     if (calls % SAME_TARGET_CALLS !== 0) return { warning: null, cleared };

@@ -77,6 +77,13 @@ describe("SameTargetNoProgress counter",()=>{
   for(let i=5;i<8;i++)expect(g.complete(walk(i,at(8,9),at(8,9-(i%2))),1,null).warning).toBeNull();
   expect(g.complete(walk(8,at(8,9),at(7,9)),2,null).warning?.text).toContain("when you were at (8,9), 4 of your");
  });
+ it("a walk to the warned target that ends 4 tiles away resets it without anchoring itself",()=>{
+  const g=new SameTargetNoProgress(true);
+  for(let i=1;i<=4;i++)g.complete(walk(i,at(4,9),at(4,8)),1,null);
+  expect(g.complete(walk(5,at(6,9),at(8,9)),2,"29,16@24,4").cleared).toBe(true);
+  for(let i=6;i<9;i++)expect(g.complete(walk(i,at(8,9),at(8,8)),3,null).warning).toBeNull();
+  expect(g.complete(walk(9,at(8,9),at(8,8)),3,null).warning?.text).toContain("Since turn 3, when you were at (8,9), 4 of your");
+ });
  it("map changes, story milestones, story-state changes, the target reached and an explicit reset clear every target",()=>{
   const three=(g:SameTargetNoProgress):void=>{for(let i=1;i<=3;i++)g.complete(walk(i,at(4,9),at(4,8)),1,null);};
   const fourth=(g:SameTargetNoProgress):boolean=>g.complete(walk(9,at(4,9),at(4,8)),1,null).warning!==null;
@@ -147,6 +154,10 @@ describe("SameTargetNoProgress counter",()=>{
   for(let i=1;i<=4;i++)expect(other.complete({...target(i,{kind:"warp",x:4,y:10}),state:at(4,8)},1,null).warning===null).toBe(i<4);
   const near=new SameTargetNoProgress(true);
   expect(near.complete({...target(1,{kind:"interaction",interaction_kind:"sign",x:4,y:7}),state:at(4,8)},1,"4,7@24,4").cleared).toBe(true);
+  const listed=new SameTargetNoProgress(true);
+  const shown=at(4,9,{interaction_targets:[{name:null,kind:"object",x:6,y:5,elevation:3,activation:"talk",availability:"available",facing:null,local_id:7,destination:null}] as unknown as NonNullable<GameStateSnapshot["interaction_targets"]>});
+  for(let i=1;i<=3;i++)listed.complete({...walk(i,shown,at(4,8)),name:"navigate_to_target",args:{map_id:[24,4],target:{kind:"object",local_id:7}}},1,null);
+  expect(listed.complete({...walk(4,shown,at(4,8)),name:"navigate_to_target",args:{map_id:[24,4],target:{kind:"object",local_id:7}}},1,null).warning?.key).toBe("6,5@24,4");
   const bare=new SameTargetNoProgress(true);
   for(let i=1;i<=3;i++)bare.complete({...walk(i,at(4,9),at(4,8)),args:{x:29,y:16}},1,null);
   expect(bare.complete({...walk(4,at(4,9),at(4,8)),args:{x:29,y:16}},1,null).warning?.key).toBe("29,16@24,4");
@@ -199,6 +210,16 @@ describe("LoopCoordinator with same-target-no-progress-v1",()=>{
   expect(notices.map(n=>n.phase)).toEqual(["warning","recovered"]);
   expect(c.context()).toBeNull();
  });
+ it("closes the open note when the target is reached, a walk to it ends 4 tiles away, or any call leaves the player 4 tiles away",()=>{
+  const cases:readonly CompletedCall[]=[walk(5,at(5,9),at(29,16)),walk(5,at(5,9),at(8,9)),{name:"press",args:{buttons:["RIGHT"]},isError:false,text:"",state:at(9,9),seq:5}];
+  for(const close of cases){
+   const {c,notices}=run(true);drive(c,shape);
+   expect(c.context()).not.toBeNull();
+   c.complete(close);
+   expect(notices.at(-1)?.phase).toBe("recovered");
+   expect(c.context()).toBeNull();
+  }
+ });
  it("a story milestone closes it; a navigation milestone does not",()=>{
   const {c,notices}=run(true);drive(c,shape);
   c.observe({...stateEvent(100,at(5,9)),type:"milestone",name:"RUSTURF_TUNNEL",kind:"navigation",origin:"observed",server_timestamp:1} as unknown as RunEvent);
@@ -212,7 +233,9 @@ describe("LoopCoordinator with same-target-no-progress-v1",()=>{
   expect(notices.map(n=>n.kind)).toContain("observation");
   for(let i=0;i<8;i++)c.complete(walk(10+i,at(4,9),at(4,9)));
   expect(c.context()).toBe("SUPERVISOR: generic observation");
-  expect(notices.map(n=>n.kind)).not.toContain("same_target_no_progress");
+  const held=notices.filter(n=>n.kind==="same_target_no_progress");
+  expect(held.map(n=>`${n.mode}:${n.phase}:${String(n.evidence)}`)).toEqual(["diagnostic:would_warn:10,13","diagnostic:would_warn:10,17"]);
+  expect(held[0]?.message).toMatch(/^Not sent \(another loop episode is open\): SUPERVISOR: Since turn 0, when you were at \(4,9\), 4 of your navigate_to calls/);
  });
  it("a diagnostic coordinator only would_warn",()=>{
   const notices:LoopNotice[]=[];
@@ -291,7 +314,7 @@ describe("same-target-no-progress-v1 registry and wiring",()=>{
  it("is registered as a pending one-switch experiment and joins only the bundle arm of the fixed experiments",()=>{
   const entry=parseExperiment(JSON.parse(readFileSync(new URL(`../../../experiments/${ID}.json`,import.meta.url),"utf8")));
   expect(entry.queuePosition).toBeUndefined();
-  expect(entry.activationMilestone).toBe("STARTER_CHOSEN");
+  expect(entry.activationMilestone).toBe("PLAYER_NAME_CONFIRMED");
   const {incumbent,candidate}=experimentArms(entry);
   expect(incumbent.features["deterministic-loop-guard-v1"]).toBe(true);
   expect(Object.keys(candidate.features).filter(id=>candidate.features[id as keyof FeatureSet]!==incumbent.features[id as keyof FeatureSet])).toEqual([ID]);

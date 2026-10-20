@@ -67,6 +67,21 @@ Tests for code; the explainer checked with `just pages-check`; viewer behavior b
 
 ## Multi-Model Review Log
 
+Local inference reviewers are never used (operator decision 2026-10-16). Packet files are in the worktree's ignored `runs/reviews/same-target-no-progress/`.
+
+**Round 1** — packet1 = `git diff main HEAD`, base ba71c60f, head b8990732, sha256 441dc4c5…9ae2a4. Principles self-review: 0 FAIL.
+- Claude lane: `claude -p` failed ("OAuth session expired and could not be refreshed"; `~/.claude-review` also logged out); Cursor `claude-opus-5-thinking-high` and `claude-sonnet-5-thinking-high` hit the Cursor usage limit. Ran as a fresh read-only Claude (Opus) subagent per the operator's 2026-10-16 word. VERDICT: BLOCKING — B1: three close paths (target reached, displacement, walk-away) untested at the coordinator; deleting the `same?.cleared` recover line left every test green. HF: card/explainer should say an open note blocks other loop notes and stall briefings; a dropped warning leaves no record. SPEC: the tool list could name an uncounted tool.
+- Grok lane (Cursor `cursor-grok-4.5-high`): VERDICT: LGTM (HF: `counted` grows until a reset; no blockers).
+- GPT lane: Cursor `gpt-5.6-sol-xhigh` hit the usage limit; switched to isolated Codex CLI (`codex exec --sandbox read-only`; the config model `gpt-6.1-sol` is rejected for a ChatGPT account, so `-m gpt-5.6-sol`, reasoning xhigh). VERDICT: BLOCKING — B1 object targets resolved only from `world_context.objects` while production resolves from `interaction_targets`; B2 a warning while another episode is open is silently dropped; B3 activation milestone too late (STARTER_CHOSEN; the guard needs no battle).
+
+Fix batch 1:
+- Claude B1 accepted: coordinator test for the three close paths; deletion check: replacing the `same?.cleared` recover line turns it red; restored.
+- Codex B1 accepted: object tile from `interaction_targets` first (the production resolver's listing), then `world_context.objects`; test with only `interaction_targets`.
+- Codex B2 partly accepted: one episode at a time is the existing coordinator rule and changing it would change other guards (a boundary split trigger), so it stays; the dropped warning is now recorded as a diagnostic `would_warn` loop_guard ("Not sent (another loop episode is open): …"), never sent to the model. Deletion check: disabling that record turns the collision test red; restored. Card and explainer now say both directions (Claude HF).
+- Codex B3 accepted: activation PLAYER_NAME_CONFIRMED (experiment entry, readiness row, test).
+- Claude SPEC accepted: the tool list names only tools with counted calls.
+- Own finding: a walk to the warned target ending 4+ tiles away was cleared by the walk-away rule and then anchored a new episode itself, unlike the unwarned path. Now the walk-away rule applies only to other calls, and the reset walk does not anchor. Test added.
+
 ## Boy Scout Log
 
 ## Archive Milestone (user-gated)
@@ -78,3 +93,5 @@ Tests for code; the explainer checked with `just pages-check`; viewer behavior b
 - main moved to ba71c60f (gym-readiness-readout-v1 and config changes). Merged main into the branch; conflicts were all registry appends and index churn: took main's side of each conflicted file and re-applied this switch after gym-readiness-readout-v1 (registry, presets, legacy fixture, DEFAULT_NEXT_RUN, FEATURE_EXPLAINERS, README, readiness, bundle arm of both fixed experiments), then re-bumped the index assertions the tests reported. Pending entry source.commit set to main ba71c60f (branch base until landing fills the merge SHA).
 - After the merge: `just lint` clean; `just test` agent 3009, viewer 1438, pytest 2998.
 - After the merge: `just coverage` agent 97.21/92.97/97.57/99.16 (`loop/same-target.ts` 99.09/94.28/100/100), viewer 95.09/91.06/93.85/97.7, Python 97.09/92.62/100.
+- COMMIT: `merge: main (gym-readiness-readout-v1) into same-target-no-progress-v1` (b8990732)
+- Fix batch 1 gates: `just lint` clean; `just test` agent 3011, viewer 1438, pytest 2998; `just coverage` agent 97.21/93.0/97.57/99.16 (`loop/same-target.ts` 99.1/95.2/100/100), viewer 95.09/91.06/93.85/97.7, Python 97.09/92.62/100.

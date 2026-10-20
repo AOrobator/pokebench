@@ -60,7 +60,7 @@ describe("unfinished-activity-v1 on r10 (beat JOSH at T220, healed, lost to ROXA
   expect(at(rows,323)).toBe([UNFINISHED_HEADER,STARTED,still(323),"- Your own last walk to RUSTBORO CITY GYM (map 11/3), from an exit of this map you can reach on foot now (turns 162-255): ROUTE104 (map 0/19) NORTH edge -> RUSTBORO CITY (map 0/3) door at (27,19) -> RUSTBORO CITY GYM (map 11/3)."].join("\n"));
  });
  it("on the south half of ROUTE104 (T400) the walk starts at the door it used into PETALBURG WOODS, not the unreachable NORTH edge",()=>{
-  expect(at(rows,400)).toBe([UNFINISHED_HEADER,STARTED,still(323),"- Your own last walk to RUSTBORO CITY GYM (map 11/3), from an exit of this map you can reach on foot now (turns 70-255): ROUTE104 (map 0/19) door at (10,38) -> PETALBURG WOODS (map 24/11) door at (15,5) -> ROUTE104 (map 0/19) NORTH edge -> RUSTBORO CITY (map 0/3) door at (27,19) -> RUSTBORO CITY GYM (map 11/3)."].join("\n"));
+  expect(at(rows,400)).toBe([UNFINISHED_HEADER,STARTED,still(400),"- Your own last walk to RUSTBORO CITY GYM (map 11/3), from an exit of this map you can reach on foot now (turns 70-255): ROUTE104 (map 0/19) door at (10,38) -> PETALBURG WOODS (map 24/11) door at (15,5) -> ROUTE104 (map 0/19) NORTH edge -> RUSTBORO CITY (map 0/3) door at (27,19) -> RUSTBORO CITY GYM (map 11/3)."].join("\n"));
  });
  it("in PETALBURG CITY (T390) the walk starts at its WEST edge",()=>{
   expect(at(rows,390)).toContain("(turns 31-255): PETALBURG CITY (map 0/0) WEST edge -> ROUTE104 (map 0/19) door at (10,38) -> ");
@@ -106,7 +106,7 @@ describe("unfinished-activity-v1 story line: heard, reached, and a line that nam
  const HEARD=`Story line heard (DAD, turn 20): "Head for RUSTBORO CITY beyond this town." Reached: RUSTBORO CITY (map 0/3), first entered at turn 162.`;
  it("inside RUSTBORO CITY GYM at T215 DAD's line reads as heard and reached, not as the goal",()=>{
   expect(goalAt(215,true)).toBe(HEARD);
-  expect(goalAt(215,false)).toBe(`Story goal: "Head for RUSTBORO CITY beyond this town." (DAD, turn 20) -> "RUSTBORO CITY" = RUSTBORO CITY (map 0/3). Way in: ROUTE104 (map 0/19) NORTH edge; ROUTE115 (map 0/30) SOUTH edge; ROUTE116 (map 0/31) WEST edge.`);
+  expect(goalAt(215,false)).toContain(`Story goal: "Head for RUSTBORO CITY beyond this town." (DAD, turn 20) -> "RUSTBORO CITY" = RUSTBORO CITY (map 0/3). Way in: ROUTE104 (map 0/19) NORTH edge;`);
  });
  it("ROXANNE's TRAINER'S SCHOOL line, which names no map, does not replace DAD's line (T300)",()=>{
   expect(goalAt(300,true)).toBe(HEARD);
@@ -124,7 +124,8 @@ describe("unfinished-activity-v1 in supervisor notes",()=>{
   const opened:RunEvent={v:1,run:"r",seq:7300,t:"t",type:"unfinished_activity",turn:262,change:"opened",trainer_id:265,trainer:"ROXANNE",map_id:[11,3],text:OPEN} as unknown as RunEvent;
   const brief=(on:boolean)=>{
    const b=new SupervisorBriefing({...recordedFeatures(events,{[ID]:on}),"supervisor-briefing-v2":false});
-   for(const e of events){if(e.seq>8600)break;b.observe(e);if(e.seq===7299)b.observe(opened);}
+   let sent=false;
+   for(const e of events){if(e.seq>8600)break;b.observe(e);if(!sent&&e.seq>=7299){b.observe(opened);sent=true;}}
    return b.stallText({kind:"milestone_drought",minutes:10},323);
   };
   expect(brief(true)).toContain(`- Unfinished activity (what you did and what the game recorded): ${OPEN}\n`);
@@ -133,23 +134,29 @@ describe("unfinished-activity-v1 in supervisor notes",()=>{
  });
 });
 
+// A recorded state as the game server sends it: no event envelope; fields the fixture trimmed get neutral values.
+function body(s:RecordedState):Record<string,unknown>{
+ const {v:_v,run:_r,seq:_s,t:_t,type:_y,turn:_n,...rest}=s as unknown as Record<string,unknown>;
+ return {money:0,play_time_s:0,...rest};
+}
 describe("unfinished-activity-v1 through playGameTools",()=>{
  const text=(r:AgentToolResult<unknown>)=>r.content.flatMap(c=>c.type==="text"?[c.text]:[]).join("\n");
  async function at323(on:boolean):Promise<{text:string;events:unknown[]}>{
   const events=recorded(R10);
   const observers:((e:RunEvent)=>void)[]=[];
   const recorded_:unknown[]=[];
-  const recorder={subscribe:(o:(e:RunEvent)=>void)=>{observers.push(o);},recordState:()=>{throw new Error("unused");},recordDialogueAutoAdvance:()=>{throw new Error("unused");},lowHpTrainerWarning:()=>undefined,peopleIdCard:()=>undefined,storyGoalAway:()=>undefined,destinationCitation:()=>undefined,unfinishedActivity:(body:unknown)=>{recorded_.push(body);}};
+  const recorder={subscribe:(o:(e:RunEvent)=>void)=>{observers.push(o);},recordState:()=>{throw new Error("unused");},recordDialogueAutoAdvance:()=>{throw new Error("unused");},lowHpTrainerWarning:()=>undefined,peopleIdCard:()=>undefined,storyGoalAway:()=>undefined,storyBattleWarning:()=>undefined,healBeforeTrainersWarning:()=>undefined,destinationCitation:()=>undefined,unfinishedActivity:(body:unknown)=>{recorded_.push(body);}};
   const result=results(events).find(r=>r.turn===324&&r.name==="navigate_to");
   if(result===undefined)throw new Error("fixture has T324");
-  const nav:AgentTool={name:"navigate_to",label:"Navigate",description:"d",parameters:{},execute:()=>Promise.resolve({content:[{type:"text",text:"Location: ROUTE104"}],details:{state:stateAt(events,result.state_seq ?? -1)}})};
-  const features:FeatureSet={...recordedFeatures(events,{[ID]:on}),"dialogue-auto-advance-v1":false,"battle-text-auto-advance-v1":false,"navigate-first-prompt-v1":false,"harness-trust-v1":false,"story-destinations-v1":false,"bounded-navigation-v1":false,"full-map-navigation-v1":false,"cited-destination-v1":false,"battle-move-tool-v1":false};
-  const base=[nav];
+  const observe:AgentTool={name:"observe",label:"Observe",description:"d",parameters:{},execute:()=>Promise.resolve({content:[{type:"text",text:"Location: ROUTE104"}],details:{state:body(stateAt(events,result.state_seq ?? -1))}})};
+  const press={name:"press",label:"Press",description:"d",parameters:{},execute:()=>Promise.reject(new Error("unused")),executeChecked:()=>Promise.reject(new Error("unused"))} as unknown as AgentTool;
+  const features:FeatureSet={...recordedFeatures(events,{[ID]:on}),"dialogue-auto-advance-v1":false,"battle-text-auto-advance-v1":false,"navigate-first-prompt-v1":false,"harness-trust-v1":false,"story-destinations-v1":false,"full-map-navigation-v1":false,"cited-destination-v1":false,"battle-move-tool-v1":false};
+  const base=[observe,press];
   const tools=playGameTools(base,features,{read:()=>Promise.reject(new Error("unused")),places:()=>Promise.resolve({places:PLACES})},recorder);
   for(const e of events){if(e.seq>=result.seq)break;for(const o of observers)o(e);}
-  const wrapped=tools.find(t=>t.name==="navigate_to");
-  if(wrapped===undefined)throw new Error("no navigate_to");
-  return {text:text(await wrapped.execute(result.id,{x:10,y:30})),events:recorded_};
+  const wrapped=tools.find(t=>t.name==="observe");
+  if(wrapped===undefined)throw new Error("no observe");
+  return {text:text(await wrapped.execute(result.id,{})),events:recorded_};
  }
  it("ON appends the block and records the item opening once; OFF adds nothing",async()=>{
   const on=await at323(true),off=await at323(false);

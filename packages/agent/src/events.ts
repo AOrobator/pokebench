@@ -254,6 +254,12 @@ const StallGate = event("stall_gate", {
   map_id: Type.Tuple([Type.Integer(), Type.Integer()]),
 });
 
+// unfinished-activity-v1: an open trainer battle the agent lost or drew opened, updated by a later loss, or retired.
+const UnfinishedActivityEvent = event("unfinished_activity", {
+  change: Type.Enum(["opened", "updated", "retired"] as const), trainer_id: NonNegativeInt, trainer: Type.String({ minLength: 1 }),
+  map_id: Type.Tuple([Type.Integer(), Type.Integer()]), text: Type.String({ minLength: 1 }),
+});
+
 // low-hp-trainer-warning-v2: the story-battle SUPERVISOR paragraph a game-tool result gained, with the facts it states.
 const StoryBattleWarningEvent = event("story_battle_warning", {
   tool: Type.String({ minLength: 1 }), kind: Type.Enum(["rival", "aqua_grunt", "gym_leader"]), opponent: Type.String({ minLength: 1 }),
@@ -664,6 +670,7 @@ export const RunEventSchema = Type.Union([
   PeopleIdCard,
   LoopBreaker,
   StallGate,
+  UnfinishedActivityEvent,
   AutoTalk,
   StoryBattleWarningEvent,
   HealBeforeTrainersWarningEvent,

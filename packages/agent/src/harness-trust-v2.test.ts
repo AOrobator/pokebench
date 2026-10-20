@@ -49,7 +49,7 @@ describe("harness-trust-v2",()=>{
   expect(notes).toHaveLength(0);
  });
  it("is registered last, default off, needs harness-trust-v1, and the production factory honors it",async()=>{
-  expect(SWITCHABLE_FEATURES.at(-42)).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-43)).toBe(ID);
   expect(playHarnessFeatures(ALL_ON,null).at(-32)).toBe(ID);
   expect(featureInfo(ID)).toMatchObject({switchable:true,group:"guidance",needs:"harness-trust-v1",title:"HARNESS TRUST ON BATTLE ACTIONS"});
   expect(featureInfo(ID).description).toContain(" Off: ");

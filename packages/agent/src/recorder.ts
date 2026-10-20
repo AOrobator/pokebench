@@ -490,6 +490,10 @@ export class RunRecorder {
   recordAutoTalk(body: Omit<BodyOf<"auto_talk">, "type" | "turn">): void {
     this.append({ type: "auto_talk", turn: this.turn + 1, ...body, target: body.target === null ? null : { ...body.target, map_id: [body.target.map_id[0], body.target.map_id[1]] } });
   }
+  // unfinished-activity-v1: an open item opened, updated or retired, recorded at the next game result.
+  unfinishedActivity(body: Omit<BodyOf<"unfinished_activity">, "type" | "turn">): void {
+    this.append({ type: "unfinished_activity", turn: this.turn, ...body, map_id: [body.map_id[0], body.map_id[1]] });
+  }
   // story-character-stall-gate-v1: recorded once for each stall briefing it holds back.
   recordStallGate(body: Omit<BodyOf<"stall_gate">, "type" | "turn">): void {
     this.append({ type: "stall_gate", turn: this.turn, ...body, map_id: [body.map_id[0], body.map_id[1]] });

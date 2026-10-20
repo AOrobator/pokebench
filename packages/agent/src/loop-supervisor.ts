@@ -4,6 +4,7 @@ import {NextMilestoneHint} from "./milestone-hint.js";
 import {edgeBearings} from "./connection-edges.js";
 import {exitReach} from "./surf-gate.js";
 import {MEASUREMENT_ONLY_MILESTONES} from "./milestones.js";
+import {UNFINISHED_BRIEFING} from "./unfinished-activity.js";
 import {BattleOutcomes} from "./battle-outcomes.js";
 import {StoryCharacterGate} from "./stall-gate.js";
 import type {RunEvent} from "./events.js";
@@ -111,6 +112,8 @@ export class SupervisorBriefing {
  private readonly battles:BattleOutcomes|null;
  // story-character-stall-gate-v1: while it holds, no way off the map is listed, and a walk that moved nowhere tries nothing.
  private readonly gate:StoryCharacterGate|null;
+ // unfinished-activity-v1: the open items its recorded events carry, by trainer id.
+ private readonly unfinished=new Map<number,string>();
  constructor(private readonly features:FeatureSet){this.dialogue=new DialogueLog(features);this.hint=features["next-milestone-hint-v1"]?new NextMilestoneHint():null;this.exits=features["briefing-exits-v1"]?new ExitHistory():null;this.battles=features["briefing-battle-outcomes-v1"]?new BattleOutcomes(features):null;this.gate=features["story-character-stall-gate-v1"]?new StoryCharacterGate({recordStallGate:()=>undefined}):null;}
  observe(event:RunEvent):void {
   this.gate?.observe(event);
@@ -118,6 +121,7 @@ export class SupervisorBriefing {
   this.hint?.observe(event);
   this.battles?.observe(event);
   this.turn=Math.max(this.turn,event.turn);
+  if(event.type==="unfinished_activity"){if(this.features["unfinished-activity-v1"]){if(event.change==="retired")this.unfinished.delete(event.trainer_id);else this.unfinished.set(event.trainer_id,event.text);}return;}
   if(event.type==="milestone"){
    if(!counted(event))return;
    this.progress={turn:event.turn,name:event.name};this.path.clear();this.entered.clear();
@@ -347,7 +351,11 @@ export class SupervisorBriefing {
  }
  private lastProgress():string {
   const progress=this.progress===null?"none earned in this run yet":`${this.progress.name.replaceAll("_"," ").toLowerCase()} at turn ${String(this.progress.turn)} (${String(this.turn-this.progress.turn)} turns ago)`;
-  return this.battles===null?progress:`${progress}\n${this.battles.briefingLines().trimEnd()}`;
+  const withBattles=this.battles===null?progress:`${progress}\n${this.battles.briefingLines().trimEnd()}`;
+  return `${withBattles}${this.unfinishedLine()}`;
+ }
+ private unfinishedLine():string {
+  return this.unfinished.size===0?"":`\n${UNFINISHED_BRIEFING}${[...this.unfinished.values()].join("; ")}`;
  }
  private characters():string {
   const s=this.latest;
@@ -492,7 +500,7 @@ export class SupervisorBriefing {
   const recent=(ui===undefined?this.tried:this.uiTried).slice(-3).reverse().map(t=>`${t.label}${this.features["briefing-repeat-count-v1"]&&t.count>1?` ×${String(t.count)}`:""} → ${t.outcome}`).join("; ")||"none recorded";
   const alternatives=this.latest===null||!this.features["world-targets-v1"]?[]:this.open(this.latest).slice(0,3);
   const goal=this.goal??"none recorded";
-  return `${headline}\n- Current position: ${this.where()}\n- Latest recorded place instruction: ${goal}\n${ui===undefined?`- Untried targets already shown here (up to 3; not a route recommendation): ${!this.features["world-targets-v1"]?"not available (world targets are off)":alternatives.join("; ")||"none listed"}\n${this.untalked()}${this.edges()}`:`- Open interface: ${ui.name}; phase ${ui.phase}; text ${ui.text??"unknown"}; selected ${ui.selected??"unknown"}; controls: ${ui.controls??"unknown"}\n`}- Recent attempts (up to 3): ${recent}\nUse the latest game readout to choose a different action. End the next reply with one listed tool call.`;
+  return `${headline}\n- Current position: ${this.where()}\n- Latest recorded place instruction: ${goal}${this.unfinishedLine()}\n${ui===undefined?`- Untried targets already shown here (up to 3; not a route recommendation): ${!this.features["world-targets-v1"]?"not available (world targets are off)":alternatives.join("; ")||"none listed"}\n${this.untalked()}${this.edges()}`:`- Open interface: ${ui.name}; phase ${ui.phase}; text ${ui.text??"unknown"}; selected ${ui.selected??"unknown"}; controls: ${ui.controls??"unknown"}\n`}- Recent attempts (up to 3): ${recent}\nUse the latest game readout to choose a different action. End the next reply with one listed tool call.`;
  }
 
  private bearings(headline:string,stall=false):string {

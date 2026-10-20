@@ -168,6 +168,7 @@ describe("review round 1 fixes",()=>{
   expect(listedArgument({kind:"warp",x:3,y:1,local_id:null},shelf)).toBe('{"kind":"warp","x":3,"y":1}');
   expect(listedArgument({kind:"background",x:6,y:6,local_id:null},shelf)).toBeNull();
   expect(listedArgument({kind:"hidden_item",x:8,y:8,local_id:null},[{kind:"hidden_item",x:8,y:8}])).toBe('{"kind":"interaction","interaction_kind":"hidden_item","x":8,"y":8}');
+  expect(listedArgument({kind:"coordinate_trigger",x:8,y:8,local_id:null},[{kind:"coordinate_trigger",x:8,y:8},{kind:"warp",x:8,y:8}])).toBeNull();
  });
  it("promises dialogue advance only with dialogue auto-advance on",()=>{
   const on=tools(ON).find(t=>t.name==="navigate_to_target")?.description??"";

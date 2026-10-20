@@ -57,13 +57,13 @@ def same_tile(targets: Iterable[InteractionTarget] | None, target: InteractionTa
     """How many listed targets the tool could confuse with this one on its tile.
 
     A warp is told apart from other warps. Any other interaction (background, bookshelf
-    metatile, trigger) must be the only non-warp target on its tile, objects included.
+    metatile, trigger) must be the only listed target on its tile.
     """
 
     def rival(t: InteractionTarget) -> bool:
         if target.kind == "warp":
             return t.kind == "warp"
-        # A person or object on the tile answers A before any background or metatile does.
-        return t.kind != "warp"
+        # A person or object answers A first, and a warp on the tile can take the step instead.
+        return True
 
     return sum(rival(t) and (t.x, t.y) == (target.x, target.y) for t in targets or ())

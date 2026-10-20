@@ -134,7 +134,7 @@ def test_a_tile_with_two_kinds_of_interaction_gets_no_target():
     metatile = InteractionTarget("metatile_bookshelf", 3, 1, 3, "A", facing="up")
     door = InteractionTarget("warp", 3, 1, 0, "movement", destination=(1, 2, 0))
     targets = (shelf, metatile, door, MAY)
-    assert same_tile(targets, shelf) == 2 and same_tile(targets, metatile) == 2
+    assert same_tile(targets, shelf) == 3 and same_tile(targets, metatile) == 3
     assert same_tile(targets, door) == 1
     assert same_tile((SIGN, MAY), SIGN) == 1
 
@@ -145,3 +145,13 @@ def test_a_fixed_interaction_under_a_listed_object_gets_no_target():
     item = InteractionTarget("hidden_item", 10, 3, 3, "A")
     assert same_tile((item, MAY), item) == 2
     assert same_tile((item,), item) == 1
+
+
+def test_a_trigger_on_a_door_tile_gets_no_target():
+    # Brendan's house 1F (8,8): a coordinate trigger and the front-door warp share the mat.
+    from pokebench_env.semantic_targets import same_tile
+
+    mat = InteractionTarget("coordinate_trigger", 8, 8, 0, "step")
+    door = InteractionTarget("warp", 8, 8, 0, "movement", destination=(0, 9, 0))
+    assert same_tile((mat, door), mat) == 2
+    assert same_tile((mat, door), door) == 1

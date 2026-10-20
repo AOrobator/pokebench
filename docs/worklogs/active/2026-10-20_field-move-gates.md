@@ -108,10 +108,15 @@ No new subprocesses, network or file writes; reads RAM the server already reads.
   92.96 branches / 97.6 functions / 99.16 lines; viewer 95.09 / 91.06 / 93.85 / 97.7 (floor 90).
 
 **M2 — gated flood, exit labels and readout (Python)**
-- [ ] Tests: a8f9 seq 41177 labels (29,16) and (18,20) `none` with `blocked_by` the rocks, (4,10) foot;
+- [x] Tests: a8f9 seq 41177 labels (29,16) and (18,20) `none` with `blocked_by` the rocks, (4,10) foot;
       Route 115 and Granite Cave B1F muddy slopes one-way; cracked floor; exit-labels-v2 arrival reach
-      uses destination templates; OFF golden.
+      uses destination templates; OFF golden. (env/tests/env/test_field_move_flood.py, plus rails,
+      waterfall, Route 111 sandstorm, survey/blocked_by and the superset property on random maps.)
 - [ ] COMMIT RED / implement / gates / COMMIT GREEN
+  RED: test_field_move_flood.py fails at import (no MapGates/map_gates/survey/terrain_obstacles).
+  Deviation (recorded before GREEN): the switch registration moves from M3 into M2 GREEN, because
+  test_feature_switches.py requires the Python and TypeScript SERVER_FEATURES lists to match, and
+  the Python default-off list is what keeps the switch off by default.
 
 **M3 — planners, navigation messages, switch registration (TypeScript)**
 - [ ] Tests: local and full planners route around a closed rock not yet loaded; a8f9 navigate_to
@@ -119,6 +124,9 @@ No new subprocesses, network or file writes; reads RAM the server already reads.
 - [ ] Register `field-move-gates-v1` (observation, bundle arm only, default off, needs
       exit-reachability-v1); feature card text.
 - [ ] COMMIT RED / implement / gates / COMMIT GREEN
+
+Review cadence: the worklog runs the multi-model review once, in M4, on the whole frozen packet
+(M1-M3 gates are recorded per milestone).
 
 **M4 — audit test, explainer, review**
 - [ ] Fixture of the audit's 81 maps (expected obstacles and cut-off exits) checked against the live

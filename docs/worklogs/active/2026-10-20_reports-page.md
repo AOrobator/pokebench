@@ -32,7 +32,7 @@ No harness change, so no feature switch.
 
 **M3: land**
 - Review round 1 (packet 8c20ee0c, head c16b1ad9): Claude LGTM; Grok BLOCKING (a report folder that is a symlink widens the file jail); GPT BLOCKING (evidence .csv/.mjs links 404; a malformed hash stops the page). All three were fixed as concrete bugs, RED 2148634a, then GREEN.
-- Review round 2 (head 5fe8b8bc): Claude LGTM, Grok LGTM; GPT BLOCKING: listReports reads index.html/report.json through a symlink inside a real report folder (title/metadata leak; serving is jailed). At the round cap the operator said "merge now"; the fix is a follow-up.
+- Review round 2 (head 5fe8b8bc): Claude LGTM, Grok LGTM; GPT BLOCKING: listReports reads index.html/report.json through a symlink inside a real report folder (title/metadata leak; serving is jailed). At the round cap the operator said "merge now"; later the operator said the symlink case is a non-issue, so no follow-up.
 - [x] Landed ff-only at 5fe8b8bc; just test on main passed (agent 2826, viewer 1385, Python 2896). 8790 restarted 12:49 PM New York, viewer at 5fe8b8bc; /reports live with 11 reports, OPEN REPORT loads the report under the viewer bar.
 - [x] report.json written for the 11 existing reports (data under runs/, not git)
 - [ ] propose the run-analysis skill edit

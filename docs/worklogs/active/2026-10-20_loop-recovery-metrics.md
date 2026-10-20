@@ -19,3 +19,4 @@ Measurement only, no switch (feature-switch skill: measurement features do not c
 ## Multi-Model Review Log
 ## Boy Scout Log
 ## Archive Milestone (user-gated)
+- Gates: agent 2841, viewer 1386 (server-human flaked once, passes alone; this branch touches no viewer code); lint clean; agent coverage 97.2/92.9/97.6 (loop-recovery.ts 98.7/90.7/100).

@@ -13,7 +13,8 @@ import { ExperimentAutoRun } from "./experiment-autorun.js";
 import { effectiveExperiment, findCohort, finalsLedgerPath, finalsRunLabels, finalsRunner, finalsResultPath, nominationPath, pinnedPromotion, promotionOverlay, promotionsPath, readPromotions, reusableRuns } from "./experiment-gate-store.js";
 import { nextStep, runQueue, type RunnerHost, type TrialLaunch } from "./experiment-runner.js";
 import { experimentDir, queueSnapshot, runnerPath, winnerGateOn, type QueuePaths, type RunSource, type TrialMetrics } from "./experiment-store.js";
-import { LEASE } from "./next-run.js";
+import { leaseDir } from "./lease.js";
+import { EXPERIMENT_POOL } from "./experiment-runner.js";
 
 const FINALS = { runsPerArm: 4, maxWallMs: 600_000 };
 const HOUSE = ["CLOCK_SET", "MOM_RIVAL_INSTRUCTION", "PLAYER_HOUSE_EXITED_AFTER_CLOCK", "RIVAL_HOUSE_ENTERED"];
@@ -72,10 +73,10 @@ function host(w: World, over: Partial<RunnerHost> = {}, outcome: (features: Feat
     discover: (lane) => Promise.resolve({ id: lane, fingerprint: "f".repeat(64) }),
     launch: (trial) => {
       launches.push(trial);
-      expect(existsSync(join(w.paths.runsRoot, LEASE, "owner.json"))).toBe(true);
+      expect(existsSync(join(leaseDir(w.paths.runsRoot, EXPERIMENT_POOL), "owner.json"))).toBe(true);
       trial.started?.(4321);
       expect(JSON.parse(readFileSync(runnerPath(w.paths.runsRoot), "utf8"))).toMatchObject({ run: trial.runId, child: 4321 });
-      expect(JSON.parse(readFileSync(join(w.paths.runsRoot, LEASE, "owner.json"), "utf8"))).toMatchObject({ pid: process.pid, owner: "experiment-queue", run: trial.runId, child: 4321 });
+      expect(JSON.parse(readFileSync(join(leaseDir(w.paths.runsRoot, EXPERIMENT_POOL), "owner.json"), "utf8"))).toMatchObject({ pid: process.pid, owner: "experiment-queue", run: trial.runId, child: 4321 });
       const preset = JSON.parse(readFileSync(trial.presetPath, "utf8")) as { features: FeatureSet };
       writeRun(w.paths, trial.runId, preset.features);
       w.metrics.set(trial.runId, outcome(preset.features));
@@ -262,8 +263,8 @@ describe("winner gate", () => {
     await runQueue({ paths: w.paths, source: w.source, host: host(w), stopRequested: () => true });
     writeFileSync(finalsLedgerPath(w.paths.runsRoot, "full-map"), `${JSON.stringify({ type: "launch", trial: 0, arm: "incumbent", run: "orphanF", at: "t", model: "think-fast", commit: "e".repeat(40) })}\n`);
     writeFileSync(runnerPath(w.paths.runsRoot), JSON.stringify({ pid: 300, experiment: finalsRunner("full-map"), trial: 0 }));
-    mkdirSync(join(w.paths.runsRoot, LEASE));
-    writeFileSync(join(w.paths.runsRoot, LEASE, "owner.json"), JSON.stringify({ pid: 300, owner: "experiment-queue", experiment: "full-map", finals: true }));
+    mkdirSync(leaseDir(w.paths.runsRoot, EXPERIMENT_POOL));
+    writeFileSync(join(leaseDir(w.paths.runsRoot, EXPERIMENT_POOL), "owner.json"), JSON.stringify({ pid: 300, owner: "experiment-queue", experiment: "full-map", finals: true }));
     let polls = 0;
     const fake = host(w, {
       alive: () => false,
@@ -451,7 +452,7 @@ describe("winner gate", () => {
     gated(w);
     cohort(w, "running", COHORT);
     expect(queueSnapshot(w.paths, w.source).queue.find((v) => v.id === "hint")?.state).toBe("approved");
-    expect(existsSync(join(w.paths.runsRoot, LEASE))).toBe(false);
+    expect(existsSync(leaseDir(w.paths.runsRoot, EXPERIMENT_POOL))).toBe(false);
     expect(trialOrder(parseExperiment(definition("x"))).length).toBe(8);
   });
 });

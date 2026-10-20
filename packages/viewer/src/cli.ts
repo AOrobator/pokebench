@@ -14,6 +14,8 @@ import { winnerGateOn } from "./experiment-store.js";
 import { productionHost } from "./experiment-cli.js";
 import { recordedRuns } from "./experiment-store.js";
 import { HumanRestarts, RunQueue, healthProbe, randomSuffix, spawnLaunch } from "./next-run.js";
+import { leasePool } from "./lease.js";
+import { readEndpoint } from "@pokebench/agent/local-endpoint";
 import { startViewer, type Viewer, type ViewerOptions } from "./server.js";
 
 export const DEFAULT_PORT = 8790;
@@ -127,7 +129,7 @@ export function viewerOffload(
 
 export async function main(argv: readonly string[], deps: MainDeps): Promise<Viewer> {
   const args = parseArgs(argv, deps.repoRunsRoot, deps.defaultEndpoint, deps.defaultPublicOrigins);
-  const queue = new RunQueue({ runsRoot: args.runsRoot, liveJs: deps.liveJs, endpointFile: args.endpointFile, gamePort: QUEUE_GAME_PORT, healthy: healthProbe(), now: () => new Date(), random: randomSuffix, launch: (spec) => spawnLaunch(spec) });
+  const queue = new RunQueue({ runsRoot: args.runsRoot, liveJs: deps.liveJs, endpointFile: args.endpointFile, leasePool: () => leasePool(readEndpoint(args.endpointFile ?? "").baseUrl), gamePort: QUEUE_GAME_PORT, healthy: healthProbe(), now: () => new Date(), random: randomSuffix, launch: (spec) => spawnLaunch(spec) });
   const restarts = new HumanRestarts({runsRoot:args.runsRoot,liveJs:deps.liveJs,healthy:healthProbe(),now:()=>new Date(),random:randomSuffix,launch:spec=>spawnLaunch(spec),...(deps.humanLeasePath===undefined?{}:{leasePath:deps.humanLeasePath})});
   const autorun = deps.autorun?.(args.runsRoot);
   const offload = deps.offload?.(args.runsRoot);

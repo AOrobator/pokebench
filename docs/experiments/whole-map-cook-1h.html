@@ -37,7 +37,7 @@ code { font:13px ui-monospace, SFMono-Regular, Menlo, monospace; background:var(
 <main>
 <h1>Whole-map navigation cook, 1 hour</h1>
 <p class="lead">From the fast-text MAIN_MENU save, does the next bundle (all planned fixes, with whole-map navigation, semantic navigation and deterministic exploration) get further in one hour than the control, and do its navigation calls actually cover more ground?</p>
-<p><span class="tier">Screen (12 one-hour pairs)</span> &nbsp;<code>experiments/fixed/whole-map-cook-1h.json</code> (written at launch) &nbsp;·&nbsp; status: approved by the operator for 12 wall hours (10/20); launch gated on the planned bundle fixes landing. Nothing launched.</p>
+<p><span class="tier">Screen (12 one-hour pairs)</span> &nbsp;<code>experiments/fixed/whole-map-cook-1h.json</code>  &nbsp;·&nbsp; status: approved by the operator for 12 wall hours (10/20); definition experiments/fixed/whole-map-cook-1h.json (seed 1415772d5e90722e) from main bdf6b313; launch waits on the operator's call on the supervisor redesign.</p>
 
 <div class="facts">
 <div class="fact"><b>Start</b>fast-text MAIN_MENU save</div>
@@ -58,7 +58,7 @@ code { font:13px ui-monospace, SFMono-Regular, Menlo, monospace; background:var(
 <rect class="box b-green" x="670" y="20" width="180" height="100" rx="10"/><text x="684" y="46">Measured as</text><text class="small" x="684" y="68">ROUTE_102</text><text class="small" x="684" y="86">within 60 min</text><text class="small" x="684" y="104">read per pair, no test</text>
 <path class="arrow" d="M200,70 H226"/><path class="arrow" d="M420,70 H446"/><path class="arrow" d="M640,70 H666"/>
 </svg>
-<figcaption>The 2026-10-20 cook analysis found no arm can take long strides: bounded navigation plans inside the 15×15 window with at most 8 attempts per call, and the bundle’s navigate_to calls moved 0 tiles 72% of the time (mean 1.27 tiles; control 4.21). Its hypothesis: long strides need whole-map planning, not a bigger cap. Whole-map navigation (full-map-navigation-v1) gives the whole current map and full routes; semantic navigation (semantic-navigation-v1) lets the model pick a person, warp or map edge and lets the harness walk there; deterministic exploration (deterministic-exploration-v1) adds explore_map, which walks to the next untried target. The operator asked for all three together.</figcaption>
+<figcaption>The 2026-10-20 cook analysis found no arm can take long strides: bounded navigation plans inside the 15×15 window with at most 8 attempts per call, and the bundle’s navigate_to calls moved 0 tiles 72% of the time (mean 1.27 tiles; control 4.21). Its hypothesis: long strides need whole-map planning, not a bigger cap. Whole-map navigation (full-map-navigation-v1) gives the whole current map and full routes; semantic navigation (semantic-navigation-v2) lets the model pick a person, warp or map edge and lets the harness walk there; deterministic exploration (deterministic-exploration-v1) adds explore_map, which walks to the next untried target. The operator asked for all three together.</figcaption>
 </figure>
 
 <h2>2. Where runs start and what they cover</h2>
@@ -79,7 +79,7 @@ code { font:13px ui-monospace, SFMono-Regular, Menlo, monospace; background:var(
 <div class="wrap"><table>
 <tr><th>Arm</th><th>Switches</th><th>Differs from control by</th><th>Evidence it is ready</th></tr>
 <tr><td>Control</td><td>The current control preset at the launch pin (frontier-incumbent-4caa today; if the preset thread lands exit-reachability-v1 into the control first, that new control is used for both arms)</td><td>—</td><td>8d39 played 6 h valid on this save on 10/20</td></tr>
-<tr><td>Bundle + whole-map nav</td><td>The bundle preset at the launch pin + <code>full-map-navigation-v1</code>. The bundle must already carry <code>semantic-navigation-v1</code>, <code>deterministic-exploration-v1</code>, <code>stale-story-goal-v2</code>, <code>briefing-repeat-count-v1</code> (inert here: it acts only with supervisor-briefing-v2, which the bundle dropped), <code>navigate-already-here-v1</code>, <code>fixed-point-breaker-v1</code> (with auto talk), <code>story-character-stall-gate-v1</code> and the supervisor exit-list fix</td><td>The whole bundle; per-switch effects cannot be separated</td><td>Whole-map nominated in the 10/15 factorial (think-fast); semantic nav and exploration are on main at <code>4565f9ef</code>. A dry-run per arm is part of the launch check.</td></tr>
+<tr><td>Bundle + whole-map nav</td><td>The bundle preset at main bdf6b313 (experiments/fixed/bundle-cook-1h.json) + <code>full-map-navigation-v1</code>. Bundle-only switches include <code>semantic-navigation-v2</code>, <code>deterministic-exploration-v1</code>, <code>auto-talk-v1</code>, <code>positive-supervisor-v1</code>, <code>unfinished-activity-v1</code>, <code>stale-story-goal-v2</code>, <code>story-character-stall-gate-v1</code>, <code>exit-labels-v2</code>, <code>heal-before-trainers-v2</code>, <code>gym-heal-warning-v1</code>, <code>respawn-readout-v1</code> and <code>trainer-sight-check-v1</code>, <code>caught-nickname-prompt-v1</code> and <code>fail-open-input-v1</code>. <code>duplicate-turn-collapse-v1</code> is on in both arms; <code>fixed-point-breaker-v1</code> and <code>semantic-navigation-v1</code> are off in both.</td><td>The whole bundle; per-switch effects cannot be separated</td><td>Whole-map pairs on 10/20: the bundle reached Rustboro 52 min ahead in pair 1; pair 2 stalled on the nickname-box bug (fix gates this launch)</td></tr>
 </table></div>
 
 <h2>4. Outcomes and the decision rule</h2>
@@ -148,7 +148,7 @@ code { font:13px ui-monospace, SFMono-Regular, Menlo, monospace; background:var(
 <p><code>python3 .claude/skills/pokebench-experiment-design/power.py plan --control 0.5 --lifts 0.2,0.3,0.4 --cap-min 60 --executors 2 --failure-rate 0.05 --budget-gpu-hours 4</code></p>
 
 <h2>6. Order, executors and failures</h2>
-<p>Twelve blocks of one pair each, both GPUs at once. Arms alternate lanes in a seeded balanced order, so each GPU runs each arm 6 times. Before launch both lanes must report the same model file, build, context and slots in /props (today: Qwen3.6-35B-A3B-UD-Q4_K_M, 65536 context, 1 slot). Results are reported per lane too.</p>
+<p>Six blocks of two pairs each, both GPUs at once. Arms alternate lanes in a seeded balanced order, so each GPU runs each arm 6 times. Before launch both lanes must report the same model file, build, context and slots in /props (today: Qwen3.6-35B-A3B-UD-Q4_K_M, 65536 context, 1 slot). Results are reported per lane too.</p>
 <p>Every launched trial counts. A crash or model error counts as not reached. Only an outage outside the arm (llama-server down, an emulator crash with no model call) is re-run at the end and reported. Max 1 hour per run. Launch only via <code>just fixed-run run</code> from an isolated checkout pinned to one main commit; a launch mistake taints the experiment and it restarts clean. The viewer is not restarted during the pin window.</p>
 
 <h2>7. What could fool us, and what this cannot tell us</h2>
@@ -166,7 +166,7 @@ code { font:13px ui-monospace, SFMono-Regular, Menlo, monospace; background:var(
 <h2>8. Provenance</h2>
 <div class="wrap"><table>
 <tr><th>Item</th><th>Value</th></tr>
-<tr><td>Build</td><td><code>main at launch (currently 4565f9ef); frozen for all blocks</code></td></tr>
+<tr><td>Build</td><td><code>main at launch (definition drafted from bdf6b313); frozen for all blocks</code></td></tr>
 <tr><td>Start state</td><td><code>runs/launch-receipts/fast-text/MAIN_MENU.state</code>, SHA-1 <code>b3a6cc1c19836600a15febf41b8f8b19661ce5d4</code> (checked 10/20), the same save as bundle-cook-6h-v2</td></tr>
 <tr><td>Baseline cohort</td><td>14 control runs from the MAIN_MENU save: 12 from bundle-v-control-dryrun-cook (10/17–18), 86ac (bundle-cook-4h) and 8d39 (bundle-cook-6h-v2). 7 reached ROUTE_102 by 60 min; the latest 8d39 did at 31.7 min</td></tr>
 <tr><td>Grading code</td><td>native milestones and fixed-run analyze at the launch pin</td></tr>

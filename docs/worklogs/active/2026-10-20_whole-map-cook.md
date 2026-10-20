@@ -45,3 +45,4 @@ The control model cancelled Torchic's Lv16 evolution in a8f9 (turn 1170, B in th
 
 ## counter-talk-v1 on in both arms (the operator 2026-10-20 19:17 NY)
 Moved from bundle switches to onInBoth (base true) in bundle-v-control.json and whole-map-cook-1h.json; evidence in the 'Counter-talk effect in control' thread (stalled 1/45 with it on vs 23/47 off). Running pair v4 unchanged. New sha256: bundle-v-control b1e24b405b6b, whole-map-cook-1h d5ceed05b7f8. pnpm -r test: agent 2977, viewer 1436 pass.
+- Overview updated for counter-talk in both arms (Grok round-1 finding).

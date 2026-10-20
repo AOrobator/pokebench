@@ -8,6 +8,6 @@ After: the sheet's ALL RUNS block ends with RUNS & COMPARISONS â†— and REPORTS â
 ## M1
 
 - [x] RED: run-head.test.ts expects reports-link after comparisons-link in the sheet
-- [ ] GREEN
-- [ ] Browser check at 375 (open sheet, tap REPORTS) and desktop unchanged
+- [x] GREEN: gates pass (agent 2833, viewer 1388, Python 2896; lint; coverage)
+- [x] Browser check: runs/reviews/2026-10-20-sheet-reports-e2e/receipt.md
 - [ ] Reviews and land

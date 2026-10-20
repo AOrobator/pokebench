@@ -16,3 +16,9 @@ Read-only production viewer fa5ae160 showed three cards and healthy artwork. War
 
 - Worktree created on codex/trainer-card-loading; no gameplay actions or restarts.
 - RED/GREEN, gates, review and browser proof pending.
+
+### RED and GREEN
+
+- RED: four new behavioral assertions failed on the original implementation: early usable art, missing artwork retry/status, initial card-data failure/status, and queued card promotion. The initial full viewer run also hit an unrelated missing compiled Play module before the viewer had been built.
+- GREEN: focused suite 55/55. The production HTTP/offload test starts a full frontier scan, requests a selected card behind it, completes only the active historical job and verifies selected runs next, without spawning another worker. Root-qualified selection changes are covered.
+- Adversarial mutations independently removed artwork retry, early art delivery and priority selection; each corresponding regression test failed. Restored focused suite is being rerun. Full gates pending on the final synced candidate.

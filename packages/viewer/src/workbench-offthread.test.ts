@@ -6,6 +6,7 @@ import { Log, START, assistant, state } from "../test-support/events.js";
 import { createBaselinePool, type BaselineRequest, type BaselineWorkerLike } from "./baseline-pool.js";
 import { createWorkbenchStore, workbenchCacheDir } from "./baseline-store.js";
 import { handleBaselineRequest } from "./baseline-worker.js";
+import { viewerOffload } from "./cli.js";
 import { startViewer, type Viewer } from "./server.js";
 import { cardWorkbench, createIncrementalRunLoader, createWorkbenchLoader, loadRun, parseLoadedRun, timingSeconds, workbenchSnapshot, type LoadedRun, type WorkbenchCompute } from "./workbench-store.js";
 import { parseWorkbench } from "./workbench-data.js";
@@ -458,4 +459,42 @@ it("promotes already queued card runs over historical work without adding a work
     await jobs[2]?.catch(() => undefined);
     expect(workers[0]?.posted[2]?.runsRoot).toBe("/other");
   } finally { await pool.close(); }
+});
+
+
+it("prioritizes a selected HTTP card through production offload while history is queued", async () => {
+  const r = root();
+  for (const id of ["z-history", "y-history", "a-selected"]) write(r, id, ended());
+  const posted = Promise.withResolvers<undefined>();
+  const prioritized = Promise.withResolvers<undefined>();
+  const worker = new FakeWorker();
+  const originalPost = worker.postMessage.bind(worker);
+  worker.postMessage = message => { originalPost(message); posted.resolve(undefined); };
+  const offload = viewerOffload(r, new URL("file:///test-worker.js"), CODE, 32, () => worker);
+  const promote = offload.workbench?.prioritize;
+  const viewer = await startViewer({ runsRoot: r, staticDir: r, appDir: r, port: 0, build: null, ...offload,
+    workbench: { ...offload.workbench, prioritize: ids => { promote?.(ids); prioritized.resolve(undefined); } },
+  });
+  viewers.push(viewer);
+  const history = fetch(new URL("api/runs/a-selected/frontier", viewer.url));
+  await posted.promise;
+  const cards = fetch(new URL("api/cards?run=a-selected", viewer.url));
+  await prioritized.promise;
+  // Finish only the running historical job; selected must bypass every queued historical job.
+  const first = worker.posted[0];
+  if (first === undefined) throw new Error("missing running reduction");
+  worker.emit("message", { id: first.id, outcome: loadRun(r, first.runId) });
+  const nextRun = worker.posted[1]?.runId;
+  const selected = worker.posted[1];
+  if (selected === undefined) throw new Error("missing selected reduction");
+  worker.emit("message", { id: selected.id, outcome: loadRun(r, selected.runId) });
+
+  const last = worker.posted[2];
+  if (last === undefined) throw new Error("missing remaining history reduction");
+  worker.emit("message", { id: last.id, outcome: loadRun(r, last.runId) });
+  const data = parseWorkbench(await (await cards).json());
+  expect((await history).status).toBe(200);
+  expect(nextRun).toBe("a-selected");
+  expect(data.runs.map(run => run.id)).toEqual(["a-selected"]);
+  expect(worker.posted).toHaveLength(3);
 });

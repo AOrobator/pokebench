@@ -106,11 +106,12 @@ describe("trainer cards in the viewer", () => {
     const { app } = await mount(1280, options);
     expect(ui("run-cards").hidden).toBe(true);
     expect(ui("card-status").textContent).toContain("artwork unavailable");
+    const attempts = fetched.filter(url => url === "/sprites/manifest.json").length;
     options.art = true;
     await app.pollCards();
     expect(ui("run-cards").querySelectorAll(".tc")).toHaveLength(2);
     expect(ui("card-status").hidden).toBe(true);
-    expect(fetched.filter(url => url === "/sprites/manifest.json")).toHaveLength(2);
+    expect(fetched.filter(url => url === "/sprites/manifest.json")).toHaveLength(attempts + 1);
   });
 
   it("shows an initial card-data failure and recovers on the existing polling cadence", async () => {
@@ -264,7 +265,7 @@ describe("trainer cards in the viewer", () => {
     expect(fetched).toContain(`/api/cards?run=${encodeURIComponent(LIVE_ID)}`);
     setWidth(375); app.tick(0);
     expect(ui("run-sheet-body").querySelector(".rs-now, .rs-other")).toBeNull();
-    expect(ui("run-sheet-body").textContent).toContain("Loading trainer cards");
+    expect(ui("run-sheet-body").textContent).toContain("Trainer card artwork unavailable. Retrying");
   });
 
   it("paints the game-font text once the glyph sheet loads", async () => {

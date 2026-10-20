@@ -123,7 +123,7 @@ export function viewerOffload(
   const pool = createBaselinePool(spawn, defaultPoolSize(parallelism));
   return {
     baselines: { compute: pool.compute, store: createBaselineStore(baselineCacheDir(runsRoot, codeId)), close: () => pool.close() },
-    workbench: { compute: pool.load, store: createWorkbenchStore(workbenchCacheDir(runsRoot, codeId)), partial: true },
+    workbench: { compute: pool.load, prioritize: ids => { pool.prioritize(runsRoot, ids); }, store: createWorkbenchStore(workbenchCacheDir(runsRoot, codeId)), partial: true },
   };
 }
 

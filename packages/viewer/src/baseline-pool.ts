@@ -34,6 +34,7 @@ export interface BaselineWorkerLike {
 export interface BaselinePool {
   readonly compute: BaselineCompute;
   readonly load: WorkbenchCompute;
+  prioritize(runsRoot: string, runIds: readonly string[]): void;
   close(): Promise<void>;
 }
 
@@ -66,6 +67,8 @@ export function createBaselinePool(spawn: () => BaselineWorkerLike, size: number
   if (!Number.isSafeInteger(size) || size < 1) throw new RangeError("baseline pool size must be a positive integer");
   const busy = new Map<BaselineWorkerLike, Job | null>();
   const queue: Job[] = [];
+  let priority = new Set<string>();
+  const key = (root: string, id: string): string => JSON.stringify([root, id]);
   let nextId = 0;
   let closed = false;
 
@@ -110,7 +113,8 @@ export function createBaselinePool(spawn: () => BaselineWorkerLike, size: number
       if (idle === undefined && busy.size < size) idle = hire();
       if (idle === undefined) return;
       // The comparisons page waits on workbench loads; baseline warm-up can wait for them.
-      const urgent = queue.findIndex((j) => j.request.kind === "workbench");
+      const card = queue.findIndex(j => j.request.kind === "workbench" && priority.has(key(j.request.runsRoot, j.request.runId)));
+      const urgent = card < 0 ? queue.findIndex(j => j.request.kind === "workbench") : card;
       const job = queue.splice(urgent < 0 ? 0 : urgent, 1)[0];
       if (job === undefined) return;
       busy.set(idle, job);
@@ -127,6 +131,8 @@ export function createBaselinePool(spawn: () => BaselineWorkerLike, size: number
   const invalid = (runId: string): Error => new Error(`baseline worker sent an invalid reply for ${runId}`);
 
   return {
+    // Reclassify existing jobs too: a frontier scan may have queued this card first.
+    prioritize: (root, ids) => { priority = new Set(ids.map(id => key(root, id))); },
     compute: async (runsRoot, runId) => parseBaselineOutcome(await call("baseline", runsRoot, runId)) ?? Promise.reject(invalid(runId)),
     load: async (runsRoot, runId, viewer) => parseLoadedRun(await call("workbench", runsRoot, runId, viewer)) ?? Promise.reject(invalid(runId)),
     close: async () => {

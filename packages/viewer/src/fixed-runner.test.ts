@@ -8,7 +8,7 @@ import {checkEvent} from "@pokebench/agent/events";
 import {cohortIndex} from "./workbench-store.js";
 import {experimentsAudit} from "./experiments-audit.js";
 import {fileURLToPath} from "node:url";
-import {FRONTIER_MILESTONES} from "./frontier.js";
+import {REQUIRED_FRONTIER_MILESTONES} from "@pokebench/agent/milestones";
 import { LEGACY_LEASE, leaseDir } from "./lease.js";
 import { parseFixedStatus, type FixedStatus } from "./fixed-status.js";
 import { definition, MODEL_PATH, ROM_SHA1 } from "../test-support/fixed.js";
@@ -374,7 +374,7 @@ describe("runFixed", () => {
 it.each([[false,"jit-10m","just-in-time-prompt-v1"],[true,"jit-10m","just-in-time-prompt-v1"],[false,"jit-v2-10m","just-in-time-prompt-v2"],[true,"jit-v2-10m","just-in-time-prompt-v2"]] as const)("rehearses the actual JIT definition: 24 outcomes, both GPUs, six of each arm per GPU, no replacement budget (terminal error=%s)",async(retainFailure,id,feature)=>{
  const parsed=parseFixedDefinition(readFileSync(new URL(`../../../experiments/fixed/${id}.json`,import.meta.url),"utf8"));
  const def=parsed.definition;
- expect(def.progressOrder).toEqual(FRONTIER_MILESTONES.map(m=>m.id));
+ expect(def.progressOrder).toEqual(REQUIRED_FRONTIER_MILESTONES);
  expect(def.terminalErrorsAsOutcomes).toBe(true);
  expect(controlBaseProblems(def,readFileSync(new URL(`../../../${def.controlBase.path}`,import.meta.url),"utf8"))).toEqual([]);
  const {runsRoot,dir}=setup(def);
@@ -430,7 +430,7 @@ it.each([[false,"jit-10m","just-in-time-prompt-v1"],[true,"jit-10m","just-in-tim
 it.each([[false,"jit-v2-cache-20m","just-in-time-prompt-v2"],[true,"jit-v2-cache-20m","just-in-time-prompt-v2"]] as const)("rehearses the actual JIT definition: two concurrent 20-minute outcomes, one per GPU, no replacement budget (terminal error=%s)",async(retainFailure,id,feature)=>{
  const parsed=parseFixedDefinition(readFileSync(new URL(`../../../experiments/fixed/${id}.json`,import.meta.url),"utf8"));
  const def=parsed.definition;
- expect(def.progressOrder).toEqual(FRONTIER_MILESTONES.map(m=>m.id));
+ expect(def.progressOrder).toEqual(REQUIRED_FRONTIER_MILESTONES);
  expect(def.terminalErrorsAsOutcomes).toBe(true);
  expect(controlBaseProblems(def,readFileSync(new URL(`../../../${def.controlBase.path}`,import.meta.url),"utf8"))).toEqual([]);
  const {runsRoot,dir}=setup(def);

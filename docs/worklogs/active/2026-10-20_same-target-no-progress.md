@@ -95,3 +95,5 @@ Fix batch 1:
 - After the merge: `just coverage` agent 97.21/92.97/97.57/99.16 (`loop/same-target.ts` 99.09/94.28/100/100), viewer 95.09/91.06/93.85/97.7, Python 97.09/92.62/100.
 - COMMIT: `merge: main (gym-readiness-readout-v1) into same-target-no-progress-v1` (b8990732)
 - Fix batch 1 gates: `just lint` clean; `just test` agent 3011, viewer 1438, pytest 2998; `just coverage` agent 97.21/93.0/97.57/99.16 (`loop/same-target.ts` 99.1/95.2/100/100), viewer 95.09/91.06/93.85/97.7, Python 97.09/92.62/100.
+- COMMIT: `fix: same-target-no-progress-v1 review batch 1 (...)` (4b403ced)
+- Merged main 724d9ddd (whole-map pair v5 definition only; it does not name this switch, so it runs OFF there; agent 3011 and viewer 1438 tests pass after the merge).

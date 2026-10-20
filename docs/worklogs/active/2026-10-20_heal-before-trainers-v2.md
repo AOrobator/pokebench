@@ -33,7 +33,7 @@ Run `2026-10-20T13-54-28_qwen36-gpu0_b300` (bundle arm of whole-map-pair-1h; low
 - [x] M1 RED (742c6071), GREEN, gates, explainer, pending experiment
 - [ ] M1 Claude + Grok review
 - [x] M2 RED (949a51de), GREEN, gates, explainer, pending experiment
-- [ ] M2 Claude + Grok review
+- [x] M2 Claude + Grok review (R2 LGTM both)
 - [ ] Sync with main, final gates, report b300 texts
 
 ## Session log
@@ -78,5 +78,9 @@ Run `2026-10-20T13-54-28_qwen36-gpu0_b300` (bundle arm of whole-map-pair-1h; low
   - Grok (cursor-grok-4.5-high): `VERDICT: LGTM` (follow-ups: runtime v2 gate, arm set before nearest resolves, no parseExperiment test).
   - Claude lane: claude -p still OAuth-expired (both config dirs); Cursor Claude capped earlier today; fresh read-only Claude subagent: `VERDICT: BLOCKING`. B1: the 14717 paragraph said "an earlier result listed it" though 14717 itself first listed the center. B2: deleting the map-change re-arm line passed every test. Both accepted.
   - Fix: HealBeforeTrainers tracks the keys a result lists for the first time; the gym paragraph says "this result lists it as an exit at (16,38) on this map" then (`listed_now` in facts and event); v2's own text unchanged. New arm test GYM, ROUTE104, GYM. Mutations: removing the re-arm line fails the new test; forcing listed_now false fails 2 tests; restored green 13/13. Gates: lint, build, pages-check OK; coverage agent 2932/2932 (97.22/92.93/97.72/99.18), viewer 1429/1429 (95.08/91.03/93.85/97.7), python 2915, gate 96.97/92.50/100.
+
+  COMMIT: `fix: gym-heal-warning-v1 says when this result first lists the center, and re-arms on any other map` (3d27c3d5)
+- M2 R2, cumulative packet `runs/reviews/gym-heal-warning-v1/r2/packet.diff` (git diff 315940b9 3d27c3d5, sha256 a990d653…7e4aed), delta beside it. Grok: `VERDICT: LGTM`. Claude subagent (claude -p still OAuth-expired): `VERDICT: LGTM`. Non-blocking: arm set before nearest resolves; no runtime v2 gate (needs covers it); no parseExperiment test; v2's own text has the same "earlier result" wording when v2 fires on the result that first lists a center (base, for the v2 branch).
+- main still at ee95b866 (v2 not landed), so no merge was needed before the final review. Branch ready for the coordinator's landing step after v2; source.commit in experiments/gym-heal-warning-v1.json is zeros, to fill at landing.
 
 ## Boy Scout Log

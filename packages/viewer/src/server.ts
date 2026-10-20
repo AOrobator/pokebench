@@ -32,7 +32,7 @@ import { SharedFrameHub } from "./frame-hub.js";
 export const HOST = "127.0.0.1";
 const EXPERIMENTS_CACHE_MS = 5_000;
 // Browser code the page may load; everything else in dist/ stays private.
-export const BROWSER_MODULES = ["main", "app", "metric-history", "model", "format", "inspectformat", "timeline", "panels", "gba", "replay", "controls", "nextpanel", "human-input", "human-play", "human-main", "workbench-main", "workbench", "workbench-view", "workbench-data", "frontier", "frontier-versions", "frontier-legend", "queue-view", "trace", "run-head", "trainer-card", "game-font", "card-dom", "phone"] as const;
+export const BROWSER_MODULES = ["main", "app", "metric-history", "model", "format", "inspectformat", "timeline", "panels", "gba", "replay", "controls", "nextpanel", "human-input", "human-play", "human-main", "workbench-main", "workbench", "workbench-view", "workbench-data", "frontier", "frontier-versions", "frontier-legend", "queue-view", "trace", "run-head", "trainer-card", "game-font", "card-dom", "phone", "reports-view", "reports-main", "reports-boot"] as const;
 
 const MODULE_NAME = new RegExp(`^(${BROWSER_MODULES.join("|")})\\.js$`);
 const FRAME_NAME = /^\d{6}_\d+\.png$/;
@@ -85,6 +85,22 @@ const SECURITY_HEADERS = {
     "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; " +
     "font-src 'self'; img-src 'self' blob:; connect-src 'self'",
 };
+
+// A run-analysis report is our own static page, often with inline scripts (charts, filters). It runs sandboxed in
+// an opaque origin, so its scripts cannot call the viewer's control endpoints, and links back to the viewer open
+// in the top window on whatever host is serving it.
+const REPORT_HEADERS = {
+  ...SECURITY_HEADERS,
+  "content-security-policy":
+    "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: blob:; connect-src 'none'; " +
+    "sandbox allow-scripts allow-popups allow-popups-to-escape-sandbox allow-top-navigation-by-user-activation",
+};
+function sendReport(res: ServerResponse, path: string, type: string): void {
+  let body: Buffer;
+  try { body = readFileSync(path); } catch { sendJson(res, 404, { error: "not found" }); return; }
+  res.writeHead(200, { ...REPORT_HEADERS, "content-type": type });
+  res.end(type.startsWith("text/html") ? body.toString("utf8").replace(/href="http:\/\/127\.0\.0\.1:8790\//g, 'target="_top" href="/') : body);
+}
 
 export interface ViewerOptions {
   readonly runsRoot: string;
@@ -393,7 +409,7 @@ async function route(req: IncomingMessage, res: ServerResponse, options: ViewerO
   }
   if (head === "reports" && second !== undefined) {
     const found = reportFile(options.runsRoot, second, parts.slice(2).filter((part, i, all) => !(part === "" && i === all.length - 1)));
-    if (found === null) sendJson(res, 404, { error: "not found" }); else sendFile(res, found.path, found.type);
+    if (found === null) sendJson(res, 404, { error: "not found" }); else sendReport(res, found.path, found.type);
     return;
   }
   if (parts.length === 1 && head === "comparisons") {

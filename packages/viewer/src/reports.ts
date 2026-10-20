@@ -55,7 +55,7 @@ function meta(dir: string): Meta {
     || (verdict !== undefined && !text(verdict, 600)) || (frontier !== undefined && !(typeof frontier === "string" && /^[A-Z0-9_]{2,64}$/.test(frontier)))
     || (trainer !== undefined && !(typeof trainer === "string" && /^[a-z]{2,16}$/.test(trainer)))
     || (facts !== undefined && !(Array.isArray(facts) && facts.length <= 6 && facts.every(f => Array.isArray(f) && f.length === 2 && text(f[0], 60) && text(f[1], 120))))) return {};
-  return v as Meta;
+  return v;
 }
 
 export function listReports(runsRoot: string): ReportEntry[] {

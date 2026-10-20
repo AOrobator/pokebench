@@ -1,4 +1,5 @@
 // @vitest-environment happy-dom
+// @vitest-environment-options {"settings":{"disableIframePageLoading":true,"disableCSSFileLoading":true,"disableJavaScriptFileLoading":true}}
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -88,6 +89,6 @@ describe("the reports page", () => {
   });
   it("is linked from the stats page and styled for phones", () => {
     expect(STATS).toContain('href="/reports"');
-    expect(CSS).toMatch(/@media \(max-width: 700px\) \{[^}]*\.rp-split/);
+    expect(CSS).toContain(":root[data-phone] .rp-split { grid-template-columns: minmax(0, 1fr); }"); expect(CSS).toContain(":root[data-phone] .rp-list { order: 2; }");
   });
 });

@@ -26,11 +26,10 @@ No harness change, so no feature switch.
 - [x] RED ba791db1 / GREEN: listReports (order, metadata, fallback, invalid report.json), reportFile (traversal, symlink escape, extensions), routes /reports, /api/reports, /reports/<slug>/<path>
 
 **M2: the page**
-- [ ] RED/GREEN: list, detail card, type badges, tier and STORY bar, selection, opened view with newer and older, phone order, stats-page link
-- [ ] Gates; browser proof at 1280/1440/375 on the real reports (read-only)
+- [x] RED 43ca3db5 + c9628691 / GREEN: list, detail card (trainer on the ball, cut above the party band), type badges, tier and STORY bar, selection, opened view with newer and older, phone order via data-phone, stats-page link. Reports are served sandboxed (their inline scripts run in an opaque origin), and 127.0.0.1:8790 links are rewritten to the viewer's own origin in the top window
+- [x] Gates: viewer 1380 (95.11/91.05/93.9/97.71), agent pass, Python 2896 (96.95/92.46/100; needs the .env link in a fresh worktree)
+- [ ] Browser proof at 1280/1440/375 on the real reports (read-only)
 
 **M3: land**
 - [ ] Reviews (round cap 2), ff-only land, restart, live check
 - [ ] report.json for the existing reports (data under runs/); propose the run-analysis skill edit
-- M2 RED: reports-view.test.ts and the browser-module check
-- M2 RED 2: report pages served sandboxed with inline scripts allowed; viewer links rewritten

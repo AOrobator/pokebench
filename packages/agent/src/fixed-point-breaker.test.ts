@@ -100,15 +100,18 @@ describe("stage 1: duplicate turns collapse to the newest copy",()=>{
   await r.send();await r.send();
   expect(r.recorded.filter(b=>b.stage===1)).toEqual([{stage:1,trigger:"fixed_point",repeats:3,collapsed:2,text:null}]);
  });
- it("collapses identical replies with no tool call together with their nudges, but keeps a supervisor note",async()=>{
+ it("leaves every reply with no tool call out of the request, keeping its nudge or supervisor note (probe f28d T2862: 0/16 to 16/16 tool calls)",async()=>{
   const r=rig(ON);
   r.turn("Walk north.",{x:10,y:6},11);
   r.silent("I am at (10,10). I will navigate to (10,10).");
-  r.silent("I am at (10,10). I will navigate to (10,10).","SUPERVISOR: Your last 2 replies called no tool (text-only supervisor, note 1 of 3).");
-  r.silent("I am at (10,10). I will navigate to (10,10).");
+  r.silent("I am at (10,10). I will navigate to (10,10)..","SUPERVISOR: Your last 2 replies called no tool (text-only supervisor, note 1 of 3).");
+  r.silent("I am at (10,10). I will navigate to (10,10)...");
   const out=await r.send();
-  expect(texts(out)).toEqual(["Play.","assistant 1","Navigation: arrived. turn 1","SUPERVISOR: Your last 2 replies called no tool (text-only supervisor, note 1 of 3).","assistant 4",noToolNote(3)]);
-  expect(r.recorded[0]).toEqual({stage:1,trigger:"no_tool_call",repeats:3,collapsed:2,text:null});
+  expect(texts(out)).toEqual(["Play.","assistant 1","Navigation: arrived. turn 1",NUDGE,"SUPERVISOR: Your last 2 replies called no tool (text-only supervisor, note 1 of 3).",noToolNote(3)]);
+  expect(r.recorded[0]).toEqual({stage:1,trigger:"no_tool_call",repeats:3,collapsed:3,text:null});
+  r.turn("Walk south.",{x:10,y:12},12);
+  await r.send();
+  expect(r.recorded.filter(b=>b.stage===1)).toHaveLength(1);
  });
 });
 
@@ -138,8 +141,8 @@ describe("stage 2: the positive note with the count",()=>{
   expect((await r.send()).at(-1)).toMatchObject({role:"user",content:"SUPERVISOR: Make one tool call based on the game state and what you observed. Your last 1 reply called no tool."});
   r.silent("I will walk to (10,9).",TEXT_ONLY_REMINDER);
   const out=await r.send();
-  expect(texts(out).slice(-3)).toEqual(["Keep playing: call observe or press. Only tool calls advance the game.","assistant 3",noToolNote(2)]);
-  expect(r.recorded.map(b=>[b.stage,b.trigger,b.repeats])).toEqual([[2,"no_tool_call",1],[2,"no_tool_call",2]]);
+  expect(texts(out).slice(-3)).toEqual(["Navigation: arrived. turn 1",NUDGE,noToolNote(2)]);
+  expect(r.recorded.map(b=>[b.stage,b.trigger,b.repeats])).toEqual([[1,"no_tool_call",1],[2,"no_tool_call",1],[1,"no_tool_call",2],[2,"no_tool_call",2]]);
  });
  it("still replaces the newest nudge when fresh-retry-v1 leaves the reply out",async()=>{
   const r=rig({...ON,"fresh-retry-v1":true});

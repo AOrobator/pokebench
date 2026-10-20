@@ -28,7 +28,7 @@ No harness change, so no feature switch.
 **M2: the page**
 - [x] RED 43ca3db5 + c9628691 / GREEN: list, detail card (trainer on the ball, cut above the party band), type badges, tier and STORY bar, selection, opened view with newer and older, phone order via data-phone, stats-page link. Reports are served sandboxed (their inline scripts run in an opaque origin), and 127.0.0.1:8790 links are rewritten to the viewer's own origin in the top window
 - [x] Gates: viewer 1380 (95.11/91.05/93.9/97.71), agent pass, Python 2896 (96.95/92.46/100; needs the .env link in a fresh worktree)
-- [ ] Browser proof at 1280/1440/375 on the real reports (read-only)
+- [x] Browser proof at 1280/1440/375 on copies of the 11 reports: runs/reviews/2026-10-20-reports-page-e2e/receipt.md. Found and fixed: hash navigation and Back not updating the card (test), the phone tap leaving the card off-screen (test), the intro in the pixel font, the card scrolling away on desktop (sticky), and the opened report scrolling the page (fits the window)
 
 **M3: land**
 - [ ] Reviews (round cap 2), ff-only land, restart, live check

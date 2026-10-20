@@ -23,13 +23,16 @@ export async function mountReports(doc: Document, deps: ReportsDeps): Promise<vo
     part("detail").innerHTML = entry === undefined ? '<p class="rp-empty">No reports yet. The run-analysis skill writes them to runs/reports/run-analysis/.</p>' : detailHtml(entry, entries.length - i, art);
   };
   show(wanted);
+  doc.defaultView?.addEventListener("hashchange", () => { show(decodeURIComponent(doc.defaultView?.location.hash.replace(/^#/, "") ?? "")); });
   part("list").addEventListener("click", (event) => {
     const row = (event.target as Element).closest<HTMLElement>("[data-report]");
     if (row === null) return;
     event.preventDefault();
     show(row.dataset.report ?? "");
     doc.defaultView?.history.replaceState(null, "", `#${row.dataset.report ?? ""}`);
-    doc.querySelector<HTMLElement>(`[data-report="${CSS.escape(row.dataset.report ?? "")}"]`)?.focus();
+    // On a phone the card sits above the list, out of sight of a tap far down it.
+    if (doc.documentElement.hasAttribute("data-phone")) part("detail").scrollIntoView({ block: "start" });
+    else doc.querySelector<HTMLElement>(`[data-report="${CSS.escape(row.dataset.report ?? "")}"]`)?.focus();
   });
 }
 

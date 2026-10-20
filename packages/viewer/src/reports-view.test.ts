@@ -78,6 +78,19 @@ describe("the reports page", () => {
     q('[data-report="2026-10-17_top50"]').click();
     expect(q('[data-rp="detail"]').innerHTML).toContain("Top 50 run analysis"); expect(q('[data-report="2026-10-17_top50"]').getAttribute("aria-current")).toBe("true");
   });
+  it("follows the address when only its hash changes, as back and forward do", async () => {
+    await mount("", "");
+    window.location.hash = "#2026-10-16_overnight"; window.dispatchEvent(new HashChangeEvent("hashchange"));
+    expect(q('[data-rp="detail"]').innerHTML).toContain("Overnight"); expect(q('[data-report="2026-10-16_overnight"]').getAttribute("aria-current")).toBe("true");
+  });
+  it("on a phone, picking a report brings its card into view", async () => {
+    await mount("", "");
+    document.documentElement.setAttribute("data-phone", "");
+    let scrolled = false; q('[data-rp="detail"]').scrollIntoView = () => { scrolled = true; };
+    q('[data-report="2026-10-16_overnight"]').click();
+    expect(scrolled).toBe(true);
+    document.documentElement.removeAttribute("data-phone");
+  });
   it("opens a report inside the page", async () => {
     await mount("?open=2026-10-17_top50", "");
     expect(q('[data-rp="open"]').hidden).toBe(false); expect(q('[data-rp="index"]').hidden).toBe(true);

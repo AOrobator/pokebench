@@ -885,10 +885,11 @@ b.wb-add, b.wb-rem { white-space:nowrap; }
    report as the top of a trainer card, cut off just above the party band, with its verdict on a plain sheet. */
 .rp-main { display: grid; gap: 12px; padding: 18px; max-width: 1200px; margin: 0 auto; }
 .rp-h1 { margin: 0; font: 14px/1.6 'Press Start 2P', monospace; color: #ffd447; }
-.rp-lede { margin: 0; color: #c9d5e6; max-width: 70ch; }
+.rp-lede { margin: 0; color: #c9d5e6; max-width: 70ch; font: 14px/1.5 Inter, system-ui, sans-serif; }
 .rp-here { font: 8px 'Press Start 2P', monospace; color: #283038; background: #ffd447; border-radius: 4px; padding: 5px 7px; }
 .rp-split { display: grid; grid-template-columns: minmax(0, 300px) minmax(0, 1fr); gap: 14px; align-items: start; }
 .rp-list { display: grid; gap: 6px; }
+.rp-detail { position: sticky; top: 64px; scroll-margin-top: 64px; }
 .rp-row { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 4px 8px; align-items: center; background: #f8f8d8; color: #283038; border: 3px solid #283038; border-radius: 8px; padding: 7px 10px; text-decoration: none; }
 .rp-row[aria-current="true"] { background: #ffd447; }
 .rp-row:focus-visible, .rp-go:focus-visible, .rp-bar a:focus-visible { outline: 3px solid #ffd447; outline-offset: 3px; }
@@ -916,9 +917,11 @@ b.wb-add, b.wb-rem { white-space:nowrap; }
 .rp-sheet dt { color: #505a66; } .rp-sheet dd { margin: 0; font-weight: 600; }
 .rp-go { justify-self: start; font: 8px 'Press Start 2P', monospace; background: #283038; color: #ffd447; border-radius: 6px; padding: 9px 11px; text-decoration: none; }
 .rp-empty { color: #c9d5e6; }
-.rp-open { display: grid; grid-template-rows: auto 1fr; height: calc(100vh - var(--viewer-bar-height, 48px)); min-height: 480px; }
+/* An opened report fills exactly the space under the header, so only the report scrolls, never the page. */
+.rp-page:has(.rp-open:not([hidden])) { height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
+.rp-open { display: grid; grid-template-rows: auto minmax(0, 1fr); flex: 1 1 auto; min-height: 0; }
 .rp-open[hidden] { display: none; }
 .rp-bar { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; background: #1e2c44; padding: 10px 14px; font: 8px 'Press Start 2P', monospace; color: #dfe8f5; }
 .rp-bar a { color: #ffd447; text-decoration: none; } .rp-bar b { flex: 1 1 auto; min-width: 0; } .rp-nav { display: flex; gap: 12px; } .rp-bar .off { color: #5a6b85; }
 .rp-frame { width: 100%; height: 100%; border: 0; background: #fff; }
-:root[data-phone] .rp-split { grid-template-columns: minmax(0, 1fr); } :root[data-phone] .rp-list { order: 2; } :root[data-phone] .rp-main { padding: 12px; }
+:root[data-phone] .rp-split { grid-template-columns: minmax(0, 1fr); } :root[data-phone] .rp-list { order: 2; } :root[data-phone] .rp-detail { position: static; } :root[data-phone] .rp-main { padding: 12px; }

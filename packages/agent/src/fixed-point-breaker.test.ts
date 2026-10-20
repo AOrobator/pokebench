@@ -48,7 +48,7 @@ const texts=(out:readonly AgentMessage[]):string[]=>out.flatMap(m=>m.role==="use
 describe("registry and presets",()=>{
  it("registers a default-off guard switch, recorded after original-speed-pacing-v1, with an exact OFF",()=>{
   expect(featureInfo(ID)).toMatchObject({group:"guard",needs:null,switchable:true,title:"FIXED-POINT BREAKER"});
-  expect(featureInfo(ID).description).toContain(" Off: every turn stays in the request and the nudge and notes are unchanged.");
+  expect(featureInfo(ID).description).toContain(" Off: every turn stays in the request, the nudge and notes are unchanged, and the harness never walks or presses on its own.");
   expect(featureInfo(ID).description).toContain(BREAKER_NOTE);
   expect(SWITCHABLE_FEATURES.indexOf(ID)).toBe(SWITCHABLE_FEATURES.indexOf("original-speed-pacing-v1")+1);
   expect(playHarnessFeatures({...ALL_ON,[ID]:true,"story-character-stall-gate-v1":true},null).slice(-2)).toEqual([ID,"story-character-stall-gate-v1"]);

@@ -64,6 +64,7 @@ const SAMPLES: { [K in RunEvent["type"]]: Extract<Body, { type: K }> } = {
   text_only_supervisor: { type: "text_only_supervisor", turn: 1, replies: 3, note: 1, limit: 3, text: X },
   people_id_card: { type: "people_id_card", turn: 1, tool: X, tool_call_id: X, key: "name:MAY", reason: "first", text: X },
   loop_breaker: { type: "loop_breaker", turn: 1, stage: 2, trigger: "fixed_point", repeats: 4, collapsed: 0, text: X },
+  auto_talk: { type: "auto_talk", turn: 1, trigger: "fixed_point", repeats: 8, outcome: "talked", target: { kind: "person", name: X, character: null, key: "0/18#2", x: 10, y: 3, map_id: [0, 18] }, walks: 2, tried: 1, text: X },
   stall_gate: { type: "stall_gate", turn: 1, kind: "milestone_drought", level: 1, reason: "untalked", character: X, map_id: [0, 18] },
   low_hp_trainer_warning: { type: "low_hp_trainer_warning", turn: 1, tool: X, species: X, hp: 3, max_hp: 21, rival: "MAY", x: 10, y: 3, map_id: [0, 18], money: 3000, items: [{ name: X, quantity: 1 }], text: X },
   heal_before_trainers_warning: { type: "heal_before_trainers_warning", turn: 1, tool: X, map_id: [0, 19], trainers: [{ local_id: 3, x: 31, y: 24, sprite_kind: X }], weak: [{ kind: "lead_below_half", species: X, hp: 14, max_hp: 38 }], heal: { kind: "pokemon_center", town: X, map_id: [2, 2], hops: 4 }, mom_heals: true, money: 5168, text: X },

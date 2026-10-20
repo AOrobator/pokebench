@@ -54,7 +54,9 @@ No new subprocesses, network or file paths. Model text is only compared, never e
 - [ ] Gates
 **M3 — explainers, pending experiments, readiness rows**
 **M4 — probes** (GPU only with the coordinator's OK): gate at f28d turn 452; breaker on planted repetition
-**M5 — stage 3 auto-talk** (ASK USER: The operator's OK on the posted design)
+**M5 — stage 3 auto-talk** (the operator OK 11:04 and 11:16 AM ET; signs last per run evidence, runs/reviews/2026-10-20-loop-breaker/sign-evidence.md)
+- [x] RED: `auto-talk.test.ts` (7): off is the base transform; 8th identical turn walks next to MAY, faces, presses A, message last with screenshot; once per loop and retained until a newer game result; ranking story > person > sign, no item balls or unbeaten trainers; next side and next person when a walk goes nowhere; not_free in battle; 3 silent replies; gate learns from auto_talk.
+- [ ] GREEN
 **M6 — Claude + Grok review, merge slot from the coordinator, ff-only landing**
 
 ## Closing the Loop

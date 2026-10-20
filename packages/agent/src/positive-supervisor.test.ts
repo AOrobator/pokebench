@@ -87,4 +87,18 @@ describe("positive-supervisor-v1 on run f28d, Route 103 with MAY at (10,3)",()=>
   expect(navigationSaid("Navigation: arrived at requested coordinate; 1 bounded movement actions.")).toBe("arrived at requested coordinate");
   expect(navigationSaid("pressed A")).toBeUndefined();
  });
+ it("never lists a warp, whatever the readout names it",()=>{
+  const b=new SupervisorBriefing({...RUN,[ID]:true});
+  let state:Extract<RunEvent,{type:"state";started:boolean}>|undefined;
+  for(const e of FIXTURE.events)if(e.type==="state"&&"started"in e&&e.started&&e.screen==="overworld"&&e.position!==null)state=e;
+  if(state===undefined)throw new Error("fixture has no overworld state");
+  const warp=(name:string|null,x:number)=>({kind:"warp",name,x,y:20,elevation:3,activation:"movement",availability:"live",facing:null,local_id:null,destination:[0,10,0] as [number,number,number]});
+  const s1={...state,seq:900001,interaction_targets:[warp("Dynamic warp",1),warp("Warp to map 0/10",2),warp(null,3),...(state.interaction_targets??[]).filter(t=>t.kind!=="warp")]};
+  for(const e of FIXTURE.events)b.observe(e);
+  b.observe(s1);
+  b.observe(checkEvent({v:1,run:state.run,seq:900002,t:state.t,turn:state.turn,type:"tool_result",id:"w",name:"observe",is_error:false,duration_ms:1,text:"Location: ROUTE103",frames:[],state_seq:s1.seq}));
+  const note=b.text("ineffective",1);
+  expect(note).toContain("- Shown here and not tried yet: ");
+  for(const name of ["Dynamic warp","Warp to","warp at"])expect(note).not.toContain(name);
+ });
 });

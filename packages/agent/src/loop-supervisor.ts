@@ -409,11 +409,12 @@ export class SupervisorBriefing {
   if(open.length===0)return "none: every listed target here has been tried";
   return open.join("; ");
  }
- private open(s:State):string[] {
+ private open(s:State,warps=true):string[] {
   const done=this.touched.get(this.room(s))??new Set<string>();
   // Exits first: ordering only, so a briefing never buries the way out under room furniture.
   // surf-gated-exits-v1: a warp reachable only across water is not listed while Surf cannot be used.
-  const targets=this.reachable(s);
+  // positive-supervisor-v1: no warp at all, whatever the readout names it.
+  const targets=this.reachable(s).filter(t=>warps||t.kind!=="warp");
   if(this.exits!==null){
    // briefing-exits-v1: people by object id, not tile; a trigger the readout shows cannot run now is labelled and last.
    const tried=(t:Target)=>t.kind==="object"&&t.local_id!==null?done.has(objectKey(t.local_id)):done.has(at(t.x,t.y));
@@ -501,7 +502,7 @@ export class SupervisorBriefing {
   // The newest attempt, when it repeated with the same result: the one thing not to do again, said as what to do.
   const newest=(ui===undefined?this.tried:this.uiTried).at(-1);
   const repeated=newest!==undefined&&newest.count>1?newest:undefined;
-  const untried=ui!==undefined||this.latest===null||!this.features["world-targets-v1"]?[]:this.open(this.latest).filter(t=>!t.startsWith("Warp")&&!t.startsWith("warp")).slice(0,3);
+  const untried=ui!==undefined||this.latest===null||!this.features["world-targets-v1"]?[]:this.open(this.latest,false).slice(0,3);
   const again=repeated===undefined?[]:[`- Choose a call other than ${repeated.label}: ${repeated.said===undefined?`it gave the same result (${repeated.outcome})`:`it answered "${repeated.said}"`} ${String(repeated.count)} times in a row.`];
   const lines=[
    `SUPERVISOR: Make one tool call based on the game state and what you observed.${fact===""?"":` ${fact}`}`,

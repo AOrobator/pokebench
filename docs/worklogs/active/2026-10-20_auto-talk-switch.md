@@ -22,3 +22,4 @@ auto-talk-v1 (guard), retroactive and default ON (feature-switch rule for landed
 ## Multi-Model Review Log
 ## Boy Scout Log
 ## Archive Milestone (user-gated)
+- Pending experiment pinned to 54c7e9d9bd9fc58e1d9ee6950dac0e6bdf7026d7.

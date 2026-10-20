@@ -149,8 +149,20 @@ const LedgerContext = event("ledger_context", {text:Type.String(),evidence:Type.
 // disproved-beliefs-v1: the ledger delivered before a model call, whole, with its entry count and cited events.
 const BeliefLedger = event("belief_ledger", {text:Type.String({minLength:1}),entries:Type.Integer({minimum:1}),evidence:Type.Array(NonNegativeInt,{uniqueItems:true})});
 
+// semantic-navigation-v2: the game target a navigate_to_target or explore_map call selected, and whether it acted on it.
+export const SemanticReceiptSchema = Type.Object({
+  target: Type.Union([
+    Type.Object({ kind: Type.Literal("object"), local_id: NonNegativeInt }, closed),
+    Type.Object({ kind: Type.Literal("interaction"), interaction_kind: Type.String({ minLength: 1 }), x: Type.Integer(), y: Type.Integer() }, closed),
+    Type.Object({ kind: Type.Literal("warp"), x: Type.Integer(), y: Type.Integer() }, closed),
+    Type.Object({ kind: Type.Literal("connection"), direction: Type.String({ minLength: 1 }) }, closed),
+  ]),
+  activation_attempted: Type.Boolean(),
+}, closed);
+export type SemanticReceipt = Static<typeof SemanticReceiptSchema>;
 const ToolResult = event("tool_result", {
   state_seq: Type.Optional(NonNegativeInt),
+  semantic_navigation: Type.Optional(SemanticReceiptSchema),
   id: Type.String(),
   name: Type.String(),
   is_error: Type.Boolean(),
@@ -323,7 +335,7 @@ const DialoguePageSchema = Type.Object({
 }, closed);
 const DialogueAutoAdvance = event("dialogue_auto_advance", {
   tool_call_id: Type.String(),
-  tool: Type.Enum(["press", "navigate_to", "battle_action", "observe"] as const),
+  tool: Type.Enum(["press", "navigate_to", "battle_action", "observe", "navigate_to_target", "explore_map"] as const),
   requested: Type.Array(ButtonSchema),
   sent: Type.Array(ButtonSchema),
   dropped: Type.Array(ButtonSchema),

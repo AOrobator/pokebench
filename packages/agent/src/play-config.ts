@@ -4,11 +4,11 @@
 import type { Limits } from "./harness.js";
 import type {AgentMessage} from "@mariozechner/pi-agent-core";
 import { objectivePrompt, type ObjectiveSwitches } from "./objective-tools.js";
-import type { FeatureSet } from "./features.js";
+import { semanticNavigation, type FeatureSet } from "./features.js";
 import type { ToolSwitches } from "./game-tools.js";
-import { MAX_FULL_ROUTE_COMMANDS, NAVIGATE_RULES } from "./navigation.js";
+import { MAX_FULL_ROUTE_COMMANDS, NAVIGATE_RULES, SEMANTIC_NAVIGATE_RULES } from "./navigation.js";
 import { mapRulesSection } from "./map-rules.js";
-import { MOVING_AROUND_FULL, MOVING_AROUND_LOCAL, MOVING_AROUND_VISITED, navigateFirstToolList } from "./navigate-first.js";
+import { MOVING_AROUND_FULL, MOVING_AROUND_LOCAL, MOVING_AROUND_VISITED, SEMANTIC_MOVING_AROUND_FULL, SEMANTIC_MOVING_AROUND_LOCAL, SEMANTIC_MOVING_AROUND_VISITED, navigateFirstToolList } from "./navigate-first.js";
 import { trustSection } from "./harness-trust.js";
 
 export const PLAY_LIMITS: Limits = { maxTurns: 300, maxWallMs: 30 * 60_000, failureLimit: 3 };
@@ -110,6 +110,13 @@ export const EXPLORER_GUIDANCE_SECTION = "Talk to people: in this game, people t
 
 // explorer-guidance-v2: generic; points toward no particular person (operator decision 2026-10-16).
 export const EXPLORER_GUIDANCE_V2_SECTION = "Talk to people: talking to people gives you information about the world and can move the story forward. When you are unsure where to go, or after the story has moved on, talking to the people around you is a good way to learn more. What people tell you is evidence; use it to decide where to go.";
+// semantic-navigation-v2: talking goes through navigate_to_target.
+export const SEMANTIC_TALK_IS_CHEAP = "Talking is cheap: when the readout gives the person a navigate_to_target target, call navigate_to_target with it; it walks there, faces them and presses A, and the harness reads the conversation until your next decision.";
+export const SEMANTIC_TARGET_SECTION = `- navigate_to_target: supply the current map_id from the Navigation map_id readout and a target copied from the readout. A listed person, object, warp or map exit that the tool can tell apart and reach carries "navigate_to_target target" followed by its target; pass that target exactly as written. Use navigate_to for anything listed without one. The harness chooses the approach, walks there, faces the target and talks to it, uses it or goes through it, once. It stops and returns the new state if a battle, a menu, a script, forced movement, unavailable field control or a map change interrupts it; when it refuses or stops early, its result says why.`;
+export const SEMANTIC_USAGE = "For a person, object, door, stairs, other warp or map exit that the readout lists with a navigate_to_target target, use navigate_to_target with that target instead.";
+export const SEMANTIC_UNTAKEN_EXITS_SECTION = "Exits you have not taken: before you leave a building or area, consider the exits there you have not taken yet (the readout lists them; each one navigate_to_target can reach carries its target), especially any exit someone mentioned.";
+export const PRESS_OR_NAVIGATE = "once a press or navigate_to opens";
+export const PRESS_OR_EITHER_NAVIGATE = "once a press, navigate_to or navigate_to_target opens";
 export const EXPLORER_TALK_IS_CHEAP = "Talking is cheap: face the person and press A; the harness reads the conversation until your next decision.";
 export const BATTLE_TEXT_AUTO_ADVANCE_SECTION = `Battle text auto-advance: in a battle the harness also advances the battle messages itself, pressing B on each message that waits, until the action or move menu is ready, a YES/NO question opens, another screen opens (bag, party, summary, naming) or the battle ends. The result lists every battle message shown, whole and in order, with its battle turn, including the ones that pass on their own. Buttons left in your batch once the battle text starts are not sent, so you never need A or B to read battle text; choose from the menu that is open.`;
 
@@ -175,7 +182,10 @@ export function playSystemPrompt(features: FeatureSet, target: string | null, sc
   if (show("overworld") && features["bounded-navigation-v1"] && features["full-map-navigation-v1"]) prompt += `\n\n- navigate_to: supply x, y and the current map_id from the Navigation map_id readout. Walks to a coordinate on the current map using A* over the whole current map shown in the readout, one ordinary button at a time, re-planning before every press. The route never crosses a warp unless it is the destination. Choose the destination from observed evidence. This tool does not pick story objectives, press A, surf or solve ledges. It stops on blocked or unexpected movement, locks, map changes, or when the route stops getting shorter. Inspect its returned state; reaching a directional-exit tile may still require its indicated button. ${NAVIGATE_RULES}`;
   else if (show("overworld") && features["bounded-navigation-v1"] && features["visited-terrain-navigation-v1"]) prompt += `\n\n- navigate_to: supply x, y and the current map_id from the Navigation map_id readout. Walks to a coordinate on the current map using A* over stitched terrain already shown to you this run, one ordinary button at a time, re-planning before every press, with up to ${String(MAX_FULL_ROUTE_COMMANDS)} ordinary button attempts. Unknown cells are not routes, and internal navigation steps do not add newly seen cells until the result is returned to you. The route never crosses a warp unless it is the destination. Choose the destination from observed evidence. This tool does not pick story objectives, press A, surf or solve ledges. It stops on blocked or unexpected movement, locks, map changes, or when the route stops getting shorter. Inspect its returned state; reaching a directional-exit tile may still require its indicated button. ${NAVIGATE_RULES}`;
   else if (show("overworld") && features["bounded-navigation-v1"]) prompt += `\n\n- navigate_to: supply x, y and the current map_id from the Navigation map_id readout. Walks toward a coordinate on the current map using bounded A* on known local tiles. Farther targets within verified map bounds use a reachable local frontier, with up to eight ordinary button attempts. Choose the destination from observed evidence. This tool does not pick story objectives, press A, surf or solve ledges. It stops on blocked movement, locks or map changes. Inspect its returned state; reaching a directional-exit tile may still require its indicated button. ${NAVIGATE_RULES}`;
-  if(show("overworld")&&features["semantic-navigation-v1"])prompt += "\n\n- navigate_to_target: choose one person, object, interaction, warp, or walking map connection by the identity and map_id in the current readout. The harness chooses the approach, follows the available route, faces and activates the target once. If battle, dialogue, a menu, a script, forced movement, unavailable field control, or a map transition interrupts it, the call stops and hands you the resulting state immediately.";
+  const semantic2 = features["semantic-navigation-v2"];
+  if (semantic2) prompt = prompt.replace(NAVIGATE_RULES, SEMANTIC_NAVIGATE_RULES);
+  if(show("overworld")&&semantic2)prompt += `\n\n${SEMANTIC_TARGET_SECTION}`;
+  else if(show("overworld")&&features["semantic-navigation-v1"])prompt += "\n\n- navigate_to_target: choose one person, object, interaction, warp, or walking map connection by the identity and map_id in the current readout. The harness chooses the approach, follows the available route, faces and activates the target once. If battle, dialogue, a menu, a script, forced movement, unavailable field control, or a map transition interrupts it, the call stops and hands you the resulting state immediately.";
   if(show("overworld")&&features["deterministic-exploration-v1"])prompt += "\n\n- explore_map: when you have no evidence-backed destination, ask the harness to choose and try one reachable, not-yet-attempted listed interaction or walking connection. Each call tries only one target and returns at the first interruption; inspect the result before calling it again.";
   if (features["dialogue-safe-batches-v1"]) prompt += "\n\nInterface input safety: interaction/menu inputs or locked/unknown-interface batches submit only the first input, then return a fresh observation. Repeated A can dismiss a message and reopen the object you face. Identical text is not evidence of a mandatory cutscene or new story progress. Inspect one input before choosing the next approach.";
   if (target !== null) prompt = prompt.replace(GOAL_SENTENCE, `Your goal is: ${playGoal(target, features)}`);
@@ -188,11 +198,11 @@ export function playSystemPrompt(features: FeatureSet, target: string | null, sc
   if (show("overworld") && features["next-milestone-hint-v1"]) prompt += "\n\n- get_next_milestone: tells you the next main story milestone to pursue and how many are done. Call it whenever you are unsure what to do next. When you reach a milestone, a MILESTONE REACHED message also tells you the next one.";
   if (show("overworld") && features["instruction-ledger-v1"]) prompt += "\n\nAn INSTRUCTION LEDGER is supplied before each decision: the latest dialogue you were shown, the rooms you visited with what you heard there, and contradictions you recorded. It quotes the game; it is not a walkthrough. When the game turns out different from what you expected, record it with note_contradiction (expected, observed, 1–4 event numbers) so you do not repeat the same wrong assumption.";
   if (features["loop-guard-supervisor-v1"]) prompt += "\n\nLoop supervisor: if you repeat a pattern without new game information, a SUPERVISOR note summarizes where you are, the last dialogue you were shown, what you tried and what is listed here that you have not tried. The run continues; use the note to change strategy.";
-  if (show("overworld", "menu") && features["dialogue-auto-advance-v1"]) prompt += `\n\n${DIALOGUE_AUTO_ADVANCE_SECTION}`;
+  if (show("overworld", "menu") && features["dialogue-auto-advance-v1"]) prompt += `\n\n${semantic2 ? DIALOGUE_AUTO_ADVANCE_SECTION.replace(PRESS_OR_NAVIGATE, PRESS_OR_EITHER_NAVIGATE) : DIALOGUE_AUTO_ADVANCE_SECTION}`;
   if (show("battle") && features["battle-text-auto-advance-v1"]) prompt += `\n\n${BATTLE_TEXT_AUTO_ADVANCE_SECTION}`;
   // navigate-first-prompt-v1: its Moving around section replaces the one-line usage rule.
   const navigateFirst = show("overworld") && features["navigate-first-prompt-v1"] && features["bounded-navigation-v1"];
-  if (features["game-evidence-priority-v1"]) prompt += `\n\n${GAME_EVIDENCE_SECTION}${show("overworld") && features["bounded-navigation-v1"] && !navigateFirst ? `\n\n${NAVIGATE_TO_USAGE}` : ""}`;
+  if (features["game-evidence-priority-v1"]) prompt += `\n\n${GAME_EVIDENCE_SECTION}${show("overworld") && features["bounded-navigation-v1"] && !navigateFirst ? `\n\n${NAVIGATE_TO_USAGE}${semantic2 ? ` ${SEMANTIC_USAGE}` : ""}` : ""}`;
   if (show("naming") && features["no-nickname-guidance-v1"]) prompt += `\n\n${NO_NICKNAME_SECTION}`;
   // readout-rules-in-prompt-v1: the fixed map rules the server no longer prints in each readout.
   const mapRules = show("overworld") && features["readout-rules-in-prompt-v1"] ? mapRulesSection(features) : "";
@@ -201,10 +211,11 @@ export function playSystemPrompt(features: FeatureSet, target: string | null, sc
   if (show("overworld", "battle") && features["trainer-heal-guidance-v1"]) prompt += `\n\n${TRAINER_HEAL_SECTION}`;
   // explorer-guidance-v2 supersedes v1 in the same slot: with both on, only v2's section is shown.
   const explorer = features["explorer-guidance-v2"] ? EXPLORER_GUIDANCE_V2_SECTION : features["explorer-guidance-v1"] ? EXPLORER_GUIDANCE_SECTION : null;
-  if (show("overworld") && explorer !== null) prompt += `\n\n${explorer}${features["dialogue-auto-advance-v1"] ? ` ${EXPLORER_TALK_IS_CHEAP}` : ""}`;
-  if (show("overworld") && features["untaken-exits-v1"]) prompt += `\n\n${UNTAKEN_EXITS_SECTION}`;
+  if (show("overworld") && explorer !== null) prompt += `\n\n${explorer}${features["dialogue-auto-advance-v1"] ? ` ${semantic2 ? SEMANTIC_TALK_IS_CHEAP : EXPLORER_TALK_IS_CHEAP}` : ""}`;
+  if (show("overworld") && features["untaken-exits-v1"]) prompt += `\n\n${semantic2 ? SEMANTIC_UNTAKEN_EXITS_SECTION : UNTAKEN_EXITS_SECTION}`;
   if (show("overworld") && features["people-id-cards-v1"]) prompt += `\n\n${PEOPLE_ID_CARDS_SECTION}`;
-  if (navigateFirst) prompt = `${navigateFirstToolList(prompt)}\n\n${features["full-map-navigation-v1"] ? MOVING_AROUND_FULL : features["visited-terrain-navigation-v1"] ? MOVING_AROUND_VISITED : MOVING_AROUND_LOCAL}`;
+  if (navigateFirst && semantic2) prompt = `${navigateFirstToolList(prompt, true)}\n\n${features["full-map-navigation-v1"] ? SEMANTIC_MOVING_AROUND_FULL : features["visited-terrain-navigation-v1"] ? SEMANTIC_MOVING_AROUND_VISITED : SEMANTIC_MOVING_AROUND_LOCAL}`;
+  else if (navigateFirst) prompt = `${navigateFirstToolList(prompt)}\n\n${features["full-map-navigation-v1"] ? MOVING_AROUND_FULL : features["visited-terrain-navigation-v1"] ? MOVING_AROUND_VISITED : MOVING_AROUND_LOCAL}`;
   if (features["objective-tracking-v1"]) prompt += `\n\n${objectivePrompt(objectiveSwitches(features))}`;
   if (show("overworld") && features["cited-destination-v1"] && features["bounded-navigation-v1"]) prompt += `\n\n${CITED_DESTINATION_SECTION}`;
   if (show("overworld", "menu") && features["dialog-button-b-v1"]) prompt += `\n\n${DIALOGUE_BUTTON_B_SECTION}`;
@@ -231,7 +242,7 @@ export function toolSwitches(features: FeatureSet): ToolSwitches {
 }
 
 export function playTools(features: FeatureSet): string[] {
-  return ["observe", "press", ...(features["evolution-decision-v1"] ? ["choose_evolution"] : []), ...(features["objective-tracking-v1"] ? ["get_objectives", "set_objective", "update_objective"] : []), ...(features["bounded-navigation-v1"] ? ["navigate_to"] : []), ...(features["semantic-navigation-v1"] ? ["navigate_to_target"] : []), ...(features["deterministic-exploration-v1"] ? ["explore_map"] : []), ...(features["navigation-evidence-memory-v1"] ? ["remember_destination"] : []), ...(features["dialogue-log-v1"] ? ["recall_dialogue"] : []), ...(features["instruction-ledger-v1"] ? ["note_contradiction"] : []), ...(features["next-milestone-hint-v1"] ? ["get_next_milestone"] : []), ...(features["dialogue-auto-advance-v1"] ? ["get_dialogue"] : []), ...(features["battle-move-tool-v1"] ? ["battle_action"] : [])];
+  return ["observe", "press", ...(features["evolution-decision-v1"] ? ["choose_evolution"] : []), ...(features["objective-tracking-v1"] ? ["get_objectives", "set_objective", "update_objective"] : []), ...(features["bounded-navigation-v1"] ? ["navigate_to"] : []), ...(semanticNavigation(features) ? ["navigate_to_target"] : []), ...(features["deterministic-exploration-v1"] ? ["explore_map"] : []), ...(features["navigation-evidence-memory-v1"] ? ["remember_destination"] : []), ...(features["dialogue-log-v1"] ? ["recall_dialogue"] : []), ...(features["instruction-ledger-v1"] ? ["note_contradiction"] : []), ...(features["next-milestone-hint-v1"] ? ["get_next_milestone"] : []), ...(features["dialogue-auto-advance-v1"] ? ["get_dialogue"] : []), ...(features["battle-move-tool-v1"] ? ["battle_action"] : [])];
 }
 
 // V2 reuses the existing paragraphs; the standing core retains cross-scene policy.

@@ -174,7 +174,7 @@ describe("people-id-cards-v1 OFF over the whole recorded run",()=>{
 
 describe("people-id-cards-v1 prompt line",()=>{
  it("ON appends exactly the one line after untaken exits; OFF leaves the prompt byte-identical; it names no person, place or step",()=>{
-  const off={...ALL_ON,"state-only-decisions-v1":false,"objective-tracking-v1":false,"navigate-first-prompt-v1":false,"people-id-cards-v1":false,"harness-trust-v1":false,"cited-destination-v1":false,"harness-trust-v2":false,"dialog-button-b-v1":false,"just-in-time-prompt-v1":false,"just-in-time-prompt-v2":false,"jit-guide-reuse-v1":false};
+  const off={...ALL_ON,"semantic-navigation-v2":false,"state-only-decisions-v1":false,"objective-tracking-v1":false,"navigate-first-prompt-v1":false,"people-id-cards-v1":false,"harness-trust-v1":false,"cited-destination-v1":false,"harness-trust-v2":false,"dialog-button-b-v1":false,"just-in-time-prompt-v1":false,"just-in-time-prompt-v2":false,"jit-guide-reuse-v1":false};
   const on={...off,"people-id-cards-v1":true};
   expect(playSystemPrompt(on,null)).toBe(`${playSystemPrompt(off,null)}\n\n${PEOPLE_ID_CARDS_SECTION}`);
   expect(playSystemPrompt(off,null).endsWith(UNTAKEN_EXITS_SECTION)).toBe(true);

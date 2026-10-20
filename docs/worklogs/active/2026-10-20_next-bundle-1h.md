@@ -19,7 +19,7 @@
 - [x] Tests: supervisor-recovery, fixed-runner, battle-effective-damage and open-goal-prompt guards follow the decision; new fixed-runner test pins the control gains, story-goal v1+v2 and the one-hour cap.
 - [x] `fixed-run check` on the branch build: both definitions clean, control base matches.
 - [x] Exit reachability joins `onInBoth` in both files; `bundle-cook-1h` becomes two pairs per arm (`perArm` 2, `singlePair` dropped), plan regenerated (bundle A+B, then control A+B).
-- [ ] Rebase onto main after "Semantic nav into the bundle" lands; add `semantic-navigation-v1` and `deterministic-exploration-v1` to `bundle-cook-1h` switches.
-- [ ] Gates: lint, agent, viewer, pytest
+- [x] Rebased onto main 48309d51 after semantic nav landed; `semantic-navigation-v1` and `deterministic-exploration-v1` are bundle switches in `bundle-cook-1h` (already in `bundle-v-control`). The cook file now matches `bundle-v-control` except `original-speed-pacing-v1`, as in every cook pair.
+- [x] Gates: lint clean; agent 2787, viewer 1359, pytest 2896 pass; `fixed-run check` clean for both (cook-1h sha256 recorded at review)
 - [ ] Review: Claude and Grok lanes LGTM on the frozen packet
 - [ ] Land ff-only, `just viewer-main`

@@ -49,13 +49,13 @@ it("two recovery treatments stay ON in bundle only; the dropped two are OFF in b
  }
 });
 
-it("the next bundle: control gains the battle tools and exit reachability, the bundle adds stage-bound story goals, and the cook is two one-hour pairs",()=>{
+it("the next bundle: control gains the battle tools and exit reachability, the bundle adds stage-bound story goals and semantic exploration, and the cook is two one-hour pairs",()=>{
  for(const file of ["bundle-v-control","bundle-cook-1h"]){
   const {definition:def}=parseFixedDefinition(readFileSync(new URL(`../../../experiments/fixed/${file}.json`,import.meta.url),"utf8"));
   for(const id of ["battle-move-tool-v1","battle-menu-loop-v1","tutorial-party-owner-v1","context-token-budget-v1","exit-reachability-v1"])for(const arm of ["control","bundle"] as const){
    expect(def.onInBoth).toContain(id);expect(def.switches).not.toContain(id);expect(armFeatureBits(def,arm)[id]).toBe(true);
   }
-  for(const id of ["stale-story-goal-v1","stale-story-goal-v2","harness-trust-v1","evolution-decision-v1"]){
+  for(const id of ["stale-story-goal-v1","stale-story-goal-v2","harness-trust-v1","evolution-decision-v1","semantic-navigation-v1","deterministic-exploration-v1"]){
    expect(armFeatureBits(def,"control")[id]).toBe(false);expect(armFeatureBits(def,"bundle")[id]).toBe(true);
   }
  }

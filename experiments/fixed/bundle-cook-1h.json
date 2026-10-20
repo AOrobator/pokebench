@@ -159,7 +159,9 @@
    "evolution-decision-v1": false,
    "observed-instructions-v1": false,
    "context-token-budget-v1": true,
-   "stale-story-goal-v2": false
+   "stale-story-goal-v2": false,
+   "semantic-navigation-v1": false,
+   "deterministic-exploration-v1": false
   }
  },
  "switches": [
@@ -194,6 +196,8 @@
   "deterministic-warp-navigation-v1",
   "reachable-story-guidance-v1",
   "text-only-supervisor-v2",
+  "semantic-navigation-v1",
+  "deterministic-exploration-v1",
   "safe-navigation-strides-v1",
   "evolution-decision-v1",
   "observed-instructions-v1"

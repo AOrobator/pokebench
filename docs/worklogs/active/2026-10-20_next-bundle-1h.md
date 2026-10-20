@@ -8,6 +8,8 @@
 - Next bundle = the current bundle (including the 10/19 batch) minus `supervisor-briefing-v2` and `ineffective-navigation-v2`, with `stale-story-goal-v1` replaced by v1 + v2. `harness-trust-v1` and never-reached switches such as `evolution-decision-v1` stay on.
 - Cook runs are capped at one hour from now on.
 
+2026-10-20, 11:01 AM ET, the operator in the same thread: `exit-reachability-v1` goes into control; the whole-map cook is two pairs and includes semantic navigation and deterministic exploration.
+
 ## Milestones
 
 ### M1 Definitions
@@ -16,6 +18,7 @@
 - [x] `bundle-cook-1h.json`: `bundle-cook-6h-v2` with the same switch changes, `maxWallMs` 3,600,000, new seed `b90edf21281900ca`, plan regenerated with `fixed-run plan` (control B/GPU0, bundle A/GPU1).
 - [x] Tests: supervisor-recovery, fixed-runner, battle-effective-damage and open-goal-prompt guards follow the decision; new fixed-runner test pins the control gains, story-goal v1+v2 and the one-hour cap.
 - [x] `fixed-run check` on the branch build: both definitions clean, control base matches.
+- [x] Exit reachability joins `onInBoth` in both files; `bundle-cook-1h` becomes two pairs per arm (`perArm` 2, `singlePair` dropped), plan regenerated (bundle A+B, then control A+B).
 - [ ] Rebase onto main after "Semantic nav into the bundle" lands; add `semantic-navigation-v1` and `deterministic-exploration-v1` to `bundle-cook-1h` switches.
 - [ ] Gates: lint, agent, viewer, pytest
 - [ ] Review: Claude and Grok lanes LGTM on the frozen packet

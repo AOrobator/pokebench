@@ -1,7 +1,7 @@
 {
  "version": 1,
  "id": "bundle-cook-1h",
- "title": "Bundle vs control, let it cook (1 hour pair)",
+ "title": "Bundle vs control, let it cook (two 1 hour pairs)",
  "worklog": "docs/worklogs/active/2026-10-20_next-bundle-1h.md",
  "primaryMilestone": "RIVAL_MET",
  "romSha1": "f3ae088181bf583e55daf962a92bb46f4f1d07b7",
@@ -122,7 +122,7 @@
    "open-goal-prompt-v1": true,
    "low-hp-trainer-warning-v2": false,
    "story-destinations-v1": false,
-   "exit-reachability-v1": false,
+   "exit-reachability-v1": true,
    "heal-before-trainers-v1": false,
    "harness-trust-v1": false,
    "cited-destination-v1": false,
@@ -168,7 +168,6 @@
   "low-hp-trainer-warning-v2",
   "counter-talk-v1",
   "grass-cost-navigation-v1",
-  "exit-reachability-v1",
   "heal-before-trainers-v1",
   "harness-trust-v1",
   "cited-destination-v1",
@@ -223,15 +222,15 @@
   "tutorial-party-owner-v1",
   "context-token-budget-v1",
   "battle-move-tool-v1",
-  "battle-menu-loop-v1"
+  "battle-menu-loop-v1",
+  "exit-reachability-v1"
  ],
  "phases": [
   {
    "id": "cook",
-   "perArm": 1,
+   "perArm": 2,
    "maxWallMs": 3600000,
    "primary": false,
-   "singlePair": true,
    "start": {
     "kind": "save_state",
     "path": "runs/launch-receipts/fast-text/MAIN_MENU.state",
@@ -266,15 +265,29 @@
    "slot": 1,
    "phase": "cook",
    "block": 1,
-   "lane": "B",
-   "arm": "control"
+   "lane": "A",
+   "arm": "bundle"
   },
   {
    "slot": 2,
    "phase": "cook",
    "block": 1,
-   "lane": "A",
+   "lane": "B",
    "arm": "bundle"
+  },
+  {
+   "slot": 3,
+   "phase": "cook",
+   "block": 1,
+   "lane": "A",
+   "arm": "control"
+  },
+  {
+   "slot": 4,
+   "phase": "cook",
+   "block": 1,
+   "lane": "B",
+   "arm": "control"
   }
  ]
 }

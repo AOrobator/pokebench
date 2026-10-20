@@ -123,7 +123,7 @@
    "open-goal-prompt-v1": true,
    "low-hp-trainer-warning-v2": false,
    "story-destinations-v1": false,
-   "exit-reachability-v1": false,
+   "exit-reachability-v1": true,
    "heal-before-trainers-v1": false,
    "harness-trust-v1": false,
    "cited-destination-v1": false,
@@ -171,7 +171,6 @@
   "low-hp-trainer-warning-v2",
   "counter-talk-v1",
   "grass-cost-navigation-v1",
-  "exit-reachability-v1",
   "heal-before-trainers-v1",
   "harness-trust-v1",
   "cited-destination-v1",
@@ -229,7 +228,8 @@
   "battle-move-tool-v1",
   "battle-menu-loop-v1",
   "tutorial-party-owner-v1",
-  "context-token-budget-v1"
+  "context-token-budget-v1",
+  "exit-reachability-v1"
  ],
  "phases": [
   {

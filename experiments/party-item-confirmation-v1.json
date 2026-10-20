@@ -185,6 +185,8 @@
       "trainer-sight-check-v1": false,
       "caught-nickname-prompt-v1": false,
       "fail-open-input-v1": false,
+      "whiteout-healed-v1": false,
+      "gym-readiness-readout-v1": false,
       "party-item-confirmation-v1": false
     }
   },
@@ -201,5 +203,5 @@
     "window": 4,
     "minReached": 3
   },
-  "notes": "Pending, unqueued correctness repair. No launch authorized. STARTER_CHOSEN is a conservative earliest milestone for a party item use; readiness to reach it does not establish repeated exposure to this message. source.commit pins the repair implementation; repin to the final merge SHA after eligible landing."
+  "notes": "Pending, unqueued correctness repair. No launch authorized. STARTER_CHOSEN is a conservative earliest milestone for a party item use; readiness to reach it does not establish repeated exposure to this message. source.commit pins the repair implementation; repin to the final merge SHA after eligible landing. Operator approval 2026-10-20 enables the fix in future bundle-v-control and bundle-cook-1h bundle arms only; this standalone entry remains pending and unqueued."
 }

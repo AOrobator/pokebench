@@ -1355,6 +1355,6 @@ it("keeps party confirmation readiness in the existing replay interface and link
  const doc=new Window().document;doc.body.innerHTML=trainerCard(current,END)+harnessConfig(current,FEATURES);
  expect(doc.body.textContent).toContain("party_item_message");
  expect(doc.body.textContent).toContain("A/B: CONTINUE");
- expect(doc.body.textContent).toContain("ready");
+ expect(Array.from(doc.querySelectorAll("dt")).find(dt=>dt.textContent==="INPUT")?.nextElementSibling.textContent).toBe("ready");
  expect(doc.querySelector('[data-feature="party-item-confirmation-v1"] a')?.getAttribute("href")).toBe("/explainers/party-item-confirmation-v1.html");
 });

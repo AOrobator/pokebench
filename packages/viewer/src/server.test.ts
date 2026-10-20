@@ -565,6 +565,10 @@ it("serves validated comparisons for the selected start, excluding self", async 
   expect(result.frontier.milestones).toContainEqual({ name: "PLAYER_NAME_CONFIRMED", offsetMs: 4000 });
   expect(result.baseline).toBeNull(); // equal start timestamp, no previous run
   expect(JSON.parse((await get(viewer, "/api/runs/reference/comparisons")).body.toString())).toMatchObject({ frontier: null });
+  // A cold partial workbench still loading its runs must not hide the frontier from a run picked meanwhile.
+  const partial = await startViewer({ runsRoot, staticDir: runsRoot, appDir: runsRoot, port: 0, workbench: { partial: true } });
+  open.push(partial);
+  expect(JSON.parse((await get(partial, "/api/runs/selected/comparisons")).body.toString())).toMatchObject({ frontier: { run: "reference" } });
 });
 
 it("serves read-only workbench data from actual recorded runs, without prompts or arbitrary paths", async () => {

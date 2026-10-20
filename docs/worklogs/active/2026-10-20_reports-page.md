@@ -1,0 +1,35 @@
+# Reports page
+
+## Problem Statement
+
+The operator wants the run-analysis reports in the viewer: a navigable index, newest first, linked from the stats page (Runs & Comparisons), that opens each full report inside the viewer so it works on a phone over Tailscale. The operator picked round 2, option 2 ("Pokédex list + trainer card"), with the trainer centered on the Poké Ball and no party boxes or party band showing (mockup `runs/mockups/viewer-reports/round2.html#o2`). The operator said "build it" at 12:14 PM EDT 2026-10-20.
+
+## Architecture
+
+- **`reports.ts` (server).**
+  - `listReports(runsRoot)` returns every `reports/run-analysis/<YYYY-MM-DD_slug>/index.html`, newest first.
+  - Metadata comes from an optional validated `report.json` in the folder: title, kind, verdict, frontier milestone id, facts, trainer. Without it, the title comes from the page's `<title>` and the date from the folder name.
+  - `reportFile` resolves a file inside one report folder: segment allowlist, extension allowlist, and a realpath kept inside the folder.
+- **Routes.** `/reports` serves the page, `/api/reports` the list, and `/reports/<slug>/<path>` the report's own files.
+- **`reports-view.ts` (pure).**
+  - The numbered Pokédex list.
+  - The detail card: the trainer card's top cut off just above the party band, a type badge per kind, a STORY bar when the report names a frontier milestone, and a plain sheet with the verdict and facts plus OPEN REPORT.
+  - The opened view: a slim bar (all reports, newer, older) over the report in a frame.
+- **`reports-main.ts` (boot).** The page works without the art: the card falls back to a plain header.
+- **Links.** The Runs & Comparisons header links to REPORTS.
+
+No harness change, so no feature switch.
+
+## Milestones
+
+**M1: report list and serving**
+- [ ] RED/GREEN: listReports (order, metadata, fallback, invalid report.json), reportFile (traversal, symlink escape, extensions), routes
+
+**M2: the page**
+- [ ] RED/GREEN: list, detail card, type badges, tier and STORY bar, selection, opened view with newer and older, phone order, stats-page link
+- [ ] Gates; browser proof at 1280/1440/375 on the real reports (read-only)
+
+**M3: land**
+- [ ] Reviews (round cap 2), ff-only land, restart, live check
+- [ ] report.json for the existing reports (data under runs/); propose the run-analysis skill edit
+- M1 RED: reports.test.ts, server reports route test

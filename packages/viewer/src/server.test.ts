@@ -2,7 +2,7 @@ import { appendFileSync, cpSync, mkdirSync, mkdtempSync, readFileSync, writeFile
 import { createServer, request, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
 import type { RunEvent } from "@pokebench/agent/events";
@@ -987,4 +987,17 @@ it("serves the tracked original-speed explainer only through the protected allow
  expect(reply.status).toBe(200);expect(reply.type).toContain("text/html");expect(reply.body.equals(tracked)).toBe(true);
  expect((await get(viewer,`/explainers/${id}.html`,{host:"elsewhere.invalid"})).status).toBe(403);
  expect((await get(viewer,`/explainers/${id}.html`,{method:"PUT"})).status).toBe(405);
+});
+
+it("serves the reports page, the report list and each report's own files, and nothing else",async()=>{
+ const {runsRoot,viewer}=await fixture();const staticDir=join(dirname(runsRoot),"static");writeFileSync(join(staticDir,"reports.html"),"<title>Reports</title>");
+ const d=join(runsRoot,"reports","run-analysis","2026-10-17_top50");mkdirSync(join(d,"shots"),{recursive:true});writeFileSync(join(d,"index.html"),"<title>Top 50</title>");writeFileSync(join(d,"shots","a.png"),PNG);writeFileSync(join(d,"run.py"),"x");
+ const page=await get(viewer,"/reports");expect(page.status).toBe(200);expect(page.body.toString()).toContain("<title>Reports</title>");
+ const list=await get(viewer,"/api/reports");expect(list.status).toBe(200);expect(JSON.parse(list.body.toString())).toEqual([{slug:"2026-10-17_top50",date:"2026-10-17",title:"Top 50",kind:"REPORT",verdict:null,frontier:null,facts:[],trainer:null}]);
+ const html=await get(viewer,"/reports/2026-10-17_top50/index.html");expect(html.status).toBe(200);expect(html.type).toContain("text/html");expect(html.body.toString()).toBe("<title>Top 50</title>");
+ expect((await get(viewer,"/reports/2026-10-17_top50/")).status).toBe(200);
+ expect((await get(viewer,"/reports/2026-10-17_top50/shots/a.png")).type).toBe("image/png");
+ for(const path of ["/reports/2026-10-17_top50/run.py","/reports/2026-10-17_top50/../../events.jsonl","/reports/2026-10-17_top50/%2e%2e/x.html","/reports/x/index.html","/reports/2026-10-17_top50/missing.html"])expect((await get(viewer,path)).status,path).toBe(404);
+ expect((await get(viewer,"/api/reports",{host:"elsewhere.invalid"})).status).toBe(403);
+ expect(BROWSER_MODULES).toEqual(expect.arrayContaining(["reports-view","reports-main"]));
 });

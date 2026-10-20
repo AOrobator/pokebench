@@ -55,9 +55,11 @@ export function contextTools(features:FeatureSet,recorder:WiringRecorder,base:Tr
  const hinted=hint?.transformContext??ledger?.transformContext??memory?.transformContext??observedBase;
  const chain=disprovedBeliefs(features,recorder,hinted)?.transformContext??hinted;
  const inner:Transform=features["fresh-retry-v1"]?messages=>chain(withoutTextOnlyReplies(messages)):chain;
- // fixed-point-breaker-v1: duplicate turns collapse before every other step; its note is the request's last message.
+ // fixed-point-breaker-v1 or duplicate-turn-collapse-v1: duplicate turns collapse before every other step;
+ // fixed-point-breaker-v1 alone ends the request with its note.
  const breaker=fixedPointBreaker(features,recorder);
- return {tools,transformContext:breaker===null?inner:async messages=>breaker.note(await inner(breaker.collapse(messages))),window:contextWindow(features),breaker};
+ const note=features["fixed-point-breaker-v1"];
+ return {tools,transformContext:breaker===null?inner:async messages=>{const out=await inner(breaker.collapse(messages));return note?breaker.note(out):out;},window:contextWindow(features),breaker};
 }
 
 // context-token-budget-v1: fit each request to the served context; each trim is recorded as a compaction.

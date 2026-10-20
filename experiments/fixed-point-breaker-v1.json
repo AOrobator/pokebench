@@ -3,7 +3,7 @@
   "id": "fixed-point-breaker-v1",
   "title": "Fixed-point breaker",
   "changedFeature": "fixed-point-breaker-v1",
-  "hypothesis": "Collapsing identical repeated turns, ending the request with a short positive note that counts the repeats, and once per loop walking to and talking to the nearest untalked story character or person breaks the long fixed-point loops of the 6h-v2 bundle (400 turns of the same navigate_to on Route 101; runs of replies with no tool call), so fewer trial minutes are lost between story milestones.",
+  "hypothesis": "Collapsing identical repeated turns to the newest copy, leaving replies with no tool call out of the request, and ending the request with a short positive note that counts the repeats (stages 1 and 2) breaks the long fixed-point loops of the 6h-v2 bundle (400 turns of the same navigate_to on Route 101; runs of replies with no tool call), so fewer trial minutes are lost between story milestones.",
   "activationMilestone": "BIRCH_STARTER_HANDOFF_COMPLETE",
   "primaryMilestone": "RIVAL_BATTLE_WON",
   "source": {
@@ -148,7 +148,9 @@
       "stale-story-goal-v2": false,
       "context-token-budget-v1": false,
       "fixed-point-breaker-v1": false,
-      "story-character-stall-gate-v1": false
+      "story-character-stall-gate-v1": false,
+      "auto-talk-v1": false,
+      "duplicate-turn-collapse-v1": false
     }
   },
   "trialsPerArm": 8,
@@ -164,5 +166,5 @@
     "window": 4,
     "minReached": 3
   },
-  "notes": "Pending and not queued. The candidate flips only fixed-point-breaker-v1 (stages 1-3). Operator decision 2026-10-20: bundle-only; the 12-hour whole-map cook waits for it. source.commit pins the implementation commit; repin to the merge SHA on landing."
+  "notes": "Pending and not queued. The candidate flips only fixed-point-breaker-v1: stages 1 and 2 (collapse plus note). Stage 3 (auto-talk) is auto-talk-v1 and the collapse alone is duplicate-turn-collapse-v1, each with its own entry; here both stay off. Decision probe 2026-10-20: the collapse does nearly all of the work (f28d T2301 repeats: neither 16/16, note only 13, collapse only 1, both 2); operator decision: the note is off in both arms. source.commit pins the implementation commit; repin on landing."
 }

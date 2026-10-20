@@ -51,6 +51,22 @@ it("receipts only a map transition caused by the final exact-target step",async(
 });
 
 
+it("does not receipt a final exact-target entry when that press only turns or is blocked",async()=>{
+ const corridor:GameStateSnapshot={...field,facing:"up",navigation_grid:{elevation:3,tiles:[tile(0,0),tile(1,0)],objects:[],warps:[{x:1,y:0}]}};
+ const turned=async()=>{
+  let current=corridor;
+  const tool=navigationTool({read:()=>Promise.resolve(current),press:(_id,_params,_signal,check)=>{check?.(current);current={...current,facing:"right"};return Promise.resolve(result(current));},observe:()=>Promise.resolve(result(current))});
+  return tool.executeChecked("nav",{x:1,y:0,map_id:[0,9]},state=>state.facing==="right"?"interrupted after turning":null,undefined,{exactTarget:true});
+ };
+ const bumped=async()=>{
+  let current={...corridor,facing:"right"};
+  const tool=navigationTool({read:()=>Promise.resolve(current),press:(_id,_params,_signal,check)=>{check?.(current);return Promise.resolve(result(current));},observe:()=>Promise.resolve(result(current))});
+  return tool.executeChecked("nav",{x:1,y:0,map_id:[0,9]},()=>null,undefined,{exactTarget:true});
+ };
+ await expect(turned()).resolves.toMatchObject({details:{navigation:{commands:1,goal_entry_attempted:false}}});
+ await expect(bumped()).resolves.toMatchObject({details:{navigation:{commands:1,goal_entry_attempted:false}}});
+});
+
 it("caps ordinary attempts and never advances after abort or a field lock",async()=>{
  let state={...field};let pressed=0;
  const ports={read:()=>Promise.resolve(state),press:()=>{pressed++;state={...state,position:{x:0,y:1}};return Promise.resolve(result(state));},observe:()=>Promise.resolve(result(state)),maxCommands:1};

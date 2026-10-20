@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gym Heal Warning</title>
+<style>
+:root{
+ --bg:#f7f6f2; --fg:#1c1d1f; --soft:#5b5d61; --rule:#dedcd5; --panel:#ffffff;
+ --game:#1a7f5a; --game-bg:#e3f4ec; --prior:#c2432f; --prior-bg:#fbe7e2; --nav:#2a62c9; --nav-bg:#e4edfb; --hot:#c2432f;
+ --body:system-ui,-apple-system,"Segoe UI",sans-serif; --mono:ui-monospace,"SF Mono",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+ --bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; --hot:#ff7a63; color-scheme:dark}}
+:root[data-theme="dark"]{
+ --bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; --hot:#ff7a63; color-scheme:dark}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.6 var(--body);padding:0 16px}
+main{max-width:760px;margin:0 auto;padding:40px 0 64px;display:flex;flex-direction:column;gap:34px}
+h1{font-size:2.2rem;line-height:1.15;margin:0}
+h2{font-size:1.3rem;margin:0}
+p{margin:0;max-width:68ch}
+ul{margin:0;padding-left:20px}
+.eyebrow{font:500 .75rem var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--soft)}
+.lede{font-size:1.08rem;color:var(--soft)}
+section{display:flex;flex-direction:column;gap:12px}
+figure{margin:0;display:flex;flex-direction:column;gap:8px}
+.scroll{overflow-x:auto}
+svg{display:block;max-width:100%;height:auto}
+@media (max-width:600px){.scroll svg{max-width:none;width:640px}}
+figcaption{font-size:.88rem;color:var(--soft)}
+svg text{font-family:var(--body);font-size:12px;fill:var(--fg)}
+svg .s{fill:var(--soft);font-size:11px}
+svg .t{font-weight:600;font-size:13px}
+svg .m{font-family:var(--mono);font-size:11px}
+.box{fill:var(--panel);stroke:var(--rule)}
+.game{fill:var(--game-bg);stroke:var(--game)}
+.prior{fill:var(--prior-bg);stroke:var(--prior)}
+.nav{fill:var(--nav-bg);stroke:var(--nav)}
+.hot{stroke:var(--hot);stroke-width:2.2}
+.arr{stroke:var(--soft);stroke-width:1.5;fill:none}
+.arr.g{stroke:var(--game);stroke-width:2.4}
+pre{background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:14px;white-space:pre-wrap;font:13px/1.5 var(--mono);margin:0}
+code{font:500 .88em var(--mono);background:var(--panel);border:1px solid var(--rule);border-radius:4px;padding:0 4px}
+table{border-collapse:collapse;width:100%;font-size:.92rem}
+th,td{text-align:left;padding:7px 9px;border-bottom:1px solid var(--rule);vertical-align:top}
+th{font:500 .75rem var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--soft)}
+.tablewrap{overflow-x:auto}
+.label{font:500 .75rem var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--soft)}
+</style>
+</head>
+<body>
+<main>
+<div>
+<div class="eyebrow">Harness switch · guard · <code>gym-heal-warning-v1</code> · needs <code>heal-before-trainers-v2</code> · agent side only · bundle arm only · off by default</div>
+<h1>Gym heal warning</h1>
+</div>
+<p class="lede">The operator, 2026-10-20: "the supervisor warning for when it enters a gym without full HP is the right way to go". When a game-tool result shows the player on a GYM map, or on a map with a door to one, and any party Pokémon is below max HP, the result gains one paragraph: the hurt Pokémon, what losing a battle costs and where the player would wake up, and the nearest place that heals.</p>
+
+<section>
+<h2>What b300 did</h2>
+<p>Run <code>2026-10-20T13-54-28_qwen36-gpu0_b300</code> arrived in RUSTBORO CITY with TORCHIC at 25/33 (result 14717). That result listed the gym door at (27,19) and the POKéMON CENTER door at (16,38). It walked straight into the gym (result 14882), beat JOSH and TOMMY, lost to HIKER MARC, and woke up in RED's HOUSE 2F: the save's last heal location, because it had never entered a POKéMON CENTER.</p>
+<figure><div class="scroll"><svg viewBox="0 0 760 140" width="760" role="img" aria-label="b300 timeline">
+<line x1="20" y1="60" x2="740" y2="60" class="arr"/>
+<g><circle cx="60" cy="60" r="7" class="game hot"/><text x="40" y="38" class="t">14717</text><text x="14" y="86" class="s">RUSTBORO CITY, 25/33</text><text x="14" y="100" class="s">fires: gym door on map</text></g>
+<g><circle cx="240" cy="60" r="7" class="game hot"/><text x="220" y="38" class="t">14882</text><text x="196" y="86" class="s">enters the GYM, 25/33</text><text x="196" y="100" class="s">fires: new map entry</text></g>
+<g><circle cx="430" cy="60" r="6" class="box"/><text x="410" y="38">15198</text><text x="380" y="86" class="s">after JOSH, 11/35</text><text x="380" y="100" class="s">silent: same entry</text></g>
+<g><rect x="560" y="50" width="160" height="20" rx="4" class="prior"/><text x="600" y="38">15755</text><text x="572" y="64" class="s">whited out (MARC)</text><text x="566" y="86" class="s">woke in RED's HOUSE 2F</text></g>
+</svg></div><figcaption>Replay of b300's 18 recorded tool results 14698-15600 through the production wrapper (test "b300 replay"). It fires at 14717 and 14882 only. At 15198 it is silent: TORCHIC was never at full HP after entering the gym, and it re-arms only on another map or a full party.</figcaption></figure>
+</section>
+
+<section>
+<h2>What the model would read</h2>
+<p class="label">Result 14717, RUSTBORO CITY (exact text from the test)</p>
+<pre>SUPERVISOR: An exit on this map at (27,19) leads to RUSTBORO CITY GYM (map 11/3), and your party is not at full HP: TORCHIC 25/33. If your whole party faints in a battle, the game says "RED is out of usable POKéMON!" and "RED whited out!"; you lose half your money (₽3142 of ₽6284) and wake up in RED's HOUSE 2F (map 1/1), 8 map changes from here. The nearest place you know of that heals your party is the POKéMON CENTER in RUSTBORO CITY (map 11/5), 1 map change from here in the game's map table; you have not entered it; this result lists it as an exit at (16,38) on this map; its nurse says "We restore your tired POKéMON to full health."</pre>
+<p class="label">Result 14882, entering the gym, after heal-before-trainers-v2's paragraph</p>
+<pre>SUPERVISOR: You are in RUSTBORO CITY GYM (map 11/3), and your party is not at full HP: TORCHIC 25/33. If your whole party faints in a battle, the game says "RED is out of usable POKéMON!" and "RED whited out!"; you lose half your money (₽3142 of ₽6284) and wake up in RED's HOUSE 2F (map 1/1), 9 map changes from here. The nearest place you know of that heals your party is the POKéMON CENTER in RUSTBORO CITY (map 11/5), 2 map changes from here in the game's map table; you have not entered it, but an earlier result listed it as an exit at (16,38) in RUSTBORO CITY; its nurse says "We restore your tired POKéMON to full health."</pre>
+<p class="label">Result 15198, after JOSH</p>
+<p>Nothing from this switch. heal-before-trainers-v2's paragraph still names ROXANNE, TOMMY and MARC and the same POKéMON CENTER.</p>
+</section>
+
+<section>
+<h2>When it fires</h2>
+<figure><div class="scroll"><svg viewBox="0 0 720 230" width="720" role="img" aria-label="Conditions">
+<rect x="10" y="20" width="210" height="110" rx="8" class="box"/><text x="24" y="44" class="t">Free field</text><text x="24" y="66">overworld, not in battle</text><text x="24" y="86">field controls unlocked</text><text x="24" y="106">the player's party, all readable</text>
+<rect x="250" y="20" width="210" height="110" rx="8" class="prior"/><text x="264" y="44" class="t">Not at full HP</text><text x="264" y="66">any party Pokémon</text><text x="264" y="86">(not an egg) below max HP</text>
+<rect x="490" y="20" width="220" height="110" rx="8" class="nav"/><text x="504" y="44" class="t">A GYM here or next door</text><text x="504" y="66">this map's name has GYM, or</text><text x="504" y="86">a warp of this map leads to</text><text x="504" y="106">a map whose name has GYM</text>
+<path class="arr g" d="M115 130 L340 180"/><path class="arr g" d="M355 130 L355 180"/><path class="arr g" d="M600 130 L370 180"/>
+<rect x="215" y="180" width="290" height="40" rx="20" class="game hot"/><text x="240" y="205" class="t">paragraph + gym_heal_warning event</text>
+</svg></div><figcaption>All three on the result's own state. Names come from the game's map table (GET /pokebench/places), as the readout prints them: RUSTBORO CITY GYM is MAP_RUSTBORO_CITY_GYM. Once per map entry; another map or a whole party at full HP re-arms it. It also fires in PETALBURG CITY and PETALBURG CITY GYM, the first GYM on the way, where the story's early visits start no battle; the paragraph only states facts, so it is not wrong there, but it adds text on those visits.</figcaption></figure>
+</section>
+
+<section>
+<h2>Where the facts come from</h2>
+<div class="tablewrap"><table>
+<tr><th>Words</th><th>Source</th></tr>
+<tr><td>"RED is out of usable POKéMON!" and "RED whited out!"</td><td><code>sText_PlayerWhiteout</code> and <code>sText_PlayerWhiteout2</code> (src/battle_message.c), printed by <code>BattleScript_LocalBattleLostPrintWhiteOut</code>. The player's name comes from the state; without it the text says "you white out".</td></tr>
+<tr><td>lose half your money (₽3142 of ₽6284)</td><td><code>DoWhiteOut</code> (src/overworld.c) sets money to money / 2; the loss is the rest.</td></tr>
+<tr><td>wake up in RED's HOUSE 2F (map 1/1)</td><td><code>SetWarpDestinationToLastHealLocation</code> warps to <code>SaveBlock1.lastHealLocation</code> (the server's <code>heal_before_trainers.last_heal</code>), named as the readout names that map, with map changes from here.</td></tr>
+<tr><td>the nearest place that heals</td><td>heal-before-trainers-v2's list: centers entered, the last heal location's center, POKéMON CENTERs a delivered result listed as an exit, home while MOM heals.</td></tr>
+</table></div>
+</section>
+
+<section>
+<h2>Wiring and recording</h2>
+<ul>
+<li>It runs in the same wrapper as heal-before-trainers (<code>withLowHpTrainerWarning</code> in <code>playGameTools</code>). Its paragraph follows heal-before-trainers' paragraph, and it shares that arm's heal list and map table read.</li>
+<li>It is recorded as <code>gym_heal_warning</code>: an Activity History SUPERVISOR row "Gym heal warning added to the … result". No timeline mark (timeline closed to additions).</li>
+<li>Agent side only: no new server facts.</li>
+<li>Off: no paragraph, no event; everything else unchanged.</li>
+</ul>
+</section>
+
+<section>
+<h2>Status</h2>
+<ul>
+<li>Branch <code>claude/gym-heal-warning-v1</code>, on top of heal-before-trainers-v2. Tests: b300 replay on and off, conditions, the arm, the event, Activity History, the timeline, and <code>playGameTools</code>.</li>
+<li>Pending experiment <code>experiments/gym-heal-warning-v1.json</code>, not queued. No measured runs.</li>
+</ul>
+</section>
+</main>
+</body>
+</html>

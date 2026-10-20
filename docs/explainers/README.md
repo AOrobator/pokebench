@@ -90,6 +90,8 @@ The original ignored runs/explainers copies remain for existing links. Make futu
 - [Story destinations](story-destinations-v1.html)
 - [Exit reachability](exit-reachability-v1.html)
 - [Heal before trainers](heal-before-trainers-v1.html)
+- [Heal before trainers v2](heal-before-trainers-v2.html)
+- [Gym heal warning](gym-heal-warning-v1.html)
 - [Harness trust](harness-trust-v1.html)
 - [Cited destination](cited-destination-v1.html)
 - [Battle action tool](battle-move-tool-v1.html)
@@ -149,4 +151,6 @@ The original ignored runs/explainers copies remain for existing links. Make futu
 - [Story-character stall gate](story-character-stall-gate-v1.html) — bundle-only guard: no stall or ways-off briefing while an untalked story character is on the map.
 - [Positive supervisor](positive-supervisor-v1.html) — bundle-only: supervisor notes become one instruction plus what the game shows; drought and map back-and-forth briefings stop.
 - [Unfinished activity memory](unfinished-activity-v1.html) — bundle-only: the agent's own lost trainer battle, what it did on that map and its own walk back, kept across detours; reached places read as heard and reached.
+- [Exit labels v2](exit-labels-v2.html) — bundle-only: every warp names its map as the location popup does, plus the map ID; exits that share a name add their landing tile and what can be walked to from it.
+- [Respawn readout](respawn-readout-v1.html) — bundle-only readout line: where a blackout sends the player (saved heal location, map changes, money / 2 lost) and an exit POKéMON CENTER that would move it.
 - [Trainer sight check](trainer-sight-check-v1.html) — bundle-only: navigate_to does not walk a route an unbeaten trainer can see (trainer_see.c rule) unless called again with confirm_trainer_sight: true.

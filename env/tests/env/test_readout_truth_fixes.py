@@ -117,6 +117,7 @@ LATER = frozenset(
         "battle-effective-damage-v1",
         "semantic-navigation-v1",
         "semantic-navigation-v2",
+        "exit-labels-v2",
     }
 )
 
@@ -156,7 +157,7 @@ def test_each_switch_is_a_registered_default_off_server_feature(switch: str) -> 
 
 
 def test_registered_last_in_order() -> None:
-    assert SERVER_FEATURES[-10:-5] == (
+    assert SERVER_FEATURES[-13:-8] == (
         OWNER,
         MID_FRAME,
         UNSET_WARP,

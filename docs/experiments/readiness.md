@@ -196,4 +196,13 @@ PENDING, explicitly blocked and unqueued. Clock policy acts from server boot; NE
 | `auto-talk-v1` | `BIRCH_STARTER_HANDOFF_COMPLETE` | PENDING until `just experiments` runs after landing | Registered 2026-10-20; the breaker's stage 3 as its own switch. It acts while fixed-point-breaker-v1 or duplicate-turn-collapse-v1 is on; a preset that omits it takes its fixed-point-breaker-v1 value. |
 | `duplicate-turn-collapse-v1` | `BIRCH_STARTER_HANDOFF_COMPLETE` | PENDING until `just experiments` runs after landing | Registered 2026-10-20; the breaker stage 1 without its note; on in both arms by operator decision. |
 | `unfinished-activity-v1` | `RUSTBORO_GYM_TRAINER_JOSH_DEFEATED` (it only acts after a trainer battle the agent lost on a map it had been fighting on) | PENDING until `just experiments` runs after landing | Registered 2026-10-20, pending and not queued; bundle-only. Evidence: r10 whole-map, turns 220-1224. |
+| `exit-labels-v2` | `PETALBURG_WOODS` (the same-name arrival notes matter first at the woods mouths, which all lead to ROUTE104) | PENDING until `just experiments` runs after landing | Registered 2026-10-20, pending and not queued; bundle-only. Evidence: b300 turns 581-596, six walks into PETALBURG WOODS and straight back out. |
+
+## Heal before trainers v2 and gym heal warning — 2026-10-20
+
+| Switch | Activation milestone | Readiness | Notes |
+|---|---|---|---|
+| `heal-before-trainers-v2` | `ROUTE_103` (its nine unloaded route trainers are named while the party is weak; the rival never passes the trainer test; the b300 effect is in RUSTBORO CITY and its GYM) | PENDING until `just experiments` runs after landing | Registered 2026-10-20, pending and not queued; bundle-only. Evidence: b300, results 14717, 14882 and 15198. |
+| `gym-heal-warning-v1` | `PETALBURG_CITY` (its gym door is the first one on the way) | PENDING until `just experiments` runs after landing | Registered 2026-10-20, pending and not queued; bundle-only; needs heal-before-trainers-v2. Evidence: b300 results 14717 and 14882. |
+| `respawn-readout-v1` | `STARTER_CHOSEN` (a blackout needs a party) | PENDING until `just experiments` runs after landing | Registered 2026-10-20, pending and not queued; bundle-only (heal-respawn-sight M2). Evidence: b300 never entered a POKéMON CENTER and woke up 9 map changes from the Rustboro Gym. |
 | `trainer-sight-check-v1` | `ROUTE_102` (the first map with trainers whose sight a planned navigate_to walk can cross) | PENDING until `just experiments` runs after landing | Registered 2026-10-20, pending and not queued; bundle-only. Evidence: b300 turn 501, RUSTBORO CITY GYM, TOMMY and MARC at (1,9). |

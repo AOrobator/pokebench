@@ -1071,6 +1071,28 @@ it("links the heal before trainers card to its tracked explainer, which quotes t
  expect(html).toContain("SUPERVISOR: A trainer you have not beaten is on this map: object 3, sprite LASS, at (31,24).");
 });
 
+it("links the heal before trainers v2 card to its tracked explainer, which quotes the b300 gym paragraph",()=>{
+ const id="heal-before-trainers-v2";
+ expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
+ const log=new Log();log.add(0,{...START,harness_features:["ram-state-v1","low-hp-trainer-warning-v1","heal-before-trainers-v1",id]});
+ const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
+ expect(doc.querySelector(`[data-feature="${id}"] a`)?.getAttribute("href")).toBe(`/explainers/${id}.html`);
+ const html=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)),"utf8");
+ expect(html).toContain(id);
+ expect(html).toContain("SUPERVISOR: A trainer you have not beaten is on this map: the Gym Leader ROXANNE, object 1, sprite ROXANNE, at (5,2) (not loaded now: the tile the map places it on).");
+});
+
+it("links the gym heal warning card to its tracked explainer, which quotes the b300 RUSTBORO CITY paragraph",()=>{
+ const id="gym-heal-warning-v1";
+ expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
+ const log=new Log();log.add(0,{...START,harness_features:["ram-state-v1","low-hp-trainer-warning-v1","heal-before-trainers-v1","heal-before-trainers-v2",id]});
+ const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
+ expect(doc.querySelector(`[data-feature="${id}"] a`)?.getAttribute("href")).toBe(`/explainers/${id}.html`);
+ const html=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)),"utf8");
+ expect(html).toContain(id);
+ expect(html).toContain("SUPERVISOR: An exit on this map at (27,19) leads to RUSTBORO CITY GYM (map 11/3), and your party is not at full HP: TORCHIC 25/33.");
+});
+
 it("links the clock view loop card to its tracked explainer, which quotes the bedroom clock",()=>{
  const id="clock-view-loop-v1";
  expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
@@ -1210,6 +1232,7 @@ it.each([
  ["unset-dynamic-warp-v1",["setdynamicwarp MAP_LITTLEROOT_TOWN, 3, 10","Warp destination at (4,1): dynamic destination","PETALBURG CITY (dynamic warp; map 0/0)"]],
  ["status-names-v1",["GetAilmentFromStatus","gText_Psn","STATUS PSN","STATUS 8"]],
  ["surf-gated-exits-v2",["GetInteractedWaterScript","FLAG_BADGE05_GET","PartyHasMonWithSurf","crosses water you cannot cross yet"]],
+ ["respawn-readout-v1",["lastHealLocation","setrespawn","DoWhiteOut","If your party faints, you wake up at your house in LITTLEROOT TOWN (9 map changes from here) and lose half your money (₽3222 of ₽6444).","This town has a POKéMON CENTER you have not entered: RUSTBORO CITY POKEMON CENTER 1F at (16,38)."]],
 ] as const)("links the %s card to its tracked explainer, which quotes the recorded lines and the game source",(id,quotes)=>{
  expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
  const log=new Log();log.add(0,{...START,harness_features:["ram-state-v1",id]});

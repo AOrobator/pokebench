@@ -15,6 +15,7 @@ from pokebench_env.battle_details import BattleDetails, read_battle_details
 from pokebench_env.battle_state import BattleState, read_battle_state
 from pokebench_env.character_presence import StoryCharacters, read_story_characters
 from pokebench_env.displayed_names import place_name, player_gender, sign_labeler
+from pokebench_env.exit_labels import ExitLabels, read_exit_labels, section_name
 from pokebench_env.exit_reach import ExitReach, build_exit_reach
 from pokebench_env.game_screen import ReadMemory, read_screen
 from pokebench_env.gba_text import GBA_TEXT, decode_text
@@ -26,6 +27,7 @@ from pokebench_env.party_ownership import PartyOwnership, read_party_ownership
 from pokebench_env.pokemon import SPECIES_NAMES as SPECIES_NAMES
 from pokebench_env.pokemon import PartyMon, decode_party_mon, pokemon_cpu_context
 from pokebench_env.resources import Resources, read_resources
+from pokebench_env.respawn import LinkCache, Respawn, read_respawn
 from pokebench_env.route103_rival import Route103Rival, read_route103_rival
 from pokebench_env.running import RunningPermission, read_running_permission
 from pokebench_env.story import StoryState, read_story
@@ -144,8 +146,12 @@ class GameState:
     exit_reach: ExitReach | None = None
     # heal-before-trainers-v1: present only with the switch, on the field.
     heal_trainers: HealFacts | None = None
+    # respawn-readout-v1: the saved heal location and the centers that would move it; text only.
+    respawn: Respawn | None = None
     # mid-frame-readout-v1: the save was not read only because the snapshot was mid-frame.
     mid_frame: bool = False
+    # exit-labels-v2: popup names for warp destinations and arrival reach; None when off.
+    exit_labels: ExitLabels | None = None
 
 
 DYNAMIC_WARP = 0x14
@@ -236,11 +242,14 @@ def read_game_state(
     surf_gate_enabled: bool = False,
     exit_reach_enabled: bool = False,
     heal_trainers_enabled: bool = False,
+    heal_trainers_v2_enabled: bool = False,
     tutorial_owner_enabled: bool = False,
     mid_frame_enabled: bool = False,
     unset_warp_enabled: bool = False,
     semantic_navigation_enabled: bool = False,
     evolution_decision_enabled: bool = False,
+    exit_labels_enabled: bool = False,
+    respawn_links: LinkCache | None = None,
 ) -> GameState:
     screen = read_screen(read)
     coherent = transition_coherence_enabled
@@ -492,7 +501,24 @@ def read_game_state(
         menu_window_drawn=window_drawn,
         surf_gate=surf_gate,
         exit_reach=exit_reach,
-        heal_trainers=read_heal_facts(read, save1, save2, map_id, party)
+        heal_trainers=read_heal_facts(
+            read, save1, save2, map_id, party, whole_map=heal_trainers_v2_enabled
+        )
         if heal_trainers_enabled and screen.kind == "overworld" and not in_battle
+        else None,
+        exit_labels=read_exit_labels(
+            read,
+            map_id,
+            targets,
+            topology,
+            lambda m: (
+                place_name(maps.name(m), gender, player) if displayed_names_enabled else None
+            )
+            or section_name(read, m),
+        )
+        if exit_labels_enabled and nearby is not None
+        else None,
+        respawn=read_respawn(read, save1, map_id, maps, respawn_links.get(read, maps))
+        if respawn_links is not None and screen.kind == "overworld" and not in_battle
         else None,
     )

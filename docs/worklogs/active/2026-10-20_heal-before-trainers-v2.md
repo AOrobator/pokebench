@@ -1,0 +1,93 @@
+# Heal before trainers v2 and gym heal warning (`heal-before-trainers-v2`, `gym-heal-warning-v1`)
+
+Status: M1 on claude/heal-before-trainers-v2 at 315940b9 (stopped after 2 review rounds, B2 fixed, not re-reviewed). M2 in progress on claude/gym-heal-warning-v1 from 315940b9 (coordinator, 2026-10-20). Part of `heal-respawn-sight` (milestones M3 and M4), approved by the operator at 3:41 PM ET on 2026-10-20.
+
+Worktree `~/dev/pokebench-worktrees/heal-before-trainers-v2`, branch `claude/heal-before-trainers-v2`, from main 6c88d424.
+
+## Evidence (b300, read-only)
+
+Run `2026-10-20T13-54-28_qwen36-gpu0_b300` (bundle arm of whole-map-pair-1h; low-hp-trainer-warning-v1/v2 and heal-before-trainers-v1 on, bag-healing-items-v1 off).
+
+- Result 14717 (state 14716, read before the model's reply at seq 14724): RUSTBORO CITY, TORCHIC 25/33. Its exits line lists `(16,38) -> RUSTBORO CITY POKEMON CENTER 1F (map 11/5)` and `(27,19) -> RUSTBORO CITY GYM (map 11/3)`. No warning fired (no trainer on the city map).
+- Result 14882 (state 14880, milestone 14881): enters RUSTBORO CITY GYM. No warning.
+- Warning 15195: heal-before-trainers-v1 named only TOMMY (object 3), because HIKER MARC and ROXANNE were not loaded, and the house in LITTLEROOT TOWN, 8 map changes away, because it counts only centers entered.
+- low-hp-trainer-warning-v2 never fired: it needs ROXANNE's object loaded.
+
+## Design
+
+### M1 heal-before-trainers-v2 (guard, needs heal-before-trainers-v1, server + agent)
+
+- Server: with the switch, `heal_before_trainers.trainers` comes from every object template of the map (SaveBlock1.objectEventTemplates, the same reading offscreen-objects-v1 uses): a template hidden by its set flag is left out, a loaded object gives its tile now, an unloaded one its template tile, and each trainer gains `loaded`. Trainer test unchanged (trainerbattle script, field battle type, flag 0x500 + id).
+- Agent heal places: centers entered, the center of the save's last heal location, every POKéMON CENTER 1F that a delivered non-error game-tool result showed as an exit or warp destination this run (a warp of that result's map leads to it and the result text names its `map G/N`), and home while MOM heals. Nearest by fewest map changes.
+- Thresholds: the Gym Leader ROXANNE (the only story opponent that passes the trainerbattle test) is named while any party Pokémon is below max HP; others while the party is weak (v1). With low-hp-trainer-warning-v2 on, a story opponent whose object is loaded stays with that warning.
+- Off: v1 exactly (same state JSON, same text, same events).
+
+### M2 gym-heal-warning-v1 (guard, needs heal-before-trainers-v2, agent only)
+
+- One SUPERVISOR paragraph on a game-tool result on the free field while any party Pokémon is below max HP, when the current map's name contains GYM or one of its warps leads to a map whose name contains GYM.
+- Content: each hurt Pokémon's HP; the whiteout in the game's words (sText_PlayerWhiteout, sText_PlayerWhiteout2), the money lost (DoWhiteOut keeps floor(money/2)) and where you wake up (SaveBlock1.lastHealLocation, as the game's map table names it); the nearest heal place from v2's list.
+- Once per map entry; re-arms on another map or a state with the whole party at full HP. Event `gym_heal_warning` for Activity History; no timeline mark.
+
+## Milestones
+
+- [x] M1 RED (742c6071), GREEN, gates, explainer, pending experiment
+- [ ] M1 Claude + Grok review
+- [x] M2 RED (949a51de), GREEN, gates, explainer, pending experiment
+- [x] M2 Claude + Grok review (R2 LGTM both)
+- [ ] Sync with main, final gates, report b300 texts
+
+## Session log
+
+- Spawned 2026-10-20. Read brief, design, b300 seqs 14716/14717, 14880/14882, 15193/15195.
+- Worktree setup: `git submodule update --init` (vendor at pin, `just verify-vendor` OK), gitignored `.env` copied from main, `just build-mgba` (source copied from main's `.cache/mgba/src`).
+- M1 RED: pytest v2 cases plus b300 real RAM (fixture `env/tests/env/fixtures/heal-trainers-b300.json`, RAM windows only, states 14716/14880/15196); vitest `heal-before-trainers-v2.test.ts` (b300 replay over results 14698-15600, fixture `test-support/heal-before-trainers-b300.json.gz`) and `heal-before-trainers-v2-wire.test.ts` (playGameTools). Against HEAD's implementation: pytest collection error (no SWITCH_V2), vitest 2 files fail (state schema refuses `loaded`, missing exports).
+
+  COMMIT: `test: heal-before-trainers-v2 RED on b300 RAM and recorded results` (742c6071)
+- M1 GREEN: server `read_map_trainers(whole_map=True)` behind SERVER switch `heal-before-trainers-v2` (default off, `loaded` in JSON only with v2); agent `HealBeforeTrainers` v2 (shown centers from delivered results, story threshold, partial re-arm), `healBeforeTrainersV2Text`; event gains optional `loaded`/`story`/`hurt`/`shown`, `weak` may be empty (v1's `weak: []` rejection test now rejects `trainers: []`); auto-talk keeps loaded trainers only; registry/presets/defaults/legacy; explainer `docs/explainers/heal-before-trainers-v2.html` mapped in FEATURE_EXPLAINERS; pending `experiments/heal-before-trainers-v2.json` (source.commit zeros, filled at landing); readiness row. Registry suffix indexes and server-off strings advanced in ~45 older tests (mechanical).
+- b300 replay OFF reproduces the recorded v1 paragraph at 15195 byte for byte; ON fires at 14882 (ROXANNE) and 15198 (ROXANNE, TOMMY, MARC), both naming the RUSTBORO CITY POKéMON CENTER (2 map changes) shown at (16,38) in result 14717.
+- Wiring mutation: `const v2=false` in withLowHpTrainerWarning turns the playGameTools test red (1 failed); restored (sha1 7d6eaa5d), green.
+- Gates: `just lint` OK, `just build` OK, `just coverage`: agent 2917/2917 (97.21 st / 92.92 br / 97.7 fn / 99.17 ln), viewer 1425/1425 (95.09 / 91.04 / 93.85 / 97.7), python 2915 passed, gate lines 96.97 branches 92.50 functions 100.00. heal_trainers.py 100%.
+  COMMIT: `feat: heal-before-trainers-v2 names every trainer of the map and every POKéMON CENTER a result listed` (c42e40a8)
+- Self-review fix: the story-opponent id set is cleared with the warned set on a map change (a local id that is ROXANNE in the gym can be an ordinary trainer elsewhere). Test added; reverting the clear turns it red (1 failed), restored green (20/20).
+
+- M2 (coordinator: build gym-heal-warning-v1 on `claude/gym-heal-warning-v1` from 315940b9, leave the v2 branch alone). Restored the draft from runs/probe/m2backup.
+- M2 RED: `gym-heal-warning.test.ts` (registry, b300 replay on/off, conditions, arm, event) and `gym-heal-warning-wire.test.ts` (playGameTools). They import exports HEAD lacks, so both fail on HEAD. Wiring mutation (gym block disabled) turns the wire test red; restored green.
+  COMMIT: `test: gym-heal-warning-v1 RED on b300 results` (949a51de)
+- M2 GREEN: `gymHealWarning`/`gymHealText`/`GymHealWarning` in low-hp-trainer-warning.ts, wired after heal-before-trainers in the same wrapper, sharing its map table read and heal list (`HealBeforeTrainers.nearest`). Event `gym_heal_warning` (schema, recorder, tail, Activity History, trace label, timeline-closed test), registry (guard, needs heal-before-trainers-v2, agent only), presets/defaults/legacy, explainer `docs/explainers/gym-heal-warning-v1.html` mapped, pending `experiments/gym-heal-warning-v1.json` (activation PETALBURG_CITY, first GYM door on the way), readiness row. Registry suffix indexes advanced in older tests (mechanical).
+- b300 replay ON: fires at 14717 (gym door at (27,19), center 1 change, RED's HOUSE 2F 8 changes) and 14882 (in the gym, 9 changes); silent at 15198 (same map entry, never at full HP). OFF: v2's paragraphs only.
+- Gates: lint OK, build OK, coverage: agent 2931/2931 (97.22/92.93/97.72/99.18), viewer 1429/1429 (95.09/91.04/93.85/97.7), python 2915 passed, gate lines 96.97 branches 92.50 functions 100.
+  COMMIT: `feat: gym-heal-warning-v1 warns on or next to a GYM below full HP with the whiteout cost and nearest heal` (90a397df)
+
+## Surprises
+
+- The worktree had no vendor submodule checkout and no mGBA binding; 210 Python failures and the mypy import error were environment, fixed by `git submodule update --init` and `just build-mgba`.
+
+## Multi-Model Review Log
+
+- M1 R1, packet `runs/reviews/heal-before-trainers-v2/m1/packet.diff` (git diff ee95b866 6451dd06, sha256 46674fb4…12cde), boundary and principles (zero FAIL) beside it.
+  - Grok (cursor-agent cursor-grok-4.5-high, ask mode): `VERDICT: LGTM`. Follow-ups only: `weak` minItems widening (documented), replay re-parses states, no parseExperiment test, invisible-loaded edge, grunt not story (both match copy).
+  - Claude lane: `claude -p` default and `~/.claude-review` both "OAuth session expired and could not be refreshed"; Cursor claude-opus-5-thinking-high and claude-sonnet-5-thinking-high both usage-capped (ActionRequiredError). Standing fallback: fresh read-only Claude subagent, `VERDICT: BLOCKING` on B1: the copy, explainer, experiment notes and readiness row claimed v2 names the Route 103 rival, but Route103_EventScript_Rival starts with lockall, so the server's trainer test never lists the rival (verified in pret). Accepted.
+  - Fix: storyName only for the gym leader; rival test now asserts the rival is never a story opponent (old code makes it fail); copy, explainer, experiment (activation ROUTE_102) and readiness corrected; the copy now says a lead out of PP at full HP no longer names ROXANNE.
+
+- M1 R2, cumulative packet `m1r2/packet.diff` (git diff ee95b866 ca9134a0, sha256 ca66afb6…85d1b), delta `m1r2/delta.diff`.
+  - Grok: `VERDICT: LGTM` (follow-ups: hurt required when weak is empty, stale worklog thresholds line, a direct no-PP test).
+  - Claude subagent (same fallback; claude -p and Cursor Claude unavailable as in R1): `VERDICT: BLOCKING` on B2: the experiment notes and readiness row said v2 changes nothing on Route 103, but its nine route trainers (DAISY…PETE, all trainerbattle scripts, far east of the arrival) are unloaded there and v2 names them. Verified and accepted; activation moved back to ROUTE_103 with the true reason (docs and experiment JSON only, no code).
+  - Brief limit reached (2 rounds): stopped. The B2 fix is not re-reviewed. M2 gym-heal-warning-v1 was started (uncommitted draft saved in gitignored runs/probe/m2backup) and is not built.
+
+- M2 R1, packet `runs/reviews/gym-heal-warning-v1/r1/packet.diff` (git diff 315940b9 90a397df, sha256 640a4a4e…f8ba4).
+  - Grok (cursor-grok-4.5-high): `VERDICT: LGTM` (follow-ups: runtime v2 gate, arm set before nearest resolves, no parseExperiment test).
+  - Claude lane: claude -p still OAuth-expired (both config dirs); Cursor Claude capped earlier today; fresh read-only Claude subagent: `VERDICT: BLOCKING`. B1: the 14717 paragraph said "an earlier result listed it" though 14717 itself first listed the center. B2: deleting the map-change re-arm line passed every test. Both accepted.
+  - Fix: HealBeforeTrainers tracks the keys a result lists for the first time; the gym paragraph says "this result lists it as an exit at (16,38) on this map" then (`listed_now` in facts and event); v2's own text unchanged. New arm test GYM, ROUTE104, GYM. Mutations: removing the re-arm line fails the new test; forcing listed_now false fails 2 tests; restored green 13/13. Gates: lint, build, pages-check OK; coverage agent 2932/2932 (97.22/92.93/97.72/99.18), viewer 1429/1429 (95.08/91.03/93.85/97.7), python 2915, gate 96.97/92.50/100.
+
+  COMMIT: `fix: gym-heal-warning-v1 says when this result first lists the center, and re-arms on any other map` (3d27c3d5)
+- M2 R2, cumulative packet `runs/reviews/gym-heal-warning-v1/r2/packet.diff` (git diff 315940b9 3d27c3d5, sha256 a990d653…7e4aed), delta beside it. Grok: `VERDICT: LGTM`. Claude subagent (claude -p still OAuth-expired): `VERDICT: LGTM`. Non-blocking: arm set before nearest resolves; no runtime v2 gate (needs covers it); no parseExperiment test; v2's own text has the same "earlier result" wording when v2 fires on the result that first lists a center (base, for the v2 branch).
+- main still at ee95b866 (v2 not landed), so no merge was needed before the final review. Branch ready for the coordinator's landing step after v2; source.commit in experiments/gym-heal-warning-v1.json is zeros, to fill at landing.
+
+## Boy Scout Log
+
+## Landing
+
+- Merged main (ad79c737, exit-labels-v2) into the branch: append-only conflicts in the registry, presets, defaults and ~25 test files; exit-labels-v2 stays before heal-before-trainers-v2 everywhere.
+- Joined the bundle arm of bundle-v-control and bundle-cook-1h (base.features false, appended to switches); experiments/heal-before-trainers-v2.json source.commit pinned to the feat commit c42e40a8. Registry suffix indexes advanced once more where both sides had moved them, exit-labels-v2 tests now expect it second to last, and the open-goal-prompt incumbent test excludes exit-labels-v2 and heal-before-trainers-v2 like the other bundle-only switches (it failed on main since exit-labels-v2 joined the bundle). Gates: agent 2921, viewer 1425, env 2934 tests pass; lint and build clean; coverage agent 97.21/92.92/97.70 (stmts/branches/functions), viewer 95.08/91.03/93.85, env lines 97.00 branches 92.45 functions 100.
+- gym-heal-warning-v1: merged main (348af0fc, heal-before-trainers-v2 landed) into claude/gym-heal-warning-v1; append-only conflicts, exit-labels-v2 then heal-before-trainers-v2 then gym-heal-warning-v1; registry suffix indexes advanced once more where both sides moved them.
+- gym-heal-warning-v1 joined the bundle arm of bundle-v-control and bundle-cook-1h; experiments/gym-heal-warning-v1.json source.commit pinned to the feat commit 90a397df; the open-goal-prompt incumbent test excludes it like the other bundle-only switches. Gates: agent 2935, viewer 1429, env 2934 tests pass; lint and build clean; coverage agent 97.22/92.94/97.72 (stmts/branches/functions), viewer 95.09/91.04/93.85, env lines 97.00 branches 92.45 functions 100.

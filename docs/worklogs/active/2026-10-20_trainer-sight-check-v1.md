@@ -79,3 +79,7 @@ A press is not checked. (1) A direction press moves at most one tile per button,
 - Grok (cursor-grok-4.5-high) on the fix delta e2febce2..f99cdc48: VERDICT: LGTM (both findings fixed, empty-reason fallback sound, no new bug).
 - Claude lane: VERDICT: LGTM on the round-1 packet; its one accepted fix is in the delta Grok re-checked.
 - Status: ready for the coordinator's landing slot (sync with main again, repin experiments source.commit to the merge SHA, bundle wiring in M6).
+
+## Landing
+
+- Merged main (029852b7: exit-labels-v2, heal-before-trainers-v2, gym-heal-warning-v1, respawn-readout-v1) into the branch: append-only conflicts in the registry, presets, defaults, the trace activity label map and test files; trainer-sight-check-v1 goes after respawn-readout-v1. Registry suffix indexes and group counts advanced for both sides; the four newer switches' registry tests now expect trainer-sight-check-v1 after them.

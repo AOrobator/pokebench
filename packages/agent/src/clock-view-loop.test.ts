@@ -52,8 +52,8 @@ function look(d:LoopDetector,minute:string):void {
 
 describe("clock-view-loop-v1",()=>{
  it("is registered second to last, default off, and the bundle arm is the one that turns it on",()=>{
-  expect(SWITCHABLE_FEATURES.at(-30)).toBe(ID);
-  expect(playHarnessFeatures(ALL_ON,null).at(-20)).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-32)).toBe(ID);
+  expect(playHarnessFeatures(ALL_ON,null).at(-22)).toBe(ID);
   expect(featureInfo(ID)).toMatchObject({group:"guard",needs:null,switchable:true,title:"CLOCK VIEW LOOP"});
   expect(featureInfo(ID).description).toContain(" Off: ");
   expect(featureInfo(ID).description).toContain("Bundle arm only");
@@ -66,7 +66,7 @@ describe("clock-view-loop-v1",()=>{
   expect(bundle.switches).toContain(ID);
   const raw=JSON.parse(readFileSync(new URL("../../../experiments/clock-view-loop.json",import.meta.url),"utf8")) as {queuePosition?:number;incumbent:{features:Record<string,boolean>}};
   expect(raw.queuePosition).toBeUndefined();
-  expect(Object.keys(raw.incumbent.features)).toEqual(SWITCHABLE_FEATURES.filter(id=>id!=="fixed-point-breaker-v1"&&id!=="story-character-stall-gate-v1"&&id!=="context-token-budget-v1"&&id!=="original-speed-pacing-v1"&&id!=="evolution-decision-v1"&&id!=="observed-instructions-v1"&&id!=="starter-decision-salience-v1"&&id!=="safe-navigation-strides-v1"&&id!=="ineffective-navigation-v2"&&id!=="supervisor-briefing-v2"&&id!=="reachable-story-guidance-v1"&&id!=="text-only-supervisor-v2"&&id!=="battle-decision-ready-v1"&&id!=="battle-refusal-loop-v1"&&id!=="deterministic-warp-navigation-v1"&&id!=="battle-effective-damage-v1"&&id!=="scripted-place-guidance-v1"&&id!=="trigger-script-loop-v1"&&id!=="just-in-time-prompt-v2"&&id!=="faced-interaction-history-v1"&&id!=="cache-aligned-window-v1"&&id!=="jit-guide-reuse-v1"&&id!=="stale-story-goal-v2"&&id!=="visited-terrain-navigation-v1"));
+  expect(Object.keys(raw.incumbent.features)).toEqual(SWITCHABLE_FEATURES.filter(id=>id!=="fixed-point-breaker-v1"&&id!=="story-character-stall-gate-v1"&&id!=="context-token-budget-v1"&&id!=="briefing-repeat-count-v1"&&id!=="navigate-already-here-v1"&&id!=="original-speed-pacing-v1"&&id!=="evolution-decision-v1"&&id!=="observed-instructions-v1"&&id!=="starter-decision-salience-v1"&&id!=="safe-navigation-strides-v1"&&id!=="ineffective-navigation-v2"&&id!=="supervisor-briefing-v2"&&id!=="reachable-story-guidance-v1"&&id!=="text-only-supervisor-v2"&&id!=="battle-decision-ready-v1"&&id!=="battle-refusal-loop-v1"&&id!=="deterministic-warp-navigation-v1"&&id!=="battle-effective-damage-v1"&&id!=="scripted-place-guidance-v1"&&id!=="trigger-script-loop-v1"&&id!=="just-in-time-prompt-v2"&&id!=="faced-interaction-history-v1"&&id!=="cache-aligned-window-v1"&&id!=="jit-guide-reuse-v1"&&id!=="stale-story-goal-v2"&&id!=="visited-terrain-navigation-v1"));
   const {incumbent,candidate}=experimentArms(parseExperiment(raw));
   expect(incumbent.features[ID]).toBe(false);
   expect(candidate.features[ID]).toBe(true);

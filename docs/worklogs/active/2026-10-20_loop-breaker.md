@@ -72,6 +72,10 @@ Tests per milestone; probe receipts for M4; explainer pages checked with `just p
 
 - 2026-10-20 11:05 AM ET: worktree `/private/tmp/pokebench-loop-breaker`, branch `claude/loop-breaker` from main 2a2fe257.
 
+## Sync
+
+- 2026-10-20 ~11:50 AM ET: merged main 688b1764 (92 commits, incl. briefing-repeat-count-v1 and navigate-already-here-v1, which sit before original-speed-pacing-v1; ours stay after it). Conflicted registry tests took main's side and got the +2 shift again; presets, next-run and FEATURE_EXPLAINERS keep both. Agent 2826, viewer 1363 pass; lint clean.
+
 ## Surprises
 
 - 2026-10-20 11:12 AM ET, GPU queue probe (coordinator relay): the f28d walk-away traces to the turn 450 loop-supervisor note, not the 452 stall briefing. It listed "Ways off this map: SOUTH -> OLDALE TOWN" and MAY was not among its untried targets (out of view, and a refused walk to her tile counted her tile as tried). Sampling turn 451 ×8: as recorded 4/8 leave; note removed 0/8; only the ways-off line removed 1/8. So the gate switch also keeps ways-off lines out of supervisor notes while it holds, lists the untalked story characters, and counts a walk's target as tried only when it ends on or next to it.

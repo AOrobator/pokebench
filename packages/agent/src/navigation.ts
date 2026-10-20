@@ -443,6 +443,10 @@ const DIRECTIONAL_WARP_PRESSES=new Map<number,Direction>([
  [0x62,"RIGHT"],[0x63,"LEFT"],[0x64,"UP"],[0x65,"DOWN"],
  [0x1b,"UP"],[0x1c,"DOWN"],[0x6d,"DOWN"],
 ]);
+export function directionalWarpActivation(state:GameStateSnapshot,target:Point,mode:NavigationMode):Direction|null {
+ const geometry=mode==="full"?fullGeometry(state):localGeometry(state);
+ return geometry===null?null:DIRECTIONAL_WARP_PRESSES.get(geometry.tile(target)?.behavior??-1)??null;
+}
 // Exact-equivalence routing is deliberately limited to directional warps.
 // Step-on warps, doors and unknown behaviors retain the requested coordinate
 // and old stop semantics even if their destination tuples happen to match.
@@ -486,6 +490,10 @@ function deterministicWarpPlan(state:GameStateSnapshot,requested:Point,options:N
 }
 const Args=Type.Object({x:Type.Integer({minimum:0}),y:Type.Integer({minimum:0}),map_id:Type.Tuple([Type.Integer({minimum:0,maximum:255}),Type.Integer({minimum:0,maximum:255})]),walking:Type.Optional(Type.Boolean({description:"Walk deliberately without automatic running."}))},{additionalProperties:false});
 const DeterministicRunningArgs=Type.Object({x:Args.properties.x,y:Args.properties.y,map_id:Args.properties.map_id},{additionalProperties:false});
+export type NavigationStopCheck=(state:GameStateSnapshot)=>string|null;
+export interface CheckedNavigationOptions {readonly exactTarget?:boolean;readonly multiTileRunning?:boolean}
+export type CheckedNavigationTool=AgentTool<typeof Args>&{readonly executeChecked:(id:string,goal:{readonly x:number;readonly y:number;readonly map_id:readonly [number,number];readonly walking?:boolean},check:NavigationStopCheck,signal?:AbortSignal,options?:CheckedNavigationOptions)=>Promise<AgentToolResult<unknown>>};
+export function isCheckedNavigation(tool:AgentTool):tool is CheckedNavigationTool {return "executeChecked" in tool&&typeof tool.executeChecked==="function";}
 export interface NavigationPorts {
  readonly safeStrides?:boolean;
  readonly automaticRunning?:boolean;
@@ -524,6 +532,8 @@ export interface NavigationPorts {
  readonly surfGate?:boolean;
  // deterministic-warp-navigation-v1: choose an exact equivalent warp and perform one verified arrow-warp press.
  readonly deterministicWarps?:boolean;
+ // navigate-already-here-v1: a goal on the player's own tile, before any press, says so.
+ readonly alreadyHere?:boolean;
 }
 function resultState(result:AgentToolResult<unknown>):GameStateSnapshot {
  const details=result.details;
@@ -562,7 +572,7 @@ export function planStride(state:GameStateSnapshot,path:readonly Direction[],opt
  }
  return tiles.length===0?null:{map_id:state.map_id,origin,path:tiles,elevation};
 }
-export function navigationTool(ports:NavigationPorts):AgentTool<typeof Args> {
+export function navigationTool(ports:NavigationPorts):CheckedNavigationTool {
  const mode:NavigationMode=ports.fullMap===true?"full":ports.visitedTerrain===true?"visited":"local",truth=ports.truth===true;
  const limit=mode==="local"?MAX_NAVIGATION_COMMANDS:MAX_FULL_ROUTE_COMMANDS;
  const bound=ports.maxCommands??limit;
@@ -572,25 +582,25 @@ export function navigationTool(ports:NavigationPorts):AgentTool<typeof Args> {
  const described=(ports.automaticRunning===true?incumbent.replace(" Use walking=true for deliberate walking.",""):incumbent).replace("avoids unsupported terrain",terrainRules(ports)).replace("Does not press A, choose destinations, or activate a directional exit after arriving.",warpDescription);
  const strideDescription=ports.safeStrides===true?`${described.replace("Maximum 8 ordinary button attempts", "Maximum 8 planned route steps")} Straight plain-floor corridors use explicit strides of at most 8 tiles, validated against native movement before each step. Strides stop before turns, grass, ledges, warps, objects, script coordinates and elevation changes; special steps walk without automatic running.`:described;
  const description=ports.navigateFirst===true?`${NAVIGATE_FIRST_DESCRIPTION} ${strideDescription}${mode==="local"?COMMAND_LIMIT_HINT:""}`:strideDescription;
- return {name:"navigate_to",label:"Walk to a coordinate",description,parameters:(ports.automaticRunning===true?DeterministicRunningArgs:Args) as typeof Args,
- execute:async(id,goal,signal)=>{
+ const execute=async(id:string,goal:{readonly x:number;readonly y:number;readonly map_id:readonly [number,number];readonly walking?:boolean},signal?:AbortSignal,stop?:NavigationStopCheck,checkedOptions:CheckedNavigationOptions={}):Promise<AgentToolResult<unknown>>=>{
   signal?.throwIfAborted();await ports.gate?.(signal);signal?.throwIfAborted();
-  let state=await ports.read(signal),commands=0,status="command limit",last:AgentToolResult<unknown>|undefined;
+  let state=await ports.read(signal),commands=0,status="command limit",last:AgentToolResult<unknown>|undefined,stopRequested=false;
   const blackout=new BlackoutCarry();
   const strideReceipts:string[]=[];let plannedSteps=0;
-  let shortest=Infinity,stalled=0,unready=false,selectedTarget:Point={x:goal.x,y:goal.y},directionalWarpAttempted=false;
+  let shortest=Infinity,stalled=0,unready=false,selectedTarget:Point={x:goal.x,y:goal.y},directionalWarpAttempted=false,goalEntryAttempted=false,goalEntryActivation:Direction|"step"|null=null;
   const origin=state.position;
   const sameMap=():boolean=>state.map_id?.[0]===goal.map_id[0]&&state.map_id[1]===goal.map_id[1];
   while(commands<bound&&(ports.safeStrides!==true||plannedSteps<bound)){
    signal?.throwIfAborted();await ports.gate?.(signal);signal?.throwIfAborted();
    state=await ports.read(signal);signal?.throwIfAborted();
+   const beforeStop=stop?.(state)??null;if(beforeStop!==null){status=beforeStop;stopRequested=true;break;}
    if(!sameMap()){
     if(ports.crossMapGoal!==true||commands>0){status="map changed; inspect destination";break;}
     if(state.map_id!==null){status=crossMapReason(state,state.map_id,goal);break;}
    }
    if(!ready(state,mode)){status=ports.refusalReasons===true?unreadyReason(state):"field input or navigation geometry unavailable";unready=true;break;}
    const options:NavigationOptions={mode,ledges:ports.ledges===true,oneWay:ports.oneWay===true,grassCost:ports.grassCost===true,floor:ports.floor===true,elevation:ports.elevation??"game",...(truth&&ports.triggers===true?{triggers:matchingTriggers(state)}:{})};
-   const warpPlan=ports.deterministicWarps===true?deterministicWarpPlan(state,goal,options):null;
+   const warpPlan=ports.deterministicWarps===true&&checkedOptions.exactTarget!==true?deterministicWarpPlan(state,goal,options):null;
    selectedTarget=warpPlan?.target??{x:goal.x,y:goal.y};
    const path=warpPlan?.path??planNavigation(state,goal,options);
    if(path===null){
@@ -606,44 +616,61 @@ export function navigationTool(ports:NavigationPorts):AgentTool<typeof Args> {
      try {
       last=await ports.press(id,{buttons:[activation]},signal,actual=>{
        if(actual===undefined||!ready(actual,mode)||actual.map_id?.[0]!==goal.map_id[0]||actual.map_id[1]!==goal.map_id[1]||actual.position?.x!==before.x||actual.position.y!==before.y)throw new NavigationPreconditionError("map, position or field input unavailable or changed before action; no command submitted");
+       const requestedStop=stop?.(actual)??null;if(requestedStop!==null){stopRequested=true;throw new NavigationPreconditionError(requestedStop);}
        const current=warpIdentityAt(actual,warpPlan.target,options);
        if(current===null||current.activation!==activation||!sameWarpIdentity(current.identity,warpPlan.identity))throw new NavigationPreconditionError("warp identity or activation changed before action; no command submitted");
       },{automaticRunning:false});
      } catch(error){if(!(error instanceof NavigationPreconditionError))throw error;status=error.message;break;}
      commands++;directionalWarpAttempted=true;state=blackout.remember(resultState(last));
+     const afterWarpStop=stop?.(state)??null;if(afterWarpStop!==null){status=afterWarpStop;stopRequested=true;}
      break;
     }
-    status="arrived at requested coordinate";break;
+    // navigate-already-here-v1: the model's own call, no press yet, on the requested tile; semantic travel keeps the status it checks.
+    status=ports.alreadyHere===true&&stop===undefined&&checkedOptions.exactTarget!==true&&commands===0&&state.position!==null&&samePoint(state.position,goal)?`you are already standing on ${at(goal)}, the coordinate you asked for, so no movement was needed`:"arrived at requested coordinate";break;
    }
    if(mode!=="local"){if(path.length<shortest){shortest=path.length;stalled=0;}else if(++stalled>=NO_PROGRESS_PRESSES){status="route not converging; inspect obstacles and choose another approach";break;}}
    const planned=state,previousFacing=state.facing; const before=state.position;if(before===null)throw new Error("Navigation position unavailable");
+   const delta=DIRECTIONS.find(([d])=>d===direction);if(delta===undefined)throw new Error("Unknown navigation direction");
    if(ports.safeStrides===true&&state.running?.controllable!==true){status="native movement is not stationary or field control is unavailable; inspect new state";break;}
    const stride=ports.safeStrides===true?planStride(state,path.slice(0,bound-plannedSteps),options):null;
+   const span=stride?.path.length??(ports.ledges===true&&hopAhead(planned,mode,before,direction,delta[1],delta[2])?2:1);
+   const finalGoalStep=checkedOptions.exactTarget===true&&path.length===span&&before.x+delta[1]*span===goal.x&&before.y+delta[2]*span===goal.y;
+   const goalEntryTile=finalGoalStep?(mode==="full"?fullGeometry(planned):localGeometry(planned))?.tile(goal)??null:null;
+   if(finalGoalStep)goalEntryActivation=directionalWarpActivation(planned,goal,mode)??"step";
+   const deliberateGoalEntry=checkedOptions.exactTarget===true&&path.length<=2;
    try {
     last=await ports.press(id,{buttons:[direction],...(ports.automaticRunning===true||goal.walking===undefined?{}:{walking:goal.walking})},signal,actual=>{
      if(actual===undefined||!ready(actual,mode)||actual.map_id?.[0]!==goal.map_id[0]||actual.map_id[1]!==goal.map_id[1]||actual.position?.x!==before.x||actual.position.y!==before.y)throw new NavigationPreconditionError("map, position or field input unavailable or changed before action; no command submitted");
+     const requestedStop=stop?.(actual)??null;if(requestedStop!==null){stopRequested=true;throw new NavigationPreconditionError(requestedStop);}
+     if(finalGoalStep){const actualTile=(mode==="full"?fullGeometry(actual):localGeometry(actual))?.tile(goal)??null;if(JSON.stringify(actualTile)!==JSON.stringify(goalEntryTile))throw new NavigationPreconditionError("goal entry tile changed before action; no command submitted");}
      if(ports.safeStrides===true&&(actual.running?.controllable!==true||(stride!==null&&JSON.stringify(planStride(actual,path.slice(0,bound-plannedSteps),options))!==JSON.stringify(stride))))throw new NavigationPreconditionError("stride geometry or native input changed before action; no command submitted");
-    },ports.safeStrides===true?(stride===null?{automaticRunning:false}:{stride}):undefined);
+    },ports.safeStrides===true?(stride===null?{automaticRunning:false}:{stride}):deliberateGoalEntry?{automaticRunning:false}:undefined);
    } catch(error){if(!(error instanceof NavigationPreconditionError))throw error;status=error.message;break;}
    commands++;plannedSteps+=stride?.path.length??1;state=blackout.remember(resultState(last));
+   // A final press that only turns or bumps leaves the player on the same tile of the same map with input free: no entry happened.
+   if(finalGoalStep&&stride===null&&(state.position?.x!==before.x||state.position.y!==before.y||!sameMap()||!ready(state,mode)))goalEntryAttempted=true;
    if(ports.safeStrides===true)strideReceipts.push(...last.content.flatMap(p=>p.type==="text"&&p.text.startsWith("Navigation stride receipt:")?[p.text]:[]));
+   const afterStop=stop?.(state)??null;if(afterStop!==null){status=afterStop;stopRequested=true;break;}
    if(!sameMap()){status="map changed; inspect destination";break;}
    if(!ready(state,mode)){status=ports.refusalReasons===true?`walk interrupted: ${unreadyReason(state)}`:"field input locked or unavailable; inspect new state";unready=true;break;}
    if(stride!==null){const receipt=resultStride(last);if(receipt===null)throw new Error("Navigation stride receipt missing");if(receipt.reason!=="completed"){status=`planned stride stopped: ${receipt.reason}`;break;}}
    const after=state.position;if(after===null)throw new Error("Navigation position unavailable");
-   const delta=DIRECTIONS.find(([d])=>d===direction);if(delta===undefined)throw new Error("Unknown navigation direction");
-   const span=stride?.path.length??(ports.ledges===true&&hopAhead(planned,mode,before,direction,delta[1],delta[2])?2:1);
    if(distance(before,after)===0){
     if(state.facing===direction.toLowerCase()&&previousFacing!==state.facing){continue;}
     status=(truth?blocker(state,mode,Array.from({length:span},(_,k)=>({x:before.x+delta[1]*(k+1),y:before.y+delta[2]*(k+1)}))):null)??"blocked; inspect obstacle and choose another approach";break;
    }
-   if(after.x!==before.x+delta[1]*span||after.y!==before.y+delta[2]*span){status=ports.safeStrides===true?"planned stride interrupted; inspect new state":"unexpected movement; inspect new state";break;}
+   const crossed=delta[1]===0&&after.x===before.x?(after.y-before.y)/delta[2]:delta[2]===0&&after.y===before.y?(after.x-before.x)/delta[1]:0;
+   // A held running press can finish more than one tile away. It is still the planned move only when every
+   // crossed tile is the next collinear prefix of the route; pushbacks, teleports and off-route displacement stop.
+   const runningPrefix=ports.safeStrides!==true&&ports.automaticRunning===true&&checkedOptions.multiTileRunning===true&&Number.isInteger(crossed)&&crossed>0&&path.length>=crossed&&path.slice(0,crossed).every(step=>step===direction);
+   if((after.x!==before.x+delta[1]*span||after.y!==before.y+delta[2]*span)&&!runningPrefix){status=ports.safeStrides===true?"planned stride interrupted; inspect new state":"unexpected movement; inspect new state";break;}
    if(distance(after,selectedTarget)===0){
     if(warpPlan?.activation!==null&&warpPlan?.activation!==undefined){if(commands<bound)continue;status="command limit";break;}
     status="arrived at requested coordinate";break;
    }
   }
   last=await ports.observe(id,signal);state=blackout.preserve(blackout.remember(resultState(last)));
+  const finalStop=stop?.(state)??null;if(finalStop!==null){status=finalStop;stopRequested=true;}
   if(directionalWarpAttempted){status=state.map_id===null?"directional warp transition unverified; inspect new state":sameMap()?"directional warp did not change map; inspect new state":"directional warp activated; inspect destination";}
   // A composite navigation call can consume the one-shot receipt in an internal
   // press and then replace that observation with a fresh one. Carry the event
@@ -653,8 +680,14 @@ export function navigationTool(ports:NavigationPorts):AgentTool<typeof Args> {
   if(ports.safeStrides===true&&status==="command limit")status="planned route-step budget reached; inspect the returned state before continuing";
   if(truth&&status==="command limit"){const here=state.position;const cut=ports.exitReach===true&&exitBlock({surf:false,reach:true},state).footNear(goal.x,goal.y)===false;status=here!==null&&sameMap()&&ready(state,mode)?`command limit: stopped at ${at(here)} after ${String(commands)} ordinary button attempts, the most one navigate_to call makes; ${cut?`${at(goal)} cannot be reached on foot from where you stand: no walkable way on this map leads from your tile to it or to a tile next to it, so calling navigate_to again will not get there`:`call navigate_to again to continue to ${at(goal)}`}`:`command limit: stopped after ${String(commands)} ordinary button attempts, the most one navigate_to call makes; the field is no longer free to walk, so inspect the new state`;}
   const notices=blackout.missingNotices(last.content.flatMap(part=>part.type==="text"?[part.text]:[]));
-  return {content:[{type:"text",text:`Navigation: ${status}; ${String(commands)} ${ports.safeStrides===true?"bounded movement actions":"ordinary button attempts"}.`},...strideReceipts.map(text=>({type:"text" as const,text})),...notices.map(text=>({type:"text" as const,text})),...last.content],details:{state,navigation:{status,commands,target:goal,...(ports.deterministicWarps===true?{selected_target:selectedTarget}:{}),unready}}};
- }};
+  return {content:[{type:"text",text:`Navigation: ${status}; ${String(commands)} ${ports.safeStrides===true?"bounded movement actions":"ordinary button attempts"}.`},...strideReceipts.map(text=>({type:"text" as const,text})),...notices.map(text=>({type:"text" as const,text})),...last.content],details:{state,navigation:{status,commands,target:goal,...(stop===undefined?{}:{stop_requested:stopRequested,goal_entry_attempted:goalEntryAttempted,goal_entry_activation:goalEntryActivation}),...(ports.deterministicWarps===true?{selected_target:selectedTarget,...(stop===undefined?{}:{activation_attempted:directionalWarpAttempted})}:{}),unready}}};
+ };
+ return {name:"navigate_to",label:"Walk to a coordinate",description,parameters:(ports.automaticRunning===true?DeterministicRunningArgs:Args) as typeof Args,execute:(id,goal,signal)=>execute(id,goal,signal),executeChecked:(id,goal,check,signal,options)=>execute(id,goal,signal,check,options)};
+}
+
+export function plannedArrivalElevation(state:GameStateSnapshot,goal:Point,options:NavigationOptions):number|null {
+ const path=planNavigation(state,goal,options);if(path===null)return null;
+ return walked(state,path,options)?.elevation??null;
 }
 
 
@@ -663,5 +696,5 @@ export function withNavigation(base:readonly AgentTool[],features:FeatureSet,sta
  const tools=[...base];if(!features["bounded-navigation-v1"])return tools;
  const press=base.find(tool=>tool.name==="press"),observe=base.find(tool=>tool.name==="observe");
  if(press===undefined||observe===undefined||!isCheckedPress(press))throw new Error("Navigation requires ordinary game tools");
- tools.push(navigationTool({safeStrides:features["safe-navigation-strides-v1"],automaticRunning:features["automatic-running-v1"],ledges:features["ledge-hops-v1"],oneWay:features["one-way-tiles-v1"],grassCost:features["grass-cost-navigation-v1"],counters:features["counter-talk-v1"],refusalReasons:features["navigation-refusal-reasons-v1"],connectionEdges:features["connection-edge-tiles-v1"],truth:features["navigation-truth-v1"],triggers:features["coordinate-script-conditions-v1"],windowReasons:features["navigation-refusal-reasons-v2"],floor:features["walkable-floor-v1"],elevation:features["elevation-transitions-v1"]?"game":"legacy",navigateFirst:features["navigate-first-prompt-v1"],crossMapGoal:features["cross-map-goal-v1"],exitReach:features["exit-reachability-v1"],surfGate:features["surf-gated-exits-v1"],deterministicWarps:features["deterministic-warp-navigation-v1"],read:signal=>state.read(signal),press:(id,params,signal,check,options)=>check===undefined?press.execute(id,params,signal):press.executeChecked(id,params,check,signal,undefined,options),observe:(id,signal)=>observe.execute(id,{},signal),gate,fullMap:features["full-map-navigation-v1"],visitedTerrain:features["visited-terrain-navigation-v1"]}));return tools;
+ tools.push(navigationTool({safeStrides:features["safe-navigation-strides-v1"],automaticRunning:features["automatic-running-v1"],ledges:features["ledge-hops-v1"],oneWay:features["one-way-tiles-v1"],grassCost:features["grass-cost-navigation-v1"],counters:features["counter-talk-v1"],refusalReasons:features["navigation-refusal-reasons-v1"],connectionEdges:features["connection-edge-tiles-v1"],truth:features["navigation-truth-v1"],triggers:features["coordinate-script-conditions-v1"],windowReasons:features["navigation-refusal-reasons-v2"],floor:features["walkable-floor-v1"],elevation:features["elevation-transitions-v1"]?"game":"legacy",navigateFirst:features["navigate-first-prompt-v1"],crossMapGoal:features["cross-map-goal-v1"],exitReach:features["exit-reachability-v1"],surfGate:features["surf-gated-exits-v1"],deterministicWarps:features["deterministic-warp-navigation-v1"],alreadyHere:features["navigate-already-here-v1"],read:signal=>state.read(signal),press:(id,params,signal,check,options)=>check===undefined?press.execute(id,params,signal):press.executeChecked(id,params,check,signal,undefined,options),observe:(id,signal)=>observe.execute(id,{},signal),gate,fullMap:features["full-map-navigation-v1"],visitedTerrain:features["visited-terrain-navigation-v1"]}));return tools;
 }

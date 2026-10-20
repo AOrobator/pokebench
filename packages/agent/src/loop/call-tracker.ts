@@ -5,6 +5,7 @@ import type { CompletedCall, TriggerScriptExecution } from "./types.js";
 type ToolCallEvent = Extract<RunEvent, { type: "tool_call" }>;
 type ButtonPressEvent = Extract<RunEvent, { type: "button_press" }>;
 type ToolResultEvent = Extract<RunEvent, { type: "tool_result" }>;
+const isNavigation=(name:string):boolean=>name==="navigate_to"||name==="navigate_to_target"||name==="explore_map";
 
 export interface PendingCall {
   args: Record<string, unknown>;
@@ -43,7 +44,7 @@ export class CallTracker {
       args,
       requested: args,
       seq: event.seq,
-      ...(event.name === "navigate_to" ? {
+      ...(isNavigation(event.name) ? {
         navigation: true,
         before: this.latest,
         beforeSeq: this.latestSeq,
@@ -88,8 +89,8 @@ export class CallTracker {
       state: battleRefusals && name === "battle_action"
         ? pending !== undefined && event.state_seq === this.latestSeq ? this.latest : undefined
         : pending !== undefined && this.latestSeq >
-        ((name === "press" || name === "navigate_to") ? (pending.beforeSeq ?? Infinity) : pending.seq) &&
-        (name === "press" || name === "navigate_to" || name === "observe") ? this.latest : undefined,
+        ((name === "press" || isNavigation(name)) ? (pending.beforeSeq ?? Infinity) : pending.seq) &&
+        (name === "press" || isNavigation(name) || name === "observe") ? this.latest : undefined,
     };
   }
 

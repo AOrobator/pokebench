@@ -38,12 +38,30 @@ it("keeps the improved blackout receipt out of control and in the bundle",()=>{
  expect(armFeatureBits(def,"bundle")["blackout-readout-v1"]).toBe(true);
 });
 
-it("all four recovery treatments are ON in bundle and OFF in control in the actual fixed runner design",()=>{
+it("two recovery treatments stay ON in bundle only; the dropped two are OFF in both arms",()=>{
  const {definition:def}=parseFixedDefinition(readFileSync(new URL("../../../experiments/fixed/bundle-v-control.json",import.meta.url),"utf8"));
- for(const id of ["ineffective-navigation-v2","supervisor-briefing-v2","reachable-story-guidance-v1","text-only-supervisor-v2"]){
+ for(const id of ["reachable-story-guidance-v1","text-only-supervisor-v2"]){
   expect(armFeatures(def,"control")[id]).toBe(false);expect(armFeatures(def,"bundle")[id]).toBe(true);
   expect(armFeatureBits(def,"control")[id]).toBe(false);expect(armFeatureBits(def,"bundle")[id]).toBe(true);
  }
+ for(const id of ["ineffective-navigation-v2","supervisor-briefing-v2"])for(const arm of ["control","bundle"] as const){
+  expect(armFeatures(def,arm)[id]).toBe(false);expect(armFeatureBits(def,arm)[id]).toBe(false);
+ }
+});
+
+it("the next bundle: control gains the battle tools and exit reachability, the bundle adds stage-bound story goals and semantic exploration, and the cook is two one-hour pairs",()=>{
+ for(const file of ["bundle-v-control","bundle-cook-1h"]){
+  const {definition:def}=parseFixedDefinition(readFileSync(new URL(`../../../experiments/fixed/${file}.json`,import.meta.url),"utf8"));
+  for(const id of ["battle-move-tool-v1","battle-menu-loop-v1","tutorial-party-owner-v1","context-token-budget-v1","exit-reachability-v1"])for(const arm of ["control","bundle"] as const){
+   expect(def.onInBoth).toContain(id);expect(def.switches).not.toContain(id);expect(armFeatureBits(def,arm)[id]).toBe(true);
+  }
+  for(const id of ["stale-story-goal-v1","stale-story-goal-v2","harness-trust-v1","evolution-decision-v1","semantic-navigation-v1","deterministic-exploration-v1","briefing-repeat-count-v1","navigate-already-here-v1"]){
+   expect(armFeatureBits(def,"control")[id]).toBe(false);expect(armFeatureBits(def,"bundle")[id]).toBe(true);
+  }
+ }
+ const {definition:cook}=parseFixedDefinition(readFileSync(new URL("../../../experiments/fixed/bundle-cook-1h.json",import.meta.url),"utf8"));
+ expect(cook.phases.map(phase=>[phase.perArm,phase.maxWallMs])).toEqual([[2,3_600_000]]);
+ expect(controlBaseProblems(cook,readFileSync(new URL(`../../../${cook.controlBase.path}`,import.meta.url),"utf8"))).toEqual([]);
 });
 
 type Ending = "budget" | "model_error" | "never-started" | "milestone";

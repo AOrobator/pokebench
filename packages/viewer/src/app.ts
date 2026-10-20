@@ -219,6 +219,7 @@ export class App {
   private baselineRequest = 0;
   private frontier: Baseline | null = null;
   private comparisonRequest = 0;
+  private frontierRequest = 0;
   private comparisonsRun: string | null = null;
   private problems: string[] = [];
   private trace = this.newTrace();
@@ -832,20 +833,32 @@ export class App {
     this.render();
   }
 
+  // The split card and the splits page race the frontier, so it loads with every pick, unlike the comparisons scan.
+  private async loadFrontier(runId: string): Promise<void> {
+    const request = ++this.frontierRequest;
+    try {
+      const record = await this.deps.fetchJson(`/api/runs/${encodeURIComponent(runId)}/frontier`) as { frontier?: unknown };
+      const frontier = record.frontier === null ? null : baselineOf(record.frontier);
+      if (request !== this.frontierRequest) return;
+      this.frontier = frontier;
+      this.render();
+    } catch (error) {
+      if (request === this.frontierRequest) this.problem(`frontier: ${String(error)}`);
+    }
+  }
+
   private async loadComparisons(runId: string): Promise<void> {
     this.comparisonsRun = runId;
     const request = ++this.comparisonRequest;
     const baselineRequest = this.baselineRequest;
     try {
       const value = await this.deps.fetchJson(`/api/runs/${encodeURIComponent(runId)}/comparisons`);
-      const record = value as { candidates?: unknown; baseline?: unknown; frontier?: unknown };
+      const record = value as { candidates?: unknown; baseline?: unknown };
       if (!Array.isArray(record.candidates)) throw new Error("malformed comparisons");
       const rawCandidates: unknown[] = record.candidates;
       const candidates = rawCandidates.map(baselineOf);
       const baseline = record.baseline === null ? null : baselineOf(record.baseline);
-      const frontier = record.frontier === null ? null : baselineOf(record.frontier);
       if (request !== this.comparisonRequest) return;
-      this.frontier = frontier;
       // Populate only validated references, even when the user disabled the
       // automatic default while loading. Never expose unchecked run choices.
       this.picker("baseline").replaceChildren(option(this.doc, "", "none"), ...candidates.map((c, i) => option(this.doc, c.run, comparisonLabel(c.run, rawCandidates[i]))));
@@ -951,6 +964,7 @@ export class App {
       if (this.mode !== "replay") this.startReplay(true);
       this.render();
     });
+    void this.loadFrontier(runId);
     if (this.doc.querySelector('[data-page="splits"][aria-pressed="true"]') !== null) void this.loadComparisons(runId);
     this.render();
   }

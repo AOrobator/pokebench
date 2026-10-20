@@ -8,6 +8,8 @@ import { LOOP_POLICY, type CompletedCall, type LoopHit, type LoopRule, type Loop
 import { InterfaceRules } from "./loop/rules/interfaces.js";
 import { LoopDetector, type LoopNotice } from "./loop-detection.js";
 import type { GameStateSnapshot } from "./game-state.js";
+import type { RunEvent } from "./events.js";
+import { CallTracker } from "./loop/call-tracker.js";
 
 describe("loop rule architecture", () => {
   it("preserves the compatibility facade's exact runtime and type export surface", () => {
@@ -167,5 +169,48 @@ describe("loop rule architecture", () => {
       evidence: null,
       stateReset: true,
     });
+  });
+
+  it.each(["navigate_to_target", "explore_map"])("tracks %s as a state-changing game tool", (name) => {
+    const tracker = new CallTracker();
+    const before: GameStateSnapshot = {
+      screen: "overworld", started: true, name: "RED", location: "MAP", map_id: [0, 0], position: { x: 0, y: 0 },
+      facing: "right", field_controls_locked: false, in_battle: false, party: [], money: 0, badges: [], play_time_s: 0,
+    };
+    const after = { ...before, position: { x: 1, y: 0 } };
+    tracker.state({ ...before, type: "state", seq: 1 } as unknown as Extract<RunEvent, { type: "state" }>);
+    tracker.start({ type: "tool_call", seq: 2, id: "call", name, args: {} } as unknown as Extract<RunEvent, { type: "tool_call" }>);
+    tracker.button({ type: "button_press", seq: 3, tool_call_id: "call", before_state_seq: 1, buttons: ["RIGHT"] } as unknown as Extract<RunEvent, { type: "button_press" }>, false);
+    tracker.state({ ...after, type: "state", seq: 4 } as unknown as Extract<RunEvent, { type: "state" }>);
+    const completed = tracker.finish({ type: "tool_result", seq: 5, id: "call", name, args: {}, is_error: false, text: "ok", state_seq: 4 } as unknown as Extract<RunEvent, { type: "tool_result" }>);
+    expect(completed).toMatchObject({ name, acted: true, beforeState: before, state: after });
+
+    const notices: LoopNotice[] = [];
+    const detector = new LoopDetector((notice) => notices.push(notice), { ...LOOP_POLICY, planning: 2, recovery: 1 }, "enforced");
+    detector.complete({ name: "set_objective", args: {}, isError: false, text: "ok" });
+    detector.complete({ name: "set_objective", args: {}, isError: false, text: "ok" });
+    detector.complete(completed);
+    expect(notices.map(({ kind, phase }) => [kind, phase])).toEqual([["planning", "warning"], ["planning", "recovered"]]);
+  });
+
+  it.each(["navigate_to_target", "explore_map"])("tracks commandless repeated %s failures as ineffective", (name) => {
+    const tracker = new CallTracker();
+    const state: GameStateSnapshot = {
+      screen: "overworld", started: true, name: "RED", location: "MAP", map_id: [0, 0], position: { x: 0, y: 0 },
+      facing: "right", field_controls_locked: false, in_battle: false, party: [], money: 0, badges: [], play_time_s: 0,
+    };
+    const notices: LoopNotice[] = [];
+    const detector = new LoopDetector((notice) => notices.push(notice), LOOP_POLICY, "enforced");
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const base = attempt * 3;
+      const args = name === "navigate_to_target" ? { map_id: [0, 0], target: { kind: "object", local_id: 1 } } : {};
+      tracker.state({ ...state, type: "state", seq: base + 1 } as unknown as Extract<RunEvent, { type: "state" }>);
+      tracker.start({ type: "tool_call", seq: base + 2, id: `call-${String(attempt)}`, name, args } as unknown as Extract<RunEvent, { type: "tool_call" }>);
+      tracker.state({ ...state, type: "state", seq: base + 3 } as unknown as Extract<RunEvent, { type: "state" }>);
+      const completed = tracker.finish({ type: "tool_result", seq: base + 4, id: `call-${String(attempt)}`, name, args, is_error: false, text: "no route", state_seq: base + 3 } as unknown as Extract<RunEvent, { type: "tool_result" }>);
+      expect(completed).toMatchObject({ name, acted: false, beforeState: state, state });
+      detector.complete(completed);
+    }
+    expect(notices.map(({ kind, phase }) => [kind, phase])).toContainEqual(["ineffective", "warning"]);
   });
 });

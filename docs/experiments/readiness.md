@@ -138,6 +138,13 @@ Pending, unqueued and unapproved. Separate proposed MAIN_MENU early-game screen,
 
 | `cache-aligned-window-v1` / `jit-guide-reuse-v1` concurrent diagnostic | Initial request / NEW_GAME_CREATED; MAIN_MENU start | READY (checkpoint, diagnostic only) | 2026-10-18: reviewed implementation `fd43960d` loaded MAIN_MENU SHA1 `b3a6cc1c19836600a15febf41b8f8b19661ce5d4` on isolated port18079; opened frame shows NEW GAME selected (coarse state TITLE_SEQUENCE). Current production window/catalog/provider rebuilt949 recorded requests; representative largest actual templates accepted52332control onGPU0 /51690JIT onGPU1 plus4096output below65536. Both live servers bind the same host GGUF/mmproj paths and match build/context/vision/slots. Operator authorizes exactly1/arm1200000ms concurrent,40GPUminutes plus setup. Pending queue entries remainblocked/unqueued; only fixed `jit-v2-cache-20m` is authorized. Final cleanmain pin/viewer/lease/exclusive-lane and run_start/dropdown/audit proofs still required. Not boot readiness, powered benefit or isolated shared-window evidence. |
 
+## 2026-10-19 — semantic navigation and deterministic exploration
+
+| Experiment | Activation / primary | Verdict | Evidence and next gate |
+|---|---|---|---|
+| `semantic-navigation` | `PLAYER_NAME_CONFIRMED` / `RUSTBORO_CITY`; planned checkpoint start `PETALBURG_CITY` | READY (checkpoint) for design, pending and unqueued | The verified Petalburg checkpoint SHA-1 `f1cf4b8217b7a67f9d48094d21e9fa2c50eebc82` is after activation and before the primary frontier. Design and power the external cohort, re-pin the reviewed merge, and rehearse interruption receipts before operator approval. |
+| `deterministic-exploration` | `PLAYER_NAME_CONFIRMED` / `RUSTBORO_CITY`; planned checkpoint start `PETALBURG_CITY` | READY (checkpoint) for design, pending and unqueued | Uses the same qualified checkpoint and keeps semantic navigation ON in both arms. Before approval, prove one-target-only execution and return-on-battle/dialogue/menu/script/map-transition in the frozen build, then complete experiment design. |
+
 ## 2026-10-19 — visited terrain navigation
 
 | Experiment | Activation / primary | Verdict | Evidence and next gate |
@@ -171,6 +178,8 @@ BLOCKED for a dedicated comparison: no current qualifying boot-readiness count o
 
 Checkpoint diagnostic candidate: first-arrival ROUTE_101, SHA1 0c34433cc305ea5de6fa69aa4a5612bf434a5714, source frontier-acq-a state900/milestone901, empty party. Native OFF/ON checkpoint qualification and the fixed sixteen-slot rehearsal passed; these zero-inference checks do not establish autonomous decision quality. Native activation occurs after ROUTE_101 at ready starter_selection. No measured launch or approval.
 | `context-token-budget-v1` | `RIVAL_MET` (the 2026-10-19 bundle cook trials overflowed after about 1.5 hours, past this milestone) | PENDING until `just experiments` runs after landing | Registered 2026-10-20, pending and not queued. The candidate flips only `context-token-budget-v1`. Operator decision 2026-10-20: ship it on in both arms of the six-hour cook pair instead of measuring it alone first. |
+| `briefing-repeat-count-v1` | the first loop-guard supervisor briefing (run f28d, Route 101, turn 2303) | PENDING until `just experiments` runs after landing | Registered 2026-10-20, pending and not queued. The candidate flips only `briefing-repeat-count-v1`. Bundle-only bug fix from the cook-6h-v2 analysis; the coordinator adds it to the fixed bundle. |
+| `navigate-already-here-v1` | the first `navigate_to` on the player's own tile (run f28d, Route 101, seq 53510) | PENDING until `just experiments` runs after landing | Registered 2026-10-20, pending and not queued. The candidate flips only `navigate-already-here-v1`. Bundle-only bug fix from the cook-6h-v2 analysis; the coordinator adds it to the fixed bundle. |
 
 ## Original-speed deadline pacing — 2026-10-19
 

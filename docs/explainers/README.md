@@ -122,6 +122,8 @@ The original ignored runs/explainers copies remain for existing links. Make futu
 - [Trigger script loop detection](trigger-script-loop-v1.html)
 - [Visited terrain navigation](visited-terrain-navigation-v1.html)
 - [Deterministic warp navigation](deterministic-warp-navigation-v1.html)
+- [Semantic navigation](semantic-navigation-v1.html)
+- [Deterministic exploration](deterministic-exploration-v1.html)
 
 - [Failed navigation outcomes](ineffective-navigation-v2.html) — default-OFF recovery treatment; fixed bundle ON / control OFF.
 - [Focused supervisor briefings](supervisor-briefing-v2.html) — default-OFF recovery treatment; fixed bundle ON / control OFF.
@@ -139,6 +141,8 @@ The original ignored runs/explainers copies remain for existing links. Make futu
 - [Observed instruction memory](observed-instructions-v1.html): complete delivered story-character episodes in YAML, separated from observed progress.
 - [Starter decision salience](starter-decision-salience-v1.html) — default-OFF neutral reminder at the ready starter menu.
 - [Context token budget](context-token-budget-v1.html) — default-OFF backstop that drops the oldest whole turns when a request would not fit the served context.
+- [Briefing repeat count](briefing-repeat-count-v1.html) — default-OFF fix: the focused supervisor briefing shows ×N for repeated attempts, as the full briefing does.
+- [Navigate already here](navigate-already-here-v1.html) — default-OFF fix: navigate_to to the player's own tile says the player is already there, not that it arrived.
 - [Original-speed deadline pacing](original-speed-pacing-v1.html): default-OFF 80 FPS game-clock policy, conditional 4× selector, and separate publication/display boundaries.
 - [Fixed-point breaker](fixed-point-breaker-v1.html) — bundle-only guard: collapses identical repeated turns, sends a positive note with the count, then once per loop talks to the nearest untalked person.
 - [Story-character stall gate](story-character-stall-gate-v1.html) — bundle-only guard: no stall or ways-off briefing while an untalked story character is on the map.

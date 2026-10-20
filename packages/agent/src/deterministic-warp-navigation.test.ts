@@ -48,6 +48,11 @@ const run=async(initial:GameStateSnapshot,on=true,goal={x:3,y:2,map_id:MAP},maxC
 };
 
 describe("deterministic-warp-navigation-v1",()=>{
+ it("does not add the checked semantic activation receipt to ordinary navigate_to",async()=>{
+  const {outcome}=await run(room());
+  expect(outcome.details).toMatchObject({navigation:{selected_target:{x:1,y:2}}});
+  expect((outcome.details as {navigation:Record<string,unknown>}).navigation).not.toHaveProperty("activation_attempted");
+ });
  it("selects the cheapest exact equivalent lab exit and activates its SOUTH_ARROW_WARP",async()=>{
   const {buttons,outcome}=await run(room());
   expect(buttons).toEqual([["DOWN"],["DOWN"]]);
@@ -221,7 +226,7 @@ describe("deterministic-warp-navigation-v1",()=>{
 
  it("is appended, default OFF, bundle-only, and registered as a pending one-switch experiment",()=>{
   const id=ID as SwitchableFeature;
-  expect(SWITCHABLE_FEATURES.at(-15)).toBe(ID);expect(playHarnessFeatures(ALL_ON,null).at(-5)).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-17)).toBe(ID);expect(playHarnessFeatures(ALL_ON,null).at(-7)).toBe(ID);
   expect(featureInfo(id)).toMatchObject({group:"guidance",needs:"bounded-navigation-v1",switchable:true,title:"DETERMINISTIC WARP NAVIGATION"});expect(featureInfo(id).description).toContain(" Off: ");
   expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false})[id]).toBe(false);expect(normalizeFeatures({} as Parameters<typeof normalizeFeatures>[0])[id]).toBe(false);
   const legacy=flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false});

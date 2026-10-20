@@ -81,6 +81,14 @@ it("deduplicates exact repeats, keeps distinct episodes and excludes cross-run i
  await h.wiring.transformContext([]);const text=h.recorded.at(-1)?.text??"";
  expect(text.match(/text: "DAD: Now…"/g)).toHaveLength(1);expect(text).toContain("dialogue_events: [2]");expect(text).not.toContain("dialogue_events: [10]");expect(text).toContain("Another instruction");expect(text).not.toContain("FOREIGN");
 });
+it.each(["navigate_to_target","explore_map"])("updates observed progress from %s results",async name=>{
+ const h=harness();deliver(h);
+ h.send(event({type:"state",seq:20,...IN_GAME,location:"NEW MAP",map_id:[0,4]}));
+ h.send(event({type:"tool_result",seq:21,id:"semantic",name,text:"Location: NEW MAP\nStory: newly delivered",is_error:false,duration_ms:1,frames:[],state_seq:20}));
+ await h.wiring.transformContext([]);const text=h.recorded.at(-1)?.text??"";
+ expect(text).toContain('"location":"NEW MAP"');expect(text).toContain('"story":"newly delivered"');
+ expect(text).toContain('"state_event":20');
+});
 it("combines multiple dialogue records from one delivered call and preserves unknown speakers within it",async()=>{
  const h=harness();deliver(h);
  h.send(event({type:"dialogue_auto_advance",seq:10,tool_call_id:"split",pages:[page("MOM: Listen","MOM")],tool:"press",requested:[],sent:[],dropped:[],auto_presses:0,stop:"field_free",detail:"",duration_ms:0}));

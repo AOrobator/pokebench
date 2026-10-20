@@ -93,7 +93,7 @@ async function harness(hash = "", runs: unknown[] = RUNS, workbench: unknown = n
         const id = decodeURIComponent(url.split("/")[3] ?? "");
         return id in heads ? Promise.resolve(heads[id]) : Promise.reject(new Error("recorded head unavailable"));
       }
-      if (url.endsWith("/comparisons")) return Promise.resolve({ candidates: [{run: "2026-10-11T21-00-00_old", milestones: []}], baseline: null, frontier: null });
+      if (url.endsWith("/comparisons")) return Promise.resolve({ candidates: [{run: "2026-10-11T21-00-00_old", milestones: []}], baseline: null });
       if (url.endsWith("/milestones")) {
         return Promise.resolve({ run: "2026-10-11T21-00-00_old", milestones: [{ name: "GAME_RUNNING", offsetMs: 5 }, { name: "PLAYER_NAME_SET", offsetMs: 20_000 }] });
       }
@@ -483,7 +483,7 @@ describe("viewer app", () => {
         url === "/api/runs"
           ? Promise.resolve(RUNS)
           : url.endsWith("/head") ? Promise.reject(new Error("recorded head unavailable"))
-          : url.endsWith("/comparisons") ? Promise.resolve({ candidates:[{run:"2026-10-11T21-00-00_old",milestones:[]}],baseline:null,frontier:null }) : new Promise((resolve) => {
+          : url.endsWith("/comparisons") ? Promise.resolve({ candidates:[{run:"2026-10-11T21-00-00_old",milestones:[]}],baseline:null }) : new Promise((resolve) => {
               pending.push(resolve);
             }),
       sendJson: noWrites,
@@ -1103,13 +1103,56 @@ it("keeps recorded objective events out of the watch view and PokéNav pages", a
   expect(must(document.querySelector(".page-directory")).textContent).not.toContain("OBJECTIVE");
 });
 
+it("races the frontier on the split card as soon as a run is picked, without the splits page or a comparisons scan", async () => {
+  document.body.innerHTML = PAGE.slice(PAGE.indexOf("<body>") + 6, PAGE.indexOf("</body>"));
+  const streams: FakeStream[] = [];
+  const requested: string[] = [];
+  const frontier = { run: "frontier", milestones: [{name:"PLAYER_NAME_SET", offsetMs:2000}] };
+  const app = await mountApp(document, {
+    fetchJson: (url) => { requested.push(url); return nextRunReply(url) ?? Promise.resolve(url === "/api/runs" ? RUNS : url.endsWith("/frontier") ? { frontier } : { candidates: [], baseline: null }); },
+    sendJson: noWrites,
+    openStream: (url) => { const s = new FakeStream(url); streams.push(s); return s; },
+    now: () => BASE_MS + 6000,
+    hash:"",
+  });
+  feed(must(streams[0]), fullRun().events);
+  await Promise.resolve(); await Promise.resolve();
+  app.clock?.seek(BASE_MS + 6000);
+  app.tick(0);
+  expect(requested.filter((url) => url.endsWith("/frontier"))).toHaveLength(1);
+  expect(requested.filter((url) => url.endsWith("/comparisons"))).toEqual([]);
+  expect(ui("split-times").innerHTML).toContain('<span class="d r">+0:00:01</span>');
+  expect(ui("split-times").textContent).not.toContain("no frontier run");
+});
+
+it("keeps a superseded run's frontier off the newly picked run", async () => {
+  document.body.innerHTML = PAGE.slice(PAGE.indexOf("<body>") + 6, PAGE.indexOf("</body>"));
+  const pending = new Map<string, (value: unknown) => void>();
+  const streams: FakeStream[] = [];
+  const app = await mountApp(document, {
+    fetchJson: (url) => nextRunReply(url) ?? (url === "/api/runs" ? Promise.resolve(RUNS) : url.endsWith("/frontier") ? new Promise((resolve) => pending.set(url, resolve)) : Promise.reject(new Error("unavailable"))),
+    sendJson: noWrites,
+    openStream: (url) => { const stream = new FakeStream(url); streams.push(stream); return stream; }, now:()=>BASE_MS, hash:"",
+  });
+  const first = [...pending.keys()][0] ?? "";
+  app.select(M4_ID);
+  feed(must(streams[1]), fullRun().events);
+  must(pending.get(first))({ frontier: { run: "stale", milestones: [{ name: "PLAYER_NAME_SET", offsetMs: 1000 }] } });
+  must(pending.get(`/api/runs/${encodeURIComponent(M4_ID)}/frontier`))({ frontier: null });
+  await Promise.resolve(); await Promise.resolve();
+  app.clock?.seek(BASE_MS + 6000);
+  app.tick(0);
+  expect(ui("split-times").textContent).toContain("no frontier run to compare yet");
+  expect(ui("split-times").textContent).not.toContain("0:00:02");
+});
+
 it("loads baseline and frontier when the splits page opens without changing the picker", async () => {
   document.body.innerHTML = PAGE.slice(PAGE.indexOf("<body>") + 6, PAGE.indexOf("</body>"));
   const streams: FakeStream[] = [];
   const reference = { run: "previous", milestones: [{name:"PLAYER_NAME_SET", offsetMs:5000}] };
   const best = { run: "best", milestones: [{name:"PLAYER_NAME_SET", offsetMs:2000}] };
   const app = await mountApp(document, {
-    fetchJson: (url) => nextRunReply(url) ?? Promise.resolve(url === "/api/runs" ? RUNS : { candidates:[reference,best], baseline:reference, frontier: best }),
+    fetchJson: (url) => nextRunReply(url) ?? Promise.resolve(url === "/api/runs" ? RUNS : url.endsWith("/frontier") ? { frontier: best } : { candidates:[reference,best], baseline:reference }),
     sendJson: noWrites,
     openStream: (url) => { const s = new FakeStream(url); streams.push(s); return s; },
     now: () => BASE_MS + 6000,
@@ -1131,15 +1174,15 @@ it("does not apply comparisons from a superseded run selection", async () => {
   const pending: ((value: unknown) => void)[] = [];
   const streams: FakeStream[] = [];
   const app = await mountApp(document, {
-    fetchJson: (url) => nextRunReply(url) ?? (url === "/api/runs" ? Promise.resolve(RUNS) : url.startsWith("/api/cards") || url.endsWith("/head") ? Promise.reject(new Error("optional snapshot unavailable")) : new Promise((resolve) => pending.push(resolve))),
+    fetchJson: (url) => nextRunReply(url) ?? (url === "/api/runs" ? Promise.resolve(RUNS) : url.startsWith("/api/cards") || url.endsWith("/head") ? Promise.reject(new Error("optional snapshot unavailable")) : url.endsWith("/frontier") ? Promise.resolve({ frontier: null }) : new Promise((resolve) => pending.push(resolve))),
     sendJson: noWrites,
     openStream: (url) => { const stream = new FakeStream(url); streams.push(stream); return stream; }, now:()=>BASE_MS, hash:"",
   });
   await openSplits();
   app.select(M4_ID);
   feed(must(streams[1]), fullRun().events);
-  must(pending[1])({candidates:[],baseline:null,frontier:null});
-  must(pending[0])({candidates:[{run:"stale",milestones:[]}],baseline:{run:"stale",milestones:[]},frontier:{run:"stale",milestones:[]}});
+  must(pending[1])({candidates:[],baseline:null});
+  must(pending[0])({candidates:[{run:"stale",milestones:[]}],baseline:{run:"stale",milestones:[]}});
   await Promise.resolve();
   app.clock?.seek(BASE_MS + 6000);
   app.tick(0);
@@ -1153,7 +1196,7 @@ it("offers only eligible references and preserves none while comparisons are pen
   const pending: ((value:unknown)=>void)[] = [];
   const streams: FakeStream[] = [];
   const app = await mountApp(document, {
-    fetchJson:(url)=>nextRunReply(url) ?? (url === "/api/runs" ? Promise.resolve(RUNS) : url.startsWith("/api/cards") || url.endsWith("/head") ? Promise.reject(new Error("optional snapshot unavailable")) : url.startsWith("/sprites/") ? Promise.reject(new Error("no card art")) : new Promise((resolve)=>pending.push(resolve))),
+    fetchJson:(url)=>nextRunReply(url) ?? (url === "/api/runs" ? Promise.resolve(RUNS) : url.startsWith("/api/cards") || url.endsWith("/head") ? Promise.reject(new Error("optional snapshot unavailable")) : url.startsWith("/sprites/") ? Promise.reject(new Error("no card art")) : url.endsWith("/frontier") ? Promise.resolve({frontier:{run:"best",milestones:[{name:"PLAYER_NAME_SET",offsetMs:2000}]}}) : new Promise((resolve)=>pending.push(resolve))),
     sendJson: noWrites,
     openStream:(url)=>{const s=new FakeStream(url);streams.push(s);return s;},now:()=>BASE_MS,hash:"",
   });
@@ -1163,7 +1206,7 @@ it("offers only eligible references and preserves none while comparisons are pen
   expect([...picker.options].map((o)=>o.value)).toEqual([""]);
   picker.value="";
   picker.dispatchEvent(new Event("change"));
-  must(pending[0])({candidates:[{run:"automatic",milestones:[]}],baseline:{run:"automatic",milestones:[]},frontier:{run:"best",milestones:[{name:"PLAYER_NAME_SET",offsetMs:2000}]}});
+  must(pending[0])({candidates:[{run:"automatic",milestones:[]}],baseline:{run:"automatic",milestones:[]}});
   await Promise.resolve();
   app.clock?.seek(BASE_MS+6000);
   app.tick(0);
@@ -1302,14 +1345,14 @@ it("mounts the ineffective loops notices in Activity History and the inspector a
 
 it('labels human comparison candidates with unverified ROM provenance',async()=>{
  document.body.innerHTML=PAGE.slice(PAGE.indexOf('<body>')+6,PAGE.indexOf('</body>'));
- const app=await mountApp(document,{fetchJson:url=>nextRunReply(url) ?? Promise.resolve(url==='/api/runs'?RUNS:{candidates:[{run:'human-unknown',milestones:[],controller:{kind:'human',name:'Operator'},romIdentity:'unverified'},{run:'human-verified',milestones:[],controller:{kind:'human',name:'Operator'},romIdentity:'verified'}],baseline:null,frontier:null}),sendJson:noWrites,openStream:url=>new FakeStream(url),now:()=>BASE_MS,hash:''});
+ const app=await mountApp(document,{fetchJson:url=>nextRunReply(url) ?? Promise.resolve(url==='/api/runs'?RUNS:{candidates:[{run:'human-unknown',milestones:[],controller:{kind:'human',name:'Operator'},romIdentity:'unverified'},{run:'human-verified',milestones:[],controller:{kind:'human',name:'Operator'},romIdentity:'verified'}],baseline:null}),sendJson:noWrites,openStream:url=>new FakeStream(url),now:()=>BASE_MS,hash:''});
   await openSplits();
  await Promise.resolve();expect(ui('baseline').textContent).toContain('human-unknown (ROM unverified)');expect(ui('baseline').textContent).toContain('human-verified');expect(ui('baseline').textContent).not.toContain('human-verified (ROM unverified)');app.tick(0);
 });
 
 it("opens the requested run stream without scanning historical comparisons or feature history",async()=>{
  document.body.innerHTML=PAGE.slice(PAGE.indexOf("<body>")+6,PAGE.indexOf("</body>"));const requested:string[]=[],streams:FakeStream[]=[];
- await mountApp(document,{fetchJson:url=>{requested.push(url);return nextRunReply(url)??Promise.resolve(url==="/api/runs"?RUNS:{candidates:[],baseline:null,frontier:null});},sendJson:noWrites,openStream:url=>{const stream=new FakeStream(url);streams.push(stream);return stream;},now:()=>BASE_MS,hash:`#replay=${M4_ID}`});
+ await mountApp(document,{fetchJson:url=>{requested.push(url);return nextRunReply(url)??Promise.resolve(url==="/api/runs"?RUNS:{candidates:[],baseline:null});},sendJson:noWrites,openStream:url=>{const stream=new FakeStream(url);streams.push(stream);return stream;},now:()=>BASE_MS,hash:`#replay=${M4_ID}`});
  await Promise.resolve();await Promise.resolve();
  expect(streams.map(s=>s.url)).toEqual([`/api/runs/${M4_ID}/events`]);expect(requested.filter(url=>url.endsWith("/comparisons")||url.endsWith("/history"))).toEqual([]);
  document.querySelector<HTMLButtonElement>('[data-page="splits"]')?.click();await Promise.resolve();

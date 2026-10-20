@@ -507,8 +507,15 @@ export const StateBodySchema = Type.Object(
       kind: Type.String(), x: Type.Integer(), y: Type.Integer(), elevation: Type.Integer(),
       activation: Type.String(), availability: Type.String(), facing: Type.Union([Type.String(), Type.Null()]),
       local_id: Type.Union([Type.Integer(), Type.Null()]),
+      // semantic-navigation-v1: exact gObjectEvents identity, absent when off.
+      native_slot: Type.Optional(Type.Integer({minimum:0,maximum:15})),
       destination: Type.Union([Type.Tuple([Type.Integer(), Type.Integer(), Type.Integer()]), Type.Null()]),
     }, closed)), Type.Null()])),
+    // semantic-navigation-v1: complete active slot order used by native A lookup.
+    interaction_object_slots:Type.Optional(Type.Array(Type.Object({
+      slot:Type.Integer({minimum:0,maximum:15}),x:Type.Integer(),y:Type.Integer(),elevation:Type.Integer({minimum:0,maximum:15}),
+      local_id:Type.Integer({minimum:0,maximum:255}),map_id:Type.Tuple([Type.Integer({minimum:0,maximum:255}),Type.Integer({minimum:0,maximum:255})]),is_player:Type.Boolean(),
+    },closed),{maxItems:16})),
     navigation_grid: Type.Optional(Type.Union([Type.Object({elevation:Type.Integer({minimum:0,maximum:15}),
       tiles:Type.Array(Type.Object({x:Type.Integer({minimum:0}),y:Type.Integer({minimum:0}),collision:Type.Integer({minimum:0,maximum:3}),behavior:Type.Integer({minimum:0,maximum:255}),elevation:Type.Integer({minimum:0,maximum:15})},closed),{minItems:1,maxItems:225}),
       objects:Type.Array(Type.Object({x:Type.Integer(),y:Type.Integer()},closed),{maxItems:16}),warps:Type.Array(Type.Object({x:Type.Integer(),y:Type.Integer()},closed),{maxItems:255})},closed),Type.Null()])),

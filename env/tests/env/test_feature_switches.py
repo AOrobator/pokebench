@@ -209,6 +209,11 @@ def test_measurement_json_is_identical_with_every_switch_off(
     # heal-before-trainers-v1 adds the trainers on this map and the healing places (none here).
     assert payloads[0]["state"].pop("heal_before_trainers")["trainers"] == []
     assert "heal_before_trainers" not in payloads[1]["state"]
+    # semantic-navigation-v1 adds native object-slot receipts and binds listed objects to them.
+    assert payloads[0]["state"].pop("interaction_object_slots")
+    assert "interaction_object_slots" not in payloads[1]["state"]
+    for target in payloads[0]["state"]["interaction_targets"]:
+        target.pop("native_slot", None)
     assert payloads[0]["state"] == payloads[1]["state"]
     assert payloads[0]["state_text"] != "" and payloads[1]["state_text"] == ""
 
@@ -226,6 +231,7 @@ def test_env_list_is_validated() -> None:
             "named-interactions-v1",
             "world-destinations-v1",
             "bounded-navigation-v1",
+            "semantic-navigation-v1",
             "expanded-menu-battle-information-v1",
             "field-dialogue-phase-v1",
             "full-map-navigation-v1",
@@ -267,7 +273,7 @@ def test_env_list_is_validated() -> None:
     for bad in ("invented-v1", "live-map-v1,,story-state-v1", "deterministic-loop-guard-v1"):
         with pytest.raises(ValueError, match="POKEBENCH_FEATURES_OFF"):
             features_off_from_env({"POKEBENCH_FEATURES_OFF": bad})
-    assert "active-ui-ownership-v1" not in SERVER_FEATURES and len(SERVER_FEATURES) == 50
+    assert "active-ui-ownership-v1" not in SERVER_FEATURES and len(SERVER_FEATURES) == 51
 
 
 def test_observation_route_applies_the_env_switches(monkeypatch: pytest.MonkeyPatch) -> None:

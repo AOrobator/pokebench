@@ -39,6 +39,33 @@ it("uses ordinary presses, handles turning, and stops after a map change",async(
  expect(buttons).toEqual([["DOWN"],["DOWN"],["RIGHT"]]);expect(outcome.content[0]?.type=== "text" ? outcome.content[0].text : null).toContain("map changed");
 });
 
+it("receipts only a map transition caused by the final exact-target step",async()=>{
+ const corridor:GameStateSnapshot={...field,navigation_grid:{elevation:3,tiles:[tile(0,0),tile(1,0),tile(2,0)],objects:[],warps:[{x:2,y:0}]}};
+ const run=async(transitionOn:number)=>{
+  let current=corridor,presses=0;
+  const tool=navigationTool({read:()=>Promise.resolve(current),press:(_id,_params,_signal,check)=>{check?.(current);presses++;current=presses===transitionOn?{...current,map_id:[1,2]}:{...current,position:{x:presses,y:0}};return Promise.resolve(result(current));},observe:()=>Promise.resolve(result(current))});
+  return tool.executeChecked("nav",{x:2,y:0,map_id:[0,9]},()=>null,undefined,{exactTarget:true});
+ };
+ await expect(run(2)).resolves.toMatchObject({details:{navigation:{goal_entry_attempted:true}}});
+ await expect(run(1)).resolves.toMatchObject({details:{navigation:{goal_entry_attempted:false}}});
+});
+
+
+it("does not receipt a final exact-target entry when that press only turns or is blocked",async()=>{
+ const corridor:GameStateSnapshot={...field,facing:"up",navigation_grid:{elevation:3,tiles:[tile(0,0),tile(1,0)],objects:[],warps:[{x:1,y:0}]}};
+ const turned=async()=>{
+  let current=corridor;
+  const tool=navigationTool({read:()=>Promise.resolve(current),press:(_id,_params,_signal,check)=>{check?.(current);current={...current,facing:"right"};return Promise.resolve(result(current));},observe:()=>Promise.resolve(result(current))});
+  return tool.executeChecked("nav",{x:1,y:0,map_id:[0,9]},state=>state.facing==="right"?"interrupted after turning":null,undefined,{exactTarget:true});
+ };
+ const bumped=async()=>{
+  const current={...corridor,facing:"right"};
+  const tool=navigationTool({read:()=>Promise.resolve(current),press:(_id,_params,_signal,check)=>{check?.(current);return Promise.resolve(result(current));},observe:()=>Promise.resolve(result(current))});
+  return tool.executeChecked("nav",{x:1,y:0,map_id:[0,9]},()=>null,undefined,{exactTarget:true});
+ };
+ await expect(turned()).resolves.toMatchObject({details:{navigation:{commands:1,goal_entry_attempted:false}}});
+ await expect(bumped()).resolves.toMatchObject({details:{navigation:{commands:1,goal_entry_attempted:false}}});
+});
 
 it("caps ordinary attempts and never advances after abort or a field lock",async()=>{
  let state={...field};let pressed=0;
@@ -113,6 +140,18 @@ it("removes the model walking choice and drops stale walking input when automati
  await tool.execute("nav",{x:0,y:1,map_id:[0,9],walking:true});
  expect(seen).toEqual([{buttons:["DOWN"]}]);
  expect(Object.hasOwn(navigationTool({read:()=>Promise.resolve(field),press:()=>Promise.resolve(result(field)),observe:()=>Promise.resolve(result(field))}).parameters.properties,"walking")).toBe(true);
+});
+
+it("keeps coordinate navigation OFF behavior and lets checked semantic travel accept a planned running prefix",async()=>{
+ const row:GameStateSnapshot={...field,position:{x:0,y:0},navigation_grid:{elevation:3,tiles:[0,1,2,3,4].map(x=>tile(x,0)),objects:[],warps:[]}};
+ let current=row,presses=0;
+ const tool=navigationTool({automaticRunning:true,read:()=>Promise.resolve(current),press:()=>{presses++;const x=current.position?.x??0;current={...current,position:{x:Math.min(4,x+2),y:0}};return Promise.resolve(result(current));},observe:()=>Promise.resolve(result(current))});
+ const incumbent=await tool.execute("nav",{x:4,y:0,map_id:[0,9]});
+ expect(incumbent.details).toMatchObject({navigation:{status:"unexpected movement; inspect new state",commands:1}});expect(presses).toBe(1);
+ current=row;presses=0;
+ const outcome=await tool.executeChecked("nav",{x:4,y:0,map_id:[0,9]},()=>null,undefined,{multiTileRunning:true});
+ expect(outcome.details).toMatchObject({navigation:{status:"arrived at requested coordinate",commands:2}});
+ expect(presses).toBe(2);
 });
 
 // pokeemerald 731ad5b metatile_behaviors.h values. The readout draws all of these as '.'.

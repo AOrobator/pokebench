@@ -613,6 +613,14 @@ it("links deterministic warp navigation to its tracked explainer",()=>{
  expect(html).toContain("Exact equivalence gate");expect(html).toContain("one checked direction press");
 });
 
+it("links both semantic navigation cards to their tracked explainers",()=>{
+ for(const id of ["semantic-navigation-v1","deterministic-exploration-v1"]){
+  expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
+  const html=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)),"utf8");
+  expect(html).toContain(id==="semantic-navigation-v1"?"Semantic navigation v1":"Deterministic exploration v1");
+ }
+});
+
 it("renders every mapped explainer's body as a page, not as stylesheet text",()=>{
  for(const file of new Set(Object.values(FEATURE_EXPLAINERS))){
   const html=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${file}`,import.meta.url)),"utf8");

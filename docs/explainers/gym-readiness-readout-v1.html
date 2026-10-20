@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gym readiness readout</title>
+<style>
+:root{--bg:#fbfaf7;--fg:#1d1d1b;--muted:#5d5b55;--line:#d9d5cc;--panel:#ffffff;--keep:#2f7d4f;--drop:#b4442f;--accent:#2d5f9a;--fill:#eef3f8;--wall:#8f8a7f;--floor:#f4f1ea}
+@media (prefers-color-scheme: dark){:root{--bg:#161614;--fg:#ecebe6;--muted:#a8a59c;--line:#3a3833;--panel:#1f1e1b;--keep:#6cc08f;--drop:#e98a74;--accent:#86b3e6;--fill:#22303f;--wall:#55524b;--floor:#2a2925}}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif}
+main{max-width:900px;margin:0 auto;padding:24px 16px 48px}
+h1{font-size:1.6rem;margin:0 0 4px}h2{font-size:1.15rem;margin:32px 0 8px}
+.muted{color:var(--muted)}
+figure{margin:16px 0;padding:12px;background:var(--panel);border:1px solid var(--line);border-radius:8px;overflow-x:auto}
+figcaption{color:var(--muted);font-size:.9rem;margin-top:8px}
+code{font:13px ui-monospace,SFMono-Regular,Menlo,monospace}
+table{border-collapse:collapse;width:100%;font-size:.95rem}td,th{border-bottom:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top}
+.tablewrap{overflow-x:auto}
+svg text{fill:var(--fg);font:13px -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif}
+svg .small{font-size:11px;fill:var(--muted)}svg .tiny{font-size:10px;fill:#fff;font-weight:600}
+.note{border-left:3px solid var(--accent);padding:6px 10px;background:var(--fill);font:13px ui-monospace,SFMono-Regular,Menlo,monospace;white-space:pre-wrap;word-break:break-word}
+.off{border-left-color:var(--drop)}.on{border-left-color:var(--keep)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}@media (max-width:640px){.grid2{grid-template-columns:1fr}}
+</style>
+</head><body><main>
+<h1>Gym readiness readout</h1>
+<p class="muted"><code>gym-readiness-readout-v1</code> · agent readout switch · bundle-only, default off</p>
+<p>Six recorded runs reached the Rustboro gym with a lone TORCHIC at Lv12–15. ROXANNE won all six battles, and only one run fought the gym's other trainers (<a href="../reports/roxanne-levels/index.html">evidence</a>). This switch puts the party's levels next to what the run has already seen of the gym, so the model can judge for itself. The operator approved it on 2026-10-20.</p>
+
+<h2>What the model reads (recorded run a8f9, turn 1106)</h2>
+<div class="note on">Location: RUSTBORO CITY GYM
+Position: …
+Gym: RUSTBORO CITY GYM · GYM LEADER ROXANNE
+Your party: TORCHIC Lv15 HP 41/41
+ROXANNE's POKéMON seen in battle this run: GEODUDE Lv12 ×2; any others not seen yet
+Said on this map: "ROXANNE, the GYM LEADER, is a user of ROCK-type POKéMON." "The ROCK type is very durable, but it can't stand WATER-type and GRASS-type moves."</div>
+<p>With heal-before-trainers facts in the state, a last line lists the map's trainers, for example <code>Trainers on this map: JOSH at (5,13) (beaten), YOUNGSTER at (2,9) (not battled), HIKER at (8,6) (not battled)</code>. A trainer is named only if a battle showed the name; otherwise the sprite kind is used.</p>
+
+<h2>Where each part comes from</h2>
+<figure>
+<svg viewBox="0 0 860 250" width="860" height="250" role="img" aria-label="Sources of each line">
+<rect x="10" y="10" width="290" height="44" rx="6" fill="var(--fill)" stroke="var(--line)"/><text x="22" y="37">state: location, party (every observation)</text>
+<rect x="10" y="70" width="290" height="44" rx="6" fill="var(--fill)" stroke="var(--line)"/><text x="22" y="97">state in battle: trainer_opponent, battlers</text>
+<rect x="10" y="130" width="290" height="44" rx="6" fill="var(--fill)" stroke="var(--line)"/><text x="22" y="157">dialogue pages printed on this map</text>
+<rect x="10" y="190" width="290" height="44" rx="6" fill="var(--fill)" stroke="var(--line)"/><text x="22" y="217">heal-before-trainers facts (trainer flags)</text>
+<rect x="400" y="10" width="450" height="224" rx="6" fill="var(--panel)" stroke="var(--keep)" stroke-width="2"/>
+<text x="414" y="37">Gym: map · GYM LEADER (class 0x20, fought here)</text>
+<text x="414" y="67">Your party: species, level, HP</text>
+<text x="414" y="97">Leader's POKéMON seen: per party slot, highest level</text>
+<text x="414" y="157">Said on this map: pages naming an X-type, once each</text>
+<text x="414" y="217">Trainers on this map: beaten / not battled</text>
+<line x1="300" y1="32" x2="400" y2="62" stroke="var(--fg)"/><line x1="300" y1="92" x2="400" y2="34" stroke="var(--fg)"/><line x1="300" y1="92" x2="400" y2="94" stroke="var(--fg)"/><line x1="300" y1="152" x2="400" y2="154" stroke="var(--fg)"/><line x1="300" y1="212" x2="400" y2="214" stroke="var(--fg)"/>
+</svg>
+<figcaption>The block is built only from recorded events this run. It never reads the ROM's trainer parties (<code>sParty_Roxanne1</code>), so before the first leader battle it says "none yet". It gives no advice and no level targets.</figcaption>
+</figure>
+
+<h2>When it shows</h2>
+<p>Only on a map whose name ends in " GYM", on the field, outside battle, in a started game. It is added to observe, press and navigate_to results right after the Location/Position lines. Off: no block.</p>
+
+<h2>Status</h2>
+<p>Branch <code>claude/gym-readiness</code>. Tests: <code>packages/agent/src/gym-readiness.test.ts</code> on the a8f9 fixture (full block, before any leader battle, trainer list, gating, slot levels, page filter, wiring ON/OFF, registry). Pending experiment <code>experiments/gym-readiness-readout-v1.json</code>, activation RUSTBORO_CITY_GYM. There are no measured runs yet.</p>
+</main></body></html>

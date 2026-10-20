@@ -55,4 +55,9 @@ Run `2026-10-20T13-54-28_qwen36-gpu0_b300` (bundle arm of whole-map-pair-1h; low
 
 ## Multi-Model Review Log
 
+- M1 R1, packet `runs/reviews/heal-before-trainers-v2/m1/packet.diff` (git diff ee95b866 6451dd06, sha256 46674fb4…12cde), boundary and principles (zero FAIL) beside it.
+  - Grok (cursor-agent cursor-grok-4.5-high, ask mode): `VERDICT: LGTM`. Follow-ups only: `weak` minItems widening (documented), replay re-parses states, no parseExperiment test, invisible-loaded edge, grunt not story (both match copy).
+  - Claude lane: `claude -p` default and `~/.claude-review` both "OAuth session expired and could not be refreshed"; Cursor claude-opus-5-thinking-high and claude-sonnet-5-thinking-high both usage-capped (ActionRequiredError). Standing fallback: fresh read-only Claude subagent, `VERDICT: BLOCKING` on B1: the copy, explainer, experiment notes and readiness row claimed v2 names the Route 103 rival, but Route103_EventScript_Rival starts with lockall, so the server's trainer test never lists the rival (verified in pret). Accepted.
+  - Fix: storyName only for the gym leader; rival test now asserts the rival is never a story opponent (old code makes it fail); copy, explainer, experiment (activation ROUTE_102) and readiness corrected; the copy now says a lead out of PP at full HP no longer names ROXANNE.
+
 ## Boy Scout Log

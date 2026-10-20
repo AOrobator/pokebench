@@ -154,11 +154,10 @@ describe("thresholds",()=>{
   expect(healBeforeTrainers(loaded,ctx)).toBeNull();
   expect(must(healBeforeTrainers(loaded,{...ctx,skip:null})).trainers.map(t=>t.local_id)).toEqual([1]);
  });
- it("the rival is named as your rival, and an unreadable party names nobody",()=>{
+ it("the Route 103 rival is never a story opponent here (its script starts with lockall, so the server lists no rival), and an unreadable party names nobody",()=>{
   const facts=must(GYM.heal_before_trainers);
   const route103={...GYM,map_id:[0,18] as [number,number],story:{...must(GYM.story),rival_battle_won:false},heal_before_trainers:{...facts,trainers:[{local_id:2,x:10,y:3,graphics_id:105,sprite_kind:"RIVAL_MAY_NORMAL",trainer_id:520,defeated:false,loaded:false}]}};
-  const f=must(healBeforeTrainers(route103,ctx));
-  expect(healBeforeTrainersV2Text(f)).toContain("A trainer you have not beaten is on this map: your rival MAY, object 2, sprite RIVAL_MAY_NORMAL, at (10,3) (not loaded now");
+  expect(healBeforeTrainers(route103,ctx)).toBeNull();
   expect(healBeforeTrainers({...GYM,party:[{...must(GYM.party[0]),hp:null}]},ctx)).toBeNull();
  });
  it("without a healing place it says where healing is, naming no place",()=>{

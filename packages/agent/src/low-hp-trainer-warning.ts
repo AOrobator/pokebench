@@ -295,10 +295,11 @@ export function healBeforeTrainers(state:GameStateSnapshot,ctx:HealContext):Heal
  return {map_id:[state.map_id[0],state.map_id[1]],trainers,weak,heal:ctx.places===null?null:nearestHeal(state,ctx,ctx.places),mom_heals:facts.mom_heals,money:state.money};
 }
 
-// heal-before-trainers-v2: the opponent of this map's unbeaten story battle (STORY_BATTLES) a trainer object is, by its
-// sprite, or null.
+// heal-before-trainers-v2: the opponent of this map's unbeaten story battle a trainer object is, by its sprite, or null.
+// Only the Gym Leader can be one: the server lists an object only when its script starts with trainerbattle, which
+// RustboroCity_Gym_EventScript_Roxanne does and Route103_EventScript_Rival (lockall first) does not.
 function storyName(state:GameStateSnapshot,sprite:string|null):string|null {
- const battle=STORY_BATTLES.find(b=>onMap(state.map_id,b.map));
+ const battle=STORY_BATTLES.find(b=>b.kind==="gym_leader"&&onMap(state.map_id,b.map));
  if(battle===undefined||battle.object===null||sprite===null||battle.won(state)!==false)return null;
  return battle.object(sprite);
 }
@@ -404,7 +405,7 @@ export function healPlaceSentence(h:HealPlace,here:readonly [number,number]):str
  const shown=h.shown===undefined?"":`; you have not entered it, but an earlier result listed it as an exit at (${String(h.shown.x)},${String(h.shown.y)}) ${keyOf(h.shown.map_id)===keyOf(here)?"on this map":`in ${h.shown.map}`}`;
  return `The nearest place you know of that heals your party is ${where} in ${h.town} (map ${keyOf(h.map_id)}), ${String(h.hops)} map change${h.hops===1?"":"s"} from here in the game's map table${shown}${h.kind==="pokemon_center"?`; ${NURSE_SAYS}`:`, ${MOM_SAYS}`}`;
 }
-const STORY_ROLE=(t:NamedTrainer):string=>t.story===undefined?"":t.story==="ROXANNE"?`the Gym Leader ${t.story}, `:`your rival ${t.story}, `;
+const STORY_ROLE=(t:NamedTrainer):string=>t.story===undefined?"":`the Gym Leader ${t.story}, `;
 export function healBeforeTrainersV2Text(f:HealBeforeTrainersFacts):string {
  const list=f.trainers.map(t=>`${STORY_ROLE(t)}object ${String(t.local_id)}, sprite ${t.sprite_kind??"unknown"}, at (${String(t.x)},${String(t.y)})${t.loaded===false?" (not loaded now: the tile the map places it on)":""}`).join("; ");
  const who=f.trainers.length===1?`A trainer you have not beaten is on this map: ${list}.`:`Trainers you have not beaten are on this map: ${list}.`;

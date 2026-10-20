@@ -223,7 +223,7 @@ describe("experiment runner", () => {
     expect(existsSync(leaseDir(a.paths.runsRoot, EXPERIMENT_POOL))).toBe(false);
     mkdirSync(leaseDir(a.paths.runsRoot, EXPERIMENT_POOL));
     let verified = 0;
-    await expect(runQueue({ paths: a.paths, source: a.source, host: host(a.paths, a.metrics, { verifySource: () => { verified += 1; return Promise.resolve(null); } }) })).rejects.toThrow("the gameplay lease is held");
+    await expect(runQueue({ paths: a.paths, source: a.source, host: host(a.paths, a.metrics, { verifySource: () => { verified += 1; return Promise.resolve(null); } }) })).rejects.toThrow("the gameplay lease for inference.example:80 is held by an unreadable owner");
     expect(verified).toBe(0);
     expect(existsSync(join(a.paths.runsRoot, "experiments", "full-map", "trials.jsonl"))).toBe(false);
   });

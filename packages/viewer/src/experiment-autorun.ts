@@ -64,7 +64,7 @@ export class ExperimentAutoRun {
       (error: unknown) => {
         const message = error instanceof Error ? error.message : String(error);
         // Another run or cohort holding the machine is a wait, not a failure.
-        const waiting = /lease is held|is still running/.test(message);
+        const waiting = /gameplay lease for .* is held by|is still running/.test(message);
         this.current = waiting ? { state: "idle", message: `Waiting: ${message}` } : { state: "error", message };
         this.retryAt = this.deps.now() + (waiting ? AUTORUN_TICK_MS : RETRY_MS);
       },

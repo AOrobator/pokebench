@@ -9,7 +9,7 @@ import { armFeatureBits, armPreset, definitionProblems, FIXED_ARMS, phaseOf, typ
 import { fileLines, type LogLines } from "./run-log.js";
 import { appendLedger, classifyTrial, nextFor, progress, queueState, readLedger, type FixedLedgerEntry, type FixedOutcome, type Progress, type QueueSlot } from "./fixed-ledger.js";
 import { writeFixedStatus, type FixedLaneStatus, type FixedStatus } from "./fixed-status.js";
-import { LeaseHeldError, nameLeaseRun, readLeaseOwner, takeLease } from "./lease.js";
+import { LeaseHeldError, leaseHolder, leasePool, nameLeaseRun, takeLeases } from "./lease.js";
 import { runnerPath } from "./experiment-store.js";
 
 const startExpectation = (start: FixedStart): { kind: "save_state"; sha1: string } | { kind: "boot" } => (start.kind === "save_state" ? { kind: "save_state", sha1: start.sha1 } : { kind: "boot" });
@@ -84,7 +84,7 @@ class Runner {
   private state: FixedStatus["state"] = "waiting";
   private lastError: string | null = null;
   private lastProgress: Progress | null = null;
-  private lease: string | null = null;
+  private leases: string[] = [];
   private buildCheck: Promise<unknown> = Promise.resolve();
 
   constructor(private readonly o: FixedRunOptions) {
@@ -105,7 +105,7 @@ class Runner {
       const done = await Promise.all(this.o.def.lanes.map((lane) => this.laneLoop(lane)));
       return this.finish(done.every(Boolean) ? "finished" : "stopped");
     } finally {
-      if (this.lease !== null) rmSync(this.lease, { recursive: true, force: true });
+      for (const lease of this.leases) rmSync(lease, { recursive: true, force: true });
       this.children.clear();
       this.writeRunner();
     }
@@ -144,13 +144,12 @@ class Runner {
     for (;;) {
       let reason: string;
       try {
-        this.lease = takeLease(this.o.runsRoot, { pid: this.o.pid, owner: `fixed-run:${this.o.def.id}` }, (pid) => this.o.host.alive(pid), this.unfinishedRuns());
+        const pools = this.o.def.lanes.map((lane) => leasePool(lane.modelUrl));
+        this.leases = takeLeases(this.o.runsRoot, pools, { pid: this.o.pid, owner: `fixed-run:${this.o.def.id}` }, (pid) => this.o.host.alive(pid), this.unfinishedRuns());
         return true;
       } catch (error) {
-        if (error instanceof LeaseHeldError) {
-          const owner = readLeaseOwner(this.o.runsRoot);
-          reason = `waiting for the gameplay lease, held by ${owner === null ? "an unreadable owner" : `${owner.owner} (pid ${String(owner.pid)})`}`;
-        } else reason = `cannot take the gameplay lease: ${message(error)}`;
+        if (error instanceof LeaseHeldError) reason = `waiting for the gameplay lease for ${error.pool}, held by ${leaseHolder(error.holder)}`;
+        else reason = `cannot take the gameplay lease: ${message(error)}`;
       }
       for (const lane of this.o.def.lanes) this.setLane(lane.id, { state: "waiting", reason, retryAt: null });
       if (this.o.stopRequested()) return false;
@@ -364,7 +363,7 @@ class Runner {
       mkdirSync(join(this.o.runsRoot, "experiments"), { recursive: true });
       writeFileSync(path, JSON.stringify({ pid: this.o.pid, experiment: this.o.def.id, trial: latest.slot, run: latest.run, child: latest.pid }));
     }
-    if (this.lease !== null) nameLeaseRun(this.lease, { pid: this.o.pid, owner: `fixed-run:${this.o.def.id}`, ...(latest === undefined ? {} : { run: latest.run, child: latest.pid }) });
+    for (const lease of this.leases) nameLeaseRun(lease, { pid: this.o.pid, owner: `fixed-run:${this.o.def.id}`, ...(latest === undefined ? {} : { run: latest.run, child: latest.pid }) });
   }
 
   private setLane(id: string, change: Partial<FixedLaneStatus>): void {

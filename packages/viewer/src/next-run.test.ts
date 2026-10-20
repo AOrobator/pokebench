@@ -172,6 +172,22 @@ describe("run queue", () => {
     expect(existsSync(leaseDir(runsRoot, MAC))).toBe(false);
   });
 
+  it("waits while the model endpoint cannot name its compute pool", async () => {
+    const runsRoot = root();
+    const { h, launches, finish } = host(runsRoot);
+    let broken = true;
+    const queue = new RunQueue({ ...h, healthy: () => Promise.resolve(false), leasePool: () => { if (broken) throw new Error("endpoint file missing"); return MAC; } });
+    queue.enqueue(draft);
+    await queue.tick();
+    expect(queue.status()).toMatchObject({ state: "queued", waitingFor: "the model endpoint: endpoint file missing" });
+    expect(launches).toEqual([]);
+    broken = false;
+    const running = queue.tick();
+    await vi.waitFor(() => { expect(launches).toHaveLength(1); });
+    finish(0);
+    await running;
+  });
+
   it("keeps waiting on an experiment lease a dead viewer left while its trial still plays", async () => {
     const runsRoot = root();
     mkdirSync(leaseDir(runsRoot, MAC));

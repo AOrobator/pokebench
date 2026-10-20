@@ -55,6 +55,10 @@
     "./patch-results": {
       "types": "./src/patch-results.ts",
       "default": "./dist/patch-results.js"
+    },
+    "./lease-pool": {
+      "types": "./src/lease-pool.ts",
+      "default": "./dist/lease-pool.js"
     }
   },
   "scripts": {

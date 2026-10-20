@@ -90,7 +90,7 @@ describe("next run", () => {
     const base = mkdtempSync(join(tmpdir(), "viewer-queue-"));
     writeFileSync(join(base, "endpoint.json"), JSON.stringify({ base_url: "http://127.0.0.1:18434/v1", api_key: "k" }));
     const router: typeof fetch = (input) => Promise.resolve(new Response(JSON.stringify({ data: [{ id: "Qwen", status: { value: "loaded", args: ["--mmproj", "m", "--ctx-size", "262144"] } }, { id: "TextOnly", status: { value: "loaded", args: ["--ctx-size", "8192"] } }, { id: "Asleep", status: { value: "unloaded", args: ["--mmproj", "m", "--ctx-size", "8192"] } }, { id: "NoContext", status: { value: "loaded", args: ["--mmproj", "m"] } }] }), { status: input === "http://127.0.0.1:18434/v1/models" ? 200 : 404 }));
-    const queue = new RunQueue({ runsRoot: join(base, "runs"), liveJs: "/x/live.js", endpointFile: join(base, "endpoint.json"), gamePort: 8076, healthy: () => Promise.resolve(false), now: () => new Date("2026-10-13T16:00:00.000Z"), random: () => "cd34", launch: () => new Promise(() => undefined) });
+    const queue = new RunQueue({ runsRoot: join(base, "runs"), liveJs: "/x/live.js", endpointFile: join(base, "endpoint.json"), leasePool: () => "127.0.0.1:18434", gamePort: 8076, healthy: () => Promise.resolve(false), now: () => new Date("2026-10-13T16:00:00.000Z"), random: () => "cd34", launch: () => new Promise(() => undefined) });
     const { viewer: v } = await viewer({ queue, runsRoot: join(base, "runs"), endpointFile: join(base, "endpoint.json"), fetchFn: router });
     const unknown = await call(v, "POST", "/api/next-run/queue", { ...DEFAULT_NEXT_RUN, model: "invented" });
     expect(unknown.status).toBe(409);

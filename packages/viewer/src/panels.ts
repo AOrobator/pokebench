@@ -511,6 +511,7 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "trainer-sight-check-v1":"trainer-sight-check-v1.html",
  "caught-nickname-prompt-v1":"caught-nickname-prompt-v1.html",
  "fail-open-input-v1":"fail-open-input-v1.html",
+ "whiteout-healed-v1":"whiteout-healed-v1.html",
 });
 
 export function harnessConfig(view:RunView,registry:readonly FeatureInfo[]=[]):string {

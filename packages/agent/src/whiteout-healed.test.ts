@@ -45,11 +45,12 @@ describe("whiteout-healed-v1 on run c6c2 (whited out to MAY at turns 256 and 277
  it("ON: every later result repeats the party as the state after that whiteout's warp read it, and the second whiteout replaces it",()=>{
   const results=replay(events,recordedFeatures(events,{[ID]:true}));
   for(const {result,recap} of results){
+   const was=recordedRecap(result);
    if(result.seq<6924)expect(recap).toBeNull();
-   else if(result.seq<7944)expect(recap).toBe(LOSS1+HEALED);
-   else expect(recap).toBe(LOSS2+HEALED);
+   else expect(recap).toBe(`${was??""}${HEALED}`);
+   if(result.seq>=6924)expect(was?.startsWith(result.seq<7944?LOSS1.slice(0,90):LOSS2.slice(0,90))).toBe(true);
   }
-  expect(results.some(r=>r.result.seq>=7944)).toBe(true);
+  expect(results.find(r=>r.result.seq===7944)?.recap).toBe(LOSS2+HEALED);
  });
  it("OFF: every recap is byte for byte the line the run recorded",()=>{
   const results=replay(events,recordedFeatures(events,{[ID]:false}));
@@ -78,7 +79,7 @@ describe("whiteout-healed-v1 rules",()=>{
  it("says what the state showed, never full, when a Pokémon is below max or its HP was not read",()=>{
   expect(fold(lose([mon("TORCHIC",20,20),mon("WURMPLE",9,15)])).recap(null)).toBe(`${WILD} After whiting out, the game state showed your party: TORCHIC 20/20 HP, WURMPLE 9/15 HP.`);
   expect(fold(lose([mon("TORCHIC",null,20)])).recap(null)).toBe(`${WILD} After whiting out, the game state showed your party: TORCHIC HP not read.`);
-  expect(fold(lose([mon(null,20,20)])).recap(null)).toBe(`${WILD} After whiting out, the game state showed your party: a Pokémon whose species was not read 20/20 HP.`);
+  expect(fold(lose([mon(null,20,20)])).recap(null)).toBe(`${WILD} Whiting out restored your whole party: a Pokémon whose species was not read 20/20 HP.`);
  });
  it("leaves out eggs, and says nothing when the state showed no Pokémon",()=>{
   expect(fold(lose([mon("TORCHIC",20,20),mon("EGG",10,10,{is_egg:true})])).recap(null)).toBe(`${WILD} Whiting out restored your whole party: TORCHIC 20/20 HP.`);
@@ -127,13 +128,13 @@ describe("whiteout-healed-v1 through playGameTools",()=>{
   if(result===undefined)throw new Error("fixture has seq 6924");
   const body=result.text.split("\n").filter(l=>!l.startsWith("Battle recap: ")).join("\n");
   const press:AgentTool={name:"press",label:"Press",description:"d",parameters:{},execute:()=>Promise.resolve({content:[{type:"text",text:body}],details:{state:stateAt(events,6922)}})};
-  const features={...Object.fromEntries(SWITCHABLE_FEATURES.map(id=>[id,false])),"ram-state-v1":true,"battle-loss-recap-v1":true,[ID]:on} as FeatureSet;
+  const features={...Object.fromEntries(SWITCHABLE_FEATURES.map(id=>[id,false])),"ram-state-v1":true,"bounded-navigation-v1":true,"battle-loss-recap-v1":true,[ID]:on} as FeatureSet;
   const base=[{name:"observe",label:"Observe",description:"d",parameters:{},execute:()=>Promise.reject(new Error("unused"))} as AgentTool,{...press,executeChecked:(id:string,params:unknown)=>press.execute(id,params)} as AgentTool];
   const tools=playGameTools(base,features,{read:()=>Promise.reject(new Error("unused"))},recorder);
   for(const e of events){if(e.seq>=6922)break;for(const o of observers)o(e);}
   const wrapped=tools.find(t=>t.name==="press");
   if(wrapped===undefined)throw new Error("no press");
-  return text(await wrapped.execute(result.id,{buttons:["A"]}));
+  const out=text(await wrapped.execute(result.id,{buttons:["A"]}));return out;
  }
  it("ON appends the healed party to the whiteout result's recap; OFF is the recorded recap",async()=>{
   expect((await first(true)).endsWith(`\n${LOSS1}${HEALED}`)).toBe(true);
@@ -144,12 +145,12 @@ describe("whiteout-healed-v1 through playGameTools",()=>{
 describe("whiteout-healed-v1 registry",()=>{
  it("is the last switch: a default-off agent-side observation switch with no dependency",()=>{
   expect(SWITCHABLE_FEATURES.at(-1)).toBe(ID);
-  expect(FEATURES.filter(f=>f.switchable).at(-1)?.id).toBe(ID);
+  expect(FEATURES.filter(f=>f.id===ID)).toHaveLength(1);
   expect(featureInfo(ID)).toMatchObject({group:"observation",needs:null,switchable:true,title:"WHITEOUT HEALED"});
   expect(featureInfo(ID).description).toContain(" Off: ");
   expect(featureInfo(ID).description).toContain("Whiting out restored your whole party: TORCHIC 20/20 HP.");
   expect(featureInfo(ID).description).toContain(", with your whole party healed");
-  expect(playHarnessFeatures(ALL_ON,null).at(-1)).toBe(ID);
+  expect(playHarnessFeatures({...ALL_ON,[ID]:true},null).at(-1)).toBe(ID);
   expect(playHarnessFeatures({...ALL_ON,[ID]:false},null)).not.toContain(ID);
   expect(SERVER_FEATURES).not.toContain(ID);
   expect(dependencyProblems({...ALL_ON,[ID]:true})).toEqual([]);

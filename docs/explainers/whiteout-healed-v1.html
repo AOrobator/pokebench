@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Whiteout healed</title>
+<style>
+:root{--bg:#fbfaf7;--fg:#1d1d1b;--muted:#5d5b55;--line:#d9d5cc;--panel:#ffffff;--keep:#2f7d4f;--drop:#b4442f;--accent:#2d5f9a;--fill:#eef3f8;}
+@media (prefers-color-scheme: dark){:root{--bg:#161614;--fg:#ecebe6;--muted:#a8a59c;--line:#3a3833;--panel:#1f1e1b;--keep:#6cc08f;--drop:#e98a74;--accent:#86b3e6;--fill:#22303f}}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif}
+main{max-width:900px;margin:0 auto;padding:24px 16px 48px}
+h1{font-size:1.6rem;margin:0 0 4px}h2{font-size:1.15rem;margin:32px 0 8px}
+.muted{color:var(--muted)}
+figure{margin:16px 0;padding:12px;background:var(--panel);border:1px solid var(--line);border-radius:8px;overflow-x:auto}
+figcaption{color:var(--muted);font-size:.9rem;margin-top:8px}
+code{font:13px ui-monospace,SFMono-Regular,Menlo,monospace}
+table{border-collapse:collapse;width:100%;font-size:.95rem}td,th{border-bottom:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top}
+.tablewrap{overflow-x:auto}
+svg text{fill:var(--fg);font:13px -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif}
+svg .small{font-size:11px;fill:var(--muted)}
+.note{border-left:3px solid var(--accent);padding:6px 10px;background:var(--fill);font:13px ui-monospace,SFMono-Regular,Menlo,monospace;white-space:pre-wrap;word-break:break-word}
+.off{border-left-color:var(--drop)}.on{border-left-color:var(--keep)}
+mark{background:transparent;color:var(--keep);font-weight:600}
+</style>
+</head>
+<body><main>
+<h1>Whiteout healed</h1>
+<p class="muted"><code>whiteout-healed-v1</code> · agent switch · bundle-only, default off · approved by the operator 2026-10-20 6:31 PM ET ("lets build it, bundle only")</p>
+<p>In run <code>2026-10-20T16-14-34_qwen36-gpu1_c6c2</code> the model lost to MAY at turn 256 and whited out. The readout right after said <code>TORCHIC Lv5 HP 20/20</code>, yet for turns 257 to 263 its thinking planned to go to the POKéMON CENTER to heal TORCHIC before fighting MAY again. It noticed the full HP at turn 264. Nothing in the harness said that whiting out heals the party.</p>
+
+<h2>What the game does</h2>
+<figure>
+<svg viewBox="0 0 860 150" width="860" height="150" role="img" aria-label="DoWhiteOut order: money halved, party healed, warp">
+<defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/></marker></defs>
+<rect x="10" y="40" width="170" height="64" rx="6" fill="var(--fill)" stroke="var(--line)"/>
+<text x="24" y="66">Last Pokémon faints</text><text x="24" y="88" class="small">"GREE whited out!"</text>
+<line x1="180" y1="72" x2="220" y2="72" stroke="var(--muted)" marker-end="url(#a)"/>
+<rect x="222" y="40" width="170" height="64" rx="6" fill="var(--panel)" stroke="var(--line)"/>
+<text x="236" y="66">SetMoney(money / 2)</text><text x="236" y="88" class="small">₽3000 → ₽1500</text>
+<line x1="392" y1="72" x2="432" y2="72" stroke="var(--muted)" marker-end="url(#a)"/>
+<rect x="434" y="40" width="190" height="64" rx="6" fill="var(--panel)" stroke="var(--keep)" stroke-width="2"/>
+<text x="448" y="66">HealPlayerParty()</text><text x="448" y="88" class="small">every Pokémon: HP, PP, status</text>
+<line x1="624" y1="72" x2="664" y2="72" stroke="var(--muted)" marker-end="url(#a)"/>
+<rect x="666" y="40" width="184" height="64" rx="6" fill="var(--panel)" stroke="var(--line)"/>
+<text x="680" y="66">Warp to last heal</text><text x="680" y="88" class="small">GREE's HOUSE 2F here</text>
+<text x="10" y="134" class="small">pokeemerald src/overworld.c DoWhiteOut; HealPlayerParty is in src/script_pokemon_util.c</text>
+</svg>
+<figcaption>The heal happens before the warp, so the first overworld state after the warp already shows the healed party. The switch reads that state; it never assumes the heal.</figcaption>
+</figure>
+
+<h2>Part 1: the battle recap names the healed party</h2>
+<p>battle-loss-recap-v1 pins one recap line to every game result after a loss until the next story milestone. With this switch on, a recap for a whiteout goes on with the party as the first overworld state after the warp read it: every Pokémon except eggs, in party order, with HP and max HP from RAM.</p>
+<p><b>c6c2 turn 256, result seq 6924</b> (state 6922), recorded with the switch off:</p>
+<div class="note off">Battle recap: you lost to MAY (trainer 535) on ROUTE103 (map 0/18) at turn 256 and whited out; the game returned you to GREE's HOUSE 2F (map 1/1). The game shows MAY (trainer 535) has not been defeated.</div>
+<p>The same result with the switch on (computed from the recorded events by the tests):</p>
+<div class="note on">Battle recap: you lost to MAY (trainer 535) on ROUTE103 (map 0/18) at turn 256 and whited out; the game returned you to GREE's HOUSE 2F (map 1/1). The game shows MAY (trainer 535) has not been defeated. <mark>Whiting out restored your whole party: TORCHIC 20/20 HP.</mark></div>
+<p>The clause is the same on every later result that carries this recap (turns 257 to 263 included), because it is what the state after that warp showed. The second whiteout in c6c2 (turn 277, state 7942) replaces it with its own party reading.</p>
+
+<div class="tablewrap"><table>
+<tr><th>State after the warp shows</th><th>Clause</th></tr>
+<tr><td>Every Pokémon at max HP</td><td><code>Whiting out restored your whole party: TORCHIC 20/20 HP, WURMPLE 15/15 HP.</code></td></tr>
+<tr><td>A Pokémon below max (should not happen)</td><td><code>After whiting out, the game state showed your party: TORCHIC 20/20 HP, WURMPLE 9/15 HP.</code></td></tr>
+<tr><td>A Pokémon whose HP was not read</td><td><code>After whiting out, the game state showed your party: TORCHIC HP not read.</code></td></tr>
+<tr><td>An egg in the party</td><td>left out of the list</td></tr>
+<tr><td>No Pokémon read</td><td>no clause</td></tr>
+<tr><td>A lost trainer battle with no whiteout</td><td>no clause</td></tr>
+</table></div>
+
+<h2>Part 2: the system prompt says it too</h2>
+<p>With trainer-heal-guidance-v1 on, its section has the only copy of the blackout sentence. The switch adds one clause before its period; nothing else in any prompt variant (full prompt, scene prompts, just-in-time guidance) changes.</p>
+<div class="note off">If every Pokémon in your party faints, you black out: you lose half your money and wake up back at the last POKéMON CENTER you entered, or at home, far from where you were.</div>
+<div class="note on">If every Pokémon in your party faints, you black out: you lose half your money and wake up back at the last POKéMON CENTER you entered, or at home, far from where you were<mark>, with your whole party healed</mark>.</div>
+
+<h2>What stays the same</h2>
+<ul>
+<li>blackout-readout-v1 already says "healed your party and halved your money" in its one-time notice. Unchanged.</li>
+<li>respawn-readout-v1's line ("If your party faints, you wake up … and lose half your money") is game-server text behind its own switch, and the supervisor heal warnings use a different blackout sentence. Both unchanged, to keep this switch small and agent-only.</li>
+<li>Off: the recap and the prompt are byte for byte today's. The tests replay every c6c2 recap with the switch off and compare it with the line the run recorded.</li>
+</ul>
+
+<h2>Wiring</h2>
+<figure>
+<svg viewBox="0 0 860 120" width="860" height="120" role="img" aria-label="Where the switch is read">
+<defs><marker id="b" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/></marker></defs>
+<rect x="10" y="30" width="160" height="56" rx="6" fill="var(--fill)" stroke="var(--line)"/><text x="24" y="54">FeatureSet</text><text x="24" y="74" class="small">preset / bundle arm</text>
+<line x1="170" y1="50" x2="260" y2="30" stroke="var(--muted)" marker-end="url(#b)"/>
+<line x1="170" y1="66" x2="260" y2="90" stroke="var(--muted)" marker-end="url(#b)"/>
+<rect x="262" y="6" width="290" height="46" rx="6" fill="var(--panel)" stroke="var(--keep)" stroke-width="2"/><text x="276" y="34">withResultFacts → BattleOutcomes.recap</text>
+<rect x="262" y="68" width="290" height="46" rx="6" fill="var(--panel)" stroke="var(--keep)" stroke-width="2"/><text x="276" y="96">playSystemPrompt (TRAINER_HEAL_SECTION)</text>
+<line x1="552" y1="29" x2="610" y2="29" stroke="var(--muted)" marker-end="url(#b)"/><text x="616" y="34">recap line + party clause</text>
+<line x1="552" y1="91" x2="610" y2="91" stroke="var(--muted)" marker-end="url(#b)"/><text x="616" y="96">blackout sentence + heal clause</text>
+</svg>
+<figcaption>Both parts read only the FeatureSet handed to the production factories. No game-server change and no new event.</figcaption>
+</figure>
+
+<h2>Status</h2>
+<p>Branch <code>claude/whiteout-healed-v1</code>. Joins the bundle arm of <code>bundle-v-control</code> and <code>bundle-cook-1h</code>; a pending experiment entry is registered with no queue position. No measured runs yet.</p>
+</main></body>
+</html>

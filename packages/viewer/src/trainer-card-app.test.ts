@@ -50,7 +50,7 @@ function cohortRun(): RunEvent[] {
 }
 
 let workbenchDown = false;
-async function mount(width: number, options: { art?: boolean; fresh?: boolean; glyphs?: boolean; runs?: typeof RUNS; replayStatus?: "ended" | "live"; missingLiveCards?: boolean; cardsDown?: boolean } = {}): Promise<{ app: App; streams: FakeStream[]; drawn: number[] }> {
+async function mount(width: number, options: { art?: boolean; fresh?: boolean; glyphs?: boolean; runs?: typeof RUNS; replayStatus?: "ended" | "live"; missingLiveCards?: boolean; cardsDown?: boolean; font?: Promise<unknown> } = {}): Promise<{ app: App; streams: FakeStream[]; drawn: number[] }> {
   nowMs = BASE_MS + 3_500; setWidth(width); fetched.length = 0; workbenchDown = options.cardsDown === true;
   document.body.innerHTML = PAGE.slice(PAGE.indexOf("<body>") + 6, PAGE.indexOf("</body>"));
   const streams: FakeStream[] = [], drawn: number[] = [];
@@ -63,7 +63,7 @@ async function mount(width: number, options: { art?: boolean; fresh?: boolean; g
       fetched.push(url);
       if (url === "/api/runs") return Promise.resolve(options.runs ?? RUNS);
       if (url === "/sprites/manifest.json") return options.art === false ? Promise.reject(new Error("GET /sprites/manifest.json returned HTTP 404")) : Promise.resolve(MANIFEST);
-      if (url === "/sprites/font/glyphs.json") return Promise.resolve(FONT);
+      if (url === "/sprites/font/glyphs.json") return options.font ?? Promise.resolve(FONT);
       if (url.startsWith("/api/cards")) return workbenchDown ? Promise.reject(new Error("GET /api/cards returned HTTP 500")) : Promise.resolve(workbench);
       if (url === "/api/features") return Promise.resolve({ features: [], milestones: [] });
       if (url === "/api/next-run") return Promise.resolve({ draft: { model: "", thinking: "medium", maxTurns: 300, maxWallMs: 1_800_000, failureLimit: 3, maxTokens: 4096, target: null, features: {} }, queue: { state: "idle" } });
@@ -82,7 +82,7 @@ async function mount(width: number, options: { art?: boolean; fresh?: boolean; g
   const stream = must(streams[0]);
   for (const event of cohortRun()) stream.send("ev", { ...event, run: LIVE_ID });
   stream.send("caught_up", {});
-  await app.pollCards();
+  if (options.font === undefined) await app.pollCards();
   app.tick(0);
   return { app, streams, drawn };
 }
@@ -99,6 +99,19 @@ describe("trainer cards in the viewer", () => {
     expect(mine.getAttribute("aria-pressed")).toBe("true"); expect(mine.innerHTML).toContain('data-gt="WATCHING"'); expect(other.innerHTML).toContain('data-gt="LIVE"');
     expect(mine.innerHTML).toContain("/sprites/trainers/wattson.png"); expect(other.innerHTML).toContain("/sprites/trainers/sidney.png");
     expect(mine.innerHTML).toContain(milestone.label); expect(mine.innerHTML).toContain("Oldale Town"); expect(mine.innerHTML).toContain("trial 2/4"); expect(mine.textContent).toContain("RED");
+  });
+
+  it("shows header and phone cards before the optional font resolves through App", async () => {
+    const font = Promise.withResolvers<unknown>();
+    const { app } = await mount(1280, { font: font.promise });
+    const headerCards = ui("run-cards").querySelectorAll(".tc").length;
+    setWidth(375); app.tick(0);
+    const phoneCards = ui("run-sheet-body").querySelectorAll(".tc").length;
+    font.resolve(FONT);
+    await app.pollCards();
+    expect(headerCards).toBe(2);
+    expect(phoneCards).toBe(2);
+    expect(ui("card-status").hidden).toBe(true);
   });
 
   it("retries missing artwork on the next card poll and clears the retry notice", async () => {
@@ -134,8 +147,10 @@ describe("trainer cards in the viewer", () => {
     const { app } = await mount(1280);
     const before = card(ui("run-cards"), LIVE_ID);
     workbenchDown = true; await app.pollCards(); app.tick(0);
+    expect(ui("card-status").textContent).toBe("Trainer card updates unavailable. Retrying…");
     expect(card(ui("run-cards"), LIVE_ID)).toBe(before); expect(ui("run-cards").hidden).toBe(false);
     workbenchDown = false; await app.pollCards(); app.tick(0);
+    expect(ui("card-status").hidden).toBe(true);
     expect(card(ui("run-cards"), LIVE_ID)).toBe(before);
   });
 

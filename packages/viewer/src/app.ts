@@ -1252,7 +1252,7 @@ export class App {
     const sheetBody = this.ui("run-sheet-body");
     const sheetCards = sheetBody.querySelector(".rs-cards");
     if (sheetCards !== null) syncCards(sheetCards, sheetCardHtml, this.cardHtml);
-    const cardStatus = this.artProblem ? "Trainer card artwork unavailable. Retrying…" : this.cardsProblem ? "Trainer cards unavailable. Retrying…" : cards.length === 0 && this.runId !== null ? "Loading trainer cards…" : "";
+    const cardStatus = this.artProblem ? "Trainer card artwork unavailable. Retrying…" : this.cardsProblem ? (cards.length > 0 ? "Trainer card updates unavailable. Retrying…" : "Trainer cards unavailable. Retrying…") : cards.length === 0 && this.runId !== null ? "Loading trainer cards…" : "";
     for (const status of [this.doc.querySelector<HTMLElement>('[data-ui="card-status"]'), sheetBody.querySelector<HTMLElement>("[data-card-loading]")]) {
       if (status === null) continue;
       status.textContent = cardStatus;

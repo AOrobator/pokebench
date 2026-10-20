@@ -22,3 +22,19 @@ Read-only production viewer fa5ae160 showed three cards and healthy artwork. War
 - RED: four new behavioral assertions failed on the original implementation: early usable art, missing artwork retry/status, initial card-data failure/status, and queued card promotion. The initial full viewer run also hit an unrelated missing compiled Play module before the viewer had been built.
 - GREEN: focused suite 55/55. The production HTTP/offload test starts a full frontier scan, requests a selected card behind it, completes only the active historical job and verifies selected runs next, without spawning another worker. Root-qualified selection changes are covered.
 - Adversarial mutations independently removed artwork retry, early art delivery and priority selection; each corresponding regression test failed. Restored focused suite is being rerun. Full gates pending on the final synced candidate.
+
+## Review round 1 and bounded fix batch
+
+Frozen base 675cc4b8, head 1eb64852, exact binary diff SHA256 cc0e8d64b0c6b092d01cdb7bc707f5e8d2702436f00263c52e7ee9912847d709. Clean identity independently verified by fresh no-history GPT-5.6-Sol and GPT-6-Astra reviewers. Both returned VERDICT: BLOCKING on two evidence gaps: App early-art callback wiring and non-selected live priority operand. Astra also proved the root-identity assertion did not discriminate the wrong-root mutant. Cursor Grok inspected the patch and returned VERDICT: BLOCKING on the misleading "unavailable" notice during retained-card refresh failure; its Ask harness could not execute shell identity checks, so the supervisor separately retained the exact seal. These are in-contract test/message fixes, not scope expansion; production paths stay within the original boundary.
+
+Accepted fixes: App-level pending-font test observes both desktop and phone cards before font resolution; HTTP/offload scenario now independently exercises selected and non-selected health-confirmed live work; wrong-root same-name job is queued before the target and exact root/run pairs are asserted; retained cards say "Trainer card updates unavailable. Retrying…" and clear the notice on successful refresh. Each of these four guards was independently removed, observed RED, restored; focused result 57/57.
+
+Normal Claude-family lane unavailable: dedicated Claude CLI profile loggedIn=false; Cursor Opus 5.5 and Sonnet 5 both report usage limits resetting 2026-11-17. Required distinct-model fallback uses read-only no-history GPT-5.6-Sol xhigh and GPT-6-Astra xhigh. Reduced vendor diversity is explicit; normal self-landing gate has no Claude approval.
+
+## Validation before final sync
+
+- Full tests: agent 2,846, viewer 1,401, Python 2,896, zero skipped.
+- Lint, build, vendor integrity passed.
+- Coverage: agent statements/branches/functions 97.18/92.92/97.61%; viewer 95.12/91.05/93.90%; Python lines/branches/functions 96.95/92.46/100%. First coverage attempt hit unrelated experiment-cli five-second timeout under simultaneous build/test load; unchanged complete coverage passed on rerun without suppression or source changes.
+- Browser fault/recovery fixtures use only scratch copies of three real logs/frames/artwork, no approvals or ledgers, served via startViewer (no CLI autorunner). Initial manifest503 and card-data503 showed explicit retry notices; both recovered automatically on polling, notices cleared and two live cards rendered. Pointer and keyboard selection still select the intended run. Actual phone viewport 375x812 confirmed readable error notice and full trainer cards in the run sheet; two-plus polling cycles retained cards. Proxy WebSocket failure leaves a visible recorded frame fallback in this diagnostic fixture; this is not live-frame proof. Original user tab was inspected but not reloaded or modified during these checks.
+- Browser and final gates will be rerun after the final build. Final candidate remains unlanded until review/landing contract is resolved.

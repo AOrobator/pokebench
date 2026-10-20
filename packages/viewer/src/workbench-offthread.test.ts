@@ -445,26 +445,28 @@ it("serves disk-cached runs in the very first partial snapshot without loading t
 it("promotes already queued card runs over historical work without adding a worker", async () => {
   const workers: FakeWorker[] = [];
   const pool = createBaselinePool(() => { const worker = new FakeWorker(); workers.push(worker); return worker; }, 1);
-  const jobs = [pool.compute("/r", "busy"), pool.load("/r", "history", null), pool.load("/r", "selected", null), pool.load("/other", "selected", null)];
+  const jobs = [pool.compute("/r", "busy"), pool.load("/r", "history", null), pool.load("/other", "selected", null), pool.load("/r", "selected", null)];
   for (const job of jobs) void job.catch(() => undefined);
   try {
     pool.prioritize("/r", ["selected"]);
     workers[0]?.emit("message", { id: workers[0].posted[0]?.id, outcome: { baseline: { run: "busy", milestones: [] } } });
     await jobs[0];
     expect(workers).toHaveLength(1);
-    expect(workers[0]?.posted.map(job => job.runId)).toEqual(["busy", "selected"]);
+    expect(workers[0]?.posted.map(job => [job.runsRoot, job.runId])).toEqual([["/r", "busy"], ["/r", "selected"]]);
     // A later selection replaces the priority; identities are scoped to the runs root.
     pool.prioritize("/other", ["selected"]);
     workers[0]?.emit("message", { id: workers[0].posted[1]?.id, failure: "test finished" });
-    await jobs[2]?.catch(() => undefined);
+    await jobs[3]?.catch(() => undefined);
     expect(workers[0]?.posted[2]?.runsRoot).toBe("/other");
   } finally { await pool.close(); }
 });
 
 
-it("prioritizes a selected HTTP card through production offload while history is queued", async () => {
+it.each(["selected", "live"] as const)("prioritizes a %s HTTP card through production offload while history is queued", async kind => {
   const r = root();
-  for (const id of ["z-history", "y-history", "a-selected"]) write(r, id, ended());
+  for (const id of ["z-history", "y-history"]) write(r, id, ended());
+  write(r, "a-card", kind === "live" ? named() : ended());
+  let now = NOW;
   const posted = Promise.withResolvers<undefined>();
   const prioritized = Promise.withResolvers<undefined>();
   const worker = new FakeWorker();
@@ -472,13 +474,14 @@ it("prioritizes a selected HTTP card through production offload while history is
   worker.postMessage = message => { originalPost(message); posted.resolve(undefined); };
   const offload = viewerOffload(r, new URL("file:///test-worker.js"), CODE, 32, () => worker);
   const promote = offload.workbench?.prioritize;
-  const viewer = await startViewer({ runsRoot: r, staticDir: r, appDir: r, port: 0, build: null, ...offload,
+  const viewer = await startViewer({ runsRoot: r, staticDir: r, appDir: r, port: 0, build: null, ...offload, now: () => new Date(now), fetchFn: () => Promise.resolve(new Response("ok")),
     workbench: { ...offload.workbench, prioritize: ids => { promote?.(ids); prioritized.resolve(undefined); } },
   });
   viewers.push(viewer);
-  const history = fetch(new URL("api/runs/a-selected/frontier", viewer.url));
+  const history = fetch(new URL("api/runs/a-card/frontier", viewer.url));
   await posted.promise;
-  const cards = fetch(new URL("api/cards?run=a-selected", viewer.url));
+  const path = kind === "selected" ? "api/cards?run=a-card" : "api/cards";
+  const cards = fetch(new URL(path, viewer.url));
   await prioritized.promise;
   // Finish only the running historical job; selected must bypass every queued historical job.
   const first = worker.posted[0];
@@ -492,9 +495,11 @@ it("prioritizes a selected HTTP card through production offload while history is
   const last = worker.posted[2];
   if (last === undefined) throw new Error("missing remaining history reduction");
   worker.emit("message", { id: last.id, outcome: loadRun(r, last.runId) });
-  const data = parseWorkbench(await (await cards).json());
+  await (await cards).json();
+  now += 5_001;
+  const data = parseWorkbench(await (await fetch(new URL(path, viewer.url))).json());
   expect((await history).status).toBe(200);
-  expect(nextRun).toBe("a-selected");
-  expect(data.runs.map(run => run.id)).toEqual(["a-selected"]);
+  expect(nextRun).toBe("a-card");
+  expect(data.runs.map(run => run.id)).toEqual(["a-card"]);
   expect(worker.posted).toHaveLength(3);
 });

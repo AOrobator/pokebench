@@ -127,16 +127,16 @@
    "heal-before-trainers-v1": false,
    "harness-trust-v1": false,
    "cited-destination-v1": false,
-   "battle-move-tool-v1": false,
+   "battle-move-tool-v1": true,
    "harness-trust-v2": false,
-   "tutorial-party-owner-v1": false,
+   "tutorial-party-owner-v1": true,
    "mid-frame-readout-v1": false,
    "unset-dynamic-warp-v1": false,
    "status-names-v1": false,
    "surf-gated-exits-v2": false,
    "instruction-ledger-v2": false,
    "no-exit-here-v1": false,
-   "battle-menu-loop-v1": false,
+   "battle-menu-loop-v1": true,
    "clock-view-loop-v1": false,
    "stale-story-goal-v1": false,
    "input-cuts-v1": false,
@@ -160,7 +160,9 @@
    "deterministic-exploration-v1": false,
    "safe-navigation-strides-v1": false,
    "evolution-decision-v1": false,
-   "observed-instructions-v1": false
+   "observed-instructions-v1": false,
+   "stale-story-goal-v2": false,
+   "context-token-budget-v1": true
   }
  },
  "switches": [
@@ -173,10 +175,8 @@
   "heal-before-trainers-v1",
   "harness-trust-v1",
   "cited-destination-v1",
-  "battle-move-tool-v1",
   "battle-refusal-loop-v1",
   "harness-trust-v2",
-  "tutorial-party-owner-v1",
   "mid-frame-readout-v1",
   "unset-dynamic-warp-v1",
   "named-warp-destinations-v1",
@@ -184,9 +184,9 @@
   "surf-gated-exits-v2",
   "instruction-ledger-v2",
   "no-exit-here-v1",
-  "battle-menu-loop-v1",
   "clock-view-loop-v1",
   "stale-story-goal-v1",
+  "stale-story-goal-v2",
   "input-cuts-v1",
   "loop-guard-screen-v1",
   "reopened-dialogue-loop-v1",
@@ -196,8 +196,6 @@
   "trigger-script-loop-v1",
   "battle-effective-damage-v1",
   "deterministic-warp-navigation-v1",
-  "ineffective-navigation-v2",
-  "supervisor-briefing-v2",
   "reachable-story-guidance-v1",
   "text-only-supervisor-v2",
   "semantic-navigation-v1",
@@ -214,7 +212,9 @@
   "story-destinations-v1",
   "just-in-time-prompt-v1",
   "just-in-time-prompt-v2",
-  "jit-guide-reuse-v1"
+  "jit-guide-reuse-v1",
+  "supervisor-briefing-v2",
+  "ineffective-navigation-v2"
  ],
  "onInBoth": [
   "original-speed-pacing-v1",
@@ -225,7 +225,11 @@
   "open-goal-prompt-v1",
   "ineffective-loops-v1",
   "navigation-refusal-reasons-v2",
-  "people-id-cards-v1"
+  "people-id-cards-v1",
+  "battle-move-tool-v1",
+  "battle-menu-loop-v1",
+  "tutorial-party-owner-v1",
+  "context-token-budget-v1"
  ],
  "phases": [
   {

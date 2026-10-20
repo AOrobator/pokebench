@@ -1,3 +1,4 @@
+import { listReports, reportFile } from "./reports.js";
 import { existsSync, readFileSync } from "node:fs";
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import type { AddressInfo } from "node:net";
@@ -380,6 +381,19 @@ async function route(req: IncomingMessage, res: ServerResponse, options: ViewerO
   }
   if (parts.length === 2 && head === "explainers" && Object.values(FEATURE_EXPLAINERS).includes(second ?? "")) {
     sendFile(res, join(options.staticDir, "../../../docs/explainers", second ?? ""), "text/html; charset=utf-8");
+    return;
+  }
+  if (parts.length === 1 && head === "reports") {
+    sendFile(res, join(options.staticDir, "reports.html"), "text/html; charset=utf-8");
+    return;
+  }
+  if (parts.length === 2 && head === "api" && second === "reports") {
+    sendJson(res, 200, listReports(options.runsRoot));
+    return;
+  }
+  if (head === "reports" && second !== undefined) {
+    const found = reportFile(options.runsRoot, second, parts.slice(2).filter((part, i, all) => !(part === "" && i === all.length - 1)));
+    if (found === null) sendJson(res, 404, { error: "not found" }); else sendFile(res, found.path, found.type);
     return;
   }
   if (parts.length === 1 && head === "comparisons") {

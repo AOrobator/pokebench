@@ -23,7 +23,7 @@ No harness change, so no feature switch.
 ## Milestones
 
 **M1: report list and serving**
-- [ ] RED/GREEN: listReports (order, metadata, fallback, invalid report.json), reportFile (traversal, symlink escape, extensions), routes
+- [x] RED ba791db1 / GREEN: listReports (order, metadata, fallback, invalid report.json), reportFile (traversal, symlink escape, extensions), routes /reports, /api/reports, /reports/<slug>/<path>
 
 **M2: the page**
 - [ ] RED/GREEN: list, detail card, type badges, tier and STORY bar, selection, opened view with newer and older, phone order, stats-page link
@@ -32,4 +32,3 @@ No harness change, so no feature switch.
 **M3: land**
 - [ ] Reviews (round cap 2), ff-only land, restart, live check
 - [ ] report.json for the existing reports (data under runs/); propose the run-analysis skill edit
-- M1 RED: reports.test.ts, server reports route test

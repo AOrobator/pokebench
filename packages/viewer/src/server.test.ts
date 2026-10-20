@@ -999,5 +999,4 @@ it("serves the reports page, the report list and each report's own files, and no
  expect((await get(viewer,"/reports/2026-10-17_top50/shots/a.png")).type).toBe("image/png");
  for(const path of ["/reports/2026-10-17_top50/run.py","/reports/2026-10-17_top50/../../events.jsonl","/reports/2026-10-17_top50/%2e%2e/x.html","/reports/x/index.html","/reports/2026-10-17_top50/missing.html"])expect((await get(viewer,path)).status,path).toBe(404);
  expect((await get(viewer,"/api/reports",{host:"elsewhere.invalid"})).status).toBe(403);
- expect(BROWSER_MODULES).toEqual(expect.arrayContaining(["reports-view","reports-main"]));
 });

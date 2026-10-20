@@ -9,7 +9,7 @@ Measurement only, no switch (feature-switch skill: measurement features do not c
 ## Milestones
 **M1**
 - [x] RED: loop-recovery.test.ts (types, each recovery test, intervention sources, safety/relapse, f28d turn 450, CLI)
-- [ ] GREEN
+- [x] GREEN: loop-recovery.ts, loop-recovery-cli.ts, just loop-recovery, run-analysis skill section.
 - [ ] Review, landing
 
 ## Session Log

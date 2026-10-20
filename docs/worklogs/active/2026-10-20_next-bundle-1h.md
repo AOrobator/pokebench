@@ -33,3 +33,13 @@
 - [x] Gates: lint clean; agent 2798, viewer 1361, pytest 2896 pass; `fixed-run check` clean for both.
 - [x] Review: Grok and Claude (subagent) `VERDICT: LGTM` on packet 77f40444…48d9 (runs/reviews/next-bundle-1h-m2/)
 - [x] Landed ff-only on main at d2e9bf6d; `just viewer-main` restarted the viewer
+
+### M3 Loop breaker into the bundle
+
+Coordinator relay after the loop breaker landed (5d07a65a, 83695092): add its switches before the 12-hour cook; fresh-retry is folded into the breaker; keep heal-before-trainers-v1 on in the bundle (auto-talk relies on it).
+
+- [x] `fixed-point-breaker-v1` and `story-character-stall-gate-v1` are bundle switches (base false) in `bundle-v-control` and `bundle-cook-1h`; `stall-briefing-v1` (its parent) is on in base; `heal-before-trainers-v1` stays a bundle switch; plan unchanged.
+- [x] Tests: fixed-runner pin covers both plus heal-before-trainers; open-goal-prompt exclusion list gains both.
+- [x] Gates: lint clean; agent 2826, viewer 1363, pytest 2896; `fixed-run check` clean for both.
+- [ ] Review: Claude and Grok LGTM
+- [ ] Land ff-only, `just viewer-main`

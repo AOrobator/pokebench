@@ -16,7 +16,7 @@ import type {LoopDetector,LoopKind} from "./loop-detection.js";
 import {SupervisorBriefing} from "./loop-supervisor.js";
 import {StallBriefing} from "./stall-briefing.js";
 import {StoryCharacterGate} from "./stall-gate.js";
-import {fixedPointBreaker} from "./fixed-point-breaker.js";
+import {fixedPointBreaker,type FixedPointBreaker} from "./fixed-point-breaker.js";
 import {navigationMemory} from "./navigation-memory.js";
 import {withPeopleLedger} from "./people-ledger.js";
 import {withPeopleIdCards,type IdCardRecorder} from "./people-id-cards.js";
@@ -40,7 +40,7 @@ type Transform=(messages:AgentMessage[])=>Promise<AgentMessage[]>;
 type WiringRecorder=Pick<RunRecorder,"subscribe"|"recordNavigationContext"|"recordLedgerContext"|"recordMilestoneHint"|"recordBeliefLedger"|"recordLoopBreaker">;
 
 // The switch-dependent memory tools and the context chain a play run delivers to the model.
-export function contextTools(features:FeatureSet,recorder:WiringRecorder,base:Transform):{tools:AgentTool[];transformContext:Transform;window:Window}{
+export function contextTools(features:FeatureSet,recorder:WiringRecorder,base:Transform):{tools:AgentTool[];transformContext:Transform;window:Window;breaker:FixedPointBreaker|null}{
  const tools:AgentTool[]=[];
  const observedBase=observedInstructions(features,recorder,base);
  const memory=navigationMemory(features,recorder,observedBase);
@@ -56,7 +56,7 @@ export function contextTools(features:FeatureSet,recorder:WiringRecorder,base:Tr
  const inner:Transform=features["fresh-retry-v1"]?messages=>chain(withoutTextOnlyReplies(messages)):chain;
  // fixed-point-breaker-v1: duplicate turns collapse before every other step; its note is the request's last message.
  const breaker=fixedPointBreaker(features,recorder);
- return {tools,transformContext:breaker===null?inner:async messages=>breaker.note(await inner(breaker.collapse(messages))),window:contextWindow(features)};
+ return {tools,transformContext:breaker===null?inner:async messages=>breaker.note(await inner(breaker.collapse(messages))),window:contextWindow(features),breaker};
 }
 
 // context-token-budget-v1: fit each request to the served context; each trim is recorded as a compaction.

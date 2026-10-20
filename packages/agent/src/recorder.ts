@@ -486,6 +486,10 @@ export class RunRecorder {
   recordLoopBreaker(body: Omit<BodyOf<"loop_breaker">, "type" | "turn">): void {
     this.append({ type: "loop_breaker", turn: this.turn + 1, ...body });
   }
+  // fixed-point-breaker-v1 stage 3: recorded as the request is built.
+  recordAutoTalk(body: Omit<BodyOf<"auto_talk">, "type" | "turn">): void {
+    this.append({ type: "auto_talk", turn: this.turn + 1, ...body, target: body.target === null ? null : { ...body.target, map_id: [body.target.map_id[0], body.target.map_id[1]] } });
+  }
   // story-character-stall-gate-v1: recorded once for each stall briefing it holds back.
   recordStallGate(body: Omit<BodyOf<"stall_gate">, "type" | "turn">): void {
     this.append({ type: "stall_gate", turn: this.turn, ...body, map_id: [body.map_id[0], body.map_id[1]] });

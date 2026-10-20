@@ -34,6 +34,9 @@ export class FixedPointBreaker {
  private streak=0;
  private names:readonly string[]=[];
  private silent=0;
+ // stage 3: which loop the counts belong to, so it acts once per loop.
+ private streakFrom="";
+ private calls=0;
  // Replies already reported as collapsed, by tool call id (or timestamp for a reply with no tool call).
  private readonly reported=new Set<string>();
  constructor(private readonly features:FeatureSet,private readonly recorder:BreakerRecorder){}
@@ -47,7 +50,7 @@ export class FixedPointBreaker {
   if(event.type==="assistant"){
    if(event.stop_reason==="error"||event.stop_reason==="aborted")return;
    if(event.tool_calls.length===0){this.silent++;return;}
-   this.silent=0;
+   this.silent=0;this.calls++;
    this.turn={calls:JSON.stringify(event.tool_calls.map(c=>[c.name,c.args])),ids:new Set(event.tool_calls.map(c=>c.id)),states:new Map(),done:false};
    this.names=[...new Set(event.tool_calls.map(c=>c.name))];
    return;
@@ -65,8 +68,12 @@ export class FixedPointBreaker {
   const left=[...turn.states.values()];
   const same=this.previous!==null&&this.previous.calls===turn.calls&&left.every(k=>k!==null)&&JSON.stringify(left)===JSON.stringify([...this.previous.states.values()]);
   this.streak=same?this.streak+1:1;
+  if(!same)this.streakFrom=[...turn.ids].join(",");
   this.previous=turn;
  }
+
+ fixedPoint():{readonly turns:number;readonly loop:string;readonly names:readonly string[]} {return {turns:this.streak,loop:this.streakFrom,names:this.names};}
+ noTool():{readonly replies:number;readonly loop:string} {return {replies:this.silent,loop:`silent:${String(this.calls)}`};}
 
  // Stage 1, then stage 2, over the request the window and the budget already shaped.
  collapse(messages:AgentMessage[]):AgentMessage[] {

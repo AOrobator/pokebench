@@ -54,6 +54,10 @@ export class StoryCharacterGate {
    this.pending.set(event.tool_call_id,{key:key!==undefined&&(pressed||first?.speaker_source==="faced_sprite")?key:null,speakers});
    return;
   }
+  if(event.type==="auto_talk"){
+   if(event.outcome==="talked"&&event.target!==null){if(event.target.key!==null)this.talked.add(event.target.key);if(event.target.character!==null)this.spoke.add(event.target.character);}
+   return;
+  }
   if(event.type!=="tool_result")return;
   const talk=this.pending.get(event.id);this.pending.delete(event.id);
   if(talk!==undefined&&!event.is_error){if(talk.key!==null)this.talked.add(talk.key);for(const name of talk.speakers)this.spoke.add(name);}
@@ -71,11 +75,14 @@ export class StoryCharacterGate {
  }
 
  // The story characters on the player's map not talked to since the latest story milestone, in the readout's own words.
- untalked():string[] {
+ untalked():string[] {return this.untalkedCharacters().map(c=>c.text);}
+ untalkedCharacters():{readonly name:string;readonly key:string|null;readonly tile:{readonly x:number;readonly y:number}|null;readonly text:string}[] {
   const here=this.here,now=this.position;
   if(here===null||now===null||now.map!==here.map)return [];
-  return here.characters.filter(c=>!this.spoke.has(c.name)&&(c.key===null||!this.talked.has(c.key))).map(c=>c.text);
+  return here.characters.filter(c=>!this.spoke.has(c.name)&&(c.key===null||!this.talked.has(c.key)));
  }
+ // fixed-point-breaker-v1 stage 3 talks with no tool result of its own.
+ talkedTo(key:string):boolean {return this.talked.has(key);}
 
  holds():Hold|null {
   const here=this.here,now=this.position;

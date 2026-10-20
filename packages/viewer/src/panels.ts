@@ -497,6 +497,7 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "navigate-already-here-v1":"navigate-already-here-v1.html",
  "fixed-point-breaker-v1":"fixed-point-breaker-v1.html",
  "story-character-stall-gate-v1":"story-character-stall-gate-v1.html",
+ "positive-supervisor-v1":"positive-supervisor-v1.html",
  "unfinished-activity-v1":"unfinished-activity-v1.html",
 });
 

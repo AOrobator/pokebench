@@ -166,6 +166,7 @@
    "navigate-already-here-v1": false,
    "fixed-point-breaker-v1": false,
    "story-character-stall-gate-v1": false,
+   "positive-supervisor-v1": false,
    "unfinished-activity-v1": false
   }
  },
@@ -210,6 +211,7 @@
   "navigate-already-here-v1",
   "fixed-point-breaker-v1",
   "story-character-stall-gate-v1",
+  "positive-supervisor-v1",
   "unfinished-activity-v1"
  ],
  "offInBoth": [

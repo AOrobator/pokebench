@@ -76,14 +76,16 @@ export function loopSupervisor(features:FeatureSet,recorder:Pick<RunRecorder,"su
 
 // stall-briefing-v1: supervisor notes for map ping-pong and milestone droughts, timed on unpaused play.
 // same-plan-breaker-v1: a supervisor note when the stated plan repeats while the game does not move on.
-export function stallBriefing(features:FeatureSet,recorder:Pick<RunRecorder,"subscribe"|"recordStallGate">,detector:Pick<LoopDetector,"stall">,control:Pick<RunControl,"pausedMs">,elapsed:()=>number):StallBriefing|null {
+export function stallBriefing(features:FeatureSet,recorder:Pick<RunRecorder,"subscribe"|"recordStallGate"|"recordLoopGuard">,detector:Pick<LoopDetector,"stall">,control:Pick<RunControl,"pausedMs">,elapsed:()=>number):StallBriefing|null {
  if(features["same-plan-breaker-v1"]){const plans=new SamePlanBreaker(features,detector);recorder.subscribe(event=>{plans.observe(event);});}
  if(!features["stall-briefing-v1"])return null;
  const briefing=new SupervisorBriefing(features);recorder.subscribe(event=>{briefing.observe(event);},true);
  // story-character-stall-gate-v1: the gate reads each event before the stall check that the same event runs.
  const gate=features["story-character-stall-gate-v1"]?new StoryCharacterGate(recorder):null;
  if(gate!==null)recorder.subscribe(event=>{gate.observe(event);});
- const stall=new StallBriefing(features,()=>elapsed()-control.pausedMs(),detector,(kind,calls)=>briefing.stallText(kind,calls),gate);
+ // positive-supervisor-v1: retired stall briefings stay in the record as diagnostics; the model is not sent them.
+ const retired=features["positive-supervisor-v1"]?(kind:"map_cycle"|"milestone_drought",text:string,evidence:readonly number[]):void=>{recorder.recordLoopGuard({kind,message:`Not sent (positive-supervisor-v1): ${text}`,calls:0,evidence:evidence.filter((v,i,all)=>all.indexOf(v)===i),mode:"diagnostic",phase:"would_warn"});}:null;
+ const stall=new StallBriefing(features,()=>elapsed()-control.pausedMs(),detector,(kind,calls)=>briefing.stallText(kind,calls),gate,retired);
  recorder.subscribe(event=>{stall.observe(event);});
  return stall;
 }

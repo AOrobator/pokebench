@@ -9,7 +9,7 @@ const root=(path:string)=>readFileSync(fileURLToPath(new URL(`../../../${path}`,
 
 describe(ID,()=>{
  it("is a default-off server observation switch that depends on battle details",()=>{
-  expect(SWITCHABLE_FEATURES.at(-21)).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-22)).toBe(ID);
   expect(featureInfo(ID)).toMatchObject({group:"observation",needs:"battle-details-v2",switchable:true,title:"BATTLE EFFECTIVE DAMAGE"});
   expect(SERVER_FEATURES.at(-4)).toBe(ID);
   expect(serverFeatureEnv({...ALL_ON,"battle-decision-ready-v1":false,[ID]:false}).POKEBENCH_FEATURES_OFF.split(",")).toEqual([ID,"safe-navigation-strides-v1","original-speed-pacing-v1"]);

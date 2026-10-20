@@ -43,3 +43,13 @@ Coordinator relay after the loop breaker landed (5d07a65a, 83695092): add its sw
 - [x] Gates: lint clean; agent 2826, viewer 1363, pytest 2896; `fixed-run check` clean for both.
 - [x] Review: Grok and Claude (subagent) `VERDICT: LGTM` on packet b517eedd…f5e9 (runs/reviews/next-bundle-1h-m3/)
 - [x] Landed ff-only on main at 0b34087b; `just viewer-main` restarted the viewer
+
+### M4 Positive supervisor into the bundle
+
+Coordinator relay after positive-supervisor-v1 (variant A) landed (ddb2b4b2, 2678b3e8): The operator chose to add it to the bundle for the 12-hour cook.
+
+- [x] `positive-supervisor-v1` is a bundle switch (base false) in `bundle-v-control` and `bundle-cook-1h`; plan unchanged.
+- [x] Tests: fixed-runner pin and open-goal-prompt exclusion list gain it.
+- [x] Gates: lint clean; agent 2833, viewer 1386, pytest 2896; `fixed-run check` clean for both.
+- [x] Review: Grok and Claude (subagent) `VERDICT: LGTM` on packet c3d78996…4a41 (runs/reviews/next-bundle-1h-m4/)
+- [x] Landed ff-only on main at 2826e466; `just viewer-main` restarted the viewer

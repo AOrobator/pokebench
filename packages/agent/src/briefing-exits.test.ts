@@ -286,7 +286,7 @@ describe("briefing-exits-v1 in a production-shaped run",()=>{
  it("the stall briefing factory honors the switch: ON reorders, OFF keeps today's order",()=>{
   const order=(features:FeatureSet)=>{
    const observers:((e:RunEvent)=>void)[]=[];let text="";
-   const recorder={subscribe:(fn:(e:RunEvent)=>void)=>{observers.push(fn);},recordStallGate:()=>undefined};
+   const recorder={subscribe:(fn:(e:RunEvent)=>void)=>{observers.push(fn);},recordStallGate:()=>undefined,recordLoopGuard:()=>undefined};
    const stall=stallBriefing(features,recorder,{stall:(_kind,t)=>{text=t(5);return true;}},{pausedMs:()=>0},()=>10*60_000);
    expect(stall).not.toBeNull();
    const e=checkEvent({v:1,run:"exits",t:"2026-10-16T03:00:00.000-04:00",turn:1,seq:1,type:"tool_result",id:"c1",name:"press",is_error:false,duration_ms:1,text:"ok",frames:[]});

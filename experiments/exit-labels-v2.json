@@ -8,7 +8,7 @@
   "primaryMilestone": "ROXANNE_DEFEATED",
   "source": {
     "checkout": "main",
-    "commit": "0000000000000000000000000000000000000000"
+    "commit": "d6521e823af8191eb5385919074b045ac06245fe"
   },
   "incumbent": {
     "version": 2,
@@ -194,5 +194,5 @@
     "window": 4,
     "minReached": 3
   },
-  "notes": "Pending and not queued. The incumbent is the bundle-v-control bundle arm (base, its bundle switches and onInBoth on, offInBoth off) with exit-labels-v2 off; the candidate flips only exit-labels-v2 (needs named-warp-destinations-v1, on in that arm). Bundle-only, default off (heal-respawn-sight plan, the operator 2026-10-20). source.commit is filled at landing with the merge SHA."
+  "notes": "Pending and not queued. The incumbent is the bundle-v-control bundle arm (base, its bundle switches and onInBoth on, offInBoth off) with exit-labels-v2 off; the candidate flips only exit-labels-v2 (needs named-warp-destinations-v1, on in that arm). Bundle-only, default off (heal-respawn-sight plan, the operator 2026-10-20). source.commit pins the implementation commit; repin to the merge SHA on landing."
 }

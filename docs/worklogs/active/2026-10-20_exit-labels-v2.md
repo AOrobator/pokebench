@@ -32,6 +32,7 @@ from the south ones.
 - [x] RED: failing tests (ROM-backed b300 raw-RAM fixtures + synthetic)
   COMMIT: `test: exit-labels-v2 popup names and arrival reach from b300 woods and Route 104 (RED)` (35c69bf8)
 - [x] GREEN: server implementation, agent registry, presets, viewer defaults
+  COMMIT: `feat: exit-labels-v2 names every warp as the location popup does and adds same-name arrival reach` (d6521e82)
 - [x] Audit table (c) in this worklog and the explainer
 - [x] Explainer + FEATURE_EXPLAINERS + pending experiment entry
 - [x] Gates: just test, lint, build, coverage (90)

@@ -13,7 +13,7 @@ Coordination: the big-run-logs branch fixes the runner and the workbench/frontie
 ## M1
 
 - [x] RED: `baselineOf` reads in bounded chunks (`baselineOf(root, id, chunkBytes)`); RED is the type error, the old reader ignores the bound.
-- [ ] GREEN: stream `baselineOf` through `LogReader`
+- [x] GREEN: stream `baselineOf` through `LogReader` (4 MiB chunks, 4096 lines per batch); runs.test.ts 33/33. Real data: cook runs `…gpu1_b671` and `…gpu0_8d39` (1.1 GB log) now get 101 candidates, best `2026-10-17T13-15-36_qwen36-gpu1_e046`; before, both threw the string-length error.
 - [ ] Gates: test, coverage, lint
 - [ ] Proof: comparisons for a cook run on the real runs dir; real browser at desktop and phone widths
 - [ ] Review: Claude, Grok (GPT waived by operator for this thread)

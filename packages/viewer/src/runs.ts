@@ -427,7 +427,11 @@ export function readRecentEvents(
   return [start, ...tail.filter((event) => selected.has(event.turn))];
 }
 
-export function baselineOf(runsRoot: string, runId: string): Baseline {
+// A six-hour log is larger than the longest string Node can build, so baselines read it in chunks.
+const BASELINE_CHUNK_BYTES = 4 * 1024 * 1024;
+const BASELINE_LINES = 4096;
+
+export function baselineOf(runsRoot: string, runId: string, chunkBytes = BASELINE_CHUNK_BYTES): Baseline {
   const start = readStart(runsRoot, runId);
   if (start.harness_features.includes("probe")) throw new BaselineError("probe sessions cannot be benchmark baselines");
   const startMs = Date.parse(start.t);
@@ -436,7 +440,8 @@ export function baselineOf(runsRoot: string, runId: string): Baseline {
   let humanEnded = false;
   // A comparison must rest on the baseline run's own, fully valid log (PB1).
   const recovered = recoveredAttacher(runDir(runsRoot, runId));
-  for (const read of readFrom(eventsPath(runsRoot, runId), 0, 0).results) {
+  const reader = new LogReader(eventsPath(runsRoot, runId), chunkBytes);
+  for (let batch = reader.next(BASELINE_LINES); batch.lines > 0; batch = reader.next(BASELINE_LINES)) for (const read of batch.results) {
     const result = read.ok ? { ...read, event: recovered(read.event) } : read;
     if (!result.ok) throw new BaselineError(`baseline ${runId} line ${String(result.line)}: ${result.problem}`);
     if (result.event.run !== runId) throw new BaselineError(`baseline ${runId} holds an event for run ${result.event.run}`);

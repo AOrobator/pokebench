@@ -17,6 +17,6 @@ Hard constraint while those two processes live: do not restart 8790 and do not t
 
 - [x] RED: lease-pool naming; per-pool take/hold/reclaim/adopt; all-or-nothing multi-pool take; waiting text names pool and holder in next-run, fixed-runner and autorun; experiment queue pool = gateway pool
 - [x] GREEN: `lease-pool.ts` (agent) names pools and lease dirs; viewer `lease.ts` takes, reclaims and adopts per pool, `takeLeases` for several; NEXT RUN, experiment queue (`EXPERIMENT_POOL`, gateway moved to experiment-runner), fixed runner (one lease per lane pool) and serial comparison use it; waiting text names pool and holder; NEXT RUN waits if the endpoint file cannot name a pool. Agent 2846, viewer 1396 tests pass; lint clean.
-- [ ] Gates
+- [x] Gates: lint clean; coverage passes (agent and viewer above the 90 floor; lease.ts 95/97/100/95); pytest 2896
 - [ ] Review: Claude and Grok LGTM
 - [ ] Land ff-only

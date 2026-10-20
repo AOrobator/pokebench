@@ -12,3 +12,6 @@ Design: docs/experiments/whole-map-cook-1h.html. Operator: The operator approved
 ## Log
 - COMMIT: `docs: design the 12-pair whole-map navigation cook` (d2dbeb70)
 - COMMIT: `docs: note briefing-repeat-count-v1 is inert in the bundle` (this commit)
+
+## One-pair run (the operator 2026-10-20 13:14 NY)
+experiments/fixed/whole-map-pair-1h.json: control vs the bundle at 59cfcc62 + full-map-navigation-v1, semantic-navigation-v1 and deterministic-exploration-v1 off in both (the operator: v1's prompting is a bug). One pair, 1 hour, MAIN_MENU fast-text save. Plan seed 163a5a8a0d173130, definition sha256 0ef8f6b34f6d.

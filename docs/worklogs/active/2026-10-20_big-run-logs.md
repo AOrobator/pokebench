@@ -28,3 +28,4 @@ Non-goals: shrinking `state` events (a recorder change; follow-up), timeline cha
 - Fix: `completeLog` takes the first event's type with a seen flag. Gates rerun: lint clean, coverage passes.
 - Review round 2: Claude and Grok LGTM; GPT BLOCKING: `rescoreTrials` read the log twice (`completeLog`, then `classifyTrial`), so a one-shot stream or a log replaced between passes could be graded on different bytes than were checked. RED test added.
 - Fix: `rescoreTrials` grades and checks completeness in one pass (`Completeness.tap` feeds `classifyTrial`). Gates rerun: lint clean, coverage passes.
+- Merged main (16a96d7d, baseline log streaming from another thread; no overlap). Gates rerun on the merge: lint clean; coverage passes (agent 2702, viewer 1355, env 2894).

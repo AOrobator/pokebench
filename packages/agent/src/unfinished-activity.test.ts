@@ -132,6 +132,20 @@ describe("unfinished-activity-v1 in supervisor notes",()=>{
   expect(brief(false)).not.toContain("Unfinished activity");
   expect(brief(true).replace(`- Unfinished activity (what you did and what the game recorded): ${OPEN}\n`,"")).toBe(brief(false));
  });
+ it("the positive supervisor's note and the focused briefing carry the same line",()=>{
+  const opened:RunEvent={v:1,run:"r",seq:7300,t:"t",type:"unfinished_activity",turn:262,change:"opened",trainer_id:265,trainer:"ROXANNE",map_id:[11,3],text:OPEN} as unknown as RunEvent;
+  for(const extra of [{"positive-supervisor-v1":true},{"supervisor-briefing-v2":true}] as const){
+   const b=new SupervisorBriefing({...recordedFeatures(events,{[ID]:true}),...extra});
+   let sent=false;
+   for(const e of events){if(e.seq>8600)break;b.observe(e);if(!sent&&e.seq>=7299){b.observe(opened);sent=true;}}
+   expect(b.stallText({kind:"milestone_drought",minutes:10},323)).toContain(`\n- Unfinished activity (what you did and what the game recorded): ${OPEN}\n`);
+  }
+  const retired:RunEvent={...opened,seq:8000,change:"retired"} as unknown as RunEvent;
+  const b=new SupervisorBriefing({...recordedFeatures(events,{[ID]:true}),"positive-supervisor-v1":true});
+  for(const e of events){if(e.seq>8600)break;b.observe(e);if(e.seq===events.find(x=>x.seq>=7299)?.seq)b.observe(opened);}
+  b.observe(retired);
+  expect(b.stallText({kind:"milestone_drought",minutes:10},323)).not.toContain("Unfinished activity");
+ });
 });
 
 // A recorded state as the game server sends it: no event envelope; fields the fixture trimmed get neutral values.

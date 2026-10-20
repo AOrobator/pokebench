@@ -462,11 +462,11 @@ export class HealBeforeTrainers {
   if(v2)this.rearmV2(state);
   const facts=healBeforeTrainers(state,ctx);
   if(facts===null){
-   if(this.rearms(state)){this.warned=new Set();this.map=null;this.battled=false;}
+   if(this.rearms(state)){this.warned=new Set();this.story.clear();this.map=null;this.battled=false;}
    return null;
   }
   const key=keyOf(facts.map_id);
-  if(key!==this.map){this.warned=new Set();this.map=key;}
+  if(key!==this.map){this.warned=new Set();this.story.clear();this.map=key;}
   for(const t of facts.trainers)if(t.story!==undefined)this.story.add(t.local_id);
   // Without a trainer battle since the last warning, only the trainers not yet named are named.
   const fresh=facts.trainers.filter(t=>!this.warned.has(t.local_id));

@@ -187,6 +187,15 @@ describe("the arm",()=>{
   expect(await w.observe(notWeak)).toBeNull();
   expect((await w.observe(AFTER_JOSH))?.trainers.map(t=>t.local_id)).toEqual([3,5]);
  });
+ it("a story opponent's object id is forgotten on another map, where that id is an ordinary trainer",async()=>{
+  const w=watch();
+  expect((await w.observe(GYM))?.trainers.map(t=>t.local_id)).toEqual([1]);
+  const facts=must(AFTER_JOSH.heal_before_trainers);
+  const route={...AFTER_JOSH,map_id:[0,19] as [number,number],location:"ROUTE104",heal_before_trainers:{...facts,trainers:[{local_id:1,x:3,y:4,graphics_id:35,sprite_kind:"YOUNGSTER",trainer_id:600,defeated:false,loaded:true}]}};
+  expect((await w.observe(route))?.trainers.map(t=>[t.local_id,t.story])).toEqual([[1,undefined]]);
+  expect(await w.observe({...route,party:route.party.map(m=>({...m,hp:30}))})).toBeNull();
+  expect((await w.observe(route))?.trainers.map(t=>t.local_id)).toEqual([1]);
+ });
  it("leaving the map re-arms everything",async()=>{
   const w=watch();
   expect(await w.observe(GYM)).not.toBeNull();

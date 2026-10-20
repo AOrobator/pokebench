@@ -46,6 +46,8 @@ Run `2026-10-20T13-54-28_qwen36-gpu0_b300` (bundle arm of whole-map-pair-1h; low
 - b300 replay OFF reproduces the recorded v1 paragraph at 15195 byte for byte; ON fires at 14882 (ROXANNE) and 15198 (ROXANNE, TOMMY, MARC), both naming the RUSTBORO CITY POKéMON CENTER (2 map changes) shown at (16,38) in result 14717.
 - Wiring mutation: `const v2=false` in withLowHpTrainerWarning turns the playGameTools test red (1 failed); restored (sha1 7d6eaa5d), green.
 - Gates: `just lint` OK, `just build` OK, `just coverage`: agent 2917/2917 (97.21 st / 92.92 br / 97.7 fn / 99.17 ln), viewer 1425/1425 (95.09 / 91.04 / 93.85 / 97.7), python 2915 passed, gate lines 96.97 branches 92.50 functions 100.00. heal_trainers.py 100%.
+  COMMIT: `feat: heal-before-trainers-v2 names every trainer of the map and every POKéMON CENTER a result listed` (c42e40a8)
+- Self-review fix: the story-opponent id set is cleared with the warned set on a map change (a local id that is ROXANNE in the gym can be an ordinary trainer elsewhere). Test added; reverting the clear turns it red (1 failed), restored green (20/20).
 
 ## Surprises
 

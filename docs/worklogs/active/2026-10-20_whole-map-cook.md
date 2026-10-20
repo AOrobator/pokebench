@@ -50,3 +50,4 @@ Moved from bundle switches to onInBoth (base true) in bundle-v-control.json and 
 
 ## counter-talk everywhere + gym readiness (the operator 19:25 NY: counter talk in every run)
 bundle-cook-1h: counter-talk-v1 to onInBoth (sha256 1dae5952af02). whole-map-cook-1h regenerated from it with gym-readiness-readout-v1 in the bundle (sha256 b0f0ac8fe1e3). whole-map-pair-1h-v4 left as is (paused in-flight pair; a relaunch would be v5). jit-* and starter-decision-salience already have counter-talk on in both via base.
+- Reviews: Grok LGTM, Claude LGTM (nit fixed: overview cites main d53baa1e). Landing.

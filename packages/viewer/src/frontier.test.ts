@@ -120,19 +120,20 @@ describe("persistent actual native frontier", () => {
   it("includes the full required progression instead of skipping the human run's middle and finish", () => {
     const names = FRONTIER_MILESTONES.map(m => m.id);
     for (const name of ["NEW_GAME_CREATED", "LITTLEROOT_TOWN", "PLAYER_HOUSE_ENTERED", "MOM_CLOCK_INSTRUCTION", "PLAYER_BEDROOM", "MOM_RIVAL_INSTRUCTION", "ROUTE_101", "BIRCH_RESCUE_COMPLETE", "BIRCH_STARTER_HANDOFF_COMPLETE", "OLDALE_TOWN", "ROUTE_103", "RIVAL_BATTLE_WON", "RECEIVED_POKEDEX", "STARTER_TUTORIAL_COMPLETE", "RUNNING_SHOES_RECEIVED", "ROUTE_102", "PETALBURG_CITY", "DAD_FIRST_MEETING", "WALLY_TUTORIAL_COMPLETE", "ROUTE_104", "PETALBURG_WOODS", "TEAM_AQUA_WOODS_EVENT_COMPLETE", "RUSTBORO_CITY", "ROXANNE_DEFEATED", "RUSTBORO_GYM_COMPLETE", "ROCK_TOMB_RECEIVED"]) expect(names).toContain(name);
-    expect(names.some(name => /TRAINER|FIRST_POKEMON|EVOLUTION|HEAL|ROUTE_115|ROUTE_116|RUSTURF/.test(name))).toBe(false);
+    expect(names.some(name => /^(?!RUSTBORO_GYM_TRAINER_).*TRAINER|FIRST_POKEMON|EVOLUTION|HEAL|ROUTE_115|ROUTE_116|RUSTURF/.test(name))).toBe(false);
     const recorded = human(); recorded.splits = names.map((name, i) => ({ name, elapsedMs: i * 1000, segmentMs: 1000, seq: i, turn: 0, inputTokens: 0, outputTokens: 0 }));
     document.body.innerHTML = frontierPlot({human: recorded, best: null}, [], 340);
     expect(document.querySelectorAll(`[data-run="${HUMAN_REFERENCE}"]`)).toHaveLength(names.length);
   });
-  it("omits optional gym battles and preserves their exclusion from story rank", () => {
-    const trainer = measured("trainer", [1000]);
-    trainer.splits.push({name:"RUSTBORO_GYM_TRAINER_JOSH_DEFEATED",elapsedMs:2000,segmentMs:1000,seq:20,turn:2,inputTokens:0,outputTokens:0});
-    document.body.innerHTML=frontierPlot({human:human(),best:best()},[trainer],900);
-    expect(document.body.textContent).not.toContain("exact times");
-    expect(document.body.textContent).not.toContain("GYM TRAINER BATTLES");
-    expect(document.querySelector('.wb-gym-checkpoints')).toBeNull();
-    expect(frontierReferences([trainer,best()]).best?.id).toBe("dea1");
+  it("plots gym trainer victories and ranks the newly reached gym frontier", () => {
+    const trainer = { ...best(), id: "two-gym-wins" };
+    trainer.splits.push({name:"RUSTBORO_CITY_GYM",elapsedMs:1500,segmentMs:500,seq:19,turn:2,inputTokens:0,outputTokens:0});
+    for (const [i, name] of ["RUSTBORO_GYM_TRAINER_JOSH_DEFEATED", "RUSTBORO_GYM_TRAINER_TOMMY_DEFEATED"].entries()) trainer.splits.push({name,elapsedMs:2000+i*1000,segmentMs:1000,seq:20+i,turn:2,inputTokens:0,outputTokens:0});
+    expect(frontierReferences([trainer,best()]).best?.id).toBe("two-gym-wins");
+    document.body.innerHTML=frontierPlot({human:human(),best:trainer},[],900);
+    for (const name of ["RUSTBORO_GYM_TRAINER_JOSH_DEFEATED", "RUSTBORO_GYM_TRAINER_TOMMY_DEFEATED"]) expect(document.querySelector(`[data-run="two-gym-wins"][data-split="${name}"]`)).not.toBeNull();
+    const names = FRONTIER_MILESTONES.map(m => m.id);
+    expect(names.slice(names.indexOf("RUSTBORO_CITY_GYM"), names.indexOf("ROXANNE_DEFEATED")+1)).toEqual(["RUSTBORO_CITY_GYM", "RUSTBORO_GYM_TRAINER_JOSH_DEFEATED", "RUSTBORO_GYM_TRAINER_TOMMY_DEFEATED", "RUSTBORO_GYM_TRAINER_MARC_DEFEATED", "ROXANNE_DEFEATED"]);
   });
   it("identifies reached, unsupported, pending, censored and excluded milestone outcomes", () => {
     const failed = measured("failed", []), running = measured("running", []), interrupted = measured("interrupted", []); running.status = "live"; interrupted.status = "unresponsive";

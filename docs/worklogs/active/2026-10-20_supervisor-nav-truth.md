@@ -21,8 +21,8 @@ coordinator; max 2 rounds), features.ts merge slot from the coordinator, ff-only
 ## M1
 
 - [x] RED: `packages/agent/src/supervisor-nav-truth.test.ts` (6 failing, 3 passing OFF cases)
-- [ ] GREEN: both switches registered and wired
-- [ ] Explainers, pending experiments, readiness rows
+- [x] GREEN: both switches registered (`needs: null`, default off; each acts only with its base switch on) and wired; agent 2,711 and viewer 1,356 tests pass
+- [x] Explainers (pages-check clean), pending experiments, readiness rows, FEATURE_EXPLAINERS
 - [ ] Gates: test, coverage ≥90, lint, verify-vendor
 - [ ] Reviews: Claude, Grok
 - [ ] Land ff-only on main

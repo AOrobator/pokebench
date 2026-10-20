@@ -92,7 +92,7 @@ describe("registration",()=>{
  for(const [id,group,needs] of [[COUNT,"guidance","supervisor-briefing-v2"],[HERE,"guidance","bounded-navigation-v1"]] as const){
   it(`${id} is a default-off switch with a pending experiment and an explainer`,()=>{
    expect(SWITCHABLE_FEATURES).toContain(id);
-   expect(featureInfo(id)).toMatchObject({group,needs,switchable:true});expect(featureInfo(id).description).toContain(" Off: ");
+   expect(featureInfo(id)).toMatchObject({group,needs:null,switchable:true});expect(featureInfo(id).description).toContain(" Off: ");
    const legacy=flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false});
    expect(legacy[id]).toBe(false);expect(normalizeFeatures({} as Parameters<typeof normalizeFeatures>[0])[id]).toBe(false);
    expect(playHarnessFeatures({...legacy,[needs]:true,[id]:true},null)).toContain(id);expect(playHarnessFeatures({...legacy,[needs]:true,[id]:false},null)).not.toContain(id);

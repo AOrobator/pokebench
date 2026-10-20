@@ -472,7 +472,7 @@ export class SupervisorBriefing {
 
  private focused(headline:string):string {
   const ui=this.screenNow?.ui;
-  const recent=(ui===undefined?this.tried:this.uiTried).slice(-3).reverse().map(t=>`${t.label} → ${t.outcome}`).join("; ")||"none recorded";
+  const recent=(ui===undefined?this.tried:this.uiTried).slice(-3).reverse().map(t=>`${t.label}${this.features["briefing-repeat-count-v1"]&&t.count>1?` ×${String(t.count)}`:""} → ${t.outcome}`).join("; ")||"none recorded";
   const alternatives=this.latest===null||!this.features["world-targets-v1"]?[]:this.open(this.latest).slice(0,3);
   const goal=this.goal??"none recorded";
   return `${headline}\n- Current position: ${this.where()}\n- Latest recorded place instruction: ${goal}\n${ui===undefined?`- Untried targets already shown here (up to 3; not a route recommendation): ${!this.features["world-targets-v1"]?"not available (world targets are off)":alternatives.join("; ")||"none listed"}\n${this.edges()}`:`- Open interface: ${ui.name}; phase ${ui.phase}; text ${ui.text??"unknown"}; selected ${ui.selected??"unknown"}; controls: ${ui.controls??"unknown"}\n`}- Recent attempts (up to 3): ${recent}\nUse the latest game readout to choose a different action. End the next reply with one listed tool call.`;

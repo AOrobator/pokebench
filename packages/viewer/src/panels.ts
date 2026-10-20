@@ -489,6 +489,8 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "text-only-supervisor-v2":"text-only-supervisor-v2.html",
  "starter-decision-salience-v1":"starter-decision-salience-v1.html",
  "context-token-budget-v1":"context-token-budget-v1.html",
+ "briefing-repeat-count-v1":"briefing-repeat-count-v1.html",
+ "navigate-already-here-v1":"navigate-already-here-v1.html",
 });
 
 export function harnessConfig(view:RunView,registry:readonly FeatureInfo[]=[]):string {

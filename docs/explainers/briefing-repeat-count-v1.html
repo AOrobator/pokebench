@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Briefing repeat count</title>
+<style>
+:root{--bg:#fbfaf7;--fg:#1d1d1b;--muted:#5d5b55;--line:#d9d5cc;--panel:#ffffff;--keep:#2f7d4f;--drop:#b4442f;--accent:#2d5f9a;--fill:#eef3f8}
+@media (prefers-color-scheme: dark){:root{--bg:#161614;--fg:#ecebe6;--muted:#a8a59c;--line:#3a3833;--panel:#1f1e1b;--keep:#6cc08f;--drop:#e98a74;--accent:#86b3e6;--fill:#22303f}}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif}
+main{max-width:860px;margin:0 auto;padding:24px 16px 48px}
+h1{font-size:1.6rem;margin:0 0 4px}h2{font-size:1.15rem;margin:32px 0 8px}
+p,li{color:var(--fg)}.muted{color:var(--muted)}
+figure{margin:16px 0;padding:12px;background:var(--panel);border:1px solid var(--line);border-radius:8px;overflow-x:auto}
+figcaption{color:var(--muted);font-size:.9rem;margin-top:8px}
+code{font:13px ui-monospace,SFMono-Regular,Menlo,monospace}
+table{border-collapse:collapse;width:100%;font-size:.95rem}td,th{border-bottom:1px solid var(--line);padding:6px 8px;text-align:left}
+svg text{fill:var(--fg);font:13px -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif}
+</style>
+</head>
+</head>
+<body>
+<main>
+<h1>Briefing repeat count</h1>
+<p class="muted"><code>briefing-repeat-count-v1</code> · guidance · default off · needs <code>supervisor-briefing-v2</code></p>
+
+<p>When the loop guard sends a supervisor briefing, the focused briefing (<code>supervisor-briefing-v2</code>) lists the three most recent attempts. The harness already groups repeats of the same attempt with the same result and counts them; the full briefing prints that count as <code>×N</code>, but the focused one dropped it. A model that had made the same call a hundred times read it as if it had made it once.</p>
+
+<h2>Same attempts, two briefings</h2>
+<figure>
+<svg viewBox="0 0 800 210" width="100%" role="img" aria-label="Recent attempts line with the switch off and on">
+<rect x="10" y="10" width="780" height="85" rx="6" fill="var(--panel)" stroke="var(--drop)" stroke-width="2"/>
+<text x="24" y="36" font-weight="600">Off (recorded, run f28d turn 2303)</text>
+<text x="24" y="64"><tspan font-family="ui-monospace,Menlo,monospace">Recent attempts (up to 3): navigate_to 10,5 → no change;</tspan></text>
+<text x="24" y="84"><tspan font-family="ui-monospace,Menlo,monospace">navigate_to 10,5 → moved to 10,5; navigate_to 10,5 → moved to 11,5</tspan></text>
+<rect x="10" y="115" width="780" height="85" rx="6" fill="var(--panel)" stroke="var(--keep)" stroke-width="2"/>
+<text x="24" y="141" font-weight="600">On (same attempts; counts illustrative)</text>
+<text x="24" y="169"><tspan font-family="ui-monospace,Menlo,monospace">Recent attempts (up to 3): navigate_to 10,5 ×97 → no change;</tspan></text>
+<text x="24" y="189"><tspan font-family="ui-monospace,Menlo,monospace">navigate_to 10,5 → moved to 10,5; navigate_to 10,5 → moved to 11,5</tspan></text>
+</svg>
+<figcaption>The only difference is the <code>×N</code> after an attempt made more than once. A count of 1 prints nothing, as in the full briefing.</figcaption>
+</figure>
+
+<h2>Where the count comes from</h2>
+<figure>
+<svg viewBox="0 0 800 120" width="100%" role="img" aria-label="Count flow">
+<defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0L10,5L0,10z" fill="var(--muted)"/></marker></defs>
+<rect x="10" y="30" width="220" height="60" rx="6" fill="var(--panel)" stroke="var(--line)"/><text x="24" y="56">tool result</text><text x="24" y="76" class="muted">label + outcome</text>
+<rect x="290" y="30" width="220" height="60" rx="6" fill="var(--panel)" stroke="var(--line)"/><text x="304" y="56">recent attempts list</text><text x="304" y="76">same label+outcome: count+1</text>
+<rect x="570" y="30" width="220" height="60" rx="6" fill="var(--fill)" stroke="var(--accent)" stroke-width="2"/><text x="584" y="56">focused briefing</text><text x="584" y="76">prints ×N when ON</text>
+<line x1="230" y1="60" x2="288" y2="60" stroke="var(--muted)" marker-end="url(#a)"/><line x1="510" y1="60" x2="568" y2="60" stroke="var(--muted)" marker-end="url(#a)"/>
+</svg>
+<figcaption>Counting was already there for the full briefing; the switch only changes what the focused briefing prints. Presses inside an open interface (naming editor, menus) carry their count the same way.</figcaption>
+</figure>
+
+<h2>Status</h2>
+<p>Branch <code>claude/supervisor-nav-truth</code>. Unit tests cover OFF (byte-identical to the recorded f28d line) and ON, for field attempts and interface presses. Bundle-only: it goes into the fixed bundle, not its own A/B. No measured runs yet.</p>
+
+</main>
+</body>
+</html>

@@ -549,13 +549,21 @@ describe("viewer server", () => {
 it("serves validated comparisons for the selected start, excluding self", async () => {
   const { runsRoot, viewer } = await fixture();
   writeRun(runsRoot, "selected", fullRun());
-  writeRun(runsRoot, "reference", fullRun());
+  const frontier = fullRun();
+  const end = frontier.events.findIndex((e) => e.type === "run_end");
+  const endEvent = frontier.events[end]; if (endEvent === undefined) throw new Error("fixture run_end");
+  frontier.events.splice(end, 0, { ...endEvent, type: "milestone", turn: 2, name: "NEW_GAME_CREATED", server_timestamp: 3, kind: "story", origin: "observed" } as RunEvent);
+  frontier.events.forEach((e, seq) => { (e as { seq: number }).seq = seq; });
+  writeRun(runsRoot, "reference", frontier);
   const reply = await get(viewer, "/api/runs/selected/comparisons");
   expect(reply.status).toBe(200);
-  const result = JSON.parse(reply.body.toString()) as { candidates: {run:string}[]; best:{run:string}; baseline:unknown };
+  const result = JSON.parse(reply.body.toString()) as { candidates: {run:string}[]; frontier:{run:string; milestones:{name:string; offsetMs:number}[]}; baseline:unknown };
   expect(result.candidates.map((c) => c.run)).toEqual(["reference"]);
-  expect(result.best.run).toBe("reference");
+  // The splits race the frontier graph's agent frontier, never the selected run itself.
+  expect(result.frontier.run).toBe("reference");
+  expect(result.frontier.milestones).toContainEqual({ name: "NEW_GAME_CREATED", offsetMs: 9000 });
   expect(result.baseline).toBeNull(); // equal start timestamp, no previous run
+  expect(JSON.parse((await get(viewer, "/api/runs/reference/comparisons")).body.toString())).toMatchObject({ frontier: null });
 });
 
 it("serves read-only workbench data from actual recorded runs, without prompts or arbitrary paths", async () => {

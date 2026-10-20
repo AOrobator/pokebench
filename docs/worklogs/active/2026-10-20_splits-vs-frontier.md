@@ -1,0 +1,22 @@
+# Splits vs the frontier
+
+## Operator report
+
+2026-10-20 10:17 AM ET, the operator: "split times versus best we should really rename it to split times versus frontier... when I go to the splits page... I expect it to be compared to the frontier. That's always what we're measuring against."
+
+## Design
+
+- The reference is the frontier graph's agent frontier (`frontierReferences(...).best`: furthest New Game start, then fastest), not the per-save "best historical run" `comparisonsOf` picked.
+- `/api/runs/<id>/comparisons` returns `frontier` (its native splits, active time, screenshot-only splits left out, recovered splits flagged) computed from the workbench snapshot, with the selected run left out so a frontier run races the next one instead of itself. `comparisonsOf` no longer computes `best`.
+- A checkpoint resume gets no frontier (its clock starts mid-game).
+- Labels: SPLIT TIMES VS FRONTIER, VS FRONTIER column, PokéNav page SPLITS · BASELINE · FRONTIER, "Frontier" column and "Frontier run:" note. A delta under one second is a tie, uncolored.
+- Viewer-only; no harness behavior, no feature switch; timeline untouched.
+
+## M1
+
+- [x] RED: frontier.test (frontierSplits), controls/panels/app labels and `frontier` key, server /comparisons returns frontier; 12 failing
+- [ ] GREEN
+- [ ] Gates: test, coverage, lint
+- [ ] Proof: real browser, desktop and phone
+- [ ] Review: Claude, Grok (GPT waived for this thread)
+- [ ] Land ff-only, viewer-main, live check

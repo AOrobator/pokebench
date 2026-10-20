@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 import { REQUIRED_FRONTIER_MILESTONES } from "@pokebench/agent/milestones";
 import { run } from "../test-support/frontier-run.js";
 import { frontierLegend } from "./frontier-legend.js";
-import { HUMAN_REFERENCE, FRONTIER_MILESTONES, frontierReferences, frontierPlot, frontierVersions, milestoneStatus } from "./frontier.js";
+import { HUMAN_REFERENCE, FRONTIER_MILESTONES, frontierReferences, frontierPlot, frontierSplits, frontierVersions, milestoneStatus } from "./frontier.js";
 import type { WorkbenchRun } from "./workbench-data.js";
 const referenceNames = ["PLAYER_NAME_CONFIRMED", "FIRST_TRUCK_EXIT", "CLOCK_SET", "PLAYER_HOUSE_EXITED_AFTER_CLOCK", "RIVAL_HOUSE_ENTERED", "RIVAL_BEDROOM_REACHED", "RIVAL_MET", "STARTER_CHOSEN", "RUSTBORO_CITY_GYM", "STONE_BADGE"];
 function measured(id: string, times: readonly (number | null)[], controller: "agent" | "human" = "agent"): WorkbenchRun {
@@ -27,6 +27,21 @@ describe("persistent actual native frontier", () => {
     expect(picked.human?.id).toBe(HUMAN_REFERENCE); expect(picked.best?.id).toBe("dea1");
     expect(picked.best?.splits[0]?.elapsedMs).toBe(153477);
     expect(frontierReferences([best(), measured("aaa", [153477, 200600, 496944, 579200, 1301593, 1328664, 1477567])]).best?.id).toBe("aaa");
+  });
+  it("gives a run's splits the agent frontier to race: the frontier graph's run, never itself or a screenshot-only split", () => {
+    const frontier = best();
+    const first = frontier.splits[0]; if (first === undefined) throw new Error("fixture split");
+    frontier.splits = [{ ...first, derived: true }, ...frontier.splits.slice(1), { name: "STONE_BADGE", elapsedMs: 9_999_999, segmentMs: 0, seq: 99, turn: 9, inputTokens: 0, outputTokens: 0, derived: true, screenshotEvidence: [] }];
+    const runs = [measured("slow", [5000, 6000]), frontier, human()];
+    const splits = frontierSplits(runs, "slow");
+    expect(splits?.run).toBe("dea1");
+    expect(splits?.milestones[0]).toEqual({ name: "PLAYER_NAME_CONFIRMED", offsetMs: 153477, derived: true });
+    expect(splits?.milestones[1]).toEqual({ name: "FIRST_TRUCK_EXIT", offsetMs: 200600 });
+    expect(splits?.milestones.map(m => m.name)).not.toContain("STONE_BADGE");
+    expect(frontierSplits(runs, "dea1")?.run).toBe("slow");
+    const config = frontier.config; if (config === null) throw new Error("fixture config");
+    expect(frontierSplits([...runs, { ...measured("resumed", [1]), config: { ...config, start: "save_state", resume: "ROUTE_103" } }], "resumed")).toBeNull();
+    expect(frontierSplits([], "slow")).toBeNull();
   });
   it("excludes probes, human, incomplete, infrastructure, unknown-provenance and resumed sessions from records", () => {
     const advanced = measured("advanced", [1, 2, 3, 4, 5, 6, 7, 8]);

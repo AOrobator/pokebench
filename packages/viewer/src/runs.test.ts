@@ -218,7 +218,7 @@ it("rejects manual probes and legacy vendor states as benchmark baselines", () =
   expect(() => baselineOf(runsRoot, "legacy")).toThrow(/unverified historical/);
 });
 
-it("selects previous same-model baseline and deepest then fastest best, from valid completed same-start runs", async () => {
+it("selects the previous same-model baseline from valid completed same-start runs", async () => {
   const { comparisonsOf } = await import("./runs.js");
   const r = root();
   const logged = (offset: number, names: string[], model = "think-swarm", start_state = START.start_state) => {
@@ -257,7 +257,6 @@ it("selects previous same-model baseline and deepest then fastest best, from val
   writeRun(r, "healer", logged(5000, ["PLAYER_NAME_SET", "FIRST_POKECENTER_HEAL"]));
   const result = await comparisonsOf(r, "current");
   expect(result.baseline?.run).toBe("previous");
-  expect(result.best?.run).toBe("deepest");
   expect(result.candidates.map((c) => c.run).sort()).toEqual(["deepest", "healer", "other-model", "previous", "slower-deep"]);
 });
 
@@ -299,7 +298,7 @@ it("keeps nickname-resume progress out of the actual recorder split catalog", as
   expect(baselineOf(r,"nickname-resume")).toEqual({run:"nickname-resume",milestones:[{name:"GAME_RUNNING",offsetMs:0}]});
   const current=new Log();current.add(2000,{...START,harness_features:["ram-state-v1"],start_state:{kind:"save_state",path:"fixture",sha1:"0".repeat(40)}});
   writeRun(r,"current",current);
-  expect((await comparisonsOf(r,"current"))).toEqual({candidates:[],baseline:null,best:null});
+  expect((await comparisonsOf(r,"current"))).toEqual({candidates:[],baseline:null});
 });
 
 const HUMAN = { kind: "human", name: "Operator", rom_sha1: "c".repeat(40), input_policy: "frame-held-v1", sample_ms: 100, nominal_fps: 59.7275 } as const;
@@ -311,7 +310,7 @@ function humanLog(offset = 0, finished = true, reason: "operator_stop" | "operat
   return log;
 }
 
-it("offers finished comparable humans explicitly, never as automatic model best or baseline", async () => {
+it("offers finished comparable humans explicitly, never as the automatic baseline", async () => {
   const { comparisonsOf } = await import("./runs.js");
   const r = root();
   writeRun(r, "current", humanLog(1000, false));
@@ -320,7 +319,6 @@ it("offers finished comparable humans explicitly, never as automatic model best 
   expect(result.candidates).toHaveLength(1);
   expect(result.candidates[0]).toMatchObject({ run: "human", model: "Human · Operator", controller: { kind: "human", name: "Operator" } });
   expect(result.baseline).toBeNull();
-  expect(result.best).toBeNull();
 });
 
 it("excludes incomplete and aborted human references, preserving crash DNF partial splits", () => {
@@ -342,7 +340,7 @@ it("matches human references by start and known ROM, rejects probes and invalid 
   writeRun(r, "probe", changeStart({ harness_features: ["ram-state-v1", "probe"] }));
   const path = writeRun(r, "invalid", humanLog());
   writeFileSync(path, readFileSync(path, "utf8").replace('\n', '\ninvalid\n'));
-  expect((await comparisonsOf(r, "current"))).toEqual({ candidates: [], baseline: null, best: null });
+  expect((await comparisonsOf(r, "current"))).toEqual({ candidates: [], baseline: null });
 });
 
 it("keeps a mixed model catalog automatic picks model-only, qualifying legacy ROM proof", async () => {
@@ -356,7 +354,6 @@ it("keeps a mixed model catalog automatic picks model-only, qualifying legacy RO
   expect(result.candidates.map(c => c.run).sort()).toEqual(["human-fast", "model-reference"]);
   expect(result.candidates.find(c => c.run === "human-fast")).toMatchObject({ romIdentity: "unverified" });
   expect(result.baseline?.run).toBe("model-reference");
-  expect(result.best?.run).toBe("model-reference");
   const first = model.events[0]; if (first?.type !== "run_start") throw new Error("fixture");
   model.events[0] = { ...first, rom_sha1: "d".repeat(40) };
   writeRun(r, "current-model", model);

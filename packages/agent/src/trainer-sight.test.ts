@@ -114,7 +114,7 @@ describe("checks that let the walk run",()=>{
   expect(tools.records.map(r=>[r.outcome,r.sightings.length,r.text])).toEqual([["clear",0,null]]);
  });
  it("walks when the server cannot check, the reply is for another map or the request fails",async()=>{
-  for(const [reply,reason] of [[{available:false,reason:"map grid unreadable"},"map grid unreadable"],[{...TURN501,map_id:[0,3]},"the check read map 0/3"],[new Error("Trainer sight returned HTTP 500"),"Trainer sight returned HTTP 500"]] as const){
+  for(const [reply,reason] of [[{available:false,reason:"map grid unreadable"},"map grid unreadable"],[{...TURN501,map_id:[0,3]},"the check read map 0/3"],[new Error("Trainer sight returned HTTP 500"),"Trainer sight returned HTTP 500"],[new Error(""),"the trainer sight request failed with no message"]] as const){
    const tools=b300Tools(reply as TrainerSightReply|Error,START,WALK);
    await tools.navigate.execute("n",GOAL);
    expect(tools.pressed.length).toBeGreaterThan(0);

@@ -610,7 +610,7 @@ async function checkSight(sight:TrainerSightPorts,id:string,goal:Goal,state:Game
   else {seen=seenTrainers(reply,state);outcome=seen.length===0?"clear":confirmed?"confirmed":"refused";}
  } catch(error){
   signal?.throwIfAborted();
-  outcome="unavailable";reason=error instanceof Error?error.message:String(error);
+  outcome="unavailable";const said=error instanceof Error?error.message:String(error);reason=said===""?"the trainer sight request failed with no message":said;
  }
  if(outcome==="refused")text=sightText(seen,origin,{x:goal.x,y:goal.y},tiles.length,state);
  sight.record({tool_call_id:id,map_id:[map[0],map[1]],origin:{x:origin.x,y:origin.y},goal:{x:goal.x,y:goal.y},route_tiles:tiles.length,confirmed,outcome,reason,sightings:seen,text});

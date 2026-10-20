@@ -54,3 +54,4 @@ bundle-cook-1h: counter-talk-v1 to onInBoth (sha256 1dae5952af02). whole-map-coo
 
 ## Pair v5 (the operator 19:53 NY: launch another 1hr bundle v control now; test whole map + sem nav)
 whole-map-pair-1h-v5.json from main ba71c60f bundle-cook-1h with the whole-map recipe (full-map-navigation-v1 in the bundle; positive-supervisor-v1 off in both; counter-talk-v1 and evolution-decision-v1 on in both; semantic-navigation-v2 and gym-readiness-readout-v1 in the bundle). Seed 296ec5f2910b4a71, sha256 de6de4d91c20. v4 had already ended operator_abort after ~3 min.
+- Reviews: Grok LGTM, Claude LGTM. Landing.

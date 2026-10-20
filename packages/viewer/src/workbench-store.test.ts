@@ -548,3 +548,24 @@ describe("trainer card data", () => {
     expect(parseWorkbench({ ...d, runs: [{ ...run, card: undefined }] }).runs[0]?.card).toBeUndefined();
   });
 });
+
+
+it("refreshes cached extension projections only for applied acknowledgements and preserves the original horizon", async () => {
+  const r = root(), log = new Log();
+  log.add(0, { ...START, extend_run: true });
+  const path = write(r, "extended", log);
+  const snapshot = () => workbenchSnapshot(r, () => Promise.resolve(true), 2_000_000_000_000).then(data => data.runs[0]);
+  const append = (event: Parameters<Log["add"]>[1]): void => {
+    const recorded = log.add(1000 + log.events.length * 1000, event);
+    appendFileSync(path, JSON.stringify({ ...recorded, run: "extended" }) + "\n");
+  };
+  expect((await snapshot())?.config?.extendedWallMs).toBeUndefined();
+  append({ type: "operator_control", turn: 0, action: "extend_30m", status: "ignored", request: 1 });
+  expect((await snapshot())?.config?.extendedWallMs).toBeUndefined();
+  append({ type: "operator_control", turn: 0, action: "extend_30m", status: "applied", request: 2, previous_max_wall_ms: 60_000, max_wall_ms: 1_860_000 });
+  expect((await snapshot())?.config).toMatchObject({ maxWallMs: 60_000, extendedWallMs: 1_860_000 });
+  append({ type: "operator_control", turn: 0, action: "extend_60m", status: "failed", request: 3 });
+  expect((await snapshot())?.config?.extendedWallMs).toBe(1_860_000);
+  append({ type: "operator_control", turn: 0, action: "extend_60m", status: "applied", request: 4, previous_max_wall_ms: 1_860_000, max_wall_ms: 5_460_000 });
+  expect((await snapshot())?.config).toMatchObject({ maxWallMs: 60_000, extendedWallMs: 5_460_000 });
+});

@@ -203,3 +203,45 @@ describe("levelup-box-v1 registry, presets and server wiring",()=>{
   expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:true})[ID]).toBe(false);
  });
 });
+
+// fail-open-input-v1 (operator 2026-10-20: "a fail open design for boxes or ui we dont recognize and let the model
+// make choices based on whats on screen. pressing b should also be able to dismiss that"): with levelup-box-v1 OFF
+// the stats box is a hold the harness does not recognize, so the advance stops with the battle busy.
+describe("fail-open-input-v1 on the unrecognized level-up box (run 54a7)",()=>{
+ const FAIL_OPEN:FeatureSet={...OFF,"fail-open-input-v1":true};
+ it("ON: the inputs left in the batch are sent after the unrecognized hold, and the result says so",async()=>{
+  const server=new Replay(at(5076),false);const {press,advance}=wire(server,FAIL_OPEN);
+  const result=await press.execute("t357",{buttons:["A","A"]});
+  expect(server.posts.map(p=>`${p.button}:${p.phase}`)).toEqual(["A:input","B:waiting","B:waiting","B:waiting","A:box"]);
+  expect(advance()).toMatchObject({sent:["A","A"],dropped:[],battle_auto_presses:3,stop:"battle_busy"});
+  expect(()=>checkEvent(advance())).not.toThrow();
+  const text=textOf(result);
+  expect(text).toContain("The harness does not recognize what the game is waiting for, so it sent the rest of your inputs as you asked: A. Decide from the screen what they did.");
+  expect(text).not.toContain("remaining input not sent");
+ });
+ it("ON: B in the batch is sent too, so it can dismiss the box",async()=>{
+  const server=new Replay(at(5076),false);const {press}=wire(server,FAIL_OPEN);
+  await press.execute("t357",{buttons:["A","B"]});
+  expect(server.posts.at(-1)).toEqual({button:"B",phase:"box"});
+ });
+ it("OFF: the inputs left in the batch are dropped as before",async()=>{
+  const server=new Replay(at(5076),false);const {press,advance}=wire(server,OFF);
+  const result=await press.execute("t357",{buttons:["A","B"]});
+  expect(server.posts.map(p=>p.button)).toEqual(["A","B","B","B"]);
+  expect(advance()).toMatchObject({sent:["A"],dropped:["B"],stop:"battle_busy"});
+  expect(textOf(result)).toContain("1 remaining input not sent: B.");
+ });
+ it("ON: a recognized stop (the battle ended) still drops the rest of the batch",async()=>{
+  const server=new Replay(at(5076),true);const {press,advance}=wire(server,{...ON,"fail-open-input-v1":true});
+  await press.execute("t357",{buttons:["A","A"]});
+  expect(advance()).toMatchObject({sent:["A"],dropped:["A"],stop:"field_free"});
+ });
+ it("is registered as an agent switch, off by default, needing nothing",()=>{
+  expect(SWITCHABLE_FEATURES).toContain("fail-open-input-v1");
+  expect(featureInfo("fail-open-input-v1")).toMatchObject({needs:null});
+  expect(featureInfo("fail-open-input-v1").description).toContain(" Off: ");
+  expect(normalizeFeatures({})["fail-open-input-v1"]).toBe(false);
+  expect(SERVER_FEATURES).not.toContain("fail-open-input-v1");
+  expect(playHarnessFeatures({...ALL_ON,"fail-open-input-v1":true},null)).toContain("fail-open-input-v1");
+ });
+});

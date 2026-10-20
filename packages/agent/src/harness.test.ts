@@ -433,6 +433,35 @@ function scriptedLoop(script: (() => AgentMessage[])[], calls: string[]): Loop {
 }
 
 describe("play", () => {
+  it("records an operator stop that aborts the loop mid-request as the stop, not a crash", async () => {
+    // Run c6c2: SIGTERM aborted the battle wait inside the pre-model readiness observe; pi's transformContext
+    // hook does not catch it, so the loop rejected with AbortError and the run was recorded as a crash.
+    const { g } = governor();
+    const aborted = (): Promise<AgentMessage[]> => {
+      g.abort("operator_abort");
+      return Promise.reject(new DOMException("This operation was aborted", "AbortError"));
+    };
+    expect(await play(TASK, g, { start: aborted, resume: aborted })).toBe("operator_abort");
+    let resumed = 0;
+    const { g: second } = governor();
+    const afterRetry: Loop = {
+      start: () => Promise.resolve([reply([], "error", "HTTP 502")]),
+      resume: () => {
+        resumed++;
+        second.abort("budget");
+        return Promise.reject(new Error("socket closed"));
+      },
+    };
+    expect(await play(TASK, second, afterRetry)).toBe("budget");
+    expect(resumed).toBeGreaterThan(0);
+  });
+
+  it("still rejects a loop failure with no stop reason, so a real crash stays a crash", async () => {
+    const { g } = governor();
+    const broken: Loop = { start: () => Promise.reject(new Error("boom")), resume: () => Promise.reject(new Error("boom")) };
+    await expect(play(TASK, g, broken)).rejects.toThrow("boom");
+  });
+
   it("returns the governor's stop reason once the loop exits", async () => {
     const { g } = governor();
     const calls: string[] = [];

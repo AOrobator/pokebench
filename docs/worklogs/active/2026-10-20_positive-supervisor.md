@@ -34,6 +34,7 @@ Probes decide bundle inclusion.
 - 2026-10-20 ~12:00 PM ET: branch claude/positive-supervisor from claude/loop-breaker 5d07a65a.
 
 ## Surprises
+- Probe r1 (runs/decision-probes/2026-10-20_positive-supervisor/, 16 a side): f28d 451/2301/2862 no change over breaker+gate; control 827 16/16 back out of the party menu with B vs 2/16; 3411 9/16 north vs ~6/16, 0 vs 2 wrong south warp; 3259 worse: 13/16 repeat the navigate_to (0,6) that failed 3 times and 13 copy thinking (vs 4 and 1). Revised: the newest attempt, when repeated with the same result, gets "Choose a call other than <attempt>: it gave the same result (...) N times in a row."
 ## Multi-Model Review Log
 ## Boy Scout Log
 ## Archive Milestone (user-gated)

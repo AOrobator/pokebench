@@ -493,6 +493,9 @@ export class SupervisorBriefing {
  private positive(fact:string):string {
   const ui=this.screenNow?.ui;
   const recent=(ui===undefined?this.tried:this.uiTried).slice(-3).reverse().map(t=>`${t.label}${t.count>1?` ×${String(t.count)}`:""} → ${t.outcome}`).join("; ");
+  // The newest attempt, when it repeated with the same result: the one thing not to do again, said as what to do.
+  const newest=(ui===undefined?this.tried:this.uiTried).at(-1);
+  const repeated=newest!==undefined&&newest.count>1?newest:undefined;
   const untried=ui!==undefined||this.latest===null||!this.features["world-targets-v1"]?[]:this.open(this.latest).filter(t=>!t.startsWith("Warp")&&!t.startsWith("warp")).slice(0,3);
   const lines=[
    `SUPERVISOR: Make one tool call based on the game state and what you observed.${fact===""?"":` ${fact}`}`,
@@ -502,6 +505,7 @@ export class SupervisorBriefing {
    ...this.untalked().split("\n").filter(l=>l!==""),
    ...(untried.length===0?[]:[`- Shown here and not tried yet: ${untried.join("; ")}`]),
    ...(recent===""?[]:[`- Your latest attempts: ${recent}`]),
+   ...(repeated===undefined?[]:[`- Choose a call other than ${repeated.label}: it gave the same result (${repeated.outcome}) ${String(repeated.count)} times in a row.`]),
   ];
   return lines.join("\n");
  }

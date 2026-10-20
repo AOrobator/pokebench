@@ -62,7 +62,8 @@ describe("positive-supervisor-v1 on run f28d, Route 103 with MAY at (10,3)",()=>
 - Where you are: ROUTE103 (map 0/18) at 21,12 facing right
 - Story characters on this map you have not talked to since your last story milestone: MAY at 10,3 (out of view; where the map places this character, it may have moved)
 - Shown here and not tried yet: BOY_1 at 19,11 (A); Sign text "ROUTE 103 | ↓ OLDALE TOWN" at 11,9 (A)
-- Your latest attempts: A facing tile at 22,12 ×3 → no change; navigate_to 21,12 → moved to 21,12; navigate_to 20,10 → moved to 16,10`);
+- Your latest attempts: A facing tile at 22,12 ×3 → no change; navigate_to 21,12 → moved to 21,12; navigate_to 20,10 → moved to 16,10
+- Choose a call other than A facing tile at 22,12: it gave the same result (no change) 3 times in a row.`);
   for(const g of on.briefings){
    expect(g.message.startsWith("SUPERVISOR: Make one tool call based on the game state and what you observed.")).toBe(true);
    for(const banned of ["looping","stalling","do not try","Ways off","Exits to maps","Latest recorded place instruction","Story goal"])expect(g.message).not.toContain(banned);

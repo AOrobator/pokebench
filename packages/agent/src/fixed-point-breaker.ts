@@ -79,29 +79,32 @@ export class FixedPointBreaker {
  collapse(messages:AgentMessage[]):AgentMessage[] {
   const groups=this.groups(messages);
   const drop=new Set<number>();
-  let repeats=0,silentRun=false;
+  let repeats=0;
   for(let i=0;i<groups.length;){
    let j=i;
-   const key=groups[i]?.key??null;
+   const key=groups[i]?.silent===true?null:groups[i]?.key??null;
    while(key!==null&&groups[j+1]?.key===key)j++;
    const run=j-i+1;
    if(key!==null&&run>=FIXED_POINT_TURNS){
     for(const g of groups.slice(i,j))for(const index of g.members)drop.add(index);
-    repeats=Math.max(repeats,run);silentRun||=groups[i]?.silent===true;
+    repeats=Math.max(repeats,run);
    }
    i=j+1;
   }
-  const collapsed=groups.filter(g=>g.members.some(m=>drop.has(m)));
-  const fresh=collapsed.map(g=>g.id).filter(id=>!this.reported.has(id));
-  for(const id of fresh)this.reported.add(id);
-  if(fresh.length>0)this.recorder.recordLoopBreaker({stage:1,trigger:silentRun?"no_tool_call":"fixed_point",repeats,collapsed:collapsed.length,text:null});
+  const collapsed=groups.filter(g=>!g.silent&&g.members.some(m=>drop.has(m)));
+  // A reply that called no tool is left out, so the next sample starts fresh; its nudge or note stays.
+  const silent=groups.filter(g=>g.silent);
+  for(const g of silent)drop.add(g.members[0]??-1);
+  const report=(list:readonly {readonly id:string}[]):boolean=>{const fresh=list.filter(g=>!this.reported.has(g.id));for(const g of fresh)this.reported.add(g.id);return fresh.length>0;};
+  if(report(collapsed))this.recorder.recordLoopBreaker({stage:1,trigger:"fixed_point",repeats,collapsed:collapsed.length,text:null});
+  if(report(silent))this.recorder.recordLoopBreaker({stage:1,trigger:"no_tool_call",repeats:silent.length,collapsed:silent.length,text:null});
   return messages.filter((_m,index)=>!drop.has(index));
  }
 
  note(messages:AgentMessage[]):AgentMessage[] {
   if(messages.length===0)return messages;
   if(this.silent>0){
-   // fresh-retry-v1 may have left the reply out; its nudge is still the newest one.
+   // Stage 1 left the reply out (as fresh-retry-v1 does); its nudge is still the newest one.
    const last=messages.findLastIndex(m=>"role"in m&&m.role==="assistant");
    const text=noToolNote(this.silent);
    this.recorder.recordLoopBreaker({stage:2,trigger:"no_tool_call",repeats:this.silent,collapsed:0,text});

@@ -88,3 +88,4 @@ Tests per milestone; probe receipts for M4; explainer pages checked with `just p
 ## Boy Scout Log
 
 ## Archive Milestone (user-gated)
+- 11:47 ET: breaker no-tool fold-in, RED d4476bb3.

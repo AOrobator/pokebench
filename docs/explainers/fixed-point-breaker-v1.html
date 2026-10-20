@@ -61,7 +61,15 @@ svg text{fill:var(--fg);font:13px -apple-system,BlinkMacSystemFont,"Segoe UI",He
 <rect x="162" y="114" width="110" height="30" fill="var(--fill)" stroke="var(--keep)"/><text x="170" y="134">nav (10,5) ×4</text>
 <rect x="278" y="114" width="330" height="30" fill="none" stroke="var(--keep)" stroke-dasharray="4 3"/><text x="286" y="134">SUPERVISOR: Make one tool call based on …</text>
 </svg>
-<figcaption>Only runs of 3 or more turns that match exactly (thinking, text, tool calls and the state every result left) collapse. Two copies, or copies that differ by one character or one tile, all stay. Thinking is never dropped in general and nothing inside a kept message changes. Identical replies with no tool call collapse with their nudges; a supervisor note between them stays.</figcaption>
+<figcaption>Only runs of 3 or more turns that match exactly (thinking, text, tool calls and the state every result left) collapse. Two copies, or copies that differ by one character or one tile, all stay. Thinking is never dropped in general and nothing inside a kept message changes. A reply that called no tool is left out of the request (as <code>fresh-retry-v1</code> does); its nudge or supervisor note stays.</figcaption>
+</figure>
+<figure>
+<table>
+<tr><th>Decision probe, f28d, 16 samples a side</th><th>Off</th><th>On</th></tr>
+<tr><td>Turn 2301, inside the 400-turn <code>navigate_to (10,5)</code> loop: a different call</td><td>0 of 16 (all copy the thinking)</td><td>14 of 16 (none copy it)</td></tr>
+<tr><td>Turn 2862, after 3 replies with no tool call: ends with a tool call</td><td>0 of 16</td><td>16 of 16 with the failed replies left out; 0 of 16 with only the note</td></tr>
+</table>
+<figcaption>Raw samples: <code>runs/decision-probes/2026-10-20_pre-cook/</code>. The no-tool replies looped inside one reply until the output cap, so no note alone could fix them.</figcaption>
 </figure>
 
 <h2>Stage 2: a short, positive note with the count</h2>
@@ -111,7 +119,7 @@ Dialogue shown during this call (… pages, in order, whole): …</p>
 <p>Every turn stays in the request, the nudge and notes are unchanged, and the harness never walks or presses on its own.</p>
 
 <h2>Status</h2>
-<p>Branch <code>claude/loop-breaker</code>. Tests: <code>fixed-point-breaker.test.ts</code>, <code>auto-talk.test.ts</code>; wiring deletions go red. Decision probes at f28d turns 2301 and 2862 (16 samples a side) go through the GPU queue. Not yet reviewed or measured.</p>
+<p>Branch <code>claude/loop-breaker</code>. Tests: <code>fixed-point-breaker.test.ts</code>, <code>auto-talk.test.ts</code>; wiring deletions go red. Decision probes above. Not yet reviewed or measured in runs.</p>
 </main>
 </body>
 </html>

@@ -317,7 +317,7 @@ describe("exit-reachability-v1 schema, registry and presets",()=>{
   expect(description).toContain(" Off: ");
   expect(description).toContain("bundle arm only");
   expect(description).not.toContain("both arms");
-  expect(FEATURES.filter(f=>f.switchable).at(-47)?.id).toBe(ID);
+  expect(FEATURES.filter(f=>f.switchable).at(-48)?.id).toBe(ID);
   expect(playHarnessFeatures(ALL_ON,null).at(-37)).toBe(ID);
   expect(SERVER_FEATURES.at(-11)).toBe(ID);
   expect(serverFeatureEnv({...ALL_ON,"battle-decision-ready-v1":false,[ID]:false}).POKEBENCH_FEATURES_OFF.split(",")).toContain(ID);

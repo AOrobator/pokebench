@@ -426,8 +426,8 @@ describe("battle-text-auto-advance-v1 registry and production wiring",()=>{
  it("is a default-off guidance switch, recorded last, that needs dialogue auto-advance and no server switch",()=>{
   expect(featureInfo(ID)).toMatchObject({group:"guidance",needs:"dialogue-auto-advance-v1",switchable:true,title:"BATTLE TEXT AUTO-ADVANCE"});
   expect(featureInfo(ID).description).toContain(" Off: field auto-advance stops when a battle starts");
-  expect(SWITCHABLE_FEATURES.at(-81)).toBe(ID);
-  expect(FEATURES.filter(f=>f.switchable).at(-81)?.id).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-82)).toBe(ID);
+  expect(FEATURES.filter(f=>f.switchable).at(-82)?.id).toBe(ID);
   expect(playHarnessFeatures(ALL_ON,null).at(-71)).toBe(ID);
   expect(playHarnessFeatures({...ALL_ON,"battle-decision-ready-v1":false,[ID]:false},null)).not.toContain(ID);
   expect(SERVER_FEATURES).not.toContain(ID);
@@ -445,16 +445,16 @@ describe("battle-text-auto-advance-v1 registry and production wiring",()=>{
   const frozen=Object.fromEntries(Object.entries({...ALL_ON,"battle-decision-ready-v1":false,[ID]:false}).filter(([id])=>!newer.has(id)));
   const preset=parsePlayPreset({version:2,id:"frozen-base",target:null,limits:{maxTurns:10,maxWallMs:60000,failureLimit:3},sampling:{thinkingLevel:"medium",maxTokens:4096},features:{...frozen,"state-only-decisions-v1":false}});
   expect(Object.keys(presetFeatures(preset))).toEqual([...SWITCHABLE_FEATURES]);
-  expect(Object.keys(presetFeatures(preset)).slice(-81,-75)).toEqual([ID,"battle-message-waiting-v1","script-line-presence-v1","offscreen-objects-v1","navigate-first-prompt-v1","presence-penalty-v1"]);
+  expect(Object.keys(presetFeatures(preset)).slice(-82,-76)).toEqual([ID,"battle-message-waiting-v1","script-line-presence-v1","offscreen-objects-v1","navigate-first-prompt-v1","presence-penalty-v1"]);
   for(const id of ["offscreen-objects-v1","navigate-first-prompt-v1","presence-penalty-v1"] as const)expect(presetFeatures(preset)[id]).toBe(false);
  });
 
  it("is the key before battle-message-waiting-v1 wherever a preset or default lists switches, and in the registry",()=>{
   const later=new Set<string>(["battle-triage-guidance-v1","adjacent-tiles-v1","readout-rules-in-prompt-v1","explorer-guidance-v1","connection-edge-tiles-v1","in-game-naming-readout-v1","no-nickname-guidance-v1",ID,"script-line-presence-v1","offscreen-objects-v1","navigate-first-prompt-v1","presence-penalty-v1"]);
   const old=Object.fromEntries(Object.entries(ALL_ON).filter(([id])=>!later.has(id))) as Omit<FeatureSet,"battle-triage-guidance-v1"|"adjacent-tiles-v1"|"readout-rules-in-prompt-v1"|"explorer-guidance-v1"|"connection-edge-tiles-v1"|"in-game-naming-readout-v1"|"no-nickname-guidance-v1"|typeof ID|"script-line-presence-v1"|"offscreen-objects-v1"|"navigate-first-prompt-v1"|"presence-penalty-v1">;
-  expect(Object.keys(normalizeFeatures(old)).slice(-81,-75)).toEqual([ID,"battle-message-waiting-v1","script-line-presence-v1","offscreen-objects-v1","navigate-first-prompt-v1","presence-penalty-v1"]);
+  expect(Object.keys(normalizeFeatures(old)).slice(-82,-76)).toEqual([ID,"battle-message-waiting-v1","script-line-presence-v1","offscreen-objects-v1","navigate-first-prompt-v1","presence-penalty-v1"]);
   for(const id of ["offscreen-objects-v1","navigate-first-prompt-v1","presence-penalty-v1"] as const)expect(normalizeFeatures(old)[id]).toBe(false);
-  expect(Object.keys(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:true})).at(-81)).toBe(ID);
+  expect(Object.keys(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:true})).at(-82)).toBe(ID);
   expect(SWITCHABLE_FEATURES.indexOf(ID)).toBe(SWITCHABLE_FEATURES.indexOf("no-nickname-guidance-v1")+1);
  });
 
@@ -601,7 +601,7 @@ it("battle readiness never executes a queued action after a cap or battle end",a
 
 it("battle readiness is append-only, default OFF for historical presets and dependent on native text advancing",()=>{
  const id="battle-decision-ready-v1" as const;
- expect(SWITCHABLE_FEATURES.at(-15)).toBe(id);
+ expect(SWITCHABLE_FEATURES.at(-16)).toBe(id);
  expect(playHarnessFeatures(ALL_ON,null).at(-5)).toBe(id);
  expect(featureInfo(id)).toMatchObject({needs:ID,group:"guidance"});
  const flags=flagFeatures({loopGuard:false,activeUi:true,interfaceDocs:true,objectives:false});

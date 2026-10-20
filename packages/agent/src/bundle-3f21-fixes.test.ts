@@ -159,7 +159,7 @@ describe("F6 restated text, every case",()=>{
 });
 
 describe("F5 stall briefing additions, every case",()=>{
- const ALL={...Object.fromEntries(SWITCHABLE_FEATURES.map(id=>[id,true])),"ineffective-navigation-v2":false,"supervisor-briefing-v2":false,"reachable-story-guidance-v1":false,"text-only-supervisor-v2":false} as FeatureSet;
+ const ALL={...Object.fromEntries(SWITCHABLE_FEATURES.map(id=>[id,true])),"ineffective-navigation-v2":false,"supervisor-briefing-v2":false,"reachable-story-guidance-v1":false,"text-only-supervisor-v2":false,"positive-supervisor-v1":false} as FeatureSet;
  function run(features:FeatureSet){
   const b=new SupervisorBriefing(features);let seq=0,turn=0;
   const emit=(body:Record<string,unknown>):RunEvent=>{const e={v:1,run:"r",t:"2026-10-16T00:00:00.000-04:00",seq:++seq,turn,...body} as RunEvent;b.observe(e);return e;};

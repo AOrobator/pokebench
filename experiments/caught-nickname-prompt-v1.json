@@ -3,7 +3,7 @@
  "id": "caught-nickname-prompt-v1",
  "title": "Caught nickname question",
  "changedFeature": "caught-nickname-prompt-v1",
- "hypothesis": "Reading the post-catch nickname YES/NO box as an open battle question (it runs under HandleEndTurn_FinishBattle, which the readout read as a busy battle) lets the model answer it, so runs that catch a POKéMON no longer stall on the box and more runs reach ROXANNE_DEFEATED, or reach it sooner, than the incumbent.",
+ "hypothesis": "Reading the post-catch nickname YES/NO box as an open battle question (the ball's turn-action script runs under RunTurnActionsFunctions, which the readout read as a busy battle) lets the model answer it, so runs that catch a POKéMON no longer stall on the box and more runs reach ROXANNE_DEFEATED, or reach it sooner, than the incumbent.",
  "activationMilestone": "STARTER_CHOSEN",
  "primaryMilestone": "ROXANNE_DEFEATED",
  "source": {

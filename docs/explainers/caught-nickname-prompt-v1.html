@@ -37,7 +37,7 @@ svg .small{font-size:11px;fill:var(--muted)}svg .tiny{font-size:10px;fill:#fff;f
 <rect x="10" y="100" width="250" height="60" rx="6" fill="var(--fill)" stroke="var(--line)"/>
 <text x="24" y="124">Script runner 0x0803E08D</text><text x="24" y="146" class="small">RunBattleScriptCommands</text>
 <rect x="10" y="180" width="250" height="60" rx="6" fill="var(--panel)" stroke="var(--drop)" stroke-width="2"/>
-<text x="24" y="204">HandleEndTurn_FinishBattle 0x0803D819</text><text x="24" y="226" class="small">gBattleOutcome = CAUGHT; action 10 = EXEC_SCRIPT</text>
+<text x="24" y="204">RunTurnActionsFunctions 0x0803D819</text><text x="24" y="226" class="small">action 10 = EXEC_SCRIPT (the thrown ball)</text>
 <rect x="330" y="90" width="220" height="80" rx="6" fill="var(--panel)" stroke="var(--accent)" stroke-width="2"/>
 <text x="344" y="116">read_battle_prompt</text><text x="344" y="138" class="small">script op 0xF3 trygivecaughtmonnick</text><text x="344" y="156" class="small">state 1 = input, cursor byte 0 YES / 1 NO</text>
 <line x1="260" y1="50" x2="330" y2="110" stroke="var(--keep)" stroke-width="2"/><text x="270" y="72" class="small">accepted</text>
@@ -49,15 +49,16 @@ svg .small{font-size:11px;fill:var(--muted)}svg .tiny{font-size:10px;fill:#fff;f
 <text x="634" y="184">ON: text phase prompt</text><text x="634" y="206" class="small">YES/NO box open, cursor on NO</text>
 <line x1="550" y1="115" x2="620" y2="75" stroke="var(--drop)" stroke-width="2"/><line x1="550" y1="145" x2="620" y2="185" stroke="var(--keep)" stroke-width="2"/>
 </svg>
-<figcaption>The box is drawn by battle script opcode 0xF3 (<code>Cmd_trygivecaughtmonnick</code>, <code>BattleScript_SuccessBallThrow</code>). After a catch, <code>sEndTurnFuncsTable[B_OUTCOME_CAUGHT]</code> sends the battle to <code>HandleEndTurn_FinishBattle</code>, which runs the script through <code>sTurnActionsFuncsTable[B_ACTION_EXEC_SCRIPT]</code>. The reader only accepted the two script runners.</figcaption>
+<figcaption>The box is drawn by battle script opcode 0xF3 (<code>Cmd_trygivecaughtmonnick</code>, in <code>BattleScript_SuccessBallThrow</code>). A thrown ball is a turn action: <code>HandleAction_UseItem</code> hands its script to <code>sTurnActionsFuncsTable[B_ACTION_EXEC_SCRIPT]</code> (<code>HandleAction_RunBattleScript</code>), which <code>RunTurnActionsFunctions</code> calls every frame. The reader only accepted the two battle script runners. <code>gBattleOutcome</code> is still 0 while the box is open; CAUGHT is set after it.</figcaption>
 </figure>
 
 <h2>The recorded frame</h2>
 <div class="tablewrap"><table>
 <tr><th>Read</th><th>Address</th><th>c6c2 raw-ram 5834 (turn 406)</th></tr>
-<tr><td>gBattleMainFunc</td><td><code>0x03005D04</code></td><td><code>0x0803D819</code> HandleEndTurn_FinishBattle</td></tr>
+<tr><td>gBattleMainFunc</td><td><code>0x03005D04</code></td><td><code>0x0803D819</code> RunTurnActionsFunctions</td></tr>
 <tr><td>gCurrentActionFuncId</td><td><code>0x02024083</code></td><td>10 (B_ACTION_EXEC_SCRIPT)</td></tr>
 <tr><td>script op at gBattlescriptCurrInstr</td><td><code>0x02024214</code> → <code>0x082DBDAF</code></td><td><code>0xF3</code> trygivecaughtmonnick</td></tr>
+<tr><td>gBattleOutcome</td><td><code>0x0202433A</code></td><td>0 (CAUGHT comes after the box)</td></tr>
 <tr><td>gBattleCommunication[0..1]</td><td><code>0x02024332</code></td><td>1 (input state), 1 (cursor on NO)</td></tr>
 </table></div>
 
@@ -68,10 +69,10 @@ Battle details: WILD single · turn 3 · resolving (the game is playing animatio
 <div class="note on">ON
 Battle details: … battle YES/NO box open (nickname the caught Pokémon), cursor on NO — UP or DOWN moves the cursor, A answers the highlighted choice, B answers NO</div>
 </div>
-<p>With the switch on, the battle wait ends on the box (<code>reason: prompt</code>) and battle text auto-advance stops with <code>battle_prompt</code>, so the model's next press reaches the box. HandleEndTurn_FinishBattle running anything other than a script action is still read as before.</p>
+<p>With the switch on, the battle wait ends on the box (<code>reason: prompt</code>) and battle text auto-advance stops with <code>battle_prompt</code>, so the model's next press reaches the box. RunTurnActionsFunctions running any other action is still read as before.</p>
 
 <h2>Wiring</h2>
-<p><code>POKEBENCH_FEATURES_OFF</code> → <code>rerender.read_state(caught_nickname_enabled)</code> → <code>read_game_state</code> → <code>read_battle_state(finish_battle_prompt)</code> → <code>read_battle_prompt(finish_battle)</code>; and <code>serve.py</code> → <code>BattleWait(finish_battle)</code> → <code>wait_phase</code>. Off is byte-identical.</p>
+<p><code>POKEBENCH_FEATURES_OFF</code> → <code>rerender.read_state(caught_nickname_enabled)</code> → <code>read_game_state</code> → <code>read_battle_state(turn_action_prompt)</code> → <code>read_battle_prompt(turn_action_script)</code>; and <code>serve.py</code> → <code>BattleWait(turn_action_script)</code> → <code>wait_phase</code>. Off is byte-identical.</p>
 
 <h2>Status</h2>
 <p>Branch <code>claude/nickname-fail-open</code>. Tests: <code>env/tests/env/test_caught_nickname.py</code> on the c6c2 fixture (OFF busy, ON prompt with cursor NO, non-script finish ignored, production state read and battle wait honour the switch). Pending experiment <code>experiments/caught-nickname-prompt-v1.json</code>; no measured runs yet.</p>

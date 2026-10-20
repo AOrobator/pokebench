@@ -219,6 +219,15 @@ describe("fail-open-input-v1 on the unrecognized level-up box (run 54a7)",()=>{
   expect(text).toContain("The harness does not recognize what the game is waiting for, so it sent the rest of your inputs as you asked: A. Decide from the screen what they did.");
   expect(text).not.toContain("remaining input not sent");
  });
+ it("ON with safe batches: the inputs the batch rule held back are sent, and the result does not also say they were not sent",async()=>{
+  const server=new Replay(at(5076),false);const {press,advance}=wire(server,{...FAIL_OPEN,"dialogue-safe-batches-v1":true});
+  const result=await press.execute("t357",{buttons:["A","B"]});
+  expect(server.posts.at(-1)).toEqual({button:"B",phase:"box"});
+  expect(advance()).toMatchObject({sent:["A","B"],dropped:[]});
+  expect(textOf(result)).not.toContain("Interface safety");
+  const off=new Replay(at(5076),false);const offWired=wire(off,{...OFF,"dialogue-safe-batches-v1":true});
+  expect(textOf(await offWired.press.execute("t357",{buttons:["A","B"]}))).toContain("Interface safety: submitted 1 of 2 requested inputs");
+ });
  it("ON: B in the batch is sent too, so it can dismiss the box",async()=>{
   const server=new Replay(at(5076),false);const {press}=wire(server,FAIL_OPEN);
   await press.execute("t357",{buttons:["A","B"]});

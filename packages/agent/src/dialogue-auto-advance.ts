@@ -413,7 +413,7 @@ export function withDialogueAutoAdvance(tools:readonly AgentTool[],features:Feat
   if(!engaged&&(walk||plan.length===1)&&plan.length===params.buttons.length)return last as AgentToolResult<{state:GameStateSnapshot|undefined}>;
   // Every requested input that was not sent: cut by engaged dialogue or withheld by the safe-batch rule.
   let dropped=params.buttons.slice(sent.length);
-  let block:string|null=null,final:Result,detail:string|null=null;
+  let block:string|null=null,final:Result,detail:string|null=null,failedOpen=false;
   if(engaged){
    let outcome=await drive(after,pages,autoPress(id,carry),full,battle,signal);detail=outcome.detail;
    open=pages.openAt(outcome.state);
@@ -422,7 +422,7 @@ export function withDialogueAutoAdvance(tools:readonly AgentTool[],features:Feat
    if(failOpen&&UNRECOGNIZED.has(outcome.stop)&&dropped.length>0){
     const rest=dropped;
     for(const button of rest){const result=await run([button],false);sent.push(button);results.push({buttons:[button],line:pressLineOf(result)});extras.push(...extraText(result));}
-    dropped=[];
+    dropped=[];failedOpen=true;
     outcome={...outcome,note:[outcome.note,`The harness does not recognize what the game is waiting for, so it sent the rest of your inputs as you asked: ${rest.join(", ")}. Decide from the screen what they did.`].filter(line=>line!=null).join("\n")};
    }
    // pushback-press-result-v1: a walk batch is one submission; once its first step opened a message, the steps
@@ -434,7 +434,7 @@ export function withDialogueAutoAdvance(tools:readonly AgentTool[],features:Feat
   const finalState=carry.preserve(stateOf(final));
   const seen=observation(final);
   const head=[`pressed ${sent.join(", ")}`,
-   ...(plan.length<params.buttons.length||(walk&&sent.length<plan.length)?[`Interface safety: submitted ${String(walk?sent.length:plan.length)} of ${String(params.buttons.length)} requested inputs; remaining inputs were not sent. Inspect the new state before another input.`]:[]),
+   ...(!failedOpen&&(plan.length<params.buttons.length||(walk&&sent.length<plan.length))?[`Interface safety: submitted ${String(walk?sent.length:plan.length)} of ${String(params.buttons.length)} requested inputs; remaining inputs were not sent. Inspect the new state before another input.`]:[]),
    ...(switches.pressResult?[`Press result: ${(line=>switches.pushback===true&&engaged?pushbackPressResult(line,before,after,finalState,switches):line)(results.every(r=>r.line!==null)?(line=>detail===null?line:afterAdvance(line,detail))(results.length===1?results[0]?.line??"":results.map((r,i)=>`${i===0?"":"then "}${r.buttons.join(", ")}: ${r.line??""}`).join(" | ")):pressResult(before,finalState,sent,switches))}`]:[]),
    ...(block===null?[]:[block])];
   const notices=carry.missingNotices([...head,seen.text,...extras.map(part=>part.text)]);

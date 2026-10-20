@@ -266,7 +266,7 @@ def read_game_state(
             read,
             current_battle_only=coherent,
             tutorial_owner_enabled=tutorial_owner_enabled,
-            finish_battle_prompt=caught_nickname_enabled,
+            turn_action_prompt=caught_nickname_enabled,
         )
         if in_battle
         else None

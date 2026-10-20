@@ -3,10 +3,10 @@
 The fixture is read-only raw RAM from 2026-10-20T16-14-34_qwen36-gpu1_c6c2 (raw-ram 5834, turn
 406), cut to the addresses the readers use. Cmd_trygivecaughtmonnick (battle script opcode 0xF3,
 BattleScript_SuccessBallThrow) waits in its input state (gBattleCommunication[0] == 1) with the
-cursor on NO, but the script runs under HandleEndTurn_FinishBattle (gBattleOutcome is
-B_OUTCOME_CAUGHT) with gCurrentActionFuncId == B_ACTION_EXEC_SCRIPT, not under the battle script
-runners. The run sat on this box from 4:58 PM with the readout saying "controller_busy" and
-every A dropped.
+cursor on NO. The thrown ball is a turn action, so its script runs under RunTurnActionsFunctions
+with gCurrentActionFuncId == B_ACTION_EXEC_SCRIPT, not under the battle script runners, and
+gBattleOutcome is still 0. The run sat on this box from 4:58 PM with the readout saying
+"controller_busy" and every A dropped.
 """
 
 import json
@@ -20,8 +20,8 @@ from fastapi import FastAPI
 from pokebench_env import battle_text as bt
 from pokebench_env import rerender
 from pokebench_env.battle_message_waiting import RESOLVING, input_clause
-from pokebench_env.battle_state import read_battle_state
-from pokebench_env.caught_nickname import ACTION_FUNC, EXEC_SCRIPT, FINISH_BATTLE, SWITCH
+from pokebench_env.battle_state import OUTCOME, read_battle_state
+from pokebench_env.caught_nickname import ACTION_FUNC, EXEC_SCRIPT, RUN_TURN_ACTIONS, SWITCH
 from pokebench_env.game_state import MapNames
 from pokebench_env.readout import SERVER_FEATURES, features_off_from_env
 
@@ -51,9 +51,10 @@ def box() -> Archived:
     return Archived(FIXTURE["frames"][0]["memory"])
 
 
-def test_the_recorded_box_runs_under_finish_battle_with_a_script_action() -> None:
+def test_the_recorded_box_runs_under_run_turn_actions_with_a_script_action() -> None:
     read = box().read
-    assert int.from_bytes(read(bt.MAIN_FUNC, 4), "little") == FINISH_BATTLE
+    assert int.from_bytes(read(bt.MAIN_FUNC, 4), "little") == RUN_TURN_ACTIONS
+    assert read(OUTCOME, 1)[0] == 0
     assert read(ACTION_FUNC, 1)[0] == EXEC_SCRIPT
     script = int.from_bytes(read(bt.SCRIPT_PC, 4), "little")
     assert read(script, 1)[0] == 0xF3
@@ -72,10 +73,10 @@ def test_off_reads_the_box_as_a_busy_battle_as_before() -> None:
 
 def test_on_reads_the_open_nickname_question_with_its_cursor() -> None:
     read = box().read
-    assert bt.read_battle_prompt(read, finish_battle=True) == NICKNAME
-    assert bt.battle_text_phase(read, finish_battle=True) == "prompt"
-    assert bt.wait_phase(read, finish_battle=True) == "prompt"
-    battle = read_battle_state(read, finish_battle_prompt=True)
+    assert bt.read_battle_prompt(read, turn_action_script=True) == NICKNAME
+    assert bt.battle_text_phase(read, turn_action_script=True) == "prompt"
+    assert bt.wait_phase(read, turn_action_script=True) == "prompt"
+    battle = read_battle_state(read, turn_action_prompt=True)
     assert (battle.prompt, battle.text_phase) == (NICKNAME, "prompt")
     assert input_clause(battle) == (
         "battle YES/NO box open (nickname the caught Pokémon), cursor on NO — "
@@ -83,11 +84,11 @@ def test_on_reads_the_open_nickname_question_with_its_cursor() -> None:
     )
 
 
-def test_on_ignores_finish_battle_when_it_is_not_running_a_script() -> None:
+def test_on_ignores_run_turn_actions_when_it_is_not_running_a_script() -> None:
     memory = box()
     memory.put(ACTION_FUNC, 12)  # B_ACTION_FINISHED
-    assert bt.read_battle_prompt(memory.read, finish_battle=True) is None
-    assert bt.battle_text_phase(memory.read, finish_battle=True) == "busy"
+    assert bt.read_battle_prompt(memory.read, turn_action_script=True) is None
+    assert bt.battle_text_phase(memory.read, turn_action_script=True) == "busy"
 
 
 def test_the_switch_is_a_server_feature_off_by_default() -> None:
@@ -117,7 +118,7 @@ def test_production_battle_wait_honours_the_switch(monkeypatch: pytest.MonkeyPat
 
     class Capture(bt.BattleWait):
         def __init__(self, read: bt.ReadMemory, **options: bool) -> None:
-            made.append(options["finish_battle"])
+            made.append(options["turn_action_script"])
             super().__init__(read, **options)
 
     monkeypatch.setattr(serve, "BattleWait", Capture)
@@ -143,7 +144,7 @@ def test_production_battle_wait_honours_the_switch(monkeypatch: pytest.MonkeyPat
 
 def test_the_battle_wait_ends_on_the_box_only_with_the_switch() -> None:
     read = box().read
-    on = bt.BattleWait(read, finish_battle=True)
+    on = bt.BattleWait(read, turn_action_script=True)
     assert on.wait(lambda: "now", threading.Lock()) == ("now", "prompt", 0)
     off = bt.BattleWait(read)
     result: dict[str, object] = {}

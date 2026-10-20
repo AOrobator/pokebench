@@ -1000,4 +1000,20 @@ it("serves the reports page, the report list and each report's own files, and no
  for(const path of ["/reports/2026-10-17_top50/run.py","/reports/2026-10-17_top50/../../events.jsonl","/reports/2026-10-17_top50/%2e%2e/x.html","/reports/x/index.html","/reports/2026-10-17_top50/missing.html"])expect((await get(viewer,path)).status,path).toBe(404);
  expect((await get(viewer,"/api/reports",{host:"elsewhere.invalid"})).status).toBe(403);
  expect(BROWSER_MODULES).toEqual(expect.arrayContaining(["reports-view","reports-main"]));
+ writeFileSync(join(d,"live.html"),'<a href="http://127.0.0.1:8790/#run=abc">run abc</a> <a href="#top">top</a> <script>document.title="x"</script>');
+ const live=await getWithHeaders(viewer,"/reports/2026-10-17_top50/live.html");
+ expect(live.body).toBe('<a target="_top" href="/#run=abc">run abc</a> <a href="#top">top</a> <script>document.title="x"</script>');
+ expect(live.csp).toContain("sandbox allow-scripts");expect(live.csp).toContain("script-src 'self' 'unsafe-inline'");expect(live.csp).not.toContain("allow-same-origin");
+ expect((await getWithHeaders(viewer,"/reports")).csp).toContain("script-src 'self';");
 });
+
+function getWithHeaders(viewer: Viewer, path: string): Promise<{ body: string; csp: string }> {
+  return new Promise((resolve, reject) => {
+    const req = request({ host: HOST, port: viewer.port, path, headers: { host: `${HOST}:${String(viewer.port)}` } }, (res) => {
+      const chunks: Buffer[] = [];
+      res.on("data", (chunk: Buffer) => chunks.push(chunk));
+      res.on("end", () => { resolve({ body: Buffer.concat(chunks).toString(), csp: String(res.headers["content-security-policy"] ?? "") }); });
+    });
+    req.on("error", reject); req.end();
+  });
+}

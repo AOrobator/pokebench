@@ -33,3 +33,4 @@ No harness change, so no feature switch.
 - [ ] Reviews (round cap 2), ff-only land, restart, live check
 - [ ] report.json for the existing reports (data under runs/); propose the run-analysis skill edit
 - M2 RED: reports-view.test.ts and the browser-module check
+- M2 RED 2: report pages served sandboxed with inline scripts allowed; viewer links rewritten

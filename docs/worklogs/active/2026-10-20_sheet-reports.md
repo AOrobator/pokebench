@@ -10,4 +10,4 @@ After: the sheet's ALL RUNS block ends with RUNS & COMPARISONS â†— and REPORTS â
 - [x] RED: run-head.test.ts expects reports-link after comparisons-link in the sheet
 - [x] GREEN: gates pass (agent 2833, viewer 1388, Python 2896; lint; coverage)
 - [x] Browser check: runs/reviews/2026-10-20-sheet-reports-e2e/receipt.md
-- [ ] Reviews and land
+- [x] Reviews and land: head cd23443e; Claude, Grok and GPT LGTM round 1. Landed ff-only at cd23443e; just test on main passed (agent 2833, viewer 1388, Python 2896).

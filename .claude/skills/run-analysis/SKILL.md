@@ -179,3 +179,15 @@ Folded in so far:
 - PokeBench review ran with four parallel personas on one packet, and answered helping or hurting and top-N confidence.
 - Report passes `just pages-check`, returns 200 from 8791, was screenshotted and inspected at 1280, 1440 and 375 with details closed and open, and is linked once.
 - No runs launched, nothing edited outside the report, the review packet and scratch, no `chat-thread` calls from this skill or its subagents, no backticks or `$(...)` inside unquoted heredocs or double-quoted strings in any shell-written brief or report.
+
+## Loop guard effectiveness
+
+Do not judge a loop intervention by "a story milestone or a new map within 30 turns". Run `just loop-recovery <run_id> ...` (`packages/agent/src/loop-recovery.ts`). For every loop-guard episode start, stall briefing (sent, held by the stall gate, or retired and recorded as a diagnostic), fixed-point breaker note and auto-talk attempt, it classifies the loop by the state at the fire and applies that type's recovery test within 30 turns:
+
+- navigation: the player stands on a tile the fixed point did not use in the 20 turns before, or a story milestone;
+- dialogue: the dialogue closes with field controls free;
+- battle menu: a battle turn executes or the battle ends;
+- interface: the menu or naming editor closes;
+- story character (the readout names a story character on this map): the character speaks to the player, or a story milestone.
+
+Every intervention also gets the shared safety check (no whiteout and no stuck, model-error or crash end within the window) and a relapse flag (the same intervention again within the window). Each rate is printed beside the run's own base rate: the same test from every turn of that loop type. Report recovered vs base, safe and relapsed per loop type and intervention.

@@ -65,3 +65,4 @@ The 388–1224 failure is not fixed by the four parts alone. Option: part 4 also
 - Synced with main e224ced9 (positive-supervisor-v1 landed first). Registry order: positive-supervisor-v1 then unfinished-activity-v1. Conflicts resolved by taking main and re-applying this switch after positive-supervisor in features/presets/defaults/legacy/panels/bundles/readiness/README; test suffix indexes advanced again; positive-supervisor notes also carry the open-item line. Agent 2853/2853; viewer 1387/1388 then server.test.ts 70/70 three times alone (socket timing under full-suite load).
 - Added supervisor test for positive-supervisor and focused briefings plus retirement (21/21).
 - Synced with main cd23443e (whole-map pair config, phone sheet). Agent 2854/2854; viewer 1387/1388 with experiment-cli.test.ts 11/11 alone (git timing under load).
+- Synced with main fa5ae160 (loop recovery metrics). Agent 2864/2864, tsc clean. Review packet frozen next.

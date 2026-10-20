@@ -111,3 +111,17 @@ describe("the reports page", () => {
     expect(CSS).toContain(":root[data-phone] .rp-split { grid-template-columns: minmax(0, 1fr); }"); expect(CSS).toContain(":root[data-phone] .rp-list { order: 2; }");
   });
 });
+
+describe("the header chips", () => {
+  const chips = (html: string): string[][] => [...new DOMParser().parseFromString(html, "text/html").querySelectorAll<HTMLAnchorElement>("header.bar nav.nav-chips a.nav-chip")]
+    .map(a => [a.textContent, a.getAttribute("href") ?? "", a.getAttribute("aria-current") ?? ""]);
+  it("show the same two pages on both headers, the current one filled", () => {
+    expect(chips(STATS)).toEqual([["RUNS & COMPARISONS", "/comparisons", "page"], ["REPORTS", "/reports", ""]]);
+    expect(chips(PAGE)).toEqual([["RUNS & COMPARISONS", "/comparisons", ""], ["REPORTS", "/reports", "page"]]);
+    expect(STATS).not.toContain("viewer-workbench-link"); expect(PAGE).not.toContain("viewer-workbench-link"); expect(PAGE).not.toContain("rp-here");
+  });
+  it("style a link as the outline of the filled chip", () => {
+    expect(CSS).toContain(".nav-chip { font: 8px/1 'Press Start 2P', monospace; color: #ffd447; border: 2px solid #ffd447; border-radius: 4px; padding: 5px 7px; text-decoration: none; }");
+    expect(CSS).toContain('.nav-chip[aria-current="page"] { color: #283038; background: #ffd447; }');
+  });
+});

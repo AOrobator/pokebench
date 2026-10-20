@@ -21,8 +21,8 @@ coordinator; max 2 rounds), features.ts merge slot from the coordinator, ff-only
 ## M1
 
 - [x] RED: `packages/agent/src/supervisor-nav-truth.test.ts` (6 failing, 3 passing OFF cases)
-- [x] GREEN: both switches registered (`needs: null`, default off; each acts only with its base switch on) and wired; agent 2,711 and viewer 1,356 tests pass
+- [x] GREEN (1e2fdc86): both switches registered (`needs: null`, default off; each acts only with its base switch on) and wired; agent 2,711 and viewer 1,356 tests pass
 - [x] Explainers (pages-check clean), pending experiments, readiness rows, FEATURE_EXPLAINERS
-- [ ] Gates: test, coverage ≥90, lint, verify-vendor
+- [x] Gates: TS coverage agent 2,712 tests 97.61/93.77/97.87 (stmts/branches/funcs), viewer 1,356 tests 95.15/91.17/93.88; Python 2,894 tests, lines 96.94 branches 92.45 functions 100; lint clean (Python lint and pytest via the main checkout's mGBA venv, Python unchanged); verify-vendor OK; verify-rom OK. Wiring deletion turned both factory tests red, then restored.
 - [ ] Reviews: Claude, Grok
 - [ ] Land ff-only on main

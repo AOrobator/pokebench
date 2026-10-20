@@ -2,11 +2,12 @@ import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
 import {readFileSync} from "node:fs";
 import type {AgentTool,AgentToolResult} from "@mariozechner/pi-agent-core";
 import {describe,expect,it} from "vitest";
-import {SWITCHABLE_FEATURES,featureInfo,playHarnessFeatures,type FeatureSet} from "./features.js";
+import {SWITCHABLE_FEATURES,featureInfo,playHarnessFeatures} from "./features.js";
 import type {GameStateSnapshot} from "./game-state.js";
 import type {CheckedPressTool} from "./game-tools.js";
 import {navigationTool,withNavigation} from "./navigation.js";
 import {SupervisorBriefing} from "./loop-supervisor.js";
+import {loopSupervisor} from "./play-wiring.js";
 import {experimentArms,parseExperiment} from "./experiments.js";
 import {flagFeatures,normalizeFeatures} from "./play-preset.js";
 import {IN_GAME} from "../test-support/events.js";
@@ -30,6 +31,16 @@ const focused=(count:boolean)=>{
 };
 
 describe(COUNT,()=>{
+ it("is honored by the production loop-guard briefing factory",()=>{
+  for(const on of [false,true]){
+   const subscribers:((e:RunEvent)=>void)[]=[];
+   const brief=loopSupervisor({...ALL_ON,"loop-guard-supervisor-v1":true,"supervisor-briefing-v2":true,[COUNT]:on},{subscribe:fn=>{subscribers.push(fn);}});
+   const feed={observe:(e:RunEvent)=>{for(const fn of subscribers)fn(e);}} as unknown as SupervisorBriefing;
+   feed.observe(route(1,11,5));feed.observe(ev({type:"tool_result",id:"first",name:"observe",is_error:false,duration_ms:1,text:"ok",frames:[],state_seq:1},2));
+   navigate(feed,10,"a");for(let i=0;i<4;i++)navigate(feed,20+i*10,`n${String(i)}`);
+   expect(brief?.("ineffective",2285).includes("navigate_to 10,5 ×4 → no change")).toBe(on);
+  }
+ });
  it("ON: the focused briefing keeps the repeat count the full briefing shows",()=>{
   expect(focused(true)).toContain("- Recent attempts (up to 3): navigate_to 10,5 ×4 → no change; navigate_to 10,5 → moved to 10,5\n");
  });
@@ -80,7 +91,7 @@ describe(HERE,()=>{
   const features={...flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false}),"bounded-navigation-v1":true};
   for(const on of [false,true]){
    current=field;
-   const tool=withNavigation([press,observe],{...features,[HERE]:on} as FeatureSet,{read:()=>Promise.resolve(current)}).find(t=>t.name==="navigate_to");
+   const tool=withNavigation([press,observe],{...features,[HERE]:on},{read:()=>Promise.resolve(current)}).find(t=>t.name==="navigate_to");
    if(tool===undefined)throw new Error("missing navigate_to");
    const text=first(await tool.execute("nav",{x:10,y:5,map_id:[0,16]}));
    expect(text.includes("already standing on (10,5)")).toBe(on);expect(text.includes("arrived at requested coordinate")).toBe(!on);

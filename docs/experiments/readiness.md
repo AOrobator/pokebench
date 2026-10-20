@@ -192,3 +192,4 @@ PENDING, explicitly blocked and unqueued. Clock policy acts from server boot; NE
 |---|---|---|---|
 | `fixed-point-breaker-v1` | `BIRCH_STARTER_HANDOFF_COMPLETE` (the 6h-v2 bundle's fixed-point loops came after the handoff) | PENDING until `just experiments` runs after landing | Registered 2026-10-20, pending and not queued; bundle-only (operator decision 2026-10-20). Decision probes at f28d turns 2301 and 2862 go through the GPU queue thread. |
 | `story-character-stall-gate-v1` | `BIRCH_STARTER_HANDOFF_COMPLETE` | PENDING until `just experiments` runs after landing | Registered 2026-10-20, pending and not queued; bundle-only. Probes at f28d turns 451 and 453. |
+| `positive-supervisor-v1` | `BIRCH_STARTER_HANDOFF_COMPLETE` | PENDING until `just experiments` runs after landing | Registered 2026-10-20, pending and not queued; bundle-only by operator decision after three probe rounds (helps menu and woods loops, worse on the 15x15 ledge pocket). |

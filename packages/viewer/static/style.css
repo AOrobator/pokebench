@@ -880,3 +880,48 @@ b.wb-add, b.wb-rem { white-space:nowrap; }
 .stage-controls .tb-ctl button { gap:4px; }
 .stage-controls .tb-ctl .control-icon { font-size:12px; }
 .stage-controls .tb-ctl .control-help { font-size:4px; }
+
+/* Reports page (design: runs/mockups/viewer-reports/round2.html, option 2): a Pokédex list beside the selected
+   report as the top of a trainer card, cut off just above the party band, with its verdict on a plain sheet. */
+.rp-main { display: grid; gap: 12px; padding: 18px; max-width: 1200px; margin: 0 auto; }
+.rp-h1 { margin: 0; font: 14px/1.6 'Press Start 2P', monospace; color: #ffd447; }
+.rp-lede { margin: 0; color: #c9d5e6; max-width: 70ch; font: 14px/1.5 Inter, system-ui, sans-serif; }
+.rp-here { font: 8px 'Press Start 2P', monospace; color: #283038; background: #ffd447; border-radius: 4px; padding: 5px 7px; }
+.rp-split { display: grid; grid-template-columns: minmax(0, 300px) minmax(0, 1fr); gap: 14px; align-items: start; }
+.rp-list { display: grid; gap: 6px; }
+.rp-detail { position: sticky; top: 64px; scroll-margin-top: 64px; }
+.rp-row { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 4px 8px; align-items: center; background: #f8f8d8; color: #283038; border: 3px solid #283038; border-radius: 8px; padding: 7px 10px; text-decoration: none; }
+.rp-row[aria-current="true"] { background: #ffd447; }
+.rp-row:focus-visible, .rp-go:focus-visible, .rp-bar a:focus-visible { outline: 3px solid #ffd447; outline-offset: 3px; }
+.rp-row .ty { grid-column: 2; }
+.rp-no { font: 7px 'Press Start 2P', monospace; color: #604800; }
+.rp-name { font: 600 13px/1.35 Inter, system-ui, sans-serif; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rp-page .ty { display: inline-flex; align-items: center; gap: 4px; font: 6px 'Press Start 2P', monospace; color: #505a66; white-space: nowrap; }
+.rp-page .ty em { font: 7px/1 'Press Start 2P', monospace; font-style: normal; color: #fff; background: var(--c); border: 2px solid #303030; border-radius: 5px; padding: 4px 5px 3px; text-shadow: 1px 1px 0 rgba(0, 0, 0, .35); }
+.rp-det { display: grid; min-width: 0; }
+.rp-card { position: relative; display: block; width: 100%; aspect-ratio: 388 / 106; background: var(--art) top / 100% auto no-repeat; image-rendering: pixelated; container-type: inline-size; }
+/* The trainer sits on the Poke Ball's centre in the card art, (42, 69.5) of 388 x 106. */
+.rp-card img { position: absolute; left: 2.58%; top: 35.4%; width: 16.5%; image-rendering: pixelated; }
+.rp-tab { position: absolute; left: 3.35%; min-width: 43.6%; top: 10.4%; height: 12.5%; display: inline-flex; align-items: center; padding: 0 1.6%; background: #6abdff; border: 1px solid #418bc5; font: max(7px, 2cqw) 'Press Start 2P', monospace; color: #183060; white-space: nowrap; }
+.rp-id { position: absolute; left: 23.7%; right: 4%; top: 28%; bottom: 8%; display: grid; gap: 6px; align-content: center; min-width: 0; }
+.rp-id b { font: max(8px, 2.4cqw)/1.4 'Press Start 2P', monospace; color: #283038; overflow-wrap: anywhere; }
+.rp-card.plain { aspect-ratio: auto; display: grid; gap: 8px; padding: 12px 14px; background: #f8f8d8; border: 3px solid #283038; border-bottom: 0; border-radius: 8px 8px 0 0; }
+.rp-card.plain .rp-tab, .rp-card.plain .rp-id { position: static; min-width: 0; height: auto; padding: 4px 6px; justify-self: start; }
+.rp-page .sb { display: grid; grid-template-columns: auto 1fr auto; gap: 8px; align-items: center; font: 6px 'Press Start 2P', monospace; color: #404040; }
+.rp-page .sb-t { height: 7px; background: #fff; border: 2px solid #505050; border-radius: 3px; overflow: hidden; }
+.rp-page .sb-t i { display: block; height: 100%; background: #58b850; }
+.rp-sheet { background: #fbfaf2; color: #283038; border: 3px solid #283038; border-top: 0; border-radius: 0 0 8px 8px; padding: 12px 14px; display: grid; gap: 8px; font: 13px/1.5 Inter, system-ui, sans-serif; }
+.rp-v { margin: 0; font-size: 15px; line-height: 1.45; }
+.rp-fr { color: #505a66; } .rp-fr b { color: #283038; }
+.rp-sheet dl { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 3px 12px; margin: 0; }
+.rp-sheet dt { color: #505a66; } .rp-sheet dd { margin: 0; font-weight: 600; }
+.rp-go { justify-self: start; font: 8px 'Press Start 2P', monospace; background: #283038; color: #ffd447; border-radius: 6px; padding: 9px 11px; text-decoration: none; }
+.rp-empty { color: #c9d5e6; }
+/* An opened report fills exactly the space under the header, so only the report scrolls, never the page. */
+.rp-page:has(.rp-open:not([hidden])) { height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
+.rp-open { display: grid; grid-template-rows: auto minmax(0, 1fr); flex: 1 1 auto; min-height: 0; }
+.rp-open[hidden] { display: none; }
+.rp-bar { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; background: #1e2c44; padding: 10px 14px; font: 8px 'Press Start 2P', monospace; color: #dfe8f5; }
+.rp-bar a { color: #ffd447; text-decoration: none; } .rp-bar b { flex: 1 1 auto; min-width: 0; } .rp-nav { display: flex; gap: 12px; } .rp-bar .off { color: #5a6b85; }
+.rp-frame { width: 100%; height: 100%; border: 0; background: #fff; }
+:root[data-phone] .rp-split { grid-template-columns: minmax(0, 1fr); } :root[data-phone] .rp-list { order: 2; } :root[data-phone] .rp-detail { position: static; } :root[data-phone] .rp-main { padding: 12px; }

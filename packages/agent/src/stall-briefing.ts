@@ -38,6 +38,8 @@ export class StallBriefing {
   private readonly text:(stall:Stall,calls:number)=>string,
   // story-character-stall-gate-v1: holds a due map_cycle or milestone_drought briefing.
   private readonly gate:Pick<StoryCharacterGate,"holds"|"held">|null=null,
+  // positive-supervisor-v1: a retired briefing is still recorded, as a diagnostic, with the text it would have sent.
+  private readonly retiredNote:((kind:"map_cycle"|"milestone_drought",text:string,evidence:readonly number[])=>void)|null=null,
  ){}
 
  observe(event:RunEvent):void {
@@ -73,9 +75,15 @@ export class StallBriefing {
  }
 
  private check(seq:number):void {
+  // positive-supervisor-v1: map back-and-forth and milestone-drought briefings are retired; interface dwell stays.
+  const retired=this.features["positive-supervisor-v1"];
   for(const pair of this.pairs.values()){
    const level=Math.floor(pair.moves/(2*STALL_ROUND_TRIPS));
    if(level<=pair.briefed)continue;
+   if(retired){
+    this.retiredNote?.("map_cycle",`You have walked between ${pair.from} and ${pair.to} ${String(Math.floor(pair.moves/2))} times with no new story milestone.`,[pair.lastSeq,seq]);
+    pair.briefed=level;continue;
+   }
    const hold=this.gate?.holds()??null;
    if(hold!==null){this.gate?.held("map_cycle",level,[pair.from,pair.to].join("\n"),hold);return;}
    const stall:Stall={kind:"map_cycle",from:pair.from,to:pair.to,roundTrips:Math.floor(pair.moves/2),consecutive:pair.consecutive};
@@ -90,6 +98,10 @@ export class StallBriefing {
   }
   const level=Math.floor((this.active()-this.progressAt)/STALL_DROUGHT_MS);
   if(level<=this.droughts)return;
+  if(retired){
+   this.retiredNote?.("milestone_drought",`No new story milestone for ${String(level*STALL_DROUGHT_MS/60_000)} minutes of play.`,[this.progressSeq??seq,seq]);
+   this.droughts=level;return;
+  }
   const hold=this.gate?.holds()??null;
   if(hold!==null){this.gate?.held("milestone_drought",level,String(this.progressSeq??-1),hold);return;}
   const stall:Stall={kind:"milestone_drought",minutes:level*STALL_DROUGHT_MS/60_000};

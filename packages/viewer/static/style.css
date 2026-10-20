@@ -928,3 +928,11 @@ b.wb-add, b.wb-rem { white-space:nowrap; }
 .rp-bar a { color: #ffd447; text-decoration: none; } .rp-bar b { flex: 1 1 auto; min-width: 0; } .rp-nav { display: flex; gap: 12px; } .rp-bar .off { color: #5a6b85; }
 .rp-frame { width: 100%; height: 100%; border: 0; background: #fff; }
 :root[data-phone] .rp-split { grid-template-columns: minmax(0, 1fr); } :root[data-phone] .rp-list { order: 2; } :root[data-phone] .rp-detail { position: static; } :root[data-phone] .rp-main { padding: 12px; }
+
+/* Keep the disclosure itself stable while live split content updates. */
+.run-splits > summary { cursor: pointer; font-size: 8px; color: #3a6ea5; line-height: 1.8; }
+.run-splits > summary:focus-visible { outline: 2px solid #3a6ea5; outline-offset: 3px; }
+.run-splits + .split-preview { margin-top: 6px; }
+.run-splits[open] > summary { margin-bottom: 6px; }
+.run-splits[open] + .split-preview { display: none; }
+.mspl span { overflow-wrap: anywhere; min-width: 0; }

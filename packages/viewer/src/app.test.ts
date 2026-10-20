@@ -75,7 +75,7 @@ const RUNS = [
   { id: "2026-10-11T21-00-00_old", model: "think-swarm", started: "x", ended: true, reason: "budget", problem: null },
 ];
 
-async function harness(hash = "", runs: unknown[] = RUNS, workbench: unknown = null, heads: Readonly<Record<string, unknown>> = {}, stageFrame?: AppDeps["stageFrame"]): Promise<Harness> {
+async function harness(hash = "", runs: unknown[] = RUNS, workbench: unknown = null, heads: Readonly<Record<string, unknown>> = {}, stageFrame?: AppDeps["stageFrame"], fallback = true): Promise<Harness> {
   document.body.innerHTML = PAGE.slice(PAGE.indexOf("<body>") + 6, PAGE.indexOf("</body>"));
   const streams: FakeStream[] = [];
   const frames: FakeFrameStream[] = [];
@@ -103,6 +103,8 @@ async function harness(hash = "", runs: unknown[] = RUNS, workbench: unknown = n
     openStream: (url) => {
       const stream = new FakeStream(url);
       streams.push(stream);
+      // Exercise the HTTP thinking fallback when the primary connection fails.
+      if (fallback) queueMicrotask(() => { stream.send("error", {}); });
       return stream;
     },
     openFrameStream: (url) => {
@@ -217,7 +219,7 @@ describe("viewer app", () => {
 
   it("defaults to a live run instead of restoring an old replay selection", async () => {
     const { streams } = await harness(`#run=${M4_ID}`);
-    expect(streams[0]?.url).toBe(`/api/runs/${must(RUNS[0]).id}/events`);
+    expect(streams[0]?.url).toBe(`/api/runs/${must(RUNS[0]).id}/events?head=1`);
     expect((ui("run") as HTMLSelectElement).value).toBe(must(RUNS[0]).id);
   });
 
@@ -226,13 +228,13 @@ describe("viewer app", () => {
     const options = [...ui("run").querySelectorAll("option")].map((option) => option.value);
     expect(options).toEqual(RUNS.map((run) => run.id));
     expect((ui("run") as HTMLSelectElement).value).toBe(M4_ID);
-    expect(streams.map((stream) => stream.url)).toEqual([`/api/runs/${M4_ID}/events`]);
+    expect(streams.map((stream) => stream.url)).toEqual([`/api/runs/${M4_ID}/events?head=1`]);
     expect(ui("gba").querySelector('[data-btn="A"]')).not.toBeNull();
   });
 
   it("opens the newest run when the hash names none, and shows no data before events arrive", async () => {
     const { streams } = await harness();
-    expect(streams[0]?.url).toBe("/api/runs/2026-10-11T23-00-00_live/events");
+    expect(streams[0]?.url).toBe("/api/runs/2026-10-11T23-00-00_live/events?head=1");
     expect(ui("brand").textContent).toBe("POKéNAV · NO RUN");
     expect(ui("party").innerHTML).toContain("no data");
     expect(ui("mode").textContent).toBe("LOADING");
@@ -516,7 +518,7 @@ describe("viewer app", () => {
     must(frames[0]).send("close");
     expect(streams[0]?.closed).toBe(true);
     expect(frames[0]?.closed).toBe(true);
-    expect(streams[1]?.url).toBe(`/api/runs/${M4_ID}/events`);
+    expect(streams[1]?.url).toBe(`/api/runs/${M4_ID}/events?head=1`);
     expect(ui("trace").querySelectorAll("[data-key]").length).toBe(0);
     expect(ui("problems").hidden).toBe(true);
     expect(ui("screen").dataset.liveFramesReceived).toBe("0");
@@ -801,7 +803,7 @@ describe("viewer app", () => {
     const app = await mountApp(document, {
       fetchJson: (url) => nextRunReply(url) ?? (url === "/api/runs" ? Promise.resolve(RUNS) : url.startsWith("/api/cards") ? Promise.reject(new Error("workbench unavailable")) : url.endsWith("/head") ? (++headCalls === 1 ? firstHead : Promise.resolve(fresh.events.map((event) => ({ ...event, run: id })))) : Promise.reject(new Error(`unexpected ${url}`))),
       sendJson: noWrites,
-      openStream: (url) => { const stream = new FakeStream(url); streams.push(stream); return stream; },
+      openStream: (url) => { const stream = new FakeStream(url); streams.push(stream); queueMicrotask(() => { stream.send("error", {}); }); return stream; },
       now: () => BASE_MS,
       hash: "",
     });
@@ -899,7 +901,7 @@ describe("run list refresh", () => {
     expect(streams).toEqual([]);
     runs.push(runRow("2026-10-11T23-30-00_next", false));
     await app.refreshRuns();
-    expect(streams.map((stream) => stream.url)).toEqual(["/api/runs/2026-10-11T23-30-00_next/events"]);
+    expect(streams.map((stream) => stream.url)).toEqual(["/api/runs/2026-10-11T23-30-00_next/events?head=1"]);
     expect([...ui("run").querySelectorAll("option")].map((option) => option.value)).toEqual(["2026-10-11T23-30-00_next"]);
   });
 
@@ -911,7 +913,7 @@ describe("run list refresh", () => {
     first.send("done", {});
     runs.unshift(runRow("2026-10-11T23-30-00_next", false));
     await app.refreshRuns();
-    expect(streams.map((stream) => stream.url)).toEqual([`/api/runs/${M4_ID}/events`, "/api/runs/2026-10-11T23-30-00_next/events"]);
+    expect(streams.map((stream) => stream.url)).toEqual([`/api/runs/${M4_ID}/events?head=1`, "/api/runs/2026-10-11T23-30-00_next/events?head=1"]);
     expect((ui("run") as HTMLSelectElement).value).toBe("2026-10-11T23-30-00_next");
   });
 
@@ -949,8 +951,8 @@ describe("run list refresh", () => {
     first.send("done", {});
     await app.refreshRuns();
     expect(streams.map((stream) => stream.url)).toEqual([
-      "/api/runs/2026-10-11T23-00-00_live/events",
-      "/api/runs/2026-10-11T23-30-00_next/events",
+      "/api/runs/2026-10-11T23-00-00_live/events?head=1",
+      "/api/runs/2026-10-11T23-30-00_next/events?head=1",
     ]);
   });
 
@@ -997,7 +999,7 @@ describe("boot", () => {
     };
     const app = await boot(win);
     expect(win.fetch).toHaveBeenCalledWith("/api/runs");
-    expect(streams[0]?.url).toBe("/api/runs/2026-10-11T23-00-00_live/events");
+    expect(streams[0]?.url).toBe("/api/runs/2026-10-11T23-00-00_live/events?head=1");
     expect(frames[0]?.url).toBe("ws://127.0.0.1:8790/api/runs/2026-10-11T23-00-00_live/frames");
     expect(intervals).toHaveLength(3);
     intervals[0]?.();
@@ -1037,7 +1039,7 @@ describe("live discovery and diagnostics", () => {
     expect(picker.querySelector("option")?.textContent).toContain("LIVE");
     picker.value = "active_model";
     picker.dispatchEvent(new Event("change"));
-    expect(streams.at(-1)?.url).toBe("/api/runs/active_model/events");
+    expect(streams.at(-1)?.url).toBe("/api/runs/active_model/events?head=1");
   });
 
   it("bounds diagnostics and clears them on a run switch", async () => {
@@ -1073,7 +1075,7 @@ it("retains the selected run in the dropdown after discovery refresh without leg
   expect(picker.value).toBe("first_live");
   picker.value = "second_live";
   picker.dispatchEvent(new Event("change"));
-  expect(streams.at(-1)?.url).toBe("/api/runs/second_live/events");
+  expect(streams.at(-1)?.url).toBe("/api/runs/second_live/events?head=1");
   await app.refreshRuns();
   expect(picker.value).toBe("second_live");
   expect(document.querySelector('[data-ui="live-runs"]')).toBeNull();
@@ -1365,7 +1367,7 @@ it("opens the requested run stream without scanning historical comparisons or fe
  document.body.innerHTML=PAGE.slice(PAGE.indexOf("<body>")+6,PAGE.indexOf("</body>"));const requested:string[]=[],streams:FakeStream[]=[];
  await mountApp(document,{fetchJson:url=>{requested.push(url);return nextRunReply(url)??Promise.resolve(url==="/api/runs"?RUNS:{candidates:[],baseline:null});},sendJson:noWrites,openStream:url=>{const stream=new FakeStream(url);streams.push(stream);return stream;},now:()=>BASE_MS,hash:`#replay=${M4_ID}`});
  await Promise.resolve();await Promise.resolve();
- expect(streams.map(s=>s.url)).toEqual([`/api/runs/${M4_ID}/events`]);expect(requested.filter(url=>url.endsWith("/comparisons")||url.endsWith("/history"))).toEqual([]);
+ expect(streams.map(s=>s.url)).toEqual([`/api/runs/${M4_ID}/events?head=1`]);expect(requested.filter(url=>url.endsWith("/comparisons")||url.endsWith("/history"))).toEqual([]);
  document.querySelector<HTMLButtonElement>('[data-page="splits"]')?.click();await Promise.resolve();
  expect(requested.filter(url=>url.endsWith("/comparisons"))).toEqual([`/api/runs/${M4_ID}/comparisons`]);
  document.querySelector<HTMLButtonElement>('[data-page="splits"]')?.click();await Promise.resolve();
@@ -1764,5 +1766,113 @@ describe("side panel", () => {
     app.tick(100);
     expect(ui("ident").hidden).toBe(false);
     expect(ui("ident").textContent).toContain("MODEL · THINKING");
+  });
+});
+
+
+describe("head-first startup", () => {
+  const run = RUNS[0]?.id ?? "missing";
+  const own = (events: readonly RunEvent[]): RunEvent[] => events.map(event => ({ ...event, run }));
+  function log(): Log {
+    const log = new Log();
+    log.add(0, { ...START, extend_run: true });
+    log.add(1000, { type: "turn_start", turn: 1, context: { messages: 1, images: 0, est_tokens: 10 } });
+    log.add(2000, assistant({ turn: 1, thinking: "Old thought" }));
+    log.add(3000, { type: "turn_start", turn: 2, context: { messages: 2, images: 0, est_tokens: 20 } });
+    log.add(4000, { type: "assistant_delta", turn: 2, thinking: "Current head", text: "" });
+    return log;
+  }
+  it("enables controls and renders the current timeline before history arrives; tail wins the handoff", async () => {
+    const { app, streams, fetched, setNow } = await harness("", RUNS, null, {}, undefined, false);
+    const recorded = log();
+    setNow(BASE_MS + 4500);
+    const primary = must(streams[0]);
+    primary.send("head", own([must(recorded.events[0]), ...recorded.events.slice(3)]));
+    app.tick(0);
+    expect(app.mode).toBe("live");
+    expect([...ui("run-controls").querySelectorAll("button")].map(b => [b.textContent, b.disabled])).toEqual([
+      ["⏸PAUSE", false], ["＋EXTEND", false], ["■STOP", false], ["✖ABORT hold to abort", false],
+    ]);
+    expect(ui("think-body").textContent).toContain("Current head");
+    expect(ui("lanes").innerHTML).toContain("m-think open");
+    expect(fetched.some(url => url.endsWith("/head"))).toBe(false);
+    const history = must(streams[1]);
+    expect(history.url).toBe(`/api/runs/${run}/events`);
+    feed(history, recorded.events.slice(0, 3), false);
+    app.tick(0);
+    expect(ui("think-body").textContent).toContain("Current head");
+    const fresh = recorded.add(5000, { type: "assistant_delta", turn: 2, thinking: " plus live tail", text: "" });
+    feed(primary, [fresh], false);
+    feed(history, recorded.events.slice(3, -1));
+    app.tick(0);
+    expect(ui("think-body").textContent).toContain("Current head plus live tail");
+    expect(app.view.events.map(e => e.seq)).toEqual(recorded.events.map(e => e.seq));
+    expect(history.closed).toBe(true);
+    expect(ui("trace").textContent).toContain("Old thought");
+    primary.send("head", own(recorded.events.slice(0, 3)));
+    expect(streams).toHaveLength(2);
+    expect(ui("think-body").textContent).toContain("Current head plus live tail");
+  });
+  it("keeps cached full splits while the recent head's history is incomplete", async () => {
+    const workbench = { version: 1, at: BASE_MS, milestones: [], problems: [], runs: [{
+      id: run, cohort: null, arm: null, model: "think-swarm", started: "2026-10-11T23:00:00.000Z", status: "live", reason: null, problem: null, excluded: null, elapsedMs: 5000, turn: 2, config: null,
+      splits: [{ name: "PLAYER_NAME_CONFIRMED", elapsedMs: 2000, segmentMs: 2000, seq: 1, turn: 1, inputTokens: 0, outputTokens: 0 }],
+    }] };
+    const { app, streams } = await harness("", RUNS, workbench, {}, undefined, false);
+    await app.pollCards();
+    expect(ui("split-strip").textContent).toContain("NAME ✔");
+    must(streams[0]).send("head", own(log().events));
+    expect(ui("split-strip").textContent).toContain("NAME ✔");
+    app.tick(0);
+    expect(ui("split-strip").textContent).toContain("NAME ✔");
+  });
+  it("accepts a newer reconnect head and replaces an unfinished history scan", async () => {
+    const { app, streams } = await harness("", RUNS, null, {}, undefined, false);
+    const primary = must(streams[0]), recorded = log();
+    primary.send("head", own(recorded.events));
+    const oldHistory = must(streams[1]);
+    recorded.add(5000, assistant({ turn: 2, thinking: "Reconnected present" }));
+    primary.send("head", own(recorded.events));
+    expect(oldHistory.closed).toBe(true);
+    expect(streams).toHaveLength(3);
+    feed(oldHistory, recorded.events.slice(0, 3));
+    expect(ui("think-body").textContent).toContain("Reconnected present");
+    feed(must(streams[2]), recorded.events);
+    expect(app.view.events.map(e => e.seq)).toEqual(recorded.events.map(e => e.seq));
+  });
+  it("closes old history on a run switch and rejects stale primary/head/history messages", async () => {
+    const { app, streams } = await harness("", RUNS, null, {}, undefined, false);
+    const primary = must(streams[0]);
+    primary.send("head", own(log().events));
+    const history = must(streams[1]);
+    app.select(M4_ID);
+    expect(primary.closed).toBe(true);
+    expect(history.closed).toBe(true);
+    feed(history, log().events);
+    primary.send("head", own(log().events));
+    feed(primary, log().events, false);
+    expect(app.view.start).toBeNull();
+    expect(app.mode).toBe("loading");
+  });
+  it("rejects malformed or foreign heads before enabling controls", async () => {
+    const { app, streams } = await harness("", RUNS, null, {}, undefined, false);
+    must(streams[0]).send("head", log().events.map(e => ({ ...e, run: "foreign" })));
+    expect(app.mode).toBe("loading");
+    expect(streams).toHaveLength(1);
+    expect(ui("problems").textContent).toContain("head:");
+  });
+  it("opens completed recordings at the head and retains full rewind after history loads", async () => {
+    const { app, streams } = await harness(`#replay=${M4_ID}`, RUNS, null, {}, undefined, false);
+    const events = fullRun().events.map(event => ({ ...event, run: M4_ID }));
+    must(streams[0]).send("head", events);
+    expect(ui("think-body").textContent).toContain("Again.");
+    expect(ui("lanes").innerHTML).toContain("m-think");
+    must(streams[0]).send("done", {});
+    feed(must(streams[1]), events);
+    expect(app.clock?.positionMs).toBe(app.view.lastMs);
+    app.clock?.seek(BASE_MS);
+    app.tick(0);
+    expect(ui("trace").textContent).not.toContain("Again.");
+    expect(ui("think-body").textContent).toContain("Again.");
   });
 });

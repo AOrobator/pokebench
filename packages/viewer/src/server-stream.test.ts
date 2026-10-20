@@ -314,3 +314,44 @@ it("boots at the recorded head and tails appends without replaying the prefix", 
   expect(events(text)).toEqual([]);
   expect(text).toContain("event: done");
 });
+
+
+it("tails a line torn across the head cursor exactly once", async () => {
+  const log = new Log(); log.add(0, START);
+  const viewer = await serve("head-append", log, 128);
+  const path = join(roots.at(-1) ?? "", "runs", "head-append", "events.jsonl");
+  const fresh = { ...log.add(1000, assistant({ thinking: "Pokémon 🎮" })), run: "head-append" };
+  const line = JSON.stringify(fresh) + "\n";
+  const cut = line.indexOf("Pokémon") + 4;
+  fs.appendFileSync(path, line.slice(0, cut));
+  const controller = new AbortController();
+  const response = await fetch(new URL("api/runs/head-append/events?head=1", viewer.url), { signal: controller.signal });
+  const reader = response.body?.getReader();
+  if (reader === undefined) throw new Error("no stream body");
+  const decoder = new TextDecoder(); let text = "";
+  try {
+    while (!text.includes("event: caught_up")) {
+      const part = await reader.read(); if (part.done) throw new Error("stream ended before catch-up");
+      text += decoder.decode(part.value, { stream: true });
+    }
+    expect(events(text)).toEqual([]);
+    fs.appendFileSync(path, line.slice(cut));
+    while (!text.includes("event: ev")) {
+      const part = await reader.read(); if (part.done) throw new Error("stream ended before append");
+      text += decoder.decode(part.value, { stream: true });
+    }
+    expect(events(text)).toEqual([fresh]);
+  } finally { controller.abort(); await reader.cancel().catch(() => undefined); }
+});
+
+
+it("falls back to the diagnostic stream when the compact head is malformed", async () => {
+  const viewer = await serve("bad-head", longRun(2), 128);
+  const path = join(roots.at(-1) ?? "", "runs", "bad-head", "events.jsonl");
+  const lines = fs.readFileSync(path, "utf8").split("\n");
+  lines.splice(1, 0, "{broken"); fs.writeFileSync(path, lines.join("\n"));
+  const text = await (await fetch(new URL("api/runs/bad-head/events?head=1", viewer.url))).text();
+  expect(text).toContain('event: problem\ndata: {"line":2');
+  expect(text).toContain("event: done");
+  expect(events(text)).toHaveLength(4);
+});

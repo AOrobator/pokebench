@@ -1,6 +1,7 @@
 // Read-only access to runs/<id>/events.jsonl (PB7: the viewer's record of truth).
-import { closeSync, existsSync, fstatSync, openSync, readSync, readdirSync, statSync } from "node:fs";
+import { createReadStream, closeSync, existsSync, fstatSync, openSync, readSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
+import { createInterface } from "node:readline";
 import { RUN_ID_PATTERN, eventEnvelope, parseEvent, startIdentity, type RunEvent, type StartIdentity } from "@pokebench/agent/events";
 import { locateRunDir } from "@pokebench/agent/run";
 import type { Baseline } from "./panels.js";
@@ -127,7 +128,7 @@ export class LogReader {
   private fileEnd = 0;
   private lineNo = 0;
 
-  constructor(private readonly path: string, private readonly chunkBytes: number) {}
+  constructor(private readonly path: string, private readonly chunkBytes: number, offset = 0) { this.fileEnd = offset; }
 
   // The parsed lines (blank ones skipped) and how many lines were consumed: 0 means nothing new.
   next(maxLines: number): { readonly results: LineResult[]; readonly lines: number } {
@@ -394,6 +395,7 @@ export function readRecentEvents(
   runId: string,
   maxTurns = RECENT_EVENT_TURNS,
   maxBytes = RECENT_EVENT_BYTES,
+  cursor?: { offset: number },
 ): RunEvent[] {
   if (!Number.isSafeInteger(maxTurns) || maxTurns <= 0) throw new RunsError("recent turn limit must be a positive integer");
   if (!Number.isSafeInteger(maxBytes) || maxBytes <= 0) throw new RunsError("recent byte limit must be a positive integer");
@@ -404,6 +406,7 @@ export function readRecentEvents(
   const size = sizeOf(path);
   const offset = Math.max(0, size - maxBytes);
   let bytes = readBytes(path, offset, maxBytes);
+  if (cursor !== undefined) cursor.offset = bytes.lastIndexOf(0x0a) < 0 ? 0 : offset + bytes.lastIndexOf(0x0a) + 1;
   if (offset > 0 && readBytes(path, offset - 1, 1)[0] !== 0x0a) {
     const boundary = bytes.indexOf(0x0a);
     bytes = boundary < 0 ? Buffer.alloc(0) : bytes.subarray(boundary + 1);
@@ -421,9 +424,33 @@ export function readRecentEvents(
   }
 
   const turns = [...new Set(tail.map((event) => event.turn))];
-  const completeTurns = offset > 0 && turns.length <= maxTurns ? turns.slice(1) : turns.slice(-maxTurns);
+  const cutTurn = offset > 0 && turns.length <= maxTurns && !tail.some(event => event.turn === turns[0] && event.type === "turn_start");
+  const completeTurns = cutTurn ? turns.slice(1) : turns.slice(-maxTurns);
   const selected = new Set(completeTurns);
-  return [start, ...tail.filter((event) => selected.has(event.turn))];
+  return [start, ...tail.filter((event) => selected.has(event.turn) || event.type === "run_end" || event.type === "operator_control")];
+}
+
+// Operator requests are sparse but their acknowledgements can predate the recent
+// turns (notably an extension). When this run has received controls, recover only
+// that metadata asynchronously, without validating/replaying its gameplay prefix.
+// The sidecar's existence is owned by appendControl; absence means no viewer requests.
+export async function readHeadEvents(runsRoot: string, runId: string, cursor: { offset: number }, maxTurns = RECENT_EVENT_TURNS, maxBytes = RECENT_EVENT_BYTES): Promise<RunEvent[]> {
+  const recent = readRecentEvents(runsRoot, runId, maxTurns, maxBytes, cursor);
+  if (cursor.offset === 0 || !existsSync(join(runDir(runsRoot, runId), "control.jsonl"))) return recent;
+  const input = createReadStream(eventsPath(runsRoot, runId), { encoding: "utf8", end: cursor.offset - 1 });
+  const lines = createInterface({ input, crlfDelay: Infinity });
+  const controls: RunEvent[] = [];
+  try {
+    for await (const line of lines) {
+      if (!/"type"\s*:\s*"operator_control"/.test(line)) continue;
+      const parsed = parseLine(line, 0);
+      if (!parsed.ok) throw new RunsError(`run ${runId} control metadata: ${parsed.problem}`);
+      if (parsed.event.run !== runId) throw new RunsError(`run ${runId} holds an event for run ${parsed.event.run}`);
+      if (parsed.event.type === "operator_control") controls.push(parsed.event);
+    }
+  } finally { lines.close(); input.destroy(); }
+  const bySeq = new Map([...recent, ...controls].map(event => [event.seq, event]));
+  return [...bySeq.values()].sort((a, b) => a.seq - b.seq);
 }
 
 // A six-hour log is larger than the longest string Node can build, so baselines read it in chunks.

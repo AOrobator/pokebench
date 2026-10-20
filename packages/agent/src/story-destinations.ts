@@ -98,10 +98,14 @@ export interface StoryLine {
 // and the map they resolve to (null when not resolved).
 export interface Resolved {readonly quote:string;readonly text:string;readonly target:Place|null}
 // unfinished-activity-v1: every place the line names is a map the player has entered since it was said (or is in now).
-export interface Reached {readonly target:Place;readonly turn:number}
+// entered: the player entered the map at or after the line's turn; otherwise it was in it when the line was said.
+export interface Reached {readonly target:Place;readonly turn:number;readonly entered:boolean}
 export interface StoryGoal {readonly line:StoryLine;readonly resolved:readonly Resolved[];readonly done?:boolean;readonly doneReason?:string;readonly reached?:readonly Reached[]}
 export function reachedText(line:StoryLine,reached:readonly Reached[]):string {
- return `Story line heard (${line.speaker}, turn ${String(line.turn)}): "${line.text}" Reached: ${reached.map(r=>`${mapLabel(r.target)}, first entered at turn ${String(r.turn)}`).join("; ")}.`;
+ return `Story line heard (${line.speaker}, turn ${String(line.turn)}): "${line.text}" Reached: ${reached.map(reachedPlace).join("; ")}.`;
+}
+function reachedPlace(r:Reached):string {
+ return r.entered?`${mapLabel(r.target)}, first entered at turn ${String(r.turn)}`:`${mapLabel(r.target)}, you were in it when this was said (since turn ${String(r.turn)})`;
 }
 // The middle of the retired-goal sentences. "Pokédex received" is the story checklist's own label.
 export function staleNote(reason="Pokédex received"):string {
@@ -237,9 +241,12 @@ export class StoryDestinations {
   for(const r of resolved){
    if(r.target===null)return null;
    const map=r.target.map_id;
-   const arrival=same(map,here)?this.arrivals.findLast(a=>same(a.map,map)):this.arrivals.find(a=>a.turn>=line.turn&&same(a.map,map));
-   if(arrival===undefined)return null;
-   out.push({target:r.target,turn:arrival.turn});
+   // The first entry since the line was said; only when there is none and the player is in it now, the current visit.
+   const entered=this.arrivals.find(a=>a.turn>=line.turn&&same(a.map,map));
+   const stay=entered===undefined&&same(map,here)?this.arrivals.findLast(a=>same(a.map,map)):undefined;
+   if(entered!==undefined)out.push({target:r.target,turn:entered.turn,entered:true});
+   else if(stay!==undefined)out.push({target:r.target,turn:stay.turn,entered:false});
+   else return null;
   }
   return out;
  }
@@ -272,7 +279,7 @@ export class StoryDestinations {
   if(stageBound&&goal.done===true)return null;
   const quote=`${STORY_HEADER} (turn ${String(goal.line.turn)}, ${goal.line.speaker}): "${goal.line.text}"`;
   if(goal.done===true)return [quote,staleNote(goal.doneReason)].join("\n");
-  if(goal.reached!==undefined)return [quote,`- Reached: ${goal.reached.map(r=>`${mapLabel(r.target)}, first entered at turn ${String(r.turn)}`).join("; ")}.`].join("\n");
+  if(goal.reached!==undefined)return [quote,`- Reached: ${goal.reached.map(reachedPlace).join("; ")}.`].join("\n");
   return [quote,...goal.resolved.map(r=>`- ${r.quote}${r.text}`)].join("\n");
  }
  // The readout with the block inserted after its Story line (after Location/Position without one).

@@ -112,6 +112,19 @@ describe("unfinished-activity-v1 story line: heard, reached, and a line that nam
   expect(goalAt(300,true)).toBe(HEARD);
   expect(goalAt(300,false)).toContain(`Story goal: "I became a GYM LEADER so that I might apply what I learned at the POKéMON TRAINER'S SCHOOL in battle." (ROXANNE, turn 259) -> "POKéMON TRAINER'S SCHOOL": not resolved`);
  });
+ it("back on RUSTBORO CITY after leaving it (T221, T240) and after the whiteout (T261), the first entry stays turn 162",()=>{
+  for(const turn of [222,241,262])expect(goalAt(turn,true)).toBe(HEARD);
+ });
+ it("a line heard inside the map it names says the player was in it when it was said",()=>{
+  const story=new StoryDestinations(false,true);
+  const place=PLACES.find(p=>p.map_id[0]===0&&p.map_id[1]===3);
+  if(place===undefined)throw new Error("no RUSTBORO CITY");
+  const line={turn:30,speaker:"DAD",text:"Head for RUSTBORO CITY.",lives:null};
+  story.observe({v:1,run:"r",seq:1,t:"t",type:"state",turn:12,started:true,map_id:[0,3]} as unknown as RunEvent);
+  const reached=(story as unknown as {reached:(l:unknown,r:unknown,h:readonly [number,number])=>unknown}).reached(line,[{quote:"x",text:"",target:place}],[0,3]);
+  expect(reached).toEqual([{target:place,turn:12,entered:false}]);
+  expect(goalLine({line,resolved:[],reached:[{target:place,turn:12,entered:false}]},PLACES,true)).toBe(`Story line heard (DAD, turn 30): "Head for RUSTBORO CITY." Reached: RUSTBORO CITY (map 0/3), you were in it when this was said (since turn 12).`);
+ });
  it("DAD's newer line at T387 names RUSTBORO CITY again; entered before it was said, so it is not reached",()=>{
   expect(goalAt(390,true)).toBe(goalAt(390,false));
   expect(goalAt(390,true)).toContain(`Story goal: "Hm? Aren't you going to the POKéMON GYM in RUSTBORO CITY?" (DAD, turn 387)`);
@@ -228,6 +241,11 @@ describe("unfinished-activity-v1 rules",()=>{
   expect(f.block(away,null)).not.toContain("own last walk");
   expect(f.block(away,PLACES)).not.toContain("own last walk");
   expect(f.block({...here,map_id:null},PLACES)).toBeNull();
+ });
+ it("a blackout activity whose evidence predates the latest arrival does not mark the next walk as carried",()=>{
+  const black:RunEvent={v:1,run:"r",seq:0,t:"t",type:"activity",turn:3,kind:"blackout",count:1,evidence:[0]} as unknown as RunEvent;
+  const f=fold([st(1),fight(2,"ongoing",1,"SAWYER"),fight(3,"lost",1,"SAWYER"),after(4,1,"SAWYER",false),black,st(5,{map_id:[0,10],location:"OLDALE TOWN"})]);
+  expect(f.block(st(6,{map_id:[0,10],location:"OLDALE TOWN"}) as unknown as GameStateSnapshot,null)).toContain("turn 5 you left with TORCHIC at 20/20 HP");
  });
  it("a heal while on the open item's map is not listed as a heal elsewhere; the party's species may be unread",()=>{
   const heal:RunEvent={v:1,run:"r",seq:++seq,t:"t",type:"activity",turn:2,kind:"heal",count:1,evidence:[]} as unknown as RunEvent;

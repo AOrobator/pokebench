@@ -36,7 +36,7 @@ One new block in observe, press and navigate_to results, and in supervisor notes
 
 Rules:
 - Every fact comes from recorded game state or delivered dialogue. No model claims, no semantic parsing of instructions, no route choice, no imperative ("go", "fight", "return").
-- An open item retires only on positive game evidence: the trainer's defeated flag read set, or a new badge. Otherwise it stays for the run, through any number of detours and context trims, never clipped.
+- An open item retires only on positive game evidence: the trainer's defeated flag read set, or a later win against it. (A new badge was dropped at build time: it does not say which trainer.) Otherwise it stays for the run, through any number of detours and context trims, never clipped.
 - Two story-goal fixes, both inside this switch: a reached destination no longer reads as the Story goal (it moves to Reached), and a newer story line whose places all fail to resolve (ROXANNE's TRAINER'S SCHOOL) does not replace an earlier line that resolved.
 - Supervisor notes keep the block, so "do not try it again" cannot be read as dropping the open item.
 - Default OFF, bundle arm only. OFF is byte-identical. Recorded as an Activity History event when an item opens or retires; no timeline mark.
@@ -66,3 +66,9 @@ The 388–1224 failure is not fixed by the four parts alone. Option: part 4 also
 - Added supervisor test for positive-supervisor and focused briefings plus retirement (21/21).
 - Synced with main cd23443e (whole-map pair config, phone sheet). Agent 2854/2854; viewer 1387/1388 with experiment-cli.test.ts 11/11 alone (git timing under load).
 - Synced with main fa5ae160 (loop recovery metrics). Agent 2864/2864, tsc clean. Review packet frozen next.
+
+## Review log
+- R1 (packet a6e0cf94 over fa5ae160, SHA-256 c67347ba…): Grok (cursor-grok-4.5-high) LGTM. Claude lane: ~/.claude-review and default CLI logged out; Cursor Opus and Sonnet usage-capped; Claude subagent (standing operator rule, memory claude-review-lane) BLOCKING on B1.
+- Triage: B1 fix (on the reached map, "first entered" used the latest visit; now the first entry since the line, and a line said inside the map reads "you were in it when this was said (since turn N)"). Claude obs 1 fixed by the same change. Obs 3 fix (a blackout activity whose evidence predates the latest arrival no longer marks the next walk carried; test fails on old code, passes now). Grok MEM/sup label: trace label now SUP. Obs 2/4/5 and Grok places-retry: rebut, no failing input (door transits in r10 all within two tiles; resolution cost bounded by dialogue volume; one-result lag acceptable).
+- Viewer proof on an isolated worktree viewer (127.0.0.1:18767, scratch runs dir, clearly named reconstruction-r10-unfinished-activity: r10 events to T330 with the switch added to run_start and one unfinished_activity event in place of a T262 destination_citation; frames symlinked read-only): Harness Config card found by name, READ EXPLAINER opened /explainers/unfinished-activity-v1.html, Agent Trace row "Unfinished activity" at T262 expanded to the full text. Server stopped. Explainer timeline/walk labels de-overlapped; phone width scrollWidth 375.
+- Fix batch gates: agent 2867/2867, viewer 1388/1388, tsc+eslint clean, pages-check clean.

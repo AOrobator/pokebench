@@ -65,8 +65,9 @@ export class UnfinishedActivity {
   const done=this.outcomes.battles().length;
   this.outcomes.observe(event);
   if(event.type==="activity"){
-   // The blackout activity follows the state that already shows the player back in town.
-   if(event.kind==="blackout"){const a=this.arrivals.at(-1);if(a!==undefined&&event.evidence.includes(a.seq))this.carry(a);else this.blackout=true;}
+   // The blackout activity follows the state that already shows the player back in town; it marks the next map change
+   // only when no arrival has been recorded since its evidence began.
+   if(event.kind==="blackout"){const a=this.arrivals.at(-1);if(a!==undefined&&event.evidence.includes(a.seq))this.carry(a);else if(a===undefined||a.seq<Math.min(...event.evidence))this.blackout=true;}
    // Recorded right after the heal's own states, so the latest state is where the party was healed.
    if(event.kind==="heal"&&this.last!==null)this.heals.push({seq:event.seq,turn:event.turn,label:roomOf(this.last,this.features)});
    return;

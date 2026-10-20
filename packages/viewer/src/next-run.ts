@@ -27,7 +27,7 @@ export const NextRunSchema = Type.Object({
 export type NextRun = Omit<Static<typeof NextRunSchema>, "features"> & {features:FeatureSet};
 
 export const DEFAULT_NEXT_RUN: NextRun = { model: "", thinking: "medium", maxTurns: 300, maxWallMs: 30 * 60_000, failureLimit: 3, maxTokens: 4096, target: null, features: { ...ALL_ON, "safe-navigation-strides-v1":false, "battle-refusal-loop-v1":false, "scripted-place-guidance-v1":false, "trigger-script-loop-v1":false, "cache-aligned-window-v1":false, "jit-guide-reuse-v1":false, "save-state-task-truth-v1":false, "state-only-decisions-v1":false, "pushback-loop-detection-v1": false, "pushback-press-result-v1": false, "battle-observation-loop-v1": false, "explorer-guidance-v1": false, "in-game-naming-readout-v1": false, "no-nickname-guidance-v1": false, "battle-message-waiting-v1": false, "connection-edge-tiles-v1": false, "named-interactions-v1": false, "world-destinations-v1": false, "bounded-navigation-v1": false, "full-map-navigation-v1": false, "grass-cost-navigation-v1": false, "game-evidence-priority-v1": false, "dialogue-log-v1": false, "loop-guard-supervisor-v1": false, "instruction-ledger-v1": false, "next-milestone-hint-v1": false, "double-context-window-v1": false, "fresh-retry-v1": false, "named-warp-destinations-v1": false, "milestone-stall-stop-v1": false, "text-only-supervisor-v1": false, "character-presence-v1": false, "navigation-refusal-reasons-v1": false, "transition-press-result-v1": false, "stall-briefing-v1": false, "battle-details-v2": false, "dialogue-auto-advance-v1": false, "warp-arrival-settle-v1": false, "dialogue-context-kept-v1": false, "displayed-place-names-v1": false, "transition-loop-detection-v1": false, "blocked-batch-result-v1": false, "adjacent-tiles-v1": false,"battle-triage-guidance-v1":false, "readout-rules-in-prompt-v1": false, "script-line-presence-v1": false, "offscreen-objects-v1": false, "navigate-first-prompt-v1": false, "presence-penalty-v1": false, "levelup-box-v1": false, "disproved-beliefs-v1": false, "same-plan-breaker-v1": false, "navigation-truth-v1": false, "navigation-refusal-reasons-v2": false, "low-hp-trainer-warning-v2": false, "battle-text-auto-advance-v1": false, "transition-coherence-v1": false, "briefing-exits-v1": false, "untaken-exits-v1": false, "people-ledger-v1": false, "trainer-heal-guidance-v1": false, "low-hp-trainer-warning-v1": false, "briefing-battle-outcomes-v1": false, "blocked-exit-fact-v1": false, "battle-loss-recap-v1": false, "readout-truth-v1": false, "birch-speech-pages-v1": false, "blackout-readout-v1": false, "surf-gated-exits-v1": false, "story-destinations-v1": false, "exit-reachability-v1": false, "cross-map-goal-v1": false, "explorer-guidance-v2": false, "ineffective-loops-v1": false, "people-id-cards-v1": false, "open-goal-prompt-v1": false, "heal-before-trainers-v1": false, "harness-trust-v1": false, "cited-destination-v1": false, "harness-trust-v2": false, "battle-move-tool-v1": false, "tutorial-party-owner-v1": false, "mid-frame-readout-v1": false, "unset-dynamic-warp-v1": false, "status-names-v1": false, "surf-gated-exits-v2": false, "instruction-ledger-v2": false, "no-exit-here-v1": false, "bag-healing-items-v1": false, "battle-menu-loop-v1": false, "clock-view-loop-v1": false,"stale-story-goal-v1": false, "input-cuts-v1": false, "loop-guard-screen-v1": false, "reopened-dialogue-loop-v1": false, "just-in-time-prompt-v1": false,"just-in-time-prompt-v2":false,"faced-interaction-history-v1":false,"dialog-button-b-v1": false } };
-Object.assign(DEFAULT_NEXT_RUN.features, {"original-speed-pacing-v1":false, "evolution-decision-v1": false,"ineffective-navigation-v2":false,"supervisor-briefing-v2":false,"reachable-story-guidance-v1":false,"text-only-supervisor-v2":false,"battle-decision-ready-v1":false, "visited-terrain-navigation-v1": false, "battle-effective-damage-v1": false, "deterministic-warp-navigation-v1": false, "stale-story-goal-v2": false });
+Object.assign(DEFAULT_NEXT_RUN.features, {"original-speed-pacing-v1":false,"evolution-decision-v1":false,"observed-instructions-v1":false,"starter-decision-salience-v1":false,"ineffective-navigation-v2":false,"supervisor-briefing-v2":false,"reachable-story-guidance-v1":false,"text-only-supervisor-v2":false,"battle-decision-ready-v1":false, "visited-terrain-navigation-v1": false, "battle-effective-damage-v1": false, "deterministic-warp-navigation-v1": false, "stale-story-goal-v2": false });
 export { LEASE } from "./lease.js";
 // Whether a run's own game server answers on 127.0.0.1:<port>.
 export type HealthProbe = (port: number) => Promise<boolean>;
@@ -87,16 +87,27 @@ export function presetFor(draft: NextRun, runId: string): PlayPresetV2 {
 
 // A run is live while it has no run_end and its own game server is up: a long
 // model call or an operator pause writes nothing, so log age says nothing.
+// A killed run never writes run_end, and a later run can bind its port, so a
+// port belongs only to the newest unended run that recorded it.
 export async function liveRuns(runsRoot: string, healthy: HealthProbe, catalog: RunCatalog = () => listRuns(runsRoot)): Promise<string[]> {
-  const candidates = catalog().filter((run) => !run.ended && run.problem === null);
-  const live = await Promise.all(candidates.map(async (run) => {
+  const owners = new Map<number, { id: string; at: number }>(), ports = new Map<string, number>();
+  for (const run of catalog()) {
+    if (run.ended || run.problem !== null) continue;
+    let port: number;
+    try { port = readStart(runsRoot, run.id).isolation.port; } catch { continue; }
+    ports.set(run.id, port);
+    const at = Date.parse(run.started ?? ""), owner = owners.get(port), when = Number.isNaN(at) ? -Infinity : at;
+    if (owner === undefined || when > owner.at || (when === owner.at && run.id > owner.id)) owners.set(port, { id: run.id, at: when });
+  }
+  const candidates = [...ports].filter(([id, port]) => owners.get(port)?.id === id);
+  const live = await Promise.all(candidates.map(async ([, port]) => {
     try {
-      return await healthy(readStart(runsRoot, run.id).isolation.port);
+      return await healthy(port);
     } catch {
       return false;
     }
   }));
-  return candidates.filter((_, i) => live[i] === true).map((run) => run.id);
+  return candidates.filter((_, i) => live[i] === true).map(([id]) => id);
 }
 
 export async function appendControl(runsRoot: string, runId: string, action: ControlAction, now: Date, healthy: HealthProbe, catalog: RunCatalog = () => listRuns(runsRoot)): Promise<number> {

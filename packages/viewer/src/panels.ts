@@ -366,6 +366,7 @@ function toolReference(name:string,automaticRunning:boolean):string {
 }
 
 export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
+ "observed-instructions-v1":"observed-instructions-v1.html",
  "original-speed-pacing-v1":"original-speed-pacing-v1.html",
  "safe-navigation-strides-v1":"safe-navigation-strides-v1.html",
  "evolution-decision-v1":"evolution-decision-v1.html",
@@ -482,6 +483,7 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "supervisor-briefing-v2":"supervisor-briefing-v2.html",
  "reachable-story-guidance-v1":"reachable-story-guidance-v1.html",
  "text-only-supervisor-v2":"text-only-supervisor-v2.html",
+ "starter-decision-salience-v1":"starter-decision-salience-v1.html",
 });
 
 export function harnessConfig(view:RunView,registry:readonly FeatureInfo[]=[]):string {

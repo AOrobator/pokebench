@@ -28,7 +28,10 @@ import {withResultFacts} from "./result-facts.js";
 import type {RunRecorder} from "./recorder.js";
 import {STALL_STOP_MS,StallStop,type RunControl} from "./run-control.js";
 import {TEXT_ONLY_NOTE_LIMIT,contextWindow,withoutTextOnlyReplies,type Window} from "./harness.js";
+import {withStarterDecision} from "./starter-decision.js";
 import {VisitedTerrain,withVisitedTerrain} from "./visited-terrain.js";
+
+import {observedInstructions} from "./observed-instructions.js";
 
 type Transform=(messages:AgentMessage[])=>Promise<AgentMessage[]>;
 type WiringRecorder=Pick<RunRecorder,"subscribe"|"recordNavigationContext"|"recordLedgerContext"|"recordMilestoneHint"|"recordBeliefLedger">;
@@ -36,15 +39,16 @@ type WiringRecorder=Pick<RunRecorder,"subscribe"|"recordNavigationContext"|"reco
 // The switch-dependent memory tools and the context chain a play run delivers to the model.
 export function contextTools(features:FeatureSet,recorder:WiringRecorder,base:Transform):{tools:AgentTool[];transformContext:Transform;window:Window}{
  const tools:AgentTool[]=[];
- const memory=navigationMemory(features,recorder,base);
+ const observedBase=observedInstructions(features,recorder,base);
+ const memory=navigationMemory(features,recorder,observedBase);
  if(memory!==null)tools.push(memory.tool);
  const dialogue=dialogueLog(features,recorder);
  if(dialogue!==null)tools.push(dialogue);
- const ledger=instructionLedger(features,recorder,memory?.transformContext??base);
+ const ledger=instructionLedger(features,recorder,memory?.transformContext??observedBase);
  if(ledger!==null)tools.push(ledger.tool);
- const hint=nextMilestoneHint(features,recorder,ledger?.transformContext??memory?.transformContext??base);
+ const hint=nextMilestoneHint(features,recorder,ledger?.transformContext??memory?.transformContext??observedBase);
  if(hint!==null)tools.push(hint.tool);
- const hinted=hint?.transformContext??ledger?.transformContext??memory?.transformContext??base;
+ const hinted=hint?.transformContext??ledger?.transformContext??memory?.transformContext??observedBase;
  const chain=disprovedBeliefs(features,recorder,hinted)?.transformContext??hinted;
  return {tools,transformContext:features["fresh-retry-v1"]?messages=>chain(withoutTextOnlyReplies(messages)):chain,window:contextWindow(features)};
 }
@@ -102,7 +106,7 @@ export function playGameTools(base:readonly AgentTool[],features:FeatureSet,stat
  const facts=[...withResultFacts(withLowHpTrainerWarning(withNavigateFirst([...withInstructionLedgerV2(withStoryDestinations(withPeopleIdCards(withUntakenExits(withPeopleLedger(withDialogueAutoAdvance(withBattleAction(withNoExitHere(withNavigation(base,features,navigationState,gate),features),features,state,gate),features,{state,recorder,...(gate===undefined?{}:{gate})}),features,recorder),features,recorder),features,recorder),features,recorder,state),features,recorder),...extra],features),features,recorder,state),features,recorder)];
  const visible=terrain===null?facts:withVisitedTerrain(facts,terrain);
  const cited=withCitedDestination(visible,features["cited-destination-v1"],recorder,{fullMap:features["full-map-navigation-v1"],exitReach:features["exit-reachability-v1"],silenceMiss:features["input-cuts-v1"]});
- return withHarnessTrust(cited,features["harness-trust-v1"],recorder,state,{supervisor:true,battleAction:features["harness-trust-v2"],goalOnce:features["input-cuts-v1"],retireLab:features["stale-story-goal-v1"],stageBound:features["stale-story-goal-v2"],omitEmptyGoal:features["stale-story-goal-v2"],scriptedGuidance:features["scripted-place-guidance-v1"],reachableGoal:features["reachable-story-guidance-v1"]});
+ return withStarterDecision(withHarnessTrust(cited,features["harness-trust-v1"],recorder,state,{supervisor:true,battleAction:features["harness-trust-v2"],goalOnce:features["input-cuts-v1"],retireLab:features["stale-story-goal-v1"],stageBound:features["stale-story-goal-v2"],omitEmptyGoal:features["stale-story-goal-v2"],scriptedGuidance:features["scripted-place-guidance-v1"],reachableGoal:features["reachable-story-guidance-v1"]}),features);
 }
 
 

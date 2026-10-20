@@ -163,6 +163,14 @@ Operator 2026-10-19: enable safe-navigation-strides-v1 in the canonical bundle t
 
 Pending, not queued. STARTER_CHOSEN is only the conservative earliest prerequisite. Reliable arrival at an actual cancellable evolution window is not yet qualified. One retained checkpoint trace establishes the interface failure, not readiness or benefit. No measured runs approved or launched.
 
+
+## observed-instructions-v1 — 2026-10-19
+
+BLOCKED for a dedicated comparison: no current qualifying boot-readiness count or validated pre-instruction checkpoint has been established in this task. Earliest activation is FIRST_TRUCK_EXIT (Mom's first delivered conversation); nominal primary RIVAL_HOUSE_ENTERED. Norman-specific mechanism requires a separate validated pre-Norman start and Gym-entry outcome. Correctness regressions use immutable recorded Mom/Norman episodes, not new gameplay. Pending only; trial cap, fixed N and GPU budget require design before queueing. Bundle inclusion is operator-requested treatment configuration, not individual benefit evidence.
+## Starter decision salience · 2026-10-19
+
+Checkpoint diagnostic candidate: first-arrival ROUTE_101, SHA1 0c34433cc305ea5de6fa69aa4a5612bf434a5714, source frontier-acq-a state900/milestone901, empty party. Native OFF/ON checkpoint qualification and the fixed sixteen-slot rehearsal passed; these zero-inference checks do not establish autonomous decision quality. Native activation occurs after ROUTE_101 at ready starter_selection. No measured launch or approval.
+
 ## Original-speed deadline pacing — 2026-10-19
 
 PENDING, explicitly blocked and unqueued. Clock policy acts from server boot; NEW_GAME_CREATED is only the earliest registered native activation proxy. No qualifying four-run boot readiness audit or standalone model-benefit design has been performed. The copied eight-per-arm/45-minute registration envelope is not an approved GPU budget; design, power and operator approval remain required before any measured trials. Operator explicitly selects 80 FPS deadline pacing in both future fixed bundle/control arms as a timing policy, not a promotion or evidence of model benefit. Historical omitted presets stay OFF; no active frozen run is changed. Implementation pin e95da966; repin after reviewed landing.

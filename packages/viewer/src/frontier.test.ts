@@ -372,6 +372,8 @@ describe("zoom to frontier", () => {
     expect(document.querySelector('[data-run="older"][data-split="BIRCH_RESCUE_REQUESTED"]')).toBeNull();
     document.body.innerHTML = frontierPlot({ human: null, best: null }, [route("newer", ["birch-rescue-requested-v1"])], 900);
     expect(points("newer")).toEqual([2, 2]);
+    document.body.innerHTML = frontierPlot({ human: null, best: null }, [{ ...route("invalid-older", []), excluded: "Invalid fixed-run trial: crash" }], 900);
+    expect(points("invalid-older")).toEqual([4]);
   });
   it("connects proved Clock-set checkpoints and keeps a real missing rival house broken", () => {
     const points = (id: string): number[] => Array.from(document.querySelectorAll(`polyline[data-series="${id}"]`)).map(line => (line.getAttribute("points") ?? "").trim().split(/\s+/).filter(point => point !== "").length);
@@ -409,5 +411,51 @@ describe("zoom to frontier", () => {
     const short = measured(HUMAN_REFERENCE, [1000, 2000], "human");
     document.body.innerHTML = frontierPlot({ human: short, best: best() }, [], 2000, undefined, [], true);
     expect(axis()).toContain("Left rival house"); expect(axis()).not.toContain("Sent to Birch");
+  });
+});
+describe("invalid fixed-run trials", () => {
+  const invalid = (id: string, reason: string): WorkbenchRun => {
+    const r = measured(id, [100000, 150000, 400000, 500000, 900000, 950000, 1000000, 1200000]);
+    if (r.config === null) throw new Error("config");
+    r.config = { ...r.config, start: "save_state", resume: "MAIN_MENU" };
+    return { ...r, cohort: "experiment:bundle-cook-4h@08287126ff77", excluded: `Invalid fixed-run trial: ${reason}` };
+  };
+  it("plots an invalid trial's story progress as a dotted, labelled line that never becomes the frontier", () => {
+    const crashed = invalid("2026-10-19T20-12-11_qwen36-gpu1_86ac", "emulator or game server crash");
+    const refs = frontierReferences([human(), best(), crashed]);
+    expect(refs.best?.id).toBe("dea1");
+    document.body.innerHTML = frontierPlot(refs, [crashed], 900);
+    const line = document.querySelector(`polyline[data-series="${crashed.id}"]`);
+    expect(line).not.toBeNull();
+    expect(line?.getAttribute("stroke-dasharray")).toBe("2 4");
+    const series = line?.closest(".wb-series");
+    expect(series?.classList.contains("wb-invalid-run")).toBe(true);
+    expect(series?.getAttribute("data-invalid")).toBe("emulator or game server crash");
+    expect(document.querySelector(`[data-run="${crashed.id}"][data-split="RIVAL_MET"]`)?.getAttribute("aria-label")).toContain("invalid trial: emulator or game server crash");
+    expect(document.querySelector("[data-invalid-notice]")?.textContent).toContain("Dotted runs are invalid trials");
+  });
+  it("gives invalid trials a version color and a legend count, and explains the dotted line", () => {
+    const crashed = invalid("crashed", "emulator or game server crash");
+    const versions = frontierVersions([crashed]);
+    expect(versions.byRun.has("crashed")).toBe(true);
+    document.body.innerHTML = frontierLegend({ human: null, best: null }, [crashed], versions, legendState);
+    expect(document.querySelector(".wb-ver-grid")).not.toBeNull();
+    expect(document.querySelector("[data-bar=marks]")?.textContent).toContain("Dotted line");
+  });
+  it("keeps other exclusions and a resumed invalid trial's dashes as before", () => {
+    const probe = { ...invalid("probe", "x"), excluded: "Excluded probe session" };
+    const aborted = { ...invalid("aborted", "x"), excluded: "Excluded operator-aborted run" };
+    const problem = { ...invalid("problem", "x"), problem: "invalid" };
+    document.body.innerHTML = frontierPlot(frontierReferences([human(), best()]), [probe, aborted, problem], 900);
+    expect(document.querySelector('[data-series="probe"], [data-series="aborted"], [data-series="problem"]')).toBeNull();
+    expect(document.querySelector("[data-invalid-notice]")).toBeNull();
+    const resumed = invalid("resumed-invalid", "model/gateway error");
+    if (resumed.config === null) throw new Error("config");
+    resumed.config = { ...resumed.config, resume: "CLOCK_SET" };
+    expect(frontierReferences([resumed]).best).toBeNull();
+    document.body.innerHTML = frontierPlot({ human: null, best: null }, [resumed], 900);
+    expect(document.querySelector('polyline[data-series="resumed-invalid"]')?.getAttribute("stroke-dasharray")).toBe("2 4");
+    expect(document.querySelector('[data-series="resumed-invalid"]')?.closest(".wb-series")?.getAttribute("data-resume")).toBe("CLOCK_SET");
+    expect(document.querySelector('[data-resume-origin="CLOCK_SET"]')).not.toBeNull();
   });
 });

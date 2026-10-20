@@ -109,10 +109,10 @@ describe("cross-map-goal-v1 production wiring",()=>{
 describe("cross-map-goal-v1 pending experiment",()=>{
  const raw=JSON.parse(readFileSync(new URL("../../../experiments/cross-map-goal.json",import.meta.url),"utf8")) as {incumbent:{features:Record<string,boolean>}};
  it("names every switch explicitly and flips only cross-map-goal-v1",()=>{
-  expect(Object.keys(raw.incumbent.features)).toEqual(SWITCHABLE_FEATURES.filter(id=>id!=="evolution-decision-v1"&&id!=="safe-navigation-strides-v1"&&id!=="ineffective-navigation-v2"&&id!=="supervisor-briefing-v2"&&id!=="reachable-story-guidance-v1"&&id!=="text-only-supervisor-v2"&&id!=="battle-decision-ready-v1"&&id!=="deterministic-warp-navigation-v1"&&id!=="battle-effective-damage-v1"&&id!=="scripted-place-guidance-v1"&&id!=="trigger-script-loop-v1").filter(id=>id!=="faced-interaction-history-v1").slice(0,Object.keys(raw.incumbent.features).length));
+  expect(Object.keys(raw.incumbent.features)).toEqual(SWITCHABLE_FEATURES.filter(id=>id!=="original-speed-pacing-v1"&&id!=="evolution-decision-v1"&&id!=="observed-instructions-v1"&&id!=="starter-decision-salience-v1"&&id!=="safe-navigation-strides-v1"&&id!=="ineffective-navigation-v2"&&id!=="supervisor-briefing-v2"&&id!=="reachable-story-guidance-v1"&&id!=="text-only-supervisor-v2"&&id!=="battle-decision-ready-v1"&&id!=="deterministic-warp-navigation-v1"&&id!=="battle-effective-damage-v1"&&id!=="scripted-place-guidance-v1"&&id!=="trigger-script-loop-v1").filter(id=>id!=="faced-interaction-history-v1").slice(0,Object.keys(raw.incumbent.features).length));
   expect(Object.keys(raw.incumbent.features)).toContain("cross-map-goal-v1");
   const {incumbent,candidate}=experimentArms(parseExperiment(raw));
   expect(incumbent.features["cross-map-goal-v1"]).toBe(false);expect(incumbent.features["bounded-navigation-v1"]).toBe(true);
-  expect(SWITCHABLE_FEATURES.filter(id=>id!=="evolution-decision-v1"&&id!=="safe-navigation-strides-v1"&&id!=="battle-decision-ready-v1"&&id!=="deterministic-warp-navigation-v1"&&incumbent.features[id]!==candidate.features[id])).toEqual(["cross-map-goal-v1"]);
+  expect(SWITCHABLE_FEATURES.filter(id=>id!=="observed-instructions-v1"&&id!=="evolution-decision-v1"&&id!=="safe-navigation-strides-v1"&&id!=="battle-decision-ready-v1"&&id!=="deterministic-warp-navigation-v1"&&incumbent.features[id]!==candidate.features[id])).toEqual(["cross-map-goal-v1"]);
  });
 });

@@ -1,3 +1,4 @@
+import {readFileSync} from "node:fs";
 import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
 
@@ -200,4 +201,27 @@ describe("controlBaseProblems", () => {
     const def = definition({ controlBase: { ...definition().controlBase, sha256: sha("nope") } });
     expect(controlBaseProblems(def, "nope")[0]).toMatch(/^control base .* is not a preset/);
   });
+});
+
+it("preserves a shared native target in both diagnostic arms and rejects a misleading target",()=>{
+ const original=definition();
+ const def={...original,primaryMilestone:"STARTER_CHOSEN",base:{...original.base,target:"STARTER_CHOSEN"}};
+ expect(parseFixedDefinition(JSON.stringify(def)).definition.base.target).toBe("STARTER_CHOSEN");
+ for(const arm of ["control","bundle"] as const)expect(armPreset(def,"confirmatory",arm).target).toBe("STARTER_CHOSEN");
+ expect(definitionProblems({...def,base:{...def.base,target:"RIVAL_MET"}})).toContain("base stopping target must equal primaryMilestone");
+});
+
+it("stops the starter diagnostic without replacing its broad play goal",()=>{
+ const old=definition();const def={...old,primaryMilestone:"STARTER_CHOSEN",base:{...old.base,stopAt:"STARTER_CHOSEN"}};
+ expect(parseFixedDefinition(JSON.stringify(def)).definition.base.stopAt).toBe("STARTER_CHOSEN");
+ for(const arm of ["control","bundle"] as const)expect(armPreset(def,"confirmatory",arm)).toMatchObject({target:null,stopAt:"STARTER_CHOSEN"});
+ expect(definitionProblems({...def,base:{...def.base,stopAt:"STONE_BADGE"}})).toContain("base stopping target must equal primaryMilestone");
+});
+
+it("freezes a byte-pinned prompt-only starter diagnostic with sixteen balanced slots",()=>{
+ const def=parseFixedDefinition(readFileSync(new URL("../../../experiments/fixed/starter-decision-salience.json",import.meta.url),"utf8")).definition;
+ const base=readFileSync(new URL("../../../experiments/fixed/control-bases/starter-decision-salience-control.json",import.meta.url),"utf8");
+ expect(controlBaseProblems(def,base)).toEqual([]);expect(def.switches).toEqual(["starter-decision-salience-v1"]);expect(def.plan).toHaveLength(16);
+ expect(def.phases).toMatchObject([{perArm:8,primary:false,maxWallMs:300_000,start:{kind:"save_state",sha1:"0c34433cc305ea5de6fa69aa4a5612bf434a5714"}}]);
+ expect(def.base.target).toBeNull();expect(def.base.stopAt).toBe("STARTER_CHOSEN");
 });

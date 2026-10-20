@@ -33,15 +33,22 @@ describe("loop rule architecture", () => {
     const program = ts.createProgram([facadePath], {
       module: ts.ModuleKind.NodeNext,
       moduleResolution: ts.ModuleResolutionKind.NodeNext,
-      skipLibCheck: true,
+      // Enumerate this facade's explicit exports; tsc checks their target types separately.
+      noResolve: true,
+      noLib: true,
+      types: [],
       target: ts.ScriptTarget.ESNext,
     });
     const source = program.getSourceFile(facadePath);
+    // A star export would require resolving another module and could hide a new type-only export.
+    expect(source?.statements.filter(ts.isExportDeclaration).every((declaration) => declaration.exportClause !== undefined)).toBe(true);
     const facadeSymbol = source === undefined ? undefined : program.getTypeChecker().getSymbolAtLocation(source);
     expect(facadeSymbol).toBeDefined();
     const allExports = facadeSymbol === undefined
       ? []
       : program.getTypeChecker().getExportsOfModule(facadeSymbol).map((symbol) => symbol.name).sort();
+    // Export enumeration must not build the harness dependency graph or ambient libraries.
+    expect(program.getSourceFiles().map((file) => file.fileName)).toEqual([facadePath]);
     expect(allExports).toEqual([
       ...runtimeExports,
       "CompletedCall",

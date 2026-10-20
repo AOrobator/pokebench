@@ -14,6 +14,7 @@ import { Governor, NUDGE, attachLoopGuard, slideWindow, withoutTextOnlyReplies }
 import type { LoopNotice } from "./loop-detection.js";
 import { PLAY_LIMITS, PLAY_TASK, playSystemPrompt, targetGoal, toolSwitches } from "./play-config.js";
 import { contextTools, loopSupervisor, playGameTools, stallBriefing } from "./play-wiring.js";
+import { starterDecisionText } from "./starter-decision.js";
 import { ShownStates, pressResult } from "./press-result.js";
 
 type StateEvent = Extract<RunEvent, { type: "state"; started: boolean }>;
@@ -93,7 +94,7 @@ async function resultTexts(parts: readonly ResultParts[], recorded: FeatureSet, 
     let text = part.event.text;
     if (part.auto) {
       if (part.after !== undefined) shown.record(part.after);
-      texts.set(part.event.seq, text);
+      texts.set(part.event.seq, part.event.is_error?text:starterDecisionText(text,part.after??null,features["starter-decision-salience-v1"]));
       continue;
     }
     const readout = fresh.get(part.event.seq);
@@ -103,7 +104,7 @@ async function resultTexts(parts: readonly ResultParts[], recorded: FeatureSet, 
       text = pressLine(text, switches.pressResult ? `Press result: ${pressResult(before, part.after, part.buttons, switches, shown)}` : null);
     }
     if (part.after !== undefined && !part.event.is_error) shown.record(part.after, part.event.name === "press" ? part.before : undefined);
-    texts.set(part.event.seq, text);
+    texts.set(part.event.seq, part.event.is_error?text:starterDecisionText(text,part.after??null,features["starter-decision-salience-v1"]));
   }
   return texts;
 }
@@ -220,7 +221,7 @@ export async function decisionContext(run: RecordedRun, turn: number, features: 
     const buttons = call?.name === "press" && press !== undefined ? press.buttons : null;
     return { event, before: press?.before_state_seq === undefined ? undefined : states.get(press.before_state_seq), after: event.state_seq === undefined ? undefined : states.get(event.state_seq), buttons, auto: advanced.has(event.id) };
   });
-  const goal = start.evaluation?.target ?? null;
+  const goal = start.evaluation?.goal_target !== undefined ? start.evaluation.goal_target : start.evaluation?.target ?? null;
   const byId = new Map(results.map((r) => [r.id, r]));
   const notes = prior.filter((e): e is Extract<RunEvent, { type: "text_only_supervisor" }> => e.type === "text_only_supervisor");
   const window = contextTools(features, new Replay(start), (m) => Promise.resolve(m)).window;

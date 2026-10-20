@@ -107,6 +107,10 @@ def test_production_main_registers_view_pcm_and_browser_module_before_vendor_mai
         emu.core.memory = SimpleNamespace(u8=ByteView())
         emu.core.cpu = SimpleNamespace(gprs=[0] * 16, cpsr=SimpleNamespace(packed=0))
         emu.core.frame_counter = 1
+        from mgba._pylib import ffi  # type: ignore[import-untyped]
+
+        # No native block: canonical RAM reads stay on the recorded bus path.
+        emu.core._core = SimpleNamespace(getMemoryBlock=lambda owner, block, size: ffi.NULL)
         emu.core.run_frame()
         uvicorn.run(app, host="0.0.0.0", port=8129)
         server_ready.set()

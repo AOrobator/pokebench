@@ -243,7 +243,7 @@ describe("server-owned run summary catalog", () => {
 
   it("treats a cache-only pre-read stat failure as an optimization miss", () => {
     const runsRoot = root();
-    writeRun(runsRoot, "pre-stat", "pre-stat-model", true);
+    const path = writeRun(runsRoot, "pre-stat", "pre-stat-model", true);
     const catalog = createRunCatalog(runsRoot, null), stat = fs.statSync;
     let failed = false;
     const statSpy = vi.spyOn(fs, "statSync").mockImplementation(((candidate: fs.PathLike, options?: fs.StatOptions) => {

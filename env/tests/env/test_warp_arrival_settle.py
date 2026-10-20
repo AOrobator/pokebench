@@ -109,14 +109,20 @@ Capture = Callable[[], object]
 def waiting(settle: FrameSettle, capture: Capture, lock: threading.Lock):
     out: dict[str, object] = {}
     registered = threading.Event()
+    captured = threading.Event()
+
+    def capture_frame() -> object:
+        result = capture()
+        captured.set()  # on_frame owns the memory lock; worker teardown is irrelevant.
+        return result
 
     def worker() -> None:
-        out["result"] = settle.settle_traced(capture, lock, on_wait=registered.set)
+        out["result"] = settle.settle_traced(capture_frame, lock, on_wait=registered.set)
 
     thread = threading.Thread(target=worker, daemon=True)
     thread.start()
     assert registered.wait(5)
-    return out, thread
+    return out, thread, captured
 
 
 def at_once(settle: FrameSettle, capture: Capture, lock: threading.Lock) -> tuple[object, Settled]:
@@ -141,9 +147,11 @@ def run_frames(
     thread: threading.Thread,
     schedule: Callable[[int], Ram | None],
     limit: int = 2000,
+    *,
+    captured: threading.Event | None = None,
 ) -> int:
     stepped = 0
-    while thread.is_alive() and stepped < limit:
+    while thread.is_alive() and stepped < limit and not (captured and captured.is_set()):
         with lock:
             game.frame += 1
             nxt = schedule(game.frame)
@@ -151,7 +159,8 @@ def run_frames(
                 game.ram = nxt
             settle.on_frame()
         stepped += 1
-        thread.join(0.001)
+        if captured is None:
+            thread.join(0.001)
     thread.join(5)
     return stepped
 
@@ -228,8 +237,8 @@ def test_switch_on_holds_the_recorded_captures_until_the_unlocked_arrival(
             return recorded(chain[frame])
         return None
 
-    out, thread = waiting(settle, capture, lock)
-    run_frames(game, settle, lock, thread, schedule)
+    out, thread, captured = waiting(settle, capture, lock)
+    run_frames(game, settle, lock, thread, schedule, captured=captured)
     row, settled = out["result"]  # type: ignore[misc]
     assert seen == [chain[-1]]
     assert (row["location"], row["position"], row["field_controls_locked"]) == (
@@ -283,26 +292,35 @@ def test_bound_hit_captures_anyway_and_does_not_hang() -> None:
     game = Game(synthetic(lock=True, funcs=(DO_DOOR_WARP,)))
     lock = threading.Lock()
     settle = FrameSettle(game.read, warp=True, warp_bound_frames=7)
-    out, thread = waiting(settle, lambda: (game.frame, warp_animating(game.read)), lock)
-    assert run_frames(game, settle, lock, thread, lambda frame: None) == 7
+    out, thread, captured = waiting(settle, lambda: (game.frame, warp_animating(game.read)), lock)
+    assert run_frames(game, settle, lock, thread, lambda frame: None, captured=captured) == 7
     assert out["result"] == ((7, True), Settled(7, "warp_bound"))
 
 
-def test_the_default_warp_bound_is_used_in_frames() -> None:
+def test_frame_driver_stops_at_capture_before_worker_exits(monkeypatch: pytest.MonkeyPatch) -> None:
     game = Game(synthetic(lock=True, funcs=(EXIT_DOOR,)))
     lock = threading.Lock()
-    settle = FrameSettle(game.read, warp=True)
-    out, thread = waiting(settle, lambda: game.frame, lock)
-    assert run_frames(game, settle, lock, thread, lambda frame: None) == WARP_SETTLE_BOUND_FRAMES
-    assert out["result"] == (WARP_SETTLE_BOUND_FRAMES, Settled(300, "warp_bound"))
+    settle = FrameSettle(game.read, warp=True, warp_bound_frames=3)
+    out, thread, captured = waiting(settle, lambda: game.frame, lock)
+    is_alive = thread.is_alive
+    # Force the observed failure: the worker still appears alive after frame 3's capture.
+    monkeypatch.setattr(thread, "is_alive", lambda: game.frame <= 3 or is_alive())
+    assert run_frames(game, settle, lock, thread, lambda frame: None, captured=captured) == 3
+    assert out["result"] == (3, Settled(3, "warp_bound"))
+
+
+def test_the_default_warp_bound_is_used_in_frames() -> None:
+    # Pin the default separately; tiny injected bounds above exercise the production comparison.
+    game = Game(synthetic(lock=True, funcs=(EXIT_DOOR,)))
+    assert FrameSettle(game.read, warp=True).warp_bound_frames == WARP_SETTLE_BOUND_FRAMES == 300
 
 
 def test_a_fade_only_wait_keeps_the_fade_bound_with_the_switch_on() -> None:
     game = Game(synthetic(lock=False, fade=True))
     lock = threading.Lock()
     settle = FrameSettle(game.read, bound_frames=5, warp=True, warp_bound_frames=50)
-    out, thread = waiting(settle, lambda: game.frame, lock)
-    assert run_frames(game, settle, lock, thread, lambda frame: None) == 5
+    out, thread, captured = waiting(settle, lambda: game.frame, lock)
+    assert run_frames(game, settle, lock, thread, lambda frame: None, captured=captured) == 5
     assert out["result"] == (5, Settled(5, "fade_bound"))
 
 
@@ -310,8 +328,15 @@ def test_a_fade_ending_settles_with_the_fade_reason() -> None:
     game = Game(synthetic(lock=False, fade=True))
     lock = threading.Lock()
     settle = FrameSettle(game.read, warp=True)
-    out, thread = waiting(settle, lambda: game.frame, lock)
-    run_frames(game, settle, lock, thread, lambda f: synthetic(lock=False) if f == 3 else None)
+    out, thread, captured = waiting(settle, lambda: game.frame, lock)
+    run_frames(
+        game,
+        settle,
+        lock,
+        thread,
+        lambda f: synthetic(lock=False) if f == 3 else None,
+        captured=captured,
+    )
     assert out["result"] == (3, Settled(3, "fade"))
 
 
@@ -328,8 +353,8 @@ def test_a_door_entry_is_held_through_the_load_black_frames_and_the_exit() -> No
     lock = threading.Lock()
     # The fade bound is shorter than the chain: a waiter that saw a warp task keeps the warp bound.
     settle = FrameSettle(game.read, bound_frames=2, warp=True)
-    out, thread = waiting(settle, lambda: game.frame, lock)
-    run_frames(game, settle, lock, thread, plan.get)
+    out, thread, captured = waiting(settle, lambda: game.frame, lock)
+    run_frames(game, settle, lock, thread, plan.get, captured=captured)
     assert out["result"] == (9, Settled(9, "warp"))
 
 
@@ -337,7 +362,7 @@ def test_operator_pause_releases_a_warp_waiter() -> None:
     game = Game(synthetic(lock=True, funcs=(EXIT_DOOR,)))
     lock = threading.Lock()
     settle = FrameSettle(game.read, warp=True)
-    out, thread = waiting(settle, lambda: "captured", lock)
+    out, thread, captured = waiting(settle, lambda: "captured", lock)
     settle.park()
     thread.join(5)
     assert out["result"] == ("captured", Settled(0, "paused"))

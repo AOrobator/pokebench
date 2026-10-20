@@ -145,6 +145,8 @@ export const SWITCHABLE_FEATURES = [
   "text-only-supervisor-v2",
   "safe-navigation-strides-v1",
   "evolution-decision-v1",
+  "observed-instructions-v1",
+  "starter-decision-salience-v1",
   "original-speed-pacing-v1",
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
@@ -370,7 +372,6 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("text-only-supervisor-v2","guidance","TEXT-ONLY SUPERVISOR V2","text-only-supervisor-v1","Text-only warnings honor the configured reply stopping policy. After three detailed notes, continuing retries receive a short action reminder. Budgets and termination behavior are unchanged. Off: the original third-note stop claim and generic retry prompt remain."),
   on("safe-navigation-strides-v1", "guidance", "SAFE NAVIGATION STRIDES", "bounded-navigation-v1", "Default off. Plans straight corridors of at most eight plain-floor tiles and validates every native step and stationary endpoint. Stops before turns, grass, ledges, objects, warps, script coordinates and elevation changes; special steps walk without automatic running. Off: the incumbent one-button navigation and running execution are unchanged."),
   on("evolution-decision-v1", "guidance", "EXPLICIT EVOLUTION DECISION", null, "Requires choose_evolution with evolve or cancel at a verified native cancellation window. The emulator waits for the choice and blocks ordinary button input through the evolution animation; neither option is recommended. After the explicit choice, the harness acknowledges only native waiting evolution result text with A; move-learning choices stay with the model. Removes the invented selected CANCEL menu and generic confirmation controls. Subsequent move-learning prompts retain their native controls. Default off; explicitly on in the bundle. Off: ordinary evolution timing, button input, tools and observations are unchanged."),
-  on("original-speed-pacing-v1", "guidance", "ORIGINAL POKEAGENT SPEED", null, "Targets 80 emulated frames per second using absolute deadlines, as explicitly selected by the operator. Preserves the vendor's conditional 4× cadence (320 if its dialog selector becomes active); the normal --no-ocr launcher still disables that selector. Changes game progression speed, not the separate viewer publication cap. This is a selected clock policy, not an experimental benefit claim. Off: the existing 59.7275 FPS deadline policy and conditional 4× ratio remain unchanged."),
   measured("story-milestones-v2", "STORY MILESTONES",
     "Records each story milestone the game's own state confirms, with its turn and time. This feeds splits and the score."),
   measured("clock-milestone-v1", "CLOCK MILESTONE",
@@ -399,6 +400,10 @@ export const FEATURES: readonly FeatureInfo[] = [
     "Ends the run cleanly when the STOP AT milestone is recorded. Present only when a target is set."),
   measured("deterministic-loop-diagnostics-v1", "LOOP LOGGING",
     "Logs every loop the guard would act on, even with the loop guard off, so guard-on and guard-off runs can be compared."),
+  on("observed-instructions-v1", "guidance", "OBSERVED INSTRUCTION MEMORY", "dialogue-auto-advance-v1",
+    "Pins whole delivered field-dialogue episodes containing a story character's printed name in YAML, with exact text and source references, separately from delivered location/story facts. Keeps earlier episodes after newer dialogue or arrival; infers no objectives or completion. Off: no additional instruction memory or context record."),
+  on("starter-decision-salience-v1", "guidance", "STARTER DECISION SALIENCE", null, "Default off. A coherent ready starter-selection observation adds a neutral request to consider alternatives, explain the choice against the goal and distinguish knowledge from uncertainty. It supplies no species recommendation or comparative facts and executes no inputs. Confirmation, transitions and acquired parties receive no new reminder. Off: the existing model observation, tools and actions are unchanged."),
+  on("original-speed-pacing-v1", "guidance", "ORIGINAL POKEAGENT SPEED", null, "Targets 80 emulated frames per second using absolute deadlines, as explicitly selected by the operator. Preserves the vendor's conditional 4× cadence (320 if its dialog selector becomes active); the normal --no-ocr launcher still disables that selector. Changes game progression speed, not the separate viewer publication cap. This is a selected clock policy, not an experimental benefit claim. Off: the existing 59.7275 FPS deadline policy and conditional 4× ratio remain unchanged."),
 ];
 
 export const ALL_ON: FeatureSet = Object.fromEntries(SWITCHABLE_FEATURES.map((id) => [id, true])) as Record<SwitchableFeature, boolean>;
@@ -568,6 +573,8 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("text-only-supervisor-v2"),
     ...when("safe-navigation-strides-v1"),
     ...when("evolution-decision-v1"),
+    ...when("observed-instructions-v1"),
+    ...when("starter-decision-salience-v1"),
     ...when("original-speed-pacing-v1"),
   ];
 }
@@ -579,5 +586,5 @@ export function featuresOf(harnessFeatures: readonly string[]): FeatureSet {
 
 export function stateOnlyProblems(features:FeatureSet):string[]{
  if(!features["state-only-decisions-v1"])return [];
- return (["battle-decision-ready-v1","objective-tracking-v1","deterministic-loop-guard-v1","bounded-navigation-v1","press-result-v1","navigation-evidence-memory-v1","game-evidence-priority-v1","dialogue-log-v1","instruction-ledger-v1","instruction-ledger-v2","disproved-beliefs-v1","next-milestone-hint-v1","double-context-window-v1","fresh-retry-v1","text-only-supervisor-v1","dialogue-auto-advance-v1","readout-rules-in-prompt-v1","explorer-guidance-v1","untaken-exits-v1","explorer-guidance-v2","people-id-cards-v1","harness-trust-v1","cited-destination-v1","harness-trust-v2","input-cuts-v1","just-in-time-prompt-v1","just-in-time-prompt-v2","evolution-decision-v1"] as const).filter(id=>features[id]).map(id=>`state-only-decisions-v1 requires ${id} OFF`);
+ return (["observed-instructions-v1","battle-decision-ready-v1","objective-tracking-v1","deterministic-loop-guard-v1","bounded-navigation-v1","press-result-v1","navigation-evidence-memory-v1","game-evidence-priority-v1","dialogue-log-v1","instruction-ledger-v1","instruction-ledger-v2","disproved-beliefs-v1","next-milestone-hint-v1","double-context-window-v1","fresh-retry-v1","text-only-supervisor-v1","dialogue-auto-advance-v1","readout-rules-in-prompt-v1","explorer-guidance-v1","untaken-exits-v1","explorer-guidance-v2","people-id-cards-v1","harness-trust-v1","cited-destination-v1","harness-trust-v2","input-cuts-v1","just-in-time-prompt-v1","just-in-time-prompt-v2","evolution-decision-v1","starter-decision-salience-v1"] as const).filter(id=>features[id]).map(id=>`state-only-decisions-v1 requires ${id} OFF`);
 }

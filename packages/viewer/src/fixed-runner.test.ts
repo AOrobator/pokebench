@@ -55,7 +55,7 @@ it("the next bundle: control gains the battle tools and exit reachability, the b
   for(const id of ["battle-move-tool-v1","battle-menu-loop-v1","tutorial-party-owner-v1","context-token-budget-v1","exit-reachability-v1"])for(const arm of ["control","bundle"] as const){
    expect(def.onInBoth).toContain(id);expect(def.switches).not.toContain(id);expect(armFeatureBits(def,arm)[id]).toBe(true);
   }
-  for(const id of ["stale-story-goal-v1","stale-story-goal-v2","harness-trust-v1","evolution-decision-v1","semantic-navigation-v2","deterministic-exploration-v1","briefing-repeat-count-v1","navigate-already-here-v1","auto-talk-v1","story-character-stall-gate-v1","heal-before-trainers-v1","positive-supervisor-v1","unfinished-activity-v1"]){
+  for(const id of ["stale-story-goal-v1","stale-story-goal-v2","harness-trust-v1","semantic-navigation-v2","deterministic-exploration-v1","briefing-repeat-count-v1","navigate-already-here-v1","auto-talk-v1","story-character-stall-gate-v1","heal-before-trainers-v1","positive-supervisor-v1","unfinished-activity-v1"]){
    expect(armFeatureBits(def,"control")[id]).toBe(false);expect(armFeatureBits(def,"bundle")[id]).toBe(true);
   }
   // Operator decision 2026-10-20: the duplicate-turn collapse in both arms, the breaker's note in neither.
@@ -554,9 +554,9 @@ it("enables safe navigation strides only in the canonical bundle treatment",asyn
  }
 });
 
-it("enables explicit evolution only in the bundle through the production arm builder",()=>{
+it("enables explicit evolution in both arms through the production arm builder",()=>{
  const {definition:def}=parseFixedDefinition(readFileSync(new URL("../../../experiments/fixed/bundle-v-control.json",import.meta.url),"utf8"));
- expect(armFeatureBits(def,"control")["evolution-decision-v1"]).toBe(false);
+ expect(armFeatureBits(def,"control")["evolution-decision-v1"]).toBe(true);
  expect(armFeatureBits(def,"bundle")["evolution-decision-v1"]).toBe(true);
  });
 it("rehearses all sixteen starter diagnostic slots with one switch, native early stops and eight choices per arm",async()=>{

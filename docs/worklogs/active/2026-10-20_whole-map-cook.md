@@ -38,3 +38,4 @@ experiments/fixed/whole-map-pair-1h-v3.json: main 0e1a9261 bundle-cook-1h (five 
 
 ## evolution-decision-v1 on in both arms (the operator 2026-10-20 18:42 NY)
 The control model cancelled Torchic's Lv16 evolution in a8f9 (turn 1170, B in the native cancel window). evolution-decision-v1 moved from bundle switches to onInBoth (base true) in bundle-v-control, bundle-cook-1h, whole-map-pair-1h-v4 and whole-map-cook-1h. The control base now differs from the frontier incumbent (frontier-incumbent-4caa, run 0e05) by this switch.
+- The operator 18:44 NY: exclude the supervisor redesign. positive-supervisor-v1 moved to offInBoth in whole-map-pair-1h-v4 and whole-map-cook-1h (bundle-v-control and bundle-cook-1h unchanged). The operator 18:45 NY: evolution switch in both arms (above).

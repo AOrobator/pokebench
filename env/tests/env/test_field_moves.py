@@ -113,7 +113,7 @@ def source_text(relative: str, label: str) -> str:
     if not path.exists():
         pytest.skip(f"pret/pokeemerald checkout not found at {POKEEMERALD}")
     lines = path.read_text().splitlines()
-    start = next(i for i, line in enumerate(lines) if line.strip() == f"{label}:" or line.strip() == f"{label}::")
+    start = next(i for i, line in enumerate(lines) if line.strip() in (f"{label}:", f"{label}::"))
     pieces = []
     for line in lines[start + 1 :]:
         found = re.match(r'\s*\.string "(.*)"\s*$', line)
@@ -300,3 +300,14 @@ def test_hidden_templates_and_other_sprites_are_not_obstacles() -> None:
         Obstacle("strength", "PUSHABLE_BOULDER", ((7, 8),), 3, False),
     )
     assert read_object_obstacles(read, 0x01000000, (0, 0), "ROUTE120") is None
+
+
+def test_a_short_or_failing_template_read_says_nothing() -> None:
+    def short(address: int, length: int) -> bytes:
+        return bytes(min(length, 8))
+
+    def failing(address: int, length: int) -> bytes:
+        raise ValueError("unmapped")
+
+    assert read_object_obstacles(short, 0x02025A00, (0, 0), None) is None
+    assert read_object_obstacles(failing, 0x02025A00, (0, 0), None) is None

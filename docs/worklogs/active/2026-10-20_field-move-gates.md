@@ -98,8 +98,14 @@ No new subprocesses, network or file writes; reads RAM the server already reads.
 - [x] Tests: table rows against pokeemerald labels; capability truth table (badges × party × eggs ×
       unread); a8f9 raw RAM at seq 41177 yields both Rusturf rocks closed; surf_gate wrappers unchanged.
       (env/tests/env/test_field_moves.py; fixture env/tests/env/fixtures/field-moves-a8f9.json.gz)
-- [ ] COMMIT RED / implement / gates / COMMIT GREEN
+- [x] COMMIT RED / implement / gates / COMMIT GREEN
   RED: test_field_moves.py fails at import (no pokebench_env.field_moves).
+  COMMIT: `test: field-move-gates-v1 gate table, capabilities and the a8f9 Rusturf rocks (RED)` (c886f952)
+  GREEN: env/pokebench_env/field_moves.py (GATES, capabilities, read_object_obstacles, and the
+  surf_use / reachable / classify / water_only flood moved from surf_gate.py, which re-exports them
+  unchanged). Gates: just lint 0, just build 0, just coverage 0. Tests: env 3022 passed; agent 2977;
+  viewer 1436. Coverage: env lines 97.12 / branches 92.67 / functions 100; agent 97.21 stmts /
+  92.96 branches / 97.6 functions / 99.16 lines; viewer 95.09 / 91.06 / 93.85 / 97.7 (floor 90).
 
 **M2 — gated flood, exit labels and readout (Python)**
 - [ ] Tests: a8f9 seq 41177 labels (29,16) and (18,20) `none` with `blocked_by` the rocks, (4,10) foot;

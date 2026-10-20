@@ -13,153 +13,63 @@ is not reachable on foot, but it is with water open. Elevation, edge walls and o
 out on purpose; each can only add connectivity on foot here, so an error keeps an exit listed.
 """
 
-from collections import deque
-from collections.abc import Iterable, Mapping
+from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Generic, TypeVar
 
+from pokebench_env.field_moves import (
+    FOOT,
+    LEDGES,
+    MOVE_SURF,
+    NONE,
+    STEP,
+    SURFING,
+    WATER,
+    Edges,
+    Reached,
+    SurfUse,
+    Tile,
+    Tiles,
+    classify,
+    reachable,
+    surf_use,
+    water_only,
+)
 from pokebench_env.game_screen import ReadMemory
 from pokebench_env.live_map import read_full_map
 from pokebench_env.pokemon import PartyMon
-from pokebench_env.topology import STEPS, SURFABLE, Topology, _edges
+from pokebench_env.topology import STEPS, Topology, _edges
 from pokebench_env.world import InteractionTarget
+
+# field-move-gates-v1 moved the flood and the Surf rule into field_moves; these names stay.
+__all__ = [
+    "FOOT",
+    "LEDGES",
+    "MOVE_SURF",
+    "NONE",
+    "STEP",
+    "SURFING",
+    "WATER",
+    "Edges",
+    "Reached",
+    "SurfUse",
+    "Tile",
+    "Tiles",
+    "classify",
+    "reachable",
+    "surf_use",
+    "water_only",
+]
 
 SWITCH = "surf-gated-exits-v1"
 SWITCH_V2 = "surf-gated-exits-v2"
-MOVE_SURF = 57
 PLAYER_AVATAR = 0x02037590
-SURFING = 1 << 3
-# MB_JUMP_EAST/WEST/NORTH/SOUTH and the step each one hops.
-LEDGES = {0x38: (1, 0), 0x39: (-1, 0), 0x3A: (0, -1), 0x3B: (0, 1)}
-STEP = ((1, 0), (-1, 0), (0, 1), (0, -1))
 NOT_NOW = "not an exit you can use now"
 CANNOT_CROSS = "crosses water you cannot cross yet"
 
-Tile = tuple[int, int]
-# (collision, behavior) per tile of the current map.
-Tiles = Mapping[Tile, tuple[int, int]]
-
-
-@dataclass(frozen=True)
-class SurfUse:
-    can_surf: bool | None
-    balance_badge: bool | None
-    party_surf: bool | None
-    surfing: bool | None
-
-
-def surf_use(
-    badges: tuple[str, ...] | None,
-    party: tuple[PartyMon, ...] | None,
-    avatar_flags: int | None,
-) -> SurfUse:
-    """Whether field Surf works now; None where an unread value could change the answer."""
-    badge = None if badges is None else "BALANCE" in badges
-    knows = (
-        None
-        if party is None
-        else [
-            None if m.moves is None else any(v.move_id == MOVE_SURF for v in m.moves) for m in party
-        ]
-    )
-    party_surf = (
-        None if knows is None else True if True in knows else None if None in knows else False
-    )
-    surfing = None if avatar_flags is None else bool(avatar_flags & SURFING)
-    if surfing is True or (badge is True and party_surf is True):
-        can: bool | None = True
-    elif surfing is False and (badge is False or party_surf is False):
-        can = False
-    else:
-        can = None
-    return SurfUse(can, badge, party_surf, surfing)
-
-
-def reachable(tiles: Tiles, start: Tile, *, water: bool) -> frozenset[Tile]:
-    """Tiles the player can walk to from start (with water open when water is True)."""
-    seen = {start}
-    queue = deque([start])
-    while queue:
-        x, y = queue.popleft()
-        for dx, dy in STEP:
-            nxt = (x + dx, y + dy)
-            cell = tiles.get(nxt)
-            if cell is None:
-                continue
-            collision, behavior = cell
-            if collision and LEDGES.get(behavior) == (dx, dy):
-                nxt = (x + 2 * dx, y + 2 * dy)
-                cell = tiles.get(nxt)
-                if cell is None:
-                    continue
-                collision, behavior = cell
-            if nxt in seen or collision or (not water and behavior in SURFABLE):
-                continue
-            seen.add(nxt)
-            queue.append(nxt)
-    return frozenset(seen)
-
-
-Edges = tuple[tuple[Tile, ...], tuple[Tile, ...]]
 # exit-reachability-v1: one map connection, as (direction, destination map, offset); a map can have
 # two on one side (Route 111 two WEST, Route 124 two EAST).
 ConnectionKey = tuple[str, tuple[int, int], int]
-K = TypeVar("K")
 Connections = Mapping[str, Edges]
-# exit-reachability-v1: how an exit can be reached from the player's tile on this map.
-FOOT, WATER, NONE = "foot", "water", "none"
-
-
-@dataclass(frozen=True)
-class Reached(Generic[K]):
-    foot: frozenset[Tile]
-    wet: frozenset[Tile]
-    warps: tuple[tuple[Tile, str], ...]
-    connections: tuple[tuple[K, str], ...]
-
-
-def classify(
-    tiles: Tiles, start: Tile, *, warps: Iterable[Tile], connections: Mapping[K, Edges]
-) -> Reached[K]:
-    """Each warp and connection labelled foot, water (only across water) or none (neither).
-
-    A warp counts as reached from itself or a neighbour (doors and cave mouths are entered from
-    next to them). A connection maps to (its foot edge tiles, its edge tiles crossable with water).
-    """
-    foot = reachable(tiles, start, water=False)
-    wet = reachable(tiles, start, water=True)
-
-    def near(tile: Tile, area: frozenset[Tile]) -> bool:
-        x, y = tile
-        return tile in area or any((x + dx, y + dy) in area for dx, dy in STEP)
-
-    def label(on_foot: bool, across: bool) -> str:
-        return FOOT if on_foot else WATER if across else NONE
-
-    return Reached(
-        foot,
-        wet,
-        tuple((w, label(near(w, foot), near(w, wet))) for w in dict.fromkeys(warps)),
-        tuple(
-            (key, label(any(t in foot for t in dry), any(t in wet for t in wet_edges)))
-            for key, (dry, wet_edges) in connections.items()
-        ),
-    )
-
-
-def water_only(
-    tiles: Tiles,
-    start: Tile,
-    *,
-    warps: Iterable[Tile],
-    connections: Connections,
-) -> tuple[tuple[Tile, ...], tuple[str, ...]]:
-    """Warps and connection directions reachable with water open but not on foot."""
-    reached = classify(tiles, start, warps=warps, connections=connections)
-    return (
-        tuple(w for w, how in reached.warps if how == WATER),
-        tuple(d for d, how in reached.connections if how == WATER),
-    )
 
 
 @dataclass(frozen=True)

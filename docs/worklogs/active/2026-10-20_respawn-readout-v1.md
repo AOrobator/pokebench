@@ -1,6 +1,6 @@
 # Respawn readout (`respawn-readout-v1`)
 
-Status: M1 GREEN. Part of `heal-respawn-sight` (M2 there). The operator approved the plan at 3:41 PM ET on 2026-10-20.
+Status: reviewed (Claude + Grok LGTM, round 2). Ready for the coordinator to land. Part of `heal-respawn-sight` (M2 there). The operator approved the plan at 3:41 PM ET on 2026-10-20.
 Shared design and evidence: the coordinator's `2026-10-20_heal-respawn-sight.md` (scratchpad). Worktree
 `~/dev/pokebench-worktrees/respawn-readout-v1`, branch `claude/respawn-readout-v1`, from main 6c88d424.
 
@@ -49,7 +49,7 @@ screen, out of battle:
       registry, presets, defaults.
 - [x] Explainer `docs/explainers/respawn-readout-v1.html`, FEATURE_EXPLAINERS, pending `experiments/respawn-readout.json`.
 - [x] b300 replay at state seqs 14716 (turn of seq 14724), 15196 (after seq 15195) and 15755 (turn of seq 15776).
-- [ ] Gates, sync main, Claude + Grok review (2 rounds max).
+- [x] Gates, sync main, Claude + Grok review (2 rounds max).
 
 ## Session log
 
@@ -100,5 +100,13 @@ Round 1, packet base ee95b866 head 6e501415, diff sha256 cd7c97d8...560ca (after
   823, 831 now give no line. H1-H4 follow-ups (SSTidalCorridor/Lavaridge setrespawn without a center entry,
   field-poison Lavaridge respawn, missed center between observations, unlocked LinkCache fill): not in the
   Roxanne window; recorded, not changed.
+
+Round 2, packet base ee95b866 head 47449683, cumulative diff sha256 a00c4aa6...669c6e08. Gates on that tip:
+agent 2899/2899, viewer 1424/1424, pytest 2937 passed; coverage agent 97.19/92.89/97.68, viewer 95.09/91.04/93.85,
+Python lines 97.00 branches 92.56 functions 100; lint and build clean.
+- Grok (cursor-grok-4.5-high): VERDICT: LGTM (B1 fix verified against overworld.c/maps.h; H1-H4 follow-ups).
+- Claude (read-only Claude subagent fallback; CLI auth expired, Cursor Claude over its usage limit): VERDICT: LGTM.
+  Confirmed every lastHealLocation writer goes through SetLastHealLocationWarp with WARP_ID_NONE.
+- Codex lane waived by the coordinator (2026-10-20). This commit touches only this worklog.
 
 ## Boy Scout Log

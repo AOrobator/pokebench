@@ -202,3 +202,4 @@ PENDING, explicitly blocked and unqueued. Clock policy acts from server boot; NE
 | Switch | Activation milestone | Readiness | Notes |
 |---|---|---|---|
 | `heal-before-trainers-v2` | `ROUTE_103` (its nine unloaded route trainers are named while the party is weak; the rival never passes the trainer test; the b300 effect is in RUSTBORO CITY and its GYM) | PENDING until `just experiments` runs after landing | Registered 2026-10-20, pending and not queued; bundle-only. Evidence: b300, results 14717, 14882 and 15198. |
+| `gym-heal-warning-v1` | `PETALBURG_CITY` (its gym door is the first one on the way) | PENDING until `just experiments` runs after landing | Registered 2026-10-20, pending and not queued; bundle-only; needs heal-before-trainers-v2. Evidence: b300 results 14717 and 14882. |

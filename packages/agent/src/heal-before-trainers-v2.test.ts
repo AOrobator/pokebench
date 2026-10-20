@@ -49,7 +49,7 @@ function replay(rows:readonly {text:string;state:GameStateSnapshot|undefined}[])
 }
 function recorder():Required<WarningRecorder>&{heal:[string,HealBeforeTrainersFacts,string][]}{
  const heal:[string,HealBeforeTrainersFacts,string][]=[];
- return {heal,lowHpTrainerWarning:()=>undefined,storyBattleWarning:()=>undefined,healBeforeTrainersWarning:(tool,facts,text)=>{heal.push([tool,facts,text]);}};
+ return {heal,lowHpTrainerWarning:()=>undefined,storyBattleWarning:()=>undefined,gymHealWarning:()=>undefined,healBeforeTrainersWarning:(tool,facts,text)=>{heal.push([tool,facts,text]);}};
 }
 const places={places:()=>Promise.resolve({places:PLACES})};
 const ROWS=B300.results.map(r=>({seq:r.seq,text:r.text,state:parseGameState(r.state)}));
@@ -65,7 +65,7 @@ describe("registry",()=>{
   expect(featureInfo(ID)).toMatchObject({group:"guard",needs:"heal-before-trainers-v1",switchable:true,title:"HEAL BEFORE TRAINERS V2"});
   expect(featureInfo(ID).description).toContain(" Off: ");
   expect(featureInfo(ID).description).toContain(AFTER_JOSH_TEXT);
-  expect(SWITCHABLE_FEATURES.at(-1)).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-2)).toBe(ID);
   expect(playHarnessFeatures({...ALL_ON,[ID]:true},null).at(-1)).toBe(ID);
   expect(playHarnessFeatures(ALL_ON,null)).not.toContain(ID);
   expect(SERVER_FEATURES).toContain(ID);

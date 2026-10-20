@@ -9,13 +9,13 @@ import { parseEvent } from "./events.js";
 import { RUN_START_META } from "../test-support/events.js";
 
 const ID = "original-speed-pacing-v1" as SwitchableFeature;
-const OFF = { ...ALL_ON, [ID]: false, "fixed-point-breaker-v1": false, "story-character-stall-gate-v1": false, "positive-supervisor-v1": false, "semantic-navigation-v2": false, "auto-talk-v1": false, "duplicate-turn-collapse-v1": false, "unfinished-activity-v1": false, "heal-before-trainers-v2": false };
+const OFF = { ...ALL_ON, [ID]: false, "fixed-point-breaker-v1": false, "story-character-stall-gate-v1": false, "positive-supervisor-v1": false, "semantic-navigation-v2": false, "auto-talk-v1": false, "duplicate-turn-collapse-v1": false, "unfinished-activity-v1": false, "heal-before-trainers-v2": false, "gym-heal-warning-v1": false };
 const ON = { ...OFF, [ID]: true };
 const flags = { loopGuard: true, activeUi: true, interfaceDocs: true, objectives: false };
 
 it("appends the independent speed policy without reordering recorded feature identity", () => {
-  expect(SWITCHABLE_FEATURES.at(-9)).toBe(ID);
-  expect(SWITCHABLE_FEATURES.at(-15)).toBe("evolution-decision-v1");
+  expect(SWITCHABLE_FEATURES.at(-10)).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-16)).toBe("evolution-decision-v1");
   expect(FEATURES.filter(feature => feature.switchable).map(feature => feature.id)).toEqual([...SWITCHABLE_FEATURES]);
   expect(featureInfo(ID)).toMatchObject({ group: "guidance", needs: null, switchable: true });
   expect(featureInfo(ID).description).toMatch(/80/);

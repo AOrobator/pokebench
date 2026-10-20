@@ -282,6 +282,20 @@ const StoryBattleWarningEvent = event("story_battle_warning", {
   text: Type.String({ minLength: 1 }),
 });
 
+// gym-heal-warning-v1: the SUPERVISOR paragraph a game-tool result gained on or next to a GYM, with the facts it states.
+const GymHealWarningEvent = event("gym_heal_warning", {
+  tool: Type.String({ minLength: 1 }), map_id: Type.Tuple([Type.Integer(), Type.Integer()]),
+  gym: Type.Object({ name: Type.String({ minLength: 1 }), map_id: Type.Tuple([Type.Integer(), Type.Integer()]), here: Type.Boolean(), x: Type.Union([Type.Integer(), Type.Null()]), y: Type.Union([Type.Integer(), Type.Null()]) }, closed),
+  hurt: Type.Array(Type.Object({ species: Type.String({ minLength: 1 }), hp: NonNegativeInt, max_hp: Type.Integer({ minimum: 1 }) }, closed), { minItems: 1, maxItems: 6 }),
+  player: Type.Union([Type.String({ minLength: 1 }), Type.Null()]),
+  money: Type.Union([NonNegativeInt, Type.Null()]),
+  wake: Type.Union([Type.Object({ name: Type.String({ minLength: 1 }), map_id: Type.Tuple([Type.Integer(), Type.Integer()]), hops: Type.Union([NonNegativeInt, Type.Null()]) }, closed), Type.Null()]),
+  heal: Type.Union([Type.Object({ kind: Type.Enum(["pokemon_center", "home"]), town: Type.String({ minLength: 1 }), map_id: Type.Tuple([Type.Integer(), Type.Integer()]), hops: NonNegativeInt,
+    shown: Type.Optional(Type.Object({ map_id: Type.Tuple([Type.Integer(), Type.Integer()]), map: Type.String({ minLength: 1 }), x: Type.Integer(), y: Type.Integer() }, closed)) }, closed), Type.Null()]),
+  mom_heals: Type.Boolean(),
+  text: Type.String({ minLength: 1 }),
+});
+
 // heal-before-trainers-v1: the SUPERVISOR paragraph a game-tool result gained, with the facts it states.
 const HealBeforeTrainersWarningEvent = event("heal_before_trainers_warning", {
   tool: Type.String({ minLength: 1 }), map_id: Type.Tuple([Type.Integer(), Type.Integer()]),
@@ -692,6 +706,7 @@ export const RunEventSchema = Type.Union([
   AutoTalk,
   StoryBattleWarningEvent,
   HealBeforeTrainersWarningEvent,
+  GymHealWarningEvent,
   StoryGoalAwayEvent,
   DestinationCitationEvent,
   DialogueAutoAdvance,

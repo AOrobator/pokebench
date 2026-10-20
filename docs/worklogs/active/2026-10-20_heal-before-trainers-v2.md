@@ -32,7 +32,8 @@ Run `2026-10-20T13-54-28_qwen36-gpu0_b300` (bundle arm of whole-map-pair-1h; low
 
 - [x] M1 RED (742c6071), GREEN, gates, explainer, pending experiment
 - [ ] M1 Claude + Grok review
-- [ ] M2 gym-heal-warning-v1: RED, GREEN, gates, explainer, pending experiment, Claude + Grok review
+- [x] M2 RED (949a51de), GREEN, gates, explainer, pending experiment
+- [ ] M2 Claude + Grok review
 - [ ] Sync with main, final gates, report b300 texts
 
 ## Session log
@@ -51,6 +52,10 @@ Run `2026-10-20T13-54-28_qwen36-gpu0_b300` (bundle arm of whole-map-pair-1h; low
 
 - M2 (coordinator: build gym-heal-warning-v1 on `claude/gym-heal-warning-v1` from 315940b9, leave the v2 branch alone). Restored the draft from runs/probe/m2backup.
 - M2 RED: `gym-heal-warning.test.ts` (registry, b300 replay on/off, conditions, arm, event) and `gym-heal-warning-wire.test.ts` (playGameTools). They import exports HEAD lacks, so both fail on HEAD. Wiring mutation (gym block disabled) turns the wire test red; restored green.
+  COMMIT: `test: gym-heal-warning-v1 RED on b300 results` (949a51de)
+- M2 GREEN: `gymHealWarning`/`gymHealText`/`GymHealWarning` in low-hp-trainer-warning.ts, wired after heal-before-trainers in the same wrapper, sharing its map table read and heal list (`HealBeforeTrainers.nearest`). Event `gym_heal_warning` (schema, recorder, tail, Activity History, trace label, timeline-closed test), registry (guard, needs heal-before-trainers-v2, agent only), presets/defaults/legacy, explainer `docs/explainers/gym-heal-warning-v1.html` mapped, pending `experiments/gym-heal-warning-v1.json` (activation PETALBURG_CITY, first GYM door on the way), readiness row. Registry suffix indexes advanced in older tests (mechanical).
+- b300 replay ON: fires at 14717 (gym door at (27,19), center 1 change, RED's HOUSE 2F 8 changes) and 14882 (in the gym, 9 changes); silent at 15198 (same map entry, never at full HP). OFF: v2's paragraphs only.
+- Gates: lint OK, build OK, coverage: agent 2931/2931 (97.22/92.93/97.72/99.18), viewer 1429/1429 (95.09/91.04/93.85/97.7), python 2915 passed, gate lines 96.97 branches 92.50 functions 100.
 
 ## Surprises
 

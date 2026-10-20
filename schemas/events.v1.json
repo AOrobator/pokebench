@@ -4358,6 +4358,308 @@
         "turn",
         "type",
         "tool",
+        "map_id",
+        "gym",
+        "hurt",
+        "player",
+        "money",
+        "wake",
+        "heal",
+        "mom_heals",
+        "text"
+      ],
+      "properties": {
+        "v": {
+          "type": "number",
+          "const": 1
+        },
+        "run": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "t": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}-0[45]:00$"
+        },
+        "turn": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "type": {
+          "type": "string",
+          "const": "gym_heal_warning"
+        },
+        "tool": {
+          "type": "string",
+          "minLength": 1
+        },
+        "map_id": {
+          "type": "array",
+          "additionalItems": false,
+          "items": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "integer"
+            }
+          ],
+          "minItems": 2
+        },
+        "gym": {
+          "type": "object",
+          "required": [
+            "name",
+            "map_id",
+            "here",
+            "x",
+            "y"
+          ],
+          "properties": {
+            "name": {
+              "type": "string",
+              "minLength": 1
+            },
+            "map_id": {
+              "type": "array",
+              "additionalItems": false,
+              "items": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "integer"
+                }
+              ],
+              "minItems": 2
+            },
+            "here": {
+              "type": "boolean"
+            },
+            "x": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "y": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "additionalProperties": false
+        },
+        "hurt": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "species",
+              "hp",
+              "max_hp"
+            ],
+            "properties": {
+              "species": {
+                "type": "string",
+                "minLength": 1
+              },
+              "hp": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "max_hp": {
+                "type": "integer",
+                "minimum": 1
+              }
+            },
+            "additionalProperties": false
+          },
+          "minItems": 1,
+          "maxItems": 6
+        },
+        "player": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "money": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "wake": {
+          "anyOf": [
+            {
+              "type": "object",
+              "required": [
+                "name",
+                "map_id",
+                "hops"
+              ],
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "map_id": {
+                  "type": "array",
+                  "additionalItems": false,
+                  "items": [
+                    {
+                      "type": "integer"
+                    },
+                    {
+                      "type": "integer"
+                    }
+                  ],
+                  "minItems": 2
+                },
+                "hops": {
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "heal": {
+          "anyOf": [
+            {
+              "type": "object",
+              "required": [
+                "kind",
+                "town",
+                "map_id",
+                "hops"
+              ],
+              "properties": {
+                "kind": {
+                  "enum": [
+                    "pokemon_center",
+                    "home"
+                  ]
+                },
+                "town": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "map_id": {
+                  "type": "array",
+                  "additionalItems": false,
+                  "items": [
+                    {
+                      "type": "integer"
+                    },
+                    {
+                      "type": "integer"
+                    }
+                  ],
+                  "minItems": 2
+                },
+                "hops": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "shown": {
+                  "type": "object",
+                  "required": [
+                    "map_id",
+                    "map",
+                    "x",
+                    "y"
+                  ],
+                  "properties": {
+                    "map_id": {
+                      "type": "array",
+                      "additionalItems": false,
+                      "items": [
+                        {
+                          "type": "integer"
+                        },
+                        {
+                          "type": "integer"
+                        }
+                      ],
+                      "minItems": 2
+                    },
+                    "map": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "x": {
+                      "type": "integer"
+                    },
+                    "y": {
+                      "type": "integer"
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "mom_heals": {
+          "type": "boolean"
+        },
+        "text": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "v",
+        "run",
+        "seq",
+        "t",
+        "turn",
+        "type",
+        "tool",
         "speaker",
         "line_turn",
         "quote",

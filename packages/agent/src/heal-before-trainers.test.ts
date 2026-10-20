@@ -46,7 +46,7 @@ function replay(name:string,states:readonly GameStateSnapshot[]):AgentTool {
 type Calls={v1:unknown[][];v2:unknown[][];heal:unknown[][]};
 function recorder():Required<WarningRecorder>&{calls:Calls}{
  const calls:Calls={v1:[],v2:[],heal:[]};
- return {calls,lowHpTrainerWarning:(...args)=>{calls.v1.push(args);},storyBattleWarning:(...args)=>{calls.v2.push(args);},healBeforeTrainersWarning:(...args)=>{calls.heal.push(args);}};
+ return {calls,gymHealWarning:()=>undefined,lowHpTrainerWarning:(...args)=>{calls.v1.push(args);},storyBattleWarning:(...args)=>{calls.v2.push(args);},healBeforeTrainersWarning:(...args)=>{calls.heal.push(args);}};
 }
 const places={places:()=>Promise.resolve({places:PLACES})};
 const run=async(tool:AgentTool,times:number):Promise<string[]>=>{const out:string[]=[];for(let i=0;i<times;i++)out.push(textOf(await tool.execute(`c${String(i)}`,{})));return out;};
@@ -56,7 +56,7 @@ describe("registry",()=>{
   expect(featureInfo(ID)).toMatchObject({group:"guard",needs:"low-hp-trainer-warning-v1",switchable:true,title:"HEAL BEFORE TRAINERS"});
   expect(featureInfo(ID).description).toContain(" Off: ");
   expect(featureInfo(ID).description).toContain(AFTER_TEXT);
-  expect(SWITCHABLE_FEATURES.at(-52)).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-53)).toBe(ID);
   expect(playHarnessFeatures(ALL_ON,null).at(-37)).toBe(ID);
   expect(playHarnessFeatures({...ALL_ON,"battle-decision-ready-v1":false,[ID]:false},null)).not.toContain(ID);
   expect(SERVER_FEATURES).toContain(ID);

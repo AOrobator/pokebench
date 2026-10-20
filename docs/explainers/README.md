@@ -91,6 +91,7 @@ The original ignored runs/explainers copies remain for existing links. Make futu
 - [Exit reachability](exit-reachability-v1.html)
 - [Heal before trainers](heal-before-trainers-v1.html)
 - [Heal before trainers v2](heal-before-trainers-v2.html)
+- [Gym heal warning](gym-heal-warning-v1.html)
 - [Harness trust](harness-trust-v1.html)
 - [Cited destination](cited-destination-v1.html)
 - [Battle action tool](battle-move-tool-v1.html)

@@ -68,6 +68,7 @@ const SAMPLES: { [K in RunEvent["type"]]: Extract<Body, { type: K }> } = {
   stall_gate: { type: "stall_gate", turn: 1, kind: "milestone_drought", level: 1, reason: "untalked", character: X, map_id: [0, 18] },
   unfinished_activity: { type: "unfinished_activity", turn: 1, change: "opened", trainer_id: 265, trainer: "ROXANNE", map_id: [11, 3], text: X },
   low_hp_trainer_warning: { type: "low_hp_trainer_warning", turn: 1, tool: X, species: X, hp: 3, max_hp: 21, rival: "MAY", x: 10, y: 3, map_id: [0, 18], money: 3000, items: [{ name: X, quantity: 1 }], text: X },
+  gym_heal_warning: { type: "gym_heal_warning", turn: 1, tool: X, map_id: [0, 3], gym: { name: X, map_id: [11, 3], here: true, x: null, y: null }, hurt: [{ species: X, hp: 3, max_hp: 21 }], player: null, money: null, wake: null, heal: null, mom_heals: false, text: X },
   heal_before_trainers_warning: { type: "heal_before_trainers_warning", turn: 1, tool: X, map_id: [0, 19], trainers: [{ local_id: 3, x: 31, y: 24, sprite_kind: X }], weak: [{ kind: "lead_below_half", species: X, hp: 14, max_hp: 38 }], heal: { kind: "pokemon_center", town: X, map_id: [2, 2], hops: 4 }, mom_heals: true, money: 5168, text: X },
   story_battle_warning: { type: "story_battle_warning", turn: 1, tool: X, kind: "aqua_grunt", opponent: X, x: null, y: null, map_id: [24, 11], party: [{ species: X, hp: 3, max_hp: 21 }], money: 3000, items: [{ name: X, quantity: 1 }], text: X },
   story_goal_away: { type: "story_goal_away", turn: 1, tool: X, speaker: X, line_turn: 1, quote: X, targets: [{ name: X, map_id: [1, 4] }], steps: [{ measure: "tiles", from_map: [0, 18], to_map: [0, 18], from_name: X, to_name: X, from: { x: 9, y: 13 }, to: { x: 9, y: 10 }, before: 8, after: 11, way: X }, { measure: "maps", from_map: [0, 10], to_map: [0, 18], from_name: X, to_name: X, from: { x: 1, y: 0 }, to: { x: 1, y: 21 }, before: 3, after: 4, way: null }], text: X },
@@ -473,6 +474,23 @@ describe("low-hp-trainer-warning-v2 in Activity History", () => {
     expect(step.category).toBe("sup");
     expect(step.titleHtml).toContain("Story battle warning");
     expect(eventText(must(log.events.at(-1)))).toBe(`Story battle warning added to the press result · ROXANNE at (5,2) · COMBUSKEN 30/41 · ${text}`);
+  });
+});
+
+describe("gym-heal-warning-v1 in Activity History", () => {
+  it("is a SUPERVISOR step titled for the warning, naming the tool, the gym, the party, the healing place and the whole paragraph", () => {
+    const log = new Log();
+    log.add(0, START);
+    const text = "SUPERVISOR: An exit on this map at (27,19) leads to RUSTBORO CITY GYM (map 11/3), and your party is not at full HP: TORCHIC 25/33.";
+    log.add(100, { type: "gym_heal_warning", turn: 491, tool: "press", map_id: [0, 3], gym: { name: "RUSTBORO CITY GYM", map_id: [11, 3], here: false, x: 27, y: 19 }, hurt: [{ species: "TORCHIC", hp: 25, max_hp: 33 }], player: "RED", money: 6284, wake: { name: "RED's HOUSE 2F", map_id: [1, 1], hops: 8 }, heal: { kind: "pokemon_center", town: "RUSTBORO CITY", map_id: [11, 5], hops: 1, shown: { map_id: [0, 3], map: "RUSTBORO CITY", x: 16, y: 38 } }, mom_heals: true, text });
+    const step = must(steps(build(log.events)).find((s) => s.kind === "gym_heal_warning"));
+    expect(step.category).toBe("sup");
+    expect(step.titleHtml).toContain("Gym heal warning");
+    expect(eventText(must(log.events.at(-1)))).toBe(`Gym heal warning added to the press result · RUSTBORO CITY GYM (exit at (27,19)) · TORCHIC 25/33 · POKéMON CENTER in RUSTBORO CITY, 1 map changes · ${text}`);
+    log.add(200, { type: "gym_heal_warning", turn: 492, tool: "navigate_to", map_id: [11, 3], gym: { name: "RUSTBORO CITY GYM", map_id: [11, 3], here: true, x: null, y: null }, hurt: [{ species: "TORCHIC", hp: 25, max_hp: 33 }], player: null, money: null, wake: null, heal: { kind: "home", town: "LITTLEROOT TOWN", map_id: [1, 0], hops: 9 }, mom_heals: true, text });
+    expect(eventText(must(log.events.at(-1)))).toBe(`Gym heal warning added to the navigate_to result · RUSTBORO CITY GYM · TORCHIC 25/33 · home in LITTLEROOT TOWN, 9 map changes · ${text}`);
+    log.add(300, { type: "gym_heal_warning", turn: 493, tool: "press", map_id: [11, 3], gym: { name: "RUSTBORO CITY GYM", map_id: [11, 3], here: true, x: null, y: null }, hurt: [{ species: "TORCHIC", hp: 25, max_hp: 33 }], player: null, money: null, wake: null, heal: null, mom_heals: false, text });
+    expect(eventText(must(log.events.at(-1)))).toBe(`Gym heal warning added to the press result · RUSTBORO CITY GYM · TORCHIC 25/33 · no healing place named · ${text}`);
   });
 });
 

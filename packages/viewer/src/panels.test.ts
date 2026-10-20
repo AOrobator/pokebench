@@ -1082,6 +1082,17 @@ it("links the heal before trainers v2 card to its tracked explainer, which quote
  expect(html).toContain("SUPERVISOR: A trainer you have not beaten is on this map: the Gym Leader ROXANNE, object 1, sprite ROXANNE, at (5,2) (not loaded now: the tile the map places it on).");
 });
 
+it("links the gym heal warning card to its tracked explainer, which quotes the b300 RUSTBORO CITY paragraph",()=>{
+ const id="gym-heal-warning-v1";
+ expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
+ const log=new Log();log.add(0,{...START,harness_features:["ram-state-v1","low-hp-trainer-warning-v1","heal-before-trainers-v1","heal-before-trainers-v2",id]});
+ const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
+ expect(doc.querySelector(`[data-feature="${id}"] a`)?.getAttribute("href")).toBe(`/explainers/${id}.html`);
+ const html=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)),"utf8");
+ expect(html).toContain(id);
+ expect(html).toContain("SUPERVISOR: An exit on this map at (27,19) leads to RUSTBORO CITY GYM (map 11/3), and your party is not at full HP: TORCHIC 25/33.");
+});
+
 it("links the clock view loop card to its tracked explainer, which quotes the bedroom clock",()=>{
  const id="clock-view-loop-v1";
  expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);

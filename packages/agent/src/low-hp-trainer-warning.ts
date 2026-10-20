@@ -27,6 +27,7 @@ export interface WarningRecorder {
  lowHpTrainerWarning(tool:string,facts:LowHpTrainerWarningFacts,text:string):void;
  storyBattleWarning?(tool:string,facts:StoryBattleWarningFacts,text:string):void;
  healBeforeTrainersWarning?(tool:string,facts:HealBeforeTrainersFacts,text:string):void;
+ gymHealWarning?(tool:string,facts:GymHealFacts,text:string):void;
 }
 
 // MAP_ROUTE103 (group 0, number 18).
@@ -451,6 +452,11 @@ export class HealBeforeTrainers {
   if(places===null)return;
   for(const [key,exit] of shownCenters(state,text,places))if(!this.shown.has(key))this.shown.set(key,exit);
  }
+ // gym-heal-warning-v1: the nearest place from this arm's list (v2's when v2 is on), after observe saw the state.
+ async nearest(state:GameStateSnapshot):Promise<HealPlace|null> {
+  const places=await this.options.places();
+  return places===null?null:nearestHeal(state,{entered:this.entered,...(this.options.v2===true?{shown:this.shown}:{})},places);
+ }
  async observe(state:GameStateSnapshot|undefined):Promise<HealBeforeTrainersFacts|null> {
   if(state===undefined)return null;
   if(state.map_id!==null&&state.location?.endsWith(CENTER)===true)this.entered.add(keyOf(state.map_id));
@@ -489,6 +495,87 @@ export class HealBeforeTrainers {
  private rearmV2(state:GameStateSnapshot):void {
   if(!state.started||weakParty(state)?.length!==0)return;
   for(const id of [...this.warned])if(!this.story.has(id)||fullParty(state))this.warned.delete(id);
+ }
+}
+
+
+// gym-heal-warning-v1: one SUPERVISOR paragraph on a free-field result while a party Pokémon is below max HP and the
+// current map is a GYM (its map table name contains GYM) or has a warp to one. It names each hurt Pokémon's HP, the
+// whiteout in the game's words (sText_PlayerWhiteout "{B_PLAYER_NAME} is out of usable POKéMON!" and
+// sText_PlayerWhiteout2 "{B_PLAYER_NAME} whited out!", src/battle_message.c), the money lost (DoWhiteOut keeps
+// GetMoney / 2, src/overworld.c), where the player wakes up (SetWarpDestinationToLastHealLocation warps to
+// SaveBlock1.lastHealLocation, the server's heal_before_trainers.last_heal, named as the readout names that map) and
+// the nearest place that heals from heal-before-trainers' list.
+export interface GymHealFacts {
+ readonly map_id:readonly [number,number];
+ // here: the current map is the GYM; else the first warp of this map that leads to one.
+ readonly gym:{readonly name:string;readonly map_id:readonly [number,number];readonly here:boolean;readonly x:number|null;readonly y:number|null};
+ readonly hurt:StoryBattleWarningFacts["party"];
+ readonly player:string|null;
+ readonly money:number|null;
+ readonly wake:{readonly name:string;readonly map_id:readonly [number,number];readonly hops:number|null}|null;
+ readonly heal:HealPlace|null;
+ readonly mom_heals:boolean;
+}
+const GYM=/(?:^| )GYM(?: |$)/;
+
+// The GYM the state is in or next to, from the game's map table (the state's own location name for the current map
+// when the table has no entry for it).
+function gymOf(state:GameStateSnapshot,places:readonly Place[]):GymHealFacts["gym"]|null {
+ if(state.map_id===null)return null;
+ const byKey=new Map(places.map(p=>[keyOf(p.map_id),p]));
+ const here=byKey.get(keyOf(state.map_id));
+ const name=here?.name??state.location;
+ if(name!=null&&GYM.test(name))return {name,map_id:[state.map_id[0],state.map_id[1]],here:true,x:null,y:null};
+ for(const w of here?.warps??[]){
+  const to=byKey.get(keyOf(w.to));
+  if(to!==undefined&&GYM.test(to.name))return {name:to.name,map_id:to.map_id,here:false,x:w.x,y:w.y};
+ }
+ return null;
+}
+
+export function gymHealWarning(state:GameStateSnapshot,places:readonly Place[],heal:HealPlace|null):GymHealFacts|null {
+ if(!state.started||state.screen!=="overworld"||state.in_battle)return null;
+ if(state.field_controls_locked!==false||state.party_owner!=="player"||state.map_id===null)return null;
+ const facts=state.heal_before_trainers;
+ if(facts===undefined)return null;
+ if(state.party.some(m=>m.is_egg!==true&&(m.species===null||m.hp==null||m.max_hp==null)))return null;
+ const below=hurt(state);
+ if(below.length===0)return null;
+ const gym=gymOf(state,places);
+ if(gym===null)return null;
+ const byKey=new Map(places.map(p=>[keyOf(p.map_id),p]));
+ const last=facts.last_heal===null?undefined:byKey.get(keyOf(facts.last_heal));
+ const wake=last===undefined?null:{name:last.display,map_id:last.map_id,hops:hopsFrom(places,state.map_id).get(keyOf(last.map_id))??null};
+ return {map_id:[state.map_id[0],state.map_id[1]],gym,hurt:below,player:state.name,money:state.money,wake,heal,mom_heals:facts.mom_heals};
+}
+
+export function gymHealText(f:GymHealFacts):string {
+ const party=f.hurt.map(p=>`${p.species} ${String(p.hp)}/${String(p.max_hp)}`).join(", ");
+ const where=f.gym.here?`You are in ${f.gym.name} (map ${keyOf(f.gym.map_id)})`:`An exit on this map at (${String(f.gym.x)},${String(f.gym.y)}) leads to ${f.gym.name} (map ${keyOf(f.gym.map_id)})`;
+ const says=f.player===null?"you white out":`the game says "${f.player} is out of usable POKéMON!" and "${f.player} whited out!"`;
+ const money=f.money===null?"you lose half your money":`you lose half your money (₽${String(f.money-Math.floor(f.money/2))} of ₽${String(f.money)})`;
+ const wake=f.wake===null?"":` and wake up in ${f.wake.name} (map ${keyOf(f.wake.map_id)})${f.wake.hops===null?"":f.wake.hops===0?", this map":`, ${String(f.wake.hops)} map change${f.wake.hops===1?"":"s"} from here`}`;
+ const heal=f.heal===null?`Heal before you battle: the nurse at a POKéMON CENTER heals your whole party${f.mom_heals?", and so does MOM at home":""}.`:healPlaceSentence(f.heal,f.map_id);
+ return `SUPERVISOR: ${where}, and your party is not at full HP: ${party}. If your whole party faints in a battle, ${says}; ${money}${wake}. ${heal}`;
+}
+
+// Once per map entry: fires on the first qualifying state on a map, then stays quiet until a state on another map or
+// a state with the whole party at full HP.
+export class GymHealWarning {
+ private fired:string|null=null;
+ constructor(private readonly options:{readonly places:()=>Promise<readonly Place[]|null>;readonly heal:(state:GameStateSnapshot)=>Promise<HealPlace|null>}){}
+ async observe(state:GameStateSnapshot|undefined):Promise<GymHealFacts|null> {
+  if(state===undefined||!state.started)return null;
+  if(state.map_id!==null&&this.fired!==null&&keyOf(state.map_id)!==this.fired)this.fired=null;
+  if(fullParty(state))this.fired=null;
+  if(state.map_id===null||this.fired===keyOf(state.map_id))return null;
+  const places=await this.options.places();
+  if(places===null)return null;
+  const first=gymHealWarning(state,places,null);
+  if(first===null)return null;
+  this.fired=keyOf(state.map_id);
+  return {...first,heal:await this.options.heal(state)};
  }
 }
 
@@ -531,12 +618,19 @@ export function withLowHpTrainerWarning(tools:readonly AgentTool[],features:Feat
   const record=recorder.healBeforeTrainersWarning?.bind(recorder);
   if(record===undefined)throw new Error("heal-before-trainers-v1 needs a recorder for heal_before_trainers_warning events");
   const v2=features["heal-before-trainers-v2"];
-  const heal=new HealBeforeTrainers({skipStory:features["low-hp-trainer-warning-v2"],places:placesOnce(source),items:features["bag-healing-items-v1"],...(v2?{v2}:{})});
+  const table=placesOnce(source);
+  const heal=new HealBeforeTrainers({skipStory:features["low-hp-trainer-warning-v2"],places:table,items:features["bag-healing-items-v1"],...(v2?{v2}:{})});
   const write=v2?healBeforeTrainersV2Text:healBeforeTrainersText;
   rules.push(async(state,result)=>{
    if(v2)await heal.shownIn(state,textOf(result));
    const facts=await heal.observe(state);if(facts===null)return null;const text=write(facts);return {text,record:tool=>{record(tool,facts,text);}};
   });
+  if(features["gym-heal-warning-v1"]){
+   const recordGym=recorder.gymHealWarning?.bind(recorder);
+   if(recordGym===undefined)throw new Error("gym-heal-warning-v1 needs a recorder for gym_heal_warning events");
+   const gym=new GymHealWarning({places:table,heal:state=>heal.nearest(state)});
+   rules.push(async state=>{const facts=await gym.observe(state);if(facts===null)return null;const text=gymHealText(facts);return {text,record:tool=>{recordGym(tool,facts,text);}};});
+  }
  }
  return tools.map(tool=>({...tool,execute:async(...args:Parameters<AgentTool["execute"]>)=>{
   const result=await tool.execute(...args);

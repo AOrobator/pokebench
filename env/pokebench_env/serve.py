@@ -33,12 +33,18 @@ from pokebench_env.blackout_readout import WhiteoutLatch, install_whiteout_latch
 from pokebench_env.checkpoint import install_checkpoint
 from pokebench_env.evolution_decision import SWITCH as EVOLUTION
 from pokebench_env.evolution_decision import install_evolution_decision
-from pokebench_env.frame_pacing import GameLoopServer, install_deadline_pacing
+from pokebench_env.frame_pacing import VENDOR_BASE_FPS, GameLoopServer, install_deadline_pacing
 from pokebench_env.game_screen import ReadMemory
 from pokebench_env.game_state import MapNames
 from pokebench_env.human import HumanServer, install_human
 from pokebench_env.levelup_box import SWITCH as LEVELUP_BOX
-from pokebench_env.memory_reader import Core, NativeCore, SnapshotMemoryReader, copy_native_region
+from pokebench_env.memory_reader import (
+    Core,
+    NativeCore,
+    SnapshotMemoryReader,
+    copy_native_region,
+    read_canonical_ram,
+)
 from pokebench_env.observation import RawSnapshotFn, ScreenshotFn, install_observation
 from pokebench_env.pause import SteppingServer, install_pause
 from pokebench_env.raw_ram import (
@@ -150,24 +156,28 @@ def install_on_demand_frame_cache(
     frame_count: Callable[[], int],
     *,
     clock: Callable[[], float] = time.time,
-    max_publish_fps: float = 60.0,
+    max_publish_fps: float = 80.0,
 ) -> None:
     """Publish useful source frames only while the WebSocket is observed.
 
     The pinned implementation hard-skips every second call, capping an 80 FPS
     game at 40 display FPS. This adapter instead uses an absolute publication
-    deadline: nominal play retains every ~59.7 FPS frame, while 4x fast-dialog
-    play does at most 60 PNG encodes/second. No image work occurs without a
-    consumer, and a late iteration cannot start an unbounded catch-up burst.
+    deadline with half-period phase tolerance: a slightly early source frame
+    consumes the next deadline rather than being discarded. Each deadline is
+    consumed once, so fast sources remain rate-bounded with constant boundary
+    slack. No image work occurs without a consumer, and a late iteration cannot
+    start an unbounded catch-up burst. This does not change game-loop speed.
     """
 
     if not math.isfinite(max_publish_fps) or max_publish_fps <= 0:
         raise ValueError("max_publish_fps must be finite and positive")
     period = 1.0 / max_publish_fps
     next_publish_at: float | None = None
+    publish_origin = 0.0
+    publish_tick = 0
 
     def update_if_observed(screenshot: object) -> None:
-        nonlocal next_publish_at
+        nonlocal next_publish_at, publish_origin, publish_tick
         with server.frame_manager.lock:
             observed = bool(server.frame_manager.active_connections)
             if not observed:
@@ -178,12 +188,17 @@ def install_on_demand_frame_cache(
         if not observed:
             return
         sampled_at = clock()
-        if next_publish_at is not None and sampled_at < next_publish_at:
-            return
+        if next_publish_at is not None:
+            # Inclusive phase boundaries may round in opposite directions.
+            eligible_at = math.nextafter(next_publish_at - period / 2, -math.inf)
+            if sampled_at < eligible_at:
+                return
         if next_publish_at is None or sampled_at - next_publish_at > 4 * period:
-            next_publish_at = sampled_at + period
+            publish_origin, publish_tick = sampled_at, 1
         else:
-            next_publish_at += (math.floor((sampled_at - next_publish_at) / period) + 1) * period
+            publish_tick += max(1, math.floor((sampled_at - next_publish_at) / period) + 1)
+        # Integer ticks avoid accumulating a floating addition error per frame.
+        next_publish_at = publish_origin + publish_tick * period
         encoded = encode_png_base64(screenshot)
         if encoded is None:
             return
@@ -212,8 +227,9 @@ def install_deadline_frame_stream(
     I/O, so its real period is 16 ms plus work (about 55 FPS on this machine).
     This route uses absolute deadlines: work consumes the frame budget instead
     of extending it, and a badly delayed client cannot trigger an unbounded
-    catch-up loop. It checks at 120 Hz so its sampling phase cannot discard
-    unique 59.7275 Hz source frames; the manager still sends each frame once.
+    catch-up loop. It checks at 120 Hz, above the 80 Hz publication budget;
+    the manager sends each frame once. A delayed client can still miss frames
+    overwritten in the latest-frame slot.
     """
 
     period = 1.0 / polls_per_second
@@ -258,6 +274,7 @@ def run(
     *,
     frame_cache: tuple[FrameCacheServer, Callable[[], int]] | None = None,
     pacing: GameLoopServer | None = None,
+    original_speed_pacing: bool = False,
     spectator: tuple[FastAPI, type[EmulatorLike]] | None = None,
     observation: tuple[FastAPI, ScreenshotFn, ReadMemory, MapNames]
     | tuple[FastAPI, ScreenshotFn, ReadMemory, MapNames, AbstractContextManager[object]]
@@ -276,10 +293,13 @@ def run(
     battle_text: tuple[FastAPI, type[SteppedEmulator], ReadMemory] | None = None,
 ) -> None:
     if human is not None:
+        # The recorded human reference declares Emerald's nominal clock.
+        # A legacy explicit OFF list cannot opt it into a new agent policy.
+        original_speed_pacing = False
         # Human play has neither this model tool nor its frame gate. Keep every
         # reader OFF even when the historical human launch list omits the ID.
         os.environ["POKEBENCH_FEATURES_OFF"] = ",".join(
-            sorted(features_off_from_env(os.environ) | {EVOLUTION})
+            sorted(features_off_from_env(os.environ) | {EVOLUTION, "original-speed-pacing-v1"})
         )
     # Agent observations wait out screen fades on emulated frames (never wall
     # time). The human server records its snapshot observation under the
@@ -289,7 +309,10 @@ def run(
     if frame_cache is not None:
         install_on_demand_frame_cache(*frame_cache)
     if pacing is not None:
-        install_deadline_pacing(pacing)
+        if original_speed_pacing:
+            install_deadline_pacing(pacing, source_fps=VENDOR_BASE_FPS)
+        else:
+            install_deadline_pacing(pacing)
     if battle_text is not None:
         install_battle_text(*battle_text)
     settle = None
@@ -367,7 +390,17 @@ def run(
             shutdown_persistence_worker()
 
 
+def make_memory_reader(core: Callable[[], NativeCore]) -> SnapshotMemoryReader:
+    return SnapshotMemoryReader(
+        lambda: cast(Core, core()),
+        lambda address, length: copy_native_region(core(), address, length),
+        fast_read=lambda address, length: read_canonical_ram(core(), address, length),
+    )
+
+
 def main() -> None:  # pragma: no cover - entrypoint, exercised by `just smoke`
+    off = features_off_from_env(os.environ)
+
     import uvicorn
     from pokemon_env.emulator import EmeraldEmulator
     from server import app  # vendor module, on PYTHONPATH
@@ -381,10 +414,7 @@ def main() -> None:  # pragma: no cover - entrypoint, exercised by `just smoke`
     )
     token = os.environ.get("POKEBENCH_HUMAN_TOKEN")
 
-    def raw_region(address: int, size: int) -> bytes:
-        return copy_native_region(cast(NativeCore, app.env.core), address, size)
-
-    read_memory = SnapshotMemoryReader(lambda: cast(Core, app.env.core), raw_region)
+    read_memory = make_memory_reader(lambda: cast(NativeCore, app.env.core))
 
     import hashlib
 
@@ -411,6 +441,7 @@ def main() -> None:  # pragma: no cover - entrypoint, exercised by `just smoke`
             lambda: int(app.env.core.frame_counter),
         ),
         pacing=cast(GameLoopServer, app),
+        original_speed_pacing="original-speed-pacing-v1" not in off,
         spectator=(app.app, cast(type[EmulatorLike], EmeraldEmulator)),
         actions=(app.app, cast(type[FrameEmulator], EmeraldEmulator), read_memory),
         observation=(

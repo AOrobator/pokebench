@@ -1,7 +1,8 @@
 import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
 import {expect,it,vi} from "vitest";
 import type {AgentMessage} from "@mariozechner/pi-agent-core";
-import {contextTools,loopSupervisor,stallStop,textOnlySupervisor} from "./play-wiring.js";
+import {contextBudget,contextTools,loopSupervisor,stallStop,textOnlySupervisor} from "./play-wiring.js";
+import {budgetLimit} from "./context-budget.js";
 import {RunControl,STALL_STOP_MS} from "./run-control.js";
 import {Governor} from "./harness.js";
 import {type FeatureSet} from "./features.js";
@@ -108,4 +109,16 @@ it("text-only-supervisor-v1 wires a recorded supervisor note only when on",()=>{
  expect(text).toContain("Where you are:");
  expect(text).toContain("note 1 of 3");
  expect(recorded).toEqual([[3,1,3,text]]);
+});
+
+it("context-token-budget-v1: the production factory builds a budget from the served context and records each trim as a compaction",()=>{
+ const compactions:[number,number][]=[];
+ const recorder={compaction:(from:number,to:number)=>{compactions.push([from,to]);}};
+ expect(contextBudget({...ALL_ON,"context-token-budget-v1":false},{contextWindow:65536},4096,recorder)).toEqual({});
+ const on=contextBudget({...ALL_ON,"context-token-budget-v1":true},{contextWindow:65536},4096,recorder);
+ expect(on.budget?.limit).toBe(budgetLimit(65536,4096));
+ on.onBudgetTrim?.({limit:1,from:900,predicted:400,turns:3,kept:1,basis:"estimate"});
+ expect(compactions).toEqual([[900,400]]);
+ const event:RunEvent={v:1,run:"r",seq:1,t:"2026-10-20T00:00:00.000-04:00",type:"compaction",turn:3,from_tokens:900,to_tokens:400};
+ expect(checkEvent(event)).toEqual(event);
 });

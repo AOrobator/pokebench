@@ -17,6 +17,7 @@ import { ControlFile, RunControl, controlLine } from "./run-control.js";
 import { PRESS_TIMING, pressTool } from "./game-tools.js";
 import { DOUBLE_WINDOW, Governor, NUDGE, OMITTED_FRAME, TEXT_ONLY_NOTE_LIMIT, WINDOW, contextWindow, keepCount, piLoop, play, slideWindow, withoutTextOnlyReplies, attachLoopGuard,type Loop, type Window } from "./harness.js";
 import {} from "./features.js";
+import { ContextBudget, type BudgetTrim } from "./context-budget.js";
 
 const usage = {
   input: 0,
@@ -918,4 +919,43 @@ it("records semantic refusal warnings and delivers them before the next pinned-p
   expect(warnings[0]).toMatchObject({kind:"rejection",calls:2});
   expect(events.filter(e=>e.type==="button_press")).toEqual([]);
  }finally{rmSync(root,{recursive:true,force:true});}
+});
+
+describe("context-token-budget-v1 on the pinned pi loop", () => {
+  const OVERFLOW = "400 request (5000 tokens) exceeds the available context size (4096 tokens), try increasing it";
+  const run = async (budget: ContextBudget | undefined) => {
+    const controller = new AbortController();
+    const { g } = governor({ maxTurns: 5 });
+    const seen: Message[][] = [];
+    const trims: BudgetTrim[] = [];
+    const loop = piLoop({
+      systemPrompt: "play",
+      tools: [fakePress(() => undefined)],
+      base: { model: MODEL, convertToLlm: (messages) => messages as Message[] },
+      governor: g,
+      transformContext: (messages) => Promise.resolve(messages),
+      emit: () => undefined,
+      signal: controller.signal,
+      streamFn: scriptedModel([pressReply(["A"]), pressReply(["B"]), pressReply(["C"]), reply([], "error", OVERFLOW), pressReply(["D"])], seen),
+      ...(budget === undefined ? {} : { budget, onBudgetTrim: (trim: BudgetTrim) => { trims.push(trim); } }),
+    });
+    const end = await play(TASK, g, loop);
+    return { end, seen, trims };
+  };
+
+  it("off: the retry after an overflow resends the same request", async () => {
+    const { end, seen, trims } = await run(undefined);
+    expect(end).toBe("budget");
+    expect(seen[4]).toEqual(seen[3]);
+    expect(trims).toEqual([]);
+  });
+
+  it("on: the retry after an overflow drops the oldest whole turns and the run goes on", async () => {
+    const { end, seen, trims } = await run(new ContextBudget(3000));
+    expect(end).toBe("budget");
+    expect(seen.slice(0, 4).map((request) => request.length)).toEqual([1, 3, 5, 7]);
+    expect(seen[4]?.[0]).toEqual(TASK);
+    expect(seen[4]?.slice(1)).toEqual(seen[3]?.slice(5));
+    expect(trims).toEqual([expect.objectContaining({ basis: "overflow", turns: 3, kept: 1, limit: 3000 })]);
+  });
 });

@@ -17,6 +17,7 @@ import { mainCheckout, sourceIdentity } from "./experiment-cli.js";
 import { analyze, renderAnalysis, rescoreTrials, trialsFromLedger, type AnalysisTrial } from "./fixed-analysis.js";
 import { controlBaseProblems, dryRunDefinition, FixedDraftSchema, generatePlan, parseFixedDefinition, phaseOf, type FixedDefinition } from "./fixed-design.js";
 import { classifyTrial, readLedger } from "./fixed-ledger.js";
+import { fileLines, type LogLines } from "./run-log.js";
 import { runFixed, type FixedHost, type FixedRunOptions, type ServingReceipt } from "./fixed-runner.js";
 import { fixedStatusPath, parseFixedStatus } from "./fixed-status.js";
 import { fixedTreeDir, fixedTreeLiveJs, prepareFixedTree, type FixedTreeDeps } from "./fixed-tree.js";
@@ -199,10 +200,10 @@ function analyzeLedger(argv: readonly string[], deps: FixedCliDeps, id: string):
   } catch {
     throw new CliError(`no phase ${phaseId}`);
   }
-  const logOf = (run: string): string | null => {
+  const logOf = (run: string): LogLines | null => {
     if (!new RegExp(RUN_ID_PATTERN).test(run)) return null;
     const path = join(deps.runsRoot, run, "events.jsonl");
-    return existsSync(path) ? readFileSync(path, "utf8") : null;
+    return existsSync(path) ? fileLines(path) : null;
   };
   const { trials, unscored } = rescoreTrials(trialsFromLedger(def, readLedger(join(experimentDir(deps, id), "trials.jsonl")), phase.id), logOf,def.progressOrder);
   if (unscored.length > 0) deps.err(`depth not re-graded (no usable log, stored furthest is an optional activity): ${unscored.join(", ")}`);
@@ -223,7 +224,7 @@ function analyzeReceipt(argv: readonly string[], deps: FixedCliDeps): number {
   const trials: AnalysisTrial[] = rows.filter((r) => r.type === "outcome" && (r.arm === control || r.arm === treatment) && typeof r.run === "string").map((r) => {
     const run = String(r.run);
     const path = join(deps.runsRoot, run, "events.jsonl");
-    const o = classifyTrial(existsSync(path) ? readFileSync(path, "utf8") : null, { maxWallMs: capMs, primary }, typeof r.exit === "number" ? r.exit : undefined);
+    const o = classifyTrial(existsSync(path) ? fileLines(path) : null, { maxWallMs: capMs, primary }, typeof r.exit === "number" ? r.exit : undefined);
     return { slot: Number(r.trial), lane: "A", arm: r.arm === treatment ? "bundle" : "control", run, valid: o.valid, reason: o.reason, primaryReached: o.primaryReached, primaryMs: o.primaryMs, capMs, furthestDepth: o.furthestDepth, furthestMs: o.furthestMs };
   });
   deps.out(renderAnalysis(analyze(trials, []), `${dir}: ${treatment} (as bundle) vs ${control} (as control)`));

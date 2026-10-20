@@ -174,6 +174,21 @@ describe("baselineOf", () => {
     expect(() => baselineOf(runsRoot2, "mixed")).toThrow(/someone-else/);
   });
 
+  it("reads the log in bounded chunks, so a log too long for one string still grades", () => {
+    const runsRoot = root();
+    const path = writeRun(runsRoot, "chunked", fullRun());
+    appendFileSync(path, "{\"still\":\"being written");
+    expect(baselineOf(runsRoot, "chunked", 7)).toEqual({
+      run: "chunked",
+      milestones: [
+        { name: "GAME_RUNNING", offsetMs: 10 },
+        { name: "PLAYER_NAME_SET", offsetMs: 3100 },
+      ],
+    });
+    appendFileSync(path, "\n");
+    expect(() => baselineOf(runsRoot, "chunked", 7)).toThrow(/line 15/);
+  });
+
   it("fails for a run without a readable start", () => {
     const runsRoot = root();
     mkdirSync(join(runsRoot, "x"));

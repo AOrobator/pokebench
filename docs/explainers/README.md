@@ -140,3 +140,5 @@ The original ignored runs/explainers copies remain for existing links. Make futu
 
 - [Observed instruction memory](observed-instructions-v1.html): complete delivered story-character episodes in YAML, separated from observed progress.
 - [Starter decision salience](starter-decision-salience-v1.html) — default-OFF neutral reminder at the ready starter menu.
+- [Context token budget](context-token-budget-v1.html) — default-OFF backstop that drops the oldest whole turns when a request would not fit the served context.
+- [Original-speed deadline pacing](original-speed-pacing-v1.html): default-OFF 80 FPS game-clock policy, conditional 4× selector, and separate publication/display boundaries.

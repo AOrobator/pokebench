@@ -149,6 +149,8 @@ export const SWITCHABLE_FEATURES = [
   "evolution-decision-v1",
   "observed-instructions-v1",
   "starter-decision-salience-v1",
+  "context-token-budget-v1",
+  "original-speed-pacing-v1",
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
 
@@ -406,6 +408,8 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("observed-instructions-v1", "guidance", "OBSERVED INSTRUCTION MEMORY", "dialogue-auto-advance-v1",
     "Pins whole delivered field-dialogue episodes containing a story character's printed name in YAML, with exact text and source references, separately from delivered location/story facts. Keeps earlier episodes after newer dialogue or arrival; infers no objectives or completion. Off: no additional instruction memory or context record."),
   on("starter-decision-salience-v1", "guidance", "STARTER DECISION SALIENCE", null, "Default off. A coherent ready starter-selection observation adds a neutral request to consider alternatives, explain the choice against the goal and distinguish knowledge from uncertainty. It supplies no species recommendation or comparative facts and executes no inputs. Confirmation, transitions and acquired parties receive no new reminder. Off: the existing model observation, tools and actions are unchanged."),
+  on("context-token-budget-v1", "guard", "CONTEXT TOKEN BUDGET", null, "Default off. Before each model call, predicts the request's prompt tokens from the server's count for the previous request (or from a context-size overflow error) plus the weight of what changed, and drops the oldest whole turns, each an assistant reply with its tool results, until the request fits the served context with room for the reply (context size minus max tokens minus 2,048). The task message and the newest turn are always kept; no text inside a message is cut. Each trim is recorded as a compaction. Normal turns are untouched. Off: the turn and result window is the only bound, and a request over the context size fails as a model error."),
+  on("original-speed-pacing-v1", "guidance", "ORIGINAL POKEAGENT SPEED", null, "Targets 80 emulated frames per second using absolute deadlines, as explicitly selected by the operator. Preserves the vendor's conditional 4× cadence (320 if its dialog selector becomes active); the normal --no-ocr launcher still disables that selector. Changes game progression speed, not the separate viewer publication cap. This is a selected clock policy, not an experimental benefit claim. Off: the existing 59.7275 FPS deadline policy and conditional 4× ratio remain unchanged."),
 ];
 
 export const ALL_ON: FeatureSet = Object.fromEntries(SWITCHABLE_FEATURES.map((id) => [id, true])) as Record<SwitchableFeature, boolean>;
@@ -446,6 +450,7 @@ export const SERVER_FEATURES: readonly SwitchableFeature[] = [
   "battle-effective-damage-v1",
   "safe-navigation-strides-v1",
   "evolution-decision-v1",
+  "original-speed-pacing-v1",
 ];
 
 export function serverFeatureEnv(features: FeatureSet): { POKEBENCH_ACTIVE_UI: "0" | "1"; POKEBENCH_FEATURES_OFF: string } {
@@ -576,6 +581,8 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("evolution-decision-v1"),
     ...when("observed-instructions-v1"),
     ...when("starter-decision-salience-v1"),
+    ...when("context-token-budget-v1"),
+    ...when("original-speed-pacing-v1"),
   ];
 }
 

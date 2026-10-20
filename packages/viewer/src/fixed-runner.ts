@@ -6,6 +6,7 @@ import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { armFeatureBits, armPreset, definitionProblems, FIXED_ARMS, phaseOf, type FixedArm, type FixedDefinition, type FixedLane, type FixedStart } from "./fixed-design.js";
+import { fileLines, type LogLines } from "./run-log.js";
 import { appendLedger, classifyTrial, nextFor, progress, queueState, readLedger, type FixedLedgerEntry, type FixedOutcome, type Progress, type QueueSlot } from "./fixed-ledger.js";
 import { writeFixedStatus, type FixedLaneStatus, type FixedStatus } from "./fixed-status.js";
 import { LeaseHeldError, nameLeaseRun, readLeaseOwner, takeLease } from "./lease.js";
@@ -274,9 +275,9 @@ class Runner {
     return { ...(this.o.def.base.stopAt===undefined&&this.o.def.base.target===null?{}:{target:this.o.def.base.stopAt??this.o.def.base.target}),...(this.o.def.terminalErrorsAsOutcomes===undefined?{}:{terminalErrorsAsOutcomes:this.o.def.terminalErrorsAsOutcomes}),...(this.o.def.progressOrder===undefined?{}:{progressOrder:this.o.def.progressOrder}),maxWallMs: phaseOf(this.o.def, slot.phase).maxWallMs, primary: this.o.def.primaryMilestone, presetId: armPreset(this.o.def, slot.phase, slot.arm).id, features: armFeatureBits(this.o.def, slot.arm), start: startExpectation(phaseOf(this.o.def, slot.phase).start), romSha1: this.o.def.romSha1, port: lane.gamePort, model: this.o.def.serving.model };
   }
 
-  private events(run: string): string | null {
+  private events(run: string): LogLines | null {
     const path = join(this.o.runsRoot, run, "events.jsonl");
-    return existsSync(path) ? readFileSync(path, "utf8") : null;
+    return existsSync(path) ? fileLines(path) : null;
   }
 
   private record(lane: FixedLane, slot: QueueSlot, run: string, outcome: FixedOutcome): FixedOutcome {

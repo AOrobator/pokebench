@@ -85,9 +85,9 @@ it("reaches the model through the production preset path",()=>{
 it("is a default-off standalone guidance switch, recorded last, that state-only mode refuses",()=>{
  expect(featureInfo(ID)).toMatchObject({group:"guidance",needs:null,switchable:true,title:"TALK TO PEOPLE"});
  expect(featureInfo(ID).description).toContain(" Off: ");
- expect(playHarnessFeatures(ALL_ON,null).at(-72)).toBe(ID);
- expect(FEATURES.filter(f=>f.switchable).at(-79)?.id).toBe(ID);
- expect(serverFeatureEnv({...ALL_ON,"battle-decision-ready-v1":false,[ID]:false}).POKEBENCH_FEATURES_OFF).toBe("safe-navigation-strides-v1");
+ expect(playHarnessFeatures(ALL_ON,null).at(-73)).toBe(ID);
+ expect(FEATURES.filter(f=>f.switchable).at(-81)?.id).toBe(ID);
+ expect(serverFeatureEnv({...ALL_ON,"battle-decision-ready-v1":false,[ID]:false}).POKEBENCH_FEATURES_OFF).toBe("safe-navigation-strides-v1,original-speed-pacing-v1");
  expect(dependencyProblems({...ALL_ON,"battle-decision-ready-v1":false,"dialogue-auto-advance-v1":false,[ID]:true})).not.toContain(expect.stringContaining(ID));
  expect(stateOnlyProblems({...INCUMBENT,"state-only-decisions-v1":true,[ID]:true})).toContain(`state-only-decisions-v1 requires ${ID} OFF`);
  expect(stateOnlyProblems({...INCUMBENT,"state-only-decisions-v1":true,[ID]:false})).not.toContain(`state-only-decisions-v1 requires ${ID} OFF`);

@@ -102,8 +102,13 @@ describe("classifyTrial", () => {
     build(log);
     return log.events.map((e) => JSON.stringify(e)).join("\n") + "\n";
   }
+  // Every case is graded twice: from the whole text, and from a one-shot line stream, which must agree.
   function classify(build: (log: Log) => void, exit: number | null = 0): FixedOutcome {
-    return classifyTrial(text(build), expectation, exit);
+    const whole = text(build);
+    const streamed = classifyTrial((function* () { yield* whole.split("\n"); })(), expectation, exit);
+    const outcome = classifyTrial(whole, expectation, exit);
+    expect(streamed).toEqual(outcome);
+    return outcome;
   }
 
   it("ranks the furthest milestone by story depth, so an early heal or catch never outranks the story", () => {

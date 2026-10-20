@@ -226,7 +226,7 @@ describe("deterministic-warp-navigation-v1",()=>{
 
  it("is appended, default OFF, bundle-only, and registered as a pending one-switch experiment",()=>{
   const id=ID as SwitchableFeature;
-  expect(SWITCHABLE_FEATURES.at(-11)).toBe(ID);expect(playHarnessFeatures(ALL_ON,null).at(-4)).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-13)).toBe(ID);expect(playHarnessFeatures(ALL_ON,null).at(-5)).toBe(ID);
   expect(featureInfo(id)).toMatchObject({group:"guidance",needs:"bounded-navigation-v1",switchable:true,title:"DETERMINISTIC WARP NAVIGATION"});expect(featureInfo(id).description).toContain(" Off: ");
   expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false})[id]).toBe(false);expect(normalizeFeatures({} as Parameters<typeof normalizeFeatures>[0])[id]).toBe(false);
   const legacy=flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false});

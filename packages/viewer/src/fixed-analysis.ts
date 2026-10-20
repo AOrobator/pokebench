@@ -4,6 +4,7 @@
 import { phaseOf, type FixedArm, type FixedDefinition } from "./fixed-design.js";
 import { DEPTH_ORDER } from "@pokebench/agent/milestones";
 import { classifyTrial, queueState, WALL_CAP, type FixedLedgerEntry } from "./fixed-ledger.js";
+import { linesOf, type LogLines } from "./run-log.js";
 
 export interface AnalysisTrial {
   readonly slot: number;
@@ -222,13 +223,14 @@ export function renderAnalysis(report: AnalysisReport, title: string, options?:R
 // depth from the trial's own complete log (run_start first, run_end last); otherwise re-map the
 // stored furthest name onto DEPTH_ORDER. A stored activity name with no usable log cannot be
 // re-graded, so it is listed. The primary outcome and validity always stay as the ledger has them.
-export function rescoreTrials(trials: readonly AnalysisTrial[], events: (run: string) => string | null, progressOrder?:readonly string[]): { trials: AnalysisTrial[]; unscored: string[] } {
+export function rescoreTrials(trials: readonly AnalysisTrial[], events: (run: string) => LogLines | null, progressOrder?:readonly string[]): { trials: AnalysisTrial[]; unscored: string[] } {
   const unscored: string[] = [];
   const rescored = trials.map((t) => {
-    const text = events(t.run);
-    if (text !== null && completeLog(text, t.run)) {
-      const o = classifyTrial(text, { maxWallMs: t.capMs, primary: "",...(progressOrder===undefined?{}:{progressOrder}) }, undefined);
-      return { ...t, furthest: o.furthest, furthestDepth: o.furthestDepth, furthestMs: o.furthestMs };
+    const log = events(t.run);
+    if (log !== null) {
+      const check = new Completeness(t.run);
+      const o = classifyTrial(check.tap(linesOf(log)), { maxWallMs: t.capMs, primary: "",...(progressOrder===undefined?{}:{progressOrder}) }, undefined);
+      if (check.complete()) return { ...t, furthest: o.furthest, furthestDepth: o.furthestDepth, furthestMs: o.furthestMs };
     }
     if (t.furthest === undefined || t.furthest === null) return t;
     const depth = (progressOrder??DEPTH_ORDER).indexOf(t.furthest);
@@ -238,17 +240,26 @@ export function rescoreTrials(trials: readonly AnalysisTrial[], events: (run: st
   return { trials: rescored, unscored };
 }
 
-// Every line is one of this run's events, the first is run_start and the last is run_end.
-function completeLog(text: string, run: string): boolean {
-  const types: unknown[] = [];
-  for (const line of text.split("\n")) {
-    if (line.trim() === "") continue;
-    let e: unknown;
-    try { e = JSON.parse(line); } catch { return false; }
-    if (typeof e !== "object" || e === null || !("run" in e) || e.run !== run || !("type" in e)) return false;
-    types.push(e.type);
+// Every line is one of this run's events, the first is run_start and the last is run_end. It checks the
+// lines as classifyTrial reads them, so the grade and the check come from the same single pass.
+class Completeness {
+  private ok = true;
+  private seen = false;
+  private first: unknown;
+  private last: unknown;
+  constructor(private readonly run: string) {}
+  *tap(lines: Iterable<string>): Iterable<string> {
+    for (const line of lines) { this.observe(line); yield line; }
   }
-  return types[0] === "run_start" && types.at(-1) === "run_end";
+  private observe(line: string): void {
+    if (!this.ok || line.trim() === "") return;
+    let e: unknown;
+    try { e = JSON.parse(line); } catch { this.ok = false; return; }
+    if (typeof e !== "object" || e === null || !("run" in e) || e.run !== this.run || !("type" in e)) { this.ok = false; return; }
+    if (!this.seen) { this.seen = true; this.first = e.type; }
+    this.last = e.type;
+  }
+  complete(): boolean { return this.ok && this.first === "run_start" && this.last === "run_end"; }
 }
 
 export function trialsFromLedger(def: FixedDefinition, entries: readonly FixedLedgerEntry[], phase: string): AnalysisTrial[] {

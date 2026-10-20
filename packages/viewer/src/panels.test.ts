@@ -1310,3 +1310,15 @@ it("links the observed instruction memory card to its tracked explainer, which s
  const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
  expect(doc.querySelector(`[data-feature="${id}"] a`)?.getAttribute("href")).toBe(`/explainers/${id}.html`);
  });
+it("links the recorded original-speed policy without inferring historical ON",()=>{
+ const id="original-speed-pacing-v1";
+ expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
+ const log=new Log();log.add(0,{...START,harness_features:["ram-state-v1",id]});
+ const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
+ const card=doc.querySelector(`[data-feature="${id}"]`);
+ expect(card?.querySelector("a")?.getAttribute("href")).toBe(`/explainers/${id}.html`);
+ expect(card?.textContent).toContain("ON");
+ const legacy=new Log();legacy.add(0,{...START,harness_features:["ram-state-v1"]});
+ doc.body.innerHTML=harnessConfig(view(legacy),FEATURES);
+ expect(doc.querySelector(`[data-feature="${id}"]`)?.classList.contains("config-on")).toBe(false);
+});

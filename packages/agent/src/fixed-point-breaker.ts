@@ -146,7 +146,8 @@ export class FixedPointBreaker {
 }
 
 export function fixedPointBreaker(features:FeatureSet,recorder:BreakerRecorder&{subscribe(fn:(event:RunEvent)=>void):void}):FixedPointBreaker|null {
- if(!features["fixed-point-breaker-v1"])return null;
+ // duplicate-turn-collapse-v1 needs the same turn records the breaker keeps; it applies only stage 1.
+ if(!features["fixed-point-breaker-v1"]&&!features["duplicate-turn-collapse-v1"])return null;
  const breaker=new FixedPointBreaker(features,recorder);recorder.subscribe(event=>{breaker.observe(event);});
  return breaker;
 }

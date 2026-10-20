@@ -148,7 +148,9 @@
       "stale-story-goal-v2": false,
       "context-token-budget-v1": false,
       "fixed-point-breaker-v1": false,
-      "story-character-stall-gate-v1": false
+      "story-character-stall-gate-v1": false,
+      "auto-talk-v1": false,
+      "duplicate-turn-collapse-v1": false
     }
   },
   "trialsPerArm": 8,

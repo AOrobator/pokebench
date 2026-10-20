@@ -55,9 +55,12 @@ it("the next bundle: control gains the battle tools and exit reachability, the b
   for(const id of ["battle-move-tool-v1","battle-menu-loop-v1","tutorial-party-owner-v1","context-token-budget-v1","exit-reachability-v1"])for(const arm of ["control","bundle"] as const){
    expect(def.onInBoth).toContain(id);expect(def.switches).not.toContain(id);expect(armFeatureBits(def,arm)[id]).toBe(true);
   }
-  for(const id of ["stale-story-goal-v1","stale-story-goal-v2","harness-trust-v1","evolution-decision-v1","semantic-navigation-v2","deterministic-exploration-v1","briefing-repeat-count-v1","navigate-already-here-v1","fixed-point-breaker-v1","story-character-stall-gate-v1","heal-before-trainers-v1","positive-supervisor-v1"]){
+  for(const id of ["stale-story-goal-v1","stale-story-goal-v2","harness-trust-v1","evolution-decision-v1","semantic-navigation-v2","deterministic-exploration-v1","briefing-repeat-count-v1","navigate-already-here-v1","auto-talk-v1","story-character-stall-gate-v1","heal-before-trainers-v1","positive-supervisor-v1"]){
    expect(armFeatureBits(def,"control")[id]).toBe(false);expect(armFeatureBits(def,"bundle")[id]).toBe(true);
   }
+  // Operator decision 2026-10-20: the duplicate-turn collapse in both arms, the breaker's note in neither.
+  for(const arm of ["control","bundle"] as const){expect(armFeatureBits(def,arm)["duplicate-turn-collapse-v1"]).toBe(true);expect(armFeatureBits(def,arm)["fixed-point-breaker-v1"]).toBe(false);}
+  expect(def.onInBoth).toContain("duplicate-turn-collapse-v1");expect(def.offInBoth).toContain("fixed-point-breaker-v1");
   expect(def.offInBoth).toContain("semantic-navigation-v1");
   for(const arm of ["control","bundle"] as const)expect(armFeatureBits(def,arm)["semantic-navigation-v1"]).toBe(false);
  }

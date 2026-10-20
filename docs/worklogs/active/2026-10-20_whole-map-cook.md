@@ -41,3 +41,4 @@ The control model cancelled Torchic's Lv16 evolution in a8f9 (turn 1170, B in th
 - The operator 18:44 NY: exclude the supervisor redesign. positive-supervisor-v1 moved to offInBoth in whole-map-pair-1h-v4 and whole-map-cook-1h (bundle-v-control and bundle-cook-1h unchanged). The operator 18:45 NY: evolution switch in both arms (above).
 - Current definition sha256 after both edits: whole-map-pair-1h-v4 4632a7a61a7e, whole-map-cook-1h 7c12ca8d7dbd. Round-2 review fixes: explainer and overview text, worklog hashes, bundle-v-control title arrow restored.
 - 18:57 NY: rebased on main 5c26dc62 (whiteout-healed-v1 in the bundle). Regenerated whole-map defs from bundle-cook-1h with seeds/plans kept: whole-map-pair-1h-v4 sha256 ddedef847c1d, whole-map-cook-1h eda3fa2969a8. Round-3 reviews of the earlier changes: Grok LGTM, Claude LGTM.
+- Round 4: Grok LGTM, Claude LGTM. Landing.

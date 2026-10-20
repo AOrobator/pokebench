@@ -106,7 +106,8 @@ describe("positive-supervisor-v1 on run f28d, Route 103 with MAY at (10,3)",()=>
   for(const e of FIXTURE.events)if(e.type==="state"&&"started"in e&&e.started&&e.screen==="overworld"&&e.position!==null&&!e.in_battle)state=e;
   if(state===undefined)throw new Error("fixture has no overworld state");
   const base=state;
-  const b=new SupervisorBriefing({...RUN,[ID]:true});
+  // The pending experiment's arm has briefing-exits-v1 off, so opening and closing a menu both read "no change".
+  const b=new SupervisorBriefing({...RUN,[ID]:true,"briefing-exits-v1":false});
   let seq=900100;
   const stamp=(body:Record<string,unknown>)=>checkEvent({v:1,run:base.run,t:base.t,turn:base.turn,seq:++seq,...body});
   const press=(button:string)=>{
@@ -122,5 +123,19 @@ describe("positive-supervisor-v1 on run f28d, Route 103 with MAY at (10,3)",()=>
   expect(last()).not.toContain("Choose a call other than");
   press("A");
   expect(last()).toMatch(/^- Choose a call other than .*: it gave the same result \(no change\) 2 times in a row\.$/);
+  // A press that opened or closed a field menu, or a battle in between, starts the count again.
+  const menu={phase:"start_menu",ready:true,diagnostic:null,selected:"POKéDEX",value:null,controls:"A choose, B close",details:{}};
+  const step=(button:string,before:Record<string,unknown>,after:Record<string,unknown>)=>{
+   const id=`m${String(seq)}`;
+   b.observe(stamp({type:"tool_call",id,name:"press",args:{buttons:[button]}}));
+   const s0=stamp({...base,...before,type:"state"});b.observe(s0);
+   b.observe(stamp({type:"button_press",tool_call_id:id,buttons:[button],before_state_seq:s0.seq}));
+   const s1=stamp({...base,...after,type:"state"});b.observe(s1);
+   b.observe(stamp({type:"tool_result",id,name:"press",is_error:false,duration_ms:1,text:"pressed",frames:[],state_seq:s1.seq}));
+  };
+  press("B");step("START",{},{active_ui:menu});step("START",{active_ui:menu},{});
+  expect(last()).not.toContain("Choose a call other than");
+  press("A");press("A");step("A",{},{screen:"battle",in_battle:true});press("A");
+  expect(last()).not.toContain("Choose a call other than");
  });
 });

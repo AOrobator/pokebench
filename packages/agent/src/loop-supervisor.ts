@@ -161,7 +161,8 @@ export class SupervisorBriefing {
   this.flushTouches();
   // briefing-exits-v1: the latest result state, so a battle (which keeps the overworld snapshot stale) is placed now.
   if(this.exits!==null&&after.started&&after.map_id!==null)this.shown=after;
-  if(!after.started||after.screen!=="overworld")return;
+  // positive-supervisor-v1: a battle, a menu or another screen ends a run of field attempts.
+  if(!after.started||after.screen!=="overworld"){this.streak=null;return;}
   this.latest=after;
   const key=this.room(after);this.path.delete(key);this.path.set(key,after);
   const map=mapOf(after);if(map!==null)this.entered.add(map);
@@ -170,6 +171,7 @@ export class SupervisorBriefing {
   if(call!==undefined&&label!==null){
    const where=call.before??after;
    this.remember(this.room(where),roomOf(where,this.features),label,this.outcome(call.before,after,auto?.pages??[]),this.features["positive-supervisor-v1"]?navigationSaid(event.text):undefined);
+   if(call.uiBefore!==null||interfaceOf(after)!==null)this.streak=null;
    if(call.before!==null&&this.room(call.before)===this.room(after)&&this.moved(call.before,after))this.touchSteppedTrigger(after);
    if(this.features["story-character-stall-gate-v1"])this.reached(call,after);
    if(this.exits!==null||this.features["faced-interaction-history-v1"])this.scriptedTrigger(call,after,auto);

@@ -93,6 +93,21 @@ describe("recovery tests per loop type",()=>{
  });
 });
 
+describe("relapse",()=>{
+ it("is the same source firing again, never the fire itself, with breaker and auto-talk events stamped a turn past the latest state",()=>{
+  const l=log();
+  for(let t=1;t<=10;t++)l.state(t,{position:{x:t,y:5}});
+  l.add({type:"loop_breaker",turn:11,stage:2,trigger:"fixed_point",repeats:4,collapsed:0,text:"x"});
+  l.add({type:"auto_talk",turn:11,trigger:"fixed_point",repeats:8,outcome:"none",target:null,walks:0,tried:0,text:null});
+  for(let t=11;t<=50;t++)l.state(t,{position:{x:t,y:5}});
+  expect(loopRecoveries(l.events).interventions.map(i=>i.relapsed)).toEqual([false,false]);
+  l.add({type:"loop_breaker",turn:51,stage:2,trigger:"fixed_point",repeats:4,collapsed:0,text:"x"});
+  expect(loopRecoveries(l.events).interventions.map(i=>i.relapsed)).toEqual([false,false,false]);
+  l.add({type:"loop_breaker",turn:52,stage:2,trigger:"fixed_point",repeats:5,collapsed:0,text:"x"});
+  expect(loopRecoveries(l.events).interventions.map(i=>i.relapsed)).toEqual([false,false,true,false]);
+ });
+});
+
 describe("on run f28d (turns 383-455)",()=>{
  it("the turn 450 loop with MAY on Route 103 is a story-character loop that did not recover",()=>{
   const {interventions}=loopRecoveries(F28D.events);

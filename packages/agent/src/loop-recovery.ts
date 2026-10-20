@@ -127,9 +127,10 @@ export function recoveryCollector(window:number=RECOVERY_TURNS):{observe(e:RunEv
   if(at===undefined)return [];
   const type=loopType(at.state,at.characters);
   const {ok,detail}=recovered(at,type);
-  const until=at.turn+window;
-  const safe=!whiteouts.some(t=>t>at.turn&&t<=until)&&!(end!==null&&end.bad&&end.turn<=until);
-  const relapsed=fires.some(g=>g.source===f.source&&g.turn>at.turn&&g.turn<=until);
+  // Windows run from the fire: breaker and auto-talk events carry the turn their request is for, one past the latest state.
+  const from=Math.max(at.turn,f.turn),until=from+window;
+  const safe=!whiteouts.some(t=>t>at.turn&&t<=until)&&!(end!==null&&end.bad&&end.turn>at.turn&&end.turn<=until);
+  const relapsed=fires.some(g=>g.source===f.source&&g.seq>f.seq&&g.turn<=until);
   return [{seq:f.seq,turn:f.turn,source:f.source,type,recovered:ok,safe,relapsed,detail}];
  });
  // Base rate: the same test from one recorded state per turn, of the same loop type.

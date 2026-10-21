@@ -10,7 +10,7 @@ Evidence: ea04 turns 600–660, seq 22794–24576; 17 refusals across matching R
 - [x] GREEN production wiring and semantic stop; adversarial deletion/restoration
 - [x] Gates and read-only replay on recorded Rustboro state
 - [x] Explainer and pending experiment
-- [ ] Principles and cloud review — quality reviews complete; Grok quota unavailable, operator decision required
+- [ ] Fresh landing review — operator approved Sol/Astra substitution; awaiting synced-packet verdicts
 - [ ] Landing and served proof, only through landing board
 
 Implementation boundary: navigation.ts and semantic-navigation.ts if required, existing feature registration/preset/default owners, focused tests, explainer mapping/docs, pending experiment. No new runtime owner or event schema.
@@ -88,3 +88,13 @@ Now number 1; merging main 4dcb448acd4cf4b1a157833b411e6aa6092ed626 into the own
 Final preceding coordinator evidence commit b79749bb changed only its own worklog; incorporated before sealing the landing packet. Application sources and tests are unchanged from the synchronized b4e5fa03 tree on which the current full gate sequence began.
 
 Pending experiment repinned to synchronized implementation b4e5fa03 (includes current main agent/env sources); all incumbent switches normalized explicitly. Initial landing viewer tests used stale built agent schemas and reported unknown gym-evidence-v1; rebuilt before repeating those checks. This was a build setup error, not a runtime change or a weakened test.
+
+## Synced landing gates (2026-10-21)
+
+COMMIT: sync main and resolve registry tails (b4e5fa03eff29e29e570d4c222e8c3b649106362); coordinator evidence note (5f416a2a8eeeaa53cf0eadd59af36ada1073820e); synchronized pending source pin (e81400f017acf7efe0d29866dcdfc08015857b4b).
+
+Against main b79749bb: rebuilt first after detecting stale dist schemas, then just test passed 3418 agent, 1661 viewer and 3827 Python tests; full just coverage passed agent lines 99.19 / branches 93.23 / functions 97.84, viewer lines 97.95 / branches 91.33 / functions 94.35, Python lines 97.32 / branches 93.20 / functions 100.00. just lint, just build and just verify-vendor passed. All 195 candidate experiment definitions directly validate. Logs retained in runs/reviews/trigger-boundary-land. No timeouts, thresholds, excludes, skip rules or vendor contents were changed.
+
+navigation.ts blob d9a20c180ef81aa163395107f8c9a6fff4cd8102 and trigger-navigation.test.ts blob b9c106629c7ac4490d27269b8e56be1851156a2e are exactly identical to the previously approved e2ff1256 implementation. New review binds the cumulative synced tree, registry integration and documentation. Principles PB1-PB13 and the nine test-quality checks remain assessed as above, with no FAIL rows or added domains. The source pin b4e5fa03 has identical agent/env sources to this metadata-only closeout tip. No experiments queued, approved or launched; switch remains default OFF.
+
+Coordinator confirmed b79749bb was their late evidence-only commit and has promised no more main moves until their next turn. They confirmed no 8790 restart planned, so the single post-merge viewer refresh belongs to this landing. This refresh must preserve all live gameplay processes and sends no game inputs or control writes.

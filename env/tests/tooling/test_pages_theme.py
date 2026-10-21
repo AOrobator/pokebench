@@ -86,3 +86,71 @@ def test_colour_scheme_queries_pin_the_light_palette(tmp_path: Path) -> None:
     assert "prefers-color-scheme" not in css
     assert "@media (min-width:0px){:root{--bg:#fff}}" in css
     assert "@media (min-width:1000000px){:root{--bg:#111}}" in css
+
+
+def test_main_less_page_closes_main_before_html_end(tmp_path: Path) -> None:
+    page = tmp_path / "pilot.html"
+    page.write_text(
+        "<!doctype html><html><meta charset=utf-8><style>p{}</style><h1>T</h1></html>\n"
+    )
+    theme(page)
+    text = page.read_text()
+    assert text.index("<h1>") < text.index("</main>") < text.index("</html>")
+
+
+def test_main_opens_inside_body_not_head(tmp_path: Path) -> None:
+    page = tmp_path / "report.html"
+    page.write_text(
+        "<!doctype html><html><head><style>p{}</style></head>"
+        '<body class="r"><h1>T</h1></body></html>'
+    )
+    theme(page)
+    text = page.read_text()
+    assert (
+        text.index("</head>")
+        < text.index('<body class="r">')
+        < text.index("<main data-pb-emerald>")
+    )
+    assert text.index("<main data-pb-emerald>") < text.index("<h1>") < text.index("</main>")
+    assert text.index("</main>") < text.index("</body>")
+    assert text.index('<style id="pb-emerald">') < text.index("</head>")
+
+
+def test_rerun_repairs_an_earlier_wrap(tmp_path: Path) -> None:
+    page = tmp_path / "old.html"
+    page.write_text(
+        "<!doctype html><html><meta charset=utf-8><style>p{}</style>"
+        '<style id="pb-emerald">\nx</style>\n'
+        "<main data-pb-emerald>\n<h1>T</h1></html></main>\n"
+    )
+    theme(page)
+    text = page.read_text()
+    assert text.count("<main") == 1 and text.count("</main>") == 1
+    assert text.index("<h1>") < text.index("</main>") < text.index("</html>")
+
+
+def test_colour_scheme_text_outside_styles_is_left_alone(tmp_path: Path) -> None:
+    prose = "<p><code>@media (prefers-color-scheme: dark)</code> is ignored.</p>"
+    page = tmp_path / "css.html"
+    page.write_text(
+        "<!doctype html><html><head><style>@media (prefers-color-scheme: dark){p{}}</style></head>"
+        f"<body><main>{prose}</main></body></html>"
+    )
+    theme(page)
+    text = page.read_text()
+    assert prose in text
+    assert "@media (min-width:1000000px){p{}}" in text
+
+
+def test_crlf_and_utf8_survive(tmp_path: Path) -> None:
+    page = tmp_path / "crlf.html"
+    page.write_bytes(
+        (
+            "<!doctype html>\r\n<html><head><style>p{}</style></head>\r\n"
+            "<body><main><h1>POKéMON</h1></main></body></html>\r\n"
+        ).encode()
+    )
+    theme(page)
+    data = page.read_bytes()
+    assert "<h1>POKéMON</h1>".encode() in data
+    assert b"<!doctype html>\r\n<html>" in data and data.endswith(b"</html>\r\n")

@@ -27,3 +27,9 @@ Requested by the operator, 2026-10-21 (thread "Get a local model to catch rayqua
 - `just pages-check` on all 171 pages prints nothing; re-running `pages-theme` is byte-identical.
 - `pnpm -r test`: agent 3281/3281; viewer 1601/1602, the one failure (`experiment-cli.test.ts` production host pin) passes alone (11/11) and touches nothing changed here.
 - Four 2026-10-21 reports themed in runs/reports (not tracked): text identical to the pre-theme copies apart from the style block and colour-scheme queries; 0 requests and 0 page overflow at 1280, 1440 and 375.
+
+## Review round 1 (packet 54640622..fd5cc22f, sha256 49cd6fbe…53ee)
+- Claude (CLI, ~/.claude-review): LGTM. Follow-ups: `<main>` would open inside `<head>` on a head+body page; `</main>` lands after `</html>`; colour-scheme rewrite touches prose too; encoding/CRLF; stale dark-mode wording in feature-explainer Craft and the experiment-design overview template.
+- Grok (Cursor cursor-grok-4.5-high): BLOCKING on the same wrap placement (`</html></main>` on main-less pages; `<main>` before `</head>`). Accepted.
+- GPT (Cursor gpt-5.6-sol-xhigh): not run, Cursor usage limit; GPT lane moves to Codex CLI (standing harness switch).
+- RED: 5 new tests (close before `</html>`, open after `<body>`, rerun repairs an earlier wrap, prose untouched, CRLF/UTF-8 kept) fail on the current script.

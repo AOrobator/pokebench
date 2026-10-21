@@ -541,6 +541,13 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "effectiveness-heard-v1":"effectiveness-heard-v1.html",
  "game-said-goals-v1":"game-said-goals-v1.html",
  "mart-stock-readout-v1":"mart-stock-readout-v1.html",
+ "exp-next-level-v1":"exp-next-level-v1.html",
+ "pokedex-own-v1":"pokedex-own-v1.html",
+ "exp-earned-ledger-v1":"exp-earned-ledger-v1.html",
+ "leader-attempt-ledger-v1":"leader-attempt-ledger-v1.html",
+ "seen-trainers-ledger-v1":"seen-trainers-ledger-v1.html",
+ "party-coverage-v1":"party-coverage-v1.html",
+ "said-type-matches-v1":"said-type-matches-v1.html",
 });
 
 export function harnessConfig(view:RunView,registry:readonly FeatureInfo[]=[]):string {

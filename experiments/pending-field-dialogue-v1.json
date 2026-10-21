@@ -204,7 +204,14 @@
    "move-learn-question-v1": false,
    "move-learn-comparison-v1": false,
    "effectiveness-heard-v1": false,
-   "game-said-goals-v1": false
+   "game-said-goals-v1": false,
+   "exp-next-level-v1": false,
+   "pokedex-own-v1": false,
+   "exp-earned-ledger-v1": false,
+   "leader-attempt-ledger-v1": false,
+   "seen-trainers-ledger-v1": false,
+   "party-coverage-v1": false,
+   "said-type-matches-v1": false
   }
  },
  "trialsPerArm": 8,

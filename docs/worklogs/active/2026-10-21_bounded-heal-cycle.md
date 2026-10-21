@@ -26,8 +26,8 @@ M1 — Single integrated change (shared tracker and owners must ship together)
 - [x] Implementation and GREEN commit: production wiring, schema, switch registry/defaults, bundle entries, pending experiment, linked HTML explainer.
 - [x] Gates: test, lint, build, coverage, vendor, schema/pages/experiment checks; mutation receipts.
 - [x] Production model-delivery and candidate viewer/replay/explainer proof.
-- [ ] Principles self-review, frozen packet and cloud Claude/Grok/GPT review (round cap two).
-- [ ] Land only with required reviews, then main tests and viewer/live proof.
+- [x] Principles self-review, frozen packet and required integration reviews: Claude/GPT LGTM, Grok explicitly waived by the operator.
+- [x] Land with required reviews/waiver and pass main tests. Viewer/live closure is recorded in the receipt named below.
 
 ## Closing the Loop
 Replay schema-valid source evidence, inspect model context at next decision, test genuine loops after expiry/deviation and on confirmed battle. Candidate viewer uses scratch run root without approvals. Keep implementation, review, landing and live proof distinct.
@@ -100,3 +100,10 @@ Integration bundle correction: while queued, whole-map-pair-2h became the active
 Landing-slot gates GREEN: just build/lint/test/coverage/verify-vendor, schema byte equality, pages-check and direct184-entry/four-fixed-definition validation all pass. Final just lint and just test repeated after current-bundle additions: agent3337/viewer1615/Python3702, zero skips. Coverage app-code statements/branches/functions/lines: agent97.24/93.04/97.76/99.18; viewer95.41/91.32/94.33/97.90; Python lines/branches/functions97.29/93.05/100. Four-definition focused fixed-runner suite47pass and control hashes unchanged. Full typed source replay459records/3diagnostics remains valid after sync. Pending experiment source pin2f3c03e7 contains the integrated runtime including all new registry flags. Actual model delivery, seven restored-bug mutation receipts and exact source fixtures remain retained; no core code changed after their proof.
 
 Principles3 PB1-PB13 all PASS with evidence and explicit pending review/landing. Changed packet requires new Claude/fresh-GPT review; Grok is explicitly waived. Main remains pinned f671f35d and this branch retains first slot. No further product change planned after this freeze.
+
+## Landing evidence (before the single viewer refresh)
+Authorized changed-diff integration packet: base f671f35d4342ed5b2cebcbe7179af5c3ccf65203, frozen head af70fa34255e90a62268bd03826b0b13dbb45da0, SHA25697f8d6668b6662603f5249fde5f14bb02fcd43d9259117106805cd37d6f94864. Claude standalone exit0/empty stderr VERDICT: LGTM, source inspection; fresh independent GPT VERDICT: LGTM and independently3337agent/1615viewer tests. Direct human Grok waiver recorded above. Claude's repeated nonblocking observation on milestone clock coupling when story-progress-clock-v1 is OFF is a FOLLOW-UP, unbundled combination only; all four current comparisons and pending incumbent have the clock ON. No extra scope accepted.
+
+Verified first on board, pinned canonical main clean, then `git merge --ff-only af70fa34255e90a62268bd03826b0b13dbb45da0` succeeded. Main just build and just test pass:3337agent/1615viewer/3702Python, zero skips. No source changed after frozen reviews. Main source merge SHA is af70fa34255e90a62268bd03826b0b13dbb45da0. This evidence-only commit touches only this worklog and is within the reviewed workflow's post-land exception. It precedes the viewer refresh so the served stamp can match latest main, including these docs, without a second main move afterwards.
+
+Restart/browser verification for this landing is tracked in canonical `runs/reviews/progress-aware-cycles-af70fa34/live-proof.json`. At this evidence commit its status is pending_viewer_restart; after the single viewer-main refresh the receipt will record served commit, exact listener, gameplay survival, New York restart time, actual live card→explainer click, live runs and build-skew problems. That runtime receipt and screenshots close this final step without another main move. Full review/gate logs are retained beside it; historical recordings and all frozen gameplay checkouts are untouched. No measured trial or experiment approval issued. Keep branch/worklog unarchived: operator has not authorized archival.

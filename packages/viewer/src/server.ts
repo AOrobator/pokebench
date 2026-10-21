@@ -45,7 +45,7 @@ const SPRITE_PATH = /^(manifest\.json|card\/(wide|mini|mini-ribbon)-(green|bronz
 // The BAG page item icons `just bag-art` builds from the ROM into runs/sprites/bag-v1 (never into git).
 const BAG_SPRITE_PATH = /^(manifest\.json|items\/[1-9][0-9]{0,2}\.png)$/;
 // The POKéMON PARTY page art and tables `just party-art` builds from the ROM into runs/sprites/party-v1 (never into git).
-const PARTY_SPRITE_PATH = /^(manifest\.json|data\.json|front\/(?:[1-9][0-9]?|[1-3][0-9]{2}|40[0-9]|41[01])\.png|parts\/(?:types|status|hp-tag|exp-empty|exp-full|marks|ball-big|ball-small|summary-ball)\.png|font\/(?:small|normal)\.(?:png|json))$/;
+const PARTY_SPRITE_PATH = /^(manifest\.json|data\.json|front\/(?:[1-9][0-9]?|[1-3][0-9]{2}|40[0-9]|41[01])\.png|parts\/(?:types|status|hp-tag|exp-empty|exp-full|marks|ball-big|ball-small|balls)\.png|font\/(?:small|normal)\.(?:png|json))$/;
 const PNG_SIGNATURE = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
 const SCREEN_TIMEOUT_MS = 3_000;
 const FRAME_MAX_BYTES = 1024 * 1024;

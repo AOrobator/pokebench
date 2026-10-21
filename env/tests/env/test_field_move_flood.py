@@ -40,6 +40,7 @@ from pokebench_env.game_state import MapNames
 from pokebench_env.readout import SERVER_FEATURES, features_off_from_env, format_readout, state_json
 from pokebench_env.rom import EMERALD_SHA1
 from pokebench_env.world import InteractionTarget
+from tests.env.recorded import as_recorded
 
 ROM_START = 0x08000000
 AGENT_FIXTURE = (
@@ -340,7 +341,7 @@ def test_off_is_the_recorded_a8f9_readout_and_state_byte_for_byte(porymap_names:
     assert body["exit_reach"] == fixture()["cases"][0]["exit_reach"]
     # The whole state body, against the recorded state event of seq 41177 (envelope stripped).
     recorded_body = json.loads(gzip.decompress(AGENT_FIXTURE.read_bytes()))["states"]["off"]
-    assert json.loads(json.dumps(body)) == recorded_body
+    assert json.loads(json.dumps(as_recorded(body))) == recorded_body
 
 
 def test_on_the_rocks_cut_off_verdanturf_and_the_route116_pocket(porymap_names: MapNames) -> None:

@@ -51,9 +51,9 @@ Scope limits (from the data the runs record today):
 
 **M1b — Party readout: stats, ability, met (added 2026-10-21 02:40 at the operator's request)**
 - [x] (4 Python tests fail on import, the TypeBox accept test fails) Write tests: party members decode ATTACK/DEFENSE/SPEED/SP. ATK/SP. DEF from the party struct (0x5A-0x63), ability slot and the species' ability ID, met location (map section and its name), met level, origin game, ball (item and name), OT name and gender; box members carry no stats; the model-facing state text is unchanged
-- [ ] COMMIT: `test(env): party readout stats, ability and met (RED)`
-- [ ] Implement in `env/pokebench_env/pokemon.py` (recorded state only; `render` untouched); TypeBox `PokemonSchema` and `just schema`
-- [ ] Gates (as M1)
+- [x] COMMIT: `test(env): party readout stats, ability and met (RED)` (8356b0499)
+- [x] Implement in `env/pokebench_env/pokemon.py` (recorded state only; `render` untouched); TypeBox `PokemonSchema` and `just schema`. Golden tests that compare against bodies recorded before these fields now strip them (`tests/env/recorded.py`); party-item-6507 fixture gained the three ROM reads the decoder now makes. Real a8f9 frame decodes TORCHIC Lv17 26/21/22/33/23, BLAZE, ROUTE 101 Lv5, Emerald, POKé BALL, OT AARFTT male. Art build: the single summary Poké Ball became all 12 ball sprites (`parts/balls.png`); server allowlist and its test follow.
+- [x] Gates: lint, build; test agent 3248 / viewer 1567 / python 3568; coverage viewer lines 97.92 branches 91.21 functions 94.41, python lines 97.21 branches 92.92 functions 100
 - [ ] COMMIT: `feat(env): party readout records stats, ability and met (GREEN)`
 
 **M2 — Party view model and D3 renderer**

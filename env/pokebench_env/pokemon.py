@@ -14,6 +14,13 @@ from pokebench_env.native_text import decode_native_text
 SPECIES_NAMES = 0x083185C8
 MOVE_NAMES = 0x0831977C
 BATTLE_MOVES = 0x0831C898
+# gSpeciesInfo (28-byte rows; abilities at 0x16/0x17) and gRegionMapEntries (8-byte rows; name
+# pointer at +4), as battle_details.py and exit_labels.py read them.
+SPECIES_INFO = 0x083203CC
+REGION_MAP_ENTRIES = 0x085A147C
+MAPSEC_SECRET_BASE = 86
+MAPSEC_NONE = 213
+BALL_COUNT = 12
 ITEMS = 0x085839A0
 ITEMS_COUNT = 377
 SUBSTRUCT_ORDERS = (
@@ -169,6 +176,22 @@ class PartyMon:
     language: int | None = None
     nickname: str | None = None
     nickname_diagnostic: str | None = None
+    # The summary screen's facts. Stats are cached in the party struct only (None for box slots).
+    attack: int | None = None
+    defense: int | None = None
+    speed: int | None = None
+    sp_attack: int | None = None
+    sp_defense: int | None = None
+    ability_num: int | None = None
+    ability_id: int | None = None
+    met_location: int | None = None
+    met_location_name: str | None = None
+    met_level: int | None = None
+    met_game: int | None = None
+    ball: int | None = None
+    ball_name: str | None = None
+    ot_name: str | None = None
+    ot_gender: str | None = None
 
 
 def _checksum(secure: bytes) -> int:
@@ -306,6 +329,21 @@ def _decode_mon(
                 nickname = decode_native_text(body[8:18] + b"\xff", japanese=language == 1)
             except ValueError as error:
                 nickname_diagnostic = f"harness bug: Pokémon nickname text: {error}"
+        stats: tuple[int | None, ...] = (None,) * 5
+        if party:
+            stats = struct.unpack_from("<5H", body, 0x5A)
+        met_location, origin, ivs = struct.unpack_from("<xBHI", misc)
+        ball = (origin >> 11) & 0xF
+        ability_num = ivs >> 31
+        abilities = read(SPECIES_INFO + 28 * species_id + 0x16, 2)
+        ot_name = None
+        if language_value in range(1, 8):
+            try:
+                ot_name = (
+                    decode_native_text(body[0x14:0x1B] + b"\xff", japanese=language == 1) or None
+                )
+            except ValueError:
+                ot_name = None
         return PartyMon(
             name,
             level,
@@ -327,6 +365,21 @@ def _decode_mon(
             nickname_diagnostic=nickname_diagnostic,
             raw_hex=body.hex() if nickname_diagnostic else None,
             cpu_context=_cpu_evidence(cpu) if nickname_diagnostic else None,
+            attack=stats[0],
+            defense=stats[1],
+            speed=stats[2],
+            sp_attack=stats[3],
+            sp_defense=stats[4],
+            ability_num=ability_num,
+            ability_id=abilities[ability_num] if len(abilities) == 2 else None,
+            met_location=met_location,
+            met_location_name=_map_section_name(read, met_location),
+            met_level=origin & 0x7F if origin & 0x7F <= 100 else None,
+            met_game=(origin >> 7) & 0xF,
+            ball=ball if ball <= BALL_COUNT else None,
+            ball_name=_ball_name(read, ball),
+            ot_name=ot_name,
+            ot_gender="female" if origin >> 15 else "male",
         )
 
     results = []
@@ -365,6 +418,34 @@ def decode_box_mon(
 ) -> PartyMon:
     """Box slots have no cached level, HP or status; these remain unavailable."""
     return _decode_mon(body, read, party=False, address=address, cpu=cpu)
+
+
+def _map_section_name(read: ReadMemory, mapsec: int) -> str | None:
+    """GetMapName for a met location; none for secret bases, MAPSEC_NONE and up, or a bad read."""
+    if mapsec >= MAPSEC_NONE or mapsec == MAPSEC_SECRET_BASE:
+        return None
+    pointer = read(REGION_MAP_ENTRIES + 8 * mapsec + 4, 4)
+    if len(pointer) != 4:
+        return None
+    address = struct.unpack("<I", pointer)[0]
+    if not 0x08000000 <= address < 0x0A000000:
+        return None
+    raw = read(address, 20)
+    if b"\xff" not in raw:
+        return None
+    try:
+        return decode_text(raw[: raw.index(b"\xff") + 1]) or None
+    except ValueError:
+        return None
+
+
+def _ball_name(read: ReadMemory, ball: int) -> str | None:
+    if not 1 <= ball <= BALL_COUNT:
+        return None
+    try:
+        return read_item_name(read, ball)
+    except ValueError:
+        return None
 
 
 def read_item_name(read: ReadMemory, item_id: int) -> str:

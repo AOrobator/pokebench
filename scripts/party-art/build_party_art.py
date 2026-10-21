@@ -60,6 +60,8 @@ SPECIES_ROW = 28  # sizeof(struct SpeciesInfo)
 MOVE_ROW = 12  # sizeof(struct BattleMove)
 MAX_LEVEL = 100
 GROWTH_RATES = 6
+# Ball item IDs 1-12 (ITEM_MASTER_BALL .. ITEM_PREMIER_BALL), the values of a Pokémon's ball field.
+BALLS = "master ultra great poke safari net dive nest repeat timer luxury premier".split()
 
 
 # ---- decomp parsing --------------------------------------------------------------------------
@@ -479,13 +481,18 @@ def build_parts(rom: Rom, root: Path, out: Path) -> dict[str, object]:
         "ball-small",
         crop=(0, 0, 16, 32),
     )
-    lz_png(
-        "balls/poke.png",
-        "gBallGfx_Poke",
-        "summary-ball",
-        crop=(0, 0, 16, 16),
-        pal_what="gBallPal_Poke",
-    )
+    # The summary screen's caught-ball sprite, first frame, one row per ball item ID (1-12).
+    balls = Image.new("RGBA", (16, 16 * len(BALLS)))
+    for i, ball in enumerate(BALLS):
+        img = Image.open(g / f"balls/{ball}.png")
+        name = ball.capitalize()
+        proof[f"ball_{ball}"] = (
+            verify_lz(rom, tiles4bpp(img), f"gBallGfx_{name}")
+            + ", palette "
+            + verify_lz(rom, gbapal(colors_of(img)), f"gBallPal_{name}")
+        )
+        balls.paste(indexed_to_rgba(img, colors_of(img)).crop((0, 0, 16, 16)), (0, 16 * i))
+    balls.save(out / "balls.png")
 
     marks = Image.open(g / "interface/mon_markings.png")
     proof["marks"] = f"{hexoff(rom.raw(tiles4bpp(marks), 'sMonMarkings_Gfx'))} (raw)"

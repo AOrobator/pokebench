@@ -429,7 +429,7 @@ def test_reader_needs_the_party() -> None:
 
 
 def test_switches_are_registered_server_side_last_and_default_off() -> None:
-    assert SERVER_FEATURES[-3:] == (SETTLE_SWITCH, QUESTION_SWITCH, COMPARISON_SWITCH)
+    assert SERVER_FEATURES[-4:-1] == (SETTLE_SWITCH, QUESTION_SWITCH, COMPARISON_SWITCH)
     assert SWITCHES <= features_off_from_env({})
     assert features_off_from_env({"POKEBENCH_FEATURES_OFF": SETTLE_SWITCH}) == {SETTLE_SWITCH}
 

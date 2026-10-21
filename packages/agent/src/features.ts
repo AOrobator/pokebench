@@ -188,6 +188,7 @@ export const SWITCHABLE_FEATURES = [
   "effectiveness-heard-v1",
   "game-said-goals-v1",
   "menu-refusal-recovery-v1",
+  "gym-door-label-v1",
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
 
@@ -489,6 +490,7 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("effectiveness-heard-v1", "observation", "EFFECTIVENESS HEARD", "battle-text-auto-advance-v1", "Bundle arm only, default off (the operator 2026-10-21: \"Let's build F1, F2, J1, J2, and J3 as individual switches\"). Run 2026-10-20T20-26-22_qwen36-gpu1_97a0 pressed B for 100+ turns from turn 779 on COMBUSKEN's DOUBLE KICK prompts. At ROXANNE (turns 715-716) the model used EMBER \"super effective against ROCK\" after the game had printed \"It's not very effective…\". This switch keeps a record of what the game printed right after each of the player's moves this run (\"It's super effective!\", \"It's not very effective…\", \"It doesn't affect …\"), by move and the foe it was used on, with turns, from the battle pages the model was shown. It is shown at ready battle decisions and at move-learning prompts, as its own text part (single battles only; a foe's move is not recorded): What the game said right after your moves this run (its own words): - EMBER on GEODUDE: \"It's not very effective…\" (turns 715, 716). Only the game's words; nothing is computed or advised. Off: no record."),
   on("game-said-goals-v1", "observation", "GAME-SAID GOALS", null, "Bundle arm only, default off (the operator 2026-10-21: \"Let's build F1, F2, J1, J2, and J3 as individual switches\"). Run 2026-10-20T20-26-22_qwen36-gpu1_97a0 pressed B for 100+ turns from turn 779 on COMBUSKEN's DOUBLE KICK prompts. The operator: \"maybe it should have just like a list of its goals or objectives. So that it can make a properly informed choice.\" At move-learning prompts and the evolution decision, a block lists the battles the game has left open, from recorded game state and game text: each trainer whose latest battle this run was lost or drawn and not won since, with where and when, the POKéMON a GYM LEADER sent out (highest level seen) and the type lines said on that gym map, or the POKéMON another trainer sent out, for example: - ROXANNE (trainer 265): you lost to ROXANNE on RUSTBORO CITY GYM (map 11/3) at turn 716, and the game has not recorded a win since. ROXANNE's POKéMON seen in battle this run: GEODUDE Lv12; any others not seen yet. The story line the game gave is already in the result header (harness-trust-v1). No goal the game has not set, no route, no advice. Off: no block."),
   on("menu-refusal-recovery-v1", "guard", "SHOP MENU REFUSAL RECOVERY", null, "Default off; bundle only. Two battle_action refusals that press nothing in the same verified ready shop action menu produce a rejection warning with the highlighted choice and B-to-quit controls. The warning reaches the next decision; six further calls without verified interface recovery after delivery stop the run, including with the loop supervisor enabled. A verified interface change or return to free field control retires the warning; unknown observations do not. No buttons or destinations are chosen automatically. Off: shop refusals, guard feedback and stopping retain their previous behavior."),
+  on("gym-door-label-v1", "observation", "GYM DOOR LABEL", "exit-labels-v2", "Default off; bundle only. Gym entrances keep GYM after their destination city in exit labels and terrain-section descriptions. The destination map identifies the Gym; its exterior sign names the building kind. No leader or route is revealed. Off: popup city names alone label Gym destinations, as before."),
 ];
 
 export const ALL_ON: FeatureSet = Object.fromEntries(SWITCHABLE_FEATURES.map((id) => [id, true])) as Record<SwitchableFeature, boolean>;
@@ -548,6 +550,7 @@ export const SERVER_FEATURES: readonly SwitchableFeature[] = [
   "move-learn-settle-v1",
   "move-learn-question-v1",
   "move-learn-comparison-v1",
+  "gym-door-label-v1",
 ];
 
 export function serverFeatureEnv(features: FeatureSet): { POKEBENCH_ACTIVE_UI: "0" | "1"; POKEBENCH_FEATURES_OFF: string } {
@@ -717,6 +720,7 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("effectiveness-heard-v1"),
     ...when("game-said-goals-v1"),
     ...when("menu-refusal-recovery-v1"),
+    ...when("gym-door-label-v1"),
   ];
 }
 

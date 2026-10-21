@@ -359,3 +359,32 @@ describe("production host pieces", () => {
     expect(existsSync("/nowhere")).toBe(false);
   });
 });
+
+describe("exploratory current-main feature recipe", () => {
+  it("materializes the donor's exact arms while retaining the model lane, start and cap", async () => {
+    const f = setup();
+    const donor = definition();
+    const model = definition({ id: "glm-four-hour", switches: donor.switches.filter(id=>id!=="world-destinations-v1"), lanes: [{id:"A",gpu:"MAC",gamePort:8077,modelUrl:"http://127.0.0.1:8099",runName:"glm53-mac"}], serving: {...donor.serving, model:"/models/other.gguf",contextTokens:262144}, phases: [{id:"cook",perArm:1,maxWallMs:14_400_000,primary:false,start:MENU_START}] });
+    writeFileSync(f.path, JSON.stringify(donor));
+    writeFileSync(join(f.root,"experiments/fixed/glm-four-hour.json"), JSON.stringify(model));
+    expect(await main(["dry-run","glm-four-hour","--phase","cook","--wall-ms","14400000","--feature-recipe","bundle-v-control"],f.deps)).toBe(0);
+    const effective = f.runs[0]?.def;
+    expect(effective).toMatchObject({base:donor.base,controlBase:donor.controlBase,switches:donor.switches,offInBoth:donor.offInBoth,onInBoth:donor.onInBoth,lanes:model.lanes,serving:model.serving});
+    expect(effective?.phases).toEqual([{id:"dry-run",perArm:1,maxWallMs:14_400_000,primary:false,start:MENU_START}]);
+    expect(effective?.plan.map(s=>s.arm).sort()).toEqual(["bundle","control"]);
+    expect(JSON.parse(readFileSync(join(f.runsRoot,"experiments/glm-four-hour-dryrun-cook/feature-recipe.json"),"utf8"))).toMatchObject({id:"bundle-v-control",commit:f.deps.head(),definition:effective});
+  });
+  it("uses changed canonical flags on the next invocation and refuses an invalid donor", async () => {
+    const f = setup();
+    const donor = definition();
+    writeFileSync(f.path,JSON.stringify(donor));
+    expect(await main(["dry-run","bundle-v-control","--feature-recipe","bundle-v-control"],f.deps)).toBe(0);
+    const changed = {...donor,switches:[...donor.switches,"full-map-navigation-v1"]};
+    writeFileSync(f.path,JSON.stringify(changed));
+    expect(await main(["dry-run","bundle-v-control","--feature-recipe","bundle-v-control"],f.deps)).toBe(0);
+    expect(f.runs[1]?.def.switches).toEqual(changed.switches);
+    expect(f.runs[0]?.def.switches).toEqual(donor.switches);
+    expect(await main(["dry-run","bundle-v-control","--feature-recipe","missing"],f.deps)).toBe(1);
+    expect(f.runs).toHaveLength(2);
+  });
+});

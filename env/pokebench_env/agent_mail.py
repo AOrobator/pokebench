@@ -711,11 +711,17 @@ def last_activity(entry: BoardEntry, last_commit: LastCommit) -> datetime:
     return max(marks)
 
 
-def next_deadline(room: Mailroom, *, last_commit: LastCommit) -> datetime | None:
-    """When the current holder's slot expires; None if no one waits behind it."""
+def next_deadline(room: Mailroom, *, last_commit: LastCommit, now: datetime) -> datetime | None:
+    """When the current holder's slot expires; None if no one waits behind it.
+
+    A holder with no stamp yet (a board written before expiry existed) is due for a check at
+    once, which stamps it rather than expiring it.
+    """
     entries = read_board(room)
     if len(entries) < 2:
         return None
+    if entries[0].top_since is None:
+        return now
     return last_activity(entries[0], last_commit) + slot_timeout()
 
 
@@ -728,6 +734,10 @@ def expire_idle_holder(
         if len(before) < 2:
             return []
         holder = before[0]
+        if holder.top_since is None:
+            # Unknown time at the top: start its clock now instead of guessing from queued_at.
+            write_entries(room, settle(before, now))
+            return []
         idle = now - last_activity(holder, last_commit)
         if idle < slot_timeout():
             return []
@@ -741,10 +751,13 @@ def expire_idle_holder(
             f"{holder.branch} while you hold the slot to keep it."
         )
         if holder.codex_thread is not None:
-            reach_codex(room, holder.codex_thread, why, sender="land-board", now=now, run=run)
+            code, _ = reach_codex(
+                room, holder.codex_thread, why, sender="land-board", now=now, run=run
+            )
         else:
             tell_claude(room.addressed(holder.branch), sender="land-board", text=why, now=now)
-        return notices
+            code = 0
+        return [*notices, Notice(after[-1], len(after), why, code)]
 
 
 def land_touch(room: Mailroom, *, branch: str, now: datetime) -> bool:
@@ -770,17 +783,21 @@ def keep(
     sleep: Callable[[float], None],
     rounds: int | None = None,
 ) -> None:
-    """Sleep until the holder's deadline, then expire it if still idle. No model runs here."""
+    """Sleep until the holder's deadline, then expire it if still idle. No model runs here.
+
+    Notices that could not be sent are printed with the command to send them by hand (the
+    keeper's output goes to its log), like every other board command.
+    """
     done = 0
     while rounds is None or done < rounds:
-        deadline = next_deadline(room, last_commit=last_commit)
+        deadline = next_deadline(room, last_commit=last_commit, now=now())
         if deadline is None:
             sleep(KEEPER_IDLE_SECONDS)
         else:
             wait = (deadline - now()).total_seconds()
             if wait > 0:
                 sleep(wait)
-            expire_idle_holder(room, now=now(), run=run, last_commit=last_commit)
+            report(expire_idle_holder(room, now=now(), run=run, last_commit=last_commit))
         done += 1
 
 

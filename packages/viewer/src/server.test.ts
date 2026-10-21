@@ -1297,6 +1297,18 @@ it("serves the tracked caught Pokédex input explainer byte for byte",async()=>{
  expect(reply.status).toBe(200);expect(reply.type).toContain("text/html");expect(reply.body.equals(tracked)).toBe(true);
 });
 
+it("serves the tracked GLM-run harness bug explainers byte for byte",async()=>{
+ const ids=["story-goal-player-name-v1","cut-off-reply-feedback-v1","trainer-sight-check-v2","auto-talk-v2","map-wide-triggers-v1","drought-battle-heal-hold-v1"];
+ const root=mkdtempSync(join(tmpdir(),"pokebench-glm-explainers-"));const staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});
+ const tracked=new Map(ids.map(id=>[id,readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)))]));
+ for(const [id,body] of tracked)writeFileSync(join(docs,`${id}.html`),body);
+ const viewer=await startViewer({runsRoot:join(root,"runs"),staticDir,appDir:join(root,"app"),port:0});open.push(viewer);
+ for(const [id,body] of tracked){
+  const reply=await get(viewer,`/explainers/${id}.html`);
+  expect(reply.status).toBe(200);expect(reply.type).toContain("text/html");expect(reply.body.equals(body)).toBe(true);
+ }
+});
+
 it("serves the tracked progress-aware cycles explainer byte for byte",async()=>{
  const tracked=readFileSync(fileURLToPath(new URL("../../../docs/explainers/progress-aware-cycles-v1.html",import.meta.url)));
  const root=mkdtempSync(join(tmpdir(),"pokebench-pending-field-"));const staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});

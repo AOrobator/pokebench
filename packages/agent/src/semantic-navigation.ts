@@ -6,6 +6,7 @@ import {isCheckedPress,type CheckedPressTool} from "./game-tools.js";
 import {parseGameState,type GameStateSnapshot,type StateSource} from "./game-state.js";
 import {directionalWarpActivation,elevationsMatch,gatedState,isCheckedNavigation,planNavigation,plannedArrivalElevation,type CheckedNavigationTool,type NavigationMode,type NavigationOptions} from "./navigation.js";
 import {COUNTER} from "./tile-rules.js";
+import {CONFIRM_ARG,SIGHT_STATUS,TARGET_CONFIRM_DESCRIPTION,TARGET_SIGHT_TOOL_SENTENCE} from "./trainer-sight.js";
 
 const MapId=Type.Tuple([Type.Integer({minimum:0,maximum:255}),Type.Integer({minimum:0,maximum:255})]);
 const ObjectTarget=Type.Object({kind:Type.Literal("object"),local_id:Type.Integer({minimum:0,maximum:255})},{additionalProperties:false});
@@ -14,6 +15,9 @@ const WarpTarget=Type.Object({kind:Type.Literal("warp"),x:Type.Integer({minimum:
 const ConnectionTarget=Type.Object({kind:Type.Literal("connection"),direction:Type.Enum(["NORTH","SOUTH","EAST","WEST"] as const)},{additionalProperties:false});
 const Target=Type.Union([ObjectTarget,FixedTarget,WarpTarget,ConnectionTarget]);
 const SemanticArgs=Type.Object({map_id:MapId,target:Target},{additionalProperties:false});
+// trainer-sight-check-v2: the confirm argument for a route trainer-sight-check-v1's check refused.
+const SightSemanticArgs=Type.Object({map_id:MapId,target:Target,[CONFIRM_ARG]:Type.Optional(Type.Boolean({description:TARGET_CONFIRM_DESCRIPTION}))},{additionalProperties:false});
+type SemanticRequest={readonly map_id:readonly [number,number];readonly target:RequestTarget;readonly confirm_trainer_sight?:boolean};
 const ExploreArgs=Type.Object({},{additionalProperties:false});
 
 type SnapshotTarget=NonNullable<GameStateSnapshot["interaction_targets"]>[number];
@@ -202,9 +206,12 @@ function semanticV2Description(dialogue:boolean):string {
 }
 function semanticTool(navigate:CheckedNavigationTool,press:CheckedPressTool,features:FeatureSet,stateSource:StateSource):AgentTool<typeof SemanticArgs> {
  const options=navigationOptions(features);
+ // trainer-sight-check-v2: navigate_to_target's first walk gets trainer-sight-check-v1's check.
+ const sightCheck=features["trainer-sight-check-v1"]&&features["trainer-sight-check-v2"];
  const executePress=(id:string,button:Button,check:(state:GameStateSnapshot|undefined)=>void,signal?:AbortSignal):Promise<AgentToolResult<unknown>>=>press.executeChecked(id,{buttons:[button]},check,signal,undefined,{automaticRunning:false});
- return {name:"navigate_to_target",label:"Navigate to a game target",description:features["semantic-navigation-v2"]?semanticV2Description(features["dialogue-auto-advance-v1"]):"Select a listed person, object, warp or walking map connection by its game-owned identity. The harness chooses the reachable approach, continues progress-making route segments without an end-to-end command cap, faces the target and activates it once. It immediately returns control if battle, dialogue, a menu, a script, forced movement, a map transition or unavailable input interrupts travel.",parameters:SemanticArgs,
-  execute:async(id,request,signal)=>{
+ return {name:"navigate_to_target",label:"Navigate to a game target",description:`${features["semantic-navigation-v2"]?semanticV2Description(features["dialogue-auto-advance-v1"]):"Select a listed person, object, warp or walking map connection by its game-owned identity. The harness chooses the reachable approach, continues progress-making route segments without an end-to-end command cap, faces the target and activates it once. It immediately returns control if battle, dialogue, a menu, a script, forced movement, a map transition or unavailable input interrupts travel."}${sightCheck?` ${TARGET_SIGHT_TOOL_SENTENCE}`:""}`,parameters:sightCheck?SightSemanticArgs:SemanticArgs,
+  execute:async(id,args,signal)=>{
+   const request=args as SemanticRequest;
    signal?.throwIfAborted();const before=await stateSource.read(signal),selected=label(request.target);
    if(!isMap(before,request.map_id)){
     const result=withStatus({content:[],details:{state:before}},"refused because the requested map is not current",selected,request.target,false);
@@ -253,7 +260,9 @@ function semanticTool(navigate:CheckedNavigationTool,press:CheckedPressTool,feat
    const initialEntryActivation=listed?.kind!=="warp"?"step":listedWarpBehavior===null?null:directionalWarpActivation(before,listed,options.mode??"local")??"step";
    let previous=before.position;
    const segmentEnds=new Set<string>(previous===null?[]:[`${String(previous.x)},${String(previous.y)}`]);
-   let walked=await navigate.executeChecked(id,destination,routeStop,signal,{exactTarget:true,multiTileRunning:true}),current:GameStateSnapshot,reason:string|null;
+   const targetSight=sightCheck?{sightCheck:{confirm:request.confirm_trainer_sight===true,exclude:request.target.kind==="object"?request.target.local_id:null}}:{};
+   let walked=await navigate.executeChecked(id,destination,routeStop,signal,{exactTarget:true,multiTileRunning:true,...targetSight}),current:GameStateSnapshot,reason:string|null;
+   if(navigationStatus(walked)===SIGHT_STATUS)return withStatus(walked,SIGHT_STATUS,selected,request.target,false);
    for(;;){
     current=stateOf(walked);
     const entryActivation=navigationGoalEntryActivation(walked)??initialEntryActivation;

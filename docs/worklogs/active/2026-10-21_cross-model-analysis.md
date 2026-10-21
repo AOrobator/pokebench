@@ -10,7 +10,7 @@ Scope: versioned skill source, discoverable local installation, deterministic ar
 - [x] Render actual historical data; apply Emerald theme and pages-check.
 - [x] Inspect browser screenshots at 1280/1440/375, details closed/open; record controls and overflow. Root independently checked screenshots and controls.
 - [x] Independent forward-test: metrics_audit ran13 meaningful checks on2unchanged real logs, including censoring, unsupported grading, provenance, grouping/hash rejection, documented rendering, escaping/N/A and controls. Receipt: canonical runs/reports/cross-model-analysis-2026-10-21/forward-test/validation.json.
-- [ ] Cloud review and local-main integration coordinated by parent; install discoverable skill after review.
+- [x] Claude/Grok/independent GPT approved the final whole packet; installed skill verified; local-main integration complete.
 
 Load-bearing questions: comparable cohort/start/runtime strata; incomplete recovery windows; interpreting local proxy recovery versus actual task progress; source/observation confounds. Every unavailable measurement remains explicit.
 
@@ -33,3 +33,9 @@ COMMIT: `docs: define future harness support ablation method`. Validation/review
 Future-method round 1: Claude LGTM; Grok and GPT independently BLOCKING on the same concrete protocol ambiguity: generic input validation could retain RAM-aware semantic refusals/automatic corrections in the minimal arm. Accept only three-cell wording clarification: mechanical wire/schema/bounds validation retained; semantic refusals and dialogue/menu/navigation corrections count as assistance regardless of text; minimal arm consistently ablates them. No architecture/runtime or other skill changed. Re-review the cumulative three-file doc delta.
 
 COMMIT: `docs: distinguish semantic assistance from wire validation`.
+
+Landing evidence (2026-10-21): reviewed cumulative binary diff SHA256 `10006c80cf3a666798582bcf3c0f27ec9264df6a94aa2da37b56a6a71b047809` remained byte-identical after syncing main `2e9448341415cf19bec2d5a94c46e0dcafcce6e8`. All three normal review lanes returned `VERDICT: LGTM`; frozen packet and verbatim reviews: `runs/reviews/cross-model-skill-2026-10-21/final-composition/`. Landed fast-forward at `dadc8a8dd376f2a2359cc2815ab8aed25f93b2a8` while first on the landing board.
+
+Final gates: build, test (3354 agent / 1632 viewer / 3800 Python), lint, coverage (all metrics >=90%), vendor verification and eight skill regressions PASS. Coverage's initial unchanged serial-comparison child-start stdout timing failure is retained beside the successful unchanged retry. Post-merge `just test` on main PASS with the same counts. Final receipts: `runs/reviews/cross-model-skill-2026-10-21/final-integration-20261021/`. Nine installed skill source files match the reviewed source. HTML report remains HTTP200; prior desktop/phone browser proofs remain in the report receipts. No gameplay/configuration behavior changed. Active GLM server/controller/runner remain alive; no services restarted for this landing.
+
+COMMIT: `docs: record cross-model skill landing and final gates` (evidence-only, prepared in isolated worktree; no canonical checkout file edits).

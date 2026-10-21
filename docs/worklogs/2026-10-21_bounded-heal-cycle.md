@@ -41,13 +41,13 @@ COMMIT: `test: bounded gate heal trip and progress-aware cycle contracts (RED)` 
 The cited 0ced s6798 and s12633 events have phase recovered, not warning/supervisor. 0ced s12424 follows confirm:true; this should remain unexempt as a genuine-loop control unless replay shows a separate progress defect.
 
 ## Multi-Model Review Log
-Pending.
+Completed; frozen packet identities, accepted fixes, LGTMs and the operator Grok waiver are recorded below.
 
 ## Boy Scout Log
 None.
 
-## Archive Milestone (user-gated)
-- [ ] ASK USER: archive this worklog.
+## Archive approval
+The operator explicitly requested: “Archive the worklog and clean up the bounded-heal-cycle branch and worktree.”
 
 Pre-sync validation: coverage runs all tests: agent 3295, viewer 1607, Python 3600. Agent statements/branches/functions/lines 97.15/93.08/97.60/99.14; viewer 95.42/91.33/94.33/97.90; Python lines/branches/functions 97.23/92.98/100. Build, lint, vendor and pages-check pass. Five deletion mutations fail their intended tests and restored suite passes (runs/reviews/progress-aware-cycles/mutation-receipts.json). The initial pi test was corrected to use a genuine recorder milestone source rather than a manually constructed event with a wrong run id. Actual pinned pi now proves no stale note in the next request.
 
@@ -106,4 +106,15 @@ Authorized changed-diff integration packet: base f671f35d4342ed5b2cebcbe7179af5c
 
 Verified first on board, pinned canonical main clean, then `git merge --ff-only af70fa34255e90a62268bd03826b0b13dbb45da0` succeeded. Main just build and just test pass:3337agent/1615viewer/3702Python, zero skips. No source changed after frozen reviews. Main source merge SHA is af70fa34255e90a62268bd03826b0b13dbb45da0. This evidence-only commit touches only this worklog and is within the reviewed workflow's post-land exception. It precedes the viewer refresh so the served stamp can match latest main, including these docs, without a second main move afterwards.
 
-Restart/browser verification for this landing is tracked in canonical `runs/reviews/progress-aware-cycles-af70fa34/live-proof.json`. At this evidence commit its status is pending_viewer_restart; after the single viewer-main refresh the receipt will record served commit, exact listener, gameplay survival, New York restart time, actual live card→explainer click, live runs and build-skew problems. That runtime receipt and screenshots close this final step without another main move. Full review/gate logs are retained beside it; historical recordings and all frozen gameplay checkouts are untouched. No measured trial or experiment approval issued. Keep branch/worklog unarchived: operator has not authorized archival.
+Restart/browser verification for this landing is tracked in canonical `runs/reviews/progress-aware-cycles-af70fa34/live-proof.json`. At this evidence commit its status is pending_viewer_restart; after the single viewer-main refresh the receipt will record served commit, exact listener, gameplay survival, New York restart time, actual live card→explainer click, live runs and build-skew problems. That runtime receipt and screenshots close this final step without another main move. Full review/gate logs are retained beside it; historical recordings and all frozen gameplay checkouts are untouched. No measured trial or experiment approval issued. At source landing, branch/worklog remained unarchived because archival had not yet been authorized.
+
+## Archive and cleanup closure
+Live closure receipt was completed on2026-10-21 at12:12:38ET: canonical runs/reviews/progress-aware-cycles-af70fa34/live-proof.json reports complete, no workbench problems, both original live trials advancing, no console errors, exact served cb29a325 stamp and successful card-to-explainer navigation. Source merge remains af70fa34; main8654tests passed. No new trials were launched by this task.
+
+Operator explicitly approved this archival and branch/worktree cleanup in this chat. The owned branch was clean and fully merged before this archive commit, vendor clean at pinned bbab97ad, and no process had a cwd in the worktree. Ignored worktree runs/review evidence is preserved in canonical runs/reviews/bounded-heal-cycle-cleanup-20261021-133335/worktree-runs/; installed dependencies and the canonical .env symlink are disposable worktree setup. Canonical WORKLOG.md points to the separate party-summary archive and is preserved. Only this worktree's matching pointer is removed.
+
+Archive is committed on the owned branch first. The board controls the eventual documentation-only main move. After its slot: sync current main, validate the rename/content and whitespace, ff-only land, verify no unmerged commit remains, archive the managed worktree after clean submodule deinitialization, and delete the merged bounded-heal-cycle branch. No runtime or viewer assets change in this closeout.
+
+Archive landing slot verified first; synced pinned main e7001baadf5d8e5c9767828e51c6f396b5c44db7. Closeout validation checks only the worklog rename/update and whitespace; no runtime code, configuration, tests, dependencies or viewer assets are changed. Cleanup outcome is retained in canonical runs/reviews/bounded-heal-cycle-cleanup-20261021-133335/cleanup-status.json after the archive lands.
+
+Closeout sync validation caught and removed archive merge markers before main was moved. Repeated the documentation-only delta and whitespace checks on the corrected candidate.

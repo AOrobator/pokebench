@@ -134,7 +134,8 @@ export class StoryDestinations {
  private readonly birchLabStages:{readonly seq:number;readonly stage:number|null}[]=[];
  // unfinished-activity-v1: the maps the player entered, in order, with the turn.
  private readonly arrivals:{readonly map:MapId;readonly turn:number}[]=[];
- constructor(private readonly scriptedGuidance=false,private readonly activity=false){}
+ // story-goal-player-name-v1: the player's own name (the game prints it where the player is meant) is never who "He/She lives" means.
+ constructor(private readonly scriptedGuidance=false,private readonly activity=false,private readonly playerName=false){}
  observe(event:RunEvent):void {
   if(event.type==="state"&&"started" in event){
    const map=event.map_id;
@@ -254,7 +255,10 @@ export class StoryDestinations {
  private resolveLine(line:StoryLine,here:MapId,player:string|null,places:readonly Place[],heads:ReadonlySet<string>):Resolved[] {
   const resolved:Resolved[]=[];
   if(line.lives!==null){
-   const {subject,owner,others}=line.lives;
+   const {subject}=line.lives;
+   const drop=this.playerName&&player!==null&&player!=="";
+   const others=drop?line.lives.others.filter(n=>n!==player):line.lives.others;
+   const owner=drop&&(subject==="He"||subject==="She")?others.length===1?others[0] ?? null:null:line.lives.owner;
    const quote=`"${subject} lives"`;
    if(owner===null)resolved.push({quote,text:`: not resolved: ${others.length===0?"no story character is named before it in this conversation.":`"${subject}" could be ${others.slice(0,-1).join(", ")} or ${others.at(-1) ?? ""}.`}`,target:null});
    else{
@@ -390,7 +394,7 @@ function stateOf(details:unknown):GameStateSnapshot|null {
 
 export function withStoryDestinations(tools:readonly AgentTool[],features:FeatureSet,recorder:Pick<RunRecorder,"subscribe">,source:PlaceSource):AgentTool[] {
  if(!features["story-destinations-v1"])return [...tools];
- const story=new StoryDestinations(features["scripted-place-guidance-v1"],features["unfinished-activity-v1"]);recorder.subscribe(event=>{story.observe(event);});
+ const story=new StoryDestinations(features["scripted-place-guidance-v1"],features["unfinished-activity-v1"],features["story-goal-player-name-v1"]);recorder.subscribe(event=>{story.observe(event);});
  // The map table never changes; the names of the player's own house do, so it is read once per player name.
  const tables=new Map<string,Promise<readonly Place[]>>();
  const table=async(player:string):Promise<readonly Place[]|Error>=>{

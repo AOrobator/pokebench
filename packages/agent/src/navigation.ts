@@ -588,7 +588,10 @@ const SightArgs=Type.Object({...Args.properties,[CONFIRM_ARG]:Confirm},{addition
 const SightRunningArgs=Type.Object({...DeterministicRunningArgs.properties,[CONFIRM_ARG]:Confirm},{additionalProperties:false});
 type Goal={readonly x:number;readonly y:number;readonly map_id:readonly [number,number];readonly walking?:boolean;readonly confirm_trainer_sight?:boolean;readonly confirm?:boolean};
 export type NavigationStopCheck=(state:GameStateSnapshot)=>string|null;
-export interface CheckedNavigationOptions {readonly exactTarget?:boolean;readonly multiTileRunning?:boolean}
+// trainer-sight-check-v2: navigate_to_target asks for trainer-sight-check-v1's check on its first walk; exclude is the
+// object it goes to talk to (its own sight is no reason to refuse).
+export interface TargetSightCheck {readonly confirm:boolean;readonly exclude:number|null}
+export interface CheckedNavigationOptions {readonly exactTarget?:boolean;readonly multiTileRunning?:boolean;readonly sightCheck?:TargetSightCheck}
 export type CheckedNavigationTool=AgentTool<typeof Args>&{readonly executeChecked:(id:string,goal:{readonly x:number;readonly y:number;readonly map_id:readonly [number,number];readonly walking?:boolean},check:NavigationStopCheck,signal?:AbortSignal,options?:CheckedNavigationOptions)=>Promise<AgentToolResult<unknown>>};
 export function isCheckedNavigation(tool:AgentTool):tool is CheckedNavigationTool {return "executeChecked" in tool&&typeof tool.executeChecked==="function";}
 export interface NavigationPorts {
@@ -686,15 +689,15 @@ export function planStride(state:GameStateSnapshot,path:readonly Direction[],opt
 // Returns the refusal text, or null to walk (clear, confirmed, or a check the server could not make).
 // answer: the server's reply already fetched for story-battle-heal-gate-v1 (one request serves both); gateConfirmed: the
 // model confirmed a gate refusal that listed these sightings.
-async function checkSight(sight:TrainerSightPorts,id:string,goal:Goal,state:GameStateSnapshot,path:readonly Direction[],options:NavigationOptions,signal?:AbortSignal,answer:SightAnswer|null=null,gateConfirmed=false):Promise<string|null> {
+async function checkSight(sight:TrainerSightPorts,id:string,goal:Goal,state:GameStateSnapshot,path:readonly Direction[],options:NavigationOptions,signal?:AbortSignal,answer:SightAnswer|null=null,gateConfirmed=false,target:TargetSightCheck|null=null):Promise<string|null> {
  const origin=state.position,map=state.map_id,tiles=routeTiles(state,path,options);
  if(origin===null||map===null||tiles===null)return null;
- const confirmed=goal.confirm_trainer_sight===true||gateConfirmed;
+ const confirmed=goal.confirm_trainer_sight===true||gateConfirmed||target?.confirm===true;
  const asked=answer??await askSight(sight.check,state,map,tiles,signal);
- const reason:string|null="reason" in asked?asked.reason:null,seen:SightSeen[]="seen" in asked?[...asked.seen]:[];
+ const reason:string|null="reason" in asked?asked.reason:null,seen:SightSeen[]="seen" in asked?asked.seen.filter(s=>s.local_id!==target?.exclude):[];
  const outcome:SightOutcome=reason!==null?"unavailable":seen.length===0?"clear":confirmed?"confirmed":"refused";
  let text:string|null=null;
- if(outcome==="refused")text=sightText(seen,origin,{x:goal.x,y:goal.y},tiles.length,state);
+ if(outcome==="refused")text=sightText(seen,origin,{x:goal.x,y:goal.y},tiles.length,state,target===null?"navigate_to":"navigate_to_target");
  sight.record({tool_call_id:id,map_id:[map[0],map[1]],origin:{x:origin.x,y:origin.y},goal:{x:goal.x,y:goal.y},route_tiles:tiles.length,confirmed,outcome,reason,sightings:seen,text});
  return text;
 }
@@ -786,6 +789,13 @@ export function navigationTool(ports:NavigationPorts):CheckedNavigationTool {
     sightChecked=true;
     const refused=await checkRoute(sight,healGate,id,goal,state,path,options,signal);
     if(refused!==null){status=refused.status;sightParts.push(refused.text);break;}
+   }
+   // trainer-sight-check-v2: navigate_to_target's first walk, once (its own story-battle gate decides before it walks).
+   const targetSight=checkedOptions.sightCheck;
+   if(sight!==undefined&&targetSight!==undefined&&stop!==undefined&&!sightChecked){
+    sightChecked=true;
+    const text=await checkSight(sight,id,goal,state,path,options,signal,null,false,targetSight);
+    if(text!==null){status=SIGHT_STATUS;sightParts.push(text);break;}
    }
    if(mode!=="local"){if(path.length<shortest){shortest=path.length;stalled=0;}else if(++stalled>=NO_PROGRESS_PRESSES){status="route not converging; inspect obstacles and choose another approach";break;}}
    const planned=state,previousFacing=state.facing; const before=state.position;if(before===null)throw new Error("Navigation position unavailable");

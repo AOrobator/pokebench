@@ -161,6 +161,7 @@ def test_read_state_and_render_pass_every_server_switch_through(monkeypatch):
         "shop_interface_enabled": False,
         "exp_next_enabled": False,
         "pokedex_enabled": False,
+        "map_wide_triggers_enabled": False,
         "respawn_links": None,
         "fmt_named_interactions": False,
         "fmt_world_destinations": False,

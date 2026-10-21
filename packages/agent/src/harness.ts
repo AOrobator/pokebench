@@ -153,6 +153,8 @@ export interface GovernorDeps {
   // text-only-supervisor-v1: a recorded note to send instead of ending the run (replies, note number).
   readonly textOnlySupervisor?: (replies: number, note: number) => string;
   readonly textOnlyReminder?: string;
+  // cut-off-reply-feedback-v1: sent instead of NUDGE after a reply that stopped at max_tokens with no tool call.
+  readonly cutOffNotice?: string;
 }
 
 export class Governor {
@@ -160,6 +162,7 @@ export class Governor {
   private failures = 0;
   private modelErrors = 0;
   private nudgeDue = false;
+  private cutOff = false;
   private silent = 0;
   private notes = 0;
   private note: { replies: number; note: number } | null = null;
@@ -175,6 +178,7 @@ export class Governor {
     this.modelErrors = 0;
     const calls = message.content.filter((part) => part.type === "toolCall").length;
     this.nudgeDue = calls === 0;
+    this.cutOff = calls === 0 && message.stopReason === "length";
     const invalid = toolResults.length > 0 && toolResults.every((result) => result.isError);
     this.silent = calls === 0 ? this.silent + 1 : 0;
     if (message.stopReason === "length") this.fail("reply hit max_tokens");
@@ -208,7 +212,8 @@ export class Governor {
     const due = this.note;
     this.note = null;
     // The note is built, and recorded, only when it is actually delivered.
-    const content = due === null || this.deps.textOnlySupervisor === undefined ? (this.notes>=TEXT_ONLY_NOTE_LIMIT?this.deps.textOnlyReminder??NUDGE:NUDGE) : this.deps.textOnlySupervisor(due.replies, due.note);
+    const plain = this.cutOff && this.deps.cutOffNotice !== undefined ? this.deps.cutOffNotice : this.notes>=TEXT_ONLY_NOTE_LIMIT?this.deps.textOnlyReminder??NUDGE:NUDGE;
+    const content = due === null || this.deps.textOnlySupervisor === undefined ? plain : this.deps.textOnlySupervisor(due.replies, due.note);
     return [{ role: "user", content, timestamp: Date.now() }];
   }
 

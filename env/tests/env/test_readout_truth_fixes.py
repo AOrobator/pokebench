@@ -124,7 +124,7 @@ LATER = frozenset(
 
 
 # Registered after these recordings and absent from their readouts.
-TRAINING = frozenset({"exp-next-level-v1", "pokedex-own-v1"})
+TRAINING = frozenset({"exp-next-level-v1", "pokedex-own-v1", "map-wide-triggers-v1"})
 
 
 def all_off(frame: dict[str, Any]) -> frozenset[str]:
@@ -162,7 +162,7 @@ def test_each_switch_is_a_registered_default_off_server_feature(switch: str) -> 
 
 
 def test_registered_last_in_order() -> None:
-    assert SERVER_FEATURES[-27:-22] == (
+    assert SERVER_FEATURES[-28:-23] == (
         OWNER,
         MID_FRAME,
         UNSET_WARP,

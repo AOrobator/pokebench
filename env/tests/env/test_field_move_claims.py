@@ -9,7 +9,7 @@ maps where a line per obstacle kind overclaimed; the sweep checks every porymap 
 
 import re
 from collections.abc import Callable, Iterator
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 import pytest
 from test_field_moves import operator_rom
@@ -21,6 +21,7 @@ from pokebench_env.field_moves import (
     Edges,
     FieldObstacles,
     MapGates,
+    Obstacle,
     capabilities,
     classify,
     map_gates,
@@ -160,7 +161,7 @@ def test_every_printed_close_claim_holds_with_exactly_its_obstacles_closed(place
                 f"C{keys.index(k)}": how for k, how in ungated.connections
             }
             lines = place.lines(
-                gates, start, lambda w: f"W{w[0]}_{w[1]}", lambda k: f"C{keys.index(k)}"
+                gates, start, lambda w: f"W{w[0]}_{w[1]}", lambda k, keys=keys: f"C{keys.index(k)}"
             )
             for line in lines:
                 claim = CLAIM.match(line)
@@ -189,3 +190,33 @@ def test_every_printed_close_claim_holds_with_exactly_its_obstacles_closed(place
                 checked.add(f"{place.location} {start}")
     assert {"VICTORY ROAD B1F (30, 25)", "SEAFLOOR CAVERN ROOM1 (5, 18)"} <= checked
     assert "RUSTURF TUNNEL (4, 10)" in checked
+
+
+def joint_lines(tiles: dict[Tile, tuple[int, int]], objects: tuple[Obstacle, ...]) -> list[str]:
+    gates = map_gates(CLOSED, objects, tiles, None)
+    found = survey(tiles, (0, 0), gates, warps=((5, 0),), connections={})
+    every = tuple(range(len(gates.obstacles)))
+    field = FieldObstacles(gates, replace(found, warp_blocks={(5, 0): every}), 6, 1)
+    return field.lines(lambda w: f"({w[0]},{w[1]})", str)
+
+
+def test_a_joint_line_names_mixed_needs_and_the_kinds_the_game_is_silent_at() -> None:
+    tiles = {(x, 0): (0, 0xD0 if x == 3 else 0) for x in range(6)}
+    rock = Obstacle("rock_smash", "BREAKABLE_ROCK", ((1, 0),), 1, False)
+    assert joint_lines(tiles, (rock,)) == [
+        HEADER,
+        "- BREAKABLE_ROCK at (1,0) and slope tiles (metatile behavior 0xD0) at (3,0) (which you"
+        " slide down to the south on foot) together close every way on foot to (5,0): they need a"
+        f' field move or an item you cannot use yet; the game says: "{ROCK}" at the'
+        " BREAKABLE_ROCK; the game shows no message at the slope tiles (metatile behavior 0xD0)",
+    ]
+
+
+def test_a_joint_line_of_silent_kinds_says_the_game_shows_no_message() -> None:
+    tiles = {(x, 0): (0, {1: 0xD0, 3: 0xD5}.get(x, 0)) for x in range(6)}
+    assert joint_lines(tiles, ())[1:] == [
+        "- slope tiles (metatile behavior 0xD0) at (1,0) (which you slide down to the south on"
+        " foot) and rail tiles (metatile behavior 0xD5) at (3,0) together close every way on foot"
+        " to (5,0): they need an item you do not have yet; the game shows no message at the slope"
+        " tiles (metatile behavior 0xD0) or rail tiles (metatile behavior 0xD5)"
+    ]

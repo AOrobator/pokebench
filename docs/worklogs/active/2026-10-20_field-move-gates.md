@@ -331,3 +331,12 @@ The operator approved 9:42 PM ET. Test-only, plus one production fix the coordin
   to X" when X's blocker set spans kinds or more obstacles than the line names. test_field_move_claims.py:
   VICTORY ROAD B1F from (30,25) (eight badges, no field moves), SEAFLOOR CAVERN ROOM1 from (5,18), and a
   ROM sweep property (every printed claim holds with exactly its obstacles closed). 3 failed.
+- COMMIT: `test(red): field-move-gates-v1 close-every-way lines must name the whole blocker set` (a016c68f)
+- [x] GREEN: FieldObstacles.lines groups cut-off exits by their whole blocker set (all closed); one kind keeps
+  the old wording (Rusturf golden and the 81 audit maps unchanged), several kinds print "A at .. and B at ..
+  together close every way on foot to X: they need ..." with each kind's game text; other closed objects
+  get a kind line with no exits. Explainer gains the Victory Road example. Sweep: every porymap map, every
+  warp start, CLOSED caps, 0.6s.
+  Gates: just lint 0, just build 0, just coverage 0 (env 3480, agent 3046, viewer 1499; Python 97.21 /
+  92.86 / 100, agent 97.13 / 92.97 / 97.59 / 99.14, viewer 95.22 / 91.04 / 94.14 / 97.8). just test: one
+  viewer timeout flake (experiment-cli 5s, unrelated, passes alone and under coverage).

@@ -70,7 +70,7 @@ const hooks=()=>({beforePress:vi.fn(),afterPress:()=>Promise.resolve()});
 it("registers and records two independent optional default-OFF features",()=>{
  const ids=["navigation-tool-use-guard-v1","semantic-current-map-feedback-v1"] as const;
  expect(SWITCHABLE_FEATURES.slice(-15,-13)).toEqual(ids);
- expect(playHarnessFeatures(ALL_ON,null).slice(-12,-10)).toEqual(ids);
+ expect(playHarnessFeatures(ALL_ON,null).slice(-13,-11)).toEqual(ids);
  const {"navigation-tool-use-guard-v1":guard,"semantic-current-map-feedback-v1":feedback,...old}=ALL_ON;
  expect([guard,feedback]).toEqual([true,true]);
  for(const id of ids){expect(normalizeFeatures(old)[id]).toBe(false);expect(featureInfo(id).description).toContain(" Off: ");}

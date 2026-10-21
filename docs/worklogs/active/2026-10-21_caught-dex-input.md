@@ -149,3 +149,8 @@ preserves the incumbent Gym and mart switches, appends caught-dex after them,
 and rechecks all combined registry/default/bundle/native readout paths. The
 caught-dex decoder/wait semantics and source fixture remain unchanged. No
 experiment or gameplay launch is authorized by this landing approval.
+
+Mart integration native suite:3647 passed. Registry expectation updates append
+caught-dex after gym-door and mart-stock without changing their existing order.
+Earlier stale expectation failures were retained in logs and corrected; no
+assertion or test was removed. Final frozen review follows clean combined gates.

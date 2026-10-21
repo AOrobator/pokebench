@@ -458,7 +458,7 @@ describe("registry and event",()=>{
   delete arm["mart-stock-readout-v1"];
   delete arm["navigation-tool-use-guard-v1"];delete arm["semantic-current-map-feedback-v1"];delete arm["story-battle-heal-first-v1"];
   // exit-labels-v3 and short-cycle-fixed-point-v1 joined the bundle arm after this pending experiment was pinned.
-  expect({...entry.incumbent.features,"gym-door-label-v1":true,"navigation-refusal-reasons-v3":true,"exit-labels-v3":true,"short-cycle-fixed-point-v1":true}).toEqual(arm);
+  expect({...entry.incumbent.features,"caught-dex-input-v1":true,"gym-door-label-v1":true,"navigation-refusal-reasons-v3":true,"exit-labels-v3":true,"short-cycle-fixed-point-v1":true}).toEqual(arm);
   expect(dependencyProblems(normalizeFeatures({...entry.incumbent.features,[ID]:true} as Parameters<typeof normalizeFeatures>[0]))).toEqual([]);
  });
  it("records a valid story_battle_heal_gate event",()=>{

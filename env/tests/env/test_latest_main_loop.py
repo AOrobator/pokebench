@@ -439,6 +439,43 @@ def test_existing_shell_entrypoint_dispatches_to_the_new_controller(tmp_path: Pa
     assert record.read_text().strip() == "-m pokebench_env.latest_main_loop"
 
 
+def test_legacy_shell_default_selects_the_renamed_definition(tmp_path: Path) -> None:
+    import os
+    import shlex
+
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    binary = tmp_path / "bin"
+    binary.mkdir()
+    record = tmp_path / "git-argv"
+    git = binary / "git"
+    git.write_text("#!/bin/sh\nprintf '%s\\n' \"$@\" > " + shlex.quote(str(record)) + "\nexit 1\n")
+    git.chmod(0o755)
+    script = Path(__file__).resolve().parents[3] / "scripts/whole-map-loop.sh"
+    env = {
+        **os.environ,
+        "PATH": str(binary) + os.pathsep + os.defpath,
+        "REPO": str(repo),
+        "RUNS": str(repo / "runs"),
+        "ARCHIVE": str(repo / "runs/dryruns"),
+        "LATEST_MAIN_PER_TRIAL": "0",
+        "STOP_FILE": str(tmp_path / "stop"),
+        "PAUSE_FILE": str(tmp_path / "pause"),
+    }
+    env.pop("EXP_ID", None)
+    result = subprocess.run(
+        ["/bin/sh", str(script)], env=env, capture_output=True, text=True, timeout=10
+    )
+    assert result.returncode == 1, (result.stdout, result.stderr)
+    assert record.read_text().splitlines() == [
+        "-C",
+        str(repo),
+        "show",
+        "main:experiments/fixed/bundle-v-control-2h.json",
+    ]
+    assert "no definition" in result.stdout
+
+
 def test_a_later_lane_picks_new_main_while_the_first_trial_stays_frozen(
     rig: tuple[Config, FakeHost, Controller], monkeypatch: pytest.MonkeyPatch
 ) -> None:

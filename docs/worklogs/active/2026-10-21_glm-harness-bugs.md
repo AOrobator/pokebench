@@ -77,12 +77,12 @@ No new subprocesses, network calls or file paths. RAM reads go through `pokebenc
 - [x] Implement: `CheckedNavigationOptions.sightCheck {confirm, exclude}`; navigate_to's checked walk runs trainer-sight-check-v1's `checkSight` once when navigate_to_target asks (the target object's own sight excluded; the story-battle heal gate keeps its own navigate_to_target check); `sightText` names the tool and how to call it again; navigate_to_target gets `confirm_trainer_sight` and one description sentence only with trainer-sight-check-v1 and v2 on, and returns at once with the sight status. Tests reworked: b300's gym has no reachable trainer approach, so the exclusion is tested at the navigation layer (exclude 3) and the request shape on a small field (object 2, warp). semantic-navigation-v2.test's pending ALL_ON leaves the new switch off (registry position −1)
 - [x] Guard check: dropping the semantic `sightCheck` spread, and disabling the navigation check, each turned 4 tests red; restored
 - [x] Gates: lint clean; coverage agent 97.34/93.1/97.8/99.24, viewer 95.42/91.33/94.33/97.9, Python 3691 passed ≥90; agent 3347 tests
-- [ ] COMMIT (GREEN)
-- [ ] Multi-model review loop until clean
+- [x] COMMIT (GREEN): `feat: trainer-sight-check-v2 checks navigate_to_target routes against unbeaten trainers' sight (default off)` (f31463bf)
+- [ ] Multi-model review loop until clean (round 1 running on c37eeaf9..f31463bf)
 
 **M5 — Auto-talk skips beaten trainers**
-- [ ] Write test from e9ee s10359
-- [ ] COMMIT (RED) · Implement · Gates · COMMIT (GREEN) · Review
+- [x] Write tests (`auto-talk-v2.test.ts`): a Route 102 field with a beaten YOUNGSTER next to the player and a BOY_1 farther; auto-talk-v1 alone talks to the beaten trainer (as e9ee s10359), v2 skips to BOY_1; an unbeaten trainer stays excluded either way
+- [x] COMMIT (RED): `test: auto-talk skips beaten trainers (RED)` — 1 failing (ON), 2 passing · Implement · Gates · COMMIT (GREEN) · Review
 
 **M6 — Littleroot north stride stop and story-trigger avoidance**
 - [ ] RAM re-parse at e9ee s7116, acfa s3014, ad34 s12351; verdict recorded here

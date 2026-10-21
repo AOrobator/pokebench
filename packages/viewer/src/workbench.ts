@@ -34,6 +34,14 @@ function replaceKeepingFocus(root: HTMLElement, html: string): void {
 // fetchFeatures: the switch catalog (/api/features), read once for the legend's switch descriptions.
 // fetchJson, loadGlyphSheet, drawGlyphs: the trainer card art (/sprites); without fetchJson the live runs stay name plates.
 export interface WorkbenchDeps { fetchSnapshot(): Promise<unknown>; fetchFeatures?(): Promise<unknown>; now(): number; width(): number; fetchJson?(url: string): Promise<unknown>; loadGlyphSheet?(url: string): Promise<GlyphSheet | null>; drawGlyphs?(canvas: HTMLCanvasElement, pixels: GlyphPixels): void }
+// Calendar dates use the operator's timezone, independent of browser/server timezone and DST.
+const runDateFormat = new Intl.DateTimeFormat("en-CA", { timeZone: "America/New_York", year: "numeric", month: "2-digit", day: "2-digit" });
+function runDate(started: string | null): string | null {
+  const at = Date.parse(started ?? "");
+  if (!Number.isFinite(at)) return null;
+  const parts = runDateFormat.formatToParts(at), part = (type: string): string => parts.find(p => p.type === type)?.value ?? "";
+  return `${part("year")}-${part("month")}-${part("day")}`;
+}
 const HOVER_EVENTS = ["mouseover", "mouseout", "focusin", "focusout"] as const;
 export class Workbench {
   private data: WorkbenchData = { version: 1, at: 0, milestones: [], runs: [], problems: [] };
@@ -61,6 +69,8 @@ export class Workbench {
   private overlay = "all";
   private model = "all";
   private preset = "all";
+  private dateFrom = "";
+  private dateThrough = "";
   private zoom = true;
   private hideTimeOutliers = true;
   private runLanes: RunLanes | LaneUnknown = "loading";
@@ -165,7 +175,11 @@ export class Workbench {
     this.doc.removeEventListener("toggle", this.onToggle, true); for (const type of HOVER_EVENTS) this.doc.removeEventListener(type, this.onHover);
   }
   private filtered(): WorkbenchRun[] {
-    return this.data.runs.filter(r => (this.scope === "all" || r.cohort === this.scope) && (this.model === "all" || r.model === this.model) && (this.preset === "all" || r.config?.preset === this.preset));
+    const dated = this.dateFrom !== "" || this.dateThrough !== "";
+    return this.data.runs.filter(r => {
+      const day = dated ? runDate(r.started) : null;
+      return (!dated || (day !== null && (this.dateFrom === "" || day >= this.dateFrom) && (this.dateThrough === "" || day <= this.dateThrough))) && (this.scope === "all" || r.cohort === this.scope) && (this.model === "all" || r.model === this.model) && (this.preset === "all" || r.config?.preset === this.preset);
+    });
   }
   private renderCharts(): void {
     const runs = this.filtered(), width = this.deps.width();
@@ -205,6 +219,9 @@ export class Workbench {
   private isolate(id: string | null): void { this.isolated = id === this.isolated ? null : id; this.renderCharts(); }
   private pressed(): void { for (const button of this.ui("frontier-view").querySelectorAll("button")) button.setAttribute("aria-pressed", String(button.hasAttribute("data-frontier-outliers") ? this.hideTimeOutliers : (button.dataset.frontierView === "zoom") === this.zoom)); }
   private render(): void {
+    const dateProblem = this.ui("date-problem"), reversed = this.dateFrom !== "" && this.dateThrough !== "" && this.dateFrom > this.dateThrough;
+    dateProblem.hidden = !reversed; dateProblem.textContent = reversed ? "From must be on or before Through." : "";
+    for (const name of ["date-from", "date-through"]) this.ui(name).setAttribute("aria-invalid", String(reversed));
     // Newest experiment first: each entry is placed by its first trial; undated entries go last.
     const first = new Map<string, number>();
     for (const r of this.data.runs) if (r.cohort !== null) { const at = Date.parse(r.started ?? ""), prior = first.get(r.cohort); first.set(r.cohort, prior === undefined || Number.isNaN(prior) || at < prior ? at : prior); }
@@ -252,6 +269,11 @@ export class Workbench {
     const version = target.closest<HTMLElement>("[data-ver]");
     if (version !== null) { const inner = target.closest("details, summary, a, button"); if (inner === null || !version.contains(inner)) this.isolate(version.dataset.ver ?? null); return; }
     if (target.closest("[data-frontier-outliers]") !== null) { this.hideTimeOutliers = !this.hideTimeOutliers; if (this.initialized) this.renderCharts(); else this.pressed(); return; }
+    if (target.closest("[data-clear-dates]") !== null) {
+      this.dateFrom = ""; this.dateThrough = "";
+      for (const name of ["date-from", "date-through"]) (this.ui(name) as HTMLInputElement).value = "";
+      this.render(); return;
+    }
     const view = target.closest<HTMLElement>("[data-frontier-view]"); if (view !== null) { this.zoom = view.dataset.frontierView === "zoom"; if (this.initialized) this.renderCharts(); else this.pressed(); return; }
     const mark = target.closest<HTMLElement>("[data-run]"); if (mark !== null) { event.preventDefault(); this.detail(mark.dataset.run ?? "", mark.dataset.split ?? null); }
   };
@@ -288,8 +310,8 @@ export class Workbench {
     this.hovered = hovered; this.focus();
   };
   private onChange = (event: Event): void => {
-    const element = event.target as HTMLSelectElement; const name = element.dataset.wb;
-    if (name === "overlay") this.overlay = element.value; else if (name === "cohort") this.scope = element.value; else if (name === "model") this.model = element.value; else if (name === "preset") this.preset = element.value; else return;
+    const element = event.target as HTMLSelectElement | HTMLInputElement; const name = element.dataset.wb;
+    if (name === "date-from") this.dateFrom = element.value; else if (name === "date-through") this.dateThrough = element.value; else if (name === "overlay") this.overlay = element.value; else if (name === "cohort") this.scope = element.value; else if (name === "model") this.model = element.value; else if (name === "preset") this.preset = element.value; else return;
     this.render();
   };
 }

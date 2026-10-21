@@ -22,6 +22,36 @@ describe("mounted runs and comparisons workbench", () => {
     const { wb, fetch } = mount(); await wb.refresh(); change("model", run().model ?? ""); change("preset", "objectives-on"); fetch.mockResolvedValue({ ...data(), at: 2000 }); await wb.refresh(); expect((ui("model") as HTMLSelectElement).value).toBe(run().model); expect((ui("preset") as HTMLSelectElement).value).toBe("objectives-on"); expect(ui("frontier-full").querySelector('[data-run="run_01"]')).not.toBeNull();
     const unrelated = document.createElement("select"); unrelated.dataset.wb = "elsewhere"; document.body.append(unrelated); unrelated.dispatchEvent(new Event("change", { bubbles: true })); expect((ui("preset") as HTMLSelectElement).value).toBe("objectives-on"); change("cohort", "all"); wb.resize(); wb.destroy();
   });
+  it("filters inclusive Eastern run-start dates across cohorts, combines filters and clears dates", async () => {
+    const runs = [
+      run({ id: "before", started: "2026-10-19T03:59:59Z" }),
+      run({ id: "bundle", cohort: "bundle", started: "2026-10-19T04:00:00Z" }),
+      run({ id: "control", cohort: "control", started: "2026-10-21T03:59:59Z", status: "live" }),
+      run({ id: "after", started: "2026-10-21T04:00:00Z" }),
+      run({ id: "unknown", started: null }), run({ id: "bad", started: "invalid" }),
+    ];
+    const { wb } = mount({ ...data(), runs }); await wb.refresh();
+    const plotted = () => new Set([...ui("frontier-full").querySelectorAll<SVGElement>("[data-run]")].map(e => e.dataset.run));
+    change("date-from", "2026-10-19"); change("date-through", "2026-10-20");
+    // The global frontier reference remains visible even outside the range.
+    expect(plotted()).toEqual(new Set(["after", "bundle", "control"]));
+    expect(ui("overlay").textContent).toContain("bundle"); expect(ui("overlay").textContent).not.toContain("unknown");
+    change("cohort", "bundle"); expect(plotted()).toEqual(new Set(["after", "bundle"]));
+    change("cohort", "all"); change("date-from", "2026-10-21");
+    expect(ui("date-problem").textContent).toContain("on or before"); expect(plotted()).toEqual(new Set(["after"]));
+    document.querySelector<HTMLButtonElement>("[data-clear-dates]")?.click();
+    expect((ui("date-from") as HTMLInputElement).value).toBe(""); expect((ui("date-through") as HTMLInputElement).value).toBe("");
+    expect(ui("date-problem").hidden).toBe(true); expect(plotted().has("unknown")).toBe(true); expect(plotted().has("bad")).toBe(true);
+    wb.destroy();
+  });
+  it("supports either date bound and retains values, focus and filtering across failed polls and recovery", async () => {
+    const { wb, fetch } = mount({ ...data(), runs: [run(), run({ id: "later", started: "2026-10-15T12:00:00Z" })] }); await wb.refresh();
+    change("date-through", "2026-10-13"); expect(ui("overlay").textContent).not.toContain("later");
+    change("date-through", ""); change("date-from", "2026-10-15"); expect(ui("overlay").textContent).toContain("later"); expect(ui("overlay").textContent).not.toContain("run_01");
+    ui("date-from").focus(); fetch.mockRejectedValueOnce(new Error("offline")); await wb.refresh();
+    expect((ui("date-from") as HTMLInputElement).value).toBe("2026-10-15"); expect(document.activeElement).toBe(ui("date-from"));
+    await wb.refresh(); expect(document.activeElement).toBe(ui("date-from")); expect(ui("overlay").textContent).not.toContain("run_01"); wb.destroy();
+  });
   it("opens the selected checkpoint/configuration and closes with Escape, restoring focus", async () => {
     const { wb } = mount(); await wb.refresh(); const mark = ui("frontier-full").querySelector<HTMLElement>('[data-run="run_01"][data-split="PLAYER_NAME_CONFIRMED"]'); mark?.focus(); mark?.dispatchEvent(new MouseEvent("click", { bubbles: true })); expect(ui("detail").hidden).toBe(false); expect(ui("detail-body").textContent).toContain("#19"); expect(ui("detail-body").textContent).toContain("OFF"); document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true })); expect(ui("detail").hidden).toBe(true); wb.destroy();
   });

@@ -304,12 +304,17 @@ def install_observation(
             if raw_snapshot is not None:
                 assert raw_archive is not None
                 with raw_archive.reserve() as reservation:
-                    (frozen, learner), reason, frames = held.wait(
-                        lambda: (raw_snapshot(reservation), battle_learner(read_memory)),
-                        lock,
-                        max_frames,
-                    )
-                    receipt, _, captured, _ = finish_snapshot(reservation, frozen)
+
+                    def grab() -> tuple[RawRamSnapshot, dict[str, object] | None, Exception | None]:
+                        frozen = raw_snapshot(reservation)
+                        try:
+                            return frozen, battle_learner(read_memory), None
+                        except (ValueError, IndexError) as error:
+                            return frozen, None, error
+
+                    (frozen, learner, error), reason, frames = held.wait(grab, lock, max_frames)
+                    # A learner read error is raised after the raw capture persists.
+                    receipt, _, captured, _ = finish_snapshot(reservation, frozen, error=error)
                 raw_archive.pair(receipt, captured, None)
             else:
                 (captured, learner), reason, frames = held.wait(

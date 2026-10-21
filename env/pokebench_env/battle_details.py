@@ -621,9 +621,16 @@ def battle_details_lines(
         lines.append(line)
     party = {m.identity: m for m in details.party or () if m.identity is not None}
     for actor in players:
-        member = party.get(actor.identity) if ended and not actor.absent else None
-        if member is not None:
-            lines.extend(_ended_lines(member))
+        if ended and not actor.absent:
+            member = party.get(actor.identity)
+            lines.extend(
+                _ended_lines(member)
+                if member is not None
+                else [
+                    "You · HARNESS BUG: no party member matches the player's battler; "
+                    "the battle has ended, so its own copy is not shown"
+                ]
+            )
             continue
         control = inputs.get(actor.battler)
         if flags & WALLY_TUTORIAL:

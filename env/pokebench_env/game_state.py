@@ -8,7 +8,7 @@ defaults (a random name, map 0/0) that are not the player's state.
 
 import json
 import struct
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 
 from pokebench_env.battle_details import BattleDetails, read_battle_details
@@ -319,6 +319,7 @@ def read_game_state(
     exit_sections_enabled: bool = False,
     gym_door_label_enabled: bool = False,
     caught_nickname_enabled: bool = False,
+    caught_dex_enabled: bool = False,
     party_item_confirmation_enabled: bool = False,
     field_moves_enabled: bool = False,
     move_learning_enabled: bool = False,
@@ -348,6 +349,7 @@ def read_game_state(
     native_ui = read_active_ui(
         read,
         screen,
+        caught_dex=caught_dex_enabled,
         truth=readout_truth_enabled,
         party_item_confirmation=party_item_confirmation_enabled,
         evolution_decision=evolution_decision_enabled,
@@ -355,6 +357,13 @@ def read_game_state(
         transition_coherence=coherent,
         tutorial_owner_enabled=tutorial_owner_enabled,
     )
+    if (
+        caught_dex_enabled
+        and native_ui is not None
+        and native_ui.phase.startswith("pokedex_caught_")
+        and battle is not None
+    ):
+        battle = replace(battle, text_phase="screen" if native_ui.ready is True else "busy")
     if evolution_decision_enabled:
         from pokebench_env.evolution_decision import decision_ui
 

@@ -251,6 +251,14 @@ Production readinessOf refresh: NOT READY, recent basis, 0/4 reached OLDALE_TOWN
 
 - `gym-door-label-v1`: pending only. First activation PETALBURG_CITY. Native retained-state label check complete; no experiment queued or approved. Diagnostic design and readiness evaluation required before queueing.
 
+## caught-dex-input-v1 (2026-10-21)
+
+Pending, not queued. Correctness tier: c6c2 event 12066 / native archive 5393 proves
+an A/B-owned registration page is incorrectly read as busy. Activation milestone
+STARTER_CHOSEN is only a conservative lower bound; milestone reach alone does not
+prove catches, so no catch-specific readiness or performance claim is made. No
+measured cohort is needed to establish this decoder repair, and none is authorized.
+
 ## progress-aware-cycles-v1 (2026-10-21)
 
-Pending and unqueued. Diagnostic replay covers native milestone turns and an exposed healing-gate refusal. Boot activation FIRST_TRUCK_EXIT is reachable; it does not prove that healing trips or their returns are exposed. A pre-refusal checkpoint, operator GPU-hour budget and powered confirmation design remain prerequisites before queueing. No runs approved or started.
+Pending, unqueued and unapproved. FIRST_TRUCK_EXIT activation is reachable; healing exposure requires a separately validated pre-refusal checkpoint and operator budget before queueing. Diagnostic replays are not a gameplay-benefit claim.

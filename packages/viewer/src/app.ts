@@ -1405,7 +1405,10 @@ export class App {
     this.renderTrace(nowMs);
     this.renderBag();
     this.renderScreen(nowMs);
-    const lit = litButtons(view.presses, nowMs);
+    // Native receipts arrive after execution; replay needs the complete recording
+    // to resolve the keys held at its current execution timestamp.
+    const inputView = this.mode === "replay" ? this.view : view;
+    const lit = litButtons(inputView.presses, nowMs, inputView.nativeActions);
     for (const button of this.ui("gba").querySelectorAll<SVGElement>("[data-btn]")) {
       button.classList.toggle("lit", lit.has(button.dataset.btn as never));
     }

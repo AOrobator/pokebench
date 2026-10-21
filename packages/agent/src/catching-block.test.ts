@@ -4,7 +4,8 @@ import type { AgentTool, AgentToolResult } from "@mariozechner/pi-agent-core";
 import { describe, expect, it } from "vitest";
 import { COVERAGE_HEADER, PartyCoverage, SAID_HEADER, SaidTypeMatches, TYPE_NAMES } from "./catching-block.js";
 import type { RunEvent } from "./events.js";
-import { ALL_ON, type FeatureSet } from "./features.js";
+import { ALL_ON as GYM_EVIDENCE_CURRENT_ALL_ON, type FeatureSet } from "./features.js";
+const ALL_ON={...GYM_EVIDENCE_CURRENT_ALL_ON,"gym-evidence-v1":false};
 import type { GameStateSnapshot } from "./game-state.js";
 import { playGameTools } from "./play-wiring.js";
 

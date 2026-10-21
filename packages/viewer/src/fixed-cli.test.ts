@@ -385,6 +385,11 @@ describe("exploratory current-main feature recipe", () => {
     expect(f.runs[1]?.def.switches).toEqual(changed.switches);
     expect(f.runs[0]?.def.switches).toEqual(donor.switches);
     expect(await main(["dry-run","bundle-v-control","--feature-recipe","missing"],f.deps)).toBe(1);
+    expect(await main(["dry-run","bundle-v-control","--feature-recipe"],f.deps)).toBe(1);
+    const differentRom={...changed,romSha1:"0".repeat(40)};
+    writeFileSync(join(f.root,"experiments/fixed/other-rom.json"),JSON.stringify(differentRom));
+    expect(await main(["dry-run","bundle-v-control","--feature-recipe","other-rom"],f.deps)).toBe(1);
+    expect(f.err.at(-1)).toBe("feature recipe ROM differs from the model definition");
     expect(f.runs).toHaveLength(2);
   });
 });

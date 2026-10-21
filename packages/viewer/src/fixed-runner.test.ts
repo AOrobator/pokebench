@@ -817,3 +817,39 @@ it("keeps section-aware labels OFF in the generic next-run default",()=>{
  expect(DEFAULT_NEXT_RUN.features["exit-labels-v3"]).toBe(false);
  expect(parseNextRun(DEFAULT_NEXT_RUN).features["exit-labels-v3"]).toBe(false);
 });
+
+it.each([false,true])("rehearses the four-hour GLM pair serially and retains its stop boundary (stop after first: %s)", async stopAfterFirst=>{
+ const source=parseFixedDefinition(readFileSync(new URL("../../../experiments/fixed/glm53-flash-4h.json",import.meta.url),"utf8")).definition;
+ const canonical=parseFixedDefinition(readFileSync(new URL("../../../experiments/fixed/bundle-v-control.json",import.meta.url),"utf8")).definition;
+ const def=dryRunDefinition(source,14_400_000,"cook");
+ for(const arm of ["bundle","control"] as const)expect(armFeatureBits(def,arm)).toEqual(armFeatureBits(canonical,arm));
+ const {runsRoot,dir}=setup(def);let stop=false;
+ class GlmFake extends Fake {
+  override async launch(l:FixedLaunch):Promise<number|null>{
+   this.launches.push(l);this.running++;this.maxRunning=Math.max(this.maxRunning,this.running);l.started(1000+this.launches.length);this.snapshot();
+   await new Promise<void>(resolve=>setImmediate(resolve));this.clock+=14_400_000;
+   writeEvents(this.runsRoot,l,"budget");
+   const path=join(this.runsRoot,l.runId,"events.jsonl");
+   const rows=readFileSync(path,"utf8").trim().split("\n").map(line=>{
+    const e=checkEvent(JSON.parse(line));return {...e,run:l.runId,...(e.type==="run_start"&&e.evaluation!==undefined?{evaluation:{...e.evaluation,experiment:{id:def.id,arm:l.arm,trial:l.slot,of:def.plan.length}}}:{})};
+   });
+   writeFileSync(path,rows.map(e=>JSON.stringify(e)).join("\n")+"\n");this.running--;if(stopAfterFirst)stop=true;return 0;
+  }
+ }
+ const host=new GlmFake(runsRoot,{serving:()=>({...RECEIPT,...def.serving})},def.id);
+ expect(await runFixed({def,definitionSha256:"d".repeat(64),runsRoot,host,stopRequested:()=>stop,pid:77,dryRun:true})).toBe(stopAfterFirst?"stopped":"finished");
+ const rows=readLedger(join(dir,"trials.jsonl"));const n=stopAfterFirst?1:2;
+ expect(host.maxRunning).toBe(1);expect(host.launches.map(l=>l.arm)).toEqual(def.plan.slice(0,n).map(s=>s.arm));
+ expect(launchesOf(rows)).toHaveLength(n);expect(outcomes(rows)).toHaveLength(n);expect(outcomes(rows).every(o=>o.valid)).toBe(true);
+ const status=parseFixedStatus(JSON.parse(readFileSync(join(dir,"status.json"),"utf8")));
+ expect(status).toMatchObject({state:stopAfterFirst?"stopped":"finished",valid:n,invalid:0,total:2});
+ expect(status.lanes.map(l=>l.valid)).toEqual([n]);
+ const index=await cohortIndex(runsRoot,fileURLToPath(new URL("../../../experiments",import.meta.url)));
+ expect(index.runs).toHaveLength(n);expect(index.runs.every(r=>r.cohort===`experiment:${def.id}@${COMMIT.slice(0,12)}`&&r.problem===null)).toBe(true);
+ expect(experimentsAudit(runsRoot,index)).toEqual([]);
+ for(const launch of host.launches){
+  const preset=JSON.parse(readFileSync(launch.presetPath,"utf8")) as {target:null;limits:{maxWallMs:number};features:Record<string,boolean>;start:{sha1:string}};
+  expect(preset.target).toBeNull();expect(preset.limits.maxWallMs).toBe(14_400_000);expect(preset.start.sha1).toBe("b3a6cc1c19836600a15febf41b8f8b19661ce5d4");
+  expect(preset.features).toEqual(armFeatures(canonical,launch.arm));
+ }
+});

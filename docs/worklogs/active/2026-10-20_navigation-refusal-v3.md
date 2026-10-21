@@ -12,10 +12,10 @@ Registration owners: features.ts, play-preset.ts, next-run.ts; explainer via pan
 Immutable control7945 run pin ee11d5b8. State22583 / result22584 / turn764: origin15,23, occupied target15,18, recommends west8,24. State22641 / result22642 / turn766: origin8,24, same coordinate target, recommends east15,23. Eight commands each; no net progress. Original boy moves, but fixed-NPC offline reconstruction reproduces cycle. Both edge candidates8,24 and22,24 cost8 commands and Manhattan13; coordinate tie favors west. Full archived terrain shows east detour, but this patch must not give the control a global solver. Receipts in canonical runs/reports/waypoint-advice-7945/.
 
 ## Milestone
-- [ ] RED recorded fixture + production factory exact OFF and both ON paths, bounded/reset/independent-tool behavior, interleaved waypoint calls; commit.
-- [ ] GREEN minimal shared policy, default OFF registry, future bundle ON/control OFF, pending entry/explainer.
+- [x] RED recorded fixture + production factory exact OFF and both ON paths, bounded/reset/independent-tool behavior, interleaved waypoint calls; commit.
+- [x] GREEN minimal shared policy, default OFF registry, future bundle ON/control OFF, pending entry/explainer.
 - [ ] Gates: tests, coverage >=90 each metric, lint, build, vendor, experiments/pages.
-- [ ] Production wiring deletion/restoration and native archive replay; existing event/model-result propagation retained.
+- [x] Production wiring deletion/restoration and native archive replay; existing event/model-result propagation retained.
 - [ ] Frozen principles/boundary and independent cloud review (two-round cap).
 - [ ] Local fast-forward landing if required lanes approve, main checks, coordinated viewer refresh and real card/explainer proof.
 
@@ -30,3 +30,5 @@ Started from main d004be2dd in isolated managed worktree. User authorizes implem
 - Standard experiments-check reads canonical live ledgers and failed on existing malformed starter-decision-salience ledger rows. No historical record edited. Candidate definitions will be parsed independently with the production parser and schema tests; retain global failure receipt.
 - Main independently landed exit-labels-v3 and pending dialogue work during implementation. Will preserve both and rerun integration checks before sealing. No game source/runtime restarted, no new measured run.
 - COMMIT: feat navigation refusal v3 exploratory anti-cycle guidance (GREEN candidate).
+
+- Main sync3b9a36b48 adds only upstream exit-label worklog evidence. Pending entry now pins complete implementation12f101515. No source change after restored mutation checks. COMMIT: pin waypoint implementation for final gates/review.

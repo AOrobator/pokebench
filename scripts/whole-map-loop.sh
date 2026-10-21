@@ -7,6 +7,7 @@
 # The loop writes STOP_FILE, signals the round's runner so no new trial starts (a trial already
 # playing keeps going to its cap) and exits. Touching STOP_FILE by hand does the same. While
 # STOP_FILE exists the loop refuses to start; delete it to run again. PAUSE_FILE holds the next round.
+# A trial a lane launched in the gap before the signal is aborted through its control.jsonl.
 #
 # Never collides: a round starts only when no other runner holds a gameplay lease on this
 # definition's model pools and its game ports are free. Frames are never pruned; above
@@ -176,13 +177,24 @@ while :; do
   ( cd "$MAIN_WT" && exec "$JUST" fixed-run dry-run "$EXP_ID" --phase "$PHASE" --wall-ms "$WALL_MS" ) &
   job=$!
   signalled=
+  known=
   while kill -0 "$job" 2>/dev/null; do
     if [ -z "$signalled" ]; then
       if run=$(stopped_run); then stop_loop "the operator stopped run $run in the viewer"; fi
       if stopped; then
         pid=$(runner_pid)
-        if [ -n "$pid" ]; then kill -TERM "$pid" && log "round $round: asked runner $pid to start no new trials" && signalled=1; fi
+        if [ -n "$pid" ]; then kill -TERM "$pid" && log "round $round: asked runner $pid to start no new trials" && signalled=1 && known=$(launched_runs); fi
       fi
+    else
+      # A lane between trials may have launched in the poll gap before the signal: abort what started after the stop.
+      for run in $(launched_runs); do
+        echo "$known" | grep -qx "$run" && continue
+        known=$(printf '%s\n%s' "$known" "$run")
+        mkdir -p "$RUNS/$run"
+        seq=$(( $(cat "$RUNS/$run/control.jsonl" 2>/dev/null | wc -l) + 1 ))
+        printf '{"v":1,"seq":%s,"at":"%s","action":"abort"}\n' "$seq" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$RUNS/$run/control.jsonl"
+        log "round $round: aborted $run, launched after the loop was stopped"
+      done
     fi
     sleep "$STOP_POLL"
   done

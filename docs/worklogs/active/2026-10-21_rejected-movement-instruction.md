@@ -27,7 +27,7 @@ No new external API, paths, subprocess interface or network authority. Dialogue 
 - [x] Implementation, two default-OFF registry entries, independent blocked/pending definitions, bundle-only flags and linked tracked explainers.
 - [x] Production wiring mutations: movement factory deletion fails four direction tests; dialogue factory deletion fails actual upstairs recording test; both restored, all 56 targeted tests pass. Receipts runs/rejected-movement-instruction/*-deleted.log and wiring-restored.log.
 - [x] Coverage suite: agent 3306, viewer 1613, Python 3647 pass. Lines/branches/functions: agent 99.21/93.12/97.74; viewer 97.90/91.33/94.33; Python 97.27/93.07/100.00. Lint, build, vendor and HTML check pass. Final post-commit gates pending source freeze.
-- [ ] Frozen multi-model review
+- [x] Initial frozen multi-model review: Claude, Grok and fresh isolated GPT all LGTM on c76bd1aa; sync requires a fresh packet.
 - [ ] Land and verify viewer cards/explainers if review gate permits
 
 ## Closing the Loop
@@ -48,7 +48,7 @@ Manual native probe v5 (checkpoint resume, no inference, explicit probe label): 
 Pinned-pi test proves the next decision receives the requested/submitted/dropped receipt and recorded button_press contains only UP. Production context chain preserves exact WOMAN_4 attribution and upstairs text after newer dialogue and empty/pruned history.
 
 ## Multi-Model Review Log
-Pending frozen packet.
+Round 1: base f671f35d4342ed5b2cebcbe7179af5c3ccf65203, head c76bd1aa15c32a5c5ed9d95ed73612d1203504cc, binary diff SHA256 64c4922d8ed06b8e705e42789c8aaa23e1ef327be54c0c09f955d3151ba25cce. Claude CLI, Cursor Grok 4.5 high, and fresh isolated GPT 5.6 sol xhigh (/root/repair_gpt_review, no inherited turns) independently returned VERDICT: LGTM. No blockers. Shared follow-ups: stronger OFF equivalence assertion, explicit foreign-run ON case, and bundle prerequisite assertions. These are hardening beyond the demonstrated unchanged branches and current configuration, not feature changes. Full artifacts under ignored runs/rejected-movement-instruction/review/.
 
 
 ## Boy Scout Log
@@ -70,3 +70,6 @@ None.
 - Independent experiment definitions are blocked/pending and point to implemented main-synced checkpoint bc542c5090b7c1da9c5ce874bd4d12297439a052, not the earlier RED commit; repin before cohort execution.
 
 - Final synced lint/build pass (109 Python modules), theme tooling 11/11 pass; bundle contract 50/50 passes after replacing a test-only non-null assertion. Six themed real-browser layout captures opened. Final packet follows. Human coordination authorization verified in 00000000-0000-4000-8000-4d7046dac4e7; repair prerequisite and fresh source pin communicated to that audit chat and run-preparation owner. No launch/process changes.
+
+- Landing slot received. Synced main 4a1ede49adbd2ebd171b92c61b75fcca0a7046fd, retaining progress-aware-cycles-v1 and shop-interface-v1. Registry/legacy-default conflicts resolved by appending repairs after both predecessors. Both repairs now OFF in base/control and ON in bundle for all five fixed definitions, including canonical renamed bundle-v-control-2h; original legacy definition retained. No active game/controller changes.
+- Synced gates: build/vendor/pages-check pass; agent coverage 3354 tests (lines99.18/branches93.05/functions97.76); viewer coverage1628 (97.90/91.32/94.33); Python3760 (97.21/92.98/100). All above90 floor. Final registry assertions33/33. Initial sync attempts exposed and corrected mechanical test offset/default conflicts and three missing closing braces; no tests suppressed. Final lint PASS (111 Python modules, both TypeScript stacks); final build PASS. Fresh synced review packet follows.

@@ -210,6 +210,8 @@
    "seen-trainers-ledger-v1": false,
    "party-coverage-v1": false,
    "said-type-matches-v1": false,
+   "progress-aware-cycles-v1": false,
+   "shop-interface-v1": false,
    "rejected-movement-step-v1": false,
    "observed-field-dialogue-v1": false
   }
@@ -291,6 +293,8 @@
   "seen-trainers-ledger-v1",
   "party-coverage-v1",
   "said-type-matches-v1",
+  "progress-aware-cycles-v1",
+  "shop-interface-v1",
   "rejected-movement-step-v1",
   "observed-field-dialogue-v1"
  ],

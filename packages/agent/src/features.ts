@@ -198,6 +198,8 @@ export const SWITCHABLE_FEATURES = [
   "seen-trainers-ledger-v1",
   "party-coverage-v1",
   "said-type-matches-v1",
+  "progress-aware-cycles-v1",
+  "shop-interface-v1",
   "rejected-movement-step-v1",
   "observed-field-dialogue-v1",
 ] as const;
@@ -511,6 +513,8 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("seen-trainers-ledger-v1", "observation", "SEEN TRAINERS LEDGER", "heal-before-trainers-v2", "Bundle arm only, default off (the operator 2026-10-21: \"both sets\", after the Rustboro strategy report: 11 runs reached the RUSTBORO CITY GYM between Oct 19 and Oct 21, 8 fought ROXANNE 17 times and lost every time with a lone TORCHIC at Lv13-15). After losing, the 4 control runs never fought TOMMY or MARC in the same gym. In the Training block: the trainers the readout listed (heal-before-trainers-v2) on each map the player stood on this run, by map, each beaten, battled and not beaten, or not beaten, by the trainer's name once a battle showed it, else the sprite kind. Only maps visited and trainers listed there; nothing says where to go. Needs heal-before-trainers-v2. Off: no lines."),
   on("party-coverage-v1", "observation", "PARTY COVERAGE", "battle-text-auto-advance-v1", "Bundle arm only, default off (the operator 2026-10-21: \"both sets\", after the Rustboro strategy report: 11 runs reached the RUSTBORO CITY GYM between Oct 19 and Oct 21, 8 fought ROXANNE 17 times and lost every time with a lone TORCHIC at Lv13-15). At battle decisions: for each party move, what the game printed right after it hit each foe type this run (\"It's super effective!\", \"It's not very effective…\", \"It doesn't affect …\", or nothing printed), grouped by the foe's types from the battle state, then the foe types met this run that no party move has drawn \"It's super effective!\" against. Only what the game printed; no type chart. Off: no block."),
   on("said-type-matches-v1", "observation", "SAID TYPE MATCHES", null, "Bundle arm only, default off (the operator 2026-10-21: \"both sets\", after the Rustboro strategy report: 11 runs reached the RUSTBORO CITY GYM between Oct 19 and Oct 21, 8 fought ROXANNE 17 times and lost every time with a lone TORCHIC at Lv13-15). The RUSTBORO GYM GUIDE says the ROCK type \"can't stand WATER-type and GRASS-type moves\", but nothing linked that to the WINGULL with WATER GUN in front of the model. Every field page that names a type (\"X-type\") is kept with its map; at battle decisions each foe move and party move whose type a kept line names gets that line and the map: Said on RUSTBORO CITY GYM: \"…can't stand WATER-type and GRASS-type moves.\" — WATER GUN is WATER-type. Only lines the game printed this run. Off: no lines."),
+  on("progress-aware-cycles-v1", "guard", "PROGRESS-AWARE CYCLES", null, "Default off; bundle only. Newly observed milestone turns retire stale cycle feedback. After a healing-gate refusal, cycle checks exempt travel along recorded game-map routes to an offered healing place and back to the refusal position or opponent, with full party HP verified at the destination. A deviation, confirmed override or battle ends the exemption; at most 48 completed calls and fewer than 4 consecutive calls without a new position or HP state. Repeated refusals cannot renew it. Other guards stay active. Suppressions are recorded in Activity History. Off: cycle guards, map-cycle history, gate records and model feedback retain their previous behavior."),
+  on("shop-interface-v1", "observation", "SHOP INTERFACE", RAM, "Bundle arm only, default off (the operator 2026-10-21: \"build it and put it in the bundle\"). Run 2026-10-21T06-28-18_qwen36-gpu0_1331 shopped in the RUSTBORO CITY MART at turns 680-690: the Interface line read the first row as item id 18 (PARLYZ HEAL) instead of 4 (POKé BALL), every later row as \"STATE COVERAGE ERROR: invalid shop item list/index\" (so each DOWN press result was unavailable), the quantity box as \"ITEM 22\", and the \"Here you go! Thank you very much.\" page after buying as \"Shop has no unique verified input owner\". The native shop reader took the list row's id, which pret src/shop.c BuyMenuSetListEntry sets to the item id, as an index into the stock, and did not know Task_ReturnToItemListAfterItemPurchase. With the switch, on the buy screen the Interface line names the highlighted row (its item name with the real item id, or CANCEL), the quantity box names the item, and the after-purchase page is a ready shop_purchase_message: A or B continues, with the game's message. With no unique known owner or a failed read the previous result is kept. Off: the shop reader as before."),
   on("rejected-movement-step-v1", "guard", "REJECTED MOVEMENT STEP", "navigation-tool-use-guard-v1", "Default off; bundle treatment only. When the navigation tool-use guard would reject a free-field direction-only batch, sends only the first direction through ordinary input and returns the new observation with requested, submitted and dropped buttons. Running is disabled for this one press. No route is inferred; collision, scripts and transitions still apply. Checked navigation and other inputs are unchanged. Off: the original guard rejects the whole batch with no input."),
   on("observed-field-dialogue-v1", "guidance", "FIELD DIALOGUE MEMORY", "observed-instructions-v1", "Default off; bundle treatment only. Observed instruction memory retains every nonempty delivered field-dialogue episode, including unnamed and unknown speakers, with exact text, attribution and source references. No speaker identity, objective or completion is inferred. Battle-only and failed deliveries remain excluded; exact repeats share their first source. Off: only episodes containing a recognized story character's printed name are selected."),
 ];
@@ -577,6 +581,7 @@ export const SERVER_FEATURES: readonly SwitchableFeature[] = [
   "caught-dex-input-v1",
   "exp-next-level-v1",
   "pokedex-own-v1",
+  "shop-interface-v1",
 ];
 
 export function serverFeatureEnv(features: FeatureSet): { POKEBENCH_ACTIVE_UI: "0" | "1"; POKEBENCH_FEATURES_OFF: string } {
@@ -756,6 +761,8 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("seen-trainers-ledger-v1"),
     ...when("party-coverage-v1"),
     ...when("said-type-matches-v1"),
+    ...when("progress-aware-cycles-v1"),
+    ...when("shop-interface-v1"),
     ...when("rejected-movement-step-v1"),
     ...when("observed-field-dialogue-v1"),
   ];

@@ -20,7 +20,8 @@ import {toolSwitches} from "./play-config.js";
 
 
 
-import {ALL_ON as BEFORE_PENDING_ALL_ON,SWITCHABLE_FEATURES,featureInfo,playHarnessFeatures,dependencyProblems} from "./features.js";
+import {ALL_ON as RAW_PROGRESS_BEFORE_PENDING_ALL_ON,SWITCHABLE_FEATURES,featureInfo,playHarnessFeatures,dependencyProblems} from "./features.js";
+const BEFORE_PENDING_ALL_ON={...RAW_PROGRESS_BEFORE_PENDING_ALL_ON,"progress-aware-cycles-v1":false};
 import type {Button} from "./events.js";
 import {parseGameState,type GameStateSnapshot} from "./game-state.js";
 
@@ -69,8 +70,8 @@ describe("navigation tool-use guard at the native input boundary",()=>{
 const hooks=()=>({beforePress:vi.fn(),afterPress:()=>Promise.resolve()});
 it("registers and records two independent optional default-OFF features",()=>{
  const ids=["navigation-tool-use-guard-v1","semantic-current-map-feedback-v1"] as const;
- expect(SWITCHABLE_FEATURES.slice(-24,-22)).toEqual(ids);
- expect(playHarnessFeatures(ALL_ON,null).slice(-22,-20)).toEqual(ids);
+ expect(SWITCHABLE_FEATURES.slice(-26,-24)).toEqual(ids);
+ expect(playHarnessFeatures(ALL_ON,null).slice(-23,-21)).toEqual(ids);
  const {"navigation-tool-use-guard-v1":guard,"semantic-current-map-feedback-v1":feedback,...old}=ALL_ON;
  expect([guard,feedback]).toEqual([true,true]);
  for(const id of ids){expect(normalizeFeatures(old)[id]).toBe(false);expect(featureInfo(id).description).toContain(" Off: ");}

@@ -1,6 +1,6 @@
 # Story battle heal gate (`story-battle-heal-gate-v1`)
 
-Status: M1 GREEN, gates pass; review next. Worktree `~/dev/pokebench-worktrees/story-battle-heal-gate-v1`, branch `claude/story-battle-heal-gate-v1`, from main 5ab3f577. The operator approved the gate at 8:53 PM ET 2026-10-20 ("yes i also want the gate built", then "the gate could also be useful for the gym"). Background design: scratch `2026-10-20_heal-respawn-sight.md` (heal-respawn-sight, approved 3:41 PM ET).
+Status: M1 reviewed: Claude lane and Grok VERDICT: LGTM on frozen head 9ac76a18 (round 2). Ready for the coordinator's landing slot; not landed by this agent. Worktree `~/dev/pokebench-worktrees/story-battle-heal-gate-v1`, branch `claude/story-battle-heal-gate-v1`, from main 5ab3f577. The operator approved the gate at 8:53 PM ET 2026-10-20 ("yes i also want the gate built", then "the gate could also be useful for the gym"). Background design: scratch `2026-10-20_heal-respawn-sight.md` (heal-respawn-sight, approved 3:41 PM ET).
 
 ## Ask
 
@@ -34,7 +34,7 @@ Build a gate: while any party Pokémon (not an egg) is below max HP, refuse an a
 - [x] M1 GREEN: module, wiring, event, viewer, registry/presets/defaults, bundle arms.
 - [x] Gates: `just test`, `just lint`, `just build`, `just coverage` (90).
 - [x] Explainer, FEATURE_EXPLAINERS, pending experiment, readiness row.
-- [ ] Sync with main, Claude + Grok review (2 rounds max).
+- [x] Sync with main, Claude + Grok review (2 rounds max).
 
 ## Session Log
 
@@ -61,6 +61,8 @@ Build a gate: while any party Pokémon (not an egg) is below max HP, refuse an a
 - COMMIT: `merge: main (field-move-gates-v1, frontier recordings) into story-battle-heal-gate-v1; registry collateral` (b2fe1f25)
 - Sync 3: `git merge main` (95498e57: frontier date range, GLM Mac-lane config) merged cleanly. On the tip: lint 0, build 0; agent 3083 with 3 timing failures under load average 54 (live-human, serial-comparison; untouched files) that pass alone (50/50); viewer 1511/1512 with the known experiment-cli build-stamp flake passing alone (11/11); pytest 3470 passed with .env loaded.
 
+- Sync 4: main 537c0a99 (docs only) merged; frozen head 9ac76a18.
+
 ## Surprises
 - b300's turn-501 route runs into HIKER MARC's template tile (1,6) (he is not loaded at seq 15233), so the gate also says the walk would end next to him at (1,7). True by the planner's route; the sight at (1,9), step 12, comes first.
 - In the refusal's observation the existing warnings (story battle, heal before trainers) still fire by their own arms; in 97a0 they had already fired at 4539/4509, so a live run would not repeat them.
@@ -71,3 +73,7 @@ Build a gate: while any party Pokémon (not an egg) is below max HP, refuse an a
 - Grok lane (cursor-grok-4.5-high): VERDICT: LGTM. Non-blocking: pending experiment incumbent lacked yes-no-answer-readout-v1 after the merge (Fix: incumbent rebuilt from the current bundle arm, test added); target with position null fails open (rebut: a free-field state carries a position under live-player-position-v1; hardening follow-up).
 - Fix batch: auto-talk calls (AUTO_TALK_ID_PREFIX, exported from auto-talk.ts) pass through the wrapper and checkRoute; tests for auto-talk press/target/walk; bundle/experiment consistency test. 37/37.
 
+### Round 2 (packet main 537c0a99..9ac76a18, diff SHA-256 445cce42…fcef40)
+- Claude lane (read-only Claude subagent; CLI logins expired, Cursor Claude at its usage limit): VERDICT: LGTM. Verified the auto-talk exemption covers press turn/talk and the walk; off path byte-identical; no new findings.
+- Grok lane (cursor-grok-4.5-high, exit 0, empty stderr): VERDICT: LGTM. Notes: target() with position null fails open (hardening, round-1 rebuttal stands); the id-prefix exemption could be imitated by a caller that controls tool ids (follow-up: a typed harness-call channel; pi assigns tool-call ids, the model does not choose them).
+- HEAD and clean tree verified before and after both lanes; packet SHA reproduced.

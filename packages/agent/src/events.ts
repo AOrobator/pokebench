@@ -458,6 +458,11 @@ export const ResourcesSchema=Type.Object({
 export const RawRamReferenceSchema = Type.Object({v:Type.Literal(1), sequence:NonNegativeInt, frame:NonNegativeInt, path:Type.String({pattern:"^raw-ram/[0-9]{8,}\\.json\\.gz$"}), sha256:Type.String({pattern:"^[0-9a-f]{64}$"})},closed);
 export const StateBodySchema = Type.Object(
   {
+    exit_sections: Type.Optional(Type.Object({
+      current:Type.String(),
+      warps:Type.Array(Type.Object({x:NonNegativeInt,y:NonNegativeInt,label:Type.String(),detail:Type.String()},closed),{maxItems:64}),
+      connections:Type.Array(Type.Object({direction:Type.String(),offset:Type.Integer(),destination:Type.Tuple([NonNegativeInt,NonNegativeInt]),label:Type.String()},closed),{maxItems:16}),
+    },closed)),
     raw_ram: Type.Optional(RawRamReferenceSchema),
     // warp-arrival-settle-v1 ON only: emulated frames the observation waited and why the wait ended.
     settle: Type.Optional(Type.Object({ frames: NonNegativeInt, reason: Type.Enum(["immediate", "paused", "fade", "warp", "fade_bound", "warp_bound", "input_hold"]) }, closed)),

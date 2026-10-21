@@ -183,7 +183,8 @@
    "party-item-confirmation-v1": false,
    "same-target-no-progress-v1": false,
    "story-progress-clock-v1": false,
-   "yes-no-answer-readout-v1": false
+   "yes-no-answer-readout-v1": false,
+   "exit-labels-v3": false
   }
  },
  "switches": [
@@ -238,7 +239,8 @@
   "party-item-confirmation-v1",
   "same-target-no-progress-v1",
   "story-progress-clock-v1",
-  "yes-no-answer-readout-v1"
+  "yes-no-answer-readout-v1",
+  "exit-labels-v3"
  ],
  "offInBoth": [
   "semantic-navigation-v1",

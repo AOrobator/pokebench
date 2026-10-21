@@ -21,3 +21,8 @@ Run 97a0 state 13625 / result 13626 / turn377 identifies Woods entrances at (10,
 - Started from main24648e12 in an isolated managed worktree. User approval covers implementation, bundle integration and normal repository landing requirements.
 
 - RED observed: collection fails because map_sections does not exist. Frozen SHA256 receipts of v2 ON state/readout were captured before implementation for both existing ROM-backed b300 archives.
+
+- Implementation uses iterative strongly connected terrain sections, explicit physical warp labels, typed exit_sections and shared text consumers. OFF frozen hashes pass. Real ROM tests cover distinct Route104/Woods returns, one-way east-to-south reach, same-map Gym rooms, warp boundaries, water/elevation, unknown/dynamic destinations and recursion-sized floors. 11 focused Python tests and 6 shared-consumer TS tests pass.
+- Archived97a0 turn377 reparsed with production read_state/render: OFF0.026s/16868 chars, ON0.047s/22668 chars in one local sample; no throughput claim. Receipts at main runs/exit-labels-v3/97a0-turn377-{on,off}.{txt,json}. No gameplay observations/actions were requested.
+- Agent coverage run:3037 tests pass. Viewer1496 pass with one frozen-incumbent exclusion needing the new bundle switch; corrected. Full gates pending final main sync. Initial Python invocation omitted ROM and skipped ROM-backed tests; root invocation interrupted during collection; only the corrected just/explicit-ROM invocation will count.
+- COMMIT: test RED843ce9cc. GREEN candidate follows; review and landing remain pending.

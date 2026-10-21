@@ -248,6 +248,7 @@ def test_env_list_is_validated() -> None:
             "caught-nickname-prompt-v1",
             "party-item-confirmation-v1",
             "yes-no-answer-readout-v1",
+            "exit-labels-v3",
             "warp-arrival-settle-v1",
             "displayed-place-names-v1",
             "battle-triage-guidance-v1",

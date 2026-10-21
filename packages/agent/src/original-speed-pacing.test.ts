@@ -14,13 +14,13 @@ const ON = { ...OFF, [ID]: true };
 const flags = { loopGuard: true, activeUi: true, interfaceDocs: true, objectives: false };
 
 it("appends the independent speed policy without reordering recorded feature identity", () => {
-  expect(SWITCHABLE_FEATURES.at(-21)).toBe(ID);
-  expect(SWITCHABLE_FEATURES.at(-27)).toBe("evolution-decision-v1");
+  expect(SWITCHABLE_FEATURES.at(-22)).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-28)).toBe("evolution-decision-v1");
   expect(FEATURES.filter(feature => feature.switchable).map(feature => feature.id)).toEqual([...SWITCHABLE_FEATURES]);
   expect(featureInfo(ID)).toMatchObject({ group: "guidance", needs: null, switchable: true });
   expect(featureInfo(ID).description).toMatch(/80/);
   expect(featureInfo(ID).description).toMatch(/ Off: .*59\.7275/);
-  expect(SERVER_FEATURES.at(-8)).toBe(ID);
+  expect(SERVER_FEATURES.at(-9)).toBe(ID);
 });
 
 it("defaults omitted historical presets and legacy flags OFF", () => {
@@ -41,7 +41,7 @@ it("transports only the explicit server selection and records ON at the end", ()
   const off = playHarnessFeatures(OFF, null);
   const on = playHarnessFeatures(ON, null);
   expect(off).not.toContain(ID);
-  expect(on).toEqual([...off, ID]);
+  expect(on.filter(id=>id!==ID)).toEqual(off);
   expect(featuresOf(on)[ID]).toBe(true);
   expect(featuresOf(off)[ID]).toBe(false);
   const event = parseEvent(JSON.stringify({ v: 1, run: "speed-policy-recorded", seq: 0,

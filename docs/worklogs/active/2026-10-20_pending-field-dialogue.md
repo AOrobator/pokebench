@@ -47,3 +47,5 @@ Final sync commits b43cd52a and 813a42d4 retain both appended tests; pending def
 Sol fallback LGTM, Astra fallback LGTM with one concrete supported-configuration description issue. FIX: pending field dialogue ON and battle text OFF advertised automatic battle-text advancement. Condition that sentence on battleSource and cover the independent feature combination through description and execution. No new domain or behavior outside the pending field handoff. Claude CLI signed out; Cursor Sonnet, Opus and Haiku usage-limited. No self-merge allowed. Round-two cumulative review required after correction. Frozen r1:4d62be0f, SHA25696fe830a19e817057e3f72b80995c20ab2a0f43cac16b0317679f67cbe498a2b.
 
 R2 description regression run against frozen r1 source fails as expected; corrected source restores all57 focused tests. Grok r1 LGTM; GPT r1 confirms the same description blocker. Cumulative r2 includes the one-line guard and independent pending-only description/execution regression.
+
+R2 implementation commit431e7ecfb. Pending definition repins to it; remains unqueued and default OFF. Final review uses cumulative packet after this evidence commit.

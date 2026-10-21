@@ -261,4 +261,4 @@ measured cohort is needed to establish this decoder repair, and none is authoriz
 
 ## progress-aware-cycles-v1 (2026-10-21)
 
-Pending, unqueued and unapproved. FIRST_TRUCK_EXIT activation is reachable; healing exposure requires a separately validated pre-refusal checkpoint and operator budget before queueing. Diagnostic replays are not a gameplay-benefit claim.
+Pending, unqueued and unapproved. NEW_GAME_CREATED activation is reachable; healing exposure requires a separately validated pre-refusal checkpoint and operator budget before queueing. Diagnostic replays are not a gameplay-benefit claim.

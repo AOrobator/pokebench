@@ -23,9 +23,9 @@ Local-only logic and map-table data. No game actions chosen, subprocess addition
 ## Milestones
 M1 — Single integrated change (shared tracker and owners must ship together)
 - [x] Failing tests and RED commit: route/HP/return bounds, milestone turn, actual replay and OFF invariance.
-- [ ] Implementation and GREEN commit: production wiring, schema, switch registry/defaults, bundle entries, pending experiment, linked HTML explainer.
-- [ ] Gates: test, lint, build, coverage, vendor, schema/pages/experiment checks; mutation receipts.
-- [ ] Production model-delivery and viewer/replay/explainer proof.
+- [x] Implementation and GREEN commit: production wiring, schema, switch registry/defaults, bundle entries, pending experiment, linked HTML explainer.
+- [x] Gates: test, lint, build, coverage, vendor, schema/pages/experiment checks; mutation receipts.
+- [x] Production model-delivery and candidate viewer/replay/explainer proof.
 - [ ] Principles self-review, frozen packet and cloud Claude/Grok/GPT review (round cap two).
 - [ ] Land only with required reviews, then main tests and viewer/live proof.
 
@@ -60,3 +60,11 @@ COMMIT: `merge: current main into bounded healing cycle protection` (5bd58d24d).
 Main advanced to 0349ae26b (battle-refusal field correction, no new switch); sync this before the final gates and review.
 
 COMMIT: `fix: verify healing HP and preserve historical projection test margin` (a05e80dc). During the next sync main advanced again to 4cfce22ec (caught-dex-input-v1 plus battle-field-refusal). Retained their code and registry ordering and appended this treatment last. Historical test arms explicitly keep this new treatment OFF; the registry round-trip test still uses the actual current all-on set. No production change was needed for the sync.
+
+COMMIT: `merge: caught-dex and field-refusal main into cycle protection` (ccf1a3af1). Final synced coverage gate: agent 3306, viewer 1612, Python 3647 pass, zero skips. Agent statements/branches/functions/lines 97.17/93.08/97.66/99.16; viewer 95.41/91.32/94.33/97.90; Python lines/branches/functions 97.27/93.07/100. Lint/build/vendor/pages and schema equality pass. Candidate validation parses all 177 experiment definitions and both fixed definitions, including their frozen control-base hashes. Standard canonical experiments-check remains red solely on the old starter-decision-salience ledger rows.
+
+Candidate browser: scratch server 8797 with historical fd95 plus a clearly named diagnostic rehearsal; no experiment approvals or queue runner. Rehearsal records come from the production StallBriefing over immutable fd95 source records, with game-table-derived routes added only in memory. Existing Activity History and raw-event detail show diagnostic retirement, no supervisor instruction, and no new timeline kind. Harness Config marks historical fd95 NOT RECORDED for this switch; its READ EXPLAINER link opens the intended tracked file. Phone and desktop explainer screenshots inspected (1280/1440/375); phone scrollWidth 375, wide diagram scrolls within its figure. No console errors. Screenshots: canonical runs/mockups/progress-aware-cycles/. The rehearsal is not a model/gameplay trial or a benchmark result.
+
+Activation corrected to NEW_GAME_CREATED: milestone-turn protection can act in Birch's introduction, before truck exit (milestones.ts native definition), while the healing segment still needs a separately validated pre-refusal checkpoint and operator GPU-hour budget before queueing. No trials approved, launched or historical logs rewritten. Pending source pin identifies ccf1a3af1, the runtime implementation tree, until a future operator repin.
+
+Before review, merge the evidence-only main update d00cded5 (only another worklog changed); the tested code is identical. Principles self-review: PB1-PB13 PASS with qualified scope, zero FAIL; artifact runs/reviews/progress-aware-cycles/principles.md. Required review roster: Claude standalone, Cursor Grok, fresh isolated GPT subagent.

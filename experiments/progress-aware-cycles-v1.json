@@ -4,11 +4,11 @@
  "title": "Progress-aware cycle warnings",
  "changedFeature": "progress-aware-cycles-v1",
  "hypothesis": "Respecting new milestones and bounded gate-directed healing round trips removes contradictory cycle feedback without hiding genuine loops.",
- "activationMilestone": "FIRST_TRUCK_EXIT",
+ "activationMilestone": "NEW_GAME_CREATED",
  "primaryMilestone": "RIVAL_BATTLE_WON",
  "source": {
   "checkout": "main",
-  "commit": "8c9f9571eae4cfb94d519b014ea4eaebf4fe5982"
+  "commit": "ccf1a3af19190d7a1f79b5a1c387459fa8a849bb"
  },
  "incumbent": {
   "version": 2,
@@ -225,5 +225,5 @@
   "window": 4,
   "minReached": 3
  },
- "notes": "Pending, unqueued, unapproved. Diagnostic tier: schema-valid fd95 and 0ced event replay, synthetic full return and bounds, production gate and context seam. Boot activation is FIRST_TRUCK_EXIT because milestone-turn protection acts before healing. Before queueing: obtain an operator GPU-hour budget and pin a validated pre-refusal checkpoint for a separate healing-segment study. The eight-per-arm boot schema is registration only, not a power-sized confirmation or authorization. No gameplay-benefit claim."
+ "notes": "Pending, unqueued, unapproved. Diagnostic tier: schema-valid fd95 and 0ced event replay, synthetic full return and bounds, production gate and context seam. Boot activation is NEW_GAME_CREATED because milestone-turn protection acts before healing. Before queueing: obtain an operator GPU-hour budget and pin a validated pre-refusal checkpoint for a separate healing-segment study. The eight-per-arm boot schema is registration only, not a power-sized confirmation or authorization. No gameplay-benefit claim."
 }

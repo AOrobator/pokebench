@@ -128,6 +128,9 @@ it("keeps checked presses and all game result paths, including missing text/stat
  if(!isCheckedPress(original))throw Error("checked fixture");
  const checked:CheckedPressTool={...original,execute,executeChecked:(...args)=>{calls.push(args);return Promise.resolve({content:result.content,details:{state}});}};
  const base=[checked,...['observe','navigate_to','navigate_to_target','explore_map','battle_action','recall_dialogue'].map(name=>({...checked,name}))];
+ const unchanged=withGymProgress(base,OFF,recorder);
+ expect(unchanged).toEqual(base);expect(subs).toEqual([]);
+ for(const [i,tool] of unchanged.entries())expect(tool).toBe(base[i]);
  const tools=withGymProgress(base,{...OFF,[ID]:true,'semantic-navigation-v2':true},recorder);
  for(const e of events)for(const sub of subs)sub(e);
  const signal=new AbortController().signal,update=()=>undefined;
@@ -140,4 +143,19 @@ it("keeps checked presses and all game result paths, including missing text/stat
  expect(must(tools.find(t=>t.name==='recall_dialogue'))).toBe(base.at(-1));
  result={content:[{type:'text',text:'unchanged'}],details:{}};
  expect(await press.execute('no-state',{buttons:['A']})).toBe(result);
+});
+
+it("qualifies each delivered Gym and leader source independently",()=>{
+ const event=must(events.find((e):e is Extract<RunEvent,{type:"tool_result"}>=>e.type==="tool_result"&&e.seq===14990));
+ const sources=[
+  ['Location: RUSTBORO CITY GYM',false],
+  ['Story: Rustboro Gym Josh defeated',false],
+  ['Sign text "RUSTBORO CITY POKéMON GYM | LEADER: ROXANNE | “The ROCK-loving honors student!”" at (23,19)',true],
+  ['Location: RUSTBORO CITY GYM\nStory characters here (from this map\'s own object list): ROXANNE at 5,2. Not on this map: MAY.',true],
+  ['Location: RUSTBORO CITY GYM\n- map 11/3 object 1: sprite ROXANNE (graphics 125) at (5,2)',true],
+ ] as const;
+ for(const [text,named] of sources){
+  const g=new GymProgress();g.observe({...event,text});
+  expect(g.block(state),text).toBe(named?line:'Gym progress (game memory): RUSTBORO CITY GYM incomplete.');
+ }
 });

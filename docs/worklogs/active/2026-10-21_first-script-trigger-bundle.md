@@ -107,3 +107,5 @@ Claude LGTM, independent GPT5.6Sol and Astra each BLOCKING on same concrete endp
 Endpoint RED observed:1 expected endpoint failure/11 pass, endpoint-red.log; no implementation yet.
 
 Endpoint GREEN: safe-pass candidates exclude matching-trigger endpoints only when travel would enter them. Zero-length already-standing choice remains eligible; mismatched elevation remains eligible. Fallback to first-trigger policy unchanged. Focused23/23 pass. Three new performed mutations endpoint-filter/endpoint-standing/endpoint-elevation each fail expected case; restored23/23. Exact patches+outputs retained under runs/first-script-trigger. No production-domain growth, first-trigger stop code unchanged, recorded native rival test still passes. R2 full gates next.
+
+Pending source repinned to endpoint-corrected runtime 4cb7df503aa6b484b89de1fa8405ef49f43e66e7; still pending/unapproved.

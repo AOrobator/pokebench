@@ -17,3 +17,8 @@ Gates: lint pass; agent 3398, viewer 1636, Python 3806 pass; coverage agent 97.2
 Review round 1 (packet 7bb61a62): Claude and Grok CHANGES REQUESTED on one test-shape finding: the new test parsed the five definitions once per switch (30 parses). Fixed: each file parsed once, ids looped inside. Also noted drought-battle-heal-hold-v1 needs stall-briefing-v1, true in base in all five.
 
 Synced main 65f350865 into the branch for landing (clean merge, none of this branch's files touched by main).
+
+Gates after sync: lint pass; agent 3398, viewer 1652, Python 3806 pass; coverage ≥90 (four agent timeouts under load in the first run passed on rerun and in a full rerun); verify-vendor, experiments-audit clean. Landing review round 3 on merge 87ddf1040.
+
+Landed: round 3 Claude, Grok, GPT all VERDICT: LGTM on packet3 (SHA-256 ba7993af…). git merge --ff-only 87ddf10405a59d07d0b2f73c3f277a73ea04d14e into main.
+- [x] Gates, cloud review (Claude, Grok, GPT), land ff-only

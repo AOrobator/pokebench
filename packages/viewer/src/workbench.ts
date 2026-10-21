@@ -184,7 +184,7 @@ export class Workbench {
       config: run.config, splits: run.splits,
       measurement: run.measurement === undefined ? undefined : { controller: run.measurement.controller, features: run.measurement.features },
     };
-    const plotKey = JSON.stringify([semantic(refs.best), semantic(refs.human), overlays.map(semantic), current.map(semantic), width, this.versionKey, this.zoom, status, this.isolated, this.hideTimeOutliers]);
+    const plotKey = JSON.stringify([semantic(refs.best), semantic(refs.human), overlays.map(semantic), current.map(semantic), width, this.versionKey, this.zoom, status, this.isolated, this.hideTimeOutliers, this.hideTimeOutliers ? this.data.runs.map(run => [run.id, run.splits]) : null]);
     if (plotKey === this.plotKey) { this.focus(); this.pressed(); return; }
     const plot = this.ui("frontier-full"), coverage = plot.querySelector<HTMLDetailsElement>("[data-frontier-coverage]");
     const active = this.doc.activeElement, coverageOpen = coverage?.open ?? false, coverageFocused = coverage?.querySelector("summary") === active;

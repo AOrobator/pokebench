@@ -81,6 +81,17 @@ describe("drought-battle-heal-hold-v1",()=>{
    expect(r.kinds,String(warning["type"])).toEqual([]);
   }
  });
+ it("ON: no drought briefing while an unbeaten trainer's sight script holds the field (e9ee seq 10444, RICK)",()=>{
+  const r=rig({...BASE,[ID]:true});
+  const rick={trainer_id:615,trainer_class:51,name:"RICK",defeated:false,battle_active:false};
+  r.step(STALL_DROUGHT_MS+1000,{field_controls_locked:true,trainer_opponent:rick});
+  expect(r.kinds).toEqual([]);
+  expect(r.held.at(-1)?.text).toBe("Not sent (drought-battle-heal-hold-v1): no new story milestone for 5 minutes of play, but a trainer battle is starting.");
+  // A beaten trainer's record with the field free is no hold.
+  const free=rig({...BASE,[ID]:true});
+  free.step(STALL_DROUGHT_MS+1000,{field_controls_locked:false,trainer_opponent:{...rick,defeated:true}});
+  expect(free.kinds).toEqual(["milestone_drought"]);
+ });
  it("ON: an ordinary drought with no battle and no heal trip still fires",()=>{
   const r=rig({...BASE,[ID]:true});
   r.step(STALL_DROUGHT_MS+1000,{party:[MON(17)]});
@@ -102,7 +113,8 @@ describe("production factory",()=>{
   };
   const on=run(true),off=run(false);
   expect(on.sent).toEqual([]);
-  expect(on.notices).toEqual([expect.objectContaining({kind:"milestone_drought",mode:"diagnostic",phase:"would_warn",message:expect.stringContaining("Not sent (drought-battle-heal-hold-v1)")})]);
+  expect(on.notices.map(n=>[n.kind,n.mode,n.phase])).toEqual([["milestone_drought","diagnostic","would_warn"]]);
+  expect(on.notices[0]?.message).toBe("Not sent (drought-battle-heal-hold-v1): no new story milestone for 5 minutes of play, but a battle is on screen.");
   expect(off.sent).toEqual(["milestone_drought"]);
   expect(off.notices).toEqual([]);
  });

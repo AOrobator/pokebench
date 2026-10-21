@@ -1,4 +1,5 @@
 import type { TrainerSightCheck } from "./trainer-sight.js";
+import type { GateDecision } from "./story-battle-heal-gate.js";
 import type {PromptReceipt} from "./jit-context.js";
 import type { IdCard } from "./people-id-cards.js";
 import type { GymHealFacts, HealBeforeTrainersFacts, LowHpTrainerWarningFacts, StoryBattleWarningFacts } from "./low-hp-trainer-warning.js";
@@ -519,6 +520,10 @@ export class RunRecorder {
   // trainer-sight-check-v1: one per checked navigate_to call, before it walks or refuses.
   trainerSightCheck(check: TrainerSightCheck): void {
     this.append({ type: "trainer_sight_check", turn: this.turn, ...check, map_id: [check.map_id[0], check.map_id[1]], origin: { ...check.origin }, goal: { ...check.goal }, sightings: check.sightings.map((s) => ({ ...s, tile: { ...s.tile }, from: { ...s.from } })) });
+  }
+  // story-battle-heal-gate-v1: one per checked call while the gate is engaged, before it acts or refuses.
+  storyBattleHealGate(decision: GateDecision): void {
+    this.append({ type: "story_battle_heal_gate", turn: this.turn, ...decision, map_id: [decision.map_id[0], decision.map_id[1]], reached: decision.reached.map((r) => ({ ...r, tile: { ...r.tile } })), sightings: decision.sightings.map((s) => ({ ...s, tile: { ...s.tile }, from: { ...s.from } })), hurt: decision.hurt.map((h) => ({ ...h })), heal: decision.heal.map((h) => ({ ...h, map_id: [h.map_id[0], h.map_id[1]] })) });
   }
   // story-character-stall-gate-v1: recorded once for each stall briefing it holds back.
   recordStallGate(body: Omit<BodyOf<"stall_gate">, "type" | "turn">): void {

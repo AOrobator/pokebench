@@ -337,7 +337,7 @@ describe("switch OFF and wiring",()=>{
   expect(out).toEqual(tools);expect(out[0]).toBe(press);
   expect(()=>withStoryBattleHealGate([press],gateWith(healArm(F97,PLACES)).gate,{read:()=>Promise.resolve(MAY_STATE)})).toThrow("needs the observe tool");
  });
- it("navigate_to gains its confirm argument and sentence only with the gate, after trainer-sight's",async()=>{
+ it("navigate_to gains its confirm argument and sentence only with the gate, after trainer-sight's",()=>{
   const {gate}=gateWith(healArm(F97,PLACES));
   const base={read:()=>Promise.resolve(MAY_STATE),press:()=>Promise.reject(new Error("no")),observe:()=>Promise.resolve(result(MAY_STATE)),fullMap:true,automaticRunning:true};
   const sight={check:()=>Promise.resolve(TURN501),record:()=>{}};

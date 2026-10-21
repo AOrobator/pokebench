@@ -1,6 +1,6 @@
 # Story battle heal gate (`story-battle-heal-gate-v1`)
 
-Status: M1 in progress. Worktree `~/dev/pokebench-worktrees/story-battle-heal-gate-v1`, branch `claude/story-battle-heal-gate-v1`, from main 5ab3f577. The operator approved the gate at 8:53 PM ET 2026-10-20 ("yes i also want the gate built", then "the gate could also be useful for the gym"). Background design: scratch `2026-10-20_heal-respawn-sight.md` (heal-respawn-sight, approved 3:41 PM ET).
+Status: M1 GREEN, gates pass; review next. Worktree `~/dev/pokebench-worktrees/story-battle-heal-gate-v1`, branch `claude/story-battle-heal-gate-v1`, from main 5ab3f577. The operator approved the gate at 8:53 PM ET 2026-10-20 ("yes i also want the gate built", then "the gate could also be useful for the gym"). Background design: scratch `2026-10-20_heal-respawn-sight.md` (heal-respawn-sight, approved 3:41 PM ET).
 
 ## Ask
 
@@ -31,9 +31,9 @@ Build a gate: while any party Pokémon (not an egg) is below max HP, refuse an a
 ## Milestones
 
 - [x] M1 RED: gate tests (97a0 turn 157, b300 turn 501, press, navigate_to approach, forced-battle exclusions, confirm, sight interaction, OFF identity, factory wiring, event).
-- [ ] M1 GREEN: module, wiring, event, viewer, registry/presets/defaults, bundle arms.
-- [ ] Gates: `just test`, `just lint`, `just build`, `just coverage` (90).
-- [ ] Explainer, FEATURE_EXPLAINERS, pending experiment, readiness row.
+- [x] M1 GREEN: module, wiring, event, viewer, registry/presets/defaults, bundle arms.
+- [x] Gates: `just test`, `just lint`, `just build`, `just coverage` (90).
+- [x] Explainer, FEATURE_EXPLAINERS, pending experiment, readiness row.
 - [ ] Sync with main, Claude + Grok review (2 rounds max).
 
 ## Session Log
@@ -42,5 +42,14 @@ Build a gate: while any party Pokémon (not an egg) is below max HP, refuse an a
 
 - RED: `packages/agent/src/story-battle-heal-gate.test.ts` (35 tests: 97a0 turn 157 exact text and event, confirm, other targets, descriptions/schema, press facing/turning/not-facing/no-A, 11 forced-battle and full-HP exclusions, egg and BRENDAN, navigate_to onto (9,3)/(10,4)/(11,3), semantic walks unchecked, b300 turn 501 with trainer-sight off and on, full-HP trainer-sight unchanged, gym sight-only/unavailable/clear, ROXANNE naming, GYM by location, OFF identity, factory wiring with a real RunRecorder, recorder/arm errors, registry, event schema) on a stub module: 35 failed / 0 passed. Fixture `packages/agent/test-support/story-battle-heal-gate-97a0.json.gz` (results 4191 and 4541 with states 4190 and 4540).
 
+- COMMIT: `test: story-battle-heal-gate-v1 refuses 97a0 turn 157 and b300 turn 501 while the party is hurt (RED)` (29cb5919)
+
+- GREEN: `story-battle-heal-gate.ts` (engagedAt, pressReaches, routeReaches, gateText, StoryBattleHealGate, askSight, withStoryBattleHealGate); navigation.ts `checkRoute` (gate first, one sight request, trainer-sight alone otherwise; `checkSight` takes the prefetched answer and the gate's confirm); low-hp-trainer-warning.ts `healArm` shared arm, `healPlaces` (nearestHeal = first), `healPlaceDescription` (healPlaceSentence unchanged), `HealBeforeTrainers.known`, `onGymMap`, exports; trainer-sight.ts exports `trainerLine`; play-wiring builds the arm and the gate; `story_battle_heal_gate` event, recorder, tail; viewer Activity History text, trace SUP, model; registry (guard, needs heal-before-trainers-v2), presets, LEGACY_ALL_ON off, DEFAULT_NEXT_RUN off; schema regenerated. 49 older registry tests advance their suffix index by one; experiment-vector filters exclude the switch. Bundle arms of bundle-v-control and bundle-cook-1h gain the switch (base false); open-goal-prompt test's bundle-only exclusion list gains it.
+- Wiring receipts (scratchpad gate/mutation-*.txt): passing `undefined` instead of the gate to withStoryBattleHealGate fails the factory test (1 of 35); dropping `healGate` from withNavigation fails 5 of 35 (navigate_to refusals, b300 both modes, gym sight, factory). Restored, 35/35.
+- Gates: `just lint` 0, `just build` 0, `just coverage` 0: agent 3065 tests (statements 97.27, branches 93.07, functions 97.58, lines 99.18), viewer 1446 (95.09 / 91.08 / 93.86 / 97.70), Python 3015 (lines 97.11, branches 92.67, functions 100). story-battle-heal-gate.ts 98.85 / 93.59 / 100 / 99.21. viewer experiment-cli "pins the agent and env sources" failed once under load in a full run and passed alone and in the coverage run.
+- Explainer `docs/explainers/story-battle-heal-gate-v1.html` (`just pages-check` clean; 8791 copy at runs/mockups/story-battle-heal-gate-v1/ returns 200; 1280 and 375 checked: no page overflow, figures scroll in their boxes). Pending `experiments/story-battle-heal-gate-v1.json` (incumbent = bundle-v-control bundle arm with the switch off, activation STARTER_CHOSEN, no queuePosition, source = branch base 5ab3f577), readiness row.
+
 ## Surprises
+- b300's turn-501 route runs into HIKER MARC's template tile (1,6) (he is not loaded at seq 15233), so the gate also says the walk would end next to him at (1,7). True by the planner's route; the sight at (1,9), step 12, comes first.
+- In the refusal's observation the existing warnings (story battle, heal before trainers) still fire by their own arms; in 97a0 they had already fired at 4539/4509, so a live run would not repeat them.
 ## Multi-Model Review Log

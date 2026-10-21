@@ -179,7 +179,7 @@ class Controller:
                 directory = self.c.runs / run
                 control = directory / "control.jsonl"
                 aborted = control.exists() and any(
-                    json.loads(s).get("action") == "abort" for s in control.read_text().splitlines()
+                    item.get("action") == "abort" for item in rows(control)
                 )
                 events = directory / "events.jsonl"
                 ended = False
@@ -192,10 +192,14 @@ class Controller:
                             event = json.loads(text)
                         except json.JSONDecodeError:
                             continue
-                        if event.get("type") == "run_end" and event.get("reason") in {
-                            "operator_stop",
-                            "operator_abort",
-                        }:
+                        if (
+                            event.get("type") == "operator_control"
+                            and event.get("status") == "applied"
+                            and event.get("action") in {"stop", "abort"}
+                        ) or (
+                            event.get("type") == "run_end"
+                            and event.get("reason") in {"operator_stop", "operator_abort"}
+                        ):
                             ended = True
                 if aborted or ended:
                     self.c.stop.write_text(f"operator stopped {run}\n")
@@ -211,7 +215,17 @@ class Controller:
                 and row["pid"] > 0
                 and self.h.alive(row["pid"])
             ):
-                if any(item.get("port") == lane.port for item in row.get("lanes", [])):
+                try:
+                    command = self.h.run(
+                        ["ps", "-o", "command=", "-p", str(row["pid"])], self.c.repo
+                    )
+                except subprocess.CalledProcessError as error:
+                    if error.returncode != 1:
+                        raise
+                    continue
+                if "fixed-cli" in command and any(
+                    item.get("port") == lane.port for item in row.get("lanes", [])
+                ):
                     return True
         pool = re.sub(r"[^a-z0-9.]+", "-", urlsplit(lane.model_url).netloc.lower())
         owner = self.c.runs / f".naming-gameplay.{pool}.lock" / "owner.json"
@@ -267,6 +281,12 @@ class Controller:
                 (self.c.repo / "env/.venv", tree / "env/.venv"),
             ):
                 destination.symlink_to(source, target_is_directory=source.is_dir())
+        exclude = tree / ".git/info/exclude"
+        exclude.parent.mkdir(parents=True, exist_ok=True)
+        existing = exclude.read_text() if exclude.exists() else ""
+        missing = [entry for entry in ("/runs", "/env/.venv") if entry not in existing.splitlines()]
+        if missing:
+            exclude.write_text(existing.rstrip("\n") + "\n" + "\n".join(missing) + "\n")
         if (
             self.h.run(["git", "rev-parse", "HEAD"], tree).strip() != pin
             or self.h.run(["git", "status", "--porcelain"], tree).strip()

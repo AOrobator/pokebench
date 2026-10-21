@@ -571,3 +571,16 @@ it("rehearses all sixteen starter diagnostic slots with one switch, native early
  }
  expect(host.maxRunning).toBe(2);expect(def.replacementReserveMs).toBe(0);expect(def.terminalErrorsAsOutcomes).toBe(true);
 });
+
+it("enables native party-item confirmation only in the bundle of both current bundle definitions",()=>{
+ const id="party-item-confirmation-v1";
+ for(const file of ["bundle-v-control","bundle-cook-1h"]){
+  const {definition:def}=parseFixedDefinition(readFileSync(new URL(`../../../experiments/fixed/${file}.json`,import.meta.url),"utf8"));
+  expect(def.switches.filter(s=>s===id)).toEqual([id]);
+  expect(def.onInBoth).not.toContain(id);
+  expect(armFeatures(def,"control")[id]).toBe(false);
+  expect(armFeatures(def,"bundle")[id]).toBe(true);
+  expect(armFeatureBits(def,"control")[id]).toBe(false);
+  expect(armFeatureBits(def,"bundle")[id]).toBe(true);
+ }
+});

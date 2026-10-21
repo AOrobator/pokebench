@@ -159,3 +159,5 @@ The original ignored runs/explainers copies remain for existing links. Make futu
 - [Whiteout healed](whiteout-healed-v1.html) — bundle-only: a whiteout recap names the party the state after the warp read ("Whiting out restored your whole party: TORCHIC 20/20 HP."), and the trainer-heal prompt sentence adds ", with your whole party healed".
 - [Gym readiness readout](gym-readiness-readout-v1.html) — bundle-only: on a gym map, the party's levels next to the leader's POKéMON seen in battle, the type words said there and the map's trainers; seen-only, no advice.
 - [Same target, no progress](same-target-no-progress-v1.html) — bundle-only guard: after the 4th navigate_to to one target that ended within 3 tiles of where the first began (battles in between included), one factual SUPERVISOR note says so, quoting the result lines; resets on a map change, story progress, the target reached or a 4-tile move.
+
+- [party-item-confirmation-v1](party-item-confirmation-v1.html): native party item message confirmation readiness.

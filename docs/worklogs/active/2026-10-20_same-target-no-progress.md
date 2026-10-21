@@ -116,3 +116,10 @@ Fix batch 2 (evidence only, no production change):
 - COMMIT: `fix: same-target-no-progress-v1 review batch 1 (...)` (4b403ced)
 - Merged main 724d9ddd (whole-map pair v5 definition only; it does not name this switch, so it runs OFF there; agent 3011 and viewer 1438 tests pass after the merge).
 - COMMIT: `merge: main (whole-map pair v5) into same-target-no-progress-v1` (1d7a72dc)
+- COMMIT: `test: same-target-no-progress-v1 held warning through the production recorder path, plus deletion receipts (review batch 2)` (6e2e542d)
+
+## Landing (2026-10-20, 8:25 PM ET)
+
+- The operator 8:07 PM ET: "land it" on Claude and Grok LGTM after the GPT/Codex lane's round-2 evidence-only blockers (6e2e542d answers them; no round 3).
+- Merged main 55e105b7 (party-item-confirmation-v1). Conflicts were both-sides switch-list additions; resolved by keeping both, party-item-confirmation-v1 first and this switch last. Position tests that both sides had shifted by one were shifted once more (61 lines). Added the switch to the bundle arm of whole-map-cook-1h (bundle-v-control and bundle-cook-1h already had it).
+- Gates after merge: lint, build clean; agent 3013/3013, viewer 1440/1440, pytest 3015 passed. Coverage agent 97.21/92.99/97.57/99.16, viewer 95.08/91.05/93.85/97.7, Python lines 97.11 branches 92.67 functions 100.

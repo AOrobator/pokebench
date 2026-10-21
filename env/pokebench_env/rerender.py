@@ -82,6 +82,7 @@ def read_state(
         # exit-labels-v2 renames named-warp-destinations-v1's labels, so it needs that switch.
         exit_labels_enabled=EXIT_LABELS not in off and "named-warp-destinations-v1" not in off,
         caught_nickname_enabled=CAUGHT_NICKNAME not in off,
+        party_item_confirmation_enabled="party-item-confirmation-v1" not in off,
         respawn_links=links if RESPAWN not in off else None,
     )
 

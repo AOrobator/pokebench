@@ -313,7 +313,7 @@ export class WaypointAdvice {
   const fresh=choices.filter(([,p])=>!seen.includes(key(p)));
   if(choices.length===0)return "; no reachable exploratory local-map edge tile is listed; no route beyond this local map is verified";
   if(fresh.length===0)return "; all listed local-map edge choices are previous refusal positions for this target; no untried edge is listed and no route beyond this local map is verified; inspect the map or choose another target";
-  return `; Exploratory local-map edge tiles (ordered by straight-line distance to ${at(goal)} only; no route beyond these tiles is verified): ${fresh.map(([side,p])=>`${at(p)} on the ${SIDES[side]} edge`).join(", ")}${fresh.length<choices.length?"; previous refusal positions withheld while other edge choices remain":""}; choose an edge to explore, inspect the new map, then reassess the target`;
+  return `; Exploratory local-map edge tiles (ordered by horizontal-plus-vertical grid distance to ${at(goal)} only; no route beyond these tiles is verified): ${fresh.map(([side,p])=>`${at(p)} on the ${SIDES[side]} edge`).join(", ")}${fresh.length<choices.length?"; previous refusal positions withheld while other edge choices remain":""}; choose an edge to explore, inspect the new map, then reassess the target`;
  }
 }
 

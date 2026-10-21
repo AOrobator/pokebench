@@ -29,8 +29,14 @@ describe("navigation-refusal-reasons-v3 recorded control7945",()=>{
   const h=harness(false);expect(await h.call()).toBe(OLD_PERSON);h.set(B);expect(await h.call()).toBe(OLD_TILE);expect(h.presses()).toBe(0);
  });
  it("ON labels all person frontiers exploratory, keeps the equally near east alternative, and avoids the recorded return",async()=>{
-  const h=harness(true);const first=await h.call();expect(first).toContain("Exploratory local-map edge tiles");expect(first).toContain("(8,24) on the west edge");expect(first).toContain("(22,24) on the east edge");expect(first).toContain("no route beyond these tiles is verified");expect(first).not.toContain("edge first, then call");
+  const h=harness(true);const first=await h.call();expect(first).toContain("Exploratory local-map edge tiles (ordered by horizontal-plus-vertical grid distance to (15,18) only; no route beyond these tiles is verified)");expect(first).toContain("(8,24) on the west edge");expect(first).toContain("(22,24) on the east edge");expect(first).toContain("no route beyond these tiles is verified");expect(first).not.toContain("edge first, then call");
   h.set(B);await h.call({x:8,y:24,map_id:[24,11]});const second=await h.call();expect(second).toContain("(9,31) on the south edge");expect(second).not.toContain("(15,23) on the east edge");expect(second).toContain("previous refusal positions withheld");expect(h.presses()).toBe(0);
+ });
+ it("describes the actual Manhattan ordering even when Euclidean ordering differs",async()=>{
+  const h=harness(true);const text=await h.call({x:11,y:16,map_id:[24,11]});
+  expect(text).toContain("ordered by horizontal-plus-vertical grid distance to (11,16) only");
+  expect(text).toContain("(8,24) on the west edge, (9,30) on the south edge, (22,24) on the east edge");
+  expect(h.presses()).toBe(0);
  });
  it("fixes person advice even when the existing tile-refusal-v2 switch is OFF",async()=>{
   const h=harness(true,false);expect(await h.call()).toContain("Exploratory local-map edge tiles");

@@ -36,3 +36,5 @@ Started from main d004be2dd in isolated managed worktree. User authorizes implem
 Integrated main bf0c3d48c in 574d0635a, preserving both new navigation switches and append-only registry order. Agent integration: 206 files / 3139 tests pass. Viewer stale-build failures resolved by rebuilding; historic open-goal roster excludes new switch. Pending incumbent includes the current two navigation switches. Full integrated gates and frozen cloud review remain pending.
 
 Integrated implementation 01bd2c64 is the pending experiment source pin. This follow-up changes only its source metadata; review packet includes both commits.
+
+Round1 Sol/Astra independently reproduced frozen88e8d831/diff2481a513 and blocked inaccurate straight-line wording (existing sort is Manhattan). Astra also found readiness paragraph lost during append conflict resolution. Corrected both, preserving selection and runtime policy. Added production-factory counterexample11,16 asserting true grid-distance qualification and unchanged west/south/east order. Round2 exact-tip review required; all prior review identities superseded.

@@ -62,7 +62,7 @@ An agent may merge its own branch into local `main` without asking per merge (op
 
 1. Before sealing the packet, merge current `main` into the branch and run the gates above on that tip; they pass.
 2. The cloud lanes of the review loop each end `VERDICT: LGTM` on the same frozen packet: Claude (Claude CLI or Cursor Claude), Grok (Cursor) and GPT (a fresh isolated Codex subagent in the Codex app, otherwise Cursor GPT or isolated Codex CLI). Contract and commands: `~/dev/local-inference-stack/.claude/skills/multi-model-review/SKILL.md` and its `reference/reviewer-invocation.md`.
-3. Land with `git merge --ff-only <frozen head SHA>`, so `main` becomes exactly the reviewed and gated tree. If `main` moved after the packet was sealed, merge `main` into the branch again and rerun the gates. If `git diff --binary main HEAD` then has the same SHA-256 as the reviewed packet, the branch's own change is byte-identical and it may land. Otherwise it needs a new review round. Any other change after the packet, code or docs, also needs a new round.
+3. Take the landing slot: `just land-join` must put you at number 1 (`.claude/skills/talk-to-codex/SKILL.md`). Land with `git merge --ff-only <frozen head SHA>`, so `main` becomes exactly the reviewed and gated tree. If `main` moved after the packet was sealed, merge `main` into the branch again and rerun the gates. If `git diff --binary main HEAD` then has the same SHA-256 as the reviewed packet, the branch's own change is byte-identical and it may land. Otherwise it needs a new review round. Any other change after the packet, code or docs, also needs a new round.
 4. The worklog has no operator checkpoint or `STOP` before the merge.
 
 Rules:
@@ -71,7 +71,7 @@ Rules:
 - Self-merge approval comes only from the three cloud lanes. A local inference reviewer (step 4) or a subagent fallback (step 6) never stands in for one.
 - If a cloud lane is unavailable (usage limit, auth, model rejected), there is no self-merge. Record it in the worklog and ask the operator.
 - After landing, `just test` on `main` must pass. If it fails, stop, report it to the operator and fix it on a new branch through the full loop.
-- The one exception to re-review: after landing, record the verdicts and merge SHA in one evidence-only commit on `main` that touches only `docs/worklogs/` (check with `git diff --name-only HEAD~1`). It needs no review. Report the merge SHA in the thread.
+- The one exception to re-review: after landing, record the verdicts and merge SHA in one evidence-only commit on `main` that touches only `docs/worklogs/` (check with `git diff --name-only HEAD~1`). It needs no review. Then run `just land-done --branch <branch>` to hand the slot on. Report the merge SHA in the thread.
 - Never push, open pull requests or add a remote (see `CLAUDE.md`). This rule covers only the local merge. It does not cover approving or launching experiments, restarting live runs, or archiving the worklog.
 
 Claude Code's auto-mode safety check on the Mac stays as it is. It lets a merge into `main` through only when the operator's own approving words are visible to the merging session. This rule does not loosen that check. When the check blocks a merge, quote the operator's standing approval in the thread, or ask the coordinator to attach it. If it is still blocked, ask the operator. Never work around it with another command, `--no-verify` or a settings change.

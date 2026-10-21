@@ -1,6 +1,7 @@
 """Mail between Claude and Codex sessions on this Mac, and the shared landing board."""
 
 import json
+import os
 import subprocess
 import threading
 from collections.abc import Sequence
@@ -34,7 +35,9 @@ def test_letter_without_a_listener_waits_in_pending_and_is_logged(tmp_path: Path
     assert am.collect(r) == [am.Letter(T, "codex", "landing gym-door-label")]
     assert am.collect(r) == []
     logged = [json.loads(line) for line in r.log.read_text().splitlines()]
-    assert logged == [{"sent_at": T.isoformat(), "sender": "codex", "text": "landing gym-door-label"}]
+    assert logged == [
+        {"sent_at": T.isoformat(), "sender": "codex", "text": "landing gym-door-label"}
+    ]
 
 
 def test_long_letters_arrive_whole(tmp_path: Path) -> None:
@@ -64,8 +67,10 @@ def test_listener_returns_pending_mail_at_once(tmp_path: Path) -> None:
     assert am.wait_for_mail(r) == [am.Letter(T, "codex", "while you were away")]
 
 
-def test_listener_times_out_empty(tmp_path: Path) -> None:
-    assert am.wait_for_mail(room(tmp_path), timeout=0.05) == []
+def test_listener_times_out_empty_and_reuses_its_pipe(tmp_path: Path) -> None:
+    r = room(tmp_path)
+    assert am.wait_for_mail(r, timeout=0.05) == []
+    assert am.wait_for_mail(r, timeout=0.05) == []
 
 
 def test_bad_pending_line_is_refused(tmp_path: Path) -> None:
@@ -103,7 +108,10 @@ def test_codex_sessions_newest_first_one_row_per_session(tmp_path: Path) -> None
     ]
     index.write_text("".join(json.dumps(row) + "\n" for row in rows) + "\n")
     sessions = am.codex_sessions(index, limit=5)
-    assert [(s.name, s.id) for s in sessions] == [("Fix gates", "b"), ("Restore gym door label", "a")]
+    assert [(s.name, s.id) for s in sessions] == [
+        ("Fix gates", "b"),
+        ("Restore gym door label", "a"),
+    ]
     assert am.codex_sessions(index, limit=1)[0].id == "b"
     assert am.format_session(sessions[0]) == "10:06 AM  Fix gates  (b)"
     assert am.codex_sessions(tmp_path / "missing.jsonl", limit=5) == []
@@ -116,9 +124,18 @@ def test_board_order_and_rejoin(tmp_path: Path) -> None:
     r = room(tmp_path)
     assert am.read_board(r) == []
     assert am.render_board([]) == "Nobody is landing."
-    assert am.board_join(r, who="codex", branch="codex/gym-door-label", codex_thread="Gym door", now=T) == 1
-    assert am.board_join(r, who="claude thread mart", branch="claude/mart", codex_thread=None, now=T) == 2
-    assert am.board_join(r, who="codex", branch="codex/gym-door-label", codex_thread="Gym door", now=T) == 1
+    assert (
+        am.board_join(r, who="codex", branch="codex/gym-door-label", codex_thread="Gym door", now=T)
+        == 1
+    )
+    assert (
+        am.board_join(r, who="claude thread mart", branch="claude/mart", codex_thread=None, now=T)
+        == 2
+    )
+    assert (
+        am.board_join(r, who="codex", branch="codex/gym-door-label", codex_thread="Gym door", now=T)
+        == 1
+    )
     assert am.render_board(am.read_board(r)) == (
         "1. LANDING  codex/gym-door-label  codex (Codex session: Gym door)  since 10:27 AM\n"
         "2. waiting  claude/mart  claude thread mart  since 10:27 AM"
@@ -133,7 +150,9 @@ def test_done_hands_the_slot_to_a_waiting_claude_by_mail(tmp_path: Path) -> None
     nxt = am.board_done(r, branch="codex/a", now=T, run=runs)
     assert nxt is not None and nxt.branch == "claude/b"
     assert runs.calls == []
-    assert am.collect(r) == [am.Letter(T, "land-board", "claude thread b: your turn to land claude/b")]
+    assert am.collect(r) == [
+        am.Letter(T, "land-board", "claude thread b: your turn to land claude/b")
+    ]
     assert am.board_done(r, branch="claude/b", now=T, run=runs) is None
 
 
@@ -147,7 +166,9 @@ def test_done_hands_the_slot_to_a_waiting_codex_by_queue(tmp_path: Path) -> None
     assert runs.calls == []
     nxt = am.board_done(r, branch="claude/b", now=T, run=runs)
     assert nxt is not None and nxt.who == "codex"
-    assert runs.calls == [["codex", "queue", "--thread", "A", "--message", "codex: your turn to land codex/a"]]
+    assert runs.calls == [
+        ["codex", "queue", "--thread", "A", "--message", "codex: your turn to land codex/a"]
+    ]
     with pytest.raises(ValueError, match="not on the landing board"):
         am.board_done(r, branch="nope", now=T, run=runs)
 
@@ -163,7 +184,9 @@ def test_bad_board_is_refused(tmp_path: Path) -> None:
         am.read_board(r)
 
 
-def test_mailroom_lives_in_the_main_checkout_runs(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_mailroom_lives_in_the_main_checkout_runs(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     repo = tmp_path / "repo"
     subprocess.run(["git", "init", "-q", str(repo)], check=True)
     monkeypatch.delenv("POKEBENCH_AGENT_MAIL_DIR", raising=False)
@@ -173,7 +196,9 @@ def test_mailroom_lives_in_the_main_checkout_runs(tmp_path: Path, monkeypatch: p
     assert am.Mailroom.for_repo(repo).root == tmp_path / "elsewhere"
 
 
-def test_cli(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
+def test_cli(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
     monkeypatch.setenv("POKEBENCH_AGENT_MAIL_DIR", str(tmp_path / "mail"))
     runs = Runs()
 
@@ -195,12 +220,19 @@ def test_cli(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.Cap
     assert runs.calls[-1] == ["codex", "queue", "--thread", "Gym door", "--message", "main moved"]
 
     index = tmp_path / "index.jsonl"
-    index.write_text('{"id": "b", "thread_name": "Fix gates", "updated_at": "2026-10-21T14:06:03Z"}\n')
+    index.write_text(
+        '{"id": "b", "thread_name": "Fix gates", "updated_at": "2026-10-21T14:06:03Z"}\n'
+    )
     monkeypatch.setenv("CODEX_SESSION_INDEX", str(index))
     assert am.main(["codex-sessions"], run=runs) == 0
     assert "Fix gates  (b)" in out()
 
-    assert am.main(["land-join", "--who", "codex", "--branch", "codex/a", "--codex-thread", "A"], run=runs) == 0
+    assert (
+        am.main(
+            ["land-join", "--who", "codex", "--branch", "codex/a", "--codex-thread", "A"], run=runs
+        )
+        == 0
+    )
     assert "You are landing now" in out()
     assert am.main(["land-join", "--who", "claude", "--branch", "claude/b"], run=runs) == 0
     assert "number 2" in out()
@@ -209,4 +241,62 @@ def test_cli(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.Cap
     assert am.main(["land-done", "--branch", "codex/a"], run=runs) == 0
     assert "claude/b is up" in out()
     assert am.main(["land-done", "--branch", "claude/b"], run=runs) == 0
-    assert "Nobody is waiting" in out()
+    assert "Nobody is landing." in out()
+
+
+def test_run_command_returns_the_exit_code() -> None:
+    assert am.run_command(["true"]) == 0
+    assert am.run_command(["false"]) == 1
+
+
+def test_unexpected_pipe_errors_surface(tmp_path: Path) -> None:
+    r = room(tmp_path)
+    r.pipe.mkdir(parents=True)
+    with pytest.raises(OSError):
+        am.tell_claude(r, sender="codex", text="hi", now=T)
+
+
+def test_a_full_pipe_still_counts_as_delivered(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    r = room(tmp_path)
+    ready = threading.Event()
+    got: list[list[am.Letter]] = []
+    listener = threading.Thread(target=lambda: got.append(am.wait_for_mail(r, ready=ready.set)))
+    listener.start()
+    assert ready.wait(5)
+    real_write = os.write
+
+    def full(fd: int, data: bytes) -> int:
+        raise BlockingIOError
+
+    monkeypatch.setattr(os, "write", full)
+    assert am.tell_claude(r, sender="codex", text="hi", now=T) is True
+    monkeypatch.setattr(os, "write", real_write)
+    am.tell_claude(r, sender="codex", text="again", now=T)
+    listener.join(5)
+    assert [letter.text for letter in got[0]] == ["hi", "again"]
+
+
+def test_older_session_rows_do_not_replace_newer_ones(tmp_path: Path) -> None:
+    index = tmp_path / "session_index.jsonl"
+    rows = [
+        {"id": "a", "thread_name": "New", "updated_at": "2026-10-21T14:00:00Z"},
+        {"id": "a", "thread_name": "Old", "updated_at": "2026-10-21T13:00:00Z"},
+    ]
+    index.write_text("".join(json.dumps(row) + "\n" for row in rows))
+    assert [s.name for s in am.codex_sessions(index, limit=5)] == ["New"]
+    with index.open("a") as handle:
+        handle.write('{"id": "c", "thread_name": "half writt')
+    assert [s.name for s in am.codex_sessions(index, limit=5)] == ["New"]
+    index.write_text("[1]\n")
+    with pytest.raises(ValueError, match="session"):
+        am.codex_sessions(index, limit=5)
+
+
+def test_board_items_must_be_objects(tmp_path: Path) -> None:
+    r = room(tmp_path)
+    r.root.mkdir(parents=True)
+    r.board.write_text("[1]")
+    with pytest.raises(ValueError, match="board"):
+        am.read_board(r)

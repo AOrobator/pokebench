@@ -18,3 +18,5 @@ M3 REVIEW/LAND: Claude, Grok and GPT cloud lanes on the frozen packet; land thro
 
 ## Progress
 - RED: env/tests/env/test_agent_mail.py fails at import (module missing), 15 tests.
+- GREEN: pokebench_env/agent_mail.py, 20 tests pass, module 100% lines/branches. Live: `just codex-sessions` reads the real index; a half-written last index line (Codex appending) was seen live and is now ignored until its newline lands. `codex queue` against a throwaway session printed "Queued message … for thread …" (codex-cli 0.153.4). Named-pipe wake also proven live in the thread session at 10:26 AM EDT.
+- Gates: just build, just lint pass; just coverage pass (Python 3658 passed, lines 97.32 / branches 93.15 / functions 100; agent and viewer above floor); just verify-vendor OK. just test: one agent failure in serial-comparison.test.ts "hung child" (stdout timing), unrelated; that file passed 3/3 reruns and in the coverage run.

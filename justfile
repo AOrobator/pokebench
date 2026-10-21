@@ -139,6 +139,35 @@ pages-check +files:
 pages-inline-fonts +files:
     scripts/pages.sh inline-fonts {{files}}
 
+# Claude <-> Codex mail and the landing board (skills: talk-to-codex, talk-to-claude).
+# State lives in the main checkout's runs/agent-mail/, shared by every worktree.
+[positional-arguments]
+tell-claude *args:
+    uv run --project env python -m pokebench_env.agent_mail tell-claude "$@"
+
+[positional-arguments]
+claude-mailbox *args:
+    uv run --project env python -m pokebench_env.agent_mail claude-mailbox "$@"
+
+[positional-arguments]
+tell-codex thread *words:
+    uv run --project env python -m pokebench_env.agent_mail tell-codex "$@"
+
+[positional-arguments]
+codex-sessions *args:
+    uv run --project env python -m pokebench_env.agent_mail codex-sessions "$@"
+
+land-board:
+    uv run --project env python -m pokebench_env.agent_mail land-board
+
+[positional-arguments]
+land-join *args:
+    uv run --project env python -m pokebench_env.agent_mail land-join "$@"
+
+[positional-arguments]
+land-done *args:
+    uv run --project env python -m pokebench_env.agent_mail land-done "$@"
+
 # Experiment queue: list the queue, pending and closed experiments.
 experiments: build
     node packages/viewer/dist/experiment-cli.js list

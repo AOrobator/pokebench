@@ -26,6 +26,14 @@ from pokebench_env.ui_state import (
 
 SWITCH = "birch-speech-pages-v1"
 PAGE_TASKS = frozenset({0x0803133D, 0x080314C5})
+# birch-intro-pages-v1. The task that waits is the one set after the string is loaded
+# (main_menu.c). US ROM f3ae0881: ThisIsAPokemon 0x080309CD waits on gText_Birch_Welcome,
+# MainSpeech 0x08030A2D waits on gText_ThisIsAPokemon, AndYouAre 0x08030BCD waits on
+# gText_Birch_MainSpeech.
+INTRO_SWITCH = "birch-intro-pages-v1"
+INTRO_PHASE = "birch_intro_page"
+INTRO_PAGE_TASKS = frozenset({0x080309CD, 0x08030A2D, 0x08030BCD})
+INTRO_NOT_READY = "Transition or text printing; selection input is not active"
 PRINTER = 0x020201B0
 TEXT_FLAGS = 0x03003014
 # RENDER_STATE_WAIT, RENDER_STATE_CLEAR, RENDER_STATE_SCROLL_START (include/text.h).
@@ -71,11 +79,17 @@ def page_text(buffer: bytes, cursor: int) -> str:
         return ""
 
 
-def read_birch_page(read: ReadMemory, task: bytes) -> ActiveUi | None:
+def read_birch_page(
+    read: ReadMemory,
+    task: bytes,
+    *,
+    tasks: frozenset[int] = PAGE_TASKS,
+    phase: str = PHASE,
+) -> ActiveUi | None:
     """`task` is the owning gTasks entry; None keeps the old not-ready line."""
     if len(task) != TASK_SIZE:
         return None
-    if int.from_bytes(task[:4], "little") not in PAGE_TASKS:
+    if int.from_bytes(task[:4], "little") not in tasks:
         return None
     if struct.unpack_from("<h", task, DONE_FADING)[0] == 0:
         return None
@@ -96,4 +110,4 @@ def read_birch_page(read: ReadMemory, task: bytes) -> ActiveUi | None:
     page = page_text(buffer, cursor)
     if not page:
         return None
-    return ActiveUi(PHASE, None, True, CONTROLS, value=page)
+    return ActiveUi(phase, None, True, CONTROLS, value=page)

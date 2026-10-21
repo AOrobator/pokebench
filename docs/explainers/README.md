@@ -172,6 +172,7 @@ The original ignored runs/explainers copies remain for existing links. Make futu
 - [Game-said goals](game-said-goals-v1.html) — bundle-only: at move-learning prompts and the evolution decision, the trainer battles lost and not won since, with the POKéMON seen and the type lines said on that gym map.
 - [Mart stock readout](mart-stock-readout-v1.html) — bundle-only readout block while a shop's buy list is open: every row with the price the list prints and the game's own item description, CANCEL, the highlighted row and the player's money.
 - [Shop interface](shop-interface-v1.html) — bundle-only fix of the shop's Interface line: the highlighted buy-list row with its real item id (or CANCEL), the quantity box's item, and the after-purchase page as a ready owner.
+- [Birch intro pages](birch-intro-pages-v1.html) — default-off readout of PROF. BIRCH's speech before the name is chosen: the page on screen, not the whole joined buffer.
 - [EXP next level](exp-next-level-v1.html) — bundle-only server readout: the summary screen's EXP. POINTS and NEXT LV. on each Party entry, repeated in the Training block.
 - [POKéDEX own](pokedex-own-v1.html) — bundle-only server readout: the POKéDEX list's HOENN SEEN and OWN counts and party size, and whether each wild foe is in the OWN list.
 - [EXP earned ledger](exp-earned-ledger-v1.html) — bundle-only Training block part: the EXP. Points the game printed, by battle, for the last 10 battles, with the per-page range for trainers and wild POKéMON.

@@ -31,12 +31,12 @@ Reads emulator memory the server already reads (task, printer, window, `gStringV
 ## Milestones
 
 **M1 — Tests**
-- [ ] Write tests (welcome page, later strings, printing, off-arm buffer, production reader, registry)
-- [ ] COMMIT: `test(birch-intro-pages): failing page readout` (RED)
-- [ ] Implement
-- [ ] Gates: `just test`, `just lint`, `just build`, `just coverage`
-- [ ] COMMIT: `feat(birch-intro-pages): report the pre-name page` (GREEN)
-- [ ] Explainer, pending experiment, readiness row
+- [x] Write tests (welcome page, later strings, printing, off-arm buffer, production reader, registry)
+- [x] COMMIT: `test(birch-intro-pages): failing page readout` (RED) `3cdf1fb412583f45712266cce50321f4d11b8339`
+- [x] Implement
+- [x] Gates: `just test`, `just lint`, `just build`, `just coverage`
+- [x] COMMIT: `feat(birch-intro-pages): report the pre-name page` (GREEN)
+- [x] Explainer, pending experiment, readiness row
 - [ ] Multi-model review loop until clean
 - [ ] LAND only when the landing board says number 1 and the three cloud lanes LGTM. Do not merge before that.
 
@@ -47,6 +47,8 @@ Unit tests are the proof for the readout. The probe run is the failing evidence.
 ## Session Log
 
 - 2026-10-21: Branch `cursor/birch-intro-pages` from `2850ace69`. Told Claude; no listener, mail saved. Not joining the landing board until review is done.
+- 2026-10-21: Wiring-deleted proof. Removed `birch_intro_pages_enabled` from `rerender.read_state`. `test_the_production_reader_honors_the_switch` failed: the on-arm `active_ui` was `None`. Restored the argument. The same test passed.
+- 2026-10-21: Gates on this branch. `just test`: agent vitest 3357, viewer vitest 1633, pytest 3806. `just lint` passed (tsc, eslint, ruff, mypy). `just build` passed. Coverage: agent lines 99.18%, branches 93.05%, functions 97.76%; viewer lines 97.91%, branches 91.33%, functions 94.33%; Python lines 97.29%, branches 93.12%, functions 100%. One combined `just coverage` hit two viewer 5s timeouts while the machine was busy (`experiment-cli` pin test, `server-stream` malformed-chunk test). Those files passed in `just test`, and `pnpm coverage` in `packages/viewer` then passed 1633 tests. The Python coverage gate passed on its own run. Floor is 90.
 
 ## Surprises
 

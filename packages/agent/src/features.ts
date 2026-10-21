@@ -202,6 +202,7 @@ export const SWITCHABLE_FEATURES = [
   "shop-interface-v1",
   "rejected-movement-step-v1",
   "observed-field-dialogue-v1",
+  "birch-intro-pages-v1",
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
 
@@ -517,6 +518,7 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("shop-interface-v1", "observation", "SHOP INTERFACE", RAM, "Bundle arm only, default off (the operator 2026-10-21: \"build it and put it in the bundle\"). Run 2026-10-21T06-28-18_qwen36-gpu0_1331 shopped in the RUSTBORO CITY MART at turns 680-690: the Interface line read the first row as item id 18 (PARLYZ HEAL) instead of 4 (POKé BALL), every later row as \"STATE COVERAGE ERROR: invalid shop item list/index\" (so each DOWN press result was unavailable), the quantity box as \"ITEM 22\", and the \"Here you go! Thank you very much.\" page after buying as \"Shop has no unique verified input owner\". The native shop reader took the list row's id, which pret src/shop.c BuyMenuSetListEntry sets to the item id, as an index into the stock, and did not know Task_ReturnToItemListAfterItemPurchase. With the switch, on the buy screen the Interface line names the highlighted row (its item name with the real item id, or CANCEL), the quantity box names the item, and the after-purchase page is a ready shop_purchase_message: A or B continues, with the game's message. With no unique known owner or a failed read the previous result is kept. Off: the shop reader as before."),
   on("rejected-movement-step-v1", "guard", "REJECTED MOVEMENT STEP", "navigation-tool-use-guard-v1", "Default off; bundle treatment only. When the navigation tool-use guard would reject a free-field direction-only batch, sends only the first direction through ordinary input and returns the new observation with requested, submitted and dropped buttons. Running is disabled for this one press. No route is inferred; collision, scripts and transitions still apply. Checked navigation and other inputs are unchanged. Off: the original guard rejects the whole batch with no input."),
   on("observed-field-dialogue-v1", "guidance", "FIELD DIALOGUE MEMORY", "observed-instructions-v1", "Default off; bundle treatment only. Observed instruction memory retains every nonempty delivered field-dialogue episode, including unnamed and unknown speakers, with exact text, attribution and source references. No speaker identity, objective or completion is inferred. Battle-only and failed deliveries remain excluded; exact repeats share their first source. Off: only episodes containing a recognized story character's printed name are selected."),
+  on("birch-intro-pages-v1", "observation", "BIRCH INTRO PAGES", null, "Default off. During PROF. BIRCH's speech before the name is chosen, a page that waits for A or B (text printer 0 holding at a page break, auto-scroll off, the speech task's sprite fade done) reads Interface: birch_intro_page; input ready; value <the page on screen>; A or B shows the next page (the value is the page on screen). Dialog quotes that same page. The owners are Task_NewGameBirchSpeech_ThisIsAPokemon (0x080309CD, waiting on gText_Birch_Welcome), Task_NewGameBirchSpeech_MainSpeech (0x08030A2D, waiting on gText_ThisIsAPokemon) and Task_NewGameBirchSpeech_AndYouAre (0x08030BCD, waiting on gText_Birch_MainSpeech). Because the value is the page, each page turn is an interface change in the press result. While a page is still being written the line stays input not ready and Dialog stays the buffer. Off: these tasks are not owners, Dialog is the whole gStringVar4 buffer with page breaks joined by \" | \", and a press with no world position reads unavailable/transitioning (world position unavailable)."),
 ];
 
 export const ALL_ON: FeatureSet = Object.fromEntries(SWITCHABLE_FEATURES.map((id) => [id, true])) as Record<SwitchableFeature, boolean>;
@@ -582,6 +584,7 @@ export const SERVER_FEATURES: readonly SwitchableFeature[] = [
   "exp-next-level-v1",
   "pokedex-own-v1",
   "shop-interface-v1",
+  "birch-intro-pages-v1",
 ];
 
 export function serverFeatureEnv(features: FeatureSet): { POKEBENCH_ACTIVE_UI: "0" | "1"; POKEBENCH_FEATURES_OFF: string } {
@@ -765,6 +768,7 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("shop-interface-v1"),
     ...when("rejected-movement-step-v1"),
     ...when("observed-field-dialogue-v1"),
+    ...when("birch-intro-pages-v1"),
   ];
 }
 

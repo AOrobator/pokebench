@@ -1,5 +1,7 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { ALL_ON, FEATURES, SERVER_FEATURES, SWITCHABLE_FEATURES, featureInfo, playHarnessFeatures, serverFeatureEnv } from "./features.js";
+import { experimentArms, parseExperiment } from "./experiments.js";
 import { flagFeatures, normalizeFeatures } from "./play-preset.js";
 import { LEGACY_ALL_ON } from "../test-support/legacy-features.js";
 
@@ -29,5 +31,21 @@ describe("birch-intro-pages-v1", () => {
     expect(serverFeatureEnv({ ...off, [ID]: true }).POKEBENCH_FEATURES_OFF.split(",")).not.toContain(ID);
     expect(playHarnessFeatures(off, null)).not.toContain(ID);
     expect(playHarnessFeatures({ ...off, [ID]: true }, null)).toContain(ID);
+  });
+
+  it("registers a pending experiment that activates at NEW_GAME_CREATED and grades RIVAL_HOUSE_ENTERED", () => {
+    const entry = parseExperiment(JSON.parse(readFileSync(new URL(`../../../experiments/${ID}.json`, import.meta.url), "utf8")));
+    expect(entry.changedFeature).toBe(ID);
+    expect(entry.queuePosition).toBeUndefined();
+    expect(entry.activationMilestone).toBe("NEW_GAME_CREATED");
+    expect(entry.primaryMilestone).toBe("RIVAL_HOUSE_ENTERED");
+    expect(entry.trialsPerArm).toBe(8);
+    expect(entry.modelLane).toBe("think-fast");
+    const { incumbent, candidate } = experimentArms(entry);
+    expect(incumbent.features[ID]).toBe(false);
+    expect(candidate.features[ID]).toBe(true);
+    const flipped = SWITCHABLE_FEATURES.filter((feature) => incumbent.features[feature] !== candidate.features[feature]);
+    expect(flipped).toEqual([ID]);
+    expect(readFileSync(new URL("../../../docs/experiments/readiness.md", import.meta.url), "utf8")).toContain(`| \`${ID}\` | \`NEW_GAME_CREATED\``);
   });
 });

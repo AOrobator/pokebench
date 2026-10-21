@@ -336,6 +336,7 @@ def read_game_state(
     transition_coherence_enabled: bool = False,
     readout_truth_enabled: bool = False,
     birch_pages_enabled: bool = False,
+    birch_intro_pages_enabled: bool = False,
     surf_gate_enabled: bool = False,
     exit_reach_enabled: bool = False,
     heal_trainers_enabled: bool = False,
@@ -387,6 +388,7 @@ def read_game_state(
         party_item_confirmation=party_item_confirmation_enabled,
         evolution_decision=evolution_decision_enabled,
         birch_pages=birch_pages_enabled,
+        birch_intro_pages=birch_intro_pages_enabled,
         transition_coherence=coherent,
         tutorial_owner_enabled=tutorial_owner_enabled,
     )
@@ -410,6 +412,15 @@ def read_game_state(
     window_drawn = menu_window_drawn(read) if readout_truth_enabled else None
     if native_ui and native_ui.details and isinstance(native_ui.details.get("message"), str):
         dialog = str(native_ui.details["message"])
+    # birch-intro-pages-v1: Dialog is the page on screen, not the whole gStringVar4 buffer.
+    if (
+        birch_intro_pages_enabled
+        and native_ui is not None
+        and native_ui.phase == "birch_intro_page"
+        and native_ui.ready is True
+        and native_ui.value
+    ):
+        dialog = native_ui.value
     player_object = 0
     field_initialized = False
     if screen.kind not in PRE_GAME or screen.kind == "naming":

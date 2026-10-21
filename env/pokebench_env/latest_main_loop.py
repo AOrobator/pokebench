@@ -65,7 +65,7 @@ class Config:
     runs: Path
     archive: Path
     launchers: Path
-    experiment: str = "whole-map-pair-2h"
+    experiment: str = "bundle-v-control-2h"
     phase: str = "cook"
     wall_ms: int = 7_200_000
     poll: float = 10
@@ -464,7 +464,7 @@ def main() -> None:
         runs,
         archive,
         Path(os.environ.get("LATEST_MAIN_LAUNCHERS", "/private/tmp/pokebench-auto-launchers")),
-        os.environ.get("EXP_ID", "whole-map-pair-2h"),
+        os.environ.get("EXP_ID", "bundle-v-control-2h"),
         os.environ.get("PHASE", "cook"),
         int(os.environ.get("WALL_MS", "7200000")),
         float(os.environ.get("POLL", "10")),

@@ -17,7 +17,7 @@ JUST=${JUST:-just}
 if [ "${LATEST_MAIN_PER_TRIAL:-1}" = 1 ]; then
   exec "$REPO/env/.venv/bin/python" -m pokebench_env.latest_main_loop
 fi
-EXP_ID=${EXP_ID:-whole-map-pair-2h}
+EXP_ID=${EXP_ID:-bundle-v-control-2h}
 PHASE=${PHASE:-cook}
 WALL_MS=${WALL_MS:-7200000}
 RUNS=${RUNS:-$REPO/runs}

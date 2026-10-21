@@ -96,7 +96,7 @@ class FakeHost(Host):
         self.children.append((args, cwd))
         arm = args[args.index("--arm") + 1]
         lane = args[args.index("--lane") + 1]
-        identity = f"whole-map-pair-2h-dryrun-cook-solo-{arm}-{lane.lower()}-1"
+        identity = f"{self.c.experiment}-dryrun-cook-solo-{arm}-{lane.lower()}-1"
         directory = self.c.runs / "experiments" / identity
         directory.mkdir(parents=True)
         run = f"run-{len(self.children)}"
@@ -147,7 +147,7 @@ def test_each_trial_uses_fresh_main_and_keeps_old_launcher_immutable(
     assert [cwd.name for _, cwd in h.children] == [A, B]
     assert h.trees[first_tree] == A
     for args, _ in h.children:
-        assert args[:4] == ["just", "fixed-run", "dry-run", "whole-map-pair-2h"]
+        assert args[:4] == ["just", "fixed-run", "dry-run", "bundle-v-control-2h"]
         assert args[4:8] == ["--phase", "cook", "--wall-ms", "7200000"]
         assert args[-2:] == ["--lane", "A"]
     assert json.loads((c.archive / "latest-main-A.json").read_text())["commit"] == B

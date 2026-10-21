@@ -1502,3 +1502,9 @@ it("links the recorded progress-aware cycles treatment to its tracked explainer"
  expect(card?.textContent).toContain("ON");
  expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
 });
+
+it.each(["rejected-movement-step-v1","observed-field-dialogue-v1"])("links repair explainer %s",id=>{
+ expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
+ const log=bare();const html=harnessConfig(view(log),FEATURES);expect(html).toContain(`/explainers/${id}.html`);
+ expect(readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)),"utf8")).toContain(id);
+});

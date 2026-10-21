@@ -270,3 +270,9 @@ measured cohort is needed to establish this decoder repair, and none is authoriz
 ## progress-aware-cycles-v1 (2026-10-21)
 
 Pending, unqueued and unapproved. NEW_GAME_CREATED activation is reachable; healing exposure requires a separately validated pre-refusal checkpoint and operator budget before queueing. Diagnostic replays are not a gameplay-benefit claim.
+
+## 2026-10-21 rejected movement and upstairs instruction
+
+- `rejected-movement-step-v1`: activation `PLAYER_NAME_CONFIRMED`; `observed-field-dialogue-v1`: activation `FIRST_TRUCK_EXIT`. Deterministic correctness verified; both entries remain explicitly blocked/pending for reviewed landing pin and cohort design, with no queue position or approval. Bundle treatment enablement is configuration, not benefit evidence.
+- Readiness reader found 3/4 activation reach for historical `think-fast` fallback runs: 2026-10-15T13-36-02_think-fast_2f46, 2026-10-15T14-21-06_think-fast_6684, 2026-10-15T15-06-08_think-fast_dc0e, 2026-10-15T15-51-18_think-fast_17a0. This is not current Qwen-lane or qualified-checkpoint readiness; re-evaluate model lane/start during design.
+- Candidate definitions validate with isolated empty ledgers. Canonical `experiments-check` independently reports existing starter-decision-salience ledger schema errors (150 lines); original ledgers were not modified.

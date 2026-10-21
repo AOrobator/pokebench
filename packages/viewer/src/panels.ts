@@ -382,6 +382,8 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "progress-aware-cycles-v1":"progress-aware-cycles-v1.html",
  "roxanne-first-interaction-v1":"roxanne-first-interaction-v1.html",
  "observed-instructions-v1":"observed-instructions-v1.html",
+  "rejected-movement-step-v1":"rejected-movement-step-v1.html",
+  "observed-field-dialogue-v1":"observed-field-dialogue-v1.html",
  "original-speed-pacing-v1":"original-speed-pacing-v1.html",
  "safe-navigation-strides-v1":"safe-navigation-strides-v1.html",
  "evolution-decision-v1":"evolution-decision-v1.html",

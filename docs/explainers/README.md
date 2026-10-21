@@ -198,3 +198,6 @@ The original ignored runs/explainers copies remain for existing links. Make futu
 - [Caught Pokédex registration input](caught-dex-input-v1.html): battle-owned post-catch A/B page; default OFF, bundle ON.
 
 - [Progress-aware cycles](progress-aware-cycles-v1.html): bounded healing trips and milestone-turn precedence.
+
+- [rejected-movement-step-v1](rejected-movement-step-v1.html)
+- [observed-field-dialogue-v1](observed-field-dialogue-v1.html)

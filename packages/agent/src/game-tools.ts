@@ -10,7 +10,7 @@ import {randomUUID} from "node:crypto";
 import {STRIDE_MAX_FRAMES,StrideReceiptSchema,type StridePlan,type StrideCorridor,type StrideReceipt} from "./stride.js";
 
 // Which model-visible parts of the observe/press results this run shows.
-export interface ToolSwitches { readonly navigationToolUseGuard?: boolean; readonly evolutionDecision?: boolean; readonly readout: boolean; readonly pressResult: boolean; readonly position: boolean; readonly fieldLock: boolean; readonly safeInterfaces?: boolean; readonly automaticRunning?: boolean; readonly transitions?: boolean; readonly warpArrival?: boolean; readonly blockedBatch?: boolean; readonly liveMap?: boolean; readonly ledges?: boolean; readonly edgeWalls?: boolean; readonly counters?: boolean; readonly topology?: boolean; readonly pushback?: boolean }
+export interface ToolSwitches { readonly rejectedMovementStep?: boolean; readonly navigationToolUseGuard?: boolean; readonly evolutionDecision?: boolean; readonly readout: boolean; readonly pressResult: boolean; readonly position: boolean; readonly fieldLock: boolean; readonly safeInterfaces?: boolean; readonly automaticRunning?: boolean; readonly transitions?: boolean; readonly warpArrival?: boolean; readonly blockedBatch?: boolean; readonly liveMap?: boolean; readonly ledges?: boolean; readonly edgeWalls?: boolean; readonly counters?: boolean; readonly topology?: boolean; readonly pushback?: boolean }
 export const ALL_TOOL_SWITCHES: ToolSwitches = { readout: true, pressResult: true, position: true, fieldLock: true, automaticRunning: false, transitions: false };
 import type { PressTiming } from "./recorder.js";
 
@@ -221,18 +221,21 @@ export function pressTool(
         if(check!==undefined)throw error;
       }
       check?.(before);
+      let limitedMovement=false;
       if(switches.navigationToolUseGuard===true&&check===undefined&&params.buttons.length>=2&&params.buttons.every(button=>button==="UP"||button==="DOWN"||button==="LEFT"||button==="RIGHT")&&before?.started&&before.screen==="overworld"&&!before.in_battle&&before.active_ui===null&&before.field_controls_locked===false&&before.running?.controllable===true&&before.map_id!==null&&before.position!==null&&before.world_context?.field_activity==null&&before.world_context?.dialogue==null&&before.world_context?.message==null){
-        const receipt={requested:params.buttons,submitted:[],map_id:before.map_id,position:before.position};
-        const result=await observation(gameServerUrl,fetchFn,signal,`Navigation tool-use guard: no input was sent. Use an available navigation tool with a target you choose for walking. Single direction presses remain available for facing or crossing an exit. ${JSON.stringify(receipt)}\n`);
-        shown.record(result.state,before);
-        return {content:result.content,details:{state:result.state}};
+        if(switches.rejectedMovementStep===true){limitedMovement=true;}else{
+          const receipt={requested:params.buttons,submitted:[],map_id:before.map_id,position:before.position};
+          const result=await observation(gameServerUrl,fetchFn,signal,`Navigation tool-use guard: no input was sent. Use an available navigation tool with a target you choose for walking. Single direction presses remain available for facing or crossing an exit. ${JSON.stringify(receipt)}\n`);
+          shown.record(result.state,before);
+          return {content:result.content,details:{state:result.state}};
+        }
       }
       if(switches.evolutionDecision===true&&before?.screen==="evolution"&&(before.active_ui?.phase==="evolution_decision"||before.active_ui?.phase==="evolution_cancel_window"||(typeof before.active_ui?.details?.evolution_state==="number"&&before.active_ui.details.evolution_state<=8&&typeof before.active_ui.details.task_flags==="number"&&(before.active_ui.details.task_flags&1)!==0))){
         const result=await observation(gameServerUrl,fetchFn,signal,"Ordinary buttons are blocked during this evolution animation. Use choose_evolution when the decision is ready. Nothing pressed.\n");
         return {content:result.content,details:{state:result.state}};
       }
-      const buttons = submittedButtons(params.buttons,before,switches);
-      const automaticRunning = checkedOptions?.automaticRunning===false?false:permitsAutomaticRunning(before, buttons, params.walking, switches.automaticRunning);
+      const buttons = limitedMovement ? params.buttons.slice(0,1) : submittedButtons(params.buttons,before,switches);
+      const automaticRunning = limitedMovement||checkedOptions?.automaticRunning===false?false:permitsAutomaticRunning(before, buttons, params.walking, switches.automaticRunning);
       const stride=checkedOptions?.stride===undefined?undefined:{id:randomUUID(),...checkedOptions.stride};
       const timing=stride===undefined?PRESS_TIMING:{hold_frames:STRIDE_MAX_FRAMES,release_frames:8};
       if (stride!==undefined || switches.automaticRunning===true || params.walking!==undefined) hooks.beforePress(toolCallId, buttons, timing, before, {automatic_running:automaticRunning,...(stride===undefined?{}:{stride}),...(switches.automaticRunning===true?{}:{walking:params.walking===true}),...(automaticRunning?{requested_held_buttons:["B"] as const}:{})});
@@ -267,7 +270,7 @@ export function pressTool(
       }
       await clock.sleep(STATE_CACHE_SETTLE_MS);
       await hooks.afterPress();
-      const content = await observation(gameServerUrl, fetchFn, signal, (after) => `pressed ${buttons.join(", ")}\n${buttons.length < params.buttons.length ? `Interface safety: submitted 1 of ${String(params.buttons.length)} requested inputs; remaining inputs were not sent. Inspect the new state before another input.\n` : ""}${switches.pressResult ? `Press result: ${pressResult(before, after, buttons, switches, shown)}\n` : ""}\n`);
+      const content = await observation(gameServerUrl, fetchFn, signal, (after) => `pressed ${buttons.join(", ")}\n${limitedMovement?`Movement batch limited to one direction press; remaining inputs were not sent. Inspect the new state before another input. ${JSON.stringify({requested:params.buttons,submitted:buttons,dropped:params.buttons.slice(1)})}\n`:""}${!limitedMovement&&buttons.length < params.buttons.length ? `Interface safety: submitted 1 of ${String(params.buttons.length)} requested inputs; remaining inputs were not sent. Inspect the new state before another input.\n` : ""}${switches.pressResult ? `Press result: ${pressResult(before, after, buttons, switches, shown)}\n` : ""}\n`);
       shown.record(content.state, before);
       return { content: [...(receipt===undefined?[]:[{type:"text" as const,text:`Navigation stride receipt: ${JSON.stringify(receipt)}`}]),...content.content], details: { state: content.state,...(receipt===undefined?{}:{stride:receipt}) } };
   };

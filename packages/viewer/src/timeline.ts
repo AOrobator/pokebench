@@ -79,6 +79,7 @@ export function lanesSvg(view: RunView, nowMs: number, visible: readonly (typeof
     if (press.endMs === undefined && inputs.length > 0) {
       let firstStart: number | undefined;
       let lastEnd: number | undefined;
+      let labelButtons: readonly Button[] = [];
       for (const [index, input] of inputs.entries()) {
         const next = inputs[index + 1];
         const raw = input.details["buttons"];
@@ -90,10 +91,14 @@ export function lanesSvg(view: RunView, nowMs: number, visible: readonly (typeof
         if (button === undefined || end <= start || end < t0 || start > nowMs || pressLane < 0) continue;
         // One mark for simultaneous keys; do not paint a second key over the first.
         parts.push(bar(`m-press b-${button}`, pressLane, x(start), x(end), `${buttons.join("+")} · native input · ${String(next.frame - input.frame)}f`, 0.5, 0.5));
-        firstStart ??= start;
+        if (button !== labelButtons[0]) {
+          if (firstStart !== undefined && lastEnd !== undefined) labelPress(labelButtons, firstStart, lastEnd);
+          firstStart = start;
+          labelButtons = [button];
+        }
         lastEnd = end;
       }
-      if (firstStart !== undefined && lastEnd !== undefined) labelPress(press.buttons, firstStart, lastEnd);
+      if (firstStart !== undefined && lastEnd !== undefined) labelPress(labelButtons, firstStart, lastEnd);
       continue;
     }
     const step = (press.hold + press.release) * FRAME_MS;

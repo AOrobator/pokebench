@@ -289,6 +289,6 @@ Gym-evidence readiness receipt: 0/4 WALLY_TUTORIAL_COMPLETE in recent think-fast
 
 ## trigger-navigation-boundary-v1
 
-Pending; not queued or approved. The recorded ea04 run reaches Rustboro var 0x405A=1 after Roxanne, proving this failure is reachable. Formal lane readiness and checkpoint experiment design have not been qualified. Source pins synchronized implementation commit b4e5fa03; no trials launched.
+Pending; not queued or approved. The recorded ea04 run reaches Rustboro var 0x405A=1 after Roxanne, proving this failure is reachable. Formal lane readiness and checkpoint experiment design have not been qualified. Source pins synchronized implementation commit f742d0c8 (script-free route preference and bundle activation). Rival-house 1fe0 state1308 is additionally replayed through production factories. No independent trials launched; next bundle inclusion is configuration, not measured benefit.
 
 - `milestone-instruction-memory-v1`: pending only, blocked on reviewed landing pin and checkpoint cohort design. Activates at first delivered field dialogue (FIRST_TRUCK_EXIT readiness proxy); verified native scene completion gates retirement. Six historical prefix replays test retention, not gameplay benefit. No queue position or approval.

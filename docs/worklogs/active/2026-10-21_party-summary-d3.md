@@ -108,6 +108,9 @@ Round 4 (packet 6fbce332..b7ccaab7, sha256 91a4f59c…5f8d): Claude (subagent) L
 - [x] RED: party-facts.test.ts short-cycle fingerprint ignores summary facts
 - [x] GREEN: `cycleFields` uses `legacyParty`; CYCLE_STATE_EXCLUDED lists `party[].<key>` for the 15 summary keys (exported SUMMARY_FACT_KEYS), and the list test follows. Gates: lint, build; coverage agent 3253 tests 99.2/93.09/97.7, viewer 1592 tests 97.96/91.39/94.51, python 3580 tests 97.23/92.97/100.
 
+Round 5 (packet 6fbce332..1e44d042, sha256 76feca35…be395): Claude (subagent) LGTM (follow-up: storage/daycare Pokémon carry the same keys); Grok LGTM; GPT/Codex BLOCKING: (1) storage and daycare Pokémon's summary keys still reach `cycleFields` and navigation-failure `conditions` through `resources`, fix; (2) `runs/sprites/../..` passes the art output guard (its parent resolves into runs/), fix.
+- [x] RED: party-facts.test.ts storage/daycare short-cycle case, navigation-failure stored-Pokémon case, path guard `runs/sprites/../..` and `runs/.`
+
 ## Boy Scout Log
 
 (empty)

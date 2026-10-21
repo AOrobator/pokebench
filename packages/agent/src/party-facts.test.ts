@@ -30,3 +30,11 @@ it("the short-cycle fingerprint ignores the party readout's summary-screen facts
   for (const party of [[{ ...legacy, ...nulls }], [legacy], [{ ...legacy, ...facts, attack: 26 }]]) expect(cycle(party)).toBe(known);
   expect(cycle([{ ...legacy, ...facts, level: 17 }])).not.toBe(known);
 });
+
+it("storage and daycare Pokémon's summary-screen facts stay out of the short-cycle fingerprint", () => {
+  const boxed = (mon: Record<string, unknown>): string | null => cycleState({ v: 1, run: "r", type: "state", seq: 1, turn: 1, t: 0, ...field([legacy]), resources: { bag: null, pc_items: null, berry_trees: null, planted_berries: null, diagnostics: [], script_pc: null, script_mode: null, script_status: null, selected_tree_id: null, berry_script_owner: null, storage: { current_box: 0, occupied: [{ box: 0, slot: 0, pokemon: mon }] }, daycare: [{ slot: 0, pokemon: mon, steps: 0, displayed_level: 5 }] } } as unknown as Parameters<typeof cycleState>[0]);
+  const known = boxed({ ...legacy, ...facts });
+  expect(known).not.toBeNull();
+  for (const mon of [{ ...legacy, ...nulls }, legacy, { ...legacy, ...facts, ability_id: 67 }]) expect(boxed(mon)).toBe(known);
+  expect(boxed({ ...legacy, level: 17 })).not.toBe(known);
+});

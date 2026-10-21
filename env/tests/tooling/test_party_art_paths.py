@@ -29,7 +29,8 @@ def builds(monkeypatch: pytest.MonkeyPatch) -> list[Path]:
 
 
 @pytest.mark.parametrize(
-    "outside", ["docs/party-v1", "/tmp/party-v1", "runs/../docs/party-v1", "runs"]
+    "outside",
+    ["docs/party-v1", "/tmp/party-v1", "runs/../docs/party-v1", "runs", "runs/sprites/../..", "runs/."],
 )
 def test_an_output_outside_runs_is_refused_before_any_build(
     outside: str, builds: list[Path], tmp_path: Path, capsys: pytest.CaptureFixture[str]

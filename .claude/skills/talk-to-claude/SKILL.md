@@ -23,7 +23,7 @@ Never merge into main while another branch is number 1 on `just land-board`. Nev
 
 ## Telling Claude something
 
-`just tell-claude --from "codex: <session name>" "<message>"`
+`just tell-claude --from "codex: <session name>" "<message>"` reaches the Claude relay, which passes it on. To reach the Claude thread working on a particular branch, add `--to <its branch>`.
 
 - "Delivered" means a listening Claude was woken and will read it next.
 - "Saved for the next mailbox" means no Claude is listening right now. It will be read when one starts. If it is urgent, also tell the user.

@@ -20,6 +20,7 @@ from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
+from urllib.parse import quote
 from zoneinfo import ZoneInfo
 
 NEW_YORK = ZoneInfo("America/New_York")
@@ -65,6 +66,10 @@ class Notice:
 @dataclass(frozen=True)
 class Mailroom:
     root: Path
+
+    def addressed(self, address: str) -> "Mailroom":
+        """The private mailbox of one Claude thread, keyed by its branch."""
+        return Mailroom(self.root / "to" / quote(address, safe=""))
 
     @classmethod
     def for_repo(cls, cwd: Path) -> "Mailroom":
@@ -400,7 +405,7 @@ def notify_moves(
         if entry.codex_thread is not None:
             code = tell_codex(entry.codex_thread, text, run=run)
         else:
-            tell_claude(room, sender="land-board", text=text, now=now)
+            tell_claude(room.addressed(entry.branch), sender="land-board", text=text, now=now)
             code = 0
         notices.append(Notice(entry, number, text, code))
     return notices
@@ -458,9 +463,11 @@ def main(argv: Sequence[str] | None = None, *, run: Run = run_command) -> int:
     commands = parser.add_subparsers(dest="command", required=True)
     tell = commands.add_parser("tell-claude", help="leave a letter for the listening Claude")
     tell.add_argument("--from", dest="sender", default="codex")
+    tell.add_argument("--to", default=None, help="a Claude thread's branch; omit for the relay")
     tell.add_argument("words", nargs="+")
     box = commands.add_parser("claude-mailbox", help="wait for letters (run in the background)")
     box.add_argument("--timeout", type=float, default=None)
+    box.add_argument("--for", dest="address", default=None, help="your branch's own mailbox")
     codex = commands.add_parser("tell-codex", help="queue a message into a Codex session")
     codex.add_argument("thread")
     codex.add_argument("words", nargs="+")
@@ -483,7 +490,8 @@ def main(argv: Sequence[str] | None = None, *, run: Run = run_command) -> int:
     room = Mailroom.for_repo(Path.cwd())
     now = datetime.now(UTC)
     if args.command == "tell-claude":
-        live = tell_claude(room, sender=args.sender, text=" ".join(args.words), now=now)
+        box_room = room if args.to is None else room.addressed(args.to)
+        live = tell_claude(box_room, sender=args.sender, text=" ".join(args.words), now=now)
         print(
             "Delivered: a listening Claude was woken."
             if live
@@ -491,13 +499,14 @@ def main(argv: Sequence[str] | None = None, *, run: Run = run_command) -> int:
         )
         return 0
     if args.command == "claude-mailbox":
-        letters = wait_for_mail(room, timeout=args.timeout)
+        box_room = room if args.address is None else room.addressed(args.address)
+        letters = wait_for_mail(box_room, timeout=args.timeout)
         if not letters:
             print("No mail.")
             return NO_MAIL
         for letter in letters:
             print(format_letter(letter), flush=True)
-        acknowledge(room, os.getpid())
+        acknowledge(box_room, os.getpid())
         return 0
     if args.command == "tell-codex":
         return tell_codex(args.thread, " ".join(args.words), run=run)

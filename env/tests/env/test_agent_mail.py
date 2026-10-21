@@ -156,7 +156,8 @@ def test_done_hands_the_slot_to_a_waiting_claude_by_mail(tmp_path: Path) -> None
     text = "claude thread b: your turn to land claude/b"
     assert notices == [am.Notice(up, 1, text, 0)]
     assert runs.calls == []
-    assert am.collect(r) == [am.Letter(T, "land-board", text)]
+    assert am.collect(r) == []
+    assert am.collect(r.addressed("claude/b")) == [am.Letter(T, "land-board", text)]
     assert am.board_done(r, branch="claude/b", now=T, run=runs) == []
 
 
@@ -512,7 +513,7 @@ def test_everyone_behind_a_leaver_hears_their_new_place(tmp_path: Path) -> None:
             "codex d: you are now number 3 of 3 on the landing board for codex/d",
         ]
     ]
-    assert [x.text for x in am.collect(r)] == [
+    assert [x.text for x in am.collect(r.addressed("claude/c"))] == [
         "claude c: you are now number 2 of 3 on the landing board for claude/c"
     ]
 
@@ -561,3 +562,19 @@ def test_a_listener_leaving_between_open_and_write_saves_the_letter(
         os.close(reader)
     monkeypatch.undo()
     assert am.collect(r) == [am.Letter(T, "codex", "still here")]
+
+
+def test_each_claude_thread_hears_only_its_own_mail(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.setenv("POKEBENCH_AGENT_MAIL_DIR", str(tmp_path / "mail"))
+    runs = Runs()
+    assert am.main(["tell-claude", "--to", "claude/shop", "for shop only"], run=runs) == 0
+    assert am.main(["tell-claude", "for the relay"], run=runs) == 0
+    capsys.readouterr()
+    assert am.main(["claude-mailbox", "--for", "claude/party", "--timeout", "0.01"], run=runs) == 3
+    assert am.main(["claude-mailbox", "--for", "claude/shop"], run=runs) == 0
+    assert "for shop only" in capsys.readouterr().out
+    assert am.main(["claude-mailbox"], run=runs) == 0
+    assert capsys.readouterr().out.endswith("codex: for the relay\n")
+    assert (tmp_path / "mail" / "to" / "claude%2Fshop").is_dir()

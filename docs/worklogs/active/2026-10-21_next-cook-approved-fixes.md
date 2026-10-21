@@ -4,7 +4,7 @@ Operator request verified in coordinator chatredacted-id: approved fixes must be
 
 - [x] RED: real tracked definition -> dryRunDefinition -> soloDefinition -> armPreset; fails missing explicit base flag (undefined vs false), /tmp/next-cook-red.log. Initial unsynced compiled registry/bad test arg attempt is not counted; rebuilt current source and corrected existing solo API before valid RED.
 - [x] GREEN minimal explicit basefalse plus bundle switch membership for both. Actual dry-run/solo armPreset test passes; each switch independently removed produced expected RED then restored. /tmp/next-cook-green.log and /tmp/next-cook-mutations.log. Generated preset proof /tmp/next-cook-generated-presets.jsonl shows bundletrue/controlfalse and recipe hashes.
-- [ ] Build/test/coverage/lint/vendor gates
+- [x] Fresh synced build/test/coverage/lint/vendor PASS: agent3446/viewer1664/Python3850 =8960. Agent coverage99.23lines/93.32branches/97.95functions; Python97.34/93.25/100, viewer above90 allmetrics. /tmp/next-cook-slot-gates.log. Each switch deletion re-proven aftersync and restored.
 - [ ] Three cloud frozen reviews and board landing
 - [ ] Actual next run source/recipe SHA and flags; report timing conflict if incomplete
 
@@ -16,4 +16,8 @@ No operator approval checkpoint beyond existing merge/review gates. Automatic lo
 - Joined normal board#6 with thread 00000000-0000-4000-8000-a1d44aed214c. Coordinator says only number1 can holdmain forreview. No review dispatched before turn.
 - At17:57 verified direct human answer in coordinatorchatredacted-id: “Keep the schedule; use fixes in a later cook.” Supersedes next18:05 deadline requirement; no holds/PAUSE/STOP/processchanges. Activation means first later actual run receipt containing landed source and matching recipeflags, not merely merge.
 
-- Landing turn confirmed19:13; synced main94e71e9a, preserving new trigger bundle-only and three Claude switches ONboth. Conflict only append position in active2h; main definition retained then same two feature additions applied. Fresh full gates/review follow.
+- Landing turn confirmed19:13; synced main94e71e9a, preserving new trigger bundle-only; three Claude switches remain pending elsewhere (not yet present in synced main). Conflict only append position in active2h; main definition retained then same two feature additions applied. Fresh full gates/review follow.
+
+- Actual sync audit: three Claude-owned flags stall-briefing-free-field-v1/unreachable-target-loop-v1/no-story-foreknowledge-v1 absent from main94e71 active2h; intended ONboth belongs pending owner, not yet activation. Coordinator notified; this branch is only two omitted memberships.
+
+- Verified general Grok outage waiver provenance from human server-copied yes dont wait for grok (20:35:35Z), Claude transcript lines4145/4964 and coordinator scopecontext. Normal Grok attempt first; authorized extra independent reviewer only ifoutage. Frozenpacketreview follows on exactsyncedtree.

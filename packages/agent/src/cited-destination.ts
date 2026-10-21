@@ -15,7 +15,7 @@ export interface CitationRecorder {
  subscribe(listener:(event:RunEvent)=>void):void;
  destinationCitation?(facts:DestinationCitationFacts,text:string|null):void;
 }
-export interface CitationOptions {readonly fullMap:boolean;readonly exitReach:boolean;readonly silenceMiss?:boolean}
+export interface CitationOptions {readonly fullMap:boolean;readonly exitReach:boolean;readonly silenceMiss?:boolean;readonly factualMiss?:boolean}
 
 // Fewer words than this is a name, not a quote of a line.
 export const MIN_QUOTE_WORDS=2;
@@ -85,7 +85,7 @@ export function withCitedDestination(tools:readonly AgentTool[],on:boolean,recor
    if(!isGoal(params)||typeof params.because!=="string")return tool.execute(id,params,signal,update);
    const {because,...goal}=params;
    const {verdict,turn}=citations.check(because);
-   const line=options.silenceMiss===true&&verdict==="not_found"?null:citationText(verdict,because);
+   const line=options.factualMiss===true&&verdict==="not_found"?"Destination citation: the supplied because text was not found in the game observations shown this run.":options.silenceMiss===true&&verdict==="not_found"?null:citationText(verdict,because);
    if(line!==null)citations.echoed(line);
    record({tool_call_id:id,because,verdict,found_turn:turn,x:goal.x,y:goal.y,map_id:[goal.map_id[0],goal.map_id[1]]},line);
    const result=await tool.execute(id,goal,signal,update);

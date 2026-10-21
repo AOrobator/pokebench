@@ -217,7 +217,8 @@
    "trainer-sight-check-v2": false,
    "auto-talk-v2": false,
    "map-wide-triggers-v1": false,
-   "drought-battle-heal-hold-v1": false
+   "drought-battle-heal-hold-v1": false,
+   "gym-evidence-v1": false
   }
  },
  "switches": [
@@ -306,7 +307,8 @@
   "trainer-sight-check-v2",
   "auto-talk-v2",
   "map-wide-triggers-v1",
-  "drought-battle-heal-hold-v1"
+  "drought-battle-heal-hold-v1",
+  "gym-evidence-v1"
  ],
  "offInBoth": [
   "semantic-navigation-v1",

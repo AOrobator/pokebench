@@ -210,7 +210,7 @@ describe("game server client",()=>{
 
 describe("registry, prompt and event",()=>{
  it("is a default-off guidance switch that needs bounded-navigation-v1, last in the registry",()=>{
-  expect(SWITCHABLE_FEATURES.at(-45)).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-47)).toBe(ID);
   expect(featureInfo(ID)).toMatchObject({group:"guidance",needs:"bounded-navigation-v1"});
   expect(featureInfo(ID).description).toContain(" Off: ");
   const omitted=Object.fromEntries(Object.entries(FEATURES).filter(([id])=>id!==ID));

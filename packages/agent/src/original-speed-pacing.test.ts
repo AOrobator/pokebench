@@ -1,7 +1,8 @@
 import { expect, it } from "vitest";
-import { ALL_ON as PENDING_BASE_ALL_ON, FEATURES, SERVER_FEATURES, SWITCHABLE_FEATURES, featureInfo,
+import { ALL_ON as GYM_EVIDENCE_CURRENT_ALL_ON, FEATURES, SERVER_FEATURES, SWITCHABLE_FEATURES, featureInfo,
   featuresOf, playHarnessFeatures, serverFeatureEnv, type SwitchableFeature,
 } from "./features.js";
+const PENDING_BASE_ALL_ON={...GYM_EVIDENCE_CURRENT_ALL_ON,"milestone-instruction-memory-v1":false,"gym-evidence-v1":false};
 const ALL_ON={...PENDING_BASE_ALL_ON,"progress-aware-cycles-v1":false,"caught-dex-input-v1":false,"menu-refusal-recovery-v1":false,"pending-field-dialogue-v1":false};
 import { flagFeatures, parsePlayPreset, presetFeatures } from "./play-preset.js";
 import { playSystemPrompt, playTools, toolSwitches } from "./play-config.js";
@@ -14,8 +15,8 @@ const ON = { ...OFF, [ID]: true };
 const flags = { loopGuard: true, activeUi: true, interfaceDocs: true, objectives: false };
 
 it("appends the independent speed policy without reordering recorded feature identity", () => {
-  expect(SWITCHABLE_FEATURES.at(-57)).toBe(ID);
-  expect(SWITCHABLE_FEATURES.at(-63)).toBe("evolution-decision-v1");
+  expect(SWITCHABLE_FEATURES.at(-59)).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-65)).toBe("evolution-decision-v1");
   expect(FEATURES.filter(feature => feature.switchable).map(feature => feature.id)).toEqual([...SWITCHABLE_FEATURES]);
   expect(featureInfo(ID)).toMatchObject({ group: "guidance", needs: null, switchable: true });
   expect(featureInfo(ID).description).toMatch(/80/);

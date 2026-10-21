@@ -3,7 +3,8 @@ import type { AgentTool } from "@mariozechner/pi-agent-core";
 import { describe, expect, it } from "vitest";
 import { EffectivenessHeard, battleDecision, moveLearningChoice, withEffectivenessHeard } from "./effectiveness-heard.js";
 import type { RunEvent } from "./events.js";
-import { ALL_ON } from "./features.js";
+import { ALL_ON as GYM_EVIDENCE_CURRENT_ALL_ON } from "./features.js";
+const ALL_ON={...GYM_EVIDENCE_CURRENT_ALL_ON,"milestone-instruction-memory-v1":false,"gym-evidence-v1":false};
 import type { GameStateSnapshot } from "./game-state.js";
 const must=<T,>(value:T|null|undefined):T=>{if(value==null)throw new Error("fixture");return value;};
 

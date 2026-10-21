@@ -1520,10 +1520,15 @@ it("links the recorded progress-aware cycles treatment to its tracked explainer"
  expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
 });
 
-it.each(["rejected-movement-step-v1","observed-field-dialogue-v1"])("links repair explainer %s",id=>{
+it.each(["gym-evidence-v1","rejected-movement-step-v1","observed-field-dialogue-v1"])("links repair explainer %s",id=>{
  expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
  const log=bare();const html=harnessConfig(view(log),FEATURES);expect(html).toContain(`/explainers/${id}.html`);
  expect(readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)),"utf8")).toContain(id);
+});
+
+it("links the script boundary feature card to its tracked explainer",()=>{
+ expect(FEATURE_EXPLAINERS["trigger-navigation-boundary-v1"]).toBe("trigger-navigation-boundary-v1.html");
+ expect(readFileSync(fileURLToPath(new URL("../../../docs/explainers/trigger-navigation-boundary-v1.html",import.meta.url)),"utf8")).toContain("Let the game run its scripts");
 });
 
 it("shows milestone retention and its complete audit receipt in history and raw inspection",()=>{

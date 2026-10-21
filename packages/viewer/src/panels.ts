@@ -379,10 +379,12 @@ function toolReference(name:string,automaticRunning:boolean):string {
 }
 
 export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
+  "gym-evidence-v1":"gym-evidence-v1.html",
  "story-goal-player-name-v1":"story-goal-player-name-v1.html",
  "cut-off-reply-feedback-v1":"cut-off-reply-feedback-v1.html",
  "trainer-sight-check-v2":"trainer-sight-check-v2.html",
  "auto-talk-v2":"auto-talk-v2.html",
+ "trigger-navigation-boundary-v1":"trigger-navigation-boundary-v1.html",
  "map-wide-triggers-v1":"map-wide-triggers-v1.html",
  "drought-battle-heal-hold-v1":"drought-battle-heal-hold-v1.html",
  "progress-aware-cycles-v1":"progress-aware-cycles-v1.html",

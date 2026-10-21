@@ -44,6 +44,7 @@ export class StallBriefing {
 
  observe(event:RunEvent):void {
   if(event.type==="milestone"){
+   if(event.name==="ROXANNE_FIRST_INTERACTION")return;
    if(event.origin==="present_at_start"||event.name==="GAME_RUNNING")return;
    // story-progress-clock-v1: a measurement-only story step (the rival battle starting, the send-off) is new progress here too.
    if(MEASUREMENT_ONLY_MILESTONES.has(event.name)&&!this.features["story-progress-clock-v1"])return;

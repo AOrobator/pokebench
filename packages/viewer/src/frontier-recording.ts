@@ -7,7 +7,7 @@ import { ControlView, RunView } from "./model.js";
 import { readWorkbenchSnapshot } from "./workbench-reader.js";
 import { recoveredAttacher } from "./recovered-fields.js";
 import { dirname } from "node:path";
-export interface RecordingSplit { name: string; elapsedMs: number; segmentMs: number; seq: number; turn: number; inputTokens: number; outputTokens: number; derived?: true; screenshotEvidence?: ScreenshotEvidence[] }
+export interface RecordingSplit { name: string; elapsedMs: number; segmentMs: number; seq: number; turn: number; inputTokens: number; outputTokens: number; derived?: true; screenshotEvidence?: ScreenshotEvidence[]; observedMs?: number }
 export interface RecordingMeasurement {
   controller: "agent" | "human"; features: string[]; logSha256: string; logBytes?: number; pausedMs: number;
   rawSplits: { name: string; elapsedMs: number; evidence: number[] }[];
@@ -28,7 +28,8 @@ function compact(state: State): State {
     ...(state.story === undefined ? {} : { story: state.story }), ...(state.game_stats === undefined ? {} : { game_stats: state.game_stats }),
     ...(state.route103_rival === undefined ? {} : { route103_rival: state.route103_rival }),
     ...(state.active_ui === undefined ? {} : { active_ui: state.active_ui }), ...(state.field_controls_locked === undefined ? {} : { field_controls_locked: state.field_controls_locked }),
-    ...(state.story !== undefined || state.world_context === undefined ? {} : { world_context: state.world_context }),
+    ...(state.story === undefined ? (state.world_context === undefined ? {} : {world_context:state.world_context}) : state.map_id?.[0] === 11 && state.map_id[1] === 3 && state.world_context != null ? {world_context:{...state.world_context,objects:[],triggers:[]}} : {}),
+    ...(state.trainer_opponent === undefined ? {} : { trainer_opponent: state.trainer_opponent }),
   };
 }
 // A log whose run_start this viewer's schema rejects (a newer harness): its status, turn and timing
@@ -98,7 +99,7 @@ export function createNativeRecordingTailer(path: string, id: string, qualified:
       if (states.size >= evidenceLimit) throw new Error("Native evidence state bound exceeded; no split graded");
       const nativeState = compact(event); states.set(event.seq, nativeState);
       view.apply(nativeState); view.events.length = 0;
-      const resumedSplit = (name: string): boolean => name === "PLAYER_HOUSE_EXITED_AFTER_CLOCK" || name === "RIVAL_HOUSE_ENTERED" || name === "RIVAL_HOUSE_EXITED" || name === "ROUTE_101_AFTER_HANDOFF" || name === "PLAYER_BEDROOM_EXITED_AFTER_CLOCK" || name === "ROUTE_101_AFTER_RIVAL_BATTLE" || name === "LITTLEROOT_AFTER_RIVAL_BATTLE" || name === "RIVAL_BATTLE_STARTED" || name === "RIVAL_BATTLE_DEFEATED" || name === "RIVAL_OLDALE_SEND_OFF" || name === "CLOCK_SET" || name === "PLAYER_BEDROOM";
+      const resumedSplit = (name: string): boolean => name === "ROXANNE_FIRST_INTERACTION" || name === "PLAYER_HOUSE_EXITED_AFTER_CLOCK" || name === "RIVAL_HOUSE_ENTERED" || name === "RIVAL_HOUSE_EXITED" || name === "ROUTE_101_AFTER_HANDOFF" || name === "PLAYER_BEDROOM_EXITED_AFTER_CLOCK" || name === "ROUTE_101_AFTER_RIVAL_BATTLE" || name === "LITTLEROOT_AFTER_RIVAL_BATTLE" || name === "RIVAL_BATTLE_STARTED" || name === "RIVAL_BATTLE_DEFEATED" || name === "RIVAL_OLDALE_SEND_OFF" || name === "CLOCK_SET" || name === "PLAYER_BEDROOM";
       if (view.start !== null && !view.start.harness_features.includes("probe") && (view.start.start_state.kind === "boot" || view.milestones.some(mark => mark.derived === true && resumedSplit(mark.name)))) for (const recovered of view.milestones) {
         if (view.start.start_state.kind !== "boot" && !resumedSplit(recovered.name)) continue;
         if (recovered.derived !== true || recovered.origin !== "observed" || recovered.evidence === undefined || splits.some(s => s.name === recovered.name)) continue;
@@ -173,7 +174,7 @@ export function createNativeRecordingTailer(path: string, id: string, qualified:
       if (existing >= 0 && outputSplits[existing]?.derived !== true) continue;
       if (existing >= 0) { outputSplits.splice(existing, 1); outputRaw.splice(outputRaw.findIndex(s => s.name === mark.name), 1); }
       const raw = Date.parse(mark.sample.t) - (view.startMs ?? 0);
-      outputSplits.push({ name: mark.name, elapsedMs: Math.max(0, raw - view.control.pausedBefore(Date.parse(mark.sample.t))), segmentMs: 0, seq: mark.sample.seq, turn: mark.sample.turn, inputTokens: 0, outputTokens: 0, derived: true, screenshotEvidence: mark.screenshots });
+      outputSplits.push({ name: mark.name, elapsedMs: Math.max(0, raw - view.control.pausedBefore(Date.parse(mark.sample.t))), segmentMs: 0, seq: mark.sample.seq, turn: mark.sample.turn, inputTokens: 0, outputTokens: 0, derived: true, observedMs:Date.parse(mark.sample.t), screenshotEvidence: mark.screenshots });
       outputRaw.push({ name: mark.name, elapsedMs: raw, evidence: mark.screenshots.map(s => s.seq) });
     }
     outputSplits.sort((a, b) => a.elapsedMs - b.elapsedMs || a.seq - b.seq);

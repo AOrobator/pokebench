@@ -1,3 +1,4 @@
+import { roxanneFirstInteraction } from "./roxanne-interaction.js";
 import {completedHeal} from "./activity.js";
 import type { RunEvent } from "./events.js";
 import type { GameStateSnapshot, StateSource } from "./game-state.js";
@@ -126,7 +127,7 @@ const routeProof = (name: string, states: readonly GameStateSnapshot[]): boolean
 };
 const routeNames = new Set(["RIVAL_OLDALE_SEND_OFF", "ROUTE_101_AFTER_RIVAL_BATTLE", "LITTLEROOT_AFTER_RIVAL_BATTLE", "PLAYER_BEDROOM_EXITED_AFTER_CLOCK", "PLAYER_HOUSE_EXITED_AFTER_CLOCK", "RIVAL_HOUSE_ENTERED", "RIVAL_HOUSE_EXITED", "ROUTE_101_AFTER_HANDOFF"]);
 // Recorded and graded, but never reported to the model or used to reset its stall clocks.
-export const MEASUREMENT_ONLY_MILESTONES: ReadonlySet<string> = new Set(["PLAYER_BEDROOM_EXITED_AFTER_CLOCK", "ROUTE_101_AFTER_HANDOFF", "RIVAL_BATTLE_STARTED", "RIVAL_BATTLE_DEFEATED", "RIVAL_OLDALE_SEND_OFF", "ROUTE_101_AFTER_RIVAL_BATTLE", "LITTLEROOT_AFTER_RIVAL_BATTLE"]);
+export const MEASUREMENT_ONLY_MILESTONES: ReadonlySet<string> = new Set(["ROXANNE_FIRST_INTERACTION", "PLAYER_BEDROOM_EXITED_AFTER_CLOCK", "ROUTE_101_AFTER_HANDOFF", "RIVAL_BATTLE_STARTED", "RIVAL_BATTLE_DEFEATED", "RIVAL_OLDALE_SEND_OFF", "ROUTE_101_AFTER_RIVAL_BATTLE", "LITTLEROOT_AFTER_RIVAL_BATTLE"]);
 
 // Legacy names retain their old meaning; exact confirmation/exit have new IDs.
 // Flags and stage meanings are traced in docs/findings/story-milestones.md.
@@ -218,6 +219,7 @@ export const MILESTONES: readonly Milestone[] = [
   { name: "RUSTBORO_GYM_TRAINER_JOSH_DEFEATED", kind: "story", reached: gymTrainer("rustboro_josh_defeated") },
   { name: "RUSTBORO_GYM_TRAINER_TOMMY_DEFEATED", kind: "story", reached: gymTrainer("rustboro_tommy_defeated") },
   { name: "RUSTBORO_GYM_TRAINER_MARC_DEFEATED", kind: "story", reached: gymTrainer("rustboro_marc_defeated") },
+  { name: "ROXANNE_FIRST_INTERACTION", kind: "story", reached: roxanneFirstInteraction },
   { name: "ROXANNE_DEFEATED", kind: "story", reached: trainer("roxanne_defeated") },
   { name: "RUSTBORO_GYM_COMPLETE", kind: "story", reached: flag("rustboro_gym_complete") },
   { name: "STONE_BADGE", kind: "story", reached: (s) => savedWorld(s) ? s.badges.includes("STONE") : null },
@@ -238,7 +240,7 @@ export const REQUIRED_FRONTIER_MILESTONES: readonly string[] = [
   "ROUTE_101_AFTER_RIVAL_BATTLE", "LITTLEROOT_AFTER_RIVAL_BATTLE", "RECEIVED_POKEDEX",
   "STARTER_TUTORIAL_COMPLETE", "RUNNING_SHOES_RECEIVED", "ROUTE_102", "PETALBURG_CITY",
   "DAD_FIRST_MEETING", "WALLY_TUTORIAL_COMPLETE", "ROUTE_104", "PETALBURG_WOODS",
-  "TEAM_AQUA_WOODS_EVENT_COMPLETE", "RUSTBORO_CITY", "RUSTBORO_CITY_GYM", "ROXANNE_DEFEATED",
+  "TEAM_AQUA_WOODS_EVENT_COMPLETE", "RUSTBORO_CITY", "RUSTBORO_CITY_GYM", "ROXANNE_FIRST_INTERACTION", "ROXANNE_DEFEATED",
   "RUSTBORO_GYM_COMPLETE", "STONE_BADGE", "ROCK_TOMB_RECEIVED",
 ];
 // Optional activities can happen almost anywhere after their prerequisite (a heal in Oldale before

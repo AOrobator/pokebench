@@ -1,3 +1,4 @@
+import { visualSplitView } from "./visual-split-view.js";
 import { metricHistory } from "./metric-history.js";
 // Browser glue: picks a run, follows its event stream, and renders the Open
 // PokéNav layout either live (wall clock) or as a replay (cursor clock).
@@ -1344,7 +1345,8 @@ export class App {
     const clock = this.clock;
     const nowMs = this.mode === "replay" && clock !== null ? clock.positionMs : this.headReady && this.view.end !== null ? (this.view.lastMs ?? this.deps.now()) : this.deps.now();
     if (this.mode === "replay") this.advanceShown(nowMs);
-    const view = this.shown;
+    const visualRun = this.workbench?.runs.find(run => run.id === this.runId);
+    const view = visualSplitView(this.shown, visualRun, nowMs);
     const live = this.live;
     if (live) this.wasLive = true;
     const label = this.unresponsive ? { cls: "ended", text: "NOT RESPONDING" } : live || view.end !== null ? stateLabel(view, live) : { cls: this.mode, text: MODE_TEXT[this.mode] };
@@ -1365,7 +1367,7 @@ export class App {
     this.setHtml("stats", sideStats(view, nowMs));
     if (this.extensionDialog().open || this.extensionPending !== null) this.updateExtension();
     const recordedSplits = this.mode === "loading" || this.historyStream !== null ? this.recordedSplits() : undefined;
-    const splitView = this.mode === "loading" ? view : this.view;
+    const splitView = this.mode === "loading" ? view : visualSplitView(this.view, visualRun, this.view.lastMs ?? nowMs);
     this.setHtml("split-preview", splitStrip(splitView, recordedSplits, true));
     this.setHtml("split-strip", splitStrip(splitView, recordedSplits));
     this.setHtml("split-times", splitTimes(splitView, this.frontier, recordedSplits));

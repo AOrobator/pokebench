@@ -1,3 +1,6 @@
+import { readVisualPlan, visualEvidenceSignature } from "./frontier-visual.js";
+import { readNativeRecording } from "./frontier-recording.js";
+import { qualifiedNativeMilestone } from "@pokebench/agent/milestones";
 // Read-only access to runs/<id>/events.jsonl (PB7: the viewer's record of truth).
 import { createReadStream, closeSync, existsSync, fstatSync, openSync, readSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
@@ -485,6 +488,14 @@ export function baselineOf(runsRoot: string, runId: string, chunkBytes = BASELIN
     if (terminal.reason === "operator_abort") throw new BaselineError("aborted human sessions cannot be benchmark baselines");
   }
   if (view.state === null && !start.harness_features.includes("ram-state-v1")) throw new BaselineError("baseline has no verified RAM-state provenance");
+  // Historical screenshot reconstruction has the same hash/sample qualification as comparisons.
+  // Only the requested first-interaction gap is added here; original event logs stay untouched.
+  if (readVisualPlan(eventsPath(runsRoot, runId))?.milestones.some(mark => mark.name === "ROXANNE_FIRST_INTERACTION") === true) {
+    const recording = readNativeRecording(eventsPath(runsRoot, runId), runId, qualifiedNativeMilestone);
+    const mark = recording.splits.find(split => split.name === "ROXANNE_FIRST_INTERACTION");
+    const raw = recording.measurement.rawSplits.find(split => split.name === "ROXANNE_FIRST_INTERACTION");
+    if (mark !== undefined && raw !== undefined && !view.milestones.some(m => m.name === mark.name)) view.milestones.push({name:mark.name,ms:startMs+raw.elapsedMs,seq:mark.seq,derived:true,kind:"story",origin:"observed",evidence:raw.evidence,...(mark.screenshotEvidence === undefined ? {} : {screenshotEvidence:mark.screenshotEvidence})});
+  }
   // Operator pauses are not run time: splits exclude paused time before each milestone.
   const pausedBefore = (ms: number): number => view.control.pauses.reduce((sum, p) => sum + Math.max(0, Math.min(ms, p.endMs ?? ms) - p.startMs), 0);
   return { run: runId, milestones: view.milestones.filter((m) => m.origin !== "present_at_start").map((m) => ({ name: m.name, offsetMs: m.ms - startMs - pausedBefore(m.ms), ...(m.derived === true ? { derived: true } : {}) })) };
@@ -522,7 +533,7 @@ export function createBaselineReader(runsRoot: string, options: BaselineReaderOp
     const path = eventsPath(runsRoot, runId);
     try {
       const stat = statSync(path, { bigint: true });
-      return [path, stat.dev, stat.ino, stat.size, stat.mtimeNs, stat.ctimeNs].join(":") + recoveredSignature(runDir(runsRoot, runId));
+      return [path, stat.dev, stat.ino, stat.size, stat.mtimeNs, stat.ctimeNs].join(":") + recoveredSignature(runDir(runsRoot, runId)) + visualEvidenceSignature(path);
     } catch {
       cache.delete(runId);
       throw new RunsError(`run ${runId} has no readable events.jsonl`);

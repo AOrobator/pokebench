@@ -14,6 +14,7 @@ describe("birch-intro-pages-v1", () => {
     expect(SERVER_FEATURES.at(-1)).toBe(ID);
     expect(playHarnessFeatures(ALL_ON, null).at(-1)).toBe(ID);
     expect(featureInfo(ID)).toMatchObject({ group: "observation", switchable: true, title: "BIRCH INTRO PAGES", needs: null });
+    expect(featureInfo(ID).description).toContain("Bundle arm only, default off");
     expect(featureInfo(ID).description).toContain("Off: ");
     expect(featureInfo(ID).description).toContain("birch_intro_page");
     expect(featureInfo(ID).description).toContain("0x080309CD");
@@ -46,6 +47,16 @@ describe("birch-intro-pages-v1", () => {
     expect(candidate.features[ID]).toBe(true);
     const flipped = SWITCHABLE_FEATURES.filter((feature) => incumbent.features[feature] !== candidate.features[feature]);
     expect(flipped).toEqual([ID]);
+    for (const name of ["bundle-v-control", "bundle-cook-1h", "whole-map-cook-1h", "whole-map-pair-2h", "bundle-v-control-2h"]) {
+      const fixed = JSON.parse(readFileSync(new URL(`../../../experiments/fixed/${name}.json`, import.meta.url), "utf8")) as { base: { features: Record<string, boolean> }; switches: string[] };
+      expect(fixed.base.features[ID]).toBe(false);
+      expect(fixed.switches.at(-1)).toBe(ID);
+      const bundle = { ...fixed.base.features, ...Object.fromEntries(fixed.switches.map((id) => [id, true])) };
+      expect(bundle[ID]).toBe(true);
+      if (name === "bundle-v-control") {
+        for (const [id, value] of Object.entries(bundle)) expect(incumbent.features[id]).toBe(id === ID ? false : value);
+      }
+    }
     expect(readFileSync(new URL("../../../docs/experiments/readiness.md", import.meta.url), "utf8")).toContain(`| \`${ID}\` | \`NEW_GAME_CREATED\``);
   });
 });

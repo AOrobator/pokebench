@@ -882,7 +882,7 @@ it("adds progress-aware cycles only to the bundle in canonical and current whole
 it.each(["bundle-v-control","bundle-cook-1h","whole-map-cook-1h","whole-map-pair-2h","bundle-v-control-2h"])("enables the movement, dialogue and shop repairs in %s bundle only",file=>{
  const {definition:def}=parseFixedDefinition(readFileSync(new URL(`../../../experiments/fixed/${file}.json`,import.meta.url),"utf8"));
  const phase=def.phases[0];if(phase===undefined)throw new Error("fixed definition has no phase");
- for(const id of ["rejected-movement-step-v1","observed-field-dialogue-v1","shop-interface-v1"] as const){
+ for(const id of ["rejected-movement-step-v1","observed-field-dialogue-v1","shop-interface-v1","birch-intro-pages-v1"] as const){
   expect(def.base.features[id]).toBe(false);expect(def.switches).toContain(id);
   expect(armPreset(def,phase.id,"control").features[id]).toBe(false);
   expect(armPreset(def,phase.id,"bundle").features[id]).toBe(true);

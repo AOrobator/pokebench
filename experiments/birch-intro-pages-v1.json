@@ -236,5 +236,5 @@
   "window": 4,
   "minReached": 3
  },
- "notes": "Pending and not queued. The incumbent is the bundle arm of bundle-v-control with only birch-intro-pages-v1 off. The candidate flips only that switch. Activation is NEW_GAME_CREATED, while PROF. BIRCH's speech is on screen before the name is chosen. Evidence: probe 2026-10-21T13-33-00_cursor-agent-grok-4.7_probe pressed B on the welcome and main-speech pages and every press result stayed unavailable/transitioning (world position unavailable) while Dialog stayed the whole gStringVar4 buffer. source.commit is the RED checkpoint; repin to the reviewed landing commit before use."
+ "notes": "Pending and not queued. The bundle arm turns birch-intro-pages-v1 on. The incumbent is that arm with only this switch off. The candidate flips only that switch. Activation is NEW_GAME_CREATED, while PROF. BIRCH's speech is on screen before the name is chosen. Evidence: probe 2026-10-21T13-33-00_cursor-agent-grok-4.7_probe pressed B on the welcome and main-speech pages and every press result stayed unavailable/transitioning (world position unavailable) while Dialog stayed the whole gStringVar4 buffer. source.commit is the RED checkpoint; repin to the reviewed landing commit before use."
 }

@@ -223,7 +223,6 @@
   "navigate-already-here-v1",
   "auto-talk-v1",
   "story-character-stall-gate-v1",
-  "positive-supervisor-v1",
   "unfinished-activity-v1",
   "exit-labels-v2",
   "heal-before-trainers-v2",
@@ -249,7 +248,8 @@
   "jit-guide-reuse-v1",
   "supervisor-briefing-v2",
   "ineffective-navigation-v2",
-  "fixed-point-breaker-v1"
+  "fixed-point-breaker-v1",
+  "positive-supervisor-v1"
  ],
  "onInBoth": [
   "battle-decision-ready-v1",

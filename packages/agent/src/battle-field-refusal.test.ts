@@ -41,6 +41,19 @@ const model: Model<"openai-completions"> = {
 };
 
 describe("recorded no-battle refusals", () => {
+  it("keeps a qualified field warning through unchanged observations with interaction detection off", () => {
+    const notices: LoopNotice[] = [];
+    const d = new LoopDetector(n => notices.push(n), undefined, "enforced", false, undefined, false, false, false, false, false, false, false, false, false, true);
+    const free = { ...field, field_controls_locked: false, world_context: { objects: [], triggers: [], dialogue: null, message: null } };
+    for (let i = 0; i < 2; i++) d.complete({ name: "battle_action", args: {}, isError: false, text: refusal, acted: false, state: free });
+    expect(notices.map(n => n.phase)).toEqual(["warning"]);
+    expect(d.context()).toContain(refusal);
+    d.complete({ name: "observe", args: {}, isError: false, text: "unchanged field", acted: false, state: free });
+    expect(notices.map(n => n.phase)).toEqual(["warning"]);
+    d.complete({ name: "observe", args: {}, isError: false, text: "changed field", acted: false, state: { ...free, position: { x: 2, y: 9 } } });
+    expect(notices.map(n => n.phase)).toEqual(["warning", "recovered"]);
+  });
+
   it("warns at original result28167, across requested moves, and recovers when the field wait changes", () => {
     const notices: LoopNotice[] = [];
     const detector = new LoopDetector(n => notices.push(n), undefined, "enforced", true, undefined, false, false, true, true, true, false, false, false, false, true);

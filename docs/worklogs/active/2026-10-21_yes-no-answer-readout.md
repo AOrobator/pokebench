@@ -73,3 +73,8 @@ No accepted fixes, so no round 2. Logs under runs/yes-no-answer-readout/review-r
 ## Archive Milestone (user-gated)
 
 - [ ] ASK USER: archive after landing
+
+## Landing (2026-10-20, 9:15 PM ET)
+
+- Merged main a5b23bac (lane leases) with no conflicts at 3fd90121. Gates after the merge: lint and build clean; agent 3031/3031, viewer 1457/1457, pytest 3166; coverage agent 97.22/93.04/97.57/99.16, viewer 95.14/91.07/93.84/97.72, Python lines 97.11 branches 92.69 functions 100.
+- Pending experiment source.commit pinned to 3fd90121. Merge slot from the coordinator; fast-forward to local main.

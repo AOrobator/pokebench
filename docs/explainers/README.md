@@ -185,3 +185,5 @@ The original ignored runs/explainers copies remain for existing links. Make futu
 - [Shop menu refusal recovery](menu-refusal-recovery-v1.html): verified shop refusal feedback and bounded stopping, default OFF and bundle ON.
 
 - [First Roxanne interaction](roxanne-first-interaction-v1.html) — measurement and historical evidence.
+
+- [Progress-aware cycles](progress-aware-cycles-v1.html): bounded healing trips and milestone-turn precedence.

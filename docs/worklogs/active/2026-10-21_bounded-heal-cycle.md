@@ -13,7 +13,7 @@ New default-OFF `progress-aware-cycles-v1`. A bounded trip tracker consumes type
 INV-1 OFF and absent reproduce prior events and model context byte for byte.
 INV-2 Only actual gate refusal starts a trip; repeated refusals cannot renew its bounds; confirm/battle cancels it.
 INV-3 Route deviation, repeated no-progress calls and a hard completed-call limit end protection. Full HP must be observed at an offered destination before return protection starts.
-INV-4 Protection covers return through the explicit route and ends on arrival at the original opponent map. Non-cycle guards stay active.
+INV-4 Protection covers return through the explicit route and ends at the refusal position or beside the opponent on the original map. Non-cycle guards stay active.
 INV-5 Native progress has precedence over stale cycle evidence on its turn. Recovery rows must not imply a newly delivered warning.
 INV-6 Typed diagnostics are visible through existing Activity History/raw events; no new timeline marks. Historical logs remain immutable.
 
@@ -22,7 +22,7 @@ Local-only logic and map-table data. No game actions chosen, subprocess addition
 
 ## Milestones
 M1 — Single integrated change (shared tracker and owners must ship together)
-- [ ] Failing tests and RED commit: route/HP/return bounds, milestone turn, actual replay and OFF invariance.
+- [x] Failing tests and RED commit: route/HP/return bounds, milestone turn, actual replay and OFF invariance.
 - [ ] Implementation and GREEN commit: production wiring, schema, switch registry/defaults, bundle entries, pending experiment, linked HTML explainer.
 - [ ] Gates: test, lint, build, coverage, vendor, schema/pages/experiment checks; mutation receipts.
 - [ ] Production model-delivery and viewer/replay/explainer proof.
@@ -33,6 +33,8 @@ M1 — Single integrated change (shared tracker and owners must ship together)
 Replay schema-valid source evidence, inspect model context at next decision, test genuine loops after expiry/deviation and on confirmed battle. Candidate viewer uses scratch run root without approvals. Keep implementation, review, landing and live proof distinct.
 
 ## Session Log
+COMMIT: `test: bounded gate heal trip and progress-aware cycle contracts (RED)` (1b67eb27).
+
 2026-10-21: read-only discovery complete, isolated managed worktree created from main. No running gameplay or historical recording changed.
 
 ## Surprises
@@ -46,3 +48,7 @@ None.
 
 ## Archive Milestone (user-gated)
 - [ ] ASK USER: archive this worklog.
+
+Pre-sync validation: coverage runs all tests: agent 3295, viewer 1607, Python 3600. Agent statements/branches/functions/lines 97.15/93.08/97.60/99.14; viewer 95.42/91.33/94.33/97.90; Python lines/branches/functions 97.23/92.98/100. Build, lint, vendor and pages-check pass. Five deletion mutations fail their intended tests and restored suite passes (runs/reviews/progress-aware-cycles/mutation-receipts.json). The initial pi test was corrected to use a genuine recorder milestone source rather than a manually constructed event with a wrong run id. Actual pinned pi now proves no stale note in the next request.
+
+The standard experiments-check resolves canonical main and finds pre-existing starter-decision-salience ledger errors (150 invalid rows); no candidate-definition error was reported. Candidate definitions will also be validated separately against a scratch root. Main advanced with mart-stock-readout-v1 during development; sync required before freezing review.

@@ -1,3 +1,4 @@
+import {ProgressAwareCycles} from "../progress-aware-cycles.js";
 import {NavigationFailure} from "../navigation-failure.js";
 import type { RunEvent } from "../events.js";
 import { MEASUREMENT_ONLY_MILESTONES, MILESTONES } from "../milestones.js";
@@ -105,13 +106,14 @@ export class LoopCoordinator {
     // same-target-no-progress-v1: the warned target; such an episode closes only on that guard's resets.
     sameTarget: string | null;
   } | null = null;
-  private stallNote: { text: string; exposed: boolean } | null = null;
+  private stallNote: { text: string; exposed: boolean; kind:StallKind } | null = null;
   private run: string | null = null;
   private eventSeq = -1;
   private nativeState: GameStateSnapshot | undefined;
   private readonly nativeValues = new Map<string, boolean | null>();
   private readonly achieved = new Set<string>();
   private readonly callTracker = new CallTracker();
+  private readonly progressCycles:ProgressAwareCycles|null;
 
   constructor(notify: (notice: LoopNotice) => void, options: LoopCoordinatorOptions = {}) {
     const {
@@ -133,6 +135,7 @@ export class LoopCoordinator {
       ineffectiveNavigation = false,
       sameTargetNoProgress = false,
     } = options;
+    this.progressCycles=options.progressAwareCycles===true?new ProgressAwareCycles():null;
     this.notify = notify;
     this.policy = policy;
     this.mode = mode;
@@ -171,6 +174,11 @@ export class LoopCoordinator {
     if (event.run !== this.run || event.seq <= this.eventSeq) return;
     this.eventSeq = event.seq;
     this.turn = event.turn;
+    this.progressCycles?.observe(event);
+    if(event.type==="milestone"&&this.progressCycles?.hold()?.reason==="milestone"){
+      this.retireCycles(event.seq,"newly observed milestone");
+      this.basic.resetCycles();this.field.resetNativeProgress(this.callTracker.pending());this.field.milestone();
+    }
     if (event.type === "turn_start" && this.episode !== null)
       this.episode.exposed = true;
     if (this.transitions && event.type === "milestone" && event.origin !== "present_at_start" && event.name !== "GAME_RUNNING" && !MEASUREMENT_ONLY_MILESTONES.has(event.name))
@@ -346,6 +354,15 @@ export class LoopCoordinator {
           : id === "battle-menu" ? "interface-closed" : "novel-state",
       });
     }
+    const cycleHold=this.progressCycles?.hold()??null;
+    if(cycleHold!==null){
+      for(const [id,candidate] of candidates)if(candidate.kind==="cycle"||(cycleHold.reason==="milestone"&&candidate.kind==="trigger_script")){
+        candidates.delete(id);
+        this.notify({kind:candidate.kind,message:`Not sent (progress-aware-cycles-v1): ${cycleHold.reason}; cycle evidence retired.`,calls:this.completed,evidence:[...cycleHold.evidence,seq].filter((v,i,a)=>a.indexOf(v)===i),mode:"diagnostic",phase:"would_warn"});
+      }
+      this.retireCycles(seq,cycleHold.reason==="milestone"?"newly observed milestone":"gate-directed healing trip");
+      this.basic.resetCycles();this.field.resetNativeProgress(this.callTracker.pending());this.field.milestone();
+    }
     const selected = firstLoopHit(this.rules, call, { seq, policy: this.policy, candidates });
     const hit = selected?.hit.kind ?? null;
     if (same?.warning != null && (this.episode === null || this.episode.sameTarget !== null)) {
@@ -409,7 +426,7 @@ export class LoopCoordinator {
   stall(kind: StallKind, text: (calls: number) => string, evidence: readonly number[]): boolean {
     if (this.stopped || this.mode === "diagnostic" || this.episode !== null || this.stallNote !== null) return false;
     const message = text(this.completed);
-    this.stallNote = { text: message, exposed: false };
+    this.stallNote = { text: message, exposed: false,kind };
     this.notify({ kind, message, calls: this.completed, evidence: evidence.filter((value, index, all) => all.indexOf(value) === index), mode: "enforced", phase: "supervisor" });
     return true;
   }
@@ -469,7 +486,19 @@ export class LoopCoordinator {
       : base;
   }
 
+  cycleHold():ReturnType<ProgressAwareCycles["hold"]> {return this.progressCycles?.hold()??null;}
+
+  private retireCycles(seq:number,reason:string):void {
+    if(this.episode?.kind==="cycle"||reason.includes("milestone")&&this.episode?.kind==="trigger_script"){
+      this.episode.message=`Cycle feedback retired: ${reason}.`;
+      this.episode.briefing=null;
+      this.recover(seq,false);
+    }
+    if(this.stallNote?.kind==="map_cycle"||reason.includes("milestone")&&this.stallNote?.kind==="milestone_drought")this.stallNote=null;
+  }
+
   private recover(seq: number, novel: boolean): void {
+    if(this.progressCycles!==null&&novel&&(this.episode?.kind==="cycle"||this.episode?.kind==="trigger_script")){this.episode.message="Cycle feedback retired: newly observed game progress.";this.episode.briefing=null;}
     if (this.episode !== null) this.notice("recovered", seq);
     this.episode = null;
     if (novel) {

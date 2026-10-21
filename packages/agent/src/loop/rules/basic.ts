@@ -221,6 +221,8 @@ export class BasicRules {
     this.messageVisits.length = 0;
   }
 
+  resetCycles():void {this.history.length=0;}
+
   resetNativeProgress(): void {
     this.planning = 0;
     this.observations = 0;

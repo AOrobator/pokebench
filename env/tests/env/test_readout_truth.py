@@ -336,7 +336,7 @@ def test_state_json_is_unchanged_where_no_interface_owner_changes() -> None:
 def test_switch_is_a_default_off_server_feature() -> None:
     assert SWITCH in SERVER_FEATURES
     assert SWITCH in features_off_from_env({})
-    assert SERVER_FEATURES[-32:-29] == (
+    assert SERVER_FEATURES[-33:-30] == (
         "readout-truth-v1",
         "birch-speech-pages-v1",
         "blackout-readout-v1",

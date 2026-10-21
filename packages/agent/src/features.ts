@@ -203,6 +203,7 @@ export const SWITCHABLE_FEATURES = [
   "cut-off-reply-feedback-v1",
   "trainer-sight-check-v2",
   "auto-talk-v2",
+  "map-wide-triggers-v1",
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
 
@@ -519,6 +520,7 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("cut-off-reply-feedback-v1", "guard", "CUT-OFF REPLY FEEDBACK", null, "Bundle arm only, default off (the operator 2026-10-21: \"we should make sure to address all of the harness bugs\", after the GLM-5.3-Flash run analysis). Four GLM runs had 11 replies stop at the max_tokens limit with no tool call (for example 2026-10-21T05-17-26_glm53-mac_ad34 seq 13818, 14408, 14998 in a row), each after hand-counting the map. The next request only said \"Keep playing: call observe or press\", so the model began the same count again. With this switch on, after a reply that stopped at the limit with no tool call, the next message says the reply reached the output limit before any tool call, so nothing happened in the game, and asks for one tool call now; for walking it names navigate_to_target and navigate_to, which find the path from the readout. Nothing sent to the model is clipped and the failure count is unchanged. Off: the usual \"Keep playing\" nudge, as before."),
   on("trainer-sight-check-v2", "guard", "TRAINER SIGHT CHECK: TARGET WALKS", "trainer-sight-check-v1", "Bundle arm only, default off (the operator 2026-10-21: \"we should make sure to address all of the harness bugs\", after the GLM-5.3-Flash run analysis). Run 2026-10-21T01-16-23_glm53-mac_e9ee walked into three Route 102 trainers' sight with navigate_to_target WEST (seq 8193, 10444, 10997), and 2026-10-21T07-17-35_glm53-mac_acfa did the same; trainer-sight-check-v1 only checks navigate_to. With this switch on, navigate_to_target routes get the same check: a planned route through a tile an unbeaten trainer on this map can see is not walked, the result names the tiles and the trainer as trainer-sight-check-v1 does, and repeating the call with the confirm argument walks it anyway. Needs trainer-sight-check-v1. Off: navigate_to_target walks without the check, as before."),
   on("auto-talk-v2", "guard", "AUTO-TALK: SKIP BEATEN TRAINERS", "auto-talk-v1", "Bundle arm only, default off (the operator 2026-10-21: \"we should make sure to address all of the harness bugs\", after the GLM-5.3-Flash run analysis). In run 2026-10-21T01-16-23_glm53-mac_e9ee, auto-talk walked to and talked to Route 102's Calvin after he was beaten (seq 10359). With this switch on, a trainer the readout shows as defeated is not an auto-talk target. Needs auto-talk-v1. Off: auto-talk picks as before."),
+  on("map-wide-triggers-v1", "observation", "MAP-WIDE TRIGGERS", "coordinate-script-conditions-v1", "Bundle arm only, default off (the operator 2026-10-21: \"we should make sure to address all of the harness bugs\", after the GLM-5.3-Flash run analysis). The game server listed coordinate-script trigger tiles only within 7 tiles of the player. In run 2026-10-21T01-16-23_glm53-mac_e9ee (seq 1985-2017; acfa seq 2981-3014) navigate_to_target NORTH in LITTLEROOT TOWN planned an 8-tile stride from (10,17) to (10,9) through a trigger 8 rows away; the stride stopped at (10,10) when the trigger came into range and the call ended. The same window made the trigger-avoiding route flip east and west as the listed set changed (e9ee seq 7063-7116). With this switch on, the state the planner reads lists every coordinate trigger on the current map with its condition; the readout text still lists only the nearby ones, so what the model reads is unchanged. Applied by the game server. Needs coordinate-script-conditions-v1. Off: the state lists triggers within 7 tiles only, as before."),
 ];
 
 export const ALL_ON: FeatureSet = Object.fromEntries(SWITCHABLE_FEATURES.map((id) => [id, true])) as Record<SwitchableFeature, boolean>;
@@ -583,6 +585,7 @@ export const SERVER_FEATURES: readonly SwitchableFeature[] = [
   "caught-dex-input-v1",
   "exp-next-level-v1",
   "pokedex-own-v1",
+  "map-wide-triggers-v1",
 ];
 
 export function serverFeatureEnv(features: FeatureSet): { POKEBENCH_ACTIVE_UI: "0" | "1"; POKEBENCH_FEATURES_OFF: string } {
@@ -767,6 +770,7 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("cut-off-reply-feedback-v1"),
     ...when("trainer-sight-check-v2"),
     ...when("auto-talk-v2"),
+    ...when("map-wide-triggers-v1"),
   ];
 }
 

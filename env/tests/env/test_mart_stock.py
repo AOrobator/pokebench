@@ -309,7 +309,7 @@ def test_a_failed_read_is_a_visible_harness_bug_not_a_guess() -> None:
 
 
 def test_switch_is_registered_server_side_last_and_default_off() -> None:
-    assert SERVER_FEATURES[-4] == SWITCH == "mart-stock-readout-v1"
+    assert SERVER_FEATURES[-5] == SWITCH == "mart-stock-readout-v1"
     assert SWITCH in features_off_from_env({})
     assert features_off_from_env({"POKEBENCH_FEATURES_OFF": ""}) == frozenset()
 

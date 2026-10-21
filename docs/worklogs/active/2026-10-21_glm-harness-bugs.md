@@ -90,8 +90,11 @@ No new subprocesses, network calls or file paths. RAM reads go through `pokebenc
 - [x] Multi-model review loop until clean: round 1 on f31463bf..acc661b8 (SHA-256 f1bf44d5…) — Claude (subagent), Grok, GPT (codex) LGTM. Non-blocking: a beaten trainer who is also an untalked story character stays a story candidate (by contract).
 
 **M6 — Littleroot north stride stop and story-trigger avoidance**
-- [ ] RAM re-parse at e9ee s7116, acfa s3014, ad34 s12351; verdict recorded here
-- [ ] If a harness bug: tests, switch, fix, gates, review; otherwise DEFERRED with the reason
+- [x] RAM re-parse at e9ee s7116, acfa s3014, ad34 s12351; verdict recorded in the Session Log (stride stop: harness bug, the 7-tile trigger window; ad34 trigger avoidance: by design, not a bug)
+- [x] Fix design: `map-wide-triggers-v1` (server observation switch, needs coordinate-script-conditions-v1, default off): `read_world_context(map_wide_triggers=True)` keeps every coordinate trigger on the map in the state the planner reads; `WorldContext.text()` still lists only triggers within 7 tiles of the player, so the readout text is unchanged; the state JSON gains the far triggers. planStride and the trigger-avoiding planner already read `world_context.triggers`, so the stride ends one tile short of a far trigger and the avoided set stops changing as the player moves.
+- [x] Write tests: `env/tests/env/test_map_wide_triggers.py` (off keeps the window; on lists a far trigger in the state but not the text; nearby trigger text unchanged; bad pointers still dropped; read_game_state and rerender follow the switch; registered last and off by default) and `map-wide-triggers.test.ts` (registry, server env, planStride stops before a listed far trigger). Registry for the fifth switch; position and server-env assertions in older tests shifted by 1.
+- [x] COMMIT (RED): `test: map-wide coordinate triggers for the planner (RED)` — Python 4 failing
+- [ ] Implement · Gates · COMMIT (GREEN) · Review
 
 **M7 — Explainers, pending experiments, bundle proposal**
 - [ ] One explainer per switch (feature-explainer), pending experiment entries, a bundle-membership proposal for the operator

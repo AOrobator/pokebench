@@ -28,3 +28,5 @@ Instrument the viewer frame path, establish the cause of proxy stalls, and optim
 ## Multi-model review log
 
 Pending implementation and frozen packet.
+- Baseline CPU profile (owned 8808 preview, real read-only game subscriptions, scratch metadata root) identifies CRC validation ~804 ms, JSON serialization ~567 ms, event validation ~429 ms of sampled CPU. This is attribution evidence, not yet stall-duration proof. Initial measurement was interrupted by premature owned-preview shutdown and is discarded; repeat retains preview until measurement completion.
+- RED: new bounded diagnostics test suite fails because the production diagnostics module is absent; existing 1,632 viewer tests pass. An incorrect package-script separator ran the full viewer suite; subsequent focused calls use `pnpm exec vitest run <files>`.

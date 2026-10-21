@@ -9,7 +9,7 @@ import { defaultViewerBuild, gitRelation, readBuildStamp, skewOf, viewerBuildAt,
 import { createWorkbenchLoader, loadRun, workbenchSnapshot, type LoadedRun } from "./workbench-store.js";
 import { createWorkbenchStore, type RunStore } from "./baseline-store.js";
 import { handleBaselineRequest } from "./baseline-worker.js";
-import { currentRunHtml } from "./workbench-view.js";
+import { currentRunLinks } from "./workbench-view.js";
 import { startViewer, type Viewer } from "./server.js";
 
 const RUN_COMMIT = START.harness.commit;
@@ -143,10 +143,10 @@ describe("a run from a newer build than the viewer", () => {
     expect(handleBaselineRequest({ id: 3, kind: "workbench", runsRoot: r, runId: "newer", viewer: 7 })).toEqual({ id: -1, failure: "invalid baseline request" });
   });
   it("shows the problem on the current-run plate", () => {
-    const html = currentRunHtml([wbRun({ status: "live", problem: "viewer build 308ddd3 is older than this run's build 0123456: restart the viewer (just viewer-main) <x>" })], 1000, 2000, null);
+    const html = currentRunLinks([wbRun({ status: "live", problem: "viewer build 308ddd3 is older than this run's build 0123456: restart the viewer (just viewer-main) <x>" })], "unavailable").join("");
     expect(html).toContain('data-current-field="problem"');
     expect(html).toContain("restart the viewer (just viewer-main) &lt;x&gt;");
-    expect(currentRunHtml([wbRun({ status: "live" })], 1000, 2000, null)).not.toContain('data-current-field="problem"');
+    expect(currentRunLinks([wbRun({ status: "live" })], "unavailable").join("")).not.toContain('data-current-field="problem"');
   });
 });
 

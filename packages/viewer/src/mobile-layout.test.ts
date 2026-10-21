@@ -41,21 +41,10 @@ describe("phone-width watch deck", () => {
   });
 });
 
-describe("current-run name plates (stats page)", () => {
-  const css = read("style.css").replace(/\s+/g, " ");
-  it("stacks the plates in one column on a phone and lets every plate shrink instead of overflowing", () => {
-    expect(css).toContain(".wb-plates { display:grid; grid-template-columns:repeat(auto-fill,minmax(min(100%,290px),1fr)); gap:12px; }");
-    expect(css).toContain("@media(max-width:520px) { .wb-party { padding:9px; } .wb-plates { grid-template-columns:minmax(0,1fr); } }");
-    expect(css).toMatch(/\.wb-plate \{[^}]*min-width:0;/);
-    expect(css).toMatch(/\.wb-ty>em \{[^}]*overflow-wrap:anywhere;/);
-  });
-  it("blinks the NEW MILESTONE! chip at a third of the mockup's speed (3.6 s) and not at all under reduced motion", () => {
-    expect(css).toMatch(/\.wb-new-chip \{[^}]*animation:wb-new-blink 3\.6s steps\(2\) infinite;/);
-    expect(css).toContain("@keyframes wb-new-blink { 50% { opacity:.35; } }");
-    expect(css).toContain("@media(prefers-reduced-motion:reduce) { .wb-new-chip { animation:none; } }");
-  });
-  it("drops the old single-run card styles", () => {
-    expect(css).not.toContain(".wb-current {");
-    expect(css).not.toContain(".wb-current-go");
+describe("current-run trainer cards", () => {
+  it("has no obsolete name-plate CSS and lets current cards shrink", () => {
+    const css = read("style.css");
+    expect(css).not.toContain(".wb-plate"); expect(css).not.toContain(".wb-ty"); expect(css).not.toContain("wb-new-blink");
+    expect(css).toContain("width:min(100%, 400px)"); expect(css).toContain(".wb-card .wb-button { overflow-wrap:anywhere; }");
   });
 });

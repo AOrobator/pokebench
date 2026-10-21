@@ -73,6 +73,8 @@ The commit author for this repo is `aorobator <orobator.andrew@gmail.com>`, set 
 
 The repo is local only (operator decision 2026-10-14). It has no remote. Never push, never open pull requests, never add a remote. Work on a branch in its own worktree; landing means a local merge into `main`.
 
+Claude threads and Codex sessions both land on local `main`, so the landing board is the one queue for both (operator decision 2026-10-21). Run `just land-join` before merging, merge only while you are number 1, and run `just land-done` after the evidence commit. Claude talks to Codex with `just tell-codex`. Codex talks to Claude with `just tell-claude`, which a Mac Claude thread running `just claude-mailbox` receives and relays to the coordinator. Use `.claude/skills/talk-to-codex/SKILL.md`; Codex uses `.claude/skills/talk-to-claude/SKILL.md`. Messaging Codex sessions is always allowed, in any thread (operator standing approval 2026-10-21).
+
 An agent may merge its own branch into local `main` once cloud code review approves it (operator decision 2026-10-16). The full gate is in `.claude/skills/execute-worklog/SKILL.md` under "Landing on main":
 
 - Gates pass, and the Claude, Grok and GPT/Codex lanes of the review loop (`~/dev/local-inference-stack/.claude/skills/multi-model-review/SKILL.md`) each return `VERDICT: LGTM` on the frozen packet that is merged.

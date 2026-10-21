@@ -15,6 +15,7 @@ import select
 import shlex
 import subprocess
 import sys
+import time
 from collections.abc import Callable, Iterator, Sequence
 from contextlib import contextmanager
 from dataclasses import dataclass
@@ -24,6 +25,9 @@ from zoneinfo import ZoneInfo
 
 NEW_YORK = ZoneInfo("America/New_York")
 NO_MAIL = 3
+# A claim lives only between a mailbox's drain and its acknowledge, so one older than this was
+# abandoned even if its process id now belongs to some other live process.
+STALE_CLAIM_SECONDS = 60.0
 
 Run = Callable[[Sequence[str]], int]
 
@@ -173,23 +177,34 @@ def alive(pid: int) -> bool:
     return True
 
 
+def abandoned(claim: Path, pid: int) -> bool:
+    return not alive(pid) or time.time() - claim.stat().st_mtime > STALE_CLAIM_SECONDS
+
+
 def drain(room: Mailroom, owner: int) -> list[Letter]:
     """Claim pending letters for this listener and return everything it has not acknowledged.
 
     Each listener keeps its own claim file until `acknowledge`, so two listeners never share a
     letter, and a listener that dies before showing its letters leaves them for the next one.
+    A claim is rewritten whole and swapped in by rename before its sources are removed, so a
+    crash part-way leaves either the old files or the new claim, never a torn letter.
     """
     mine = room.claim(owner)
-    for other in sorted(room.root.glob("delivering-*.jsonl")):
-        pid = int(other.stem.removeprefix("delivering-"))
-        if pid != owner and not alive(pid):
-            with open(mine, "a", encoding="utf-8") as handle:
-                handle.write(other.read_text(encoding="utf-8"))
-            other.unlink()
+    sources = [
+        other
+        for other in sorted(room.root.glob("delivering-*.jsonl"))
+        if other != mine and abandoned(other, int(other.stem.removeprefix("delivering-")))
+    ]
     if room.pending.exists():
-        with open(mine, "a", encoding="utf-8") as handle:
-            handle.write(room.pending.read_text(encoding="utf-8"))
-        room.pending.unlink()
+        sources.append(room.pending)
+    if sources:
+        body = mine.read_text(encoding="utf-8") if mine.exists() else ""
+        body += "".join(source.read_text(encoding="utf-8") for source in sources)
+        staging = room.root / f".claim-{owner}.tmp"
+        staging.write_text(body, encoding="utf-8")
+        os.replace(staging, mine)
+        for source in sources:
+            source.unlink()
     if not mine.exists():
         return []
     lines = mine.read_text(encoding="utf-8").splitlines()
@@ -263,7 +278,10 @@ def codex_sessions(index: Path, *, limit: int) -> list[CodexSession]:
     for line in lines:
         if not line.strip():
             continue
-        raw: object = json.loads(line)
+        try:
+            raw: object = json.loads(line)
+        except json.JSONDecodeError as error:
+            raise ValueError(f"unreadable Codex session: {line!r}") from error
         if not isinstance(raw, dict):
             raise ValueError(f"unreadable Codex session: {line!r}")
         sid, name, updated = raw.get("id"), raw.get("thread_name"), raw.get("updated_at")
@@ -285,7 +303,10 @@ def format_session(session: CodexSession) -> str:
 def read_entries(room: Mailroom) -> list[BoardEntry]:
     if not room.board.exists():
         return []
-    raw: object = json.loads(room.board.read_text(encoding="utf-8"))
+    try:
+        raw: object = json.loads(room.board.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as error:
+        raise ValueError("unreadable landing board") from error
     if not isinstance(raw, list):
         raise ValueError("unreadable landing board")
     entries = []

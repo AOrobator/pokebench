@@ -3,7 +3,9 @@
 import json
 import os
 import subprocess
+import sys
 import threading
+import time
 from collections.abc import Sequence
 from datetime import UTC, datetime
 from pathlib import Path
@@ -422,3 +424,69 @@ def test_a_dead_listeners_letters_go_to_the_next_listener(tmp_path: Path) -> Non
 def test_liveness_treats_unsignalable_processes_as_alive() -> None:
     assert am.alive(1) is True
     assert am.alive(os.getpid()) is True
+
+
+def test_a_crash_while_claiming_leaves_every_letter_whole(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    r = room(tmp_path)
+    big = "y" * 200_000
+    am.tell_claude(r, sender="codex", text=big, now=T)
+    real_replace = os.replace
+
+    def crash(src: object, dst: object) -> None:
+        raise OSError("killed mid-claim")
+
+    monkeypatch.setattr(os, "replace", crash)
+    with pytest.raises(OSError, match="killed mid-claim"):
+        am.collect(r, owner=4242)
+    monkeypatch.setattr(os, "replace", real_replace)
+    assert am.collect(r) == [am.Letter(T, "codex", big)]
+
+
+def test_a_stale_claim_is_adopted_even_if_its_pid_was_reused(tmp_path: Path) -> None:
+    r = room(tmp_path)
+    am.tell_claude(r, sender="codex", text="stranded", now=T)
+    assert [x.text for x in am.wait_for_mail(r, owner=1)] == ["stranded"]
+    old = time.time() - am.STALE_CLAIM_SECONDS - 5
+    os.utime(r.claim(1), (old, old))
+    assert am.collect(r) == [am.Letter(T, "codex", "stranded")]
+    assert not r.claim(1).exists()
+
+
+def test_two_listener_processes_split_letters_exactly_once(tmp_path: Path) -> None:
+    r = room(tmp_path)
+    r.root.mkdir(parents=True)
+    env = {**os.environ, "POKEBENCH_AGENT_MAIL_DIR": str(r.root)}
+    argv = [sys.executable, "-m", "pokebench_env.agent_mail", "claude-mailbox", "--timeout", "4"]
+    listeners = [
+        subprocess.Popen(argv, env=env, stdout=subprocess.PIPE, text=True) for _ in range(2)
+    ]
+    deadline = time.monotonic() + 10
+    while time.monotonic() < deadline:
+        try:
+            os.close(os.open(r.pipe, os.O_WRONLY | os.O_NONBLOCK))
+            break
+        except OSError:
+            time.sleep(0.01)
+    sent = [f"letter {n}" for n in range(5)]
+    for text in sent:
+        am.tell_claude(r, sender="codex", text=text, now=T)
+    printed: list[str] = []
+    for listener in listeners:
+        out, _ = listener.communicate(timeout=20)
+        printed += [line.split("codex: ", 1)[1] for line in out.splitlines() if "codex: " in line]
+    printed += [letter.text for letter in am.collect(r)]
+    assert sorted(printed) == sent
+
+
+def test_corrupt_board_and_session_files_are_reported_as_unreadable(tmp_path: Path) -> None:
+    r = room(tmp_path)
+    r.root.mkdir(parents=True)
+    r.board.write_text("{not json")
+    with pytest.raises(ValueError, match="unreadable landing board"):
+        am.read_board(r)
+    index = tmp_path / "index.jsonl"
+    index.write_text("{not json\n")
+    with pytest.raises(ValueError, match="unreadable Codex session"):
+        am.codex_sessions(index, limit=5)

@@ -77,7 +77,7 @@ describe("waypoint history lifetime and bounds",()=>{
   const h=harness(true);await h.call();h.set({...B,position:{x:15,y:18}});expect(await h.call()).toContain("arrived at requested coordinate");h.set(B);expect(await h.call()).toContain("(15,23) on the east edge");
  });
  it("appends metadata and keeps omitted/flag defaults OFF",()=>{
-  const id="navigation-refusal-reasons-v3";expect(SWITCHABLE_FEATURES.at(-2)).toBe(id);expect(playHarnessFeatures(ALL_ON,null).at(-2)).toBe(id);expect(flagFeatures(flags)[id]).toBe(false);
+  const id="navigation-refusal-reasons-v3";expect(SWITCHABLE_FEATURES.at(-3)).toBe(id);expect(playHarnessFeatures(ALL_ON,null).at(-3)).toBe(id);expect(flagFeatures(flags)[id]).toBe(false);
   const preset=parsePlayPreset({version:2,id:"old",target:null,limits:{maxTurns:10,maxWallMs:1000,failureLimit:3},sampling:{thinkingLevel:"medium",maxTokens:1000},features:flagFeatures(flags)});expect(presetFeatures(preset)[id]).toBe(false);
  });
 });

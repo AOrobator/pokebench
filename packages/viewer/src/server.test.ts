@@ -1156,6 +1156,15 @@ it("serves the YES/NO answer readout explainer byte for byte, mapped from its ca
  expect(reply.status).toBe(200);expect(reply.body.equals(tracked)).toBe(true);expect(reply.body.toString()).toContain("YES/NO answer readout");
 });
 
+it("serves the tracked pending field dialogue explainer byte for byte",async()=>{
+ const tracked=readFileSync(fileURLToPath(new URL("../../../docs/explainers/pending-field-dialogue-v1.html",import.meta.url)));
+ const root=mkdtempSync(join(tmpdir(),"pokebench-pending-field-"));const staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});
+ writeFileSync(join(docs,"pending-field-dialogue-v1.html"),tracked);
+ const viewer=await startViewer({runsRoot:join(root,"runs"),staticDir,appDir:join(root,"app"),port:0});open.push(viewer);
+ const reply=await get(viewer,"/explainers/pending-field-dialogue-v1.html");
+ expect(reply.status).toBe(200);expect(reply.type).toContain("text/html");expect(reply.body.equals(tracked)).toBe(true);
+});
+
 it("serves opted-in revisions while preserving the complete workbench endpoint", async () => {
   const { runsRoot, viewer } = await fixture(); writeRun(runsRoot, "cached", fullRun());
   const payloads: unknown[] = [];

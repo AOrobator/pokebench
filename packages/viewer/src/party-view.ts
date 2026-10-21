@@ -164,7 +164,7 @@ const pad = (n: number, width: number, fill = " "): string => String(n).padStart
 
 function hpMarkup(hp: number, max: number): string {
   const { px, level } = hpBar(hp, max);
-  return `<span class="hpbar pv-hp" role="img" aria-label="HP ${String(hp)} of ${String(max)}"><i class="frame"></i><i class="track"><i class="fill ${level}" style="width:${((px / 48) * 100).toFixed(2)}%"></i></i><i class="tag"></i></span>`;
+  return `<span class="pv-hp" role="img" aria-label="HP ${String(hp)} of ${String(max)}"><i class="frame"></i><i class="track"><i class="fill ${level}" style="width:${((px / 48) * 100).toFixed(2)}%"></i></i><i class="tag"></i></span>`;
 }
 function statusMarkup(name: StatusName): string {
   return `<i class="pv-status" role="img" aria-label="${name}" style="--row:${String(STATUS_ROWS[name])}"></i>`;

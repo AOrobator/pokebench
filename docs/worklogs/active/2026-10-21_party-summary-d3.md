@@ -88,6 +88,7 @@ The operator: the green fill shows the white bar above and below it; the HP tag 
 
 The operator: the HP black box still needs to move left a bit and the black bar at the top is too thick. Cause: `hpMarkup` also gave the bar the trace page's generic `.hpbar` class (2px #444 border, 4px radius, white background, `.hpbar i` green blocks), which wraps the whole party bar in a thick rounded dark box and pushes the tag 2px right.
 - [x] RED: party-view.test.ts expects the party bars to carry `.pv-hp` only, never `.hpbar` (existing tests now select `.pv-hp`)
+- [x] GREEN: `hpMarkup` emits `class="pv-hp"` only. Gates: lint, build; coverage agent 3281 tests 99.2/93.1/97.71, viewer 1601 tests 97.9/91.33/94.33, python 3583 tests 97.23/92.97/100.
 
 ## Closing the Loop
 

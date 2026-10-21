@@ -13,7 +13,7 @@ import {ALL_ON,FEATURES,SERVER_FEATURES,SWITCHABLE_FEATURES,dependencyProblems,f
 import {flagFeatures,normalizeFeatures} from "./play-preset.js";
 import {parseGameState,type GameStateSnapshot} from "./game-state.js";
 import {gatedState,navigationTool,planNavigation,withNavigation,type NavigationOptions} from "./navigation.js";
-import {exitBlock,reachSwitches} from "./surf-gate.js";
+import {exitBlock,passesText,reachSwitches} from "./surf-gate.js";
 import {UntakenExits} from "./untaken-exits.js";
 import type {CheckedPressTool} from "./game-tools.js";
 import {IN_GAME} from "../test-support/events.js";
@@ -39,7 +39,7 @@ async function navigate(features:FeatureSet,start:GameStateSnapshot,goal:{x:numb
   presses++;
   if(mode==="walk"){
    const [dx,dy]=STEP[params.buttons[0]??""]??[0,0];const p=current.position;if(p===null)throw new Error("no position");
-   let x=p.x+dx,y=p.y+dy;while(behavior(x,y)===0xd0)y++;
+   const x=p.x+dx;let y=p.y+dy;while(behavior(x,y)===0xd0)y++;
    current={...current,position:{x,y}};
   }
   return Promise.resolve(result(current));
@@ -71,6 +71,7 @@ function field(rows:readonly string[],player:{x:number;y:number},foot:readonly s
   field_obstacles:{capabilities:{cut:false,rock_smash:false,strength:false,surf:false,waterfall:false,dive:false,mach_bike:false,acro_bike:false,go_goggles:false,devon_scope:false},
    obstacles:rocks.map((tile,id)=>({id,gate:"rock_smash",name:"BREAKABLE_ROCK",kind:"object",local_id:id+1,loaded:false,tiles:[tile],only:null,open:false,needs:"a field move you cannot use yet",text:ROCK_TEXT,beyond:beyond===null?null:{width,height,rows:hexRows(beyond)}}))}};
 }
+const grid=(s:GameStateSnapshot):NonNullable<GameStateSnapshot["navigation_grid"]>=>{const g=s.navigation_grid;if(g==null)throw new Error("no grid");return g;};
 const NAV:FeatureSet={...flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false}),"bounded-navigation-v1":true,"ledge-hops-v1":true,"one-way-tiles-v1":true,"walkable-floor-v1":true,"navigation-refusal-reasons-v1":true,"navigation-truth-v1":true,"exit-reachability-v1":true};
 const PLAN:NavigationOptions={mode:"local",ledges:true,oneWay:true,floor:true,elevation:"game"};
 
@@ -78,7 +79,7 @@ describe("field-move-gates-v1 registry, presets and server wiring",()=>{
  it("is the last switch: a default-off server observation that needs exit-reachability-v1, with OFF copy",()=>{
   expect(featureInfo(ID)).toMatchObject({group:"observation",needs:"exit-reachability-v1",switchable:true,title:"FIELD MOVE GATES"});
   expect(featureInfo(ID).description).toContain(" Off: obstacles are ignored by the flood, the exit labels, the readout and navigate_to, as before");
-  expect(featureInfo(ID).description).toContain(`the game says: \"${ROCK_TEXT}\"`);
+  expect(featureInfo(ID).description).toContain(`the game says: "${ROCK_TEXT}"`);
   expect(SWITCHABLE_FEATURES.at(-1)).toBe(ID);
   expect(FEATURES.filter(f=>f.switchable).at(-1)?.id).toBe(ID);
   expect(SERVER_FEATURES.at(-1)).toBe(ID);
@@ -153,10 +154,10 @@ describe("field-move-gates-v1 planners on synthetic maps",()=>{
  it("navigate_to walks around it with the switch, and straight into it without",async()=>{
   const s=field(CORRIDOR,{x:0,y:0},ALL);
   const on=await navigate({...NAV,[ID]:true},s,{x:8,y:0},"walk");
-  expect(on.status).toBe("arrived at requested coordinate");
-  expect(on.presses).toBe(12);
+  // Eight presses (the local bound) take it down and along the bottom row, past the rock.
+  expect(on.status).toBe("command limit: stopped at (6,2) after 8 ordinary button attempts, the most one navigate_to call makes; call navigate_to again to continue to (8,0)");
   const off=await navigate(NAV,s,{x:8,y:0},"walk");
-  expect(off.presses).toBe(8);
+  expect([off.status,off.presses]).toEqual(["arrived at requested coordinate",8]);
  });
  it("a goal only the rock cuts off is refused before walking, and a person past it is named too",async()=>{
   const rows=["...r...","...#...","...#..."];
@@ -165,7 +166,7 @@ describe("field-move-gates-v1 planners on synthetic maps",()=>{
   const why="every way to it on this map passes BREAKABLE_ROCK at (3,0), which needs a field move you cannot use yet; the game says: \"It's a rugged rock, but a POKéMON may be able to smash it.\"";
   const on=await navigate({...NAV,[ID]:true},s,{x:6,y:2},"walk");
   expect([on.presses,on.status]).toEqual([0,`(6,2) cannot be reached on foot from where you stand: ${why}`]);
-  const person={...s,interaction_targets:[{kind:"object",x:6,y:1,elevation:3,activation:"A",availability:"conditional",facing:null,local_id:9,destination:null,name:"HIKER"}],navigation_grid:{...s.navigation_grid!,objects:[{x:6,y:1}]}} as GameStateSnapshot;
+  const person={...s,interaction_targets:[{kind:"object",x:6,y:1,elevation:3,activation:"A",availability:"conditional",facing:null,local_id:9,destination:null,name:"HIKER"}],navigation_grid:{...grid(s),objects:[{x:6,y:1}]}} as GameStateSnapshot;
   const talk=await navigate({...NAV,[ID]:true},person,{x:6,y:1},"walk");
   expect(talk.presses).toBe(0);
   expect(talk.status).toBe(`(6,1) cannot be reached on foot from where you stand: ${why}`);
@@ -190,12 +191,34 @@ describe("field-move-gates-v1 planners on synthetic maps",()=>{
  });
  it("cracked floor stays avoided with the switch on",()=>{
   const s=field(["..."],{x:0,y:0},["111"]);
-  const grid=s.navigation_grid!;
-  const cracked={...s,navigation_grid:{...grid,tiles:grid.tiles.map(t=>t.x===1?{...t,behavior:0xd2}:t)}} as GameStateSnapshot;
+  const local=grid(s);
+  const cracked={...s,navigation_grid:{...local,tiles:local.tiles.map(t=>t.x===1?{...t,behavior:0xd2}:t)}} as GameStateSnapshot;
   expect(planNavigation(gatedState(cracked),{x:2,y:0},{...PLAN,slopes:true})).toBeNull();
  });
  it("the factory hands navigate_to the switch: delete the wiring and the refusal is gone",()=>{
   const tool=navigationTool({read:()=>Promise.resolve(ON_STATE()),press:()=>Promise.reject(new Error("no press")),observe:()=>Promise.resolve(result(ON_STATE())),truth:true,refusalReasons:true,exitReach:true,fieldMoveGates:true});
   expect(tool.name).toBe("navigate_to");
+ });
+});
+
+describe("field-move-gates-v1 obstacle wording",()=>{
+ const obstacle=(name:string,x:number,y:number,needs:string,text:string|null)=>({id:0,gate:"g",name,kind:"object" as const,local_id:1,loaded:false,tiles:[{x,y}],only:null,open:false,needs,text,beyond:null});
+ it("groups tiles by kind in reading order, says when the needs differ, and quotes each text once",()=>{
+  const rock=obstacle("BREAKABLE_ROCK",24,5,"a field move you cannot use yet",ROCK_TEXT);
+  const rock2=obstacle("BREAKABLE_ROCK",24,4,"a field move you cannot use yet",ROCK_TEXT);
+  const slope={...obstacle("slope tiles (metatile behavior 0xD0)",9,9,"an item you do not have yet",null),kind:"terrain" as const,local_id:null};
+  const tree=obstacle("CUTTABLE_TREE",3,3,"a field move you cannot use yet","This tree looks like it can be CUT down!");
+  expect(passesText([rock,rock2])).toBe(PASSES);
+  expect(passesText([slope])).toBe("every way to it on this map passes slope tiles (metatile behavior 0xD0) at (9,9), which needs an item you do not have yet; the game shows no message there");
+  expect(passesText([rock,slope,tree])).toBe(`every way to it on this map passes BREAKABLE_ROCK at (24,5) or slope tiles (metatile behavior 0xD0) at (9,9) or CUTTABLE_TREE at (3,3), which needs a field move or an item you cannot use yet; the game says: "${ROCK_TEXT}" and "This tree looks like it can be CUT down!"`);
+ });
+ it("an open or unknown obstacle, or a beyond mask of the wrong size, names nothing",()=>{
+  const s=ON_STATE(),field=s.field_obstacles;if(field==null)throw new Error("no field_obstacles");
+  const with_=(change:(o:typeof field.obstacles[number])=>typeof field.obstacles[number]):GameStateSnapshot=>({...s,field_obstacles:{...field,obstacles:field.obstacles.map(change)}});
+  const gates={surf:true,reach:true,gates:true};
+  expect(exitBlock(gates,with_(o=>({...o,open:null}))).obstacles(29,16)).toBeNull();
+  expect(exitBlock(gates,with_(o=>({...o,open:true}))).obstacles(29,16)).toBeNull();
+  expect(exitBlock(gates,with_(o=>({...o,beyond:o.beyond===null?null:{...o.beyond,width:5}}))).obstacles(29,16)).toBeNull();
+  expect(exitBlock(gates,with_(o=>({...o,beyond:null}))).obstacles(29,16)).toBeNull();
  });
 });

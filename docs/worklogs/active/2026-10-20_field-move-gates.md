@@ -152,9 +152,28 @@ No new subprocesses, network or file writes; reads RAM the server already reads.
       (packages/agent/src/field-move-gates.test.ts; fixture src/fixtures/field-moves-a8f9-states.json.gz
       built by scratchpad fmg_agent_fixture.py, which asserts states.off equals the recorded state body.)
   RED: 11 of 13 fail (schema rejects field_obstacles, no gatedState/slopes/obstacles in exitBlock).
-- [ ] Register `field-move-gates-v1` (observation, bundle arm only, default off, needs
-      exit-reachability-v1); feature card text.
-- [ ] COMMIT RED / implement / gates / COMMIT GREEN
+- [x] Register `field-move-gates-v1` (observation, bundle arm only, default off, needs
+      exit-reachability-v1); feature card text. (Registry landed in M2 GREEN 49efe99a; pending
+      experiment experiments/field-move-gates-v1.json, activation RUSTURF_TUNNEL, exit-reachability-v1 on
+      in both arms, not queued; readiness row in docs/experiments/readiness.md.)
+- [x] COMMIT RED / implement / gates / COMMIT GREEN
+  COMMIT: `test: field-move-gates-v1 planners, navigate_to refusal and untaken exits on a8f9 (RED)` (8efbdfd0)
+  GREEN: events.ts schema (field_obstacles; exit_reach blocked_by; schemas/events.v1.json via just
+  schema); surf-gate.ts exitBlock gains obstacles(x,y) (closed obstacles whose beyond mask holds the
+  tile or a neighbour, when the tile is off the foot area) and passesText, ReachSwitches.gates;
+  navigation.ts gatedState (closed obstacle objects occupied, loaded or not), slopes (DOWN only,
+  slide to the first non-slope tile below; walked/routeTiles/span follow the slide), a pre-walk
+  refusal naming the obstacles, and the command-limit and person texts naming them; withNavigation
+  passes fieldMoveGates; semantic-navigation plans approaches over gatedState with slopes.
+  Wiring check: deleting `fieldMoveGates:features["field-move-gates-v1"]` from withNavigation turned
+  4 of 13 field-move-gates tests red; restored, 13 green. Server: deleting `field_moves_enabled=`
+  from rerender.read_state turned 4 of 44 (test_field_move_flood + test_rerender) red; restored, green.
+  Gates: just lint 0, just coverage 0. Tests: env 3054; agent 2992 (2990 + 2 wording tests); viewer
+  1436. Coverage: env lines 97.19 / branches 92.79 / functions 100; agent 97.11 / 92.87 / 97.62 /
+  99.15 (navigation.ts 94.19 / 91.92 / 98.28 / 99.61; surf-gate.ts 100 / 90.36 / 100 / 100); viewer
+  95.09 / 91.07 / 93.85 / 97.7.
+  just experiments-check: the only problems printed are pre-existing starter-decision-salience
+  trials.jsonl lines; none for this entry.
 
 Review cadence: the worklog runs the multi-model review once, in M4, on the whole frozen packet
 (M1-M3 gates are recorded per milestone).

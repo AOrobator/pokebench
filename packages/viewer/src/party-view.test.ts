@@ -254,6 +254,14 @@ describe("partyPage", () => {
     expect(fainted.querySelector(".pv-open")?.className).toContain("faint");
     expect(dom(partyPage([{ ...COMBUSKEN, moves: null }], DATA, { slot: 0, tab: 2, move: 0 })).querySelectorAll("[data-pv-move]")).toHaveLength(0);
   });
+  it("shows NONE only for a recorded empty item slot and leaves an unknown PP maximum uncolored", () => {
+    const item = (mon: PartyMon): string => dom(partyPage([mon], DATA, { slot: 0, tab: 1, move: null })).querySelector(".pv-pair .pv-kv .v")?.textContent ?? "";
+    expect(item({ ...COMBUSKEN, held_item: 0, held_item_name: null })).toBe("NONE");
+    expect(item({ ...COMBUSKEN, held_item: 13, held_item_name: "POTION" })).toBe("POTION");
+    expect(item({ ...COMBUSKEN, held_item: undefined, held_item_name: undefined })).toBe("---");
+    const moves = dom(partyPage([{ ...COMBUSKEN, moves: [{ move_id: 999, name: null, pp: 5, pp_bonus: 0 }] }], DATA, { slot: 0, tab: 2, move: null }));
+    expect(moves.querySelector('[data-pv-move="0"] .pp .gtx')?.getAttribute("data-c")).toBe("pv-dark");
+  });
   it("says so when the party is empty", () => {
     expect(partyPage([], DATA, { slot: 0, tab: 0, move: null })).toContain("no Pokémon yet");
   });

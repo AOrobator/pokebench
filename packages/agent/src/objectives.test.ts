@@ -213,3 +213,16 @@ it("with the repeat-attempt guard off, records attempts without warnings or bloc
   for (const [id, x] of [["m1", 1], ["m2", 2], ["m3", 1], ["m4", 2], ["m5", 1]] as const) tracker.attempt(id, ["UP"], state(5, { position: { x: x === 1 ? 2 : 1, y: 1 } }), state(6, { position: { x, y: 1 } }));
   expect(tracker.attempts.every((a) => a.warning === null)).toBe(true);
 });
+
+it("keeps the party readout's summary-screen facts out of the model's record and the progress check", () => {
+  const legacy = { species: "TORCHIC", level: 16, hp: 49, max_hp: 50, species_id: 280, nickname: "TORCHIC" };
+  const facts = { attack: 23, defense: 19, speed: 21, sp_attack: 24, sp_defense: 18, ability_num: 1, ability_id: 66, met_location: 16, met_location_name: "ROUTE 101", met_level: 5, met_game: 3, ball: 4, ball_name: "POKé BALL", ot_name: "MAY", ot_gender: "female" };
+  const { tracker } = setup(); tracker.set(request);
+  tracker.observe(state(2, { party: [{ ...legacy, ...facts }] }));
+  const content = tracker.context([], 123)[0];
+  const text = content?.role === "user" ? content.content : "";
+  expect(text).toContain('"species":"TORCHIC"');
+  for (const key of Object.keys(facts)) expect(text, key).not.toContain(`"${key}"`);
+  const before = state(3, { party: [{ ...legacy, ...facts }] }), after = state(4, { party: [{ ...legacy, ...facts, attack: null, met_location_name: null }] });
+  expect(tracker.attempt("p1", ["A"], before, after).outcome).toBe(tracker.attempt("p2", ["A"], state(5, { party: [legacy] }), state(6, { party: [legacy] })).outcome);
+});

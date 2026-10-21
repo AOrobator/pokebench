@@ -412,7 +412,9 @@ def test_invalid_snapshot_preserves_its_bounded_atomic_cpu_evidence():
     assert decode_party_mon(valid, read, cpu=cpu).cpu_context is None
 
 
-def summary_fixture(*, party=True, language=2, met_level=5, met_location=16, fail_at=None):
+def summary_fixture(
+    *, party=True, language=2, met_level=5, met_location=16, fail_at=None, error=ValueError
+):
     """A member with the SKILLS/INFO facts set: stats, ability bit, met data, ball, OT."""
     from pokebench_env.pokemon import REGION_MAP_ENTRIES, SPECIES_INFO
 
@@ -447,7 +449,7 @@ def summary_fixture(*, party=True, language=2, met_level=5, met_location=16, fai
 
     def read(address, length):
         if fail_at is not None and fail_at <= address < fail_at + 0x100000:
-            raise ValueError("unreadable")
+            raise error("unreadable")
         return memory.read(address, length)
 
     return (decode_party_mon if party else decode_box_mon)(raw, read)
@@ -505,6 +507,22 @@ def test_a_failed_summary_lookup_leaves_only_that_field_unknown():
     assert (no_map.diagnostic, no_map.met_location_name, no_map.ability_id) == (None, None, 77)
     no_name = summary_fixture(fail_at=0x08700000)
     assert (no_name.diagnostic, no_name.met_location_name) == (None, None)
+
+
+@pytest.mark.parametrize("error", [ValueError, OSError])
+def test_every_summary_lookup_fails_soft_on_either_reader_error(error):
+    from pokebench_env.pokemon import REGION_MAP_ENTRIES, SPECIES_INFO
+
+    no_ball = summary_fixture(fail_at=ITEMS, error=error)
+    assert (no_ball.diagnostic, no_ball.species, no_ball.ball, no_ball.ball_name) == (
+        None,
+        "TORCHIC",
+        4,
+        None,
+    )
+    for address, field in [(SPECIES_INFO, "ability_id"), (REGION_MAP_ENTRIES, "met_location_name")]:
+        mon = summary_fixture(fail_at=address, error=error)
+        assert (mon.diagnostic, getattr(mon, field)) == (None, None)
 
 
 @pytest.mark.parametrize("mapsec,name", [(66, "HIDEOUT"), (86, "SECRET BASE"), (87, "FERRY")])

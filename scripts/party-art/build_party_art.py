@@ -635,6 +635,9 @@ def build_fonts(rom: Rom, root: Path, out: Path, cmap: dict[str, int]) -> dict[s
 
 # ---- main ------------------------------------------------------------------------------------
 
+# ROM-derived art stays under the repository's gitignored runs/ (CLAUDE.md).
+RUNS_ROOT = Path(__file__).resolve().parents[2] / "runs"
+
 
 def build(out: Path, root: Path, rom_path: Path) -> int:
     rom_bytes = rom_path.read_bytes()
@@ -698,8 +701,7 @@ def main(argv: list[str] | None = None) -> int:
         print("build_party_art: set POKEBENCH_ROM (or pass --rom)", file=sys.stderr)
         return 2
     out: Path = args.out.expanduser().absolute()
-    # ROM-derived art stays under the repository's gitignored runs/ (CLAUDE.md).
-    runs = (Path(__file__).resolve().parents[2] / "runs").resolve()
+    runs = RUNS_ROOT.resolve()
     if not out.parent.resolve().is_relative_to(runs):
         print(
             f"build_party_art: {out} is outside {runs}; ROM-derived art stays there",

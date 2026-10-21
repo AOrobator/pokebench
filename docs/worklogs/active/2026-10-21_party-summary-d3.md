@@ -96,6 +96,8 @@ Round 1 (packet 6fbce332..5bba3c3b, diff sha256 753e1fd0…1700). Cursor Claude 
 - GPT/Codex: BLOCKING, 5 findings, all fixed: (1) new ROM lookups now fail soft (`_read_or_empty`; fault-injection tests); (2) null HP/level and unknown PP maximum render `---`/`--`, never `0/0`, `Lv0` or a derived PP color; (3) met location names follow GetMapNameHandleAquaHideout (HIDEOUT, SECRET BASE, FERRY) and an unnamed location is left out of the memo; (4) all six EXP rows checked against experience_tables.h formulas; (5) `build_party_art.py` refuses an output outside the repository's runs/.
 Fix gates: test agent 3248 / viewer 1590 / python 3572; coverage viewer 97.96/91.39/94.51, agent 99.2/93.08/97.7, python 97.23/92.97/100.
 
+Round 2 (packet 6fbce332..63a3fb8d, sha256 ac59ff86…0c80c): Claude (subagent) LGTM; Grok BLOCKING (unknown PP max still colored as state 3; ball lookup not fail-soft on OSError; no test for the runs/ guard); GPT/Codex BLOCKING (the objective record and its progress fingerprint serialize the full party, so the new fields would reach the model; ball OSError; unknown held item shown as NONE; types palette mapping, gPartyMenuBg_Pal and gSummaryScreen_Pal not ROM-checked; no runs/ guard test; no exact-head browser proof). All accepted as real. Asked the operator per the two-round rule (03:50) and proceeded with exactly these fixes.
+
 ## Boy Scout Log
 
 (empty)

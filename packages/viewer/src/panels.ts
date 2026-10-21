@@ -253,7 +253,7 @@ export function eventText(event: RunEvent, view?: RunView): string | null {
     case "story_goal_away":return `Story goal walk-away note added to the ${esc(event.tool)} result · ${esc(event.speaker)}, turn ${String(event.line_turn)} · ${event.steps.map(st=>st.measure==="tiles"?`${esc(st.to_name)} (${String(st.from.x)},${String(st.from.y)}) → (${String(st.to.x)},${String(st.to.y)}): ${String(st.before)} → ${String(st.after)} tiles`:`${esc(st.from_name)} → ${esc(st.to_name)}: ${String(st.before)} → ${String(st.after)} maps`).join("; ")} · ${esc(event.text)}`;
     case "destination_citation":return `navigate_to because ${event.verdict==="found"?`found in the turn ${String(event.found_turn ?? 0)} result`:event.verdict==="not_found"?"not found in anything shown":"too short to check"} · to (${String(event.x)},${String(event.y)}) on map ${String(event.map_id[0])}/${String(event.map_id[1])} · “${esc(event.because)}”${event.text===null?"":` · ${esc(event.text)}`}`;
     case "text_only_supervisor":return `Text-only supervisor note ${String(event.note)}/${String(event.limit)} sent after ${String(event.replies)} replies with no tool call · ${esc(event.text)}`;
-    case "ledger_context":return `Instruction ledger delivered · ${String(event.evidence.length)} references · ${esc(event.text.slice(0,200))}`;
+    case "ledger_context":return `Instruction ledger delivered${event.retention===undefined?"":` · ${String(event.retention.kept.length)} kept · ${String(event.retention.retired.length)} archived`} · ${String(event.evidence.length)} references · ${esc(event.text.slice(0,200))}`;
     case "belief_ledger":return `Disproved beliefs ledger delivered · ${String(event.entries)} entr${event.entries===1?"y":"ies"} · ${String(event.evidence.length)} references · ${esc(event.text)}`;
     case "decision_input":return `snapshot for decision ${String(event.decision_turn)} · state #${String(event.state_seq)} · ${esc(event.text.slice(0,200))}`;
     case "wait_input":return `WAIT ${String(event.duration_ms)} ms (host time) · action ${esc(event.tool_call_id)}`;
@@ -389,6 +389,7 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "drought-battle-heal-hold-v1":"drought-battle-heal-hold-v1.html",
  "progress-aware-cycles-v1":"progress-aware-cycles-v1.html",
  "roxanne-first-interaction-v1":"roxanne-first-interaction-v1.html",
+ "milestone-instruction-memory-v1":"milestone-instruction-memory-v1.html",
  "observed-instructions-v1":"observed-instructions-v1.html",
   "rejected-movement-step-v1":"rejected-movement-step-v1.html",
   "observed-field-dialogue-v1":"observed-field-dialogue-v1.html",

@@ -90,3 +90,6 @@ Agent full coverage:3427 pass, lines99.22/branches93.28/functions97.94. Full bui
 - Confirmed native v9 server exited. Actual returned frame inspected: player at2,4 and rival appearing at entrance; paired raw archive reparses exactmap/position with fieldlocktrue, screenshot SHA1 matches and nonblank.
 - Launcher owner says no automatic-start hold is authorized in that chat. Existing controller remains untouched; next expected bundle~18:05NY but earlier completion can advance it. It captures freshmain/definition per trial and will pick up this switch only after reviewed activation lands. No promise that preparation alone changes any run.
 - Per coordinator: join the board, then stop if queued; finalmain sync/freeze/review happens at slot1. No parallel hold of main while waiting.
+
+## Landing slot sync
+2026-10-21: now slot1, merged current main31fdd105. Conflicts were additive preset/registry/readiness/historical fixture updates: retained milestone-memory feature and restored trigger preference/activation. Runtime navigation.ts/semantic-navigation.ts merge clean, unchanged from qualified native proof. Required synchronized gates and fresh independent reviews next.

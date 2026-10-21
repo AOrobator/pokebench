@@ -158,7 +158,10 @@ export class BasicRules {
 
   refusal(call: CompletedCall, enabled: boolean, menus=false): {native: string | null; status: string | null; menu:boolean} {
     const menu = menus && call.state?.active_ui?.phase === "shop_action_menu";
-    const native = menu ? menuRefusalState(call.state) : enabled && call.state?.battle?.initialized === true ? battleState(call.state) : null;
+    const field = enabled && call.state?.in_battle === false && call.state.battle === null &&
+      call.text.split("\n").includes("Battle action: nothing pressed: no battle is in progress.")
+      ? semanticState(call.state, true) : null;
+    const native = menu ? menuRefusalState(call.state) : enabled && call.state?.battle?.initialized === true ? battleState(call.state) : field;
     if (native !== null && native !== this.lastRefusalSnapshot) {
       for (const key of this.refusalEvidence.keys()) this.rejections.delete(key);
       this.refusalEvidence.clear();

@@ -21,7 +21,7 @@ Original run 2026-10-20T20-26-22_qwen36-gpu1_97a0, clean ee11d5b83a54792598407a4
 ## Work
 
 - [x] RED: fixture provenance, production attachment and pinned-pi model-delivery regression; commit.
-- [ ] GREEN: smallest rule extension, negative controls, updated explainer/catalog; deletion/restoration proof; commit.
+- [x] GREEN: smallest rule extension, negative controls, updated explainer/catalog; deletion/restoration proof; commit.
 - [ ] Gates, frozen principles/boundary packet and Claude/Grok/GPT reviews.
 - [ ] Land exact reviewed candidate, verify bundle resolution and served viewer/explainer.
 
@@ -30,3 +30,8 @@ Original run 2026-10-20T20-26-22_qwen36-gpu1_97a0, clean ee11d5b83a54792598407a4
 - Created isolated managed worktree codex/battle-refusal-field from main8f98367d1. Reusing existing switch already enabled in bundle; no preset/queue mutation needed.
 
 - RED: focused regression 2 failed / 2 passed as intended: no warning/recovery events and no warning in production pi request3. Initial fixture parser retained event envelope; corrected before recording behavioral RED. /tmp/battle-refusal-red.log.
+
+- RED commit7e2a5338. GREEN extends only explicit no-battle refusals to semanticState(...,true) on in_battle=false and battle=null. Qualified field snapshots include input-ready message state. Existing status counting, events, supervisor, pi injection and bundle bits unchanged.
+- Focused restored suites26/26 pass. Production pi scripted replay executes all56 recorded calls with existing supervisor and fixed-point note disabled. ON first warning after call2; outgoing request corresponding to original turn639 contains "SUPERVISOR: You are currently looping" and "the same rejected tool call" plus observed dialogue. OFF has no warning across56. The replay is synthetic delivery proof, not a model-benefit or gameplay trial.
+- Unique deletion receipts: /tmp/battle-refusal-delete-field-1.log (field branch removed: intended detector and delivery regressions fail); /tmp/battle-refusal-delete-delivery-1.log (pi context injection removed: outgoing delivery assertion fails while detector test passes). Both restored. Retained ON/OFF outgoing JSON and schema-valid replay events under runs/battle-refusal-field/proof/.
+- Build passed. Full lint caught a test callback shorthand returning void; changed to braces. Full gates follow after integrating current main (move-learn menu-line repair landed concurrently).

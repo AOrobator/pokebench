@@ -8,7 +8,7 @@ import { Type } from "typebox";
 import { describe, expect, it } from "vitest";
 import { assistant, toolCall, userText } from "../test-support/pi.js";
 import { RUN_START_META } from "../test-support/events.js";
-import { checkEvent, parseEvent } from "./events.js";
+import { checkEvent, parseEvent, type RunEvent } from "./events.js";
 import { parseGameState } from "./game-state.js";
 import type { FeatureSet } from "./features.js";
 import { attachLoopGuard, Governor, piLoop, play } from "./harness.js";
@@ -25,8 +25,8 @@ const fixture = JSON.parse(gunzipSync(readFileSync(new URL("../test-support/batt
   events: unknown[];
 };
 const events = fixture.events.map(checkEvent);
-const calls = events.filter(e => e.type === "tool_call" && e.name === "battle_action");
-const results = events.filter(e => e.type === "tool_result" && e.name === "battle_action");
+const calls = events.filter((e): e is Extract<RunEvent, { type: "tool_call" }> => e.type === "tool_call" && e.name === "battle_action");
+const results = events.filter((e): e is Extract<RunEvent, { type: "tool_result" }> => e.type === "tool_result" && e.name === "battle_action");
 const states = new Map(events.filter(e => e.type === "state" && "started" in e).map(e => [e.seq, e]));
 function snapshot(seq: number) {
   const event = states.get(seq);
@@ -62,7 +62,7 @@ describe("recorded no-battle refusals", () => {
       const recorder = new RunRecorder({ log, frames: new FrameStore(root), milestones: { poll: () => Promise.resolve([]) }, gameState: { read: () => Promise.resolve(field) } });
       await recorder.start(RUN_START_META);
       const controller = new AbortController();
-      const governor = new Governor({ limits: { maxTurns: 56, maxWallMs: 60000, failureLimit: 3 }, now: () => 0, retry: () => undefined, abort: () => controller.abort() });
+      const governor = new Governor({ limits: { maxTurns: 56, maxWallMs: 60000, failureLimit: 3 }, now: () => 0, retry: () => undefined, abort: () => { controller.abort(); } });
       const detector = attachLoopGuard(recorder, governor, undefined, "enforced", features["interaction-loop-detection-v1"], loopSupervisor(features, recorder), features["transition-loop-detection-v1"], features["pushback-loop-detection-v1"], features["battle-observation-loop-v1"], features["navigation-truth-v1"], features["ineffective-loops-v1"], features["battle-menu-loop-v1"], features["clock-view-loop-v1"], features["reopened-dialogue-loop-v1"], features["trigger-script-loop-v1"], features["battle-refusal-loop-v1"], features["ineffective-navigation-v2"], features["same-target-no-progress-v1"], features);
       const wired = contextTools(features, recorder, recorder.transformContext);
       let executed = 0;
@@ -114,16 +114,24 @@ describe("recorded no-battle refusals", () => {
   });
 
   it("does not count missing, unqualified or changing field state, other refusals, or calls that pressed", () => {
-    const run = (rows: { state?: typeof field; text?: string; acted?: boolean; isError?: boolean }[]) => {
+    const run = (rows: { state?: typeof field | undefined; text?: string; acted?: boolean; isError?: boolean }[]) => {
       const notices: LoopNotice[] = [];
       const d = new LoopDetector(n => notices.push(n), undefined, "enforced", true, undefined, false, false, false, false, false, false, false, false, false, true);
       for (const row of rows) d.complete({ name: "battle_action", args: {}, isError: false, text: refusal, acted: false, ...row });
       return notices;
     };
+    const direct: LoopNotice[] = [];
+    const differentMoves = new LoopDetector(n => direct.push(n), undefined, "enforced", true, undefined, false, false, false, false, false, false, false, false, false, true);
+    for (const move of ["SCRATCH", "EMBER"]) differentMoves.complete({ name: "battle_action", args: { action: "fight", move }, isError: false, text: refusal, acted: false, state: field });
+    expect(direct.map(n => n.phase)).toEqual(["warning"]);
     const unknown = { ...field, started: false };
     const unready = { ...field, world_context: { ...field.world_context, objects: [], triggers: [], dialogue: null, message: null } };
     for (const state of [undefined, unknown, unready]) expect(run([{ state }, { state }])).toEqual([]);
     expect(run([{ state: field }, { state: { ...field, position: { x: 2, y: 9 } } }])).toEqual([]);
+    const unpaired: LoopNotice[] = [];
+    const stale = new LoopDetector(n => unpaired.push(n), undefined, "enforced", true, undefined, false, false, false, false, false, false, false, false, false, true);
+    for (const event of events.filter(e => e.seq <= 28167)) stale.observe(event.type === "tool_result" ? checkEvent({ ...event, state_seq: 28142 }) : event);
+    expect(unpaired).toEqual([]);
     for (const extra of [{ acted: true }, { isError: true, text: `HTTP 500: ${refusal}` }, { text: "Battle action: selected FIGHT." }, { text: "Battle action: nothing pressed: input not ready." }]) expect(run([{ state: field, ...extra }, { state: field, ...extra }])).toEqual([]);
     expect(run([{ state: field }, { state: field, text: "Battle action: selected FIGHT.", acted: true }, { state: field }])).toEqual([]);
   });

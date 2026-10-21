@@ -12,10 +12,10 @@ import type {GameStateSnapshot} from "./game-state.js";
 const ID="map-wide-triggers-v1" as const;
 
 describe("registry",()=>{
- it("is the last switch: a default-off server observation that needs coordinate-script-conditions-v1, with OFF copy",()=>{
-  expect(SWITCHABLE_FEATURES.at(-1)).toBe(ID);
-  expect(FEATURES.filter(f=>f.switchable).at(-1)?.id).toBe(ID);
-  expect(playHarnessFeatures(ALL_ON,null).at(-1)).toBe(ID);
+ it("is the server's last switch: a default-off server observation that needs coordinate-script-conditions-v1, with OFF copy",()=>{
+  expect(SWITCHABLE_FEATURES.at(-2)).toBe(ID);
+  expect(FEATURES.filter(f=>f.switchable).at(-2)?.id).toBe(ID);
+  expect(playHarnessFeatures(ALL_ON,null).at(-2)).toBe(ID);
   expect(playHarnessFeatures(LEGACY_ALL_ON,null)).not.toContain(ID);
   expect(SERVER_FEATURES.at(-1)).toBe(ID);
   expect(featureInfo(ID)).toMatchObject({group:"observation",needs:"coordinate-script-conditions-v1",switchable:true,title:"MAP-WIDE TRIGGERS"});

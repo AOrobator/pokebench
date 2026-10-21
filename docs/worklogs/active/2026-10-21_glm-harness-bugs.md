@@ -58,9 +58,10 @@ No new subprocesses, network calls or file paths. RAM reads go through `pokebenc
 - [x] COMMIT (GREEN): `feat: story-goal-player-name-v1 leaves the player's own name out of He/She lives (default off)` (bc5565aaf)
 - [x] Multi-model review loop until clean: round 1 on 331e10b3..32f1a1be (packet SHA-256 5dd44234…) — Grok (cursor-grok-4.5-high) LGTM, GPT (codex gpt-6-astra) LGTM, Claude (subagent; Cursor Opus at its usage limit, `claude -p` OAuth expired; memory claude-review-lane) LGTM. Non-blocking: keep the three behaviorless switches out of experiments until M3–M5 land (they are); the ASH case reuses e9ee's pages with the name swapped, not acfa's recording.
 
-**M2 — Drought briefings held during battles and ordered heals** (after `codex/bounded-heal-cycle` lands)
-- [ ] Write tests from e9ee s8331/s10741/s11218, bbff s7768, ad34 s10846, acfa s4962/s5790/s6035; a true drought outside those windows still fires
-- [ ] COMMIT (RED) · Implement · Gates · COMMIT (GREEN) · Review
+**M2 — Drought briefings held during battles and ordered heals** (`codex/bounded-heal-cycle` landed and was merged in; its progress-aware-cycles-v1 covers the control arm's skipped measurement-only milestones and map-cycle history on gate heal trips, not drought briefings)
+- [x] Switch `drought-battle-heal-hold-v1` (guard, needs stall-briefing-v1, default off), registered sixth
+- [x] Write tests (`drought-battle-heal-hold.test.ts`, recorded heal warnings from acfa seq 3857/4811/6838 and run 8892 seq 12979 in `test-support/drought-hold-warnings.json`): OFF fires in battle; ON holds in battle, records a diagnostic, restarts the clock when the battle ends; holds during a heal trip until full HP; a trip that never reaches full HP stops holding after 48 tool results; the other warnings open a trip; an ordinary drought still fires; the production stallBriefing records a would_warn diagnostic only with the switch; registry
+- [x] COMMIT (RED): `test: drought briefings held in battles and harness-ordered heal trips (RED)` — 5 failing
 
 **M3 — Cut-off reply feedback**
 - [x] Write tests (`cut-off-reply.test.ts`): notice text per tool set; Governor sends it after a length stop with no tool call, NUDGE otherwise, OFF unchanged, failure count unchanged, text-only supervisor note still wins; decision probes rebuild the same follow-up (`followUpText`); live.ts and decision-probe.ts wiring
@@ -97,8 +98,8 @@ No new subprocesses, network calls or file paths. RAM reads go through `pokebenc
 - [x] Implement: `read_world_context(map_wide_triggers=)` drops the 7-tile filter for triggers and records `trigger_origin`; `WorldContext.text()` lists only triggers within 7 tiles of it; `json()` leaves `trigger_origin` out; `read_game_state(map_wide_triggers_enabled=)`; rerender turns it on unless map-wide-triggers-v1 or coordinate-script-conditions-v1 is off. Golden OFF fixtures in test_readout_truth_fixes force the new switch off like the other later switches; test_rerender's flag list gains the new flag.
 - [x] Guard check: removing the rerender wiring turned the production test red; restored
 - [x] Gates: lint clean (tsc, eslint, ruff, ruff format, mypy); coverage agent 97.26/93.11/97.79/99.2, viewer 95.42/91.33/94.33/97.9, Python lines 97.29 branches 93.06 functions 100 (floor 90); agent 3367, viewer 1616, Python 3708 tests. (One agent and one viewer test timed out once under machine load and passed on rerun: serial-comparison hung-child, experiment-cli production host.)
-- [ ] COMMIT (GREEN)
-- [ ] Multi-model review loop until clean
+- [x] COMMIT (GREEN): `feat: map-wide-triggers-v1 gives the planner every coordinate trigger on the map; the readout text keeps the nearby ones (default off)` (cb757550)
+- [x] Multi-model review loop until clean: round 1 on b057dde1..cb757550 (SHA-256 53581062…) — Claude (subagent), Grok, GPT (codex) LGTM. Non-blocking: other TS readers of world_context.triggers also get far triggers when on (blocked-exit-fact has its own nearness gate); keep 7/8-tile boundary cases; share the radius constant.
 
 **M7 — Explainers, pending experiments, bundle proposal**
 - [ ] One explainer per switch (feature-explainer), pending experiment entries, a bundle-membership proposal for the operator

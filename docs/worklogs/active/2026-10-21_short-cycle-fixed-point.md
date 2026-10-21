@@ -192,7 +192,10 @@ Fix batch 4 (coordinator: whole state minus a documented list; any diagnostic an
 - Wording: Activity History says "N earlier turns left out of the request across every cycle in it (longest: a cycle of P turns (the same tool calls and game state) repeated over N turns)"; FEATURES state sentence rewritten; berry comment no longer calls stage "the player's doing"; README line updated; explainer updated (fingerprint, the 97a0 rotation).
 - Receipts: k1 diagnostics ignored → 3 red; k2 play clock kept → 10 red (both evidence replays and the key walk among them); k3b party dropped → 6 red (key walk among them); k4 period optional again → 1 red; all restored green. (k3, first attempt, did not compile because of an escaped newline in the mutation; rerun as k3b.)
 - Gates after fix batch 4 (`gates-fix4.log`): build and lint clean; agent 3127/3127, viewer 1501/1501, pytest 3470 passed; coverage agent 97.24/93.11/97.69/99.2, viewer 95.26/91.07/94.23/97.81, Python lines 97.21 branches 92.86 functions 100; `just pages-check` prints nothing.
-- COMMIT: `fix: short-cycle-fixed-point-v1 review batch 4 (whole recorded state minus a documented list, any diagnostic is null, schema-valid fixtures, period required)` (sha in round 5)
+- COMMIT: `fix: short-cycle-fixed-point-v1 review batch 4 (whole recorded state minus a documented list, any diagnostic is null, schema-valid fixtures, period required)` (76b70513)
+- main moved to d004be2d (field-move-gates-v1 wording fix and repin, frontier cache); merged cleanly (8300944a). Gates (`gates-merge8.log`): build and lint clean; agent 3127/3127, viewer 1516/1516, pytest 3480 passed; coverage agent 97.24/93.11/97.69/99.2, viewer 95.26/91.1/94.24/97.83, Python 97.21/92.86/100; `fixed-cli check` exit 0 for all three.
+
+**Round 5** (the operator approved, 10:48 PM ET, "run another round of review on the short cycle fix", relayed by the coordinator) — packet5 = `git diff <base> HEAD` at the docs commit recording this entry, base = local main at freeze (merge-base), path `runs/reviews/short-cycle-fixed-point/packet5.diff`; fix delta `fix4.diff` (`git diff 078a8cf7 76b70513`). Prompt `prompt5.md`. Principles self-review unchanged (0 FAIL).
 
 ## Boy Scout Log
 

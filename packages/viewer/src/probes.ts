@@ -178,6 +178,9 @@ interface TurnFacts { readonly at: string | null; readonly recorded: RecordedCal
 const turnCache = new Map<string, TurnFacts>();
 // The turn's start and its first tool call, streamed from the source run's log (logs reach hundreds of MB).
 async function turnFacts(path: string, turn: number): Promise<TurnFacts> {
+  // A turn that has its call never changes; one still missing is looked for again once the log grows.
+  const found = turnCache.get(`${path}\0${String(turn)}`);
+  if (found !== undefined) return found;
   const key = `${path}\0${String(turn)}\0${String(statSync(path).size)}`;
   const cached = turnCache.get(key);
   if (cached !== undefined) return cached;
@@ -198,7 +201,7 @@ async function turnFacts(path: string, turn: number): Promise<TurnFacts> {
   }
   lines.close();
   const facts = { at, recorded, startSeq };
-  turnCache.set(key, facts);
+  turnCache.set(recorded === null ? key : `${path}\0${String(turn)}`, facts);
   return facts;
 }
 function frameAt(runDir: string, seq: number | null): string | null {

@@ -117,8 +117,8 @@ No harness behavior changes, so no feature switch. The TIMELINE is untouched.
 - [x] COMMIT: `test(viewer): probes page` (RED) a5be6a77
 - [x] Implement `probe-stats.ts`, `probes-view.ts`, `probes-main.ts`, `probes-boot.ts`, CSS and nav chips. The gap range is Newcombe's (from Wilson intervals): the mockup's add-a-half Wald range excluded zero for 5/8 vs 8/8 while Fisher gives p=0.20, which would contradict the reading guide. Added tests for the picker, the real-window boot and a missing mount point. The SVG click test dispatches a MouseEvent, because happy-dom SVG elements have no click()
 - [x] Gates: agent 2989; viewer 1473; TS lint clean; build OK; viewer coverage 95.17/90.95/94.14 (probe-stats 100/97.2/100, probes-view 99.0/87.9/100, probes-main 94.2/83.3/89.5, probes.ts 94.5/89.2/96.9; probes-boot is the 2-line entrypoint, 0% like reports-boot); Python unchanged (1 test needs the mGBA module, missing from the worktree venv)
-- [x] COMMIT: `feat(viewer): probes page (design N)` (GREEN)
-- [ ] Browser proof: scratch viewer on a scratch runs root holding a copy of the cited-destination probe and its 5 source runs' needed files. Clicks (case, sample, lane, arm-blind, plot) and screenshots at 1280/1440/375, saved under `runs/reviews/2026-10-20-probes-viewer-e2e/`
+- [x] COMMIT: `feat(viewer): probes page (design N)` (GREEN) 600d08b3
+- [x] Browser proof (runs/reviews/2026-10-20-probes-viewer-e2e/receipt.md): clicks, keyboard, lane switch, arm-blind, plot, hash, frame load, live refresh then polling stop, at 1280/1440/375, no overflow, errors or off-host requests. Fix from the proof: a turn whose call is found is cached by (log, turn) alone, so a growing source log is not rescanned on every 5 s refresh (test added). Plan was: scratch viewer on a scratch runs root holding a copy of the cited-destination probe and its 5 source runs' needed files. Clicks (case, sample, lane, arm-blind, plot) and screenshots at 1280/1440/375, saved under `runs/reviews/2026-10-20-probes-viewer-e2e/`
 
 **M3: land**
 - [ ] Sync with main, gates on the tip

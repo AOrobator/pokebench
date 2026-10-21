@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, symlinkSync, writeFileSync } from "node:fs";
+import { appendFileSync, mkdirSync, mkdtempSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -155,5 +155,7 @@ describe("one probe", () => {
     const first = await readProbe(runs, "p");
     const second = await readProbe(runs, "p");
     expect(second.cases).toEqual(first.cases);
+    appendFileSync(join(runs, RUN, "events.jsonl"), `${JSON.stringify({ v: 1, run: RUN, seq: 31, t: "2026-10-18T03:48:31.000-04:00", type: "tool_call", turn: 207, id: "c", name: "observe", args: {} })}\n`);
+    expect((await readProbe(runs, "p")).cases).toEqual(first.cases);
   });
 });

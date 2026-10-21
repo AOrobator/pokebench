@@ -170,7 +170,8 @@ Fix batch 3 (coordinator: "Apply your proposed fix batch 3 now"):
 - COMMIT: `fix: short-cycle-fixed-point-v1 review batch 3 (berry trees without their timer, diagnostics break cycles, collapsed label)` (05e651fa)
 - main moved to 92f841ac (story-battle-heal-gate-v1, trainer card cleanup). Merged the same way: main's side of every conflicted and re-indexed file, this switch re-appended after story-battle-heal-gate-v1, index assertions re-bumped. story-battle-heal-gate-v1's pending-experiment test compares its incumbent to bundle-v-control's bundle arm; that comparison now leaves out this switch, which joined the arm after that experiment was pinned (its own "last" check is now -2).
 - Gates after this merge (`gates-merge6.log`): build and lint clean; agent 3122/3122, viewer 1499/1499, pytest 3470 passed; coverage agent 97.24/93.11/97.69/99.2, viewer 95.24/91.05/94.18/97.81, Python lines 97.21 branches 92.86 functions 100; `just pages-check` prints nothing; `fixed-cli check` exit 0 for all three.
-- COMMIT: `merge: main (story-battle-heal-gate-v1) into short-cycle-fixed-point-v1` (sha in round 4)
+- COMMIT: `merge: main (story-battle-heal-gate-v1) into short-cycle-fixed-point-v1` (f488d43c)
+- main moved to 9b741730 (Story Frontier stable outliers, viewer only); merged cleanly (6ca77cf4). Build and lint clean; viewer 1501/1501; agent `short-cycle-fixed-point.test.ts` 39/39 (no agent change in that merge).
 
 **Round 4** (the operator approved round 4, 10:22 PM ET, "Fix it, then run a fourth review round", relayed by the coordinator) — packet4 = `git diff main HEAD` at the docs commit recording this entry; path `runs/reviews/short-cycle-fixed-point/packet4.diff`; fix delta `fix3.diff` (`git diff 86d9ac39 05e651fa`, excluding the docs-only d6c6b108 which it includes). Prompt `prompt4.md`. Principles self-review unchanged (0 FAIL).
 

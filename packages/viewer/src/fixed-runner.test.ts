@@ -823,6 +823,7 @@ it.each([false,true])("rehearses the four-hour GLM pair serially and retains its
  const canonical=parseFixedDefinition(readFileSync(new URL("../../../experiments/fixed/bundle-v-control.json",import.meta.url),"utf8")).definition;
  const def=dryRunDefinition({...source,base:{...source.base,features:canonical.base.features},controlBase:canonical.controlBase,switches:canonical.switches,offInBoth:canonical.offInBoth,onInBoth:canonical.onInBoth},14_400_000,"cook");
  for(const arm of ["bundle","control"] as const)expect(armFeatureBits(def,arm)).toEqual(armFeatureBits(canonical,arm));
+ expect(def.plan.map(s=>s.arm)).toEqual(["control","bundle"]);
  const {runsRoot,dir}=setup(def);let stop=false;
  class GlmFake extends Fake {
   override async launch(l:FixedLaunch):Promise<number|null>{

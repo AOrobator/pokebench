@@ -67,6 +67,21 @@ operator_stopped() {
   grep '"type":"operator_control"' "$dir/events.jsonl" | grep '"status":"applied"' | grep -qE '"action":"(stop|abort)"' && return 0
   grep '"type":"run_end"' "$dir/events.jsonl" | grep -qE '"reason":"operator_(stop|abort)"'
 }
+# When the operator asked for the stop (the viewer writes ISO UTC times), or now when only a run_end shows it.
+stop_time() {
+  t=
+  c=$RUNS/$1/control.jsonl
+  if [ -f "$c" ]; then
+    t=$(grep '"action":"abort"' "$c" | sed -n 's/.*"at":"\([^"]*\)".*/\1/p' | sort | head -1)
+    [ -n "$t" ] || t=$(grep '"action":"stop"' "$c" | sed -n 's/.*"at":"\([^"]*\)".*/\1/p' | tail -1)
+  fi
+  [ -n "$t" ] && echo "$t" || date -u +%Y-%m-%dT%H:%M:%S.000Z
+}
+# "<at> <run>" for every launch in this round's ledger.
+launches() {
+  [ -f "$LEDGER_DIR/trials.jsonl" ] || return 0
+  grep '"kind":"launch"' "$LEDGER_DIR/trials.jsonl" | sed -n 's/.*"run":"\([^"]*\)","at":"\([^"]*\)".*/\2 \1/p'
+}
 stopped_run() {
   for run in $(launched_runs); do
     if operator_stopped "$run"; then echo "$run"; return 0; fi
@@ -177,22 +192,25 @@ while :; do
   ( cd "$MAIN_WT" && exec "$JUST" fixed-run dry-run "$EXP_ID" --phase "$PHASE" --wall-ms "$WALL_MS" ) &
   job=$!
   signalled=
-  known=
+  stop_at=
   while kill -0 "$job" 2>/dev/null; do
-    if [ -z "$signalled" ]; then
-      if run=$(stopped_run); then stop_loop "the operator stopped run $run in the viewer"; fi
-      if stopped; then
-        pid=$(runner_pid)
-        if [ -n "$pid" ]; then kill -TERM "$pid" && log "round $round: asked runner $pid to start no new trials" && signalled=1 && known=$(launched_runs); fi
-      fi
-    else
-      # A lane between trials may have launched in the poll gap before the signal: abort what started after the stop.
-      for run in $(launched_runs); do
-        echo "$known" | grep -qx "$run" && continue
-        known=$(printf '%s\n%s' "$known" "$run")
-        mkdir -p "$RUNS/$run"
-        seq=$(( $(cat "$RUNS/$run/control.jsonl" 2>/dev/null | wc -l) + 1 ))
-        printf '{"v":1,"seq":%s,"at":"%s","action":"abort"}\n' "$seq" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$RUNS/$run/control.jsonl"
+    if [ -z "$stop_at" ]; then
+      if run=$(stopped_run); then stop_loop "the operator stopped run $run in the viewer"; stop_at=$(stop_time "$run");
+      elif stopped; then stop_at=$(date -u +%Y-%m-%dT%H:%M:%S.000Z); fi
+    fi
+    if [ -n "$stop_at" ] && [ -z "$signalled" ]; then
+      pid=$(runner_pid)
+      if [ -n "$pid" ]; then kill -TERM "$pid" && log "round $round: asked runner $pid to start no new trials" && signalled=1; fi
+    fi
+    # A lane between trials may launch before the signal lands: abort every trial launched at or after the stop.
+    # Its run directory is the agent's to create (a run directory is used once), so wait for it.
+    if [ -n "$stop_at" ]; then
+      launches | while read -r at run; do
+        [ "$at" \< "$stop_at" ] && continue
+        [ -d "$RUNS/$run" ] || continue
+        grep -q '"action":"abort"' "$RUNS/$run/control.jsonl" 2>/dev/null && continue
+        seq=$(( $(cat "$RUNS/$run/control.jsonl" 2>/dev/null | grep -c .) + 1 ))
+        printf '{"v":1,"seq":%s,"at":"%s","action":"abort"}\n' "$seq" "$(date -u +%Y-%m-%dT%H:%M:%S.000Z)" >> "$RUNS/$run/control.jsonl"
         log "round $round: aborted $run, launched after the loop was stopped"
       done
     fi

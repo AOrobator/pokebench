@@ -58,7 +58,7 @@ describe("registry",()=>{
   expect(featureInfo(ID)).toMatchObject({group:"guard",needs:"heal-before-trainers-v2",switchable:true,title:"GYM HEAL WARNING"});
   expect(featureInfo(ID).description).toContain(" Off: ");
   expect(featureInfo(ID).description).toContain(CITY_TEXT);
-  expect(SWITCHABLE_FEATURES.at(-48)).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-49)).toBe(ID);
   expect(SERVER_FEATURES).not.toContain(ID);
   expect(playHarnessFeatures({...ALL_ON,"heal-before-trainers-v2":true,[ID]:true},null).at(-1)).toBe(ID);
   expect(playHarnessFeatures(ALL_ON,null)).not.toContain(ID);

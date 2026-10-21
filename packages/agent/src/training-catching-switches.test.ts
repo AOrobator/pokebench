@@ -12,10 +12,10 @@ const NEEDS=["ram-state-v1","ram-state-v1","battle-text-auto-advance-v1",null,"h
 
 describe("training and catching switches (the operator 2026-10-21: \"both sets\")",()=>{
  it("are appended in order to every registry list as default-off observations",()=>{
-  expect(SWITCHABLE_FEATURES.slice(-19,-12)).toEqual([...TRAINING_CATCHING_IDS]);
-  expect(FEATURES.filter(f=>f.switchable).slice(-19,-12).map(f=>f.id)).toEqual([...TRAINING_CATCHING_IDS]);
+  expect(SWITCHABLE_FEATURES.slice(-20,-13)).toEqual([...TRAINING_CATCHING_IDS]);
+  expect(FEATURES.filter(f=>f.switchable).slice(-20,-13).map(f=>f.id)).toEqual([...TRAINING_CATCHING_IDS]);
   expect(SERVER_FEATURES.slice(-4,-2)).toEqual([...SERVER]);
-  expect(playHarnessFeatures(ALL_ON,null).slice(-19,-12)).toEqual([...TRAINING_CATCHING_IDS]);
+  expect(playHarnessFeatures(ALL_ON,null).slice(-20,-13)).toEqual([...TRAINING_CATCHING_IDS]);
   TRAINING_CATCHING_IDS.forEach((id,i)=>{
    expect(featureInfo(id)).toMatchObject({group:"observation",switchable:true,title:TITLES[i],needs:NEEDS[i]});
    expect(featureInfo(id).description).toContain("Bundle arm only, default off");

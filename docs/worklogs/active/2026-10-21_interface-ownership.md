@@ -115,7 +115,7 @@ No new network surface, subprocesses or file paths. ROM read only through existi
 - [x] SYNC 1 (landing prep, review subagent 2026-10-21): `git merge main` (36 commits: gym-evidence-v1, trigger-navigation-boundary-v1, milestone-instruction-memory-v1, codex-coordinator mail). 72 conflicted files, all registry collateral: SWITCHABLE_FEATURES / FEATURES / playHarnessFeatures with main's three entries first and ours appended after (no reordering); play-preset.ts (filter, defaults, flagFeatures), next-run.ts DEFAULT_NEXT_RUN, legacy-features.ts, play-wiring.ts (main's withGymProgress + our withLearnMove / withStalePlanFact both kept), FEATURE_EXPLAINERS, explainers README, readiness.md; 60+ test files with `.at(-N)` positions and counts resolved as ours + main − base. Main added no model tool (tool-prompt-sync green). Gates on the merged tree: vitest agent 4403 / viewer 1664; pytest 3857; lint clean (tsc, eslint, ruff, ruff format, mypy); build ok; coverage agent 99.21 L / 93.25 B / 97.92 F, viewer 97.95 / 91.33 / 94.35, Python 97.32 / 93.26 / 100; verify-vendor OK; experiments-check only the 150 pre-existing starter-decision-salience problems.
 - [x] Review round 1 fix batch RED: `test(review): unmatched ended battle block, raw learn-wait receipt on a learner error, registered waiters (RED)`. 2 red: `test_on_after_the_battle_an_unmatched_party_is_a_harness_bug_not_the_battle_copy` (no party / mismatched / identity-less member fell back to TORCHIC, SCRATCH and the action menu) and `test_raw_route_persists_the_capture_before_a_learner_read_error` (calls stopped at reserve, raw_snapshot); the waiter-registration helper (`Registering`) replaces the timed `join(0.1)` before frames, green.
 - [x] Review round 1 fix batch GREEN: `fix(review): ended battle block without a matching party member is a harness bug; raw learn-wait receipt persists before a learner error`. battle_details.py: with `ended`, an unmatched/absent party member gives one HARNESS BUG line instead of the battle copy and action menu; observation.py: the raw /pokebench/move-learn/wait branch reads the learner inside the capture and passes its error to `finish_snapshot(error=)`, so the raw receipt persists first. Guard deletion: `error=` dropped → raw test red; ended branch limited to matched members → readout test red; restored → 32 green. Gates: vitest agent 4403 / viewer 1664; pytest 3859; lint clean; build ok; coverage agent 99.21 L / 93.25 B / 97.92 F, viewer 97.95 / 91.33 / 94.35, Python 97.35 / 93.32 / 100.
-- [x] SYNC 2: `git merge main` (a919c5ca6: agent-mail landing-slot expiry; no conflicts, no harness files). Gates: vitest agent 4403 / viewer 1664; pytest 3882; lint clean; build ok; coverage agent 99.21 L / 93.25 B / 97.92 F, viewer 97.95 / 91.33 / 94.35, Python 97.37 / 93.37 / 100.
+- [x] SYNC 2: `git merge main` (to 31fdd105c: agent-mail landing-slot expiry; no conflicts, no harness files). Gates: vitest agent 4403 / viewer 1664; pytest 3882; lint clean; build ok; coverage agent 99.21 L / 93.25 B / 97.92 F, viewer 97.95 / 91.33 / 94.35, Python 97.37 / 93.37 / 100.
 - [ ] ASK USER: arms. Default: all six ON in the next bundle; propose `field-ownership-feedback-v1` and `tool-prompt-docs-v1` in both arms (like `evolution-decision-v1`).
 - [ ] ASK USER: land. Then `just land-join`, sync, ff-only merge, `just land-done`, `just viewer-main`, report merge SHA.
 
@@ -179,6 +179,26 @@ Findings and dispositions:
 4. GPT: `LearnWait` and its route are installed whether or not move-learn-tool-v1 is ON. **Rebutted**: same pattern as `BattleWait` (installed unconditionally, used only by the agent-side battle-move-tool-v1); readout bytes and every other route are unchanged OFF (post_battle_off golden, OFF prompt/tool tests); the hook returns under a lock when no waiter exists; the switch is agent-side (adds the tool), so it is deliberately not in SERVER_FEATURES. Not an OFF behavior change the model or run can observe.
 5. GPT: no live emulator proof of learn_move's press-to-transition path. **Rebutted as process/scope**: no save state at a move-learn prompt exists, the operator's long-runs-only rule (2026-10-17) rules out checkpoint probes for fixes, the switch is default OFF with a pending experiment, and the limitation is recorded in M5 and PB11. Proof will come from the measured runs.
 6. Claude non-blocking items: noted; not fixed (hardening/doc, outside the accepted batch).
+
+### Round 2 principles self-review (cumulative fix delta b07c1dd37..c37d8817e, plus SYNC 2 merge of main 31fdd105c)
+
+Scored against the full docs/agent-principles.md (PB1–PB13). Zero FAIL. The round-1 table (worklog) stands for the unchanged candidate; rows below cover the fix delta.
+
+| ID | Score | Evidence |
+|---|---|---|
+| PB1 | PASS | The ended battle block now never presents the battle struct's stale POKéMON/moves as current when the party member cannot be matched; it states a HARNESS BUG instead (battle_details.py `battle_details_lines`). Game-state truth only. |
+| PB2 | N/A | No terminal record or stop-reason change. |
+| PB3 | N/A | No result claims; experiments unchanged. |
+| PB4 | PASS | No new helper; post-battle-readout-v1 still the declared server switch; OFF golden `post_battle_off.json` unchanged and green. |
+| PB5 | PASS | Fixes stay inside their switches: the battle_details change only runs with `ended` (post-battle-readout-v1 ON); the observation change only on /pokebench/move-learn/wait (used only by move-learn-tool-v1). |
+| PB6 | N/A | No context-size effect (one line replaces several in a rare error case). |
+| PB7 | PASS | Raw receipt now persists before a learner read error (`finish_snapshot(error=)`, the owner's persistence-before-decode-error contract); test `test_raw_route_persists_the_capture_before_a_learner_read_error` asserts reserve → raw_snapshot → start_capture → finish_capture → release. |
+| PB8 | PASS | The learner error still propagates loudly (ValueError reaches the caller; agent's StateWatcher turns HTTP errors into GameStateError). |
+| PB9 | PASS | Two GPT/Astra asks rebutted with reasons and left for the operator (server route OFF installation; live emulator proof); Grok lane substitution is an operator question, not self-approved. |
+| PB10 | PASS | No skipped tests; timed `join(0.1)` replaced by deterministic registration signalling, not by longer sleeps/retries; floor 90 unchanged; hooks ran. |
+| PB11 | PASS | Reuses the existing `finish_snapshot` error path rather than a new mechanism; limitation (fixtures only for learn_move) unchanged and recorded. |
+| PB12 | N/A | No ROM/path access change. |
+| PB13 | PASS | RED 59045e1af → GREEN c37d8817e with guard-deletion evidence and gates; worklog updated each commit; SYNC 2 gated. |
 
 ## Boy Scout Log
 

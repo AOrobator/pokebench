@@ -11,4 +11,3 @@ export function roxanneFirstInteraction(s: GameStateSnapshot): boolean | null {
     && context.dialogue?.replaceAll("\n", " ").startsWith("Hello, I am ROXANNE, the RUSTBORO POKéMON GYM LEADER.") === true) return true;
   return s.in_battle ? (s.trainer_opponent == null ? null : false) : false;
 }
-

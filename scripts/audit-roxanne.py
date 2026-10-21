@@ -19,7 +19,7 @@ with out.open('w') as target:
      if 'ROXANNE' in d or (opp.get('trainer_id')==265 and opp.get('battle_active')):
       if len(candidates)<12:candidates.append({k:e.get(k) for k in ['seq','t','screen','in_battle','field_controls_locked','trainer_opponent','world_context']})
      if first is None and ('Hello, I am ROXANNE' in d or (opp.get('trainer_id')==265 and opp.get('battle_active'))):first=e.get('seq')
-    if e.get('type')=='human_sample' and gym: 
+    if e.get('type')=='human_sample' and gym:
      if len(frames)<3:frames.append(e)
   row={'path':str(p),'bytes':n,'sha256':h.hexdigest(),'start':start,'gym_states':gym,'first':first,'candidates':candidates,'frames':frames,'parse_errors':errors}
   target.write(json.dumps(row)+'\n'); target.flush()

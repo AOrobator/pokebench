@@ -67,6 +67,9 @@ it("native false, true and unavailable stay distinct; healing does not retire pr
  expect(g.block(state)).toBeNull();
  g.observe(must(events.find(e=>e.seq===14990)));
  expect(g.block(state)).toBe(line);
+ expect(g.block({...state,story:{...must(state.story),rustboro_gym_complete:false,roxanne_defeated:true}})).toBe("Gym progress (game memory): RUSTBORO CITY GYM incomplete; ROXANNE defeated.");
+ expect(g.block({...state,story:{...must(state.story),rustboro_gym_complete:false,roxanne_defeated:null}})).toBe("Gym progress (game memory): RUSTBORO CITY GYM incomplete; ROXANNE defeat state unknown.");
+ expect(g.block({...state,story:{...must(state.story),rustboro_gym_complete:null,roxanne_defeated:false}})).toBe("Gym progress (game memory): RUSTBORO CITY GYM completion unknown; ROXANNE not defeated.");
  expect(g.block({...state,story:{...must(state.story),rustboro_gym_complete:true,roxanne_defeated:true}})).toBe("Gym progress (game memory): RUSTBORO CITY GYM complete; ROXANNE defeated.");
  expect(g.block({...state,story:{...must(state.story),rustboro_gym_complete:null,roxanne_defeated:null}})).toBe("Gym progress (game memory): RUSTBORO CITY GYM completion unknown; ROXANNE defeat state unknown.");
  expect(g.block({...state,story:null})).toBe("Gym progress (game memory): RUSTBORO CITY GYM completion unknown; ROXANNE defeat state unknown.");

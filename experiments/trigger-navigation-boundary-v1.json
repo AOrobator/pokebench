@@ -8,7 +8,7 @@
   "primaryMilestone": "RIVAL_HOUSE_ENTERED",
   "source": {
     "checkout": "main",
-    "commit": "36662714c2dde93efdc7e70a5f0b333761ab7aff"
+    "commit": "b4e5fa03eff29e29e570d4c222e8c3b649106362"
   },
   "incumbent": {
     "version": 2,
@@ -226,6 +226,7 @@
       "auto-talk-v2": false,
       "map-wide-triggers-v1": false,
       "drought-battle-heal-hold-v1": false,
+      "gym-evidence-v1": false,
       "trigger-navigation-boundary-v1": false
     }
   },

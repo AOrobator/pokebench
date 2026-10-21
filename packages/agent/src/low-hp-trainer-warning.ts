@@ -54,7 +54,7 @@ export function lowHpTrainerWarning(state:GameStateSnapshot):LowHpTrainerWarning
 }
 
 // What a blackout costs, as every warning here says it. DoWhiteOut keeps floor(money/2), so the amount lost is the rest.
-const blackout=(money:number|null):string=>`If your party faints, you black out: you lose half your money${money===null?"":` (₽${String(money-Math.floor(money/2))} of ₽${String(money)})`} and wake up back at the last POKéMON CENTER you entered, or at home.`;
+export const blackout=(money:number|null):string=>`If your party faints, you black out: you lose half your money${money===null?"":` (₽${String(money-Math.floor(money/2))} of ₽${String(money)})`} and wake up back at the last POKéMON CENTER you entered, or at home.`;
 
 export function warningText(f:LowHpTrainerWarningFacts):string {
  const them=f.rival==="MAY"?"her":"him";
@@ -99,8 +99,8 @@ const STORY_BATTLES:readonly StoryBattle[]=[
  {kind:"aqua_grunt",map:[24,11],won:s=>s.story?.petalburg_woods_aqua_grunt_defeated,object:null},
  {kind:"gym_leader",map:[11,3],won:s=>s.story?.roxanne_defeated,object:k=>k==="ROXANNE"?"ROXANNE":null},
 ];
-const onMap=(id:readonly number[]|null|undefined,map:readonly [number,number]):boolean=>id?.[0]===map[0]&&id[1]===map[1];
-const hurt=(s:GameStateSnapshot):StoryBattleWarningFacts["party"]=>s.party.flatMap(m=>m.is_egg!==true&&m.species!==null&&m.hp!=null&&m.max_hp!=null&&m.hp<m.max_hp?[{species:m.species,hp:m.hp,max_hp:m.max_hp}]:[]);
+export const onMap=(id:readonly number[]|null|undefined,map:readonly [number,number]):boolean=>id?.[0]===map[0]&&id[1]===map[1];
+export const hurt=(s:GameStateSnapshot):StoryBattleWarningFacts["party"]=>s.party.flatMap(m=>m.is_egg!==true&&m.species!==null&&m.hp!=null&&m.max_hp!=null&&m.hp<m.max_hp?[{species:m.species,hp:m.hp,max_hp:m.max_hp}]:[]);
 // Positive evidence only: every Pokémon (not an egg) reads its HP and max HP, and each is at max.
 const fullParty=(s:GameStateSnapshot):boolean=>{const mons=s.party.filter(m=>m.is_egg!==true);return mons.length>0&&mons.every(m=>m.hp!=null&&m.max_hp!=null&&m.hp===m.max_hp);};
 // v2 also lists fainted Pokémon, so it names the field revival medicine too (pokeemerald src/data/items.h:
@@ -108,7 +108,7 @@ const fullParty=(s:GameStateSnapshot):boolean=>{const mons=s.party.filter(m=>m.i
 // src/pokemon.c refuses ordinary HP medicine on a fainted Pokémon and revival medicine on a conscious one. v1's list
 // is unchanged.
 const REVIVAL_ITEMS=new Set(["REVIVE","MAX REVIVE","REVIVAL HERB"]);
-const bagItems=(s:GameStateSnapshot,party:StoryBattleWarningFacts["party"]):StoryBattleWarningFacts["items"]=>{
+export const bagItems=(s:GameStateSnapshot,party:StoryBattleWarningFacts["party"]):StoryBattleWarningFacts["items"]=>{
  const conscious=party.some(p=>p.hp>0),fainted=party.some(p=>p.hp===0);
  return (s.resources?.bag??[]).flatMap(i=>i.name!=null&&i.quantity>0&&(conscious&&HEALING_ITEMS.has(i.name)||fainted&&REVIVAL_ITEMS.has(i.name))?[{name:i.name,quantity:i.quantity}]:[]);
 };
@@ -251,8 +251,14 @@ function hopsFrom(places:readonly Place[],from:readonly number[]):Map<string,num
 }
 
 export function nearestHeal(state:GameStateSnapshot,ctx:Pick<HealContext,"entered"|"shown">,places:readonly Place[]):HealPlace|null {
+ return healPlaces(state,ctx,places)[0]??null;
+}
+
+// Every place the list knows of that heals the party and the map table reaches, nearest first (story-battle-heal-gate-v1
+// names them all; nearestHeal the first).
+export function healPlaces(state:GameStateSnapshot,ctx:Pick<HealContext,"entered"|"shown">,places:readonly Place[]):HealPlace[] {
  const facts=state.heal_before_trainers;
- if(facts===undefined||state.map_id===null)return null;
+ if(facts===undefined||state.map_id===null)return [];
  const byKey=new Map(places.map(p=>[keyOf(p.map_id),p]));
  const centers=new Set(ctx.entered);
  // SetLastHealLocationWarp stores the town outside the POKéMON CENTER whose 1F set it.
@@ -275,7 +281,7 @@ export function nearestHeal(state:GameStateSnapshot,ctx:Pick<HealContext,"entere
  const hops=hopsFrom(places,state.map_id);
  const reachable=candidates.flatMap(c=>{const h=hops.get(keyOf(c.map_id));return h===undefined?[]:[{...c,hops:h}];});
  reachable.sort((a,b)=>a.hops-b.hops||(a.kind===b.kind?0:a.kind==="pokemon_center"?-1:1)||a.town.localeCompare(b.town));
- return reachable[0]??null;
+ return reachable;
 }
 
 // The facts on a state that meets the condition, without the healing place when ctx.places is null.
@@ -299,7 +305,7 @@ export function healBeforeTrainers(state:GameStateSnapshot,ctx:HealContext):Heal
 // heal-before-trainers-v2: the opponent of this map's unbeaten story battle a trainer object is, by its sprite, or null.
 // Only the Gym Leader can be one: the server lists an object only when its script starts with trainerbattle, which
 // RustboroCity_Gym_EventScript_Roxanne does and Route103_EventScript_Rival (lockall first) does not.
-function storyName(state:GameStateSnapshot,sprite:string|null):string|null {
+export function storyName(state:GameStateSnapshot,sprite:string|null):string|null {
  const battle=STORY_BATTLES.find(b=>b.kind==="gym_leader"&&onMap(state.map_id,b.map));
  if(battle===undefined||battle.object===null||sprite===null||battle.won(state)!==false)return null;
  return battle.object(sprite);
@@ -403,10 +409,14 @@ const MOM_SAYS="where MOM says \"I think you should rest a bit.\" and heals your
 // listed it as an exit.
 // now (gym-heal-warning-v1): this very result is the one that first listed the center.
 export function healPlaceSentence(h:HealPlace,here:readonly [number,number],now=false):string {
+ return `The nearest place you know of that heals your party is ${healPlaceDescription(h,here,now)}`;
+}
+// One heal place as heal-before-trainers-v2 describes it, after "is ".
+export function healPlaceDescription(h:HealPlace,here:readonly [number,number],now=false):string {
  const where=h.kind==="pokemon_center"?"the POKéMON CENTER":"your house";
  const tile=h.shown===undefined?"":`(${String(h.shown.x)},${String(h.shown.y)}) ${keyOf(h.shown.map_id)===keyOf(here)?"on this map":`in ${h.shown.map}`}`;
  const shown=h.shown===undefined?"":now?`; you have not entered it; this result lists it as an exit at ${tile}`:`; you have not entered it, but an earlier result listed it as an exit at ${tile}`;
- return `The nearest place you know of that heals your party is ${where} in ${h.town} (map ${keyOf(h.map_id)}), ${String(h.hops)} map change${h.hops===1?"":"s"} from here in the game's map table${shown}${h.kind==="pokemon_center"?`; ${NURSE_SAYS}`:`, ${MOM_SAYS}`}`;
+ return `${where} in ${h.town} (map ${keyOf(h.map_id)}), ${String(h.hops)} map change${h.hops===1?"":"s"} from here in the game's map table${shown}${h.kind==="pokemon_center"?`; ${NURSE_SAYS}`:`, ${MOM_SAYS}`}`;
 }
 const STORY_ROLE=(t:NamedTrainer):string=>t.story===undefined?"":`the Gym Leader ${t.story}, `;
 export function healBeforeTrainersV2Text(f:HealBeforeTrainersFacts):string {
@@ -461,6 +471,11 @@ export class HealBeforeTrainers {
  async nearest(state:GameStateSnapshot):Promise<HealPlace|null> {
   const places=await this.options.places();
   return places===null?null:nearestHeal(state,{entered:this.entered,...(this.options.v2===true?{shown:this.shown}:{})},places);
+ }
+ // story-battle-heal-gate-v1: every place from this arm's list, nearest first.
+ async known(state:GameStateSnapshot):Promise<HealPlace[]> {
+  const places=await this.options.places();
+  return places===null?[]:healPlaces(state,{entered:this.entered,...(this.options.v2===true?{shown:this.shown}:{})},places);
  }
  // Whether the latest delivered result is the one that first listed this place.
  listedNow(place:HealPlace):boolean {return place.shown!==undefined&&this.fresh.has(keyOf(place.map_id));}
@@ -527,6 +542,8 @@ export interface GymHealFacts {
  readonly mom_heals:boolean;
 }
 const GYM=/(?:^| )GYM(?: |$)/;
+// story-battle-heal-gate-v1: whether the current map is a GYM by the same test (the state's location without a table).
+export function onGymMap(state:GameStateSnapshot,places:readonly Place[]|null):boolean {return places===null?state.location!=null&&GYM.test(state.location):gymOf(state,places)?.here===true;}
 
 // The GYM the state is in or next to, from the game's map table (the state's own location name for the current map
 // when the table has no entry for it).
@@ -612,7 +629,14 @@ const textOf=(result:AgentToolResult<unknown>):string=>result.content.flatMap(pa
 // One wrapper for every warning: v1 (the Route 103 rival below half HP) or, with v2, every visible story battle below
 // full HP; with heal-before-trainers-v1, also any unbeaten trainer while the party is weak. Each paragraph that fires
 // is recorded and added after the result's text, in that order.
-export function withLowHpTrainerWarning(tools:readonly AgentTool[],features:FeatureSet,recorder:WarningRecorder,source:PlaceSource={}):readonly AgentTool[] {
+// The map table and heal-before-trainers' arm, built once: story-battle-heal-gate-v1 shares them with the warnings.
+export interface HealArm {readonly table:()=>Promise<readonly Place[]|null>;readonly heal:HealBeforeTrainers|null}
+export function healArm(features:FeatureSet,source:PlaceSource):HealArm {
+ const table=placesOnce(source);
+ const v2=features["heal-before-trainers-v2"];
+ return {table,heal:features["heal-before-trainers-v1"]?new HealBeforeTrainers({skipStory:features["low-hp-trainer-warning-v2"],places:table,items:features["bag-healing-items-v1"],...(v2?{v2}:{})}):null};
+}
+export function withLowHpTrainerWarning(tools:readonly AgentTool[],features:FeatureSet,recorder:WarningRecorder,source:PlaceSource={},shared?:HealArm):readonly AgentTool[] {
  if(!features["low-hp-trainer-warning-v1"])return tools;
  const rules:Rule[]=[];
  if(features["low-hp-trainer-warning-v2"]){
@@ -628,8 +652,10 @@ export function withLowHpTrainerWarning(tools:readonly AgentTool[],features:Feat
   const record=recorder.healBeforeTrainersWarning?.bind(recorder);
   if(record===undefined)throw new Error("heal-before-trainers-v1 needs a recorder for heal_before_trainers_warning events");
   const v2=features["heal-before-trainers-v2"];
-  const table=placesOnce(source);
-  const heal=new HealBeforeTrainers({skipStory:features["low-hp-trainer-warning-v2"],places:table,items:features["bag-healing-items-v1"],...(v2?{v2}:{})});
+  const arm=shared??healArm(features,source);
+  const table=arm.table;
+  const heal=arm.heal;
+  if(heal===null)throw new Error("heal-before-trainers-v1 needs its arm");
   const write=v2?healBeforeTrainersV2Text:healBeforeTrainersText;
   rules.push(async(state,result)=>{
    if(v2)await heal.shownIn(state,textOf(result));

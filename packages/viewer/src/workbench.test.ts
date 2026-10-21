@@ -34,11 +34,11 @@ describe("mounted runs and comparisons workbench", () => {
     const plotted = () => new Set([...ui("frontier-full").querySelectorAll<SVGElement>("[data-run]")].map(e => e.dataset.run));
     change("date-from", "2026-10-19"); change("date-through", "2026-10-20");
     // The global frontier reference remains visible even outside the range.
-    expect(plotted()).toEqual(new Set(["before", "bundle", "control"]));
+    expect(plotted()).toEqual(new Set(["after", "bundle", "control"]));
     expect(ui("overlay").textContent).toContain("bundle"); expect(ui("overlay").textContent).not.toContain("unknown");
-    change("cohort", "bundle"); expect(plotted()).toEqual(new Set(["before", "bundle"]));
+    change("cohort", "bundle"); expect(plotted()).toEqual(new Set(["after", "bundle"]));
     change("cohort", "all"); change("date-from", "2026-10-21");
-    expect(ui("date-problem").textContent).toContain("on or before"); expect(plotted()).toEqual(new Set(["before"]));
+    expect(ui("date-problem").textContent).toContain("on or before"); expect(plotted()).toEqual(new Set(["after"]));
     document.querySelector<HTMLButtonElement>("[data-clear-dates]")?.click();
     expect((ui("date-from") as HTMLInputElement).value).toBe(""); expect((ui("date-through") as HTMLInputElement).value).toBe("");
     expect(ui("date-problem").hidden).toBe(true); expect(plotted().has("unknown")).toBe(true); expect(plotted().has("bad")).toBe(true);

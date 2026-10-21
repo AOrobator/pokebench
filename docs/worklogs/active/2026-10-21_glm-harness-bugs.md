@@ -78,11 +78,16 @@ No new subprocesses, network calls or file paths. RAM reads go through `pokebenc
 - [x] Guard check: dropping the semantic `sightCheck` spread, and disabling the navigation check, each turned 4 tests red; restored
 - [x] Gates: lint clean; coverage agent 97.34/93.1/97.8/99.24, viewer 95.42/91.33/94.33/97.9, Python 3691 passed ≥90; agent 3347 tests
 - [x] COMMIT (GREEN): `feat: trainer-sight-check-v2 checks navigate_to_target routes against unbeaten trainers' sight (default off)` (f31463bf)
-- [ ] Multi-model review loop until clean (round 1 running on c37eeaf9..f31463bf)
+- [x] Multi-model review loop until clean: round 1 on c37eeaf9..f31463bf (SHA-256 1375d2a1…) — Claude (subagent) LGTM, Grok LGTM, GPT (codex) LGTM. Non-blocking: later segment walks are not checked (by contract; watch in long runs); the event does not record the excluded target id.
 
 **M5 — Auto-talk skips beaten trainers**
 - [x] Write tests (`auto-talk-v2.test.ts`): a Route 102 field with a beaten YOUNGSTER next to the player and a BOY_1 farther; auto-talk-v1 alone talks to the beaten trainer (as e9ee s10359), v2 skips to BOY_1; an unbeaten trainer stays excluded either way
-- [x] COMMIT (RED): `test: auto-talk skips beaten trainers (RED)` — 1 failing (ON), 2 passing · Implement · Gates · COMMIT (GREEN) · Review
+- [x] COMMIT (RED): `test: auto-talk skips beaten trainers (RED)` — 1 failing (ON), 2 passing (69508a8d)
+- [x] Implement: `AutoTalk.candidates` leaves out trainers `heal_before_trainers` shows as defeated when auto-talk-v2 is on (read from the FeatureSet the production `autoTalkContext` factory receives)
+- [x] Guard check: dropping the beaten filter turned the ON test red; restored
+- [x] Gates: lint clean; coverage agent 97.34/93.09/97.8/99.24, viewer 95.42/91.33/94.33/97.9, Python 3691 passed ≥90; agent 3350 tests
+- [ ] COMMIT (GREEN)
+- [ ] Multi-model review loop until clean
 
 **M6 — Littleroot north stride stop and story-trigger avoidance**
 - [ ] RAM re-parse at e9ee s7116, acfa s3014, ad34 s12351; verdict recorded here

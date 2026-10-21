@@ -23,7 +23,7 @@ async function firstTarget(features:FeatureSet,defeated:boolean):Promise<string|
  const tool=(name:string,run:(args:Record<string,unknown>)=>string):AgentTool=>({name,label:name,description:name,parameters:Type.Object({}),execute:(_id,params)=>Promise.resolve({content:[{type:"text",text:run(params as Record<string,unknown>)}],details:{state:s}})});
  const tools=[tool("navigate_to",a=>{s={...s,position:{x:Number(a["x"]),y:Number(a["y"])}};return "Navigation: arrived.";}),tool("press",()=>"pressed"),tool("observe",()=>"observe")];
  const subscribers:((e:RunEvent)=>void)[]=[];const talks:{target:{name:string}|null}[]=[];
- const transform=autoTalkContext(features,{read:()=>Promise.resolve(s)},tools,m=>Promise.resolve(m),{fixedPoint:()=>({turns:AUTO_TALK_TURNS,loop:"a",names:["navigate_to"]}),noTool:()=>({replies:0,loop:"silent:0"})} as never,{subscribe:fn=>{subscribers.push(fn);},recordAutoTalk:b=>{talks.push(b as never);}});
+ const transform=autoTalkContext(features,{read:()=>Promise.resolve(s)},tools,m=>Promise.resolve(m),{fixedPoint:()=>({turns:AUTO_TALK_TURNS,loop:"a",names:["navigate_to"]}),noTool:()=>({replies:0,loop:"silent:0"})} as never,{subscribe:fn=>{subscribers.push(fn);},recordAutoTalk:b=>{talks.push(b);}});
  const st=checkEvent({v:1,run:"r",seq:1,t:"2026-10-21T03:28:00.000-04:00",type:"state",turn:1,...IN_GAME,map_id:[0,17],position:{x:14,y:10},facing:"up",interaction_targets:TARGETS});
  for(const fn of subscribers)fn(st);
  const messages:AgentMessage[]=[userText("Play."),{role:"toolResult",toolCallId:"c0",toolName:"observe",content:[{type:"text",text:"Route 102"}],isError:false,timestamp:0}];

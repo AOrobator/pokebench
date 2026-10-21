@@ -1,6 +1,6 @@
 # Story battle heal first line (`story-battle-heal-first-v1`)
 
-Status: M1 in progress. Worktree `~/dev/pokebench-worktrees/heal-first-line-v1`, branch `claude/heal-first-line-v1`, from main 900a5c47. The operator asked for this line in both arms at 10:43 PM ET on 2026-10-20 ("the heal first line needs to be in both control and the bundle"). Background design only: scratch `2026-10-20_heal-respawn-sight.md`.
+Status: M1 reviewed: Claude lane (Claude subagent; `claude -p` OAuth expired) and Grok (cursor-grok-4.5-high) VERDICT: LGTM on frozen head 7160f34d, diff sha256 b3fe4c0f7e6f805747527ffc6094d486d91675301dc817998cbe5762b1dc0fca, round 1. Ready for the coordinator's landing slot; not landed by this agent. Worktree `~/dev/pokebench-worktrees/heal-first-line-v1`, branch `claude/heal-first-line-v1`, from main 900a5c47. The operator asked for this line in both arms at 10:43 PM ET on 2026-10-20 ("the heal first line needs to be in both control and the bundle"). Background design only: scratch `2026-10-20_heal-respawn-sight.md`.
 
 ## Evidence
 
@@ -31,7 +31,7 @@ Status: M1 in progress. Worktree `~/dev/pokebench-worktrees/heal-first-line-v1`,
 - [x] M1 GREEN: module, wiring, event, viewer, registry, configs (onInBoth).
 - [x] Gates: `just test`, `just lint`, `just build`, `just coverage` (90).
 - [x] Explainer, FEATURE_EXPLAINERS, pending experiment, readiness row.
-- [ ] Sync with main, Claude + Grok review (2 rounds max).
+- [x] Sync with main, Claude + Grok review (2 rounds max): round 1 LGTM both lanes.
 
 ## Session Log
 
@@ -43,3 +43,4 @@ Status: M1 in progress. Worktree `~/dev/pokebench-worktrees/heal-first-line-v1`,
 - Explainer checked in a real browser (desktop and phone width); map figure widened so its notes are not clipped.
 
 - Synced with main 13380470 (exit-labels-v3 landed: registered before this switch; conflicts resolved by taking main and reapplying this switch's additions; index/filter test updates redone). Tests: agent 3115, viewer 1521, python 3494 passed. Coverage: agent 97.21/92.99/97.65/99.18, viewer 95.26/91.07/94.24/97.83, python lines 97.21 branches 92.85 functions 100. Lint, build, schema fresh, fixed-run check passes for all three. Replay unchanged.
+- Review round 1 on 7160f34d: Grok LGTM (non-blocking: second map-table fetch when the gate's arm is also live; namedPlace scans per result). Claude lane LGTM (non-blocking: pending keyed per call id as in instruction-ledger-v2; TRAINER_GENDER plain-object lookup; heard line never expires, by design). No fixes needed.

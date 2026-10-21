@@ -83,7 +83,10 @@ There are no new inputs, subprocesses, network or file access. The server reads 
 **M2 — agent training set: exp-earned-ledger-v1, leader-attempt-ledger-v1, seen-trainers-ledger-v1, shared Training block**
 - [x] Fixture: one run covers all three parts, so one fixture instead of three: `packages/agent/src/fixtures/training-fd95.jsonl.gz` (run 2026-10-21T04-27-11_qwen36-gpu1_fd95, bundle arm: every state event slimmed to the fields the folds read, every dialogue_auto_advance and milestone event; ROXANNE lost at turns 501, 538 and 591, JOSH/TOMMY/MARC beaten in between, 36 "gained … EXP. Points!" pages).
 - [x] Tests: `training-block.test.ts` (whole block exact on the gym field before the third ROXANNE battle; each switch alone adds only its part; party part needs the server's NEXT LV.; field only, leader part also at a leader battle decision, nothing at a wild decision; leader part off the gym absent; page without a recorded state dropped; banned-words; playGameTools factory ON/OFF).
-- [ ] COMMIT RED, implement `training-block.ts`, gates, COMMIT GREEN
+- [x] COMMIT: `test: training block (EXP earned, leader attempts, seen trainers, NEXT LV.) on recorded run fd95 (RED)` (5a2e4522). RED: `./training-block.js` missing.
+- [x] Implement: `training-block.ts` (TrainingBlock fold: battle index per state so each EXP page is attributed through the state it names, never guessed; leader battles keyed by trainer class LEADER with party/EXP/BAG/money at the first battle state, each foe slot's last HP, the game's outcome and the money on the first field state after; seen trainers per map stood on from heal_before_trainers; party part from party_next_level) and `withTrainingBlock` in play-wiring around game-said-goals. Field observations get every part that is on; a ready battle decision against a GYM LEADER gets the leader part only.
+- [x] Gates: lint ok, build ok; coverage agent 3293 (97.29/93.07/97.74/99.21), viewer 1601 (95.42/91.33/94.33/97.9), pytest 3630 (97.25/92.96/100).
+- [ ] COMMIT GREEN
 
 **M3 — agent catching set: party-coverage-v1, said-type-matches-v1**
 - [ ] Fixtures: 1331 ROXANNE EMBER pages, 6abf/fd95 wild WINGULL and MARILL readouts, the gym guide page

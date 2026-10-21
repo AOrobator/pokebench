@@ -14,7 +14,7 @@ import { TRAINING_HEADER, TrainingBlock } from "./training-block.js";
 const EVENTS=gunzipSync(readFileSync(new URL("./fixtures/training-fd95.jsonl.gz",import.meta.url))).toString("utf8").trim().split("\n").map(l=>JSON.parse(l) as RunEvent);
 type State=Extract<RunEvent,{type:"state";started:boolean}>;
 const states=EVENTS.filter((e):e is State=>e.type==="state"&&"started" in e);
-const at=(seq:number):GameStateSnapshot=>{const s=states.find(x=>x.seq===seq);if(s===undefined)throw new Error(String(seq));return s as unknown as GameStateSnapshot;};
+const at=(seq:number):GameStateSnapshot=>{const s=states.find(x=>x.seq===seq);if(s===undefined)throw new Error(String(seq));return s;};
 // The last field state on RUSTBORO CITY GYM before the third ROXANNE battle.
 const GYM_FIELD=24150;
 const LEDGERS:Partial<FeatureSet>={"exp-next-level-v1":true,"exp-earned-ledger-v1":true,"leader-attempt-ledger-v1":true,"seen-trainers-ledger-v1":true};
@@ -57,7 +57,7 @@ describe("training block (exp-next-level-v1, exp-earned-ledger-v1, leader-attemp
   expect(lines[13]).toBe("  Per page this run: trainer battles 34–183 · wild POKéMON 15–59");
   expect(lines.slice(14,18)).toEqual(LEADER);
   expect(lines[18]).toBe("- Trainers the readout listed on maps you stood on this run (the game's trainer flags):");
-  expect(lines.filter(l=>/^  ROUTE102: LASS at \(\d+,\d+\) not beaten; 3 beaten \(CALVIN, RICK, ALLEN\)$/.test(l))).toHaveLength(1);
+  expect(lines.filter(l=>/^ {2}ROUTE102: LASS at \(\d+,\d+\) not beaten; 3 beaten \(CALVIN, RICK, ALLEN\)$/.test(l))).toHaveLength(1);
   expect(lines).toContain("  PETALBURG WOODS: 2 beaten (LYLE, JAMES)");
   expect(lines).toContain("  RUSTBORO CITY GYM: ROXANNE battled, not beaten; 3 beaten (JOSH, TOMMY, MARC)");
   expect(lines.filter(l=>l.startsWith("  ROUTE101")||l.startsWith("  LITTLEROOT"))).toEqual([]);
@@ -80,7 +80,7 @@ describe("training block (exp-next-level-v1, exp-earned-ledger-v1, leader-attemp
   const block=fed(only(LEDGERS),24400);
   const decision=states.find(s=>s.seq>GYM_FIELD&&s.in_battle&&s.trainer_opponent?.battle_active===true&&s.battle?.ready===true);
   if(decision===undefined)throw new Error("fixture");
-  const text=block.block(decision as unknown as GameStateSnapshot)??"";
+  const text=block.block(decision)??"";
   expect(text.split("\n")[0]).toBe(TRAINING_HEADER);
   expect(text).toContain("- Battles with GYM LEADER ROXANNE this run:");
   expect(text).not.toContain("EXP. Points the game printed");

@@ -1,0 +1,27 @@
+# Navigation refusal v3: exploratory waypoints without immediate reversal
+
+## Authorized outcome
+The operator: "Okay, let's update and fix this switch and include the changes in the bundle." One milestone: version the shared local-window waypoint advice, enable only in future bundle treatments, retain exact OFF behavior and control configuration. No measured gameplay, experiment approval, game restarts, hidden whole-map routing, or objective selection.
+
+## Frozen scope and production owners
+Existing navigation.ts owns the local edge candidates, both ordinary-tile and person refusal wording, and a navigationTool-instance bounded record of recent refusal origins by map and coordinate goal. Track origins only when a refusal is delivered; interleaved waypoint calls must not clear the original goal. Clear on map change; bound retained goals and origins. While another candidate exists, withhold previously visited refusal origins; if all are revisits, report that fact without claiming a verified route. Person and tile paths share the policy. Explain choices as exploratory, not a guaranteed route. No permanent obstacle claims based on a moving NPC. No new tool, route execution or full-map planning.
+
+Registration owners: features.ts, play-preset.ts, next-run.ts; explainer via panels.ts; pending experiment/readiness; future bundle-v-control, bundle-cook-1h, whole-map-cook-1h definitions. New switch navigation-refusal-reasons-v3 depends on bounded-navigation-v1; it changes advice only where existing v2 or exit-reachability emits it. Existing v2 and reachability remain independently configured. Whole/visited-map paths are unchanged. No server feature/state schema change.
+
+## Evidence
+Immutable control7945 run pin ee11d5b8. State22583 / result22584 / turn764: origin15,23, occupied target15,18, recommends west8,24. State22641 / result22642 / turn766: origin8,24, same coordinate target, recommends east15,23. Eight commands each; no net progress. Original boy moves, but fixed-NPC offline reconstruction reproduces cycle. Both edge candidates8,24 and22,24 cost8 commands and Manhattan13; coordinate tie favors west. Full archived terrain shows east detour, but this patch must not give the control a global solver. Receipts in canonical runs/reports/waypoint-advice-7945/.
+
+## Milestone
+- [ ] RED recorded fixture + production factory exact OFF and both ON paths, bounded/reset/independent-tool behavior, interleaved waypoint calls; commit.
+- [ ] GREEN minimal shared policy, default OFF registry, future bundle ON/control OFF, pending entry/explainer.
+- [ ] Gates: tests, coverage >=90 each metric, lint, build, vendor, experiments/pages.
+- [ ] Production wiring deletion/restoration and native archive replay; existing event/model-result propagation retained.
+- [ ] Frozen principles/boundary and independent cloud review (two-round cap).
+- [ ] Local fast-forward landing if required lanes approve, main checks, coordinated viewer refresh and real card/explainer proof.
+
+## Readiness and claims
+Activation: PLAYER_NAME_CONFIRMED (first navigable truck field; advice can act on any local map). Readiness unproven for the new frozen configuration: pending, unqueued. Historical Woods is the regression receipt, not a claim of reliable boot reach or an experiment launch. Correctness/delivery can be proved offline; gameplay benefit remains unmeasured.
+
+## Session
+Started from main d004be2dd in isolated managed worktree. User authorizes implementation and bundle inclusion; normal landing gates apply.
+- RED: five recorded-state factory checks run; legacy OFF passes, four ON checks fail because v3 is not wired. No inputs submitted. Fixture contains decoded state only, no ROM/save. Commit: test navigation refusal v3 recorded cycle (RED).

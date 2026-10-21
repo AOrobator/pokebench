@@ -1,9 +1,10 @@
 import { RUN_LOG_MAX_BYTES } from "./run-log.js";
-import { appendFileSync, cpSync, mkdirSync, mkdtempSync, rmSync, symlinkSync, truncateSync, writeFileSync } from "node:fs";
+import { appendFileSync, cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, truncateSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { Log, START, assistant, state } from "../test-support/events.js";
+import { frontierReferences } from "./frontier.js";
 import { workbenchSnapshot } from "./workbench-store.js";
 import { parseWorkbench } from "./workbench-data.js";
 import { ALL_ON, playHarnessFeatures } from "@pokebench/agent/features";
@@ -70,11 +71,12 @@ describe("read-only workbench snapshot", () => {
     expect(parseWorkbench({ ...d, runs: [{ ...run, config: { ...config, resume: "CLOCK_SET" } }] }).runs[0]?.config?.resume).toBe("CLOCK_SET");
     expect(() => parseWorkbench({ ...d, runs: [{ ...run, config: { ...config, resume: false } }] })).toThrow("Invalid workbench");
   });
-  it.each(["operator_abort", "operator_stop"] as const)("preserves %s history while enforcing existing abort eligibility", async reason => {
+  it.each(["operator_abort", "operator_stop"] as const)("keeps %s earned progress eligible for the frontier", async reason => {
     const r = root(), log = named(); log.add(5000, { type: "run_end", turn: 1, reason, furthest_milestone: "PLAYER_NAME_CONFIRMED", turns: 1, wall_ms: 5000, tokens: { input: 500, output: 100 }, frames: { saved: 0, bytes: 0 } }); write(r, "stopped", log);
     const d = await workbenchSnapshot(r, () => Promise.resolve(false), 42);
     expect(d.runs[0]?.reason).toBe(reason); expect(d.runs[0]?.splits).toHaveLength(1);
-    expect(d.runs[0]?.excluded).toBe(reason === "operator_abort" ? "Excluded operator-aborted run" : null);
+    expect(d.runs[0]?.excluded).toBeNull();
+    expect(frontierReferences(d.runs).best?.id).toBe("stopped");
   });
   it("validates the browser boundary and missing-root empty state", async () => {
     const d = await workbenchSnapshot(join(root(), "absent"), () => Promise.resolve(false), 42); expect(parseWorkbench(d).runs).toEqual([]); expect(() => parseWorkbench({ ...d, at: -1 })).toThrow("Invalid workbench"); expect(() => parseWorkbench({ ...d, runs: [{ id: "fake" }] })).toThrow();
@@ -242,6 +244,22 @@ describe("durable cohort membership and metadata boundaries", () => {
     for (const dir of [join(r, "experiments", "bundle-v-control-dryrun-cook"), join(r, "dryruns", "copy")]) { mkdirSync(dir, { recursive: true }); writeFileSync(join(dir, "trials.jsonl"), rows.map(e => JSON.stringify(e)).join("\n") + "\n"); }
     const d = parseWorkbench(await workbenchSnapshot(r, () => Promise.resolve(false), 2000000000000));
     expect(d.runs.find(x => x.id === id)?.cohort).toBe("experiment:bundle-v-control-dryrun-cook");
+  });
+  it.each(["operator_abort", "operator_stop"] as const)("keeps a fixed-trial %s frontier without rewriting experimental validity", async endReason => {
+    const r = root(), id = "stopped-fixed", log = named();
+    log.add(5000, { type: "run_end", turn: 1, reason: endReason, furthest_milestone: "PLAYER_NAME_CONFIRMED", turns: 1, wall_ms: 5000, tokens: { input: 500, output: 100 }, frames: { saved: 0, bytes: 0 } }); write(r, id, log);
+    const folder = join(r, "experiments", "early-stop"); mkdirSync(folder, { recursive: true });
+    const launch = { kind: "launch", slot: 1, lane: "A", phase: "confirmatory", arm: "bundle", run: id, at: "t", commit: "c", sources: "s", presetSha256: "p", serving: "f" };
+    const outcome = { kind: "outcome", slot: 1, run: id, at: "t", valid: false, reason: `the operator stopped the trial (${endReason})`, endReason, primaryReached: false, primaryMs: null, furthest: null, furthestDepth: -1, furthestMs: null, wallMs: 5000, turns: 1 };
+    const ledger = join(folder, "trials.jsonl"), text = [launch, outcome].map(e => JSON.stringify(e)).join("\n") + "\n"; writeFileSync(ledger, text);
+    const snapshot = await workbenchSnapshot(r, () => Promise.resolve(false), 42);
+    expect(snapshot.problems).toEqual([]); expect(snapshot.runs[0]?.cohort).toBe("experiment:early-stop");
+    expect(snapshot.runs[0]?.reason).toBe(endReason); expect(snapshot.runs[0]?.excluded).toBeNull();
+    expect(frontierReferences(snapshot.runs).best?.id).toBe(id); expect(readFileSync(ledger, "utf8")).toBe(text);
+    // A separate plan mismatch remains excluded even when the recording ended at an operator stop.
+    writeFileSync(ledger, [launch, { ...outcome, reason: "run_start does not match the plan: source", endReason: null }].map(e => JSON.stringify(e)).join("\n") + "\n");
+    const mismatch = await workbenchSnapshot(r, () => Promise.resolve(false), 42);
+    expect(mismatch.runs[0]?.excluded).toContain("does not match the plan"); expect(frontierReferences(mismatch.runs).best).toBeNull();
   });
   it("assigns fixed-run trials to their experiment and excludes the invalid ones", async () => {
     const r = root(), ids = ["2026-10-15T21-45-05_qwen36-gpu1_7b2a", "2026-10-15T21-45-05_qwen36-gpu0_a753", "2026-10-15T22-00-05_qwen36-gpu1_9999"];

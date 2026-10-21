@@ -26,6 +26,8 @@ SWITCH = "shop-interface-v1"
 
 MAIN_CALLBACK2 = 0x030022C4  # gMain.callback2
 PALETTE_FADE = 0x02037FD4
+MART_TYPE = 0x02039F60 + 15  # sMartInfo.martType
+MART_TYPE_NORMAL = 0
 BUY_MENU_TASK = 0x080E0AC9  # Task_BuyMenu
 QUANTITY_TASK = 0x080E0D89  # Task_BuyHowManyDialogueHandleInput
 AFTER_PURCHASE_TASK = 0x080E100D  # Task_ReturnToItemListAfterItemPurchase
@@ -41,6 +43,9 @@ def shop_ui(ui: ActiveUi | None, read: ReadMemory) -> ActiveUi | None:
     if ui is None or ui.phase not in SHOP_PHASES:
         return ui
     if struct.unpack("<I", read(MAIN_CALLBACK2, 4))[0] != SHOP_CALLBACK:
+        return ui
+    # Decoration shops list decoration ids, not item ids (BuyMenuSetListEntry).
+    if read(MART_TYPE, 1)[0] != MART_TYPE_NORMAL:
         return ui
     owners = [
         task

@@ -82,6 +82,6 @@ In scope: `env/pokebench_env/shop_interface.py`, its wiring in game_state.py and
 
 ## Multi-Model Review Log
 
-- Round 1 (packet ebc615c0, base f671f35d, head a18d545d): Grok LGTM; Claude (read-only subagent) LGTM with one medium finding, triaged Fix: in a decoration shop (martType 1/2) the row id is a decoration id, and ON labelled it "item id". RED test added (decoration shop keeps the native result).
+- Round 1 (packet ebc615c0, base f671f35d, head a18d545d): Grok LGTM; Claude (read-only subagent) LGTM with one medium finding, triaged Fix: in a decoration shop (martType 1/2) the row id is a decoration id, and ON labelled it "item id". RED test added (decoration shop keeps the native result) (f2e48dc3). Fixed: shop_ui returns the native result unless sMartInfo.martType is 0. Gates: lint ok; agent 3325, viewer 1615 (experiment-cli's git test failed once under load, passed alone), pytest 3724; shop_interface.py 100%. Round 1's Claude note 2 (constant HERE_YOU_GO) stands as correct, no change.
 
 ## Session Log

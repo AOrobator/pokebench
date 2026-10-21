@@ -62,3 +62,8 @@ v5 stopped 20:15 (both operator_abort; bundle ef9f stuck at the clock YES/NO box
 ## story-progress-clock-v1 in the bundle arms (coordinator relay of the operator's call, 20:42 NY)
 Added as a bundle switch (base false) to bundle-v-control, bundle-cook-1h and whole-map-cook-1h; running v6 untouched. Tests updated: same-target-no-progress.test no longer pins its switch as the last entry; open-goal-prompt.test lists story-progress-clock-v1 among bundle-only extras. Hashes: bundle-v-control 2668ce57c1b8, bundle-cook-1h b384d78a190c, whole-map-cook-1h 972f446b0f91. pnpm -r test: agent 3030, viewer 1442 pass.
 - Reviews: Grok LGTM, Claude LGTM. Landing.
+
+## exit-labels-v3 and party-item-confirmation in the cook (the operator 23:35 NY)
+Added both to the bundle arm of whole-map-cook-1h (base false); its switches now equal bundle-cook-1h's plus full-map-navigation-v1. sha256 262b9dedf747.
+- Rebased onto e635fcbf (short-cycle-fixed-point-v1); whole-map-cook-1h sha256 c481e9381383. Pair v7 (the operator 23:36 NY): whole-map-pair-1h-v7.json = whole-map-cook-1h arms, one pair; seed 37aa72134a9e06b1, sha256 9dfca876c47a.
+- Reviews: Grok LGTM, Claude LGTM. Landing; v7 launch waits for story-battle-heal-first-v1.

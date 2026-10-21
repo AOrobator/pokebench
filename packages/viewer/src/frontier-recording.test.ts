@@ -427,3 +427,17 @@ it("recovers first Roxanne interaction identically in replay and compact split r
     expect(result.splits.some(s=>s.name==="ROXANNE_DEFEATED")).toBe(false);
   }
 });
+it("never credits a pre-existing resumed Roxanne encounter after an unreadable first state",()=>{
+ for (const knownBaseline of [false,true]) {
+  const log=new Log();log.add(0,{...START,start_state:{kind:"save_state",path:"/saves/Roxanne.state",sha1:"a".repeat(40)}});
+  const first=log.add(100,state({screen:knownBaseline?"overworld":"unknown",map_id:[11,3],location:"RUSTBORO CITY GYM",field_controls_locked:knownBaseline?false:null}));
+  const intro=log.add(200,state({screen:"battle",map_id:[11,3],location:"RUSTBORO CITY GYM",in_battle:true,trainer_opponent:{trainer_id:265,trainer_class:32,name:"ROXANNE",defeated:false,battle_active:true}}));
+  const view=new RunView();for(const e of log.events)view.apply(e);
+  const detector=new StateMilestones({read:()=>{throw Error("no emulator requests");}});detector.initialize("save_state");
+  if(first.type!=="state"||!("started"in first)||intro.type!=="state"||!("started"in intro))throw Error("state");
+  detector.observe(first,first.seq);const native=detector.observe(intro,intro.seq).find(e=>e.name==="ROXANNE_FIRST_INTERACTION");
+  expect(view.milestones.find(e=>e.name==="ROXANNE_FIRST_INTERACTION")?.origin).toBe(native?.origin);
+  const recording=readNativeRecording(write(log.events.map(e=>JSON.stringify(e)).join("\n")+"\n"),intro.run,qualifiedNativeMilestone);
+  expect(recording.splits.some(s=>s.name==="ROXANNE_FIRST_INTERACTION")).toBe(knownBaseline);
+ }
+});

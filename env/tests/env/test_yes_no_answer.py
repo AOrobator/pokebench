@@ -163,7 +163,7 @@ def test_line_follows_the_interface_line_for_the_highlighted_option(
         field(ui("party_menu", "TORCHIC")),
         field(None),
     ],
-    ids=lambda s: f"{s.active_ui.phase if s.active_ui else None}-{s.active_ui and s.active_ui.selected}-{s.active_ui and s.active_ui.ready}",
+    ids=lambda s: "none" if s.active_ui is None else f"{s.active_ui.phase}-{s.active_ui.selected}",
 )
 def test_no_line_when_the_selection_is_unknown_not_ready_or_not_a_listed_box(
     state: GameState,
@@ -273,13 +273,17 @@ def test_ef9f_turn_156_state_reads_the_clock_box_and_says_how_to_answer_yes() ->
     off_text = render(state, default_off).split("\n")
     on_text = render(state, default_off - {SWITCH}).split("\n")
     # OFF: the Screen..Interface lines the model was shown, byte for byte.
-    assert off_text[:4] == recorded[:4] == [
-        "Screen: clock",
-        "Dialog: none",
-        "Menu: clock_confirmation; selected NO",
-        "Interface: clock_confirmation; input ready; selected NO; value 11:24 AM; "
-        "UP/DOWN selects; A accepts selection; B returns to adjustment",
-    ]
+    assert (
+        off_text[:4]
+        == recorded[:4]
+        == [
+            "Screen: clock",
+            "Dialog: none",
+            "Menu: clock_confirmation; selected NO",
+            "Interface: clock_confirmation; input ready; selected NO; value 11:24 AM; "
+            "UP/DOWN selects; A accepts selection; B returns to adjustment",
+        ]
+    )
     assert on_text[4] == YES_LINE
     assert on_text[:4] + on_text[5:] == off_text
 

@@ -171,6 +171,7 @@ export const SWITCHABLE_FEATURES = [
   "gym-readiness-readout-v1",
   "party-item-confirmation-v1",
   "same-target-no-progress-v1",
+  "yes-no-answer-readout-v1",
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
 
@@ -452,6 +453,7 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("gym-readiness-readout-v1", "observation", "GYM READINESS READOUT", null, "Bundle arm only, default off (the operator 2026-10-20: put the party's levels next to the leader's team so the model can judge for itself; seen-only, no walkthrough). On a gym map's field, a block after the Location/Position lines: Gym: <map> · GYM LEADER <name, once battled on this map>; Your party: species, level and HP; <leader>'s POKéMON seen in battle this run: each POKéMON she sent out with the highest level seen, or none yet; Said on this map: field pages printed on this map that name a type, quoted once; Trainers on this map: from heal-before-trainers facts when present, by the name a battle showed or the sprite kind: beaten, battled and not beaten, or not beaten (the game's trainer flag is set only by a win). Nothing comes from the ROM's trainer parties and nothing advises a choice. Off: no block."),
   on("party-item-confirmation-v1", "observation", "PARTY ITEM CONFIRMATION", RAM, "Bundle arm only, default off. Reads the party message printer: A or B continues only an active, drawn HP-restoration message at its native button wait. Printing, HP animation, fades and handoffs stay passive. No automatic presses. Off: the previous passive party_item_message readout is unchanged."),
   on("same-target-no-progress-v1", "guard", "SAME TARGET, NO PROGRESS", "deterministic-loop-guard-v1", "Bundle arm only, default off (the operator approved the guard 2026-10-20; run a8f9 called navigate_to (29,16) in RUSTURF TUNNEL 39 times from turn 1282, every call ending on one of six tiles next to (4,9) and a third of them in a wild battle, and no loop guard fired). Counts navigate_to calls, and navigate_to_target calls by their target's tile, per target (map, x, y). The first call on the current map anchors the target at the tile the player stood on when it began. A call counts when it ends on that map with field controls free, in a battle (the tile the battle started on) or with field controls locked, within 3 tiles (Manhattan) of the anchor. Wild battles, battle_action calls, presses, evolution and level-up screens, observes and calls to other targets do not reset the count. A map change, a story milestone, a changed story flag or the target reached resets every target; a call ending 4 or more tiles from its anchor resets that target. On the 4th counted call, and every 4th after, the loop guard opens or rebriefs a same_target_no_progress episode whose one note says only what the state shows: since which turn and from which tile, how many calls to the target have ended within 3 tiles of it, where the latest 4 ended (and which began a battle), the navigation result lines they returned, quoted whole once each, and from the 8th call how many of them stopped when a battle began. With loop-guard-supervisor-v1 the note is the SUPERVISOR briefing. The episode closes on those resets or when the player stands in a free field 4 or more tiles from the anchor; it never stops the run. The loop guard keeps one episode at a time: while this note is open no other loop note or stall briefing is sent, and while another loop note is open this one is recorded as a diagnostic would_warn that starts Not sent instead. Recorded as loop_guard events (Activity History and the raw inspector; not drawn on the timeline). Off: no counter runs and the loop guard behaves as before."),
+  on("yes-no-answer-readout-v1", "observation", "YES/NO ANSWER READOUT", RAM, "Bundle arm only, default off (the operator 2026-10-21: \"lets do those fixes and put them in the bundle\"). Run 2026-10-20T19-58-04_qwen36-gpu0_ef9f read the clock confirmation with NO highlighted (\"clock_confirmation; selected NO; UP/DOWN selects; A accepts selection\") for turns ~100-156 and kept pressing A, answering NO; in a turn-156 decision probe 0/16 samples pressed UP then A as recorded and 8/16 with the line below. While a YES/NO box is ready and the highlighted option was read from RAM, the game server adds one line right after the Interface line of every observe, press and navigate_to result: with NO highlighted \"To answer YES, press UP, then A. Pressing A now answers NO.\", with YES highlighted \"To answer NO, press DOWN, then A. Pressing A now answers YES.\", each followed by \" B also answers NO.\" where the game's handler sends B down the NO branch (pret pokeemerald: every listed field, menu and battle-script box). Covered: name, clock and starter confirmations, the party menu, bag, shop, PC, save, evolution move, egg nickname, Pokéblock, move relearner, decoration, minigame, trade, Union Room and Battle Factory boxes, the script YES/NO box (field_yes_no), the battle-script boxes (learn a move, stop learning, use next POKéMON, nickname a catch) and the battle forfeit box (no B clause: B closes it without choosing). No line when the box is not ready, the highlighted option is unknown, a coverage error is reported, or the box is not one of these. Off: no line; the readout is byte for byte as before."),
 ];
 
 export const ALL_ON: FeatureSet = Object.fromEntries(SWITCHABLE_FEATURES.map((id) => [id, true])) as Record<SwitchableFeature, boolean>;
@@ -505,6 +507,7 @@ export const SERVER_FEATURES: readonly SwitchableFeature[] = [
   "respawn-readout-v1",
   "caught-nickname-prompt-v1",
   "party-item-confirmation-v1",
+  "yes-no-answer-readout-v1",
 ];
 
 export function serverFeatureEnv(features: FeatureSet): { POKEBENCH_ACTIVE_UI: "0" | "1"; POKEBENCH_FEATURES_OFF: string } {
@@ -657,6 +660,7 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("gym-readiness-readout-v1"),
     ...when("party-item-confirmation-v1"),
     ...when("same-target-no-progress-v1"),
+    ...when("yes-no-answer-readout-v1"),
   ];
 }
 

@@ -9,8 +9,8 @@ it("appends a default-OFF observation server switch and transports explicit ON/O
  expect(FEATURES.filter(f=>f.switchable).at(-1)?.id).toBe(ID);
  expect(SERVER_FEATURES.at(-1)).toBe(ID);
  expect(featureInfo(ID)).toMatchObject({group:"observation",switchable:true,title:"YES/NO ANSWER READOUT"});
- expect(featureInfo(ID)?.description).toContain("To answer YES, press UP, then A. Pressing A now answers NO.");
- expect(featureInfo(ID)?.description).toContain(" Off: ");
+ expect(featureInfo(ID).description).toContain("To answer YES, press UP, then A. Pressing A now answers NO.");
+ expect(featureInfo(ID).description).toContain(" Off: ");
  const flags={loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false};
  const off=flagFeatures(flags),on={...off,[ID]:true};
  expect(off[ID]).toBe(false);

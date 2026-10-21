@@ -30,10 +30,10 @@ No new inputs, subprocesses, network or file access. Text only from enumerated c
 **M1 — yes-no-answer-readout-v1**
 - [x] Ground every recognized YES/NO prompt in pokeemerald (table below)
 - [ ] Write tests (readout YES/NO highlighted per prompt, unknown selection, not ready, OFF golden, ef9f evidence, registry/bundle/explainer link)
-- [ ] COMMIT: `test: ...` (RED)
-- [ ] Implement switch, registry collateral, bundle arms, pending experiment, explainer
-- [ ] Gates: `just test`, `just lint`, `just build`, `just coverage` (≥90 both stacks)
-- [ ] Delete-the-guard check recorded
+- [x] COMMIT: `test: yes-no-answer-readout-v1 readout line per YES/NO box, unknown selection, OFF golden, ef9f turn-156 evidence, registry and bundle arms (RED)` (37040773). RED: Python collection error (no pokebench_env.yes_no_answer); agent registry test and 3 viewer tests fail (no switch, no explainer, not in bundle arms).
+- [x] Implement switch, registry collateral, bundle arms, pending experiment, explainer
+- [x] Gates: `just build` ok; `just lint` ok (tsc, eslint, ruff, format, mypy 102 files); `just test` agent 3014, viewer 1443, pytest 3166 (ROM configured via copied .env, zero skips); `just coverage` agent 97.21/93.00/97.57/99.16 (stmts/branches/funcs/lines), viewer 95.09/91.06/93.85/97.70, Python lines 97.11 branches 92.69 functions 100; yes_no_answer.py 100%.
+- [x] Delete-the-guard check recorded: readout wiring deleted 128 fail; switch gate 127 fail; ready guard 2; diagnostic guard 1; battle prompt branch 8; forfeit branch 2; forfeit B clause 2; default-off env list 3; agent SERVER_FEATURES transport 1 (vitest). Each restored, 151/151 green. Receipt runs/yes-no-answer-readout/mutations.txt (ignored).
 - [ ] COMMIT: `feat: ...` (GREEN)
 - [ ] Multi-model review loop until clean
 
@@ -47,9 +47,17 @@ Left out (no line): easy_chat and mystery_gift (reader does not tie the cursor t
 
 ## Closing the Loop
 
+- OFF bytes: the synthetic clock/field_yes_no/save readouts and the ef9f fixture readout render to the same sha256 (2f969c8f…) with the main checkout's pokebench_env and with this branch's switch off.
+- `fixed-cli check` passes for bundle-v-control, bundle-cook-1h and whole-map-cook-1h: the dist entry reads the main checkout (mainCheckout()), so it was also run through `main(["check",id], deps)` with root = this worktree (start saves resolved from the main checkout's ignored runs/): all exit 0.
+- Pending experiment parses with parseExperiment, no queuePosition; readiness row added (PENDING).
+- Explainer: `just pages-check` clean; copied to main runs/mockups/yes-no-answer-readout-v1/, 200 at http://127.0.0.1:8791/yes-no-answer-readout-v1/yes-no-answer-readout-v1.html; desktop and 375px screenshots opened (one overlapping SVG label fixed). Card link and /explainers route covered by panels.test.ts and server.test.ts; no live 8790 click (viewer restart not allowed in this task).
+
 ## Session Log
 
 ## Surprises
+
+- test_readout_truth's ROM replay renders recorded runs with their recorded off lists, which predate this switch, so a recorded field_yes_no state gained the line; the switch was added to that test's NEW (newer-than-recording, forced off) set like the other new readout switches.
+- `fixed-cli check` always reads the main checkout's experiments/ (mainCheckout()).
 
 ## Multi-Model Review Log
 

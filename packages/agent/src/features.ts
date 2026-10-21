@@ -178,6 +178,7 @@ export const SWITCHABLE_FEATURES = [
   "exit-labels-v3",
   "navigation-tool-use-guard-v1",
   "semantic-current-map-feedback-v1",
+  "navigation-refusal-reasons-v3",
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
 
@@ -467,6 +468,7 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("exit-labels-v3", "observation", "DISTINCT EXITS AND MAP SECTIONS", "exit-labels-v2", "Default off; bundle only. Physical entrances keep distinct labels, including the destination terrain section. Same-map returns say whether they reach your current section or a different one. One-way ledges remain directed; summaries share the same typed descriptions. Sections are ROM terrain facts; temporary objects and scripts may block paths. No objective or route is chosen. Off: exit-labels-v2 output and state are unchanged."),
   on("navigation-tool-use-guard-v1", "guard", "NAVIGATION TOOL-USE GUARD", "bounded-navigation-v1", "Reject model direction-only press batches of two or more buttons before native input when fresh state confirms stationary free overworld control, with no battle, UI or field message. Return the requested buttons, zero submitted buttons and an observation, asking the model to choose a navigation target. Single directions, mixed inputs, unknown or interrupted states and internal checked navigation remain available. No destination is inferred. Off: ordinary press batches execute exactly as before."),
   on("semantic-current-map-feedback-v1", "guidance", "SEMANTIC CURRENT-MAP FEEDBACK", null, "When navigate_to_target refuses a request for a different map, show the actual current map name, ID and position and state that no input was sent. Unknown values stay unavailable. Applies to either semantic navigation version; inert when neither is enabled. Off: preserve the original wrong-map refusal text and receipt exactly."),
+  on("navigation-refusal-reasons-v3", "guidance", "EXPLORATORY WAYPOINT GUIDANCE", "bounded-navigation-v1", "Default off; bundle only. Local-window refusal advice for people and free tiles lists exploratory edge choices without claiming an onward route. Each navigation tool remembers up to 16 coordinate goals and 8 recent refusal positions per goal, clearing when it observes a map change. Previous refusal positions are withheld while other edge choices remain; exhausted choices are reported without claiming the destination unreachable. No hidden whole-map routing or movement. Off: existing v2 tile refusal and exit-reachability person advice are byte for byte unchanged."),
 ];
 
 export const ALL_ON: FeatureSet = Object.fromEntries(SWITCHABLE_FEATURES.map((id) => [id, true])) as Record<SwitchableFeature, boolean>;
@@ -682,6 +684,7 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("exit-labels-v3"),
     ...when("navigation-tool-use-guard-v1"),
     ...when("semantic-current-map-feedback-v1"),
+    ...when("navigation-refusal-reasons-v3"),
   ];
 }
 

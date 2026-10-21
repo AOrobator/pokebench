@@ -8,7 +8,7 @@
   "primaryMilestone": "RIVAL_HOUSE_ENTERED",
   "source": {
     "checkout": "main",
-    "commit": "12f101515225d263375ea79f59086769bfdacd93"
+    "commit": "574d0635a5d04da6be4d136b05d3ed8e098a5c89"
   },
   "incumbent": {
     "version": 2,
@@ -194,7 +194,9 @@
       "field-move-gates-v1": true,
       "story-battle-heal-gate-v1": true,
       "exit-labels-v3": true,
-      "navigation-refusal-reasons-v3": false
+      "navigation-refusal-reasons-v3": false,
+      "navigation-tool-use-guard-v1": true,
+      "semantic-current-map-feedback-v1": true
     }
   },
   "trialsPerArm": 8,

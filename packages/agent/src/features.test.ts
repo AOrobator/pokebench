@@ -19,7 +19,7 @@ it("describes every switchable and measurement feature exactly once", () => {
   expect(FEATURES.filter((f) => f.switchable).map((f) => f.id)).toEqual([...SWITCHABLE_FEATURES]);
 
   expect(FEATURES.filter((f) => f.group === "observation")).toHaveLength(58);
-  expect(FEATURES.filter((f) => f.group === "guidance")).toHaveLength(73);
+  expect(FEATURES.filter((f) => f.group === "guidance")).toHaveLength(74);
   expect(FEATURES.filter((f) => f.group === "guard")).toHaveLength(41);
   for (const f of FEATURES) {
     expect(f.title).not.toBe("");
@@ -31,8 +31,8 @@ it("describes every switchable and measurement feature exactly once", () => {
 
 it("keeps visited terrain immediately before deterministic warps and the final story treatment",()=>{
  const id="visited-terrain-navigation-v1";
- expect(SWITCHABLE_FEATURES.at(-42)).toBe(id);
- expect(FEATURES.filter(feature=>feature.switchable).at(-42)?.id).toBe(id);
+ expect(SWITCHABLE_FEATURES.at(-43)).toBe(id);
+ expect(FEATURES.filter(feature=>feature.switchable).at(-43)?.id).toBe(id);
  expect(playHarnessFeatures(ALL_ON,null).at(-11)).toBe(id);
  expect(featureInfo(id)).toMatchObject({group:"guidance",needs:"bounded-navigation-v1",switchable:true});
  expect(featureInfo(id).description).toContain("Off: the existing 15x15 readout");
@@ -237,7 +237,7 @@ it("registers displayed place names as a default-off server readout treatment, r
  expect(featureInfo("displayed-place-names-v1").description).toContain(" Off: ");
  expect(featureInfo("displayed-place-names-v1").description).toContain("PROF. BIRCH'S HOUSE");
  expect(featureInfo("displayed-place-names-v1").description).toContain("Mays House Sign");
- expect(SWITCHABLE_FEATURES.at(-114)).toBe("displayed-place-names-v1");
+ expect(SWITCHABLE_FEATURES.at(-115)).toBe("displayed-place-names-v1");
  expect(playHarnessFeatures(ALL_ON,null).at(-83)).toBe("displayed-place-names-v1");
  expect(playHarnessFeatures(off("battle-refusal-loop-v1","instruction-ledger-v2","tutorial-party-owner-v1","mid-frame-readout-v1","unset-dynamic-warp-v1","status-names-v1","surf-gated-exits-v2","battle-move-tool-v1","people-id-cards-v1","explorer-guidance-v2","ineffective-loops-v1","cross-map-goal-v1","surf-gated-exits-v1","readout-truth-v1","birch-speech-pages-v1","blackout-readout-v1","story-destinations-v1","harness-trust-v1","cited-destination-v1","harness-trust-v2","exit-reachability-v1","pushback-loop-detection-v1","pushback-press-result-v1","battle-observation-loop-v1","displayed-place-names-v1"),null)).not.toContain("displayed-place-names-v1");
  expect(serverFeatureEnv(off("battle-refusal-loop-v1","displayed-place-names-v1")).POKEBENCH_FEATURES_OFF).toBe("displayed-place-names-v1,original-speed-pacing-v1,exit-labels-v2,heal-before-trainers-v2,respawn-readout-v1,caught-nickname-prompt-v1,party-item-confirmation-v1,yes-no-answer-readout-v1,field-move-gates-v1,exit-labels-v3");

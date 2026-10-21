@@ -32,3 +32,5 @@ Started from main d004be2dd in isolated managed worktree. User authorizes implem
 - COMMIT: feat navigation refusal v3 exploratory anti-cycle guidance (GREEN candidate).
 
 - Main sync3b9a36b48 adds only upstream exit-label worklog evidence. Pending entry now pins complete implementation12f101515. No source change after restored mutation checks. COMMIT: pin waypoint implementation for final gates/review.
+
+Integrated main bf0c3d48c in 574d0635a, preserving both new navigation switches and append-only registry order. Agent integration: 206 files / 3139 tests pass. Viewer stale-build failures resolved by rebuilding; historic open-goal roster excludes new switch. Pending incumbent includes the current two navigation switches. Full integrated gates and frozen cloud review remain pending.

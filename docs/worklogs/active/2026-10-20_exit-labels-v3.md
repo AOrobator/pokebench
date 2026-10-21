@@ -38,3 +38,5 @@ Run 97a0 state 13625 / result 13626 / turn377 identifies Woods entrances at (10,
 - Earlier coverage showed live-human import timeout and resulting mock spill; focused unchanged test6/6 passed after stopping the heavy preview. Separate later viewer timeout failures retained. No test limits, retries or exclusions changed. A missed default-OFF assignment after the field-gate conflict was repaired and now has a dedicated generic-default regression test.
 
 - Full verified coverage run: agent3052, viewer1509, Python3483 pass, zero skips. Agent statement/branch/function coverage97.12/92.91/97.56; viewer95.25/91.06/94.18; Python lines97.20/branches92.82/functions100. Lint (both TS, ruff format/check, mypy104 files) passes. Logs: coverage-default-verified.log and lint-default-verified.log. Final source sync/build and frozen cloud reviews follow.
+
+- Pending experiment pins the complete implementation c854592366ae9f2172a50a3bffd1b107566e0298 (no queue/approval).

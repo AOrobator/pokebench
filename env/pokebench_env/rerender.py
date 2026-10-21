@@ -101,6 +101,8 @@ def read_state(
         shop_interface_enabled="shop-interface-v1" not in off,
         exp_next_enabled=EXP_NEXT not in off,
         pokedex_enabled=POKEDEX_OWN not in off,
+        map_wide_triggers_enabled="map-wide-triggers-v1" not in off
+        and "coordinate-script-conditions-v1" not in off,
         respawn_links=links if RESPAWN not in off else None,
     )
 

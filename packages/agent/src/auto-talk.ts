@@ -80,6 +80,8 @@ export class AutoTalk {
   const id:[number,number]=[map[0],map[1]];
   // Loaded trainers only: heal-before-trainers-v2 also lists ones the game has not loaded, which auto-talk never sees.
   const unbeaten=new Set((s.heal_before_trainers?.trainers??[]).filter(t=>!t.defeated&&t.loaded!==false).map(t=>t.local_id));
+  // auto-talk-v2: a trainer the readout shows as defeated has nothing new to say either.
+  const beaten=new Set(this.features["auto-talk-v2"]?(s.heal_before_trainers?.trainers??[]).filter(t=>t.defeated).map(t=>t.local_id):[]);
   const characters=this.gate.untalkedCharacters();
   const out:Candidate[]=[];
   const add=(target:Target,rank:number):void=>{
@@ -96,7 +98,7 @@ export class AutoTalk {
    add({kind:"story_character",name:c.name,character:c.name,key:c.key,x:at.x,y:at.y,map_id:id},0);
   }
   for(const o of mapObjects(s)??[]){
-   if(named.has(o.key)||ITEM.test(o.sprite??"")||unbeaten.has(o.local_id)||this.gate.talkedTo(o.key))continue;
+   if(named.has(o.key)||ITEM.test(o.sprite??"")||unbeaten.has(o.local_id)||beaten.has(o.local_id)||this.gate.talkedTo(o.key))continue;
    add({kind:"person",name:o.sprite??`object ${String(o.local_id)}`,character:null,key:o.key,x:o.x,y:o.y,map_id:id},1);
   }
   for(const t of s.interaction_targets??[])if(t.kind==="background"&&t.name?.startsWith("Sign text")===true)add({kind:"sign",name:t.name,character:null,key:null,x:t.x,y:t.y,map_id:id},2);

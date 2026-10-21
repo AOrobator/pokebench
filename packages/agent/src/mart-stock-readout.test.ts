@@ -8,10 +8,10 @@ const ID="mart-stock-readout-v1";
 
 describe("mart-stock-readout-v1 (Rustboro strategy report, proposal 4)",()=>{
  it("is appended last to every registry list as a default-off observation that needs the RAM readout",()=>{
-  expect(SWITCHABLE_FEATURES.at(-10)).toBe(ID);
-  expect(FEATURES.filter(f=>f.switchable).at(-10)?.id).toBe(ID);
-  expect(SERVER_FEATURES.at(-4)).toBe(ID);
-  expect(playHarnessFeatures(ALL_ON,null).at(-9)).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-11)).toBe(ID);
+  expect(FEATURES.filter(f=>f.switchable).at(-11)?.id).toBe(ID);
+  expect(SERVER_FEATURES.at(-5)).toBe(ID);
+  expect(playHarnessFeatures(ALL_ON,null).at(-10)).toBe(ID);
   expect(featureInfo(ID)).toMatchObject({group:"observation",switchable:true,title:"MART STOCK READOUT",needs:"ram-state-v1"});
   expect(featureInfo(ID).description).toContain("Bundle arm only, default off");
   expect(featureInfo(ID).description).toContain(" Off: ");

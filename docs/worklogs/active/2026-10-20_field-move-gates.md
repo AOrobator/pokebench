@@ -345,3 +345,9 @@ The operator approved 9:42 PM ET. Test-only, plus one production fix the coordin
   tip: just test 0, just lint 0, just build 0, just coverage 0 (env 3480, agent 3046, viewer 1508; Python
   97.21 / 92.86 / 100, agent 97.13 / 92.97 / 97.59 / 99.14, viewer 95.25 / 91.06 / 94.19 / 97.82).
 - [ ] Review loop (cloud lanes only): Claude, Grok, Codex on packet e9584cf0..HEAD.
+- COMMIT: `docs: record field-move test-io gates on the merged tip` (84316d89)
+- Review round 1 (Claude lane, read-only subagent; claude -p OAuth expired): BLOCKING on packet identity only,
+  my packet was cut against main 97046aa6 (moved past the frozen base 537c0a99) so its checksum did not
+  reproduce. Grok and Codex stopped before verdicts, packet void. Substance: no defects. Hardening taken: the
+  sweep reuses survey.open (no extra ungated classify) and asserts its floods (<= 4 + 2 x closed per survey,
+  exactly 2 per checked claim). Next: merge main 97046aa6, gates, refreeze with explicit SHAs.

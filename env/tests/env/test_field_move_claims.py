@@ -10,10 +10,12 @@ maps where a line per obstacle kind overclaimed; the sweep checks every porymap 
 import re
 from collections.abc import Callable, Iterator
 from dataclasses import dataclass, replace
+from typing import Any
 
 import pytest
 from test_field_moves import operator_rom
 
+from pokebench_env import field_moves
 from pokebench_env.exit_labels import RomMap, _edge, read_rom_map
 from pokebench_env.field_moves import (
     FOOT,
@@ -22,6 +24,7 @@ from pokebench_env.field_moves import (
     FieldObstacles,
     MapGates,
     Obstacle,
+    Survey,
     capabilities,
     classify,
     map_gates,
@@ -61,9 +64,18 @@ class Place:
         warp_name: Callable[[Tile], str] = lambda w: f"({w[0]},{w[1]})",
         connection_name: Callable[[Key], str] = lambda k: f"{k[0]} edge",
     ) -> list[str]:
+        return self.surveyed(gates, start, warp_name, connection_name)[1]
+
+    def surveyed(
+        self,
+        gates: MapGates,
+        start: Tile,
+        warp_name: Callable[[Tile], str],
+        connection_name: Callable[[Key], str],
+    ) -> tuple[Survey[Key], list[str]]:
         found = survey(self.tiles, start, gates, warps=self.warps, connections=self.edges)
         field = FieldObstacles(gates, found, self.rom.width, self.rom.height)
-        return field.lines(warp_name, connection_name)
+        return found, field.lines(warp_name, connection_name)
 
 
 class Places:
@@ -145,7 +157,18 @@ def test_seafloor_cavern_room1_names_both_boulders_and_the_rock_together(places:
     ]
 
 
-def test_every_printed_close_claim_holds_with_exactly_its_obstacles_closed(places: Places) -> None:
+def test_every_printed_close_claim_holds_with_exactly_its_obstacles_closed(
+    places: Places, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    floods = 0
+    spread = field_moves._spread
+
+    def counted(*args: Any, **kwargs: Any) -> frozenset[Tile]:
+        nonlocal floods
+        floods += 1
+        return spread(*args, **kwargs)
+
+    monkeypatch.setattr(field_moves, "_spread", counted)
     checked: set[str] = set()
     for place in places.every():
         gates = place.gates(CLOSED)
@@ -156,13 +179,19 @@ def test_every_printed_close_claim_holds_with_exactly_its_obstacles_closed(place
         for start in place.warps:
             if start not in place.tiles:
                 continue
-            ungated = classify(place.tiles, start, warps=place.warps, connections=place.edges)
+            floods = 0
+            found, lines = place.surveyed(
+                gates, start, lambda w: f"W{w[0]}_{w[1]}", lambda k, keys=keys: f"C{keys.index(k)}"
+            )
+            # survey: gated and open classify (4 floods), then at most one flood per closed
+            # obstacle on foot and one with water open.
+            assert floods <= 4 + 2 * len(closed), (place.location, start, floods)
+            ungated = found.open
             was = {f"W{w[0]}_{w[1]}": how for w, how in ungated.warps} | {
                 f"C{keys.index(k)}": how for k, how in ungated.connections
             }
-            lines = place.lines(
-                gates, start, lambda w: f"W{w[0]}_{w[1]}", lambda k, keys=keys: f"C{keys.index(k)}"
-            )
+            claims = 0
+            floods = 0
             for line in lines:
                 claim = CLAIM.match(line)
                 if claim is None:
@@ -187,7 +216,10 @@ def test_every_printed_close_claim_holds_with_exactly_its_obstacles_closed(place
                         start,
                         line,
                     )
+                claims += 1
                 checked.add(f"{place.location} {start}")
+            # One classify (two floods) per printed claim.
+            assert floods == 2 * claims, (place.location, start, floods, claims)
     assert {"VICTORY ROAD B1F (30, 25)", "SEAFLOOR CAVERN ROOM1 (5, 18)"} <= checked
     assert "RUSTURF TUNNEL (4, 10)" in checked
 

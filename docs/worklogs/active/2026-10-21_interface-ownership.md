@@ -67,8 +67,11 @@ No new network surface, subprocesses or file paths. ROM read only through existi
 
 **M1 — `field-ownership-feedback-v1`**
 - [x] Tests `packages/agent/src/field-ownership-feedback.test.ts` with fixture `packages/agent/test-support/evolution-owned-d548.json` (d548 seq 20530 state event; berry_trees and task_data trimmed): production `playGameTools` navigate_to_target refuses on evolution / summary / field_yes_no / battle with navigate_to's reason, no press, and the whole observe readout; OFF keeps "target is not listed in the current verified state" with no observation; stall briefing names "in the evolution decision interface (screen evolution)" and the readout controls (OFF: "ROUTE116 (map 0/31) in battle at 37,13"); auto-talk sends one message per interface episode and never presses; OFF silent.
-- [x] COMMIT RED (5 of 9 red; OFF and registration green). SHA recorded in the next commit.
-- [ ] Implement / gates / GREEN. Review deferred to one branch packet before landing.
+- [x] COMMIT RED: `test(field): navigate_to_target, stall briefing and auto-talk name an owned interface behind field-ownership-feedback-v1 (RED)` (9446ca607). 5 of 9 red; OFF and registration green.
+- [x] Implement: `fieldOwner()` in semantic-navigation.ts (navigate_to's unreadyReason wording, non-battle screen named before the battle flag; observe's full result returned through `withStatus`); `interfaceOf(s, owned)` and `where()` in loop-supervisor.ts, stall-briefing dwell; auto-talk `ownedInterface` once per episode (a free overworld state event ends it), recorded as the `auto_talk` event's text (Activity History already prints it) and delivered as the retained user message.
+- [x] Guard deletion: refusal branch off → 2 red; seeInterface without the owned flag → 1 red; auto-talk message branch off → 1 red; once-per-episode check off → 1 red; restored → 9 green.
+- [x] Gates: vitest agent 4297 / viewer 1656; pytest 3806; lint clean; build ok; coverage agent 99.2 L / 93.14 B / 97.8 F, viewer 97.95 / 91.34 / 94.35, Python 97.29 / 93.11 / 100.
+- [ ] COMMIT GREEN. Review deferred to one branch packet before landing.
 
 **M2 — `move-learn-loop-fingerprint-v1`**
 - [ ] Tests: replay ea04 seq 20494–20844 states through the loop rules → fires by the 2nd cycle; OFF → no fire. Delete-the-wiring check.

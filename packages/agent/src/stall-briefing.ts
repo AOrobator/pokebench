@@ -108,7 +108,7 @@ export class StallBriefing {
    // Calls made inside an owned interface (it was open before and after them) count as dwelling there,
    // however its text churns; the call that opened it does not.
    if(event.state_seq!==undefined&&this.last?.seq===event.state_seq){
-    const ui=interfaceOf(this.last);
+    const ui=interfaceOf(this.last,this.features["field-ownership-feedback-v1"]);
     if(ui===null)this.dwell=null;
     else if(this.dwell?.key===ui.key)this.dwell.calls++;
     else this.dwell={key:ui.key,name:ui.name,firstSeq:this.last.seq,calls:0,briefed:0};

@@ -30,6 +30,8 @@ const GAME_TOOLS=new Set(["observe","press","navigate_to","battle_action"]);
 const ITEM=/ITEM_BALL/;
 
 const textOf=(r:AgentToolResult<unknown>):string=>r.content.flatMap(p=>p.type==="text"?[p.text]:[]).join("\n");
+// field-ownership-feedback-v1: the game, not the field, owns input: another screen, or an open interface.
+const ownedInterface=(s:GameStateSnapshot):string|null=>s.started&&(s.screen!=="overworld"||s.active_ui!=null)?`${s.screen}|${s.active_ui?.phase??""}`:null;
 const free=(s:GameStateSnapshot):boolean=>s.started&&s.screen==="overworld"&&!s.in_battle&&s.field_controls_locked===false&&s.active_ui==null&&(s.world_context?.dialogue??"")===""&&s.map_id!==null&&s.position!==null;
 
 export class AutoTalk {
@@ -38,9 +40,12 @@ export class AutoTalk {
  private acted="";
  private sequence=0;
  private retained:{readonly message:AgentMessage;readonly anchor:string|null}|null=null;
+ // field-ownership-feedback-v1: the interface episode already named; a free field ends the episode.
+ private named:string|null=null;
  constructor(private readonly features:FeatureSet,private readonly state:StateSource,private readonly tools:readonly AgentTool[],private readonly breaker:Pick<FixedPointBreaker,"fixedPoint"|"noTool">,private readonly recorder:AutoTalkRecorder){
   recorder.subscribe(event=>{
    this.gate.observe(event);
+   if(event.type==="state"&&"started" in event&&event.started&&event.screen==="overworld"&&event.active_ui==null)this.named=null;
    if(event.type==="milestone"&&event.kind==="story"&&event.origin!=="present_at_start"&&!MEASUREMENT_ONLY_MILESTONES.has(event.name))this.tried.clear();
   });
  }
@@ -109,7 +114,16 @@ export class AutoTalk {
   const record=(outcome:Body["outcome"],target:Target|null,walks:number,tried:number,text:string|null):void=>{this.recorder.recordAutoTalk({trigger:due.trigger,repeats:due.repeats,outcome,target,walks,tried,text});};
   const navigate=this.tools.find(t=>t.name==="navigate_to"),press=this.tools.find(t=>t.name==="press");
   let s=await this.state.read(signal);
-  if(navigate===undefined||press===undefined||!free(s)){record("not_free",null,0,0,null);return {message:null,settled:navigate===undefined||press===undefined};}
+  if(navigate===undefined||press===undefined||!free(s)){
+   const owned=this.features["field-ownership-feedback-v1"]&&navigate!==undefined&&press!==undefined?ownedInterface(s):null;
+   if(owned===null||owned===this.named){record("not_free",null,0,0,null);return {message:null,settled:navigate===undefined||press===undefined};}
+   this.named=owned;
+   // Names what the game shows and the controls the readout lists; it never picks an answer.
+   const ui=s.active_ui,name=ui==null?s.screen.replaceAll("_"," "):ui.phase.replaceAll("_"," ");
+   const text=`SUPERVISOR: Your last ${String(due.repeats)} ${due.trigger==="fixed_point"?"turns made the same call and the game state stayed the same":"replies called no tool"}. The harness did not walk or press anything: the game is showing the ${name} (screen ${s.screen}), not the field.${ui?.controls==null||ui.controls===""?"":` Controls the readout lists for it: ${ui.controls}`}`;
+   record("not_free",null,0,0,text);
+   return {message:{role:"user",content:[{type:"text",text}],timestamp:Date.now()},settled:false};
+  }
   const candidates=this.candidates(s);
   if(candidates.length===0){record("none",null,0,0,null);return {message:null,settled:true};}
   let walks=0,tried=0;

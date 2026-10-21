@@ -195,6 +195,19 @@ function withStatus(result:AgentToolResult<unknown>,status:string,selected:strin
 function isMap(state:GameStateSnapshot,map:readonly [number,number]):boolean{return state.map_id?.[0]===map[0]&&state.map_id[1]===map[1];}
 function isDestinationMap(state:GameStateSnapshot,destination:readonly number[]|null|undefined):boolean{const map=state.map_id;return destination!==null&&destination!==undefined&&map!==null&&map[0]===destination[0]&&map[1]===destination[1];}
 
+// field-ownership-feedback-v1: navigate_to's refusal reasons (navigation.ts unreadyReason), with a screen that is not a
+// battle screen named before the battle flag: gMain.inBattle stays set through a post-battle evolution (TryEvolvePokemon
+// runs before ReturnFromBattleToOverworld), so in_battle is true while the evolution screen owns input.
+export function fieldOwner(state:GameStateSnapshot):string|null {
+ const battleScreen=state.screen==="battle"||state.screen.startsWith("battle_");
+ if(!state.started)return "the game has not started yet; navigate_to_target walks only on the field";
+ if(state.screen!=="overworld"&&!battleScreen)return `the game is not on the field (screen: ${state.screen}); navigate_to_target walks only on the field`;
+ if(state.in_battle)return "a battle is in progress; navigate_to_target walks only on the field";
+ if(state.screen!=="overworld")return `the game is not on the field (screen: ${state.screen}); navigate_to_target walks only on the field`;
+ const ui=state.active_ui;
+ return ui==null?null:`a menu or other interface is open (${ui.phase}); close it before calling navigate_to_target`;
+}
+
 // semantic-navigation-v2: how to copy a target from the readout, and what happens after activation.
 const SEMANTIC_V2_DESCRIPTION="The way to reach a person, object, door, stairs, other warp or walking map exit that the readout lists with a navigate_to_target target: it walks there, faces it and talks to it, uses it or goes through it, once. Pass the current map_id and the target exactly as the readout writes it after \"navigate_to_target target\". The harness chooses the reachable approach and continues progress-making route segments without an end-to-end command cap. It returns control immediately if a battle, a menu, a script, forced movement, a map transition or unavailable input interrupts travel, and says why when it refuses or stops early. For anything without a navigate_to_target target, use navigate_to.";
 
@@ -204,7 +217,7 @@ function semanticV2Description(dialogue:boolean):string {
  const cut=SEMANTIC_V2_DESCRIPTION.indexOf(" It returns control immediately");
  return dialogue?`${SEMANTIC_V2_DESCRIPTION.slice(0,cut)}${SEMANTIC_V2_DIALOGUE}${SEMANTIC_V2_DESCRIPTION.slice(cut)}`:SEMANTIC_V2_DESCRIPTION;
 }
-function semanticTool(navigate:CheckedNavigationTool,press:CheckedPressTool,features:FeatureSet,stateSource:StateSource):AgentTool<typeof SemanticArgs> {
+function semanticTool(navigate:CheckedNavigationTool,press:CheckedPressTool,features:FeatureSet,stateSource:StateSource,observe?:AgentTool):AgentTool<typeof SemanticArgs> {
  const options=navigationOptions(features);
  // trainer-sight-check-v2: navigate_to_target's first walk gets trainer-sight-check-v1's check.
  const sightCheck=features["trainer-sight-check-v1"]&&features["trainer-sight-check-v2"];
@@ -213,6 +226,8 @@ function semanticTool(navigate:CheckedNavigationTool,press:CheckedPressTool,feat
   execute:async(id,args,signal)=>{
    const request=args as SemanticRequest;
    signal?.throwIfAborted();const before=await stateSource.read(signal),selected=label(request.target);
+   const owner=features["field-ownership-feedback-v1"]&&observe!==undefined?fieldOwner(before):null;
+   if(owner!==null&&observe!==undefined)return withStatus(await observe.execute(id,{},signal),`refused because ${owner}; nothing was pressed`,selected,request.target,false);
    if(!isMap(before,request.map_id)){
     const result=withStatus({content:[],details:{state:before}},"refused because the requested map is not current",selected,request.target,false);
     if(!features["semantic-current-map-feedback-v1"])return result;
@@ -368,11 +383,11 @@ function explorationTool(semantic:AgentTool<typeof SemanticArgs>,features:Featur
 
 export function withSemanticNavigation(tools:readonly AgentTool[],features:FeatureSet,state:StateSource):AgentTool[] {
  if(!semanticNavigation(features))return [...tools];
- const navigate=tools.find(tool=>tool.name==="navigate_to"),press=tools.find(tool=>tool.name==="press");
+ const navigate=tools.find(tool=>tool.name==="navigate_to"),press=tools.find(tool=>tool.name==="press"),observe=tools.find(tool=>tool.name==="observe");
  // State-only probes and historical replay builders intentionally construct partial tool sets.
  // Production feature validation requires bounded navigation, and live play always supplies both.
  if(navigate===undefined||press===undefined||!isCheckedNavigation(navigate)||!isCheckedPress(press))return [...tools];
- const semantic=semanticTool(navigate,press,features,state),result=[...tools,semantic];
+ const semantic=semanticTool(navigate,press,features,state,observe),result=[...tools,semantic];
  if(features["deterministic-exploration-v1"])result.push(explorationTool(semantic,features,state));
  return result;
 }

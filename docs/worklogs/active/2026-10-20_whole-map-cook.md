@@ -61,3 +61,4 @@ v5 stopped 20:15 (both operator_abort; bundle ef9f stuck at the clock YES/NO box
 
 ## story-progress-clock-v1 in the bundle arms (coordinator relay of the operator's call, 20:42 NY)
 Added as a bundle switch (base false) to bundle-v-control, bundle-cook-1h and whole-map-cook-1h; running v6 untouched. Tests updated: same-target-no-progress.test no longer pins its switch as the last entry; open-goal-prompt.test lists story-progress-clock-v1 among bundle-only extras. Hashes: bundle-v-control 2668ce57c1b8, bundle-cook-1h b384d78a190c, whole-map-cook-1h 972f446b0f91. pnpm -r test: agent 3030, viewer 1442 pass.
+- Reviews: Grok LGTM, Claude LGTM. Landing.

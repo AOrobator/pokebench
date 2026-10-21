@@ -1,14 +1,14 @@
 {
  "version": 1,
  "id": "caught-dex-input-v1",
- "title": "Caught Pokédex registration input",
+ "title": "Caught Pok\u00e9dex registration input",
  "changedFeature": "caught-dex-input-v1",
  "hypothesis": "Recognizing the battle-owned registration task exposes A/B and stops battle auto-advance at the page instead of treating it as busy.",
  "activationMilestone": "STARTER_CHOSEN",
  "primaryMilestone": "ROXANNE_DEFEATED",
  "source": {
   "checkout": "main",
-  "commit": "8f98367d154945cb0e06cb359c0a0100494ed0bc"
+  "commit": "aa39ac65e28e1dd778cbce79a638ca8a641d7f89"
  },
  "incumbent": {
   "version": 2,
@@ -206,7 +206,8 @@
    "effectiveness-heard-v1": false,
    "game-said-goals-v1": false,
    "menu-refusal-recovery-v1": false,
-   "caught-dex-input-v1": false
+   "caught-dex-input-v1": false,
+   "gym-door-label-v1": false
   }
  },
  "trialsPerArm": 8,

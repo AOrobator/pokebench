@@ -63,6 +63,62 @@ PB11 PASS: reference revision plus exact ROM instructions and archived memory ve
 PB12 PASS: external ROM remains at ~/.roms; no TCC path or game asset committed.
 PB13 PASS: worklog, regressions, coverage, lint and review packet; landing/live proof separate.
 
-Integration note: concurrent gym-door-label-v1 landed on main5534f2850.
-Preserving its registry order, default/control values, pending entry, test
-expectations and bundle memberships while appending caught-dex after it.
+## Independent review, round 1 and corrections
+
+Frozen 145e117a5 / packet SHA256 ab3fc58f373049a36e1fb12b66422ec8e6ce14004e7dc766b6c0b1b8b59fc8f7.
+Grok (cursor-grok-4.5-high) returned VERDICT: LGTM; exit 0 with only allowed
+post-verdict reconnect diagnostics. Claude Opus/Sonnet Cursor and Cursor GPT
+were usage-limited; standalone ~/.claude-review loggedIn=false. Preserved exact
+failures under runs/reviews/caught-dex-input/. Applied standing-authorized
+outage fallback: fresh no-history gpt-6.1-sol/xhigh (/root/review_sol) and
+gpt-6-astra/high (/root/review_astra), retaining available Grok. Reduced vendor
+diversity is explicit. Both verified frozen digest and clean pre/post status.
+
+Both fallback reviewers returned VERDICT: BLOCKING: central game_state phase
+replacement lacked an automated native-RAM caller-seam regression. Astra also
+reproduced a scheduler race in the waiter test's timed polling. Accepted both.
+
+Corrections (same frozen production boundary, no production behavior changes):
+- Wait test now signals registration from the released memory-lock context,
+  and includes explicitly delayed-worker scheduling. No polling or sleeps.
+- Tracked exact raw5393 native archive (SHA256 verified) and tests execute real
+  read_state -> game_state -> render with OFF/ON, expanded/plain readouts,
+  and a task-owned display transition. External ROM remains untracked and is
+  SHA1-verified by resolve_rom.
+- Separate adversarial removals of phase override, battle header treatment and
+  interface copy each fail the intended assertions; restored suite passes 9/9.
+  Receipts: runs/diagnostics/caught-dex/{phase-override-removed,battle-header-removed,
+  interface-copy-removed,production-mutations-restored}.txt.
+- Pending experiment source now pins implementation 145e117a5, which contains the
+  switch; entry remains unqueued and unapproved.
+- Explainer inspected at 1280px, plus 1440px and 375px iframe viewports; phone
+  diagram scrolls within its section. Screenshots saved under canonical
+  runs/mockups/caught-dex-input-v1/shots/. Card click verified on isolated 8794.
+
+
+## Final integration
+
+Round 2 fallback reviewers Sol and Astra both returned VERDICT: LGTM on
+12b16d37b / packet cf36a17bc366043b70ae7e5de694f1212735fae0f9af5880f1c6f133d7422a79.
+Sol additionally exercised 50 delayed/scheduled waiter cases under CPU load.
+Full corrected Python suite: 3592 passed. Grok round-2 transport exceeded its
+240-second bound without a terminal verdict; preserved incomplete stdout/stderr,
+never counted as LGTM. The two standing-authorized independent fallback models
+therefore cover the unavailable roster; reduced vendor diversity remains explicit.
+
+Main advanced to 4e6d5bb32 during review (native move-learning Menu line fix).
+Rebased cleanly onto it; no candidate production edit or domain added. Pending
+source pin follows the rebased implementation commit. Final identity verification
+and narrow integration re-review required before the ff-only landing.
+
+Final pinned integration base is 52b086acc1c8b32255d05a0529926d863ab6a4f1,
+including the independently landed move-learning menu and party HP fixes.
+An intermediate review manifest used stale base4e6 while a live main ref
+advanced before rebase; both reviewers identified that packet identity drift.
+It is superseded. Final packet uses the immutable52b hash passed to rebase.
+Caught-dex production patch remains unchanged; integration checks95/95 pass.
+
+Concurrent switch integration: rebased onto pinned5534f2850, which already
+contains gym-door-label-v1. That switch remains before caught-dex in registry
+order, retains its own defaults/control and bundle selections, and keeps its
+pending experiment and explainer. Combined registry expectations are rechecked.

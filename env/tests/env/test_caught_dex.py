@@ -1,3 +1,4 @@
+import os
 import struct
 import threading
 import types
@@ -80,7 +81,8 @@ def test_production_state_factory_honours_switch(monkeypatch) -> None:
     assert seen == [False, True]
 
 
-def test_wait_returns_page_immediately_and_on_frame() -> None:
+@pytest.mark.parametrize("delayed_worker", [False, True])
+def test_wait_returns_page_immediately_and_on_frame(delayed_worker: bool) -> None:
     import threading
 
     from pokebench_env.battle_text import BattleWait
@@ -91,18 +93,31 @@ def test_wait_returns_page_immediately_and_on_frame() -> None:
     memory = page(0x080BFE39)
     wait = BattleWait(memory.read, caught_dex=True)
     result = []
-    thread = threading.Thread(
-        target=lambda: result.append(wait.wait(lambda: "page", threading.Lock()))
-    )
-    thread.start()
-    # The memory lock synchronizes waiter registration before the transition.
-    import time
+    from contextlib import contextmanager
 
-    for _ in range(100):
-        with wait._lock:
-            if wait._waiters:
-                break
-        time.sleep(0.001)
+    registered = threading.Event()
+    lock = threading.Lock()
+
+    @contextmanager
+    def memory_lock():
+        with lock:
+            yield
+        # BattleWait appends its waiter before releasing the memory lock.
+        registered.set()
+
+    release_worker = threading.Event()
+
+    def worker() -> None:
+        if delayed_worker:
+            assert release_worker.wait(5)
+        result.append(wait.wait(lambda: "page", memory_lock()))
+
+    thread = threading.Thread(target=worker)
+    thread.start()
+    if delayed_worker:
+        assert not registered.is_set()
+        release_worker.set()
+    assert registered.wait(5), "waiter did not register"
     put_task(memory, 0, 0x080C0089, [6, 263])
     wait.on_frame()
     thread.join(2)
@@ -140,3 +155,50 @@ def test_production_battle_wait_honours_the_switch(monkeypatch: pytest.MonkeyPat
             battle_text=(app, Emulator, page().read),
         )
     assert made == [False, True]
+
+
+@pytest.mark.parametrize("expanded", [False, True])
+def test_native_archive_through_production_decoder_and_renderer(expanded: bool) -> None:
+    from pathlib import Path
+
+    from pokebench_env.raw_ram import load_raw_ram
+    from pokebench_env.readout import features_off_from_env
+    from pokebench_env.rerender import read_state, render
+    from pokebench_env.rom import resolve_rom
+
+    read = load_raw_ram(
+        Path(__file__).parent / "fixtures/caught-dex-raw-5393.json.gz",
+        "19a7c10abc2f23ba6ea9946f7b4131c90f321fa74f74f03aba7f348a3066bdf4",
+        rom=resolve_rom(os.environ).read_bytes(),
+    )
+    off = features_off_from_env({})
+    if expanded:
+        off -= {"expanded-menu-battle-information-v1", "battle-details-v2"}
+    before = read_state(read, MapNames({}), active_ui=True, off=off)
+    assert before.battle.text_phase == "busy"
+    assert before.active_ui.phase == "battle_resolving"
+    assert "A or B closes the registration page" not in render(before, off)
+    on = off - {"caught-dex-input-v1"}
+    after = read_state(read, MapNames({}), active_ui=True, off=on)
+    assert after.battle.text_phase == "screen"
+    assert after.active_ui.phase == "pokedex_caught_entry"
+    assert after.active_ui.ready is True
+    text = render(after, on)
+    assert "Interface: pokedex_caught_entry; input ready" in text
+    assert "A or B closes the registration page" in text
+    assert "resolving (no input until the game asks)" not in text
+    if expanded:
+        assert "Battle details: WILD single · turn 3 · A or B closes the registration page" in text
+
+    # Source-owned display task must remain busy even if stale battle text exists.
+    def displaying(address: int, length: int) -> bytes:
+        raw = read(address, length)
+        if address == 0x03005E00 and length == 640:
+            return struct.pack("<I", 0x080BFE39) + raw[4:]
+        return raw
+
+    transition = read_state(displaying, MapNames({}), active_ui=True, off=on)
+    assert transition.battle.text_phase == "busy"
+    assert transition.active_ui.phase == "pokedex_caught_transition"
+    assert transition.active_ui.ready is False
+    assert "input ready;" not in render(transition, on)

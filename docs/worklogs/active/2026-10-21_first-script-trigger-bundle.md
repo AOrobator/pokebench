@@ -44,3 +44,30 @@ None.
 
 ## Archive Milestone (user-gated)
 - [ ] ASK USER before archiving worklog.
+
+RED commit 91d78817. GREEN focused 20/20; guarded safe-route preference added to walker and semantic approach selection, retaining first-attempt boundary. Existing switch reused, five bundle definitions explicit OFF base/ON treatment.
+
+## Implementation proof and setup receipts
+- Added 1fe0 state1308 gzip fixture (run pin4b70c35d; no ROM/save content) through real press/navigation/semantic factories. Two-trigger, no-net-movement and alternative safe-edge cases assert native request bodies and bounded results. Generated presets validated through viewer armPreset.
+- Mutation receipts under runs/first-script-trigger: wiring, route-preference, semantic-preference and stop each fail when deleted, restored suite green. Focused agent19 initially, then20 with alternative safe-edge test; viewer generated-preset1.
+- Browser explainer inspected at1280/1440/375; screenshots canonical runs/mockups/first-script-trigger/width-*.png. Diagram intentionally scrolls within its own container at phone width. No new card/server mapping: existing trigger-navigation-boundary-v1 link retained.
+- First lint found unsafe test-only unknown assignments and URL coercion; corrected. First coverage found two old historical-preset expectations; added explicit treatment bit without changing incumbents, skips, timeouts or thresholds. Final full gates pending.
+- Probe attempts retained separately and do not count as native proof: v1 unsupported launcher --no-ocr, v2 undeclared battle-journal integration, v3 door transition not settled, v4 missing initialized vendor, v5 startup wait too short, v6 upstairs transition not settled. v7 now waits for native control at both stair transitions. All probe metadata says manual/no inference, no experiment tag.
+- Initial venv symlink let a read-only landing-board helper refresh shared editable package location. Restored canonical editable package immediately; own venv now isolated with native-binding path. Canonical vendor/main/game inputs untouched. No further shared package installs.
+
+## Principles Adherence
+|ID|Result|Evidence|
+|---|---|---|
+|PB1|PASS|Native milestones unchanged; no inferred rival completion.|
+|PB2|PASS|Original run and all failed probe/gate receipts retained.|
+|PB3|PASS|No performance claim; tests/native proof are not benchmark outcomes.|
+|PB4|PASS|Existing separately registered default-OFF switch and metadata; bundle-only configuration.|
+|PB5|PASS|One trigger-policy treatment, pending independent experiment preserved.|
+|PB6|N/A|No context-budget or long-run-memory change.|
+|PB7|PASS|Existing recorder/ordinary input path; probe has events, raw RAM and frames.|
+|PB8|PASS|First attempted trigger returns; no retry/continuation; mutations fail.|
+|PB9|PASS|Explicit user authorized proposal and bundle activation. No archive or launch authorization inferred.|
+|PB10|PASS|No thresholds/timeouts/exclusions/skips changed. Historical expectation updates explicit.|
+|PB11|PASS|Production pi interfaces, exact recorded ROM/state and existing pinned native binding.|
+|PB12|PASS|Operator ROM external path only, no protected-folder access or ROM copies.|
+|PB13|PASS|Worklog records distinct implementation/gates/review/landing/activation states.|

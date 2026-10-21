@@ -111,6 +111,8 @@ def test_real_route104_distinguishes_return_to_another_section():
 def test_real_woods_exits_have_different_destination_sections():
     s, disabled = new_state(WOODS, True)
     labels = state_json(s)["exit_sections"]
+    assert "terrain section unknown" not in labels["current"]
+    assert any("same terrain section as you" in w["detail"] for w in labels["warps"])
     north = next(w for w in labels["warps"] if (w["x"], w["y"]) == (14, 5))
     south = next(w for w in labels["warps"] if (w["x"], w["y"]) == (16, 38))
     assert north["label"] != south["label"]

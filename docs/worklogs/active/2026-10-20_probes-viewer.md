@@ -123,10 +123,18 @@ No harness behavior changes, so no feature switch. The TIMELINE is untouched.
 **M3: land**
 - [x] Sync with main (merge 81918993 of main 563cbaad), gates on the tip: build OK; agent 3013, viewer 1475; TS lint clean, ruff clean, mypy clean (main venv); viewer coverage 95.16/90.95/94.14; Python 3014 pass + 1 needing the mGBA module (missing in the worktree venv, unrelated)
 - [x] Guard deletions went red, then restored: pointer realpath jail (new test: a pointer through a symlink that leaves runs/), run-id check, INV-1 group filter, thinking escape
-- [ ] Review: Claude, Grok and GPT cloud lanes on one frozen packet
-- [ ] Land ff-only; `just test` on main
-- [ ] Register cited-destination-v1 at `runs/probes/` (data, not git)
-- [ ] Coordinate `just viewer-main`; prove /probes live on 8790
+- [x] Review:
+  - Round 4 (packet 62f4e5f9, head adc80c89): Claude, Grok and GPT all LGTM.
+  - Main then moved twice:
+    - At a5b23bac the synced diff was byte-identical to the reviewed packet.
+    - At 9c9755bb only the server.test.ts blob index header differed, with identical hunks. Round-5 landing check on packet edef8d3f (head ee25371b): Claude, Grok and GPT all LGTM.
+  - Gates on ee25371b: agent 3031, viewer 1497, lint and build clean.
+- [x] Landed ff-only at ee25371b (9:20 PM New York). `pnpm -r test` on main passes.
+- [x] Registered cited-destination-v1:
+  - The pointer `runs/probes/cited-destination-v1.json` points at `runs/probe-ledgers/cited-destination-v1` (data, not git): a copy of the manifest and the gpu0, gpu1 and mac lanes.
+  - Pointing at the receipt folder directly also listed its `rehearsal-*` lanes (fake data, same model) and `probe-dist`, and pooled the fake samples. Follow-up: skip lanes whose status says `fake: true`, and folders with no samples or status.
+- [x] `just viewer-main` at 9:21 PM: viewer at ee25371b, 2 live gameplay processes kept.
+- [x] Live on 8790 (runs/reviews/2026-10-20-probes-viewer-e2e/live-8790-*.png): /probes 200, 192 samples, 8 cases each with its recorded call and frame. Desktop and phone: no overflow or errors, frame 240 px, both model groups, PROBES chip on the comparisons page.
 
 ## Closing the Loop
 

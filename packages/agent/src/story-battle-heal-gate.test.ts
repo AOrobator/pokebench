@@ -453,7 +453,8 @@ describe("registry and event",()=>{
   const entry=read(`experiments/${ID}.json`) as {changedFeature:string;incumbent:{features:Record<string,boolean>};queuePosition?:number};
   expect(entry.changedFeature).toBe(ID);expect(entry.queuePosition).toBeUndefined();
   delete arm["navigation-tool-use-guard-v1"];delete arm["semantic-current-map-feedback-v1"];
-  expect({...entry.incumbent.features,"navigation-refusal-reasons-v3":true,"exit-labels-v3":true}).toEqual(arm);
+  // exit-labels-v3 and short-cycle-fixed-point-v1 joined the bundle arm after this pending experiment was pinned.
+  expect({...entry.incumbent.features,"exit-labels-v3":true,"short-cycle-fixed-point-v1":true}).toEqual(arm);
   expect(dependencyProblems(normalizeFeatures({...entry.incumbent.features,[ID]:true} as Parameters<typeof normalizeFeatures>[0]))).toEqual([]);
  });
  it("records a valid story_battle_heal_gate event",()=>{

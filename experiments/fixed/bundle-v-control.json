@@ -190,7 +190,7 @@
    "exit-labels-v3": false,
    "navigation-tool-use-guard-v1": false,
    "semantic-current-map-feedback-v1": false,
-   "navigation-refusal-reasons-v3": false
+   "short-cycle-fixed-point-v1": false
   }
  },
  "switches": [
@@ -251,7 +251,7 @@
   "exit-labels-v3",
   "navigation-tool-use-guard-v1",
   "semantic-current-map-feedback-v1",
-  "navigation-refusal-reasons-v3"
+  "short-cycle-fixed-point-v1"
  ],
  "offInBoth": [
   "semantic-navigation-v1",

@@ -678,6 +678,18 @@ describe("pending-field-dialogue-v1",()=>{
   expect(server.posts.map(p=>p.button)).toEqual(["B"]);
   expect(rec.advances()).toMatchObject([{stop:"field_free",auto_presses:1}]);
  });
+ it("describes and settles field dialogue on battle_action without claiming disabled battle-text advancing",async()=>{
+  const server=new ScriptServer([waiting,free],[]);
+  let called=0;
+  const action:AgentTool={name:"battle_action",label:"b",description:"choose",parameters:Type.Object({}),execute:()=>{called++;throw new Error("stale action must not execute");}};
+  const {tool,rec}=wire(server,{...enabled,"battle-text-auto-advance-v1":false,"battle-decision-ready-v1":false},[action]);
+  const battle=tool("battle_action");
+  expect(battle.description).toContain("Pending ordinary field dialogue advances first");
+  expect(battle.description).not.toContain("If the battle then runs its own text");
+  await battle.execute("field-only-action",{});
+  expect(called).toBe(0);expect(server.posts.map(p=>p.button)).toEqual(["B"]);
+  expect(rec.advances()).toMatchObject([{tool:"battle_action",stop:"field_free",auto_presses:1}]);
+ });
  it("stops at a menu reached after dialogue without choosing its highlighted option",async()=>{
   const menu={...free,active_ui:{phase:"yes_no",selected:"YES",ready:true,controls:"A chooses",diagnostic:null,value:null}};
   const server=new ScriptServer([waiting,menu],[]);

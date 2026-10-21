@@ -246,7 +246,7 @@ def read_exit_sections(
     here = section_map(map_id)
     if here is None:
         return None
-    current = here.section(position)
+    current = here.landing(position)
 
     def named(mid: MapId, sections: Sections | None, region: Tile | None) -> str:
         name = shown(mid) or "a map with no location name"

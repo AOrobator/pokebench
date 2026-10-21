@@ -63,11 +63,12 @@ No new network surface, subprocesses or file paths. ROM read only through existi
 - [x] Implement: `CHOOSE_EVOLUTION_SECTION` (with evolution-decision-v1, every scene), `BATTLE_ACTION_SECTION` (with battle-move-tool-v1, where battle is shown), and `SCENE_TOOL_LINES` (one line per kept tool whose own section a just-in-time scene hides), all behind tool-prompt-docs-v1, before the harness-trust section. `evolution-decision.test.ts` now compares its ON/OFF prompt equality with tool-prompt-docs-v1 OFF and asserts the section with it ON.
 - [x] Guard deletion: removing the choose_evolution append → 181 red; disabling the scene-line block → 259 red; restored → 890 green.
 - [x] Gates: vitest agent 4288 / viewer 1656 pass; pytest 3806 pass; lint clean (tsc, eslint, ruff, mypy); build ok; coverage agent 99.2 L / 93.15 B / 97.77 F, viewer 97.95 / 91.33 / 94.35, Python 97.29 / 93.11 / 100.
-- [ ] COMMIT GREEN. Review deferred to one branch packet before landing (coordinator: max 2 rounds).
+- [x] COMMIT GREEN: `feat(prompt): tool-prompt-docs-v1 names choose_evolution, battle_action and scene-hidden tools in the system prompt` (3e9253c33). Review deferred to one branch packet before landing (coordinator: max 2 rounds).
 
 **M1 — `field-ownership-feedback-v1`**
-- [ ] Tests: evolution fixture from d548 (seq 20530 state) → navigate_to_target refuses with Interface line + controls, no press; briefing names "evolution decision; controls: choose_evolution"; auto-talk one-shot message; OFF unchanged.
-- [ ] RED / implement / gates / GREEN / review.
+- [x] Tests `packages/agent/src/field-ownership-feedback.test.ts` with fixture `packages/agent/test-support/evolution-owned-d548.json` (d548 seq 20530 state event; berry_trees and task_data trimmed): production `playGameTools` navigate_to_target refuses on evolution / summary / field_yes_no / battle with navigate_to's reason, no press, and the whole observe readout; OFF keeps "target is not listed in the current verified state" with no observation; stall briefing names "in the evolution decision interface (screen evolution)" and the readout controls (OFF: "ROUTE116 (map 0/31) in battle at 37,13"); auto-talk sends one message per interface episode and never presses; OFF silent.
+- [x] COMMIT RED (5 of 9 red; OFF and registration green). SHA recorded in the next commit.
+- [ ] Implement / gates / GREEN. Review deferred to one branch packet before landing.
 
 **M2 — `move-learn-loop-fingerprint-v1`**
 - [ ] Tests: replay ea04 seq 20494–20844 states through the loop rules → fires by the 2nd cycle; OFF → no fire. Delete-the-wiring check.

@@ -58,6 +58,30 @@ Default off; ON in the bundle arm of bundle-cook-1h, bundle-v-control, whole-map
 
 - Shop Interface line: `menus.py` reads the list item id as a row index (wrong item id at row 0, coverage error at rows 1+) and has no owner after a purchase (`Task_ReturnToItemListAfterItemPurchase`-style message task 0x080E100D). A harness bug fix, so it needs its own switch (coordinator 2026-10-21).
 
+- 2026-10-21 ~10:05 AM ET: merged local main 4e6d5bb3 (move-learning menu line fix: readout.py, test_move_learn.py) cleanly. Gates on the merged tip: lint ok; agent 3284 (97.26/93.1/97.71/99.2); viewer 1604 (95.42/91.33/94.33/97.9; server-stream's event-loop timing test failed once under parallel load and passed alone and in a rerun of the whole viewer suite); pytest 3627 (lines 97.26 branches 93.04 functions 100).
+
+## Principles self-review (docs/agent-principles.md)
+
+| ID | Score | Evidence |
+|---|---|---|
+| PB1 | PASS | Text only; no milestone or grading change. |
+| PB2 | N/A | No run accounting touched. |
+| PB3 | PASS | No benefit claimed; pending experiment, N from the experiment-design skill when queued. |
+| PB4 | PASS | New RAM-derived readout is a named switch in `harness_features`, default off, bundle arm only; vendor untouched (`just verify-vendor` ok). |
+| PB5 | PASS | One switch, one hypothesis in `experiments/mart-stock-readout-v1.json`. |
+| PB6 | PASS | Block appears only on the buy screen; ~13 lines; not truncated (no model-facing clipping). |
+| PB7 | PASS | Readout text is recorded in tool results like every readout line; state JSON unchanged (test). |
+| PB8 | PASS | A failed read is a visible `HARNESS BUG (mart stock)` line; no silent fallback (test). |
+| PB9 | PASS | Brief's forks answered by the coordinator (fixed set, landing slot); Interface-line bug left as a proposed follow-up with its own switch. |
+| PB10 | PASS | No skipped tests; floor 90; collateral tests updated, none weakened (offsets and later-switch exclusions only). |
+| PB11 | PASS | Addresses checked against pret 731ad5bf and the running ROM via five raw-RAM archives (sMartInfo, gItems, gSpecialVar_LastTalked = 1 at the Rustboro clerk). |
+| PB12 | PASS | ROM only via `POKEBENCH_ROM` (~/.roms). |
+| PB13 | PASS | Tests on recorded states through the production reader; explainer checked in the browser at desktop and phone; viewer-main and live check after merge. |
+
+## Frozen boundary
+
+In scope: `env/pokebench_env/mart_stock.py` (new), its wiring in `game_state.py`, `readout.py`, `rerender.py`; the registry (`features.ts`, `play-preset.ts`, `next-run.ts`, `legacy-features.ts`); four fixed definitions (bundle arm only); `experiments/mart-stock-readout-v1.json`; readiness row; explainer + README + `FEATURE_EXPLAINERS`; tests (new and registry collateral). Out of scope: the shop Interface line in `menus.py` (pre-existing bug, follow-up with its own switch), decoration shops, SELL screen, any change to control arms or other switches.
+
 ## Multi-Model Review Log
 
 ## Session Log

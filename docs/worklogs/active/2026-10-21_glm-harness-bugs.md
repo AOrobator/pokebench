@@ -67,7 +67,9 @@ No new subprocesses, network calls or file paths. RAM reads go through `pokebenc
 - [x] COMMIT (RED): `test: cut-off replies are named in the next message (RED)` (4b091e2c)
 - [x] Implement: `cut-off-reply.ts` builds the notice from `playTools(features)` (names only the walking tools the run has); `Governor` sends `deps.cutOffNotice` instead of NUDGE/reminder after a length stop with no tool call (a due text-only note still wins; failure counting unchanged); `live.ts` passes it; `decision-probe.ts` rebuilds the same follow-up via `followUpText` with the probed switches and the recorded max tokens
 - [x] Gates: lint clean; coverage agent 97.33/93.07/97.8/99.24, viewer 95.42/91.33/94.33/97.9, Python 3691 passed ≥90; agent 3338 tests
-- [ ] COMMIT (GREEN) · Gates · COMMIT (GREEN) · Review
+- [x] Guard check: dropping `cutOffNotice` from the Governor deps and the `cutOff` argument from decision-probe turned the wiring tests red; restored
+- [x] COMMIT (GREEN): `feat: cut-off-reply-feedback-v1 tells the model its reply hit the output limit before any tool call (default off)` (f2f79d77)
+- [ ] Multi-model review loop until clean
 
 **M4 — Trainer sight for navigate_to_target**
 - [ ] Write tests from e9ee s8193/s10444/s10997 and acfa route 102 calls

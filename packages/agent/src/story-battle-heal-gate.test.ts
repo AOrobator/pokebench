@@ -132,6 +132,10 @@ describe("97a0 turn 157: navigate_to_target to MAY at TORCHIC 5/22",()=>{
   expect(Value.Check(t.tool("press").parameters,{buttons:["A"],confirm:true})).toBe(true);
   expect(Value.Check(t.tool("press").parameters,{buttons:["A"],bogus:true})).toBe(false);
   expect(Object.keys((t.tool("navigate_to_target").parameters as {properties:object}).properties)).toEqual(["map_id","target","confirm"]);
+  const open={name:"press",label:"press",description:"Press.",parameters:Type.Object({buttons:Type.Array(Type.String())}),execute:()=>Promise.reject(new Error("no"))} as AgentTool;
+  const observe={name:"observe",label:"o",description:"o",parameters:Type.Object({}),execute:()=>Promise.reject(new Error("no"))} as AgentTool;
+  const [wrapped]=withStoryBattleHealGate([open,observe],gateWith(healArm(F97,PLACES)).gate,{read:()=>Promise.resolve(MAY_STATE)});
+  expect(Value.Check(must(wrapped).parameters,{buttons:["A"],walking:true,confirm:true})).toBe(true);
  });
 });
 

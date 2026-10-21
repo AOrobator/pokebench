@@ -52,6 +52,9 @@ Build a gate: while any party Pokémon (not an egg) is below max HP, refuse an a
 - COMMIT: `feat: story-battle-heal-gate-v1 does not start a trainer battle that cannot be run from while the party is hurt (default off, bundle arm)` (460f5813)
 - Sync: `git merge main` (24648e12: yes-no-answer-readout-v1, lane leases, probes viewer). 25 conflicts, all registry collateral: took main's side, re-appended this switch after yes-no-answer-readout-v1 (registry, presets, defaults, FEATURE_EXPLAINERS, Activity History text, bundle arms, readiness, README) and advanced the older suffix indexes once more. Schema regenerated (no diff). Gates on the merged tip: `just lint` 0, `just build` 0, `just coverage` 0: agent 3066 (97.27 / 93.06 / 97.58 / 99.18), viewer 1501 (95.23 / 91.08 / 94.15 / 97.80), Python 3166 (lines 97.11, branches 92.69, functions 100). `just test` first run: 2 viewer failures from the lost Activity History case (restored), then green in the coverage run.
 
+- COMMIT: `merge: main (yes-no-answer-readout-v1, lane leases, probes viewer) into story-battle-heal-gate-v1; registry collateral` (2bf0037e)
+- Self-check before review: the confirm-argument wrapper kept press's open schema open (only confirm added); test added. 35/35.
+
 ## Surprises
 - b300's turn-501 route runs into HIKER MARC's template tile (1,6) (he is not loaded at seq 15233), so the gate also says the walk would end next to him at (1,7). True by the planner's route; the sight at (1,9), step 12, comes first.
 - In the refusal's observation the existing warnings (story battle, heal before trainers) still fire by their own arms; in 97a0 they had already fired at 4539/4509, so a live run would not repeat them.

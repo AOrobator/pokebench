@@ -206,7 +206,8 @@ export async function askSight(check:GatePorts["check"],state:GameStateSnapshot,
 const isRecord=(v:unknown):v is Record<string,unknown>=>typeof v==="object"&&v!==null&&!Array.isArray(v);
 function withConfirm(parameters:AgentTool["parameters"]):AgentTool["parameters"] {
  const base=parameters as TObject;
- return Type.Object({...base.properties,[GATE_CONFIRM]:Type.Optional(Type.Boolean({description:GATE_CONFIRM_DESCRIPTION}))},{additionalProperties:false});
+ // The base schema's own strictness is kept: only the confirm property is added.
+ return Type.Object({...base.properties,[GATE_CONFIRM]:Type.Optional(Type.Boolean({description:GATE_CONFIRM_DESCRIPTION}))},(base as {additionalProperties?:unknown}).additionalProperties===false?{additionalProperties:false}:{});
 }
 function refusal(first:string,text:string,observed:AgentToolResult<unknown>,details?:Record<string,unknown>):AgentToolResult<unknown> {
  const base=isRecord(observed.details)?observed.details:{};

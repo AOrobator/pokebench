@@ -174,6 +174,13 @@ The proof is /probes on the live 8790 viewer showing cited-destination-v1 with a
     - catch on a failed probe switch
     - folder and pointer sharing an id
 
+- The operator (8:50 PM): "fix and re-review".
+- Round 3 (packet f667e719, head 221d4af8, base main 5ab3f577).
+  - Verdicts: Claude subagent LGTM, Grok LGTM, GPT (Codex) BLOCKING.
+  - GPT's blocker, concrete and fixed: `turnFacts` closed readline but not its ReadStream when it stopped early, leaking one descriptor per uncached lookup (GPT hit EMFILE on lookup 21 under a 32-descriptor limit). The stream is now destroyed in `finally` (test counts /dev/fd; deleting the destroy went red).
+  - Gates on 221d4af8: two timing tests (next-run, server-stream) failed under load; they pass alone, 59/59, and this diff does not touch them.
+  - Follow-up (Grok): the scene note says squares are ungraded when the call is unknown, while text-only and error samples stay grey ERROR.
+
 ## Boy Scout Log
 
 ## Archive Milestone (user-gated)

@@ -185,21 +185,26 @@ async function turnFacts(path: string, turn: number): Promise<TurnFacts> {
   const cached = turnCache.get(key);
   if (cached !== undefined) return cached;
   let at: string | null = null, startSeq: number | null = null, recorded: RecordedCall | null = null;
-  const lines = createInterface({ input: createReadStream(path), crlfDelay: Infinity });
-  for await (const line of lines) {
-    if (!line.includes('"turn_start"') && !line.includes('"tool_call"')) continue;
-    let e: unknown;
-    try { e = JSON.parse(line); } catch { continue; }
-    if (!record(e)) continue;
-    if (e.type === "turn_start") {
-      if (startSeq !== null) break;
-      if (e.turn === turn) { startSeq = typeof e.seq === "number" ? e.seq : -1; at = str(e.t); }
-    } else if (e.type === "tool_call" && startSeq !== null && typeof e.name === "string") {
-      recorded = { tool: e.name, args: record(e.args) ? e.args : {} };
-      break;
+  const input = createReadStream(path), lines = createInterface({ input, crlfDelay: Infinity });
+  try {
+    for await (const line of lines) {
+      if (!line.includes('"turn_start"') && !line.includes('"tool_call"')) continue;
+      let e: unknown;
+      try { e = JSON.parse(line); } catch { continue; }
+      if (!record(e)) continue;
+      if (e.type === "turn_start") {
+        if (startSeq !== null) break;
+        if (e.turn === turn) { startSeq = typeof e.seq === "number" ? e.seq : -1; at = str(e.t); }
+      } else if (e.type === "tool_call" && startSeq !== null && typeof e.name === "string") {
+        recorded = { tool: e.name, args: record(e.args) ? e.args : {} };
+        break;
+      }
     }
+  } finally {
+    // Stopping early leaves the file open unless the stream itself is destroyed.
+    lines.close();
+    input.destroy();
   }
-  lines.close();
   const facts = { at, recorded, startSeq };
   turnCache.set(recorded === null ? key : `${path}\0${String(turn)}`, facts);
   return facts;

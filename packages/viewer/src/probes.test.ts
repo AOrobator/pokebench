@@ -1,4 +1,4 @@
-import { appendFileSync, mkdirSync, mkdtempSync, symlinkSync, writeFileSync } from "node:fs";
+import { appendFileSync, mkdirSync, mkdtempSync, readdirSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -154,6 +154,18 @@ describe("one probe", () => {
     const outside = probeDir(mkdtempSync(join(tmpdir(), "probes-lane-")), "lane", { lanes: { mac: MAC } });
     symlinkSync(join(outside, "mac"), join(dir, "mac"));
     expect((await readProbe(runs, "p")).lanes.map((l) => l.id)).toEqual(["gpu0"]);
+  });
+
+  it("closes the source log after every lookup, even when it stops early", async () => {
+    const runs = root();
+    sourceRun(runs);
+    const cases = Array.from({ length: 40 }, (_, i) => ({ id: `c${String(i)}`, run: RUN, turn: i < 20 ? 206 : 1000 + i, split: "heldout" }));
+    probeDir(runs, "probes/many", { manifest: { ...MANIFEST, cases }, lanes: { gpu0: GPU0 } });
+    const open = (): number => readdirSync("/dev/fd").length;
+    const before = open();
+    await readProbe(runs, "many");
+    await new Promise((r) => setTimeout(r, 20));
+    expect(open()).toBeLessThanOrEqual(before);
   });
 
   it("refuses ids that are not one plain segment, and probes that do not exist", async () => {

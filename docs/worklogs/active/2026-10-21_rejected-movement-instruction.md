@@ -61,6 +61,12 @@ None.
 
 - Bundle inclusion covers canonical bundle-v-control, bundle-cook-1h, whole-map-cook-1h and the active whole-map-pair-2h definition. Each base/control explicitly OFF; each bundle treatment ON. Existing running pins remain unchanged.
 
-- Browser candidate proof: 8798, actual Harness Config search → READ EXPLAINER for rejected-movement-step-v1 and observed-field-dialogue-v1 opened the matching documents. Desktop layout inspected. Phone viewport was not exposed by the current browser control API; no phone-layout claim. Native probe v5 has no inherited experiment tag; earlier v4 remains an invalid metadata attempt outside benchmark runs.
+- Browser candidate proof: 8798, actual Harness Config search → READ EXPLAINER for rejected-movement-step-v1 and observed-field-dialogue-v1 opened the matching documents. Desktop layout inspected. Direct viewport resizing was not exposed; subsequently checked each document in real-browser same-origin iframe viewports at 375x812, 1280x900 and 1440x900. Six screenshots saved/opened under canonical runs/mockups/rejected-movement-instruction/shots/. Native probe v5 has no inherited experiment tag; earlier v4 remains an invalid metadata attempt outside benchmark runs.
 
 - Main advanced with documentation/theme and landing-board workflow only. Syncing f671f35d4; apply required Emerald theme to these two new explainers before review. Runtime changes are unchanged.
+
+- Synced coverage: agent 3336, viewer 1620, Python 3691 pass; lines/branches/functions agent 99.23/93.06/97.80, viewer 97.90/91.33/94.33, Python 97.29/93.05/100. Theme-only main sync adds tooling tests, run separately. Scoped native behavior is unchanged across the sync.
+
+- Independent experiment definitions are blocked/pending and point to implemented main-synced checkpoint bc542c5090b7c1da9c5ce874bd4d12297439a052, not the earlier RED commit; repin before cohort execution.
+
+- Final synced lint/build pass (109 Python modules), theme tooling 11/11 pass; bundle contract 50/50 passes after replacing a test-only non-null assertion. Six themed real-browser layout captures opened. Final packet follows. Human coordination authorization verified in 00000000-0000-4000-8000-4d7046dac4e7; repair prerequisite and fresh source pin communicated to that audit chat and run-preparation owner. No launch/process changes.

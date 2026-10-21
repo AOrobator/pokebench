@@ -8,7 +8,7 @@
  "primaryMilestone": "RIVAL_MET",
  "source": {
   "checkout": "main",
-  "commit": "5cbf18fe6d0c125d19cf9a3eef57143b04a41067"
+  "commit": "bc542c5090b7c1da9c5ce874bd4d12297439a052"
  },
  "incumbent": {
   "version": 2,
@@ -233,6 +233,6 @@
   "window": 4,
   "minReached": 3
  },
- "notes": "Pending only: no queue position, approval or measured launch. Source is pre-implementation test commit; repin to reviewed landing before use. Deterministic correctness tested against recorded 9f27 episode. Cohort design, checkpoint qualification and benefit evidence remain separate.",
+ "notes": "Pending only: no queue position, approval or measured launch. Source is the implemented, main-synced code checkpoint; repin to reviewed landing before use. Deterministic correctness tested against recorded 9f27 episode. Cohort design, checkpoint qualification and benefit evidence remain separate.",
  "blocked": "Pending correctness candidate: reviewed landing pin and cohort design required before queueing."
 }

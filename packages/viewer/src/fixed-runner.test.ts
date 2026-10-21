@@ -820,9 +820,10 @@ it("keeps section-aware labels OFF in the generic next-run default",()=>{
 
 it.each(["bundle-v-control","bundle-cook-1h","whole-map-cook-1h","whole-map-pair-2h"])("enables the movement and dialogue repairs in %s bundle only",file=>{
  const {definition:def}=parseFixedDefinition(readFileSync(new URL(`../../../experiments/fixed/${file}.json`,import.meta.url),"utf8"));
+ const phase=def.phases[0];if(phase===undefined)throw new Error("fixed definition has no phase");
  for(const id of ["rejected-movement-step-v1","observed-field-dialogue-v1"] as const){
   expect(def.base.features[id]).toBe(false);expect(def.switches).toContain(id);
-  expect(armPreset(def,def.phases[0]!.id,"control").features[id]).toBe(false);
-  expect(armPreset(def,def.phases[0]!.id,"bundle").features[id]).toBe(true);
+  expect(armPreset(def,phase.id,"control").features[id]).toBe(false);
+  expect(armPreset(def,phase.id,"bundle").features[id]).toBe(true);
  }
 });

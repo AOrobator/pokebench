@@ -1,0 +1,62 @@
+# mart-stock-readout-v1
+
+Requested by the coordinator (relay 2026-10-21 9:20 AM ET), proposal 4 of `runs/reports/rustboro-strategy/index.html` ("Rustboro gym battle strategy" thread). Branch `claude/mart-stock-readout`, worktree `/private/tmp/pokebench-mart-stock`, based on local main fc40a11a. Landing: coordinator merge slot (fixed/ edits only while holding it), between overnight-loop pins, fast-forward only, Claude + Grok cloud LGTM, max 2 rounds. No runs, push or PR.
+
+## Problem Statement
+
+No run in 11 reached ROXANNE having bought anything, while holding ¥4,286–6,960. Run 1331 (2026-10-21T06-28-18_qwen36-gpu0_1331) opened the Rustboro MART buy list at turns 680-690 and the readout could not follow it:
+
+- Row 0 read "selected POKé BALL; item id: 18" (18 is the wrong item: `menus.py` treats the list item id as a row index).
+- Rows 1+ read `STATE COVERAGE ERROR: invalid shop item list/index`; every DOWN press result said "unavailable (state coverage error)" (raw seq 9909-9914, 9984-9988).
+- After the purchase the readout said "Shop has no unique verified input owner" for 56 snapshots (raw 9928-9983).
+- Nothing showed the prices or what any item does; the game shows one description at a time for the highlighted row.
+
+## Game grounding (pokeemerald 731ad5bfd6e6f265508d0efcca0ba42f9dcf5881)
+
+- `src/shop.c`: `sMartInfo` (EWRAM 0x02039F60: callback, menuActions, itemList @+8, itemCount u16 @+12, windowId @+14, martType @+15). `BuyMenuSetListEntry` sets each list row's id to the item id; the last row is `gText_Cancel2` with id LIST_CANCEL (-2). `BuyMenuPrintPriceInList`: normal marts print `GetItemPrice(item) >> IsPokeNewsActive(POKENEWS_SLATEPORT)` as `gText_PokedollarVar1` "¥{STR_VAR_1}". `BuyMenuPrintItemDescriptionAndShowItemIcon`: `GetItemDescription(item)`, or `gText_QuitShopping` "Quit shopping." for CANCEL. Decoration marts (martType 1/2) use `gDecorations`; out of scope (no block).
+- `CB2_BuyMenu` = 0x080DFD65 (`SHOP_CALLBACK`), `Task_BuyMenu` = 0x080E0AC9, its data[7] = list menu task (`menus._list_selection`).
+- `src/tv.c` `IsPokeNewsActive` / `ShouldApplyPokeNewsEffect`: the Slateport half price applies only on SLATEPORT CITY (map 0/1) while talking to the Energy Guru (local id 25) and a Slateport PokeNews entry (SaveBlock1 +0x2B50, 16×{kind,state,u16}) is ACTIVE (2). `gSpecialVar_LastTalked` 0x020375F2 (after `gSpecialVar_Result` 0x020375F0; 1 = the Rustboro clerk in run 1331).
+- `gItems` 0x085839A0, 44-byte rows: name[14], itemId u16 @14, price u16 @16, description pointer @20.
+
+## Architecture
+
+| Switch | Side | ON | OFF |
+|---|---|---|---|
+| mart-stock-readout-v1 | server readout | While a normal mart's buy screen (CB2_BuyMenu) is up: a block after the Interface line listing each row with its price and the game's description, CANCEL with "Quit shopping.", the highlighted row when the buy list task owns input, and the player's money | no block; readout byte for byte as before |
+
+Default off; ON in the bundle arm of bundle-cook-1h, bundle-v-control, whole-map-cook-1h, whole-map-pair-2h; never control.
+
+## Invariants
+
+- INV-1: OFF is byte for byte today's readout and state JSON on every fixture.
+- INV-2: Text only from game tables and strings (item names, prices, descriptions, "Quit shopping."); nothing ranks or recommends an item.
+- INV-3: No block outside CB2_BuyMenu or in a decoration mart; a failed read is a visible `HARNESS BUG (mart stock)` line, never a guessed list.
+- INV-4: The production path (rerender.read_state → game_state → readout, and the agent's server-feature transport) honours the switch.
+
+## Milestones
+
+**M1 — RED**
+- [x] Fixtures: raw-RAM archives from run 1331 (buy list row 0, row 2, quantity box, after-purchase message, BUY/SELL/QUIT menu) + provenance.
+- [x] Tests: `env/tests/env/test_mart_stock.py` (reader per recorded state, CANCEL row, decoration shop, Slateport sale, failure paths, exact block, OFF byte parity, state JSON, visible harness bug, registry); `packages/agent/src/mart-stock-readout.test.ts` (registry, presets, server transport). Registry collateral lands with GREEN.
+- RED: `pokebench_env.mart_stock` does not exist (collection error); 3 vitest failures (switch not registered).
+- [ ] COMMIT
+
+**M2 — GREEN**
+- [ ] `env/pokebench_env/mart_stock.py`, GameState fields, readout block, rerender wiring, registry (features.ts, play-preset.ts, next-run.ts, readout.py SERVER_FEATURES + default-off list).
+- [ ] Gates: lint, build, coverage ≥90.
+- [ ] COMMIT
+
+**M3 — bundle arms, pending experiment, explainer, review, land**
+- [ ] Fixed definitions (bundle arm only), `experiments/mart-stock-readout-v1.json`, readiness row.
+- [ ] Explainer `docs/explainers/mart-stock-readout-v1.html` + FEATURE_EXPLAINERS + README line; pages-check; served on 8791.
+- [ ] Delete-the-guard receipts.
+- [ ] fixed-run check, agent/viewer/pytest suites.
+- [ ] Claude + Grok LGTM on the frozen packet; coordinator slot; ff-only merge; `just viewer-main`; live check.
+
+## Follow-ups
+
+- Shop Interface line: `menus.py` reads the list item id as a row index (wrong item id at row 0, coverage error at rows 1+) and has no owner after a purchase (`Task_ReturnToItemListAfterItemPurchase`-style message task 0x080E100D). A harness bug fix, so it needs its own switch (coordinator 2026-10-21).
+
+## Multi-Model Review Log
+
+## Session Log

@@ -235,6 +235,7 @@ export class RunView {
   toolErrors = 0;
   compactions = 0;
   stuck: { now: number; max: number } | null = null;
+  private roxanneNegativeBaseline = false;
   readonly milestones: { name: string; ms: number; seq: number; derived?: boolean; kind?: "story" | "navigation" | "legacy"; origin?: "observed" | "present_at_start"; evidence?: readonly number[]; emulatorFrame?:number; screenshotEvidence?: readonly {seq:number;path:string;sha1:string}[] }[] = [];
   readonly nativeActions: Of<"native_action">[] = [];
   readonly activities: Of<"activity">[] = [];
@@ -452,8 +453,10 @@ export class RunView {
     if (this.start !== null && !this.start.harness_features.includes("native-progress-activity-v1") && event.started && event.screen !== "field_transition" && event.screen !== "unknown" && !event.in_battle && event.story?.roxanne_defeated === undefined && event.story?.rustboro_gym_complete === true && event.story.stone_badge === true && !this.milestones.some(mark => mark.name === "ROXANNE_DEFEATED")) {
       this.milestones.push({ name: "ROXANNE_DEFEATED", ms: eventMs(event), seq: event.seq, derived: true, kind: "story", origin: previous === null || this.start.start_state.kind !== "boot" ? "present_at_start" : "observed", evidence: [event.seq] });
     }
-    if (this.start !== null && !this.start.harness_features.includes("roxanne-first-interaction-v1") && roxanneFirstInteraction(event) === true && !this.milestones.some(mark => mark.name === "ROXANNE_FIRST_INTERACTION")) {
-      this.milestones.push({name:"ROXANNE_FIRST_INTERACTION",ms:eventMs(event),seq:event.seq,derived:true,kind:"story",origin:this.start.start_state.kind === "boot" || previous !== null ? "observed" : "present_at_start",evidence:[event.seq]});
+    const roxanneInteraction = roxanneFirstInteraction(event);
+    if (roxanneInteraction === false) this.roxanneNegativeBaseline = true;
+    if (this.start !== null && !this.start.harness_features.includes("roxanne-first-interaction-v1") && roxanneInteraction === true && !this.milestones.some(mark => mark.name === "ROXANNE_FIRST_INTERACTION")) {
+      this.milestones.push({name:"ROXANNE_FIRST_INTERACTION",ms:eventMs(event),seq:event.seq,derived:true,kind:"story",origin:this.start.start_state.kind === "boot" || this.roxanneNegativeBaseline ? "observed" : "present_at_start",evidence:[event.seq]});
     }
     this.recoverPostClockRoute(event);
     this.recoverRoute101Return(event);

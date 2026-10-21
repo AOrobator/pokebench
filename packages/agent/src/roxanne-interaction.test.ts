@@ -18,7 +18,7 @@ it("requires active game evidence; stale opponent and proximity give no credit",
  expect(definition?.reached({...base,in_battle:true,screen:"battle",trainer_opponent:{...opponent,battle_active:true}})).toBe(true);
  const resumed=new StateMilestones({read:()=>Promise.resolve(base)});resumed.initialize("save_state");
  expect(resumed.observe({...base,badges:["STONE"]},1).some(e=>e.name==="ROXANNE_FIRST_INTERACTION")).toBe(false);
- resumed.observe(base,2);expect(resumed.observe(intro,3).find(e=>e.name==="ROXANNE_FIRST_INTERACTION")?.origin).toBe("observed");
+ resumed.observe({...base,field_controls_locked:false},2);expect(resumed.observe(intro,3).find(e=>e.name==="ROXANNE_FIRST_INTERACTION")?.origin).toBe("observed");
 });
 it("logs native evidence through the real recorder without duplicate milestones",async()=>{
  const {mkdtempSync,readFileSync}=await import("node:fs");const {tmpdir}=await import("node:os");const {join}=await import("node:path");
@@ -41,4 +41,13 @@ it("recognizes all six retained real native introduction observations", async()=
  for(const row of rows){const e=parseEvent(JSON.stringify(row.state));if(e.type!=="state"||!("started"in e))throw Error("state");
   expect(e.run).toBe(row.run);expect(MILESTONES.find(m=>m.name==="ROXANNE_FIRST_INTERACTION")?.reached(e)).toBe(true);
  }
+});
+
+it("fails closed on active-battle decoys and unavailable message ownership",()=>{
+ const reached=MILESTONES.find(m=>m.name==="ROXANNE_FIRST_INTERACTION")?.reached;if(reached===undefined)throw Error("definition");
+ const battle:GameStateSnapshot={...base,in_battle:true,screen:"battle",trainer_opponent:{trainer_id:265,trainer_class:32,name:"ROXANNE",defeated:false,battle_active:true}};
+ expect(reached({...battle,trainer_opponent:{trainer_id:320,trainer_class:0,name:"JOSH",defeated:false,battle_active:true}})).toBe(false);
+ expect(reached({...battle,trainer_opponent:{trainer_id:265,trainer_class:32,name:"ROXANNE",defeated:false,battle_active:false}})).toBeNull();
+ for(const unknown of [{...intro,map_id:null},{...intro,field_controls_locked:null},{...intro,world_context:null},{...intro,world_context:{objects:[],triggers:[],dialogue:intro.world_context?.dialogue??null,message:null}},{...intro,world_context:{objects:[],triggers:[],dialogue:intro.world_context?.dialogue??null,message:{phase:"page_wait" as const,cursor:0,ready:true},message_diagnostic:"unavailable"}}])expect(reached(unknown)).toBeNull();
+ expect(reached({...intro,world_context:{objects:[],triggers:[],dialogue:"Guide: ROXANNE is the leader",message:{phase:"page_wait",cursor:0,ready:true}}})).toBe(false);
 });

@@ -162,3 +162,4 @@ The original ignored runs/explainers copies remain for existing links. Make futu
 - [Short-cycle fixed point](short-cycle-fixed-point-v1.html) — bundle-only guard: once 2 to 4 turns have repeated 3 times with the same tool calls and game states (ef9f's clock confirmation and adjustment, 97a0's walk in and out of PROF. BIRCH'S HOUSE), each request keeps only the newest copy, as identical turns do; thinking may differ, the interface's value is left out of the state and ready interfaces on any screen qualify.
 
 - [party-item-confirmation-v1](party-item-confirmation-v1.html): native party item message confirmation readiness.
+- [Story progress clock](story-progress-clock-v1.html) — bundle-only correctness fix: the measurement-only story steps (the rival battle starting, the send-off, ...) restart the stall briefing's drought clock and become the briefings' "Last story progress".

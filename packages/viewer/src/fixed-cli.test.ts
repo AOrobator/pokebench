@@ -321,6 +321,8 @@ describe("production host pieces", () => {
     expect(await host.portInUse(port)).toBe(false);
     expect(host.alive(process.pid)).toBe(true);
     expect(host.runId({ id: "A", gpu: "GPU1", gamePort: 8071, modelUrl: "http://127.0.0.1:8091" })).toMatch(/_qwen36-gpu1_[0-9a-z]+$/);
+    expect(host.runId({ id: "M", gpu: "MAC", gamePort: 8077, modelUrl: "http://127.0.0.1:8099", runName: "glm53-mac" })).toMatch(/_glm53-mac_[0-9a-z]+$/);
+    expect(host.runId({ id: "M", gpu: "MAC", gamePort: 8077, modelUrl: "http://127.0.0.1:8099", runName: "a".repeat(40) })).toMatch(new RegExp(`_${"a".repeat(40)}_[0-9a-z]+$`));
     expect(existsSync("/nowhere")).toBe(false);
   });
 });

@@ -65,7 +65,7 @@ No new inputs, subprocesses, network or file access. The note is harness-authore
 - [x] Implement: `cycleState`, `cycleRuns`, cycle pass in `collapse`, stage 2 `cycleNote`; schema (`short_cycle`, `period`); registry last (guard, needs null), presets, flagFeatures, legacy fixture, DEFAULT_NEXT_RUN off; Activity History label; FEATURE_EXPLAINERS; registry index churn across ~50 agent tests and two viewer tests.
 - [x] Deletion checks (receipts in the worktree's ignored `runs/receipts/short-cycle-fixed-point/`, each restored to green): s1 cycle pass removed → 10 red; s2 switch not read → 12 red; s3 value kept in the state → 4 red (ef9f evidence among them); s4 stage 2 removed → 2 red; s5 primitive-block check removed → 2 red; s6 interface screens unqualified → 7 red; s7 two copies instead of three → 7 red; after the stage 2 counter rewrite (incremental run lengths instead of a 36-turn window, which undercounted cycles longer than 36 turns): s4b stage 2 removed → 3 red; s8 run length not carried → 3 red (46/46 restored). Earlier ping-pong receipts r1-r6 are in `runs/receipts/ping-pong-fixed-point/` (superseded code).
 - [x] Gates (`runs/receipts/short-cycle-fixed-point/gates.log`): build and lint clean; agent 3045/3045, viewer 1441/1441, pytest 3015 passed; coverage agent 97.28/93.11/97.66/99.21 (stmts/branches/funcs/lines; `fixed-point-breaker.ts` 96.89/91.18/98.14/99.39 under its own tests, remaining misses are the pre-existing 64/512-entry map caps and `?? -1` fallbacks), viewer 95.09/91.09/93.85/97.7, Python lines 97.11 branches 92.67 functions 100. One earlier full run hit a 5 s timeout in viewer `experiment-cli.test.ts` (git-heavy, machine under load); it passed alone and in every later full run.
-- [x] COMMIT (GREEN): `feat: short-cycle-fixed-point-v1 collapses 2-4 turn cycles of the same calls and states like identical turns (default off, bundle arm)` (sha in the next entry)
+- [x] COMMIT (GREEN): `feat: short-cycle-fixed-point-v1 collapses 2-4 turn cycles of the same calls and states like identical turns (default off, bundle arm)` (2a561989)
 - [x] Explainer `docs/explainers/short-cycle-fixed-point-v1.html` (`just pages-check` prints nothing), README line, FEATURE_EXPLAINERS + server test; pending `experiments/short-cycle-fixed-point-v1.json` (incumbent = same-target's with duplicate-turn-collapse-v1 on, this switch off); readiness row; bundle arm (switches, base false) of bundle-v-control, bundle-cook-1h and whole-map-cook-1h. `fixed-cli check` passes for all three against this worktree's files (the installed CLI reads the main checkout, so it was run through its `main` with `root` set to the worktree; start saves read from the main checkout's runs/).
 - [ ] Multi-model review loop (principles, Claude, Grok, GPT/Codex)
 
@@ -90,6 +90,13 @@ Viewer rehearsal (fake data, agent-observability): 97a0 turns 104-136 copied fro
 ## Multi-Model Review Log
 
 Local inference reviewers are never used (operator decision 2026-10-16).
+
+### Sync with main (before review)
+
+- main moved to 5ab3f577 (story-progress-clock-v1, fixed-run Mac lane, whole-map pair v6). Merged main into the branch. Conflicts were registry appends, index churn and the three fixed experiments: took main's side of every conflicted file and of every test file this branch had only re-indexed, then re-applied this switch after story-progress-clock-v1 (registry, presets, flagFeatures, legacy fixture, DEFAULT_NEXT_RUN, FEATURE_EXPLAINERS, Activity History label, readiness row, bundle arm and base of bundle-v-control, bundle-cook-1h and whole-map-cook-1h) and re-bumped the index assertions (one more each; story-progress-clock's own "last" test now builds with this switch off).
+- whole-map-pair-1h-v6 (the definition 97a0 runs under) is not changed; the brief names only the three fixed experiments above.
+- Gates after the merge (`runs/receipts/short-cycle-fixed-point/gates-merge.log`): build and lint clean; agent 3062/3062, viewer 1443/1443, pytest 3015 passed; coverage agent 97.29/93.15/97.66/99.21, viewer 95.09/91.09/93.85/97.7, Python lines 97.11 branches 92.67 functions 100; `just pages-check` on the explainer prints nothing; `fixed-cli check` exit 0 for all three (worktree root).
+- COMMIT: `merge: main (story-progress-clock-v1, Mac lane) into short-cycle-fixed-point-v1` (sha in the review log)
 
 ## Boy Scout Log
 

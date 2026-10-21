@@ -33,6 +33,7 @@ class Sections:
     regions: dict[Tile, Tile]
     links: dict[Tile, set[Tile]]
     labels: dict[Tile, str]
+    rules: FloodRules | None = None
 
     def section(self, tile: Tile) -> Tile | None:
         return self.regions.get(tile)
@@ -44,15 +45,30 @@ class Sections:
         if (
             block is None
             or block[3] in SURFABLE
+            or (self.rules is not None and tile in self.rules.walls)
             or not any((x, y) == tile for x, y, *_ in self.rom.warps)
         ):
             return None
-        # Door warps sit next to the floor they open onto. Ambiguous stays unknown.
-        found = {
-            r
-            for dx, dy in ((0, 1), (0, -1), (1, 0), (-1, 0))
-            if (r := self.section((tile[0] + dx, tile[1] + dy))) is not None
-        }
+        # Door warps can be colliding. Once placed there, emergence still must
+        # respect edge walls, elevation and the existing field-gate step rules.
+        origin = (block[0], 0, block[2], block[3])
+        found: set[Tile] = set()
+        for leaving, entering, dx, dy, _ in STEPS.values():
+            if (
+                self.rules is not None
+                and (only := self.rules.only.get(tile)) is not None
+                and only != (dx, dy)
+            ):
+                continue
+            neighbour = (tile[0] + dx, tile[1] + dy)
+            other = self.rom.block(*neighbour)
+            region = self.section(neighbour)
+            if (
+                region is not None
+                and other is not None
+                and crossable(origin, other, leaving, entering, water=False)
+            ):
+                found.add(region)
         return next(iter(found)) if len(found) == 1 else None
 
     def connected(self, start: Tile | None, end: Tile | None) -> bool:
@@ -153,7 +169,7 @@ def build_sections(rom: RomMap, rules: FloodRules | None = None) -> Sections:
     links: dict[Tile, set[Tile]] = {r: set() for r in labels}
     for tile, neighbours in graph.items():
         links[regions[tile]].update(regions[n] for n in neighbours if regions[n] != regions[tile])
-    return Sections(rom, regions, links, labels)
+    return Sections(rom, regions, links, labels, rules)
 
 
 @dataclass(frozen=True)

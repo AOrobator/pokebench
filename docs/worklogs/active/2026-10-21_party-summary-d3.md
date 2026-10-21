@@ -54,10 +54,10 @@ Scope limits (from the data the runs record today):
 - [x] COMMIT: `test(env): party readout stats, ability and met (RED)` (8356b0499)
 - [x] Implement in `env/pokebench_env/pokemon.py` (recorded state only; `render` untouched); TypeBox `PokemonSchema` and `just schema`. Golden tests that compare against bodies recorded before these fields now strip them (`tests/env/recorded.py`); party-item-6507 fixture gained the three ROM reads the decoder now makes. Real a8f9 frame decodes TORCHIC Lv17 26/21/22/33/23, BLAZE, ROUTE 101 Lv5, Emerald, POKé BALL, OT AARFTT male. Art build: the single summary Poké Ball became all 12 ball sprites (`parts/balls.png`); server allowlist and its test follow.
 - [x] Gates: lint, build; test agent 3248 / viewer 1567 / python 3568; coverage viewer lines 97.92 branches 91.21 functions 94.41, python lines 97.21 branches 92.92 functions 100
-- [ ] COMMIT: `feat(env): party readout records stats, ability and met (GREEN)`
+- [x] COMMIT: `feat(env): party readout records stats, ability and met (GREEN)` (5ae6dca09)
 
 **M2 — Party view model and D3 renderer**
-- [ ] Write tests: gender by ratio, nature, EXP ticks and next level per growth rate, status decode (incl. fainted), HP bar level/width, PP color states, ability shown only when unique, stats `---`, empty/egg/null species, markup for each tab and an open move, escaping
+- [x] (fail: module missing) Write tests: gender by ratio, nature, EXP ticks and next level per growth rate, status decode (incl. fainted), HP bar level/width, PP color states, ability shown only when unique, stats `---`, empty/egg/null species, markup for each tab and an open move, escaping
 - [ ] COMMIT: `test(viewer): party view (RED)`
 - [ ] Implement `party-view.ts` and its CSS (from the approved mockup)
 - [ ] Gates (as M1)

@@ -117,6 +117,7 @@ SERVER_FEATURES = (
     "move-learn-comparison-v1",
     "gym-door-label-v1",
     "mart-stock-readout-v1",
+    "caught-dex-input-v1",
 )
 
 
@@ -141,7 +142,7 @@ def features_off_from_env(env: Mapping[str, str]) -> frozenset[str]:
         "caught-nickname-prompt-v1,party-item-confirmation-v1,yes-no-answer-readout-v1,"
         "field-move-gates-v1,exit-labels-v3,move-learn-settle-v1,move-learn-question-v1,"
         "move-learn-comparison-v1,gym-door-label-v1,"
-        "mart-stock-readout-v1",
+        "mart-stock-readout-v1,caught-dex-input-v1",
     )
     if raw == "":
         return frozenset()
@@ -292,6 +293,13 @@ def format_readout(
     incumbent_phases = {
         *(
             (ui.phase,)
+            if "caught-dex-input-v1" not in off
+            and ui is not None
+            and ui.phase.startswith("pokedex_caught_")
+            else ()
+        ),
+        *(
+            (ui.phase,)
             if "evolution-decision-v1" not in off
             and ui is not None
             and ui.phase.startswith("evolution")
@@ -395,6 +403,14 @@ def format_readout(
             lines += [
                 *details.lines(
                     battle,
+                    input_override=(
+                        ui.controls
+                        if "caught-dex-input-v1" not in off
+                        and ui is not None
+                        and ui.phase == "pokedex_caught_entry"
+                        and ui.ready is True
+                        else None
+                    ),
                     message_waiting=waiting,
                     levelup_box=levelup,
                     effective_damage="battle-effective-damage-v1" not in off,

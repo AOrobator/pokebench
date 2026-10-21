@@ -187,4 +187,6 @@ The original ignored runs/explainers copies remain for existing links. Make futu
 
 - [First Roxanne interaction](roxanne-first-interaction-v1.html) — measurement and historical evidence.
 
+- [Caught Pokédex registration input](caught-dex-input-v1.html): battle-owned post-catch A/B page; default OFF, bundle ON.
+
 - [Bounded navigation recovery](navigation-recovery-v1.html): stale-map refusals and persistent map-cycle recovery; backtracking stays available.

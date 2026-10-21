@@ -14,7 +14,7 @@ import {StateWatcher,parseGameState,type GameStateSnapshot} from "./game-state.j
 import {battleDecisionContext,playGameTools} from "./play-wiring.js";
 import {flagFeatures,normalizeFeatures,parsePlayPreset,presetFeatures} from "./play-preset.js";
 import {playSystemPrompt} from "./play-config.js";
-import {FEATURES,SERVER_FEATURES,SWITCHABLE_FEATURES,dependencyProblems,featureInfo,playHarnessFeatures,type FeatureSet} from "./features.js";
+import {FEATURES,SERVER_FEATURES,serverFeatureEnv,SWITCHABLE_FEATURES,dependencyProblems,featureInfo,playHarnessFeatures,type FeatureSet} from "./features.js";
 import {checkEvent,type Button,type RunEvent} from "./events.js";
 import {RunRecorder} from "./recorder.js";
 import {RunLog} from "./run-log.js";
@@ -427,8 +427,8 @@ describe("battle-text-auto-advance-v1 registry and production wiring",()=>{
  it("is a default-off guidance switch, recorded last, that needs dialogue auto-advance and no server switch",()=>{
   expect(featureInfo(ID)).toMatchObject({group:"guidance",needs:"dialogue-auto-advance-v1",switchable:true,title:"BATTLE TEXT AUTO-ADVANCE"});
   expect(featureInfo(ID).description).toContain(" Off: field auto-advance stops when a battle starts");
-  expect(SWITCHABLE_FEATURES.at(-117)).toBe(ID);
-  expect(FEATURES.filter(f=>f.switchable).at(-117)?.id).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-118)).toBe(ID);
+  expect(FEATURES.filter(f=>f.switchable).at(-118)?.id).toBe(ID);
   expect(playHarnessFeatures(ALL_ON,null).at(-72)).toBe(ID);
   expect(playHarnessFeatures({...ALL_ON,"battle-decision-ready-v1":false,[ID]:false},null)).not.toContain(ID);
   expect(SERVER_FEATURES).not.toContain(ID);
@@ -602,7 +602,7 @@ it("battle readiness never executes a queued action after a cap or battle end",a
 
 it("battle readiness is append-only, default OFF for historical presets and dependent on native text advancing",()=>{
  const id="battle-decision-ready-v1" as const;
- expect(SWITCHABLE_FEATURES.at(-51)).toBe(id);
+ expect(SWITCHABLE_FEATURES.at(-52)).toBe(id);
  expect(playHarnessFeatures(ALL_ON,null).at(-6)).toBe(id);
  expect(featureInfo(id)).toMatchObject({needs:ID,group:"guidance"});
  const flags=flagFeatures({loopGuard:false,activeUi:true,interfaceDocs:true,objectives:false});
@@ -735,8 +735,8 @@ describe("pending-field-dialogue-v1",()=>{
  });
  it("is appended, agent-only, default OFF and requires field dialogue auto advance",()=>{
   const id="pending-field-dialogue-v1";
-  expect(SWITCHABLE_FEATURES.at(-10)).toBe(id);
-  expect(FEATURES.filter(f=>f.switchable).at(-10)?.id).toBe(id);
+  expect(SWITCHABLE_FEATURES.at(-11)).toBe(id);
+  expect(FEATURES.filter(f=>f.switchable).at(-11)?.id).toBe(id);
   expect(playHarnessFeatures({...ALL_ON,[id]:true},null).at(-1)).toBe(id);
   expect(featureInfo(id)).toMatchObject({needs:"dialogue-auto-advance-v1",group:"guidance"});
   expect(SERVER_FEATURES).not.toContain(id);
@@ -759,8 +759,42 @@ describe("pending-field-dialogue-v1",()=>{
 
 it("the pending field dialogue experiment explicitly declares every current switch and flips only its treatment",()=>{
  const raw=JSON.parse(readFileSync(new URL("../../../experiments/pending-field-dialogue-v1.json",import.meta.url),"utf8")) as {incumbent:{features:Record<string,boolean>}};
- expect(Object.keys(raw.incumbent.features)).toEqual(SWITCHABLE_FEATURES.filter(id=>id!=="mart-stock-readout-v1"&&id!=="gym-door-label-v1"&&id!=="navigation-recovery-v1"&&id!=="menu-refusal-recovery-v1"));
+ expect(Object.keys(raw.incumbent.features)).toEqual(SWITCHABLE_FEATURES.filter(id=>id!=="mart-stock-readout-v1"&&id!=="gym-door-label-v1"&&id!=="caught-dex-input-v1"&&id!=="navigation-recovery-v1"&&id!=="menu-refusal-recovery-v1"));
  const entry=parseExperiment(raw),{incumbent,candidate}=experimentArms(entry);
  expect(entry.queuePosition).toBeUndefined();
  expect(SWITCHABLE_FEATURES.filter(id=>incumbent.features[id]!==candidate.features[id])).toEqual(["pending-field-dialogue-v1"]);
 });
+
+describe("caught-dex-input-v1 archived registration page",()=>{
+ const dex=JSON.parse(gunzipSync(readFileSync(new URL("./fixtures/caught-dex-c6c2.json.gz",import.meta.url))).toString("utf8")) as {off:{state:unknown;readout:string};on:{state:unknown;readout:string}};
+ it("hands input back to the native A/B page instead of waiting on a busy battle",async()=>{
+  const off=parseGameState(dex.off.state),on=parseGameState(dex.on.state);
+  expect(battleEngaged(off)).toBe(true);expect(classifyBattle(off)).toEqual({kind:"wait"});
+  expect(battleEngaged(on)).toBe(false);expect(classifyBattle(on)).toMatchObject({kind:"stop",stop:"menu",detail:expect.stringContaining("pokedex_caught_entry") as string});
+  expect(dex.on.readout).toContain("A or B closes the registration page");
+  const server=new ScriptServer([on],[]);server.readout=()=>dex.on.readout;
+  const {tool}=wire(server,{...ON,"caught-dex-input-v1":true});
+  const observed=await tool("observe").execute("dex-observe",{});
+  expect(textOf(observed)).toContain("A or B closes the registration page");
+  await tool("press").execute("dex-close",{buttons:["A"]});
+  expect(server.posts).toEqual([{button:"A",phase:"other"}]);
+  expect(server.battlePaths()).not.toContain("/pokebench/battle/wait");
+ });
+});
+
+
+it("registers caught-dex-input-v1 default OFF and enables only the fixed bundle arms",()=>{
+ const id="caught-dex-input-v1";
+ expect(SWITCHABLE_FEATURES.at(-2)).toBe(id);expect(SERVER_FEATURES.at(-1)).toBe(id);
+ expect(normalizeFeatures({} as Parameters<typeof normalizeFeatures>[0])[id]).toBe(false);
+ expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false})[id]).toBe(false);
+ expect(serverFeatureEnvForDex(false)).toContain(id);expect(serverFeatureEnvForDex(true)).not.toContain(id);
+ for(const name of ["bundle-v-control","bundle-cook-1h"]){
+  const raw=JSON.parse(readFileSync(new URL(`../../../experiments/fixed/${name}.json`,import.meta.url),"utf8")) as {base:{features:Record<string,boolean>};switches:string[]};
+  expect(raw.base.features[id]).toBe(false);expect(raw.switches).toContain(id);
+ }
+ const pending=parseExperiment(JSON.parse(readFileSync(new URL("../../../experiments/caught-dex-input-v1.json",import.meta.url),"utf8")));
+ const arms=experimentArms(pending);expect(arms.incumbent.features[id]).toBe(false);expect(arms.candidate.features[id]).toBe(true);
+ expect(pending.queuePosition).toBeUndefined();
+});
+function serverFeatureEnvForDex(on:boolean):string[]{return serverFeatureEnv({...ALL_ON,"caught-dex-input-v1":on}).POKEBENCH_FEATURES_OFF.split(",");}

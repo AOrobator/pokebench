@@ -119,6 +119,8 @@ Per milestone: tests, replay of the recorded seqs through production code, Activ
 
 ## Session Log
 
+- 2026-10-21 ~1:50 PM New York: synced with main again (53 commits: shop-interface-v1, rejected-movement-step-v1, observed-field-dialogue-v1 and others). Registry churn conflicted in 70 files; resolved by taking main's versions and re-appending the six switches after observed-field-dialogue-v1 (map-wide-triggers-v1 after shop-interface-v1 on the server list), then the mechanical position/server-env shifts. Agent 3398, viewer 1635, Python 3766 tests pass; lint clean.
+
 - 2026-10-21 ~12:40 PM New York: `codex/bounded-heal-cycle` (progress-aware-cycles-v1) landed on main. Merged main into this branch: the registry churn conflicted in 64 files; resolved by taking main's versions and re-applying the four switches after progress-aware-cycles-v1 (scratch register2.py) plus the same mechanical position shifts; agent 3365, viewer 1616 tests pass, lint clean.
 - M6 investigation (read-only subagent, RAM and code): (1) HARNESS BUG CONFIRMED — the readout lists coordinate triggers only within 7 tiles (`env/pokebench_env/world_context.py:376`), so `planStride` (navigation.ts) plans an 8-tile stride from (10,17) to (10,9) through a row-9 trigger, the Python stride executor (`strides.py` `_safe_next`) refuses at (10,10) once the trigger comes into range, and navigate_to_target ends the call (e9ee seq 1985→2017, 6979→7012; acfa seq 2981→3014); the same 7-tile window makes the trigger-avoidance plan flip east/west as the set changes (e9ee seq 7063→7116). (2) NOT A BUG — ad34 seq 12351: navigate_to avoids matching triggers by design (coordinate-script-conditions-v1) and said so, naming (11,2); the cost came from the model's next choices.
 

@@ -98,6 +98,7 @@ def read_state(
         field_moves_enabled=FIELD_MOVES not in off and EXIT_REACH not in off,
         move_learning_enabled=not {MOVE_QUESTION, MOVE_COMPARISON} <= off,
         mart_stock_enabled=MART_STOCK not in off,
+        shop_interface_enabled="shop-interface-v1" not in off,
         exp_next_enabled=EXP_NEXT not in off,
         pokedex_enabled=POKEDEX_OWN not in off,
         map_wide_triggers_enabled="map-wide-triggers-v1" not in off

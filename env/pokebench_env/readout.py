@@ -122,6 +122,7 @@ SERVER_FEATURES = (
     "caught-dex-input-v1",
     "exp-next-level-v1",
     "pokedex-own-v1",
+    "shop-interface-v1",
     "map-wide-triggers-v1",
 )
 
@@ -148,7 +149,7 @@ def features_off_from_env(env: Mapping[str, str]) -> frozenset[str]:
         "field-move-gates-v1,exit-labels-v3,move-learn-settle-v1,move-learn-question-v1,"
         "move-learn-comparison-v1,gym-door-label-v1,"
         "mart-stock-readout-v1,caught-dex-input-v1,exp-next-level-v1,pokedex-own-v1,"
-        "map-wide-triggers-v1",
+        "shop-interface-v1,map-wide-triggers-v1",
     )
     if raw == "":
         return frozenset()

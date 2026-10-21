@@ -367,3 +367,9 @@ The operator approved 9:42 PM ET. Test-only, plus one production fix the coordin
     "from every warp" asks; linear aggregate work needs either fewer starts (drops audit coverage), a
     test-owned reachability reimplementation (no longer tests production floods), or a production batch API
     (Codex itself called that scope expansion). Landing also needs one more clean sync with main.
+
+## Follow-up landing (2026-10-20, 10:55 PM ET)
+
+- The operator 10:48 PM ET: "land the field move follow up". Review round 2 on packet 97046aa6..7ac8c9e3: Grok LGTM; Claude found no code defects (blocked only on the main sync, done here); Codex BLOCKING on per-start audit floods, rebutted (each start must be flooded to check every warp).
+- Merged main 52e04dd1 (viewer-only, clean). Lint and build clean; viewer 1515/1515. Full gates on the previous sync: agent 3083, viewer 1500, pytest 3480, coverage above 90 on both stacks.
+- Pending experiment field-move-gates-v1 source.commit repinned to the landing merge, since the ON text changed for multi-kind blocker sets.

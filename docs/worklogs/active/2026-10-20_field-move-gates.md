@@ -224,6 +224,9 @@ Review cadence: the worklog runs the multi-model review once, in M4, on the whol
   viewer 95.09 / 91.07 / 93.85 / 97.7.
   Principles self-review (PB1-PB13, zero FAIL): written to the review packet folder
   (scratchpad fmg-review/principles-adherence.md); frozen boundary fmg-review/frozen-boundary.md.
+  COMMIT: `Merge branch 'main' into claude/field-move-gates` (8b453f9c); third sync, main 5ab3f577
+  (story-progress-clock bundle config, clean merge). Gates on this tip: lint 0, coverage 0 (env 3318,
+  agent 3045, viewer 1444; same percentages).
 
 ## Deferred
 

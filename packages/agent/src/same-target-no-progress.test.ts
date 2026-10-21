@@ -320,7 +320,7 @@ describe("same-target-no-progress-v1 registry and wiring",()=>{
   expect(Object.keys(candidate.features).filter(id=>candidate.features[id as keyof FeatureSet]!==incumbent.features[id as keyof FeatureSet])).toEqual([ID]);
   for(const name of ["bundle-v-control","bundle-cook-1h"]){
    const fixed=JSON.parse(readFileSync(new URL(`../../../experiments/fixed/${name}.json`,import.meta.url),"utf8")) as {base:{features:Record<string,boolean>};switches:string[]};
-   expect(fixed.base.features[ID]).toBe(false);expect(fixed.switches.at(-1)).toBe(ID);
+   expect(fixed.base.features[ID]).toBe(false);expect(fixed.switches).toContain(ID);
    expect(fixed.base.features["deterministic-loop-guard-v1"]).toBe(true);
   }
  });

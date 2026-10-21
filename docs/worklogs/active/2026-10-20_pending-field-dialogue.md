@@ -49,3 +49,7 @@ Sol fallback LGTM, Astra fallback LGTM with one concrete supported-configuration
 R2 description regression run against frozen r1 source fails as expected; corrected source restores all57 focused tests. Grok r1 LGTM; GPT r1 confirms the same description blocker. Cumulative r2 includes the one-line guard and independent pending-only description/execution regression.
 
 R2 implementation commit431e7ecfb. Pending definition repins to it; remains unqueued and default OFF. Final review uses cumulative packet after this evidence commit.
+
+
+## Concurrent registry integration
+After all r2 reviewers approved and the reviewed patch synced byte-identically with d004be2dd, main landed exit-labels-v3. Integrated it on the candidate branch. Pending field dialogue appends after the now-landed switch; both defaults remain OFF and independent. Rebased historical registry-offset/feature fixtures on current main and kept the current-registry round-trip test genuinely ALL_ON. Pending definition explicitly holds exit-labels-v3 OFF. No pending-dialogue runtime/prompt behavior changed from reviewed r2. A third integration-only cumulative review follows. The operator was asked for explicit permission to coordinate a merge hold and waive the unavailable Claude lane; neither permission is inferred from silence.

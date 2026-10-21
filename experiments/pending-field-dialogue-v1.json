@@ -188,7 +188,8 @@
       "whiteout-healed-v1": false,
       "gym-readiness-readout-v1": false,
       "party-item-confirmation-v1": false,
-      "pending-field-dialogue-v1": false
+      "pending-field-dialogue-v1": false,
+      "exit-labels-v3": false
     }
   },
   "trialsPerArm": 8,

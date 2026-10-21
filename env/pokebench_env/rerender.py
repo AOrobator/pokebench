@@ -82,6 +82,9 @@ def read_state(
         evolution_decision_enabled="evolution-decision-v1" not in off,
         # exit-labels-v2 renames named-warp-destinations-v1's labels, so it needs that switch.
         exit_labels_enabled=EXIT_LABELS not in off and "named-warp-destinations-v1" not in off,
+        exit_sections_enabled="exit-labels-v3" not in off
+        and EXIT_LABELS not in off
+        and "named-warp-destinations-v1" not in off,
         caught_nickname_enabled=CAUGHT_NICKNAME not in off,
         party_item_confirmation_enabled="party-item-confirmation-v1" not in off,
         # field-move-gates-v1 gates exit-reachability-v1's flood, so it needs that switch.

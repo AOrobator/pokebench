@@ -1380,6 +1380,16 @@ it("links the YES/NO answer readout from its recorded feature card",()=>{
  expect(html).toContain("To answer YES, press UP, then A. Pressing A now answers NO.");
 });
 
+it("links the recorded distinct-exits treatment to its tracked explainer",()=>{
+ const id="exit-labels-v3";
+ const log=new Log();log.add(0,{...START,harness_features:["ram-state-v1",id]});
+ const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
+ const card=doc.querySelector(`[data-feature="${id}"]`);
+ expect(card?.querySelector("a")?.getAttribute("href")).toBe(`/explainers/${id}.html`);
+ expect(card?.textContent).toContain("ON");
+ expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
+});
+
 it("links the pending field dialogue feature card to its local explainer",()=>{
  const log=new Log();log.add(0,{...START,harness_features:["pending-field-dialogue-v1"]});
  const html=harnessConfig(view(log),FEATURES);

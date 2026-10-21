@@ -218,4 +218,9 @@ PENDING, explicitly blocked and unqueued. Clock policy acts from server boot; NE
 | `field-move-gates-v1` | `RUSTURF_TUNNEL` (the only exit-level field obstacle from Littleroot through the Dewford Gym is the Rusturf Tunnel rock pair) | PENDING until `just experiments` runs after landing | Registered 2026-10-20, pending and not queued; bundle-only; exit-reachability-v1 is on in both arms. Evidence: a8f9 state seq 41177 (turn 1283) labelled (29,16) and (18,20) foot behind the two BREAKABLE_ROCK objects and navigate_to said "call navigate_to again to continue to (29,16)". |
 | `story-battle-heal-gate-v1` | `STARTER_CHOSEN` (the first gated battle is the Route 103 rival, right after the starter) | PENDING until `just experiments` runs after landing | Registered 2026-10-20, pending and not queued; bundle-only; needs heal-before-trainers-v2 (on in the bundle arm). Evidence: 97a0 turn 157, navigate_to_target MAY at TORCHIC 5/22 a turn after the story battle warning, whiteout at seq 4780; b300 turn 501, navigate_to toward ROXANNE at TORCHIC 11/35. |
 
+## exit-labels-v3
+Pending, not queued. Activation PLAYER_NAME_CONFIRMED; readiness computed from qualifying recorded runs. Future bundle only; no measured runs launched.
+
+V3 readiness check: ready on recent fallback, 4/4 think-fast runs reached PLAYER_NAME_CONFIRMED; too few match the incumbent. Considered Oct15 runs2f46,6684,dc0e,17a0. This is early activation readiness only, not comparable configuration evidence or gameplay benefit. Entry remains pending and unqueued.
+
 | pending-field-dialogue-v1 | FIRST_TRUCK_EXIT | PENDING, not queued | 2026-10-20: exact delayed-message failure reproduced from 97a0 turn 636 and raw RAM. No matched-arm readiness or checkpoint study for this candidate; milestone reach does not prove exposure. |

@@ -105,6 +105,14 @@ describe("the cycle state fingerprint",()=>{
   expect(cycleState(state(IN_GAME))).not.toBe(cycleState(state({...IN_GAME,money:2900})));
   const quantity=(maximum:number)=>({...CLOCK,screen:"pc",active_ui:{...ui("pc_quantity",null,"x1"),details:{kind:"quantity",maximum}}}) as unknown as GameStateSnapshot;
   expect(cycleState(state(quantity(9)))).not.toBe(cycleState(state(quantity(8))));
+  const tree=(watered:boolean,minutes:number,stage=2)=>({tree_id:1,berry:3,item_id:135,stage,stop_growth:false,minutes_until_next_stage:minutes,yield_count:0,regrowth_count:0,watered:[watered,false,false,false]});
+  const garden=(t:ReturnType<typeof tree>,diagnostics:{owner:string;message:string;raw_hex:string|null}[]=[])=>({...IN_GAME,resources:{bag:[],pc_items:[],storage:{current_box:0,occupied:[]},berry_trees:[t],planted_berries:1,diagnostics,script_pc:1,script_mode:1,script_status:1,selected_tree_id:null,berry_script_owner:null,daycare:[]}}) as unknown as GameStateSnapshot;
+  // Watering and growth are the player's doing; only the growth timer runs on its own.
+  expect(cycleState(state(garden(tree(false,60))))).not.toBe(cycleState(state(garden(tree(true,60)))));
+  expect(cycleState(state(garden(tree(false,60))))).not.toBe(cycleState(state(garden(tree(false,60,3)))));
+  expect(cycleState(state(garden(tree(false,60))))).toBe(cycleState(state(garden(tree(false,59)))));
+  // A resource the readout failed to decode qualifies nothing.
+  expect(cycleState(state(garden(tree(false,60),[{owner:"bag",message:"pocket pointer out of range",raw_hex:null}])))).toBeNull();
   expect(cycleState(state(ADJUST()))).not.toBeNull();
   expect(cycleState(state(ADJUST()))).not.toBe(cycleState(state(CONFIRM())));
  });
@@ -282,6 +290,24 @@ describe("OFF and the switches it acts through",()=>{
   for(let k=2;k<shown.length;k++)expect(shown[k]).toBe(shown[k-2]);
   expect(new Set(left.map(x=>x.active_ui?.value)).size).toBe(7);
   expect(new Set(left.map(x=>x.screen)).size).toBe(1);
+ });
+ it("watering a berry tree is progress, not a cycle, and a snapshot with a resource diagnostic never joins one",async()=>{
+  const tree=(watered:number)=>({tree_id:1,berry:3,item_id:135,stage:2,stop_growth:false,minutes_until_next_stage:300-watered,yield_count:0,regrowth_count:0,watered:[0,1,2,3].map(k=>k<watered)});
+  const at=(watered:number,facing:"up"|"down",diagnostics:{owner:string;message:string;raw_hex:string|null}[]=[])=>({...IN_GAME,facing,resources:{bag:[],pc_items:[],storage:{current_box:0,occupied:[]},berry_trees:[tree(watered)],planted_berries:1,diagnostics,script_pc:1,script_mode:1,script_status:1,selected_tree_id:null,berry_script_owner:null,daycare:[]}}) as unknown as GameStateSnapshot;
+  // Each round the tree gets one more watering; the screens, positions and calls repeat exactly.
+  const watering=rig(COLLAPSE);
+  for(let i=0;i<8;i++)watering.turn(i%2===0?{buttons:["A"]}:{buttons:["B"]},at(Math.floor(i/2),i%2===0?"up":"down"));
+  expect(texts(await watering.send()).filter(t=>t.startsWith("assistant"))).toHaveLength(8);
+  expect(watering.recorded).toEqual([]);
+  const failed=rig(COLLAPSE);
+  const bad=[{owner:"bag",message:"pocket pointer out of range",raw_hex:null}];
+  for(let i=0;i<8;i++)failed.turn(i%2===0?{buttons:["A"]}:{buttons:["B"]},at(0,i%2===0?"up":"down",bad));
+  expect(texts(await failed.send()).filter(t=>t.startsWith("assistant"))).toHaveLength(8);
+  expect(failed.recorded).toEqual([]);
+  // The same walk with nothing watered and clean reads is a cycle.
+  const idle=rig(COLLAPSE);
+  for(let i=0;i<6;i++)idle.turn(i%2===0?{buttons:["A"]}:{buttons:["B"]},at(0,i%2===0?"up":"down"));
+  expect(kept(await idle.send())).toEqual([5,6]);
  });
  it("taking one item at a time out of the PC is progress, not a cycle",async()=>{
   const r=rig(COLLAPSE);

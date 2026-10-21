@@ -784,7 +784,7 @@ it("enables the five move-learn switches only in the bundle of the three current
 it("enables the mart stock readout only in the bundle of the four current bundle definitions, and keeps it OFF in the next-run default",()=>{
  const id="mart-stock-readout-v1";
  expect(DEFAULT_NEXT_RUN.features[id]).toBe(false);
- for(const file of ["bundle-v-control","bundle-cook-1h","whole-map-cook-1h","whole-map-pair-2h"]){
+ for(const file of ["bundle-v-control","bundle-cook-1h","whole-map-cook-1h","whole-map-pair-2h","bundle-v-control-2h"]){
   const {definition:def}=parseFixedDefinition(readFileSync(new URL(`../../../experiments/fixed/${file}.json`,import.meta.url),"utf8"));
   expect(def.switches.filter(s=>s===id)).toEqual([id]);
   expect(def.onInBoth).not.toContain(id);
@@ -799,7 +799,7 @@ it("enables the mart stock readout only in the bundle of the four current bundle
 it("enables the seven training and catching switches only in the bundle of the four current bundle definitions, and keeps them OFF in the next-run default",()=>{
  const ids=["exp-next-level-v1","pokedex-own-v1","exp-earned-ledger-v1","leader-attempt-ledger-v1","seen-trainers-ledger-v1","party-coverage-v1","said-type-matches-v1"] as const;
  for(const id of ids)expect(DEFAULT_NEXT_RUN.features[id]).toBe(false);
- for(const file of ["bundle-v-control","bundle-cook-1h","whole-map-cook-1h","whole-map-pair-2h"]){
+ for(const file of ["bundle-v-control","bundle-cook-1h","whole-map-cook-1h","whole-map-pair-2h","bundle-v-control-2h"]){
   const {definition:def}=parseFixedDefinition(readFileSync(new URL(`../../../experiments/fixed/${file}.json`,import.meta.url),"utf8"));
   for(const id of ids){
    expect(def.switches.filter(s=>s===id)).toEqual([id]);
@@ -856,7 +856,7 @@ it.each([false,true])("rehearses the four-hour GLM pair serially and retains its
 });
 
 it("adds progress-aware cycles only to the bundle in canonical and current whole-map definitions",()=>{
- for(const name of ["bundle-v-control","bundle-cook-1h","whole-map-pair-2h","whole-map-cook-1h"]){
+ for(const name of ["bundle-v-control","bundle-cook-1h","whole-map-pair-2h","bundle-v-control-2h","whole-map-cook-1h"]){
   const {definition:def}=parseFixedDefinition(readFileSync(new URL(`../../../experiments/fixed/${name}.json`,import.meta.url),"utf8"));
   expect(def.switches).toContain("progress-aware-cycles-v1");
   expect(armFeatures(def,"control")["progress-aware-cycles-v1"]).toBe(false);

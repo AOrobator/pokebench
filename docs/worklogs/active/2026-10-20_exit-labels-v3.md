@@ -45,3 +45,5 @@ Run 97a0 state 13625 / result 13626 / turn377 identifies Woods entrances at (10,
 - Frozen-tip gates passed8046 tests (3052 agent,1511 viewer,3483 Python), zero skips; lint/build pass. Browser recovered: actual v3 feature-card link opened exact explainer URL on candidate viewer and screenshot visually inspected. Supersedes earlier failed browser attempt. Offline UI fixture only, no gameplay/experiment.
 
 - Round1 fix GREEN: warp emergence checks directional edges/elevation and existing gate walls/forced steps before accepting its sole neighboring region. Colliding door origin remains supported. RED1failed/8passed/5ROMskips (not gate evidence), then explicit-ROM14/14 passed. New full gates follow current-main sync.
+
+- Round2 preparation synced main97046aa6, updated pending implementation pin to complete repaired tree, and reruns all gates. Claude remains unavailable; final landing requires operator exception, even if fallback reviews approve.

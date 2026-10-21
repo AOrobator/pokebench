@@ -9,6 +9,7 @@ from pokebench_env.exit_labels import RomMap
 from pokebench_env.map_sections import build_sections
 from pokebench_env.readout import state_json
 from pokebench_env.rerender import read_state, render
+from tests.env.recorded import as_recorded
 from tests.env.test_exit_labels import ROUTE104, WOODS, maps, off, reader
 
 
@@ -79,7 +80,9 @@ def test_off_preserves_existing_v2_readout_and_state():
         )[seq]
         assert hashlib.sha256(render(s, disabled).encode()).hexdigest() == frozen["readout"]
         assert (
-            hashlib.sha256(json.dumps(state_json(s), sort_keys=True).encode()).hexdigest()
+            hashlib.sha256(
+                json.dumps(as_recorded(state_json(s)), sort_keys=True).encode()
+            ).hexdigest()
             == frozen["state"]
         )
 

@@ -1,4 +1,5 @@
 import type { GameStateSnapshot } from "../game-state.js";
+import { legacyParty } from "../party-facts.js";
 
 export function stable(value: unknown): string {
   return JSON.stringify(value, (_key: string, item: unknown): unknown => {
@@ -57,7 +58,7 @@ export function semanticState(state: GameStateSnapshot, interactions = false): s
     position: state.position,
     facing: state.facing,
     name: state.name,
-    party: state.party,
+    party: legacyParty(state.party),
     money: state.money,
     badges: state.badges,
     story: state.story ?? null,
@@ -72,7 +73,7 @@ export function battleState(state: GameStateSnapshot): string | null {
   return stable({
     battle,
     ui: state.active_ui ?? null,
-    party: state.party,
+    party: legacyParty(state.party),
     message: state.world_context?.message ?? null,
     dialogue: state.world_context?.dialogue ?? null,
   });
@@ -118,7 +119,7 @@ export function waitingState(state: GameStateSnapshot): string | null {
     dialogue,
     message: message ?? null,
     name: state.name,
-    party: state.party,
+    party: legacyParty(state.party),
     money: state.money,
     badges: state.badges,
     story: state.story ?? null,

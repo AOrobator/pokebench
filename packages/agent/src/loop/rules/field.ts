@@ -2,6 +2,7 @@ import type { CompletedCall, LoopHit, LoopKind, LoopRule, LoopRuleId, RuleContex
 import type { GameStateSnapshot } from "../../game-state.js";
 import type { PendingCall } from "../call-tracker.js";
 import { semanticState, scriptHeld, stable, transientLock } from "../fingerprints.js";
+import { legacyParty } from "../../party-facts.js";
 
 export const PUSHBACK_MESSAGE =
   "A game script keeps returning the player to the same place after the same input: each attempt ends back where it started, so repeating it will not get past the script. Read what the script's dialogue says, then choose a different target or approach using observed evidence.";
@@ -285,7 +286,7 @@ export class FieldRules {
     const state = call.state;
     const to = mapOf(state);
     if (state === undefined || to === null) return false;
-    const progress = stable({ story: state.story ?? null, party: state.party, money: state.money, badges: state.badges, bag: state.resources?.bag ?? null, pc: state.resources?.pc_items ?? null });
+    const progress = stable({ story: state.story ?? null, party: legacyParty(state.party), money: state.money, badges: state.badges, bag: state.resources?.bag ?? null, pc: state.resources?.pc_items ?? null });
     if (progress !== this.progress) {
       this.mapMoves.length = 0;
       this.progress = progress;

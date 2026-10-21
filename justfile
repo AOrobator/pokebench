@@ -51,6 +51,12 @@ trainer-card-art out="runs/sprites/trainer-card-v1":
 bag-art out="runs/sprites/bag-v1":
     uv run --project env python scripts/bag-art/build_bag_art.py "$1"
 
+# POKéMON PARTY page art and tables from ~/dev/pokeemerald, every image and table
+# verified against $POKEBENCH_ROM. ROM-derived: output stays under runs/.
+[positional-arguments]
+party-art out="runs/sprites/party-v1":
+    uv run --project env python scripts/party-art/build_party_art.py "$1"
+
 verify-vendor:
     cd env && uv run python -c 'from pokebench_env.launcher import VENDOR_DIR; from pokebench_env.vendor import check_vendor; check_vendor(VENDOR_DIR); print("vendor OK:", VENDOR_DIR)'
 

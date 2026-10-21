@@ -1,5 +1,6 @@
 import { NATIVE_OBJECTIVES, validateCompletionType } from "./objective-schema.js";
 import { MEASUREMENT_ONLY_MILESTONES, qualifiedNativeMilestone } from "./milestones.js";
+import { legacyParty } from "./party-facts.js";
 import type { AgentMessage } from "@mariozechner/pi-agent-core";
 import type { BodyOf, Button, RunEvent } from "./events.js";
 import type { GameStateSnapshot } from "./game-state.js";
@@ -15,7 +16,7 @@ export interface UpdateObjective {
 }
 function stateOf(event: StateEvent): GameStateSnapshot { return event; }
 function fingerprint(state: GameStateSnapshot): string {
-  return JSON.stringify({ screen: state.screen, started: state.started, map_id: state.map_id, position: state.position, facing: state.facing, in_battle: state.in_battle, field_controls_locked: state.field_controls_locked ?? null, naming: state.naming ?? null, local_map: state.local_map ?? null, party: state.party, money: state.money, badges: state.badges });
+  return JSON.stringify({ screen: state.screen, started: state.started, map_id: state.map_id, position: state.position, facing: state.facing, in_battle: state.in_battle, field_controls_locked: state.field_controls_locked ?? null, naming: state.naming ?? null, local_map: state.local_map ?? null, party: legacyParty(state.party), money: state.money, badges: state.badges });
 }
 function signature(buttons: readonly Button[], state: GameStateSnapshot): string {
   return JSON.stringify(buttons) + fingerprint(state);
@@ -145,7 +146,7 @@ export class ObjectiveTracker {
     return Object.fromEntries(Object.entries(facts).filter(([key]) => !hidden.includes(key as HideableFact))) as Partial<T>;
   }
   context(messages: AgentMessage[], now = Date.now()): AgentMessage[] {
-    const recent = [...this.evidence.values()].slice(-6).map((e) => ({ seq: e.seq, type: e.type, facts: e.type === "state" && "started" in e ? this.visible({ screen: e.screen, started: e.started, in_battle: e.in_battle, party_count: e.party.length, name: e.name, location: e.location_display ?? e.location, position: e.position, facing: e.facing, field_controls_locked: e.field_controls_locked, party: e.party, money: e.money, badges: e.badges, naming: e.naming }) : e.type === "tool_result" ? e.text : "" }));
+    const recent = [...this.evidence.values()].slice(-6).map((e) => ({ seq: e.seq, type: e.type, facts: e.type === "state" && "started" in e ? this.visible({ screen: e.screen, started: e.started, in_battle: e.in_battle, party_count: e.party.length, name: e.name, location: e.location_display ?? e.location, position: e.position, facing: e.facing, field_controls_locked: e.field_controls_locked, party: legacyParty(e.party), money: e.money, badges: e.badges, naming: e.naming }) : e.type === "tool_result" ? e.text : "" }));
     const content = `HARNESS OBJECTIVE RECORD\n${JSON.stringify({ goal: this.goal, objective: this.current, native_catalog: NATIVE_OBJECTIVES, ...(this.switches.nativeCompletion ? { recorded_native_milestones: [...this.native.values()].filter(e => !MEASUREMENT_ONLY_MILESTONES.has(e.name)).map(e => ({ name: e.name, seq: e.seq, origin: e.origin, evidence: e.evidence })) } : {}), recent_attempts: this.attempts.slice(-8), available_evidence: recent })}\n${this.switches.nativeCompletion ? "Only native milestone objectives are verified complete; local reported_complete plans are provisional and do not grade the run. Native tasks complete automatically; choose the next grounded task." : "Objectives are never completed automatically; report completion with evidence and choose the next grounded task."} Game evidence outranks remembered walkthroughs. Failure changes the approach, not whether an objective is required. Check the objective against the goal before acting. Use objective tools when evidence, obstacles, or decisions change.`;
     return [...messages, { role: "user", content, timestamp: now }];
   }

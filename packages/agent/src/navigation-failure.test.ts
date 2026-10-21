@@ -36,3 +36,15 @@ it("unknown observations and errors cannot clear an active episode; a qualified 
  expect(f.observe(nav(6,{name:"observe"}))?.active).toBe(true);
  expect(f.observe(nav(7,{state:{...field(),in_battle:true}}))).toEqual({active:false,evidence:[]});
 });
+
+it("a change only in the party readout's summary-screen facts does not re-arm",()=>{
+ const mon={species:"TORCHIC",level:16,hp:49,max_hp:50};const s=(attack:number|null)=>({...field(),party:[{...mon,attack,met_location_name:attack===null?null:"ROUTE 101"}]});
+ const f=new NavigationFailure();f.observe(nav(1,{state:s(23),beforeState:s(23)}));f.observe(nav(2,{state:s(23),beforeState:s(23)}));
+ expect(f.observe(nav(3,{state:s(26),beforeState:s(26)}))?.active).toBe(true);
+});
+
+it("a change only in a stored Pokémon's summary-screen facts does not re-arm",()=>{
+ const mon={species:"TORCHIC",level:16,hp:49,max_hp:50};const s=(ball:string|null)=>({...field(),resources:{bag:null,pc_items:null,berry_trees:null,planted_berries:null,diagnostics:[],script_pc:null,script_mode:null,script_status:null,selected_tree_id:null,berry_script_owner:null,storage:{current_box:0,occupied:[{box:0,slot:0,pokemon:{...mon,ball_name:ball}}]}}});
+ const f=new NavigationFailure();f.observe(nav(1,{state:s("POKé BALL"),beforeState:s("POKé BALL")}));f.observe(nav(2,{state:s("POKé BALL"),beforeState:s("POKé BALL")}));
+ expect(f.observe(nav(3,{state:s("GREAT BALL"),beforeState:s("GREAT BALL")}))?.active).toBe(true);
+});

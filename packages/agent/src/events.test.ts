@@ -2,7 +2,8 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { RUN_START, SAMPLES } from "../test-support/events.js";
-import { EventError, eventEnvelope, eventProblem, eventsJsonSchema, parseEvent, renderEventsJsonSchema, startIdentity } from "./events.js";
+import { Value } from "typebox/value";
+import { EventError, PokemonSchema, eventEnvelope, eventProblem, eventsJsonSchema, parseEvent, renderEventsJsonSchema, startIdentity } from "./events.js";
 
 const ENVELOPE = { v: 1, run: "2026-10-11T21-40-05_think-swarm_a1b2", seq: 0, t: "2026-10-11T21:40:05.123-04:00" };
 
@@ -183,5 +184,18 @@ describe("run_start identity read loosely", () => {
     ["a non-object", "run_start"],
   ])("refuses %s", (_label, value) => {
     expect(startIdentity(value)).toBeNull();
+  });
+});
+
+describe("party readout summary facts", () => {
+  const base = { species: "TORCHIC", level: 16, hp: 49, max_hp: 50 };
+  const facts = { attack: 23, defense: 19, speed: 21, sp_attack: 24, sp_defense: 18, ability_num: 1, ability_id: 77, met_location: 16, met_location_name: "ROUTE 101", met_level: 5, met_game: 3, ball: 4, ball_name: "POKé BALL", ot_name: "MAY", ot_gender: "female" };
+  it("records stats, ability, met data, ball and OT, each optional and nullable", () => {
+    expect(Value.Check(PokemonSchema, { ...base, ...facts })).toBe(true);
+    expect(Value.Check(PokemonSchema, { ...base, ...Object.fromEntries(Object.keys(facts).map((k) => [k, null])) })).toBe(true);
+    expect(Value.Check(PokemonSchema, base)).toBe(true);
+  });
+  it("rejects out-of-range values", () => {
+    for (const bad of [{ ability_num: 2 }, { ot_gender: "other" }, { met_level: 101 }, { ball: 13 }, { attack: -1 }]) expect(Value.Check(PokemonSchema, { ...base, ...bad }), JSON.stringify(bad)).toBe(false);
   });
 });

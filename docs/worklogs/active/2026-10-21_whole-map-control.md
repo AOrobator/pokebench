@@ -13,14 +13,14 @@ Evidence: overnight run analysis, runs/reports/run-analysis/2026-10-21_overnight
 - **`experiments/fixed/whole-map-pair-2h.json`:**
   - Base features are the new control base.
   - `story-battle-heal-gate-v1` is added to offInBoth.
-  - Bundle-only switches are now the fixes registered since fd95: `menu-refusal-recovery-v1` (inert at 6fbce332), `gym-door-label-v1` and `mart-stock-readout-v1`.
+  - Bundle-only switches are now the fixes registered since fd95: `menu-refusal-recovery-v1` (inert at 6fbce332), `gym-door-label-v1`, `mart-stock-readout-v1` and `caught-dex-input-v1`.
   - Seed and plan are unchanged. The loop picks this up at the first round that starts after the merge.
 
 ## Checks
 
-- [ ] Definition and control-base check (fixed-design `definitionProblems` + `controlBaseProblems`) on this branch: none
-- [ ] Control arm equals fd95's recorded features except the heal gate
-- [ ] `just test`, `just lint`
+- [x] Definition and control-base check (fixed-design `definitionProblems` + `controlBaseProblems`) on this branch: none
+- [x] Control arm equals fd95's recorded features except the heal gate
+- [x] `just test`, `just lint`: TS 3292 + 1609 passed, Python 3647 passed, lint clean (after syncing main d00cded5)
 - [ ] `just fixed-run check whole-map-pair-2h` on main after the merge
 - [ ] Claude and Grok review LGTM on the frozen packet
 - [ ] Merge SHA and the loop round that first runs it

@@ -264,7 +264,7 @@ export class RunView {
   }
 
   loopLabel(event: Of<"loop_guard">): string {
-    const kinds = { planning: "Planning stall", observation: "Observation stall", ineffective: "Ineffective action", cycle: "Short cycle", rejection: "Repeated rejection", trigger_script:"Repeated trigger script", map_cycle: "Map back-and-forth", milestone_drought: "Milestone drought", interface_dwell: "Interface dwell", same_plan: "Same plan repeated" } as const;
+    const kinds = { planning: "Planning stall", observation: "Observation stall", ineffective: "Ineffective action", cycle: "Short cycle", rejection: "Repeated rejection", trigger_script:"Repeated trigger script", map_cycle: "Map back-and-forth", milestone_drought: "Milestone drought", interface_dwell: "Interface dwell", same_plan: "Same plan repeated", same_target_no_progress: "Same target, no progress" } as const;
     const tool = this.events.findLast((item) => item.seq < event.seq && item.type === "tool_call");
     const elapsed = this.startMs === null ? "elapsed unavailable" : hms((eventMs(event) - this.startMs) / 1000);
     const phase = "mode" in event && event.mode === "diagnostic" ? `diagnostic: ${event.phase.replace("_", " ")}` : event.phase === "supervisor" ? "supervisor message sent to the model" : event.phase;
@@ -341,7 +341,8 @@ export class RunView {
         break;
       }
       case "loop_guard":
-        this.errors.push({ms,kind:"loop",label:this.loopLabel(event)});
+        // same-target-no-progress-v1 stays off the closed timeline (operator decision 2026-10-16).
+        if (event.kind !== "same_target_no_progress") this.errors.push({ms,kind:"loop",label:this.loopLabel(event)});
         break;
       case "text_only_supervisor":
         this.errors.push({ ms, kind: "loop", label: `Text-only supervisor ${String(event.note)}/${String(event.limit)} · turn ${String(event.turn)}: ${event.text}` });

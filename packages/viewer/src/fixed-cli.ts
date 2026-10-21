@@ -337,7 +337,7 @@ export function productionFixedHost(deps: FixedHostDeps): FixedHost {
       probe.once("error", () => { resolvePort(true); });
       probe.listen(port, "127.0.0.1", () => { probe.close(() => { resolvePort(false); }); });
     }),
-    runId: (lane) => newRunId(new Date(), `qwen36-${lane.gpu.toLowerCase()}`, randomSuffix),
+    runId: (lane) => newRunId(new Date(), lane.runName ?? `qwen36-${lane.gpu.toLowerCase()}`, randomSuffix),
     launch: (l) => {
       // The runner checks the build before every launch, so a launch always follows a prepared checkout.
       if (prepared === null) return Promise.reject(new Error("no prepared experiment checkout"));

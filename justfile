@@ -139,6 +139,10 @@ pages-check +files:
 pages-inline-fonts +files:
     scripts/pages.sh inline-fonts {{files}}
 
+# Give the given pages the Emerald PokéNav theme (docs/design/emerald-pages.css), in place; re-run after regenerating.
+pages-theme +files:
+    scripts/pages.sh theme {{files}}
+
 # Experiment queue: list the queue, pending and closed experiments.
 experiments: build
     node packages/viewer/dist/experiment-cli.js list

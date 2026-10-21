@@ -21,7 +21,7 @@ You do not wait or poll. A small background process (`just codex-wake-watch <thi
 2. For each letter with a `to_thread`, call `send_message_to_thread` with `threadId` = `to_thread` and the prompt `From <sender>, relayed by the Codex coordinator: <text>`. Read the fields from the JSON; copy the text whole, no summaries or edits.
 3. If a forward fails (unknown or archived thread, for example), write a report with your file-editing tool (not the shell) to `/tmp/codex-coordinator-report.txt`: first line `Could not forward to <thread>: <error>`, then the letter's text. Then run `just tell-claude --from "codex coordinator" --file /tmp/codex-coordinator-report.txt`.
 4. When the whole batch is forwarded or reported, run `just codex-mailbox-done --claim N`. Until then the letters stay claimed; if this thread stops first, the next run hands the same batch out again, so forward again if unsure.
-5. Repeat from step 1 until it prints "No mail.", then end your turn. Do not start a waiting loop, and do not post "still listening" updates: the watcher wakes you.
+5. Repeat from step 1 until it prints "No mail.", then end your turn. The mailbox keeps its wake marker across batches and acknowledgments, clearing it only when the final read confirms an empty mailbox under the lock. Arrivals while forwarding belong to this turn; arrivals after that empty read can wake the next turn. Do not manually clear the marker. Do not start a waiting loop, and do not post "still listening" updates: the watcher wakes you.
 
 A letter with no `to_thread` is meant for you. Answer it the same way as a failure report: write the answer to a file, then `just tell-claude --from "codex coordinator" --file <that file>`.
 

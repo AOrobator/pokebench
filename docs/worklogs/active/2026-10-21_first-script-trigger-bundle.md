@@ -71,3 +71,5 @@ RED commit 91d78817. GREEN focused 20/20; guarded safe-route preference added to
 |PB11|PASS|Production pi interfaces, exact recorded ROM/state and existing pinned native binding.|
 |PB12|PASS|Operator ROM external path only, no protected-folder access or ROM copies.|
 |PB13|PASS|Worklog records distinct implementation/gates/review/landing/activation states.|
+
+GREEN commit 2eb56900. Pending experiment source repinned to that implementation; no approval/queue mutation. Four guard mutations restored and tests green. Final gate sequence running before queue join.

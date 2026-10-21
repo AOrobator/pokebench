@@ -8,7 +8,7 @@
   "primaryMilestone": "RIVAL_HOUSE_ENTERED",
   "source": {
     "checkout": "main",
-    "commit": "b4e5fa03eff29e29e570d4c222e8c3b649106362"
+    "commit": "2eb5690028504fac5e24c71d18a63c36c1b89e3a"
   },
   "incumbent": {
     "version": 2,
@@ -243,5 +243,5 @@
     "window": 4,
     "minReached": 3
   },
-  "notes": "Pending correctness treatment; not queued or approved. Source pins the committed implementation, whose agent/env sources are unchanged by registration metadata. ea04 Rustboro refusal is reachable evidence, not a benefit estimate. No measured run authorized; checkpoint experiment design and formal readiness required before queueing."
+  "notes": "Pending correctness treatment; not queued or approved. Source pins the committed implementation, whose agent/env sources are unchanged by registration metadata. ea04 Rustboro refusal is reachable evidence, not a benefit estimate. No measured run authorized; checkpoint experiment design and formal readiness required before queueing. Rival-house 1fe0 state1308 replay and native probe qualify execution separately from benefit. Treatment now prefers script-free routes and returns after the first blocking trigger attempt; bundle ON/control OFF is explicitly authorized. No queued/approved independent trial."
 }

@@ -9,9 +9,7 @@ The viewer's POKéMON PARTY page is a plain list (name, level, HP numbers, a gen
 Operator feedback built into D3: no white gutters, a wide HP bar with padding on both sides, three page tabs only (no dead fourth dot), move description wraps inside its box, padded POWER/ACCURACY rows, ball sprite inset from the left edge.
 
 Scope limits (from the data the runs record today):
-- ATTACK, DEFENSE, SP. ATK, SP. DEF and SPEED are not in the party readout. They show `---`, as in the approved mockup.
-- Met level and location are not recorded. The memo shows only `<NATURE> nature.` (never a guessed met line).
-- The ability slot bit is not recorded. The ability shows only when the species has one ability; otherwise the ability rows are left out.
+- Superseded 02:40: The operator asked to add stats, ability and met to the party readout (M1b). Runs recorded before M1b lack them: those fields show `---`, the memo shows only `<NATURE> nature.`, and the ability shows only when the species has one ability.
 
 ## Skills Loaded
 
@@ -46,10 +44,17 @@ Scope limits (from the data the runs record today):
 
 **M1 — Party art and data build**
 - [x] Write tests: server allowlist accepts the party art paths and rejects others (fails: 404 for every party path)
-- [ ] COMMIT: `test(viewer): party art paths (RED)`
-- [ ] Implement `scripts/party-art/build_party_art.py`, `just party-art`, server allowlist; build into `runs/sprites/party-v1` and record the ROM proof
-- [ ] Gates: `just test`, `just lint`, `just build`, `just coverage` (≥90 both stacks)
+- [x] COMMIT: `test(viewer): party art paths (RED)` (d0280f08e)
+- [x] Implement `scripts/party-art/build_party_art.py`, `just party-art`, server allowlist; build into `runs/sprites/party-v1` and record the ROM proof. Built: 386 front pics, types/status/balls/HP tag/EXP bar/markings, small and normal fonts, data.json; every image raw/LZ77-verified, gSpeciesInfo/gBattleMoves/gExperienceTables read from the ROM and cross-checked against the decomp, sSpeciesToHoennPokedexNum and every move/ability/nature string found in the ROM. Font paths added to the allowlist test in the same commit.
+- [x] Gates: lint, build pass; test agent 3246 / viewer 1567 / python 3564; coverage viewer lines 97.92 branches 91.19 functions 94.41, python lines 97.25 branches 92.95 functions 100 (two unrelated timeout flakes under load 17-21 passed on rerun: serial-comparison hung child, experiment-cli production host)
 - [ ] COMMIT: `feat(viewer): build party art from the ROM (GREEN)`
+
+**M1b — Party readout: stats, ability, met (added 2026-10-21 02:40 at the operator's request)**
+- [ ] Write tests: party members decode ATTACK/DEFENSE/SPEED/SP. ATK/SP. DEF from the party struct (0x5A-0x63), ability slot and the species' ability ID, met location (map section and its name), met level, origin game, ball (item and name), OT name and gender; box members carry no stats; the model-facing state text is unchanged
+- [ ] COMMIT: `test(env): party readout stats, ability and met (RED)`
+- [ ] Implement in `env/pokebench_env/pokemon.py` (recorded state only; `render` untouched); TypeBox `PokemonSchema` and `just schema`
+- [ ] Gates (as M1)
+- [ ] COMMIT: `feat(env): party readout records stats, ability and met (GREEN)`
 
 **M2 — Party view model and D3 renderer**
 - [ ] Write tests: gender by ratio, nature, EXP ticks and next level per growth rate, status decode (incl. fainted), HP bar level/width, PP color states, ability shown only when unique, stats `---`, empty/egg/null species, markup for each tab and an open move, escaping
@@ -76,6 +81,7 @@ Real browser on the built viewer (8790 after landing): click each party slot, ea
 
 - 2026-10-21 02:15 (New York): worklog drafted; waiting for the operator's approval.
 - 2026-10-21 02:17 (New York): The operator approved ("go"). M1 started.
+- 2026-10-21 02:40 (New York): The operator: "we should add stats ability and met to the party readout". Added M1b. Recorded-state only: the observation text is rendered separately (`observation.render`), so no feature switch.
 
 ## Surprises
 

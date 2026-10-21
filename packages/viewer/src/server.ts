@@ -44,6 +44,8 @@ const FONT_NAME = /^(press-start-2p|inter|jetbrains-mono)\.woff2$/;
 const SPRITE_PATH = /^(manifest\.json|card\/(wide|mini|mini-ribbon)-(green|bronze|copper|silver|gold)\.png|trainers\/[a-z]+\.png|font\/glyphs\.(png|json)|icons\/[1-9][0-9]{0,2}\.png)$/;
 // The BAG page item icons `just bag-art` builds from the ROM into runs/sprites/bag-v1 (never into git).
 const BAG_SPRITE_PATH = /^(manifest\.json|items\/[1-9][0-9]{0,2}\.png)$/;
+// The POKéMON PARTY page art and tables `just party-art` builds from the ROM into runs/sprites/party-v1 (never into git).
+const PARTY_SPRITE_PATH = /^(manifest\.json|data\.json|front\/(?:[1-9][0-9]?|[1-3][0-9]{2}|40[0-9]|41[01])\.png|parts\/(?:types|status|hp-tag|exp-empty|exp-full|marks|ball-big|ball-small|summary-ball)\.png|font\/(?:small|normal)\.(?:png|json))$/;
 const PNG_SIGNATURE = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
 const SCREEN_TIMEOUT_MS = 3_000;
 const FRAME_MAX_BYTES = 1024 * 1024;
@@ -488,6 +490,11 @@ async function route(req: IncomingMessage, res: ServerResponse, options: ViewerO
   }
   if (parts.length === 1 && head === "style.css") {
     sendFile(res, join(options.staticDir, "style.css"), "text/css; charset=utf-8");
+    return;
+  }
+  if (head === "sprites" && second === "party" && PARTY_SPRITE_PATH.test(parts.slice(2).join("/"))) {
+    const path = parts.slice(2).join("/");
+    sendFile(res, join(options.runsRoot, "sprites", "party-v1", ...path.split("/")), path.endsWith(".json") ? "application/json; charset=utf-8" : "image/png");
     return;
   }
   if (head === "sprites" && second === "bag" && BAG_SPRITE_PATH.test(parts.slice(2).join("/"))) {

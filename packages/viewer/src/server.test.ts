@@ -804,13 +804,14 @@ it("serves only the allowlisted bag item icons from runs/sprites/bag-v1",async()
 
 it("serves only the allowlisted party art from runs/sprites/party-v1",async()=>{
  const {runsRoot,viewer}=await fixture();const art=join(runsRoot,"sprites","party-v1");
- for(const dir of ["front","parts"])mkdirSync(join(art,dir),{recursive:true});
+ for(const dir of ["front","parts","font"])mkdirSync(join(art,dir),{recursive:true});
+ for(const name of ["font/small.png","font/normal.png","font/small.json","font/normal.json","font/big.png"])writeFileSync(join(art,name),name.endsWith(".json")?"{}":PNG);
  writeFileSync(join(art,"manifest.json"),'{"version":1}');writeFileSync(join(art,"data.json"),'{"species":{}}');
  for(const name of ["front/280.png","front/411.png","parts/types.png","parts/status.png","parts/hp-tag.png","parts/exp-empty.png","parts/exp-full.png","parts/marks.png","parts/ball-big.png","parts/ball-small.png","parts/summary-ball.png","parts/notes.png"])writeFileSync(join(art,name),PNG);
  writeFileSync(join(art,"front","notes.txt"),"no");
- for(const [path,type] of [["/sprites/party/manifest.json","application/json"],["/sprites/party/data.json","application/json"]] as const){const reply=await get(viewer,path);expect(reply.status,path).toBe(200);expect(reply.type,path).toContain(type);}
+ for(const [path,type] of [["/sprites/party/manifest.json","application/json"],["/sprites/party/data.json","application/json"],["/sprites/party/font/small.json","application/json"],["/sprites/party/font/normal.json","application/json"],["/sprites/party/font/small.png","image/png"],["/sprites/party/font/normal.png","image/png"]] as const){const reply=await get(viewer,path);expect(reply.status,path).toBe(200);expect(reply.type,path).toContain(type);}
  for(const path of ["/sprites/party/front/280.png","/sprites/party/front/411.png","/sprites/party/parts/types.png","/sprites/party/parts/status.png","/sprites/party/parts/hp-tag.png","/sprites/party/parts/exp-empty.png","/sprites/party/parts/exp-full.png","/sprites/party/parts/marks.png","/sprites/party/parts/ball-big.png","/sprites/party/parts/ball-small.png","/sprites/party/parts/summary-ball.png"]){const reply=await get(viewer,path);expect(reply.status,path).toBe(200);expect(reply.type,path).toBe("image/png");}
- for(const path of ["/sprites/party/front/notes.txt","/sprites/party/front/0.png","/sprites/party/front/412.png","/sprites/party/front/1000.png","/sprites/party/front/281.png","/sprites/party/parts/notes.png","/sprites/party/../manifest.json","/sprites/party/front/..%2f..%2fdata.json","/sprites/party","/sprites/party/data.json/x","/sprites/party/parts/types.png/x"])expect((await get(viewer,path)).status,path).toBe(404);
+ for(const path of ["/sprites/party/front/notes.txt","/sprites/party/front/0.png","/sprites/party/front/412.png","/sprites/party/front/1000.png","/sprites/party/front/281.png","/sprites/party/parts/notes.png","/sprites/party/../manifest.json","/sprites/party/front/..%2f..%2fdata.json","/sprites/party","/sprites/party/data.json/x","/sprites/party/parts/types.png/x","/sprites/party/font/big.png","/sprites/party/font/small.txt"])expect((await get(viewer,path)).status,path).toBe(404);
 });
 
 it("serves the tracked story destinations explainer byte for byte through the allowlist",async()=>{

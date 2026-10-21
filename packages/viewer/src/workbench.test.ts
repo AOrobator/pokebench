@@ -195,3 +195,14 @@ describe("live runs as trainer cards on the comparisons page", () => {
     wb.destroy();
   });
 });
+
+it("keeps recording coverage expanded and its summary focused across polling", async () => {
+  const { wb } = mount(); await wb.refresh();
+  const coverage = ui("frontier-full").querySelector<HTMLDetailsElement>("[data-frontier-coverage]");
+  if (coverage === null) throw new Error("coverage missing");
+  coverage.open = true; coverage.querySelector("summary")?.focus();
+  await wb.refresh();
+  expect(ui("frontier-full").querySelector<HTMLDetailsElement>("[data-frontier-coverage]")?.open).toBe(true);
+  expect(document.activeElement).toBe(ui("frontier-full").querySelector("[data-frontier-coverage] summary"));
+  wb.destroy();
+});

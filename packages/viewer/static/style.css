@@ -1026,3 +1026,6 @@ b.wb-add, b.wb-rem { white-space:nowrap; }
 :root[data-phone] .pr-sq { width: 21px; height: 21px; border-width: 2px; }
 :root[data-phone] .pr-key .w { display: none; }
 :root[data-phone] .pr-plotwrap { grid-template-columns: minmax(0, 1fr); }
+
+[data-frontier-coverage] { overflow-wrap: anywhere; }
+[data-frontier-coverage] summary { cursor: pointer; }

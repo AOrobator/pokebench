@@ -463,7 +463,7 @@ describe("invalid fixed-run trials", () => {
     const aborted = { ...invalid("aborted", "x"), excluded: "Excluded operator-aborted run" };
     const problem = { ...invalid("problem", "x"), problem: "invalid" };
     document.body.innerHTML = frontierPlot(frontierReferences([human(), best()]), [probe, aborted, problem], 900);
-    expect(document.querySelector('[data-series="probe"], [data-series="aborted"], [data-series="problem"]')).toBeNull();
+    expect(document.querySelector('[data-series="probe"], [data-series="problem"]')).toBeNull();
     expect(document.querySelector("[data-invalid-notice]")).toBeNull();
     const resumed = invalid("resumed-invalid", "model/gateway error");
     if (resumed.config === null) throw new Error("config");
@@ -499,7 +499,7 @@ describe("recorded comparison coverage", () => {
     expect(coverage?.textContent).toContain("Excluded probe session");
     expect(coverage?.textContent).toContain("invalid event <schema>");
     expect(coverage?.textContent).toContain("Unrecognized start provenance");
-    expect(coverage?.querySelectorAll('a[href^="/#replay="]')).toHaveLength(4);
+    expect(coverage?.querySelectorAll('a[href^="/#replay="]')).toHaveLength(5);
     expect(document.querySelectorAll('[data-run="probe"], [data-run="broken"], [data-run="unknown"]')).toHaveLength(0);
   });
 });

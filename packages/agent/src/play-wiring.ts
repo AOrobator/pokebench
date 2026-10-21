@@ -21,6 +21,8 @@ import {StoryCharacterGate} from "./stall-gate.js";
 import {fixedPointBreaker,type FixedPointBreaker} from "./fixed-point-breaker.js";
 import {navigationMemory} from "./navigation-memory.js";
 import {withPeopleLedger} from "./people-ledger.js";
+import {withEffectivenessHeard} from "./effectiveness-heard.js";
+import {withGameSaidGoals} from "./game-said-goals.js";
 import {withGymReadiness} from "./gym-readiness.js";
 import {withPeopleIdCards,type IdCardRecorder} from "./people-id-cards.js";
 import {withStoryDestinations} from "./story-destinations.js";
@@ -120,6 +122,8 @@ export function stallStop(features:FeatureSet,recorder:Pick<RunRecorder,"subscri
 // extra: the run's other model tools (context tools), wrapped too so any call between presses is seen.
 // low-hp-trainer-warning-v1 wraps everything else, so its paragraph follows any other text the result gained; only
 // withResultFacts (blocked-exit-fact-v1, battle-loss-recap-v1) is outside it, adding its lines after that paragraph.
+// effectiveness-heard-v1 and game-said-goals-v1 wrap the ledger and extra tools (choose_evolution included), so their
+// blocks are text parts before the low-HP paragraph, the unfinished-activity block and the result facts.
 // heal-before-trainers-v1 reads the game's map table from the same state source (GET /pokebench/places).
 // no-exit-here-v1 wraps press and navigate_to right outside navigation, so navigate_to's own presses get no line and
 // its line sits right under the Press result or Navigation line, before any other wrapper adds text.
@@ -155,7 +159,7 @@ export function playGameTools(base:readonly AgentTool[],features:FeatureSet,stat
  const arm=features["story-battle-heal-gate-v1"]?healArm(features,state):undefined;
  const healGate=arm===undefined?undefined:storyBattleHealGate(arm,state,recorder);
  const navigated=withSemanticNavigation(withNavigation(base,features,navigationState,gate,sight,healGate),features,navigationState);
- const facts=[...withResultFacts(withUnfinishedActivity(withLowHpTrainerWarning(withStoryBattleHealGate(withNavigateFirst([...withInstructionLedgerV2(withStoryDestinations(withPeopleIdCards(withUntakenExits(withGymReadiness(withPeopleLedger(withDialogueAutoAdvance(withBattleAction(withNoExitHere(navigated,features),features,state,gate),features,{state,recorder,...(gate===undefined?{}:{gate})}),features,recorder),features,recorder),features,recorder),features,recorder),features,recorder,state),features,recorder),...extra],features),healGate,state),features,recorder,state,arm),features,recorder,state),features,recorder)];
+ const facts=[...withResultFacts(withUnfinishedActivity(withLowHpTrainerWarning(withStoryBattleHealGate(withGameSaidGoals(withEffectivenessHeard(withNavigateFirst([...withInstructionLedgerV2(withStoryDestinations(withPeopleIdCards(withUntakenExits(withGymReadiness(withPeopleLedger(withDialogueAutoAdvance(withBattleAction(withNoExitHere(navigated,features),features,state,gate),features,{state,recorder,...(gate===undefined?{}:{gate})}),features,recorder),features,recorder),features,recorder),features,recorder),features,recorder,state),features,recorder),...extra],features),features,recorder),features,recorder),healGate,state),features,recorder,state,arm),features,recorder,state),features,recorder)];
  const visible=terrain===null?facts:withVisitedTerrain(facts,terrain);
  const cited=withCitedDestination(visible,features["cited-destination-v1"],recorder,{fullMap:features["full-map-navigation-v1"],exitReach:features["exit-reachability-v1"],silenceMiss:features["input-cuts-v1"]});
  return withHealFirst(withStarterDecision(withHarnessTrust(cited,features["harness-trust-v1"],recorder,state,{supervisor:true,semanticTargets:features["semantic-navigation-v2"],battleAction:features["harness-trust-v2"],goalOnce:features["input-cuts-v1"],retireLab:features["stale-story-goal-v1"],stageBound:features["stale-story-goal-v2"],omitEmptyGoal:features["stale-story-goal-v2"],scriptedGuidance:features["scripted-place-guidance-v1"],reachableGoal:features["reachable-story-guidance-v1"],exitSections:features["exit-labels-v3"],activity:features["unfinished-activity-v1"]}),features),features["story-battle-heal-first-v1"],recorder,state);

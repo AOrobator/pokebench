@@ -6679,7 +6679,9 @@
                 "warp",
                 "fade_bound",
                 "warp_bound",
-                "input_hold"
+                "input_hold",
+                "move_learning",
+                "move_learning_bound"
               ]
             }
           },

@@ -46,6 +46,9 @@ from pokebench_env.memory_reader import (
     copy_native_region,
     read_canonical_ram,
 )
+from pokebench_env.move_learn import SETTLE_BOUND_FRAMES as MOVE_LEARN_BOUND_FRAMES
+from pokebench_env.move_learn import SETTLE_SWITCH as MOVE_LEARN_SETTLE
+from pokebench_env.move_learn import move_learning_busy
 from pokebench_env.observation import RawSnapshotFn, ScreenshotFn, install_observation
 from pokebench_env.pause import SteppingServer, install_pause
 from pokebench_env.raw_ram import (
@@ -327,6 +330,10 @@ def run(
             whiteout = WhiteoutLatch(observation[2])
             install_whiteout_latch(frames, whiteout)
         settle = FrameSettle(observation[2], warp=WARP_FEATURE not in off)
+        if MOVE_LEARN_SETTLE not in off:
+            read_memory = observation[2]
+            settle.move_learning = lambda: move_learning_busy(read_memory)
+            settle.move_learning_bound_frames = MOVE_LEARN_BOUND_FRAMES
         install_frame_settle(frames, settle)
         battle_wait = BattleWait(
             observation[2],

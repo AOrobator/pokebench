@@ -188,7 +188,12 @@
    "story-progress-clock-v1": true,
    "yes-no-answer-readout-v1": true,
    "field-move-gates-v1": true,
-   "story-battle-heal-gate-v1": false
+   "story-battle-heal-gate-v1": false,
+   "move-learn-settle-v1": true,
+   "move-learn-question-v1": true,
+   "move-learn-comparison-v1": true,
+   "effectiveness-heard-v1": true,
+   "game-said-goals-v1": true
   }
  },
  "trialsPerArm": 8,

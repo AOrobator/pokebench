@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Move-learn question</title>
+<style>
+:root{--bg:#fbfaf7;--fg:#1d1d1b;--muted:#5d5b55;--line:#d9d5cc;--panel:#ffffff;--keep:#2f7d4f;--drop:#b4442f;--accent:#2d5f9a;--fill:#eef3f8;--box:#f4f1ea}
+@media (prefers-color-scheme: dark){:root{--bg:#161614;--fg:#ecebe6;--muted:#a8a59c;--line:#3a3833;--panel:#1f1e1b;--keep:#6cc08f;--drop:#e98a74;--accent:#86b3e6;--fill:#22303f;--box:#2a2925}}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif}
+main{max-width:900px;margin:0 auto;padding:24px 16px 48px}
+h1{font-size:1.6rem;margin:0 0 4px}h2{font-size:1.15rem;margin:32px 0 8px}
+.muted{color:var(--muted)}
+figure{margin:16px 0;padding:12px;background:var(--panel);border:1px solid var(--line);border-radius:8px;overflow-x:auto}
+figcaption{color:var(--muted);font-size:.9rem;margin-top:8px}
+code{font:13px ui-monospace,SFMono-Regular,Menlo,monospace}
+table{border-collapse:collapse;width:100%;font-size:.92rem}td,th{border-bottom:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top}
+.tablewrap{overflow-x:auto}
+svg text{fill:var(--fg);font:13px -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif}
+svg .small{font-size:11px;fill:var(--muted)}svg .mono{font:12px ui-monospace,SFMono-Regular,Menlo,monospace}
+.note{border-left:3px solid var(--accent);padding:6px 10px;background:var(--fill);font:13px ui-monospace,SFMono-Regular,Menlo,monospace;white-space:pre-wrap;word-break:break-word}
+.off{border-left-color:var(--drop)}.on{border-left-color:var(--keep)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}@media (max-width:640px){.grid2{grid-template-columns:1fr}}
+.shot{display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap}
+.shot img{width:240px;max-width:100%;image-rendering:pixelated;border:1px solid var(--line);border-radius:4px}
+.shot p{flex:1;min-width:220px;margin:0}
+</style>
+</head>
+<body><main>
+<h1>Move-learn question</h1>
+<p class="muted"><code>move-learn-question-v1</code> · server readout switch · bundle-only, default off · approved by the operator 2026-10-21</p>
+
+<p>Run <code>2026-10-20T20-26-22_qwen36-gpu1_97a0</code> pressed B for 100+ turns from turn 779 on COMBUSKEN's DOUBLE KICK prompts. It said "answer NO to keep my current moveset" at both questions, also at turns 782/783 when the box was shown, and in battle with PECK (turns 755-769). But B = NO at "Delete a move to make room for DOUBLE KICK?" only asks "Stop learning DOUBLE KICK?", and B = NO there starts the whole flow over. This switch adds one line at a ready box: the question in the game's words and what each answer does, from the game's own flow. It recommends nothing.</p>
+
+<figure>
+<div class="shot">
+<img alt="Recorded frame 32335: Stop learning DOUBLE KICK? with Yes and No" src="data:image/png;base64,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">
+<p>Run 97a0, seq 32335: the second question's box. Its NO, and B, do not keep the moves: they go back to "COMBUSKEN is trying to learn DOUBLE KICK." Only YES here ends the flow without learning.</p>
+</div>
+<figcaption>Recorded frame, 240×160, unscaled pixels.</figcaption>
+</figure>
+
+<h2>The two questions and where each answer goes</h2>
+<figure>
+<svg viewBox="0 0 860 380" width="860" height="380" role="img" aria-label="Flow chart of the two move-learning questions">
+<defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0L10,5L0,10z" fill="var(--fg)"/></marker>
+<marker id="r" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0L10,5L0,10z" fill="var(--drop)"/></marker></defs>
+<rect x="20" y="20" width="300" height="50" rx="6" fill="var(--box)" stroke="var(--line)"/>
+<text x="32" y="42">"COMBUSKEN is trying to learn</text><text x="32" y="60">DOUBLE KICK." (MVSTATE 0-2)</text>
+<line x1="170" y1="70" x2="170" y2="110" stroke="var(--fg)" marker-end="url(#a)"/>
+<rect x="20" y="110" width="300" height="56" rx="6" fill="var(--fill)" stroke="var(--accent)" stroke-width="2"/>
+<text x="32" y="134" class="mono">Delete a move to make room</text><text x="32" y="152" class="mono">for DOUBLE KICK?   [YES/NO]</text>
+<line x1="320" y1="138" x2="520" y2="138" stroke="var(--keep)" stroke-width="2" marker-end="url(#a)"/>
+<text x="360" y="130">YES</text>
+<rect x="520" y="110" width="320" height="56" rx="6" fill="var(--panel)" stroke="var(--keep)"/>
+<text x="532" y="134">summary screen: pick a move to</text><text x="532" y="152">forget for DOUBLE KICK (MVSTATE 5/6)</text>
+<line x1="170" y1="166" x2="170" y2="220" stroke="var(--drop)" stroke-width="2" marker-end="url(#r)"/>
+<text x="180" y="198">NO or B</text>
+<path d="M680 166 L680 190 L330 236" fill="none" stroke="var(--muted)" stroke-dasharray="4 3" marker-end="url(#a)"/>
+<text x="520" y="206" class="small">cancel on the summary screen → 10</text>
+<rect x="20" y="220" width="300" height="56" rx="6" fill="var(--fill)" stroke="var(--accent)" stroke-width="2"/>
+<text x="32" y="244" class="mono">Stop learning DOUBLE KICK?</text><text x="32" y="262" class="mono">(MVSTATE 10)       [YES/NO]</text>
+<line x1="320" y1="248" x2="520" y2="300" stroke="var(--keep)" stroke-width="2" marker-end="url(#a)"/>
+<text x="400" y="262">YES</text>
+<rect x="520" y="280" width="320" height="56" rx="6" fill="var(--panel)" stroke="var(--keep)"/>
+<text x="532" y="304">"COMBUSKEN did not learn DOUBLE KICK."</text><text x="532" y="322">keeps its moves (MVSTATE 11)</text>
+<path d="M20 248 L6 248 L6 45 L20 45" fill="none" stroke="var(--drop)" stroke-width="2" marker-end="url(#r)"/>
+<text x="30" y="300" fill="var(--drop)">NO or B: back to the start</text>
+<text x="30" y="318" class="small">97a0 pressed B at both boxes from turn 779: this loop, 100+ turns</text>
+<text x="30" y="356" class="small">Battle (data/battle_scripts_1.s BattleScript_AskToLearnMove): yesnoboxlearnmove 0x5A and yesnoboxstoplearningmove 0x5B, same branches; B takes NO in all four boxes.</text>
+</svg>
+<figcaption>pret/pokeemerald 731ad5bf: <code>MVSTATE_HANDLE_YES_NO</code> in src/evolution_scene.c; strings from src/battle_message.c (<code>sText_TryToLearnMove1/3</code>, <code>sText_StopLearningMove</code>, <code>sText_DidNotLearnMove</code>). The red path is the 97a0 loop.</figcaption>
+</figure>
+
+<h2>Which box is which</h2>
+<p>The reader tells the two boxes apart by the next states the scene set before drawing the box, or by the battle prompt kind. An unknown pair or a box that is not ready gives no line.</p>
+<div class="tablewrap"><table>
+<tr><th>Owner</th><th>Read from</th><th>"Delete a move…?"</th><th>"Stop learning…?"</th></tr>
+<tr><td>Evolution scene</td><td>evolution_move_confirmation, ready; (yes_next_state, no_next_state)</td><td>(5, 10)</td><td>(11, 0)</td></tr>
+<tr><td>Trade evolution scene</td><td>same</td><td>(5, 9)</td><td>(10, 0)</td></tr>
+<tr><td>Battle</td><td>battle prompt, ready; kind</td><td>learn_move</td><td>stop_learning_move</td></tr>
+</table></div>
+
+<h2>The line, exactly (recorded states)</h2>
+<div class="tablewrap"><table>
+<tr><th>Fixture (raw RAM, run 97a0)</th><th>Line</th></tr>
+<tr><td>evo-delete-box</td><td><code>The game asks: "Delete a move to make room for DOUBLE KICK?" YES: the game lists COMBUSKEN's moves so you pick one to forget for DOUBLE KICK. NO or B: the game asks "Stop learning DOUBLE KICK?"</code></td></tr>
+<tr><td>evo-stop-box</td><td><code>The game asks: "Stop learning DOUBLE KICK?" YES: the game says "COMBUSKEN did not learn DOUBLE KICK." and COMBUSKEN keeps the moves it knows. NO or B: the game starts over with "COMBUSKEN is trying to learn DOUBLE KICK."</code></td></tr>
+<tr><td>battle-delete-box</td><td><code>The game asks: "Delete a move to make room for PECK?" YES: the game lists TORCHIC's moves so you pick one to forget for PECK. NO or B: the game asks "Stop learning PECK?"</code></td></tr>
+<tr><td>battle-stop-box</td><td><code>The game asks: "Stop learning PECK?" YES: the game says "TORCHIC did not learn PECK." and TORCHIC keeps the moves it knows. NO or B: the game starts over with "TORCHIC is trying to learn PECK."</code></td></tr>
+</table></div>
+<p>No line on the printing states (evo-intro3-printing, evo-delete-printing, evo-stop-printing), on the "trying to learn" page waiting for A (evo-intro3-waiting) or on the summary screen's forget-a-move list.</p>
+
+<h2>What the model receives (97a0, "Stop learning DOUBLE KICK?" box)</h2>
+<div class="grid2">
+<div><p class="muted">Off</p>
+<div class="note off">Screen: evolution
+Dialog: none
+Menu: evolution_move_confirmation; selected YES
+Interface: evolution_move_confirmation; input ready; selected YES; UP/DOWN selects YES or NO; A chooses; B answers NO
+Menu state: … move learning state: 4; … yes next state: 11; no next state: 0; … new move: DOUBLE KICK; options: YES | NO
+To answer NO, press DOWN, then A. Pressing A now answers YES. B also answers NO.
+Bag: …</div></div>
+<div><p class="muted">On</p>
+<div class="note on">Screen: evolution
+Dialog: none
+Menu: evolution_move_confirmation; selected YES
+Interface: evolution_move_confirmation; input ready; selected YES; UP/DOWN selects YES or NO; A chooses; B answers NO
+Menu state: … move learning state: 4; … yes next state: 11; no next state: 0; … new move: DOUBLE KICK; options: YES | NO
+To answer NO, press DOWN, then A. Pressing A now answers YES. B also answers NO.
+The game asks: "Stop learning DOUBLE KICK?" YES: the game says "COMBUSKEN did not learn DOUBLE KICK." and COMBUSKEN keeps the moves it knows. NO or B: the game starts over with "COMBUSKEN is trying to learn DOUBLE KICK."
+Bag: …</div></div>
+</div>
+<p>Rendered by the production reader from fixture <code>move-learn-evo-stop-box</code> (comparison switch off; the "To answer NO" line is <code>yes-no-answer-readout-v1</code>, on in the bundle). The line goes right after the YES/NO answer line. With <code>move-learn-comparison-v1</code> also on, the moves block follows it.</p>
+
+<h2>Where the line comes from</h2>
+<figure>
+<svg viewBox="0 0 860 170" width="860" height="170" role="img" aria-label="Switch wiring">
+<rect x="10" y="20" width="180" height="56" rx="6" fill="var(--fill)" stroke="var(--line)"/><text x="22" y="44">fixed-run bundle arm</text><text x="22" y="64" class="small">switch on; control off</text>
+<rect x="230" y="20" width="190" height="56" rx="6" fill="var(--fill)" stroke="var(--line)"/><text x="242" y="44">serverFeatureEnv</text><text x="242" y="64" class="small">POKEBENCH_FEATURES_OFF</text>
+<rect x="460" y="20" width="180" height="56" rx="6" fill="var(--fill)" stroke="var(--line)"/><text x="472" y="44">read_move_learning</text><text x="472" y="64" class="small">GameState.move_learning</text>
+<rect x="680" y="20" width="170" height="56" rx="6" fill="var(--panel)" stroke="var(--keep)" stroke-width="2"/><text x="692" y="44">question_line</text><text x="692" y="64" class="small">move_learn.py</text>
+<line x1="190" y1="48" x2="230" y2="48" stroke="var(--fg)"/><line x1="420" y1="48" x2="460" y2="48" stroke="var(--fg)"/><line x1="640" y1="48" x2="680" y2="48" stroke="var(--fg)"/>
+<text x="10" y="110">The reader runs when the question or comparison switch is on.</text>
+<text x="10" y="130" class="small">It reads the learner from the party (evolution: pokemon_party_index; battle: gBattleStruct->expGetterMonId)</text>
+<text x="10" y="148" class="small">and the new move (evolution: new_move_id; battle: gMoveToLearn 0x020244E2). State JSON is unchanged.</text>
+</svg>
+<figcaption><code>format_readout</code> adds the line after the Interface line in observe, press and navigate_to results. A failed read prints <code>HARNESS BUG (move learning): …</code> instead of guessing. No timeline marks.</figcaption>
+</figure>
+
+<h2>Status</h2>
+<p>Branch <code>claude/move-learn-switches</code>. Tests: <code>env/tests/env/test_move_learn.py</code> (the four exact lines above, absences, trade and unknown pairs, OFF byte parity per archive, state JSON unchanged, visible harness-bug line). Gates passing. Not yet reviewed or landed. Pending experiment <code>experiments/move-learn-question-v1.json</code>. On in the bundle arm of bundle-v-control, bundle-cook-1h and whole-map-cook-1h; off in control. No measured runs.</p>
+</main></body></html>

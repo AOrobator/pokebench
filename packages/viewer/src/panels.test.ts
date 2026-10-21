@@ -1380,6 +1380,19 @@ it("links the YES/NO answer readout from its recorded feature card",()=>{
  expect(html).toContain("To answer YES, press UP, then A. Pressing A now answers NO.");
 });
 
+it("links each move-learn switch from its recorded feature card",()=>{
+ for(const id of ["move-learn-settle-v1","move-learn-question-v1","move-learn-comparison-v1","effectiveness-heard-v1","game-said-goals-v1"]){
+  expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
+  const log=new Log();log.add(0,{...START,harness_features:["ram-state-v1","battle-text-auto-advance-v1",id]});
+  const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
+  const card=doc.querySelector(`[data-feature="${id}"]`);
+  expect(card?.querySelector("a")?.getAttribute("href")).toBe(`/explainers/${id}.html`);
+  expect(card?.textContent).toContain("ON");
+  const html=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)),"utf8");
+  expect(html).toContain(id);
+ }
+});
+
 it("links the recorded distinct-exits treatment to its tracked explainer",()=>{
  const id="exit-labels-v3";
  const log=new Log();log.add(0,{...START,harness_features:["ram-state-v1",id]});

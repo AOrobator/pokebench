@@ -232,7 +232,7 @@ describe("script-line-presence-v1: the production factory honors the switch",()=
 
 describe("script-line-presence-v1: registry",()=>{
  it("is the last switchable feature, an observation that needs dialogue auto-advance, default off",()=>{
-  expect(SWITCHABLE_FEATURES.at(-106)).toBe("script-line-presence-v1");
+  expect(SWITCHABLE_FEATURES.at(-111)).toBe("script-line-presence-v1");
   const info=featureInfo("script-line-presence-v1");
   expect(info.group).toBe("observation");
   expect(info.needs).toBe("dialogue-auto-advance-v1");
@@ -282,7 +282,7 @@ describe("script-line-presence-v1: pending experiment (review round 1)",()=>{
  it("names every registry switch explicitly, in order, with only this switch flipped in the candidate",()=>{
   const raw=JSON.parse(readFileSync(new URL("../../../experiments/script-line-presence.json",import.meta.url),"utf8")) as {changedFeature:string;incumbent:{features:Record<string,boolean>}};
   expect(raw.changedFeature).toBe("script-line-presence-v1");
-  const historical=SWITCHABLE_FEATURES.filter(id=>id!=="pending-field-dialogue-v1"&&id!=="short-cycle-fixed-point-v1"&&id!=="navigation-tool-use-guard-v1"&&id!=="semantic-current-map-feedback-v1"&&id!=="navigation-refusal-reasons-v3"&&id!=="exit-labels-v3"&&id!=="story-battle-heal-first-v1"&&id!=="party-item-confirmation-v1"&&id!=="observed-instructions-v1"&&id!=="evolution-decision-v1"&&id!=="safe-navigation-strides-v1"&&id!=="battle-decision-ready-v1"&&id!=="deterministic-warp-navigation-v1"&&id!=="battle-effective-damage-v1"&&id!=="scripted-place-guidance-v1"&&id!=="trigger-script-loop-v1");
+  const historical=SWITCHABLE_FEATURES.filter(id=>id!=="pending-field-dialogue-v1"&&id!=="short-cycle-fixed-point-v1"&&id!=="move-learn-settle-v1"&&id!=="move-learn-question-v1"&&id!=="move-learn-comparison-v1"&&id!=="effectiveness-heard-v1"&&id!=="game-said-goals-v1"&&id!=="navigation-tool-use-guard-v1"&&id!=="semantic-current-map-feedback-v1"&&id!=="navigation-refusal-reasons-v3"&&id!=="exit-labels-v3"&&id!=="story-battle-heal-first-v1"&&id!=="party-item-confirmation-v1"&&id!=="observed-instructions-v1"&&id!=="evolution-decision-v1"&&id!=="safe-navigation-strides-v1"&&id!=="battle-decision-ready-v1"&&id!=="deterministic-warp-navigation-v1"&&id!=="battle-effective-damage-v1"&&id!=="scripted-place-guidance-v1"&&id!=="trigger-script-loop-v1");
   expect(Object.keys(raw.incumbent.features)).toEqual(historical.slice(0,historical.indexOf("script-line-presence-v1")+1));
   expect(raw.incumbent.features["script-line-presence-v1"]).toBe(false);
   expect(raw.incumbent.features["dialogue-auto-advance-v1"]).toBe(true);

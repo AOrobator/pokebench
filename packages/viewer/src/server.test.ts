@@ -1,6 +1,6 @@
 import { appendFileSync, cpSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
-import { createServer, request, type Server } from "node:http";
-import type { AddressInfo } from "node:net";
+import { createServer, request, IncomingMessage, ServerResponse, type Server } from "node:http";
+import { Socket, type AddressInfo } from "node:net";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -1323,4 +1323,15 @@ it.each(["rejected-movement-step-v1","observed-field-dialogue-v1"])("serves repa
  const root=mkdtempSync(join(tmpdir(),"pokebench-repair-explainer-")),staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});writeFileSync(join(docs,`${id}.html`),tracked);
  const viewer=await startViewer({runsRoot:join(root,"runs"),staticDir,appDir:join(root,"app"),port:0});open.push(viewer);
  const reply=await get(viewer,`/explainers/${id}.html`);expect(reply.status).toBe(200);expect(reply.body.equals(tracked)).toBe(true);
+});
+
+it("keeps malformed URL failures inside the request boundary and continues serving", async () => {
+  const {viewer} = await fixture();
+  const req = new IncomingMessage(new Socket());
+  req.method = "GET"; req.url = "//["; req.headers.host = `${HOST}:${viewer.port}`;
+  const res = new ServerResponse(req);
+  expect(() => viewer.server.emit("request",req,res)).not.toThrow();
+  await new Promise<void>(resolve => setImmediate(resolve));
+  expect(res.statusCode).toBe(500);
+  expect((await get(viewer,"/api/frame-metrics")).status).toBe(200);
 });

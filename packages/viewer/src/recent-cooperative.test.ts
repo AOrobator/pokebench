@@ -1,12 +1,14 @@
-import { afterEach, expect, it } from "vitest";
+import { afterEach, expect, it, vi } from "vitest";
+import * as fs from "node:fs";
 import { appendFileSync, mkdirSync, mkdtempSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { START, Log, state, assistant, tAt } from "../test-support/events.js";
 import { readRecentEvents, readRecentEventsAsync, RECENT_SLICE_LINES } from "./runs.js";
 
+vi.mock("node:fs", async (original) => ({ ...await original<typeof import("node:fs")>() }));
 const roots: string[] = [];
-afterEach(() => { for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true }); });
+afterEach(() => { vi.restoreAllMocks(); for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true }); });
 function fixture(tail = ""): {root: string; path: string} {
   const root = mkdtempSync(join(tmpdir(), "recent-cooperative-")); roots.push(root);
   mkdirSync(join(root, "sample"));
@@ -56,4 +58,18 @@ it("keeps a UTF-8 line spanning read chunks and excludes appends/replacement aft
   const cursor = {offset:0};
   expect(await readRecentEventsAsync(root,"sample",30,1<<20,cursor,2)).toEqual(expected);
   expect(cursor.offset).toBe(size);
+});
+
+it("stops at the first cooperative cancellation and closes its snapshot descriptor", async () => {
+  const large = {...assistant({thinking:"é".repeat(40_000),turn:2}),v:1,run:"sample",seq:5,t:tAt(3)};
+  const {root} = fixture(`${JSON.stringify(large)}\n`);
+  const read = vi.spyOn(fs,"readSync");
+  const close = vi.spyOn(fs,"closeSync");
+  let cancelled = false;
+  let readsAtCancel = 0;
+  setImmediate(() => { cancelled = true; readsAtCancel = read.mock.calls.length; });
+  expect(await readRecentEventsAsync(root,"sample",30,1<<20,undefined,2,() => cancelled)).toEqual([]);
+  expect(readsAtCancel).toBeGreaterThan(0);
+  expect(read.mock.calls.length).toBe(readsAtCancel);
+  expect(close).toHaveBeenCalledTimes(2);
 });

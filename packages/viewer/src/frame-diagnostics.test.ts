@@ -7,6 +7,7 @@ describe("bounded frame diagnostics", () => {
     for (const ms of [0, 1, 12, 50, 1001]) timing.add(ms);
     expect(timing.snapshot()).toMatchObject({ count: 5, maxMs: 1001, meanMs: 212.8 });
     expect(timing.snapshot().buckets.reduce((sum, b) => sum + b.count, 0)).toBe(5);
+    expect(timing.snapshot().buckets.filter(b => b.count > 0)).toEqual([{upperMs:1,count:2},{upperMs:12,count:1},{upperMs:50,count:1},{upperMs:null,count:1}]);
     const slots = timing.snapshot().buckets.length;
     timing.add(2); timing.add(3);
     expect(timing.snapshot().buckets).toHaveLength(slots);

@@ -37,7 +37,12 @@ export async function mountProbes(doc: Document, deps: ProbesDeps): Promise<void
       stop = deps.every(async () => {
         if (busy) return;
         busy = true;
-        try { detail = await load(state.probe); render(); sync(); } finally { busy = false; }
+        const id = state.probe;
+        try {
+          const next = await load(id);
+          // A probe switch while this refresh was in flight wins over the older probe's reply.
+          if (id === state.probe) { detail = next; render(); sync(); }
+        } finally { busy = false; }
       }, REFRESH_MS);
     } else if (!live && stop !== null) { stop(); stop = null; }
   };

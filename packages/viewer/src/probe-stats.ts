@@ -48,9 +48,10 @@ export function grade(key: string, recorded: Call | null): Grade {
   return sameCall(call, recorded) ? "rep" : "dif";
 }
 
+// n counts graded samples only: an ungraded sample (unknown recorded call) is neither a departure nor a repeat.
 export function tally(grades: readonly Grade[]): Tally {
-  const t = { n: grades.length, dif: 0, rep: 0, err: 0, unk: 0 };
-  for (const g of grades) t[g]++;
+  const t = { n: 0, dif: 0, rep: 0, err: 0, unk: 0 };
+  for (const g of grades) { t[g]++; if (g !== "unk") t.n++; }
   return t;
 }
 
@@ -95,6 +96,7 @@ export function gap(on: Tally, off: Tally): Gap | null {
 }
 
 export function verdict(on: Tally, off: Tally, onName: string, offName: string): Verdict {
+  if (on.n === 0 && off.n === 0 && on.unk + off.unk > 0) return { lead: "Ungraded.", detail: "The recorded call is unknown, so these samples cannot be graded." };
   if (on.n === 0 || off.n === 0) return { lead: "Waiting for samples.", detail: "" };
   const a = `${onName} ${String(on.dif)}/${String(on.n)}`, b = `${offName} ${String(off.dif)}/${String(off.n)}`;
   const d = Math.round((100 * on.dif) / on.n) - Math.round((100 * off.dif) / off.n);
@@ -105,7 +107,7 @@ export function verdict(on: Tally, off: Tally, onName: string, offName: string):
 }
 
 const NY = new Intl.DateTimeFormat("en-US", { timeZone: "America/New_York", hour: "numeric", minute: "2-digit" });
-export const nyTime = (t: string | number): string => NY.format(new Date(t));
+export const nyTime = (t: string | number): string => { const d = new Date(t); return Number.isNaN(d.getTime()) ? "—" : NY.format(d); };
 
 // What is next for a lane: when it finished, when it should, or the per-lane wall ceiling it will hit first.
 export function laneTail(lane: LaneTiming, msPerSample: number, now: number): string {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { fisher, gap, grade, laneTail, nyTime, parseKey, pText, sameCall, tally, verdict } from "./probe-stats.js";
+import { fisher, gap, grade, laneTail, nyTime, parseKey, pOf, pText, sameCall, tally, verdict } from "./probe-stats.js";
 
 const NAV = { tool: "navigate_to", args: { x: 10, y: 19, map_id: [0, 16], because: "find MAY" } };
 
@@ -27,8 +27,13 @@ describe("the automatic grade", () => {
     expect(grade("(model error: timeout)", null)).toBe("err");
     expect(grade("observe", null)).toBe("unk");
   });
+  it("leaves ungraded samples out of every rate", () => {
+    const graded = tally(["dif", "dif", "dif", "dif"]), mixedOff = tally(["rep", "rep", "rep", "rep", "unk", "unk", "unk", "unk"]);
+    expect(mixedOff.n).toBe(4);
+    expect(pOf(graded, mixedOff)).toBeCloseTo(0.0286, 3);
+  });
   it("counts grades", () => {
-    expect(tally(["dif", "dif", "rep", "err", "unk"])).toEqual({ n: 5, dif: 2, rep: 1, err: 1, unk: 1 });
+    expect(tally(["dif", "dif", "rep", "err", "unk"])).toEqual({ n: 4, dif: 2, rep: 1, err: 1, unk: 1 });
   });
 });
 
@@ -62,6 +67,7 @@ describe("the verdict", () => {
     expect(verdict(t(16, 16), t(0, 16), "X", "Y")).toEqual({ lead: "X departs more", detail: "(X 16/16 vs Y 0/16). A gap this size is unlikely to be chance (p<0.001)." });
     expect(verdict(t(5, 8), t(5, 8), "ON", "OFF")).toEqual({ lead: "About the same.", detail: "ON 5/8 vs OFF 5/8 depart from the recorded call." });
     expect(verdict(t(0, 0), t(5, 8), "ON", "OFF")).toEqual({ lead: "Waiting for samples.", detail: "" });
+    expect(verdict({ ...t(0, 0), unk: 8 }, { ...t(0, 0), unk: 8 }, "ON", "OFF")).toEqual({ lead: "Ungraded.", detail: "The recorded call is unknown, so these samples cannot be graded." });
   });
 });
 
@@ -69,6 +75,7 @@ describe("lane timing", () => {
   const base = { id: "mac", model: "m", completed: 40, planned: 64, started: "2026-10-20T23:20:00.000Z", ended: null, current: "case-02", ceilingMs: 3_600_000 };
   it("names the done time, the ETA, or the ceiling it will hit first, in New York time", () => {
     expect(nyTime("2026-10-20T23:25:46.292Z")).toBe("7:25 PM");
+    expect(nyTime("not a time")).toBe("—");
     expect(laneTail({ ...base, state: "complete", ended: "2026-10-20T23:25:46.292Z" }, 3000, Date.parse("2026-10-21T00:00:00Z"))).toBe("done 7:25 PM");
     expect(laneTail({ ...base, state: "running" }, 60_000, Date.parse("2026-10-20T23:50:00Z"))).toBe("ETA 8:14 PM");
     expect(laneTail({ ...base, state: "running" }, 200_000, Date.parse("2026-10-20T23:50:00Z"))).toBe("ceiling 8:20 PM · ~49/64 by then");

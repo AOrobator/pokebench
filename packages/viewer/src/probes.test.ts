@@ -2,6 +2,7 @@ import { appendFileSync, mkdirSync, mkdtempSync, symlinkSync, writeFileSync } fr
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { parseProbe } from "./probes-view.js";
 import { ProbeError, listProbes, readProbe } from "./probes.js";
 
 const RUN = "2026-10-18T03-30-52_qwen36-gpu1_d3fc";
@@ -59,7 +60,7 @@ const GPU0 = {
   provenance: { source: "fce23d4", model: { id: "/models/Qwen3.6-35B-A3B-UD-Q4_K_M.gguf" } },
 };
 const MAC = {
-  samples: `${sample("mac", "case-07", "on", 0, "(text only)")}\nnot json\n${JSON.stringify({ case: "case-07" })}\n`,
+  samples: `${sample("mac", "case-07", "on", 0, "(text only)")}\nnot json\n${JSON.stringify({ case: "case-07" })}\n${sample("mac", "case-07", "on", 0, "observe").replace('"sample":0', '"sample":1.5')}\n${sample("mac", "case-07", "on", 0, "observe").replace('"sample":0', '"sample":-1')}\n`,
   status: { lane: "mac", started: "2026-10-20T23:20:15.074Z", completed: 3, planned: 64, state: "running", case: "case-07", split: "heldout", lastResponseAt: "2026-10-20T23:32:11.858Z" },
   provenance: { model: { id: "Qwen3.8-Flash-Next-UD-IQ4_XS" } },
 };
@@ -134,7 +135,8 @@ describe("one probe", () => {
       { lane: "gpu0", case: "case-07", arm: "off", sample: 0, at: "2026-10-20T23:20:00.000Z", elapsedMs: 3000, key: 'press_buttons {"buttons":["UP","A"]}', thinking: "think gpu0 0" },
       { lane: "mac", case: "case-07", arm: "on", sample: 0, at: "2026-10-20T23:20:00.000Z", elapsedMs: 3000, key: "(text only)", thinking: "think mac 0" },
     ]);
-    expect(probe.problems).toEqual(["mac/samples.jsonl line 2 is not JSON", "mac/samples.jsonl line 3 is not a sample"]);
+    expect(probe.problems).toEqual(["mac/samples.jsonl line 2 is not JSON", "mac/samples.jsonl line 3 is not a sample", "mac/samples.jsonl line 4 is not a sample", "mac/samples.jsonl line 5 is not a sample"]);
+    expect(parseProbe(JSON.parse(JSON.stringify(probe)))).toEqual(probe);
   });
 
   it("names a case whose source run is missing or unsafe as a problem and keeps the rest", async () => {
@@ -144,6 +146,14 @@ describe("one probe", () => {
     const probe = await readProbe(runs, "p");
     expect(probe.cases.map((c) => [c.id, c.recorded, c.frame, c.title])).toEqual([["gone", null, null, "gone"], ["evil", null, null, "evil"]]);
     expect(probe.problems).toEqual(["case gone: source run 2026-10-01T00-00-00_gone_0000 has no events.jsonl", "case evil: not a run id: \"../evil\""]);
+  });
+
+  it("reads only real lane folders, never a lane that links elsewhere", async () => {
+    const runs = root();
+    const dir = probeDir(runs, "probes/p", { manifest: MANIFEST, lanes: { gpu0: GPU0 } });
+    const outside = probeDir(mkdtempSync(join(tmpdir(), "probes-lane-")), "lane", { lanes: { mac: MAC } });
+    symlinkSync(join(outside, "mac"), join(dir, "mac"));
+    expect((await readProbe(runs, "p")).lanes.map((l) => l.id)).toEqual(["gpu0"]);
   });
 
   it("refuses ids that are not one plain segment, and probes that do not exist", async () => {

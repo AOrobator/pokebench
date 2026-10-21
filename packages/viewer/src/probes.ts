@@ -121,8 +121,11 @@ function entries(runsRoot: string): Entry[] {
   return found;
 }
 
+// Only real lane folders: a lane that is a link could point outside runs/.
 function laneIds(dir: string): string[] {
-  return readdirSync(dir).filter((name) => ID.test(name) && isDir(join(dir, name))).sort();
+  return readdirSync(dir).filter((name) => {
+    try { return ID.test(name) && lstatSync(join(dir, name)).isDirectory(); } catch { return false; }
+  }).sort();
 }
 function modelName(id: string | null): string | null {
   return id === null ? null : (id.split("/").pop() ?? id).replace(/\.gguf$/i, "");
@@ -165,11 +168,11 @@ function samples(dir: string, laneId: string, problems: string[]): ProbeSample[]
     let v: unknown;
     try { v = JSON.parse(line); } catch { problems.push(`${laneId}/samples.jsonl line ${String(i + 1)} is not JSON`); return; }
     const d = record(v) && record(v.decision) ? v.decision : null;
-    if (!record(v) || d === null || str(v.case) === null || str(v.arm) === null || typeof v.sample !== "number" || str(v.at) === null || typeof d.key !== "string") {
+    if (!record(v) || d === null || str(v.case) === null || str(v.arm) === null || !Number.isInteger(v.sample) || (v.sample as number) < 0 || str(v.at) === null || typeof d.key !== "string") {
       problems.push(`${laneId}/samples.jsonl line ${String(i + 1)} is not a sample`);
       return;
     }
-    out.push({ lane: laneId, case: v.case as string, arm: v.arm as string, sample: v.sample, at: v.at as string, elapsedMs: count(v.elapsedMs), key: d.key, thinking: typeof d.thinking === "string" ? d.thinking : "" });
+    out.push({ lane: laneId, case: v.case as string, arm: v.arm as string, sample: v.sample as number, at: v.at as string, elapsedMs: count(v.elapsedMs), key: d.key, thinking: typeof d.thinking === "string" ? d.thinking : "" });
   });
   return out;
 }

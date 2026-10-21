@@ -79,7 +79,7 @@ No harness behavior changes, so no feature switch. The TIMELINE is untouched.
 
 - Read-only routes.
 - Probe ids pass a segment allowlist (`^[A-Za-z0-9._-]+$`, no `..`).
-- Source run ids pass `validateRunId`.
+- Source run ids pass `RUN_ID_PATTERN` (the agent's run-id allowlist).
 - All model text (thinking, citation, tool args) is HTML-escaped before rendering.
 - No new listeners; the viewer still binds only 127.0.0.1.
 
@@ -143,6 +143,20 @@ The proof is /probes on the live 8790 viewer showing cited-destination-v1 with a
 - A fresh worktree needs `git submodule update --init` and the main venv for mypy/pytest (no mGBA binding in the worktree's uv venv).
 
 ## Multi-Model Review Log
+
+- Round 1 (packet 6fc5ee9f, head 2b7b41ac, base main 563cbaad; files under runs/reviews/probes-viewer/):
+  - Lanes:
+    - Claude: claude -p (default login) failed with OAuth expired; Cursor Opus and Sonnet are usage-capped. Ran a read-only Claude subagent, per the operator's standing word (memory claude-review-lane).
+    - Grok: Cursor cursor-grok-4.5-high.
+    - GPT: Cursor GPT-5.6 is usage-capped; Codex gpt-6.1-sol was rejected for a ChatGPT account.
+  - Verdicts: Grok BLOCKING, Claude BLOCKING, GPT no verdict.
+  - Fixes:
+    - (B1, both lanes) A non-integer or negative `sample` passed the server but failed the page's parser, hiding the whole probe. The server now lists such lines as problems; a test round-trips readProbe output through parseProbe.
+    - (B2, Claude) Ungraded samples counted as non-departures in every rate. They now count in no denominator, and an all-ungraded case says "Ungraded.".
+    - (hardening, both) Lanes must be real folders, never links (test).
+    - (hardening, Claude) Invalid timestamps render as — instead of throwing.
+    - (hardening, Claude) A refresh reply for a probe the user switched away from is dropped.
+  - Rebutted: PB12 wording (the evidence names the path jail; no TCC paths are touched, which is the PASS reason). turnCache growth and turn-restart speculation: follow-up.
 
 ## Boy Scout Log
 

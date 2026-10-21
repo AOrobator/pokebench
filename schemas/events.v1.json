@@ -10260,6 +10260,16 @@
                       "water",
                       "none"
                     ]
+                  },
+                  "blocked_by": {
+                    "type": "array",
+                    "items": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 4095
+                    },
+                    "minItems": 1,
+                    "maxItems": 4096
                   }
                 },
                 "additionalProperties": false
@@ -10311,6 +10321,16 @@
                       "water",
                       "none"
                     ]
+                  },
+                  "blocked_by": {
+                    "type": "array",
+                    "items": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 4095
+                    },
+                    "minItems": 1,
+                    "maxItems": 4096
                   }
                 },
                 "additionalProperties": false
@@ -10345,6 +10365,204 @@
                 }
               },
               "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        },
+        "field_obstacles": {
+          "type": "object",
+          "required": [
+            "capabilities",
+            "obstacles"
+          ],
+          "properties": {
+            "capabilities": {
+              "type": "object",
+              "patternProperties": {
+                "^[a-z_]{1,32}$": {
+                  "anyOf": [
+                    {
+                      "type": "boolean"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              }
+            },
+            "obstacles": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "id",
+                  "gate",
+                  "name",
+                  "kind",
+                  "local_id",
+                  "loaded",
+                  "tiles",
+                  "only",
+                  "open",
+                  "needs",
+                  "text",
+                  "beyond"
+                ],
+                "properties": {
+                  "id": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 4095
+                  },
+                  "gate": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 32
+                  },
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128
+                  },
+                  "kind": {
+                    "enum": [
+                      "object",
+                      "terrain"
+                    ]
+                  },
+                  "local_id": {
+                    "anyOf": [
+                      {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 255
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "loaded": {
+                    "anyOf": [
+                      {
+                        "type": "boolean"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "tiles": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "x",
+                        "y"
+                      ],
+                      "properties": {
+                        "x": {
+                          "type": "integer"
+                        },
+                        "y": {
+                          "type": "integer"
+                        }
+                      },
+                      "additionalProperties": false
+                    },
+                    "minItems": 1,
+                    "maxItems": 65536
+                  },
+                  "only": {
+                    "anyOf": [
+                      {
+                        "type": "array",
+                        "additionalItems": false,
+                        "items": [
+                          {
+                            "type": "integer",
+                            "minimum": -1,
+                            "maximum": 1
+                          },
+                          {
+                            "type": "integer",
+                            "minimum": -1,
+                            "maximum": 1
+                          }
+                        ],
+                        "minItems": 2
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "open": {
+                    "anyOf": [
+                      {
+                        "type": "boolean"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "needs": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "text": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "beyond": {
+                    "anyOf": [
+                      {
+                        "type": "object",
+                        "required": [
+                          "width",
+                          "height",
+                          "rows"
+                        ],
+                        "properties": {
+                          "width": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 256
+                          },
+                          "height": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 256
+                          },
+                          "rows": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "pattern": "^[0-9a-f]{1,64}$"
+                            },
+                            "maxItems": 256
+                          }
+                        },
+                        "additionalProperties": false
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "additionalProperties": false
+              },
+              "maxItems": 4096
             }
           },
           "additionalProperties": false

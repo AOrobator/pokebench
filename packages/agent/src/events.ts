@@ -44,6 +44,9 @@ function event<T extends string, P extends Record<string, TSchema>>(type: T, pay
 }
 
 const closed = { additionalProperties: false } as const;
+// exit-reachability-v1's foot mask: one hex string per map row, four tiles per digit, the high bit the leftmost tile.
+const FootMask=Type.Object({width:Type.Integer({minimum:1,maximum:256}),height:Type.Integer({minimum:1,maximum:256}),rows:Type.Array(Type.String({pattern:"^[0-9a-f]{1,64}$"}),{maxItems:256})},closed);
+const ObstacleIds=Type.Array(Type.Integer({minimum:0,maximum:4095}),{minItems:1,maxItems:4096});
 const BlackoutReceiptSchema=Type.Object({
   frame:NonNegativeInt,
   money_before:Type.Union([NonNegativeInt,Type.Null()]),
@@ -616,10 +619,31 @@ export const StateBodySchema = Type.Object(
     // water (only across water) or none (neither), and the tiles reached on foot from the player: one hex string per map
     // row, four tiles per digit, the high bit the leftmost tile. Present only with the switch; an exit with no label is
     // unknown, and a mask without exactly height rows of ceil(width/4) digits is unknown (surf-gate.ts exitBlock).
+    // field-move-gates-v1: blocked_by names the field_obstacles ids every way to a cut-off exit passes.
     exit_reach: Type.Optional(Type.Object({
-      warps: Type.Array(Type.Object({x:Type.Integer({minimum:0,maximum:255}),y:Type.Integer({minimum:0,maximum:255}),reach:Type.Enum(["foot","water","none"])},closed),{maxItems:255}),
-      connections: Type.Array(Type.Object({direction:Type.Enum(["NORTH","SOUTH","EAST","WEST"]),destination:Type.Tuple([Type.Integer({minimum:0,maximum:255}),Type.Integer({minimum:0,maximum:255})]),offset:Type.Integer(),reach:Type.Enum(["foot","water","none"])},closed),{maxItems:16}),
-      foot: Type.Object({width:Type.Integer({minimum:1,maximum:256}),height:Type.Integer({minimum:1,maximum:256}),rows:Type.Array(Type.String({pattern:"^[0-9a-f]{1,64}$"}),{maxItems:256})},closed),
+      warps: Type.Array(Type.Object({x:Type.Integer({minimum:0,maximum:255}),y:Type.Integer({minimum:0,maximum:255}),reach:Type.Enum(["foot","water","none"]),blocked_by:Type.Optional(ObstacleIds)},closed),{maxItems:255}),
+      connections: Type.Array(Type.Object({direction:Type.Enum(["NORTH","SOUTH","EAST","WEST"]),destination:Type.Tuple([Type.Integer({minimum:0,maximum:255}),Type.Integer({minimum:0,maximum:255})]),offset:Type.Integer(),reach:Type.Enum(["foot","water","none"]),blocked_by:Type.Optional(ObstacleIds)},closed),{maxItems:16}),
+      foot: FootMask,
+    },closed)),
+    // field-move-gates-v1: this map's obstacle objects (from its object templates, loaded or not) and gated terrain, whether
+    // each is open now (null: not known, so the flood keeps it open), what it needs in the readout's words, the game's
+    // text, and for a closed one the foot area touches, what lies past it. Present only with the switch.
+    field_obstacles: Type.Optional(Type.Object({
+      capabilities: Type.Record(Type.String({pattern:"^[a-z_]{1,32}$"}),Type.Union([Type.Boolean(),Type.Null()])),
+      obstacles: Type.Array(Type.Object({
+        id: Type.Integer({minimum:0,maximum:4095}),
+        gate: Type.String({minLength:1,maxLength:32}),
+        name: Type.String({minLength:1,maxLength:128}),
+        kind: Type.Enum(["object","terrain"]),
+        local_id: Type.Union([Type.Integer({minimum:0,maximum:255}),Type.Null()]),
+        loaded: Type.Union([Type.Boolean(),Type.Null()]),
+        tiles: Type.Array(Type.Object({x:Type.Integer(),y:Type.Integer()},closed),{minItems:1,maxItems:65536}),
+        only: Type.Union([Type.Tuple([Type.Integer({minimum:-1,maximum:1}),Type.Integer({minimum:-1,maximum:1})]),Type.Null()]),
+        open: Type.Union([Type.Boolean(),Type.Null()]),
+        needs: Type.String({minLength:1}),
+        text: Type.Union([Type.String({minLength:1}),Type.Null()]),
+        beyond: Type.Union([FootMask,Type.Null()]),
+      },closed),{maxItems:4096}),
     },closed)),
     // heal-before-trainers-v1: the trainers loaded on this map (template script starts with trainerbattle) with their
     // trainer flag, the power of each party move, SaveBlock1.lastHealLocation's map, the player's house 1F and whether

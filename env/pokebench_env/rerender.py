@@ -20,6 +20,7 @@ from pokebench_env.blackout_readout import Whiteout
 from pokebench_env.caught_nickname import SWITCH as CAUGHT_NICKNAME
 from pokebench_env.exit_labels import SWITCH as EXIT_LABELS
 from pokebench_env.exit_reach import SWITCH as EXIT_REACH
+from pokebench_env.field_moves import SWITCH as FIELD_MOVES
 from pokebench_env.game_screen import ReadMemory
 from pokebench_env.game_state import GameState, MapNames, read_game_state
 from pokebench_env.heal_trainers import SWITCH as HEAL_TRAINERS
@@ -83,6 +84,8 @@ def read_state(
         exit_labels_enabled=EXIT_LABELS not in off and "named-warp-destinations-v1" not in off,
         caught_nickname_enabled=CAUGHT_NICKNAME not in off,
         party_item_confirmation_enabled="party-item-confirmation-v1" not in off,
+        # field-move-gates-v1 gates exit-reachability-v1's flood, so it needs that switch.
+        field_moves_enabled=FIELD_MOVES not in off and EXIT_REACH not in off,
         respawn_links=links if RESPAWN not in off else None,
     )
 

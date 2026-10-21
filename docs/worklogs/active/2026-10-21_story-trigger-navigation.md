@@ -78,3 +78,9 @@ No blockers from completed lanes. Combined treatment-plus-stride factory coverag
 Final configured gates: just test 3409 agent + 1658 viewer + 3806 Python passed. just lint, just build, just verify-vendor passed. Full just coverage passes every metric: agent lines 99.20 / branches 93.15 / functions 97.80; viewer lines 97.95 / branches 91.33 / functions 94.35; Python lines 97.29 / branches 93.11 / functions 100.00. All 194 candidate experiment definitions parse. The main-checkout convenience experiments-check remains red on pre-existing starter-decision-salience trial-ledger lines 1–150; history untouched.
 
 Landing remains slot 8, updated to exact chat title Inspect Russborough gate mapping. Original ea04 later ended on its own budget; no input/control writes or viewer restart were sent by this work.
+
+## Landing turn and authorized review roster
+
+Operator directly authorized: "Yes, use the Sol/Astra fallback reviews and land the trigger-policy fix when it's our turn. Leave the active runs untouched." Coordinator later relayed "yes dont wait for grok" as broader standing authorization. This direct approval resolves the missing-Grok self-merge hold for this task. Reduced vendor diversity remains explicit.
+
+Now number 1; merging main 4dcb448acd4cf4b1a157833b411e6aa6092ed626 into the owned branch. Registry/default/docs conflicts reconstructed from current main, with only this treatment appended; older registry tests shifted mechanically. navigation.ts production delta is byte-identical to prior implementation. Fresh gates and Claude/GPT/Sol/Astra review will bind the synced tree before fast-forward landing. Active runs must receive no inputs, control writes, preset changes or restarts.

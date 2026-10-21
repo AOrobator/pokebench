@@ -153,8 +153,23 @@ tell-claude *args:
 claude-mailbox *args:
     uv run --project env python -m pokebench_env.agent_mail claude-mailbox "$@"
 
+# The Codex coordinator thread listens here and forwards letters to Codex threads mid-turn.
 [positional-arguments]
-tell-codex thread *words:
+codex-mailbox *args:
+    uv run --project env python -m pokebench_env.agent_mail claude-mailbox --for codex-coordinator --hold "$@"
+
+# LLM-free: sleeps on the Codex coordinator's mailbox and queues one wake into that idle thread
+# when letters arrive. Start it once, detached; it holds no model and does not poll.
+[positional-arguments]
+codex-wake-watch thread:
+    uv run --project env python -m pokebench_env.agent_mail mailbox-watch --for codex-coordinator --wake-codex "$1"
+
+[positional-arguments]
+codex-mailbox-done *args:
+    uv run --project env python -m pokebench_env.agent_mail mailbox-done --for codex-coordinator "$@"
+
+[positional-arguments]
+tell-codex *words:
     uv run --project env python -m pokebench_env.agent_mail tell-codex "$@"
 
 [positional-arguments]

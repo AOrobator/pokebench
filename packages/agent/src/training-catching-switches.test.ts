@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { ALL_ON, FEATURES, SERVER_FEATURES, SWITCHABLE_FEATURES, dependencyProblems, featureInfo, playHarnessFeatures, serverFeatureEnv } from "./features.js";
+import { ALL_ON as GYM_EVIDENCE_CURRENT_ALL_ON, FEATURES, SERVER_FEATURES, SWITCHABLE_FEATURES, dependencyProblems, featureInfo, playHarnessFeatures, serverFeatureEnv } from "./features.js";
+const ALL_ON={...GYM_EVIDENCE_CURRENT_ALL_ON,"gym-evidence-v1":false};
 import { flagFeatures, normalizeFeatures } from "./play-preset.js";
 import { LEGACY_ALL_ON } from "../test-support/legacy-features.js";
 import { parseGameState } from "./game-state.js";
@@ -12,8 +13,8 @@ const NEEDS=["ram-state-v1","ram-state-v1","battle-text-auto-advance-v1",null,"h
 
 describe("training and catching switches (the operator 2026-10-21: \"both sets\")",()=>{
  it("are appended in order to every registry list as default-off observations",()=>{
-  expect(SWITCHABLE_FEATURES.slice(-18,-11)).toEqual([...TRAINING_CATCHING_IDS]);
-  expect(FEATURES.filter(f=>f.switchable).slice(-18,-11).map(f=>f.id)).toEqual([...TRAINING_CATCHING_IDS]);
+  expect(SWITCHABLE_FEATURES.slice(-19,-12)).toEqual([...TRAINING_CATCHING_IDS]);
+  expect(FEATURES.filter(f=>f.switchable).slice(-19,-12).map(f=>f.id)).toEqual([...TRAINING_CATCHING_IDS]);
   expect(SERVER_FEATURES.slice(-4,-2)).toEqual([...SERVER]);
   expect(playHarnessFeatures(ALL_ON,null).slice(-18,-11)).toEqual([...TRAINING_CATCHING_IDS]);
   TRAINING_CATCHING_IDS.forEach((id,i)=>{

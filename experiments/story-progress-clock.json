@@ -8,7 +8,7 @@
  "primaryMilestone": "ROXANNE_DEFEATED",
  "source": {
   "checkout": "main",
-  "commit": "0000000000000000000000000000000000000000"
+  "commit": "6a5860d2f7c415f4b5d4143ffe244f9839fa9b40"
  },
  "incumbent": {
   "version": 2,

@@ -23,3 +23,4 @@
 - [x] Gates: lint clean (tsc, eslint, ruff, mypy after `just build-mgba`), build clean; agent 3005, viewer 1438, pytest 2998 (POKEBENCH_ROM set to ~/.roms/pokemon-emerald.gba: the worktree has no .env; without it one ROM test errors instead of skipping); coverage agent 97.2/93.01/97.55/99.15 (stmts/branches/funcs/lines), viewer 95.09/91.06/93.85/97.7, Python lines 97.09 branches 92.62 functions 100.
 - [x] Wiring deletion watched red: StallBriefing gate forced to skip measurement-only milestones turns 7 tests red (incl. both production `stallBriefing` factory tests); `false&&` on the SupervisorBriefing branch turns 4 red (incl. the production loopSupervisor/textOnlySupervisor test); both restored, 17/17 green.
 - [ ] STOP before review (coordinator runs it).
+- [x] source.commit pinned to the feat commit 6a5860d2f7c415f4b5d4143ffe244f9839fa9b40 (repin to the merge SHA on landing).

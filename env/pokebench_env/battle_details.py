@@ -152,6 +152,7 @@ class BattleDetails:
         message_waiting: bool = False,
         levelup_box: bool = False,
         effective_damage: bool = False,
+        input_override: str | None = None,
     ) -> list[str]:
         return battle_details_lines(
             battle,
@@ -159,6 +160,7 @@ class BattleDetails:
             message_waiting=message_waiting,
             levelup_box=levelup_box,
             effective_damage=effective_damage,
+            input_override=input_override,
         )
 
 
@@ -572,11 +574,16 @@ def battle_details_lines(
     message_waiting: bool = False,
     levelup_box: bool = False,
     effective_damage: bool = False,
+    input_override: str | None = None,
 ) -> list[str]:
     flags = battle.battle_type or 0
     lines = [
         f"Battle details: {_kind(flags)} · turn {battle.turn} · "
-        + _input_text(battle, message_waiting, levelup_box)
+        + (
+            input_override
+            if input_override is not None
+            else _input_text(battle, message_waiting, levelup_box)
+        )
     ]
     if details.diagnostic is not None:
         lines.append(f"HARNESS BUG (battle details): {details.diagnostic}")

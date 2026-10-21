@@ -288,7 +288,7 @@ describe("registry, fixed bundles and event",()=>{
   expect(featureInfo(ID).description).toContain(" Off: ");
   expect(featureInfo(ID).description).toContain(PROBE);
   expect(featureInfo(ID).description).toContain(B300_LINE);
-  expect(SWITCHABLE_FEATURES.at(-9)).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-10)).toBe(ID);
   expect(SERVER_FEATURES).not.toContain(ID);
   expect(playHarnessFeatures({...ALL_ON,[ID]:true},null).at(-9)).toBe(ID);
   expect(playHarnessFeatures({...ALL_ON,[ID]:false},null)).not.toContain(ID);
@@ -309,7 +309,7 @@ describe("registry, fixed bundles and event",()=>{
   const control=(read("experiments/fixed/bundle-v-control.json") as {base:{features:Record<string,boolean>}}).base.features;
   const entry=read(`experiments/${ID}.json`) as {changedFeature:string;incumbent:{features:Record<string,boolean>};queuePosition?:number};
   expect(entry.changedFeature).toBe(ID);expect(entry.queuePosition).toBeUndefined();
-  const {"gym-door-label-v1":gymOff,"menu-refusal-recovery-v1":menuOff,"pending-field-dialogue-v1":pendingOff,...historicalControl}=control;
+  const {"caught-dex-input-v1":dexOff,"gym-door-label-v1":gymOff,"menu-refusal-recovery-v1":menuOff,"pending-field-dialogue-v1":pendingOff,...historicalControl}=control;
   expect(gymOff).toBe(false);expect(pendingOff).toBe(false);expect(menuOff).toBe(false);
   expect(entry.incumbent.features).toEqual({...historicalControl,[ID]:false});
  });

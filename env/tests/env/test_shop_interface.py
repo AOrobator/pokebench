@@ -175,3 +175,10 @@ def test_two_known_owners_keep_the_native_result() -> None:
     read = patched("after-purchase", {TASKS + 40 * others[0]: struct.pack("<I", 0x080E0AC9)})
     native = read_state(read, maps(), active_ui=True, off=OFF).active_ui
     assert shop_ui(native, read) is native
+
+
+def test_decoration_shop_keeps_the_native_result() -> None:
+    # Review round 1: a decoration shop's row id is a decoration id, not an item id.
+    read = patched("buy-list-row2", {0x02039F60 + 15: bytes([1])})
+    native = read_state(read, maps(), active_ui=True, off=OFF).active_ui
+    assert shop_ui(native, read) is native

@@ -8,7 +8,7 @@
  "primaryMilestone": "PETALBURG_CITY",
  "source": {
   "checkout": "main",
-  "commit": "b23f1eced485b37b2e385b2ff1e50bf2cdcf9e3f"
+  "commit": "be531506a1504bd5e1e21135e599861a34249545"
  },
  "incumbent": {
   "version": 2,
@@ -238,5 +238,5 @@
   "window": 4,
   "minReached": 3
  },
- "notes": "Pending, unqueued, unapproved (the operator 2026-10-21: address all harness bugs from the GLM-5.3-Flash run analysis; worklog docs/worklogs/active/2026-10-21_glm-harness-bugs.md). Registration only: the eight-per-arm boot schema is not a power-sized design or an authorization. The source commit is the switch's green commit on claude/glm-harness-bugs; repin to the merge SHA after landing. No gameplay-benefit claim."
+ "notes": "Pending, unqueued, unapproved (the operator 2026-10-21: address all harness bugs from the GLM-5.3-Flash run analysis; worklog docs/worklogs/active/2026-10-21_glm-harness-bugs.md). Registration only: the eight-per-arm boot schema is not a power-sized design or an authorization. source.commit is the landing merge. No gameplay-benefit claim."
 }

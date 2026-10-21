@@ -200,6 +200,15 @@ Scored against the full docs/agent-principles.md (PB1–PB13). Zero FAIL. The ro
 | PB12 | N/A | No ROM/path access change. |
 | PB13 | PASS | RED 59045e1af → GREEN c37d8817e with guard-deletion evidence and gates; worklog updated each commit; SYNC 2 gated. |
 
+### Round 2 (packet base main 31fdd105c, head 5df41d7cd, diff SHA-256 96c470b3e31ef2b3a929b762785938b84eaa58df1306f2fc1eb392a32df35cad; fix delta b07c1dd37..c37d8817e SHA-256 2585db6f3eaed944573cf8e80838e99abdc12751a6c8112ccdeeca2612df8095)
+
+- **Claude** (Claude CLI, plan mode): `VERDICT: LGTM`. Fixes and both rebuttals judged sound; merges carry only main's agent-mail files. Hardening: a multi-battle partner battler would get the new HARNESS BUG line (previously its stale copy); one remaining `join(0.1)` is a negative liveness check.
+- **Grok**: still UNAVAILABLE (Cursor `You're out of usage`, re-probed). Fallback isolated Codex `gpt-6-astra` xhigh: `VERDICT: LGTM` (ran guard deletions in memory and 3x concurrent waiter tests 9/9). Counts only with operator approval of the substitution.
+- **GPT** (isolated Codex CLI `gpt-5.6-sol` xhigh): `VERDICT: BLOCKING`. Accepted round-1 fixes judged correct; both rebuttals judged sound (route-OFF = SCOPE EXPANSION, live proof = HARDENING). Two new findings:
+  1. battle_details.py:624: an `absent` player battler in the ended block still renders from the battle struct (`You TORCHIC · absent`) when a switched-out POKéMON evolved (Exp. Share). Triage: the absent line is pre-existing rendering, identical OFF and ON; the case is outside the recorded d548/ea04 evidence. Candidate small fix inside post-battle-readout-v1 (party species for an absent matched battler) or rebut as pre-existing; operator's call.
+  2. recorder.ts:289: `learn_move` is not in the tool_result state allowlist, so its result gets no `state_seq` paired with the final party state (PB7). Triage: real observability gap in the new tool (choose_evolution has the same pre-existing gap); fix is one allowlist entry plus a recorder test like battle-action.test.ts:444, effective only when move-learn-tool-v1 is ON.
+- Round limit reached (max 2). Not fixed here: a third round needs the operator's scope confirmation (multi-model-review contract). No self-merge: GPT lane BLOCKING and the Grok lane needs an operator-approved substitution.
+
 ## Boy Scout Log
 
 (none yet)

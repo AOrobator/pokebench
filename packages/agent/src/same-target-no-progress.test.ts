@@ -301,11 +301,11 @@ describe("same-target-no-progress-v1 on run a8f9 (RUSTURF TUNNEL, navigate_to (2
 
 describe("same-target-no-progress-v1 registry and wiring",()=>{
  it("registers a default-off guard that needs the deterministic loop guard, appended last",()=>{
-  expect(SWITCHABLE_FEATURES.at(-28)).toBe(ID);
-  expect(FEATURES.filter(f=>f.switchable).at(-28)?.id).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-32)).toBe(ID);
+  expect(FEATURES.filter(f=>f.switchable).at(-32)?.id).toBe(ID);
   expect(featureInfo(ID)).toMatchObject({group:"guard",needs:"deterministic-loop-guard-v1",switchable:true,title:"SAME TARGET, NO PROGRESS"});
   expect(featureInfo(ID).description).toContain(" Off: ");
-  expect(playHarnessFeatures(CURRENT_ON,null).at(-27)).toBe(ID);
+  expect(playHarnessFeatures(CURRENT_ON,null).at(-31)).toBe(ID);
   expect(playHarnessFeatures({...CURRENT_ON,[ID]:false},null)).not.toContain(ID);
   expect(dependencyProblems({...CURRENT_ON,"deterministic-loop-guard-v1":false})).toContain(`${ID} needs deterministic-loop-guard-v1`);
   expect(normalizeFeatures({} as Parameters<typeof normalizeFeatures>[0])[ID]).toBe(false);

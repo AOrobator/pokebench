@@ -49,8 +49,9 @@ No new subprocesses, network calls or file paths. RAM reads go through `pokebenc
 ## Milestones
 
 **M1 — Story goal ignores the player's own name**
-- [ ] Write tests: e9ee seq 1628 pages under BRENDAN resolve "He lives right next door" to Birch's house; ASH unchanged; switch off reproduces the Gym goal
-- [ ] COMMIT (RED)
+- [x] Write tests: e9ee seq 1628 pages under BRENDAN resolve "He lives right next door" to Birch's house; ASH unchanged; switch off keeps "could be BRENDAN or PROF. BIRCH"; harness-trust Story goal and the withStoryDestinations factory follow the switch (`story-goal-player-name.test.ts`)
+- [x] Registry for all four agent-side switches (story-goal-player-name-v1, cut-off-reply-feedback-v1, trainer-sight-check-v2, auto-talk-v2), default off; position assertions in older tests shifted by 4
+- [x] COMMIT (RED): `test: story goal ignores the player's own name; registry for the four GLM-run switches (RED)` — 3 failing (ON behavior, Story goal line, factory), 4 passing
 - [ ] Implement
 - [ ] Gates: `just test`, `just lint`, `just build`, `just coverage` (≥90 both stacks)
 - [ ] COMMIT (GREEN)

@@ -198,6 +198,10 @@ export const SWITCHABLE_FEATURES = [
   "seen-trainers-ledger-v1",
   "party-coverage-v1",
   "said-type-matches-v1",
+  "story-goal-player-name-v1",
+  "cut-off-reply-feedback-v1",
+  "trainer-sight-check-v2",
+  "auto-talk-v2",
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
 
@@ -509,6 +513,10 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("seen-trainers-ledger-v1", "observation", "SEEN TRAINERS LEDGER", "heal-before-trainers-v2", "Bundle arm only, default off (the operator 2026-10-21: \"both sets\", after the Rustboro strategy report: 11 runs reached the RUSTBORO CITY GYM between Oct 19 and Oct 21, 8 fought ROXANNE 17 times and lost every time with a lone TORCHIC at Lv13-15). After losing, the 4 control runs never fought TOMMY or MARC in the same gym. In the Training block: the trainers the readout listed (heal-before-trainers-v2) on each map the player stood on this run, by map, each beaten, battled and not beaten, or not beaten, by the trainer's name once a battle showed it, else the sprite kind. Only maps visited and trainers listed there; nothing says where to go. Needs heal-before-trainers-v2. Off: no lines."),
   on("party-coverage-v1", "observation", "PARTY COVERAGE", "battle-text-auto-advance-v1", "Bundle arm only, default off (the operator 2026-10-21: \"both sets\", after the Rustboro strategy report: 11 runs reached the RUSTBORO CITY GYM between Oct 19 and Oct 21, 8 fought ROXANNE 17 times and lost every time with a lone TORCHIC at Lv13-15). At battle decisions: for each party move, what the game printed right after it hit each foe type this run (\"It's super effective!\", \"It's not very effective…\", \"It doesn't affect …\", or nothing printed), grouped by the foe's types from the battle state, then the foe types met this run that no party move has drawn \"It's super effective!\" against. Only what the game printed; no type chart. Off: no block."),
   on("said-type-matches-v1", "observation", "SAID TYPE MATCHES", null, "Bundle arm only, default off (the operator 2026-10-21: \"both sets\", after the Rustboro strategy report: 11 runs reached the RUSTBORO CITY GYM between Oct 19 and Oct 21, 8 fought ROXANNE 17 times and lost every time with a lone TORCHIC at Lv13-15). The RUSTBORO GYM GUIDE says the ROCK type \"can't stand WATER-type and GRASS-type moves\", but nothing linked that to the WINGULL with WATER GUN in front of the model. Every field page that names a type (\"X-type\") is kept with its map; at battle decisions each foe move and party move whose type a kept line names gets that line and the map: Said on RUSTBORO CITY GYM: \"…can't stand WATER-type and GRASS-type moves.\" — WATER GUN is WATER-type. Only lines the game printed this run. Off: no lines."),
+  on("story-goal-player-name-v1", "observation", "STORY GOAL: PLAYER NAME", null, "Bundle arm only, default off (the operator 2026-10-21: \"we should make sure to address all of the harness bugs\", after the GLM-5.3-Flash run analysis). Run 2026-10-21T01-16-23_glm53-mac_e9ee kept the default player name BRENDAN, which is also a story character's name. When MOM said \"He lives right next door\" (seq 1628), BRENDAN and PROF. BIRCH were both named earlier in the conversation, so \"He\" was not resolved and the Story goal showed MOM's older PETALBURG GYM line for 24 results. With this switch on, the player's own name (the readout's Player line, as the game prints it in place of the player) is not a candidate for \"He/She lives\", so the line resolves to PROF. BIRCH'S HOUSE. Off: every story character named earlier in the conversation, the player's own name included, is a candidate, as before."),
+  on("cut-off-reply-feedback-v1", "guard", "CUT-OFF REPLY FEEDBACK", null, "Bundle arm only, default off (the operator 2026-10-21: \"we should make sure to address all of the harness bugs\", after the GLM-5.3-Flash run analysis). Four GLM runs had 11 replies stop at the max_tokens limit with no tool call (for example 2026-10-21T05-17-26_glm53-mac_ad34 seq 13818, 14408, 14998 in a row), each after hand-counting the map. The next request only said \"Keep playing: call observe or press\", so the model began the same count again. With this switch on, after a reply that stopped at the limit with no tool call, the next message says the reply reached the output limit before any tool call, so nothing happened in the game, and asks for one tool call now; for walking it names navigate_to_target and navigate_to, which find the path from the readout. Nothing sent to the model is clipped and the failure count is unchanged. Off: the usual \"Keep playing\" nudge, as before."),
+  on("trainer-sight-check-v2", "guard", "TRAINER SIGHT CHECK: TARGET WALKS", "trainer-sight-check-v1", "Bundle arm only, default off (the operator 2026-10-21: \"we should make sure to address all of the harness bugs\", after the GLM-5.3-Flash run analysis). Run 2026-10-21T01-16-23_glm53-mac_e9ee walked into three Route 102 trainers' sight with navigate_to_target WEST (seq 8193, 10444, 10997), and 2026-10-21T07-17-35_glm53-mac_acfa did the same; trainer-sight-check-v1 only checks navigate_to. With this switch on, navigate_to_target routes get the same check: a planned route through a tile an unbeaten trainer on this map can see is not walked, the result names the tiles and the trainer as trainer-sight-check-v1 does, and repeating the call with the confirm argument walks it anyway. Needs trainer-sight-check-v1. Off: navigate_to_target walks without the check, as before."),
+  on("auto-talk-v2", "guard", "AUTO-TALK: SKIP BEATEN TRAINERS", "auto-talk-v1", "Bundle arm only, default off (the operator 2026-10-21: \"we should make sure to address all of the harness bugs\", after the GLM-5.3-Flash run analysis). In run 2026-10-21T01-16-23_glm53-mac_e9ee, auto-talk walked to and talked to Route 102's Calvin after he was beaten (seq 10359). With this switch on, a trainer the readout shows as defeated is not an auto-talk target. Needs auto-talk-v1. Off: auto-talk picks as before."),
 ];
 
 export const ALL_ON: FeatureSet = Object.fromEntries(SWITCHABLE_FEATURES.map((id) => [id, true])) as Record<SwitchableFeature, boolean>;
@@ -752,6 +760,10 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("seen-trainers-ledger-v1"),
     ...when("party-coverage-v1"),
     ...when("said-type-matches-v1"),
+    ...when("story-goal-player-name-v1"),
+    ...when("cut-off-reply-feedback-v1"),
+    ...when("trainer-sight-check-v2"),
+    ...when("auto-talk-v2"),
   ];
 }
 

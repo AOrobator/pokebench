@@ -796,6 +796,10 @@ it("enables the mart stock readout only in the bundle of the four current bundle
  }
 });
 
+it("keeps the four GLM-run fix switches OFF in the next-run default",()=>{
+ for(const id of ["story-goal-player-name-v1","cut-off-reply-feedback-v1","trainer-sight-check-v2","auto-talk-v2"] as const)expect(DEFAULT_NEXT_RUN.features[id]).toBe(false);
+});
+
 it("enables the seven training and catching switches only in the bundle of the four current bundle definitions, and keeps them OFF in the next-run default",()=>{
  const ids=["exp-next-level-v1","pokedex-own-v1","exp-earned-ledger-v1","leader-attempt-ledger-v1","seen-trainers-ledger-v1","party-coverage-v1","said-type-matches-v1"] as const;
  for(const id of ids)expect(DEFAULT_NEXT_RUN.features[id]).toBe(false);

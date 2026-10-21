@@ -114,11 +114,11 @@ main :is(.tbl,.table,.scroll,.wide):not(svg *){border:2px solid #9fb2c8!importan
 main table:not(svg *){background:#fff}
 main th:not(svg *){
   font:8px/1.9 var(--pb-px)!important;color:var(--pb-blue)!important;background:#e8eef6!important;
-  border-bottom:2px solid #9fb2c8!important;letter-spacing:.02em;
+  border-bottom:2px solid #9fb2c8!important;letter-spacing:.02em;overflow-wrap:normal!important;word-break:normal!important;
 }
 main td:not(svg *){border-bottom:1px solid #dbe3ee!important}
 main code:not(pre code){background:#eef3fa!important;color:#1e2c44!important;border:1px solid #d3deec!important;border-radius:4px!important}
-main pre:not(svg *){background:var(--pb-navy)!important;color:#dfe8f5!important;border:0!important;border-radius:8px!important}
+main pre:not(svg *){overflow-x:auto;max-width:100%;background:var(--pb-navy)!important;color:#dfe8f5!important;border:0!important;border-radius:8px!important}
 main pre code{background:none!important;color:inherit!important;border:0!important}
 main blockquote{
   border:3px solid #4870a0!important;border-radius:8px!important;background:#fff!important;color:var(--pb-ink)!important;

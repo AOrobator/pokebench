@@ -8,7 +8,7 @@
  "primaryMilestone": "ROUTE_102",
  "source": {
   "checkout": "main",
-  "commit": "c8147d1d9128a1776bffef5666e0d253e40a6dde"
+  "commit": "f39614f50c78be23acb2667d61aaf943357434e1"
  },
  "incumbent": {
   "version": 2,
@@ -209,5 +209,5 @@
   "window": 4,
   "minReached": 3
  },
- "notes": "Pending, not queued, not designed and not approved. Shared incumbent plus semantic-navigation-v2 ON in both arms so wrong-map refusals can occur; the candidate flips only changedFeature. Earliest activation PLAYER_NAME_CONFIRMED (free-field tools in the truck). Route 102 is the nominal outcome. A qualified checkpoint, cap, power-sized cohort and operator budget require separate design. No current readiness audit performed. Source pin is the RED branch checkpoint until reviewed implementation landing; must be repinned before use. Bundle inclusion is operator-requested configuration, not individual benefit evidence."
+ "notes": "Pending, not queued, not designed and not approved. Shared incumbent plus semantic-navigation-v2 ON in both arms so wrong-map refusals can occur; the candidate flips only changedFeature. Earliest activation PLAYER_NAME_CONFIRMED (free-field tools in the truck). Route 102 is the nominal outcome. A qualified checkpoint, cap, power-sized cohort and operator budget require separate design. No current readiness audit performed. Source pin is the implementation checkpoint; repin to the reviewed landing before use. Bundle inclusion is operator-requested configuration, not individual benefit evidence."
 }

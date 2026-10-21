@@ -74,7 +74,8 @@ for(const [name,change] of [
  ["unknown UI",{active_ui:undefined}], ["locked field",{field_controls_locked:true}],
  ["unknown lock",{field_controls_locked:null}], ["moving avatar",{running:{...field.running,controllable:false}}],
  ["unknown motion",{running:null}], ["missing map",{map_id:null}], ["missing position",{position:null}],
- ["dialogue",{world_context:{objects:[],triggers:[],dialogue:"Wait!",message:null}}], ["message",{world_context:{objects:[],triggers:[],dialogue:null,message:{phase:"button_wait",cursor:0,ready:true}}}],
+ ["dialogue",{world_context:{objects:[],triggers:[],dialogue:"Wait!",message:null}}], ["script activity",{world_context:{objects:[],triggers:[],dialogue:null,field_activity:{phase:"script_running",owner:1}}}],
+ ["message",{world_context:{objects:[],triggers:[],dialogue:null,message:{phase:"button_wait",cursor:0,ready:true}}}],
 ] as const)it(`allows existing inputs with ${name}`,async()=>{
  const s=server({...field,...change} as GameStateSnapshot),h=hooks();
  await pressTool("http://game",h,s.fetchFn,clock,{...ALL_TOOL_SWITCHES,navigationToolUseGuard:true}).execute("model",{buttons:["UP","UP"]});

@@ -517,7 +517,6 @@ export const SERVER_FEATURES: readonly SwitchableFeature[] = [
   "party-item-confirmation-v1",
   "yes-no-answer-readout-v1",
   "field-move-gates-v1",
-
 ];
 
 export function serverFeatureEnv(features: FeatureSet): { POKEBENCH_ACTIVE_UI: "0" | "1"; POKEBENCH_FEATURES_OFF: string } {

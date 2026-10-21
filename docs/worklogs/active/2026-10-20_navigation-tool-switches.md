@@ -27,3 +27,22 @@ GREEN: behavior tests include exact OFF bytes, default normalization, free-field
 Mutation receipts: guard wiring deletion fails the intended test; first semantic deletion selector matched no tests (UNPROVEN, retained), attempt2 uses the exact ON test; card link deletion fails; restoration receipt retained separately.
 Explainers: tracked + mapped cards/routes, pages-check, local 8791 HTTP200; 1280/1440/375 expanded/collapsed screenshots inspected under canonical runs/mockups/navigation-tool-switches/shots. UI card/replay proof pending.
 Gates in progress. Agent/viewer coverage passed before the final delivery test (agent 99.14 lines/92.99 branches/97.59 functions; viewer 97.81/91.06/94.18). Initial Python gate failures were environment setup: worktree vendor uninitialized and POKEBENCH_ROM unset. Vendor now initialized at exact pinned bbab97ad; private venv cloned and canonical editable install restored after detecting shared-venv symlink. No Python source changes or gameplay processes restarted. Full ROM-backed test/coverage rerun pending.
+
+Implementation checkpoint f39614f5 (rebased GREEN); RED is now ac96231f on main 97046aa6. Supplemental check excludes explicit script activity even if other free-field signals disagree. Pending definitions pin implementation checkpoint, explicitly require reviewed landing repin before use. 103 focused tests pass. Lint6 passes all TypeScript and Python checks; vendor2 passes. Full test8/coverage2 hit pre-existing wall-clock-sensitive live-human/serial-comparison tests during concurrent CPU-heavy gates; no assertion or timeout relaxed. Serial rerun in progress. No gate is counted green from those failed attempts.
+
+Principles self-review (PB1-PB13, zero FAIL):
+| ID | Score | Evidence / applicability |
+|---|---|---|
+| PB1 | PASS | No grader, native milestone or objective change; model chooses navigation targets. |
+| PB2 | PASS | No measured runs; all failed gate/mutation attempts retained and qualified. |
+| PB3 | PASS | No speed or promotion claim; unqueued standalone experiments remain hypotheses. |
+| PB4 | PASS | Two registered recorded switches, defaults OFF, existing event delivery; vendor pinned and unchanged. |
+| PB5 | PASS | Each pending candidate flips only its named switch. User explicitly requests bundled configuration, not causal attribution. |
+| PB6 | N/A | No context/compaction/long-run storage behavior changed. Existing bounded tool loop remains owner. |
+| PB7 | PASS | Pinned pi integration proves both tool_result records and delivery to subsequent decisions, with no button/native_action event. |
+| PB8 | PASS | Refusal is explicit, zero input, no silent rewriting, no automatic destination, existing turn/wall budgets bound retries. |
+| PB9 | PASS | User explicitly approved these two behaviors and bundle scope. No measured launch or approval inferred. |
+| PB10 | PASS | Coverage floors, tests, vendor and hooks unchanged; failed resource-sensitive gates retained for clean rerun. |
+| PB11 | PASS | Production tool factory and real pinned pi loop/recorder integration; existing typed state schema and native controllable field. |
+| PB12 | PASS | ROM resolved only through the external ~/.roms path for read-only tests; no ROM copied or committed. |
+| PB13 | PASS | RED/GREEN commits, worklog and frozen review packet; gates/landing/live state explicitly pending until proved. |

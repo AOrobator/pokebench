@@ -97,6 +97,7 @@ The operator: the HP black box still needs to move left a bit and the black bar 
 The operator: in the game assets the HP box's right side is rounded. sSlotTilemap_Wide's bar end (columns R-1, R): border rows `2.` (gray corner, then nothing), white rows `d2`, track rows `3d`. Ours was a square dark rectangle.
 - [x] RED: style-css.test.ts expects the frame and track to clip their right corner pixels, four #737373 corner pixels at (R-1,0), (R,1), (R,5), (R-1,6), and no white `frame::before` (the track covers the interior; the white would show in the clipped corners)
 - [x] GREEN: frame and track clip their right corner pixels; `frame::after` draws the four #737373 corner pixels; the white `frame::before` is gone. Gates: lint, build; coverage agent 3281 tests 99.2/93.1/97.71, viewer 1602 tests 97.9/91.34/94.33, python 3583 tests 97.23/92.97/100.
+- [x] Review (packet 8f98367d..4be9ed9a, sha256 9d221bff…57c8): Claude, Grok and GPT/Codex all LGTM. Browser: clean build 4be9ed9 on 8796, 1440, 375 (scrollWidth 375), 8x magnified right end (4be9ed9-*.jpg). Main then moved to 4e6d5bb32 (move-learning fix, no shared files): rebased, `git diff main..HEAD` hashes to the same 9d221bff…57c8; gates on the rebased tip: agent 3281, viewer 1602, python 3589 passed, python coverage 97.23/92.97/100.
 
 ## Closing the Loop
 

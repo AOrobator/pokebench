@@ -269,3 +269,7 @@ measured cohort is needed to establish this decoder repair, and none is authoriz
 ## progress-aware-cycles-v1 (2026-10-21)
 
 Pending, unqueued and unapproved. NEW_GAME_CREATED activation is reachable; healing exposure requires a separately validated pre-refusal checkpoint and operator budget before queueing. Diagnostic replays are not a gameplay-benefit claim.
+
+## GLM-run harness bug switches (2026-10-21)
+
+`story-goal-player-name-v1`, `cut-off-reply-feedback-v1`, `trainer-sight-check-v2`, `auto-talk-v2`, `map-wide-triggers-v1` and `drought-battle-heal-hold-v1` are pending, unqueued and unapproved. Activation milestones: MOM_RIVAL_INSTRUCTION, NEW_GAME_CREATED, ROUTE_102, ROUTE_102, PLAYER_HOUSE_EXITED_AFTER_CLOCK and STARTER_CHOSEN. Boot runs reach the earlier ones reliably; ROUTE_102 is reached by most 2-hour MAIN_MENU runs (GLM 3 of 4, Qwen3.6 overnight pairs 6 of 6), so a Route 102 checkpoint start would measure the two Route 102 switches more cheaply. `just experiments-check` reports no problem for these entries (its 150 starter-decision-salience ledger problems are pre-existing on main). Per memory "long runs only", bundle-only bug fixes are measured by long cook runs; no gameplay-benefit claim.

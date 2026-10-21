@@ -108,7 +108,9 @@ No new subprocesses, network calls or file paths. RAM reads go through `pokebenc
 - [x] Multi-model review loop until clean: round 1 on b057dde1..cb757550 (SHA-256 53581062…) — Claude (subagent), Grok, GPT (codex) LGTM. Non-blocking: other TS readers of world_context.triggers also get far triggers when on (blocked-exit-fact has its own nearness gate); keep 7/8-tile boundary cases; share the radius constant.
 
 **M7 — Explainers, pending experiments, bundle proposal**
-- [ ] One explainer per switch (feature-explainer), pending experiment entries, a bundle-membership proposal for the operator
+- [x] One explainer per switch (feature-explainer): `docs/explainers/<id>.html` for all six, themed (`just pages-theme`), `just pages-check` clean, README entries, `FEATURE_EXPLAINERS` mappings in `packages/viewer/src/panels.ts` with panels/server tests (viewer 250 targeted tests pass). Written by a subagent; headless screenshots checked. The live READ EXPLAINER click waits until the viewer serves this code (after landing, `just viewer-main`).
+- [x] Pending experiment entries `experiments/<id>.json` for all six (incumbent copied from progress-aware-cycles-v1 with the six new switches off; source = each switch's green commit, repin to the merge SHA after landing) and a readiness note in `docs/experiments/readiness.md`. `just experiments-check` reports no problem for them (its 150 starter-decision-salience ledger problems are pre-existing on main).
+- [ ] Bundle-membership proposal for the operator
 - [ ] ASK USER: add the switches to the next bundle
 
 ## Closing the Loop

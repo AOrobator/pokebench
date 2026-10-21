@@ -1480,6 +1480,23 @@ it("links the caught Pokédex input to its explainer without changing feature st
  expect(card?.querySelector("a")?.getAttribute("href")).toBe("/explainers/caught-dex-input-v1.html");expect(card?.textContent).toContain("ON");
 });
 
+it("links each GLM-run harness bug switch to its tracked explainer without changing feature status",()=>{
+ for(const id of ["story-goal-player-name-v1","cut-off-reply-feedback-v1","trainer-sight-check-v2","auto-talk-v2","map-wide-triggers-v1","drought-battle-heal-hold-v1"]){
+  expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
+  expect(existsSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)))).toBe(true);
+  const on=new Log();on.add(0,{...START,harness_features:["ram-state-v1",id]});
+  const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(on),FEATURES);
+  const card=doc.querySelector(`[data-feature="${id}"]`);
+  expect(card?.querySelector("a")?.getAttribute("href")).toBe(`/explainers/${id}.html`);
+  expect(card?.querySelector(".config-badge")?.textContent).toBe("ON");
+  const off=new Log();off.add(0,{...START,harness_features:["ram-state-v1"]});
+  doc.body.innerHTML=harnessConfig(view(off),FEATURES);
+  const offCard=doc.querySelector(`[data-feature="${id}"]`);
+  expect(offCard?.querySelector("a")?.getAttribute("href")).toBe(`/explainers/${id}.html`);
+  expect(offCard?.querySelector(".config-badge")?.textContent).toBe("NOT RECORDED");
+ }
+});
+
 it("links the recorded progress-aware cycles treatment to its tracked explainer",()=>{
  const id="progress-aware-cycles-v1";
  const log=new Log();log.add(0,{...START,harness_features:["ram-state-v1",id]});

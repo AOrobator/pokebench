@@ -149,7 +149,10 @@ Fix batch 2 (coordinator, 9:3x PM ET: "Apply your proposed fix batch 2 now"; The
 - COMMIT: `fix: short-cycle-fixed-point-v1 review batch 2 (inventory and interface details in the cycle state, sequence wording in the note)` (a1b0e9b5)
 - main moved to e9584cf0 (field-move-gates-v1). Merged it the same way: main's side of every conflicted and re-indexed file, this switch re-appended after field-move-gates-v1, index assertions re-bumped (field-move-gates' own "last" check now -2).
 - Gates after this merge (`gates-merge3.log`, rerun `gates-merge3b.log`): build and lint clean; agent 3084/3084, viewer 1500/1500, pytest 3470 passed; coverage agent 97.2/93.09/97.68/99.19, viewer 95.23/91.09/94.14/97.8, Python lines 97.21 branches 92.86 functions 100; `just pages-check` prints nothing; `fixed-cli check` exit 0 for all three. The first run's viewer `just test` failed once in server.test.ts "keeps the downstream socket open after a successful send callback" (received only 2 frames, a timing test under load); it passed alone (80/80) and in the rerun.
-- COMMIT: `merge: main (field-move-gates-v1) into short-cycle-fixed-point-v1` (sha in round 3)
+- COMMIT: `merge: main (field-move-gates-v1) into short-cycle-fixed-point-v1` (154cdd66)
+- main moved to 912a6954 (frontier recorded runs, viewer only); merged cleanly (`Merge branch 'main' into claude/ping-pong-fixed-point`, 1ca7c9f0). Gates (`gates-merge4.log`): build and lint clean; agent 3084/3084, viewer 1507/1507, pytest 3470 passed; coverage agent 97.2/93.1/97.68/99.19, viewer 95.25/91.1/94.18/97.81, Python 97.21/92.86/100.
+
+**Round 3** (the operator approved round 3, 9:42 PM ET, "yes and yes", relayed by the coordinator) — packet3 = `git diff main HEAD` at the docs commit that records this entry, base main 912a6954; packet path `runs/reviews/short-cycle-fixed-point/packet3.diff`; fix delta `fix2.diff` (`git diff b1abc978 a1b0e9b5`). Prompt `prompt3.md`. Principles self-review unchanged (0 FAIL).
 
 ## Boy Scout Log
 

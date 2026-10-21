@@ -17,8 +17,8 @@ When ON, observe settles an already owned ordinary field message. battle_action 
 - [x] RED: observed pending field dialogue and queued battle action boundary regressions
 - [x] GREEN: production wiring and metadata
 - [x] Gates and mutation proof
-- [ ] Independent review; landing only with required approvals
-- [ ] Isolated/native evidence and local explainer delivery
+- [x] Independent review; operator-authorized reuse of byte-identical reviewed implementation and landing
+- [x] Isolated/native evidence and local explainer delivery
 
 Not authorized: changing current measured run's config or injecting game input. Gameplay improvement remains unmeasured.
 
@@ -77,3 +77,12 @@ R5 reviewed74ec4eb2: Grok LGTM exit0/empty stderr; GPT LGTM; independent Astra a
 Operator: "you dont need another review if its byte identical". r6 integration-only GPT/Astra/Sol LGTM, unchanged runtime approvals carried from r5; Grok r5 LGTM retained for byte-identical runtime. Main then landed healing feature852e4fe9. Preserve every upstream runtime, feature and bundle bit; mechanical registry/default fixture integration and raw176-key completion, followed by all gates. Dialogue implementation/prompt/fixture/explainer stay byte-identical to the reviewedr5 tree. No new dialogue behavior, no further review of unchanged runtime. User declines cross-chat hold.
 
 Healing integration fixture checks: preserve current-registry ALL_ON positions and old healing pending incumbent while explicitly asserting new control bit OFF. No runtime edits; full gate rerun before landing.
+
+## Landed on local main
+Fast-forward landedfd15a9fd9191567d5ec0036f99a09ca58c0331ae. Operator authorizes integration, review, main landing and bundle inclusion after disclosed Claude-unavailable/round-cap hold; declines messaging other chats and says no new review for byte-identical code. Runtime owner, prompt, decoded fixture and explainer SHA256 remain exactly approvedr574ec4eb2 (Grok/GPT/Astra/Sol allLGTM). r6 registry/schema/bundle integration received GPT/Astra/Sol LGTM; its obsolete Grok re-review cancelled rather than misreported. Final healing-feature sync preserves every latest-main runtime/bundle bit; mechanical metadata/fixture adjustments are gated, unchanged dialogue code approvals carried forward under the operator instruction. Claude is still unavailable, not fabricated approval.
+
+Final gates:3230 agent,1530 viewer,3494 Python; coverage all lines/branches/functions above90; full lint/types/build/vendor pass. Post-main `just test` passes those same8254 tests with no skips. Earlier intermediate conflict/registry failures and corrected reruns retained, not counted as green. Existing full experiments checker reports150 pre-existing malformed starter-decision-salience trial ledger rows; no logs changed. New experiment separately validates176 explicit ordered keys, unqueued, only its treatment flips.
+
+Enabled only in three evolving bundle arms: bundle-v-control, bundle-cook-1h, whole-map-cook-1h. Controls/generic defaultsOFF. Latest main's v7 and glm53 frozen definitions preserved byte-for-byte. No measured launch, active-run input/config/source change or benefit claim. Source pinbac6652e is an implementation ancestor; future experiment requires repinning to the selected clean landing build, design/readiness and operator approval before any trial.
+
+This is the permitted post-landing evidence-only commit, touching only docs/worklogs. Viewer refresh/browser verification follows it; final runtime/API/screenshot receipts under canonical runs/launch-receipts/pending-field-dialogue-20261020.

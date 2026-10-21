@@ -10,7 +10,7 @@ describe("mart-stock-readout-v1 (Rustboro strategy report, proposal 4)",()=>{
   expect(SWITCHABLE_FEATURES.at(-3)).toBe(ID);
   expect(FEATURES.filter(f=>f.switchable).at(-3)?.id).toBe(ID);
   expect(SERVER_FEATURES.at(-2)).toBe(ID);
-  expect(playHarnessFeatures(ALL_ON,null).at(-2)).toBe(ID);
+  expect(playHarnessFeatures(ALL_ON,null).at(-3)).toBe(ID);
   expect(featureInfo(ID)).toMatchObject({group:"observation",switchable:true,title:"MART STOCK READOUT",needs:"ram-state-v1"});
   expect(featureInfo(ID).description).toContain("Bundle arm only, default off");
   expect(featureInfo(ID).description).toContain(" Off: ");

@@ -15,7 +15,7 @@ from pokebench_env.battle_details import BattleDetails, read_battle_details
 from pokebench_env.battle_state import BattleState, read_battle_state
 from pokebench_env.character_presence import StoryCharacters, read_story_characters
 from pokebench_env.displayed_names import place_name, player_gender, sign_labeler
-from pokebench_env.exit_labels import ExitLabels, read_exit_labels, section_name
+from pokebench_env.exit_labels import ExitLabels, destination_name, read_exit_labels, section_name
 from pokebench_env.exit_reach import ExitReach, build_exit_reach
 from pokebench_env.field_moves import (
     FieldObstacles,
@@ -317,6 +317,7 @@ def read_game_state(
     evolution_decision_enabled: bool = False,
     exit_labels_enabled: bool = False,
     exit_sections_enabled: bool = False,
+    gym_door_label_enabled: bool = False,
     caught_nickname_enabled: bool = False,
     party_item_confirmation_enabled: bool = False,
     field_moves_enabled: bool = False,
@@ -608,10 +609,12 @@ def read_game_state(
             read,
             map_id,
             (x, y),
-            lambda m: (
-                place_name(maps.name(m), gender, player) if displayed_names_enabled else None
-            )
-            or section_name(read, m),
+            lambda m: destination_name(
+                maps.name(m),
+                (place_name(maps.name(m), gender, player) if displayed_names_enabled else None)
+                or section_name(read, m),
+                enabled=gym_door_label_enabled,
+            ),
             None if gates is None else (gates.caps, save1, maps.name),
             None if gates is None else gates.rules(),
         )
@@ -625,10 +628,12 @@ def read_game_state(
             map_id,
             targets,
             topology,
-            lambda m: (
-                place_name(maps.name(m), gender, player) if displayed_names_enabled else None
-            )
-            or section_name(read, m),
+            lambda m: destination_name(
+                maps.name(m),
+                (place_name(maps.name(m), gender, player) if displayed_names_enabled else None)
+                or section_name(read, m),
+                enabled=gym_door_label_enabled,
+            ),
             None if gates is None else (gates.caps, save1, maps.name),
         )
         if exit_labels_enabled and nearby is not None

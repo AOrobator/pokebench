@@ -85,6 +85,7 @@ def read_state(
         evolution_decision_enabled="evolution-decision-v1" not in off,
         # exit-labels-v2 renames named-warp-destinations-v1's labels, so it needs that switch.
         exit_labels_enabled=EXIT_LABELS not in off and "named-warp-destinations-v1" not in off,
+        gym_door_label_enabled="gym-door-label-v1" not in off,
         exit_sections_enabled="exit-labels-v3" not in off
         and EXIT_LABELS not in off
         and "named-warp-destinations-v1" not in off,

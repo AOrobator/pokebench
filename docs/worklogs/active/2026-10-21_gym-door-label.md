@@ -1,0 +1,23 @@
+# Gym door label in the bundle
+
+Request: preserve GYM on the bundle's Gym doors; popup region names currently erase it.
+
+Scope: new default-OFF `gym-door-label-v1`, bundle-only. Preserve the destination map's GYM suffix when exit-labels-v2/v3 would collapse it to its city. Both exit owners use one name function. No route, leader or badge advice. OFF retains prior bytes. Historical fixed definitions and active runs remain frozen.
+
+Grounding: pret/pokeemerald PetalburgCity_Text_ThisIsGymSign and PetalburgCity_Text_GymSign explicitly identify GYM; RustboroCity and DewfordTown Gym signs do too. ROM map identity identifies the destination; no source-derived trainer or story names are exposed.
+
+Plan: RED regression; registry/factory/name function; future bundle definitions; explainer and pending experiment; gates and independent cloud review before landing. No measured runs authorized here.
+
+Implementation evidence: RED import failure before implementation; 11 focused Python checks GREEN, including real retained Petalburg state `dc5a-raw00010618` through rerender.read_state and render, with both exit-labels-v2 and v3. Removing the production rerender switch wiring causes both native cases to fail (2 failed / 9 passed); restored immediately. New switch transports through preset, server env and run receipt; omitted/default false. Native output changes PETALBURG CITY (map 8/1) to PETALBURG CITY GYM (map 8/1). Other names and same-map ownership unchanged.
+
+Future bundle definitions: bundle-v-control, bundle-cook-1h, whole-map-cook-1h. Historical cook/pair definitions and running trials are unchanged. Registry tests receive mechanical count/index/default-off-list updates. Lint passes; full coverage/build checks underway. Claude standalone reviewer authentication unavailable; Cursor Claude equivalent will be used.
+
+Principles Adherence (PB1–PB13): PB1 PASS native map identity; PB2 N/A no runs launched or filtered; PB3 N/A no speed claim; PB4 PASS separately recorded switch; PB5 PASS pending single-switch experiment, no benefit claim; PB6 N/A no context retention change; PB7 PASS uses existing observation/run receipt and immutable native fixture; PB8 N/A no model failure handling; PB9 PASS narrow user-authorized label fix, no goal/route inference; PB10 PASS unchanged floors/gates; PB11 PASS pinned vendor/map reader; PB12 PASS external ROM path only; PB13 PASS RED/GREEN and wiring mutation, review and landing pending.
+
+Follow-up validation: TypeScript agent and viewer suites pass with coverage above all 90% floors. Python's first full pass found 11 append-only registry/default-off/factory-argument assertions; updated these expectations, with 573/574 relevant tests passing before the final count correction (63 → 64 server switches). Full final coverage rerun underway. New experiment parses successfully with production parseExperiment. Build, lint, vendor and page checks pass. Full `experiments-check` reads canonical run ledgers and is blocked by pre-existing starter-decision-salience trials.jsonl malformed ledger rows; no gym-door experiment parse error.
+
+Review availability: dedicated Claude CLI auth is logged out. Cursor Opus, Cursor Sonnet and Cursor GPT returned ActionRequiredError usage limits (reset 2026-11-17); no verdict, not LGTM. Grok still pending. Repository execute-worklog landing contract forbids self-merge if any required cloud lane is unavailable. No main merge, viewer restart or run launch has occurred. Explainer served at http://127.0.0.1:8791/gym-door-label/ and inspected in the real browser at 1280; other viewport and live Harness Config click-through checks remain unproven until integration.
+
+Final deterministic gates: 3,282 agent + 1,603 viewer + 3,594 Python tests pass. Agent coverage statements/branches/functions 97.26/93.11/97.71%; viewer 95.42/91.33/94.33%; Python lines/branches/functions 97.23/92.97/100%. Full lint/build/vendor/page checks pass. All 90% floors unchanged.
+
+Operator follow-up: use ChatGPT subagents, update the skills, and inspect local inference stack Claude invocation. The SI contract already supports fresh no-history Codex subagents for the normal GPT lane. Clarified the local execute-worklog skill to name that route; this does not waive the required Claude or Grok lanes. First GPT subagent was interrupted because it inherited history and cannot count. Dedicated and normal Claude profile authentication are being checked independently. Cursor GPT quota blocked; isolated CLI attempts reject configured gpt-6.1-sol and gpt-5.3-codex with ChatGPT-account model-not-supported errors. New frozen packet includes this requested procedural skill clarification; production code unchanged since passing gates.

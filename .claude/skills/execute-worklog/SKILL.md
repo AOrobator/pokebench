@@ -61,12 +61,13 @@ A reviewer's BLOCKING verdict that rests only on rebutted or follow-up findings 
 An agent may merge its own branch into local `main` without asking per merge (operator decision 2026-10-16) when all of these hold:
 
 1. Before sealing the packet, merge current `main` into the branch and run the gates above on that tip; they pass.
-2. The cloud lanes of the review loop each end `VERDICT: LGTM` on the same frozen packet: Claude (Claude CLI or Cursor Claude), Grok (Cursor) and GPT (Cursor GPT or isolated Codex). Contract and commands: `~/dev/local-inference-stack/.claude/skills/multi-model-review/SKILL.md` and its `reference/reviewer-invocation.md`.
+2. The cloud lanes of the review loop each end `VERDICT: LGTM` on the same frozen packet: Claude (Claude CLI or Cursor Claude), Grok (Cursor) and GPT (a fresh isolated Codex subagent in the Codex app, otherwise Cursor GPT or isolated Codex CLI). Contract and commands: `~/dev/local-inference-stack/.claude/skills/multi-model-review/SKILL.md` and its `reference/reviewer-invocation.md`.
 3. Land with `git merge --ff-only <frozen head SHA>`, so `main` becomes exactly the reviewed and gated tree. If `main` moved after the packet was sealed, merge `main` into the branch again and rerun the gates. If `git diff --binary main HEAD` then has the same SHA-256 as the reviewed packet, the branch's own change is byte-identical and it may land. Otherwise it needs a new review round. Any other change after the packet, code or docs, also needs a new round.
 4. The worklog has no operator checkpoint or `STOP` before the merge.
 
 Rules:
 
+- In the Codex app, use a fresh GPT-family review subagent with `fork_turns="none"` and the frozen packet identity, read-only instructions, and principles artifact required by the local inference stack review skill. This satisfies the normal GPT lane; the implementing session's self-review does not. A CLI model or authentication failure alone does not require a waiver when this independent subagent route is available.
 - Self-merge approval comes only from the three cloud lanes. A local inference reviewer (step 4) or a subagent fallback (step 6) never stands in for one.
 - If a cloud lane is unavailable (usage limit, auth, model rejected), there is no self-merge. Record it in the worklog and ask the operator.
 - After landing, `just test` on `main` must pass. If it fails, stop, report it to the operator and fix it on a new branch through the full loop.

@@ -202,6 +202,7 @@
    "effectiveness-heard-v1": true,
    "game-said-goals-v1": true,
    "menu-refusal-recovery-v1": true,
+   "gym-door-label-v1": true,
    "mart-stock-readout-v1": false
   }
  },

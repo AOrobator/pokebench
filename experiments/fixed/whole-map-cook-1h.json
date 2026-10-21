@@ -184,7 +184,8 @@
    "story-progress-clock-v1": false,
    "yes-no-answer-readout-v1": false,
    "field-move-gates-v1": false,
-   "story-battle-heal-gate-v1": false
+   "story-battle-heal-gate-v1": false,
+   "navigation-refusal-reasons-v3": false
   }
  },
  "switches": [
@@ -241,7 +242,8 @@
   "field-move-gates-v1",
   "full-map-navigation-v1",
   "yes-no-answer-readout-v1",
-  "story-battle-heal-gate-v1"
+  "story-battle-heal-gate-v1",
+  "navigation-refusal-reasons-v3"
  ],
  "offInBoth": [
   "semantic-navigation-v1",

@@ -222,3 +222,7 @@ PENDING, explicitly blocked and unqueued. Clock policy acts from server boot; NE
 Pending, not queued. Activation PLAYER_NAME_CONFIRMED; readiness computed from qualifying recorded runs. Future bundle only; no measured runs launched.
 
 V3 readiness check: ready on recent fallback, 4/4 think-fast runs reached PLAYER_NAME_CONFIRMED; too few match the incumbent. Considered Oct15 runs2f46,6684,dc0e,17a0. This is early activation readiness only, not comparable configuration evidence or gameplay benefit. Entry remains pending and unqueued.
+
+## navigation-refusal-reasons-v3 (2026-10-20)
+
+Pending, unqueued. Activation PLAYER_NAME_CONFIRMED (first navigable truck field). Boot readiness unproven: no four qualifying runs of this frozen incumbent were established; historical MAIN_MENU Woods states prove the advice defect, not boot readiness or gameplay benefit. No checkpoint load or measured run authorized. Future bundle ON, control/default OFF.

@@ -20,6 +20,11 @@ set -u
 
 REPO=${REPO:-$HOME/dev/pokebench}
 JUST=${JUST:-just}
+# New exploratory mode reloads the launcher, registry and definition before each trial.
+# The old round-pinned implementation remains available only by explicit opt-out.
+if [ "${LATEST_MAIN_PER_TRIAL:-1}" = 1 ]; then
+  exec "$REPO/env/.venv/bin/python" -m pokebench_env.latest_main_loop
+fi
 EXP_ID=${EXP_ID:-whole-map-pair-2h}
 PHASE=${PHASE:-cook}
 WALL_MS=${WALL_MS:-7200000}

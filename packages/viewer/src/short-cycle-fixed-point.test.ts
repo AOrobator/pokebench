@@ -7,7 +7,7 @@ import { RunView } from "./model.js";
 import { eventText, inspector } from "./panels.js";
 import { lanesSvg } from "./timeline.js";
 
-const NOTE = "SUPERVISOR: Make one tool call based on the game state and what you observed. Your last 7 turns repeated the same 2 turns of navigate_to_target calls, and each time round the game came back to the same 2 screens, positions and highlighted choices.";
+const NOTE = "SUPERVISOR: Make one tool call based on the game state and what you observed. Your last 7 turns repeated the same 2 turns of navigate_to_target calls, and each time round the game came back to the same sequence of screens, positions and highlighted choices.";
 
 it("labels short-cycle collapses and notes in Activity History and adds nothing to the timeline", () => {
   const log = new Log();

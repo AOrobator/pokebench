@@ -50,6 +50,7 @@ function rig(features:FeatureSet){
  const wiring=contextTools(features,recorder,m=>Promise.resolve(m));
  const emit=(body:EventBody):RunEvent=>{const e=checkEvent({v:1,run:"r",seq:++seq,t:"2026-10-20T20:06:00.000-04:00",...body});for(const s of subscribers)s(e);return e;};
  const messages:AgentMessage[]=[userText("Play.")];
+ const states:GameStateSnapshot[]=[];
  let n=0;
  // One completed turn whose result left `state`; every turn's thinking differs, as in ef9f and 97a0.
  const turn=(args:Record<string,unknown>,state:GameStateSnapshot,name="press",thinking=`Turn ${String(n+1)}: my plan.`):void=>{
@@ -57,6 +58,7 @@ function rig(features:FeatureSet){
   emit({type:"assistant",turn:n,thinking,text:"",tool_calls:[{id,name,args}],usage:{input:1,output:1,cache_read:0},latency_ms:1,ttft_ms:null,stop_reason:"toolUse"});
   emit({type:"tool_call",turn:n,id,name,args});
   const s=emit({type:"state",turn:n,...state});
+  states.push(state);
   emit({type:"tool_result",turn:n,id,name,is_error:false,duration_ms:1,text:`done. turn ${String(n)}`,frames:[],state_seq:s.seq});
   messages.push({...assistant({thinking,toolCalls:[toolCall(id,name,args)]}),timestamp:n});
   messages.push({role:"toolResult",toolCallId:id,toolName:name,content:[{type:"text",text:`done. turn ${String(n)}`}],isError:false,timestamp:n});
@@ -84,7 +86,7 @@ function rig(features:FeatureSet){
   messages.push({...assistant({thinking:"Hmm."}),timestamp:n});
   messages.push(userText("Keep playing."));
  };
- return {turn,pair,unfinished,silent,messages,recorded,wiring,send:()=>wiring.transformContext([...messages])};
+ return {turn,pair,unfinished,silent,messages,states,recorded,wiring,send:()=>wiring.transformContext([...messages])};
 }
 const texts=(out:readonly AgentMessage[]):string[]=>out.flatMap(m=>m.role==="user"?[typeof m.content==="string"?m.content:"(parts)"]:m.role==="toolResult"?[m.content.flatMap(p=>p.type==="text"?[p.text]:[]).join("")]:[`assistant ${String(m.timestamp)}`]);
 const kept=(out:readonly AgentMessage[]):number[]=>out.flatMap(m=>m.role==="assistant"?[m.timestamp]:[]);
@@ -101,6 +103,8 @@ describe("the cycle state fingerprint",()=>{
   const naming=(value:string)=>({...CLOCK,screen:"naming",active_ui:ui("naming_keyboard","A",value)});
   expect(cycleState(state(naming("MA")))).not.toBe(cycleState(state(naming("MAY"))));
   expect(cycleState(state(IN_GAME))).not.toBe(cycleState(state({...IN_GAME,money:2900})));
+  const quantity=(maximum:number)=>({...CLOCK,screen:"pc",active_ui:{...ui("pc_quantity",null,"x1"),details:{kind:"quantity",maximum}}}) as unknown as GameStateSnapshot;
+  expect(cycleState(state(quantity(9)))).not.toBe(cycleState(state(quantity(8))));
   expect(cycleState(state(ADJUST()))).not.toBeNull();
   expect(cycleState(state(ADJUST()))).not.toBe(cycleState(state(CONFIRM())));
  });
@@ -211,7 +215,7 @@ describe("stage 1 with the switch on: a short cycle collapses to its newest copy
   expect(kept(await quiet.send())).toEqual([1,2,3,5,6,7]);
   expect([...moved.recorded,...party.recorded,...call.recorded,...unready.recorded,...quiet.recorded.filter(b=>b.trigger==="short_cycle")]).toEqual([]);
  });
- it("ignores the interface's value, as the clock's two minutes a cycle in ef9f",async()=>{
+ it("ignores the clock's time, as its two minutes a cycle in ef9f",async()=>{
   const r=rig(COLLAPSE);
   for(let i=0;i<6;i++)r.turn(RIGHT_A,i%2===0?CONFIRM(`11:0${String(i)} AM`):ADJUST(`11:0${String(i)} AM`));
   expect(kept(await r.send())).toEqual([5,6]);
@@ -247,7 +251,7 @@ describe("OFF and the switches it acts through",()=>{
   expect((await r.send()).at(-1)).toMatchObject({role:"toolResult"});
   doors(r,1);
   const note=cycleNote(7,2,["navigate_to_target"]);
-  expect(note).toBe(`${BREAKER_NOTE} Your last 7 turns repeated the same 2 turns of navigate_to_target calls, and each time round the game came back to the same 2 screens, positions and highlighted choices.`);
+  expect(note).toBe(`${BREAKER_NOTE} Your last 7 turns repeated the same 2 turns of navigate_to_target calls, and each time round the game came back to the same sequence of screens, positions and highlighted choices.`);
   expect((await r.send()).at(-1)).toMatchObject({role:"user",content:note});
   expect(r.recorded.filter(b=>b.stage===2)).toEqual([{stage:2,trigger:"short_cycle",repeats:7,collapsed:0,text:note,period:2}]);
   const off=rig({...BREAKER,[ID]:false});doors(off,8);
@@ -267,9 +271,29 @@ describe("OFF and the switches it acts through",()=>{
   const r=rig(BREAKER);
   for(let i=0;i<7;i++)r.turn(RIGHT_A,i%2===0?CONFIRM(`11:0${String(i)} AM`):ADJUST(`11:0${String(i)} AM`));
   const note=cycleNote(7,2,["press"]);
-  expect(note).toBe(`${BREAKER_NOTE} Your last 7 turns repeated the same 2 turns of press calls, and each time round the game came back to the same 2 screens, positions and highlighted choices.`);
+  expect(note).toBe(`${BREAKER_NOTE} Your last 7 turns repeated the same 2 turns of press calls, and each time round the game came back to the same sequence of screens, positions and highlighted choices.`);
   expect(note.slice(BREAKER_NOTE.length)).not.toMatch(/\bstates?\b/);
+  expect(note).not.toMatch(/same \d+ screens/);
   expect((await r.send()).at(-1)).toMatchObject({content:note});
+  // What the note claims, checked against the states the cycle left: each turn's screen, position and highlighted
+  // choice equals the one 2 turns before it, while the clock's time did not repeat.
+  const left=r.states.slice(-7);
+  const shown=left.map(x=>JSON.stringify([x.screen,x.position,x.active_ui?.selected??null]));
+  for(let k=2;k<shown.length;k++)expect(shown[k]).toBe(shown[k-2]);
+  expect(new Set(left.map(x=>x.active_ui?.value)).size).toBe(7);
+  expect(new Set(left.map(x=>x.screen)).size).toBe(1);
+ });
+ it("taking one item at a time out of the PC is progress, not a cycle",async()=>{
+  const r=rig(COLLAPSE);
+  // The quantity box shows the same maximum each time, so only the inventory says an item was taken out.
+  const pc=(left:number,phase:string,tick=0)=>({...IN_GAME,screen:"pc",active_ui:{...ui(phase,phase==="pc_quantity"?null:"POTION","x1"),details:{kind:"quantity",maximum:9}},resources:{bag:[{slot:0,pocket:"items",item_id:13,quantity:10-left,name:"POTION"}],pc_items:[{slot:0,pocket:null,item_id:13,quantity:left,name:"POTION"}],storage:{current_box:0,occupied:[]},berry_trees:[{tree_id:1,berry:3,item_id:135,stage:5,stop_growth:true,minutes_until_next_stage:720-tick,yield_count:0,regrowth_count:0,watered:[false,false,false,false]}],planted_berries:0,diagnostics:[],script_pc:1000+tick,script_mode:1,script_status:1,selected_tree_id:null,berry_script_owner:null,daycare:[]}}) as unknown as GameStateSnapshot;
+  for(let i=0;i<8;i++){const left=9-Math.floor(i/2);r.turn({buttons:["A"]},i%2===0?pc(left,"pc_quantity"):pc(left,"pc_item_list"));}
+  expect(texts(await r.send()).filter(t=>t.startsWith("assistant"))).toHaveLength(8);
+  expect(r.recorded).toEqual([]);
+  // The same screens with nothing taken out are a cycle (berry timers and script registers do not count).
+  const still=rig(COLLAPSE);
+  for(let i=0;i<6;i++)still.turn({buttons:["A"]},i%2===0?pc(9,"pc_quantity",i):pc(9,"pc_item_list",i));
+  expect(kept(await still.send())).toEqual([5,6]);
  });
  it("a name being typed or money being spent is progress, not a cycle",async()=>{
   const typing=rig(BREAKER);
@@ -292,8 +316,12 @@ describe("OFF and the switches it acts through",()=>{
  it("a turn with two calls counts as one turn of the cycle, in call order",async()=>{
   const r=rig(BREAKER);
   for(let i=0;i<7;i++)r.pair(i%2===0?[CONFIRM(),ADJUST()]:[ADJUST(),CONFIRM()]);
-  expect(kept(await r.send())).toEqual([6,7]);
+  const out=await r.send();
+  expect(kept(out)).toEqual([6,7]);
   expect(r.recorded.map(b=>[b.stage,b.trigger,b.repeats])).toEqual([[1,"short_cycle",7],[2,"short_cycle",7]]);
+  // Two calls a turn leave four results a cycle; the note claims a repeating sequence, not a count of screens.
+  expect(out.at(-1)).toMatchObject({content:cycleNote(7,2,["press"])});
+  expect(cycleNote(7,2,["press"])).toContain("came back to the same sequence of screens, positions and highlighted choices.");
  });
  it("a turn whose result never came breaks the cycle for stage 2 as it does for stage 1",async()=>{
   const r=rig(BREAKER);
@@ -435,7 +463,7 @@ describe("short-cycle-fixed-point-v1 registry, presets and experiments",()=>{
   expect(featureInfo(ID)).toMatchObject({group:"guard",needs:null,switchable:true,title:"SHORT-CYCLE FIXED POINT"});
   expect(featureInfo(ID).description).toContain(" Off: ");
   expect(featureInfo(ID).description).toContain("duplicate-turn-collapse-v1");
-  expect(featureInfo(ID).description).toContain(cycleNote(7,2,["navigate_to_target"]).replace("7 turns","N turns").replace("2 turns of navigate_to_target","P turns of <tool>").replace("same 2 screens","same P screens"));
+  expect(featureInfo(ID).description).toContain(cycleNote(7,2,["navigate_to_target"]).replace("7 turns","N turns").replace("2 turns of navigate_to_target","P turns of <tool>"));
   expect(playHarnessFeatures(ALL_ON,null).at(-1)).toBe(ID);
   expect(playHarnessFeatures({...ALL_ON,[ID]:false},null)).not.toContain(ID);
   expect(normalizeFeatures({} as Parameters<typeof normalizeFeatures>[0])[ID]).toBe(false);

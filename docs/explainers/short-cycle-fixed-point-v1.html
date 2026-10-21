@@ -108,7 +108,7 @@ svg .small{font-size:11px;fill:var(--muted)}
 <text x="310" y="180" class="small">5 turns: fewer than 3 copies</text>
 </g>
 </svg>
-<figcaption>Each box is one turn: its tool calls and the state its result left. A run counts when every turn equals the one 2, 3 or 4 turns before it and the run holds 3 copies of the cycle, as identical turns need 3 copies. A cycle that is really shorter counts as the shorter one (A,B,A,B is 2 turns, not 4); identical turns (a 1-turn cycle) stay the identical-turn rule's. The state is the fixed point's own fingerprint (screen, map, position, facing, field lock, story, party, dialogue, open interface and its highlighted choice, battle) plus the money, without the clock's time; every other interface keeps its value.</figcaption>
+<figcaption>Each box is one turn: its tool calls and the state its result left. A run counts when every turn equals the one 2, 3 or 4 turns before it and the run holds 3 copies of the cycle, as identical turns need 3 copies. A cycle that is really shorter counts as the shorter one (A,B,A,B is 2 turns, not 4); identical turns (a 1-turn cycle) stay the identical-turn rule's. The state is the fixed point's own fingerprint (screen, map, position, facing, field lock, story, party, dialogue, open interface and its highlighted choice, battle) plus the money, the open interface's details and the inventory (bag, PC items, boxes, daycare, planted berries), without the clock's time; every other interface keeps its value.</figcaption>
 </figure>
 
 <div class="tablewrap"><table>
@@ -118,7 +118,7 @@ svg .small{font-size:11px;fill:var(--muted)}
 <tr><td>4 turns</td><td>12 turns</td><td>the last 4</td><td>from 13 turns</td></tr>
 </table></div>
 <p>Each collapse is a <code>loop_breaker</code> stage 1 event with trigger <code>short_cycle</code>, the run's length as <code>repeats</code> and its <code>period</code>. Auto-talk never acts on a cycle: it acts only on turns that left the state the same. The note, when the breaker is on (all three fixed experiments have it off):</p>
-<p class="note">SUPERVISOR: Make one tool call based on the game state and what you observed. Your last 7 turns repeated the same 2 turns of navigate_to_target calls, and each time round the game came back to the same 2 screens, positions and highlighted choices.</p>
+<p class="note">SUPERVISOR: Make one tool call based on the game state and what you observed. Your last 7 turns repeated the same 2 turns of navigate_to_target calls, and each time round the game came back to the same sequence of screens, positions and highlighted choices.</p>
 
 <h2>Before and after: where it first acts</h2>
 <figure>
@@ -170,7 +170,7 @@ svg .small{font-size:11px;fill:var(--muted)}
 
 <h2>Not covered</h2>
 <ul>
-<li>One turn repeating with different thinking: 97a0 turns 131–136 made the same <code>navigate_to_target</code> call six times, each staying in the house, with four different thinking texts (the identical-turn collapse acted only at turn 140, after three byte-identical turns); ef9f turns 102–126 repeated <code>press RIGHT,A,DOWN,A</code> 25 times while the clock value moved. A 1-turn cycle stays the identical-turn rule's.</li>
+<li>One turn repeating with different thinking: 97a0 turns 131–136 made the same <code>navigate_to_target</code> call six times (131 entered the house, 132–136 stayed in it), with four different thinking texts (the identical-turn collapse acted only at turn 140, after three byte-identical turns); ef9f turns 102–126 repeated <code>press RIGHT,A,DOWN,A</code> 25 times while the clock value moved. A 1-turn cycle stays the identical-turn rule's.</li>
 <li>Wandering that never repeats exactly, such as 97a0 turns 106–115 among RUBY's HOUSE, the town and the lab.</li>
 </ul>
 

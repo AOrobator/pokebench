@@ -31,21 +31,24 @@ export function fixedPointNote(turns:number,names:readonly string[]):string {
  return `${BREAKER_NOTE} Your last ${String(turns)} turns made the same ${names.join(", ")} call${names.length===1?"":"s"} and the game state stayed the same after each one.`;
 }
 export function cycleNote(turns:number,period:number,names:readonly string[]):string {
- return `${BREAKER_NOTE} Your last ${String(turns)} turns repeated the same ${String(period)} turns of ${names.join(", ")} calls, and each time round the game came back to the same ${String(period)} screens, positions and highlighted choices.`;
+ return `${BREAKER_NOTE} Your last ${String(turns)} turns repeated the same ${String(period)} turns of ${names.join(", ")} calls, and each time round the game came back to the same sequence of screens, positions and highlighted choices.`;
 }
 
-// short-cycle-fixed-point-v1: planState's fields plus the money, without the clock's time (ef9f's clock moved two
-// minutes each cycle; every other interface keeps its value, such as a name being typed or a quantity), on any screen
+// short-cycle-fixed-point-v1: planState's fields plus the money, the open interface's details and the inventory
+// (bag, PC items, boxes, daycare, planted berries; berry growth timers and script registers move on their own), without
+// the clock's time (ef9f's clock moved two minutes each cycle; every other interface keeps its value, such as a name
+// being typed or a quantity), on any screen
 // whose readout shows a ready interface it can qualify (ef9f's clock screen), and on the field and in battle under
 // planState's own rules. Null where the readout cannot qualify the state.
 const CLOCK_PHASES=new Set(["clock_adjustment","clock_confirmation"]);
+const inventory=(state:State)=>{const r=state.resources??null;return r===null?null:[r.bag,r.pc_items,r.storage,r.daycare,r.planted_berries];};
 export function cycleState(state:State):string|null {
  if(!state.started)return null;
  const ui=state.active_ui??null;
  if(ui!==null&&(ui.diagnostic!==null||ui.ready!==true))return null;
  const party=state.party.map(p=>[p.species_id??p.species,p.level,p.hp,p.status??null]);
  const value=ui===null||CLOCK_PHASES.has(ui.phase)?null:ui.value??null;
- const common={screen:state.screen,map:state.map_id,position:state.position,facing:state.facing,locked:state.field_controls_locked??null,story:state.story??null,party,money:state.money,dialogue:state.world_context?.dialogue??null,ui:ui===null?null:[ui.phase,ui.selected,value]};
+ const common={screen:state.screen,map:state.map_id,position:state.position,facing:state.facing,locked:state.field_controls_locked??null,story:state.story??null,party,money:state.money,inventory:inventory(state),dialogue:state.world_context?.dialogue??null,ui:ui===null?null:[ui.phase,ui.selected,value,ui.details??null]};
  if(state.in_battle){
   if(ui===null)return null;
   const battle=state.battle??null;

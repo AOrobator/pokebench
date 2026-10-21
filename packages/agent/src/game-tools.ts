@@ -10,7 +10,7 @@ import {randomUUID} from "node:crypto";
 import {STRIDE_MAX_FRAMES,StrideReceiptSchema,type StridePlan,type StrideCorridor,type StrideReceipt} from "./stride.js";
 
 // Which model-visible parts of the observe/press results this run shows.
-export interface ToolSwitches { readonly evolutionDecision?: boolean; readonly readout: boolean; readonly pressResult: boolean; readonly position: boolean; readonly fieldLock: boolean; readonly safeInterfaces?: boolean; readonly automaticRunning?: boolean; readonly transitions?: boolean; readonly warpArrival?: boolean; readonly blockedBatch?: boolean; readonly liveMap?: boolean; readonly ledges?: boolean; readonly edgeWalls?: boolean; readonly counters?: boolean; readonly topology?: boolean; readonly pushback?: boolean }
+export interface ToolSwitches { readonly navigationToolUseGuard?: boolean; readonly evolutionDecision?: boolean; readonly readout: boolean; readonly pressResult: boolean; readonly position: boolean; readonly fieldLock: boolean; readonly safeInterfaces?: boolean; readonly automaticRunning?: boolean; readonly transitions?: boolean; readonly warpArrival?: boolean; readonly blockedBatch?: boolean; readonly liveMap?: boolean; readonly ledges?: boolean; readonly edgeWalls?: boolean; readonly counters?: boolean; readonly topology?: boolean; readonly pushback?: boolean }
 export const ALL_TOOL_SWITCHES: ToolSwitches = { readout: true, pressResult: true, position: true, fieldLock: true, automaticRunning: false, transitions: false };
 import type { PressTiming } from "./recorder.js";
 
@@ -221,6 +221,12 @@ export function pressTool(
         if(check!==undefined)throw error;
       }
       check?.(before);
+      if(switches.navigationToolUseGuard===true&&check===undefined&&params.buttons.length>=2&&params.buttons.every(button=>button==="UP"||button==="DOWN"||button==="LEFT"||button==="RIGHT")&&before?.started&&before.screen==="overworld"&&!before.in_battle&&before.active_ui===null&&before.field_controls_locked===false&&before.running?.controllable===true&&before.map_id!==null&&before.position!==null&&before.world_context?.field_activity==null&&before.world_context?.dialogue==null&&before.world_context?.message==null){
+        const receipt={requested:params.buttons,submitted:[],map_id:before.map_id,position:before.position};
+        const result=await observation(gameServerUrl,fetchFn,signal,`Navigation tool-use guard: no input was sent. Use an available navigation tool with a target you choose for walking. Single direction presses remain available for facing or crossing an exit. ${JSON.stringify(receipt)}\n`);
+        shown.record(result.state,before);
+        return {content:result.content,details:{state:result.state}};
+      }
       if(switches.evolutionDecision===true&&before?.screen==="evolution"&&(before.active_ui?.phase==="evolution_decision"||before.active_ui?.phase==="evolution_cancel_window"||(typeof before.active_ui?.details?.evolution_state==="number"&&before.active_ui.details.evolution_state<=8&&typeof before.active_ui.details.task_flags==="number"&&(before.active_ui.details.task_flags&1)!==0))){
         const result=await observation(gameServerUrl,fetchFn,signal,"Ordinary buttons are blocked during this evolution animation. Use choose_evolution when the decision is ready. Nothing pressed.\n");
         return {content:result.content,details:{state:result.state}};

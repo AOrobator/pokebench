@@ -300,9 +300,9 @@ describe("registry, fixed bundles and event",()=>{
   expect(playSystemPrompt({...WIRE,[ID]:true},null)).toBe(playSystemPrompt({...WIRE,[ID]:false},null));
   expect(playTools({...WIRE,[ID]:true})).toEqual(playTools({...WIRE,[ID]:false}));
  });
- it("is on in both arms of bundle-v-control, bundle-cook-1h and whole-map-cook-1h; its pending experiment's incumbent is the control arm with it off",()=>{
+ it("is on in both arms of bundle-v-control, bundle-cook-1h, whole-map-cook-1h and glm53-flash-1h; its pending experiment's incumbent is the control arm with it off",()=>{
   const read=(path:string):unknown=>JSON.parse(readFileSync(new URL(`../../../${path}`,import.meta.url),"utf8"));
-  for(const name of ["bundle-v-control","bundle-cook-1h","whole-map-cook-1h"]){
+  for(const name of ["bundle-v-control","bundle-cook-1h","whole-map-cook-1h","glm53-flash-1h"]){
    const fixed=read(`experiments/fixed/${name}.json`) as {base:{features:Record<string,boolean>};switches:string[];onInBoth:string[];offInBoth:string[]};
    expect(fixed.base.features[ID]).toBe(true);expect(fixed.onInBoth).toContain(ID);expect(fixed.switches).not.toContain(ID);expect(fixed.offInBoth).not.toContain(ID);
   }

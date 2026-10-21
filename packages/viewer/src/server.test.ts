@@ -1079,7 +1079,7 @@ it("serves the caught nickname and fail-open explainers byte for byte, mapped fr
  for(const [id,title] of pages){
   expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
   const reply=await get(viewer,`/explainers/${id}.html`);
-  expect(reply.status).toBe(200);expect(reply.body.toString()).toContain(title);
+  expect(reply.status).toBe(200);expect(reply.body.toString()).toContain(title);expect(reply.body.equals(readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url))))).toBe(true);
  }
 });
 
@@ -1096,14 +1096,14 @@ it("serves the field move gates explainer byte for byte, mapped from its card",a
 
 it("serves the whiteout healed explainer byte for byte, mapped from its card",async()=>{
  const root=mkdtempSync(join(tmpdir(),"pokebench-explainers-")),staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});
- const pages=[["whiteout-healed-v1","Whiteout healed"],["same-target-no-progress-v1","Same target, no progress"]] as const;
+ const pages=[["whiteout-healed-v1","Whiteout healed"],["same-target-no-progress-v1","Same target, no progress"],["short-cycle-fixed-point-v1","Short-cycle fixed point"],["navigation-tool-use-guard-v1","Navigation tool-use guard"],["semantic-current-map-feedback-v1","Semantic current-map feedback"]] as const;
  for(const [id] of pages)writeFileSync(join(docs,`${id}.html`),readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url))));
  const viewer=await startViewer({runsRoot:join(root,"runs"),staticDir,appDir:join(root,"app"),port:0});open.push(viewer);
  const {FEATURE_EXPLAINERS}=await import("./panels.js");
  for(const [id,title] of pages){
   expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
   const reply=await get(viewer,`/explainers/${id}.html`);
-  expect(reply.status).toBe(200);expect(reply.body.toString()).toContain(title);
+  expect(reply.status).toBe(200);expect(reply.body.toString()).toContain(title);expect(reply.body.equals(readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url))))).toBe(true);
  }
 });
 

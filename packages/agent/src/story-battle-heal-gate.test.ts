@@ -430,9 +430,9 @@ describe("registry and event",()=>{
   expect(featureInfo(ID)).toMatchObject({group:"guard",needs:"heal-before-trainers-v2",switchable:true,title:"STORY BATTLE HEAL GATE"});
   expect(featureInfo(ID).description).toContain(" Off: ");
   expect(featureInfo(ID).description).toContain(TURN157_TEXT.split("\n")[0]);
-  expect(SWITCHABLE_FEATURES.at(-3)).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-5)).toBe(ID);
   expect(SERVER_FEATURES).not.toContain(ID);
-  expect(playHarnessFeatures({...ALL_ON,[ID]:true},null).at(-3)).toBe(ID);
+  expect(playHarnessFeatures({...ALL_ON,[ID]:true},null).at(-5)).toBe(ID);
   expect(playHarnessFeatures({...ALL_ON,[ID]:false},null)).not.toContain(ID);
   expect(dependencyProblems({...ALL_ON,"heal-before-trainers-v2":false,[ID]:true})).toContain(`${ID} needs heal-before-trainers-v2`);
   const without=Object.fromEntries(Object.entries(ALL_ON).filter(([id])=>id!==ID)) as Omit<FeatureSet,typeof ID>;
@@ -449,11 +449,12 @@ describe("registry and event",()=>{
    expect(fixed.base.features[ID]).toBe(false);expect(fixed.switches).toContain(ID);
   }
   const fixed=read("experiments/fixed/bundle-v-control.json") as {base:{features:Record<string,boolean>};switches:string[]};
-  // story-battle-heal-first-v1 joined both arms after this entry was registered; it is repinned when it is queued.
-  const arm=Object.fromEntries(Object.entries({...fixed.base.features,...Object.fromEntries(fixed.switches.map(s=>[s,true])),[ID]:false}).filter(([id])=>id!=="story-battle-heal-first-v1"));
+  const arm:Record<string,boolean>={...fixed.base.features,...Object.fromEntries(fixed.switches.map(s=>[s,true])),[ID]:false};
   const entry=read(`experiments/${ID}.json`) as {changedFeature:string;incumbent:{features:Record<string,boolean>};queuePosition?:number};
   expect(entry.changedFeature).toBe(ID);expect(entry.queuePosition).toBeUndefined();
-  expect({...entry.incumbent.features,"exit-labels-v3":true}).toEqual(arm);
+  delete arm["navigation-tool-use-guard-v1"];delete arm["semantic-current-map-feedback-v1"];
+  // exit-labels-v3 and short-cycle-fixed-point-v1 joined the bundle arm after this pending experiment was pinned.
+  expect({...entry.incumbent.features,"exit-labels-v3":true,"short-cycle-fixed-point-v1":true}).toEqual(arm);
   expect(dependencyProblems(normalizeFeatures({...entry.incumbent.features,[ID]:true} as Parameters<typeof normalizeFeatures>[0]))).toEqual([]);
  });
  it("records a valid story_battle_heal_gate event",()=>{

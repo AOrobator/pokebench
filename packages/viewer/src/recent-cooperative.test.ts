@@ -1,9 +1,9 @@
 import { afterEach, expect, it } from "vitest";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { START, Log, state } from "../test-support/events.js";
-import { readRecentEvents, readRecentEventsAsync } from "./runs.js";
+import { readRecentEvents, readRecentEventsAsync, RECENT_SLICE_LINES } from "./runs.js";
 
 const roots: string[] = [];
 afterEach(() => { for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true }); });
@@ -17,7 +17,8 @@ function fixture(tail = ""): {root: string; path: string} {
 }
 
 it("yields between bounded validation slices and retains identical events and atomic tail cursor", async () => {
-  const {root} = fixture();
+  const {root} = fixture('{"partial');
+  expect(RECENT_SLICE_LINES).toBe(16);
   const expected = readRecentEvents(root, "sample", 1);
   const cursor = {offset:0};
   let yielded = false;
@@ -25,18 +26,17 @@ it("yields between bounded validation slices and retains identical events and at
   const result = await readRecentEventsAsync(root, "sample", 1, 1 << 20, cursor, 2);
   expect(yielded).toBe(true);
   expect(result).toEqual(expected);
-  expect(cursor.offset).toBe(Buffer.byteLength(writeBody(root)));
+  expect(cursor.offset).toBe(Buffer.byteLength(writeBody(root).slice(0,writeBody(root).lastIndexOf("\n")+1)));
 });
 
 function writeBody(root: string): string {
   // The snapshot boundary must not include a partial append.
   return readFileSync(join(root,"sample","events.jsonl"),"utf8");
 }
-import { readFileSync } from "node:fs";
 
 it("keeps strict malformed-line and foreign-run rejection before sending a head", async () => {
   const a = fixture('{broken}\n');
   await expect(readRecentEventsAsync(a.root,"sample",30,1<<20,undefined,2)).rejects.toThrow(/recent event/);
-  const b = fixture(JSON.stringify({...START,run:"foreign",v:1,seq:99,t:"2026-10-21T12:00:00Z",turn:3})+"\n");
+  const b = fixture(JSON.stringify({...START,run:"foreign",v:1,seq:99,t:"2026-10-21T12:00:00.000-04:00",turn:3})+"\n");
   await expect(readRecentEventsAsync(b.root,"sample",30,1<<20,undefined,2)).rejects.toThrow(/foreign/);
 });

@@ -454,6 +454,25 @@ describe("viewer server", () => {
     expect(received).toBe(frames.length);
   });
 
+  it("reports source loss and stage timings without changing binary PNG bytes", async () => {
+    const { runsRoot, viewer } = await fixture();
+    const live = new Log(); live.add(0, START);
+    const payloads = [10, 13].map(frame_count => ({ frame_data: PNG.toString("base64"), frame_count, timestamp: Date.now() / 1000 }));
+    writeRun(runsRoot, "live", live, await fakeFrameGameServer(payloads));
+    const socket = frameSocket(viewer, "/api/runs/live/frames");
+    open.push({ close: () => { socket.terminate(); return Promise.resolve(); } });
+    const frames: Buffer[] = [];
+    await new Promise<void>((resolve, reject) => {
+      socket.on("error", reject);
+      socket.on("message", data => { frames.push(Buffer.from(data as Buffer)); if (frames.length === 2) resolve(); });
+    });
+    expect(frames).toEqual([PNG, PNG]);
+    const reply = await get(viewer, "/api/frame-metrics");
+    expect(reply.status).toBe(200);
+    expect(JSON.parse(reply.body.toString())).toMatchObject({ version: 1, runs: [{ run: "live", received: 2, missingSourceFrames: 2, sourceFrame: 13, decode: { count: 2 }, upstreamGap: { count: 1 } }] });
+    expect((await get(viewer, "/api/frame-metrics", {host:"evil.example"})).status).toBe(403);
+  });
+
   it("falls back to the pinned vendor frame route for already-running game servers", async () => {
     const { runsRoot, viewer } = await fixture();
     const live = new Log(); live.add(0, START);

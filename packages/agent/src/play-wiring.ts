@@ -30,6 +30,7 @@ import {withPeopleIdCards,type IdCardRecorder} from "./people-id-cards.js";
 import {withStoryDestinations} from "./story-destinations.js";
 import {withInstructionLedgerV2} from "./instruction-ledger-v2.js";
 import {withBattleAction} from "./battle-action.js";
+import {withLearnMove} from "./learn-move.js";
 import {withHarnessTrust,type TrustRecorder} from "./harness-trust.js";
 import {withCitedDestination,type CitationRecorder} from "./cited-destination.js";
 import {withUntakenExits} from "./untaken-exits.js";
@@ -124,6 +125,7 @@ export function stallStop(features:FeatureSet,recorder:Pick<RunRecorder,"subscri
 // story-destinations-v1 adds its block under the Story line, which none of those touches.
 // instruction-ledger-v2 wraps it, so its conversation ledger sits right under the Story line, above that block.
 // battle-move-tool-v1: battle_action is built beside navigate_to from the ordinary press and observe, inside dialogue auto-advance.
+// move-learn-tool-v1: learn_move is built the same way, beside battle_action; dialogue auto-advance does not replace it.
 // extra: the run's other model tools (context tools), wrapped too so any call between presses is seen.
 // low-hp-trainer-warning-v1 wraps everything else, so its paragraph follows any other text the result gained; only
 // withResultFacts (blocked-exit-fact-v1, battle-loss-recap-v1) is outside it, adding its lines after that paragraph.
@@ -165,7 +167,7 @@ export function playGameTools(base:readonly AgentTool[],features:FeatureSet,stat
  const arm=features["story-battle-heal-gate-v1"]?healArm(features,state):undefined;
  const healGate=arm===undefined?undefined:storyBattleHealGate(arm,state,recorder,features["progress-aware-cycles-v1"]);
  const navigated=withSemanticNavigation(withNavigation(base,features,navigationState,gate,sight,healGate),features,navigationState);
- const facts=[...withResultFacts(withUnfinishedActivity(withLowHpTrainerWarning(withStoryBattleHealGate(withCatchingBlocks(withTrainingBlock(withGameSaidGoals(withEffectivenessHeard(withNavigateFirst([...withInstructionLedgerV2(withStoryDestinations(withPeopleIdCards(withUntakenExits(withGymReadiness(withPeopleLedger(withDialogueAutoAdvance(withBattleAction(withNoExitHere(navigated,features),features,state,gate),features,{state,recorder,...(gate===undefined?{}:{gate})}),features,recorder),features,recorder),features,recorder),features,recorder),features,recorder,state),features,recorder),...extra],features),features,recorder),features,recorder),features,recorder),features,recorder),healGate,state),features,recorder,state,arm),features,recorder,state),features,recorder)];
+ const facts=[...withResultFacts(withUnfinishedActivity(withLowHpTrainerWarning(withStoryBattleHealGate(withCatchingBlocks(withTrainingBlock(withGameSaidGoals(withEffectivenessHeard(withNavigateFirst([...withInstructionLedgerV2(withStoryDestinations(withPeopleIdCards(withUntakenExits(withGymReadiness(withPeopleLedger(withDialogueAutoAdvance(withLearnMove(withBattleAction(withNoExitHere(navigated,features),features,state,gate),features,state,gate),features,{state,recorder,...(gate===undefined?{}:{gate})}),features,recorder),features,recorder),features,recorder),features,recorder),features,recorder,state),features,recorder),...extra],features),features,recorder),features,recorder),features,recorder),features,recorder),healGate,state),features,recorder,state,arm),features,recorder,state),features,recorder)];
  const visible=terrain===null?facts:withVisitedTerrain(facts,terrain);
  const cited=withCitedDestination(visible,features["cited-destination-v1"],recorder,{fullMap:features["full-map-navigation-v1"],exitReach:features["exit-reachability-v1"],silenceMiss:features["input-cuts-v1"]});
  return withStalePlanFact(withHealFirst(withStarterDecision(withHarnessTrust(cited,features["harness-trust-v1"],recorder,state,{supervisor:true,semanticTargets:features["semantic-navigation-v2"],battleAction:features["harness-trust-v2"],goalOnce:features["input-cuts-v1"],retireLab:features["stale-story-goal-v1"],stageBound:features["stale-story-goal-v2"],omitEmptyGoal:features["stale-story-goal-v2"],scriptedGuidance:features["scripted-place-guidance-v1"],reachableGoal:features["reachable-story-guidance-v1"],exitSections:features["exit-labels-v3"],activity:features["unfinished-activity-v1"],playerName:features["story-goal-player-name-v1"]}),features),features["story-battle-heal-first-v1"],recorder,state),features,recorder);
@@ -178,7 +180,7 @@ export function battleDecisionContext(features:FeatureSet,state:StateSource,tool
  if(observe===undefined)throw new Error("Battle decision readiness requires observe");
  let sequence=0;
  let retained:AgentMessage|null=null,observedAt:string|null=null;
- const gameTools=new Set(["observe","press","navigate_to","navigate_to_target","explore_map","battle_action","act",...(features["evolution-decision-v1"]?["choose_evolution"]:[])]);
+ const gameTools=new Set(["observe","press","navigate_to","navigate_to_target","explore_map","battle_action","act",...(features["evolution-decision-v1"]?["choose_evolution"]:[]),...(features["move-learn-tool-v1"]?["learn_move"]:[])]);
  return async messages=>{
   const latest=messages.findLast(message=>message.role==="toolResult"&&gameTools.has(message.toolName)&&!message.isError&&message.content.some(part=>part.type==="image"));
   const anchor=latest?.role==="toolResult"?JSON.stringify([latest.toolName,latest.toolCallId,latest.timestamp]):null;

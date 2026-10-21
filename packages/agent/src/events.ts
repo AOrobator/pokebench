@@ -724,6 +724,9 @@ const State = event("state", StateBodySchema.properties);
 export const BattleTextEntrySchema=Type.Object({id:Type.Integer({minimum:1}),frame:NonNegativeInt,recorded_ms:NonNegativeInt,battle:Type.Integer({minimum:1}),battle_turn:Type.Integer({minimum:1,maximum:256}),text:Type.String({minLength:1}),waited_for_input:Type.Boolean()},closed);
 export const BattleTextJournalSchema=Type.Object({frame:NonNegativeInt,first_id:Type.Integer({minimum:1}),last_id:NonNegativeInt,errors:NonNegativeInt,last_error:Type.Union([Type.String(),Type.Null()]),entries:Type.Array(BattleTextEntrySchema,{maxItems:512})},closed);
 export const BattleWaitSchema=Type.Object({reason:Type.Enum(["message_waiting","input","prompt","screen","field","levelup_box","bound","paused"] as const),frames:NonNegativeInt,state:StateBodySchema},closed);
+// move-learn-tool-v1: the state on the first emulated frame the move-learning flow waits for input (a YES/NO box,
+// a page, the summary's forget-a-move list) or leaves it, with the battle learner read on that frame.
+export const LearnWaitSchema=Type.Object({reason:Type.Enum(["box","page","forget","other","bound","paused"] as const),frames:NonNegativeInt,state:StateBodySchema,battle_learner:Type.Union([Type.Object({party_slot:Type.Integer({minimum:0,maximum:5}),new_move:Type.String({minLength:1})},closed),Type.Null()])},closed);
 
 // Read-only historical compatibility: old vendor-derived state stays identifiable
 // by its mode field and is never promoted to the authoritative RAM readout.

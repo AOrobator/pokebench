@@ -1,6 +1,7 @@
 // Play-run configuration: limits, prompts and the feature-dependent parts of
 // what the model is told. The prompt constants moved here byte for byte from
 // live.ts; every feature switched on reproduces the earlier prompt exactly.
+import { LEARN_MOVE_SECTION } from "./learn-move.js";
 import type { Limits } from "./harness.js";
 import type {AgentMessage} from "@mariozechner/pi-agent-core";
 import { objectivePrompt, type ObjectiveSwitches } from "./objective-tools.js";
@@ -250,6 +251,8 @@ export function playSystemPrompt(features: FeatureSet, target: string | null, sc
       if (lines.length > 0) prompt += `\n\n${lines.join("\n")}`;
     }
   }
+  // move-learn-tool-v1 (tool-prompt-sync): learn_move is offered in every scene, so its section is too.
+  if (features["move-learn-tool-v1"]) prompt += `\n\n${LEARN_MOVE_SECTION}`;
   // harness-trust-v1: last, so the trust order is the final thing the system prompt says.
   if (features["harness-trust-v1"]) prompt += `\n\n${trustSection(features["game-evidence-priority-v1"], true)}`;
   return prompt;
@@ -273,7 +276,7 @@ export function toolSwitches(features: FeatureSet): ToolSwitches {
 }
 
 export function playTools(features: FeatureSet): string[] {
-  return ["observe", "press", ...(features["evolution-decision-v1"] ? ["choose_evolution"] : []), ...(features["objective-tracking-v1"] ? ["get_objectives", "set_objective", "update_objective"] : []), ...(features["bounded-navigation-v1"] ? ["navigate_to"] : []), ...(semanticNavigation(features) ? ["navigate_to_target"] : []), ...(features["deterministic-exploration-v1"] ? ["explore_map"] : []), ...(features["navigation-evidence-memory-v1"] ? ["remember_destination"] : []), ...(features["dialogue-log-v1"] ? ["recall_dialogue"] : []), ...(features["instruction-ledger-v1"] ? ["note_contradiction"] : []), ...(features["next-milestone-hint-v1"] ? ["get_next_milestone"] : []), ...(features["dialogue-auto-advance-v1"] ? ["get_dialogue"] : []), ...(features["battle-move-tool-v1"] ? ["battle_action"] : [])];
+  return ["observe", "press", ...(features["evolution-decision-v1"] ? ["choose_evolution"] : []), ...(features["objective-tracking-v1"] ? ["get_objectives", "set_objective", "update_objective"] : []), ...(features["bounded-navigation-v1"] ? ["navigate_to"] : []), ...(semanticNavigation(features) ? ["navigate_to_target"] : []), ...(features["deterministic-exploration-v1"] ? ["explore_map"] : []), ...(features["navigation-evidence-memory-v1"] ? ["remember_destination"] : []), ...(features["dialogue-log-v1"] ? ["recall_dialogue"] : []), ...(features["instruction-ledger-v1"] ? ["note_contradiction"] : []), ...(features["next-milestone-hint-v1"] ? ["get_next_milestone"] : []), ...(features["dialogue-auto-advance-v1"] ? ["get_dialogue"] : []), ...(features["battle-move-tool-v1"] ? ["battle_action"] : []), ...(features["move-learn-tool-v1"] ? ["learn_move"] : [])];
 }
 
 // V2 reuses the existing paragraphs; the standing core retains cross-scene policy.

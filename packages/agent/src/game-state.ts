@@ -1,6 +1,6 @@
 import type { Static } from "typebox";
 import { Value } from "typebox/value";
-import { BattleJournalSchema, BattleTextJournalSchema, BattleWaitSchema, NativeActionJournalSchema, StateBodySchema } from "./events.js";
+import { BattleJournalSchema, BattleTextJournalSchema, BattleWaitSchema, LearnWaitSchema, NativeActionJournalSchema, StateBodySchema } from "./events.js";
 import { parseTrainerSight, type TrainerSightReply } from "./trainer-sight.js";
 
 export class GameStateError extends Error {
@@ -15,6 +15,8 @@ export interface StateSource {
   battleChoices?(after:number):Promise<Static<typeof BattleJournalSchema>>;
   battleMessages?(after:number,signal?:AbortSignal):Promise<Static<typeof BattleTextJournalSchema>>;
   battleWait?(signal?:AbortSignal):Promise<Static<typeof BattleWaitSchema>>;
+  // move-learn-tool-v1: held until the move-learning flow waits for input or leaves it (GET /pokebench/move-learn/wait).
+  moveLearnWait?(signal?:AbortSignal):Promise<Static<typeof LearnWaitSchema>>;
   // story-destinations-v1: the game's map table (GET /pokebench/places), validated by its reader.
   places?(signal?:AbortSignal):Promise<unknown>;
   // trainer-sight-check-v1: which planned route tiles an unbeaten trainer can see (POST /pokebench/trainer-sight).
@@ -67,6 +69,15 @@ export class StateWatcher implements StateSource {
     if(!response.ok)throw new GameStateError(`Battle wait returned HTTP ${String(response.status)}`);
     const payload:unknown=await response.json();
     if(!Value.Check(BattleWaitSchema,payload))throw new GameStateError("Malformed battle wait");
+    return payload;
+  }
+
+  // Held by the server until the move-learning flow waits for input or leaves it, at most 600 emulated frames.
+  async moveLearnWait(signal?:AbortSignal):Promise<Static<typeof LearnWaitSchema>> {
+    const response=await this.fetchFn(`${this.gameServerUrl}/pokebench/move-learn/wait`,{signal:signal===undefined?AbortSignal.timeout(30_000):AbortSignal.any([signal,AbortSignal.timeout(30_000)])});
+    if(!response.ok)throw new GameStateError(`Move-learning wait returned HTTP ${String(response.status)}`);
+    const payload:unknown=await response.json();
+    if(!Value.Check(LearnWaitSchema,payload))throw new GameStateError("Malformed move-learning wait");
     return payload;
   }
 

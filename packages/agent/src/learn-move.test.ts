@@ -24,7 +24,7 @@ const FIXTURE=JSON.parse(readFileSync(new URL("../test-support/learn-move-ea04.j
 const rec=(name:string):GameStateSnapshot=>{
  const named=FIXTURE.states[name];
  if(named===undefined)throw new Error(name);
- const {seq:_seq,...vary}=named;
+ const vary=Object.fromEntries(Object.entries(named).filter(([key])=>key!=="seq"));
  return parseGameState(structuredClone({...FIXTURE.base,...vary}));
 };
 const ui=(s:GameStateSnapshot)=>{if(s.active_ui==null)throw new Error("active_ui");return s.active_ui;};

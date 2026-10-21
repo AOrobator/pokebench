@@ -87,7 +87,7 @@ function replay(suffix:string,on:boolean|undefined){
  const events=recorded(suffix),start=events.find(e=>e.type==="run_start");if(start?.type!=="run_start")throw new Error("start");
  const f={...featuresOf(start.harness_features),...(on===undefined?{}:{[ID]:on})};
  const subscribers:((e:RunEvent)=>void)[]=[],notices:{at:number;notice:LoopNotice}[]=[],contexts:{at:number;text:string|null}[]=[];let at=0,now=0;
- const recorder={subscribe:(fn:(e:RunEvent)=>void)=>{subscribers.push(fn);},recordLoopGuard:(notice:LoopNotice)=>{notices.push({at,notice});},recordStallGate:()=>undefined};
+ const recorder={subscribe:(fn:(e:RunEvent)=>void)=>{subscribers.push(fn);},recordLoopGuard:(notice:LoopNotice)=>{checkEvent({v:1,run:start.run,seq:at,turn:0,t:start.t,type:"loop_guard",...notice});notices.push({at,notice});},recordStallGate:()=>undefined};
  const governor=new Governor({limits:{maxTurns:2000,maxWallMs:3600000,failureLimit:3},retry:()=>undefined,abort:()=>undefined,now:()=>0});
  const detector=attachLoopGuard(recorder,governor,undefined,"enforced",f["interaction-loop-detection-v1"],()=>"SUPERVISOR: cycle",f["transition-loop-detection-v1"],f["pushback-loop-detection-v1"],f["battle-observation-loop-v1"],false,f["ineffective-loops-v1"],false,false,false,false,false,false,false,f);
  stallBriefing(f,recorder,detector,{pausedMs:()=>0},()=>now);
@@ -120,4 +120,28 @@ it("registers a default-OFF switch with previous behavior preserved and receipts
  const base=flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false});expect(base[ID]).toBe(false);
  const {[ID]:_off,...old}=base;expect(_off).toBe(false);expect(normalizeFeatures(old as Parameters<typeof normalizeFeatures>[0])[ID]).toBe(false);
  expect(playHarnessFeatures({...base,[ID]:true},null)).toContain(ID);expect(playHarnessFeatures(base,null)).not.toContain(ID);
+});
+
+import {LoopCoordinator} from "./loop/coordinator.js";
+it("keeps the trigger-script guard active during a bounded healing trip",()=>{
+ for(const on of [false,true]){
+  const notices:LoopNotice[]=[];
+  const detector=new LoopCoordinator(n=>{checkEvent({v:1,run:"trigger-trip",seq:0,turn:0,t:"2026-10-21T08:00:00.000-04:00",type:"loop_guard",...n});notices.push(n);},{interactions:true,triggerScriptLoops:true,progressAwareCycles:on});
+  let seq=0,turn=1;
+  const emit=(body:Record<string,unknown>)=>{const e=checkEvent({v:1,run:"trigger-trip",seq:++seq,turn,t:"2026-10-21T08:00:00.000-04:00",...body});detector.observe(e);};
+  const state=(x:number,y:number,held=false)=>({type:"state",...IN_GAME,party_owner:"player",party:[{...IN_GAME.party[0],hp:5,max_hp:20}],map_id:A,position:{x,y},field_controls_locked:held,
+   world_context:{objects:[],triggers:[{x:8,y,elevation:3,variable:16471,required_value:0,current_value:0,condition_met:true,script_pointer:135266304+y}],dialogue:held?"Go to the gym.":null,message:held?{phase:"page_wait",cursor:15,ready:true}:null},
+   ...(held?{resources:{bag:[],pc_items:[],storage:null,berry_trees:[],planted_berries:null,diagnostics:[],script_pc:135266304+y,script_mode:1,script_status:0,selected_tree_id:null,berry_script_owner:null}}:{})});
+  emit(state(9,12));
+  emit({type:"story_battle_heal_gate",tool_call_id:"gate",tool:"press",map_id:A,confirmed:false,outcome:"refused",reason:null,reached:[],sightings:[],hurt:[{species:"TORCHIC",hp:5,max_hp:20}],heal:[{kind:"pokemon_center",town:"OLDALE",map_id:C,hops:2,shown:false}],heal_routes:[{outward:[A,B,C],back:[C,B,A]}],text:"heal"});
+  for(const y of [12,13]){
+   turn++;emit(state(9,y));const before=seq,id=`p${String(y)}`;
+   emit({type:"tool_call",id,name:"press",args:{buttons:["LEFT"]}});
+   emit({type:"button_press",tool_call_id:id,before_state_seq:before,buttons:["LEFT"]});
+   emit(state(8,y,true));const stateSeq=seq;
+   emit({type:"tool_result",id,name:"press",is_error:false,duration_ms:0,text:"script",frames:[],state_seq:stateSeq});
+  }
+  expect(notices.filter(n=>n.kind==="trigger_script"&&n.phase==="warning"),String(on)).toHaveLength(1);
+  if(on)expect(detector.cycleHold()?.reason).toBe("heal_trip");
+ }
 });

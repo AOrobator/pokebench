@@ -316,6 +316,23 @@ describe("viewer app", () => {
     expect(ui("gba").querySelector('[data-btn="A"]')?.classList.contains("lit")).toBe(false);
   });
 
+  it("lights running B from delayed native receipts at execution time in replay", async () => {
+    const { app, streams } = await harness(`#replay=${M4_ID}`);
+    const log = new Log();
+    log.add(0, START);
+    log.add(1000, {type: "button_press", turn: 1, tool_call_id: "run", buttons: ["RIGHT"], hold_frames: 224, release_frames: 8, automatic_running: true, requested_held_buttons: ["B"]});
+    log.add(2000, {type: "native_action", turn: 1, id: 1, kind: "native_input", frame: 1, server_timestamp: (BASE_MS + 1010) / 1000, details: {buttons: ["RIGHT", "B"]}});
+    log.add(2001, {type: "native_action", turn: 1, id: 2, kind: "native_input", frame: 10, server_timestamp: (BASE_MS + 1200) / 1000, details: {buttons: []}});
+    log.add(3000, {type: "run_end", turn: 1, reason: "budget", furthest_milestone: null, turns: 1, wall_ms: 3000, tokens: {input: 0, output: 0}, frames: {saved: 0, bytes: 0}});
+    feed(must(streams[0]), log.events);
+    app.clock?.pause();
+    for (const [offset, held] of [[1050, true], [1250, false], [1050, true]] as const) {
+      app.clock?.seek(BASE_MS + offset);
+      app.tick(0);
+      for (const button of ["RIGHT", "B"]) expect(ui("gba").querySelector(`[data-btn="${button}"]`)?.classList.contains("lit")).toBe(held);
+    }
+  });
+
   it("drives the replay from the controls and seeks backwards", async () => {
     const { app, streams } = await harness(`#replay=${M4_ID}`);
     feed(must(streams[0]), m4Run());

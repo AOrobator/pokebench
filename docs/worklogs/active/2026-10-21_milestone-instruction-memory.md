@@ -54,3 +54,16 @@ Browser proof: 1280/1440/375 collapsed/expanded explainer screenshots inspected 
 Landing: joined board at number 9 on Oct 21 16:08 New York time. Coordinator confirmed no holds except for #1; withdrawn hold request. Main remains 4b70c35dd. Review packet will freeze this isolated candidate; queued landing requires main sync/re-gates/re-review of any changed packet. No main move, viewer-main restart, experiment approval or measured run has occurred.
 
 COMMIT: GREEN implementation `7bda28463`. Pending experiment source now names that exact implemented checkpoint; it remains blocked until reviewed landing and cohort design. This metadata commit freezes no new gameplay behavior. Review receipts live under ignored `runs/milestone-instruction-memory/` and /tmp/pokebench-milestone-memory-review-r1; reviewer outcomes are not predeclared.
+
+## Frozen review result and landing stop
+
+Frozen code/docs candidate: `5410dbc03d0d663998e5b1e0182fa89678fa214d`, base `4b70c35ddb964e18d4e618bce57317503948a02c`, canonical binary diff SHA-256 `21f9705f5d172e41f6d03ae1882751824115ceaa0de356e68f95289c22d1a4d5`. Principles self-review completed with no FAIL. Clean HEAD and exact digest independently reproduced before/after review. Complete packet, transports and synthesis preserved at `runs/milestone-instruction-memory/review-r1/`.
+
+- Claude CLI: exit 0, empty stderr, one successful result and terminal `VERDICT: LGTM`.
+- Fresh GPT lane `/root/memory_review_gpt`, no inherited context: independently verified digest, 15 focused tests passed, `VERDICT: LGTM`.
+- Grok Cursor: exit 1, usage limit, no verdict. Unavailable; never counted as approval.
+- Availability fallback `/root/memory_fallback_sol` (gpt-6.1-sol) and `/root/memory_fallback_astra` (gpt-6-astra), both no inherited context: independently verified unchanged digest/status, both `VERDICT: LGTM`; focused 15 and 17 tests pass respectively. Reduced vendor diversity; these do not satisfy missing Grok cloud lane for landing. Sol accidentally invoked the full suite first: 3413 passed, one unrelated serial-comparison child-start timeout; scoped retention suite then passed. This does not replace the earlier successful full gated run.
+
+Triage: zero Fix findings. Follow-up only: explicitly pin the five incidental templates with no additional completion predicate; generalize exact home-sign speaker name if source attribution supports it (other names currently stay); optional bounded fixture caching/retention optimization; unrelated Unicode title escape cleanup; additional exact dialogue variants. No scope expansion or code changes made for these suggestions.
+
+Landing stop: corrected queue notification to actual chat title; same branch retains place, now number 8. Repository execute-worklog rule requires operator decision when a cloud review lane is unavailable. No self-merge, main move, live viewer restart or experiment launch. Scratch preview 8796 stopped after browser proof; canonical editable Python environment restored. This evidence-only branch commit follows the frozen reviewed candidate and is not represented as part of that review packet. Before any later landing, resync main, rerun gates and seal/review the resulting packet as required.

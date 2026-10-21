@@ -206,7 +206,13 @@ function semanticTool(navigate:CheckedNavigationTool,press:CheckedPressTool,feat
  return {name:"navigate_to_target",label:"Navigate to a game target",description:features["semantic-navigation-v2"]?semanticV2Description(features["dialogue-auto-advance-v1"]):"Select a listed person, object, warp or walking map connection by its game-owned identity. The harness chooses the reachable approach, continues progress-making route segments without an end-to-end command cap, faces the target and activates it once. It immediately returns control if battle, dialogue, a menu, a script, forced movement, a map transition or unavailable input interrupts travel.",parameters:SemanticArgs,
   execute:async(id,request,signal)=>{
    signal?.throwIfAborted();const before=await stateSource.read(signal),selected=label(request.target);
-   if(!isMap(before,request.map_id))return withStatus({content:[],details:{state:before}},"refused because the requested map is not current",selected,request.target,false);
+   if(!isMap(before,request.map_id)){
+    const result=withStatus({content:[],details:{state:before}},"refused because the requested map is not current",selected,request.target,false);
+    if(!features["semantic-current-map-feedback-v1"])return result;
+    const map=before.map_id===null?"map unavailable":`map ${String(before.map_id[0])}/${String(before.map_id[1])}`;
+    const position=before.position===null?"unavailable":`(${String(before.position.x)},${String(before.position.y)})`;
+    return {...result,content:[{type:"text",text:`Current map: ${before.location??"name unavailable"} (${map}). Position: ${position}. No input was sent.`},...result.content]};
+   }
    const listed=request.target.kind==="connection"?null:resolve(before,request.target,options);
    if(request.target.kind!=="connection"&&listed===null)return withStatus({content:[],details:{state:before}},"target is not listed in the current verified state",selected,request.target,false);
    // field-move-gates-v1: approaches are planned around closed obstacle objects, loaded or not, as navigate_to walks.

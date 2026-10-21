@@ -222,7 +222,6 @@ PENDING, explicitly blocked and unqueued. Clock policy acts from server boot; NE
 Pending, not queued. Activation PLAYER_NAME_CONFIRMED; readiness computed from qualifying recorded runs. Future bundle only; no measured runs launched.
 
 V3 readiness check: ready on recent fallback, 4/4 think-fast runs reached PLAYER_NAME_CONFIRMED; too few match the incumbent. Considered Oct15 runs2f46,6684,dc0e,17a0. This is early activation readiness only, not comparable configuration evidence or gameplay benefit. Entry remains pending and unqueued.
+## Navigation tool-use guard and semantic current-map feedback — 2026-10-20
 
-## navigation-refusal-reasons-v3 (2026-10-20)
-
-Pending, unqueued. Activation PLAYER_NAME_CONFIRMED (first navigable truck field). Boot readiness unproven: no four qualifying runs of this frozen incumbent were established; historical MAIN_MENU Woods states prove the advice defect, not boot readiness or gameplay benefit. No checkpoint load or measured run authorized. Future bundle ON, control/default OFF.
+Both entries are PENDING, unqueued, not designed and not approved. Earliest activation is PLAYER_NAME_CONFIRMED: free-field navigation can act in the truck. The nominal primary is ROUTE_102. No fresh comparable four-run readiness audit or load-qualified checkpoint was established here. Each single-switch experiment uses the shared incumbent plus semantic-navigation-v2 in both arms; only its named switch flips. Checkpoint qualification, caps, power and GPU budget remain design work. Both switches enter only the evolving bundle arm by explicit operator request. This is not a promotion or a speed claim. Existing frozen definitions and active run receipts remain unchanged.

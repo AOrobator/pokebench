@@ -1390,10 +1390,13 @@ it("links the recorded distinct-exits treatment to its tracked explainer",()=>{
  expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
 });
 
-it("links exploratory waypoint guidance from its exact feature card",()=>{
- const id="navigation-refusal-reasons-v3";
- expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
- const log=new Log();log.add(0,{...START,harness_features:["ram-state-v1",id]});
+it("links each new navigation switch card to its exact tracked explainer without changing historical status",()=>{
+ const log=new Log();log.add(0,{...START,harness_features:[]});
  const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
- const card=doc.querySelector(`[data-feature="${id}"]`);expect(card?.querySelector("a")?.getAttribute("href")).toBe(`/explainers/${id}.html`);expect(card?.textContent).toContain("ON");
+ for(const id of ["navigation-tool-use-guard-v1","semantic-current-map-feedback-v1"] as const){
+  const card=must(doc.querySelector(`[data-feature="${id}"]`));
+  expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
+  expect(card.querySelector("a")?.getAttribute("href")).toBe(`/explainers/${id}.html`);
+  expect(card.textContent).toContain("NOT RECORDED");
+ }
 });

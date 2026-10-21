@@ -48,7 +48,7 @@ const USAGE = [
   "       fixed-run check <id>                     validate the definition and every phase's start save",
   "       fixed-run approve <id>                   operator only, interactive",
   "       fixed-run run <id>                       run the approved experiment (both lanes)",
-  "       fixed-run dry-run <id> [--phase <phase>] [--wall-ms <ms>] [--arm <bundle|control> --lane <id>]  one trial per arm per lane with that phase's start, as <id>-dryrun-<phase>",
+  "       fixed-run dry-run <id> [--phase <phase>] [--wall-ms <ms>] [--arm <bundle|control> --lane <id>] [--feature-recipe <id>]  exploratory trials with that phase's start",
   "       fixed-run rerun <id> --arm <control|bundle> --lane <lane> [--phase <phase>]  one unpaired, exploratory trial on one lane at the experiment's pin, as <id>-solo-<arm>-<lane>-<n>",
   "       fixed-run status <id>",
   "       fixed-run analyze <id> [--phase <id>]",
@@ -172,7 +172,18 @@ async function run(deps: FixedCliDeps, id: string): Promise<void> {
 async function dryRun(argv: readonly string[], deps: FixedCliDeps, id: string): Promise<void> {
   const wallMs = msInt(flag(argv, "--wall-ms"), 120_000, "--wall-ms");
   const rom = requireRom(deps);
-  const { definition: def } = load(deps, id);
+  const target = load(deps, id).definition;
+  const recipeId = flag(argv, "--feature-recipe");
+  if (argv.includes("--feature-recipe") && recipeId === undefined) throw new CliError("--feature-recipe needs a definition id");
+  const recipe = recipeId === undefined ? null : load(deps, recipeId);
+  if (recipe !== null && recipe.definition.romSha1 !== target.romSha1) throw new CliError("feature recipe ROM differs from the model definition");
+  const def = recipe === null ? target : parseFixedDefinition(JSON.stringify({ ...target,
+    controlBase: recipe.definition.controlBase, base: {...target.base, features: recipe.definition.base.features},
+    switches: recipe.definition.switches, offInBoth: recipe.definition.offInBoth,
+    onInBoth: recipe.definition.onInBoth,
+  })).definition;
+  const effectiveProblems = controlBaseProblems(def, readFileSync(join(deps.root, def.controlBase.path), "utf8"));
+  if (effectiveProblems.length > 0) throw new CliError(effectiveProblems.join("\n"));
   requireDefinitionRom(deps, rom, def);
   const phase = flag(argv, "--phase") ?? def.phases[0]?.id ?? "";
   if (!def.phases.some((p) => p.id === phase)) throw new CliError(`no phase ${phase}; phases: ${def.phases.map((p) => p.id).join(", ")}`);
@@ -182,6 +193,12 @@ async function dryRun(argv: readonly string[], deps: FixedCliDeps, id: string): 
   if(arm!==undefined&&!FIXED_ARMS.some(a=>a===arm))throw new CliError(`--arm must be one of ${FIXED_ARMS.join(", ")}`);
   const dry=arm===undefined?paired:soloDefinition(paired,arm as FixedArm,lane??"",paired.phases[0]?.id??"",1);
   if (existsSync(join(experimentDir(deps, dry.id), "trials.jsonl"))) throw new CliError(`${dry.id} already has a ledger; move runs/experiments/${dry.id} to runs/dryruns/<name> first (the viewer still lists it there)`);
+  if (recipe !== null) {
+    const dir = experimentDir(deps, dry.id);
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(join(dir, "feature-recipe.json"), `${JSON.stringify({id:recipeId,commit:deps.head(),sha256:recipe.sha256,definition:dry},null,2)}\n`);
+    deps.out(`feature recipe ${String(recipeId)} sha256 ${recipe.sha256}; exact canonical flags, model lane and start retained`);
+  }
   const result = await deps.run({ def: dry, definitionSha256: sha256(JSON.stringify(dry)), runsRoot: deps.runsRoot, host: deps.host(), stopRequested: deps.stopRequested ?? (() => false), pid: process.pid, dryRun: true });
   deps.out(`${dry.id}: ${result}`);
 }

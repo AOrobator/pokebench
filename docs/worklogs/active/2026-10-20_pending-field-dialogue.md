@@ -60,3 +60,5 @@ Frozen integration evidence: registry integration8d89a155 and upstream evidence 
 
 ## Authorized integration and bundle inclusion
 Operator explicitly requests integration, review, local-main landing and bundle inclusion. This resumes the listed metadata fix after the round-cap hold and authorizes proceeding with the disclosed unavailable Claude lane. Scope: integrate current main, complete the raw incumbent, append pending after the navigation switches, enable it only in three evolving bundle arms; controls/defaults remain OFF. Frozen histories and active runs remain unchanged, no gameplay launch. Re-review the cumulative frozen result with retained Grok/GPT and model-diverse outage fallbacks.
+
+RED manifest test:1 intended failure/57 passes; corrected-build bundle test:1 intended failure/29 passes. GREEN complete raw incumbent in current registry order, missing values explicit OFF, preserve all existing bits. pending-field-dialogue-v1 ON only in three evolving bundle arms, OFF controls/defaults. Current/frozen runs untouched. Runtime owner remains byte-identical to approved r2.

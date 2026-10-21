@@ -70,12 +70,13 @@ describe("production wiring",()=>{
  const source=(file:string)=>readFileSync(fileURLToPath(new URL(`./${file}`,import.meta.url)),"utf8");
  it("live.ts builds the Governor's notice from the FeatureSet and the run's max tokens",()=>{
   const live=source("live.ts");
+  expect(live).toContain("const cutOff = cutOffReplyNotice(features,maxTokens);");
   const call=live.slice(live.indexOf("new Governor("));
-  expect(call.slice(0,call.indexOf("});"))).toContain("cutOffReplyNotice(features,maxTokens)");
+  expect(call.slice(0,call.indexOf("});"))).toContain("{ cutOffNotice: cutOff }");
  });
  it("decision probes pass the same notice, from the probed switches and the recorded max tokens, to both histories",()=>{
   const probe=source("decision-probe.ts");
   expect(probe).toContain("const cutOff = cutOffReplyNotice(features, start.sampling.max_tokens);");
-  expect(probe.match(/conversation\(prior, goal, byId, notes, [^)]*cutOff\)/g)).toHaveLength(2);
+  expect(probe.match(/conversation\(prior, goal, byId, notes, .*?, start\.model\.id, cutOff\)/g)).toHaveLength(2);
  });
 });

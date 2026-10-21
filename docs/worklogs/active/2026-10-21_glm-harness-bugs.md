@@ -56,7 +56,7 @@ No new subprocesses, network calls or file paths. RAM reads go through `pokebenc
 - [x] Guard check: removing the play-wiring option turned "playGameTools passes the switch…" red; removing the withStoryDestinations argument turned "withStoryDestinations reads the switch…" red; both restored
 - [x] Gates: lint clean (tsc, eslint, ruff, mypy); build; coverage agent 97.33/93.06/97.8/99.24 (stmts/branches/funcs/lines), viewer 95.41/91.33/94.33/97.9, Python gate ≥90; agent 3330 tests, viewer 1613, Python 3691. (The worktree's env venv needed the main checkout's mgba binding symlinked; test_view failed without it.)
 - [x] COMMIT (GREEN): `feat: story-goal-player-name-v1 leaves the player's own name out of He/She lives (default off)` (bc5565aaf)
-- [ ] Multi-model review loop until clean
+- [ ] Multi-model review loop until clean: round 1 on 331e10b3..32f1a1be — Grok (cursor-grok-4.5-high) LGTM, GPT (codex gpt-6-astra) LGTM; Claude: Cursor Opus at its usage limit, `claude -p` OAuth expired, so a Claude subagent reviews (memory: claude-review-lane)
 
 **M2 — Drought briefings held during battles and ordered heals** (after `codex/bounded-heal-cycle` lands)
 - [ ] Write tests from e9ee s8331/s10741/s11218, bbff s7768, ad34 s10846, acfa s4962/s5790/s6035; a true drought outside those windows still fires
@@ -64,8 +64,10 @@ No new subprocesses, network calls or file paths. RAM reads go through `pokebenc
 
 **M3 — Cut-off reply feedback**
 - [x] Write tests (`cut-off-reply.test.ts`): notice text per tool set; Governor sends it after a length stop with no tool call, NUDGE otherwise, OFF unchanged, failure count unchanged, text-only supervisor note still wins; decision probes rebuild the same follow-up (`followUpText`); live.ts and decision-probe.ts wiring
-- [x] COMMIT (RED): `test: cut-off replies are named in the next message (RED)`
-- [ ] Implement · Gates · COMMIT (GREEN) · Review
+- [x] COMMIT (RED): `test: cut-off replies are named in the next message (RED)` (4b091e2c)
+- [x] Implement: `cut-off-reply.ts` builds the notice from `playTools(features)` (names only the walking tools the run has); `Governor` sends `deps.cutOffNotice` instead of NUDGE/reminder after a length stop with no tool call (a due text-only note still wins; failure counting unchanged); `live.ts` passes it; `decision-probe.ts` rebuilds the same follow-up via `followUpText` with the probed switches and the recorded max tokens
+- [x] Gates: lint clean; coverage agent 97.33/93.07/97.8/99.24, viewer 95.42/91.33/94.33/97.9, Python 3691 passed ≥90; agent 3338 tests
+- [ ] COMMIT (GREEN) · Gates · COMMIT (GREEN) · Review
 
 **M4 — Trainer sight for navigate_to_target**
 - [ ] Write tests from e9ee s8193/s10444/s10997 and acfa route 102 calls

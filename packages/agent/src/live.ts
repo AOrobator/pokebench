@@ -19,6 +19,7 @@ import { humanPlan, humanLease, humanRunId, driveHuman, saveHumanCheckpoint } fr
 import { linkSync, mkdirSync, renameSync, unlinkSync, writeFileSync, readFileSync } from "node:fs";
 import { createInterface } from "node:readline";
 import { objectiveHarness } from "./objective-tools.js";
+import { cutOffReplyNotice } from "./cut-off-reply.js";
 import { playHarnessFeatures, serverFeatureEnv } from "./features.js";
 import { PLAY_LIMITS, PLAY_MAX_TOKENS, PLAY_THINKING, deliverInitialPlayTask, objectiveSwitches, playGoal, playSystemPrompt, playTools, toolSwitches } from "./play-config.js";
 import { verifyIntro } from "./verify-state.js";
@@ -265,6 +266,7 @@ async function playAgent(): Promise<void> {
       const elapsed = preset===null?(()=>Date.now()):()=>recorder.elapsedMs();
       let control: RunControl | null = null;
       const textOnly = textOnlySupervisor(features, recorder,limits.replyFailuresEndRun!==false);
+      const cutOff = cutOffReplyNotice(features,maxTokens);
       const governor = new Governor({
         limits,
         ...(features["text-only-supervisor-v2"]?{textOnlyReminder:TEXT_ONLY_REMINDER}:{}),
@@ -281,6 +283,7 @@ async function playAgent(): Promise<void> {
         pausedMs: () => control?.pausedMs() ?? 0,
         wallLimit: () => control?.wallLimit(limits.maxWallMs) ?? limits.maxWallMs,
         ...(textOnly === undefined ? {} : { textOnlySupervisor: textOnly }),
+        ...(cutOff === undefined ? {} : { cutOffNotice: cutOff }),
       });
       const controlFile = new ControlFile(join(RUNS_ROOT, runId, "control.jsonl"));
       let startedAt = elapsed();

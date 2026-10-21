@@ -11,6 +11,7 @@ import type { GameStateSnapshot } from "./game-state.js";
 import { GATEWAY_PROVIDER } from "./gateway.js";
 import { gameTools } from "./game-tools.js";
 import { Governor, NUDGE, attachLoopGuard, slideWindow, withoutTextOnlyReplies } from "./harness.js";
+import { cutOffReplyNotice } from "./cut-off-reply.js";
 import type { LoopNotice } from "./loop-detection.js";
 import { PLAY_LIMITS, PLAY_TASK, playSystemPrompt, targetGoal, toolSwitches } from "./play-config.js";
 import { contextTools, loopSupervisor, playGameTools, stallBriefing } from "./play-wiring.js";
@@ -174,7 +175,14 @@ export function contextSize(messages: readonly Message[]): ContextSize {
 
 /** The context of `turn`'s model call, rebuilt under `features` (the run's own switches reproduce the recording). */
 // The conversation as the agent loop accumulated it: task, then each kept reply with its nudge or tool results.
-function conversation(prior: readonly RunEvent[], goal: string | null, byId: ReadonlyMap<string, ToolResultEvent>, notes: readonly Extract<RunEvent, { type: "text_only_supervisor" }>[], texts: ReadonlyMap<number, string>, ports: ProbePorts, model: string): Message[] {
+// The follow-up after a reply with no tool call: a recorded text-only note when it came after this reply, else
+// the cut-off notice (cut-off-reply-feedback-v1) for a reply that stopped at max_tokens, else NUDGE.
+export function followUpText(reply: { readonly seq: number; readonly stop_reason: string }, supervised: { readonly seq: number; readonly text: string } | undefined, cutOff: string | undefined): string {
+  if (supervised !== undefined && supervised.seq > reply.seq) return supervised.text;
+  return reply.stop_reason === "length" && cutOff !== undefined ? cutOff : NUDGE;
+}
+
+function conversation(prior: readonly RunEvent[], goal: string | null, byId: ReadonlyMap<string, ToolResultEvent>, notes: readonly Extract<RunEvent, { type: "text_only_supervisor" }>[], texts: ReadonlyMap<number, string>, ports: ProbePorts, model: string, cutOff: string | undefined): Message[] {
   const history: Message[] = [{ role: "user", content: goal === null ? PLAY_TASK : `The game has just booted. ${targetGoal(goal)}`, timestamp: 0 }];
   let note = 0;
   for (const e of prior) {
@@ -187,8 +195,8 @@ function conversation(prior: readonly RunEvent[], goal: string | null, byId: Rea
     history.push(assistant);
     if (e.tool_calls.length === 0) {
       const supervised = notes[note];
-      const text = supervised !== undefined && supervised.seq > e.seq ? supervised.text : NUDGE;
-      if (text !== NUDGE) note += 1;
+      const text = followUpText(e, supervised, cutOff);
+      if (supervised !== undefined && text === supervised.text && supervised.seq > e.seq) note += 1;
       history.push({ role: "user", content: text, timestamp: 0 });
     }
     for (const c of e.tool_calls) {
@@ -227,11 +235,12 @@ export async function decisionContext(run: RecordedRun, turn: number, features: 
   const byId = new Map(results.map((r) => [r.id, r]));
   const notes = prior.filter((e): e is Extract<RunEvent, { type: "text_only_supervisor" }> => e.type === "text_only_supervisor");
   const window = contextTools(features, new Replay(start), (m) => Promise.resolve(m)).window;
-  const recordedHistory = conversation(prior, goal, byId, notes, new Map(), ports, start.model.id);
+  const cutOff = cutOffReplyNotice(features, start.sampling.max_tokens);
+  const recordedHistory = conversation(prior, goal, byId, notes, new Map(), ports, start.model.id, cutOff);
   // Only results the window keeps whole are shown in full, so only those are re-derived.
   const kept = new Set(slideWindow(recordedHistory, window).flatMap((m) => (m.role === "toolResult" && m.content.some((p) => p.type === "text" && p.text === byId.get(m.toolCallId)?.text) ? [byId.get(m.toolCallId)?.seq ?? -1] : [])));
   const texts = derivation === "recorded" ? new Map<number, string>() : await resultTexts(parts, recorded, features, ports, kept, rerender);
-  const history = derivation === "recorded" ? recordedHistory : conversation(prior, goal, byId, notes, texts, ports, start.model.id);
+  const history = derivation === "recorded" ? recordedHistory : conversation(prior, goal, byId, notes, texts, ports, start.model.id, cutOff);
   if (derivation === "recorded") {
     const wiring = probeTools(features, new Replay(start));
     const tools = wiring.tools.map(asTool);

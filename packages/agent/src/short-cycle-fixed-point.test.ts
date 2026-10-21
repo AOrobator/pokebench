@@ -18,6 +18,7 @@ import {decisionContext,parseRun} from "./decision-probe.js";
 import {checkEvent,type EventBody,type LoopBreakerBody,type RunEvent} from "./events.js";
 import {parseExperiment,experimentArms} from "./experiments.js";
 import {ALL_ON,FEATURES,SWITCHABLE_FEATURES,featureInfo,featuresOf,playHarnessFeatures,type FeatureSet} from "./features.js";
+import {SUMMARY_FACT_KEYS} from "./party-facts.js";
 import {BREAKER_NOTE,CYCLE_COPIES,CYCLE_STATE_EXCLUDED,FixedPointBreaker,cycleFields,cycleNote,cycleRuns,cycleState,fixedPointNote} from "./fixed-point-breaker.js";
 import type {GameStateSnapshot} from "./game-state.js";
 import {flagFeatures,normalizeFeatures} from "./play-preset.js";
@@ -593,7 +594,7 @@ describe("the cycle state is the whole recorded state minus a documented list",(
  });
  it("documents why each excluded field is left out",()=>{
   for(const x of CYCLE_STATE_EXCLUDED)expect(x.why.length,x.path).toBeGreaterThan(5);
-  expect(CYCLE_STATE_EXCLUDED.map(x=>x.path)).toEqual(["v","run","type","seq","turn","t","raw_ram","settle","play_time_s","active_ui.value","resources.berry_trees[].minutes_until_next_stage"]);
+  expect(CYCLE_STATE_EXCLUDED.map(x=>x.path)).toEqual(["v","run","type","seq","turn","t","raw_ram","settle","play_time_s","active_ui.value","resources.berry_trees[].minutes_until_next_stage",...["party[]","resources.storage.occupied[].pokemon","resources.daycare[].pokemon"].flatMap(owner=>SUMMARY_FACT_KEYS.map(key=>`${owner}.${key}`))]);
  });
 });
 

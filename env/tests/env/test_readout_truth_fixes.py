@@ -35,6 +35,7 @@ from pokebench_env.game_state import GameState, MapNames
 from pokebench_env.pokemon import PokemonCpu, decode_party_mon
 from pokebench_env.readout import SERVER_FEATURES, features_off_from_env, state_json
 from pokebench_env.rom import EMERALD_SHA1, RomError, resolve_rom
+from tests.env.recorded import as_recorded
 
 OWNER = "tutorial-party-owner-v1"
 MID_FRAME = "mid-frame-readout-v1"
@@ -175,7 +176,7 @@ def test_off_reproduces_the_golden_readout_and_state(name: str) -> None:
     # off_readout remains the immutable text rendered when the RAM was archived. Current readout
     # policy lives in a separate fixture only for frames changed by later game-known warp naming.
     assert render(name) == CURRENT_READOUTS.get(name, frame["off_readout"])
-    assert digest(state_json(state(name))) == frame["off_state_sha256"]
+    assert digest(as_recorded(state_json(state(name)))) == frame["off_state_sha256"]
 
 
 @pytest.mark.parametrize("name", [k for k, f in BY_KEY.items() if f["received"] is not None])

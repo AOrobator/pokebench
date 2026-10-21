@@ -463,6 +463,14 @@ export const PokemonSchema = Type.Object({
   decode_mode:Type.Optional(Type.Union([Type.Enum(["encrypted","plaintext"]),Type.Null()])),
   cpu_context:Type.Optional(Type.Union([Type.Object({gprs:Type.Array(NonNegativeInt,{minItems:16,maxItems:16}),cpsr:NonNegativeInt,stack_address:NonNegativeInt,stack_hex:Type.String({maxLength:256})},closed),Type.Null()])),
   diagnostic:Type.Optional(Type.Union([Type.String(),Type.Null()])),raw_hex:Type.Optional(Type.Union([Type.String({maxLength:200}),Type.Null()])),
+  // The summary screen's facts (env/pokebench_env/pokemon.py); stats exist for party slots only.
+  attack:Type.Optional(Type.Union([NonNegativeInt,Type.Null()])),defense:Type.Optional(Type.Union([NonNegativeInt,Type.Null()])),speed:Type.Optional(Type.Union([NonNegativeInt,Type.Null()])),
+  sp_attack:Type.Optional(Type.Union([NonNegativeInt,Type.Null()])),sp_defense:Type.Optional(Type.Union([NonNegativeInt,Type.Null()])),
+  ability_num:Type.Optional(Type.Union([Type.Integer({minimum:0,maximum:1}),Type.Null()])),ability_id:Type.Optional(Type.Union([Type.Integer({minimum:0,maximum:255}),Type.Null()])),
+  met_location:Type.Optional(Type.Union([Type.Integer({minimum:0,maximum:255}),Type.Null()])),met_location_name:Type.Optional(Type.Union([Type.String(),Type.Null()])),
+  met_level:Type.Optional(Type.Union([Type.Integer({minimum:0,maximum:100}),Type.Null()])),met_game:Type.Optional(Type.Union([Type.Integer({minimum:0,maximum:15}),Type.Null()])),
+  ball:Type.Optional(Type.Union([Type.Integer({minimum:0,maximum:12}),Type.Null()])),ball_name:Type.Optional(Type.Union([Type.String(),Type.Null()])),
+  ot_name:Type.Optional(Type.Union([Type.String(),Type.Null()])),ot_gender:Type.Optional(Type.Union([Type.Enum(["male","female"] as const),Type.Null()])),
 },closed);
 const NullableInt=Type.Union([NonNegativeInt,Type.Null()]);
 const NullableString=Type.Union([Type.String(),Type.Null()]);

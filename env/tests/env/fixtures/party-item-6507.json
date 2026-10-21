@@ -120,7 +120,10 @@
     "0x2025ed0:4": "33da4542",
     "0x2020288:36": "ef1f0202060100014b1100002031df010000000001800000000000010100000000000000",
     "0x2021fc4:43": "cec9ccbdc2c3bdb4e700c2ca00ebd5e700e6d9e7e8e3e6d9d8fed6ed00a3a100e4e3dde2e85ce75dadfc09",
-    "0x3003014:1": "01"
+    "0x3003014:1": "01",
+    "0x8322282:2": "4200",
+    "0x85a1500:4": "fb0b5a08",
+    "0x85a0bfb:20": "ccc9cfcebf00a2a1a2ffccc9cfcebf00a2a1a3ff"
   },
   "off_readout": "Screen: party_menu\nDialog: \"TORCHIC's HP was restored by 20 point(s).\"\nUnverified menu buffer: cursor 1 of 2; active menu owner unavailable\nInterface: party_item_message; input not ready; Game-owned item animation/message or menu handoff in progress\nMenu state: party slot (zero based): 0; message: TORCHIC's HP was restored by 20 point(s).\nBag: POTION \u00d72; POK\u00e9 BALL \u00d75; GREAT BALL \u00d71\nBattle state: resolving; input False; turn 5; outcome ongoing\nBattler 0 TORCHIC Lv14 HP 34/40; status 0/0/0; stages (6, 6, 6, 4, 6, 6, 6, 6); moves SCRATCH PP 35/35, GROWL PP 38/40, FOCUS ENERGY PP 30/30, EMBER PP 25/25\nBattler 1 GEODUDE Lv12 HP 33/33; status 0/0/0; stages (6, 4, 6, 6, 6, 6, 6, 6); moves TACKLE PP 35/35, DEFENSE CURL PP 40/40, ROCK THROW PP 13/15, ROCK TOMB PP 8/10\nBattle input 0: controller_busy; ready False; selected None; target None\nPlayer: AA\nLocation: unknown map (11, 3)\nParty (player): TORCHIC Lv14 HP 34/40 \u00b7 moves SCRATCH PP 35, GROWL PP 38, FOCUS ENERGY PP 30, EMBER PP 25 \u00b7 nickname TORCHIC\nMoney: \u20bd5552\nBadges: none\nIn battle: yes\nPlay time: 3:49:35"
 }

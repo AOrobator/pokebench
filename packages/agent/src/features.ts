@@ -208,6 +208,7 @@ export const SWITCHABLE_FEATURES = [
   "auto-talk-v2",
   "map-wide-triggers-v1",
   "drought-battle-heal-hold-v1",
+  "trigger-navigation-boundary-v1",
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
 
@@ -529,6 +530,7 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("auto-talk-v2", "guard", "AUTO-TALK: SKIP BEATEN TRAINERS", "auto-talk-v1", "Bundle arm only, default off (the operator 2026-10-21: \"we should make sure to address all of the harness bugs\", after the GLM-5.3-Flash run analysis). In run 2026-10-21T01-16-23_glm53-mac_e9ee, auto-talk walked to and talked to Route 102's Calvin after he was beaten (seq 10359). With this switch on, a trainer the readout shows as defeated is not an auto-talk target. Needs auto-talk-v1. Off: auto-talk picks as before."),
   on("map-wide-triggers-v1", "observation", "MAP-WIDE TRIGGERS", "coordinate-script-conditions-v1", "Bundle arm only, default off (the operator 2026-10-21: \"we should make sure to address all of the harness bugs\", after the GLM-5.3-Flash run analysis). The game server listed coordinate-script trigger tiles only within 7 tiles of the player. In run 2026-10-21T01-16-23_glm53-mac_e9ee (seq 1985-2017; acfa seq 2981-3014) navigate_to_target NORTH in LITTLEROOT TOWN planned an 8-tile stride from (10,17) to (10,9) through a trigger 8 rows away; the stride stopped at (10,10) when the trigger came into range and the call ended. The same window made the trigger-avoiding route flip east and west as the listed set changed (e9ee seq 7063-7116). With this switch on, the state the planner reads lists every coordinate trigger on the current map with its condition; the readout text still lists only the nearby ones, so what the model reads is unchanged. Applied by the game server. Needs coordinate-script-conditions-v1. Off: the state lists triggers within 7 tiles only, as before."),
   on("drought-battle-heal-hold-v1", "guard", "DROUGHT HOLD IN BATTLES AND HEALS", "stall-briefing-v1", "Bundle arm only, default off (the operator 2026-10-21: \"we should make sure to address all of the harness bugs\", after the GLM-5.3-Flash run analysis). The milestone-drought briefing said \"the game is not moving forward ... what you have been trying is not working\" while the player was in a trainer or rival battle (2026-10-21T01-16-23_glm53-mac_e9ee seq 8331, 10741, 11218, and 10445 as RICK's sight script took the field; bbff seq 7768; ad34 seq 10846) or on a trip to heal that a harness heal warning had just asked for (2026-10-21T07-17-35_glm53-mac_acfa seq 4962, 5790, 6035, 7262). With this switch on, a due milestone-drought briefing is not sent while a battle is on screen, while an unbeaten trainer's sight script holds the field before its battle (field controls locked, the trainer opponent set and not defeated), or while a heal trip is open: from a heal warning (heal_first_line, story_battle_warning, heal_before_trainers_warning, gym_heal_warning, or a refused story_battle_heal_gate) until the party is at full HP, a battle starts, or 48 tool results pass. It is recorded instead as a diagnostic (Activity History; no timeline mark). The drought clock starts again when a hold that kept a due briefing back ends, or when the heal a warning asked for is done (full HP; not with positive-supervisor-v1, whose retired schedule is unchanged). Map-cycle and interface-dwell briefings are unchanged. Needs stall-briefing-v1. Off: drought briefings fire on time whatever the screen, as before."),
+  on("trigger-navigation-boundary-v1", "guidance", "SCRIPT TRIGGER BOUNDARIES", "coordinate-script-conditions-v1", "Default off. A model-selected navigation route may enter a coordinate script whose live condition matches. Ordinary steps walk without automatic running to avoid overshooting scripts; existing strides stop before script coordinates. Navigation attempts the trigger step, then returns the resulting observation before more movement or target activation, even if dialogue already settled. It does not choose a story goal or claim what the script will do. Existing terrain, object and trainer checks still apply. Off: navigation avoids matching coordinate triggers except when explicitly targeted, as before."),
 ];
 
 export const ALL_ON: FeatureSet = Object.fromEntries(SWITCHABLE_FEATURES.map((id) => [id, true])) as Record<SwitchableFeature, boolean>;
@@ -784,6 +786,7 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("auto-talk-v2"),
     ...when("map-wide-triggers-v1"),
     ...when("drought-battle-heal-hold-v1"),
+    ...when("trigger-navigation-boundary-v1"),
   ];
 }
 

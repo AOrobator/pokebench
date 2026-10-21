@@ -37,8 +37,8 @@ Reads emulator memory the server already reads (task, printer, window, `gStringV
 - [x] Gates: `just test`, `just lint`, `just build`, `just coverage`
 - [x] COMMIT: `feat(birch-intro-pages): report the pre-name page` (GREEN)
 - [x] Explainer, pending experiment, readiness row
-- [ ] Multi-model review loop until clean
-- [ ] LAND only when the landing board says number 1 and the three cloud lanes LGTM. Do not merge before that.
+- [x] Multi-model review loop until clean (round 1 and round 2 LGTM: Claude CLI, GPT via gpt-6-astra, Sonnet fallback; Grok down, the operator allowed this roster 4:35 PM)
+- [x] LAND: The operator said "land it" 6:02 PM; landed fast-forward at `dccdb0583` 7:32 PM as landing-board number 1
 
 ## Closing the Loop
 
@@ -59,6 +59,7 @@ Unit tests are the proof for the readout. The probe run is the failing evidence.
 ## Multi-Model Review Log (Claude takeover)
 
 - Round 1, packet main `384a87f92`..`4e16eca23`, sha256 9945a0ab…2152: Claude CLI LGTM (follow-ups: pin the real gText_ThisIsAPokemon string and the \l scroll in a test; PB13 evidence wording); GPT lane via codex gpt-6-astra LGTM (default gpt-6.1-sol rejected for this account; replayed 32 archived intro snapshots); fallback Sonnet subagent LGTM. Grok lane down; The operator allowed Claude + GPT + fallback at 4:35 PM. Same packet hash after a later docs-only main sync.
+- 2026-10-21 (7:35 PM New York): Round 2 (packet main `f3346bc82`..`dccdb0583`, sha256 a91eee07…4fe8) Claude CLI LGTM, GPT gpt-6-astra LGTM, Sonnet fallback LGTM. Landed `git merge --ff-only dccdb0583` on main. `just fixed-run check` passed for bundle-v-control, bundle-cook-1h, whole-map-cook-1h, whole-map-pair-2h and bundle-v-control-2h (birch-intro-pages-v1 last in bundle switches). Waited for the lane B retry game (2026-10-21T19-29-00_qwen36-gpu0_8bb7) to start, then `just viewer-main`: viewer at dccdb0583, 3 live gameplay processes kept running and all 3 show live with no problem; `/explainers/birch-intro-pages-v1.html` returns 200.
 
 ## Surprises
 

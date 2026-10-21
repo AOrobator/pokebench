@@ -63,6 +63,8 @@ Build a gate: while any party Pokémon (not an egg) is below max HP, refuse an a
 
 - Sync 4: main 537c0a99 (docs only) merged; frozen head 9ac76a18.
 
+- Sync 5 (coordinator): `git merge main` (97046aa6) merged cleanly; it touched only viewer/trainer-card files, no reviewed code. experiments/story-battle-heal-gate-v1.json source.commit pinned to the feat commit 460f5813f335823135694296cab86f00d8c30bb4. On the coordinator's word, the switch joins the bundle arm only of experiments/fixed/whole-map-cook-1h.json (base false, appended to switches); v6 and glm53-flash-1h untouched. Gates: `just test` 0 after the merge (agent 3083, viewer 1498, pytest 3470); after the whole-map edit, agent 3083 and pytest 3470, viewer 1497/1498 with the known experiment-cli build-stamp flake passing alone 11/11; `just lint` 0, `just build` 0, `just coverage` 0 (agent 97.18 / 93.00 / 97.60 / 99.17, viewer 95.24 / 91.02 / 94.18 / 97.81, Python lines 97.21, branches 92.86, functions 100).
+
 ## Surprises
 - b300's turn-501 route runs into HIKER MARC's template tile (1,6) (he is not loaded at seq 15233), so the gate also says the walk would end next to him at (1,7). True by the planner's route; the sight at (1,9), step 12, comes first.
 - In the refusal's observation the existing warnings (story battle, heal before trainers) still fire by their own arms; in 97a0 they had already fired at 4539/4509, so a live run would not repeat them.

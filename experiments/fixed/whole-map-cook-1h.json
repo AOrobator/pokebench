@@ -183,7 +183,8 @@
    "same-target-no-progress-v1": false,
    "story-progress-clock-v1": false,
    "yes-no-answer-readout-v1": false,
-   "field-move-gates-v1": false
+   "field-move-gates-v1": false,
+   "story-battle-heal-gate-v1": false
   }
  },
  "switches": [
@@ -239,7 +240,8 @@
   "story-progress-clock-v1",
   "field-move-gates-v1",
   "full-map-navigation-v1",
-  "yes-no-answer-readout-v1"
+  "yes-no-answer-readout-v1",
+  "story-battle-heal-gate-v1"
  ],
  "offInBoth": [
   "semantic-navigation-v1",

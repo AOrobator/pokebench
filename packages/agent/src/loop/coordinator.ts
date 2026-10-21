@@ -1,3 +1,4 @@
+import {NavigationRecovery} from "./navigation-recovery.js";
 import {NavigationFailure} from "../navigation-failure.js";
 import type { RunEvent } from "../events.js";
 import { MEASUREMENT_ONLY_MILESTONES, MILESTONES } from "../milestones.js";
@@ -64,6 +65,7 @@ export const WAITING_MESSAGE =
   "Repeated observations show the same open menu, prompt or message waiting for your input: observing again does not change it. Decide from what the game shows which input it needs, or choose a different approach using observed evidence.";
 export class LoopCoordinator {
   stopped = false;
+  private readonly navigationRecovery:NavigationRecovery|null;
   readonly mode: LoopMode;
   private readonly notify: (notice: LoopNotice) => void;
   private readonly policy: LoopPolicy;
@@ -130,10 +132,12 @@ export class LoopCoordinator {
       triggerScriptLoops = false,
       battleRefusals = false,
       menuRefusals = false,
+      navigationRecovery = false,
       ineffectiveNavigation = false,
       sameTargetNoProgress = false,
     } = options;
     this.notify = notify;
+    this.navigationRecovery=navigationRecovery?new NavigationRecovery(notify,mode):null;
     this.policy = policy;
     this.mode = mode;
     this.interactions = interactions;
@@ -179,8 +183,10 @@ export class LoopCoordinator {
       this.sameTarget.reset();
       if (this.episode?.sameTarget != null) this.recover(event.seq, false);
     }
+    if(event.type==="milestone"&&event.kind==="story"&&event.origin!=="present_at_start"&&!MEASUREMENT_ONLY_MILESTONES.has(event.name))this.navigationRecovery?.progress(event.seq,this.completed);
     if (event.type === "state") {
       if ("started" in event) {
+        this.navigationRecovery?.state(event);
         this.field.observeState(event, event.seq, [...this.callTracker.pending()]);
         const menuStateReset = this.interfaces.observeState(event);
         if (menuStateReset && this.episode?.menu === true) this.recover(event.seq, false);
@@ -200,12 +206,15 @@ export class LoopCoordinator {
         this.nativeProgress(event, event.seq);
         this.callTracker.state(event);
       } else {
+        this.navigationRecovery?.unavailable();
         this.callTracker.state(event);
         this.nativeValues.clear();
         this.nativeState = undefined;
       }
-    } else if (event.type === "telemetry_error" && event.source === "state")
+    } else if (event.type === "telemetry_error" && event.source === "state") {
+      this.navigationRecovery?.unavailable();
       this.callTracker.stateError();
+    }
     else if (event.type === "tool_call") {
       this.callTracker.start(event);
       this.field.startCall(event.name, this.callTracker.latest);
@@ -220,6 +229,8 @@ export class LoopCoordinator {
   }
 
   context(): string | null {
+    const navigation=this.episode===null?this.navigationRecovery?.context():null;
+    if(navigation!=null)return navigation;
     if (this.mode === "diagnostic") return null;
     if (this.episode === null) {
       if (this.stallNote === null) return null;
@@ -238,6 +249,11 @@ export class LoopCoordinator {
   complete(call: CompletedCall): void {
     if (this.stopped) return;
     this.completed++;
+    const navigationWasActive=this.navigationRecovery?.active===true;
+    const navigationHandled=this.navigationRecovery?.complete(call,this.completed)===true;
+    if(navigationHandled&&!navigationWasActive){this.episode=null;this.stallNote=null;}
+    if(this.navigationRecovery?.stopped===true){this.stopped=true;return;}
+    if(navigationHandled&&this.episode===null&&this.callTracker.latest?.in_battle!==true&&this.callTracker.latest?.active_ui==null)return;
     if (this.stallNote?.exposed === true) this.stallNote = null;
     const seq = call.seq ?? this.completed;
     const same = this.sameTarget?.complete(call, this.turn, this.episode?.sameTarget ?? null) ?? null;
@@ -407,8 +423,9 @@ export class LoopCoordinator {
   // stall-briefing-v1: a supervisor note for a stall, shown at the next model calls until a call completes.
   // Refused while a loop briefing or an earlier note is open, in diagnostic mode, and after a stop.
   stall(kind: StallKind, text: (calls: number) => string, evidence: readonly number[]): boolean {
-    if (this.stopped || this.mode === "diagnostic" || this.episode !== null || this.stallNote !== null) return false;
+    if (this.stopped || this.navigationRecovery?.active === true || this.mode === "diagnostic" || this.episode !== null || this.stallNote !== null) return false;
     const message = text(this.completed);
+    if(kind==="map_cycle"&&this.navigationRecovery?.cycle(message,evidence,this.completed))return true;
     this.stallNote = { text: message, exposed: false };
     this.notify({ kind, message, calls: this.completed, evidence: evidence.filter((value, index, all) => all.indexOf(value) === index), mode: "enforced", phase: "supervisor" });
     return true;

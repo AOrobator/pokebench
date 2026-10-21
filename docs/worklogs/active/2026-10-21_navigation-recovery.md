@@ -19,3 +19,13 @@ One implementation milestone, RED → GREEN → review. Isolated worktree; no ga
 - [ ] Review frozen packet and browser proof. No measured performance claim.
 
 RED receipt: production factory regression fixture has three expected treatment failures; legacy OFF assertion passes. Source fixture retains original events and source file digest. Worktree dependency install used offline lockfile.
+
+## Implementation and proof
+- Registered navigation-recovery-v1, optional/default OFF, append-only receipts; bundle switch lists ON with fixed control/base OFF.
+- Production guard owns stale-map and persistent map-cycle episodes. Current bearings refresh at each decision; only foot-reachable observed connections are offered, unvisited first. No injected input or route-specific facts.
+- Twelve delivered unresolved eligible calls stop; battle/owned menu calls pause. An ordinary return trip never activates recovery. Native story progress or qualified new map retires a cycle; qualified corrected map addressing retires stale-map recovery. Long known-map trips after an existing cycle warning remain bounded (explicit limitation).
+- Legacy interface guards continue while navigation recovery is open; regression covers simultaneous menu refusal.
+- RED: 3 expected treatment failures, OFF passes. GREEN focused: 82 factory/pi tests pass after unique wiring and context-delivery deletions failed as expected, then restoration passed. Logs: runs/navigation-recovery/{deletion-production-wiring-01,deletion-context-delivery-01,restoration-01}.log.
+- Full TS test pass: 3301 agent + 1606 viewer. Python/gates rerun after isolated dependency/ROM/archive setup. An earlier coverage run hit existing server-stream responsiveness timing under load; preserved, test unchanged.
+- Explainer pages-check passes; screenshots at 375/1280/1440 opened. Small diagram scrolls horizontally on phone. Card/serving tests added. Browser viewer replay proof pending.
+- Pending experiment is unqueued/unapproved. No gameplay runs or runtime restarts. Source pin interim until reviewed integration.

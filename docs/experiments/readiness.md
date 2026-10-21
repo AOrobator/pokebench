@@ -249,3 +249,6 @@ Pending only; no queue position or approval. Activation: OLDALE_TOWN, the earlie
 Production readinessOf refresh: NOT READY, recent basis, 0/4 reached OLDALE_TOWN (minimum 3/4). Considered think-fast boot runs 2026-10-15T13-36-02_think-fast_2f46, 14-21-06_think-fast_6684, 15-06-08_think-fast_dc0e and 15-51-18_think-fast_17a0. The current GPU cook runs use a different recorded model identifier/start and do not qualify for this standalone entry's lane. Saved receipt: runs/menu-refusal-recovery/readiness.json. Pending only; no queue/approval/launch.
 
 - `gym-door-label-v1`: pending only. First activation PETALBURG_CITY. Native retained-state label check complete; no experiment queued or approved. Diagnostic design and readiness evaluation required before queueing.
+
+## navigation-recovery-v1
+Pending, unqueued and unapproved. Activation: FIRST_TRUCK_EXIT. Recorded-window replay proves lifecycle, not gameplay benefit or sufficient matched model-lane reach; readiness is not qualified for queueing. No measured runs launched.

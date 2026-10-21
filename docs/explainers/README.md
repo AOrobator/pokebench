@@ -185,3 +185,5 @@ The original ignored runs/explainers copies remain for existing links. Make futu
 - [Shop menu refusal recovery](menu-refusal-recovery-v1.html): verified shop refusal feedback and bounded stopping, default OFF and bundle ON.
 
 - [First Roxanne interaction](roxanne-first-interaction-v1.html) — measurement and historical evidence.
+
+- [Bounded navigation recovery](navigation-recovery-v1.html): stale-map refusals and persistent map-cycle recovery; backtracking stays available.

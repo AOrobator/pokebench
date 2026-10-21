@@ -82,6 +82,24 @@ Fix batch 1:
 - Claude SPEC accepted: the tool list names only tools with counted calls.
 - Own finding: a walk to the warned target ending 4+ tiles away was cleared by the walk-away rule and then anchored a new episode itself, unlike the unwarned path. Now the walk-away rule applies only to other calls, and the reset walk does not anchor. Test added.
 
+**Round 2**: the fix delta was fix1.diff (`git diff b8990732 4b403ced`, sha256 920fb648…7945a2). The cumulative packet was packet2 (`git diff main HEAD`, base main 724d9ddd, head 1d7a72dc, sha256 94fa0c91…266ff1).
+- Claude lane (a fresh read-only Claude Opus subagent; the CLI and Cursor Claude are still unavailable): VERDICT: LGTM. Two HF notes. First, the loop-recovery CLI counts held would_warn records as interventions, which is the existing positive-supervisor convention. Second, the world_context fallback can count an object call that production could not resolve. One SPEC note: whole-map-pair v5 does not name the switch.
+- Grok lane (Cursor `cursor-grok-4.5-high`): VERDICT: LGTM. Two HF notes: the held records are not checked through `checkEvent`, and the explainer table's wording that a walk-away "starts over" is loose.
+- GPT lane (Codex CLI, `-m gpt-5.6-sol`, xhigh): VERDICT: BLOCKING, on two points:
+  - B1: held warnings are not proven schema-valid through `attachLoopGuard → recordLoopGuard → checkEvent`.
+  - B2: there are no deletion receipts for the interaction_targets lookup or for the anti-reanchoring guard.
+
+Fix batch 2 (evidence only, no production change):
+- New test "records a held warning as a schema-valid diagnostic loop_guard event through the production recorder path". It goes through attachLoopGuard, runs each recorder body through `checkEvent`, and checks that the open episode's context is unchanged.
+- Deletion receipts. Each change below was restored afterwards and the file went green again (24/24):
+  - r2-a: disabling the held `notify` turns 2 tests red (the coordinator collision test and the production recorder test).
+  - r2-b: removing the interaction_targets lookup turns the navigate_to_target keying test red.
+  - r2-c: reverting the anti-reanchoring guard to an unconditional `stale()` turns the reset-walk test red.
+- Round 3 has not been run. The review skill and the operator's rule both say to ask the operator to confirm scope after two complete rounds that each raised new blockers. Current status:
+  - Claude: LGTM (round 2).
+  - Grok: LGTM (round 2).
+  - GPT/Codex: BLOCKING (round 2). Its findings were evidence-only and are now addressed; a round-3 re-review waits for the operator's confirmation.
+
 ## Boy Scout Log
 
 ## Archive Milestone (user-gated)
@@ -97,3 +115,4 @@ Fix batch 1:
 - Fix batch 1 gates: `just lint` clean; `just test` agent 3011, viewer 1438, pytest 2998; `just coverage` agent 97.21/93.0/97.57/99.16 (`loop/same-target.ts` 99.1/95.2/100/100), viewer 95.09/91.06/93.85/97.7, Python 97.09/92.62/100.
 - COMMIT: `fix: same-target-no-progress-v1 review batch 1 (...)` (4b403ced)
 - Merged main 724d9ddd (whole-map pair v5 definition only; it does not name this switch, so it runs OFF there; agent 3011 and viewer 1438 tests pass after the merge).
+- COMMIT: `merge: main (whole-map pair v5) into same-target-no-progress-v1` (1d7a72dc)

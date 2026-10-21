@@ -331,6 +331,20 @@ describe("same-target-no-progress-v1 registry and wiring",()=>{
    expect(call.slice(0,call.indexOf(");")).endsWith(`features["ineffective-navigation-v2"],features["${ID}"]`),file).toBe(true);
   }
  });
+ it("records a held warning as a schema-valid diagnostic loop_guard event through the production recorder path",()=>{
+  type Guard=Extract<RunEvent,{type:"loop_guard"}>;
+  const recorded:Guard[]=[];const subs:((e:RunEvent)=>void)[]=[];
+  const governor=new Governor({limits:{maxTurns:50,maxWallMs:1e12,failureLimit:3},retry:()=>undefined,abort:()=>undefined,now:()=>0});
+  const d=attachLoopGuard({subscribe:fn=>{subs.push(fn);},recordLoopGuard:n=>{recorded.push(checkEvent({v:1,run:"r",seq:100+recorded.length,t:"2026-10-20T18:42:00.000-04:00",turn:1,type:"loop_guard",...n,evidence:[...n.evidence]}) as Guard);}},governor,undefined,"enforced",false,(kind)=>`SUPERVISOR: generic ${kind}`,false,false,false,false,false,false,false,false,false,false,false,true);
+  for(let i=1;i<=6;i++)d.complete({name:"observe",args:{},isError:false,text:"",state:at(4,9),seq:i});
+  const context=d.context();
+  expect(context).toBe("SUPERVISOR: generic observation");
+  for(let i=0;i<8;i++)d.complete(walk(10+i,at(4,9),at(4,9)));
+  const held=recorded.filter(g=>g.kind==="same_target_no_progress");
+  expect(held.map(g=>"mode" in g?`${g.mode}:${g.phase}:${String(g.evidence)}`:"")).toEqual(["diagnostic:would_warn:10,13","diagnostic:would_warn:10,17"]);
+  expect(held.every(g=>g.message.startsWith("Not sent (another loop episode is open): SUPERVISOR: Since turn 0"))).toBe(true);
+  expect(d.context()).toBe(context);
+ });
  it("the production loop guard honors the switch",()=>{
   const build=(on:boolean)=>{
    const notices:LoopNotice[]=[];const subs:((e:RunEvent)=>void)[]=[];

@@ -431,7 +431,7 @@ describe("registry and event",()=>{
   expect(featureInfo(ID)).toMatchObject({group:"guard",needs:"heal-before-trainers-v2",switchable:true,title:"STORY BATTLE HEAL GATE"});
   expect(featureInfo(ID).description).toContain(" Off: ");
   expect(featureInfo(ID).description).toContain(TURN157_TEXT.split("\n")[0]);
-  expect(SWITCHABLE_FEATURES.at(-16)).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-17)).toBe(ID);
   expect(SERVER_FEATURES).not.toContain(ID);
   expect(playHarnessFeatures({...ALL_ON,[ID]:true},null).at(-14)).toBe(ID);
   expect(playHarnessFeatures({...ALL_ON,[ID]:false},null)).not.toContain(ID);
@@ -456,6 +456,7 @@ describe("registry and event",()=>{
   delete arm["pending-field-dialogue-v1"];
   delete arm["menu-refusal-recovery-v1"];
   delete arm["navigation-recovery-v1"];
+  delete arm["mart-stock-readout-v1"];
   delete arm["navigation-tool-use-guard-v1"];delete arm["semantic-current-map-feedback-v1"];delete arm["story-battle-heal-first-v1"];
   // exit-labels-v3 and short-cycle-fixed-point-v1 joined the bundle arm after this pending experiment was pinned.
   expect({...entry.incumbent.features,"gym-door-label-v1":true,"navigation-refusal-reasons-v3":true,"exit-labels-v3":true,"short-cycle-fixed-point-v1":true}).toEqual(arm);

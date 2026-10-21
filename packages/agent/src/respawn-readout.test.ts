@@ -23,8 +23,8 @@ describe("respawn-readout-v1 registry",()=>{
   expect(dependencyProblems({...ALL_ON,[ID]:true,"ram-state-v1":false})).toContain(`${ID} needs ram-state-v1`);
  });
  it("is appended last, so recorded runs keep their switch order",()=>{
-  expect(SWITCHABLE_FEATURES.at(-27)).toBe(ID);
-  expect(SERVER_FEATURES.at(-10)).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-28)).toBe(ID);
+  expect(SERVER_FEATURES.at(-11)).toBe(ID);
   const all=playHarnessFeatures({...ALL_ON,[ID]:true},null);
   expect(all.at(-1)).toBe(ID);
  });

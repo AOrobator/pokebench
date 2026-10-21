@@ -288,7 +288,7 @@ describe("registry, fixed bundles and event",()=>{
   expect(featureInfo(ID).description).toContain(" Off: ");
   expect(featureInfo(ID).description).toContain(PROBE);
   expect(featureInfo(ID).description).toContain(B300_LINE);
-  expect(SWITCHABLE_FEATURES.at(-10)).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-11)).toBe(ID);
   expect(SERVER_FEATURES).not.toContain(ID);
   expect(playHarnessFeatures({...ALL_ON,[ID]:true},null).at(-10)).toBe(ID);
   expect(playHarnessFeatures({...ALL_ON,[ID]:false},null)).not.toContain(ID);
@@ -309,8 +309,8 @@ describe("registry, fixed bundles and event",()=>{
   const control=(read("experiments/fixed/bundle-v-control.json") as {base:{features:Record<string,boolean>}}).base.features;
   const entry=read(`experiments/${ID}.json`) as {changedFeature:string;incumbent:{features:Record<string,boolean>};queuePosition?:number};
   expect(entry.changedFeature).toBe(ID);expect(entry.queuePosition).toBeUndefined();
-  const {"navigation-recovery-v1":navigationOff,"gym-door-label-v1":gymOff,"menu-refusal-recovery-v1":menuOff,"pending-field-dialogue-v1":pendingOff,...historicalControl}=control;
-  expect(navigationOff).toBe(false);expect(gymOff).toBe(false);expect(pendingOff).toBe(false);expect(menuOff).toBe(false);
+  const {"navigation-recovery-v1":navigationOff,"gym-door-label-v1":gymOff,"mart-stock-readout-v1":martOff,"menu-refusal-recovery-v1":menuOff,"pending-field-dialogue-v1":pendingOff,...historicalControl}=control;
+  expect(navigationOff).toBe(false);expect(gymOff).toBe(false);expect(martOff).toBe(false);expect(pendingOff).toBe(false);expect(menuOff).toBe(false);
   expect(entry.incumbent.features).toEqual({...historicalControl,[ID]:false});
  });
  it("records a valid heal_first_line event that the tail and Activity History read",async()=>{

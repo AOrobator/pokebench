@@ -427,8 +427,8 @@ describe("battle-text-auto-advance-v1 registry and production wiring",()=>{
  it("is a default-off guidance switch, recorded last, that needs dialogue auto-advance and no server switch",()=>{
   expect(featureInfo(ID)).toMatchObject({group:"guidance",needs:"dialogue-auto-advance-v1",switchable:true,title:"BATTLE TEXT AUTO-ADVANCE"});
   expect(featureInfo(ID).description).toContain(" Off: field auto-advance stops when a battle starts");
-  expect(SWITCHABLE_FEATURES.at(-116)).toBe(ID);
-  expect(FEATURES.filter(f=>f.switchable).at(-116)?.id).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-117)).toBe(ID);
+  expect(FEATURES.filter(f=>f.switchable).at(-117)?.id).toBe(ID);
   expect(playHarnessFeatures(ALL_ON,null).at(-72)).toBe(ID);
   expect(playHarnessFeatures({...ALL_ON,"battle-decision-ready-v1":false,[ID]:false},null)).not.toContain(ID);
   expect(SERVER_FEATURES).not.toContain(ID);
@@ -602,7 +602,7 @@ it("battle readiness never executes a queued action after a cap or battle end",a
 
 it("battle readiness is append-only, default OFF for historical presets and dependent on native text advancing",()=>{
  const id="battle-decision-ready-v1" as const;
- expect(SWITCHABLE_FEATURES.at(-50)).toBe(id);
+ expect(SWITCHABLE_FEATURES.at(-51)).toBe(id);
  expect(playHarnessFeatures(ALL_ON,null).at(-6)).toBe(id);
  expect(featureInfo(id)).toMatchObject({needs:ID,group:"guidance"});
  const flags=flagFeatures({loopGuard:false,activeUi:true,interfaceDocs:true,objectives:false});
@@ -735,8 +735,8 @@ describe("pending-field-dialogue-v1",()=>{
  });
  it("is appended, agent-only, default OFF and requires field dialogue auto advance",()=>{
   const id="pending-field-dialogue-v1";
-  expect(SWITCHABLE_FEATURES.at(-9)).toBe(id);
-  expect(FEATURES.filter(f=>f.switchable).at(-9)?.id).toBe(id);
+  expect(SWITCHABLE_FEATURES.at(-10)).toBe(id);
+  expect(FEATURES.filter(f=>f.switchable).at(-10)?.id).toBe(id);
   expect(playHarnessFeatures({...ALL_ON,[id]:true},null).at(-1)).toBe(id);
   expect(featureInfo(id)).toMatchObject({needs:"dialogue-auto-advance-v1",group:"guidance"});
   expect(SERVER_FEATURES).not.toContain(id);
@@ -759,7 +759,7 @@ describe("pending-field-dialogue-v1",()=>{
 
 it("the pending field dialogue experiment explicitly declares every current switch and flips only its treatment",()=>{
  const raw=JSON.parse(readFileSync(new URL("../../../experiments/pending-field-dialogue-v1.json",import.meta.url),"utf8")) as {incumbent:{features:Record<string,boolean>}};
- expect(Object.keys(raw.incumbent.features)).toEqual(SWITCHABLE_FEATURES.filter(id=>id!=="gym-door-label-v1"&&id!=="navigation-recovery-v1"&&id!=="menu-refusal-recovery-v1"));
+ expect(Object.keys(raw.incumbent.features)).toEqual(SWITCHABLE_FEATURES.filter(id=>id!=="mart-stock-readout-v1"&&id!=="gym-door-label-v1"&&id!=="navigation-recovery-v1"&&id!=="menu-refusal-recovery-v1"));
  const entry=parseExperiment(raw),{incumbent,candidate}=experimentArms(entry);
  expect(entry.queuePosition).toBeUndefined();
  expect(SWITCHABLE_FEATURES.filter(id=>incumbent.features[id]!==candidate.features[id])).toEqual(["pending-field-dialogue-v1"]);

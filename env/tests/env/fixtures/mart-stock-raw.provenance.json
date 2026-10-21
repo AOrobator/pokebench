@@ -1,0 +1,36 @@
+{
+ "run": "2026-10-21T06-28-18_qwen36-gpu0_1331",
+ "rom_sha1": "f3ae088181bf583e55daf962a92bb46f4f1d07b7",
+ "archives": {
+  "buy-list-row0": {
+   "source": "raw-ram/00009904.json.gz",
+   "sequence": 9904,
+   "frame": 422591,
+   "sha256": "dca1a61eb7641e71b1e58fde11d24854e3344b75bedadc926c2e38eb418cc429"
+  },
+  "buy-list-row2": {
+   "source": "raw-ram/00009913.json.gz",
+   "sequence": 9913,
+   "frame": 422988,
+   "sha256": "1b7bc921a3021253a76c22c405aaf891a994d46c3139ce45af8ce21f10f737a8"
+  },
+  "quantity-box": {
+   "source": "raw-ram/00009919.json.gz",
+   "sequence": 9919,
+   "frame": 423675,
+   "sha256": "24e5ae0acc1f56cb8bf10a48729c9f7a0f32f199a3dc94f14cd9274f13ba77a3"
+  },
+  "after-purchase": {
+   "source": "raw-ram/00009930.json.gz",
+   "sequence": 9930,
+   "frame": 424123,
+   "sha256": "b4e551ad57a11a72736156d7f33b5c62277373112c20b4c156bc09518528bffb"
+  },
+  "action-menu": {
+   "source": "raw-ram/00009897.json.gz",
+   "sequence": 9897,
+   "frame": 421873,
+   "sha256": "14c0251668d8e3ec4a2ef1834a82cfe3174e4ade547f410d0c32e616f7098aad"
+  }
+ }
+}

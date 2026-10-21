@@ -781,6 +781,21 @@ it("enables the five move-learn switches only in the bundle of the three current
  }
 });
 
+it("enables the mart stock readout only in the bundle of the four current bundle definitions, and keeps it OFF in the next-run default",()=>{
+ const id="mart-stock-readout-v1";
+ expect(DEFAULT_NEXT_RUN.features[id]).toBe(false);
+ for(const file of ["bundle-v-control","bundle-cook-1h","whole-map-cook-1h","whole-map-pair-2h"]){
+  const {definition:def}=parseFixedDefinition(readFileSync(new URL(`../../../experiments/fixed/${file}.json`,import.meta.url),"utf8"));
+  expect(def.switches.filter(s=>s===id)).toEqual([id]);
+  expect(def.onInBoth).not.toContain(id);
+  expect(def.base.features[id]).toBe(false);
+  expect(armFeatures(def,"control")[id]).toBe(false);
+  expect(armFeatures(def,"bundle")[id]).toBe(true);
+  expect(armFeatureBits(def,"control")[id]).toBe(false);
+  expect(armFeatureBits(def,"bundle")[id]).toBe(true);
+ }
+});
+
 it("keeps section-aware labels OFF in the generic next-run default",()=>{
  expect(DEFAULT_NEXT_RUN.features["exit-labels-v3"]).toBe(false);
  expect(parseNextRun(DEFAULT_NEXT_RUN).features["exit-labels-v3"]).toBe(false);

@@ -29,3 +29,5 @@ RED receipt: production factory regression fixture has three expected treatment 
 - Full TS test pass: 3301 agent + 1606 viewer. Python/gates rerun after isolated dependency/ROM/archive setup. An earlier coverage run hit existing server-stream responsiveness timing under load; preserved, test unchanged.
 - Explainer pages-check passes; screenshots at 375/1280/1440 opened. Small diagram scrolls horizontally on phone. Card/serving tests added. Browser viewer replay proof pending.
 - Pending experiment is unqueued/unapproved. No gameplay runs or runtime restarts. Source pin interim until reviewed integration.
+
+Integration: synced with main 54640622 (mart-stock-readout landed concurrently). Reapplied navigation as the final appended feature and preserved the other feature and its bundle settings; historical test exclusions/order assertions updated. No behavior from the navigation candidate was dropped. Re-running integration gates before frozen review.

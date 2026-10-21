@@ -91,8 +91,11 @@ No new network surface, subprocesses or file paths. ROM read only through existi
 
 **M4 — `post-battle-readout-v1` (server, Python)**
 - [x] Tests `env/tests/env/test_post_battle_readout.py`: states built from ea04 seq 20991 (evolution screen, battle finishing, COMBUSKEN with DOUBLE KICK in the party, battle struct still TORCHIC/SCRATCH), seq 20256 (battle, learn_move box ready, Interface "battle_resolving; input not ready") and the pokemon_summary forget screen. OFF pinned to `env/tests/env/fixtures/post_battle_off.json`, written by the code before the switch existed (every other server switch on). Registered server-side (TS `SERVER_FEATURES` and Python `SERVER_FEATURES` + default-off list).
-- [x] COMMIT RED (2 ON tests red; OFF golden and registration green). SHA recorded in the next commit.
-- [ ] Implement / gates / GREEN. Review deferred to one branch packet before landing.
+- [x] COMMIT RED: `test(readout): post-battle battle block and the battle learn-move Interface line behind post-battle-readout-v1 (RED)` (9cedd233c). 2 ON tests red; OFF golden and registration green.
+- [x] Implement: `battle_details_lines(..., ended=)` writes `ended (outcome won)`, drops the Actions line, and takes the You line and Your moves from the party member with the battler's identity (`_ended_lines`; an unreadable member is a visible HARNESS BUG line); readout.py passes `ended` on evolution / pokemon_summary / summary while the battle is finishing, and `_learn_box_interface` replaces the Interface line in battle when the learn_move / stop_learning_move box is ready with YES/NO highlighted.
+- [x] Guard deletion: Interface replacement off → red; `ended` forced False → red; restored → 6 green.
+- [x] Gates: vitest agent 4308 / viewer 1656; pytest 3812; lint clean (ruff, ruff format, mypy, tsc, eslint); build ok; coverage agent 99.21 L / 93.13 B / 97.81 F, viewer 97.95 / 91.33 / 94.35, Python 97.29 / 93.12 / 100.
+- [ ] COMMIT GREEN. Review deferred to one branch packet before landing.
 
 **M5 — `move-learn-tool-v1`**
 - [ ] Tests: forget each slot 1–4 from Delete box; from Stop-learning box; from MVSTATE 1/2 pages; "none"; in-battle path; refusal when no prompt; unknown move name; cursor verification after each step; screen change mid-drive stops and reports.

@@ -53,6 +53,32 @@ from pokebench_env.world import InteractionTarget
 from pokebench_env.yes_no_answer import SWITCH as YES_NO_ANSWER
 from pokebench_env.yes_no_answer import answer_line
 
+# post-battle-readout-v1: the battle block after the battle ends (evolution or summary screen while
+# the battle finishes), and the battle's move-learning YES/NO box as the Interface line.
+POST_BATTLE = "post-battle-readout-v1"
+POST_BATTLE_SCREENS = frozenset({"evolution", "pokemon_summary", "summary"})
+# BattleScript_AskToLearnMove yesnoboxlearnmove / yesnoboxstoplearningmove
+# (battle_text.py 0x5A / 0x5B).
+LEARN_BOXES = frozenset({"learn_move", "stop_learning_move"})
+# battle_message_waiting.py's controls for a battle YES/NO box.
+BOX_CONTROLS = "UP or DOWN moves the cursor, A answers the highlighted choice, B answers NO"
+
+
+def _learn_box_interface(state: GameState) -> str | None:
+    battle = state.battle
+    prompt = None if battle is None else battle.prompt
+    if (
+        battle is None
+        or battle.diagnostic is not None
+        or prompt is None
+        or prompt.kind not in LEARN_BOXES
+        or not prompt.ready
+        or prompt.selected not in {"YES", "NO"}
+    ):
+        return None
+    return f"Interface: {prompt.kind}; input ready; selected {prompt.selected}; {BOX_CONTROLS}"
+
+
 SERVER_FEATURES = (
     "expanded-menu-battle-information-v1",
     "ram-state-v1",
@@ -337,7 +363,10 @@ def format_readout(
             f"Dialog: {dialog}",
             _menu(state, truth, "evolution-decision-v1" not in off, MOVE_QUESTION not in off),
         ]
-        if ui is not None:
+        box = _learn_box_interface(state) if POST_BATTLE not in off and state.in_battle else None
+        if box is not None:
+            lines.append(box)
+        elif ui is not None:
             lines.append((ui if expanded else replace(ui, details=None)).text())
         # yes-no-answer-readout-v1: how to answer the other option of the open YES/NO box.
         answer = answer_line(state) if YES_NO_ANSWER not in off else None
@@ -422,6 +451,9 @@ def format_readout(
                     message_waiting=waiting,
                     levelup_box=levelup,
                     effective_damage="battle-effective-damage-v1" not in off,
+                    ended=POST_BATTLE not in off
+                    and battle.phase == "finishing"
+                    and state.screen in POST_BATTLE_SCREENS,
                 ),
                 *playback,
                 *execution,

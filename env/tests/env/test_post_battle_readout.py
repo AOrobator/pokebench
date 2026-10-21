@@ -1,4 +1,4 @@
-"""post-battle-readout-v1: the battle block after the battle, and the battle YES/NO box's Interface line.
+"""post-battle-readout-v1: the battle block after the battle, and the learn-move box Interface.
 
 Run 2026-10-21T13-33-54_qwen36-gpu0_ea04:
 - seq 20991 (screen evolution, battle phase finishing): the battle block still read "Your moves
@@ -47,7 +47,17 @@ def facts(row: tuple[int, str, int, int, int, int]) -> MoveFacts:
     return MoveFacts(move_id, name, kind, power, accuracy, PP[move_id], max_pp)
 
 
-def battler(slot: int, position: int, species: str, level: int, hp: int, max_hp: int, types: tuple[int, int], moves: tuple[tuple[int, str, int, int, int, int], ...], identity: str) -> BattleBattler:  # noqa: E501
+def battler(
+    slot: int,
+    position: int,
+    species: str,
+    level: int,
+    hp: int,
+    max_hp: int,
+    types: tuple[int, int],
+    moves: tuple[tuple[int, str, int, int, int, int], ...],
+    identity: str,
+) -> BattleBattler:  # noqa: E501
     return BattleBattler(
         battler=position, position=position, party_slot=slot, identity=identity, species_id=280,
         species=species, level=level, hp=hp, max_hp=max_hp, status1=0, status2=0, status3=0,
@@ -89,7 +99,13 @@ ASKING = replace(
     ),
     battle_details=replace(DETAILS, party=(replace(EVOLVED, name="TORCHIC", types=(10, 10), moves=tuple(facts(m) for m in (SCRATCH, GROWL, FOCUS, EMBER))),)),  # noqa: E501
 )  # fmt: skip
-SUMMARY = replace(AFTER, screen="pokemon_summary", active_ui=ActiveUi("summary_move_forget", "SCRATCH", True, "UP/DOWN selects a move; A forgets it"))  # noqa: E501
+SUMMARY = replace(
+    AFTER,
+    screen="pokemon_summary",
+    active_ui=ActiveUi(
+        "summary_move_forget", "SCRATCH", True, "UP/DOWN selects a move; A forgets it"
+    ),
+)  # noqa: E501
 STATES = {"after": AFTER, "asking": ASKING, "summary": SUMMARY}
 # Every other server switch on, as the bundle arm has them for this readout.
 OFF = frozenset({SWITCH})
@@ -139,19 +155,33 @@ def test_on_in_battle_the_ready_learn_move_box_is_the_interface() -> None:
         "A answers the highlighted choice, B answers NO"
     ) in text
     assert "battle_resolving; input not ready" not in text
-    stop = replace(ASKING, battle=replace(ASKING.battle, prompt=BattlePrompt("stop_learning_move", True, "NO")))  # noqa: E501
+    stop = replace(
+        ASKING, battle=replace(ASKING.battle, prompt=BattlePrompt("stop_learning_move", True, "NO"))
+    )  # noqa: E501
     assert "Interface: stop_learning_move; input ready; selected NO;" in readout(stop, ON)
     # A box that is not ready, or another YES/NO box, keeps the battle interface line.
-    unready = replace(ASKING, battle=replace(ASKING.battle, prompt=BattlePrompt("learn_move", False, "YES")))  # noqa: E501
+    unready = replace(
+        ASKING, battle=replace(ASKING.battle, prompt=BattlePrompt("learn_move", False, "YES"))
+    )  # noqa: E501
     assert "Interface: battle_resolving; input not ready" in readout(unready, ON)
-    other = replace(ASKING, battle=replace(ASKING.battle, prompt=BattlePrompt("yes_no", True, "YES")))  # noqa: E501
+    other = replace(
+        ASKING, battle=replace(ASKING.battle, prompt=BattlePrompt("yes_no", True, "YES"))
+    )  # noqa: E501
     assert "Interface: battle_resolving; input not ready" in readout(other, ON)
 
 
 def test_on_mid_battle_and_without_details_nothing_changes() -> None:
-    mid = replace(AFTER, screen="battle", battle=replace(FINISHING, phase="resolving", outcome=None))
+    resolving = replace(FINISHING, phase="resolving", outcome=None)
+    mid = replace(AFTER, screen="battle", battle=resolving)
     assert readout(mid, ON) == readout(mid, OFF)
     plain = replace(AFTER, battle_details=None)
     assert readout(plain, ON) == readout(plain, OFF)
     other = replace(AFTER, battle_details=replace(DETAILS, party=(replace(EVOLVED, identity="x"),)))
     assert "Your moves (2×2" in readout(other, ON)
+
+
+def test_on_an_unreadable_party_member_is_a_visible_harness_bug() -> None:
+    broken = replace(EVOLVED, types=None, diagnostic="species unavailable")
+    text = readout(replace(AFTER, battle_details=replace(DETAILS, party=(broken,))), ON)
+    assert "You COMBUSKEN · HARNESS BUG: species unavailable" in text
+    assert "Your moves (from the party" not in text

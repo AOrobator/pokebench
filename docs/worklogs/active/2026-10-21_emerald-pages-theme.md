@@ -15,7 +15,9 @@ Requested by the operator, 2026-10-21 (thread "Get a local model to catch rayqua
 
 ## Commits
 - COMMIT: `feat(pages): Emerald PokéNav theme for explainers and experiment pages` (4de1aab73)
-- Next: pixel table headers no longer break letter by letter on phones (seen in the GLM report's splits table at 375); `pre` scrolls inside the screen.
+- COMMIT: `fix(pages): pixel table headers keep whole words on phones` (ef221f0e9)
+- Next: env/tests/tooling/test_pages_theme.py (4 tests) for `pages.sh theme`; breaking the block insert or the colour-scheme rewrite fails a test.
+- Earlier: pixel table headers no longer break letter by letter on phones (seen in the GLM report's splits table at 375); `pre` scrolls inside the screen.
 
 ## Evidence
 - All 171 pages at 1280×800 and 375×812 in Chrome: 0 external requests, `<main>` count 1, h1 inside main; only `offscreen-objects-v1.html` scrolls sideways, which it already did before the theme (643px unthemed).

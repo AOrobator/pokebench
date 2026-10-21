@@ -139,7 +139,7 @@ it("keeps checked presses and all game result paths, including missing text/stat
  const out=await press.executeChecked('checked',{buttons:['A']},check,signal,update);
  expect(calls).toEqual([['checked',{buttons:['A']},check,signal,update,undefined]]);
  expect(resultText(out)).toBe(line);expect(out.content[1]).toEqual(result.content[0]);
- for(const name of ['observe','navigate_to','navigate_to_target','explore_map','battle_action'])expect(resultText(await must(tools.find(t=>t.name===name)).execute(name,{}))).toBe(line);
+ for(const name of ['press','observe','navigate_to','navigate_to_target','explore_map','battle_action'])expect(resultText(await must(tools.find(t=>t.name===name)).execute(name,{}))).toBe(line);
  expect(must(tools.find(t=>t.name==='recall_dialogue'))).toBe(base.at(-1));
  result={content:[{type:'text',text:'unchanged'}],details:{}};
  expect(await press.execute('no-state',{buttons:['A']})).toBe(result);

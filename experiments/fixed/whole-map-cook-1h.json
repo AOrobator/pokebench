@@ -188,6 +188,8 @@
    "navigation-tool-use-guard-v1": false,
    "semantic-current-map-feedback-v1": false,
    "short-cycle-fixed-point-v1": false,
+   "exit-labels-v3": false,
+   "party-item-confirmation-v1": false,
    "pending-field-dialogue-v1": false
   }
  },
@@ -249,6 +251,8 @@
   "navigation-tool-use-guard-v1",
   "semantic-current-map-feedback-v1",
   "short-cycle-fixed-point-v1",
+  "exit-labels-v3",
+  "party-item-confirmation-v1",
   "pending-field-dialogue-v1"
  ],
  "offInBoth": [

@@ -1538,3 +1538,8 @@ it.each(["gym-evidence-v1","rejected-movement-step-v1","observed-field-dialogue-
  const log=bare();const html=harnessConfig(view(log),FEATURES);expect(html).toContain(`/explainers/${id}.html`);
  expect(readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)),"utf8")).toContain(id);
 });
+
+it("links the script boundary feature card to its tracked explainer",()=>{
+ expect(FEATURE_EXPLAINERS["trigger-navigation-boundary-v1"]).toBe("trigger-navigation-boundary-v1.html");
+ expect(readFileSync(fileURLToPath(new URL("../../../docs/explainers/trigger-navigation-boundary-v1.html",import.meta.url)),"utf8")).toContain("Let the game run its scripts");
+});

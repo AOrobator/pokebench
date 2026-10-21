@@ -1,4 +1,4 @@
-import { appendFileSync, cpSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { appendFileSync, cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { createServer, request, IncomingMessage, ServerResponse, type Server } from "node:http";
 import { Socket, type AddressInfo } from "node:net";
 import { tmpdir } from "node:os";
@@ -1334,4 +1334,11 @@ it("keeps malformed URL failures inside the request boundary and continues servi
   await new Promise<void>(resolve => setImmediate(resolve));
   expect(res.statusCode).toBe(500);
   expect((await get(viewer,"/api/frame-metrics")).status).toBe(200);
+});
+
+it("serves the tracked script boundary explainer byte for byte",async()=>{
+ const tracked=readFileSync(fileURLToPath(new URL("../../../docs/explainers/trigger-navigation-boundary-v1.html",import.meta.url)));
+ const root=mkdtempSync(join(tmpdir(),"pokebench-trigger-explainer-")),staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});writeFileSync(join(docs,"trigger-navigation-boundary-v1.html"),tracked);
+ const viewer=await startViewer({runsRoot:join(root,"runs"),staticDir,appDir:join(root,"app"),port:0});
+ try{const reply=await get(viewer,"/explainers/trigger-navigation-boundary-v1.html");expect(reply.status).toBe(200);expect(reply.body).toEqual(tracked);}finally{await viewer.close();rmSync(root,{recursive:true,force:true});}
 });

@@ -179,7 +179,8 @@
    "caught-nickname-prompt-v1": false,
    "fail-open-input-v1": false,
    "whiteout-healed-v1": false,
-   "gym-readiness-readout-v1": false
+   "gym-readiness-readout-v1": false,
+   "party-item-confirmation-v1": false
   }
  },
  "switches": [
@@ -231,7 +232,8 @@
   "caught-nickname-prompt-v1",
   "fail-open-input-v1",
   "whiteout-healed-v1",
-  "gym-readiness-readout-v1"
+  "gym-readiness-readout-v1",
+  "party-item-confirmation-v1"
  ],
  "offInBoth": [
   "semantic-navigation-v1",

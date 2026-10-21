@@ -169,6 +169,7 @@ export const SWITCHABLE_FEATURES = [
   "fail-open-input-v1",
   "whiteout-healed-v1",
   "gym-readiness-readout-v1",
+  "party-item-confirmation-v1",
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
 
@@ -448,6 +449,7 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("fail-open-input-v1", "guidance", "FAIL-OPEN INPUT", null, "Bundle arm only, default off (the operator 2026-10-20: fail open for boxes or UI the harness does not recognize; B must be able to dismiss them). When the press tool's automatic advance stops on a hold the harness does not recognize (the battle keeps running with no message or input it can read, the battle state is unreadable, an interface or message stays not ready, or field controls stay locked with no message), the inputs left in the model's batch are sent as it asked, B included, and the result says: The harness does not recognize what the game is waiting for, so it sent the rest of your inputs as you asked: <inputs>. Decide from the screen what they did. A stop the harness recognizes (a menu, a battle question, the battle's end, free field controls) still drops the rest of the batch. Off: the rest of the batch is dropped after any stop (N remaining inputs not sent), as before."),
   on("whiteout-healed-v1", "observation", "WHITEOUT HEALED", null, "Bundle arm only, default off (the operator 2026-10-20: \"lets build it, bundle only\"; run c6c2 read TORCHIC 20/20 after whiting out to MAY at turn 256 and still planned for seven turns to heal it at a POKéMON CENTER). pokeemerald DoWhiteOut halves the money, then HealPlayerParty() restores every party Pokémon's HP, PP and status, then warps to the last heal location. Two parts. When the battle-loss-recap-v1 line is for a whiteout, it goes on with the party as the first overworld state after the warp read it, every Pokémon but eggs in party order with HP and max HP from RAM: \"Battle recap: you lost to MAY (trainer 535) on ROUTE103 (map 0/18) at turn 256 and whited out; the game returned you to GREE's HOUSE 2F (map 1/1). The game shows MAY (trainer 535) has not been defeated. Whiting out restored your whole party: TORCHIC 20/20 HP.\" When any Pokémon was below max or its HP was not read, it says what the state showed and claims nothing: \"After whiting out, the game state showed your party: TORCHIC 20/20 HP, WURMPLE 9/15 HP.\" A loss without a whiteout gets nothing. With trainer-heal-guidance-v1, its system-prompt sentence \"If every Pokémon in your party faints, you black out: ... or at home, far from where you were\" ends \", with your whole party healed.\" blackout-readout-v1 already says the party was healed; it and respawn-readout-v1 are unchanged. Off: the recap and the prompt are unchanged."),
   on("gym-readiness-readout-v1", "observation", "GYM READINESS READOUT", null, "Bundle arm only, default off (the operator 2026-10-20: put the party's levels next to the leader's team so the model can judge for itself; seen-only, no walkthrough). On a gym map's field, a block after the Location/Position lines: Gym: <map> · GYM LEADER <name, once battled on this map>; Your party: species, level and HP; <leader>'s POKéMON seen in battle this run: each POKéMON she sent out with the highest level seen, or none yet; Said on this map: field pages printed on this map that name a type, quoted once; Trainers on this map: from heal-before-trainers facts when present, by the name a battle showed or the sprite kind: beaten, battled and not beaten, or not beaten (the game's trainer flag is set only by a win). Nothing comes from the ROM's trainer parties and nothing advises a choice. Off: no block."),
+  on("party-item-confirmation-v1", "observation", "PARTY ITEM CONFIRMATION", RAM, "Bundle arm only, default off. Reads the party message printer: A or B continues only an active, drawn HP-restoration message at its native button wait. Printing, HP animation, fades and handoffs stay passive. No automatic presses. Off: the previous passive party_item_message readout is unchanged."),
 ];
 
 export const ALL_ON: FeatureSet = Object.fromEntries(SWITCHABLE_FEATURES.map((id) => [id, true])) as Record<SwitchableFeature, boolean>;
@@ -500,6 +502,7 @@ export const SERVER_FEATURES: readonly SwitchableFeature[] = [
   "heal-before-trainers-v2",
   "respawn-readout-v1",
   "caught-nickname-prompt-v1",
+  "party-item-confirmation-v1",
 ];
 
 export function serverFeatureEnv(features: FeatureSet): { POKEBENCH_ACTIVE_UI: "0" | "1"; POKEBENCH_FEATURES_OFF: string } {
@@ -650,6 +653,7 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("fail-open-input-v1"),
     ...when("whiteout-healed-v1"),
     ...when("gym-readiness-readout-v1"),
+    ...when("party-item-confirmation-v1"),
   ];
 }
 

@@ -363,6 +363,7 @@ def read_active_ui(
     birch_pages: bool = False,
     transition_coherence: bool = True,
     tutorial_owner_enabled: bool = False,
+    party_item_confirmation: bool = False,
 ) -> ActiveUi | None:
     """transition_coherence: transition-coherence-v1's battle-start and handoff rules."""
     from pokebench_env.game_screen import TASKS
@@ -493,7 +494,9 @@ def read_active_ui(
     corner_ui = read_corner_ui(read, screen.callback2)
     if corner_ui is not None:
         return corner_ui
-    menu_family = read_menu_family(read, screen.callback2, truth=truth)
+    menu_family = read_menu_family(
+        read, screen.callback2, truth=truth, party_item_confirmation=party_item_confirmation
+    )
     if menu_family is not None:
         return menu_family
     field_widget_ui = read_field_widget_ui(read, screen.callback2)

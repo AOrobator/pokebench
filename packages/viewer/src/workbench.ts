@@ -121,7 +121,11 @@ export class Workbench {
     if (host.querySelector(".wb-card-row") === null) host.innerHTML = `<div class="wb-party">${partyHead(live)}<p class="wb-notice">Trainer artwork unavailable. You can still watch each run.</p><div class="wb-card-row"></div></div>`;
     const head = host.querySelector(".wb-party-head"), row = host.querySelector(".wb-card-row"), nextHead = partyHead(live);
     if (head !== null && head.outerHTML !== nextHead) head.outerHTML = nextHead;
-    if (row !== null) syncCards(row, currentRunLinks(live, this.runLanes), this.cardMemo);
+    if (row !== null) {
+      const focused = row.contains(this.doc.activeElement) ? this.doc.activeElement?.closest<HTMLElement>("[data-watch]")?.dataset.watch : undefined;
+      syncCards(row, currentRunLinks(live, this.runLanes), this.cardMemo);
+      if (focused !== undefined) row.querySelector<HTMLElement>(`[data-watch="${CSS.escape(focused)}"]`)?.focus({ preventScroll: true });
+    }
   }
   // Trainer cards share the viewer design; missing artwork uses ordinary Watch links.
   private cards(): boolean {

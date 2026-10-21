@@ -152,6 +152,10 @@ it("keeps artwork-free Watch links usable through clock ticks and status polls",
   fetch.mockResolvedValue({ ...data(), at: 2000, runs: [run({ status: "paused" }), run({ id: "second", status: "live" })] }); await wb.refresh();
   expect(ui("current").textContent).toContain("PAUSED"); expect(ui("current").querySelectorAll("[data-watch]")).toHaveLength(2);
   expect(document.activeElement?.getAttribute("data-watch")).toBe("run_01");
+  fetch.mockResolvedValue({ ...data(), at: 2500, runs: [run({ id: "prepended", status: "live" }), run({ status: "paused" }), run({ id: "second", status: "live" })] }); await wb.refresh();
+  expect(document.activeElement?.getAttribute("data-watch")).toBe("run_01");
+  fetch.mockResolvedValue({ ...data(), at: 2600, runs: [run({ status: "paused" }), run({ id: "second", status: "live" })] }); await wb.refresh();
+  expect(document.activeElement?.getAttribute("data-watch")).toBe("run_01");
   fetch.mockResolvedValue({ ...data(), at: 3000, runs: [] }); await wb.refresh(); expect(ui("current").textContent).toContain("BACK TO VIEWER"); wb.destroy();
 });
 describe("switch catalog for the frontier legend", () => {

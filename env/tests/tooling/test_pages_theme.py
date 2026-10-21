@@ -164,3 +164,13 @@ def test_orphan_wrap_marker_never_cuts_the_page(tmp_path: Path) -> None:
     page.write_text(source)
     theme(page)
     assert BLOCK.sub("", page.read_text()) == source
+
+
+def test_uppercase_colour_scheme_query_is_pinned(tmp_path: Path) -> None:
+    page = tmp_path / "upper.html"
+    page.write_text(
+        "<!doctype html><html><head><style>@media (PREFERS-COLOR-SCHEME: DARK){p{}}</style></head>"
+        "<body><main><p>x</p></main></body></html>"
+    )
+    theme(page)
+    assert "@media (min-width:1000000px){p{}}" in page.read_text()

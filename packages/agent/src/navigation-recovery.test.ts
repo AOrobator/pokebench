@@ -129,8 +129,13 @@ it("does not suppress the menu-refusal guard while a navigation cycle is open",(
 });
 it("updates current-map feedback after backtracking and never offers unsupported exits",()=>{
  const r=direct();r.recovery.state(state({map_id:[0,16]}));r.recovery.state(field);r.recovery.cycle("cycle",[1],1);
- const routes=field.exit_reach?.connections??[];const next=state({map_id:[0,16],exit_reach:field.exit_reach==null?undefined:{...field.exit_reach,connections:routes.map(c=>({...c,reach:"none" as const}))}});
+ const reach=field.exit_reach;if(reach===undefined)throw Error("fixture has no exit reach");const next=state({map_id:[0,16],exit_reach:{...reach,connections:reach.connections.map(c=>({...c,reach:"none" as const}))}});
  r.recovery.state(next);r.recovery.complete(call(next),2);
  expect(r.recovery.context()).toContain("Current map: 0/16");expect(r.recovery.context()).toContain("none qualified");
  r.recovery.unavailable();expect(r.recovery.context()).toContain("Current map unavailable");
+});
+it("bounds the second recorded window if known-map decisions keep repeating after the warning",()=>{
+ const r=rig(true);r.replay(252,257);
+ for(let i=0;i<12;i++){r.detector.context();r.detector.complete(call(field,{seq:10000+i}));}
+ expect(r.governor.stopReason).toBe("stuck");expect(r.notices.at(-1)).toMatchObject({kind:"map_cycle",phase:"stop"});
 });

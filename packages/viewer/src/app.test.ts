@@ -2012,3 +2012,25 @@ describe("POKéMON PARTY page", () => {
     expect(ui("party").textContent).toContain("ZIGZAGOON");
   });
 });
+
+it("shows production navigation recovery warning, recovery and stop in Activity History and raw inspection",async()=>{
+ const {NavigationRecovery,NAVIGATION_RECOVERY_CALLS}=await import("../../agent/src/loop/navigation-recovery.js");
+ const {gunzipSync}=await import("node:zlib");const {readFileSync}=await import("node:fs");
+ const {checkEvent}=await import("../../agent/src/events.js");const {parseGameState}=await import("../../agent/src/game-state.js");
+ const fixture=JSON.parse(gunzipSync(readFileSync(join(import.meta.dirname,"../../agent/test-support/navigation-recovery-loop.json.gz"))).toString("utf8")) as {events:unknown[]};
+ const source=fixture.events.map(checkEvent).find(e=>e.type==="state"&&e.seq===6857);
+ const state=parseGameState(Object.fromEntries(Object.entries(source as Record<string,unknown>).filter(([k])=>!["v","run","seq","t","type","turn"].includes(k))));
+ const {app,streams}=await harness(`#replay=${M4_ID}`);const stream=must(streams[0]);const log=new Log();log.add(0,START);
+ const native=log.add(0,{type:"state",turn:1,...state});
+ const notices:import("../../agent/src/loop/types.js").LoopNotice[]=[];const recovery=new NavigationRecovery(n=>notices.push(n),"enforced");
+ recovery.state(state);recovery.cycle("recorded cycle",[native.seq],1);recovery.context();recovery.progress(native.seq,2);
+ recovery.cycle("recorded cycle",[native.seq],2);recovery.context();
+ for(let i=0;i<NAVIGATION_RECOVERY_CALLS;i++)recovery.complete({name:"observe",args:{},isError:false,text:"",state,seq:native.seq},i+3);
+ const guards=notices.map((notice,i)=>log.add((i+1)*1000,{type:"loop_guard",turn:i+1,...notice,evidence:[...notice.evidence]}));
+ log.add(6000,{type:"run_end",turn:15,reason:"stuck",furthest_milestone:null,turns:15,wall_ms:6000,tokens:{input:0,output:0},frames:{saved:0,bytes:0}});
+ feed(stream,log.events.map(e=>parseEvent(JSON.stringify(e))));stream.send("done",{});app.tick(5000);
+ expect(notices.map(n=>n.phase)).toEqual(["warning","recovered","warning","stop"]);
+ for(const guard of guards){const row=must(ui("trace").querySelector<HTMLElement>(`[data-seqs~="${String(guard.seq)}"]`));expect(row.textContent).toContain("NAVIGATION RECOVERY");row.click();expect(ui("inspector").textContent).toContain('"kind": "map_cycle"');}
+ const scrub=ui("scrub") as HTMLInputElement;scrub.value="0";scrub.dispatchEvent(new Event("input"));
+ expect(ui("trace").textContent).not.toContain("NAVIGATION RECOVERY");
+});

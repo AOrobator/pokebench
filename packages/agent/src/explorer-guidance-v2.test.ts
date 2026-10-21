@@ -121,6 +121,6 @@ it("defaults off in presets and the legacy flag presets",()=>{
  const {"explorer-guidance-v2":_omitted,...without}=INCUMBENT;
  expect(_omitted).toBe(false);
  expect(normalizeFeatures(without)[ID]).toBe(false);
- expect(Object.keys(normalizeFeatures(without)).at(-88)).toBe(ID);
+ expect(Object.keys(normalizeFeatures(without)).at(-89)).toBe(ID);
  for(const objectives of [true,false])expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives})[ID]).toBe(false);
 });

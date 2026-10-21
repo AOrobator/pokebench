@@ -230,7 +230,7 @@ it.each([[true], [false]])("delivers the cut-off notice through live.ts with cut
   const followUp = owner.contexts[4]?.messages.at(-1);
   const notice = "Your last reply reached the output limit (100 tokens) before it made a tool call, so nothing happened in the game. Make one tool call now.";
   expect(followUp).toMatchObject({ role: "user", content: on ? notice : NUDGE });
-  expect(cutOffReplyNotice({ ...features } as Parameters<typeof cutOffReplyNotice>[0], 100)).toBe(on ? notice : undefined);
+  expect(cutOffReplyNotice({ ...features }, 100)).toBe(on ? notice : undefined);
   const probe = await import("./decision-probe.js");
   const run = probe.parseRun(readFileSync(join(dir, "events.jsonl"), "utf8"));
   expect(run.events.some((e) => e.type === "assistant" && e.stop_reason === "length")).toBe(true);

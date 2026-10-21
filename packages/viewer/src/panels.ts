@@ -533,6 +533,7 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "story-battle-heal-first-v1":"story-battle-heal-first-v1.html",
  "pending-field-dialogue-v1":"pending-field-dialogue-v1.html",
  "menu-refusal-recovery-v1":"menu-refusal-recovery-v1.html",
+ "gym-door-label-v1":"gym-door-label-v1.html",
  "move-learn-settle-v1":"move-learn-settle-v1.html",
  "move-learn-question-v1":"move-learn-question-v1.html",
  "move-learn-comparison-v1":"move-learn-comparison-v1.html",

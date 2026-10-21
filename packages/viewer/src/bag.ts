@@ -94,6 +94,10 @@ export class BagLedger {
   private readonly pockets = new Map<number, Pocket>();
   private pending: Pending[] = [];
   private inTutorial = false;
+  // Set by the first player state after the tutorial until the next state: human runs record the
+  // game's swap-back actions after that state, and they are not the player's changes either.
+  // Agent runs record a real change before the state that shows it, so it never matches.
+  private leftTutorial = false;
   // The player-bag snapshot before `latest`, for actions recorded after the state that shows them.
   private beforeLatest: Snapshot | null = null;
 
@@ -105,6 +109,8 @@ export class BagLedger {
       // Human runs record the state first and poll the game's actions after it: when the latest
       // player state already shows `after` and the one before it `before`, that state confirms it.
       const qty = (snapshot: Snapshot | null): number => snapshot?.bag.get(pending.itemId)?.quantity ?? 0;
+      // Right after the tutorial, an action the restored bag already shows is the swap back.
+      if (this.leftTutorial && qty(this.latest) === pending.after) return;
       if (this.latest !== null && !this.inTutorial && this.pending.length === 0 && qty(this.latest) === pending.after && qty(this.beforeLatest) === pending.before) {
         this.resolve([pending], this.beforeLatest, this.latest);
         this.version += 1;
@@ -114,6 +120,7 @@ export class BagLedger {
       return;
     }
     if (event.type !== "state" || !("started" in event)) return;
+    this.leftTutorial = false;
     // Wally's catch tutorial (party_owner "tutorial", read from the game's BATTLE_TYPE_WALLY_TUTORIAL
     // flag) swaps in a lent bag and swaps the player's back afterwards: neither is the player's bag,
     // so item changes shown in those states are dropped and the lent bag is never a snapshot.
@@ -127,6 +134,7 @@ export class BagLedger {
     const previous = this.latest;
     // The player's bag coming back after the tutorial is the swap back, not a gain.
     if (this.inTutorial && previous?.key === snapshot.key) this.pending = [];
+    this.leftTutorial = this.inTutorial;
     this.inTutorial = false;
     for (const [id, held] of snapshot.bag) this.pockets.set(id, held.pocket);
     this.recorded = true;

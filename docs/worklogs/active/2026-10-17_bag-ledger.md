@@ -88,3 +88,11 @@ The approved mockup changed: runs/mockups/bag-inventory/variant-c.html, v3.
   - `seriesOf` groups changes in linear time (GPT follow-up).
   - Test: a state before its action resolves as bought with ¥200 spent, and a PC withdrawal as from_pc.
   - Viewer 1557 (95.42/91.18/94.41). Not re-reviewed.
+- [x] the operator: GPT-only check of the last fix, then land.
+  - Main synced (8c0cf282, merge 74b85b45). Gates: viewer 1557, agent 3246, lint clean; Python 2992 passed, with 59 failing only for lack of POKEBENCH_ROM.
+  - Packet 8c0cf282..74b85b45, sha256 346780917083582cb0d8d3c32240bbc3c8fce0cab000759d7817c5081e177fee. GPT (isolated Codex gpt-5.6-sol xhigh): BLOCKING. In human order the restored player state comes before the swap-back actions, so those actions leaked in as found/used.
+- [x] Fix:
+  - Until the next state after the tutorial, an action whose item the restored bag already shows at `after` is the swap back and is dropped. In agent order a real change arrives before the state that shows it, so it never matches.
+  - Test: a human-order tutorial swap and restore leave 0 changes, and the next real use counts.
+  - e046 still folds to 10 / 0 / ¥500 (2 buys) with 6 changes.
+  - Viewer 1558 (95.42/91.18/94.41). No further round, per the operator.

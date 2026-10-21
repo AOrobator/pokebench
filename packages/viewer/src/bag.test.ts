@@ -92,6 +92,26 @@ describe("BagLedger", () => {
     expect(ledgerOf(log).changes.map(brief)).toEqual(["T2 POTION 0→1 bought", "T3 GREAT BALL 0→1 from_pc"]);
   });
 
+  it("ignores the tutorial swap in a human recording, where each state comes before its actions", () => {
+    const log = new Log();
+    const ball5 = resources([[4, 5, "poke_balls", "POKé BALL"]]);
+    const lent = resources([[13, 1, "items", "POTION"], [4, 1, "poke_balls", "POKé BALL"]]);
+    log.add(0, START);
+    log.add(1, state({ turn: 1, money: 1000, resources: ball5 }));
+    log.add(2, state({ turn: 2, money: 1000, in_battle: true, party_owner: "tutorial", resources: lent }));
+    log.add(3, itemChange(2, 4, "POKé BALL", 5, 1));
+    log.add(4, itemChange(2, 13, "POTION", 0, 1));
+    log.add(5, state({ turn: 3, money: 1000, in_battle: true, party_owner: "player", resources: ball5 }));
+    log.add(6, itemChange(3, 4, "POKé BALL", 1, 5));
+    log.add(7, itemChange(3, 13, "POTION", 1, 0));
+    log.add(8, state({ turn: 4, money: 1000, resources: ball5 }));
+    log.add(9, state({ turn: 5, money: 1000, resources: resources([[4, 4, "poke_balls", "POKé BALL"]]) }));
+    log.add(10, itemChange(5, 4, "POKé BALL", 5, 4));
+    const ledger = ledgerOf(log);
+    expect(ledger.changes.map(brief)).toEqual(["T5 POKé BALL 5→4 used"]);
+    expect(headline(ledger)).toEqual({ gained: 0, used: 1, spent: 0, buys: 0 });
+  });
+
   it("counts a ball thrown in an ordinary battle as used, whatever is left in the bag", () => {
     const log = new Log();
     log.add(0, START);

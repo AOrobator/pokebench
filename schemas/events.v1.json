@@ -6681,7 +6681,10 @@
                 "warp_bound",
                 "input_hold",
                 "move_learning",
-                "move_learning_bound"
+                "move_learning_bound",
+                "coherence",
+                "coherence_bound",
+                "coherence_timeout"
               ]
             }
           },

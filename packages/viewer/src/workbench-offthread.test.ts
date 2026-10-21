@@ -80,7 +80,8 @@ it("produces the same snapshot whether runs load in process or through a compute
 it("projects cards without historical measurements while retaining active data and trainer peers", async () => {
   const r = catalog(), full = await workbenchSnapshot(r, healthy, NOW), done = full.runs.find(run => run.id === "done"), live = full.runs.find(run => run.id === "live");
   if (done === undefined || live === undefined) throw new Error("fixture");
-  const heavy = { ...done, experiment: { id: "allocation", arm: "control", trial: 1, of: 1 }, measurement: { controller: "agent" as const, features: [], logSha256: "a".repeat(64), pausedMs: 0, rawSplits: Array.from({ length: 5000 }, (_, index) => ({ name: `M${String(index)}`, elapsedMs: index, evidence: [index] })) } };
+  // Keep the omitted history comfortably larger than the fixed registry/header overhead.
+  const heavy = { ...done, experiment: { id: "allocation", arm: "control", trial: 1, of: 1 }, measurement: { controller: "agent" as const, features: [], logSha256: "a".repeat(64), pausedMs: 0, rawSplits: Array.from({ length: 6000 }, (_, index) => ({ name: `M${String(index)}`, elapsedMs: index, evidence: [index] })) } };
   const source = { ...full, runs: [heavy, live] }, projected = parseWorkbench(cardWorkbench(source, "live")), peer = projected.runs.find(run => run.id === "done"), active = projected.runs.find(run => run.id === "live");
   expect(peer).toMatchObject({ config: null, splits: [], experiment: heavy.experiment }); expect(peer?.measurement).toBeUndefined();
   expect(active?.splits).toEqual(live.splits); expect(active?.card).toEqual(live.card);

@@ -503,3 +503,35 @@ def test_incomplete_observation_declares_bound_and_keeps_partial_readout(monkeyp
     assert COHERENCE_NOTE in result["state_text"], result["state_text"]
     assert "Battle details: unprovided" in result["state_text"], result["state_text"]
     assert "Effective damage (" not in result["state_text"], result["state_text"]
+
+
+def test_timeout_check_does_not_terminate_existing_fade_wait() -> None:
+    from unittest.mock import patch
+
+    from pokebench_env.screen_settle import _Waiter
+
+    settle = FrameSettle(Memory(), coherent_battle=True)
+    waiter = _Waiter(lambda: None)
+    waiter.kind = "fade"
+    settle._waiters.append(waiter)
+    # Two deterministic timeout checks, then completion: no sleeps or race timing.
+    with patch.object(waiter.done, "wait", side_effect=[False, True]):
+        settle._await_capture(waiter, threading.Lock())
+    assert settle._waiters == [waiter], "coherence timeout must not own fade release"
+    assert not waiter.done.is_set()
+
+
+def test_frame_completion_winning_timeout_race_is_captured_only_once() -> None:
+    from unittest.mock import patch
+
+    from pokebench_env.screen_settle import _Waiter
+
+    captures = []
+    settle = FrameSettle(Memory(), coherent_battle=True)
+    waiter = _Waiter(lambda: captures.append("late"))
+    waiter.kind = "coherence"
+    # on_frame completed between Event.wait timing out and the caller taking the lock.
+    waiter.done.set()
+    with patch.object(waiter.done, "wait", side_effect=[False, True]):
+        settle._await_capture(waiter, threading.Lock())
+    assert captures == [], "completion racing with timeout must not capture again"

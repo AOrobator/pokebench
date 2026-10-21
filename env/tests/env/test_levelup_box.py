@@ -209,7 +209,9 @@ def test_production_observation_route_honours_the_switch(monkeypatch: pytest.Mon
     read = reader(8618)
     payloads = {}
     for off in (ON, RECORDED_OFF):
-        monkeypatch.setenv("POKEBENCH_FEATURES_OFF", ",".join(sorted(off)))
+        monkeypatch.setenv(
+            "POKEBENCH_FEATURES_OFF", "coherent-battle-observation-v1," + ",".join(sorted(off))
+        )
         monkeypatch.setenv("POKEBENCH_ACTIVE_UI", "1")
         app = FastAPI()
         install_observation(app, lambda: _Shot(), read, maps())
@@ -221,7 +223,7 @@ def test_production_observation_route_honours_the_switch(monkeypatch: pytest.Mon
 
 
 def test_switch_is_a_default_off_server_feature() -> None:
-    assert SERVER_FEATURES[-31] == SWITCH
+    assert SERVER_FEATURES[-33] == SWITCH
     assert SWITCH in features_off_from_env({})
 
 
@@ -397,7 +399,10 @@ def _production(monkeypatch: pytest.MonkeyPatch, off: str | None) -> FastAPI:
     if off is None:
         monkeypatch.delenv("POKEBENCH_FEATURES_OFF", raising=False)
     else:
-        monkeypatch.setenv("POKEBENCH_FEATURES_OFF", off)
+        monkeypatch.setenv(
+            "POKEBENCH_FEATURES_OFF",
+            ",".join(filter(None, ("coherent-battle-observation-v1", off))),
+        )
     memory = box_memory(6)
     memory.set(0x030022C4, 0x08038421)
     app = FastAPI()

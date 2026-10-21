@@ -11,7 +11,7 @@ from contextlib import AbstractContextManager, nullcontext
 from fastapi import FastAPI, HTTPException, Query
 from pydantic import BaseModel, Field
 
-from pokebench_env.battle_state import IN_BATTLE
+from pokebench_env.battle_choices import IN_BATTLE
 from pokebench_env.battle_text import WAIT_BOUND_FRAMES, BattleWait
 from pokebench_env.blackout_readout import Whiteout, WhiteoutLatch, whiteout_line
 from pokebench_env.game_screen import ReadMemory

@@ -318,7 +318,7 @@ def test_format_readout_off_is_unchanged_without_a_battle() -> None:
 
 
 def test_switch_is_registered_server_side_last_and_default_off() -> None:
-    assert SERVER_FEATURES[-33] == SWITCH
+    assert SERVER_FEATURES[-35] == SWITCH
     assert SWITCH in features_off_from_env({})
     assert features_off_from_env({"POKEBENCH_FEATURES_OFF": SWITCH}) == frozenset({SWITCH})
 
@@ -333,7 +333,9 @@ def test_production_observation_route_honours_the_switch(monkeypatch: pytest.Mon
     read = reader("00004700", operator_rom())
     payloads = {}
     for off in (RECORDED_OFF - {SWITCH}, RECORDED_OFF | {SWITCH}):
-        monkeypatch.setenv("POKEBENCH_FEATURES_OFF", ",".join(sorted(off)))
+        monkeypatch.setenv(
+            "POKEBENCH_FEATURES_OFF", "coherent-battle-observation-v1," + ",".join(sorted(off))
+        )
         monkeypatch.setenv("POKEBENCH_ACTIVE_UI", "1")
         app = FastAPI()
         install_observation(app, lambda: _Shot(), read, maps())

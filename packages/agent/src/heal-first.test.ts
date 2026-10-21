@@ -288,9 +288,9 @@ describe("registry, fixed bundles and event",()=>{
   expect(featureInfo(ID).description).toContain(" Off: ");
   expect(featureInfo(ID).description).toContain(PROBE);
   expect(featureInfo(ID).description).toContain(B300_LINE);
-  expect(SWITCHABLE_FEATURES.at(-11)).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-12)).toBe(ID);
   expect(SERVER_FEATURES).not.toContain(ID);
-  expect(playHarnessFeatures({...ALL_ON,[ID]:true},null).at(-11)).toBe(ID);
+  expect(playHarnessFeatures({...ALL_ON,[ID]:true},null).at(-12)).toBe(ID);
   expect(playHarnessFeatures({...ALL_ON,[ID]:false},null)).not.toContain(ID);
   expect(dependencyProblems({...ALL_ON,[ID]:true})).toEqual(dependencyProblems({...ALL_ON,[ID]:false}));
   const without=Object.fromEntries(Object.entries(ALL_ON).filter(([id])=>id!==ID)) as Omit<FeatureSet,typeof ID>;
@@ -309,8 +309,8 @@ describe("registry, fixed bundles and event",()=>{
   const control=(read("experiments/fixed/bundle-v-control.json") as {base:{features:Record<string,boolean>}}).base.features;
   const entry=read(`experiments/${ID}.json`) as {changedFeature:string;incumbent:{features:Record<string,boolean>};queuePosition?:number};
   expect(entry.changedFeature).toBe(ID);expect(entry.queuePosition).toBeUndefined();
-  const {"gym-door-label-v1":gymOff,"mart-stock-readout-v1":martOff,"menu-refusal-recovery-v1":menuOff,"pending-field-dialogue-v1":pendingOff,...historicalControl}=control;
-  expect(gymOff).toBe(false);expect(martOff).toBe(false);expect(pendingOff).toBe(false);expect(menuOff).toBe(false);
+  const {"caught-dex-input-v1":dexOff,"gym-door-label-v1":gymOff,"mart-stock-readout-v1":martOff,"menu-refusal-recovery-v1":menuOff,"pending-field-dialogue-v1":pendingOff,...historicalControl}=control;
+  expect(dexOff).toBe(false);expect(gymOff).toBe(false);expect(martOff).toBe(false);expect(pendingOff).toBe(false);expect(menuOff).toBe(false);
   expect(entry.incumbent.features).toEqual({...historicalControl,[ID]:false});
  });
  it("records a valid heal_first_line event that the tail and Activity History read",async()=>{

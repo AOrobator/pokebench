@@ -28,7 +28,7 @@ from typing import Generic, Literal, Protocol, TypeVar
 
 from PIL import Image, UnidentifiedImageError
 
-from pokebench_env.battle_state import IN_BATTLE
+from pokebench_env.battle_choices import IN_BATTLE
 from pokebench_env.game_screen import ReadMemory
 from pokebench_env.game_state import FIELD_CONTROLS_LOCK
 from pokebench_env.menus import PALETTE_FADE, task_snapshot

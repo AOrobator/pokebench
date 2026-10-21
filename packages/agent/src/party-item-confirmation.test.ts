@@ -1,13 +1,13 @@
 import { expect, it } from "vitest";
 import { ALL_ON as PENDING_BASE_ALL_ON, FEATURES, SERVER_FEATURES, SWITCHABLE_FEATURES, playHarnessFeatures, serverFeatureEnv } from "./features.js";
-const ALL_ON={...PENDING_BASE_ALL_ON,"menu-refusal-recovery-v1":false,"pending-field-dialogue-v1":false};
+const ALL_ON={...PENDING_BASE_ALL_ON,"caught-dex-input-v1":false,"menu-refusal-recovery-v1":false,"pending-field-dialogue-v1":false};
 import { flagFeatures, normalizeFeatures } from "./play-preset.js";
 
 const ID="party-item-confirmation-v1";
 it("appends a default-OFF party message server switch and transports explicit ON/OFF",()=>{
- expect(SWITCHABLE_FEATURES.at(-22)).toBe(ID);
- expect(FEATURES.filter(f=>f.switchable).at(-22)?.id).toBe(ID);
- expect(SERVER_FEATURES.at(-10)).toBe(ID);
+ expect(SWITCHABLE_FEATURES.at(-23)).toBe(ID);
+ expect(FEATURES.filter(f=>f.switchable).at(-23)?.id).toBe(ID);
+ expect(SERVER_FEATURES.at(-11)).toBe(ID);
  const flags={loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false};
  const off=flagFeatures(flags),on={...off,[ID]:true};
  expect(off[ID]).toBe(false);

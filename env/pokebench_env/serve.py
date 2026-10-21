@@ -344,6 +344,7 @@ def run(
             observation[2],
             levelup_box=LEVELUP_BOX not in off,
             turn_action_script=CAUGHT_NICKNAME not in off,
+            caught_dex="caught-dex-input-v1" not in off,
         )
         install_battle_wait(frames, battle_wait)
     if actions is not None:

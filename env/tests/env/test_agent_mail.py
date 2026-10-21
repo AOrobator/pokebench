@@ -855,23 +855,23 @@ def test_one_wake_per_batch_until_the_coordinator_acts(tmp_path: Path) -> None:
     box = room(tmp_path).addressed(am.CODEX_COORDINATOR)
     runs = Runs()
     box.root.mkdir(parents=True)
-    assert am.wake_if_mail(box, thread="C", run=runs) is False
+    assert am.wake_if_mail(box, thread="C", run=runs) == "skipped"
     am.deliver(box, am.Letter(T, "claude", "hi", to_thread="A"), only_if_listening=False)
-    assert am.wake_if_mail(box, thread="C", run=runs) is True
+    assert am.wake_if_mail(box, thread="C", run=runs) == "woke"
     assert runs.calls == [["codex", "queue", "--thread", "C", "--message", am.WAKE_TEXT]]
-    assert am.wake_if_mail(box, thread="C", run=runs) is False
+    assert am.wake_if_mail(box, thread="C", run=runs) == "skipped"
     old = time.time() - am.STALE_WAKE_SECONDS - 5
     os.utime(box.wake_marker, (old, old))
-    assert am.wake_if_mail(box, thread="C", run=runs) is True
+    assert am.wake_if_mail(box, thread="C", run=runs) == "woke"
     assert len(runs.calls) == 2
 
 
 def test_a_failed_wake_is_retried_on_the_next_letter(tmp_path: Path) -> None:
     box = room(tmp_path).addressed(am.CODEX_COORDINATOR)
     am.deliver(box, am.Letter(T, "claude", "hi"), only_if_listening=False)
-    assert am.wake_if_mail(box, thread="C", run=Runs(code=1)) is False
+    assert am.wake_if_mail(box, thread="C", run=Runs(code=1)) == "failed"
     assert not box.wake_marker.exists()
-    assert am.wake_if_mail(box, thread="C", run=Runs()) is True
+    assert am.wake_if_mail(box, thread="C", run=Runs()) == "woke"
 
 
 def test_held_unacknowledged_letters_still_count_as_mail(tmp_path: Path) -> None:
@@ -956,3 +956,52 @@ def test_the_watcher_reuses_an_existing_pipe(tmp_path: Path) -> None:
     am.tell_claude(box, sender="claude", text="hi", now=T)
     watcher.join(5)
     assert len(runs.calls) == 1
+
+
+def test_a_crash_during_a_wake_never_suppresses_the_next_wake(tmp_path: Path) -> None:
+    box = room(tmp_path).addressed(am.CODEX_COORDINATOR)
+    am.deliver(box, am.Letter(T, "claude", "hi"), only_if_listening=False)
+
+    def crash(argv: Sequence[str]) -> int:
+        raise OSError("killed mid-wake")
+
+    with pytest.raises(OSError, match="killed mid-wake"):
+        am.wake_if_mail(box, thread="C", run=crash)
+    assert not box.wake_marker.exists()
+    assert am.wake_if_mail(box, thread="C", run=Runs()) == "woke"
+
+
+def test_an_unwakeable_coordinator_releases_the_mailbox_and_hands_letters_to_codex_queue(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    known_threads(tmp_path, monkeypatch, "A")
+    monkeypatch.setenv("POKEBENCH_AGENT_MAIL_DIR", str(tmp_path / "mail"))
+    r = am.Mailroom(tmp_path / "mail")
+    box = r.addressed(am.CODEX_COORDINATOR)
+    am.deliver(box, am.Letter(T, "claude", "for A", to_thread="A"), only_if_listening=False)
+    am.deliver(box, am.Letter(T, "claude", "for you"), only_if_listening=False)
+
+    class WakeFails(Runs):
+        def __call__(self, argv: Sequence[str]) -> int:
+            self.calls.append(list(argv))
+            return 1 if am.WAKE_TEXT in argv else 0
+
+    runs = WakeFails()
+    argv = ["mailbox-watch", "--for", am.CODEX_COORDINATOR, "--wake-codex", "COORD"]
+    assert am.main(argv, run=runs) == 1
+    assert "Could not wake COORD; watcher stopped. 1 letters sent by codex queue, 1 still" in (
+        capsys.readouterr().out
+    )
+    assert ["codex", "queue", "--thread", "A", "--message", "for A"] in runs.calls
+    assert [x.text for x in am.collect(box)] == ["for you"]
+    later = Runs()
+    assert am.reach_codex(r, "A", "after", sender="c", now=T, run=later) == (0, False)
+    assert later.calls == [["codex", "queue", "--thread", "A", "--message", "after"]]
+
+
+def test_hand_over_keeps_letters_codex_queue_refuses(tmp_path: Path) -> None:
+    box = room(tmp_path).addressed(am.CODEX_COORDINATOR)
+    am.deliver(box, am.Letter(T, "claude", "x", to_thread="A"), only_if_listening=False)
+    assert am.hand_over(box, run=Runs(code=2)) == (0, 1)
+    assert [x.to_thread for x in am.collect(box)] == ["A"]
+    assert am.hand_over(box, run=Runs()) == (0, 0)

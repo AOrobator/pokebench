@@ -25,7 +25,7 @@ You do not wait or poll. A small background process (`just codex-wake-watch <thi
 
 A letter with no `to_thread` is meant for you. Answer it the same way as a failure report: write the answer to a file, then `just tell-claude --from "codex coordinator" --file <that file>`.
 
-If the watcher is not running (`pgrep -f mailbox-watch` finds nothing), ask the user to start it with `just codex-wake-watch <this thread's id>`; do not start a waiting loop instead.
+If the watcher is not running (`pgrep -f mailbox-watch` finds nothing), ask the user to start it with `just codex-wake-watch <this thread's id>`; do not start a waiting loop instead. The watcher stops by itself if it cannot wake this thread (archived or gone); it first sends waiting letters on by `codex queue`. When this thread retires, stop the watcher with `pkill -f mailbox-watch` so letters go by `codex queue` again.
 
 ## Rules
 

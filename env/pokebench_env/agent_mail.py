@@ -316,19 +316,44 @@ def has_mail(room: Mailroom) -> bool:
     return any(room.root.glob("delivering-*.jsonl"))
 
 
-def wake_if_mail(room: Mailroom, *, thread: str, run: Run) -> bool:
-    """Queue one wake into the idle coordinator thread when mail waits and no wake is pending."""
+def wake_if_mail(room: Mailroom, *, thread: str, run: Run) -> str:
+    """Queue one wake into the idle coordinator thread when mail waits and no wake is pending.
+
+    Returns "woke", "skipped" (no mail, or a recent wake not acted on yet) or "failed". The
+    marker is written only after the queue succeeds, so a crash can cause a repeat wake but
+    never suppress one.
+    """
     with room.locked():
         if not has_mail(room):
-            return False
+            return "skipped"
         marker = room.wake_marker
         if marker.exists() and time.time() - marker.stat().st_mtime < STALE_WAKE_SECONDS:
-            return False
-        marker.write_text(str(time.time()), encoding="utf-8")
+            return "skipped"
         if run(["codex", "queue", "--thread", thread, "--message", WAKE_TEXT]) != 0:
-            marker.unlink()  # Try again on the next letter.
-            return False
-        return True
+            return "failed"
+        marker.write_text(str(time.time()), encoding="utf-8")
+        return "woke"
+
+
+def hand_over(room: Mailroom, *, run: Run) -> tuple[int, int]:
+    """Send every waiting letter for a Codex thread by `codex queue`; keep the rest waiting.
+
+    Used when the coordinator cannot be woken. Returns (sent, kept).
+    """
+    me = os.getpid()
+    with room.locked():
+        letters = drain(room, me)
+        kept = []
+        for letter in letters:
+            if letter.to_thread is None or (
+                run(["codex", "queue", "--thread", letter.to_thread, "--message", letter.text]) != 0
+            ):
+                kept.append(letter)
+        room.claim(me).unlink(missing_ok=True)
+        if kept:
+            with open(room.pending, "a", encoding="utf-8") as handle:
+                handle.write("".join(letter_json(letter) + "\n" for letter in kept))
+    return len(letters) - len(kept), len(kept)
 
 
 def drain_pings(reader: int) -> None:
@@ -347,30 +372,34 @@ def watch(
     run: Run,
     ready: Callable[[], None] | None = None,
     rounds: int | None = None,
-) -> None:
+) -> tuple[int, int] | None:
     """Hold the mailbox pipe and wake the idle coordinator thread when letters arrive.
 
     No model runs here and nothing polls: the process sleeps in select until a sender pings.
-    Holding the pipe also tells senders a coordinator is reachable, so letters wait here.
+    Holding the pipe tells senders the coordinator is reachable, so letters wait here. If a
+    wake fails, the pipe is released first (new letters then go by `codex queue`), waiting
+    letters are handed to `codex queue`, and the counts from hand_over are returned.
     """
     with room.locked():
         if not room.pipe.exists():
             os.mkfifo(room.pipe)
         reader = os.open(room.pipe, os.O_RDONLY | os.O_NONBLOCK)
         keepalive = os.open(room.pipe, os.O_WRONLY)
+    failed = False
     try:
         if ready is not None:
             ready()
-        wake_if_mail(room, thread=thread, run=run)
+        failed = wake_if_mail(room, thread=thread, run=run) == "failed"
         done = 0
-        while rounds is None or done < rounds:
+        while not failed and (rounds is None or done < rounds):
             select.select([reader], [], [])
             drain_pings(reader)
-            wake_if_mail(room, thread=thread, run=run)
+            failed = wake_if_mail(room, thread=thread, run=run) == "failed"
             done += 1
     finally:
         os.close(keepalive)
         os.close(reader)
+    return hand_over(room, run=run) if failed else None
 
 
 def session_index() -> Path:
@@ -728,8 +757,17 @@ def main(argv: Sequence[str] | None = None, *, run: Run = run_command) -> int:
         acknowledge(box_room, os.getpid())
         return 0
     if args.command == "mailbox-watch":
-        watch(room.addressed(args.address), thread=args.thread, run=run, rounds=args.rounds)
-        return 0
+        handed = watch(
+            room.addressed(args.address), thread=args.thread, run=run, rounds=args.rounds
+        )
+        if handed is None:
+            return 0
+        sent, kept = handed
+        print(
+            f"Could not wake {args.thread}; watcher stopped. {sent} letters sent by codex queue, "
+            f"{kept} still waiting in the mailbox."
+        )
+        return 1
     if args.command == "mailbox-done":
         box_room = room if args.address is None else room.addressed(args.address)
         acknowledge(box_room, args.claim)

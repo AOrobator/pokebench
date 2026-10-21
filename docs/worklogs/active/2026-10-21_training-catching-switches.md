@@ -86,11 +86,11 @@ There are no new inputs, subprocesses, network or file access. The server reads 
 - [x] COMMIT: `test: training block (EXP earned, leader attempts, seen trainers, NEXT LV.) on recorded run fd95 (RED)` (5a2e4522). RED: `./training-block.js` missing.
 - [x] Implement: `training-block.ts` (TrainingBlock fold: battle index per state so each EXP page is attributed through the state it names, never guessed; leader battles keyed by trainer class LEADER with party/EXP/BAG/money at the first battle state, each foe slot's last HP, the game's outcome and the money on the first field state after; seen trainers per map stood on from heal_before_trainers; party part from party_next_level) and `withTrainingBlock` in play-wiring around game-said-goals. Field observations get every part that is on; a ready battle decision against a GYM LEADER gets the leader part only.
 - [x] Gates: lint ok, build ok; coverage agent 3293 (97.29/93.07/97.74/99.21), viewer 1601 (95.42/91.33/94.33/97.9), pytest 3630 (97.25/92.96/100).
-- [ ] COMMIT GREEN
+- [x] COMMIT: `feat: exp-earned-ledger-v1, leader-attempt-ledger-v1 and seen-trainers-ledger-v1 build one Training block …` (5174e666)
 
 **M3 — agent catching set: party-coverage-v1, said-type-matches-v1**
-- [ ] Fixtures: 1331 ROXANNE EMBER pages, 6abf/fd95 wild WINGULL and MARILL readouts, the gym guide page
-- [ ] Tests: coverage grouped by foe type; the no-super-effective list; a type line marks the WATER GUN of a wild WINGULL only after the guide page; no mark before; trainer-battle decisions; banned-words test
+- [x] Fixture: one run has the guide line, then ROXANNE and a wild GRASS foe, so one fixture: `packages/agent/src/fixtures/catching-6abf.jsonl.gz` (run 2026-10-21T02-26-37_qwen36-gpu1_6abf, control arm, slimmed the same way as training-fd95; GYM GUIDE lines at turn 689, four ROXANNE losses, wild SHROOMISH with ABSORB and STUN SPORE at seq 30081).
+- [x] Tests: `catching-block.test.ts` (coverage rows by foe type with uses and printed lines, the no-"super effective" type list; decisions only; tutorial party excluded; type names; said-type marks on SHROOMISH and on ROXANNE's GEODUDE; nothing before the guide line, and the earlier WINGULL's WATER GUN once it was said; decisions only; banned words; playGameTools factory ON/OFF per switch).
 - [ ] COMMIT RED, implement, gates, COMMIT GREEN
 
 **M4 — bundle arms, pending experiments, explainers, review, land**

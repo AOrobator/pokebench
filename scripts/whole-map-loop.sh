@@ -80,13 +80,24 @@ alive() { [ -n "$1" ] && [ "$1" != null ] && kill -0 "$1" 2>/dev/null; }
 
 # Who keeps this definition's lanes busy: a live lease owner or child, or a game port in use.
 lanes_busy() {
-  for pool in $(lease_pools); do
+  pools=$(lease_pools 2>/dev/null); ports=$(game_ports 2>/dev/null)
+  if [ -z "$pools" ] || [ -z "$ports" ]; then echo "cannot read the lanes of $(definition)"; return 0; fi
+  # A live runner may release its leases between trials (backoff, a finished lane) yet still owe trials.
+  for status in "$RUNS"/experiments/*/status.json; do
+    [ -f "$status" ] || continue
+    pid=$(jq -r '.pid // empty' "$status" 2>/dev/null)
+    alive "$pid" && ps -o command= -p "$pid" | grep -q 'fixed-cli' || continue
+    for port in $(jq -r '.lanes[].port' "$status" 2>/dev/null); do
+      if echo "$ports" | grep -qx "$port"; then echo "runner $pid of $(jq -r '.experiment' "$status") still owns game port $port"; return 0; fi
+    done
+  done
+  for pool in $pools; do
     owner=$RUNS/.naming-gameplay.$pool.lock/owner.json
     [ -f "$owner" ] || continue
     pid=$(jq -r '.pid // empty' "$owner" 2>/dev/null); child=$(jq -r '.child // empty' "$owner" 2>/dev/null)
     if alive "$pid" || alive "$child"; then echo "the $pool lease is held by $(jq -r '.owner' "$owner" 2>/dev/null)"; return 0; fi
   done
-  for port in $(game_ports); do
+  for port in $ports; do
     if lsof -nP -iTCP:"$port" -sTCP:LISTEN >/dev/null 2>&1; then echo "game port $port is in use"; return 0; fi
   done
   return 1

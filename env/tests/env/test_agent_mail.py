@@ -906,8 +906,37 @@ def test_the_watcher_wakes_the_idle_coordinator_when_a_letter_arrives(
     assert runs.calls == [["codex", "queue", "--thread", "C", "--message", am.WAKE_TEXT]]
     monkeypatch.setenv("POKEBENCH_AGENT_MAIL_DIR", str(r.root))
     assert am.main(["claude-mailbox", "--for", am.CODEX_COORDINATOR, "--hold"]) == 0
-    assert not box.wake_marker.exists()
+    assert box.wake_marker.exists()
     assert json.loads(capsys.readouterr().out)["text"] == "main moved"
+
+
+def test_arrivals_during_forwarding_do_not_queue_an_empty_extra_turn(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    r = room(tmp_path)
+    box = r.addressed(am.CODEX_COORDINATOR)
+    monkeypatch.setenv("POKEBENCH_AGENT_MAIL_DIR", str(r.root))
+    runs = Runs()
+    argv = ["claude-mailbox", "--for", am.CODEX_COORDINATOR, "--hold", "--timeout", "0"]
+    done = ["mailbox-done", "--for", am.CODEX_COORDINATOR, "--claim", str(os.getpid())]
+    am.deliver(box, am.Letter(T, "claude", "first"), only_if_listening=False)
+    assert am.wake_if_mail(box, thread="C", run=runs) == "woke"
+    assert am.main(argv) == 0
+    assert json.loads(capsys.readouterr().out)["text"] == "first"
+    am.deliver(box, am.Letter(T, "claude", "during forwarding"), only_if_listening=False)
+    assert am.wake_if_mail(box, thread="C", run=runs) == "skipped"
+    assert am.main(done) == 0
+    capsys.readouterr()
+    assert am.main(argv) == 0
+    assert json.loads(capsys.readouterr().out)["text"] == "during forwarding"
+    assert am.main(done) == 0
+    assert am.main(argv) == am.NO_MAIL
+    assert not box.wake_marker.exists()
+    assert am.wake_if_mail(box, thread="C", run=runs) == "skipped"
+    assert len(runs.calls) == 1
+    am.deliver(box, am.Letter(T, "claude", "after idle"), only_if_listening=False)
+    assert am.wake_if_mail(box, thread="C", run=runs) == "woke"
+    assert len(runs.calls) == 2
 
 
 def test_the_watch_command_runs_the_same_loop(

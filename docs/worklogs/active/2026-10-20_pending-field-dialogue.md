@@ -35,3 +35,5 @@ RED receipt: focused production-wrapper suite: 3 expected failures / 47 passing;
 - Full experiments checker reports 150 pre-existing malformed starter-decision-salience trials.jsonl lines in shared runtime data; no definition error reported for the new pending entry. No logs altered.
 - Explainer pages-check passes; candidate default remains OFF. Registry append requires updating historical tests' relative offsets and keeping this treatment OFF in frozen historical fixtures.
 - Current-run input, configuration and frozen source untouched. Positive prompt config and no-battle refusal detection remain separate findings; no performance benefit asserted.
+
+Synced concurrent frontier-cache main changes; resolved append-only server test conflict by retaining both tests. No dialogue implementation conflict.

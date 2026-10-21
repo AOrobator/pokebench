@@ -1,3 +1,5 @@
+import { randomUUID } from "node:crypto";
+import { createWorkbenchUpdates, type WorkbenchUpdate } from "./workbench-sync.js";
 import { ProbeError, listProbes, readProbe } from "./probes.js";
 import { listReports, reportFile } from "./reports.js";
 import { existsSync, readFileSync } from "node:fs";
@@ -33,7 +35,7 @@ import { SharedFrameHub } from "./frame-hub.js";
 export const HOST = "127.0.0.1";
 const EXPERIMENTS_CACHE_MS = 5_000;
 // Browser code the page may load; everything else in dist/ stays private.
-export const BROWSER_MODULES = ["main", "app", "metric-history", "model", "format", "inspectformat", "timeline", "panels", "gba", "replay", "controls", "nextpanel", "human-input", "human-play", "human-main", "workbench-main", "workbench", "workbench-view", "workbench-data", "frontier", "frontier-versions", "frontier-legend", "queue-view", "trace", "run-head", "trainer-card", "game-font", "card-dom", "phone", "reports-view", "reports-main", "reports-boot", "probe-stats", "probes-view", "probes-main", "probes-boot"] as const;
+export const BROWSER_MODULES = ["main", "app", "metric-history", "model", "format", "inspectformat", "timeline", "panels", "gba", "replay", "controls", "nextpanel", "human-input", "human-play", "human-main", "workbench-main", "workbench", "workbench-view", "workbench-data", "workbench-sync", "frontier", "frontier-versions", "frontier-legend", "queue-view", "trace", "run-head", "trainer-card", "game-font", "card-dom", "phone", "reports-view", "reports-main", "reports-boot", "probe-stats", "probes-view", "probes-main", "probes-boot"] as const;
 
 const MODULE_NAME = new RegExp(`^(${BROWSER_MODULES.join("|")})\\.js$`);
 const FRAME_NAME = /^\d{6}_\d+\.png$/;
@@ -365,7 +367,7 @@ async function liveScreen(res: ServerResponse, port: number, fetchFn: typeof fet
   }
 }
 
-async function route(req: IncomingMessage, res: ServerResponse, options: ViewerOptions, port: number, origins: ReadonlyMap<string, string>, readBaseline: BaselineReader, readWorkbench: (cards?: { selected: string | null }) => Promise<WorkbenchData>, readCompleteWorkbench: () => Promise<WorkbenchData>, queueApi: QueueApi, catalog: RunCatalog, strictCatalog: RunCatalog): Promise<void> {
+async function route(req: IncomingMessage, res: ServerResponse, options: ViewerOptions, port: number, origins: ReadonlyMap<string, string>, readBaseline: BaselineReader, readWorkbench: (cards?: { selected: string | null }) => Promise<WorkbenchData>, readCompleteWorkbench: () => Promise<WorkbenchData>, readUpdates: (since: string | null) => Promise<WorkbenchUpdate>, queueApi: QueueApi, catalog: RunCatalog, strictCatalog: RunCatalog): Promise<void> {
   const origin = origins.get(req.headers.host ?? "");
   if (origin === undefined) {
     sendJson(res, 403, { error: "the viewer only answers 127.0.0.1 and its published origins" });
@@ -390,7 +392,8 @@ async function route(req: IncomingMessage, res: ServerResponse, options: ViewerO
     return;
   }
   if (parts.length === 2 && head === "api" && second === "workbench") {
-    sendJson(res, 200, await readWorkbench());
+    const query = new URL(req.url ?? "/", "http://viewer.invalid").searchParams;
+    sendJson(res, 200, query.get("updates") === "1" ? await readUpdates(query.get("since")) : await readWorkbench());
     return;
   }
   if (parts.length === 2 && head === "api" && second === "cards") {
@@ -607,6 +610,8 @@ export async function startViewer(given: ViewerOptions): Promise<Viewer> {
     next.result = next.result.then(data => { next.until = (options.now?.() ?? new Date()).getTime() + WORKBENCH_POLL_MS; return data; }, (error: unknown) => { if (cardsSnapshot === next) cardsSnapshot = null; throw error; });
     return next.result;
   };
+  const updates = createWorkbenchUpdates(randomUUID());
+  const readUpdates = async (since: string | null): Promise<WorkbenchUpdate> => updates(await readWorkbench(), since);
   const repo = dirname(options.runsRoot);
   const experiments = options.experiments ?? { paths: { experimentsDir: join(repo, "experiments"), runsRoot: options.runsRoot, readinessPath: join(repo, "docs", "experiments", "readiness.md"), winnerGate: winnerGateOn(process.env) }, source: recordedRuns(options.runsRoot) };
   // Recorded runs are cached by the source; the snapshot itself is reused for a few seconds.
@@ -637,7 +642,7 @@ export async function startViewer(given: ViewerOptions): Promise<Viewer> {
   // A failing request (a client that disconnects mid-body, a file error) must
   // never take the viewer and its queue down.
   const server = createServer((req, res) => {
-    route(req, res, options, port, origins, readBaseline, readWorkbench, readCompleteWorkbench, queueApi, catalog, strictCatalog).catch((error: unknown) => {
+    route(req, res, options, port, origins, readBaseline, readWorkbench, readCompleteWorkbench, readUpdates, queueApi, catalog, strictCatalog).catch((error: unknown) => {
       if (res.headersSent || res.destroyed) res.destroy();
       else sendJson(res, 500, { error: error instanceof Error ? error.message : String(error) });
     });

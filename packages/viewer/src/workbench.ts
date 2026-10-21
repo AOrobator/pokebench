@@ -1,3 +1,4 @@
+import { createWorkbenchClient } from "./workbench-sync.js";
 import { frontierLegend, type SwitchDescriptions } from "./frontier-legend.js";
 import type { VersionIndex } from "./frontier-versions.js";
 import { frontierReferences, frontierPlot, frontierVersions } from "./frontier.js";
@@ -40,6 +41,8 @@ export class Workbench {
   private selected: { run: string; split: string | null } | null = null;
   private restoreFocus: HTMLElement | null = null;
   private detailHtml: string | null = null;
+  private versionKey = "";
+  private plotKey = "";
   private versions: VersionIndex = { versions: [], byRun: new Map() };
   private descriptions: SwitchDescriptions = new Map();
   private catalog: Promise<void> | null = null;
@@ -91,7 +94,14 @@ export class Workbench {
     try {
       const data = parseWorkbench(await this.deps.fetchSnapshot()); if (!this.active()) return;
       if (data.at < this.data.at) throw new Error("Outdated workbench snapshot ignored; last verified data retained.");
-      this.data = data; this.versions = frontierVersions(data.runs, this.versionColors); for (const v of this.versions.versions) this.versionColors.set(v.key, v.color); this.verified = true;
+      this.data = data;
+      const versionKey = JSON.stringify(data.runs.map(r => [r.id, r.model, r.arm, r.started, r.config, r.problem, r.excluded, r.measurement?.controller]));
+      if (versionKey !== this.versionKey) {
+        this.versions = frontierVersions(data.runs, this.versionColors);
+        for (const v of this.versions.versions) this.versionColors.set(v.key, v.color);
+        this.versionKey = versionKey;
+      }
+      this.verified = true;
       if (!this.initialized) {
         this.scope = "all"; this.initialized = true;
       }
@@ -169,10 +179,18 @@ export class Workbench {
     replaceKeepingFocus(host, frontierLegend(refs, [...overlays, ...current], this.versions, state, status, this.descriptions));
     if (this.hovered !== null && host.querySelector(`[data-ver="${this.hovered}"]`) === null) this.hovered = null;
     if (this.isolated !== null && host.querySelector(`[data-ver="${this.isolated}"]`) === null) { this.isolated = null; this.renderCharts(); return; }
+    const semantic = (run: WorkbenchRun | null): unknown => run === null ? null : {
+      id: run.id, model: run.model, status: run.status, problem: run.problem, excluded: run.excluded,
+      config: run.config, splits: run.splits,
+      measurement: run.measurement === undefined ? undefined : { controller: run.measurement.controller, features: run.measurement.features },
+    };
+    const plotKey = JSON.stringify([semantic(refs.best), semantic(refs.human), overlays.map(semantic), current.map(semantic), width, this.versionKey, this.zoom, status, this.isolated, this.hideTimeOutliers, this.hideTimeOutliers ? this.data.runs.map(run => [run.id, run.splits]) : null]);
+    if (plotKey === this.plotKey) { this.focus(); this.pressed(); return; }
     const plot = this.ui("frontier-full"), coverage = plot.querySelector<HTMLDetailsElement>("[data-frontier-coverage]");
     const active = this.doc.activeElement, coverageOpen = coverage?.open ?? false, coverageFocused = coverage?.querySelector("summary") === active;
     const replayHref = active?.tagName === "A" && coverage?.contains(active) === true ? active.getAttribute("href") : null;
     plot.innerHTML = frontierPlot(refs, overlays, width, this.versions, current, this.zoom, status, this.isolated ?? this.hovered, this.hideTimeOutliers, this.data.runs);
+    this.plotKey = plotKey;
     const nextCoverage = plot.querySelector<HTMLDetailsElement>("[data-frontier-coverage]");
     if (nextCoverage !== null) {
       nextCoverage.open = coverageOpen;
@@ -297,7 +315,7 @@ export class Workbench {
 export function bootWorkbench(win: Window): Workbench {
   const from = new URL(win.location.href).searchParams.get("from");
   const wb = new Workbench(win.document, {
-    fetchSnapshot: async () => { const response = await win.fetch("/api/workbench", { signal: AbortSignal.timeout(180000) }); if (!response.ok) throw new Error(`Workbench request failed (${String(response.status)})`); return response.json() as Promise<unknown>; },
+    fetchSnapshot: createWorkbenchClient(async (url) => { const response = await win.fetch(url, { signal: AbortSignal.timeout(180000) }); if (!response.ok) throw new Error(`Workbench request failed (${String(response.status)})`); return response.json() as Promise<unknown>; }),
     fetchFeatures: async () => { const response = await win.fetch("/api/features"); if (!response.ok) throw new Error(`Feature catalog request failed (${String(response.status)})`); return response.json() as Promise<unknown>; },
     now: () => Date.now(), width: () => win.document.querySelector('[data-wb="frontier-full"]')?.getBoundingClientRect().width || win.document.documentElement.clientWidth || 640,
     fetchJson: async (url) => { const response = await win.fetch(url); if (!response.ok) throw new Error(`GET ${url} returned HTTP ${String(response.status)}`); return response.json() as Promise<unknown>; },

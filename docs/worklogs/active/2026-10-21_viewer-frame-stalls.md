@@ -1,0 +1,30 @@
+# Viewer proxy frame stalls
+
+## Authorized outcome
+
+Instrument the viewer frame path, establish the cause of proxy stalls, and optimize it without restarting running games or changing model observations/actions. Viewer-only implementation; no emulator, agent, feature, experiment, or timeline changes. Work in `codex/viewer-frame-stalls`.
+
+## Evidence and invariants
+
+- Initial live viewer: PID 36542, port 8790, source 4590d681458e9e439b0c0c74386288d500baf9aa. Games: PID 40414/8075, 41983/8076, 40415/8077. Capture current identities again before rollout.
+- Prior simultaneous 30s observation: source 59.729 FPS, direct stream 58.595 FPS, proxy 53.894 FPS, proxy p99 90.504 ms/max 326.848 ms. Receipts: `/private/tmp/pokebench-performance-analysis-2026-10-21/`.
+- INV-1: preserve every running game process, recording, input and model-visible observation; all live probes are read-only display subscriptions.
+- INV-2: preserve PNG integrity checks, origin/host checks, bounded latest-frame delivery, and one shared upstream per live run.
+- INV-3: diagnostics use bounded storage, no per-frame logging or persistence, and cannot create a frame backlog.
+- INV-4: scratch viewer uses a scratch runs root without experiment approvals/ledgers or an autorunner; never launch candidate CLI against canonical runs.
+- INV-5: claim root cause only from measured production-path evidence; separate source/receive/decode/send/browser stages.
+
+## Milestones
+
+1. Record baseline/profile in a scratch viewer and add failing tests for bounded frame metrics and the demonstrated bottleneck.
+2. Implement instrumentation and the smallest measured optimization, preserve existing wire compatibility, and run focused/adversarial checks.
+3. Complete repository gates and independent frozen Claude/Grok/GPT review; join shared landing board before moving main.
+4. Verify candidate in the real browser, coordinate one viewer-only restart after approved landing, and prove source identity, frame delivery and game survival.
+
+## Session log
+
+- Read repository rules, active pointer, viewer-e2e, close-the-loop, execute-worklog and talk-to-claude. Requested restart coordination through the authorized Claude relay; no listener, message saved. Created an isolated managed worktree. No game or model changes.
+
+## Multi-model review log
+
+Pending implementation and frozen packet.

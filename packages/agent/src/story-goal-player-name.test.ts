@@ -7,6 +7,7 @@ import type {AgentTool,AgentToolResult} from "@mariozechner/pi-agent-core";
 import {Type} from "typebox";
 import {StoryDestinations,STORY_HEADER,withStoryDestinations,type PlacesBody} from "./story-destinations.js";
 import {HarnessTrust} from "./harness-trust.js";
+import {playGameTools} from "./play-wiring.js";
 import {checkEvent,type RunEvent} from "./events.js";
 import {parseGameState,type GameStateSnapshot} from "./game-state.js";
 import {ALL_ON,FEATURES,SWITCHABLE_FEATURES,featureInfo,playHarnessFeatures,type FeatureSet} from "./features.js";
@@ -94,6 +95,18 @@ describe("production factory",()=>{
   const base={...LEGACY_ALL_ON,"story-destinations-v1":true,"scripted-place-guidance-v1":false,"unfinished-activity-v1":false};
   expect(await run({...base,[ID]:true})).toContain(BIRCH);
   expect(await run({...base,[ID]:false})).toContain(AMBIGUOUS);
+ });
+ it("playGameTools passes the switch to the Story goal line (harness-trust-v1)",async()=>{
+  const OFF=Object.fromEntries(SWITCHABLE_FEATURES.map(id=>[id,false])) as FeatureSet;
+  const run=async(on:boolean)=>{
+   const subs:((e:RunEvent)=>void)[]=[];
+   const recorder={subscribe:(fn:(e:RunEvent)=>void)=>{subs.push(fn);},recordState:()=>({seq:1,turn:1}),recordDialogueAutoAdvance:()=>({seq:1,turn:1}),storyGoalAway:()=>undefined,destinationCitation:()=>undefined} as unknown as Parameters<typeof playGameTools>[3];
+   const [tool]=playGameTools([observeTool(littleroot("BRENDAN"))],{...OFF,"harness-trust-v1":true,[ID]:on},{read:()=>Promise.resolve(littleroot("BRENDAN")),places:()=>Promise.resolve(PLACES)},recorder);
+   for(const sub of subs){sub(talk("tv",33));sub(delivered("tv",33));}
+   return textOf(await tool?.execute("o",{}) ?? {content:[],details:undefined});
+  };
+  expect(await run(true)).toContain("(He = PROF. BIRCH, the one story character named before it in this conversation)");
+  expect(await run(false)).not.toContain("He = PROF. BIRCH");
  });
 });
 

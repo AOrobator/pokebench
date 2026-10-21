@@ -52,8 +52,9 @@ No new subprocesses, network calls or file paths. RAM reads go through `pokebenc
 - [x] Write tests: e9ee seq 1628 pages under BRENDAN resolve "He lives right next door" to Birch's house; ASH unchanged; switch off keeps "could be BRENDAN or PROF. BIRCH"; harness-trust Story goal and the withStoryDestinations factory follow the switch (`story-goal-player-name.test.ts`)
 - [x] Registry for all four agent-side switches (story-goal-player-name-v1, cut-off-reply-feedback-v1, trainer-sight-check-v2, auto-talk-v2), default off; position assertions in older tests shifted by 4
 - [x] COMMIT (RED): `test: story goal ignores the player's own name; registry for the four GLM-run switches (RED)` — 3 failing (ON behavior, Story goal line, factory), 4 passing
-- [ ] Implement
-- [ ] Gates: `just test`, `just lint`, `just build`, `just coverage` (≥90 both stacks)
+- [x] Implement: `StoryDestinations(…, playerName)` drops the readout's player name from the "He/She lives" candidates at resolve time; wired in `withStoryDestinations` and, through `TrustOptions.playerName`, in `play-wiring.ts` for the harness-trust Story goal line
+- [x] Guard check: removing the play-wiring option turned "playGameTools passes the switch…" red; removing the withStoryDestinations argument turned "withStoryDestinations reads the switch…" red; both restored
+- [x] Gates: lint clean (tsc, eslint, ruff, mypy); build; coverage agent 97.33/93.06/97.8/99.24 (stmts/branches/funcs/lines), viewer 95.41/91.33/94.33/97.9, Python gate ≥90; agent 3330 tests, viewer 1613, Python 3691. (The worktree's env venv needed the main checkout's mgba binding symlinked; test_view failed without it.)
 - [ ] COMMIT (GREEN)
 - [ ] Multi-model review loop until clean
 

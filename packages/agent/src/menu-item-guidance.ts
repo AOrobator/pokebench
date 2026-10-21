@@ -23,8 +23,11 @@ export function menuItemGuidance(state:GameStateSnapshot):string|null {
   if(ui.phase==="start_menu"&&options.includes("BAG"))lines.push("To use an item, choose BAG from this menu; inspect its item list before choosing an item.");
   if(ui.phase==="party_action_menu"&&options.includes("ITEM"))lines.push("ITEM manages held items; it does not apply medicine. To use an item, return to the START menu and choose BAG.");
  }else if(ui.phase==="bag_menu"){
+  // item_menu.c ItemMenu_HandleInput: berry tree/blender owners lock
+  // pockets, and blender/crush forbids B. Only normal field/battle is qualified.
+  if(ui.details?.["bag_location"]!==0&&ui.details?.["bag_location"]!==1)return null;
   lines.push(`Menu controls: UP/DOWN selects an item; LEFT/RIGHT changes pockets; ${accept}.`);
-  if(typeof ui.details?.["item_id"]==="number")lines.push("A opens the selected item's available actions; inspect them before confirming.");
+  if(typeof ui.details["item_id"]==="number")lines.push("A opens the selected item's available actions; inspect them before confirming.");
  }else if(ui.phase==="bag_context_menu"){
   if(options===null||!options.includes(ui.selected))return null;
   const grid=options.length>2;

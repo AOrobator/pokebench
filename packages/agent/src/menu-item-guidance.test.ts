@@ -63,7 +63,7 @@ it("distinguishes two-column bag actions from vertical menus and item targets",(
  expect(menuItemGuidance({...BASE,active_ui:{...ui,selected:"MISSING"}})).toBeNull();
  expect(menuItemGuidance({...BASE,active_ui:{...ui,details:{options:[1,2]}}})).toBeNull();
  expect(menuItemGuidance({...BASE,active_ui:{...ui,selected:null}})).toBeNull();
- expect(menuItemGuidance({...BASE,active_ui:{...ui,phase:"bag_menu",selected:"POTION"}})).toContain("LEFT/RIGHT changes pockets");
+ expect(menuItemGuidance({...BASE,active_ui:{...ui,phase:"bag_menu",selected:"POTION",details:{bag_location:0,item_id:13}}})).toContain("LEFT/RIGHT changes pockets");
  expect(menuItemGuidance({...BASE,active_ui:{...ui,phase:"party_menu",selected:"PARTY SLOT 1",details:{party_action:3}}})).toContain("A uses the selected item on this Pokémon");
  expect(menuItemGuidance({...BASE,active_ui:{...ui,phase:"party_menu",details:{party_action:0}}})).toBeNull();
  expect(menuItemGuidance({...state(18459),active_ui:{...must(state(18459).active_ui),details:null}})).toBeNull();
@@ -93,5 +93,24 @@ it("removes the second story-warning full-HP directive without changing OFF byte
  const f={map_id:[11,3] as const,trainers:[],weak:[],hurt:[{species:"TORCHIC",hp:24,max_hp:31}],heal:null,mom_heals:false,money:3000};
  expect(healBeforeTrainersV2Text(f)).toContain("Heal to full before a story battle.");
  expect(healBeforeTrainersV2Text(f,true)).not.toContain("Heal to full");
+ expect(healBeforeTrainersV2Text(f,true)).not.toContain("Heal before you battle");
+ expect(healBeforeTrainersV2Text(f,true)).toContain("Healing options:");
  expect(healBeforeTrainersV2Text(f,true)).toContain("TORCHIC 24/31");
+});
+
+it("does not advertise normal Bag controls for berry-only, unavailable or special locations",()=>{
+ for(const location of [4,5,2,undefined]){
+  const details=location===undefined?{item_id:133}:{bag_location:location,item_id:133};
+  expect(menuItemGuidance({...BASE,active_ui:{phase:"bag_menu",selected:"CHERI BERRY",ready:true,diagnostic:null,controls:"native",details}})).toBeNull();
+ }
+ for(const location of [0,1])expect(menuItemGuidance({...BASE,active_ui:{phase:"bag_menu",selected:"POTION",ready:true,diagnostic:null,controls:"native",details:{bag_location:location,item_id:13}}})).toContain("LEFT/RIGHT changes pockets");
+});
+it("the production V2 trainer warning treats an unknown healing place as an option",async()=>{
+ const rows=JSON.parse(gunzipSync(readFileSync(new URL("../test-support/heal-before-trainers-b300.json.gz",import.meta.url))).toString()) as {results:{seq:number;state:unknown}[]};
+ const gym=parseGameState(must(rows.results.find(r=>r.seq===14882)).state);
+ const features={...OFF,"low-hp-trainer-warning-v1":true,"heal-before-trainers-v1":true,"heal-before-trainers-v2":true,"factual-healing-guidance-v1":true};
+ const on=first(withLowHpTrainerWarning([tool(gym)],features,{...recorder,healBeforeTrainersWarning:()=>undefined}));
+ const delivered=text(await on.execute("c",{}));
+ expect(delivered).toContain("Healing options:");
+ expect(delivered).not.toContain("Heal before you battle:");
 });

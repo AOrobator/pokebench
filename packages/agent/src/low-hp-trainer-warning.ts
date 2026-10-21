@@ -424,7 +424,7 @@ export function healBeforeTrainersV2Text(f:HealBeforeTrainersFacts,factual=false
  const who=f.trainers.length===1?`A trainer you have not beaten is on this map: ${list}.`:`Trainers you have not beaten are on this map: ${list}.`;
  const story=f.hurt===undefined?"":` Your party is not at full HP: ${f.hurt.map(p=>`${p.species} ${String(p.hp)}/${String(p.max_hp)}`).join(", ")}. ${factual?"HP alone does not establish whether you will win.":"Heal to full before a story battle."}`;
  const weak=f.weak.length===0?"":` Your party is weak for a battle: ${weakList(f.weak)}.`;
- const where=f.heal===null?`Heal before you battle: the nurse at a POKéMON CENTER heals your whole party${f.mom_heals?", and so does MOM at home":""}.`:healPlaceSentence(f.heal,f.map_id);
+ const where=f.heal===null?`${factual?"Healing options:":"Heal before you battle:"} the nurse at a POKéMON CENTER heals your whole party${f.mom_heals?", and so does MOM at home":""}.`:healPlaceSentence(f.heal,f.map_id);
  const bag=f.items===undefined||f.items.length===0?"":bagSentence(f.items);
  return `SUPERVISOR: ${who}${story}${weak} ${NO_RUNNING} ${blackout(f.money)} ${where}${bag}`;
 }

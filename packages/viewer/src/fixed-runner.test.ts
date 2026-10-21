@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
@@ -9,11 +9,11 @@ import {cohortIndex} from "./workbench-store.js";
 import {experimentsAudit} from "./experiments-audit.js";
 import {fileURLToPath} from "node:url";
 import {REQUIRED_FRONTIER_MILESTONES} from "@pokebench/agent/milestones";
-import { LEGACY_LEASE, leaseDir } from "./lease.js";
+import { LEGACY_LEASE, leaseDir, leasePool, readLeaseOwner, takeLease } from "./lease.js";
 import { parseFixedStatus, type FixedStatus } from "./fixed-status.js";
 import { definition, MODEL_PATH, ROM_SHA1 } from "../test-support/fixed.js";
 import { Log, START } from "../test-support/events.js";
-import { armFeatures, armFeatureBits, parseFixedDefinition, controlBaseProblems, dryRunDefinition, type FixedDefinition, type FixedLane } from "./fixed-design.js";
+import { armFeatures, armFeatureBits, parseFixedDefinition, controlBaseProblems, dryRunDefinition, soloDefinition, type FixedDefinition, type FixedLane } from "./fixed-design.js";
 
 const COMMIT = "0123456789abcdef0123456789abcdef01234567";
 const RECEIPT: ServingReceipt = { model: MODEL_PATH, build: "b10236-1464c62d8", contextTokens: 65536, slots: 1, vision: true, fingerprint: "f".repeat(64) };
@@ -306,6 +306,95 @@ describe("runFixed", () => {
     expect(parseFixedStatus(JSON.parse(readFileSync(join(runsRoot, "experiments", def.id, "status.json"), "utf8"))).state).toBe("stopped");
   });
 
+  it("gives back a lane's lease while it waits on the replacement reserve, so another runner can take that GPU", async () => {
+    const { def, runsRoot } = setup(definition({ replacementReserveMs: 0 }));
+    const [poolA, poolB] = def.lanes.map((l) => leasePool(l.modelUrl));
+    let stop = false, bFailed = false;
+    const seen: { a: boolean; b: boolean; other: string | null }[] = [];
+    const blocked = (): boolean => {
+      const path = join(runsRoot, "experiments", def.id, "status.json");
+      return existsSync(path) && parseFixedStatus(JSON.parse(readFileSync(path, "utf8"))).lanes[1]?.reason.startsWith("replacement reserve used up") === true;
+    };
+    const host = new Fake(runsRoot, {
+      ending: (l) => { if (l.lane === "B" && !bFailed) { bFailed = true; return "never-started"; } return "budget"; },
+      beforeExit: async (l) => {
+        if (l.lane !== "A") return;
+        while (!blocked()) await new Promise((r) => setImmediate(r));
+        let other: string | null = null;
+        const a = existsSync(leaseDir(runsRoot, poolA ?? "")), b = existsSync(leaseDir(runsRoot, poolB ?? ""));
+        try { other = takeLease(runsRoot, poolB ?? "", { pid: 4343, owner: "fixed-run:solo" }, () => false); } catch { other = null; }
+        if (other !== null) rmSync(other, { recursive: true, force: true });
+        seen.push({ a, b, other });
+      },
+    });
+    const done = runFixed({ def, definitionSha256: "d".repeat(64), runsRoot, host, stopRequested: () => stop, pid: 77 });
+    await vi.waitFor(() => { expect(seen.length).toBeGreaterThan(0); });
+    while (!host.statuses.some((s) => s.lanes[0]?.state === "waiting" && s.lanes[1]?.reason.startsWith("replacement reserve used up") === true)) await new Promise((r) => setImmediate(r));
+    expect(existsSync(leaseDir(runsRoot, poolA ?? ""))).toBe(false);
+    stop = true;
+    expect(await done).toBe("stopped");
+    expect(seen[0]).toMatchObject({ a: true, b: false });
+    expect(seen[0]?.other).toBe(leaseDir(runsRoot, poolB ?? ""));
+    for (const pool of [poolA, poolB]) expect(existsSync(leaseDir(runsRoot, pool ?? ""))).toBe(false);
+  });
+
+  it("gives back a finished lane's lease while the other lane still plays", async () => {
+    const { def, runsRoot } = setup(dryRunDefinition(definition(), 120_000));
+    const [poolA, poolB] = def.lanes.map((l) => leasePool(l.modelUrl));
+    const laneDone = (id: string): boolean => {
+      const path = join(runsRoot, "experiments", def.id, "status.json");
+      return existsSync(path) && parseFixedStatus(JSON.parse(readFileSync(path, "utf8"))).lanes.find((l) => l.id === id)?.state === "done";
+    };
+    const seen: { a: boolean; b: boolean }[] = [];
+    let aLaunches = 0;
+    const host = new Fake(runsRoot, {
+      beforeExit: async (l) => {
+        if (l.lane !== "A" || ++aLaunches < 2) return;
+        while (!laneDone("B")) await new Promise((r) => setImmediate(r));
+        seen.push({ a: existsSync(leaseDir(runsRoot, poolA ?? "")), b: existsSync(leaseDir(runsRoot, poolB ?? "")) });
+      },
+    }, def.id);
+    expect(await runFixed({ def, definitionSha256: "d".repeat(64), runsRoot, host, stopRequested: () => false, pid: 77, dryRun: true })).toBe("finished");
+    expect(seen).toEqual([{ a: true, b: false }]);
+  });
+
+  it("names each lane's own trial and pid in that lane's lease while it plays", async () => {
+    const { def, runsRoot } = setup();
+    const named: boolean[] = [];
+    const host = new Fake(runsRoot, {
+      beforeExit: (l, n) => {
+        const lane = def.lanes.find((x) => x.id === l.lane);
+        const owner = readLeaseOwner(runsRoot, leasePool(lane?.modelUrl ?? ""));
+        named.push(owner?.run === l.runId && owner.child === 1000 + n && owner.pid === 77 && owner.owner === `fixed-run:${def.id}`);
+        return Promise.resolve();
+      },
+    });
+    expect(await runFixed({ def, definitionSha256: "d".repeat(64), runsRoot, host, stopRequested: () => false, pid: 77 })).toBe("finished");
+    expect(named).toHaveLength(12);
+    expect(named.every(Boolean)).toBe(true);
+  });
+
+  it("plays a given commit instead of HEAD when the runner is told to (a rerun at its experiment's pin)", async () => {
+    const { def, runsRoot, dir } = setup(dryRunDefinition(definition(), 120_000));
+    const host = new Fake(runsRoot, { head: () => "b".repeat(40) }, def.id);
+    await runFixed({ def, definitionSha256: "d".repeat(64), runsRoot, host, stopRequested: () => false, pid: 77, dryRun: true, commit: "c".repeat(40) });
+    expect(new Set(host.verified)).toEqual(new Set(["c".repeat(40)]));
+    expect(new Set(launchesOf(readLedger(join(dir, "trials.jsonl"))).map((l) => l.commit))).toEqual(new Set(["c".repeat(40)]));
+  });
+
+  it("plays a single-arm rerun's one trial on its one lane, holding only that lane's lease", async () => {
+    const parent = definition();
+    const { def, runsRoot, dir } = setup(soloDefinition(parent, "bundle", "B", "cook", 1));
+    const other = takeLease(runsRoot, leasePool(parent.lanes[0]?.modelUrl ?? ""), { pid: 999, owner: "fixed-run:bundle-v-control" }, () => true);
+    const host = new Fake(runsRoot, { alive: (pid) => pid === 999 }, def.id);
+    expect(await runFixed({ def, definitionSha256: "d".repeat(64), runsRoot, host, stopRequested: () => false, pid: 77, dryRun: true })).toBe("finished");
+    expect(host.launches.map((l) => [l.lane, l.arm, l.phase])).toEqual([["B", "bundle", "cook"]]);
+    expect(JSON.parse(host.launches[0]?.env["POKEBENCH_EXPERIMENT"] ?? "")).toEqual({ id: "bundle-v-control-solo-bundle-b-1", arm: "bundle", trial: 1, of: 1 });
+    expect(outcomes(readLedger(join(dir, "trials.jsonl")))).toEqual([expect.objectContaining({ valid: true })]);
+    expect(readLeaseOwner(runsRoot, leasePool(parent.lanes[0]?.modelUrl ?? ""))?.pid).toBe(999);
+    expect(existsSync(other)).toBe(true);
+  });
+
   it("stops launching once stop is requested, letting running trials finish", async () => {
     const { def, runsRoot, dir } = setup();
     let stop = false;
@@ -348,7 +437,11 @@ describe("runFixed", () => {
     const host: Fake = new Fake(runsRoot, { alive: (pid: number): boolean => pid === 999 && holder.sleeps() < 3 });
     holder.sleeps = () => host.sleeps;
     await runFixed({ def, definitionSha256: "d".repeat(64), runsRoot, host, stopRequested: () => false, pid: 77 });
-    expect(host.statuses.some((s) => s.state === "waiting" && s.lanes.every((l) => l.reason === `waiting for the gameplay lease for ${pool}, held by experiment-queue (pid 999)`))).toBe(true);
+    const held = host.statuses.filter((s) => s.lanes[1]?.state === "waiting" && s.lanes[1].reason === `waiting for the gameplay lease for ${pool}, held by experiment-queue (pid 999)`);
+    expect(held.length).toBeGreaterThan(0);
+    // Only the lane whose pool is held waits: the other plays meanwhile.
+    expect(held.some((s) => s.lanes[0]?.state === "running")).toBe(true);
+    expect(held.every((s) => s.lanes[0]?.reason.startsWith("waiting for the gameplay lease") !== true)).toBe(true);
     expect(outcomes(readLedger(join(dir, "trials.jsonl")))).toHaveLength(12);
   });
 

@@ -18,13 +18,16 @@ if [ "${LATEST_MAIN_PER_TRIAL:-1}" = 1 ]; then
   exec "$REPO/env/.venv/bin/python" -m pokebench_env.latest_main_loop
 fi
 EXP_ID=${EXP_ID:-bundle-v-control-2h}
+LOOP_NAME=${LOOP_NAME:-whole-map-loop}
+EXPECTED_TRIALS=${EXPECTED_TRIALS:-4}
+FEATURE_RECIPE=${FEATURE_RECIPE:-}
 PHASE=${PHASE:-cook}
 WALL_MS=${WALL_MS:-7200000}
 RUNS=${RUNS:-$REPO/runs}
 LEDGER_DIR=$RUNS/experiments/$EXP_ID-dryrun-$PHASE
 ARCHIVE=${ARCHIVE:-$RUNS/dryruns}
-STOP_FILE=${STOP_FILE:-$ARCHIVE/whole-map-loop.STOP}
-PAUSE_FILE=${PAUSE_FILE:-$ARCHIVE/whole-map-loop.PAUSE}
+STOP_FILE=${STOP_FILE:-$ARCHIVE/$LOOP_NAME.STOP}
+PAUSE_FILE=${PAUSE_FILE:-$ARCHIVE/$LOOP_NAME.PAUSE}
 MAIN_WT=${MAIN_WT:-/private/tmp/pokebench-whole-map-loop-main}  # its own clone of main: fixed-run pins the primary checkout's HEAD
 MAX_FAILS=${MAX_FAILS:-6}           # consecutive failed rounds before giving up
 RETRY_SLEEP=${RETRY_SLEEP:-300}
@@ -34,7 +37,7 @@ MIN_ROUND_S=${MIN_ROUND_S:-600}     # a round shorter than this did not really r
 FRAME_LIMIT=${FRAME_LIMIT:-75}      # runs may start at or below this frame-cap percent
 VIEWER_CMD=${VIEWER_CMD:-just viewer-main}  # a viewer older than the pin cannot read the new runs
 
-log() { echo "$(date '+%Y-%m-%d %H:%M:%S %Z') whole-map-loop: $*"; }
+log() { echo "$(date '+%Y-%m-%d %H:%M:%S %Z') $LOOP_NAME: $*"; }
 
 stopped() { [ -e "$STOP_FILE" ]; }
 stop_loop() {
@@ -88,7 +91,7 @@ stopped_run() {
 
 # Read from main, not the operator's working tree, which may be on any branch; keep the last good copy.
 definition() {
-  f=$ARCHIVE/whole-map-loop-definition.json
+  f=$ARCHIVE/$LOOP_NAME-definition.json
   git -C "$REPO" show "main:experiments/fixed/$EXP_ID.json" > "$f.tmp" 2>/dev/null && mv "$f.tmp" "$f"
   rm -f "$f.tmp"; echo "$f"
 }
@@ -150,6 +153,10 @@ runner_pid() {
 
 cd "$REPO" || { log "cannot cd $REPO"; exit 1; }
 mkdir -p "$ARCHIVE" "$(dirname "$STOP_FILE")" || { log "cannot create $ARCHIVE"; exit 1; }
+LOCK_DIR=${LOCK_DIR:-$ARCHIVE/$LOOP_NAME.lock}
+if ! mkdir "$LOCK_DIR" 2>/dev/null; then log "refusing duplicate loop: $LOCK_DIR exists (owner $(cat "$LOCK_DIR/pid" 2>/dev/null)); inspect its owner before removing a stale lock"; exit 1; fi
+printf '%s\n' "$$" > "$LOCK_DIR/pid"
+trap 'rm -f "$LOCK_DIR/pid"; rmdir "$LOCK_DIR" 2>/dev/null' EXIT
 if stopped; then log "$STOP_FILE exists ($(cat "$STOP_FILE")); delete it to run the loop"; exit 0; fi
 [ -f "$(definition)" ] || { log "no definition $(definition) on this checkout"; exit 1; }
 log "started (pid $$): $EXP_ID, phase $PHASE, ${WALL_MS} ms cap; stop with a viewer STOP/ABORT on any loop run or touch $STOP_FILE"
@@ -171,7 +178,7 @@ while :; do
 
   pin=$(git rev-parse main) || { log "round $round: cannot resolve main; giving up"; exit 1; }
   if [ "$pin" != "$viewer_pin" ]; then
-    if $VIEWER_CMD >/dev/null 2>&1; then log "round $round: viewer restarted at main"; viewer_pin=$pin; else log "round $round: viewer restart failed (runs still launch)"; fi
+    if $VIEWER_CMD >/dev/null 2>&1; then log "round $round: viewer restarted at main"; viewer_pin=$pin; else log "round $round: viewer restart failed; refusing to launch"; exit 1; fi
   fi
   if [ ! -d "$MAIN_WT/.git" ]; then
     git clone --quiet --local "$REPO" "$MAIN_WT" || { log "round $round: cannot clone main; giving up"; exit 1; }
@@ -191,7 +198,13 @@ while :; do
   if stopped || [ -e "$PAUSE_FILE" ] || lanes_busy >/dev/null; then round=$((round - 1)); continue; fi
   log "round $round: launching on main $(git rev-parse --short "$pin")"
   t0=$(date +%s)
-  ( cd "$MAIN_WT" && exec "$JUST" fixed-run dry-run "$EXP_ID" --phase "$PHASE" --wall-ms "$WALL_MS" ) &
+  ( cd "$MAIN_WT" &&
+    if [ -n "$FEATURE_RECIPE" ]; then
+      exec "$JUST" fixed-run dry-run "$EXP_ID" --phase "$PHASE" --wall-ms "$WALL_MS" --feature-recipe "$FEATURE_RECIPE"
+    else
+      exec "$JUST" fixed-run dry-run "$EXP_ID" --phase "$PHASE" --wall-ms "$WALL_MS"
+    fi
+  ) &
   job=$!
   signalled=
   stop_at=
@@ -226,11 +239,11 @@ while :; do
   if run=$(stopped_run); then stop_loop "the operator stopped run $run in the viewer"; fi
   if stopped; then break; fi
 
-  if [ "$n" -ge 4 ] && [ "$took" -ge "$MIN_ROUND_S" ]; then
+  if [ "$n" -ge "$EXPECTED_TRIALS" ] && [ "$took" -ge "$MIN_ROUND_S" ]; then
     fails=0
   else
     fails=$((fails + 1))
-    log "round $round did not produce four valid trials (failure $fails of $MAX_FAILS); retrying in ${RETRY_SLEEP}s"
+    log "round $round did not produce $EXPECTED_TRIALS valid trials (failure $fails of $MAX_FAILS); retrying in ${RETRY_SLEEP}s"
     i=0; while [ "$i" -lt "$RETRY_SLEEP" ] && ! stopped; do sleep 1; i=$((i + 1)); done
   fi
 done

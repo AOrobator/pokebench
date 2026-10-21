@@ -236,7 +236,7 @@ describe("mounting the page", () => {
       expect(timers).toEqual([REFRESH_MS]);
       document.querySelector('.pr-slot[data-case="case-01"]')?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
       expect(window.location.hash).toBe("#cited-destination-v1/case-01");
-      window.fetch = (() => Promise.resolve(new Response("nope", { status: 500 }))) as typeof window.fetch;
+      window.fetch = (() => Promise.resolve(new Response("nope", { status: 500 })));
       await expect(bootProbes(window)).rejects.toThrow("GET /api/probes returned HTTP 500");
     } finally { window.setInterval = realSet; window.clearInterval = realClear; }
   });

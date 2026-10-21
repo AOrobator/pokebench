@@ -121,7 +121,8 @@ No harness behavior changes, so no feature switch. The TIMELINE is untouched.
 - [x] Browser proof (runs/reviews/2026-10-20-probes-viewer-e2e/receipt.md): clicks, keyboard, lane switch, arm-blind, plot, hash, frame load, live refresh then polling stop, at 1280/1440/375, no overflow, errors or off-host requests. Fix from the proof: a turn whose call is found is cached by (log, turn) alone, so a growing source log is not rescanned on every 5 s refresh (test added). Plan was: scratch viewer on a scratch runs root holding a copy of the cited-destination probe and its 5 source runs' needed files. Clicks (case, sample, lane, arm-blind, plot) and screenshots at 1280/1440/375, saved under `runs/reviews/2026-10-20-probes-viewer-e2e/`
 
 **M3: land**
-- [ ] Sync with main, gates on the tip
+- [x] Sync with main (merge 81918993 of main 563cbaad), gates on the tip: build OK; agent 3013, viewer 1475; TS lint clean, ruff clean, mypy clean (main venv); viewer coverage 95.16/90.95/94.14; Python 3014 pass + 1 needing the mGBA module (missing in the worktree venv, unrelated)
+- [x] Guard deletions went red, then restored: pointer realpath jail (new test: a pointer through a symlink that leaves runs/), run-id check, INV-1 group filter, thinking escape
 - [ ] Review: Claude, Grok and GPT cloud lanes on one frozen packet
 - [ ] Land ff-only; `just test` on main
 - [ ] Register cited-destination-v1 at `runs/probes/` (data, not git)
@@ -132,6 +133,8 @@ No harness behavior changes, so no feature switch. The TIMELINE is untouched.
 The proof is /probes on the live 8790 viewer showing cited-destination-v1 with all three lanes, with clicks verified at desktop and phone widths.
 
 ## Session Log
+
+- 2026-10-20 8:35 PM: coordinator cannot hold main (story-progress-clock-v1 holds the landing slot; this branch is next). Review proceeds; landing will ask for the slot, then sync, gates and land.
 
 - 2026-10-20 8:15 PM: worklog written after the operator's pick (design N) and "execute the worklog".
 

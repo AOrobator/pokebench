@@ -94,6 +94,10 @@ describe("the probe list", () => {
     probeDir(runs, "elsewhere/real", { manifest: MANIFEST, lanes: { gpu0: GPU0 } });
     symlinkSync(join(runs, "elsewhere", "real"), join(runs, "probes", "linked"));
     pointer(runs, "Bad Id", { version: 1, dir: "launch-receipts/ok" });
+    const outside = mkdtempSync(join(tmpdir(), "probes-outside-"));
+    probeDir(outside, "p", { manifest: MANIFEST, lanes: { gpu0: GPU0 } });
+    symlinkSync(join(outside, "p"), join(runs, "escape-link"));
+    pointer(runs, "through-link", { version: 1, dir: "escape-link" });
     expect(listProbes(runs).map((p) => p.id)).toEqual(["ok"]);
   });
 

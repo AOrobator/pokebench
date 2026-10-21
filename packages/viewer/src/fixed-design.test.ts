@@ -2,7 +2,7 @@ import {readFileSync} from "node:fs";
 import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
 
-import { armPreset, controlBaseProblems, definitionProblems, dryRunDefinition, FixedDesignError, generatePlan, parseFixedDefinition, planOrder, armFeatureBits } from "./fixed-design.js";
+import { armPreset, controlBaseProblems, definitionProblems, dryRunDefinition, FixedDesignError, generatePlan, parseFixedDefinition, planOrder, armFeatureBits, soloDefinition } from "./fixed-design.js";
 import { CONTROL_BASE_SHA256, controlBaseText, definition, draftDefinition, INCUMBENT_FEATURES, CLOCK_START, MENU_START } from "../test-support/fixed.js";
 
 const sha = (text: string): string => createHash("sha256").update(text).digest("hex");
@@ -167,6 +167,31 @@ describe("dryRunDefinition", () => {
     expect(dry.plan).toHaveLength(4);
     expect(dry.replacementReserveMs).toBe(0);
     expect(definitionProblems(dry)).toEqual([]);
+  });
+});
+
+describe("soloDefinition", () => {
+  it("plans one exploratory trial of one arm on one lane at the phase's start and cap, under its own id, with no replacements", () => {
+    const def = definition();
+    const solo = soloDefinition(def, "bundle", "B", "cook", 2);
+    expect(solo).toMatchObject({ id: "bundle-v-control-solo-bundle-b-2", title: "Bundle vs fixed control (exploratory: bundle only, lane B, cook, #2)", replacementReserveMs: 0, lanes: [def.lanes[1]] });
+    expect(solo.phases).toEqual([{ id: "cook", perArm: 1, maxWallMs: 3_600_000, primary: false, start: MENU_START, singleArm: "bundle" }]);
+    expect(solo.plan).toEqual([{ slot: 1, phase: "cook", block: 1, lane: "B", arm: "bundle" }]);
+    expect(definitionProblems(solo)).toEqual([]);
+    expect(armPreset(solo, "cook", "bundle").features).toEqual(armPreset(def, "cook", "bundle").features);
+    expect(soloDefinition(def, "control", "A", "confirmatory", 1).plan).toEqual([{ slot: 1, phase: "confirmatory", block: 1, lane: "A", arm: "control" }]);
+  });
+
+  it("refuses an unknown lane or phase, an id too long to name, and a single-arm phase that is paired, primary or multi-lane", () => {
+    const def = definition();
+    expect(() => soloDefinition(def, "bundle", "C", "cook", 1)).toThrow("no lane C; lanes: A, B");
+    expect(() => soloDefinition(def, "bundle", "B", "nope", 1)).toThrow("no phase nope");
+    expect(() => soloDefinition({ ...def, id: "x".repeat(70) }, "bundle", "B", "cook", 1)).toThrow(/is not a valid experiment id/);
+    const solo = soloDefinition(def, "bundle", "B", "cook", 1);
+    const phase = solo.phases[0];
+    if (phase === undefined) throw new Error("fixture");
+    for (const bad of [{ ...phase, primary: true }, { ...phase, perArm: 2 }, { ...phase, singlePair: true }]) expect(definitionProblems({ ...solo, phases: [bad] })).toContain("phase cook: singleArm requires one exploratory trial on one lane");
+    expect(definitionProblems({ ...solo, lanes: def.lanes, plan: generatePlan({ ...solo, lanes: def.lanes }) })).toContain("phase cook: singleArm requires one exploratory trial on one lane");
   });
 });
 

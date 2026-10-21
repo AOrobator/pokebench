@@ -28,6 +28,7 @@ from pokebench_env.heal_trainers import SWITCH_V2 as HEAL_TRAINERS_V2
 from pokebench_env.mart_stock import SWITCH as MART_STOCK
 from pokebench_env.move_learn import COMPARISON_SWITCH as MOVE_COMPARISON
 from pokebench_env.move_learn import QUESTION_SWITCH as MOVE_QUESTION
+from pokebench_env.pokedex_own import SWITCH as POKEDEX_OWN
 from pokebench_env.raw_ram import load_raw_ram
 from pokebench_env.readout import features_off_from_env, format_readout
 from pokebench_env.readout_fixes import MID_FRAME, OWNER, UNSET_WARP
@@ -36,6 +37,7 @@ from pokebench_env.respawn import LinkCache, RespawnMemory
 from pokebench_env.rom import resolve_rom
 from pokebench_env.screen_settle import WARP_FEATURE, warp_animating
 from pokebench_env.surf_gate import SWITCH as SURF_GATE
+from pokebench_env.training_readout import SWITCH as EXP_NEXT
 from pokebench_env.ui_state import active_ui_enabled_from_env
 
 PORYMAP_MAPS = (
@@ -97,6 +99,8 @@ def read_state(
         move_learning_enabled=not {MOVE_QUESTION, MOVE_COMPARISON} <= off,
         mart_stock_enabled=MART_STOCK not in off,
         shop_interface_enabled="shop-interface-v1" not in off,
+        exp_next_enabled=EXP_NEXT not in off,
+        pokedex_enabled=POKEDEX_OWN not in off,
         respawn_links=links if RESPAWN not in off else None,
     )
 

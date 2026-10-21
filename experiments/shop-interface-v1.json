@@ -205,6 +205,13 @@
    "gym-door-label-v1": true,
    "mart-stock-readout-v1": true,
    "caught-dex-input-v1": true,
+   "exp-next-level-v1": true,
+   "pokedex-own-v1": true,
+   "exp-earned-ledger-v1": true,
+   "leader-attempt-ledger-v1": true,
+   "seen-trainers-ledger-v1": true,
+   "party-coverage-v1": true,
+   "said-type-matches-v1": true,
    "shop-interface-v1": false
   }
  },

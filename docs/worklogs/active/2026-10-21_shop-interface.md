@@ -50,6 +50,10 @@ A post-pass over the native reader's result (like evolution-decision-v1's `decis
 - Waiting in the coordinator's queue (control promotion and seven training/catching switches land first); review runs once on the resynced packet so it isn't voided by their registry changes.
 - [ ] Reviews, coordinator slot, ff-only, viewer-main, live check.
 
+## Session Log (resync)
+
+- 2026-10-21 ~11:50 AM ET: merged local main fe4ed9c7 (control promotion 607954b2, seven training/catching switches 4d884c03) with `-X theirs`, then re-applied this switch after said-type-matches-v1 in every registry list, the four fixed definitions and the incumbent (refreshed to the current bundle arm); collateral offsets re-derived. Stepped aside on the landing board while finishing (rejoined at #6).
+
 ## Multi-Model Review Log
 
 ## Session Log

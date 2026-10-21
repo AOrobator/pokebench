@@ -1419,6 +1419,20 @@ it("links the shop interface from its recorded feature card",()=>{
  expect(html).toContain('Interface: shop_purchase_message; input ready; A or B continues');
 });
 
+it("links each training and catching switch from its recorded feature card",()=>{
+ const ids=["exp-next-level-v1","pokedex-own-v1","exp-earned-ledger-v1","leader-attempt-ledger-v1","seen-trainers-ledger-v1","party-coverage-v1","said-type-matches-v1"];
+ for(const id of ids){
+  expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
+  const log=new Log();log.add(0,{...START,harness_features:["ram-state-v1",id]});
+  const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
+  const card=doc.querySelector(`[data-feature="${id}"]`);
+  expect(card?.querySelector("a")?.getAttribute("href")).toBe(`/explainers/${id}.html`);
+  expect(card?.textContent).toContain("ON");
+  const html=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)),"utf8");
+  expect(html).toContain(`<code>${id}</code>`);
+ }
+});
+
 it("links the recorded distinct-exits treatment to its tracked explainer",()=>{
  const id="exit-labels-v3";
  const log=new Log();log.add(0,{...START,harness_features:["ram-state-v1",id]});

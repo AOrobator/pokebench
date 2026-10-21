@@ -709,6 +709,9 @@ export const StateBodySchema = Type.Object(
       home: Type.Union([Type.Tuple([Type.Integer({minimum:0}),Type.Integer({minimum:0})]),Type.Null()]),
       mom_heals: Type.Boolean(),
     },closed)),
+    // exp-next-level-v1: the POKéMON summary screen's NEXT LV. per party slot (null when a slot cannot show one).
+    // Present only with the switch.
+    party_next_level: Type.Optional(Type.Array(Type.Union([NonNegativeInt,Type.Null()]),{maxItems:6})),
   },
   closed,
 );

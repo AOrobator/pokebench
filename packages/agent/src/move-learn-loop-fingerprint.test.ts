@@ -82,8 +82,8 @@ describe("move-learn-loop-fingerprint-v1",()=>{
  it("is a default-off agent-only guard, recorded last",()=>{
   expect(featureInfo(ID)).toMatchObject({group:"guard",needs:null,switchable:true});
   expect(featureInfo(ID).description).toContain(" Off: ");
-  expect(SWITCHABLE_FEATURES.at(-2)).toBe(ID);
-  expect(playHarnessFeatures(ALL_ON,null).at(-2)).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-3)).toBe(ID);
+  expect(playHarnessFeatures(ALL_ON,null).at(-3)).toBe(ID);
   expect(SERVER_FEATURES).not.toContain(ID);
   expect(normalizeFeatures({} as Parameters<typeof normalizeFeatures>[0])[ID]).toBe(false);
   expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:true})[ID]).toBe(false);

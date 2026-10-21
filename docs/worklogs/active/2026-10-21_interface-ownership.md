@@ -87,11 +87,12 @@ No new network surface, subprocesses or file paths. ROM read only through existi
 - [x] Implement `packages/agent/src/stale-plan-fact.ts`: `StalePlanFact` observes `assistant` events (thinking, turn) and non-error `tool_result` events (the readout's `Interface:` line and `The game asks: "…"` quote); `withStalePlanFact` wraps the play tools outermost in `playGameTools`, so the line is the last text part of the result the model reads and the recorded `tool_result` text carries it (raw-event inspector; no timeline mark).
 - [x] Guard deletion: wrapper unwired in play-wiring → 1 red; the same-screen comparison removed → 1 red; restored → 5 green.
 - [x] Gates: vitest agent 4308 / viewer 1656; pytest 3806; lint clean; build ok; coverage agent 99.21 L / 93.13 B / 97.81 F, viewer 97.95 / 91.33 / 94.35, Python 97.29 / 93.11 / 100.
-- [ ] COMMIT GREEN. Review deferred to one branch packet before landing.
+- [x] COMMIT GREEN: `feat(result): stale-plan-fact-v1 says when repeated thinking meets a different Interface line or game question` (f330bce71). Review deferred to one branch packet before landing (coordinator: max 2 rounds).
 
 **M4 — `post-battle-readout-v1` (server, Python)**
-- [ ] Tests: ea04 seq 20991-like snapshot → battle block ended, party moves shown; in-battle ready learn_move → Interface line ready; OFF bytes unchanged. Python coverage ≥90.
-- [ ] RED / implement / gates / GREEN / review.
+- [x] Tests `env/tests/env/test_post_battle_readout.py`: states built from ea04 seq 20991 (evolution screen, battle finishing, COMBUSKEN with DOUBLE KICK in the party, battle struct still TORCHIC/SCRATCH), seq 20256 (battle, learn_move box ready, Interface "battle_resolving; input not ready") and the pokemon_summary forget screen. OFF pinned to `env/tests/env/fixtures/post_battle_off.json`, written by the code before the switch existed (every other server switch on). Registered server-side (TS `SERVER_FEATURES` and Python `SERVER_FEATURES` + default-off list).
+- [x] COMMIT RED (2 ON tests red; OFF golden and registration green). SHA recorded in the next commit.
+- [ ] Implement / gates / GREEN. Review deferred to one branch packet before landing.
 
 **M5 — `move-learn-tool-v1`**
 - [ ] Tests: forget each slot 1–4 from Delete box; from Stop-learning box; from MVSTATE 1/2 pages; "none"; in-battle path; refusal when no prompt; unknown move name; cursor verification after each step; screen change mid-drive stops and reports.

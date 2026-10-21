@@ -212,6 +212,7 @@ export const SWITCHABLE_FEATURES = [
   "field-ownership-feedback-v1",
   "move-learn-loop-fingerprint-v1",
   "stale-plan-fact-v1",
+  "post-battle-readout-v1",
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
 
@@ -537,6 +538,7 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("field-ownership-feedback-v1", "guard", "FIELD OWNERSHIP FEEDBACK", null, "Default off (the operator 2026-10-21). Run 2026-10-21T13-33-36_qwen36-gpu1_d548 called navigate_to_target on object 21 for 85 turns at an evolution decision; every refusal said only \"target is not listed in the current verified state\" with no Screen or Interface line (seq 20511, 20531). The game keeps gMain.inBattle set through a post-battle evolution (TryEvolvePokemon runs before ReturnFromBattleToOverworld), so in_battle stays true while the evolution screen owns input. With this switch on: navigate_to_target checks that the field is free (overworld screen, no battle, no open interface) before it resolves its target; when it is not, it presses nothing and its result gives navigate_to's own reason (for example \"the game is not on the field (screen: evolution); navigate_to_target walks only on the field; nothing was pressed\") followed by the whole current observation, as observe shows it. The stall briefing names a ready interface on a screen that is not a battle screen (evolution, summary) and its controls instead of saying \"in battle\". Auto-talk, when the field is not free because an interface owns input (screen not overworld, or an open interface), sends one message per interface episode naming the interface and the controls the readout lists for it; it never chooses an answer. Off: navigate_to_target resolves first and refuses without a readout, briefings say \"in battle\" whenever the battle flag is set, and auto-talk waits silently."),
   on("move-learn-loop-fingerprint-v1", "guard", "MOVE-LEARNING LOOP FINGERPRINT", null, "Default off (the operator 2026-10-21). Run 2026-10-21T13-33-54_qwen36-gpu0_ea04 pressed B for 15 turns round the four states \"Delete a move to make room for DOUBLE KICK?\", \"Stop learning DOUBLE KICK?\", \"COMBUSKEN is trying to learn DOUBLE KICK.\" and \"But, COMBUSKEN can't learn more than four moves.\" (seq 20494-20844). The loop guard's state fingerprint is empty while the battle flag is set (the game keeps it through a post-battle evolution) and for the evolution and summary move-learning phases, so its ineffective-input and state-cycle rules never counted. With this switch on, a ready move-learning prompt has a fingerprint made of what the game shows: the phase, the highlighted answer, the evolution scene's move-learning step and question (its YES/NO next states), the move to learn, the waiting page and the party's moves; in battle, the learn_move and stop_learning_move YES/NO boxes and the two pages that lead to them (sText_TryToLearnMove1/2). The ineffective-input and state-cycle rules then count those states, and a cycle made only of them is reported after it repeats twice instead of three times. Off: those states have no fingerprint and the rules ignore them, as before."),
   on("stale-plan-fact-v1", "guard", "STALE PLAN FACT", null, "Default off (the operator 2026-10-21). Run 2026-10-21T13-33-54_qwen36-gpu0_ea04 sent byte-identical thinking for 15 turns (seq 20494-20844) while its results cycled through four different move-learning prompts; duplicate-turn collapse keys on the result state, which changed each step. With this switch on, when a reply's thinking is byte for byte the previous reply's and the game tool result it gets shows a different Interface line or game question than the result that thinking was first written after, the result ends with one line: \"Your reasoning repeats turn N word for word; the game now shows: <the result's Interface line>.\", followed by the game's question as the readout quotes it (The game asks: \"...\") when there is one. It states only what the readout shows and recommends nothing. Off: results are unchanged."),
+  on("post-battle-readout-v1", "observation", "POST-BATTLE READOUT", "battle-details-v2", "Default off (the operator 2026-10-21). In run 2026-10-21T13-33-54_qwen36-gpu0_ea04 the battle block on the evolution screen still read \"You TORCHIC\" and \"Your moves ... 1 SCRATCH\" from the battle's own copy after the evolution and after DOUBLE KICK replaced SCRATCH (seq 20991), and in battle the Interface line said \"battle_resolving; input not ready\" while the game's learn-move YES/NO box was open and waiting (seq 20256). With this switch on: on the evolution or POKéMON summary screen, while the battle is finishing, the battle details line says \"ended (outcome won)\", the Actions line is left out, and the You line and Your moves come from the party (the POKéMON as it is now); in battle, when the learn_move or stop_learning_move YES/NO box is ready, the Interface line names that box as ready with its highlighted answer and controls. Applied by the game server. Needs battle-details-v2. Off: the battle block and the Interface line read as before."),
 ];
 
 export const ALL_ON: FeatureSet = Object.fromEntries(SWITCHABLE_FEATURES.map((id) => [id, true])) as Record<SwitchableFeature, boolean>;
@@ -603,6 +605,7 @@ export const SERVER_FEATURES: readonly SwitchableFeature[] = [
   "pokedex-own-v1",
   "shop-interface-v1",
   "map-wide-triggers-v1",
+  "post-battle-readout-v1",
 ];
 
 export function serverFeatureEnv(features: FeatureSet): { POKEBENCH_ACTIVE_UI: "0" | "1"; POKEBENCH_FEATURES_OFF: string } {
@@ -796,6 +799,7 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("field-ownership-feedback-v1"),
     ...when("move-learn-loop-fingerprint-v1"),
     ...when("stale-plan-fact-v1"),
+    ...when("post-battle-readout-v1"),
   ];
 }
 

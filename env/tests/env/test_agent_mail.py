@@ -79,11 +79,11 @@ def test_bad_pending_line_is_refused(tmp_path: Path) -> None:
     r.pending.write_text('{"sent_at": "2026-10-21T14:27:00+00:00", "sender": 3, "text": "x"}\n')
     with pytest.raises(ValueError, match="letter"):
         am.collect(r)
-    r.delivering.unlink()
+    r.claim(os.getpid()).unlink()
     r.pending.write_text("not json\n")
     with pytest.raises(ValueError, match="letter"):
         am.collect(r)
-    r.delivering.unlink()
+    r.claim(os.getpid()).unlink()
     r.pending.write_text("[1]\n")
     with pytest.raises(ValueError, match="letter"):
         am.collect(r)
@@ -395,3 +395,30 @@ def test_the_manual_handoff_command_is_safe_to_paste(
     capsys.readouterr()
     assert am.main(["land-done", "--branch", "claude/a"], run=runs) == 2
     assert "just tell-codex 'a \"$(rm)\"' 'x: your turn to land codex/b'" in capsys.readouterr().out
+
+
+def test_two_listeners_never_share_or_drop_a_letter(tmp_path: Path) -> None:
+    # Owner 1 (launchd) stands in for another live listener.
+    r = room(tmp_path)
+    am.tell_claude(r, sender="codex", text="for whoever wakes first", now=T)
+    first = am.wait_for_mail(r, owner=1)
+    assert [x.text for x in first] == ["for whoever wakes first"]
+    am.tell_claude(r, sender="codex", text="second letter", now=T)
+    assert am.wait_for_mail(r, owner=os.getpid()) == [am.Letter(T, "codex", "second letter")]
+    am.acknowledge(r, os.getpid())
+    assert r.claim(1).exists()
+
+
+def test_a_dead_listeners_letters_go_to_the_next_listener(tmp_path: Path) -> None:
+    r = room(tmp_path)
+    child = subprocess.Popen(["true"])
+    child.wait()
+    am.tell_claude(r, sender="codex", text="orphaned", now=T)
+    assert [x.text for x in am.wait_for_mail(r, owner=child.pid)] == ["orphaned"]
+    assert am.collect(r) == [am.Letter(T, "codex", "orphaned")]
+    assert not r.claim(child.pid).exists()
+
+
+def test_liveness_treats_unsignalable_processes_as_alive() -> None:
+    assert am.alive(1) is True
+    assert am.alive(os.getpid()) is True

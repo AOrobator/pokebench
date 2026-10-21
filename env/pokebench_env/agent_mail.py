@@ -86,9 +86,8 @@ class Mailroom:
     def pending(self) -> Path:
         return self.root / "pending.jsonl"
 
-    @property
-    def delivering(self) -> Path:
-        return self.root / "delivering.jsonl"
+    def claim(self, owner: int) -> Path:
+        return self.root / f"delivering-{owner}.jsonl"
 
     @property
     def log(self) -> Path:
@@ -164,40 +163,66 @@ def tell_claude(room: Mailroom, *, sender: str, text: str, now: datetime) -> boo
         return True
 
 
-def drain(room: Mailroom) -> list[Letter]:
-    """Move pending letters into delivering and return everything not yet acknowledged.
+def alive(pid: int) -> bool:
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        return True
+    return True
 
-    Letters stay in delivering until `acknowledge`, so a listener that dies before showing them
-    hands them to the next listener again rather than losing them.
+
+def drain(room: Mailroom, owner: int) -> list[Letter]:
+    """Claim pending letters for this listener and return everything it has not acknowledged.
+
+    Each listener keeps its own claim file until `acknowledge`, so two listeners never share a
+    letter, and a listener that dies before showing its letters leaves them for the next one.
     """
+    mine = room.claim(owner)
+    for other in sorted(room.root.glob("delivering-*.jsonl")):
+        pid = int(other.stem.removeprefix("delivering-"))
+        if pid != owner and not alive(pid):
+            with open(mine, "a", encoding="utf-8") as handle:
+                handle.write(other.read_text(encoding="utf-8"))
+            other.unlink()
     if room.pending.exists():
-        with open(room.delivering, "a", encoding="utf-8") as handle:
+        with open(mine, "a", encoding="utf-8") as handle:
             handle.write(room.pending.read_text(encoding="utf-8"))
         room.pending.unlink()
-    if not room.delivering.exists():
+    if not mine.exists():
         return []
-    lines = room.delivering.read_text(encoding="utf-8").splitlines()
+    lines = mine.read_text(encoding="utf-8").splitlines()
     return [parse_letter(line) for line in lines if line.strip()]
 
 
-def acknowledge(room: Mailroom) -> None:
+def acknowledge(room: Mailroom, owner: int) -> None:
     with room.locked():
-        room.delivering.unlink(missing_ok=True)
+        room.claim(owner).unlink(missing_ok=True)
 
 
-def collect(room: Mailroom) -> list[Letter]:
+def collect(room: Mailroom, owner: int | None = None) -> list[Letter]:
+    who = os.getpid() if owner is None else owner
     with room.locked():
-        letters = drain(room)
-    acknowledge(room)
+        letters = drain(room, who)
+    acknowledge(room, who)
     return letters
 
 
 def wait_for_mail(
-    room: Mailroom, *, timeout: float | None = None, ready: Callable[[], None] | None = None
+    room: Mailroom,
+    *,
+    timeout: float | None = None,
+    ready: Callable[[], None] | None = None,
+    owner: int | None = None,
 ) -> list[Letter]:
-    """Return waiting letters, or block on the pipe until a sender wakes this listener."""
+    """Return this listener's letters, or block on the pipe until a sender wakes it.
+
+    The letters stay claimed by `owner` (default: this process) until `acknowledge`.
+    """
+    who = os.getpid() if owner is None else owner
     with room.locked():
-        letters = drain(room)
+        letters = drain(room, who)
         if letters:
             return letters
         if not room.pipe.exists():
@@ -214,7 +239,7 @@ def wait_for_mail(
         os.close(keepalive)
         os.close(reader)
     with room.locked():
-        return drain(room)
+        return drain(room, who)
 
 
 def tell_codex(thread: str, text: str, *, run: Run) -> int:
@@ -397,7 +422,7 @@ def main(argv: Sequence[str] | None = None, *, run: Run = run_command) -> int:
             return NO_MAIL
         for letter in letters:
             print(format_letter(letter), flush=True)
-        acknowledge(room)
+        acknowledge(room, os.getpid())
         return 0
     if args.command == "tell-codex":
         return tell_codex(args.thread, " ".join(args.words), run=run)

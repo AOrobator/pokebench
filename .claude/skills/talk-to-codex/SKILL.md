@@ -39,7 +39,7 @@ The coordinator runs in the cloud and cannot listen on this Mac. The listener is
 2. Read the letters it printed. Act on any about your own work. Relay every other letter to the coordinator with `send_message` (`session_id` `@parent`, `visibility` `sent_to_shared_agent`), quoting it whole.
 3. Start `just claude-mailbox --timeout 540` again right away. Exit code 3 means the timeout passed with no mail; restart it the same way.
 
-A letter stays in `runs/agent-mail/delivering.jsonl` until a mailbox has printed it, so a listener that dies mid-way hands it to the next one; after a crash you may see a letter twice. If `claude-mailbox` fails with "unreadable letter", tell the operator rather than editing the files.
+Each listener claims its letters in its own `runs/agent-mail/delivering-<pid>.jsonl` and drops them only after printing them. Two listeners never get the same letter, and a listener that dies mid-way hands its letters to the next one, so after a crash you may see a letter twice. If `claude-mailbox` fails with "unreadable letter", tell the operator rather than editing the files.
 
 Only one listener receives each letter. If two threads listen, whichever wakes first gets it and must relay what is not its own.
 

@@ -5,6 +5,7 @@ import type {FeatureSet} from "./features.js";
 import {createHash} from "node:crypto";
 import {NUDGE,TEXT_ONLY_REMINDER} from "./harness.js";
 import {planState} from "./same-plan.js";
+import {SUMMARY_FACT_KEYS,legacyParty} from "./party-facts.js";
 
 // fixed-point-breaker-v1: same calls leaving the same game state this many turns in a row collapse to one copy (stage 1);
 // one more such turn adds the positive note (stage 2). A reply with no tool call gets the note at once.
@@ -48,6 +49,7 @@ export const CYCLE_STATE_EXCLUDED:readonly {readonly path:string;readonly why:st
  {path:"play_time_s",why:"the play clock"},
  {path:"active_ui.value",phases:["clock_adjustment","clock_confirmation"],why:"on the two clock-setting interfaces only: the clock's time (ef9f moved it two minutes each cycle); every other interface's value is fingerprinted"},
  {path:"resources.berry_trees[].minutes_until_next_stage",why:"the berry growth timer"},
+ ...SUMMARY_FACT_KEYS.map(key=>({path:`party[].${key}`,why:"a summary-screen fact recorded for the viewer's POKéMON PARTY page only; no loop check compares it"})),
 ];
 const CLOCK_PHASES=new Set(CYCLE_STATE_EXCLUDED.find(x=>x.path==="active_ui.value")?.phases??[]);
 // Any diagnostic anywhere (party, battle, resources, messages, menus and their details): a key ending in `diagnostic`
@@ -80,6 +82,7 @@ export function cycleFields(state:State):Record<string,unknown>|null {
  for(const key of ["v","run","type","seq","turn","t","raw_ram","settle","play_time_s"])Reflect.deleteProperty(fields,key);
  if(fields.active_ui!=null&&CLOCK_PHASES.has(fields.active_ui.phase))Reflect.deleteProperty(fields.active_ui,"value");
  for(const tree of fields.resources?.berry_trees??[])Reflect.deleteProperty(tree,"minutes_until_next_stage");
+ fields.party=legacyParty(state.party);
  return fields;
 }
 export function cycleState(state:State):string|null {

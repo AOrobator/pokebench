@@ -50,7 +50,7 @@ function cohortRun(): RunEvent[] {
 }
 
 let workbenchDown = false;
-async function mount(width: number, options: { art?: boolean; fresh?: boolean; glyphs?: boolean; runs?: typeof RUNS; replayStatus?: "ended" | "live"; missingLiveCards?: boolean; snapshotExtension?: number } = {}): Promise<{ app: App; streams: FakeStream[]; drawn: number[] }> {
+async function mount(width: number, options: { art?: boolean; fresh?: boolean; glyphs?: boolean; pendingGlyphs?: Promise<GlyphSheet | null>; runs?: typeof RUNS; replayStatus?: "ended" | "live"; missingLiveCards?: boolean; snapshotExtension?: number } = {}): Promise<{ app: App; streams: FakeStream[]; drawn: number[] }> {
   nowMs = BASE_MS + 3_500; setWidth(width); fetched.length = 0; workbenchDown = false;
   document.body.innerHTML = PAGE.slice(PAGE.indexOf("<body>") + 6, PAGE.indexOf("</body>"));
   const streams: FakeStream[] = [], drawn: number[] = [];
@@ -77,13 +77,15 @@ async function mount(width: number, options: { art?: boolean; fresh?: boolean; g
     openStream: (url) => { const stream = new FakeStream(url); streams.push(stream); return stream; },
     now: () => nowMs,
     hash: `#run=${LIVE_ID}`,
+    ...(options.pendingGlyphs !== undefined ? { loadGlyphSheet: () => options.pendingGlyphs ?? Promise.resolve(null) } : {}),
     ...(options.glyphs === true ? { loadGlyphSheet: (): Promise<GlyphSheet> => Promise.resolve({ width: 256, height: 512, data: new Uint8ClampedArray(256 * 512 * 4) }), drawGlyphs: (_canvas: HTMLCanvasElement, pixels: { width: number }): void => { drawn.push(pixels.width); } } : {}),
   };
   const app = await mountApp(document, deps);
   const stream = must(streams[0]);
   for (const event of cohortRun()) stream.send("ev", { ...event, run: LIVE_ID });
   stream.send("caught_up", {});
-  await app.pollCards();
+  if (options.pendingGlyphs === undefined) await app.pollCards();
+  else { await Promise.resolve(); await Promise.resolve(); }
   app.tick(0);
   return { app, streams, drawn };
 }
@@ -244,6 +246,17 @@ describe("trainer cards in the viewer", () => {
     setWidth(375); app.tick(0);
     expect(ui("run-sheet-body").querySelector(".rs-now, .rs-other")).toBeNull();
     expect(ui("run-sheet-body").textContent).toContain("Loading trainer cards");
+  });
+
+  it("shows bottom-sheet card backgrounds before the optional glyph sheet resolves", async () => {
+    let finish: ((value: null) => void) | undefined;
+    const pending = new Promise<null>(resolve => { finish = resolve; });
+    const { app } = await mount(375, { pendingGlyphs: pending });
+    expect(ui("run-sheet-body").querySelectorAll(".tc-art").length).toBeGreaterThan(0);
+    expect(ui("run-sheet-body").querySelector<HTMLElement>(".tc-art")?.style.backgroundImage).toContain("/sprites/card/wide-");
+    expect(ui("run-sheet-body").querySelector("[data-painted]")).toBeNull();
+    finish?.(null); await app.pollCards();
+    expect(ui("run-sheet-body").querySelectorAll(".tc-art").length).toBeGreaterThan(0);
   });
 
   it("paints the game-font text once the glyph sheet loads", async () => {

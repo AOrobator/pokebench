@@ -764,7 +764,7 @@ it("caches sprite bytes, revalidates changed art, and keeps dynamic data uncache
   const { runsRoot, viewer } = await fixture();
   const dir = join(runsRoot, "sprites", "trainer-card-v1", "card"); mkdirSync(dir, { recursive: true });
   const path = join(dir, "wide-gold.png"); writeFileSync(path, PNG);
-  const url = `${viewer.url}/sprites/card/wide-gold.png`;
+  const url = `${viewer.url}sprites/card/wide-gold.png`;
   const first = await fetch(url); await first.arrayBuffer();
   expect(first.headers.get("cache-control")).toBe("private, max-age=300");
   const etag = first.headers.get("etag"); expect(etag).toBeTruthy();
@@ -773,9 +773,9 @@ it("caches sprite bytes, revalidates changed art, and keeps dynamic data uncache
   writeFileSync(path, Buffer.concat([PNG, Buffer.from("changed")]));
   const changed = await fetch(url, { headers: { "if-none-match": etag ?? "" } });
   expect(changed.status).toBe(200); expect(changed.headers.get("etag")).not.toBe(etag); await changed.arrayBuffer();
-  const dynamic = await fetch(`${viewer.url}/api/runs`); await dynamic.arrayBuffer();
+  const dynamic = await fetch(`${viewer.url}api/runs`); await dynamic.arrayBuffer();
   expect(dynamic.headers.get("cache-control")).toBe("no-store");
-  const missing = await fetch(`${viewer.url}/sprites/card/wide-silver.png`); await missing.arrayBuffer();
+  const missing = await fetch(`${viewer.url}sprites/card/wide-silver.png`); await missing.arrayBuffer();
   expect(missing.status).toBe(404); expect(missing.headers.get("cache-control")).toBe("no-store");
 });
 

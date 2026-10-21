@@ -5,21 +5,10 @@ import { frontierReferences, frontierPlot, frontierVersions } from "./frontier.j
 import { esc } from "./format.js";
 import { QUEUE_POLL_MS, QueuePanel } from "./queue-view.js";
 import { WORKBENCH_POLL_MS, parseFeatureDescriptions, parseWorkbench, type WorkbenchData, type WorkbenchRun } from "./workbench-data.js";
-import { currentRunHtml, liveOrPaused, partyHead, plateNotes, plateWhere, runDetails, runLanes, viewerUrl, type LaneUnknown, type RunLanes } from "./workbench-view.js";
+import { backToViewer, currentRunLinks, liveOrPaused, partyHead, plateNotes, plateWhere, runDetails, runLanes, viewerUrl, type LaneUnknown, type RunLanes } from "./workbench-view.js";
 import { browserGlyphSheet, drawGlyphs, fillCards, loadCardArt, syncCards, type LoadedArt } from "./card-dom.js";
 import type { GlyphPixels, GlyphSheet } from "./game-font.js";
 import { cardHtml, cardInputFor } from "./trainer-card.js";
-// Copies changed [data-current-field] content and styles from `next` onto `root`; false when their fields differ.
-function patchFields(root: Element, next: Element): boolean {
-  const was = [...root.querySelectorAll<HTMLElement>("[data-current-field]")], now = [...next.querySelectorAll<HTMLElement>("[data-current-field]")];
-  if (was.length !== now.length || was.some((field, i) => field.dataset.currentField !== now[i]?.dataset.currentField)) return false;
-  was.forEach((field, i) => {
-    const fresh = now[i] ?? field, style = fresh.getAttribute("style");
-    if (field.innerHTML !== fresh.innerHTML) field.innerHTML = fresh.innerHTML;
-    if (style !== null && field.getAttribute("style") !== style) field.setAttribute("style", style);
-  });
-  return true;
-}
 // Replaces root's HTML only when it changed; a focused control inside it keeps focus by its data attributes.
 function replaceKeepingFocus(root: HTMLElement, html: string): void {
   if (root.dataset.html === html) return;
@@ -33,7 +22,7 @@ function replaceKeepingFocus(root: HTMLElement, html: string): void {
   (next?.tagName === "DETAILS" ? next.querySelector<HTMLElement>("summary") : next)?.focus({ preventScroll: true });
 }
 // fetchFeatures: the switch catalog (/api/features), read once for the legend's switch descriptions.
-// fetchJson, loadGlyphSheet, drawGlyphs: the trainer card art (/sprites); without fetchJson the live runs stay name plates.
+// fetchJson, loadGlyphSheet, drawGlyphs: optional trainer card artwork (/sprites).
 export interface WorkbenchDeps { fetchSnapshot(): Promise<unknown>; fetchFeatures?(): Promise<unknown>; now(): number; width(): number; fetchJson?(url: string): Promise<unknown>; loadGlyphSheet?(url: string): Promise<GlyphSheet | null>; drawGlyphs?(canvas: HTMLCanvasElement, pixels: GlyphPixels): void }
 // Calendar dates use the operator's timezone, independent of browser/server timezone and DST.
 const runDateFormat = new Intl.DateTimeFormat("en-CA", { timeZone: "America/New_York", year: "numeric", month: "2-digit", day: "2-digit" });
@@ -133,32 +122,22 @@ export class Workbench {
   clock(): void {
     if (!this.active()) return;
     if (this.cards()) return;
-    const host = this.ui("current"), template = this.doc.createElement("template");
-    template.innerHTML = (this.verified ? "" : '<p class="wb-notice">Live status unavailable; charts retain the last verified snapshot.</p>') + currentRunHtml(this.verified ? this.data.runs : [], this.data.at, this.deps.now(), this.back, this.runLanes);
-    // Plates are reconciled by run id and patched field by field, so a focused plate link survives clock
-    // ticks and other runs joining or leaving, and the blinking NEW MILESTONE! chip is not re-created
-    // (restarting its animation) every tick.
-    const list = host.querySelector(".wb-plates"), nextList = template.content.querySelector(".wb-plates");
-    const head = host.querySelector(".wb-party-head"), nextHead = template.content.querySelector(".wb-party-head");
-    if (list === null || nextList === null || head === null || nextHead === null || this.verified !== (host.querySelector(".wb-notice") === null)) {
-      if (host.innerHTML !== template.innerHTML) host.replaceChildren(template.content);
+    const host = this.ui("current"), live = this.verified ? liveOrPaused(this.data.runs) : [];
+    if (live.length === 0) {
+      const html = (this.verified ? "" : '<p class="wb-notice">Live status unavailable; charts retain the last verified snapshot.</p>') + backToViewer(this.back);
+      if (host.innerHTML !== html) host.innerHTML = html;
       return;
     }
-    patchFields(head, nextHead);
-    const wanted = [...nextList.querySelectorAll<HTMLAnchorElement>(".wb-plate")], keep = new Set(wanted.map(p => p.getAttribute("href")));
-    const existing = new Map<string | null, HTMLAnchorElement>();
-    for (const plate of list.querySelectorAll<HTMLAnchorElement>(".wb-plate")) { if (keep.has(plate.getAttribute("href"))) existing.set(plate.getAttribute("href"), plate); else plate.remove(); }
-    let cursor = list.firstElementChild;
-    for (const fresh of wanted) {
-      const old = existing.get(fresh.getAttribute("href"));
-      if (old === undefined) { list.insertBefore(fresh, cursor); continue; }
-      if (old.className !== fresh.className) old.className = fresh.className;
-      if (!patchFields(old, fresh)) old.replaceChildren(...fresh.childNodes);
-      if (cursor === old) cursor = old.nextElementSibling; else list.insertBefore(old, cursor);
+    if (host.querySelector(".wb-card-row") === null) host.innerHTML = `<div class="wb-party">${partyHead(live)}<p class="wb-notice">Trainer artwork unavailable. You can still watch each run.</p><div class="wb-card-row"></div></div>`;
+    const head = host.querySelector(".wb-party-head"), row = host.querySelector(".wb-card-row"), nextHead = partyHead(live);
+    if (head !== null && head.outerHTML !== nextHead) head.outerHTML = nextHead;
+    if (row !== null) {
+      const focused = row.contains(this.doc.activeElement) ? this.doc.activeElement?.closest<HTMLElement>("[data-watch]")?.dataset.watch : undefined;
+      syncCards(row, currentRunLinks(live, this.runLanes), this.cardMemo);
+      if (focused !== undefined) row.querySelector<HTMLElement>(`[data-watch="${CSS.escape(focused)}"]`)?.focus({ preventScroll: true });
     }
   }
-  // With the card art, the live runs are the viewer's trainer cards (linking to the viewer), each with its lane and
-  // warnings under it; false when the plates should be drawn instead.
+  // Trainer cards share the viewer design; missing artwork uses ordinary Watch links.
   private cards(): boolean {
     const loaded = this.art, live = this.verified ? liveOrPaused(this.data.runs) : [];
     if (loaded === null || live.length === 0) return false;

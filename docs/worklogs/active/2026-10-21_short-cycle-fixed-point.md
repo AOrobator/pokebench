@@ -229,3 +229,8 @@ Fix batch 5 (coordinator: "Apply the round-5 fix now"):
 ## Archive Milestone (user-gated)
 
 - [ ] ASK USER: archive this worklog.
+
+## Landing (2026-10-20, 11:35 PM ET)
+
+- The operator 11:13 PM ET: "just claude and grok" for the round-5 fix. Round 6 on packet6 (bf0c3d48..9ff210e7): Claude subagent LGTM, Grok LGTM.
+- Pending experiment source.commit pinned to f458c058. Fast-forward to local main with the coordinator's slot.

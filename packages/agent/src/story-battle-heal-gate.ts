@@ -14,6 +14,7 @@ import {AUTO_TALK_ID_PREFIX} from "./auto-talk.js";
 import type {GameStateSnapshot} from "./game-state.js";
 import {bagItems,blackout,healPlaceDescription,hurt,onGymMap,onMap,storyName,type HealPlace,type StoryBattleWarningFacts} from "./low-hp-trainer-warning.js";
 import type {Place} from "./story-destinations.js";
+import {storyPronoun} from "./heal-first.js";
 import {NO_RUNNING,seenTrainers,trainerLine,type SightSeen,type TrainerSightReply} from "./trainer-sight.js";
 
 type Point={readonly x:number;readonly y:number};
@@ -61,7 +62,7 @@ const same=(a:Point,b:Point):boolean=>a.x===b.x&&a.y===b.y;
 const STEP:Readonly<Record<string,readonly [number,number,string]>>={UP:[0,-1,"up"],DOWN:[0,1,"down"],LEFT:[-1,0,"left"],RIGHT:[1,0,"right"]};
 const FACING:Readonly<Record<string,readonly [number,number]>>={up:[0,-1],down:[0,1],left:[-1,0],right:[1,0]};
 
-const pronoun=(o:GateOpponent):string=>o.name==="MAY"||o.name==="ROXANNE"?"her":o.name==="BRENDAN"?"him":"it";
+const pronoun=(o:GateOpponent):string=>storyPronoun(o.name)?.object??"it";
 function who(o:GateOpponent):string {
  const tile=`at ${at(o)}${o.loaded?"":", not loaded now: the tile the map places it on"}`;
  if(o.kind==="rival")return `your rival ${o.name??"unknown"} (object ${String(o.local_id)}, ${tile})`;

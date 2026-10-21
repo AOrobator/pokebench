@@ -819,7 +819,7 @@ it("keeps section-aware labels OFF in the generic next-run default",()=>{
 });
 
 it("adds progress-aware cycles only to the bundle in canonical and current whole-map definitions",()=>{
- for(const name of ["bundle-v-control","bundle-cook-1h","whole-map-pair-2h","whole-map-cook-1h"]){
+ for(const name of ["bundle-v-control","bundle-cook-1h","whole-map-pair-2h","bundle-v-control-2h","whole-map-cook-1h"]){
   const {definition:def}=parseFixedDefinition(readFileSync(new URL(`../../../experiments/fixed/${name}.json`,import.meta.url),"utf8"));
   expect(def.switches).toContain("progress-aware-cycles-v1");
   expect(armFeatures(def,"control")["progress-aware-cycles-v1"]).toBe(false);

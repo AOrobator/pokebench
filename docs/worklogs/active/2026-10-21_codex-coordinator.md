@@ -24,3 +24,8 @@ M3 REVIEW/LAND: Claude, Grok, GPT lanes; land through the board.
   - GPT: multiline letters could not be split reliably. FIX: --hold output is JSON per letter (test with a newline and a prefix-shaped line).
   - GPT: the failure report put letter text on a shell command line. FIX: `tell-claude --stdin` plus a quoted heredoc in the skill (test with $(...) and backticks kept literal).
   - Tests: 48, module 100%.
+- R2 packet (head 6056f3ed): Grok LGTM; Claude and GPT BLOCKING.
+  - Accepted (Claude B2, GPT 1-2): the presence lease could strand letters when the coordinator stopped inside its window, and its file write was not atomic. FIX: reverted the presence commit (b9d525da); letters go to the coordinator only while it holds the pipe, else codex queue.
+  - Accepted (Claude B1): board entries and talk-to-codex use session names, but send_message_to_thread takes a thread id. FIX: reach_codex resolves names to ids from ~/.codex/session_index.jsonl (newest session wins); an unknown name goes straight to codex queue, which takes names. Test: name, id, unknown name.
+  - Accepted (GPT 3): talk-to-codex and docstrings still said board notices to Codex go by codex queue. Fixed.
+  - Gates on 6056f3ed failed twice only on the pre-existing flaky serial-comparison "hung child" TS test (fix proposed as a separate session). 49 agent-mail tests, module 100%.

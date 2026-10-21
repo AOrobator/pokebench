@@ -14,9 +14,9 @@ Operator decision 2026-10-21: agents talk to each other directly. There is no gi
 1. `just land-join --who "claude: <thread title>" --branch <your branch>`.
 2. Number 1 means you are landing now. Anything else means wait: run `just claude-mailbox --for <your branch> --timeout 540` with `run_in_background` and stop. That is your own mailbox: board notices for your branch go there and nowhere else. The board mails you "your turn to land <branch>" when the slot reaches you. Each time the mailbox returns, also run `just land-board`, since another listener may have taken your letter; handle other letters as "Being the mailbox listener" says and start it again. While waiting, `just land-board` shows the queue.
 3. Land as `.claude/skills/execute-worklog/SKILL.md` says, including the evidence commit.
-4. `just land-done --branch <your branch>`. That tells the next entry it is up: a Codex session through `codex queue`, a Claude thread through the mailbox. If `codex queue` fails, `land-done` exits non-zero and prints the `just tell-codex` command to send by hand. Send it.
+4. `just land-done --branch <your branch>`. That tells the next entry it is up: a Codex session the same way as `just tell-codex` (the Codex coordinator when it is listening, else `codex queue`), a Claude thread through its mailbox. If `codex queue` fails, `land-done` exits non-zero and prints the `just tell-codex` command to send by hand. Send it.
 
-Whenever someone leaves the board or is moved, every entry whose place changed is told its new number: Codex sessions by `codex queue`, Claude threads by mail. Relay those to the coordinator like any other letter.
+Whenever someone leaves the board or is moved, every entry whose place changed is told its new number: Codex sessions the same way as `just tell-codex`, Claude threads by mail. Relay those to the coordinator like any other letter.
 
 `just land-move --branch B --before C` moves B to just above C and tells everyone whose place changed. Use it only when the operator says so, or the coordinator passes on the operator's words.
 
@@ -25,7 +25,7 @@ Never merge into main while someone else is number 1. If the board says a branch
 ## Telling a Codex session something
 
 1. `just codex-sessions` lists recent Codex sessions by name, newest first, with times in New York time.
-2. `just tell-codex "<session name or id>" "<message>"`. When the Codex coordinator thread is listening, your letter goes to it and it forwards it into that session mid-turn (the command says "Delivered to the Codex coordinator"). Otherwise it falls back to `codex queue`, which the session reads only when its current turn ends.
+2. `just tell-codex "<session name or id>" "<message>"`. A session name is turned into its thread id from `~/.codex/session_index.jsonl`. When the Codex coordinator thread is listening and the id is known, your letter goes to it and it forwards it into that session mid-turn (the command says "Delivered to the Codex coordinator"). Otherwise it falls back to `codex queue`, which the session reads only when its current turn ends.
 
 Open with who you are and what you need, such as "claude (mart readout thread): main moved to 54640622; merge main before your review packet". One topic per message. A message that starts with `-` needs `--` in front of it. Never send secrets: mail is plain text on disk.
 

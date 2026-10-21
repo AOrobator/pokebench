@@ -1063,7 +1063,7 @@ b.wb-add, b.wb-rem { white-space:nowrap; }
 .pv-hl { display: flex; align-items: center; padding: 0 calc(var(--u) * 6) 0 calc(var(--u) * 3); background: #bd6ad5; box-shadow: inset 0 calc(var(--u) * -1) 0 #9420ac; color: #fff; }
 .pv-cap { width: calc(var(--u) * 6); background: #bd6ad5; border-radius: 0 calc(var(--u) * 8) calc(var(--u) * 8) 0; box-shadow: inset 0 calc(var(--u) * -1) 0 #9420ac; }
 .pv-hr { flex: 1; }
-.pv-list { display: grid; gap: calc(var(--u) * 3); padding: calc(var(--u) * 4); background: repeating-linear-gradient(to bottom, #ced67b 0 var(--u), #b5b55a var(--u) calc(var(--u) * 2)); }
+.pv-list { display: grid; grid-template-columns: minmax(0, 1fr); gap: calc(var(--u) * 3); padding: calc(var(--u) * 4); background: repeating-linear-gradient(to bottom, #ced67b 0 var(--u), #b5b55a var(--u) calc(var(--u) * 2)); }
 /* Party box palettes (graphics/party_menu/bg.png rows), picked as LoadPartyBoxPalette does. */
 .pv-box { --b1: #4a4a62; --b7: #83c5de; --b8: #297bb4; --hi: #83c5de; --fill: #3994de; --sh: #297bb4; position: relative; color: #fff; box-shadow: inset 0 0 0 var(--u) var(--b1), inset calc(var(--u) * 2) calc(var(--u) * 2) 0 0 var(--b7), inset calc(var(--u) * -2) calc(var(--u) * -2) 0 0 var(--b8); background: linear-gradient(to bottom, var(--hi) 0 calc(var(--u) * 3), var(--fill) calc(var(--u) * 3)); }
 .pv-box.sel { --b1: #ff7331; --b7: #ff7331; --b8: #ff7331; --hi: #aceeff; --fill: #7bd5ee; --sh: #4aaccd; }
@@ -1141,6 +1141,13 @@ b.wb-add, b.wb-rem { white-space:nowrap; }
 @media (prefers-reduced-motion: reduce) { .pv-icon, .pv-icon.sel { animation: none; } }
 @container (max-width: 600px) {
   .pv-scr { --u: 1.5px; }
+  .pv-scr .pv-slot { grid-template-columns: auto auto minmax(0, 1fr) minmax(calc(var(--u) * 48), 1fr); padding: calc(var(--u) * 3) calc(var(--u) * 8) calc(var(--u) * 3) calc(var(--u) * 6); }
+  .pv-hp { min-width: calc(var(--u) * 48); }
+  .pv-hpw { margin-left: calc(var(--u) * 4); }
+  .pv-scr .pv-rib { padding: 0 calc(var(--u) * 9) 0 calc(var(--u) * 9); }
+  .pv-scr .pv-mv { gap: calc(var(--u) * 2); }
+  .pv-mv .pp { padding: 0 calc(var(--u) * 2); }
+  .pv-sec { padding: calc(var(--u) * 3) calc(var(--u) * 2) calc(var(--u) * 4); }
   .pv-openb { grid-template-columns: minmax(0, 1fr); }
   .pv-card { grid-template-columns: auto minmax(0, 1fr); }
   .pv-bars { grid-column: 1 / -1; }

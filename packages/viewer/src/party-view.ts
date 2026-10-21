@@ -24,7 +24,7 @@ const record = (v: unknown): v is Record<string, unknown> => typeof v === "objec
 const byte = (v: unknown): v is number => typeof v === "number" && Number.isInteger(v) && v >= 0 && v <= 255;
 const nat = (v: unknown): v is number => typeof v === "number" && Number.isSafeInteger(v) && v >= 0;
 const pair = (v: unknown): v is [number, number] => Array.isArray(v) && v.length === 2 && v.every(byte);
-const KEY = /^[1-9][0-9]*$/;
+const KEY = /^(?:0|[1-9][0-9]*)$/;
 
 function table<T>(value: unknown, parse: (v: unknown) => T | null): Map<number, T> | null {
   if (!record(value)) return null;

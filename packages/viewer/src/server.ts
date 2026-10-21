@@ -35,7 +35,7 @@ import { SharedFrameHub } from "./frame-hub.js";
 export const HOST = "127.0.0.1";
 const EXPERIMENTS_CACHE_MS = 5_000;
 // Browser code the page may load; everything else in dist/ stays private.
-export const BROWSER_MODULES = ["main", "app", "metric-history", "model", "format", "inspectformat", "timeline", "panels", "gba", "replay", "controls", "nextpanel", "human-input", "human-play", "human-main", "workbench-main", "workbench", "workbench-view", "workbench-data", "workbench-sync", "frontier", "frontier-versions", "frontier-legend", "queue-view", "trace", "run-head", "trainer-card", "game-font", "card-dom", "phone", "reports-view", "reports-main", "reports-boot", "probe-stats", "probes-view", "probes-main", "probes-boot", "bag"] as const;
+export const BROWSER_MODULES = ["main", "app", "metric-history", "model", "format", "inspectformat", "timeline", "panels", "party-view", "gba", "replay", "controls", "nextpanel", "human-input", "human-play", "human-main", "workbench-main", "workbench", "workbench-view", "workbench-data", "workbench-sync", "frontier", "frontier-versions", "frontier-legend", "queue-view", "trace", "run-head", "trainer-card", "game-font", "card-dom", "phone", "reports-view", "reports-main", "reports-boot", "probe-stats", "probes-view", "probes-main", "probes-boot", "bag"] as const;
 
 const MODULE_NAME = new RegExp(`^(${BROWSER_MODULES.join("|")})\\.js$`);
 const FRAME_NAME = /^\d{6}_\d+\.png$/;

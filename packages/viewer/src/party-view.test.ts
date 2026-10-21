@@ -69,6 +69,10 @@ describe("parsePartyData", () => {
     expect(DATA.moves.get(52)?.power).toBe(40);
     expect(DATA.abilities.get(66)?.name).toBe("BLAZE");
   });
+  it("accepts ABILITY_NONE's row 0, as the built data.json carries it", () => {
+    expect(parsePartyData({ ...RAW, abilities: { ...RAW.abilities, "0": { name: "-------", description: "No special ability." } } })?.abilities.get(0)?.name).toBe("-------");
+    expect(parsePartyData({ ...RAW, abilities: { "01": { name: "x", description: "" } } })).toBeNull();
+  });
   it("rejects malformed tables", () => {
     expect(parsePartyData(null)).toBeNull();
     expect(parsePartyData({ ...RAW, version: 2 })).toBeNull();

@@ -22,5 +22,16 @@
 - [x] Explainer `docs/explainers/story-progress-clock-v1.html` (pages-check clean), README; pending `experiments/story-progress-clock.json` (shared incumbent, stall-briefing on, positive-supervisor off; parseExperiment OK, arms differ only in this switch; `just experiments-check` reads the main checkout, so it cannot see the entry before landing); readiness row.
 - [x] Gates: lint clean (tsc, eslint, ruff, mypy after `just build-mgba`), build clean; agent 3005, viewer 1438, pytest 2998 (POKEBENCH_ROM set to ~/.roms/pokemon-emerald.gba: the worktree has no .env; without it one ROM test errors instead of skipping); coverage agent 97.2/93.01/97.55/99.15 (stmts/branches/funcs/lines), viewer 95.09/91.06/93.85/97.7, Python lines 97.09 branches 92.62 functions 100.
 - [x] Wiring deletion watched red: StallBriefing gate forced to skip measurement-only milestones turns 7 tests red (incl. both production `stallBriefing` factory tests); `false&&` on the SupervisorBriefing branch turns 4 red (incl. the production loopSupervisor/textOnlySupervisor test); both restored, 17/17 green.
-- [ ] STOP before review (coordinator runs it).
+- [x] STOP before review (coordinator ran it).
 - [x] source.commit pinned to the feat commit 6a5860d2f7c415f4b5d4143ffe244f9839fa9b40 (repin to the merge SHA on landing).
+
+## Principles note
+
+- PB9: what counts as story progress here (the seven measurement-only milestones, observed in the run, not present at start) was defined by the coordinator brief, not chosen by the implementer; the switch ports that definition.
+
+## Review and landing
+
+- Round 1 (coordinator-run): Grok LGTM; Claude lane (Claude subagent) LGTM, no blockers. Non-blocking: reword the PB9 note to say the coordinator brief defined what counts as progress (done above).
+- Merged main 563cbaad into the branch: conflicts were registry order and index churn only. Main's order kept; story-progress-clock-v1 appended after same-target-no-progress-v1 in SWITCHABLE_FEATURES, FEATURES, playHarnessFeatures, FeatureSetSchema, normalizeFeatures, flagFeatures, LEGACY_ALL_ON, DEFAULT_NEXT_RUN, FEATURE_EXPLAINERS, README and readiness.md; registry-position tests shifted, guard count 39, the id added to nine pending-experiment filters. OFF byte-identity tests green.
+- Gates on the merged tip: build and lint clean; agent 3030, viewer 1442, pytest 3015 (POKEBENCH_ROM=~/.roms/pokemon-emerald.gba).
+- Coordinator lands it (ff-only); this branch does not merge into main.

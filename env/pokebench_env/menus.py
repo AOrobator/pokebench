@@ -209,7 +209,9 @@ START_LABELS = (
 PARTY_CONFIRM, PARTY_CANCEL = 6, 7
 
 
-def read_menu_family(read: ReadMemory, callback: int, *, truth: bool = False) -> "ActiveUi | None":
+def read_menu_family(
+    read: ReadMemory, callback: int, *, truth: bool = False, party_item_confirmation: bool = False
+) -> "ActiveUi | None":
     from pokebench_env.ui_state import ActiveUi, _window_drawn, read_menu
 
     if callback not in (
@@ -364,10 +366,38 @@ def read_menu_family(read: ReadMemory, callback: int, *, truth: bool = False) ->
 
                     if not _window_drawn(read, 6):
                         raise ValueError("Party item message window is not drawn")
-                    message = decode_message(read(STRING_VAR4, STRING_VAR4_SIZE))
+                    message_bytes = read(STRING_VAR4, STRING_VAR4_SIZE)
+                    message = decode_message(message_bytes)
                     if not message:
                         raise ValueError("Party item message buffer is empty")
                     details["message"] = message
+                    if party_item_confirmation:
+                        from pokebench_env.battle_text import AUTO_SCROLL, PRINTERS, TEXT_FLAGS
+
+                        printers = [t for t in tasks if t[1] == 0x081B1B8D]
+                        if len(printers) != 1:
+                            raise ValueError("Party message has no unique text task")
+                        printer = read(PRINTERS + 6 * 0x24, 0x24)
+                        if len(printer) != 0x24:
+                            raise ValueError("short Party text printer read")
+                        if printer[0x1B] == 1:
+                            cursor = struct.unpack_from("<I", printer)[0] - STRING_VAR4
+                            if printer[4] != 6 or not 0 <= cursor <= message_bytes.find(b"\xff"):
+                                raise ValueError("Party printer has invalid window/message cursor")
+                            if printer[0x1C] not in range(7):
+                                raise ValueError("Party printer has unknown render state")
+                            # text.c EXT_CTRL_CODE_PAUSE_UNTIL_PRESS consumes FC 09,
+                            # then RENDER_STATE_WAIT polls A/B unless autoScroll is set.
+                            payload = message_bytes[:cursor]
+                            if printer[0x1C] == 1 and payload.endswith(b"\xfc\x09"):
+                                if not fading and not read(TEXT_FLAGS, 1)[0] & AUTO_SCROLL:
+                                    return ActiveUi(
+                                        phase,
+                                        "A/B: CONTINUE",
+                                        True,
+                                        "A or B continues the message",
+                                        details=details,
+                                    )
                 return ActiveUi(
                     phase,
                     None,

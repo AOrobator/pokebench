@@ -232,7 +232,7 @@ describe("script-line-presence-v1: the production factory honors the switch",()=
 
 describe("script-line-presence-v1: registry",()=>{
  it("is the last switchable feature, an observation that needs dialogue auto-advance, default off",()=>{
-  expect(SWITCHABLE_FEATURES.at(-94)).toBe("script-line-presence-v1");
+  expect(SWITCHABLE_FEATURES.at(-96)).toBe("script-line-presence-v1");
   const info=featureInfo("script-line-presence-v1");
   expect(info.group).toBe("observation");
   expect(info.needs).toBe("dialogue-auto-advance-v1");
@@ -282,7 +282,7 @@ describe("script-line-presence-v1: pending experiment (review round 1)",()=>{
  it("names every registry switch explicitly, in order, with only this switch flipped in the candidate",()=>{
   const raw=JSON.parse(readFileSync(new URL("../../../experiments/script-line-presence.json",import.meta.url),"utf8")) as {changedFeature:string;incumbent:{features:Record<string,boolean>}};
   expect(raw.changedFeature).toBe("script-line-presence-v1");
-  const historical=SWITCHABLE_FEATURES.filter(id=>id!=="observed-instructions-v1"&&id!=="evolution-decision-v1"&&id!=="safe-navigation-strides-v1"&&id!=="battle-decision-ready-v1"&&id!=="deterministic-warp-navigation-v1"&&id!=="battle-effective-damage-v1"&&id!=="scripted-place-guidance-v1"&&id!=="trigger-script-loop-v1");
+  const historical=SWITCHABLE_FEATURES.filter(id=>id!=="party-item-confirmation-v1"&&id!=="observed-instructions-v1"&&id!=="evolution-decision-v1"&&id!=="safe-navigation-strides-v1"&&id!=="battle-decision-ready-v1"&&id!=="deterministic-warp-navigation-v1"&&id!=="battle-effective-damage-v1"&&id!=="scripted-place-guidance-v1"&&id!=="trigger-script-loop-v1");
   expect(Object.keys(raw.incumbent.features)).toEqual(historical.slice(0,historical.indexOf("script-line-presence-v1")+1));
   expect(raw.incumbent.features["script-line-presence-v1"]).toBe(false);
   expect(raw.incumbent.features["dialogue-auto-advance-v1"]).toBe(true);

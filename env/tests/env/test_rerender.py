@@ -149,6 +149,7 @@ def test_read_state_and_render_pass_every_server_switch_through(monkeypatch):
         "evolution_decision_enabled": False,
         "exit_labels_enabled": False,
         "caught_nickname_enabled": False,
+        "party_item_confirmation_enabled": False,
         "respawn_links": None,
         "fmt_named_interactions": False,
         "fmt_world_destinations": False,

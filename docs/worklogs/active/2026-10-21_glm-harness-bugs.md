@@ -131,6 +131,8 @@ Per milestone: tests, replay of the recorded seqs through production code, Activ
 
 ## Multi-Model Review Log
 
+- Landing review on main 2e944834..3f3d3df6 (SHA-256 7cdd9586…): Claude (subagent), Grok (cursor-grok-4.5-high), GPT (codex gpt-6-astra) all VERDICT: LGTM. Non-blocking: a lead_no_pp-only heal_before_trainers_warning at full HP opens and closes a trip at once (restarting the drought clock); shared 7-tile radius constant; repin experiment sources after merge.
+
 ## Boy Scout Log
 
 ## Archive Milestone (user-gated)

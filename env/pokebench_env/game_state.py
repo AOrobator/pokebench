@@ -30,6 +30,7 @@ from pokebench_env.gba_text import GBA_TEXT, decode_text
 from pokebench_env.heal_trainers import HealFacts, read_heal_facts
 from pokebench_env.live_map import MAP_OFFSET, FullMap, LocalMap, read_full_map, read_local_map
 from pokebench_env.map_sections import ExitSections, read_exit_sections
+from pokebench_env.mart_stock import MartStock, read_mart_stock
 from pokebench_env.move_learn import MoveLearning, read_move_learning
 from pokebench_env.naming import NamingState, editor_open, read_naming
 from pokebench_env.offscreen_objects import MapObject, read_offscreen_objects
@@ -174,6 +175,9 @@ class GameState:
     # move-learn-question-v1 / move-learn-comparison-v1: the open move-learning choice; text only.
     move_learning: MoveLearning | None = None
     move_learning_diagnostic: str | None = None
+    # mart-stock-readout-v1: the open buy list of a normal shop; text only.
+    mart_stock: MartStock | None = None
+    mart_stock_diagnostic: str | None = None
 
 
 DYNAMIC_WARP = 0x14
@@ -277,6 +281,13 @@ def _move_learning(
         return None, f"harness bug: move learning: {error}"
 
 
+def _mart_stock(read: ReadMemory, save1: int) -> tuple[MartStock | None, str | None]:
+    try:
+        return read_mart_stock(read, save1), None
+    except (ValueError, IndexError) as error:
+        return None, f"harness bug: mart stock: {error}"
+
+
 def read_game_state(
     read: ReadMemory,
     maps: MapNames,
@@ -312,6 +323,7 @@ def read_game_state(
     party_item_confirmation_enabled: bool = False,
     field_moves_enabled: bool = False,
     move_learning_enabled: bool = False,
+    mart_stock_enabled: bool = False,
     respawn_links: LinkCache | None = None,
 ) -> GameState:
     screen = read_screen(read)
@@ -488,9 +500,12 @@ def read_game_state(
     learning, learning_diagnostic = (
         _move_learning(read, native_ui, battle, party) if move_learning_enabled else (None, None)
     )
+    stock, stock_diagnostic = _mart_stock(read, save1) if mart_stock_enabled else (None, None)
     return GameState(
         move_learning=learning,
         move_learning_diagnostic=learning_diagnostic,
+        mart_stock=stock,
+        mart_stock_diagnostic=stock_diagnostic,
         blackout_active=screen.callback2 == 0x08085F59,
         game_stats=_game_stats(read, save1, save2),
         resources=resources,

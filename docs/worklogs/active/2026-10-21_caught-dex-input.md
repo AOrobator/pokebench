@@ -139,3 +139,13 @@ self-merge. Record it in the worklog and ask the operator." The broader fallback
 review skill authorizes independent reviews but does not override this local
 landing restriction. Claude cloud remains unavailable; leave this reviewed
 branch concrete and ask the operator for approval before merging. No launch approved.
+
+## Operator-authorized landing, 2026-10-21
+
+The operator explicitly approved: "Yes, land it on main using the fallback reviews
+and restart the viewer." This clears the cloud-lane landing checkpoint above.
+Main has meanwhile landed mart-stock-readout-v1 at54640622b. Integration
+preserves the incumbent Gym and mart switches, appends caught-dex after them,
+and rechecks all combined registry/default/bundle/native readout paths. The
+caught-dex decoder/wait semantics and source fixture remain unchanged. No
+experiment or gameplay launch is authorized by this landing approval.

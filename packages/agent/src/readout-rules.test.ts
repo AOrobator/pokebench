@@ -24,12 +24,12 @@ describe("readout-rules-in-prompt-v1 registry", () => {
     expect(featureInfo(ID)).toMatchObject({ group: "observation", needs: "ram-state-v1", switchable: true });
     expect(featureInfo(ID).description).toContain(" Off: ");
     expect(featureInfo(ID).description).toContain("Map symbols and rules: see the system prompt.");
-    expect(SWITCHABLE_FEATURES.at(-121)).toBe(ID);
+    expect(SWITCHABLE_FEATURES.at(-122)).toBe(ID);
     expect(playHarnessFeatures(ALL_ON,null).at(-77)).toBe(ID);
     expect(playHarnessFeatures(set(ALL_ON, { [ID]: false }), null)).not.toContain(ID);
-    expect(SERVER_FEATURES.at(-36)).toBe(ID);
-    expect(serverFeatureEnv(set(ALL_ON, { [ID]: false })).POKEBENCH_FEATURES_OFF).toBe(`${ID},safe-navigation-strides-v1,original-speed-pacing-v1,exit-labels-v2,heal-before-trainers-v2,respawn-readout-v1,caught-nickname-prompt-v1,party-item-confirmation-v1,yes-no-answer-readout-v1,field-move-gates-v1,exit-labels-v3,move-learn-settle-v1,move-learn-question-v1,move-learn-comparison-v1,gym-door-label-v1,caught-dex-input-v1`);
-    expect(serverFeatureEnv(ALL_ON).POKEBENCH_FEATURES_OFF).toBe("safe-navigation-strides-v1,original-speed-pacing-v1,exit-labels-v2,heal-before-trainers-v2,respawn-readout-v1,caught-nickname-prompt-v1,party-item-confirmation-v1,yes-no-answer-readout-v1,field-move-gates-v1,exit-labels-v3,move-learn-settle-v1,move-learn-question-v1,move-learn-comparison-v1,gym-door-label-v1,caught-dex-input-v1");
+    expect(SERVER_FEATURES.at(-37)).toBe(ID);
+    expect(serverFeatureEnv(set(ALL_ON, { [ID]: false })).POKEBENCH_FEATURES_OFF).toBe(`${ID},safe-navigation-strides-v1,original-speed-pacing-v1,exit-labels-v2,heal-before-trainers-v2,respawn-readout-v1,caught-nickname-prompt-v1,party-item-confirmation-v1,yes-no-answer-readout-v1,field-move-gates-v1,exit-labels-v3,move-learn-settle-v1,move-learn-question-v1,move-learn-comparison-v1,gym-door-label-v1,mart-stock-readout-v1,caught-dex-input-v1`);
+    expect(serverFeatureEnv(ALL_ON).POKEBENCH_FEATURES_OFF).toBe("safe-navigation-strides-v1,original-speed-pacing-v1,exit-labels-v2,heal-before-trainers-v2,respawn-readout-v1,caught-nickname-prompt-v1,party-item-confirmation-v1,yes-no-answer-readout-v1,field-move-gates-v1,exit-labels-v3,move-learn-settle-v1,move-learn-question-v1,move-learn-comparison-v1,gym-door-label-v1,mart-stock-readout-v1,caught-dex-input-v1");
     expect(dependencyProblems(set(ALL_ON, { "ram-state-v1": false }))).toContain(`${ID} needs ram-state-v1`);
   });
 
@@ -93,7 +93,7 @@ describe("readout-rules-in-prompt-v1 pending experiment", () => {
   it("names every registry switch explicitly in its incumbent, with this switch off", () => {
     const entry = JSON.parse(readFileSync(new URL("../../../experiments/readout-rules-in-prompt.json", import.meta.url), "utf8")) as { changedFeature: string; incumbent: { features: Record<string, boolean> } };
     expect(entry.changedFeature).toBe(ID);
-    const historical=SWITCHABLE_FEATURES.filter(id=>id!=="caught-dex-input-v1"&&id!=="gym-door-label-v1"&&id!=="menu-refusal-recovery-v1"&&id!=="pending-field-dialogue-v1"&&id!=="short-cycle-fixed-point-v1"&&id!=="move-learn-settle-v1"&&id!=="move-learn-question-v1"&&id!=="move-learn-comparison-v1"&&id!=="effectiveness-heard-v1"&&id!=="game-said-goals-v1"&&id!=="navigation-tool-use-guard-v1"&&id!=="semantic-current-map-feedback-v1"&&id!=="navigation-refusal-reasons-v3"&&id!=="exit-labels-v3"&&id!=="story-battle-heal-first-v1"&&id!=="party-item-confirmation-v1"&&id!=="observed-instructions-v1"&&id!=="evolution-decision-v1"&&id!=="safe-navigation-strides-v1"&&id!=="battle-decision-ready-v1"&&id!=="deterministic-warp-navigation-v1"&&id!=="battle-effective-damage-v1"&&id!=="scripted-place-guidance-v1"&&id!=="trigger-script-loop-v1");
+    const historical=SWITCHABLE_FEATURES.filter(id=>id!=="gym-door-label-v1"&&id!=="caught-dex-input-v1"&&id!=="menu-refusal-recovery-v1"&&id!=="pending-field-dialogue-v1"&&id!=="short-cycle-fixed-point-v1"&&id!=="move-learn-settle-v1"&&id!=="move-learn-question-v1"&&id!=="move-learn-comparison-v1"&&id!=="effectiveness-heard-v1"&&id!=="game-said-goals-v1"&&id!=="navigation-tool-use-guard-v1"&&id!=="semantic-current-map-feedback-v1"&&id!=="navigation-refusal-reasons-v3"&&id!=="exit-labels-v3"&&id!=="story-battle-heal-first-v1"&&id!=="party-item-confirmation-v1"&&id!=="observed-instructions-v1"&&id!=="evolution-decision-v1"&&id!=="safe-navigation-strides-v1"&&id!=="battle-decision-ready-v1"&&id!=="deterministic-warp-navigation-v1"&&id!=="battle-effective-damage-v1"&&id!=="scripted-place-guidance-v1"&&id!=="trigger-script-loop-v1");
     expect(Object.keys(entry.incumbent.features)).toEqual(historical.slice(0,historical.indexOf(ID)+1));
     expect(entry.incumbent.features[ID]).toBe(false);
   });

@@ -198,7 +198,8 @@
    "move-learn-comparison-v1": false,
    "effectiveness-heard-v1": false,
    "game-said-goals-v1": false,
-   "menu-refusal-recovery-v1": false
+   "menu-refusal-recovery-v1": false,
+   "mart-stock-readout-v1": false
   }
  },
  "switches": [
@@ -267,7 +268,8 @@
   "move-learn-comparison-v1",
   "effectiveness-heard-v1",
   "game-said-goals-v1",
-  "menu-refusal-recovery-v1"
+  "menu-refusal-recovery-v1",
+  "mart-stock-readout-v1"
  ],
  "offInBoth": [
   "semantic-navigation-v1",

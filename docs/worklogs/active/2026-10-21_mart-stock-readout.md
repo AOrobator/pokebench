@@ -45,13 +45,13 @@ Default off; ON in the bundle arm of bundle-cook-1h, bundle-v-control, whole-map
 - [x] `env/pokebench_env/mart_stock.py` (typed MartStock, Slateport sale exactly as IsPokeNewsActive applies it, highlighted row cross-checked against the stock, None without a read save block), GameState text-only fields with a visible `HARNESS BUG (mart stock)` line, readout block after the Interface lines, rerender wiring, registry (features.ts SWITCHABLE/FEATURES/SERVER/playHarnessFeatures, play-preset.ts, next-run.ts, legacy-features, readout.py SERVER_FEATURES + default-off list). Registry collateral: 62 agent test files (index offsets, server OFF strings, incumbent filters), 11 pytest files.
 - [x] Gates: `just lint` ok (tsc, eslint, ruff, format, mypy 106 files); `just build` ok; `just coverage` agent 3284 (97.26/93.1/97.71/99.2), viewer 1600 (95.42/91.33/94.33/97.9), pytest 3621 lines 97.25 branches 92.97 functions 100; mart_stock.py 100% lines and branches.
 - [x] Delete-the-guard: 9 guards deleted one at a time, each red, each restored (readout wiring 5; rerender read gate 6; readout OFF gate 5; decoration gate 1; buy-screen gate 1; highlight agreement 1; save-block gate 1; Energy Guru check 1; agent when() 2). Receipt runs/mart-stock-readout/mutations.txt (ignored).
-- [ ] COMMIT
+- [x] COMMIT: `feat: mart-stock-readout-v1 lists the clerk's buy list with prices, the game's item descriptions, the highlighted row and money (default off)` (d778a741)
 
 **M3 — bundle arms, pending experiment, explainer, review, land**
-- [ ] Fixed definitions (bundle arm only), `experiments/mart-stock-readout-v1.json`, readiness row.
-- [ ] Explainer `docs/explainers/mart-stock-readout-v1.html` + FEATURE_EXPLAINERS + README line; pages-check; served on 8791.
-- [ ] Delete-the-guard receipts.
-- [ ] fixed-run check, agent/viewer/pytest suites.
+- [x] Fixed definitions (bundle arm only: `switches` + `base.features: false`) in bundle-cook-1h, bundle-v-control, whole-map-cook-1h, whole-map-pair-2h; `experiments/mart-stock-readout-v1.json` (incumbent = bundle-v-control bundle arm with only this switch off, activation OLDALE_TOWN, primary ROXANNE_DEFEATED, source.commit d778a741), readiness row. `experiment-cli check`: no problem for this entry (its only problems are 150 pre-existing starter-decision-salience ledger lines).
+- [x] Explainer `docs/explainers/mart-stock-readout-v1.html` + FEATURE_EXPLAINERS + README line + panels/server/fixed-runner tests; `just pages-check` clean; copied to main runs/mockups/mart-stock-readout-v1/, 200 on 8791.
+- [x] fixed-run check through `fixed-cli main(["check", id])` with root = this worktree: all four exit 0, bundle switches end with mart-stock-readout-v1, control base unchanged.
+- [ ] agent/viewer/pytest suites on the synced tip.
 - [ ] Claude + Grok LGTM on the frozen packet; coordinator slot; ff-only merge; `just viewer-main`; live check.
 
 ## Follow-ups

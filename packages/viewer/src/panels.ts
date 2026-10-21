@@ -538,6 +538,7 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "move-learn-comparison-v1":"move-learn-comparison-v1.html",
  "effectiveness-heard-v1":"effectiveness-heard-v1.html",
  "game-said-goals-v1":"game-said-goals-v1.html",
+ "mart-stock-readout-v1":"mart-stock-readout-v1.html",
 });
 
 export function harnessConfig(view:RunView,registry:readonly FeatureInfo[]=[]):string {

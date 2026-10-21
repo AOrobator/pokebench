@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mart stock readout</title>
+<style>
+:root{--bg:#fbfaf7;--fg:#1d1d1b;--muted:#5d5b55;--line:#d9d5cc;--panel:#ffffff;--keep:#2f7d4f;--drop:#b4442f;--accent:#2d5f9a;--fill:#eef3f8;--box:#f4f1ea}
+@media (prefers-color-scheme: dark){:root{--bg:#161614;--fg:#ecebe6;--muted:#a8a59c;--line:#3a3833;--panel:#1f1e1b;--keep:#6cc08f;--drop:#e98a74;--accent:#86b3e6;--fill:#22303f;--box:#2a2925}}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif}
+main{max-width:900px;margin:0 auto;padding:24px 16px 48px}
+h1{font-size:1.6rem;margin:0 0 4px}h2{font-size:1.15rem;margin:32px 0 8px}
+.muted{color:var(--muted)}
+figure{margin:16px 0;padding:12px;background:var(--panel);border:1px solid var(--line);border-radius:8px;overflow-x:auto}
+figcaption{color:var(--muted);font-size:.9rem;margin-top:8px}
+code{font:13px ui-monospace,SFMono-Regular,Menlo,monospace}
+table{border-collapse:collapse;width:100%;font-size:.92rem}td,th{border-bottom:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top}
+.tablewrap{overflow-x:auto}
+svg text{fill:var(--fg);font:13px -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif}
+svg .small{font-size:11px;fill:var(--muted)}svg .mono{font:12px ui-monospace,SFMono-Regular,Menlo,monospace}
+.note{border-left:3px solid var(--accent);padding:6px 10px;background:var(--fill);font:13px ui-monospace,SFMono-Regular,Menlo,monospace;white-space:pre-wrap;word-break:break-word}
+.off{border-left-color:var(--drop)}.on{border-left-color:var(--keep)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}@media (max-width:640px){.grid2{grid-template-columns:1fr}}
+</style>
+</head>
+<body><main>
+<h1>Mart stock readout</h1>
+<p class="muted"><code>mart-stock-readout-v1</code> · server readout switch · bundle-only, default off · Rustboro gym strategy report, proposal 4 (2026-10-21)</p>
+
+<p>None of the 11 runs that reached ROXANNE between Oct 19 and 21 had bought anything first, though they arrived holding ¥4,286–6,960. Run <code>2026-10-21T06-28-18_qwen36-gpu0_1331</code> did open the RUSTBORO CITY MART buy list (turns 680–690). The readout named only the first row, gave no price and no description, and lost track of the cursor as soon as it moved. The game itself shows one description at a time, for the highlighted row only.</p>
+<p>While a normal shop's buy screen is up, this switch adds a block after the Interface lines: every row of the clerk's list with the price the list prints and the game's own item description, the CANCEL row, the highlighted row, and the player's money. Nothing ranks or recommends an item.</p>
+
+<h2>Off and on, same moment (1331, SUPER POTION highlighted)</h2>
+<div class="grid2">
+<div><p class="muted">Off (today's readout, byte for byte)</p>
+<div class="note off">Screen: shop_menu
+Dialog: none
+Unverified menu buffer: cursor 1 of 3; active menu owner unavailable
+Interface: shop_menu; input unavailable; Menu observation unavailable; STATE COVERAGE ERROR: invalid shop item list/index
+Menu state: selected index (zero based): 2
+Bag: POKé BALL ×2; GREAT BALL ×1</div></div>
+<div><p class="muted">On (the block is added; nothing else changes)</p>
+<div class="note on">… Interface and Menu state lines as on the left …
+Buy list (the clerk's menu: each price as the list shows it and the game's own item description):
+  1 POKé BALL ¥200 — "A tool used for catching wild POKéMON."
+  2 POTION ¥300 — "Restores the HP of a POKéMON by 20 points."
+  3 SUPER POTION ¥700 — "Restores the HP of a POKéMON by 50 points."
+  4 ANTIDOTE ¥100 — "Heals a poisoned POKéMON."
+  5 PARLYZ HEAL ¥200 — "Heals a paralyzed POKéMON."
+  6 ESCAPE ROPE ¥550 — "Use to escape instantly from a cave or a dungeon."
+  7 REPEL ¥350 — "Repels weak wild POKéMON for 100 steps."
+  8 X SPEED ¥350 — "Raises the stat SPEED during one battle."
+  9 X ATTACK ¥500 — "Raises the stat ATTACK during one battle."
+  10 X DEFEND ¥550 — "Raises the stat DEFENSE during one battle."
+  11 CANCEL — "Quit shopping."
+Highlighted: 3 SUPER POTION
+Your money: ¥3412
+Bag: POKé BALL ×2; GREAT BALL ×1</div></div>
+</div>
+<p>Exact text from the production reader on fixture <code>mart-stock-buy-list-row2</code> (raw RAM 9913). The Interface line's coverage error on the left is an existing bug that this switch does not touch; see "Not covered" below.</p>
+
+<h2>When the block appears</h2>
+<figure>
+<svg viewBox="0 0 860 250" width="860" height="250" role="img" aria-label="Shop screens and whether the block is shown">
+<defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0L10,5L0,10z" fill="var(--fg)"/></marker></defs>
+<rect x="10" y="20" width="170" height="70" rx="6" fill="var(--box)" stroke="var(--drop)"/>
+<text x="20" y="45">BUY / SELL / QUIT</text><text x="20" y="65" class="small">field callback, Task_ShopMenu</text><text x="20" y="82" class="small">no block</text>
+<line x1="180" y1="55" x2="225" y2="55" stroke="var(--fg)" marker-end="url(#a)"/><text x="186" y="48" class="small">BUY</text>
+<rect x="230" y="20" width="190" height="70" rx="6" fill="var(--fill)" stroke="var(--keep)"/>
+<text x="240" y="45">Buy list</text><text x="240" y="65" class="small">CB2_BuyMenu, Task_BuyMenu owns input</text><text x="240" y="82" class="small">list + Highlighted + money</text>
+<line x1="420" y1="55" x2="465" y2="55" stroke="var(--fg)" marker-end="url(#a)"/><text x="428" y="48" class="small">A</text>
+<rect x="470" y="20" width="180" height="70" rx="6" fill="var(--fill)" stroke="var(--keep)"/>
+<text x="480" y="45">Quantity / YES-NO</text><text x="480" y="65" class="small">CB2_BuyMenu, other task</text><text x="480" y="82" class="small">list + money, no Highlighted</text>
+<line x1="650" y1="55" x2="695" y2="55" stroke="var(--fg)" marker-end="url(#a)"/><text x="656" y="48" class="small">YES</text>
+<rect x="700" y="20" width="150" height="70" rx="6" fill="var(--fill)" stroke="var(--keep)"/>
+<text x="710" y="45">"Here you go!"</text><text x="710" y="65" class="small">CB2_BuyMenu</text><text x="710" y="82" class="small">list + money</text>
+<rect x="230" y="140" width="190" height="70" rx="6" fill="var(--box)" stroke="var(--drop)"/>
+<text x="240" y="165">Decoration shop</text><text x="240" y="185" class="small">martType 1 or 2 (gDecorations)</text><text x="240" y="202" class="small">no block</text>
+<rect x="470" y="140" width="250" height="70" rx="6" fill="var(--box)" stroke="var(--drop)"/>
+<text x="480" y="165">Save block not read this frame</text><text x="480" y="185" class="small">torn or mid-transition snapshot</text><text x="480" y="202" class="small">no block (money is unread too)</text>
+</svg>
+<figcaption>Green boxes show the block. Fixtures from run 1331: action menu (raw 9897), buy list rows 0 and 2 (9904, 9913), quantity box (9919), after the purchase (9930). The CANCEL row and the decoration shop are tested by patching one byte of the recorded RAM.</figcaption>
+</figure>
+
+<h2>Where each field comes from</h2>
+<figure>
+<svg viewBox="0 0 860 270" width="860" height="270" role="img" aria-label="Sources of the list fields in game memory">
+<defs><marker id="b" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0L10,5L0,10z" fill="var(--fg)"/></marker></defs>
+<rect x="10" y="20" width="230" height="95" rx="6" fill="var(--box)" stroke="var(--line)"/>
+<text x="20" y="42">sMartInfo 0x02039F60</text>
+<text x="20" y="62" class="small">+8 itemList (ROM pointer)</text>
+<text x="20" y="80" class="small">+12 itemCount (1–100)</text>
+<text x="20" y="98" class="small">+15 martType (0 = items)</text>
+<line x1="240" y1="65" x2="300" y2="65" stroke="var(--fg)" marker-end="url(#b)"/><text x="246" y="58" class="small">item ids</text>
+<rect x="305" y="20" width="250" height="95" rx="6" fill="var(--box)" stroke="var(--line)"/>
+<text x="315" y="42">gItems 0x085839A0, 44 B rows</text>
+<text x="315" y="62" class="small">name[14] → "SUPER POTION"</text>
+<text x="315" y="80" class="small">+16 price → 700</text>
+<text x="315" y="98" class="small">+20 description → "Restores the HP …"</text>
+<line x1="555" y1="65" x2="610" y2="65" stroke="var(--fg)" marker-end="url(#b)"/>
+<rect x="615" y="20" width="235" height="95" rx="6" fill="var(--fill)" stroke="var(--keep)"/>
+<text x="625" y="42">row line</text>
+<text x="625" y="62" class="small mono">3 SUPER POTION ¥700 —</text>
+<text x="625" y="80" class="small mono">"Restores the HP of a</text>
+<text x="625" y="98" class="small mono">POKéMON by 50 points."</text>
+<rect x="10" y="150" width="230" height="95" rx="6" fill="var(--box)" stroke="var(--line)"/>
+<text x="20" y="172">Task_BuyMenu data[7]</text>
+<text x="20" y="192" class="small">list menu: scroll + cursor row</text>
+<text x="20" y="210" class="small">row id must equal itemList[row]</text>
+<text x="20" y="228" class="small">(CANCEL row id = LIST_CANCEL)</text>
+<line x1="240" y1="195" x2="610" y2="195" stroke="var(--fg)" marker-end="url(#b)"/><text x="300" y="188" class="small">index, else a HARNESS BUG line</text>
+<rect x="615" y="150" width="235" height="95" rx="6" fill="var(--fill)" stroke="var(--keep)"/>
+<text x="625" y="172">Highlighted: 3 SUPER POTION</text>
+<text x="625" y="198" class="small">Your money: from the save block</text>
+<text x="625" y="216" class="small">(the same value as the Money line)</text>
+</svg>
+<figcaption>pret/pokeemerald 731ad5bf <code>src/shop.c</code>: <code>BuyMenuSetListEntry</code> gives each row the item id; <code>BuyMenuPrintPriceInList</code> prints <code>GetItemPrice(item) &gt;&gt; IsPokeNewsActive(POKENEWS_SLATEPORT)</code> as "¥{STR_VAR_1}"; <code>BuyMenuPrintItemDescriptionAndShowItemIcon</code> prints <code>GetItemDescription(item)</code>, or <code>gText_QuitShopping</code> "Quit shopping." for CANCEL (<code>gText_Cancel2</code>). The description's line breaks become spaces.</figcaption>
+</figure>
+
+<h2>The one price exception</h2>
+<p>The list halves every price only during the Slateport PokeNews sale, and only while the player is on SLATEPORT CITY talking to the Energy Guru (<code>src/tv.c</code> <code>ShouldApplyPokeNewsEffect</code>: map 0/1, <code>gSpecialVar_LastTalked</code> 25 at 0x020375F2, a Slateport news entry in state ACTIVE at SaveBlock1 +0x2B50). The reader applies the same rule, so the block always shows the price the list prints. Tests cover the sale, a different clerk, upcoming news and no news.</p>
+
+<h2>Failures are visible</h2>
+<p>A bad item list pointer, an item count outside 1–100, an unknown item, a description outside the ROM or without a terminator, or a highlighted row whose id disagrees with the stock produces <code>HARNESS BUG (mart stock): …</code> in place of the block, never a guessed list. With the switch off nothing is read and the line never appears.</p>
+
+<h2>Wiring</h2>
+<figure>
+<svg viewBox="0 0 860 120" width="860" height="120" role="img" aria-label="How the switch reaches the readout">
+<defs><marker id="c" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0L10,5L0,10z" fill="var(--fg)"/></marker></defs>
+<rect x="10" y="30" width="150" height="60" rx="6" fill="var(--box)" stroke="var(--line)"/><text x="20" y="55">preset / bundle arm</text><text x="20" y="75" class="small">features[id] = true</text>
+<line x1="160" y1="60" x2="195" y2="60" stroke="var(--fg)" marker-end="url(#c)"/>
+<rect x="200" y="30" width="170" height="60" rx="6" fill="var(--box)" stroke="var(--line)"/><text x="210" y="55">serverFeatureEnv</text><text x="210" y="75" class="small">POKEBENCH_FEATURES_OFF</text>
+<line x1="370" y1="60" x2="405" y2="60" stroke="var(--fg)" marker-end="url(#c)"/>
+<rect x="410" y="30" width="200" height="60" rx="6" fill="var(--fill)" stroke="var(--keep)"/><text x="420" y="55">rerender.read_state</text><text x="420" y="75" class="small">mart_stock_enabled → read_mart_stock</text>
+<line x1="610" y1="60" x2="645" y2="60" stroke="var(--fg)" marker-end="url(#c)"/>
+<rect x="650" y="30" width="200" height="60" rx="6" fill="var(--box)" stroke="var(--line)"/><text x="660" y="55">format_readout</text><text x="660" y="75" class="small">block after the Interface lines</text>
+</svg>
+<figcaption>Default off everywhere; on only in the bundle arm of bundle-cook-1h, bundle-v-control, whole-map-cook-1h and whole-map-pair-2h. The state JSON is unchanged either way: the list is text only.</figcaption>
+</figure>
+
+<h2>Not covered</h2>
+<ul>
+<li>The Interface line's shop errors (a wrong item id on row 0, "invalid shop item list/index" on rows 1+, "Shop has no unique verified input owner" after a purchase) come from the existing menu reader. Fixing them changes what the model sees, so it needs its own switch; it is a proposed follow-up.</li>
+<li>Decoration shops, the SELL screen and the bag's IN BAG count are not shown.</li>
+</ul>
+
+<h2>Status</h2>
+<p>Branch <code>claude/mart-stock-readout</code>. Tests: 38 pytest cases on five recorded states from run 1331 (exact block text, off byte parity, state JSON parity, failure lines, the sale rule), registry tests in the agent. Nine guards deleted one at a time each turned the tests red. Pending experiment <code>experiments/mart-stock-readout-v1.json</code>, not queued. No measured runs yet.</p>
+</main></body>
+</html>

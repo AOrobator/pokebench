@@ -939,6 +939,28 @@ def test_arrivals_during_forwarding_do_not_queue_an_empty_extra_turn(
     assert len(runs.calls) == 2
 
 
+def test_arrival_during_final_empty_read_keeps_the_current_wake(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    box = room(tmp_path).addressed(am.CODEX_COORDINATOR)
+    runs = Runs()
+    am.deliver(box, am.Letter(T, "claude", "first"), only_if_listening=False)
+    assert am.wake_if_mail(box, thread="C", run=runs) == "woke"
+    assert am.collect(box)
+
+    def arrival() -> None:
+        am.deliver(box, am.Letter(T, "claude", "at idle boundary"), only_if_listening=False)
+        assert am.wake_if_mail(box, thread="C", run=runs) == "skipped"
+
+    got = am.wait_for_mail(box, timeout=0, ready=arrival, release_wake_when_empty=True)
+    assert [letter.text for letter in got] == ["at idle boundary"]
+    assert box.wake_marker.exists()
+    am.acknowledge(box, os.getpid())
+    assert am.wait_for_mail(box, timeout=0, release_wake_when_empty=True) == []
+    assert not box.wake_marker.exists()
+    assert len(runs.calls) == 1
+
+
 def test_the_watch_command_runs_the_same_loop(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

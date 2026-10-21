@@ -282,6 +282,7 @@ def wait_for_mail(
     timeout: float | None = None,
     ready: Callable[[], None] | None = None,
     owner: int | None = None,
+    release_wake_when_empty: bool = False,
 ) -> list[Letter]:
     """Return this listener's letters, or block on the pipe until a sender wakes it.
 
@@ -306,7 +307,10 @@ def wait_for_mail(
         os.close(keepalive)
         os.close(reader)
     with room.locked():
-        return drain(room, who)
+        letters = drain(room, who)
+        if release_wake_when_empty and not letters:
+            room.wake_marker.unlink(missing_ok=True)
+        return letters
 
 
 def has_mail(room: Mailroom) -> bool:
@@ -741,9 +745,7 @@ def main(argv: Sequence[str] | None = None, *, run: Run = run_command) -> int:
         return 0
     if args.command == "claude-mailbox":
         box_room = room if args.address is None else room.addressed(args.address)
-        if args.hold:
-            box_room.wake_marker.unlink(missing_ok=True)  # The forwarder is acting on its wake.
-        letters = wait_for_mail(box_room, timeout=args.timeout)
+        letters = wait_for_mail(box_room, timeout=args.timeout, release_wake_when_empty=args.hold)
         if not letters:
             print("No mail.")
             return NO_MAIL

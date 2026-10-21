@@ -320,7 +320,7 @@ describe("runFixed", () => {
       beforeExit: async (l) => {
         if (l.lane !== "A") return;
         while (!blocked()) await new Promise((r) => setImmediate(r));
-        let other: string | null = null;
+        let other: string | null;
         const a = existsSync(leaseDir(runsRoot, poolA ?? "")), b = existsSync(leaseDir(runsRoot, poolB ?? ""));
         try { other = takeLease(runsRoot, poolB ?? "", { pid: 4343, owner: "fixed-run:solo" }, () => false); } catch { other = null; }
         if (other !== null) rmSync(other, { recursive: true, force: true });
@@ -443,6 +443,30 @@ describe("runFixed", () => {
     expect(held.some((s) => s.lanes[0]?.state === "running")).toBe(true);
     expect(held.every((s) => s.lanes[0]?.reason.startsWith("waiting for the gameplay lease") !== true)).toBe(true);
     expect(outcomes(readLedger(join(dir, "trials.jsonl")))).toHaveLength(12);
+  });
+
+  it("adopts an earlier runner's trial only once its lane's lease is free", async () => {
+    const { def, runsRoot, dir } = setup();
+    const slot = def.plan.find((s) => s.lane === "A");
+    if (slot === undefined) throw new Error("fixture");
+    const run = "2026-10-15T23-00-00_qwen36-gpu1_old1";
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(join(dir, "trials.jsonl"), [
+      { kind: "launch", slot: slot.slot, lane: "A", phase: slot.phase, arm: slot.arm, run, at: "2026-10-15T23:00:00.000Z", commit: COMMIT, sources: "sources-identity", presetSha256: "p", serving: "f" },
+      { kind: "started", slot: slot.slot, run, pid: 4242, at: "2026-10-15T23:00:01.000Z" },
+    ].map((e) => JSON.stringify(e)).join("\n") + "\n");
+    const pool = leasePool(def.lanes[0]?.modelUrl ?? "");
+    mkdirSync(leaseDir(runsRoot, pool), { recursive: true });
+    writeFileSync(join(leaseDir(runsRoot, pool), "owner.json"), JSON.stringify({ pid: 999, owner: "next-run" }));
+    let stop = false, ended = false;
+    const host: Fake = new Fake(runsRoot, { alive: (pid) => (pid === 999 && host.sleeps < 3) || (pid === 4242 && !ended) });
+    const done = runFixed({ def, definitionSha256: "d".repeat(64), runsRoot, host, stopRequested: () => stop, pid: 77 });
+    while (!host.statuses.some((s) => s.lanes[0]?.reason.endsWith("adopted from an earlier runner") === true)) await new Promise((r) => setImmediate(r));
+    stop = true;
+    expect(host.statuses.some((s) => s.lanes[0]?.state === "waiting" && s.lanes[0].reason === `waiting for the gameplay lease for ${pool}, held by next-run (pid 999)`)).toBe(true);
+    expect(readLeaseOwner(runsRoot, pool)).toMatchObject({ pid: 77, run, child: 4242 });
+    ended = true;
+    expect(await done).toBe("stopped");
   });
 
   it("runs while another compute pool or the old single lease is held", async () => {

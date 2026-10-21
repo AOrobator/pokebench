@@ -13,8 +13,8 @@
 ## M1 Lane leases and reruns
 
 - [x] RED: lane lease release on reserve block and on done; per-lane lease waiting; lease names its lane's run; runner `commit`; soloDefinition; `rerun` CLI; dropdown label
-- [ ] GREEN
-- [ ] Gates: agent, viewer, pytest; lint; coverage ≥90
+- [x] GREEN: per-lane `holdLease`/`releaseLease` in the fixed runner; `commit` option; `singleArm` phase + `soloDefinition`; `fixed-run rerun`; dropdown SOLO label. Viewer 1450, agent 3013 pass.
+- [x] Gates: lint clean (pnpm + ruff/mypy via main's venv); viewer coverage 95.14/91.06/93.84 lines/branches/functions; pytest 2767 pass, 1 needs POKEBENCH_ROM from .env (no Python changed)
 - [ ] Fake-data rehearsal of lease behavior
 - [ ] Review: Claude + Grok LGTM
 - [ ] Land ff-only after coordinator slot

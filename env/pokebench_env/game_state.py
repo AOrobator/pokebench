@@ -335,6 +335,9 @@ def read_game_state(
     offscreen_objects_enabled: bool = False,
     transition_coherence_enabled: bool = False,
     readout_truth_enabled: bool = False,
+    # map-wide-triggers-v1: every coordinate trigger on the map in the state;
+    # the text keeps the nearby ones.
+    map_wide_triggers_enabled: bool = False,
     birch_pages_enabled: bool = False,
     surf_gate_enabled: bool = False,
     exit_reach_enabled: bool = False,
@@ -496,6 +499,7 @@ def read_game_state(
             message_phase=message_phase_enabled,
             native_ui=native_ui,
             truth=readout_truth_enabled,
+            map_wide_triggers=map_wide_triggers_enabled,
         )
         if screen.kind == "overworld" and not in_battle
         else None

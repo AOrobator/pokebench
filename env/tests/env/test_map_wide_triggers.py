@@ -1,9 +1,10 @@
-"""map-wide-triggers-v1: the state's coordinate triggers cover the whole map; the readout text still lists nearby ones.
+"""map-wide-triggers-v1: the state lists every coordinate trigger on the map.
 
-GLM run 2026-10-21T01-16-23_glm53-mac_e9ee (seq 1985-2017) planned an 8-tile stride from LITTLEROOT TOWN (10,17)
-to (10,9): the trigger at (10,9) was 8 rows away, outside the 7-tile list, so the planner did not see it and the
-stride executor stopped at (10,10) when it came into range. The same window made the trigger-avoiding route flip
-east and west (seq 7063-7116) as the listed set changed.
+The readout text still lists only the nearby ones. GLM run 2026-10-21T01-16-23_glm53-mac_e9ee
+(seq 1985-2017) planned an 8-tile stride from LITTLEROOT TOWN (10,17) to (10,9): the trigger at
+(10,9) was 8 rows away, outside the 7-tile list, so the planner did not see it and the stride
+executor stopped at (10,10) when it came into range. The same window made the trigger-avoiding
+route flip east and west (seq 7063-7116) as the listed set changed.
 """
 
 import struct
@@ -58,10 +59,17 @@ def test_bad_script_pointers_stay_out_either_way() -> None:
 def test_production_reader_and_rerender_follow_the_switch() -> None:
     from tests.env.test_game_state import MAPS, OVERWORLD, SB1, game
 
+    # test_world_context's production fixture, the trigger moved 30 rows down,
+    # out of the 7-tile window.
     m = game(OVERWORLD)
     context = world()
     context.put(COORDS + 2, struct.pack("<h", 30))
     m.cells.update(context.cells)
+    m.put(0x02037350, bytes(16 * 0x24))
+    m.put(0x02037350, b"\x01\x00\x01")
+    m.put(0x02037350 + 0x10, struct.pack("<hh", 17, 9))
+    m.put(0x02037350 + 0x18, b"\x44")
+    m.put(0x02037350 + 0x24, context.read(0x02037350, 0x24))
     m.put(SB1 + 0x139C + (0x4050 - 0x4000) * 2, struct.pack("<H", 0))
     assert read_game_state(m.read, MAPS).world_context.triggers == ()  # type: ignore[union-attr]
     on = read_game_state(m.read, MAPS, map_wide_triggers_enabled=True).world_context

@@ -239,10 +239,14 @@ class WorldContext:
     field_activity: FieldActivity | None = None
     # readout-truth-v1 only; text facts, never in the state JSON.
     no_message: NoMessage | None = None
+    # map-wide-triggers-v1: the player's tile when triggers cover the whole map;
+    # the text lists only the nearby ones.
+    trigger_origin: tuple[int, int] | None = None
 
     def json(self) -> dict[str, object]:
         value = asdict(self)
         value.pop("no_message")
+        value.pop("trigger_origin")
         if self.message is None:
             value.pop("message")
         if self.message_diagnostic is None:
@@ -276,7 +280,17 @@ class WorldContext:
             lines.append(
                 "Nearby script-trigger tiles (a clear terrain tile can still run a script):"
             )
-            for t in self.triggers:
+            origin = self.trigger_origin
+            nearby = (
+                self.triggers
+                if origin is None
+                else tuple(
+                    t
+                    for t in self.triggers
+                    if abs(t.x - origin[0]) <= 7 and abs(t.y - origin[1]) <= 7
+                )
+            )
+            for t in nearby:
                 status = (
                     "matches"
                     if t.condition_met is True
@@ -349,6 +363,7 @@ def read_world_context(
     message_phase: bool = False,
     native_ui: ActiveUi | None = None,
     truth: bool = False,
+    map_wide_triggers: bool = False,
 ) -> WorldContext | None:
     events = int.from_bytes(read(MAP_HEADER + 4, 4), "little")
     if not rom_pointer(events):
@@ -373,7 +388,9 @@ def read_world_context(
         raw = read(pointer, count * 16)
         for offset in range(0, len(raw), 16):
             tx, ty, elevation, var, wanted, script = struct.unpack_from("<hhBxHH2xI", raw, offset)
-            if not 0x08000000 <= script < 0x0A000000 or abs(tx - x) > 7 or abs(ty - y) > 7:
+            if not 0x08000000 <= script < 0x0A000000:
+                continue
+            if not map_wide_triggers and (abs(tx - x) > 7 or abs(ty - y) > 7):
                 continue
             if var < 0x4000:
                 value: int | None = var
@@ -442,4 +459,5 @@ def read_world_context(
         diagnostic,
         activity,
         read_no_message(read) if quiet else None,
+        (x, y) if map_wide_triggers else None,
     )

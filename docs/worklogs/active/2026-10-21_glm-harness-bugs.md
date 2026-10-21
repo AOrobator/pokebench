@@ -93,8 +93,12 @@ No new subprocesses, network calls or file paths. RAM reads go through `pokebenc
 - [x] RAM re-parse at e9ee s7116, acfa s3014, ad34 s12351; verdict recorded in the Session Log (stride stop: harness bug, the 7-tile trigger window; ad34 trigger avoidance: by design, not a bug)
 - [x] Fix design: `map-wide-triggers-v1` (server observation switch, needs coordinate-script-conditions-v1, default off): `read_world_context(map_wide_triggers=True)` keeps every coordinate trigger on the map in the state the planner reads; `WorldContext.text()` still lists only triggers within 7 tiles of the player, so the readout text is unchanged; the state JSON gains the far triggers. planStride and the trigger-avoiding planner already read `world_context.triggers`, so the stride ends one tile short of a far trigger and the avoided set stops changing as the player moves.
 - [x] Write tests: `env/tests/env/test_map_wide_triggers.py` (off keeps the window; on lists a far trigger in the state but not the text; nearby trigger text unchanged; bad pointers still dropped; read_game_state and rerender follow the switch; registered last and off by default) and `map-wide-triggers.test.ts` (registry, server env, planStride stops before a listed far trigger). Registry for the fifth switch; position and server-env assertions in older tests shifted by 1.
-- [x] COMMIT (RED): `test: map-wide coordinate triggers for the planner (RED)` — Python 4 failing
-- [ ] Implement · Gates · COMMIT (GREEN) · Review
+- [x] COMMIT (RED): `test: map-wide coordinate triggers for the planner (RED)` — Python 4 failing (182be4a4)
+- [x] Implement: `read_world_context(map_wide_triggers=)` drops the 7-tile filter for triggers and records `trigger_origin`; `WorldContext.text()` lists only triggers within 7 tiles of it; `json()` leaves `trigger_origin` out; `read_game_state(map_wide_triggers_enabled=)`; rerender turns it on unless map-wide-triggers-v1 or coordinate-script-conditions-v1 is off. Golden OFF fixtures in test_readout_truth_fixes force the new switch off like the other later switches; test_rerender's flag list gains the new flag.
+- [x] Guard check: removing the rerender wiring turned the production test red; restored
+- [x] Gates: lint clean (tsc, eslint, ruff, ruff format, mypy); coverage agent 97.26/93.11/97.79/99.2, viewer 95.42/91.33/94.33/97.9, Python lines 97.29 branches 93.06 functions 100 (floor 90); agent 3367, viewer 1616, Python 3708 tests. (One agent and one viewer test timed out once under machine load and passed on rerun: serial-comparison hung-child, experiment-cli production host.)
+- [ ] COMMIT (GREEN)
+- [ ] Multi-model review loop until clean
 
 **M7 — Explainers, pending experiments, bundle proposal**
 - [ ] One explainer per switch (feature-explainer), pending experiment entries, a bundle-membership proposal for the operator

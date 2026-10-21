@@ -124,7 +124,7 @@ LATER = frozenset(
 
 
 # Registered after these recordings and absent from their readouts.
-TRAINING = frozenset({"exp-next-level-v1", "pokedex-own-v1"})
+TRAINING = frozenset({"exp-next-level-v1", "pokedex-own-v1", "map-wide-triggers-v1"})
 
 
 def all_off(frame: dict[str, Any]) -> frozenset[str]:

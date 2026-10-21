@@ -115,7 +115,7 @@ function zoomEnd(agents: readonly WorkbenchRun[], human: WorkbenchRun | null): n
   const next = human === null ? -1 : RECORD_ORDER.findIndex((_, i) => i > farthest && reached(human, i));
   return Math.min(RECORD_ORDER.length - 1, Math.max(1, next === -1 ? farthest + 1 : next));
 }
-export function frontierPlot(refs: ReferencePair, overlays: readonly WorkbenchRun[], requestedWidth: number, given: VersionIndex | null = null, currentRuns: readonly WorkbenchRun[] = [], zoom = false, frontierStatus: FrontierStatus = null, focus: string | null = null, hideTimeOutliers = false): string {
+export function frontierPlot(refs: ReferencePair, overlays: readonly WorkbenchRun[], requestedWidth: number, given: VersionIndex | null = null, currentRuns: readonly WorkbenchRun[] = [], zoom = false, frontierStatus: FrontierStatus = null, focus: string | null = null, hideTimeOutliers = false, outlierRuns: readonly WorkbenchRun[] | null = null): string {
   const versions = given ?? frontierVersions([...overlays, ...currentRuns, ...(refs.best === null ? [] : [refs.best])]);
   const width = Number.isFinite(requestedWidth) ? Math.max(240, Math.round(requestedWidth)) : 640;
   const series: { run: WorkbenchRun; color: string; kind: "human" | "best" | "overlay" | "live" | "paused" | "resumed"; resumed: boolean }[] = [];
@@ -129,10 +129,14 @@ export function frontierPlot(refs: ReferencePair, overlays: readonly WorkbenchRu
   const hidden = FRONTIER_MILESTONES.length - milestones.length, last = milestones[milestones.length - 1]?.label ?? "";
   const left = 43, right = width - 15, top = 20, bottom = 490, height = 635;
   const onChart = (run: WorkbenchRun, name: string): boolean => resumeMilestone(run) === null || RECORD_ORDER.indexOf(name) >= RECORD_ORDER.indexOf(run.config?.resume ?? "");
-  const times = (run: WorkbenchRun): number[] => milestones.flatMap(m => onChart(run, m.id) ? run.splits.filter(p => p.name === m.id).map(p => p.elapsedMs / 60000) : []);
-  const peaks = series.filter(s => s.kind !== "human").map(s => Math.max(0, ...times(s.run))).filter(t => t > 0).sort((a, b) => a - b);
+  const times = (run: WorkbenchRun, range: readonly { readonly id: string }[] = milestones): number[] => range.flatMap(m => onChart(run, m.id) ? run.splits.filter(p => p.name === m.id).map(p => p.elapsedMs / 60000) : []);
+  // The workbench supplies all eligible recordings before its filters; a narrow selection cannot
+  // turn an outlier into its own reference population. Story split maxima also survive range toggles.
+  const population = outlierRuns === null ? series.filter(s => s.kind !== "human").map(s => s.run) : outlierRuns.filter(shownAgent);
+  const outlierPeak = (run: WorkbenchRun): number => Math.max(0, ...times(run, outlierRuns === null ? milestones : FRONTIER_MILESTONES));
+  const peaks = population.map(outlierPeak).filter(t => t > 0).sort((a, b) => a - b);
   const cutoff = peaks.length < 10 ? Infinity : 3 * (peaks[Math.ceil(peaks.length * 0.9) - 1] ?? Infinity);
-  const removed = hideTimeOutliers ? series.filter(s => (s.kind === "overlay" || s.kind === "resumed") && s.run.status === "ended" && Math.max(0, ...times(s.run)) > cutoff) : [];
+  const removed = hideTimeOutliers ? series.filter(s => (s.kind === "overlay" || s.kind === "resumed") && s.run.status === "ended" && outlierPeak(s.run) > cutoff) : [];
   for (const entry of removed) series.splice(series.indexOf(entry), 1);
   const outlierSummary = removed.length === 0 ? "" : `${String(removed.length)} time outlier${removed.length === 1 ? "" : "s"} hidden: ${removed.map(s => s.run.id).join(", ")}. Turn off HIDE TIME OUTLIERS to restore every point.`;
   const values = series.flatMap(s => times(s.run));

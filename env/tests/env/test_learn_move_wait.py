@@ -205,9 +205,25 @@ def wait_in_thread(wait: lmw.LearnWait, capture: Any, bound: int = 600):  # type
         except (RuntimeError, ValueError) as error:
             result["error"] = str(error)
 
+    registered = threading.Event()
+    wait._waiters = Registering(wait._waiters, registered)
     thread = threading.Thread(target=target, daemon=True)
     thread.start()
+    # The waiter is appended under the wait's lock, so a frame sent after this sees it.
+    assert registered.wait(5), "the waiter did not register"
     return thread, result
+
+
+class Registering(list):  # type: ignore[type-arg]
+    """The wait's waiter list; signals once a waiter is appended (review round 1, Astra)."""
+
+    def __init__(self, items: list[object], registered: threading.Event) -> None:
+        super().__init__(items)
+        self.registered = registered
+
+    def append(self, item: object) -> None:
+        super().append(item)
+        self.registered.set()
 
 
 def test_wait_holds_until_the_first_ready_frame(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -217,7 +233,6 @@ def test_wait_holds_until_the_first_ready_frame(monkeypatch: pytest.MonkeyPatch)
     assert wait.wait(lambda: "now", nullcontext()) == ("now", "other", 0)
     monkeypatch.setattr(lmw, "learn_step", Scripted("busy", "busy", "forget"))
     thread, result = wait_in_thread(wait, lambda: "captured")
-    thread.join(0.1)
     wait.on_frame()
     thread.join(0.1)
     assert thread.is_alive()
@@ -230,7 +245,6 @@ def test_wait_bound_capture_error_read_error_and_parking(monkeypatch: pytest.Mon
     monkeypatch.setattr(lmw, "learn_step", Scripted("busy"))
     wait = lmw.LearnWait(Game().read)
     thread, result = wait_in_thread(wait, lambda: "late", bound=2)
-    thread.join(0.1)
     wait.on_frame()
     wait.on_frame()
     thread.join(5)
@@ -240,13 +254,11 @@ def test_wait_bound_capture_error_read_error_and_parking(monkeypatch: pytest.Mon
         raise RuntimeError("capture failed")
 
     thread, result = wait_in_thread(wait, boom, bound=1)
-    thread.join(0.1)
     wait.on_frame()
     thread.join(5)
     assert result == {"error": "capture failed"}
 
     thread, result = wait_in_thread(wait, lambda: "x")
-    thread.join(0.1)
 
     def broken(read: object) -> str:
         raise ValueError("short battle choice read")
@@ -258,7 +270,6 @@ def test_wait_bound_capture_error_read_error_and_parking(monkeypatch: pytest.Mon
 
     monkeypatch.setattr(lmw, "learn_step", Scripted("busy"))
     thread, result = wait_in_thread(wait, lambda: "held")
-    thread.join(0.1)
     wait.park()
     thread.join(5)
     assert result["r"] == ("held", "paused", 0)
@@ -296,7 +307,17 @@ def _production(**extra: Any) -> tuple[FastAPI, Game, threading.Lock, type]:
     return app, game, lock, Emulator
 
 
-def test_the_route_through_the_production_run() -> None:
+def test_the_route_through_the_production_run(monkeypatch: pytest.MonkeyPatch) -> None:
+    from pokebench_env import serve
+
+    registered = threading.Event()
+
+    class Signalled(lmw.LearnWait):
+        def __init__(self, read: Any) -> None:
+            super().__init__(read)
+            self._waiters = Registering([], registered)
+
+    monkeypatch.setattr(serve, "LearnWait", Signalled)
     app, game, lock, emulator = _production(
         pause=(FastAPI(), types.SimpleNamespace(step_environment=lambda actions: None))
     )
@@ -312,7 +333,7 @@ def test_the_route_through_the_production_run() -> None:
         daemon=True,
     )
     thread.start()
-    thread.join(0.2)
+    assert registered.wait(5), "the route did not register its waiter"
     assert thread.is_alive()
     with lock:
         emulator().run_frame_with_buttons([])
@@ -322,6 +343,64 @@ def test_the_route_through_the_production_run() -> None:
     thread.join(5)
     assert json.loads(result["r"][2])["reason"] == "box"  # type: ignore[index]
     assert get(app, "/pokebench/move-learn/wait", b"max_frames=0")[0] == 422
+
+
+def test_raw_route_persists_the_capture_before_a_learner_read_error(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # Review round 1 (Astra): a learner decode error after the raw capture must still leave a
+    # durable raw receipt (observation.py finish_snapshot: persistence precedes decode errors).
+    from contextlib import contextmanager
+
+    from pokebench_env import observation
+
+    calls: list[str] = []
+
+    class Archive:
+        @contextmanager
+        def reserve(self):  # type: ignore[no-untyped-def]
+            calls.append("reserve")
+            try:
+                yield "reservation"
+            finally:
+                calls.append("release")
+
+        def start_capture(self, reservation: object, snapshot: object) -> str:
+            calls.append("start_capture")
+            return "future"
+
+        def finish_capture(self, reservation: object, future: object) -> dict[str, object]:
+            calls.append("finish_capture")
+            return {"sequence": 0}
+
+        def pair(self, *args: object) -> None:
+            calls.append("pair")
+
+    def raw_snapshot(reservation: object) -> str:
+        calls.append("raw_snapshot")
+        return "snapshot"
+
+    def broken(read: object) -> object:
+        raise ValueError("move learner party slot 6 is out of range")
+
+    monkeypatch.setattr(lmw, "learn_step", Scripted("box"))
+    monkeypatch.setattr(observation, "battle_learner", broken)
+    game = Game()
+    app = FastAPI()
+    observation.install_observation(
+        app,
+        lambda: None,  # type: ignore[arg-type,return-value]
+        game.read,
+        MapNames({}),
+        threading.Lock(),
+        raw_archive=Archive(),  # type: ignore[arg-type]
+        raw_snapshot=raw_snapshot,  # type: ignore[arg-type]
+        raw_rom=bytes(4),
+        learn_wait=lmw.LearnWait(game.read),
+    )
+    with pytest.raises(ValueError, match="move learner party slot 6 is out of range"):
+        get(app, "/pokebench/move-learn/wait")
+    assert calls == ["reserve", "raw_snapshot", "start_capture", "finish_capture", "release"]
 
 
 def test_human_mode_installs_no_move_learning_wait() -> None:

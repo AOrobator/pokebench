@@ -176,8 +176,25 @@ def test_on_mid_battle_and_without_details_nothing_changes() -> None:
     assert readout(mid, ON) == readout(mid, OFF)
     plain = replace(AFTER, battle_details=None)
     assert readout(plain, ON) == readout(plain, OFF)
-    other = replace(AFTER, battle_details=replace(DETAILS, party=(replace(EVOLVED, identity="x"),)))
-    assert "Your moves (2×2" in readout(other, ON)
+
+
+def test_on_after_the_battle_an_unmatched_party_is_a_harness_bug_not_the_battle_copy() -> None:
+    # Review round 1 (GPT, Astra): with no party member matching the battler, the ended block must
+    # not fall back to the battle struct's POKéMON, moves and action menu.
+    cases = {
+        "no party": None,
+        "mismatched identity": (replace(EVOLVED, identity="x"),),
+        "no identity": (replace(EVOLVED, identity=None),),
+    }
+    for name, party in cases.items():
+        text = readout(replace(AFTER, battle_details=replace(DETAILS, party=party)), ON)
+        assert "ended (outcome won)" in text, name
+        assert (
+            "You · HARNESS BUG: no party member matches the player's battler; "
+            "the battle has ended, so its own copy is not shown"
+        ) in text, name
+        for stale in ("You TORCHIC", "Your moves (2×2", "1 SCRATCH", "Actions (2×2 FIGHT BAG"):
+            assert stale not in text, (name, stale)
 
 
 def test_on_an_unreadable_party_member_is_a_visible_harness_bug() -> None:

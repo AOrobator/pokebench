@@ -10,7 +10,7 @@ Production owners: new env/pokebench_env/map_sections.py; existing exit-labels/g
 - [x] RED: real archived Route104/Woods observations plus small adversarial geometry cases; commit failing tests.
 - [x] GREEN: one section/exit description owner, production wiring, exact OFF behavior.
 - [x] Registry, default OFF, pending experiment, future bundle only, explainer.
-- [ ] Tests, lint, build, coverage >=90%, vendor, experiment checks, raw RAM replay and wiring deletion/restoration.
+- [x] Tests, lint, build, coverage >=90%, vendor, experiment checks, raw RAM replay and wiring deletion/restoration.
 - [ ] Principles and independent cloud reviews on frozen packet; local fast-forward landing only with required approvals.
 - [ ] Main tests, viewer refresh and real explainer click, bundle configuration proof. Do not restart gameplay.
 
@@ -47,3 +47,12 @@ Run 97a0 state 13625 / result 13626 / turn377 identifies Woods entrances at (10,
 - Round1 fix GREEN: warp emergence checks directional edges/elevation and existing gate walls/forced steps before accepting its sole neighboring region. Colliding door origin remains supported. RED1failed/8passed/5ROMskips (not gate evidence), then explicit-ROM14/14 passed. New full gates follow current-main sync.
 
 - Round2 preparation synced main97046aa6, updated pending implementation pin to complete repaired tree, and reruns all gates. Claude remains unavailable; final landing requires operator exception, even if fallback reviews approve.
+
+## Round2 final review and operator checkpoint
+- Frozen implementation b90141334d587a75c8471882797dee0df56b7346 against main97046aa658156e52dfff2ac5bcf8d289cdf0c6fb; exact binary diff52925473c5f4578cb178c5a3e21063c41c5171764d3616e5fe92bcb72b7a68f9. Full coverage8033 tests (3052 agent,1497 viewer,3484 Python), zero skipped, all per-metric floors>=90. Lint/build/vendor/pages pass. Browser card actual click verified earlier; affected browser assets unchanged by repair.
+- GPT independent LGTM: native14 and TS6 independently pass. Sol fallback LGTM: original reproduction corrected, ordinary doorway preserved. Astra fallback LGTM: native14 zero skipped. All three verified exact HEAD/diff and clean tree.
+- Claude unavailable: dedicated CLI unauthenticated, Cursor Opus+Sonnet usage limits. Fallback models gpt-6-sol and gpt-6-astra, reduced vendor diversity; do not substitute for Claude landing approval.
+- Grok4.5 VERDICT: BLOCKING, exit0/stderr empty, own ask-mode rejected git digest/status commands; implementing agent verifies unchanged frozen packet. Fix accepted as concrete: read_exit_sections uses here.section(position) rather than landing(position) for current player tile. On native b30018814 Woods(17,38), current says unknown while landing resolves region(32,4), so arrival observations lose same/different-section relation. Reproduced locally without gameplay. No further source edits after round2.
+- Non-blocking items: source pin8389c731 includes the complete repair/main sync before metadata-only b9014133, so no stale implementation pin; offset matching predates diff, follow-up; readoutNames section string concern remains follow-up without reproduced downstream failure.
+- Secondary Grok4.7 deliberately stopped after primary blocker, no review verdict claimed. Review logs/synthesis retained under runs/exit-labels-v3/review. Owned offline preview stopped and task-created browser tabs closed; shared viewer/game untouched.
+- STOP: execute-worklog round cap requires operator choose land as is, fix only the listed current-on-warp bug, or drop. Recommended fix only that bug with native regression and final gates/review. Any merge still requires explicit exception for unavailable Claude lane. Main untouched by this feature; pending experiment remains unqueued, no measured run launched.

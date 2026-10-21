@@ -212,6 +212,11 @@ describe("partyPage", () => {
     expect(det).toContain("critical-hit ratio.");
     expect(open.querySelector('[data-pv-move="2"]')?.getAttribute("aria-expanded")).toBe("true");
   });
+  it("draws its own HP bar, without the trace page's rounded .hpbar box", () => {
+    const doc = dom(partyPage([COMBUSKEN], DATA, { slot: 0, tab: 0, move: null }));
+    expect(doc.querySelectorAll(".pv-hp")).toHaveLength(2);
+    expect(doc.querySelector(".hpbar")).toBeNull();
+  });
   it("leaves empty move slots (MOVE_NONE) out, as the decoder records all four", () => {
     const empty = { move_id: 0, name: null, pp: 0, max_pp: 0, pp_bonus: 0 };
     const two: PartyMon = { ...COMBUSKEN, moves: [COMBUSKEN.moves?.[0] ?? empty, COMBUSKEN.moves?.[3] ?? empty, empty, empty] };
@@ -234,7 +239,7 @@ describe("partyPage", () => {
   it("shows eggs without HP or a summary", () => {
     const egg: PartyMon = { species: "EGG", nickname: "EGG", level: 5, hp: 0, max_hp: 10, species_id: 288, is_egg: true };
     const doc = dom(partyPage([egg], DATA, { slot: 0, tab: 0, move: null }));
-    expect(doc.querySelector(".hpbar")).toBeNull();
+    expect(doc.querySelector(".pv-hp")).toBeNull();
     expect(doc.querySelector(".pv-sec")).toBeNull();
   });
   it("clamps a stale cursor to the party", () => {
@@ -248,7 +253,7 @@ describe("partyPage", () => {
       const doc = dom(partyPage([sparse], DATA, { slot: 0, tab, move: 1 }, "GREEN"));
       const text = doc.querySelector(".pv-open")?.textContent ?? "";
       if (tab === 0) { expect(text).toContain("MAY"); expect(doc.querySelectorAll(".pv-open .pv-type")).toHaveLength(0); expect(doc.querySelector(".pv-pball")?.getAttribute("aria-label")).toBe("BALL"); }
-      if (tab === 1) { expect(text).not.toContain("0/0"); expect(text).not.toContain("Lv0"); expect(doc.querySelector(".pv-exp")).toBeNull(); expect(doc.querySelectorAll(".pv-open .hpbar")).toHaveLength(0); }
+      if (tab === 1) { expect(text).not.toContain("0/0"); expect(text).not.toContain("Lv0"); expect(doc.querySelector(".pv-exp")).toBeNull(); expect(doc.querySelectorAll(".pv-open .pv-hp")).toHaveLength(0); }
       if (tab === 2) {
         expect(text).toContain("MOVE 999");
         expect([...doc.querySelectorAll("[data-pv-move]")].map((m) => m.getAttribute("data-pp"))).toEqual(["unknown", "3"]);
@@ -258,7 +263,7 @@ describe("partyPage", () => {
     }
     const poisoned = dom(partyPage([{ ...COMBUSKEN, status: 8 }, { ...ZIGZAGOON, is_egg: true }], DATA, { slot: 0, tab: 1, move: null }));
     expect(poisoned.querySelector('.pv-open [aria-label="PSN"]')).not.toBeNull();
-    expect(poisoned.querySelector('[data-pv-slot="1"] .hpbar')).toBeNull();
+    expect(poisoned.querySelector('[data-pv-slot="1"] .pv-hp')).toBeNull();
     const fainted = dom(partyPage([FAINTED], DATA, { slot: 0, tab: 0, move: null }));
     expect(fainted.querySelector(".pv-open")?.className).toContain("faint");
     expect(dom(partyPage([{ ...COMBUSKEN, moves: null }], DATA, { slot: 0, tab: 2, move: 0 })).querySelectorAll("[data-pv-move]")).toHaveLength(0);

@@ -84,6 +84,11 @@ The operator: the green fill shows the white bar above and below it; the HP tag 
 - [x] Review round 2 (packet 28ab3218..07eecdc8, sha256 e7bbb8fd…3836): Claude, Grok and GPT/Codex all LGTM. Browser: clean build 07eecdc on 8796, real clicks POKéMON PARTY → ZIGZAGOON, 1440, 375 (scrollWidth 375) and a magnified bar (07eecdc-*.jpg).
 - [x] Landed: `git merge --ff-only` → main 3f31079b4 (main had not moved from 28ab3218f; loop not mid-pin). `just test` on main: agent 3281, viewer 1600, python 3583 passed. `just viewer-main`: 8790 at 3f31079b4, 3 live runs kept. Live check on run 2026-10-21T08-28-28_qwen36-gpu1_8892: POKéMON PARTY → TORCHIC, bar 14px tall with the frame at 28px (7u/14u at u=2px); screenshot runs/mockups/party-menu/shots/landed/3f31079-1440-live-hpbar.jpg.
 
+## Follow-up 2: HP box shifted and thick top edge (the operator, 2026-10-21 09:16 New York)
+
+The operator: the HP black box still needs to move left a bit and the black bar at the top is too thick. Cause: `hpMarkup` also gave the bar the trace page's generic `.hpbar` class (2px #444 border, 4px radius, white background, `.hpbar i` green blocks), which wraps the whole party bar in a thick rounded dark box and pushes the tag 2px right.
+- [x] RED: party-view.test.ts expects the party bars to carry `.pv-hp` only, never `.hpbar` (existing tests now select `.pv-hp`)
+
 ## Closing the Loop
 
 Real browser on the built viewer (8790 after landing): click each party slot, each ribbon tab, open and close a move; desktop 1280/1440 and phone 375 screenshots under `runs/mockups/party-menu/shots/landed/`, each opened.

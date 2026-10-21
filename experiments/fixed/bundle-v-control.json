@@ -185,6 +185,7 @@
    "same-target-no-progress-v1": false,
    "story-progress-clock-v1": false,
    "yes-no-answer-readout-v1": false,
+   "field-move-gates-v1": false,
    "exit-labels-v3": false
   }
  },
@@ -241,6 +242,7 @@
   "same-target-no-progress-v1",
   "story-progress-clock-v1",
   "yes-no-answer-readout-v1",
+  "field-move-gates-v1",
   "exit-labels-v3"
  ],
  "offInBoth": [

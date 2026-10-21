@@ -9,7 +9,17 @@ from collections import deque
 from collections.abc import Callable
 from dataclasses import dataclass
 
-from pokebench_env.exit_labels import DYNAMIC, MapId, RomMap, Tile, _edge, read_rom_map
+from pokebench_env.exit_labels import (
+    DYNAMIC,
+    DestinationGates,
+    MapId,
+    RomMap,
+    Tile,
+    _edge,
+    destination_rules,
+    read_rom_map,
+)
+from pokebench_env.field_moves import FloodRules
 from pokebench_env.game_screen import ReadMemory
 from pokebench_env.surf_gate import LEDGES
 from pokebench_env.topology import STEPS, SURFABLE, crossable
@@ -59,7 +69,7 @@ class Sections:
         return "terrain section unknown" if region is None else self.labels[region]
 
 
-def build_sections(rom: RomMap) -> Sections:
+def build_sections(rom: RomMap, rules: FloodRules | None = None) -> Sections:
     warps = {(x, y) for x, y, *_ in rom.warps}
     floor = {
         (x, y): b
@@ -69,11 +79,18 @@ def build_sections(rom: RomMap) -> Sections:
         and not b[1]
         and b[3] not in SURFABLE
         and (x, y) not in warps
+        and (rules is None or (x, y) not in rules.walls)
     }
     graph: dict[Tile, list[Tile]] = {p: [] for p in floor}
     reverse: dict[Tile, list[Tile]] = {p: [] for p in floor}
     for (x, y), block in floor.items():
         for leaving, entering, dx, dy, _ in STEPS.values():
+            if (
+                rules is not None
+                and (only := rules.only.get((x, y))) is not None
+                and only != (dx, dy)
+            ):
+                continue
             nxt = (x + dx, y + dy)
             other = rom.block(*nxt)
             if other is not None and other[1] and LEDGES.get(other[3]) == (dx, dy):
@@ -174,14 +191,33 @@ class ExitSections:
 
 
 def read_exit_sections(
-    read: ReadMemory, map_id: MapId, position: Tile, shown: Callable[[MapId], str | None]
+    read: ReadMemory,
+    map_id: MapId,
+    position: Tile,
+    shown: Callable[[MapId], str | None],
+    gates: DestinationGates | None = None,
+    current_rules: FloodRules | None = None,
 ) -> ExitSections | None:
     cache: dict[MapId, Sections | None] = {}
 
     def section_map(mid: MapId) -> Sections | None:
         if mid not in cache:
             rom = read_rom_map(read, mid)
-            cache[mid] = None if rom is None else build_sections(rom)
+            if rom is None:
+                cache[mid] = None
+            else:
+                tiles = {
+                    (x, y): (b[1], b[3])
+                    for y in range(rom.height)
+                    for x in range(rom.width)
+                    if (b := rom.block(x, y)) is not None
+                }
+                rules = (
+                    current_rules
+                    if mid == map_id
+                    else destination_rules(read, rom, mid, tiles, gates)
+                )
+                cache[mid] = build_sections(rom, rules)
         return cache[mid]
 
     here = section_map(map_id)

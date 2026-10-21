@@ -17,6 +17,14 @@ from pokebench_env.character_presence import StoryCharacters, read_story_charact
 from pokebench_env.displayed_names import place_name, player_gender, sign_labeler
 from pokebench_env.exit_labels import ExitLabels, read_exit_labels, section_name
 from pokebench_env.exit_reach import ExitReach, build_exit_reach
+from pokebench_env.field_moves import (
+    FieldObstacles,
+    MapGates,
+    capabilities,
+    map_gates,
+    read_object_obstacles,
+    survey,
+)
 from pokebench_env.game_screen import ReadMemory, read_screen
 from pokebench_env.gba_text import GBA_TEXT, decode_text
 from pokebench_env.heal_trainers import HealFacts, read_heal_facts
@@ -32,7 +40,13 @@ from pokebench_env.respawn import LinkCache, Respawn, read_respawn
 from pokebench_env.route103_rival import Route103Rival, read_route103_rival
 from pokebench_env.running import RunningPermission, read_running_permission
 from pokebench_env.story import StoryState, read_story
-from pokebench_env.surf_gate import SurfGate, read_flood_inputs, surf_gate_from
+from pokebench_env.surf_gate import (
+    ConnectionKey,
+    FloodInputs,
+    SurfGate,
+    read_flood_inputs,
+    surf_gate_from,
+)
 from pokebench_env.topology import Topology, read_topology
 from pokebench_env.trainer_opponent import TrainerOpponent, read_trainer_opponent
 from pokebench_env.transition_coherence import CB2_HANDLE_START_BATTLE, main_loop_idle
@@ -44,7 +58,7 @@ from pokebench_env.ui_state import (
     read_dialog,
     read_menu,
 )
-from pokebench_env.world_context import WorldContext, read_world_context
+from pokebench_env.world_context import SAVE_VARIABLES, WorldContext, read_world_context
 
 __all__ = ["GBA_TEXT", "GameState", "MapNames", "PartyMon", "decode_text", "read_game_state"]
 from pokebench_env.world import (
@@ -154,6 +168,8 @@ class GameState:
     # exit-labels-v2: popup names for warp destinations and arrival reach; None when off.
     exit_labels: ExitLabels | None = None
     exit_sections: ExitSections | None = None
+    # field-move-gates-v1: the map's obstacles, capabilities and gated flood; None when off.
+    field_obstacles: FieldObstacles[ConnectionKey] | None = None
 
 
 DYNAMIC_WARP = 0x14
@@ -223,6 +239,28 @@ def _badges(read: ReadMemory, save1: int) -> tuple[str, ...]:
     return tuple(badge for i, badge in enumerate(BADGES) if bits >> i & 1)
 
 
+VAR_TEMP_3 = 0x4003
+
+
+def _map_gates(
+    read: ReadMemory,
+    save1: int,
+    map_id: tuple[int, int],
+    location: str | None,
+    flood: FloodInputs,
+    party: tuple[PartyMon, ...],
+    badges: tuple[str, ...],
+    resources: Resources,
+) -> MapGates | None:
+    # field-move-gates-v1: unreadable templates leave every obstacle open (no gates at all).
+    objects = read_object_obstacles(read, save1, map_id, location)
+    if objects is None:
+        return None
+    caps = capabilities(party, badges, resources.bag, read(PLAYER_AVATAR, 1)[0])
+    temp3 = struct.unpack("<H", read(save1 + SAVE_VARIABLES + 2 * (VAR_TEMP_3 - 0x4000), 2))[0]
+    return map_gates(caps, objects, flood.tiles, location, sandstorm=temp3 == 0)
+
+
 def read_game_state(
     read: ReadMemory,
     maps: MapNames,
@@ -254,6 +292,7 @@ def read_game_state(
     exit_sections_enabled: bool = False,
     caught_nickname_enabled: bool = False,
     party_item_confirmation_enabled: bool = False,
+    field_moves_enabled: bool = False,
     respawn_links: LinkCache | None = None,
 ) -> GameState:
     screen = read_screen(read)
@@ -400,12 +439,25 @@ def read_game_state(
         if (surf_gate_enabled or exit_reach_enabled) and nearby is not None
         else None
     )
+    # field-move-gates-v1: the closed gates make that flood's walls (needs exit-reachability-v1).
+    gates = (
+        _map_gates(read, save1, map_id, maps.name(map_id), flood, party, badges, resources)
+        if field_moves_enabled and exit_reach_enabled and flood is not None
+        else None
+    )
+    found = (
+        survey(flood.tiles, flood.start, gates, warps=flood.warps, connections=flood.connections)
+        if gates is not None and flood is not None and flood.start in flood.tiles
+        else None
+    )
     surf_gate = (
-        surf_gate_from(read, flood, badges, party)
+        surf_gate_from(read, flood, badges, party, None if gates is None else gates.rules())
         if surf_gate_enabled and flood is not None
         else None
     )
-    exit_reach = build_exit_reach(flood) if exit_reach_enabled and flood is not None else None
+    exit_reach = (
+        build_exit_reach(flood, found) if exit_reach_enabled and flood is not None else None
+    )
     return GameState(
         blackout_active=screen.callback2 == 0x08085F59,
         game_stats=_game_stats(read, save1, save2),
@@ -523,6 +575,8 @@ def read_game_state(
                 place_name(maps.name(m), gender, player) if displayed_names_enabled else None
             )
             or section_name(read, m),
+            None if gates is None else (gates.caps, save1, maps.name),
+            None if gates is None else gates.rules(),
         )
         if exit_sections_enabled
         and nearby is not None
@@ -538,9 +592,13 @@ def read_game_state(
                 place_name(maps.name(m), gender, player) if displayed_names_enabled else None
             )
             or section_name(read, m),
+            None if gates is None else (gates.caps, save1, maps.name),
         )
         if exit_labels_enabled and nearby is not None
         else None,
+        field_obstacles=None
+        if gates is None or found is None or flood is None
+        else FieldObstacles(gates, found, flood.width, flood.height),
         respawn=read_respawn(read, save1, map_id, maps, respawn_links.get(read, maps))
         if respawn_links is not None and screen.kind == "overworld" and not in_battle
         else None,

@@ -101,6 +101,10 @@ def test_real_route104_distinguishes_return_to_another_section():
     assert "Terrain sections" in text
     assert "temporary objects and scripts" in text
     assert "; from there, on foot:" not in text
+    north = next(
+        line for line in text.splitlines() if line.startswith("Warp destination at (10,30):")
+    )
+    assert "not reachable on foot" in north
 
 
 def test_real_woods_exits_have_different_destination_sections():
@@ -156,3 +160,38 @@ def test_unknown_dynamic_unreadable_destinations_and_empty_map(monkeypatch):
     assert "terrain section unknown" in result.warps[1].label
     assert owner.read_exit_sections(lambda _a, _n: b"", (1, 1), (0, 0), lambda _m: None) is None
     assert build_sections(layout([[1]])).section((0, 0)) is None
+
+
+def test_existing_field_gate_walls_and_forced_steps_remain_directed():
+    from pokebench_env.field_moves import FloodRules
+
+    rom = layout([[0, 0, 0]])
+    wall = build_sections(rom, FloodRules(frozenset({(1, 0)}), {}))
+    assert not wall.reaches((0, 0), (2, 0))
+    forced = build_sections(rom, FloodRules(frozenset(), {(1, 0): (1, 0)}))
+    assert forced.reaches((0, 0), (2, 0))
+    assert not forced.reaches((2, 0), (0, 0))
+
+
+def test_v3_respects_the_existing_destination_field_gate_owner(monkeypatch):
+    import pokebench_env.map_sections as owner
+
+    original = owner.destination_rules
+    seen = {}
+
+    def record(read, rom, target, tiles, gates):
+        rules = original(read, rom, target, tiles, gates)
+        seen[target] = rules
+        return rules
+
+    monkeypatch.setattr(owner, "destination_rules", record)
+    _, disabled = new_state(ROUTE104, True)
+    gated = read_state(
+        reader(ROUTE104), maps(), active_ui=True, off=disabled - {"field-move-gates-v1"}
+    )
+    assert gated.exit_sections is not None
+    assert gated.field_obstacles is not None
+    woods = next(w for w in gated.exit_sections.warps if (w.x, w.y) == (10, 38))
+    assert "different terrain section" in woods.detail
+    assert seen[(24, 11)] is not None
+    assert seen[(24, 11)].walls == frozenset({(19, 10), (19, 11)})

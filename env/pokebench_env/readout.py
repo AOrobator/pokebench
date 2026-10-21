@@ -21,6 +21,8 @@ from pokebench_env.blackout_readout import WHITING_OUT, Whiteout, whiteout_line
 from pokebench_env.exit_labels import SWITCH as EXIT_LABELS
 from pokebench_env.exit_reach import SWITCH as EXIT_REACH
 from pokebench_env.exit_reach import ExitReach
+from pokebench_env.field_moves import SWITCH as FIELD_MOVES
+from pokebench_env.field_moves import FieldObstacles
 from pokebench_env.game_state import GameState
 from pokebench_env.levelup_box import SWITCH as LEVELUP_BOX
 from pokebench_env.levelup_box import levelup_clause
@@ -38,7 +40,7 @@ from pokebench_env.status_names import SWITCH as STATUS_NAMES
 from pokebench_env.status_names import status_text
 from pokebench_env.surf_gate import SWITCH as SURF_GATE
 from pokebench_env.surf_gate import SWITCH_V2 as SURF_GATE_V2
-from pokebench_env.surf_gate import SurfGate
+from pokebench_env.surf_gate import ConnectionKey, SurfGate
 from pokebench_env.topology import Topology
 from pokebench_env.world import InteractionTarget
 from pokebench_env.yes_no_answer import SWITCH as YES_NO_ANSWER
@@ -103,6 +105,7 @@ SERVER_FEATURES = (
     "caught-nickname-prompt-v1",
     "party-item-confirmation-v1",
     "yes-no-answer-readout-v1",
+    "field-move-gates-v1",
     "exit-labels-v3",
 )
 
@@ -124,8 +127,9 @@ def features_off_from_env(env: Mapping[str, str]) -> frozenset[str]:
         "heal-before-trainers-v1,"
         "tutorial-party-owner-v1,mid-frame-readout-v1,unset-dynamic-warp-v1,status-names-v1,"
         "surf-gated-exits-v2,battle-effective-damage-v1,safe-navigation-strides-v1,evolution-decision-v1,original-speed-pacing-v1,"
-        "semantic-navigation-v2,exit-labels-v2,exit-labels-v3,heal-before-trainers-v2,respawn-readout-v1,"
-        "caught-nickname-prompt-v1,party-item-confirmation-v1,yes-no-answer-readout-v1",
+        "semantic-navigation-v2,exit-labels-v2,heal-before-trainers-v2,respawn-readout-v1,"
+        "caught-nickname-prompt-v1,party-item-confirmation-v1,yes-no-answer-readout-v1,"
+        "field-move-gates-v1,exit-labels-v3",
     )
     if raw == "":
         return frozenset()
@@ -549,6 +553,15 @@ def format_readout(
 
     # exit-reachability-v1: exits reachable neither on foot nor across water from here.
     reach = state.exit_reach if EXIT_REACH not in off else None
+    # field-move-gates-v1: the closed obstacles and the exits every way to which passes one.
+    field = state.field_obstacles if reach is not None and FIELD_MOVES not in off else None
+    # The names the Warp destination lines use (OFF of named-warp-destinations-v1 keeps the
+    # internal map-table names, as those lines do).
+    names = (
+        {(g, n): places.get((g, n), name) for g, n, name in state.destination_names}
+        if destinations is None
+        else destinations
+    )
 
     def across(t: InteractionTarget) -> bool:
         return gate is not None and t.kind == "warp" and gate.blocks_warp(t.x, t.y)
@@ -557,13 +570,51 @@ def format_readout(
         return reach is not None and t.kind == "warp" and reach.blocks_warp(t.x, t.y)
 
     def warp_note(t: InteractionTarget) -> str:
+        obstacle = None if field is None else field.warp_note(t.x, t.y)
         return (
             gate.warp_note(plain=plain)
             if gate is not None and across(t)
-            else reach.warp_note()
+            else (obstacle or reach.warp_note())
             if reach is not None and cut_off(t)
             else ""
         )
+
+    def warp_name(tile: tuple[int, int]) -> str:
+        target = next(
+            (
+                t
+                for t in state.interaction_targets or ()
+                if t.kind == "warp" and (t.x, t.y) == tile and t.destination is not None
+            ),
+            None,
+        )
+        at = f"({tile[0]},{tile[1]})"
+        if target is None or target.destination is None:
+            return at
+        if tile in warp_labels:
+            return f"{at} -> {warp_labels[tile]}"
+        g, n, _ = target.destination
+        if (g, n) == (127, 127):
+            return f"{at} -> {dynamic or 'dynamic destination'}"
+        return f"{at} -> {names.get((g, n), f'map {g}/{n}')} (map {g}/{n})"
+
+    def connection_name(key: ConnectionKey) -> str:
+        direction, (g, n), offset = key
+        if sections is not None:
+            label = next(
+                (
+                    c.label
+                    for c in sections.connections
+                    if (c.direction, c.offset, c.destination) == (direction, offset, (g, n))
+                ),
+                None,
+            )
+            if label is not None:
+                return f"{direction} edge -> {label}"
+        return f"{direction} edge -> {names.get((g, n), f'map {g}/{n}')} (map {g}/{n})"
+
+    if field is not None:
+        lines.extend(field.lines(warp_name, connection_name))
 
     def distinct(t: InteractionTarget) -> bool:
         # semantic-navigation-v2: the tool tells these apart by kind and tile only.
@@ -592,7 +643,7 @@ def format_readout(
         notes = (
             {}
             if state.topology is None
-            else connection_notes(state.topology, gate, reach, plain=plain)
+            else connection_notes(state.topology, gate, reach, plain=plain, field=field)
         )
         lines.append(
             "Map topology: unavailable"
@@ -613,12 +664,7 @@ def format_readout(
         )
         if state.interaction_targets is not None:
             # ON reuses the same provenance-filtered owner as the map and interaction lines.
-            # OFF preserves the incumbent internal-map-table rendering byte for byte.
-            names = (
-                {(g, n): places.get((g, n), name) for g, n, name in state.destination_names}
-                if destinations is None
-                else destinations
-            )
+            # OFF preserves the incumbent internal-map-table rendering byte for byte (names).
             for target in state.interaction_targets:
                 if target.destination is not None:
                     if (
@@ -633,7 +679,7 @@ def format_readout(
                     ):
                         lines.append(
                             f"Warp destination at ({target.x},{target.y}): "
-                            f"{section_exit.label}. {section_exit.detail}"
+                            f"{section_exit.label}{warp_note(target)}. {section_exit.detail}"
                         )
                         continue
                     g, n, _ = target.destination
@@ -666,18 +712,29 @@ def format_readout(
 
 
 def connection_notes(
-    topology: Topology, gate: SurfGate | None, reach: ExitReach | None, *, plain: bool = False
+    topology: Topology,
+    gate: SurfGate | None,
+    reach: ExitReach | None,
+    *,
+    plain: bool = False,
+    field: FieldObstacles[ConnectionKey] | None = None,
 ) -> dict[int, str]:
     """The note each map connection line carries instead of its walk-off instruction, by index.
 
-    surf-gated-exits-v1 by direction, as before; exit-reachability-v1 per connection.
+    surf-gated-exits-v1 by direction, as before; exit-reachability-v1 per connection, naming the
+    obstacles every way passes with field-move-gates-v1.
     """
     notes: dict[int, str] = {}
     for i, c in enumerate(topology.connections):
         if gate is not None and gate.blocks_connection(c.direction):
             notes[i] = gate.connection_note(plain=plain)
         elif reach is not None and reach.blocks_connection(c.direction, c.destination, c.offset):
-            notes[i] = reach.connection_note()
+            obstacle = (
+                None
+                if field is None
+                else field.connection_note((c.direction, c.destination, c.offset))
+            )
+            notes[i] = obstacle or reach.connection_note()
     return notes
 
 
@@ -761,6 +818,12 @@ def state_json(state: GameState) -> dict[str, object]:
         **({} if state.surf_gate is None else {"surf_gate": state.surf_gate.json()}),
         # exit-reachability-v1: present only with the switch, so switch-off state is unchanged.
         **({} if state.exit_reach is None else {"exit_reach": state.exit_reach.json()}),
+        # field-move-gates-v1: present only with the switch, so switch-off state is unchanged.
+        **(
+            {}
+            if state.field_obstacles is None
+            else {"field_obstacles": state.field_obstacles.json()}
+        ),
         # heal-before-trainers-v1: present only with the switch, so switch-off state is unchanged.
         **(
             {}

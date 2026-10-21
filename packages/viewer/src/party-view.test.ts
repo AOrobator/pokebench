@@ -258,7 +258,10 @@ describe("partyPage", () => {
     const item = (mon: PartyMon): string => dom(partyPage([mon], DATA, { slot: 0, tab: 1, move: null })).querySelector(".pv-pair .pv-kv .v")?.textContent ?? "";
     expect(item({ ...COMBUSKEN, held_item: 0, held_item_name: null })).toBe("NONE");
     expect(item({ ...COMBUSKEN, held_item: 13, held_item_name: "POTION" })).toBe("POTION");
-    expect(item({ ...COMBUSKEN, held_item: undefined, held_item_name: undefined })).toBe("---");
+    const unrecorded: PartyMon = { ...COMBUSKEN };
+    delete unrecorded.held_item;
+    delete unrecorded.held_item_name;
+    expect(item(unrecorded)).toBe("---");
     const moves = dom(partyPage([{ ...COMBUSKEN, moves: [{ move_id: 999, name: null, pp: 5, pp_bonus: 0 }] }], DATA, { slot: 0, tab: 2, move: null }));
     expect(moves.querySelector('[data-pv-move="0"] .pp .gtx')?.getAttribute("data-c")).toBe("pv-dark");
   });

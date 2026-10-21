@@ -462,6 +462,14 @@ def build_parts(rom: Rom, root: Path, out: Path) -> dict[str, object]:
         "sMoveTypeToOamPaletteNum[NUMBER_OF_MON_TYPES + CONTEST_CATEGORIES_COUNT] =",
     )
     pal_num = {m: int(n) for m, n in re.findall(r"\[(TYPE_\w+)\]\s*=\s*(\d+)", table)}
+    contest = re.findall(r"\[NUMBER_OF_MON_TYPES \+ CONTEST_CATEGORY_(\w+)\]\s*=\s*(\d+)", table)
+    type_ids_order = sorted(
+        pal_num, key=lambda t: int_defines(root / "include/constants/pokemon.h", "TYPE_")[t]
+    )
+    mapping = bytes([pal_num[t] for t in type_ids_order] + [int(n) for _, n in contest])
+    if len(mapping) != len(TYPES) + len(CONTEST):
+        raise VerifyError("sMoveTypeToOamPaletteNum: unexpected entry count")
+    proof["types_palette_map"] = f"{hexoff(rom.raw(mapping, 'sMoveTypeToOamPaletteNum'))} (raw)"
     type_ids = int_defines(root / "include/constants/pokemon.h", "TYPE_")
     sheet = Image.new("RGBA", (32, 16 * len(TYPES)))
     for t_name, tid in type_ids.items():
@@ -519,6 +527,9 @@ def build_parts(rom: Rom, root: Path, out: Path) -> dict[str, object]:
     # The HP tag of a wide party slot: sSlotTilemap_Wide's tiles from gPartyMenuBg_Gfx.
     bg = Image.open(g / "party_menu/bg.png")
     proof["party_bg"] = verify_lz(rom, tiles4bpp(bg)[: 62 * 32], "gPartyMenuBg_Gfx")
+    proof["party_bg"] += ", palette " + verify_lz(  # type: ignore[operator]
+        rom, gbapal(colors_of_full(bg)), "gPartyMenuBg_Pal"
+    )
     wide = (g / "party_menu/slot_wide.bin").read_bytes()
     proof["slot_wide"] = f"{hexoff(rom.raw(wide, 'sSlotTilemap_Wide'))} (raw)"
     pal = colors_of_full(bg)
@@ -537,6 +548,9 @@ def build_parts(rom: Rom, root: Path, out: Path) -> dict[str, object]:
     # SKILLS page EXP bar: tiles 0x62 (empty) .. 0x6A (full) of gSummaryScreen_Gfx.
     tiles = Image.open(g / "summary_screen/tiles.png")
     proof["summary_tiles"] = verify_lz(rom, tiles4bpp(tiles), "gSummaryScreen_Gfx")
+    proof["summary_tiles"] += ", palette " + verify_lz(  # type: ignore[operator]
+        rom, gbapal(colors_of_full(tiles)), "gSummaryScreen_Pal"
+    )
     skills = (g / "summary_screen/page_skills.bin").read_bytes()
     proof["page_skills"] = verify_lz(rom, skills, "gSummaryPage_Skills_Tilemap")
     spal = colors_of_full(tiles)

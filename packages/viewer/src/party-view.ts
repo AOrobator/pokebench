@@ -214,7 +214,7 @@ function stats(mon: PartyMon, data: PartyData): string {
   const exp = species === undefined || mon.level == null ? null : expProgress(mon.experience, mon.level, species.growth, data);
   const cell = (k: string, v: string): string => `<span class="k">${gt(k, "pv-white", "n")}</span><span class="v">${gt(v, "pv-dark", "n")}</span>`;
   const status = statusOf(mon);
-  return `<div class="pv-pair">${kv("ITEM", gt(mon.held_item_name ?? "NONE", "pv-dark", "n"))}${kv("RIBBON", gt("---", "pv-dark", "n"))}</div>`
+  return `<div class="pv-pair">${kv("ITEM", gt(mon.held_item_name ?? (mon.held_item === 0 ? "NONE" : "---"), "pv-dark", "n"))}${kv("RIBBON", gt("---", "pv-dark", "n"))}</div>`
     + `<div class="pv-stats">${cell("HP", hpText(mon))}${cell("SP. ATK", stat(mon.sp_attack))}${cell("ATTACK", stat(mon.attack))}${cell("SP. DEF", stat(mon.sp_defense))}${cell("DEFENSE", stat(mon.defense))}${cell("SPEED", stat(mon.speed))}</div>`
     + kv("EXP. POINTS", gt(mon.experience == null ? "---" : String(mon.experience), "pv-dark", "n"))
     + kv("NEXT LV.", gt(exp === null ? "---" : String(exp.next), "pv-dark", "n"))
@@ -232,7 +232,7 @@ function moves(mon: PartyMon, data: PartyData, open: number | null): string {
     // CalculatePPWithBonus from the move table when the run did not record the maximum.
     const info = data.moves.get(m.move_id), max = m.max_pp ?? (info === undefined ? null : info.pp + Math.floor((info.pp * m.pp_bonus) / 5));
     const state = max === null ? null : ppState(m.pp, max), isOpen = open === i;
-    const row = `<button type="button" class="pv-mv${isOpen ? " on" : ""}" data-pv-move="${String(i)}" data-pp="${state === null ? "unknown" : String(state)}" aria-expanded="${String(isOpen)}">${info === undefined ? sprite("pv-type none") : typeIcon(info.type, data)}<span class="mn">${gt(m.name ?? `MOVE ${String(m.move_id)}`, "pv-white", "n")}</span><span class="pp">${gt(`${PP}${pad(m.pp, 2)}/${max === null ? "--" : pad(max, 2)}`, `pv-pp${String(state ?? 3)}`, "n")}</span></button>`;
+    const row = `<button type="button" class="pv-mv${isOpen ? " on" : ""}" data-pv-move="${String(i)}" data-pp="${state === null ? "unknown" : String(state)}" aria-expanded="${String(isOpen)}">${info === undefined ? sprite("pv-type none") : typeIcon(info.type, data)}<span class="mn">${gt(m.name ?? `MOVE ${String(m.move_id)}`, "pv-white", "n")}</span><span class="pp">${gt(`${PP}${pad(m.pp, 2)}/${max === null ? "--" : pad(max, 2)}`, state === null ? "pv-dark" : `pv-pp${String(state)}`, "n")}</span></button>`;
     if (!isOpen || info === undefined) return row;
     return row + `<div class="pv-mdet">${kv("POWER", gt(info.power < 2 ? "---" : String(info.power), "pv-dark", "n"))}${kv("ACCURACY", gt(info.accuracy === 0 ? "---" : String(info.accuracy), "pv-dark", "n"))}<div class="pv-rowv pv-desc">${info.description.split("\n").map((line) => `<span>${gt(line, "pv-dark", "n")}</span>`).join("")}</div></div>`;
   }).join("")}</div>`;

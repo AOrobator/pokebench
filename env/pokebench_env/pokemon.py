@@ -459,7 +459,7 @@ def _ball_name(read: ReadMemory, ball: int) -> str | None:
         return None
     try:
         return read_item_name(read, ball)
-    except ValueError:
+    except (ValueError, OSError):
         return None
 
 

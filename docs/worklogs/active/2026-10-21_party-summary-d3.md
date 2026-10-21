@@ -104,6 +104,9 @@ Round 3 (packet 6fbce332..248b6941, sha256 854c14a2…6cedd): Claude (subagent) 
 - [x] RED: party-facts.test.ts (semantic/waiting/battle fingerprints), navigation-failure summary-only change, party-view empty move slots
 - [x] GREEN: `legacyParty` moved to packages/agent/src/party-facts.ts and used by objectives, loop fingerprints (semantic, battle, waiting), field map-move progress and navigation-failure conditions; party-view skips move_id 0; ball-small verified with gPartyMenuPokeball_Pal (manifest: palette 0xD96F6C LZ77). Gates: lint, build; coverage agent 3252 tests 99.2/93.09/97.7, viewer 1592 tests 97.96/91.39/94.51, python 3580 tests 97.23/92.97/100.
 
+Round 4 (packet 6fbce332..b7ccaab7, sha256 91a4f59c…5f8d): Claude (subagent) LGTM; Grok LGTM (listed short-cycle fingerprint as scope); GPT/Codex BLOCKING: (1) `cycleState`/`cycleFields` in fixed-point-breaker still hash the whole party with the 15 summary keys, fix; (2) no final-build browser receipt after the empty-slot change, answered: candidate 8796 rebuilt at b7ccaab78 (build stamp clean), probe run with the decoder's four-slot shape (`2026-10-21T03-00-01_partyprobe_empty`), WURMPLE → MOVES shows TACKLE, STRING SHOT, POISON STING and no MOVE 0 (b7ccaab-moves-empty-slots.jpg).
+- [x] RED: party-facts.test.ts short-cycle fingerprint ignores summary facts
+
 ## Boy Scout Log
 
 (empty)

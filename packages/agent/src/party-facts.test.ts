@@ -1,5 +1,6 @@
 import { expect, it } from "vitest";
 import { battleState, semanticState, waitingState } from "./loop/fingerprints.js";
+import { cycleState } from "./fixed-point-breaker.js";
 import type { GameStateSnapshot } from "./game-state.js";
 
 const legacy = { species: "TORCHIC", level: 16, hp: 49, max_hp: 50, species_id: 280, nickname: "TORCHIC" };
@@ -20,4 +21,12 @@ it("battle fingerprints ignore the party readout's summary-screen facts", () => 
   const battle = (s: GameStateSnapshot): GameStateSnapshot => ({ ...s, in_battle: true, battle: { diagnostic: null } as unknown as NonNullable<GameStateSnapshot["battle"]> });
   expect(battleState(battle(field([{ ...legacy, ...facts }])))).not.toBeNull();
   expect(battleState(battle(field([{ ...legacy, ...nulls }])))).toBe(battleState(battle(field([{ ...legacy, ...facts }]))));
+});
+
+it("the short-cycle fingerprint ignores the party readout's summary-screen facts", () => {
+  const cycle = (party: GameStateSnapshot["party"]): string | null => cycleState({ v: 1, run: "r", type: "state", seq: 1, turn: 1, t: 0, ...field(party) } as unknown as Parameters<typeof cycleState>[0]);
+  const known = cycle([{ ...legacy, ...facts }]);
+  expect(known).not.toBeNull();
+  for (const party of [[{ ...legacy, ...nulls }], [legacy], [{ ...legacy, ...facts, attack: 26 }]]) expect(cycle(party)).toBe(known);
+  expect(cycle([{ ...legacy, ...facts, level: 17 }])).not.toBe(known);
 });

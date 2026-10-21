@@ -229,6 +229,7 @@ export function playSystemPrompt(features: FeatureSet, target: string | null, sc
   if (show("overworld") && features["trainer-sight-check-v1"] && features["bounded-navigation-v1"]) prompt += `\n\n${TRAINER_SIGHT_SECTION}`;
   // harness-trust-v1: last, so the trust order is the final thing the system prompt says.
   if (features["harness-trust-v1"]) prompt += `\n\n${trustSection(features["game-evidence-priority-v1"], true)}`;
+  if (show("overworld", "menu") && features["menu-item-guidance-v1"]) prompt += "\n\nMenu input: Inspect the highlighted option before A. Use the current menu controls, not the visual separator between option names. After opening or changing a screen, inspect its selection and readiness before confirming; if input is not ready, observe again. A failed direction does not change what A will choose.";
   return prompt;
 }
 

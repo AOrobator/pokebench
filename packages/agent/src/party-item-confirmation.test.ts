@@ -5,8 +5,8 @@ import { flagFeatures, normalizeFeatures } from "./play-preset.js";
 
 const ID="party-item-confirmation-v1";
 it("appends a default-OFF party message server switch and transports explicit ON/OFF",()=>{
- expect(SWITCHABLE_FEATURES.at(-18)).toBe(ID);
- expect(FEATURES.filter(f=>f.switchable).at(-18)?.id).toBe(ID);
+ expect(SWITCHABLE_FEATURES.at(-20)).toBe(ID);
+ expect(FEATURES.filter(f=>f.switchable).at(-20)?.id).toBe(ID);
  expect(SERVER_FEATURES.at(-7)).toBe(ID);
  const flags={loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false};
  const off=flagFeatures(flags),on={...off,[ID]:true};

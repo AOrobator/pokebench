@@ -182,3 +182,6 @@ The original ignored runs/explainers copies remain for existing links. Make futu
 
 
 - [Pending field dialogue](pending-field-dialogue-v1.html): finish ordinary dialogue that appears after navigation returns; leave each new choice to the model.
+
+- [Menu item guidance](menu-item-guidance-v1.html)
+- [Factual healing guidance](factual-healing-guidance-v1.html)

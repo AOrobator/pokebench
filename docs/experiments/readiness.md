@@ -241,3 +241,7 @@ PENDING and unqueued. Boot readiness remains unproven: no matching four-run fres
 
 
 | pending-field-dialogue-v1 | FIRST_TRUCK_EXIT | PENDING, not queued | 2026-10-20: exact delayed-message failure reproduced from 97a0 turn 636 and raw RAM. No matched-arm readiness or checkpoint study for this candidate; milestone reach does not prove exposure. |
+
+## 2026-10-21: potion menu and factual healing guidance
+
+`menu-item-guidance-v1` and `factual-healing-guidance-v1` are pending, default OFF and unapproved. Native manual probes qualify interface mechanics only. No readiness promotion is claimed: a current 3-of-4 qualifying model reach receipt has not been established for these source pins. Both activate no later than STARTER_CHOSEN; no measured cohort launched.

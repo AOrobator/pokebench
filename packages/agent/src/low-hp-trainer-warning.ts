@@ -141,13 +141,13 @@ export function storyBattleWarning(state:GameStateSnapshot):StoryBattleWarningFa
  return {kind:here.battle.kind,opponent:here.opponent,x:here.x,y:here.y,map_id:here.battle.map,party,money:state.money,items:bagItems(state,party)};
 }
 
-export function storyBattleText(f:StoryBattleWarningFacts):string {
+export function storyBattleText(f:StoryBattleWarningFacts,factual=false):string {
  const tile=f.x===null||f.y===null?"":`, at (${String(f.x)},${String(f.y)})`;
  const who=f.kind==="rival"?`your rival ${f.opponent}${tile}. Talking to ${f.opponent==="MAY"?"her":"him"} starts a trainer battle you cannot run from.`
   :f.kind==="gym_leader"?`the Gym Leader ${f.opponent}${tile}. Talking to her starts a trainer battle you cannot run from.`
   :"a TEAM AQUA grunt. He stops you on the forest path when you reach the DEVON researcher, and that trainer battle cannot be run from.";
  const bag=f.items.length===0?"":` Your BAG has ${f.items.map(i=>`${i.name} ×${String(i.quantity)}`).join(" and ")}; using one restores HP.`;
- return `SUPERVISOR: A story battle is on this map: ${who} Your party is not at full HP: ${f.party.map(p=>`${p.species} ${String(p.hp)}/${String(p.max_hp)}`).join(", ")}. ${blackout(f.money)} Heal to full before this battle: the nurse at a POKéMON CENTER heals your whole party, and so does MOM at home.${bag}`;
+ return `SUPERVISOR: A story battle is on this map: ${who} Your party is not at full HP: ${f.party.map(p=>`${p.species} ${String(p.hp)}/${String(p.max_hp)}`).join(", ")}. ${blackout(f.money)} ${factual?"HP alone does not establish whether you will win. Healing options:":"Heal to full before this battle:"} the nurse at a POKéMON CENTER heals your whole party, and so does MOM at home.${bag}`;
 }
 
 // v2's arm: fires once for a battle, then stays quiet until a state shows the whole party at full HP (every HP read
@@ -419,10 +419,10 @@ export function healPlaceDescription(h:HealPlace,here:readonly [number,number],n
  return `${where} in ${h.town} (map ${keyOf(h.map_id)}), ${String(h.hops)} map change${h.hops===1?"":"s"} from here in the game's map table${shown}${h.kind==="pokemon_center"?`; ${NURSE_SAYS}`:`, ${MOM_SAYS}`}`;
 }
 const STORY_ROLE=(t:NamedTrainer):string=>t.story===undefined?"":`the Gym Leader ${t.story}, `;
-export function healBeforeTrainersV2Text(f:HealBeforeTrainersFacts):string {
+export function healBeforeTrainersV2Text(f:HealBeforeTrainersFacts,factual=false):string {
  const list=f.trainers.map(t=>`${STORY_ROLE(t)}object ${String(t.local_id)}, sprite ${t.sprite_kind??"unknown"}, at (${String(t.x)},${String(t.y)})${t.loaded===false?" (not loaded now: the tile the map places it on)":""}`).join("; ");
  const who=f.trainers.length===1?`A trainer you have not beaten is on this map: ${list}.`:`Trainers you have not beaten are on this map: ${list}.`;
- const story=f.hurt===undefined?"":` Your party is not at full HP: ${f.hurt.map(p=>`${p.species} ${String(p.hp)}/${String(p.max_hp)}`).join(", ")}. Heal to full before a story battle.`;
+ const story=f.hurt===undefined?"":` Your party is not at full HP: ${f.hurt.map(p=>`${p.species} ${String(p.hp)}/${String(p.max_hp)}`).join(", ")}. ${factual?"HP alone does not establish whether you will win.":"Heal to full before a story battle."}`;
  const weak=f.weak.length===0?"":` Your party is weak for a battle: ${weakList(f.weak)}.`;
  const where=f.heal===null?`Heal before you battle: the nurse at a POKéMON CENTER heals your whole party${f.mom_heals?", and so does MOM at home":""}.`:healPlaceSentence(f.heal,f.map_id);
  const bag=f.items===undefined||f.items.length===0?"":bagSentence(f.items);
@@ -643,7 +643,7 @@ export function withLowHpTrainerWarning(tools:readonly AgentTool[],features:Feat
   const record=recorder.storyBattleWarning?.bind(recorder);
   if(record===undefined)throw new Error("low-hp-trainer-warning-v2 needs a recorder for story_battle_warning events");
   const story=new StoryBattleWarning();
-  rules.push(state=>{const facts=story.observe(state);if(facts===null)return Promise.resolve(null);const text=storyBattleText(facts);return Promise.resolve({text,record:tool=>{record(tool,facts,text);}});});
+  rules.push(state=>{const facts=story.observe(state);if(facts===null)return Promise.resolve(null);const text=storyBattleText(facts,features["factual-healing-guidance-v1"]);return Promise.resolve({text,record:tool=>{record(tool,facts,text);}});});
  }else{
   const watch=new LowHpTrainerWarning();
   rules.push(state=>{const facts=watch.observe(state);if(facts===null)return Promise.resolve(null);const text=warningText(facts);return Promise.resolve({text,record:tool=>{recorder.lowHpTrainerWarning(tool,facts,text);}});});
@@ -656,7 +656,7 @@ export function withLowHpTrainerWarning(tools:readonly AgentTool[],features:Feat
   const table=arm.table;
   const heal=arm.heal;
   if(heal===null)throw new Error("heal-before-trainers-v1 needs its arm");
-  const write=v2?healBeforeTrainersV2Text:healBeforeTrainersText;
+  const write=v2?(facts:HealBeforeTrainersFacts)=>healBeforeTrainersV2Text(facts,features["factual-healing-guidance-v1"]):healBeforeTrainersText;
   rules.push(async(state,result)=>{
    if(v2)await heal.shownIn(state,textOf(result));
    const facts=await heal.observe(state);if(facts===null)return null;const text=write(facts);return {text,record:tool=>{record(tool,facts,text);}};

@@ -8,7 +8,7 @@
   "primaryMilestone": "ROXANNE_DEFEATED",
   "source": {
     "checkout": "main",
-    "commit": "8389c731b4643d693a855cc8e17edf32eb33fda1"
+    "commit": "7f52d098fd28b1da69953504bd77c1a0b55a7b99"
   },
   "incumbent": {
     "version": 2,
@@ -192,6 +192,7 @@
       "story-progress-clock-v1": true,
       "yes-no-answer-readout-v1": true,
       "field-move-gates-v1": true,
+      "story-battle-heal-gate-v1": true,
       "exit-labels-v3": false
     }
   },

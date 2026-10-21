@@ -63,3 +63,5 @@ Operator answered "yes" to fixing only the current-on-warp gap, rerunning checks
 - Arrival RED:1failed/13passed with explicit ROM. GREEN: current region uses existing conservative landing(position) owner, preserving regular floor behavior and unknown ambiguous/blocked landings. Native14/14 pass; Woods arrival now names its section and same-section returns. No other production change.
 
 - Synced latest main d004be2d. Resolved append-only registry/bundle/default and roster conflicts by retaining main story-battle-heal-gate-v1 plus exit-labels-v3, both existing behaviors. Retained both explainer/server tests and documentation entries. Source arrival fix remains one-line reuse of landing owner; full gates follow.
+
+- Pending experiment repinned to complete repaired/main-synced7f52d098 tree; new incumbent retains main bundle story-battle-heal-gate-v1 ON with v3 OFF, so only v3 flips. Pending, unqueued. Final gates and GPT/Grok review follow; operator Claude exception recorded above.

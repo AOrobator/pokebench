@@ -15,11 +15,11 @@ Reproduced from matching-ROM hash-validated raw archives 6468,6472,6507 of run 2
 ## Checklist
 
 - [x] Rules, coordination, source, raw reproduction and screenshot
-- [ ] RED regression commit
-- [ ] GREEN implementation, exact OFF and consumer propagation
-- [ ] Gates, mutations, isolated viewer/replay verification
-- [ ] Principles and cloud review, synthesis
-- [ ] Landing if eligible; no runtime restart
+- [x] RED regression commit
+- [x] GREEN implementation, exact OFF and consumer propagation
+- [x] Gates, mutations, isolated viewer/replay verification
+- [x] Principles and review synthesis (Claude waived by operator)
+- [x] Landing if eligible; no runtime restart
 
 ## Open questions
 
@@ -62,3 +62,18 @@ Bundle GREEN: switch explicit false in control base and appended once to switche
 Current-main agent coverage2989/2989 and viewer1439/1439 pass; both stacks above90% every required metric. Full Python coverage running on integrated tree. Updated explainer served locally200 and phone screenshot opened (bundle-explainer-375.png); mechanism unchanged from R1 desktop/browser proof. Fixed definition changes apply to future selection only, not frozen active cohorts. Read-only runtime check identifies canonical viewer71445 executing /private/tmp/pokebench-viewer/.../cli.js; no restarts or runtime changes. Canonical build after eventual merge will not replace that frozen viewer checkout.
 
 Implementation and bundle integration committed; standalone pending definition pins that code/config commit before R2 freeze. R2 reviews cumulative delta against current main ba71c60f, under explicit operator cloud-Claude waiver. Round1 hardening notes both resolved (exact readiness test + mask wording); bundle-arm test and its performed removal/restoration add proof without runtime activity.
+
+
+## Final review, landing and runtime receipt
+
+R1: Grok/Sol/Astra LGTM on aee3edc7, diff5166e590...; dedicated Claude CLI logged out and Cursor Claude/GPT usage-capped. The operator explicitly approved the missing-Claude exception and bundle enablement with “yes, the fix should be on in the bundle.” R2: current-main cumulative packet2ea83dd3, baseba71c60f, exact binary diff SHA2566dd4b41bcea0d906da572cda3d3e1da61d91a732cdae20d493788f11cf3076cc. Cloud Grok, isolated gpt-6.1-sol xhigh and gpt-6-astra xhigh (both fork_turns=none) each return VERDICT: LGTM. Reduced vendor diversity and explicit operator waiver retained. Complete roster, findings, all9test-quality checks and dispositions in runs/party-item-confirmation/review-r2/synthesis.md. No remaining blockers. Separate per-definition switch removals and feature-bit transport deletion each fail, restored33/33; exact INPUT render deletion fails, restored175/175; native16guard/wiring deletions fail, restored17/17. No persistent changes after review freeze.
+
+Main advanced during review only by new pair-v5 definition and unrelated worklog. Original --ff-only landing refused divergence and left main unchanged. Synced724d9ddd into branch as55e105b7; diff against new main is byte-identical to approved R2 digest. Reran all gates; execute-worklog's unchanged-diff exception applies. Pair-v5 remains unchanged. Standard ff-only landing succeeded: **55e105b79a5defef7e8b0f6a9a2847c124794615**.
+
+Post-sync gates: agent2989, viewer1439, Python3015 passing; zero skips. Coverage: agent lines99.15/branches92.96/functions97.55; viewer97.70/91.06/93.85; Python97.11/92.67/100. All >=90. Lint (TS/eslint, ruff/format, mypy101), build and vendor pass. Post-landing canonical main build and full just test again pass2989+1439+3015 (7443 total); main-build.txt/main-test.txt. No threshold/exclude/retry changes.
+
+Built canonical armFeatures/armFeatureBits verify party-item-confirmation-v1 OFF in control and ON in bundle for both bundle-v-control and bundle-cook-1h; global omitted-legacy and viewer defaults OFF. Bundle JSON comparison proves every other field identical to prior main. Standalone experiment stays pending/unqueued, pins implementation1d1826ae; no approval.json or trial launch. Native readout correction has no measured performance claim.
+
+Canonical explainer http://127.0.0.1:8791/explainers/party-item-confirmation-v1.html returns200. R1 real isolated replay and card click retained; updated bundle wording phone screenshot opened. Source/build proof, original immutable-record provenance and screenshots copied to canonical ignored runs/party-item-confirmation, excluding constructed replay event directories so they cannot be mistaken for measured runs.
+
+No GPU, active game, viewer restart/stop, active campaign preset or benchmark launch was performed by this task. Read-only post-landing inspection found viewer listener changed externally from71445 to6378 (another same-CLI process98278 also observed); its frozen /private/tmp/pokebench-viewer source is724d9ddd. Therefore do not claim this correction live in that running viewer. Implementation and bundle definitions are landed for future runs. Runtime activation remains outside this task. Worktree retained; no archival requested.

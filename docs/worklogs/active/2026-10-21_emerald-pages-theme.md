@@ -45,3 +45,5 @@ Requested by the operator, 2026-10-21 (thread "Get a local model to catch rayqua
 - Third round with blockers: asked the operator (fix and land / another round / hold) and made the two fixes meanwhile.
 - RED: `test_uppercase_colour_scheme_query_is_pinned` fails on the round-3 script.
 - GREEN: colour-scheme queries match case-insensitively; `main h2` drops any page background band (display block, background none). 11/11 theme tests. Re-themed 174 pages and the 4 reports; sweep rerun (522 views at 1280x900/1440x900/375x812, details open on 5 pages): 0 requests, one main + h1 each, only offscreen-objects-v1's pre-existing overflow; no h2-h4 inside main keeps a background on any page.
+- COMMITS: RED 75e1770f3, GREEN 6280fd071. The operator (11:11 AM New York): "fix it, and then land."
+- Landing turn (11:42 AM): merged main (2b446b38e); themed 7 new explainers (exp-earned-ledger, exp-next-level, leader-attempt-ledger, party-coverage, pokedex-own, seen-trainers-ledger, said-type-matches); text equal to main's; swept at 1280x900/1440x900/375x812 (21 views clean, 0 requests); no heading keeps a background.

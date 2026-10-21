@@ -513,6 +513,7 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "fail-open-input-v1":"fail-open-input-v1.html",
  "whiteout-healed-v1":"whiteout-healed-v1.html",
  "gym-readiness-readout-v1":"gym-readiness-readout-v1.html",
+ "story-progress-clock-v1":"story-progress-clock-v1.html",
 });
 
 export function harnessConfig(view:RunView,registry:readonly FeatureInfo[]=[]):string {

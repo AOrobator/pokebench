@@ -849,3 +849,110 @@ def test_one_board_change_reads_the_codex_index_once(
     assert len(reads) == 1
     assert am.board_done(r, branch="codex/D", now=T, run=Runs()) == []
     assert len(reads) == 1
+
+
+def test_one_wake_per_batch_until_the_coordinator_acts(tmp_path: Path) -> None:
+    box = room(tmp_path).addressed(am.CODEX_COORDINATOR)
+    runs = Runs()
+    box.root.mkdir(parents=True)
+    assert am.wake_if_mail(box, thread="C", run=runs) is False
+    am.deliver(box, am.Letter(T, "claude", "hi", to_thread="A"), only_if_listening=False)
+    assert am.wake_if_mail(box, thread="C", run=runs) is True
+    assert runs.calls == [["codex", "queue", "--thread", "C", "--message", am.WAKE_TEXT]]
+    assert am.wake_if_mail(box, thread="C", run=runs) is False
+    old = time.time() - am.STALE_WAKE_SECONDS - 5
+    os.utime(box.wake_marker, (old, old))
+    assert am.wake_if_mail(box, thread="C", run=runs) is True
+    assert len(runs.calls) == 2
+
+
+def test_a_failed_wake_is_retried_on_the_next_letter(tmp_path: Path) -> None:
+    box = room(tmp_path).addressed(am.CODEX_COORDINATOR)
+    am.deliver(box, am.Letter(T, "claude", "hi"), only_if_listening=False)
+    assert am.wake_if_mail(box, thread="C", run=Runs(code=1)) is False
+    assert not box.wake_marker.exists()
+    assert am.wake_if_mail(box, thread="C", run=Runs()) is True
+
+
+def test_held_unacknowledged_letters_still_count_as_mail(tmp_path: Path) -> None:
+    box = room(tmp_path).addressed(am.CODEX_COORDINATOR)
+    am.deliver(box, am.Letter(T, "claude", "hi"), only_if_listening=False)
+    assert am.has_mail(box)
+    assert am.wait_for_mail(box, owner=1)
+    assert not box.pending.exists()
+    assert am.has_mail(box)
+    am.acknowledge(box, 1)
+    assert not am.has_mail(box)
+    box.pending.write_text("\n")
+    assert not am.has_mail(box)
+
+
+def test_the_watcher_wakes_the_idle_coordinator_when_a_letter_arrives(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    known_threads(tmp_path, monkeypatch, "A")
+    r = room(tmp_path)
+    box = r.addressed(am.CODEX_COORDINATOR)
+    runs = Runs()
+    ready = threading.Event()
+    watcher = threading.Thread(
+        target=lambda: am.watch(box, thread="C", run=runs, ready=ready.set, rounds=1)
+    )
+    watcher.start()
+    assert ready.wait(5)
+    assert am.reach_codex(r, "A", "main moved", sender="claude", now=T, run=runs) == (0, True)
+    watcher.join(5)
+    assert not watcher.is_alive()
+    assert runs.calls == [["codex", "queue", "--thread", "C", "--message", am.WAKE_TEXT]]
+    monkeypatch.setenv("POKEBENCH_AGENT_MAIL_DIR", str(r.root))
+    assert am.main(["claude-mailbox", "--for", am.CODEX_COORDINATOR, "--hold"]) == 0
+    assert not box.wake_marker.exists()
+    assert json.loads(capsys.readouterr().out)["text"] == "main moved"
+
+
+def test_the_watch_command_runs_the_same_loop(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("POKEBENCH_AGENT_MAIL_DIR", str(tmp_path / "mail"))
+    box = am.Mailroom(tmp_path / "mail").addressed(am.CODEX_COORDINATOR)
+    am.deliver(box, am.Letter(T, "claude", "early"), only_if_listening=False)
+    runs = Runs()
+    argv = ["mailbox-watch", "--for", am.CODEX_COORDINATOR, "--wake-codex", "C", "--rounds", "1"]
+    watcher = threading.Thread(target=lambda: am.main(argv, run=runs))
+    watcher.start()
+    deadline = time.monotonic() + 5
+    while not runs.calls and time.monotonic() < deadline:
+        time.sleep(0.01)
+    am.tell_claude(box, sender="claude", text="second", now=T)
+    watcher.join(5)
+    assert not watcher.is_alive()
+    assert len(runs.calls) == 1
+
+
+def test_drain_pings_stops_at_end_of_input_and_when_empty() -> None:
+    read_end, write_end = os.pipe()
+    os.write(write_end, b"\n\n")
+    os.close(write_end)
+    am.drain_pings(read_end)
+    os.close(read_end)
+    read_end, write_end = os.pipe()
+    os.set_blocking(read_end, False)
+    am.drain_pings(read_end)
+    os.close(read_end)
+    os.close(write_end)
+
+
+def test_the_watcher_reuses_an_existing_pipe(tmp_path: Path) -> None:
+    box = room(tmp_path).addressed(am.CODEX_COORDINATOR)
+    box.root.mkdir(parents=True)
+    os.mkfifo(box.pipe)
+    runs = Runs()
+    ready = threading.Event()
+    watcher = threading.Thread(
+        target=lambda: am.watch(box, thread="C", run=runs, ready=ready.set, rounds=1)
+    )
+    watcher.start()
+    assert ready.wait(5)
+    am.tell_claude(box, sender="claude", text="hi", now=T)
+    watcher.join(5)
+    assert len(runs.calls) == 1

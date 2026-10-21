@@ -158,6 +158,12 @@ claude-mailbox *args:
 codex-mailbox *args:
     uv run --project env python -m pokebench_env.agent_mail claude-mailbox --for codex-coordinator --hold "$@"
 
+# LLM-free: sleeps on the Codex coordinator's mailbox and queues one wake into that idle thread
+# when letters arrive. Start it once, detached; it holds no model and does not poll.
+[positional-arguments]
+codex-wake-watch thread:
+    uv run --project env python -m pokebench_env.agent_mail mailbox-watch --for codex-coordinator --wake-codex "$1"
+
 [positional-arguments]
 codex-mailbox-done *args:
     uv run --project env python -m pokebench_env.agent_mail mailbox-done --for codex-coordinator "$@"

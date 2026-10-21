@@ -17,6 +17,7 @@ import select
 import shlex
 import subprocess
 import sys
+import time
 from collections.abc import Callable, Iterator, Sequence
 from contextlib import contextmanager
 from dataclasses import dataclass
@@ -30,6 +31,13 @@ NO_MAIL = 3
 # The mailbox a Codex coordinator thread listens on; it forwards each letter to its Codex thread
 # with Codex's own send_message_to_thread, which reaches a busy thread mid-turn.
 CODEX_COORDINATOR = "codex-coordinator"
+WAKE_TEXT = (
+    "Codex coordinator: Claude mail is waiting. Run `just codex-mailbox --timeout 1`, forward each "
+    "letter, run `just codex-mailbox-done --claim N`, repeat until it prints No mail, then end "
+    "your turn."
+)
+# A wake the coordinator has not acted on for this long is sent again on the next letter.
+STALE_WAKE_SECONDS = 600.0
 
 Run = Callable[[Sequence[str]], int]
 
@@ -109,6 +117,10 @@ class Mailroom:
 
     def claim(self, owner: int) -> Path:
         return self.root / f"delivering-{owner}.jsonl"
+
+    @property
+    def wake_marker(self) -> Path:
+        return self.root / "wake-sent"
 
     @property
     def log(self) -> Path:
@@ -295,6 +307,70 @@ def wait_for_mail(
         os.close(reader)
     with room.locked():
         return drain(room, who)
+
+
+def has_mail(room: Mailroom) -> bool:
+    """Letters waiting, or held by a forwarder that has not acknowledged them yet."""
+    if room.pending.exists() and room.pending.read_text(encoding="utf-8").strip():
+        return True
+    return any(room.root.glob("delivering-*.jsonl"))
+
+
+def wake_if_mail(room: Mailroom, *, thread: str, run: Run) -> bool:
+    """Queue one wake into the idle coordinator thread when mail waits and no wake is pending."""
+    with room.locked():
+        if not has_mail(room):
+            return False
+        marker = room.wake_marker
+        if marker.exists() and time.time() - marker.stat().st_mtime < STALE_WAKE_SECONDS:
+            return False
+        marker.write_text(str(time.time()), encoding="utf-8")
+        if run(["codex", "queue", "--thread", thread, "--message", WAKE_TEXT]) != 0:
+            marker.unlink()  # Try again on the next letter.
+            return False
+        return True
+
+
+def drain_pings(reader: int) -> None:
+    while True:
+        try:
+            if not os.read(reader, 4096):
+                return
+        except BlockingIOError:
+            return
+
+
+def watch(
+    room: Mailroom,
+    *,
+    thread: str,
+    run: Run,
+    ready: Callable[[], None] | None = None,
+    rounds: int | None = None,
+) -> None:
+    """Hold the mailbox pipe and wake the idle coordinator thread when letters arrive.
+
+    No model runs here and nothing polls: the process sleeps in select until a sender pings.
+    Holding the pipe also tells senders a coordinator is reachable, so letters wait here.
+    """
+    with room.locked():
+        if not room.pipe.exists():
+            os.mkfifo(room.pipe)
+        reader = os.open(room.pipe, os.O_RDONLY | os.O_NONBLOCK)
+        keepalive = os.open(room.pipe, os.O_WRONLY)
+    try:
+        if ready is not None:
+            ready()
+        wake_if_mail(room, thread=thread, run=run)
+        done = 0
+        while rounds is None or done < rounds:
+            select.select([reader], [], [])
+            drain_pings(reader)
+            wake_if_mail(room, thread=thread, run=run)
+            done += 1
+    finally:
+        os.close(keepalive)
+        os.close(reader)
 
 
 def session_index() -> Path:
@@ -584,6 +660,12 @@ def main(argv: Sequence[str] | None = None, *, run: Run = run_command) -> int:
         action="store_true",
         help="print JSON letters and keep them claimed until mailbox-done (for forwarders)",
     )
+    watcher = commands.add_parser(
+        "mailbox-watch", help="wake an idle Codex thread when its mailbox gets letters (no model)"
+    )
+    watcher.add_argument("--for", dest="address", required=True)
+    watcher.add_argument("--wake-codex", dest="thread", required=True)
+    watcher.add_argument("--rounds", type=int, default=None, help=argparse.SUPPRESS)
     held = commands.add_parser("mailbox-done", help="acknowledge letters printed with --hold")
     held.add_argument("--for", dest="address", default=None)
     held.add_argument("--claim", type=int, required=True)
@@ -630,6 +712,8 @@ def main(argv: Sequence[str] | None = None, *, run: Run = run_command) -> int:
         return 0
     if args.command == "claude-mailbox":
         box_room = room if args.address is None else room.addressed(args.address)
+        if args.hold:
+            box_room.wake_marker.unlink(missing_ok=True)  # The forwarder is acting on its wake.
         letters = wait_for_mail(box_room, timeout=args.timeout)
         if not letters:
             print("No mail.")
@@ -642,6 +726,9 @@ def main(argv: Sequence[str] | None = None, *, run: Run = run_command) -> int:
         for letter in letters:
             print(format_letter(letter), flush=True)
         acknowledge(box_room, os.getpid())
+        return 0
+    if args.command == "mailbox-watch":
+        watch(room.addressed(args.address), thread=args.thread, run=run, rounds=args.rounds)
         return 0
     if args.command == "mailbox-done":
         box_room = room if args.address is None else room.addressed(args.address)

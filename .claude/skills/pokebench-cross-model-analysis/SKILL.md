@@ -28,6 +28,10 @@ For loop outcomes use the repository's `recoveryCollector` in `packages/agent/sr
 
 Review concrete episodes for each model: an effective recovery, a persistent failure, and contrary evidence. Follow the repository's `pokebench-trace-forensics` evidence method for delivered observations, actual actions, paired frames and state. Existing source/RAM audits may be cited as prior evidence, clearly labelled. Suspected bugs without a new archive/source check remain suspected. Do not use private reasoning as causal evidence, or label every repeated action a mistake: battles, travel chunks and preparation can require repetition.
 
+## Future support ablations
+
+When asked what harness guidance newer models no longer need, use [the future ablation method](references/harness-ablation.md). Keep this prospective protocol separate from measured historical findings. It defines checkpoint readiness/precision, privilege tiers, controlled removal/add-back and cumulative confirmation, noninferiority/power, and longitudinal support frontiers. It grants no launch authority and does not add checkpoint support to the current extractor.
+
 ## Write the report
 
 Author a normalized `report-input.json` from the extracted metrics and reviewed evidence, following the schema below. Use `scripts/render_report.py --metrics <report-input.json> --evidence <evidence.json> --output <index.html>` for the supported normalized input. Read [report inputs](references/report-inputs.md) for the schema. If the extractor differs, adapt the input explicitly rather than guessing fields. Keep the data sidecars, extraction command, source hashes, inclusion/exclusion ledger and report together under the canonical `runs/reports/run-analysis/<YYYY-MM-DD_slug>/` so the viewer REPORTS page discovers it.

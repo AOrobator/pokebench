@@ -17,13 +17,24 @@ block = metatile 0-9, collision 10-11, elevation 12-15; behavior = metatileAttri
 connected map's ROM layout under topology.crossable, as connection-edge-tiles-v1 checks the live
 map. Scripts that change metatiles at run time (setmetatile) are not seen; the ROM layout is what
 the map holds when it loads.
+
+field-move-gates-v1: with gates, the destination's flood closes the obstacles the map places on
+load (its ROM object templates whose hide flag is clear; temp flags are cleared on every load, so
+those count as clear) and its gated terrain, under the player's capabilities now.
 """
 
 import struct
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 
+from pokebench_env.character_presence import _flag
 from pokebench_env.displayed_names import _text
+from pokebench_env.field_moves import (
+    Capabilities,
+    RomObject,
+    map_gates,
+    rom_object_obstacles,
+)
 from pokebench_env.game_screen import ReadMemory
 from pokebench_env.places import _header
 from pokebench_env.surf_gate import FOOT, classify
@@ -38,6 +49,9 @@ SECTION_OFFSET = 0x14
 DYNAMIC = (127, 127)
 MAX_WARPS = 64
 MAX_CONNECTIONS = 16
+MAX_OBJECTS = 64
+# FLAG_TEMP_1..FLAG_TEMP_1F (include/constants/flags.h), cleared by ClearTempFieldEventData.
+TEMP_FLAGS = range(0x01, 0x20)
 PRIMARY_METATILES = 512
 ROM_START, ROM_END = 0x08000000, 0x0A000000
 # A map whose popup prints blanks (MAPSEC_DYNAMIC: the cable club's UNION ROOM, TRADE CENTER and
@@ -49,6 +63,8 @@ THIS_MAP = "this map"
 MapId = tuple[int, int]
 Tile = tuple[int, int]
 Shown = Callable[[MapId], str | None]
+# field-move-gates-v1: the player's capabilities, SaveBlock1 and the map-table names.
+DestinationGates = tuple[Capabilities, int, Callable[[MapId], str | None]]
 
 
 def _u32(read: ReadMemory, address: int) -> int:
@@ -79,6 +95,8 @@ class RomMap:
     # (x, y, warpId, mapGroup, mapNum) in event order; the order is what warpId indexes.
     warps: tuple[tuple[int, int, int, int, int], ...]
     connections: tuple[tuple[str, int, MapId], ...]
+    # ObjectEventTemplates in event order: (localId, graphicsId, x, y, flagId).
+    objects: tuple[RomObject, ...] = ()
 
     def block(self, x: int, y: int) -> Block | None:
         if 0 <= x < self.width and 0 <= y < self.height:
@@ -114,7 +132,17 @@ def read_rom_map(read: ReadMemory, map_id: MapId) -> RomMap | None:
     raw = struct.unpack(f"<{width * height}H", read(data, 2 * width * height))
     blocks = tuple((b & 0x3FF, (b >> 10) & 3, b >> 12, behavior(b & 0x3FF)) for b in raw)
     warps: list[tuple[int, int, int, int, int]] = []
+    objects: list[RomObject] = []
     if _span(events, 12):
+        total = read(events, 1)[0]
+        pointer = _u32(read, events + 4)
+        if total <= MAX_OBJECTS and (total == 0 or _span(pointer, total * 24)):
+            body = read(pointer, total * 24) if total else b""
+            for i in range(total):
+                local_id, graphics = body[i * 24], body[i * 24 + 1]
+                x, y = struct.unpack_from("<hh", body, i * 24 + 4)
+                flag = struct.unpack_from("<H", body, i * 24 + 0x14)[0]
+                objects.append((local_id, graphics, x, y, flag))
         count = read(events + 1, 1)[0]
         pointer = _u32(read, events + 8)
         if count <= MAX_WARPS and (count == 0 or _span(pointer, count * 8)):
@@ -132,7 +160,7 @@ def read_rom_map(read: ReadMemory, map_id: MapId) -> RomMap | None:
                 )
                 if DIRECTIONS.get(direction) in STEPS:
                     connections.append((DIRECTIONS[direction], offset, (group, number)))
-    return RomMap(width, height, blocks, tuple(warps), tuple(connections))
+    return RomMap(width, height, blocks, tuple(warps), tuple(connections), tuple(objects))
 
 
 def _edge(rom: RomMap, direction: str, offset: int, beyond: RomMap) -> tuple[Tile, ...]:
@@ -187,6 +215,7 @@ def arrival_text(
     destination: tuple[int, int, int],
     shown: Shown,
     cache: dict[MapId, RomMap | None],
+    gates: DestinationGates | None = None,
 ) -> str | None:
     """`, arriving at (x,y); from there, on foot: ...` for one warp, or None when unreadable."""
     group, number, warp = destination
@@ -213,7 +242,19 @@ def arrival_text(
         if beyond is not None:
             dry = _edge(rom, direction, offset, beyond)
             edges[(direction, to, offset)] = (dry, dry)
-    reached = classify(tiles, start, warps=[(x, y) for x, y, *_ in rom.warps], connections=edges)
+    rules = None
+    if gates is not None:
+        caps, save1, names = gates
+        location = names(target)
+
+        def hidden(flag: int) -> bool:
+            return flag not in TEMP_FLAGS and _flag(read, save1, flag)
+
+        objects = rom_object_obstacles(rom.objects, hidden, location)
+        rules = map_gates(caps, objects, tiles, location).rules()
+    reached = classify(
+        tiles, start, warps=[(x, y) for x, y, *_ in rom.warps], connections=edges, rules=rules
+    )
     foot = {tile for tile, how in reached.warps if how == FOOT}
     groups = _doorways(
         [(x, y, (g, n)) for x, y, _w, g, n in rom.warps if (x, y) in foot and (g, n) != DYNAMIC]
@@ -259,6 +300,7 @@ def read_exit_labels(
     targets: tuple[InteractionTarget, ...] | None,
     topology: Topology | None,
     shown: Shown,
+    gates: DestinationGates | None = None,
 ) -> ExitLabels:
     """Names for this map's warp destinations, and arrival reach for warps sharing a name.
 
@@ -297,7 +339,7 @@ def read_exit_labels(
         name = names.get(destination[:2])
         if here is None or name is None or counts.get(name, 0) < 2:
             continue
-        text = arrival_text(read, map_id, here, destination, shown, cache)
+        text = arrival_text(read, map_id, here, destination, shown, cache, gates)
         if text is not None:
             arrivals.append((x, y, text))
     return ExitLabels(tuple((g, n, name) for (g, n), name in names.items()), tuple(arrivals))

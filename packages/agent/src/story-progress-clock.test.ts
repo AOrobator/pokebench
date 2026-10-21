@@ -1,5 +1,6 @@
 import {describe,expect,it} from "vitest";
-import {ALL_ON,FEATURES,featureInfo,playHarnessFeatures,SERVER_FEATURES,SWITCHABLE_FEATURES,type FeatureSet} from "./features.js";
+import { ALL_ON as PENDING_BASE_ALL_ON,FEATURES,featureInfo,playHarnessFeatures,SERVER_FEATURES,SWITCHABLE_FEATURES,type FeatureSet} from "./features.js";
+const ALL_ON={...PENDING_BASE_ALL_ON,"pending-field-dialogue-v1":false};
 import {flagFeatures,normalizeFeatures} from "./play-preset.js";
 import {loopSupervisor,stallBriefing,textOnlySupervisor} from "./play-wiring.js";
 import {MEASUREMENT_ONLY_MILESTONES} from "./milestones.js";
@@ -159,8 +160,8 @@ describe("story-progress-clock-v1 switch",()=>{
   expect([...MEASUREMENT_ONLY_MILESTONES]).toEqual(["PLAYER_BEDROOM_EXITED_AFTER_CLOCK","ROUTE_101_AFTER_HANDOFF","RIVAL_BATTLE_STARTED","RIVAL_BATTLE_DEFEATED","RIVAL_OLDALE_SEND_OFF","ROUTE_101_AFTER_RIVAL_BATTLE","LITTLEROOT_AFTER_RIVAL_BATTLE"]);
  });
  it("is registered last as a default-off agent-side guard with no dependency",()=>{
-  expect(SWITCHABLE_FEATURES.at(-10)).toBe(ID);
-  expect(FEATURES.filter(f=>f.switchable).at(-10)?.id).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-11)).toBe(ID);
+  expect(FEATURES.filter(f=>f.switchable).at(-11)?.id).toBe(ID);
   expect(featureInfo(ID)).toMatchObject({group:"guard",needs:null,switchable:true,title:"STORY PROGRESS CLOCK"});
   expect(featureInfo(ID).description).toContain(" Off: ");
   expect(featureInfo(ID).description).toContain("Bundle arm only, default off");

@@ -279,3 +279,17 @@ it("enables both navigation treatments only in evolving bundle arms, with unchan
   }
  }
 });
+
+it("enables pending field dialogue only in each evolving bundle and preserves control provenance",()=>{
+ for(const name of ["bundle-v-control","bundle-cook-1h","whole-map-cook-1h"]){
+  const raw=readFileSync(new URL(`../../../experiments/fixed/${name}.json`,import.meta.url),"utf8");
+  const def=parseFixedDefinition(raw).definition;
+  expect(definitionProblems(def)).toEqual([]);
+  expect(def.switches).toContain("pending-field-dialogue-v1");
+  for(const phase of def.phases){
+   expect(armPreset(def,phase.id,"control").features["pending-field-dialogue-v1"]).toBe(false);
+   expect(armPreset(def,phase.id,"bundle").features["pending-field-dialogue-v1"]).toBe(true);
+  }
+  expect(controlBaseProblems(def,readFileSync(new URL(`../../../${def.controlBase.path}`,import.meta.url),"utf8"))).toEqual([]);
+ }
+});

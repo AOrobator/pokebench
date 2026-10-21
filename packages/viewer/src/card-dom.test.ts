@@ -1,6 +1,7 @@
 // @vitest-environment happy-dom
 import { describe, expect, it } from "vitest";
 import { fillCards, loadCardArt, syncCards } from "./card-dom.js";
+import type { LoadedArt } from "./card-dom.js";
 import type { CardInput } from "./trainer-card.js";
 import type { PlateFacts } from "./workbench-view.js";
 
@@ -9,6 +10,18 @@ const FONT = { widths: Array.from({ length: 512 }, () => 4), cmap: { A: 1 } };
 const FACTS: PlateFacts = { live: true, elapsed: 61_000, reached: null, level: 0, total: 45, recovered: false, fresh: false, cap: 120_000 };
 
 describe("trainer card art", () => {
+  it("publishes usable card art while the optional font image is still pending", async () => {
+    let finish: ((value: null) => void) | undefined;
+    const glyphs = new Promise<null>(resolve => { finish = resolve; });
+    const ready: LoadedArt[] = [];
+    const loading = loadCardArt(url => Promise.resolve(url.endsWith("manifest.json") ? MANIFEST : FONT), () => glyphs, value => { ready.push(value); });
+    await Promise.resolve(); await Promise.resolve();
+    expect(ready).toHaveLength(1);
+    expect(ready[0]?.art.trainers).toEqual(["may"]);
+    expect(ready[0]?.font).toBeNull();
+    finish?.(null);
+    expect((await loading)?.font).not.toBeNull();
+  });
   it("loads the manifest, font and glyph sheet, or nothing when the art was never built", async () => {
     const sheet = { width: 256, height: 512, data: new Uint8ClampedArray(4) };
     const loaded = await loadCardArt((url) => Promise.resolve(url.endsWith("manifest.json") ? MANIFEST : FONT), () => Promise.resolve(sheet));

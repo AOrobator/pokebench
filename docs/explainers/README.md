@@ -173,3 +173,7 @@ The original ignored runs/explainers copies remain for existing links. Make futu
 
 - [Exploratory waypoint guidance](navigation-refusal-reasons-v3.html) — bounded local advice, no assumed onward route.
 - [Story battle heal first line](story-battle-heal-first-v1.html) — guard on in both arms: while an unbeaten story battle that cannot be run from is on the map and a party Pokémon is hurt, the first line of every game-tool result gives the hurt HP, says to heal first, quotes the latest heal line heard and names the exit of this map toward it.
+
+
+
+- [Pending field dialogue](pending-field-dialogue-v1.html): finish ordinary dialogue that appears after navigation returns; leave each new choice to the model.

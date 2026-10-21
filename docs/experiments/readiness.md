@@ -231,3 +231,8 @@ Both entries are PENDING, unqueued, not designed and not approved. Earliest acti
 
 PENDING and unqueued. Boot readiness remains unproven: no matching four-run fresh-boot readiness set has been established for this exact incumbent and source pin. Existing Woods recordings establish the advice defect and deterministic regression only, not reliable activation or benefit. Eight runs per arm are planned after readiness passes; no measured run is approved or launched.
 | `story-battle-heal-first-v1` | `STARTER_CHOSEN` (the first story battle is the Route 103 rival, right after the starter) | PENDING until `just experiments` runs after landing | Registered 2026-10-20, pending and not queued; on in both arms of bundle-v-control, bundle-cook-1h and whole-map-cook-1h (the operator 10:43 PM ET); the incumbent is the control arm with it off. Evidence: probe story-battle-heal-first-20261020 at 97a0 turn 157, walking to MAY 13/16 → 4/16 (p 0.004), heading south 0 → 11 (p<0.001). |
+
+
+
+
+| pending-field-dialogue-v1 | FIRST_TRUCK_EXIT | PENDING, not queued | 2026-10-20: exact delayed-message failure reproduced from 97a0 turn 636 and raw RAM. No matched-arm readiness or checkpoint study for this candidate; milestone reach does not prove exposure. |

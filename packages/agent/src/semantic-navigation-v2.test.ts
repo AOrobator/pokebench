@@ -2,7 +2,8 @@ import type {AgentTool} from "@mariozechner/pi-agent-core";
 import {Type} from "typebox";
 import {describe,expect,it} from "vitest";
 import {IN_GAME} from "../test-support/events.js";
-import {ALL_ON,FEATURES,SERVER_FEATURES,SWITCHABLE_FEATURES,dependencyProblems,featureInfo,playHarnessFeatures,semanticNavigation,serverFeatureEnv,type FeatureSet} from "./features.js";
+import { ALL_ON as PENDING_BASE_ALL_ON,FEATURES,SERVER_FEATURES,SWITCHABLE_FEATURES,dependencyProblems,featureInfo,playHarnessFeatures,semanticNavigation,serverFeatureEnv,type FeatureSet} from "./features.js";
+const ALL_ON={...PENDING_BASE_ALL_ON,"pending-field-dialogue-v1":false};
 import type {GameStateSnapshot} from "./game-state.js";
 import {NAVIGATE_FIRST_DESCRIPTION,NAVIGATE_FIRST_TOOL_LINE,SEMANTIC_MOVING_AROUND_FULL,SEMANTIC_MOVING_AROUND_LOCAL,SEMANTIC_NAVIGATE_DESCRIPTION,SEMANTIC_NAVIGATE_TOOL_LINE,SEMANTIC_TOOL_LINE} from "./navigate-first.js";
 import {NAVIGATE_RULES,SEMANTIC_NAVIGATE_RULES,navigationTool} from "./navigation.js";
@@ -22,8 +23,8 @@ const LOCAL:FeatureSet={...ON,"full-map-navigation-v1":false,"visited-terrain-na
 
 describe("registry, presets and dependencies",()=>{
  it("is appended last, default off, a guidance switch that needs bounded navigation, applied by the game server too",()=>{
-  expect(SWITCHABLE_FEATURES.at(-25)).toBe(ID);
-  expect(FEATURES.filter(f=>f.switchable).at(-25)?.id).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-26)).toBe(ID);
+  expect(FEATURES.filter(f=>f.switchable).at(-26)?.id).toBe(ID);
   expect(playHarnessFeatures(ALL_ON,null).at(-25)).toBe(ID);
   expect(SERVER_FEATURES.at(-9)).toBe(ID);
   expect(featureInfo(ID)).toMatchObject({group:"guidance",needs:"bounded-navigation-v1",switchable:true});

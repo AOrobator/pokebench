@@ -760,6 +760,25 @@ it("serves the rival-push explainers through the existing allowlist",async()=>{
  for(const id of ["game-evidence-priority-v1","dialogue-log-v1","loop-guard-supervisor-v1","double-context-window-v1","fresh-retry-v1","named-warp-destinations-v1","milestone-stall-stop-v1","text-only-supervisor-v1","character-presence-v1","navigation-refusal-reasons-v1","transition-press-result-v1","stall-briefing-v1","battle-triage-guidance-v1","battle-details-v2","dialogue-auto-advance-v1","warp-arrival-settle-v1","dialogue-context-kept-v1","displayed-place-names-v1","transition-loop-detection-v1","blocked-batch-result-v1","adjacent-tiles-v1","readout-rules-in-prompt-v1","connection-edge-tiles-v1","in-game-naming-readout-v1","no-nickname-guidance-v1","battle-text-auto-advance-v1","battle-message-waiting-v1","script-line-presence-v1","disproved-beliefs-v1","same-plan-breaker-v1","briefing-exits-v1","untaken-exits-v1","briefing-battle-outcomes-v1","blocked-exit-fact-v1","battle-loss-recap-v1","navigation-truth-v1","navigation-refusal-reasons-v2"]){const reply=await get(viewer,`/explainers/${id}.html`);expect(reply.status).toBe(200);expect(reply.body.toString()).toContain(id);}
 });
 
+it("caches sprite bytes, revalidates changed art, and keeps dynamic data uncached", async () => {
+  const { runsRoot, viewer } = await fixture();
+  const dir = join(runsRoot, "sprites", "trainer-card-v1", "card"); mkdirSync(dir, { recursive: true });
+  const path = join(dir, "wide-gold.png"); writeFileSync(path, PNG);
+  const url = `${viewer.url}sprites/card/wide-gold.png`;
+  const first = await fetch(url); await first.arrayBuffer();
+  expect(first.headers.get("cache-control")).toBe("private, max-age=300");
+  const etag = first.headers.get("etag"); expect(etag).toBeTruthy();
+  const same = await fetch(url, { headers: { "if-none-match": etag ?? "" } });
+  expect(same.status).toBe(304); expect((await same.arrayBuffer()).byteLength).toBe(0);
+  writeFileSync(path, Buffer.concat([PNG, Buffer.from("changed")]));
+  const changed = await fetch(url, { headers: { "if-none-match": etag ?? "" } });
+  expect(changed.status).toBe(200); expect(changed.headers.get("etag")).not.toBe(etag); await changed.arrayBuffer();
+  const dynamic = await fetch(`${viewer.url}api/runs`); await dynamic.arrayBuffer();
+  expect(dynamic.headers.get("cache-control")).toBe("no-store");
+  const missing = await fetch(`${viewer.url}sprites/card/wide-silver.png`); await missing.arrayBuffer();
+  expect(missing.status).toBe(404); expect(missing.headers.get("cache-control")).toBe("no-store");
+});
+
 it("serves only the allowlisted trainer card art from runs/sprites/trainer-card-v1",async()=>{
  const {runsRoot,viewer}=await fixture();const art=join(runsRoot,"sprites","trainer-card-v1");
  for(const dir of ["card","trainers","font","icons"])mkdirSync(join(art,dir),{recursive:true});
@@ -1135,6 +1154,15 @@ it("serves the YES/NO answer readout explainer byte for byte, mapped from its ca
  expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
  const reply=await get(viewer,`/explainers/${id}.html`);
  expect(reply.status).toBe(200);expect(reply.body.equals(tracked)).toBe(true);expect(reply.body.toString()).toContain("YES/NO answer readout");
+});
+
+it("serves the tracked pending field dialogue explainer byte for byte",async()=>{
+ const tracked=readFileSync(fileURLToPath(new URL("../../../docs/explainers/pending-field-dialogue-v1.html",import.meta.url)));
+ const root=mkdtempSync(join(tmpdir(),"pokebench-pending-field-"));const staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});
+ writeFileSync(join(docs,"pending-field-dialogue-v1.html"),tracked);
+ const viewer=await startViewer({runsRoot:join(root,"runs"),staticDir,appDir:join(root,"app"),port:0});open.push(viewer);
+ const reply=await get(viewer,"/explainers/pending-field-dialogue-v1.html");
+ expect(reply.status).toBe(200);expect(reply.type).toContain("text/html");expect(reply.body.equals(tracked)).toBe(true);
 });
 
 it("serves opted-in revisions while preserving the complete workbench endpoint", async () => {

@@ -67,3 +67,5 @@ Operator answered "yes" to fixing only the current-on-warp gap, rerunning checks
 - Pending experiment repinned to complete repaired/main-synced7f52d098 tree; new incumbent retains main bundle story-battle-heal-gate-v1 ON with v3 OFF, so only v3 flips. Pending, unqueued. Final gates and GPT/Grok review follow; operator Claude exception recorded above.
 
 - Combined-main checks exposed duplicate insertion index edits merged only once by git:61 then17 registry-position assertions failed (retained logs). Corrected deterministic expectations from current main plus v3, distinguishing legacy OFF feature lists from current ALL_ON. Historic story-heal pending entry is unchanged; its test accounts for newly added future bundle v3 key. Agent3089/3089 now pass. No behavior, gate, timeout, retry or exclusions changed.
+
+- Complete corrected source pin c0370a38 includes both arrival fix and current-main registry reconciliation; only pending metadata follows. Final frozen gates and remaining GPT/Grok approvals required before authorized landing.

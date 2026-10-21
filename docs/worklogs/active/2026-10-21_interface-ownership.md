@@ -139,7 +139,28 @@ Tests per switch; fake-state executor rehearsal for `learn_move`; viewer check t
 
 ## Multi-Model Review Log
 
-(none yet)
+Packet base = main at sync (384a87f92), head = the commit that adds this section. Cloud lanes only (Claude CLI, Cursor Grok, Cursor GPT / isolated Codex); no local inference reviewers.
+
+### Round 1 principles self-review (PB1–PB13) — claude/interface-ownership, packet main 384a87f92 .. HEAD 94de6df32
+
+Scored against the full current docs/agent-principles.md (PB1–PB13). Zero FAIL.
+
+| ID | Score | Evidence |
+|---|---|---|
+| PB1 The game grades the run | PASS | No milestone/grading change. learn_move verifies outcomes from the party's moves in game RAM (learn-move.ts `partyMoves`, `verified`), not from the model's claim; stale-plan-fact quotes only the readout's `Interface:` line and `The game asks:` quote (stale-plan-fact.ts). Tests: learn-move.test.ts verification-failure cases (party unchanged, moves changed, no did-not-learn text). |
+| PB2 Failed runs count | N/A | No run-terminal record, stop-reason or reporting change. Switches only alter in-run feedback/tools; terminal records untouched. |
+| PB3 One run is an anecdote | PASS | No improvement is claimed. Six pending experiments/*.json entries use 8 runs per arm, primary ROXANNE_DEFEATED, no queuePosition (experiments/{tool-prompt-docs,field-ownership-feedback,move-learn-loop-fingerprint,stale-plan-fact,post-battle-readout,move-learn-tool}-v1.json); readiness rows PENDING (docs/experiments/readiness.md). No model SKU hardcoded. |
+| PB4 Declare every advantage | PASS | Every new helper is a named switch in FEATURES (features.ts) recorded in harness_features via playHarnessFeatures, default OFF, with an explainer (docs/explainers/*-v1.html) and Harness Config link (panels.ts FEATURE_EXPLAINERS). learn_move is a declared scripted capability (move-learn-tool-v1). post-battle-readout-v1 is a server switch registered in TS SERVER_FEATURES and Python SERVER_FEATURES. No game memory writes, no save-state reloads; vendor untouched (`just verify-vendor` OK). |
+| PB5 Change one thing | PASS | Six independent switches, each with its own experiment entry where the candidate flips only that switch against the bundle incumbent. OFF byte-equality tests per switch (tool-prompt-sync.test.ts sha256 pins, post_battle_off.json golden, OFF-path tests in each suite). Hypothesis per experiment in its JSON. |
+| PB6 Long runs fail where short runs can't see | PASS | No context growth: stale-plan-fact appends one line only on a repeat; auto-talk sends at most one message per interface episode (`named` episode key, field-ownership-feedback.test.ts once-per-episode); field-ownership refusal returns the existing observe readout once per call (no accumulation). No new image payloads. |
+| PB7 A run with no event log didn't happen | PASS | learn_move presses go through the ordinary checked press (`executeChecked`) so button_press/tool_call/tool_result events are recorded; result details carry `learn_move:{forget,presses,refused,verified,status}`; auto-talk message recorded as the auto_talk event's text; stale-plan line is in the recorded tool_result text. No timeline additions (operator rule). |
+| PB8 Model misbehavior is loud, bounded, counted | PASS | learn_move args validated by TypeBox (`Value.Check(LearnMoveArgs)`), unknown move refused listing the four moves; MAX_PRESSES=16 bound; server LearnWait frame-bounded (600 frames, `reason:"bound"`) and parks with pause; LearnWaitSchema validates the server reply (game-state.ts `moveLearnWait`). Loop guard now counts move-learning cycles after 2 repeats (move-learn-loop-fingerprint-v1). No new fallback branch without run evidence (d548/ea04 cited). |
+| PB9 Rock-solid-or-ask | PASS | Arm assignment and landing are ASK USER items in the worklog M6; the learn_move server readout pointer is explicitly deferred rather than guessed; no default chosen for the operator. |
+| PB10 No carve-outs | PASS | No skip/xfail/disabled tests; floor 90 unchanged; no coverage exclude changes; no --no-verify (pre-commit hook ran on every commit including the merge 94de6df32). Coverage on merged tree: agent 99.21 L / 93.25 B / 97.92 F, viewer 97.95 / 91.33 / 94.35, Python 97.32 / 93.26 / 100. |
+| PB11 Verify the pinned dependency | PASS | Game-flow facts cite pret pokeemerald (evolution_scene.c MVSTATE_*, battle_scripts_1.s BattleScript_AskToLearnMove, pokemon_summary_screen.c Task_HandleReplaceMoveInput); battle script range checked against ROM bytes at 0x082DABE3 in test_learn_move_wait.py; production `learn_step` exercised on nine recorded 97a0 raw-RAM archives; pi-agent-core AgentTool shapes unchanged and typechecked. Limitation recorded in worklog M5: no live emulator check (no save state at a move-learn prompt; worktree venv lacks mgba) — fixtures only. |
+| PB12 macOS privacy prompts | N/A | No new ROM or protected-path access; ROM read only through existing static readers and POKEBENCH_ROM (tests). No file paths added. |
+| PB13 Close the loop | PASS | Each milestone RED→GREEN with gates and worklog entries (commit SHAs recorded M0–M6); merge synced and gated; this review is the remaining loop step; landing left to the coordinator/operator per the worklog ASK USER items. |
+
 
 ## Boy Scout Log
 

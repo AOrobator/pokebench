@@ -361,7 +361,10 @@ export class LoopCoordinator {
         this.notify({kind:candidate.kind,message:`Not sent (progress-aware-cycles-v1): ${cycleHold.reason}; cycle evidence retired.`,calls:this.completed,evidence:[...cycleHold.evidence,seq].filter((v,i,a)=>a.indexOf(v)===i),mode:"diagnostic",phase:"would_warn"});
       }
       this.retireCycles(seq,cycleHold.reason==="milestone"?"newly observed milestone":"gate-directed healing trip");
-      this.basic.resetCycles();this.field.resetNativeProgress(this.callTracker.pending());this.field.milestone();
+      this.basic.resetCycles();
+      if(cycleHold.reason==="milestone")this.field.resetNativeProgress(this.callTracker.pending());
+      else this.field.resetCycles();
+      this.field.milestone();
     }
     const selected = firstLoopHit(this.rules, call, { seq, policy: this.policy, candidates });
     const hit = selected?.hit.kind ?? null;

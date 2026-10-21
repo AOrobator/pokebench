@@ -86,7 +86,7 @@ export class StallBriefing {
   const retired=this.features["positive-supervisor-v1"];
   const cycleHold=this.progressCycles?.hold()??null;
   if(cycleHold!==null){
-   for(const pair of this.pairs.values())this.suppressed?.(`Map-cycle history retired (progress-aware-cycles-v1): ${cycleHold.reason}.`,[...cycleHold.evidence,pair.lastSeq,seq]);
+   if(this.pairs.size>0)this.suppressed?.(`Map-cycle history retired (progress-aware-cycles-v1): ${cycleHold.reason}.`,[cycleHold.evidence[0]??seq,seq]);
    this.pairs.clear();
   }
   for(const pair of this.pairs.values()){

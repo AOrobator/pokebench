@@ -1,3 +1,4 @@
+import {sectionWarp,sectionConnection} from "./exit-section-labels.js";
 import {DialogueLog,roomKey,roomOf,type DialogueEntry,speakerLabel} from "./dialogue-log.js";
 import {ExitHistory,mapKey,readoutNames} from "./exit-history.js";
 import {NextMilestoneHint} from "./milestone-hint.js";
@@ -410,7 +411,7 @@ export class SupervisorBriefing {
   }
   const s=this.latest;if(s===null)return "no observation yet";
   const position=this.features["live-player-position-v1"]&&s.position!==null?` at ${at(s.position.x,s.position.y)}${s.facing===null?"":` facing ${s.facing.toLowerCase()}`}`:"";
-  return `${roomOf(s,this.features)}${position}`;
+  return `${this.features["exit-labels-v3"]?(s.exit_sections?.current??roomOf(s,this.features)):roomOf(s,this.features)}${position}`;
  }
  private told():string {
   if(!this.features["active-field-message-buffer-v1"])return "not available (dialogue text is off)";
@@ -460,13 +461,15 @@ export class SupervisorBriefing {
    const dead=(t:Target)=>t.kind==="coordinate_trigger"&&this.dead(s,t.x,t.y);
    const rank=(t:Target)=>t.kind==="warp"?0:dead(t)?2:1;
    return targets.filter(t=>!tried(t)).sort((a,b)=>rank(a)-rank(b))
-    .map(t=>`${this.target(t)} at ${at(t.x,t.y)} (${t.activation}${dead(t)?"; its condition did not match when the readout last showed it, so stepping on it then did nothing":""})${use(t)}`);
+    .map(t=>`${this.target(t,s)} at ${at(t.x,t.y)} (${t.activation}${dead(t)?"; its condition did not match when the readout last showed it, so stepping on it then did nothing":""})${use(t)}`);
   }
   // semantic-navigation-v2 marks a person it talked to by object id.
   const open=targets.filter(t=>!done.has(at(t.x,t.y))&&!(this.features["semantic-navigation-v2"]&&t.kind==="object"&&t.local_id!==null&&done.has(objectKey(t.local_id)))).sort((a,b)=>Number(b.kind==="warp")-Number(a.kind==="warp"));
-  return open.map(t=>`${this.target(t)} at ${at(t.x,t.y)} (${t.activation})${use(t)}`);
+  return open.map(t=>`${this.target(t,s)} at ${at(t.x,t.y)} (${t.activation})${use(t)}`);
  }
- private target(t:{readonly kind:string;readonly name?:string|null;readonly destination?:readonly number[]|null}):string {
+ private target(t:{readonly kind:string;readonly x:number;readonly y:number;readonly name?:string|null;readonly destination?:readonly number[]|null},state?:State):string {
+  const section=state===undefined?null:sectionWarp(state,t.x,t.y,this.features["exit-labels-v3"]&&t.kind==="warp");
+  if(section!==null)return `Warp to ${section}`;
   if(!this.features["named-interactions-v1"]||t.name==null)return t.kind;
   // briefing-exits-v1: a warp's destination as the readout named it, else the bare id as before.
   const name=this.exits!==null&&t.kind==="warp"&&t.destination!=null?this.names.get(mapKey(t.destination)):undefined;
@@ -486,7 +489,7 @@ export class SupervisorBriefing {
    // briefing-exits-v1: the map's connections to maps not entered either, where the readout shows them (world destinations).
    const block=exitReach(this.features,s);
    const edges=this.exits!==null&&this.features["world-destinations-v1"]?(s.topology?.connections??[]).filter(c=>!this.entered.has(mapKey(c.destination))&&!block.connection(c)):[];
-   const items=[...exits.map(t=>`${this.target(t)} at ${at(t.x,t.y)}`),...edges.map(c=>{const name=this.names.get(mapKey(c.destination));return `${c.direction}${EDGES.has(c.direction)?" edge":""} -> ${name===undefined?`map ${mapKey(c.destination)}`:`${name} (map ${mapKey(c.destination)})`}`;})];
+   const items=[...exits.map(t=>`${this.target(t,s)} at ${at(t.x,t.y)}`),...edges.map(c=>{const name=this.names.get(mapKey(c.destination));return `${c.direction}${EDGES.has(c.direction)?" edge":""} -> ${sectionConnection(s,c,this.features["exit-labels-v3"])??(name===undefined?`map ${mapKey(c.destination)}`:`${name} (map ${mapKey(c.destination)})`)}`;})];
    return items.length===0?[]:[`${roomOf(s,this.features)}: ${items.join("; ")}`];
   });
   return rooms.length===0?"none":rooms.join(" | ");

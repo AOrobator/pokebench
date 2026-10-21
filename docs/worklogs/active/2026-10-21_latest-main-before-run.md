@@ -26,3 +26,5 @@ Frozen 0349ae26..e3caf467, SHA25663cf19d195b75a7042779e53d93cd9a6b095e1f13dd573a
 
 ### Round 1 fixes
 Five reproduced failing cases now pass (35 controller tests total): precise clone-local runtime-link excludes, immediate applied STOP/ABORT propagation, incomplete control-tail tolerance, and fixed-cli PID ownership. Shell header now distinguishes default non-signalling mode from legacy opt-out. Review synthesis retained in /tmp/pokebench-latest-main-review/synthesis-r1.md. No gameplay process signalled; owned next-start pause remains held.
+
+Round 2 candidate synchronized with canonical main d00cded5b before full gates and frozen review. All changes remain scoped to original automation boundary.

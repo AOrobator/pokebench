@@ -6,5 +6,9 @@ Files: experiments/fixed/{bundle-v-control, bundle-v-control-2h, bundle-cook-1h,
 
 ## M1 bundle membership
 - [x] RED: fixed-runner test that the six are bundle-only in all five definitions
-- [ ] GREEN: definitions and source repins
+  COMMIT: `test: the six GLM-run fixes are bundle-only in the five bundle definitions` (d48732acb). Fails before the definitions change.
+- [x] GREEN: definitions and source repins
 - [ ] Gates, cloud review (Claude, Grok, GPT), land ff-only
+
+GREEN: the six appended to base.features (false) and switches in the five definitions; source.commit be531506a1504bd5e1e21135e599861a34249545 in the six pending experiments. Three older pinned-incumbent tests (open-goal-prompt, heal-first, story-battle-heal-gate) list the six with the other later bundle additions, as every earlier addition did.
+Gates: lint pass; agent 3398, viewer 1636, Python 3806 pass; coverage agent 97.27/93.14/97.8/99.2, viewer 95.44/91.34/94.33/97.91, Python 97.29/93.11/100 (floor 90); verify-vendor, experiments-audit silent.

@@ -74,6 +74,11 @@ Scope limits (from the data the runs record today):
 - [x] Multi-model review: Claude and Grok LGTM on 7b7089dd; GPT's remaining test-setup objection rebutted; The operator approved landing ("land it")
 - [x] Landed: `git merge --ff-only` → main 1a53bbc08 (main had not moved from 6fbce3326; whole-map loop not mid-pin). `just test` on main: agent 3255, viewer 1592, python 3583 passed. `just viewer-main`: 8790 at 1a53bbc08, 3 live runs kept. Live check on run 2026-10-21T06-28-18_qwen36-gpu0_1331: POKéMON PARTY loads all art (12 /sprites/party requests, 200), WURMPLE → MOVES shows only TACKLE and STRING SHOT (decoder's four-slot shape, no MOVE 0), selection survives 10 s of live polls; 1440 and 375 (scrollWidth 375) screenshots in runs/mockups/party-menu/shots/landed/.
 
+## Follow-up: HP bar geometry (the operator, 2026-10-21 08:42 New York)
+
+The operator: the green fill shows the white bar above and below it; the HP tag should be full height and line up with the bar's left edge. Cause: `.pv-hp` was 9u tall with the tag drawn 9u (its art has two transparent top rows, so it sat a row low) and 16u wide over a frame starting at 14u (2u overlap); the track covered only 3 of the 5 white interior rows (the game leaves those white rows; The operator wants them filled). The EXP bar is the ROM strip itself and is unchanged.
+- [x] RED: style-css.test.ts asserts tag and frame are the bar's full height, the tag ends where the frame starts, and the track fills the whole white interior
+
 ## Closing the Loop
 
 Real browser on the built viewer (8790 after landing): click each party slot, each ribbon tab, open and close a move; desktop 1280/1440 and phone 375 screenshots under `runs/mockups/party-menu/shots/landed/`, each opened.

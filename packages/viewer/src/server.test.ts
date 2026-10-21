@@ -1,6 +1,6 @@
 import { appendFileSync, cpSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
-import { createServer, request, type Server } from "node:http";
-import type { AddressInfo } from "node:net";
+import { createServer, request, IncomingMessage, ServerResponse, type Server } from "node:http";
+import { Socket, type AddressInfo } from "node:net";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -452,6 +452,25 @@ describe("viewer server", () => {
       socket.once("error", reject);
     });
     expect(received).toBe(frames.length);
+  });
+
+  it("reports source loss and stage timings without changing binary PNG bytes", async () => {
+    const { runsRoot, viewer } = await fixture();
+    const live = new Log(); live.add(0, START);
+    const payloads = [10, 13].map(frame_count => ({ frame_data: PNG.toString("base64"), frame_count, timestamp: Date.now() / 1000 }));
+    writeRun(runsRoot, "live", live, await fakeFrameGameServer(payloads));
+    const socket = frameSocket(viewer, "/api/runs/live/frames");
+    open.push({ close: () => { socket.terminate(); return Promise.resolve(); } });
+    const frames: Buffer[] = [];
+    await new Promise<void>((resolve, reject) => {
+      socket.on("error", reject);
+      socket.on("message", data => { frames.push(Buffer.from(data as Buffer)); if (frames.length === 2) resolve(); });
+    });
+    expect(frames).toEqual([PNG, PNG]);
+    const reply = await get(viewer, "/api/frame-metrics");
+    expect(reply.status).toBe(200);
+    expect(JSON.parse(reply.body.toString())).toMatchObject({ version: 1, runs: [{ run: "live", received: 2, offered: 2, sent: 2, send: { count: 2 }, queueWait: { count: 2 }, missingSourceFrames: 2, sourceFrame: 13, decode: { count: 2 }, upstreamGap: { count: 1 } }] });
+    expect((await get(viewer, "/api/frame-metrics", {host:"evil.example"})).status).toBe(403);
   });
 
   it("falls back to the pinned vendor frame route for already-running game servers", async () => {
@@ -1304,4 +1323,15 @@ it.each(["rejected-movement-step-v1","observed-field-dialogue-v1"])("serves repa
  const root=mkdtempSync(join(tmpdir(),"pokebench-repair-explainer-")),staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});writeFileSync(join(docs,`${id}.html`),tracked);
  const viewer=await startViewer({runsRoot:join(root,"runs"),staticDir,appDir:join(root,"app"),port:0});open.push(viewer);
  const reply=await get(viewer,`/explainers/${id}.html`);expect(reply.status).toBe(200);expect(reply.body.equals(tracked)).toBe(true);
+});
+
+it("keeps malformed URL failures inside the request boundary and continues serving", async () => {
+  const {viewer} = await fixture();
+  const req = new IncomingMessage(new Socket());
+  req.method = "GET"; req.url = "//["; req.headers.host = `${HOST}:${String(viewer.port)}`;
+  const res = new ServerResponse(req);
+  expect(() => viewer.server.emit("request",req,res)).not.toThrow();
+  await new Promise<void>(resolve => setImmediate(resolve));
+  expect(res.statusCode).toBe(500);
+  expect((await get(viewer,"/api/frame-metrics")).status).toBe(200);
 });

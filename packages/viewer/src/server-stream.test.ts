@@ -5,9 +5,11 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, expect, it, vi } from "vitest";
 import { Log, START, assistant } from "../test-support/events.js";
+import * as runs from "./runs.js";
 import { LogReader } from "./runs.js";
 import { startViewer, type Viewer } from "./server.js";
 
+vi.mock("./runs.js", async (original) => ({ ...await original<typeof import("./runs.js")>() }));
 vi.mock("node:fs", async (original) => ({ ...await original<typeof import("node:fs")>() }));
 
 const viewers: Viewer[] = [], roots: string[] = [];
@@ -44,6 +46,45 @@ it("streams a log many chunks long in order, then caught_up and done", async () 
   const text = await (await fetch(new URL("api/runs/long/events", viewer.url))).text();
   expect(events(text)).toEqual(log.events.map((e) => ({ ...e, run: "long" })));
   expect(text.indexOf("event: caught_up")).toBeGreaterThan(text.lastIndexOf("event: ev"));
+  expect(text.trimEnd().endsWith("event: done\ndata: {}")).toBe(true);
+});
+
+it("serializes head JSON in slices, stops at backpressure, and preserves the exact event array", async () => {
+  const log = longRun(3);
+  const viewer = await serve("head-slices", log, 1);
+  const original = Reflect.get(ServerResponse.prototype, "write") as (this: ServerResponse, ...args: Parameters<ServerResponse["write"]>) => boolean;
+  const paused: ServerResponse[] = [];
+  const chunks: string[] = [];
+  vi.spyOn(ServerResponse.prototype, "write").mockImplementation(function (this: ServerResponse, ...args: Parameters<ServerResponse["write"]>): boolean {
+    const ok = Reflect.apply<ServerResponse, Parameters<ServerResponse["write"]>, boolean>(original, this, args);
+    if (this.req.url?.endsWith("/head") === true) {
+      chunks.push(String(args[0]));
+      if (paused.length === 0) { paused.push(this); return false; }
+    }
+    return ok;
+  });
+  const response = await fetch(new URL("api/runs/head-slices/head", viewer.url));
+  const reader = response.body?.getReader();
+  if (reader === undefined) throw new Error("head response has no body");
+  let body = new TextDecoder().decode((await reader.read()).value);
+  await new Promise<void>(resolve => { setImmediate(resolve); });
+  expect(chunks).toHaveLength(1);
+  expect(chunks[0]).not.toContain('"type":"run_end"');
+  expect(paused).toHaveLength(1);
+  paused[0]?.emit("drain");
+  for (;;) { const next = await reader.read(); if (next.done) break; body += new TextDecoder().decode(next.value); }
+  expect(body).toBe(JSON.stringify(log.events.map(event => ({...event,run:"head-slices"}))));
+  expect(chunks.length).toBe(log.events.length + 1);
+});
+
+it("keeps a sliced SSE head as one complete head event before caught_up and done", async () => {
+  const log = longRun(3);
+  const viewer = await serve("sse-head-slices", log, 1);
+  const text = await (await fetch(new URL("api/runs/sse-head-slices/events?head=1", viewer.url))).text();
+  const heads = [...text.matchAll(/^event: head\ndata: (.*)$/gm)];
+  expect(heads).toHaveLength(1);
+  expect(JSON.parse(heads[0]?.[1] ?? "null")).toEqual(log.events.map(event => ({...event,run:"sse-head-slices"})));
+  expect(text.indexOf("event: caught_up")).toBeGreaterThan(text.indexOf("event: head"));
   expect(text.trimEnd().endsWith("event: done\ndata: {}")).toBe(true);
 });
 
@@ -388,4 +429,50 @@ it("labels malformed appends relative to the head byte cursor after history catc
     expect(problem.line).toBe(`1 within tail starting at byte ${String(offset)}`);
     expect(problem.problem).toContain("event line is not JSON");
   } finally { headAbort.abort(); historyAbort.abort(); await reader.cancel().catch(() => undefined); }
+});
+
+it("abandons a backpressured head response when its reader disconnects", async () => {
+  const viewer = await serve("abandoned-head", longRun(3), 1);
+  const original = Reflect.get(ServerResponse.prototype, "write") as (this: ServerResponse, ...args: Parameters<ServerResponse["write"]>) => boolean;
+  let writes = 0;
+  let closeObserved: Promise<void> | undefined;
+  vi.spyOn(ServerResponse.prototype, "write").mockImplementation(function (this: ServerResponse, ...args: Parameters<ServerResponse["write"]>): boolean {
+    const ok = Reflect.apply<ServerResponse, Parameters<ServerResponse["write"]>, boolean>(original, this, args);
+    if (this.req.url?.endsWith("/head") === true) {
+      writes += 1;
+      closeObserved = new Promise(resolve => { this.once("close", () => { resolve(); }); });
+      return false;
+    }
+    return ok;
+  });
+  await new Promise<void>((resolve, reject) => {
+    const req = get(new URL("api/runs/abandoned-head/head",viewer.url), res => {
+      res.once("data", () => { res.destroy(); resolve(); });
+    });
+    req.on("error",reject);
+  });
+  await closeObserved;
+  await new Promise<void>(resolve => { setImmediate(resolve); });
+  expect(writes).toBe(1);
+  expect((await fetch(new URL("api/frame-metrics",viewer.url))).status).toBe(200);
+});
+
+it("does not start SSE after a client disconnects during its asynchronous head read", async () => {
+  const viewer = await serve("abandoned",longRun(1),64);
+  let enter!: () => void, release!: (events: Awaited<ReturnType<typeof runs.readHeadEvents>>) => void;
+  const entered = new Promise<void>(resolve => { enter = resolve; });
+  const pending = new Promise<Awaited<ReturnType<typeof runs.readHeadEvents>>>(resolve => { release = resolve; });
+  vi.spyOn(runs,"readHeadEvents").mockImplementation(() => { enter(); return pending; });
+  let closed!: () => void;
+  const didClose = new Promise<void>(resolve => { closed = resolve; });
+  let headerCalls: (() => number) | undefined;
+  viewer.server.on("request", (_req,res) => { const headers = vi.spyOn(res,"writeHead"); headerCalls = () => headers.mock.calls.length; res.once("close",closed); });
+  const req = get(new URL("api/runs/abandoned/events?head=1",viewer.url));
+  req.on("error", () => undefined);
+  await entered;
+  req.destroy();
+  await didClose;
+  release([]);
+  await new Promise<void>(resolve => setImmediate(resolve));
+  expect(headerCalls?.()).toBe(0);
 });

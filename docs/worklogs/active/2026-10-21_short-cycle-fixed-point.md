@@ -174,6 +174,15 @@ Fix batch 3 (coordinator: "Apply your proposed fix batch 3 now"):
 - main moved to 9b741730 (Story Frontier stable outliers, viewer only); merged cleanly (6ca77cf4). Build and lint clean; viewer 1501/1501; agent `short-cycle-fixed-point.test.ts` 39/39 (no agent change in that merge).
 
 **Round 4** (the operator approved round 4, 10:22 PM ET, "Fix it, then run a fourth review round", relayed by the coordinator) — packet4 = `git diff main HEAD` at the docs commit recording this entry; path `runs/reviews/short-cycle-fixed-point/packet4.diff`; fix delta `fix3.diff` (`git diff 86d9ac39 05e651fa`, excluding the docs-only d6c6b108 which it includes). Prompt `prompt4.md`. Principles self-review unchanged (0 FAIL).
+- Packet4 frozen at HEAD 793cec08 against base 9b741730 (the merge-base; main then gained only docs-only 4d07e2b8), `git diff 9b741730 HEAD`, sha256 3b9bbf6d…e9256a1 (2650 lines); fix3.diff sha256 9bf07de7…a5b53b8e.
+- Claude (fresh read-only Claude subagent; ran 103 + 92 agent tests and the viewer test): VERDICT: LGTM. NB: comments call berry stage/regrowth "player-owned" though they advance on the timer (keeping them only blocks collapses); FEATURES sentence grammar after the inserted diagnostic clause; the label says "duplicate turns" for cycles; daycare `steps` stops walking cycles from collapsing while a POKéMON is in the daycare (safe).
+- Grok (`cursor-grok-4.5-high`): VERDICT: LGTM. NB: FEATURES sentence grammar; `docs/explainers/README.md` line does not mention berry trees or diagnostics; the Closing-the-Loop rehearsal text quotes the pre-batch-3 label.
+- GPT (Codex `gpt-5.6-sol`, xhigh; vitest blocked by EPERM): VERDICT: BLOCKING, new blockers:
+  - B1 party and battle diagnostics (`PokemonSchema.diagnostic`, `BattleStateSchema.diagnostic`, shown to the model as HARNESS BUG) are dropped by `cycleState`'s projections, so repeated failed party or battle reads can compare equal and collapse — the same class as round 3's resource-diagnostic blocker.
+  - B2 party and battler projections keep only species, level, HP and status; a repeating battle/grinding cycle can return to the same calls, screens, positions, phase/turn, species, HP and status while PP falls and experience grows, so real progress could collapse; the FEATURES copy ("leaving the same game state") and INV-3 overclaim.
+  - B3 both evidence replays read fixtures through `recorded()` (cast JSON, no `checkEvent`; states drop required `resources.berry_trees`), so they bypass the schema boundary the observability skill asks for.
+  - NB: `period` is optional for every loop_breaker record, and the viewer renders a missing short-cycle period as 0.
+- Reported to the coordinator without fixing (round 4 was the approved round). Possible fix batch 4: fail closed on any party or battle diagnostic; fingerprint the whole party and battler records except fields that move on their own; keep `berry_trees` in the fixtures (or re-make them schema-valid) and parse them with `checkEvent` in the replays; make `period` required for `short_cycle` in the schema; the wording NBs above.
 
 ## Boy Scout Log
 

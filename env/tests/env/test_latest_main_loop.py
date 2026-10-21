@@ -148,6 +148,7 @@ def test_each_trial_uses_fresh_main_and_keeps_old_launcher_immutable(
     assert h.trees[first_tree] == A
     for args, _ in h.children:
         assert args[:4] == ["just", "fixed-run", "dry-run", "whole-map-pair-2h"]
+        assert args[4:8] == ["--phase", "cook", "--wall-ms", "7200000"]
         assert args[-2:] == ["--lane", "A"]
     assert json.loads((c.archive / "latest-main-A.json").read_text())["commit"] == B
     assert len([args for args, _ in h.commands if args[:2] == ["node", "--env-file=.env"]]) == 2

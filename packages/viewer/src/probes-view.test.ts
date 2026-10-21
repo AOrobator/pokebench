@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import type { ProbeDetail, ProbeSample, ProbeSummary } from "./probes.js";
 import { hashOf, modelGroups, pageHtml, parseHash, parseProbe, parseProbeList, type ViewState } from "./probes-view.js";
-import { mountProbes } from "./probes-main.js";
+import { REFRESH_MS, bootProbes, mountProbes } from "./probes-main.js";
 
 const PAGE = readFileSync(join(import.meta.dirname, "../static/probes.html"), "utf8");
 const STATS = readFileSync(join(import.meta.dirname, "../static/workbench.html"), "utf8");
@@ -44,7 +44,7 @@ const STATE: ViewState = { probe: "cited-destination-v1", group: "Qwen3.6-35B", 
 function dom(html: string): Document {
   return new DOMParser().parseFromString(`<body>${html}</body>`, "text/html");
 }
-const texts = (d: Document, sel: string): string[] => [...d.querySelectorAll(sel)].map((e) => (e.textContent ?? "").replace(/\s+/g, " ").trim());
+const texts = (d: Document, sel: string): string[] => [...d.querySelectorAll(sel)].map((e) => e.textContent.replace(/\s+/g, " ").trim());
 
 describe("probe JSON from the server", () => {
   it("accepts the server's shapes and refuses anything else", () => {
@@ -136,7 +136,7 @@ describe("the page (design N)", () => {
 
 describe("the headers", () => {
   const chips = (html: string): string[][] => [...new DOMParser().parseFromString(html, "text/html").querySelectorAll<HTMLElement>('header.bar nav.nav-chips[aria-label="Pages"] .nav-chip')]
-    .map((a) => [a.tagName, a.textContent ?? "", a.getAttribute("href") ?? "", a.getAttribute("aria-current") ?? ""]);
+    .map((a) => [a.tagName, a.textContent, a.getAttribute("href") ?? "", a.getAttribute("aria-current") ?? ""]);
   it("link PROBES from every page, the current one filled and not a link", () => {
     expect(chips(PAGE)).toEqual([["A", "RUNS & COMPARISONS", "/comparisons", ""], ["A", "REPORTS", "/reports", ""], ["SPAN", "PROBES", "", "page"]]);
     expect(chips(STATS)).toEqual([["SPAN", "RUNS & COMPARISONS", "", "page"], ["A", "REPORTS", "/reports", ""], ["A", "PROBES", "/probes", ""]]);
@@ -166,9 +166,9 @@ describe("mounting the page", () => {
     return h;
   }
   const click = async (h: Harness, sel: string): Promise<void> => {
-    const el = h.doc.querySelector<HTMLElement>(sel);
+    const el = h.doc.querySelector(sel);
     if (el === null) throw new Error(`no ${sel}`);
-    el.click();
+    el.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
     await Promise.resolve();
   };
 
@@ -199,6 +199,50 @@ describe("mounting the page", () => {
     expect(h.stopped).toBe(1);
     const still = await mount("", [done]);
     expect(still.ticks).toHaveLength(0);
+  });
+
+  it("switches probe from the picker and refetches it", async () => {
+    const other = probe({ id: "older", title: "Older probe", lanes: probe().lanes.map((l) => ({ ...l, state: "complete" as const })) });
+    const list = [{ id: "cited-destination-v1", title: "T", feature: "f", started: null, live: true, lanes: [] }, { id: "older", title: "O", feature: "f", started: null, live: false, lanes: [] }];
+    const doc = new DOMParser().parseFromString(PAGE, "text/html");
+    const urls: string[] = [], hashes: string[] = [];
+    let stopped = 0;
+    await mountProbes(doc, {
+      hash: "", phone: false, now: () => NOW,
+      fetchJson: (url) => { urls.push(url); return Promise.resolve(url === "/api/probes" ? list : url.endsWith("/older") ? other : probe()); },
+      every: () => () => { stopped++; },
+      setHash: (h) => { hashes.push(h); },
+    });
+    const select = doc.querySelector<HTMLSelectElement>("select[data-probe]");
+    if (select === null) throw new Error("no picker");
+    expect([...select.options].map((o) => o.textContent)).toEqual(["cited-destination-v1 · live", "older"]);
+    select.value = "older";
+    select.dispatchEvent(new Event("change", { bubbles: true }));
+    await new Promise((r) => setTimeout(r, 0));
+    expect(urls.at(-1)).toBe("/api/probes/older");
+    expect(doc.querySelector("h1")?.textContent).toBe("Older probe");
+    expect(hashes.at(-1)).toBe("#older/case-07");
+    expect(stopped).toBe(1);
+  });
+
+  it("boots on the real window: fetch, a timer while live, and the hash in history", async () => {
+    document.documentElement.innerHTML = new DOMParser().parseFromString(PAGE, "text/html").documentElement.innerHTML;
+    const timers: number[] = [];
+    const realSet = window.setInterval.bind(window), realClear = window.clearInterval.bind(window);
+    window.setInterval = ((fn: () => void, ms: number) => { timers.push(ms); return realSet(fn, 1_000_000); }) as typeof window.setInterval;
+    window.fetch = ((url: string) => Promise.resolve(new Response(JSON.stringify(url === "/api/probes" ? [{ id: "cited-destination-v1", title: "T", feature: "f", started: null, live: true, lanes: [] }] : probe())))) as typeof window.fetch;
+    try {
+      await bootProbes(window);
+      expect(timers).toEqual([REFRESH_MS]);
+      document.querySelector('.pr-slot[data-case="case-01"]')?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      expect(window.location.hash).toBe("#cited-destination-v1/case-01");
+      window.fetch = (() => Promise.resolve(new Response("nope", { status: 500 }))) as typeof window.fetch;
+      await expect(bootProbes(window)).rejects.toThrow("GET /api/probes returned HTTP 500");
+    } finally { window.setInterval = realSet; window.clearInterval = realClear; }
+  });
+
+  it("refuses a page without its mount point", async () => {
+    await expect(mountProbes(new DOMParser().parseFromString("<body></body>", "text/html"), { hash: "", phone: false, now: () => NOW, fetchJson: () => Promise.resolve([]), every: () => () => undefined, setHash: () => undefined })).rejects.toThrow("data-pr");
   });
 
   it("says so when there are no probes", async () => {

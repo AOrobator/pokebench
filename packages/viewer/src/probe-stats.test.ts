@@ -45,12 +45,12 @@ describe("statistics", () => {
   });
   it("gives the gap in departure rate with a range clamped to ±1", () => {
     const g = gap({ n: 8, dif: 5, rep: 3, err: 0, unk: 0 }, { n: 8, dif: 8, rep: 0, err: 0, unk: 0 });
+    if (g === null) throw new Error("no gap");
     expect(g.d).toBeCloseTo(-0.375, 6);
     expect(g.lo).toBeLessThan(g.d);
     expect(g.hi).toBeGreaterThan(g.d);
     expect(g.hi).toBeGreaterThan(0);
-    const wide = gap({ n: 1, dif: 0, rep: 1, err: 0, unk: 0 }, { n: 1, dif: 1, rep: 0, err: 0, unk: 0 });
-    expect(wide.lo).toBe(-1);
+    expect(gap({ n: 1, dif: 0, rep: 1, err: 0, unk: 0 }, { n: 1, dif: 1, rep: 0, err: 0, unk: 0 })?.lo).toBe(-1);
     expect(gap({ n: 0, dif: 0, rep: 0, err: 0, unk: 0 }, { n: 4, dif: 2, rep: 2, err: 0, unk: 0 })).toBeNull();
   });
 });

@@ -120,7 +120,10 @@ Fix batch 1 (all accepted except where noted):
 - Codex NB: new period-4 test (collapse at 12 turns, note at 13); overlap of different periods is already covered by the 97a0 turn-129 replay and the "longest of two cycles" unit test.
 - Explainer: 97a0 fixture range 104-136, "all three fixed experiments", the clock-only value rule; `doors` comment and explainer label "two different calls taking turns".
 - Gates after fix batch 1 (`runs/receipts/short-cycle-fixed-point/gates-fix1.log`): build and lint clean; agent 3067/3067, viewer 1443/1443, pytest 3015 passed; coverage agent 97.3/93.16/97.66/99.21. The viewer coverage step hit the known 5 s timeout in `experiment-cli.test.ts` (it passed in the same run's `just test`); viewer coverage rerun alone: 1443 pass, 95.1/91.1/93.85/97.7; Python gate rerun: lines 96.92 branches 92.22 functions 99.55 (floor 90).
-- COMMIT: `fix: short-cycle-fixed-point-v1 review batch 1 (clock-only value drop, money in the state, true stage-2 note, call-order and unfinished-turn agreement)` (sha in round 2)
+- COMMIT: `fix: short-cycle-fixed-point-v1 review batch 1 (clock-only value drop, money in the state, true stage-2 note, call-order and unfinished-turn agreement)` (4ecc5c8b)
+- main moved to 24648e12 (yes-no-answer-readout-v1, probes viewer, lane leases). Merged it the same way as before: main's side of every conflicted file and of every re-indexed test file, then this switch re-appended after yes-no-answer-readout-v1 and the index assertions re-bumped.
+- Gates after this merge (`runs/receipts/short-cycle-fixed-point/gates-merge2.log`): build and lint clean; agent 3068/3068, viewer 1498/1498, pytest 3166 passed; coverage agent 97.3/93.15/97.66/99.21, viewer 95.22/91.07/94.14/97.8, Python lines 97.11 branches 92.69 functions 100; `just pages-check` prints nothing; `fixed-cli check` exit 0 for all three (worktree root).
+- COMMIT: `merge: main (yes-no-answer-readout-v1, probes viewer) into short-cycle-fixed-point-v1` (sha in round 2)
 
 ### Sync with main (before review)
 

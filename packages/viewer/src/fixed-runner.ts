@@ -2,6 +2,8 @@
 // game port and model endpoint, and the two lanes run concurrently. Nothing here ends the
 // experiment: a lane that cannot play pauses, says why in status.json, and retries with
 // backoff while the other lane goes on. Only the operator stops the runner.
+// A lane holds its GPU's gameplay lease only while it has a trial running or due: a paused,
+// waiting, finished or stopped lane gives it back, so another runner can use that GPU.
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
@@ -9,7 +11,7 @@ import { armFeatureBits, armPreset, definitionProblems, FIXED_ARMS, phaseOf, typ
 import { fileLines, type LogLines } from "./run-log.js";
 import { appendLedger, classifyTrial, nextFor, progress, queueState, readLedger, type FixedLedgerEntry, type FixedOutcome, type Progress, type QueueSlot } from "./fixed-ledger.js";
 import { writeFixedStatus, type FixedLaneStatus, type FixedStatus } from "./fixed-status.js";
-import { LeaseHeldError, leaseHolder, leasePool, nameLeaseRun, takeLeases } from "./lease.js";
+import { LeaseHeldError, leaseHolder, leasePool, nameLeaseRun, takeLease } from "./lease.js";
 import { runnerPath } from "./experiment-store.js";
 
 const startExpectation = (start: FixedStart): { kind: "save_state"; sha1: string } | { kind: "boot" } => (start.kind === "save_state" ? { kind: "save_state", sha1: start.sha1 } : { kind: "boot" });
@@ -63,6 +65,8 @@ export interface FixedRunOptions {
   readonly pid: number;
   // A dry run finishes once its planned trials ran, replaced or not.
   readonly dryRun?: boolean;
+  // The commit every launch plays, when it must match another experiment's pin (a single-arm rerun).
+  readonly commit?: string;
 }
 
 export const BACKOFF_MS = [30_000, 60_000, 120_000, 300_000, 600_000] as const;
@@ -84,7 +88,7 @@ class Runner {
   private state: FixedStatus["state"] = "waiting";
   private lastError: string | null = null;
   private lastProgress: Progress | null = null;
-  private leases: string[] = [];
+  private readonly leases = new Map<string, string>();
   private buildCheck: Promise<unknown> = Promise.resolve();
 
   constructor(private readonly o: FixedRunOptions) {
@@ -99,13 +103,12 @@ class Runner {
   async run(): Promise<"finished" | "stopped"> {
     this.prepare();
     try {
-      if (!(await this.acquireLease())) return this.finish("stopped");
       this.state = "running";
       this.writeStatus();
       const done = await Promise.all(this.o.def.lanes.map((lane) => this.laneLoop(lane)));
       return this.finish(done.every(Boolean) ? "finished" : "stopped");
     } finally {
-      for (const lease of this.leases) rmSync(lease, { recursive: true, force: true });
+      for (const lane of this.o.def.lanes) this.releaseLease(lane);
       this.children.clear();
       this.writeRunner();
     }
@@ -140,21 +143,26 @@ class Runner {
     return new Set([...state.launches.values()].filter((l) => !state.outcomes.has(l.slot)).map((l) => l.run));
   }
 
-  private async acquireLease(): Promise<boolean> {
-    for (;;) {
-      let reason: string;
-      try {
-        const pools = this.o.def.lanes.map((lane) => leasePool(lane.modelUrl));
-        this.leases = takeLeases(this.o.runsRoot, pools, { pid: this.o.pid, owner: `fixed-run:${this.o.def.id}` }, (pid) => this.o.host.alive(pid), this.unfinishedRuns());
-        return true;
-      } catch (error) {
-        if (error instanceof LeaseHeldError) reason = `waiting for the gameplay lease for ${error.pool}, held by ${leaseHolder(error.holder)}`;
-        else reason = `cannot take the gameplay lease: ${message(error)}`;
-      }
-      for (const lane of this.o.def.lanes) this.setLane(lane.id, { state: "waiting", reason, retryAt: null });
-      if (this.o.stopRequested()) return false;
-      await this.o.host.sleep(POLL_MS);
+  // True once this lane holds its pool's lease; otherwise the lane says who holds it.
+  private holdLease(lane: FixedLane): boolean {
+    if (this.leases.has(lane.id)) return true;
+    const pool = leasePool(lane.modelUrl);
+    let reason: string;
+    try {
+      this.leases.set(lane.id, takeLease(this.o.runsRoot, pool, { pid: this.o.pid, owner: `fixed-run:${this.o.def.id}` }, (pid) => this.o.host.alive(pid), this.unfinishedRuns()));
+      return true;
+    } catch (error) {
+      reason = error instanceof LeaseHeldError ? `waiting for the gameplay lease for ${pool}, held by ${leaseHolder(error.holder)}` : `cannot take the gameplay lease: ${message(error)}`;
     }
+    this.setLane(lane.id, { state: "waiting", reason, slot: null, arm: null, phase: null, run: null, retryAt: new Date(this.o.host.now().getTime() + POLL_MS).toISOString() });
+    return false;
+  }
+
+  private releaseLease(lane: FixedLane): void {
+    const lease = this.leases.get(lane.id);
+    if (lease === undefined) return;
+    this.leases.delete(lane.id);
+    rmSync(lease, { recursive: true, force: true });
   }
 
   private ledger(): FixedLedgerEntry[] {
@@ -179,20 +187,35 @@ class Runner {
         }
         const running = state.slots.find((s) => s.lane === lane.id && state.launches.has(s.slot) && !state.outcomes.has(s.slot));
         if (running !== undefined) {
-          await this.adopt(lane, running, state.started.get(running.slot)?.pid ?? null);
+          if (!this.holdLease(lane)) {
+            if (this.o.stopRequested()) {
+              this.setLane(lane.id, { state: "stopped", reason: "stopped by the operator: no new trials start", slot: null, arm: null, phase: null, run: null, retryAt: null });
+              return false;
+            }
+            await this.o.host.sleep(POLL_MS);
+            continue;
+          }
+          await this.adopt(lane, running, state.launches.get(running.slot)?.run ?? "", state.started.get(running.slot)?.pid ?? null);
           continue;
         }
         if (this.o.stopRequested()) {
+          this.releaseLease(lane);
           this.setLane(lane.id, { state: "stopped", reason: "stopped by the operator: no new trials start", slot: null, arm: null, phase: null, run: null, retryAt: null });
           return false;
         }
         const step = nextFor(this.o.def, state, lane.id);
         if (step.kind === "done" || (this.o.dryRun === true && step.kind === "blocked")) {
+          this.releaseLease(lane);
           this.setLane(lane.id, { state: "done", reason: "every trial planned for this lane has run", slot: null, arm: null, phase: null, run: null, retryAt: null });
           return true;
         }
         if (step.kind !== "slot") {
+          this.releaseLease(lane);
           this.setLane(lane.id, { state: step.kind === "wait" ? "waiting" : "paused", reason: step.reason, slot: null, arm: null, phase: null, run: null, retryAt: new Date(this.o.host.now().getTime() + POLL_MS).toISOString() });
+          await this.o.host.sleep(POLL_MS);
+          continue;
+        }
+        if (!this.holdLease(lane)) {
           await this.o.host.sleep(POLL_MS);
           continue;
         }
@@ -219,6 +242,8 @@ class Runner {
 
   private async pause(lane: FixedLane, reason: string, failures: number, error = reason): Promise<void> {
     const wait = BACKOFF_MS[Math.min(failures, BACKOFF_MS.length) - 1] ?? POLL_MS;
+    // A lane whose adopted trial still plays keeps its lease through the backoff.
+    if (!this.children.has(lane.id)) this.releaseLease(lane);
     this.lastError = `lane ${lane.id}: ${error}`;
     this.say(`${this.o.def.id} lane ${lane.id} paused: ${reason}`);
     this.setLane(lane.id, { state: "paused", reason, slot: null, arm: null, phase: null, run: null, lastError: error, retryAt: new Date(this.o.host.now().getTime() + wait).toISOString() });
@@ -230,7 +255,7 @@ class Runner {
   private firstCommit(): string {
     if (this.pinned === null) {
       const first = this.ledger().find((e) => e.kind === "launch");
-      this.pinned = first?.kind === "launch" ? first.commit : this.o.host.head();
+      this.pinned = first?.kind === "launch" ? first.commit : (this.o.commit ?? this.o.host.head());
     }
     return this.pinned;
   }
@@ -333,9 +358,9 @@ class Runner {
     return this.record(lane, slot, run, launchError === null ? outcome : { ...outcome, valid: false, reason: `launch failed: ${launchError}` });
   }
 
-  private async adopt(lane: FixedLane, slot: QueueSlot, pid: number | null): Promise<void> {
-    const launch = queueState(this.o.def, this.ledger()).launches.get(slot.slot);
-    const run = launch?.run ?? "";
+  // The child is recorded before anything that can throw and cleared only once it has exited, so a
+  // pause on the way keeps the lane's lease while the adopted trial still plays.
+  private async adopt(lane: FixedLane, slot: QueueSlot, run: string, pid: number | null): Promise<void> {
     if (pid !== null && this.o.host.alive(pid)) {
       this.children.set(lane.id, { slot: slot.slot, run, pid });
       this.writeRunner();
@@ -344,10 +369,11 @@ class Runner {
       this.children.delete(lane.id);
       this.writeRunner();
     }
+    this.children.delete(lane.id);
     this.record(lane, slot, run, classifyTrial(this.events(run), this.expectation(lane, slot), undefined));
   }
 
-  // runner.json names a running trial while any plays (merges into main wait on it); the lease names it too.
+  // runner.json names a running trial while any plays (merges into main wait on it); each lane's lease names that lane's.
   private writeRunner(): void {
     const latest = [...this.children.values()].at(-1);
     const path = runnerPath(this.o.runsRoot);
@@ -363,7 +389,10 @@ class Runner {
       mkdirSync(join(this.o.runsRoot, "experiments"), { recursive: true });
       writeFileSync(path, JSON.stringify({ pid: this.o.pid, experiment: this.o.def.id, trial: latest.slot, run: latest.run, child: latest.pid }));
     }
-    for (const lease of this.leases) nameLeaseRun(lease, { pid: this.o.pid, owner: `fixed-run:${this.o.def.id}`, ...(latest === undefined ? {} : { run: latest.run, child: latest.pid }) });
+    for (const [lane, lease] of this.leases) {
+      const child = this.children.get(lane);
+      nameLeaseRun(lease, { pid: this.o.pid, owner: `fixed-run:${this.o.def.id}`, ...(child === undefined ? {} : { run: child.run, child: child.pid }) });
+    }
   }
 
   private setLane(id: string, change: Partial<FixedLaneStatus>): void {

@@ -183,6 +183,7 @@
    "party-item-confirmation-v1": false,
    "same-target-no-progress-v1": false,
    "story-progress-clock-v1": false,
+   "yes-no-answer-readout-v1": false,
    "short-cycle-fixed-point-v1": false
   }
  },
@@ -238,6 +239,7 @@
   "party-item-confirmation-v1",
   "same-target-no-progress-v1",
   "story-progress-clock-v1",
+  "yes-no-answer-readout-v1",
   "short-cycle-fixed-point-v1"
  ],
  "offInBoth": [

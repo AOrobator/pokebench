@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {NAME_CONFIRMED} from "../../agent/test-support/events.js";
 import { parseEvent, type RunEvent } from "@pokebench/agent/events";
 import { BASE_MS, Log, START, assistant, fullRun, m4Run, must, state } from "../test-support/events.js";
+import { bagRun } from "../test-support/bag.js";
 import { boot, frameSocketUrl, mountApp, type App, type AppDeps, type FrameStreamLike, type StreamLike } from "./app.js";
 
 const PAGE = readFileSync(join(import.meta.dirname, "../static/index.html"), "utf8");
@@ -75,7 +76,7 @@ const RUNS = [
   { id: "2026-10-11T21-00-00_old", model: "think-swarm", started: "x", ended: true, reason: "budget", problem: null },
 ];
 
-async function harness(hash = "", runs: unknown[] = RUNS, workbench: unknown = null, heads: Readonly<Record<string, unknown>> = {}, stageFrame?: AppDeps["stageFrame"], fallback = true): Promise<Harness> {
+async function harness(hash = "", runs: unknown[] = RUNS, workbench: unknown = null, heads: Readonly<Record<string, unknown>> = {}, stageFrame?: AppDeps["stageFrame"], fallback = true, replies: Readonly<Record<string, unknown>> = {}): Promise<Harness> {
   document.body.innerHTML = PAGE.slice(PAGE.indexOf("<body>") + 6, PAGE.indexOf("</body>"));
   const streams: FakeStream[] = [];
   const frames: FakeFrameStream[] = [];
@@ -87,6 +88,7 @@ async function harness(hash = "", runs: unknown[] = RUNS, workbench: unknown = n
       const next = nextRunReply(url);
       if (next !== null) return next;
       fetched.push(url);
+      if (url in replies) return Promise.resolve(replies[url]);
       if (url === "/api/runs") return runs.length === 1 && runs[0] === "fail" ? Promise.reject(new Error("offline")) : Promise.resolve([...runs]);
       if (url.startsWith("/api/cards")) return workbench === null ? Promise.reject(new Error("workbench unavailable")) : Promise.resolve(workbench);
       if (url.endsWith("/head")) {
@@ -178,6 +180,7 @@ describe("viewer app", () => {
     const buttons = [...document.querySelectorAll<HTMLButtonElement>("[data-page]")];
     expect([...select.options].map((option) => [option.value, option.textContent])).toEqual(buttons.map((button) => [button.dataset.page, button.textContent]));
     expect(select.value).toBe("trace");
+    expect([...select.options].map((option) => option.value)).toEqual(["trace", "party", "next", "queue", "config", "trainer", "bag", "stats", "splits", "field", "run"]);
     const shown = (): string[] => [...document.querySelectorAll<HTMLElement>("[data-nav-page]")].filter((panel) => !panel.hidden).map((panel) => panel.dataset.navPage ?? "");
     select.value = "stats";
     select.dispatchEvent(new Event("change"));
@@ -187,9 +190,10 @@ describe("viewer app", () => {
     expect(select.value).toBe("party");
     const step = (by: string): void => { must(document.querySelector<HTMLButtonElement>(`[data-page-step="${by}"]`)).click(); };
     step("1");
-    expect(shown()).toEqual(["bag"]);
+    expect(shown()).toEqual(["next"]);
+    must(document.querySelector<HTMLButtonElement>('[data-page="trace"]')).click();
     step("1");
-    expect(shown()).toEqual(["stats"]);
+    expect(shown()).toEqual(["party"]);
     must(document.querySelector<HTMLButtonElement>('[data-page="trace"]')).click();
     step("-1");
     expect(shown()).toEqual(["run"]);
@@ -1876,5 +1880,58 @@ describe("head-first startup", () => {
     app.tick(0);
     expect(ui("trace").textContent).not.toContain("Again.");
     expect(ui("think-body").textContent).toContain("Again.");
+  });
+});
+
+describe("BAG page", () => {
+  beforeEach(() => {
+    document.body.innerHTML = "";
+  });
+
+  const flush = async (): Promise<void> => { for (let i = 0; i < 5; i += 1) await Promise.resolve(); };
+
+  function endedBagRun(): RunEvent[] {
+    const log = bagRun();
+    log.add(900_000, { type: "run_end", turn: 80, reason: "budget", furthest_milestone: null, turns: 80, wall_ms: 900_000, tokens: { input: 0, output: 0 }, frames: { saved: 0, bytes: 0 } });
+    return log.events;
+  }
+
+  it("draws the whole run's bag with the game's item icons once the page is open", async () => {
+    const { app, streams, fetched } = await harness(`#replay=${M4_ID}`, RUNS, null, {}, undefined, false, { "/sprites/bag/manifest.json": { items: [4, 13] } });
+    const stream = must(streams[0]);
+    feed(stream, endedBagRun(), false);
+    stream.send("done", {});
+    app.tick(0);
+    expect(ui("bag").innerHTML).toBe("");
+    expect(fetched).not.toContain("/sprites/bag/manifest.json");
+    must(document.querySelector<HTMLButtonElement>('[data-page="bag"]')).click();
+    await flush();
+    expect(fetched).toContain("/sprites/bag/manifest.json");
+    expect(ui("bag-range").textContent).toBe("RUN 890b · T0–T80");
+    expect([...ui("bag").querySelectorAll(".bg-kpi b")].map((b) => b.textContent)).toEqual(["7", "1", "¥200"]);
+    expect([...ui("bag").querySelectorAll(".bg-pk .bg-pn")].map((p) => p.textContent)).toEqual(["ITEMS", "POKé BALLS", "TMs & HMs", "BERRIES", "KEY ITEMS"]);
+    expect([...ui("bag").querySelectorAll(".bg-lab img")].map((i) => i.getAttribute("src"))).toEqual(["/sprites/bag/items/13.png", "/sprites/bag/items/4.png"]);
+    // A replay moving its cursor leaves the page alone: it shows the whole run.
+    const drawn = ui("bag").innerHTML;
+    app.clock?.seek(BASE_MS);
+    app.tick(0);
+    expect(ui("bag").innerHTML).toBe(drawn);
+  });
+
+  it("refolds when the recent head is replaced by the full history, and draws names without art", async () => {
+    const { app, streams } = await harness("", RUNS, null, {}, undefined, false);
+    const run = RUNS[0]?.id ?? "missing";
+    const events = bagRun().events.map((event) => ({ ...event, run }));
+    const primary = must(streams[0]);
+    must(document.querySelector<HTMLButtonElement>('[data-page="bag"]')).click();
+    await flush();
+    primary.send("head", [must(events[0]), ...events.slice(-3)]);
+    app.tick(0);
+    expect(ui("bag").querySelectorAll(".bg-lab")).toHaveLength(1);
+    feed(must(streams[1]), events);
+    app.tick(0);
+    expect([...ui("bag").querySelectorAll(".bg-lab")].map((l) => l.textContent)).toEqual(["POTION", "POKé BALL", "GREAT BALL"]);
+    expect(ui("bag").querySelector("img")).toBeNull();
+    expect(ui("bag").querySelectorAll(".bg-noicon")).toHaveLength(3);
   });
 });

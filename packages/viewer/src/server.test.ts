@@ -773,13 +773,13 @@ it("serves only the allowlisted trainer card art from runs/sprites/trainer-card-
  expect(BROWSER_MODULES).toEqual(expect.arrayContaining(["trainer-card","game-font"]));
 });
 
-it("serves only the allowlisted bag art from runs/sprites/bag-v1",async()=>{
+it("serves only the allowlisted bag item icons from runs/sprites/bag-v1",async()=>{
  const {runsRoot,viewer}=await fixture();const art=join(runsRoot,"sprites","bag-v1");
  for(const dir of ["items","pockets"])mkdirSync(join(art,dir),{recursive:true});
  writeFileSync(join(art,"manifest.json"),'{"items":[4]}');writeFileSync(join(art,"items","4.png"),PNG);writeFileSync(join(art,"pockets","tm_hm.png"),PNG);writeFileSync(join(art,"items","notes.txt"),"no");
  const manifest=await get(viewer,"/sprites/bag/manifest.json");expect(manifest.status).toBe(200);expect(manifest.type).toContain("application/json");expect(manifest.body.toString()).toBe('{"items":[4]}');
- for(const path of ["/sprites/bag/items/4.png","/sprites/bag/pockets/tm_hm.png"]){const reply=await get(viewer,path);expect(reply.status,path).toBe(200);expect(reply.type,path).toBe("image/png");}
- for(const path of ["/sprites/bag/items/notes.txt","/sprites/bag/items/0.png","/sprites/bag/items/1000.png","/sprites/bag/items/5.png","/sprites/bag/pockets/pc.png","/sprites/bag/../manifest.json","/sprites/bag/items/..%2f..%2fmanifest.json","/sprites/bag","/sprites/bag/manifest.json/x"])expect((await get(viewer,path)).status,path).toBe(404);
+ for(const path of ["/sprites/bag/items/4.png"]){const reply=await get(viewer,path);expect(reply.status,path).toBe(200);expect(reply.type,path).toBe("image/png");}
+ for(const path of ["/sprites/bag/items/notes.txt","/sprites/bag/items/0.png","/sprites/bag/items/1000.png","/sprites/bag/items/5.png","/sprites/bag/pockets/pc.png","/sprites/bag/pockets/tm_hm.png","/sprites/bag/../manifest.json","/sprites/bag/items/..%2f..%2fmanifest.json","/sprites/bag","/sprites/bag/manifest.json/x"])expect((await get(viewer,path)).status,path).toBe(404);
  expect(BROWSER_MODULES).toContain("bag");
 });
 

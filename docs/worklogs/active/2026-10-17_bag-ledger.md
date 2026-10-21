@@ -44,3 +44,17 @@ Viewer-only. No new recorded fields, no harness behavior change, so no feature s
 ## Multi-Model Review Log
 
 (none yet)
+
+**M2: The operator's redesign (coordinator, 2026-10-21)**
+
+The approved mockup changed: runs/mockups/bag-inventory/variant-c.html, v3.
+- Pocket headers become the game's bag pocket label: a yellow pill with red-outlined white text and a count box; empty pockets are grey. No bag sprite and no dots.
+- The CHANGES list and its ▶ jumps are removed.
+- POKéMON PARTY moves right after AGENT TRACE.
+- Wally's tutorial bag is not counted at all. Item changes shown in states with party_owner "tutorial" (the game's BATTLE_TYPE_WALLY_TUTORIAL flag) are skipped, and the lent bag never becomes a snapshot. The tutorial band, its legend entry and the TUTORIAL SWAP number are gone.
+- Round 1 GPT fixes are folded in:
+  - a ball thrown in an ordinary battle is no longer taken for the tutorial (the bag-shape heuristic is gone);
+  - an unrecorded pc_items is unknown, not empty;
+  - a pocket that is empty now shows grey even when it has history.
+- [x] Merged main ec8f514b into the branch (05c9d3a5d). Conflicts took main's side and re-added the BAG page; phone rules now use :root[data-phone].
+- [x] RED: new bag, app (page order, art, head→history refold) and server tests fail on the old page.

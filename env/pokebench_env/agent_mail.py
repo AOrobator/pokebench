@@ -302,9 +302,20 @@ def session_index() -> Path:
     return Path(os.environ.get("CODEX_SESSION_INDEX", default))
 
 
-def thread_id(thread: str, index: Path) -> str | None:
+def known_sessions() -> list[CodexSession]:
+    """Every Codex session in the index, newest first; none if the index cannot be read.
+
+    Codex owns and appends to that file. If it cannot be read, letters go by `codex queue`,
+    which takes names as well as ids, so nothing is lost.
+    """
+    try:
+        return codex_sessions(session_index(), limit=sys.maxsize)
+    except ValueError:
+        return []
+
+
+def thread_id(thread: str, sessions: list[CodexSession]) -> str | None:
     """The Codex thread id for an id or an exact session name; the newest session wins."""
-    sessions = codex_sessions(index, limit=sys.maxsize)
     for session in sessions:
         if session.id == thread:
             return session.id
@@ -315,15 +326,22 @@ def thread_id(thread: str, index: Path) -> str | None:
 
 
 def reach_codex(
-    room: Mailroom, thread: str, text: str, *, sender: str, now: datetime, run: Run
+    room: Mailroom,
+    thread: str,
+    text: str,
+    *,
+    sender: str,
+    now: datetime,
+    run: Run,
+    sessions: list[CodexSession] | None = None,
 ) -> tuple[int, bool]:
     """Reach a Codex thread: through a listening Codex coordinator, else `codex queue`.
 
     The coordinator forwards by thread id, so a session name is resolved first; a name with no
     known id goes straight to `codex queue`, which accepts names. Returns the exit code and
-    whether the coordinator took it.
+    whether the coordinator took it. Pass `sessions` to reuse one read of the index.
     """
-    target = thread_id(thread, session_index())
+    target = thread_id(thread, known_sessions() if sessions is None else sessions)
     if target is not None:
         letter = Letter(now, sender, text, to_thread=target)
         if deliver(room.addressed(CODEX_COORDINATOR), letter, only_if_listening=True):
@@ -473,12 +491,23 @@ def notify_moves(
     """Tell every entry whose place changed its new place: Codex via reach_codex, Claude by mail."""
     old = {entry.branch: number for number, entry in enumerate(before, start=1)}
     notices = []
+    sessions: list[CodexSession] | None = None
     for number, entry in enumerate(after, start=1):
         if old.get(entry.branch) == number:
             continue
         text = notice_text(entry, number, len(after))
         if entry.codex_thread is not None:
-            code = tell_codex(room, entry.codex_thread, text, sender="land-board", now=now, run=run)
+            if sessions is None:
+                sessions = known_sessions()  # One read of the index per board change.
+            code, _ = reach_codex(
+                room,
+                entry.codex_thread,
+                text,
+                sender="land-board",
+                now=now,
+                run=run,
+                sessions=sessions,
+            )
         else:
             tell_claude(room.addressed(entry.branch), sender="land-board", text=text, now=now)
             code = 0
@@ -545,6 +574,7 @@ def main(argv: Sequence[str] | None = None, *, run: Run = run_command) -> int:
     tell.add_argument(
         "--stdin", action="store_true", help="read the letter from standard input, verbatim"
     )
+    tell.add_argument("--file", type=Path, default=None, help="read the letter from a file")
     tell.add_argument("words", nargs="*")
     box = commands.add_parser("claude-mailbox", help="wait for letters (run in the background)")
     box.add_argument("--timeout", type=float, default=None)
@@ -582,9 +612,14 @@ def main(argv: Sequence[str] | None = None, *, run: Run = run_command) -> int:
     room = Mailroom.for_repo(Path.cwd())
     now = datetime.now(UTC)
     if args.command == "tell-claude":
-        if args.stdin == bool(args.words):
-            parser.error("give the letter as words or with --stdin, not both or neither")
-        text = sys.stdin.read() if args.stdin else " ".join(args.words)
+        if [args.stdin, args.file is not None, bool(args.words)].count(True) != 1:
+            parser.error("give the letter as words, with --stdin or with --file: exactly one")
+        if args.file is not None:
+            text = args.file.read_text(encoding="utf-8")
+        elif args.stdin:
+            text = sys.stdin.read()
+        else:
+            text = " ".join(args.words)
         box_room = room if args.to is None else room.addressed(args.to)
         live = tell_claude(box_room, sender=args.sender, text=text, now=now)
         print(

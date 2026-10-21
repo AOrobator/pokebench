@@ -18,6 +18,12 @@ from pokebench_env import agent_mail as am
 T = datetime(2026, 10, 21, 14, 27, tzinfo=UTC)
 
 
+@pytest.fixture(autouse=True)
+def no_real_codex_index(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Tests never read the operator's live ~/.codex/session_index.jsonl."""
+    monkeypatch.setenv("CODEX_SESSION_INDEX", str(tmp_path / "no-codex-index.jsonl"))
+
+
 class Runs:
     def __init__(self, code: int = 0) -> None:
         self.calls: list[list[str]] = []
@@ -775,6 +781,13 @@ def test_tell_claude_from_stdin_keeps_shell_text_literal(
         am.main(["tell-claude"])
     with pytest.raises(SystemExit):
         am.main(["tell-claude", "--stdin", "words"])
+    report = tmp_path / "report.txt"
+    hostile = "safe\nLETTER\nprintf EXECUTED\n$(touch x)"
+    report.write_text(hostile)
+    assert am.main(["tell-claude", "--from", "codex coordinator", "--file", str(report)]) == 0
+    assert am.collect(am.Mailroom(tmp_path / "mail"))[0].text == hostile
+    with pytest.raises(SystemExit):
+        am.main(["tell-claude", "--file", str(report), "--stdin"])
 
 
 def test_session_names_resolve_to_thread_ids_for_the_coordinator(
@@ -783,9 +796,10 @@ def test_session_names_resolve_to_thread_ids_for_the_coordinator(
     known_threads(tmp_path, monkeypatch, "01a1-id")
     r = room(tmp_path)
     runs = Runs()
-    assert am.thread_id("name 01a1-id", tmp_path / "codex-index.jsonl") == "01a1-id"
-    assert am.thread_id("01a1-id", tmp_path / "codex-index.jsonl") == "01a1-id"
-    assert am.thread_id("nobody", tmp_path / "codex-index.jsonl") is None
+    sessions = am.known_sessions()
+    assert am.thread_id("name 01a1-id", sessions) == "01a1-id"
+    assert am.thread_id("01a1-id", sessions) == "01a1-id"
+    assert am.thread_id("nobody", sessions) is None
     listener, got = listen_in_background(r.addressed(am.CODEX_COORDINATOR))
     assert am.reach_codex(r, "name 01a1-id", "hi", sender="c", now=T, run=runs) == (0, True)
     listener.join(5)
@@ -797,3 +811,41 @@ def test_session_names_resolve_to_thread_ids_for_the_coordinator(
     am.tell_claude(r.addressed(am.CODEX_COORDINATOR), sender="test", text="wake", now=T)
     listener.join(5)
     assert [x.to_thread for x in got[0]] == [None]
+
+
+def test_an_unreadable_codex_index_falls_back_to_codex_queue(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    index = tmp_path / "broken-index.jsonl"
+    index.write_text('{"id": "z"}\n')
+    monkeypatch.setenv("CODEX_SESSION_INDEX", str(index))
+    assert am.known_sessions() == []
+    r = room(tmp_path)
+    runs = Runs()
+    listener, got = listen_in_background(r.addressed(am.CODEX_COORDINATOR))
+    assert am.reach_codex(r, "A", "hi", sender="c", now=T, run=runs) == (0, False)
+    assert runs.calls == [["codex", "queue", "--thread", "A", "--message", "hi"]]
+    am.tell_claude(r.addressed(am.CODEX_COORDINATOR), sender="test", text="wake", now=T)
+    listener.join(5)
+
+
+def test_one_board_change_reads_the_codex_index_once(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    known_threads(tmp_path, monkeypatch, "B", "C", "D")
+    reads: list[int] = []
+    real = am.codex_sessions
+
+    def counted(index: Path, *, limit: int) -> list[am.CodexSession]:
+        reads.append(1)
+        return real(index, limit=limit)
+
+    monkeypatch.setattr(am, "codex_sessions", counted)
+    r = room(tmp_path)
+    am.board_join(r, who="claude a", branch="claude/a", codex_thread=None, now=T)
+    for name in "BCD":
+        am.board_join(r, who=f"codex {name}", branch=f"codex/{name}", codex_thread=name, now=T)
+    am.board_done(r, branch="claude/a", now=T, run=Runs())
+    assert len(reads) == 1
+    assert am.board_done(r, branch="codex/D", now=T, run=Runs()) == []
+    assert len(reads) == 1

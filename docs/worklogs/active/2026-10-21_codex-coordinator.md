@@ -29,3 +29,8 @@ M3 REVIEW/LAND: Claude, Grok, GPT lanes; land through the board.
   - Accepted (Claude B1): board entries and talk-to-codex use session names, but send_message_to_thread takes a thread id. FIX: reach_codex resolves names to ids from ~/.codex/session_index.jsonl (newest session wins); an unknown name goes straight to codex queue, which takes names. Test: name, id, unknown name.
   - Accepted (GPT 3): talk-to-codex and docstrings still said board notices to Codex go by codex queue. Fixed.
   - Gates on 6056f3ed failed twice only on the pre-existing flaky serial-comparison "hung child" TS test (fix proposed as a separate session). 49 agent-mail tests, module 100%.
+- R3 packet (head fe76717e; gates clean on try 2 after one flaky hung-child run): Grok LGTM; Claude and GPT BLOCKING.
+  - Accepted (Claude, GPT 2): tests read the operator's live ~/.codex/session_index.jsonl. FIX: autouse fixture points CODEX_SESSION_INDEX at a missing tmp file; an unreadable index now means "no ids known" (falls back to codex queue) instead of raising.
+  - Accepted (GPT 2): each moved Codex entry re-read and re-parsed the whole index. FIX: notify_moves reads it once per board change (test counts one read for three Codex notices, none when no Codex entry moves).
+  - Accepted (GPT 1): a letter line equal to the heredoc delimiter would escape it. FIX: `tell-claude --file`; the skill writes the report with the file-editing tool, never through the shell (test with a delimiter line and $(...) kept literal).
+  - 51 agent-mail tests, module 100%.

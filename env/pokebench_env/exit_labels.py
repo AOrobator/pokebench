@@ -189,6 +189,18 @@ def _at(tiles: Iterable[Tile]) -> str:
     return " or ".join(f"({x},{y})" for x, y in tiles)
 
 
+def destination_name(internal: str | None, shown: str | None, *, enabled: bool) -> str | None:
+    """Keep the exterior GYM identity when the popup supplies only its city.
+
+    PetalburgCity_Text_ThisIsGymSign / PetalburgCity_Text_GymSign identify GYM;
+    the destination's map-table suffix identifies which entrance is that building.
+    No leader, badge, route or other internal map-name component is exposed.
+    """
+    if enabled and shown and internal and internal.endswith(" GYM") and not shown.endswith(" GYM"):
+        return shown + " GYM"
+    return shown
+
+
 def _label(map_id: MapId, shown: Shown, here: MapId) -> str:
     name = THIS_MAP if map_id == here else shown(map_id) or UNNAMED
     return f"{name} (map {map_id[0]}/{map_id[1]})"

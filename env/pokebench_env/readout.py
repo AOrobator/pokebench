@@ -113,6 +113,7 @@ SERVER_FEATURES = (
     "move-learn-settle-v1",
     "move-learn-question-v1",
     "move-learn-comparison-v1",
+    "gym-door-label-v1",
 )
 
 
@@ -136,7 +137,7 @@ def features_off_from_env(env: Mapping[str, str]) -> frozenset[str]:
         "semantic-navigation-v2,exit-labels-v2,heal-before-trainers-v2,respawn-readout-v1,"
         "caught-nickname-prompt-v1,party-item-confirmation-v1,yes-no-answer-readout-v1,"
         "field-move-gates-v1,exit-labels-v3,move-learn-settle-v1,move-learn-question-v1,"
-        "move-learn-comparison-v1",
+        "move-learn-comparison-v1,gym-door-label-v1",
     )
     if raw == "":
         return frozenset()

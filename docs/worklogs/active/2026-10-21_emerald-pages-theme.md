@@ -11,7 +11,7 @@ Requested by the operator, 2026-10-21 (thread "Get a local model to catch rayqua
 ## Milestones
 - [x] M1 sample (runs/mockups/emerald-pages) sent; PokéNav top glitch fixed (one device shape drawn behind `main`, body isolated)
 - [x] M2 stylesheet, `pages-theme`, skills, applied to 171 tracked pages
-- [ ] M3 review loop (Claude, Grok, GPT lanes), land ff-only on main, theme the four 2026-10-21 reports in runs/reports
+- [x] M3 review loop (Claude, Grok, GPT lanes), land ff-only on main, theme the four 2026-10-21 reports in runs/reports
 
 ## Commits
 - COMMIT: `feat(pages): Emerald PokéNav theme for explainers and experiment pages` (4de1aab73)
@@ -47,3 +47,7 @@ Requested by the operator, 2026-10-21 (thread "Get a local model to catch rayqua
 - GREEN: colour-scheme queries match case-insensitively; `main h2` drops any page background band (display block, background none). 11/11 theme tests. Re-themed 174 pages and the 4 reports; sweep rerun (522 views at 1280x900/1440x900/375x812, details open on 5 pages): 0 requests, one main + h1 each, only offscreen-objects-v1's pre-existing overflow; no h2-h4 inside main keeps a background on any page.
 - COMMITS: RED 75e1770f3, GREEN 6280fd071. The operator (11:11 AM New York): "fix it, and then land."
 - Landing turn (11:42 AM): merged main (2b446b38e); themed 7 new explainers (exp-earned-ledger, exp-next-level, leader-attempt-ledger, party-coverage, pokedex-own, seen-trainers-ledger, said-type-matches); text equal to main's; swept at 1280x900/1440x900/375x812 (21 views clean, 0 requests); no heading keeps a background.
+
+## Landed
+- Landed by fast-forward at 11:4x AM New York on the operator's word ("fix it, and then land.", 11:11 AM) after round 3 (Grok LGTM; Claude's and GPT's real bugs fixed; GPT's comment/script, CSS-content and CRLF-old-wrap cases left as follow-ups). Main: b6bc2381b. `just test` on main: agent 3322, viewer 1612, python 3702 passed. Live: 8791 serves the themed explainers, experiments and reports (200, one theme block each). land-done ran.
+- Follow-ups (not done): an HTML-parser-based wrap that ignores comments/scripts; skip colour-scheme text inside CSS strings; repair CRLF wraps; offscreen-objects-v1's own horizontal overflow; one GLM report chart wider than a phone.

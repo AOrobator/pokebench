@@ -7,7 +7,8 @@ import type {AssistantMessage,ToolResultMessage} from "@mariozechner/pi-ai";
 import {Governor,NUDGE,TEXT_ONLY_REMINDER} from "./harness.js";
 import {cutOffReplyNotice} from "./cut-off-reply.js";
 import {followUpText} from "./decision-probe.js";
-import {ALL_ON,SWITCHABLE_FEATURES,type FeatureSet} from "./features.js";
+import {ALL_ON as GYM_EVIDENCE_CURRENT_ALL_ON,SWITCHABLE_FEATURES,type FeatureSet} from "./features.js";
+const ALL_ON={...GYM_EVIDENCE_CURRENT_ALL_ON,"gym-evidence-v1":false};
 
 const ID="cut-off-reply-feedback-v1" as const;
 const OFF=Object.fromEntries(SWITCHABLE_FEATURES.map(id=>[id,false])) as FeatureSet;

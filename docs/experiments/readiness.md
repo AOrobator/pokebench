@@ -280,3 +280,9 @@ Pending, unqueued and unapproved. NEW_GAME_CREATED activation is reachable; heal
 ## GLM-run harness bug switches (2026-10-21)
 
 `story-goal-player-name-v1`, `cut-off-reply-feedback-v1`, `trainer-sight-check-v2`, `auto-talk-v2`, `map-wide-triggers-v1` and `drought-battle-heal-hold-v1` are pending, unqueued and unapproved. Activation milestones: MOM_RIVAL_INSTRUCTION, NEW_GAME_CREATED, ROUTE_102, ROUTE_102, PLAYER_HOUSE_EXITED_AFTER_CLOCK and STARTER_CHOSEN. Boot runs reach the earlier ones reliably; ROUTE_102 is reached by most 2-hour MAIN_MENU runs (GLM 3 of 4, Qwen3.6 overnight pairs 6 of 6), so a Route 102 checkpoint start would measure the two Route 102 switches more cheaply. `just experiments-check` reports no problem for these entries (its 150 starter-decision-salience ledger problems are pre-existing on main). Per memory "long runs only", bundle-only bug fixes are measured by long cook runs; no gameplay-benefit claim.
+
+## gym-evidence-v1 (2026-10-21)
+
+Pending, unqueued and unapproved. WALLY_TUTORIAL_COMPLETE is the conservative activation lower bound: Dad names the Gym immediately afterwards. Gym false-completion exposure requires a qualified post-trainer/pre-heal checkpoint; milestone reach alone is insufficient. Deterministic recorded-data proof is not gameplay-benefit evidence. Source will name the reviewed code checkpoint; repin before any future measured use.
+
+Gym-evidence readiness receipt: 0/4 WALLY_TUTORIAL_COMPLETE in recent think-fast fallback runs (2026-10-15T13-36-02_think-fast_2f46, 14-21-06_think-fast_6684, 15-06-08_think-fast_dc0e, 15-51-18_think-fast_17a0); no candidate schema/unknown-switch problems. These historical boot runs are not the current Qwen checkpoint lane. Keep pending. The global checker reports 150 pre-existing starter-decision-salience trial-ledger errors; originals unchanged.

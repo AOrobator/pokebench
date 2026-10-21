@@ -207,3 +207,5 @@ The original ignored runs/explainers copies remain for existing links. Make futu
 - [Auto-talk: skip beaten trainers](auto-talk-v2.html) — default OFF, bundle arm only: trainers the readout shows as defeated are not auto-talk targets.
 - [Map-wide triggers](map-wide-triggers-v1.html) — default OFF, bundle arm only, game server: the state lists every coordinate trigger on the map so a Littleroot stride stops at (10,10) before the (10,9) trigger; the readout text keeps the 7-tile list.
 - [Drought hold in battles and heals](drought-battle-heal-hold-v1.html) — default OFF, bundle arm only: milestone-drought briefings are held (recorded as diagnostics) during battles, trainer sight scripts and harness-ordered heal trips; the drought clock restarts when a hold that kept a briefing back ends, or when the asked-for heal is done.
+
+- [Gym evidence](gym-evidence-v1.html): current native completion, compound Gym identity and citation delivery; no next-action guidance.

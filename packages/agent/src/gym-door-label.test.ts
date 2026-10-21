@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { expect, it } from "vitest";
-import { ALL_ON, featureInfo, playHarnessFeatures, serverFeatureEnv } from "./features.js";
+import { ALL_ON as GYM_EVIDENCE_CURRENT_ALL_ON, featureInfo, playHarnessFeatures, serverFeatureEnv } from "./features.js";
+const ALL_ON={...GYM_EVIDENCE_CURRENT_ALL_ON,"gym-evidence-v1":false};
 import { flagFeatures } from "./play-preset.js";
 
 const id = "gym-door-label-v1";

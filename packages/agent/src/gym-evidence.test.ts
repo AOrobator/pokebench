@@ -5,11 +5,13 @@ import {Type} from "typebox";
 import type {AgentTool,AgentToolResult} from "@mariozechner/pi-agent-core";
 import {checkEvent,type RunEvent} from "./events.js";
 import {parseGameState,type GameStateSnapshot} from "./game-state.js";
-import {ALL_ON,SWITCHABLE_FEATURES,featureInfo,playHarnessFeatures,type FeatureSet} from "./features.js";
+import {ALL_ON as GYM_EVIDENCE_CURRENT_ALL_ON,SWITCHABLE_FEATURES,featureInfo,playHarnessFeatures,type FeatureSet} from "./features.js";
+const ALL_ON={...GYM_EVIDENCE_CURRENT_ALL_ON,"gym-evidence-v1":false};
 import {flagFeatures,parsePlayPreset,presetFeatures} from "./play-preset.js";
 import {playGameTools} from "./play-wiring.js";
+import {isCheckedPress,pressTool,type CheckedPressTool} from "./game-tools.js";
 import {StoryDestinations,type PlacesBody} from "./story-destinations.js";
-import {GymProgress} from "./gym-readiness.js";
+import {GymProgress,withGymProgress} from "./gym-readiness.js";
 
 const ID="gym-evidence-v1";
 const raw=JSON.parse(gunzipSync(readFileSync(new URL("../test-support/gym-evidence-d548.json.gz",import.meta.url))).toString()) as {events:unknown[]};
@@ -25,14 +27,15 @@ const resultText=(r:AgentToolResult<unknown>)=>r.content.flatMap(p=>p.type==="te
 function factory(on:boolean,options:{trust?:boolean;destinations?:boolean;cite?:boolean}={}){
  const subs:((e:RunEvent)=>void)[]=[];
  const citations:unknown[]=[];
+ const calls:{name:string;id:string;params:unknown}[]=[];
  const recorder={subscribe:(f:(e:RunEvent)=>void)=>{subs.push(f);},recordState:()=>{throw Error("unused");},recordDialogueAutoAdvance:()=>{throw Error("unused");},lowHpTrainerWarning:()=>undefined,peopleIdCard:()=>undefined,storyGoalAway:()=>undefined,storyBattleWarning:()=>undefined,healBeforeTrainersWarning:()=>undefined,unfinishedActivity:()=>undefined,destinationCitation:(facts:unknown,text:string|null)=>{citations.push({facts,text});}};
  let current:AgentToolResult<{state:GameStateSnapshot}>={content:[{type:"text",text:"Screen: overworld\nLocation: RUSTBORO CITY\nStory: Rustboro Gym Josh defeated; Rustboro Gym Tommy defeated; Rustboro Gym Marc defeated\nBadges: none"}],details:{state}};
- const base:AgentTool[]=["observe","press","navigate_to"].map(name=>({name,label:name,description:"fixture",parameters:Type.Object({}),execute:()=>Promise.resolve(current)}));
+ const base:AgentTool[]=["observe","press","navigate_to"].map(name=>({name,label:name,description:"fixture",parameters:Type.Object({}),execute:(id:string,params:unknown)=>{calls.push({name,id,params});return Promise.resolve(current);}}));
  const features={...OFF,[ID]:on,"harness-trust-v1":options.trust??false,"story-destinations-v1":options.destinations??false,"cited-destination-v1":options.cite??false,"input-cuts-v1":true,"reachable-story-guidance-v1":true};
- const tools=playGameTools(base,features,{read:()=>Promise.resolve({state}),places:()=>Promise.resolve(places)},recorder);
+ const tools=playGameTools(base,features,{read:()=>Promise.resolve(state),places:()=>Promise.resolve(places)},recorder);
  const feed=(es:readonly RunEvent[])=>{for(const e of es)for(const sub of subs)sub(e);};
  const call=(name:string,args:unknown={})=>must(tools.find(t=>t.name===name)).execute("test",args);
- return {tools,feed,call,citations,set:(s:GameStateSnapshot,text:string)=>{current={content:[{type:"text",text}],details:{state:s}};}};
+ return {tools,feed,call,citations,calls,set:(s:GameStateSnapshot,text:string)=>{current={content:[{type:"text",text}],details:{state:s}};}};
 }
 
 it("registers default OFF, records ON, and puts only the bundle arms ON",()=>{
@@ -66,7 +69,7 @@ it("native false, true and unavailable stay distinct; healing does not retire pr
  expect(g.block(state)).toBe(line);
  expect(g.block({...state,story:{...must(state.story),rustboro_gym_complete:true,roxanne_defeated:true}})).toBe("Gym progress (game memory): RUSTBORO CITY GYM complete; ROXANNE defeated.");
  expect(g.block({...state,story:{...must(state.story),rustboro_gym_complete:null,roxanne_defeated:null}})).toBe("Gym progress (game memory): RUSTBORO CITY GYM completion unknown; ROXANNE defeat state unknown.");
- expect(g.block({...state,story:undefined})).toBe("Gym progress (game memory): RUSTBORO CITY GYM completion unknown; ROXANNE defeat state unknown.");
+ expect(g.block({...state,story:null})).toBe("Gym progress (game memory): RUSTBORO CITY GYM completion unknown; ROXANNE defeat state unknown.");
  expect(g.block({...state,started:false})).toBeNull();
  const failed=new GymProgress();const e=must(events.find((e):e is Extract<RunEvent,{type:"tool_result"}>=>e.type==="tool_result"&&e.seq===14990));failed.observe({...e,is_error:true});expect(failed.block(state)).toBeNull();
 });
@@ -101,5 +104,40 @@ it("delivers citation misses despite input-cuts, records the same delivered text
  expect(yes).toContain('Destination citation: the supplied because text was not found in the game observations shown this run.');
  expect(yes).not.toContain(args.because);
  expect(no).not.toContain("Destination citation:");
- expect(on.citations).toContainEqual({facts:expect.objectContaining({verdict:"not_found",because:args.because}),text:"Destination citation: the supplied because text was not found in the game observations shown this run."});
+ expect(on.calls).toEqual(off.calls);
+ expect(on.calls).toEqual([{name:"navigate_to",id:"test",params:{x:17,y:20,map_id:[0,3]}}]);
+ expect(on.citations).toContainEqual({facts:{tool_call_id:"test",because:args.because,verdict:"not_found",found_turn:null,x:17,y:20,map_id:[0,3]},text:"Destination citation: the supplied because text was not found in the game observations shown this run."});
+});
+
+it("qualifies only delivered game readout names; model rationale echoes and native states do not introduce names",()=>{
+ const event=must(events.find((e):e is Extract<RunEvent,{type:"tool_result"}>=>e.type==="tool_result"&&e.seq===14990));
+ const g=new GymProgress();g.observe(recorded);g.observe({...event,text:'Because: "ROXANNE is in RUSTBORO CITY GYM" is not in anything the game showed.'});
+ expect(g.block(state)).toBeNull();
+ g.observe({...event,text:'Story: Rustboro Gym Josh defeated\nStory characters here: none. Not on this map: PROF. BIRCH, ROXANNE, STEVEN.'});
+ expect(g.block(state)).toBe('Gym progress (game memory): RUSTBORO CITY GYM incomplete.');
+ g.observe({...event,text:'Sign text "RUSTBORO CITY POKéMON GYM | LEADER: ROXANNE | “The ROCK-loving honors student!”" at (23,19)'});
+ expect(g.block(state)).toBe(line);
+});
+
+it("keeps checked presses and all game result paths, including missing text/state, on the original execution path",async()=>{
+ const subs:((e:RunEvent)=>void)[]=[];const recorder={subscribe:(f:(e:RunEvent)=>void)=>{subs.push(f);}};
+ let result:AgentToolResult<unknown>={content:[{type:"image",data:"abc",mimeType:"image/png"}],details:{state}};
+ const calls:unknown[][]=[];
+ const execute:AgentTool['execute']=(...args)=>{calls.push(args);return Promise.resolve(result);};
+ const original=pressTool("http://127.0.0.1:1",{beforePress:()=>undefined,afterPress:()=>Promise.resolve()});
+ if(!isCheckedPress(original))throw Error("checked fixture");
+ const checked:CheckedPressTool={...original,execute,executeChecked:(...args)=>{calls.push(args);return Promise.resolve({content:result.content,details:{state}});}};
+ const base=[checked,...['observe','navigate_to','navigate_to_target','explore_map','battle_action','recall_dialogue'].map(name=>({...checked,name}))];
+ const tools=withGymProgress(base,{...OFF,[ID]:true,'semantic-navigation-v2':true},recorder);
+ for(const e of events)for(const sub of subs)sub(e);
+ const signal=new AbortController().signal,update=()=>undefined;
+ const press=must(tools.find(t=>t.name==='press'));if(!isCheckedPress(press))throw Error('lost checked press');
+ const check=()=>undefined;
+ const out=await press.executeChecked('checked',{buttons:['A']},check,signal,update);
+ expect(calls).toEqual([['checked',{buttons:['A']},check,signal,update,undefined]]);
+ expect(resultText(out)).toBe(line);expect(out.content[1]).toEqual(result.content[0]);
+ for(const name of ['observe','navigate_to','navigate_to_target','explore_map','battle_action'])expect(resultText(await must(tools.find(t=>t.name===name)).execute(name,{}))).toBe(line);
+ expect(must(tools.find(t=>t.name==='recall_dialogue'))).toBe(base.at(-1));
+ result={content:[{type:'text',text:'unchanged'}],details:{}};
+ expect(await press.execute('no-state',{buttons:['A']})).toBe(result);
 });

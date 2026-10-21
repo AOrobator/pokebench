@@ -129,3 +129,45 @@ export function withGymReadiness(tools:readonly AgentTool[],features:FeatureSet,
   return checked;
  });
 }
+
+// RustboroCity_Gym_EventScript_RoxanneDefeated sets completion separately from the gym trainers.
+export class GymProgress {
+ private gymKnown=false;
+ private leaderKnown=false;
+ observe(event:RunEvent):void {
+  if(event.type!=="tool_result"||event.is_error)return;
+  if(/^(?:Location: RUSTBORO CITY GYM\b|Story: [^\n]*Rustboro Gym\b|Sign text "RUSTBORO CITY POKéMON GYM\b)/m.test(event.text))this.gymKnown=true;
+  const present=event.text.split("\n").filter(line=>line.startsWith("Story characters")).map(line=>line.split(". Not on this map:")[0]??"").join("\n");
+  if(/\bROXANNE\b/.test(present)||/^(?:Sign text "RUSTBORO CITY POKéMON GYM \| LEADER: ROXANNE\b|- map 11\/3 object \d+: sprite ROXANNE\b)/m.test(event.text))this.leaderKnown=true;
+ }
+ block(state:GameStateSnapshot):string|null {
+  if(!state.started||!this.gymKnown)return null;
+  const complete=state.story?.rustboro_gym_complete;
+  const defeated=state.story?.roxanne_defeated;
+  const gym=complete===true?"complete":complete===false?"incomplete":"completion unknown";
+  const leader=defeated===true?"defeated":defeated===false?"not defeated":"defeat state unknown";
+  return `Gym progress (game memory): RUSTBORO CITY GYM ${gym}${this.leaderKnown?`; ROXANNE ${leader}`:""}.`;
+ }
+}
+
+export function withGymProgress(tools:readonly AgentTool[],features:FeatureSet,recorder:Pick<RunRecorder,"subscribe">):AgentTool[] {
+ if(!features["gym-evidence-v1"])return [...tools];
+ const progress=new GymProgress();recorder.subscribe(event=>{progress.observe(event);});
+ const annotate=<T>(result:AgentToolResult<T>):AgentToolResult<T>=>{
+  const state=stateOf(result.details);
+  if(state===null)return result;
+  const line=progress.block(state);
+  if(line===null)return result;
+  const content=[...result.content];
+  const index=content.findIndex(p=>p.type==="text");
+  const part=content[index];
+  if(part?.type==="text")content[index]={...part,text:`${line}\n${part.text}`};else content.unshift({type:"text",text:line});
+  return {...result,content};
+ };
+ return tools.map(tool=>{
+  if(!["observe","press","navigate_to","battle_action"].includes(tool.name)&&!semanticWalk(tool.name,features))return tool;
+  const execute:AgentTool["execute"]=async(id,params,signal,update)=>annotate(await tool.execute(id,params,signal,update));
+  if(!isCheckedPress(tool))return {...tool,execute};
+  return {...tool,execute,executeChecked:async(id,params,check,signal,update,options)=>annotate(await tool.executeChecked(id,params,check,signal,update,options))} satisfies CheckedPressTool;
+ });
+}

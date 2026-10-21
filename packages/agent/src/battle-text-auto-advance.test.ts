@@ -19,6 +19,7 @@ import {checkEvent,type Button,type RunEvent} from "./events.js";
 import {RunRecorder} from "./recorder.js";
 import {RunLog} from "./run-log.js";
 import {FrameStore} from "./frames.js";
+import {experimentArms,parseExperiment} from "./experiments.js";
 import {RUN_START_META} from "../test-support/events.js";
 
 const ID="battle-text-auto-advance-v1";
@@ -754,4 +755,12 @@ describe("pending-field-dialogue-v1",()=>{
   expect(textOf(await tool("battle_action").execute("off-action",{}))).toBe("Battle action: nothing pressed: no battle is in progress.");
   expect(server.posts).toEqual([]);expect(rec.advances()).toEqual([]);
  });
+});
+
+it("the pending field dialogue experiment explicitly declares every current switch and flips only its treatment",()=>{
+ const raw=JSON.parse(readFileSync(new URL("../../../experiments/pending-field-dialogue-v1.json",import.meta.url),"utf8")) as {incumbent:{features:Record<string,boolean>}};
+ expect(Object.keys(raw.incumbent.features)).toEqual([...SWITCHABLE_FEATURES]);
+ const entry=parseExperiment(raw),{incumbent,candidate}=experimentArms(entry);
+ expect(entry.queuePosition).toBeUndefined();
+ expect(SWITCHABLE_FEATURES.filter(id=>incumbent.features[id]!==candidate.features[id])).toEqual(["pending-field-dialogue-v1"]);
 });

@@ -5,7 +5,8 @@ import {dialogueLog} from "./dialogue-log.js";
 import {parseGameState,type StateSource} from "./game-state.js";
 import {withNavigation,type NavigationPorts} from "./navigation.js";
 import {withNavigateFirst} from "./navigate-first.js";
-import {withLowHpTrainerWarning,type WarningRecorder} from "./low-hp-trainer-warning.js";
+import {healArm,withLowHpTrainerWarning,type HealArm,type WarningRecorder} from "./low-hp-trainer-warning.js";
+import {StoryBattleHealGate,withStoryBattleHealGate,type GateDecision} from "./story-battle-heal-gate.js";
 import type {FeatureSet} from "./features.js";
 import {ContextBudget,budgetLimit,type BudgetTrim} from "./context-budget.js";
 import {instructionLedger} from "./instruction-ledger.js";
@@ -132,12 +133,26 @@ function trainerSight(state:StateSource,recorder:SightRecorder):TrainerSightPort
   record:check=>{if(recorder.trainerSightCheck===undefined)throw new Error("trainer-sight-check-v1 needs a recorder for trainer_sight_check events");recorder.trainerSightCheck(check);},
  };
 }
-export function playGameTools(base:readonly AgentTool[],features:FeatureSet,state:StateSource,recorder:AutoAdvanceRecorder&WarningRecorder&IdCardRecorder&TrustRecorder&Pick<CitationRecorder,"destinationCitation">&Pick<ActivityRecorder,"unfinishedActivity">&SightRecorder,gate?:NavigationPorts["gate"],extra:readonly AgentTool[]=[]):AgentTool[]{
+// story-battle-heal-gate-v1 shares heal-before-trainers' arm (its map table and heal-place list) with the warnings, asks
+// the same trainer sight endpoint, and records each decision as a story_battle_heal_gate event. Its press and
+// navigate_to_target check sits right inside the warnings, so a refusal's observation gets their paragraphs like any
+// other result; its navigate_to check is navigate_to's own, beside trainer-sight-check-v1's.
+export interface GateRecorder {storyBattleHealGate?(decision:GateDecision):void}
+function storyBattleHealGate(arm:HealArm,state:StateSource,recorder:GateRecorder):StoryBattleHealGate {
+ const record=recorder.storyBattleHealGate?.bind(recorder);
+ if(record===undefined)throw new Error("story-battle-heal-gate-v1 needs a recorder for story_battle_heal_gate events");
+ const heal=arm.heal;
+ if(heal===null)throw new Error("story-battle-heal-gate-v1 needs heal-before-trainers-v1's arm");
+ return new StoryBattleHealGate({places:arm.table,heal:s=>heal.known(s),check:(mapId,tiles,signal)=>state.trainerSight===undefined?Promise.reject(new Error("story-battle-heal-gate-v1 needs a game server that serves /pokebench/trainer-sight")):state.trainerSight(mapId,tiles,signal),record});
+}
+export function playGameTools(base:readonly AgentTool[],features:FeatureSet,state:StateSource,recorder:AutoAdvanceRecorder&WarningRecorder&IdCardRecorder&TrustRecorder&Pick<CitationRecorder,"destinationCitation">&Pick<ActivityRecorder,"unfinishedActivity">&SightRecorder&GateRecorder,gate?:NavigationPorts["gate"],extra:readonly AgentTool[]=[]):AgentTool[]{
  const terrain=features["visited-terrain-navigation-v1"]&&!features["full-map-navigation-v1"]?new VisitedTerrain():null;
  const navigationState=terrain?.source(state)??state;
  const sight=features["trainer-sight-check-v1"]?trainerSight(state,recorder):undefined;
- const navigated=withSemanticNavigation(withNavigation(base,features,navigationState,gate,sight),features,navigationState);
- const facts=[...withResultFacts(withUnfinishedActivity(withLowHpTrainerWarning(withNavigateFirst([...withInstructionLedgerV2(withStoryDestinations(withPeopleIdCards(withUntakenExits(withGymReadiness(withPeopleLedger(withDialogueAutoAdvance(withBattleAction(withNoExitHere(navigated,features),features,state,gate),features,{state,recorder,...(gate===undefined?{}:{gate})}),features,recorder),features,recorder),features,recorder),features,recorder),features,recorder,state),features,recorder),...extra],features),features,recorder,state),features,recorder,state),features,recorder)];
+ const arm=features["story-battle-heal-gate-v1"]?healArm(features,state):undefined;
+ const healGate=arm===undefined?undefined:storyBattleHealGate(arm,state,recorder);
+ const navigated=withSemanticNavigation(withNavigation(base,features,navigationState,gate,sight,healGate),features,navigationState);
+ const facts=[...withResultFacts(withUnfinishedActivity(withLowHpTrainerWarning(withStoryBattleHealGate(withNavigateFirst([...withInstructionLedgerV2(withStoryDestinations(withPeopleIdCards(withUntakenExits(withGymReadiness(withPeopleLedger(withDialogueAutoAdvance(withBattleAction(withNoExitHere(navigated,features),features,state,gate),features,{state,recorder,...(gate===undefined?{}:{gate})}),features,recorder),features,recorder),features,recorder),features,recorder),features,recorder,state),features,recorder),...extra],features),healGate,state),features,recorder,state,arm),features,recorder,state),features,recorder)];
  const visible=terrain===null?facts:withVisitedTerrain(facts,terrain);
  const cited=withCitedDestination(visible,features["cited-destination-v1"],recorder,{fullMap:features["full-map-navigation-v1"],exitReach:features["exit-reachability-v1"],silenceMiss:features["input-cuts-v1"]});
  return withStarterDecision(withHarnessTrust(cited,features["harness-trust-v1"],recorder,state,{supervisor:true,semanticTargets:features["semantic-navigation-v2"],battleAction:features["harness-trust-v2"],goalOnce:features["input-cuts-v1"],retireLab:features["stale-story-goal-v1"],stageBound:features["stale-story-goal-v2"],omitEmptyGoal:features["stale-story-goal-v2"],scriptedGuidance:features["scripted-place-guidance-v1"],reachableGoal:features["reachable-story-guidance-v1"],activity:features["unfinished-activity-v1"]}),features);

@@ -8,6 +8,9 @@ import {mapObjects} from "./people-ledger.js";
 import {MEASUREMENT_ONLY_MILESTONES} from "./milestones.js";
 import {StoryCharacterGate} from "./stall-gate.js";
 
+// Every call auto-talk makes through the play tools carries this id prefix (story-battle-heal-gate-v1 leaves them ungated).
+export const AUTO_TALK_ID_PREFIX="auto-talk-";
+
 // fixed-point-breaker-v1 stage 3: once per loop, after stage 2 has not broken it, the harness walks to the nearest
 // person not talked to since the latest story milestone (story characters first, then other people, then signs) and
 // presses A. It gathers what that person says; it never picks a destination, exit or map.
@@ -158,7 +161,7 @@ export class AutoTalk {
   return {state:s,facing:null};
  }
 
- private id(kind:string):string {return `auto-talk-${String(++this.sequence)}-${kind}`;}
+ private id(kind:string):string {return `${AUTO_TALK_ID_PREFIX}${String(++this.sequence)}-${kind}`;}
 }
 
 export function autoTalkContext(features:FeatureSet,state:StateSource,tools:readonly AgentTool[],base:Transform,breaker:FixedPointBreaker|null,recorder:AutoTalkRecorder,signal?:AbortSignal):Transform {

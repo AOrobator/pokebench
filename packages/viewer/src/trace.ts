@@ -155,7 +155,7 @@ const RUN_LABEL: Readonly<Partial<Record<RunEvent["type"], readonly [string, str
   disk_usage: ["HDD", "Disk usage"], frames_evicted: ["HDD", "Frames evicted"], run_end: ["END", "Run ended"],
   compaction: ["CMP", "Context compacted"], navigation_context: ["MEM", "Navigation memory delivered"], ledger_context: ["MEM", "Instruction ledger delivered"], belief_ledger: ["MEM", "Disproved beliefs delivered"],
   milestone_hint: ["MEM", "Milestone hint sent"], decision_input: ["SNP", "Decision snapshot"], battle_choice: ["VS", "Battle choice"],
-  activity: ["ACT", "Activity"], retry: ["↻", "Retry"], text_only_supervisor: ["SUP", "Text-only supervisor"], low_hp_trainer_warning: ["SUP", "Low-HP trainer warning"], trainer_sight_check: ["SUP", "Trainer sight check"], people_id_card: ["ID", "ID card shown"], loop_breaker: ["SUP", "Loop breaker"], auto_talk: ["SUP", "Auto-talk"], stall_gate: ["SUP", "Stall briefing held"], unfinished_activity: ["SUP", "Unfinished activity"], story_battle_warning: ["SUP", "Story battle warning"], story_goal_away: ["SUP", "Story goal walk-away"], destination_citation: ["NAV", "Destination citation"], heal_before_trainers_warning: ["SUP", "Heal before trainers warning"], gym_heal_warning: ["SUP", "Gym heal warning"], dialogue_auto_advance: ["DLG", "Dialogue auto-advanced"], telemetry_error: ["!", "Telemetry error"],
+  activity: ["ACT", "Activity"], retry: ["↻", "Retry"], text_only_supervisor: ["SUP", "Text-only supervisor"], low_hp_trainer_warning: ["SUP", "Low-HP trainer warning"], trainer_sight_check: ["SUP", "Trainer sight check"], story_battle_heal_gate: ["SUP", "Story battle heal gate"], people_id_card: ["ID", "ID card shown"], loop_breaker: ["SUP", "Loop breaker"], auto_talk: ["SUP", "Auto-talk"], stall_gate: ["SUP", "Stall briefing held"], unfinished_activity: ["SUP", "Unfinished activity"], story_battle_warning: ["SUP", "Story battle warning"], story_goal_away: ["SUP", "Story goal walk-away"], destination_citation: ["NAV", "Destination citation"], heal_before_trainers_warning: ["SUP", "Heal before trainers warning"], gym_heal_warning: ["SUP", "Gym heal warning"], dialogue_auto_advance: ["DLG", "Dialogue auto-advanced"], telemetry_error: ["!", "Telemetry error"],
   button_press: ["BTN", "Press"], tool_result: ["RES", "Tool result"], wait_input: ["WAIT", "Wait"],
 };
 const MEMORY = new Set<RunEvent["type"]>(["navigation_context", "ledger_context", "belief_ledger", "milestone_hint", "decision_input", "compaction"]);
@@ -174,6 +174,7 @@ function categoryOf(event: RunEvent): TraceCategory {
     case "stall_gate": return "guard";
     case "unfinished_activity": return "sup";
     case "trainer_sight_check": return "sup";
+    case "story_battle_heal_gate": return "sup";
     case "story_battle_warning": return "sup";
     case "heal_before_trainers_warning": return "sup";
     case "gym_heal_warning": return "sup";

@@ -4,11 +4,11 @@ Operator explicitly requests "pls fix" the over-invalidated cache, repeated full
 
 Baseline: 445 records, ~24.46 GiB logs. Full warm workbench payload 7,549,199 bytes, HTTP response ~31ms on local loopback (not browser rendering latency). Persistent ended summaries are keyed by dependency identity AND viewer commit; commit key causes needless reread on presentation/docs changes. Only ended records are persisted; live reader already supports incremental appends. Workbench unconditionally rebuilds versions/graph every 5 seconds. Shared main clean537c0a99 on start; own previous worktree reused on branch codex/frontier-cache.
 
-- [ ] RED/GREEN cache reuse across build identities with skew/integrity checks retained.
-- [ ] RED/GREEN opted-in full/delta transport, full-resync on restart/history expiry, atomic malformed-update refusal.
-- [ ] RED/GREEN chart memoization, independent clocks, filter/reference/resize/status invalidation.
-- [ ] Gates, real-data measurements, browser failure/recovery and visual proof.
-- [ ] Review, authorized local landing and live proof.
+- [x] RED/GREEN cache reuse across build identities with skew/integrity checks retained.
+- [x] RED/GREEN opted-in full/delta transport, full-resync on restart/history expiry, atomic malformed-update refusal.
+- [x] RED/GREEN chart memoization, independent clocks, filter/reference/resize/status invalidation.
+- [x] Gates, real-data measurements, browser failure/recovery and visual proof.
+- [x] Review, authorized local landing and live proof.
 
 RED: event-skew/workbench focused run 2 failed / 45 passed: restart rereads completed log; graph node is replaced on unchanged inputs. New sync contract suite fails import before implementation. Logs /tmp/frontier-cache-red.log and /tmp/frontier-cache-sync-red.log. Live listener PID81750, build97046aa6 (main advanced independently). Original comparisons tab1657055914 is controlled by another session; preserve it and use an owned candidate tab for proof.
 
@@ -23,3 +23,22 @@ Browser preview: v5 selected2/plotted2,109 marks; coverage expansion and focused
 Integration RED: main advanced with global outlier populations (9b741730). Its frontierPlot now reads global runs outside selected filters. Added mounted regression holding references, selected rows and version inputs constant while nonselected checkpoints change the outlier cutoff. The memo must include that newly consumed population input. This is an upstream integration adjustment within the frozen semantic-invalidation path; no new production file/domain/API. Round-two cumulative review required after fix.
 
 Integration GREEN: one additional plot-key input records the global outlier population's run IDs and splits while outlier filtering is enabled. Existing global eligibility/version key already covers its provenance/controller inputs. RED observed selected-extreme remain absent after the nonselected cutoff changed; GREEN observes both selected checkpoints.149 focused tests pass; lint passes. No dependency/API/owner additions. Latest synced agent3083 tests (99.17 lines/93.00 branches/97.60 functions); pre-outlier viewer1512 tests (97.83 lines/91.03 branches/94.19 functions). Re-running final viewer coverage after integration.
+
+
+## Review, operator decision and landing
+
+Round1 frozen base97046aa6/head e0ba5ccd, diff0b6734c0c137e3499007584ef9b37986d9686bfab6292606550590d3a2510675. GPT, Grok, fresh Sol and Astra fallback reviewers returned literal LGTM. Claude CLI OAuth expired; equivalent Cursor Opus and Sonnet were usage-capped. Round2 (upstream global-outlier integration) frozen base9b741730/head2c9165eb, cumulative diff fa8891c16b4f0ddf75b95de9c6cdf401469dba705e18d31cb1a29e96b5392a9e; GPT, Grok, Sol and Astra again LGTM, no blockers. Claude retry still unavailable. Reduced vendor diversity recorded; fallback never represented as Claude approval. Suggestions about unchanged revision counters, duplicate validation and additional individual guard-case durability were bounded hardening follow-ups, not acceptance requirements. Principles PB1-PB13 scored with zero FAIL. Review packets/receipts: runs/frontier-cache/round2/ and /tmp/pokebench-frontier-cache/.
+
+Operator explicitly answered **yes** to: “May I land this version and restart the viewer despite the unavailable Claude review?” This grants the missing-Claude landing exception for this exact tested version. No experiment authorization inferred.
+
+Docs-only upstream sync4d07e2b8 produced owned head900a5c474641b74873acc4937c133d70f041ed40; cumulative own diff remained byte-identical to reviewed round2. Canonical clean main fast-forwarded to **900a5c474641b74873acc4937c133d70f041ed40**. Post-landing `just test`: agent3083, viewer1515, Python3470 passed (8068 total). Final viewer coverage97.83 lines/91.06 branches/94.24 functions; agent99.17/93.00/97.60; Python97.21/92.86/100. Lint/build/vendor/audit pass; no thresholds/exclusions changed. Logs /tmp/frontier-cache-main-tests.log and runs/frontier-cache/.
+
+## Live proof
+
+`just viewer-main` served clean900a5c47, sole8790 listener60598. Existing gameplay81428/game82906 continued unchanged. Served workbench module SHA2561d28d3f8c13a181f65d92901635c2bcee2ff4d27ee830c64c1f471f7f5d23ca8 equals reviewed build. Live HTTP:445 unique IDs, all IDs and completed splits preserved, no problems; initial7,603,685B, active-run updates66,645B/one row, unchanged38,498B/zero rows. Managed-build cache reader:436 ended hits, zero ended-log reads,196ms. Cache identity4cb65417e93ac95c163f3310b56bb08a268f89e5a9e0b380baf68f66e2efe732. Details live-http.json/live-cache.json in runs/frontier-cache/.
+
+Original user tab1657055914 became available: reloaded it and preserved original filters (From2026-10-20, remaining filters all). It shows14 selected/12 plotted/2 time outliers hidden, same selection accounting as before restart; no problem. Owned live diagnostic tab verified all six recent whole-map cohorts (v6,v5,v4,v2,v1,Petalburg45m):each2 selected/2 plotted, native graph marks visible. Recording link1b50 retains focus across multiple live polls; keyboard activation selects exact replay1b50; End scrub shows its recorded Route101 frame; comparison return link works. Console/browser failure and recovery previously rehearsed on isolated503 fixture, with last verified graph/focus retained; added/removed temporary fixture also recovered atomically without raw-record writes.
+
+Live CSS1440/1280/375 screenshots, default and expanded, saved/opened under runs/mockups/frontier-cache/shots/live-*.png:legible links, no horizontal overflow. Normal viewport restored; original filters retained. Live replay screenshot also opened. Experiments audit silent. No gameplay/replay/controller/event policy changed; no launches/approvals/game restarts. Worklog remains active, not archived.
+
+Evidence-only closeout uses the execute-worklog exception (only this worklog changes). A final docs-only viewer rebuild/restart will also exercise persistent reuse across the new commit identity; result is retained under ignored runs/frontier-cache/ without another source change.

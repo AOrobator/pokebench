@@ -218,6 +218,11 @@ Fix batch 5 (coordinator: "Apply the round-5 fix now"):
 - Gates after this merge (`gates-merge10.log`): build and lint clean; agent 3175/3175, viewer 1521/1521, pytest 3494 passed; coverage agent 97.23/93.04/97.66/99.18, viewer 95.26/91.1/94.24/97.83, Python lines 97.21 branches 92.85 functions 100; `just pages-check` prints nothing; `fixed-cli check` exit 0 for all three.
 
 **Round 6** (the operator, 11:13 PM ET: "just claude and grok", relayed by the coordinator: Claude and Grok only, Codex skipped) — packet6 = `git diff main HEAD` at the docs commit recording this entry; path `runs/reviews/short-cycle-fixed-point/packet6.diff`; fix delta `fix5.diff` (`git diff 2a91ca86 31d1d393`). Prompt `prompt6.md`. Principles self-review unchanged (0 FAIL).
+- Packet6 frozen at HEAD 9ff210e7, base main bf0c3d48, `git diff main HEAD`, sha256 291384aa…f2e6ba (3148 lines); fix5.diff sha256 1fbe6b65…8811a2c2c.
+- Claude (fresh read-only Claude subagent; verified both hashes, ran 199 agent tests and the viewer test): VERDICT: LGTM. NB: the OFF-versus-absent replay is close to a tautology (both arms normalize to false; the real OFF proof is the gating and the switch-off replays); the readiness row renders as plain text after the navigation section (no table header; another orphan row already exists); errored replies skipped by stage 2 (as today); comment indentation in `cycleCollapse`.
+- Grok (`cursor-grok-4.5-high`): VERDICT: LGTM. NB: the FEATURES copy names diagnostics as "(party, battle, interface or resources)" without the suffix rule; an empty-string `*diagnostic` counts as a failure; wandering NPCs and daycare steps suppress some overworld cycles (safe); an overlapping later cycle can drop part of an earlier newest copy (commented, safe).
+- GPT/Codex: skipped by the operator for this round (the operator, 11:13 PM ET, "just claude and grok").
+- Not landed (the coordinator lands). The non-blocking notes above are not fixed.
 
 ## Boy Scout Log
 

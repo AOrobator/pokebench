@@ -1035,3 +1035,5 @@ b.wb-add, b.wb-rem { white-space:nowrap; }
 .wb-date-range p { font: 12px/1.5 Inter, sans-serif; margin: 8px 0 0; color: #536677; }
 .wb-date-range [aria-invalid=true] { border-color: #ad3838; }
 .wb-date-range [data-wb=date-problem] { color: #ad3838; }
+[data-frontier-coverage] { overflow-wrap: anywhere; }
+[data-frontier-coverage] summary { cursor: pointer; }

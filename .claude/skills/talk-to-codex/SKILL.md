@@ -25,7 +25,9 @@ Never merge into main while someone else is number 1. If the board says a branch
 
 Open with who you are and what you need, such as "claude (mart readout thread): main moved to 54640622; merge main before your review packet". One topic per message. A message that starts with `-` needs `--` in front of it. Never send secrets: mail is plain text on disk.
 
-`codex queue` returns as soon as the message is queued. It does not mean Codex has read it.
+`codex queue` returns as soon as the message is queued. It does not mean Codex has read it. Archived Codex sessions refuse queued messages; skip them.
+
+The operator gave standing approval on 2026-10-21 to message Codex at any time, in any thread: "You have my standing approval to message codecs, even in new threads. It is always okay."
 
 ## Being the mailbox listener
 

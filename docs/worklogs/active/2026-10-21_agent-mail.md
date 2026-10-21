@@ -32,3 +32,4 @@ M3 REVIEW/LAND: Claude, Grok and GPT cloud lanes on the frozen packet; land thro
   - Rebutted B4 (no clean full test receipt): gates on b0e997a1 all passed before R2 returned: just build, lint, coverage (Python 3671 passed, 97.33/93.18/100), just test (agent 3292, viewer 1609, Python 3671 passed), verify-vendor; EXIT 0.
   - Also taken from Claude/Grok/GPT hardening notes: paste-safe manual handoff (shlex), board shows date, lander checks the board on each wake, Codex link in execute-worklog, re-review reminder in talk-to-claude.
 - Tests after R2 fix: 27 agent-mail tests pass, module 100%.
+- 10:59 AM EDT: The operator OK'd updating CLAUDE.md; added the standing Codex-messaging approval to CLAUDE.md and talk-to-codex. R3 lanes stopped before verdicts; R3 re-run on the new head.

@@ -65,10 +65,11 @@ it("enables the separate switch only in fixed bundle treatment",()=>{
  }
 });
 
-it("semantic selection prefers a script-free edge over a shorter edge behind a script",async()=>{
+it.each(["intermediate","endpoint","different-elevation","already-standing"])("semantic selection prefers a script-free edge (%s)",async variant=>{
  const start=field(true);
- const state:GameStateSnapshot={...start,topology:{width:3,height:2,connections:[{direction:"EAST" as const,offset:0,destination:[0,9],destination_name:"LITTLEROOT TOWN",edges:[{x:2,y:0},{x:2,y:1}]}]}};
+ const state:GameStateSnapshot={...start,world_context:{objects:[],dialogue:null,triggers:[{...trigger(variant==="already-standing"?0:variant==="intermediate"?1:2,0),elevation:variant==="different-elevation"?4:0}]},topology:{width:3,height:2,connections:[{direction:"EAST" as const,offset:0,destination:[0,9],destination_name:"LITTLEROOT TOWN",edges:[{x:variant==="already-standing"?0:2,y:0},{x:2,y:1}]}]}};
  const result=await run(state,true,true);
- expect(result.posts).toEqual(["DOWN","RIGHT","RIGHT","RIGHT"].map(d=>({buttons:[d],hold_frames:10,release_frames:8})));
+ const expected=variant==="already-standing"?["RIGHT"]:variant==="different-elevation"?["RIGHT","RIGHT","RIGHT"]:["DOWN","RIGHT","RIGHT","RIGHT"];
+ expect(result.posts).toEqual(expected.map(d=>({buttons:[d],hold_frames:10,release_frames:8})));
  expect(result.text).not.toContain("script-trigger step attempted");
 });

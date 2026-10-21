@@ -109,6 +109,18 @@ describe("parseFixedDefinition", () => {
     expect(() => parseFixedDefinition(JSON.stringify({ ...definition(), extra: 1 }))).toThrow(/not a fixed-run definition/);
     expect(() => parseFixedDefinition(JSON.stringify(definition({ primaryMilestone: "NOPE" })))).toThrow(/unknown primary milestone NOPE/);
   });
+
+  it("accepts a Mac lane with its own run name and refuses other lane labels or run names", () => {
+    const lane = draftDefinition().lanes[0];
+    if (lane === undefined) throw new Error("fixture lane");
+    const one = (l: object) => JSON.stringify(definition({ lanes: [{ ...lane, ...l }], phases: [{ id: "confirmatory", perArm: 1, maxWallMs: 900_000, primary: true, start: CLOCK_START }] }));
+    expect(() => parseFixedDefinition(one({ gpu: "MAC", runName: "glm53-mac" }))).not.toThrow();
+    expect(() => parseFixedDefinition(one({ gpu: "CPU" }))).toThrow(/not a fixed-run definition/);
+    expect(() => parseFixedDefinition(one({ gpu: "MAC", runName: "GLM 5.3" }))).toThrow(/not a fixed-run definition/);
+    for (const bad of ["glm53-mac-", "a--b", "-glm", "a".repeat(41)]) expect(() => parseFixedDefinition(one({ gpu: "MAC", runName: bad }))).toThrow(/not a fixed-run definition/);
+    expect(() => parseFixedDefinition(one({ gpu: "MAC", runName: "a".repeat(40) }))).not.toThrow();
+    expect(() => parseFixedDefinition(one({ gpu: "MAC" }))).toThrow(/lane A: a MAC lane must name its runs with runName/);
+  });
 });
 
 describe("on-in-both fixes", () => {

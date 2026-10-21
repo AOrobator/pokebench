@@ -515,6 +515,7 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "whiteout-healed-v1":"whiteout-healed-v1.html",
  "gym-readiness-readout-v1":"gym-readiness-readout-v1.html",
  "same-target-no-progress-v1":"same-target-no-progress-v1.html",
+ "story-progress-clock-v1":"story-progress-clock-v1.html",
  "yes-no-answer-readout-v1":"yes-no-answer-readout-v1.html",
 });
 

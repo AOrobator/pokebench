@@ -300,11 +300,11 @@ describe("same-target-no-progress-v1 on run a8f9 (RUSTURF TUNNEL, navigate_to (2
 
 describe("same-target-no-progress-v1 registry and wiring",()=>{
  it("registers a default-off guard that needs the deterministic loop guard, appended last",()=>{
-  expect(SWITCHABLE_FEATURES.at(-2)).toBe(ID);
-  expect(FEATURES.filter(f=>f.switchable).at(-2)?.id).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-3)).toBe(ID);
+  expect(FEATURES.filter(f=>f.switchable).at(-3)?.id).toBe(ID);
   expect(featureInfo(ID)).toMatchObject({group:"guard",needs:"deterministic-loop-guard-v1",switchable:true,title:"SAME TARGET, NO PROGRESS"});
   expect(featureInfo(ID).description).toContain(" Off: ");
-  expect(playHarnessFeatures(CURRENT_ON,null).at(-2)).toBe(ID);
+  expect(playHarnessFeatures(CURRENT_ON,null).at(-3)).toBe(ID);
   expect(playHarnessFeatures({...CURRENT_ON,[ID]:false},null)).not.toContain(ID);
   expect(dependencyProblems({...CURRENT_ON,"deterministic-loop-guard-v1":false})).toContain(`${ID} needs deterministic-loop-guard-v1`);
   expect(normalizeFeatures({} as Parameters<typeof normalizeFeatures>[0])[ID]).toBe(false);
@@ -320,7 +320,7 @@ describe("same-target-no-progress-v1 registry and wiring",()=>{
   expect(Object.keys(candidate.features).filter(id=>candidate.features[id as keyof FeatureSet]!==incumbent.features[id as keyof FeatureSet])).toEqual([ID]);
   for(const name of ["bundle-v-control","bundle-cook-1h"]){
    const fixed=JSON.parse(readFileSync(new URL(`../../../experiments/fixed/${name}.json`,import.meta.url),"utf8")) as {base:{features:Record<string,boolean>};switches:string[]};
-   expect(fixed.base.features[ID]).toBe(false);expect(fixed.switches.at(-2)).toBe(ID);
+   expect(fixed.base.features[ID]).toBe(false);expect(fixed.switches).toContain(ID);
    expect(fixed.base.features["deterministic-loop-guard-v1"]).toBe(true);
   }
  });

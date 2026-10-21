@@ -130,6 +130,9 @@ export class SupervisorBriefing {
   this.turn=Math.max(this.turn,event.turn);
   if(event.type==="unfinished_activity"){if(this.features["unfinished-activity-v1"]){if(event.change==="retired")this.unfinished.delete(event.trainer_id);else this.unfinished.set(event.trainer_id,event.text);}return;}
   if(event.type==="milestone"){
+   // story-progress-clock-v1: a measurement-only step is the latest progress the briefings name, and the lists headed
+   // "since your last story progress" count from it; it is not a story step with dialogue of its own.
+   if(this.features["story-progress-clock-v1"]&&event.origin!=="present_at_start"&&MEASUREMENT_ONLY_MILESTONES.has(event.name)){this.progress={turn:event.turn,name:event.name};this.path.clear();this.entered.clear();return;}
    if(!counted(event))return;
    this.progress={turn:event.turn,name:event.name};this.path.clear();this.entered.clear();
    if(event.kind==="story"){

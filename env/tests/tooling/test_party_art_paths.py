@@ -17,7 +17,15 @@ spec = importlib.util.spec_from_file_location(
 assert spec is not None and spec.loader is not None
 party_art = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(party_art)
-RUNS = SCRIPTS.parent / "runs"
+ROM = "/nonexistent/rom.gba"
+
+
+@pytest.fixture
+def repo(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> Path:
+    """A private repository root whose runs/ the build is confined to."""
+    (tmp_path / "runs" / "sprites").mkdir(parents=True)
+    monkeypatch.setattr(party_art, "RUNS_ROOT", tmp_path / "runs")
+    return tmp_path
 
 
 @pytest.fixture
@@ -28,11 +36,15 @@ def builds(monkeypatch: pytest.MonkeyPatch) -> list[Path]:
     return calls
 
 
+def test_the_real_root_is_the_repository_runs() -> None:
+    assert party_art.RUNS_ROOT == SCRIPTS.parent / "runs"
+
+
 @pytest.mark.parametrize(
     "outside",
     [
         "docs/party-v1",
-        "/tmp/party-v1",
+        "/elsewhere/party-v1",
         "runs/../docs/party-v1",
         "runs",
         "runs/sprites/../..",
@@ -40,31 +52,25 @@ def builds(monkeypatch: pytest.MonkeyPatch) -> list[Path]:
     ],
 )
 def test_an_output_outside_runs_is_refused_before_any_build(
-    outside: str, builds: list[Path], tmp_path: Path, capsys: pytest.CaptureFixture[str]
+    outside: str, repo: Path, builds: list[Path], capsys: pytest.CaptureFixture[str]
 ) -> None:
-    out = Path(outside) if outside.startswith("/") else SCRIPTS.parent / outside
-    assert party_art.main([str(out), "--rom", str(tmp_path / "rom.gba")]) == 2
+    out = Path(outside) if outside.startswith("/") else repo / outside
+    assert party_art.main([str(out), "--rom", ROM]) == 2
     assert builds == []
     assert "outside" in capsys.readouterr().err
 
 
-def test_a_parent_link_that_escapes_runs_is_refused(builds: list[Path], tmp_path: Path) -> None:
-    link = RUNS / ".party-art-path-test-link"
-    link.unlink(missing_ok=True)
-    link.symlink_to(tmp_path)
-    try:
-        assert party_art.main([str(link / "party-v1"), "--rom", str(tmp_path / "rom.gba")]) == 2
-        assert builds == []
-    finally:
-        link.unlink()
+def test_a_parent_link_that_escapes_runs_is_refused(repo: Path, builds: list[Path]) -> None:
+    outside = repo / "elsewhere"
+    outside.mkdir()
+    link = repo / "runs" / "link"
+    link.symlink_to(outside)
+    assert party_art.main([str(link / "party-v1"), "--rom", ROM]) == 2
+    assert builds == []
 
 
-def test_an_output_under_runs_is_built_and_published(builds: list[Path], tmp_path: Path) -> None:
-    out = RUNS / ".party-art-path-test" / "party-v1"
-    try:
-        assert party_art.main([str(out), "--rom", str(tmp_path / "rom.gba")]) == 0
-        assert len(builds) == 2
-    finally:
-        for leftover in out.parent.glob("*"):
-            leftover.rmdir()
-        out.parent.rmdir()
+def test_an_output_under_runs_is_built_and_published(repo: Path, builds: list[Path]) -> None:
+    out = repo / "runs" / "sprites" / "party-v1"
+    assert party_art.main([str(out), "--rom", ROM]) == 0
+    built, published = builds
+    assert (built.parent, published) == (out.parent, out)

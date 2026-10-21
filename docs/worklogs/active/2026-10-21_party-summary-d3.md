@@ -112,6 +112,8 @@ Round 5 (packet 6fbce332..1e44d042, sha256 76feca35…be395): Claude (subagent) 
 - [x] RED: party-facts.test.ts storage/daycare short-cycle case, navigation-failure stored-Pokémon case, path guard `runs/sprites/../..` and `runs/.`
 - [x] GREEN: `legacyResources` strips the 15 keys from storage and daycare Pokémon for `cycleFields` and navigation-failure `conditions` (key order kept); CYCLE_STATE_EXCLUDED lists them under `resources.storage.occupied[].pokemon` and `resources.daycare[].pokemon`; the art build normalizes the output path and refuses a `.`/`..` leaf. Gates: lint, build; coverage agent 3255 tests 99.2/93.08/97.7, viewer 1592 tests 97.96/91.39/94.51, python 3582 tests 97.23/92.97/100.
 
+Round 6 (packet 6fbce332..43dde2c4, sha256 a39d976e…6a03): Claude (subagent) LGTM; Grok LGTM; GPT/Codex BLOCKING on one test-only finding: the art path tests wrote fixed paths into the live runs/ and made a tmp dir per rejection row. Fixed: each test gets a private repository root (`RUNS_ROOT` monkeypatched to tmp runs/), the rejection rows use a constant ROM path, and one test pins the real root to the repository's runs/. Gates: lint, build; agent 3255, viewer 1592, python 3583 tests, coverage unchanged (python 97.23/92.97/100). Nothing is written under runs/ by the tests.
+
 ## Boy Scout Log
 
 (empty)

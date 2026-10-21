@@ -157,3 +157,35 @@ it("delivers both refusals through pinned pi to the next decision and records th
  expect(readFileSync(log.eventsPath,"utf8")).toContain('Current map: ROUTE101');
  console.log(`Synthetic delivery receipt: ${log.eventsPath}`);
 });
+
+
+describe("rejected-movement-step-v1 production input boundary",()=>{
+ const features=()=>({...flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false}),"navigation-tool-use-guard-v1":true,"rejected-movement-step-v1":true});
+ it.each(["UP","DOWN","LEFT","RIGHT"] as const)("submits only the first %s from a rejected walking batch",async direction=>{
+  const s=server(field),h=hooks();
+  const result=await pressTool("http://game",h,s.fetchFn,clock,toolSwitches(features())).execute("model",{buttons:[direction,direction,"LEFT"]});
+  const bodies=s.fetchFn.mock.calls.filter(([,init])=>init?.method==="POST").map(([,init])=>JSON.parse(String(init?.body)) as unknown);
+  expect(bodies).toEqual([{buttons:[direction],hold_frames:10,release_frames:8}]);
+  expect(h.beforePress).toHaveBeenCalledWith("model",[direction],{hold_frames:10,release_frames:8},field);
+  expect(text(result)).toContain("Movement batch limited to one direction press");
+  expect(text(result)).toContain(JSON.stringify({requested:[direction,direction,"LEFT"],submitted:[direction],dropped:[direction,"LEFT"]}));
+  expect(text(result)).not.toContain("no input was sent");
+ });
+ it("OFF is identical to the original rejection, and does not change checked navigation",async()=>{
+  const run=async(enabled:boolean|undefined)=>{
+   const s=server(field),h=hooks();const f={...features(),"rejected-movement-step-v1":enabled??false};
+   const result=await pressTool("http://game",h,s.fetchFn,clock,toolSwitches(f)).execute("model",{buttons:["UP","UP"]});
+   return {result,posts:s.posts,hooks:h.beforePress.mock.calls};
+  };
+  expect(await run(false)).toEqual(await run(undefined));
+  const s=server(field),h=hooks();await pressTool("http://game",h,s.fetchFn,clock,toolSwitches(features())).executeChecked("internal",{buttons:["UP","UP"]},()=>undefined);
+  expect(h.beforePress.mock.calls[0]?.[1]).toEqual(["UP","UP"]);
+ });
+ it("leaves mixed interaction batches and a disabled guard unchanged",async()=>{
+  for(const guard of [true,false]){
+   const s=server(field),h=hooks();
+   await pressTool("http://game",h,s.fetchFn,clock,toolSwitches({...features(),"navigation-tool-use-guard-v1":guard})).execute("model",{buttons:["UP","A"]});
+   expect(h.beforePress.mock.calls[0]?.[1]).toEqual(["UP"]); // existing safe-interface policy
+  }
+ });
+});

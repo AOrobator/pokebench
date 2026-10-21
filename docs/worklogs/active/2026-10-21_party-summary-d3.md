@@ -100,6 +100,9 @@ Round 2 (packet 6fbce332..63a3fb8d, sha256 ac59ff86…0c80c): Claude (subagent) 
 
 Exact-head proof (fd7725f24, build stamp fd7725f clean, candidate viewer 8796 over the scratch runs dir): real clicks WURMPLE → STATS (ITEM NONE, RIBBON ---, HP 0/20, ATTACK 12, SP. ATK 9, DEFENSE 13, SP. DEF 11, SPEED 15, EXP 155, NEXT 61, STATUS FNT) → MOVES → POISON STING (POWER 15, ACCURACY 100, description); TORCHIC → PROFILE (OT AARFTT, ID 37568, BLAZE + description, BASHFUL nature, met at Lv5, ROUTE 101). 1440, 1280 and 375 (scrollWidth 375) screenshots opened: runs/mockups/party-menu/shots/build/fd7725f-*.jpg. Console errors are the live audio proxy (502, the probe run has no game server) and one missing frame (404); every /sprites/party request the page makes returns 200.
 
+Round 3 (packet 6fbce332..248b6941, sha256 854c14a2…6cedd): Claude (subagent) LGTM; Grok LGTM; GPT/Codex BLOCKING, 4 findings. Triage: (1) empty move slots (move_id 0) render as MOVE 0 · PP 0/0, fix; (2) loop fingerprints (semantic, battle, waiting), field map-move progress and navigation-failure conditions still compare the 15 summary keys, fix (Claude and Grok listed it as a follow-up); (3) ball-small palette not ROM-checked, fix (the game draws it with TAG_POKEBALL's palette, gPartyMenuPokeball_Pal); (4) proof names the code tip fd7725f24, not the docs-only head 248b69410, rebutted (git diff fd7725f24 248b69410 touches only this worklog). Third round with blockers: asked the operator (land / round 4 / hold) and made the three fixes meanwhile.
+- [x] RED: party-facts.test.ts (semantic/waiting/battle fingerprints), navigation-failure summary-only change, party-view empty move slots
+
 ## Boy Scout Log
 
 (empty)

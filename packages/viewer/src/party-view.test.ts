@@ -212,6 +212,15 @@ describe("partyPage", () => {
     expect(det).toContain("critical-hit ratio.");
     expect(open.querySelector('[data-pv-move="2"]')?.getAttribute("aria-expanded")).toBe("true");
   });
+  it("leaves empty move slots (MOVE_NONE) out, as the decoder records all four", () => {
+    const empty = { move_id: 0, name: null, pp: 0, max_pp: 0, pp_bonus: 0 };
+    const two: PartyMon = { ...COMBUSKEN, moves: [COMBUSKEN.moves?.[0] ?? empty, COMBUSKEN.moves?.[3] ?? empty, empty, empty] };
+    const doc = dom(partyPage([two], DATA, { slot: 0, tab: 2, move: 1 }));
+    expect([...doc.querySelectorAll("[data-pv-move]")].map((m) => m.getAttribute("data-pv-move"))).toEqual(["0", "1"]);
+    expect(doc.body.textContent).not.toContain("MOVE 0");
+    expect(doc.body.textContent).not.toContain("/00");
+    expect(doc.querySelector('[data-pv-move="1"]')?.getAttribute("aria-expanded")).toBe("true");
+  });
   it("hides the dex number outside the Hoenn dex and copes with missing data", () => {
     const skitty: PartyMon = { species: "SKITTY", nickname: "SKITTY", level: 5, hp: 20, max_hp: 20, species_id: 300 };
     const doc = dom(partyPage([skitty], DATA, { slot: 0, tab: 0, move: null }));

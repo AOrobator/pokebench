@@ -1,0 +1,23 @@
+# Exit labels v3: distinguish exits and terrain sections
+
+## Authorized outcome
+The operator approved the investigated design: “ok build the switch and put it in the bundle”. One milestone delivers a default-OFF versioned observation upgrade, exact OFF invariance, section-aware physical exit identities used consistently by readout and agent summaries, tracked explainer, pending experiment and bundle membership. No measured runs are authorized. Existing running cohorts remain frozen.
+
+## Boundary
+Production owners: new env/pokebench_env/map_sections.py; existing exit-labels/game-state/rerender/readout/live-map formatters; typed event state and shared agent exit-label helper; harness-trust, untaken-exits and supervisor label consumers; switch registries/presets/viewer defaults and explainer mapping; fixed bundle definitions and pending experiment. No gameplay execution, objectives, route selection, exit-history accounting, new tools, or supervisor thresholds change. Keep v2 intact as comparison. Labels describe terrain; temporary objects/scripts are not guaranteed passable. Preserve one-way direction. No handwritten story route or location aliases.
+
+## M1 Deliver and verify
+- [x] RED: real archived Route104/Woods observations plus small adversarial geometry cases; commit failing tests.
+- [ ] GREEN: one section/exit description owner, production wiring, exact OFF behavior.
+- [ ] Registry, default OFF, pending experiment, future bundle only, explainer.
+- [ ] Tests, lint, build, coverage >=90%, vendor, experiment checks, raw RAM replay and wiring deletion/restoration.
+- [ ] Principles and independent cloud reviews on frozen packet; local fast-forward landing only with required approvals.
+- [ ] Main tests, viewer refresh and real explainer click, bundle configuration proof. Do not restart gameplay.
+
+## Evidence and open questions
+Run 97a0 state 13625 / result 13626 / turn377 identifies Woods entrances at (10,38)/(11,38); result14514 states the mistaken same-map-loop belief. Raw archive6007 hashes and ROM identity validated in the investigation. ROM731ad5bf is clean. Direction matters: the eastern Route104 landing can reach the southern area, but not vice versa. V2 ignores runtime destination objects and metatile changes, so topology must be qualified rather than advertised as a guaranteed route. Stage unknown/dynamic/unreadable maps remain explicitly unknown.
+
+## Session
+- Started from main24648e12 in an isolated managed worktree. User approval covers implementation, bundle integration and normal repository landing requirements.
+
+- RED observed: collection fails because map_sections does not exist. Frozen SHA256 receipts of v2 ON state/readout were captured before implementation for both existing ROM-backed b300 archives.

@@ -18,6 +18,8 @@ Requested by the operator, 2026-10-21 (thread "Get a local model to catch rayqua
 - COMMIT: `fix(pages): pixel table headers keep whole words on phones` (ef221f0e9)
 - Next: env/tests/tooling/test_pages_theme.py (4 tests) for `pages.sh theme`; breaking the block insert or the colour-scheme rewrite fails a test.
 - COMMIT: `test(pages): pages.sh theme placement, idempotence, main wrap and light pin` (d3e2fc095); merged main (11ec91664), themed the new gym-door-label-v1 explainer.
+- COMMIT: `docs(explainers): Emerald theme on gym-door-label-v1` (56285e2af). Gates on that tip: lint 0; test agent 3281, viewer 1604 (experiment-cli flaked once under load, 11/11 alone), python 3604; coverage viewer lines 97.9 / branches 91.33 / funcs 94.33, python 97.23/92.98/100.
+- Merged main again (589cf5159); themed the new mart-stock-readout-v1 explainer. HTML receipt: re-running the branch's pages.sh theme on main's explainers reproduces all 172 branch pages byte for byte.
 - Earlier: pixel table headers no longer break letter by letter on phones (seen in the GLM report's splits table at 375); `pre` scrolls inside the screen.
 
 ## Evidence

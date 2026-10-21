@@ -1,0 +1,65 @@
+# Birch intro pages
+
+## Problem Statement
+
+Run `2026-10-21T13-33-00_cursor-agent-grok-4.7_probe` pressed B through PROF. BIRCH's opening speech (before gender and name). Every press result said `unavailable/transitioning (world position unavailable)` while the frame advanced one page. The `Dialog:` line stayed the whole `gStringVar4` buffer joined with ` | `, then jumped when the game loaded the next string. `birch-speech-pages-v1` only owns the two printers after the name is accepted (`0x0803133D`, `0x080314C5`). The opening pages are owned by `Task_NewGameBirchSpeech_ThisIsAPokemon` (`0x080309CD`, `gText_Birch_Welcome`), `Task_NewGameBirchSpeech_MainSpeech` (`0x08030A2D`, `gText_ThisIsAPokemon`), and `Task_NewGameBirchSpeech_AndYouAre` (`0x08030BCD`, `gText_Birch_MainSpeech`). Addresses from US ROM SHA-1 `f3ae088181bf583e55daf962a92bb46f4f1d07b7`, source `pokeemerald` `731ad5bf`.
+
+## Skills Loaded
+
+- `.claude/skills/feature-switch/SKILL.md`
+- `.claude/skills/feature-explainer/SKILL.md`
+- `.claude/skills/feature-worklog/SKILL.md`
+- `.claude/skills/execute-worklog/SKILL.md`
+- `.claude/skills/experiment-queue/SKILL.md`
+- `.claude/skills/pokebench-game-state/SKILL.md`
+- `.claude/skills/talk-to-claude/SKILL.md`
+
+## Architecture
+
+New switch `birch-intro-pages-v1`, default off. ON: those three tasks, while printer 0 waits at a page break, read `Interface: birch_intro_page` with the on-screen page as the value, and `Dialog:` is that page. A page still printing stays not ready. The existing press comparison then reports an interface change instead of a missing world position. OFF: no owner, the joined buffer, and the world-position press line, as today. `birch-speech-pages-v1` is not widened.
+
+## Invariants
+
+- INV-1: OFF readout and active UI for this speech match the bytes from before the switch. Test: `test_the_readout_quotes_the_page_and_the_off_arm_keeps_the_whole_buffer`.
+- INV-2: ON value is the page at the printer cursor, the same slice as `page_text`. Test: welcome page 1 vs page 2, the Pokémon sentence, and the main-speech first page.
+- INV-3: The switch is absent from omitted presets and from the server unless the feature set turns it on. Test: `birch-intro-pages.test.ts`.
+
+## Security Review
+
+Reads emulator memory the server already reads (task, printer, window, `gStringVar4`). No new input path, no ROM in git, no network.
+
+## Milestones
+
+**M1 — Tests**
+- [ ] Write tests (welcome page, later strings, printing, off-arm buffer, production reader, registry)
+- [ ] COMMIT: `test(birch-intro-pages): failing page readout` (RED)
+- [ ] Implement
+- [ ] Gates: `just test`, `just lint`, `just build`, `just coverage`
+- [ ] COMMIT: `feat(birch-intro-pages): report the pre-name page` (GREEN)
+- [ ] Explainer, pending experiment, readiness row
+- [ ] Multi-model review loop until clean
+- [ ] LAND only when the landing board says number 1 and the three cloud lanes LGTM. Do not merge before that.
+
+## Closing the Loop
+
+Unit tests are the proof for the readout. The probe run is the failing evidence. A new live play is not part of this branch. Viewer card click waits until the explainer is linked and a viewer built from this branch can serve it; do not restart the shared `just viewer-main` from this branch.
+
+## Session Log
+
+- 2026-10-21: Branch `cursor/birch-intro-pages` from `2850ace69`. Told Claude; no listener, mail saved. Not joining the landing board until review is done.
+
+## Surprises
+
+- The task that waits on a string is the next function, not the one that loaded it. Welcome pages are `0x080309CD`, the Pokémon sentence is `0x08030A2D`, and the main speech is `0x08030BCD`.
+
+## Multi-Model Review Log
+
+None yet.
+
+## Boy Scout Log
+
+None.
+
+## Archive Milestone
+
+- [ ] ASK USER: archive this worklog

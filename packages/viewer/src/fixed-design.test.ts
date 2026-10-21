@@ -117,6 +117,9 @@ describe("parseFixedDefinition", () => {
     expect(() => parseFixedDefinition(one({ gpu: "MAC", runName: "glm53-mac" }))).not.toThrow();
     expect(() => parseFixedDefinition(one({ gpu: "CPU" }))).toThrow(/not a fixed-run definition/);
     expect(() => parseFixedDefinition(one({ gpu: "MAC", runName: "GLM 5.3" }))).toThrow(/not a fixed-run definition/);
+    for (const bad of ["glm53-mac-", "a--b", "-glm", "a".repeat(41)]) expect(() => parseFixedDefinition(one({ gpu: "MAC", runName: bad }))).toThrow(/not a fixed-run definition/);
+    expect(() => parseFixedDefinition(one({ gpu: "MAC", runName: "a".repeat(40) }))).not.toThrow();
+    expect(() => parseFixedDefinition(one({ gpu: "MAC" }))).toThrow(/lane A: a MAC lane must name its runs with runName/);
   });
 });
 

@@ -182,3 +182,11 @@ log and updated execute-worklog and feature-worklog skills on the isolated
 codex/caught-dex-closeout branch. The landing board gates moves to main only.
 Validation: git diff --check; archive contains the full prior worklog; changes
 are documentation only. Main and its unrelated WORKLOG.md pointer are untouched.
+
+## Landing notification routing correction, 2026-10-21
+
+Operator requested skill instructions requiring this chat's actual session ID
+with --codex-thread on every landing-board join, and authorized landing the change.
+Updated talk-to-claude and execute-worklog: use CODEX_THREAD_ID, verify the exact
+board ID, and repair routing by rejoining without losing position. Titles remain
+human labels only. Docs-only validation: git diff --check and scope inspection.

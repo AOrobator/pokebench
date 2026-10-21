@@ -303,3 +303,10 @@ FAIL. Local inference reviewers not used. HEAD/status verified unchanged before 
 - Readout wording matches surf-gated-exits-v2 (the operator 2026-10-20): quote the game's text and say the
   way "needs a field move you cannot use yet"; never name the badge or move.
 - Lands on local main after the review loop (Claude, Grok, GPT/Codex LGTM), then joins the bundle arm.
+
+## Landing (2026-10-20, 9:55 PM ET)
+
+- Round 2 on packet 24648e12..85f64812 (sha256 d07e109e…): Claude (read-only subagent) LGTM, Grok LGTM, Codex BLOCKING on test-fixture I/O and flood counts only. The operator 9:42 PM ET: land it and speed up the tests in a follow-up ("yes and yes").
+- Added the switch to the bundle arm of bundle-v-control, bundle-cook-1h and whole-map-cook-1h (false in base); open-goal-prompt.test.ts excludes it like the other newer bundle switches. Pending experiment source.commit pinned to 85f64812.
+- Gates: lint and build clean; agent 3046/3046, viewer 1499/1499, pytest 3470; coverage agent 97.13/92.97/97.59/99.14, viewer 95.23/91.05/94.14/97.8, Python lines 97.21 branches 92.86 functions 100.
+- DEFERRED (follow-up, the operator): bound the audit tests' fixture I/O and per-warp floods (Codex round 2). Open questions from review: Kecleon named by sprite kind; "every way to" wording for water-only cut-offs.

@@ -190,3 +190,37 @@ it("leaves trainer sight checks off the timeline (closed to new marks, operator 
  expect(lanesSvg(view(log),BASE_MS+2000)).toBe(lanesSvg(view(without),BASE_MS+2000));
  expect(view(log).errors).toEqual([]);
 });
+
+it("draws recorded native pulses instead of overlapping navigation hold budgets", () => {
+  const log = new Log();
+  log.add(0, START);
+  log.add(100, {type:"button_press",turn:0,tool_call_id:"stride",buttons:["RIGHT"],hold_frames:224,release_frames:8});
+  for (const [id, ms, buttons] of [[1,120,["RIGHT","B"]],[2,137,[]],[3,250,["RIGHT","B"]],[4,267,[]]] as const) {
+    log.add(900, {type:"native_action",turn:0,id,frame:id,server_timestamp:(BASE_MS+ms)/1000,kind:"native_input",details:{buttons:[...buttons]}});
+  }
+  const svg = lanesSvg(view(log), BASE_MS+1000);
+  const marks = [...svg.matchAll(/class="m-press b-RIGHT"[^>]* x="([^"]+)"[^>]* width="([^"]+)"/g)];
+  expect(marks).toHaveLength(2);
+  expect(Number(marks[0]?.[2])).toBeLessThan(1);
+  expect(Number(marks[0]?.[1])+Number(marks[0]?.[2])).toBeLessThan(Number(marks[1]?.[1]));
+  expect(svg).toContain("RIGHT+B · native input");
+  expect(svg).not.toContain("hold 224f");
+  expect(lanesSvg(view(log),BASE_MS+61000)).not.toContain('class="m-press');
+});
+
+it("keeps native inputs with their own request and does not invent unclosed or invalid holds", () => {
+  const log = new Log(); log.add(0,START);
+  log.add(100,{type:"button_press",turn:0,tool_call_id:"one",buttons:["UP"],hold_frames:224,release_frames:8});
+  log.add(400,{type:"native_action",turn:0,id:1,frame:10,server_timestamp:(BASE_MS+120)/1000,kind:"native_input",details:{buttons:["UP"]}});
+  log.add(400,{type:"native_action",turn:0,id:2,frame:11,server_timestamp:(BASE_MS+137)/1000,kind:"native_input",details:{buttons:[]}});
+  log.add(500,{type:"button_press",turn:0,tool_call_id:"two",buttons:["A"],hold_frames:10,release_frames:8});
+  const svg=lanesSvg(view(log),BASE_MS+1000);
+  expect(svg.match(/class="m-press b-UP"/g)).toHaveLength(1);
+  expect(svg.match(/class="m-press b-A"/g)).toHaveLength(1);
+  log.add(600,{type:"native_action",turn:0,id:3,frame:12,server_timestamp:(BASE_MS+550)/1000,kind:"native_input",details:{buttons:["not-a-button"]}});
+  log.add(700,{type:"native_action",turn:0,id:4,frame:13,server_timestamp:(BASE_MS+567)/1000,kind:"native_input",details:{buttons:[]}});
+  log.add(800,{type:"native_action",turn:0,id:5,frame:14,server_timestamp:(BASE_MS+750)/1000,kind:"native_input",details:{buttons:["A"]}});
+  expect(lanesSvg(view(log),BASE_MS+1000)).not.toContain('class="m-press b-A"');
+  expect(lanesSvg(view(log),BASE_MS+110)).not.toContain('class="m-press b-UP"');
+  expect(lanesSvg(view(log),BASE_MS+1000,["thinking"])).not.toContain('class="m-press');
+});

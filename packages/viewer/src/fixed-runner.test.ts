@@ -584,3 +584,17 @@ it("enables native party-item confirmation only in the bundle of both current bu
   expect(armFeatureBits(def,"bundle")[id]).toBe(true);
  }
 });
+
+it("enables the YES/NO answer readout only in the bundle of the three current bundle definitions",()=>{
+ const id="yes-no-answer-readout-v1";
+ for(const file of ["bundle-v-control","bundle-cook-1h","whole-map-cook-1h"]){
+  const {definition:def}=parseFixedDefinition(readFileSync(new URL(`../../../experiments/fixed/${file}.json`,import.meta.url),"utf8"));
+  expect(def.switches.filter(s=>s===id)).toEqual([id]);
+  expect(def.onInBoth).not.toContain(id);
+  expect(def.base.features[id]).toBe(false);
+  expect(armFeatures(def,"control")[id]).toBe(false);
+  expect(armFeatures(def,"bundle")[id]).toBe(true);
+  expect(armFeatureBits(def,"control")[id]).toBe(false);
+  expect(armFeatureBits(def,"bundle")[id]).toBe(true);
+ }
+});

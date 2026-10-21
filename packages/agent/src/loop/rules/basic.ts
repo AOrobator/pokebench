@@ -158,8 +158,7 @@ export class BasicRules {
 
   refusal(call: CompletedCall, enabled: boolean, menus=false): {native: string | null; status: string | null; menu:boolean} {
     const menu = menus && call.state?.active_ui?.phase === "shop_action_menu";
-    const field = enabled && call.state?.in_battle === false && call.state.battle === null &&
-      call.text.split("\n").includes("Battle action: nothing pressed: no battle is in progress.")
+    const field = enabled && call.state?.in_battle === false && call.state.battle === null
       ? semanticState(call.state, true) : null;
     const native = menu ? menuRefusalState(call.state) : enabled && call.state?.battle?.initialized === true ? battleState(call.state) : field;
     if (native !== null && native !== this.lastRefusalSnapshot) {
@@ -167,7 +166,8 @@ export class BasicRules {
       this.refusalEvidence.clear();
       this.lastRefusalSnapshot = native;
     }
-    const status = (enabled || menu) && call.name === "battle_action" && !call.isError && call.acted === false && native !== null
+    const status = (enabled || menu) && call.name === "battle_action" && !call.isError && call.acted === false && native !== null &&
+      (field === null || call.text.split("\n").includes("Battle action: nothing pressed: no battle is in progress."))
       ? call.text.split("\n").find(line => line.startsWith("Battle action: nothing pressed: "))?.slice(0, 2000) ?? null : null;
     return {native, status, menu:menu && status !== null};
   }

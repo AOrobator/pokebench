@@ -42,10 +42,12 @@ A post-pass over the native reader's result (like evolution-decision-v1's `decis
 - [x] `env/pokebench_env/shop_interface.py` (post-pass: list row → item name and real item id or CANCEL; quantity box → item name; Task_ReturnToItemListAfterItemPurchase → ready `shop_purchase_message`, message from gText_HereYouGoThankYou because gStringVar4 then holds the money), game_state/rerender wiring, registry (features.ts, play-preset.ts, next-run.ts, legacy-features, readout.py). Collateral: index offsets and OFF strings in ~60 agent tests and 11 pytest files; test_mart_stock's native-reader fixture check now names this switch off.
 - [x] Gates: lint ok; agent 3295, viewer 1609, pytest 3668; shop_interface.py 100% lines and branches.
 - [x] Delete-the-guard: 6 guards, each red (game_state wiring 4; rerender gate 4; unique owner 1; callback gate 1; CANCEL row 1; agent when() 2). Receipt runs/shop-interface/mutations.txt (ignored).
-- [ ] COMMIT
+- [x] COMMIT: `feat: shop-interface-v1 names the highlighted buy-list row, the quantity box's item and the after-purchase page on the Interface line (default off)` (c1b53450)
 
 **M3 — bundle arms, pending experiment, explainer, review, land**
-- [ ] Fixed definitions, experiment entry, readiness row, explainer (Emerald style), FEATURE_EXPLAINERS.
+- [x] Fixed definitions (bundle arm only) in bundle-cook-1h, bundle-v-control, whole-map-cook-1h, whole-map-pair-2h; `experiments/shop-interface-v1.json` (incumbent = bundle-v-control bundle arm with only this switch off; activation OLDALE_TOWN; source.commit c1b53450); readiness row; Emerald-styled explainer + README + FEATURE_EXPLAINERS + panels/server/fixed-runner tests; pages-check clean, 200 on 8791. Pending incumbents (heal-first, story-battle-heal-gate, open-goal-prompt) drop the new id like the other later ids.
+- [x] Gates: lint ok; agent 3295 (97.27/93.11/97.74/99.21); viewer 1612 (95.42/91.34/94.33/97.9); pytest 3668 (lines 97.28 branches 93.11 functions 100). fixed-cli check exit 0 on all four, bundle switches end with shop-interface-v1.
+- Waiting in the coordinator's queue (control promotion and seven training/catching switches land first); review runs once on the resynced packet so it isn't voided by their registry changes.
 - [ ] Reviews, coordinator slot, ff-only, viewer-main, live check.
 
 ## Multi-Model Review Log

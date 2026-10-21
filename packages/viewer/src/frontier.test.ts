@@ -463,7 +463,7 @@ describe("invalid fixed-run trials", () => {
     const aborted = { ...invalid("aborted", "x"), excluded: "Excluded operator-aborted run" };
     const problem = { ...invalid("problem", "x"), problem: "invalid" };
     document.body.innerHTML = frontierPlot(frontierReferences([human(), best()]), [probe, aborted, problem], 900);
-    expect(document.querySelector('[data-series="probe"], [data-series="aborted"], [data-series="problem"]')).toBeNull();
+    expect(document.querySelector('[data-series="probe"], [data-series="problem"]')).toBeNull();
     expect(document.querySelector("[data-invalid-notice]")).toBeNull();
     const resumed = invalid("resumed-invalid", "model/gateway error");
     if (resumed.config === null) throw new Error("config");
@@ -473,5 +473,33 @@ describe("invalid fixed-run trials", () => {
     expect(document.querySelector('polyline[data-series="resumed-invalid"]')?.getAttribute("stroke-dasharray")).toBe("2 4");
     expect(document.querySelector('[data-series="resumed-invalid"]')?.closest(".wb-series")?.getAttribute("data-resume")).toBe("CLOCK_SET");
     expect(document.querySelector('[data-resume-origin="CLOCK_SET"]')).not.toBeNull();
+  });
+});
+
+describe("recorded comparison coverage", () => {
+  it.each(["Excluded operator-aborted run", "Infrastructure outcome: launcher_error", "Launcher outcome: operator stopped the run"])("retains %s with its exclusion reason and never promotes it", excluded => {
+    const stopped = { ...measured("stopped", [1000, 2000, 3000]), excluded };
+    const refs = frontierReferences([stopped]);
+    expect(refs.best).toBeNull();
+    document.body.innerHTML = frontierPlot(refs, [stopped], 900);
+    expect(document.querySelectorAll('[data-run="stopped"]')).toHaveLength(3);
+    expect(document.querySelector('polyline[data-series="stopped"]')?.getAttribute("stroke-dasharray")).toBe("2 4");
+    expect(document.querySelector('[data-run="stopped"]')?.getAttribute("aria-label")).toContain(excluded === "Excluded operator-aborted run" ? "operator-aborted" : excluded);
+  });
+  it("accounts for every selected recording, deduplicates current runs and explains unplottable progress with replay links", () => {
+    const plotted = measured("plotted", [1000]);
+    const empty = measured("empty", []);
+    const probe = { ...plotted, id: "probe", excluded: "Excluded probe session" };
+    const broken = { ...plotted, id: "broken", problem: "invalid event <schema>" };
+    const unknown = { ...plotted, id: "unknown", config: null };
+    document.body.innerHTML = frontierPlot({ human: null, best: null }, [plotted, empty, probe, broken, unknown], 900, undefined, [plotted]);
+    const coverage = document.querySelector('[data-frontier-coverage]');
+    expect(coverage?.textContent).toContain("5 selected recordings · 1 plotted · 4 unavailable");
+    expect(coverage?.textContent).toContain("No recorded story checkpoints");
+    expect(coverage?.textContent).toContain("Excluded probe session");
+    expect(coverage?.textContent).toContain("invalid event <schema>");
+    expect(coverage?.textContent).toContain("Unrecognized start provenance");
+    expect(coverage?.querySelectorAll('a[href^="/#replay="]')).toHaveLength(5);
+    expect(document.querySelectorAll('[data-run="probe"], [data-run="broken"], [data-run="unknown"]')).toHaveLength(0);
   });
 });

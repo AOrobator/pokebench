@@ -406,3 +406,12 @@ describe("exploratory current-main feature recipe", () => {
     expect(f.runs).toHaveLength(2);
   });
 });
+
+it("runs one exploratory lane/arm with the current definition, without altering paired dry runs",async()=>{
+ const {deps,path,runs}=setup();writeFileSync(path,JSON.stringify(definition()));
+ expect(await main(["dry-run","bundle-v-control","--phase","cook","--arm","bundle","--lane","A"],deps)).toBe(0);
+ expect(runs[0]).toMatchObject({dryRun:true,def:{lanes:[{id:"A"}],plan:[{lane:"A",arm:"bundle"}]}});
+ expect(runs[0]?.def.plan).toHaveLength(1);
+ for(const flags of [["--arm","bundle"],["--lane","A"],["--arm","bad","--lane","A"],["--arm","bundle","--lane","missing"]])expect(await main(["dry-run","bundle-v-control",...flags],deps)).toBe(1);
+ expect(runs).toHaveLength(1);
+});

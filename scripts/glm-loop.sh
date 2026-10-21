@@ -5,6 +5,8 @@ set -eu
 REPO=${REPO:-$HOME/dev/pokebench}
 ARCHIVE=${ARCHIVE:-$REPO/runs/dryruns}
 export REPO ARCHIVE
+# GLM freezes one source/recipe per pair; the generic default refreshes each solo trial.
+export LATEST_MAIN_PER_TRIAL=0
 export LOOP_NAME=glm-four-hour-loop
 export EXP_ID=glm53-flash-4h
 export FEATURE_RECIPE=bundle-v-control

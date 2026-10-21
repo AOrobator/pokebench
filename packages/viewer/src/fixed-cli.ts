@@ -48,7 +48,7 @@ const USAGE = [
   "       fixed-run check <id>                     validate the definition and every phase's start save",
   "       fixed-run approve <id>                   operator only, interactive",
   "       fixed-run run <id>                       run the approved experiment (both lanes)",
-  "       fixed-run dry-run <id> [--phase <phase>] [--wall-ms <ms>]  one trial per arm per lane with that phase's start, as <id>-dryrun-<phase> [--feature-recipe <id>]",
+  "       fixed-run dry-run <id> [--phase <phase>] [--wall-ms <ms>] [--arm <bundle|control> --lane <id>] [--feature-recipe <id>]  exploratory trials with that phase's start",
   "       fixed-run rerun <id> --arm <control|bundle> --lane <lane> [--phase <phase>]  one unpaired, exploratory trial on one lane at the experiment's pin, as <id>-solo-<arm>-<lane>-<n>",
   "       fixed-run status <id>",
   "       fixed-run analyze <id> [--phase <id>]",
@@ -187,7 +187,11 @@ async function dryRun(argv: readonly string[], deps: FixedCliDeps, id: string): 
   requireDefinitionRom(deps, rom, def);
   const phase = flag(argv, "--phase") ?? def.phases[0]?.id ?? "";
   if (!def.phases.some((p) => p.id === phase)) throw new CliError(`no phase ${phase}; phases: ${def.phases.map((p) => p.id).join(", ")}`);
-  const dry = dryRunDefinition(def, wallMs, phase);
+  const paired = dryRunDefinition(def, wallMs, phase);
+  const arm=flag(argv,"--arm"), lane=flag(argv,"--lane");
+  if((arm===undefined)!==(lane===undefined))throw new CliError("single-trial dry runs require both --arm and --lane");
+  if(arm!==undefined&&!FIXED_ARMS.some(a=>a===arm))throw new CliError(`--arm must be one of ${FIXED_ARMS.join(", ")}`);
+  const dry=arm===undefined?paired:soloDefinition(paired,arm as FixedArm,lane??"",paired.phases[0]?.id??"",1);
   if (existsSync(join(experimentDir(deps, dry.id), "trials.jsonl"))) throw new CliError(`${dry.id} already has a ledger; move runs/experiments/${dry.id} to runs/dryruns/<name> first (the viewer still lists it there)`);
   if (recipe !== null) {
     const dir = experimentDir(deps, dry.id);

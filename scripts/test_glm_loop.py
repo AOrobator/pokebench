@@ -58,7 +58,7 @@ class GlmLoopRehearsal(unittest.TestCase):
         (self.root / ".gitignore").write_text("runs/\nrounds\nlaunches.jsonl\ndisk-read\n")
         for cmd in [["init", "-q", "-b", "main"], ["config", "user.name", "Rehearsal"], ["config", "user.email", "rehearsal@example.invalid"], ["add", "."], ["commit", "-qm", "fixture"]]:
             subprocess.run(["git", *cmd], cwd=self.root, check=True)
-        self.env = {**os.environ, "PATH": f"{self.bin}:{os.environ['PATH']}", "REPO": str(self.root), "RUNS": str(self.root / "runs"), "ARCHIVE": str(self.archive), "JUST": str(self.bin / "just"), "VIEWER_CMD": f"{self.bin / 'just'} viewer-main", "MAIN_WT": str(Path(self.tmp.name) / "pinned-main"), "LOOP_NAME": "glm-four-hour-loop", "EXP_ID": "glm53-flash-4h", "FEATURE_RECIPE": "bundle-v-control", "EXPECTED_TRIALS": "2", "WALL_MS": "14400000", "POLL": "0.05", "STOP_POLL": "0.05", "MIN_ROUND_S": "0", "RETRY_SLEEP": "0", "MAX_FAILS": "1"}
+        self.env = {**os.environ, "PATH": f"{self.bin}:{os.environ['PATH']}", "REPO": str(self.root), "RUNS": str(self.root / "runs"), "ARCHIVE": str(self.archive), "JUST": str(self.bin / "just"), "VIEWER_CMD": f"{self.bin / 'just'} viewer-main", "MAIN_WT": str(Path(self.tmp.name) / "pinned-main"), "LOOP_NAME": "glm-four-hour-loop", "EXP_ID": "glm53-flash-4h", "FEATURE_RECIPE": "bundle-v-control", "EXPECTED_TRIALS": "2", "WALL_MS": "14400000", "POLL": "0.05", "STOP_POLL": "0.05", "MIN_ROUND_S": "0", "RETRY_SLEEP": "0", "MAX_FAILS": "1", "LATEST_MAIN_PER_TRIAL": "0"}
         self.children = []
 
     def tearDown(self):
@@ -72,6 +72,25 @@ class GlmLoopRehearsal(unittest.TestCase):
         p = subprocess.Popen(["/bin/sh", str(DRIVER)], env=self.env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
         self.children.append(p)
         return p
+
+    def test_real_wrapper_selects_glm_pair_mode_over_inherited_solo_default(self):
+        scripts = self.root / "scripts"
+        scripts.mkdir()
+        (scripts / "whole-map-loop.sh").write_text(DRIVER.read_text())
+        wrapper = DRIVER.with_name("glm-loop.sh")
+        python = self.root / "env/.venv/bin/python"
+        python.parent.mkdir(parents=True)
+        python.write_text('#!/bin/sh\nexit 93\n')
+        python.chmod(0o755)
+        p = subprocess.Popen(["/bin/sh", str(wrapper)], env={**self.env, "LATEST_MAIN_PER_TRIAL": "1", "EXP_ID": "wrong-model", "FEATURE_RECIPE": "wrong-recipe", "WALL_MS": "1", "EXPECTED_TRIALS": "99"}, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+        self.children.append(p)
+        out = p.communicate(timeout=20)[0]
+        self.assertEqual(p.returncode, 0, out)
+        rows = [json.loads(l) for l in (self.root / "launches.jsonl").read_text().splitlines()]
+        self.assertEqual([r["recipe"]["revision"] for r in rows], [1, 2], out)
+        self.assertNotEqual(rows[0]["pin"], rows[1]["pin"], out)
+        self.assertEqual(out.count("2 valid trial(s)"), 2, out)
+        self.assertEqual(len(list(self.archive.glob("glm-four-hour-driver-*.sh"))), 1)
 
     def test_two_serial_pairs_refresh_main_and_preserve_first_ledger(self):
         p = self.start()

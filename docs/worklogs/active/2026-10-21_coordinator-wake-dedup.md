@@ -9,8 +9,10 @@ Repair: retain the wake marker through every held batch and acknowledgment. Clea
 - [x] RED: regression for arrival during forwarding and next idle-to-mail transition.
 - [x] GREEN: marker cleared only on atomic empty drain.
 - [ ] Gates and independent cloud review.
-- [ ] Land at board turn, restart only the watcher with corrected code, verify event-driven forwarding.
+- [ ] Land at board turn, verify the corrected consumer (watcher implementation unchanged), verify event-driven forwarding.
 
 RED verified: two regressions fail on premature marker deletion and redundant wake during forwarding.
 
 GREEN: 63 mailbox tests pass. RED commit 0802aa64. CLI regression retains one wake through forwarding and permits a new wake only after empty read. Added deterministic arrival during final read. Full lint/build/coverage/vendor gates running; separate just test hit the unchanged serial-comparison hung-child startup timing failure under concurrent load; no source or threshold change. Rerun after broad checks complete.
+
+Landing slot arrived 18:36 New York. Synced main a919c5ca6 cleanly in merge 60ae1a82; slot-expiry changes preserved. Serial normal gates running on synchronized code. Real-process CLI rehearsal runs/reviews/wake-dedup/rehearsal.json: three exact letters across two drain turns, two fake queue calls, zero empty wakes, no real queue/game/model calls. The watcher function is unchanged, so correcting the consumer does not require restarting it. Existing 600-second stale-wake recovery remains unchanged; no exact-once crash guarantee claimed.

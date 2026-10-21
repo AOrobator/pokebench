@@ -283,4 +283,4 @@ Pending, unqueued and unapproved. NEW_GAME_CREATED activation is reachable; heal
 
 ## trigger-navigation-boundary-v1
 
-Pending; not queued or approved. The recorded ea04 run reaches Rustboro var 0x405A=1 after Roxanne, proving this failure is reachable. Formal lane readiness and checkpoint experiment design have not been qualified. Source must be repinned after landing. No trials launched.
+Pending; not queued or approved. The recorded ea04 run reaches Rustboro var 0x405A=1 after Roxanne, proving this failure is reachable. Formal lane readiness and checkpoint experiment design have not been qualified. Source pins implementation commit 36662714; no trials launched.

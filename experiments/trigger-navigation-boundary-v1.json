@@ -8,7 +8,7 @@
   "primaryMilestone": "RIVAL_HOUSE_ENTERED",
   "source": {
     "checkout": "main",
-    "commit": "be531506a1504bd5e1e21135e599861a34249545"
+    "commit": "36662714c2dde93efdc7e70a5f0b333761ab7aff"
   },
   "incumbent": {
     "version": 2,
@@ -209,7 +209,6 @@
       "gym-door-label-v1": false,
       "mart-stock-readout-v1": false,
       "caught-dex-input-v1": false,
-      "progress-aware-cycles-v1": false,
       "exp-next-level-v1": false,
       "pokedex-own-v1": false,
       "exp-earned-ledger-v1": false,
@@ -217,6 +216,10 @@
       "seen-trainers-ledger-v1": false,
       "party-coverage-v1": false,
       "said-type-matches-v1": false,
+      "progress-aware-cycles-v1": false,
+      "shop-interface-v1": false,
+      "rejected-movement-step-v1": false,
+      "observed-field-dialogue-v1": false,
       "story-goal-player-name-v1": false,
       "cut-off-reply-feedback-v1": false,
       "trainer-sight-check-v2": false,
@@ -239,5 +242,5 @@
     "window": 4,
     "minReached": 3
   },
-  "notes": "Pending correctness treatment; not queued or approved. Source is the prelanding main pin and must be repinned after review/landing. ea04 Rustboro refusal is directly reachable evidence, not a benefit estimate. No measured run authorized; checkpoint experiment design required before queueing."
+  "notes": "Pending correctness treatment; not queued or approved. Source pins the committed implementation, whose agent/env sources are unchanged by registration metadata. ea04 Rustboro refusal is reachable evidence, not a benefit estimate. No measured run authorized; checkpoint experiment design and formal readiness required before queueing."
 }

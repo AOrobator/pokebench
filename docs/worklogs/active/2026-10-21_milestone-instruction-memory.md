@@ -32,8 +32,8 @@ One integrated milestone: RED tests and trace fixtures → GREEN production wiri
 - [x] Registry/bundle/pending entry/explainer and schema.
 - [x] Wiring deletion/restoration proof.
 - [x] Gates: test, lint, build, coverage >=90 each metric, vendor, experiment/page checks.
-- [ ] Principles self-review and frozen Claude/Grok/GPT review.
-- [ ] Landing board, merge, main tests and viewer/browser proof.
+- [x] Principles self-review and frozen Claude/GPT/fallback review; explicit operator Grok exception.
+- [x] Landing board, merge, main tests and viewer/browser proof.
 
 ## Evidence / review log
 
@@ -79,3 +79,15 @@ Board granted number 1 on 2026-10-21; verified with `just land-board`. Current m
 First sync checks caught duplicate exclusion entries/type exclusions and nine legacy harness-array offsets with newly inherited ALL_ON fixtures. Restored milestone switch OFF in those fixture baselines; no runtime behavior changes. Earlier failed receipts retained. Original six full-prefix trace audits repeated after sync: identical original hashes, keep/drop sets, archive contents and character counts. Python now 3827 passed after main sync, coverage gate >=90; build/vendor/pages checks pass. Agent/viewer coverage and final lint are running before freezing the final packet.
 
 Synchronized final gates PASS: 3434 agent tests (231 files), 1662 viewer tests (111 files), 3827 Python tests. Coverage line/branch/function: agent 99.21/93.27/97.92; viewer 97.95/91.34/94.35; Python 97.32/93.20/100. Final lint (TypeScript/ESLint/Ruff/format/mypy), build, pristine vendor and pages-check PASS. Source prefix/archive audits all unchanged. Receipts: `sync-agent-coverage-final.log`, `sync-viewer-coverage.log`, `sync-python-coverage.log`, `sync-python-gate.log`, `sync-lint-v3.log`, `sync-build-final.log`, `sync-vendor.log`, `sync-pages.log`, `sync-trace-audit.log` under ignored `runs/milestone-instruction-memory/`. No thresholds weakened or tests skipped. Freeze synchronized candidate after this merge commit for round-two review.
+
+## Landed and served evidence
+
+Final synchronized candidate/merge `c06d5530c9752f6ef4abf5d4e1ef9894d88f271d`, base `7f8f8b76a6d2571e2fbe67c7d77f44d16d3b01c3`, canonical binary diff SHA-256 `a8525be77ec9ad64b2b09fbc1b1c447f196e8666c989da0c990d788ec0a65c58`. Round two Claude CLI (exit 0, empty stderr, exactly one terminal LGTM), fresh GPT `/root/memory_sync_gpt` and Astra fallback `/root/memory_sync_fallback` all `VERDICT: LGTM`, independently reproduced digest and unchanged clean HEAD/status. Explicit operator Grok exception applies; reduced vendor diversity disclosed. No accepted Fix findings. Optional hardening/disclosure/variant coverage/experiment repin remain follow-ups. Complete receipts at canonical ignored `runs/milestone-instruction-memory/review-r2/`.
+
+Fast-forward landed while number 1; no other main changes. Main full suites: agent 3434, viewer 1662, Python 3827 pass. Initial viewer post-main attempt used stale canonical compiled agent and failed unknown-switch validation; rebuilt canonical main, then one source-pin test hit its unchanged 5000ms timeout under host load. Full viewer rerun with one worker passes all 1662, with no test/assertion/timeout changes. Earlier failed receipts retained. Branch full coverage/gates were already green on the exact landed tree.
+
+Viewer: first official restart reported success, but its child did not persist after the command tool completed. With no listener remaining, reran the official `just viewer-main` in a detached process session. Final restart 2026-10-21 17:41:50 EDT: served c06d5530c, clean stamp verified at `/private/tmp/pokebench-viewer/packages/viewer/dist/build-stamp.json`, exactly one 8790 listener, all three immediately pre-restart gameplay processes survived. The earlier baseline GPU1 run 1fe0 ended naturally at its budget, event #23271 at 17:37:17.659 EDT, before either restart; the already-running fixed runner chained d342. This change approved/launched no experiment.
+
+Live browser: original run 927e continues, frame and turn update over multiple polling cycles. New feature card shows NOT RECORDED for this older recording, correct default-OFF/bundle-only description, and Read Explainer opens the landed page. Console errors empty. Saved/opened live feature and game screenshots under `runs/mockups/milestone-instruction-memory-v1/shots/`. 8791 explainer and feature screenshot return 200. Real catalog 472→473 (natural chained trial), zero original IDs lost, zero duplicates; workbench warming completed with zero problems and no older-build warnings. Final receipt `runs/milestone-instruction-memory/post-landing-live-receipt.json`. Full source archive remains unchanged; six source-prefix audits still have identical keep/drop sets.
+
+This post-landing evidence-only commit touches only docs/worklogs; no additional review required by execute-worklog's evidence exception. Worklog stays active; no archive requested. Handoff via land-done follows this evidence commit.

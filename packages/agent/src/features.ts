@@ -191,6 +191,7 @@ export const SWITCHABLE_FEATURES = [
   "gym-door-label-v1",
   "mart-stock-readout-v1",
   "caught-dex-input-v1",
+  "shop-interface-v1",
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
 
@@ -495,6 +496,7 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("gym-door-label-v1", "observation", "GYM DOOR LABEL", "exit-labels-v2", "Default off; bundle only. Gym entrances keep GYM after their destination city in exit labels and terrain-section descriptions. The destination map identifies the Gym; its exterior sign names the building kind. No leader or route is revealed. Off: popup city names alone label Gym destinations, as before."),
   on("mart-stock-readout-v1", "observation", "MART STOCK READOUT", RAM, "Bundle arm only, default off (Rustboro gym strategy report 2026-10-21, proposal 4). No run of 11 that reached ROXANNE had bought anything, while holding ¥4,286-6,960; run 2026-10-21T06-28-18_qwen36-gpu0_1331 opened the RUSTBORO CITY MART buy list at turns 680-690 and the readout named only the highlighted row's name (and a coverage error past row 1), with no price or description. While a normal shop's buy screen is up (pret src/shop.c CB2_BuyMenu, sMartInfo martType 0), the game server adds a block after the Interface lines: every row of the clerk's list with the price the list prints (GetItemPrice, halved only during the Slateport sale at the Energy Guru, as BuyMenuPrintPriceInList does) and the game's own item description (GetItemDescription, the text the game shows for the highlighted row), the CANCEL row with \"Quit shopping.\", the highlighted row while the list owns input, and the player's money, for example:   3 SUPER POTION ¥700 — \"Restores the HP of a POKéMON by 50 points.\" … Highlighted: 3 SUPER POTION · Your money: ¥3412. Nothing ranks or recommends an item. No block on the BUY/SELL/QUIT menu, in a decoration shop or when the save block is not read in that snapshot; a failed read is a visible HARNESS BUG (mart stock) line. Off: no block; the readout is byte for byte as before."),
   on("caught-dex-input-v1", "observation", "CAUGHT POKÉDEX INPUT", RAM, "Default off; bundle only. Reads the caught POKéMON registration page from its battle-owned task. The page accepts A or B; battle auto-advance stops so the model can close it. Initialization and exit stay non-input transitions. Off: the page reads as a resolving battle, as before."),
+  on("shop-interface-v1", "observation", "SHOP INTERFACE", RAM, "Bundle arm only, default off (the operator 2026-10-21: \"build it and put it in the bundle\"). Run 2026-10-21T06-28-18_qwen36-gpu0_1331 shopped in the RUSTBORO CITY MART at turns 680-690: the Interface line read the first row as item id 18 (PARLYZ HEAL) instead of 4 (POKé BALL), every later row as \"STATE COVERAGE ERROR: invalid shop item list/index\" (so each DOWN press result was unavailable), the quantity box as \"ITEM 22\", and the \"Here you go! Thank you very much.\" page after buying as \"Shop has no unique verified input owner\". The native shop reader took the list row's id, which pret src/shop.c BuyMenuSetListEntry sets to the item id, as an index into the stock, and did not know Task_ReturnToItemListAfterItemPurchase. With the switch, on the buy screen the Interface line names the highlighted row (its item name with the real item id, or CANCEL), the quantity box names the item, and the after-purchase page is a ready shop_purchase_message: A or B continues, with the game's message. With no unique known owner or a failed read the previous result is kept. Off: the shop reader as before."),
 ];
 
 export const ALL_ON: FeatureSet = Object.fromEntries(SWITCHABLE_FEATURES.map((id) => [id, true])) as Record<SwitchableFeature, boolean>;
@@ -557,6 +559,7 @@ export const SERVER_FEATURES: readonly SwitchableFeature[] = [
   "gym-door-label-v1",
   "mart-stock-readout-v1",
   "caught-dex-input-v1",
+  "shop-interface-v1",
 ];
 
 export function serverFeatureEnv(features: FeatureSet): { POKEBENCH_ACTIVE_UI: "0" | "1"; POKEBENCH_FEATURES_OFF: string } {
@@ -729,6 +732,7 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("gym-door-label-v1"),
     ...when("mart-stock-readout-v1"),
     ...when("caught-dex-input-v1"),
+    ...when("shop-interface-v1"),
   ];
 }
 

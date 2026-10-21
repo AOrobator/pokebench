@@ -14,7 +14,6 @@ import struct
 from dataclasses import replace
 
 import pytest
-from pokebench_env.shop_interface import AFTER_PURCHASE_TASK, SWITCH, shop_ui
 from test_mart_stock import PROVENANCE, archived, list_task, maps, patched
 
 from pokebench_env.game_screen import TASKS
@@ -22,8 +21,10 @@ from pokebench_env.game_state import GameState
 from pokebench_env.menus import task_snapshot
 from pokebench_env.readout import SERVER_FEATURES, features_off_from_env, state_json
 from pokebench_env.rerender import read_state, render
+from pokebench_env.shop_interface import AFTER_PURCHASE_TASK, SWITCH, shop_ui
 
 OFF = frozenset({SWITCH})
+MART = frozenset({"mart-stock-readout-v1"})
 
 
 def state(name: str, off: frozenset[str] = frozenset()) -> GameState:
@@ -38,7 +39,7 @@ def interface(text: str) -> list[str]:
 
 
 def test_row0_names_the_real_item_id() -> None:
-    assert interface(render(state("buy-list-row0"), frozenset())) == [
+    assert interface(render(state("buy-list-row0", MART), MART)) == [
         "Menu: shop_menu; selected POKé BALL",
         "Interface: shop_menu; input ready; selected POKé BALL; Directions select; A accepts; "
         "B cancels",
@@ -47,7 +48,7 @@ def test_row0_names_the_real_item_id() -> None:
 
 
 def test_row2_is_no_longer_a_coverage_error() -> None:
-    assert interface(render(state("buy-list-row2"), frozenset())) == [
+    assert interface(render(state("buy-list-row2", MART), MART)) == [
         "Menu: shop_menu; selected SUPER POTION",
         "Interface: shop_menu; input ready; selected SUPER POTION; Directions select; "
         "A accepts; B cancels",
@@ -56,7 +57,7 @@ def test_row2_is_no_longer_a_coverage_error() -> None:
 
 
 def test_quantity_box_names_the_item() -> None:
-    assert interface(render(state("quantity-box"), frozenset())) == [
+    assert interface(render(state("quantity-box", MART), MART)) == [
         "Menu: shop_quantity; selected SUPER POTION",
         "Interface: shop_quantity; input ready; selected SUPER POTION; Directions select; "
         "A accepts; B cancels",
@@ -65,8 +66,8 @@ def test_quantity_box_names_the_item() -> None:
 
 
 def test_after_purchase_message_is_a_ready_owner() -> None:
-    assert interface(render(state("after-purchase"), frozenset())) == [
-        "Menu: shop_purchase_message",
+    assert interface(render(state("after-purchase", MART), MART)) == [
+        "Menu: no menu choice open (the Interface line says what owns input)",
         "Interface: shop_purchase_message; input ready; A or B continues",
         "Menu state: message: Here you go! | Thank you very much.",
     ]
@@ -86,6 +87,7 @@ def test_cancel_row_is_named_cancel_without_an_item() -> None:
     assert ui is not None
     assert (ui.phase, ui.selected, ui.ready) == ("shop_menu", "CANCEL", True)
     assert ui.details is not None and "item_id" not in ui.details
+    assert "list_item_id" not in ui.details
     assert ui.details["selected_index"] == 10
 
 
@@ -159,3 +161,17 @@ def test_state_json_unchanged_off_the_buy_screen(name: str) -> None:
 def test_switch_is_registered_server_side_last_and_default_off() -> None:
     assert SERVER_FEATURES[-1] == SWITCH == "shop-interface-v1"
     assert SWITCH in features_off_from_env({})
+
+
+def test_a_shop_phase_off_the_buy_screen_callback_is_untouched() -> None:
+    native = state("buy-list-row0", OFF).active_ui
+    read = patched("buy-list-row0", {0x030022C4: struct.pack("<I", 0x08085E5D)})
+    assert shop_ui(native, read) is native
+
+
+def test_two_known_owners_keep_the_native_result() -> None:
+    base = archived("after-purchase")
+    others = [t for t, function, _ in task_snapshot(base) if function != AFTER_PURCHASE_TASK]
+    read = patched("after-purchase", {TASKS + 40 * others[0]: struct.pack("<I", 0x080E0AC9)})
+    native = read_state(read, maps(), active_ui=True, off=OFF).active_ui
+    assert shop_ui(native, read) is native

@@ -36,11 +36,12 @@ A post-pass over the native reader's result (like evolution-decision-v1's `decis
 **M1 — RED**
 - [x] Tests `env/tests/env/test_shop_interface.py` on the five mart-stock fixtures (run 1331): exact ON lines for row 0, row 2, quantity box, after-purchase message; CANCEL row; untouched screens; no-owner and failed-read keep the native result; OFF goldens (today's lines); only active_ui/dialog differ; registry. `packages/agent/src/shop-interface.test.ts`.
 - RED: `pokebench_env.shop_interface` does not exist (collection error); 3 vitest failures (not registered).
-- [ ] COMMIT
+- [x] COMMIT: `test: shop-interface-v1 on the recorded Rustboro MART list rows, quantity box and after-purchase message (RED)` (d3ef1d69)
 
 **M2 — GREEN**
-- [ ] `env/pokebench_env/shop_interface.py`, game_state/rerender wiring, registry; collateral.
-- [ ] Gates.
+- [x] `env/pokebench_env/shop_interface.py` (post-pass: list row → item name and real item id or CANCEL; quantity box → item name; Task_ReturnToItemListAfterItemPurchase → ready `shop_purchase_message`, message from gText_HereYouGoThankYou because gStringVar4 then holds the money), game_state/rerender wiring, registry (features.ts, play-preset.ts, next-run.ts, legacy-features, readout.py). Collateral: index offsets and OFF strings in ~60 agent tests and 11 pytest files; test_mart_stock's native-reader fixture check now names this switch off.
+- [x] Gates: lint ok; agent 3295, viewer 1609, pytest 3668; shop_interface.py 100% lines and branches.
+- [x] Delete-the-guard: 6 guards, each red (game_state wiring 4; rerender gate 4; unique owner 1; callback gate 1; CANCEL row 1; agent when() 2). Receipt runs/shop-interface/mutations.txt (ignored).
 - [ ] COMMIT
 
 **M3 — bundle arms, pending experiment, explainer, review, land**

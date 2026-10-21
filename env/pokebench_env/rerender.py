@@ -96,6 +96,7 @@ def read_state(
         field_moves_enabled=FIELD_MOVES not in off and EXIT_REACH not in off,
         move_learning_enabled=not {MOVE_QUESTION, MOVE_COMPARISON} <= off,
         mart_stock_enabled=MART_STOCK not in off,
+        shop_interface_enabled="shop-interface-v1" not in off,
         respawn_links=links if RESPAWN not in off else None,
     )
 

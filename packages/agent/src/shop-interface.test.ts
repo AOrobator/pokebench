@@ -5,7 +5,7 @@ import { LEGACY_ALL_ON } from "../test-support/legacy-features.js";
 
 const ID="shop-interface-v1";
 
-describe("shop-interface-v1 (the operator 2026-10-21: "build it and put it in the bundle")",()=>{
+describe("shop-interface-v1 (the operator 2026-10-21: build it and put it in the bundle)",()=>{
  it("is appended last to every registry list as a default-off observation that needs the RAM readout",()=>{
   expect(SWITCHABLE_FEATURES.at(-1)).toBe(ID);
   expect(FEATURES.filter(f=>f.switchable).at(-1)?.id).toBe(ID);

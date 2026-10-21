@@ -81,10 +81,10 @@ describe("field-move-gates-v1 registry, presets and server wiring",()=>{
   expect(featureInfo(ID)).toMatchObject({group:"observation",needs:"exit-reachability-v1",switchable:true,title:"FIELD MOVE GATES"});
   expect(featureInfo(ID).description).toContain(" Off: obstacles are ignored by the flood, the exit labels, the readout and navigate_to, as before");
   expect(featureInfo(ID).description).toContain(`the game says: "${ROCK_TEXT}"`);
-  expect(SWITCHABLE_FEATURES.at(-18)).toBe(ID);
-  expect(FEATURES.filter(f=>f.switchable).at(-18)?.id).toBe(ID);
-  expect(SERVER_FEATURES.at(-8)).toBe(ID);
-  expect(playHarnessFeatures(ALL_ON,null).at(-15)).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-19)).toBe(ID);
+  expect(FEATURES.filter(f=>f.switchable).at(-19)?.id).toBe(ID);
+  expect(SERVER_FEATURES.at(-9)).toBe(ID);
+  expect(playHarnessFeatures(ALL_ON,null).at(-16)).toBe(ID);
   expect(playHarnessFeatures({...ALL_ON,[ID]:false},null)).not.toContain(ID);
   expect(serverFeatureEnv({...ALL_ON,[ID]:false}).POKEBENCH_FEATURES_OFF.split(",")).toContain(ID);
   expect(serverFeatureEnv(ALL_ON).POKEBENCH_FEATURES_OFF.split(",")).not.toContain(ID);

@@ -199,3 +199,11 @@ describe("story frontier chart by version", () => {
     expect(document.querySelector(".wb-current-key")?.textContent).toContain("LIVE · Model not recorded · control v1 · now1");
   });
 });
+
+it("explains early-stop frontier eligibility consistently in marks and chart help", () => {
+  const stopped = agent("stopped", 1, [], "bundle", { reason: "operator_abort" });
+  document.body.innerHTML = frontierLegend({ human: null, best: stopped }, [stopped], frontierVersions([stopped]), { ...closed, marksOpen: true, howOpen: true });
+  expect(document.querySelector('[data-reference="best"]')?.getAttribute("title")).toContain("earned progress still counts after an operator stop");
+  expect(document.querySelector(".wb-how-grid")?.textContent).toContain("An operator stop ends observation early; earned progress still counts toward the frontier.");
+  expect(document.querySelector(".wb-how-grid")?.textContent).not.toContain("crash, model error or operator stop");
+});

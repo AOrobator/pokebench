@@ -96,7 +96,6 @@ function loadRunWith(root: string, id: string, viewer: BuildIdentity | null, rea
     if (recording.skipped !== null) skew = { commit: start.harness.commit, dirty: start.harness.dirty, ...recording.skipped };
     if (run.config !== null && view.control.maxWallMs !== null) run.config.extendedWallMs = view.control.maxWallMs;
     run.status = view.end === null ? "unresponsive" : "ended"; run.reason = view.end?.reason ?? null; run.turn = view.turn;
-    if (run.reason === "operator_abort") run.excluded ??= "Excluded operator-aborted run";
     timing = { startMs: view.startMs, ended: view.end !== null, lastMs: view.lastMs, paused: view.control.state === "paused", pauses: view.control.pauses.map(p => ({ ...p })) };
   } catch (error) { run.problem = errorText(error); run.status = "invalid"; run.splits = []; delete run.measurement; timing = null; port = null; skew = null; }
   return { run, port, tag, timing, skew };
@@ -156,7 +155,7 @@ function startlessRun(root: string, id: string, viewer: BuildIdentity | null, pr
   if (viewer === null || identity === null || (identity.commit === viewer.commit && !viewer.dirty && !identity.dirty)) return strict;
   try {
     const { view, skipped } = readStartlessLog(path, id), reason = view.end?.reason ?? null;
-    const run: WorkbenchRun = { ...invalidRun(id, null), model: identity.model, started: identity.t, status: view.end === null ? "unresponsive" : "ended", reason, turn: view.turn, excluded: reason === "operator_abort" ? "Excluded operator-aborted run" : null };
+    const run: WorkbenchRun = { ...invalidRun(id, null), model: identity.model, started: identity.t, status: view.end === null ? "unresponsive" : "ended", reason, turn: view.turn };
     const timing: RunTiming = { startMs: view.startMs, ended: view.end !== null, lastMs: view.lastMs, paused: view.control.state === "paused", pauses: view.control.pauses.map(p => ({ ...p })) };
     return { run, port: identity.port, tag: null, timing, skew: { commit: identity.commit, dirty: identity.dirty, ...skipped, startless: true } };
   } catch (error) { return { ...strict, run: invalidRun(id, errorText(error)) }; }
@@ -169,7 +168,7 @@ export function settleSkew(loaded: LoadedRun, build: ViewerBuild | null): Loaded
   const skew = skewOf(build, loaded.skew), run = structuredClone(loaded.run), startless = loaded.skew.startless === true;
   if (skew !== null) { run.problem = skew.describe(loaded.skew.count, loaded.skew.first, startless); return { ...loaded, run }; }
   if (startless) return { run: invalidRun(run.id, `run ${run.id} has no readable run_start`), port: null, tag: null, timing: null, skew: null };
-  const strict = { ...invalidRun(loaded.run.id, loaded.skew.first), arm: run.arm, model: run.model, started: run.started, config: run.config, excluded: run.excluded === "Excluded operator-aborted run" ? null : run.excluded };
+  const strict = { ...invalidRun(loaded.run.id, loaded.skew.first), arm: run.arm, model: run.model, started: run.started, config: run.config, excluded: run.excluded };
   return { run: strict, port: null, tag: loaded.tag, timing: null, skew: null };
 }
 // Run time without operator pauses, as runSeconds computes it from a RunView.
@@ -400,7 +399,8 @@ function experimentCohorts(root: string, failures: Map<string, string>, unverifi
   }
 }
 // A fixed-run ledger (the fixed-N two-arm driver) joins experiment:<id> the same way: all or nothing,
-// every launched run is a member, and a trial the driver judged invalid is excluded with its reason.
+// every launched run is a member. A stop-only trial outcome censors further observation; it does
+// not invalidate earned progress. Other invalid-trial reasons still exclude the recording here.
 // False when the ledger is unreadable and contributed nothing.
 function fixedCohort(text: string, cohort: string, name: string, failures: Map<string, string>, membership: Map<string, string>, problems: string[]): boolean {
   const { entries, problems: bad } = parseFixedLedger(text);
@@ -409,7 +409,10 @@ function fixedCohort(text: string, cohort: string, name: string, failures: Map<s
   for (const e of entries) {
     if (e.kind === "launch") launched.add(e.run);
     else if (!launched.has(e.run)) { problems.push(`Experiment ${name} ledger: run ${e.run} has a ${e.kind} without a launch`); return false; }
-    else if (e.kind === "outcome" && !e.valid) invalid.set(e.run, `Invalid fixed-run trial: ${e.reason}`);
+    else if (e.kind === "outcome" && !e.valid) {
+      const stopped = (e.endReason === "operator_abort" || e.endReason === "operator_stop") && e.reason === `the operator stopped the trial (${e.endReason})`;
+      if (!stopped) invalid.set(e.run, `Invalid fixed-run trial: ${e.reason}`);
+    }
   }
   for (const run of launched) membership.set(run, cohort);
   for (const [run, message] of invalid) failures.set(run, message);

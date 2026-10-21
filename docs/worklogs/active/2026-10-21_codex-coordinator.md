@@ -44,3 +44,4 @@ M3 REVIEW/LAND: Claude, Grok, GPT lanes; land through the board.
   - GPT: the wake marker was written before the queue call, so a crash could suppress the next wake for 10 minutes. FIX: marker written only after a successful queue (test: a crash mid-wake leaves no marker; the next wake goes out).
   - Skill: the watcher stops itself if the coordinator is gone; stop it with pkill when the coordinator retires.
   - 61 agent-mail tests, module 100%. No further review rounds (operator chose land; findings were fixed, not deferred).
+- LANDED 2026-10-21 ~5:20 PM EDT: main fast-forwarded d6622d404 → 4dcb448ac (the operator "land", 2:25 PM). Gates on 4dcb448ac: build, lint, coverage pass (try 3; tries 1–2 hit viewer timing flakes at load ~40 in untouched TS), test + verify-vendor EXIT 0. 61 agent-mail tests pass on main. Watcher restarted from main (`just codex-wake-watch redacted-id-…`, pid 21991).

@@ -351,3 +351,7 @@ The operator approved 9:42 PM ET. Test-only, plus one production fix the coordin
   reproduce. Grok and Codex stopped before verdicts, packet void. Substance: no defects. Hardening taken: the
   sweep reuses survey.open (no extra ungated classify) and asserts its floods (<= 4 + 2 x closed per survey,
   exactly 2 per checked claim). Next: merge main 97046aa6, gates, refreeze with explicit SHAs.
+- COMMIT: `test: the field-move claim sweep reuses the survey's open flood and bounds its floods` (47c9ebab)
+- COMMIT: `Merge branch 'main' into claude/field-move-test-io` (9b511d4d), main 97046aa6, clean. Gates on the merged
+  tip: test 0, lint 0, build 0, coverage 0 (env 3480, agent 3046, viewer 1494; Python 97.21 / 92.86 / 100,
+  agent 97.13 / 92.97 / 97.59 / 99.14, viewer 95.24 / 90.99 / 94.17 / 97.81).

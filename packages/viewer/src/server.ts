@@ -336,7 +336,6 @@ function segments(rawUrl: string): string[] | null {
 // yielding to the event loop between chunks and waiting for the socket to drain, so opening one
 // run never stalls every other request.
 function streamEvents(req: IncomingMessage, res: ServerResponse, path: string, pollMs: number, skew: Skew | null, chunkBytes: number, head?: readonly RunEvent[], offset = 0): void {
-  if (res.destroyed) return;
   res.writeHead(200, { ...SECURITY_HEADERS, "content-type": "text/event-stream; charset=utf-8", connection: "keep-alive" });
   let closed = false, timer: NodeJS.Timeout | null = null;
   const reader = new LogReader(path, chunkBytes, offset);

@@ -193,7 +193,7 @@ export class Workbench {
     const plot = this.ui("frontier-full"), coverage = plot.querySelector<HTMLDetailsElement>("[data-frontier-coverage]");
     const active = this.doc.activeElement, coverageOpen = coverage?.open ?? false, coverageFocused = coverage?.querySelector("summary") === active;
     const replayHref = active?.tagName === "A" && coverage?.contains(active) === true ? active.getAttribute("href") : null;
-    plot.innerHTML = frontierPlot(refs, overlays, width, this.versions, current, this.zoom, status, this.isolated ?? this.hovered, this.hideTimeOutliers);
+    plot.innerHTML = frontierPlot(refs, overlays, width, this.versions, current, this.zoom, status, this.isolated ?? this.hovered, this.hideTimeOutliers, this.data.runs);
     const nextCoverage = plot.querySelector<HTMLDetailsElement>("[data-frontier-coverage]");
     if (nextCoverage !== null) {
       nextCoverage.open = coverageOpen;

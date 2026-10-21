@@ -513,24 +513,76 @@ describe("the cycle state is the whole recorded state minus a documented list",(
   if(value!==null&&typeof value==="object"){const entries=Object.entries(value);for(const [k,v] of entries)paths(v,prefix===""?k:`${prefix}.${k}`,out);if(entries.length===0)out.add(prefix);return out;}
   out.add(prefix);return out;
  };
- const excluded=(path:string):boolean=>CYCLE_STATE_EXCLUDED.some(x=>path===x.path||path.startsWith(`${x.path}.`)||path.startsWith(`${x.path}[]`));
- for(const [name,turn] of [["short-cycle-ef9f.jsonl.gz",133],["short-cycle-97a0.jsonl.gz",120],["short-cycle-97a0.jsonl.gz",121]] as const){
-  it(`covers every key of the recorded state ${name} left at turn ${String(turn)}`,()=>{
-   const events=fixture(name);
-   const result=events.find(e=>e.type==="tool_result"&&e.turn===turn);
-   const s=result?.type==="tool_result"?events.find(e=>e.seq===result.state_seq):undefined;
-   if(s?.type!=="state"||!("started"in s))throw new Error("no state");
+ // An exclusion applies to its path, and only in its phases where it names them.
+ const excluded=(path:string,state:{active_ui?:{phase:string}|null}):boolean=>CYCLE_STATE_EXCLUDED.some(x=>(path===x.path||path.startsWith(`${x.path}.`)||path.startsWith(`${x.path}[]`))&&(x.phases===undefined||x.phases.includes(state.active_ui?.phase??"")));
+ const recordedState=(name:string,turn:number)=>{
+  const events=fixture(name);
+  const result=events.find(e=>e.type==="tool_result"&&e.turn===turn);
+  const s=result?.type==="tool_result"?events.find(e=>e.seq===result.state_seq):undefined;
+  if(s?.type!=="state"||!("started"in s))throw new Error("no state");
+  return s;
+ };
+ // The same recorded field state with a naming keyboard open: a non-clock interface whose value counts.
+ const naming=()=>({...recordedState("short-cycle-97a0.jsonl.gz",121),screen:"naming",active_ui:ui("naming_keyboard","A","MAY")}) as Parameters<typeof cycleFields>[0];
+ const cases:readonly [string,()=>Parameters<typeof cycleFields>[0]][]=[
+  ["ef9f turn 133 (clock confirmation)",()=>recordedState("short-cycle-ef9f.jsonl.gz",133)],
+  ["97a0 turn 120 (in PROF. BIRCH'S HOUSE)",()=>recordedState("short-cycle-97a0.jsonl.gz",120)],
+  ["97a0 turn 121 (LITTLEROOT TOWN)",()=>recordedState("short-cycle-97a0.jsonl.gz",121)],
+  ["97a0 turn 121 with a naming keyboard open",naming],
+ ];
+ for(const [label,make] of cases){
+  it(`covers every key of the recorded state at ${label}`,()=>{
+   const s=make();
    const fields=cycleFields(s);
    if(fields===null)throw new Error("the recorded state does not qualify");
    const kept=paths(fields,"",new Set());
    const all=paths(s,"",new Set());
-   const missing=[...all].filter(path=>!kept.has(path)&&!excluded(path));
-   expect(missing).toEqual([]);
-   const unexplained=[...all].filter(path=>excluded(path)&&kept.has(path));
-   expect(unexplained).toEqual([]);
+   expect([...all].filter(path=>!kept.has(path)&&!excluded(path,s))).toEqual([]);
+   expect([...all].filter(path=>excluded(path,s)&&kept.has(path))).toEqual([]);
    expect(all.size).toBeGreaterThan(100);
   });
  }
+ it("keeps a non-clock interface's value and leaves out only the clock's",()=>{
+  expect(cycleFields(naming())?.active_ui).toMatchObject({phase:"naming_keyboard",value:"MAY"});
+  const clock=recordedState("short-cycle-ef9f.jsonl.gz",133);
+  expect(clock.active_ui?.value).toBe("11:02 AM");
+  expect(cycleFields(clock)?.active_ui).not.toHaveProperty("value");
+ });
+ // Every key of a recorded state that ends in diagnostic(s), given a failure, makes the state unusable.
+ const diagnosticPaths=(value:unknown,at:readonly (string|number)[],out:(string|number)[][]):(string|number)[][]=>{
+  if(Array.isArray(value)){value.forEach((v,k)=>{diagnosticPaths(v,[...at,k],out);});return out;}
+  if(value!==null&&typeof value==="object")for(const [k,v] of Object.entries(value)){if(k.endsWith("diagnostic")||k.endsWith("diagnostics"))out.push([...at,k]);diagnosticPaths(v,[...at,k],out);}
+  return out;
+ };
+ const fail=(state:unknown,path:readonly (string|number)[])=>{
+  const copy=structuredClone(state) as Record<string|number,unknown>;
+  let at:Record<string|number,unknown>=copy;
+  for(const key of path.slice(0,-1))at=at[key] as Record<string|number,unknown>;
+  const last=path.at(-1)??"";
+  at[last]=String(last).endsWith("diagnostics")?[{owner:"test",message:"synthetic read failure",raw_hex:null}]:"synthetic read failure";
+  return copy as Parameters<typeof cycleFields>[0];
+ };
+ for(const [label,make] of cases){
+  it(`turns every recorded diagnostic key of ${label} into a state the cycle rule never uses`,()=>{
+   const s=make();
+   const found=diagnosticPaths(s,[],[]);
+   expect(found.length).toBeGreaterThan(0);
+   for(const path of found)expect(cycleFields(fail(s,path)),path.join(".")).toBeNull();
+  });
+ }
+ it("treats each named diagnostic key as a failed read",()=>{
+  const field=recordedState("short-cycle-97a0.jsonl.gz",121);
+  const party=field.party.map((p,k)=>k===0?{...p,nickname_diagnostic:"nickname bytes unreadable"}:p);
+  expect(field.party.length).toBeGreaterThan(0);
+  expect(cycleFields({...field,party})).toBeNull();
+  expect(cycleFields({...field,world_context:{...field.world_context,message_diagnostic:"field message owner unqualified"}} as typeof field)).toBeNull();
+  const details=(extra:Record<string,unknown>)=>({...field,screen:"daycare",active_ui:{...ui("daycare_menu","CHECK",null as unknown as string),details:extra}}) as unknown as typeof field;
+  expect(cycleFields(details({daycare_left_diagnostic:"slot unreadable"}))).toBeNull();
+  expect(cycleFields(details({party_pokemon_diagnostics:[{slot:1,message:"checksum"}]}))).toBeNull();
+  // The same keys with nothing to report do not.
+  expect(cycleFields(details({daycare_left_diagnostic:null,party_pokemon_diagnostics:[]}))).not.toBeNull();
+  expect(cycleFields({...field,party:field.party.map(p=>({...p,nickname_diagnostic:null}))})).not.toBeNull();
+ });
  it("requires a period on every short_cycle record, and none on the other triggers",()=>{
   const body={v:1,run:"r",seq:1,t:"2026-10-20T22:00:00.000-04:00",turn:5,type:"loop_breaker",stage:1,repeats:6,collapsed:4,text:null};
   expect(()=>checkEvent({...body,trigger:"short_cycle",period:2})).not.toThrow();
@@ -550,7 +602,9 @@ describe("short-cycle-fixed-point-v1 registry, presets and experiments",()=>{
   expect(SWITCHABLE_FEATURES.at(-1)).toBe(ID);
   expect(FEATURES.filter(f=>f.switchable).at(-1)?.id).toBe(ID);
   expect(featureInfo(ID)).toMatchObject({group:"guard",needs:null,switchable:true,title:"SHORT-CYCLE FIXED POINT"});
-  expect(featureInfo(ID).description).toContain(" Off: ");
+  // OFF is exactly the previous behavior: the copy says so, and the production wiring with the switch off builds the
+  // same request and records the same events as with the switch absent from the preset.
+  expect(featureInfo(ID).description.endsWith(" Off: duplicate-turn-collapse-v1 and fixed-point-breaker-v1 act as before: only identical turns that left the same state, and replies with no tool call, are left out of the request, and only their notes are sent.")).toBe(true);
   expect(featureInfo(ID).description).toContain("duplicate-turn-collapse-v1");
   expect(featureInfo(ID).description).toContain(cycleNote(7,2,["navigate_to_target"]).replace("7 turns","N turns").replace("2 turns of navigate_to_target","P turns of <tool>"));
   expect(playHarnessFeatures(ALL_ON,null).at(-1)).toBe(ID);
@@ -558,6 +612,21 @@ describe("short-cycle-fixed-point-v1 registry, presets and experiments",()=>{
   expect(normalizeFeatures({} as Parameters<typeof normalizeFeatures>[0])[ID]).toBe(false);
   expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false})[ID]).toBe(false);
   expect(LEGACY_ALL_ON[ID]).toBe(false);
+ });
+ it("OFF builds the same requests and records as a preset that never heard of the switch, on both recorded runs",async()=>{
+  for(const name of ["short-cycle-ef9f.jsonl.gz","short-cycle-97a0.jsonl.gz"]){
+   const run=recordedRun(name);
+   const without=normalizeFeatures(Object.fromEntries(Object.entries(run.features()).filter(([id])=>id!==ID)) as Parameters<typeof normalizeFeatures>[0]);
+   const off=await run.replay({...run.features(),[ID]:false});
+   const absent=await run.replay(without);
+   expect(off.records).toEqual(absent.records);
+   expect([...off.requests.entries()].map(([t,m])=>[t,run.turnsIn(m)])).toEqual([...absent.requests.entries()].map(([t,m])=>[t,run.turnsIn(m)]));
+   for(const breaker of [true,false]){
+    const a=await run.replay({...run.features(),[ID]:false,"fixed-point-breaker-v1":breaker});
+    const b=await run.replay({...without,"fixed-point-breaker-v1":breaker});
+    expect(a.records,`${name} breaker ${String(breaker)}`).toEqual(b.records);
+   }
+  }
  });
  it("is registered as a pending one-switch experiment and joins only the bundle arm of the fixed experiments",()=>{
   const entry=parseExperiment(JSON.parse(readFileSync(new URL(`../../../experiments/${ID}.json`,import.meta.url),"utf8")));

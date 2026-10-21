@@ -17,8 +17,8 @@ it("labels short-cycle collapses and notes in Activity History and adds nothing 
   const fixed = log.add(300, { type: "loop_breaker", turn: 140, stage: 1, trigger: "fixed_point", repeats: 3, collapsed: 2, text: null });
   const view = new RunView();
   for (const event of log.events) view.apply(event);
-  expect(eventText(collapse, view)).toBe("Loop breaker stage 1 · 4 earlier turns left out of the request across every cycle in it (longest: a cycle of 2 turns (the same tool calls and game state) repeated over 6 turns)");
-  expect(eventText(note, view)).toBe(`Loop breaker stage 2 note sent to the model (a cycle of 2 turns (the same tool calls and game state) repeated over 7 turns) · ${NOTE}`);
+  expect(eventText(collapse, view)).toBe("Loop breaker stage 1 · 4 earlier turns left out of the request across every cycle in it (longest: a cycle of 2 turns (the same tool calls and game state, apart from fields that change on their own) repeated over 6 turns)");
+  expect(eventText(note, view)).toBe(`Loop breaker stage 2 note sent to the model (a cycle of 2 turns (the same tool calls and game state, apart from fields that change on their own) repeated over 7 turns) · ${NOTE}`);
   expect(eventText(fixed, view)).toBe("Loop breaker stage 1 · 2 duplicate turns left out of the request (3 identical turns in a row)");
   expect(JSON.stringify(stepOf(collapse, view))).toContain("Loop breaker");
   expect(inspector(note)).toContain("short_cycle");

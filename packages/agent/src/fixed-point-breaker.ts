@@ -39,24 +39,31 @@ export function cycleNote(turns:number,period:number,names:readonly string[]):st
 // their own, listed here. Evidence: between repeats of ef9f's bounce (turns 131-136) and 97a0's walk (116-122) only these
 // differ. Anything else the state records (party with PP and experience, battle, inventory, berry trees, objects, maps,
 // menus) is part of it, so a field added later is in the fingerprint unless it is added to this list.
-export const CYCLE_STATE_EXCLUDED:readonly {readonly path:string;readonly why:string}[]=[
+// `phases`, where given, limits an entry to states whose open interface is in one of those phases.
+export const CYCLE_STATE_EXCLUDED:readonly {readonly path:string;readonly why:string;readonly phases?:readonly string[]}[]=[
  {path:"v",why:"event envelope"},{path:"run",why:"event envelope"},{path:"type",why:"event envelope"},
  {path:"seq",why:"event counter"},{path:"turn",why:"turn counter"},{path:"t",why:"wall-clock time"},
  {path:"raw_ram",why:"raw RAM archive reference: frame, path, sequence and hash change with every observation"},
  {path:"settle",why:"how many emulated frames the observation waited"},
  {path:"play_time_s",why:"the play clock"},
- {path:"active_ui.value",why:"clock_adjustment and clock_confirmation only: the clock's time (ef9f moved it two minutes each cycle); every other interface keeps its value"},
+ {path:"active_ui.value",phases:["clock_adjustment","clock_confirmation"],why:"on the two clock-setting interfaces only: the clock's time (ef9f moved it two minutes each cycle); every other interface's value is fingerprinted"},
  {path:"resources.berry_trees[].minutes_until_next_stage",why:"the berry growth timer"},
 ];
-const CLOCK_PHASES=new Set(["clock_adjustment","clock_confirmation"]);
-// Any diagnostic anywhere (party, battle, resources, menus): a value the readout failed to decode is not evidence that
-// nothing changed.
+const CLOCK_PHASES=new Set(CYCLE_STATE_EXCLUDED.find(x=>x.path==="active_ui.value")?.phases??[]);
+// Any diagnostic anywhere (party, battle, resources, messages, menus and their details): a key ending in `diagnostic`
+// with a value (nickname_diagnostic, message_diagnostic, daycare_*_diagnostic, ...) or in `diagnostics` with entries
+// (*_pokemon_diagnostics, ...). A value the readout failed to decode is not evidence that nothing changed.
+const filled=(value:unknown):boolean=>{
+ if(Array.isArray(value))return value.length>0;
+ if(value!==null&&typeof value==="object")return Object.keys(value).length>0;
+ return value!==null&&value!==undefined;
+};
 function diagnosed(value:unknown):boolean {
  if(Array.isArray(value))return value.some(diagnosed);
  if(value===null||typeof value!=="object")return false;
  for(const [key,inner] of Object.entries(value)){
-  if(key==="diagnostic"&&inner!==null&&inner!==undefined)return true;
-  if(key==="diagnostics"&&Array.isArray(inner)&&inner.length>0)return true;
+  if(key.endsWith("diagnostic")&&inner!==null&&inner!==undefined)return true;
+  if(key.endsWith("diagnostics")&&filled(inner))return true;
   if(diagnosed(inner))return true;
  }
  return false;
@@ -242,7 +249,8 @@ export class FixedPointBreaker {
   return [...messages,{role:"user",content:text,timestamp:Date.now()}];
  }
 
- // short-cycle-fixed-point-v1 stage 1: each cycle run keeps its newest copy (its last `period` turns); the turns before
+ // short-cycle-fixed-point-v1 stage 1: each cycle run leaves out the turns before its newest copy (its last `period`
+// turns; an overlapping later run of another period can also leave out part of that copy, whose turns it repeats); the turns before
  // it join `drop`. Returns the groups only this pass left out, the longest run and its period.
  private cycleCollapse(groups:readonly Group[],drop:Set<number>):{readonly groups:readonly Group[];readonly repeats:number;readonly period:number} {
   const left:Group[]=[];

@@ -15,12 +15,22 @@ Operator decision 2026-10-21: The operator chose a Codex coordinator with a mail
 
 ## The loop
 
-1. Run `just codex-mailbox --timeout 540` from `~/dev/pokebench`. Give the command a timeout longer than 540 seconds so it can wait. It returns when a letter arrives, or with exit code 3 and "No mail." when the 540 seconds pass.
-2. Each letter prints as `[time] sender → thread <id or name>: <text>`. For each one, call `send_message_to_thread` with that `threadId` and the prompt `From <sender>, relayed by the Codex coordinator: <text>`. Copy the text whole: no summaries, no edits.
-3. If a forward fails (unknown or archived thread, for example), tell Claude: `just tell-claude --from "codex coordinator" "Could not forward to <thread>: <error>. Letter: <text>"`.
-4. Go back to step 1 at once. Stay in this loop; it is the whole job.
+1. Run `just codex-mailbox --timeout 540` from `~/dev/pokebench`, with a command timeout longer than 540 seconds so it can wait. It returns when letters arrive, or with exit code 3 and "No mail." when the 540 seconds pass.
+2. It prints one JSON object per letter: `{"claim": N, "sent_at": …, "sender": …, "to_thread": …, "text": …}`. Read the fields from the JSON; a letter's text can span lines or contain anything. For each letter with a `to_thread`, call `send_message_to_thread` with `threadId` = `to_thread` and the prompt `From <sender>, relayed by the Codex coordinator: <text>`. Copy the text whole: no summaries, no edits.
+3. After every letter in that batch is forwarded or reported, run `just codex-mailbox-done --claim N` with the batch's `claim`. Until then the letters stay claimed; if this thread stops before that step, the next `just codex-mailbox` hands the same batch out again. Forward again if you are not sure a forward went through: a repeat is better than a lost letter.
+4. If a forward fails (unknown or archived thread, for example), tell Claude without putting the letter on a command line:
 
-A letter with no thread (no `→ thread`) is meant for you. Answer it with `just tell-claude --from "codex coordinator" "<answer>"`.
+   ```
+   just tell-claude --from "codex coordinator" --stdin <<'LETTER'
+   Could not forward to <thread>: <error>
+   <the letter's text>
+   LETTER
+   ```
+
+   The quoted `'LETTER'` keeps the shell from reading anything inside it.
+5. Go back to step 1 at once. Stay in this loop; it is the whole job.
+
+A letter with no `to_thread` is meant for you. Answer it the same way, with `just tell-claude --from "codex coordinator" --stdin`.
 
 ## Rules
 

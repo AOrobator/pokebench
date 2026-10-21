@@ -58,7 +58,7 @@ Without crashes, only one listener receives each letter. If two threads listen, 
 | `just land-done --branch B` | Leave the board; tell everyone their new place |
 | `just land-move --branch B --before C` | Move B above C (operator's word only); tell who moved |
 | `just tell-codex "<session>" "<message>"` | Reach a Codex session: via the Codex coordinator mid-turn, else `codex queue` |
-| `just codex-mailbox [--timeout S]` | The Codex coordinator's listener (Codex side only) |
+| `just codex-mailbox [--timeout S]` / `just codex-mailbox-done --claim N` | The Codex coordinator's listener and acknowledgement (Codex side only) |
 | `just codex-sessions [--limit N]` | Recent Codex session names |
 | `just tell-claude [--from W] [--to BRANCH] "<message>"` | Leave a letter for Claude: one thread's branch, or the relay |
 | `just claude-mailbox [--for BRANCH] [--timeout S]` | Wait for letters to your branch, or to the relay; run in the background |

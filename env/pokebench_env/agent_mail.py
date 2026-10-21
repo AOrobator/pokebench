@@ -195,7 +195,9 @@ def deliver(room: Mailroom, letter: Letter, *, only_if_listening: bool) -> bool:
             except BlockingIOError:
                 pass  # The pipe is full of earlier pings: the listener is already being woken.
             except BrokenPipeError:
-                return False  # The listener left after open; the letter waits in pending.
+                # The listener left after open; the letter waits in pending for the next one.
+                # A caller that asked for a listener must not also send it another way.
+                return only_if_listening
             return True
         finally:
             if ping is not None:
@@ -516,10 +518,21 @@ def main(argv: Sequence[str] | None = None, *, run: Run = run_command) -> int:
     tell = commands.add_parser("tell-claude", help="leave a letter for the listening Claude")
     tell.add_argument("--from", dest="sender", default="codex")
     tell.add_argument("--to", default=None, help="a Claude thread's branch; omit for the relay")
-    tell.add_argument("words", nargs="+")
+    tell.add_argument(
+        "--stdin", action="store_true", help="read the letter from standard input, verbatim"
+    )
+    tell.add_argument("words", nargs="*")
     box = commands.add_parser("claude-mailbox", help="wait for letters (run in the background)")
     box.add_argument("--timeout", type=float, default=None)
     box.add_argument("--for", dest="address", default=None, help="your branch's own mailbox")
+    box.add_argument(
+        "--hold",
+        action="store_true",
+        help="print JSON letters and keep them claimed until mailbox-done (for forwarders)",
+    )
+    held = commands.add_parser("mailbox-done", help="acknowledge letters printed with --hold")
+    held.add_argument("--for", dest="address", default=None)
+    held.add_argument("--claim", type=int, required=True)
     codex = commands.add_parser(
         "tell-codex", help="reach a Codex thread: the Codex coordinator if listening, else queue"
     )
@@ -545,8 +558,11 @@ def main(argv: Sequence[str] | None = None, *, run: Run = run_command) -> int:
     room = Mailroom.for_repo(Path.cwd())
     now = datetime.now(UTC)
     if args.command == "tell-claude":
+        if args.stdin == bool(args.words):
+            parser.error("give the letter as words or with --stdin, not both or neither")
+        text = sys.stdin.read() if args.stdin else " ".join(args.words)
         box_room = room if args.to is None else room.addressed(args.to)
-        live = tell_claude(box_room, sender=args.sender, text=" ".join(args.words), now=now)
+        live = tell_claude(box_room, sender=args.sender, text=text, now=now)
         print(
             "Delivered: a listening Claude was woken."
             if live
@@ -559,9 +575,19 @@ def main(argv: Sequence[str] | None = None, *, run: Run = run_command) -> int:
         if not letters:
             print("No mail.")
             return NO_MAIL
+        if args.hold:
+            # Kept claimed: a forwarder that dies before mailbox-done gets them again next run.
+            for letter in letters:
+                print(json.dumps({"claim": os.getpid(), **json.loads(letter_json(letter))}))
+            return 0
         for letter in letters:
             print(format_letter(letter), flush=True)
         acknowledge(box_room, os.getpid())
+        return 0
+    if args.command == "mailbox-done":
+        box_room = room if args.address is None else room.addressed(args.address)
+        acknowledge(box_room, args.claim)
+        print("Acknowledged.")
         return 0
     if args.command == "tell-codex":
         code, via_coordinator = reach_codex(

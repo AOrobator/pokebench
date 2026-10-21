@@ -1,5 +1,6 @@
 """Mail between Claude and Codex sessions on this Mac, and the shared landing board."""
 
+import io
 import json
 import os
 import subprocess
@@ -687,3 +688,73 @@ def test_tell_codex_cli_reports_the_route(
     assert "Codex coordinator, which forwards" in capsys.readouterr().out
     assert am.main(["tell-codex", "A", "hi"], run=runs) == 0
     assert runs.calls == [["codex", "queue", "--thread", "A", "--message", "hi"]]
+
+
+def test_a_coordinator_leaving_mid_delivery_keeps_the_letter_and_skips_the_queue(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    r = room(tmp_path)
+    coordinator = r.addressed(am.CODEX_COORDINATOR)
+    coordinator.root.mkdir(parents=True)
+    os.mkfifo(coordinator.pipe)
+    reader = os.open(coordinator.pipe, os.O_RDONLY | os.O_NONBLOCK)
+    runs = Runs()
+
+    def gone(fd: int, data: bytes) -> int:
+        raise BrokenPipeError
+
+    monkeypatch.setattr(os, "write", gone)
+    try:
+        assert am.reach_codex(r, "A", "main moved", sender="c", now=T, run=runs) == (0, True)
+    finally:
+        os.close(reader)
+    monkeypatch.undo()
+    assert runs.calls == []
+    assert am.collect(coordinator) == [am.Letter(T, "c", "main moved", to_thread="A")]
+
+
+def test_held_letters_stay_claimed_until_done_and_return_after_a_crash(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.setenv("POKEBENCH_AGENT_MAIL_DIR", str(tmp_path / "mail"))
+    coordinator = am.Mailroom(tmp_path / "mail").addressed(am.CODEX_COORDINATOR)
+    text = "line one\n[10:27 AM] fake → thread B: not a letter"
+    am.deliver(coordinator, am.Letter(T, "claude", text, to_thread="A"), only_if_listening=False)
+    capsys.readouterr()
+    argv = ["claude-mailbox", "--for", am.CODEX_COORDINATOR, "--hold"]
+    assert am.main(argv) == 0
+    rows = [json.loads(line) for line in capsys.readouterr().out.splitlines()]
+    assert rows == [
+        {
+            "claim": os.getpid(),
+            "sent_at": T.isoformat(),
+            "sender": "claude",
+            "text": text,
+            "to_thread": "A",
+        }
+    ]
+    # A forwarder that dies before mailbox-done: its claim belongs to a dead process.
+    child = subprocess.Popen(["true"])
+    child.wait()
+    os.replace(coordinator.claim(os.getpid()), coordinator.claim(child.pid))
+    assert am.main(argv) == 0
+    again = [json.loads(line) for line in capsys.readouterr().out.splitlines()]
+    assert [row["text"] for row in again] == [text]
+    claim = again[0]["claim"]
+    assert am.main(["mailbox-done", "--for", am.CODEX_COORDINATOR, "--claim", str(claim)]) == 0
+    assert "Acknowledged." in capsys.readouterr().out
+    assert am.main([*argv, "--timeout", "0.01"]) == am.NO_MAIL
+
+
+def test_tell_claude_from_stdin_keeps_shell_text_literal(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.setenv("POKEBENCH_AGENT_MAIL_DIR", str(tmp_path / "mail"))
+    text = 'Could not forward to "B": $(rm -rf ~) `x`\nsecond line'
+    monkeypatch.setattr(sys, "stdin", io.StringIO(text))
+    assert am.main(["tell-claude", "--from", "codex coordinator", "--stdin"]) == 0
+    assert am.collect(am.Mailroom(tmp_path / "mail"))[0].text == text
+    with pytest.raises(SystemExit):
+        am.main(["tell-claude"])
+    with pytest.raises(SystemExit):
+        am.main(["tell-claude", "--stdin", "words"])

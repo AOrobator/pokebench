@@ -8,7 +8,7 @@ import sys
 import threading
 import time
 from collections.abc import Sequence
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
@@ -620,6 +620,15 @@ def test_a_hung_command_times_out_instead_of_holding_the_board() -> None:
     assert time.monotonic() - start < 3
 
 
+def known_threads(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, *ids: str) -> None:
+    index = tmp_path / "codex-index.jsonl"
+    rows = [
+        {"id": i, "thread_name": f"name {i}", "updated_at": "2026-10-21T14:00:00Z"} for i in ids
+    ]
+    index.write_text("".join(json.dumps(row) + "\n" for row in rows))
+    monkeypatch.setenv("CODEX_SESSION_INDEX", str(index))
+
+
 def listen_in_background(r: am.Mailroom) -> tuple[threading.Thread, list[list[am.Letter]]]:
     ready = threading.Event()
     got: list[list[am.Letter]] = []
@@ -629,7 +638,10 @@ def listen_in_background(r: am.Mailroom) -> tuple[threading.Thread, list[list[am
     return listener, got
 
 
-def test_tell_codex_goes_to_a_listening_codex_coordinator(tmp_path: Path) -> None:
+def test_tell_codex_goes_to_a_listening_codex_coordinator(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    known_threads(tmp_path, monkeypatch, "A")
     r = room(tmp_path)
     runs = Runs()
     coordinator = r.addressed(am.CODEX_COORDINATOR)
@@ -661,7 +673,10 @@ def test_letters_round_trip_their_codex_thread(tmp_path: Path) -> None:
         )
 
 
-def test_board_turn_notices_reach_codex_through_the_coordinator(tmp_path: Path) -> None:
+def test_board_turn_notices_reach_codex_through_the_coordinator(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    known_threads(tmp_path, monkeypatch, "B")
     r = room(tmp_path)
     runs = Runs()
     am.board_join(r, who="claude a", branch="claude/a", codex_thread=None, now=T)
@@ -679,6 +694,7 @@ def test_board_turn_notices_reach_codex_through_the_coordinator(tmp_path: Path) 
 def test_tell_codex_cli_reports_the_route(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
+    known_threads(tmp_path, monkeypatch, "A")
     monkeypatch.setenv("POKEBENCH_AGENT_MAIL_DIR", str(tmp_path / "mail"))
     r = am.Mailroom(tmp_path / "mail")
     runs = Runs()
@@ -693,6 +709,7 @@ def test_tell_codex_cli_reports_the_route(
 def test_a_coordinator_leaving_mid_delivery_keeps_the_letter_and_skips_the_queue(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    known_threads(tmp_path, monkeypatch, "A")
     r = room(tmp_path)
     coordinator = r.addressed(am.CODEX_COORDINATOR)
     coordinator.root.mkdir(parents=True)
@@ -760,41 +777,23 @@ def test_tell_claude_from_stdin_keeps_shell_text_literal(
         am.main(["tell-claude", "--stdin", "words"])
 
 
-def test_letters_wait_for_a_present_coordinator_between_its_mailbox_runs(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+def test_session_names_resolve_to_thread_ids_for_the_coordinator(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    monkeypatch.setenv("POKEBENCH_AGENT_MAIL_DIR", str(tmp_path / "mail"))
-    r = am.Mailroom(tmp_path / "mail")
-    box = r.addressed(am.CODEX_COORDINATOR)
-    runs = Runs()
-    later = datetime.now(UTC) + timedelta(hours=1)
-    assert (
-        am.main(["claude-mailbox", "--for", am.CODEX_COORDINATOR, "--hold", "--timeout", "0.01"])
-        == 3
-    )
-    assert am.present(box, datetime.now(UTC))
-    assert not am.present(box, later)
-    assert am.reach_codex(r, "A", "while busy", sender="c", now=datetime.now(UTC), run=runs) == (
-        0,
-        True,
-    )
-    assert runs.calls == []
-    assert [x.text for x in am.collect(box)] == ["while busy"]
-    assert am.reach_codex(r, "A", "gone", sender="c", now=later, run=runs) == (0, False)
-    assert runs.calls == [["codex", "queue", "--thread", "A", "--message", "gone"]]
-    capsys.readouterr()
-    assert (
-        am.main(["claude-mailbox", "--for", am.CODEX_COORDINATOR, "--hold", "--timeout", "0.01"])
-        == 3
-    )
-    assert am.present(box, datetime.now(UTC) + timedelta(seconds=60))
-    box.presence.write_text("garbage")
-    with pytest.raises(ValueError, match="unreadable presence"):
-        am.present(box, later)
-
-
-def test_a_forwarder_without_a_timeout_is_assumed_present(tmp_path: Path) -> None:
+    known_threads(tmp_path, monkeypatch, "01a1-id")
     r = room(tmp_path)
-    box = r.addressed(am.CODEX_COORDINATOR)
-    am.mark_present(box, T + timedelta(seconds=am.DEFAULT_HOLD_WAIT_SECONDS))
-    assert am.present(box, T)
+    runs = Runs()
+    assert am.thread_id("name 01a1-id", tmp_path / "codex-index.jsonl") == "01a1-id"
+    assert am.thread_id("01a1-id", tmp_path / "codex-index.jsonl") == "01a1-id"
+    assert am.thread_id("nobody", tmp_path / "codex-index.jsonl") is None
+    listener, got = listen_in_background(r.addressed(am.CODEX_COORDINATOR))
+    assert am.reach_codex(r, "name 01a1-id", "hi", sender="c", now=T, run=runs) == (0, True)
+    listener.join(5)
+    assert got == [[am.Letter(T, "c", "hi", to_thread="01a1-id")]]
+    am.acknowledge(r.addressed(am.CODEX_COORDINATOR), os.getpid())
+    listener, got = listen_in_background(r.addressed(am.CODEX_COORDINATOR))
+    assert am.reach_codex(r, "nobody", "hi", sender="c", now=T, run=runs) == (0, False)
+    assert runs.calls == [["codex", "queue", "--thread", "nobody", "--message", "hi"]]
+    am.tell_claude(r.addressed(am.CODEX_COORDINATOR), sender="test", text="wake", now=T)
+    listener.join(5)
+    assert [x.to_thread for x in got[0]] == [None]

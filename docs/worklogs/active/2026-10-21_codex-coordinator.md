@@ -24,4 +24,3 @@ M3 REVIEW/LAND: Claude, Grok, GPT lanes; land through the board.
   - GPT: multiline letters could not be split reliably. FIX: --hold output is JSON per letter (test with a newline and a prefix-shaped line).
   - GPT: the failure report put letter text on a shell command line. FIX: `tell-claude --stdin` plus a quoted heredoc in the skill (test with $(...) and backticks kept literal).
   - Tests: 48, module 100%.
-- Own finding while fixing R1: between mailbox runs (while forwarding) the coordinator is not listening, so letters fell back to codex queue. FIX: each --hold run writes present-until (timeout + 120 s); while present, tell_codex leaves the letter for the coordinator; afterwards it falls back to codex queue. Tests: present, expired, unreadable presence, default wait. 50 tests, module 100%.

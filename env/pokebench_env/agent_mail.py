@@ -3,7 +3,9 @@
 Letters to Claude always go to pending.jsonl under a lock. A listening Claude holds the read end
 of a named pipe; a sender writes one byte to it, which wakes the listener without polling. The
 payload never travels through the pipe, so letters of any size arrive whole and none is lost when
-no one is listening. Claude talks to Codex through `codex queue`.
+no one is listening. Claude reaches a Codex thread through the Codex coordinator thread when it is
+listening on its mailbox (it forwards mid-turn with Codex's send_message_to_thread), else through
+`codex queue`, which the thread reads when its current turn ends.
 """
 
 import argparse
@@ -18,7 +20,7 @@ import sys
 from collections.abc import Callable, Iterator, Sequence
 from contextlib import contextmanager
 from dataclasses import dataclass
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 from pathlib import Path
 from urllib.parse import quote
 from zoneinfo import ZoneInfo
@@ -28,11 +30,6 @@ NO_MAIL = 3
 # The mailbox a Codex coordinator thread listens on; it forwards each letter to its Codex thread
 # with Codex's own send_message_to_thread, which reaches a busy thread mid-turn.
 CODEX_COORDINATOR = "codex-coordinator"
-# Between two mailbox runs the coordinator is busy forwarding, not listening; it still counts
-# as present this long after its last run's timeout, so letters wait for it instead of queueing.
-PRESENCE_GRACE_SECONDS = 120.0
-# A forwarder running without --timeout is assumed present this long.
-DEFAULT_HOLD_WAIT_SECONDS = 600.0
 
 Run = Callable[[Sequence[str]], int]
 
@@ -112,10 +109,6 @@ class Mailroom:
 
     def claim(self, owner: int) -> Path:
         return self.root / f"delivering-{owner}.jsonl"
-
-    @property
-    def presence(self) -> Path:
-        return self.root / "present-until"
 
     @property
     def log(self) -> Path:
@@ -304,17 +297,21 @@ def wait_for_mail(
         return drain(room, who)
 
 
-def mark_present(room: Mailroom, until: datetime) -> None:
-    room.root.mkdir(parents=True, exist_ok=True)
-    room.presence.write_text(until.isoformat(), encoding="utf-8")
+def session_index() -> Path:
+    default = Path.home() / ".codex" / "session_index.jsonl"
+    return Path(os.environ.get("CODEX_SESSION_INDEX", default))
 
 
-def present(room: Mailroom, now: datetime) -> bool:
-    """Whether a forwarder (the Codex coordinator) has said it is running until after now."""
-    if not room.presence.exists():
-        return False
-    until = parse_time(room.presence.read_text(encoding="utf-8").strip(), "unreadable presence")
-    return until > now
+def thread_id(thread: str, index: Path) -> str | None:
+    """The Codex thread id for an id or an exact session name; the newest session wins."""
+    sessions = codex_sessions(index, limit=sys.maxsize)
+    for session in sessions:
+        if session.id == thread:
+            return session.id
+    for session in sessions:
+        if session.name == thread:
+            return session.id
+    return None
 
 
 def reach_codex(
@@ -322,16 +319,15 @@ def reach_codex(
 ) -> tuple[int, bool]:
     """Reach a Codex thread: through a listening Codex coordinator, else `codex queue`.
 
-    Returns the exit code and whether the coordinator took it.
+    The coordinator forwards by thread id, so a session name is resolved first; a name with no
+    known id goes straight to `codex queue`, which accepts names. Returns the exit code and
+    whether the coordinator took it.
     """
-    letter = Letter(now, sender, text, to_thread=thread)
-    box = room.addressed(CODEX_COORDINATOR)
-    if present(box, now):
-        # Listening or between runs: either way it picks the letter up on its next run.
-        deliver(box, letter, only_if_listening=False)
-        return 0, True
-    if deliver(box, letter, only_if_listening=True):
-        return 0, True
+    target = thread_id(thread, session_index())
+    if target is not None:
+        letter = Letter(now, sender, text, to_thread=target)
+        if deliver(room.addressed(CODEX_COORDINATOR), letter, only_if_listening=True):
+            return 0, True
     return run(["codex", "queue", "--thread", thread, "--message", text]), False
 
 
@@ -474,7 +470,7 @@ def notice_text(entry: BoardEntry, position: int, total: int) -> str:
 def notify_moves(
     room: Mailroom, before: list[BoardEntry], after: list[BoardEntry], *, now: datetime, run: Run
 ) -> list[Notice]:
-    """Tell every entry whose place changed its new place: Codex by queue, Claude by mail."""
+    """Tell every entry whose place changed its new place: Codex via reach_codex, Claude by mail."""
     old = {entry.branch: number for number, entry in enumerate(before, start=1)}
     notices = []
     for number, entry in enumerate(after, start=1):
@@ -493,7 +489,8 @@ def notify_moves(
 def board_done(room: Mailroom, *, branch: str, now: datetime, run: Run) -> list[Notice]:
     """Leave the board and tell everyone behind you their new place; number 1 is told to land.
 
-    A notice's exit code is `codex queue`'s for a Codex entry; mail to Claude always lands.
+    A Codex notice's exit code is 0 when the Codex coordinator took it, else `codex queue`'s;
+    mail to Claude always lands.
     Notices go out while the board lock is held, so no later board change can be overtaken by
     an older notice. Claude mailboxes have their own locks, so this cannot deadlock.
     """
@@ -598,9 +595,6 @@ def main(argv: Sequence[str] | None = None, *, run: Run = run_command) -> int:
         return 0
     if args.command == "claude-mailbox":
         box_room = room if args.address is None else room.addressed(args.address)
-        if args.hold:
-            wait = DEFAULT_HOLD_WAIT_SECONDS if args.timeout is None else args.timeout
-            mark_present(box_room, now + timedelta(seconds=wait + PRESENCE_GRACE_SECONDS))
         letters = wait_for_mail(box_room, timeout=args.timeout)
         if not letters:
             print("No mail.")
@@ -630,9 +624,7 @@ def main(argv: Sequence[str] | None = None, *, run: Run = run_command) -> int:
         )
         return code
     if args.command == "codex-sessions":
-        default_index = Path.home() / ".codex" / "session_index.jsonl"
-        index = Path(os.environ.get("CODEX_SESSION_INDEX", default_index))
-        for session in codex_sessions(index, limit=args.limit):
+        for session in codex_sessions(session_index(), limit=args.limit):
             print(format_session(session))
         return 0
     if args.command == "land-board":

@@ -14,7 +14,7 @@ import { LEGACY_LEASE, LeaseHeldError, leaseDir, leasePool, readLeaseOwner, take
 import { parseFixedStatus, type FixedStatus } from "./fixed-status.js";
 import { definition, MODEL_PATH, ROM_SHA1 } from "../test-support/fixed.js";
 import { Log, START } from "../test-support/events.js";
-import { armFeatures, armFeatureBits, parseFixedDefinition, controlBaseProblems, dryRunDefinition, soloDefinition, type FixedDefinition, type FixedLane } from "./fixed-design.js";
+import { armFeatures, armFeatureBits, armPreset, parseFixedDefinition, controlBaseProblems, dryRunDefinition, soloDefinition, type FixedDefinition, type FixedLane } from "./fixed-design.js";
 
 const COMMIT = "0123456789abcdef0123456789abcdef01234567";
 const RECEIPT: ServingReceipt = { model: MODEL_PATH, build: "b10236-1464c62d8", contextTokens: 65536, slots: 1, vision: true, fingerprint: "f".repeat(64) };
@@ -784,6 +784,21 @@ it("enables the five move-learn switches only in the bundle of the three current
 it("enables the mart stock readout only in the bundle of the four current bundle definitions, and keeps it OFF in the next-run default",()=>{
  const id="mart-stock-readout-v1";
  expect(DEFAULT_NEXT_RUN.features[id]).toBe(false);
+ for(const file of ["bundle-v-control","bundle-cook-1h","whole-map-cook-1h","whole-map-pair-2h","bundle-v-control-2h"]){
+  const {definition:def}=parseFixedDefinition(readFileSync(new URL(`../../../experiments/fixed/${file}.json`,import.meta.url),"utf8"));
+  expect(def.switches.filter(s=>s===id)).toEqual([id]);
+  expect(def.onInBoth).not.toContain(id);
+  expect(def.base.features[id]).toBe(false);
+  expect(armFeatures(def,"control")[id]).toBe(false);
+  expect(armFeatures(def,"bundle")[id]).toBe(true);
+  expect(armFeatureBits(def,"control")[id]).toBe(false);
+  expect(armFeatureBits(def,"bundle")[id]).toBe(true);
+ }
+});
+
+it("enables the shop interface only in the bundle of the four current bundle definitions, and keeps it OFF in the next-run default",()=>{
+ const id="shop-interface-v1";
+ expect(DEFAULT_NEXT_RUN.features[id]).toBe(false);
  for(const file of ["bundle-v-control","bundle-cook-1h","whole-map-cook-1h","whole-map-pair-2h"]){
   const {definition:def}=parseFixedDefinition(readFileSync(new URL(`../../../experiments/fixed/${file}.json`,import.meta.url),"utf8"));
   expect(def.switches.filter(s=>s===id)).toEqual([id]);
@@ -799,7 +814,7 @@ it("enables the mart stock readout only in the bundle of the four current bundle
 it("enables the seven training and catching switches only in the bundle of the four current bundle definitions, and keeps them OFF in the next-run default",()=>{
  const ids=["exp-next-level-v1","pokedex-own-v1","exp-earned-ledger-v1","leader-attempt-ledger-v1","seen-trainers-ledger-v1","party-coverage-v1","said-type-matches-v1"] as const;
  for(const id of ids)expect(DEFAULT_NEXT_RUN.features[id]).toBe(false);
- for(const file of ["bundle-v-control","bundle-cook-1h","whole-map-cook-1h","whole-map-pair-2h"]){
+ for(const file of ["bundle-v-control","bundle-cook-1h","whole-map-cook-1h","whole-map-pair-2h","bundle-v-control-2h"]){
   const {definition:def}=parseFixedDefinition(readFileSync(new URL(`../../../experiments/fixed/${file}.json`,import.meta.url),"utf8"));
   for(const id of ids){
    expect(def.switches.filter(s=>s===id)).toEqual([id]);
@@ -818,11 +833,58 @@ it("keeps section-aware labels OFF in the generic next-run default",()=>{
  expect(parseNextRun(DEFAULT_NEXT_RUN).features["exit-labels-v3"]).toBe(false);
 });
 
+it.each([false,true])("rehearses the four-hour GLM pair serially and retains its stop boundary (stop after first: %s)", async stopAfterFirst=>{
+ const source=parseFixedDefinition(readFileSync(new URL("../../../experiments/fixed/glm53-flash-4h.json",import.meta.url),"utf8")).definition;
+ const canonical=parseFixedDefinition(readFileSync(new URL("../../../experiments/fixed/bundle-v-control.json",import.meta.url),"utf8")).definition;
+ const def=dryRunDefinition({...source,base:{...source.base,features:canonical.base.features},controlBase:canonical.controlBase,switches:canonical.switches,offInBoth:canonical.offInBoth,onInBoth:canonical.onInBoth},14_400_000,"cook");
+ for(const arm of ["bundle","control"] as const)expect(armFeatureBits(def,arm)).toEqual(armFeatureBits(canonical,arm));
+ expect(def.plan.map(s=>s.arm)).toEqual(["control","bundle"]);
+ const {runsRoot,dir}=setup(def);let stop=false;
+ class GlmFake extends Fake {
+  override async launch(l:FixedLaunch):Promise<number|null>{
+   this.launches.push(l);this.running++;this.maxRunning=Math.max(this.maxRunning,this.running);l.started(1000+this.launches.length);this.snapshot();
+   await new Promise<void>(resolve=>setImmediate(resolve));this.clock+=14_400_000;
+   writeEvents(this.runsRoot,l,"budget");
+   const path=join(this.runsRoot,l.runId,"events.jsonl");
+   const rows=readFileSync(path,"utf8").trim().split("\n").map(line=>{
+    const e=checkEvent(JSON.parse(line));return {...e,run:l.runId,...(e.type==="run_start"&&e.evaluation!==undefined?{evaluation:{...e.evaluation,experiment:{id:def.id,arm:l.arm,trial:l.slot,of:def.plan.length}}}:{})};
+   });
+   writeFileSync(path,rows.map(e=>JSON.stringify(e)).join("\n")+"\n");this.running--;if(stopAfterFirst)stop=true;return 0;
+  }
+ }
+ const host=new GlmFake(runsRoot,{serving:()=>({...RECEIPT,...def.serving})},def.id);
+ expect(await runFixed({def,definitionSha256:"d".repeat(64),runsRoot,host,stopRequested:()=>stop,pid:77,dryRun:true})).toBe(stopAfterFirst?"stopped":"finished");
+ const rows=readLedger(join(dir,"trials.jsonl"));const n=stopAfterFirst?1:2;
+ expect(host.maxRunning).toBe(1);expect(host.launches.map(l=>l.arm)).toEqual(def.plan.slice(0,n).map(s=>s.arm));
+ expect(launchesOf(rows)).toHaveLength(n);expect(outcomes(rows)).toHaveLength(n);expect(outcomes(rows).every(o=>o.valid)).toBe(true);
+ const status=parseFixedStatus(JSON.parse(readFileSync(join(dir,"status.json"),"utf8")));
+ expect(status).toMatchObject({state:stopAfterFirst?"stopped":"finished",valid:n,invalid:0,total:2});
+ expect(status.lanes.map(l=>l.valid)).toEqual([n]);
+ const index=await cohortIndex(runsRoot,fileURLToPath(new URL("../../../experiments",import.meta.url)));
+ expect(index.runs).toHaveLength(n);expect(index.runs.every(r=>r.cohort===`experiment:${def.id}@${COMMIT.slice(0,12)}`&&r.problem===null)).toBe(true);
+ expect(experimentsAudit(runsRoot,index)).toEqual([]);
+ for(const launch of host.launches){
+  const preset=JSON.parse(readFileSync(launch.presetPath,"utf8")) as {target:null;limits:{maxWallMs:number};features:Record<string,boolean>;start:{sha1:string}};
+  expect(preset.target).toBeNull();expect(preset.limits.maxWallMs).toBe(14_400_000);expect(preset.start.sha1).toBe("b3a6cc1c19836600a15febf41b8f8b19661ce5d4");
+  expect(preset.features).toEqual(armFeatures(canonical,launch.arm));
+ }
+});
+
 it("adds progress-aware cycles only to the bundle in canonical and current whole-map definitions",()=>{
- for(const name of ["bundle-v-control","bundle-cook-1h","whole-map-pair-2h","whole-map-cook-1h"]){
+ for(const name of ["bundle-v-control","bundle-cook-1h","whole-map-pair-2h","bundle-v-control-2h","whole-map-cook-1h"]){
   const {definition:def}=parseFixedDefinition(readFileSync(new URL(`../../../experiments/fixed/${name}.json`,import.meta.url),"utf8"));
   expect(def.switches).toContain("progress-aware-cycles-v1");
   expect(armFeatures(def,"control")["progress-aware-cycles-v1"]).toBe(false);
   expect(armFeatures(def,"bundle")["progress-aware-cycles-v1"]).toBe(true);
+ }
+});
+
+it.each(["bundle-v-control","bundle-cook-1h","whole-map-cook-1h","whole-map-pair-2h","bundle-v-control-2h"])("enables the movement, dialogue and shop repairs in %s bundle only",file=>{
+ const {definition:def}=parseFixedDefinition(readFileSync(new URL(`../../../experiments/fixed/${file}.json`,import.meta.url),"utf8"));
+ const phase=def.phases[0];if(phase===undefined)throw new Error("fixed definition has no phase");
+ for(const id of ["rejected-movement-step-v1","observed-field-dialogue-v1","shop-interface-v1"] as const){
+  expect(def.base.features[id]).toBe(false);expect(def.switches).toContain(id);
+  expect(armPreset(def,phase.id,"control").features[id]).toBe(false);
+  expect(armPreset(def,phase.id,"bundle").features[id]).toBe(true);
  }
 });

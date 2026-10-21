@@ -502,6 +502,7 @@ def build_parts(rom: Rom, root: Path, out: Path) -> dict[str, object]:
         "party_menu/pokeball_small.png",
         "gPartyMenuPokeballSmall_Gfx",
         "ball-small",
+        pal_what="gPartyMenuPokeball_Pal",  # sSpriteTemplate_MenuPokeballSmall uses TAG_POKEBALL's palette
         crop=(0, 0, 16, 32),
     )
     # The summary screen's caught-ball sprite, first frame, one row per ball item ID (1-12).

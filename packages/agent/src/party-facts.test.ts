@@ -10,14 +10,14 @@ const field = (party: GameStateSnapshot["party"]): GameStateSnapshot => ({ scree
 it("loop fingerprints ignore the party readout's summary-screen facts", () => {
   const known = field([{ ...legacy, ...facts }]), unknown = field([{ ...legacy, ...nulls }]), bare = field([legacy]), boosted = field([{ ...legacy, ...facts, attack: 26 }]);
   for (const s of [unknown, bare, boosted]) expect(semanticState(s, true)).toBe(semanticState(known, true));
-  const waiting = (s: GameStateSnapshot): GameStateSnapshot => ({ ...s, active_ui: { kind: "start_menu", ready: true, diagnostic: null } as GameStateSnapshot["active_ui"] });
+  const waiting = (s: GameStateSnapshot): GameStateSnapshot => ({ ...s, active_ui: { selected: null, phase: "start_menu", diagnostic: null, ready: true, controls: "" } });
   expect(waitingState(waiting(unknown))).not.toBeNull();
   expect(waitingState(waiting(unknown))).toBe(waitingState(waiting(known)));
   expect(semanticState(field([{ ...legacy, level: 17 }]), true)).not.toBe(semanticState(bare, true));
 });
 
 it("battle fingerprints ignore the party readout's summary-screen facts", () => {
-  const battle = (s: GameStateSnapshot): GameStateSnapshot => ({ ...s, in_battle: true, battle: { diagnostic: null } as GameStateSnapshot["battle"] });
+  const battle = (s: GameStateSnapshot): GameStateSnapshot => ({ ...s, in_battle: true, battle: { diagnostic: null } as unknown as NonNullable<GameStateSnapshot["battle"]> });
   expect(battleState(battle(field([{ ...legacy, ...facts }])))).not.toBeNull();
   expect(battleState(battle(field([{ ...legacy, ...nulls }])))).toBe(battleState(battle(field([{ ...legacy, ...facts }]))));
 });

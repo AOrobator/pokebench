@@ -1,5 +1,6 @@
 import { NATIVE_OBJECTIVES, validateCompletionType } from "./objective-schema.js";
 import { MEASUREMENT_ONLY_MILESTONES, qualifiedNativeMilestone } from "./milestones.js";
+import { legacyParty } from "./party-facts.js";
 import type { AgentMessage } from "@mariozechner/pi-agent-core";
 import type { BodyOf, Button, RunEvent } from "./events.js";
 import type { GameStateSnapshot } from "./game-state.js";
@@ -14,12 +15,6 @@ export interface UpdateObjective {
   status: ObjectiveRecord["status"]; evidence: number[]; obstacle: string; next_decision: string; retry_reason: string;
 }
 function stateOf(event: StateEvent): GameStateSnapshot { return event; }
-// The party readout's summary-screen facts (stats, ability, met data, ball, OT) are recorded for
-// the viewer's POKéMON PARTY page only: the model's record and the progress check see the party as before.
-const SUMMARY_FACTS: ReadonlySet<string> = new Set(["attack", "defense", "speed", "sp_attack", "sp_defense", "ability_num", "ability_id", "met_location", "met_location_name", "met_level", "met_game", "ball", "ball_name", "ot_name", "ot_gender"]);
-function legacyParty(party: StateEvent["party"]): Record<string, unknown>[] {
-  return party.map((mon) => Object.fromEntries(Object.entries(mon).filter(([key]) => !SUMMARY_FACTS.has(key))));
-}
 function fingerprint(state: GameStateSnapshot): string {
   return JSON.stringify({ screen: state.screen, started: state.started, map_id: state.map_id, position: state.position, facing: state.facing, in_battle: state.in_battle, field_controls_locked: state.field_controls_locked ?? null, naming: state.naming ?? null, local_map: state.local_map ?? null, party: legacyParty(state.party), money: state.money, badges: state.badges });
 }

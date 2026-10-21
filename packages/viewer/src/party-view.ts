@@ -229,6 +229,7 @@ function expMarkup(ticks: number): string {
 
 function moves(mon: PartyMon, data: PartyData, open: number | null): string {
   return `<div class="pv-moves">${(mon.moves ?? []).map((m, i) => {
+    if (m.move_id === 0) return "";
     // CalculatePPWithBonus from the move table when the run did not record the maximum.
     const info = data.moves.get(m.move_id), max = m.max_pp ?? (info === undefined ? null : info.pp + Math.floor((info.pp * m.pp_bonus) / 5));
     const state = max === null ? null : ppState(m.pp, max), isOpen = open === i;

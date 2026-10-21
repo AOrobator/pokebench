@@ -102,6 +102,7 @@ Exact-head proof (fd7725f24, build stamp fd7725f clean, candidate viewer 8796 ov
 
 Round 3 (packet 6fbce332..248b6941, sha256 854c14a2…6cedd): Claude (subagent) LGTM; Grok LGTM; GPT/Codex BLOCKING, 4 findings. Triage: (1) empty move slots (move_id 0) render as MOVE 0 · PP 0/0, fix; (2) loop fingerprints (semantic, battle, waiting), field map-move progress and navigation-failure conditions still compare the 15 summary keys, fix (Claude and Grok listed it as a follow-up); (3) ball-small palette not ROM-checked, fix (the game draws it with TAG_POKEBALL's palette, gPartyMenuPokeball_Pal); (4) proof names the code tip fd7725f24, not the docs-only head 248b69410, rebutted (git diff fd7725f24 248b69410 touches only this worklog). Third round with blockers: asked the operator (land / round 4 / hold) and made the three fixes meanwhile.
 - [x] RED: party-facts.test.ts (semantic/waiting/battle fingerprints), navigation-failure summary-only change, party-view empty move slots
+- [x] GREEN: `legacyParty` moved to packages/agent/src/party-facts.ts and used by objectives, loop fingerprints (semantic, battle, waiting), field map-move progress and navigation-failure conditions; party-view skips move_id 0; ball-small verified with gPartyMenuPokeball_Pal (manifest: palette 0xD96F6C LZ77). Gates: lint, build; coverage agent 3252 tests 99.2/93.09/97.7, viewer 1592 tests 97.96/91.39/94.51, python 3580 tests 97.23/92.97/100.
 
 ## Boy Scout Log
 

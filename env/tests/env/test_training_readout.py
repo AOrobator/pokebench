@@ -1,9 +1,10 @@
 """exp-next-level-v1 and pokedex-own-v1.
 
-The fixtures are raw-RAM archives copied byte for byte from runs 2026-10-21T06-28-18_qwen36-gpu0_1331
-and 2026-10-20T20-26-22_qwen36-gpu1_97a0 (training-raw.provenance.json names each source archive,
-its state seq, turn and sha256). Game sources: pret/pokeemerald 731ad5bf src/strings.c gText_ExpPoints
-"EXP. POINTS" and gText_NextLv "NEXT LV."; src/pokemon_summary_screen.c expToNextLevel =
+The fixtures are raw-RAM archives copied byte for byte from runs
+2026-10-21T06-28-18_qwen36-gpu0_1331 and 2026-10-20T20-26-22_qwen36-gpu1_97a0
+(training-raw.provenance.json names each source archive, its state seq, turn and sha256).
+Game sources: pret/pokeemerald 731ad5bf src/strings.c gText_ExpPoints "EXP. POINTS" and
+gText_NextLv "NEXT LV."; src/pokemon_summary_screen.c expToNextLevel =
 gExperienceTables[growthRate][level + 1] - exp; src/pokedex.c GetSetPokedexFlag and
 GetHoennPokedexCount; include/global.h struct Pokedex, SaveBlock1 seen1/seen2.
 """
@@ -92,9 +93,7 @@ def table(growth: int) -> tuple[int, ...]:
 @pytest.mark.parametrize("level", (1, 15, 99))
 def test_next_level_is_the_summary_screens_number(growth: int, level: int) -> None:
     # A species with this growth rate, found in the game's own species table.
-    species = next(
-        s for s in range(1, 412) if rom_read(SPECIES_INFO + 28 * s + 19, 1)[0] == growth
-    )
+    species = next(s for s in range(1, 412) if rom_read(SPECIES_INFO + 28 * s + 19, 1)[0] == growth)
     levels = table(growth)
     exp = levels[level] + 7
     assert next_level_exp(rom_read, species, level, exp) == levels[level + 1] - exp
@@ -125,7 +124,7 @@ def test_party_line_carries_exp_and_next_level() -> None:
 
 
 def test_97a0_challenged_roxanne_22_exp_points_short() -> None:
-    assert "TORCHIC Lv15 HP 42/42 · EXP. POINTS 2513 · NEXT LV. 22" in line(
+    assert "TORCHIC Lv15 HP 22/42 · EXP. POINTS 2513 · NEXT LV. 22" in line(
         text("training-97a0-rustboro-field"), "Party ("
     )
 
@@ -154,8 +153,7 @@ def test_field_line_after_the_pokedex_is_received() -> None:
     dex = read_pokedex(archived("training-1331-gym-field"))
     assert dex is not None
     assert line(text("training-1331-gym-field"), "POKéDEX:") == (
-        f"POKéDEX: SEEN {dex.seen} · OWN {dex.own} (the POKéDEX list's HOENN counts) · "
-        "party 2 of 6"
+        f"POKéDEX: SEEN {dex.seen} · OWN {dex.own} (the POKéDEX list's HOENN counts) · party 2 of 6"
     )
 
 
@@ -173,7 +171,7 @@ def test_trainer_battle_has_no_ownership_line() -> None:
 
 
 def test_owned_wild_foe_says_so() -> None:
-    dex = Pokedex(seen=3, own=2, owned=frozenset({255, 265}))
+    dex = Pokedex(seen=3, own=2, owned=frozenset({255, 265}), wild_foes=(("WURMPLE", True),))
     current = state("training-1331-wild-wurmple")
     assert "Wild WURMPLE: in your POKéDEX OWN list" in dex_lines(current, dex)
 

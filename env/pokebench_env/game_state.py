@@ -8,7 +8,7 @@ defaults (a random name, map 0/0) that are not the player's state.
 
 import json
 import struct
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 
 from pokebench_env.battle_details import BattleDetails, read_battle_details
@@ -34,6 +34,7 @@ from pokebench_env.move_learn import MoveLearning, read_move_learning
 from pokebench_env.naming import NamingState, editor_open, read_naming
 from pokebench_env.offscreen_objects import MapObject, read_offscreen_objects
 from pokebench_env.party_ownership import PartyOwnership, read_party_ownership
+from pokebench_env.pokedex_own import Pokedex, read_pokedex, wild_foes
 from pokebench_env.pokemon import SPECIES_NAMES as SPECIES_NAMES
 from pokebench_env.pokemon import PartyMon, decode_party_mon, pokemon_cpu_context
 from pokebench_env.resources import Resources, read_resources
@@ -50,6 +51,7 @@ from pokebench_env.surf_gate import (
 )
 from pokebench_env.topology import Topology, read_topology
 from pokebench_env.trainer_opponent import TrainerOpponent, read_trainer_opponent
+from pokebench_env.training_readout import next_level_exp
 from pokebench_env.transition_coherence import CB2_HANDLE_START_BATTLE, main_loop_idle
 from pokebench_env.ui_state import (
     ActiveUi,
@@ -174,6 +176,10 @@ class GameState:
     # move-learn-question-v1 / move-learn-comparison-v1: the open move-learning choice; text only.
     move_learning: MoveLearning | None = None
     move_learning_diagnostic: str | None = None
+    # exp-next-level-v1: the summary screen's NEXT LV. per party slot; None when off.
+    party_next_level: tuple[int | None, ...] | None = None
+    # pokedex-own-v1: the POKéDEX counts once the POKéDEX is received; text only, None when off.
+    pokedex: Pokedex | None = None
 
 
 DYNAMIC_WARP = 0x14
@@ -277,6 +283,30 @@ def _move_learning(
         return None, f"harness bug: move learning: {error}"
 
 
+def _with_training(
+    read: ReadMemory, state: "GameState", *, exp_next_enabled: bool, pokedex_enabled: bool
+) -> "GameState":
+    """exp-next-level-v1 and pokedex-own-v1, read once the rest of the state is known."""
+    next_level = (
+        tuple(
+            None
+            if m.species_id is None or m.level is None or m.experience is None
+            else next_level_exp(read, m.species_id, m.level, m.experience)
+            for m in state.party or ()
+        )
+        if exp_next_enabled
+        else None
+    )
+    dex = None
+    if pokedex_enabled and state.story is not None and state.story.pokedex_received:
+        dex = read_pokedex(read)
+        if dex is not None:
+            dex = replace(dex, wild_foes=wild_foes(read, dex.owned, state))
+    if next_level is None and dex is None:
+        return state
+    return replace(state, party_next_level=next_level, pokedex=dex)
+
+
 def read_game_state(
     read: ReadMemory,
     maps: MapNames,
@@ -310,6 +340,8 @@ def read_game_state(
     party_item_confirmation_enabled: bool = False,
     field_moves_enabled: bool = False,
     move_learning_enabled: bool = False,
+    exp_next_enabled: bool = False,
+    pokedex_enabled: bool = False,
     respawn_links: LinkCache | None = None,
 ) -> GameState:
     screen = read_screen(read)
@@ -478,7 +510,7 @@ def read_game_state(
     learning, learning_diagnostic = (
         _move_learning(read, native_ui, battle, party) if move_learning_enabled else (None, None)
     )
-    return GameState(
+    state = GameState(
         move_learning=learning,
         move_learning_diagnostic=learning_diagnostic,
         blackout_active=screen.callback2 == 0x08085F59,
@@ -624,4 +656,7 @@ def read_game_state(
         respawn=read_respawn(read, save1, map_id, maps, respawn_links.get(read, maps))
         if respawn_links is not None and screen.kind == "overworld" and not in_battle
         else None,
+    )
+    return _with_training(
+        read, state, exp_next_enabled=exp_next_enabled, pokedex_enabled=pokedex_enabled
     )

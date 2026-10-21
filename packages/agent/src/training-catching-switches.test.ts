@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import { ALL_ON, FEATURES, SERVER_FEATURES, SWITCHABLE_FEATURES, dependencyProblems, featureInfo, playHarnessFeatures, serverFeatureEnv } from "./features.js";
 import { flagFeatures, normalizeFeatures } from "./play-preset.js";
 import { LEGACY_ALL_ON } from "../test-support/legacy-features.js";
+import { parseGameState } from "./game-state.js";
+import { IN_GAME } from "../test-support/events.js";
 
 export const TRAINING_CATCHING_IDS=["exp-next-level-v1","pokedex-own-v1","exp-earned-ledger-v1","leader-attempt-ledger-v1","seen-trainers-ledger-v1","party-coverage-v1","said-type-matches-v1"] as const;
 const SERVER=TRAINING_CATCHING_IDS.slice(0,2);
@@ -39,5 +41,13 @@ describe("training and catching switches (the operator 2026-10-21: \"both sets\"
   const onList=serverFeatureEnv(on).POKEBENCH_FEATURES_OFF.split(",");
   for(const id of TRAINING_CATCHING_IDS)expect(onList).not.toContain(id);
   expect(dependencyProblems({...ALL_ON,"heal-before-trainers-v2":false,"story-battle-heal-gate-v1":false})).toContain("seen-trainers-ledger-v1 needs heal-before-trainers-v2");
+ });
+});
+
+describe("exp-next-level-v1 state field",()=>{
+ it("accepts the game server's party_next_level and keeps it",()=>{
+  expect(parseGameState({...IN_GAME,party_next_level:[416,25]}).party_next_level).toEqual([416,25]);
+  expect(parseGameState({...IN_GAME,party_next_level:[null]}).party_next_level).toEqual([null]);
+  expect(()=>parseGameState({...IN_GAME,party_next_level:[-1]})).toThrow();
  });
 });

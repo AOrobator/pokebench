@@ -8,7 +8,7 @@
   "primaryMilestone": "ROXANNE_DEFEATED",
   "source": {
     "checkout": "main",
-    "commit": "1de3c36575bb4e62f559a94943045b2c996f1a7f"
+    "commit": "221115dd311ef8e0809e2d8a82c75141bdd0f221"
   },
   "incumbent": {
     "version": 2,
@@ -222,5 +222,5 @@
     "window": 4,
     "minReached": 3
   },
-  "notes": "Pending only; no queue position or approval. Native potion probe verifies mechanics, not model performance. Source will be pinned to frozen implementation before review."
+  "notes": "Pending only, no queue position or approval. Source pins the committed implementation; manual native potion proof is not evidence of model performance."
 }

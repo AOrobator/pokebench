@@ -32,3 +32,5 @@ Native battle probe 2026-10-21T01-54-39_potion-native-probe_menu1: retained RIVA
 Additional observation gap found during manual setup: shop_menu item list reports invalid shop item list/index for list_item_id13; screenshot/quantity owner can still identify Potion. This is pre-existing (no Python change in candidate), retained for follow-up rather than silently guessing controls.
 
 Mutation proof: five independent deletions (menu factory, heal-first factory boolean, full-HP gate bypass, story warning factory boolean, second story directive) each fail the focused suite; restoration passes10/10. Logs and exact receipts: runs/potion-proof/mutations/.
+
+Committed implementation221115dd. Pending entries now pin its full SHA. Full final TS tests and coverage pass; final source build passes. Manual field setup bought one Potion through the game shop with Torchic15/19 and retained a native pre-use checkpoint (SHA1 54491b877d54bea1531bcff1d50bcd1cf9510303), labelled validation-only. No current-run inputs or server restart.

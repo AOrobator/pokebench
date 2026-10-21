@@ -224,6 +224,7 @@
    "auto-talk-v2": false,
    "map-wide-triggers-v1": false,
    "drought-battle-heal-hold-v1": false,
+   "trigger-navigation-boundary-v1": false,
    "birch-intro-pages-v1": false
   }
  },
@@ -249,6 +250,7 @@
   "auto-talk-v2",
   "map-wide-triggers-v1",
   "drought-battle-heal-hold-v1",
+  "trigger-navigation-boundary-v1",
   "birch-intro-pages-v1"
  ],
  "offInBoth": [

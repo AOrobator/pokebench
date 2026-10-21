@@ -907,3 +907,20 @@ it.each(["bundle-v-control","bundle-cook-1h","whole-map-cook-1h","whole-map-pair
   expect(armPreset(def,phase.id,"bundle").features[id]).toBe(true);
  }
 });
+
+
+it("the active two-hour cook includes approved gym evidence and milestone memory only in the bundle",()=>{
+ const {definition:source}=parseFixedDefinition(readFileSync(new URL("../../../experiments/fixed/bundle-v-control-2h.json",import.meta.url),"utf8"));
+ const dry=dryRunDefinition(source,7_200_000,"cook");
+ for(const arm of ["control","bundle"] as const){
+  const def=soloDefinition(dry,arm,"A","dry-run",1);
+  const preset=armPreset(def,"dry-run",arm);
+  for(const id of ["gym-evidence-v1","milestone-instruction-memory-v1"] as const){
+   expect(source.base.features[id],id).toBe(false);
+   expect(source.switches,id).toContain(id);
+   expect(source.onInBoth,id).not.toContain(id);
+   expect(preset.features[id],`${arm}:${id}`).toBe(arm==="bundle");
+   expect(DEFAULT_NEXT_RUN.features[id],`default:${id}`).toBe(false);
+  }
+ }
+});

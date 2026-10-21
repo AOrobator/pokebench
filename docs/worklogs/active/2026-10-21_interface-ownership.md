@@ -95,7 +95,7 @@ No new network surface, subprocesses or file paths. ROM read only through existi
 - [x] Implement: `battle_details_lines(..., ended=)` writes `ended (outcome won)`, drops the Actions line, and takes the You line and Your moves from the party member with the battler's identity (`_ended_lines`; an unreadable member is a visible HARNESS BUG line); readout.py passes `ended` on evolution / pokemon_summary / summary while the battle is finishing, and `_learn_box_interface` replaces the Interface line in battle when the learn_move / stop_learning_move box is ready with YES/NO highlighted.
 - [x] Guard deletion: Interface replacement off → red; `ended` forced False → red; restored → 6 green.
 - [x] Gates: vitest agent 4308 / viewer 1656; pytest 3812; lint clean (ruff, ruff format, mypy, tsc, eslint); build ok; coverage agent 99.21 L / 93.13 B / 97.81 F, viewer 97.95 / 91.33 / 94.35, Python 97.29 / 93.12 / 100.
-- [ ] COMMIT GREEN. Review deferred to one branch packet before landing.
+- [x] COMMIT GREEN: `feat(readout): post-battle-readout-v1 labels the finished battle ended with party moves and names a ready learn-move box as the interface` (5fa06e15e). Review deferred to one branch packet before landing (coordinator: max 2 rounds).
 
 **M5 — `move-learn-tool-v1`**
 - [ ] Tests: forget each slot 1–4 from Delete box; from Stop-learning box; from MVSTATE 1/2 pages; "none"; in-battle path; refusal when no prompt; unknown move name; cursor verification after each step; screen change mid-drive stops and reports.
@@ -117,6 +117,8 @@ Tests per switch; fake-state executor rehearsal for `learn_move`; viewer check t
 
 - 2026-10-21 3:25 PM ET: read-only forensics on d548 and ea04 (two parallel subagents); findings above.
 - 2026-10-21 3:43 PM ET: The operator approved building the fixes and asked for the tool-prompt skill. Worklog written; coordinator relayed that this yes covers building; M0 started 3:47 PM ET. Arms and landing stay ASK USER.
+
+- 2026-10-21 (implementer subagent): M0–M4 built RED → GREEN on this branch, each switch default off with OFF pinned (prompt hashes, golden readout, OFF-path tests). Multi-model review deferred to one branch packet before landing (coordinator: max 2 rounds). M5 (`move-learn-tool-v1`) and M6 (explainers, experiments, landing) not started; no `experiments/*.json` entries added (no registry test demanded them).
 
 ## Surprises
 

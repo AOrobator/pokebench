@@ -133,11 +133,12 @@ export class LoopCoordinator {
       battleRefusals = false,
       menuRefusals = false,
       navigationRecovery = false,
+      navigationRecoveryTargets = false,
       ineffectiveNavigation = false,
       sameTargetNoProgress = false,
     } = options;
     this.notify = notify;
-    this.navigationRecovery=navigationRecovery?new NavigationRecovery(notify,mode):null;
+    this.navigationRecovery=navigationRecovery?new NavigationRecovery(notify,mode,navigationRecoveryTargets):null;
     this.policy = policy;
     this.mode = mode;
     this.interactions = interactions;
@@ -251,9 +252,9 @@ export class LoopCoordinator {
     this.completed++;
     const navigationWasActive=this.navigationRecovery?.active===true;
     const navigationHandled=this.navigationRecovery?.complete(call,this.completed)===true;
-    if(navigationHandled&&!navigationWasActive){this.episode=null;this.stallNote=null;}
+    if(navigationHandled&&!navigationWasActive&&this.mode==="enforced"){this.episode=null;this.stallNote=null;}
     if(this.navigationRecovery?.stopped===true){this.stopped=true;return;}
-    if(navigationHandled&&this.episode===null&&this.callTracker.latest?.in_battle!==true&&this.callTracker.latest?.active_ui==null)return;
+    if(navigationHandled&&this.mode==="enforced"&&this.episode===null&&this.callTracker.latest?.in_battle!==true&&this.callTracker.latest?.active_ui==null)return;
     if (this.stallNote?.exposed === true) this.stallNote = null;
     const seq = call.seq ?? this.completed;
     const same = this.sameTarget?.complete(call, this.turn, this.episode?.sameTarget ?? null) ?? null;

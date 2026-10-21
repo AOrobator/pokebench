@@ -508,7 +508,7 @@ export function featureInfo(id: FeatureId): FeatureInfo {
 }
 
 // semantic-navigation-v1 or -v2: either one provides navigate_to_target.
-export function semanticNavigation(features: FeatureSet): boolean {
+export function semanticNavigation(features: Pick<FeatureSet,"semantic-navigation-v1"|"semantic-navigation-v2">): boolean {
   return features["semantic-navigation-v1"] || features["semantic-navigation-v2"];
 }
 

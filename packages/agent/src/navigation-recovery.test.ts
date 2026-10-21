@@ -148,3 +148,16 @@ for(const [v1,v2]of [[false,false],[true,false],[false,true]]as const)it(`only s
  expect(dependencyProblems(f)).toEqual([]);const r=rig(true,f);r.replay(252,255);const feedback=r.detector.context();
  expect(feedback).toContain("NORTH");expect(feedback?.includes("navigate_to_target")).toBe(playTools(f).includes("navigate_to_target"));
 });
+
+import {LoopCoordinator} from "./loop/coordinator.js";
+it("keeps legacy observation diagnostics active during recording-only navigation recovery",()=>{
+ const notices:LoopNotice[]=[];const detector=new LoopCoordinator(n=>notices.push(n),{mode:"diagnostic",navigationRecovery:true});
+ if(oldale===undefined)throw Error("missing field fixture");detector.observe(oldale);
+ const stale=call(field,{name:"navigate_to_target",args:{map_id:[0,16]},acted:false});detector.complete(stale);detector.complete(stale);
+ for(let i=0;i<4;i++)detector.complete(call(field));
+ expect(notices.some(n=>n.kind==="observation"&&n.phase==="would_warn")).toBe(true);expect(detector.context()).toBe(null);expect(detector.stopped).toBe(false);
+});
+it("labels visit history by its actual story-progress epoch",()=>{
+ const r=direct();r.recovery.state(state({map_id:[99,2]}));r.recovery.progress(1,1);r.recovery.state(field);r.recovery.cycle("cycle",[1],1);
+ expect(r.recovery.context()).toContain("not visited since last native story progress");expect(r.recovery.context()).not.toContain("not yet visited");
+});

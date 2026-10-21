@@ -260,4 +260,4 @@ prove catches, so no catch-specific readiness or performance claim is made. No
 measured cohort is needed to establish this decoder repair, and none is authorized.
 
 ## navigation-recovery-v1
-Pending, unqueued and unapproved. Activation: FIRST_TRUCK_EXIT. Recorded-window replay verifies lifecycle and delivery, not gameplay benefit; readiness is not qualified for queueing. No measured runs launched.
+Pending, unqueued and unapproved. Activation: PLAYER_NAME_CONFIRMED; primary: ROUTE_103. Recorded-window replay verifies lifecycle and delivery, not gameplay benefit; readiness is not qualified for queueing. No measured runs launched.

@@ -11,7 +11,7 @@ import { createAssistantMessageEventStream, streamSimple, type Context, type Api
 import { LoopDetector, type LoopKind, type LoopPolicy, type LoopMode } from "./loop-detection.js";
 import type { RunRecorder } from "./recorder.js";
 import type { RunEndReason } from "./events.js";
-import type { FeatureSet } from "./features.js";
+import {semanticNavigation,type FeatureSet} from "./features.js";
 import type { BudgetTrim, ContextBudget } from "./context-budget.js";
 
 export interface Chunked {
@@ -248,11 +248,11 @@ function firstText(result: ToolResultMessage | undefined): string {
   return part?.type === "text" ? part.text : "";
 }
 
-export function attachLoopGuard(recorder: Pick<RunRecorder, "subscribe" | "recordLoopGuard">, governor: Governor, policy?: LoopPolicy, mode:LoopMode="enforced", interactions=false, supervisor?: (kind: LoopKind, calls: number) => string, transitions=false, pushback=false, battles=false, messageTruth=false, ineffectiveLoops=false, menuLoop=false, clockViews=false, closedDialogue=false,triggerScriptLoops=false,battleRefusals=false,ineffectiveNavigation=false,sameTargetNoProgress=false,features?:Partial<Pick<FeatureSet,"menu-refusal-recovery-v1"|"navigation-recovery-v1">>): LoopDetector {
+export function attachLoopGuard(recorder: Pick<RunRecorder, "subscribe" | "recordLoopGuard">, governor: Governor, policy?: LoopPolicy, mode:LoopMode="enforced", interactions=false, supervisor?: (kind: LoopKind, calls: number) => string, transitions=false, pushback=false, battles=false, messageTruth=false, ineffectiveLoops=false, menuLoop=false, clockViews=false, closedDialogue=false,triggerScriptLoops=false,battleRefusals=false,ineffectiveNavigation=false,sameTargetNoProgress=false,features?:Partial<Pick<FeatureSet,"menu-refusal-recovery-v1"|"navigation-recovery-v1"|"semantic-navigation-v1"|"semantic-navigation-v2">>): LoopDetector {
   const detector = new LoopDetector((notice) => {
     recorder.recordLoopGuard({...notice,evidence:[...notice.evidence]});
     if (notice.phase === "stop") governor.abort("stuck");
-  }, policy, mode, interactions, supervisor, transitions, pushback, battles, messageTruth, ineffectiveLoops, menuLoop, clockViews, closedDialogue,triggerScriptLoops,battleRefusals,ineffectiveNavigation,sameTargetNoProgress,features?.["menu-refusal-recovery-v1"]??false,features?.["navigation-recovery-v1"]??false);
+  }, policy, mode, interactions, supervisor, transitions, pushback, battles, messageTruth, ineffectiveLoops, menuLoop, clockViews, closedDialogue,triggerScriptLoops,battleRefusals,ineffectiveNavigation,sameTargetNoProgress,features?.["menu-refusal-recovery-v1"]??false,features?.["navigation-recovery-v1"]??false,semanticNavigation({"semantic-navigation-v1":features?.["semantic-navigation-v1"]??false,"semantic-navigation-v2":features?.["semantic-navigation-v2"]??false}));
   recorder.subscribe((event) => { detector.observe(event); });
   return detector;
 }

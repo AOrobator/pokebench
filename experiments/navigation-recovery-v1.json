@@ -4,8 +4,8 @@
  "title": "Bounded navigation recovery",
  "changedFeature": "navigation-recovery-v1",
  "hypothesis": "Qualified current-map feedback and persistent bounded map-cycle recovery reduce repeated stale-map requests and revisits without choosing a story route.",
- "activationMilestone": "FIRST_TRUCK_EXIT",
- "primaryMilestone": "RIVAL_HOUSE_ENTERED",
+ "activationMilestone": "PLAYER_NAME_CONFIRMED",
+ "primaryMilestone": "ROUTE_103",
  "source": {
   "checkout": "main",
   "commit": "a2e5ba0fd0e686c00db7b56f868b91e534015d0d"
@@ -225,5 +225,5 @@
   "window": 4,
   "minReached": 3
  },
- "notes": "Pending, unqueued, unapproved. Recorded-window regression tests establish recovery lifecycle and model delivery, not model escape rate. No gameplay trials launched. Source pin is the integrated implementation; repin at landing; evaluate exposure to cycles separately from reachability."
+ "notes": "Pending, unqueued, unapproved. Recorded-window regression tests establish recovery lifecycle and model delivery, not model escape rate. No gameplay trials launched. Source pin is the integrated implementation; repin at landing; evaluate exposure to cycles separately from reachability. Primary ROUTE_103 lies after both recorded failure windows. Qualifying current-map state can exist in the truck after name confirmation. Semantic target invocations are shown only when that tool is offered."
 }

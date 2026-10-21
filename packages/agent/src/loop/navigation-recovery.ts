@@ -14,7 +14,7 @@ export class NavigationRecovery {
  private stale:number[]=[];
  private staleMap:string|null=null;
  private episode:Episode|null=null;
- constructor(private readonly notify:(n:LoopNotice)=>void,private readonly mode:LoopMode){}
+ constructor(private readonly notify:(n:LoopNotice)=>void,private readonly mode:LoopMode,private readonly semanticTargets=false){}
  state(state:GameStateSnapshot):void {this.latest=state;if(qualified(state)){const key=mapKey(state);if(key!==null)this.seen.add(key);}}
  unavailable():void {this.latest=undefined;}
  progress(seq:number,calls:number):void {if(this.episode!==null)this.notice("recovered",seq,calls);this.episode=null;this.stale=[];this.seen.clear();if(this.latest!==undefined)this.state(this.latest);}
@@ -51,7 +51,7 @@ export class NavigationRecovery {
  private bearings():string {
   const s=this.latest;if(s===undefined)return "Current map unavailable.";
   const connections=s.exit_reach?.connections??[];
-  return `Current map: ${mapKey(s)??"unavailable"}. Position: ${String(s.position?.x??"unavailable")},${String(s.position?.y??"unavailable")}. Observed walking exits: ${connections.filter(c=>c.reach==="foot").sort((a,b)=>Number(this.seen.has(a.destination.join("/")))-Number(this.seen.has(b.destination.join("/")))).map(c=>`${c.direction} -> ${c.destination.join("/")} (${this.seen.has(c.destination.join("/"))?"visited":"not yet visited"}) [navigate_to_target ${JSON.stringify({map_id:s.map_id,target:{kind:"connection",direction:c.direction}})}]`).join("; ")||"none qualified"}.`;
+  return `Current map: ${mapKey(s)??"unavailable"}. Position: ${String(s.position?.x??"unavailable")},${String(s.position?.y??"unavailable")}. Observed walking exits: ${connections.filter(c=>c.reach==="foot").sort((a,b)=>Number(this.seen.has(a.destination.join("/")))-Number(this.seen.has(b.destination.join("/")))).map(c=>`${c.direction} -> ${c.destination.join("/")} (${this.seen.has(c.destination.join("/"))?"visited since last native story progress":"not visited since last native story progress"})${this.semanticTargets?` [navigate_to_target ${JSON.stringify({map_id:s.map_id,target:{kind:"connection",direction:c.direction}})}]`:""}`).join("; ")||"none qualified"}.`;
  }
  private open(kind:Episode["kind"],text:string,evidence:readonly number[],calls:number):void {
   this.episode={kind,text,evidence:[...evidence],exposed:false,calls:0,maps:new Set(this.seen)};

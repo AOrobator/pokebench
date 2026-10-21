@@ -49,6 +49,7 @@ export class LoopDetector extends LoopCoordinator {
     sameTargetNoProgress = false,
     menuRefusals = false,
     navigationRecovery = false,
+    navigationRecoveryTargets = false,
   ) {
     super(notify, {
       policy,
@@ -69,6 +70,7 @@ export class LoopDetector extends LoopCoordinator {
       sameTargetNoProgress,
       menuRefusals,
       navigationRecovery,
+      navigationRecoveryTargets,
     });
   }
 }

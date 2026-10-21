@@ -131,6 +131,7 @@ export interface LoopCoordinatorOptions extends LoopRuleFeatures {
   readonly sameTargetNoProgress?: boolean;
   readonly menuRefusals?: boolean;
   readonly navigationRecovery?: boolean;
+  readonly navigationRecoveryTargets?: boolean;
   readonly policy?: LoopPolicy;
   readonly mode?: LoopMode;
   readonly supervisor?: (kind: LoopKind, calls: number) => string;

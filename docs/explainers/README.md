@@ -171,5 +171,7 @@ The original ignored runs/explainers copies remain for existing links. Make futu
 - [Navigation tool-use guard](navigation-tool-use-guard-v1.html) — default OFF, bundle ON; benefit unmeasured.
 - [Semantic current-map feedback](semantic-current-map-feedback-v1.html) — default OFF, bundle ON; benefit unmeasured.
 
+- [Exploratory waypoint guidance](navigation-refusal-reasons-v3.html) — bounded local advice, no assumed onward route.
+
 
 - [Pending field dialogue](pending-field-dialogue-v1.html): finish ordinary dialogue that appears after navigation returns; leave each new choice to the model.

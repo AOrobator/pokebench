@@ -160,7 +160,7 @@ function unreadyReason(state:GameStateSnapshot):string {
  if(state.field_controls_locked!==false)return "field control state is unavailable; inspect the new state before calling navigate_to again";
  return "this map's navigation geometry is unavailable; inspect the new state before calling navigate_to again";
 }
-function targetReason(state:GameStateSnapshot,goal:Point,options:NavigationOptions,edges=false,truth=false,switches:ReachSwitches|null=null):string|null {
+function targetReason(state:GameStateSnapshot,goal:Point,options:NavigationOptions,edges=false,truth=false,switches:ReachSwitches|null=null,advice:WaypointAdvice|null=null):string|null {
  const geometry=options.mode==="full"?fullGeometry(state):localGeometry(state);if(geometry===null)return null;
  const bounds=geometry.bounds;
  if(bounds!==null&&(goal.x>=bounds.width||goal.y>=bounds.height))return `${at(goal)} is outside this map; its tiles run from (0,0) to (${String(bounds.width-1)},${String(bounds.height-1)}); to reach another map, use a listed warp or a map connection`;
@@ -205,7 +205,7 @@ function targetReason(state:GameStateSnapshot,goal:Point,options:NavigationOptio
   const named=several?`${[...new Set(reached.map(call))].join(" or ")} (persons or objects stacked at different elevations)`:first===undefined?label:first.name!=null?`${first.name} (person or object)`:"a person or object";
   const stands=usable.map(({stand,side},i)=>`${at(stand)} facing ${OPPOSITE[side]}${several?` (reaches ${call(reached[i])})`:""}`);
   // exit-reachability-v1: the whole-map flood decides whether "cannot be reached" is true.
-  const cut=stands.length===0&&switches!==null?personCut(state,geometry,goal,options,switches):null;
+  const cut=stands.length===0&&switches!==null?personCut(state,geometry,goal,options,switches,advice):null;
   if(cut!==null)return `${at(goal)} is ${label}, which navigate_to cannot stand on${cut}`;
   return stands.length===0?`${at(goal)} is ${label}, which navigate_to cannot stand on, and none of its free neighbouring tiles can be reached from here; choose a reachable waypoint nearer to it`:`${at(goal)} is ${named}, which navigate_to cannot stand on; to talk to ${several?"one":"it or use it"}, walk to one of these free tiles, face it and press A: ${stands.join("; ")}`;
  }
@@ -288,7 +288,36 @@ function triggerReason(state:GameStateSnapshot,goal:Point,options:NavigationOpti
 // reachable window-edge tiles with an unseen neighbour inside the map, one per side, nearest the goal first.
 // Only a goal the player could stand on: walkable, with no person, object or warp on it.
 const SIDES:Readonly<Record<Direction,string>>={UP:"north",DOWN:"south",LEFT:"west",RIGHT:"east"};
-function windowReason(state:GameStateSnapshot,goal:Point,options:NavigationOptions):string|null {
+
+export const WAYPOINT_HISTORY_GOALS=16;
+export const WAYPOINT_HISTORY_ORIGINS=8;
+type EdgeChoice=[Direction,Point];
+// Local-window edges are exploration candidates, not evidence of a route beyond the window.
+// The game has no message for this limitation; only observed geometry and earlier refusal positions are named.
+export class WaypointAdvice {
+ private map:string|null=null;
+ private readonly origins=new Map<string,string[]>();
+ constructor(private readonly maxGoals=WAYPOINT_HISTORY_GOALS,private readonly maxOrigins=WAYPOINT_HISTORY_ORIGINS){}
+ observeMap(state:Pick<GameStateSnapshot,"map_id">):void {
+  const map=state.map_id===null?null:state.map_id.join("/");
+  if(map!==this.map){this.origins.clear();this.map=map;}
+ }
+ complete(goal:Point):void {this.origins.delete(key(goal));}
+ line(state:GameStateSnapshot,goal:Point,choices:readonly EdgeChoice[]):string {
+  this.observeMap(state);
+  const id=key(goal),before=this.origins.get(id)??[];
+  const current=state.position===null?[]:[key(state.position)];
+  const seen=[...before.filter(p=>!current.includes(p)),...current].slice(-this.maxOrigins);
+  this.origins.delete(id);this.origins.set(id,seen);
+  if(this.origins.size>this.maxGoals){const oldest=this.origins.keys().next().value;if(oldest!==undefined)this.origins.delete(oldest);}
+  const fresh=choices.filter(([,p])=>!seen.includes(key(p)));
+  if(choices.length===0)return "; no reachable exploratory local-map edge tile is listed; no route beyond this local map is verified";
+  if(fresh.length===0)return "; all listed local-map edge choices are previous refusal positions for this target; no untried edge is listed and no route beyond this local map is verified; inspect the map or choose another target";
+  return `; Exploratory local-map edge tiles (ordered by horizontal-plus-vertical grid distance to ${at(goal)} only; no route beyond these tiles is verified): ${fresh.map(([side,p])=>`${at(p)} on the ${SIDES[side]} edge`).join(", ")}${fresh.length<choices.length?"; previous refusal positions withheld while other edge choices remain":""}; choose an edge to explore, inspect the new map, then reassess the target`;
+ }
+}
+
+function windowReason(state:GameStateSnapshot,goal:Point,options:NavigationOptions,advice:WaypointAdvice|null=null):string|null {
  if(options.mode!==undefined&&options.mode!=="local")return null;
  const geometry=localGeometry(state),grid=state.navigation_grid;
  if(geometry===null||grid==null||geometry.bounds===null)return null;
@@ -300,6 +329,7 @@ function windowReason(state:GameStateSnapshot,goal:Point,options:NavigationOptio
  if(!standable(geometry.tile(goal))||geometry.objects.some(same)||geometry.warps.some(same)||(state.interaction_targets??[]).some(t=>t.kind==="object"&&same(t))||(state.world_context?.objects??[]).some(o=>same(o)&&o.map_id[0]===state.map_id?.[0]&&o.map_id[1]===state.map_id[1]))return null;
  const listed=windowEdges(state,goal,options);
  const inside=`no route to ${at(goal)} lies inside the 15x15 local map navigate_to plans over`;
+ if(advice!==null)return `${inside}${advice.line(state,goal,listed)}`;
  return listed.length===0?`${inside}, and navigate_to can reach no tile on that local map's edge from here; choose another target`:`${inside}, so any route leaves it; reachable tiles on its edge, nearest ${at(goal)} first: ${listed.map(([side,p])=>`${at(p)} on the ${SIDES[side]} edge`).join(", ")}; walk to one, then call navigate_to ${at(goal)} again`;
 }
 // Reachable local-window edge tiles with an unseen neighbour inside the map, one per side, nearest the goal first.
@@ -336,7 +366,7 @@ function flood(geometry:Geometry,start:Point):Set<string> {
 // server's foot area: none of its neighbours on it means it cannot be walked to at all; one on it means the plan, not
 // the map, is what failed: in the local window because the way leaves it (named by the nearest window-edge tile);
 // otherwise only the fact is stated, no guessed cause (pokebench-game-state skill). Null when the foot area is unknown.
-function personCut(state:GameStateSnapshot,geometry:Geometry,goal:Point,options:NavigationOptions,reach:ReachSwitches):string|null {
+function personCut(state:GameStateSnapshot,geometry:Geometry,goal:Point,options:NavigationOptions,reach:ReachSwitches,advice:WaypointAdvice|null=null):string|null {
  const block=exitBlock(reach,state);
  const sides=DIRECTIONS.map(([,dx,dy])=>({x:goal.x+dx,y:goal.y+dy}));
  const known=sides.map(p=>block.foot(p.x,p.y));
@@ -349,8 +379,9 @@ function personCut(state:GameStateSnapshot,geometry:Geometry,goal:Point,options:
  if(near===undefined)return `, and none of its neighbouring tiles can be reached on foot from where you stand: ${why===null?"no walkable way on this map leads there":why}; choose another target`;
  if(options.mode==="visited")return `; navigate_to finds no route through terrain shown this run to a free tile next to it right now, though this map's walkable area reaches ${at(near)} next to it; explore until more terrain has been shown, then choose a waypoint nearer to it`;
  if(options.mode==="full"||start===null||flood(geometry,start).has(key(near)))return `; navigate_to finds no route ${options.mode==="full"?"on this map":"on the 15x15 local map it plans over"} to a free tile next to it right now, though this map's walkable area reaches ${at(near)} next to it; choose a waypoint nearer to it`;
- const edge=windowEdges(state,goal,options)[0];
+ const choices=windowEdges(state,goal,options),edge=choices[0];
  const inside=`; none of its free neighbouring tiles can be reached inside the 15x15 local map navigate_to plans over, but this map's walkable area reaches ${at(near)} next to it, so the way there leaves that local map`;
+ if(advice!==null)return `${inside}${advice.line(state,goal,choices)}`;
  return edge===undefined?`${inside}; navigate_to can reach no tile on that local map's edge from here, so choose another target`:`${inside}; walk to ${at(edge[1])} on its ${SIDES[edge[0]]} edge first, then call navigate_to ${at(goal)} again`;
 }
 // navigation-truth-v1: who now stands on the route tile a blocked step would have entered.
@@ -574,6 +605,7 @@ export interface NavigationPorts {
  readonly triggers?:boolean;
  // navigation-refusal-reasons-v2: say when an in-window goal's route leaves the local window.
  readonly windowReasons?:boolean;
+ readonly waypointAdvice?:boolean;
  readonly read:(signal?:AbortSignal)=>Promise<GameStateSnapshot>;
  readonly press:(id:string,params:{buttons:Button[];walking?:boolean},signal?:AbortSignal,check?:BeforePressCheck,options?:CheckedPressOptions)=>Promise<AgentToolResult<unknown>>;
  readonly observe:(id:string,signal?:AbortSignal)=>Promise<AgentToolResult<unknown>>;
@@ -697,6 +729,7 @@ export function navigationTool(ports:NavigationPorts):CheckedNavigationTool {
  const sight=ports.trainerSight,healGate=ports.healGate;
  const sighted=sight===undefined?navigationDescription:`${navigationDescription} ${SIGHT_TOOL_SENTENCE}`;
  const description=healGate===undefined?sighted:`${sighted} ${GATE_TOOL_SENTENCE}`;
+ const advice=ports.waypointAdvice===true&&mode==="local"?new WaypointAdvice():null;
  const execute=async(id:string,goal:Goal,signal?:AbortSignal,stop?:NavigationStopCheck,checkedOptions:CheckedNavigationOptions={}):Promise<AgentToolResult<unknown>>=>{
   signal?.throwIfAborted();await ports.gate?.(signal);signal?.throwIfAborted();
   let state=await ports.read(signal),commands=0,status="command limit",last:AgentToolResult<unknown>|undefined,stopRequested=false;
@@ -708,6 +741,7 @@ export function navigationTool(ports:NavigationPorts):CheckedNavigationTool {
   while(commands<bound&&(ports.safeStrides!==true||plannedSteps<bound)){
    signal?.throwIfAborted();await ports.gate?.(signal);signal?.throwIfAborted();
    state=await ports.read(signal);signal?.throwIfAborted();
+   advice?.observeMap(state);
    if(ports.fieldMoveGates===true)state=gatedState(state);
    const beforeStop=stop?.(state)??null;if(beforeStop!==null){status=beforeStop;stopRequested=true;break;}
    if(!sameMap()){
@@ -723,7 +757,7 @@ export function navigationTool(ports:NavigationPorts):CheckedNavigationTool {
    selectedTarget=warpPlan?.target??{x:goal.x,y:goal.y};
    const path=warpPlan?.path??planNavigation(state,goal,options);
    if(path===null){
-    status=(ports.counters===true?counterHint(state,goal,options,truth):null)??(ports.refusalReasons===true?targetReason(state,goal,options,ports.connectionEdges===true,truth,ports.exitReach===true?{surf:ports.surfGate===true,reach:true,gates:ports.fieldMoveGates===true}:null):null)??(truth?triggerReason(state,goal,options):null)??(mode==="local"&&ports.windowReasons===true?windowReason(state,goal,options):null)??(mode==="full"?"no supported path on the current map; choose a reachable waypoint":mode==="visited"?"no supported path through terrain shown this run; explore until another area has been shown, then try again":"no supported local path; choose a reachable local waypoint");
+    status=(ports.counters===true?counterHint(state,goal,options,truth):null)??(ports.refusalReasons===true?targetReason(state,goal,options,ports.connectionEdges===true,truth,ports.exitReach===true?{surf:ports.surfGate===true,reach:true,gates:ports.fieldMoveGates===true}:null,advice):null)??(truth?triggerReason(state,goal,options):null)??(mode==="local"&&ports.windowReasons===true?windowReason(state,goal,options,advice):null)??(mode==="full"?"no supported path on the current map; choose a reachable waypoint":mode==="visited"?"no supported path through terrain shown this run; explore until another area has been shown, then try again":"no supported local path; choose a reachable local waypoint");
     const here=state.position;
     if(truth&&commands>0&&origin!==null&&here!==null&&distance(origin,here)!==0)status=`walked from ${at(origin)} to ${at(here)}, then stopped: ${status}`;
     break;
@@ -795,6 +829,8 @@ export function navigationTool(ports:NavigationPorts):CheckedNavigationTool {
    }
   }
   last=await ports.observe(id,signal);state=blackout.preserve(blackout.remember(resultState(last)));
+  advice?.observeMap(state);
+  if(state.position!==null&&sameMap()&&samePoint(state.position,goal))advice?.complete(goal);
   const finalStop=stop?.(state)??null;if(finalStop!==null){status=finalStop;stopRequested=true;}
   if(directionalWarpAttempted){status=state.map_id===null?"directional warp transition unverified; inspect new state":sameMap()?"directional warp did not change map; inspect new state":"directional warp activated; inspect destination";}
   // A composite navigation call can consume the one-shot receipt in an internal
@@ -825,5 +861,5 @@ export function withNavigation(base:readonly AgentTool[],features:FeatureSet,sta
  if(features["story-battle-heal-gate-v1"]&&healGate===undefined)throw new Error("story-battle-heal-gate-v1 needs the gate");
  const press=base.find(tool=>tool.name==="press"),observe=base.find(tool=>tool.name==="observe");
  if(press===undefined||observe===undefined||!isCheckedPress(press))throw new Error("Navigation requires ordinary game tools");
- tools.push(navigationTool({semanticTargets:features["semantic-navigation-v2"],safeStrides:features["safe-navigation-strides-v1"],automaticRunning:features["automatic-running-v1"],ledges:features["ledge-hops-v1"],oneWay:features["one-way-tiles-v1"],grassCost:features["grass-cost-navigation-v1"],counters:features["counter-talk-v1"],refusalReasons:features["navigation-refusal-reasons-v1"],connectionEdges:features["connection-edge-tiles-v1"],truth:features["navigation-truth-v1"],triggers:features["coordinate-script-conditions-v1"],windowReasons:features["navigation-refusal-reasons-v2"],floor:features["walkable-floor-v1"],elevation:features["elevation-transitions-v1"]?"game":"legacy",navigateFirst:features["navigate-first-prompt-v1"],crossMapGoal:features["cross-map-goal-v1"],exitReach:features["exit-reachability-v1"],surfGate:features["surf-gated-exits-v1"],fieldMoveGates:features["field-move-gates-v1"],deterministicWarps:features["deterministic-warp-navigation-v1"],alreadyHere:features["navigate-already-here-v1"],read:signal=>state.read(signal),press:(id,params,signal,check,options)=>check===undefined?press.execute(id,params,signal):press.executeChecked(id,params,check,signal,undefined,options),observe:(id,signal)=>observe.execute(id,{},signal),gate,fullMap:features["full-map-navigation-v1"],visitedTerrain:features["visited-terrain-navigation-v1"],...(features["trainer-sight-check-v1"]?{trainerSight:sight}:{}),...(features["story-battle-heal-gate-v1"]?{healGate}:{})}));return tools;
+ tools.push(navigationTool({semanticTargets:features["semantic-navigation-v2"],safeStrides:features["safe-navigation-strides-v1"],automaticRunning:features["automatic-running-v1"],ledges:features["ledge-hops-v1"],oneWay:features["one-way-tiles-v1"],grassCost:features["grass-cost-navigation-v1"],counters:features["counter-talk-v1"],refusalReasons:features["navigation-refusal-reasons-v1"],connectionEdges:features["connection-edge-tiles-v1"],truth:features["navigation-truth-v1"],triggers:features["coordinate-script-conditions-v1"],windowReasons:features["navigation-refusal-reasons-v2"],waypointAdvice:features["navigation-refusal-reasons-v3"],floor:features["walkable-floor-v1"],elevation:features["elevation-transitions-v1"]?"game":"legacy",navigateFirst:features["navigate-first-prompt-v1"],crossMapGoal:features["cross-map-goal-v1"],exitReach:features["exit-reachability-v1"],surfGate:features["surf-gated-exits-v1"],fieldMoveGates:features["field-move-gates-v1"],deterministicWarps:features["deterministic-warp-navigation-v1"],alreadyHere:features["navigate-already-here-v1"],read:signal=>state.read(signal),press:(id,params,signal,check,options)=>check===undefined?press.execute(id,params,signal):press.executeChecked(id,params,check,signal,undefined,options),observe:(id,signal)=>observe.execute(id,{},signal),gate,fullMap:features["full-map-navigation-v1"],visitedTerrain:features["visited-terrain-navigation-v1"],...(features["trainer-sight-check-v1"]?{trainerSight:sight}:{}),...(features["story-battle-heal-gate-v1"]?{healGate}:{})}));return tools;
 }

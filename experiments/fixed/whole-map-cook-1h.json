@@ -190,6 +190,7 @@
    "short-cycle-fixed-point-v1": false,
    "exit-labels-v3": false,
    "party-item-confirmation-v1": false,
+   "navigation-refusal-reasons-v3": false,
    "pending-field-dialogue-v1": false
   }
  },
@@ -253,6 +254,7 @@
   "short-cycle-fixed-point-v1",
   "exit-labels-v3",
   "party-item-confirmation-v1",
+  "navigation-refusal-reasons-v3",
   "pending-field-dialogue-v1"
  ],
  "offInBoth": [

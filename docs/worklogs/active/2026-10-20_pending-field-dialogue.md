@@ -71,3 +71,5 @@ Base e635fcbfe includes navigation-tool-use-guard-v1, semantic-current-map-feedb
 Agent full3187 pass with coverage; viewer1523 pass/1 historical pending-incumbent mismatch. Preserve old open-goal experiment while excluding the newly bundled treatment from its historical comparison; no runtime edits. Final viewer/lint/build rerun before sealing.
 
 Config-only sync main951c8efa retains its new pinned v7 pair unchanged and preserves evolving cook exit-labels/party-item switches alongside pending dialogue. The interrupted prior review is superseded, never counted as approval. Last verified coverage3187 agent/1524 viewer,3494 Python; all lint/build/vendor pass. Rerun TS coverage/config after this sync and freeze a new cumulative packet.
+
+R5 reviewed74ec4eb2: Grok LGTM exit0/empty stderr; GPT LGTM; independent Astra and Sol fallbacks LGTM, all hash3b5e72b6. Main then landed waypoint switchdc22bc5d. Integrate without altering dialogue runtime, preserve upstream navigation schema/defaults and bundle membership, append pending last and retain pinned v7. New cumulative integration review required after gates.

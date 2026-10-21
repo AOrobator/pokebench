@@ -61,25 +61,46 @@ function rig(features:FeatureSet){
   messages.push({...assistant({thinking,toolCalls:[toolCall(id,name,args)]}),timestamp:n});
   messages.push({role:"toolResult",toolCallId:id,toolName:name,content:[{type:"text",text:`done. turn ${String(n)}`}],isError:false,timestamp:n});
  };
+ // One turn with two press calls (RIGHT then A), each leaving its own state; on odd turns the results arrive in reverse order.
+ const pair=(states:readonly [GameStateSnapshot,GameStateSnapshot]):void=>{
+  n++;
+  const ids=[`c${String(n)}a`,`c${String(n)}b`];
+  const calls=ids.map((id,k)=>({id,name:"press",args:{buttons:[k===0?"RIGHT":"A"]}}));
+  emit({type:"assistant",turn:n,thinking:`Turn ${String(n)}.`,text:"",tool_calls:calls,usage:{input:1,output:1,cache_read:0},latency_ms:1,ttft_ms:null,stop_reason:"toolUse"});
+  for(const c of calls)emit({type:"tool_call",turn:n,id:c.id,name:c.name,args:c.args});
+  const results=(n%2===1?[1,0]:[0,1]).map(k=>{const s=emit({type:"state",turn:n,...(k===0?states[0]:states[1])});emit({type:"tool_result",turn:n,id:ids[k]??"",name:"press",is_error:false,duration_ms:1,text:`done ${String(k)}`,frames:[],state_seq:s.seq});return k;});
+  messages.push({...assistant({thinking:`Turn ${String(n)}.`,toolCalls:calls.map(c=>toolCall(c.id,c.name,c.args))}),timestamp:n});
+  for(const k of results.sort())messages.push({role:"toolResult",toolCallId:ids[k]??"",toolName:"press",content:[{type:"text",text:`done ${String(k)}`}],isError:false,timestamp:n});
+ };
+ // A turn whose call never got a result recorded.
+ const unfinished=():void=>{
+  const id=`c${String(++n)}`;
+  emit({type:"assistant",turn:n,thinking:"x",text:"",tool_calls:[{id,name:"press",args:{buttons:["B"]}}],usage:{input:1,output:1,cache_read:0},latency_ms:1,ttft_ms:null,stop_reason:"toolUse"});
+  messages.push({...assistant({thinking:"x",toolCalls:[toolCall(id,"press",{buttons:["B"]})]}),timestamp:n});
+ };
  const silent=():void=>{
   n++;
   emit({type:"assistant",turn:n,thinking:"Hmm.",text:"",tool_calls:[],usage:{input:1,output:1,cache_read:0},latency_ms:1,ttft_ms:null,stop_reason:"stop"});
   messages.push({...assistant({thinking:"Hmm."}),timestamp:n});
   messages.push(userText("Keep playing."));
  };
- return {turn,silent,messages,recorded,wiring,send:()=>wiring.transformContext([...messages])};
+ return {turn,pair,unfinished,silent,messages,recorded,wiring,send:()=>wiring.transformContext([...messages])};
 }
 const texts=(out:readonly AgentMessage[]):string[]=>out.flatMap(m=>m.role==="user"?[typeof m.content==="string"?m.content:"(parts)"]:m.role==="toolResult"?[m.content.flatMap(p=>p.type==="text"?[p.text]:[]).join("")]:[`assistant ${String(m.timestamp)}`]);
 const kept=(out:readonly AgentMessage[]):number[]=>out.flatMap(m=>m.role==="assistant"?[m.timestamp]:[]);
 // The clock bounce: the same call, results alternating confirmation, adjustment, ...
 const bounce=(r:ReturnType<typeof rig>,count:number,first=CONFIRM,second=ADJUST):void=>{for(let i=0;i<count;i++)r.turn(RIGHT_A,i%2===0?first():second());};
-// The door walk: two calls in turn, each leaving its own state.
+// The door walk: two different calls taking turns, each leaving its own state.
 const doors=(r:ReturnType<typeof rig>,count:number):void=>{for(let i=0;i<count;i++)if(i%2===0)r.turn({map_id:[0,9],target:{kind:"warp",...IN}},HOUSE,"navigate_to_target");else r.turn({map_id:[1,2],target:{kind:"warp",...OUT}},TOWN,"navigate_to_target");};
 
 describe("the cycle state fingerprint",()=>{
  const state=(s:GameStateSnapshot)=>checkEvent({v:1,run:"r",seq:1,t:"2026-10-20T20:06:00.000-04:00",type:"state",turn:1,...s}) as Extract<RunEvent,{type:"state";started:boolean}>;
- it("qualifies a ready interface on any screen and leaves out the interface's value",()=>{
+ it("qualifies a ready interface on any screen and leaves out only the clock's time",()=>{
   expect(cycleState(state(ADJUST("10:58 AM")))).toBe(cycleState(state(ADJUST("11:00 AM"))));
+  expect(cycleState(state(CONFIRM("10:58 AM")))).toBe(cycleState(state(CONFIRM("11:00 AM"))));
+  const naming=(value:string)=>({...CLOCK,screen:"naming",active_ui:ui("naming_keyboard","A",value)});
+  expect(cycleState(state(naming("MA")))).not.toBe(cycleState(state(naming("MAY"))));
+  expect(cycleState(state(IN_GAME))).not.toBe(cycleState(state({...IN_GAME,money:2900})));
   expect(cycleState(state(ADJUST()))).not.toBeNull();
   expect(cycleState(state(ADJUST()))).not.toBe(cycleState(state(CONFIRM())));
  });
@@ -226,7 +247,7 @@ describe("OFF and the switches it acts through",()=>{
   expect((await r.send()).at(-1)).toMatchObject({role:"toolResult"});
   doors(r,1);
   const note=cycleNote(7,2,["navigate_to_target"]);
-  expect(note).toBe(`${BREAKER_NOTE} Your last 7 turns repeated the same 2 turns of navigate_to_target calls, and the game state came back to the same 2 states each time round.`);
+  expect(note).toBe(`${BREAKER_NOTE} Your last 7 turns repeated the same 2 turns of navigate_to_target calls, and each time round the game came back to the same 2 screens, positions and highlighted choices.`);
   expect((await r.send()).at(-1)).toMatchObject({role:"user",content:note});
   expect(r.recorded.filter(b=>b.stage===2)).toEqual([{stage:2,trigger:"short_cycle",repeats:7,collapsed:0,text:note,period:2}]);
   const off=rig({...BREAKER,[ID]:false});doors(off,8);
@@ -241,6 +262,45 @@ describe("OFF and the switches it acts through",()=>{
   const three=rig(BREAKER);
   for(let i=0;i<10;i++){const [args,state]=legs[i%3]??legs[0];three.turn(args,state,"navigate_to_target");}
   expect((await three.send()).at(-1)).toMatchObject({content:cycleNote(10,3,["navigate_to_target"])});
+ });
+ it("stage 2's note stays true when the clock's time moves (ef9f's bounce with the breaker on)",async()=>{
+  const r=rig(BREAKER);
+  for(let i=0;i<7;i++)r.turn(RIGHT_A,i%2===0?CONFIRM(`11:0${String(i)} AM`):ADJUST(`11:0${String(i)} AM`));
+  const note=cycleNote(7,2,["press"]);
+  expect(note).toBe(`${BREAKER_NOTE} Your last 7 turns repeated the same 2 turns of press calls, and each time round the game came back to the same 2 screens, positions and highlighted choices.`);
+  expect(note.slice(BREAKER_NOTE.length)).not.toMatch(/\bstates?\b/);
+  expect((await r.send()).at(-1)).toMatchObject({content:note});
+ });
+ it("a name being typed or money being spent is progress, not a cycle",async()=>{
+  const typing=rig(BREAKER);
+  for(let i=0;i<8;i++)typing.turn(i%2===0?{buttons:["A"]}:{buttons:["RIGHT"]},{...CLOCK,screen:"naming",active_ui:ui("naming_keyboard",i%2===0?"A":"B","MAY".slice(0,1+Math.floor(i/2)))});
+  expect(texts(await typing.send()).filter(t=>t.startsWith("assistant"))).toHaveLength(8);
+  const buying=rig(BREAKER);
+  for(let i=0;i<8;i++)buying.turn({buttons:["A"]},i%2===0?{...IN_GAME,money:3000-100*i}:{...IN_GAME,money:3000-100*i,active_ui:ui("mart_quantity","1","x1")});
+  expect(texts(await buying.send()).filter(t=>t.startsWith("assistant"))).toHaveLength(8);
+  expect([...typing.recorded,...buying.recorded]).toEqual([]);
+ });
+ it("a 4-turn cycle collapses at 12 turns and gets the note at 13",async()=>{
+  const r=rig(BREAKER);
+  const legs=[[{target:"lab"},LAB],[{target:"house"},HOUSE],[{target:"town"},TOWN],[{target:"door"},{...TOWN,position:{x:5,y:9}}]] as const;
+  for(let i=0;i<12;i++){const [args,state]=legs[i%4]??legs[0];r.turn(args,state,"navigate_to_target");}
+  expect(kept(await r.send())).toEqual([9,10,11,12]);
+  expect(r.recorded).toEqual([{stage:1,trigger:"short_cycle",repeats:12,collapsed:8,text:null,period:4}]);
+  r.turn(legs[0][0],legs[0][1],"navigate_to_target");
+  expect((await r.send()).at(-1)).toMatchObject({content:cycleNote(13,4,["navigate_to_target"])});
+ });
+ it("a turn with two calls counts as one turn of the cycle, in call order",async()=>{
+  const r=rig(BREAKER);
+  for(let i=0;i<7;i++)r.pair(i%2===0?[CONFIRM(),ADJUST()]:[ADJUST(),CONFIRM()]);
+  expect(kept(await r.send())).toEqual([6,7]);
+  expect(r.recorded.map(b=>[b.stage,b.trigger,b.repeats])).toEqual([[1,"short_cycle",7],[2,"short_cycle",7]]);
+ });
+ it("a turn whose result never came breaks the cycle for stage 2 as it does for stage 1",async()=>{
+  const r=rig(BREAKER);
+  doors(r,4);r.unfinished();doors(r,3);
+  const out=await r.send();
+  expect(out.at(-1)).toMatchObject({role:"toolResult"});
+  expect(r.recorded).toEqual([]);
  });
  it("stage 2 names every tool in the cycle, stops when the cycle breaks, and keeps today's fixed-point note",async()=>{
   const r=rig(BREAKER);
@@ -375,7 +435,7 @@ describe("short-cycle-fixed-point-v1 registry, presets and experiments",()=>{
   expect(featureInfo(ID)).toMatchObject({group:"guard",needs:null,switchable:true,title:"SHORT-CYCLE FIXED POINT"});
   expect(featureInfo(ID).description).toContain(" Off: ");
   expect(featureInfo(ID).description).toContain("duplicate-turn-collapse-v1");
-  expect(featureInfo(ID).description).toContain(cycleNote(7,2,["navigate_to_target"]).replace("7 turns","N turns").replace("2 turns of navigate_to_target","P turns of <tool>").replace("same 2 states","same P states"));
+  expect(featureInfo(ID).description).toContain(cycleNote(7,2,["navigate_to_target"]).replace("7 turns","N turns").replace("2 turns of navigate_to_target","P turns of <tool>").replace("same 2 screens","same P screens"));
   expect(playHarnessFeatures(ALL_ON,null).at(-1)).toBe(ID);
   expect(playHarnessFeatures({...ALL_ON,[ID]:false},null)).not.toContain(ID);
   expect(normalizeFeatures({} as Parameters<typeof normalizeFeatures>[0])[ID]).toBe(false);

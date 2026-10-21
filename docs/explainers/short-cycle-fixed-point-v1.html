@@ -43,7 +43,7 @@ svg .small{font-size:11px;fill:var(--muted)}
 <text x="330" y="32" text-anchor="middle">press RIGHT, A</text>
 <path d="M420,105 C350,145 310,145 240,105" fill="none" stroke="var(--accent)" stroke-width="2" marker-end="url(#a)"/>
 <text x="330" y="150" text-anchor="middle">press RIGHT, A</text>
-<text x="10" y="190" class="small">97a0 · two calls in turn</text>
+<text x="10" y="190" class="small">97a0 · two different calls taking turns</text>
 <rect x="20" y="220" width="220" height="70" rx="8" fill="var(--fill)" stroke="var(--accent)"/>
 <text x="130" y="250" text-anchor="middle">LITTLEROOT TOWN (14,9)</text><text x="130" y="270" text-anchor="middle" class="small">map 0/9, facing down</text>
 <rect x="420" y="220" width="220" height="70" rx="8" fill="var(--warnfill)" stroke="var(--warn)"/>
@@ -62,7 +62,7 @@ svg .small{font-size:11px;fill:var(--muted)}
 <tr><td>every turn to leave the <em>same</em> state</td><td>A, B, A, B in both</td><td>a turn may repeat the one 2, 3 or 4 turns before it</td></tr>
 <tr><td>identical thinking and text</td><td>drafts that differ every turn or every other turn</td><td>only the tool calls (names and arguments) and the states must repeat</td></tr>
 <tr><td>a state it can qualify: the field or a ready battle</td><td>ef9f: screen <code>clock</code>, so no state at all</td><td>any screen whose readout shows a ready interface with no diagnostic</td></tr>
-<tr><td>the interface's value to match</td><td>ef9f: the clock moved 2 minutes each cycle</td><td>the value is left out; phase and highlighted choice stay</td></tr>
+<tr><td>the interface's value to match</td><td>ef9f: the clock moved 2 minutes each cycle</td><td>the clock's time is left out; phase and highlighted choice stay, and every other interface keeps its value (a name being typed, a quantity)</td></tr>
 </table></div>
 
 <h2>The rule</h2>
@@ -108,7 +108,7 @@ svg .small{font-size:11px;fill:var(--muted)}
 <text x="310" y="180" class="small">5 turns: fewer than 3 copies</text>
 </g>
 </svg>
-<figcaption>Each box is one turn: its tool calls and the state its result left. A run counts when every turn equals the one 2, 3 or 4 turns before it and the run holds 3 copies of the cycle, as identical turns need 3 copies. A cycle that is really shorter counts as the shorter one (A,B,A,B is 2 turns, not 4); identical turns (a 1-turn cycle) stay the identical-turn rule's. The state is the fixed point's own fingerprint (screen, map, position, facing, field lock, story, party, dialogue, open interface and its highlighted choice, battle) without the interface's value.</figcaption>
+<figcaption>Each box is one turn: its tool calls and the state its result left. A run counts when every turn equals the one 2, 3 or 4 turns before it and the run holds 3 copies of the cycle, as identical turns need 3 copies. A cycle that is really shorter counts as the shorter one (A,B,A,B is 2 turns, not 4); identical turns (a 1-turn cycle) stay the identical-turn rule's. The state is the fixed point's own fingerprint (screen, map, position, facing, field lock, story, party, dialogue, open interface and its highlighted choice, battle) plus the money, without the clock's time; every other interface keeps its value.</figcaption>
 </figure>
 
 <div class="tablewrap"><table>
@@ -117,8 +117,8 @@ svg .small{font-size:11px;fill:var(--muted)}
 <tr><td>3 turns</td><td>9 turns</td><td>the last 3</td><td>from 10 turns</td></tr>
 <tr><td>4 turns</td><td>12 turns</td><td>the last 4</td><td>from 13 turns</td></tr>
 </table></div>
-<p>Each collapse is a <code>loop_breaker</code> stage 1 event with trigger <code>short_cycle</code>, the run's length as <code>repeats</code> and its <code>period</code>. Auto-talk never acts on a cycle: it acts only on turns that left the state the same. The note, when the breaker is on (both fixed experiments have it off):</p>
-<p class="note">SUPERVISOR: Make one tool call based on the game state and what you observed. Your last 7 turns repeated the same 2 turns of navigate_to_target calls, and the game state came back to the same 2 states each time round.</p>
+<p>Each collapse is a <code>loop_breaker</code> stage 1 event with trigger <code>short_cycle</code>, the run's length as <code>repeats</code> and its <code>period</code>. Auto-talk never acts on a cycle: it acts only on turns that left the state the same. The note, when the breaker is on (all three fixed experiments have it off):</p>
+<p class="note">SUPERVISOR: Make one tool call based on the game state and what you observed. Your last 7 turns repeated the same 2 turns of navigate_to_target calls, and each time round the game came back to the same 2 screens, positions and highlighted choices.</p>
 
 <h2>Before and after: where it first acts</h2>
 <figure>
@@ -142,7 +142,7 @@ svg .small{font-size:11px;fill:var(--muted)}
 </g>
 </g>
 </svg>
-<figcaption>Recorded events replayed through the production context wiring and the decision probe (test <code>short-cycle-fixed-point.test.ts</code>; fixtures hold ef9f turns 125–140 and 97a0 turns 104–124). In ef9f the cycle keeps growing: by turn 140 the request keeps 125–130, 138 and 139. In 97a0 turn 123 repeated 122's call but stayed in the house, so the 2-turn cycle ended at 122 (the request for 124 keeps 104–115 and 121–123); the 3-turn rotation that began at 120 reaches 3 copies at 128, so the request for 129 keeps 104–115 and 126–128 (repeats 9, collapsed 10: <code>collapsed</code> counts every turn the cycle pass left out of that request). It ended at 132, when turn 133 stayed in the house where the rotation went out. Nothing inside a kept message changes.</figcaption>
+<figcaption>Recorded events replayed through the production context wiring and the decision probe (test <code>short-cycle-fixed-point.test.ts</code>; fixtures hold ef9f turns 125–140 and 97a0 turns 104–136). In ef9f the cycle keeps growing: by turn 140 the request keeps 125–130, 138 and 139. In 97a0 turn 123 repeated 122's call but stayed in the house, so the 2-turn cycle ended at 122 (the request for 124 keeps 104–115 and 121–123); the 3-turn rotation that began at 120 reaches 3 copies at 128, so the request for 129 keeps 104–115 and 126–128 (repeats 9, collapsed 10: <code>collapsed</code> counts every turn the cycle pass left out of that request). It ended at 132, when turn 133 stayed in the house where the rotation went out. Nothing inside a kept message changes.</figcaption>
 </figure>
 
 <h2>Wiring</h2>

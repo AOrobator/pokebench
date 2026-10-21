@@ -7,7 +7,7 @@ import { RunView } from "./model.js";
 import { eventText, inspector } from "./panels.js";
 import { lanesSvg } from "./timeline.js";
 
-const NOTE = "SUPERVISOR: Make one tool call based on the game state and what you observed. Your last 7 turns repeated the same 2 turns of navigate_to_target calls, and the game state came back to the same 2 states each time round.";
+const NOTE = "SUPERVISOR: Make one tool call based on the game state and what you observed. Your last 7 turns repeated the same 2 turns of navigate_to_target calls, and each time round the game came back to the same 2 screens, positions and highlighted choices.";
 
 it("labels short-cycle collapses and notes in Activity History and adds nothing to the timeline", () => {
   const log = new Log();
@@ -17,8 +17,8 @@ it("labels short-cycle collapses and notes in Activity History and adds nothing 
   const fixed = log.add(300, { type: "loop_breaker", turn: 140, stage: 1, trigger: "fixed_point", repeats: 3, collapsed: 2, text: null });
   const view = new RunView();
   for (const event of log.events) view.apply(event);
-  expect(eventText(collapse, view)).toBe("Loop breaker stage 1 · 4 duplicate turns left out of the request (a cycle of 2 turns (the same tool calls and game states) repeated over 6 turns)");
-  expect(eventText(note, view)).toBe(`Loop breaker stage 2 note sent to the model (a cycle of 2 turns (the same tool calls and game states) repeated over 7 turns) · ${NOTE}`);
+  expect(eventText(collapse, view)).toBe("Loop breaker stage 1 · 4 duplicate turns left out of the request (a cycle of 2 turns (the same tool calls, screens, positions and highlighted choices) repeated over 6 turns)");
+  expect(eventText(note, view)).toBe(`Loop breaker stage 2 note sent to the model (a cycle of 2 turns (the same tool calls, screens, positions and highlighted choices) repeated over 7 turns) · ${NOTE}`);
   expect(eventText(fixed, view)).toBe("Loop breaker stage 1 · 2 duplicate turns left out of the request (3 identical turns in a row)");
   expect(JSON.stringify(stepOf(collapse, view))).toContain("Loop breaker");
   expect(inspector(note)).toContain("short_cycle");

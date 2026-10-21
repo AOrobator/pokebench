@@ -25,10 +25,10 @@ feature-switch, agent-observability, feature-explainer, feature-worklog, experim
 ## Architecture
 
 - Owner: `FixedPointBreaker` (`packages/agent/src/fixed-point-breaker.ts`), constructed by `fixedPointBreaker()` only while duplicate-turn-collapse-v1 or fixed-point-breaker-v1 is on. The switch is read once in its constructor from the FeatureSet.
-- Turn item: the turn's tool calls (names and arguments, JSON) plus the `cycleState` each result left. `cycleState` = `planState`'s fields without the open interface's `value`, qualifying overworld and ready battle as `planState` does, plus any other started screen whose readout shows a ready, non-diagnostic interface. Null where the readout cannot qualify the state; a reply with no tool call is null too. Null items never join a cycle.
+- Turn item: the turn's tool calls (names and arguments, JSON) plus the `cycleState` each result left, in call order. `cycleState` = `planState`'s fields plus the money, without the clock's time (other interface values stay), qualifying overworld and ready battle as `planState` does, plus any other started screen whose readout shows a ready, non-diagnostic interface. Null where the readout cannot qualify the state; a reply with no tool call is null too. Null items never join a cycle.
 - `cycleRuns(items)`: maximal runs where every item equals the one `period` items before it, period 2, 3 or 4, whose first block is primitive (A,B,A,B counts as period 2; all-identical blocks are left to the identical-turn rule), with at least `CYCLE_COPIES` = 3 copies (3 × period turns). Documented equivalent of today's rule: identical turns need 3 copies of a 1-turn block; a cycle needs 3 copies of its block.
 - Stage 1 (collapse): each run keeps its newest copy (the last `period` turns); earlier turns join the drop set after today's identical-turn pass. Recorded as `loop_breaker` stage 1, trigger `short_cycle`, `repeats` = longest run's length, `collapsed` = every group the cycle pass left out of that request (as today's `collapsed` counts all runs), new optional `period`.
-- Stage 2 (note, fixed-point-breaker-v1 only): from recorded events the breaker keeps the latest 4 turn items and, for each period, the length of the run ending at the newest turn (as `cycleRuns` counts it, so a long cycle is counted whole); when the newest turns are in a run longer than 3 copies (3 × period + 1 turns) the request ends with `cycleNote` ("... Your last N turns repeated the same P turns of <tools> calls, and the game state came back to the same P states each time round."). Recorded as stage 2, `short_cycle`, with `period`.
+- Stage 2 (note, fixed-point-breaker-v1 only): from recorded events the breaker keeps the latest 4 turn items and, for each period, the length of the run ending at the newest turn (as `cycleRuns` counts it, so a long cycle is counted whole); a turn whose results never all arrived counts as a break (as stage 1's null item does); when the newest turns are in a run longer than 3 copies (3 × period + 1 turns) the request ends with `cycleNote` ("... Your last N turns repeated the same P turns of <tools> calls, and each time round the game came back to the same P screens, positions and highlighted choices." — round 1 replaced "the game state came back to the same P states", which was false when the clock's time moved). Recorded as stage 2, `short_cycle`, with `period`.
 - Stage 3 (auto-talk) reads `fixedPoint()`, unchanged: it acts only on the free field and its message says the state "stayed the same", which would be false for a cycle.
 - fresh-retry-v1 concerns replies with no tool call; cycle turns all call a tool, so it is unaffected.
 - Viewer: Activity History label for `short_cycle` (with the period); loop_breaker never reaches the timeline. Schema regenerated (`short_cycle`, `period`).
@@ -41,9 +41,9 @@ From the evidence: ef9f's thinking differs every bounce turn (six texts for 131-
 
 The identical-turn rule keeps one copy of the repeated unit (one turn). For a cycle the unit is `period` turns; keeping only the newest turn would hide the cycle's other calls, so the request keeps the newest copy (2-4 turns). For ef9f's single call this keeps the confirmation turn and the adjustment turn.
 
-### Decision: the cycle state leaves out the interface value and qualifies interface screens
+### Decision: the cycle state leaves out the clock's time and qualifies interface screens
 
-Without both, ef9f could never fire (null fingerprint on the clock screen; the clock value moves each cycle). Phase and highlighted choice stay, so a real change of interface or selection breaks a cycle.
+Without both, ef9f could never fire (null fingerprint on the clock screen; the clock value moves each cycle). Phase and highlighted choice stay, so a real change of interface or selection breaks a cycle. After review round 1 only the clock phases (`clock_adjustment`, `clock_confirmation`) drop their value: every other interface keeps it (a name being typed on the naming screen, a PC or mart quantity), and the money is added (planState has none), so typing a name or buying one item at a time is progress, not a cycle. Known remaining merge: progress the fingerprint does not read at all, such as bag contents alone (the money and party are read).
 
 ## Invariants
 
@@ -90,6 +90,37 @@ Viewer rehearsal (fake data, agent-observability): 97a0 turns 104-136 copied fro
 ## Multi-Model Review Log
 
 Local inference reviewers are never used (operator decision 2026-10-16).
+
+**Round 1** — packet1 = `git diff main HEAD`, base main 5ab3f577, head 13f4d6bf, `runs/reviews/short-cycle-fixed-point/packet1.diff`, sha256 7cdd6a83…bdf311e (2387 lines, 75 files). Prompt `runs/reviews/short-cycle-fixed-point/prompt.md`.
+
+Principles self-review (docs/agent-principles.md), 0 FAIL:
+- PB1 PASS: only model context changes; grading and milestones untouched.
+- PB2 N/A: no run accounting changes.
+- PB3 PASS: no improvement claimed; the experiment is pending, not queued.
+- PB4 PASS: a named, default-off switch recorded in run_start harness_features; the collapse is recorded per request as loop_breaker events.
+- PB5 PASS: the pending experiment flips only this switch.
+- PB6 PASS: it only removes repeated turns; its own memory is bounded (4 history items, 512-entry state map).
+- PB7 PASS: every collapse and note is a loop_breaker event; Activity History, trace and raw inspector show it (mounted test and the 8796 rehearsal).
+- PB8 N/A: no tool schema change.
+- PB9 PASS: the spec gaps (fingerprint widening, keep-newest-copy, 1-turn cycles with varied thinking not covered, auto-talk excluded) are written down and reported, not silently chosen.
+- PB10 PASS: no threshold, exclude or hook change.
+- PB11 PASS: pi message shapes exercised through the real contextTools wiring and the decision probe.
+- PB12 N/A: the ROM is never read; fixtures hold recorded events only.
+- PB13 in progress (this loop).
+
+Lanes:
+- Claude: `claude -p --permission-mode plan` failed ("OAuth session expired and could not be refreshed"); run as a fresh read-only Claude subagent per the operator's 2026-10-16 word. VERDICT: BLOCKING — B1 the stage-2 note says the state repeated exactly while `cycleState` leaves out the value the model sees (ef9f clock time, naming text). NB: stage 1/stage 2 can disagree on a turn whose results never arrive and on errored replies, and on multi-call arrival order; the looser fingerprint can merge naming typing and buy-one-at-a-time loops (money/bag not read) and the limits are not written down; explainer says the 97a0 fixture is 104-124 and "both" fixed experiments; viewer label repeats the value caveat; no stage-2 test with a changing value.
+- Grok (`cursor-agent -p --mode ask --model cursor-grok-4.5-high`): VERDICT: LGTM. NB: naming value merge risk; explainer fixture range; multi-call result order.
+- GPT (`codex exec -m gpt-5.6-sol -c model_reasoning_effort="xhigh" --ephemeral --sandbox read-only`): VERDICT: BLOCKING — B1 dropping `value` for every interface treats real progress (naming text, PC quantity) as a cycle; B2 the stage-2 note is false for the clock case. NB: no multi-call, overlap-of-periods or period-4 stage 1/2 tests; the `doors` comment says "two calls in turn"; explainer fixture range. (Codex could not run vitest: read-only filesystem.)
+
+Fix batch 1 (all accepted except where noted):
+- Codex B1 / Claude NB: the value is dropped only for the two clock phases; money added to the fingerprint. Tests: a growing name and a falling money balance never collapse or get a note; the fingerprint test checks clock-only dropping. Receipts f1 (value dropped everywhere → 2 red) and f2 (money removed → 2 red), restored green.
+- Claude B1 / Codex B2: the note now says "each time round the game came back to the same P screens, positions and highlighted choices", true whether or not the clock's time moved; FEATURES copy, explainer, viewer label ("the same tool calls, screens, positions and highlighted choices") and tests updated. New test: ef9f's bounce with a moving clock under the breaker, asserting the note text and that it claims no repeated "state".
+- Claude NB (incomplete turn): a turn whose results never all arrived now breaks stage 2, as it breaks stage 1 (receipt f3, 1 red). Claude/Grok NB (multi-call order): stage 2 orders states by call, as stage 1 does; new two-call test with results arriving in different orders (receipt f4, 1 red). Errored/aborted replies are left as they are (stage 2 skips them, as today's identical-turn streak does); recorded here.
+- Codex NB: new period-4 test (collapse at 12 turns, note at 13); overlap of different periods is already covered by the 97a0 turn-129 replay and the "longest of two cycles" unit test.
+- Explainer: 97a0 fixture range 104-136, "all three fixed experiments", the clock-only value rule; `doors` comment and explainer label "two different calls taking turns".
+- Gates after fix batch 1 (`runs/receipts/short-cycle-fixed-point/gates-fix1.log`): build and lint clean; agent 3067/3067, viewer 1443/1443, pytest 3015 passed; coverage agent 97.3/93.16/97.66/99.21. The viewer coverage step hit the known 5 s timeout in `experiment-cli.test.ts` (it passed in the same run's `just test`); viewer coverage rerun alone: 1443 pass, 95.1/91.1/93.85/97.7; Python gate rerun: lines 96.92 branches 92.22 functions 99.55 (floor 90).
+- COMMIT: `fix: short-cycle-fixed-point-v1 review batch 1 (clock-only value drop, money in the state, true stage-2 note, call-order and unfinished-turn agreement)` (sha in round 2)
 
 ### Sync with main (before review)
 

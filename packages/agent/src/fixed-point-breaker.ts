@@ -31,18 +31,21 @@ export function fixedPointNote(turns:number,names:readonly string[]):string {
  return `${BREAKER_NOTE} Your last ${String(turns)} turns made the same ${names.join(", ")} call${names.length===1?"":"s"} and the game state stayed the same after each one.`;
 }
 export function cycleNote(turns:number,period:number,names:readonly string[]):string {
- return `${BREAKER_NOTE} Your last ${String(turns)} turns repeated the same ${String(period)} turns of ${names.join(", ")} calls, and the game state came back to the same ${String(period)} states each time round.`;
+ return `${BREAKER_NOTE} Your last ${String(turns)} turns repeated the same ${String(period)} turns of ${names.join(", ")} calls, and each time round the game came back to the same ${String(period)} screens, positions and highlighted choices.`;
 }
 
-// short-cycle-fixed-point-v1: planState's fields without the open interface's value (ef9f's clock moved two minutes
-// each cycle), on any screen whose readout shows a ready interface it can qualify (ef9f's clock screen), and on the
-// field and in battle under planState's own rules. Null where the readout cannot qualify the state.
+// short-cycle-fixed-point-v1: planState's fields plus the money, without the clock's time (ef9f's clock moved two
+// minutes each cycle; every other interface keeps its value, such as a name being typed or a quantity), on any screen
+// whose readout shows a ready interface it can qualify (ef9f's clock screen), and on the field and in battle under
+// planState's own rules. Null where the readout cannot qualify the state.
+const CLOCK_PHASES=new Set(["clock_adjustment","clock_confirmation"]);
 export function cycleState(state:State):string|null {
  if(!state.started)return null;
  const ui=state.active_ui??null;
  if(ui!==null&&(ui.diagnostic!==null||ui.ready!==true))return null;
  const party=state.party.map(p=>[p.species_id??p.species,p.level,p.hp,p.status??null]);
- const common={screen:state.screen,map:state.map_id,position:state.position,facing:state.facing,locked:state.field_controls_locked??null,story:state.story??null,party,dialogue:state.world_context?.dialogue??null,ui:ui===null?null:[ui.phase,ui.selected]};
+ const value=ui===null||CLOCK_PHASES.has(ui.phase)?null:ui.value??null;
+ const common={screen:state.screen,map:state.map_id,position:state.position,facing:state.facing,locked:state.field_controls_locked??null,story:state.story??null,party,money:state.money,dialogue:state.world_context?.dialogue??null,ui:ui===null?null:[ui.phase,ui.selected,value]};
  if(state.in_battle){
   if(ui===null)return null;
   const battle=state.battle??null;
@@ -109,6 +112,7 @@ export class FixedPointBreaker {
   }
   if(event.type==="assistant"){
    if(event.stop_reason==="error"||event.stop_reason==="aborted")return;
+   if(this.cycle&&this.turn!==null&&!this.turn.done)this.remember(null,[]);
    if(event.tool_calls.length===0){this.silent++;if(this.cycle)this.remember(null,[]);return;}
    this.silent=0;this.calls++;
    this.turn={calls:JSON.stringify(event.tool_calls.map(c=>[c.name,c.args])),ids:new Set(event.tool_calls.map(c=>c.id)),states:new Map(),cycle:new Map(),done:false};
@@ -135,7 +139,7 @@ export class FixedPointBreaker {
   const same=this.previous!==null&&this.previous.calls===turn.calls&&left.every(k=>k!==null)&&JSON.stringify(left)===JSON.stringify([...this.previous.states.values()]);
   this.streak=same?this.streak+1:1;
   if(!same)this.streakFrom=[...turn.ids].join(",");
-  if(this.cycle){const states=[...turn.cycle.values()];this.remember(states.some(k=>k===null)?null:JSON.stringify([turn.calls,states]),this.names);}
+  if(this.cycle){const states=[...turn.ids].map(id=>turn.cycle.get(id)??null);this.remember(states.some(k=>k===null)?null:JSON.stringify([turn.calls,states]),this.names);}
   this.previous=turn;
  }
 

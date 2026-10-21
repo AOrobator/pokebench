@@ -16,14 +16,17 @@ export type FixedArm = (typeof FIXED_ARMS)[number];
 
 const closed = { additionalProperties: false } as const;
 const positive = Type.Integer({ minimum: 1 });
-const Name = Type.String({ pattern: "^[a-z0-9][a-z0-9-]{0,79}$" });
+const NAME_PATTERN = "^[a-z0-9][a-z0-9-]{0,79}$";
+const Name = Type.String({ pattern: NAME_PATTERN });
 
 const LaneSchema = Type.Object({ id: Type.String({ pattern: "^[A-Z]$" }), gpu: Type.String({ pattern: "^(GPU[0-9]|MAC)$" }), gamePort: Type.Integer({ minimum: 1024, maximum: 65535 }), modelUrl: Type.String({ minLength: 1 }), runName: Type.Optional(Type.String({ pattern: "^[a-z0-9]+(-[a-z0-9]+)*$", maxLength: 40 })) }, closed);
 // A phase loads its own pinned save, or powers on.
 const SaveStart = Type.Object({ kind: Type.Literal("save_state"), path: Type.String({ minLength: 1 }), sha1: Type.String({ pattern: "^[0-9a-f]{40}$" }) }, closed);
 const PhaseStart = Type.Union([SaveStart, Type.Object({ kind: Type.Literal("boot") }, closed)]);
-const PhaseSchema = Type.Object({ id: Name, perArm: positive, maxWallMs: Type.Integer({ minimum: 60_000 }), primary: Type.Boolean(), start: PhaseStart, singlePair: Type.Optional(Type.Boolean()) }, closed);
-const SlotSchema = Type.Object({ slot: positive, phase: Name, block: positive, lane: Type.String(), arm: Type.Union([Type.Literal("control"), Type.Literal("bundle")]) }, closed);
+const ArmSchema = Type.Union([Type.Literal("control"), Type.Literal("bundle")]);
+// singleArm: an unpaired, exploratory trial of one arm on one lane (`fixed-run rerun`).
+const PhaseSchema = Type.Object({ id: Name, perArm: positive, maxWallMs: Type.Integer({ minimum: 60_000 }), primary: Type.Boolean(), start: PhaseStart, singlePair: Type.Optional(Type.Boolean()), singleArm: Type.Optional(ArmSchema) }, closed);
+const SlotSchema = Type.Object({ slot: positive, phase: Name, block: positive, lane: Type.String(), arm: ArmSchema }, closed);
 
 const draftShape = {
   version: Type.Literal(1),
@@ -78,6 +81,11 @@ export function generatePlan(def: Pick<FixedDefinition, "seed" | "phases" | "lan
   const plan: PlannedSlot[] = [];
   let block = 0;
   for (const phase of def.phases) {
+    if (phase.singleArm !== undefined) {
+      block += 1;
+      for (const lane of def.lanes) plan.push({ slot: plan.length + 1, phase: phase.id, block, lane: lane.id, arm: phase.singleArm });
+      continue;
+    }
     if (phase.singlePair === true) {
       block += 1;
       const lanes = shuffled(def.lanes, def.seed, phase.id, block);
@@ -147,7 +155,9 @@ function phaseProblems(def: FixedDefinition): string[] {
   if (new Set(def.phases.map((p) => p.id)).size !== def.phases.length) problems.push("phase ids must be unique");
   if (def.phases.filter((p) => p.primary).length > 1) problems.push("at most one phase may be primary");
   for (const p of def.phases) {
-    if (p.singlePair === true) {
+    if (p.singleArm !== undefined) {
+      if (p.perArm !== 1 || def.lanes.length !== 1 || p.primary || p.singlePair === true) problems.push(`phase ${p.id}: singleArm requires one exploratory trial on one lane`);
+    } else if (p.singlePair === true) {
       if (p.perArm !== 1 || def.lanes.length !== 2) problems.push(`phase ${p.id}: singlePair requires one trial per arm and two lanes`);
     } else if (p.perArm % def.lanes.length !== 0) problems.push(`phase ${p.id}: perArm ${String(p.perArm)} is not a multiple of ${String(def.lanes.length)} lanes`);
   }
@@ -241,5 +251,18 @@ export function parseFixedDefinition(text: string): { definition: FixedDefinitio
 export function dryRunDefinition(def: FixedDefinition, wallMs: number, phaseId: string = def.phases[0]?.id ?? ""): FixedDefinition {
   const phase = phaseOf(def, phaseId);
   const draft = { ...def, id: `${def.id}-dryrun-${phase.id}`, title: `${def.title} (dry run, ${phase.id})`, phases: [{ id: "dry-run", perArm: def.lanes.length, maxWallMs: wallMs, primary: false, start: phase.start }], replacementReserveMs: 0 };
+  return { ...draft, plan: generatePlan(draft) };
+}
+
+
+// One unpaired trial of one arm on one lane, at a phase's start and cap, as its own experiment
+// <id>-solo-<arm>-<lane>-<n>: never part of the paired experiment's ledger or analysis.
+export function soloDefinition(def: FixedDefinition, arm: FixedArm, laneId: string, phaseId: string, n: number): FixedDefinition {
+  const phase = phaseOf(def, phaseId);
+  const lane = def.lanes.find((l) => l.id === laneId);
+  if (lane === undefined) throw new FixedDesignError(`no lane ${laneId}; lanes: ${def.lanes.map((l) => l.id).join(", ")}`);
+  const id = `${def.id}-solo-${arm}-${lane.id.toLowerCase()}-${String(n)}`;
+  if (!new RegExp(NAME_PATTERN).test(id)) throw new FixedDesignError(`${id} is not a valid experiment id`);
+  const draft = { ...def, id, title: `${def.title} (exploratory: ${arm} only, lane ${lane.id}, ${phase.id}, #${String(n)})`, phases: [{ id: phase.id, perArm: 1, maxWallMs: phase.maxWallMs, primary: false, start: phase.start, singleArm: arm }], lanes: [lane], replacementReserveMs: 0 };
   return { ...draft, plan: generatePlan(draft) };
 }

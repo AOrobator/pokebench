@@ -376,13 +376,23 @@ def battle_text_phase(read: ReadMemory, *, turn_action_script: bool = False) -> 
 
 
 def wait_phase(
-    read: ReadMemory, *, levelup_box: bool = False, turn_action_script: bool = False
+    read: ReadMemory,
+    *,
+    levelup_box: bool = False,
+    turn_action_script: bool = False,
+    caught_dex: bool = False,
 ) -> WaitPhase:
     """Any screen: "busy" while a battle (or its entry or exit) runs on its own.
 
     levelup-box-v1 (`levelup_box`): a level-up stats box waiting for a button ends the wait.
     caught-nickname-prompt-v1 (`turn_action_script`): see read_battle_prompt.
     """
+    if caught_dex:
+        from pokebench_env.caught_dex import read_caught_dex_ui
+
+        ui = read_caught_dex_ui(read)
+        if ui is not None:
+            return "screen" if ui.ready is True else "busy"
     if _exact(read, IN_BATTLE, 1)[0] & 2:
         phase: WaitPhase = battle_text_phase(read, turn_action_script=turn_action_script)
         if phase == "busy" and levelup_box:
@@ -534,11 +544,17 @@ class BattleWait:
     waiting for a button also ends it."""
 
     def __init__(
-        self, read: ReadMemory, *, levelup_box: bool = False, turn_action_script: bool = False
+        self,
+        read: ReadMemory,
+        *,
+        levelup_box: bool = False,
+        turn_action_script: bool = False,
+        caught_dex: bool = False,
     ) -> None:
         self.read = read
         self.levelup_box = levelup_box
         self.turn_action_script = turn_action_script
+        self.caught_dex = caught_dex
         self._lock = threading.Lock()
         self._waiters: list[_Waiter] = []
         self._parked = False
@@ -554,6 +570,7 @@ class BattleWait:
                     self.read,
                     levelup_box=self.levelup_box,
                     turn_action_script=self.turn_action_script,
+                    caught_dex=self.caught_dex,
                 )
             except (ValueError, IndexError) as error:
                 for waiter in self._waiters:
@@ -601,6 +618,7 @@ class BattleWait:
                     self.read,
                     levelup_box=self.levelup_box,
                     turn_action_script=self.turn_action_script,
+                    caught_dex=self.caught_dex,
                 )
                 if phase != "busy":
                     return capture(), phase, 0

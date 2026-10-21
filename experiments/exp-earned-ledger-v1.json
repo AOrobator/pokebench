@@ -8,7 +8,7 @@
  "primaryMilestone": "ROXANNE_DEFEATED",
  "source": {
   "checkout": "main",
-  "commit": "a3f2e48626e032c04ca8f8cbdc97ec626d7becc6"
+  "commit": "df9644b9d65b12505b028cc8d20cd037cf71010c"
  },
  "incumbent": {
   "version": 2,
@@ -204,6 +204,7 @@
    "menu-refusal-recovery-v1": true,
    "gym-door-label-v1": true,
    "mart-stock-readout-v1": true,
+   "caught-dex-input-v1": true,
    "exp-next-level-v1": true,
    "pokedex-own-v1": true,
    "exp-earned-ledger-v1": false,

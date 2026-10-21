@@ -2,7 +2,7 @@ import { expect, it } from "vitest";
 import { ALL_ON as PENDING_BASE_ALL_ON, FEATURES, SERVER_FEATURES, SWITCHABLE_FEATURES, featureInfo,
   featuresOf, playHarnessFeatures, serverFeatureEnv, type SwitchableFeature,
 } from "./features.js";
-const ALL_ON={...PENDING_BASE_ALL_ON,"menu-refusal-recovery-v1":false,"pending-field-dialogue-v1":false};
+const ALL_ON={...PENDING_BASE_ALL_ON,"caught-dex-input-v1":false,"menu-refusal-recovery-v1":false,"pending-field-dialogue-v1":false};
 import { flagFeatures, parsePlayPreset, presetFeatures } from "./play-preset.js";
 import { playSystemPrompt, playTools, toolSwitches } from "./play-config.js";
 import { parseEvent } from "./events.js";
@@ -14,13 +14,13 @@ const ON = { ...OFF, [ID]: true };
 const flags = { loopGuard: true, activeUi: true, interfaceDocs: true, objectives: false };
 
 it("appends the independent speed policy without reordering recorded feature identity", () => {
-  expect(SWITCHABLE_FEATURES.at(-45)).toBe(ID);
-  expect(SWITCHABLE_FEATURES.at(-51)).toBe("evolution-decision-v1");
+  expect(SWITCHABLE_FEATURES.at(-46)).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-52)).toBe("evolution-decision-v1");
   expect(FEATURES.filter(feature => feature.switchable).map(feature => feature.id)).toEqual([...SWITCHABLE_FEATURES]);
   expect(featureInfo(ID)).toMatchObject({ group: "guidance", needs: null, switchable: true });
   expect(featureInfo(ID).description).toMatch(/80/);
   expect(featureInfo(ID).description).toMatch(/ Off: .*59\.7275/);
-  expect(SERVER_FEATURES.at(-17)).toBe(ID);
+  expect(SERVER_FEATURES.at(-18)).toBe(ID);
 });
 
 it("defaults omitted historical presets and legacy flags OFF", () => {
@@ -36,8 +36,8 @@ it("defaults omitted historical presets and legacy flags OFF", () => {
 });
 
 it("transports only the explicit server selection and records ON at the end", () => {
-  expect(serverFeatureEnv(OFF).POKEBENCH_FEATURES_OFF).toBe(`${ID},semantic-navigation-v2,exit-labels-v2,heal-before-trainers-v2,respawn-readout-v1,caught-nickname-prompt-v1,party-item-confirmation-v1,yes-no-answer-readout-v1,field-move-gates-v1`);
-  expect(serverFeatureEnv(ON).POKEBENCH_FEATURES_OFF).toBe("semantic-navigation-v2,exit-labels-v2,heal-before-trainers-v2,respawn-readout-v1,caught-nickname-prompt-v1,party-item-confirmation-v1,yes-no-answer-readout-v1,field-move-gates-v1");
+  expect(serverFeatureEnv(OFF).POKEBENCH_FEATURES_OFF).toBe(`${ID},semantic-navigation-v2,exit-labels-v2,heal-before-trainers-v2,respawn-readout-v1,caught-nickname-prompt-v1,party-item-confirmation-v1,yes-no-answer-readout-v1,field-move-gates-v1,caught-dex-input-v1`);
+  expect(serverFeatureEnv(ON).POKEBENCH_FEATURES_OFF).toBe("semantic-navigation-v2,exit-labels-v2,heal-before-trainers-v2,respawn-readout-v1,caught-nickname-prompt-v1,party-item-confirmation-v1,yes-no-answer-readout-v1,field-move-gates-v1,caught-dex-input-v1");
   const off = playHarnessFeatures(OFF, null);
   const on = playHarnessFeatures(ON, null);
   expect(off).not.toContain(ID);

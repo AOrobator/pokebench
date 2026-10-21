@@ -29,14 +29,14 @@ No new inputs, subprocesses, network or file access. Text only from enumerated c
 
 **M1 — yes-no-answer-readout-v1**
 - [x] Ground every recognized YES/NO prompt in pokeemerald (table below)
-- [ ] Write tests (readout YES/NO highlighted per prompt, unknown selection, not ready, OFF golden, ef9f evidence, registry/bundle/explainer link)
+- [x] Write tests (readout YES/NO highlighted per prompt, unknown selection, not ready, OFF golden, ef9f evidence, registry/bundle/explainer link)
 - [x] COMMIT: `test: yes-no-answer-readout-v1 readout line per YES/NO box, unknown selection, OFF golden, ef9f turn-156 evidence, registry and bundle arms (RED)` (37040773). RED: Python collection error (no pokebench_env.yes_no_answer); agent registry test and 3 viewer tests fail (no switch, no explainer, not in bundle arms).
 - [x] Implement switch, registry collateral, bundle arms, pending experiment, explainer
 - [x] Gates: `just build` ok; `just lint` ok (tsc, eslint, ruff, format, mypy 102 files); `just test` agent 3014, viewer 1443, pytest 3166 (ROM configured via copied .env, zero skips); `just coverage` agent 97.21/93.00/97.57/99.16 (stmts/branches/funcs/lines), viewer 95.09/91.06/93.85/97.70, Python lines 97.11 branches 92.69 functions 100; yes_no_answer.py 100%.
 - [x] Delete-the-guard check recorded: readout wiring deleted 128 fail; switch gate 127 fail; ready guard 2; diagnostic guard 1; battle prompt branch 8; forfeit branch 2; forfeit B clause 2; default-off env list 3; agent SERVER_FEATURES transport 1 (vitest). Each restored, 151/151 green. Receipt runs/yes-no-answer-readout/mutations.txt (ignored).
 - [x] COMMIT: `feat: yes-no-answer-readout-v1 says how to answer the other option of an open YES/NO box from the highlighted option in RAM (default off, bundle arm)` (c0f0da33).
 - [x] Merge local main 5ab3f577 (story-progress-clock-v1, mac lane, supervisor redesign off) into the branch: registry collateral re-applied after story-progress-clock-v1 (this switch stays last); mechanical test index/list updates redone on main's test files. Post-merge gates: `just lint` ok, `just build` ok, `just test` agent 3031, viewer 1445, pytest 3166 (zero skips); `just coverage` agent 97.22/93.04/97.57/99.16, viewer 95.09/91.07/93.85/97.70, Python lines 97.11 branches 92.69 functions 100; fixed-cli check exit 0 on the three bundle definitions (worktree root).
-- [ ] Multi-model review loop until clean
+- [x] Multi-model review loop until clean (round 1, all LGTM on f71366f0)
 
 ## Game grounding (pokeemerald 731ad5bfd6e6f265508d0efcca0ba42f9dcf5881, clean)
 
@@ -61,6 +61,12 @@ Left out (no line): easy_chat and mystery_gift (reader does not tie the cursor t
 - `fixed-cli check` always reads the main checkout's experiments/ (mainCheckout()).
 
 ## Multi-Model Review Log
+
+Round 1, frozen packet base 5ab3f577 (local main) head f71366f0, `git diff` sha256 dcc4ccf0ab6f8d9de4d3e33788ad2d9d80358fb3fc53458304c13c063c3b4251; principles self-review PB1-PB13 zero FAIL (runs/yes-no-answer-readout/review-r1/principles.md); boundary runs/yes-no-answer-readout/review-r1/boundary.md. No local inference reviewers.
+- Claude: `claude -p` failed ("OAuth session expired and could not be refreshed"); fresh read-only Claude subagent (the operator-approved fallback) verified the digest, hand-checked the handlers: VERDICT: LGTM. NITs: worklog "Write tests" box unchecked (fixed); a battle line would follow the Menu line if active_ui were ever None (text still true; battle always has an active_ui); handler strings are documentation.
+- Grok (cursor-grok-4.5-high): VERDICT: LGTM. NITs: same worklog box; the pending experiment's incumbent keeps expanded-menu-battle-information-v1 off, so only incumbent phases (Birch, clock) show an Interface line there (and so this line); activation phases still show it.
+- GPT: cursor gpt-5.6-sol-xhigh unavailable ("ActionRequiredError: You've hit your usage limit"); Codex default model refused ("gpt-6.1-sol is not supported when using Codex with a ChatGPT account"); isolated `codex exec --ephemeral --sandbox read-only -m gpt-5.6-sol -c model_reasoning_effort=xhigh`: no findings, VERDICT: LGTM.
+No accepted fixes, so no round 2. Logs under runs/yes-no-answer-readout/review-r1/ (ignored).
 
 ## Boy Scout Log
 

@@ -59,6 +59,10 @@
     "./lease-pool": {
       "types": "./src/lease-pool.ts",
       "default": "./dist/lease-pool.js"
+    },
+    "./roxanne-interaction": {
+      "types": "./src/roxanne-interaction.ts",
+      "default": "./dist/roxanne-interaction.js"
     }
   },
   "scripts": {

@@ -105,6 +105,11 @@ describe("story-progress-clock-v1 stall counts",()=>{
   const milestone=(name:string,origin:"observed"|"present_at_start"="observed")=>{emit({type:"milestone",name,server_timestamp:0,kind:"story",origin,evidence:[seq]});};
   return {kinds,retired,go,state,milestone,advance:(ms:number)=>{now+=ms;}};
  }
+ it("first Roxanne interaction stays measurement-only even when the progress clock is enabled",()=>{
+   const r=rig(features);r.advance(4*60_000);r.state({});
+   r.milestone("ROXANNE_FIRST_INTERACTION");r.advance(2*60_000);r.state({});
+   expect(r.kinds).toContain("milestone_drought");
+ });
  it("ON: map-cycle trips made before a measurement-only milestone do not count toward the next note",()=>{
   const r=rig(features);
   r.go("A",[0,1]);r.go("B",[0,2]);r.go("A",[0,1]);r.go("B",[0,2]);
@@ -157,7 +162,7 @@ describe("story-progress-clock-v1 stall counts",()=>{
 describe("story-progress-clock-v1 switch",()=>{
  const events=recorded(BD60);
  it("covers every measurement-only milestone",()=>{
-  expect([...MEASUREMENT_ONLY_MILESTONES]).toEqual(["PLAYER_BEDROOM_EXITED_AFTER_CLOCK","ROUTE_101_AFTER_HANDOFF","RIVAL_BATTLE_STARTED","RIVAL_BATTLE_DEFEATED","RIVAL_OLDALE_SEND_OFF","ROUTE_101_AFTER_RIVAL_BATTLE","LITTLEROOT_AFTER_RIVAL_BATTLE"]);
+  expect([...MEASUREMENT_ONLY_MILESTONES]).toEqual(["ROXANNE_FIRST_INTERACTION","PLAYER_BEDROOM_EXITED_AFTER_CLOCK","ROUTE_101_AFTER_HANDOFF","RIVAL_BATTLE_STARTED","RIVAL_BATTLE_DEFEATED","RIVAL_OLDALE_SEND_OFF","ROUTE_101_AFTER_RIVAL_BATTLE","LITTLEROOT_AFTER_RIVAL_BATTLE"]);
  });
  it("is registered last as a default-off agent-side guard with no dependency",()=>{
   expect(SWITCHABLE_FEATURES.at(-16)).toBe(ID);

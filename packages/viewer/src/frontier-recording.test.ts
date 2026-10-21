@@ -410,3 +410,20 @@ it("grades rival splits recovered from raw RAM through the side file, without ch
   expect(result.splits.filter(s => s.name.startsWith("RIVAL_BATTLE_")).map(s => [s.name, s.derived, s.seq])).toEqual([["RIVAL_BATTLE_STARTED", true, fight.seq], ["RIVAL_BATTLE_DEFEATED", true, won.seq]]);
   expect(readFileSync(path, "utf8")).toBe(before);
 });
+
+it("recovers first Roxanne interaction identically in replay and compact split reading, including losses", () => {
+  for (const modern of [false,true]) {
+    const log=new Log(); log.add(0,{...START,harness_features:modern?[...START.harness_features,"roxanne-first-interaction-v1"]:START.harness_features});
+    log.add(100,state({map_id:[11,3],location:"RUSTBORO CITY GYM"}));
+    const intro=log.add(200,state({map_id:[11,3],location:"RUSTBORO CITY GYM",field_controls_locked:true,world_context:{objects:[],triggers:[],dialogue:"Hello, I am ROXANNE, the RUSTBORO\nPOKéMON GYM LEADER.",message:{phase:"page_wait",cursor:54,ready:true}}}));
+    if(modern)log.add(201,{type:"milestone",turn:1,name:"ROXANNE_FIRST_INTERACTION",kind:"story",origin:"observed",evidence:[intro.seq],server_timestamp:1});
+    log.add(300,state({map_id:[11,3],location:"RUSTBORO CITY GYM",in_battle:true,trainer_opponent:{trainer_id:265,trainer_class:32,name:"ROXANNE",defeated:false,battle_active:true}}));
+    log.add(400,state({location:"OLDALE TOWN",map_id:[0,10]}));
+    const result=readNativeRecording(write(log.events.map(e=>JSON.stringify(e)).join("\n")+"\n"),intro.run,qualifiedNativeMilestone);
+    const view=new RunView();for(const e of log.events)view.apply(e);
+    expect(result.splits.filter(s=>s.name==="ROXANNE_FIRST_INTERACTION")).toMatchObject([{elapsedMs:modern?201:200,...(modern?{}:{derived:true})}]);
+    expect(view.milestones.filter(s=>s.name==="ROXANNE_FIRST_INTERACTION")).toHaveLength(1);
+    expect(result.measurement.rawSplits.find(s=>s.name==="ROXANNE_FIRST_INTERACTION")?.evidence).toEqual([intro.seq]);
+    expect(result.splits.some(s=>s.name==="ROXANNE_DEFEATED")).toBe(false);
+  }
+});

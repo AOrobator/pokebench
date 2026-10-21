@@ -21,9 +21,9 @@ No new external interface, game memory write, subprocess authority or file-servi
 ## Milestones
 **M1 — Bounded trigger policy and bundle**
 - [x] RED: 3 fail / 6 pass. Safe-route preference and bundle configuration fail on landed trigger policy; no-retry and recorded rival behavior already pass. Receipt /tmp/first-trigger-red.log.
-- [ ] GREEN code/config/explainer and production wiring mutation
+- [x] GREEN code/config/explainer and four production wiring/policy mutations; see receipts.
 - [ ] Gates: test, lint, build, coverage >=90, vendor
-- [ ] Native/manual proof and feature-card click as applicable
+- [x] Native manual probe v9 and returned frame/RAM validated. Updated explainer browser inspected at three widths. Existing card mapping unchanged; final main click pending landing.
 - [ ] Frozen independent reviews
 - [ ] Landing board, main tests, viewer and launcher handoff
 
@@ -75,3 +75,10 @@ RED commit 91d78817. GREEN focused 20/20; guarded safe-route preference added to
 GREEN commit 2eb56900. Pending experiment source repinned to that implementation; no approval/queue mutation. Four guard mutations restored and tests green. Final gate sequence running before queue join.
 
 Follow-up test typing: alternative-edge fixture now explicitly GameStateSnapshot (mutable destination tuple), no behavior change. Pending experiment parse and actual armPreset generation pass: active cook control false/bundle true, wall7200000. v7 setup raced the initial house-entry script; v8 waits then explicitly advances the setup conversation before testing. No failed setup qualifies as proof.
+
+## Qualified native proof
+Manual probe v9 passed in an isolated native server with checkpoint f5bf9d39b4df428489f33d2cbdfc80c479ac8064, no inference/experiment tag. Reached the native rival-house landing (2,3), rival_stage2. OFF request for outside warp sends0 inputs. ON sends exactly1 DOWN, resulting position(2,4), native field script takes control; navigation stop_requested true, goal_entry_attempted false, semantic activation_attempted false. No target activation or subsequent input in that call. The semantic interruption owner legitimately reports the running script instead of the narrower trigger status; v8 had exactly the correct inputs but an over-specific probe string assertion, retained as failed. v9 checks the required input/typed-result contract. Live benchmark processes were not addressed.
+Canonical preserved receipt: runs/first-script-trigger/native-proof.json, with raw RAM/frames/events in manual-probe-first-script-trigger-v9. Setup actions are separately attributed manual-1…12; comparison requests manual-13 and14.
+
+## Gate status before queue
+Agent full coverage:3427 pass, lines99.22/branches93.28/functions97.94. Full build and lint pass; verifier vendor pass. Viewer historical-preset expectation corrected explicitly for the new bundle bit. Viewer full coverage attempts retained: original failed that expectation plus unchanged experiment-cli and server-stream five-second timeouts; second failed only server-stream; third failed both unchanged timing-sensitive tests. Focused server-stream25/25 passed. No product test code, timeouts, concurrency, skips or thresholds changed to evade these failures. Full viewer gate is NOT green; rerun required on synchronized landing tree. Python full coverage and normal just test are running. Read-only native proof/actual generated presets pass. Review has not begun: shared workflow requires final sync/freeze at landing slot. No main changes or launch from this branch.

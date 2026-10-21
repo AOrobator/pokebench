@@ -220,7 +220,8 @@
    "auto-talk-v2": false,
    "map-wide-triggers-v1": false,
    "drought-battle-heal-hold-v1": false,
-   "gym-evidence-v1": false
+   "gym-evidence-v1": false,
+   "birch-intro-pages-v1": false
   }
  },
  "switches": [
@@ -310,7 +311,8 @@
   "auto-talk-v2",
   "map-wide-triggers-v1",
   "drought-battle-heal-hold-v1",
-  "gym-evidence-v1"
+  "gym-evidence-v1",
+  "birch-intro-pages-v1"
  ],
  "offInBoth": [
   "semantic-navigation-v1",

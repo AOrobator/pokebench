@@ -434,9 +434,9 @@ describe("registry and event",()=>{
   expect(featureInfo(ID)).toMatchObject({group:"guard",needs:"heal-before-trainers-v2",switchable:true,title:"STORY BATTLE HEAL GATE"});
   expect(featureInfo(ID).description).toContain(" Off: ");
   expect(featureInfo(ID).description).toContain(TURN157_TEXT.split("\n")[0]);
-  expect(SWITCHABLE_FEATURES.at(-35)).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-36)).toBe(ID);
   expect(SERVER_FEATURES).not.toContain(ID);
-  expect(playHarnessFeatures({...ALL_ON,[ID]:true},null).at(-30)).toBe(ID);
+  expect(playHarnessFeatures({...ALL_ON,[ID]:true},null).at(-31)).toBe(ID);
   expect(playHarnessFeatures({...ALL_ON,[ID]:false},null)).not.toContain(ID);
   expect(dependencyProblems({...ALL_ON,"heal-before-trainers-v2":false,[ID]:true})).toContain(`${ID} needs heal-before-trainers-v2`);
   const without=Object.fromEntries(Object.entries(ALL_ON).filter(([id])=>id!==ID)) as Omit<FeatureSet,typeof ID>;
@@ -460,6 +460,7 @@ describe("registry and event",()=>{
   delete arm["menu-refusal-recovery-v1"];
   delete arm["mart-stock-readout-v1"];
   delete arm["shop-interface-v1"];
+  delete arm["birch-intro-pages-v1"];
   delete arm["navigation-tool-use-guard-v1"];delete arm["semantic-current-map-feedback-v1"];delete arm["story-battle-heal-first-v1"];
   // exit-labels-v3 and short-cycle-fixed-point-v1 joined the bundle arm after this pending experiment was pinned.
   expect({...entry.incumbent.features,"gym-evidence-v1":true,"rejected-movement-step-v1":true,"observed-field-dialogue-v1":true,"progress-aware-cycles-v1":true,"caught-dex-input-v1":true,"gym-door-label-v1":true,"navigation-refusal-reasons-v3":true,"exit-labels-v3":true,"short-cycle-fixed-point-v1":true,"exp-next-level-v1":true,"pokedex-own-v1":true,"exp-earned-ledger-v1":true,"leader-attempt-ledger-v1":true,"seen-trainers-ledger-v1":true,"party-coverage-v1":true,"said-type-matches-v1":true,"story-goal-player-name-v1":true,"cut-off-reply-feedback-v1":true,"trainer-sight-check-v2":true,"auto-talk-v2":true,"map-wide-triggers-v1":true,"drought-battle-heal-hold-v1":true}).toEqual(arm);

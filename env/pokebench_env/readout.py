@@ -14,6 +14,7 @@ from pokebench_env.battle_message_waiting import SWITCH as MESSAGE_WAITING
 from pokebench_env.battle_message_waiting import message_clause
 from pokebench_env.battle_triage import SWITCH as TRIAGE
 from pokebench_env.battle_triage import battle_triage_lines, field_triage_line
+from pokebench_env.birch_pages import INTRO_PHASE, INTRO_SWITCH
 from pokebench_env.birch_pages import PHASE as BIRCH_PAGE
 from pokebench_env.birch_pages import SWITCH as BIRCH_PAGES
 from pokebench_env.blackout_readout import SWITCH as BLACKOUT
@@ -124,6 +125,7 @@ SERVER_FEATURES = (
     "pokedex-own-v1",
     "shop-interface-v1",
     "map-wide-triggers-v1",
+    "birch-intro-pages-v1",
 )
 
 
@@ -149,7 +151,8 @@ def features_off_from_env(env: Mapping[str, str]) -> frozenset[str]:
         "field-move-gates-v1,exit-labels-v3,move-learn-settle-v1,move-learn-question-v1,"
         "move-learn-comparison-v1,gym-door-label-v1,"
         "mart-stock-readout-v1,caught-dex-input-v1,exp-next-level-v1,pokedex-own-v1,"
-        "shop-interface-v1,map-wide-triggers-v1",
+        "shop-interface-v1,map-wide-triggers-v1,"
+        "birch-intro-pages-v1",
     )
     if raw == "":
         return frozenset()
@@ -319,6 +322,7 @@ def format_readout(
         "field_transition",
         # birch-speech-pages-v1: a Birch page is shown wherever the Birch phases are.
         *((BIRCH_PAGE,) if BIRCH_PAGES not in off else ()),
+        *((INTRO_PHASE,) if INTRO_SWITCH not in off else ()),
     }
     omitted_ui = not expanded and ui is not None and ui.phase not in incumbent_phases
     if omitted_ui:

@@ -166,13 +166,13 @@ describe("story-progress-clock-v1 switch",()=>{
   expect([...MEASUREMENT_ONLY_MILESTONES]).toEqual(["ROXANNE_FIRST_INTERACTION","PLAYER_BEDROOM_EXITED_AFTER_CLOCK","ROUTE_101_AFTER_HANDOFF","RIVAL_BATTLE_STARTED","RIVAL_BATTLE_DEFEATED","RIVAL_OLDALE_SEND_OFF","ROUTE_101_AFTER_RIVAL_BATTLE","LITTLEROOT_AFTER_RIVAL_BATTLE"]);
  });
  it("is registered last as a default-off agent-side guard with no dependency",()=>{
-  expect(SWITCHABLE_FEATURES.at(-38)).toBe(ID);
-  expect(FEATURES.filter(f=>f.switchable).at(-38)?.id).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-39)).toBe(ID);
+  expect(FEATURES.filter(f=>f.switchable).at(-39)?.id).toBe(ID);
   expect(featureInfo(ID)).toMatchObject({group:"guard",needs:null,switchable:true,title:"STORY PROGRESS CLOCK"});
   expect(featureInfo(ID).description).toContain(" Off: ");
   expect(featureInfo(ID).description).toContain("Bundle arm only, default off");
   expect(SERVER_FEATURES).not.toContain(ID);
-  expect(playHarnessFeatures({...ALL_ON,[ID]:true},null).at(-33)).toBe(ID);
+  expect(playHarnessFeatures({...ALL_ON,[ID]:true},null).at(-34)).toBe(ID);
   expect(playHarnessFeatures({...ALL_ON,[ID]:false},null)).not.toContain(ID);
   const older=Object.fromEntries(Object.entries(ALL_ON).filter(([id])=>id!==ID));
   expect(normalizeFeatures(older as Parameters<typeof normalizeFeatures>[0])[ID]).toBe(false);

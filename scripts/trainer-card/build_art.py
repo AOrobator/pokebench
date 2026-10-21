@@ -83,7 +83,7 @@ class Rom:
 
 
 def lz77(data: bytes, off: int) -> bytes | None:
-    if data[off] != 0x10:
+    if not 0 <= off < len(data) or data[off] != 0x10:
         return None
     size = int.from_bytes(data[off + 1 : off + 4], "little")
     out = bytearray()

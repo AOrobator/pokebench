@@ -66,6 +66,15 @@ The approved mockup changed: runs/mockups/bag-inventory/variant-c.html, v3.
   - GPT (isolated Codex gpt-5.6-sol xhigh; Cursor GPT had hit its usage limit): BLOCKING. (1) Tutorial-loan item changes showed as unresolved in the window before the tutorial state, e.g. the e046 prefix through seq 11830. (2) A pending change does not bump the render key.
 - [x] Fix: changes waiting for their state are no longer drawn or counted, since only that state can rule out the tutorial loan. This removes both findings. Test: every prefix through the swap draws the same page. Viewer 1550 (95.41/91.15/94.4). Not re-reviewed: a round 3 needs operator approval (cap 2).
 
+- [x] the operator approved round 3. Main synced (46663221, merge d565a9a9). Gates: viewer 1552 (95.41/91.15/94.4), agent 3246, lint clean, build OK.
+- [x] Real-ROM `just bag-art` failed for the operator: IndexError in lz77 via build_items → rom.decompress. `rom.raw(head)` took the first raw copy of the QuestionMark icon/palette pointer pair, which is not the table. Fix:
+  - `find_icon_table` tries every 4-aligned copy of every candidate head (all LZ copies of the first icon and palette).
+  - It accepts only a run where every pair points inside the ROM and decompresses to that item's decomp art; anything else is a VerifyError.
+  - The shared lz77 reader returns None for an offset outside the data.
+  - Tests: env/tests/tooling/test_build_bag_art.py covers a decoy head before the table, an out-of-range pointer, missing first art, and lz77 bounds.
+  - The synthetic ROM still builds 309 icons. Python 2992 passed; the 59 failures all need POKEBENCH_ROM, which this shell lacks (test_move_learn from main, test_wally_battle). Coverage 96.07/91.07/97.40; ruff and mypy clean.
+  - The operator reruns `just bag-art` on the real ROM.
+
 ## Multi-Model Review Log
 
 - Round 1 (old design, packet 8e0e0c34..18760f81): Grok LGTM. GPT BLOCKING: tutorial heuristic false positive, pc null read as empty, empty-with-history pockets not faded (all fixed in M2), and the real-ROM art receipt (rebutted: ROM reads are denied in the session). Claude CLI was at its weekly limit.

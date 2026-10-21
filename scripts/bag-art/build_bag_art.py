@@ -65,6 +65,56 @@ def item_gfx_paths(root: Path) -> dict[str, str]:
     return dict(pattern.findall((root / "src/data/graphics/items.h").read_text()))
 
 
+def lz_all(rom: Rom, blob: bytes) -> list[int]:
+    """Every 4-aligned offset whose LZ77 block decompresses to `blob` (the ROM may hold copies)."""
+    hdr = b"\x10" + len(blob).to_bytes(3, "little")
+    found: list[int] = []
+    off = rom.data.find(hdr)
+    while off != -1:
+        if off % 4 == 0 and rom.decompress(off) == blob:
+            found.append(off)
+        off = rom.data.find(hdr, off + 1)
+    return found
+
+
+def find_icon_table(rom: Rom, entries: list[tuple[bytes, bytes]]) -> int:
+    """The offset of gItemIconTable: the 4-aligned run of icon/palette pointer pairs, one per item,
+    each pointing inside the ROM at an LZ77 block that decompresses to that item's decomp art.
+    A copy of the first pair elsewhere in the ROM is skipped, not trusted."""
+    icon0, pal0 = entries[0]
+    heads = [
+        struct.pack("<II", ROM_BASE + i, ROM_BASE + p)
+        for i in lz_all(rom, icon0)
+        for p in lz_all(rom, pal0)
+    ]
+    if not heads:
+        raise VerifyError(
+            "items: the first item's icon and palette are not LZ77 blocks in the ROM"
+        )
+
+    def holds(ptr: int, blob: bytes) -> bool:
+        off = ptr - ROM_BASE
+        return 0 <= off < len(rom.data) and rom.decompress(off) == blob
+
+    for head in heads:
+        off = rom.data.find(head)
+        while off != -1:
+            if off % 4 == 0 and off + 8 * len(entries) <= len(rom.data):
+                pairs = struct.iter_unpack(
+                    "<II", rom.data[off : off + 8 * len(entries)]
+                )
+                if all(
+                    holds(i, icon) and holds(p, pal)
+                    for (i, p), (icon, pal) in zip(pairs, entries, strict=True)
+                ):
+                    return off
+            off = rom.data.find(head, off + 1)
+    raise VerifyError(
+        f"items: no gItemIconTable in the ROM: no 4-aligned run of {len(entries)} pointer pairs "
+        "decompresses to the decomp's item icons and palettes"
+    )
+
+
 def build_items(rom: Rom, root: Path, out: Path) -> tuple[list[int], dict[str, object]]:
     ids = item_ids(root)
     table_src = c_array(
@@ -98,11 +148,9 @@ def build_items(rom: Rom, root: Path, out: Path) -> tuple[list[int], dict[str, o
                     )
                 blobs[sym] = tiles4bpp(img)
 
-    first = {s: rom.lz(blobs[s], s) for s in table[0]}
-    head = struct.pack(
-        "<II", ROM_BASE + first[table[0][0]], ROM_BASE + first[table[0][1]]
+    table_off = find_icon_table(
+        rom, [(blobs[table[i][0]], blobs[table[i][1]]) for i in range(size)]
     )
-    table_off = rom.raw(head, "gItemIconTable")
     proof_items: dict[str, str] = {}
     wanted = [i for i in range(1, size - 1) if table[i][0] != "gItemIcon_QuestionMark"]
     for item in range(size):
@@ -111,11 +159,7 @@ def build_items(rom: Rom, root: Path, out: Path) -> tuple[list[int], dict[str, o
             for p in struct.unpack_from("<II", rom.data, table_off + 8 * item)
         )
         icon, pal = table[item]
-        tiles, colors = rom.decompress(icon_ptr), rom.decompress(pal_ptr)
-        if tiles != blobs[icon] or colors != blobs[pal]:
-            raise VerifyError(
-                f"items: item {item} ROM pointers do not hold {icon} / {pal}"
-            )
+        tiles, colors = blobs[icon], blobs[pal]
         if item in wanted:
             render_tiles(tiles, rom_colors(colors), 24, 24).save(out / f"{item}.png")
             proof_items[str(item)] = f"{hexoff(icon_ptr)} / {hexoff(pal_ptr)} (LZ77)"

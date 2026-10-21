@@ -59,7 +59,11 @@ No new network surface, subprocesses or file paths. ROM read only through existi
 - [x] Write `.claude/skills/tool-prompt-sync/SKILL.md`: adding/renaming/removing a model tool updates its system-prompt section (and scene tool lists, contextual docs) in the same change behind the tool's switch; checklist + veto. Reference it from feature-switch step 5 and CLAUDE.md.
 - [x] Audit `playTools` vs `playSystemPrompt` over the default flags, both arms of all 25 `experiments/fixed/*.json`, the 7 control bases and every parseable `experiments/*.json` arm (221 feature sets). Missing with the full prompt: `choose_evolution` (evolution-decision-v1) and `battle_action` (battle-move-tool-v1: no section at all; only its tool description). Missing per just-in-time scene: `choose_evolution` in every scene; in `battle` (and `menu`) the overworld-only sections hide `get_dialogue`, `recall_dialogue`, `remember_destination`, `note_contradiction`, `get_next_milestone` while those tools stay offered.
 - [x] Tests: INV-2 property test `packages/agent/src/tool-prompt-sync.test.ts` (RED with the switch ON: 416 failing); OFF bytes pinned by sha256 of the full and per-scene prompts taken before the switch existed (default flags, control base whole-map-bundle-fd95, fd95 + evolution/battle_action).
-- [ ] COMMIT RED; implement sections; gates; COMMIT GREEN; review deferred to one branch packet before landing (coordinator: max 2 rounds).
+- [x] COMMIT RED: `test(prompt): every model tool named in the system prompt behind tool-prompt-docs-v1 (RED)` (2ee4ba856). 416 of 890 tool-prompt-sync cases red.
+- [x] Implement: `CHOOSE_EVOLUTION_SECTION` (with evolution-decision-v1, every scene), `BATTLE_ACTION_SECTION` (with battle-move-tool-v1, where battle is shown), and `SCENE_TOOL_LINES` (one line per kept tool whose own section a just-in-time scene hides), all behind tool-prompt-docs-v1, before the harness-trust section. `evolution-decision.test.ts` now compares its ON/OFF prompt equality with tool-prompt-docs-v1 OFF and asserts the section with it ON.
+- [x] Guard deletion: removing the choose_evolution append → 181 red; disabling the scene-line block → 259 red; restored → 890 green.
+- [x] Gates: vitest agent 4288 / viewer 1656 pass; pytest 3806 pass; lint clean (tsc, eslint, ruff, mypy); build ok; coverage agent 99.2 L / 93.15 B / 97.77 F, viewer 97.95 / 91.33 / 94.35, Python 97.29 / 93.11 / 100.
+- [ ] COMMIT GREEN. Review deferred to one branch packet before landing (coordinator: max 2 rounds).
 
 **M1 — `field-ownership-feedback-v1`**
 - [ ] Tests: evolution fixture from d548 (seq 20530 state) → navigate_to_target refuses with Interface line + controls, no press; briefing names "evolution decision; controls: choose_evolution"; auto-talk one-shot message; OFF unchanged.
@@ -99,6 +103,9 @@ Tests per switch; fake-state executor rehearsal for `learn_move`; viewer check t
 - 2026-10-21 3:43 PM ET: The operator approved building the fixes and asked for the tool-prompt skill. Worklog written; coordinator relayed that this yes covers building; M0 started 3:47 PM ET. Arms and landing stay ASK USER.
 
 ## Surprises
+
+- Worktree environment: `env/vendor/continual-harness` was not checked out in this worktree (336 pytest failures on missing vendor files). Checked out at the pin from the local module store (`git -c submodule...url=<main .git/modules path> submodule update --init`; shared config unchanged; `just verify-vendor` OK). The worktree's `env/.venv` lacks the `mgba` binding; pytest/mypy run with `PYTHONPATH`/`MYPYPATH` pointing at a scratch symlink to main's built `mgba` package (no build). Without it only `test_view.py::test_production_main_registers_view_pcm_and_browser_module_before_vendor_main` fails and mypy reports `mgba._pylib` missing. Machine load makes `serial-comparison` child-timing and `experiment-cli` git tests time out intermittently; reruns pass.
+- `battle_action` (battle-move-tool-v1) never had a system-prompt section either, only its tool description.
 
 - `choose_evolution` is in the control's tool list but not in its system prompt.
 - `gMain.inBattle` stays set through post-battle evolution, so every `in_battle` short-circuit hides the evolution scene.

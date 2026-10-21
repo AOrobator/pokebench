@@ -157,6 +157,20 @@ const PRESS_LINE = "- press: presses up to 8 buttons in order (A, B, START, SELE
 const PRESS_SCREEN_ONLY = "- press: presses up to 8 buttons in order (A, B, START, SELECT, UP, DOWN, LEFT, RIGHT), then shows the new screen.";
 const WARP_PARAGRAPH = /\n\nWarps: [^\n]*/;
 
+// tool-prompt-docs-v1 (tool-prompt-sync skill): every tool the model is given is named in its system prompt.
+// Each line restates the tool's own description (evolution-decision.ts, battle-action.ts and the tool modules).
+export const CHOOSE_EVOLUTION_SECTION = "- choose_evolution: when the readout shows an evolution waiting for choose_evolution, call it with decision evolve (the evolution completes) or cancel (it stops). Ordinary buttons are blocked until you choose. Neither option is recommended. Move-learning prompts afterward use their own controls. It refuses, and presses nothing, when no evolution is waiting.";
+export const BATTLE_ACTION_SECTION = "- battle_action: while a battle waits for your choice, chooses fight with move (a move your active POKéMON knows), bag, pokemon or run in one call. The harness moves the battle menu's highlight and presses A, checking the cursor after each press, and refuses without pressing when no battle is waiting for a choice, the active POKéMON does not know the move or the move has no PP. bag and pokemon stop on the BAG or POKéMON screen; choose there with press. YES/NO choices are not handled; use press.";
+// One line for a tool kept in a just-in-time scene whose own section is shown only in another scene.
+export const SCENE_TOOL_LINES: readonly (readonly [string, string])[] = [
+  ["get_dialogue", "- get_dialogue: searches every dialogue page the harness advanced through this run, by speaker, words, map or recency. It presses nothing."],
+  ["recall_dialogue", "- recall_dialogue: searches every dialogue page you have been shown this run, newest first. It presses nothing."],
+  ["remember_destination", "- remember_destination: optionally keeps your destination hypothesis, grounded in navigation ledger events, across context pruning. It presses nothing."],
+  ["note_contradiction", "- note_contradiction: records that the game differed from what you expected, citing 1–4 event numbers. It changes nothing in the game."],
+  ["get_next_milestone", "- get_next_milestone: tells you the next main story milestone the game has not recorded yet. It presses nothing."],
+];
+const namesTool = (prompt: string, tool: string): boolean => new RegExp(`(^|[^a-z_])${tool}([^a-z_]|$)`).test(prompt);
+
 export function targetGoal(target: string): string {
   return `Reach the native game milestone ${target.replaceAll("_", " ")}.`;
 }
@@ -227,6 +241,15 @@ export function playSystemPrompt(features: FeatureSet, target: string | null, sc
   if (show("overworld") && features["cited-destination-v1"] && features["bounded-navigation-v1"]) prompt += `\n\n${CITED_DESTINATION_SECTION}`;
   if (show("overworld", "menu") && features["dialog-button-b-v1"]) prompt += `\n\n${DIALOGUE_BUTTON_B_SECTION}`;
   if (show("overworld") && features["trainer-sight-check-v1"] && features["bounded-navigation-v1"]) prompt += `\n\n${TRAINER_SIGHT_SECTION}`;
+  if (features["tool-prompt-docs-v1"]) {
+    if (features["evolution-decision-v1"]) prompt += `\n\n${CHOOSE_EVOLUTION_SECTION}`;
+    if (show("battle") && features["battle-move-tool-v1"]) prompt += `\n\n${BATTLE_ACTION_SECTION}`;
+    if (jit && scene !== "core") {
+      const kept = new Set(jitTools(playTools(features).map((name) => ({ name })), scene).map((tool) => tool.name));
+      const lines = SCENE_TOOL_LINES.filter(([tool]) => kept.has(tool) && !namesTool(prompt, tool)).map(([, line]) => line);
+      if (lines.length > 0) prompt += `\n\n${lines.join("\n")}`;
+    }
+  }
   // harness-trust-v1: last, so the trust order is the final thing the system prompt says.
   if (features["harness-trust-v1"]) prompt += `\n\n${trustSection(features["game-evidence-priority-v1"], true)}`;
   return prompt;

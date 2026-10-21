@@ -38,8 +38,10 @@ describe('explicit native evolution choice',()=>{
   expect(playTools(ON)).toContain('choose_evolution');expect(playTools(OFF)).not.toContain('choose_evolution');
   expect(jitTools(on,'battle').map(t=>t.name)).toContain('choose_evolution');
   expect(jitTools(on,'unknown').map(t=>t.name)).toContain('choose_evolution');
-  expect(playSystemPrompt(ON,null)).toBe(playSystemPrompt(OFF,null));
+  const docsOff={'tool-prompt-docs-v1':false} as const;
+  expect(playSystemPrompt({...ON,...docsOff},null)).toBe(playSystemPrompt({...OFF,...docsOff},null));
   expect(playSystemPrompt(OFF,null)).not.toContain('choose_evolution');
+  expect(playSystemPrompt(ON,null)).toContain('- choose_evolution:');
   expect(stateOnlyProblems({...ON,'state-only-decisions-v1':true})).toContain('state-only-decisions-v1 requires evolution-decision-v1 OFF');
   expect(SWITCHABLE_FEATURES).toContain(ID);expect(playHarnessFeatures(ON,null)).toContain(ID);
   expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false})[ID]).toBe(false);

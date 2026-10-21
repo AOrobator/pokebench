@@ -20,6 +20,9 @@ SPECIES_INFO = 0x083203CC
 REGION_MAP_ENTRIES = 0x085A147C
 MAPSEC_SECRET_BASE = 86
 MAPSEC_NONE = 213
+# region_map.c GetMapNameGeneric / GetMapNameHandleAquaHideout: gText_Hideout, gText_SecretBase,
+# gText_Ferry (MAPSEC_AQUA_HIDEOUT_OLD 66, MAPSEC_SECRET_BASE 86, MAPSEC_DYNAMIC 87).
+SPECIAL_MAPSEC_NAMES = {66: "HIDEOUT", MAPSEC_SECRET_BASE: "SECRET BASE", 87: "FERRY"}
 BALL_COUNT = 12
 ITEMS = 0x085839A0
 ITEMS_COUNT = 377
@@ -335,7 +338,7 @@ def _decode_mon(
         met_location, origin, ivs = struct.unpack_from("<xBHI", misc)
         ball = (origin >> 11) & 0xF
         ability_num = ivs >> 31
-        abilities = read(SPECIES_INFO + 28 * species_id + 0x16, 2)
+        abilities = _read_or_empty(read, SPECIES_INFO + 28 * species_id + 0x16, 2)
         ot_name = None
         if language_value in range(1, 8):
             try:
@@ -420,17 +423,29 @@ def decode_box_mon(
     return _decode_mon(body, read, party=False, address=address, cpu=cpu)
 
 
+def _read_or_empty(read: ReadMemory, address: int, length: int) -> bytes:
+    """A summary-screen lookup that fails leaves its field unknown, never the whole Pokémon."""
+    try:
+        return read(address, length)
+    except (ValueError, OSError):
+        return b""
+
+
 def _map_section_name(read: ReadMemory, mapsec: int) -> str | None:
-    """GetMapName for a met location; none for secret bases, MAPSEC_NONE and up, or a bad read."""
-    if mapsec >= MAPSEC_NONE or mapsec == MAPSEC_SECRET_BASE:
+    """GetMapNameHandleAquaHideout (pokemon_summary_screen.c's met location): the fixed names for
+    the old Aqua hideout, secret bases and MAPSEC_DYNAMIC, else gRegionMapEntries; none from
+    MAPSEC_NONE up or on a bad read."""
+    if mapsec in SPECIAL_MAPSEC_NAMES:
+        return SPECIAL_MAPSEC_NAMES[mapsec]
+    if mapsec >= MAPSEC_NONE:
         return None
-    pointer = read(REGION_MAP_ENTRIES + 8 * mapsec + 4, 4)
+    pointer = _read_or_empty(read, REGION_MAP_ENTRIES + 8 * mapsec + 4, 4)
     if len(pointer) != 4:
         return None
     address = struct.unpack("<I", pointer)[0]
     if not 0x08000000 <= address < 0x0A000000:
         return None
-    raw = read(address, 20)
+    raw = _read_or_empty(read, address, 20)
     if b"\xff" not in raw:
         return None
     try:

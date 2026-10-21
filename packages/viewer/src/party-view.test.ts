@@ -158,6 +158,9 @@ describe("derived values follow the game", () => {
     expect(flat(trainerMemo({ ...COMBUSKEN, met_location: 254 }, "HASTY", "MAY"))).toEqual(["HASTY nature,", "obtained in a trade."]);
     expect(flat(trainerMemo({ ...COMBUSKEN, met_game: 15 }, "HASTY", "MAY"))).toEqual(["HASTY nature,", "obtained in a trade."]);
     expect(flat(trainerMemo({ ...COMBUSKEN, met_location: null }, "HASTY", "GREEN"))).toEqual(["HASTY nature."]);
+    expect(flat(trainerMemo({ ...COMBUSKEN, met_location_name: null }, "HASTY", "GREEN"))).toEqual(["HASTY nature,", "met at Lv5."]);
+    expect(flat(trainerMemo({ ...COMBUSKEN, met_location: 86, met_location_name: "SECRET BASE", met_level: 0 }, "HASTY", "GREEN"))).toEqual(["HASTY nature,", "hatched at Lv5,", "SECRET BASE."]);
+    expect(flat(trainerMemo({ ...COMBUSKEN, met_location_name: null }, "HASTY", "MAY"))).toEqual(["HASTY nature,", "probably met at Lv5."]);
   });
 });
 
@@ -236,10 +239,11 @@ describe("partyPage", () => {
       const doc = dom(partyPage([sparse], DATA, { slot: 0, tab, move: 1 }, "GREEN"));
       const text = doc.querySelector(".pv-open")?.textContent ?? "";
       if (tab === 0) { expect(text).toContain("MAY"); expect(doc.querySelectorAll(".pv-open .pv-type")).toHaveLength(0); expect(doc.querySelector(".pv-pball")?.getAttribute("aria-label")).toBe("BALL"); }
-      if (tab === 1) { expect(text).toContain("0/0"); expect(doc.querySelector(".pv-exp")).toBeNull(); }
+      if (tab === 1) { expect(text).not.toContain("0/0"); expect(text).not.toContain("Lv0"); expect(doc.querySelector(".pv-exp")).toBeNull(); expect(doc.querySelectorAll(".pv-open .hpbar")).toHaveLength(0); }
       if (tab === 2) {
         expect(text).toContain("MOVE 999");
-        expect([...doc.querySelectorAll("[data-pv-move]")].map((m) => m.getAttribute("data-pp"))).toEqual(["3", "3"]);
+        expect([...doc.querySelectorAll("[data-pv-move]")].map((m) => m.getAttribute("data-pp"))).toEqual(["unknown", "3"]);
+        expect(text).toContain("/--");
         expect(text).toContain("/40");
       }
     }

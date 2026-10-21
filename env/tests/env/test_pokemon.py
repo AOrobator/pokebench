@@ -412,7 +412,7 @@ def test_invalid_snapshot_preserves_its_bounded_atomic_cpu_evidence():
     assert decode_party_mon(valid, read, cpu=cpu).cpu_context is None
 
 
-def summary_fixture(*, party=True, language=2, met_level=5, met_location=16):
+def summary_fixture(*, party=True, language=2, met_level=5, met_location=16, fail_at=None):
     """A member with the SKILLS/INFO facts set: stats, ability bit, met data, ball, OT."""
     from pokebench_env.pokemon import REGION_MAP_ENTRIES, SPECIES_INFO
 
@@ -444,7 +444,13 @@ def summary_fixture(*, party=True, language=2, met_level=5, met_location=16):
         ITEMS + 44 * 4, (text("POKé BALL") + b"\xff").ljust(14, b"\x00") + struct.pack("<H", 4)
     )
     raw = bytes(body) if party else bytes(body[:80])
-    return (decode_party_mon if party else decode_box_mon)(raw, memory.read)
+
+    def read(address, length):
+        if fail_at is not None and fail_at <= address < fail_at + 0x100000:
+            raise ValueError("unreadable")
+        return memory.read(address, length)
+
+    return (decode_party_mon if party else decode_box_mon)(raw, read)
 
 
 def test_party_member_records_its_summary_facts():
@@ -483,6 +489,27 @@ def test_summary_facts_are_left_out_rather_than_guessed():
     assert no_language.ot_name is None
     plain = fixture()
     assert decode_party_mon(*plain).ball_name is None
+
+
+def test_a_failed_summary_lookup_leaves_only_that_field_unknown():
+    from pokebench_env.pokemon import REGION_MAP_ENTRIES, SPECIES_INFO
+
+    no_species_row = summary_fixture(fail_at=SPECIES_INFO)
+    assert (no_species_row.diagnostic, no_species_row.species, no_species_row.ability_id) == (
+        None,
+        "TORCHIC",
+        None,
+    )
+    assert no_species_row.met_location_name == "ROUTE 101"
+    no_map = summary_fixture(fail_at=REGION_MAP_ENTRIES)
+    assert (no_map.diagnostic, no_map.met_location_name, no_map.ability_id) == (None, None, 77)
+    no_name = summary_fixture(fail_at=0x08700000)
+    assert (no_name.diagnostic, no_name.met_location_name) == (None, None)
+
+
+@pytest.mark.parametrize("mapsec,name", [(66, "HIDEOUT"), (86, "SECRET BASE"), (87, "FERRY")])
+def test_met_locations_the_game_names_by_hand(mapsec, name):
+    assert summary_fixture(met_location=mapsec).met_location_name == name
 
 
 def test_summary_facts_stay_out_of_the_model_readout():

@@ -339,13 +339,28 @@ def build_exp(rom: Rom) -> tuple[list[list[int]], dict[str, object]]:
     tables = [
         list(words[g * (MAX_LEVEL + 1) : (g + 1) * (MAX_LEVEL + 1)]) for g in range(GROWTH_RATES)
     ]
-    medium_slow = [0, 1] + [
-        (6 * n**3) // 5 - 15 * n * n + 100 * n - 140 for n in range(2, MAX_LEVEL + 1)
-    ]
-    if tables[0] != [0, 1] + [n**3 for n in range(2, MAX_LEVEL + 1)] or tables[3] != medium_slow:
-        raise VerifyError(
-            "gExperienceTables: Medium Fast / Medium Slow rows do not match their formulas"
-        )
+    # experience_tables.h, row by row (GROWTH_* order), with C integer division.
+    formulas = (
+        lambda n: n**3,
+        lambda n: (100 - n) * n**3 // 50
+        if n <= 50
+        else (150 - n) * n**3 // 100
+        if n <= 68
+        else ((1911 - 10 * n) // 3) * n**3 // 500
+        if n <= 98
+        else (160 - n) * n**3 // 100,
+        lambda n: ((n + 1) // 3 + 24) * n**3 // 50
+        if n <= 15
+        else (n + 14) * n**3 // 50
+        if n <= 36
+        else ((n // 2) + 32) * n**3 // 50,
+        lambda n: (6 * n**3) // 5 - 15 * n * n + 100 * n - 140,
+        lambda n: (4 * n**3) // 5,
+        lambda n: (5 * n**3) // 4,
+    )
+    for g, formula in enumerate(formulas):
+        if tables[g] != [0, 1] + [formula(n) for n in range(2, MAX_LEVEL + 1)]:
+            raise VerifyError(f"gExperienceTables: growth rate {g} does not match its formula")
     return tables, {"experience": f"{hexoff(off)} (raw, {GROWTH_RATES} x {MAX_LEVEL + 1})"}
 
 
@@ -683,6 +698,14 @@ def main(argv: list[str] | None = None) -> int:
         print("build_party_art: set POKEBENCH_ROM (or pass --rom)", file=sys.stderr)
         return 2
     out: Path = args.out.expanduser().absolute()
+    # ROM-derived art stays under the repository's gitignored runs/ (CLAUDE.md).
+    runs = (Path(__file__).resolve().parents[2] / "runs").resolve()
+    if not out.parent.resolve().is_relative_to(runs):
+        print(
+            f"build_party_art: {out} is outside {runs}; ROM-derived art stays there",
+            file=sys.stderr,
+        )
+        return 2
     out.parent.mkdir(parents=True, exist_ok=True)
     tmp = Path(tempfile.mkdtemp(prefix=f".{out.name}.build-", dir=out.parent))
     try:

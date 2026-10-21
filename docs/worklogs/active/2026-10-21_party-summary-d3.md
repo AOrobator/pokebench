@@ -90,7 +90,11 @@ Real browser on the built viewer (8790 after landing): click each party slot, ea
 
 ## Multi-Model Review Log
 
-(empty)
+Round 1 (packet 6fbce332..5bba3c3b, diff sha256 753e1fd0…1700). Cursor Claude and Cursor GPT were at their usage limits and the ~/.claude-review CLI login had expired, so per the standing harness switches: Claude lane = read-only Claude subagent (operator memory claude-review-lane), GPT lane = Codex CLI gpt-5.6-sol xhigh, Grok lane = Cursor cursor-grok-4.5-high.
+- Grok: LGTM (follow-ups: art load memoised until reload; sprite routes without ETag; duplicated ROM constants).
+- Claude: LGTM (follow-ups: art load memoised; SECRET BASE name).
+- GPT/Codex: BLOCKING, 5 findings, all fixed: (1) new ROM lookups now fail soft (`_read_or_empty`; fault-injection tests); (2) null HP/level and unknown PP maximum render `---`/`--`, never `0/0`, `Lv0` or a derived PP color; (3) met location names follow GetMapNameHandleAquaHideout (HIDEOUT, SECRET BASE, FERRY) and an unnamed location is left out of the memo; (4) all six EXP rows checked against experience_tables.h formulas; (5) `build_party_art.py` refuses an output outside the repository's runs/.
+Fix gates: test agent 3248 / viewer 1590 / python 3572; coverage viewer 97.96/91.39/94.51, agent 99.2/93.08/97.7, python 97.23/92.97/100.
 
 ## Boy Scout Log
 

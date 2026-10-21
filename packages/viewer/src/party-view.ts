@@ -128,15 +128,18 @@ export function trainerMemo(mon: PartyMon, nature: string, trainer: string | nul
   const at = mon.met_location, level = mon.met_level, game = mon.met_game;
   if (at == null || level == null) return [[...head, [".", false]]];
   const lv: MemoPiece = [`${LV2}${String(level === 0 ? EGG_HATCH_LEVEL : level)}`, true];
+  // A met location the run could not name is left out rather than printed blank.
+  const named = mon.met_location_name != null && mon.met_location_name !== "";
   const place: MemoPiece[] = [[mon.met_location_name ?? "", true], [".", false]];
+  const lvLine = (prefix: string): MemoPiece[][] => (named ? [[[prefix, false], lv, [",", false]], place] : [[[prefix, false], lv, [".", false]]]);
   const own = trainer !== null && mon.ot_name === trainer;
   if (own) {
     const verb = level === 0 ? "hatched" : "met";
     if (at >= MAPSEC_NONE) return [[...head, [",", false]], [[`${verb} somewhere at `, false], lv, [".", false]]];
-    return [[...head, [",", false]], [[`${verb} at `, false], lv, [",", false]], place];
+    return [[...head, [",", false]], ...lvLine(`${verb} at `)];
   }
   if (at === METLOC_FATEFUL_ENCOUNTER) return [[...head, [",", false]], [["obtained in a fateful", false]], [["encounter at ", false], lv, [".", false]]];
-  if (at !== METLOC_IN_GAME_TRADE && game != null && game > 0 && game <= VERSION_LEAF_GREEN && at < MAPSEC_NONE) return [[...head, [",", false]], [["probably met at ", false], lv, [",", false]], place];
+  if (at !== METLOC_IN_GAME_TRADE && game != null && game > 0 && game <= VERSION_LEAF_GREEN && at < MAPSEC_NONE) return [[...head, [",", false]], ...lvLine("probably met at ")];
   return [[...head, [",", false]], [["obtained in a trade.", false]]];
 }
 
@@ -159,9 +162,9 @@ const sprite = (cls: string, style = ""): string => `<i class="${cls}" aria-hidd
 const gender = (g: "m" | "f" | null): string => (g === null ? "" : gt(g === "f" ? "♀" : "♂", g === "f" ? "pv-female" : "pv-male"));
 const pad = (n: number, width: number, fill = " "): string => String(n).padStart(width, fill);
 
-function hpMarkup(hp: number | null, max: number | null): string {
+function hpMarkup(hp: number, max: number): string {
   const { px, level } = hpBar(hp, max);
-  return `<span class="hpbar pv-hp" role="img" aria-label="HP ${String(hp ?? 0)} of ${String(max ?? 0)}"><i class="frame"></i><i class="track"><i class="fill ${level}" style="width:${((px / 48) * 100).toFixed(2)}%"></i></i><i class="tag"></i></span>`;
+  return `<span class="hpbar pv-hp" role="img" aria-label="HP ${String(hp)} of ${String(max)}"><i class="frame"></i><i class="track"><i class="fill ${level}" style="width:${((px / 48) * 100).toFixed(2)}%"></i></i><i class="tag"></i></span>`;
 }
 function statusMarkup(name: StatusName): string {
   return `<i class="pv-status" role="img" aria-label="${name}" style="--row:${String(STATUS_ROWS[name])}"></i>`;
@@ -175,8 +178,8 @@ const nameOf = (mon: PartyMon): string => (mon.is_egg === true ? "EGG" : (mon.ni
 function slotMarkup(mon: PartyMon, data: PartyData, i: number, open: boolean, extra = ""): string {
   const status = mon.is_egg === true ? null : statusOf(mon), faint = status === "FNT" ? " faint" : "";
   const g = mon.is_egg === true ? null : genderFor(mon, data);
-  const lv = status !== null ? statusMarkup(status) : mon.is_egg === true ? "" : gt(`${LV}${String(mon.level ?? 0)}`, "pv-slot");
-  const hp = mon.is_egg === true ? "" : `<span class="pv-hpw">${hpMarkup(mon.hp, mon.max_hp)}<span class="pv-hpn">${gt(`${pad(mon.hp ?? 0, 3)}/${pad(mon.max_hp ?? 0, 3)}`, "pv-slot")}</span></span>`;
+  const lv = status !== null ? statusMarkup(status) : mon.is_egg === true || mon.level == null ? "" : gt(`${LV}${String(mon.level)}`, "pv-slot");
+  const hp = mon.is_egg === true ? "" : mon.hp == null || mon.max_hp == null ? `<span class="pv-hpw"><span class="pv-hpn">${gt("---", "pv-slot")}</span></span>` : `<span class="pv-hpw">${hpMarkup(mon.hp, mon.max_hp)}<span class="pv-hpn">${gt(`${pad(mon.hp, 3)}/${pad(mon.max_hp, 3)}`, "pv-slot")}</span></span>`;
   return `<button type="button" class="pv-box pv-slot${open ? " sel" : ""}${faint}${extra}" data-pv-slot="${String(i)}" aria-expanded="${String(open)}" aria-label="${esc(nameOf(mon))}, slot ${String(i + 1)}">`
     + `<i class="pv-ball${open ? " open" : ""}" aria-hidden="true"></i>${iconMarkup(mon, open)}`
     + `<span class="pv-who">${gt(nameOf(mon), "pv-slot")}<span class="pv-lv">${lv}${gender(g)}</span></span>${hp}</button>`;
@@ -204,14 +207,15 @@ function profile(mon: PartyMon, data: PartyData, trainer: string | null): string
 }
 
 const stat = (value: number | null | undefined): string => (value == null ? "---" : String(value));
+const hpText = (mon: PartyMon): string => (mon.hp == null || mon.max_hp == null ? "---" : `${String(mon.hp)}/${String(mon.max_hp)}`);
 
 function stats(mon: PartyMon, data: PartyData): string {
   const species = mon.species_id == null ? undefined : data.species.get(mon.species_id);
-  const exp = species === undefined ? null : expProgress(mon.experience, mon.level ?? 0, species.growth, data);
+  const exp = species === undefined || mon.level == null ? null : expProgress(mon.experience, mon.level, species.growth, data);
   const cell = (k: string, v: string): string => `<span class="k">${gt(k, "pv-white", "n")}</span><span class="v">${gt(v, "pv-dark", "n")}</span>`;
   const status = statusOf(mon);
   return `<div class="pv-pair">${kv("ITEM", gt(mon.held_item_name ?? "NONE", "pv-dark", "n"))}${kv("RIBBON", gt("---", "pv-dark", "n"))}</div>`
-    + `<div class="pv-stats">${cell("HP", `${String(mon.hp ?? 0)}/${String(mon.max_hp ?? 0)}`)}${cell("SP. ATK", stat(mon.sp_attack))}${cell("ATTACK", stat(mon.attack))}${cell("SP. DEF", stat(mon.sp_defense))}${cell("DEFENSE", stat(mon.defense))}${cell("SPEED", stat(mon.speed))}</div>`
+    + `<div class="pv-stats">${cell("HP", hpText(mon))}${cell("SP. ATK", stat(mon.sp_attack))}${cell("ATTACK", stat(mon.attack))}${cell("SP. DEF", stat(mon.sp_defense))}${cell("DEFENSE", stat(mon.defense))}${cell("SPEED", stat(mon.speed))}</div>`
     + kv("EXP. POINTS", gt(mon.experience == null ? "---" : String(mon.experience), "pv-dark", "n"))
     + kv("NEXT LV.", gt(exp === null ? "---" : String(exp.next), "pv-dark", "n"))
     + (exp === null ? "" : `<div class="pv-expw">${expMarkup(exp.ticks)}</div>`)
@@ -225,9 +229,10 @@ function expMarkup(ticks: number): string {
 
 function moves(mon: PartyMon, data: PartyData, open: number | null): string {
   return `<div class="pv-moves">${(mon.moves ?? []).map((m, i) => {
-    const info = data.moves.get(m.move_id), max = m.max_pp ?? (info === undefined ? m.pp : info.pp + Math.floor((info.pp * m.pp_bonus) / 5));
-    const state = ppState(m.pp, max), isOpen = open === i;
-    const row = `<button type="button" class="pv-mv${isOpen ? " on" : ""}" data-pv-move="${String(i)}" data-pp="${String(state)}" aria-expanded="${String(isOpen)}">${info === undefined ? sprite("pv-type none") : typeIcon(info.type, data)}<span class="mn">${gt(m.name ?? `MOVE ${String(m.move_id)}`, "pv-white", "n")}</span><span class="pp">${gt(`${PP}${pad(m.pp, 2)}/${pad(max, 2)}`, `pv-pp${String(state)}`, "n")}</span></button>`;
+    // CalculatePPWithBonus from the move table when the run did not record the maximum.
+    const info = data.moves.get(m.move_id), max = m.max_pp ?? (info === undefined ? null : info.pp + Math.floor((info.pp * m.pp_bonus) / 5));
+    const state = max === null ? null : ppState(m.pp, max), isOpen = open === i;
+    const row = `<button type="button" class="pv-mv${isOpen ? " on" : ""}" data-pv-move="${String(i)}" data-pp="${state === null ? "unknown" : String(state)}" aria-expanded="${String(isOpen)}">${info === undefined ? sprite("pv-type none") : typeIcon(info.type, data)}<span class="mn">${gt(m.name ?? `MOVE ${String(m.move_id)}`, "pv-white", "n")}</span><span class="pp">${gt(`${PP}${pad(m.pp, 2)}/${max === null ? "--" : pad(max, 2)}`, `pv-pp${String(state ?? 3)}`, "n")}</span></button>`;
     if (!isOpen || info === undefined) return row;
     return row + `<div class="pv-mdet">${kv("POWER", gt(info.power < 2 ? "---" : String(info.power), "pv-dark", "n"))}${kv("ACCURACY", gt(info.accuracy === 0 ? "---" : String(info.accuracy), "pv-dark", "n"))}<div class="pv-rowv pv-desc">${info.description.split("\n").map((line) => `<span>${gt(line, "pv-dark", "n")}</span>`).join("")}</div></div>`;
   }).join("")}</div>`;
@@ -237,10 +242,10 @@ function portrait(mon: PartyMon, data: PartyData): string {
   const dex = mon.species_id == null ? undefined : data.species.get(mon.species_id)?.dex;
   const species = mon.species ?? UNKNOWN;
   const growth = mon.species_id == null ? undefined : data.species.get(mon.species_id)?.growth;
-  const exp = growth === undefined ? null : expProgress(mon.experience, mon.level ?? 0, growth, data);
+  const exp = growth === undefined || mon.level == null ? null : expProgress(mon.experience, mon.level, growth, data);
   return `<div class="pv-card"><div class="pv-pic">${dex !== undefined && dex >= 1 && dex <= DEX_HOENN ? `<span class="pv-dex">${gt(`${NO}${pad(dex, 3, "0")}`, "pv-white", "n")}</span>` : ""}${sprite("pv-marks")}${mon.species_id == null ? "" : sprite("pv-front", `background-image:url(${ART}/front/${String(mon.species_id)}.png)`)}</div>`
-    + `<div class="pv-name">${gt(nameOf(mon), "pv-white", "n")}${gt(`/${species}`, "pv-white", "n")}<span class="pv-prow">${mon.ball != null && mon.ball >= 1 && mon.ball <= 12 ? `<i class="pv-pball" role="img" aria-label="${esc(mon.ball_name ?? "BALL")}" style="--row:${String(mon.ball - 1)}"></i>` : ""}${gt(`${LV}${String(mon.level ?? 0)}`, "pv-white", "n")}${gender(genderFor(mon, data))}</span></div>`
-    + `<div class="pv-bars">${hpMarkup(mon.hp, mon.max_hp)}<span class="pv-hpn">${gt(`${String(mon.hp ?? 0)}/${String(mon.max_hp ?? 0)}`, "pv-white")}</span>${exp === null ? "" : expMarkup(exp.ticks)}</div></div>`;
+    + `<div class="pv-name">${gt(nameOf(mon), "pv-white", "n")}${gt(`/${species}`, "pv-white", "n")}<span class="pv-prow">${mon.ball != null && mon.ball >= 1 && mon.ball <= 12 ? `<i class="pv-pball" role="img" aria-label="${esc(mon.ball_name ?? "BALL")}" style="--row:${String(mon.ball - 1)}"></i>` : ""}${mon.level == null ? "" : gt(`${LV}${String(mon.level)}`, "pv-white", "n")}${gender(genderFor(mon, data))}</span></div>`
+    + `<div class="pv-bars">${mon.hp == null || mon.max_hp == null ? "" : hpMarkup(mon.hp, mon.max_hp)}<span class="pv-hpn">${gt(hpText(mon), "pv-white")}</span>${exp === null ? "" : expMarkup(exp.ticks)}</div></div>`;
 }
 
 function summary(mon: PartyMon, data: PartyData, ui: PartyUi, trainer: string | null): string {

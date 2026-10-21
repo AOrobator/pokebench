@@ -94,6 +94,7 @@ def _rom() -> bytes:
     return resolve_rom({"POKEBENCH_ROM": os.environ.get("POKEBENCH_ROM", "")}).read_bytes()
 
 
+@cache
 def archived(name: str) -> ReadMemory:
     archive = PROVENANCE["archives"][name]
     return load_raw_ram(FIXTURES / f"move-learn-{name}.json.gz", archive["sha256"], rom=_rom())

@@ -97,6 +97,8 @@ No new inputs, subprocesses, network or file access. Reads only ROM tables and w
 
 ## Multi-Model Review Log
 
+- Round 1 (packet ec8f514b..e9b124e2, sha256 7c4d403a…): Grok (cursor-grok-4.5-high) BLOCKING on one finding: `archived()` in test_move_learn.py reloaded and re-hashed each raw archive per call; accepted, cached with @cache (fix delta). Hardening notes: unused PARTY constant removed (accepted); a waiter that starts on move_learning keeps its 600-frame bound if a fade follows (deferred: the YES path's fade to the summary screen must not release early, so upgrading to the 146-frame fade bound would be wrong; noted); no trade-scene raw fixture (deferred: no trade evolution in any recorded run; trade pairs covered by question_kind tests). Claude CLI lane: ~/.claude-review and default login both returned "OAuth session expired"; switching to the Cursor Claude harness (standing-authorized).
+
 ## Boy Scout Log
 
 ## Archive Milestone (user-gated)

@@ -55,7 +55,6 @@ BATTLE_QUESTIONS = {"learn_move": "delete", "stop_learning_move": "stop"}
 MOVE_TO_LEARN = 0x020244E2  # gMoveToLearn (menu_pokemon_lifecycle.py ROM receipt)
 MOVE_DESCRIPTIONS = 0x0861C524  # gMoveDescriptionPointers[move - 1], US ROM f3ae0881
 MOVE_COUNT = 354
-PARTY = 0x020244EC
 
 Question = Literal["delete", "stop"]
 

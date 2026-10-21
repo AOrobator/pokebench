@@ -13,8 +13,8 @@ The loop uses existing isolated fixed-run code and preserves ledgers, native rec
 - [x] RED: exact current recipe materialization and preserved GLM launch contract tests.
 - [x] GREEN: optional dry-run recipe seam, four-hour definition, parameterized existing loop and GLM wrapper.
 - [x] Fake-data rehearsal: serial pair, latest-main next pair, singleton, stop propagation and disk hold.
-- [ ] Deterministic gates and three-lane cloud review of frozen packet.
-- [ ] Coordinator integration / viewer / actual launch proof (root-owned).
+- [x] Deterministic gates and three-lane cloud review of frozen packet.
+- [x] Coordinator integration / viewer / actual launch proof (root-owned).
 
 ## Scope
 
@@ -56,3 +56,13 @@ Synced-tree gates: agent3337/3337, viewer1619/1619, Python3702/3702 (8658 total)
 Round1 cloud review of4e01b63d/diff749d8d5b: Claude LGTM, Grok LGTM, independent GPT P2 BLOCKING on actual-order protocol wording only. Deterministic dryRunDefinition confirms control→bundle, despite static cook plan bundle→control. Accepted factual correction and explicit production-rehearsal exact-order assertion; no run behavior changed. r1 artifacts and synthesis retained. Syncing externalmain016a2ffa before final review; new upstream changes are definition/test/worklog only, env unchanged, so the existing3702 Python/coverage proof remains byte-applicable while affectedTSgates repeat.
 
 Upstream integration 2026-10-21: merged actual canonical main280ebadd8, whose generic loop now defaults to a Python solo-trial controller. The GLM wrapper explicitly overrides inherited LATEST_MAIN_PER_TRIAL=1 with0 to retain the reviewed pair-pinned contract; generic default remains upstream's controller. Merged optional solo CLI selection after donor materialization, retaining both suites. Actual-wrapper RED against upstream prefix exited93 via wrong-controller sentinel; new real-wrapper rehearsal covers overridden hostile model/recipe/cap/count variables plus two source/recipe revisions through actual shell pair driver. Required gates and cumulative cloud review follow this merge.
+
+## Root integration and real launch — 2026-10-21
+
+Fast-forward landed reviewed/rebound `1e5c81c153a2c09e0b354fa77a1c9d59c8150fa4` from canonical `a34ccb9a6`. Frozen own diff SHA256 `717a03bdb7c0c5dad457363972a340ec9040dd8e1be1b7e60855173e3f8a824b`; Claude/Grok/fresh independent GPT all LGTM, receipts in `runs/reviews/glm-four-hour-loop/r4/`. Full final post-rebind gates and post-landing main build/test pass: agent3354, viewer1632, Python3760 (8746 total); all required coverage measures exceed90%, lint/vendor/shell5/5 pass. Four earlier timing failures are retained; unchanged coverage passed in a quiet window and again after docs-only rebind, with no test/timeout/worker-policy edits.
+
+Fresh preflight: GLM5.3Flash UD-IQ4_XS healthy at8099, b11671-ba3c05f71, context262144; Hermes gateway not loaded, no model router or Qwen3.8 server, game8077 free. No inference service mutations. Detached controller66204 started13:12:46EDT, runner67847; controller performed one viewer-main restart, served clean build1e5c81c/PID66605. Real first trial `2026-10-21T13-14-06_glm53-mac_fff0` run_start13:14:51.573EDT: CONTROL1/2, clean source1e5c81c, MAIN_MENU save SHA1b3a6cc1c19836600a15febf41b8f8b19661ce5d4, targetnull, 20kturn/14400000ms caps, medium4096. This is new-game-from-menu, not power-on boot.
+
+Canonical recipe SHA256f9fe1144444ee527135a8dc96e23a09d46cb09b0a50a5d7ac527825424faa9ca:80 switches. Actual normalized196-feature control preset equals run_start exactly; all80 treatment switches OFF in control/ON in queued bundle, including rejected-movement-step-v1, observed-field-dialogue-v1 and shop-interface-v1. First raw-RAM snapshot hash verified; assistant/tool actions and native PLAYER_NAME_CONFIRMED observed. Browser selected actual EXPERIMENT dropdown entry, clicked Watch, showed LIVE/RUNNING and game frame; no console errors. Workbench466runs/70cohorts/0problems; experiments-audit silent exit0. Receipts under `runs/launch-receipts/glm-four-hour-loop/`, including live-run.json, viewer-proof.json and live-viewer.jpg.
+
+Bundle remains queued until control ends; no four-hour outcomes claimed. Next pair refreshes main/recipe. Viewer applied STOP/ABORT stops future loop launches; file `runs/dryruns/glm-four-hour-loop.STOP` also stops, corresponding PAUSE holds later pairs. No frames pruned. Existing Qwen recordings remain visible; prior GPU games reached their natural cap under their owner. Continuous loop remains active, not a completed experiment or promotion.

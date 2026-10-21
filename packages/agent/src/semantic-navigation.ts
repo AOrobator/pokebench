@@ -226,7 +226,7 @@ function semanticTool(navigate:CheckedNavigationTool,press:CheckedPressTool,feat
    // field-move-gates-v1: approaches are planned around closed obstacle objects, loaded or not, as navigate_to walks.
    const planned=features["field-move-gates-v1"]?gatedState(before):before;
    const choicesFor=(plan:NavigationOptions)=>request.target.kind==="connection"?connectionApproaches(planned,request.target,plan):approaches(planned,listed as SnapshotTarget,plan);
-   let choices=choicesFor(options);
+   let choices=choicesFor(options).filter(choice=>!features["trigger-navigation-boundary-v1"]||choice.length===0||!options.triggers?.some(trigger=>trigger.x===choice.point.x&&trigger.y===choice.point.y&&(trigger.elevation===0||trigger.elevation===plannedArrivalElevation(planned,choice.point,options))));
    if(features["trigger-navigation-boundary-v1"]&&choices.length===0){options={...options,triggers:[]};choices=choicesFor(options);}
    const choice=choices[0];if(choice===undefined)return withStatus({content:[],details:{state:before}},"no supported route to a valid approach",selected,request.target,false);
    const connectionDirection=request.target.kind==="connection"?request.target.direction:null;

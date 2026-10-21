@@ -1,0 +1,179 @@
+{
+ "source": {
+  "97a0": "runs/2026-10-20T20-26-22_qwen36-gpu1_97a0/events.jsonl seqs 4095 (dialogue_auto_advance, turn 147) and its tool_result",
+  "b300": "runs/2026-10-20T13-54-28_qwen36-gpu0_b300/events.jsonl seq 7837 (dialogue_auto_advance, turn 315) and its tool_result"
+ },
+ "97a0": [
+  {
+   "v": 1,
+   "run": "2026-10-20T20-26-22_qwen36-gpu1_97a0",
+   "seq": 4095,
+   "t": "2026-10-20T20:41:38.240-04:00",
+   "type": "dialogue_auto_advance",
+   "turn": 147,
+   "tool_call_id": "9eoFz6I82RUJmbnVW6pb8ylh2ctc5bUK",
+   "tool": "navigate_to_target",
+   "requested": [],
+   "sent": [],
+   "dropped": [],
+   "auto_presses": 2,
+   "pages": [
+    {
+     "state_seq": 4083,
+     "map": "ROUTE101",
+     "map_id": [
+      0,
+      16
+     ],
+     "position": {
+      "x": 15,
+      "y": 8
+     },
+     "speaker": "YOUNGSTER",
+     "speaker_source": "faced_sprite",
+     "text": "If POKéMON get tired, take them to\na POKéMON CENTER."
+    },
+    {
+     "state_seq": 4089,
+     "map": "ROUTE101",
+     "map_id": [
+      0,
+      16
+     ],
+     "position": {
+      "x": 15,
+      "y": 8
+     },
+     "speaker": "YOUNGSTER",
+     "speaker_source": "faced_sprite",
+     "text": "There's a POKéMON CENTER in OLDALE\nTOWN right close by."
+    }
+   ],
+   "stop": "field_free",
+   "detail": "the conversation closed and field controls are free",
+   "duration_ms": 8541
+  },
+  {
+   "v": 1,
+   "run": "2026-10-20T20-26-22_qwen36-gpu1_97a0",
+   "seq": 4098,
+   "t": "2026-10-20T20:41:38.281-04:00",
+   "type": "tool_result",
+   "state_seq": 4097,
+   "semantic_navigation": {
+    "target": {
+     "kind": "object",
+     "local_id": 1
+    },
+    "activation_attempted": true
+   },
+   "turn": 147,
+   "id": "9eoFz6I82RUJmbnVW6pb8ylh2ctc5bUK",
+   "name": "navigate_to_target",
+   "is_error": false,
+   "duration_ms": 8581,
+   "text": "Read from game memory, always true:\nExits you can walk to from where you stand: NORTH edge -> OLDALE TOWN (map 0/10) [navigate_to_target target {\"kind\":\"connection\",\"direction\":\"NORTH\"}]; SOUTH edge -",
+   "frames": [
+    {
+     "path": "frames/004098_0.png",
+     "sha1": "5c81d9ebaf31d2dc371ffae2271cae1394880b1d"
+    }
+   ]
+  }
+ ],
+ "b300": [
+  {
+   "v": 1,
+   "run": "2026-10-20T13-54-28_qwen36-gpu0_b300",
+   "seq": 7837,
+   "t": "2026-10-20T14:21:59.339-04:00",
+   "type": "dialogue_auto_advance",
+   "turn": 315,
+   "tool_call_id": "QNZgjbyWDKXDG02VpS6vx7soRiKpN7iS",
+   "tool": "press",
+   "requested": [
+    "DOWN",
+    "A"
+   ],
+   "sent": [
+    "DOWN",
+    "A"
+   ],
+   "dropped": [],
+   "auto_presses": 3,
+   "pages": [
+    {
+     "state_seq": 7817,
+     "map": "LITTLEROOT TOWN BRENDANS HOUSE 1F",
+     "map_display": "RED's HOUSE 1F",
+     "map_id": [
+      1,
+      0
+     ],
+     "position": {
+      "x": 2,
+      "y": 5
+     },
+     "speaker": "MOM",
+     "speaker_source": "name_prefix",
+     "text": "MOM: How are you doing, RED?\nYou look a little tired."
+    },
+    {
+     "state_seq": 7823,
+     "map": "LITTLEROOT TOWN BRENDANS HOUSE 1F",
+     "map_display": "RED's HOUSE 1F",
+     "map_id": [
+      1,
+      0
+     ],
+     "position": {
+      "x": 2,
+      "y": 5
+     },
+     "speaker": "MOM",
+     "speaker_source": "name_prefix",
+     "text": "I think you should rest a bit."
+    },
+    {
+     "state_seq": 7829,
+     "map": "LITTLEROOT TOWN BRENDANS HOUSE 1F",
+     "map_display": "RED's HOUSE 1F",
+     "map_id": [
+      1,
+      0
+     ],
+     "position": {
+      "x": 2,
+      "y": 5
+     },
+     "speaker": "MOM",
+     "speaker_source": "name_prefix",
+     "text": "MOM: Take care, honey!"
+    }
+   ],
+   "stop": "field_free",
+   "detail": "the conversation closed and field controls are free",
+   "duration_ms": 7127
+  },
+  {
+   "v": 1,
+   "run": "2026-10-20T13-54-28_qwen36-gpu0_b300",
+   "seq": 7839,
+   "t": "2026-10-20T14:21:59.376-04:00",
+   "type": "tool_result",
+   "state_seq": 7838,
+   "turn": 315,
+   "id": "QNZgjbyWDKXDG02VpS6vx7soRiKpN7iS",
+   "name": "press",
+   "is_error": false,
+   "duration_ms": 7164,
+   "text": "Read from game memory, always true:\nStory goal: \"Well, it's time to head back to the LAB.\" (MAY, turn 274) -> \"LAB\" = PROF. BIRCH'S POKéMON LAB (map 1/4). No direct entrance to this destination is lis",
+   "frames": [
+    {
+     "path": "frames/007839_0.png",
+     "sha1": "f566d59e5d30748167d7c2e158ec175529b69745"
+    }
+   ]
+  }
+ ]
+}

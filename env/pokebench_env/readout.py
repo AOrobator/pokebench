@@ -109,6 +109,7 @@ SERVER_FEATURES = (
     "party-item-confirmation-v1",
     "yes-no-answer-readout-v1",
     "field-move-gates-v1",
+    "exit-labels-v3",
     "move-learn-settle-v1",
     "move-learn-question-v1",
     "move-learn-comparison-v1",
@@ -134,7 +135,8 @@ def features_off_from_env(env: Mapping[str, str]) -> frozenset[str]:
         "surf-gated-exits-v2,battle-effective-damage-v1,safe-navigation-strides-v1,evolution-decision-v1,original-speed-pacing-v1,"
         "semantic-navigation-v2,exit-labels-v2,heal-before-trainers-v2,respawn-readout-v1,"
         "caught-nickname-prompt-v1,party-item-confirmation-v1,yes-no-answer-readout-v1,"
-        "field-move-gates-v1,move-learn-settle-v1,move-learn-question-v1,move-learn-comparison-v1",
+        "field-move-gates-v1,exit-labels-v3,move-learn-settle-v1,move-learn-question-v1,"
+        "move-learn-comparison-v1",
     )
     if raw == "":
         return frozenset()
@@ -240,6 +242,8 @@ def format_readout(
     # exit-labels-v2: every destination named as the location popup names it (a displayed
     # place name first), plus arrival reach for warps whose destination shares its name.
     labels = state.exit_labels if destinations is not None and EXIT_LABELS not in off else None
+    sections = state.exit_sections if "exit-labels-v3" not in off else None
+    warp_labels = {} if sections is None else {(w.x, w.y): w.label for w in sections.warps}
     if labels is not None and destinations is not None:
         destinations = {**labels.name_map(), **destinations}
     # The game's own dynamic warp (SaveBlock1.dynamicWarp) for MAP_DYNAMIC warps; ON side only.
@@ -446,7 +450,10 @@ def format_readout(
         for m in state.party or ()
     )
     location = places.get(state.map_id) if state.map_id is not None else None
-    lines += [f"Player: {state.name}", f"Location: {location or state.location}"]
+    lines += [
+        f"Player: {state.name}",
+        f"Location: {sections.current if sections is not None else location or state.location}",
+    ]
     if "live-player-position-v1" not in off:
         lines.append(f"Position: X={x}, Y={y}{facing}")
     # tutorial-party-owner-v1: an owner that could not be established is None (OFF: "unknown").
@@ -521,6 +528,7 @@ def format_readout(
                 edge_walls=edge_walls,
                 counters=counters,
                 destinations=destinations,
+                warp_labels=warp_labels,
                 dynamic=dynamic,
                 next_tiles=neighbours,
                 # A local-map fallback keeps its legend: the prompt describes the whole map.
@@ -528,6 +536,12 @@ def format_readout(
             )
             if shown is not None
             else state.local_map
+        )
+    if sections is not None:
+        lines.append(
+            "Terrain sections distinguish areas of the same map; "
+            "arrows preserve one-way movement. Terrain paths do not account for "
+            "temporary objects and scripts."
         )
     if state.world_context is not None:
         context = state.world_context.text(
@@ -601,13 +615,26 @@ def format_readout(
         at = f"({tile[0]},{tile[1]})"
         if target is None or target.destination is None:
             return at
+        if tile in warp_labels:
+            return f"{at} -> {warp_labels[tile]}"
         g, n, _ = target.destination
         if (g, n) == (127, 127):
             return f"{at} -> {dynamic or 'dynamic destination'}"
         return f"{at} -> {names.get((g, n), f'map {g}/{n}')} (map {g}/{n})"
 
     def connection_name(key: ConnectionKey) -> str:
-        direction, (g, n), _ = key
+        direction, (g, n), offset = key
+        if sections is not None:
+            label = next(
+                (
+                    c.label
+                    for c in sections.connections
+                    if (c.direction, c.offset, c.destination) == (direction, offset, (g, n))
+                ),
+                None,
+            )
+            if label is not None:
+                return f"{direction} edge -> {label}"
         return f"{direction} edge -> {names.get((g, n), f'map {g}/{n}')} (map {g}/{n})"
 
     if field is not None:
@@ -624,6 +651,7 @@ def format_readout(
                 named=named_interactions and "named-interactions-v1" not in off,
                 destinations=destinations,
                 dynamic=dynamic,
+                warp_label=warp_labels.get((t.x, t.y)) if t.kind == "warp" else None,
             )
             + warp_note(t)
             + (
@@ -644,13 +672,40 @@ def format_readout(
         lines.append(
             "Map topology: unavailable"
             if state.topology is None
-            else state.topology.text(notes or None, targets=SEMANTIC_V2 not in off)
+            else state.topology.text(
+                notes or None,
+                targets=SEMANTIC_V2 not in off,
+                labels=None
+                if sections is None
+                else {
+                    i: label.label
+                    for i, connection in enumerate(state.topology.connections)
+                    for label in sections.connections
+                    if (label.direction, label.offset, label.destination)
+                    == (connection.direction, connection.offset, connection.destination)
+                },
+            )
         )
         if state.interaction_targets is not None:
             # ON reuses the same provenance-filtered owner as the map and interaction lines.
             # OFF preserves the incumbent internal-map-table rendering byte for byte (names).
             for target in state.interaction_targets:
                 if target.destination is not None:
+                    if (
+                        sections is not None
+                        and (
+                            section_exit := next(
+                                (w for w in sections.warps if (w.x, w.y) == (target.x, target.y)),
+                                None,
+                            )
+                        )
+                        is not None
+                    ):
+                        lines.append(
+                            f"Warp destination at ({target.x},{target.y}): "
+                            f"{section_exit.label}{warp_note(target)}. {section_exit.detail}"
+                        )
+                        continue
                     g, n, _ = target.destination
                     name = (
                         dynamic or "dynamic destination"
@@ -760,6 +815,7 @@ def state_json(state: GameState) -> dict[str, object]:
         "name": state.name,
         "location": state.location,
         **_location_display(state),
+        **({} if state.exit_sections is None else {"exit_sections": state.exit_sections.json()}),
         "map_id": None if state.map_id is None else list(state.map_id),
         "position": None
         if state.position is None

@@ -29,6 +29,7 @@ from pokebench_env.game_screen import ReadMemory, read_screen
 from pokebench_env.gba_text import GBA_TEXT, decode_text
 from pokebench_env.heal_trainers import HealFacts, read_heal_facts
 from pokebench_env.live_map import MAP_OFFSET, FullMap, LocalMap, read_full_map, read_local_map
+from pokebench_env.map_sections import ExitSections, read_exit_sections
 from pokebench_env.move_learn import MoveLearning, read_move_learning
 from pokebench_env.naming import NamingState, editor_open, read_naming
 from pokebench_env.offscreen_objects import MapObject, read_offscreen_objects
@@ -167,6 +168,7 @@ class GameState:
     mid_frame: bool = False
     # exit-labels-v2: popup names for warp destinations and arrival reach; None when off.
     exit_labels: ExitLabels | None = None
+    exit_sections: ExitSections | None = None
     # field-move-gates-v1: the map's obstacles, capabilities and gated flood; None when off.
     field_obstacles: FieldObstacles[ConnectionKey] | None = None
     # move-learn-question-v1 / move-learn-comparison-v1: the open move-learning choice; text only.
@@ -303,6 +305,7 @@ def read_game_state(
     semantic_navigation_enabled: bool = False,
     evolution_decision_enabled: bool = False,
     exit_labels_enabled: bool = False,
+    exit_sections_enabled: bool = False,
     caught_nickname_enabled: bool = False,
     party_item_confirmation_enabled: bool = False,
     field_moves_enabled: bool = False,
@@ -585,6 +588,22 @@ def read_game_state(
             read, save1, save2, map_id, party, whole_map=heal_trainers_v2_enabled
         )
         if heal_trainers_enabled and screen.kind == "overworld" and not in_battle
+        else None,
+        exit_sections=read_exit_sections(
+            read,
+            map_id,
+            (x, y),
+            lambda m: (
+                place_name(maps.name(m), gender, player) if displayed_names_enabled else None
+            )
+            or section_name(read, m),
+            None if gates is None else (gates.caps, save1, maps.name),
+            None if gates is None else gates.rules(),
+        )
+        if exit_sections_enabled
+        and nearby is not None
+        and screen.kind == "overworld"
+        and not in_battle
         else None,
         exit_labels=read_exit_labels(
             read,

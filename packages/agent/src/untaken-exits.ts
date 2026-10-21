@@ -1,6 +1,7 @@
 // untaken-exits-v1: right under the readout's Location/Position lines, every exit on the current map (warps from the
 // game's own warp events, and map connections where the readout shows them) that this run has not used yet.
 // Facts only, from recorded states; nothing clipped.
+import {sectionWarp,sectionConnection} from "./exit-section-labels.js";
 import type {AgentTool,AgentToolResult} from "@mariozechner/pi-agent-core";
 import type {RunEvent} from "./events.js";
 import {ExitHistory,mapKey,readoutNames,tileKey,warpsOf} from "./exit-history.js";
@@ -12,7 +13,7 @@ import type {RunRecorder} from "./recorder.js";
 import {connectionArgument,semanticWalk,targetSuffix,uniqueDirection,uniqueTile} from "./semantic-targets.js";
 
 export const UNTAKEN_HEADER="Exits here you have not taken";
-type Snapshot=Pick<GameStateSnapshot,"started"|"screen"|"location"|"map_id"|"position"|"interaction_targets"|"topology"|"surf_gate"|"exit_reach">;
+type Snapshot=Pick<GameStateSnapshot,"started"|"screen"|"location"|"map_id"|"position"|"interaction_targets"|"topology"|"surf_gate"|"exit_reach"|"exit_sections">;
 const EDGES=new Set(["NORTH","SOUTH","EAST","WEST"]);
 
 export class UntakenExits {
@@ -34,7 +35,7 @@ export class UntakenExits {
   const map=mapKey(state.map_id),semantic=this.features["semantic-navigation-v2"];
   const groups=new Map<string,{tiles:string[];warps:{x:number;y:number}[];destination:readonly number[];taken:boolean}>();
   for(const warp of warpsOf(state)){
-   const key=JSON.stringify(warp.destination);
+   const key=this.features["exit-labels-v3"]?`${String(warp.x)},${String(warp.y)}`:JSON.stringify(warp.destination);
    const group=groups.get(key)??{tiles:[],warps:[],destination:warp.destination,taken:false};
    // semantic-navigation-v2: each warp tile with the target navigate_to_target takes.
    group.tiles.push(`(${tileKey(warp.x,warp.y)})${semantic&&uniqueTile(state.interaction_targets,"warp",warp.x,warp.y)?targetSuffix(JSON.stringify({kind:"warp",x:warp.x,y:warp.y})):""}`);group.warps.push(warp);
@@ -54,8 +55,8 @@ export class UntakenExits {
   // exit-reachability-v1: a doorway prints only its tiles not labelled none; off, every tile as before.
   const shown=(g:{tiles:string[];warps:{x:number;y:number}[]}):string[]=>this.features["exit-reachability-v1"]?g.tiles.filter((_,i)=>{const w=g.warps[i];return w===undefined||block.warpCut(w.x,w.y)!=="none";}):g.tiles;
   const open=[
-   ...warps.filter(g=>!g.taken).map(g=>`${shown(g).join(" or ")} -> ${mapKey(g.destination)==="127/127"?"dynamic destination":this.place(g.destination)}`),
-   ...connections.filter(c=>!this.history.crossed(map,mapKey(c.destination))).map(c=>`${c.direction}${EDGES.has(c.direction)?" edge":""} -> ${this.place(c.destination)}${semantic&&(c.edges?.length??0)>0&&uniqueDirection(state.topology?.connections,c.direction)?targetSuffix(connectionArgument(c.direction)):""}`),
+   ...warps.filter(g=>!g.taken).map(g=>`${shown(g).join(" or ")} -> ${mapKey(g.destination)==="127/127"?"dynamic destination":(sectionWarp(state,g.warps[0]?.x??-1,g.warps[0]?.y??-1,this.features["exit-labels-v3"])??this.place(g.destination))}`),
+   ...connections.filter(c=>!this.history.crossed(map,mapKey(c.destination))).map(c=>`${c.direction}${EDGES.has(c.direction)?" edge":""} -> ${sectionConnection(state,c,this.features["exit-labels-v3"])??this.place(c.destination)}${semantic&&(c.edges?.length??0)>0&&uniqueDirection(state.topology?.connections,c.direction)?targetSuffix(connectionArgument(c.direction)):""}`),
   ];
   const none=warps.length+connections.length>0?`none (you have taken every exit ${across>0?"you can walk to ":""}on this map this run)`:across>0?`none you can walk to (${why})`:"none (no exits are listed on this map)";
   return `${UNTAKEN_HEADER}: ${open.length===0?none:open.join("; ")}`;

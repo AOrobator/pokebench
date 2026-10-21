@@ -71,7 +71,7 @@ No new inputs, subprocesses, network or file access. Reads only ROM tables and w
 - [x] COMMIT: `test: effectiveness-heard-v1 and game-said-goals-v1 on the recorded ROXANNE battle and DOUBLE KICK prompt (RED)` (de1b4c1c). RED: the modules do not exist (import failure at collection).
 - [x] Implement: `effectiveness-heard.ts` (EffectivenessHeard fold, decision-screen helpers, shared appended-part wrapper over observe/press/navigate_to/battle_action/choose_evolution and semantic walks), `game-said-goals.ts` (BattleOutcomes + GymReadiness folds, open = latest trainer battle lost or drawn), GymReadiness exposes seenLine/saidOn/isLeaderMap (its own block byte-identical, gym-readiness tests unchanged and green), play-wiring wraps both around navigate-first so choose_evolution is covered.
 - [x] Gates: `just lint` ok; `just coverage` agent 3099 tests 97.15/92.9/97.56/99.18 (both new modules 100%), viewer 1515, pytest 3546, Python lines 97.25 branches 92.96 functions 100.
-- [x] COMMIT GREEN
+- [x] COMMIT: `feat: effectiveness-heard-v1 records what the game said after the player's moves and game-said-goals-v1 lists the battles the game left open, at move choices (default off)` (79414255)
 
 **M6 — bundle arms, pending experiments, explainers, review, land**
 - [ ] Bundle arms (3 definitions), experiments/<id>.json ×5, readiness rows
@@ -83,6 +83,8 @@ No new inputs, subprocesses, network or file access. Reads only ROM tables and w
 ## Closing the Loop
 
 ## Session Log
+
+- 2026-10-21: merged local main 951c8efa (70 commits: exit-labels-v3, navigation-tool-use-guard-v1, semantic-current-map-feedback-v1, short-cycle-fixed-point-v1). Registry collateral taken from main and re-applied (five ids after short-cycle-fixed-point-v1; server ids after exit-labels-v3); source conflicts in game_state.py/readout.py were import and list order only. Post-merge: agent 3191, pytest 3560, all green.
 
 ## Surprises
 

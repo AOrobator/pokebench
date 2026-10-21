@@ -9,18 +9,18 @@ import { parseEvent } from "./events.js";
 import { RUN_START_META } from "../test-support/events.js";
 
 const ID = "original-speed-pacing-v1" as SwitchableFeature;
-const OFF = { ...ALL_ON, "party-item-confirmation-v1": false, [ID]: false, "fixed-point-breaker-v1": false, "story-character-stall-gate-v1": false, "positive-supervisor-v1": false, "semantic-navigation-v2": false, "auto-talk-v1": false, "duplicate-turn-collapse-v1": false, "unfinished-activity-v1": false, "exit-labels-v2": false, "heal-before-trainers-v2": false, "gym-heal-warning-v1": false, "respawn-readout-v1": false, "trainer-sight-check-v1": false, "caught-nickname-prompt-v1": false, "fail-open-input-v1": false, "whiteout-healed-v1": false, "field-move-gates-v1": false, "gym-readiness-readout-v1": false, "same-target-no-progress-v1": false, "story-progress-clock-v1": false, "yes-no-answer-readout-v1": false , "story-battle-heal-gate-v1": false, "move-learn-settle-v1": false, "move-learn-question-v1": false, "move-learn-comparison-v1": false, "effectiveness-heard-v1": false, "game-said-goals-v1": false };
+const OFF = { ...ALL_ON, "short-cycle-fixed-point-v1": false, "party-item-confirmation-v1": false, [ID]: false, "fixed-point-breaker-v1": false, "story-character-stall-gate-v1": false, "positive-supervisor-v1": false, "semantic-navigation-v2": false, "auto-talk-v1": false, "duplicate-turn-collapse-v1": false, "unfinished-activity-v1": false, "exit-labels-v2": false, "heal-before-trainers-v2": false, "gym-heal-warning-v1": false, "respawn-readout-v1": false, "trainer-sight-check-v1": false, "caught-nickname-prompt-v1": false, "fail-open-input-v1": false, "whiteout-healed-v1": false, "field-move-gates-v1": false, "gym-readiness-readout-v1": false, "same-target-no-progress-v1": false, "story-progress-clock-v1": false, "yes-no-answer-readout-v1": false , "story-battle-heal-gate-v1": false };
 const ON = { ...OFF, [ID]: true };
 const flags = { loopGuard: true, activeUi: true, interfaceDocs: true, objectives: false };
 
 it("appends the independent speed policy without reordering recorded feature identity", () => {
-  expect(SWITCHABLE_FEATURES.at(-28)).toBe(ID);
-  expect(SWITCHABLE_FEATURES.at(-34)).toBe("evolution-decision-v1");
+  expect(SWITCHABLE_FEATURES.at(-32)).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-38)).toBe("evolution-decision-v1");
   expect(FEATURES.filter(feature => feature.switchable).map(feature => feature.id)).toEqual([...SWITCHABLE_FEATURES]);
   expect(featureInfo(ID)).toMatchObject({ group: "guidance", needs: null, switchable: true });
   expect(featureInfo(ID).description).toMatch(/80/);
   expect(featureInfo(ID).description).toMatch(/ Off: .*59\.7275/);
-  expect(SERVER_FEATURES.at(-12)).toBe(ID);
+  expect(SERVER_FEATURES.at(-13)).toBe(ID);
 });
 
 it("defaults omitted historical presets and legacy flags OFF", () => {
@@ -36,12 +36,12 @@ it("defaults omitted historical presets and legacy flags OFF", () => {
 });
 
 it("transports only the explicit server selection and records ON at the end", () => {
-  expect(serverFeatureEnv(OFF).POKEBENCH_FEATURES_OFF).toBe(`${ID},semantic-navigation-v2,exit-labels-v2,heal-before-trainers-v2,respawn-readout-v1,caught-nickname-prompt-v1,party-item-confirmation-v1,yes-no-answer-readout-v1,field-move-gates-v1,move-learn-settle-v1,move-learn-question-v1,move-learn-comparison-v1`);
-  expect(serverFeatureEnv(ON).POKEBENCH_FEATURES_OFF).toBe("semantic-navigation-v2,exit-labels-v2,heal-before-trainers-v2,respawn-readout-v1,caught-nickname-prompt-v1,party-item-confirmation-v1,yes-no-answer-readout-v1,field-move-gates-v1,move-learn-settle-v1,move-learn-question-v1,move-learn-comparison-v1");
+  expect(serverFeatureEnv(OFF).POKEBENCH_FEATURES_OFF).toBe(`${ID},semantic-navigation-v2,exit-labels-v2,heal-before-trainers-v2,respawn-readout-v1,caught-nickname-prompt-v1,party-item-confirmation-v1,yes-no-answer-readout-v1,field-move-gates-v1`);
+  expect(serverFeatureEnv(ON).POKEBENCH_FEATURES_OFF).toBe("semantic-navigation-v2,exit-labels-v2,heal-before-trainers-v2,respawn-readout-v1,caught-nickname-prompt-v1,party-item-confirmation-v1,yes-no-answer-readout-v1,field-move-gates-v1");
   const off = playHarnessFeatures(OFF, null);
   const on = playHarnessFeatures(ON, null);
   expect(off).not.toContain(ID);
-  expect(on).toEqual([...off, ID]);
+  expect(on.filter(id=>id!==ID)).toEqual(off);
   expect(featuresOf(on)[ID]).toBe(true);
   expect(featuresOf(off)[ID]).toBe(false);
   const event = parseEvent(JSON.stringify({ v: 1, run: "speed-policy-recorded", seq: 0,

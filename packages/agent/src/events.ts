@@ -245,10 +245,16 @@ const PeopleIdCard = event("people_id_card", {
 });
 
 // fixed-point-breaker-v1: duplicate turns collapsed from a request (stage 1), or the note it ended with (stage 2).
-const LoopBreaker = event("loop_breaker", {
-  stage: Type.Enum([1, 2] as const), trigger: Type.Enum(["fixed_point", "no_tool_call"] as const),
-  repeats: Type.Integer({ minimum: 1 }), collapsed: NonNegativeInt, text: Type.Union([Type.String({ minLength: 1 }), Type.Null()]),
-});
+// short_cycle: short-cycle-fixed-point-v1, turns repeating a cycle of `period` (calls, state) turns.
+const LoopBreakerFields = {
+  stage: Type.Enum([1, 2] as const), repeats: Type.Integer({ minimum: 1 }), collapsed: NonNegativeInt,
+  text: Type.Union([Type.String({ minLength: 1 }), Type.Null()]),
+};
+// A short_cycle record always names its cycle's period; the other triggers have none.
+const LoopBreaker = Type.Union([
+  event("loop_breaker", { ...LoopBreakerFields, trigger: Type.Enum(["fixed_point", "no_tool_call"] as const) }),
+  event("loop_breaker", { ...LoopBreakerFields, trigger: Type.Literal("short_cycle"), period: Type.Integer({ minimum: 2, maximum: 4 }) }),
+]);
 
 // fixed-point-breaker-v1 stage 3: the harness walked to the nearest untalked person (or sign) and pressed A.
 const AutoTalk = event("auto_talk", {
@@ -479,6 +485,11 @@ export const ResourcesSchema=Type.Object({
 export const RawRamReferenceSchema = Type.Object({v:Type.Literal(1), sequence:NonNegativeInt, frame:NonNegativeInt, path:Type.String({pattern:"^raw-ram/[0-9]{8,}\\.json\\.gz$"}), sha256:Type.String({pattern:"^[0-9a-f]{64}$"})},closed);
 export const StateBodySchema = Type.Object(
   {
+    exit_sections: Type.Optional(Type.Object({
+      current:Type.String(),
+      warps:Type.Array(Type.Object({x:NonNegativeInt,y:NonNegativeInt,label:Type.String(),detail:Type.String()},closed),{maxItems:64}),
+      connections:Type.Array(Type.Object({direction:Type.String(),offset:Type.Integer(),destination:Type.Tuple([NonNegativeInt,NonNegativeInt]),label:Type.String()},closed),{maxItems:16}),
+    },closed)),
     raw_ram: Type.Optional(RawRamReferenceSchema),
     // warp-arrival-settle-v1 ON only: emulated frames the observation waited and why the wait ended.
     settle: Type.Optional(Type.Object({ frames: NonNegativeInt, reason: Type.Enum(["immediate", "paused", "fade", "warp", "fade_bound", "warp_bound", "input_hold", "move_learning", "move_learning_bound"]) }, closed)),
@@ -785,6 +796,8 @@ export type RunEvent = Static<typeof RunEventSchema>;
 type EnvelopeKey = "v" | "run" | "seq" | "t";
 export type EventBody = RunEvent extends infer E ? (E extends RunEvent ? Omit<E, EnvelopeKey> : never) : never;
 export type BodyOf<T extends RunEvent["type"]> = Omit<Extract<RunEvent, { type: T }>, EnvelopeKey>;
+// A loop_breaker body as its producers write it: one variant per trigger, so a short_cycle body carries its period.
+export type LoopBreakerBody = Extract<RunEvent, { type: "loop_breaker" }> extends infer E ? E extends unknown ? Omit<E, EnvelopeKey | "type" | "turn"> : never : never;
 
 // The union members for each event type, so a problem is reported against the event's own schema.
 const MEMBERS = new Map<string, TSchema[]>();

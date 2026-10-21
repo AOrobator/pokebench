@@ -278,6 +278,9 @@ FAIL. Local inference reviewers not used. HEAD/status verified unchanged before 
   string. Gates on the merged tip: just lint 0, just build 0, just coverage 0, verify-vendor OK. Tests: env
   3470; agent 3046; viewer 1459. Coverage: env 97.21 / 92.86 / 100; agent 97.13 / 92.97 / 97.59 / 99.14;
   viewer 95.14 / 91.07 / 93.84 / 97.72.
+  COMMIT: `Merge branch 'main' into claude/field-move-gates` (bcbb73f0); fifth sync, main 24648e12 (probes
+  viewer page, clean merge). Gates on this tip: lint 0, build 0, coverage 0 (env 3470, agent 3046, viewer
+  1499; viewer 95.23 / 91.05 / 94.14 / 97.8, other stacks unchanged).
 
 ## Session Log
 

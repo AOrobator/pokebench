@@ -1037,6 +1037,27 @@ it("serves the reports page, the report list and each report's own files, and no
  expect((await getWithHeaders(viewer,"/reports")).csp).toContain("script-src 'self';");
 });
 
+it("serves the probes page, the probe list and one probe, and refuses unsafe probe ids", async () => {
+  const { runsRoot, viewer } = await fixture();
+  writeFileSync(join(dirname(runsRoot), "static", "probes.html"), "<title>Probes</title>");
+  const dir = join(runsRoot, "probes", "p1");
+  mkdirSync(join(dir, "gpu0"), { recursive: true });
+  writeFileSync(join(dir, "manifest.json"), JSON.stringify({ id: "p1", cases: [{ id: "c1", run: "r1", turn: 1, split: "heldout" }] }));
+  writeFileSync(join(dir, "gpu0", "status.json"), JSON.stringify({ lane: "gpu0", state: "running", completed: 1, planned: 2, started: "2026-10-20T23:00:00.000Z" }));
+  writeFileSync(join(dir, "gpu0", "samples.jsonl"), `${JSON.stringify({ case: "c1", arm: "on", sample: 0, at: "2026-10-20T23:00:01.000Z", elapsedMs: 5, decision: { key: "(text only)", thinking: "" } })}\n`);
+  const page = await get(viewer, "/probes");
+  expect(page.status).toBe(200);
+  expect(page.body.toString()).toContain("<title>Probes</title>");
+  const list = JSON.parse((await get(viewer, "/api/probes")).body.toString()) as { id: string; live: boolean }[];
+  expect(list.map((p) => [p.id, p.live])).toEqual([["p1", true]]);
+  const one = await get(viewer, "/api/probes/p1");
+  expect(one.status).toBe(200);
+  expect((JSON.parse(one.body.toString()) as { samples: unknown[] }).samples).toHaveLength(1);
+  for (const path of ["/api/probes/nope", "/api/probes/..", "/api/probes/%2e%2e", "/api/probes/a%2Fb"]) expect((await get(viewer, path)).status, path).toBe(404);
+  expect((await get(viewer, "/api/probes", { host: "elsewhere.invalid" })).status).toBe(403);
+  expect(BROWSER_MODULES).toEqual(expect.arrayContaining(["probes-view", "probes-main", "probes-boot", "probe-stats"]));
+});
+
 function getWithHeaders(viewer: Viewer, path: string): Promise<{ body: string; csp: string }> {
   return new Promise((resolve, reject) => {
     const req = request({ host: HOST, port: viewer.port, path, headers: { host: `${HOST}:${String(viewer.port)}` } }, (res) => {

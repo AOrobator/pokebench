@@ -1,3 +1,4 @@
+import { ProbeError, listProbes, readProbe } from "./probes.js";
 import { listReports, reportFile } from "./reports.js";
 import { existsSync, readFileSync } from "node:fs";
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
@@ -32,7 +33,7 @@ import { SharedFrameHub } from "./frame-hub.js";
 export const HOST = "127.0.0.1";
 const EXPERIMENTS_CACHE_MS = 5_000;
 // Browser code the page may load; everything else in dist/ stays private.
-export const BROWSER_MODULES = ["main", "app", "metric-history", "model", "format", "inspectformat", "timeline", "panels", "gba", "replay", "controls", "nextpanel", "human-input", "human-play", "human-main", "workbench-main", "workbench", "workbench-view", "workbench-data", "frontier", "frontier-versions", "frontier-legend", "queue-view", "trace", "run-head", "trainer-card", "game-font", "card-dom", "phone", "reports-view", "reports-main", "reports-boot"] as const;
+export const BROWSER_MODULES = ["main", "app", "metric-history", "model", "format", "inspectformat", "timeline", "panels", "gba", "replay", "controls", "nextpanel", "human-input", "human-play", "human-main", "workbench-main", "workbench", "workbench-view", "workbench-data", "frontier", "frontier-versions", "frontier-legend", "queue-view", "trace", "run-head", "trainer-card", "game-font", "card-dom", "phone", "reports-view", "reports-main", "reports-boot", "probe-stats", "probes-view", "probes-main", "probes-boot"] as const;
 
 const MODULE_NAME = new RegExp(`^(${BROWSER_MODULES.join("|")})\\.js$`);
 const FRAME_NAME = /^\d{6}_\d+\.png$/;
@@ -412,6 +413,23 @@ async function route(req: IncomingMessage, res: ServerResponse, options: ViewerO
   if (head === "reports" && second !== undefined) {
     const found = reportFile(options.runsRoot, second, parts.slice(2).filter((part, i, all) => !(part === "" && i === all.length - 1)));
     if (found === null) sendJson(res, 404, { error: "not found" }); else sendReport(res, found.path, found.type);
+    return;
+  }
+  if (parts.length === 1 && head === "probes") {
+    sendFile(res, join(options.staticDir, "probes.html"), "text/html; charset=utf-8");
+    return;
+  }
+  if (parts.length === 2 && head === "api" && second === "probes") {
+    sendJson(res, 200, listProbes(options.runsRoot));
+    return;
+  }
+  if (parts.length === 3 && head === "api" && second === "probes") {
+    try {
+      sendJson(res, 200, await readProbe(options.runsRoot, id ?? ""));
+    } catch (error) {
+      if (!(error instanceof ProbeError)) throw error;
+      sendJson(res, 404, { error: error.message });
+    }
     return;
   }
   if (parts.length === 1 && head === "comparisons") {

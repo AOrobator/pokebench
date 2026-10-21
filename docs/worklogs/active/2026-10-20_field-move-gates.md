@@ -179,9 +179,36 @@ Review cadence: the worklog runs the multi-model review once, in M4, on the whol
 (M1-M3 gates are recorded per milestone).
 
 **M4 — audit test, explainer, review**
-- [ ] Fixture of the audit's 81 maps (expected obstacles and cut-off exits) checked against the live
+- [x] Fixture of the audit's 81 maps (expected obstacles and cut-off exits) checked against the live
       server on the save states we have.
-- [ ] Explainer `docs/explainers/field-move-gates-v1.html` with diagrams.
+      COMMIT: `feat: field-move-gates-v1 ...planners...` (65d2cf0e) closed M3.
+      env/tests/env/fixtures/field-moves-audit.json (from the research final.json, computed from the
+      decomp's map.json/map.bin, not the server) and test_field_move_audit.py (247 cases): every map's
+      size, obstacle objects, slope/cracked/water tile counts match through the server's ROM path; the
+      audit's cut-offs are none (Rusturf from (4,10): (29,16),(18,20); B1F from (4,21): (8,5),(12,3),
+      (29,2); Route 115 from (21,6): (36,10)); no other map has an exit an object cuts off (Rusturf from
+      the east also cuts (4,10)); INV-2 from every warp of every map. No RED phase: verification of M2.
+      Live server (just probe on recorded checkpoints, isolated run dirs under the scratchpad, port
+      8933, 127.0.0.1, stopped after; POKEBENCH_FEATURES_OFF "" = on, "field-move-gates-v1" = off):
+      PETALBURG_WOODS (petalburg2h-r1-whole-map) ON: "Field obstacles on this map (from the map's own
+      object list and its tiles):" / "- CUTTABLE_TREE at (19,10) and (19,11): it needs a field move you
+      cannot use yet; the game says: "This tree looks like it can be CUT down!"", all six warps foot;
+      OFF: no block, no field_obstacles, same six foot labels. ROUTE_104 (petalburg-rerun-b) ON: "-
+      CUTTABLE_TREE at (35,22): ...". No checkpoint exists in Rusturf; the Rusturf smoke is the
+      server's rerender entrypoint (python -m pokebench_env.rerender) on a8f9 raw-ram/00022846: ON adds
+      the header and "- BREAKABLE_ROCK at (24,4) and (24,5) close every way on foot to (29,16) ->
+      VERDANTURF TOWN (map 0/14) and (18,20) -> ROUTE116 (map 0/31): it needs a field move you cannot
+      use yet; the game says: "It's a rugged rock, but a POKéMON may be able to smash it."", the two
+      warp notes and "(not reachable on foot from where you stand)" on their destination lines; OFF
+      prints neither. (just probe-decision cannot read a8f9: its events.jsonl exceeds a JS string.)
+- [x] Explainer `docs/explainers/field-move-gates-v1.html` with diagrams (Rusturf off/on drawn from the
+      a8f9 RAM, gate decision, wiring, gate table, audit). just pages-check prints nothing; opened
+      locally; README entry; FEATURE_EXPLAINERS mapping with panels.test.ts and server.test.ts cases.
+      Not done: the live READ EXPLAINER click in the 8790 viewer (main build; it is not restarted from
+      a branch; check after landing with just viewer-main).
+  M3 follow-up in this commit: a tsc narrowing error in a test closure (field possibly undefined).
+  Gates: just lint 0, just coverage 0. Tests: env 3301; agent 2992; viewer 1438. Coverage: env 97.19
+  / 92.79 / 100; agent 97.11 / 92.89 / 97.62 / 99.15; viewer 95.09 / 91.07 / 93.85 / 97.7.
 - [ ] Review loop: principles, Claude, Grok, GPT/Codex; then ask the coordinator for the merge slot.
 
 ## Deferred

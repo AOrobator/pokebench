@@ -213,8 +213,10 @@ describe("field-move-gates-v1 obstacle wording",()=>{
   expect(passesText([rock,slope,tree])).toBe(`every way to it on this map passes BREAKABLE_ROCK at (24,5) or slope tiles (metatile behavior 0xD0) at (9,9) or CUTTABLE_TREE at (3,3), which needs a field move or an item you cannot use yet; the game says: "${ROCK_TEXT}" and "This tree looks like it can be CUT down!"`);
  });
  it("an open or unknown obstacle, or a beyond mask of the wrong size, names nothing",()=>{
-  const s=ON_STATE(),field=s.field_obstacles;if(field==null)throw new Error("no field_obstacles");
-  const with_=(change:(o:typeof field.obstacles[number])=>typeof field.obstacles[number]):GameStateSnapshot=>({...s,field_obstacles:{...field,obstacles:field.obstacles.map(change)}});
+  const s=ON_STATE(),given=s.field_obstacles;if(given==null)throw new Error("no field_obstacles");
+  const field=given;
+  type Entry=typeof field.obstacles[number];
+  const with_=(change:(o:Entry)=>Entry):GameStateSnapshot=>({...s,field_obstacles:{...field,obstacles:field.obstacles.map(change)}});
   const gates={surf:true,reach:true,gates:true};
   expect(exitBlock(gates,with_(o=>({...o,open:null}))).obstacles(29,16)).toBeNull();
   expect(exitBlock(gates,with_(o=>({...o,open:true}))).obstacles(29,16)).toBeNull();

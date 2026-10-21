@@ -63,8 +63,9 @@ No new subprocesses, network calls or file paths. RAM reads go through `pokebenc
 - [ ] COMMIT (RED) · Implement · Gates · COMMIT (GREEN) · Review
 
 **M3 — Cut-off reply feedback**
-- [ ] Write tests from ad34 s13818–s14998 and e9ee s9146: next turn names the cut-off; switch off sends NUDGE
-- [ ] COMMIT (RED) · Implement · Gates · COMMIT (GREEN) · Review
+- [x] Write tests (`cut-off-reply.test.ts`): notice text per tool set; Governor sends it after a length stop with no tool call, NUDGE otherwise, OFF unchanged, failure count unchanged, text-only supervisor note still wins; decision probes rebuild the same follow-up (`followUpText`); live.ts and decision-probe.ts wiring
+- [x] COMMIT (RED): `test: cut-off replies are named in the next message (RED)`
+- [ ] Implement · Gates · COMMIT (GREEN) · Review
 
 **M4 — Trainer sight for navigate_to_target**
 - [ ] Write tests from e9ee s8193/s10444/s10997 and acfa route 102 calls

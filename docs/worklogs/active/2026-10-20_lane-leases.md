@@ -16,7 +16,7 @@
 - [x] GREEN: per-lane `holdLease`/`releaseLease` in the fixed runner; `commit` option; `singleArm` phase + `soloDefinition`; `fixed-run rerun`; dropdown SOLO label. Viewer 1450, agent 3013 pass.
 - [x] Gates: lint clean (pnpm + ruff/mypy via main's venv); viewer coverage 95.14/91.06/93.84 lines/branches/functions; pytest 2767 pass, 1 needs POKEBENCH_ROM from .env (no Python changed)
 - [x] Fake-data rehearsal: two real processes on a temp runs root with the v5 definition (reserve 0). Parent lane B blocked on reserve with its lease free; the rerun `rehearsal-v5-solo-bundle-b-1` took lane B's lease and played valid while the parent held lane A; after stop no lease dirs remained. Evidence: runs/reviews/lane-leases/rehearsal-evidence.log.
-- [ ] Review: Claude + Grok LGTM — running on packet 3454a7dd1201 (runs/reviews/lane-leases/)
+- [x] Review: round 1 on 3454a7dd (Grok LGTM, Claude BLOCKING B1, fixed below). Round 2 on packet faf9d460 (base 5ab3f577, head 68031b00): Claude (subagent; CLI logged out) `VERDICT: LGTM`, Grok (cursor-grok-4.5-high) `VERDICT: LGTM`. GPT/Codex lane waived by the coordinator. Non-blocking follow-ups: test adopt's final children.delete; solo #n check-then-create race; runner.json written before nameLeaseRun. Artifacts: runs/reviews/lane-leases/.
 - [ ] Land ff-only after coordinator slot
 
 ## Review round 1 (packet 3454a7dd)

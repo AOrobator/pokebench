@@ -533,11 +533,20 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "story-battle-heal-first-v1":"story-battle-heal-first-v1.html",
  "pending-field-dialogue-v1":"pending-field-dialogue-v1.html",
  "menu-refusal-recovery-v1":"menu-refusal-recovery-v1.html",
+ "gym-door-label-v1":"gym-door-label-v1.html",
  "move-learn-settle-v1":"move-learn-settle-v1.html",
  "move-learn-question-v1":"move-learn-question-v1.html",
  "move-learn-comparison-v1":"move-learn-comparison-v1.html",
  "effectiveness-heard-v1":"effectiveness-heard-v1.html",
  "game-said-goals-v1":"game-said-goals-v1.html",
+ "mart-stock-readout-v1":"mart-stock-readout-v1.html",
+ "exp-next-level-v1":"exp-next-level-v1.html",
+ "pokedex-own-v1":"pokedex-own-v1.html",
+ "exp-earned-ledger-v1":"exp-earned-ledger-v1.html",
+ "leader-attempt-ledger-v1":"leader-attempt-ledger-v1.html",
+ "seen-trainers-ledger-v1":"seen-trainers-ledger-v1.html",
+ "party-coverage-v1":"party-coverage-v1.html",
+ "said-type-matches-v1":"said-type-matches-v1.html",
 });
 
 export function harnessConfig(view:RunView,registry:readonly FeatureInfo[]=[]):string {

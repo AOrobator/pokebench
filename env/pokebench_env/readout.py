@@ -27,6 +27,8 @@ from pokebench_env.game_state import GameState
 from pokebench_env.levelup_box import SWITCH as LEVELUP_BOX
 from pokebench_env.levelup_box import levelup_clause
 from pokebench_env.map_rules import FEATURE as RULES_FEATURE
+from pokebench_env.mart_stock import SWITCH as MART_STOCK
+from pokebench_env.mart_stock import stock_lines
 from pokebench_env.move_learn import COMPARISON_SWITCH as MOVE_COMPARISON
 from pokebench_env.move_learn import QUESTION_SWITCH as MOVE_QUESTION
 from pokebench_env.move_learn import comparison_lines, question_line
@@ -115,6 +117,8 @@ SERVER_FEATURES = (
     "move-learn-settle-v1",
     "move-learn-question-v1",
     "move-learn-comparison-v1",
+    "gym-door-label-v1",
+    "mart-stock-readout-v1",
     "exp-next-level-v1",
     "pokedex-own-v1",
 )
@@ -140,7 +144,8 @@ def features_off_from_env(env: Mapping[str, str]) -> frozenset[str]:
         "semantic-navigation-v2,exit-labels-v2,heal-before-trainers-v2,respawn-readout-v1,"
         "caught-nickname-prompt-v1,party-item-confirmation-v1,yes-no-answer-readout-v1,"
         "field-move-gates-v1,exit-labels-v3,move-learn-settle-v1,move-learn-question-v1,"
-        "move-learn-comparison-v1,exp-next-level-v1,pokedex-own-v1",
+        "move-learn-comparison-v1,gym-door-label-v1,"
+        "mart-stock-readout-v1,exp-next-level-v1,pokedex-own-v1",
     )
     if raw == "":
         return frozenset()
@@ -225,6 +230,15 @@ def _move_learning_lines(state: GameState, off: frozenset[str]) -> list[str]:
     if MOVE_COMPARISON not in off:
         lines.extend(comparison_lines(learning))
     return lines
+
+
+def _mart_stock_lines(state: GameState, off: frozenset[str]) -> list[str]:
+    """mart-stock-readout-v1, after the Interface line."""
+    if MART_STOCK in off:
+        return []
+    if state.mart_stock_diagnostic is not None:
+        return [f"HARNESS BUG (mart stock): {state.mart_stock_diagnostic}"]
+    return [] if state.mart_stock is None else stock_lines(state.mart_stock, state.money)
 
 
 def format_readout(
@@ -318,6 +332,7 @@ def format_readout(
         if answer is not None:
             lines.append(answer)
         lines.extend(_move_learning_lines(state, off))
+        lines.extend(_mart_stock_lines(state, off))
     if state.resources is not None:
         if expanded and state.resources.bag is not None:
             lines.append(

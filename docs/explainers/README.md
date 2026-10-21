@@ -170,6 +170,14 @@ The original ignored runs/explainers copies remain for existing links. Make futu
 - [Move-learn comparison](move-learn-comparison-v1.html) — bundle-only readout block at those boxes and the forget-a-move list: the learner's types, its moves and the new move with type, kind, power, accuracy, PP and the game's own description.
 - [Effectiveness heard](effectiveness-heard-v1.html) — bundle-only: a record of what the game printed right after the player's moves ("It's not very effective…"), by move and foe with turns, shown at battle decisions and move-learning prompts.
 - [Game-said goals](game-said-goals-v1.html) — bundle-only: at move-learning prompts and the evolution decision, the trainer battles lost and not won since, with the POKéMON seen and the type lines said on that gym map.
+- [Mart stock readout](mart-stock-readout-v1.html) — bundle-only readout block while a shop's buy list is open: every row with the price the list prints and the game's own item description, CANCEL, the highlighted row and the player's money.
+- [EXP next level](exp-next-level-v1.html) — bundle-only server readout: the summary screen's EXP. POINTS and NEXT LV. on each Party entry, repeated in the Training block.
+- [POKéDEX own](pokedex-own-v1.html) — bundle-only server readout: the POKéDEX list's HOENN SEEN and OWN counts and party size, and whether each wild foe is in the OWN list.
+- [EXP earned ledger](exp-earned-ledger-v1.html) — bundle-only Training block part: the EXP. Points the game printed, by battle, for the last 10 battles, with the per-page range for trainers and wild POKéMON.
+- [Leader attempt ledger](leader-attempt-ledger-v1.html) — bundle-only Training block part: each battle with a GYM LEADER side by side (party EXP. Points, BAG, her POKéMON left, outcome, money).
+- [Seen trainers ledger](seen-trainers-ledger-v1.html) — bundle-only Training block part: the trainers listed on maps stood on this run, with the game's trainer flags.
+- [Party coverage](party-coverage-v1.html) — bundle-only, at battle decisions: each move's uses and the effectiveness line printed, by foe type, and the types no move has hit super effectively.
+- [Said type matches](said-type-matches-v1.html) — bundle-only, at battle decisions: foe and party types and moves that a type line the game printed names, quoted with its map.
 - [Story battle heal gate](story-battle-heal-gate-v1.html) — bundle-only guard: while a party Pokémon is below max HP, a press of A, navigate_to_target or navigate_to that would start the Route 103 rival battle or a gym trainer battle (in gyms also a route a trainer can see) is not started; it says so in the game's words with the hurt party and known heal places, and confirm: true goes ahead.
 
 - [Distinct exits and map sections](exit-labels-v3.html): versioned terrain sections, physical exit identities and explicit same-map return relationships.

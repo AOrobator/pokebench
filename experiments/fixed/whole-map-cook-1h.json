@@ -198,7 +198,16 @@
    "move-learn-comparison-v1": false,
    "effectiveness-heard-v1": false,
    "game-said-goals-v1": false,
-   "menu-refusal-recovery-v1": false
+   "menu-refusal-recovery-v1": false,
+   "gym-door-label-v1": false,
+   "mart-stock-readout-v1": false,
+   "exp-next-level-v1": false,
+   "pokedex-own-v1": false,
+   "exp-earned-ledger-v1": false,
+   "leader-attempt-ledger-v1": false,
+   "seen-trainers-ledger-v1": false,
+   "party-coverage-v1": false,
+   "said-type-matches-v1": false
   }
  },
  "switches": [
@@ -268,7 +277,16 @@
   "move-learn-comparison-v1",
   "effectiveness-heard-v1",
   "game-said-goals-v1",
-  "menu-refusal-recovery-v1"
+  "menu-refusal-recovery-v1",
+  "gym-door-label-v1",
+  "mart-stock-readout-v1",
+  "exp-next-level-v1",
+  "pokedex-own-v1",
+  "exp-earned-ledger-v1",
+  "leader-attempt-ledger-v1",
+  "seen-trainers-ledger-v1",
+  "party-coverage-v1",
+  "said-type-matches-v1"
  ],
  "offInBoth": [
   "semantic-navigation-v1",

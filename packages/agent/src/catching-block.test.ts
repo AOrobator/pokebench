@@ -76,6 +76,35 @@ describe("said-type-matches-v1",()=>{
  });
 });
 
+describe("guards on what the catching folds read",()=>{
+ const decisionState=at(SHROOMISH);
+ const wildSeq=SHROOMISH;
+ it("party coverage ignores battles fought with someone else's POKéMON",()=>{
+  const fold=new PartyCoverage();
+  const base=states.find(s=>s.seq===wildSeq);if(base===undefined)throw new Error("fixture");
+  fold.observe({...base,seq:1,party_owner:"tutorial"} as unknown as RunEvent);
+  const lead=base.battle?.battlers?.find(b=>b.position%2===0)?.species??"";
+  fold.observe({type:"dialogue_auto_advance",seq:2,turn:1,pages:[{state_seq:1,text:`${lead} used\nSCRATCH!`,battle_turn:1,battle_message_id:1,map:null,map_id:null,position:null,speaker:null,speaker_source:null}]} as unknown as RunEvent);
+  expect(fold.block(decisionState)??"").not.toContain("SCRATCH used");
+  const own=new PartyCoverage();
+  own.observe({...base,seq:1});
+  own.observe({type:"dialogue_auto_advance",seq:2,turn:1,pages:[{state_seq:1,text:`${lead} used\nSCRATCH!`,battle_turn:1,battle_message_id:1,map:null,map_id:null,position:null,speaker:null,speaker_source:null}]} as unknown as RunEvent);
+  expect(own.block(decisionState)).toContain("SCRATCH used 1");
+ });
+ it("said-type matches keep field pages only, never battle text",()=>{
+  const fold=new SaidTypeMatches();
+  fold.observe({type:"dialogue_auto_advance",seq:1,turn:1,pages:[{state_seq:null,text:"It can't stand GRASS-type moves.",battle_turn:1,battle_message_id:1,map:"ROUTE104",map_id:[0,19],position:null,speaker:null,speaker_source:null}]} as unknown as RunEvent);
+  expect(fold.block(decisionState)).toBeNull();
+  fold.observe({type:"dialogue_auto_advance",seq:2,turn:1,pages:[{state_seq:null,text:"It can't stand GRASS-type moves.",map:"ROUTE104",map_id:[0,19],position:null,speaker:null,speaker_source:null}]} as unknown as RunEvent);
+  expect(fold.block(decisionState)).toContain("said on ROUTE104");
+ });
+ it("said-type matches wait for a ready battle decision",()=>{
+  const fold=feed(new SaidTypeMatches(),SHROOMISH);
+  const busy={...decisionState,battle:{...decisionState.battle,ready:false}} as unknown as GameStateSnapshot;
+  expect(fold.block(busy)).toBeNull();
+ });
+});
+
 describe("the catching blocks say nothing that tells the model what to do",()=>{
  it("has no advice words",()=>{
   const text=[feed(new PartyCoverage(),SHROOMISH).block(at(SHROOMISH)),feed(new SaidTypeMatches(),SHROOMISH).block(at(SHROOMISH))].join("\n");

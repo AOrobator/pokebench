@@ -25,6 +25,7 @@ from pokebench_env.game_screen import ReadMemory
 from pokebench_env.game_state import GameState, MapNames, read_game_state
 from pokebench_env.heal_trainers import SWITCH as HEAL_TRAINERS
 from pokebench_env.heal_trainers import SWITCH_V2 as HEAL_TRAINERS_V2
+from pokebench_env.mart_stock import SWITCH as MART_STOCK
 from pokebench_env.move_learn import COMPARISON_SWITCH as MOVE_COMPARISON
 from pokebench_env.move_learn import QUESTION_SWITCH as MOVE_QUESTION
 from pokebench_env.pokedex_own import SWITCH as POKEDEX_OWN
@@ -86,6 +87,7 @@ def read_state(
         evolution_decision_enabled="evolution-decision-v1" not in off,
         # exit-labels-v2 renames named-warp-destinations-v1's labels, so it needs that switch.
         exit_labels_enabled=EXIT_LABELS not in off and "named-warp-destinations-v1" not in off,
+        gym_door_label_enabled="gym-door-label-v1" not in off,
         exit_sections_enabled="exit-labels-v3" not in off
         and EXIT_LABELS not in off
         and "named-warp-destinations-v1" not in off,
@@ -94,6 +96,7 @@ def read_state(
         # field-move-gates-v1 gates exit-reachability-v1's flood, so it needs that switch.
         field_moves_enabled=FIELD_MOVES not in off and EXIT_REACH not in off,
         move_learning_enabled=not {MOVE_QUESTION, MOVE_COMPARISON} <= off,
+        mart_stock_enabled=MART_STOCK not in off,
         exp_next_enabled=EXP_NEXT not in off,
         pokedex_enabled=POKEDEX_OWN not in off,
         respawn_links=links if RESPAWN not in off else None,

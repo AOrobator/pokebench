@@ -15,7 +15,7 @@ from pokebench_env.battle_details import BattleDetails, read_battle_details
 from pokebench_env.battle_state import BattleState, read_battle_state
 from pokebench_env.character_presence import StoryCharacters, read_story_characters
 from pokebench_env.displayed_names import place_name, player_gender, sign_labeler
-from pokebench_env.exit_labels import ExitLabels, read_exit_labels, section_name
+from pokebench_env.exit_labels import ExitLabels, destination_name, read_exit_labels, section_name
 from pokebench_env.exit_reach import ExitReach, build_exit_reach
 from pokebench_env.field_moves import (
     FieldObstacles,
@@ -30,6 +30,7 @@ from pokebench_env.gba_text import GBA_TEXT, decode_text
 from pokebench_env.heal_trainers import HealFacts, read_heal_facts
 from pokebench_env.live_map import MAP_OFFSET, FullMap, LocalMap, read_full_map, read_local_map
 from pokebench_env.map_sections import ExitSections, read_exit_sections
+from pokebench_env.mart_stock import MartStock, read_mart_stock
 from pokebench_env.move_learn import MoveLearning, read_move_learning
 from pokebench_env.naming import NamingState, editor_open, read_naming
 from pokebench_env.offscreen_objects import MapObject, read_offscreen_objects
@@ -176,6 +177,9 @@ class GameState:
     # move-learn-question-v1 / move-learn-comparison-v1: the open move-learning choice; text only.
     move_learning: MoveLearning | None = None
     move_learning_diagnostic: str | None = None
+    # mart-stock-readout-v1: the open buy list of a normal shop; text only.
+    mart_stock: MartStock | None = None
+    mart_stock_diagnostic: str | None = None
     # exp-next-level-v1: the summary screen's NEXT LV. per party slot; None when off.
     party_next_level: tuple[int | None, ...] | None = None
     # pokedex-own-v1: the POKéDEX counts once the POKéDEX is received; text only, None when off.
@@ -283,6 +287,13 @@ def _move_learning(
         return None, f"harness bug: move learning: {error}"
 
 
+def _mart_stock(read: ReadMemory, save1: int) -> tuple[MartStock | None, str | None]:
+    try:
+        return read_mart_stock(read, save1), None
+    except (ValueError, IndexError) as error:
+        return None, f"harness bug: mart stock: {error}"
+
+
 def _with_training(
     read: ReadMemory, state: "GameState", *, exp_next_enabled: bool, pokedex_enabled: bool
 ) -> "GameState":
@@ -336,10 +347,12 @@ def read_game_state(
     evolution_decision_enabled: bool = False,
     exit_labels_enabled: bool = False,
     exit_sections_enabled: bool = False,
+    gym_door_label_enabled: bool = False,
     caught_nickname_enabled: bool = False,
     party_item_confirmation_enabled: bool = False,
     field_moves_enabled: bool = False,
     move_learning_enabled: bool = False,
+    mart_stock_enabled: bool = False,
     exp_next_enabled: bool = False,
     pokedex_enabled: bool = False,
     respawn_links: LinkCache | None = None,
@@ -510,9 +523,12 @@ def read_game_state(
     learning, learning_diagnostic = (
         _move_learning(read, native_ui, battle, party) if move_learning_enabled else (None, None)
     )
+    stock, stock_diagnostic = _mart_stock(read, save1) if mart_stock_enabled else (None, None)
     state = GameState(
         move_learning=learning,
         move_learning_diagnostic=learning_diagnostic,
+        mart_stock=stock,
+        mart_stock_diagnostic=stock_diagnostic,
         blackout_active=screen.callback2 == 0x08085F59,
         game_stats=_game_stats(read, save1, save2),
         resources=resources,
@@ -625,10 +641,12 @@ def read_game_state(
             read,
             map_id,
             (x, y),
-            lambda m: (
-                place_name(maps.name(m), gender, player) if displayed_names_enabled else None
-            )
-            or section_name(read, m),
+            lambda m: destination_name(
+                maps.name(m),
+                (place_name(maps.name(m), gender, player) if displayed_names_enabled else None)
+                or section_name(read, m),
+                enabled=gym_door_label_enabled,
+            ),
             None if gates is None else (gates.caps, save1, maps.name),
             None if gates is None else gates.rules(),
         )
@@ -642,10 +660,12 @@ def read_game_state(
             map_id,
             targets,
             topology,
-            lambda m: (
-                place_name(maps.name(m), gender, player) if displayed_names_enabled else None
-            )
-            or section_name(read, m),
+            lambda m: destination_name(
+                maps.name(m),
+                (place_name(maps.name(m), gender, player) if displayed_names_enabled else None)
+                or section_name(read, m),
+                enabled=gym_door_label_enabled,
+            ),
             None if gates is None else (gates.caps, save1, maps.name),
         )
         if exit_labels_enabled and nearby is not None

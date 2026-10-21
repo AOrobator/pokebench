@@ -1,3 +1,5 @@
+import { monitorEventLoopDelay } from "node:perf_hooks";
+import { Timing } from "./frame-diagnostics.js";
 import { createHash, randomUUID } from "node:crypto";
 import { createWorkbenchUpdates, type WorkbenchUpdate } from "./workbench-sync.js";
 import { ProbeError, listProbes, readProbe } from "./probes.js";
@@ -665,14 +667,29 @@ export async function startViewer(given: ViewerOptions): Promise<Viewer> {
   const autorunTicker = autorun === undefined ? null : setInterval(() => { autorun.tick().catch(() => undefined); }, AUTORUN_TICK_MS);
   // A failing request (a client that disconnects mid-body, a file error) must
   // never take the viewer and its queue down.
+  const loopDelay = monitorEventLoopDelay({ resolution: 10 });
+  loopDelay.enable();
+  const dispatchTimings = new Map<string, Timing>();
+  const frameHubs = new Map<string, SharedFrameHub>();
   const server = createServer((req, res) => {
+    if (req.method === "GET" && req.url === "/api/frame-metrics" && origins.has(req.headers.host ?? "")) {
+      sendJson(res, 200, { version: 1, eventLoop: { meanMs: loopDelay.count === 0 ? 0 : loopDelay.mean / 1e6, p99Ms: loopDelay.percentile(99) / 1e6, maxMs: loopDelay.max / 1e6 },
+        dispatch: Object.fromEntries([...dispatchTimings].map(([key, timing]) => [key, timing.snapshot()])),
+        runs: [...frameHubs.values()].map(hub => ({ run: hub.runId, port: hub.gamePort, ...hub.diagnostics.snapshot() })) });
+      return;
+    }
+    const started = performance.now();
     route(req, res, options, port, origins, readBaseline, readWorkbench, readCompleteWorkbench, readUpdates, queueApi, catalog, strictCatalog).catch((error: unknown) => {
       if (res.headersSent || res.destroyed) res.destroy();
       else sendJson(res, 500, { error: error instanceof Error ? error.message : String(error) });
     });
+    const parts = segments(req.url ?? "/");
+    const key = parts?.[0] === "api" ? parts[1] === "runs" ? `runs/${parts.length === 2 ? "list" : parts[3] === "head" ? "head" : parts[3] === "events" ? "events" : "other"}` : parts[1] === "cards" ? "cards" : "other-api" : "static";
+    let timing = dispatchTimings.get(key);
+    if (timing === undefined) { timing = new Timing(); dispatchTimings.set(key, timing); }
+    timing.add(performance.now() - started);
   });
   const frameSockets = new WebSocketServer({ noServer: true, perMessageDeflate: false, maxPayload: FRAME_MAX_BYTES });
-  const frameHubs = new Map<string, SharedFrameHub>();
   server.on("upgrade", (req, socket, head) => {
     const reject = (status: number, message: string): void => {
       socket.end(`HTTP/1.1 ${String(status)} ${message}\r\nConnection: close\r\n\r\n`);
@@ -700,11 +717,12 @@ export async function startViewer(given: ViewerOptions): Promise<Viewer> {
           maxPayload: FRAME_MAX_BYTES,
           decode: (raw) => {
             const encoded = Array.isArray(raw) ? Buffer.concat(raw) : Buffer.from(raw as ArrayBuffer);
-            const payload = JSON.parse(encoded.toString("utf8")) as { frame_data?: unknown };
+            const payload = JSON.parse(encoded.toString("utf8")) as { frame_data?: unknown; frame_count?: unknown; timestamp?: unknown };
             if (typeof payload.frame_data !== "string") throw new Error("frame_data is missing");
             const png = Buffer.from(payload.frame_data, "base64");
             if (!validFramePng(png)) throw new Error("frame is not a bounded PNG");
-            return png;
+            return { png, ...(typeof payload.frame_count === "number" && Number.isSafeInteger(payload.frame_count) && payload.frame_count >= 0 ? { frame: payload.frame_count } : {}),
+              ...(typeof payload.timestamp === "number" && Number.isFinite(payload.timestamp) ? { timestamp: payload.timestamp } : {}) };
           },
           onEmpty: (closed) => { if (frameHubs.get(runId) === closed) frameHubs.delete(runId); },
         });
@@ -734,6 +752,7 @@ export async function startViewer(given: ViewerOptions): Promise<Viewer> {
         if (ticker !== null) clearInterval(ticker);
         if (autorunTicker !== null) clearInterval(autorunTicker);
         autorun?.stop();
+        loopDelay.disable();
         for (const hub of frameHubs.values()) hub.stop(1001, "viewer closing");
         frameHubs.clear();
         for (const client of frameSockets.clients) client.terminate();

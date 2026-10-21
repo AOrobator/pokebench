@@ -56,6 +56,17 @@ A reviewer's BLOCKING verdict that rests only on rebutted or follow-up findings 
 
 **Hold main still.** Before round 1, ask the coordinator to hold other landings until this one merges. Every sync to a moved `main` voids the packet.
 
+## Commits and landing coordination
+
+Commit authorized work promptly on the owned branch, including work-log updates,
+archival and skill corrections. Do not wait for the coordinator or a landing-board
+slot to commit. A pause on merges to main does not pause branch commits.
+
+The landing board gates moves to `main`, including evidence-only commits made
+there. Before moving main, join the board and wait until no entry is above yours.
+Prepare and commit work in the isolated branch while waiting. Never hand-edit the
+board. Keep committed, landed and served status distinct in reports.
+
 ## Landing on main
 
 An agent may merge its own branch into local `main` without asking per merge (operator decision 2026-10-16) when all of these hold:

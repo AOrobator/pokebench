@@ -13,6 +13,7 @@ import {Type,type TObject} from "typebox";
 import {AUTO_TALK_ID_PREFIX} from "./auto-talk.js";
 import type {GameStateSnapshot} from "./game-state.js";
 import {bagItems,blackout,healPlaceDescription,hurt,onGymMap,onMap,storyName,type HealPlace,type StoryBattleWarningFacts} from "./low-hp-trainer-warning.js";
+import {healRoutes,type HealRoute} from "./progress-aware-cycles.js";
 import type {Place} from "./story-destinations.js";
 import {storyPronoun} from "./heal-first.js";
 import {NO_RUNNING,seenTrainers,trainerLine,type SightSeen,type TrainerSightReply} from "./trainer-sight.js";
@@ -42,6 +43,7 @@ export interface GateDecision {
  readonly hurt:StoryBattleWarningFacts["party"];
  readonly heal:readonly {readonly kind:HealPlace["kind"];readonly town:string;readonly map_id:Map2;readonly hops:number;readonly shown:boolean}[];
  readonly text:string|null;
+ readonly heal_routes?:readonly HealRoute[];
 }
 export interface Engaged {readonly map_id:Map2;readonly gym:boolean;readonly opponents:readonly GateOpponent[];readonly hurt:StoryBattleWarningFacts["party"]}
 export interface GatePorts {
@@ -155,7 +157,7 @@ export function gateText(f:GateFacts):string {
 }
 
 export class StoryBattleHealGate {
- constructor(private readonly ports:GatePorts){}
+ constructor(private readonly ports:GatePorts,private readonly progressAware=false){}
  async engaged(state:GameStateSnapshot):Promise<Engaged|null> {return engagedAt(state,await this.ports.places());}
  get check():GatePorts["check"] {return this.ports.check;}
  // One decision: the text when refused, recorded with what it found.
@@ -163,7 +165,8 @@ export class StoryBattleHealGate {
   const outcome:GateOutcome=triggered?confirmed?"confirmed":"refused":reason===null?"clear":"unavailable";
   const heal=triggered?await this.ports.heal(state):[];
   const text=outcome==="refused"?gateText({tool,reached,sightings,steps,opponents:engaged.opponents,map_id:engaged.map_id,hurt:engaged.hurt,money:state.money,items:bagItems(state,engaged.hurt),heal,mom_heals:state.heal_before_trainers?.mom_heals===true}):null;
-  this.ports.record({tool_call_id:id,tool,map_id:engaged.map_id,confirmed,outcome,reason,reached:reached===null?[]:[reached],sightings,hurt:engaged.hurt,heal:heal.map(h=>({kind:h.kind,town:h.town,map_id:[h.map_id[0],h.map_id[1]],hops:h.hops,shown:h.shown!==undefined})),text});
+  const routes=this.progressAware&&outcome==="refused"?healRoutes(await this.ports.places()??[],engaged.map_id,heal.map(h=>h.map_id)):null;
+  this.ports.record({...(routes===null?{}:{heal_routes:routes}),tool_call_id:id,tool,map_id:engaged.map_id,confirmed,outcome,reason,reached:reached===null?[]:[reached],sightings,hurt:engaged.hurt,heal:heal.map(h=>({kind:h.kind,town:h.town,map_id:[h.map_id[0],h.map_id[1]],hops:h.hops,shown:h.shown!==undefined})),text});
   return {outcome,text};
  }
  // navigate_to_target on an object of the current map.

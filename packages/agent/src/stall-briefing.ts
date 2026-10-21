@@ -1,3 +1,4 @@
+import {ProgressAwareCycles} from "./progress-aware-cycles.js";
 import {roomKey,roomOf} from "./dialogue-log.js";
 import {MEASUREMENT_ONLY_MILESTONES} from "./milestones.js";
 import type {RunEvent} from "./events.js";
@@ -24,6 +25,7 @@ interface Pair {readonly from:string;readonly to:string;moves:number;briefed:num
 // stall-briefing-v1: watches for stalls the loop guard cannot see and hands the loop guard a supervisor note.
 // Map changes and milestones since the last new milestone; checked after each tool result, so the facts are current.
 export class StallBriefing {
+ private readonly progressCycles:ProgressAwareCycles|null;
  private room:{key:string;name:string}|null=null;
  private readonly pairs=new Map<string,Pair>();
  private progressAt=0;
@@ -40,14 +42,16 @@ export class StallBriefing {
   private readonly gate:Pick<StoryCharacterGate,"holds"|"held">|null=null,
   // positive-supervisor-v1: a retired briefing is still recorded, as a diagnostic, with the text it would have sent.
   private readonly retiredNote:((kind:"map_cycle"|"milestone_drought",text:string,evidence:readonly number[])=>void)|null=null,
- ){}
+  private readonly suppressed:((text:string,evidence:readonly number[])=>void)|null=null,
+ ){this.progressCycles=features["progress-aware-cycles-v1"]?new ProgressAwareCycles():null;}
 
  observe(event:RunEvent):void {
+  this.progressCycles?.observe(event);
   if(event.type==="milestone"){
    if(event.name==="ROXANNE_FIRST_INTERACTION")return;
    if(event.origin==="present_at_start"||event.name==="GAME_RUNNING")return;
    // story-progress-clock-v1: a measurement-only story step (the rival battle starting, the send-off) is new progress here too.
-   if(MEASUREMENT_ONLY_MILESTONES.has(event.name)&&!this.features["story-progress-clock-v1"])return;
+   if(MEASUREMENT_ONLY_MILESTONES.has(event.name)&&!this.features["story-progress-clock-v1"]&&!this.features["progress-aware-cycles-v1"])return;
    this.progressAt=this.active();this.progressSeq=event.seq;this.droughts=0;this.pairs.clear();this.dwell=null;
    return;
   }
@@ -80,6 +84,11 @@ export class StallBriefing {
  private check(seq:number):void {
   // positive-supervisor-v1: map back-and-forth and milestone-drought briefings are retired; interface dwell stays.
   const retired=this.features["positive-supervisor-v1"];
+  const cycleHold=this.progressCycles?.hold()??null;
+  if(cycleHold!==null){
+   if(this.pairs.size>0)this.suppressed?.(`Map-cycle history retired (progress-aware-cycles-v1): ${cycleHold.reason}.`,[cycleHold.evidence[0]??seq,seq]);
+   this.pairs.clear();
+  }
   for(const pair of this.pairs.values()){
    const level=Math.floor(pair.moves/(2*STALL_ROUND_TRIPS));
    if(level<=pair.briefed)continue;

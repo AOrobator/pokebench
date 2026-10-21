@@ -139,6 +139,10 @@ pages-check +files:
 pages-inline-fonts +files:
     scripts/pages.sh inline-fonts {{files}}
 
+# Give the given pages the Emerald PokéNav theme (docs/design/emerald-pages.css), in place; re-run after regenerating.
+pages-theme +files:
+    scripts/pages.sh theme {{files}}
+
 # Claude <-> Codex mail and the landing board (skills: talk-to-codex, talk-to-claude).
 # State lives in the main checkout's runs/agent-mail/, shared by every worktree.
 [positional-arguments]

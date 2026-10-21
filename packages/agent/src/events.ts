@@ -308,6 +308,7 @@ const StoryBattleHealGateEvent = event("story_battle_heal_gate", {
   outcome: Type.Enum(["refused", "confirmed", "clear", "unavailable"] as const),
   reason: Type.Union([Type.String({ minLength: 1 }), Type.Null()]),
   reached: Type.Array(Type.Object({ ...GateOpponentFields, via: Type.Enum(["talk", "approach"] as const), tile: SightPoint }, closed), { maxItems: 1 }),
+  heal_routes: Type.Optional(Type.Array(Type.Object({outward: Type.Array(Type.Tuple([Type.Integer(), Type.Integer()]), {minItems:2}), back: Type.Array(Type.Tuple([Type.Integer(), Type.Integer()]), {minItems:2})}, closed), {maxItems:64})),
   sightings: TrainerSightCheckEvent.properties.sightings,
   hurt: Type.Array(Type.Object({ species: Type.String({ minLength: 1 }), hp: NonNegativeInt, max_hp: Type.Integer({ minimum: 1 }) }, closed), { minItems: 1, maxItems: 6 }),
   heal: Type.Array(Type.Object({ kind: Type.Enum(["pokemon_center", "home"] as const), town: Type.String({ minLength: 1 }), map_id: Type.Tuple([Type.Integer(), Type.Integer()]), hops: NonNegativeInt, shown: Type.Boolean() }, closed), { maxItems: 64 }),
@@ -709,6 +710,9 @@ export const StateBodySchema = Type.Object(
       home: Type.Union([Type.Tuple([Type.Integer({minimum:0}),Type.Integer({minimum:0})]),Type.Null()]),
       mom_heals: Type.Boolean(),
     },closed)),
+    // exp-next-level-v1: the POKéMON summary screen's NEXT LV. per party slot (null when a slot cannot show one).
+    // Present only with the switch.
+    party_next_level: Type.Optional(Type.Array(Type.Union([NonNegativeInt,Type.Null()]),{maxItems:6})),
   },
   closed,
 );

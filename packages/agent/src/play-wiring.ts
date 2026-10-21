@@ -24,6 +24,8 @@ import {withPeopleLedger} from "./people-ledger.js";
 import {withEffectivenessHeard} from "./effectiveness-heard.js";
 import {withGameSaidGoals} from "./game-said-goals.js";
 import {withGymReadiness} from "./gym-readiness.js";
+import {withTrainingBlock} from "./training-block.js";
+import {withCatchingBlocks} from "./catching-block.js";
 import {withPeopleIdCards,type IdCardRecorder} from "./people-id-cards.js";
 import {withStoryDestinations} from "./story-destinations.js";
 import {withInstructionLedgerV2} from "./instruction-ledger-v2.js";
@@ -93,7 +95,7 @@ export function stallBriefing(features:FeatureSet,recorder:Pick<RunRecorder,"sub
  if(gate!==null)recorder.subscribe(event=>{gate.observe(event);});
  // positive-supervisor-v1: retired stall briefings stay in the record as diagnostics; the model is not sent them.
  const retired=features["positive-supervisor-v1"]?(kind:"map_cycle"|"milestone_drought",text:string,evidence:readonly number[]):void=>{recorder.recordLoopGuard({kind,message:`Not sent (positive-supervisor-v1): ${text}`,calls:0,evidence:evidence.filter((v,i,all)=>all.indexOf(v)===i),mode:"diagnostic",phase:"would_warn"});}:null;
- const stall=new StallBriefing(features,()=>elapsed()-control.pausedMs(),detector,(kind,calls)=>briefing.stallText(kind,calls),gate,retired);
+ const stall=new StallBriefing(features,()=>elapsed()-control.pausedMs(),detector,(kind,calls)=>briefing.stallText(kind,calls),gate,retired,(message,evidence)=>{recorder.recordLoopGuard({kind:"map_cycle",message,calls:0,evidence:[...new Set(evidence)],mode:"diagnostic",phase:"would_warn"});});
  recorder.subscribe(event=>{stall.observe(event);});
  return stall;
 }
@@ -145,21 +147,21 @@ function trainerSight(state:StateSource,recorder:SightRecorder):TrainerSightPort
 // navigate_to_target check sits right inside the warnings, so a refusal's observation gets their paragraphs like any
 // other result; its navigate_to check is navigate_to's own, beside trainer-sight-check-v1's.
 export interface GateRecorder {storyBattleHealGate?(decision:GateDecision):void}
-function storyBattleHealGate(arm:HealArm,state:StateSource,recorder:GateRecorder):StoryBattleHealGate {
+function storyBattleHealGate(arm:HealArm,state:StateSource,recorder:GateRecorder,progressAware:boolean):StoryBattleHealGate {
  const record=recorder.storyBattleHealGate?.bind(recorder);
  if(record===undefined)throw new Error("story-battle-heal-gate-v1 needs a recorder for story_battle_heal_gate events");
  const heal=arm.heal;
  if(heal===null)throw new Error("story-battle-heal-gate-v1 needs heal-before-trainers-v1's arm");
- return new StoryBattleHealGate({places:arm.table,heal:s=>heal.known(s),check:(mapId,tiles,signal)=>state.trainerSight===undefined?Promise.reject(new Error("story-battle-heal-gate-v1 needs a game server that serves /pokebench/trainer-sight")):state.trainerSight(mapId,tiles,signal),record});
+ return new StoryBattleHealGate({places:arm.table,heal:s=>heal.known(s),check:(mapId,tiles,signal)=>state.trainerSight===undefined?Promise.reject(new Error("story-battle-heal-gate-v1 needs a game server that serves /pokebench/trainer-sight")):state.trainerSight(mapId,tiles,signal),record},progressAware);
 }
 export function playGameTools(base:readonly AgentTool[],features:FeatureSet,state:StateSource,recorder:AutoAdvanceRecorder&WarningRecorder&IdCardRecorder&TrustRecorder&Pick<CitationRecorder,"destinationCitation">&Pick<ActivityRecorder,"unfinishedActivity">&SightRecorder&GateRecorder&HealFirstRecorder,gate?:NavigationPorts["gate"],extra:readonly AgentTool[]=[]):AgentTool[]{
  const terrain=features["visited-terrain-navigation-v1"]&&!features["full-map-navigation-v1"]?new VisitedTerrain():null;
  const navigationState=terrain?.source(state)??state;
  const sight=features["trainer-sight-check-v1"]?trainerSight(state,recorder):undefined;
  const arm=features["story-battle-heal-gate-v1"]?healArm(features,state):undefined;
- const healGate=arm===undefined?undefined:storyBattleHealGate(arm,state,recorder);
+ const healGate=arm===undefined?undefined:storyBattleHealGate(arm,state,recorder,features["progress-aware-cycles-v1"]);
  const navigated=withSemanticNavigation(withNavigation(base,features,navigationState,gate,sight,healGate),features,navigationState);
- const facts=[...withResultFacts(withUnfinishedActivity(withLowHpTrainerWarning(withStoryBattleHealGate(withGameSaidGoals(withEffectivenessHeard(withNavigateFirst([...withInstructionLedgerV2(withStoryDestinations(withPeopleIdCards(withUntakenExits(withGymReadiness(withPeopleLedger(withDialogueAutoAdvance(withBattleAction(withNoExitHere(navigated,features),features,state,gate),features,{state,recorder,...(gate===undefined?{}:{gate})}),features,recorder),features,recorder),features,recorder),features,recorder),features,recorder,state),features,recorder),...extra],features),features,recorder),features,recorder),healGate,state),features,recorder,state,arm),features,recorder,state),features,recorder)];
+ const facts=[...withResultFacts(withUnfinishedActivity(withLowHpTrainerWarning(withStoryBattleHealGate(withCatchingBlocks(withTrainingBlock(withGameSaidGoals(withEffectivenessHeard(withNavigateFirst([...withInstructionLedgerV2(withStoryDestinations(withPeopleIdCards(withUntakenExits(withGymReadiness(withPeopleLedger(withDialogueAutoAdvance(withBattleAction(withNoExitHere(navigated,features),features,state,gate),features,{state,recorder,...(gate===undefined?{}:{gate})}),features,recorder),features,recorder),features,recorder),features,recorder),features,recorder,state),features,recorder),...extra],features),features,recorder),features,recorder),features,recorder),features,recorder),healGate,state),features,recorder,state,arm),features,recorder,state),features,recorder)];
  const visible=terrain===null?facts:withVisitedTerrain(facts,terrain);
  const cited=withCitedDestination(visible,features["cited-destination-v1"],recorder,{fullMap:features["full-map-navigation-v1"],exitReach:features["exit-reachability-v1"],silenceMiss:features["input-cuts-v1"]});
  return withHealFirst(withStarterDecision(withHarnessTrust(cited,features["harness-trust-v1"],recorder,state,{supervisor:true,semanticTargets:features["semantic-navigation-v2"],battleAction:features["harness-trust-v2"],goalOnce:features["input-cuts-v1"],retireLab:features["stale-story-goal-v1"],stageBound:features["stale-story-goal-v2"],omitEmptyGoal:features["stale-story-goal-v2"],scriptedGuidance:features["scripted-place-guidance-v1"],reachableGoal:features["reachable-story-guidance-v1"],exitSections:features["exit-labels-v3"],activity:features["unfinished-activity-v1"]}),features),features["story-battle-heal-first-v1"],recorder,state);

@@ -65,7 +65,7 @@ describe("registry",()=>{
   expect(featureInfo(ID)).toMatchObject({group:"guard",needs:"heal-before-trainers-v1",switchable:true,title:"HEAL BEFORE TRAINERS V2"});
   expect(featureInfo(ID).description).toContain(" Off: ");
   expect(featureInfo(ID).description).toContain(AFTER_JOSH_TEXT);
-  expect(SWITCHABLE_FEATURES.at(-30)).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-38)).toBe(ID);
   expect(playHarnessFeatures({...ALL_ON,[ID]:true},null).at(-1)).toBe(ID);
   expect(playHarnessFeatures(ALL_ON,null)).not.toContain(ID);
   expect(SERVER_FEATURES).toContain(ID);

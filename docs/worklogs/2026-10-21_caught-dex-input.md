@@ -162,3 +162,23 @@ Preserved the 20× assertion and production code; raised the bounded historical
 fixture to6000 rows so the test measures omitted history rather than a marginal
 header-size boundary. Both explainers remain sibling tests. Viewer full suite
 and final lint rechecked before freezing the operator-approved landing packet.
+
+## Completed and archive authorized, 2026-10-21
+
+Operator requested archival and branch/worktree cleanup after landing.
+Landed 4cfce22ec540c397e2d801a500e1a6680614f6b5 with two approved fallback
+reviews. Viewer restarted and browser-verified on that clean build.
+Post-merge coverage suites: agent3292, viewer1609, Python3647 passed (8548 total);
+all coverage dimensions exceed90%. Bundle ON, control/default OFF.
+No measured experiment was launched. Further merges paused for landing-board
+coordination. Canonical WORKLOG.md points to another task and is preserved.
+Evidence retained under runs/reviews/caught-dex-input/ and
+runs/mockups/caught-dex-input-v1/shots/landed-main.png.
+
+## Commit coordination correction, 2026-10-21
+
+Operator clarified that committing never waits on the coordinator. Archived this
+log and updated execute-worklog and feature-worklog skills on the isolated
+codex/caught-dex-closeout branch. The landing board gates moves to main only.
+Validation: git diff --check; archive contains the full prior worklog; changes
+are documentation only. Main and its unrelated WORKLOG.md pointer are untouched.

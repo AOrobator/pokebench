@@ -34,6 +34,7 @@ from pokebench_env.move_learn import QUESTION_SWITCH as MOVE_QUESTION
 from pokebench_env.move_learn import comparison_lines, question_line
 from pokebench_env.offscreen_objects import SWITCH as OFFSCREEN
 from pokebench_env.offscreen_objects import offscreen_text
+from pokebench_env.pokedex_own import dex_lines
 from pokebench_env.readout_fixes import MID_FRAME, MID_FRAME_TEXT
 from pokebench_env.readout_truth import SWITCH as TRUTH
 from pokebench_env.readout_truth import lock_line, menu_line
@@ -47,6 +48,7 @@ from pokebench_env.surf_gate import SWITCH as SURF_GATE
 from pokebench_env.surf_gate import SWITCH_V2 as SURF_GATE_V2
 from pokebench_env.surf_gate import ConnectionKey, SurfGate
 from pokebench_env.topology import Topology
+from pokebench_env.training_readout import exp_clause
 from pokebench_env.world import InteractionTarget
 from pokebench_env.yes_no_answer import SWITCH as YES_NO_ANSWER
 from pokebench_env.yes_no_answer import answer_line
@@ -118,6 +120,8 @@ SERVER_FEATURES = (
     "gym-door-label-v1",
     "mart-stock-readout-v1",
     "caught-dex-input-v1",
+    "exp-next-level-v1",
+    "pokedex-own-v1",
 )
 
 
@@ -142,7 +146,7 @@ def features_off_from_env(env: Mapping[str, str]) -> frozenset[str]:
         "caught-nickname-prompt-v1,party-item-confirmation-v1,yes-no-answer-readout-v1,"
         "field-move-gates-v1,exit-labels-v3,move-learn-settle-v1,move-learn-question-v1,"
         "move-learn-comparison-v1,gym-door-label-v1,"
-        "mart-stock-readout-v1,caught-dex-input-v1",
+        "mart-stock-readout-v1,caught-dex-input-v1,exp-next-level-v1,pokedex-own-v1",
     )
     if raw == "":
         return frozenset()
@@ -476,8 +480,15 @@ def format_readout(
     x, y = state.position
     named_status = STATUS_NAMES not in off
     facing = "" if state.facing is None else f", facing {state.facing}"
+    next_levels = state.party_next_level or ()
     party = "; ".join(
         f"{m.species or 'UNKNOWN'} Lv{m.level} HP {m.hp}/{m.max_hp}"
+        # exp-next-level-v1: the summary screen's EXP. POINTS and NEXT LV.
+        + (
+            f" · {exp_clause(m.experience, next_levels[i])}"
+            if i < len(next_levels) and exp_clause(m.experience, next_levels[i])
+            else ""
+        )
         # status-names-v1: the status by name (poison, sleep turns, ...) instead of its bits.
         + (
             f" · STATUS {(status_text(m.status) if named_status else None) or m.status}"
@@ -495,7 +506,7 @@ def format_readout(
         + (f" · nickname {m.nickname}" if expanded and m.nickname else "")
         + (f" · HARNESS BUG: {m.diagnostic}" if m.diagnostic else "")
         + (f" · HARNESS BUG: {m.nickname_diagnostic}" if m.nickname_diagnostic else "")
-        for m in state.party or ()
+        for i, m in enumerate(state.party or ())
     )
     location = places.get(state.map_id) if state.map_id is not None else None
     lines += [
@@ -507,6 +518,8 @@ def format_readout(
     # tutorial-party-owner-v1: an owner that could not be established is None (OFF: "unknown").
     owner = state.party_owner or "unknown"
     lines.append(f"Party ({owner}): {party or 'none'}")
+    if state.pokedex is not None:
+        lines.extend(dex_lines(state, state.pokedex))
     triage = (
         field_triage_line(state.party, owner)
         if TRIAGE not in off and not state.in_battle and state.battle is None
@@ -818,9 +831,12 @@ def _location_display(state: GameState) -> dict[str, str]:
 
 def state_json(state: GameState) -> dict[str, object]:
     # map_grid exists only with full-map-navigation-v1, so switch-off state is unchanged.
-    full = (
+    full: dict[str, object] = (
         {} if state.full_map is None else {"map_grid": state.full_map.json(state.player_elevation)}
     )
+    # exp-next-level-v1: the NEXT LV. numbers, for the agent's Training block; absent when off.
+    if state.party_next_level is not None:
+        full = {**full, "party_next_level": list(state.party_next_level)}
     return {
         **full,
         "screen": state.screen,

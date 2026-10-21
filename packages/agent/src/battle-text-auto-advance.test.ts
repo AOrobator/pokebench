@@ -642,3 +642,43 @@ it.each(["observe","battle_action"] as const)("battle settling preserves an inte
  expect(stateOfResult(result).blackout_receipt).toEqual(receipt);
  expect(server.posts.map(p=>p.button)).toEqual(["B","B"]);
 });
+
+
+describe("pending-field-dialogue-v1",()=>{
+ const recorded=JSON.parse(gunzipSync(readFileSync(new URL("./fixtures/pending-field-dialogue-97a0.json.gz",import.meta.url))).toString("utf8")) as {state:unknown};
+ const waiting=parseGameState(recorded.state);
+ const free={...waiting,field_controls_locked:false,world_context:{...waiting.world_context,objects:waiting.world_context?.objects??[],triggers:[],dialogue:null,message:null}};
+ const enabled={...ON,"battle-decision-ready-v1":true,"pending-field-dialogue-v1":true} as FeatureSet;
+ it("advances the recorded trainer intro on observe and records the whole page",async()=>{
+  const server=new ScriptServer([waiting,free],[]);
+  const {tool,rec}=wire(server,enabled);
+  const result=await tool("observe").execute("late-field",{});
+  expect(server.posts).toEqual([{button:"B",phase:"field_waiting"}]);
+  expect(stateOfResult(result).field_controls_locked).toBe(false);
+  expect(textOf(result)).toContain(waiting.world_context?.dialogue);
+  expect(rec.advances()).toMatchObject([{tool:"observe",stop:"field_free",auto_presses:1,pages:[{text:waiting.world_context?.dialogue}]}]);
+  expect(()=>checkEvent(rec.advances()[0])).not.toThrow();
+ });
+ it.each(["field","battle"] as const)("settles pending field dialogue before battle_action and leaves the %s boundary to a new decision",async boundary=>{
+  const server=new ScriptServer([waiting,boundary==="battle"?INPUT:free],[]);
+  let called=0;
+  const action:AgentTool={name:"battle_action",label:"b",description:"choose",parameters:Type.Object({}),execute:()=>{called++;return Promise.resolve({content:[{type:"text",text:"Battle action: nothing pressed: no battle is in progress."}],details:{state:server.now,battle_action:{refused:true}}});}};
+  const {tool,rec}=wire(server,enabled,[action]);
+  const result=await tool("battle_action").execute("late-action",{});
+  expect(called).toBe(0);
+  expect(server.posts.map(p=>p.button)).toEqual(["B"]);
+  expect(textOf(result)).toContain("Battle action: requested action not executed; inspect the decision reached after advancing field dialogue.");
+  expect(rec.advances()).toMatchObject([{tool:"battle_action",auto_presses:1,stop:boundary==="battle"?"battle_input":"field_free"}]);
+  expect(stateOfResult(result).in_battle).toBe(boundary==="battle");
+ });
+ it("OFF preserves the observed message and the existing refusal without pressing",async()=>{
+  const server=new ScriptServer([waiting,free],[]);
+  const action:AgentTool={name:"battle_action",label:"b",description:"choose",parameters:Type.Object({}),execute:()=>Promise.resolve({content:[{type:"text",text:"Battle action: nothing pressed: no battle is in progress."}],details:{state:server.now,battle_action:{refused:true}}})};
+  const {tool,rec}=wire(server,{...enabled,"pending-field-dialogue-v1":false} as FeatureSet,[action]);
+  const result=await tool("observe").execute("off-observe",{});
+  expect(textOf(result)).toBe(`Screen: ${waiting.screen}`);
+  expect(stateOfResult(result)).toEqual(waiting);
+  expect(textOf(await tool("battle_action").execute("off-action",{}))).toBe("Battle action: nothing pressed: no battle is in progress.");
+  expect(server.posts).toEqual([]);expect(rec.advances()).toEqual([]);
+ });
+});

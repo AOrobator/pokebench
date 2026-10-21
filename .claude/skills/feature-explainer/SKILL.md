@@ -48,7 +48,7 @@ Every number in a diagram must match the code and its tests. Label arrows. Put o
 
 ## Craft
 
-- Light and dark: define colors as CSS variables on `:root`, redefine them under `prefers-color-scheme: dark`, and set an explicit `body` background.
+- One light palette: define colors as CSS variables on `:root`. No dark-mode block; `just pages-theme` pins the Emerald theme's light palette on desktop and phone.
 - Works at phone width; wide figures scroll inside their own container.
 - Plain, short sentences in the operator's vocabulary. No marketing tone.
 - Check once by opening the file locally before reporting it.

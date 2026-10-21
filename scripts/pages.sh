@@ -63,28 +63,59 @@ theme() {
 import base64, pathlib, re, sys
 top = pathlib.Path(sys.argv[1])
 font = base64.b64encode((top / "packages/viewer/static/fonts/press-start-2p.woff2").read_bytes()).decode()
-css = (top / "docs/design/emerald-pages.css").read_text().replace(
+css = (top / "docs/design/emerald-pages.css").read_text(encoding="utf-8").replace(
     "url(/fonts/press-start-2p.woff2)", f"url(data:font/woff2;base64,{font})"
 )
 block = f'<style id="pb-emerald">\n{css}</style>\n'
 old = re.compile(r'<style id="pb-emerald">.*?</style>\n?', re.S)
+wrap = "<main data-pb-emerald>\n"
+style = re.compile(r"(<style\b[^>]*>)(.*?)(</style>)", re.S | re.I)
 dark = re.compile(r"\(\s*prefers-color-scheme\s*:\s*dark\s*\)")
 light = re.compile(r"\(\s*prefers-color-scheme\s*:\s*light\s*\)")
+
+
+def pin_light(match: re.Match[str]) -> str:
+    rules = light.sub("(min-width:0px)", dark.sub("(min-width:1000000px)", match.group(2)))
+    return match.group(1) + rules + match.group(3)
+
+
+def first(pattern: str, text: str) -> re.Match[str] | None:
+    return re.search(pattern, text, re.I)
+
+
+def last(pattern: str, text: str) -> re.Match[str] | None:
+    found = None
+    for found in re.finditer(pattern, text, re.I):
+        pass
+    return found
+
+
 for name in sys.argv[2:]:
     page = pathlib.Path(name)
-    text = old.sub("", page.read_text())
-    text = light.sub("(min-width:0px)", dark.sub("(min-width:1000000px)", text))
-    insert = block
-    if "<main" not in text:
-        end = text.rfind("</body>")
-        end = end if end >= 0 else len(text.rstrip())
-        text = text[:end] + "</main>\n" + text[end:]
-        insert += "<main data-pb-emerald>\n"
-    head = text.find("</head>")
-    if head < 0:
-        styles = text.rfind("</style>")
-        head = styles + len("</style>") if styles >= 0 else text.find(">", text.lower().find("<!doctype")) + 1
-    page.write_text(text[:head] + insert + text[head:])
+    with page.open(encoding="utf-8", newline="") as handle:
+        text = old.sub("", handle.read())
+    if wrap in text:
+        text = text.replace(wrap, "", 1)
+        closing = text.rfind("</main>\n")
+        text = text[:closing] + text[closing + len("</main>\n"):]
+    text = style.sub(pin_light, text)
+    if (head := first(r"</head\s*>", text)) is not None:
+        at = head.start()
+    elif (styles := last(r"</style\s*>", text)) is not None:
+        at = styles.end()
+    else:
+        doctype = first(r"<!doctype[^>]*>", text)
+        at = doctype.end() if doctype else 0
+    text = text[:at] + block + text[at:]
+    if first(r"<main\b", text) is None:
+        body = first(r"<body\b[^>]*>", text)
+        head = first(r"</head\s*>", text)
+        opening = body.end() if body else head.end() if head else at + len(block)
+        close = first(r"</body\s*>", text) or first(r"</html\s*>", text)
+        closing = close.start() if close else len(text.rstrip())
+        text = text[:opening] + wrap + text[opening:closing] + "</main>\n" + text[closing:]
+    with page.open("w", encoding="utf-8", newline="") as handle:
+        handle.write(text)
 PY
 }
 

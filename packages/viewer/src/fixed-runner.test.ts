@@ -63,6 +63,8 @@ it("the next bundle: control gains the battle tools and exit reachability, the b
   // Operator decision 2026-10-20: the duplicate-turn collapse in both arms, the breaker's note in neither.
   for(const arm of ["control","bundle"] as const){expect(armFeatureBits(def,arm)["duplicate-turn-collapse-v1"]).toBe(true);expect(armFeatureBits(def,arm)["fixed-point-breaker-v1"]).toBe(false);}
   expect(def.onInBoth).toContain("duplicate-turn-collapse-v1");expect(def.offInBoth).toContain("fixed-point-breaker-v1");
+  // Operator decision 2026-10-20 10:43 PM ET: the heal-first line in both arms.
+  for(const arm of ["control","bundle"] as const)expect(armFeatureBits(def,arm)["story-battle-heal-first-v1"]).toBe(true);
   expect(def.offInBoth).toContain("semantic-navigation-v1");
   for(const arm of ["control","bundle"] as const)expect(armFeatureBits(def,arm)["semantic-navigation-v1"]).toBe(false);
  }

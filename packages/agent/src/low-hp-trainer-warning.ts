@@ -613,7 +613,7 @@ function stateOf(result:AgentToolResult<unknown>):GameStateSnapshot|undefined {
 }
 
 // The game's map table, read once; a failed read is retried on the next warning, a malformed one is not.
-function placesOnce(source:PlaceSource):()=>Promise<readonly Place[]|null> {
+export function placesOnce(source:PlaceSource):()=>Promise<readonly Place[]|null> {
  let pending:Promise<readonly Place[]|null>|null=null;
  return ()=>{
   pending??=source.places===undefined?Promise.resolve(null):source.places().then(body=>Value.Check(PlacesBodySchema,body)?body.places:null,()=>{pending=null;return null;});

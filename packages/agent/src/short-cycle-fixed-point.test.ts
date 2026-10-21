@@ -594,7 +594,7 @@ describe("the cycle state is the whole recorded state minus a documented list",(
  });
  it("documents why each excluded field is left out",()=>{
   for(const x of CYCLE_STATE_EXCLUDED)expect(x.why.length,x.path).toBeGreaterThan(5);
-  expect(CYCLE_STATE_EXCLUDED.map(x=>x.path)).toEqual(["v","run","type","seq","turn","t","raw_ram","settle","play_time_s","active_ui.value","resources.berry_trees[].minutes_until_next_stage",...SUMMARY_FACT_KEYS.map(key=>`party[].${key}`)]);
+  expect(CYCLE_STATE_EXCLUDED.map(x=>x.path)).toEqual(["v","run","type","seq","turn","t","raw_ram","settle","play_time_s","active_ui.value","resources.berry_trees[].minutes_until_next_stage",...["party[]","resources.storage.occupied[].pokemon","resources.daycare[].pokemon"].flatMap(owner=>SUMMARY_FACT_KEYS.map(key=>`${owner}.${key}`))]);
  });
 });
 

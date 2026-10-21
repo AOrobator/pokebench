@@ -715,9 +715,9 @@ def main(argv: list[str] | None = None) -> int:
     if args.rom is None:
         print("build_party_art: set POKEBENCH_ROM (or pass --rom)", file=sys.stderr)
         return 2
-    out: Path = args.out.expanduser().absolute()
+    out = Path(os.path.normpath(args.out.expanduser().absolute()))
     runs = RUNS_ROOT.resolve()
-    if not out.parent.resolve().is_relative_to(runs):
+    if out.name in ("", ".", "..") or not out.parent.resolve().is_relative_to(runs):
         print(
             f"build_party_art: {out} is outside {runs}; ROM-derived art stays there",
             file=sys.stderr,

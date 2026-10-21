@@ -1,6 +1,6 @@
 import type {CompletedCall} from "./loop-detection.js";
 import type {GameStateSnapshot} from "./game-state.js";
-import {legacyParty} from "./party-facts.js";
+import {legacyParty,legacyResources} from "./party-facts.js";
 
 export const NAVIGATION_FAILURE_LIMIT=3;
 export const NAVIGATION_RECOVERY_TILES=4;
@@ -21,7 +21,7 @@ function knownChanged(a:unknown,b:unknown):boolean {
  return a!==b;
 }
 function conditions(s:GameStateSnapshot):unknown[] {
- return [s.map_id,s.story,legacyParty(s.party),s.money,s.badges,s.resources,s.navigation_grid?.elevation,s.exit_reach?.warps,s.exit_reach?.connections,s.topology,s.interaction_targets];
+ return [s.map_id,s.story,legacyParty(s.party),s.money,s.badges,legacyResources(s.resources),s.navigation_grid?.elevation,s.exit_reach?.warps,s.exit_reach?.connections,s.topology,s.interaction_targets];
 }
 // Retain last-known members without turning newly available evidence into a change.
 // Complete arrays keep their schema-owned length; a known length change is checked before learning.

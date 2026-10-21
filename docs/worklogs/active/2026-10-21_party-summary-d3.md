@@ -110,6 +110,7 @@ Round 4 (packet 6fbce332..b7ccaab7, sha256 91a4f59c…5f8d): Claude (subagent) L
 
 Round 5 (packet 6fbce332..1e44d042, sha256 76feca35…be395): Claude (subagent) LGTM (follow-up: storage/daycare Pokémon carry the same keys); Grok LGTM; GPT/Codex BLOCKING: (1) storage and daycare Pokémon's summary keys still reach `cycleFields` and navigation-failure `conditions` through `resources`, fix; (2) `runs/sprites/../..` passes the art output guard (its parent resolves into runs/), fix.
 - [x] RED: party-facts.test.ts storage/daycare short-cycle case, navigation-failure stored-Pokémon case, path guard `runs/sprites/../..` and `runs/.`
+- [x] GREEN: `legacyResources` strips the 15 keys from storage and daycare Pokémon for `cycleFields` and navigation-failure `conditions` (key order kept); CYCLE_STATE_EXCLUDED lists them under `resources.storage.occupied[].pokemon` and `resources.daycare[].pokemon`; the art build normalizes the output path and refuses a `.`/`..` leaf. Gates: lint, build; coverage agent 3255 tests 99.2/93.08/97.7, viewer 1592 tests 97.96/91.39/94.51, python 3582 tests 97.23/92.97/100.
 
 ## Boy Scout Log
 

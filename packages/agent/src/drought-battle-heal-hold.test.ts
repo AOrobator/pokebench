@@ -16,8 +16,9 @@ const ID="drought-battle-heal-hold-v1" as const;
 const BASE:FeatureSet={...LEGACY_ALL_ON,"stall-briefing-v1":true,"positive-supervisor-v1":false,"progress-aware-cycles-v1":false,"story-character-stall-gate-v1":false,"same-plan-breaker-v1":false};
 const MON=(hp:number)=>({species:"TORCHIC",level:9,hp,max_hp:21});
 // Recorded heal warnings: acfa's heal_first_line (seq 3857), story_battle_warning (seq 4811) and
-// heal_before_trainers_warning (seq 6838), and run 8892's gym_heal_warning (seq 12979).
-const WARNINGS=JSON.parse(readFileSync(new URL("../test-support/drought-hold-warnings.json",import.meta.url),"utf8")) as Record<"heal_first_line"|"story_battle_warning"|"heal_before_trainers_warning"|"gym_heal_warning",Record<string,unknown>>;
+// heal_before_trainers_warning (seq 6838), run 8892's gym_heal_warning (seq 12979) and run 9f27's refused
+// story_battle_heal_gate (seq 22046).
+const WARNINGS=JSON.parse(readFileSync(new URL("../test-support/drought-hold-warnings.json",import.meta.url),"utf8")) as Record<"heal_first_line"|"story_battle_warning"|"heal_before_trainers_warning"|"gym_heal_warning"|"story_battle_heal_gate",Record<string,unknown>>;
 const body=(e:Record<string,unknown>)=>Object.fromEntries(Object.entries(e).filter(([k])=>!["v","run","seq","t","turn"].includes(k)));
 
 function rig(features:FeatureSet){
@@ -91,6 +92,53 @@ describe("drought-battle-heal-hold-v1",()=>{
   const free=rig({...BASE,[ID]:true});
   free.step(STALL_DROUGHT_MS+1000,{field_controls_locked:false,trainer_opponent:{...rick,defeated:true}});
   expect(free.kinds).toEqual(["milestone_drought"]);
+ });
+ it("ON: a refused story-battle heal gate opens a trip; a confirmed one does not",()=>{
+  const refused=rig({...BASE,[ID]:true});
+  refused.emit(body(WARNINGS.story_battle_heal_gate));refused.step(STALL_DROUGHT_MS+1000,{party:[MON(17)]});
+  expect(refused.kinds).toEqual([]);
+  expect(refused.held.at(-1)?.text).toContain("on its way to heal");
+  const confirmed=rig({...BASE,[ID]:true});
+  confirmed.emit({...body(WARNINGS.story_battle_heal_gate),outcome:"confirmed",confirmed:true});confirmed.step(STALL_DROUGHT_MS+1000,{party:[MON(17)]});
+  expect(confirmed.kinds).toEqual(["milestone_drought"]);
+ });
+ it("ON: the trip ends at the 48th tool result, and a drought a full interval later fires (codex review round 1)",()=>{
+  const r=rig({...BASE,[ID]:true});
+  healLine(r);
+  for(let i=0;i<48;i++)r.step(10_000,{party:[MON(17)]});
+  expect(r.held).toHaveLength(1);
+  r.step(STALL_DROUGHT_MS+1000,{party:[MON(17)]});
+  expect(r.kinds).toEqual(["milestone_drought"]);
+ });
+ it("ON: a battle that ends before any drought is due does not restart the clock",()=>{
+  const r=rig({...BASE,[ID]:true});
+  r.step(4*60_000);
+  r.step(30_000,{in_battle:true});
+  r.step(1000);
+  r.step(31_000);
+  expect(r.kinds).toEqual(["milestone_drought"]);
+ });
+ it("with positive-supervisor-v1 on, its retired diagnostics keep their schedule across a battle (codex review round 1)",()=>{
+  const retired=(on:boolean)=>{
+   let now=0,seq=0;const out:number[]=[];
+   const b=new StallBriefing({...BASE,"positive-supervisor-v1":true,[ID]:on},()=>now,{stall:()=>true},()=>"",null,(kind)=>{if(kind==="milestone_drought")out.push(now);},null,()=>undefined);
+   const emit=(body:Record<string,unknown>)=>{b.observe(checkEvent({v:1,run:"m",t:"2026-10-21T08:00:00.000-04:00",turn:seq,seq:++seq,...body}));};
+   const at=(ms:number,battle:boolean)=>{now=ms;emit({type:"state",...IN_GAME,started:true,screen:"overworld",location:"ROUTE103",map_id:[0,18],position:{x:1,y:1},facing:"up",field_controls_locked:false,interaction_targets:[],in_battle:battle});emit({type:"tool_result",id:`c${String(seq)}`,name:"press",is_error:false,duration_ms:1,text:"pressed",frames:[]});};
+   at(301_000,true);at(302_000,false);at(600_000,false);
+   return out;
+  };
+  expect(retired(true)).toEqual(retired(false));
+ });
+ it("ON: a finished heal (full HP) restarts the clock even when no drought was held during the trip (acfa seq 7261)",()=>{
+  const r=rig({...BASE,[ID]:true});
+  r.step(4*60_000,{party:[MON(17)]});
+  healLine(r);
+  r.step(30_000,{party:[MON(17)]});
+  r.step(1000,{party:[MON(21)]});
+  r.step(60_000,{party:[MON(21)]});
+  expect(r.kinds).toEqual([]);
+  r.step(STALL_DROUGHT_MS,{party:[MON(21)]});
+  expect(r.kinds).toEqual(["milestone_drought"]);
  });
  it("ON: an ordinary drought with no battle and no heal trip still fires",()=>{
   const r=rig({...BASE,[ID]:true});

@@ -67,7 +67,8 @@ export class StallBriefing {
  // When a battle or heal trip ends, the drought clock starts again from here.
  private settleHold():void {
   const now=this.hold();
-  if(this.holding!==null&&now===null){this.progressAt=this.active();this.droughts=0;this.heldLevel=0;}
+  // Only a hold that kept a due drought briefing back restarts the clock; a short battle before one was due changes nothing.
+  if(this.holding!==null&&now===null&&this.heldLevel>0){this.progressAt=this.active();this.droughts=0;this.heldLevel=0;}
   this.holding=now;
  }
 
@@ -84,7 +85,11 @@ export class StallBriefing {
   }
   if(event.type==="state"&&"started"in event){
    this.last=event;
-   if(this.healTrip!==null&&(event.in_battle||fullParty(event)))this.healTrip=null;
+   if(this.healTrip!==null&&(event.in_battle||fullParty(event))){
+    // A heal the warning asked for, done (full HP), is a step forward: the drought clock starts again from it.
+    if(!event.in_battle){this.progressAt=this.active();this.droughts=0;this.heldLevel=0;}
+    this.healTrip=null;
+   }
    this.settleHold();
    if(!event.started||event.location===null||event.map_id===null)return;
    const key=roomKey(event),name=roomOf(event,this.features);
@@ -98,7 +103,7 @@ export class StallBriefing {
    return;
   }
   if(event.type==="tool_result"){
-   if(this.healTrip!==null&&++this.healTrip.calls>HEAL_HOLD_CALLS){this.healTrip=null;this.settleHold();}
+   if(this.healTrip!==null&&++this.healTrip.calls>=HEAL_HOLD_CALLS){this.healTrip=null;this.settleHold();}
    // Calls made inside an owned interface (it was open before and after them) count as dwelling there,
    // however its text churns; the call that opened it does not.
    if(event.state_seq!==undefined&&this.last?.seq===event.state_seq){

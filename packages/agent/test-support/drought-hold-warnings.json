@@ -210,5 +210,69 @@
   "listed_now": true,
   "mom_heals": true,
   "text": "SUPERVISOR: An exit on this map at (15,8) leads to PETALBURG CITY GYM (map 8/1), and your party is not at full HP: TORCHIC 17/29. If your whole party faints in a battle, the game says \"RIVAL is out of usable POK\u00e9MON!\" and \"RIVAL whited out!\"; you lose half your money (\u20bd996 of \u20bd1992) and wake up in OLDALE TOWN (map 0/10), 2 map changes from here. The nearest place you know of that heals your party is the POK\u00e9MON CENTER in PETALBURG CITY (map 8/4), 1 map change from here in the game's map table; you have not entered it; this result lists it as an exit at (20,16) on this map; its nurse says \"We restore your tired POK\u00e9MON to full health.\""
+ },
+ "story_battle_heal_gate": {
+  "v": 1,
+  "run": "2026-10-21T11-08-02_qwen36-gpu0_9f27",
+  "seq": 22046,
+  "t": "2026-10-21T12:41:32.742-04:00",
+  "type": "story_battle_heal_gate",
+  "turn": 510,
+  "tool_call_id": "2cLj0f709rtKdh8HA7DccE2KKH7BKCEU",
+  "tool": "press",
+  "map_id": [
+   0,
+   18
+  ],
+  "confirmed": false,
+  "outcome": "refused",
+  "reason": null,
+  "reached": [
+   {
+    "kind": "rival",
+    "name": "MAY",
+    "local_id": 2,
+    "sprite_kind": "RIVAL_MAY_NORMAL",
+    "x": 10,
+    "y": 3,
+    "loaded": true,
+    "via": "talk",
+    "tile": {
+     "x": 10,
+     "y": 2
+    }
+   }
+  ],
+  "sightings": [],
+  "hurt": [
+   {
+    "species": "TORCHIC",
+    "hp": 21,
+    "max_hp": 26
+   }
+  ],
+  "heal": [
+   {
+    "kind": "pokemon_center",
+    "town": "OLDALE TOWN",
+    "map_id": [
+     2,
+     2
+    ],
+    "hops": 2,
+    "shown": true
+   },
+   {
+    "kind": "home",
+    "town": "LITTLEROOT TOWN",
+    "map_id": [
+     1,
+     0
+    ],
+    "hops": 4,
+    "shown": false
+   }
+  ],
+  "text": "Battle not started: this press of A talks to your rival MAY (object 2, at (10,3)) and starts a trainer battle, and your party is not at full HP: TORCHIC 21/26.\nIn a trainer battle the game says \"No! There's no running from a TRAINER battle!\" If your party faints, you black out: you lose half your money (\u20bd750 of \u20bd1500) and wake up back at the last POK\u00e9MON CENTER you entered, or at home.\nPlaces you know of that heal your party, nearest first:\n- the POK\u00e9MON CENTER in OLDALE TOWN (map 2/2), 2 map changes from here in the game's map table; you have not entered it, but an earlier result listed it as an exit at (6,16) in OLDALE TOWN; its nurse says \"We restore your tired POK\u00e9MON to full health.\"\n- your house in LITTLEROOT TOWN (map 1/0), 4 map changes from here in the game's map table, where MOM says \"I think you should rest a bit.\" and heals your party.\nTo press anyway, call press again with the same buttons and confirm: true."
  }
 }

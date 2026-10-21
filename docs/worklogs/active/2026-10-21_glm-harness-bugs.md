@@ -56,7 +56,7 @@ No new subprocesses, network calls or file paths. RAM reads go through `pokebenc
 - [x] Guard check: removing the play-wiring option turned "playGameTools passes the switch…" red; removing the withStoryDestinations argument turned "withStoryDestinations reads the switch…" red; both restored
 - [x] Gates: lint clean (tsc, eslint, ruff, mypy); build; coverage agent 97.33/93.06/97.8/99.24 (stmts/branches/funcs/lines), viewer 95.41/91.33/94.33/97.9, Python gate ≥90; agent 3330 tests, viewer 1613, Python 3691. (The worktree's env venv needed the main checkout's mgba binding symlinked; test_view failed without it.)
 - [x] COMMIT (GREEN): `feat: story-goal-player-name-v1 leaves the player's own name out of He/She lives (default off)` (bc5565aaf)
-- [ ] Multi-model review loop until clean: round 1 on 331e10b3..32f1a1be — Grok (cursor-grok-4.5-high) LGTM, GPT (codex gpt-6-astra) LGTM; Claude: Cursor Opus at its usage limit, `claude -p` OAuth expired, so a Claude subagent reviews (memory: claude-review-lane)
+- [x] Multi-model review loop until clean: round 1 on 331e10b3..32f1a1be (packet SHA-256 5dd44234…) — Grok (cursor-grok-4.5-high) LGTM, GPT (codex gpt-6-astra) LGTM, Claude (subagent; Cursor Opus at its usage limit, `claude -p` OAuth expired; memory claude-review-lane) LGTM. Non-blocking: keep the three behaviorless switches out of experiments until M3–M5 land (they are); the ASH case reuses e9ee's pages with the name swapped, not acfa's recording.
 
 **M2 — Drought briefings held during battles and ordered heals** (after `codex/bounded-heal-cycle` lands)
 - [ ] Write tests from e9ee s8331/s10741/s11218, bbff s7768, ad34 s10846, acfa s4962/s5790/s6035; a true drought outside those windows still fires
@@ -72,8 +72,8 @@ No new subprocesses, network calls or file paths. RAM reads go through `pokebenc
 - [ ] Multi-model review loop until clean
 
 **M4 — Trainer sight for navigate_to_target**
-- [ ] Write tests from e9ee s8193/s10444/s10997 and acfa route 102 calls
-- [ ] COMMIT (RED) · Implement · Gates · COMMIT (GREEN) · Review
+- [x] Write tests (`trainer-sight-check-v2.test.ts`, b300 gym state and sight reply as the stand-in game): OFF walks without asking; ON refuses a seen route with navigate_to_target wording, records it, confirm_trainer_sight walks; the trainer the call goes to talk to is excluded from the sightings; confirm argument and description sentence only with the switch; playGameTools wiring
+- [x] COMMIT (RED): `test: navigate_to_target routes get the trainer sight check (RED)` — 5 failing, 1 passing (OFF) · Implement · Gates · COMMIT (GREEN) · Review
 
 **M5 — Auto-talk skips beaten trainers**
 - [ ] Write test from e9ee s10359

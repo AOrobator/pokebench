@@ -354,6 +354,7 @@ def read_game_state(
     field_moves_enabled: bool = False,
     move_learning_enabled: bool = False,
     mart_stock_enabled: bool = False,
+    shop_interface_enabled: bool = False,
     exp_next_enabled: bool = False,
     pokedex_enabled: bool = False,
     respawn_links: LinkCache | None = None,
@@ -400,6 +401,10 @@ def read_game_state(
         from pokebench_env.evolution_decision import decision_ui
 
         native_ui = decision_ui(native_ui, read)
+    if shop_interface_enabled:
+        from pokebench_env.shop_interface import shop_ui
+
+        native_ui = shop_ui(native_ui, read)
     active_ui = native_ui if active_ui_enabled else None
     truth_read = readout_truth_enabled and active_ui_enabled
     window_drawn = menu_window_drawn(read) if readout_truth_enabled else None

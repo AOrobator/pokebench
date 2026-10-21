@@ -62,3 +62,5 @@ None.
 - Bundle inclusion covers canonical bundle-v-control, bundle-cook-1h, whole-map-cook-1h and the active whole-map-pair-2h definition. Each base/control explicitly OFF; each bundle treatment ON. Existing running pins remain unchanged.
 
 - Browser candidate proof: 8798, actual Harness Config search → READ EXPLAINER for rejected-movement-step-v1 and observed-field-dialogue-v1 opened the matching documents. Desktop layout inspected. Phone viewport was not exposed by the current browser control API; no phone-layout claim. Native probe v5 has no inherited experiment tag; earlier v4 remains an invalid metadata attempt outside benchmark runs.
+
+- Main advanced with documentation/theme and landing-board workflow only. Syncing f671f35d4; apply required Emerald theme to these two new explainers before review. Runtime changes are unchanged.

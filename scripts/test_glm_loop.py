@@ -58,7 +58,7 @@ class GlmLoopRehearsal(unittest.TestCase):
         (self.root / ".gitignore").write_text("runs/\nrounds\nlaunches.jsonl\ndisk-read\n")
         for cmd in [["init", "-q", "-b", "main"], ["config", "user.name", "Rehearsal"], ["config", "user.email", "rehearsal@example.invalid"], ["add", "."], ["commit", "-qm", "fixture"]]:
             subprocess.run(["git", *cmd], cwd=self.root, check=True)
-        self.env = {**os.environ, "PATH": f"{self.bin}:{os.environ['PATH']}", "REPO": str(self.root), "RUNS": str(self.root / "runs"), "ARCHIVE": str(self.archive), "JUST": str(self.bin / "just"), "VIEWER_CMD": f"{self.bin / 'just'} viewer-main", "MAIN_WT": str(Path(self.tmp.name) / "pinned-main"), "LOOP_NAME": "glm-four-hour-loop", "EXP_ID": "glm53-flash-4h", "FEATURE_RECIPE": "bundle-v-control", "EXPECTED_TRIALS": "2", "WALL_MS": "14400000", "POLL": "0.05", "STOP_POLL": "0.05", "MIN_ROUND_S": "0"}
+        self.env = {**os.environ, "PATH": f"{self.bin}:{os.environ['PATH']}", "REPO": str(self.root), "RUNS": str(self.root / "runs"), "ARCHIVE": str(self.archive), "JUST": str(self.bin / "just"), "VIEWER_CMD": f"{self.bin / 'just'} viewer-main", "MAIN_WT": str(Path(self.tmp.name) / "pinned-main"), "LOOP_NAME": "glm-four-hour-loop", "EXP_ID": "glm53-flash-4h", "FEATURE_RECIPE": "bundle-v-control", "EXPECTED_TRIALS": "2", "WALL_MS": "14400000", "POLL": "0.05", "STOP_POLL": "0.05", "MIN_ROUND_S": "0", "RETRY_SLEEP": "0", "MAX_FAILS": "1"}
         self.children = []
 
     def tearDown(self):

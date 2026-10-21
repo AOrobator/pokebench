@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { createServer } from "node:net";
 import { tmpdir } from "node:os";
@@ -364,7 +365,10 @@ describe("exploratory current-main feature recipe", () => {
   it("materializes the donor's exact arms while retaining the model lane, start and cap", async () => {
     const f = setup();
     const donor = definition();
-    const model = definition({ id: "glm-four-hour", switches: donor.switches.filter(id=>id!=="world-destinations-v1"), lanes: [{id:"A",gpu:"MAC",gamePort:8077,modelUrl:"http://127.0.0.1:8099",runName:"glm53-mac"}], serving: {...donor.serving, model:"/models/other.gguf",contextTokens:262144}, phases: [{id:"cook",perArm:1,maxWallMs:14_400_000,primary:false,start:MENU_START}] });
+    const modelBaseText=controlBaseText()+"\n";
+    const modelBasePath="runs/model-control-base.json";
+    mkdirSync(join(f.root,"runs"),{recursive:true});writeFileSync(join(f.root,modelBasePath),modelBaseText);
+    const model = definition({ id: "glm-four-hour", controlBase:{...donor.controlBase,path:modelBasePath,sha256:createHash("sha256").update(modelBaseText).digest("hex")},base:{...donor.base,features:{...donor.base.features,"counter-talk-v1":true}},onInBoth:["counter-talk-v1"],offInBoth:[...donor.offInBoth,"full-map-navigation-v1"],switches: donor.switches.filter(id=>id!=="world-destinations-v1"), lanes: [{id:"A",gpu:"MAC",gamePort:8077,modelUrl:"http://127.0.0.1:8099",runName:"glm53-mac"}], serving: {...donor.serving, model:"/models/other.gguf",contextTokens:262144}, phases: [{id:"cook",perArm:1,maxWallMs:14_400_000,primary:false,start:MENU_START}] });
     writeFileSync(f.path, JSON.stringify(donor));
     writeFileSync(join(f.root,"experiments/fixed/glm-four-hour.json"), JSON.stringify(model));
     expect(await main(["dry-run","glm-four-hour","--phase","cook","--wall-ms","14400000","--feature-recipe","bundle-v-control"],f.deps)).toBe(0);

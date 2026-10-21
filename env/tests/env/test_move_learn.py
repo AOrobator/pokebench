@@ -431,3 +431,119 @@ def test_switches_are_registered_server_side_last_and_default_off() -> None:
     assert SERVER_FEATURES[-3:] == (SETTLE_SWITCH, QUESTION_SWITCH, COMPARISON_SWITCH)
     assert SWITCHES <= features_off_from_env({})
     assert features_off_from_env({"POKEBENCH_FEATURES_OFF": SETTLE_SWITCH}) == {SETTLE_SWITCH}
+
+
+# --- every reader failure is visible ------------------------------------------------------
+
+
+def _patched(name: str, address: int, data: bytes) -> ReadMemory:
+    base = archived(name)
+
+    def read(at: int, length: int) -> bytes:
+        raw = bytearray(base(at, length))
+        for i in range(length):
+            if address <= at + i < address + len(data):
+                raw[i] = data[at + i - address]
+        return bytes(raw)
+
+    return read
+
+
+def _description_pointer(name: str, move: int) -> int:
+    return int.from_bytes(archived(name)(0x0861C524 + 4 * (move - 1), 4), "little")
+
+
+@pytest.mark.parametrize(
+    ("name", "patch", "message"),
+    [
+        (
+            "evo-delete-box",
+            lambda: (_description_pointer("evo-delete-box", 24), bytes(64)),
+            "no terminator",
+        ),
+        (
+            "battle-delete-box",
+            lambda: (0x020244E2, (400).to_bytes(2, "little")),
+            "invalid move id 400",
+        ),
+        (
+            "evo-delete-box",
+            lambda: (0x0831C898 + 12 * 24 + 2, b"\x63"),
+            "invalid move type for move 24",
+        ),
+        ("evo-delete-box", lambda: (0x083203CC + 28 * 281 + 6, b"\x63"), "invalid species types"),
+        ("battle-delete-box", lambda: (0x0202449C, bytes(4)), "gBattleStruct pointer 0x0"),
+    ],
+)
+def test_bad_game_data_is_reported_not_guessed(
+    name: str, patch: Callable[[], tuple[int, bytes]], message: str
+) -> None:
+    address, data = patch()
+    recorded = read_state(_patched(name, address, data), maps(), active_ui=True, off=frozenset())
+    assert recorded.move_learning is None
+    assert recorded.move_learning_diagnostic is not None
+    assert message in recorded.move_learning_diagnostic
+
+
+def test_a_learner_slot_outside_the_party_is_reported() -> None:
+    struct_pointer = int.from_bytes(archived("battle-delete-box")(0x0202449C, 4), "little")
+    read = _patched("battle-delete-box", struct_pointer + 0x10, b"\x05")
+    recorded = read_state(read, maps(), active_ui=True, off=frozenset())
+    assert recorded.move_learning_diagnostic is not None
+    assert "move learner party slot 5 is out of range" in recorded.move_learning_diagnostic
+
+
+def test_an_unreadable_learner_and_missing_owner_details_raise() -> None:
+    recorded = state("evo-delete-box")
+    assert recorded.party is not None and recorded.active_ui is not None
+    blank_mon = replace(recorded.party[0], species_id=None)
+    with pytest.raises(ValueError, match="is unreadable"):
+        read_move_learning(archived("evo-delete-box"), recorded.active_ui, None, (blank_mon,))
+    details = dict(recorded.active_ui.details or {})
+    del details["pokemon_party_index"]
+    with pytest.raises(ValueError, match="lacks its party slot"):
+        read_move_learning(
+            archived("evo-delete-box"),
+            replace(recorded.active_ui, details=details),
+            None,
+            recorded.party,
+        )
+    summary = state("summary-forget")
+    assert summary.active_ui is not None and summary.party is not None
+    summary_details = dict(summary.active_ui.details or {})
+    summary_details["new_move_id"] = 0
+    with pytest.raises(ValueError, match="summary forget-move screen lacks"):
+        read_move_learning(
+            archived("summary-forget"),
+            replace(summary.active_ui, details=summary_details),
+            None,
+            summary.party,
+        )
+
+
+def test_a_warp_during_a_move_learning_wait_takes_the_warp_bound(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from pokebench_env import screen_settle
+
+    frames = {"n": 0}
+    monkeypatch.setattr(screen_settle, "warp_animating", lambda read: 2 <= frames["n"] < 5)
+    settle = FrameSettle(blank, warp=True, warp_bound_frames=50)
+    settle.move_learning = lambda: frames["n"] < 2
+    settle.move_learning_bound_frames = 3
+    result: dict[str, object] = {}
+    lock = threading.Lock()
+    thread = threading.Thread(
+        target=lambda: result.update(r=settle.settle_traced(lambda: "x", lock)), daemon=True
+    )
+    thread.start()
+    thread.join(0.05)
+    while thread.is_alive() and frames["n"] < 40:
+        frames["n"] += 1
+        with lock:
+            settle.on_frame()
+        thread.join(0.01)
+    thread.join(5)
+    _, settled = cast(tuple[str, Settled], result["r"])
+    assert settled.reason == "warp"
+    assert settled.frames == 5

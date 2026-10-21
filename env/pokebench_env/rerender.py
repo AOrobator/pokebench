@@ -25,6 +25,8 @@ from pokebench_env.game_screen import ReadMemory
 from pokebench_env.game_state import GameState, MapNames, read_game_state
 from pokebench_env.heal_trainers import SWITCH as HEAL_TRAINERS
 from pokebench_env.heal_trainers import SWITCH_V2 as HEAL_TRAINERS_V2
+from pokebench_env.move_learn import COMPARISON_SWITCH as MOVE_COMPARISON
+from pokebench_env.move_learn import QUESTION_SWITCH as MOVE_QUESTION
 from pokebench_env.raw_ram import load_raw_ram
 from pokebench_env.readout import features_off_from_env, format_readout
 from pokebench_env.readout_fixes import MID_FRAME, OWNER, UNSET_WARP
@@ -86,6 +88,7 @@ def read_state(
         party_item_confirmation_enabled="party-item-confirmation-v1" not in off,
         # field-move-gates-v1 gates exit-reachability-v1's flood, so it needs that switch.
         field_moves_enabled=FIELD_MOVES not in off and EXIT_REACH not in off,
+        move_learning_enabled=not {MOVE_QUESTION, MOVE_COMPARISON} <= off,
         respawn_links=links if RESPAWN not in off else None,
     )
 

@@ -15,6 +15,7 @@ from pokebench_env.battle_text import WAIT_BOUND_FRAMES, BattleWait
 from pokebench_env.blackout_readout import Whiteout, WhiteoutLatch, whiteout_line
 from pokebench_env.game_screen import ReadMemory
 from pokebench_env.game_state import GameState, MapNames
+from pokebench_env.move_learn import SETTLE_SWITCH as MOVE_LEARN_SETTLE
 from pokebench_env.places import PlaceDirectory
 from pokebench_env.raw_ram import RawRamArchive, RawRamSnapshot, Reservation, raw_reference
 from pokebench_env.readout import features_off_from_env, state_json
@@ -210,7 +211,8 @@ def install_observation(
         screenshot = shot.get("screenshot_base64")
         if not isinstance(screenshot, str) or screenshot == "":
             raise HTTPException(status_code=503, detail="no screenshot available")
-        if warp and settled is not None:
+        # move-learn-settle-v1 records its waits the way warp-arrival-settle-v1 does.
+        if (warp or MOVE_LEARN_SETTLE not in off) and settled is not None:
             serialized["settle"] = {"frames": settled.frames, "reason": settled.reason}
         note = screen_note(fading=fading, black=frame_is_black(screenshot))
         # blackout-readout-v1: taken only once this observation will be delivered, and

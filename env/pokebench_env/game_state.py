@@ -29,6 +29,7 @@ from pokebench_env.game_screen import ReadMemory, read_screen
 from pokebench_env.gba_text import GBA_TEXT, decode_text
 from pokebench_env.heal_trainers import HealFacts, read_heal_facts
 from pokebench_env.live_map import MAP_OFFSET, FullMap, LocalMap, read_full_map, read_local_map
+from pokebench_env.move_learn import MoveLearning, read_move_learning
 from pokebench_env.naming import NamingState, editor_open, read_naming
 from pokebench_env.offscreen_objects import MapObject, read_offscreen_objects
 from pokebench_env.party_ownership import PartyOwnership, read_party_ownership
@@ -168,6 +169,9 @@ class GameState:
     exit_labels: ExitLabels | None = None
     # field-move-gates-v1: the map's obstacles, capabilities and gated flood; None when off.
     field_obstacles: FieldObstacles[ConnectionKey] | None = None
+    # move-learn-question-v1 / move-learn-comparison-v1: the open move-learning choice; text only.
+    move_learning: MoveLearning | None = None
+    move_learning_diagnostic: str | None = None
 
 
 DYNAMIC_WARP = 0x14
@@ -259,6 +263,18 @@ def _map_gates(
     return map_gates(caps, objects, flood.tiles, location, sandstorm=temp3 == 0)
 
 
+def _move_learning(
+    read: ReadMemory,
+    ui: ActiveUi | None,
+    battle: BattleState | None,
+    party: tuple[PartyMon, ...],
+) -> tuple[MoveLearning | None, str | None]:
+    try:
+        return read_move_learning(read, ui, None if battle is None else battle.prompt, party), None
+    except (ValueError, IndexError) as error:
+        return None, f"harness bug: move learning: {error}"
+
+
 def read_game_state(
     read: ReadMemory,
     maps: MapNames,
@@ -290,6 +306,7 @@ def read_game_state(
     caught_nickname_enabled: bool = False,
     party_item_confirmation_enabled: bool = False,
     field_moves_enabled: bool = False,
+    move_learning_enabled: bool = False,
     respawn_links: LinkCache | None = None,
 ) -> GameState:
     screen = read_screen(read)
@@ -455,7 +472,12 @@ def read_game_state(
     exit_reach = (
         build_exit_reach(flood, found) if exit_reach_enabled and flood is not None else None
     )
+    learning, learning_diagnostic = (
+        _move_learning(read, native_ui, battle, party) if move_learning_enabled else (None, None)
+    )
     return GameState(
+        move_learning=learning,
+        move_learning_diagnostic=learning_diagnostic,
         blackout_active=screen.callback2 == 0x08085F59,
         game_stats=_game_stats(read, save1, save2),
         resources=resources,

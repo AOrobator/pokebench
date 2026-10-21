@@ -60,10 +60,10 @@ No new inputs, subprocesses, network or file access. Reads only ROM tables and w
 **M1–M3 — server switches: move-learn-settle-v1 (F1), move-learn-question-v1 (F2), move-learn-comparison-v1 (J1)** (one shared reader, `env/pokebench_env/move_learn.py`, so one RED/GREEN pair)
 - [x] Fixtures: 9 raw-RAM archives copied from run 97a0 (`env/tests/env/fixtures/move-learn-*.json.gz`, provenance with sha256): evolution MVSTATE 2 printing/waiting, 3 printing (delete/stop), 4 box (delete/stop); battle learn_move/stop_learning_move boxes; summary_move_forget.
 - [x] Tests: `env/tests/env/test_move_learn.py` (58: busy per recorded state, FrameSettle hold/bound/off/fade, production hook on/off, F2 exact lines ×4 and absences, trade/unknown pairs, J1 exact blocks for evolution/battle/summary, OFF byte parity per archive, state JSON unchanged, visible harness-bug line, registry); `packages/agent/src/move-learn-switches.test.ts` (registry, presets, server transport, dependency for all five); registry collateral in 60+ test files.
-- [x] COMMIT RED
-- [ ] Implement
-- [ ] Gates
-- [ ] COMMIT GREEN
+- [x] COMMIT: `test: move-learn settle, question and comparison readouts on the recorded DOUBLE KICK/PECK states; registry for five move-learn switches (RED)` (ed026660). RED: base has no `pokebench_env.move_learn` (ModuleNotFoundError at collection, checked against main bf0c3d48), and the registry tests name five switches the base lacks.
+- [x] Implement: `move_learn.py` (busy predicate, question kind/line, comparison block, typed `MoveLearning`, text-only in GameState with a visible `HARNESS BUG (move learning)` line on any failed read); FrameSettle `move_learning` hook with its own bound and settle reasons (TS schema enum + regenerated schemas/events.v1.json); serve wiring; observation records the settle when the switch is on; registry for all five (J2/J3 registered default off, behavior in M4/M5).
+- [x] Gates: `just lint` ok (tsc, eslint, ruff, format, mypy 104 files); `just build` ok; `just coverage` agent 3086 tests 97.18/93.01/97.6/99.17, viewer 1515 tests 95.26/91.06/94.24/97.83, pytest 3538 then 3546 with the failure-path tests, Python lines 97.17 branches 92.74 functions 100; move_learn.py 100% lines and branches.
+- [x] COMMIT GREEN
 
 **M4 — effectiveness-heard-v1 (J2)**
 - [ ] Tests / RED / implement / gates / GREEN

@@ -415,6 +415,8 @@ def board_done(room: Mailroom, *, branch: str, now: datetime, run: Run) -> list[
     """Leave the board and tell everyone behind you their new place; number 1 is told to land.
 
     A notice's exit code is `codex queue`'s for a Codex entry; mail to Claude always lands.
+    Notices go out while the board lock is held, so no later board change can be overtaken by
+    an older notice. Claude mailboxes have their own locks, so this cannot deadlock.
     """
     with room.locked():
         before = read_entries(room)
@@ -422,7 +424,7 @@ def board_done(room: Mailroom, *, branch: str, now: datetime, run: Run) -> list[
         if len(after) == len(before):
             raise ValueError(f"{branch} is not on the landing board")
         write_entries(room, after)
-    return notify_moves(room, before, after, now=now, run=run)
+        return notify_moves(room, before, after, now=now, run=run)
 
 
 def board_move(
@@ -440,7 +442,7 @@ def board_move(
             raise ValueError(f"{before_branch} is not on the landing board")
         after = rest[:target] + [mover] + rest[target:]
         write_entries(room, after)
-    return notify_moves(room, before, after, now=now, run=run)
+        return notify_moves(room, before, after, now=now, run=run)
 
 
 def report(notices: list[Notice]) -> int:

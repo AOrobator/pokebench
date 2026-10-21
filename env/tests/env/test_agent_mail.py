@@ -578,3 +578,33 @@ def test_each_claude_thread_hears_only_its_own_mail(
     assert am.main(["claude-mailbox"], run=runs) == 0
     assert capsys.readouterr().out.endswith("codex: for the relay\n")
     assert (tmp_path / "mail" / "to" / "claude%2Fshop").is_dir()
+
+
+def test_a_later_board_change_waits_for_earlier_notices(tmp_path: Path) -> None:
+    r = room(tmp_path)
+    for name in "abc":
+        am.board_join(r, who=f"codex {name}", branch=f"codex/{name}", codex_thread=name, now=T)
+    a_notifying = threading.Event()
+    release_a = threading.Event()
+    delivered: list[tuple[str, str]] = []
+
+    def slow(argv: Sequence[str]) -> int:
+        delivered.append((argv[3], argv[5]))
+        if not a_notifying.is_set():
+            a_notifying.set()
+            assert release_a.wait(5)
+        return 0
+
+    leaver_a = threading.Thread(target=lambda: am.board_done(r, branch="codex/a", now=T, run=slow))
+    leaver_a.start()
+    assert a_notifying.wait(5)
+    leaver_b = threading.Thread(target=lambda: am.board_done(r, branch="codex/b", now=T, run=slow))
+    leaver_b.start()
+    # Give B every chance to finish first; with the fix it is held at the board lock instead.
+    leaver_b.join(0.5)
+    release_a.set()
+    leaver_a.join(5)
+    leaver_b.join(5)
+    assert [e.branch for e in am.read_board(r)] == ["codex/c"]
+    last_to_c = [text for thread, text in delivered if thread == "c"][-1]
+    assert last_to_c == "codex c: your turn to land codex/c"

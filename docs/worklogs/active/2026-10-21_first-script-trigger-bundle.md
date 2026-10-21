@@ -93,3 +93,5 @@ Agent full coverage:3427 pass, lines99.22/branches93.28/functions97.94. Full bui
 
 ## Landing slot sync
 2026-10-21: now slot1, merged current main31fdd105. Conflicts were additive preset/registry/readiness/historical fixture updates: retained milestone-memory feature and restored trigger preference/activation. Runtime navigation.ts/semantic-navigation.ts merge clean, unchanged from qualified native proof. Required synchronized gates and fresh independent reviews next.
+
+Pending experiment source repinned to synchronized implementation f742d0c8d8687c40186a1b91fe5b444dc5c20bc9 before final tests/review; source metadata only, no queue/approval.

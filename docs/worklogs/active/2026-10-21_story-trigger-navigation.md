@@ -8,9 +8,9 @@ Evidence: ea04 turns 600–660, seq 22794–24576; 17 refusals across matching R
 
 - [x] RED regression and exact OFF contract
 - [x] GREEN production wiring and semantic stop; adversarial deletion/restoration
-- [ ] Gates and read-only replay on recorded Rustboro state
+- [x] Gates and read-only replay on recorded Rustboro state
 - [x] Explainer and pending experiment
-- [ ] Principles and cloud review
+- [ ] Principles and cloud review — quality reviews complete; Grok quota unavailable, operator decision required
 - [ ] Landing and served proof, only through landing board
 
 Implementation boundary: navigation.ts and semantic-navigation.ts if required, existing feature registration/preset/default owners, focused tests, explainer mapping/docs, pending experiment. No new runtime owner or event schema.
@@ -58,3 +58,23 @@ Test-quality checks: production factory and semantic consumer assertions observe
 Configured just test: 3409 agent + 1658 viewer + 3806 Python tests passed (/tmp/trigger-test-configured.log). just lint passed TS/eslint/ruff/mypy (/tmp/trigger-lint-final.log); build passed (/tmp/trigger-build-final.log). Agent coverage already passed 97.27 statements, 93.15 branches, 97.8 functions, 99.2 lines; viewer coverage retry pending after its existing experiment-cli deadline failed under load. Landing board joined as number 8 on 2026-10-21 at 4:05 PM New York; no main move allowed before slot 1.
 
 COMMIT: `fix: let navigation return at matching script triggers` (36662714). Pending definition now pins that committed implementation and explicitly normalizes all incumbent switches. Direct candidate parseExperiment validation passes. `just experiments-check` checks the main checkout (not this candidate) and is red on pre-existing starter-decision-salience trials.jsonl lines 1–150; no candidate-specific definition error and no ledger edits. This shared-data gate remains reported separately.
+
+## Multi-Model Review Log and hold
+
+COMMIT: `docs: pin pending trigger policy to its committed implementation` (e2ff1256a9048dbbb3299cdcf359090803d608df).
+
+Frozen base 4b70c35ddb964e18d4e618bce57317503948a02c -> e2ff1256a9048dbbb3299cdcf359090803d608df; exact binary diff SHA256 d012ec4afcda86594a7ed8d6ac8222c6123c81ad1ddabe1fbe96e004472dcbef. Packet, transcripts, copied gate receipts, boundary, principles and synthesis: runs/reviews/trigger-boundary-r1/. After all four completed reviews, reproduced clean HEAD and exact diff digest before this evidence-only worklog update.
+
+- Claude CLI dedicated review config, plan mode: exit 0, empty stderr, exactly one terminal VERDICT: LGTM.
+- Fresh normal GPT lane /root/trigger_policy_review, fork_turns=none: VERDICT: LGTM, independently verified digest/status and passed 172 tests.
+- Grok cursor-agent ask mode, discovered grok-4.7-high: exit 1, ActionRequiredError: account out of usage; ask admin to increase limit or switch Auto. Auto would not preserve the Grok family. This unavailable lane is not green.
+- Standing availability fallback /root/trigger_fallback_sol, gpt-6.1-sol high, fork_turns=none: VERDICT: LGTM; independent exact digest/status; 170 navigation/semantic plus 88 stride/truth/warp assertions (overlap).
+- Standing availability fallback /root/trigger_fallback_astra, gpt-6-astra high, fork_turns=none: VERDICT: LGTM; independent exact digest/status; 189 tests across seven files.
+
+Reduced vendor diversity is explicit. Under execute-worklog's landing rule, fallback reviews do not authorize self-merge when a required cloud lane is unavailable. Operator approval of the replacement roster is required. No main move, live bundle enablement, run controls, experiment approval or launch.
+
+No blockers from completed lanes. Combined treatment-plus-stride factory coverage is a nonblocking hardening follow-up; no scope expansion accepted. Existing native stride exclusion and ordinary-walking regression support current behavior. No native story-completion or benchmark-benefit claim. All nine test-quality dimensions assessed; no new skipped tests, retries, deadlines, coverage exclusions or owners. This evidence-only documentation commit updates stale checkboxes/receipts; code remains the reviewed e2ff1256 tree. At the landing slot, sync/reseal and perform any required new review, including this documentation, before landing.
+
+Final configured gates: just test 3409 agent + 1658 viewer + 3806 Python passed. just lint, just build, just verify-vendor passed. Full just coverage passes every metric: agent lines 99.20 / branches 93.15 / functions 97.80; viewer lines 97.95 / branches 91.33 / functions 94.35; Python lines 97.29 / branches 93.11 / functions 100.00. All 194 candidate experiment definitions parse. The main-checkout convenience experiments-check remains red on pre-existing starter-decision-salience trial-ledger lines 1–150; history untouched.
+
+Landing remains slot 8, updated to exact chat title Inspect Russborough gate mapping. Original ea04 later ended on its own budget; no input/control writes or viewer restart were sent by this work.

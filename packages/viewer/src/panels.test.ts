@@ -592,6 +592,14 @@ it("maps game evidence priority to a tracked explainer, like every other mapped 
  for(const file of Object.values(FEATURE_EXPLAINERS))expect(existsSync(fileURLToPath(new URL(`../../../docs/explainers/${file}`,import.meta.url)))).toBe(true);
 });
 
+it("links the field move gates card to its tracked explainer",()=>{
+ const id="field-move-gates-v1";
+ expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
+ const html=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)),"utf8");
+ expect(html).toContain("BREAKABLE_ROCK at (24,4) and (24,5) close every way on foot");
+ expect(html).toContain("needs a field move you cannot use yet");
+});
+
 it("links save-state task truth to its tracked explainer",()=>{
  expect(FEATURE_EXPLAINERS["save-state-task-truth-v1"]).toBe("save-state-task-truth-v1.html");
  const html=readFileSync(fileURLToPath(new URL("../../../docs/explainers/save-state-task-truth-v1.html",import.meta.url)),"utf8");

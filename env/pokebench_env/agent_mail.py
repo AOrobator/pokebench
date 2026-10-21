@@ -18,7 +18,7 @@ import sys
 from collections.abc import Callable, Iterator, Sequence
 from contextlib import contextmanager
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from urllib.parse import quote
 from zoneinfo import ZoneInfo
@@ -28,6 +28,11 @@ NO_MAIL = 3
 # The mailbox a Codex coordinator thread listens on; it forwards each letter to its Codex thread
 # with Codex's own send_message_to_thread, which reaches a busy thread mid-turn.
 CODEX_COORDINATOR = "codex-coordinator"
+# Between two mailbox runs the coordinator is busy forwarding, not listening; it still counts
+# as present this long after its last run's timeout, so letters wait for it instead of queueing.
+PRESENCE_GRACE_SECONDS = 120.0
+# A forwarder running without --timeout is assumed present this long.
+DEFAULT_HOLD_WAIT_SECONDS = 600.0
 
 Run = Callable[[Sequence[str]], int]
 
@@ -107,6 +112,10 @@ class Mailroom:
 
     def claim(self, owner: int) -> Path:
         return self.root / f"delivering-{owner}.jsonl"
+
+    @property
+    def presence(self) -> Path:
+        return self.root / "present-until"
 
     @property
     def log(self) -> Path:
@@ -295,6 +304,19 @@ def wait_for_mail(
         return drain(room, who)
 
 
+def mark_present(room: Mailroom, until: datetime) -> None:
+    room.root.mkdir(parents=True, exist_ok=True)
+    room.presence.write_text(until.isoformat(), encoding="utf-8")
+
+
+def present(room: Mailroom, now: datetime) -> bool:
+    """Whether a forwarder (the Codex coordinator) has said it is running until after now."""
+    if not room.presence.exists():
+        return False
+    until = parse_time(room.presence.read_text(encoding="utf-8").strip(), "unreadable presence")
+    return until > now
+
+
 def reach_codex(
     room: Mailroom, thread: str, text: str, *, sender: str, now: datetime, run: Run
 ) -> tuple[int, bool]:
@@ -303,7 +325,12 @@ def reach_codex(
     Returns the exit code and whether the coordinator took it.
     """
     letter = Letter(now, sender, text, to_thread=thread)
-    if deliver(room.addressed(CODEX_COORDINATOR), letter, only_if_listening=True):
+    box = room.addressed(CODEX_COORDINATOR)
+    if present(box, now):
+        # Listening or between runs: either way it picks the letter up on its next run.
+        deliver(box, letter, only_if_listening=False)
+        return 0, True
+    if deliver(box, letter, only_if_listening=True):
         return 0, True
     return run(["codex", "queue", "--thread", thread, "--message", text]), False
 
@@ -571,6 +598,9 @@ def main(argv: Sequence[str] | None = None, *, run: Run = run_command) -> int:
         return 0
     if args.command == "claude-mailbox":
         box_room = room if args.address is None else room.addressed(args.address)
+        if args.hold:
+            wait = DEFAULT_HOLD_WAIT_SECONDS if args.timeout is None else args.timeout
+            mark_present(box_room, now + timedelta(seconds=wait + PRESENCE_GRACE_SECONDS))
         letters = wait_for_mail(box_room, timeout=args.timeout)
         if not letters:
             print("No mail.")

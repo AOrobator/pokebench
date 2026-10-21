@@ -8,7 +8,7 @@ import sys
 import threading
 import time
 from collections.abc import Sequence
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import pytest
@@ -758,3 +758,43 @@ def test_tell_claude_from_stdin_keeps_shell_text_literal(
         am.main(["tell-claude"])
     with pytest.raises(SystemExit):
         am.main(["tell-claude", "--stdin", "words"])
+
+
+def test_letters_wait_for_a_present_coordinator_between_its_mailbox_runs(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.setenv("POKEBENCH_AGENT_MAIL_DIR", str(tmp_path / "mail"))
+    r = am.Mailroom(tmp_path / "mail")
+    box = r.addressed(am.CODEX_COORDINATOR)
+    runs = Runs()
+    later = datetime.now(UTC) + timedelta(hours=1)
+    assert (
+        am.main(["claude-mailbox", "--for", am.CODEX_COORDINATOR, "--hold", "--timeout", "0.01"])
+        == 3
+    )
+    assert am.present(box, datetime.now(UTC))
+    assert not am.present(box, later)
+    assert am.reach_codex(r, "A", "while busy", sender="c", now=datetime.now(UTC), run=runs) == (
+        0,
+        True,
+    )
+    assert runs.calls == []
+    assert [x.text for x in am.collect(box)] == ["while busy"]
+    assert am.reach_codex(r, "A", "gone", sender="c", now=later, run=runs) == (0, False)
+    assert runs.calls == [["codex", "queue", "--thread", "A", "--message", "gone"]]
+    capsys.readouterr()
+    assert (
+        am.main(["claude-mailbox", "--for", am.CODEX_COORDINATOR, "--hold", "--timeout", "0.01"])
+        == 3
+    )
+    assert am.present(box, datetime.now(UTC) + timedelta(seconds=60))
+    box.presence.write_text("garbage")
+    with pytest.raises(ValueError, match="unreadable presence"):
+        am.present(box, later)
+
+
+def test_a_forwarder_without_a_timeout_is_assumed_present(tmp_path: Path) -> None:
+    r = room(tmp_path)
+    box = r.addressed(am.CODEX_COORDINATOR)
+    am.mark_present(box, T + timedelta(seconds=am.DEFAULT_HOLD_WAIT_SECONDS))
+    assert am.present(box, T)

@@ -294,7 +294,9 @@ it("serves a partial snapshot at once while cold runs load in the background", a
   const h = heldCompute();
   const loader = createWorkbenchLoader({ compute: h.compute });
   const cold = await workbenchSnapshot(r, healthy, NOW, undefined, loader, { partial: true });
-  expect(cold.runs).toEqual([]);
+  expect(cold.runs.map(run => run.id).sort()).toEqual(["broken", "done", "held", "live"]);
+  expect(cold.runs.every(run => run.measurement === undefined && run.splits.length === 0)).toBe(true);
+  expect(cold.runs.find(run => run.id === "done")?.problem).toContain("still loading");
   expect(cold.problems).toContain("Still loading 4 of 4 recorded runs; this page fills in as they finish.");
   expect([...h.calls].sort()).toEqual(["broken", "done", "held", "live"]);
   h.release();
@@ -340,7 +342,8 @@ it("retries a background load that failed instead of leaving the run pending for
   let calls = 0;
   const loader = createWorkbenchLoader({ compute: (root, id) => { calls += 1; return calls === 1 ? Promise.reject(new Error("worker died")) : Promise.resolve(loadRun(root, id)); } });
   const first = await workbenchSnapshot(r, healthy, NOW, undefined, loader, { partial: true });
-  expect(first.runs).toEqual([]);
+  expect(first.runs).toMatchObject([{ id: "done", splits: [] }]);
+  expect(first.runs[0]?.problem).toContain("still loading");
   await new Promise((resolve) => { setImmediate(resolve); });
   await workbenchSnapshot(r, healthy, NOW, undefined, loader, { partial: true });
   await new Promise((resolve) => { setImmediate(resolve); });
@@ -421,7 +424,8 @@ it.each([
   await tick(); h.release(); await first;
   mutate(join(r, "done", "events.jsonl"));
   const during = await workbenchSnapshot(r, healthy, NOW, undefined, loader, { partial: true });
-  expect(during.runs.map((x) => x.id)).not.toContain("done");
+  expect(during.runs.find(x => x.id === "done")).toMatchObject({ status: "invalid", splits: [] });
+  expect(during.runs.find(x => x.id === "done")?.measurement).toBeUndefined();
   expect(during.problems).toContain("Still loading 1 of 4 recorded runs; this page fills in as they finish.");
   h.release(); await tick();
   const after = await workbenchSnapshot(r, healthy, NOW, undefined, loader, { partial: true });
@@ -434,8 +438,25 @@ it("serves disk-cached runs in the very first partial snapshot without loading t
   await workbenchSnapshot(r, healthy, NOW, undefined, createWorkbenchLoader({ store: createWorkbenchStore(dir) }));
   const h = heldCompute();
   const first = await workbenchSnapshot(r, healthy, NOW, undefined, createWorkbenchLoader({ compute: h.compute, store: createWorkbenchStore(dir) }), { partial: true });
-  expect(first.runs.map((x) => x.id)).toEqual(["done"]);
+  expect(first.runs.filter(x => x.measurement !== undefined).map(x => x.id)).toEqual(["done"]);
   expect(first.problems).toContain("Still loading 3 of 4 recorded runs; this page fills in as they finish.");
   expect(h.calls).not.toContain("done");
   h.release();
+});
+
+it("keeps a tagged cold run selectable in its exact cohort until validated progress arrives", async () => {
+  const r = root(), log = named();
+  const header = log.events[0]; if (header?.type !== "run_start") throw new Error("header");
+  log.events[0] = { ...header, evaluation: { preset_id: "cold-bundle", target: null, failure_limit: 3, flags: { loopGuard: false, activeUi: false, interfaceDocs: false, objectives: false }, experiment: { id: "cold-pair", arm: "bundle", trial: 1, of: 2 } } };
+  write(r, "cold", log);
+  const h = heldCompute(), loader = createWorkbenchLoader({ compute: h.compute });
+  const cold = await workbenchSnapshot(r, healthy, NOW, undefined, loader, { partial: true });
+  expect(cold.runs[0]?.cohort).toContain("experiment:cold-pair@");
+  expect(cold.runs[0]?.config?.preset).toBe("cold-bundle");
+  expect(cold.runs[0]?.measurement).toBeUndefined();
+  h.release(); await tick();
+  const warm = await workbenchSnapshot(r, healthy, NOW, undefined, loader, { partial: true });
+  expect(warm.runs[0]?.cohort).toBe(cold.runs[0]?.cohort);
+  expect(warm.runs[0]?.problem).toBeNull();
+  expect(warm.runs[0]?.splits.length).toBeGreaterThan(0);
 });

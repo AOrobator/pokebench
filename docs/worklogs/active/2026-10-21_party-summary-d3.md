@@ -68,8 +68,9 @@ Scope limits (from the data the runs record today):
 - [x] COMMIT: `test(viewer): party page interactions (RED)` (be73da5b8)
 - [x] Implement wiring in `app.ts` (+ `party-view` browser module). The browser check found two bugs, fixed here with tests/CSS: data.json carries ability row 0 (ABILITY_NONE), which the key check rejected (page fell back to the plain list); slots were wider than a 375 phone (min widths reduced under 600px).
 - [x] Gates: lint, build; test agent 3248 / viewer 1590 / python 3568; coverage viewer lines 97.96 branches 91.35 functions 94.51, agent 99.2/93.08/97.7, python 97.21/92.92/100
-- [ ] COMMIT: `feat(viewer): wire the party page (GREEN)`
+- [x] COMMIT: `feat(viewer): wire the party page (GREEN)` (aee2b58ff)
 - [x] viewer-e2e: candidate viewer from this checkout's dist on 8796 over a scratch runs dir (symlinks to 8d39, a8f9 and a probe run `2026-10-21T03-00-00_partyprobe_d3d3` = a8f9's run_start and last state with the real decoded a8f9 TORCHIC facts plus two added Pokémon). Real clicks: ZIGZAGOON slot → STATS (12/13/15/9/11, EXP 399, NEXT 113, PSN) → MOVES → TAIL WHIP (POWER ---, ACCURACY 100, description). 1440, 1280 (8d39 recorded before the readout: stats ---) and 375 (scrollWidth 375, full move names) screenshots opened, in runs/mockups/party-menu/shots/build/. Browser module cache needed a cache-busting reload after rebuild. 8790 untouched.
+- [x] Merged main (6fbce3326) into the branch (be61525e5); gates on the merged tip: lint, build; test agent 3248 / viewer 1590 / python 3568; coverage viewer 97.96/91.35/94.51, agent 99.2/93.07/97.7, python 97.21/92.92/100. Principles self-review: 0 FAIL.
 - [ ] Multi-model review (Claude, Grok, GPT lanes) until LGTM on the frozen packet
 - [ ] Land: merge main, gates, `git merge --ff-only`, `just test` on main, `just viewer-main`, live check on 8790
 

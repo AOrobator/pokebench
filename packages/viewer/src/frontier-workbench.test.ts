@@ -334,3 +334,18 @@ it("keeps outliers hidden when experiment, model, configuration, date or overlay
   expect(points()).toHaveLength(0); document.querySelector<HTMLButtonElement>('[data-frontier-view="full"]')?.click(); expect(points()).toHaveLength(0);
   button.click(); expect(points()).toHaveLength(2); wb.destroy();
 });
+
+it("refreshes a selected graph when checkpoints outside the filters change its global outlier cutoff", async () => {
+  const measurement = { controller: "agent" as const, features: ["story-milestones-v2"], logSha256: "a".repeat(64), pausedMs: 0, rawSplits: [] };
+  const normal = Array.from({ length: 20 }, (_, i) => Object.assign(run({ id: `population-${String(i)}`, cohort: "population" }), { measurement }));
+  const first = run().splits[0]; if (first === undefined) throw Error("fixture split");
+  const leader = Object.assign(run({ id: "fixed-leader", cohort: "population", splits: [...run().splits, { ...first, name: "STONE_BADGE" }] }), { measurement });
+  const selected = Object.assign(run({ id: "selected-extreme", cohort: "selected", splits: run().splits.map(s => ({ ...s, elapsedMs: s.elapsedMs * 100 })) }), { measurement });
+  let data = { version: 1, at: 1000, milestones: [], problems: [], runs: [...normal, leader, selected] };
+  const wb = new Workbench(document, { fetchSnapshot: () => Promise.resolve(data), now: () => 1000, width: () => 900 });
+  await wb.refresh(); change("cohort", "selected");
+  const points = () => ui("frontier-full").querySelectorAll('[data-run="selected-extreme"]');
+  expect(points()).toHaveLength(0);
+  data = { ...data, at: 2000, runs: [...normal.map(r => ({ ...r, splits: r.splits.map(s => ({ ...s, elapsedMs: s.elapsedMs * 50 })) })), leader, selected] };
+  await wb.refresh(); expect(points()).toHaveLength(2); wb.destroy();
+});

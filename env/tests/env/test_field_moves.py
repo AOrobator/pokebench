@@ -108,11 +108,19 @@ def item(item_id: int) -> ResourceItem:
     return ResourceItem(0, item_id, 1, "key_items")
 
 
-def source_text(relative: str, label: str) -> str:
+@functools.cache
+def source_lines(relative: str) -> tuple[str, ...] | None:
+    """One pokeemerald source file's lines, read once per session; None when it is missing."""
     path = POKEEMERALD / relative
     if not path.exists():
+        return None
+    return tuple(path.read_text().splitlines())
+
+
+def source_text(relative: str, label: str) -> str:
+    lines = source_lines(relative)
+    if lines is None:
         pytest.skip(f"pret/pokeemerald checkout not found at {POKEEMERALD}")
-    lines = path.read_text().splitlines()
     start = next(i for i, line in enumerate(lines) if line.strip() in (f"{label}:", f"{label}::"))
     pieces = []
     for line in lines[start + 1 :]:
@@ -163,6 +171,26 @@ def test_every_quoted_text_is_the_whole_pokeemerald_string_at_its_label(
     assert gate.text is not None
     relative = gate.source.split(":", 1)[0]
     assert source_text(relative, gate.label) == gate.text
+
+
+def test_the_quotations_read_each_source_file_once(monkeypatch: pytest.MonkeyPatch) -> None:
+    labelled = [g for g in GATES if g.label is not None]
+    files = {g.source.split(":", 1)[0] for g in labelled}
+    assert len(labelled) == 7 and len(files) < len(labelled)
+    reads: list[Path] = []
+    read_text = Path.read_text
+
+    def counted(self: Path, *args: Any, **kwargs: Any) -> str:
+        reads.append(self)
+        return read_text(self, *args, **kwargs)
+
+    source_lines.cache_clear()
+    monkeypatch.setattr(Path, "read_text", counted)
+    for gate in labelled:
+        assert gate.label is not None
+        source_text(gate.source.split(":", 1)[0], gate.label)
+        source_text(gate.source.split(":", 1)[0], gate.label)
+    assert sorted(reads) == sorted(POKEEMERALD / f for f in files)
 
 
 def test_the_game_prints_nothing_for_surf_and_the_bikes() -> None:

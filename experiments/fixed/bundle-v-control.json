@@ -1,7 +1,7 @@
 {
  "version": 1,
  "id": "bundle-v-control",
- "title": "Harness-fixes bundle vs fixed control (CLOCK_SET \u2192 RIVAL_MET)",
+ "title": "Harness-fixes bundle vs fixed control (CLOCK_SET → RIVAL_MET)",
  "worklog": "docs/worklogs/active/2026-10-15_bundle-v-control.md",
  "primaryMilestone": "RIVAL_MET",
  "romSha1": "f3ae088181bf583e55daf962a92bb46f4f1d07b7",
@@ -224,7 +224,6 @@
   "navigate-already-here-v1",
   "auto-talk-v1",
   "story-character-stall-gate-v1",
-  "positive-supervisor-v1",
   "unfinished-activity-v1",
   "exit-labels-v2",
   "heal-before-trainers-v2",
@@ -250,7 +249,8 @@
   "jit-guide-reuse-v1",
   "supervisor-briefing-v2",
   "ineffective-navigation-v2",
-  "fixed-point-breaker-v1"
+  "fixed-point-breaker-v1",
+  "positive-supervisor-v1"
  ],
  "onInBoth": [
   "original-speed-pacing-v1",

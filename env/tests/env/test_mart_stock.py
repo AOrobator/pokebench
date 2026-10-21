@@ -20,6 +20,9 @@ from functools import cache
 from pathlib import Path
 
 import pytest
+
+from pokebench_env.game_screen import TASKS, ReadMemory
+from pokebench_env.game_state import SAVE_BLOCK_PTRS, GameState, MapNames
 from pokebench_env.mart_stock import (
     LAST_TALKED,
     MART_INFO,
@@ -29,9 +32,6 @@ from pokebench_env.mart_stock import (
     read_mart_stock,
     stock_lines,
 )
-
-from pokebench_env.game_screen import TASKS, ReadMemory
-from pokebench_env.game_state import SAVE_BLOCK_PTRS, GameState, MapNames
 from pokebench_env.menus import task_snapshot
 from pokebench_env.raw_ram import load_raw_ram
 from pokebench_env.readout import SERVER_FEATURES, features_off_from_env, state_json
@@ -218,9 +218,8 @@ def test_no_sale_without_the_guru_or_active_news(talked: int, news: int) -> None
     assert [item.price for item in stock.items] == [p for _, p, _ in RUSTBORO]
 
 
-def test_sale_check_needs_the_save_block_on_slateport() -> None:
-    with pytest.raises(ValueError, match="save block"):
-        read_mart_stock(_slateport("buy-list-row0", 25, 2), None)
+def test_no_list_when_the_save_block_was_not_read() -> None:
+    assert read_mart_stock(archived("buy-list-row0"), None) is None
 
 
 @pytest.mark.parametrize(
@@ -256,11 +255,12 @@ def test_bad_description_pointer_is_an_error() -> None:
 # --- the readout --------------------------------------------------------------------------
 
 
-def test_row0_block_follows_the_interface_line() -> None:
+def test_row0_block_follows_the_interface_lines() -> None:
     text = render(state("buy-list-row0"), frozenset())
     lines = text.split("\n")
     interface = next(i for i, line in enumerate(lines) if line.startswith("Interface:"))
-    assert lines[interface + 1] == LIST_LINES[0]
+    assert lines[interface + 1].startswith("Menu state:")
+    assert lines[interface + 2] == LIST_LINES[0]
     assert block(text) == [*LIST_LINES, "Highlighted: 1 POKé BALL", "Your money: ¥3412"]
 
 
@@ -312,3 +312,25 @@ def test_switch_is_registered_server_side_last_and_default_off() -> None:
     assert SERVER_FEATURES[-1] == SWITCH == "mart-stock-readout-v1"
     assert SWITCH in features_off_from_env({})
     assert features_off_from_env({"POKEBENCH_FEATURES_OFF": ""}) == frozenset()
+
+
+def test_no_sale_on_slateport_without_its_news() -> None:
+    base = save1("buy-list-row0")
+    read = patched(
+        "buy-list-row0",
+        {
+            base + 4: bytes([0, 1]),
+            base + 0x2B50: bytes(64),
+            LAST_TALKED: struct.pack("<H", 25),
+        },
+    )
+    stock = read_mart_stock(read, base)
+    assert stock is not None
+    assert [item.price for item in stock.items] == [p for _, p, _ in RUSTBORO]
+
+
+def test_unterminated_description_is_an_error() -> None:
+    base = archived("buy-list-row0")
+    (pointer,) = struct.unpack_from("<I", base(0x085839A0 + 44 * 4 + 20, 4))
+    with pytest.raises(ValueError, match="no terminator"):
+        read_mart_stock(patched("buy-list-row0", {pointer: bytes(128)}), save1("buy-list-row0"))

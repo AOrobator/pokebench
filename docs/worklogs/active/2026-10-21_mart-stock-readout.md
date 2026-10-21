@@ -39,11 +39,12 @@ Default off; ON in the bundle arm of bundle-cook-1h, bundle-v-control, whole-map
 - [x] Fixtures: raw-RAM archives from run 1331 (buy list row 0, row 2, quantity box, after-purchase message, BUY/SELL/QUIT menu) + provenance.
 - [x] Tests: `env/tests/env/test_mart_stock.py` (reader per recorded state, CANCEL row, decoration shop, Slateport sale, failure paths, exact block, OFF byte parity, state JSON, visible harness bug, registry); `packages/agent/src/mart-stock-readout.test.ts` (registry, presets, server transport). Registry collateral lands with GREEN.
 - RED: `pokebench_env.mart_stock` does not exist (collection error); 3 vitest failures (switch not registered).
-- [ ] COMMIT
+- [x] COMMIT: `test: mart-stock-readout-v1 on the recorded Rustboro MART buy list, quantity box and after-purchase states (RED)` (c102edaf)
 
 **M2 — GREEN**
-- [ ] `env/pokebench_env/mart_stock.py`, GameState fields, readout block, rerender wiring, registry (features.ts, play-preset.ts, next-run.ts, readout.py SERVER_FEATURES + default-off list).
-- [ ] Gates: lint, build, coverage ≥90.
+- [x] `env/pokebench_env/mart_stock.py` (typed MartStock, Slateport sale exactly as IsPokeNewsActive applies it, highlighted row cross-checked against the stock, None without a read save block), GameState text-only fields with a visible `HARNESS BUG (mart stock)` line, readout block after the Interface lines, rerender wiring, registry (features.ts SWITCHABLE/FEATURES/SERVER/playHarnessFeatures, play-preset.ts, next-run.ts, legacy-features, readout.py SERVER_FEATURES + default-off list). Registry collateral: 62 agent test files (index offsets, server OFF strings, incumbent filters), 11 pytest files.
+- [x] Gates: `just lint` ok (tsc, eslint, ruff, format, mypy 106 files); `just build` ok; `just coverage` agent 3284 (97.26/93.1/97.71/99.2), viewer 1600 (95.42/91.33/94.33/97.9), pytest 3621 lines 97.25 branches 92.97 functions 100; mart_stock.py 100% lines and branches.
+- [x] Delete-the-guard: 9 guards deleted one at a time, each red, each restored (readout wiring 5; rerender read gate 6; readout OFF gate 5; decoration gate 1; buy-screen gate 1; highlight agreement 1; save-block gate 1; Energy Guru check 1; agent when() 2). Receipt runs/mart-stock-readout/mutations.txt (ignored).
 - [ ] COMMIT
 
 **M3 — bundle arms, pending experiment, explainer, review, land**

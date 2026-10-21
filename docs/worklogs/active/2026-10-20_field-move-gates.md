@@ -236,6 +236,43 @@ Review cadence: the worklog runs the multi-model review once, in M4, on the whol
 - DEFERRED (approximation): Strength boulders count as open when Strength is usable, without
   simulating pushes.
 
+## Multi-Model Review Log
+
+Round 1. Frozen packet base 5ab3f5771d4562fe3a76087632fb2f4023804443 (main) .. head
+b85234ba0fd459dd46a4f4e0a9c9c88edf64c099, binary diff SHA-256
+c6c42945590759a5024267a54f8e1c05ff1fc57b270c8d556fc45f5a1da43649. Principles self-review PB1-PB13, zero
+FAIL. Local inference reviewers not used. HEAD/status verified unchanged before and after every lane.
+- Grok lane: cursor-agent `cursor-grok-4.5-high`, --mode ask: VERDICT: LGTM. Follow-ups (not fixed):
+  wet `beyond` not shipped (water-only cut-offs keep the generic refusal); test caching; rom_object_obstacles
+  keys raw ROM graphics (no GFX_VAR obstacle in Emerald).
+- Claude lane: Claude CLI failed ("OAuth session expired and could not be refreshed"; ~/.claude-review
+  loggedIn false, default login too); Cursor `claude-opus-5-thinking-high`, `claude-opus-5-5-medium` and
+  `claude-sonnet-5-thinking-high` hit Cursor usage limits; per the operator's standing word
+  (claude-review-lane memory, 2026-10-16) a fresh read-only Claude (opus) subagent reviewed the same
+  packet and reproduced the digest: VERDICT: LGTM. Follow-ups: Kecleon named by sprite kind (operator
+  wording question); forced steps assume the step succeeds (no decomp slope/waterfall case breaks it);
+  the slide checks only the first slope tile and the landing; a refusal after presses lacks the
+  "walked from" prefix; the experiment's source.commit is pinned at landing.
+- GPT lane: Cursor `gpt-5.6-sol-xhigh` hit its usage limit; Codex's default model `gpt-6.1-sol` is refused
+  for a ChatGPT account; isolated Codex with `-m gpt-5.6-sol -c model_reasoning_effort=xhigh`, read-only
+  sandbox, ephemeral (standing harness switch): VERDICT: BLOCKING, four items. Triage:
+  1. Test I/O and superlinear setup (MapNames loaded per call, audit floods per warp): rebut, proof
+     beyond the project skills (the three suites run in 1.3 s); MapNames cached in the flood tests anyway.
+  2. INV-2 tests prove gated <= ungated, not walkable <= gated: rebut. The flood without rules is
+     exit-reachability-v1's accepted superset; gating removes only tiles of obstacles the audit matches
+     one for one against the decomp's templates and terrain, and only when the gate is known closed
+     (unknown == ungated is asserted from every warp of 81 maps). An independent walkability oracle is
+     proof beyond the skills.
+  3. OFF state JSON compared only on exit_reach: fix. The OFF test now compares the whole re-read state
+     body with the recorded state event 41177 (the agent fixture's states.off). The OFF navigate_to line
+     needs the run's eight replayed states, which no fixture holds; the OFF planner path is unchanged code
+     (fieldMoveGates false) under its existing tests: rebut that half.
+  4. Dive text: fix. The Dive row now quotes Text_CantDive ("The sea is deep here. A POKéMON may be able
+     to go underwater."), shown with the Mind Badge and no non-egg DIVE Pokémon, checked against the
+     source like the other rows. Explainer row updated.
+  Kecleon sprite naming: scope expansion, left for the operator.
+  Fix commit gates: just lint 0, just coverage 0 (env 3319, agent 3045, viewer 1444; same percentages).
+
 ## Session Log
 
 - 2026-10-20 7:25 PM ET: worktree set up (submodule from the main checkout's reference, gitignored

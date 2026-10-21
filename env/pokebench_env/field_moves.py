@@ -127,9 +127,11 @@ GATES: tuple[Gate, ...] = (
         291,
         (),
         0,
-        None,
-        None,
-        "src/field_control_avatar.c:465",
+        # EventScript_UseDive prints it with the Mind Badge and no non-egg Pokémon that knows DIVE;
+        # without the badge nothing happens.
+        "The sea is deep here. A POKéMON may be able to go underwater.",
+        "Text_CantDive",
+        "data/scripts/field_move_scripts.inc:263",
         MOVE_NEEDS,
     ),
     Gate(

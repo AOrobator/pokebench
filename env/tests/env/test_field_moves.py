@@ -165,9 +165,9 @@ def test_every_quoted_text_is_the_whole_pokeemerald_string_at_its_label(
     assert source_text(relative, gate.label) == gate.text
 
 
-def test_the_game_prints_nothing_for_surf_dive_and_the_bikes() -> None:
+def test_the_game_prints_nothing_for_surf_and_the_bikes() -> None:
     silent = {g.id for g in GATES if g.text is None}
-    assert silent == {"surf", "dive", "mach_bike", "acro_bike"}
+    assert silent == {"surf", "mach_bike", "acro_bike"}
     texts = {g.id: g.text for g in GATES}
     assert texts["rock_smash"] == "It's a rugged rock, but a POKéMON may be able to smash it."
     assert texts["cut"] == "This tree looks like it can be CUT down!"

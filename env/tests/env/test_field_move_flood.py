@@ -10,6 +10,9 @@ Real RAM: field-moves-a8f9.json.gz (see test_field_moves.py). ROM layouts: GRANI
 (24/8), ROUTE115 (0/30), RUSTURF TUNNEL (24/4), read with exit_labels.read_rom_map.
 """
 
+import functools
+import gzip
+import json
 import random
 from dataclasses import replace
 from pathlib import Path
@@ -39,6 +42,9 @@ from pokebench_env.rom import EMERALD_SHA1
 from pokebench_env.world import InteractionTarget
 
 ROM_START = 0x08000000
+AGENT_FIXTURE = (
+    Path(__file__).parents[3] / "packages/agent/src/fixtures/field-moves-a8f9-states.json.gz"
+)
 ALL_CLOSED = capabilities((), (), (), 0)
 ALL_OPEN = Capabilities(tuple((gid, True) for gid, _ in ALL_CLOSED.open))
 UNKNOWN = Capabilities(tuple((gid, None) for gid, _ in ALL_CLOSED.open))
@@ -275,7 +281,7 @@ def test_destination_templates_close_the_rusturf_rocks_on_arrival() -> None:
     assert sorted(o.tiles for o in rocks) == [((24, 4),), ((24, 5),)]
     here = read_rom_map(read, (0, 31))
     assert here is not None
-    maps = MapNames.load(rerender.PORYMAP_MAPS)
+    maps = names()
 
     def shown(m: tuple[int, int]) -> str | None:
         return section_name(read, m)
@@ -295,8 +301,13 @@ def run_off(*, gates: bool) -> frozenset[str]:
     return frozenset(f for f in SERVER_FEATURES if f not in on)
 
 
+@functools.cache
+def names() -> MapNames:
+    return MapNames.load(rerender.PORYMAP_MAPS)
+
+
 def a8f9_state(*, gates: bool):
-    maps = MapNames.load(rerender.PORYMAP_MAPS)
+    maps = names()
     return rerender.read_state(a8f9(), maps, active_ui=True, off=run_off(gates=gates))
 
 
@@ -304,7 +315,7 @@ def a8f9_readout(*, gates: bool) -> str:
     off = run_off(gates=gates)
     env = {"POKEBENCH_FEATURES_OFF": ",".join(sorted(off)), "POKEBENCH_ACTIVE_UI": "1"}
     read = a8f9()
-    maps = MapNames.load(rerender.PORYMAP_MAPS)
+    maps = names()
     return rerender.rerender(
         Path("/run"), [rerender.RawRef("a", "s")], lambda _p, _s: read, maps, env
     )[0]
@@ -326,6 +337,9 @@ def test_off_is_the_recorded_a8f9_readout_and_state_byte_for_byte() -> None:
     body = state_json(a8f9_state(gates=False))
     assert "field_obstacles" not in body
     assert body["exit_reach"] == fixture()["cases"][0]["exit_reach"]
+    # The whole state body, against the recorded state event of seq 41177 (envelope stripped).
+    recorded_body = json.loads(gzip.decompress(AGENT_FIXTURE.read_bytes()))["states"]["off"]
+    assert json.loads(json.dumps(body)) == recorded_body
 
 
 def test_on_the_rocks_cut_off_verdanturf_and_the_route116_pocket() -> None:
@@ -378,7 +392,7 @@ def test_on_the_readout_names_the_rocks_and_notes_the_cut_off_warps() -> None:
 
 
 def test_without_exit_reachability_the_switch_adds_nothing() -> None:
-    maps = MapNames.load(rerender.PORYMAP_MAPS)
+    maps = names()
     off = run_off(gates=True) | {"exit-reachability-v1"}
     state = rerender.read_state(a8f9(), maps, active_ui=True, off=off)
     assert state.field_obstacles is None and state.exit_reach is None
@@ -535,7 +549,7 @@ def test_readout_names_unknown_dynamic_warps_and_connections_it_cuts_off() -> No
 
 
 def test_unreadable_templates_leave_the_flood_ungated() -> None:
-    maps = MapNames.load(rerender.PORYMAP_MAPS)
+    maps = names()
     read = a8f9()
     save1 = int.from_bytes(read(0x03005D8C, 4), "little")
 

@@ -217,6 +217,13 @@ Review cadence: the worklog runs the multi-model review once, in M4, on the whol
   plus the Python index tests main and this branch had both bumped. Gates on the merged tip: just lint 0,
   just build 0, just coverage 0. Tests: env 3318; agent 3028; viewer 1443. Coverage: env 97.20 / 92.84 /
   100; agent 97.12 / 92.93 / 97.59 / 99.14; viewer 95.09 / 91.06 / 93.85 / 97.7.
+  COMMIT: `Merge branch 'main' into claude/field-move-gates` (638e19bf)
+  Second sync, main a2afc58a (story-progress-clock-v1 landed while sealing): same method, 20 conflicts.
+  Gates on that tip: just lint 0, just build 0, just coverage 0, just verify-vendor OK. Tests: env 3318;
+  agent 3045; viewer 1444. Coverage: env 97.20 / 92.84 / 100; agent 97.13 / 92.97 / 97.59 / 99.14;
+  viewer 95.09 / 91.07 / 93.85 / 97.7.
+  Principles self-review (PB1-PB13, zero FAIL): written to the review packet folder
+  (scratchpad fmg-review/principles-adherence.md); frozen boundary fmg-review/frozen-boundary.md.
 
 ## Deferred
 

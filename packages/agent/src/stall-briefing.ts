@@ -80,14 +80,15 @@ export class StallBriefing {
    if(event.origin==="present_at_start"||event.name==="GAME_RUNNING")return;
    // story-progress-clock-v1: a measurement-only story step (the rival battle starting, the send-off) is new progress here too.
    if(MEASUREMENT_ONLY_MILESTONES.has(event.name)&&!this.features["story-progress-clock-v1"]&&!this.features["progress-aware-cycles-v1"])return;
-   this.progressAt=this.active();this.progressSeq=event.seq;this.droughts=0;this.pairs.clear();this.dwell=null;
+   this.progressAt=this.active();this.progressSeq=event.seq;this.droughts=0;this.heldLevel=0;this.pairs.clear();this.dwell=null;
    return;
   }
   if(event.type==="state"&&"started"in event){
    this.last=event;
    if(this.healTrip!==null&&(event.in_battle||fullParty(event))){
     // A heal the warning asked for, done (full HP), is a step forward: the drought clock starts again from it.
-    if(!event.in_battle){this.progressAt=this.active();this.droughts=0;this.heldLevel=0;}
+    // positive-supervisor-v1 retires drought briefings, so nothing is held and its retired schedule stays as it was.
+    if(!event.in_battle&&!this.features["positive-supervisor-v1"]){this.progressAt=this.active();this.droughts=0;this.heldLevel=0;}
     this.healTrip=null;
    }
    this.settleHold();

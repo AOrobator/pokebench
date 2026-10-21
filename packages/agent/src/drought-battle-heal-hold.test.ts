@@ -128,6 +128,17 @@ describe("drought-battle-heal-hold-v1",()=>{
    return out;
   };
   expect(retired(true)).toEqual(retired(false));
+  // The heal path too (Claude review round 2): a heal warning, full HP at 200 s, then results at 310 s and 600 s.
+  const healed=(on:boolean)=>{
+   let now=0,seq=0;const out:number[]=[];
+   const b=new StallBriefing({...BASE,"positive-supervisor-v1":true,[ID]:on},()=>now,{stall:()=>true},()=>"",null,(kind)=>{if(kind==="milestone_drought")out.push(now);},null,()=>undefined);
+   const emit=(body:Record<string,unknown>)=>{b.observe(checkEvent({v:1,run:"m",t:"2026-10-21T08:00:00.000-04:00",turn:seq,seq:++seq,...body}));};
+   const at=(ms:number,hp:number)=>{now=ms;emit({type:"state",...IN_GAME,started:true,screen:"overworld",location:"ROUTE103",map_id:[0,18],position:{x:1,y:1},facing:"up",field_controls_locked:false,interaction_targets:[],in_battle:false,party:[MON(hp)]});emit({type:"tool_result",id:`c${String(seq)}`,name:"press",is_error:false,duration_ms:1,text:"pressed",frames:[]});};
+   emit(body(WARNINGS.heal_first_line));at(200_000,21);at(310_000,21);at(600_000,21);
+   return out;
+  };
+  expect(healed(true)).toEqual(healed(false));
+  expect(healed(false)).toEqual([310_000,600_000]);
  });
  it("ON: a finished heal (full HP) restarts the clock even when no drought was held during the trip (acfa seq 7261)",()=>{
   const r=rig({...BASE,[ID]:true});

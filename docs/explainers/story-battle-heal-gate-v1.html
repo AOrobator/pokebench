@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Story battle heal gate</title>
+<style>
+:root{--bg:#fbfaf7;--fg:#1d1d1b;--muted:#5d5b55;--line:#d9d5cc;--panel:#ffffff;--keep:#2f7d4f;--drop:#b4442f;--accent:#2d5f9a;--fill:#eef3f8;--wall:#8f8a7f;--floor:#f4f1ea;--grass:#cfe3bf;--ledge:#d8c9a6;--may:#c2416b;--box:#f6f3ec}
+@media (prefers-color-scheme: dark){:root{--bg:#161614;--fg:#ecebe6;--muted:#a8a59c;--line:#3a3833;--panel:#1f1e1b;--keep:#6cc08f;--drop:#e98a74;--accent:#86b3e6;--fill:#22303f;--wall:#55524b;--floor:#2a2925;--grass:#2f4a2a;--ledge:#4f4532;--may:#e27a9c;--box:#26251f}}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif}
+main{max-width:900px;margin:0 auto;padding:24px 16px 48px}
+h1{font-size:1.6rem;margin:0 0 4px}h2{font-size:1.15rem;margin:32px 0 8px}
+.muted{color:var(--muted)}
+figure{margin:16px 0;padding:12px;background:var(--panel);border:1px solid var(--line);border-radius:8px;overflow-x:auto}
+figcaption{color:var(--muted);font-size:.9rem;margin-top:8px}
+code{font:13px ui-monospace,SFMono-Regular,Menlo,monospace}
+table{border-collapse:collapse;width:100%;font-size:.95rem}td,th{border-bottom:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top}
+.tablewrap{overflow-x:auto}
+svg text{fill:var(--fg);font:13px -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif}
+svg .small{font-size:11px;fill:var(--muted)}svg .tiny{font-size:11px;fill:#fff;font-weight:700}
+svg .box{fill:var(--box);stroke:var(--line)}svg .stop{fill:var(--fill);stroke:var(--drop);stroke-width:2}svg .go{fill:var(--fill);stroke:var(--keep);stroke-width:2}
+.note{border-left:3px solid var(--accent);padding:6px 10px;background:var(--fill);font:13px ui-monospace,SFMono-Regular,Menlo,monospace;white-space:pre-wrap;word-break:break-word}
+.off{border-left-color:var(--drop)}.on{border-left-color:var(--keep)}
+</style>
+</head>
+<body>
+<main>
+<h1>Story battle heal gate</h1>
+<p class="muted"><code>story-battle-heal-gate-v1</code> · guard · bundle arm only · default off · needs <code>heal-before-trainers-v2</code></p>
+<p>While any party Pokémon (not an egg) is below its max HP, the harness does not start an action that would start a trainer battle the player has not won and cannot run from. It says so in the game's words, names each hurt Pokémon's HP and the places the run knows of that heal the party, and the model can go ahead by calling again with <code>confirm: true</code>. The operator asked for it at 8:53 PM ET on 2026-10-20: "yes i also want the gate built", then "the gate could also be useful for the gym".</p>
+
+<h2>What happened in 97a0</h2>
+<div class="tablewrap"><table>
+<tr><th>Seq</th><th>Turn</th><th>What happened</th></tr>
+<tr><td>4539</td><td>156</td><td>The navigate_to result carried the story battle warning: "Your party is not at full HP: TORCHIC 5/22. … Heal to full before this battle".</td></tr>
+<tr><td>4549</td><td>157</td><td>navigate_to_target <code>{"kind":"object","local_id":2}</code>: MAY.</td></tr>
+<tr><td>4671</td><td>157</td><td>RIVAL_BATTLE_STARTED. TORCHIC 5/22 against MUDKIP 20/20.</td></tr>
+<tr><td>4780</td><td>159</td><td>Blackout at 8:44:21 PM ET. ₽3000 became ₽1500.</td></tr>
+</table></div>
+<p>A warning paragraph is advice the model can read past. The gate is a stop the model has to answer.</p>
+
+<h2>How a call is decided</h2>
+<figure>
+<svg viewBox="0 0 760 300" width="100%" style="min-width:700px" role="img" aria-label="Decision flow of the gate">
+<defs><marker id="fa" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0L10 5L0 10z" fill="var(--muted)"/></marker></defs>
+<rect class="box" x="10" y="20" width="170" height="64" rx="6"/><text x="22" y="44">press with A,</text><text x="22" y="62">navigate_to_target object,</text><text x="22" y="78">navigate_to (own call)</text>
+<rect class="box" x="220" y="20" width="200" height="64" rx="6"/><text x="232" y="40">Engaged? free field, every</text><text x="232" y="58">HP read, one below max, a</text><text x="232" y="76">covered opponent on the map</text>
+<rect class="box" x="460" y="20" width="160" height="64" rx="6"/><text x="472" y="44">Would it reach one?</text><text x="472" y="62" class="small">talk · approach facing ·</text><text x="472" y="78" class="small">GYM sight on the route</text>
+<rect class="go" x="220" y="150" width="200" height="50" rx="6"/><text x="232" y="172">Runs as today.</text><text x="232" y="190" class="small">No event.</text>
+<rect class="go" x="460" y="150" width="140" height="50" rx="6"/><text x="472" y="172">Runs as today.</text><text x="472" y="190" class="small">event: clear</text>
+<rect class="box" x="640" y="20" width="110" height="64" rx="6"/><text x="652" y="44">confirm: true?</text>
+<rect class="stop" x="600" y="230" width="150" height="56" rx="6"/><text x="612" y="252">Not started.</text><text x="612" y="270" class="small">event: refused</text>
+<rect class="go" x="620" y="140" width="130" height="56" rx="6"/><text x="632" y="162">Runs as today.</text><text x="632" y="180" class="small">event: confirmed</text>
+<line x1="180" y1="52" x2="218" y2="52" stroke="var(--muted)" marker-end="url(#fa)"/>
+<line x1="420" y1="52" x2="458" y2="52" stroke="var(--muted)" marker-end="url(#fa)"/><text x="428" y="46" class="small">yes</text>
+<line x1="620" y1="52" x2="638" y2="52" stroke="var(--muted)" marker-end="url(#fa)"/>
+<line x1="320" y1="84" x2="320" y2="148" stroke="var(--muted)" marker-end="url(#fa)"/><text x="326" y="122" class="small">no</text>
+<line x1="530" y1="84" x2="530" y2="148" stroke="var(--muted)" marker-end="url(#fa)"/><text x="536" y="122" class="small">no</text>
+<line x1="700" y1="84" x2="700" y2="138" stroke="var(--muted)" marker-end="url(#fa)"/><text x="706" y="116" class="small">yes</text>
+<line x1="645" y1="84" x2="645" y2="228" stroke="var(--muted)" marker-end="url(#fa)"/><text x="610" y="216" class="small">no</text>
+</svg>
+<figcaption>One decision per checked call. "Free field" means overworld, not in battle, field controls unlocked and the player's party. A trainer who has spotted the player locks the controls as it walks over, and any script does too, so a battle the game has already started or is forcing is never gated. Every checked call while engaged is one <code>story_battle_heal_gate</code> event.</figcaption>
+</figure>
+
+<h2>What counts as reaching an opponent</h2>
+<div class="tablewrap"><table>
+<tr><th>Call</th><th>Gated when</th></tr>
+<tr><td>navigate_to_target</td><td>The target is an object on the current map that is a covered opponent.</td></tr>
+<tr><td>press</td><td>The first A faces a covered opponent the game has loaded. Direction buttons before it count only when each one points at an adjacent opponent: a person blocks the step, so the press turns the player toward them. Any other leading button ends the check (the press is sent).</td></tr>
+<tr><td>navigate_to</td><td>The model's own call, at its first planned route (the planner's tiles, as trainer-sight-check-v1 reads them): the walk ends on a tile next to an opponent with its last step toward it, or the route runs into an opponent's tile (an object the game has not loaded yet: the walk stops on the tile before it, facing it). On a map whose game name contains GYM, also when an unbeaten trainer can see a route tile (trainer_see.c CheckTrainer, the game server's <code>POST /pokebench/trainer-sight</code>).</td></tr>
+</table></div>
+<p>Covered opponents: the Route 103 rival MAY or BRENDAN while FLAG_DEFEATED_RIVAL_ROUTE103 is clear and the rival's object is loaded (<code>Route103_EventScript_Rival</code> runs <code>trainerbattle_no_intro</code>), and on a GYM map every trainer the game server lists in <code>heal_before_trainers</code> (a <code>trainerbattle</code> script with its trainer flag clear, loaded or not). The Gym Leader is named when it is ROXANNE (<code>RustboroCity_Gym_EventScript_Roxanne</code>, TRAINER_ROXANNE_1); other trainers are named by object id and sprite only.</p>
+
+<figure>
+<svg viewBox="0 0 600 200" width="100%" style="min-width:560px" role="img" aria-label="ROUTE103 around MAY with three navigate_to goals">
+<defs><marker id="ah" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="context-stroke"/></marker></defs>
+<rect x="40" y="30" width="34" height="34" fill="var(--floor)" stroke="var(--line)" stroke-width=".5"/><rect x="74" y="30" width="34" height="34" fill="var(--floor)" stroke="var(--line)" stroke-width=".5"/><rect x="108" y="30" width="34" height="34" fill="var(--floor)" stroke="var(--line)" stroke-width=".5"/><rect x="142" y="30" width="34" height="34" fill="var(--floor)" stroke="var(--line)" stroke-width=".5"/><rect x="176" y="30" width="34" height="34" fill="var(--floor)" stroke="var(--line)" stroke-width=".5"/><rect x="210" y="30" width="34" height="34" fill="var(--floor)" stroke="var(--line)" stroke-width=".5"/><rect x="244" y="30" width="34" height="34" fill="var(--grass)" stroke="var(--line)" stroke-width=".5"/><rect x="278" y="30" width="34" height="34" fill="var(--grass)" stroke="var(--line)" stroke-width=".5"/><rect x="312" y="30" width="34" height="34" fill="var(--grass)" stroke="var(--line)" stroke-width=".5"/><rect x="346" y="30" width="34" height="34" fill="var(--grass)" stroke="var(--line)" stroke-width=".5"/><rect x="380" y="30" width="34" height="34" fill="var(--grass)" stroke="var(--line)" stroke-width=".5"/><rect x="414" y="30" width="34" height="34" fill="var(--grass)" stroke="var(--line)" stroke-width=".5"/><rect x="40" y="64" width="34" height="34" fill="var(--floor)" stroke="var(--line)" stroke-width=".5"/><rect x="74" y="64" width="34" height="34" fill="var(--floor)" stroke="var(--line)" stroke-width=".5"/><rect x="108" y="64" width="34" height="34" fill="var(--floor)" stroke="var(--line)" stroke-width=".5"/><rect x="142" y="64" width="34" height="34" fill="var(--floor)" stroke="var(--line)" stroke-width=".5"/><rect x="176" y="64" width="34" height="34" fill="var(--floor)" stroke="var(--line)" stroke-width=".5"/><rect x="210" y="64" width="34" height="34" fill="var(--floor)" stroke="var(--line)" stroke-width=".5"/><rect x="244" y="64" width="34" height="34" fill="var(--floor)" stroke="var(--line)" stroke-width=".5"/><rect x="278" y="64" width="34" height="34" fill="var(--grass)" stroke="var(--line)" stroke-width=".5"/><rect x="312" y="64" width="34" height="34" fill="var(--grass)" stroke="var(--line)" stroke-width=".5"/><rect x="346" y="64" width="34" height="34" fill="var(--grass)" stroke="var(--line)" stroke-width=".5"/><rect x="380" y="64" width="34" height="34" fill="var(--grass)" stroke="var(--line)" stroke-width=".5"/><rect x="414" y="64" width="34" height="34" fill="var(--grass)" stroke="var(--line)" stroke-width=".5"/><rect x="40" y="98" width="34" height="34" fill="var(--floor)" stroke="var(--line)" stroke-width=".5"/><rect x="74" y="98" width="34" height="34" fill="var(--floor)" stroke="var(--line)" stroke-width=".5"/><rect x="108" y="98" width="34" height="34" fill="var(--floor)" stroke="var(--line)" stroke-width=".5"/><rect x="142" y="98" width="34" height="34" fill="var(--floor)" stroke="var(--line)" stroke-width=".5"/><rect x="176" y="98" width="34" height="34" fill="var(--floor)" stroke="var(--line)" stroke-width=".5"/><rect x="210" y="98" width="34" height="34" fill="var(--floor)" stroke="var(--line)" stroke-width=".5"/><rect x="244" y="98" width="34" height="34" fill="var(--floor)" stroke="var(--line)" stroke-width=".5"/><rect x="278" y="98" width="34" height="34" fill="var(--floor)" stroke="var(--line)" stroke-width=".5"/><rect x="312" y="98" width="34" height="34" fill="var(--floor)" stroke="var(--line)" stroke-width=".5"/><rect x="346" y="98" width="34" height="34" fill="var(--grass)" stroke="var(--line)" stroke-width=".5"/><rect x="380" y="98" width="34" height="34" fill="var(--grass)" stroke="var(--line)" stroke-width=".5"/><rect x="414" y="98" width="34" height="34" fill="var(--grass)" stroke="var(--line)" stroke-width=".5"/><rect x="40" y="132" width="34" height="34" fill="var(--grass)" stroke="var(--line)" stroke-width=".5"/><rect x="74" y="132" width="34" height="34" fill="var(--grass)" stroke="var(--line)" stroke-width=".5"/><rect x="108" y="132" width="34" height="34" fill="var(--ledge)" stroke="var(--line)" stroke-width=".5"/><rect x="142" y="132" width="34" height="34" fill="var(--ledge)" stroke="var(--line)" stroke-width=".5"/><rect x="176" y="132" width="34" height="34" fill="var(--ledge)" stroke="var(--line)" stroke-width=".5"/><rect x="210" y="132" width="34" height="34" fill="var(--ledge)" stroke="var(--line)" stroke-width=".5"/><rect x="244" y="132" width="34" height="34" fill="var(--ledge)" stroke="var(--line)" stroke-width=".5"/><rect x="278" y="132" width="34" height="34" fill="var(--ledge)" stroke="var(--line)" stroke-width=".5"/><rect x="312" y="132" width="34" height="34" fill="var(--ledge)" stroke="var(--line)" stroke-width=".5"/><rect x="346" y="132" width="34" height="34" fill="var(--wall)" stroke="var(--line)" stroke-width=".5"/><rect x="380" y="132" width="34" height="34" fill="var(--grass)" stroke="var(--line)" stroke-width=".5"/><rect x="414" y="132" width="34" height="34" fill="var(--grass)" stroke="var(--line)" stroke-width=".5"/><text x="53.0" y="22" class="small">4</text><text x="87.0" y="22" class="small">5</text><text x="121.0" y="22" class="small">6</text><text x="155.0" y="22" class="small">7</text><text x="189.0" y="22" class="small">8</text><text x="223.0" y="22" class="small">9</text><text x="257.0" y="22" class="small">10</text><text x="291.0" y="22" class="small">11</text><text x="325.0" y="22" class="small">12</text><text x="359.0" y="22" class="small">13</text><text x="393.0" y="22" class="small">14</text><text x="427.0" y="22" class="small">15</text><text x="18" y="51.0" class="small">2</text><text x="18" y="85.0" class="small">3</text><text x="18" y="119.0" class="small">4</text><text x="18" y="153.0" class="small">5</text>
+<circle cx="261.0" cy="81.0" r="12" fill="var(--may)"/><text x="256.0" y="85.0" class="tiny">M</text>
+<rect x="212.0" y="66.0" width="30" height="30" fill="none" stroke="var(--drop)" stroke-width="3"/>
+<line x1="193.0" y1="81.0" x2="221.0" y2="81.0" stroke="var(--drop)" stroke-width="3" marker-end="url(#ah)"/>
+<rect x="246.0" y="100.0" width="30" height="30" fill="none" stroke="var(--keep)" stroke-width="3"/>
+<line x1="227.0" y1="115.0" x2="255.0" y2="115.0" stroke="var(--keep)" stroke-width="3" marker-end="url(#ah)"/>
+<rect x="280.0" y="66.0" width="30" height="30" fill="none" stroke="var(--keep)" stroke-width="3"/>
+<line x1="295.0" y1="115.0" x2="295.0" y2="87.0" stroke="var(--keep)" stroke-width="3" marker-end="url(#ah)"/>
+<g transform="translate(460,30)">
+<circle cx="8" cy="8" r="7" fill="var(--may)"/><text x="22" y="12">MAY, object 2, (10,3)</text>
+<rect x="1" y="28" width="14" height="14" fill="none" stroke="var(--drop)" stroke-width="3"/><text x="22" y="40">(9,3), last step RIGHT:</text><text x="22" y="56" class="small">faces her: not started</text>
+<rect x="1" y="70" width="14" height="14" fill="none" stroke="var(--keep)" stroke-width="3"/><text x="22" y="82">(10,4) RIGHT, (11,3) UP:</text><text x="22" y="98" class="small">face away: walks, recorded clear</text>
+<text x="0" y="128" class="small">arrow: the planned last step</text>
+</g></svg>
+<figcaption>ROUTE103 (map 0/18) around MAY, from 97a0's state at seq 4540 (TORCHIC 5/22, player at (14,10)). The planner's last step to (9,3) is RIGHT, so the walk would end facing MAY: not started. To (10,4) the last step is RIGHT (facing (11,4)) and to (11,3) it is UP (facing (11,2)): both walk. These three goals are tests in <code>story-battle-heal-gate.test.ts</code>.</figcaption>
+</figure>
+
+<h2>What the model would have read</h2>
+<p>97a0 turn 157, <code>navigate_to_target</code> on MAY (recorded state 4540; the OLDALE TOWN center was listed as an exit in result 4191):</p>
+<div class="note off">Semantic navigation: not started: it would start a trainer battle you cannot run from while your party is not at full HP. Selected map object 2.
+Battle not started: talking to your rival MAY (object 2, at (10,3)) starts a trainer battle, and your party is not at full HP: TORCHIC 5/22.
+In a trainer battle the game says &quot;No! There&#x27;s no running from a TRAINER battle!&quot; If your party faints, you black out: you lose half your money (₽1500 of ₽3000) and wake up back at the last POKéMON CENTER you entered, or at home.
+Places you know of that heal your party, nearest first:
+- the POKéMON CENTER in OLDALE TOWN (map 2/2), 2 map changes from here in the game&#x27;s map table; you have not entered it, but an earlier result listed it as an exit at (6,16) in OLDALE TOWN; its nurse says &quot;We restore your tired POKéMON to full health.&quot;
+- your house in LITTLEROOT TOWN (map 1/0), 4 map changes from here in the game&#x27;s map table, where MOM says &quot;I think you should rest a bit.&quot; and heals your party.
+To talk anyway, call navigate_to_target again with the same map_id and target and confirm: true.</div>
+<p>Then the usual observation follows. With <code>confirm: true</code> the call runs as before.</p>
+<p>b300 turn 501, <code>navigate_to</code> to (5,2) in RUSTBORO CITY GYM at TORCHIC 11/35 (state 15233 with the server's heal_before_trainers as heal-before-trainers-v2 replays it at result 15222):</p>
+<div class="note off">Navigation: not started: it would start a trainer battle you cannot run from while your party is not at full HP; 0 bounded movement actions.
+Battle not started: this walk would start a trainer battle, and your party is not at full HP: TORCHIC 11/35.
+- a trainer you have not beaten (object 5, sprite HIKER, at (1,6), not loaded now: the tile the map places it on): the walk would end at (1,7), next to it and facing it; talking to it there starts the battle.
+- object 3, sprite YOUNGSTER at (3,9) (loaded, its tile now), facing LEFT, sight 3 tiles: it can see (1,9), step 12 of 23 on the route.
+- object 5, sprite HIKER at (1,6) (not loaded; where the map places it, it may have moved), facing DOWN, sight 3 tiles: it can see (1,9), step 12 of 23 on the route.
+A trainer who sees you walks up to you and starts a battle. In a trainer battle the game says &quot;No! There&#x27;s no running from a TRAINER battle!&quot; If your party faints, you black out: you lose half your money (₽3222 of ₽6444) and wake up back at the last POKéMON CENTER you entered, or at home.
+Places you know of that heal your party, nearest first:
+- the POKéMON CENTER in RUSTBORO CITY (map 11/5), 2 map changes from here in the game&#x27;s map table; you have not entered it, but an earlier result listed it as an exit at (16,38) in RUSTBORO CITY; its nurse says &quot;We restore your tired POKéMON to full health.&quot;
+- your house in LITTLEROOT TOWN (map 1/0), 8 map changes from here in the game&#x27;s map table, where MOM says &quot;I think you should rest a bit.&quot; and heals your party.
+To walk anyway, call navigate_to again with the same x, y and map_id and confirm: true.</div>
+<p class="muted">The route passes HIKER MARC's template tile (1,6), so the walk would also end next to him at (1,7). The sight lines are trainer-sight-check-v1's own lines, reused.</p>
+
+<h2>With trainer-sight-check-v1</h2>
+<div class="tablewrap"><table>
+<tr><th>Situation</th><th>What happens</th></tr>
+<tr><td>Party hurt, the gate triggers</td><td>One server request serves both switches. The gate's refusal is the only one: it lists every sighting trainer-sight would list, and no <code>trainer_sight_check</code> event is written for that call. With <code>confirm: true</code> the gate lets it through and trainer-sight records the same sightings as confirmed, so there is no second refusal.</td></tr>
+<tr><td>Party hurt, the gate does not trigger</td><td>trainer-sight acts exactly as before, with its own <code>confirm_trainer_sight</code>.</td></tr>
+<tr><td>Party at full HP, or no covered opponent</td><td>The gate is silent and records nothing; trainer-sight acts exactly as before.</td></tr>
+</table></div>
+
+<h2>Game grounding</h2>
+<ul>
+<li>"No! There's no running from a TRAINER battle!": <code>sText_NoRunningFromTrainers</code>, src/battle_message.c (pret/pokeemerald 731ad5bf).</li>
+<li>Blackout cost: DoWhiteOut keeps half the money, rounded down (src/overworld.c), as the existing warnings say it.</li>
+<li>Sight: GetTrainerApproachDistance and CheckPathBetweenTrainerAndPlayer in src/trainer_see.c, computed by <code>env/pokebench_env/trainer_sight.py</code> (trainer-sight-check-v1), not duplicated.</li>
+<li>Heal places: heal-before-trainers-v2's list (centers entered, the center of SaveBlock1.lastHealLocation, POKéMON CENTER 1F maps a delivered result listed as an exit, home while MOM heals), all of them nearest first by map changes in the game's map table, with the nurse's and MOM's lines.</li>
+</ul>
+
+<h2>Wiring</h2>
+<p><code>playGameTools</code> builds heal-before-trainers' arm once (<code>healArm</code>) and shares it with the warnings, so the gate names the same places. press and navigate_to_target are wrapped right inside the warnings (<code>withStoryBattleHealGate</code>): a refused call sends no input and returns the gate's text with a fresh observation. navigate_to's check sits beside trainer-sight's, inside <code>navigationTool</code>. explore_map and auto-talk are not gated. Off: no wrapper, no confirm argument or description sentence, no request and no event.</p>
+
+<h2>Status</h2>
+<p>Branch <code>claude/story-battle-heal-gate-v1</code>. Gates and the Claude and Grok review are recorded in the worklog. Not measured: the pending experiment <code>experiments/story-battle-heal-gate-v1.json</code> waits for the operator.</p>
+</main>
+</body>
+</html>

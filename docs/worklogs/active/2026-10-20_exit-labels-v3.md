@@ -61,3 +61,5 @@ Run 97a0 state 13625 / result 13626 / turn377 identifies Woods entrances at (10,
 Operator answered "yes" to fixing only the current-on-warp gap, rerunning checks and merging once GPT/Grok approve, with the unavailable-Claude exception. This clears the round2 STOP for that bounded correction. Added native Woods arrival assertions for established current section and same-section return relation; RED follows. No other source scope authorized or added.
 
 - Arrival RED:1failed/13passed with explicit ROM. GREEN: current region uses existing conservative landing(position) owner, preserving regular floor behavior and unknown ambiguous/blocked landings. Native14/14 pass; Woods arrival now names its section and same-section returns. No other production change.
+
+- Synced latest main d004be2d. Resolved append-only registry/bundle/default and roster conflicts by retaining main story-battle-heal-gate-v1 plus exit-labels-v3, both existing behaviors. Retained both explainer/server tests and documentation entries. Source arrival fix remains one-line reuse of landing owner; full gates follow.

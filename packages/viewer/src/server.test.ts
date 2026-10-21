@@ -1137,6 +1137,20 @@ it("serves the YES/NO answer readout explainer byte for byte, mapped from its ca
  expect(reply.status).toBe(200);expect(reply.body.equals(tracked)).toBe(true);expect(reply.body.toString()).toContain("YES/NO answer readout");
 });
 
+it("serves the five move-learn explainers byte for byte, mapped from their cards",async()=>{
+ const root=mkdtempSync(join(tmpdir(),"pokebench-explainers-")),staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});
+ const ids=["move-learn-settle-v1","move-learn-question-v1","move-learn-comparison-v1","effectiveness-heard-v1","game-said-goals-v1"];
+ const tracked=new Map(ids.map(id=>[id,readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)))]));
+ for(const [id,body] of tracked)writeFileSync(join(docs,`${id}.html`),body);
+ const viewer=await startViewer({runsRoot:join(root,"runs"),staticDir,appDir:join(root,"app"),port:0});open.push(viewer);
+ const {FEATURE_EXPLAINERS}=await import("./panels.js");
+ for(const [id,body] of tracked){
+  expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
+  const reply=await get(viewer,`/explainers/${id}.html`);
+  expect(reply.status).toBe(200);expect(reply.body.equals(body)).toBe(true);
+ }
+});
+
 it("serves opted-in revisions while preserving the complete workbench endpoint", async () => {
   const { runsRoot, viewer } = await fixture(); writeRun(runsRoot, "cached", fullRun());
   const payloads: unknown[] = [];

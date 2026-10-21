@@ -8,7 +8,7 @@ Run `2026-10-20T20-26-22_qwen36-gpu1_97a0` (v6 bundle, read-only) evolved TORCHI
 
 - Every press result was captured at MVSTATE 3 (PRINT_YES_NO, question still printing), so the model never saw the YES/NO box and the readout said "input not ready; no menu choice is open" (seq 32308, 32326 frames).
 - B = NO at "Delete a move to make room for DOUBLE KICK?" asks "Stop learning DOUBLE KICK?"; B = NO there restarts the flow. The model said "answer NO to keep my current moveset" at both, also at turn 782/783 when the box was shown, and in battle with PECK (turns 755-769) where the battle readout showed the box correctly.
-- The model never weighed DOUBLE KICK: nothing described it beyond its name. At ROXANNE (turns 714-715) it used EMBER "super effective against ROCK" although the game printed "It's not very effective…".
+- The model never weighed DOUBLE KICK: nothing described it beyond its name. At ROXANNE (turns 715-716) it used EMBER "super effective against ROCK" although the game printed "It's not very effective…".
 
 ## Skills Loaded
 
@@ -39,7 +39,7 @@ ROM (US f3ae0881, static reads): gMoveDescriptionPointers 0x0861C524, index move
 | move-learn-question-v1 (F2) | server readout | At a ready "Delete a move…?" / "Stop learning…?" box (evolution or battle): the question in the game's words and what YES and NO/B do | no line |
 | move-learn-comparison-v1 (J1) | server readout | At those boxes and the summary forget-move screen: the four known moves and the new move with type, kind, power, accuracy, PP and the game's move description | no block |
 | effectiveness-heard-v1 (J2) | agent wrapper | A record of what the game printed after the player's moves ("It's super effective!", "It's not very effective…", "It doesn't affect…"), by move and foe species, with turns; shown at battle decisions and learn prompts | no block |
-| game-said-goals-v1 (J3) | agent wrapper | At learn prompts and the evolution decision: the goals the game has stated (story line heard and whether reached, open trainer battles lost, type lines said on that gym map) | no block |
+| game-said-goals-v1 (J3) | agent wrapper | At learn prompts and the evolution decision: the trainer battles the game left open (latest lost or drawn, not won since), with the leader's POKéMON seen and the type lines said on that gym map (the story line is already in the harness-trust header) | no block |
 
 All default off, on in the bundle arm of bundle-v-control, bundle-cook-1h and whole-map-cook-1h, off in control.
 
@@ -74,13 +74,17 @@ No new inputs, subprocesses, network or file access. Reads only ROM tables and w
 - [x] COMMIT: `feat: effectiveness-heard-v1 records what the game said after the player's moves and game-said-goals-v1 lists the battles the game left open, at move choices (default off)` (79414255)
 
 **M6 — bundle arms, pending experiments, explainers, review, land**
-- [ ] Bundle arms (3 definitions), experiments/<id>.json ×5, readiness rows
-- [ ] Explainers ×5 + FEATURE_EXPLAINERS
-- [ ] Delete-the-guard receipts
+- [x] Bundle arms (3 definitions): each id in `switches` and `base.features: false`; control comes from the frozen controlBase (frontier-incumbent-4caa), which lacks them, so OFF. experiments/<id>.json ×5 (incumbent = bundle-v-control bundle arm with only that switch off; activation PETALBURG_WOODS for F1/F2/J1, STARTER_CHOSEN for J2, RUSTBORO_CITY_GYM for J3), readiness rows. open-goal-prompt.json and story-battle-heal-gate-v1.json incumbents follow the bundle arm (five ids true). Viewer test: bundle-only in all three, OFF in the next-run default.
+- [x] Explainers ×5 (`docs/explainers/<id>.html`, README lines) + FEATURE_EXPLAINERS; panels/server tests per id; `just pages-check` clean; copied to main runs/mockups/<id>/, each 200 on 127.0.0.1:8791; question and goals pages opened in the browser. Registry copy for J2/J3 corrected to match the code (explainer agent caught the mismatch).
+- [x] Delete-the-guard receipts: 16 guards deleted one at a time, each red, each restored (serve hook 1 fail; INPUT_STATES 2; waiting-text 1; readout wiring 11; comparison gate 9; question gate 4; rerender read gate 5; settle motion 4; J2 player-only 5; J2 single-foe 1; J2 same-battle-turn 1; J2 switch 1; J3 switch 1; J3 open filter 1; J3 decision-screen gate 1; play-wiring 1). Receipt: runs/move-learn-switches/mutations.txt (ignored).
 - [ ] Cloud review (Claude, Grok) LGTM on frozen packet
 - [ ] Coordinator slot, ff-only merge, `just viewer-main` per coordinator
 
 ## Closing the Loop
+
+- Gates after M6: `just lint` ok, `just build` ok, `just coverage` agent 3191 (97.2/92.94/97.62/99.19), viewer 1524 (95.26/91.1/94.24/97.83), pytest 3560 (lines 97.25 branches 92.95 functions 100).
+- `fixed-cli check` through `main(["check", id])` with root = this worktree (start saves linked from the main checkout's ignored runs/launch-receipts): bundle-v-control, bundle-cook-1h, whole-map-cook-1h all exit 0; bundle switches list the five ids, control base unchanged.
+- Readouts proven on nine raw-RAM archives from the recorded loop (production read_state + render). No live probe: long runs only for fixes (operator 2026-10-17); a decision probe at turn 783 is proposed to the coordinator.
 
 ## Session Log
 

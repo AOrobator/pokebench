@@ -527,6 +527,11 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "semantic-current-map-feedback-v1":"semantic-current-map-feedback-v1.html",
  "story-battle-heal-gate-v1":"story-battle-heal-gate-v1.html",
  "short-cycle-fixed-point-v1":"short-cycle-fixed-point-v1.html",
+ "move-learn-settle-v1":"move-learn-settle-v1.html",
+ "move-learn-question-v1":"move-learn-question-v1.html",
+ "move-learn-comparison-v1":"move-learn-comparison-v1.html",
+ "effectiveness-heard-v1":"effectiveness-heard-v1.html",
+ "game-said-goals-v1":"game-said-goals-v1.html",
 });
 
 export function harnessConfig(view:RunView,registry:readonly FeatureInfo[]=[]):string {

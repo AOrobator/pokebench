@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Move-learn comparison</title>
+<style>
+:root{--bg:#fbfaf7;--fg:#1d1d1b;--muted:#5d5b55;--line:#d9d5cc;--panel:#ffffff;--keep:#2f7d4f;--drop:#b4442f;--accent:#2d5f9a;--fill:#eef3f8;--box:#f4f1ea}
+@media (prefers-color-scheme: dark){:root{--bg:#161614;--fg:#ecebe6;--muted:#a8a59c;--line:#3a3833;--panel:#1f1e1b;--keep:#6cc08f;--drop:#e98a74;--accent:#86b3e6;--fill:#22303f;--box:#2a2925}}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif}
+main{max-width:900px;margin:0 auto;padding:24px 16px 48px}
+h1{font-size:1.6rem;margin:0 0 4px}h2{font-size:1.15rem;margin:32px 0 8px}
+.muted{color:var(--muted)}
+figure{margin:16px 0;padding:12px;background:var(--panel);border:1px solid var(--line);border-radius:8px;overflow-x:auto}
+figcaption{color:var(--muted);font-size:.9rem;margin-top:8px}
+code{font:13px ui-monospace,SFMono-Regular,Menlo,monospace}
+table{border-collapse:collapse;width:100%;font-size:.92rem}td,th{border-bottom:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top}
+.tablewrap{overflow-x:auto}
+svg text{fill:var(--fg);font:13px -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif}
+svg .small{font-size:11px;fill:var(--muted)}svg .mono{font:12px ui-monospace,SFMono-Regular,Menlo,monospace}
+.note{border-left:3px solid var(--accent);padding:6px 10px;background:var(--fill);font:13px ui-monospace,SFMono-Regular,Menlo,monospace;white-space:pre-wrap;word-break:break-word}
+.off{border-left-color:var(--drop)}.on{border-left-color:var(--keep)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}@media (max-width:640px){.grid2{grid-template-columns:1fr}}
+</style>
+</head>
+<body><main>
+<h1>Move-learn comparison</h1>
+<p class="muted"><code>move-learn-comparison-v1</code> · server readout switch · bundle-only, default off · approved by the operator 2026-10-21</p>
+
+<p>In run <code>2026-10-20T20-26-22_qwen36-gpu1_97a0</code> the model never weighed DOUBLE KICK during 100+ turns on COMBUSKEN's prompts: nothing in the readout described it beyond its name. At the two learn-a-move boxes, in the evolution scene or in battle, and on the summary screen's forget-a-move list, this switch adds a block: the learner with its types, each move it knows and the new move, each with type, kind, power, accuracy and PP from the game's move table, and the game's own description (the text the summary screen shows). Nothing ranks or recommends a move.</p>
+
+<h2>The block as delivered (97a0, "Delete a move to make room for DOUBLE KICK?")</h2>
+<div class="note on">Moves (the game's move data and the summary screen's descriptions):
+  COMBUSKEN (FIRE/FIGHTING) knows:
+  1 PECK FLYING physical pow 35 acc 100 PP 35/35 — "Attacks the foe with a jabbing beak, etc."
+  2 GROWL NORMAL status acc 100 PP 40/40 — "Growls cutely to reduce the foe's ATTACK."
+  3 FOCUS ENERGY NORMAL status never misses PP 30/30 — "Focuses power to raise the critical-hit ratio."
+  4 EMBER FIRE special pow 40 acc 100 PP 21/25 — "A weak fire attack that may inflict a burn."
+  New move: DOUBLE KICK FIGHTING physical pow 30 acc 100 PP 30/30 — "A double-kicking attack that strikes the foe twice."</div>
+<p>Exact text from the production reader on fixture <code>move-learn-evo-delete-box</code>; the same block on <code>evo-stop-box</code>. In battle and on the forget-a-move list (fixtures <code>battle-delete-box</code>, <code>battle-stop-box</code>, <code>summary-forget</code>, turns 755-770):</p>
+<div class="note on">Moves (the game's move data and the summary screen's descriptions):
+  TORCHIC (FIRE) knows:
+  1 SCRATCH NORMAL physical pow 40 acc 100 PP 35/35 — "Scratches the foe with sharp claws."
+  2 GROWL NORMAL status acc 100 PP 40/40 — "Growls cutely to reduce the foe's ATTACK."
+  3 FOCUS ENERGY NORMAL status never misses PP 30/30 — "Focuses power to raise the critical-hit ratio."
+  4 EMBER FIRE special pow 40 acc 100 PP 23/25 — "A weak fire attack that may inflict a burn."
+  New move: PECK FLYING physical pow 35 acc 100 PP 35/35 — "Attacks the foe with a jabbing beak, etc."</div>
+
+<h2>Where each field comes from</h2>
+<figure>
+<svg viewBox="0 0 860 300" width="860" height="300" role="img" aria-label="Fields of one move line and their game sources">
+<defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0L10,5L0,10z" fill="var(--fg)"/></marker></defs>
+<rect x="10" y="120" width="840" height="40" rx="6" fill="var(--fill)" stroke="var(--accent)"/>
+<text x="20" y="145" class="mono">New move: DOUBLE KICK  FIGHTING  physical  pow 30  acc 100  PP 30/30 — "A double-kicking attack that strikes the foe twice."</text>
+<line x1="120" y1="120" x2="90" y2="70" stroke="var(--fg)" marker-end="url(#a)"/>
+<rect x="10" y="20" width="160" height="50" rx="6" fill="var(--box)" stroke="var(--line)"/><text x="20" y="40">name</text><text x="20" y="60" class="small">gMoveNames 0x0831977C, 13 B</text>
+<line x1="230" y1="120" x2="260" y2="70" stroke="var(--fg)" marker-end="url(#a)"/>
+<line x1="300" y1="120" x2="300" y2="70" stroke="var(--fg)" marker-end="url(#a)"/>
+<line x1="370" y1="120" x2="350" y2="70" stroke="var(--fg)" marker-end="url(#a)"/>
+<line x1="430" y1="120" x2="400" y2="70" stroke="var(--fg)" marker-end="url(#a)"/>
+<line x1="490" y1="120" x2="440" y2="70" stroke="var(--fg)" marker-end="url(#a)"/>
+<rect x="190" y="20" width="300" height="50" rx="6" fill="var(--box)" stroke="var(--line)"/><text x="200" y="40">type, power, accuracy, max PP</text><text x="200" y="60" class="small">gBattleMoves 0x0831C898, 12 B row: +1 pow +2 type +3 acc +4 PP</text>
+<line x1="620" y1="120" x2="660" y2="70" stroke="var(--fg)" marker-end="url(#a)"/>
+<rect x="510" y="20" width="340" height="50" rx="6" fill="var(--box)" stroke="var(--line)"/><text x="520" y="40">description (what the summary screen shows)</text><text x="520" y="60" class="small">gMoveDescriptionPointers 0x0861C524 [move − 1]</text>
+<line x1="300" y1="160" x2="300" y2="200" stroke="var(--fg)" marker-end="url(#a)"/>
+<rect x="190" y="200" width="300" height="50" rx="6" fill="var(--box)" stroke="var(--line)"/><text x="200" y="220">kind: from type and power</text><text x="200" y="240" class="small">pow 0 status · type &lt; 9 physical · type &gt; 9 special</text>
+<line x1="520" y1="160" x2="600" y2="200" stroke="var(--fg)" marker-end="url(#a)"/>
+<rect x="510" y="200" width="340" height="50" rx="6" fill="var(--box)" stroke="var(--line)"/><text x="520" y="220">current PP: the party's move PP (known moves)</text><text x="520" y="240" class="small">a new move starts at its full PP, so 30/30</text>
+<text x="10" y="280" class="small">Learner types: gSpeciesInfo 0x083203CC +6/+7, one shown when both match (TORCHIC FIRE, COMBUSKEN FIRE/FIGHTING). acc 0 prints "never misses".</text>
+</svg>
+<figcaption>US ROM f3ae0881, static reads. The description's line breaks are joined with a space. The new move is <code>new_move_id</code> on the evolution box and on the forget-a-move list, and <code>gMoveToLearn</code> (0x020244E2) in battle.</figcaption>
+</figure>
+
+<h2>Where the block shows</h2>
+<div class="tablewrap"><table>
+<tr><th>Screen</th><th>Block</th></tr>
+<tr><td>Evolution or trade scene, ready "Delete a move…?" or "Stop learning…?" box</td><td>yes</td></tr>
+<tr><td>Battle, ready learn_move or stop_learning_move prompt</td><td>yes</td></tr>
+<tr><td>Summary screen forget-a-move list (summary_move_forget)</td><td>yes</td></tr>
+<tr><td>While the scene prints (MVSTATE 2 or 3), any other screen</td><td>no</td></tr>
+</table></div>
+<p>An unreadable value (a description pointer outside the ROM, no terminator, an invalid move id, move type or species type, a learner slot outside the party) gives a visible <code>HARNESS BUG (move learning): …</code> line, never a guess.</p>
+
+<h2>What the model receives (97a0, "Delete a move…?" box)</h2>
+<div class="grid2">
+<div><p class="muted">Off</p>
+<div class="note off">Interface: evolution_move_confirmation; input ready; selected YES; UP/DOWN selects YES or NO; A chooses; B answers NO
+Menu state: … new move id: 24; new move: DOUBLE KICK; options: YES | NO
+To answer NO, press DOWN, then A. Pressing A now answers YES. B also answers NO.
+Bag: …</div></div>
+<div><p class="muted">On (question switch on too, as in the bundle)</p>
+<div class="note on">Interface: evolution_move_confirmation; input ready; selected YES; UP/DOWN selects YES or NO; A chooses; B answers NO
+Menu state: … new move id: 24; new move: DOUBLE KICK; options: YES | NO
+To answer NO, press DOWN, then A. Pressing A now answers YES. B also answers NO.
+The game asks: "Delete a move to make room for DOUBLE KICK?" YES: the game lists COMBUSKEN's moves so you pick one to forget for DOUBLE KICK. NO or B: the game asks "Stop learning DOUBLE KICK?"
+Moves (the game's move data and the summary screen's descriptions):
+  COMBUSKEN (FIRE/FIGHTING) knows:
+  1 PECK FLYING physical pow 35 acc 100 PP 35/35 — "Attacks the foe with a jabbing beak, etc."
+  2 GROWL NORMAL status acc 100 PP 40/40 — "Growls cutely to reduce the foe's ATTACK."
+  3 FOCUS ENERGY NORMAL status never misses PP 30/30 — "Focuses power to raise the critical-hit ratio."
+  4 EMBER FIRE special pow 40 acc 100 PP 21/25 — "A weak fire attack that may inflict a burn."
+  New move: DOUBLE KICK FIGHTING physical pow 30 acc 100 PP 30/30 — "A double-kicking attack that strikes the foe twice."
+Bag: …</div></div>
+</div>
+<p>Production render of fixture <code>move-learn-evo-delete-box</code>. With the question switch on, the question line comes first and the moves block follows it (test <code>test_both_switches_on_put_the_question_before_the_moves</code>).</p>
+
+<h2>Where the block comes from</h2>
+<figure>
+<svg viewBox="0 0 860 140" width="860" height="140" role="img" aria-label="Switch wiring">
+<rect x="10" y="20" width="180" height="56" rx="6" fill="var(--fill)" stroke="var(--line)"/><text x="22" y="44">fixed-run bundle arm</text><text x="22" y="64" class="small">switch on; control off</text>
+<rect x="230" y="20" width="190" height="56" rx="6" fill="var(--fill)" stroke="var(--line)"/><text x="242" y="44">serverFeatureEnv</text><text x="242" y="64" class="small">POKEBENCH_FEATURES_OFF</text>
+<rect x="460" y="20" width="180" height="56" rx="6" fill="var(--fill)" stroke="var(--line)"/><text x="472" y="44">read_move_learning</text><text x="472" y="64" class="small">typed MoveLearning</text>
+<rect x="680" y="20" width="170" height="56" rx="6" fill="var(--panel)" stroke="var(--keep)" stroke-width="2"/><text x="692" y="44">comparison_lines</text><text x="692" y="64" class="small">move_learn.py</text>
+<line x1="190" y1="48" x2="230" y2="48" stroke="var(--fg)"/><line x1="420" y1="48" x2="460" y2="48" stroke="var(--fg)"/><line x1="640" y1="48" x2="680" y2="48" stroke="var(--fg)"/>
+<text x="10" y="110">Shared reader with move-learn-question-v1; it runs when either switch is on. The block is text only: state JSON is unchanged.</text>
+<text x="10" y="128" class="small">Replays render it from recorded RAM when the switch is on. No timeline marks.</text>
+</svg>
+<figcaption>Server readout, after the Interface line, in observe, press and navigate_to results.</figcaption>
+</figure>
+
+<h2>Status</h2>
+<p>Branch <code>claude/move-learn-switches</code>. Tests: <code>env/tests/env/test_move_learn.py</code> (exact blocks for the evolution, battle and summary states, no block while printing, OFF byte parity per archive, state JSON unchanged, every bad-data path reported). Gates passing. Not yet reviewed or landed. Pending experiment <code>experiments/move-learn-comparison-v1.json</code>. On in the bundle arm of bundle-v-control, bundle-cook-1h and whole-map-cook-1h; off in control. No measured runs.</p>
+</main></body></html>

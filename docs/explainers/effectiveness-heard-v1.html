@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Effectiveness heard</title>
+<style>
+:root{--bg:#fbfaf7;--fg:#1d1d1b;--muted:#5d5b55;--line:#d9d5cc;--panel:#ffffff;--keep:#2f7d4f;--drop:#b4442f;--accent:#2d5f9a;--fill:#eef3f8;--box:#f4f1ea}
+@media (prefers-color-scheme: dark){:root{--bg:#161614;--fg:#ecebe6;--muted:#a8a59c;--line:#3a3833;--panel:#1f1e1b;--keep:#6cc08f;--drop:#e98a74;--accent:#86b3e6;--fill:#22303f;--box:#2a2925}}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif}
+main{max-width:900px;margin:0 auto;padding:24px 16px 48px}
+h1{font-size:1.6rem;margin:0 0 4px}h2{font-size:1.15rem;margin:32px 0 8px}
+.muted{color:var(--muted)}
+figure{margin:16px 0;padding:12px;background:var(--panel);border:1px solid var(--line);border-radius:8px;overflow-x:auto}
+figcaption{color:var(--muted);font-size:.9rem;margin-top:8px}
+code{font:13px ui-monospace,SFMono-Regular,Menlo,monospace}
+table{border-collapse:collapse;width:100%;font-size:.92rem}td,th{border-bottom:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top}
+.tablewrap{overflow-x:auto}
+svg text{fill:var(--fg);font:13px -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif}
+svg .small{font-size:11px;fill:var(--muted)}svg .mono{font:12px ui-monospace,SFMono-Regular,Menlo,monospace}
+.note{border-left:3px solid var(--accent);padding:6px 10px;background:var(--fill);font:13px ui-monospace,SFMono-Regular,Menlo,monospace;white-space:pre-wrap;word-break:break-word}
+.off{border-left-color:var(--drop)}.on{border-left-color:var(--keep)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}@media (max-width:640px){.grid2{grid-template-columns:1fr}}
+</style>
+</head>
+<body><main>
+<h1>Effectiveness heard</h1>
+<p class="muted"><code>effectiveness-heard-v1</code> · agent switch · bundle-only, default off · needs <code>battle-text-auto-advance-v1</code> · approved by the operator 2026-10-21</p>
+
+<p>At ROXANNE, run <code>2026-10-20T20-26-22_qwen36-gpu1_97a0</code> used EMBER on her GEODUDE calling it super effective against ROCK, although the game had printed "It's not very effective…" right after the previous EMBER. This switch keeps a record of what the game printed right after each of the player's moves this run, by move and the foe it hit, with turns, and shows it at battle decisions and move-learning prompts. Only the game's words: nothing is computed from a type chart and nothing advises.</p>
+
+<h2>The block as delivered (97a0, the ready battle decision at turn 716)</h2>
+<div class="note on">What the game said right after your moves this run (its own words):
+- EMBER on GEODUDE: "It's not very effective…" (turns 715, 716)</div>
+<p>Exact text from <code>effectiveness-heard.test.ts</code> on the recorded events of run 97a0. The same block shows at the turn-781 evolution move-learning box. "turns" are the run's agent turns, one per event that carried the pages.</p>
+
+<h2>How battle pages become a record</h2>
+<figure>
+<svg viewBox="0 0 860 420" width="860" height="420" role="img" aria-label="Turn 715 and 153 battle pages folded into records">
+<defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0L10,5L0,10z" fill="var(--fg)"/></marker></defs>
+<text x="10" y="20">dialogue_auto_advance, turn 715 (state seq 30182: player TORCHIC at position 0, one foe GEODUDE at position 1)</text>
+<rect x="10" y="32" width="300" height="30" rx="4" fill="var(--fill)" stroke="var(--keep)" stroke-width="2"/><text x="20" y="52" class="mono">TORCHIC used EMBER!       bt 1</text>
+<rect x="10" y="68" width="300" height="30" rx="4" fill="var(--fill)" stroke="var(--keep)" stroke-width="2"/><text x="20" y="88" class="mono">It's not very effective…  bt 1</text>
+<rect x="10" y="104" width="300" height="30" rx="4" fill="var(--box)" stroke="var(--line)"/><text x="20" y="124" class="mono">Foe GEODUDE used ROCK TOMB! bt 1</text>
+<rect x="10" y="140" width="300" height="30" rx="4" fill="var(--box)" stroke="var(--line)"/><text x="20" y="160" class="mono">It's super effective!     bt 1</text>
+<rect x="10" y="176" width="300" height="30" rx="4" fill="var(--box)" stroke="var(--line)"/><text x="20" y="196" class="mono">TORCHIC's SPEED fell!     bt 1</text>
+<line x1="310" y1="47" x2="420" y2="62" stroke="var(--fg)" marker-end="url(#a)"/>
+<text x="330" y="44" class="small">"X used MOVE!", X is the player's</text>
+<line x1="310" y1="83" x2="420" y2="83" stroke="var(--fg)" marker-end="url(#a)"/>
+<text x="326" y="100" class="small">same battle turn, an effectiveness line</text>
+<rect x="420" y="50" width="420" height="50" rx="6" fill="var(--panel)" stroke="var(--keep)" stroke-width="2"/>
+<text x="432" y="72">record: EMBER on GEODUDE: "It's not very effective…"</text><text x="432" y="90" class="small">turn 715 added (turn 716 adds itself the same way)</text>
+<line x1="310" y1="119" x2="420" y2="140" stroke="var(--muted)" stroke-dasharray="4 3" marker-end="url(#a)"/>
+<rect x="420" y="120" width="420" height="50" rx="6" fill="var(--box)" stroke="var(--line)"/>
+<text x="432" y="142">foe's move: the attacker is not the player's POKéMON</text><text x="432" y="160" class="small">so the "super effective!" after it is not recorded</text>
+<text x="10" y="236">dialogue_auto_advance, turn 153 (wild WINGULL)</text>
+<rect x="10" y="248" width="300" height="30" rx="4" fill="var(--fill)" stroke="var(--line)"/><text x="20" y="268" class="mono">TORCHIC used SCRATCH!     bt 1</text>
+<rect x="10" y="284" width="300" height="30" rx="4" fill="var(--box)" stroke="var(--line)"/><text x="20" y="304" class="mono">Wild WINGULL used WATER GUN!</text>
+<rect x="10" y="320" width="300" height="30" rx="4" fill="var(--box)" stroke="var(--line)"/><text x="20" y="340" class="mono">It's super effective!     bt 1</text>
+<line x1="310" y1="300" x2="420" y2="300" stroke="var(--muted)" stroke-dasharray="4 3" marker-end="url(#a)"/>
+<rect x="420" y="276" width="420" height="50" rx="6" fill="var(--box)" stroke="var(--line)"/>
+<text x="432" y="298">SCRATCH had no effectiveness line; then the foe's</text><text x="432" y="316">move resets it: nothing recorded</text>
+<text x="10" y="378" class="small">Also skipped: an effectiveness page in another battle turn than the "used" page (tested by moving it to battle turn 9); a doubles battle (more than one foe on</text>
+<text x="10" y="394" class="small">the field: which foe was hit is not certain); a page with no battle turn or battle message id (it resets the match). Recorded words: "It's super effective!",</text>
+<text x="10" y="410" class="small">"It's not very effective…" and "It doesn't affect …" (sText_SuperEffective, sText_NotVeryEffective, sText_ItDoesntAffect in src/battle_message.c).</text>
+</svg>
+<figcaption>Pages and battle turns ("bt") are the recorded fixture <code>packages/agent/src/fixtures/move-learn-97a0.json</code>. Line breaks in page text are joined with a space. The player side is each battler at an even position, by species and by its party nickname; the foe side is the odd positions, from the state event the page names (<code>state_seq</code>; the last 512 state events are kept).</figcaption>
+</figure>
+
+<h2>When the block shows</h2>
+<div class="tablewrap"><table>
+<tr><th>State of the tool result</th><th>Block</th></tr>
+<tr><td>Battle decision: game started, in battle, battle ready</td><td>yes</td></tr>
+<tr><td>Evolution move confirmation box (evolution_move_confirmation)</td><td>yes</td></tr>
+<tr><td>Summary forget-a-move list (summary_move_forget)</td><td>yes</td></tr>
+<tr><td>Battle prompt learn_move or stop_learning_move, ready</td><td>yes</td></tr>
+<tr><td>Battle not ready, field, anything else</td><td>no</td></tr>
+<tr><td>Nothing recorded yet this run</td><td>no</td></tr>
+</table></div>
+<p>A no-effect line keeps the game's words, for example (test-modified page, not recorded): <code>- EMBER on GEODUDE: "It doesn't affect Foe GEODUDE…" (turn 900)</code>.</p>
+
+<h2>What the model receives (97a0, battle_action at the turn-716 decision)</h2>
+<div class="grid2">
+<div><p class="muted">Off: the tool result's content</p>
+<div class="note off">[text] readout</div></div>
+<div><p class="muted">On: the same readout, then the block as its own text part</p>
+<div class="note on">[text] readout
+[text] What the game said right after your moves this run (its own words):
+- EMBER on GEODUDE: "It's not very effective…" (turns 715, 716)</div></div>
+</div>
+<p>From the wrapper test: on, a <code>battle_action</code> result gains the block as a second text part; a non-game tool (<code>get_dialogue</code>) is unchanged; off, the tool list is returned as is.</p>
+
+<h2>Where the block comes from</h2>
+<figure>
+<svg viewBox="0 0 860 170" width="860" height="170" role="img" aria-label="Switch wiring">
+<rect x="10" y="20" width="180" height="56" rx="6" fill="var(--fill)" stroke="var(--line)"/><text x="22" y="44">fixed-run bundle arm</text><text x="22" y="64" class="small">switch on; control off</text>
+<rect x="230" y="20" width="190" height="56" rx="6" fill="var(--fill)" stroke="var(--line)"/><text x="242" y="44">run recorder</text><text x="242" y="64" class="small">state + dialogue_auto_advance</text>
+<rect x="460" y="20" width="180" height="56" rx="6" fill="var(--fill)" stroke="var(--line)"/><text x="472" y="44">EffectivenessHeard</text><text x="472" y="64" class="small">fold, in memory</text>
+<rect x="680" y="20" width="170" height="56" rx="6" fill="var(--panel)" stroke="var(--keep)" stroke-width="2"/><text x="692" y="44">withAppendedBlock</text><text x="692" y="64" class="small">appends a text part</text>
+<line x1="190" y1="48" x2="230" y2="48" stroke="var(--fg)"/><line x1="420" y1="48" x2="460" y2="48" stroke="var(--fg)"/><line x1="640" y1="48" x2="680" y2="48" stroke="var(--fg)"/>
+<text x="10" y="110">play-wiring.ts wraps observe, press, navigate_to, battle_action and choose_evolution (and the semantic walk tools)</text>
+<text x="10" y="128">with withEffectivenessHeard, outside navigate-first so choose_evolution is covered.</text>
+<text x="10" y="150" class="small">The battle pages exist only with battle-text-auto-advance-v1, which the registry lists as this switch's need. Agent side only; no new events, no timeline marks.</text>
+</svg>
+<figcaption><code>packages/agent/src/effectiveness-heard.ts</code>. The block reads the state in the tool result's details to decide whether to show.</figcaption>
+</figure>
+
+<h2>Status</h2>
+<p>Branch <code>claude/move-learn-switches</code>. Tests: <code>packages/agent/src/effectiveness-heard.test.ts</code> (player-only attribution, foe move ignored, other battle turn ignored, doubles skipped, no-effect wording, decision screens, wrapper on/off) and the production wiring test in <code>game-said-goals.test.ts</code>. Gates passing (module 100% covered). Not yet reviewed or landed. Pending experiment <code>experiments/effectiveness-heard-v1.json</code>. On in the bundle arm of bundle-v-control, bundle-cook-1h and whole-map-cook-1h; off in control. No measured runs.</p>
+</main></body></html>

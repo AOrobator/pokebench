@@ -163,7 +163,12 @@
    "just-in-time-prompt-v2": false,
    "jit-guide-reuse-v1": false,
    "battle-refusal-loop-v1": true,
-   "semantic-navigation-v2": true
+   "semantic-navigation-v2": true,
+   "move-learn-settle-v1": true,
+   "move-learn-question-v1": true,
+   "move-learn-comparison-v1": true,
+   "effectiveness-heard-v1": true,
+   "game-said-goals-v1": true
   },
   "start": {
    "kind": "save_state",

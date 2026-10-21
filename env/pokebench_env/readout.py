@@ -167,8 +167,25 @@ def _play_seconds(state: GameState) -> int | None:
     return hours * 3600 + minutes * 60 + seconds
 
 
-def _menu(state: GameState, truth: bool = False, evolution: bool = False) -> str:
+def _menu(
+    state: GameState, truth: bool = False, evolution: bool = False, move_question: bool = False
+) -> str:
     ui = state.active_ui
+    # BattleScript_AskToLearnMove owns a YES/NO box while the controller is busy.
+    # Its verified prompt takes precedence over the generic battle interface.
+    battle = state.battle
+    prompt = None if battle is None else battle.prompt
+    if (
+        move_question
+        and battle is not None
+        and battle.diagnostic is None
+        and battle.text_phase == "prompt"
+        and prompt is not None
+        and prompt.kind in {"learn_move", "stop_learning_move"}
+        and prompt.ready
+        and prompt.selected in {"YES", "NO"}
+    ):
+        return f"Menu: {prompt.kind}; selected {prompt.selected}"
     if (
         evolution
         and state.screen == "evolution"
@@ -300,7 +317,7 @@ def format_readout(
         lines = [
             f"Screen: {state.screen}",
             f"Dialog: {dialog}",
-            _menu(state, truth, "evolution-decision-v1" not in off),
+            _menu(state, truth, "evolution-decision-v1" not in off, MOVE_QUESTION not in off),
         ]
         if ui is not None:
             lines.append((ui if expanded else replace(ui, details=None)).text())

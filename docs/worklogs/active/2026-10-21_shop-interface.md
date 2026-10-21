@@ -54,6 +54,30 @@ A post-pass over the native reader's result (like evolution-decision-v1's `decis
 
 - 2026-10-21 ~11:50 AM ET: merged local main fe4ed9c7 (control promotion 607954b2, seven training/catching switches 4d884c03) with `-X theirs`, then re-applied this switch after said-type-matches-v1 in every registry list, the four fixed definitions and the incumbent (refreshed to the current bundle arm); collateral offsets re-derived. Stepped aside on the landing board while finishing (rejoined at #6).
 
+- Gates on 7e2eb4fa: lint ok; agent 3325 (97.32/93.05/97.8/99.23); viewer 1615 (95.42/91.33/94.33/97.9); pytest 3712 (lines 97.30 branches 93.09 functions 100); verify-vendor ok; fixed-cli check exit 0 on all four, bundle switches end with shop-interface-v1.
+
+## Principles self-review
+
+| ID | Score | Evidence |
+|---|---|---|
+| PB1 | PASS | Interface text only; no grading change. |
+| PB2 | N/A | No run accounting touched. |
+| PB3 | PASS | No benefit claimed; pending experiment. |
+| PB4 | PASS | Named switch, default off, bundle arm only; vendor untouched. |
+| PB5 | PASS | One switch, one hypothesis. |
+| PB6 | N/A | No context growth (same lines, corrected). |
+| PB7 | PASS | active_ui is recorded in state events as before. |
+| PB8 | PASS | No owner or failed read keeps the native result, its diagnostic visible (tests). |
+| PB9 | PASS | The operator asked for it; scope is the three broken buy-screen states seen in run 1331. |
+| PB10 | PASS | No skipped tests; collateral re-indexed only. |
+| PB11 | PASS | Task addresses and data slots match pret 731ad5bf and the recorded RAM of run 1331. |
+| PB12 | PASS | ROM via POKEBENCH_ROM only. |
+| PB13 | PASS | Tests on recorded states through the production path; explainer opened; viewer-main and live check after merge. |
+
+## Frozen boundary
+
+In scope: `env/pokebench_env/shop_interface.py`, its wiring in game_state.py and rerender.py, the registry, four fixed definitions (bundle arm only), `experiments/shop-interface-v1.json`, readiness row, explainer + README + FEATURE_EXPLAINERS, tests (new and collateral). Out of scope: `menus.py` itself, decoration shops, the SELL screen, the Premier Ball page, quantity-box controls wording.
+
 ## Multi-Model Review Log
 
 ## Session Log

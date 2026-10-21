@@ -32,8 +32,20 @@ describe("static/style.css", () => {
     expect(rule(".pv-hp .tag")).toEqual({ left: 0, top: 0, width: 15, height: 7 });
     expect(body(".pv-hp .tag")).toContain("url(/sprites/party/parts/hp-tag.png) 0 calc(var(--u) * -2) / calc(var(--u) * 16) calc(var(--u) * 9)");
     expect(rule(".pv-hp .frame")).toEqual({ left: 14, right: 0, top: 0, height: 7 });
-    expect(body(".pv-hp .frame::before")).toContain("inset: var(--u)");
+    expect(body(".pv-hp .frame::before")).toBe("");
     expect(rule(".pv-hp .track")).toEqual({ left: 15, right: 1, top: 1, height: 5 });
+  });
+  it("rounds the party HP bar's right end like the game's slot tiles", () => {
+    const css = readFileSync(join(import.meta.dirname, "../static/style.css"), "utf8");
+    const body = (selector: string): string => new RegExp(`^${selector.replace(/[.*]/g, "\\$&")} \\{([^}]*)\\}`, "m").exec(css)?.[1] ?? "";
+    // sSlotTilemap_Wide's bar end, columns R-1 and R: top/bottom border rows "2." , white rows "d2", track rows "3d".
+    // The frame drops its two outer corner pixels, the track (and its fill) drop their inner ones,
+    // and the four #737373 pixels sit at (R-1, 0), (R, 1), (R, 5), (R-1, 6).
+    expect(body(".pv-hp .frame")).toContain("clip-path: polygon(0 0, calc(100% - var(--u)) 0, calc(100% - var(--u)) var(--u), 100% var(--u), 100% calc(100% - var(--u)), calc(100% - var(--u)) calc(100% - var(--u)), calc(100% - var(--u)) 100%, 0 100%)");
+    expect(body(".pv-hp .track")).toContain("clip-path: polygon(0 0, calc(100% - var(--u)) 0, calc(100% - var(--u)) var(--u), 100% var(--u), 100% calc(100% - var(--u)), calc(100% - var(--u)) calc(100% - var(--u)), calc(100% - var(--u)) 100%, 0 100%)");
+    const corner = body(".pv-hp .frame::after");
+    expect(corner).toContain("right: var(--u); top: 0; width: var(--u); height: var(--u); background: #737373;");
+    expect(corner).toContain("box-shadow: var(--u) var(--u) #737373, var(--u) calc(var(--u) * 5) #737373, 0 calc(var(--u) * 6) #737373;");
   });
   it("finds an unclosed media block and a stray close", () => {
     expect(unclosed("@media(x){\n.a{b:c}\n.d{e:f}")).toEqual([1]);

@@ -13,7 +13,7 @@ describe("move-learn switches (the operator 2026-10-21: F1, F2, J1, J2, J3)",()=
   expect(SWITCHABLE_FEATURES.slice(-8,-3)).toEqual([...IDS]);
   expect(FEATURES.filter(f=>f.switchable).slice(-8,-3).map(f=>f.id)).toEqual([...IDS]);
   expect(SERVER_FEATURES.slice(-5,-2)).toEqual([...SERVER]);
-  expect(playHarnessFeatures({...ALL_ON,"gym-door-label-v1":false,"menu-refusal-recovery-v1":false},null).slice(-5)).toEqual([...IDS]);
+  expect(playHarnessFeatures({...ALL_ON,"caught-dex-input-v1":false,"gym-door-label-v1":false,"menu-refusal-recovery-v1":false},null).slice(-5)).toEqual([...IDS]);
   IDS.forEach((id,i)=>{
    expect(featureInfo(id)).toMatchObject({group:"observation",switchable:true,title:TITLES[i],needs:NEEDS[i]});
    expect(featureInfo(id).description).toContain("Bundle arm only, default off");

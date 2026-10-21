@@ -122,3 +122,20 @@ Concurrent switch integration: rebased onto pinned5534f2850, which already
 contains gym-door-label-v1. That switch remains before caught-dex in registry
 order, retains its own defaults/control and bundle selections, and keeps its
 pending experiment and explainer. Combined registry expectations are rechecked.
+
+## Combined bundle gate and landing checkpoint
+
+Gym-door integration leaves the caught-dex decoder, battle wait and readout
+mechanism unchanged. Both server feature lists append gym-door before caught-dex;
+legacy/default/control paths keep caught-dex OFF, bundle arms turn it ON.
+Registry/snapshot tests were updated to preserve both treatments. Python combined
+suite3609 and agent3284 pass; the viewer was rebuilt before final registry tests
+(stale dist first reported unknown gym-door). Repositioned the new explainer-route
+test as a sibling of the Gym test, retaining both.
+
+STOP before local-main landing: repository-local execute-worklog skill says
+"If a cloud lane is unavailable (usage limit, auth, model rejected), there is no
+self-merge. Record it in the worklog and ask the operator." The broader fallback
+review skill authorizes independent reviews but does not override this local
+landing restriction. Claude cloud remains unavailable; leave this reviewed
+branch concrete and ask the operator for approval before merging. No launch approved.

@@ -30,3 +30,4 @@ Whole-map is now in control, so the loop's experiment is plain bundle vs control
 - Gates: fixed-run check OK; agent 3322, viewer 1612 and pytest pass. Reviews: Claude subagent LGTM; Grok (cursor-grok-4.5-high) found no bugs in the definition, ids or dropdown labels; its one finding was a stale-base packet artifact (the diff vs a moved main showed another worklog's lines), and after rebasing the branch touches only this worklog, the new JSON and the two test lists.
 - Resynced on main af70fa34 (progress-aware-cycles-v1 in the bundle): bundle-v-control-2h re-copied from whole-map-pair-2h (only id/title differ); the new progress-aware-cycles test list covers it too.
 - Round 3 on 8b290e4b (packet runs/reviews/bundle-v-control-2h/r3): Claude subagent LGTM, Grok cursor-grok-4.5-high LGTM. Gates: fixed-run check OK, agent 3337, viewer 1615, pytest 3702 pass.
+- LANDED on main (ff-only, landing-board turn 12:12 PM NY) after a docs-only resync onto 8e279f85.

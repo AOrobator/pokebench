@@ -48,6 +48,9 @@ Warp destination at (29,16): VERDANTURF TOWN (not reachable on foot from where y
 <div class="note off">Off: no Field obstacles block; "Warp to map 0/14 at (29,16), ...; destination map 0/14 warp 4" and "Warp destination at (29,16): VERDANTURF TOWN", byte for byte the recorded tool result.</div>
 <p>navigate_to (29,16) with the switch on refuses before any press:</p>
 <div class="note on">Navigation: (29,16) cannot be reached on foot from where you stand: every way to it on this map passes BREAKABLE_ROCK at (24,4) or (24,5), which needs a field move you cannot use yet; the game says: "It's a rugged rock, but a POKéMON may be able to smash it."; 0 ordinary button attempts.</div>
+<p>A line says its obstacles "close every way on foot" to an exit only when they are that exit's whole blocker set, so closing exactly them cuts it off. When the ways pass obstacles of more than one kind, one line names them together, as from (30,25) in VICTORY ROAD B1F:</p>
+<div class="note on">- PUSHABLE_BOULDER at (21,4) and BREAKABLE_ROCK at (18,12) together close every way on foot to (8,3): they need a field move you cannot use yet; the game says: "It's a big boulder, but a POKéMON may be able to push it aside." at the PUSHABLE_BOULDER and "It's a rugged rock, but a POKéMON may be able to smash it." at the BREAKABLE_ROCK</div>
+<p>Other closed obstacle objects get a line of their own kind with no exits. Each line is checked against the flood with only its obstacles closed, on every map from every warp.</p>
 <p>The wording follows surf-gated-exits-v2: it quotes the game's own text and says the way "needs a field move you cannot use yet" (or "an item you do not have yet"). It never names a badge, move or item.</p>
 
 <h2>How a gate decides</h2>

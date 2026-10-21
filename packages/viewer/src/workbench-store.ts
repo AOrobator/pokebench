@@ -64,7 +64,7 @@ function runSignature(path: string): string {
   return `${String(stat.size)}:${String(stat.mtimeMs)}:${String(stat.ctimeMs)}:${String(stat.dev)}:${String(stat.ino)}` + visualEvidenceSignature(path) + recoveredSignature(dirname(path));
 }
 // True when the log at `now` is the log at `then` with more bytes appended: same inode, larger, and the
-// same visual evidence and viewer build. A rewrite, truncation or replacement is not.
+// same verified evidence. A rewrite, truncation or replacement is not.
 function appendedSince(then: string, now: string): boolean {
   const parse = (signature: string): { size: number; ino: string; rest: string } | null => {
     const m = /^(\d+):[^:]*:[^:]*:(\d+):(\d+)(.*)$/s.exec(signature);
@@ -200,7 +200,7 @@ export interface WorkbenchLoader {
   forget(keep: (path: string) => boolean): void;
 }
 // Caches each run by its log signature, shares a load already in flight, and persists ended
-// runs (their logs never change) for the next viewer of the same code.
+// runs for the next viewer of the same parser code; current build policy is reapplied on every disk hit.
 // build is this viewer's own build (default: dist/build-stamp.json; null when unknown). Workers get its
 // stamp as plain data; git ancestry (skewOf) runs here on the main thread, cached per run commit.
 export function createWorkbenchLoader(options: { compute?: WorkbenchCompute; store?: RunStore<LoadedRun>; build?: ViewerBuild | null } = {}): WorkbenchLoader {
@@ -208,10 +208,9 @@ export function createWorkbenchLoader(options: { compute?: WorkbenchCompute; sto
   const compute = options.compute ?? ((root: string, id: string, viewer: BuildIdentity | null): Promise<LoadedRun> => Promise.resolve().then(() => incremental(root, id, viewer)));
   const build = options.build === undefined ? defaultViewerBuild() : options.build;
   const stamp: BuildIdentity | null = build === null ? null : { commit: build.commit, dirty: build.dirty };
-  const buildKey = `:viewer=${stamp === null ? "unknown" : `${stamp.commit}${stamp.dirty ? "+dirty" : ""}`}`;
   const cache = new Map<string, Loaded>(), inflight = new Map<string, Promise<Loaded>>();
   const signatureOf = (path: string, id: string): { signature: string } | { invalid: Loaded } => {
-    try { return { signature: runSignature(path) + buildKey }; } catch (error) {
+    try { return { signature: runSignature(path) }; } catch (error) {
       const entry: Loaded = { signature: "", run: invalidRun(id, errorText(error)), port: null, tag: null, timing: null, skew: null };
       cache.set(path, entry); return { invalid: entry };
     }
@@ -228,7 +227,7 @@ export function createWorkbenchLoader(options: { compute?: WorkbenchCompute; sto
         const loaded = stored ?? await compute(root, id, stamp);
         const entry: Loaded = { ...settleSkew(loaded, build), signature };
         latest.set(path, entry);
-        let after: string | null = null; try { after = runSignature(path) + buildKey; } catch { /* removed while loading */ }
+        let after: string | null = null; try { after = runSignature(path); } catch { /* removed while loading */ }
         if (after === signature) {
           cache.set(path, entry);
           if (stored === null && loaded.run.status === "ended") options.store?.put(id, signature, loaded);

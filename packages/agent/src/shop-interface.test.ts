@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { ALL_ON, FEATURES, SERVER_FEATURES, SWITCHABLE_FEATURES, dependencyProblems, featureInfo, playHarnessFeatures, serverFeatureEnv } from "./features.js";
+import { ALL_ON as GYM_EVIDENCE_CURRENT_ALL_ON, FEATURES, SERVER_FEATURES, SWITCHABLE_FEATURES, dependencyProblems, featureInfo, playHarnessFeatures, serverFeatureEnv } from "./features.js";
+const ALL_ON={...GYM_EVIDENCE_CURRENT_ALL_ON,"milestone-instruction-memory-v1":false,"gym-evidence-v1":false};
 import { flagFeatures, normalizeFeatures } from "./play-preset.js";
 import { LEGACY_ALL_ON } from "../test-support/legacy-features.js";
 
@@ -7,10 +8,10 @@ const ID="shop-interface-v1";
 
 describe("shop-interface-v1 (the operator 2026-10-21: build it and put it in the bundle)",()=>{
  it("is appended last to every registry list as a default-off observation that needs the RAM readout",()=>{
-  expect(SWITCHABLE_FEATURES.at(-15)).toBe(ID);
-  expect(FEATURES.filter(f=>f.switchable).at(-15)?.id).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-18)).toBe(ID);
+  expect(FEATURES.filter(f=>f.switchable).at(-18)?.id).toBe(ID);
   expect(SERVER_FEATURES.at(-3)).toBe(ID);
-  expect(playHarnessFeatures(ALL_ON,null).at(-15)).toBe(ID);
+  expect(playHarnessFeatures(ALL_ON,null).at(-16)).toBe(ID);
   expect(featureInfo(ID)).toMatchObject({group:"observation",switchable:true,title:"SHOP INTERFACE",needs:"ram-state-v1"});
   expect(featureInfo(ID).description).toContain("Bundle arm only, default off");
   expect(featureInfo(ID).description).toContain(" Off: ");

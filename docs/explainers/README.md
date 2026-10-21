@@ -208,6 +208,12 @@ The original ignored runs/explainers copies remain for existing links. Make futu
 - [Map-wide triggers](map-wide-triggers-v1.html) — default OFF, bundle arm only, game server: the state lists every coordinate trigger on the map so a Littleroot stride stops at (10,10) before the (10,9) trigger; the readout text keeps the 7-tile list.
 - [Drought hold in battles and heals](drought-battle-heal-hold-v1.html) — default OFF, bundle arm only: milestone-drought briefings are held (recorded as diagnostics) during battles, trainer sight scripts and harness-ordered heal trips; the drought clock restarts when a hold that kept a briefing back ends, or when the asked-for heal is done.
 
+- [Gym evidence](gym-evidence-v1.html): current native completion, compound Gym identity and citation delivery; no next-action guidance.
+
+- [Script trigger boundaries](trigger-navigation-boundary-v1.html) — matching scripts interrupt navigation instead of blocking the route.
+
+- [Milestone instruction memory](milestone-instruction-memory-v1.html): conservative native-scene retirement, compact whole-episode memory and six frozen trace keep/drop audits.
+
 - [Every tool in the system prompt](tool-prompt-docs-v1.html) — default OFF, proposed for both arms: every tool the model is given is named in its system prompt (choose_evolution, battle_action, and one line per tool a just-in-time scene keeps but whose section it hides).
 - [Field ownership feedback](field-ownership-feedback-v1.html) — default OFF, proposed for both arms: navigate_to_target checks the field is free before resolving its target and, when an interface owns input, refuses with navigate_to's reason and the whole readout; the stall briefing and auto-talk name the interface and its controls.
 - [Move-learning loop fingerprint](move-learn-loop-fingerprint-v1.html) — default OFF, bundle arm: move-learning prompts get a loop-guard fingerprint even while the battle flag is set, so a cycle made only of them is reported after two repeats.

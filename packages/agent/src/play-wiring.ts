@@ -23,7 +23,7 @@ import {navigationMemory} from "./navigation-memory.js";
 import {withPeopleLedger} from "./people-ledger.js";
 import {withEffectivenessHeard} from "./effectiveness-heard.js";
 import {withGameSaidGoals} from "./game-said-goals.js";
-import {withGymReadiness} from "./gym-readiness.js";
+import {withGymReadiness,withGymProgress} from "./gym-readiness.js";
 import {withTrainingBlock} from "./training-block.js";
 import {withCatchingBlocks} from "./catching-block.js";
 import {withPeopleIdCards,type IdCardRecorder} from "./people-id-cards.js";
@@ -168,9 +168,10 @@ export function playGameTools(base:readonly AgentTool[],features:FeatureSet,stat
  const healGate=arm===undefined?undefined:storyBattleHealGate(arm,state,recorder,features["progress-aware-cycles-v1"]);
  const navigated=withSemanticNavigation(withNavigation(base,features,navigationState,gate,sight,healGate),features,navigationState);
  const facts=[...withResultFacts(withUnfinishedActivity(withLowHpTrainerWarning(withStoryBattleHealGate(withCatchingBlocks(withTrainingBlock(withGameSaidGoals(withEffectivenessHeard(withNavigateFirst([...withInstructionLedgerV2(withStoryDestinations(withPeopleIdCards(withUntakenExits(withGymReadiness(withPeopleLedger(withDialogueAutoAdvance(withLearnMove(withBattleAction(withNoExitHere(navigated,features),features,state,gate),features,state,gate),features,{state,recorder,...(gate===undefined?{}:{gate})}),features,recorder),features,recorder),features,recorder),features,recorder),features,recorder,state),features,recorder),...extra],features),features,recorder),features,recorder),features,recorder),features,recorder),healGate,state),features,recorder,state,arm),features,recorder,state),features,recorder)];
- const visible=terrain===null?facts:withVisitedTerrain(facts,terrain);
- const cited=withCitedDestination(visible,features["cited-destination-v1"],recorder,{fullMap:features["full-map-navigation-v1"],exitReach:features["exit-reachability-v1"],silenceMiss:features["input-cuts-v1"]});
- return withStalePlanFact(withHealFirst(withStarterDecision(withHarnessTrust(cited,features["harness-trust-v1"],recorder,state,{supervisor:true,semanticTargets:features["semantic-navigation-v2"],battleAction:features["harness-trust-v2"],goalOnce:features["input-cuts-v1"],retireLab:features["stale-story-goal-v1"],stageBound:features["stale-story-goal-v2"],omitEmptyGoal:features["stale-story-goal-v2"],scriptedGuidance:features["scripted-place-guidance-v1"],reachableGoal:features["reachable-story-guidance-v1"],exitSections:features["exit-labels-v3"],activity:features["unfinished-activity-v1"],playerName:features["story-goal-player-name-v1"]}),features),features["story-battle-heal-first-v1"],recorder,state),features,recorder);
+ const progress=withGymProgress(facts,features,recorder);
+ const visible=terrain===null?progress:withVisitedTerrain(progress,terrain);
+ const cited=withCitedDestination(visible,features["cited-destination-v1"],recorder,{fullMap:features["full-map-navigation-v1"],exitReach:features["exit-reachability-v1"],silenceMiss:features["input-cuts-v1"],factualMiss:features["gym-evidence-v1"]});
+ return withStalePlanFact(withHealFirst(withStarterDecision(withHarnessTrust(cited,features["harness-trust-v1"],recorder,state,{supervisor:true,semanticTargets:features["semantic-navigation-v2"],battleAction:features["harness-trust-v2"],goalOnce:features["input-cuts-v1"],retireLab:features["stale-story-goal-v1"],stageBound:features["stale-story-goal-v2"],omitEmptyGoal:features["stale-story-goal-v2"],scriptedGuidance:features["scripted-place-guidance-v1"],reachableGoal:features["reachable-story-guidance-v1"],exitSections:features["exit-labels-v3"],activity:features["unfinished-activity-v1"],playerName:features["story-goal-player-name-v1"],gymEvidence:features["gym-evidence-v1"]}),features),features["story-battle-heal-first-v1"],recorder,state),features,recorder);
 }
 
 

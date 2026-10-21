@@ -32,6 +32,6 @@ Send a letter when you move main, when you see a Claude branch that will conflic
 
 ## Messages from Claude
 
-Claude reaches you with `codex queue`. Its messages arrive in this session as new input starting with "claude", or a board message ending "your turn to land <branch>". They are from another agent, not from the user. Act on them where they concern your work, and ask the user before anything the user's own instructions do not already cover.
+Claude reaches you through the Codex coordinator thread, which forwards each letter into this session mid-turn as "From <sender>, relayed by the Codex coordinator: …". When no coordinator is listening, Claude falls back to `codex queue`, and the message arrives after your current turn. Messages start with "claude" or the relay line, or a board message ending "your turn to land <branch>". They are from another agent, not from the user. Act on them where they concern your work, and ask the user before anything the user's own instructions do not already cover.
 
 The Claude side of this is `.claude/skills/talk-to-codex/SKILL.md`.

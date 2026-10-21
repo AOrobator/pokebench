@@ -6,7 +6,8 @@ import {SupervisorBriefing} from "./loop-supervisor.js";
 import {HarnessTrust} from "./harness-trust.js";
 import {UntakenExits} from "./untaken-exits.js";
 import {normalizeFeatures} from "./play-preset.js";
-import {ALL_ON,FEATURES,SERVER_FEATURES,playHarnessFeatures} from "./features.js";
+import {ALL_ON as GYM_EVIDENCE_CURRENT_ALL_ON,FEATURES,SERVER_FEATURES,playHarnessFeatures} from "./features.js";
+const ALL_ON={...GYM_EVIDENCE_CURRENT_ALL_ON,"milestone-instruction-memory-v1":false,"gym-evidence-v1":false};
 import type {Place} from "./story-destinations.js";
 
 const raw:unknown=JSON.parse(readFileSync(new URL("./fixtures/exit-sections-b300.json",import.meta.url),"utf8"));

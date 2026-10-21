@@ -352,8 +352,8 @@ describe("battle-move-tool-v1 registry and production wiring",()=>{
  it("is a default-off guidance switch recorded last, needing no other switch",()=>{
   expect(featureInfo(BATTLE_ACTION_ID)).toMatchObject({group:"guidance",needs:null,switchable:true,title:"BATTLE ACTION TOOL"});
   expect(featureInfo(BATTLE_ACTION_ID).description).toContain(" Off: ");
-  expect(SWITCHABLE_FEATURES.at(-102)).toBe(BATTLE_ACTION_ID);
-  expect(FEATURES.filter(f=>f.switchable).at(-102)?.id).toBe(BATTLE_ACTION_ID);
+  expect(SWITCHABLE_FEATURES.at(-105)).toBe(BATTLE_ACTION_ID);
+  expect(FEATURES.filter(f=>f.switchable).at(-105)?.id).toBe(BATTLE_ACTION_ID);
   expect(playHarnessFeatures({...ALL_ON,"battle-decision-ready-v1":false,[BATTLE_ACTION_ID]:true},null).at(-33)).toBe(BATTLE_ACTION_ID);
   expect(BASE[BATTLE_ACTION_ID]).toBe(false);
   const old=parsePlayPreset({version:2,id:"old",target:null,limits:{maxTurns:1,maxWallMs:1,failureLimit:1},sampling:{thinkingLevel:"medium",maxTokens:1},features:Object.fromEntries(Object.entries({...ALL_ON,"battle-decision-ready-v1":false,"state-only-decisions-v1":false}).filter(([id])=>id!==BATTLE_ACTION_ID))});

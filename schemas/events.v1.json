@@ -12046,6 +12046,21 @@
             }
           },
           "additionalProperties": false
+        },
+        "party_next_level": {
+          "type": "array",
+          "items": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "maxItems": 6
         }
       },
       "additionalProperties": false

@@ -1,0 +1,47 @@
+{
+ "rom_sha1": "f3ae088181bf583e55daf962a92bb46f4f1d07b7",
+ "archives": {
+  "training-1331-pre-dex": {
+   "run": "2026-10-21T06-28-18_qwen36-gpu0_1331",
+   "source": "raw-ram/00001174.json.gz",
+   "state_seq": 2286,
+   "turn": 109,
+   "sha256": "9cc5d4edbf2545767a20629c369d9e937c39ae8a4eee17a02eff0a89b9ea6272"
+  },
+  "training-1331-wild-wurmple": {
+   "run": "2026-10-21T06-28-18_qwen36-gpu0_1331",
+   "source": "raw-ram/00006205.json.gz",
+   "state_seq": 15765,
+   "turn": 497,
+   "sha256": "9f1c218da74422e6bf6e7f9d7c8b8f32bf8e11ee91156431f282ce83edc54158"
+  },
+  "training-1331-after-catch": {
+   "run": "2026-10-21T06-28-18_qwen36-gpu0_1331",
+   "source": "raw-ram/00006299.json.gz",
+   "state_seq": 15960,
+   "turn": 505,
+   "sha256": "79377cae9d15e882a6c0318d52da34420a38c8492a69f25dc248f3945ec4efc5"
+  },
+  "training-1331-gym-field": {
+   "run": "2026-10-21T06-28-18_qwen36-gpu0_1331",
+   "source": "raw-ram/00009557.json.gz",
+   "state_seq": 23981,
+   "turn": 660,
+   "sha256": "d842172ae4767a3b76b161ede67a786631e7a9d6f2d240ec66b35e175fbdfde6"
+  },
+  "training-1331-roxanne-battle": {
+   "run": "2026-10-21T06-28-18_qwen36-gpu0_1331",
+   "source": "raw-ram/00009615.json.gz",
+   "state_seq": 24114,
+   "turn": 662,
+   "sha256": "c6f6293d3e9de713a96c5be1d623b303e51d0a055b2f1326d7880e00666e3cd0"
+  },
+  "training-97a0-rustboro-field": {
+   "run": "2026-10-20T20-26-22_qwen36-gpu1_97a0",
+   "source": "raw-ram/00011432.json.gz",
+   "state_seq": 29575,
+   "turn": 705,
+   "sha256": "701a5ecdcc8884b204e9da935964a7dd83924e35385441c69f822e0f944d6177"
+  }
+ }
+}

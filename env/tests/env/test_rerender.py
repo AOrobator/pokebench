@@ -158,6 +158,8 @@ def test_read_state_and_render_pass_every_server_switch_through(monkeypatch):
         "field_moves_enabled": False,
         "move_learning_enabled": False,
         "mart_stock_enabled": False,
+        "exp_next_enabled": False,
+        "pokedex_enabled": False,
         "respawn_links": None,
         "fmt_named_interactions": False,
         "fmt_world_destinations": False,

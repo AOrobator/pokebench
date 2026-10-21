@@ -41,10 +41,14 @@ export function experimentDefinitions(experimentsDir: string, runsRoot: string):
   return found;
 }
 const DRY_RUN = /^(.+)-dryrun(?:-(.+))?$/;
+// `fixed-run rerun`: <id>-solo-<arm>-<lane>-<n>, one unpaired exploratory trial.
+const SOLO = /^(.+)-solo-(control|bundle)-([a-z])-([1-9][0-9]*)$/;
 // A dry run keeps its own id, so it never merges with the measured experiment it rehearses.
 function resolve(id: string, definitions: Definitions): Resolved {
   const direct = definitions.get(id);
   if (direct !== undefined) return { experiment: direct.id, title: direct.title, known: true, dryRun: false };
+  const solo = SOLO.exec(id), parent = solo === null ? undefined : definitions.get(solo[1] ?? "");
+  if (solo !== null && parent !== undefined) return { experiment: id, title: `${parent.title} (exploratory: ${solo[2] ?? ""} only, lane ${(solo[3] ?? "").toUpperCase()}, #${solo[4] ?? ""})`, known: true, dryRun: false };
   const dry = DRY_RUN.exec(id), base = dry === null ? undefined : definitions.get(dry[1] ?? "");
   if (dry === null) return { experiment: id, title: id, known: false, dryRun: false };
   if (base === undefined) return { experiment: id, title: id, known: false, dryRun: true };

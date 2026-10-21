@@ -60,6 +60,7 @@ from pokebench_env.raw_ram import (
 from pokebench_env.readout import features_off_from_env
 from pokebench_env.rom import resolve_rom
 from pokebench_env.screen_settle import (
+    COHERENT_BATTLE_FEATURE,
     WARP_FEATURE,
     FrameSettle,
     SteppedEmulator,
@@ -329,7 +330,11 @@ def run(
         if BLACKOUT not in off:
             whiteout = WhiteoutLatch(observation[2])
             install_whiteout_latch(frames, whiteout)
-        settle = FrameSettle(observation[2], warp=WARP_FEATURE not in off)
+        settle = FrameSettle(
+            observation[2],
+            warp=WARP_FEATURE not in off,
+            coherent_battle=COHERENT_BATTLE_FEATURE not in off,
+        )
         if MOVE_LEARN_SETTLE not in off:
             read_memory = observation[2]
             settle.move_learning = lambda: move_learning_busy(read_memory)

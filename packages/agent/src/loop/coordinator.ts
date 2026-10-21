@@ -152,7 +152,7 @@ export class LoopCoordinator {
     this.menuRefusals = menuRefusals;
     this.ineffectiveNavigation=ineffectiveNavigation;
     this.sameTarget = sameTargetNoProgress ? new SameTargetNoProgress(supervisor !== undefined && mode === "enforced") : null;
-    this.basic = new BasicRules(policy, interactions, battles, ineffectiveLoops, transitions);
+    this.basic = new BasicRules(policy, interactions, battles, ineffectiveLoops, transitions, options.moveLearnLoops === true);
     this.interfaces = new InterfaceRules(policy.ineffective, clockViews, closedDialogue, menuLoop);
     this.field = new FieldRules(policy, interactions, transitions, pushback, ineffectiveLoops, triggerScriptLoops);
     this.rules = buildLoopRules({

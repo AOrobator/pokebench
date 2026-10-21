@@ -75,8 +75,11 @@ No new network surface, subprocesses or file paths. ROM read only through existi
 
 **M2 — `move-learn-loop-fingerprint-v1`**
 - [x] Tests `packages/agent/src/move-learn-loop-fingerprint.test.ts`, fixture `packages/agent/test-support/move-learn-loop-ea04.json.gz` (ea04 seq 20470–20870: turn_start, tool_call, button_press, state, tool_result; raw_ram dropped, berry_trees/task_data trimmed, result text tail 1500 chars). The four prompts fingerprint apart (question pair 5/10 vs 11/0, MVSTATE 1/2 pages); the production `attachLoopGuard` replay warns `cycle` within the first 8 results ON; OFF no cycle/ineffective notice.
-- [x] COMMIT RED. SHA recorded in the next commit.
-- [ ] Implement / gates / GREEN. Review deferred to one branch packet before landing.
+- [x] COMMIT RED: `test(loop): move-learning prompts get a loop fingerprint behind move-learn-loop-fingerprint-v1 (RED)` (4691b3c68). 2 of 5 red.
+- [x] Implement: `moveLearningState()` in loop/fingerprints.ts (evolution_move_* / summary_move_forget ready prompts; in battle the learn_move / stop_learning_move boxes and the sText_TryToLearnMove1/2 pages); `semanticState(…, moveLearning)` used only by BasicRules (prepare and action candidates); a cycle made only of move-learning entries is checked with 2 repeats (the policy's 3 still applies to everything else); threaded `attachLoopGuard` features → LoopDetector `moveLearnLoops` → coordinator option → BasicRules. Replay warns `cycle` at result seq 20676 (9th result of the window, 2nd time round; the recorded run's short-cycle collapse came at turn 559).
+- [x] Guard deletion: 2-repeat check removed → 1 red; coordinator not passing the option → 1 red; restored → 6 green.
+- [x] Gates: vitest agent 4303 / viewer 1656; pytest 3806; lint clean; build ok; coverage agent 99.2 L / 93.12 B / 97.81 F, viewer 97.95 / 91.34 / 94.35, Python 97.29 / 93.11 / 100.
+- [ ] COMMIT GREEN. Review deferred to one branch packet before landing.
 
 **M3 — `stale-plan-fact-v1`**
 - [ ] Tests: identical thinking + changed interface → fact appended with the game's Interface line; identical thinking + same screen → nothing (left to existing guards); OFF unchanged.

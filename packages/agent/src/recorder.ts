@@ -1,5 +1,6 @@
 import type { TrainerSightCheck } from "./trainer-sight.js";
 import type { GateDecision } from "./story-battle-heal-gate.js";
+import type { HealFirstFacts } from "./heal-first.js";
 import type {PromptReceipt} from "./jit-context.js";
 import type { IdCard } from "./people-id-cards.js";
 import type { GymHealFacts, HealBeforeTrainersFacts, LowHpTrainerWarningFacts, StoryBattleWarningFacts } from "./low-hp-trainer-warning.js";
@@ -524,6 +525,12 @@ export class RunRecorder {
   // story-battle-heal-gate-v1: one per checked call while the gate is engaged, before it acts or refuses.
   storyBattleHealGate(decision: GateDecision): void {
     this.append({ type: "story_battle_heal_gate", turn: this.turn, ...decision, map_id: [decision.map_id[0], decision.map_id[1]], reached: decision.reached.map((r) => ({ ...r, tile: { ...r.tile } })), sightings: decision.sightings.map((s) => ({ ...s, tile: { ...s.tile }, from: { ...s.from } })), hurt: decision.hurt.map((h) => ({ ...h })), heal: decision.heal.map((h) => ({ ...h, map_id: [h.map_id[0], h.map_id[1]] })) });
+  }
+  // story-battle-heal-first-v1: one per game-tool result that leads with the heal-first line.
+  healFirstLine(tool: string, toolCallId: string, facts: HealFirstFacts, text: string): void {
+    const heard = facts.heard === null ? null : { ...facts.heard, map_id: facts.heard.map_id === null ? null : [facts.heard.map_id[0], facts.heard.map_id[1]] as [number, number] };
+    const exit = facts.exit === null ? null : { ...facts.exit, map_id: [facts.exit.map_id[0], facts.exit.map_id[1]] as [number, number], tiles: facts.exit.tiles.map((t) => ({ ...t })) };
+    this.append({ type: "heal_first_line", turn: this.turn, tool, tool_call_id: toolCallId, kind: facts.kind, opponent: facts.opponent, map_id: [facts.map_id[0], facts.map_id[1]], party: facts.party.map((p) => ({ ...p })), heard, exit, text });
   }
   // story-character-stall-gate-v1: recorded once for each stall briefing it holds back.
   recordStallGate(body: Omit<BodyOf<"stall_gate">, "type" | "turn">): void {

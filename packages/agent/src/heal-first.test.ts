@@ -66,7 +66,7 @@ function fakeRecorder(){
  const recorder:Required<HealFirstRecorder>={subscribe:l=>{listeners.push(l);},healFirstLine:(tool,id,facts,t)=>{lines.push({tool,id,facts,text:t});}};
  return {recorder,lines,emit:(events:readonly RunEvent[])=>{for(const e of events)for(const l of listeners)l(e);}};
 }
-const toolReturning=(name:string,r:()=>AgentToolResult<unknown>):AgentTool=>({name,label:name,description:name,parameters:Type.Object({}),execute:()=>Promise.resolve(r())} as unknown as AgentTool);
+const toolReturning=(name:string,r:()=>AgentToolResult<unknown>):AgentTool=>({name,label:name,description:name,parameters:Type.Object({}),execute:()=>Promise.resolve(r())});
 const withState=(patch:Partial<GameStateSnapshot>,base:GameStateSnapshot=MAY_STATE):GameStateSnapshot=>({...base,...patch});
 
 describe("97a0 result 4541 (turn 156, TORCHIC 5/22, MAY at (10,3))",()=>{

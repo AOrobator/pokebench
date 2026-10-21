@@ -28,12 +28,15 @@ Status: M1 in progress. Worktree `~/dev/pokebench-worktrees/heal-first-line-v1`,
 ## Milestones
 
 - [x] M1 RED: line at 97a0 result 4541, b300 result 14882, fallback, conditions, gate refusal leads, event, OFF identity, config (26 tests in heal-first.test.ts; fail without the module).
-- [ ] M1 GREEN: module, wiring, event, viewer, registry, configs (onInBoth).
-- [ ] Gates: `just test`, `just lint`, `just build`, `just coverage` (90).
-- [ ] Explainer, FEATURE_EXPLAINERS, pending experiment, readiness row.
+- [x] M1 GREEN: module, wiring, event, viewer, registry, configs (onInBoth).
+- [x] Gates: `just test`, `just lint`, `just build`, `just coverage` (90).
+- [x] Explainer, FEATURE_EXPLAINERS, pending experiment, readiness row.
 - [ ] Sync with main, Claude + Grok review (2 rounds max).
 
 ## Session Log
 
 - 2026-10-20: worklog created.
-- RED: heal-first.test.ts (26 tests) + test-support/heal-first-dialogue.json (97a0 4095/4098, b300 7837/7839). COMMIT: see next entry.
+- RED: heal-first.test.ts (26 tests) + test-support/heal-first-dialogue.json (97a0 4095/4098, b300 7837/7839). COMMIT: `test: story-battle-heal-first-v1 leads 97a0 result 4541 ... (RED)` (2e6467be).
+- GREEN: heal-first.ts, heal_first_line event + schema, recorder, tail, viewer Activity History, registry/presets/defaults, gate pronoun from the shared table, onInBoth in bundle-v-control, bundle-cook-1h, whole-map-cook-1h (base.features true; control base file and sha256 unchanged, onInBoth is outside its comparison), pending experiments/story-battle-heal-first-v1.json, explainer, readiness row. Index/filter updates in existing registry tests (one more switch at the end).
+- Tests: agent 3109 passed (204 files), viewer 1518 passed (103 files), python 3470 passed. Coverage: agent stmts 97.21 / branches 93.05 / funcs 97.68 / lines 99.18; viewer 95.26 / 91.07 / 94.24 / 97.83; python lines 97.21, branches 92.86, functions 100 (floor 90). heal-first.ts 98.92 / 96.49 / 100 / 100. Lint, build, schema fresh; fixed-run check passes for all three definitions from this worktree.
+- Replay (scratch replay.mjs over the real events): 97a0 result 4541 gives the probed line exactly (first fires at result 4275, turn 149); b300 result 14882 gives the ROXANNE line; b300 15222 (turn 500) gives it at 11/35.

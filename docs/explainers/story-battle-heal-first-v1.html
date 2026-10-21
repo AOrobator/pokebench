@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Story battle heal first line</title>
+<style>
+:root{--bg:#fbfaf7;--fg:#1d1d1b;--muted:#5d5b55;--line:#d9d5cc;--panel:#ffffff;--keep:#2f7d4f;--drop:#b4442f;--accent:#2d5f9a;--fill:#eef3f8;--wall:#8f8a7f;--floor:#f4f1ea;--grass:#cfe3bf;--water:#bcd6ee;--may:#c2416b;--box:#f6f3ec;--hl:#fff3c4}
+@media (prefers-color-scheme: dark){:root{--bg:#161614;--fg:#ecebe6;--muted:#a8a59c;--line:#3a3833;--panel:#1f1e1b;--keep:#6cc08f;--drop:#e98a74;--accent:#86b3e6;--fill:#22303f;--wall:#55524b;--floor:#2a2925;--grass:#2f4a2a;--water:#24405a;--may:#e27a9c;--box:#24231f;--hl:#4a4224}}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif}
+main{max-width:900px;margin:0 auto;padding:24px 16px 48px}
+h1{font-size:1.6rem;margin:0 0 4px}h2{font-size:1.15rem;margin:32px 0 8px}
+.muted{color:var(--muted)}
+figure{margin:16px 0;padding:12px;background:var(--panel);border:1px solid var(--line);border-radius:8px;overflow-x:auto}
+figcaption{color:var(--muted);font-size:.9rem;margin-top:8px}
+code{font:13px ui-monospace,SFMono-Regular,Menlo,monospace}
+table{border-collapse:collapse;width:100%;font-size:.95rem}td,th{border-bottom:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top}
+.tablewrap{overflow-x:auto}
+svg text{fill:var(--fg);font:13px -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif}
+svg .small{font-size:11px;fill:var(--muted)}svg .tiny{font-size:11px;fill:#fff;font-weight:700}
+svg .box{fill:var(--box);stroke:var(--line)}svg .yes{fill:var(--fill);stroke:var(--keep);stroke-width:2}svg .no{fill:var(--fill);stroke:var(--drop);stroke-width:2}svg .hl{fill:var(--hl);stroke:var(--accent);stroke-width:2}
+svg .arrow{stroke:var(--muted);stroke-width:1.5;fill:none;marker-end:url(#a)}
+.note{border-left:3px solid var(--accent);padding:6px 10px;background:var(--fill);font:13px ui-monospace,SFMono-Regular,Menlo,monospace;white-space:pre-wrap;word-break:break-word}
+.off{border-left-color:var(--drop)}.on{border-left-color:var(--keep)}
+mark{background:var(--hl);color:var(--fg)}
+</style>
+</head>
+<body>
+<main>
+<h1>Story battle heal first line</h1>
+<p class="muted"><code>story-battle-heal-first-v1</code> · guard · on in both arms (control and bundle) · default off · needs nothing</p>
+<p>When a story battle the player cannot run from is on the current map and a party Pokémon is hurt, the harness puts one line at the very top of the game-tool result: each hurt Pokémon's HP, that the battle cannot be run from so heal first, the latest line about healing the model actually heard, and which exit of this map leads there.</p>
+<p>The operator, 10:43 PM ET on 2026-10-20: "the heal first line needs to be in both control and the bundle".</p>
+
+<h2>The probe it comes from</h2>
+<p>Probe ledger <code>story-battle-heal-first-20261020</code>: run 97a0 at turn 157, the turn the model walked to MAY at TORCHIC 5/22 and then whited out. 16 samples per arm on the recorded context, with only this line added right under the result's first line.</p>
+<div class="tablewrap"><table>
+<tr><th>Decision at turn 157</th><th>Recorded result</th><th>With the line first</th><th>p</th></tr>
+<tr><td>Walks to MAY</td><td>13 / 16</td><td>4 / 16</td><td>0.004</td></tr>
+<tr><td>Heads south (toward OLDALE TOWN)</td><td>0 / 16</td><td>11 / 16</td><td>&lt;0.001</td></tr>
+</table></div>
+
+<h2>Where the line goes</h2>
+<figure>
+<svg viewBox="0 0 760 250" width="100%" style="min-width:700px" role="img" aria-label="The line's place in a result, bundle and control">
+<defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0L10,5L0,10z" fill="currentColor"/></marker></defs>
+<text x="20" y="22">Bundle arm (harness-trust-v1 on)</text>
+<rect class="box" x="20" y="34" width="340" height="30"/><text x="30" y="54">Read from game memory, always true:</text>
+<rect class="hl" x="20" y="68" width="340" height="30"/><text x="30" y="88">TORCHIC has 5/22 HP. MAY's battle cannot …</text>
+<rect class="box" x="20" y="102" width="340" height="30"/><text x="30" y="122">Exits you can walk to from where you stand: …</text>
+<rect class="box" x="20" y="136" width="340" height="30"/><text x="30" y="156">Navigation: walked from (14,12) …</text>
+<text class="small" x="20" y="188">The probed position: right under the header line.</text>
+<text x="400" y="22">Control arm (no harness-trust-v1)</text>
+<rect class="hl" x="400" y="34" width="340" height="30"/><text x="410" y="54">TORCHIC has 5/22 HP. MAY's battle cannot …</text>
+<rect class="box" x="400" y="68" width="340" height="30"/><text x="410" y="88">Navigation: walked from (14,12) …</text>
+<rect class="box" x="400" y="102" width="340" height="30"/><text x="410" y="122">Screen: overworld</text>
+<rect class="box" x="400" y="136" width="340" height="30"/><text x="410" y="156">…</text>
+<text class="small" x="400" y="188">No header: the line is the result's first line.</text>
+<text class="small" x="20" y="226">The wrapper sits outside every other wrapper in playGameTools, harness-trust-v1 included, so nothing is ever put above it.</text>
+</svg>
+<figcaption>The same line, one place: first in the result, under the trust header only when the result starts with it.</figcaption>
+</figure>
+
+<h2>When it fires</h2>
+<figure>
+<svg viewBox="0 0 760 300" width="100%" style="min-width:700px" role="img" aria-label="Decision flow">
+<defs><marker id="b" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0L10,5L0,10z" fill="#888"/></marker></defs>
+<rect class="box" x="20" y="20" width="220" height="56"/><text x="30" y="42">The result's own state:</text><text class="small" x="30" y="60">overworld, not in battle, controls free,</text><text class="small" x="30" y="72">the player's party</text>
+<rect class="box" x="270" y="20" width="220" height="56"/><text x="280" y="42">Every Pokémon (not an egg)</text><text class="small" x="280" y="60">reads its HP; one is below max</text>
+<rect class="box" x="520" y="20" width="220" height="56"/><text x="530" y="42">An unbeaten story battle</text><text class="small" x="530" y="60">on this map (table below)</text>
+<path d="M240,48H268" stroke="#888" stroke-width="1.5" marker-end="url(#b)"/><path d="M490,48H518" stroke="#888" stroke-width="1.5" marker-end="url(#b)"/>
+<path d="M630,76V110" stroke="#888" stroke-width="1.5" marker-end="url(#b)"/>
+<rect class="yes" x="20" y="114" width="720" height="40"/><text x="30" y="132">1. Each hurt Pokémon: "TORCHIC has 5/22 HP."   2. "MAY's battle cannot be run from, so heal before talking to her."</text><text class="small" x="30" y="148">Always both, when it fires.</text>
+<path d="M380,154V180" stroke="#888" stroke-width="1.5" marker-end="url(#b)"/>
+<rect class="box" x="20" y="184" width="350" height="56"/><text x="30" y="204">3. Heard a heal line this run?</text><text class="small" x="30" y="222">latest delivered field page naming a POKéMON</text><text class="small" x="30" y="234">CENTER, or MOM's "I think you should rest a bit."</text>
+<rect class="box" x="390" y="184" width="350" height="56"/><text x="400" y="204">4. Does an exit of this map lead there?</text><text class="small" x="400" y="222">the game's map table: connection edge or warp</text><text class="small" x="400" y="234">left out if not, or if the player is there</text>
+<path d="M370,212H388" stroke="#888" stroke-width="1.5" marker-end="url(#b)"/>
+<text class="small" x="20" y="268">Nothing heard: lines 1 and 2 only. The harness never names a place the game has not named to the model.</text>
+<text class="small" x="20" y="286">Any condition false: the result is unchanged and nothing is recorded.</text>
+</svg>
+<figcaption>Every result is checked on its own state; there is no once-only arm, so the line stays first until the party is healed, the battle is won or the player leaves the map.</figcaption>
+</figure>
+
+<div class="tablewrap"><table>
+<tr><th>Story battle</th><th>Map</th><th>Unbeaten when</th><th>Present when</th><th>Pronoun</th></tr>
+<tr><td>Route 103 rival (MAY or BRENDAN)</td><td>ROUTE103 (0/18)</td><td>FLAG_DEFEATED_RIVAL_ROUTE103 clear</td><td>the rival's sprite is loaded, or the readout's own Story characters line places the rival here (the map's object list, so FLAG_HIDE_ROUTE_103_RIVAL is respected)</td><td>from the rival the game chose by the player's gender</td></tr>
+<tr><td>ROXANNE</td><td>RUSTBORO CITY GYM (11/3)</td><td>her trainer flag clear</td><td>always: her map object has no hide flag, so loaded or not</td><td>her</td></tr>
+<tr><td>TEAM AQUA grunt</td><td>PETALBURG WOODS (24/11)</td><td>his trainer flag clear</td><td>always on that map; his battle starts from coord events, not a talk</td><td>he / him</td></tr>
+</table></div>
+
+<h2>Where the heard line points (97a0)</h2>
+<figure>
+<svg viewBox="0 0 600 260" width="100%" style="min-width:560px" role="img" aria-label="ROUTE103 and OLDALE TOWN with MAY and the south edge">
+<rect x="20" y="20" width="400" height="130" fill="var(--grass)" stroke="var(--line)"/>
+<rect x="140" y="20" width="200" height="90" fill="var(--water)" stroke="none"/>
+<text x="30" y="40">ROUTE103 (map 0/18)</text>
+<circle cx="70" cy="58" r="9" fill="var(--may)"/><text class="tiny" x="64" y="62">M</text><text class="small" x="84" y="62">MAY (10,3)</text>
+<circle cx="90" cy="112" r="9" fill="var(--accent)"/><text class="tiny" x="85" y="116">P</text><text class="small" x="104" y="116">player (14,10), TORCHIC 5/22</text>
+<rect x="50" y="146" width="40" height="8" fill="var(--keep)"/><text class="small" x="96" y="154">SOUTH edge (8..11,21)</text>
+<path d="M70,156V188" stroke="var(--keep)" stroke-width="2" stroke-dasharray="4 3" fill="none"/>
+<rect x="20" y="190" width="400" height="56" fill="var(--floor)" stroke="var(--line)"/>
+<text x="30" y="210">OLDALE TOWN (map 0/10)</text>
+<rect x="200" y="214" width="110" height="26" class="yes"/><text class="small" x="208" y="231">POKéMON CENTER (6,16)</text>
+<text class="small" x="440" y="60">Heard at turn 147 on ROUTE101:</text>
+<text class="small" x="440" y="76">the boy (YOUNGSTER sprite):</text>
+<text class="small" x="440" y="92">"There's a POKéMON CENTER</text>
+<text class="small" x="440" y="108">in OLDALE TOWN right close by."</text>
+<text class="small" x="440" y="140">Named town: OLDALE TOWN.</text>
+<text class="small" x="440" y="156">Its center first (no exit here),</text>
+<text class="small" x="440" y="172">then the town: SOUTH edge.</text>
+</svg>
+<figcaption>The line names OLDALE TOWN. ROUTE103 has no warp into OLDALE TOWN's POKéMON CENTER, so the exit named is the town's: the SOUTH edge connection from the game's map table.</figcaption>
+</figure>
+<p>How the place is found, in order: a map-table name the heard line contains (the longest), with that town's POKéMON CENTER 1F tried first; otherwise, if the page was heard inside a POKéMON CENTER or is MOM's heal line at home, that building and then the town its warps lead to. The first of those an exit of this map leads to is named: "<em>place</em> is the SOUTH edge of this map." or "<em>place</em> is the warp at (x,y) of this map."</p>
+<p>Heard means delivered: a dialogue-auto-advance page whose result came back without an error, or a page of this very result. Battle pages do not count. Who said it is the conversation ledger's rule: the game's NAME: prefix, a name the game printed for that sprite on that map, or the sprite described ("A boy").</p>
+
+<h2>What the model would have read</h2>
+<p>97a0 turn 156, result 4541 (bundle arm, so under the header):</p>
+<div class="note on">Read from game memory, always true:
+TORCHIC has 5/22 HP. MAY's battle cannot be run from, so heal before talking to her. A boy on ROUTE101 told you: "There's a POKéMON CENTER in OLDALE TOWN right close by." OLDALE TOWN is the SOUTH edge of this map.
+Exits you can walk to from where you stand: SOUTH edge -> OLDALE TOWN (map 0/10) …</div>
+<p>This is the probed text exactly. Replaying 97a0, it would first have appeared at turn 149 (TORCHIC 17/20), and on every free-field result on ROUTE103 after that.</p>
+<p>b300 entering RUSTBORO CITY GYM, result 14882 (ROXANNE at (5,2) out of view; the latest heal line heard was MOM's at turn 315; none of the gym's exits leads to the house):</p>
+<div class="note on">TORCHIC has 25/33 HP. ROXANNE's battle cannot be run from, so heal before talking to her. MOM in RED's HOUSE 1F told you: "I think you should rest a bit."</div>
+<p>Nothing heard (b300 on ROUTE103 at turn 261):</p>
+<div class="note on">TORCHIC has 17/21 HP. MAY's battle cannot be run from, so heal before talking to her.</div>
+
+<h2>With story-battle-heal-gate-v1 on</h2>
+<p>The gate's refusal is a result like any other and passes through the same outermost wrapper, so it leads with the same line built by the same function. The gate's own words are unchanged. 97a0 turn 157, navigate_to_target MAY, switch on (wiring test with harness-trust-v1 on):</p>
+<div class="note on">Read from game memory, always true:
+TORCHIC has 5/22 HP. MAY's battle cannot be run from, so heal before talking to her. A boy on ROUTE101 told you: "There's a POKéMON CENTER in OLDALE TOWN right close by." OLDALE TOWN is the SOUTH edge of this map.
+Exits you can walk to from where you stand: SOUTH edge -> OLDALE TOWN (map 0/10) …
+
+Semantic navigation: not started: it would start a trainer battle you cannot run from while your party is not at full HP. Selected map object 2.
+Battle not started: talking to your rival MAY (object 2, at (10,3)) starts a trainer battle, and your party is not at full HP: TORCHIC 5/22.
+…</div>
+<p>Off, the refusal is byte for byte today's. The gate's pronouns now come from the same trainer-gender table as this line; the words they produce are unchanged.</p>
+
+<h2>Game grounding</h2>
+<div class="tablewrap"><table>
+<tr><th>Fact</th><th>pret/pokeemerald</th></tr>
+<tr><td>The rival battle cannot be fled</td><td>Route103_EventScript_Rival: trainerbattle_no_intro; the game says sText_NoRunningFromTrainers "No! There's no running from a TRAINER battle!"</td></tr>
+<tr><td>Which rival stands on Route 103</td><td>Common_EventScript_SetupRivalGfxId: checkplayergender; a male player gets OBJ_EVENT_GFX_RIVAL_MAY_NORMAL, a female player RIVAL_BRENDAN_NORMAL</td></tr>
+<tr><td>Trainer genders</td><td>src/data/trainers.h: TRAINER_MAY_ROUTE_103_* and TRAINER_ROXANNE_1 carry F_TRAINER_FEMALE; TRAINER_BRENDAN_ROUTE_103_* and TRAINER_GRUNT_PETALBURG_WOODS do not</td></tr>
+<tr><td>ROXANNE is always on her map</td><td>data/maps/RustboroCity_Gym/map.json: OBJ_EVENT_GFX_ROXANNE at (5,2), flag 0</td></tr>
+<tr><td>The rival can be hidden</td><td>data/maps/Route103/map.json: OBJ_EVENT_GFX_VAR_0 at (10,3), FLAG_HIDE_ROUTE_103_RIVAL</td></tr>
+<tr><td>MOM's heal line</td><td>PlayersHouse_1F_EventScript_MomHealsParty: msgbox PlayersHouse_1F_Text_YouShouldRestABit, whose last page is "I think you should rest a bit."</td></tr>
+</table></div>
+
+<h2>Wiring and record</h2>
+<figure>
+<svg viewBox="0 0 760 130" width="100%" style="min-width:700px" role="img" aria-label="Wiring">
+<defs><marker id="c" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0L10,5L0,10z" fill="#888"/></marker></defs>
+<rect class="box" x="20" y="30" width="150" height="50"/><text x="30" y="52">fixed-run preset</text><text class="small" x="30" y="68">onInBoth: true</text>
+<rect class="box" x="200" y="30" width="150" height="50"/><text x="210" y="52">playGameTools</text><text class="small" x="210" y="68">all game tools</text>
+<rect class="hl" x="380" y="30" width="170" height="50"/><text x="390" y="52">withHealFirst</text><text class="small" x="390" y="68">outermost; reads the state</text>
+<rect class="box" x="580" y="30" width="160" height="50"/><text x="590" y="52">heal_first_line event</text><text class="small" x="590" y="68">Activity History, raw</text>
+<path d="M170,55H198" stroke="#888" stroke-width="1.5" marker-end="url(#c)"/><path d="M350,55H378" stroke="#888" stroke-width="1.5" marker-end="url(#c)"/><path d="M550,55H578" stroke="#888" stroke-width="1.5" marker-end="url(#c)"/>
+<text class="small" x="380" y="104">Hears pages from the recorder's dialogue_auto_advance and tool_result events.</text>
+<text class="small" x="580" y="104">No timeline mark.</text>
+</svg>
+<figcaption>Off: no wrapper, no subscription, no event; prompt and tool list are identical on or off.</figcaption>
+</figure>
+
+<h2>Status</h2>
+<p>Branch <code>claude/heal-first-line-v1</code> from main 900a5c47. On in both arms of bundle-v-control, bundle-cook-1h and whole-map-cook-1h. Tests replay 97a0 result 4541 and b300 result 14882 and check the gate refusal; review and measured runs are separate steps. No benefit is claimed beyond the probe above.</p>
+</main>
+</body>
+</html>

@@ -18,7 +18,7 @@ import {semanticWalk} from "./semantic-targets.js";
 type State=Extract<RunEvent,{type:"state";started:boolean}>;
 type Page=Extract<RunEvent,{type:"dialogue_auto_advance"}>["pages"][number];
 // One quoted line: who said it, whether that is a person, and the words.
-interface Line {readonly turn:number;readonly page:Page;readonly who:string;readonly person:boolean;readonly text:string}
+export interface Line {readonly turn:number;readonly page:Page;readonly who:string;readonly person:boolean;readonly text:string}
 interface Conversation {readonly turn:number;readonly lines:readonly Line[]}
 interface Room {name:string;turn:number;heard:Line|null;readout:boolean}
 
@@ -26,7 +26,7 @@ export const LEDGER_HEADER="Conversation ledger";
 const HEAD=`${LEDGER_HEADER}: game text you were shown, quoted whole; past text, the current screen overrides it.`;
 const LATEST="Latest conversation with a person";
 const ROOMS="Rooms visited, newest first, with the last line heard in each:";
-const NO_SPEAKER="no speaker shown";
+export const NO_SPEAKER="no speaker shown";
 
 // What each object sprite looks like on screen (pokeemerald OBJ_EVENT_GFX_*, env/pokebench_env/event-graphics.json).
 // People are the person you talked to; anything else is the thing you faced.
@@ -61,7 +61,7 @@ function thingWord(name:string):string {
  if(/^sign\b/i.test(name))return "sign";
  return /^[A-Z][a-z]/.test(name)?`${name.charAt(0).toLowerCase()}${name.slice(1)}`:name;
 }
-const field=(pages:readonly Page[])=>pages.filter(p=>p.battle_turn===undefined&&p.battle_message_id===undefined);
+export const field=(pages:readonly Page[])=>pages.filter(p=>p.battle_turn===undefined&&p.battle_message_id===undefined);
 // The page as the game printed it, its NAME: prefix moved into the label and its line breaks as spaces.
 function words(page:Page):string {
  const prefix=page.speaker===null?"":`${page.speaker}: `;
@@ -71,7 +71,7 @@ function words(page:Page):string {
 const spriteKey=(page:Page,kind:string)=>`${page.map_id?.join("/")??page.map??"none"}|${kind}`;
 // Who said each page of one call. A sprite the game names in the same call (one NAME: prefix, one faced sprite
 // kind) keeps that name on that map for the rest of the run.
-function linesOf(turn:number,pages:readonly Page[],names:Map<string,string>):Line[] {
+export function linesOf(turn:number,pages:readonly Page[],names:Map<string,string>):Line[] {
  const prefixes=new Set(pages.flatMap(p=>p.speaker_source==="name_prefix"&&p.speaker!==null?[p.speaker]:[]));
  const sprites=new Set(pages.flatMap(p=>p.speaker_source==="faced_sprite"&&p.speaker!==null&&personWord(p.speaker)!==null?[spriteKey(p,p.speaker)]:[]));
  const [name]=prefixes,[sprite]=sprites;

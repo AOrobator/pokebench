@@ -225,6 +225,8 @@ V3 readiness check: ready on recent fallback, 4/4 think-fast runs reached PLAYER
 ## Navigation tool-use guard and semantic current-map feedback — 2026-10-20
 
 Both entries are PENDING, unqueued, not designed and not approved. Earliest activation is PLAYER_NAME_CONFIRMED: free-field navigation can act in the truck. The nominal primary is ROUTE_102. No fresh comparable four-run readiness audit or load-qualified checkpoint was established here. Each single-switch experiment uses the shared incumbent plus semantic-navigation-v2 in both arms; only its named switch flips. Checkpoint qualification, caps, power and GPU budget remain design work. Both switches enter only the evolving bundle arm by explicit operator request. This is not a promotion or a speed claim. Existing frozen definitions and active run receipts remain unchanged.
+| `short-cycle-fixed-point-v1` | `PLAYER_NAME_CONFIRMED` (the bedroom clock is the first recorded cycle; no battle is needed) | PENDING until `just experiments` runs after landing | Registered 2026-10-21, pending and not queued; bundle-only; acts through duplicate-turn-collapse-v1 (on in both arms and in the incumbent) or fixed-point-breaker-v1. Evidence: ef9f turns 131-145 (clock confirmation and adjustment; first collapse on the turn 137 request) and 97a0 turns 116-122 (in and out of PROF. BIRCH'S HOUSE; first collapse on the turn 122 request). |
+
 
 
 | pending-field-dialogue-v1 | FIRST_TRUCK_EXIT | PENDING, not queued | 2026-10-20: exact delayed-message failure reproduced from 97a0 turn 636 and raw RAM. No matched-arm readiness or checkpoint study for this candidate; milestone reach does not prove exposure. |

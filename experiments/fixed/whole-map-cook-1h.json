@@ -186,7 +186,8 @@
    "field-move-gates-v1": false,
    "story-battle-heal-gate-v1": false,
    "navigation-tool-use-guard-v1": false,
-   "semantic-current-map-feedback-v1": false
+   "semantic-current-map-feedback-v1": false,
+   "short-cycle-fixed-point-v1": false
   }
  },
  "switches": [
@@ -245,7 +246,8 @@
   "yes-no-answer-readout-v1",
   "story-battle-heal-gate-v1",
   "navigation-tool-use-guard-v1",
-  "semantic-current-map-feedback-v1"
+  "semantic-current-map-feedback-v1",
+  "short-cycle-fixed-point-v1"
  ],
  "offInBoth": [
   "semantic-navigation-v1",

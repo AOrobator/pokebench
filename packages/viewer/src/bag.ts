@@ -131,9 +131,10 @@ export class BagLedger {
     return this.pockets.get(itemId) ?? "items";
   }
 
-  // Item changes still waiting for the state that shows their result.
-  get unresolved(): BagChange[] {
-    return this.pending.map((p) => ({ seq: p.seq, turn: p.turn, itemId: p.itemId, name: p.name, before: p.before, after: p.after, cause: p.after > p.before ? "found" : "used", step: -1, moneyDrop: 0 }));
+  // Item changes still waiting for the state that shows their result. They are never drawn: until
+  // that state arrives a change may be Wally's tutorial loan, which only that state can rule out.
+  get waiting(): number {
+    return this.pending.length;
   }
 
   private resolve(group: readonly Pending[], previous: Snapshot | null, next: Snapshot): void {
@@ -160,7 +161,7 @@ export interface Headline {
 }
 
 export function headline(ledger: BagLedger): Headline {
-  const changes = [...ledger.changes, ...ledger.unresolved];
+  const changes = ledger.changes;
   const sum = (causes: readonly Cause[]): number => changes.filter((c) => causes.includes(c.cause)).reduce((total, c) => total + Math.abs(c.after - c.before), 0);
   const bought = ledger.changes.filter((c) => c.cause === "bought");
   // One mart purchase can bring several items in one step; count each step's money drop once.
@@ -246,7 +247,7 @@ export function bagRange({ ledger, run }: BagPageInput): string {
 
 export function bagPage({ ledger, art }: BagPageInput): string {
   if (!ledger.recorded) return '<p class="nodata">No bag recorded yet. Runs record the bag in every state once the game has started (resources.bag).</p>';
-  const changes = [...ledger.changes, ...ledger.unresolved];
+  const changes = ledger.changes;
   const last = Math.max(1, ledger.lastTurn);
   const x = (turn: number): number => Math.min(100, Math.max(0, (turn / last) * 100));
   const head = headline(ledger);

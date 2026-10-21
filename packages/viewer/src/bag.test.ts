@@ -32,7 +32,7 @@ describe("BagLedger", () => {
     ]);
     expect(headline(ledger)).toEqual({ gained: 7, used: 1, spent: 200, buys: 1 });
     expect(ledger.lastTurn).toBe(80);
-    expect(ledger.unresolved).toEqual([]);
+    expect(ledger.waiting).toBe(0);
   });
 
   it("never takes the lent bag as the player's bag, even when the tutorial is the last thing recorded", () => {
@@ -44,9 +44,23 @@ describe("BagLedger", () => {
     log.add(4, state({ turn: 2, in_battle: true, party_owner: "tutorial", resources: resources([[13, 1, "items", "POTION"], [4, 1, "poke_balls", "POKé BALL"]]) }));
     const ledger = ledgerOf(log);
     expect(ledger.changes).toEqual([]);
-    expect(ledger.unresolved).toEqual([]);
+    expect(ledger.waiting).toBe(0);
     expect(ledger.latest?.bag.get(4)?.quantity).toBe(5);
     expect(ledger.latest?.bag.has(13)).toBe(false);
+  });
+
+  it("draws nothing of the tutorial loan before the state that shows it, at every prefix of the swap", () => {
+    const log = bagRun();
+    const ledger = new BagLedger();
+    const drawn: string[] = [];
+    for (const event of log.events) {
+      ledger.add(event);
+      if (event.turn >= 10 && event.turn <= 23) {
+        drawn.push(`${JSON.stringify(headline(ledger))}|${[...page(ledger).querySelectorAll(".bg-lab, .bg-now, .bg-dot, .bg-dlab")].map((e) => `${e.className}:${e.textContent}:${e.getAttribute("title") ?? ""}`).join(",")}`);
+      }
+    }
+    expect(new Set(drawn.slice(1)).size).toBe(1);
+    expect(drawn.at(-1)).toContain('"gained":5,"used":0');
   });
 
   it("drops the swap back when the player's bag only reappears after the tutorial", () => {
@@ -104,7 +118,9 @@ describe("BagLedger", () => {
     const ledger = ledgerOf(log);
     expect(ledger.recorded).toBe(true);
     expect(ledger.pocketOf(999)).toBe("items");
-    expect(ledger.unresolved.map(brief)).toEqual(["T3 ITEM 13 0→2 found"]);
+    expect(ledger.waiting).toBe(1);
+    expect(ledger.changes).toEqual([]);
+    expect(page(ledger).querySelector(".bg-lab")?.textContent).toBe("ODD");
     log.add(6, itemChange(4, 13, "POTION", 2, 1));
     log.add(7, state({ turn: 4, money: null, resources: resources([[999, 2, "mystery", "ODD"], [13, 1, "items", "POTION"]]) }));
     expect(ledgerOf(log).changes.map(brief)).toEqual(["T3 ITEM 13 0→2 found", "T4 POTION 2→1 used"]);

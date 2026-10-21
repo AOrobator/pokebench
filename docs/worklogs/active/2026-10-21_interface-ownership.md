@@ -83,8 +83,11 @@ No new network surface, subprocesses or file paths. ROM read only through existi
 
 **M3 — `stale-plan-fact-v1`**
 - [x] Tests `packages/agent/src/stale-plan-fact.test.ts` (readouts from ea04 results seq 20504 Delete, 20529 Stop, 20554 page), through production `playGameTools`: same thinking + different Interface line → fact; same Interface line + different game question → fact with the question; same screen and question, changed thinking or empty thinking → nothing; OFF → nothing.
-- [x] COMMIT RED (module missing). SHA recorded in the next commit.
-- [ ] Implement / gates / GREEN. Review deferred to one branch packet before landing.
+- [x] COMMIT RED: `test(result): repeated thinking against a changed interface gets a stale-plan fact behind stale-plan-fact-v1 (RED)` (ee9a741d3). Module missing, suite red.
+- [x] Implement `packages/agent/src/stale-plan-fact.ts`: `StalePlanFact` observes `assistant` events (thinking, turn) and non-error `tool_result` events (the readout's `Interface:` line and `The game asks: "…"` quote); `withStalePlanFact` wraps the play tools outermost in `playGameTools`, so the line is the last text part of the result the model reads and the recorded `tool_result` text carries it (raw-event inspector; no timeline mark).
+- [x] Guard deletion: wrapper unwired in play-wiring → 1 red; the same-screen comparison removed → 1 red; restored → 5 green.
+- [x] Gates: vitest agent 4308 / viewer 1656; pytest 3806; lint clean; build ok; coverage agent 99.21 L / 93.13 B / 97.81 F, viewer 97.95 / 91.33 / 94.35, Python 97.29 / 93.11 / 100.
+- [ ] COMMIT GREEN. Review deferred to one branch packet before landing.
 
 **M4 — `post-battle-readout-v1` (server, Python)**
 - [ ] Tests: ea04 seq 20991-like snapshot → battle block ended, party moves shown; in-battle ready learn_move → Interface line ready; OFF bytes unchanged. Python coverage ≥90.

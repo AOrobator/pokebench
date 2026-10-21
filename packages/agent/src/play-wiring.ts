@@ -34,6 +34,7 @@ import {withHarnessTrust,type TrustRecorder} from "./harness-trust.js";
 import {withCitedDestination,type CitationRecorder} from "./cited-destination.js";
 import {withUntakenExits} from "./untaken-exits.js";
 import {withSemanticNavigation} from "./semantic-navigation.js";
+import {withStalePlanFact} from "./stale-plan-fact.js";
 import {withNoExitHere} from "./no-exit-here.js";
 import {withResultFacts} from "./result-facts.js";
 import type {RunRecorder} from "./recorder.js";
@@ -135,6 +136,7 @@ export function stallStop(features:FeatureSet,recorder:Pick<RunRecorder,"subscri
 // therefore the first thing in every result.
 // story-battle-heal-first-v1 wraps everything, harness-trust-v1's header included, so its line is the first line of every
 // result it fires on (right under that header when the header is there), a story-battle-heal-gate-v1 refusal among them.
+// stale-plan-fact-v1 wraps everything, so its line is the last thing a result says.
 // trainer-sight-check-v1 asks the game server through the same state source (POST /pokebench/trainer-sight) and records
 // each check as a trainer_sight_check event.
 export interface SightRecorder {trainerSightCheck?(check:TrainerSightCheck):void}
@@ -166,7 +168,7 @@ export function playGameTools(base:readonly AgentTool[],features:FeatureSet,stat
  const facts=[...withResultFacts(withUnfinishedActivity(withLowHpTrainerWarning(withStoryBattleHealGate(withCatchingBlocks(withTrainingBlock(withGameSaidGoals(withEffectivenessHeard(withNavigateFirst([...withInstructionLedgerV2(withStoryDestinations(withPeopleIdCards(withUntakenExits(withGymReadiness(withPeopleLedger(withDialogueAutoAdvance(withBattleAction(withNoExitHere(navigated,features),features,state,gate),features,{state,recorder,...(gate===undefined?{}:{gate})}),features,recorder),features,recorder),features,recorder),features,recorder),features,recorder,state),features,recorder),...extra],features),features,recorder),features,recorder),features,recorder),features,recorder),healGate,state),features,recorder,state,arm),features,recorder,state),features,recorder)];
  const visible=terrain===null?facts:withVisitedTerrain(facts,terrain);
  const cited=withCitedDestination(visible,features["cited-destination-v1"],recorder,{fullMap:features["full-map-navigation-v1"],exitReach:features["exit-reachability-v1"],silenceMiss:features["input-cuts-v1"]});
- return withHealFirst(withStarterDecision(withHarnessTrust(cited,features["harness-trust-v1"],recorder,state,{supervisor:true,semanticTargets:features["semantic-navigation-v2"],battleAction:features["harness-trust-v2"],goalOnce:features["input-cuts-v1"],retireLab:features["stale-story-goal-v1"],stageBound:features["stale-story-goal-v2"],omitEmptyGoal:features["stale-story-goal-v2"],scriptedGuidance:features["scripted-place-guidance-v1"],reachableGoal:features["reachable-story-guidance-v1"],exitSections:features["exit-labels-v3"],activity:features["unfinished-activity-v1"],playerName:features["story-goal-player-name-v1"]}),features),features["story-battle-heal-first-v1"],recorder,state);
+ return withStalePlanFact(withHealFirst(withStarterDecision(withHarnessTrust(cited,features["harness-trust-v1"],recorder,state,{supervisor:true,semanticTargets:features["semantic-navigation-v2"],battleAction:features["harness-trust-v2"],goalOnce:features["input-cuts-v1"],retireLab:features["stale-story-goal-v1"],stageBound:features["stale-story-goal-v2"],omitEmptyGoal:features["stale-story-goal-v2"],scriptedGuidance:features["scripted-place-guidance-v1"],reachableGoal:features["reachable-story-guidance-v1"],exitSections:features["exit-labels-v3"],activity:features["unfinished-activity-v1"],playerName:features["story-goal-player-name-v1"]}),features),features["story-battle-heal-first-v1"],recorder,state),features,recorder);
 }
 
 

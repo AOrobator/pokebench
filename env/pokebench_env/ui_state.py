@@ -364,6 +364,7 @@ def read_active_ui(
     transition_coherence: bool = True,
     tutorial_owner_enabled: bool = False,
     party_item_confirmation: bool = False,
+    caught_dex: bool = False,
 ) -> ActiveUi | None:
     """transition_coherence: transition-coherence-v1's battle-start and handoff rules."""
     from pokebench_env.game_screen import TASKS
@@ -396,6 +397,12 @@ def read_active_ui(
     )
     from pokebench_env.menus_misc import HOF_CALLBACKS, read_misc_menu
 
+    if caught_dex:
+        from pokebench_env.caught_dex import read_caught_dex_ui
+
+        caught = read_caught_dex_ui(read)
+        if caught is not None:
+            return caught
     if screen.callback1 == 0 and screen.callback2 == 0:
         from pokebench_env.boot import read_boot_ui
 

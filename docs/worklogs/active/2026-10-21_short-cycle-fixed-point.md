@@ -209,7 +209,12 @@ Fix batch 5 (coordinator: "Apply the round-5 fix now"):
 - Wording: Activity History "(the same tool calls and game state, apart from fields that change on their own)"; FEATURES no longer cites 97a0's rotation as collapsing; the stage-1 comment says an overlapping later run can also leave out part of a newest copy; Architecture no longer says `period` is optional; explainer diagnostic rule and clock-only value.
 - Receipts: m1 exact key names only → 4 red; m2 value dropped on every interface → 4 red; m3 switch forced on → 6 red (the new off-versus-absent test stays green there by design, since both of its arms are forced on); all restored green.
 - Gates after fix batch 5 (`gates-fix5.log`): build and lint clean; agent 3135/3135 (ef9f still first fires on the turn 137 request, 97a0 on the turn 122 request), viewer 1516/1516, pytest 3480 passed; coverage agent 97.22/93.07/97.69/99.18, viewer 95.26/91.11/94.24/97.83, Python lines 97.21 branches 92.86 functions 100; `just pages-check` prints nothing.
-- COMMIT: `fix: short-cycle-fixed-point-v1 review batch 5 (every diagnostic-suffixed key, clock-only value exclusion, exact OFF)` (sha in round 6)
+- COMMIT: `fix: short-cycle-fixed-point-v1 review batch 5 (every diagnostic-suffixed key, clock-only value exclusion, exact OFF)` (31d1d393)
+- main moved to 13380470 (exit-labels-v3 and its pins). Merged the same way: main's side of every conflicted and re-indexed file, this switch re-appended after exit-labels-v3 (whole-map-cook-1h and the Activity History label auto-merged and kept it), index assertions re-bumped, and story-battle-heal-gate-v1's bundle-arm comparison now also adds this switch (it joined the arm after that experiment was pinned).
+- Gates after this merge (`gates-merge9.log`): build and lint clean; agent 3141/3141, viewer 1519/1519, pytest 3494 passed; coverage agent 97.22/93.01/97.66/99.18, viewer 95.25/91.09/94.24/97.83, Python lines 97.21 branches 92.85 functions 100; `just pages-check` prints nothing; `fixed-cli check` exit 0 for all three.
+- COMMIT: `merge: main (exit-labels-v3) into short-cycle-fixed-point-v1` (89c9a4ec)
+
+**Round 6** (the operator, 11:13 PM ET: "just claude and grok", relayed by the coordinator: Claude and Grok only, Codex skipped) — packet6 = `git diff main HEAD` at the docs commit recording this entry; path `runs/reviews/short-cycle-fixed-point/packet6.diff`; fix delta `fix5.diff` (`git diff 2a91ca86 31d1d393`). Prompt `prompt6.md`. Principles self-review unchanged (0 FAIL).
 
 ## Boy Scout Log
 

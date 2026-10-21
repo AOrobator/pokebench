@@ -40,3 +40,5 @@ The operator directly answered: "Preserve current games; replace unstarted stale
 
 ### Final default-delta review triage
 Claude/Grok LGTM on fabd3c05; GPT accepted all runtime/default behavior but raised obsolete initial scope wording and missing legacy-default adapter proof. Corrected the old draft paragraph to final fresh-definition design; no runtime freeze policy added. Added one bounded shell adapter test with test-owned git/PATH/emptyrepo and early missing-definition exit, observing actual requested main:experiments/fixed/bundle-v-control-2h.json under LATEST_MAIN_PER_TRIAL=0. Reverting only legacy EXP_ID operand to oldid makes it RED; restoreGREEN. No production source behavior changed; synthesis /tmp/pokebench-latest-main-review/synthesis-final-slot-r1.md. Existing tests/gates untouched.
+
+Final sync incorporates canonical archive-evidence commit dc1d7e83a after its owner resolved the dirty worklog. Previous owned test commit9935208f has36 controller cases GREEN, legacy-default mutationRED/restoredGREEN, no production changes. Active worklog updated for this merge before final packet/gates; no hook bypass.

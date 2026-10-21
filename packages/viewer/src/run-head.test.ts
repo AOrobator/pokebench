@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import type { RunEvent } from "@pokebench/agent/events";
 import { BASE_MS, Log, START, fullRun, must } from "../test-support/events.js";
 import { mountApp, type App, type AppDeps, type StreamLike } from "./app.js";
@@ -70,48 +70,12 @@ describe("phone header model", () => {
     expect(headHtml(input({ view: view(plain.events) }))).toContain("&lt;b&gt;m&lt;/b&gt;");
   });
 
-  it("opens the sheet on what you are watching, then only the other live runs, then run details", () => {
+  it("provides a stable mount for existing trainer cards without bespoke run blocks", () => {
     const box = document.createElement("div");
-    box.innerHTML = sheetHtml(input({ others: [{ id: OTHER_ID, model: "qwen", started: "2026-10-16T05:52:27.171-04:00", cohort: { id: EXP, arm: "control", trial: 1, of: 4 } }] }), () => "5:52 AM");
-    const now = must(box.querySelector(".rs-now"));
-    expect(must(now.querySelector(".rs-tag")).textContent).toBe("YOU'RE WATCHINGRUNNING");
-    expect(must(now.querySelector(".rs-title")).textContent).toBe(EXP);
-    expect(now.textContent).toContain("BUNDLE");
-    expect(now.textContent).toContain("trial 2/4");
-    expect(now.textContent).toContain("0:27:22 / 1:00:00");
-    const watch = Array.from(box.querySelectorAll<HTMLButtonElement>("[data-watch]"));
-    expect(watch.map((b) => b.dataset.watch)).toEqual([OTHER_ID]);
-    expect(watch[0]?.textContent).toContain("CONTROL");
-    expect(watch[0]?.textContent).toContain("trial 1/4");
-    expect(watch[0]?.textContent).toContain("started 5:52 AM");
-    expect(watch[0]?.textContent).toContain("WATCH ▸");
-    expect(box.textContent).toContain("Modelthink-swarm");
-    expect(box.textContent).toContain("Thinkingmedium");
-    expect(box.textContent).toContain(`Run${LIVE_ID}`);
-  });
-
-  it("leads another live run's card with its arm when it shares the watched run's experiment", () => {
-    const box = document.createElement("div");
-    box.innerHTML = sheetHtml(input({ others: [{ id: OTHER_ID, started: "2026-10-16T05:52:27.171-04:00", cohort: { id: EXP, arm: "control", trial: 1, of: 4 } }] }), () => "5:52 AM");
-    const card = must(box.querySelector<HTMLElement>("[data-watch]"));
-    expect(card.textContent).not.toContain(EXP);
-    expect(must(card.querySelector(".rs-other-title")).textContent).toBe("CONTROLtrial 1/4");
-    expect(card.textContent).toContain("same experiment · started 5:52 AM");
-  });
-
-  it("keeps the experiment as the title when another live run belongs to a different experiment", () => {
-    const box = document.createElement("div");
-    box.innerHTML = sheetHtml(input({ others: [{ id: OTHER_ID, started: null, cohort: { id: "other-exp", arm: "bundle", trial: 3, of: 8 } }] }), () => "");
-    const card = must(box.querySelector<HTMLElement>("[data-watch]"));
-    expect(must(card.querySelector(".rs-other-title")).textContent).toBe("other-exp");
-    expect(card.textContent).toContain("trial 3/8");
-  });
-
-  it("says so when no other run is live", () => {
-    const box = document.createElement("div");
-    box.innerHTML = sheetHtml(input(), () => "");
-    expect(box.querySelector("[data-watch]")).toBeNull();
-    expect(box.textContent).toContain("No other run is live right now.");
+    box.innerHTML = sheetHtml();
+    expect(box.querySelector(".rs-cards")).not.toBeNull();
+    expect(box.querySelector(".rs-now, .rs-other")).toBeNull();
+    expect(box.textContent).toContain("Loading trainer cards");
   });
 });
 
@@ -168,14 +132,18 @@ async function mount(width: number): Promise<{ app: App; streams: FakeStream[] }
 }
 
 const setWidth = (width: number): void => { (window as unknown as { happyDOM: { setInnerWidth(width: number): void } }).happyDOM.setInnerWidth(width); };
+// happy-dom's setViewport moves innerWidth but its matchMedia keeps reading the
+// initial height; the documented innerHeight setter is what media queries see.
+const setViewport = (width: number, height: number): void => {
+  setWidth(width);
+  window.innerHeight = height;
+};
 const ui = (name: string): HTMLElement => must(document.querySelector<HTMLElement>(`[data-ui="${name}"]`));
 
 describe("phone header in the viewer", () => {
-  beforeEach(() => {
-    document.body.innerHTML = "";
-  });
   afterEach(() => {
-    setWidth(1024);
+    setViewport(1024, 900);
+    document.body.innerHTML = "";
   });
 
   it("shows the experiment-first header and moves the controls under the screen and the run picker into the sheet", async () => {
@@ -190,7 +158,8 @@ describe("phone header in the viewer", () => {
     expect(ui("run-sheet").contains(ui("run"))).toBe(true);
     expect(ui("run-sheet").contains(ui("comparisons-link"))).toBe(true);
     const all = Array.from(must(document.querySelector('[data-slot="phone-picker"]')).children, (el) => el.getAttribute("data-ui") ?? (el.className || el.tagName));
-    expect(all).toEqual(["H4", "run-choice", "comparisons-link"]);
+    expect(all).toEqual(["H4", "run-choice", "comparisons-link", "reports-link"]);
+    expect(ui("reports-link").getAttribute("href")).toBe("/reports");
   });
 
   it("opens the sheet from anywhere on the header and switches runs from it", async () => {
@@ -201,11 +170,13 @@ describe("phone header in the viewer", () => {
     expect(ui("run-sheet").hidden).toBe(false);
     expect(head.getAttribute("aria-expanded")).toBe("true");
     const watch = Array.from(ui("run-sheet").querySelectorAll<HTMLButtonElement>("[data-watch]"));
-    expect(watch.map((b) => b.dataset.watch)).toEqual([OTHER_ID]);
-    must(watch[0]).click();
+    expect(watch).toHaveLength(0);
+    const picker = ui("run") as HTMLSelectElement;
+    picker.value = OTHER_ID;
+    picker.dispatchEvent(new Event("change", { bubbles: true }));
     expect(ui("run-sheet").hidden).toBe(true);
     expect(head.getAttribute("aria-expanded")).toBe("false");
-    expect(streams.at(-1)?.url).toBe(`/api/runs/${encodeURIComponent(OTHER_ID)}/events`);
+    expect(streams.at(-1)?.url).toBe(`/api/runs/${encodeURIComponent(OTHER_ID)}/events?head=1`);
   });
 
   it("closes the sheet when a run is picked from the full list in it", async () => {
@@ -215,7 +186,7 @@ describe("phone header in the viewer", () => {
     picker.value = ENDED_ID;
     picker.dispatchEvent(new Event("change"));
     expect(ui("run-sheet").hidden).toBe(true);
-    expect(streams.at(-1)?.url).toBe(`/api/runs/${encodeURIComponent(ENDED_ID)}/events`);
+    expect(streams.at(-1)?.url).toBe(`/api/runs/${encodeURIComponent(ENDED_ID)}/events?head=1`);
   });
 
   it("closes the sheet from the shade and the grab handle", async () => {
@@ -241,15 +212,75 @@ describe("phone header in the viewer", () => {
     const order = Array.from(bar.children, (el) => el.getAttribute("data-ui") ?? el.className);
     expect(order.indexOf("comparisons-link")).toBeLessThan(order.indexOf("run-choice"));
     expect(order.indexOf("replay-controls")).toBeLessThan(order.indexOf("run-controls"));
+    expect(ui("run-sheet").contains(ui("reports-link"))).toBe(true);
   });
 });
 
 describe("phone header sheet behavior", () => {
-  beforeEach(() => {
-    document.body.innerHTML = "";
+  it("animates dismissal before hiding and allows reopening during dismissal", async () => {
+    await mount(375);
+    const sheet = ui("run-sheet"), shade = ui("run-sheet-shade");
+    // The DOM harness does not load linked stylesheets; expose the exit animation.
+    sheet.style.animationName = "rs-slide-out";
+    ui("run-head").click();
+    ui("run-sheet-close").click();
+    expect(sheet.hidden).toBe(false);
+    expect(shade.hidden).toBe(false);
+    expect(sheet.hasAttribute("data-closing")).toBe(true);
+    expect(sheet.inert).toBe(true);
+    expect(ui("run-head").getAttribute("aria-expanded")).toBe("false");
+    ui("run-head").click();
+    sheet.dispatchEvent(new AnimationEvent("animationend", { animationName: "rs-slide-out" }));
+    expect(sheet.hidden).toBe(false);
+    expect(sheet.inert).toBe(false);
+    ui("run-sheet-shade").click();
+    ui("run-sheet-close").dispatchEvent(new AnimationEvent("animationend", { animationName: "rs-slide-out", bubbles: true }));
+    sheet.dispatchEvent(new AnimationEvent("animationend", { animationName: "rs-slide-in" }));
+    expect(sheet.hidden).toBe(false);
+    sheet.dispatchEvent(new AnimationEvent("animationend", { animationName: "rs-slide-out" }));
+    expect(sheet.hidden).toBe(true);
+    expect(shade.hidden).toBe(true);
+  });
+
+  it("uses half-duration entrance and exit animations with reduced-motion opt-out", () => {
+    expect(CSS).toContain("rs-slide-in 130ms");
+    expect(CSS).toContain("rs-fade-in 90ms");
+    expect(CSS).toContain("rs-slide-out 130ms");
+    expect(CSS).toContain("rs-fade-out 90ms");
+    expect(CSS).toContain("prefers-reduced-motion: reduce");
+    expect(CSS).toContain("animation: none !important");
+  });
+
+  it("finishes a canceled exit and immediately cleans up when widened during dismissal", async () => {
+    await mount(375);
+    const sheet = ui("run-sheet");
+    sheet.style.animationName = "rs-slide-out";
+    ui("run-head").click();
+    sheet.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+    expect(sheet.hidden).toBe(false);
+    sheet.dispatchEvent(new AnimationEvent("animationcancel", { animationName: "rs-slide-out" }));
+    expect(sheet.hidden).toBe(true);
+    ui("run-head").click();
+    ui("run-sheet-close").click();
+    expect(sheet.hidden).toBe(false);
+    setViewport(1280, 900);
+    window.dispatchEvent(new Event("resize"));
+    expect(sheet.hidden).toBe(true);
+    expect(ui("run-sheet-shade").hidden).toBe(true);
+  });
+
+  it("dismisses immediately when reduced motion removes the exit animation", async () => {
+    await mount(375);
+    ui("run-sheet").style.animationName = "none";
+    ui("run-head").click();
+    ui("run-sheet-close").click();
+    expect(ui("run-sheet").hidden).toBe(true);
+    expect(ui("run-sheet-shade").hidden).toBe(true);
+    expect(document.activeElement).toBe(ui("run-head"));
   });
   afterEach(() => {
-    setWidth(1024);
+    setViewport(1024, 900);
+    document.body.innerHTML = "";
   });
 
   it("closes an open sheet when the window widens past the phone breakpoint", async () => {
@@ -262,16 +293,16 @@ describe("phone header sheet behavior", () => {
     expect(ui("run-head").getAttribute("aria-expanded")).toBe("false");
   });
 
-  it("keeps the WATCH buttons in place while the clock ticks and updates the time in place", async () => {
+  it("keeps the card mount in place while the header clock ticks", async () => {
     const { app } = await mount(375);
     ui("run-head").click();
-    const watch = must(ui("run-sheet").querySelector<HTMLButtonElement>("[data-watch]"));
-    const time = must(ui("run-sheet").querySelector(".rs-now .rh-time"));
+    const cards = must(ui("run-sheet").querySelector(".rs-cards"));
+    const time = must(ui("run-head").querySelector(".rh-time"));
     expect(time.textContent).toBe("0:00:03 / 0:01:00");
     nowMs += 2_000;
     app.tick(500);
-    expect(ui("run-sheet").querySelector("[data-watch]")).toBe(watch);
-    expect(must(ui("run-sheet").querySelector(".rs-now .rh-time")).textContent).toBe("0:00:05 / 0:01:00");
+    expect(ui("run-sheet").querySelector(".rs-cards")).toBe(cards);
+    expect(must(ui("run-head").querySelector(".rh-time")).textContent).toBe("0:00:05 / 0:01:00");
   });
 
   it("moves focus into the sheet, closes on Escape and returns focus to the header", async () => {
@@ -286,10 +317,31 @@ describe("phone header sheet behavior", () => {
     expect(ui("run-sheet").hidden).toBe(false);
   });
 
+  it("mirrors phone mode onto <html>[data-phone] so style.css keys off the flag", async () => {
+    await mount(375);
+    expect(document.documentElement.hasAttribute("data-phone")).toBe(true);
+    setViewport(750, 1000);
+    window.dispatchEvent(new Event("resize"));
+    expect(document.documentElement.hasAttribute("data-phone")).toBe(false);
+  });
+
+  it("keeps phone mode on a foldable's short landscape viewport and drops it on a tall desktop window", async () => {
+    await mount(375);
+    setViewport(832, 750);
+    window.dispatchEvent(new Event("resize"));
+    expect(document.documentElement.hasAttribute("data-phone"), "Fold 7 unfolded landscape").toBe(true);
+    setViewport(750, 832);
+    window.dispatchEvent(new Event("resize"));
+    expect(document.documentElement.hasAttribute("data-phone"), "Fold 7 unfolded portrait").toBe(false);
+    setViewport(1440, 900);
+    window.dispatchEvent(new Event("resize"));
+    expect(document.documentElement.hasAttribute("data-phone"), "laptop window").toBe(false);
+  });
+
   it("ignores clicks in the sheet body that are not on a WATCH button", async () => {
     const { streams } = await mount(375);
     ui("run-head").click();
-    must(ui("run-sheet").querySelector<HTMLElement>(".rs-now")).click();
+    must(ui("run-sheet").querySelector<HTMLElement>("h4")).click();
     expect(ui("run-sheet").hidden).toBe(false);
     expect(streams).toHaveLength(1);
   });
@@ -298,8 +350,8 @@ describe("phone header sheet behavior", () => {
 describe("phone header CSS", () => {
   it("hides the header button on wide screens and the old header pieces on phones", () => {
     expect(CSS).toMatch(/\.run-head \{[^}]*display: none;/);
-    const phone = CSS.slice(CSS.lastIndexOf("@media (max-width: 700px)"));
-    expect(phone).toContain(".bar > .logo, .bar > .mode, .bar > .clock, .bar > .live-runs, .bar > .ident { display: none; }");
+    const phone = (CSS.match(/:root\[data-phone\][^{]*\{[^}]*\}/g) ?? []).join(" ");
+    expect(phone).toContain(":root[data-phone] .bar > .logo, :root[data-phone] .bar > .mode, :root[data-phone] .bar > .clock, :root[data-phone] .bar > .ident { display: none; }");
     expect(phone).toMatch(/\.run-head \{[^}]*display: flex;/);
   });
   it("drops the picker's 'Watching' label in the sheet, where it would repeat the run you are on", () => {

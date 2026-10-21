@@ -1,8 +1,9 @@
+import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
 import {describe,expect,it} from "vitest";
 import {readFileSync} from "node:fs";
 import {gunzipSync} from "node:zlib";
 import {fileURLToPath} from "node:url";
-import {ALL_ON,FEATURES,dependencyProblems,featureInfo,featuresOf,playHarnessFeatures,type FeatureSet} from "./features.js";
+import {FEATURES,dependencyProblems,featureInfo,featuresOf,playHarnessFeatures,type FeatureSet} from "./features.js";
 import {flagFeatures,normalizeFeatures} from "./play-preset.js";
 import {SupervisorBriefing,type Stall} from "./loop-supervisor.js";
 import {loopSupervisor,stallBriefing,textOnlySupervisor} from "./play-wiring.js";
@@ -221,7 +222,7 @@ describe("exit history",()=>{
 });
 
 describe("briefing-exits-v1 in a production-shaped run",()=>{
- const BASE:FeatureSet={...ALL_ON,"next-milestone-hint-v1":false,"untaken-exits-v1":false,"people-ledger-v1":false,"people-id-cards-v1":false,"trainer-heal-guidance-v1":false,"low-hp-trainer-warning-v1":false,"low-hp-trainer-warning-v2":false,"briefing-battle-outcomes-v1":false};
+ const BASE:FeatureSet={...ALL_ON,"semantic-navigation-v2":false,"next-milestone-hint-v1":false,"untaken-exits-v1":false,"people-ledger-v1":false,"people-id-cards-v1":false,"trainer-heal-guidance-v1":false,"low-hp-trainer-warning-v1":false,"low-hp-trainer-warning-v2":false,"briefing-battle-outcomes-v1":false};
  const DOOR=[{kind:"warp",x:2,y:8,elevation:0,activation:"movement",availability:"conditional",facing:null,local_id:null,destination:[0,9,0],name:"Warp to map 0/9"},{kind:"warp",x:2,y:2,elevation:0,activation:"movement",availability:"conditional",facing:null,local_id:null,destination:[1,3,0],name:"Warp to map 1/3"},{kind:"coordinate_trigger",x:2,y:8,elevation:0,activation:"step",availability:"conditional",facing:null,local_id:null,destination:null,name:null}];
  const OUTSIDE=[{kind:"warp",x:14,y:8,elevation:0,activation:"movement",availability:"conditional",facing:null,local_id:null,destination:[1,2,1],name:"Warp to map 1/2"}];
  function rig(features:FeatureSet){
@@ -260,6 +261,11 @@ describe("briefing-exits-v1 in a production-shaped run",()=>{
   expect(run(false)).toBe("- Listed here that you have not tried yet: Warp to map 0/9 at 5,9 (movement); coordinate_trigger at 5,4 (step); coordinate_trigger at 5,9 (step); coordinate_trigger at 6,6 (step)");
  });
 
+ it("semantic-navigation-v2: the current map's untried items carry their navigate_to_target target",()=>{
+  const on=rig({...BASE,[ID]:true,"semantic-navigation-v2":true});walk(on);
+  expect(line(on.loop?.("cycle",9)??"","- Listed here that you have not tried yet")).toBe('- Listed here that you have not tried yet: Warp to BIRCH HOUSE 2F (map 1/3) at 2,2 (movement) [navigate_to_target target {"kind":"warp","x":2,"y":2}]');
+ });
+
  it("the loop supervisor and text-only supervisor drop the used door and the arrival trigger, and name the stairs",()=>{
   const on=rig({...BASE,[ID]:true});walk(on);
   const text=on.loop?.("cycle",9)??"";
@@ -285,7 +291,7 @@ describe("briefing-exits-v1 in a production-shaped run",()=>{
  it("the stall briefing factory honors the switch: ON reorders, OFF keeps today's order",()=>{
   const order=(features:FeatureSet)=>{
    const observers:((e:RunEvent)=>void)[]=[];let text="";
-   const recorder={subscribe:(fn:(e:RunEvent)=>void)=>{observers.push(fn);}};
+   const recorder={subscribe:(fn:(e:RunEvent)=>void)=>{observers.push(fn);},recordStallGate:()=>undefined,recordLoopGuard:()=>undefined};
    const stall=stallBriefing(features,recorder,{stall:(_kind,t)=>{text=t(5);return true;}},{pausedMs:()=>0},()=>10*60_000);
    expect(stall).not.toBeNull();
    const e=checkEvent({v:1,run:"exits",t:"2026-10-16T03:00:00.000-04:00",turn:1,seq:1,type:"tool_result",id:"c1",name:"press",is_error:false,duration_ms:1,text:"ok",frames:[]});
@@ -305,8 +311,8 @@ describe("briefing-exits-v1 registry and presets",()=>{
   expect(ids.indexOf(ID)).toBe(ids.indexOf("levelup-box-v1")+1);
   const order=playHarnessFeatures(ALL_ON,null);
   expect(order.indexOf(ID)).toBe(order.indexOf("levelup-box-v1")+1);
-  expect(playHarnessFeatures({...ALL_ON,[ID]:false},null)).not.toContain(ID);
-  expect(dependencyProblems({...ALL_ON,"loop-guard-supervisor-v1":false})).not.toContain(`${ID} needs loop-guard-supervisor-v1`);
+  expect(playHarnessFeatures({...ALL_ON,"semantic-navigation-v2":false,[ID]:false},null)).not.toContain(ID);
+  expect(dependencyProblems({...ALL_ON,"semantic-navigation-v2":false,"loop-guard-supervisor-v1":false})).not.toContain(`${ID} needs loop-guard-supervisor-v1`);
  });
  it("defaults off in presets that omit it and in legacy flag presets",()=>{
   const {[ID]:omitted,...rest}=ALL_ON;expect(omitted).toBe(true);

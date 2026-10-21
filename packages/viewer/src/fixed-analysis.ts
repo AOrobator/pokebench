@@ -4,6 +4,7 @@
 import { phaseOf, type FixedArm, type FixedDefinition } from "./fixed-design.js";
 import { DEPTH_ORDER } from "@pokebench/agent/milestones";
 import { classifyTrial, queueState, WALL_CAP, type FixedLedgerEntry } from "./fixed-ledger.js";
+import { linesOf, type LogLines } from "./run-log.js";
 
 export interface AnalysisTrial {
   readonly slot: number;
@@ -131,6 +132,7 @@ export interface GroupResult {
   readonly mannWhitney: MannWhitney;
 }
 export interface AnalysisReport {
+  readonly trials: readonly AnalysisTrial[];
   readonly groups: readonly GroupResult[];
   readonly invalid: readonly Pick<AnalysisTrial, "slot" | "lane" | "arm" | "run" | "reason">[];
   readonly endedEarly: readonly Pick<AnalysisTrial, "slot" | "lane" | "arm" | "run" | "reason">[];
@@ -154,6 +156,7 @@ function group(name: string, trials: readonly AnalysisTrial[]): GroupResult {
 export function analyze(trials: readonly AnalysisTrial[], lanes: readonly string[]): AnalysisReport {
   const valid = trials.filter((t) => t.valid);
   return {
+    trials,
     groups: [group("pooled", valid), ...lanes.map((l) => group(l, valid.filter((t) => t.lane === l)))],
     invalid: trials.filter((t) => !t.valid).map(({ slot, lane, arm, run, reason }) => ({ slot, lane, arm, run, reason })),
     endedEarly: valid.filter((t) => t.reason !== WALL_CAP).map(({ slot, lane, arm, run, reason }) => ({ slot, lane, arm, run, reason })),
@@ -164,7 +167,33 @@ const pct = (c: ArmCount): string => `${String(c.reached)}/${String(c.n)} (${c.n
 const p4 = (p: number): string => p.toPrecision(4);
 const below = (p: number, alpha: number): string => (p < alpha ? "yes" : "no");
 
-export function renderAnalysis(report: AnalysisReport, title: string): string {
+type RenderOptions=Pick<FixedDefinition,"primaryOutcome"|"primaryMilestone"|"replacementReserveMs">;
+
+function renderFrontier(report:AnalysisReport,title:string,options:RenderOptions):string {
+  return [
+    `# ${title}`, "",
+    "Primary: furthest required-story milestone within the cap, ties by earlier arrival.",
+    "Descriptive screen; no confirmatory thresholds or promotion.", "",
+    "## Primary frontier", "",
+    "| Group | Bundle n | Control n | P(bundle ranks above control), ties count half |",
+    "|---|---|---|---|",
+    ...report.groups.map(g=>`| ${g.name} | ${String(g.bundle.n)} | ${String(g.control.n)} | ${g.bundle.n===0||g.control.n===0?"unavailable":g.mannWhitney.superiority.toFixed(3)} |`), "",
+    "| Slot | Lane | Arm | Run | Valid | Furthest milestone | Arrival ms | Reason |",
+    "|---|---|---|---|---|---|---|---|",
+    ...report.trials.map(t=>`| ${String(t.slot)} | ${t.lane} | ${t.arm} | ${t.run} | ${t.valid?"yes":"no"} | ${t.furthest??"not reached"} | ${t.furthestMs===null?"unavailable":String(t.furthestMs)} | ${t.reason} |`), "",
+    `## Secondary: ${options.primaryMilestone} reach within cap`, "",
+    "| Group | Bundle | Control |", "|---|---|---|",
+    ...report.groups.map(g=>`| ${g.name} | ${pct(g.bundle)} | ${pct(g.control)} |`), "",
+    "## Trial endings and invalid records", "",
+    "Predeclared budget, loop/stuck and retained terminal model-error/crash endings remain outcomes. Early endings retain progress earned within the cap; they are not automatically invalid.",
+    options.replacementReserveMs===0?"Zero replacement reserve: invalid trials remain recorded and are not automatically replaced.":"Invalid trials remain recorded; any replacement is limited by the definition’s reserve.",
+    "Invalid trials are excluded from the descriptive comparison and must be reported by arm alongside all launched trials.", "",
+    ...(report.invalid.length===0?["No invalid trials."]:["| Slot | Lane | Arm | Run | Reason |","|---|---|---|---|---|",...report.invalid.map(t=>`| ${String(t.slot)} | ${t.lane} | ${t.arm} | ${t.run} | ${t.reason} |`)]), "",
+  ].join("\n");
+}
+
+export function renderAnalysis(report: AnalysisReport, title: string, options?:RenderOptions): string {
+  if(options?.primaryOutcome==="frontier")return renderFrontier(report,title,options);
   const lines = [
     `# ${title}`, "",
     ...(report.endedEarly.length === 0 ? ["Every valid trial ended at its wall cap.", ""] : [
@@ -194,33 +223,43 @@ export function renderAnalysis(report: AnalysisReport, title: string): string {
 // depth from the trial's own complete log (run_start first, run_end last); otherwise re-map the
 // stored furthest name onto DEPTH_ORDER. A stored activity name with no usable log cannot be
 // re-graded, so it is listed. The primary outcome and validity always stay as the ledger has them.
-export function rescoreTrials(trials: readonly AnalysisTrial[], events: (run: string) => string | null): { trials: AnalysisTrial[]; unscored: string[] } {
+export function rescoreTrials(trials: readonly AnalysisTrial[], events: (run: string) => LogLines | null, progressOrder?:readonly string[]): { trials: AnalysisTrial[]; unscored: string[] } {
   const unscored: string[] = [];
   const rescored = trials.map((t) => {
-    const text = events(t.run);
-    if (text !== null && completeLog(text, t.run)) {
-      const o = classifyTrial(text, { maxWallMs: t.capMs, primary: "" }, undefined);
-      return { ...t, furthest: o.furthest, furthestDepth: o.furthestDepth, furthestMs: o.furthestMs };
+    const log = events(t.run);
+    if (log !== null) {
+      const check = new Completeness(t.run);
+      const o = classifyTrial(check.tap(linesOf(log)), { maxWallMs: t.capMs, primary: "",...(progressOrder===undefined?{}:{progressOrder}) }, undefined);
+      if (check.complete()) return { ...t, furthest: o.furthest, furthestDepth: o.furthestDepth, furthestMs: o.furthestMs };
     }
     if (t.furthest === undefined || t.furthest === null) return t;
-    const depth = DEPTH_ORDER.indexOf(t.furthest);
+    const depth = (progressOrder??DEPTH_ORDER).indexOf(t.furthest);
     if (depth < 0) { unscored.push(t.run); return t; }
     return { ...t, furthestDepth: depth };
   });
   return { trials: rescored, unscored };
 }
 
-// Every line is one of this run's events, the first is run_start and the last is run_end.
-function completeLog(text: string, run: string): boolean {
-  const types: unknown[] = [];
-  for (const line of text.split("\n")) {
-    if (line.trim() === "") continue;
-    let e: unknown;
-    try { e = JSON.parse(line); } catch { return false; }
-    if (typeof e !== "object" || e === null || !("run" in e) || e.run !== run || !("type" in e)) return false;
-    types.push(e.type);
+// Every line is one of this run's events, the first is run_start and the last is run_end. It checks the
+// lines as classifyTrial reads them, so the grade and the check come from the same single pass.
+class Completeness {
+  private ok = true;
+  private seen = false;
+  private first: unknown;
+  private last: unknown;
+  constructor(private readonly run: string) {}
+  *tap(lines: Iterable<string>): Iterable<string> {
+    for (const line of lines) { this.observe(line); yield line; }
   }
-  return types[0] === "run_start" && types.at(-1) === "run_end";
+  private observe(line: string): void {
+    if (!this.ok || line.trim() === "") return;
+    let e: unknown;
+    try { e = JSON.parse(line); } catch { this.ok = false; return; }
+    if (typeof e !== "object" || e === null || !("run" in e) || e.run !== this.run || !("type" in e)) { this.ok = false; return; }
+    if (!this.seen) { this.seen = true; this.first = e.type; }
+    this.last = e.type;
+  }
+  complete(): boolean { return this.ok && this.first === "run_start" && this.last === "run_end"; }
 }
 
 export function trialsFromLedger(def: FixedDefinition, entries: readonly FixedLedgerEntry[], phase: string): AnalysisTrial[] {

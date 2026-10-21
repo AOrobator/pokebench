@@ -1,6 +1,8 @@
 import asyncio
+import time as system_time
 from types import SimpleNamespace
 
+import pytest
 from fastapi import FastAPI
 from test_audio import Emulator, pcm
 
@@ -97,14 +99,22 @@ def test_production_main_registers_view_pcm_and_browser_module_before_vendor_mai
 
     calls = []
     uvicorn = SimpleNamespace(run=lambda *args, **kwargs: calls.append(kwargs))
+    server_ready = threading.Event()
+    server_stop = threading.Event()
 
     def vendor_main():
         assert emu.initialize() == "initialized"
         emu.core.memory = SimpleNamespace(u8=ByteView())
         emu.core.cpu = SimpleNamespace(gprs=[0] * 16, cpsr=SimpleNamespace(packed=0))
         emu.core.frame_counter = 1
+        from mgba._pylib import ffi  # type: ignore[import-untyped]
+
+        # No native block: canonical RAM reads stay on the recorded bus path.
+        emu.core._core = SimpleNamespace(getMemoryBlock=lambda owner, block, size: ffi.NULL)
         emu.core.run_frame()
         uvicorn.run(app, host="0.0.0.0", port=8129)
+        server_ready.set()
+        assert server_stop.wait(10), "test server did not receive shutdown"
 
     monkeypatch.setitem(sys.modules, "uvicorn", uvicorn)
     monkeypatch.setitem(
@@ -113,6 +123,20 @@ def test_production_main_registers_view_pcm_and_browser_module_before_vendor_mai
 
     async def get_screenshot():
         raise AssertionError("not called at startup")
+
+    class FrameManager:
+        lock = threading.Lock()
+        active_connections: list[object] = []
+        latest_frame = None
+
+        async def connect(self, websocket):  # type: ignore[no-untyped-def]
+            pass
+
+        def disconnect(self, websocket):  # type: ignore[no-untyped-def]
+            pass
+
+        async def send_latest_frame(self, websocket):  # type: ignore[no-untyped-def]
+            pass
 
     monkeypatch.setitem(
         sys.modules,
@@ -125,10 +149,17 @@ def test_production_main_registers_view_pcm_and_browser_module_before_vendor_mai
                 env=emu,
                 memory_lock=memory_lock,
                 step_environment=lambda actions: None,
+                time=system_time,
+                game_loop=lambda: None,
+                frame_manager=FrameManager(),
+                update_frame_cache=lambda frame: None,
             )
         ),
     )
-    main()
+    server_thread = threading.Thread(target=main)
+    server_thread.start()
+    assert server_ready.wait(10), "production server did not start"
+    assert "/pokebench/frames" in [getattr(r, "path", "") for r in app.routes]
     assert "/pokebench/observation" in [getattr(r, "path", "") for r in app.routes]
     assert "/pokebench/pause" in [getattr(r, "path", "") for r in app.routes]
     import json
@@ -140,18 +171,8 @@ def test_production_main_registers_view_pcm_and_browser_module_before_vendor_mai
 
     assert memory_reads[:7] == [(a, a + n) for _, a, n in REGIONS]
     assert memory_reads[7] == (0x03007E20, 0x03007E40)
-    assert memory_reads[8:] == [
-        (0x030022C0, 0x030022C8),
-        (0x030026F9, 0x030026FA),
-        (0x0203CD92, 0x0203CD96),
-        (0x03005E00, 0x03006080),
-        (0x03005E00, 0x03006080),
-        (0x02039F94, 0x02039F98),
-        (0x02039F94, 0x02039F98),
-        (0x02037595, 0x02037596),
-        (0x02037350, 0x02037353),
-        (0x02039F94, 0x02039F98),
-    ]
+    # Decode reads the immutable RAM snapshot, never the live emulator view.
+    assert memory_reads[8:] == []
     assert calls == [{"host": "127.0.0.1", "port": 8129}]
     observation_status, _, observation_body = get(app, "/pokebench/observation")
     assert observation_status == 200
@@ -204,6 +225,11 @@ def test_production_main_registers_view_pcm_and_browser_module_before_vendor_mai
     assert status == 200
     assert headers[b"content-type"].startswith(b"text/javascript")
     assert module == b"export class AudioFollower {}"
+    server_stop.set()
+    server_thread.join(10)
+    assert not server_thread.is_alive()
+    with pytest.raises(RuntimeError, match="archive is closed"):
+        get(app, "/pokebench/state")
 
 
 def test_missing_browser_build_is_explicitly_unavailable(monkeypatch, tmp_path):

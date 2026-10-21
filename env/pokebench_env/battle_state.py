@@ -203,14 +203,14 @@ class BattleState:
 
 
 def _text_fields(
-    read: ReadMemory,
+    read: ReadMemory, turn_action_script: bool = False
 ) -> tuple[BattleMessage, BattlePrompt | None, str | None, LevelUpBox | None]:
     """Message window, YES/NO prompt, advance phase and level-up box; a failed read stays local."""
     try:
         return (
             read_battle_message(read),
-            read_battle_prompt(read),
-            battle_text_phase(read),
+            read_battle_prompt(read, turn_action_script=turn_action_script),
+            battle_text_phase(read, turn_action_script=turn_action_script),
             read_levelup_box(read),
         )
     except (ValueError, OSError, IndexError) as error:
@@ -218,9 +218,11 @@ def _text_fields(
         return failed, None, None, None
 
 
-def _move(read: ReadMemory, slot: int, move: int, pp: int, bonuses: int) -> BattleMove:
+def _move(
+    read: ReadMemory, slot: int, move: int, pp: int, bonuses: int, *, empty_move_pp: bool = False
+) -> BattleMove:
     if move == 0:
-        if pp:
+        if pp and not (empty_move_pp and pp <= 64):
             raise ValueError("empty battle move has PP")
         return BattleMove(slot, 0, None, 0, 0, None, None, None, None)
     if not 1 <= move <= 354:
@@ -234,7 +236,7 @@ def _move(read: ReadMemory, slot: int, move: int, pp: int, bonuses: int) -> Batt
 
 
 def _battler(
-    read: ReadMemory, index: int, position: int, body: bytes, absent: int
+    read: ReadMemory, index: int, position: int, body: bytes, absent: int, *, tutorial: bool = False
 ) -> BattleBattler:
     species, *stats = struct.unpack_from("<6H", body)
     hp, maximum = struct.unpack_from("<H", body, 0x28)[0], struct.unpack_from("<H", body, 0x2C)[0]
@@ -262,9 +264,15 @@ def _battler(
         or held_item >= 377
     ):
         raise ValueError("invalid battle Pokémon name/stages/type/ability/item")
+    move_ids = struct.unpack_from("<4H", body, 0x0C)
+    # LoadWallyZigzagoon (field_specials.c) keeps CreateMon PP when clearing MOVE2-4.
+    # Qualify the borrowed mon, not unrelated battlers or malformed tutorial moves.
+    wally_mon = (
+        tutorial and position == 0 and species == 288 and level == 7 and move_ids == (33, 0, 0, 0)
+    )
     moves = tuple(
-        _move(read, slot, move, body[0x24 + slot], body[0x3B])
-        for slot, move in enumerate(struct.unpack_from("<4H", body, 0x0C))
+        _move(read, slot, move, body[0x24 + slot], body[0x3B], empty_move_pp=wally_mon)
+        for slot, move in enumerate(move_ids)
     )
     personality, ot = (
         struct.unpack_from("<I", body, 0x48)[0],
@@ -293,8 +301,8 @@ def _battler(
     )
 
 
-def _initializing(read: ReadMemory, main: int) -> BattleState:
-    message, prompt, text_phase, levelup_box = _text_fields(read)
+def _initializing(read: ReadMemory, main: int, turn_action_script: bool = False) -> BattleState:
+    message, prompt, text_phase, levelup_box = _text_fields(read, turn_action_script)
     return BattleState(
         True,
         phase="initializing",
@@ -307,8 +315,17 @@ def _initializing(read: ReadMemory, main: int) -> BattleState:
     )
 
 
-def read_battle_state(read: ReadMemory, *, current_battle_only: bool = True) -> BattleState:
-    """current_battle_only (transition-coherence-v1): the intro is initializing, not stale data."""
+def read_battle_state(
+    read: ReadMemory,
+    *,
+    current_battle_only: bool = True,
+    tutorial_owner_enabled: bool = False,
+    turn_action_prompt: bool = False,
+) -> BattleState:
+    """current_battle_only (transition-coherence-v1): the intro is initializing, not stale data.
+
+    turn_action_prompt: caught-nickname-prompt-v1 (battle_text.read_battle_prompt).
+    """
     active = bool(number(read, IN_BATTLE, 1) & 2)
     if not active:
         return BattleState(False)
@@ -319,11 +336,11 @@ def read_battle_state(read: ReadMemory, *, current_battle_only: bool = True) -> 
         # Before BattleIntro has copied party/enemy data, an empty battle is a
         # genuine initialization phase, not a decoded Pokémon with species0.
         if count == 0 or main == 0:
-            return _initializing(read, main)
+            return _initializing(read, main, turn_action_prompt)
         # Until BattleIntroDrawTrainersOrMonsSprites has run, outcome, turn and battlers may
         # still be the previous battle's (battle_main.c BeginBattleIntro, line 3017).
         if current_battle_only and main in BATTLE_INTRO_MAIN_FUNCS:
-            return _initializing(read, main)
+            return _initializing(read, main, turn_action_prompt)
         if count not in (2, 4) or not 0x08000001 <= main < 0x0A000000 or not main & 1:
             raise ValueError("invalid battle count or main owner")
         battle_type = number(read, TYPE_FLAGS)
@@ -334,7 +351,7 @@ def read_battle_state(read: ReadMemory, *, current_battle_only: bool = True) -> 
         # SetUpBattleVarsAndBirchZigzagoon clears every position to 0xFF before the controllers
         # are set up; gBattlersCount is not reset, so it can still say 2.
         if current_battle_only and all(p == CLEARED_POSITION for p in positions):
-            return _initializing(read, main)
+            return _initializing(read, main, turn_action_prompt)
         if len(set(positions)) != count or any(position > 3 for position in positions):
             raise ValueError("invalid battle positions")
         raw = exact(read, MONS, count * 0x58)
@@ -350,10 +367,17 @@ def read_battle_state(read: ReadMemory, *, current_battle_only: bool = True) -> 
             if index not in trainer_banks
         ):
             if main not in (SELECT_ACTION, 0x0803D2E9, 0x0803D819, *SCRIPT_OWNERS):
-                return _initializing(read, main)
+                return _initializing(read, main, turn_action_prompt)
         absent = number(read, 0x02024210, 1)
         battlers = tuple(
-            _battler(read, index, position, raw[index * 0x58 : (index + 1) * 0x58], absent)
+            _battler(
+                read,
+                index,
+                position,
+                raw[index * 0x58 : (index + 1) * 0x58],
+                absent,
+                tutorial=tutorial_owner_enabled and bool(battle_type & (1 << 9)),
+            )
             for index, position in enumerate(positions)
             if index not in trainer_banks
         )
@@ -543,7 +567,7 @@ def read_battle_state(read: ReadMemory, *, current_battle_only: bool = True) -> 
             playback,
             None,
             None,
-            *_text_fields(read),
+            *_text_fields(read, turn_action_prompt),
         )
     except (ValueError, OSError, struct.error) as error:
         return BattleState(

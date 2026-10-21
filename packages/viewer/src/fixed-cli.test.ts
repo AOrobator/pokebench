@@ -177,6 +177,39 @@ describe("fixed-run check, approve, run, dry-run", () => {
     expect(await main(["dry-run", "bundle-v-control", "--wall-ms", "x"], deps)).toBe(1);
   });
 
+  it("reruns one arm on one lane of an approved experiment as an exploratory sibling at the experiment's pinned commit", async () => {
+    const { deps, out, err, runs, path, runsRoot } = setup();
+    writeFileSync(path, JSON.stringify(definition()));
+    expect(await main(["rerun", "bundle-v-control", "--arm", "bundle", "--lane", "B"], deps)).toBe(1);
+    expect(err.at(-1)).toBe("bundle-v-control is not approved; run `just fixed-run approve bundle-v-control` in a terminal");
+    expect(await main(["approve", "bundle-v-control"], { ...deps, interactive: true, prompt: () => Promise.resolve("bundle-v-control") })).toBe(0);
+    expect(await main(["rerun", "bundle-v-control", "--arm", "bundle", "--lane", "B", "--phase", "cook"], deps)).toBe(0);
+    expect(runs[0]).toMatchObject({ dryRun: true, commit: "0123456789abcdef0123456789abcdef01234567", def: { id: "bundle-v-control-solo-bundle-b-1", lanes: [{ id: "B" }], plan: [{ lane: "B", arm: "bundle", phase: "cook" }] } });
+    expect(out).toContain("bundle-v-control-solo-bundle-b-1: exploratory bundle trial on lane B (GPU0), cook, commit 0123456789ab");
+    // A second rerun takes the next number; the paired experiment's first launch pins the commit.
+    mkdirSync(join(runsRoot, "experiments", "bundle-v-control-solo-bundle-b-1"), { recursive: true });
+    writeFileSync(join(runsRoot, "experiments", "bundle-v-control", "trials.jsonl"), JSON.stringify({ kind: "launch", slot: 1, lane: "A", phase: "confirmatory", arm: "bundle", run: "r", at: "x", commit: "e".repeat(40), sources: "s", presetSha256: "p", serving: "f" }) + "\n");
+    expect(await main(["rerun", "bundle-v-control", "--arm", "bundle", "--lane", "B"], deps)).toBe(0);
+    expect(runs[1]).toMatchObject({ commit: "e".repeat(40), def: { id: "bundle-v-control-solo-bundle-b-2", phases: [{ id: "confirmatory", singleArm: "bundle" }] } });
+  });
+
+  it("refuses a rerun with a bad arm, lane or phase, a changed definition, or no ROM", async () => {
+    const { deps, err, path, runs } = setup();
+    writeFileSync(path, JSON.stringify(definition()));
+    expect(await main(["approve", "bundle-v-control"], { ...deps, interactive: true, prompt: () => Promise.resolve("bundle-v-control") })).toBe(0);
+    expect(await main(["rerun", "bundle-v-control", "--arm", "both", "--lane", "B"], deps)).toBe(1);
+    expect(err.at(-1)).toBe("--arm must be one of control, bundle");
+    expect(await main(["rerun", "bundle-v-control", "--arm", "bundle"], deps)).toBe(1);
+    expect(err.at(-1)).toBe("--lane must be one of A, B");
+    expect(await main(["rerun", "bundle-v-control", "--arm", "bundle", "--lane", "B", "--phase", "nope"], deps)).toBe(1);
+    expect(err.at(-1)).toBe("no phase nope; phases: confirmatory, cook");
+    expect(await main(["rerun", "bundle-v-control", "--arm", "bundle", "--lane", "B"], { ...deps, rom: undefined })).toBe(1);
+    writeFileSync(path, JSON.stringify({ ...definition(), title: "edited" }));
+    expect(await main(["rerun", "bundle-v-control", "--arm", "bundle", "--lane", "B"], deps)).toBe(1);
+    expect(err.at(-1)).toBe("the definition changed since it was approved; approve it again");
+    expect(runs).toHaveLength(0);
+  });
+
   it("prints usage for an unknown command or a missing definition", async () => {
     const { deps, err } = setup();
     expect(await main(["launch"], deps)).toBe(2);
@@ -197,6 +230,29 @@ describe("fixed-run status and analyze", () => {
     expect(await main(["status", "bundle-v-control"], deps)).toBe(0);
     expect(out.join("\n")).toContain("bundle-v-control running: 3 / 12 done, 1 invalid");
     expect(out.join("\n")).toContain("lane A (GPU1, :8071) paused: why; retry y");
+  });
+
+  it("renders the actual JIT definition as a descriptive frontier screen through the CLI",async()=>{
+    const {deps,out,path,runsRoot}=setup();
+    const def=parseFixedDefinition(readFileSync(new URL("../../../experiments/fixed/jit-10m.json",import.meta.url),"utf8")).definition;
+    expect(def).toMatchObject({primaryOutcome:"frontier",replacementReserveMs:0});
+    writeFileSync(join(path,"..","jit-10m.json"),JSON.stringify(def));
+    const dir=join(runsRoot,"experiments",def.id);mkdirSync(dir,{recursive:true});
+    const entries=def.plan.slice(0,4).flatMap((slot,i)=>[
+      {kind:"launch",slot:slot.slot,lane:slot.lane,phase:slot.phase,arm:slot.arm,run:`r${String(i)}`,at:"x",commit:"c",sources:"s",presetSha256:"p",serving:"f"},
+      {kind:"outcome",slot:slot.slot,run:`r${String(i)}`,at:"x",valid:i!==2,reason:i===0?"ended stuck before the wall cap":i===1?"retained terminal error: model_error":i===2?"no run_start":"wall cap",endReason:i===0?"stuck":i===1?"model_error":i===2?null:"budget",primaryReached:false,primaryMs:null,furthest:"CLOCK_SET",furthestDepth:7,furthestMs:50000,wallMs:i===3?600000:50000,turns:3},
+    ]);
+    writeFileSync(join(dir,"trials.jsonl"),entries.map(e=>JSON.stringify(e)).join("\n")+"\n");
+    expect(await main(["analyze",def.id],deps)).toBe(0);
+    const text=out.join("\n");
+    expect(text).toContain("Primary: furthest required-story milestone within the cap, ties by earlier arrival.");
+    expect(text.indexOf("## Primary frontier")).toBeLessThan(text.indexOf("## Secondary: RIVAL_MET"));
+    expect(text).toContain("P(bundle ranks above control), ties count half");
+    expect(text).toContain("Descriptive screen; no confirmatory thresholds or promotion.");
+    expect(text).toContain("stuck");expect(text).toContain("model_error");
+    expect(text).toContain("Zero replacement reserve: invalid trials remain recorded and are not automatically replaced.");
+    expect(text).not.toContain("p <");expect(text).not.toContain("primary milestone");
+    expect(text).not.toContain("only the wall cap");expect(text).not.toContain("kept in the record and replaced");
   });
 
   it("analyzes the ledger's primary phase, or a named phase", async () => {
@@ -298,6 +354,8 @@ describe("production host pieces", () => {
     expect(await host.portInUse(port)).toBe(false);
     expect(host.alive(process.pid)).toBe(true);
     expect(host.runId({ id: "A", gpu: "GPU1", gamePort: 8071, modelUrl: "http://127.0.0.1:8091" })).toMatch(/_qwen36-gpu1_[0-9a-z]+$/);
+    expect(host.runId({ id: "M", gpu: "MAC", gamePort: 8077, modelUrl: "http://127.0.0.1:8099", runName: "glm53-mac" })).toMatch(/_glm53-mac_[0-9a-z]+$/);
+    expect(host.runId({ id: "M", gpu: "MAC", gamePort: 8077, modelUrl: "http://127.0.0.1:8099", runName: "a".repeat(40) })).toMatch(new RegExp(`_${"a".repeat(40)}_[0-9a-z]+$`));
     expect(existsSync("/nowhere")).toBe(false);
   });
 });

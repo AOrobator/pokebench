@@ -1,89 +1,158 @@
+import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
 import {createHash} from "node:crypto";
+import {linkSync,mkdtempSync,mkdirSync,readFileSync,renameSync,unlinkSync,writeFileSync} from "node:fs";
+import {tmpdir} from "node:os";
+import {dirname,join} from "node:path";
 import {expect,it} from "vitest";
-import {CheckpointCapture,checkpointTarget} from "./checkpoint-capture.js";
+import {CheckpointCapture,checkpointSelection,checkpointTarget,type CheckpointDeps,type CheckpointSelection} from "./checkpoint-capture.js";
+import {REQUIRED_FRONTIER_MILESTONES} from "./milestones.js";
 import {parsePlayPreset,presetStart} from "./play-preset.js";
-import {ALL_ON} from "./features.js";
+import {} from "./features.js";
 import {checkEvent,type RunEvent} from "./events.js";
+import type {RunStartMeta} from "./recorder.js";
 
 const ev=(body:Record<string,unknown>,seq:number):RunEvent=>checkEvent({v:1,run:"cp-run",t:"2026-10-14T12:00:00.000-04:00",turn:4,seq,...body});
-const milestone=(name:string,seq:number,origin="observed")=>ev({type:"milestone",name,server_timestamp:1,kind:"story",origin,evidence:[seq-1]},seq);
+const milestone=(name:string,seq:number,origin="observed",kind="story")=>ev({type:"milestone",name,server_timestamp:1,kind,origin,evidence:[seq-1]},seq);
+const milestoneFor=(run:string,name:string,seq:number):RunEvent=>checkEvent({v:1,run,t:"2026-10-14T12:00:00.000-04:00",turn:4,seq,type:"milestone",name,server_timestamp:1,kind:"navigation",origin:"observed",evidence:[seq-1]});
 const STATE=Buffer.from("native-state");
 const sha1=createHash("sha1").update(STATE).digest("hex"),sha256=createHash("sha256").update(STATE).digest("hex");
+const START:RunStartMeta={
+ rom_sha1:"a".repeat(40),model:{id:"model",context_window:65536,max_tokens:4096,vision:true},sampling:{thinking_level:"medium",max_tokens:4096},
+ system_prompt:"prompt",tools:["observe","press"],harness:{commit:"b".repeat(40),dirty:false},vendor_pin:"c".repeat(40),pi_version:"1.2.3",
+ start_state:{kind:"save_state",path:"/starts/PETALBURG_WOODS.state",sha1:"d".repeat(40)},harness_features:["ram-state-v1","story-milestones-v2"],
+ evaluation:{preset_id:"frontier",target:null,failure_limit:3,flags:{loopGuard:true,activeUi:true,interfaceDocs:true,objectives:true},features:{"fix-v1":true}},
+ budgets:{max_turns:1500,max_wall_ms:1_200_000},isolation:{server_dir:"/runs/cp-run/server",run_data_id:"cp-run",load_checkpoint_mode:false,port:8001},
+};
 
-function harness(reply:Record<string,unknown>={state_base64:STATE.toString("base64"),sha1,sha256},status=200,pauseStatus=200,failMeta=false){
- const calls:{url:string;body:unknown}[]=[];const files=new Map<string,Buffer|string>();
- const fetchFn=(url:string,init?:{body?:string})=>{calls.push({url,body:init?.body===undefined?undefined:JSON.parse(init.body)});
+function fixture(
+ selection:CheckpointSelection={kind:"single",target:"CLOCK_SET"},
+ reply:Record<string,unknown>={state_base64:STATE.toString("base64"),sha1,sha256},
+ status=200,pauseStatus=200,failMeta=false,
+){
+ const calls:{url:string;body:unknown;active:number}[]=[];const files=new Map<string,Buffer|string>();let active=0,maxActive=0;
+ const fetchFn=async(url:string,init?:{body?:string})=>{active++;maxActive=Math.max(maxActive,active);calls.push({url,body:init?.body===undefined?undefined:JSON.parse(init.body),active});await Promise.resolve();active--;
   const ok=url.endsWith("/pokebench/checkpoint")?status:pauseStatus;
-  return Promise.resolve(new Response(JSON.stringify(url.endsWith("/pokebench/pause")?{paused:true}:reply),{status:ok}));};
- const capture=new CheckpointCapture("CLOCK_SET",{serverUrl:"http://127.0.0.1:9",dir:"/runs/cp-run/checkpoints",fetch:fetchFn,write:(path,data)=>{if(path.endsWith(".json.partial")&&failMeta)throw new Error("disk full");files.set(path,data);},rename:(from,to)=>{const v=files.get(from);if(v===undefined)throw new Error("missing");files.delete(from);files.set(to,v);}});
- return {capture,calls,files};
+  const requested=init?.body===undefined?undefined:JSON.parse(init.body) as {paused?:unknown};return new Response(JSON.stringify(url.endsWith("/pokebench/pause")?{paused:requested?.paused}:reply),{status:ok});};
+ const write=(path:string,data:Buffer|string)=>{if(path.endsWith(".json.partial")&&failMeta)throw new Error("disk full");files.set(path,data);};
+ const deps:CheckpointDeps={serverUrl:"http://127.0.0.1:9",dir:"/runs/cp-run/checkpoints",libraryDir:"/runs/checkpoints",fetch:fetchFn,write,rename:(from,to)=>{const v=files.get(from);if(v===undefined)throw new Error("missing");files.delete(from);files.set(to,v);},linkExclusive:(from,to)=>{if(files.has(to)){const error=Object.assign(new Error("exists"),{code:"EEXIST"});throw error;}const data=files.get(from);if(data===undefined)throw new Error("missing staged index");files.set(to,data);},remove:path=>{files.delete(path);}};
+ const capture=new CheckpointCapture(selection,deps,START);
+ return {capture,calls,files,deps,maxActive:()=>maxActive};
 }
 
-it("saves the state once, when the target milestone is first observed, with provenance",async()=>{
- const {capture,calls,files}=harness();
- capture.observe(milestone("PLAYER_BEDROOM",10));
- capture.observe(milestone("CLOCK_SET",20));
- capture.observe(milestone("CLOCK_SET",30));
- await capture.settled();
- expect(calls.map(c=>c.url.replace("http://127.0.0.1:9",""))).toEqual(["/pokebench/pause","/pokebench/checkpoint","/pokebench/pause"]);
- expect(calls[0]?.body).toEqual({paused:true});expect(calls[2]?.body).toEqual({paused:false});
- expect(files.get("/runs/cp-run/checkpoints/CLOCK_SET.state")).toEqual(STATE);
+it("defines the canonical required frontier without aliases, optional activities, or trainer milestones",()=>{
+ expect(REQUIRED_FRONTIER_MILESTONES).toContain("PETALBURG_WOODS");expect(REQUIRED_FRONTIER_MILESTONES).toContain("TEAM_AQUA_WOODS_EVENT_COMPLETE");expect(REQUIRED_FRONTIER_MILESTONES).toContain("RUSTBORO_CITY");
+ expect(REQUIRED_FRONTIER_MILESTONES).not.toContain("GAME_RUNNING");expect(REQUIRED_FRONTIER_MILESTONES).not.toContain("FIRST_POKEMON_CAUGHT");expect(REQUIRED_FRONTIER_MILESTONES.some(name=>name.includes("_TRAINER_"))).toBe(false);
+});
+
+it("saves the single target once with complete run and event provenance",async()=>{
+ const {capture,calls,files}=fixture();capture.observe(milestone("PLAYER_BEDROOM",10));capture.observe(milestone("CLOCK_SET",20));capture.observe(milestone("CLOCK_SET",30));await capture.settled();
+ expect(calls.map(c=>c.url.replace("http://127.0.0.1:9",""))).toEqual(["/pokebench/pause","/pokebench/checkpoint","/pokebench/pause"]);expect(files.get("/runs/cp-run/checkpoints/CLOCK_SET.state")).toEqual(STATE);
  const meta=JSON.parse(String(files.get("/runs/cp-run/checkpoints/CLOCK_SET.json"))) as Record<string,unknown>;
- expect(meta).toEqual({run:"cp-run",milestone:"CLOCK_SET",milestone_seq:20,turn:4,sha1,sha256,bytes:STATE.length});
+ expect(meta).toMatchObject({version:1,run:"cp-run",milestone:"CLOCK_SET",milestone_event:{seq:20,turn:4,origin:"observed",evidence:[19]},state:{sha1,sha256,bytes:STATE.length},source:{rom_sha1:"a".repeat(40),harness:{commit:"b".repeat(40),dirty:false},start_state:START.start_state,harness_features:START.harness_features,evaluation_features:{"fix-v1":true}},capture:{basis:"first_observed_native_milestone",stability:"paused_after_recorded_observation"}});
 });
 
-it("ignores milestones already present at start",async()=>{
- const {capture,calls}=harness();
- capture.observe(milestone("CLOCK_SET",5,"present_at_start"));
- await capture.settled();
- expect(calls).toHaveLength(0);
+it("captures every observed required frontier milestone in order and excludes non-frontier evidence",async()=>{
+ const {capture,calls,files,maxActive}=fixture({kind:"frontier"});capture.observe(milestone("PETALBURG_WOODS",10,"present_at_start","navigation"));capture.observe(milestone("PETALBURG_WOODS_TRAINER_LYLE_DEFEATED",11));capture.observe(milestone("FIRST_POKEMON_CAUGHT",12));capture.observe(milestone("PETALBURG_WOODS",20,"observed","navigation"));capture.observe(milestone("TEAM_AQUA_WOODS_EVENT_COMPLETE",30));capture.observe(milestone("PETALBURG_WOODS",40,"observed","navigation"));await capture.settled();
+ expect(calls.filter(c=>c.url.endsWith("/pokebench/checkpoint"))).toHaveLength(2);expect(maxActive()).toBe(1);expect(files.has("/runs/cp-run/checkpoints/PETALBURG_WOODS.state")).toBe(true);expect(files.has("/runs/cp-run/checkpoints/TEAM_AQUA_WOODS_EVENT_COMPLETE.state")).toBe(true);expect(files.has("/runs/cp-run/checkpoints/PETALBURG_WOODS_TRAINER_LYLE_DEFEATED.state")).toBe(false);expect(files.has("/runs/cp-run/checkpoints/FIRST_POKEMON_CAUGHT.state")).toBe(false);
 });
 
-it("refuses a state whose digest does not match and always unpauses",async()=>{
- const bad=harness({state_base64:STATE.toString("base64"),sha1:"0".repeat(40),sha256});
- bad.capture.observe(milestone("CLOCK_SET",20));
- await expect(bad.capture.settled()).rejects.toThrow(/digest/);
- expect(bad.files.size).toBe(0);expect(bad.calls.at(-1)?.body).toEqual({paused:false});
- const down=harness({detail:"native checkpoint unavailable"},503);
- down.capture.observe(milestone("CLOCK_SET",20));
- await expect(down.capture.settled()).rejects.toThrow(/503/);
- expect(down.calls.at(-1)?.body).toEqual({paused:false});
+it("promotes the first complete candidate per milestone without overwriting a winner",async()=>{
+ const first=fixture({kind:"frontier"});first.capture.observe(milestone("PETALBURG_WOODS",20,"observed","navigation"));await first.capture.settled();const candidate="/runs/checkpoints/PETALBURG_WOODS/candidates/cp-run";
+ expect(first.files.get(`${candidate}/PETALBURG_WOODS.state`)).toEqual(STATE);expect(first.files.has(`${candidate}/PETALBURG_WOODS.json`)).toBe(true);
+ expect(JSON.parse(String(first.files.get("/runs/checkpoints/PETALBURG_WOODS/first-arrival.json")))).toMatchObject({version:1,milestone:"PETALBURG_WOODS",run:"cp-run",candidate:"candidates/cp-run"});
+ const second=fixture({kind:"frontier"});second.files.set("/runs/checkpoints/PETALBURG_WOODS/first-arrival.json",JSON.stringify({run:"earlier"}));second.capture.observe(milestone("PETALBURG_WOODS",21,"observed","navigation"));await second.capture.settled();
+ expect(JSON.parse(String(second.files.get("/runs/checkpoints/PETALBURG_WOODS/first-arrival.json")))).toEqual({run:"earlier"});expect(second.files.has("/runs/cp-run/checkpoints/PETALBURG_WOODS.state")).toBe(true);
 });
 
-it("reads the capture target from the environment and accepts only native story milestones",()=>{
- expect(checkpointTarget({})).toBeNull();
- expect(checkpointTarget({POKEBENCH_CHECKPOINT_AT:"CLOCK_SET"})).toBe("CLOCK_SET");
- expect(()=>checkpointTarget({POKEBENCH_CHECKPOINT_AT:"invented"})).toThrow(/native milestone/);
- expect(()=>checkpointTarget({POKEBENCH_CHECKPOINT_AT:"PLAYER_NAME_SET"})).toThrow(/native milestone/);
+it("lets a later complete candidate win after an index write fails after exclusive creation",async()=>{
+ const shared=fixture({kind:"frontier"});let poison=true;
+ const deps:CheckpointDeps={...shared.deps,write:(path,data)=>{if(path.includes(".first-arrival.")&&poison){poison=false;shared.files.set(path,"");throw Object.assign(new Error("disk full after create"),{code:"ENOSPC"});}shared.deps.write(path,data);}};
+ const first=new CheckpointCapture({kind:"frontier"},deps,START);first.observe(milestoneFor("run-a","PETALBURG_WOODS",20));await expect(first.settled()).rejects.toThrow(/disk full after create/);
+ const second=new CheckpointCapture({kind:"frontier"},deps,START);second.observe(milestoneFor("run-b","PETALBURG_WOODS",21));await second.settled();
+ expect(JSON.parse(String(shared.files.get("/runs/checkpoints/PETALBURG_WOODS/first-arrival.json")))).toMatchObject({run:"run-b",candidate:"candidates/run-b"});
+});
+
+it("rehearses two independent run-local checkpoint sets against one immutable first-arrival library",async()=>{
+ const root=mkdtempSync(join(tmpdir(),"pokebench-frontier-checkpoints-")),library=join(root,"library");
+ const deps=(run:string):CheckpointDeps=>({serverUrl:"http://fake",dir:join(root,run,"checkpoints"),libraryDir:library,fetch:(_url,init)=>{const body=init?.body===undefined?{}:JSON.parse(init.body) as {paused?:unknown};return Promise.resolve(new Response(JSON.stringify("paused" in body?{paused:body.paused}:{state_base64:STATE.toString("base64"),sha1,sha256})));},write:(path,data)=>{mkdirSync(dirname(path),{recursive:true});writeFileSync(path,data);},linkExclusive:linkSync,remove:unlinkSync,rename:renameSync});
+ const first=new CheckpointCapture({kind:"frontier"},deps("run-a"),START),second=new CheckpointCapture({kind:"frontier"},deps("run-b"),START);
+ first.observe(milestoneFor("run-a","PETALBURG_WOODS",20));await first.close();second.observe(milestoneFor("run-b","PETALBURG_WOODS",21));await second.close();
+ expect(readFileSync(join(root,"run-a/checkpoints/PETALBURG_WOODS.state"))).toEqual(STATE);expect(readFileSync(join(root,"run-b/checkpoints/PETALBURG_WOODS.state"))).toEqual(STATE);
+ expect(JSON.parse(readFileSync(join(library,"PETALBURG_WOODS/first-arrival.json"),"utf8"))).toMatchObject({run:"run-a",candidate:"candidates/run-a"});
+ expect(readFileSync(join(library,"PETALBURG_WOODS/candidates/run-b/PETALBURG_WOODS.state"))).toEqual(STATE);
+});
+
+it("ignores milestones already present at start",async()=>{const {capture,calls}=fixture();capture.observe(milestone("CLOCK_SET",5,"present_at_start"));await capture.settled();expect(calls).toHaveLength(0);});
+
+it("refuses a bad state, records the capture failure, continues later milestones, and always unpauses",async()=>{
+ const bad=fixture({kind:"frontier"},{state_base64:STATE.toString("base64"),sha1:"0".repeat(40),sha256});bad.capture.observe(milestone("PETALBURG_WOODS",20,"observed","navigation"));bad.capture.observe(milestone("TEAM_AQUA_WOODS_EVENT_COMPLETE",30));await expect(bad.capture.settled()).rejects.toThrow(/2 checkpoint captures failed/);
+ expect([...bad.files.keys()].filter(path=>path.endsWith(".error.json"))).toHaveLength(2);expect(bad.calls.filter(c=>c.url.endsWith("/pokebench/checkpoint"))).toHaveLength(2);expect(bad.calls.at(-1)?.body).toEqual({paused:false});
+ const down=fixture(undefined,{detail:"native checkpoint unavailable"},503);down.capture.observe(milestone("CLOCK_SET",20));await expect(down.capture.settled()).rejects.toThrow(/503/);expect(down.calls.at(-1)?.body).toEqual({paused:false});
+});
+
+it("reads explicit capture modes from the environment and preserves the single-target contract",()=>{
+ expect(checkpointSelection({})).toBeNull();expect(checkpointTarget({})).toBeNull();expect(checkpointSelection({POKEBENCH_CHECKPOINT_AT:"CLOCK_SET"})).toEqual({kind:"single",target:"CLOCK_SET"});expect(checkpointTarget({POKEBENCH_CHECKPOINT_AT:"CLOCK_SET"})).toBe("CLOCK_SET");expect(checkpointSelection({POKEBENCH_CHECKPOINT_FRONTIER:"1"})).toEqual({kind:"frontier"});
+ expect(()=>checkpointSelection({POKEBENCH_CHECKPOINT_FRONTIER:"yes"})).toThrow(/must be 1/);expect(()=>checkpointSelection({POKEBENCH_CHECKPOINT_FRONTIER:"1",POKEBENCH_CHECKPOINT_AT:"CLOCK_SET"})).toThrow(/choose one/);expect(()=>checkpointTarget({POKEBENCH_CHECKPOINT_AT:"invented"})).toThrow(/native milestone/);expect(()=>checkpointTarget({POKEBENCH_CHECKPOINT_AT:"PLAYER_NAME_SET"})).toThrow(/native milestone/);
 });
 
 const v2={version:2,id:"cp",target:"RIVAL_MET",limits:{maxTurns:1500,maxWallMs:900000,failureLimit:3},sampling:{thinkingLevel:"medium",maxTokens:4096},features:{...ALL_ON,"state-only-decisions-v1":false}};
-it("lets a v2 preset start from a checkpoint whose SHA-1 is verified before launch",()=>{
- const start={kind:"save_state",path:"/runs/cp-run/checkpoints/CLOCK_SET.state",sha1};
- const preset=parsePlayPreset({...v2,start});
- expect(presetStart(preset,()=>STATE)).toEqual(start);
- expect(()=>presetStart(preset,()=>Buffer.from("other"))).toThrow(/SHA-1 mismatch/);
- expect(presetStart(parsePlayPreset(v2),()=>STATE)).toEqual({kind:"boot"});
- expect(()=>parsePlayPreset({...v2,start:{kind:"save_state",path:"x",sha1:"nothex"}})).toThrow(/Invalid play preset/);
+it("lets a v2 preset start from a checkpoint whose SHA-1 is verified before launch",()=>{const start={kind:"save_state",path:"/runs/cp-run/checkpoints/CLOCK_SET.state",sha1};const preset=parsePlayPreset({...v2,start});expect(presetStart(preset,()=>STATE)).toEqual(start);expect(()=>presetStart(preset,()=>Buffer.from("other"))).toThrow(/SHA-1 mismatch/);expect(presetStart(parsePlayPreset(v2),()=>STATE)).toEqual({kind:"boot"});expect(()=>parsePlayPreset({...v2,start:{kind:"save_state",path:"x",sha1:"nothex"}})).toThrow(/Invalid play preset/);});
+
+it("does not request a state when pause fails, stops after close, and never leaves a published state without provenance",async()=>{
+ const noPause=fixture(undefined,undefined,200,503);noPause.capture.observe(milestone("CLOCK_SET",20));await expect(noPause.capture.settled()).rejects.toThrow(/pause request failed/);expect(noPause.calls.some(c=>c.url.endsWith("/pokebench/checkpoint"))).toBe(false);expect(noPause.calls.at(-1)?.body).toEqual({paused:false});
+ const late=fixture();await late.capture.close();late.capture.observe(milestone("CLOCK_SET",20));await late.capture.settled();expect(late.calls).toHaveLength(0);
+ const disk=fixture(undefined,undefined,200,200,true);disk.capture.observe(milestone("CLOCK_SET",20));await expect(disk.capture.settled()).rejects.toThrow(/disk full/);expect([...disk.files.keys()].some(path=>path.endsWith("CLOCK_SET.state"))).toBe(false);
 });
 
-it("does not save when the pause fails, stops capturing after close, and never leaves a state without provenance",async()=>{
- const noPause=harness(undefined,200,503);
- noPause.capture.observe(milestone("CLOCK_SET",20));
- await expect(noPause.capture.settled()).rejects.toThrow(/pause request failed/);
- expect(noPause.calls.map(c=>c.url.endsWith("/pokebench/checkpoint"))).not.toContain(true);
- expect(noPause.calls.at(-1)?.body).toEqual({paused:false});
- const late=harness();await late.capture.close();late.capture.observe(milestone("CLOCK_SET",20));await late.capture.settled();
- expect(late.calls).toHaveLength(0);
- const disk=harness(undefined,200,200,true);disk.capture.observe(milestone("CLOCK_SET",20));
- await expect(disk.capture.settled()).rejects.toThrow(/disk full/);
- expect([...disk.files.keys()].some(k=>k.endsWith("CLOCK_SET.state"))).toBe(false);
+it("surfaces a failed unpause after a valid state instead of reporting capture success",async()=>{
+ const base=fixture();let pauses=0;
+ const deps:CheckpointDeps={...base.deps,fetch:async(url,init)=>{if(url.endsWith("/pokebench/pause")&&++pauses===2)return new Response(JSON.stringify({paused:true}),{status:503});return base.deps.fetch(url,init);}};
+ const capture=new CheckpointCapture({kind:"single",target:"CLOCK_SET"},deps,START);capture.observe(milestone("CLOCK_SET",20));
+ await expect(capture.settled()).rejects.toThrow(/unpause.*503/);expect(base.files.has("/runs/cp-run/checkpoints/CLOCK_SET.error.json")).toBe(true);
 });
 
-it("checks and loads a relative checkpoint path through one absolute path",()=>{
- const start={kind:"save_state",path:"relative/CLOCK_SET.state",sha1};
- const seen:string[]=[];
- const resolved=presetStart(parsePlayPreset({...v2,start}),path=>{seen.push(path);return STATE;});
- expect(resolved.kind==="save_state"&&resolved.path.startsWith("/")).toBe(true);
- expect(seen).toEqual([resolved.kind==="save_state"?resolved.path:""]);
+it("preserves the primary capture failure when the required unpause also fails",async()=>{
+ const failedPause=fixture();let calls=0;
+ const pauseDeps:CheckpointDeps={...failedPause.deps,fetch:(url,init)=>url.endsWith("/pokebench/pause")?Promise.resolve(new Response(JSON.stringify({paused:init?.body?.includes("true")}),{status:++calls===1?502:503})):failedPause.deps.fetch(url,init)};
+ const first=new CheckpointCapture({kind:"single",target:"CLOCK_SET"},pauseDeps,START);first.observe(milestone("CLOCK_SET",20));await expect(first.settled()).rejects.toThrow(/^pause request failed with HTTP 502$/);
+ expect(JSON.parse(String(failedPause.files.get("/runs/cp-run/checkpoints/CLOCK_SET.error.json")))).toMatchObject({error:"pause request failed with HTTP 502"});
+
+ const badDigest=fixture(undefined,{state_base64:STATE.toString("base64"),sha1:"0".repeat(40),sha256});let pauses=0;
+ const digestDeps:CheckpointDeps={...badDigest.deps,fetch:(url,init)=>{if(url.endsWith("/pokebench/pause")&&++pauses===2)return Promise.resolve(new Response(JSON.stringify({paused:true}),{status:503}));return badDigest.deps.fetch(url,init);}};
+ const second=new CheckpointCapture({kind:"single",target:"CLOCK_SET"},digestDeps,START);second.observe(milestone("CLOCK_SET",21));await expect(second.settled()).rejects.toThrow(/^checkpoint digest does not match the returned state$/);
+ expect(JSON.parse(String(badDigest.files.get("/runs/cp-run/checkpoints/CLOCK_SET.error.json")))).toMatchObject({error:"checkpoint digest does not match the returned state"});
 });
+
+it("preserves checkpoint and persistence failures when cleanup unpause also fails",async()=>{
+ const failedRequest=fixture();let requestPauses=0;
+ const requestDeps:CheckpointDeps={...failedRequest.deps,fetch:async(url,init)=>{
+  const recorded=await failedRequest.deps.fetch(url,init);
+  if(url.endsWith("/pokebench/checkpoint"))return new Response(JSON.stringify({detail:"native checkpoint unavailable"}),{status:502});
+  if(url.endsWith("/pokebench/pause")&&++requestPauses===2)return new Response(JSON.stringify({paused:true}),{status:503});
+  return recorded;
+ }};
+ const first=new CheckpointCapture({kind:"single",target:"CLOCK_SET"},requestDeps,START);first.observe(milestone("CLOCK_SET",20));await expect(first.settled()).rejects.toThrow(/^checkpoint request failed with HTTP 502$/);
+ expect(failedRequest.calls.at(-1)?.body).toEqual({paused:false});expect(JSON.parse(String(failedRequest.files.get("/runs/cp-run/checkpoints/CLOCK_SET.error.json")))).toMatchObject({error:"checkpoint request failed with HTTP 502"});
+
+ const failedWrite=fixture();let writePauses=0,failPair=true;
+ const writeDeps:CheckpointDeps={...failedWrite.deps,write:(path,data)=>{if(path.endsWith("/CLOCK_SET.json.partial")&&failPair){failPair=false;throw new Error("disk full during checkpoint persistence");}failedWrite.deps.write(path,data);},fetch:async(url,init)=>{
+  const recorded=await failedWrite.deps.fetch(url,init);
+  if(url.endsWith("/pokebench/pause")&&++writePauses===2)return new Response(JSON.stringify({paused:true}),{status:503});
+  return recorded;
+ }};
+ const second=new CheckpointCapture({kind:"single",target:"CLOCK_SET"},writeDeps,START);second.observe(milestone("CLOCK_SET",21));await expect(second.settled()).rejects.toThrow(/^disk full during checkpoint persistence$/);
+ expect(failedWrite.calls.at(-1)?.body).toEqual({paused:false});expect(JSON.parse(String(failedWrite.files.get("/runs/cp-run/checkpoints/CLOCK_SET.error.json")))).toMatchObject({error:"disk full during checkpoint persistence"});
+});
+
+it("rejects successful pause responses that do not confirm the requested state",async()=>{
+ const wrongPause=fixture();const pauseDeps:CheckpointDeps={...wrongPause.deps,fetch:(url,init)=>url.endsWith("/pokebench/pause")?Promise.resolve(new Response(JSON.stringify({paused:false}))):wrongPause.deps.fetch(url,init)};
+ const first=new CheckpointCapture({kind:"single",target:"CLOCK_SET"},pauseDeps,START);first.observe(milestone("CLOCK_SET",20));await expect(first.settled()).rejects.toThrow(/^pause response did not confirm paused=true$/);expect(wrongPause.calls.some(call=>call.url.endsWith("/pokebench/checkpoint"))).toBe(false);
+});
+it("rejects a successful unpause response that still reports the emulator paused",async()=>{
+ const wrongUnpause=fixture();let pauses=0;
+ const unpauseDeps:CheckpointDeps={...wrongUnpause.deps,fetch:(url,init)=>{if(url.endsWith("/pokebench/pause")&&++pauses===2)return Promise.resolve(new Response(JSON.stringify({paused:true})));return wrongUnpause.deps.fetch(url,init);}};
+ const second=new CheckpointCapture({kind:"single",target:"CLOCK_SET"},unpauseDeps,START);second.observe(milestone("CLOCK_SET",21));await expect(second.settled()).rejects.toThrow(/^unpause response did not confirm paused=false$/);
+ expect(JSON.parse(String(wrongUnpause.files.get("/runs/cp-run/checkpoints/CLOCK_SET.error.json")))).toMatchObject({error:"unpause response did not confirm paused=false"});
+});
+
+it("checks and loads a relative checkpoint path through one absolute path",()=>{const start={kind:"save_state",path:"relative/CLOCK_SET.state",sha1};const seen:string[]=[];const resolved=presetStart(parsePlayPreset({...v2,start}),path=>{seen.push(path);return STATE;});expect(resolved.kind==="save_state"&&resolved.path.startsWith("/")).toBe(true);expect(seen).toEqual([resolved.kind==="save_state"?resolved.path:""]);});

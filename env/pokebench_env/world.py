@@ -33,9 +33,14 @@ class InteractionTarget:
     local_id: int | None = None
     destination: tuple[int, int, int] | None = None
     name: str | None = None
+    # semantic-navigation-v1: exact gObjectEvents identity; omitted when off.
+    native_slot: int | None = None
 
     def json(self) -> dict[str, object]:
-        return asdict(self)
+        body = asdict(self)
+        if self.native_slot is None:
+            body.pop("native_slot")
+        return body
 
     def text(
         self,
@@ -43,6 +48,7 @@ class InteractionTarget:
         named: bool = False,
         destinations: Mapping[tuple[int, int], str] | None = None,
         dynamic: str | None = None,
+        warp_label: str | None = None,
     ) -> str:
         facing = "" if self.facing is None else f", face {self.facing}"
         identity = "" if self.local_id is None else f" id {self.local_id}"
@@ -72,6 +78,9 @@ class InteractionTarget:
                     if (group, number) == (127, 127)
                     else f"Warp to {place} (map {group}/{number})"
                 )
+        if self.destination is not None and warp_label is not None:
+            label = f"Warp to {warp_label}"
+            destination = f"; destination {warp_label} warp {self.destination[2]}"
         return (
             f"{label}{identity} at ({self.x},{self.y}), elevation {self.elevation}; "
             f"{self.activation}{facing}; {self.availability}{destination}"
@@ -93,6 +102,7 @@ def read_targets(
     map_id: tuple[int, int],
     *,
     sign_label: Callable[[int], str | None] | None = None,
+    native_slots: bool = False,
 ) -> tuple[InteractionTarget, ...] | None:
     """All event records in this map; object positions come only from live RAM.
 
@@ -131,6 +141,7 @@ def read_targets(
                 "A",
                 local_id=body[8],
                 name=GRAPHICS.get(body[5]),
+                native_slot=slot if native_slots else None,
             )
         )
     warps = read(pointers[1], counts[1] * 8) if counts[1] else b""
@@ -184,6 +195,47 @@ def read_targets(
         )
     terrain = read_metatile_targets(read)
     return None if terrain is None else tuple(targets) + terrain
+
+
+@dataclass(frozen=True)
+class InteractionObjectSlot:
+    """Active gObjectEvents entry in native GetObjectEventIdByPosition order."""
+
+    slot: int
+    x: int
+    y: int
+    elevation: int
+    local_id: int
+    map_id: tuple[int, int]
+    is_player: bool
+
+    def json(self) -> dict[str, object]:
+        body = asdict(self)
+        body["map_id"] = list(self.map_id)
+        return body
+
+
+def read_interaction_object_slots(read: ReadMemory) -> tuple[InteractionObjectSlot, ...]:
+    """All active slots, including entries the display-oriented target list filters."""
+    objects = read(OBJECT_EVENTS, 16 * 0x24)
+    result = []
+    for slot in range(16):
+        body = objects[slot * 0x24 : (slot + 1) * 0x24]
+        if not body[0] & 1:
+            continue
+        x, y = struct.unpack_from("<hh", body, 16)
+        result.append(
+            InteractionObjectSlot(
+                slot,
+                x - MAP_OFFSET,
+                y - MAP_OFFSET,
+                body[11] & 15,
+                body[8],
+                (body[10], body[9]),
+                bool(body[2] & 1),
+            )
+        )
+    return tuple(result)
 
 
 # Exact enum values at the pinned source revision. Only behavior predicates

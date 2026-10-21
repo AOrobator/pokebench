@@ -178,7 +178,9 @@ def test_production_run_reports_the_whiteout_once(
 ) -> None:
     from pokebench_env.serve import run
 
-    monkeypatch.setenv("POKEBENCH_FEATURES_OFF", off)
+    monkeypatch.setenv(
+        "POKEBENCH_FEATURES_OFF", ",".join(filter(None, [off, "evolution-decision-v1"]))
+    )
     m = game(OVERWORLD)
     m.put(0x05000000, b"\x1f\x00")  # a lit palette: the frame settle captures at once
     script = iter([CB2_WHITE_OUT, CB2_WHITE_OUT, OVERWORLD[1]])
@@ -200,9 +202,12 @@ def test_production_run_reports_the_whiteout_once(
     )
     for _ in range(3):
         Emulator().run_frame_with_buttons([])
-    texts = [json.loads(get(app, "/pokebench/observation")[2])["state_text"] for _ in range(2)]
-    assert (LINE in texts[0].split("\n")) is shown
-    assert LINE not in texts[1]
+    observations = [json.loads(get(app, "/pokebench/observation")[2]) for _ in range(2)]
+    assert (LINE in observations[0]["state_text"].split("\n")) is shown
+    assert LINE not in observations[1]["state_text"]
+    expected_receipt = {"frame": 1, "money_before": 3000, "notice": LINE}
+    assert (observations[0]["state"].get("blackout_receipt") == expected_receipt) is shown
+    assert "blackout_receipt" not in observations[1]["state"]
 
 
 def test_an_observation_that_fails_keeps_the_whiteout_pending(
@@ -307,7 +312,60 @@ def test_a_render_failure_puts_the_whiteout_back(monkeypatch: pytest.MonkeyPatch
     with pytest.raises(RuntimeError):
         get(app, "/pokebench/observation")
     status, _, body = get(app, "/pokebench/observation")
-    assert status == 200 and LINE in json.loads(body)["state_text"].split("\n")
+    payload = json.loads(body)
+    assert status == 200 and LINE in payload["state_text"].split("\n")
+    assert payload["state"]["blackout_receipt"] == {
+        "frame": 0,
+        "money_before": 3000,
+        "notice": LINE,
+    }
+
+
+def test_delivered_receipt_is_paired_with_the_raw_observation(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from pokebench_env.observation import install_observation
+
+    monkeypatch.setenv("POKEBENCH_FEATURES_OFF", "")
+    m = game(OVERWORLD)
+    latch = WhiteoutLatch(m.read)
+    for _ in range(7):
+        latch.on_frame()
+    latch.put_back(Whiteout(3000, 7))
+    set_money(m, 1500)
+    receipt = {
+        "v": 1,
+        "sequence": 0,
+        "frame": 42,
+        "path": "00000000.json.gz",
+        "sha256": "a" * 64,
+    }
+    paired: list[dict[str, object]] = []
+
+    class Archive:
+        def pair(
+            self, raw: dict[str, object], state: dict[str, object], screenshot: str | None
+        ) -> None:
+            assert raw is receipt and screenshot is not None
+            paired.append(json.loads(json.dumps(state)))
+
+    app = FastAPI()
+    install_observation(
+        app,
+        lambda: _Shot(),
+        m.read,
+        MAPS,
+        raw_capture=lambda: receipt,
+        raw_archive=Archive(),  # type: ignore[arg-type]
+        whiteout=latch,
+    )
+    payload = json.loads(get(app, "/pokebench/observation")[2])
+    assert payload["state"]["blackout_receipt"] == {
+        "frame": 7,
+        "money_before": 3000,
+        "notice": LINE,
+    }
+    assert paired == [payload["state"]]
 
 
 def test_concurrent_observations_deliver_whiteouts_one_at_a_time_oldest_first(

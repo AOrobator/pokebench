@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 import { ALL_ON, playHarnessFeatures, type FeatureSet, type SwitchableFeature } from "@pokebench/agent/features";
 import { Log, START } from "../test-support/events.js";
 import { configOf, featureHistory, type RunConfig } from "./history.js";
+import { baselineOf } from "./runs.js";
 
 const off = (...ids: SwitchableFeature[]): FeatureSet => ({ ...ALL_ON, ...Object.fromEntries(ids.map((id) => [id, false])) });
 const DRAFT: RunConfig = { model: "qwen", thinking: "medium", maxTokens: 4096, maxTurns: 300, maxWallMs: 1_800_000, failureLimit: 3, target: null, features: ALL_ON };
@@ -66,6 +67,32 @@ describe("strict per-feature history", () => {
     });
     expect(history["naming-cursor-v1"]).toBeNull();
     expect(history["deterministic-loop-guard-v1"]).toBeNull();
+  });
+
+  it("scores extended runs only through the original active-time horizon and preserves full baselines", async () => {
+    const root = mkdtempSync(join(tmpdir(), "history-extension-"));
+    const log = new Log();
+    log.add(0, { ...START, extend_run: true, model: { ...START.model, id: "qwen" }, sampling: { thinking_level: "medium", max_tokens: 4096 }, budgets: { max_turns: 300, max_wall_ms: 1_800_000 }, harness_features: playHarnessFeatures(ALL_ON, null) });
+    log.add(100, { type: "operator_control", turn: 0, action: "extend_30m", status: "applied", request: 1, previous_max_wall_ms: 1_800_000, max_wall_ms: 3_600_000 });
+    log.add(1_000, { type: "operator_control", turn: 0, action: "pause", status: "applied", request: 2, emulator_frozen: true });
+    log.add(61_000, { type: "operator_control", turn: 0, action: "resume", status: "applied", request: 3, paused_ms: 60_000 });
+    for (const [name, ms] of [["NEW_GAME_CREATED", 1_859_999], ["CLOCK_SET", 1_860_000], ["RIVAL_MET", 1_860_001]] as const) {
+      log.add(ms, { type: "milestone", turn: 1, name, server_timestamp: ms, kind: "story", origin: "observed" });
+    }
+    log.add(3_660_000, { type: "run_end", turn: 2, reason: "budget", furthest_milestone: "RIVAL_MET", turns: 2, wall_ms: 3_660_000, tokens: { input: 0, output: 0 }, frames: { saved: 0, bytes: 0 } });
+    const dir = join(root, "extended");
+    mkdirSync(dir);
+    writeFileSync(join(dir, "events.jsonl"), log.events.map(e => JSON.stringify({ ...e, run: "extended" })).join("\n") + "\n");
+    // Both ON runs remain in the denominator even when continuation is their only progress.
+    mkdirSync(join(root, "continuation-only"));
+    const continuation = log.events.filter(e => e.type !== "milestone" || e.name === "RIVAL_MET");
+    writeFileSync(join(root, "continuation-only", "events.jsonl"), continuation.map((e, seq) => JSON.stringify({ ...e, run: "continuation-only", seq })).join("\n") + "\n");
+    sorted(root, "off", { features: off("story-state-v1"), milestones: [] });
+    const full = baselineOf(root, "extended");
+    expect(full.milestones.map(m => [m.name, m.offsetMs])).toEqual([["NEW_GAME_CREATED", 1_799_999], ["CLOCK_SET", 1_800_000], ["RIVAL_MET", 1_800_001]]);
+    const history = (await featureHistory(root, DRAFT))["story-state-v1"];
+    expect(history).toEqual({ on: { runs: 2, reached: { NEW_GAME_CREATED: 1, CLOCK_SET: 1 }, medianMs: { NEW_GAME_CREATED: 1_799_999, CLOCK_SET: 1_800_000 } }, off: { runs: 1, reached: {}, medianMs: {} } });
+    expect(baselineOf(root, "extended")).toEqual(full);
   });
 
   it("is empty when either arm has no strictly matching run", async () => {

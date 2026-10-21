@@ -13,11 +13,12 @@ import {isCheckedPress,type CheckedPressTool} from "./game-tools.js";
 import {parseGameState,type GameStateSnapshot} from "./game-state.js";
 import type {RunRecorder} from "./recorder.js";
 import {roomKey,roomOf} from "./dialogue-log.js";
+import {semanticWalk} from "./semantic-targets.js";
 
 type State=Extract<RunEvent,{type:"state";started:boolean}>;
 type Page=Extract<RunEvent,{type:"dialogue_auto_advance"}>["pages"][number];
 // One quoted line: who said it, whether that is a person, and the words.
-interface Line {readonly turn:number;readonly page:Page;readonly who:string;readonly person:boolean;readonly text:string}
+export interface Line {readonly turn:number;readonly page:Page;readonly who:string;readonly person:boolean;readonly text:string}
 interface Conversation {readonly turn:number;readonly lines:readonly Line[]}
 interface Room {name:string;turn:number;heard:Line|null;readout:boolean}
 
@@ -25,7 +26,7 @@ export const LEDGER_HEADER="Conversation ledger";
 const HEAD=`${LEDGER_HEADER}: game text you were shown, quoted whole; past text, the current screen overrides it.`;
 const LATEST="Latest conversation with a person";
 const ROOMS="Rooms visited, newest first, with the last line heard in each:";
-const NO_SPEAKER="no speaker shown";
+export const NO_SPEAKER="no speaker shown";
 
 // What each object sprite looks like on screen (pokeemerald OBJ_EVENT_GFX_*, env/pokebench_env/event-graphics.json).
 // People are the person you talked to; anything else is the thing you faced.
@@ -60,7 +61,7 @@ function thingWord(name:string):string {
  if(/^sign\b/i.test(name))return "sign";
  return /^[A-Z][a-z]/.test(name)?`${name.charAt(0).toLowerCase()}${name.slice(1)}`:name;
 }
-const field=(pages:readonly Page[])=>pages.filter(p=>p.battle_turn===undefined&&p.battle_message_id===undefined);
+export const field=(pages:readonly Page[])=>pages.filter(p=>p.battle_turn===undefined&&p.battle_message_id===undefined);
 // The page as the game printed it, its NAME: prefix moved into the label and its line breaks as spaces.
 function words(page:Page):string {
  const prefix=page.speaker===null?"":`${page.speaker}: `;
@@ -70,7 +71,7 @@ function words(page:Page):string {
 const spriteKey=(page:Page,kind:string)=>`${page.map_id?.join("/")??page.map??"none"}|${kind}`;
 // Who said each page of one call. A sprite the game names in the same call (one NAME: prefix, one faced sprite
 // kind) keeps that name on that map for the rest of the run.
-function linesOf(turn:number,pages:readonly Page[],names:Map<string,string>):Line[] {
+export function linesOf(turn:number,pages:readonly Page[],names:Map<string,string>):Line[] {
  const prefixes=new Set(pages.flatMap(p=>p.speaker_source==="name_prefix"&&p.speaker!==null?[p.speaker]:[]));
  const sprites=new Set(pages.flatMap(p=>p.speaker_source==="faced_sprite"&&p.speaker!==null&&personWord(p.speaker)!==null?[spriteKey(p,p.speaker)]:[]));
  const [name]=prefixes,[sprite]=sprites;
@@ -86,8 +87,10 @@ function linesOf(turn:number,pages:readonly Page[],names:Map<string,string>):Lin
  });
 }
 const quote=(line:Line)=>`${line.who}: "${line.text}"`;
-function heard(h:Line|null):string {
- return h===null?"nothing heard":`last heard turn ${String(h.turn)}, ${quote(h)}`;
+function heard(h:Line|null,hideTurn:number|null):string {
+ if(h===null)return "nothing heard";
+ if(hideTurn!==null&&h.turn===hideTurn)return `last heard turn ${String(h.turn)} (this result's dialogue list)`;
+ return `last heard turn ${String(h.turn)}, ${quote(h)}`;
 }
 const placeOf=(page:Page)=>({location:page.map,...(page.map_display===undefined?{}:{location_display:page.map_display}),map_id:page.map_id});
 
@@ -149,15 +152,24 @@ export class ConversationLedger {
   const latest=lines.at(-1)??this.last;
   this.visit(rooms,state,this.turn);
   const nameOf=(page:Page)=>rooms.get(roomKey(placeOf(page)))?.name??roomOf(placeOf(page),this.features);
+  // This call's pages are already in the result's dialogue list. Quote only earlier turns.
+  const hideTurn=this.features["input-cuts-v1"]&&call!==undefined?call.turn:null;
   const out=[HEAD];
   if(conversation!==null){
    const speakers=[...new Set(conversation.lines.flatMap(l=>l.person?[l.who]:[]))];
    const places=[...new Set(conversation.lines.filter(l=>l.page.map!==null||l.page.map_id!==null).map(l=>nameOf(l.page)))];
-   out.push(`${LATEST} (${speakers.join(", ")}, turn ${String(conversation.turn)}${places.length===0?"":`; ${places.join(", then ")}`}):`,...conversation.lines.map(l=>`- ${quote(l)}`));
-  }else if(latest!==null)out.push(`${LATEST}: none yet; the latest field page, turn ${String(latest.turn)}${latest.page.map===null&&latest.page.map_id===null?"":` in ${nameOf(latest.page)}`}:`,`- ${quote(latest)}`);
+   const head=`${LATEST} (${speakers.join(", ")}, turn ${String(conversation.turn)}${places.length===0?"":`; ${places.join(", then ")}`}):`;
+   if(hideTurn!==null&&conversation.turn===hideTurn)out.push(`${head} this result's dialogue list.`);
+   else out.push(head,...conversation.lines.map(l=>`- ${quote(l)}`));
+  }else if(latest!==null){
+   const where=latest.page.map===null&&latest.page.map_id===null?"":` in ${nameOf(latest.page)}`;
+   const head=`${LATEST}: none yet; the latest field page, turn ${String(latest.turn)}${where}:`;
+   if(hideTurn!==null&&latest.turn===hideTurn)out.push(`${head} this result's dialogue list.`);
+   else out.push(head,`- ${quote(latest)}`);
+  }
   else out.push(`${LATEST}: none yet; no field dialogue shown yet.`);
   out.push(ROOMS);
-  for(const room of [...rooms.values()].reverse())out.push(`- ${room.name}, here turn ${String(room.turn)}: ${heard(room.heard)}`);
+  for(const room of [...rooms.values()].reverse())out.push(`- ${room.name}, here turn ${String(room.turn)}: ${heard(room.heard,hideTurn)}`);
   return out.join("\n");
  }
  // The readout with the block inserted after its Story line (after Location/Position without one).
@@ -189,10 +201,10 @@ export function withInstructionLedgerV2(tools:readonly AgentTool[],features:Feat
   return {...result,content};
  };
  return tools.map(tool=>{
-  if(tool.name!=="observe"&&tool.name!=="press"&&tool.name!=="navigate_to")return tool;
+  if(tool.name!=="observe"&&tool.name!=="press"&&tool.name!=="navigate_to"&&!semanticWalk(tool.name,features))return tool;
   const execute:AgentTool["execute"]=async(id,params,signal,update)=>annotate(id,await tool.execute(id,params,signal,update));
   if(!isCheckedPress(tool))return {...tool,execute};
-  const checked:CheckedPressTool={...tool,execute,executeChecked:async(id,params,check,signal,update)=>annotate(id,await tool.executeChecked(id,params,check,signal,update))};
+  const checked:CheckedPressTool={...tool,execute,executeChecked:async(id,params,check,signal,update,options)=>annotate(id,await tool.executeChecked(id,params,check,signal,update,options))};
   return checked;
  });
 }

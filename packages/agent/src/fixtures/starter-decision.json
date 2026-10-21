@@ -1,0 +1,4539 @@
+[
+  {
+    "v": 1,
+    "run": "2026-10-18T23-32-33_qwen36-gpu1_90bb",
+    "seq": 2906,
+    "t": "2026-10-18T23:42:51.464-04:00",
+    "type": "state",
+    "turn": 133,
+    "screen": "starter_choice",
+    "active_ui": {
+      "phase": "starter_selection",
+      "selected": "TORCHIC",
+      "ready": true,
+      "controls": "LEFT/RIGHT selects; A opens confirmation",
+      "diagnostic": null,
+      "value": null,
+      "details": {
+        "callback2": "0x081341E1",
+        "task_ids": [
+          0
+        ],
+        "task_functions": [
+          "0x0813425D"
+        ],
+        "task_data": [
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "owner_task": 0,
+        "selected_index": 1,
+        "starter": "TORCHIC"
+      }
+    },
+    "story": {
+      "name_confirmed": true,
+      "intro_stage": 7,
+      "rival_stage": 3,
+      "birch_lab_stage": 0,
+      "petalburg_gym_stage": 0,
+      "woods_stage": 0,
+      "town_stage": 2,
+      "clock_set": true,
+      "rival_battle_won": false,
+      "pokedex_received": false,
+      "running_shoes_received": false,
+      "starter_tutorial_complete": false,
+      "rustboro_gym_complete": false,
+      "stone_badge": false,
+      "rock_tomb_received": false,
+      "rustboro_josh_defeated": false,
+      "rustboro_tommy_defeated": false,
+      "rustboro_marc_defeated": false,
+      "petalburg_woods_lyle_defeated": false,
+      "petalburg_woods_james_defeated": false,
+      "petalburg_woods_aqua_grunt_defeated": false,
+      "route116_joey_defeated": false,
+      "route116_jose_defeated": false,
+      "route116_jerry_defeated": false,
+      "route116_clark_defeated": false,
+      "route116_janice_defeated": false,
+      "route116_karen_defeated": false,
+      "route116_sarah_defeated": false,
+      "route116_dawson_defeated": false,
+      "route116_devan_defeated": false,
+      "route116_johnson_defeated": false,
+      "roxanne_defeated": false,
+      "route102_calvin_defeated": false,
+      "route102_rick_defeated": false,
+      "route102_tiana_defeated": false,
+      "route102_allen_defeated": false,
+      "route104_ivan_defeated": false,
+      "route104_billy_defeated": false,
+      "route104_haley_defeated": false,
+      "route104_winston_defeated": false,
+      "route104_cindy_defeated": false,
+      "route104_gina_mia_defeated": false,
+      "route104_darian_defeated": false
+    },
+    "naming": null,
+    "world_context": null,
+    "field_controls_locked": null,
+    "local_map": null,
+    "topology": null,
+    "navigation_grid": null,
+    "interaction_targets": null,
+    "started": true,
+    "name": "RICHIE",
+    "location": "ROUTE101",
+    "map_id": [
+      0,
+      16
+    ],
+    "position": {
+      "x": 6,
+      "y": 13
+    },
+    "facing": "left",
+    "in_battle": false,
+    "party_owner": "player",
+    "party_ownership": {
+      "owner": "player",
+      "source": "ordinary_player_party",
+      "original_identities": [],
+      "rental_personalities": [],
+      "diagnostic": null,
+      "raw_hex": null
+    },
+    "party": [],
+    "game_stats": {
+      "saved_game": 0,
+      "pokemon_captures": 0,
+      "evolved_pokemon": 0,
+      "used_pokecenter": 0
+    },
+    "route103_rival": {
+      "battle_active": false,
+      "defeated": false,
+      "oldale_stage": 0
+    },
+    "trainer_opponent": null,
+    "resources": {
+      "bag": [],
+      "pc_items": [
+        {
+          "slot": 0,
+          "item_id": 13,
+          "quantity": 1,
+          "pocket": null,
+          "name": "POTION"
+        }
+      ],
+      "storage": {
+        "current_box": 0,
+        "occupied": []
+      },
+      "berry_trees": [
+        {
+          "tree_id": 0,
+          "berry": 0,
+          "item_id": null,
+          "stage": 0,
+          "stop_growth": false,
+          "minutes_until_next_stage": 0,
+          "yield_count": 0,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 1,
+          "berry": 3,
+          "item_id": 135,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 720,
+          "yield_count": 2,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 2,
+          "berry": 7,
+          "item_id": 139,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 720,
+          "yield_count": 2,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 3,
+          "berry": 0,
+          "item_id": null,
+          "stage": 0,
+          "stop_growth": false,
+          "minutes_until_next_stage": 0,
+          "yield_count": 0,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 4,
+          "berry": 7,
+          "item_id": 139,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 720,
+          "yield_count": 2,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 5,
+          "berry": 1,
+          "item_id": 133,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 720,
+          "yield_count": 2,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 6,
+          "berry": 6,
+          "item_id": 138,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 960,
+          "yield_count": 2,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 7,
+          "berry": 1,
+          "item_id": 133,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 720,
+          "yield_count": 2,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 8,
+          "berry": 1,
+          "item_id": 133,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 720,
+          "yield_count": 2,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 9,
+          "berry": 0,
+          "item_id": null,
+          "stage": 0,
+          "stop_growth": false,
+          "minutes_until_next_stage": 0,
+          "yield_count": 0,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 10,
+          "berry": 6,
+          "item_id": 138,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 960,
+          "yield_count": 2,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 11,
+          "berry": 7,
+          "item_id": 139,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 720,
+          "yield_count": 2,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 12,
+          "berry": 0,
+          "item_id": null,
+          "stage": 0,
+          "stop_growth": false,
+          "minutes_until_next_stage": 0,
+          "yield_count": 0,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 13,
+          "berry": 3,
+          "item_id": 135,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 720,
+          "yield_count": 2,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 14,
+          "berry": 23,
+          "item_id": 155,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 720,
+          "yield_count": 2,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 15,
+          "berry": 21,
+          "item_id": 153,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 720,
+          "yield_count": 2,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 16,
+          "berry": 18,
+          "item_id": 150,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 240,
+          "yield_count": 3,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 17,
+          "berry": 18,
+          "item_id": 150,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 240,
+          "yield_count": 3,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 18,
+          "berry": 18,
+          "item_id": 150,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 240,
+          "yield_count": 3,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 19,
+          "berry": 16,
+          "item_id": 148,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 240,
+          "yield_count": 3,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 20,
+          "berry": 16,
+          "item_id": 148,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 240,
+          "yield_count": 3,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 21,
+          "berry": 4,
+          "item_id": 136,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 720,
+          "yield_count": 2,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 22,
+          "berry": 3,
+          "item_id": 135,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 720,
+          "yield_count": 2,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 23,
+          "berry": 3,
+          "item_id": 135,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 720,
+          "yield_count": 2,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 24,
+          "berry": 4,
+          "item_id": 136,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 720,
+          "yield_count": 2,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 25,
+          "berry": 20,
+          "item_id": 152,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 240,
+          "yield_count": 3,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 26,
+          "berry": 2,
+          "item_id": 134,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 720,
+          "yield_count": 2,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 27,
+          "berry": 19,
+          "item_id": 151,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 240,
+          "yield_count": 3,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 28,
+          "berry": 19,
+          "item_id": 151,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 240,
+          "yield_count": 3,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 29,
+          "berry": 19,
+          "item_id": 151,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 240,
+          "yield_count": 3,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 30,
+          "berry": 21,
+          "item_id": 153,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 720,
+          "yield_count": 2,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 31,
+          "berry": 10,
+          "item_id": 142,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 1440,
+          "yield_count": 2,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 32,
+          "berry": 0,
+          "item_id": null,
+          "stage": 0,
+          "stop_growth": false,
+          "minutes_until_next_stage": 0,
+          "yield_count": 0,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 33,
+          "berry": 10,
+          "item_id": 142,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 1440,
+          "yield_count": 2,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 34,
+          "berry": 21,
+          "item_id": 153,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 720,
+          "yield_count": 2,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 35,
+          "berry": 21,
+          "item_id": 153,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 720,
+          "yield_count": 2,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 36,
+          "berry": 21,
+          "item_id": 153,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 720,
+          "yield_count": 2,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 37,
+          "berry": 5,
+          "item_id": 137,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 720,
+          "yield_count": 2,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 38,
+          "berry": 5,
+          "item_id": 137,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 720,
+          "yield_count": 2,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 39,
+          "berry": 5,
+          "item_id": 137,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 720,
+          "yield_count": 2,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 40,
+          "berry": 3,
+          "item_id": 135,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 720,
+          "yield_count": 2,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 41,
+          "berry": 3,
+          "item_id": 135,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 720,
+          "yield_count": 2,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 42,
+          "berry": 3,
+          "item_id": 135,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 720,
+          "yield_count": 2,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 43,
+          "berry": 16,
+          "item_id": 148,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 240,
+          "yield_count": 3,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 44,
+          "berry": 18,
+          "item_id": 150,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 240,
+          "yield_count": 3,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 45,
+          "berry": 20,
+          "item_id": 152,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 240,
+          "yield_count": 3,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 46,
+          "berry": 19,
+          "item_id": 151,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 240,
+          "yield_count": 3,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 47,
+          "berry": 8,
+          "item_id": 140,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 720,
+          "yield_count": 2,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 48,
+          "berry": 5,
+          "item_id": 137,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 720,
+          "yield_count": 2,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 49,
+          "berry": 4,
+          "item_id": 136,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 720,
+          "yield_count": 2,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 50,
+          "berry": 2,
+          "item_id": 134,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 720,
+          "yield_count": 2,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 51,
+          "berry": 0,
+          "item_id": null,
+          "stage": 0,
+          "stop_growth": false,
+          "minutes_until_next_stage": 0,
+          "yield_count": 0,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 52,
+          "berry": 18,
+          "item_id": 150,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 240,
+          "yield_count": 3,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 53,
+          "berry": 18,
+          "item_id": 150,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 240,
+          "yield_count": 3,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 54,
+          "berry": 0,
+          "item_id": null,
+          "stage": 0,
+          "stop_growth": false,
+          "minutes_until_next_stage": 0,
+          "yield_count": 0,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 55,
+          "berry": 17,
+          "item_id": 149,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 240,
+          "yield_count": 3,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 56,
+          "berry": 17,
+          "item_id": 149,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 240,
+          "yield_count": 3,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 57,
+          "berry": 0,
+          "item_id": null,
+          "stage": 0,
+          "stop_growth": false,
+          "minutes_until_next_stage": 0,
+          "yield_count": 0,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 58,
+          "berry": 21,
+          "item_id": 153,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 720,
+          "yield_count": 2,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 59,
+          "berry": 21,
+          "item_id": 153,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 720,
+          "yield_count": 2,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 60,
+          "berry": 25,
+          "item_id": 157,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 720,
+          "yield_count": 2,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 61,
+          "berry": 25,
+          "item_id": 157,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 720,
+          "yield_count": 2,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 62,
+          "berry": 6,
+          "item_id": 138,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 960,
+          "yield_count": 2,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 63,
+          "berry": 0,
+          "item_id": null,
+          "stage": 0,
+          "stop_growth": false,
+          "minutes_until_next_stage": 0,
+          "yield_count": 0,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 64,
+          "berry": 6,
+          "item_id": 138,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 960,
+          "yield_count": 2,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 65,
+          "berry": 25,
+          "item_id": 157,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 720,
+          "yield_count": 2,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 66,
+          "berry": 2,
+          "item_id": 134,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 720,
+          "yield_count": 2,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 67,
+          "berry": 20,
+          "item_id": 152,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 240,
+          "yield_count": 3,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 68,
+          "berry": 8,
+          "item_id": 140,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 720,
+          "yield_count": 2,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 69,
+          "berry": 22,
+          "item_id": 154,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 720,
+          "yield_count": 2,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 70,
+          "berry": 22,
+          "item_id": 154,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 720,
+          "yield_count": 2,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 71,
+          "berry": 22,
+          "item_id": 154,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 720,
+          "yield_count": 2,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 72,
+          "berry": 25,
+          "item_id": 157,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 720,
+          "yield_count": 2,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 73,
+          "berry": 23,
+          "item_id": 155,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 720,
+          "yield_count": 2,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 74,
+          "berry": 23,
+          "item_id": 155,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 720,
+          "yield_count": 2,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 75,
+          "berry": 0,
+          "item_id": null,
+          "stage": 0,
+          "stop_growth": false,
+          "minutes_until_next_stage": 0,
+          "yield_count": 0,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 76,
+          "berry": 1,
+          "item_id": 133,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 720,
+          "yield_count": 2,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 77,
+          "berry": 8,
+          "item_id": 140,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 720,
+          "yield_count": 2,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 78,
+          "berry": 8,
+          "item_id": 140,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 720,
+          "yield_count": 2,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 79,
+          "berry": 23,
+          "item_id": 155,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 720,
+          "yield_count": 2,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 80,
+          "berry": 7,
+          "item_id": 139,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 720,
+          "yield_count": 2,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 81,
+          "berry": 7,
+          "item_id": 139,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 720,
+          "yield_count": 2,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 82,
+          "berry": 36,
+          "item_id": 168,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 5760,
+          "yield_count": 1,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 83,
+          "berry": 24,
+          "item_id": 156,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 720,
+          "yield_count": 2,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 84,
+          "berry": 24,
+          "item_id": 156,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 720,
+          "yield_count": 2,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 85,
+          "berry": 10,
+          "item_id": 142,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 1440,
+          "yield_count": 2,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 86,
+          "berry": 6,
+          "item_id": 138,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 960,
+          "yield_count": 2,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 87,
+          "berry": 3,
+          "item_id": 135,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 720,
+          "yield_count": 2,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 88,
+          "berry": 10,
+          "item_id": 142,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 1440,
+          "yield_count": 2,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 89,
+          "berry": 4,
+          "item_id": 136,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 720,
+          "yield_count": 2,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 90,
+          "berry": 0,
+          "item_id": null,
+          "stage": 0,
+          "stop_growth": false,
+          "minutes_until_next_stage": 0,
+          "yield_count": 0,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 91,
+          "berry": 0,
+          "item_id": null,
+          "stage": 0,
+          "stop_growth": false,
+          "minutes_until_next_stage": 0,
+          "yield_count": 0,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 92,
+          "berry": 0,
+          "item_id": null,
+          "stage": 0,
+          "stop_growth": false,
+          "minutes_until_next_stage": 0,
+          "yield_count": 0,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 93,
+          "berry": 0,
+          "item_id": null,
+          "stage": 0,
+          "stop_growth": false,
+          "minutes_until_next_stage": 0,
+          "yield_count": 0,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 94,
+          "berry": 0,
+          "item_id": null,
+          "stage": 0,
+          "stop_growth": false,
+          "minutes_until_next_stage": 0,
+          "yield_count": 0,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 95,
+          "berry": 0,
+          "item_id": null,
+          "stage": 0,
+          "stop_growth": false,
+          "minutes_until_next_stage": 0,
+          "yield_count": 0,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 96,
+          "berry": 0,
+          "item_id": null,
+          "stage": 0,
+          "stop_growth": false,
+          "minutes_until_next_stage": 0,
+          "yield_count": 0,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 97,
+          "berry": 0,
+          "item_id": null,
+          "stage": 0,
+          "stop_growth": false,
+          "minutes_until_next_stage": 0,
+          "yield_count": 0,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 98,
+          "berry": 0,
+          "item_id": null,
+          "stage": 0,
+          "stop_growth": false,
+          "minutes_until_next_stage": 0,
+          "yield_count": 0,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 99,
+          "berry": 0,
+          "item_id": null,
+          "stage": 0,
+          "stop_growth": false,
+          "minutes_until_next_stage": 0,
+          "yield_count": 0,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 100,
+          "berry": 0,
+          "item_id": null,
+          "stage": 0,
+          "stop_growth": false,
+          "minutes_until_next_stage": 0,
+          "yield_count": 0,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 101,
+          "berry": 0,
+          "item_id": null,
+          "stage": 0,
+          "stop_growth": false,
+          "minutes_until_next_stage": 0,
+          "yield_count": 0,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 102,
+          "berry": 0,
+          "item_id": null,
+          "stage": 0,
+          "stop_growth": false,
+          "minutes_until_next_stage": 0,
+          "yield_count": 0,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 103,
+          "berry": 0,
+          "item_id": null,
+          "stage": 0,
+          "stop_growth": false,
+          "minutes_until_next_stage": 0,
+          "yield_count": 0,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 104,
+          "berry": 0,
+          "item_id": null,
+          "stage": 0,
+          "stop_growth": false,
+          "minutes_until_next_stage": 0,
+          "yield_count": 0,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 105,
+          "berry": 0,
+          "item_id": null,
+          "stage": 0,
+          "stop_growth": false,
+          "minutes_until_next_stage": 0,
+          "yield_count": 0,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 106,
+          "berry": 0,
+          "item_id": null,
+          "stage": 0,
+          "stop_growth": false,
+          "minutes_until_next_stage": 0,
+          "yield_count": 0,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 107,
+          "berry": 0,
+          "item_id": null,
+          "stage": 0,
+          "stop_growth": false,
+          "minutes_until_next_stage": 0,
+          "yield_count": 0,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 108,
+          "berry": 0,
+          "item_id": null,
+          "stage": 0,
+          "stop_growth": false,
+          "minutes_until_next_stage": 0,
+          "yield_count": 0,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 109,
+          "berry": 0,
+          "item_id": null,
+          "stage": 0,
+          "stop_growth": false,
+          "minutes_until_next_stage": 0,
+          "yield_count": 0,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 110,
+          "berry": 0,
+          "item_id": null,
+          "stage": 0,
+          "stop_growth": false,
+          "minutes_until_next_stage": 0,
+          "yield_count": 0,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 111,
+          "berry": 0,
+          "item_id": null,
+          "stage": 0,
+          "stop_growth": false,
+          "minutes_until_next_stage": 0,
+          "yield_count": 0,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 112,
+          "berry": 0,
+          "item_id": null,
+          "stage": 0,
+          "stop_growth": false,
+          "minutes_until_next_stage": 0,
+          "yield_count": 0,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 113,
+          "berry": 0,
+          "item_id": null,
+          "stage": 0,
+          "stop_growth": false,
+          "minutes_until_next_stage": 0,
+          "yield_count": 0,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 114,
+          "berry": 0,
+          "item_id": null,
+          "stage": 0,
+          "stop_growth": false,
+          "minutes_until_next_stage": 0,
+          "yield_count": 0,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 115,
+          "berry": 0,
+          "item_id": null,
+          "stage": 0,
+          "stop_growth": false,
+          "minutes_until_next_stage": 0,
+          "yield_count": 0,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 116,
+          "berry": 0,
+          "item_id": null,
+          "stage": 0,
+          "stop_growth": false,
+          "minutes_until_next_stage": 0,
+          "yield_count": 0,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 117,
+          "berry": 0,
+          "item_id": null,
+          "stage": 0,
+          "stop_growth": false,
+          "minutes_until_next_stage": 0,
+          "yield_count": 0,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 118,
+          "berry": 0,
+          "item_id": null,
+          "stage": 0,
+          "stop_growth": false,
+          "minutes_until_next_stage": 0,
+          "yield_count": 0,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 119,
+          "berry": 0,
+          "item_id": null,
+          "stage": 0,
+          "stop_growth": false,
+          "minutes_until_next_stage": 0,
+          "yield_count": 0,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 120,
+          "berry": 0,
+          "item_id": null,
+          "stage": 0,
+          "stop_growth": false,
+          "minutes_until_next_stage": 0,
+          "yield_count": 0,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 121,
+          "berry": 0,
+          "item_id": null,
+          "stage": 0,
+          "stop_growth": false,
+          "minutes_until_next_stage": 0,
+          "yield_count": 0,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 122,
+          "berry": 0,
+          "item_id": null,
+          "stage": 0,
+          "stop_growth": false,
+          "minutes_until_next_stage": 0,
+          "yield_count": 0,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 123,
+          "berry": 0,
+          "item_id": null,
+          "stage": 0,
+          "stop_growth": false,
+          "minutes_until_next_stage": 0,
+          "yield_count": 0,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 124,
+          "berry": 0,
+          "item_id": null,
+          "stage": 0,
+          "stop_growth": false,
+          "minutes_until_next_stage": 0,
+          "yield_count": 0,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 125,
+          "berry": 0,
+          "item_id": null,
+          "stage": 0,
+          "stop_growth": false,
+          "minutes_until_next_stage": 0,
+          "yield_count": 0,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 126,
+          "berry": 0,
+          "item_id": null,
+          "stage": 0,
+          "stop_growth": false,
+          "minutes_until_next_stage": 0,
+          "yield_count": 0,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 127,
+          "berry": 0,
+          "item_id": null,
+          "stage": 0,
+          "stop_growth": false,
+          "minutes_until_next_stage": 0,
+          "yield_count": 0,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        }
+      ],
+      "planted_berries": 0,
+      "diagnostics": [],
+      "script_pc": 136232504,
+      "script_mode": 1,
+      "script_status": 1,
+      "selected_tree_id": null,
+      "berry_script_owner": null,
+      "daycare": []
+    },
+    "battle": null,
+    "running": {
+      "permitted": false,
+      "controllable": false,
+      "reason": "external_owner",
+      "shoes": null,
+      "allow_running": null,
+      "avatar_flags": null,
+      "metatile": null,
+      "elevation": null,
+      "map_type": null,
+      "callback1": 134766085,
+      "callback2": 135479777,
+      "diagnostic": null,
+      "raw_hex": null
+    },
+    "blackout_active": false,
+    "money": 3000,
+    "badges": [],
+    "play_time_s": 354,
+    "raw_ram": {
+      "v": 1,
+      "sequence": 1476,
+      "frame": 35628,
+      "sha256": "b68ab3f8d2789e2f74253d71a73ed0aa61aac5e19330837761742460e1206674",
+      "path": "raw-ram/00001476.json.gz"
+    },
+    "settle": {
+      "frames": 0,
+      "reason": "immediate"
+    }
+  },
+  {
+    "v": 1,
+    "run": "2026-10-18T23-32-33_qwen36-gpu1_90bb",
+    "seq": 2907,
+    "t": "2026-10-18T23:42:51.467-04:00",
+    "type": "tool_result",
+    "state_seq": 2906,
+    "turn": 133,
+    "id": "vhJ3Ob3FIuO5Rij2V6M1hdYAKGV1h2Yx",
+    "name": "press",
+    "is_error": false,
+    "duration_ms": 2055,
+    "text": "Read from game memory, always true:\nStory goal: \"He lives right next door, so you should go over and introduce yourself.\" (MOM, turn 84) -> \"He lives\" (He = PROF. BIRCH, the one story character named before it in this conversation) = PROF. BIRCH'S HOUSE 1F (map 1/2). Way in: door in LITTLEROOT TOWN (map 0/9) at (14,8).\n\npressed UP, A\nPress result: UP: turned left -> up; no net movement | then A: interface changed (phase, selection, value, or readiness changed; input acceptance per frame unproven)\n\nScreen: starter_choice\nDialog: none\nMenu: starter_selection; selected TORCHIC\nInterface: starter_selection; input ready; selected TORCHIC; LEFT/RIGHT selects; A opens confirmation\nMenu state: selected index (zero based): 1; starter: TORCHIC\nBag: empty\nStory: player name confirmed; Mom clock instruction received; clock set; Mom told you PROF. BIRCH lives next door (after the Petalburg Gym TV report); rival met; sent to save Birch\nPlayer: RICHIE\nLocation: ROUTE101\nPosition: X=6, Y=13, facing left\nParty (player): none\nMoney: ₽3000\nBadges: none\nIn battle: no\nPlay time: 0:05:54\nNavigation map_id: [0,16] (current map only)\nMap topology: unavailable",
+    "frames": [
+      {
+        "path": "frames/002907_0.png",
+        "sha1": "e689a5ea7e7225c28d7fc3ba56883851ea9e492b"
+      }
+    ]
+  },
+  {
+    "v": 1,
+    "run": "2026-10-18T23-32-33_qwen36-gpu1_90bb",
+    "seq": 2922,
+    "t": "2026-10-18T23:42:56.091-04:00",
+    "type": "state",
+    "turn": 134,
+    "screen": "starter_choice",
+    "active_ui": {
+      "phase": "starter_confirmation",
+      "selected": "YES",
+      "ready": true,
+      "controls": "UP/DOWN selects; A confirms; B declines",
+      "diagnostic": null,
+      "value": "TORCHIC",
+      "details": {
+        "callback2": "0x081341E1",
+        "task_ids": [
+          0,
+          1
+        ],
+        "task_functions": [
+          "0x08134401",
+          "0x080A370D"
+        ],
+        "task_data": [
+          1,
+          5,
+          4,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "owner_task": 0,
+        "selected_index": 1,
+        "starter": "TORCHIC",
+        "confirmation_index": 0
+      }
+    },
+    "story": {
+      "name_confirmed": true,
+      "intro_stage": 7,
+      "rival_stage": 3,
+      "birch_lab_stage": 0,
+      "petalburg_gym_stage": 0,
+      "woods_stage": 0,
+      "town_stage": 2,
+      "clock_set": true,
+      "rival_battle_won": false,
+      "pokedex_received": false,
+      "running_shoes_received": false,
+      "starter_tutorial_complete": false,
+      "rustboro_gym_complete": false,
+      "stone_badge": false,
+      "rock_tomb_received": false,
+      "rustboro_josh_defeated": false,
+      "rustboro_tommy_defeated": false,
+      "rustboro_marc_defeated": false,
+      "petalburg_woods_lyle_defeated": false,
+      "petalburg_woods_james_defeated": false,
+      "petalburg_woods_aqua_grunt_defeated": false,
+      "route116_joey_defeated": false,
+      "route116_jose_defeated": false,
+      "route116_jerry_defeated": false,
+      "route116_clark_defeated": false,
+      "route116_janice_defeated": false,
+      "route116_karen_defeated": false,
+      "route116_sarah_defeated": false,
+      "route116_dawson_defeated": false,
+      "route116_devan_defeated": false,
+      "route116_johnson_defeated": false,
+      "roxanne_defeated": false,
+      "route102_calvin_defeated": false,
+      "route102_rick_defeated": false,
+      "route102_tiana_defeated": false,
+      "route102_allen_defeated": false,
+      "route104_ivan_defeated": false,
+      "route104_billy_defeated": false,
+      "route104_haley_defeated": false,
+      "route104_winston_defeated": false,
+      "route104_cindy_defeated": false,
+      "route104_gina_mia_defeated": false,
+      "route104_darian_defeated": false
+    },
+    "naming": null,
+    "world_context": null,
+    "field_controls_locked": null,
+    "local_map": null,
+    "topology": null,
+    "navigation_grid": null,
+    "interaction_targets": null,
+    "started": true,
+    "name": "RICHIE",
+    "location": "ROUTE101",
+    "map_id": [
+      0,
+      16
+    ],
+    "position": {
+      "x": 6,
+      "y": 13
+    },
+    "facing": "left",
+    "in_battle": false,
+    "party_owner": "player",
+    "party_ownership": {
+      "owner": "player",
+      "source": "ordinary_player_party",
+      "original_identities": [],
+      "rental_personalities": [],
+      "diagnostic": null,
+      "raw_hex": null
+    },
+    "party": [],
+    "game_stats": {
+      "saved_game": 0,
+      "pokemon_captures": 0,
+      "evolved_pokemon": 0,
+      "used_pokecenter": 0
+    },
+    "route103_rival": {
+      "battle_active": false,
+      "defeated": false,
+      "oldale_stage": 0
+    },
+    "trainer_opponent": null,
+    "resources": {
+      "bag": [],
+      "pc_items": [
+        {
+          "slot": 0,
+          "item_id": 13,
+          "quantity": 1,
+          "pocket": null,
+          "name": "POTION"
+        }
+      ],
+      "storage": {
+        "current_box": 0,
+        "occupied": []
+      },
+      "berry_trees": [
+        {
+          "tree_id": 0,
+          "berry": 0,
+          "item_id": null,
+          "stage": 0,
+          "stop_growth": false,
+          "minutes_until_next_stage": 0,
+          "yield_count": 0,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 1,
+          "berry": 3,
+          "item_id": 135,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 720,
+          "yield_count": 2,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 2,
+          "berry": 7,
+          "item_id": 139,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 720,
+          "yield_count": 2,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 3,
+          "berry": 0,
+          "item_id": null,
+          "stage": 0,
+          "stop_growth": false,
+          "minutes_until_next_stage": 0,
+          "yield_count": 0,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 4,
+          "berry": 7,
+          "item_id": 139,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 720,
+          "yield_count": 2,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 5,
+          "berry": 1,
+          "item_id": 133,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 720,
+          "yield_count": 2,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 6,
+          "berry": 6,
+          "item_id": 138,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 960,
+          "yield_count": 2,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 7,
+          "berry": 1,
+          "item_id": 133,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 720,
+          "yield_count": 2,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 8,
+          "berry": 1,
+          "item_id": 133,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 720,
+          "yield_count": 2,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 9,
+          "berry": 0,
+          "item_id": null,
+          "stage": 0,
+          "stop_growth": false,
+          "minutes_until_next_stage": 0,
+          "yield_count": 0,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 10,
+          "berry": 6,
+          "item_id": 138,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 960,
+          "yield_count": 2,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 11,
+          "berry": 7,
+          "item_id": 139,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 720,
+          "yield_count": 2,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 12,
+          "berry": 0,
+          "item_id": null,
+          "stage": 0,
+          "stop_growth": false,
+          "minutes_until_next_stage": 0,
+          "yield_count": 0,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 13,
+          "berry": 3,
+          "item_id": 135,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 720,
+          "yield_count": 2,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 14,
+          "berry": 23,
+          "item_id": 155,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 720,
+          "yield_count": 2,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 15,
+          "berry": 21,
+          "item_id": 153,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 720,
+          "yield_count": 2,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 16,
+          "berry": 18,
+          "item_id": 150,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 240,
+          "yield_count": 3,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 17,
+          "berry": 18,
+          "item_id": 150,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 240,
+          "yield_count": 3,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 18,
+          "berry": 18,
+          "item_id": 150,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 240,
+          "yield_count": 3,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 19,
+          "berry": 16,
+          "item_id": 148,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 240,
+          "yield_count": 3,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 20,
+          "berry": 16,
+          "item_id": 148,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 240,
+          "yield_count": 3,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 21,
+          "berry": 4,
+          "item_id": 136,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 720,
+          "yield_count": 2,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 22,
+          "berry": 3,
+          "item_id": 135,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 720,
+          "yield_count": 2,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 23,
+          "berry": 3,
+          "item_id": 135,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 720,
+          "yield_count": 2,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 24,
+          "berry": 4,
+          "item_id": 136,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 720,
+          "yield_count": 2,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 25,
+          "berry": 20,
+          "item_id": 152,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 240,
+          "yield_count": 3,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 26,
+          "berry": 2,
+          "item_id": 134,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 720,
+          "yield_count": 2,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 27,
+          "berry": 19,
+          "item_id": 151,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 240,
+          "yield_count": 3,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 28,
+          "berry": 19,
+          "item_id": 151,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 240,
+          "yield_count": 3,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 29,
+          "berry": 19,
+          "item_id": 151,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 240,
+          "yield_count": 3,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 30,
+          "berry": 21,
+          "item_id": 153,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 720,
+          "yield_count": 2,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 31,
+          "berry": 10,
+          "item_id": 142,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 1440,
+          "yield_count": 2,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 32,
+          "berry": 0,
+          "item_id": null,
+          "stage": 0,
+          "stop_growth": false,
+          "minutes_until_next_stage": 0,
+          "yield_count": 0,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 33,
+          "berry": 10,
+          "item_id": 142,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 1440,
+          "yield_count": 2,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 34,
+          "berry": 21,
+          "item_id": 153,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 720,
+          "yield_count": 2,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 35,
+          "berry": 21,
+          "item_id": 153,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 720,
+          "yield_count": 2,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 36,
+          "berry": 21,
+          "item_id": 153,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 720,
+          "yield_count": 2,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 37,
+          "berry": 5,
+          "item_id": 137,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 720,
+          "yield_count": 2,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 38,
+          "berry": 5,
+          "item_id": 137,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 720,
+          "yield_count": 2,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 39,
+          "berry": 5,
+          "item_id": 137,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 720,
+          "yield_count": 2,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 40,
+          "berry": 3,
+          "item_id": 135,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 720,
+          "yield_count": 2,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 41,
+          "berry": 3,
+          "item_id": 135,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 720,
+          "yield_count": 2,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 42,
+          "berry": 3,
+          "item_id": 135,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 720,
+          "yield_count": 2,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 43,
+          "berry": 16,
+          "item_id": 148,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 240,
+          "yield_count": 3,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 44,
+          "berry": 18,
+          "item_id": 150,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 240,
+          "yield_count": 3,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 45,
+          "berry": 20,
+          "item_id": 152,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 240,
+          "yield_count": 3,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 46,
+          "berry": 19,
+          "item_id": 151,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 240,
+          "yield_count": 3,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 47,
+          "berry": 8,
+          "item_id": 140,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 720,
+          "yield_count": 2,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 48,
+          "berry": 5,
+          "item_id": 137,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 720,
+          "yield_count": 2,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 49,
+          "berry": 4,
+          "item_id": 136,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 720,
+          "yield_count": 2,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 50,
+          "berry": 2,
+          "item_id": 134,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 720,
+          "yield_count": 2,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 51,
+          "berry": 0,
+          "item_id": null,
+          "stage": 0,
+          "stop_growth": false,
+          "minutes_until_next_stage": 0,
+          "yield_count": 0,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 52,
+          "berry": 18,
+          "item_id": 150,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 240,
+          "yield_count": 3,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 53,
+          "berry": 18,
+          "item_id": 150,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 240,
+          "yield_count": 3,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 54,
+          "berry": 0,
+          "item_id": null,
+          "stage": 0,
+          "stop_growth": false,
+          "minutes_until_next_stage": 0,
+          "yield_count": 0,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 55,
+          "berry": 17,
+          "item_id": 149,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 240,
+          "yield_count": 3,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 56,
+          "berry": 17,
+          "item_id": 149,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 240,
+          "yield_count": 3,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 57,
+          "berry": 0,
+          "item_id": null,
+          "stage": 0,
+          "stop_growth": false,
+          "minutes_until_next_stage": 0,
+          "yield_count": 0,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 58,
+          "berry": 21,
+          "item_id": 153,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 720,
+          "yield_count": 2,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 59,
+          "berry": 21,
+          "item_id": 153,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 720,
+          "yield_count": 2,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 60,
+          "berry": 25,
+          "item_id": 157,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 720,
+          "yield_count": 2,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 61,
+          "berry": 25,
+          "item_id": 157,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 720,
+          "yield_count": 2,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 62,
+          "berry": 6,
+          "item_id": 138,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 960,
+          "yield_count": 2,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 63,
+          "berry": 0,
+          "item_id": null,
+          "stage": 0,
+          "stop_growth": false,
+          "minutes_until_next_stage": 0,
+          "yield_count": 0,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 64,
+          "berry": 6,
+          "item_id": 138,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 960,
+          "yield_count": 2,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 65,
+          "berry": 25,
+          "item_id": 157,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 720,
+          "yield_count": 2,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 66,
+          "berry": 2,
+          "item_id": 134,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 720,
+          "yield_count": 2,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 67,
+          "berry": 20,
+          "item_id": 152,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 240,
+          "yield_count": 3,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 68,
+          "berry": 8,
+          "item_id": 140,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 720,
+          "yield_count": 2,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 69,
+          "berry": 22,
+          "item_id": 154,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 720,
+          "yield_count": 2,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 70,
+          "berry": 22,
+          "item_id": 154,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 720,
+          "yield_count": 2,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 71,
+          "berry": 22,
+          "item_id": 154,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 720,
+          "yield_count": 2,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 72,
+          "berry": 25,
+          "item_id": 157,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 720,
+          "yield_count": 2,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 73,
+          "berry": 23,
+          "item_id": 155,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 720,
+          "yield_count": 2,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 74,
+          "berry": 23,
+          "item_id": 155,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 720,
+          "yield_count": 2,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 75,
+          "berry": 0,
+          "item_id": null,
+          "stage": 0,
+          "stop_growth": false,
+          "minutes_until_next_stage": 0,
+          "yield_count": 0,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 76,
+          "berry": 1,
+          "item_id": 133,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 720,
+          "yield_count": 2,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 77,
+          "berry": 8,
+          "item_id": 140,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 720,
+          "yield_count": 2,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 78,
+          "berry": 8,
+          "item_id": 140,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 720,
+          "yield_count": 2,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 79,
+          "berry": 23,
+          "item_id": 155,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 720,
+          "yield_count": 2,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 80,
+          "berry": 7,
+          "item_id": 139,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 720,
+          "yield_count": 2,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 81,
+          "berry": 7,
+          "item_id": 139,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 720,
+          "yield_count": 2,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 82,
+          "berry": 36,
+          "item_id": 168,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 5760,
+          "yield_count": 1,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 83,
+          "berry": 24,
+          "item_id": 156,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 720,
+          "yield_count": 2,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 84,
+          "berry": 24,
+          "item_id": 156,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 720,
+          "yield_count": 2,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 85,
+          "berry": 10,
+          "item_id": 142,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 1440,
+          "yield_count": 2,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 86,
+          "berry": 6,
+          "item_id": 138,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 960,
+          "yield_count": 2,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 87,
+          "berry": 3,
+          "item_id": 135,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 720,
+          "yield_count": 2,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 88,
+          "berry": 10,
+          "item_id": 142,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 1440,
+          "yield_count": 2,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 89,
+          "berry": 4,
+          "item_id": 136,
+          "stage": 5,
+          "stop_growth": true,
+          "minutes_until_next_stage": 720,
+          "yield_count": 2,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 90,
+          "berry": 0,
+          "item_id": null,
+          "stage": 0,
+          "stop_growth": false,
+          "minutes_until_next_stage": 0,
+          "yield_count": 0,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 91,
+          "berry": 0,
+          "item_id": null,
+          "stage": 0,
+          "stop_growth": false,
+          "minutes_until_next_stage": 0,
+          "yield_count": 0,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 92,
+          "berry": 0,
+          "item_id": null,
+          "stage": 0,
+          "stop_growth": false,
+          "minutes_until_next_stage": 0,
+          "yield_count": 0,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 93,
+          "berry": 0,
+          "item_id": null,
+          "stage": 0,
+          "stop_growth": false,
+          "minutes_until_next_stage": 0,
+          "yield_count": 0,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 94,
+          "berry": 0,
+          "item_id": null,
+          "stage": 0,
+          "stop_growth": false,
+          "minutes_until_next_stage": 0,
+          "yield_count": 0,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 95,
+          "berry": 0,
+          "item_id": null,
+          "stage": 0,
+          "stop_growth": false,
+          "minutes_until_next_stage": 0,
+          "yield_count": 0,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 96,
+          "berry": 0,
+          "item_id": null,
+          "stage": 0,
+          "stop_growth": false,
+          "minutes_until_next_stage": 0,
+          "yield_count": 0,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 97,
+          "berry": 0,
+          "item_id": null,
+          "stage": 0,
+          "stop_growth": false,
+          "minutes_until_next_stage": 0,
+          "yield_count": 0,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 98,
+          "berry": 0,
+          "item_id": null,
+          "stage": 0,
+          "stop_growth": false,
+          "minutes_until_next_stage": 0,
+          "yield_count": 0,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 99,
+          "berry": 0,
+          "item_id": null,
+          "stage": 0,
+          "stop_growth": false,
+          "minutes_until_next_stage": 0,
+          "yield_count": 0,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 100,
+          "berry": 0,
+          "item_id": null,
+          "stage": 0,
+          "stop_growth": false,
+          "minutes_until_next_stage": 0,
+          "yield_count": 0,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 101,
+          "berry": 0,
+          "item_id": null,
+          "stage": 0,
+          "stop_growth": false,
+          "minutes_until_next_stage": 0,
+          "yield_count": 0,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 102,
+          "berry": 0,
+          "item_id": null,
+          "stage": 0,
+          "stop_growth": false,
+          "minutes_until_next_stage": 0,
+          "yield_count": 0,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 103,
+          "berry": 0,
+          "item_id": null,
+          "stage": 0,
+          "stop_growth": false,
+          "minutes_until_next_stage": 0,
+          "yield_count": 0,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 104,
+          "berry": 0,
+          "item_id": null,
+          "stage": 0,
+          "stop_growth": false,
+          "minutes_until_next_stage": 0,
+          "yield_count": 0,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 105,
+          "berry": 0,
+          "item_id": null,
+          "stage": 0,
+          "stop_growth": false,
+          "minutes_until_next_stage": 0,
+          "yield_count": 0,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 106,
+          "berry": 0,
+          "item_id": null,
+          "stage": 0,
+          "stop_growth": false,
+          "minutes_until_next_stage": 0,
+          "yield_count": 0,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 107,
+          "berry": 0,
+          "item_id": null,
+          "stage": 0,
+          "stop_growth": false,
+          "minutes_until_next_stage": 0,
+          "yield_count": 0,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 108,
+          "berry": 0,
+          "item_id": null,
+          "stage": 0,
+          "stop_growth": false,
+          "minutes_until_next_stage": 0,
+          "yield_count": 0,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 109,
+          "berry": 0,
+          "item_id": null,
+          "stage": 0,
+          "stop_growth": false,
+          "minutes_until_next_stage": 0,
+          "yield_count": 0,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 110,
+          "berry": 0,
+          "item_id": null,
+          "stage": 0,
+          "stop_growth": false,
+          "minutes_until_next_stage": 0,
+          "yield_count": 0,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 111,
+          "berry": 0,
+          "item_id": null,
+          "stage": 0,
+          "stop_growth": false,
+          "minutes_until_next_stage": 0,
+          "yield_count": 0,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 112,
+          "berry": 0,
+          "item_id": null,
+          "stage": 0,
+          "stop_growth": false,
+          "minutes_until_next_stage": 0,
+          "yield_count": 0,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 113,
+          "berry": 0,
+          "item_id": null,
+          "stage": 0,
+          "stop_growth": false,
+          "minutes_until_next_stage": 0,
+          "yield_count": 0,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 114,
+          "berry": 0,
+          "item_id": null,
+          "stage": 0,
+          "stop_growth": false,
+          "minutes_until_next_stage": 0,
+          "yield_count": 0,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 115,
+          "berry": 0,
+          "item_id": null,
+          "stage": 0,
+          "stop_growth": false,
+          "minutes_until_next_stage": 0,
+          "yield_count": 0,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 116,
+          "berry": 0,
+          "item_id": null,
+          "stage": 0,
+          "stop_growth": false,
+          "minutes_until_next_stage": 0,
+          "yield_count": 0,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 117,
+          "berry": 0,
+          "item_id": null,
+          "stage": 0,
+          "stop_growth": false,
+          "minutes_until_next_stage": 0,
+          "yield_count": 0,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 118,
+          "berry": 0,
+          "item_id": null,
+          "stage": 0,
+          "stop_growth": false,
+          "minutes_until_next_stage": 0,
+          "yield_count": 0,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 119,
+          "berry": 0,
+          "item_id": null,
+          "stage": 0,
+          "stop_growth": false,
+          "minutes_until_next_stage": 0,
+          "yield_count": 0,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 120,
+          "berry": 0,
+          "item_id": null,
+          "stage": 0,
+          "stop_growth": false,
+          "minutes_until_next_stage": 0,
+          "yield_count": 0,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 121,
+          "berry": 0,
+          "item_id": null,
+          "stage": 0,
+          "stop_growth": false,
+          "minutes_until_next_stage": 0,
+          "yield_count": 0,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 122,
+          "berry": 0,
+          "item_id": null,
+          "stage": 0,
+          "stop_growth": false,
+          "minutes_until_next_stage": 0,
+          "yield_count": 0,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 123,
+          "berry": 0,
+          "item_id": null,
+          "stage": 0,
+          "stop_growth": false,
+          "minutes_until_next_stage": 0,
+          "yield_count": 0,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 124,
+          "berry": 0,
+          "item_id": null,
+          "stage": 0,
+          "stop_growth": false,
+          "minutes_until_next_stage": 0,
+          "yield_count": 0,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 125,
+          "berry": 0,
+          "item_id": null,
+          "stage": 0,
+          "stop_growth": false,
+          "minutes_until_next_stage": 0,
+          "yield_count": 0,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 126,
+          "berry": 0,
+          "item_id": null,
+          "stage": 0,
+          "stop_growth": false,
+          "minutes_until_next_stage": 0,
+          "yield_count": 0,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "tree_id": 127,
+          "berry": 0,
+          "item_id": null,
+          "stage": 0,
+          "stop_growth": false,
+          "minutes_until_next_stage": 0,
+          "yield_count": 0,
+          "regrowth_count": 0,
+          "watered": [
+            false,
+            false,
+            false,
+            false
+          ]
+        }
+      ],
+      "planted_berries": 0,
+      "diagnostics": [],
+      "script_pc": 136232504,
+      "script_mode": 1,
+      "script_status": 1,
+      "selected_tree_id": null,
+      "berry_script_owner": null,
+      "daycare": []
+    },
+    "battle": null,
+    "running": {
+      "permitted": false,
+      "controllable": false,
+      "reason": "external_owner",
+      "shoes": null,
+      "allow_running": null,
+      "avatar_flags": null,
+      "metatile": null,
+      "elevation": null,
+      "map_type": null,
+      "callback1": 134766085,
+      "callback2": 135479777,
+      "diagnostic": null,
+      "raw_hex": null
+    },
+    "blackout_active": false,
+    "money": 3000,
+    "badges": [],
+    "play_time_s": 358,
+    "raw_ram": {
+      "v": 1,
+      "sequence": 1480,
+      "frame": 35875,
+      "sha256": "d168f3f9674c1ef2c61a69a124d5564a661c1670eb2290a89b0cc85515c0779e",
+      "path": "raw-ram/00001480.json.gz"
+    },
+    "settle": {
+      "frames": 0,
+      "reason": "immediate"
+    }
+  },
+  {
+    "v": 1,
+    "run": "2026-10-18T23-32-33_qwen36-gpu1_90bb",
+    "seq": 2923,
+    "t": "2026-10-18T23:42:56.094-04:00",
+    "type": "tool_result",
+    "state_seq": 2922,
+    "turn": 134,
+    "id": "q1evIY54pZjzY7PVGXyebatJDn9azB5H",
+    "name": "press",
+    "is_error": false,
+    "duration_ms": 992,
+    "text": "Read from game memory, always true:\nStory goal: \"He lives right next door, so you should go over and introduce yourself.\" (MOM, turn 84) -> \"He lives\" (He = PROF. BIRCH, the one story character named before it in this conversation) = PROF. BIRCH'S HOUSE 1F (map 1/2). Way in: door in LITTLEROOT TOWN (map 0/9) at (14,8).\n\npressed A\nPress result: interface changed (phase, selection, value, or readiness changed; input acceptance per frame unproven)\n\nScreen: starter_choice\nDialog: none\nMenu: starter_confirmation; selected YES\nInterface: starter_confirmation; input ready; selected YES; value TORCHIC; UP/DOWN selects; A confirms; B declines\nMenu state: selected index (zero based): 1; starter: TORCHIC; confirmation index: 0\nBag: empty\nStory: player name confirmed; Mom clock instruction received; clock set; Mom told you PROF. BIRCH lives next door (after the Petalburg Gym TV report); rival met; sent to save Birch\nPlayer: RICHIE\nLocation: ROUTE101\nPosition: X=6, Y=13, facing left\nParty (player): none\nMoney: ₽3000\nBadges: none\nIn battle: no\nPlay time: 0:05:58\nNavigation map_id: [0,16] (current map only)\nMap topology: unavailable",
+    "frames": [
+      {
+        "path": "frames/002923_0.png",
+        "sha1": "33984ffb54577363e90d93e80995b76edc59f376"
+      }
+    ]
+  }
+]

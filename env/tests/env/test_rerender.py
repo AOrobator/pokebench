@@ -15,6 +15,7 @@ from pokebench_env import rerender
 from pokebench_env.blackout_readout import Whiteout
 from pokebench_env.game_state import MapNames
 from pokebench_env.readout import SERVER_FEATURES
+from pokebench_env.respawn import LinkCache, RespawnMemory
 from pokebench_env.rom import EMERALD_SHA1, RomError, resolve_rom
 
 FIXTURE = json.loads((Path(__file__).parent / "fixtures" / "rerender-dc0e-t212.json").read_text())
@@ -40,6 +41,7 @@ RECORDED_OFF = [
     "unset-dynamic-warp-v1",
     "status-names-v1",
     "surf-gated-exits-v2",
+    "battle-effective-damage-v1",
 ]
 
 
@@ -66,8 +68,18 @@ def operator_rom() -> bytes:
 
 
 def env_with(off: list[str]) -> dict[str, str]:
-    # The recorded run predates warp-arrival-settle-v1, so it ran with that switch off.
-    off = [*off, "warp-arrival-settle-v1"]
+    # The recorded run predates warp-arrival-settle-v1, semantic-navigation-v2,
+    # respawn-readout-v1, caught-nickname-prompt-v1 and field-move-gates-v1, so it ran with
+    # those switches off.
+    off = [
+        *off,
+        "warp-arrival-settle-v1",
+        "semantic-navigation-v2",
+        "exit-labels-v2",
+        "respawn-readout-v1",
+        "caught-nickname-prompt-v1",
+        "field-move-gates-v1",
+    ]
     return {"POKEBENCH_FEATURES_OFF": ",".join(off), "POKEBENCH_ACTIVE_UI": "1"}
 
 
@@ -83,19 +95,17 @@ def test_recorded_switches_reproduce_the_recorded_readout_byte_for_byte():
     assert readouts == [FIXTURE["readout"]]
 
 
-def test_a_flipped_server_switch_changes_only_what_it_owns():
+def test_named_warps_cannot_expose_an_internal_only_dynamic_destination():
     read = windows_reader(operator_rom())
     maps = MapNames.load(rerender.PORYMAP_MAPS)
     on = [f for f in RECORDED_OFF if f != "named-warp-destinations-v1"]
     flipped = rerender.rerender(
         Path("/run"), [rerender.RawRef("a", "s")], lambda _p, _s: read, maps, env_with(on)
     )[0]
-    assert "(4,3) -> LITTLEROOT TOWN (dynamic warp; map 0/9)" in flipped
-    assert "(4,3) -> dynamic destination" in FIXTURE["readout"]
-    changed = {line for line in flipped.splitlines()} ^ {
-        line for line in FIXTURE["readout"].splitlines()
-    }
-    assert all("arp" in line for line in changed)
+    assert "(4,3) -> dynamic destination" in flipped
+    assert "LITTLEROOT TOWN (dynamic warp; map 0/9)" not in flipped
+    changed = set(flipped.splitlines()) ^ set(FIXTURE["readout"].splitlines())
+    assert changed and all(line.startswith("Warp destinations are ") for line in changed)
 
 
 def test_read_state_and_render_pass_every_server_switch_through(monkeypatch):
@@ -121,6 +131,7 @@ def test_read_state_and_render_pass_every_server_switch_through(monkeypatch):
         "full_map_enabled": False,
         "story_characters_enabled": False,
         "battle_details_enabled": False,
+        "battle_damage_enabled": False,
         "dynamic_warp_enabled": False,
         "displayed_names_enabled": False,
         "connection_edges_enabled": False,
@@ -132,9 +143,18 @@ def test_read_state_and_render_pass_every_server_switch_through(monkeypatch):
         "surf_gate_enabled": False,
         "exit_reach_enabled": False,
         "heal_trainers_enabled": False,
+        "heal_trainers_v2_enabled": False,
         "tutorial_owner_enabled": False,
         "mid_frame_enabled": False,
         "unset_warp_enabled": False,
+        "semantic_navigation_enabled": False,
+        "evolution_decision_enabled": False,
+        "exit_labels_enabled": False,
+        "exit_sections_enabled": False,
+        "caught_nickname_enabled": False,
+        "party_item_confirmation_enabled": False,
+        "field_moves_enabled": False,
+        "respawn_links": None,
         "fmt_named_interactions": False,
         "fmt_world_destinations": False,
         "fmt_bounded_navigation": False,
@@ -144,15 +164,27 @@ def test_read_state_and_render_pass_every_server_switch_through(monkeypatch):
         "fmt_rules_in_prompt": False,
         "fmt_adjacent_tiles": False,
         "fmt_whiteout": None,
+        "fmt_respawn_memory": None,
     }
+    # respawn-readout-v1 OFF hands no map table to the reader even when the caller has one.
+    rerender.read_state(
+        lambda a, n: b"", MapNames({}), active_ui=False, off=all_off, links=LinkCache({})
+    )
+    assert seen["respawn_links"] is None
     event = Whiteout(3000)
+    links, memory = LinkCache({}), RespawnMemory()
     rerender.render(
-        rerender.read_state(lambda a, n: b"", MapNames({}), active_ui=True, off=frozenset()),
+        rerender.read_state(
+            lambda a, n: b"", MapNames({}), active_ui=True, off=frozenset(), links=links
+        ),
         frozenset(),
         warp_animation=True,
         whiteout=event,
+        respawn_memory=memory,
     )
     assert seen.pop("fmt_whiteout") is event
+    assert seen.pop("respawn_links") is links
+    assert seen.pop("fmt_respawn_memory") is memory
     assert all(value is True for value in seen.values())
 
 

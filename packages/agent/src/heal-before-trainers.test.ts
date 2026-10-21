@@ -1,3 +1,4 @@
+import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
 // heal-before-trainers-v1: on the free field, when a trainer the player has not beaten is loaded on this map and the
 // party is weak (a Pokémon fainted, the lead below half HP, or the lead's damaging moves out of PP), the tool result
 // says so and names the nearest place that heals the party that the player has been to. The operator 2026-10-17: "I like the
@@ -9,7 +10,7 @@
 import {readFileSync} from "node:fs";
 import {describe,expect,it} from "vitest";
 import type {AgentTool,AgentToolResult} from "@mariozechner/pi-agent-core";
-import {ALL_ON,SERVER_FEATURES,SWITCHABLE_FEATURES,dependencyProblems,featureInfo,featuresOf,playHarnessFeatures,serverFeatureEnv,type FeatureSet} from "./features.js";
+import {SERVER_FEATURES,SWITCHABLE_FEATURES,dependencyProblems,featureInfo,featuresOf,playHarnessFeatures,serverFeatureEnv,type FeatureSet} from "./features.js";
 import {flagFeatures,normalizeFeatures,parsePlayPreset,presetFeatures} from "./play-preset.js";
 import {parseGameState,type GameStateSnapshot} from "./game-state.js";
 import {eventProblem,type RunEvent} from "./events.js";
@@ -45,26 +46,26 @@ function replay(name:string,states:readonly GameStateSnapshot[]):AgentTool {
 type Calls={v1:unknown[][];v2:unknown[][];heal:unknown[][]};
 function recorder():Required<WarningRecorder>&{calls:Calls}{
  const calls:Calls={v1:[],v2:[],heal:[]};
- return {calls,lowHpTrainerWarning:(...args)=>{calls.v1.push(args);},storyBattleWarning:(...args)=>{calls.v2.push(args);},healBeforeTrainersWarning:(...args)=>{calls.heal.push(args);}};
+ return {calls,gymHealWarning:()=>undefined,lowHpTrainerWarning:(...args)=>{calls.v1.push(args);},storyBattleWarning:(...args)=>{calls.v2.push(args);},healBeforeTrainersWarning:(...args)=>{calls.heal.push(args);}};
 }
 const places={places:()=>Promise.resolve({places:PLACES})};
 const run=async(tool:AgentTool,times:number):Promise<string[]>=>{const out:string[]=[];for(let i=0;i<times;i++)out.push(textOf(await tool.execute(`c${String(i)}`,{})));return out;};
 
 describe("registry",()=>{
- it("is a default-off guard that needs low-hp-trainer-warning-v1, applied by the game server too, recorded last",()=>{
+ it("is a default-off guard that needs low-hp-trainer-warning-v1, applied by the game server too",()=>{
   expect(featureInfo(ID)).toMatchObject({group:"guard",needs:"low-hp-trainer-warning-v1",switchable:true,title:"HEAL BEFORE TRAINERS"});
   expect(featureInfo(ID).description).toContain(" Off: ");
   expect(featureInfo(ID).description).toContain(AFTER_TEXT);
-  expect(SWITCHABLE_FEATURES.at(-12)).toBe(ID);
-  expect(playHarnessFeatures(ALL_ON,null).at(-12)).toBe(ID);
-  expect(playHarnessFeatures({...ALL_ON,[ID]:false},null)).not.toContain(ID);
+  expect(SWITCHABLE_FEATURES.at(-73)).toBe(ID);
+  expect(playHarnessFeatures(ALL_ON,null).at(-37)).toBe(ID);
+  expect(playHarnessFeatures({...ALL_ON,"battle-decision-ready-v1":false,[ID]:false},null)).not.toContain(ID);
   expect(SERVER_FEATURES).toContain(ID);
-  expect(serverFeatureEnv({...ALL_ON,[ID]:false}).POKEBENCH_FEATURES_OFF.split(",")).toContain(ID);
+  expect(serverFeatureEnv({...ALL_ON,"battle-decision-ready-v1":false,[ID]:false}).POKEBENCH_FEATURES_OFF.split(",")).toContain(ID);
   expect(serverFeatureEnv(ALL_ON).POKEBENCH_FEATURES_OFF.split(",")).not.toContain(ID);
-  expect(dependencyProblems({...ALL_ON,"low-hp-trainer-warning-v1":false})).toContain(`${ID} needs low-hp-trainer-warning-v1`);
+  expect(dependencyProblems({...ALL_ON,"battle-decision-ready-v1":false,"low-hp-trainer-warning-v1":false})).toContain(`${ID} needs low-hp-trainer-warning-v1`);
  });
  it("defaults OFF for presets that omit it and legacy flags; prompt and tools never change",()=>{
-  const without=Object.fromEntries(Object.entries({...ALL_ON,"state-only-decisions-v1":false}).filter(([id])=>id!==ID)) as Omit<FeatureSet,typeof ID>;
+  const without=Object.fromEntries(Object.entries({...ALL_ON,"battle-decision-ready-v1":false,"state-only-decisions-v1":false,"bag-healing-items-v1":false,"battle-menu-loop-v1":false,"clock-view-loop-v1":false,"stale-story-goal-v1":false,"stale-story-goal-v2":false,"input-cuts-v1":false,"loop-guard-screen-v1":false,"reopened-dialogue-loop-v1":false,"dialog-button-b-v1":false,"just-in-time-prompt-v1":false,"just-in-time-prompt-v2":false,"jit-guide-reuse-v1":false}).filter(([id])=>id!==ID)) as Omit<FeatureSet,typeof ID>;
   expect(normalizeFeatures(without)[ID]).toBe(false);
   expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:true})[ID]).toBe(false);
   expect(presetFeatures(parsePlayPreset({version:2,id:"p",target:null,limits:{maxTurns:1,maxWallMs:1,failureLimit:1},sampling:{thinkingLevel:"medium",maxTokens:1},features:without}))[ID]).toBe(false);
@@ -277,7 +278,8 @@ describe("recorded event",()=>{
   const f=must(healBeforeTrainers(AFTER,{entered:new Set(),places:PLACES,skip:null}));
   const event={v:1,run:"r",seq:9,t:"2026-10-17T14:20:00.000-04:00",type:"heal_before_trainers_warning",turn:582,tool:"press",...f,map_id:[0,19],trainers:f.trainers.map(t=>({...t})),weak:f.weak.map(w=>({...w})),heal:f.heal===null?null:{...f.heal,map_id:[2,2]},text:healBeforeTrainersText(f)} as RunEvent;
   expect(eventProblem(event)).toBeNull();
-  expect(eventProblem({...event,weak:[]})).not.toBeNull();
+  // heal-before-trainers-v2 records weak: [] when it names only a story opponent below full HP; trainers stay required.
+  expect(eventProblem({...event,trainers:[]})).not.toBeNull();
   expect(formatEvent(event)).toBe("14:20:00 t582 SUPERVISOR heal before trainers · LASS (31,24) · TORCHIC 14/38 below half · POKéMON CENTER in OLDALE TOWN");
  });
 });
@@ -286,7 +288,8 @@ describe("the pending experiment",()=>{
  it("flips only heal-before-trainers-v1 over the finals incumbent with v1 on, lists every switch, and is not queued",()=>{
   const raw=JSON.parse(readFileSync(new URL("../../../experiments/heal-before-trainers.json",import.meta.url),"utf8")) as {incumbent:{features:Record<string,boolean>}};
   // Every switch registered when the entry was written (through instruction-ledger-v2); later ones default off.
-  expect(Object.keys(raw.incumbent.features)).toEqual(SWITCHABLE_FEATURES.slice(0,SWITCHABLE_FEATURES.indexOf("instruction-ledger-v2")+1));
+  const historical=SWITCHABLE_FEATURES.filter(id=>id!=="pending-field-dialogue-v1"&&id!=="short-cycle-fixed-point-v1"&&id!=="navigation-tool-use-guard-v1"&&id!=="semantic-current-map-feedback-v1"&&id!=="navigation-refusal-reasons-v3"&&id!=="exit-labels-v3"&&id!=="story-battle-heal-first-v1"&&id!=="party-item-confirmation-v1"&&id!=="observed-instructions-v1"&&id!=="evolution-decision-v1"&&id!=="safe-navigation-strides-v1"&&id!=="battle-decision-ready-v1"&&id!=="deterministic-warp-navigation-v1"&&id!=="battle-effective-damage-v1"&&id!=="scripted-place-guidance-v1"&&id!=="trigger-script-loop-v1");
+  expect(Object.keys(raw.incumbent.features)).toEqual(historical.slice(0,historical.indexOf("instruction-ledger-v2")+1));
   const entry=parseExperiment(raw);
   expect(entry.queuePosition).toBeUndefined();
   expect(entry.changedFeature).toBe(ID);

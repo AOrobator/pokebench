@@ -59,6 +59,9 @@ from pokebench_env.world_context import (
 from tests.env.test_game_state import MAPS, OVERWORLD, SB1, Memory, decode_text, game
 
 FIXTURE = json.loads((Path(__file__).parent / "fixtures/readout-truth-cook.json").read_text())
+CURRENT = json.loads(
+    (Path(__file__).parent / "fixtures/readout-truth-current-warp-names.json").read_text()
+)["cases"]
 NEW = frozenset(
     {
         "readout-truth-v1",
@@ -72,6 +75,10 @@ NEW = frozenset(
         "unset-dynamic-warp-v1",
         "status-names-v1",
         "surf-gated-exits-v2",
+        "battle-effective-damage-v1",
+        "semantic-navigation-v2",
+        "exit-labels-v2",
+        "yes-no-answer-readout-v1",
     }
 )
 ROM_START = 0x08000000
@@ -185,16 +192,18 @@ RECEIVED = [f["state_seq"] for f in FIXTURE["frames"] if f["received"] is not No
 
 
 @pytest.mark.parametrize("seq", RECEIVED)
-def test_off_reproduces_what_the_model_received(seq: int) -> None:
-    # The readout is the whole tail of the tool result, after the press lines or a frame note.
+def test_off_matches_current_policy_without_rewriting_what_the_model_received(seq: int) -> None:
+    # The archived tool result remains source evidence; current policy has a separate snapshot.
     text, received = render(seq), str(frame(seq)["received"])
-    assert received.endswith(text)
-    head = received[: -len(text)]
+    assert text == CURRENT[f"readout-truth:{seq}"]
+    at = received.index("Screen: ")
+    head, archived_readout = received[:at], received[at:]
     assert head == "" or head.endswith("\n")
     # The tail starts at the readout's first line: no "Screen:" line is left in the head
     # (only press lines or a frame note come before it), so a dropped first line fails.
     assert text.startswith("Screen: ")
     assert not any(line.startswith("Screen: ") for line in head.split("\n"))
+    assert archived_readout.startswith("Screen: ")
 
 
 def test_push_back_script_lock_reads_as_a_script_with_no_message() -> None:
@@ -323,7 +332,7 @@ def test_state_json_is_unchanged_where_no_interface_owner_changes() -> None:
 def test_switch_is_a_default_off_server_feature() -> None:
     assert SWITCH in SERVER_FEATURES
     assert SWITCH in features_off_from_env({})
-    assert SERVER_FEATURES[-11:-8] == (
+    assert SERVER_FEATURES[-24:-21] == (
         "readout-truth-v1",
         "birch-speech-pages-v1",
         "blackout-readout-v1",

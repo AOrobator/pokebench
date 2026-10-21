@@ -1,6 +1,7 @@
+import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
 import { describe, expect, it } from "vitest";
 import { IN_GAME } from "../test-support/events.js";
-import { ALL_ON, type FeatureSet } from "./features.js";
+import { type FeatureSet } from "./features.js";
 import type { GameStateSnapshot } from "./game-state.js";
 import { toolSwitches } from "./play-config.js";
 import { ALL_PRESS_FACTS, ShownStates, pressResult } from "./press-result.js";

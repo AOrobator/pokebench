@@ -1,6 +1,7 @@
+import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
 import {readFileSync} from "node:fs";
 import {describe,expect,it} from "vitest";
-import {ALL_ON,SWITCHABLE_FEATURES,dependencyProblems,featureInfo,featuresOf,playHarnessFeatures,type FeatureSet} from "./features.js";
+import {SWITCHABLE_FEATURES,dependencyProblems,featureInfo,featuresOf,playHarnessFeatures,type FeatureSet} from "./features.js";
 import {attachLoopGuard,Governor} from "./harness.js";
 import {checkEvent,parseEvent,type RunEvent} from "./events.js";
 import type {LoopNotice} from "./loop-detection.js";
@@ -23,7 +24,7 @@ type Guard=Extract<RunEvent,{type:"loop_guard"}>;
 function rig(features:FeatureSet,events:readonly RunEvent[]=FIXTURE.events){
  const subscribers:((e:RunEvent)=>void)[]=[];const guards:Guard[]=[];const contexts=new Map<number,string|null>();
  let current:RunEvent|undefined;
- const recorder={subscribe:(fn:(e:RunEvent)=>void)=>{subscribers.push(fn);},recordLoopGuard:(n:LoopNotice)=>{guards.push(checkEvent({v:1,run:"r",t:current?.t??"2026-10-16T03:00:00.000-04:00",seq:current?.seq??0,turn:current?.turn??0,type:"loop_guard",...n,evidence:[...n.evidence]}) as Guard);}};
+ const recorder={subscribe:(fn:(e:RunEvent)=>void)=>{subscribers.push(fn);},recordStallGate:()=>undefined,recordLoopGuard:(n:LoopNotice)=>{guards.push(checkEvent({v:1,run:"r",t:current?.t??"2026-10-16T03:00:00.000-04:00",seq:current?.seq??0,turn:current?.turn??0,type:"loop_guard",...n,evidence:[...n.evidence]}) as Guard);}};
  const governor=new Governor({limits:{maxTurns:5000,maxWallMs:1e12,failureLimit:3},retry:()=>undefined,abort:()=>undefined,now:()=>0});
  const detector=attachLoopGuard(recorder,governor,undefined,"enforced",features["interaction-loop-detection-v1"],loopSupervisor(features,recorder),features["transition-loop-detection-v1"]);
  stallBriefing(features,recorder,detector,{pausedMs:()=>0},()=>0);
@@ -41,10 +42,10 @@ describe("registry and presets",()=>{
   expect(featureInfo(ID)).toMatchObject({group:"guard",needs:"deterministic-loop-guard-v1",switchable:true,title:"SAME-PLAN BREAKER"});
   expect(featureInfo(ID).description).toContain(" Off: no such note.");
   expect(featureInfo(ID).description).toContain("Your last 3 plans (turns a, b, c) were the same and the game state did not change");
-  expect(SWITCHABLE_FEATURES.at(-40)).toBe(ID);
-  expect(playHarnessFeatures(ALL_ON,null).at(-40)).toBe(ID);
-  expect(featuresOf(playHarnessFeatures({...ALL_ON,[ID]:false},null))[ID]).toBe(false);
-  expect(dependencyProblems({...ALL_ON,"deterministic-loop-guard-v1":false})).toContain(`${ID} needs deterministic-loop-guard-v1`);
+  expect(SWITCHABLE_FEATURES.at(-101)).toBe(ID);
+  expect(playHarnessFeatures(ALL_ON,null).at(-65)).toBe(ID);
+  expect(featuresOf(playHarnessFeatures({...ALL_ON,"battle-decision-ready-v1":false,[ID]:false},null))[ID]).toBe(false);
+  expect(dependencyProblems({...ALL_ON,"battle-decision-ready-v1":false,"deterministic-loop-guard-v1":false})).toContain(`${ID} needs deterministic-loop-guard-v1`);
  });
  it("defaults off for presets that omit it and for legacy flag presets",()=>{
   const older=Object.fromEntries(Object.entries(ALL_ON).filter(([id])=>id!==ID)) as Omit<FeatureSet,typeof ID>;

@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { RUN_LOG_MAX_BYTES } from "./run-log.js";
 import { closeSync, fstatSync, openSync, readSync } from "node:fs";
 import { eventProblem, type RunEvent } from "@pokebench/agent/events";
 // skip receives a JSON line the schema rejects instead of failing the read (version skew); it may still throw.
@@ -7,7 +8,7 @@ export function reduceWorkbenchLog(path: string, consume: (event: RunEvent) => v
   return readWorkbenchSnapshot(path, consume, limits).sha256;
 }
 export function readWorkbenchSnapshot(path: string, consume: (event: RunEvent) => void, limits: ReadLimits = {}): { sha256: string; bytes: number } {
-  const maxBytes = limits.maxBytes ?? 512 * 1024 * 1024, lineBytes = limits.lineBytes ?? 1024 * 1024, chunkBytes = limits.chunkBytes ?? 64 * 1024;
+  const maxBytes = limits.maxBytes ?? RUN_LOG_MAX_BYTES, lineBytes = limits.lineBytes ?? 1024 * 1024, chunkBytes = limits.chunkBytes ?? 64 * 1024;
   if (![maxBytes, lineBytes, chunkBytes].every(n => Number.isSafeInteger(n) && n > 0)) throw new Error("Log read limits must be positive safe integers");
   const fd = openSync(path, "r");
   try {

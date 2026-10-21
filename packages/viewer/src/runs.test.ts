@@ -2,9 +2,9 @@ import { appendFileSync, cpSync, mkdirSync, mkdtempSync, readFileSync, writeFile
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { Log, START, fullRun, state } from "../test-support/events.js";
+import { Log, START, assistant, fullRun, state } from "../test-support/events.js";
 import { rivalRam, writeArchive } from "../test-support/raw-ram.js";
-import { RunsError, baselineOf, createBaselineReader, listRuns, liveScreenPort, readFrom, runDir } from "./runs.js";
+import { RECENT_EVENT_BYTES, RECENT_EVENT_TURNS, RunsError, baselineOf, createBaselineReader, listRuns, liveScreenPort, readFrom, readRecentEvents, readHeadEvents, runDir } from "./runs.js";
 
 function root(): string {
   return mkdtempSync(join(tmpdir(), "pokebench-viewer-runs-"));
@@ -85,6 +85,68 @@ describe("readFrom", () => {
   });
 });
 
+describe("readRecentEvents", () => {
+  it("pins the production snapshot bounds", () => {
+    expect(RECENT_EVENT_TURNS).toBe(30);
+    expect(RECENT_EVENT_BYTES).toBe(8 * 1024 * 1024);
+  });
+
+  it("returns the run header plus only complete newest turns from a bounded tail", () => {
+    const runsRoot = root();
+    const log = new Log();
+    log.add(0, START);
+    for (let turn = 1; turn <= 4; turn += 1) {
+      log.add(turn * 1_000, { type: "turn_start", turn, context: { messages: turn, images: 0, est_tokens: turn * 10 } });
+      log.add(turn * 1_000 + 1, { ...assistant({ turn, thinking: `thought ${String(turn)} ${"x".repeat(200)}` }) });
+    }
+    const path = writeRun(runsRoot, "recent", log);
+    const lastTwoBytes = readFileSync(path, "utf8").split("\n").slice(-7).join("\n").length + 20;
+    const recent = readRecentEvents(runsRoot, "recent", 2, lastTwoBytes);
+    expect(recent[0]?.type).toBe("run_start");
+    expect([...new Set(recent.slice(1).map((event) => event.turn))]).toEqual([3, 4]);
+    const thought = (turn: number): string => {
+      const event = recent.find((candidate) => candidate.type === "assistant" && candidate.turn === turn);
+      if (event?.type !== "assistant") throw new Error(`missing assistant turn ${String(turn)}`);
+      return event.thinking;
+    };
+    expect(thought(3)).toContain("thought 3");
+    expect(thought(4)).toContain("thought 4");
+    expect(recent.some((event) => event.turn === 2)).toBe(false);
+  });
+
+  it("drops an oldest turn whose first event was cut by the byte boundary", () => {
+    const runsRoot = root();
+    const log = new Log();
+    log.add(0, START);
+    for (let turn = 1; turn <= 3; turn += 1) {
+      log.add(turn * 1_000, { type: "turn_start", turn, context: { messages: turn, images: 0, est_tokens: turn * 10 } });
+      log.add(turn * 1_000 + 1, assistant({ turn, thinking: `thought ${String(turn)}` }));
+    }
+    const path = writeRun(runsRoot, "boundary", log);
+    const bytes = readFileSync(path);
+    const firstTurnStart = bytes.indexOf(Buffer.from('"type":"turn_start","turn":1'));
+    expect(firstTurnStart).toBeGreaterThan(0);
+
+    const recent = readRecentEvents(runsRoot, "boundary", 5, bytes.length - firstTurnStart - 5);
+    expect([...new Set(recent.slice(1).map((event) => event.turn))]).toEqual([2, 3]);
+  });
+
+  it("rejects a recent event owned by another run", () => {
+    const runsRoot = root();
+    const log = new Log();
+    log.add(0, START);
+    log.add(1_000, { type: "turn_start", turn: 1, context: { messages: 1, images: 0, est_tokens: 10 } });
+    log.add(2_000, assistant({ turn: 1, thinking: "foreign" }));
+    const path = writeRun(runsRoot, "owned", log);
+    const rows = readFileSync(path, "utf8").trim().split("\n").map((line) => JSON.parse(line) as Record<string, unknown>);
+    if (rows[2] === undefined) throw new Error("missing fixture event");
+    rows[2].run = "someone-else";
+    writeFileSync(path, `${rows.map((row) => JSON.stringify(row)).join("\n")}\n`);
+
+    expect(() => readRecentEvents(runsRoot, "owned")).toThrow(/someone-else/);
+  });
+});
+
 describe("baselineOf", () => {
   it("returns milestone offsets from the run start", () => {
     const runsRoot = root();
@@ -110,6 +172,21 @@ describe("baselineOf", () => {
     const lines = foreign.events.map((event) => JSON.stringify(event.type === "milestone" ? { ...event, run: "someone-else" } : { ...event, run: "mixed" }));
     writeFileSync(join(dir, "events.jsonl"), `${lines.join("\n")}\n`);
     expect(() => baselineOf(runsRoot2, "mixed")).toThrow(/someone-else/);
+  });
+
+  it("reads the log in bounded chunks, so a log too long for one string still grades", () => {
+    const runsRoot = root();
+    const path = writeRun(runsRoot, "chunked", fullRun());
+    appendFileSync(path, "{\"still\":\"being written");
+    expect(baselineOf(runsRoot, "chunked", 7)).toEqual({
+      run: "chunked",
+      milestones: [
+        { name: "GAME_RUNNING", offsetMs: 10 },
+        { name: "PLAYER_NAME_SET", offsetMs: 3100 },
+      ],
+    });
+    appendFileSync(path, "\n");
+    expect(() => baselineOf(runsRoot, "chunked", 7)).toThrow(/line 15/);
   });
 
   it("fails for a run without a readable start", () => {
@@ -141,7 +218,7 @@ it("rejects manual probes and legacy vendor states as benchmark baselines", () =
   expect(() => baselineOf(runsRoot, "legacy")).toThrow(/unverified historical/);
 });
 
-it("selects previous same-model baseline and deepest then fastest best, from valid completed same-start runs", async () => {
+it("selects the previous same-model baseline from valid completed same-start runs", async () => {
   const { comparisonsOf } = await import("./runs.js");
   const r = root();
   const logged = (offset: number, names: string[], model = "think-swarm", start_state = START.start_state) => {
@@ -180,7 +257,6 @@ it("selects previous same-model baseline and deepest then fastest best, from val
   writeRun(r, "healer", logged(5000, ["PLAYER_NAME_SET", "FIRST_POKECENTER_HEAL"]));
   const result = await comparisonsOf(r, "current");
   expect(result.baseline?.run).toBe("previous");
-  expect(result.best?.run).toBe("deepest");
   expect(result.candidates.map((c) => c.run).sort()).toEqual(["deepest", "healer", "other-model", "previous", "slower-deep"]);
 });
 
@@ -222,7 +298,7 @@ it("keeps nickname-resume progress out of the actual recorder split catalog", as
   expect(baselineOf(r,"nickname-resume")).toEqual({run:"nickname-resume",milestones:[{name:"GAME_RUNNING",offsetMs:0}]});
   const current=new Log();current.add(2000,{...START,harness_features:["ram-state-v1"],start_state:{kind:"save_state",path:"fixture",sha1:"0".repeat(40)}});
   writeRun(r,"current",current);
-  expect((await comparisonsOf(r,"current"))).toEqual({candidates:[],baseline:null,best:null});
+  expect((await comparisonsOf(r,"current"))).toEqual({candidates:[],baseline:null});
 });
 
 const HUMAN = { kind: "human", name: "Operator", rom_sha1: "c".repeat(40), input_policy: "frame-held-v1", sample_ms: 100, nominal_fps: 59.7275 } as const;
@@ -234,7 +310,7 @@ function humanLog(offset = 0, finished = true, reason: "operator_stop" | "operat
   return log;
 }
 
-it("offers finished comparable humans explicitly, never as automatic model best or baseline", async () => {
+it("offers finished comparable humans explicitly, never as the automatic baseline", async () => {
   const { comparisonsOf } = await import("./runs.js");
   const r = root();
   writeRun(r, "current", humanLog(1000, false));
@@ -243,7 +319,6 @@ it("offers finished comparable humans explicitly, never as automatic model best 
   expect(result.candidates).toHaveLength(1);
   expect(result.candidates[0]).toMatchObject({ run: "human", model: "Human · Operator", controller: { kind: "human", name: "Operator" } });
   expect(result.baseline).toBeNull();
-  expect(result.best).toBeNull();
 });
 
 it("excludes incomplete and aborted human references, preserving crash DNF partial splits", () => {
@@ -265,7 +340,7 @@ it("matches human references by start and known ROM, rejects probes and invalid 
   writeRun(r, "probe", changeStart({ harness_features: ["ram-state-v1", "probe"] }));
   const path = writeRun(r, "invalid", humanLog());
   writeFileSync(path, readFileSync(path, "utf8").replace('\n', '\ninvalid\n'));
-  expect((await comparisonsOf(r, "current"))).toEqual({ candidates: [], baseline: null, best: null });
+  expect((await comparisonsOf(r, "current"))).toEqual({ candidates: [], baseline: null });
 });
 
 it("keeps a mixed model catalog automatic picks model-only, qualifying legacy ROM proof", async () => {
@@ -279,7 +354,6 @@ it("keeps a mixed model catalog automatic picks model-only, qualifying legacy RO
   expect(result.candidates.map(c => c.run).sort()).toEqual(["human-fast", "model-reference"]);
   expect(result.candidates.find(c => c.run === "human-fast")).toMatchObject({ romIdentity: "unverified" });
   expect(result.baseline?.run).toBe("model-reference");
-  expect(result.best?.run).toBe("model-reference");
   const first = model.events[0]; if (first?.type !== "run_start") throw new Error("fixture");
   model.events[0] = { ...first, rom_sha1: "d".repeat(40) };
   writeRun(r, "current-model", model);
@@ -394,4 +468,36 @@ it("folds rival splits recovered from raw RAM into a comparison baseline, and re
   copyRam(join(r, "rv"));
   writeFileSync(join(r, "rv", "derived", "route103_rival.jsonl"), [{ v: 1, run: "rv", source: "raw-ram-route103-v1" }, ...([[1, false], [2, true]] as const).map(([n, active]) => ({ seq: n, raw_ram: ram(n).path, sha256: ram(n).sha256, route103_rival: { battle_active: active, defeated: false, oldale_stage: 0 } }))].map((row) => JSON.stringify(row)).join("\n") + "\n");
   expect((await reader("rv")).milestones).toContainEqual({ name: "RIVAL_BATTLE_STARTED", offsetMs: 2000, derived: true });
+});
+
+
+it("recovers old pause and extension acknowledgements without folding old gameplay", async () => {
+  const runsRoot = root(), log = new Log();
+  log.add(0, { ...START, extend_run: true });
+  log.add(10, { type: "operator_control", turn: 0, action: "extend_30m", status: "applied", request: 1, previous_max_wall_ms: 1800000, max_wall_ms: 3600000 });
+  log.add(20, { type: "operator_control", turn: 0, action: "pause", status: "applied", request: 2, emulator_frozen: true });
+  for (let turn = 1; turn <= 4; turn++) {
+    log.add(turn * 1000, { type: "turn_start", turn, context: { messages: 1, images: 0, est_tokens: 10 } });
+    log.add(turn * 1000 + 1, assistant({ turn, thinking: "history payload".repeat(10) }));
+  }
+  const path = writeRun(runsRoot, "controls-head", log);
+  writeFileSync(join(runsRoot, "controls-head", "control.jsonl"), "requests live here");
+  const cursor = { offset: 0 };
+  const head = await readHeadEvents(runsRoot, "controls-head", cursor, 1, 800);
+  expect(head.filter(e => e.type === "operator_control")).toEqual(log.events.filter(e => e.type === "operator_control").map(e => ({ ...e, run: "controls-head" })));
+  expect(head.filter(e => e.type === "assistant").map(e => e.turn)).toEqual([4]);
+  expect(cursor.offset).toBe(readFileSync(path).length);
+});
+
+it("keeps the head cursor at the last complete byte including multibyte text", () => {
+  const runsRoot = root(), log = new Log();
+  log.add(0, START);
+  log.add(1, assistant({ thinking: "Pokémon 🎮" }));
+  const path = writeRun(runsRoot, "cursor", log);
+  const end = readFileSync(path).length;
+  appendFileSync(path, '{"partial":"🎮');
+  const cursor = { offset: 0 };
+  const head = readRecentEvents(runsRoot, "cursor", 30, 8000, cursor);
+  expect(cursor.offset).toBe(end);
+  expect(head.map(e => e.seq)).toEqual(log.events.map(e => e.seq));
 });

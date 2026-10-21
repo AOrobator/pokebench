@@ -5,3 +5,15 @@ One local HTML page per designed experiment, written with `.claude/skills/pokebe
 Readiness verdicts are in [readiness.md](readiness.md).
 
 <!-- Add one line per overview: - [Title](<experiment-id>.html) — tier, start, runs per arm -->
+
+- [Battle effective damage](battle-effective-damage.html) — frontier behavior; Petalburg checkpoint; provisional 8 per arm; not approved or queued.
+
+- [JIT ten-minute screen](jit-10m.html) — screen; MAIN_MENU start; 12 per arm across both GPUs; launch held.
+
+- [JIT v2 one-pair diagnostic pilot](jit-v2-pair-10m.html) — one ten-minute run per arm; existing runs protected.
+
+- [JIT cache fixes: concurrent twenty-minute pair](jit-v2-cache-20m.html)
+
+- [Starter decision salience diagnostic](starter-decision-salience.html) — eight per arm, Route101 checkpoint, five-minute cap; not approved or launched.
+
+- [Whole-map navigation cook, 1 hour](whole-map-cook-1h.html) — screen; MAIN_MENU start; 12 one-hour pairs; gated on bundle fixes.

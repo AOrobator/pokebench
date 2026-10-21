@@ -1,8 +1,9 @@
+import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
 import {readFileSync} from "node:fs";
 import {describe,expect,it} from "vitest";
 import type {AgentTool,AgentToolResult} from "@mariozechner/pi-agent-core";
 import {checkEvent,type Button,type RunEvent} from "./events.js";
-import {ALL_ON,FEATURES,SWITCHABLE_FEATURES,dependencyProblems,featureInfo,featuresOf,playHarnessFeatures,type FeatureSet} from "./features.js";
+import {FEATURES,SWITCHABLE_FEATURES,dependencyProblems,featureInfo,featuresOf,playHarnessFeatures,type FeatureSet} from "./features.js";
 import {flagFeatures,normalizeFeatures} from "./play-preset.js";
 import {pageLines,DialogueRecord,type AutoAdvanceRecorder} from "./dialogue-auto-advance.js";
 import {DialogueLog,speakerLabel} from "./dialogue-log.js";
@@ -11,7 +12,7 @@ import {InstructionLedger,instructionLedger} from "./instruction-ledger.js";
 import {dialogueUnits} from "./harness.js";
 import {observeTool,pressTool} from "./game-tools.js";
 import {playGameTools} from "./play-wiring.js";
-import {SCREEN_REACH,STORY_CHARACTERS,onScreen,presenceTag,storyCharacter} from "./script-line-presence.js";
+import {SCREEN_REACH,STORY_CHARACTERS,canonicalStoryCharacterName,onScreen,presenceTag,storyCharacter} from "./script-line-presence.js";
 import type {GameStateSnapshot} from "./game-state.js";
 import {IN_GAME} from "../test-support/events.js";
 
@@ -137,6 +138,12 @@ describe("script-line-presence-v1: on screen and names",()=>{
   expect(storyCharacter(17,"LITTLEROOT TOWN PROFESSOR BIRCHS LAB")).toBeNull();
   expect(storyCharacter(64,null)).toBeNull();
  });
+ it("canonicalizes only exact source-proven story-character labels",()=>{
+  expect(canonicalStoryCharacterName("NORMAN")).toBe("NORMAN");
+  expect(canonicalStoryCharacterName("DAD")).toBe("NORMAN");
+  expect(canonicalStoryCharacterName("dad")).toBeNull();
+  expect(canonicalStoryCharacterName("WALLYS DAD")).toBeNull();
+ });
  it("cannot tell who is on screen without a position, map or object list",()=>{
   expect(onScreen({...state([]),position:null},true)).toBeNull();
   expect(onScreen({...state([]),map_id:null},true)).toBeNull();
@@ -225,19 +232,19 @@ describe("script-line-presence-v1: the production factory honors the switch",()=
 
 describe("script-line-presence-v1: registry",()=>{
  it("is the last switchable feature, an observation that needs dialogue auto-advance, default off",()=>{
-  expect(SWITCHABLE_FEATURES.at(-45)).toBe("script-line-presence-v1");
+  expect(SWITCHABLE_FEATURES.at(-106)).toBe("script-line-presence-v1");
   const info=featureInfo("script-line-presence-v1");
   expect(info.group).toBe("observation");
   expect(info.needs).toBe("dialogue-auto-advance-v1");
   expect(info.description).toContain(" Off: ");
   expect(FEATURES.filter(f=>f.id==="script-line-presence-v1")).toHaveLength(1);
-  expect(playHarnessFeatures(ALL_ON,null).at(-45)).toBe("script-line-presence-v1");
-  expect(playHarnessFeatures({...ALL_ON,"script-line-presence-v1":false},null)).not.toContain("script-line-presence-v1");
+  expect(playHarnessFeatures(ALL_ON,null).at(-70)).toBe("script-line-presence-v1");
+  expect(playHarnessFeatures({...ALL_ON,"battle-decision-ready-v1":false,"script-line-presence-v1":false},null)).not.toContain("script-line-presence-v1");
   const older=Object.fromEntries(Object.entries(ALL_ON).filter(([id])=>id!=="script-line-presence-v1")) as Omit<FeatureSet,"script-line-presence-v1">;
   expect(normalizeFeatures(older)["script-line-presence-v1"]).toBe(false);
   expect(normalizeFeatures({...older,"script-line-presence-v1":true})["script-line-presence-v1"]).toBe(true);
   expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:true})["script-line-presence-v1"]).toBe(false);
-  expect(dependencyProblems({...ALL_ON,"dialogue-auto-advance-v1":false})).toContain("script-line-presence-v1 needs dialogue-auto-advance-v1");
+  expect(dependencyProblems({...ALL_ON,"battle-decision-ready-v1":false,"dialogue-auto-advance-v1":false})).toContain("script-line-presence-v1 needs dialogue-auto-advance-v1");
  });
 });
 
@@ -275,7 +282,8 @@ describe("script-line-presence-v1: pending experiment (review round 1)",()=>{
  it("names every registry switch explicitly, in order, with only this switch flipped in the candidate",()=>{
   const raw=JSON.parse(readFileSync(new URL("../../../experiments/script-line-presence.json",import.meta.url),"utf8")) as {changedFeature:string;incumbent:{features:Record<string,boolean>}};
   expect(raw.changedFeature).toBe("script-line-presence-v1");
-  expect(Object.keys(raw.incumbent.features)).toEqual(SWITCHABLE_FEATURES.slice(0,SWITCHABLE_FEATURES.indexOf("script-line-presence-v1")+1));
+  const historical=SWITCHABLE_FEATURES.filter(id=>id!=="pending-field-dialogue-v1"&&id!=="short-cycle-fixed-point-v1"&&id!=="navigation-tool-use-guard-v1"&&id!=="semantic-current-map-feedback-v1"&&id!=="navigation-refusal-reasons-v3"&&id!=="exit-labels-v3"&&id!=="story-battle-heal-first-v1"&&id!=="party-item-confirmation-v1"&&id!=="observed-instructions-v1"&&id!=="evolution-decision-v1"&&id!=="safe-navigation-strides-v1"&&id!=="battle-decision-ready-v1"&&id!=="deterministic-warp-navigation-v1"&&id!=="battle-effective-damage-v1"&&id!=="scripted-place-guidance-v1"&&id!=="trigger-script-loop-v1");
+  expect(Object.keys(raw.incumbent.features)).toEqual(historical.slice(0,historical.indexOf("script-line-presence-v1")+1));
   expect(raw.incumbent.features["script-line-presence-v1"]).toBe(false);
   expect(raw.incumbent.features["dialogue-auto-advance-v1"]).toBe(true);
  });

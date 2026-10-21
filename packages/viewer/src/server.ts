@@ -1,3 +1,7 @@
+import { randomUUID } from "node:crypto";
+import { createWorkbenchUpdates, type WorkbenchUpdate } from "./workbench-sync.js";
+import { ProbeError, listProbes, readProbe } from "./probes.js";
+import { listReports, reportFile } from "./reports.js";
 import { existsSync, readFileSync } from "node:fs";
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import type { AddressInfo } from "node:net";
@@ -12,23 +16,26 @@ import { pidAlive } from "./lease.js";
 import { Type } from "typebox";
 import { Value } from "typebox/value";
 import { FEATURES } from "@pokebench/agent/features";
-import { CONTROL_ACTIONS } from "@pokebench/agent/events";
+import { CONTROL_ACTIONS, type RunEvent } from "@pokebench/agent/events";
 import { finalsRunLabels } from "./experiment-gate-store.js";
 import type { BaselineStore, RunStore } from "./baseline-store.js";
-import { BaselineError, RunsError, createBaselineReader, comparisonsOf, type BaselineCompute, eventsPath, listRuns, liveScreenPort, LogReader, readStart, readStartIdentity, runDir, type BaselineReader } from "./runs.js";
+import { frontierSplits } from "./frontier.js";
+import { BaselineError, RunsError, createBaselineReader, createRunCatalog, comparisonsOf, type BaselineCompute, eventsPath, liveScreenPort, LogReader, readRecentEvents, readHeadEvents, readStart, readStartIdentity, runDir, type BaselineReader, type RunCatalog } from "./runs.js";
 import { featureHistory } from "./history.js";
 import { localModels } from "./models.js";
 import { NextRunError, appendControl, healthProbe, liveRuns, readDraft, writeDraft, type RunQueue } from "./next-run.js";
 import { WORKBENCH_POLL_MS, type WorkbenchData } from "./workbench-data.js";
-import { createWorkbenchLoader, workbenchSnapshot, type LoadedRun, type WorkbenchCompute } from "./workbench-store.js";
+import { cardWorkbench, createWorkbenchLoader, workbenchSnapshot, type LoadedRun, type WorkbenchCompute } from "./workbench-store.js";
 import { MILESTONE_ORDER } from "./model.js";
 import { defaultViewerBuild, skewOf, type Skew, type ViewerBuild } from "./build-stamp.js";
 import { FEATURE_EXPLAINERS } from "./panels.js";
+import { WebSocketServer } from "ws";
+import { SharedFrameHub } from "./frame-hub.js";
 
 export const HOST = "127.0.0.1";
 const EXPERIMENTS_CACHE_MS = 5_000;
 // Browser code the page may load; everything else in dist/ stays private.
-export const BROWSER_MODULES = ["main", "app", "model", "format", "inspectformat", "timeline", "panels", "gba", "replay", "controls", "nextpanel", "human-input", "human-play", "human-main", "workbench-main", "workbench", "workbench-view", "workbench-data", "frontier", "frontier-versions", "frontier-legend", "queue-view", "trace", "run-head", "trainer-card", "game-font", "card-dom", "bag"] as const;
+export const BROWSER_MODULES = ["main", "app", "metric-history", "model", "format", "inspectformat", "timeline", "panels", "gba", "replay", "controls", "nextpanel", "human-input", "human-play", "human-main", "workbench-main", "workbench", "workbench-view", "workbench-data", "workbench-sync", "frontier", "frontier-versions", "frontier-legend", "queue-view", "trace", "run-head", "trainer-card", "game-font", "card-dom", "phone", "reports-view", "reports-main", "reports-boot", "probe-stats", "probes-view", "probes-main", "probes-boot", "bag"] as const;
 
 const MODULE_NAME = new RegExp(`^(${BROWSER_MODULES.join("|")})\\.js$`);
 const FRAME_NAME = /^\d{6}_\d+\.png$/;
@@ -39,14 +46,66 @@ const SPRITE_PATH = /^(manifest\.json|card\/(wide|mini|mini-ribbon)-(green|bronz
 const BAG_SPRITE_PATH = /^(manifest\.json|items\/[1-9][0-9]{0,2}\.png|pockets\/(items|poke_balls|tm_hm|berries|key_items)\.png)$/;
 const PNG_SIGNATURE = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
 const SCREEN_TIMEOUT_MS = 3_000;
+const FRAME_MAX_BYTES = 1024 * 1024;
+const PNG_MAX_DIMENSION = 2048;
+
+function crc32(bytes: Buffer): number {
+  let crc = 0xffffffff;
+  for (const byte of bytes) {
+    crc ^= byte;
+    for (let bit = 0; bit < 8; bit += 1) crc = (crc >>> 1) ^ (crc & 1 ? 0xedb88320 : 0);
+  }
+  return (crc ^ 0xffffffff) >>> 0;
+}
+
+export function validFramePng(png: Buffer): boolean {
+  if (png.length < 45 || png.length > FRAME_MAX_BYTES || !png.subarray(0, PNG_SIGNATURE.length).equals(PNG_SIGNATURE)) return false;
+  let offset = PNG_SIGNATURE.length;
+  let chunks = 0;
+  let sawIdat = false;
+  while (offset <= png.length - 12) {
+    const length = png.readUInt32BE(offset);
+    if (length > png.length - offset - 12) return false;
+    const dataEnd = offset + 8 + length;
+    const chunkEnd = dataEnd + 4;
+    const type = png.toString("ascii", offset + 4, offset + 8);
+    if (png.readUInt32BE(dataEnd) !== crc32(png.subarray(offset + 4, dataEnd))) return false;
+    if (chunks === 0) {
+      if (type !== "IHDR" || length !== 13) return false;
+      const width = png.readUInt32BE(offset + 8), height = png.readUInt32BE(offset + 12);
+      if (width === 0 || height === 0 || width > PNG_MAX_DIMENSION || height > PNG_MAX_DIMENSION) return false;
+    } else if (type === "IHDR") return false;
+    if (type === "IDAT") sawIdat = true;
+    if (type === "IEND") return length === 0 && sawIdat && chunkEnd === png.length;
+    offset = chunkEnd;
+    chunks += 1;
+  }
+  return false;
+}
 
 const SECURITY_HEADERS = {
   "cache-control": "no-store",
   "x-content-type-options": "nosniff",
   "content-security-policy":
     "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; " +
-    "font-src 'self'; img-src 'self'; connect-src 'self'",
+    "font-src 'self'; img-src 'self' blob:; connect-src 'self'",
 };
+
+// A run-analysis report is our own static page, often with inline scripts (charts, filters). It runs sandboxed in
+// an opaque origin, so its scripts cannot call the viewer's control endpoints, and links back to the viewer open
+// in the top window on whatever host is serving it.
+const REPORT_HEADERS = {
+  ...SECURITY_HEADERS,
+  "content-security-policy":
+    "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: blob:; connect-src 'none'; " +
+    "sandbox allow-scripts allow-popups allow-popups-to-escape-sandbox allow-top-navigation-by-user-activation",
+};
+function sendReport(res: ServerResponse, path: string, type: string): void {
+  let body: Buffer;
+  try { body = readFileSync(path); } catch { sendJson(res, 404, { error: "not found" }); return; }
+  res.writeHead(200, { ...REPORT_HEADERS, "content-type": type });
+  res.end(type.startsWith("text/html") ? body.toString("utf8").replace(/href="http:\/\/127\.0\.0\.1:8790\//g, 'target="_top" href="/') : body);
+}
 
 export interface ViewerOptions {
   readonly runsRoot: string;
@@ -126,7 +185,7 @@ const QUEUE_ACTIONS: readonly string[] = ["approve", "revoke", "finals-withdraw"
 interface QueueApi { read(): Promise<QueuePayload>; change(id: string, action: QueueAction): QueuePayload }
 const EmptyBodySchema = Type.Object({}, { additionalProperties: false });
 
-async function write(req: IncomingMessage, res: ServerResponse, options: ViewerOptions, port: number, parts: string[], origin: string, queueApi: QueueApi): Promise<void> {
+async function write(req: IncomingMessage, res: ServerResponse, options: ViewerOptions, port: number, parts: string[], origin: string, queueApi: QueueApi, catalog: RunCatalog): Promise<void> {
   const [, second, id, leaf] = parts;
   const now = options.now?.() ?? new Date();
   try {
@@ -137,8 +196,8 @@ async function write(req: IncomingMessage, res: ServerResponse, options: ViewerO
       return;
     }
     if (req.method === "POST" && parts.length === 4 && second === "runs" && id !== undefined && leaf === "control") {
-      if (!Value.Check(ControlBodySchema, body)) throw new RequestError(400, "action must be pause, resume, stop, cancel_stop or abort");
-      sendJson(res, 200, { request: await appendControl(options.runsRoot, id, body.action, now, healthProbe(options.fetchFn ?? fetch)) });
+      if (!Value.Check(ControlBodySchema, body)) throw new RequestError(400, "invalid control action (pause, resume, stop, cancel_stop, abort, extend_30m or extend_60m)");
+      sendJson(res, 200, { request: await appendControl(options.runsRoot, id, body.action, now, healthProbe(options.fetchFn ?? fetch), catalog) });
       return;
     }
     if(req.method==="POST" && parts.length===5 && second==="runs" && id!==undefined && leaf==="human" && parts[4]==="restart") {
@@ -234,16 +293,18 @@ function segments(rawUrl: string): string[] | null {
 // A recorded log can be hundreds of MB: it is read, validated and sent a bounded chunk at a time,
 // yielding to the event loop between chunks and waiting for the socket to drain, so opening one
 // run never stalls every other request.
-function streamEvents(req: IncomingMessage, res: ServerResponse, path: string, pollMs: number, skew: Skew | null, chunkBytes: number): void {
+function streamEvents(req: IncomingMessage, res: ServerResponse, path: string, pollMs: number, skew: Skew | null, chunkBytes: number, head?: readonly RunEvent[], offset = 0): void {
   res.writeHead(200, { ...SECURITY_HEADERS, "content-type": "text/event-stream; charset=utf-8", connection: "keep-alive" });
   let closed = false, timer: NodeJS.Timeout | null = null;
-  const reader = new LogReader(path, chunkBytes);
+  const reader = new LogReader(path, chunkBytes, offset);
   const recovered = recoveredAttacher(dirname(path));
-  let skewReported = false, endRead = false, caughtUp = false, closing = false;
+  let skewReported = false, endRead = head?.some(event => event.type === "run_end") ?? false, caughtUp = false, closing = false;
   // A queue with a read cursor: shifting a large array on every write would be quadratic.
   let pending: string[] = [], cursor = 0;
   const empty = (): boolean => cursor >= pending.length;
   const message = (type: string, data: unknown): string => `event: ${type}\ndata: ${JSON.stringify(data)}\n\n`;
+  const location = (line: number): number | string => offset === 0 ? line : `${String(line)} within tail starting at byte ${String(offset)}`;
+  if (head !== undefined) pending.push(message("head", head.map(recovered)));
   // Parses the next bounded piece of the log into the queue; true when there was nothing new.
   const fill = (): boolean => {
     const { results, lines } = reader.next(STREAM_STEP_LINES);
@@ -252,10 +313,10 @@ function streamEvents(req: IncomingMessage, res: ServerResponse, path: string, p
         pending.push(message("ev", recovered(result.event)));
         endRead ||= result.event.type === "run_end";
       } else if (skew === null) {
-        pending.push(message("problem", { line: result.line, problem: result.problem }));
+        pending.push(message("problem", { line: location(result.line), problem: result.problem }));
       } else if (!skewReported) {
         skewReported = true;
-        pending.push(message("problem", { line: result.line, problem: `${skew.head}. First event it cannot read: line ${String(result.line)}: ${result.problem}` }));
+        pending.push(message("problem", { line: location(result.line), problem: `${skew.head}. First event it cannot read: line ${String(location(result.line))}: ${result.problem}` }));
       }
     }
     return lines === 0;
@@ -308,7 +369,7 @@ async function liveScreen(res: ServerResponse, port: number, fetchFn: typeof fet
   }
 }
 
-async function route(req: IncomingMessage, res: ServerResponse, options: ViewerOptions, port: number, origins: ReadonlyMap<string, string>, readBaseline: BaselineReader, readWorkbench: () => Promise<WorkbenchData>, queueApi: QueueApi): Promise<void> {
+async function route(req: IncomingMessage, res: ServerResponse, options: ViewerOptions, port: number, origins: ReadonlyMap<string, string>, readBaseline: BaselineReader, readWorkbench: (cards?: { selected: string | null }) => Promise<WorkbenchData>, readCompleteWorkbench: () => Promise<WorkbenchData>, readUpdates: (since: string | null) => Promise<WorkbenchUpdate>, queueApi: QueueApi, catalog: RunCatalog, strictCatalog: RunCatalog): Promise<void> {
   const origin = origins.get(req.headers.host ?? "");
   if (origin === undefined) {
     sendJson(res, 403, { error: "the viewer only answers 127.0.0.1 and its published origins" });
@@ -320,7 +381,7 @@ async function route(req: IncomingMessage, res: ServerResponse, options: ViewerO
     return;
   }
   if ((req.method === "POST" || req.method === "PUT") && parts[0] === "api") {
-    await write(req, res, options, port, parts, origin, queueApi);
+    await write(req, res, options, port, parts, origin, queueApi, catalog);
     return;
   }
   if (req.method !== "GET") {
@@ -333,11 +394,47 @@ async function route(req: IncomingMessage, res: ServerResponse, options: ViewerO
     return;
   }
   if (parts.length === 2 && head === "api" && second === "workbench") {
-    sendJson(res, 200, await readWorkbench());
+    const query = new URL(req.url ?? "/", "http://viewer.invalid").searchParams;
+    sendJson(res, 200, query.get("updates") === "1" ? await readUpdates(query.get("since")) : await readWorkbench());
+    return;
+  }
+  if (parts.length === 2 && head === "api" && second === "cards") {
+    const selected = new URL(req.url ?? "/", "http://viewer.invalid").searchParams.get("run");
+    sendJson(res, 200, cardWorkbench(await readWorkbench({ selected }), selected));
     return;
   }
   if (parts.length === 2 && head === "explainers" && Object.values(FEATURE_EXPLAINERS).includes(second ?? "")) {
     sendFile(res, join(options.staticDir, "../../../docs/explainers", second ?? ""), "text/html; charset=utf-8");
+    return;
+  }
+  if (parts.length === 1 && head === "reports") {
+    sendFile(res, join(options.staticDir, "reports.html"), "text/html; charset=utf-8");
+    return;
+  }
+  if (parts.length === 2 && head === "api" && second === "reports") {
+    sendJson(res, 200, listReports(options.runsRoot));
+    return;
+  }
+  if (head === "reports" && second !== undefined) {
+    const found = reportFile(options.runsRoot, second, parts.slice(2).filter((part, i, all) => !(part === "" && i === all.length - 1)));
+    if (found === null) sendJson(res, 404, { error: "not found" }); else sendReport(res, found.path, found.type);
+    return;
+  }
+  if (parts.length === 1 && head === "probes") {
+    sendFile(res, join(options.staticDir, "probes.html"), "text/html; charset=utf-8");
+    return;
+  }
+  if (parts.length === 2 && head === "api" && second === "probes") {
+    sendJson(res, 200, listProbes(options.runsRoot));
+    return;
+  }
+  if (parts.length === 3 && head === "api" && second === "probes") {
+    try {
+      sendJson(res, 200, await readProbe(options.runsRoot, id ?? ""));
+    } catch (error) {
+      if (!(error instanceof ProbeError)) throw error;
+      sendJson(res, 404, { error: error.message });
+    }
     return;
   }
   if (parts.length === 1 && head === "comparisons") {
@@ -412,26 +509,40 @@ async function route(req: IncomingMessage, res: ServerResponse, options: ViewerO
     return;
   }
   if (parts.length === 2) {
-    const live = new Set(await liveRuns(options.runsRoot, healthProbe(options.fetchFn ?? fetch)));
+    const summaries = strictCatalog();
+    const live = new Set(await liveRuns(options.runsRoot, healthProbe(options.fetchFn ?? fetch), () => summaries));
     const finals = finalsRunLabels(options.runsRoot);
-    sendJson(res, 200, listRuns(options.runsRoot, options.build ?? null).map((run) => ({ ...run, ...(finals.has(run.id) ? { experiment: finals.get(run.id) } : {}), live: live.has(run.id) })));
+    sendJson(res, 200, summaries.map((run) => ({ ...run, ...(finals.has(run.id) ? { experiment: finals.get(run.id) } : {}), live: live.has(run.id) })));
     return;
   }
   try {
     if (id === undefined) throw new RunsError("no run id");
     const dir = runDir(options.runsRoot, id);
     if(parts.length===4 && leaf==="start") {sendJson(res,200,readStart(options.runsRoot,id));return;}
+    if (parts.length === 4 && leaf === "head") { sendJson(res, 200, readRecentEvents(options.runsRoot, id)); return; }
     if (parts.length === 4 && leaf === "events") {
       const path = eventsPath(options.runsRoot, id);
       if (!existsSync(path)) throw new RunsError(`run ${id} has no events.jsonl`);
       // run_start read loosely, so a newer harness's run_start the schema rejects still names its build.
       const identity = readStartIdentity(options.runsRoot, id);
       const skew: Skew | null = identity === null ? null : skewOf(options.build ?? null, identity);
-      streamEvents(req, res, path, options.pollMs ?? 250, skew, options.streamChunkBytes ?? STREAM_CHUNK_BYTES);
+      const cursor = { offset: 0 };
+      let head: RunEvent[] | undefined;
+      if (new URL(req.url ?? "/", "http://viewer.invalid").searchParams.has("head")) {
+        try { head = await readHeadEvents(options.runsRoot, id, cursor); }
+        catch { cursor.offset = 0; } // The diagnostic stream still reports malformed/skewed lines.
+      }
+      if (res.destroyed) return;
+      streamEvents(req, res, path, options.pollMs ?? 250, skew, options.streamChunkBytes ?? STREAM_CHUNK_BYTES, head, cursor.offset);
       return;
     }
     if (parts.length === 4 && leaf === "comparisons") {
       sendJson(res, 200, await comparisonsOf(options.runsRoot, id, readBaseline));
+      return;
+    }
+    if (parts.length === 4 && leaf === "frontier") {
+      if (!existsSync(dir)) throw new RunsError(`no run ${id}`);
+      sendJson(res, 200, { frontier: frontierSplits((await readCompleteWorkbench()).runs, id) });
       return;
     }
     if (parts.length === 4 && leaf === "milestones") {
@@ -482,16 +593,32 @@ export async function startViewer(given: ViewerOptions): Promise<Viewer> {
   let port = 0;
   let origins: ReadonlyMap<string, string> = new Map();
   const readBaseline = createBaselineReader(options.runsRoot, { ...(options.baselines?.compute === undefined ? {} : { compute: options.baselines.compute }), ...(options.baselines?.store === undefined ? {} : { store: options.baselines.store }) });
+  const catalog = createRunCatalog(options.runsRoot, null);
+  const strictCatalog = options.build === null ? catalog : createRunCatalog(options.runsRoot, options.build ?? null);
   const workbenchLoader = createWorkbenchLoader({ build: options.build ?? null, ...(options.workbench?.compute === undefined ? {} : { compute: options.workbench.compute }), ...(options.workbench?.store === undefined ? {} : { store: options.workbench.store }) });
   let snapshot: { until: number; result: Promise<WorkbenchData> } | null = null;
-  const readWorkbench = (): Promise<WorkbenchData> => {
+  let cardsSnapshot: { selected: string | null; until: number; result: Promise<WorkbenchData> } | null = null;
+  // The splits' frontier must not depend on how far a cold partial snapshot has loaded: wait for every run (the loader caches them).
+  const readCompleteWorkbench = (): Promise<WorkbenchData> => workbenchSnapshot(options.runsRoot, healthProbe(options.fetchFn ?? fetch), (options.now?.() ?? new Date()).getTime(), undefined, workbenchLoader, {}, catalog);
+  const readWorkbench = (cards?: { selected: string | null }): Promise<WorkbenchData> => {
     const now = (options.now?.() ?? new Date()).getTime();
-    if (snapshot !== null && now < snapshot.until) return snapshot.result;
-    const next = { until: Infinity, result: Promise.resolve().then(() => workbenchSnapshot(options.runsRoot, healthProbe(options.fetchFn ?? fetch), now, undefined, workbenchLoader, { partial: options.workbench?.partial === true })) };
-    snapshot = next;
-    next.result = next.result.then(data => { next.until = (options.now?.() ?? new Date()).getTime() + WORKBENCH_POLL_MS; return data; }, (error: unknown) => { if (snapshot === next) snapshot = null; throw error; });
+    const cached = cards === undefined ? snapshot : cardsSnapshot?.selected === cards.selected ? cardsSnapshot : null;
+    if (cached !== null && now < cached.until) return cached.result;
+    const healthy = healthProbe(options.fetchFn ?? fetch);
+    const pending = cards === undefined
+      ? Promise.resolve().then(() => workbenchSnapshot(options.runsRoot, healthy, now, undefined, workbenchLoader, { partial: options.workbench?.partial === true }, catalog))
+      : liveRuns(options.runsRoot, healthy, catalog).then(live => workbenchSnapshot(options.runsRoot, healthy, now, undefined, workbenchLoader, { partial: options.workbench?.partial === true, cards: { ...cards, live: new Set(live) } }, catalog));
+    if (cards === undefined) {
+      const next = { until: Infinity, result: pending }; snapshot = next;
+      next.result = next.result.then(data => { next.until = (options.now?.() ?? new Date()).getTime() + WORKBENCH_POLL_MS; return data; }, (error: unknown) => { if (snapshot === next) snapshot = null; throw error; });
+      return next.result;
+    }
+    const next = { selected: cards.selected, until: Infinity, result: pending }; cardsSnapshot = next;
+    next.result = next.result.then(data => { next.until = (options.now?.() ?? new Date()).getTime() + WORKBENCH_POLL_MS; return data; }, (error: unknown) => { if (cardsSnapshot === next) cardsSnapshot = null; throw error; });
     return next.result;
   };
+  const updates = createWorkbenchUpdates(randomUUID());
+  const readUpdates = async (since: string | null): Promise<WorkbenchUpdate> => updates(await readWorkbench(), since);
   const repo = dirname(options.runsRoot);
   const experiments = options.experiments ?? { paths: { experimentsDir: join(repo, "experiments"), runsRoot: options.runsRoot, readinessPath: join(repo, "docs", "experiments", "readiness.md"), winnerGate: winnerGateOn(process.env) }, source: recordedRuns(options.runsRoot) };
   // Recorded runs are cached by the source; the snapshot itself is reused for a few seconds.
@@ -522,9 +649,51 @@ export async function startViewer(given: ViewerOptions): Promise<Viewer> {
   // A failing request (a client that disconnects mid-body, a file error) must
   // never take the viewer and its queue down.
   const server = createServer((req, res) => {
-    route(req, res, options, port, origins, readBaseline, readWorkbench, queueApi).catch((error: unknown) => {
+    route(req, res, options, port, origins, readBaseline, readWorkbench, readCompleteWorkbench, readUpdates, queueApi, catalog, strictCatalog).catch((error: unknown) => {
       if (res.headersSent || res.destroyed) res.destroy();
       else sendJson(res, 500, { error: error instanceof Error ? error.message : String(error) });
+    });
+  });
+  const frameSockets = new WebSocketServer({ noServer: true, perMessageDeflate: false, maxPayload: FRAME_MAX_BYTES });
+  const frameHubs = new Map<string, SharedFrameHub>();
+  server.on("upgrade", (req, socket, head) => {
+    const reject = (status: number, message: string): void => {
+      socket.end(`HTTP/1.1 ${String(status)} ${message}\r\nConnection: close\r\n\r\n`);
+    };
+    const origin = origins.get(req.headers.host ?? "");
+    if (origin === undefined || req.headers.origin !== origin) { reject(403, "Forbidden"); return; }
+    const parts = segments(req.url ?? "/");
+    const runId = parts?.length === 4 && parts[0] === "api" && parts[1] === "runs" && parts[3] === "frames" ? parts[2] : undefined;
+    if (runId === undefined) { reject(404, "Not Found"); return; }
+    let gamePort: number | null;
+    try { gamePort = liveScreenPort(options.runsRoot, runId); }
+    catch { reject(404, "Not Found"); return; }
+    if (gamePort === null) { reject(409, "Conflict"); return; }
+    frameSockets.handleUpgrade(req, socket, head, (client) => {
+      let hub = frameHubs.get(runId);
+      if (hub !== undefined && hub.gamePort !== gamePort) {
+        hub.stop();
+        hub = undefined;
+      }
+      if (hub === undefined) {
+        hub = new SharedFrameHub({
+          runId,
+          gamePort,
+          host: HOST,
+          maxPayload: FRAME_MAX_BYTES,
+          decode: (raw) => {
+            const encoded = Array.isArray(raw) ? Buffer.concat(raw) : Buffer.from(raw as ArrayBuffer);
+            const payload = JSON.parse(encoded.toString("utf8")) as { frame_data?: unknown };
+            if (typeof payload.frame_data !== "string") throw new Error("frame_data is missing");
+            const png = Buffer.from(payload.frame_data, "base64");
+            if (!validFramePng(png)) throw new Error("frame is not a bounded PNG");
+            return png;
+          },
+          onEmpty: (closed) => { if (frameHubs.get(runId) === closed) frameHubs.delete(runId); },
+        });
+        frameHubs.set(runId, hub);
+      }
+      hub.add(client);
     });
   });
   const queue = options.queue;
@@ -537,7 +706,7 @@ export async function startViewer(given: ViewerOptions): Promise<Viewer> {
   port = address.port;
   origins = allowedOrigins(port, options.publicOrigins ?? []);
   // Validate the catalog in the background so the first page load finds it ready.
-  if (options.baselines?.warm === true) for (const run of listRuns(options.runsRoot)) if (run.ended && run.problem === null) readBaseline(run.id).catch(() => undefined);
+  if (options.baselines?.warm === true) for (const run of catalog()) if (run.ended && run.problem === null) readBaseline(run.id).catch(() => undefined);
   return {
     server,
     address: address.address,
@@ -548,6 +717,10 @@ export async function startViewer(given: ViewerOptions): Promise<Viewer> {
         if (ticker !== null) clearInterval(ticker);
         if (autorunTicker !== null) clearInterval(autorunTicker);
         autorun?.stop();
+        for (const hub of frameHubs.values()) hub.stop(1001, "viewer closing");
+        frameHubs.clear();
+        for (const client of frameSockets.clients) client.terminate();
+        frameSockets.close();
         server.closeAllConnections();
         server.close(() => {
           (options.baselines?.close?.() ?? Promise.resolve()).then(resolve, resolve);

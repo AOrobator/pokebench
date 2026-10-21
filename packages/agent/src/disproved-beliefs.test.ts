@@ -1,7 +1,8 @@
+import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
 import {readFileSync} from "node:fs";
 import type {AgentMessage} from "@mariozechner/pi-agent-core";
 import {describe,expect,it} from "vitest";
-import {ALL_ON,SWITCHABLE_FEATURES,dependencyProblems,featureInfo,featuresOf,playHarnessFeatures,type FeatureSet} from "./features.js";
+import {SWITCHABLE_FEATURES,dependencyProblems,featureInfo,featuresOf,playHarnessFeatures,type FeatureSet} from "./features.js";
 import {DisprovedBeliefs,disprovedBeliefs,locatingClaims} from "./disproved-beliefs.js";
 import {checkEvent,type BodyOf,type RunEvent} from "./events.js";
 import {contextTools} from "./play-wiring.js";
@@ -23,7 +24,7 @@ const textOf=(m:AgentMessage|undefined):string=>m!==undefined&&"role"in m&&m.rol
 // The production context chain over the recorded stream: one model call per turn_start, as the agent loop makes it.
 async function replay(features:FeatureSet,events:readonly RunEvent[]=FIXTURE.events):Promise<{byTurn:Map<number,string>;bodies:Body[];messages:Map<number,AgentMessage[]>}> {
  const subscribers:((e:RunEvent)=>void)[]=[];const bodies:Body[]=[];
- const recorder={subscribe:(fn:(e:RunEvent)=>void)=>{subscribers.push(fn);},recordNavigationContext:()=>undefined,recordLedgerContext:()=>undefined,recordMilestoneHint:()=>undefined,recordBeliefLedger:(b:Body)=>{bodies.push(b);}};
+ const recorder={subscribe:(fn:(e:RunEvent)=>void)=>{subscribers.push(fn);},recordNavigationContext:()=>undefined,recordLedgerContext:()=>undefined,recordMilestoneHint:()=>undefined,recordLoopBreaker:()=>undefined,recordBeliefLedger:(b:Body)=>{bodies.push(b);}};
  const context=contextTools(features,recorder,m=>Promise.resolve(m));
  const byTurn=new Map<number,string>();const messages=new Map<number,AgentMessage[]>();
  for(const e of events){
@@ -44,12 +45,12 @@ describe("registry and presets",()=>{
   expect(featureInfo(ID)).toMatchObject({group:"guidance",needs:"story-state-v1",switchable:true,title:"DISPROVED BELIEFS LEDGER"});
   expect(featureInfo(ID).description).toContain(" Off: no ledger.");
   expect(featureInfo(ID).description).toContain("Things the game has contradicted");
-  expect(SWITCHABLE_FEATURES.at(-41)).toBe(ID);
-  expect(playHarnessFeatures(ALL_ON,null).at(-41)).toBe(ID);
-  expect(playHarnessFeatures({...ALL_ON,[ID]:false},null)).not.toContain(ID);
-  expect(featuresOf(playHarnessFeatures({...ALL_ON,[ID]:false},null))[ID]).toBe(false);
+  expect(SWITCHABLE_FEATURES.at(-102)).toBe(ID);
+  expect(playHarnessFeatures(ALL_ON,null).at(-66)).toBe(ID);
+  expect(playHarnessFeatures({...ALL_ON,"battle-decision-ready-v1":false,[ID]:false},null)).not.toContain(ID);
+  expect(featuresOf(playHarnessFeatures({...ALL_ON,"battle-decision-ready-v1":false,[ID]:false},null))[ID]).toBe(false);
   // Entries leave on a story-flag change, which needs the story state (review round 1).
-  expect(dependencyProblems({...ALL_ON,"story-state-v1":false})).toContain(`${ID} needs story-state-v1`);
+  expect(dependencyProblems({...ALL_ON,"battle-decision-ready-v1":false,"story-state-v1":false})).toContain(`${ID} needs story-state-v1`);
  });
  it("defaults off for presets that omit it and for legacy flag presets",()=>{
   const older=Object.fromEntries(Object.entries(ALL_ON).filter(([id])=>id!==ID)) as Omit<FeatureSet,typeof ID>;
@@ -363,9 +364,9 @@ describe("leaving the ledger and never clipping",()=>{
   expect(l.text()).not.toContain("turn 4");
  });
  it("the production factory is null when the switch is off",()=>{
-  const recorder={subscribe:()=>undefined,recordBeliefLedger:()=>undefined};
-  expect(disprovedBeliefs({...ALL_ON,[ID]:false},recorder,m=>Promise.resolve(m))).toBeNull();
-  expect(disprovedBeliefs({...ALL_ON,[ID]:true},recorder,m=>Promise.resolve(m))).not.toBeNull();
+  const recorder={subscribe:()=>undefined,recordLoopBreaker:()=>undefined,recordBeliefLedger:()=>undefined};
+  expect(disprovedBeliefs({...ALL_ON,"battle-decision-ready-v1":false,[ID]:false},recorder,m=>Promise.resolve(m))).toBeNull();
+  expect(disprovedBeliefs({...ALL_ON,"battle-decision-ready-v1":false,[ID]:true},recorder,m=>Promise.resolve(m))).not.toBeNull();
  });
 });
 
@@ -401,7 +402,7 @@ describe("replay: the decision probe rebuilds what the model saw",()=>{
  });
  it("the production chain puts the ledger before the pinned hint, as recordedNotes does",async()=>{
   const subscribers:((e:RunEvent)=>void)[]=[];
-  const recorder={subscribe:(fn:(e:RunEvent)=>void)=>{subscribers.push(fn);},recordNavigationContext:()=>undefined,recordLedgerContext:()=>undefined,recordMilestoneHint:()=>undefined,recordBeliefLedger:()=>undefined};
+  const recorder={subscribe:(fn:(e:RunEvent)=>void)=>{subscribers.push(fn);},recordNavigationContext:()=>undefined,recordLedgerContext:()=>undefined,recordMilestoneHint:()=>undefined,recordLoopBreaker:()=>undefined,recordBeliefLedger:()=>undefined};
   const context=contextTools({...ON,"next-milestone-hint-v1":true},recorder,m=>Promise.resolve(m));
   for(const e of FIXTURE.events){if(DERIVED.has(e.type))continue;if(e.type==="turn_start"&&e.turn===117)break;for(const s of subscribers)s(e);}
   const out=await context.transformContext([]);

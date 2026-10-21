@@ -1,3 +1,4 @@
+import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
 import {describe,expect,it} from "vitest";
 import {gunzipSync} from "node:zlib";
 import {mkdtempSync,readFileSync} from "node:fs";
@@ -16,7 +17,7 @@ import {parseGameState,type GameStateSnapshot} from "./game-state.js";
 import type {BeforePressCheck} from "./game-tools.js";
 import {observeTool,pressTool} from "./game-tools.js";
 import type {Button} from "./events.js";
-import {ALL_ON,FEATURES,SWITCHABLE_FEATURES,featureInfo,playHarnessFeatures,type FeatureSet} from "./features.js";
+import {FEATURES,SWITCHABLE_FEATURES,featureInfo,playHarnessFeatures,type FeatureSet} from "./features.js";
 import {flagFeatures,normalizeFeatures,parsePlayPreset,presetFeatures} from "./play-preset.js";
 import {playSystemPrompt,playTools} from "./play-config.js";
 import {playGameTools} from "./play-wiring.js";
@@ -351,11 +352,11 @@ describe("battle-move-tool-v1 registry and production wiring",()=>{
  it("is a default-off guidance switch recorded last, needing no other switch",()=>{
   expect(featureInfo(BATTLE_ACTION_ID)).toMatchObject({group:"guidance",needs:null,switchable:true,title:"BATTLE ACTION TOOL"});
   expect(featureInfo(BATTLE_ACTION_ID).description).toContain(" Off: ");
-  expect(SWITCHABLE_FEATURES.at(-9)).toBe(BATTLE_ACTION_ID);
-  expect(FEATURES.filter(f=>f.switchable).at(-9)?.id).toBe(BATTLE_ACTION_ID);
-  expect(playHarnessFeatures({...ALL_ON,[BATTLE_ACTION_ID]:true},null).at(-9)).toBe(BATTLE_ACTION_ID);
+  expect(SWITCHABLE_FEATURES.at(-70)).toBe(BATTLE_ACTION_ID);
+  expect(FEATURES.filter(f=>f.switchable).at(-70)?.id).toBe(BATTLE_ACTION_ID);
+  expect(playHarnessFeatures({...ALL_ON,"battle-decision-ready-v1":false,[BATTLE_ACTION_ID]:true},null).at(-33)).toBe(BATTLE_ACTION_ID);
   expect(BASE[BATTLE_ACTION_ID]).toBe(false);
-  const old=parsePlayPreset({version:2,id:"old",target:null,limits:{maxTurns:1,maxWallMs:1,failureLimit:1},sampling:{thinkingLevel:"medium",maxTokens:1},features:Object.fromEntries(Object.entries({...ALL_ON,"state-only-decisions-v1":false}).filter(([id])=>id!==BATTLE_ACTION_ID))});
+  const old=parsePlayPreset({version:2,id:"old",target:null,limits:{maxTurns:1,maxWallMs:1,failureLimit:1},sampling:{thinkingLevel:"medium",maxTokens:1},features:Object.fromEntries(Object.entries({...ALL_ON,"battle-decision-ready-v1":false,"state-only-decisions-v1":false}).filter(([id])=>id!==BATTLE_ACTION_ID))});
   expect(presetFeatures(old)[BATTLE_ACTION_ID]).toBe(false);
   expect(normalizeFeatures({...ALL_ON})[BATTLE_ACTION_ID]).toBe(true);
  });
@@ -428,6 +429,18 @@ describe("the pending experiment",()=>{
 });
 
 describe("battle_action is recorded and recapped like the other game tools",()=>{
+ it("carries a one-shot blackout receipt from an internal press to its outer result",async()=>{
+  const sim=new BattleSim(rec("e046:16609"));sim.instant=true;
+  const notice="Whited out: preserved through battle_action.";
+  const receipt={frame:81,money_before:3000,notice};let delivered=false;
+  const ports=sim.ports({
+   press:(_id,params,_signal,check)=>{check(sim.state());for(const button of params.buttons)sim.press(button);const state=sim.state();const carried=delivered?state:{...state,blackout_receipt:receipt};delivered=true;return Promise.resolve({content:[{type:"text" as const,text:carried.blackout_receipt===undefined?"pressed":notice}],details:{state:carried}});},
+   observe:()=>Promise.resolve({content:[{type:"text" as const,text:"final battle state"}],details:{state:sim.state()}}),
+  });
+  const result=await battleActionTool(ports).execute("b1",{action:"fight",move:"EMBER"});
+  expect((result.details as {state:GameStateSnapshot}).state.blackout_receipt).toEqual(receipt);
+  expect(result.content.flatMap(part=>part.type==="text"?[part.text]:[]).join("\n")).toContain(notice);
+ });
  it("the recorder pairs a battle_action result with the state it returned; presses carry the call id",async()=>{
   const root=mkdtempSync(join(tmpdir(),"pokebench-battle-action-")),log=RunLog.create(root,"battle-action");
   const sim=new BattleSim(rec("e046:16609"));sim.instant=true;
@@ -448,7 +461,7 @@ describe("battle_action is recorded and recapped like the other game tools",()=>
  });
  it("battle-loss recap and blocked-exit facts wrap battle_action",()=>{
   const tool:AgentTool={name:"battle_action",label:"b",description:"d",parameters:BattleActionArgs,execute:()=>Promise.resolve({content:[],details:{}})};
-  const [wrapped]=withResultFacts([tool],{...ALL_ON,"blocked-exit-fact-v1":true,"battle-loss-recap-v1":true},{subscribe:()=>undefined});
+  const [wrapped]=withResultFacts([tool],{...ALL_ON,"battle-decision-ready-v1":false,"blocked-exit-fact-v1":true,"battle-loss-recap-v1":true},{subscribe:()=>undefined});
   expect(wrapped).not.toBe(tool);expect(wrapped?.name).toBe("battle_action");
  });
 });

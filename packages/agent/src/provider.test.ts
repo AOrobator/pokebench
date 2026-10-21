@@ -1,3 +1,4 @@
+import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
 import { createServer, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
 import type { AgentMessage, AgentTool } from "@mariozechner/pi-agent-core";
@@ -7,7 +8,7 @@ import { Type } from "typebox";
 import { afterEach, describe, expect, it } from "vitest";
 import { discoverModels, selectModel } from "./gateway.js";
 import { gatewayLoopConfig, playLoopBase } from "./provider.js";
-import { ALL_ON } from "./features.js";
+import {} from "./features.js";
 import { PRESENCE_PENALTY } from "./presence-penalty.js";
 
 // 1x1 transparent PNG.

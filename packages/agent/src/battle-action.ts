@@ -9,6 +9,7 @@ import type {BattleWaitSchema,Button} from "./events.js";
 import type {FeatureSet} from "./features.js";
 import {parseGameState,type GameStateSnapshot,type StateSource} from "./game-state.js";
 import {isCheckedPress,type BeforePressCheck} from "./game-tools.js";
+import {BlackoutCarry} from "./blackout-receipt.js";
 
 export const BATTLE_ACTION_ID="battle-move-tool-v1";
 const ACTIONS=["fight","bag","pokemon","run"] as const;
@@ -36,6 +37,7 @@ type Input=NonNullable<Battle["player_inputs"]>[number];
 type Mon=NonNullable<Battle["battlers"]>[number];
 
 export interface BattleActionPorts {
+ refusalGuidance?:boolean;
  read(signal?:AbortSignal):Promise<GameStateSnapshot>;
  press(id:string,params:{buttons:Button[]},signal:AbortSignal|undefined,check:BeforePressCheck):Promise<AgentToolResult<unknown>>;
  observe(id:string,signal?:AbortSignal):Promise<AgentToolResult<unknown>>;
@@ -194,17 +196,20 @@ const stateOf=(r:AgentToolResult<unknown>):GameStateSnapshot=>{
 };
 
 export function battleActionTool(ports:BattleActionPorts):AgentTool<typeof BattleActionArgs> {
- return {name:"battle_action",label:"Choose a battle action",description:BATTLE_ACTION_DESCRIPTION,parameters:BattleActionArgs,
+ return {name:"battle_action",label:"Choose a battle action",description:BATTLE_ACTION_DESCRIPTION+(ports.refusalGuidance===true?" A refused call presses nothing and does not automatically advance text. When the returned state says a message is waiting for A or B, use press with A or B; battle_action cannot choose FIGHT there. While the game runs its own text or animation without a waiting input, wait and observe.":""),parameters:BattleActionArgs,
  execute:async(id,args,signal)=>{
   signal?.throwIfAborted();await ports.gate?.(signal);signal?.throwIfAborted();
   const action=args.action;
   const presses:Button[]=[];
+  const blackout=new BlackoutCarry();
   let s=await ports.read(signal);
   const plan=validate(s,args);
   const finish=async(status:string,refused:boolean)=>{
    const seen=await ports.observe(id,signal);
+   const state=blackout.preserve(blackout.remember(stateOf(seen)));
    const text=/[".!)]$/.test(status)?status:`${status}.`;
-   return {content:[{type:"text" as const,text:`Battle action: ${text}`},...seen.content],details:{state:stateOf(seen),battle_action:{action,move:typeof plan==="string"?null:plan.name,presses:[...presses],refused,status:text}}};
+   const notices=blackout.missingNotices([text,...seen.content.flatMap(part=>part.type==="text"?[part.text]:[])]);
+   return {content:[{type:"text" as const,text:`Battle action: ${text}`},...notices.map(notice=>({type:"text" as const,text:notice})),...seen.content],details:{state,battle_action:{action,move:typeof plan==="string"?null:plan.name,presses:[...presses],refused,status:text}}};
   };
   if(typeof plan==="string")return finish(`nothing pressed: ${plan}`,true);
   const battler=plan.input.battler;
@@ -219,7 +224,7 @@ export function battleActionTool(ports:BattleActionPorts):AgentTool<typeof Battl
     if(now?.battler!==battler||now.phase!==phase||(phase==="action"?now.action_cursor:phase==="move"?now.move_cursor:now.target_cursor)!==cursor)throw new Stop(`${pressed()} the battle input changed before the press, so no button was sent; inspect the new state.`);
    });
    presses.push(button);
-   return stateOf(result);
+   return blackout.remember(stateOf(result));
   };
   let committed:string,waits=0,backed=false;
   const forWhom=plan.double?` for ${plan.mon.species}`:"";
@@ -300,6 +305,7 @@ export function withBattleAction(tools:readonly AgentTool[],features:FeatureSet,
  const press=tools.find(t=>t.name==="press"),observe=tools.find(t=>t.name==="observe");
  if(press===undefined||observe===undefined||!isCheckedPress(press))throw new Error("battle_action requires the ordinary game tools");
  return [...tools,battleActionTool({
+  refusalGuidance:features["battle-refusal-loop-v1"],
   read:signal=>state.read(signal),
   press:(id,params,signal,check)=>press.executeChecked(id,params,check,signal),
   observe:(id,signal)=>observe.execute(id,{},signal),

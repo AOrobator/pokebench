@@ -3,16 +3,16 @@ import { recoveredSignature } from "./recovered-fields.js";
 import { existsSync, lstatSync, readFileSync, readdirSync, realpathSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { FEATURES } from "@pokebench/agent/features";
-import { MILESTONES, qualifiedNativeMilestone } from "@pokebench/agent/milestones";
+import { MILESTONES, REQUIRED_FRONTIER_MILESTONES, qualifiedNativeMilestone } from "@pokebench/agent/milestones";
 import { filesystemComparisonHost, prepareComparison, sha256 } from "@pokebench/agent/serial-comparison";
 import { RUN_END_REASONS, type RunEvent, type StartIdentity } from "@pokebench/agent/events";
 import { configOf } from "./history.js";
-import { readNativeRecording, readStartlessLog } from "./frontier-recording.js";
+import { createNativeRecordingTailer, readNativeRecording, readStartlessLog, type NativeRecording } from "./frontier-recording.js";
 import { defaultViewerBuild, skewOf, type BuildIdentity, type ViewerBuild } from "./build-stamp.js";
 import { applyHistoricalProvenance } from "./frontier-provenance.js";
 import { parseNavigationReceipt } from "./frontier-queue.js";
 import { dirname } from "node:path";
-import { eventsPath, listRuns, readStart, readStartIdentity } from "./runs.js";
+import { eventsPath, listRuns, readStart, readStartIdentity, type RunCatalog } from "./runs.js";
 import { parseLedger } from "@pokebench/agent/experiments";
 import { parseFinalsLedger } from "@pokebench/agent/experiment-gate";
 import { isFixedLedgerText, parseFixedLedger } from "./fixed-ledger.js";
@@ -27,6 +27,7 @@ export interface RunTiming { startMs: number | null; ended: boolean; lastMs: num
 export interface LoadedRun { run: WorkbenchRun; port: number | null; tag: { experiment: string; commit: string } | null; timing: RunTiming | null; skew: { commit: string; dirty: boolean; count: number; first: string; startless?: true } | null }
 interface Loaded extends LoadedRun { signature: string }
 export type WorkbenchCompute = (root: string, id: string, viewer: BuildIdentity | null) => Promise<LoadedRun>;
+type RecordingRead = (path: string, id: string, tolerate: boolean) => NativeRecording;
 const record = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
 function errorText(error: unknown): string { return (error instanceof Error ? error.message : String(error)).slice(0, 500); }
 function metadata(path: string): { value: unknown; digest: string } {
@@ -37,7 +38,7 @@ function metadata(path: string): { value: unknown; digest: string } {
 function resumeCheckpoint(start: Extract<RunEvent, { type: "run_start" }>): string | null {
   if (start.start_state.kind !== "save_state") return null;
   const file = start.start_state.path.split(/[/\\]/).pop() ?? "";
-  return file === "CLOCK_SET.state" ? "CLOCK_SET" : file === "MAIN_MENU.state" ? "MAIN_MENU" : null;
+  return file === "MAIN_MENU.state" ? "MAIN_MENU" : REQUIRED_FRONTIER_MILESTONES.find(id => file === `${id}.state`) ?? null;
 }
 function configuration(start: Extract<RunEvent, { type: "run_start" }>): WorkbenchConfig {
   const known = configOf(start);
@@ -57,17 +58,17 @@ function startOf(root: string, id: string): Extract<RunEvent, { type: "run_start
   if (start.run !== id) throw new Error("Run identity is invalid; no split graded");
   return start;
 }
-// The log's identity for caching: size, mtime, inode and any verified visual evidence.
+// The log's identity for caching: size, modification/change times, device/inode and verified evidence.
 function runSignature(path: string): string {
   const stat = statSync(path);
-  return `${String(stat.size)}:${String(stat.mtimeMs)}:${String(stat.ino)}` + visualEvidenceSignature(path) + recoveredSignature(dirname(path));
+  return `${String(stat.size)}:${String(stat.mtimeMs)}:${String(stat.ctimeMs)}:${String(stat.dev)}:${String(stat.ino)}` + visualEvidenceSignature(path) + recoveredSignature(dirname(path));
 }
 // True when the log at `now` is the log at `then` with more bytes appended: same inode, larger, and the
-// same visual evidence and viewer build. A rewrite, truncation or replacement is not.
+// same verified evidence. A rewrite, truncation or replacement is not.
 function appendedSince(then: string, now: string): boolean {
   const parse = (signature: string): { size: number; ino: string; rest: string } | null => {
-    const m = /^(\d+):[^:]*:(\d+)(.*)$/s.exec(signature);
-    return m === null ? null : { size: Number(m[1]), ino: m[2] ?? "", rest: m[3] ?? "" };
+    const m = /^(\d+):[^:]*:[^:]*:(\d+):(\d+)(.*)$/s.exec(signature);
+    return m === null ? null : { size: Number(m[1]), ino: `${m[2] ?? ""}:${m[3] ?? ""}`, rest: m[4] ?? "" };
   };
   const a = parse(then), b = parse(now);
   return a !== null && b !== null && a.ino === b.ino && a.rest === b.rest && b.size > a.size;
@@ -78,7 +79,7 @@ function invalidRun(id: string, problem: string | null): WorkbenchRun {
 // Reduces one run's whole log. Pure and plain-valued, so it can run on a worker thread. viewer is this
 // viewer's build stamp: when the run's build is not that exact clean build, schema-rejected events with
 // an in-order envelope are stepped over and reported in skew; the loader decides what they mean.
-export function loadRun(root: string, id: string, viewer: BuildIdentity | null = null): LoadedRun {
+function loadRunWith(root: string, id: string, viewer: BuildIdentity | null, readRecording: RecordingRead): LoadedRun {
   const path = eventsPath(root, id);
   let run = invalidRun(id, null), port: number | null, timing: RunTiming | null, tag: LoadedRun["tag"] = null, skew: LoadedRun["skew"] = null;
   let start: Extract<RunEvent, { type: "run_start" }>;
@@ -89,15 +90,60 @@ export function loadRun(root: string, id: string, viewer: BuildIdentity | null =
     port = start.isolation.port;
     const experiment = start.evaluation?.experiment; if (experiment !== undefined) tag = { experiment: experiment.id, commit: start.harness.commit };
     const tolerate = viewer !== null && !(viewer.commit === start.harness.commit && !viewer.dirty && !start.harness.dirty);
-    const recording = readNativeRecording(path, id, qualifiedNativeMilestone, undefined, tolerate), view = recording.view;
+    const recording = readRecording(path, id, tolerate), view = recording.view;
     run.splits = recording.splits; run.measurement = recording.measurement;
     const last = recording.last; run.card = last === null ? null : { name: last.name, location: last.location, party: last.party.flatMap(m => m.level === null || m.level < 1 ? [] : [{ speciesId: m.species_id ?? null, level: m.level, egg: m.is_egg === true }]) };
     if (recording.skipped !== null) skew = { commit: start.harness.commit, dirty: start.harness.dirty, ...recording.skipped };
+    if (run.config !== null && view.control.maxWallMs !== null) run.config.extendedWallMs = view.control.maxWallMs;
     run.status = view.end === null ? "unresponsive" : "ended"; run.reason = view.end?.reason ?? null; run.turn = view.turn;
     if (run.reason === "operator_abort") run.excluded ??= "Excluded operator-aborted run";
     timing = { startMs: view.startMs, ended: view.end !== null, lastMs: view.lastMs, paused: view.control.state === "paused", pauses: view.control.pauses.map(p => ({ ...p })) };
   } catch (error) { run.problem = errorText(error); run.status = "invalid"; run.splits = []; delete run.measurement; timing = null; port = null; skew = null; }
   return { run, port, tag, timing, skew };
+}
+export function loadRun(root: string, id: string, viewer: BuildIdentity | null = null): LoadedRun {
+  return loadRunWith(root, id, viewer, (path, run, tolerate) => readNativeRecording(path, run, qualifiedNativeMilestone, undefined, tolerate));
+}
+
+// A worker-local loader for live append-only logs. Each append is reduced exactly once; inode
+// replacement, truncation, same-size rewrites, or changed visual/recovered evidence discard the
+// tailer and replay strictly. Completed runs are immediately retired and the small live set is
+// bounded, so historical catalog loads cannot retain their reducer state.
+export interface IncrementalRunLoader {
+  (root: string, id: string, viewer?: BuildIdentity | null): LoadedRun;
+  retained(): number;
+}
+export function createIncrementalRunLoader(options: { observeRead?: (path: string, offset: number, bytes: number) => void } = {}): IncrementalRunLoader {
+  interface Tail { path: string; dev: number; ino: number; size: number; mtimeMs: number; ctimeMs: number; evidence: string; tailer: ReturnType<typeof createNativeRecordingTailer> }
+  const tails = new Map<string, Tail>();
+  const load = (root: string, id: string, viewer: BuildIdentity | null = null): LoadedRun => {
+    const requested = eventsPath(root, id);
+    try {
+      const now = statSync(requested);
+      for (const [key, tail] of tails) if (tail.path === requested && (tail.dev !== now.dev || tail.ino !== now.ino || now.size < tail.size || (now.size === tail.size && (now.mtimeMs !== tail.mtimeMs || now.ctimeMs !== tail.ctimeMs)))) tails.delete(key);
+    } catch { for (const [key, tail] of tails) if (tail.path === requested) tails.delete(key); }
+    return loadRunWith(root, id, viewer, (path, run, tolerate) => {
+    const stat = statSync(path), evidence = visualEvidenceSignature(path) + recoveredSignature(dirname(path));
+    const key = `${path}\0${viewer === null ? "unknown" : `${viewer.commit}:${String(viewer.dirty)}`}\0${String(tolerate)}`;
+    let tail = tails.get(key);
+    const append = tail !== undefined && tail.dev === stat.dev && tail.ino === stat.ino && stat.size >= tail.size && (stat.size > tail.size || (stat.mtimeMs === tail.mtimeMs && stat.ctimeMs === tail.ctimeMs)) && tail.evidence === evidence;
+    if (!append) {
+      tail = { path, dev: stat.dev, ino: stat.ino, size: 0, mtimeMs: stat.mtimeMs, ctimeMs: stat.ctimeMs, evidence, tailer: createNativeRecordingTailer(path, run, qualifiedNativeMilestone, undefined, tolerate, (offset, bytes) => { options.observeRead?.(path, offset, bytes); }) };
+      tails.set(key, tail);
+      while (tails.size > 8) { const oldest = tails.keys().next().value; if (oldest === undefined) break; tails.delete(oldest); }
+    }
+    const active = tail;
+    if (active === undefined) throw new Error("Incremental recording tailer unavailable");
+    try {
+      const recording = active.tailer.read(), source = active.tailer.fileIdentity(), after = statSync(path);
+      if (source === null || source.dev !== after.dev || source.ino !== after.ino || after.size < (recording.measurement.logBytes ?? source.size) || (after.size === source.size && (after.mtimeMs !== source.mtimeMs || after.ctimeMs !== source.ctimeMs))) throw new Error("Run log changed during reduction; snapshot unavailable");
+      active.dev = source.dev; active.ino = source.ino; active.size = recording.measurement.logBytes ?? source.size; active.mtimeMs = source.mtimeMs; active.ctimeMs = source.ctimeMs;
+      if (recording.view.end !== null) tails.delete(key);
+      return recording;
+    } catch (error) { tails.delete(key); throw error; }
+    });
+  };
+  return Object.assign(load, { retained: (): number => tails.size });
 }
 // A run whose run_start the strict read refused (problem). When the viewer knows its build and run_start's
 // loose identity names this run and another build, the rest of the log gives status, turn, timing and
@@ -154,17 +200,17 @@ export interface WorkbenchLoader {
   forget(keep: (path: string) => boolean): void;
 }
 // Caches each run by its log signature, shares a load already in flight, and persists ended
-// runs (their logs never change) for the next viewer of the same code.
+// runs for the next viewer of the same parser code; current build policy is reapplied on every disk hit.
 // build is this viewer's own build (default: dist/build-stamp.json; null when unknown). Workers get its
 // stamp as plain data; git ancestry (skewOf) runs here on the main thread, cached per run commit.
 export function createWorkbenchLoader(options: { compute?: WorkbenchCompute; store?: RunStore<LoadedRun>; build?: ViewerBuild | null } = {}): WorkbenchLoader {
-  const compute = options.compute ?? ((root: string, id: string, viewer: BuildIdentity | null): Promise<LoadedRun> => Promise.resolve().then(() => loadRun(root, id, viewer)));
+  const incremental = createIncrementalRunLoader();
+  const compute = options.compute ?? ((root: string, id: string, viewer: BuildIdentity | null): Promise<LoadedRun> => Promise.resolve().then(() => incremental(root, id, viewer)));
   const build = options.build === undefined ? defaultViewerBuild() : options.build;
   const stamp: BuildIdentity | null = build === null ? null : { commit: build.commit, dirty: build.dirty };
-  const buildKey = `:viewer=${stamp === null ? "unknown" : `${stamp.commit}${stamp.dirty ? "+dirty" : ""}`}`;
   const cache = new Map<string, Loaded>(), inflight = new Map<string, Promise<Loaded>>();
   const signatureOf = (path: string, id: string): { signature: string } | { invalid: Loaded } => {
-    try { return { signature: runSignature(path) + buildKey }; } catch (error) {
+    try { return { signature: runSignature(path) }; } catch (error) {
       const entry: Loaded = { signature: "", run: invalidRun(id, errorText(error)), port: null, tag: null, timing: null, skew: null };
       cache.set(path, entry); return { invalid: entry };
     }
@@ -181,7 +227,7 @@ export function createWorkbenchLoader(options: { compute?: WorkbenchCompute; sto
         const loaded = stored ?? await compute(root, id, stamp);
         const entry: Loaded = { ...settleSkew(loaded, build), signature };
         latest.set(path, entry);
-        let after: string | null = null; try { after = runSignature(path) + buildKey; } catch { /* removed while loading */ }
+        let after: string | null = null; try { after = runSignature(path); } catch { /* removed while loading */ }
         if (after === signature) {
           cache.set(path, entry);
           if (stored === null && loaded.run.status === "ended") options.store?.put(id, signature, loaded);
@@ -260,6 +306,11 @@ function plans(root: string): string[] {
     }
   }; visit(join(root, "launch-receipts"), 0); return found;
 }
+function navigationRootOwnsStore(receiptRoot: string, root: string): boolean {
+  if (receiptRoot.trim() === "") return false;
+  try { lstatSync(receiptRoot); } catch (error) { return (error as NodeJS.ErrnoException).code === "ENOENT"; }
+  try { return realpathSync(join(receiptRoot, "runs")) === realpathSync(root); } catch { return false; }
+}
 // membership and failures are the legacy ledger readers' verdicts. named holds the infrastructure failure
 // any ledger records for a run, even one another ledger owns, so a run-tagged run is excluded wherever its
 // ledger lives; unverified holds the runs an unreadable ledger names.
@@ -274,7 +325,11 @@ async function cohortMembership(root: string): Promise<Membership> {
         claimed.add(dirname(path)); reserved.add(raw.id);
         ledgerPath = join(dirname(path), "trials.jsonl");
         const rows: unknown[] = existsSync(ledgerPath) ? boundedLedger(ledgerPath) : [];
-        if (typeof raw.root !== "string" || realpathSync(join(raw.root, "runs")) !== realpathSync(root)) throw new Error("Navigation receipt root does not own this run store");
+        if (typeof raw.root !== "string") throw new Error("Navigation receipt has no execution root");
+        // A retained receipt outlives its disposable execution worktree. While that checkout exists,
+        // keep the original run-store ownership check; after it is archived, the manifest digest,
+        // strict ledger parser and each run's recorded source/model identity remain the durable proof.
+        if (!navigationRootOwnsStore(raw.root, root)) throw new Error("Navigation receipt root does not own this run store");
         const custom = parseNavigationReceipt(raw, rows, receipt.digest, raw.root);
         if (accepted.has(custom.id)) continue; accepted.add(custom.id);
         for (const trial of custom.trials) {
@@ -476,10 +531,34 @@ export async function cohortIndex(root: string, experimentsDir: string = join(di
 // experimentsDir holds the definitions that label the EXPERIMENT dropdown (the repo's experiments/ next to runs/).
 // partial: serve what is loaded now (a grown log keeps its previous record until its reload lands)
 // and report the rest as still loading, instead of waiting for a cold cache.
-export async function workbenchSnapshot(root: string, healthy: HealthProbe, now: number, experimentsDir: string = join(dirname(root), "experiments"), loader: WorkbenchLoader = defaultLoader, mode: { partial?: boolean } = {}): Promise<WorkbenchData> {
-  const cohorts = await cohortMembership(root); const summaries = listRuns(root);
-  const found = mode.partial === true ? summaries.map(s => loader.current(root, s.id)) : await Promise.all(summaries.map(s => loader.load(root, s.id)));
-  const loadedRuns = found.filter((l): l is Loaded => l !== null), waiting = found.length - loadedRuns.length, definitions = experimentDefinitions(experimentsDir, root);
+export async function workbenchSnapshot(root: string, healthy: HealthProbe, now: number, experimentsDir: string = join(dirname(root), "experiments"), loader: WorkbenchLoader = defaultLoader, mode: { partial?: boolean; cards?: { selected: string | null; live: ReadonlySet<string> } } = {}, catalog: RunCatalog = () => listRuns(root)): Promise<WorkbenchData> {
+  const cohorts = await cohortMembership(root); const summaries = catalog();
+  // The run page needs rich card state only for the selected and health-confirmed live runs. Experiment peers need
+  // only the identity recorded in run_start, which listRuns already read. Do not replay every historical
+  // log after each viewer build merely to replace those peers with the same lightweight card stubs.
+  const reduced = mode.cards === undefined ? summaries : summaries.filter(s => s.id === mode.cards?.selected || mode.cards?.live.has(s.id) === true);
+  const reducedIds = mode.cards === undefined ? null : new Set(reduced.map(s => s.id));
+  // A requested card must arrive as soon as its projection is ready, not as an empty
+  // cached response that waits another polling interval. Other runs stay nonblocking.
+  const found = mode.partial === true
+    ? await Promise.all(reduced.map(async s => s.id === mode.cards?.selected ? loader.load(root, s.id) : loader.current(root, s.id)))
+    : await Promise.all(reduced.map(s => loader.load(root, s.id)));
+  const waiting = found.filter(l => l === null).length, definitions = experimentDefinitions(experimentsDir, root);
+  const loadedRuns = found.flatMap((loaded, index): LoadedRun[] => {
+    if (loaded !== null) return [loaded];
+    // Keep cold recordings in their experiment while the worker validates their log. Header-only
+    // placeholders carry no measurement or splits and cannot compete for the frontier or appear live.
+    const summary = reduced[index];
+    if (mode.cards !== undefined || summary === undefined) return [];
+    const pending: LoadedRun = { run: { ...invalidRun(summary.id, "Recording is still loading; story progress has not been validated yet"), model: summary.model, started: summary.started }, port: null, tag: null, timing: null, skew: null };
+    try {
+      const start = startOf(root, summary.id), experiment = start.evaluation?.experiment;
+      pending.run.config = configuration(start); pending.run.arm = experiment?.arm ?? null;
+      pending.run.experiment = experiment === undefined ? null : { ...experiment };
+      pending.tag = experiment === undefined ? null : { experiment: experiment.id, commit: start.harness.commit };
+    } catch (error) { pending.run.problem = errorText(error); }
+    return [pending];
+  });
   const tagged = taggedCohorts(loadedRuns.flatMap(l => l.tag === null ? [] : [{ run: l.run.id, experiment: l.tag.experiment, commit: l.tag.commit, started: l.run.started }]), definitions);
   const newest = new Map<number, { id: string; at: number }>();
   for (const loaded of loadedRuns) if (loaded.port !== null && loaded.run.status === "unresponsive") {
@@ -504,7 +583,21 @@ export async function workbenchSnapshot(root: string, healthy: HealthProbe, now:
     const failure = cohorts.failures.get(run.id) ?? (own === undefined ? undefined : cohorts.named.get(run.id) ?? cohorts.unverified.get(run.id)); if (failure !== undefined) run.excluded = failure;
     return run;
   }));
-  loader.forget(path => summaries.some(s => eventsPath(root, s.id) === path) || !path.startsWith(root + "/"));
+  if (mode.cards !== undefined) for (const summary of summaries) {
+    if (reducedIds?.has(summary.id) === true || summary.cohort === undefined) continue;
+    runs.push({ id: summary.id, cohort: null, arm: null, model: null, started: null, status: "ended", reason: null, problem: null, excluded: null, elapsedMs: null, turn: 0, config: null, splits: [], experiment: { ...summary.cohort } });
+  }
+  let retainedPaths: ReadonlySet<string> | null | undefined;
+  loader.forget(path => {
+    if (retainedPaths === undefined) {
+      try { retainedPaths = new Set(summaries.map(summary => eventsPath(root, summary.id))); }
+      catch { retainedPaths = null; }
+    }
+    const retained = retainedPaths === null
+      ? summaries.some(summary => eventsPath(root, summary.id) === path)
+      : retainedPaths.has(path);
+    return retained || !path.startsWith(root + "/");
+  });
   runs.sort((a, b) => Date.parse(b.started ?? "") - Date.parse(a.started ?? "") || b.id.localeCompare(a.id));
   const problems = [...(waiting > 0 ? [`Still loading ${String(waiting)} of ${String(found.length)} recorded runs; this page fills in as they finish.`] : []), ...cohorts.problems, ...runs.flatMap(run => run.status !== "invalid" && run.problem !== null ? [`Run ${run.id}: ${run.problem}`] : [])], taggedValues = new Set(tagged.cohorts.map(c => c.id)), legacy = new Map<string, WorkbenchCohort>();
   for (const run of runs) {
@@ -513,4 +606,19 @@ export async function workbenchSnapshot(root: string, healthy: HealthProbe, now:
     else if (!legacy.has(run.cohort)) legacy.set(run.cohort, legacyCohort(run.cohort, definitions));
   }
   return { version: 1, at: now, milestones: MILESTONES.filter(m => m.kind !== "legacy").map(m => ({ id: m.name, label: m.name.replace(/_/g, " ") })), runs, problems, cohorts: distinctLabels([...tagged.cohorts, ...legacy.values()]) };
+}
+
+// The run viewer needs rich data only for the selected and currently active cards. Historical
+// experiment peers retain just identity/tag fields so trainer allocation stays deterministic.
+// The comparisons page continues to receive the complete workbench snapshot.
+export function cardWorkbench(data: WorkbenchData, selected: string | null): WorkbenchData {
+  const runs = data.runs.flatMap((run): WorkbenchRun[] => {
+    if (run.id === selected || run.status === "live" || run.status === "paused") {
+      const projected = { ...run }; delete projected.measurement;
+      return [projected];
+    }
+    if (run.experiment === undefined || run.experiment === null) return [];
+    return [{ id: run.id, cohort: null, arm: null, model: null, started: null, status: "ended", reason: null, problem: null, excluded: null, elapsedMs: null, turn: 0, config: null, splits: [], experiment: { ...run.experiment } }];
+  });
+  return { version: 1, at: data.at, milestones: [], runs, problems: [] };
 }

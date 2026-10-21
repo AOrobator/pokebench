@@ -1,14 +1,16 @@
+import { metricHistory } from "./metric-history.js";
 // Browser glue: picks a run, follows its event stream, and renders the Open
 // PokéNav layout either live (wall clock) or as a replay (cursor clock).
 import type { RunEvent } from "@pokebench/agent/events";
 import { esc, eventMs, hms } from "./format.js";
 import { gbaSvg, litButtons } from "./gba.js";
 import { RunView, isRunEvent } from "./model.js";
+import { syncPhoneFlag } from "./phone.js";
 import { brand, runIdentity, budgets, counters, fieldContext, harnessConfig, inspector, party, splits, thinkingDialog, trainerCard, type Baseline } from "./panels.js";
 import { ReplayClock } from "./replay.js";
 import { lanesSvg } from "./timeline.js";
 import { TRACE_CHIPS, TraceBuilder, moreButton, sideGroups, traceGroups, type TraceCategory, type TraceGroup } from "./trace.js";
-import { ABORT_HOLD_MS, availableActions, controlBar, overlay, overlayKind, runSeconds, sideStats, splitStrip, splitTimes, stateLabel, type ControlAction } from "./controls.js";
+import { ABORT_HOLD_MS, availableActions, controlBar, overlay, overlayKind, runSeconds, sideStats, splitStrip, splitTimes, stateLabel, type BestSplits, type ControlAction } from "./controls.js";
 import { NextRunPanel } from "./nextpanel.js";
 import { QueuePanel } from "./queue-view.js";
 import { headHtml, sheetHtml } from "./run-head.js";
@@ -24,15 +26,31 @@ export interface StreamLike {
   close(): void;
 }
 
+export interface FrameStreamLike {
+  binaryType: string;
+  addEventListener(type: string, listener: (event: { data?: unknown; code?: number; reason?: string }) => void): void;
+  close(): void;
+}
+
 export interface AppDeps {
   fetchJson(url: string): Promise<unknown>;
   sendJson(method: "POST" | "PUT", url: string, body: unknown): Promise<unknown>;
   openStream(url: string): StreamLike;
+  openFrameStream?(url: string): FrameStreamLike;
+  frameUrl?(data: unknown): string;
+  stageFrame?(url: string, ready: () => void, failed: () => void): void;
+  revokeFrameUrl?(url: string): void;
   now(): number;
   readonly hash: string;
   // The trainer cards' game font: the glyph sheet's pixels, and putting painted text on a canvas.
   loadGlyphSheet?(url: string): Promise<GlyphSheet | null>;
   drawGlyphs?(canvas: HTMLCanvasElement, pixels: GlyphPixels): void;
+}
+
+export function frameSocketUrl(path: string, pageHref: string): string {
+  const target = new URL(path, pageHref);
+  target.protocol = target.protocol === "https:" ? "wss:" : "ws:";
+  return target.href;
 }
 
 export type Mode = "loading" | "live" | "replay" | "idle";
@@ -49,7 +67,6 @@ interface RunChoice {
   readonly live?: boolean;
 }
 
-const LIVE_SCREEN_MS = 500;
 const TRACE_TURNS = 50;
 const SIDE_TURNS = 30;
 
@@ -121,8 +138,6 @@ function reconcile(box: HTMLElement, groups: readonly TraceGroup[], tail: string
 
 // Unended runs whose game server no longer answers are not live.
 const isLive = (run: RunChoice): boolean => run.ended === false && run.problem === null && run.live !== false;
-const PHONE = "(max-width: 700px)";
-const startedAt = (iso: string): string => new Date(iso).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 
 const LIVE_RETRY_MS = 5_000;
 export const RUN_LIST_MS = 3_000;
@@ -137,6 +152,24 @@ function runChoices(value: unknown): RunChoice[] {
     const liveB = b.ended === false && b.problem === null && b.live !== false;
     return Number(liveB) - Number(liveA) || (Date.parse(b.started ?? "") || 0) - (Date.parse(a.started ?? "") || 0);
   });
+}
+
+function preferredRun(runs: readonly RunChoice[], hash: string): RunChoice | undefined {
+  const wanted = /^#(?:run|replay)=(.+)$/.exec(hash)?.[1];
+  const requested = wanted === undefined ? undefined : runs.find((run) => run.id === decodeURIComponent(wanted));
+  if (requested !== undefined && (hash.startsWith("#replay=") || isLive(requested))) return requested;
+  return runs.find(isLive) ?? requested ?? runs[0];
+}
+
+function recordedHead(value: unknown, runId: string): readonly RunEvent[] {
+  if (!Array.isArray(value)) throw new Error("malformed recorded thinking payload");
+  const events: RunEvent[] = [];
+  for (const event of value as unknown[]) {
+    if (!isRunEvent(event) || event.run !== runId) throw new Error("malformed recorded thinking payload");
+    events.push(event);
+  }
+  if (events[0]?.type !== "run_start") throw new Error("malformed recorded thinking payload");
+  return events;
 }
 
 function comparisonLabel(run: string, value: unknown): string {
@@ -174,31 +207,37 @@ export class App {
   private art: LoadedArt | null = null;
   private artLoad: Promise<void> | null = null;
   private workbench: WorkbenchData | null = null;
-  private cardsBusy = false;
+  private workbenchLoad: Promise<void> | null = null;
+  private workbenchSelection: string | null = null;
   // The cards replace the live-run buttons; the run list refreshes every few seconds and must not bring them back.
-  private cardsShown = false;
   private readonly cardHtml = new WeakMap<Element, string>();
   // Set when the newest run is opened; a later refresh may list a newer one first.
   private following = false;
   private followThinking = true;
   private runId: string | null = null;
   private stream: StreamLike | null = null;
+  private historyStream: StreamLike | null = null;
+  private headReady = false;
   private baseline: Baseline | null = null;
   private baselineRequest = 0;
-  private best: Baseline | null = null;
+  private frontier: Baseline | null = null;
   private comparisonRequest = 0;
+  private frontierRequest = 0;
   private comparisonsRun: string | null = null;
   private problems: string[] = [];
   private trace = this.newTrace();
   private traced = 0;
   private traceKey = "";
+  private sideKey = "";
+  private recordedThinking: RunView | null = null;
+  private recordedThinkingTrace: TraceBuilder | null = null;
+  private recordedThinkingRequest = 0;
   private traceOn = new Set<TraceCategory>(TRACE_CHIPS.filter((chip) => chip.on).map((chip) => chip.id));
   private traceLimit = TRACE_TURNS;
   private readonly stamps = new WeakMap<HTMLElement, string>();
   // Lists under the pointer hold still while newer turns arrive, so a click lands where aimed.
   private readonly held = new Set<HTMLElement>();
   private readonly heldAtTop = new Set<HTMLElement>();
-  private sideBox: number | null = null;
   // The BAG page: folded from every recorded event of the run (not the replay cursor), drawn only while open.
   private bag = new BagLedger();
   private bagged = 0;
@@ -207,11 +246,20 @@ export class App {
   private bagArtLoad: Promise<void> | null = null;
   private readonly autoScroll = new WeakMap<HTMLElement, number>();
   private rows: RowState = { open: new Set(), folded: new Set(), selected: null };
-  private screenTick = 0;
-  private sinceScreen = 0;
+  private frameStream: FrameStreamLike | null = null;
+  private frameUrl: string | null = null;
+  private stagedFrameUrl: string | null = null;
+  private queuedFrameUrl: string | null = null;
+  private readonly retiredFrameUrls: string[] = [];
+  private frameConnecting = false;
   private liveFailedAt: number | null = null;
+  private frameReceived = 0;
+  private framePresented = 0;
+  private frameLoadBound = false;
   private readonly html = new Map<HTMLElement, string>();
   // Hold-to-confirm abort: when X (or the button) went down; null when released.
+  private extensionPending: { run: string; action: "extend_30m" | "extend_60m"; afterSeq: number; request: number | null } | null = null;
+  private extensionMessage = "";
   private holdStart: number | null = null;
   private overlayClosed = false;
   private wasLive = false;
@@ -238,6 +286,120 @@ export class App {
     return this.mode === "live" && this.view.end === null && this.runs.find((run) => run.id === this.runId)?.live === false;
   }
 
+  // `/api/runs` has already established that this run owns a reachable game
+  // server. Use that server while the event stream backfills; otherwise each
+  // recorded frame in the backlog briefly appears as if the live run replayed.
+  private get liveScreen(): boolean {
+    return this.mode === "live" || (this.mode === "loading" && this.runs.some((run) => run.id === this.runId && isLive(run)));
+  }
+
+  private closeFrameStream(): void {
+    const stream = this.frameStream;
+    this.frameStream = null;
+    this.frameConnecting = false;
+    stream?.close();
+    if (this.frameUrl !== null) {
+      this.deps.revokeFrameUrl?.(this.frameUrl);
+      this.frameUrl = null;
+    }
+    if (this.stagedFrameUrl !== null) this.deps.revokeFrameUrl?.(this.stagedFrameUrl);
+    if (this.queuedFrameUrl !== null) this.deps.revokeFrameUrl?.(this.queuedFrameUrl);
+    this.stagedFrameUrl = null;
+    this.queuedFrameUrl = null;
+    for (const url of this.retiredFrameUrls.splice(0)) this.deps.revokeFrameUrl?.(url);
+  }
+
+  private promoteFrame(url: string): void {
+    const previous = this.frameUrl;
+    this.frameUrl = url;
+    this.liveFailedAt = null;
+    this.renderScreen(this.deps.now());
+    // SVG image loading is asynchronous. Keep a short grace window so a
+    // 60 FPS replacement cannot revoke the URL the browser is still decoding.
+    if (previous !== null) this.retiredFrameUrls.push(previous);
+    if (this.retiredFrameUrls.length > 8) this.deps.revokeFrameUrl?.(this.retiredFrameUrls.shift() as string);
+  }
+
+  private stageFrame(url: string): void {
+    if (this.deps.stageFrame === undefined) { this.promoteFrame(url); return; }
+    if (this.stagedFrameUrl !== null) {
+      if (this.queuedFrameUrl !== null) this.deps.revokeFrameUrl?.(this.queuedFrameUrl);
+      this.queuedFrameUrl = url;
+      return;
+    }
+    this.stagedFrameUrl = url;
+    const complete = (valid: boolean): void => {
+      if (this.stagedFrameUrl !== url) return;
+      this.stagedFrameUrl = null;
+      if (valid && this.frameStream !== null) this.promoteFrame(url);
+      else this.deps.revokeFrameUrl?.(url);
+      const queued = this.queuedFrameUrl;
+      this.queuedFrameUrl = null;
+      if (queued !== null && this.frameStream !== null) this.stageFrame(queued);
+      else if (queued !== null) this.deps.revokeFrameUrl?.(queued);
+    };
+    this.deps.stageFrame(url, () => { complete(true); }, () => { complete(false); });
+  }
+
+  private failFrameStream(stream: FrameStreamLike): void {
+    if (this.frameStream !== stream) return;
+    this.liveFailedAt = this.deps.now();
+    this.closeFrameStream();
+    this.renderScreen(this.deps.now());
+  }
+
+  private ensureFrameStream(nowMs: number): void {
+    if (!this.liveScreen || this.runId === null || this.deps.openFrameStream === undefined) {
+      if (!this.liveScreen) this.closeFrameStream();
+      return;
+    }
+    if (this.frameStream !== null || (this.liveFailedAt !== null && nowMs - this.liveFailedAt < LIVE_RETRY_MS)) return;
+    const stream = this.deps.openFrameStream(`/api/runs/${encodeURIComponent(this.runId)}/frames`);
+    stream.binaryType = "arraybuffer";
+    this.frameStream = stream;
+    this.frameConnecting = true;
+    this.frameReceived = 0;
+    this.framePresented = 0;
+    const screen = this.ui("screen");
+    if (!this.frameLoadBound) {
+      screen.addEventListener("load", () => {
+        if (this.frameUrl === null || screen.getAttribute("href") !== this.frameUrl) return;
+        this.framePresented += 1;
+        screen.dataset.liveFramesPresented = String(this.framePresented);
+      });
+      this.frameLoadBound = true;
+    }
+    screen.dataset.liveFramesReceived = "0";
+    screen.dataset.liveFramesPresented = "0";
+    screen.dataset.liveFramesStartedAt = String(nowMs);
+    stream.addEventListener("open", () => {
+      if (this.frameStream !== stream) return;
+      this.frameConnecting = false;
+      this.liveFailedAt = null;
+      this.renderScreen(this.deps.now());
+    });
+    stream.addEventListener("message", (event) => {
+      if (this.frameStream !== stream || this.deps.frameUrl === undefined) return;
+      let next: string;
+      try { next = this.deps.frameUrl(event.data); }
+      catch { this.failFrameStream(stream); return; }
+      this.frameReceived += 1;
+      screen.dataset.liveFramesReceived = String(this.frameReceived);
+      this.stageFrame(next);
+    });
+    stream.addEventListener("error", () => {
+      if (this.frameStream !== stream) return;
+      this.problem("live frame stream error");
+      this.failFrameStream(stream);
+    });
+    stream.addEventListener("close", (event) => {
+      if (this.frameStream !== stream) return;
+      const detail = event.code === undefined ? "" : ` (${String(event.code)}${event.reason === undefined || event.reason === "" ? "" : `: ${event.reason}`})`;
+      this.problem(`live frame stream closed${detail}`);
+      this.failFrameStream(stream);
+    });
+  }
+
   async control(action: ControlAction): Promise<void> {
     if (this.runId === null || !availableActions(this.view, this.live).has(action)) return;
     try {
@@ -245,6 +407,66 @@ export class App {
     } catch (error) {
       this.problem(`${action.replace("_", " ")}: ${String(error)}`);
     }
+  }
+
+  private extensionDialog(): HTMLDialogElement { return this.ui("extend-dialog") as HTMLDialogElement; }
+
+  private openExtension(): void {
+    if (!availableActions(this.view, this.live).has("extend_30m")) return;
+    this.extensionMessage = "";
+    this.updateExtension();
+    this.extensionDialog().showModal();
+    this.ui("extend-duration").focus();
+  }
+
+  private closeExtension(): void {
+    this.extensionDialog().close();
+    this.doc.querySelector<HTMLElement>("[data-extend-open]")?.focus({ preventScroll: true });
+  }
+
+  private updateExtension(): void {
+    const pending = this.extensionPending;
+    if (pending !== null && pending.run === this.runId) {
+      const ack = this.view.events.find(e => e.type === "operator_control" && e.seq > pending.afterSeq && e.action === pending.action && pending.request !== null && e.request === pending.request);
+      if (ack?.type === "operator_control") {
+        this.extensionPending = null;
+        this.extensionMessage = ack.status === "applied" ? "Extension applied." : "Extension was not applied. The run may have reached its limit or be stopping.";
+      } else if (this.view.end !== null) {
+        this.extensionPending = null;
+        this.extensionMessage = "The run ended before an extension was confirmed.";
+      }
+    }
+    const wall = this.view.control.maxWallMs ?? this.view.start?.budgets.max_wall_ms ?? 0;
+    const addition = (this.ui("extend-duration") as HTMLSelectElement).value === "extend_60m" ? 3_600_000 : 1_800_000;
+    this.ui("extend-run").textContent = this.runId;
+    this.ui("extend-preview").textContent = `Time limit: ${hms(wall / 1000)} → ${hms((wall + addition) / 1000)} · remaining after extension: ${hms(Math.max(0, (wall + addition) / 1000 - runSeconds(this.view, this.deps.now())))}`;
+    const waiting = this.extensionPending !== null;
+    const applied = this.extensionMessage === "Extension applied.";
+    this.ui("extend-confirm").hidden = applied;
+    (this.ui("extend-confirm") as HTMLButtonElement).disabled = waiting || !availableActions(this.view, this.live).has("extend_30m");
+    (this.ui("extend-duration") as HTMLSelectElement).disabled = waiting || applied;
+    this.ui("extend-status").textContent = this.extensionMessage || (waiting ? "Waiting for the running agent to confirm…" : "");
+    if (applied) this.ui("extend-preview").textContent = `Time limit: ${hms(wall / 1000)} · remaining: ${hms(Math.max(0, wall / 1000 - runSeconds(this.view, this.deps.now())))}`;
+    this.ui("extend-cancel").textContent = waiting || this.extensionMessage !== "" ? "Close" : "Cancel";
+  }
+
+  private async extendRun(): Promise<void> {
+    if (this.runId === null || this.extensionPending !== null || !availableActions(this.view, this.live).has("extend_30m")) return;
+    const value = (this.ui("extend-duration") as HTMLSelectElement).value;
+    const pending = { run: this.runId, action: value === "extend_60m" ? "extend_60m" as const : "extend_30m" as const, afterSeq: this.view.events.at(-1)?.seq ?? -1, request: null as number | null };
+    this.extensionPending = pending;
+    this.extensionMessage = "";
+    this.updateExtension();
+    try {
+      const reply = await this.deps.sendJson("POST", `/api/runs/${encodeURIComponent(pending.run)}/control`, { action: pending.action });
+      if (this.extensionPending !== pending || this.runId !== pending.run) return;
+      if (typeof reply === "object" && reply !== null && "request" in reply && typeof reply.request === "number") pending.request = reply.request;
+    } catch (error) {
+      if (this.extensionPending !== pending || this.runId !== pending.run) return;
+      // A lost HTTP response may have enqueued the request. Never retry it automatically.
+      this.extensionMessage = `Request could not be confirmed: ${String(error)}. Check Activity History and reload before trying another extension.`;
+    }
+    this.updateExtension();
   }
 
   private holdFraction(): number | null {
@@ -281,24 +503,45 @@ export class App {
   // On a phone the controls sit under the screen and the run picker in the
   // sheet; each element keeps a marker at its header position to return to.
   private placeForWidth(): void {
-    const phone = this.doc.defaultView?.matchMedia(PHONE).matches === true;
+    const phone = syncPhoneFlag(this.doc);
     if (!phone) this.showSheet(false, false);
     for (const [element, home] of this.homes) {
       const slot = this.doc.querySelector(`[data-slot="${element.matches(".tb-ctl, .replay-controls") ? "phone-controls" : "phone-picker"}"]`);
       if (!phone || slot === null) home.after(element);
       else if (element.matches(".run-choice")) (slot.querySelector("h4") ?? slot).after(element);
-      else slot.append(element);
+      else {
+        // The sheet's own REPORTS link stays last, after RUNS & COMPARISONS.
+        const reports = slot.querySelector('[data-ui="reports-link"]');
+        if (reports === null) slot.append(element); else reports.before(element);
+      }
     }
   }
 
   private showSheet(open: boolean, moveFocus = true): void {
-    const sheet = this.ui("run-sheet");
-    if (sheet.hidden === !open) return;
-    sheet.hidden = !open;
-    this.ui("run-sheet-shade").hidden = !open;
+    const sheet = this.ui("run-sheet"), shade = this.ui("run-sheet-shade");
+    if (sheet.hidden && !open) return;
+    if (open) {
+      sheet.removeAttribute("data-closing");
+      shade.removeAttribute("data-closing");
+      sheet.hidden = shade.hidden = false;
+      sheet.inert = false;
+    } else {
+      sheet.dataset.closing = shade.dataset.closing = "";
+      sheet.inert = true;
+      // Reduced motion and non-phone layouts have no exit animation to await.
+      if (!this.doc.documentElement.hasAttribute("data-phone") || this.doc.defaultView?.getComputedStyle(sheet).animationName !== "rs-slide-out") this.hideSheet();
+    }
     const head = this.ui("run-head");
     head.setAttribute("aria-expanded", String(open));
     if (moveFocus) (open ? this.ui("run-sheet-close") : head).focus();
+  }
+
+  private hideSheet(): void {
+    for (const name of ["run-sheet", "run-sheet-shade"]) {
+      const element = this.ui(name);
+      element.hidden = true;
+      element.removeAttribute("data-closing");
+    }
   }
 
   private setupPhoneHeader(): void {
@@ -317,6 +560,11 @@ export class App {
     this.ui("run-head").addEventListener("click", () => { this.showSheet(true); });
     this.ui("run-sheet-shade").addEventListener("click", () => { this.showSheet(false); });
     this.ui("run-sheet-close").addEventListener("click", () => { this.showSheet(false); });
+    const finishSheetAnimation = (event: AnimationEvent): void => {
+      if (event.target === event.currentTarget && event.animationName === "rs-slide-out" && this.ui("run-sheet").hasAttribute("data-closing")) this.hideSheet();
+    };
+    this.ui("run-sheet").addEventListener("animationend", finishSheetAnimation);
+    this.ui("run-sheet").addEventListener("animationcancel", finishSheetAnimation);
     this.ui("run-sheet").addEventListener("keydown", (event) => { if (event.key === "Escape") this.showSheet(false); });
     this.picker("run").addEventListener("change", () => { this.showSheet(false, false); });
     this.ui("run-cards").addEventListener("click", (event) => {
@@ -337,15 +585,13 @@ export class App {
     this.wire();
     void this.next.load();
     this.listRuns(runChoices(await this.deps.fetchJson("/api/runs")));
-    const wanted = /^#run=(.+)$/.exec(this.deps.hash)?.[1];
-    const fromHash = wanted === undefined ? undefined : this.runs.find((run) => run.id === decodeURIComponent(wanted));
-    const first = fromHash ?? this.runs[0];
+    const first = preferredRun(this.runs, this.deps.hash);
     if (first === undefined) {
       this.mode = "idle";
       this.render();
       return;
     }
-    this.select(first.id);
+    this.select(first.id, !this.deps.hash.startsWith("#replay="));
     void this.pollCards();
   }
 
@@ -354,24 +600,50 @@ export class App {
     return this.artLoad;
   }
 
-  // Without the art the old live-run buttons and sheet stay, and the workbench is never asked.
+  private loadWorkbench(): Promise<void> {
+    const selected = this.runId;
+    if (this.workbenchLoad !== null && this.workbenchSelection === selected) return this.workbenchLoad;
+    this.workbenchSelection = selected;
+    const load = this.deps.fetchJson(`/api/cards${selected === null ? "" : `?run=${encodeURIComponent(selected)}`}`)
+      .then((value) => { if (this.runId === selected && this.workbenchLoad === load) { this.workbench = parseWorkbench(value); this.render(); } })
+      .catch(() => { /* keep the last snapshot; the comparisons page reports workbench problems */ })
+      .finally(() => { if (this.workbenchLoad === load) this.workbenchLoad = null; });
+    this.workbenchLoad = load;
+    return load;
+  }
+
+  // The workbench projection is useful even when optional trainer-card art is unavailable: it lets
+  // a selected run paint all recorded splits atomically while the full event stream catches up.
   async pollCards(): Promise<void> {
-    await this.loadArt();
-    if (this.art === null || this.cardsBusy) return;
-    this.cardsBusy = true;
-    try { this.workbench = parseWorkbench(await this.deps.fetchJson("/api/workbench")); } catch { /* keep the last snapshot; the comparisons page reports workbench problems */ } finally { this.cardsBusy = false; }
+    await Promise.all([this.loadArt(), this.loadWorkbench()]);
     this.render();
+  }
+
+  private recordedSplits(): BestSplits | null {
+    const run = this.workbench?.runs.find((candidate) => candidate.id === this.runId);
+    return run === undefined || this.runId === null ? null : { run: this.runId, milestones: run.splits.map((split) => ({ name: split.name, offsetMs: split.elapsedMs })) };
   }
 
   private cardInputs(): CardInput[] {
     const { art, workbench } = this;
     if (art === null || workbench === null) return [];
     const now = this.deps.now();
-    return this.runs.filter(isLive).flatMap((run): CardInput[] => {
+    const replay = this.runs.find((run) => run.id === this.runId && run.ended === true);
+    const recordedReplay = replay === undefined ? undefined : workbench.runs.find((run) => run.id === replay.id);
+    if (recordedReplay !== undefined) return [cardInputFor(recordedReplay, workbench.at, now, "replay", workbench.runs, art.art)];
+    // An explicitly opened replay is separate from the default live-run row.
+    const live = this.runs.filter(isLive);
+    const liveCards = live.flatMap((run): CardInput[] => {
       const recorded = workbench.runs.find((r) => r.id === run.id);
       if (recorded === undefined || (recorded.status !== "live" && recorded.status !== "paused")) return [];
-      return [cardInputFor(recorded, workbench.at, now, run.id === this.runId ? "watching" : recorded.status === "paused" ? "paused" : "live", workbench.runs, art.art)];
+      const status: CardInput["status"] = run.id === this.runId ? "watching" : recorded.status === "paused" ? "paused" : "live";
+      const input = cardInputFor(recorded, workbench.at, now, status, workbench.runs, art.art);
+      // Applied controls arrive on the selected stream before the next card snapshot.
+      // A snapshot may also be ahead of that stream, so never reduce its cap.
+      const streamedCap = run.id === this.runId ? this.view.control.maxWallMs : null;
+      return [streamedCap === null ? input : { ...input, facts: { ...input.facts, cap: Math.max(input.facts.cap ?? 0, streamedCap) } }];
     });
+    return liveCards;
   }
 
   private listRuns(runs: RunChoice[]): void {
@@ -379,27 +651,6 @@ export class App {
     const picker = this.picker("run");
     picker.replaceChildren(...runs.map((run) => option(this.doc, run.id, `${isLive(run) ? "LIVE · " : run.ended === false && run.problem === null ? "NOT RESPONDING · " : ""}${run.id}`)));
     if (this.runId !== null) picker.value = this.runId;
-    const live = runs.filter(isLive);
-    const box = this.ui("live-runs");
-    box.hidden = live.length === 0 || this.cardsShown;
-    box.replaceChildren();
-    for (const run of live) {
-      const button = this.doc.createElement("button");
-      button.dataset.label = run.experiment === undefined ? run.model ?? run.id : `${run.model ?? run.id} · ${run.experiment}`;
-      button.title = run.id;
-      button.dataset.run = run.id;
-      button.addEventListener("click", () => { this.select(run.id); });
-      box.append(button);
-    }
-    this.markSelectedRun();
-  }
-
-  private markSelectedRun(): void {
-    for (const button of this.ui("live-runs").querySelectorAll<HTMLButtonElement>("button")) {
-      const selected = button.dataset.run === this.runId;
-      button.setAttribute("aria-pressed", String(selected));
-      button.textContent = selected ? `WATCHING · ${button.dataset.label ?? ""}` : `LIVE ELSEWHERE · ${button.dataset.label ?? ""} · WATCH ▸`;
-    }
   }
 
   // Runs start after the page loads (a batch of measured runs); pick them up
@@ -416,16 +667,20 @@ export class App {
     const newest = this.runs[0];
     if (newest === undefined || newest.id === this.runId) return;
     if (this.runId === null) {
-      const wanted = /^#run=(.+)$/.exec(this.deps.hash)?.[1];
-      this.select(runs.find((run) => wanted !== undefined && run.id === decodeURIComponent(wanted))?.id ?? newest.id);
+      this.select((preferredRun(runs, this.deps.hash) ?? newest).id, !this.deps.hash.startsWith("#replay="));
     } else if (this.following && this.view.end !== null) {
-      this.select(newest.id);
+      this.select(newest.id, true);
     }
   }
 
   private wire(): void {
     const controls = this.ui("run-controls");
+    this.ui("extend-duration").addEventListener("change", () => { this.updateExtension(); });
+    this.ui("extend-confirm").addEventListener("click", () => { void this.extendRun(); });
+    this.ui("extend-cancel").addEventListener("click", () => { this.closeExtension(); });
+    this.extensionDialog().addEventListener("cancel", (event) => { event.preventDefault(); this.closeExtension(); });
     controls.addEventListener("click", (event) => {
+      if ((event.target as HTMLElement).closest("[data-extend-open]") !== null) { this.openExtension(); return; }
       if ((event.target as HTMLElement).closest("[data-dismiss-overlay]") !== null) {
         this.overlayClosed = true;
         this.render();
@@ -551,9 +806,6 @@ export class App {
     this.picker("baseline").addEventListener("change", (event) => {
       void this.pickBaseline((event.target as HTMLSelectElement).value);
     });
-    this.ui("screen").addEventListener("error", () => {
-      if (this.mode === "live") this.liveFailedAt = this.deps.now();
-    });
   }
 
   private filterFeatures(): void {
@@ -642,20 +894,32 @@ export class App {
     this.render();
   }
 
+  // The split card and the splits page race the frontier, so it loads with every pick, unlike the comparisons scan.
+  private async loadFrontier(runId: string): Promise<void> {
+    const request = ++this.frontierRequest;
+    try {
+      const record = await this.deps.fetchJson(`/api/runs/${encodeURIComponent(runId)}/frontier`) as { frontier?: unknown };
+      const frontier = record.frontier === null ? null : baselineOf(record.frontier);
+      if (request !== this.frontierRequest) return;
+      this.frontier = frontier;
+      this.render();
+    } catch (error) {
+      if (request === this.frontierRequest) this.problem(`frontier: ${String(error)}`);
+    }
+  }
+
   private async loadComparisons(runId: string): Promise<void> {
     this.comparisonsRun = runId;
     const request = ++this.comparisonRequest;
     const baselineRequest = this.baselineRequest;
     try {
       const value = await this.deps.fetchJson(`/api/runs/${encodeURIComponent(runId)}/comparisons`);
-      const record = value as { candidates?: unknown; baseline?: unknown; best?: unknown };
+      const record = value as { candidates?: unknown; baseline?: unknown };
       if (!Array.isArray(record.candidates)) throw new Error("malformed comparisons");
       const rawCandidates: unknown[] = record.candidates;
       const candidates = rawCandidates.map(baselineOf);
       const baseline = record.baseline === null ? null : baselineOf(record.baseline);
-      const best = record.best === null ? null : baselineOf(record.best);
       if (request !== this.comparisonRequest) return;
-      this.best = best;
       // Populate only validated references, even when the user disabled the
       // automatic default while loading. Never expose unchecked run choices.
       this.picker("baseline").replaceChildren(option(this.doc, "", "none"), ...candidates.map((c, i) => option(this.doc, c.run, comparisonLabel(c.run, rawCandidates[i]))));
@@ -667,18 +931,52 @@ export class App {
     }
   }
 
-  select(runId: string): void {
+  private async loadRecordedThinking(runId: string): Promise<void> {
+    const request = ++this.recordedThinkingRequest;
+    try {
+      const events = recordedHead(await this.deps.fetchJson(`/api/runs/${encodeURIComponent(runId)}/head`), runId);
+      if (request !== this.recordedThinkingRequest || this.runId !== runId || this.headReady) return;
+      const view = new RunView();
+      for (const event of events) view.apply(event);
+      this.setRecordedThinking(view, events);
+      this.render();
+    } catch {
+      if (request !== this.recordedThinkingRequest || this.runId !== runId || this.headReady) return;
+      this.recordedThinking = null;
+      this.recordedThinkingTrace = null;
+      this.render();
+    }
+  }
+
+  private setRecordedThinking(view: RunView, events: readonly RunEvent[], prepared?: TraceBuilder): void {
+    const trace = prepared ?? new TraceBuilder((event) => view.loopLabel(event).replace(`: ${event.message}`, ""));
+    if (prepared === undefined) for (const event of events) trace.add(event);
+    this.recordedThinking = view;
+    this.recordedThinkingTrace = trace;
+  }
+
+  select(runId: string, automatic = false): void {
+    this.extensionDialog().close();
+    this.extensionPending = null;
+    this.extensionMessage = "";
     this.stream?.close();
+    this.historyStream?.close();
+    this.historyStream = null;
+    this.headReady = false;
+    this.closeFrameStream();
     this.runId = runId;
     this.comparisonRequest += 1; this.comparisonsRun = null;
-    this.following = this.runs[0]?.id === runId;
+    this.following = automatic || (this.runs[0]?.id === runId && this.runs[0].ended !== true);
     this.view = new RunView();
     this.shown = this.view;
     this.clock = null;
     this.mode = "loading";
     this.baseline = null;
-    this.best = null;
+    this.frontier = null;
     this.baselineRequest += 1;
+    this.recordedThinkingRequest += 1;
+    this.recordedThinking = null;
+    this.recordedThinkingTrace = null;
     this.problems = [];
     this.ui("problems").hidden = true;
     this.ui("problems").textContent = "";
@@ -694,14 +992,43 @@ export class App {
     this.bagKey = "";
     this.setHtml("inspector", inspector(undefined));
     this.picker("run").value = runId;
-    this.markSelectedRun();
     // References are eligible only after the owned server validates their logs.
     this.picker("baseline").replaceChildren(option(this.doc, "", "none"));
-    this.doc.location.hash = `run=${encodeURIComponent(runId)}`;
+    this.doc.location.hash = `${!automatic && this.runs.find((run) => run.id === runId)?.ended === true ? "replay" : "run"}=${encodeURIComponent(runId)}`;
     const comparisons = this.doc.querySelector<HTMLAnchorElement>('[data-ui="comparisons-link"]');
     if (comparisons !== null) comparisons.href = `/comparisons?from=${encodeURIComponent(runId)}`;
-    const stream = this.deps.openStream(`/api/runs/${encodeURIComponent(runId)}/events`);
+    const stream = this.deps.openStream(`/api/runs/${encodeURIComponent(runId)}/events?head=1`);
     this.stream = stream;
+    this.ensureFrameStream(this.deps.now());
+    void this.pollCards();
+    stream.addEventListener("head", (message) => {
+      if (this.stream !== stream) return;
+      try {
+        const events = recordedHead(JSON.parse(message.data), runId);
+        if (this.headReady && (events.at(-1)?.seq ?? -1) <= (this.view.events.at(-1)?.seq ?? -1)) return;
+        this.historyStream?.close();
+        this.historyStream = null;
+        this.clock = null;
+        this.trace = this.newTrace();
+        this.traced = 0;
+        this.traceKey = this.sideKey = "";
+        this.recordedThinkingRequest += 1;
+        const view = new RunView();
+        for (const event of events) view.apply(event);
+        this.view = this.shown = view;
+        this.headReady = true;
+        this.mode = view.end === null && this.runs.some(run => run.id === runId && isLive(run)) ? "live" : "loading";
+        this.setRecordedThinking(view, events);
+        this.loadHistory(runId, stream);
+        this.render();
+      } catch (error) { this.problem(`head: ${String(error)}`); }
+    });
+    let fallbackRequested = false;
+    stream.addEventListener("error", () => {
+      if (this.stream !== stream || this.headReady || fallbackRequested) return;
+      fallbackRequested = true;
+      void this.loadRecordedThinking(runId);
+    });
     stream.addEventListener("ev", (message) => {
       if (this.stream !== stream) return;
       this.receive(message.data);
@@ -713,6 +1040,11 @@ export class App {
     });
     stream.addEventListener("caught_up", () => {
       if (this.stream !== stream) return;
+      if (this.headReady) return;
+      // The fully folded stream is authoritative now. A slower optional head
+      // request must not replace or clear it after this handoff.
+      this.recordedThinkingRequest += 1;
+      this.setRecordedThinking(this.view, this.view.events);
       if (this.view.end !== null) this.startReplay(false);
       else {
         this.mode = "live";
@@ -723,11 +1055,62 @@ export class App {
     stream.addEventListener("done", () => {
       stream.close();
       if (this.stream !== stream) return;
+      this.closeFrameStream();
+      if (this.headReady && this.historyStream !== null) return;
       if (this.mode !== "replay") this.startReplay(true);
       this.render();
     });
+    void this.loadFrontier(runId);
     if (this.doc.querySelector('[data-page="splits"][aria-pressed="true"]') !== null) void this.loadComparisons(runId);
     this.render();
+  }
+
+  // History has its own fold: old events never overwrite the current head. The
+  // tail remains live while the prefix streams, including controls and deltas.
+  private loadHistory(runId: string, primary: StreamLike): void {
+    const stream = this.deps.openStream(`/api/runs/${encodeURIComponent(runId)}/events`);
+    this.historyStream = stream;
+    const history = new RunView();
+    const label = (event: Extract<RunEvent, { type: "loop_guard" }>): string => history.loopLabel(event).replace(`: ${event.message}`, "");
+    const trace = new TraceBuilder(label), side = new TraceBuilder(label);
+    const apply = (event: RunEvent): void => {
+      const count = history.events.length;
+      history.apply(event);
+      if (history.events.length > count) { trace.add(event); side.add(event); }
+    };
+    const current = (): boolean => this.stream === primary && this.historyStream === stream;
+    stream.addEventListener("ev", message => {
+      if (!current()) return;
+      try {
+        const event: unknown = JSON.parse(message.data);
+        if (!isRunEvent(event) || event.run !== runId) throw new Error("invalid history event");
+        apply(event);
+      } catch (error) { this.problem(`history: ${String(error)}`); }
+    });
+    stream.addEventListener("problem", message => {
+      if (current()) {
+        const detail = JSON.parse(message.data) as { line?: unknown; problem?: unknown };
+        this.problem(`line ${String(detail.line)}: ${String(detail.problem)}`);
+      }
+    });
+    stream.addEventListener("caught_up", () => {
+      if (!current()) return;
+      stream.close();
+      this.historyStream = null;
+      // The tail may already be ahead of this scan. Conversely the scan can
+      // have read a newer append first; RunView's sequence guard deduplicates.
+      for (const event of this.view.events) apply(event);
+      this.view = history;
+      this.shown = history;
+      this.setRecordedThinking(history, history.events, side);
+      if (history.end !== null) this.startReplay(true);
+      else this.mode = "live";
+      this.shown = history;
+      this.trace = trace;
+      this.traced = history.events.length;
+      this.traceKey = this.sideKey = "";
+      this.render();
+    });
   }
 
   private receive(data: string): void {
@@ -746,7 +1129,9 @@ export class App {
       this.problem(`event for run ${value.run}`);
       return;
     }
+    const eventCount = this.view.events.length;
     this.view.apply(value);
+    if (this.mode !== "loading" && this.recordedThinking === this.view && this.view.events.length > eventCount) this.recordedThinkingTrace?.add(value);
   }
 
   private problem(text: string): void {
@@ -777,11 +1162,7 @@ export class App {
       this.holdStart = null;
       void this.control("abort");
     }
-    this.sinceScreen += realMs;
-    if (this.sinceScreen >= LIVE_SCREEN_MS) {
-      this.sinceScreen = 0;
-      this.screenTick += 1;
-    }
+    this.ensureFrameStream(this.deps.now());
     this.render();
   }
 
@@ -809,9 +1190,9 @@ export class App {
     this.trace = this.newTrace();
     this.traced = 0;
     this.traceKey = "";
+    this.sideKey = "";
     this.traceLimit = TRACE_TURNS;
     this.rows = { open: new Set(), folded: new Set(), selected: null };
-    this.sideBox = null;
     for (const name of ["trace", "side-trace"]) this.doc.querySelector<HTMLElement>(`[data-ui="${name}"]`)?.replaceChildren();
   }
 
@@ -861,8 +1242,9 @@ export class App {
     for (const selected of this.doc.querySelectorAll(".tl.sel")) selected.classList.remove("sel");
     this.rows.selected = row.dataset.key ?? null;
     for (const same of this.doc.querySelectorAll<HTMLElement>(`[data-key="${row.dataset.key ?? ""}"]`)) same.classList.add("sel");
+    const owner = row.closest('[data-ui="side-trace"]') === null ? this.shown : this.recordedThinking;
     const seqs = (row.dataset.seqs ?? "").split(" ").map(Number);
-    this.setHtml("inspector", seqs.map((seq) => inspector(this.shown.bySeq(seq))).join(""));
+    this.setHtml("inspector", seqs.map((seq) => inspector(owner?.bySeq(seq))).join(""));
   }
 
   private renderTrace(nowMs: number): void {
@@ -872,21 +1254,23 @@ export class App {
     const key = `${String(this.trace.version)}|${[...this.traceOn].sort().join(",")}|${String(this.traceLimit)}|${String(live?.turn ?? "")}`;
     const box = this.ui("trace");
     if (key !== this.traceKey) {
-      const versionChanged = this.traceKey.split("|")[0] !== String(this.trace.version);
       this.traceKey = key;
       this.renderChips();
-      // The side list leaves out the thought the Emerald box shows, so it also redraws when the box moves on.
-      const boxTurn = this.shown.isThinking ? null : this.shown.lastThought?.turn ?? null;
-      if (versionChanged || boxTurn !== this.sideBox) {
-        this.sideBox = boxTurn;
-        const side = this.ui("side-trace");
-        const groups = sideGroups(this.trace.turns, SIDE_TURNS, boxTurn);
-        reconcile(side, groups, groups.length === 0 ? '<p class="nodata">no steps yet</p>' : "", this.stamps, this.held.has(side), this.rows, (top) => { this.scrollTo(side, top); });
-      }
       const startMs = this.shown.startMs;
       const elapsed = startMs === null ? null : (ms: number): number => (ms - startMs - this.shown.control.pausedBefore(ms)) / 1000;
       const { groups, more } = traceGroups(this.trace.turns, this.traceOn, { elapsed, live, limit: this.traceLimit, page: TRACE_TURNS });
       reconcile(box, groups, groups.length === 0 ? '<p class="nodata">no recorded events</p>' : moreButton(more, TRACE_TURNS), this.stamps, this.held.has(box), this.rows, (top) => { this.scrollTo(box, top); });
+    }
+    const sideView = this.recordedThinking;
+    const sideTrace = this.recordedThinkingTrace;
+    const boxTurn = sideView === null || sideView.isThinking ? null : sideView.lastThought?.turn ?? null;
+    const sideKey = `${this.mode}|${String(sideTrace?.version ?? -1)}|${String(boxTurn ?? "")}`;
+    if (sideKey !== this.sideKey) {
+      this.sideKey = sideKey;
+      const side = this.ui("side-trace");
+      const groups = sideTrace === null ? [] : sideGroups(sideTrace.turns, SIDE_TURNS, boxTurn);
+      const empty = this.mode === "loading" && sideTrace === null ? '<p class="nodata">loading recorded thinking…</p>' : '<p class="nodata">no steps yet</p>';
+      reconcile(side, groups, groups.length === 0 ? empty : "", this.stamps, this.held.has(side), this.rows, (top) => { this.scrollTo(side, top); });
     }
     if (live !== null) {
       const { thinking, text } = this.shown.streaming;
@@ -908,10 +1292,10 @@ export class App {
     const recorded = this.shown.frame === null ? "" : `/api/runs/${id}/${this.shown.frame}`;
     let href = recorded;
     let note = recorded === "" ? "no frame yet" : "recorded frame";
-    if (this.mode === "live") {
+    if (this.liveScreen) {
       const failed = this.liveFailedAt !== null && nowMs - this.liveFailedAt < LIVE_RETRY_MS;
-      href = failed ? recorded : `/api/runs/${id}/screen?n=${String(this.screenTick)}`;
-      note = failed ? "live screen unavailable · last frame" : "live";
+      href = this.frameUrl ?? recorded;
+      note = this.frameUrl !== null ? "live" : failed ? "live stream unavailable · last frame" : this.frameConnecting ? "live stream connecting · last frame" : "live stream unavailable · last frame";
     }
     if (screen.getAttribute("href") !== href) screen.setAttribute("href", href);
     this.ui("screen-note").textContent = note;
@@ -919,7 +1303,7 @@ export class App {
 
   render(): void {
     const clock = this.clock;
-    const nowMs = this.mode === "replay" && clock !== null ? clock.positionMs : this.deps.now();
+    const nowMs = this.mode === "replay" && clock !== null ? clock.positionMs : this.headReady && this.view.end !== null ? (this.view.lastMs ?? this.deps.now()) : this.deps.now();
     if (this.mode === "replay") this.advanceShown(nowMs);
     const view = this.shown;
     const live = this.live;
@@ -929,6 +1313,7 @@ export class App {
     mode.textContent = label.text;
     mode.className = `mode ${label.cls}`;
     this.setHtml("run-controls", controlBar(view, live, this.holdFraction()));
+    this.ui("history-status").hidden = !this.headReady || this.historyStream === null;
     const kind = overlayKind(view, live || (this.wasLive && view.end !== null), this.holdStart !== null, this.overlayClosed);
     const layer = this.doc.querySelector<SVGElement>('[data-ui="screen-overlay"]');
     if (layer !== null) {
@@ -939,13 +1324,20 @@ export class App {
       }
     }
     this.setHtml("stats", sideStats(view, nowMs));
-    this.setHtml("split-strip", splitStrip(view));
-    this.setHtml("split-times", splitTimes(view, this.best));
+    if (this.extensionDialog().open || this.extensionPending !== null) this.updateExtension();
+    const recordedSplits = this.mode === "loading" || this.historyStream !== null ? this.recordedSplits() : undefined;
+    const splitView = this.mode === "loading" ? view : this.view;
+    this.setHtml("split-preview", splitStrip(splitView, recordedSplits, true));
+    this.setHtml("split-strip", splitStrip(splitView, recordedSplits));
+    this.setHtml("split-times", splitTimes(splitView, this.frontier, recordedSplits));
     this.next.setLive(live ? view : null);
     this.ui("brand").textContent = brand(view);
-    const dialog = thinkingDialog(view, nowMs);
+    const thinkingView = this.recordedThinking ?? (this.mode === "loading" ? null : view);
+    const dialog = thinkingView === null
+      ? { head: "LOADING RECORDED THINKING…", body: '<span class="nodata">waiting for the selected run snapshot</span>' }
+      : thinkingDialog(thinkingView, nowMs);
     this.ui("think-head").textContent = dialog.head;
-    this.ui("think-title").textContent = view.start === null ? "NO RUN" : `${view.end === null ? "RIGHT NOW" : "FINAL"} · TURN ${String(view.turn)}`;
+    this.ui("think-title").textContent = thinkingView === null || thinkingView.start === null ? "NO RUN" : `${thinkingView.end === null ? "RIGHT NOW" : "FINAL"} · TURN ${String(thinkingView.turn)}`;
     const ident = runIdentity(view);
     this.setHtml("ident", ident);
     this.ui("ident").hidden = ident === "";
@@ -959,12 +1351,13 @@ export class App {
     this.setHtml("harness-config", harnessConfig(view, this.next.registry));
     this.filterFeatures();
     this.setHtml("party", party(view));
-    this.setHtml("run-details", `<details><summary>RUN METADATA · PROMPT · TOOLS · BUDGETS</summary><pre>${esc(JSON.stringify(view.start, null, 2))}</pre></details><details><summary>LATEST RECORDED STATE</summary><pre>${esc(JSON.stringify(view.state, null, 2))}</pre></details><details><summary>TERMINAL EVENT</summary><pre>${esc(JSON.stringify(view.end, null, 2))}</pre></details>`);
+    this.setHtml("run-details", `<details><summary>ORIGINAL RECORDED CONFIGURATION · PROMPT · TOOLS · BUDGETS</summary><pre>${esc(JSON.stringify(view.start, null, 2))}</pre></details><details><summary>CURRENT EFFECTIVE WALL LIMIT</summary><pre>${esc(JSON.stringify({ max_wall_ms: view.control.maxWallMs ?? view.start?.budgets.max_wall_ms ?? null }, null, 2))}</pre></details><details><summary>LATEST RECORDED STATE</summary><pre>${esc(JSON.stringify(view.state, null, 2))}</pre></details><details><summary>TERMINAL EVENT</summary><pre>${esc(JSON.stringify(view.end, null, 2))}</pre></details>`);
     const barHeight = this.doc.querySelector(".bar")?.getBoundingClientRect().height ?? 0;
     this.doc.documentElement.style.setProperty("--viewer-bar-height", `${String(barHeight || 110)}px`);
     this.setHtml("budgets", budgets(view, nowMs));
     this.setHtml("counters", counters(view));
-    const split = splits(view, this.baseline, nowMs, this.best);
+    this.setHtml("metric-history", metricHistory(view));
+    const split = splits(view, this.baseline, nowMs, this.frontier);
     this.setHtml("splits-summary", split.summary);
     this.setHtml("splits", split.table);
     this.setHtml("lanes", lanesSvg(view, nowMs));
@@ -981,20 +1374,22 @@ export class App {
     play.disabled = clock === null;
     scrub.disabled = clock === null;
     play.textContent = clock?.playing === true ? "❚❚" : "▶";
-    const cap = view.start?.budgets.max_wall_ms;
+    const cap = view.control.maxWallMs ?? view.start?.budgets.max_wall_ms;
     const time = clock !== null ? `${hms((clock.positionMs - clock.startMs) / 1000)} / ${hms((clock.endMs - clock.startMs) / 1000)}` : view.startMs === null ? "" : `${hms(runSeconds(view, nowMs))}${cap === undefined ? "" : ` / ${hms(cap / 1000)}`}`;
     const head = { view, runId: this.runId, label, running: live && view.control.state === "running", time, others: this.runs.filter((run) => isLive(run) && run.id !== this.runId) };
     this.setHtml("run-head", headHtml(head));
     // The time ticks every render; rebuilding the sheet for it would remount the WATCH buttons under the pointer.
     const cards = this.cardInputs(), art = this.art?.art ?? null;
-    const watched = cards.filter((c) => c.status === "watching"), mini = art === null || cards.length === 0 ? null : [...watched, ...cards.filter((c) => c.status !== "watching")].map((c) => cardHtml(c, art, "mini")).join("");
-    this.setHtml("run-sheet-body", sheetHtml({ ...head, time: "" }, startedAt, mini === null ? null : { html: mini, watched: watched.length > 0 }));
+    const watched = cards.filter((c) => c.status === "watching" || c.status === "replay");
+    const sheetCardHtml = art === null || cards.length === 0 ? [] : [...watched, ...cards.filter((c) => c.status !== "watching" && c.status !== "replay")].map((c) => cardHtml(c, art, "wide"));
+    this.setHtml("run-sheet-body", sheetHtml());
+    const sheetBody = this.ui("run-sheet-body");
+    const sheetCards = sheetBody.querySelector(".rs-cards");
+    if (sheetCards !== null) syncCards(sheetCards, sheetCardHtml, this.cardHtml);
+    sheetBody.querySelector<HTMLElement>("[data-card-loading]")?.toggleAttribute("hidden", sheetCardHtml.length > 0);
     syncCards(this.ui("run-cards"), art === null ? [] : cards.map((c) => cardHtml(c, art, "wide")), this.cardHtml);
-    this.cardsShown = mini !== null;
-    this.ui("run-cards").hidden = !this.cardsShown;
-    this.ui("live-runs").hidden = this.cardsShown || !this.runs.some(isLive);
+    this.ui("run-cards").hidden = cards.length === 0;
     fillCards([this.ui("run-cards"), this.ui("run-sheet-body")], cards, this.art, (canvas, pixels) => { this.deps.drawGlyphs?.(canvas, pixels); });
-    for (const slot of this.ui("run-sheet-body").querySelectorAll(".rh-time")) slot.textContent = time;
     if (clock !== null) {
       scrub.value = String(Math.round(clock.fraction * 1000));
       this.ui("clock").textContent = `${hms((clock.positionMs - clock.startMs) / 1000)} / ${hms((clock.endMs - clock.startMs) / 1000)}`;
@@ -1012,9 +1407,12 @@ export async function mountApp(doc: Document, deps: AppDeps): Promise<App> {
 
 export interface BootWindow {
   readonly document: Document;
-  readonly location: { readonly hash: string };
+  readonly location: { readonly hash: string; readonly href: string };
   fetch(url: string, init?: RequestInit): Promise<Response>;
   readonly EventSource: new (url: string) => StreamLike;
+  readonly WebSocket: new (url: string) => FrameStreamLike;
+  readonly Blob: new (parts?: BlobPart[], options?: BlobPropertyBag) => Blob;
+  readonly URL: Pick<typeof URL, "createObjectURL" | "revokeObjectURL">;
   setInterval(handler: () => void, ms: number): unknown;
   readonly performance: { now(): number };
 }
@@ -1033,6 +1431,17 @@ export async function boot(win: BootWindow): Promise<App> {
       return reply;
     },
     openStream: (url) => new win.EventSource(url),
+    openFrameStream: (url) => new win.WebSocket(frameSocketUrl(url, win.location.href)),
+    frameUrl: (data) => {
+      if (!(data instanceof ArrayBuffer)) throw new Error("live frame was not binary");
+      return win.URL.createObjectURL(new win.Blob([data], { type: "image/png" }));
+    },
+    stageFrame: (url, ready, failed) => {
+      const image = win.document.createElement("img");
+      const finish = (done: () => void): void => { image.onload = null; image.onerror = null; done(); };
+      image.onload = () => { finish(ready); }; image.onerror = () => { finish(failed); }; image.src = url;
+    },
+    revokeFrameUrl: (url) => { win.URL.revokeObjectURL(url); },
     now: () => Date.now(),
     hash: win.location.hash,
     loadGlyphSheet: browserGlyphSheet(win.document),

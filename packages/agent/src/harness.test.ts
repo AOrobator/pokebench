@@ -1,3 +1,5 @@
+import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
+import {gunzipSync} from "node:zlib";
 import type { AgentMessage, AgentTool, StreamFn } from "@mariozechner/pi-agent-core";
 import {
   createAssistantMessageEventStream,
@@ -8,13 +10,14 @@ import {
 } from "@mariozechner/pi-ai";
 import { Type } from "typebox";
 import { describe, expect, it, vi } from "vitest";
-import { appendFileSync, mkdtempSync } from "node:fs";
+import { appendFileSync, mkdtempSync,readFileSync,rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { ControlFile, RunControl, controlLine } from "./run-control.js";
 import { PRESS_TIMING, pressTool } from "./game-tools.js";
-import { DOUBLE_WINDOW, Governor, NUDGE, OMITTED_FRAME, TEXT_ONLY_NOTE_LIMIT, WINDOW, contextWindow, keepCount, piLoop, play, slideWindow, withoutTextOnlyReplies, type Loop, type Window } from "./harness.js";
-import { ALL_ON } from "./features.js";
+import { DOUBLE_WINDOW, Governor, NUDGE, OMITTED_FRAME, TEXT_ONLY_NOTE_LIMIT, WINDOW, contextWindow, keepCount, piLoop, play, slideWindow, withoutTextOnlyReplies, attachLoopGuard,type Loop, type Window } from "./harness.js";
+import {} from "./features.js";
+import { ContextBudget, type BudgetTrim } from "./context-budget.js";
 
 const usage = {
   input: 0,
@@ -430,6 +433,35 @@ function scriptedLoop(script: (() => AgentMessage[])[], calls: string[]): Loop {
 }
 
 describe("play", () => {
+  it("records an operator stop that aborts the loop mid-request as the stop, not a crash", async () => {
+    // Run c6c2: SIGTERM aborted the battle wait inside the pre-model readiness observe; pi's transformContext
+    // hook does not catch it, so the loop rejected with AbortError and the run was recorded as a crash.
+    const { g } = governor();
+    const aborted = (): Promise<AgentMessage[]> => {
+      g.abort("operator_abort");
+      return Promise.reject(new DOMException("This operation was aborted", "AbortError"));
+    };
+    expect(await play(TASK, g, { start: aborted, resume: aborted })).toBe("operator_abort");
+    let resumed = 0;
+    const { g: second } = governor();
+    const afterRetry: Loop = {
+      start: () => Promise.resolve([reply([], "error", "HTTP 502")]),
+      resume: () => {
+        resumed++;
+        second.abort("budget");
+        return Promise.reject(new Error("socket closed"));
+      },
+    };
+    expect(await play(TASK, second, afterRetry)).toBe("budget");
+    expect(resumed).toBeGreaterThan(0);
+  });
+
+  it("still rejects a loop failure with no stop reason, so a real crash stays a crash", async () => {
+    const { g } = governor();
+    const broken: Loop = { start: () => Promise.reject(new Error("boom")), resume: () => Promise.reject(new Error("boom")) };
+    await expect(play(TASK, g, broken)).rejects.toThrow("boom");
+  });
+
   it("returns the governor's stop reason once the loop exits", async () => {
     const { g } = governor();
     const calls: string[] = [];
@@ -798,8 +830,8 @@ describe("control-file requests at the turn boundary", () => {
 });
 
 describe("double-context-window-v1", () => {
-  const off = { ...ALL_ON, "dialogue-context-kept-v1": false, "double-context-window-v1": false };
-  const on = { ...ALL_ON, "dialogue-context-kept-v1": false, "double-context-window-v1": true };
+  const off = { ...ALL_ON,"cache-aligned-window-v1":false, "dialogue-context-kept-v1": false, "double-context-window-v1": false };
+  const on = { ...ALL_ON,"cache-aligned-window-v1":false, "dialogue-context-kept-v1": false, "double-context-window-v1": true };
   const assistants = (window: Window, n: number) => slideWindow([TASK, ...turnsOf(n)], window).filter((m) => m.role === "assistant").length;
   const whole = (window: Window, n: number) => resultTexts(slideWindow([TASK, ...turnsOf(n)], window)).filter((t) => !t.endsWith(OMITTED_FRAME)).length;
 
@@ -838,5 +870,121 @@ describe("double-context-window-v1", () => {
     };
     expect(await run({ turns: { max: 1, chunk: 1 }, results: { max: 6, chunk: 3 } })).toBe(1);
     expect(await run(undefined)).toBe(3);
+  });
+});
+
+it("refreshes request presentation through the real pinned loop before every model call",async()=>{
+ const {g}=governor({maxTurns:2});const controller=new AbortController();let screen="clock";
+ const seen:{prompt:string|undefined;tools:string[]}[]=[];
+ const replies=[pressReply(["A"]),pressReply(["B"])];
+ const model=scriptedModel(replies,[]);
+ const loop=piLoop({systemPrompt:"full",tools:[fakePress(()=>{screen="field";})],base:{model:MODEL,convertToLlm:messages=>messages as Message[]},governor:g,transformContext:messages=>Promise.resolve(messages),emit:()=>undefined,signal:controller.signal,
+ requestContext:context=>({...context,systemPrompt:screen,tools:(context.tools??[]).filter(t=>t.name==="press")}),
+ streamFn:(m,context,options)=>{seen.push({prompt:context.systemPrompt,tools:context.tools?.map(t=>t.name)??[]});return model(m,context,options);}});
+ expect(await play(TASK,g,loop)).toBe("budget");
+ expect(seen).toEqual([{prompt:"clock",tools:["press"]},{prompt:"field",tools:["press"]}]);
+});
+
+
+it("stable JIT preserves provider-serialized history through unknown, naming and clock scenes in the pinned loop",async()=>{
+ const {assistant}=await import("../test-support/pi.js");
+ const {StableJitContext}=await import("./jit-v2-context.js");
+ const {streamOpenAICompletions}=await import("@mariozechner/pi-ai/openai-completions");
+ const jit=new StableJitContext({...ALL_ON,"cache-aligned-window-v1":false,"just-in-time-prompt-v1":false,"just-in-time-prompt-v2":true},null);
+ jit.observe({type:"state",seq:1,screen:"main_menu",in_battle:false});
+ const {g}=governor({maxTurns:4}),controller=new AbortController();
+ const payloads:unknown[]=[];const seen:Message[][]=[];const replies=["A","B","A","A"].map((button,index)=>assistant({toolCalls:[{type:"toolCall",id:`jit-${String(index)}`,name:"press",arguments:{buttons:[button]}}]}));const model=scriptedModel(replies,seen);
+ let sceneIndex=0;const scenes=["naming","birch_speech","clock","overworld"];
+ const loop=piLoop({systemPrompt:"full",tools:[fakePress(()=>{jit.observe({type:"state",seq:++sceneIndex+1,screen:scenes[sceneIndex-1]??"overworld",in_battle:false});})],base:{model:MODEL,convertToLlm:messages=>messages as Message[]},governor:g,transformContext:messages=>Promise.resolve(messages),emit:()=>undefined,signal:controller.signal,requestContext:context=>jit.context(context),
+ streamFn:async(m,context,options)=>{
+  // The provider constructs the real outgoing payload, then aborts before HTTP.
+  const probe=streamOpenAICompletions({...MODEL,baseUrl:"http://provider-fixture.invalid/v1"},context,{apiKey:"fixture",onPayload:payload=>{payloads.push(payload);throw new Error("test stops before HTTP");}});
+  expect((await probe.result()).stopReason).toBe("error");
+  return model(m,context,options);
+ }});
+ expect(await play(TASK,g,loop)).toBe("budget");
+ const schema=Type.Object({messages:Type.Array(Type.Unknown()),tools:Type.Array(Type.Unknown())},{additionalProperties:true});
+ const {Value}=await import("typebox/value");
+ const parsed=payloads.map(payload=>Value.Parse(schema,payload));
+ expect(parsed).toHaveLength(4);
+ for(let i=1;i<parsed.length;i++){
+  const before=parsed[i-1],after=parsed[i];if(before===undefined||after===undefined)throw Error("missing provider payloads");
+  expect(after.messages.slice(0,before.messages.length)).toEqual(before.messages);expect(after.tools).toEqual(before.tools);
+ }
+ expect(parsed.map(p=>JSON.stringify(p.messages).match(/HARNESS INTERFACE GUIDANCE/g)?.length??0)).toEqual([0,1,1,2]);
+ expect(JSON.stringify(parsed[0]?.messages)).not.toContain("Clock interface:");
+ expect(JSON.stringify(parsed[1]?.messages.at(-1))).toContain("Naming layout,");
+ expect(JSON.stringify(parsed[3]?.messages.at(-1))).toContain("Clock interface:");
+});
+
+
+it("records semantic refusal warnings and delivers them before the next pinned-pi decision",async()=>{
+ const {RunRecorder}=await import("./recorder.js");
+ const {RunLog}=await import("./run-log.js");
+ const {FrameStore}=await import("./frames.js");
+ const {RUN_START_META,IN_GAME}=await import("../test-support/events.js");
+ const {checkEvent}=await import("./events.js");
+ const root=mkdtempSync(join(tmpdir(),"pokebench-refusal-pi-"));
+ try{
+  const log=RunLog.create(root,"2026-10-19T15-00-00_refusal-delivery");
+  const recorder=new RunRecorder({log,frames:new FrameStore(root,1000000,()=>undefined),milestones:{poll:()=>Promise.resolve([])},gameState:{read:()=>Promise.resolve(IN_GAME)}});
+  await recorder.start(RUN_START_META,false);
+  const {parseGameState}=await import("./game-state.js");
+  const recorded=JSON.parse(gunzipSync(readFileSync(new URL("../test-support/battle-message-refusals.json.gz",import.meta.url))).toString("utf8")) as {state:unknown}[];
+  const waiting=parseGameState(recorded[0]?.state);
+  const controller=new AbortController();const {g}=governor({maxTurns:3});
+  const detector=attachLoopGuard(recorder,g,undefined,"enforced",false,undefined,false,false,false,false,false,false,false,false,false,true);
+  const refusal='Battle action: nothing pressed: the battle is not waiting for a choice; a battle message is waiting for A or B: "Go!".';
+  const tool:AgentTool={name:"battle_action",label:"battle",description:"battle",parameters:Type.Object({}),execute:()=>Promise.resolve({content:[{type:"text",text:refusal}],details:{state:waiting}})};
+  const seen:Message[][]=[];
+  const loop=piLoop({systemPrompt:"play",tools:[tool],base:{model:MODEL,convertToLlm:m=>m as Message[]},governor:g,transformContext:recorder.transformContext,emit:recorder.emit,signal:controller.signal,loopDetector:detector,streamFn:scriptedModel([reply(["battle_action"]),reply(["battle_action"]),reply(["battle_action"])],seen)});
+  expect(await play(TASK,g,loop)).toBe("budget");
+  const delivered=seen[2]?.filter(m=>m.role==="user").map(m=>typeof m.content==="string"?m.content:JSON.stringify(m.content)).join("\n");
+  expect(delivered).toContain("Repeated battle action refusals pressed no buttons");
+  expect(delivered).toContain("A or B");
+  const events=readFileSync(log.eventsPath,"utf8").trim().split("\n").map(row=>checkEvent(JSON.parse(row)));
+  const warnings=events.filter(e=>e.type==="loop_guard"&&e.phase==="warning");
+  expect(warnings).toHaveLength(1);
+  expect(warnings[0]).toMatchObject({kind:"rejection",calls:2});
+  expect(events.filter(e=>e.type==="button_press")).toEqual([]);
+ }finally{rmSync(root,{recursive:true,force:true});}
+});
+
+describe("context-token-budget-v1 on the pinned pi loop", () => {
+  const OVERFLOW = "400 request (5000 tokens) exceeds the available context size (4096 tokens), try increasing it";
+  const run = async (budget: ContextBudget | undefined) => {
+    const controller = new AbortController();
+    const { g } = governor({ maxTurns: 5 });
+    const seen: Message[][] = [];
+    const trims: BudgetTrim[] = [];
+    const loop = piLoop({
+      systemPrompt: "play",
+      tools: [fakePress(() => undefined)],
+      base: { model: MODEL, convertToLlm: (messages) => messages as Message[] },
+      governor: g,
+      transformContext: (messages) => Promise.resolve(messages),
+      emit: () => undefined,
+      signal: controller.signal,
+      streamFn: scriptedModel([pressReply(["A"]), pressReply(["B"]), pressReply(["C"]), reply([], "error", OVERFLOW), pressReply(["D"])], seen),
+      ...(budget === undefined ? {} : { budget, onBudgetTrim: (trim: BudgetTrim) => { trims.push(trim); } }),
+    });
+    const end = await play(TASK, g, loop);
+    return { end, seen, trims };
+  };
+
+  it("off: the retry after an overflow resends the same request", async () => {
+    const { end, seen, trims } = await run(undefined);
+    expect(end).toBe("budget");
+    expect(seen[4]).toEqual(seen[3]);
+    expect(trims).toEqual([]);
+  });
+
+  it("on: the retry after an overflow drops the oldest whole turns and the run goes on", async () => {
+    const { end, seen, trims } = await run(new ContextBudget(3000));
+    expect(end).toBe("budget");
+    expect(seen.slice(0, 4).map((request) => request.length)).toEqual([1, 3, 5, 7]);
+    expect(seen[4]?.[0]).toEqual(TASK);
+    expect(seen[4]?.slice(1)).toEqual(seen[3]?.slice(5));
+    expect(trims).toEqual([expect.objectContaining({ basis: "overflow", turns: 3, kept: 1, limit: 3000 })]);
   });
 });

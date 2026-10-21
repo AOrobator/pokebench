@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Automatic running</title>
+<style>
+:root{--bg:#f7f6f2;--fg:#202124;--soft:#5f6368;--card:#fff;--line:#d9d6cc;--good:#16734b;--goodbg:#e2f3ea;--stop:#a13d35;--stopbg:#fae8e5} @media(prefers-color-scheme:dark){:root{--bg:#151618;--fg:#ececeb;--soft:#adb0b4;--card:#1d1f22;--line:#36383d;--good:#71d7a4;--goodbg:#173128;--stop:#f0958d;--stopbg:#3b211f;color-scheme:dark}}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.55 system-ui,sans-serif}main{max-width:820px;margin:auto;padding:38px 18px 64px}h1{font-size:2.2rem;margin:.2rem 0}h2{margin-top:2rem;font-size:1.25rem}p{max-width:72ch}code,pre{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}code{background:var(--card);border:1px solid var(--line);padding:1px 4px;border-radius:4px}.tag{color:var(--soft);font-size:.82rem;text-transform:uppercase;letter-spacing:.06em}.flow{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.box{border:1px solid var(--line);border-radius:9px;padding:11px;background:var(--card)}.good{border-color:var(--good);background:var(--goodbg)}.stop{border-color:var(--stop);background:var(--stopbg)}table{border-collapse:collapse;width:100%;background:var(--card)}th,td{text-align:left;border-bottom:1px solid var(--line);padding:9px;vertical-align:top}th{color:var(--soft)}@media(max-width:620px){.flow{grid-template-columns:1fr}}
+</style></head><body><main>
+<div class="tag">Input switch · automatic-running-v1 · default off</div>
+<h1>Automatic running</h1>
+<p>When this switch is ON, running is a harness decision, not a model choice. For ordinary directional field travel, the harness checks the game's native running state immediately before the input and holds B whenever running is actually permitted.</p>
+
+<h2>Deterministic input path</h2>
+<div class="flow"><div class="box">Model requests a direction through <code>press</code> or <code>navigate_to</code></div><div class="box">Harness reads the fresh field and running owners</div><div class="box good">Permitted: send the direction with B held through guarded travel</div><div class="box stop">Not permitted: send the same direction normally; never guess</div></div>
+<p>The ON schemas do not offer a <code>walking</code> argument. A stale caller that still sends <code>walking:true</code> cannot suppress running. Direction and destination remain model choices; walk-versus-run does not. If one held running input crosses several tiles, navigation accepts the whole displacement only when every crossed tile is the next collinear prefix of the planned route; an off-route push, teleport or other unexpected displacement still stops immediately.</p>
+
+<h2>Native permission boundary</h2>
+<table><tr><th>Harness requests running only when</th><th>Harness withholds running when</th></tr><tr><td>The input is direction-only, the screen is the overworld, field controls are unlocked, no interface is active, and the decoded <code>running.permitted</code> and <code>running.controllable</code> owners are both true.</td><td>The player lacks the Running Shoes; the map or metatile disallows running; battle, dialogue, a menu, a script, forced movement or a transition owns input; the avatar is not controllably on foot; or native state is unavailable.</td></tr></table>
+<p>This follows pret/pokeemerald revision <code>731ad5bfd6e6f265508d0efcca0ba42f9dcf5881</code>. <code>PlayerNotOnBikeStep</code> selects <code>PlayerRun</code> only while B is held, <code>FLAG_SYS_B_DASH</code> is set, the avatar is not underwater, and <code>IsRunningDisallowed</code> is false. That function checks <code>gMapHeader.allowRunning</code> and the current metatile. PokeBench reads those owners rather than inferring permission from a location name.</p>
+
+<h2>Switch boundary</h2>
+<p>When OFF, the previous behavior is preserved: <code>press</code> and <code>navigate_to</code> expose the optional <code>walking</code> argument, ordinary movement uses the incumbent action path, and the model may deliberately request walking. When ON, the public override is removed and eligible travel uses the guarded running path.</p>
+
+<h2>Why this correction exists</h2>
+<p>A 2026-10-19 live run with the earlier implementation showed the model set <code>walking:true</code> once and then repeat it on all 30 subsequent <code>navigate_to</code> calls, including coherent outside states where native running was permitted. The guard itself was working; the model-owned override defeated the intended treatment. This version removes that decision from the model.</p>
+
+<h2>Evaluation status</h2>
+<p>This is the corrected bundle-arm contract for <code>automatic-running-v1</code>. The experiment remains pending; this explainer makes no benchmark-benefit claim, and current measured runs are not retroactively changed.</p>
+</main></body></html>

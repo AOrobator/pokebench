@@ -1,6 +1,9 @@
-import { eventEnvelope, type EventEnvelope, type RunEvent } from "@pokebench/agent/events";
+import { createHash, type Hash } from "node:crypto";
+import { RUN_LOG_MAX_BYTES } from "./run-log.js";
+import { closeSync, fstatSync, openSync, readSync } from "node:fs";
+import { eventEnvelope, eventProblem, type EventEnvelope, type RunEvent } from "@pokebench/agent/events";
 import { readVisualPlan, verifiedVisuals, visualEvidenceSignature, type ScreenshotEvidence } from "./frontier-visual.js";
-import { RunView } from "./model.js";
+import { ControlView, RunView } from "./model.js";
 import { readWorkbenchSnapshot } from "./workbench-reader.js";
 import { recoveredAttacher } from "./recovered-fields.js";
 import { dirname } from "node:path";
@@ -16,6 +19,8 @@ type State = Extract<RunEvent, { type: "state"; started: boolean }>;
 // skipped: events the schema rejected and a tolerant read stepped over (version skew), with the first problem.
 // last: the trainer card fields of the last game state, kept because view.state is dropped from the result.
 export interface NativeRecording { view: RunView; splits: RecordingSplit[]; measurement: RecordingMeasurement; skipped: { count: number; first: string } | null; last: Pick<State, "name" | "location" | "party"> | null }
+export interface RecordingFileIdentity { dev: number; ino: number; size: number; mtimeMs: number; ctimeMs: number }
+export interface NativeRecordingTailer { read(): NativeRecording; fileIdentity(): RecordingFileIdentity | null }
 function compact(state: State): State {
   return { v: state.v, run: state.run, seq: state.seq, t: state.t, turn: state.turn, type: "state", screen: state.screen,
     started: state.started, name: state.name, location: state.location, map_id: state.map_id, position: state.position, facing: state.facing,
@@ -53,12 +58,21 @@ export function readStartlessLog(path: string, id: string): { view: RunView; ski
 }
 // tolerate: step over schema-rejected events whose envelope is in order (never run_start or run_end) instead of failing.
 export function readNativeRecording(path: string, id: string, qualified: (event: Milestone, states: readonly (RunEvent | undefined)[]) => boolean, evidenceLimit = 100000, tolerate = false): NativeRecording {
+  return createNativeRecordingTailer(path, id, qualified, evidenceLimit, tolerate, () => undefined, true).read();
+}
+
+// Incremental equivalent of readNativeRecording for an append-only live log. A tailer owns the
+// reducer state and consumes each appended byte once; callers must discard it after a rewrite,
+// truncation, replacement, or auxiliary-evidence change. readNativeRecording deliberately creates
+// a fresh tailer so one-shot validation retains its historical behavior.
+export function createNativeRecordingTailer(path: string, id: string, qualified: (event: Milestone, states: readonly (RunEvent | undefined)[]) => boolean, evidenceLimit = 100000, tolerate = false, observeRead: (offset: number, bytes: number) => void = () => undefined, verifyPrefix = false): NativeRecordingTailer {
   if (!Number.isSafeInteger(evidenceLimit) || evidenceLimit < 1) throw new Error("Evidence bound must be positive");
   const view = new RunView(), states = new Map<number, RunEvent>(), splits: RecordingSplit[] = [], rawSplits: RecordingMeasurement["rawSplits"] = [];
   const visual = readVisualPlan(path), samples = new Map<number, Extract<RunEvent, {type:"human_sample"}>>();
   const wantedSamples = new Set(visual?.milestones.flatMap(m => m.screenshots.map(s => s.seq)) ?? []);
   visualEvidenceSignature(path);
-  let expected = 0, previousMs = -Infinity, skipped: NativeRecording["skipped"] = null;
+  let expected = 0, previousMs = -Infinity, skipped: NativeRecording["skipped"] = null, offset = 0, line = 0, pending = Buffer.alloc(0);
+  const hash: Hash = createHash("sha256");
   const ordered = (event: EventEnvelope): number => {
     const ms = Date.parse(event.t);
     if (event.seq > 0 && event.type === "run_start") throw new Error("Run event order invalid: more than one run_start; no split graded");
@@ -72,7 +86,8 @@ export function readNativeRecording(path: string, id: string, qualified: (event:
     skipped = { count: (skipped?.count ?? 0) + 1, first: skipped?.first ?? `line ${String(line)}: ${problem}` };
   };
   const recovered = recoveredAttacher(dirname(path));
-  const snapshot = readWorkbenchSnapshot(path, logged => {
+  let fileIdentity: RecordingFileIdentity | null = null;
+  const consume = (logged: RunEvent): void => {
     const event = recovered(logged);
     const ms = ordered(event);
     if (event.type === "human_sample" && wantedSamples.has(event.seq)) samples.set(event.seq, event);
@@ -100,20 +115,73 @@ export function readNativeRecording(path: string, id: string, qualified: (event:
       view.apply(event); view.events.length = 0;
       rawSplits.push({ name: event.name, elapsedMs: raw, evidence: [...event.evidence] });
     }
-  }, { allowAppend: true, ...(tolerate ? { skip } : {}) });
-  const hash = snapshot.sha256;
-  if (view.start === null) throw new Error("No complete run_start yet");
-  for (const mark of verifiedVisuals(visual, view.start, hash, samples)) {
-    const existing = splits.findIndex(s => s.name === mark.name);
-    if (existing >= 0 && splits[existing]?.derived !== true) continue;
-    if (existing >= 0) { splits.splice(existing, 1); rawSplits.splice(rawSplits.findIndex(s => s.name === mark.name), 1); }
-    const raw = Date.parse(mark.sample.t) - (view.startMs ?? 0);
-    splits.push({ name: mark.name, elapsedMs: Math.max(0, raw - view.control.pausedBefore(Date.parse(mark.sample.t))), segmentMs: 0, seq: mark.sample.seq, turn: mark.sample.turn, inputTokens: 0, outputTokens: 0, derived: true, screenshotEvidence: mark.screenshots });
-    rawSplits.push({ name: mark.name, elapsedMs: raw, evidence: mark.screenshots.map(s => s.seq) });
-  }
-  splits.sort((a, b) => a.elapsedMs - b.elapsedMs || a.seq - b.seq);
-  let previousSplit = 0; for (const split of splits) { split.segmentMs = split.elapsedMs - previousSplit; previousSplit = split.elapsedMs; }
-  const last = view.state === null || !("started" in view.state) ? null : { name: view.state.name, location: view.state.location, party: view.state.party };
-  view.state = null;
-  return { view, last, splits, measurement: { controller: view.start.controller?.kind === "human" ? "human" : "agent", features: [...view.start.harness_features], logSha256: hash, logBytes: snapshot.bytes, pausedMs: view.control.pausedBefore(view.lastMs ?? view.startMs ?? 0), rawSplits }, skipped };
+  };
+
+  const append = (): void => {
+    const fd = openSync(path, "r");
+    try {
+      const before = fstatSync(fd), maxBytes = RUN_LOG_MAX_BYTES, lineBytes = 1024 * 1024, chunkBytes = 64 * 1024;
+      if (before.size > maxBytes) throw new Error("Run log exceeds the streaming byte bound; no split graded");
+      if (before.size < offset) throw new Error("Run log changed during reduction; snapshot unavailable");
+      const chunk = Buffer.alloc(Math.min(chunkBytes, maxBytes));
+      while (offset < before.size) {
+        const at = offset, count = readSync(fd, chunk, 0, Math.min(chunk.length, before.size - offset), offset);
+        if (count === 0) throw new Error("Run log changed during reduction; snapshot unavailable");
+        observeRead(at, count);
+        offset += count; const bytes = Buffer.from(chunk.subarray(0, count)); hash.update(bytes);
+        const joined = pending.length === 0 ? bytes : Buffer.concat([pending, bytes]);
+        let start = 0;
+        for (let end = joined.indexOf(0x0a); end >= 0; end = joined.indexOf(0x0a, start)) {
+          if (end - start > lineBytes) throw new Error("Run log line exceeds the streaming line bound");
+          line += 1; const text = joined.subarray(start, end).toString("utf8"); start = end + 1;
+          if (text.trim() === "") continue;
+          let value: unknown;
+          try { value = JSON.parse(text); } catch (error) { throw new Error(`line ${String(line)}: event line is not JSON: ${String(error)}`, { cause: error }); }
+          const problem = eventProblem(value);
+          if (problem === null) consume(value as RunEvent);
+          else if (tolerate) skip(line, problem, value);
+          else throw new Error(`line ${String(line)}: ${problem}`);
+        }
+        pending = Buffer.from(joined.subarray(start));
+        if (pending.length > lineBytes) throw new Error("Run log line exceeds the streaming line bound");
+      }
+      const after = fstatSync(fd);
+      if (after.dev !== before.dev || after.ino !== before.ino || after.size < before.size) throw new Error("Run log changed during reduction; snapshot unavailable");
+      // Growth is the normal append-only case. With no growth, any metadata
+      // change means bytes may have been replaced after readSync copied them;
+      // never commit that possibly mixed snapshot into the persistent tailer.
+      if (after.size === before.size && (after.mtimeMs !== before.mtimeMs || after.ctimeMs !== before.ctimeMs)) throw new Error("Run log changed during reduction; snapshot unavailable");
+      if (verifyPrefix) {
+        const verified = createHash("sha256"); let checked = 0;
+        while (checked < before.size) {
+          const count = readSync(fd, chunk, 0, Math.min(chunk.length, before.size - checked), checked);
+          if (count === 0) throw new Error("Run log changed during reduction; snapshot unavailable");
+          verified.update(chunk.subarray(0, count)); checked += count;
+        }
+        if (verified.digest("hex") !== hash.copy().digest("hex")) throw new Error("Run log changed during reduction; snapshot unavailable");
+      }
+      fileIdentity = { dev: after.dev, ino: after.ino, size: after.size, mtimeMs: after.mtimeMs, ctimeMs: after.ctimeMs };
+    } finally { closeSync(fd); }
+  };
+
+  return { fileIdentity: () => fileIdentity, read: (): NativeRecording => {
+    append();
+    if (view.start === null) throw new Error("No complete run_start yet");
+    const digest = hash.copy().digest("hex"), outputSplits = splits.map(s => ({ ...s })), outputRaw = rawSplits.map(s => ({ ...s, evidence: [...s.evidence] }));
+    for (const mark of verifiedVisuals(visual, view.start, digest, samples)) {
+      const existing = outputSplits.findIndex(s => s.name === mark.name);
+      if (existing >= 0 && outputSplits[existing]?.derived !== true) continue;
+      if (existing >= 0) { outputSplits.splice(existing, 1); outputRaw.splice(outputRaw.findIndex(s => s.name === mark.name), 1); }
+      const raw = Date.parse(mark.sample.t) - (view.startMs ?? 0);
+      outputSplits.push({ name: mark.name, elapsedMs: Math.max(0, raw - view.control.pausedBefore(Date.parse(mark.sample.t))), segmentMs: 0, seq: mark.sample.seq, turn: mark.sample.turn, inputTokens: 0, outputTokens: 0, derived: true, screenshotEvidence: mark.screenshots });
+      outputRaw.push({ name: mark.name, elapsedMs: raw, evidence: mark.screenshots.map(s => s.seq) });
+    }
+    outputSplits.sort((a, b) => a.elapsedMs - b.elapsedMs || a.seq - b.seq);
+    let previousSplit = 0; for (const split of outputSplits) { split.segmentMs = split.elapsedMs - previousSplit; previousSplit = split.elapsedMs; }
+    const last = view.state === null || !("started" in view.state) ? null : { name: view.state.name, location: view.state.location, party: structuredClone(view.state.party) };
+    const outputView = Object.assign(new RunView(), structuredClone(view));
+    Object.defineProperty(outputView, "control", { value: Object.assign(new ControlView(), structuredClone(view.control)), enumerable: true, configurable: true });
+    outputView.state = null;
+    return { view: outputView, last, splits: outputSplits, measurement: { controller: view.start.controller?.kind === "human" ? "human" : "agent", features: [...view.start.harness_features], logSha256: digest, logBytes: offset, pausedMs: view.control.pausedBefore(view.lastMs ?? view.startMs ?? 0), rawSplits: outputRaw }, skipped: skipped === null ? null : { ...skipped } };
+  } };
 }

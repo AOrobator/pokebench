@@ -7,7 +7,8 @@ import { createBaselinePool, type BaselineRequest, type BaselineWorkerLike } fro
 import { createWorkbenchStore, workbenchCacheDir } from "./baseline-store.js";
 import { handleBaselineRequest } from "./baseline-worker.js";
 import { startViewer, type Viewer } from "./server.js";
-import { createWorkbenchLoader, loadRun, parseLoadedRun, timingSeconds, workbenchSnapshot, type LoadedRun, type WorkbenchCompute } from "./workbench-store.js";
+import { cardWorkbench, createIncrementalRunLoader, createWorkbenchLoader, loadRun, parseLoadedRun, timingSeconds, workbenchSnapshot, type LoadedRun, type WorkbenchCompute } from "./workbench-store.js";
+import { parseWorkbench } from "./workbench-data.js";
 import { EventEmitter } from "node:events";
 
 const roots: string[] = [], viewers: Viewer[] = [];
@@ -41,6 +42,12 @@ function ended(): Log {
   l.add(6000, { type: "run_end", turn: 1, reason: "budget", furthest_milestone: "PLAYER_NAME_CONFIRMED", turns: 1, wall_ms: 6000, tokens: { input: 500, output: 100 }, frames: { saved: 0, bytes: 0 } });
   return l;
 }
+function taggedEnded(): Log {
+  const l = ended(), start = l.events[0];
+  if (start?.type !== "run_start") throw new Error("fixture start");
+  l.events[0] = { ...start, evaluation: { preset_id: "bundle-v-control", target: null, failure_limit: 3, flags: { loopGuard: false, activeUi: false, interfaceDocs: false, objectives: false }, experiment: { id: "allocation", arm: "control", trial: 1, of: 2 } } };
+  return l;
+}
 function paused(): Log {
   const l = named();
   const start = l.events[0];
@@ -68,6 +75,30 @@ it("produces the same snapshot whether runs load in process or through a compute
   const viaCompute = await workbenchSnapshot(r, healthy, NOW, undefined, createWorkbenchLoader({ compute: counted().compute }));
   expect(viaCompute).toEqual(inProcess);
   expect(inProcess.runs.map((x) => [x.id, x.status]).sort()).toEqual([["broken", "invalid"], ["done", "ended"], ["held", "paused"], ["live", "live"]]);
+});
+
+it("projects cards without historical measurements while retaining active data and trainer peers", async () => {
+  const r = catalog(), full = await workbenchSnapshot(r, healthy, NOW), done = full.runs.find(run => run.id === "done"), live = full.runs.find(run => run.id === "live");
+  if (done === undefined || live === undefined) throw new Error("fixture");
+  const heavy = { ...done, experiment: { id: "allocation", arm: "control", trial: 1, of: 1 }, measurement: { controller: "agent" as const, features: [], logSha256: "a".repeat(64), pausedMs: 0, rawSplits: Array.from({ length: 5000 }, (_, index) => ({ name: `M${String(index)}`, elapsedMs: index, evidence: [index] })) } };
+  const source = { ...full, runs: [heavy, live] }, projected = parseWorkbench(cardWorkbench(source, "live")), peer = projected.runs.find(run => run.id === "done"), active = projected.runs.find(run => run.id === "live");
+  expect(peer).toMatchObject({ config: null, splits: [], experiment: heavy.experiment }); expect(peer?.measurement).toBeUndefined();
+  expect(active?.splits).toEqual(live.splits); expect(active?.card).toEqual(live.card);
+  expect(JSON.stringify(projected).length * 20).toBeLessThan(JSON.stringify(source).length);
+});
+
+it("reduces only unfinished and selected logs for cards while retaining historical experiment peers", async () => {
+  const r = catalog(); write(r, "peer", taggedEnded());
+  const c = counted(), loader = createWorkbenchLoader({ compute: c.compute });
+  const liveCards = cardWorkbench(await workbenchSnapshot(r, healthy, NOW, undefined, loader, { cards: { selected: "live", live: new Set(["live", "held"]) } }), "live");
+  expect([...c.calls].sort()).toEqual(["held", "live"]);
+  expect(liveCards.runs.find(run => run.id === "live")?.splits.length).toBeGreaterThan(0);
+  expect(liveCards.runs.find(run => run.id === "peer")).toMatchObject({ config: null, splits: [], experiment: { id: "allocation", arm: "control", trial: 1, of: 2 } });
+  expect(liveCards.runs.find(run => run.id === "done")).toBeUndefined();
+
+  const peerCards = cardWorkbench(await workbenchSnapshot(r, healthy, NOW, undefined, loader, { cards: { selected: "peer", live: new Set(["live", "held"]) } }), "peer");
+  expect(c.calls.filter(id => id === "peer")).toHaveLength(1);
+  expect(peerCards.runs.find(run => run.id === "peer")?.config).not.toBeNull();
 });
 
 it("returns plain, serializable records that survive validation", () => {
@@ -128,6 +159,59 @@ it("reloads a run whose log changed, and ignores corrupt cache entries", async (
   expect(c.calls).toEqual(["live"]);
   expect(after.runs.find((x) => x.id === "live")?.status).toBe("ended");
   expect(fs.readdirSync(dir).sort()).toEqual(["done.json", "live.json"]);
+});
+
+it("discards incremental state after a same-size in-place rewrite", () => {
+  const r = root(), path = write(r, "live", named()), load = createIncrementalRunLoader();
+  expect(load(r, "live").run.status).toBe("unresponsive");
+  const originalStat = fs.statSync(path), original = fs.readFileSync(path, "utf8"), firstBreak = original.indexOf("\n"), rewritten = original.slice(0, firstBreak + 1) + original.slice(firstBreak + 1).replace('"seq":1', '"seq":9');
+  expect(Buffer.byteLength(rewritten)).toBe(Buffer.byteLength(original));
+  fs.writeFileSync(path, rewritten); fs.utimesSync(path, originalStat.atime, originalStat.mtime);
+  const after = load(r, "live").run;
+  expect(after.status).toBe("invalid"); expect(after.problem).toContain("order");
+});
+
+it("discards a tailer when the path is atomically replaced during reduction", () => {
+  const r = root(), path = write(r, "live", named());
+  let replaced = false;
+  const load = createIncrementalRunLoader({ observeRead: (activePath) => {
+    if (replaced) return;
+    replaced = true;
+    fs.renameSync(activePath, `${activePath}.old`);
+    fs.writeFileSync(activePath, ended().events.map(event => JSON.stringify({ ...event, run: "live" })).join("\n") + "\n");
+  } });
+  const raced = load(r, "live").run;
+  expect(raced.status).toBe("invalid"); expect(raced.problem).toContain("changed during reduction"); expect(load.retained()).toBe(0);
+  expect(load(r, "live").run.status).toBe("ended"); expect(load.retained()).toBe(0);
+  expect(fs.existsSync(`${path}.old`)).toBe(true);
+});
+
+it("discards a tailer when a same-size rewrite races its reduction", () => {
+  const r = root(); write(r, "live", named());
+  let rewritten = false;
+  const load = createIncrementalRunLoader({ observeRead: (activePath) => {
+    if (rewritten) return;
+    rewritten = true;
+    const original = fs.readFileSync(activePath, "utf8"), changed = original.replace('"seq":1', '"seq":9');
+    expect(Buffer.byteLength(changed)).toBe(Buffer.byteLength(original));
+    fs.writeFileSync(activePath, changed);
+  } });
+  const raced = load(r, "live").run;
+  expect(raced.status).toBe("invalid"); expect(raced.problem).toContain("changed during reduction"); expect(load.retained()).toBe(0);
+  const next = load(r, "live").run;
+  expect(next.status).toBe("invalid"); expect(next.problem).toContain("order"); expect(load.retained()).toBe(0);
+});
+
+it("retires terminal reducers, resets after truncation and replacement, and bounds unfinished logs", () => {
+  const r = root(), load = createIncrementalRunLoader();
+  write(r, "done", ended()); expect(load(r, "done").run.status).toBe("ended"); expect(load.retained()).toBe(0);
+  const changed = write(r, "changed", named()); expect(load(r, "changed").run.status).toBe("unresponsive"); expect(load.retained()).toBe(1);
+  fs.truncateSync(changed, 10); expect(load(r, "changed").run.status).toBe("invalid"); expect(load.retained()).toBe(0);
+  const replaced = write(r, "replaced", named()); load(r, "replaced"); fs.rmSync(replaced);
+  fs.writeFileSync(replaced, ended().events.map(event => JSON.stringify({ ...event, run: "replaced" })).join("\n") + "\n");
+  expect(load(r, "replaced").run.status).toBe("ended"); expect(load.retained()).toBe(0);
+  for (let index = 0; index < 10; index++) { const id = `live-${String(index)}`; write(r, id, named()); load(r, id); }
+  expect(load.retained()).toBe(8);
 });
 
 it("answers other routes while workbench runs are still loading", async () => {
@@ -210,7 +294,9 @@ it("serves a partial snapshot at once while cold runs load in the background", a
   const h = heldCompute();
   const loader = createWorkbenchLoader({ compute: h.compute });
   const cold = await workbenchSnapshot(r, healthy, NOW, undefined, loader, { partial: true });
-  expect(cold.runs).toEqual([]);
+  expect(cold.runs.map(run => run.id).sort()).toEqual(["broken", "done", "held", "live"]);
+  expect(cold.runs.every(run => run.measurement === undefined && run.splits.length === 0)).toBe(true);
+  expect(cold.runs.find(run => run.id === "done")?.problem).toContain("still loading");
   expect(cold.problems).toContain("Still loading 4 of 4 recorded runs; this page fills in as they finish.");
   expect([...h.calls].sort()).toEqual(["broken", "done", "held", "live"]);
   h.release();
@@ -218,6 +304,18 @@ it("serves a partial snapshot at once while cold runs load in the background", a
   const warm = await workbenchSnapshot(r, healthy, NOW, undefined, loader, { partial: true });
   expect(warm).toEqual(await workbenchSnapshot(r, healthy, NOW));
   expect(h.calls).toHaveLength(4);
+});
+
+it("includes the selected cold replay in its first card response without waiting for other runs", async () => {
+  const r = root(); write(r, "done", ended()); write(r, "live", named());
+  let releaseOther = (): void => { throw new Error("other run was not requested"); };
+  const loader = createWorkbenchLoader({ compute: (root, id) => id === "done" ? Promise.resolve(loadRun(root, id)) : new Promise(resolve => { releaseOther = () => { resolve(loadRun(root, id)); }; }) });
+  try {
+    const first = await workbenchSnapshot(r, healthy, NOW, undefined, loader, { partial: true, cards: { selected: "done", live: new Set(["live"]) } });
+    expect(first.runs.map(run => run.id)).toEqual(["done"]);
+    expect(first.runs[0]?.config).not.toBeNull();
+    expect(first.runs[0]?.status).toBe("ended");
+  } finally { releaseOther(); }
 });
 
 it("keeps showing a run's previous record while its grown log reloads", async () => {
@@ -244,7 +342,8 @@ it("retries a background load that failed instead of leaving the run pending for
   let calls = 0;
   const loader = createWorkbenchLoader({ compute: (root, id) => { calls += 1; return calls === 1 ? Promise.reject(new Error("worker died")) : Promise.resolve(loadRun(root, id)); } });
   const first = await workbenchSnapshot(r, healthy, NOW, undefined, loader, { partial: true });
-  expect(first.runs).toEqual([]);
+  expect(first.runs).toMatchObject([{ id: "done", splits: [] }]);
+  expect(first.runs[0]?.problem).toContain("still loading");
   await new Promise((resolve) => { setImmediate(resolve); });
   await workbenchSnapshot(r, healthy, NOW, undefined, loader, { partial: true });
   await new Promise((resolve) => { setImmediate(resolve); });
@@ -273,6 +372,23 @@ it("answers the comparisons data at once when the viewer serves partial snapshot
   expect(reply.status).toBe(200);
   expect(((await reply.json()) as { problems: string[] }).problems).toContain("Still loading 4 of 4 recorded runs; this page fills in as they finish.");
   h.release();
+});
+
+it("keeps card snapshot caches isolated when the selected replay changes", async () => {
+  const r = catalog(); write(r, "peer", taggedEnded()); write(r, "archive", ended());
+  const c = counted();
+  const viewer = await startViewer({ runsRoot: r, staticDir: r, appDir: r, port: 0, workbench: { compute: c.compute } });
+  viewers.push(viewer);
+  const done = parseWorkbench(await (await fetch(new URL("api/cards?run=done", viewer.url))).json());
+  const peer = parseWorkbench(await (await fetch(new URL("api/cards?run=peer", viewer.url))).json());
+  expect(done.runs.find(run => run.id === "done")?.config).not.toBeNull();
+  expect(peer.runs.find(run => run.id === "peer")?.config).not.toBeNull();
+  expect(c.calls.filter(id => id === "done")).toHaveLength(1);
+  expect(c.calls.filter(id => id === "peer")).toHaveLength(1);
+  expect(c.calls).not.toContain("archive");
+  const full = parseWorkbench(await (await fetch(new URL("api/workbench", viewer.url))).json());
+  expect(full.runs.find(run => run.id === "archive")?.config).not.toBeNull();
+  expect(c.calls.filter(id => id === "archive")).toHaveLength(1);
 });
 
 const tick = (): Promise<void> => new Promise((resolve) => { setImmediate(resolve); });
@@ -308,7 +424,8 @@ it.each([
   await tick(); h.release(); await first;
   mutate(join(r, "done", "events.jsonl"));
   const during = await workbenchSnapshot(r, healthy, NOW, undefined, loader, { partial: true });
-  expect(during.runs.map((x) => x.id)).not.toContain("done");
+  expect(during.runs.find(x => x.id === "done")).toMatchObject({ status: "invalid", splits: [] });
+  expect(during.runs.find(x => x.id === "done")?.measurement).toBeUndefined();
   expect(during.problems).toContain("Still loading 1 of 4 recorded runs; this page fills in as they finish.");
   h.release(); await tick();
   const after = await workbenchSnapshot(r, healthy, NOW, undefined, loader, { partial: true });
@@ -321,8 +438,25 @@ it("serves disk-cached runs in the very first partial snapshot without loading t
   await workbenchSnapshot(r, healthy, NOW, undefined, createWorkbenchLoader({ store: createWorkbenchStore(dir) }));
   const h = heldCompute();
   const first = await workbenchSnapshot(r, healthy, NOW, undefined, createWorkbenchLoader({ compute: h.compute, store: createWorkbenchStore(dir) }), { partial: true });
-  expect(first.runs.map((x) => x.id)).toEqual(["done"]);
+  expect(first.runs.filter(x => x.measurement !== undefined).map(x => x.id)).toEqual(["done"]);
   expect(first.problems).toContain("Still loading 3 of 4 recorded runs; this page fills in as they finish.");
   expect(h.calls).not.toContain("done");
   h.release();
+});
+
+it("keeps a tagged cold run selectable in its exact cohort until validated progress arrives", async () => {
+  const r = root(), log = named();
+  const header = log.events[0]; if (header?.type !== "run_start") throw new Error("header");
+  log.events[0] = { ...header, evaluation: { preset_id: "cold-bundle", target: null, failure_limit: 3, flags: { loopGuard: false, activeUi: false, interfaceDocs: false, objectives: false }, experiment: { id: "cold-pair", arm: "bundle", trial: 1, of: 2 } } };
+  write(r, "cold", log);
+  const h = heldCompute(), loader = createWorkbenchLoader({ compute: h.compute });
+  const cold = await workbenchSnapshot(r, healthy, NOW, undefined, loader, { partial: true });
+  expect(cold.runs[0]?.cohort).toContain("experiment:cold-pair@");
+  expect(cold.runs[0]?.config?.preset).toBe("cold-bundle");
+  expect(cold.runs[0]?.measurement).toBeUndefined();
+  h.release(); await tick();
+  const warm = await workbenchSnapshot(r, healthy, NOW, undefined, loader, { partial: true });
+  expect(warm.runs[0]?.cohort).toBe(cold.runs[0]?.cohort);
+  expect(warm.runs[0]?.problem).toBeNull();
+  expect(warm.runs[0]?.splits.length).toBeGreaterThan(0);
 });

@@ -22,6 +22,7 @@ const owner = vi.hoisted(() => ({
   exited: false,
   requests: [] as string[],
   inferences: 0,
+  contexts: [] as string[],
   spawn: null as {
     command: string;
     args: readonly string[];
@@ -115,7 +116,8 @@ vi.mock("./harness.js", async (load) => {
     piLoop: (options: Parameters<typeof actual.piLoop>[0]) =>
       actual.piLoop({
         ...options,
-        streamFn: () => {
+        streamFn: (_model,context) => {
+          owner.contexts.push(JSON.stringify(context.messages));
           owner.inferences++;
           const stream = createAssistantMessageEventStream();
           const message =
@@ -178,7 +180,7 @@ afterEach(() => {
 // text-only-supervisor-v1 through the real live.ts play path: after one tool turn the model only
 // writes text. OFF ends the run as model_error at the failure limit; ON delivers a recorded
 // SUPERVISOR note to the model instead and the run reaches its turn budget.
-it.each([true, false] as const)("live play honours text-only-supervisor-v1=%s", async (on) => {
+it.each([{on:true,v2:false,stops:true},{on:false,v2:false,stops:true},{on:true,v2:true,stops:false},{on:true,v2:true,stops:true}])("live play honours text-only supervisor policy %j", async ({on,v2,stops}) => {
   vi.resetModules();
   owner.root = mkdtempSync(join(tmpdir(), "live-text-only-"));
   const romPath = join(owner.root, "fixture.gba");
@@ -190,14 +192,15 @@ it.each([true, false] as const)("live play honours text-only-supervisor-v1=%s", 
   owner.exited = false;
   owner.requests = [];
   owner.inferences = 0;
+  owner.contexts=[];
   owner.spawn = null;
   const preset = {
     version: 2,
     id: "text-only",
     target: null,
-    limits: { maxTurns: 6, maxWallMs: 45 * 60_000, failureLimit: 3 },
+    limits: { maxTurns: v2?15:6, maxWallMs: 45 * 60_000, failureLimit: 3,replyFailuresEndRun:stops },
     sampling: { thinkingLevel: "medium", maxTokens: 100 },
-    features: { ...flagFeatures({ loopGuard: false, activeUi: true, interfaceDocs: true, objectives: false }), "text-only-supervisor-v1": on },
+    features: { ...flagFeatures({ loopGuard: false, activeUi: true, interfaceDocs: true, objectives: false }), "text-only-supervisor-v1": on,"text-only-supervisor-v2":v2 },
   };
   const path = join(owner.root, "preset.json");
   writeFileSync(path, JSON.stringify(preset));
@@ -238,8 +241,13 @@ it.each([true, false] as const)("live play honours text-only-supervisor-v1=%s", 
   expect(end.reason).toBe(reason);
   const notes = events.filter((e) => e.type === "text_only_supervisor");
   if (on) {
-    expect(reason).toBe("budget");
-    expect(notes).toEqual([expect.objectContaining({ replies: 3, note: 1, limit: 3, text: expect.stringContaining("SUPERVISOR") as string })]);
+    expect(reason).toBe(v2&&stops?"model_error":"budget");
+    if(v2){
+     expect(notes).toHaveLength(3);
+     expect(notes.every(n=>n.text.includes(stops?"the run ends":"Reply-based stopping is disabled"))).toBe(true);
+     expect(owner.contexts.join("\n")).toContain(stops?"the run ends":"Reply-based stopping is disabled");
+     if(!stops)expect(owner.contexts.at(-1)).toContain("No tool was called. Keep the next reply short");
+    }else expect(notes).toEqual([expect.objectContaining({ replies: 3, note: 1, limit: 3, text: expect.stringContaining("SUPERVISOR") as string })]);
   } else {
     expect(reason).toBe("model_error");
     expect(notes).toEqual([]);

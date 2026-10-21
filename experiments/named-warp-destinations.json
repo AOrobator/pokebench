@@ -3,12 +3,12 @@
  "id": "named-warp-destinations",
  "title": "Named warp destinations",
  "changedFeature": "named-warp-destinations-v1",
- "hypothesis": "Naming each door's destination map inline (LITTLEROOT TOWN MAYS HOUSE 1F instead of map 1/2) stops the model mistaking the rival's door for Birch's lab, so more runs enter the rival house and meet the rival, and fewer leave it to keep looking for the lab.",
+ "hypothesis": "Naming a door inline only from a name the game displays (PROF. BIRCH'S HOUSE 1F instead of map 1/2), while withholding internal-only names, stops the model mistaking the rival's door for Birch's lab without leaking future place names, so more runs enter the rival house and meet the rival.",
  "activationMilestone": "FIRST_TRUCK_EXIT",
  "primaryMilestone": "RIVAL_HOUSE_ENTERED",
  "source": {
   "checkout": "main",
-  "commit": "65ba7164c38245569aa2be7d65848df59599dc23"
+  "commit": "cb81eec718cd9b24eade39c34465717ffe94251f"
  },
  "incumbent": {
   "version": 2,
@@ -36,6 +36,8 @@
    "named-interactions-v1": true,
    "world-destinations-v1": false,
    "bounded-navigation-v1": true,
+   "semantic-navigation-v1": false,
+   "deterministic-exploration-v1": false,
    "field-dialogue-phase-v1": true,
    "dialogue-safe-batches-v1": false,
    "interaction-loop-detection-v1": false,
@@ -66,7 +68,8 @@
    "next-milestone-hint-v1": false,
    "double-context-window-v1": false,
    "fresh-retry-v1": false,
-   "named-warp-destinations-v1": false
+   "named-warp-destinations-v1": false,
+   "displayed-place-names-v1": true
   }
  },
  "queuePosition": 4,
@@ -83,5 +86,5 @@
   "window": 4,
   "minReached": 3
  },
- "notes": "Requested 2026-10-14 after the Think Fast 2x2: runs called the (14,8) door 'Birch's Lab' or 'Route 101' and four of seven entrants left May's house without meeting her, three saying they were in the wrong building. Queued ahead of world-destinations (operator), which shows the same names on separate lines with map topology. The truck's warps are dynamic and stay unnamed, so it first acts outside the truck, where Littleroot's doors are listed."
+ "notes": "Requested 2026-10-14 after the Think Fast 2x2: runs called the (14,8) door 'Birch's Lab' or 'Route 101' and four of seven entrants left May's house without meeting her, three saying they were in the wrong building. Revised 2026-10-18 before any trial: internal map-table names are no longer sufficient evidence for model-facing text. Both arms enable displayed-place-names-v1; the candidate may use only those game-displayed, save-specific sign names. The set truck warp therefore stays dynamic destination instead of revealing LITTLEROOT TOWN before MOM names it. The definition edit makes the old approval stale; no measured trial has started. Queued ahead of world-destinations (operator)."
 }

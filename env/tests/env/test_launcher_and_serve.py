@@ -1,11 +1,23 @@
+import asyncio
+import base64
 import os
+import threading
 import types
+from io import BytesIO
 from pathlib import Path
 
+import numpy as np
 import pytest
+from fastapi import FastAPI, WebSocketDisconnect
+from PIL import Image
 
-from pokebench_env.launcher import ServerSpec, server_command
-from pokebench_env.serve import pin_localhost, run
+from pokebench_env.launcher import VENDOR_DIR, ServerSpec, server_command
+from pokebench_env.serve import (
+    install_deadline_frame_stream,
+    install_on_demand_frame_cache,
+    pin_localhost,
+    run,
+)
 
 
 def test_server_command_is_an_exact_argv(tmp_path: Path) -> None:
@@ -56,6 +68,177 @@ def test_pin_localhost_forces_host_on_every_call() -> None:
         (("app",), {"host": "127.0.0.1", "port": 8000}),
         (("app",), {"host": "127.0.0.1", "port": 9000}),
     ]
+
+
+def test_frame_cache_skips_encoder_without_websocket_consumers() -> None:
+    old_calls: list[object] = []
+    manager = types.SimpleNamespace(
+        lock=threading.Lock(), active_connections=[], latest_frame={"stale": True}
+    )
+    server = types.SimpleNamespace(
+        frame_manager=manager, update_frame_cache=lambda frame: old_calls.append(frame)
+    )
+
+    install_on_demand_frame_cache(server, lambda: 900)
+    for frame in range(120):
+        server.update_frame_cache(frame)
+
+    assert old_calls == []
+    assert manager.latest_frame is None
+
+
+def test_frame_cache_publishes_every_nominal_source_frame_with_actual_counts() -> None:
+    class Manager:
+        def __init__(self) -> None:
+            self.lock = threading.Lock()
+            self.active_connections = [object()]
+            self._latest_frame = None
+            self.publications: list[dict[str, object]] = []
+
+        @property
+        def latest_frame(self):  # type: ignore[no-untyped-def]
+            return self._latest_frame
+
+        @latest_frame.setter
+        def latest_frame(self, payload):  # type: ignore[no-untyped-def]
+            self._latest_frame = payload
+            if payload is not None:
+                self.publications.append(payload)
+
+    old_calls: list[object] = []
+    counts = iter((401, 402, 404))
+    manager = Manager()
+    server = types.SimpleNamespace(
+        frame_manager=manager, update_frame_cache=lambda frame: old_calls.append(frame)
+    )
+
+    now = 1234.5
+    install_on_demand_frame_cache(server, lambda: next(counts), clock=lambda: now)
+    for color in ((255, 0, 0), (0, 255, 0), (0, 0, 255)):
+        server.update_frame_cache(Image.new("RGB", (2, 1), color))
+        now += 1 / 59.7275
+
+    assert old_calls == []
+    assert [payload["frame_count"] for payload in manager.publications] == [401, 402, 404]
+    assert all(
+        set(payload) == {"frame_data", "frame_count", "timestamp"}
+        for payload in manager.publications
+    )
+    assert [payload["timestamp"] for payload in manager.publications] == pytest.approx(
+        [1234.5, 1234.5 + 1 / 59.7275, 1234.5 + 2 / 59.7275]
+    )
+    final = manager.publications[-1]
+    png = Image.open(BytesIO(base64.b64decode(str(final["frame_data"]), validate=True)))
+    assert png.format == "PNG" and png.size == (2, 1)
+    assert png.getpixel((0, 0)) == (0, 0, 255)
+
+
+def test_frame_cache_caps_four_x_dialog_encoding_at_delivery_rate() -> None:
+    class Manager:
+        lock = threading.Lock()
+        active_connections = [object()]
+        latest_frame = None
+
+    manager = Manager()
+    server = types.SimpleNamespace(frame_manager=manager, update_frame_cache=lambda _frame: None)
+    now = 0.0
+    publications = 0
+
+    def count() -> int:
+        nonlocal publications
+        publications += 1
+        return publications
+
+    install_on_demand_frame_cache(server, count, clock=lambda: now, max_publish_fps=60.0)
+    frame = Image.new("RGB", (2, 1), (1, 2, 3))
+    for _ in range(240):
+        server.update_frame_cache(frame)
+        now += 1 / (4 * 59.7275)
+
+    assert 59 <= publications <= 61
+
+
+def test_frame_cache_accepts_numpy_and_reconnects_without_stale_frame() -> None:
+    old_calls: list[object] = []
+    manager = types.SimpleNamespace(
+        lock=threading.Lock(), active_connections=[object()], latest_frame=None
+    )
+    server = types.SimpleNamespace(
+        frame_manager=manager, update_frame_cache=lambda frame: old_calls.append(frame)
+    )
+    count = 10
+
+    install_on_demand_frame_cache(server, lambda: count, clock=lambda: 7.0)
+    server.update_frame_cache(np.full((1, 2, 3), (12, 34, 56), dtype=np.uint8))
+    first = manager.latest_frame
+    manager.active_connections.clear()
+    server.update_frame_cache(np.zeros((1, 2, 3), dtype=np.uint8))
+    assert manager.latest_frame is None
+
+    count = 11
+    manager.active_connections.append(object())
+    server.update_frame_cache(np.full((1, 2, 3), (65, 43, 21), dtype=np.uint8))
+    second = manager.latest_frame
+
+    assert old_calls == []
+    assert first is not None and first["frame_count"] == 10
+    assert second is not None and second["frame_count"] == 11
+    assert first["frame_data"] != second["frame_data"]
+
+
+def test_pinned_websocket_consumes_latest_frame_count_and_full_payload() -> None:
+    source = (Path(VENDOR_DIR) / "server" / "app.py").read_text()
+
+    assert 'frame_count = self.latest_frame.get("frame_count", 0)' in source
+    assert "message = json.dumps(self.latest_frame)" in source
+    assert "await websocket.send_text(message)" in source
+
+
+def test_deadline_frame_stream_connects_sends_and_disconnects() -> None:
+    calls: list[str] = []
+
+    class Manager:
+        lock = threading.Lock()
+        active_connections: list[object] = []
+        latest_frame = None
+
+        async def connect(self, websocket):  # type: ignore[no-untyped-def]
+            calls.append("connect")
+
+        async def send_latest_frame(self, websocket):  # type: ignore[no-untyped-def]
+            calls.append("send")
+            if calls.count("send") == 2:
+                raise WebSocketDisconnect()
+
+        def disconnect(self, websocket):  # type: ignore[no-untyped-def]
+            calls.append("disconnect")
+
+    api = FastAPI()
+    install_deadline_frame_stream(api, Manager())
+    route = next(route for route in api.routes if getattr(route, "path", "") == "/pokebench/frames")
+    asyncio.run(route.endpoint(object()))
+
+    assert calls == ["connect", "send", "send", "disconnect"]
+
+
+def test_run_installs_frame_cache_gate_before_vendor_main() -> None:
+    encoded: list[object] = []
+    manager = types.SimpleNamespace(lock=threading.Lock(), active_connections=[], latest_frame=None)
+    server = types.SimpleNamespace(
+        frame_manager=manager, update_frame_cache=lambda frame: encoded.append(frame)
+    )
+
+    def vendor_main() -> None:
+        server.update_frame_cache("frame")
+
+    run(
+        [],
+        uvicorn=types.SimpleNamespace(run=lambda *args, **kwargs: None),
+        vendor_main=vendor_main,
+        frame_cache=(server, lambda: 77),
+    )
+
+    assert encoded == []
 
 
 def test_run_pins_host_then_hands_argv_to_vendor_main() -> None:

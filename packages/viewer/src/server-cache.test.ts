@@ -37,7 +37,7 @@ it("shares cached validated splits across HTTP comparisons, milestones and featu
   };
   const io = vi.spyOn(fs, "readSync");
   const comparisons = await get("api/runs/selected/comparisons");
-  expect(comparisons).toMatchObject({ candidates: [{ run: "reference", milestones: [{ name: "GAME_RUNNING", offsetMs: 10 }, { name: "PLAYER_NAME_SET", offsetMs: 3100 }] }], best: { run: "reference" }, baseline: null });
+  expect(comparisons).toMatchObject({ candidates: [{ run: "reference", milestones: [{ name: "GAME_RUNNING", offsetMs: 10 }, { name: "PLAYER_NAME_SET", offsetMs: 3100 }] }], baseline: null });
   const coldReads = io.mock.calls.length;
   io.mockClear();
   expect(await get("api/runs/selected/comparisons")).toEqual(comparisons);
@@ -59,7 +59,7 @@ it("shares cached validated splits across HTTP comparisons, milestones and featu
   expect(io.mock.calls.length).toBe(coldReads);
   const path = join(root, "reference", "events.jsonl");
   fs.writeFileSync(path, fs.readFileSync(path, "utf8").replace('"name":"PLAYER_NAME_SET"', '"name":42'));
-  expect(await get("api/runs/selected/comparisons")).toEqual({ candidates: [], best: null, baseline: null });
+  expect(await get("api/runs/selected/comparisons")).toEqual({ candidates: [], baseline: null });
   const malformed = await fetch(new URL("api/runs/reference/milestones", viewer.url));
   expect(malformed.status).toBe(422);
 });

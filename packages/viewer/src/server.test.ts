@@ -2,14 +2,17 @@ import { appendFileSync, cpSync, mkdirSync, mkdtempSync, readFileSync, writeFile
 import { createServer, request, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
-import { Log, START, fullRun, state } from "../test-support/events.js";
+import type { RunEvent } from "@pokebench/agent/events";
+import { Log, START, assistant, fullRun, state } from "../test-support/events.js";
 import { rivalRam, writeArchive } from "../test-support/raw-ram.js";
 import { QUEUE_FEATURES } from "../test-support/experiments.js";
-import { BROWSER_MODULES, HOST, startViewer, type Viewer } from "./server.js";
+import { BROWSER_MODULES, HOST, startViewer, validFramePng, type Viewer } from "./server.js";
+import { createWorkbenchClient } from "./workbench-sync.js";
 import { parseWorkbench } from "./workbench-data.js";
+import WebSocket, { WebSocketServer } from "ws";
 
 const PNG = Buffer.from(
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
@@ -87,6 +90,91 @@ async function fakeGameServer(body: unknown, status = 200): Promise<number> {
   await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
   open.push({ close: () => new Promise<void>((resolve) => server.close(() => { resolve(); })) });
   return (server.address() as AddressInfo).port;
+}
+
+async function fakeFrameGameServer(
+  frame: unknown = { frame_data: PNG.toString("base64"), frame_count: 2 },
+  acceptedPath = "/pokebench/frames",
+): Promise<number> {
+  const server = createServer();
+  const sockets = new WebSocketServer({ noServer: true });
+  server.on("upgrade", (request, socket, head) => {
+    if (request.url !== acceptedPath) { socket.end("HTTP/1.1 404 Not Found\r\nConnection: close\r\n\r\n"); return; }
+    sockets.handleUpgrade(request, socket, head, (client) => sockets.emit("connection", client, request));
+  });
+  sockets.on("connection", (client) => {
+    const frames = Array.isArray(frame) ? frame : [frame];
+    frames.forEach((payload, index) => {
+      setTimeout(() => {
+        if (client.readyState === WebSocket.OPEN) client.send(JSON.stringify(payload));
+      }, index * 10);
+    });
+  });
+  await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+  open.push({ close: () => new Promise<void>((resolve) => {
+    for (const client of sockets.clients) client.terminate();
+    sockets.close(() => { server.close(() => { resolve(); }); });
+  }) });
+  return (server.address() as AddressInfo).port;
+}
+
+async function trackedFrameGameServer(): Promise<{ readonly port: number; readonly active: () => number; readonly accepted: () => number; readonly drop: () => void }> {
+  const server = createServer();
+  const sockets = new WebSocketServer({ noServer: true });
+  let accepted = 0;
+  server.on("upgrade", (request, socket, head) => {
+    if (request.url !== "/pokebench/frames") { socket.end("HTTP/1.1 404 Not Found\r\nConnection: close\r\n\r\n"); return; }
+    sockets.handleUpgrade(request, socket, head, (client) => sockets.emit("connection", client, request));
+  });
+  sockets.on("connection", (client) => {
+    accepted += 1;
+    client.send(JSON.stringify({ frame_data: PNG.toString("base64"), frame_count: accepted }));
+  });
+  await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+  open.push({ close: () => new Promise<void>((resolve) => {
+    for (const client of sockets.clients) client.terminate();
+    sockets.close(() => { server.close(() => { resolve(); }); });
+  }) });
+  return {
+    port: (server.address() as AddressInfo).port,
+    active: () => sockets.clients.size,
+    accepted: () => accepted,
+    drop: () => { for (const client of sockets.clients) client.terminate(); },
+  };
+}
+
+async function eventually(predicate: () => boolean, message: string): Promise<void> {
+  const deadline = Date.now() + 1_000;
+  while (!predicate()) {
+    if (Date.now() >= deadline) throw new Error(message);
+    await new Promise((resolve) => setTimeout(resolve, 5));
+  }
+}
+
+function frameSocket(viewer: Viewer, path: string, origin = viewer.url.slice(0, -1), host = `${HOST}:${String(viewer.port)}`): WebSocket {
+  return new WebSocket(`ws://${HOST}:${String(viewer.port)}${path}`, { headers: { origin, host } });
+}
+
+function firstFrame(socket: WebSocket): Promise<Buffer> {
+  return new Promise((resolve, reject) => {
+    socket.once("message", (data, binary) => {
+      if (binary) resolve(Buffer.from(data as Buffer));
+      else reject(new Error("frame was not binary"));
+    });
+    socket.once("error", reject);
+  });
+}
+
+function socketClosed(socket: WebSocket): Promise<number> {
+  return new Promise((resolve) => socket.once("close", resolve));
+}
+
+function rejected(socket: WebSocket): Promise<number> {
+  return new Promise((resolve, reject) => {
+    socket.once("unexpected-response", (_req, response) => { response.resume(); resolve(response.statusCode ?? 0); });
+    socket.once("open", () => { reject(new Error("socket unexpectedly opened")); });
+    socket.once("error", () => undefined);
+  });
 }
 
 async function closedPort(): Promise<number> {
@@ -190,6 +278,17 @@ describe("viewer server", () => {
     expect(text.trimEnd().endsWith("event: done\ndata: {}")).toBe(true);
   });
 
+  it("serves the selected run's bounded recent recorded-event head", async () => {
+    const { runsRoot, viewer } = await fixture();
+    writeRun(runsRoot, "head", fullRun());
+    const reply = await get(viewer, "/api/runs/head/head");
+    expect(reply.type).toContain("application/json");
+    const events = JSON.parse(reply.body.toString()) as RunEvent[];
+    expect(events[0]?.type).toBe("run_start");
+    expect(events.at(-1)?.type).toBe("run_end");
+    expect(events.every((event) => event.run === "head")).toBe(true);
+  });
+
   it("streams rival values recovered from raw RAM onto the state events that lack them", async () => {
     const { runsRoot, viewer } = await fixture();
     const log = new Log();
@@ -268,6 +367,165 @@ describe("viewer server", () => {
     expect(screen.body.equals(PNG)).toBe(true);
   });
 
+  it("proxies the owned live run's upstream frames as bounded binary PNG messages", async () => {
+    const { runsRoot, viewer } = await fixture();
+    const live = new Log(); live.add(0, START);
+    writeRun(runsRoot, "live", live, await fakeFrameGameServer());
+    const socket = frameSocket(viewer, "/api/runs/live/frames");
+    open.push({ close: () => { socket.terminate(); return Promise.resolve(); } });
+    expect((await firstFrame(socket)).equals(PNG)).toBe(true);
+  });
+
+  it("shares one real upstream transport across clients and closes it after the last client", async () => {
+    const { runsRoot, viewer } = await fixture();
+    const game = await trackedFrameGameServer();
+    const live = new Log(); live.add(0, START);
+    writeRun(runsRoot, "live", live, game.port);
+    const first = frameSocket(viewer, "/api/runs/live/frames");
+    const second = frameSocket(viewer, "/api/runs/live/frames");
+    open.push({ close: () => { first.terminate(); second.terminate(); return Promise.resolve(); } });
+    expect((await Promise.all([firstFrame(first), firstFrame(second)])).every(frame => frame.equals(PNG))).toBe(true);
+    expect(game.accepted()).toBe(1);
+    const firstClosed = socketClosed(first);
+    first.close();
+    await firstClosed;
+    // close and error can race in ws; detaching the same subscriber twice is harmless.
+    first.emit("error", new Error("late duplicate disconnect"));
+    expect(game.active()).toBe(1);
+    const secondClosed = socketClosed(second);
+    second.close();
+    await secondClosed;
+    await eventually(() => game.active() === 0, "shared upstream remained after the final subscriber");
+  });
+
+  it("replaces a run hub when its game identity changes", async () => {
+    const { runsRoot, viewer } = await fixture();
+    const oldGame = await trackedFrameGameServer();
+    const newGame = await trackedFrameGameServer();
+    const live = new Log(); live.add(0, START);
+    writeRun(runsRoot, "live", live, oldGame.port);
+    const oldClient = frameSocket(viewer, "/api/runs/live/frames");
+    open.push({ close: () => { oldClient.terminate(); return Promise.resolve(); } });
+    expect((await firstFrame(oldClient)).equals(PNG)).toBe(true);
+    const oldClosed = socketClosed(oldClient);
+    writeRun(runsRoot, "live", live, newGame.port);
+    const newClient = frameSocket(viewer, "/api/runs/live/frames");
+    open.push({ close: () => { newClient.terminate(); return Promise.resolve(); } });
+    expect((await firstFrame(newClient)).equals(PNG)).toBe(true);
+    expect(await oldClosed).toBe(1012);
+    await eventually(() => oldGame.active() === 0, "replaced run hub retained its old upstream");
+    expect(newGame.accepted()).toBe(1);
+  });
+
+  it("tears down a failed upstream and reconnects through a fresh hub", async () => {
+    const { runsRoot, viewer } = await fixture();
+    const game = await trackedFrameGameServer();
+    const live = new Log(); live.add(0, START);
+    writeRun(runsRoot, "live", live, game.port);
+    const failed = frameSocket(viewer, "/api/runs/live/frames");
+    open.push({ close: () => { failed.terminate(); return Promise.resolve(); } });
+    expect((await firstFrame(failed)).equals(PNG)).toBe(true);
+    const failedClosed = socketClosed(failed);
+    game.drop();
+    expect(await failedClosed).toBe(1011);
+    const recovered = frameSocket(viewer, "/api/runs/live/frames");
+    open.push({ close: () => { recovered.terminate(); return Promise.resolve(); } });
+    expect((await firstFrame(recovered)).equals(PNG)).toBe(true);
+    expect(game.accepted()).toBe(2);
+  });
+
+  it("keeps the downstream socket open after a successful send callback", async () => {
+    const { runsRoot, viewer } = await fixture();
+    const live = new Log(); live.add(0, START);
+    const frames = [1, 2, 3].map((frame_count) => ({ frame_data: PNG.toString("base64"), frame_count }));
+    writeRun(runsRoot, "live", live, await fakeFrameGameServer(frames));
+    const socket = frameSocket(viewer, "/api/runs/live/frames");
+    open.push({ close: () => { socket.terminate(); return Promise.resolve(); } });
+    const received = await new Promise<number>((resolve, reject) => {
+      let count = 0;
+      const timeout = setTimeout(() => { reject(new Error(`received only ${String(count)} frames`)); }, 1_000);
+      socket.on("message", (_data, binary) => {
+        if (!binary) { clearTimeout(timeout); reject(new Error("frame was not binary")); return; }
+        count += 1;
+        if (count === frames.length) { clearTimeout(timeout); resolve(count); }
+      });
+      socket.once("error", reject);
+    });
+    expect(received).toBe(frames.length);
+  });
+
+  it("falls back to the pinned vendor frame route for already-running game servers", async () => {
+    const { runsRoot, viewer } = await fixture();
+    const live = new Log(); live.add(0, START);
+    writeRun(runsRoot, "live", live, await fakeFrameGameServer(undefined, "/ws/frames"));
+    const socket = frameSocket(viewer, "/api/runs/live/frames");
+    open.push({ close: () => { socket.terminate(); return Promise.resolve(); } });
+    expect((await firstFrame(socket)).equals(PNG)).toBe(true);
+  });
+
+  it("closes a frame client when both upstream routes are unavailable", async () => {
+    const { runsRoot, viewer } = await fixture();
+    const live = new Log(); live.add(0, START);
+    writeRun(runsRoot, "live", live, await fakeFrameGameServer(undefined, "/not-a-frame-route"));
+    const socket = frameSocket(viewer, "/api/runs/live/frames");
+    open.push({ close: () => { socket.terminate(); return Promise.resolve(); } });
+    expect(await socketClosed(socket)).toBe(1011);
+  });
+
+  it("closes a frame client when the upstream transport is unreachable", async () => {
+    const { runsRoot, viewer } = await fixture();
+    const live = new Log(); live.add(0, START);
+    writeRun(runsRoot, "live", live, await closedPort());
+    const socket = frameSocket(viewer, "/api/runs/live/frames");
+    open.push({ close: () => { socket.terminate(); return Promise.resolve(); } });
+    expect(await socketClosed(socket)).toBe(1011);
+  });
+
+  it("rejects an invalid shared upstream frame without forwarding it", async () => {
+    const { runsRoot, viewer } = await fixture();
+    const live = new Log(); live.add(0, START);
+    writeRun(runsRoot, "live", live, await fakeFrameGameServer({ frame_data: Buffer.from("not png").toString("base64"), frame_count: 1 }));
+    const socket = frameSocket(viewer, "/api/runs/live/frames");
+    open.push({ close: () => { socket.terminate(); return Promise.resolve(); } });
+    let messages = 0;
+    socket.on("message", () => { messages += 1; });
+    expect(await socketClosed(socket)).toBe(1003);
+    expect(messages).toBe(0);
+  });
+
+  it("rejects frame sockets from foreign origins, ended or missing runs, and other paths", async () => {
+    const { runsRoot, viewer } = await fixture();
+    const live = new Log(); live.add(0, START);
+    writeRun(runsRoot, "live", live, await fakeFrameGameServer());
+    writeRun(runsRoot, "done", fullRun(), await fakeFrameGameServer());
+    expect(await rejected(frameSocket(viewer, "/api/runs/live/frames", "http://evil.example"))).toBe(403);
+    const missingOrigin = new WebSocket(`ws://${HOST}:${String(viewer.port)}/api/runs/live/frames`, { headers: { host: `${HOST}:${String(viewer.port)}` } });
+    expect(await rejected(missingOrigin)).toBe(403);
+    expect(await rejected(frameSocket(viewer, "/api/runs/done/frames"))).toBe(409);
+    expect(await rejected(frameSocket(viewer, "/api/runs/missing/frames"))).toBe(404);
+    expect(await rejected(frameSocket(viewer, "/api/runs/live/not-frames"))).toBe(404);
+  });
+
+  it("accepts an explicitly configured published origin and matching Host", async () => {
+    const base = mkdtempSync(join(tmpdir(), "pokebench-viewer-public-frame-"));
+    const runsRoot = join(base, "runs"); mkdirSync(runsRoot);
+    const live = new Log(); live.add(0, START);
+    writeRun(runsRoot, "live", live, await fakeFrameGameServer());
+    const viewer = await startViewer({ runsRoot, staticDir: base, appDir: base, port: 0, publicOrigins: ["https://viewer.example"] });
+    open.push(viewer);
+    const socket = frameSocket(viewer, "/api/runs/live/frames", "https://viewer.example", "viewer.example");
+    open.push({ close: () => { socket.terminate(); return Promise.resolve(); } });
+    expect((await firstFrame(socket)).equals(PNG)).toBe(true);
+  });
+
+  it("accepts only complete bounded PNG structures with valid chunk checksums", () => {
+    expect(validFramePng(PNG)).toBe(true);
+    expect(validFramePng(PNG.subarray(0, PNG.length - 1))).toBe(false);
+    expect(validFramePng(Buffer.concat([PNG.subarray(0, 8), Buffer.from("not chunks")]))).toBe(false);
+    const corrupt = Buffer.from(PNG), at = corrupt.length - 13; corrupt[at] = (corrupt[at] ?? 0) ^ 1;
+    expect(validFramePng(corrupt)).toBe(false);
+  });
+
   it("refuses the live screen for an ended run and reports an unreachable or malformed server", async () => {
     const { runsRoot, viewer } = await fixture();
     writeRun(runsRoot, "done", fullRun());
@@ -292,13 +550,28 @@ describe("viewer server", () => {
 it("serves validated comparisons for the selected start, excluding self", async () => {
   const { runsRoot, viewer } = await fixture();
   writeRun(runsRoot, "selected", fullRun());
-  writeRun(runsRoot, "reference", fullRun());
+  const frontier = new Log();
+  frontier.add(0, START);
+  frontier.add(1000, assistant());
+  const named = frontier.add(3000, state({ story: { name_confirmed: true, intro_stage: null, rival_stage: null, birch_lab_stage: null, petalburg_gym_stage: null, woods_stage: null, clock_set: null, rival_battle_won: null, pokedex_received: null, running_shoes_received: null, starter_tutorial_complete: null, rustboro_gym_complete: null, stone_badge: null, rock_tomb_received: null } }));
+  frontier.add(4000, { type: "milestone", turn: 1, name: "PLAYER_NAME_CONFIRMED", kind: "story", origin: "observed", server_timestamp: 4, evidence: [named.seq] });
+  frontier.add(9000, { type: "run_end", turn: 1, reason: "budget", furthest_milestone: "PLAYER_NAME_CONFIRMED", turns: 1, wall_ms: 9000, tokens: { input: 500, output: 100 }, frames: { saved: 0, bytes: 0 } });
+  writeRun(runsRoot, "reference", frontier);
   const reply = await get(viewer, "/api/runs/selected/comparisons");
   expect(reply.status).toBe(200);
-  const result = JSON.parse(reply.body.toString()) as { candidates: {run:string}[]; best:{run:string}; baseline:unknown };
+  const result = JSON.parse(reply.body.toString()) as { candidates: {run:string}[]; baseline:unknown };
   expect(result.candidates.map((c) => c.run)).toEqual(["reference"]);
-  expect(result.best.run).toBe("reference");
   expect(result.baseline).toBeNull(); // equal start timestamp, no previous run
+  expect(result).not.toHaveProperty("frontier");
+  // The splits race the frontier graph's agent frontier, never the selected run itself; it has its own cheap route.
+  const frontierOf = async (v: Viewer, id: string): Promise<unknown> => JSON.parse((await get(v, `/api/runs/${id}/frontier`)).body.toString());
+  expect(await frontierOf(viewer, "selected")).toEqual({ frontier: { run: "reference", milestones: [{ name: "PLAYER_NAME_CONFIRMED", offsetMs: 4000 }] } });
+  expect(await frontierOf(viewer, "reference")).toEqual({ frontier: null });
+  expect((await get(viewer, "/api/runs/..%2Fsecrets/frontier")).status).toBe(404);
+  // A cold partial workbench still loading its runs must not hide the frontier from a run picked meanwhile.
+  const partial = await startViewer({ runsRoot, staticDir: runsRoot, appDir: runsRoot, port: 0, workbench: { partial: true } });
+  open.push(partial);
+  expect(await frontierOf(partial, "selected")).toMatchObject({ frontier: { run: "reference" } });
 });
 
 it("serves read-only workbench data from actual recorded runs, without prompts or arbitrary paths", async () => {
@@ -309,12 +582,52 @@ it("serves read-only workbench data from actual recorded runs, without prompts o
   expect((await get(viewer, "/api/workbench/../secrets")).status).not.toBe(200);
 });
 
+it("serves a validated lightweight card projection without changing the full workbench API", async () => {
+  const { runsRoot, viewer } = await fixture(); writeRun(runsRoot, "recorded", fullRun());
+  const full = await get(viewer, "/api/workbench"), cards = await get(viewer, "/api/cards?run=recorded");
+  const projected = parseWorkbench(JSON.parse(cards.body.toString()) as unknown);
+  expect(cards.status).toBe(200); expect(projected.runs[0]?.id).toBe("recorded");
+  expect(projected.runs[0]?.measurement).toBeUndefined(); expect(cards.body.length).toBeLessThan(full.body.length);
+});
+
 
 it("serves only allowlisted tracked feature explainers with existing host and method protections",async()=>{
- const root=mkdtempSync(join(tmpdir(),"pokebench-explainers-"));const staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});writeFileSync(join(docs,"navigation-evidence-memory-v1.html"),"<!doctype html><h1>Memory mechanism</h1>");writeFileSync(join(docs,"private.html"),"not public");writeFileSync(join(docs,"one-way-tiles-v1.html"),"<h1>One-way tiles</h1>");writeFileSync(join(docs,"counter-talk-v1.html"),"<h1>Counter talk</h1>");writeFileSync(join(docs,"walkable-floor-v1.html"),"<h1>Walkable floor</h1>");writeFileSync(join(docs,"grass-cost-switch.html"),"<h1>Grass cost</h1>");writeFileSync(join(docs,"elevation-transitions.html"),"<h1>Elevation</h1>");
+ const root=mkdtempSync(join(tmpdir(),"pokebench-explainers-"));const staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});writeFileSync(join(docs,"navigation-evidence-memory-v1.html"),"<!doctype html><h1>Memory mechanism</h1>");writeFileSync(join(docs,"visited-terrain-navigation-v1.html"),"<!doctype html><h1>Visited terrain</h1>");writeFileSync(join(docs,"private.html"),"not public");writeFileSync(join(docs,"just-in-time-prompt-v2.html"),"<!doctype html><h1>JIT v2 fixture</h1>");writeFileSync(join(docs,"one-way-tiles-v1.html"),"<h1>One-way tiles</h1>");writeFileSync(join(docs,"counter-talk-v1.html"),"<h1>Counter talk</h1>");writeFileSync(join(docs,"walkable-floor-v1.html"),"<h1>Walkable floor</h1>");writeFileSync(join(docs,"grass-cost-switch.html"),"<h1>Grass cost</h1>");writeFileSync(join(docs,"elevation-transitions.html"),"<h1>Elevation</h1>");
  const viewer=await startViewer({runsRoot:join(root,"runs"),staticDir,appDir:join(root,"app"),port:0});open.push(viewer);
- const reply=await get(viewer,"/explainers/navigation-evidence-memory-v1.html");expect(reply.status).toBe(200);expect(reply.type).toContain("text/html");expect(reply.body.toString()).toContain("Memory mechanism");expect((await get(viewer,"/explainers/one-way-tiles-v1.html")).status).toBe(200);expect((await get(viewer,"/explainers/counter-talk-v1.html")).status).toBe(200);const floor=await get(viewer,"/explainers/walkable-floor-v1.html");expect(floor.status).toBe(200);expect(floor.body.toString()).toContain("Walkable floor");expect((await get(viewer,"/explainers/walkable-floor.html")).status).toBe(404);expect((await get(viewer,"/explainers/grass-cost-switch.html")).status).toBe(200);expect((await get(viewer,"/explainers/elevation-transitions.html")).status).toBe(200);
+ const v2=await get(viewer,"/explainers/just-in-time-prompt-v2.html");expect(v2.status).toBe(200);expect(v2.body.toString()).toContain("JIT v2 fixture");const reply=await get(viewer,"/explainers/navigation-evidence-memory-v1.html");expect(reply.status).toBe(200);expect(reply.type).toContain("text/html");expect(reply.body.toString()).toContain("Memory mechanism");expect((await get(viewer,"/explainers/visited-terrain-navigation-v1.html")).status).toBe(200);expect((await get(viewer,"/explainers/one-way-tiles-v1.html")).status).toBe(200);expect((await get(viewer,"/explainers/counter-talk-v1.html")).status).toBe(200);const floor=await get(viewer,"/explainers/walkable-floor-v1.html");expect(floor.status).toBe(200);expect(floor.body.toString()).toContain("Walkable floor");expect((await get(viewer,"/explainers/walkable-floor.html")).status).toBe(404);expect((await get(viewer,"/explainers/grass-cost-switch.html")).status).toBe(200);expect((await get(viewer,"/explainers/elevation-transitions.html")).status).toBe(200);
  expect((await get(viewer,"/explainers/private.html")).status).toBe(404);expect((await get(viewer,"/explainers/ledge-hops-v1.html")).status).toBe(404);expect((await get(viewer,"/explainers/navigation-evidence-memory-v1.html",{host:"elsewhere.invalid"})).status).toBe(403);expect((await get(viewer,"/explainers/navigation-evidence-memory-v1.html",{method:"PUT"})).status).toBe(405);
+});
+
+it("serves the deterministic warp navigation explainer byte for byte",async()=>{
+ const tracked=readFileSync(fileURLToPath(new URL("../../../docs/explainers/deterministic-warp-navigation-v1.html",import.meta.url)));
+ const root=mkdtempSync(join(tmpdir(),"pokebench-explainers-")),staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});writeFileSync(join(docs,"deterministic-warp-navigation-v1.html"),tracked);
+ const viewer=await startViewer({runsRoot:join(root,"runs"),staticDir,appDir:join(root,"app"),port:0});open.push(viewer);
+ const reply=await get(viewer,"/explainers/deterministic-warp-navigation-v1.html");
+ expect(reply.status).toBe(200);expect(reply.body.equals(tracked)).toBe(true);expect(reply.body.toString()).toContain("Deterministic warp navigation");
+});
+
+it("serves both semantic navigation explainers byte for byte",async()=>{
+ const root=mkdtempSync(join(tmpdir(),"pokebench-explainers-")),staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});
+ const files=["semantic-navigation-v1.html","semantic-navigation-v2.html","deterministic-exploration-v1.html"];
+ for(const file of files)writeFileSync(join(docs,file),readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${file}`,import.meta.url))));
+ const viewer=await startViewer({runsRoot:join(root,"runs"),staticDir,appDir:join(root,"app"),port:0});open.push(viewer);
+ for(const file of files){const tracked=readFileSync(join(docs,file)),reply=await get(viewer,`/explainers/${file}`);expect(reply.status).toBe(200);expect(reply.body.equals(tracked)).toBe(true);}
+});
+
+it("serves the trainer sight check explainer byte for byte",async()=>{
+ const tracked=readFileSync(fileURLToPath(new URL("../../../docs/explainers/trainer-sight-check-v1.html",import.meta.url)));
+ const root=mkdtempSync(join(tmpdir(),"pokebench-explainers-")),staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});writeFileSync(join(docs,"trainer-sight-check-v1.html"),tracked);
+ const viewer=await startViewer({runsRoot:join(root,"runs"),staticDir,appDir:join(root,"app"),port:0});open.push(viewer);
+ const reply=await get(viewer,"/explainers/trainer-sight-check-v1.html");
+ expect(reply.status).toBe(200);expect(reply.body.equals(tracked)).toBe(true);expect(reply.body.toString()).toContain("Trainer sight check");
+});
+
+it("serves the safe navigation strides explainer byte for byte",async()=>{
+ const tracked=readFileSync(fileURLToPath(new URL("../../../docs/explainers/safe-navigation-strides-v1.html",import.meta.url)));
+ const root=mkdtempSync(join(tmpdir(),"pokebench-explainers-")),staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});writeFileSync(join(docs,"safe-navigation-strides-v1.html"),tracked);
+ const viewer=await startViewer({runsRoot:join(root,"runs"),staticDir,appDir:join(root,"app"),port:0});open.push(viewer);
+ const reply=await get(viewer,"/explainers/safe-navigation-strides-v1.html");
+ expect(reply.status).toBe(200);expect(reply.body.equals(tracked)).toBe(true);expect(reply.body.toString()).toContain("Safe planned navigation strides");
 });
 
 it("serves the tracked talk to people explainer byte for byte",async()=>{
@@ -337,7 +650,7 @@ it("serves the tracked talk to people v2 explainer byte for byte",async()=>{
 
 it("serves the tracked push-back, battle observation and ineffective loops explainers byte for byte, with their headings",async()=>{
  const root=mkdtempSync(join(tmpdir(),"pokebench-explainers-"));const staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});
- const files={"pushback-loop-detection-v1":"Push-back loop detection","pushback-press-result-v1":"Push-back press results","battle-observation-loop-v1":"Battle observation loop","ineffective-loops-v1":"Ineffective loops"} as const;
+ const files={"pushback-loop-detection-v1":"Push-back loop detection","pushback-press-result-v1":"Push-back press results","battle-observation-loop-v1":"Battle observation loop","ineffective-loops-v1":"Ineffective loops","battle-menu-loop-v1":"Battle menu loop","clock-view-loop-v1":"Clock view loop","loop-guard-screen-v1":"Loop guard screen","faced-interaction-history-v1":"Faced interaction history"} as const;
  const tracked=new Map(Object.keys(files).map(id=>[id,readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)))]));
  for(const [id,bytes] of tracked)writeFileSync(join(docs,`${id}.html`),bytes);
  const viewer=await startViewer({runsRoot:join(root,"runs"),staticDir,appDir:join(root,"app"),port:0});open.push(viewer);
@@ -494,6 +807,100 @@ it("serves the tracked heal before trainers explainer byte for byte through the 
  expect((await get(viewer,`/explainers/${id}.html`,{method:"PUT"})).status).toBe(405);
 });
 
+it("serves the tracked heal before trainers v2 explainer byte for byte through the allowlist",async()=>{
+ const id="heal-before-trainers-v2";
+ const tracked=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)));
+ const root=mkdtempSync(join(tmpdir(),"pokebench-explainers-"));const staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});
+ writeFileSync(join(docs,`${id}.html`),tracked);
+ const viewer=await startViewer({runsRoot:join(root,"runs"),staticDir,appDir:join(root,"app"),port:0});open.push(viewer);
+ const reply=await get(viewer,`/explainers/${id}.html`);
+ expect(reply.status).toBe(200);expect(reply.type).toContain("text/html");expect(reply.body.equals(tracked)).toBe(true);expect(reply.body.toString()).toContain("<h1>Heal before trainers v2</h1>");
+ expect((await get(viewer,`/explainers/${id}.html`,{host:"elsewhere.invalid"})).status).toBe(403);
+});
+
+it("serves the tracked gym heal warning explainer byte for byte through the allowlist",async()=>{
+ const id="gym-heal-warning-v1";
+ const tracked=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)));
+ const root=mkdtempSync(join(tmpdir(),"pokebench-explainers-"));const staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});
+ writeFileSync(join(docs,`${id}.html`),tracked);
+ const viewer=await startViewer({runsRoot:join(root,"runs"),staticDir,appDir:join(root,"app"),port:0});open.push(viewer);
+ const reply=await get(viewer,`/explainers/${id}.html`);
+ expect(reply.status).toBe(200);expect(reply.type).toContain("text/html");expect(reply.body.equals(tracked)).toBe(true);expect(reply.body.toString()).toContain("<h1>Gym heal warning</h1>");
+ expect((await get(viewer,`/explainers/${id}.html`,{host:"elsewhere.invalid"})).status).toBe(403);
+});
+
+it("serves the tracked reopened dialogue loop explainer byte for byte through the allowlist",async()=>{
+ const id="reopened-dialogue-loop-v1";
+ const tracked=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)));
+ const root=mkdtempSync(join(tmpdir(),"pokebench-explainers-"));const staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});
+ writeFileSync(join(docs,`${id}.html`),tracked);
+ const viewer=await startViewer({runsRoot:join(root,"runs"),staticDir,appDir:join(root,"app"),port:0});open.push(viewer);
+ const reply=await get(viewer,`/explainers/${id}.html`);
+ expect(reply.status).toBe(200);expect(reply.type).toContain("text/html");expect(reply.body.equals(tracked)).toBe(true);expect(reply.body.toString()).toContain("<h1>Reopened dialogue loop</h1>");
+ expect((await get(viewer,`/explainers/${id}.html`,{host:"elsewhere.invalid"})).status).toBe(403);
+ expect((await get(viewer,`/explainers/${id}.html`,{method:"PUT"})).status).toBe(405);
+});
+
+it("serves the tracked dialogue button explainer byte for byte through the allowlist",async()=>{
+ const id="dialog-button-b-v1";
+ const tracked=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)));
+ const root=mkdtempSync(join(tmpdir(),"pokebench-explainers-"));const staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});
+ writeFileSync(join(docs,`${id}.html`),tracked);
+ const viewer=await startViewer({runsRoot:join(root,"runs"),staticDir,appDir:join(root,"app"),port:0});open.push(viewer);
+ const reply=await get(viewer,`/explainers/${id}.html`);
+ expect(reply.status).toBe(200);expect(reply.type).toContain("text/html");expect(reply.body.equals(tracked)).toBe(true);expect(reply.body.toString()).toContain("<h1>Dialogue button B</h1>");
+ expect((await get(viewer,`/explainers/${id}.html`,{host:"elsewhere.invalid"})).status).toBe(403);
+ expect((await get(viewer,`/explainers/${id}.html`,{method:"PUT"})).status).toBe(405);
+});
+
+it("serves the tracked stale story goal explainer byte for byte through the allowlist",async()=>{
+ const id="stale-story-goal-v1";
+ const tracked=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)));
+ const root=mkdtempSync(join(tmpdir(),"pokebench-explainers-"));const staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});
+ writeFileSync(join(docs,`${id}.html`),tracked);
+ const viewer=await startViewer({runsRoot:join(root,"runs"),staticDir,appDir:join(root,"app"),port:0});open.push(viewer);
+ const reply=await get(viewer,`/explainers/${id}.html`);
+ expect(reply.status).toBe(200);expect(reply.type).toContain("text/html");expect(reply.body.equals(tracked)).toBe(true);expect(reply.body.toString()).toContain("<h1>Stale story goal</h1>");
+ expect((await get(viewer,`/explainers/${id}.html`,{host:"elsewhere.invalid"})).status).toBe(403);
+ expect((await get(viewer,`/explainers/${id}.html`,{method:"PUT"})).status).toBe(405);
+});
+
+it("serves the tracked stage-bound story goal explainer byte for byte through the allowlist",async()=>{
+ const id="stale-story-goal-v2";
+ const tracked=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)));
+ const root=mkdtempSync(join(tmpdir(),"pokebench-explainers-"));const staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});
+ writeFileSync(join(docs,`${id}.html`),tracked);
+ const viewer=await startViewer({runsRoot:join(root,"runs"),staticDir,appDir:join(root,"app"),port:0});open.push(viewer);
+ const reply=await get(viewer,`/explainers/${id}.html`);
+ expect(reply.status).toBe(200);expect(reply.type).toContain("text/html");expect(reply.body.equals(tracked)).toBe(true);expect(reply.body.toString()).toContain("<h1>Stage-bound story goal</h1>");
+ expect((await get(viewer,`/explainers/${id}.html`,{host:"elsewhere.invalid"})).status).toBe(403);
+ expect((await get(viewer,`/explainers/${id}.html`,{method:"PUT"})).status).toBe(405);
+});
+
+it("serves the tracked heal before trainers BAG items explainer byte for byte through the allowlist",async()=>{
+ const id="bag-healing-items-v1";
+ const tracked=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)));
+ const root=mkdtempSync(join(tmpdir(),"pokebench-explainers-"));const staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});
+ writeFileSync(join(docs,`${id}.html`),tracked);
+ const viewer=await startViewer({runsRoot:join(root,"runs"),staticDir,appDir:join(root,"app"),port:0});open.push(viewer);
+ const reply=await get(viewer,`/explainers/${id}.html`);
+ expect(reply.status).toBe(200);expect(reply.type).toContain("text/html");expect(reply.body.equals(tracked)).toBe(true);expect(reply.body.toString()).toContain("<h1>Heal before trainers: BAG items</h1>");
+ expect((await get(viewer,`/explainers/${id}.html`,{host:"elsewhere.invalid"})).status).toBe(403);
+ expect((await get(viewer,`/explainers/${id}.html`,{method:"PUT"})).status).toBe(405);
+});
+
+it("serves the tracked input cuts explainer byte for byte through the allowlist",async()=>{
+ const id="input-cuts-v1";
+ const tracked=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)));
+ const root=mkdtempSync(join(tmpdir(),"pokebench-explainers-"));const staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});
+ writeFileSync(join(docs,`${id}.html`),tracked);
+ const viewer=await startViewer({runsRoot:join(root,"runs"),staticDir,appDir:join(root,"app"),port:0});open.push(viewer);
+ const reply=await get(viewer,`/explainers/${id}.html`);
+ expect(reply.status).toBe(200);expect(reply.type).toContain("text/html");expect(reply.body.equals(tracked)).toBe(true);expect(reply.body.toString()).toContain("<h1>Input cuts</h1>");
+ expect((await get(viewer,`/explainers/${id}.html`,{host:"elsewhere.invalid"})).status).toBe(403);
+ expect((await get(viewer,`/explainers/${id}.html`,{method:"PUT"})).status).toBe(405);
+});
+
 it("serves the tracked battle action tool explainer byte for byte through the allowlist",async()=>{
  const id="battle-move-tool-v1";
  const tracked=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)));
@@ -506,9 +913,9 @@ it("serves the tracked battle action tool explainer byte for byte through the al
  expect((await get(viewer,`/explainers/${id}.html`,{method:"PUT"})).status).toBe(405);
 });
 
-it("serves the 2026-10-17 readout-fix explainers byte for byte through the allowlist",async()=>{
+it("serves the 2026-10-17 readout-fix and respawn readout explainers byte for byte through the allowlist",async()=>{
  const root=mkdtempSync(join(tmpdir(),"pokebench-explainers-"));const staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});
- const pages={"tutorial-party-owner-v1":"Tutorial party owner","mid-frame-readout-v1":"Mid-frame readout","unset-dynamic-warp-v1":"Unset dynamic warp","status-names-v1":"Status names","surf-gated-exits-v2":"Surf-gated exits v2"};
+ const pages={"respawn-readout-v1":"Respawn readout","tutorial-party-owner-v1":"Tutorial party owner","mid-frame-readout-v1":"Mid-frame readout","unset-dynamic-warp-v1":"Unset dynamic warp","status-names-v1":"Status names","surf-gated-exits-v2":"Surf-gated exits v2"};
  const tracked=new Map(Object.keys(pages).map(id=>[id,readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)))]));
  for(const [id,body] of tracked)writeFileSync(join(docs,`${id}.html`),body);
  const viewer=await startViewer({runsRoot:join(root,"runs"),staticDir,appDir:join(root,"app"),port:0});open.push(viewer);
@@ -530,4 +937,248 @@ it("serves the tracked conversation ledger explainer byte for byte through the a
  expect(reply.status).toBe(200);expect(reply.type).toContain("text/html");expect(reply.body.equals(tracked)).toBe(true);expect(reply.body.toString()).toContain("<h1>Conversation ledger</h1>");
  expect((await get(viewer,`/explainers/${id}.html`,{host:"elsewhere.invalid"})).status).toBe(403);
  expect((await get(viewer,`/explainers/${id}.html`,{method:"PUT"})).status).toBe(405);
+});
+
+it("serves the tracked automatic running explainer byte for byte through the allowlist",async()=>{
+ const id="automatic-running-v1";
+ const tracked=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)));
+ const root=mkdtempSync(join(tmpdir(),"pokebench-explainers-"));const staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});
+ writeFileSync(join(docs,`${id}.html`),tracked);
+ const viewer=await startViewer({runsRoot:join(root,"runs"),staticDir,appDir:join(root,"app"),port:0});open.push(viewer);
+ const reply=await get(viewer,`/explainers/${id}.html`);
+ expect(reply.status).toBe(200);expect(reply.type).toContain("text/html");expect(reply.body.equals(tracked)).toBe(true);expect(reply.body.toString()).toContain("<h1>Automatic running</h1>");
+ expect((await get(viewer,`/explainers/${id}.html`,{host:"elsewhere.invalid"})).status).toBe(403);
+ expect((await get(viewer,`/explainers/${id}.html`,{method:"PUT"})).status).toBe(405);
+});
+
+it("serves the tracked battle refusal explainer byte for byte",async()=>{
+ const id="battle-refusal-loop-v1";
+ const tracked=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)));
+ const root=mkdtempSync(join(tmpdir(),"pokebench-refusal-explainer-"));
+ const staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");
+ mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});writeFileSync(join(docs,`${id}.html`),tracked);
+ const viewer=await startViewer({runsRoot:join(root,"runs"),staticDir,appDir:join(root,"app"),port:0});open.push(viewer);
+ const reply=await get(viewer,`/explainers/${id}.html`);
+ expect(reply.status).toBe(200);expect(reply.body).toEqual(tracked);
+ expect((await get(viewer,`/explainers/${id}.html`,{host:"elsewhere.invalid"})).status).toBe(403);
+ expect((await get(viewer,`/explainers/${id}.html`,{method:"PUT"})).status).toBe(405);
+});
+
+it("serves the tracked battle readiness explainer through the existing protected route",async()=>{
+ const id="battle-decision-ready-v1";
+ const tracked=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)));
+ const root=mkdtempSync(join(tmpdir(),"pokebench-battle-ready-explainer-"));const staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});
+ writeFileSync(join(docs,`${id}.html`),tracked);
+ const viewer=await startViewer({runsRoot:join(root,"runs"),staticDir,appDir:join(root,"app"),port:0});open.push(viewer);
+ const reply=await get(viewer,`/explainers/${id}.html`);
+ expect(reply.status).toBe(200);expect(reply.body.equals(tracked)).toBe(true);
+ expect((await get(viewer,`/explainers/${id}.html`,{host:"elsewhere.invalid"})).status).toBe(403);
+ expect((await get(viewer,`/explainers/${id}.html`,{method:"PUT"})).status).toBe(405);
+});
+
+it.each(["ineffective-navigation-v2","supervisor-briefing-v2","reachable-story-guidance-v1","text-only-supervisor-v2"])("serves the tracked recovery explainer %s byte for byte",async(id)=>{
+ const tracked=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)));
+ const root=mkdtempSync(join(tmpdir(),"pokebench-recovery-explainer-")),staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});writeFileSync(join(docs,`${id}.html`),tracked);
+ const viewer=await startViewer({runsRoot:join(root,"runs"),staticDir,appDir:join(root,"app"),port:0});open.push(viewer);
+ const reply=await get(viewer,`/explainers/${id}.html`);expect(reply.status).toBe(200);expect(reply.body.equals(tracked)).toBe(true);
+});
+
+it("serves the tracked explicit evolution explainer byte for byte through the allowlist",async()=>{
+ const id="evolution-decision-v1";
+ const tracked=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)));
+ const root=mkdtempSync(join(tmpdir(),"pokebench-explainers-"));const staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});
+ writeFileSync(join(docs,`${id}.html`),tracked);
+ const viewer=await startViewer({runsRoot:join(root,"runs"),staticDir,appDir:join(root,"app"),port:0});open.push(viewer);
+ const reply=await get(viewer,`/explainers/${id}.html`);
+ expect(reply.status).toBe(200);expect(reply.type).toContain("text/html");expect(reply.body.equals(tracked)).toBe(true);expect(reply.body.toString()).toContain("<h1>Explicit evolution decision</h1>");
+ expect((await get(viewer,`/explainers/${id}.html`,{host:"elsewhere.invalid"})).status).toBe(403);
+ expect((await get(viewer,`/explainers/${id}.html`,{method:"PUT"})).status).toBe(405);
+});
+
+
+
+it("serves the tracked observed instruction memory explainer byte for byte through the allowlist",async()=>{
+ const id="observed-instructions-v1";
+ const tracked=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)));
+ const root=mkdtempSync(join(tmpdir(),"pokebench-explainers-"));const staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});
+ writeFileSync(join(docs,`${id}.html`),tracked);
+ const viewer=await startViewer({runsRoot:join(root,"runs"),staticDir,appDir:join(root,"app"),port:0});open.push(viewer);
+ const reply=await get(viewer,`/explainers/${id}.html`);
+ expect(reply.status).toBe(200);expect(reply.type).toContain("text/html");expect(reply.body.equals(tracked)).toBe(true);expect(reply.body.toString()).toContain("<h1>Keep the instruction whole.</h1>");
+ expect((await get(viewer,`/explainers/${id}.html`,{host:"elsewhere.invalid"})).status).toBe(403);
+ expect((await get(viewer,`/explainers/${id}.html`,{method:"PUT"})).status).toBe(405);
+});
+it("serves the tracked starter decision explainer byte for byte",async()=>{
+ const tracked=readFileSync(fileURLToPath(new URL("../../../docs/explainers/starter-decision-salience-v1.html",import.meta.url)));
+ const root=mkdtempSync(join(tmpdir(),"pokebench-explainers-"));const staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});
+ writeFileSync(join(docs,"starter-decision-salience-v1.html"),tracked);
+ const viewer=await startViewer({runsRoot:join(root,"runs"),staticDir,appDir:join(root,"app"),port:0});open.push(viewer);
+ const reply=await get(viewer,"/explainers/starter-decision-salience-v1.html");
+ expect(reply.status).toBe(200);expect(reply.type).toContain("text/html");expect(reply.body.equals(tracked)).toBe(true);
+});
+it("serves the tracked original-speed explainer only through the protected allowlist",async()=>{
+ const id="original-speed-pacing-v1";
+ const tracked=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)));
+ const root=mkdtempSync(join(tmpdir(),"pokebench-speed-explainer-"));
+ const staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");
+ mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});
+ writeFileSync(join(docs,`${id}.html`),tracked);
+ const viewer=await startViewer({runsRoot:join(root,"runs"),staticDir,appDir:join(root,"app"),port:0});open.push(viewer);
+ const reply=await get(viewer,`/explainers/${id}.html`);
+ expect(reply.status).toBe(200);expect(reply.type).toContain("text/html");expect(reply.body.equals(tracked)).toBe(true);
+ expect((await get(viewer,`/explainers/${id}.html`,{host:"elsewhere.invalid"})).status).toBe(403);
+ expect((await get(viewer,`/explainers/${id}.html`,{method:"PUT"})).status).toBe(405);
+});
+
+it("serves the reports page, the report list and each report's own files, and nothing else",async()=>{
+ const {runsRoot,viewer}=await fixture();const staticDir=join(dirname(runsRoot),"static");writeFileSync(join(staticDir,"reports.html"),"<title>Reports</title>");
+ const d=join(runsRoot,"reports","run-analysis","2026-10-17_top50");mkdirSync(join(d,"shots"),{recursive:true});writeFileSync(join(d,"index.html"),"<title>Top 50</title>");writeFileSync(join(d,"shots","a.png"),PNG);writeFileSync(join(d,"run.exe"),"x");
+ const page=await get(viewer,"/reports");expect(page.status).toBe(200);expect(page.body.toString()).toContain("<title>Reports</title>");
+ const list=await get(viewer,"/api/reports");expect(list.status).toBe(200);expect(JSON.parse(list.body.toString())).toEqual([{slug:"2026-10-17_top50",date:"2026-10-17",title:"Top 50",kind:"REPORT",verdict:null,frontier:null,facts:[],trainer:null}]);
+ const html=await get(viewer,"/reports/2026-10-17_top50/index.html");expect(html.status).toBe(200);expect(html.type).toContain("text/html");expect(html.body.toString()).toBe("<title>Top 50</title>");
+ expect((await get(viewer,"/reports/2026-10-17_top50/")).status).toBe(200);
+ expect((await get(viewer,"/reports/2026-10-17_top50/shots/a.png")).type).toBe("image/png");
+ for(const path of ["/reports/2026-10-17_top50/run.exe","/reports/2026-10-17_top50/../../events.jsonl","/reports/2026-10-17_top50/%2e%2e/x.html","/reports/x/index.html","/reports/2026-10-17_top50/missing.html"])expect((await get(viewer,path)).status,path).toBe(404);
+ expect((await get(viewer,"/api/reports",{host:"elsewhere.invalid"})).status).toBe(403);
+ expect(BROWSER_MODULES).toEqual(expect.arrayContaining(["reports-view","reports-main"]));
+ writeFileSync(join(d,"live.html"),'<a href="http://127.0.0.1:8790/#run=abc">run abc</a> <a href="#top">top</a> <script>document.title="x"</script>');
+ const live=await getWithHeaders(viewer,"/reports/2026-10-17_top50/live.html");
+ expect(live.body).toBe('<a target="_top" href="/#run=abc">run abc</a> <a href="#top">top</a> <script>document.title="x"</script>');
+ expect(live.csp).toContain("sandbox allow-scripts");expect(live.csp).toContain("script-src 'self' 'unsafe-inline'");expect(live.csp).not.toContain("allow-same-origin");
+ expect((await getWithHeaders(viewer,"/reports")).csp).toContain("script-src 'self';");
+});
+
+it("serves the probes page, the probe list and one probe, and refuses unsafe probe ids", async () => {
+  const { runsRoot, viewer } = await fixture();
+  writeFileSync(join(dirname(runsRoot), "static", "probes.html"), "<title>Probes</title>");
+  const dir = join(runsRoot, "probes", "p1");
+  mkdirSync(join(dir, "gpu0"), { recursive: true });
+  writeFileSync(join(dir, "manifest.json"), JSON.stringify({ id: "p1", cases: [{ id: "c1", run: "r1", turn: 1, split: "heldout" }] }));
+  writeFileSync(join(dir, "gpu0", "status.json"), JSON.stringify({ lane: "gpu0", state: "running", completed: 1, planned: 2, started: "2026-10-20T23:00:00.000Z" }));
+  writeFileSync(join(dir, "gpu0", "samples.jsonl"), `${JSON.stringify({ case: "c1", arm: "on", sample: 0, at: "2026-10-20T23:00:01.000Z", elapsedMs: 5, decision: { key: "(text only)", thinking: "" } })}\n`);
+  const page = await get(viewer, "/probes");
+  expect(page.status).toBe(200);
+  expect(page.body.toString()).toContain("<title>Probes</title>");
+  const list = JSON.parse((await get(viewer, "/api/probes")).body.toString()) as { id: string; live: boolean }[];
+  expect(list.map((p) => [p.id, p.live])).toEqual([["p1", true]]);
+  const one = await get(viewer, "/api/probes/p1");
+  expect(one.status).toBe(200);
+  expect((JSON.parse(one.body.toString()) as { samples: unknown[] }).samples).toHaveLength(1);
+  for (const path of ["/api/probes/nope", "/api/probes/..", "/api/probes/%2e%2e", "/api/probes/a%2Fb"]) expect((await get(viewer, path)).status, path).toBe(404);
+  expect((await get(viewer, "/api/probes", { host: "elsewhere.invalid" })).status).toBe(403);
+  expect(BROWSER_MODULES).toEqual(expect.arrayContaining(["probes-view", "probes-main", "probes-boot", "probe-stats"]));
+});
+
+function getWithHeaders(viewer: Viewer, path: string): Promise<{ body: string; csp: string }> {
+  return new Promise((resolve, reject) => {
+    const req = request({ host: HOST, port: viewer.port, path, headers: { host: `${HOST}:${String(viewer.port)}` } }, (res) => {
+      const chunks: Buffer[] = [];
+      res.on("data", (chunk: Buffer) => chunks.push(chunk));
+      res.on("end", () => { resolve({ body: Buffer.concat(chunks).toString(), csp: String(res.headers["content-security-policy"] ?? "") }); });
+    });
+    req.on("error", reject); req.end();
+  });
+}
+
+it("serves the caught nickname and fail-open explainers byte for byte, mapped from their cards",async()=>{
+ const root=mkdtempSync(join(tmpdir(),"pokebench-explainers-")),staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});
+ const pages=[["party-item-confirmation-v1","Party item confirmation"],["caught-nickname-prompt-v1","Caught nickname question"],["fail-open-input-v1","Fail-open input"]] as const;
+ for(const [id] of pages)writeFileSync(join(docs,`${id}.html`),readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url))));
+ const viewer=await startViewer({runsRoot:join(root,"runs"),staticDir,appDir:join(root,"app"),port:0});open.push(viewer);
+ const {FEATURE_EXPLAINERS}=await import("./panels.js");
+ for(const [id,title] of pages){
+  expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
+  const reply=await get(viewer,`/explainers/${id}.html`);
+  expect(reply.status).toBe(200);expect(reply.body.toString()).toContain(title);expect(reply.body.equals(readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url))))).toBe(true);
+ }
+});
+
+it("serves the field move gates explainer byte for byte, mapped from its card",async()=>{
+ const root=mkdtempSync(join(tmpdir(),"pokebench-explainers-")),staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});
+ const id="field-move-gates-v1",body=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)));
+ writeFileSync(join(docs,`${id}.html`),body);
+ const viewer=await startViewer({runsRoot:join(root,"runs"),staticDir,appDir:join(root,"app"),port:0});open.push(viewer);
+ const {FEATURE_EXPLAINERS}=await import("./panels.js");
+ expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
+ const reply=await get(viewer,`/explainers/${id}.html`);
+ expect(reply.status).toBe(200);expect(reply.body.equals(body)).toBe(true);expect(reply.body.toString()).toContain("<title>Field move gates</title>");
+});
+
+it("serves the whiteout healed explainer byte for byte, mapped from its card",async()=>{
+ const root=mkdtempSync(join(tmpdir(),"pokebench-explainers-")),staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});
+ const pages=[["whiteout-healed-v1","Whiteout healed"],["same-target-no-progress-v1","Same target, no progress"],["short-cycle-fixed-point-v1","Short-cycle fixed point"],["navigation-tool-use-guard-v1","Navigation tool-use guard"],["semantic-current-map-feedback-v1","Semantic current-map feedback"]] as const;
+ for(const [id] of pages)writeFileSync(join(docs,`${id}.html`),readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url))));
+ const viewer=await startViewer({runsRoot:join(root,"runs"),staticDir,appDir:join(root,"app"),port:0});open.push(viewer);
+ const {FEATURE_EXPLAINERS}=await import("./panels.js");
+ for(const [id,title] of pages){
+  expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
+  const reply=await get(viewer,`/explainers/${id}.html`);
+  expect(reply.status).toBe(200);expect(reply.body.toString()).toContain(title);expect(reply.body.equals(readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url))))).toBe(true);
+ }
+});
+
+it("serves the gym readiness readout explainer byte for byte, mapped from its card",async()=>{
+ const root=mkdtempSync(join(tmpdir(),"pokebench-explainers-")),staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});
+ const id="gym-readiness-readout-v1",tracked=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)));writeFileSync(join(docs,`${id}.html`),tracked);
+ const viewer=await startViewer({runsRoot:join(root,"runs"),staticDir,appDir:join(root,"app"),port:0});open.push(viewer);
+ const {FEATURE_EXPLAINERS}=await import("./panels.js");
+ expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
+ const reply=await get(viewer,`/explainers/${id}.html`);
+ expect(reply.status).toBe(200);expect(reply.body.equals(tracked)).toBe(true);expect(reply.body.toString()).toContain("Gym readiness readout");
+});
+
+it("serves the story progress clock explainer byte for byte, mapped from its card",async()=>{
+ const root=mkdtempSync(join(tmpdir(),"pokebench-explainers-")),staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});
+ const id="story-progress-clock-v1",tracked=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)));writeFileSync(join(docs,`${id}.html`),tracked);
+ const viewer=await startViewer({runsRoot:join(root,"runs"),staticDir,appDir:join(root,"app"),port:0});open.push(viewer);
+ const {FEATURE_EXPLAINERS}=await import("./panels.js");
+ expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
+ const reply=await get(viewer,`/explainers/${id}.html`);
+ expect(reply.status).toBe(200);expect(reply.body.equals(tracked)).toBe(true);expect(reply.body.toString()).toContain("Story progress clock");
+});
+
+it("serves the YES/NO answer readout explainer byte for byte, mapped from its card",async()=>{
+ const root=mkdtempSync(join(tmpdir(),"pokebench-explainers-")),staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});
+ const id="yes-no-answer-readout-v1",tracked=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)));writeFileSync(join(docs,`${id}.html`),tracked);
+ const viewer=await startViewer({runsRoot:join(root,"runs"),staticDir,appDir:join(root,"app"),port:0});open.push(viewer);
+ const {FEATURE_EXPLAINERS}=await import("./panels.js");
+ expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
+ const reply=await get(viewer,`/explainers/${id}.html`);
+ expect(reply.status).toBe(200);expect(reply.body.equals(tracked)).toBe(true);expect(reply.body.toString()).toContain("YES/NO answer readout");
+});
+
+it("serves the tracked pending field dialogue explainer byte for byte",async()=>{
+ const tracked=readFileSync(fileURLToPath(new URL("../../../docs/explainers/pending-field-dialogue-v1.html",import.meta.url)));
+ const root=mkdtempSync(join(tmpdir(),"pokebench-pending-field-"));const staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});
+ writeFileSync(join(docs,"pending-field-dialogue-v1.html"),tracked);
+ const viewer=await startViewer({runsRoot:join(root,"runs"),staticDir,appDir:join(root,"app"),port:0});open.push(viewer);
+ const reply=await get(viewer,"/explainers/pending-field-dialogue-v1.html");
+ expect(reply.status).toBe(200);expect(reply.type).toContain("text/html");expect(reply.body.equals(tracked)).toBe(true);
+});
+
+it("serves opted-in revisions while preserving the complete workbench endpoint", async () => {
+  const { runsRoot, viewer } = await fixture(); writeRun(runsRoot, "cached", fullRun());
+  const payloads: unknown[] = [];
+  const client = createWorkbenchClient(async path => { const reply = await get(viewer, path); expect(reply.status).toBe(200); const value: unknown = JSON.parse(reply.body.toString()); payloads.push(value); return value; });
+  const full = parseWorkbench(JSON.parse((await get(viewer, "/api/workbench")).body.toString()) as unknown);
+  expect(await client()).toEqual(full); expect(await client()).toEqual(full);
+  expect(payloads[0]).toMatchObject({ base: null, runs: full.runs });
+  expect(payloads[1]).toMatchObject({ runs: [], removed: [] });
+  expect((await get(viewer, "/api/workbench?updates=1&since=unknown")).body.toString()).toContain('"base":null');
+});
+
+it("serves the section-aware exit explainer byte for byte",async()=>{
+ const root=mkdtempSync(join(tmpdir(),"pokebench-sections-")),staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});
+ const id="exit-labels-v3",tracked=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)));writeFileSync(join(docs,`${id}.html`),tracked);
+ const viewer=await startViewer({runsRoot:join(root,"runs"),staticDir,appDir:join(root,"app"),port:0});open.push(viewer);
+ const reply=await get(viewer,`/explainers/${id}.html`);
+ expect(reply.status).toBe(200);expect(reply.body.equals(tracked)).toBe(true);
+});
+
+it("serves the exploratory waypoint explainer byte for byte",async()=>{
+ const root=mkdtempSync(join(tmpdir(),"pokebench-sections-")),staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});
+ const id="navigation-refusal-reasons-v3",tracked=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)));writeFileSync(join(docs,`${id}.html`),tracked);
+ const viewer=await startViewer({runsRoot:join(root,"runs"),staticDir,appDir:join(root,"app"),port:0});open.push(viewer);
+ const reply=await get(viewer,`/explainers/${id}.html`);
+ expect(reply.status).toBe(200);expect(reply.body.equals(tracked)).toBe(true);
 });

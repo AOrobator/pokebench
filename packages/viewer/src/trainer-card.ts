@@ -17,7 +17,7 @@ export interface CardInput {
   readonly trial: string | null;
   readonly card: WorkbenchCard | null;
   readonly facts: PlateFacts;
-  readonly status: "watching" | "live" | "paused";
+  readonly status: "watching" | "live" | "paused" | "replay";
   readonly trainer: string;
 }
 
@@ -42,26 +42,56 @@ function fnv1a(text: string): number {
   return hash;
 }
 
-// The arms of one experiment take trainers in sorted order, each probing past ones already taken,
-// so two arms never share a sprite while there are sprites to go round.
-export function trainerFor(experiment: string, arm: string, arms: readonly string[], trainers: readonly string[]): string {
-  const taken = new Set<number>(), all = [...new Set([...arms, arm])].sort();
+function trainerAllocation(group: string, identities: readonly string[], trainers: readonly string[], reserved: ReadonlySet<number> = new Set()): ReadonlyMap<string, number> {
+  const taken = new Set(reserved), allocated = new Map<string, number>();
+  const all = [...new Set(identities)].sort();
   for (const each of all) {
-    let index = fnv1a(`${experiment}\u0000${each}`) % trainers.length;
+    const seed = `${group}\u0000${each}`;
+    let index = fnv1a(seed) % trainers.length;
     for (let probes = 0; taken.has(index) && probes < trainers.length; probes++) index = (index + 1) % trainers.length;
     taken.add(index);
-    if (each === arm) return trainers[index] ?? "";
+    allocated.set(each, index);
   }
-  return trainers[0] ?? "";
+  return allocated;
+}
+
+// Identities in one group take trainers in sorted order, probing past ones already taken.
+export function trainerFor(group: string, identity: string, identities: readonly string[], trainers: readonly string[]): string {
+  const index = trainerAllocation(group, [...identities, identity], trainers).get(identity) ?? 0;
+  return trainers[index] ?? "";
+}
+
+function gpuOf(runId: string): string {
+  return /(?:^|[-_])(gpu\d+)(?=[-_]|$)/i.exec(runId)?.[1]?.toLowerCase() ?? "";
+}
+
+function trainerIdentity(arm: string, gpu: string): string {
+  return gpu === "" ? arm : `${arm}\u0000${gpu}`;
+}
+
+interface TrainerPeer { readonly arm: string; readonly gpu: string }
+
+function experimentTrainerFor(group: string, current: TrainerPeer, peers: readonly TrainerPeer[], trainers: readonly string[]): string {
+  const all = [...peers, current], arms = [...new Set(all.map(peer => peer.arm))];
+  const legacy = trainerAllocation(group, arms, trainers);
+  if (current.gpu === "") return trainers[legacy.get(current.arm) ?? 0] ?? "";
+  const reserved = new Set(all.flatMap(peer => peer.gpu === "" ? [legacy.get(peer.arm) ?? 0] : []));
+  const identities = all.flatMap(peer => peer.gpu === "" ? [] : [trainerIdentity(peer.arm, peer.gpu)]);
+  const index = trainerAllocation(group, identities, trainers, reserved).get(trainerIdentity(current.arm, current.gpu)) ?? 0;
+  return trainers[index] ?? "";
 }
 
 // One run's card from the workbench snapshot; runs: every run the snapshot has, so the trainer pick sees
 // all of the experiment's arms the same way on every page.
 export function cardInputFor(run: WorkbenchRun, at: number, now: number, status: CardInput["status"], runs: readonly WorkbenchRun[], art: CardArt): CardInput {
   const experiment = run.experiment ?? null, title = experiment?.id ?? run.model ?? run.id;
-  const arms = experiment === null ? [] : runs.flatMap((other) => (other.experiment?.id === experiment.id ? [other.experiment.arm] : []));
+  const gpu = gpuOf(run.id);
+  const trainer = experiment === null
+    ? trainerFor(title, trainerIdentity("", gpu), [], art.trainers)
+    : experimentTrainerFor(title, { arm: experiment.arm, gpu }, runs.flatMap((other) => (other.experiment?.id === experiment.id ? [{ arm: other.experiment.arm, gpu: gpuOf(other.id) }] : [])), art.trainers);
+  const facts = plateFacts(run, at, now);
   return { runId: run.id, title, arm: experiment?.arm ?? null, trial: experiment === null ? null : `trial ${String(experiment.trial)}/${String(experiment.of)}`,
-    card: run.card ?? null, facts: plateFacts(run, at, now), status, trainer: trainerFor(title, experiment?.arm ?? "", arms, art.trainers) };
+    card: run.card ?? null, facts: status === "replay" ? { ...facts, fresh: false } : facts, status, trainer };
 }
 
 export function placeText(location: string | null): string {
@@ -85,8 +115,9 @@ const gt = (text: string, colour: string, height: number, bold = 0): string =>
   `<span class="gtx" data-gt="${esc(text)}" data-c="${colour}" data-h="${String(height)}"${bold > 0 ? ` data-b="${String(bold)}"` : ""}>${esc(text)}</span>`;
 
 function stateChip(status: CardInput["status"]): string {
-  const word = status === "watching" ? "WATCHING" : status === "paused" ? "PAUSED" : "LIVE";
-  return `<span class="tc-chip tc-state${status === "watching" ? "" : " tc-off"}">${status === "paused" ? "" : '<span class="tc-dot"></span>'}${gt(word, "white", 14)}</span>`;
+  const word = status === "watching" ? "WATCHING" : status === "paused" ? "PAUSED" : status === "replay" ? "REPLAY" : "LIVE";
+  const dot = status === "watching" || status === "live" ? '<span class="tc-dot"></span>' : "";
+  return `<span class="tc-chip tc-state${status === "watching" ? "" : " tc-off"}">${dot}${gt(word, "white", 14)}</span>`;
 }
 const badge = (): string => `<span class="tc-chip tc-badge">${gt("NEW MILESTONE!", "badge", 14)}</span>`;
 
@@ -118,7 +149,7 @@ export function cardHtml(input: CardInput, art: CardArt, kind: CardKind, href: s
   const mons = wide
     ? party.map((m, i) => { const html = mon(art, m); return html === "" ? "" : box(g, 42 + 60.8 * i - 32, 132 - 32, 64, 64, html, " tc-slot"); }).join("")
     : (() => { const lead = party[0], html = lead === undefined ? "" : mon(art, lead); return html === "" ? "" : box(g, 262 - 18, 54 - 18, 36, 36, html, " tc-slot"); })();
-  const body = `<span class="tc-tab" style="left:${pct(13, g.w)};top:${pct(10, g.h)};height:${pct(16, g.h)};min-width:${pct(wide ? 168 : 176, g.w)}">${gt(input.title, "tab", 14, 1)}</span>`
+  const body = `<span class="tc-tab" style="left:${pct(13, g.w)};top:${pct(10, g.h)};height:${pct(16, g.h)};width:${pct(wide ? 168 : 166, g.w)}">${gt(input.title, "tab", 14, 1)}</span>`
     + box(g, wide ? 196 : 184, 9, wide ? 184 : 98, 18, `<span class="tc-line tc-end">${corner}</span>`)
     + (wide ? box(g, 10, 37, 64, 64, sprite, " tc-sprite") : box(g, 4, 26, 44, 44, sprite, " tc-sprite"))
     + (wide ? box(g, 92, 30, 286, 20, nameType(input, true)) + box(g, 92, 52, 286, 14, `<span class="tc-line tc-l2">${second}</span>`) + box(g, 92, 68, 286, 13, story) + box(g, 92, 84, 286, 13, time)
@@ -128,6 +159,6 @@ export function cardHtml(input: CardInput, art: CardArt, kind: CardKind, href: s
   const label = `Watch run ${input.runId}: ${input.title}${input.arm === null ? "" : `, ${input.arm}`}`;
   const cls = `tc tc-${kind}${facts.fresh ? " tc-new" : ""}`, frame = `<span class="tc-art" style="--gw:${String(g.w)};aspect-ratio:${String(g.w)}/${String(g.h)};background-image:url(${image})">${body}</span>`;
   return href === null
-    ? `<button type="button" class="${cls}" data-watch="${esc(input.runId)}" aria-pressed="${String(input.status === "watching")}" aria-label="${esc(label)}">${frame}</button>`
+    ? `<button type="button" class="${cls}" data-watch="${esc(input.runId)}" aria-pressed="${String(input.status === "watching" || input.status === "replay")}" aria-label="${esc(label)}">${frame}</button>`
     : `<a class="${cls}" href="${esc(href)}" data-watch="${esc(input.runId)}" aria-label="${esc(label)}">${frame}</a>`;
 }

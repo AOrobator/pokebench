@@ -1,3 +1,4 @@
+import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
 import {createServer} from "node:http";
 import type {AddressInfo} from "node:net";
 import {mkdtempSync,readFileSync,rmSync} from "node:fs";
@@ -7,7 +8,7 @@ import {expect,it} from "vitest";
 import {Type} from "typebox";
 import {Value} from "typebox/value";
 import {IN_GAME,RUN_START_META} from "../test-support/events.js";
-import {ALL_ON} from "./features.js";
+import {} from "./features.js";
 import {Governor} from "./harness.js";
 import {discoverModels,selectModel} from "./gateway.js";
 import {gatewayLoopConfig} from "./provider.js";
@@ -48,7 +49,7 @@ it.each([false,true])("runs production state-mode seams (malformed arguments=%s)
   const log=RunLog.create(dir,"state-runtime-fixture");const recorder=new RunRecorder({log,frames:new FrameStore(dir,10000,()=>{}),gameState:new StateWatcher(url),milestones:{poll:()=>Promise.resolve([])}});
   await recorder.start({...RUN_START_META,harness_features:["ram-state-v1","state-only-decisions-v1"],tools:["act"]});
   const signal=new AbortController();const governor=new Governor({limits:{maxTurns:malformed?5:2,maxWallMs:10000,failureLimit:3},retry:()=>{},abort:()=>{signal.abort();},now:()=>0});
-  const features={...ALL_ON,"harness-trust-v1":false,"cited-destination-v1":false,"harness-trust-v2":false,"untaken-exits-v1":false,"people-ledger-v1":false,"people-id-cards-v1":false,"trainer-heal-guidance-v1":false,"low-hp-trainer-warning-v1":false,"low-hp-trainer-warning-v2":false,"readout-rules-in-prompt-v1":false,"disproved-beliefs-v1":false,"same-plan-breaker-v1":false,"explorer-guidance-v1":false,"explorer-guidance-v2":false,"dialogue-auto-advance-v1":false,"navigation-evidence-memory-v1":false,"game-evidence-priority-v1":false,"dialogue-log-v1":false,"instruction-ledger-v1":false,"instruction-ledger-v2":false,"next-milestone-hint-v1":false,"double-context-window-v1":false,"fresh-retry-v1":false,"text-only-supervisor-v1":false,"state-only-decisions-v1":true,"objective-tracking-v1":false,"repeat-attempt-guard-v1":false,"native-objective-completion-v1":false,"deterministic-loop-guard-v1":false,"bounded-navigation-v1":false,"press-result-v1":false};
+  const features={...ALL_ON,"evolution-decision-v1":false,"battle-decision-ready-v1":false,"just-in-time-prompt-v1":false,"just-in-time-prompt-v2":false,"jit-guide-reuse-v1":false,"harness-trust-v1":false,"cited-destination-v1":false,"harness-trust-v2":false,"untaken-exits-v1":false,"people-ledger-v1":false,"people-id-cards-v1":false,"trainer-heal-guidance-v1":false,"low-hp-trainer-warning-v1":false,"low-hp-trainer-warning-v2":false,"readout-rules-in-prompt-v1":false,"disproved-beliefs-v1":false,"same-plan-breaker-v1":false,"explorer-guidance-v1":false,"explorer-guidance-v2":false,"dialogue-auto-advance-v1":false,"navigation-evidence-memory-v1":false,"game-evidence-priority-v1":false,"dialogue-log-v1":false,"instruction-ledger-v1":false,"instruction-ledger-v2":false,"input-cuts-v1":false,"next-milestone-hint-v1":false,"double-context-window-v1":false,"fresh-retry-v1":false,"text-only-supervisor-v1":false,"state-only-decisions-v1":true,"objective-tracking-v1":false,"repeat-attempt-guard-v1":false,"native-objective-completion-v1":false,"deterministic-loop-guard-v1":false,"bounded-navigation-v1":false,"press-result-v1":false};
   expect(await runStateMode({features,target:null,serverUrl:url,recorder,governor,base:gatewayLoopConfig(model,"off"),signal:signal.signal,gate:()=>Promise.resolve()})).toBe(malformed?"model_error":"budget");
   const events=readFileSync(log.eventsPath,"utf8").trim().split("\n").map(parseEvent);
   expect(events.filter(e=>e.type==="decision_input").map(e=>e.decision_turn)).toEqual(malformed?[1,2,3]:[1,2]);

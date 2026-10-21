@@ -78,6 +78,10 @@ prepare-comparison manifest: build
 run-comparison manifest: build
     node packages/agent/dist/serial-comparison-cli.js execute {{quote(manifest)}}
 
+# Per-loop-type recovery of every loop-guard, stall, breaker and auto-talk intervention in recorded runs (read-only).
+loop-recovery *run_ids: build
+    node packages/agent/dist/loop-recovery-cli.js {{run_ids}}
+
 # Regenerate schemas/events.v1.json from the TypeBox source (a test fails when it is stale).
 schema: build
     node packages/agent/dist/schema.js > schemas/events.v1.json

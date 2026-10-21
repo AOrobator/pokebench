@@ -50,34 +50,6 @@ export function headHtml(input: HeadInput): string {
     + `<span class="rh-l2">${meta}<span class="rh-time">${esc(input.time)}</span></span>`;
 }
 
-// cards: the live runs as trainer cards (watched run first) when the card art is built; they take the
-// place of the other-runs list, and of the YOU'RE WATCHING block when the watched run has a card.
-export function sheetHtml(input: HeadInput, startedAt: (iso: string) => string, cards: { readonly html: string; readonly watched: boolean } | null = null): string {
-  const { view } = input;
-  const cohort = cohortOf(view);
-  const pill = `<span class="rs-pill ${input.running ? "live" : esc(input.label.cls)}">${esc(input.label.text)}</span>`;
-  const now = `<div class="rs-now"><div class="rs-tag"><span>YOU'RE WATCHING</span>${pill}</div>`
-    + `<div class="rs-title">${esc(headTitle(view, input.runId))}</div>`
-    + `<div class="rs-row">${cohort === null ? "" : `${armBadge(cohort.arm)}<span class="rh-trial">${trial(cohort)}</span>`}<span class="rh-time">${esc(input.time)}</span></div>`
-    + (view.start === null ? "" : `<div class="rs-where">Turn ${String(view.turn)}</div>`)
-    + `</div>`;
-  const others = input.others.length === 0
-    ? `<p class="rs-empty">No other run is live right now.</p>`
-    : input.others.map((run) => {
-      const started = run.started == null ? "" : `started ${startedAt(run.started)}`;
-      // A run in the watched run's experiment would carry the same title, so it leads with what differs: its arm and trial.
-      if (run.cohort !== undefined && run.cohort.id === cohort?.id) {
-        const line = ["same experiment", started].filter((part) => part !== "").join(" · ");
-        return `<button type="button" class="rs-other" data-watch="${esc(run.id)}"><span class="rs-other-title rs-row">${armBadge(run.cohort.arm)}<span class="rh-trial">${trial(run.cohort)}</span></span>`
-          + `<span class="rs-row"><span class="rh-trial">${esc(line)}</span></span><span class="rs-go">WATCH ▸</span></button>`;
-      }
-      const title = run.cohort?.id ?? run.model ?? run.id;
-      const line = [run.cohort === undefined ? "" : trial(run.cohort), started].filter((part) => part !== "").join(" · ");
-      return `<button type="button" class="rs-other" data-watch="${esc(run.id)}"><span class="rs-other-title">${esc(title)}</span>`
-        + `<span class="rs-row">${run.cohort === undefined ? "" : armBadge(run.cohort.arm)}<span class="rh-trial">${esc(line)}</span></span><span class="rs-go">WATCH ▸</span></button>`;
-    }).join("");
-  const start = view.start;
-  const details = start === null ? "" : `<h4>RUN DETAILS</h4><dl class="rs-details"><dt>Model</dt><dd>${esc(start.model.id)}</dd><dt>Thinking</dt><dd>${esc(start.sampling.thinking_level)}</dd><dt>Run</dt><dd>${esc(input.runId ?? start.run)}</dd></dl>`;
-  if (cards !== null) return `${cards.watched ? "" : now}<h4>LIVE RUNS · TAP TO WATCH</h4><div class="rs-cards">${cards.html}</div>${details}`;
-  return `${now}<h4>OTHER LIVE RUNS · TAP TO WATCH</h4><div class="rs-others">${others}</div>${details}`;
+export function sheetHtml(): string {
+  return '<h4>RUNS · TAP TO WATCH</h4><p class="rs-empty" data-card-loading>Loading trainer cards…</p><div class="rs-cards"></div>';
 }

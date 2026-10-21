@@ -1,0 +1,293 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Exit labels v2</title>
+<style>
+:root{--bg:#fbfaf7;--fg:#1d1d1b;--muted:#5d5b55;--line:#d9d5cc;--panel:#ffffff;--keep:#2f7d4f;--drop:#b4442f;--accent:#2d5f9a;--fill:#eef3f8;--warn:#a86b12;--wall:#c9c3b6;--grass:#cfe3c4}
+@media (prefers-color-scheme: dark){:root{--bg:#161614;--fg:#ecebe6;--muted:#a8a59c;--line:#3a3833;--panel:#1f1e1b;--keep:#6cc08f;--drop:#e98a74;--accent:#86b3e6;--fill:#22303f;--warn:#e0a94f;--wall:#4a463e;--grass:#2c4630}}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif}
+main{max-width:900px;margin:0 auto;padding:24px 16px 48px}
+h1{font-size:1.6rem;margin:0 0 4px}h2{font-size:1.15rem;margin:32px 0 8px}
+.muted{color:var(--muted)}
+figure{margin:16px 0;padding:12px;background:var(--panel);border:1px solid var(--line);border-radius:8px;overflow-x:auto}
+figcaption{color:var(--muted);font-size:.9rem;margin-top:8px}
+code{font:13px ui-monospace,SFMono-Regular,Menlo,monospace}
+table{border-collapse:collapse;width:100%;font-size:.9rem}td,th{border-bottom:1px solid var(--line);padding:5px 8px;text-align:left;vertical-align:top}
+.scroll{overflow-x:auto}
+svg text{fill:var(--fg);font:13px -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif}
+svg .small{font-size:11px;fill:var(--muted)}
+.note{border-left:3px solid var(--accent);padding:6px 10px;background:var(--fill);font:12.5px ui-monospace,SFMono-Regular,Menlo,monospace;white-space:pre-wrap;word-break:break-word;margin:6px 0}
+.off{border-left-color:var(--drop)}.on{border-left-color:var(--keep)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}@media (max-width:640px){.grid2{grid-template-columns:1fr}}
+details summary{cursor:pointer;color:var(--accent)}
+</style>
+</head>
+<body>
+<main>
+<h1>Exit labels v2</h1>
+<p class="muted"><code>exit-labels-v2</code> · observation · game server · bundle arm only · default off · needs <code>named-warp-destinations-v1</code></p>
+<p>Every warp in the readout names the map it leads to the way the game's location popup names that map when you arrive, with its map ID. When two or more exits of the map you are on lead to the same name, each one also says where it lands and which exits can be walked to from there. Map facts only: no goal and no route.</p>
+
+<h2>Why: b300, turns 581–596</h2>
+<p>Run <code>2026-10-20T13-54-28_qwen36-gpu0_b300</code> whited out at the Rustboro Gym, woke in Littleroot, and by 3:06 PM was back on south ROUTE104. It then walked into PETALBURG WOODS and straight back out at least six times. The Warps line, the interaction candidates and the Warp destination lines printed <code>map 24/11</code> and <code>map 0/19</code>, and the model quoted those IDs. named-warp-destinations-v1 names a map only when a sign has shown its name, so almost nothing got a name. And every woods exit leads to ROUTE104, so a name alone cannot say which mouth comes out where RUSTBORO CITY can be walked to.</p>
+
+<figure>
+<svg viewBox="0 0 860 380" width="100%" style="min-width:680px" role="img" aria-label="Route 104 and Petalburg Woods: three woods mouths land in three different parts of Route 104">
+<text x="20" y="22">ROUTE 104 (map 0/19)</text>
+<text x="500" y="22">PETALBURG WOODS (map 24/11)</text>
+<rect x="20" y="36" width="300" height="104" rx="6" fill="var(--grass)" stroke="var(--line)"/>
+<text x="32" y="58">north part</text>
+<text x="32" y="78" class="small">NORTH edge → RUSTBORO CITY (map 0/3)</text>
+<text x="32" y="94" class="small">(5,18) → ROUTE 104 (map 17/1)</text>
+<text x="32" y="122">(10,30) (11,30)</text>
+<rect x="20" y="150" width="300" height="20" fill="var(--wall)"/><text x="30" y="164" class="small">rows 31–37: solid wall, no walk between the parts</text>
+<rect x="20" y="180" width="300" height="150" rx="6" fill="var(--grass)" stroke="var(--line)"/>
+<text x="32" y="202">south part (you are at (11,39))</text>
+<text x="32" y="222">(10,38) (11,38)</text>
+<text x="32" y="246" class="small">EAST edge → PETALBURG CITY (map 0/0)</text>
+<text x="32" y="262" class="small">(17,50) → ROUTE 104 (map 17/0)</text>
+<rect x="200" y="280" width="110" height="40" rx="5" fill="none" stroke="var(--warn)" stroke-dasharray="4 3"/>
+<text x="208" y="298">(32,42) (33,42)</text><text x="208" y="313" class="small">ledges drop south</text>
+<rect x="500" y="36" width="340" height="294" rx="6" fill="var(--grass)" stroke="var(--line)"/>
+<text x="514" y="60">(14,5) (15,5)  north mouth</text>
+<text x="514" y="314">(16,38) (17,38)</text><text x="700" y="314">(36,38) (37,38)</text>
+<text x="514" y="180" class="small">the whole woods floods as one area</text>
+<line x1="510" y1="56" x2="190" y2="118" stroke="var(--keep)" stroke-width="2"/>
+<line x1="510" y1="310" x2="140" y2="218" stroke="var(--accent)" stroke-width="2"/>
+<line x1="696" y1="310" x2="312" y2="296" stroke="var(--warn)" stroke-width="2"/>
+<text x="330" y="80" class="small">arrives at (10,30)</text>
+<text x="330" y="246" class="small">arrives at (10,38)</text>
+<text x="420" y="292" class="small">arrives at (32,42)</text>
+<text x="20" y="360" class="small">Same name, three different places: only the north mouth lands where the NORTH edge to RUSTBORO CITY can be walked to.</text>
+</svg>
+<figcaption>Each line joins a woods mouth to the ROUTE104 warp it lands on (the warp's <code>warpId</code> on the destination map). Areas and labels are the server's flood of the ROM layouts, as printed below.</figcaption>
+</figure>
+
+<h2>What the model reads at seq 18814 (inside PETALBURG WOODS at (17,38))</h2>
+<div class="grid2">
+<div><p class="muted">OFF (today, re-rendered from the run's raw RAM; matches what the model got)</p>
+<div class="note off">Warps: (14,5) -&gt; map 0/19 [directional exit: stand on tile, then press UP], … (37,38) -&gt; map 0/19 [directional exit: stand on tile, then press DOWN]
+Warp to map 0/19 at (14,5), elevation 0; movement; activation depends on metatile (see local map); conditional; destination map 0/19 warp 2
+…
+Warp destination at (14,5): map 0/19
+Warp destination at (15,5): map 0/19
+Warp destination at (16,38): map 0/19
+Warp destination at (17,38): map 0/19
+Warp destination at (36,38): map 0/19
+Warp destination at (37,38): map 0/19</div></div>
+<div><p class="muted">ON (re-rendered from the same raw RAM; … marks lines left out here)</p>
+<div class="note on">Warps: (14,5) -&gt; ROUTE 104 (map 0/19) [directional exit: stand on tile, then press UP], … (37,38) -&gt; ROUTE 104 (map 0/19) [directional exit: stand on tile, then press DOWN]
+Warp to ROUTE 104 (map 0/19) at (14,5), elevation 0; movement; activation depends on metatile (see local map); conditional; destination ROUTE 104 (map 0/19) warp 2
+…
+Warp destination at (14,5): ROUTE 104 (map 0/19), arriving at (10,30); from there, on foot: (5,18) -&gt; ROUTE 104 (map 17/1); (10,30) or (11,30) -&gt; this map at (14,5) or (15,5); NORTH edge -&gt; RUSTBORO CITY (map 0/3)
+Warp destination at (15,5): ROUTE 104 (map 0/19), arriving at (11,30); from there, on foot: (5,18) -&gt; ROUTE 104 (map 17/1); (10,30) or (11,30) -&gt; this map at (14,5) or (15,5); NORTH edge -&gt; RUSTBORO CITY (map 0/3)
+Warp destination at (16,38): ROUTE 104 (map 0/19), arriving at (10,38); from there, on foot: (17,50) -&gt; ROUTE 104 (map 17/0); (10,38) or (11,38) -&gt; this map at (16,38) or (17,38); EAST edge -&gt; PETALBURG CITY (map 0/0)
+Warp destination at (17,38): ROUTE 104 (map 0/19), arriving at (11,38); from there, on foot: (17,50) -&gt; ROUTE 104 (map 17/0); (10,38) or (11,38) -&gt; this map at (16,38) or (17,38); EAST edge -&gt; PETALBURG CITY (map 0/0)
+Warp destination at (36,38): ROUTE 104 (map 0/19), arriving at (32,42); from there, on foot: (17,50) -&gt; ROUTE 104 (map 17/0); (10,38) or (11,38) -&gt; this map at (16,38) or (17,38); (32,42) or (33,42) -&gt; this map at (36,38) or (37,38); EAST edge -&gt; PETALBURG CITY (map 0/0)
+Warp destination at (37,38): ROUTE 104 (map 0/19), arriving at (33,42); from there, on foot: (17,50) -&gt; ROUTE 104 (map 17/0); (10,38) or (11,38) -&gt; this map at (16,38) or (17,38); (32,42) or (33,42) -&gt; this map at (36,38) or (37,38); EAST edge -&gt; PETALBURG CITY (map 0/0)</div></div>
+</div>
+
+<h2>What the model reads at seq 18834 (south ROUTE104 at (11,39))</h2>
+<div class="grid2">
+<div><p class="muted">OFF (today)</p>
+<div class="note off">Warps: (17,50) -&gt; map 17/0 [step onto tile], (5,18) -&gt; map 17/1 [step onto tile], (10,30) -&gt; map 24/11 [step onto tile], … (33,42) -&gt; map 24/11 [step onto tile]
+…
+Warp destination at (17,50): map 17/0
+Warp destination at (5,18): map 17/1 (not reachable on foot from where you stand)
+Warp destination at (10,30): map 24/11 (not reachable on foot from where you stand)
+Warp destination at (11,30): map 24/11 (not reachable on foot from where you stand)
+Warp destination at (10,38): map 24/11
+Warp destination at (11,38): map 24/11
+Warp destination at (32,42): map 24/11 (not reachable on foot from where you stand)
+Warp destination at (33,42): map 24/11 (not reachable on foot from where you stand)</div></div>
+<div><p class="muted">ON (re-rendered from the same raw RAM; … marks lines left out here)</p>
+<div class="note on">Warps: (17,50) -&gt; ROUTE 104 (map 17/0) [step onto tile], (5,18) -&gt; ROUTE 104 (map 17/1) [step onto tile], (10,30) -&gt; PETALBURG WOODS (map 24/11) [step onto tile], … (33,42) -&gt; PETALBURG WOODS (map 24/11) [step onto tile]
+…
+Warp destination at (17,50): ROUTE 104 (map 17/0), arriving at (5,8); from there, on foot: (5,8) or (6,8) -&gt; this map at (17,50)
+Warp destination at (5,18): ROUTE 104 (map 17/1) (not reachable on foot from where you stand), arriving at (2,8); from there, on foot: (2,8) or (3,8) -&gt; this map at (5,18)
+Warp destination at (10,30): PETALBURG WOODS (map 24/11) (not reachable on foot from where you stand), arriving at (14,5); from there, on foot: (14,5) or (15,5) -&gt; this map at (10,30) or (11,30); (16,38) or (17,38) -&gt; this map at (10,38) or (11,38); (36,38) or (37,38) -&gt; this map at (32,42) or (33,42)
+Warp destination at (11,30): … arriving at (15,5); (same list)
+Warp destination at (10,38): PETALBURG WOODS (map 24/11), arriving at (16,38); from there, on foot: (14,5) or (15,5) -&gt; this map at (10,30) or (11,30); (16,38) or (17,38) -&gt; this map at (10,38) or (11,38); (36,38) or (37,38) -&gt; this map at (32,42) or (33,42)
+Warp destination at (11,38): … arriving at (17,38); (same list)
+Warp destination at (32,42): PETALBURG WOODS (map 24/11) (not reachable on foot from where you stand), arriving at (36,38); (same list)
+Warp destination at (33,42): … arriving at (37,38); (same list)</div></div>
+</div>
+<p class="muted">On ROUTE104 the two buildings both read ROUTE 104 (their popup section is the route's), so they share a name and get arrival notes too. "this map at (10,30)" is a tile of the map you are on; the same readout's exit-reachability-v1 note already says (10,30) cannot be walked to from (11,39).</p>
+
+<h2>Where the names and reach come from</h2>
+<figure>
+<svg viewBox="0 0 860 250" width="100%" style="min-width:680px" role="img" aria-label="Data path from ROM tables to readout lines">
+<rect x="10" y="20" width="200" height="56" rx="6" fill="var(--fill)" stroke="var(--line)"/><text x="20" y="42">MapHeader +0x14</text><text x="20" y="62" class="small">regionMapSectionId (u8)</text>
+<rect x="10" y="100" width="200" height="56" rx="6" fill="var(--fill)" stroke="var(--line)"/><text x="20" y="122">gRegionMapEntries</text><text x="20" y="142" class="small">0x085A147C, 8 bytes each, name ptr +4</text>
+<rect x="10" y="180" width="200" height="56" rx="6" fill="var(--fill)" stroke="var(--line)"/><text x="20" y="202">destination MapLayout</text><text x="20" y="222" class="small">blocks, tilesets, warps, connections</text>
+<rect x="290" y="60" width="240" height="56" rx="6" fill="var(--panel)" stroke="var(--keep)" stroke-width="2"/><text x="300" y="82">section_name()</text><text x="300" y="102" class="small">displayed place name wins</text>
+<rect x="290" y="160" width="240" height="56" rx="6" fill="var(--panel)" stroke="var(--keep)" stroke-width="2"/><text x="300" y="182">arrival_text()</text><text x="300" y="202" class="small">surf_gate.classify from warp[warpId]</text>
+<rect x="610" y="100" width="240" height="70" rx="6" fill="var(--fill)" stroke="var(--line)"/><text x="620" y="122">readout (server)</text><text x="620" y="142" class="small">Warps line, interaction candidates,</text><text x="620" y="158" class="small">Warp destination lines</text>
+<line x1="210" y1="48" x2="290" y2="84" stroke="var(--muted)"/><line x1="210" y1="128" x2="290" y2="92" stroke="var(--muted)"/>
+<line x1="210" y1="208" x2="290" y2="188" stroke="var(--muted)"/><line x1="530" y1="88" x2="610" y2="128" stroke="var(--muted)"/><line x1="530" y1="188" x2="610" y2="148" stroke="var(--muted)"/>
+</svg>
+<figcaption>Green boxes are the new code (<code>env/pokebench_env/exit_labels.py</code>). Everything is read from the ROM; nothing comes from a walkthrough.</figcaption>
+</figure>
+<ul>
+<li><b>Name.</b> <code>ShowMapNamePopUpWindow</code> (src/map_name_popup.c, pret/pokeemerald 731ad5b) prints <code>GetMapName(gMapHeader.regionMapSectionId)</code>, which copies <code>gRegionMapEntries[mapsec].name</code> (src/region_map.c). The server reads the destination's header byte at +0x14 and that table. A building already named on its sign (displayed-place-names-v1: the Littleroot houses and the lab) keeps that name. A warp to the map you are on (the PETALBURG CITY GYM's room doors) reads <code>this map</code>. A map whose popup prints blanks (<code>MAPSEC_DYNAMIC</code>: the cable club's UNION ROOM and TRADE CENTER; <code>MAPSEC_NONE</code>) reads <code>a map with no location name</code>, with its ID. The secret base section (needs the player's base name) is treated the same. Dynamic warps (127/127) and unset dynamic warps keep their existing rules.</li>
+<li><b>Same name.</b> Exits of the current map are counted by name: adjacent warp tiles to one map are one doorway, one exit; map connections count by their destination's name. Unnamed maps never count as sharing a name.</li>
+<li><b>Landing tile.</b> The destination map's warp event number <code>warpId</code> (WarpEvent <code>{s16 x, y; u8 elevation, warpId, mapNum, mapGroup}</code>). An out-of-range <code>warpId</code> or an unreadable layout gives the name only.</li>
+<li><b>Reach.</b> The destination's ROM layout (block bits: metatile 0–9, collision 10–11, elevation 12–15; behavior = metatile attribute &amp; 0xFF, 512 metatiles in the primary tileset) is flooded from the landing tile with exit-reachability-v1's rules: no collision, no surfable water, a ledge hops one way, elevation and people ignored. A warp counts when it or a neighbour is reached. A map connection counts when a reached edge tile can be crossed into the connected map's ROM layout under the same crossing rule connection-edge-tiles-v1 uses on the live map (<code>topology.crossable</code>, now shared). Run-time metatile changes (<code>setmetatile</code>) are not seen: this is the map as it loads.</li>
+</ul>
+
+<h2>Audit: Littleroot to the Dewford Gym</h2>
+<p>Every map in story order (Littleroot, Route 101, Oldale, Route 103, Route 102, Petalburg, Route 104, Petalburg Woods, Rustboro and its buildings, Route 116, Rusturf Tunnel, Route 104's beach and Mr. Briney's house, Routes 105 and 106, Dewford and its gym) with every building interior: 59 maps, 134 exits, read from the ROM with the switch on (player RED, male). <b>No exit prints a bare map ID.</b> The only exits that had no popup name were the eight cable club doors on the four POKéMON CENTER 2F maps (UNION ROOM 25/60, TRADE CENTER 25/25: <code>MAPSEC_DYNAMIC</code>), now <code>a map with no location name (map 25/60)</code>.</p>
+<p>Names the player may not have seen yet still print, because the popup name is what the game shows on arrival: TERRA CAVE (two Route 116 warps whose tiles are not cave mouths in a normal game), ALTERING CAVE, ISLAND CAVE, GRANITE CAVE and VERDANTURF TOWN.</p>
+<details><summary>Full audit table (134 exits)</summary>
+<div class="scroll"><table>
+<tr><th>Map (id)</th><th>Exit tiles</th><th>Destination (id, map table name)</th><th>Printed name</th><th>Arrival reach</th></tr>
+<tr><td>LITTLEROOT TOWN <span class=muted>0/9</span></td><td>(14,8)</td><td>1/2 LITTLEROOT TOWN MAYS HOUSE 1F</td><td>PROF. BIRCH&#x27;S HOUSE 1F</td><td>no</td></tr>
+<tr><td>LITTLEROOT TOWN <span class=muted>0/9</span></td><td>(5,8)</td><td>1/0 LITTLEROOT TOWN BRENDANS HOUSE 1F</td><td>RED&#x27;s HOUSE 1F</td><td>no</td></tr>
+<tr><td>LITTLEROOT TOWN <span class=muted>0/9</span></td><td>(7,16)</td><td>1/4 LITTLEROOT TOWN PROFESSOR BIRCHS LAB</td><td>PROF. BIRCH&#x27;S POKéMON LAB</td><td>no</td></tr>
+<tr><td>LITTLEROOT TOWN BRENDANS HOUSE 1F <span class=muted>1/0</span></td><td>(9,8) or (8,8)</td><td>0/9 LITTLEROOT TOWN</td><td>LITTLEROOT TOWN</td><td>no</td></tr>
+<tr><td>LITTLEROOT TOWN BRENDANS HOUSE 1F <span class=muted>1/0</span></td><td>(8,2)</td><td>1/1 LITTLEROOT TOWN BRENDANS HOUSE 2F</td><td>RED&#x27;s HOUSE 2F</td><td>no</td></tr>
+<tr><td>LITTLEROOT TOWN BRENDANS HOUSE 2F <span class=muted>1/1</span></td><td>(7,1)</td><td>1/0 LITTLEROOT TOWN BRENDANS HOUSE 1F</td><td>RED&#x27;s HOUSE 1F</td><td>no</td></tr>
+<tr><td>LITTLEROOT TOWN MAYS HOUSE 1F <span class=muted>1/2</span></td><td>(1,8) or (2,8)</td><td>0/9 LITTLEROOT TOWN</td><td>LITTLEROOT TOWN</td><td>no</td></tr>
+<tr><td>LITTLEROOT TOWN MAYS HOUSE 1F <span class=muted>1/2</span></td><td>(2,2)</td><td>1/3 LITTLEROOT TOWN MAYS HOUSE 2F</td><td>PROF. BIRCH&#x27;S HOUSE 2F</td><td>no</td></tr>
+<tr><td>LITTLEROOT TOWN MAYS HOUSE 2F <span class=muted>1/3</span></td><td>(1,1)</td><td>1/2 LITTLEROOT TOWN MAYS HOUSE 1F</td><td>PROF. BIRCH&#x27;S HOUSE 1F</td><td>no</td></tr>
+<tr><td>LITTLEROOT TOWN PROFESSOR BIRCHS LAB <span class=muted>1/4</span></td><td>(6,12) or (7,12)</td><td>0/9 LITTLEROOT TOWN</td><td>LITTLEROOT TOWN</td><td>no</td></tr>
+<tr><td>OLDALE TOWN <span class=muted>0/10</span></td><td>(5,7)</td><td>2/0 OLDALE TOWN HOUSE1</td><td>OLDALE TOWN</td><td>yes</td></tr>
+<tr><td>OLDALE TOWN <span class=muted>0/10</span></td><td>(15,16)</td><td>2/1 OLDALE TOWN HOUSE2</td><td>OLDALE TOWN</td><td>yes</td></tr>
+<tr><td>OLDALE TOWN <span class=muted>0/10</span></td><td>(6,16)</td><td>2/2 OLDALE TOWN POKEMON CENTER 1F</td><td>OLDALE TOWN</td><td>yes</td></tr>
+<tr><td>OLDALE TOWN <span class=muted>0/10</span></td><td>(14,6)</td><td>2/4 OLDALE TOWN MART</td><td>OLDALE TOWN</td><td>yes</td></tr>
+<tr><td>OLDALE TOWN HOUSE1 <span class=muted>2/0</span></td><td>(3,8) or (4,8)</td><td>0/10 OLDALE TOWN</td><td>OLDALE TOWN</td><td>no</td></tr>
+<tr><td>OLDALE TOWN HOUSE2 <span class=muted>2/1</span></td><td>(3,7) or (4,7)</td><td>0/10 OLDALE TOWN</td><td>OLDALE TOWN</td><td>no</td></tr>
+<tr><td>OLDALE TOWN POKEMON CENTER 1F <span class=muted>2/2</span></td><td>(7,8) or (6,8)</td><td>0/10 OLDALE TOWN</td><td>OLDALE TOWN</td><td>yes</td></tr>
+<tr><td>OLDALE TOWN POKEMON CENTER 1F <span class=muted>2/2</span></td><td>(1,6)</td><td>2/3 OLDALE TOWN POKEMON CENTER 2F</td><td>OLDALE TOWN</td><td>yes</td></tr>
+<tr><td>OLDALE TOWN POKEMON CENTER 2F <span class=muted>2/3</span></td><td>(1,6)</td><td>2/2 OLDALE TOWN POKEMON CENTER 1F</td><td>OLDALE TOWN</td><td>no</td></tr>
+<tr><td>OLDALE TOWN POKEMON CENTER 2F <span class=muted>2/3</span></td><td>(5,1)</td><td>25/60 UNION ROOM</td><td>a map with no location name</td><td>no</td></tr>
+<tr><td>OLDALE TOWN POKEMON CENTER 2F <span class=muted>2/3</span></td><td>(9,1)</td><td>25/25 TRADE CENTER</td><td>a map with no location name</td><td>no</td></tr>
+<tr><td>OLDALE TOWN MART <span class=muted>2/4</span></td><td>(3,7) or (4,7)</td><td>0/10 OLDALE TOWN</td><td>OLDALE TOWN</td><td>no</td></tr>
+<tr><td>ROUTE103 <span class=muted>0/18</span></td><td>(45,6)</td><td>24/106 ALTERING CAVE</td><td>ALTERING CAVE</td><td>no</td></tr>
+<tr><td>PETALBURG CITY <span class=muted>0/0</span></td><td>(10,19)</td><td>8/2 PETALBURG CITY HOUSE1</td><td>PETALBURG CITY</td><td>yes</td></tr>
+<tr><td>PETALBURG CITY <span class=muted>0/0</span></td><td>(7,5)</td><td>8/0 PETALBURG CITY WALLYS HOUSE</td><td>PETALBURG CITY</td><td>yes</td></tr>
+<tr><td>PETALBURG CITY <span class=muted>0/0</span></td><td>(15,8)</td><td>8/1 PETALBURG CITY GYM</td><td>PETALBURG CITY</td><td>yes</td></tr>
+<tr><td>PETALBURG CITY <span class=muted>0/0</span></td><td>(20,16)</td><td>8/4 PETALBURG CITY POKEMON CENTER 1F</td><td>PETALBURG CITY</td><td>yes</td></tr>
+<tr><td>PETALBURG CITY <span class=muted>0/0</span></td><td>(20,24)</td><td>8/3 PETALBURG CITY HOUSE2</td><td>PETALBURG CITY</td><td>yes</td></tr>
+<tr><td>PETALBURG CITY <span class=muted>0/0</span></td><td>(25,12)</td><td>8/6 PETALBURG CITY MART</td><td>PETALBURG CITY</td><td>yes</td></tr>
+<tr><td>PETALBURG CITY WALLYS HOUSE <span class=muted>8/0</span></td><td>(3,7) or (4,7)</td><td>0/0 PETALBURG CITY</td><td>PETALBURG CITY</td><td>no</td></tr>
+<tr><td>PETALBURG CITY GYM <span class=muted>8/1</span></td><td>(4,111) or (5,111)</td><td>0/0 PETALBURG CITY</td><td>PETALBURG CITY</td><td>no</td></tr>
+<tr><td>PETALBURG CITY GYM <span class=muted>8/1</span></td><td>(1,105)</td><td>8/1 PETALBURG CITY GYM</td><td>this map</td><td>yes</td></tr>
+<tr><td>PETALBURG CITY GYM <span class=muted>8/1</span></td><td>(7,85) or (6,85)</td><td>8/1 PETALBURG CITY GYM</td><td>this map</td><td>yes</td></tr>
+<tr><td>PETALBURG CITY GYM <span class=muted>8/1</span></td><td>(7,105)</td><td>8/1 PETALBURG CITY GYM</td><td>this map</td><td>yes</td></tr>
+<tr><td>PETALBURG CITY GYM <span class=muted>8/1</span></td><td>(1,98) or (2,98)</td><td>8/1 PETALBURG CITY GYM</td><td>this map</td><td>yes</td></tr>
+<tr><td>PETALBURG CITY GYM <span class=muted>8/1</span></td><td>(1,79)</td><td>8/1 PETALBURG CITY GYM</td><td>this map</td><td>yes</td></tr>
+<tr><td>PETALBURG CITY GYM <span class=muted>8/1</span></td><td>(7,79)</td><td>8/1 PETALBURG CITY GYM</td><td>this map</td><td>yes</td></tr>
+<tr><td>PETALBURG CITY GYM <span class=muted>8/1</span></td><td>(7,46) or (6,46)</td><td>8/1 PETALBURG CITY GYM</td><td>this map</td><td>yes</td></tr>
+<tr><td>PETALBURG CITY GYM <span class=muted>8/1</span></td><td>(1,59) or (2,59)</td><td>8/1 PETALBURG CITY GYM</td><td>this map</td><td>yes</td></tr>
+<tr><td>PETALBURG CITY GYM <span class=muted>8/1</span></td><td>(1,92)</td><td>8/1 PETALBURG CITY GYM</td><td>this map</td><td>yes</td></tr>
+<tr><td>PETALBURG CITY GYM <span class=muted>8/1</span></td><td>(7,92)</td><td>8/1 PETALBURG CITY GYM</td><td>this map</td><td>yes</td></tr>
+<tr><td>PETALBURG CITY GYM <span class=muted>8/1</span></td><td>(7,59) or (6,59)</td><td>8/1 PETALBURG CITY GYM</td><td>this map</td><td>yes</td></tr>
+<tr><td>PETALBURG CITY GYM <span class=muted>8/1</span></td><td>(1,72) or (2,72)</td><td>8/1 PETALBURG CITY GYM</td><td>this map</td><td>yes</td></tr>
+<tr><td>PETALBURG CITY GYM <span class=muted>8/1</span></td><td>(7,40)</td><td>8/1 PETALBURG CITY GYM</td><td>this map</td><td>yes</td></tr>
+<tr><td>PETALBURG CITY GYM <span class=muted>8/1</span></td><td>(1,53)</td><td>8/1 PETALBURG CITY GYM</td><td>this map</td><td>yes</td></tr>
+<tr><td>PETALBURG CITY GYM <span class=muted>8/1</span></td><td>(7,53)</td><td>8/1 PETALBURG CITY GYM</td><td>this map</td><td>yes</td></tr>
+<tr><td>PETALBURG CITY GYM <span class=muted>8/1</span></td><td>(1,66)</td><td>8/1 PETALBURG CITY GYM</td><td>this map</td><td>yes</td></tr>
+<tr><td>PETALBURG CITY GYM <span class=muted>8/1</span></td><td>(1,20) or (2,20)</td><td>8/1 PETALBURG CITY GYM</td><td>this map</td><td>yes</td></tr>
+<tr><td>PETALBURG CITY GYM <span class=muted>8/1</span></td><td>(7,20) or (6,20)</td><td>8/1 PETALBURG CITY GYM</td><td>this map</td><td>yes</td></tr>
+<tr><td>PETALBURG CITY GYM <span class=muted>8/1</span></td><td>(1,33) or (2,33)</td><td>8/1 PETALBURG CITY GYM</td><td>this map</td><td>yes</td></tr>
+<tr><td>PETALBURG CITY GYM <span class=muted>8/1</span></td><td>(7,33) or (6,33)</td><td>8/1 PETALBURG CITY GYM</td><td>this map</td><td>yes</td></tr>
+<tr><td>PETALBURG CITY GYM <span class=muted>8/1</span></td><td>(7,14)</td><td>8/1 PETALBURG CITY GYM</td><td>this map</td><td>yes</td></tr>
+<tr><td>PETALBURG CITY GYM <span class=muted>8/1</span></td><td>(1,27)</td><td>8/1 PETALBURG CITY GYM</td><td>this map</td><td>yes</td></tr>
+<tr><td>PETALBURG CITY GYM <span class=muted>8/1</span></td><td>(1,7) or (2,7)</td><td>8/1 PETALBURG CITY GYM</td><td>this map</td><td>yes</td></tr>
+<tr><td>PETALBURG CITY GYM <span class=muted>8/1</span></td><td>(7,7) or (6,7)</td><td>8/1 PETALBURG CITY GYM</td><td>this map</td><td>yes</td></tr>
+<tr><td>PETALBURG CITY HOUSE1 <span class=muted>8/2</span></td><td>(3,8) or (4,8)</td><td>0/0 PETALBURG CITY</td><td>PETALBURG CITY</td><td>no</td></tr>
+<tr><td>PETALBURG CITY HOUSE2 <span class=muted>8/3</span></td><td>(3,7) or (4,7)</td><td>0/0 PETALBURG CITY</td><td>PETALBURG CITY</td><td>no</td></tr>
+<tr><td>PETALBURG CITY POKEMON CENTER 1F <span class=muted>8/4</span></td><td>(7,8) or (6,8)</td><td>0/0 PETALBURG CITY</td><td>PETALBURG CITY</td><td>yes</td></tr>
+<tr><td>PETALBURG CITY POKEMON CENTER 1F <span class=muted>8/4</span></td><td>(1,6)</td><td>8/5 PETALBURG CITY POKEMON CENTER 2F</td><td>PETALBURG CITY</td><td>yes</td></tr>
+<tr><td>PETALBURG CITY POKEMON CENTER 2F <span class=muted>8/5</span></td><td>(1,6)</td><td>8/4 PETALBURG CITY POKEMON CENTER 1F</td><td>PETALBURG CITY</td><td>no</td></tr>
+<tr><td>PETALBURG CITY POKEMON CENTER 2F <span class=muted>8/5</span></td><td>(5,1)</td><td>25/60 UNION ROOM</td><td>a map with no location name</td><td>no</td></tr>
+<tr><td>PETALBURG CITY POKEMON CENTER 2F <span class=muted>8/5</span></td><td>(9,1)</td><td>25/25 TRADE CENTER</td><td>a map with no location name</td><td>no</td></tr>
+<tr><td>PETALBURG CITY MART <span class=muted>8/6</span></td><td>(3,7) or (4,7)</td><td>0/0 PETALBURG CITY</td><td>PETALBURG CITY</td><td>no</td></tr>
+<tr><td>ROUTE104 <span class=muted>0/19</span></td><td>(17,50)</td><td>17/0 ROUTE104 MR BRINEYS HOUSE</td><td>ROUTE 104</td><td>yes</td></tr>
+<tr><td>ROUTE104 <span class=muted>0/19</span></td><td>(5,18)</td><td>17/1 ROUTE104 PRETTY PETAL FLOWER SHOP</td><td>ROUTE 104</td><td>yes</td></tr>
+<tr><td>ROUTE104 <span class=muted>0/19</span></td><td>(10,30) or (11,30)</td><td>24/11 PETALBURG WOODS</td><td>PETALBURG WOODS</td><td>yes</td></tr>
+<tr><td>ROUTE104 <span class=muted>0/19</span></td><td>(10,38) or (11,38)</td><td>24/11 PETALBURG WOODS</td><td>PETALBURG WOODS</td><td>yes</td></tr>
+<tr><td>ROUTE104 <span class=muted>0/19</span></td><td>(32,42) or (33,42)</td><td>24/11 PETALBURG WOODS</td><td>PETALBURG WOODS</td><td>yes</td></tr>
+<tr><td>ROUTE104 MR BRINEYS HOUSE <span class=muted>17/0</span></td><td>(5,8) or (6,8)</td><td>0/19 ROUTE104</td><td>ROUTE 104</td><td>no</td></tr>
+<tr><td>ROUTE104 PRETTY PETAL FLOWER SHOP <span class=muted>17/1</span></td><td>(2,8) or (3,8)</td><td>0/19 ROUTE104</td><td>ROUTE 104</td><td>no</td></tr>
+<tr><td>PETALBURG WOODS <span class=muted>24/11</span></td><td>(14,5) or (15,5)</td><td>0/19 ROUTE104</td><td>ROUTE 104</td><td>yes</td></tr>
+<tr><td>PETALBURG WOODS <span class=muted>24/11</span></td><td>(16,38) or (17,38)</td><td>0/19 ROUTE104</td><td>ROUTE 104</td><td>yes</td></tr>
+<tr><td>PETALBURG WOODS <span class=muted>24/11</span></td><td>(36,38) or (37,38)</td><td>0/19 ROUTE104</td><td>ROUTE 104</td><td>yes</td></tr>
+<tr><td>RUSTBORO CITY <span class=muted>0/3</span></td><td>(27,19)</td><td>11/3 RUSTBORO CITY GYM</td><td>RUSTBORO CITY</td><td>yes</td></tr>
+<tr><td>RUSTBORO CITY <span class=muted>0/3</span></td><td>(13,30)</td><td>11/8 RUSTBORO CITY FLAT1 1F</td><td>RUSTBORO CITY</td><td>yes</td></tr>
+<tr><td>RUSTBORO CITY <span class=muted>0/3</span></td><td>(16,45)</td><td>11/7 RUSTBORO CITY MART</td><td>RUSTBORO CITY</td><td>yes</td></tr>
+<tr><td>RUSTBORO CITY <span class=muted>0/3</span></td><td>(16,38)</td><td>11/5 RUSTBORO CITY POKEMON CENTER 1F</td><td>RUSTBORO CITY</td><td>yes</td></tr>
+<tr><td>RUSTBORO CITY <span class=muted>0/3</span></td><td>(27,34)</td><td>11/4 RUSTBORO CITY POKEMON SCHOOL</td><td>RUSTBORO CITY</td><td>yes</td></tr>
+<tr><td>RUSTBORO CITY <span class=muted>0/3</span></td><td>(11,15) or (12,15)</td><td>11/0 RUSTBORO CITY DEVON CORP 1F</td><td>RUSTBORO CITY</td><td>yes</td></tr>
+<tr><td>RUSTBORO CITY <span class=muted>0/3</span></td><td>(33,19)</td><td>11/10 RUSTBORO CITY HOUSE1</td><td>RUSTBORO CITY</td><td>yes</td></tr>
+<tr><td>RUSTBORO CITY <span class=muted>0/3</span></td><td>(9,38)</td><td>11/11 RUSTBORO CITY CUTTERS HOUSE</td><td>RUSTBORO CITY</td><td>yes</td></tr>
+<tr><td>RUSTBORO CITY <span class=muted>0/3</span></td><td>(30,28)</td><td>11/12 RUSTBORO CITY HOUSE2</td><td>RUSTBORO CITY</td><td>yes</td></tr>
+<tr><td>RUSTBORO CITY <span class=muted>0/3</span></td><td>(5,51)</td><td>11/13 RUSTBORO CITY FLAT2 1F</td><td>RUSTBORO CITY</td><td>yes</td></tr>
+<tr><td>RUSTBORO CITY <span class=muted>0/3</span></td><td>(26,46)</td><td>11/16 RUSTBORO CITY HOUSE3</td><td>RUSTBORO CITY</td><td>yes</td></tr>
+<tr><td>RUSTBORO CITY DEVON CORP 1F <span class=muted>11/0</span></td><td>(5,8) or (6,8)</td><td>0/3 RUSTBORO CITY</td><td>RUSTBORO CITY</td><td>yes</td></tr>
+<tr><td>RUSTBORO CITY DEVON CORP 1F <span class=muted>11/0</span></td><td>(14,1)</td><td>11/1 RUSTBORO CITY DEVON CORP 2F</td><td>RUSTBORO CITY</td><td>yes</td></tr>
+<tr><td>RUSTBORO CITY DEVON CORP 2F <span class=muted>11/1</span></td><td>(14,1)</td><td>11/0 RUSTBORO CITY DEVON CORP 1F</td><td>RUSTBORO CITY</td><td>yes</td></tr>
+<tr><td>RUSTBORO CITY DEVON CORP 2F <span class=muted>11/1</span></td><td>(2,1)</td><td>11/2 RUSTBORO CITY DEVON CORP 3F</td><td>RUSTBORO CITY</td><td>yes</td></tr>
+<tr><td>RUSTBORO CITY DEVON CORP 3F <span class=muted>11/2</span></td><td>(2,1)</td><td>11/1 RUSTBORO CITY DEVON CORP 2F</td><td>RUSTBORO CITY</td><td>no</td></tr>
+<tr><td>RUSTBORO CITY GYM <span class=muted>11/3</span></td><td>(5,19) or (6,19)</td><td>0/3 RUSTBORO CITY</td><td>RUSTBORO CITY</td><td>no</td></tr>
+<tr><td>RUSTBORO CITY POKEMON SCHOOL <span class=muted>11/4</span></td><td>(5,10) or (6,10)</td><td>0/3 RUSTBORO CITY</td><td>RUSTBORO CITY</td><td>no</td></tr>
+<tr><td>RUSTBORO CITY POKEMON CENTER 1F <span class=muted>11/5</span></td><td>(7,8) or (6,8)</td><td>0/3 RUSTBORO CITY</td><td>RUSTBORO CITY</td><td>yes</td></tr>
+<tr><td>RUSTBORO CITY POKEMON CENTER 1F <span class=muted>11/5</span></td><td>(1,6)</td><td>11/6 RUSTBORO CITY POKEMON CENTER 2F</td><td>RUSTBORO CITY</td><td>yes</td></tr>
+<tr><td>RUSTBORO CITY POKEMON CENTER 2F <span class=muted>11/6</span></td><td>(1,6)</td><td>11/5 RUSTBORO CITY POKEMON CENTER 1F</td><td>RUSTBORO CITY</td><td>no</td></tr>
+<tr><td>RUSTBORO CITY POKEMON CENTER 2F <span class=muted>11/6</span></td><td>(5,1)</td><td>25/60 UNION ROOM</td><td>a map with no location name</td><td>no</td></tr>
+<tr><td>RUSTBORO CITY POKEMON CENTER 2F <span class=muted>11/6</span></td><td>(9,1)</td><td>25/25 TRADE CENTER</td><td>a map with no location name</td><td>no</td></tr>
+<tr><td>RUSTBORO CITY MART <span class=muted>11/7</span></td><td>(3,7) or (4,7)</td><td>0/3 RUSTBORO CITY</td><td>RUSTBORO CITY</td><td>no</td></tr>
+<tr><td>RUSTBORO CITY FLAT1 1F <span class=muted>11/8</span></td><td>(6,7) or (7,7)</td><td>0/3 RUSTBORO CITY</td><td>RUSTBORO CITY</td><td>yes</td></tr>
+<tr><td>RUSTBORO CITY FLAT1 1F <span class=muted>11/8</span></td><td>(2,1)</td><td>11/9 RUSTBORO CITY FLAT1 2F</td><td>RUSTBORO CITY</td><td>yes</td></tr>
+<tr><td>RUSTBORO CITY FLAT1 2F <span class=muted>11/9</span></td><td>(2,1)</td><td>11/8 RUSTBORO CITY FLAT1 1F</td><td>RUSTBORO CITY</td><td>no</td></tr>
+<tr><td>RUSTBORO CITY HOUSE1 <span class=muted>11/10</span></td><td>(5,7) or (6,7)</td><td>0/3 RUSTBORO CITY</td><td>RUSTBORO CITY</td><td>no</td></tr>
+<tr><td>RUSTBORO CITY CUTTERS HOUSE <span class=muted>11/11</span></td><td>(5,8) or (6,8)</td><td>0/3 RUSTBORO CITY</td><td>RUSTBORO CITY</td><td>no</td></tr>
+<tr><td>RUSTBORO CITY HOUSE2 <span class=muted>11/12</span></td><td>(5,8) or (6,8)</td><td>0/3 RUSTBORO CITY</td><td>RUSTBORO CITY</td><td>no</td></tr>
+<tr><td>RUSTBORO CITY FLAT2 1F <span class=muted>11/13</span></td><td>(2,8) or (3,8)</td><td>0/3 RUSTBORO CITY</td><td>RUSTBORO CITY</td><td>yes</td></tr>
+<tr><td>RUSTBORO CITY FLAT2 1F <span class=muted>11/13</span></td><td>(3,1)</td><td>11/14 RUSTBORO CITY FLAT2 2F</td><td>RUSTBORO CITY</td><td>yes</td></tr>
+<tr><td>RUSTBORO CITY FLAT2 2F <span class=muted>11/14</span></td><td>(3,1)</td><td>11/13 RUSTBORO CITY FLAT2 1F</td><td>RUSTBORO CITY</td><td>yes</td></tr>
+<tr><td>RUSTBORO CITY FLAT2 2F <span class=muted>11/14</span></td><td>(1,1)</td><td>11/15 RUSTBORO CITY FLAT2 3F</td><td>RUSTBORO CITY</td><td>yes</td></tr>
+<tr><td>RUSTBORO CITY FLAT2 3F <span class=muted>11/15</span></td><td>(1,1)</td><td>11/14 RUSTBORO CITY FLAT2 2F</td><td>RUSTBORO CITY</td><td>no</td></tr>
+<tr><td>RUSTBORO CITY HOUSE3 <span class=muted>11/16</span></td><td>(5,8) or (6,8)</td><td>0/3 RUSTBORO CITY</td><td>RUSTBORO CITY</td><td>no</td></tr>
+<tr><td>ROUTE116 <span class=muted>0/31</span></td><td>(47,8)</td><td>24/4 RUSTURF TUNNEL</td><td>RUSTURF TUNNEL</td><td>yes</td></tr>
+<tr><td>ROUTE116 <span class=muted>0/31</span></td><td>(38,8)</td><td>21/0 ROUTE116 TUNNELERS REST HOUSE</td><td>ROUTE 116</td><td>no</td></tr>
+<tr><td>ROUTE116 <span class=muted>0/31</span></td><td>(65,10)</td><td>24/4 RUSTURF TUNNEL</td><td>RUSTURF TUNNEL</td><td>yes</td></tr>
+<tr><td>ROUTE116 <span class=muted>0/31</span></td><td>(59,13)</td><td>24/104 TERRA CAVE ENTRANCE</td><td>TERRA CAVE</td><td>yes</td></tr>
+<tr><td>ROUTE116 <span class=muted>0/31</span></td><td>(79,6)</td><td>24/104 TERRA CAVE ENTRANCE</td><td>TERRA CAVE</td><td>yes</td></tr>
+<tr><td>ROUTE116 TUNNELERS REST HOUSE <span class=muted>21/0</span></td><td>(4,8) or (5,8)</td><td>0/31 ROUTE116</td><td>ROUTE 116</td><td>no</td></tr>
+<tr><td>RUSTURF TUNNEL <span class=muted>24/4</span></td><td>(4,10)</td><td>0/31 ROUTE116</td><td>ROUTE 116</td><td>yes</td></tr>
+<tr><td>RUSTURF TUNNEL <span class=muted>24/4</span></td><td>(29,16)</td><td>0/14 VERDANTURF TOWN</td><td>VERDANTURF TOWN</td><td>no</td></tr>
+<tr><td>RUSTURF TUNNEL <span class=muted>24/4</span></td><td>(18,20)</td><td>0/31 ROUTE116</td><td>ROUTE 116</td><td>yes</td></tr>
+<tr><td>ROUTE105 <span class=muted>0/20</span></td><td>(9,20)</td><td>24/67 ISLAND CAVE</td><td>ISLAND CAVE</td><td>no</td></tr>
+<tr><td>ROUTE106 <span class=muted>0/21</span></td><td>(48,16)</td><td>24/7 GRANITE CAVE 1F</td><td>GRANITE CAVE</td><td>no</td></tr>
+<tr><td>DEWFORD TOWN <span class=muted>0/11</span></td><td>(3,3)</td><td>3/4 DEWFORD TOWN HALL</td><td>DEWFORD TOWN</td><td>yes</td></tr>
+<tr><td>DEWFORD TOWN <span class=muted>0/11</span></td><td>(2,10)</td><td>3/1 DEWFORD TOWN POKEMON CENTER 1F</td><td>DEWFORD TOWN</td><td>yes</td></tr>
+<tr><td>DEWFORD TOWN <span class=muted>0/11</span></td><td>(8,17)</td><td>3/3 DEWFORD TOWN GYM</td><td>DEWFORD TOWN</td><td>yes</td></tr>
+<tr><td>DEWFORD TOWN <span class=muted>0/11</span></td><td>(17,14)</td><td>3/0 DEWFORD TOWN HOUSE1</td><td>DEWFORD TOWN</td><td>yes</td></tr>
+<tr><td>DEWFORD TOWN <span class=muted>0/11</span></td><td>(8,8)</td><td>3/5 DEWFORD TOWN HOUSE2</td><td>DEWFORD TOWN</td><td>yes</td></tr>
+<tr><td>DEWFORD TOWN HOUSE1 <span class=muted>3/0</span></td><td>(3,7) or (4,7)</td><td>0/11 DEWFORD TOWN</td><td>DEWFORD TOWN</td><td>no</td></tr>
+<tr><td>DEWFORD TOWN POKEMON CENTER 1F <span class=muted>3/1</span></td><td>(7,8) or (6,8)</td><td>0/11 DEWFORD TOWN</td><td>DEWFORD TOWN</td><td>yes</td></tr>
+<tr><td>DEWFORD TOWN POKEMON CENTER 1F <span class=muted>3/1</span></td><td>(1,6)</td><td>3/2 DEWFORD TOWN POKEMON CENTER 2F</td><td>DEWFORD TOWN</td><td>yes</td></tr>
+<tr><td>DEWFORD TOWN POKEMON CENTER 2F <span class=muted>3/2</span></td><td>(1,6)</td><td>3/1 DEWFORD TOWN POKEMON CENTER 1F</td><td>DEWFORD TOWN</td><td>no</td></tr>
+<tr><td>DEWFORD TOWN POKEMON CENTER 2F <span class=muted>3/2</span></td><td>(5,1)</td><td>25/60 UNION ROOM</td><td>a map with no location name</td><td>no</td></tr>
+<tr><td>DEWFORD TOWN POKEMON CENTER 2F <span class=muted>3/2</span></td><td>(9,1)</td><td>25/25 TRADE CENTER</td><td>a map with no location name</td><td>no</td></tr>
+<tr><td>DEWFORD TOWN GYM <span class=muted>3/3</span></td><td>(5,27) or (6,27)</td><td>0/11 DEWFORD TOWN</td><td>DEWFORD TOWN</td><td>no</td></tr>
+<tr><td>DEWFORD TOWN HALL <span class=muted>3/4</span></td><td>(5,8) or (6,8)</td><td>0/11 DEWFORD TOWN</td><td>DEWFORD TOWN</td><td>no</td></tr>
+<tr><td>DEWFORD TOWN HOUSE2 <span class=muted>3/5</span></td><td>(3,8) or (4,8)</td><td>0/11 DEWFORD TOWN</td><td>DEWFORD TOWN</td><td>no</td></tr>
+</table></div>
+</details>
+
+<h2>OFF</h2>
+<p>Switch off, the readout and the typed state are byte for byte today's: <code>test_off_is_todays_readout_byte_for_byte</code> compares both b300 seqs against readouts rendered before the switch existed, and the state JSON gains no field either way.</p>
+
+<h2>Status</h2>
+<ul>
+<li>Branch <code>claude/exit-labels-v2</code>. Tests: <code>env/tests/env/test_exit_labels.py</code> (b300 raw-RAM fixtures 7745 and 7751 plus a synthetic ROM).</li>
+<li>Not measured. A pending experiment entry is registered; only the operator approves runs.</li>
+</ul>
+</main>
+</body>
+</html>

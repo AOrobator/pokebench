@@ -1,3 +1,4 @@
+import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
 import {describe,expect,it} from "vitest";
 import {readFileSync} from "node:fs";
 import type {AgentTool,AgentToolResult} from "@mariozechner/pi-agent-core";
@@ -6,7 +7,7 @@ import {PlacesBodySchema,STORY_HEADER,StoryDestinations,headsOf,placePhrases,wit
 import {playGameTools} from "./play-wiring.js";
 import {checkEvent,type RunEvent} from "./events.js";
 import {StateWatcher,parseGameState,type GameStateSnapshot} from "./game-state.js";
-import {ALL_ON,dependencyProblems,featureInfo,playHarnessFeatures,SWITCHABLE_FEATURES,type FeatureSet} from "./features.js";
+import {dependencyProblems,featureInfo,playHarnessFeatures,SWITCHABLE_FEATURES,type FeatureSet} from "./features.js";
 import {parsePlayPreset,presetFeatures} from "./play-preset.js";
 import {isCheckedPress,type CheckedPressTool} from "./game-tools.js";
 import {Value} from "typebox/value";
@@ -29,7 +30,7 @@ const stateAt=(events:readonly RunEvent[],seq:number)=>{const e=events.find(x=>x
 const resultAt=(events:readonly RunEvent[],turn:number)=>{const e=events.find((x):x is ToolResultEvent=>x.type==="tool_result"&&x.turn===turn);if(e===undefined)throw Error(`no result ${String(turn)}`);return e;};
 function replay(story:StoryDestinations,events:readonly RunEvent[],until:number):void {for(const e of events){if(e.seq>until)break;story.observe(e);}}
 const OFF:FeatureSet=Object.fromEntries(SWITCHABLE_FEATURES.map(id=>[id,false])) as Record<(typeof SWITCHABLE_FEATURES)[number],boolean>;
-const ON:FeatureSet={...ALL_ON,"state-only-decisions-v1":false,"story-destinations-v1":true};
+const ON:FeatureSet={...ALL_ON,"scripted-place-guidance-v1":false,"trigger-script-loop-v1":false,"state-only-decisions-v1":false,"story-destinations-v1":true};
 
 const T272_BLOCK=[
  `${STORY_HEADER} (turn 272, MAY): "Well, it's time to head back to the LAB."`,
@@ -121,6 +122,17 @@ describe("story-destinations-v1 rules",()=>{
   const story=new StoryDestinations();story.observe(talk("c",5,pages));story.observe(delivered("c",5));
   return story.block(oldale,"later",PLACES.places);
  }
+ it("accepts the game's DAD prefix as Norman without rewriting the quoted speaker",()=>{
+  // Live run 4865, dialogue_auto_advance seq 14855: these are three separate pages.
+  const instruction=[page("DAD: Now…","DAD"),page("RAED, if you want to become a strong TRAINER, here's my advice.","DAD"),page("Head for RUSTBORO CITY beyond this\ntown.","DAD")];
+  expect(after(instruction)).toContain([
+   `${STORY_HEADER} (turn 5, DAD): "Head for RUSTBORO CITY beyond this town."`,
+   '- "RUSTBORO CITY" = RUSTBORO CITY (map 0/3).',
+  ].join("\n"));
+  expect(after([page("Head for RUSTBORO CITY beyond this town.","DAD","faced_sprite")])).toBeNull();
+  expect(after([page("Head for RUSTBORO CITY beyond this town.","dad")])).toBeNull();
+  expect(after([page("Head for RUSTBORO CITY beyond this town.","WALLYS DAD")])).toBeNull();
+ });
  it("a connected map is reached by the edge that leads to it, said as this map's edge when it is this one",()=>{
   expect(after([page("MAY: The POKéMON found on ROUTE 103 include…","MAY")])).toContain("- \"ROUTE 103\" = ROUTE103 (map 0/18). Way in: this map's NORTH edge; ROUTE110 (map 0/25) WEST edge; door in ALTERING CAVE (map 24/106) at (");
  });
@@ -193,6 +205,51 @@ describe("story-destinations-v1 rules",()=>{
   expect(placePhrases("Well, this is LITTLEROOT TOWN.",heads)).toEqual(["LITTLEROOT TOWN"]);
   expect(placePhrases("I heard about you, RAED, from my dad, PROF. BIRCH.",heads)).toEqual([]);
   expect(placePhrases("the LAB. The LAB!",heads)).toEqual(["LAB"]);
+ });
+});
+
+describe("scripted-place-guidance-v1",()=>{
+ const petalburg=field([0,0],"PETALBURG CITY");
+ const gymPages=[
+  page("Hiya! Are you maybe…\nA rookie TRAINER?",null,null),
+  page("They first check what kind of GYM\nis in the town.",null,null),
+  page("See? This is PETALBURG CITY's GYM.",null,null),
+  page("This is the GYM's sign. Look for it\nwhenever you're looking for a GYM.",null,null),
+ ];
+ const block=(on:boolean,pages:readonly object[])=>{
+  const story=new StoryDestinations(on);
+  story.observe(talk("gym",14,pages));story.observe(delivered("gym",14));
+  return story.block(petalburg,"later",PLACES.places);
+ };
+ it("OFF leaves the forced Gym introduction outside the story-character destination stream",()=>{
+  expect(block(false,gymPages)).toBeNull();
+ });
+ it("ON preserves the game's line and resolves its named Gym to the Petalburg door",()=>{
+  expect(block(true,gymPages)).toBe([
+   `${STORY_HEADER} (turn 14, PETALBURG GYM BOY): "See? This is PETALBURG CITY's GYM."`,
+   `- "PETALBURG CITY's GYM" = PETALBURG CITY GYM (map 8/1). Way in: door on this map at (15,8).`,
+  ].join("\n"));
+ });
+ it("ON accepts the faced BOY_2 attribution recorded by both Petalburg probes",()=>{
+  const recorded=gymPages.map(p=>({...p,speaker:"BOY_2",speaker_source:"faced_sprite" as const}));
+  expect(block(true,recorded)).toBe([
+   `${STORY_HEADER} (turn 14, PETALBURG GYM BOY): "See? This is PETALBURG CITY's GYM."`,
+   `- "PETALBURG CITY's GYM" = PETALBURG CITY GYM (map 8/1). Way in: door on this map at (15,8).`,
+  ].join("\n"));
+ });
+ it("ON does not promote an arbitrary unnamed place line",()=>{
+  expect(block(true,[page("Go to RUSTBORO CITY.",null,null)])).toBeNull();
+ });
+ it("is default-off, registered as a one-switch pending experiment, and included in the bundle",()=>{
+  expect(featureInfo("scripted-place-guidance-v1")).toMatchObject({group:"guidance",needs:null,switchable:true});
+  const entry=parseExperiment(JSON.parse(readFileSync(new URL("../../../experiments/scripted-place-guidance.json",import.meta.url),"utf8")));
+  expect(entry.queuePosition).toBeUndefined();
+  const {incumbent,candidate}=experimentArms(entry);
+  expect(incumbent.features["scripted-place-guidance-v1"]).toBe(false);
+  expect(candidate.features["scripted-place-guidance-v1"]).toBe(true);
+  expect(Object.keys(candidate.features).filter(id=>candidate.features[id as keyof FeatureSet]!==incumbent.features[id as keyof FeatureSet])).toEqual(["scripted-place-guidance-v1"]);
+  const bundle=JSON.parse(readFileSync(new URL("../../../experiments/fixed/bundle-v-control.json",import.meta.url),"utf8")) as {base:{features:Record<string,boolean>};switches:string[]};
+  expect(bundle.base.features["scripted-place-guidance-v1"]).toBe(false);expect(bundle.switches).toContain("scripted-place-guidance-v1");
  });
 });
 
@@ -269,8 +326,8 @@ describe("story-destinations-v1 switch",()=>{
   expect(dependencyProblems({...OFF,"story-destinations-v1":true})).toContain("story-destinations-v1 needs dialogue-auto-advance-v1");
   expect(SWITCHABLE_FEATURES).toContain("story-destinations-v1");
   expect(playHarnessFeatures(ON,null)).toContain("story-destinations-v1");
-  expect(playHarnessFeatures({...ON,"story-destinations-v1":false,"harness-trust-v1":false,"cited-destination-v1":false,"harness-trust-v2":false,"heal-before-trainers-v1":false},null)).not.toContain("story-destinations-v1");
-  const features=Object.fromEntries(Object.entries({...ALL_ON,"state-only-decisions-v1":false}).filter(([id])=>id!=="story-destinations-v1"));
+  expect(playHarnessFeatures({...ON,"story-destinations-v1":false,"harness-trust-v1":false,"cited-destination-v1":false,"harness-trust-v2":false,"heal-before-trainers-v1":false,"bag-healing-items-v1":false,"battle-menu-loop-v1":false,"clock-view-loop-v1":false,"stale-story-goal-v1":false,"stale-story-goal-v2":false,"input-cuts-v1":false,"loop-guard-screen-v1":false,"reopened-dialogue-loop-v1":false,"dialog-button-b-v1":false,"just-in-time-prompt-v1":false,"just-in-time-prompt-v2":false,"jit-guide-reuse-v1":false},null)).not.toContain("story-destinations-v1");
+  const features=Object.fromEntries(Object.entries({...ALL_ON,"scripted-place-guidance-v1":false,"trigger-script-loop-v1":false,"state-only-decisions-v1":false}).filter(([id])=>id!=="story-destinations-v1"));
   const preset=parsePlayPreset({version:2,id:"old",target:null,limits:{maxTurns:1500,maxWallMs:1800000,failureLimit:3},sampling:{thinkingLevel:"medium",maxTokens:4096},features});
   expect(presetFeatures(preset)["story-destinations-v1"]).toBe(false);
  });

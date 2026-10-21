@@ -6,7 +6,7 @@ import { RUN_ID_PATTERN } from "@pokebench/agent/events";
 import { existsSync } from "node:fs";
 import { availableParallelism, homedir } from "node:os";
 import { Worker } from "node:worker_threads";
-import { createBaselinePool, defaultPoolSize } from "./baseline-pool.js";
+import { createBaselinePool, defaultPoolSize, type BaselineWorkerLike } from "./baseline-pool.js";
 import { baselineCacheDir, codeIdentity, createBaselineStore, createWorkbenchStore, pruneBaselineCaches, workbenchCacheDir } from "./baseline-store.js";
 import { dirname, join } from "node:path";
 import { ExperimentAutoRun } from "./experiment-autorun.js";
@@ -14,6 +14,8 @@ import { winnerGateOn } from "./experiment-store.js";
 import { productionHost } from "./experiment-cli.js";
 import { recordedRuns } from "./experiment-store.js";
 import { HumanRestarts, RunQueue, healthProbe, randomSuffix, spawnLaunch } from "./next-run.js";
+import { leasePool } from "./lease.js";
+import { readEndpoint } from "@pokebench/agent/local-endpoint";
 import { startViewer, type Viewer, type ViewerOptions } from "./server.js";
 
 export const DEFAULT_PORT = 8790;
@@ -108,9 +110,26 @@ export interface MainDeps {
   readonly offload?: (runsRoot: string) => Pick<ViewerOptions, "baselines" | "workbench">;
 }
 
+// Cold caches are reduced only when a page asks for them. Eagerly warming every historical log
+// after each viewer build can saturate several cores for minutes and starve live emulators.
+export function viewerOffload(
+  runsRoot: string,
+  worker: URL,
+  codeId: string,
+  parallelism: number,
+  spawn: () => BaselineWorkerLike = () => new Worker(worker),
+): Pick<ViewerOptions, "baselines" | "workbench"> {
+  pruneBaselineCaches(runsRoot, codeId, Date.now());
+  const pool = createBaselinePool(spawn, defaultPoolSize(parallelism));
+  return {
+    baselines: { compute: pool.compute, store: createBaselineStore(baselineCacheDir(runsRoot, codeId)), close: () => pool.close() },
+    workbench: { compute: pool.load, store: createWorkbenchStore(workbenchCacheDir(runsRoot, codeId)), partial: true },
+  };
+}
+
 export async function main(argv: readonly string[], deps: MainDeps): Promise<Viewer> {
   const args = parseArgs(argv, deps.repoRunsRoot, deps.defaultEndpoint, deps.defaultPublicOrigins);
-  const queue = new RunQueue({ runsRoot: args.runsRoot, liveJs: deps.liveJs, endpointFile: args.endpointFile, gamePort: QUEUE_GAME_PORT, healthy: healthProbe(), now: () => new Date(), random: randomSuffix, launch: (spec) => spawnLaunch(spec) });
+  const queue = new RunQueue({ runsRoot: args.runsRoot, liveJs: deps.liveJs, endpointFile: args.endpointFile, leasePool: () => leasePool(readEndpoint(args.endpointFile ?? "").baseUrl), gamePort: QUEUE_GAME_PORT, healthy: healthProbe(), now: () => new Date(), random: randomSuffix, launch: (spec) => spawnLaunch(spec) });
   const restarts = new HumanRestarts({runsRoot:args.runsRoot,liveJs:deps.liveJs,healthy:healthProbe(),now:()=>new Date(),random:randomSuffix,launch:spec=>spawnLaunch(spec),...(deps.humanLeasePath===undefined?{}:{leasePath:deps.humanLeasePath})});
   const autorun = deps.autorun?.(args.runsRoot);
   const offload = deps.offload?.(args.runsRoot);
@@ -157,12 +176,7 @@ if (import.meta.main) {
     // Run logs reduce on worker threads; results persist per code identity beside the runs.
     offload: (runsRoot) => {
       const worker = new URL("./baseline-worker.js", import.meta.url), codeId = codeIdentity(fileURLToPath(worker));
-      pruneBaselineCaches(runsRoot, codeId, Date.now());
-      const pool = createBaselinePool(() => new Worker(worker), defaultPoolSize(availableParallelism()));
-      return {
-        baselines: { compute: pool.compute, store: createBaselineStore(baselineCacheDir(runsRoot, codeId)), warm: true, close: () => pool.close() },
-        workbench: { compute: pool.load, store: createWorkbenchStore(workbenchCacheDir(runsRoot, codeId)), partial: true },
-      };
+      return viewerOffload(runsRoot, worker, codeId, availableParallelism());
     },
     print: (line) => {
       console.log(line);

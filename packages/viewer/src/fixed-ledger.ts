@@ -4,8 +4,9 @@ import { appendFileSync, existsSync, mkdirSync, readFileSync } from "node:fs";
 import { dirname } from "node:path";
 import { Type, type Static } from "typebox";
 import { Value } from "typebox/value";
-import { DEPTH_ORDER, deeperMilestone } from "@pokebench/agent/milestones";
+import { DEPTH_ORDER } from "@pokebench/agent/milestones";
 import { phaseOf, type FixedArm, type FixedDefinition } from "./fixed-design.js";
+import { linesOf, type LogLines } from "./run-log.js";
 
 export class FixedLedgerError extends Error {
   override readonly name = "FixedLedgerError";
@@ -172,7 +173,10 @@ export const WALL_CAP = "wall cap";
 
 export interface TrialExpectation {
   readonly maxWallMs: number;
+  readonly terminalErrorsAsOutcomes?: boolean;
+  readonly progressOrder?: readonly string[];
   readonly primary: string;
+  readonly target?: string | null;
   // Absent for cohorts run before this driver: their configuration is not checked.
   readonly presetId?: string;
   readonly start?: { readonly kind: "save_state"; readonly sha1: string } | { readonly kind: "boot" };
@@ -195,6 +199,7 @@ function configProblems(start: Parsed, expect: TrialExpectation): string[] {
   const model = record(start["model"]);
   const problems: string[] = [];
   const preset = typeof evaluation["preset_id"] === "string" ? evaluation["preset_id"] : "none";
+  if(expect.target!==undefined&&evaluation["target"]!==expect.target)problems.push(`stopping target ${String(evaluation["target"])} (planned ${String(expect.target)})`);
   if (preset !== expect.presetId) problems.push(`preset ${preset} (planned ${expect.presetId})`);
   else if (evaluation["reply_failures_end_run"] !== false) problems.push("preset limits do not keep reply failures from ending the run");
   if (budgets["max_wall_ms"] !== expect.maxWallMs) problems.push(`wall cap ${String(budgets["max_wall_ms"])} ms (planned ${String(expect.maxWallMs)})`);
@@ -220,33 +225,37 @@ const exitText = (exit: number | null | undefined): string => (exit === undefine
 
 // Invalid means infrastructure failed (model or gateway, emulator or server, checkpoint load,
 // a run that did not run the plan); whatever the model did in a run that ran is valid.
-export function classifyTrial(text: string | null, expect: TrialExpectation, exit: number | null | undefined): FixedOutcome {
-  const events: Parsed[] = (text ?? "").split("\n").flatMap((line) => {
-    if (line.trim() === "") return [];
-    try {
-      return [record(JSON.parse(line))];
-    } catch {
-      return [];
-    }
-  });
-  const start = events[0];
-  const blank = { endReason: null, primaryReached: false, primaryMs: null, furthest: null, furthestDepth: -1, furthestMs: null, wallMs: null, turns: null };
-  if (start?.type !== "run_start") return { valid: false, reason: `no run_start: the run never began (exit ${exitText(exit)}); a server, emulator or checkpoint load failure`, ...blank };
-  const t0 = Date.parse(String(start.t));
+// One pass over the lines, keeping only what the verdict needs: a six-hour log does not fit in one string.
+export function classifyTrial(log: LogLines | null, expect: TrialExpectation, exit: number | null | undefined): FixedOutcome {
+  let start: Parsed | undefined, end: Parsed | undefined, lastRetry: Parsed | undefined, extended = false;
   const reached = new Map<string, number>();
   // Milestone times count only unpaused time, as the production wall cap (BudgetTimer) does.
-  let pausedMs = 0;
-  for (const e of events) {
+  let pausedMs = 0, t0 = 0;
+  for (const line of linesOf(log ?? "")) {
+    if (line.trim() === "") continue;
+    let e: Parsed;
+    try {
+      e = record(JSON.parse(line));
+    } catch {
+      continue;
+    }
+    end = e;
+    if (start === undefined) { start = e; t0 = Date.parse(String(e.t)); }
+    if (start.type !== "run_start") break;
+    if (e.type === "retry") lastRetry = e;
+    if (e.type === "operator_control" && (e["action"] === "extend_30m" || e["action"] === "extend_60m") && e["status"] === "applied") extended = true;
     if (e.type === "operator_control" && e["status"] === "applied" && typeof e["paused_ms"] === "number") pausedMs += e["paused_ms"];
     if (e.type !== "milestone" || e["origin"] === "present_at_start" || typeof e["name"] !== "string" || reached.has(e["name"])) continue;
     const ms = Date.parse(String(e.t)) - t0 - pausedMs;
     if (ms <= expect.maxWallMs) reached.set(e["name"], ms);
   }
-  const furthest = [...reached.keys()].reduce<string | null>(deeperMilestone, null);
+  const blank = { endReason: null, primaryReached: false, primaryMs: null, furthest: null, furthestDepth: -1, furthestMs: null, wallMs: null, turns: null };
+  if (start?.type !== "run_start") return { valid: false, reason: `no run_start: the run never began (exit ${exitText(exit)}); a server, emulator or checkpoint load failure`, ...blank };
+  const order=expect.progressOrder??DEPTH_ORDER;
+  const furthest=[...reached.keys()].reduce<string|null>((current,name)=>order.indexOf(name)>=0&&(current===null||order.indexOf(name)>order.indexOf(current))?name:current,null);
   const primaryMs = reached.get(expect.primary) ?? null;
-  const end = events.at(-1);
   const metrics = {
-    primaryReached: primaryMs !== null, primaryMs, furthest, furthestDepth: furthest === null ? -1 : DEPTH_ORDER.indexOf(furthest), furthestMs: furthest === null ? null : (reached.get(furthest) ?? null),
+    primaryReached: primaryMs !== null, primaryMs, furthest, furthestDepth: furthest === null ? -1 : order.indexOf(furthest), furthestMs: furthest === null ? null : (reached.get(furthest) ?? null),
     wallMs: end?.type === "run_end" && typeof end["wall_ms"] === "number" ? end["wall_ms"] : null,
     turns: end?.type === "run_end" && typeof end["turns"] === "number" ? end["turns"] : null,
   };
@@ -257,10 +266,10 @@ export function classifyTrial(text: string | null, expect: TrialExpectation, exi
   const verdict = (valid: boolean, why: string): FixedOutcome => ({ valid, reason: why, endReason: reason, ...metrics });
   if (reason === "budget") {
     if (metrics.wallMs !== null && metrics.wallMs < expect.maxWallMs * 0.98) return verdict(true, `turn cap (${String(metrics.turns)} turns) before the wall cap`);
-    return verdict(true, WALL_CAP);
+    return verdict(true, extended ? `${WALL_CAP} · operator-extended continuation; scored at original horizon` : WALL_CAP);
   }
+  if(expect.terminalErrorsAsOutcomes===true&&(reason==="model_error"||reason==="crash"))return verdict(true,`retained terminal error: ${reason}`);
   if (reason === "model_error") {
-    const lastRetry = events.filter((e) => e.type === "retry").at(-1);
     const why = typeof lastRetry?.["reason"] === "string" ? lastRetry["reason"] : "no retry recorded";
     return why.startsWith("model error:") || lastRetry === undefined ? verdict(false, `model/gateway error: ${why}`) : verdict(true, `model behavior: ${why}`);
   }

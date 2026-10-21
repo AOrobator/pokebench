@@ -1,5 +1,6 @@
+import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
 import {describe,expect,it} from "vitest";
-import {ALL_ON,dependencyProblems,featureInfo,playHarnessFeatures,SERVER_FEATURES,serverFeatureEnv,type FeatureSet} from "./features.js";
+import {dependencyProblems,featureInfo,playHarnessFeatures,SERVER_FEATURES,serverFeatureEnv,type FeatureSet} from "./features.js";
 import {flagFeatures,parsePlayPreset,presetFeatures} from "./play-preset.js";
 import {NO_NICKNAME_SECTION,objectiveSwitches,playSystemPrompt} from "./play-config.js";
 import {objectivePrompt} from "./objective-tools.js";
@@ -36,14 +37,14 @@ describe("no-nickname-guidance-v1",()=>{
   expect(playHarnessFeatures(OFF,null)).not.toContain(GUIDANCE);
  });
  it("OFF leaves the system prompt unchanged; ON appends one paragraph",()=>{
-  const plain:FeatureSet={...OFF,"harness-trust-v1":false,"cited-destination-v1":false,"harness-trust-v2":false,"objective-tracking-v1":false,"readout-rules-in-prompt-v1":false,"battle-triage-guidance-v1":false,"explorer-guidance-v1":false,"explorer-guidance-v2":false,"untaken-exits-v1":false,"people-ledger-v1":false,"people-id-cards-v1":false,"trainer-heal-guidance-v1":false,"low-hp-trainer-warning-v1":false,"low-hp-trainer-warning-v2":false};
+  const plain:FeatureSet={...OFF,"harness-trust-v1":false,"cited-destination-v1":false,"harness-trust-v2":false,"objective-tracking-v1":false,"readout-rules-in-prompt-v1":false,"battle-triage-guidance-v1":false,"explorer-guidance-v1":false,"explorer-guidance-v2":false,"untaken-exits-v1":false,"people-ledger-v1":false,"people-id-cards-v1":false,"trainer-heal-guidance-v1":false,"low-hp-trainer-warning-v1":false,"low-hp-trainer-warning-v2":false,"dialog-button-b-v1":false,"just-in-time-prompt-v1":false,"just-in-time-prompt-v2":false,"jit-guide-reuse-v1":false};
   const off=playSystemPrompt(plain,null),on=playSystemPrompt({...plain,[GUIDANCE]:true},null);
   expect(off).not.toContain("nickname only costs time");
   expect(on).toBe(`${off}\n\n${NO_NICKNAME_SECTION}`);
   expect(NO_NICKNAME_SECTION).toBe("Nicknames: this is a speed run, and naming a Pokémon only costs time. When the game offers to give a Pokémon a nickname, answer NO. If you are already on the naming screen for a Pokémon's nickname, do not type or fix letters: press START to move the cursor to OK, then A. Any nickname is fine, and with nothing typed the Pokémon keeps its own name.");
  });
  it("the objective record still follows the guidance paragraph",()=>{
-  const features:FeatureSet={...OFF,"harness-trust-v1":false,"cited-destination-v1":false,"harness-trust-v2":false,[GUIDANCE]:true,"objective-tracking-v1":true,"readout-rules-in-prompt-v1":false,"battle-triage-guidance-v1":false,"explorer-guidance-v1":false,"explorer-guidance-v2":false,"untaken-exits-v1":false,"people-ledger-v1":false,"people-id-cards-v1":false,"trainer-heal-guidance-v1":false,"low-hp-trainer-warning-v1":false,"low-hp-trainer-warning-v2":false};
+  const features:FeatureSet={...OFF,"harness-trust-v1":false,"cited-destination-v1":false,"harness-trust-v2":false,[GUIDANCE]:true,"objective-tracking-v1":true,"readout-rules-in-prompt-v1":false,"battle-triage-guidance-v1":false,"explorer-guidance-v1":false,"explorer-guidance-v2":false,"untaken-exits-v1":false,"people-ledger-v1":false,"people-id-cards-v1":false,"trainer-heal-guidance-v1":false,"low-hp-trainer-warning-v1":false,"low-hp-trainer-warning-v2":false,"dialog-button-b-v1":false,"just-in-time-prompt-v1":false,"just-in-time-prompt-v2":false,"jit-guide-reuse-v1":false};
   expect(playSystemPrompt(features,null)).toBe(`${playSystemPrompt({...features,"objective-tracking-v1":false},null)}\n\n${objectivePrompt(objectiveSwitches(features))}`);
   expect(playSystemPrompt({...features,"objective-tracking-v1":false},null).endsWith(NO_NICKNAME_SECTION)).toBe(true);
  });

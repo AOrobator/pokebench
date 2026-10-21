@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fail-open input</title>
+<style>
+:root{--bg:#fbfaf7;--fg:#1d1d1b;--muted:#5d5b55;--line:#d9d5cc;--panel:#ffffff;--keep:#2f7d4f;--drop:#b4442f;--accent:#2d5f9a;--fill:#eef3f8;--wall:#8f8a7f;--floor:#f4f1ea;}
+@media (prefers-color-scheme: dark){:root{--bg:#161614;--fg:#ecebe6;--muted:#a8a59c;--line:#3a3833;--panel:#1f1e1b;--keep:#6cc08f;--drop:#e98a74;--accent:#86b3e6;--fill:#22303f;--wall:#55524b;--floor:#2a2925}}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif}
+main{max-width:900px;margin:0 auto;padding:24px 16px 48px}
+h1{font-size:1.6rem;margin:0 0 4px}h2{font-size:1.15rem;margin:32px 0 8px}
+.muted{color:var(--muted)}
+figure{margin:16px 0;padding:12px;background:var(--panel);border:1px solid var(--line);border-radius:8px;overflow-x:auto}
+figcaption{color:var(--muted);font-size:.9rem;margin-top:8px}
+code{font:13px ui-monospace,SFMono-Regular,Menlo,monospace}
+table{border-collapse:collapse;width:100%;font-size:.95rem}td,th{border-bottom:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top}
+.tablewrap{overflow-x:auto}
+svg text{fill:var(--fg);font:13px -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif}
+svg .small{font-size:11px;fill:var(--muted)}svg .tiny{font-size:10px;fill:#fff;font-weight:600}
+.note{border-left:3px solid var(--accent);padding:6px 10px;background:var(--fill);font:13px ui-monospace,SFMono-Regular,Menlo,monospace;white-space:pre-wrap;word-break:break-word}
+.off{border-left-color:var(--drop)}.on{border-left-color:var(--keep)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}@media (max-width:640px){.grid2{grid-template-columns:1fr}}
+</style>
+</head>
+<body><main>
+<h1>Fail-open input</h1>
+<p class="muted"><code>fail-open-input-v1</code> · agent switch · bundle-only, default off</p>
+<p>The operator, 2026-10-20: a fail-open design for boxes or UI the harness does not recognize, so the model decides from what is on screen, and B can dismiss them. Before this switch, when the automatic text advance stopped on a hold it could not name, the rest of the model's batch was dropped.</p>
+
+<h2>Which stops fail open</h2>
+<figure>
+<svg viewBox="0 0 860 260" width="860" height="260" role="img" aria-label="Stops that send or drop the rest of the batch">
+<rect x="10" y="90" width="200" height="70" rx="6" fill="var(--fill)" stroke="var(--line)"/>
+<text x="24" y="118">press [DOWN, A]</text><text x="24" y="140" class="small">DOWN sent, advance runs</text>
+<rect x="290" y="10" width="270" height="110" rx="6" fill="var(--panel)" stroke="var(--keep)" stroke-width="2"/>
+<text x="304" y="34">Hold the harness cannot name</text>
+<text x="304" y="56" class="small">battle_busy · battle_unreadable</text>
+<text x="304" y="74" class="small">interface_not_ready · message_not_ready</text>
+<text x="304" y="92" class="small">locked_no_message</text>
+<rect x="290" y="140" width="270" height="110" rx="6" fill="var(--panel)" stroke="var(--line)"/>
+<text x="304" y="164">Stop the harness recognizes</text>
+<text x="304" y="186" class="small">battle_prompt · battle_input · menu · naming</text>
+<text x="304" y="204" class="small">field_free · screen_change · caps · errors</text>
+<line x1="210" y1="115" x2="290" y2="65" stroke="var(--fg)" stroke-width="1.5"/><line x1="210" y1="135" x2="290" y2="195" stroke="var(--fg)" stroke-width="1.5"/>
+<rect x="630" y="30" width="220" height="70" rx="6" fill="var(--panel)" stroke="var(--keep)"/>
+<text x="644" y="56">ON: A is sent</text><text x="644" y="78" class="small">OFF: A dropped</text>
+<rect x="630" y="160" width="220" height="70" rx="6" fill="var(--panel)" stroke="var(--drop)"/>
+<text x="644" y="186">A dropped</text><text x="644" y="208" class="small">ON and OFF, as before</text>
+<line x1="560" y1="65" x2="630" y2="65" stroke="var(--keep)" stroke-width="2"/><line x1="560" y1="195" x2="630" y2="195" stroke="var(--drop)" stroke-width="2"/>
+</svg>
+<figcaption>Only the stops that mean "the harness waited and could not tell what the game wants" fail open. A recognized decision point still stops the batch, so a YES/NO box or menu is never answered by inputs typed before the model saw it.</figcaption>
+</figure>
+
+<h2>What the model reads</h2>
+<div class="grid2">
+<div class="note off">OFF
+the harness took over the battle text; 1 remaining input not sent: A.</div>
+<div class="note on">ON
+The harness does not recognize what the game is waiting for, so it sent the rest of your inputs as you asked: A. Decide from the screen what they did.</div>
+</div>
+<p>The inputs are sent one at a time through the same press path, so each gets its own press result, and the recorded <code>dialogue_auto_advance</code> event lists them as sent, not dropped. B in the batch is sent the same way, so B can dismiss a box the harness does not know.</p>
+
+<h2>Evidence</h2>
+<p>Run c6c2 pressed <code>[DOWN, A]</code> 19 times on the post-catch nickname box (turns 376–411). Each time DOWN went through, the battle advance waited 3 × 600 frames (<code>battle_busy</code>) and the A was dropped. The test fixture is the recorded level-up box from run 54a7 with <code>levelup-box-v1</code> off, which is the same kind of unrecognized battle hold.</p>
+
+<h2>Status</h2>
+<p>Branch <code>claude/nickname-fail-open</code>. Tests in <code>packages/agent/src/levelup-box.test.ts</code> (ON sends A and B after the hold, OFF drops, a recognized stop still drops, registry). Pending experiment <code>experiments/fail-open-input-v1.json</code>; no measured runs yet.</p>
+</main></body></html>

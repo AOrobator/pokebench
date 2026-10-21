@@ -3,7 +3,7 @@ import struct
 import pytest
 from test_live_map import loaded, obj
 
-from pokebench_env.world import read_targets
+from pokebench_env.world import read_interaction_object_slots, read_targets
 
 
 def events():
@@ -172,6 +172,43 @@ def test_object_local_id_survives_motion_and_slot_change_but_is_map_scoped():
         "background",
         "hidden_item",
     ], targets
+
+
+def test_semantic_native_slots_keep_invisible_and_player_entries_in_array_order():
+    m = events()
+    obj(m, 0, 4, 3)
+    m.put(0x02037350 + 1, b"\x20")  # invisible, but native A lookup still scans it
+    m.put(0x02037350 + 8, b"\x03")
+    obj(m, 1, 4, 3)
+    obj(m, 2, 4, 3, player=True)
+    slots = read_interaction_object_slots(m.read)
+    assert [(slot.slot, slot.local_id, slot.is_player) for slot in slots] == [
+        (0, 3, False),
+        (1, 2, False),
+        (2, 2, True),
+    ]
+    assert [(slot.x, slot.y, slot.map_id) for slot in slots] == [
+        (4, 3, (1, 0)),
+        (4, 3, (1, 0)),
+        (4, 3, (1, 0)),
+    ]
+
+
+def test_native_slot_identity_is_feature_gated_in_state_json():
+    from test_game_state import MAPS, OVERWORLD, SB1, game
+
+    from pokebench_env.game_state import read_game_state
+    from pokebench_env.readout import state_json
+
+    m = game(OVERWORLD)
+    m.cells.update(events().cells)
+    m.put(SB1 + 4, bytes([1, 0]))
+    off = state_json(read_game_state(m.read, MAPS))
+    on = state_json(read_game_state(m.read, MAPS, semantic_navigation_enabled=True))
+    assert "interaction_object_slots" not in off
+    assert all("native_slot" not in target for target in off["interaction_targets"])
+    assert any(slot["slot"] == 1 for slot in on["interaction_object_slots"])
+    assert on["interaction_targets"][0]["native_slot"] == 1
 
 
 @pytest.mark.parametrize("address,value", [(0, 0), (1, 0x20), (2, 1), (9, 2), (10, 2)])

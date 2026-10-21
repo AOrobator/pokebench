@@ -14,6 +14,20 @@ const control = (action: "pause" | "resume" | "stop" | "cancel_stop" | "abort", 
 const draft: NextRunDraft = { model: "Qwen", thinking: "medium", maxTurns: 300, maxWallMs: 1_800_000, failureLimit: 3, maxTokens: 4096, target: null, features: { ...ALL_ON, "state-only-decisions-v1": false } };
 
 describe("run controls", () => {
+  it("summarizes only the current split and next checkpoint", () => {
+    const recorded = { run: "test", milestones: [
+      { name: "NEW_GAME_CREATED", offsetMs: 1000 },
+      { name: "PLAYER_NAME_CONFIRMED", offsetMs: 2000 },
+    ] };
+    const compact = splitStrip(view(), recorded, true);
+    expect(compact).not.toContain("NEW GAME");
+    expect(compact).toContain("NAME ✔");
+    expect(compact).toContain('class="next"');
+    expect(splitStrip(view(), recorded)).toContain("NEW GAME ✔");
+    expect(splitStrip(view(), null, true)).toContain("LOADING RECORDED SPLITS");
+    expect(splitStrip(view(), { run: "test", milestones: [] }, true)).toContain("NEW GAME");
+  });
+
   it("offers only the controls that apply to the recorded state", () => {
     expect([...availableActions(view(), true)]).toEqual(["pause", "stop", "abort"]);
     expect([...availableActions(view(), false)]).toEqual([]);
@@ -29,7 +43,7 @@ describe("run controls", () => {
     expect(bar).toContain("hold to abort");
     expect(bar).not.toContain("<kbd>");
     expect(bar).not.toContain("disabled");
-    expect(controlBar(view((l) => l.add(1, control("stop", "pending"))), true, null)).toContain("↺ CANCEL STOP");
+    expect(controlBar(view((l) => l.add(1, control("stop", "pending"))), true, null)).toContain('class="control-label">CANCEL STOP</span>');
     expect(controlBar(view((l) => l.add(1, control("pause", "pending"))), true, 0.5)).toContain("--hold:50%");
     expect(controlBar(view(), false, null).match(/disabled/g)).toHaveLength(3);
   });
@@ -87,7 +101,7 @@ describe("live side panel", () => {
     expect(sideStats(v, BASE_MS + 3_000)).toContain("CONTEXT<b>7k</b>of 10k");
   });
 
-  it("lists splits this run against the best run, pauses excluded", () => {
+  it("lists splits this run against the frontier, pauses excluded", () => {
     const v = view((l) => {
       l.add(1_000, control("pause", "applied", { emulator_frozen: true }));
       l.add(6_000, control("resume", "applied", { paused_ms: 5_000 }));
@@ -99,7 +113,20 @@ describe("live side panel", () => {
     expect(html).toContain('<span class="next">NAME</span>');
     expect(html).not.toContain("splitrows");
     expect(splitTimes(v, best)).toContain('<span class="t">0:00:05</span><span class="d g">−0:00:02</span>');
-    expect(splitTimes(v, null)).toContain("no comparable best run yet");
+    expect(splitTimes(v, null)).toContain("no frontier run to compare yet");
+    expect(splitTimes(v, best)).toContain("VS FRONTIER");
+    expect(splitTimes(v, { run: "tie", milestones: [{ name: "NEW_GAME_CREATED", offsetMs: 5_400 }] })).toContain('<span class="d">±0:00:00</span>');
+  });
+
+  it("renders an atomic recorded snapshot while the event stream catches up", () => {
+    const partial = view((l) => {
+      l.add(1_000, { type: "milestone", turn: 1, name: "NEW_GAME_CREATED", server_timestamp: 1, kind: "story", origin: "observed" });
+    });
+    const recorded = { run: "selected", milestones: [{ name: "NEW_GAME_CREATED", offsetMs: 1_000 }, { name: "PLAYER_NAME_CONFIRMED", offsetMs: 2_000 }] };
+    expect(splitStrip(partial, recorded)).toContain("NEW GAME ✔</span><span class=\"done\">NAME ✔");
+    expect(splitTimes(partial, null, recorded)).toContain('<span>NAME</span><span class="t">0:00:02</span>');
+    expect(splitStrip(partial, null)).toContain("LOADING RECORDED SPLITS");
+    expect(splitStrip(partial)).not.toContain("NAME ✔");
   });
 
   const mark = (name: string, origin: "observed" | "present_at_start" = "observed") => ({ type: "milestone" as const, turn: 1, name, server_timestamp: 1, kind: "story" as const, origin });
@@ -139,7 +166,7 @@ describe("switchboard", () => {
     expect(html).toContain(`${observed}/${observed} ON`);
     expect(html).toContain("needs live-map-v1");
     expect(html).toContain("MEASUREMENT · ALWAYS ON");
-    expect(html.match(/No matching runs yet/g)).toHaveLength(111);
+    expect(html.match(/No matching runs yet/g)).toHaveLength(FEATURES.filter((f) => f.switchable).length);
     expect(html.match(/🔒/g)).toHaveLength(FEATURES.filter(feature=>feature.group === "measurement").length);
   });
 

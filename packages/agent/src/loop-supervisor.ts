@@ -1,13 +1,17 @@
+import {sectionWarp,sectionConnection} from "./exit-section-labels.js";
 import {DialogueLog,roomKey,roomOf,type DialogueEntry,speakerLabel} from "./dialogue-log.js";
 import {ExitHistory,mapKey,readoutNames} from "./exit-history.js";
 import {NextMilestoneHint} from "./milestone-hint.js";
 import {edgeBearings} from "./connection-edges.js";
 import {exitReach} from "./surf-gate.js";
 import {MEASUREMENT_ONLY_MILESTONES} from "./milestones.js";
+import {UNFINISHED_BRIEFING} from "./unfinished-activity.js";
 import {BattleOutcomes} from "./battle-outcomes.js";
-import type {RunEvent} from "./events.js";
+import {StoryCharacterGate} from "./stall-gate.js";
+import type {RunEvent,SemanticReceipt} from "./events.js";
 import type {FeatureSet} from "./features.js";
 import type {LoopKind} from "./loop-detection.js";
+import {listedArgument,semanticWalk,targetSuffix} from "./semantic-targets.js";
 
 export type Stall=
  | {readonly kind:"map_cycle";readonly from:string;readonly to:string;readonly roundTrips:number;readonly consecutive:boolean}
@@ -37,18 +41,19 @@ type State=Extract<RunEvent,{type:"state";started:boolean}>;
 interface Call {readonly name:string;readonly args:Record<string,unknown>;before:State|null;pressed:boolean;readonly uiBefore:string|null;conditions?:ReadonlyMap<string,boolean>}
 type Advance=Extract<RunEvent,{type:"dialogue_auto_advance"}>;
 type Page=Advance["pages"][number];
-interface Tried {readonly key:string;readonly room:string;readonly label:string;count:number;outcome:string}
+interface Tried {readonly key:string;readonly room:string;readonly label:string;count:number;outcome:string;said?:string}
 interface Instruction {readonly name:string;readonly turn:number;readonly pages:readonly {readonly speaker:string|null;readonly text:string}[]}
 
 const MAX_TRIED=8;
 // Only these tools return the game readout; any other text could only quote it.
 const GAME_TOOLS=new Set(["observe","press","navigate_to"]);
 const STEP:Readonly<Record<string,readonly[number,number]>>={up:[0,-1],down:[0,1],left:[-1,0],right:[1,0]};
-const PATTERN:Readonly<Record<LoopKind,string>>={cycle:"the same short cycle of actions",ineffective:"the same input with no effect",planning:"planning without acting",observation:"observing without acting",rejection:"the same rejected tool call"};
+const PATTERN:Readonly<Record<LoopKind,string>>={cycle:"the same short cycle of actions",ineffective:"the same input with no effect",planning:"planning without acting",observation:"observing without acting",rejection:"the same rejected tool call",trigger_script:"the same condition-matching coordinate-trigger dialogue"};
 const at=(x:number,y:number)=>`${String(x)},${String(y)}`;
 const quote=(e:DialogueEntry)=>`turn ${String(e.turn)}, ${e.room}${e.facing===null?"":`, facing ${e.facing}`}${e.presence===undefined?"":`, ${e.presence}`}: "${e.text.replace(/\s+/g," ")}"`;
 type Target=NonNullable<State["interaction_targets"]>[number];
 const EDGES=new Set(["NORTH","SOUTH","EAST","WEST"]);
+const argsOf=(args:unknown):Record<string,unknown>=>typeof args==="object"&&args!==null&&!Array.isArray(args)?Object.fromEntries(Object.entries(args)):{};
 const objectKey=(id:number):string=>`object:${String(id)}`;
 type Ui=NonNullable<State["active_ui"]>;
 const uiName=(ui:Ui):string=>`the ${ui.phase.replaceAll("_"," ")}`;
@@ -67,6 +72,11 @@ function turned(before:State,after:State):string|null {
  return before.facing!==null&&after.facing!==null&&before.facing!==after.facing?`turned ${before.facing.toLowerCase()} -> ${after.facing.toLowerCase()}`:null;
 }
 const mapOf=(state:{map_id:readonly number[]|null}):string|null=>state.map_id===null?null:state.map_id.join("/");
+// positive-supervisor-v1: navigate_to's own answer, its Navigation line without the button-attempt count.
+export function navigationSaid(text:string):string|undefined {
+ const line=/^Navigation: (.*)$/m.exec(text)?.[1];
+ return line?.replace(/;? ?\d+ (?:ordinary button attempts?|bounded movement actions?)\.?$/,"").replace(/[;.]\s*$/,"");
+}
 const counted=(event:Extract<RunEvent,{type:"milestone"}>):boolean=>event.origin!=="present_at_start"&&event.name!=="GAME_RUNNING"&&!MEASUREMENT_ONLY_MILESTONES.has(event.name);
 
 // A deterministic summary for a looping agent: facts it was shown, never a route or story goal.
@@ -83,6 +93,7 @@ export class SupervisorBriefing {
  private readonly touched=new Map<string,Set<string>>();
  private readonly hint:NextMilestoneHint|null;
  private story:string|null=null;
+ private goal:string|null=null;
  private readonly heard=new Set<string>();
  // dialogue-auto-advance-v1: the pages of each auto-advanced call, recorded before its result.
  private readonly advanced=new Map<string,Advance>();
@@ -107,13 +118,22 @@ export class SupervisorBriefing {
  private readonly names=new Map<string,string>();
  // briefing-battle-outcomes-v1: the latest battle against a story character and the latest whiteout.
  private readonly battles:BattleOutcomes|null;
- constructor(private readonly features:FeatureSet){this.dialogue=new DialogueLog(features);this.hint=features["next-milestone-hint-v1"]?new NextMilestoneHint():null;this.exits=features["briefing-exits-v1"]?new ExitHistory():null;this.battles=features["briefing-battle-outcomes-v1"]?new BattleOutcomes(features):null;}
+ // story-character-stall-gate-v1: while it holds, no way off the map is listed, and a walk that moved nowhere tries nothing.
+ private readonly gate:StoryCharacterGate|null;
+ // unfinished-activity-v1: the open items its recorded events carry, by trainer id.
+ private readonly unfinished=new Map<number,string>();
+ constructor(private readonly features:FeatureSet){this.dialogue=new DialogueLog(features);this.hint=features["next-milestone-hint-v1"]?new NextMilestoneHint():null;this.exits=features["briefing-exits-v1"]?new ExitHistory():null;this.battles=features["briefing-battle-outcomes-v1"]?new BattleOutcomes(features):null;this.gate=features["story-character-stall-gate-v1"]||features["positive-supervisor-v1"]?new StoryCharacterGate({recordStallGate:()=>undefined}):null;}
  observe(event:RunEvent):void {
+  this.gate?.observe(event);
   this.dialogue.observe(event);
   this.hint?.observe(event);
   this.battles?.observe(event);
   this.turn=Math.max(this.turn,event.turn);
+  if(event.type==="unfinished_activity"){if(this.features["unfinished-activity-v1"]){if(event.change==="retired")this.unfinished.delete(event.trainer_id);else this.unfinished.set(event.trainer_id,event.text);}return;}
   if(event.type==="milestone"){
+   // story-progress-clock-v1: a measurement-only step is the latest progress the briefings name, and the lists headed
+   // "since your last story progress" count from it; it is not a story step with dialogue of its own.
+   if(this.features["story-progress-clock-v1"]&&event.origin!=="present_at_start"&&MEASUREMENT_ONLY_MILESTONES.has(event.name)){this.progress={turn:event.turn,name:event.name};this.path.clear();this.entered.clear();return;}
    if(!counted(event))return;
    this.progress={turn:event.turn,name:event.name};this.path.clear();this.entered.clear();
    if(event.kind==="story"){
@@ -129,8 +149,8 @@ export class SupervisorBriefing {
    if(this.advanced.size>16)this.advanced.delete(this.advanced.keys().next().value??"");
    return;
   }
-  if(event.type==="tool_call"&&(event.name==="press"||event.name==="navigate_to")){
-   this.calls.set(event.id,{name:event.name,args:event.args,before:this.latest,pressed:false,uiBefore:this.screenNow?.ui.key??null});
+  if(event.type==="tool_call"&&event.name!=="act"&&(event.name==="press"||event.name==="navigate_to"||semanticWalk(event.name,this.features))){
+   this.calls.set(event.id,{name:event.name,args:argsOf(event.args),before:this.latest,pressed:false,uiBefore:this.screenNow?.ui.key??null});
    if(this.calls.size>16)this.calls.delete(this.calls.keys().next().value??"");
    return;
   }
@@ -146,22 +166,31 @@ export class SupervisorBriefing {
   if(event.state_seq===undefined||this.measured?.seq!==event.state_seq){this.flushTouches();return;}
   const after=this.measured;this.measured=null;
   const auto=this.advanced.get(event.id);this.advanced.delete(event.id);
-  if(!event.is_error&&GAME_TOOLS.has(event.name)){this.readStory(event.text);if(this.exits!==null)readoutNames(event.text,after.map_id,this.names);}
+  if(!event.is_error&&(GAME_TOOLS.has(event.name)||semanticWalk(event.name,this.features))){this.readStory(event.text);if(this.exits!==null)readoutNames(event.text,after.map_id,this.names);}
   this.seeInterface(after,this.calls.get(event.id));
   this.flushTouches();
   // briefing-exits-v1: the latest result state, so a battle (which keeps the overworld snapshot stale) is placed now.
   if(this.exits!==null&&after.started&&after.map_id!==null)this.shown=after;
-  if(!after.started||after.screen!=="overworld")return;
+  // positive-supervisor-v1: a battle, a menu or another screen ends a run of field attempts.
+  if(!after.started||after.screen!=="overworld"){
+   this.streak=null;
+   // semantic-navigation-v2: a talk that starts a battle or opens a screen still acted on its target.
+   const call=this.calls.get(event.id);
+   if(call!==undefined&&(call.name==="navigate_to_target"||call.name==="explore_map")){this.calls.delete(event.id);this.semanticTried(call,event.semantic_navigation);}
+   return;
+  }
   this.latest=after;
   const key=this.room(after);this.path.delete(key);this.path.set(key,after);
   const map=mapOf(after);if(map!==null)this.entered.add(map);
   const call=this.calls.get(event.id);this.calls.delete(event.id);
-  const label=call===undefined?null:this.label(call);
+  const label=call===undefined?null:this.label(call,event.semantic_navigation);
   if(call!==undefined&&label!==null){
    const where=call.before??after;
-   this.remember(this.room(where),roomOf(where,this.features),label,this.outcome(call.before,after,auto?.pages??[]));
+   this.remember(this.room(where),roomOf(where,this.features),label,this.outcome(call.before,after,auto?.pages??[]),this.features["positive-supervisor-v1"]?navigationSaid(event.text):undefined);
+   if(call.uiBefore!==null||interfaceOf(after)!==null)this.streak=null;
    if(call.before!==null&&this.room(call.before)===this.room(after)&&this.moved(call.before,after))this.touchSteppedTrigger(after);
-   if(this.exits!==null)this.scriptedTrigger(call,after,auto);
+   if(this.features["story-character-stall-gate-v1"])this.reached(call,after);
+   if(this.exits!==null||this.features["faced-interaction-history-v1"])this.scriptedTrigger(call,after,auto);
   }
   for(const page of auto?.pages??[])this.heard.add(this.pageOpening(page));
   const dialogue=after.world_context?.dialogue;
@@ -195,6 +224,7 @@ export class SupervisorBriefing {
  }
  // The readout's own Story line, so the briefing never disagrees with it. A reload gap keeps the last known line.
  private readStory(text:string):void {
+  const goal=/^Story goal: (.*)$/m.exec(text)?.[1];if(goal!==undefined)this.goal=goal.split(" -> ")[0]??goal;
   const line=/^Story: (.*)$/m.exec(text)?.[1];
   if(line===undefined||line.startsWith("unavailable"))return;
   // briefing-exits-v1: things tried stay tried across a story step; only people, who may say something new, are listed again.
@@ -205,9 +235,10 @@ export class SupervisorBriefing {
  // briefing-exits-v1: every recorded overworld state can take an exit (a map change) or step onto a step trigger
  // (any two consecutive recorded states, not only a result's). Arriving on a trigger through a warp, or standing on it, is still not trying it.
  private exitFacts(state:State):void {
-  if(this.exits===null)return;
+  if(this.exits===null&&!this.features["faced-interaction-history-v1"])return;
   this.recent.set(state.seq,state);
   if(this.recent.size>64)this.recent.delete(this.recent.keys().next().value??-1);
+  if(this.exits===null)return;
   for(const mark of this.exits.observe(state))this.pendingTouches.push(mark);
   const p=state.position;
   if(!state.started||state.screen!=="overworld"||p===null)return;
@@ -237,7 +268,15 @@ export class SupervisorBriefing {
   const first=pages[0];
   const opened=first?.state_seq==null?undefined:this.recent.get(first.state_seq);
   const person=opened===undefined?null:this.faced(opened);
-  if(opened!==undefined&&person?.object!=null&&(sent.at(-1)==="A"||first?.speaker_source==="faced_sprite"))this.touch(this.room(opened),objectKey(person.object));
+  const attributed=first?.speaker_source==="faced_target"||first?.speaker_source==="faced_sprite";
+  const recordedFaced=this.features["faced-interaction-history-v1"]&&opened!==undefined&&person!==null&&attributed;
+  if(recordedFaced){
+   this.touch(this.room(opened),person.tile);
+   if(person.object!==null)this.touch(this.room(opened),objectKey(person.object));
+  }
+  // Enabling faced interaction history must not also enable briefing-exits-v1's legacy object or push-back inference.
+  if(this.exits===null)return;
+  if(!recordedFaced&&opened!==undefined&&person?.object!=null&&(sent.at(-1)==="A"||first?.speaker_source==="faced_sprite"))this.touch(this.room(opened),objectKey(person.object));
   const step=sent[0]===undefined?undefined:STEP[sent[0].toLowerCase()];
   if(step===undefined||!sent.every(b=>STEP[b.toLowerCase()]!==undefined)||before.field_controls_locked===true)return;
   const x=before.position.x+step[0],y=before.position.y+step[1];
@@ -262,11 +301,23 @@ export class SupervisorBriefing {
  private touch(room:string,tile:string):void {
   const tiles=this.touched.get(room)??new Set<string>();tiles.add(tile);this.touched.set(room,tiles);
  }
- private label(call:Call):string|null {
+ // semantic-navigation-v2: the recorded receipt names the target the call selected (explore_map's own choice
+ // too); it counts as tried only once the call acted on it, the way a faced A press does.
+ private semanticTried(call:Call,receipt:SemanticReceipt|undefined):SemanticReceipt["target"]|undefined {
+  const target=receipt?.target;
+  const key=target===undefined?null:target.kind==="object"?objectKey(target.local_id):target.kind==="connection"?null:at(target.x,target.y);
+  if(receipt?.activation_attempted===true&&call.before!==null&&key!==null)this.touch(this.room(call.before),key);
+  return target;
+ }
+ private label(call:Call,receipt?:SemanticReceipt):string|null {
+  if(call.name==="navigate_to_target"||call.name==="explore_map"){
+   const target=this.semanticTried(call,receipt);
+   return target===undefined?call.name:`${call.name} ${JSON.stringify(target)}`;
+  }
   if(call.name==="navigate_to"){
    const x=call.args["x"],y=call.args["y"];
    if(typeof x!=="number"||typeof y!=="number")return "navigate_to (invalid target)";
-   if(call.before!==null)this.touch(this.room(call.before),at(x,y));
+   if(call.before!==null&&!this.features["story-character-stall-gate-v1"])this.touch(this.room(call.before),at(x,y));
    return `navigate_to ${at(x,y)}`;
   }
   const buttons=call.args["buttons"];
@@ -323,15 +374,23 @@ export class SupervisorBriefing {
   if(this.exits!==null)return;
   if((after.interaction_targets??[]).some(t=>t.activation==="step"&&t.x===p.x&&t.y===p.y))this.touch(this.room(after),at(p.x,p.y));
  }
- private remember(key:string,room:string,label:string,outcome:string):void {
+ // positive-supervisor-v1: the newest field attempt and how many times in a row it gave this same result.
+ private streak:{readonly key:string;readonly label:string;readonly outcome:string;readonly said?:string;count:number}|null=null;
+ private remember(key:string,room:string,label:string,outcome:string,said?:string):void {
+  const same=this.streak!==null&&this.streak.key===key&&this.streak.label===label&&this.streak.outcome===outcome&&this.streak.said===said;
+  this.streak=same&&this.streak!==null?{...this.streak,count:this.streak.count+1}:{key,label,outcome,...(said===undefined?{}:{said}),count:1};
   const index=this.tried.findIndex(t=>t.key===key&&t.label===label&&t.outcome===outcome);
   const existing=index>=0?this.tried.splice(index,1)[0]:undefined;
-  this.tried.push({key,room,label,count:(existing?.count??0)+1,outcome});
+  this.tried.push({key,room,label,count:(existing?.count??0)+1,outcome,...(said===undefined?{}:{said})});
   if(this.tried.length>MAX_TRIED)this.tried.shift();
  }
  private lastProgress():string {
   const progress=this.progress===null?"none earned in this run yet":`${this.progress.name.replaceAll("_"," ").toLowerCase()} at turn ${String(this.progress.turn)} (${String(this.turn-this.progress.turn)} turns ago)`;
-  return this.battles===null?progress:`${progress}\n${this.battles.briefingLines().trimEnd()}`;
+  const withBattles=this.battles===null?progress:`${progress}\n${this.battles.briefingLines().trimEnd()}`;
+  return `${withBattles}${this.unfinishedLine()}`;
+ }
+ private unfinishedLine():string {
+  return this.unfinished.size===0?"":`\n${UNFINISHED_BRIEFING}${[...this.unfinished.values()].join("; ")}`;
  }
  private characters():string {
   const s=this.latest;
@@ -352,7 +411,7 @@ export class SupervisorBriefing {
   }
   const s=this.latest;if(s===null)return "no observation yet";
   const position=this.features["live-player-position-v1"]&&s.position!==null?` at ${at(s.position.x,s.position.y)}${s.facing===null?"":` facing ${s.facing.toLowerCase()}`}`:"";
-  return `${roomOf(s,this.features)}${position}`;
+  return `${this.features["exit-labels-v3"]?(s.exit_sections?.current??roomOf(s,this.features)):roomOf(s,this.features)}${position}`;
  }
  private told():string {
   if(!this.features["active-field-message-buffer-v1"])return "not available (dialogue text is off)";
@@ -384,27 +443,33 @@ export class SupervisorBriefing {
   const s=this.latest;
   if(!this.features["world-targets-v1"])return "not available (world targets are off)";
   if(s===null)return "no observation yet";
-  const open=this.open(s);
+  const open=this.open(s,true,true);
   if(open.length===0)return "none: every listed target here has been tried";
   return open.join("; ");
  }
- private open(s:State):string[] {
+ // semantic-navigation-v2: on the current map, each item carries the target navigate_to_target takes.
+ private open(s:State,warps=true,here=false):string[] {
+  const use=(t:Target)=>here&&this.features["semantic-navigation-v2"]?targetSuffix(listedArgument(t,s.interaction_targets)):"";
   const done=this.touched.get(this.room(s))??new Set<string>();
   // Exits first: ordering only, so a briefing never buries the way out under room furniture.
   // surf-gated-exits-v1: a warp reachable only across water is not listed while Surf cannot be used.
-  const targets=this.reachable(s);
+  // positive-supervisor-v1: no warp at all, whatever the readout names it.
+  const targets=this.reachable(s).filter(t=>warps||t.kind!=="warp");
   if(this.exits!==null){
    // briefing-exits-v1: people by object id, not tile; a trigger the readout shows cannot run now is labelled and last.
    const tried=(t:Target)=>t.kind==="object"&&t.local_id!==null?done.has(objectKey(t.local_id)):done.has(at(t.x,t.y));
    const dead=(t:Target)=>t.kind==="coordinate_trigger"&&this.dead(s,t.x,t.y);
    const rank=(t:Target)=>t.kind==="warp"?0:dead(t)?2:1;
    return targets.filter(t=>!tried(t)).sort((a,b)=>rank(a)-rank(b))
-    .map(t=>`${this.target(t)} at ${at(t.x,t.y)} (${t.activation}${dead(t)?"; its condition did not match when the readout last showed it, so stepping on it then did nothing":""})`);
+    .map(t=>`${this.target(t,s)} at ${at(t.x,t.y)} (${t.activation}${dead(t)?"; its condition did not match when the readout last showed it, so stepping on it then did nothing":""})${use(t)}`);
   }
-  const open=targets.filter(t=>!done.has(at(t.x,t.y))).sort((a,b)=>Number(b.kind==="warp")-Number(a.kind==="warp"));
-  return open.map(t=>`${this.target(t)} at ${at(t.x,t.y)} (${t.activation})`);
+  // semantic-navigation-v2 marks a person it talked to by object id.
+  const open=targets.filter(t=>!done.has(at(t.x,t.y))&&!(this.features["semantic-navigation-v2"]&&t.kind==="object"&&t.local_id!==null&&done.has(objectKey(t.local_id)))).sort((a,b)=>Number(b.kind==="warp")-Number(a.kind==="warp"));
+  return open.map(t=>`${this.target(t,s)} at ${at(t.x,t.y)} (${t.activation})${use(t)}`);
  }
- private target(t:{readonly kind:string;readonly name?:string|null;readonly destination?:readonly number[]|null}):string {
+ private target(t:{readonly kind:string;readonly x:number;readonly y:number;readonly name?:string|null;readonly destination?:readonly number[]|null},state?:State):string {
+  const section=state===undefined?null:sectionWarp(state,t.x,t.y,this.features["exit-labels-v3"]&&t.kind==="warp");
+  if(section!==null)return `Warp to ${section}`;
   if(!this.features["named-interactions-v1"]||t.name==null)return t.kind;
   // briefing-exits-v1: a warp's destination as the readout named it, else the bare id as before.
   const name=this.exits!==null&&t.kind==="warp"&&t.destination!=null?this.names.get(mapKey(t.destination)):undefined;
@@ -424,7 +489,7 @@ export class SupervisorBriefing {
    // briefing-exits-v1: the map's connections to maps not entered either, where the readout shows them (world destinations).
    const block=exitReach(this.features,s);
    const edges=this.exits!==null&&this.features["world-destinations-v1"]?(s.topology?.connections??[]).filter(c=>!this.entered.has(mapKey(c.destination))&&!block.connection(c)):[];
-   const items=[...exits.map(t=>`${this.target(t)} at ${at(t.x,t.y)}`),...edges.map(c=>{const name=this.names.get(mapKey(c.destination));return `${c.direction}${EDGES.has(c.direction)?" edge":""} -> ${name===undefined?`map ${mapKey(c.destination)}`:`${name} (map ${mapKey(c.destination)})`}`;})];
+   const items=[...exits.map(t=>`${this.target(t,s)} at ${at(t.x,t.y)}`),...edges.map(c=>{const name=this.names.get(mapKey(c.destination));return `${c.direction}${EDGES.has(c.direction)?" edge":""} -> ${sectionConnection(s,c,this.features["exit-labels-v3"])??(name===undefined?`map ${mapKey(c.destination)}`:`${name} (map ${mapKey(c.destination)})`)}`;})];
    return items.length===0?[]:[`${roomOf(s,this.features)}: ${items.join("; ")}`];
   });
   return rooms.length===0?"none":rooms.join(" | ");
@@ -441,7 +506,19 @@ export class SupervisorBriefing {
   return rooms.length===0?"none":rooms.join(" | ");
  }
  // connection-edge-tiles-v1: the current map's walk-off edge tiles, as the server read them; off, nothing.
+ // story-character-stall-gate-v1: a walk tries its target only when it ends on it or next to it.
+ private reached(call:Call,after:State):void {
+  const x=call.args["x"],y=call.args["y"],p=after.position;
+  if(call.name!=="navigate_to"||call.before===null||typeof x!=="number"||typeof y!=="number"||p===null||this.room(call.before)!==this.room(after))return;
+  if(Math.abs(p.x-x)+Math.abs(p.y-y)<=1)this.touch(this.room(after),at(x,y));
+ }
+ private staying():boolean {return this.features["story-character-stall-gate-v1"]&&this.gate?.holds()!=null;}
+ private untalked():string {
+  const names=this.staying()||this.features["positive-supervisor-v1"]?this.gate?.untalked()??[]:[];
+  return names.length===0?"":`- Story characters on this map you have not talked to since your last story milestone: ${names.join("; ")}\n`;
+ }
  private edges():string {
+  if(this.staying())return "";
   const latest=this.latest,topology=latest?.topology;
   // surf-gated-exits-v1: an edge reachable only across water is not a way off while Surf cannot be used.
   const block=latest==null?null:exitReach(this.features,latest);
@@ -449,22 +526,56 @@ export class SupervisorBriefing {
   return line===null?"":`- Ways off this map across its edge (the game's map connections): ${line}\n`;
  }
  text(kind:LoopKind,calls:number):string {
+  if(this.features["positive-supervisor-v1"])return this.positive(`The game state has not changed after your recent calls (${PATTERN[kind]}).`);
   return this.bearings(`SUPERVISOR: You are currently looping. You keep repeating ${PATTERN[kind]}, and the game is not moving forward (loop guard, ${String(calls)} calls into the run).`);
  }
 
  // stall-briefing-v1: the same facts, headed by which stall it is, plus the dialogue of the last story step
  // and what lies on the maps walked since the last progress.
  stallText(stall:Stall,calls:number):string {
+  if(this.features["positive-supervisor-v1"])return this.positive(stall.kind==="interface_dwell"?`You have made ${String(stall.calls)} calls in the ${stall.name}.`:"");
   const what=stall.kind==="map_cycle"?`You have walked between ${stall.from} and ${stall.to} ${String(stall.roundTrips)} times${stall.consecutive?", out and back,":" (with other maps in between),"} with no new story milestone`:stall.kind==="interface_dwell"?`You have made ${String(stall.calls)} calls in the ${stall.name} without leaving it, with no new story milestone`:`There has been no new story milestone for ${String(stall.minutes)} minutes of play`;
   return this.bearings(`SUPERVISOR: You are stalling. ${what}, and the game is not moving forward (stall briefing, ${String(calls)} calls into the run).`,true);
  }
 
+ // positive-supervisor-v1: what to do and what the game shows, never that it is looping, a route, or a way off the map.
+ private positive(fact:string):string {
+  const ui=this.screenNow?.ui;
+  const recent=(ui===undefined?this.tried:this.uiTried).slice(-3).reverse().map(t=>`${t.label}${t.count>1?` ×${String(t.count)}`:""} → ${t.outcome}`).join("; ");
+  // The newest attempt, when it repeated with the same result: the one thing not to do again, said as what to do.
+  // Only consecutive field attempts with one result; an interface's presses each change what it shows.
+  const repeated=ui===undefined&&this.streak!==null&&this.streak.count>1?this.streak:undefined;
+  const untried=ui!==undefined||this.latest===null||!this.features["world-targets-v1"]?[]:this.open(this.latest,false,true).slice(0,3);
+  const again=repeated===undefined?[]:[`- Choose a call other than ${repeated.label}: ${repeated.said===undefined?`it gave the same result (${repeated.outcome})`:`it answered "${repeated.said}"`} ${String(repeated.count)} times in a row.`];
+  const lines=[
+   `SUPERVISOR: Make one tool call based on the game state and what you observed.${fact===""?"":` ${fact}`}`,
+   `- Where you are: ${ui===undefined?this.where():`in the ${ui.name}; your last field position was ${this.where()}`}`,
+   ...(ui===undefined?[]:[`- Open interface: ${ui.name}; phase ${ui.phase}; text ${ui.text??"unknown"}; selected ${ui.selected??"unknown"}; controls: ${ui.controls??"unknown"}`]),
+   ...(this.unfinished.size===0?[]:[this.unfinishedLine().slice(1)]),
+   ...(ui?.naming===true?[`- How to finish: press START to move the cursor to OK, then press A on OK${ui.owner==="nickname"?"; with no text entered the Pokémon keeps its current name":""}`]:[]),
+   ...this.untalked().split("\n").filter(l=>l!==""),
+   ...(untried.length===0?[]:[`- Shown here and not tried yet: ${untried.join("; ")}`]),
+   ...(recent===""?[]:[`- Your latest attempts: ${recent}`]),
+   ...again,
+  ];
+  return lines.join("\n");
+ }
+
+ private focused(headline:string):string {
+  const ui=this.screenNow?.ui;
+  const recent=(ui===undefined?this.tried:this.uiTried).slice(-3).reverse().map(t=>`${t.label}${this.features["briefing-repeat-count-v1"]&&t.count>1?` ×${String(t.count)}`:""} → ${t.outcome}`).join("; ")||"none recorded";
+  const alternatives=this.latest===null||!this.features["world-targets-v1"]?[]:this.open(this.latest,true,true).slice(0,3);
+  const goal=this.goal??"none recorded";
+  return `${headline}\n- Current position: ${this.where()}\n- Latest recorded place instruction: ${goal}${this.unfinishedLine()}\n${ui===undefined?`- Untried targets already shown here (up to 3; not a route recommendation): ${!this.features["world-targets-v1"]?"not available (world targets are off)":alternatives.join("; ")||"none listed"}\n${this.untalked()}${this.edges()}`:`- Open interface: ${ui.name}; phase ${ui.phase}; text ${ui.text??"unknown"}; selected ${ui.selected??"unknown"}; controls: ${ui.controls??"unknown"}\n`}- Recent attempts (up to 3): ${recent}\nUse the latest game readout to choose a different action. End the next reply with one listed tool call.`;
+ }
+
  private bearings(headline:string,stall=false):string {
-  if(stall&&this.screenNow!==null)return this.interfaceBearings(headline,this.screenNow.ui);
+  if(this.features["supervisor-briefing-v2"])return this.focused(headline);
+  if((stall||this.features["loop-guard-screen-v1"])&&this.screenNow!==null)return this.interfaceBearings(headline,this.screenNow.ui);
   const tried=this.tried.length===0?"nothing recorded":this.tried.slice().reverse().map(t=>`${t.label}${t.count>1?` ×${String(t.count)}`:""} in ${t.room} → ${t.outcome}`).join("; ");
   const recall=this.features["dialogue-log-v1"]?" (use recall_dialogue to check exactly what characters said)":"";
   const instruction=`- Dialogue shown with your latest story step that came with dialogue${this.instructionText()}\n`;
-  const exits=`- Exits to maps you have not entered since your last story progress: ${this.unentered()}\n`;
+  const exits=this.staying()?"":`- Exits to maps you have not entered since your last story progress: ${this.unentered()}\n`;
   // briefing-exits-v1: the stall briefing leads with the unentered exits and the latest story step's dialogue.
   const first=stall&&this.exits!==null;
   return `${headline} What you have been trying is not working, so do not try it again.
@@ -476,7 +587,7 @@ ${this.hint===null?"":`- Next milestone (hint): ${this.hint.describe()}\n`}- Cha
 ${this.kept()}- Recent dialogue you were shown, newest first: ${this.told()}
 ${stall&&!first?instruction:""}- What you tried recently, newest first: ${tried}
 - Listed here that you have not tried yet: ${this.untried()}
-${stall?`- Not tried yet on other maps you have been on since your last story progress: ${this.untriedElsewhere()}\n${first?"":exits}`:""}${this.edges()}Before your next action, look back at your goal and at what the game has told you${recall}. If anything you believe disagrees with the dialogue or the readout above, believe the game. Make a new plan that is different from what you have been trying, and say which untried option you will try first. The run continues.`;
+${this.untalked()}${stall?`${this.staying()?"":`- Not tried yet on other maps you have been on since your last story progress: ${this.untriedElsewhere()}\n`}${first?"":exits}`:""}${this.edges()}Before your next action, look back at your goal and at what the game has told you${recall}. If anything you believe disagrees with the dialogue or the readout above, believe the game. Make a new plan that is different from what you have been trying, and say which untried option you will try first. The run continues.`;
  }
 
  // stall-briefing-v1 inside an owned interface: what the interface shows and how the game lets you finish it.
@@ -504,7 +615,13 @@ ${this.hint===null?"":`- Next milestone (hint): ${this.hint.describe()}\n`}- Sto
 Before your next action, look back at your goal and at what the game has told you${recall}. If anything you believe disagrees with the dialogue or the readout above, believe the game. Make a new plan that is different from what you have been trying, and say how you will finish or leave this interface first. The run continues.`;
  }
 
- textOnly(replies:number,note:number,limit:number):string {
+ textOnly(replies:number,note:number,limit:number,replyFailuresEndRun=true):string {
+  if(this.features["positive-supervisor-v1"])return this.positive(`Your last ${String(replies)} ${replies===1?"reply":"replies"} called no tool.`);
+  const policy=replyFailuresEndRun?`If replies keep calling no tool after note ${String(limit)} of ${String(limit)}, the run ends.`:"Reply-based stopping is disabled for this run; the configured turn and time budgets still apply.";
+  if(this.features["supervisor-briefing-v2"]){
+   const head=`SUPERVISOR: Your last ${String(replies)} replies called no tool, so nothing happened in the game (text-only supervisor, note ${String(note)} of ${String(limit)}).`;
+   return `${this.focused(head)}${this.features["text-only-supervisor-v2"]?`\n${policy}`:`\nIf replies keep calling no tool after note ${String(limit)} of ${String(limit)}, the run ends.`}`;
+  }
   const text=`SUPERVISOR: Your last ${String(replies)} replies called no tool, so nothing happened in the game (text-only supervisor, note ${String(note)} of ${String(limit)}). Writing out a plan or a list of coordinates does not move you; only a tool call does.
 Get your bearings:
 - Where you are: ${this.where()}
@@ -513,7 +630,7 @@ Get your bearings:
 ${this.kept()}- Recent dialogue you were shown, newest first: ${this.told()}
 - Listed here that you have not tried yet: ${this.untried()}
 Keep your thinking short and end this reply with one tool call: observe to look again, or press, navigate_to or another listed tool to act. If replies keep calling no tool after note ${String(limit)} of ${String(limit)}, the run ends.`;
-  return text;
+  return this.features["text-only-supervisor-v2"]?text.replace(`If replies keep calling no tool after note ${String(limit)} of ${String(limit)}, the run ends.`,policy):text;
  }
 
 }

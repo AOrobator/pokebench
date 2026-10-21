@@ -1,10 +1,11 @@
+import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
 // open-goal-prompt-v1: the system prompt's goal sentence names no town, gym or leader. Run
 // 2026-10-16T12-42-29_qwen36-gpu0_4caa at T273 read "the LAB" as being in Rustboro City, a town no
 // game text in that run had named; the only source was the goal sentence. test-support/open-goal-4caa.json
 // holds that run's run_start (features and system prompt) and its T273 reasoning.
 import {readFileSync} from "node:fs";
 import {expect,it} from "vitest";
-import {ALL_ON,SERVER_FEATURES,SWITCHABLE_FEATURES,dependencyProblems,featureInfo,featuresOf,playHarnessFeatures,type FeatureSet} from "./features.js";
+import {SERVER_FEATURES,SWITCHABLE_FEATURES,dependencyProblems,featureInfo,featuresOf,playHarnessFeatures,type FeatureSet} from "./features.js";
 import {GOAL_SENTENCE,OPEN_GOAL_SENTENCE,OPEN_PLAY_GOAL,PLAY_GOAL,PLAY_SYSTEM_PROMPT,objectiveSwitches,playGoal,playSystemPrompt,playTools,toolSwitches} from "./play-config.js";
 import {deriveStatus,parseExperiment} from "./experiments.js";
 import {flagFeatures,normalizeFeatures,parsePlayPreset,presetFeatures} from "./play-preset.js";
@@ -16,6 +17,9 @@ const RUN4CAA=JSON.parse(readFileSync(new URL("../test-support/open-goal-4caa.js
 const BUNDLE:FeatureSet=featuresOf(RUN4CAA.harness_features);
 const with_=(features:FeatureSet,value:boolean):FeatureSet=>({...features,[ID]:value});
 const PLACES=/\b(rustboro|petalburg|oldale|littleroot|gym|leader|roxanne|badge|city|town|lab)\b/i;
+const OLD_WARP_RULE="Warp destinations are the map you arrive on: its name when the game's map table has one";
+const KNOWN_WARP_RULE="Warp destinations are the map you arrive on: a name the game displays when one is available";
+const currentPrompt=(recorded:string):string=>recorded.replace(OLD_WARP_RULE,KNOWN_WARP_RULE);
 
 it("is a default-off agent-side guidance switch recorded right after people-id-cards-v1",()=>{
  expect(featureInfo(ID)).toMatchObject({group:"guidance",needs:null,switchable:true,title:"OPEN GOAL"});
@@ -30,7 +34,7 @@ it("is a default-off agent-side guidance switch recorded right after people-id-c
 });
 
 it("reads presets and legacy flags without the switch as OFF and keeps an explicit ON",()=>{
- const without=Object.fromEntries(Object.entries({...ALL_ON,"state-only-decisions-v1":false}).filter(([id])=>id!==ID)) as Omit<FeatureSet,typeof ID>;
+ const without=Object.fromEntries(Object.entries({...ALL_ON,"battle-decision-ready-v1":false,"state-only-decisions-v1":false}).filter(([id])=>id!==ID)) as Omit<FeatureSet,typeof ID>;
  expect(normalizeFeatures(without)[ID]).toBe(false);
  expect(normalizeFeatures({...without,[ID]:true})[ID]).toBe(true);
  expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:true})[ID]).toBe(false);
@@ -45,12 +49,12 @@ it("the recorded failure: run 4caa's prompt named Rustboro and its T273 reasonin
 
 it("OFF reproduces run 4caa's recorded system prompt byte for byte",()=>{
  expect(BUNDLE[ID]).toBe(false);
- expect(playSystemPrompt(BUNDLE,null)).toBe(RUN4CAA.system_prompt);
+ expect(playSystemPrompt(BUNDLE,null)).toBe(currentPrompt(RUN4CAA.system_prompt));
  expect(playGoal(null,BUNDLE)).toBe(PLAY_GOAL);
 });
 
 it("ON replaces exactly the goal sentence and nothing else; tools are unchanged",()=>{
- expect(playSystemPrompt(with_(BUNDLE,true),null)).toBe(RUN4CAA.system_prompt.replace(GOAL_SENTENCE,OPEN_GOAL_SENTENCE));
+ expect(playSystemPrompt(with_(BUNDLE,true),null)).toBe(currentPrompt(RUN4CAA.system_prompt).replace(GOAL_SENTENCE,OPEN_GOAL_SENTENCE));
  for(const base of [BUNDLE,with_(ALL_ON,false),{...with_(ALL_ON,false),"contextual-interface-docs-v1":false}]){
   const off=playSystemPrompt(base,null),on=playSystemPrompt(with_(base,true),null);
   expect(off.split(GOAL_SENTENCE)).toHaveLength(2);
@@ -100,11 +104,13 @@ it("the pending experiment's incumbent is the bundle-v-control bundle arm and fl
  expect(raw.changedFeature).toBe(ID);
  expect(raw.queuePosition).toBeUndefined();
  expect(raw.externalCohort).toBeUndefined();
- const named=SWITCHABLE_FEATURES.slice(0,SWITCHABLE_FEATURES.indexOf(ID)+1);
+ const historical=SWITCHABLE_FEATURES.filter(id=>id!=="short-cycle-fixed-point-v1"&&id!=="navigation-tool-use-guard-v1"&&id!=="semantic-current-map-feedback-v1"&&id!=="navigation-refusal-reasons-v3"&&id!=="exit-labels-v3"&&id!=="story-battle-heal-first-v1"&&id!=="party-item-confirmation-v1"&&id!=="observed-instructions-v1"&&id!=="evolution-decision-v1"&&id!=="safe-navigation-strides-v1"&&id!=="battle-decision-ready-v1"&&id!=="deterministic-warp-navigation-v1"&&id!=="battle-effective-damage-v1"&&id!=="scripted-place-guidance-v1"&&id!=="trigger-script-loop-v1").filter(id=>id!=="just-in-time-prompt-v2"&&id!=="faced-interaction-history-v1");
+ const named=historical.slice(0,historical.indexOf(ID)+1);
+ expect(named.at(-1)).toBe(ID);
  expect(Object.keys(raw.incumbent.features).slice(0,named.length)).toEqual(named);
  const bundleArm={...bundle.base.features,...Object.fromEntries(bundle.switches.map(s=>[s,true]))};
- for(const [id,value] of Object.entries(raw.incumbent.features))expect([id,value]).toEqual([id,id===ID?false:bundleArm[id]]);
- for(const id of bundle.switches)expect([id,raw.incumbent.features[id]]).toEqual([id,id!==ID]);
+ for(const [id,value] of Object.entries(raw.incumbent.features))expect([id,value]).toEqual([id,id===ID?false:(bundleArm[id]??false)]);
+ for(const id of bundle.switches.filter(id=>id in raw.incumbent.features))expect([id,raw.incumbent.features[id]]).toEqual([id,id!==ID]);
 });
 
 it("the pending entry never joins the queue by itself: it stays blocked as a bundle-arm switch even once readiness passes",()=>{

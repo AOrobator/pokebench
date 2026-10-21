@@ -1,11 +1,15 @@
 import type {AgentMessage,AgentTool} from "@mariozechner/pi-agent-core";
+import {battleEngaged} from "./battle-text-auto-advance.js";
 import {withDialogueAutoAdvance,type AutoAdvanceRecorder} from "./dialogue-auto-advance.js";
 import {dialogueLog} from "./dialogue-log.js";
-import type {StateSource} from "./game-state.js";
+import {parseGameState,type StateSource} from "./game-state.js";
 import {withNavigation,type NavigationPorts} from "./navigation.js";
 import {withNavigateFirst} from "./navigate-first.js";
-import {withLowHpTrainerWarning,type WarningRecorder} from "./low-hp-trainer-warning.js";
+import {healArm,withLowHpTrainerWarning,type HealArm,type WarningRecorder} from "./low-hp-trainer-warning.js";
+import {StoryBattleHealGate,withStoryBattleHealGate,type GateDecision} from "./story-battle-heal-gate.js";
+import {withHealFirst,type HealFirstRecorder} from "./heal-first.js";
 import type {FeatureSet} from "./features.js";
+import {ContextBudget,budgetLimit,type BudgetTrim} from "./context-budget.js";
 import {instructionLedger} from "./instruction-ledger.js";
 import {disprovedBeliefs} from "./disproved-beliefs.js";
 import {SamePlanBreaker} from "./same-plan.js";
@@ -13,8 +17,11 @@ import {nextMilestoneHint} from "./milestone-hint.js";
 import type {LoopDetector,LoopKind} from "./loop-detection.js";
 import {SupervisorBriefing} from "./loop-supervisor.js";
 import {StallBriefing} from "./stall-briefing.js";
+import {StoryCharacterGate} from "./stall-gate.js";
+import {fixedPointBreaker,type FixedPointBreaker} from "./fixed-point-breaker.js";
 import {navigationMemory} from "./navigation-memory.js";
 import {withPeopleLedger} from "./people-ledger.js";
+import {withGymReadiness} from "./gym-readiness.js";
 import {withPeopleIdCards,type IdCardRecorder} from "./people-id-cards.js";
 import {withStoryDestinations} from "./story-destinations.js";
 import {withInstructionLedgerV2} from "./instruction-ledger-v2.js";
@@ -22,29 +29,48 @@ import {withBattleAction} from "./battle-action.js";
 import {withHarnessTrust,type TrustRecorder} from "./harness-trust.js";
 import {withCitedDestination,type CitationRecorder} from "./cited-destination.js";
 import {withUntakenExits} from "./untaken-exits.js";
+import {withSemanticNavigation} from "./semantic-navigation.js";
 import {withNoExitHere} from "./no-exit-here.js";
 import {withResultFacts} from "./result-facts.js";
 import type {RunRecorder} from "./recorder.js";
 import {STALL_STOP_MS,StallStop,type RunControl} from "./run-control.js";
 import {TEXT_ONLY_NOTE_LIMIT,contextWindow,withoutTextOnlyReplies,type Window} from "./harness.js";
+import {withStarterDecision} from "./starter-decision.js";
+import {VisitedTerrain,withVisitedTerrain} from "./visited-terrain.js";
+
+import {observedInstructions} from "./observed-instructions.js";
+import {withUnfinishedActivity,type ActivityRecorder} from "./unfinished-activity.js";
+import type {TrainerSightCheck,TrainerSightPorts} from "./trainer-sight.js";
 
 type Transform=(messages:AgentMessage[])=>Promise<AgentMessage[]>;
-type WiringRecorder=Pick<RunRecorder,"subscribe"|"recordNavigationContext"|"recordLedgerContext"|"recordMilestoneHint"|"recordBeliefLedger">;
+type WiringRecorder=Pick<RunRecorder,"subscribe"|"recordNavigationContext"|"recordLedgerContext"|"recordMilestoneHint"|"recordBeliefLedger"|"recordLoopBreaker">;
 
 // The switch-dependent memory tools and the context chain a play run delivers to the model.
-export function contextTools(features:FeatureSet,recorder:WiringRecorder,base:Transform):{tools:AgentTool[];transformContext:Transform;window:Window}{
+export function contextTools(features:FeatureSet,recorder:WiringRecorder,base:Transform):{tools:AgentTool[];transformContext:Transform;window:Window;breaker:FixedPointBreaker|null}{
  const tools:AgentTool[]=[];
- const memory=navigationMemory(features,recorder,base);
+ const observedBase=observedInstructions(features,recorder,base);
+ const memory=navigationMemory(features,recorder,observedBase);
  if(memory!==null)tools.push(memory.tool);
  const dialogue=dialogueLog(features,recorder);
  if(dialogue!==null)tools.push(dialogue);
- const ledger=instructionLedger(features,recorder,memory?.transformContext??base);
+ const ledger=instructionLedger(features,recorder,memory?.transformContext??observedBase);
  if(ledger!==null)tools.push(ledger.tool);
- const hint=nextMilestoneHint(features,recorder,ledger?.transformContext??memory?.transformContext??base);
+ const hint=nextMilestoneHint(features,recorder,ledger?.transformContext??memory?.transformContext??observedBase);
  if(hint!==null)tools.push(hint.tool);
- const hinted=hint?.transformContext??ledger?.transformContext??memory?.transformContext??base;
+ const hinted=hint?.transformContext??ledger?.transformContext??memory?.transformContext??observedBase;
  const chain=disprovedBeliefs(features,recorder,hinted)?.transformContext??hinted;
- return {tools,transformContext:features["fresh-retry-v1"]?messages=>chain(withoutTextOnlyReplies(messages)):chain,window:contextWindow(features)};
+ const inner:Transform=features["fresh-retry-v1"]?messages=>chain(withoutTextOnlyReplies(messages)):chain;
+ // fixed-point-breaker-v1 or duplicate-turn-collapse-v1: duplicate turns collapse before every other step;
+ // fixed-point-breaker-v1 alone ends the request with its note.
+ const breaker=fixedPointBreaker(features,recorder);
+ const note=features["fixed-point-breaker-v1"];
+ return {tools,transformContext:breaker===null?inner:async messages=>{const out=await inner(breaker.collapse(messages));return note?breaker.note(out):out;},window:contextWindow(features),breaker};
+}
+
+// context-token-budget-v1: fit each request to the served context; each trim is recorded as a compaction.
+export function contextBudget(features:FeatureSet,model:{readonly contextWindow:number},maxTokens:number,recorder:Pick<RunRecorder,"compaction">):{budget?:ContextBudget;onBudgetTrim?:(trim:BudgetTrim)=>void}{
+ if(!features["context-token-budget-v1"])return {};
+ return {budget:new ContextBudget(budgetLimit(model.contextWindow,maxTokens)),onBudgetTrim:trim=>{recorder.compaction(trim.from,trim.predicted);}};
 }
 
 // The loop guard's supervisor briefing, when that switch is on.
@@ -56,20 +82,25 @@ export function loopSupervisor(features:FeatureSet,recorder:Pick<RunRecorder,"su
 
 // stall-briefing-v1: supervisor notes for map ping-pong and milestone droughts, timed on unpaused play.
 // same-plan-breaker-v1: a supervisor note when the stated plan repeats while the game does not move on.
-export function stallBriefing(features:FeatureSet,recorder:Pick<RunRecorder,"subscribe">,detector:Pick<LoopDetector,"stall">,control:Pick<RunControl,"pausedMs">,elapsed:()=>number):StallBriefing|null {
+export function stallBriefing(features:FeatureSet,recorder:Pick<RunRecorder,"subscribe"|"recordStallGate"|"recordLoopGuard">,detector:Pick<LoopDetector,"stall">,control:Pick<RunControl,"pausedMs">,elapsed:()=>number):StallBriefing|null {
  if(features["same-plan-breaker-v1"]){const plans=new SamePlanBreaker(features,detector);recorder.subscribe(event=>{plans.observe(event);});}
  if(!features["stall-briefing-v1"])return null;
  const briefing=new SupervisorBriefing(features);recorder.subscribe(event=>{briefing.observe(event);},true);
- const stall=new StallBriefing(features,()=>elapsed()-control.pausedMs(),detector,(kind,calls)=>briefing.stallText(kind,calls));
+ // story-character-stall-gate-v1: the gate reads each event before the stall check that the same event runs.
+ const gate=features["story-character-stall-gate-v1"]?new StoryCharacterGate(recorder):null;
+ if(gate!==null)recorder.subscribe(event=>{gate.observe(event);});
+ // positive-supervisor-v1: retired stall briefings stay in the record as diagnostics; the model is not sent them.
+ const retired=features["positive-supervisor-v1"]?(kind:"map_cycle"|"milestone_drought",text:string,evidence:readonly number[]):void=>{recorder.recordLoopGuard({kind,message:`Not sent (positive-supervisor-v1): ${text}`,calls:0,evidence:evidence.filter((v,i,all)=>all.indexOf(v)===i),mode:"diagnostic",phase:"would_warn"});}:null;
+ const stall=new StallBriefing(features,()=>elapsed()-control.pausedMs(),detector,(kind,calls)=>briefing.stallText(kind,calls),gate,retired);
  recorder.subscribe(event=>{stall.observe(event);});
  return stall;
 }
 
 // text-only-supervisor-v1: the recorded note the governor sends instead of ending the run.
-export function textOnlySupervisor(features:FeatureSet,recorder:Pick<RunRecorder,"subscribe"|"textOnlySupervisor">):((replies:number,note:number)=>string)|undefined {
+export function textOnlySupervisor(features:FeatureSet,recorder:Pick<RunRecorder,"subscribe"|"textOnlySupervisor">,replyFailuresEndRun=true):((replies:number,note:number)=>string)|undefined {
  if(!features["text-only-supervisor-v1"])return undefined;
  const briefing=new SupervisorBriefing(features);recorder.subscribe(event=>{briefing.observe(event);},true);
- return (replies,note)=>{const text=briefing.textOnly(replies,note,TEXT_ONLY_NOTE_LIMIT);recorder.textOnlySupervisor(replies,note,TEXT_ONLY_NOTE_LIMIT,text);return text;};
+ return (replies,note)=>{const text=briefing.textOnly(replies,note,TEXT_ONLY_NOTE_LIMIT,replyFailuresEndRun);recorder.textOnlySupervisor(replies,note,TEXT_ONLY_NOTE_LIMIT,text);return text;};
 }
 
 // milestone-stall-stop-v1: ends the run as stalled after STALL_STOP_MS of unpaused play
@@ -94,8 +125,66 @@ export function stallStop(features:FeatureSet,recorder:Pick<RunRecorder,"subscri
 // its line sits right under the Press result or Navigation line, before any other wrapper adds text.
 // cited-destination-v1 wraps all of that, so its line sits right under harness-trust-v1's header, which is outermost and
 // therefore the first thing in every result.
-export function playGameTools(base:readonly AgentTool[],features:FeatureSet,state:StateSource,recorder:AutoAdvanceRecorder&WarningRecorder&IdCardRecorder&TrustRecorder&Pick<CitationRecorder,"destinationCitation">,gate?:NavigationPorts["gate"],extra:readonly AgentTool[]=[]):AgentTool[]{
- const facts=[...withResultFacts(withLowHpTrainerWarning(withNavigateFirst([...withInstructionLedgerV2(withStoryDestinations(withPeopleIdCards(withUntakenExits(withPeopleLedger(withDialogueAutoAdvance(withBattleAction(withNoExitHere(withNavigation(base,features,state,gate),features),features,state,gate),features,{state,recorder}),features,recorder),features,recorder),features,recorder),features,recorder,state),features,recorder),...extra],features),features,recorder,state),features,recorder)];
- const cited=withCitedDestination(facts,features["cited-destination-v1"],recorder,{fullMap:features["full-map-navigation-v1"],exitReach:features["exit-reachability-v1"]});
- return withHarnessTrust(cited,features["harness-trust-v1"],recorder,state,{supervisor:true,battleAction:features["harness-trust-v2"]});
+// story-battle-heal-first-v1 wraps everything, harness-trust-v1's header included, so its line is the first line of every
+// result it fires on (right under that header when the header is there), a story-battle-heal-gate-v1 refusal among them.
+// trainer-sight-check-v1 asks the game server through the same state source (POST /pokebench/trainer-sight) and records
+// each check as a trainer_sight_check event.
+export interface SightRecorder {trainerSightCheck?(check:TrainerSightCheck):void}
+function trainerSight(state:StateSource,recorder:SightRecorder):TrainerSightPorts {
+ return {
+  check:(mapId,tiles,signal)=>state.trainerSight===undefined?Promise.reject(new Error("trainer-sight-check-v1 needs a game server that serves /pokebench/trainer-sight")):state.trainerSight(mapId,tiles,signal),
+  record:check=>{if(recorder.trainerSightCheck===undefined)throw new Error("trainer-sight-check-v1 needs a recorder for trainer_sight_check events");recorder.trainerSightCheck(check);},
+ };
+}
+// story-battle-heal-gate-v1 shares heal-before-trainers' arm (its map table and heal-place list) with the warnings, asks
+// the same trainer sight endpoint, and records each decision as a story_battle_heal_gate event. Its press and
+// navigate_to_target check sits right inside the warnings, so a refusal's observation gets their paragraphs like any
+// other result; its navigate_to check is navigate_to's own, beside trainer-sight-check-v1's.
+export interface GateRecorder {storyBattleHealGate?(decision:GateDecision):void}
+function storyBattleHealGate(arm:HealArm,state:StateSource,recorder:GateRecorder):StoryBattleHealGate {
+ const record=recorder.storyBattleHealGate?.bind(recorder);
+ if(record===undefined)throw new Error("story-battle-heal-gate-v1 needs a recorder for story_battle_heal_gate events");
+ const heal=arm.heal;
+ if(heal===null)throw new Error("story-battle-heal-gate-v1 needs heal-before-trainers-v1's arm");
+ return new StoryBattleHealGate({places:arm.table,heal:s=>heal.known(s),check:(mapId,tiles,signal)=>state.trainerSight===undefined?Promise.reject(new Error("story-battle-heal-gate-v1 needs a game server that serves /pokebench/trainer-sight")):state.trainerSight(mapId,tiles,signal),record});
+}
+export function playGameTools(base:readonly AgentTool[],features:FeatureSet,state:StateSource,recorder:AutoAdvanceRecorder&WarningRecorder&IdCardRecorder&TrustRecorder&Pick<CitationRecorder,"destinationCitation">&Pick<ActivityRecorder,"unfinishedActivity">&SightRecorder&GateRecorder&HealFirstRecorder,gate?:NavigationPorts["gate"],extra:readonly AgentTool[]=[]):AgentTool[]{
+ const terrain=features["visited-terrain-navigation-v1"]&&!features["full-map-navigation-v1"]?new VisitedTerrain():null;
+ const navigationState=terrain?.source(state)??state;
+ const sight=features["trainer-sight-check-v1"]?trainerSight(state,recorder):undefined;
+ const arm=features["story-battle-heal-gate-v1"]?healArm(features,state):undefined;
+ const healGate=arm===undefined?undefined:storyBattleHealGate(arm,state,recorder);
+ const navigated=withSemanticNavigation(withNavigation(base,features,navigationState,gate,sight,healGate),features,navigationState);
+ const facts=[...withResultFacts(withUnfinishedActivity(withLowHpTrainerWarning(withStoryBattleHealGate(withNavigateFirst([...withInstructionLedgerV2(withStoryDestinations(withPeopleIdCards(withUntakenExits(withGymReadiness(withPeopleLedger(withDialogueAutoAdvance(withBattleAction(withNoExitHere(navigated,features),features,state,gate),features,{state,recorder,...(gate===undefined?{}:{gate})}),features,recorder),features,recorder),features,recorder),features,recorder),features,recorder,state),features,recorder),...extra],features),healGate,state),features,recorder,state,arm),features,recorder,state),features,recorder)];
+ const visible=terrain===null?facts:withVisitedTerrain(facts,terrain);
+ const cited=withCitedDestination(visible,features["cited-destination-v1"],recorder,{fullMap:features["full-map-navigation-v1"],exitReach:features["exit-reachability-v1"],silenceMiss:features["input-cuts-v1"]});
+ return withHealFirst(withStarterDecision(withHarnessTrust(cited,features["harness-trust-v1"],recorder,state,{supervisor:true,semanticTargets:features["semantic-navigation-v2"],battleAction:features["harness-trust-v2"],goalOnce:features["input-cuts-v1"],retireLab:features["stale-story-goal-v1"],stageBound:features["stale-story-goal-v2"],omitEmptyGoal:features["stale-story-goal-v2"],scriptedGuidance:features["scripted-place-guidance-v1"],reachableGoal:features["reachable-story-guidance-v1"],exitSections:features["exit-labels-v3"],activity:features["unfinished-activity-v1"]}),features),features["story-battle-heal-first-v1"],recorder,state);
+}
+
+
+export function battleDecisionContext(features:FeatureSet,state:StateSource,tools:readonly AgentTool[],base:Transform,recorder:Pick<RunRecorder,"recordDecisionSnapshot">,signal?:AbortSignal):Transform {
+ if(!features["battle-decision-ready-v1"])return base;
+ const observe=tools.find(t=>t.name==="observe");
+ if(observe===undefined)throw new Error("Battle decision readiness requires observe");
+ let sequence=0;
+ let retained:AgentMessage|null=null,observedAt:string|null=null;
+ const gameTools=new Set(["observe","press","navigate_to","navigate_to_target","explore_map","battle_action","act",...(features["evolution-decision-v1"]?["choose_evolution"]:[])]);
+ return async messages=>{
+  const latest=messages.findLast(message=>message.role==="toolResult"&&gameTools.has(message.toolName)&&!message.isError&&message.content.some(part=>part.type==="image"));
+  const anchor=latest?.role==="toolResult"?JSON.stringify([latest.toolName,latest.toolCallId,latest.timestamp]):null;
+  if(anchor!==null&&anchor!==observedAt)retained=null;
+  signal?.throwIfAborted();
+  const current=await state.read(signal);
+  if(!battleEngaged(current))return base(retained===null?messages:[...messages,retained]);
+  const result=await observe.execute(`battle-ready-${String(++sequence)}`,{},signal);
+  const image=result.content.find(c=>c.type==="image");
+  const details:unknown=result.details;
+  if(image===undefined||typeof details!=="object"||details===null||!("state" in details))throw new Error("Battle readiness observation lacks a coherent snapshot");
+  const text=result.content.flatMap(c=>c.type==="text"?[c.text]:[]).join("\n");
+  const snapshot={state:parseGameState(details.state),content:[image,{type:"text" as const,text}]} as const;
+  recorder.recordDecisionSnapshot(snapshot);
+  observedAt=anchor;
+  retained={role:"user",content:[{type:"text",text:"Harness battle update before your next decision:"},...snapshot.content],timestamp:Date.now()};
+  return base([...messages,retained]);
+ };
 }

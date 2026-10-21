@@ -10,7 +10,7 @@ import { connect } from "node:net";
 import { HOST, startViewer, type Viewer, type ViewerOptions } from "./server.js";
 
 // The fixture run's game server (port 8011 in START) answers /health.
-const gameUp: typeof fetch = (input) => Promise.resolve(new Response("{}", { status: typeof input === "string" && input === "http://127.0.0.1:8011/health" ? 200 : 404 }));
+const gameUp: typeof fetch = (input) => Promise.resolve(new Response("{}", { status: typeof input === "string" && /^http:\/\/127\.0\.0\.1:801[12]\/health$/.test(input) ? 200 : 404 }));
 
 const open: Viewer[] = [];
 afterEach(async () => { while (open.length > 0) await open.pop()?.close(); });
@@ -37,8 +37,9 @@ function call(v: Viewer, method: string, path: string, body?: unknown, headers: 
   });
 }
 
-function liveRun(runsRoot: string, id: string): void {
-  const log = new Log(); log.add(0, START);
+// Each run owns its own game-server port (INV-7); a second live run gets 8012.
+function liveRun(runsRoot: string, id: string, extend = false, port = 8011): void {
+  const log = new Log(); log.add(0, { ...START, isolation: { ...START.isolation, port }, ...(extend ? { extend_run: true as const } : {}) });
   mkdirSync(join(runsRoot, id), { recursive: true });
   writeFileSync(join(runsRoot, id, "events.jsonl"), log.events.map((e) => JSON.stringify({ ...e, run: id })).join("\n") + "\n");
 }
@@ -89,7 +90,7 @@ describe("next run", () => {
     const base = mkdtempSync(join(tmpdir(), "viewer-queue-"));
     writeFileSync(join(base, "endpoint.json"), JSON.stringify({ base_url: "http://127.0.0.1:18434/v1", api_key: "k" }));
     const router: typeof fetch = (input) => Promise.resolve(new Response(JSON.stringify({ data: [{ id: "Qwen", status: { value: "loaded", args: ["--mmproj", "m", "--ctx-size", "262144"] } }, { id: "TextOnly", status: { value: "loaded", args: ["--ctx-size", "8192"] } }, { id: "Asleep", status: { value: "unloaded", args: ["--mmproj", "m", "--ctx-size", "8192"] } }, { id: "NoContext", status: { value: "loaded", args: ["--mmproj", "m"] } }] }), { status: input === "http://127.0.0.1:18434/v1/models" ? 200 : 404 }));
-    const queue = new RunQueue({ runsRoot: join(base, "runs"), liveJs: "/x/live.js", endpointFile: join(base, "endpoint.json"), gamePort: 8076, healthy: () => Promise.resolve(false), now: () => new Date("2026-10-13T16:00:00.000Z"), random: () => "cd34", launch: () => new Promise(() => undefined) });
+    const queue = new RunQueue({ runsRoot: join(base, "runs"), liveJs: "/x/live.js", endpointFile: join(base, "endpoint.json"), leasePool: () => "127.0.0.1:18434", gamePort: 8076, healthy: () => Promise.resolve(false), now: () => new Date("2026-10-13T16:00:00.000Z"), random: () => "cd34", launch: () => new Promise(() => undefined) });
     const { viewer: v } = await viewer({ queue, runsRoot: join(base, "runs"), endpointFile: join(base, "endpoint.json"), fetchFn: router });
     const unknown = await call(v, "POST", "/api/next-run/queue", { ...DEFAULT_NEXT_RUN, model: "invented" });
     expect(unknown.status).toBe(409);
@@ -208,4 +209,18 @@ describe("public origins", () => {
     const { viewer: v } = await viewer({ fetchFn: gameUp });
     expect((await call(v, "GET", "/api/features", undefined, { host: "studio.example.ts.net:8447" })).status).toBe(403);
   });
+});
+
+it("enqueues only finite extensions for capable live agents", async () => {
+  const { viewer: v, runsRoot } = await viewer({ fetchFn: gameUp, now: () => new Date("2026-10-19T17:00:00Z") });
+  liveRun(runsRoot, "capable", true); liveRun(runsRoot, "old", false, 8012);
+  expect(await call(v, "POST", "/api/runs/capable/control", { action: "extend_30m" })).toEqual({ status: 200, json: { request: 1 } });
+  expect(await call(v, "POST", "/api/runs/capable/control", { action: "extend_60m" })).toEqual({ status: 200, json: { request: 2 } });
+  expect((await call(v, "POST", "/api/runs/old/control", { action: "extend_30m" })).status).toBe(409);
+  expect((await call(v, "POST", "/api/runs/capable/control", { action: "extend_indefinitely" })).status).toBe(400);
+  expect((await call(v, "POST", "/api/runs/capable/control", { action: "extend_30m", minutes: -1 })).status).toBe(400);
+  expect(readFileSync(join(runsRoot, "capable", "control.jsonl"), "utf8").trim().split("\n").map(line => JSON.parse(line) as unknown)).toEqual([
+    { v: 1, seq: 1, at: "2026-10-19T17:00:00.000Z", action: "extend_30m" },
+    { v: 1, seq: 2, at: "2026-10-19T17:00:00.000Z", action: "extend_60m" },
+  ]);
 });

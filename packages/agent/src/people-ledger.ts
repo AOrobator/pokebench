@@ -8,6 +8,7 @@ import {isCheckedPress,type CheckedPressTool} from "./game-tools.js";
 import {parseGameState,type GameStateSnapshot} from "./game-state.js";
 import type {RunRecorder} from "./recorder.js";
 import {COUNTER} from "./tile-rules.js";
+import {semanticWalk} from "./semantic-targets.js";
 
 type Snapshot=Pick<GameStateSnapshot,"map_id"|"position"|"facing"|"interaction_targets"|"navigation_grid">;
 export interface MapObject {readonly key:string;readonly local_id:number;readonly sprite:string|null;readonly x:number;readonly y:number;readonly elevation:number}
@@ -68,6 +69,20 @@ function presence(readout:string):Presence|null {
  // A template tile ("it may have moved") is not where the object stands, so it names no one.
  for(const item of here){const at=/^(.+?) at (-?\d+),(-?\d+)(?: \(out of view\))?$/.exec(item);if(at!==null)placed.set(`${at[2] ?? ""},${at[3] ?? ""}`,at[1] ?? "");}
  return {here,absent,placed};
+}
+
+// story-character-stall-gate-v1: each story character the readout places on this map, with its tile when it gives one,
+// from character-presence-v1's own line or the ledger's shorter copy of it.
+const CHARACTERS=/^Story characters here(?: \(from this map's own object list\))?: (.+?)\. Not on this map: /m;
+export function storyCharacters(readout:string):{readonly name:string;readonly tile:{readonly x:number;readonly y:number}|null;readonly text:string}[]|null {
+ const found=CHARACTERS.exec(readout)?.[1];
+ if(found===undefined)return null;
+ if(found==="none")return [];
+ return entries(found).map(item=>{
+  const at=/^(.+?) at (-?\d+),(-?\d+)(?: \(.*\))?$/.exec(item);
+  if(at!==null)return {name:at[1]??"",tile:{x:Number(at[2]),y:Number(at[3])},text:item};
+  return {name:item.replace(/ \(.*\)$/,""),tile:null,text:item};
+ });
 }
 
 const plural=(n:number,word:string)=>`${String(n)} ${word}${n===1?"":"s"}`;
@@ -148,10 +163,10 @@ export function withPeopleLedger(tools:readonly AgentTool[],features:FeatureSet,
   return {...result,content};
  };
  return tools.map(tool=>{
-  if(tool.name!=="observe"&&tool.name!=="press"&&tool.name!=="navigate_to")return tool;
+  if(tool.name!=="observe"&&tool.name!=="press"&&tool.name!=="navigate_to"&&!semanticWalk(tool.name,features))return tool;
   const execute:AgentTool["execute"]=async(id,params,signal,update)=>annotate(id,await tool.execute(id,params,signal,update));
   if(!isCheckedPress(tool))return {...tool,execute};
-  const checked:CheckedPressTool={...tool,execute:async(id,params,signal,update)=>annotate(id,await tool.execute(id,params,signal,update)),executeChecked:async(id,params,check,signal,update)=>annotate(id,await tool.executeChecked(id,params,check,signal,update))};
+  const checked:CheckedPressTool={...tool,execute:async(id,params,signal,update)=>annotate(id,await tool.execute(id,params,signal,update)),executeChecked:async(id,params,check,signal,update,options)=>annotate(id,await tool.executeChecked(id,params,check,signal,update,options))};
   return checked;
  });
 }

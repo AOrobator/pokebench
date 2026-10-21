@@ -1,6 +1,6 @@
 import * as fs from "node:fs";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { ServerResponse } from "node:http";
+import { get, ServerResponse } from "node:http";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, expect, it, vi } from "vitest";
@@ -70,38 +70,53 @@ it("delivers a line longer than the chunk whole", async () => {
   expect(text).toContain("event: done");
 });
 
-it("stops reading once a client abandons a long stream, and keeps serving", async () => {
-  const viewer = await serve("long", longRun(30000), 65536);
-  const read = fs.readSync;
+it("stops polling once a client abandons an active stream, and keeps serving", async () => {
+  const active = longRun(3);
+  active.events.pop(); // no run_end: after catch-up the live stream polls for appended events
+  const viewer = await serve("long", active, 4096);
+  const open = fs.openSync;
   let reads = 0;
-  vi.spyOn(fs, "readSync").mockImplementation(((...args: Parameters<typeof fs.readSync>) => { reads += 1; return read(...args); }));
-  const abort = new AbortController();
-  const reply = await fetch(new URL("api/runs/long/events", viewer.url), { signal: abort.signal });
-  await reply.body?.getReader().read();
-  abort.abort();
+  vi.spyOn(fs, "openSync").mockImplementation(((...args: Parameters<typeof fs.openSync>) => { reads += 1; return open(...args); }));
+  await new Promise<void>((resolve, reject) => {
+    const request = get(new URL("api/runs/long/events", viewer.url), (reply) => {
+      reply.once("data", () => { reply.destroy(); resolve(); });
+    });
+    request.once("error", reject);
+  });
   await new Promise((resolve) => { setTimeout(resolve, 50); });
   const after = reads;
   await new Promise((resolve) => { setTimeout(resolve, 100); });
   expect(reads).toBe(after);
   vi.restoreAllMocks();
   expect((await fetch(new URL("api/runs", viewer.url))).status).toBe(200);
-  expect(await (await fetch(new URL("api/runs/long/events", viewer.url))).text()).toContain("event: done");
+  const short = longRun(2), runsRoot = join(roots.at(-1) ?? "", "runs");
+  mkdirSync(join(runsRoot, "short"));
+  writeFileSync(join(runsRoot, "short", "events.jsonl"), short.events.map((e) => JSON.stringify({ ...e, run: "short" })).join("\n") + "\n");
+  expect(await (await fetch(new URL("api/runs/short/events", viewer.url))).text()).toContain("event: done");
 });
 
 it("answers another request while a stream waits on a slow reader, and stops reading meanwhile", async () => {
-  const log = longRun(30000);
-  const viewer = await serve("long", log, 65536);
+  const log = longRun(400);
+  const viewer = await serve("long", log, 4096);
   const read = fs.readSync;
   let reads = 0;
   vi.spyOn(fs, "readSync").mockImplementation(((...args: Parameters<typeof fs.readSync>) => { reads += 1; return read(...args); }));
+  const write = Reflect.get(ServerResponse.prototype, "write") as (this: ServerResponse, ...args: Parameters<ServerResponse["write"]>) => boolean;
+  const streams: ServerResponse[] = [];
+  vi.spyOn(ServerResponse.prototype, "write").mockImplementation(function (this: ServerResponse, ...args: Parameters<ServerResponse["write"]>): boolean {
+    const ok = Reflect.apply<ServerResponse, Parameters<ServerResponse["write"]>, boolean>(write, this, args);
+    if (this.req.url?.endsWith("/events") === true && streams.length === 0) { streams.push(this); return false; }
+    return ok;
+  });
   const reply = await fetch(new URL("api/runs/long/events", viewer.url));
   const reader = reply.body?.getReader();
   await reader?.read();
   const list = await fetch(new URL("api/runs", viewer.url));
   expect(list.status).toBe(200);
-  await new Promise((resolve) => { setTimeout(resolve, 100); });
-  const paused = reads, size = fs.statSync(join(roots.at(-1) ?? "", "runs", "long", "events.jsonl")).size;
-  expect(paused).toBeLessThan(size / 65536 / 2);
+  const paused = reads;
+  await new Promise((resolve) => { setImmediate(resolve); });
+  expect(reads).toBe(paused);
+  streams[0]?.emit("drain");
   let text = "";
   const decoder = new TextDecoder();
   for (;;) { const chunk = await reader?.read(); if (chunk === undefined || chunk.done) break; text += decoder.decode(chunk.value, { stream: true }); }
@@ -280,4 +295,97 @@ it("still yields between steps when the socket asks the stream to wait for drain
   running = false;
   expect(text).toContain("event: done");
   expect(new Set(seen).size).toBeGreaterThan(10);
+});
+
+it("boots at the recorded head and tails appends without replaying the prefix", async () => {
+  const log = new Log();
+  log.add(0, START);
+  for (let turn = 1; turn <= 40; turn++) {
+    log.add(turn * 1000, { type: "turn_start", turn, context: { messages: 1, images: 0, est_tokens: 10 } });
+    log.add(turn * 1000 + 1, assistant({ turn, thinking: `Turn ${String(turn)}` }));
+  }
+  log.add(50000, END);
+  const viewer = await serve("head-first", log, 512);
+  const text = await (await fetch(new URL("api/runs/head-first/events?head=1", viewer.url))).text();
+  const heads = [...text.matchAll(/^event: head\ndata: (.*)$/gm)].map(m => JSON.parse(m[1] ?? "null") as unknown);
+  expect(heads).toHaveLength(1);
+  expect(JSON.stringify(heads)).toContain("Turn 40");
+  expect(JSON.stringify(heads)).not.toContain('Turn 1"');
+  expect(events(text)).toEqual([]);
+  expect(text).toContain("event: done");
+});
+
+
+it("tails a line torn across the head cursor exactly once", async () => {
+  const log = new Log(); log.add(0, START);
+  const viewer = await serve("head-append", log, 128);
+  const path = join(roots.at(-1) ?? "", "runs", "head-append", "events.jsonl");
+  const fresh = { ...log.add(1000, assistant({ thinking: "Pokémon 🎮" })), run: "head-append" };
+  const line = JSON.stringify(fresh) + "\n";
+  const cut = line.indexOf("Pokémon") + 4;
+  fs.appendFileSync(path, line.slice(0, cut));
+  const controller = new AbortController();
+  const response = await fetch(new URL("api/runs/head-append/events?head=1", viewer.url), { signal: controller.signal });
+  const reader = response.body?.getReader();
+  if (reader === undefined) throw new Error("no stream body");
+  const decoder = new TextDecoder(); let text = "";
+  try {
+    while (!text.includes("event: caught_up")) {
+      const part = await reader.read(); if (part.done) throw new Error("stream ended before catch-up");
+      text += decoder.decode(part.value, { stream: true });
+    }
+    expect(events(text)).toEqual([]);
+    fs.appendFileSync(path, line.slice(cut));
+    while (!text.includes("event: ev")) {
+      const part = await reader.read(); if (part.done) throw new Error("stream ended before append");
+      text += decoder.decode(part.value, { stream: true });
+    }
+    expect(events(text)).toEqual([fresh]);
+  } finally { controller.abort(); await reader.cancel().catch(() => undefined); }
+});
+
+
+it("falls back to the diagnostic stream when the compact head is malformed", async () => {
+  const viewer = await serve("bad-head", longRun(2), 128);
+  const path = join(roots.at(-1) ?? "", "runs", "bad-head", "events.jsonl");
+  const lines = fs.readFileSync(path, "utf8").split("\n");
+  lines.splice(1, 0, "{broken"); fs.writeFileSync(path, lines.join("\n"));
+  const text = await (await fetch(new URL("api/runs/bad-head/events?head=1", viewer.url))).text();
+  expect(text).toContain('event: problem\ndata: {"line":2');
+  expect(text).toContain("event: done");
+  expect(events(text)).toHaveLength(4);
+});
+
+it("labels malformed appends relative to the head byte cursor after history catch-up", async () => {
+  const log = longRun(4); log.events.pop();
+  const viewer = await serve("tail-location", log, 128);
+  const path = join(roots.at(-1) ?? "", "runs", "tail-location", "events.jsonl");
+  const offset = fs.statSync(path).size;
+  const headAbort = new AbortController(), historyAbort = new AbortController();
+  const response = await fetch(new URL("api/runs/tail-location/events?head=1", viewer.url), { signal: headAbort.signal });
+  const reader = response.body?.getReader();
+  if (reader === undefined) throw new Error("no head stream");
+  const readUntil = async (source: ReadableStreamDefaultReader<Uint8Array>, marker: string): Promise<string> => {
+    const decoder = new TextDecoder(); let text = "";
+    while (!text.includes(marker)) {
+      const part = await source.read(); if (part.done) throw new Error(`stream ended before ${marker}`);
+      text += decoder.decode(part.value, { stream: true });
+    }
+    return text;
+  };
+  try {
+    await readUntil(reader, "event: caught_up");
+    const history = await fetch(new URL("api/runs/tail-location/events", viewer.url), { signal: historyAbort.signal });
+    const historyReader = history.body?.getReader();
+    if (historyReader === undefined) throw new Error("no history stream");
+    await readUntil(historyReader, "event: caught_up");
+    historyAbort.abort(); await historyReader.cancel().catch(() => undefined);
+    fs.appendFileSync(path, "{broken\n");
+    const text = await readUntil(reader, "event: problem");
+    const raw = /^event: problem\ndata: (.*)$/m.exec(text)?.[1];
+    if (raw === undefined) throw new Error(`missing problem in ${text}`);
+    const problem = JSON.parse(raw) as { line: unknown; problem: unknown };
+    expect(problem.line).toBe(`1 within tail starting at byte ${String(offset)}`);
+    expect(problem.problem).toContain("event line is not JSON");
+  } finally { headAbort.abort(); historyAbort.abort(); await reader.cancel().catch(() => undefined); }
 });

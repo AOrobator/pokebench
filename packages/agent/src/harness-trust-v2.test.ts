@@ -1,3 +1,4 @@
+import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
 // harness-trust-v2: harness-trust-v1's header on battle_action results too.
 import {describe,expect,it} from "vitest";
 import {readFileSync} from "node:fs";
@@ -5,7 +6,7 @@ import type {AgentTool,AgentToolResult} from "@mariozechner/pi-agent-core";
 import {Type} from "typebox";
 import {checkEvent,type RunEvent} from "./events.js";
 import {parseGameState,type GameStateSnapshot} from "./game-state.js";
-import {ALL_ON,SWITCHABLE_FEATURES,dependencyProblems,featureInfo,playHarnessFeatures,stateOnlyProblems,type FeatureSet} from "./features.js";
+import {SWITCHABLE_FEATURES,dependencyProblems,featureInfo,playHarnessFeatures,stateOnlyProblems,type FeatureSet} from "./features.js";
 import {flagFeatures,normalizeFeatures} from "./play-preset.js";
 import {TRUST_HEADER,withHarnessTrust,type StoryGoalAwayFacts} from "./harness-trust.js";
 import {playGameTools} from "./play-wiring.js";
@@ -48,12 +49,12 @@ describe("harness-trust-v2",()=>{
   expect(notes).toHaveLength(0);
  });
  it("is registered last, default off, needs harness-trust-v1, and the production factory honors it",async()=>{
-  expect(SWITCHABLE_FEATURES.at(-8)).toBe(ID);
-  expect(playHarnessFeatures(ALL_ON,null).at(-8)).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-69)).toBe(ID);
+  expect(playHarnessFeatures(ALL_ON,null).at(-33)).toBe(ID);
   expect(featureInfo(ID)).toMatchObject({switchable:true,group:"guidance",needs:"harness-trust-v1",title:"HARNESS TRUST ON BATTLE ACTIONS"});
   expect(featureInfo(ID).description).toContain(" Off: ");
-  expect(dependencyProblems({...ALL_ON,"harness-trust-v1":false})).toContain(`${ID} needs harness-trust-v1`);
-  expect(stateOnlyProblems({...ALL_ON,"state-only-decisions-v1":true})).toContain(`state-only-decisions-v1 requires ${ID} OFF`);
+  expect(dependencyProblems({...ALL_ON,"battle-decision-ready-v1":false,"harness-trust-v1":false})).toContain(`${ID} needs harness-trust-v1`);
+  expect(stateOnlyProblems({...ALL_ON,"battle-decision-ready-v1":false,"state-only-decisions-v1":true})).toContain(`state-only-decisions-v1 requires ${ID} OFF`);
   const rest=Object.fromEntries(Object.entries(ALL_ON).filter(([id])=>id!==ID)) as Omit<FeatureSet,typeof ID>;
   expect(normalizeFeatures(rest)[ID]).toBe(false);
   expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:true})[ID]).toBe(false);

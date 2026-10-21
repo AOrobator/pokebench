@@ -39,6 +39,7 @@ from typing import Literal, Protocol, TypeVar, cast
 
 from fastapi import FastAPI, HTTPException, Query
 
+from pokebench_env.caught_nickname import ACTION_FUNC, EXEC_SCRIPT, RUN_TURN_ACTIONS
 from pokebench_env.game_screen import GMAIN, ReadMemory
 from pokebench_env.native_text import CONTROL_ARGS, decode_native_text, native_text_payload
 
@@ -252,8 +253,24 @@ def read_battle_message(read: ReadMemory) -> BattleMessage:
         )
 
 
-def read_battle_prompt(read: ReadMemory) -> BattlePrompt | None:
-    if _u32(_exact(read, MAIN_FUNC, 4)) not in SCRIPT_OWNERS:
+def _script_running(read: ReadMemory, turn_action_script: bool) -> bool:
+    """The battle script runs this frame: under a script runner or, with caught-nickname-prompt-v1
+    (`turn_action_script`), under RunTurnActionsFunctions running a script action (a turn
+    action's script, such as a thrown ball's)."""
+    main = _u32(_exact(read, MAIN_FUNC, 4))
+    if main in SCRIPT_OWNERS:
+        return True
+    return (
+        turn_action_script
+        and main == RUN_TURN_ACTIONS
+        and _exact(read, ACTION_FUNC, 1)[0] == EXEC_SCRIPT
+    )
+
+
+def read_battle_prompt(
+    read: ReadMemory, *, turn_action_script: bool = False
+) -> BattlePrompt | None:
+    if not _script_running(read, turn_action_script):
         return None
     script = _u32(_exact(read, SCRIPT_PC, 4))
     if not 0x08000000 <= script < 0x0A000000:
@@ -340,14 +357,14 @@ def battle_input_ready(read: ReadMemory) -> bool:
     )
 
 
-def battle_text_phase(read: ReadMemory) -> TextPhase:
+def battle_text_phase(read: ReadMemory, *, turn_action_script: bool = False) -> TextPhase:
     """Inside a battle: what the battle text advance does next."""
     callback = _u32(_exact(read, GMAIN + 4, 4))
     if callback in BATTLE_HANDOFFS:
         return "busy"
     if callback != BATTLE_MAIN_CB2:
         return "screen"
-    prompt = read_battle_prompt(read)
+    prompt = read_battle_prompt(read, turn_action_script=turn_action_script)
     if prompt is not None and prompt.ready:
         return "prompt"
     if battle_input_ready(read):
@@ -358,13 +375,16 @@ def battle_text_phase(read: ReadMemory) -> TextPhase:
     return "busy"
 
 
-def wait_phase(read: ReadMemory, *, levelup_box: bool = False) -> WaitPhase:
+def wait_phase(
+    read: ReadMemory, *, levelup_box: bool = False, turn_action_script: bool = False
+) -> WaitPhase:
     """Any screen: "busy" while a battle (or its entry or exit) runs on its own.
 
     levelup-box-v1 (`levelup_box`): a level-up stats box waiting for a button ends the wait.
+    caught-nickname-prompt-v1 (`turn_action_script`): see read_battle_prompt.
     """
     if _exact(read, IN_BATTLE, 1)[0] & 2:
-        phase: WaitPhase = battle_text_phase(read)
+        phase: WaitPhase = battle_text_phase(read, turn_action_script=turn_action_script)
         if phase == "busy" and levelup_box:
             box = read_levelup_box(read)
             if box is not None and box.waiting:
@@ -513,9 +533,12 @@ class BattleWait:
     or returns to the field; or until a frame bound. With levelup-box-v1 a level-up stats box
     waiting for a button also ends it."""
 
-    def __init__(self, read: ReadMemory, *, levelup_box: bool = False) -> None:
+    def __init__(
+        self, read: ReadMemory, *, levelup_box: bool = False, turn_action_script: bool = False
+    ) -> None:
         self.read = read
         self.levelup_box = levelup_box
+        self.turn_action_script = turn_action_script
         self._lock = threading.Lock()
         self._waiters: list[_Waiter] = []
         self._parked = False
@@ -527,7 +550,11 @@ class BattleWait:
             if not self._waiters:
                 return
             try:
-                phase: WaitPhase = wait_phase(self.read, levelup_box=self.levelup_box)
+                phase: WaitPhase = wait_phase(
+                    self.read,
+                    levelup_box=self.levelup_box,
+                    turn_action_script=self.turn_action_script,
+                )
             except (ValueError, IndexError) as error:
                 for waiter in self._waiters:
                     waiter.error = error
@@ -570,7 +597,11 @@ class BattleWait:
             with self._lock:
                 if self._parked:
                     return capture(), "paused", 0
-                phase = wait_phase(self.read, levelup_box=self.levelup_box)
+                phase = wait_phase(
+                    self.read,
+                    levelup_box=self.levelup_box,
+                    turn_action_script=self.turn_action_script,
+                )
                 if phase != "busy":
                     return capture(), phase, 0
                 waiter = _Waiter(capture, bound_frames)

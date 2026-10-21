@@ -218,8 +218,10 @@ describe("splits", () => {
     expect(table).toContain('0:00:02<br><span class="d-behind">+0:01</span>');
     expect(table).toContain('<tr class="next"><td class="n">intro cutscene complete</td><td class="t">0:00:07…</td>');
     expect(table).toContain('<tr class="todo"><td class="n">route 101</td><td class="t">—</td><td class="d" title="Recorded milestone">0:00:09</td>');
-    expect(summary).toBe("2 reached · next intro cutscene complete · vs baseline + best");
-    expect(table).toContain("Best historical run: record");
+    expect(summary).toBe("2 reached · next intro cutscene complete · vs baseline + frontier");
+    expect(table).toContain("Frontier run: record");
+    expect(table).toContain("<th>Frontier<br>time / Δ</th>");
+    expect(table).not.toContain("Best");
   });
 
   it("marks a reached milestone slower than the baseline as behind, and keeps extra ones", () => {
@@ -413,7 +415,7 @@ it("shows game-owned story values and milestone evidence without inventing old o
 });
 
 
-it("shows creation before name confirmation with recorded baseline and best deltas", () => {
+it("shows creation before name confirmation with recorded baseline and frontier deltas", () => {
   const log = new Log();
   log.add(0, { ...START, harness_features: ["new-game-created-v1"] });
   log.add(1, { type: "milestone", turn: 0, name: "GAME_RUNNING", server_timestamp: 0 });
@@ -433,6 +435,11 @@ it("shows creation before name confirmation with recorded baseline and best delt
 it("shows escaped loop evidence in the action log",()=>{
   const log=bare();const event=log.add(100,{type:"loop_guard",turn:1,kind:"cycle",phase:"warning",message:"Reassess <now>",calls:9,evidence:[4,7]});
   const html=eventText(event);expect(html).toContain("Loop cycle warning");expect(html).toContain("Reassess &lt;now&gt;");expect(html).toContain("#4, #7");expect(stepOf(event)).toMatchObject({status:"error",tone:"orange",category:"guard"});
+});
+
+it("shows trigger-script loop evidence in the raw action log",()=>{
+ const log=bare();const event=log.add(100,{type:"loop_guard",turn:2,kind:"trigger_script",phase:"warning",mode:"enforced",message:"Gym <again>",calls:9,evidence:[20,40]});
+ const html=eventText(event);expect(html).toContain("Loop trigger script warning");expect(html).toContain("Gym &lt;again&gt;");expect(html).toContain("#20, #40");
 });
 
 it("renders verified confirmation selection and unsupported diagnostic", () => {
@@ -489,6 +496,13 @@ it('shows native repeated activity receipts without inventing historical support
  expect(splits(historical,null,BASE_MS+1000).table).toContain('first pokemon caught</td><td class="t">not<br>recorded');
  const modern=new RunView();const native=new Log();native.add(0,{...START,harness_features:['native-progress-activity-v1']});native.events.forEach(event=>{modern.apply(event);});
  expect(splits(modern,null,BASE_MS+1000).table).not.toContain('first pokemon caught</td><td class="t">not<br>recorded');
+});
+
+it('shows a blackout receipt in Activity History',()=>{
+ const log=new Log();log.add(0,{...START,harness_features:['native-progress-activity-v1','blackout-readout-v1']});
+ const activity=log.add(100,{type:'activity',turn:7,kind:'blackout',count:1,server_timestamp:1,evidence:[4,5]});
+ expect(eventText(activity)).toContain('blackout ×1 · evidence #4, #5 · first observation (upper bound)');
+ const result=view(log);expect(result.activities).toEqual([activity]);
 });
 
 it("shows remaining native splits only for declared or recorded support",()=>{
@@ -555,13 +569,64 @@ it("documents only recorded tools with input/output contracts and safe unknown f
  const subset=new Log();subset.add(0,{...START,tools:["observe"]});doc.body.innerHTML=harnessConfig(view(subset));expect(doc.querySelectorAll(".config-tool")).toHaveLength(1);expect(doc.querySelector('[data-tool="press"]')).toBeNull();
 });
 
+it("documents harness-owned running only for runs with automatic running enabled",()=>{
+ const render=(features:string[])=>{const log=new Log();log.add(0,{...START,tools:["press","navigate_to"],harness_features:features});const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log));return doc;};
+ const off=render([]);expect(off.querySelector('[data-tool="press"]')?.textContent).toContain("walking: optional boolean");expect(off.querySelector('[data-tool="navigate_to"]')?.textContent).toContain("walking: optional boolean");
+ const on=render(["automatic-running-v1"]);expect(on.querySelector('[data-tool="press"]')?.textContent).toContain("model has no walking override");expect(on.querySelector('[data-tool="navigate_to"]')?.textContent).toContain("model has no walking override");expect(on.querySelector('[data-tool="press"]')?.textContent).not.toContain("walking: optional boolean");expect(on.querySelector('[data-tool="navigate_to"]')?.textContent).not.toContain("walking: optional boolean");
+});
+
 it("links the elevation transitions card to its tracked explainer",()=>{
  expect(FEATURE_EXPLAINERS["elevation-transitions-v1"]).toBe("elevation-transitions.html");
+});
+
+it("links visited terrain navigation to its tracked explainer",()=>{
+ const id="visited-terrain-navigation-v1";
+ expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
+ const html=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)),"utf8");
+ expect(html).toContain("only cells shown to you this run");
+ expect(html).toContain("checkpoint restores the game, not this memory");
 });
 
 it("maps game evidence priority to a tracked explainer, like every other mapped card",()=>{
  expect(FEATURE_EXPLAINERS["game-evidence-priority-v1"]).toBe("game-evidence-priority-v1.html");
  for(const file of Object.values(FEATURE_EXPLAINERS))expect(existsSync(fileURLToPath(new URL(`../../../docs/explainers/${file}`,import.meta.url)))).toBe(true);
+});
+
+it("links the field move gates card to its tracked explainer",()=>{
+ const id="field-move-gates-v1";
+ expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
+ const html=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)),"utf8");
+ expect(html).toContain("BREAKABLE_ROCK at (24,4) and (24,5) close every way on foot");
+ expect(html).toContain("needs a field move you cannot use yet");
+});
+
+it("links save-state task truth to its tracked explainer",()=>{
+ expect(FEATURE_EXPLAINERS["save-state-task-truth-v1"]).toBe("save-state-task-truth-v1.html");
+ const html=readFileSync(fileURLToPath(new URL("../../../docs/explainers/save-state-task-truth-v1.html",import.meta.url)),"utf8");
+ expect(html).toContain("Fresh boot");expect(html).toContain("Verified save state");
+});
+
+it("links Petalburg guidance and trigger-loop cards to tracked explainers",()=>{
+ expect(FEATURE_EXPLAINERS["scripted-place-guidance-v1"]).toBe("scripted-place-guidance-v1.html");
+ expect(FEATURE_EXPLAINERS["trigger-script-loop-v1"]).toBe("trigger-script-loop-v1.html");
+ for(const file of ["scripted-place-guidance-v1.html","trigger-script-loop-v1.html"]){
+  const html=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${file}`,import.meta.url)),"utf8");
+  expect(html).toContain("OFF");expect(html).toContain("ON");
+ }
+});
+
+it("links deterministic warp navigation to its tracked explainer",()=>{
+ expect(FEATURE_EXPLAINERS["deterministic-warp-navigation-v1"]).toBe("deterministic-warp-navigation-v1.html");
+ const html=readFileSync(fileURLToPath(new URL("../../../docs/explainers/deterministic-warp-navigation-v1.html",import.meta.url)),"utf8");
+ expect(html).toContain("Exact equivalence gate");expect(html).toContain("one checked direction press");
+});
+
+it("links both semantic navigation cards to their tracked explainers",()=>{
+ for(const id of ["semantic-navigation-v1","semantic-navigation-v2","deterministic-exploration-v1"]){
+  expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
+  const html=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)),"utf8");
+  expect(html).toContain(id==="semantic-navigation-v1"?"Semantic navigation v1":id==="semantic-navigation-v2"?"Semantic navigation v2":"Deterministic exploration v1");
+ }
 });
 
 it("renders every mapped explainer's body as a page, not as stylesheet text",()=>{
@@ -1014,6 +1079,150 @@ it("links the heal before trainers card to its tracked explainer, which quotes t
  expect(html).toContain("SUPERVISOR: A trainer you have not beaten is on this map: object 3, sprite LASS, at (31,24).");
 });
 
+it("links the heal before trainers v2 card to its tracked explainer, which quotes the b300 gym paragraph",()=>{
+ const id="heal-before-trainers-v2";
+ expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
+ const log=new Log();log.add(0,{...START,harness_features:["ram-state-v1","low-hp-trainer-warning-v1","heal-before-trainers-v1",id]});
+ const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
+ expect(doc.querySelector(`[data-feature="${id}"] a`)?.getAttribute("href")).toBe(`/explainers/${id}.html`);
+ const html=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)),"utf8");
+ expect(html).toContain(id);
+ expect(html).toContain("SUPERVISOR: A trainer you have not beaten is on this map: the Gym Leader ROXANNE, object 1, sprite ROXANNE, at (5,2) (not loaded now: the tile the map places it on).");
+});
+
+it("links the gym heal warning card to its tracked explainer, which quotes the b300 RUSTBORO CITY paragraph",()=>{
+ const id="gym-heal-warning-v1";
+ expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
+ const log=new Log();log.add(0,{...START,harness_features:["ram-state-v1","low-hp-trainer-warning-v1","heal-before-trainers-v1","heal-before-trainers-v2",id]});
+ const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
+ expect(doc.querySelector(`[data-feature="${id}"] a`)?.getAttribute("href")).toBe(`/explainers/${id}.html`);
+ const html=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)),"utf8");
+ expect(html).toContain(id);
+ expect(html).toContain("SUPERVISOR: An exit on this map at (27,19) leads to RUSTBORO CITY GYM (map 11/3), and your party is not at full HP: TORCHIC 25/33.");
+});
+
+it("links the clock view loop card to its tracked explainer, which quotes the bedroom clock",()=>{
+ const id="clock-view-loop-v1";
+ expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
+ const log=new Log();log.add(0,{...START,harness_features:["ram-state-v1","deterministic-loop-guard-v1",id]});
+ const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
+ expect(doc.querySelector(`[data-feature="${id}"] a`)?.getAttribute("href")).toBe(`/explainers/${id}.html`);
+ const html=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)),"utf8");
+ expect(html).toContain(id);
+ expect(html).toContain("Clock transition; selection input is not active");
+ expect(html).toContain("A or B closes clock");
+ expect(html).toContain("2026-10-17T21-38-43_qwen36-gpu1_c18f");
+});
+
+it("links the loop guard screen card to its tracked explainer, which quotes the clock controls",()=>{
+ const id="loop-guard-screen-v1";
+ expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
+ const log=new Log();log.add(0,{...START,harness_features:["ram-state-v1","loop-guard-supervisor-v1",id]});
+ const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
+ expect(doc.querySelector(`[data-feature="${id}"] a`)?.getAttribute("href")).toBe(`/explainers/${id}.html`);
+ const html=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)),"utf8");
+ expect(html).toContain(id);
+ expect(html).toContain("LEFT/RIGHT changes time; A opens confirmation");
+ expect(html).toContain("2026-10-18T01-30-48_qwen36-gpu1_cdb1");
+});
+
+it("links the faced interaction history card to its tracked explainer, which shows the TV contradiction",()=>{
+ const id="faced-interaction-history-v1";
+ expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
+ const log=new Log();log.add(0,{...START,harness_features:["ram-state-v1","briefing-exits-v1",id]});
+ const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
+ expect(doc.querySelector(`[data-feature="${id}"] a`)?.getAttribute("href")).toBe(`/explainers/${id}.html`);
+ const html=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)),"utf8");
+ expect(html).toContain(id);
+ expect(html).toContain("2026-10-18T01-30-48_qwen36-gpu1_cdb1");
+ expect(html).toContain("faced_target");
+ expect(html).toContain("television at (4,1)");
+});
+
+it("links the reopened dialogue loop card to its tracked explainer, which quotes the truck box",()=>{
+ const id="reopened-dialogue-loop-v1";
+ expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
+ const log=new Log();log.add(0,{...START,harness_features:["ram-state-v1","deterministic-loop-guard-v1",id]});
+ const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
+ expect(doc.querySelector(`[data-feature="${id}"] a`)?.getAttribute("href")).toBe(`/explainers/${id}.html`);
+ const html=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)),"utf8");
+ expect(html).toContain(id);
+ expect(html).toContain("<title>Reopened dialogue loop</title>");
+ expect(html).toContain("The box is printed with a POKéMON logo.");
+ expect(html).toContain("2026-10-18T01-30-48_qwen36-gpu0_e6ce");
+});
+
+it("links the dialogue button card to its tracked explainer, which names B as the button for a message",()=>{
+ const id="dialog-button-b-v1";
+ expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
+ const log=new Log();log.add(0,{...START,harness_features:["ram-state-v1",id]});
+ const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
+ expect(doc.querySelector(`[data-feature="${id}"] a`)?.getAttribute("href")).toBe(`/explainers/${id}.html`);
+ const html=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)),"utf8");
+ expect(html).toContain(id);
+ expect(html).toContain("<title>Dialogue button B</title>");
+ expect(html).toContain("B is the button for a message.");
+});
+
+it("links the stale story goal card to its tracked explainer, which quotes the retired line",()=>{
+ const id="stale-story-goal-v1";
+ expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
+ const log=new Log();log.add(0,{...START,harness_features:["ram-state-v1",id]});
+ const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
+ expect(doc.querySelector(`[data-feature="${id}"] a`)?.getAttribute("href")).toBe(`/explainers/${id}.html`);
+ const html=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)),"utf8");
+ expect(html).toContain(id);
+ expect(html).toContain("Done: Pokédex received. This is not where to go.");
+ expect(html).toContain("is done: Pokédex received. It is not where to go.");
+ expect(html).toContain("bundle arm only");
+});
+
+it("links the stage-bound story goal card to its tracked explainer, which shows omission instead of none",()=>{
+ const id="stale-story-goal-v2";
+ expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
+ const log=new Log();log.add(0,{...START,harness_features:["ram-state-v1","stale-story-goal-v1",id]});
+ const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
+ expect(doc.querySelector(`[data-feature="${id}"] a`)?.getAttribute("href")).toBe(`/explainers/${id}.html`);
+ const html=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)),"utf8");
+ expect(html).toContain(id);
+ expect(html).toContain("<title>Stage-bound story goal</title>");
+ expect(html).toContain("Story goal: none");
+ expect(html).toContain("omitted");
+});
+
+it("links the battle menu loop card to its tracked explainer, which quotes the menu sentence",()=>{
+ const id="battle-menu-loop-v1";
+ expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
+ const log=new Log();log.add(0,{...START,harness_features:["ram-state-v1","deterministic-loop-guard-v1",id]});
+ const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
+ expect(doc.querySelector(`[data-feature="${id}"] a`)?.getAttribute("href")).toBe(`/explainers/${id}.html`);
+ const html=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)),"utf8");
+ expect(html).toContain(id);
+ expect(html).toContain("LEFT from POKéMON does not move");
+});
+
+it("links the heal before trainers BAG items card to its tracked explainer, which quotes the e046 sentence",()=>{
+ const id="bag-healing-items-v1";
+ expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
+ const log=new Log();log.add(0,{...START,harness_features:["ram-state-v1","low-hp-trainer-warning-v1","heal-before-trainers-v1",id]});
+ const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
+ expect(doc.querySelector(`[data-feature="${id}"] a`)?.getAttribute("href")).toBe(`/explainers/${id}.html`);
+ const html=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)),"utf8");
+ expect(html).toContain(id);
+ expect(html).toContain("Your BAG has POTION ×1 (&quot;Restores the HP of a POKéMON by 20 points.&quot;).");
+});
+
+it("links the input cuts card to its tracked explainer, which quotes the hidden ledger line",()=>{
+ const id="input-cuts-v1";
+ expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
+ const log=new Log();log.add(0,{...START,harness_features:["ram-state-v1",id]});
+ const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
+ expect(doc.querySelector(`[data-feature="${id}"] a`)?.getAttribute("href")).toBe(`/explainers/${id}.html`);
+ const html=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)),"utf8");
+ expect(html).toContain(id);
+ expect(html).toContain("this result's dialogue list");
+});
+
 it("links the battle action tool card to its tracked explainer, which quotes the tool's recorded-state result",()=>{
  const id="battle-move-tool-v1";
  expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
@@ -1031,6 +1240,7 @@ it.each([
  ["unset-dynamic-warp-v1",["setdynamicwarp MAP_LITTLEROOT_TOWN, 3, 10","Warp destination at (4,1): dynamic destination","PETALBURG CITY (dynamic warp; map 0/0)"]],
  ["status-names-v1",["GetAilmentFromStatus","gText_Psn","STATUS PSN","STATUS 8"]],
  ["surf-gated-exits-v2",["GetInteractedWaterScript","FLAG_BADGE05_GET","PartyHasMonWithSurf","crosses water you cannot cross yet"]],
+ ["respawn-readout-v1",["lastHealLocation","setrespawn","DoWhiteOut","If your party faints, you wake up at your house in LITTLEROOT TOWN (9 map changes from here) and lose half your money (₽3222 of ₽6444).","This town has a POKéMON CENTER you have not entered: RUSTBORO CITY POKEMON CENTER 1F at (16,38)."]],
 ] as const)("links the %s card to its tracked explainer, which quotes the recorded lines and the game source",(id,quotes)=>{
  expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
  const log=new Log();log.add(0,{...START,harness_features:["ram-state-v1",id]});
@@ -1050,4 +1260,158 @@ it("links the conversation ledger card to its tracked explainer, which quotes th
  const html=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)),"utf8");
  expect(html).toContain(id);
  expect(html).toContain("- ROUTE103 (map 0/18), here turn 446: last heard turn 444, MAY: &quot;Well, it&#39;s time to head back to the LAB.&quot;");
+});
+
+it("links automatic running to its deterministic harness-owned contract",()=>{
+ const id="automatic-running-v1";
+ expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
+ const log=new Log();log.add(0,{...START,harness_features:["ram-state-v1",id]});
+ const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
+ expect(doc.querySelector(`[data-feature="${id}"] a`)?.getAttribute("href")).toBe(`/explainers/${id}.html`);
+ const html=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)),"utf8");
+ for(const text of [id,"running is a harness decision, not a model choice","PlayerNotOnBikeStep","IsRunningDisallowed","experiment remains pending"])expect(html).toContain(text);
+});
+
+
+it("links stable JIT v2's native feature card to its tracked guide and receipt contract",()=>{
+ const id="just-in-time-prompt-v2";
+ const log=new Log();log.add(0,{...START,harness_features:["ram-state-v1",id]});
+ const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
+ expect(doc.querySelector(`[data-feature="${id}"] a`)?.getAttribute("href")).toBe(`/explainers/${id}.html`);
+ const html=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)),"utf8");
+ expect(html).toContain("projected_guidance");expect(html).toContain("canonical_history_json");
+});
+
+it("links the semantic battle refusal switch to its tracked mechanism",()=>{
+ const id="battle-refusal-loop-v1";
+ expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
+ const log=new Log();log.add(0,{...START,harness_features:["ram-state-v1",id]});
+ const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
+ expect(doc.querySelector(`[data-feature="${id}"] a`)?.getAttribute("href")).toBe(`/explainers/${id}.html`);
+ const html=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)),"utf8");
+ for(const text of [id,"no button press","paired native battle","Default OFF"])expect(html).toContain(text);
+});
+
+it("links battle decision readiness from its recorded feature card",()=>{
+ const id="battle-decision-ready-v1";
+ expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
+ const log=new Log();log.add(0,{...START,harness_features:["ram-state-v1",id]});
+ const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
+ expect(doc.querySelector(`[data-feature="${id}"] a`)?.getAttribute("href")).toBe(`/explainers/${id}.html`);
+});
+
+it("links every recovery treatment to its tracked explainer",()=>{
+ for(const id of ["ineffective-navigation-v2","supervisor-briefing-v2","reachable-story-guidance-v1","text-only-supervisor-v2"]){expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);expect(readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)),"utf8")).toContain(id);}
+});
+
+
+it("links the safe navigation stride card to its native corridor contract",()=>{
+ const id="safe-navigation-strides-v1";
+ const log=new Log();log.add(0,{...START,harness_features:["ram-state-v1",id]});
+ const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
+ expect(doc.querySelector(`[data-feature="${id}"] a`)?.getAttribute("href")).toBe(`/explainers/${id}.html`);
+ const html=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)),"utf8");
+ for(const text of ["eight tiles","224-frame ceiling","Bundle ON","Control OFF","General default OFF","script coordinate","model chooses"])expect(html).toContain(text);
+});
+
+it("links the explicit evolution feature to its tracked explainer",()=>{
+ expect(FEATURE_EXPLAINERS["evolution-decision-v1"]).toBe("evolution-decision-v1.html");
+ const html=readFileSync(fileURLToPath(new URL("../../../docs/explainers/evolution-decision-v1.html",import.meta.url)),"utf8");
+ expect(html).toContain("<h1>Explicit evolution decision</h1>");
+ const log=new Log();log.add(0,{...START,harness_features:["ram-state-v1","evolution-decision-v1"]});const rendered=harnessConfig(view(log),FEATURES);
+ expect(rendered).toContain('/explainers/evolution-decision-v1.html');
+});
+
+
+
+it("links the observed instruction memory card to its tracked explainer, which shows omission instead of none",()=>{
+ const id="observed-instructions-v1";
+ expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
+ const log=new Log();log.add(0,{...START,harness_features:["ram-state-v1","stale-story-goal-v1",id]});
+ const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
+ expect(doc.querySelector(`[data-feature="${id}"] a`)?.getAttribute("href")).toBe(`/explainers/${id}.html`);
+ const html=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)),"utf8");
+ expect(html).toContain(id);
+ expect(html).toContain("<title>Observed instruction memory</title>");
+ expect(html).toContain("observed_instruction_episodes:");
+ expect(html).toContain("observed_progress:");
+});
+ it("links starter decision salience from its recorded feature card",()=>{
+ const id="starter-decision-salience-v1";
+ expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
+ const log=new Log();log.add(0,{...START,harness_features:["ram-state-v1",id]});
+ const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
+ expect(doc.querySelector(`[data-feature="${id}"] a`)?.getAttribute("href")).toBe(`/explainers/${id}.html`);
+ });
+it("links the recorded original-speed policy without inferring historical ON",()=>{
+ const id="original-speed-pacing-v1";
+ expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
+ const log=new Log();log.add(0,{...START,harness_features:["ram-state-v1",id]});
+ const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
+ const card=doc.querySelector(`[data-feature="${id}"]`);
+ expect(card?.querySelector("a")?.getAttribute("href")).toBe(`/explainers/${id}.html`);
+ expect(card?.textContent).toContain("ON");
+ const legacy=new Log();legacy.add(0,{...START,harness_features:["ram-state-v1"]});
+ doc.body.innerHTML=harnessConfig(view(legacy),FEATURES);
+ expect(doc.querySelector(`[data-feature="${id}"]`)?.classList.contains("config-on")).toBe(false);
+});
+
+it("keeps party confirmation readiness in the existing replay interface and links its feature card",()=>{
+ const log=bare();
+ log.add(1000,state({active_ui:{phase:"party_item_message",selected:"A/B: CONTINUE",ready:true,controls:"A or B continues the message",diagnostic:null,value:null,details:{message:"TORCHIC's HP was restored by 20 point(s)."}}}));
+ const current=view(log);
+ const doc=new Window().document;doc.body.innerHTML=trainerCard(current,END)+harnessConfig(current,FEATURES);
+ expect(doc.body.textContent).toContain("party_item_message");
+ expect(doc.body.textContent).toContain("A/B: CONTINUE");
+ expect(Array.from(doc.querySelectorAll("dt")).find(dt=>dt.textContent==="INPUT")?.nextElementSibling.textContent).toBe("ready");
+ expect(doc.querySelector('[data-feature="party-item-confirmation-v1"] a')?.getAttribute("href")).toBe("/explainers/party-item-confirmation-v1.html");
+});
+
+it("links the YES/NO answer readout from its recorded feature card",()=>{
+ const id="yes-no-answer-readout-v1";
+ expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
+ const log=new Log();log.add(0,{...START,harness_features:["ram-state-v1",id]});
+ const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
+ const card=doc.querySelector(`[data-feature="${id}"]`);
+ expect(card?.querySelector("a")?.getAttribute("href")).toBe(`/explainers/${id}.html`);
+ expect(card?.textContent).toContain("ON");
+ const html=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)),"utf8");
+ expect(html).toContain(id);
+ expect(html).toContain("To answer YES, press UP, then A. Pressing A now answers NO.");
+});
+
+it("links the recorded distinct-exits treatment to its tracked explainer",()=>{
+ const id="exit-labels-v3";
+ const log=new Log();log.add(0,{...START,harness_features:["ram-state-v1",id]});
+ const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
+ const card=doc.querySelector(`[data-feature="${id}"]`);
+ expect(card?.querySelector("a")?.getAttribute("href")).toBe(`/explainers/${id}.html`);
+ expect(card?.textContent).toContain("ON");
+ expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
+});
+
+it("links each new navigation switch card to its exact tracked explainer without changing historical status",()=>{
+ const log=new Log();log.add(0,{...START,harness_features:[]});
+ const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
+ for(const id of ["navigation-tool-use-guard-v1","semantic-current-map-feedback-v1"] as const){
+  const card=must(doc.querySelector(`[data-feature="${id}"]`));
+  expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
+  expect(card.querySelector("a")?.getAttribute("href")).toBe(`/explainers/${id}.html`);
+  expect(card.textContent).toContain("NOT RECORDED");
+ }
+});
+
+it("links exploratory waypoint guidance from its exact feature card",()=>{
+ const id="navigation-refusal-reasons-v3";
+ expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
+ const log=new Log();log.add(0,{...START,harness_features:["ram-state-v1",id]});
+ const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
+ const card=doc.querySelector(`[data-feature="${id}"]`);expect(card?.querySelector("a")?.getAttribute("href")).toBe(`/explainers/${id}.html`);expect(card?.textContent).toContain("ON");
+});
+
+it("links the pending field dialogue feature card to its local explainer",()=>{
+ const log=new Log();log.add(0,{...START,harness_features:["pending-field-dialogue-v1"]});
+ const html=harnessConfig(view(log),FEATURES);
+ expect(html).toContain('/explainers/pending-field-dialogue-v1.html');
+ expect(html).toContain('PENDING FIELD DIALOGUE');
 });

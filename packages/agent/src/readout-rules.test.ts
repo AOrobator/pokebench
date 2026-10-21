@@ -1,6 +1,7 @@
+import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { ALL_ON, SERVER_FEATURES, SWITCHABLE_FEATURES, dependencyProblems, featureInfo, playHarnessFeatures, serverFeatureEnv, stateOnlyProblems, type FeatureSet, type SwitchableFeature } from "./features.js";
+import { SERVER_FEATURES, SWITCHABLE_FEATURES, dependencyProblems, featureInfo, playHarnessFeatures, serverFeatureEnv, stateOnlyProblems, type FeatureSet, type SwitchableFeature} from "./features.js";
 import { MAP_RULE_INDEX, MAP_RULE_SWITCHES, MAP_RULE_TEXTS } from "./map-rules.generated.js";
 import { mapRulesSection } from "./map-rules.js";
 import { playSystemPrompt } from "./play-config.js";
@@ -14,7 +15,7 @@ const SHOWCASE = set(ALL_ON, { "full-map-navigation-v1": false, "counter-talk-v1
 const OFF = set(SHOWCASE, { [ID]: false });
 const LEGEND = "@ player; N live object; W warp location (each warp's activation is listed in the readout's Warps line); # collision; g grass; ~ water; v ^ < > ledge: a one-way hop in the arrow's direction (move into it that way to jump over it, landing 2 tiles on); impassable from any other side; + edge walls: walkable, but movement across a walled side is refused in both directions (sides listed in the readout's Edge walls line); . clear terrain (may have script triggers); ? outside current map.";
 const TERRAIN = "Terrain rules, elevation and objects can still block movement.";
-const NAMED_WARPS = "Warp destinations are the map you arrive on: its name when the game's map table has one, then its group/number ID in parentheses; not warp indexes. Activation also requires matching elevation and available field controls; W alone does not guarantee a transition. After a transition, check the new map and position.";
+const NAMED_WARPS = "Warp destinations are the map you arrive on: a name the game displays when one is available, then its group/number ID in parentheses; not warp indexes. Activation also requires matching elevation and available field controls; W alone does not guarantee a transition. After a transition, check the new map and position.";
 const TRIGGERS = "Trigger elevation must also match the player on entry (0 matches any elevation).";
 const HEADER = "Map symbols and rules (the readout's map and lists use these every turn; the readout does not repeat them):";
 
@@ -23,12 +24,12 @@ describe("readout-rules-in-prompt-v1 registry", () => {
     expect(featureInfo(ID)).toMatchObject({ group: "observation", needs: "ram-state-v1", switchable: true });
     expect(featureInfo(ID).description).toContain(" Off: ");
     expect(featureInfo(ID).description).toContain("Map symbols and rules: see the system prompt.");
-    expect(SWITCHABLE_FEATURES.at(-52)).toBe(ID);
-    expect(playHarnessFeatures(ALL_ON,null).at(-52)).toBe(ID);
+    expect(SWITCHABLE_FEATURES.at(-113)).toBe(ID);
+    expect(playHarnessFeatures(ALL_ON,null).at(-77)).toBe(ID);
     expect(playHarnessFeatures(set(ALL_ON, { [ID]: false }), null)).not.toContain(ID);
-    expect(SERVER_FEATURES.at(-18)).toBe(ID);
-    expect(serverFeatureEnv(set(ALL_ON, { [ID]: false })).POKEBENCH_FEATURES_OFF).toBe(ID);
-    expect(serverFeatureEnv(ALL_ON).POKEBENCH_FEATURES_OFF).toBe("");
+    expect(SERVER_FEATURES.at(-31)).toBe(ID);
+    expect(serverFeatureEnv(set(ALL_ON, { [ID]: false })).POKEBENCH_FEATURES_OFF).toBe(`${ID},safe-navigation-strides-v1,original-speed-pacing-v1,exit-labels-v2,heal-before-trainers-v2,respawn-readout-v1,caught-nickname-prompt-v1,party-item-confirmation-v1,yes-no-answer-readout-v1,field-move-gates-v1,exit-labels-v3`);
+    expect(serverFeatureEnv(ALL_ON).POKEBENCH_FEATURES_OFF).toBe("safe-navigation-strides-v1,original-speed-pacing-v1,exit-labels-v2,heal-before-trainers-v2,respawn-readout-v1,caught-nickname-prompt-v1,party-item-confirmation-v1,yes-no-answer-readout-v1,field-move-gates-v1,exit-labels-v3");
     expect(dependencyProblems(set(ALL_ON, { "ram-state-v1": false }))).toContain(`${ID} needs ram-state-v1`);
   });
 
@@ -92,7 +93,8 @@ describe("readout-rules-in-prompt-v1 pending experiment", () => {
   it("names every registry switch explicitly in its incumbent, with this switch off", () => {
     const entry = JSON.parse(readFileSync(new URL("../../../experiments/readout-rules-in-prompt.json", import.meta.url), "utf8")) as { changedFeature: string; incumbent: { features: Record<string, boolean> } };
     expect(entry.changedFeature).toBe(ID);
-    expect(Object.keys(entry.incumbent.features)).toEqual(SWITCHABLE_FEATURES.slice(0, SWITCHABLE_FEATURES.indexOf(ID) + 1));
+    const historical=SWITCHABLE_FEATURES.filter(id=>id!=="pending-field-dialogue-v1"&&id!=="short-cycle-fixed-point-v1"&&id!=="navigation-tool-use-guard-v1"&&id!=="semantic-current-map-feedback-v1"&&id!=="navigation-refusal-reasons-v3"&&id!=="exit-labels-v3"&&id!=="story-battle-heal-first-v1"&&id!=="party-item-confirmation-v1"&&id!=="observed-instructions-v1"&&id!=="evolution-decision-v1"&&id!=="safe-navigation-strides-v1"&&id!=="battle-decision-ready-v1"&&id!=="deterministic-warp-navigation-v1"&&id!=="battle-effective-damage-v1"&&id!=="scripted-place-guidance-v1"&&id!=="trigger-script-loop-v1");
+    expect(Object.keys(entry.incumbent.features)).toEqual(historical.slice(0,historical.indexOf(ID)+1));
     expect(entry.incumbent.features[ID]).toBe(false);
   });
 });

@@ -1,0 +1,697 @@
+{
+  "verdict": "inconclusive; no promotion",
+  "operator_disposition": "2026-10-19 disable JIT in ongoing control and bundle arms",
+  "feature_difference_control_jit": {
+    "just-in-time-prompt-v2": [
+      false,
+      true
+    ],
+    "jit-guide-reuse-v1": [
+      false,
+      true
+    ]
+  },
+  "runs": {
+    "jit": {
+      "run": "2026-10-18T23-32-33_qwen36-gpu1_90bb",
+      "all": {
+        "n": 212,
+        "uncached": 1176389,
+        "cached": 2413786,
+        "totalInput": 3590175,
+        "cacheShare": 0.6723,
+        "medianUncached": 2906.5,
+        "meanUncached": 5549.0,
+        "medianTtftMs": 633.0,
+        "meanTtftMs": 1123.1,
+        "medianLatencyMs": 1580.5,
+        "floorResets": 70
+      },
+      "categories": {
+        "startup": {
+          "n": 1,
+          "uncached": 20,
+          "cached": 2450,
+          "totalInput": 2470,
+          "cacheShare": 0.9919,
+          "medianUncached": 20,
+          "meanUncached": 20.0,
+          "medianTtftMs": 690,
+          "meanTtftMs": 690,
+          "medianLatencyMs": 1141,
+          "floorResets": 1
+        },
+        "ordinary append": {
+          "n": 137,
+          "uncached": 290703,
+          "cached": 2163764,
+          "totalInput": 2454467,
+          "cacheShare": 0.8816,
+          "medianUncached": 2528,
+          "meanUncached": 2121.9,
+          "medianTtftMs": 552,
+          "meanTtftMs": 512.0,
+          "medianLatencyMs": 1248,
+          "floorResets": 0
+        },
+        "image/result collapse": {
+          "n": 47,
+          "uncached": 605593,
+          "cached": 115150,
+          "totalInput": 720743,
+          "cacheShare": 0.1598,
+          "medianUncached": 14328,
+          "meanUncached": 12885.0,
+          "medianTtftMs": 2646,
+          "meanTtftMs": 2404.1,
+          "medianLatencyMs": 3534,
+          "floorResets": 47
+        },
+        "history+image cut": {
+          "n": 22,
+          "uncached": 267715,
+          "cached": 53900,
+          "totalInput": 321615,
+          "cacheShare": 0.1676,
+          "medianUncached": 13330.5,
+          "meanUncached": 12168.9,
+          "medianTtftMs": 2577.0,
+          "meanTtftMs": 2341.6,
+          "medianLatencyMs": 3322.0,
+          "floorResets": 22
+        },
+        "guide addition only": {
+          "n": 5,
+          "uncached": 12358,
+          "cached": 78522,
+          "totalInput": 90880,
+          "cacheShare": 0.864,
+          "medianUncached": 1508,
+          "meanUncached": 2471.6,
+          "medianTtftMs": 427,
+          "meanTtftMs": 553.4,
+          "medianLatencyMs": 1126,
+          "floorResets": 0
+        }
+      },
+      "historyOnlyReuseAfterSubtractingEmpiricalFloor": 0.6169,
+      "end": {
+        "v": 1,
+        "run": "2026-10-18T23-32-33_qwen36-gpu1_90bb",
+        "seq": 5493,
+        "t": "2026-10-18T23:53:06.130-04:00",
+        "type": "run_end",
+        "turn": 212,
+        "reason": "budget",
+        "furthest_milestone": "OLDALE_TOWN",
+        "turns": 212,
+        "wall_ms": 1200153,
+        "tokens": {
+          "input": 1176389,
+          "output": 30594
+        },
+        "frames": {
+          "saved": 211,
+          "bytes": 1034364
+        }
+      },
+      "meanLatencyMs": 1998.2028301886792,
+      "meanOutputTokens": 144.31132075471697,
+      "meanSystemChars": 3308,
+      "meanGuideChars": 6825.735849056604,
+      "p95TtftMs": 3356,
+      "splits": {
+        "GAME_RUNNING": {
+          "seconds": 0.047,
+          "turn": 0,
+          "seq": 3,
+          "evidence": [
+            2
+          ],
+          "origin": "observed"
+        },
+        "NEW_GAME_CREATED": {
+          "seconds": 15.044,
+          "turn": 2,
+          "seq": 25,
+          "evidence": [
+            24
+          ],
+          "origin": "observed"
+        },
+        "PLAYER_NAME_CONFIRMED": {
+          "seconds": 79.45,
+          "turn": 35,
+          "seq": 571,
+          "evidence": [
+            570
+          ],
+          "origin": "observed"
+        },
+        "PLAYER_NAME_SET": {
+          "seconds": 95.597,
+          "turn": 47,
+          "seq": 714,
+          "evidence": [
+            713
+          ],
+          "origin": "observed"
+        },
+        "FIRST_TRUCK_EXIT": {
+          "seconds": 155.588,
+          "turn": 64,
+          "seq": 967,
+          "evidence": [
+            713,
+            966
+          ],
+          "origin": "observed"
+        },
+        "INTRO_CUTSCENE_COMPLETE": {
+          "seconds": 155.588,
+          "turn": 64,
+          "seq": 968,
+          "evidence": [
+            966
+          ],
+          "origin": "observed"
+        },
+        "LITTLEROOT_TOWN": {
+          "seconds": 155.588,
+          "turn": 64,
+          "seq": 969,
+          "evidence": [
+            966
+          ],
+          "origin": "observed"
+        },
+        "PLAYER_HOUSE_ENTERED": {
+          "seconds": 173.415,
+          "turn": 65,
+          "seq": 1019,
+          "evidence": [
+            1018
+          ],
+          "origin": "observed"
+        },
+        "MOM_CLOCK_INSTRUCTION": {
+          "seconds": 180.937,
+          "turn": 65,
+          "seq": 1055,
+          "evidence": [
+            1054
+          ],
+          "origin": "observed"
+        },
+        "PLAYER_BEDROOM": {
+          "seconds": 188.793,
+          "turn": 66,
+          "seq": 1093,
+          "evidence": [
+            1092
+          ],
+          "origin": "observed"
+        },
+        "CLOCK_SET": {
+          "seconds": 209.461,
+          "turn": 73,
+          "seq": 1212,
+          "evidence": [
+            1211
+          ],
+          "origin": "observed"
+        },
+        "PLAYER_BEDROOM_EXITED_AFTER_CLOCK": {
+          "seconds": 256.257,
+          "turn": 83,
+          "seq": 1442,
+          "evidence": [
+            1439,
+            1441
+          ],
+          "origin": "observed"
+        },
+        "MOM_RIVAL_INSTRUCTION": {
+          "seconds": 274.383,
+          "turn": 84,
+          "seq": 1503,
+          "evidence": [
+            1502
+          ],
+          "origin": "observed"
+        },
+        "PLAYER_HOUSE_EXITED_AFTER_CLOCK": {
+          "seconds": 287.481,
+          "turn": 86,
+          "seq": 1568,
+          "evidence": [
+            1054,
+            1561,
+            1567
+          ],
+          "origin": "observed"
+        },
+        "RIVAL_HOUSE_ENTERED": {
+          "seconds": 307.749,
+          "turn": 89,
+          "seq": 1652,
+          "evidence": [
+            1054,
+            1651
+          ],
+          "origin": "observed"
+        },
+        "RIVAL_BEDROOM_REACHED": {
+          "seconds": 329.584,
+          "turn": 93,
+          "seq": 1758,
+          "evidence": [
+            1757
+          ],
+          "origin": "observed"
+        },
+        "RIVAL_MET": {
+          "seconds": 422.926,
+          "turn": 111,
+          "seq": 2211,
+          "evidence": [
+            2210
+          ],
+          "origin": "observed"
+        },
+        "RIVAL_HOUSE_EXITED": {
+          "seconds": 435.367,
+          "turn": 113,
+          "seq": 2260,
+          "evidence": [
+            1054,
+            2253,
+            2259
+          ],
+          "origin": "observed"
+        },
+        "BIRCH_RESCUE_REQUESTED": {
+          "seconds": 547.777,
+          "turn": 127,
+          "seq": 2767,
+          "evidence": [
+            2766
+          ],
+          "origin": "observed"
+        },
+        "ROUTE_101": {
+          "seconds": 559.465,
+          "turn": 129,
+          "seq": 2815,
+          "evidence": [
+            2814
+          ],
+          "origin": "observed"
+        },
+        "STARTER_CHOSEN": {
+          "seconds": 591.679,
+          "turn": 135,
+          "seq": 2936,
+          "evidence": [
+            2935
+          ],
+          "origin": "observed"
+        },
+        "BIRCH_RESCUE_COMPLETE": {
+          "seconds": 641.113,
+          "turn": 138,
+          "seq": 3099,
+          "evidence": [
+            3098
+          ],
+          "origin": "observed"
+        },
+        "BIRCH_STARTER_HANDOFF_COMPLETE": {
+          "seconds": 675.219,
+          "turn": 142,
+          "seq": 3244,
+          "evidence": [
+            3243
+          ],
+          "origin": "observed"
+        },
+        "ROUTE_101_AFTER_HANDOFF": {
+          "seconds": 915.906,
+          "turn": 176,
+          "seq": 4313,
+          "evidence": [
+            3239,
+            4308,
+            4312
+          ],
+          "origin": "observed"
+        },
+        "OLDALE_TOWN": {
+          "seconds": 1004.206,
+          "turn": 187,
+          "seq": 4688,
+          "evidence": [
+            4687
+          ],
+          "origin": "observed"
+        },
+        "FIRST_POKECENTER_HEAL": {
+          "seconds": 1124.656,
+          "turn": 201,
+          "seq": 5161,
+          "evidence": [
+            5138,
+            5143,
+            5159
+          ],
+          "origin": "observed"
+        }
+      },
+      "sha256": "a1b3cf00d6375e94be1ac83e7a79aa6622b18398fab2f982591c9ff0e986f60a"
+    },
+    "control": {
+      "run": "2026-10-18T23-32-33_qwen36-gpu0_bfb3",
+      "all": {
+        "n": 244,
+        "uncached": 1262590,
+        "cached": 3073632,
+        "totalInput": 4336222,
+        "cacheShare": 0.7088,
+        "medianUncached": 2941.0,
+        "meanUncached": 5174.5,
+        "medianTtftMs": 636.5,
+        "meanTtftMs": 1069.4,
+        "medianLatencyMs": 1460.0,
+        "floorResets": 80
+      },
+      "categories": {
+        "startup": {
+          "n": 1,
+          "uncached": 510,
+          "cached": 4359,
+          "totalInput": 4869,
+          "cacheShare": 0.8953,
+          "medianUncached": 510,
+          "meanUncached": 510.0,
+          "medianTtftMs": 816,
+          "meanTtftMs": 816,
+          "medianLatencyMs": 1234,
+          "floorResets": 1
+        },
+        "ordinary append": {
+          "n": 164,
+          "uncached": 353014,
+          "cached": 2724912,
+          "totalInput": 3077926,
+          "cacheShare": 0.8853,
+          "medianUncached": 2586.5,
+          "meanUncached": 2152.5,
+          "medianTtftMs": 594.0,
+          "meanTtftMs": 513.7,
+          "medianLatencyMs": 1188.0,
+          "floorResets": 0
+        },
+        "image/result collapse": {
+          "n": 54,
+          "uncached": 625313,
+          "cached": 235386,
+          "totalInput": 860699,
+          "cacheShare": 0.2735,
+          "medianUncached": 13983.0,
+          "meanUncached": 11579.9,
+          "medianTtftMs": 2603.5,
+          "meanTtftMs": 2247.9,
+          "medianLatencyMs": 3246.5,
+          "floorResets": 54
+        },
+        "history+image cut": {
+          "n": 25,
+          "uncached": 283753,
+          "cached": 108975,
+          "totalInput": 392728,
+          "cacheShare": 0.2775,
+          "medianUncached": 13425,
+          "meanUncached": 11350.1,
+          "medianTtftMs": 2559,
+          "meanTtftMs": 2179.8,
+          "medianLatencyMs": 3365,
+          "floorResets": 25
+        }
+      },
+      "historyOnlyReuseAfterSubtractingEmpiricalFloor": 0.6142,
+      "end": {
+        "v": 1,
+        "run": "2026-10-18T23-32-33_qwen36-gpu0_bfb3",
+        "seq": 5736,
+        "t": "2026-10-18T23:53:06.051-04:00",
+        "type": "run_end",
+        "turn": 244,
+        "reason": "budget",
+        "furthest_milestone": "ROUTE_101_AFTER_HANDOFF",
+        "turns": 244,
+        "wall_ms": 1200075,
+        "tokens": {
+          "input": 1262590,
+          "output": 28568
+        },
+        "frames": {
+          "saved": 243,
+          "bytes": 1269506
+        }
+      },
+      "meanLatencyMs": 1799.5819672131147,
+      "meanOutputTokens": 117.08196721311475,
+      "meanSystemChars": 13943,
+      "meanGuideChars": 0,
+      "p95TtftMs": 2916,
+      "splits": {
+        "GAME_RUNNING": {
+          "seconds": 0.048,
+          "turn": 0,
+          "seq": 3,
+          "evidence": [
+            2
+          ],
+          "origin": "observed"
+        },
+        "NEW_GAME_CREATED": {
+          "seconds": 15.165,
+          "turn": 2,
+          "seq": 25,
+          "evidence": [
+            24
+          ],
+          "origin": "observed"
+        },
+        "PLAYER_NAME_CONFIRMED": {
+          "seconds": 84.398,
+          "turn": 34,
+          "seq": 596,
+          "evidence": [
+            595
+          ],
+          "origin": "observed"
+        },
+        "PLAYER_NAME_SET": {
+          "seconds": 115.859,
+          "turn": 58,
+          "seq": 813,
+          "evidence": [
+            812
+          ],
+          "origin": "observed"
+        },
+        "FIRST_TRUCK_EXIT": {
+          "seconds": 154.931,
+          "turn": 68,
+          "seq": 992,
+          "evidence": [
+            812,
+            991
+          ],
+          "origin": "observed"
+        },
+        "INTRO_CUTSCENE_COMPLETE": {
+          "seconds": 154.932,
+          "turn": 68,
+          "seq": 993,
+          "evidence": [
+            991
+          ],
+          "origin": "observed"
+        },
+        "LITTLEROOT_TOWN": {
+          "seconds": 154.932,
+          "turn": 68,
+          "seq": 994,
+          "evidence": [
+            991
+          ],
+          "origin": "observed"
+        },
+        "PLAYER_HOUSE_ENTERED": {
+          "seconds": 175.495,
+          "turn": 72,
+          "seq": 1067,
+          "evidence": [
+            1066
+          ],
+          "origin": "observed"
+        },
+        "MOM_CLOCK_INSTRUCTION": {
+          "seconds": 182.261,
+          "turn": 72,
+          "seq": 1103,
+          "evidence": [
+            1102
+          ],
+          "origin": "observed"
+        },
+        "PLAYER_BEDROOM": {
+          "seconds": 189.628,
+          "turn": 73,
+          "seq": 1141,
+          "evidence": [
+            1140
+          ],
+          "origin": "observed"
+        },
+        "CLOCK_SET": {
+          "seconds": 208.675,
+          "turn": 79,
+          "seq": 1252,
+          "evidence": [
+            1251
+          ],
+          "origin": "observed"
+        },
+        "PLAYER_BEDROOM_EXITED_AFTER_CLOCK": {
+          "seconds": 223.789,
+          "turn": 82,
+          "seq": 1324,
+          "evidence": [
+            1321,
+            1323
+          ],
+          "origin": "observed"
+        },
+        "MOM_RIVAL_INSTRUCTION": {
+          "seconds": 243.171,
+          "turn": 83,
+          "seq": 1386,
+          "evidence": [
+            1385
+          ],
+          "origin": "observed"
+        },
+        "PLAYER_HOUSE_EXITED_AFTER_CLOCK": {
+          "seconds": 255.938,
+          "turn": 85,
+          "seq": 1454,
+          "evidence": [
+            1102,
+            1446,
+            1453
+          ],
+          "origin": "observed"
+        },
+        "RIVAL_HOUSE_ENTERED": {
+          "seconds": 273.594,
+          "turn": 87,
+          "seq": 1526,
+          "evidence": [
+            1102,
+            1525
+          ],
+          "origin": "observed"
+        },
+        "RIVAL_BEDROOM_REACHED": {
+          "seconds": 294.989,
+          "turn": 91,
+          "seq": 1629,
+          "evidence": [
+            1628
+          ],
+          "origin": "observed"
+        },
+        "RIVAL_MET": {
+          "seconds": 339.444,
+          "turn": 98,
+          "seq": 1833,
+          "evidence": [
+            1832
+          ],
+          "origin": "observed"
+        },
+        "RIVAL_HOUSE_EXITED": {
+          "seconds": 346.767,
+          "turn": 100,
+          "seq": 1877,
+          "evidence": [
+            1102,
+            1871,
+            1876
+          ],
+          "origin": "observed"
+        },
+        "BIRCH_RESCUE_REQUESTED": {
+          "seconds": 540.873,
+          "turn": 144,
+          "seq": 2778,
+          "evidence": [
+            2777
+          ],
+          "origin": "observed"
+        },
+        "ROUTE_101": {
+          "seconds": 547.321,
+          "turn": 146,
+          "seq": 2806,
+          "evidence": [
+            2805
+          ],
+          "origin": "observed"
+        },
+        "STARTER_CHOSEN": {
+          "seconds": 578.978,
+          "turn": 153,
+          "seq": 2959,
+          "evidence": [
+            2958
+          ],
+          "origin": "observed"
+        },
+        "BIRCH_RESCUE_COMPLETE": {
+          "seconds": 628.413,
+          "turn": 156,
+          "seq": 3122,
+          "evidence": [
+            3121
+          ],
+          "origin": "observed"
+        },
+        "BIRCH_STARTER_HANDOFF_COMPLETE": {
+          "seconds": 655.885,
+          "turn": 158,
+          "seq": 3234,
+          "evidence": [
+            3233
+          ],
+          "origin": "observed"
+        },
+        "ROUTE_101_AFTER_HANDOFF": {
+          "seconds": 840.693,
+          "turn": 186,
+          "seq": 4093,
+          "evidence": [
+            3229,
+            4088,
+            4092
+          ],
+          "origin": "observed"
+        }
+      },
+      "sha256": "d82e47aaf8edb41bb0e0ff2fb03c8eab4ced61b1e2ebb04182c2c472201cb6ad"
+    }
+  }
+}

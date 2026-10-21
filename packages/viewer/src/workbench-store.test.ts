@@ -1,3 +1,4 @@
+import { RUN_LOG_MAX_BYTES } from "./run-log.js";
 import { appendFileSync, cpSync, mkdirSync, mkdtempSync, rmSync, symlinkSync, truncateSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -137,6 +138,13 @@ describe("durable cohort membership and metadata boundaries", () => {
     writeFileSync(c.ledger, JSON.stringify({ type: "launch", runId: "cohort_01", at: "2026-10-14T12:00:00Z", manifestSha256: c.digest }) + "\n"); expect(await cohortOf()).toBe("cohort");
     writeFileSync(c.path, '{"version":1}'); expect(await cohortOf()).toBeNull();
   });
+  it.each(["PETALBURG_CITY", "RUSTBORO_CITY"])("recognizes the exact %s checkpoint filename", async checkpoint => {
+    const r = root(), log = named(), start = log.events[0];
+    if (start?.type !== "run_start") throw new Error("fixture");
+    log.events[0] = { ...start, start_state: { kind: "save_state", path: `/saves/${checkpoint}.state`, sha1: "a".repeat(40) } };
+    write(r, "saved", log);
+    expect((await workbenchSnapshot(r, () => Promise.resolve(false), 42)).runs[0]?.config?.resume).toBe(checkpoint);
+  });
   it("names a Clock set save and leaves every other start unmarked", async () => {
     const r = root();
     const clock = named(); const clockStart = clock.events[0]; if (clockStart?.type !== "run_start") throw new Error("fixture");
@@ -150,7 +158,7 @@ describe("durable cohort membership and metadata boundaries", () => {
     expect(d.runs.find(x => x.id === "boot")?.config).toMatchObject({ start: "boot", resume: null });
   });
   it("rejects oversized and symlinked receipts/logs without reading arbitrary files", async () => {
-    const r = root(), p = write(r, "large", named()); truncateSync(p, 513 * 1024 * 1024); const c = cohort(r, [{ type: "launch", runId: "cohort_01" }]); truncateSync(c.path, 2 * 1024 * 1024);
+    const r = root(), p = write(r, "large", named()); truncateSync(p, RUN_LOG_MAX_BYTES + 1); const c = cohort(r, [{ type: "launch", runId: "cohort_01" }]); truncateSync(c.path, 2 * 1024 * 1024);
     const d = await workbenchSnapshot(r, () => Promise.resolve(false), 42); expect(d.runs[0]?.problem).toContain("streaming byte bound"); expect(d.problems[0]).toContain("metadata size");
     mkdirSync(join(r, "linked")); symlinkSync(p, join(r, "linked/events.jsonl")); expect((await workbenchSnapshot(r, () => Promise.resolve(false), 42)).runs.find(x => x.id === "linked")?.status).toBe("invalid");
   });
@@ -539,4 +547,25 @@ describe("trainer card data", () => {
       expect(() => parseWorkbench({ ...d, runs: [{ ...run, card }] })).toThrow("Invalid workbench");
     expect(parseWorkbench({ ...d, runs: [{ ...run, card: undefined }] }).runs[0]?.card).toBeUndefined();
   });
+});
+
+
+it("refreshes cached extension projections only for applied acknowledgements and preserves the original horizon", async () => {
+  const r = root(), log = new Log();
+  log.add(0, { ...START, extend_run: true });
+  const path = write(r, "extended", log);
+  const snapshot = () => workbenchSnapshot(r, () => Promise.resolve(true), 2_000_000_000_000).then(data => data.runs[0]);
+  const append = (event: Parameters<Log["add"]>[1]): void => {
+    const recorded = log.add(1000 + log.events.length * 1000, event);
+    appendFileSync(path, JSON.stringify({ ...recorded, run: "extended" }) + "\n");
+  };
+  expect((await snapshot())?.config?.extendedWallMs).toBeUndefined();
+  append({ type: "operator_control", turn: 0, action: "extend_30m", status: "ignored", request: 1 });
+  expect((await snapshot())?.config?.extendedWallMs).toBeUndefined();
+  append({ type: "operator_control", turn: 0, action: "extend_30m", status: "applied", request: 2, previous_max_wall_ms: 60_000, max_wall_ms: 1_860_000 });
+  expect((await snapshot())?.config).toMatchObject({ maxWallMs: 60_000, extendedWallMs: 1_860_000 });
+  append({ type: "operator_control", turn: 0, action: "extend_60m", status: "failed", request: 3 });
+  expect((await snapshot())?.config?.extendedWallMs).toBe(1_860_000);
+  append({ type: "operator_control", turn: 0, action: "extend_60m", status: "applied", request: 4, previous_max_wall_ms: 1_860_000, max_wall_ms: 5_460_000 });
+  expect((await snapshot())?.config).toMatchObject({ maxWallMs: 60_000, extendedWallMs: 5_460_000 });
 });

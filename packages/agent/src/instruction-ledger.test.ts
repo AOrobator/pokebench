@@ -1,7 +1,8 @@
+import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
 import {expect,it} from "vitest";
 import type {AgentMessage} from "@mariozechner/pi-agent-core";
 import {InstructionLedger,instructionLedger} from "./instruction-ledger.js";
-import {ALL_ON,featureInfo,stateOnlyProblems} from "./features.js";
+import {featureInfo,stateOnlyProblems} from "./features.js";
 import {playSystemPrompt,playTools} from "./play-config.js";
 import {IN_GAME} from "../test-support/events.js";
 import {checkEvent,type RunEvent} from "./events.js";

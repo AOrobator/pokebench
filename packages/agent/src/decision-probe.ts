@@ -5,7 +5,7 @@
 // wiring; press results through pressResult; readouts through the server's renderer (env rerender.py).
 import type { AgentMessage, AgentTool } from "@mariozechner/pi-agent-core";
 import type { AssistantMessage, ImageContent, Message, TextContent, ThinkingContent, Tool, ToolCall, ToolResultMessage } from "@mariozechner/pi-ai";
-import { checkEvent, type Button, type EventBody, type RunEvent } from "./events.js";
+import { checkEvent, type Button, type EventBody, type LoopBreakerBody, type RunEvent } from "./events.js";
 import { SERVER_FEATURES, SWITCHABLE_FEATURES, dependencyProblems, featuresOf, type FeatureSet, type SwitchableFeature } from "./features.js";
 import type { GameStateSnapshot } from "./game-state.js";
 import { GATEWAY_PROVIDER } from "./gateway.js";
@@ -14,6 +14,7 @@ import { Governor, NUDGE, attachLoopGuard, slideWindow, withoutTextOnlyReplies }
 import type { LoopNotice } from "./loop-detection.js";
 import { PLAY_LIMITS, PLAY_TASK, playSystemPrompt, targetGoal, toolSwitches } from "./play-config.js";
 import { contextTools, loopSupervisor, playGameTools, stallBriefing } from "./play-wiring.js";
+import { starterDecisionText } from "./starter-decision.js";
 import { ShownStates, pressResult } from "./press-result.js";
 
 type StateEvent = Extract<RunEvent, { type: "state"; started: boolean }>;
@@ -93,7 +94,7 @@ async function resultTexts(parts: readonly ResultParts[], recorded: FeatureSet, 
     let text = part.event.text;
     if (part.auto) {
       if (part.after !== undefined) shown.record(part.after);
-      texts.set(part.event.seq, text);
+      texts.set(part.event.seq, part.event.is_error?text:starterDecisionText(text,part.after??null,features["starter-decision-salience-v1"]));
       continue;
     }
     const readout = fresh.get(part.event.seq);
@@ -103,7 +104,7 @@ async function resultTexts(parts: readonly ResultParts[], recorded: FeatureSet, 
       text = pressLine(text, switches.pressResult ? `Press result: ${pressResult(before, part.after, part.buttons, switches, shown)}` : null);
     }
     if (part.after !== undefined && !part.event.is_error) shown.record(part.after, part.event.name === "press" ? part.before : undefined);
-    texts.set(part.event.seq, text);
+    texts.set(part.event.seq, part.event.is_error?text:starterDecisionText(text,part.after??null,features["starter-decision-salience-v1"]));
   }
   return texts;
 }
@@ -133,6 +134,8 @@ export class Replay {
   readonly recordLedgerContext = (body: Omit<Extract<EventBody, { type: "ledger_context" }>, "type">): void => { this.own({ type: "ledger_context", ...body }, this.upcoming); };
   readonly recordMilestoneHint = (body: Omit<Extract<EventBody, { type: "milestone_hint" }>, "type">): void => { this.own({ type: "milestone_hint", ...body }, this.upcoming); };
   readonly recordBeliefLedger = (body: Omit<Extract<EventBody, { type: "belief_ledger" }>, "type">): void => { this.own({ type: "belief_ledger", ...body }, this.upcoming); };
+  readonly recordLoopBreaker = (body: LoopBreakerBody): void => { this.own({ type: "loop_breaker", ...body }, this.upcoming); };
+  readonly recordStallGate = (body: Omit<Extract<EventBody, { type: "stall_gate" }>, "type" | "turn">): void => { this.own({ type: "stall_gate", ...body, map_id: [body.map_id[0], body.map_id[1]] }, this.current.turn); };
   // Tool construction ports; a probe never executes a tool.
   readonly recordState = (): never => { throw new Error("probe tools never execute"); };
   readonly recordDialogueAutoAdvance = (): never => { throw new Error("probe tools never execute"); };
@@ -144,7 +147,7 @@ export class Replay {
   readonly destinationCitation = (): never => { throw new Error("probe tools never execute"); };
 }
 // What the wiring itself records; the replay regenerates these instead of reading them.
-const DERIVED: readonly RunEvent["type"][] = ["loop_guard", "navigation_context", "ledger_context", "milestone_hint", "text_only_supervisor", "belief_ledger"];
+const DERIVED: readonly RunEvent["type"][] = ["loop_guard", "navigation_context", "ledger_context", "milestone_hint", "text_only_supervisor", "belief_ledger", "loop_breaker", "stall_gate"];
 
 const inert = (): Promise<never> => Promise.reject(new Error("probe tools never execute"));
 
@@ -220,7 +223,7 @@ export async function decisionContext(run: RecordedRun, turn: number, features: 
     const buttons = call?.name === "press" && press !== undefined ? press.buttons : null;
     return { event, before: press?.before_state_seq === undefined ? undefined : states.get(press.before_state_seq), after: event.state_seq === undefined ? undefined : states.get(event.state_seq), buttons, auto: advanced.has(event.id) };
   });
-  const goal = start.evaluation?.target ?? null;
+  const goal = start.evaluation?.goal_target !== undefined ? start.evaluation.goal_target : start.evaluation?.target ?? null;
   const byId = new Map(results.map((r) => [r.id, r]));
   const notes = prior.filter((e): e is Extract<RunEvent, { type: "text_only_supervisor" }> => e.type === "text_only_supervisor");
   const window = contextTools(features, new Replay(start), (m) => Promise.resolve(m)).window;
@@ -241,7 +244,7 @@ export async function decisionContext(run: RecordedRun, turn: number, features: 
   // The wiring, replayed over the recorded stream under the probe's switches.
   const replay = new Replay(start);
   const governor = new Governor({ limits: PLAY_LIMITS, retry: () => undefined, abort: () => undefined, now: () => 0 });
-  const detector = attachLoopGuard(replay, governor, undefined, features["deterministic-loop-guard-v1"] ? "enforced" : "diagnostic", features["interaction-loop-detection-v1"], loopSupervisor(features, replay), features["transition-loop-detection-v1"], features["pushback-loop-detection-v1"], features["battle-observation-loop-v1"], features["navigation-truth-v1"], features["ineffective-loops-v1"]);
+  const detector = attachLoopGuard(replay, governor, undefined, features["deterministic-loop-guard-v1"] ? "enforced" : "diagnostic", features["interaction-loop-detection-v1"], loopSupervisor(features, replay), features["transition-loop-detection-v1"], features["pushback-loop-detection-v1"], features["battle-observation-loop-v1"], features["navigation-truth-v1"], features["ineffective-loops-v1"], features["battle-menu-loop-v1"], features["clock-view-loop-v1"], features["reopened-dialogue-loop-v1"],features["trigger-script-loop-v1"],features["battle-refusal-loop-v1"],features["ineffective-navigation-v2"],features["same-target-no-progress-v1"]);
   const t0 = Date.parse(start.t);
   stallBriefing(features, replay, detector, { pausedMs: () => 0 }, () => Date.parse(replay.current.t) - t0);
   const wiring = probeTools(features, replay);

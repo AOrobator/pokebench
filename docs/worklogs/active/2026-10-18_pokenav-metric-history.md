@@ -1,0 +1,58 @@
+# PokéNav LLM metric history
+
+## Authorized outcome and scope
+
+The operator approved the compact screenshot on 2026-10-18 and requested implementation, independent subagent review, bug fixes, and local main landing. Append four synchronized strips under the existing LLM Stats Counters and Budgets: TTFT, inference/request, output/request and prompt composition. Reuse existing PokéNav screen styles and actual mobile arrows/dropdown unchanged. No stats time slider. Preserve existing viewer/replay lifecycle.
+
+Viewer-only scope: RunView completed-response samples, pure SVG metric-history renderer, Stats consumer wiring, existing HTML/CSS and browser-module serving allowlist, targeted tests. Prompt composition uses recorded input/cache-read tokens; instruction/history/tool counts and separately measured reasoning tokens are unavailable in existing recordings and must be labeled honestly. No prompt changes, experiment launches, schema changes, JIT-branch landing, timeline changes or dependencies.
+
+## Invariants
+
+- Values come from assistant events in this run at the current replay position, never mock values.
+- Shared elapsed-time axis; missing TTFT breaks the line, zero is retained, unavailable data is not fabricated.
+- Each completed response remains distinct, including multiple responses in one turn.
+- Current Counters/Budgets, theme and production navigation remain intact.
+- Polling/replay/run switching update through existing rendering owner.
+
+## Validation and review
+
+- [x] RED/GREEN focused metric, replay and mounted consumer tests
+- [x] Required test/lint/build/coverage/vendor gates
+- [x] Candidate browser at1280/1440/375; live-update/replay proof and screenshots
+- [x] Principles self-review and frozen packet
+- [x] Claude, Grok and isolated Codex review; findings fixed and re-reviewed
+- [x] Fast-forward local main; preserve unrelated dirty work
+- [x] Coordinate8790 restart and verify real recorded data at merged build
+
+## Session log
+
+- Dedicated worktree created from main00aa1e69; canonical checkout has pre-existing changes and is not an editing workspace.
+- Applying viewer-e2e, close-the-loop and multi-model-review. PokeBench overrides prohibit local inference reviewer lanes. Launch hold remains intact.
+
+- Implemented native-theme strips from replay-bounded shown RunView, with distinct response sequence identities, null/error gaps and explicit composition limitations. Latest300 display samples bound SVG work; tiny injected bound2 pins window behavior without filling a production cap.
+- Focused consumer/projection tests pass (71); adversarial deletion of projection and consumer each failed the intended test and was restored. First full gates exposed missing browser allowlist entry and absent worktree mGBA package; fixed registration and linked existing pinned native binding, without source/dependency changes outside viewer.
+- Full test run after native environment setup:2425 agent +1152 viewer +2707 Python passed, zero skips. First coverage/lint passed90% floors after environment setup; rerunning exact committed candidate gates before sealing review.
+- Candidate actual browser uses a scratch copy of first10 wall minutes of archived eb60 recording (129 responses, synthetic terminal marker only). Original recording unchanged, no inference, queue or autorun. Browser review found overlay scrollbar obscuring rightmost mobile values; scoped Stats gutter/padding and compact y-axis ticks fix it. Existing native pager untouched.
+- Cloud Claude standalone profile reports loggedIn:false; standing-approved equivalent Cursor Claude harness will be used. No local inference reviewers.
+
+- Round1 frozen63ef7a3f/diff50212977: Grok LGTM; isolated GPT found P2 disclosure state reset (root browser confirmed). Claude returned LGTM but violated read-only review by running the mutation script against tracked source, then restored it; no approval is carried forward. All packet bytes restored/clean. Fix classification: in-contract; static disclosure moved beside the dynamic chart host, same existing index/renderer/style paths. Regression fails old replacement semantics and asserts node/open-state preservation. Round2 will prohibit tracked writes explicitly and monitor reviewed bytes.
+
+- Round2 frozen1502cfbb/diff7024736d: cloud Cursor Claude and Grok plus isolated GPT each VERDICT: LGTM. Both external receipts exit0/trackedWrites[]; GPT independently reran71tests. Full5gates pass at1502; native browser129realresponses replay/phone proof and screenshot sheets inspected by root. Main fast-forward landed1502cfbb. Shared live restart deferred to single combined experiment-pin restart.
+- Combined candidate cf2f browser proves cachewrite-aware partial historical totals, persistent definitions and unchanged native mobile navigation at1280/1440/375. Canonical unfinished81files preserved by direct user authorization in separate attachedworktree; final JIT candidate includes approved graph source.
+
+- Final combined source2b2dec5d landed after all three cloud-family approvals and6330passing full-suite tests. Live8790 serves that clean build. Actual two-GPU JIT cohort Watch frames, growing Stats samples, four graphs, native mobile375 pager and1440comparison polling verified; canonical evidence runs/mockups/jit-launch-live/shots/. Root inspected screenshots/receipt. Native frontier updates after initial roughly5minute historical scan delay; no local Stats slider. Existing unrelated missing comparison receipt warning remains disclosed. No measured protocol/source changes after launch.
+
+### Thinner metric connectors — operator feedback
+
+- User reports connecting lines too thick. Browser confirms the LLM Stats preview uses2SVG units and scales at desktop widths. Change only `.mh-line` to1CSS-pixel non-scaling stroke; dots, native navigation, four metrics and experiment/runtime stay unchanged. Original ambient tab no longer exists; a fresh tab at its exact61365 URL reproduced the heavy Stats lines.
+- Styling-only adjustment; no new implementation-mirroring tests. Browser verification and existing focused tests/review follow on the frozen patch.
+
+- Thinner connectors landed063a9c0d after independent Claude Opus5.5, Grok4.5 and isolated GPT literal LGTM on frozen diff8d1b207a; both cloud receipts exit0/cleanAfter true. Existing focused72tests pass; no CSS-mirroring tests added. Root opened candidate1280/1440/375 screenshots and confirmed1px non-scaling computed strokes.
+- Sanctioned viewer-main refresh serves clean063a9c0d on8790 (PID82580); both gameplay processes survived, runner46655 and pinned measured build unchanged. Initial shell background viewer exited after tool session; detached sanctioned restart recovered service. Fresh verification tab hit temporary connection error; existing tab15 click through to trial3 then LLM Stats proved RUNNING,65responses, four1px/non-scaling paths and visible thin connectors. Proof runs/thin-metric-live/verification.json and runs/mockups/thin-metric-lines/shots/live.png. Historical61365 preview remains its earlier source; updated live viewer is8790.
+
+### Metric direction labels — operator request
+
+- Add explicit direction under every graph value: TTFT and inference/request lower is better; output/request and prompt composition lower is better for token cost. Token usage is not gameplay quality; do not imply fewer output/context tokens improve progress. Include the same direction in accessible graph names. Existing native mobile navigation, thin strokes, calculations and measured runtime remain untouched.
+- Text-only presentation change; existing focused tests and real desktop/mobile browser checks, followed by frozen independent cloud review before landing.
+
+- Direction labels landed2f136466 after independent Claude/Grok/GPT LGTM on frozen e6077fb3 packet.72existing focused tests, viewer build/lint pass. Initial lint hit duplicate private types from cross-worktree node_modules links; local frozen-lockfile install resolved environment identity, unchanged source. Real candidate1280/1440/375 screenshots opened, native mobile pager retained. Sanctioned detached viewer-main refresh serves clean2f136466; both gameplay processes survived. Existing live tab reloaded, Stats click verified all4labels, RUNNING trial3 and90responses. Canonical evidence runs/metric-direction-live/ and runs/mockups/metric-directions/shots/live.png. No harness/protocol changes.

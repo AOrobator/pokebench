@@ -55,7 +55,9 @@ WARP_TASKS = {
 # the agent's 15 s observation fetch timeout.
 WARP_SETTLE_BOUND_FRAMES = 300
 
-SettleReason = Literal["immediate", "paused", "fade", "warp", "fade_bound", "warp_bound"]
+SettleReason = Literal[
+    "immediate", "paused", "fade", "warp", "fade_bound", "warp_bound", "input_hold"
+]
 
 FADING_NOTE = (
     "Frame: captured while the screen was still fading (palette fade active); "
@@ -140,6 +142,8 @@ class FrameSettle:
         self._lock = threading.Lock()
         self._waiters: list[_Waiter[object]] = []
         self._parked = False
+        # Configured before the server starts, only by an explicit input owner.
+        self.capture_held: Callable[[], bool] | None = None
 
     def on_frame(self) -> None:
         """After each emulated frame; the vendor holds its memory lock."""
@@ -148,7 +152,8 @@ class FrameSettle:
             if not self._waiters:
                 return
             try:
-                motion = self._motion()
+                held = self.capture_held is not None and self.capture_held()
+                motion = None if held else self._motion()
             except Exception as error:  # noqa: BLE001 - re-raised on the callers' threads
                 for waiter in self._waiters:
                     waiter.error = error
@@ -163,7 +168,9 @@ class FrameSettle:
                 if motion is not None and waiter.frames < bound:
                     waiting.append(waiter)
                     continue
-                if motion is None:
+                if held:
+                    waiter.reason = "input_hold"
+                elif motion is None:
                     waiter.reason = "warp" if waiter.warp else "fade"
                 else:
                     waiter.reason = "warp_bound" if waiter.warp else "fade_bound"
@@ -214,6 +221,8 @@ class FrameSettle:
             with self._lock:
                 if self._parked:
                     return capture(), Settled(0, "paused")
+                if self.capture_held is not None and self.capture_held():
+                    return capture(), Settled(0, "input_hold")
                 motion = self._motion()
                 if motion is None:
                     return capture(), Settled(0, "immediate")

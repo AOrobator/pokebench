@@ -12,6 +12,11 @@ import type { GameStateSnapshot } from "./game-state.js";
 import type { SeenMilestone } from "./milestones.js";
 import { RecorderError, RunRecorder } from "./recorder.js";
 import { RunLog } from "./run-log.js";
+import {gameTools} from "./game-tools.js";
+import {withNavigation} from "./navigation.js";
+import {toolSwitches} from "./play-config.js";
+import {flagFeatures} from "./play-preset.js";
+import {playGameTools} from "./play-wiring.js";
 
 
 const STATE: GameStateSnapshot = {
@@ -111,6 +116,18 @@ describe("RunRecorder streaming", () => {
 });
 
 describe("RunRecorder", () => {
+  it("records harness-owned running without inventing a walking request", async () => {
+    const { recorder, log } = harness();
+    await recorder.start(START_META);
+    await recorder.emit({type:"tool_execution_start",toolCallId:"run",toolName:"press",args:{buttons:["UP"],walking:true}});
+    recorder.buttonPress("run", ["UP"], { hold_frames: 10, release_frames: 8 }, undefined, { automatic_running: true, requested_held_buttons: ["B"] });
+    const call=events(log).find(event=>event.type==="tool_call");
+    const press=events(log).find(event=>event.type==="button_press");
+    expect(call,"raw stale input remains auditable on the tool call").toMatchObject({type:"tool_call",args:{buttons:["UP"],walking:true}});
+    expect(press).toMatchObject({type:"button_press",automatic_running:true,requested_held_buttons:["B"]});
+    expect(press,"running receipt must omit the ignored legacy walking modifier").not.toHaveProperty("walking");
+  });
+
   it("records a full turn: context, assistant, tool call, press, milestone, frame result", async () => {
     const { recorder, log, advance } = harness([
       [{ name: "GAME_RUNNING", serverTimestamp: 10 }],
@@ -410,6 +427,124 @@ it("records objective deltas and sends the validated state to subscribers", asyn
   expect(events(log).at(-2)).toMatchObject({ type: "state", position: STATE.position });
 });
 
+it("records a latched blackout receipt as one durable native activity", async () => {
+  const { recorder, log } = harness();
+  const state: GameStateSnapshot = {
+    ...STATE,
+    field_controls_locked: false,
+    blackout_active: false,
+    game_stats: { pokemon_captures: 0, evolved_pokemon: 0, used_pokecenter: 0, saved_game: 0 },
+    party: [{ identity: "12345678:9abcdef0", species: "TORCHIC", level: 5, hp: 20, max_hp: 20 }],
+  };
+  await recorder.start({ ...START_META, harness_features: ["native-progress-activity-v1", "blackout-readout-v1"] }, false);
+  const before = recorder.recordState(state);
+  const delivered = recorder.recordState({ ...state, blackout_receipt: { frame: 81, money_before: 3000, notice: "Whited out." } });
+  recorder.recordState({ ...state, blackout_receipt: { frame: 81, money_before: 3000, notice: "Whited out." } });
+  expect(events(log).filter((event) => event.type === "activity" && event.kind === "blackout")).toEqual([
+    expect.objectContaining({ count: 1, evidence: [before.seq, delivered.seq] }),
+  ]);
+});
+
+it("preserves and records a one-shot blackout consumed inside production navigate_to", async () => {
+  const {recorder,log}=harness();
+  const notice="Whited out: your party had no usable Pokémon left, so the game took you back home.";
+  const tile=(x:number,y:number)=>({x,y,collision:0,behavior:0,elevation:3});
+  const field:GameStateSnapshot={...STATE,location:"ROUTE 103",map_id:[0,18],position:{x:0,y:0},facing:"right",field_controls_locked:false,blackout_active:false,game_stats:{pokemon_captures:0,evolved_pokemon:0,used_pokecenter:0,saved_game:0},party:[{identity:"12345678:9abcdef0",species:"TORCHIC",level:5,hp:20,max_hp:20}],navigation_grid:{elevation:3,tiles:[tile(0,0),tile(1,0)],objects:[],warps:[]}};
+  const homeBase:GameStateSnapshot={...field,location:"HOME",map_id:[1,1],position:{x:2,y:2}};
+  const home:GameStateSnapshot={...homeBase,blackout_receipt:{frame:81,money_before:3000,notice}};
+  let current=field,pending=false;
+  const png=(()=>{const b=Buffer.alloc(33);Buffer.from([137,80,78,71,13,10,26,10]).copy(b);b.writeUInt32BE(13,8);b.write("IHDR",12);b.writeUInt32BE(240,16);b.writeUInt32BE(160,20);return b.toString("base64");})();
+  const fetchFn:typeof fetch=(input)=>{
+    const url=typeof input==="string"?input:input instanceof URL?input.href:input.url;
+    if(url.endsWith("/action")){current=homeBase;pending=true;return Promise.resolve(new Response(JSON.stringify({status:"success"})));}
+    if(url.endsWith("/queue_status"))return Promise.resolve(new Response(JSON.stringify({queue_empty:true})));
+    if(url.endsWith("/pokebench/state"))return Promise.resolve(new Response(JSON.stringify(current)));
+    if(url.endsWith("/pokebench/observation")){
+      const state=pending?home:{...home,blackout_receipt:undefined};pending=false;
+      return Promise.resolve(new Response(JSON.stringify({state_text:state.blackout_receipt===undefined?"Current field.":`${notice}\nCurrent field.`,screenshot_base64:png,state})));
+    }
+    throw new Error(`unexpected ${url}`);
+  };
+  const features={...flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false}),"bounded-navigation-v1":true,"blackout-readout-v1":true};
+  const base=gameTools("http://127.0.0.1",{beforePress:()=>undefined,afterPress:()=>Promise.resolve()},fetchFn,toolSwitches(features),{now:()=>0,sleep:()=>Promise.resolve()});
+  const nav=withNavigation(base,features,{read:()=>Promise.resolve(current)}).find(tool=>tool.name==="navigate_to");
+  if(nav===undefined)throw new Error("missing navigate_to");
+  await recorder.start({...START_META,harness_features:["native-progress-activity-v1","blackout-readout-v1"]},false);
+  await recorder.emit({type:"tool_execution_start",toolCallId:"n1",toolName:"navigate_to",args:{x:1,y:0,map_id:[0,18]}});
+  const result=await nav.execute("n1",{x:1,y:0,map_id:[0,18]});
+  await recorder.emit({type:"tool_execution_end",toolCallId:"n1",toolName:"navigate_to",result,isError:false});
+  const text=result.content.flatMap(part=>part.type==="text"?[part.text]:[]).join("\n");
+  expect(text).toContain(notice);
+  expect((result.details as {state:GameStateSnapshot}).state.blackout_receipt).toEqual(home.blackout_receipt);
+  expect(events(log).filter(event=>event.type==="activity"&&event.kind==="blackout")).toHaveLength(1);
+});
+
+it("preserves and records every queued blackout consumed through the production dialogue wrapper", async () => {
+  const {recorder,log}=harness();
+  const notice="Whited out: your party had no usable Pokémon left, so your ₽0 remained ₽0.";
+  const field:GameStateSnapshot={...STATE,location:"ROUTE 103",map_id:[0,18],position:{x:0,y:0},facing:"right",field_controls_locked:false,blackout_active:false,game_stats:{pokemon_captures:0,evolved_pokemon:0,used_pokecenter:0,saved_game:0},party:[{identity:"12345678:9abcdef0",species:"TORCHIC",level:5,hp:20,max_hp:20}]};
+  const home:GameStateSnapshot={...field,location:"HOME",map_id:[1,1],position:{x:2,y:2}};
+  const receipts=[{frame:82,money_before:0,notice},{frame:99,money_before:0,notice}];
+  let current=field,actions=0,observations=0;
+  const png=(()=>{const b=Buffer.alloc(33);Buffer.from([137,80,78,71,13,10,26,10]).copy(b);b.writeUInt32BE(13,8);b.write("IHDR",12);b.writeUInt32BE(240,16);b.writeUInt32BE(160,20);return b.toString("base64");})();
+  const fetchFn:typeof fetch=(input)=>{
+    const url=typeof input==="string"?input:input instanceof URL?input.href:input.url;
+    if(url.endsWith("/action")){actions++;current=home;return Promise.resolve(new Response(JSON.stringify({status:"success"})));}
+    if(url.endsWith("/queue_status"))return Promise.resolve(new Response(JSON.stringify({queue_empty:true})));
+    if(url.endsWith("/pokebench/state"))return Promise.resolve(new Response(JSON.stringify(current)));
+    if(url.endsWith("/pokebench/observation")){
+      observations++;const receipt=observations===1?receipts[0]:observations===3?receipts[1]:undefined;
+      const state=receipt===undefined?home:{...home,blackout_receipt:receipt};
+      return Promise.resolve(new Response(JSON.stringify({state_text:receipt===undefined?"Current field.":`${notice}\nCurrent field.`,screenshot_base64:png,state})));
+    }
+    throw new Error(`unexpected ${url}`);
+  };
+  const features={...flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false}),"dialogue-auto-advance-v1":true,"blackout-readout-v1":true};
+  const base=gameTools("http://127.0.0.1",{beforePress:()=>undefined,afterPress:()=>Promise.resolve()},fetchFn,toolSwitches(features),{now:()=>0,sleep:()=>Promise.resolve()});
+  const wrapped=playGameTools(base,features,{read:()=>Promise.resolve(current)},recorder);
+  const press=wrapped.find(tool=>tool.name==="press");if(press===undefined)throw new Error("missing press");
+  await recorder.start({...START_META,harness_features:["native-progress-activity-v1","blackout-readout-v1"]},false);
+  await recorder.emit({type:"tool_execution_start",toolCallId:"p1",toolName:"press",args:{buttons:["RIGHT","A"]}});
+  const result=await press.execute("p1",{buttons:["RIGHT","A"]});
+  await recorder.emit({type:"tool_execution_end",toolCallId:"p1",toolName:"press",result,isError:false});
+  const text=result.content.flatMap(part=>part.type==="text"?[part.text]:[]).join("\n");
+  expect(actions).toBe(2);
+  expect(text.split(notice)).toHaveLength(3);
+  expect((result.details as {state:GameStateSnapshot}).state.blackout_receipts).toEqual(receipts);
+  expect(events(log).filter(event=>event.type==="activity"&&event.kind==="blackout")).toHaveLength(2);
+});
+
+it("preserves a blackout consumed by an automatic B through production tools and recording",async()=>{
+  const {recorder,log}=harness();
+  const notice="Whited out during automatic dialogue advance.";
+  const receipt={frame:107,money_before:3000,notice};
+  const field:GameStateSnapshot={...STATE,location:"ROUTE 103",map_id:[0,18],position:{x:0,y:0},facing:"right",field_controls_locked:false,blackout_active:false,game_stats:{pokemon_captures:0,evolved_pokemon:0,used_pokecenter:0,saved_game:0},party:[{identity:"12345678:9abcdef0",species:"TORCHIC",level:5,hp:1,max_hp:20}],world_context:{objects:[],triggers:[],dialogue:null,message:null}};
+  const message:GameStateSnapshot={...field,field_controls_locked:true,world_context:{objects:[],triggers:[],dialogue:"The poison took its toll.",message:{phase:"button_wait",cursor:25,ready:true,identity:"a".repeat(64)}}};
+  const home:GameStateSnapshot={...field,location:"HOME",map_id:[1,1],position:{x:2,y:2}};
+  let current=field,pending=false,automaticBs=0;
+  const png=(()=>{const b=Buffer.alloc(33);Buffer.from([137,80,78,71,13,10,26,10]).copy(b);b.writeUInt32BE(13,8);b.write("IHDR",12);b.writeUInt32BE(240,16);b.writeUInt32BE(160,20);return b.toString("base64");})();
+  const fetchFn:typeof fetch=(input,init)=>{
+    const url=typeof input==="string"?input:input instanceof URL?input.href:input.url;
+    if(url.endsWith("/action")){if(typeof init?.body!=="string")throw new Error("missing action body");const body=JSON.parse(init.body) as {buttons:string[]};if(body.buttons[0]==="A")current=message;else if(body.buttons[0]==="B"){automaticBs++;current=home;pending=true;}return Promise.resolve(new Response(JSON.stringify({status:"success"})));}
+    if(url.endsWith("/queue_status"))return Promise.resolve(new Response(JSON.stringify({queue_empty:true})));
+    if(url.endsWith("/pokebench/state"))return Promise.resolve(new Response(JSON.stringify(current)));
+    if(url.endsWith("/pokebench/observation")){const state=pending?{...current,blackout_receipt:receipt}:current;pending=false;return Promise.resolve(new Response(JSON.stringify({state_text:"Current field.",screenshot_base64:png,state})));}
+    throw new Error(`unexpected ${url}`);
+  };
+  const features={...flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false}),"dialogue-auto-advance-v1":true,"field-dialogue-phase-v1":true,"blackout-readout-v1":true};
+  const base=gameTools("http://127.0.0.1",{beforePress:()=>undefined,afterPress:()=>Promise.resolve()},fetchFn,toolSwitches(features),{now:()=>0,sleep:()=>Promise.resolve()});
+  const wrapped=playGameTools(base,features,{read:()=>Promise.resolve(current)},recorder);
+  const press=wrapped.find(tool=>tool.name==="press");if(press===undefined)throw new Error("missing press");
+  await recorder.start({...START_META,harness_features:["native-progress-activity-v1","blackout-readout-v1"]},false);
+  await recorder.emit({type:"tool_execution_start",toolCallId:"auto-b",toolName:"press",args:{buttons:["A"]}});
+  const result=await press.execute("auto-b",{buttons:["A"]});
+  await recorder.emit({type:"tool_execution_end",toolCallId:"auto-b",toolName:"press",result,isError:false});
+  expect(automaticBs).toBe(1);
+  expect(result.content.flatMap(part=>part.type==="text"?[part.text]:[]).join("\n")).toContain(notice);
+  expect((result.details as {state:GameStateSnapshot}).state.blackout_receipt).toEqual(receipt);
+  expect(events(log).filter(event=>event.type==="activity"&&event.kind==="blackout")).toHaveLength(1);
+});
+
 it("records milestones from the exact observation snapshot and its persisted evidence ID", async () => {
   const { StateMilestones } = await import("./milestones.js");
   const root = mkdtempSync(join(tmpdir(), "pokebench-story-rec-"));
@@ -555,4 +690,60 @@ it("navigation memory retains only the state actually returned after internal po
  expect(logged.findLast(e=>e.type==="tool_result")).toMatchObject({state_seq:delivered?.seq});
  const input=logged.find(e=>e.type==="button_press");if(input?.type!=="button_press")throw Error("missing input");expect(context.evidence).not.toContain(input.before_state_seq);expect(context.text).toContain("input location unverified");
  recorder.end("completed");
+});
+
+it("durably records exact JIT request identity and clears it for the following request",async()=>{
+ const {recorder,log}=harness();await recorder.start(START_META);
+ await recorder.transformContext([]);
+ const receipt={mode:"jit" as const,scene:"clock" as const,state_seq:3,system_prompt:"clock controls",prompt_sha256:"a".repeat(64),tools:["press"],tools_sha256:"b".repeat(64)};
+ recorder.recordRequestContext(receipt);
+ await recorder.emit({type:"message_end",message:assistant({text:"ready"})});
+ await recorder.transformContext([]);
+ await recorder.emit({type:"message_end",message:assistant({text:"next"})});
+ const rows=events(log).filter(e=>e.type==="assistant");
+ expect(rows[0]).toMatchObject({request_context:receipt});
+ expect(rows[1]).not.toHaveProperty("request_context");
+});
+
+it("measures TTFT from model dispatch to the first content delta, retaining cache writes",async()=>{
+ const {recorder,log,advance}=harness();await recorder.start(START_META);
+ await recorder.transformContext([]);advance(100);recorder.recordRequestContext(null);
+ const partial=assistant({text:""});advance(10);
+ await recorder.emit({type:"message_update",message:partial,assistantMessageEvent:{type:"text_start",contentIndex:0,partial}});
+ advance(20);await recorder.emit(delta("thinking_delta","thinking"));advance(40);
+ const message=assistant({input:30,output:12});message.usage.cacheWrite=7;
+ await recorder.emit({type:"message_end",message});
+ expect(events(log).find(e=>e.type==="assistant")).toMatchObject({ttft_ms:30,latency_ms:70,usage:{input:30,output:12,cache_read:3,cache_write:7}});
+});
+
+it("replays only the latest existing state when a late subscriber explicitly requests it",async()=>{
+ const {recorder}=harness();await recorder.start(START_META);
+ const empty:RunEvent[]=[];recorder.subscribe(e=>empty.push(e),false,true);expect(empty).toEqual([]);
+ recorder.recordState(STATE);const latest=recorder.recordState({...STATE,screen:"clock"});
+ const normal:RunEvent[]=[],seeded:RunEvent[]=[];
+ recorder.subscribe(e=>normal.push(e));recorder.subscribe(e=>seeded.push(e),false,true);
+ expect(normal).toEqual([]);expect(seeded).toEqual([latest]);
+ const next=recorder.recordState({...STATE,screen:"naming"});
+ expect(normal).toEqual([next]);expect(seeded).toEqual([latest,next]);
+});
+
+it("semantic-navigation-v2: navigate_to_target and explore_map results record their state and receipt; without v2 they do not", async () => {
+  for (const v2 of [true, false]) for (const name of ["navigate_to_target", "explore_map"]) {
+    const { recorder, log } = harness();
+    await recorder.start({ ...START_META, harness_features: v2 ? ["semantic-navigation-v2"] : [] }, false);
+    await recorder.emit({ type: "tool_execution_start", toolCallId: "s1", toolName: name, args: {} });
+    await recorder.emit({ type: "tool_execution_end", toolCallId: "s1", toolName: name, isError: false, result: {
+      content: [{ type: "text", text: "Semantic navigation: activation completed; inspect the resulting state. Selected map object 2." }],
+      details: { state: STATE, semantic_navigation: { status: "activation completed", selected: "map object 2", activation_attempted: true, target: { kind: "object", local_id: 2 } } },
+    } });
+    const result = events(log).findLast((e) => e.type === "tool_result");
+    if (result?.type !== "tool_result") throw new Error("no result");
+    if (v2) {
+      expect(result.semantic_navigation).toEqual({ target: { kind: "object", local_id: 2 }, activation_attempted: true });
+      expect(result.state_seq).toBeDefined();
+    } else {
+      expect(result.semantic_navigation).toBeUndefined();
+      expect(result.state_seq).toBeUndefined();
+    }
+  }
 });

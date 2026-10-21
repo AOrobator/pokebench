@@ -17,13 +17,19 @@ from pathlib import Path
 from typing import TextIO
 
 from pokebench_env.blackout_readout import Whiteout
+from pokebench_env.caught_nickname import SWITCH as CAUGHT_NICKNAME
+from pokebench_env.exit_labels import SWITCH as EXIT_LABELS
 from pokebench_env.exit_reach import SWITCH as EXIT_REACH
+from pokebench_env.field_moves import SWITCH as FIELD_MOVES
 from pokebench_env.game_screen import ReadMemory
 from pokebench_env.game_state import GameState, MapNames, read_game_state
 from pokebench_env.heal_trainers import SWITCH as HEAL_TRAINERS
+from pokebench_env.heal_trainers import SWITCH_V2 as HEAL_TRAINERS_V2
 from pokebench_env.raw_ram import load_raw_ram
 from pokebench_env.readout import features_off_from_env, format_readout
 from pokebench_env.readout_fixes import MID_FRAME, OWNER, UNSET_WARP
+from pokebench_env.respawn import SWITCH as RESPAWN
+from pokebench_env.respawn import LinkCache, RespawnMemory
 from pokebench_env.rom import resolve_rom
 from pokebench_env.screen_settle import WARP_FEATURE, warp_animating
 from pokebench_env.surf_gate import SWITCH as SURF_GATE
@@ -35,7 +41,12 @@ PORYMAP_MAPS = (
 
 
 def read_state(
-    read: ReadMemory, maps: MapNames, *, active_ui: bool, off: frozenset[str]
+    read: ReadMemory,
+    maps: MapNames,
+    *,
+    active_ui: bool,
+    off: frozenset[str],
+    links: LinkCache | None = None,
 ) -> GameState:
     return read_game_state(
         read,
@@ -45,7 +56,13 @@ def read_state(
         full_map_enabled="full-map-navigation-v1" not in off,
         story_characters_enabled="character-presence-v1" not in off,
         # battle-triage-guidance-v1 acts on battle-details-v2's RUN verdict, so either reads it.
-        battle_details_enabled=not {"battle-details-v2", "battle-triage-guidance-v1"} <= off,
+        battle_details_enabled=not {
+            "battle-details-v2",
+            "battle-triage-guidance-v1",
+            "battle-effective-damage-v1",
+        }
+        <= off,
+        battle_damage_enabled="battle-effective-damage-v1" not in off,
         dynamic_warp_enabled="named-warp-destinations-v1" not in off,
         displayed_names_enabled="displayed-place-names-v1" not in off,
         connection_edges_enabled="connection-edge-tiles-v1" not in off,
@@ -57,9 +74,22 @@ def read_state(
         surf_gate_enabled=SURF_GATE not in off,
         exit_reach_enabled=EXIT_REACH not in off,
         heal_trainers_enabled=HEAL_TRAINERS not in off,
+        heal_trainers_v2_enabled=HEAL_TRAINERS_V2 not in off,
         tutorial_owner_enabled=OWNER not in off,
         mid_frame_enabled=MID_FRAME not in off,
         unset_warp_enabled=UNSET_WARP not in off,
+        semantic_navigation_enabled=not {"semantic-navigation-v1", "semantic-navigation-v2"} <= off,
+        evolution_decision_enabled="evolution-decision-v1" not in off,
+        # exit-labels-v2 renames named-warp-destinations-v1's labels, so it needs that switch.
+        exit_labels_enabled=EXIT_LABELS not in off and "named-warp-destinations-v1" not in off,
+        exit_sections_enabled="exit-labels-v3" not in off
+        and EXIT_LABELS not in off
+        and "named-warp-destinations-v1" not in off,
+        caught_nickname_enabled=CAUGHT_NICKNAME not in off,
+        party_item_confirmation_enabled="party-item-confirmation-v1" not in off,
+        # field-move-gates-v1 gates exit-reachability-v1's flood, so it needs that switch.
+        field_moves_enabled=FIELD_MOVES not in off and EXIT_REACH not in off,
+        respawn_links=links if RESPAWN not in off else None,
     )
 
 
@@ -69,6 +99,7 @@ def render(
     *,
     warp_animation: bool = False,
     whiteout: Whiteout | None = None,
+    respawn_memory: RespawnMemory | None = None,
 ) -> str:
     return format_readout(
         state,
@@ -82,6 +113,7 @@ def render(
         adjacent_tiles="adjacent-tiles-v1" not in off,
         rules_in_prompt="readout-rules-in-prompt-v1" not in off,
         whiteout=whiteout,
+        respawn_memory=respawn_memory,
     )
 
 
@@ -122,11 +154,15 @@ def rerender(
 ) -> list[str]:
     off = features_off_from_env(env)
     active_ui = active_ui_enabled_from_env(env)
+    # respawn-readout-v1: one archive carries no history of entered centers (RespawnMemory).
+    links = LinkCache()
 
     def one(read: ReadMemory) -> str:
         animation = WARP_FEATURE not in off and warp_animating(read)
         return render(
-            read_state(read, maps, active_ui=active_ui, off=off), off, warp_animation=animation
+            read_state(read, maps, active_ui=active_ui, off=off, links=links),
+            off,
+            warp_animation=animation,
         )
 
     return [one(load(run_dir / ref.path, ref.sha256)) for ref in refs]

@@ -102,8 +102,13 @@ describe("classifyTrial", () => {
     build(log);
     return log.events.map((e) => JSON.stringify(e)).join("\n") + "\n";
   }
+  // Every case is graded twice: from the whole text, and from a one-shot line stream, which must agree.
   function classify(build: (log: Log) => void, exit: number | null = 0): FixedOutcome {
-    return classifyTrial(text(build), expectation, exit);
+    const whole = text(build);
+    const streamed = classifyTrial((function* () { yield* whole.split("\n"); })(), expectation, exit);
+    const outcome = classifyTrial(whole, expectation, exit);
+    expect(streamed).toEqual(outcome);
+    return outcome;
   }
 
   it("ranks the furthest milestone by story depth, so an early heal or catch never outranks the story", () => {
@@ -129,6 +134,17 @@ describe("classifyTrial", () => {
     expect(run({ kind: "boot" }, "0".repeat(40))).toMatchObject({ valid: false, reason: `run_start does not match the plan: ROM ${"0".repeat(40)} (planned ${ROM_SHA1})` });
     expect(run({ kind: "boot" }, undefined)).toMatchObject({ valid: false, reason: `run_start does not match the plan: ROM unrecorded (planned ${ROM_SHA1})` });
     expect(run({ kind: "boot" }, ROM_SHA1, expectation)).toMatchObject({ valid: false, reason: `run_start does not match the plan: start boot (planned save_state ${START_SHA1})` });
+  });
+
+  it("rejects a trial that changes the declared native termination boundary",()=>{
+    const planned={...expectation,target:"STARTER_CHOSEN"};
+    const run=(target:string|null)=>classifyTrial(text(log=>{
+      log.add(0,{...goodStart,evaluation:{...goodStart.evaluation,target}});
+      log.add(900_000,{...end,reason:"budget"});
+    }),planned,0);
+    expect(run("STARTER_CHOSEN")).toMatchObject({valid:true});
+    expect(run(null)).toMatchObject({valid:false,reason:"run_start does not match the plan: stopping target null (planned STARTER_CHOSEN)"});
+    expect(run("STONE_BADGE")).toMatchObject({valid:false,reason:"run_start does not match the plan: stopping target STONE_BADGE (planned STARTER_CHOSEN)"});
   });
 
   it("checks the recorded feature bits against the arm, so a wrong-arm or unrecorded trial is invalid", () => {
@@ -226,4 +242,21 @@ describe("classifyTrial", () => {
     const o = classifyTrial(`${body}not json\n${JSON.stringify({ ...end, reason: "budget", v: 1, run: "x", seq: 9, t: "2026-10-11T22:15:00.000-04:00" })}\n`, expectation, 0);
     expect(o).toMatchObject({ valid: true, wallMs: 900_000 });
   });
+});
+
+it("retains terminal model/crash failures only for an explicit screen policy, without accepting config drift",()=>{
+ const log=new Log();log.add(0,START);log.add(20,{type:"run_end",turn:1,reason:"model_error",furthest_milestone:null,turns:1,wall_ms:20,tokens:{input:0,output:0},frames:{saved:0,bytes:0}});
+ const text=log.events.map(e=>JSON.stringify(e)).join("\n");
+ expect(classifyTrial(text,{maxWallMs:600000,primary:"RIVAL_MET"},1).valid).toBe(false);
+ expect(classifyTrial(text,{maxWallMs:600000,primary:"RIVAL_MET",terminalErrorsAsOutcomes:true},1)).toMatchObject({valid:true,endReason:"model_error",primaryReached:false});
+ expect(classifyTrial(text,{maxWallMs:600000,primary:"RIVAL_MET",terminalErrorsAsOutcomes:true,presetId:"wrong"},1).valid).toBe(false);
+});
+it("grades only the declared story path and rejects milestones after the cap",()=>{
+ const log=new Log();log.add(0,START);
+ log.add(100,{type:"milestone",turn:1,name:"CLOCK_SET",kind:"story",origin:"observed",server_timestamp:1,evidence:[]});
+ log.add(200,{type:"milestone",turn:2,name:"ROUTE_102_TRAINER_CALVIN_DEFEATED",kind:"story",origin:"observed",server_timestamp:2,evidence:[]});
+ log.add(600001,{type:"milestone",turn:3,name:"RIVAL_MET",kind:"story",origin:"observed",server_timestamp:3,evidence:[]});
+ log.add(600002,{type:"run_end",turn:3,reason:"budget",furthest_milestone:"RIVAL_MET",turns:3,wall_ms:600002,tokens:{input:0,output:0},frames:{saved:0,bytes:0}});
+ const text=log.events.map(e=>JSON.stringify(e)).join("\n");
+ expect(classifyTrial(text,{maxWallMs:600000,primary:"RIVAL_MET",progressOrder:["CLOCK_SET","RIVAL_MET"]},0)).toMatchObject({furthest:"CLOCK_SET",furthestDepth:0,furthestMs:100,primaryReached:false});
 });

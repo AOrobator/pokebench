@@ -105,7 +105,8 @@ export function budgets(view: RunView, nowMs: number): string {
       ? budgetMissing("RETRIES", '<span class="nodata">no retries yet</span>')
       : budgetBar("RETRIES", view.retry.attempt / view.retry.limit, `${String(view.retry.attempt)} / ${String(view.retry.limit)}`),
   );
-  const { max_turns, max_tokens, max_wall_ms } = start.budgets;
+  const { max_turns, max_tokens } = start.budgets;
+  const max_wall_ms = view.control.maxWallMs ?? start.budgets.max_wall_ms;
   if (max_turns !== undefined) rows.push(budgetBar("TURNS", view.turn / max_turns, `${String(view.turn)} / ${num(max_turns)}`));
   if (max_tokens !== undefined) {
     const used = view.tokens.input + view.tokens.output;
@@ -143,15 +144,15 @@ export function counters(view: RunView): string {
 const splitName = (name: string): string => esc(name.replace(/_/g, " ").toLowerCase()) + (name === "PLAYER_NAME_SET" ? " (gameplay start)" : "");
 
 function deltaSpan(seconds: number): string {
-  return `<span class="${seconds <= 0 ? "d-ahead" : "d-behind"}">${signedDelta(seconds)}</span>`;
+  return Math.abs(seconds) < 1 ? `<span>${signedDelta(seconds)}</span>` : `<span class="${seconds < 0 ? "d-ahead" : "d-behind"}">${signedDelta(seconds)}</span>`;
 }
 
-export function splits(view: RunView, baseline: Baseline | null, nowMs: number, best: Baseline | null = null, compact = false): { summary: string; table: string } {
+export function splits(view: RunView, baseline: Baseline | null, nowMs: number, frontier: Baseline | null = null, compact = false): { summary: string; table: string } {
   const startMs = view.startMs;
   if (startMs === null) return { summary: "no data", table: `<p>${NO_DATA}</p>` };
   const reached = new Map(view.milestones.filter((m) => m.origin !== "present_at_start").map((m) => [m.name, (m.ms - startMs - view.control.pausedBefore(m.ms)) / 1000]));
   const reference = (run: Baseline | null) => new Map(run?.milestones.map((m) => [m.name, m]) ?? []);
-  const bases = reference(baseline), bests = reference(best);
+  const bases = reference(baseline), bests = reference(frontier);
   const names = new Set<string>([...MILESTONE_ORDER, ...reached.keys(), ...bases.keys(), ...bests.keys()]);
   const elapsed = wallSeconds(view, nowMs);
   const newStory = new Set(["PLAYER_NAME_CONFIRMED", "FIRST_TRUCK_EXIT", "MOM_CLOCK_INSTRUCTION", "MOM_RIVAL_INSTRUCTION", "RIVAL_MET", "BIRCH_RESCUE_COMPLETE", "BIRCH_STARTER_HANDOFF_COMPLETE", "RIVAL_BATTLE_WON", "RECEIVED_POKEDEX", "STARTER_TUTORIAL_COMPLETE", "RUNNING_SHOES_RECEIVED", "DAD_FIRST_MEETING", "WALLY_TUTORIAL_COMPLETE", "TEAM_AQUA_WOODS_EVENT_COMPLETE", "RUSTBORO_GYM_COMPLETE", "ROCK_TOMB_RECEIVED"]);
@@ -175,9 +176,9 @@ export function splits(view: RunView, baseline: Baseline | null, nowMs: number, 
     const note = current?.derived === true ? ` title="Recovered from recorded game state · evidence ${current.evidence?.map(seq => `#${String(seq)}`).join(", ") ?? `#${String(current.seq)}`} · first observation (upper bound)"` : "";
     return `<tr class="${cls}"><td class="n">${splitName(name)}${current?.derived === true ? "*" : ""}</td><td class="t"${note}>${time}</td>${compact ? "" : `${cell(name, at, bases)}${cell(name, at, bests)}`}</tr>`;
   });
-  const summary = `${String(view.milestones.filter((m) => m.origin !== "present_at_start").length)} reached${next === undefined ? "" : ` · next ${splitName(next)}`} · ${baseline === null ? "no baseline" : "vs baseline"}${best === null ? "" : " + best"}`;
-  const labels = `<p class="comparison-note">Baseline: ${baseline === null ? "none eligible" : esc(baseline.run)}<br>Best historical run: ${best === null ? "none eligible" : esc(best.run)}<br>Same start; harness versions may differ. Best = furthest progress, then fastest to that point. — = not recorded/reached; no delta until reached. * = recovered from recorded game state; first observation time is an upper bound.</p>`;
-  return { summary, table: `${compact ? "" : labels}<table class="splits"><thead><tr><th>Milestone</th><th>Current</th>${compact ? "" : "<th>Baseline<br>time / Δ</th><th>Best<br>time / Δ</th>"}</tr></thead><tbody>${rows.join("")}</tbody></table>` };
+  const summary = `${String(view.milestones.filter((m) => m.origin !== "present_at_start").length)} reached${next === undefined ? "" : ` · next ${splitName(next)}`} · ${baseline === null ? "no baseline" : "vs baseline"}${frontier === null ? "" : " + frontier"}`;
+  const labels = `<p class="comparison-note">Baseline: ${baseline === null ? "none eligible" : esc(baseline.run)}<br>Frontier run: ${frontier === null ? "none eligible" : esc(frontier.run)}<br>The baseline shares this run's start. The frontier is the frontier graph's agent frontier: furthest New Game start, then fastest. Harness versions may differ. — = not recorded/reached; no delta until reached. * = recovered from recorded game state; first observation time is an upper bound.</p>`;
+  return { summary, table: `${compact ? "" : labels}<table class="splits"><thead><tr><th>Milestone</th><th>Current</th>${compact ? "" : "<th>Baseline<br>time / Δ</th><th>Frontier<br>time / Δ</th>"}</tr></thead><tbody>${rows.join("")}</tbody></table>` };
 }
 
 export function thinkingDialog(view: RunView, nowMs: number): { head: string; body: string } {
@@ -205,8 +206,12 @@ function chip(button: string): string {
   return `<span class="chipb">${ARROW[button] ?? ""}${esc(button)}</span>`;
 }
 
-const CONTROL_ICON = { pause: "⏸", resume: "▶", stop: "■", cancel_stop: "↺", abort: "✖" } as const;
+const CONTROL_ICON = { pause: "⏸", resume: "▶", stop: "■", cancel_stop: "↺", abort: "✖", extend_30m: "＋", extend_60m: "＋" } as const;
 function controlRow(event: Extract<RunEvent, { type: "operator_control" }>): string {
+  if (event.action === "extend_30m" || event.action === "extend_60m") {
+    const limits = event.previous_max_wall_ms !== undefined && event.max_wall_ms !== undefined ? ` · ${hms(event.previous_max_wall_ms / 1000)} → ${hms(event.max_wall_ms / 1000)}` : "";
+    return `＋ Extend ${event.action === "extend_30m" ? "30 minutes" : "1 hour"} · ${esc(event.status)}${limits} · original evaluation horizon unchanged · request ${String(event.request)}`;
+  }
   const name = event.action.replace("_", " ");
   const status = event.status === "pending" ? "requested" : event.status === "failed" ? "FAILED" : event.status;
   const detail = event.status === "failed" ? " · emulator still frozen; the run stays paused" : event.status === "pending"
@@ -230,9 +235,20 @@ export function eventText(event: RunEvent, view?: RunView): string | null {
     case "navigation_context":return `Navigation memory delivered · ${String(event.evidence.length)} retained references · ${esc(event.text.slice(0,200))}`;
     case "milestone_hint":return `Milestone hint sent to the model · ${esc(event.text)}`;
     case "dialogue_auto_advance":return `Dialogue auto-advance (${event.tool}) · B ×${String(event.auto_presses)}${event.battle_auto_presses===undefined?"":` (${String(event.battle_auto_presses)} in battle)`} · stopped: ${esc(event.stop.replaceAll("_"," "))} · ${esc(event.detail)}${event.dropped.length===0?"":` · ${String(event.dropped.length)} requested inputs not sent (${esc(event.dropped.join(", "))})`} · ${String(event.pages.length)} pages${event.pages.map((page,i)=>` · ${String(i+1)}. ${page.battle_turn===undefined?"":`battle turn ${String(page.battle_turn)}: `}${page.speaker===null?"":`${esc(page.speaker)}${page.speaker_source==="faced_sprite"?" (sprite kind)":page.speaker_source==="faced_target"?" (faced object)":""}: `}“${esc(page.text)}”`).join("")}`;
+    case "loop_breaker":{
+      const cycle=event.trigger==="short_cycle"?`a cycle of ${String(event.period)} turns (the same tool calls and game state, apart from fields that change on their own) repeated over ${String(event.repeats)} turns`:null;
+      return event.stage===1?`Loop breaker stage 1 · ${String(event.collapsed)} ${cycle===null?"duplicate":"earlier"} ${event.collapsed===1?"turn":"turns"} left out of the request${cycle===null?"":" across every cycle in it"} (${cycle===null?"":"longest: "}${cycle??`${String(event.repeats)} identical ${event.trigger==="no_tool_call"?"replies with no tool call":"turns"} in a row`})`:`Loop breaker stage 2 note sent to the model (${event.trigger==="no_tool_call"?"reply with no tool call":cycle??"fixed point"}${cycle===null?`, ${String(event.repeats)} in a row`:""}) · ${esc(event.text??"")}`;
+    }
+    case "auto_talk":return `Loop breaker stage 3 auto-talk (${event.trigger==="no_tool_call"?"replies with no tool call":"fixed point"}, ${String(event.repeats)} in a row) · ${event.outcome==="talked"?"talked to":event.outcome==="unreachable"?"could not reach":event.outcome==="none"?"no one untalked on this map":"the field was not free"}${event.target===null?"":` ${esc(event.target.name)} at (${String(event.target.x)},${String(event.target.y)})`} · ${String(event.walks)} walks, ${String(event.tried)} tried${event.text===null?"":` · ${esc(event.text)}`}`;
+    case "trainer_sight_check":return `Trainer sight check (navigate_to to (${String(event.goal.x)},${String(event.goal.y)}), ${String(event.route_tiles)} route tiles${event.confirmed?", confirm_trainer_sight":""}) · ${event.outcome==="refused"?"not walked":event.outcome==="confirmed"?"walked anyway":event.outcome==="clear"?"no trainer in sight":`not checked: ${esc(event.reason??"unknown")}`}${event.sightings.length===0?"":` · ${event.sightings.map(t=>`object ${String(t.local_id)} ${esc(t.sprite_kind??"unknown")} at (${String(t.x)},${String(t.y)}) facing ${t.facing} sees (${String(t.tile.x)},${String(t.tile.y)}), step ${String(t.step)}`).join("; ")}`}`;
+    case "heal_first_line":return `Heal first line added to the ${esc(event.tool)} result · ${esc(event.opponent)} · ${event.party.map(p=>`${esc(p.species)} ${String(p.hp)}/${String(p.max_hp)}`).join(", ")} · ${event.heard===null?"no heal line heard":`heal line heard turn ${String(event.heard.turn)}`}${event.exit===null?"":` · exit to ${esc(event.exit.to)}`} · ${esc(event.text)}`;
+    case "story_battle_heal_gate":return `Story battle heal gate (${event.tool}${event.confirmed?", confirm":""}) · ${event.outcome==="refused"?"not started":event.outcome==="confirmed"?"started anyway":event.outcome==="clear"?"no trainer battle ahead":`sight not checked: ${esc(event.reason??"unknown")}`}${event.reached.map(r=>` · ${r.kind==="rival"?`rival ${esc(r.name??"unknown")}`:r.kind==="gym_leader"?`Gym Leader ${esc(r.name??"unknown")}`:`object ${String(r.local_id)} ${esc(r.sprite_kind??"unknown")}`} at (${String(r.x)},${String(r.y)}) ${r.via==="talk"?"talked to":`approached from (${String(r.tile.x)},${String(r.tile.y)})`}`).join("")}${event.sightings.length===0?"":` · ${event.sightings.map(t=>`object ${String(t.local_id)} ${esc(t.sprite_kind??"unknown")} at (${String(t.x)},${String(t.y)}) sees (${String(t.tile.x)},${String(t.tile.y)})`).join("; ")}`} · ${event.hurt.map(h=>`${esc(h.species)} ${String(h.hp)}/${String(h.max_hp)}`).join(", ")}${event.text===null?"":` · ${esc(event.text)}`}`;
+    case "unfinished_activity":return `Unfinished activity ${event.change} · ${esc(event.trainer)} (trainer ${String(event.trainer_id)}) · map ${String(event.map_id[0])}/${String(event.map_id[1])} · ${esc(event.text)}`;
+    case "stall_gate":return `Stall briefing held (${event.kind==="map_cycle"?"map back-and-forth":"milestone drought"}, level ${String(event.level)}) · ${esc(event.character)} ${event.reason==="untalked"?"is on this map and has not been talked to since the last story milestone":"is getting closer"} · map ${String(event.map_id[0])}/${String(event.map_id[1])}`;
     case "people_id_card":return `ID card added to the ${esc(event.tool)} result (${event.reason==="first"?"first sight":"back in view, card changed"}) · ${esc(event.key)} · ${esc(event.text)}`;
     case "low_hp_trainer_warning":return `Low-HP trainer warning added to the ${esc(event.tool)} result · ${esc(event.species)} ${String(event.hp)}/${String(event.max_hp)} HP · rival ${esc(event.rival)} at (${String(event.x)},${String(event.y)}) · ${esc(event.text)}`;
     case "heal_before_trainers_warning":return `Heal before trainers warning added to the ${esc(event.tool)} result · ${event.trainers.map(t=>`object ${String(t.local_id)} ${esc(t.sprite_kind??"unknown")} at (${String(t.x)},${String(t.y)})`).join(", ")} · ${event.heal===null?"no healing place named":`${event.heal.kind==="pokemon_center"?"POKéMON CENTER":"home"} in ${esc(event.heal.town)}, ${String(event.heal.hops)} map changes`} · ${esc(event.text)}`;
+    case "gym_heal_warning":return `Gym heal warning added to the ${esc(event.tool)} result · ${esc(event.gym.name)}${event.gym.here?"":` (exit at (${String(event.gym.x)},${String(event.gym.y)}))`} · ${event.hurt.map(h=>`${esc(h.species)} ${String(h.hp)}/${String(h.max_hp)}`).join(", ")} · ${event.heal===null?"no healing place named":`${event.heal.kind==="pokemon_center"?"POKéMON CENTER":"home"} in ${esc(event.heal.town)}, ${String(event.heal.hops)} map changes`} · ${esc(event.text)}`;
     case "story_battle_warning":return `Story battle warning added to the ${esc(event.tool)} result · ${esc(event.opponent)}${event.x===null||event.y===null?"":` at (${String(event.x)},${String(event.y)})`} · ${event.party.map(p=>`${esc(p.species)} ${String(p.hp)}/${String(p.max_hp)}`).join(", ")} · ${esc(event.text)}`;
     case "story_goal_away":return `Story goal walk-away note added to the ${esc(event.tool)} result · ${esc(event.speaker)}, turn ${String(event.line_turn)} · ${event.steps.map(st=>st.measure==="tiles"?`${esc(st.to_name)} (${String(st.from.x)},${String(st.from.y)}) → (${String(st.to.x)},${String(st.to.y)}): ${String(st.before)} → ${String(st.after)} tiles`:`${esc(st.from_name)} → ${esc(st.to_name)}: ${String(st.before)} → ${String(st.after)} maps`).join("; ")} · ${esc(event.text)}`;
     case "destination_citation":return `navigate_to because ${event.verdict==="found"?`found in the turn ${String(event.found_turn ?? 0)} result`:event.verdict==="not_found"?"not found in anything shown":"too short to check"} · to (${String(event.x)},${String(event.y)}) on map ${String(event.map_id[0])}/${String(event.map_id[1])} · “${esc(event.because)}”${event.text===null?"":` · ${esc(event.text)}`}`;
@@ -262,7 +278,7 @@ export function eventText(event: RunEvent, view?: RunView): string | null {
     case "milestone":
       return `★ ${esc(event.name)}${event.kind === undefined ? "" : ` · ${event.kind}`}${event.origin === "present_at_start" ? " · already present when run started" : ""}${event.evidence === undefined ? "" : ` · evidence ${event.evidence.map((seq) => `#${String(seq)}`).join(", ")}`}`;
     case "loop_guard":
-      return view === undefined ? `Loop ${esc(event.kind)} ${esc("mode" in event && event.mode === "diagnostic" ? `diagnostic: ${event.phase.replace("_", " ")}` : event.phase)}: ${esc(event.message)} · evidence ${event.evidence.map(seq=>`#${String(seq)}`).join(", ")}` : esc(view.loopLabel(event));
+      return view === undefined ? `Loop ${esc(event.kind.replaceAll("_"," "))} ${esc("mode" in event && event.mode === "diagnostic" ? `diagnostic: ${event.phase.replace("_", " ")}` : event.phase)}: ${esc(event.message)} · evidence ${event.evidence.map(seq=>`#${String(seq)}`).join(", ")}` : esc(view.loopLabel(event));
     case "retry":
       return `✗ retry ${String(event.attempt)}/${String(event.limit)}: ${esc(event.reason)}`;
     case "telemetry_error":
@@ -339,9 +355,13 @@ export function fieldContext(view: RunView): string {
 // navigation.ts, navigation-memory.ts, objective-tools.ts and state-decision.ts.
 // Historical run headers contain tool names, not versioned tool schemas.
 const TOOL_REFERENCE: Readonly<Record<string, readonly [description:string, inputs:string, outputs:string, example:string]>> = {
- observe: ["Inspect the current game without pressing a button.", "None. Send an empty object {}.", "A 240×160 screenshot plus observation text. State/map detail depends on the run’s observation switches; decoded state is retained in tool details.", '{}'],
+ choose_evolution:["Choose whether the current POKéMON evolution completes or stops; neither option is recommended.","decision: required evolve or cancel. Acts only at a fresh native cancellation window.","The submitted choice, native outcome when verified, and a fresh screenshot/readout. Refuses when no eligible evolution is waiting.",'{"decision":"evolve"}'],
+ observe: ["Inspect the current game. With battle-decision-ready-v1, pending ordinary battle text advances to the next choice.", "None. Send an empty object {}.", "A 240×160 screenshot plus observation text. State/map detail depends on the run’s observation switches; decoded state is retained in tool details.", '{}'],
+
  press: ["Press Game Boy Advance buttons in order, then inspect the result. Buttons are contextual to the current screen.", "buttons: required array of 1–8 values: A, B, START, SELECT, UP, DOWN, LEFT, RIGHT. walking: optional boolean; true suppresses automatic running. Interface safety may submit only the first requested button.", "A fresh screenshot and observation text, submitted-button acknowledgement, and optional before/after feedback. State is retained in tool details. Invalid requests or server failures return errors.", '{"buttons":["RIGHT"],"walking":true}'],
  navigate_to: ["Walk toward a model-chosen coordinate on the current map using A*. It does not press A or choose a destination.", "x, y: required nonnegative integers. map_id: required [group, number], each integer 0–255, matching the current map. walking: optional boolean. Local mode allows up to 8 button attempts; whole-map mode and terrain support depend on enabled features.", "Navigation status and button-attempt count, final observation/screenshot, and details containing state plus navigation {status, commands, target}. May stop before arrival on a lock, blocked movement or map change.", '{"x":5,"y":1,"map_id":[1,2]}'],
+ navigate_to_target: ["Navigate to one game-owned person, object, interaction, warp, or walking connection, then activate it once.", "map_id: required current [group, number]. target: one listed identity: object local_id; interaction kind plus x/y; warp x/y; or connection direction.", "Selected identity, interruption or activation status, final observation, and details containing verified state plus semantic_navigation. Battle, dialogue, menus, scripts, forced movement, unavailable field ownership, and map changes return control immediately.", '{"map_id":[1,2],"target":{"kind":"object","local_id":3}}'],
+ explore_map: ["Deterministically select and try one reachable, not-yet-attempted interaction or walking connection on the current map.", "None. Send an empty object {}.", "The delegated semantic-navigation result for exactly one target. Interruptions return immediately; a target is remembered as attempted only once activation was attempted.", '{}'],
  note_contradiction: ["Record that the game differed from what the model expected. It is pinned in the instruction ledger and changes nothing in the game.", "expected: required, 1–200 characters. observed: required, 1–300 characters. evidence: 1–4 event numbers the model was shown (delivered states or dialogue).", "A confirmation line. Unknown evidence or empty text is rejected; the ledger keeps the newest 8 contradictions.", '{"expected":"The person here would be the professor","observed":"The object at 10,8 is SCIENTIST_1","evidence":[4803]}'],
  get_next_milestone: ["HINT ARM: name the next main story milestone the game has not recorded yet. Presses nothing.", "No inputs.", "The next milestone in plain words and how many of the main-path milestones to the first badge are done.", '{}'],
  recall_dialogue: ["Search every dialogue page the model was shown this run. Reads past observations only; presses nothing.", "contains: optional words, up to 80 characters, case-insensitive. room: optional location-name text, up to 80 characters. last: optional integer 1–20, default 8.", "Quoted pages, newest first, each with event number, turn, location, position and the faced character when the readout named one. Replies stay under 6,000 characters and say how many pages matched, were shown and were omitted.", '{"contains":"neighbor","last":5}'],
@@ -352,12 +372,24 @@ const TOOL_REFERENCE: Readonly<Record<string, readonly [description:string, inpu
  act: ["Choose one action from the current snapshot in state-only decision mode.", "Either {kind: press, buttons: [1–8 supported buttons]} or {kind: wait, duration_ms: integer 1–2000}. Do not combine buttons and duration_ms. Waiting measures host time, not guaranteed emulator frames.", "A fresh screenshot and observation text with press feedback or a wait acknowledgement; state is retained in tool details. A fresh snapshot is also supplied for the next decision; invalid action shapes are rejected.", '{"kind":"wait","duration_ms":100}'],
 };
 
-function toolReference(name:string):string {
- const reference=Object.hasOwn(TOOL_REFERENCE,name)?TOOL_REFERENCE[name]:undefined;
+function toolReference(name:string,automaticRunning:boolean):string {
+ const base=Object.hasOwn(TOOL_REFERENCE,name)?TOOL_REFERENCE[name]:undefined;
+ const reference=automaticRunning&&base!==undefined&&name==="press"?[base[0],"buttons: required array of 1–8 values: A, B, START, SELECT, UP, DOWN, LEFT, RIGHT. The harness automatically holds B for ordinary directional travel only when the fresh native readout permits running; the model has no walking override. Interface safety may submit only the first requested button.",base[2],'{"buttons":["RIGHT"]}']as const:automaticRunning&&base!==undefined&&name==="navigate_to"?[base[0],"x, y: required nonnegative integers. map_id: required [group, number], each integer 0–255, matching the current map. The harness automatically runs eligible steps; the model has no walking override. Local mode allows up to 8 button attempts; whole-map mode and terrain support depend on enabled features.",base[2],base[3]]as const:base;
  return `<article class="config-tool" data-tool="${esc(name)}"><h5>${esc(name)}</h5>${reference===undefined?'<p>Documentation unavailable for this recorded tool. Its historical inputs and outputs were not recorded.</p>':`<p>${esc(reference[0])}</p><dl><dt>INPUTS</dt><dd>${esc(reference[1])}</dd><dt>OUTPUTS</dt><dd>${esc(reference[2])}</dd></dl><details><summary>INPUT EXAMPLE</summary><pre>${esc(reference[3])}</pre><p>Illustrative shape only. Coordinates, map IDs and evidence must come from the actual run.</p></details>`}</article>`;
 }
 
 export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
+ "observed-instructions-v1":"observed-instructions-v1.html",
+ "original-speed-pacing-v1":"original-speed-pacing-v1.html",
+ "safe-navigation-strides-v1":"safe-navigation-strides-v1.html",
+ "evolution-decision-v1":"evolution-decision-v1.html",
+ "automatic-running-v1":"automatic-running-v1.html",
+ "visited-terrain-navigation-v1":"visited-terrain-navigation-v1.html",
+ "semantic-navigation-v1":"semantic-navigation-v1.html",
+ "semantic-navigation-v2":"semantic-navigation-v2.html",
+ "deterministic-exploration-v1":"deterministic-exploration-v1.html",
+ "just-in-time-prompt-v1":"just-in-time-prompt-v1.html",
+ "just-in-time-prompt-v2":"just-in-time-prompt-v2.html",
  "navigation-evidence-memory-v1":"navigation-evidence-memory-v1.html",
  "bounded-navigation-v1":"astar-navigation.html",
  "ledge-hops-v1":"ledge-hops-v1.html",
@@ -433,6 +465,8 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "story-destinations-v1":"story-destinations-v1.html",
  "exit-reachability-v1":"exit-reachability-v1.html",
  "heal-before-trainers-v1":"heal-before-trainers-v1.html",
+ "heal-before-trainers-v2":"heal-before-trainers-v2.html",
+ "gym-heal-warning-v1":"gym-heal-warning-v1.html",
  "harness-trust-v1":"harness-trust-v1.html",
  "cited-destination-v1":"cited-destination-v1.html",
  "harness-trust-v2":"harness-trust-v1.html",
@@ -444,6 +478,59 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "surf-gated-exits-v2":"surf-gated-exits-v2.html",
  "instruction-ledger-v2":"instruction-ledger-v2.html",
  "no-exit-here-v1":"no-exit-here-v1.html",
+ "bag-healing-items-v1":"bag-healing-items-v1.html",
+ "battle-menu-loop-v1":"battle-menu-loop-v1.html",
+ "clock-view-loop-v1":"clock-view-loop-v1.html",
+ "stale-story-goal-v1":"stale-story-goal-v1.html",
+ "stale-story-goal-v2":"stale-story-goal-v2.html",
+ "input-cuts-v1":"input-cuts-v1.html",
+ "loop-guard-screen-v1":"loop-guard-screen-v1.html",
+ "reopened-dialogue-loop-v1":"reopened-dialogue-loop-v1.html",
+ "dialog-button-b-v1":"dialog-button-b-v1.html",
+ "faced-interaction-history-v1":"faced-interaction-history-v1.html",
+ "save-state-task-truth-v1":"save-state-task-truth-v1.html",
+ "cache-aligned-window-v1":"cache-aligned-window-v1.html",
+ "jit-guide-reuse-v1":"jit-guide-reuse-v1.html",
+ "scripted-place-guidance-v1":"scripted-place-guidance-v1.html",
+ "trigger-script-loop-v1":"trigger-script-loop-v1.html",
+ "battle-refusal-loop-v1":"battle-refusal-loop-v1.html",
+ "battle-effective-damage-v1":"battle-effective-damage-v1.html",
+ "deterministic-warp-navigation-v1":"deterministic-warp-navigation-v1.html",
+ "battle-decision-ready-v1":"battle-decision-ready-v1.html",
+ "ineffective-navigation-v2":"ineffective-navigation-v2.html",
+ "supervisor-briefing-v2":"supervisor-briefing-v2.html",
+ "reachable-story-guidance-v1":"reachable-story-guidance-v1.html",
+ "text-only-supervisor-v2":"text-only-supervisor-v2.html",
+ "starter-decision-salience-v1":"starter-decision-salience-v1.html",
+ "context-token-budget-v1":"context-token-budget-v1.html",
+ "briefing-repeat-count-v1":"briefing-repeat-count-v1.html",
+ "navigate-already-here-v1":"navigate-already-here-v1.html",
+ "fixed-point-breaker-v1":"fixed-point-breaker-v1.html",
+ "story-character-stall-gate-v1":"story-character-stall-gate-v1.html",
+ "positive-supervisor-v1":"positive-supervisor-v1.html",
+ "auto-talk-v1":"fixed-point-breaker-v1.html",
+ "duplicate-turn-collapse-v1":"fixed-point-breaker-v1.html",
+ "unfinished-activity-v1":"unfinished-activity-v1.html",
+ "exit-labels-v2":"exit-labels-v2.html",
+ "exit-labels-v3":"exit-labels-v3.html",
+  "navigation-refusal-reasons-v3": "navigation-refusal-reasons-v3.html",
+ "respawn-readout-v1":"respawn-readout-v1.html",
+ "trainer-sight-check-v1":"trainer-sight-check-v1.html",
+ "caught-nickname-prompt-v1":"caught-nickname-prompt-v1.html",
+ "party-item-confirmation-v1":"party-item-confirmation-v1.html",
+ "fail-open-input-v1":"fail-open-input-v1.html",
+ "whiteout-healed-v1":"whiteout-healed-v1.html",
+ "gym-readiness-readout-v1":"gym-readiness-readout-v1.html",
+ "same-target-no-progress-v1":"same-target-no-progress-v1.html",
+ "story-progress-clock-v1":"story-progress-clock-v1.html",
+ "yes-no-answer-readout-v1":"yes-no-answer-readout-v1.html",
+ "field-move-gates-v1":"field-move-gates-v1.html",
+ "navigation-tool-use-guard-v1":"navigation-tool-use-guard-v1.html",
+ "semantic-current-map-feedback-v1":"semantic-current-map-feedback-v1.html",
+ "story-battle-heal-gate-v1":"story-battle-heal-gate-v1.html",
+ "short-cycle-fixed-point-v1":"short-cycle-fixed-point-v1.html",
+ "story-battle-heal-first-v1":"story-battle-heal-first-v1.html",
+ "pending-field-dialogue-v1":"pending-field-dialogue-v1.html",
 });
 
 export function harnessConfig(view:RunView,registry:readonly FeatureInfo[]=[]):string {
@@ -470,6 +557,6 @@ export function harnessConfig(view:RunView,registry:readonly FeatureInfo[]=[]):s
  const box=(title:string,rows:readonly(readonly[string,string])[])=>`<section class="config-summary-card"><h4>${title}</h4>${kv(rows)}</section>`;
  return `<div class="config-overview"><span class="config-readonly">◈ READ ONLY</span><p>Recorded settings for <strong>${esc(start.run)}</strong></p><div class="config-counts"><span>${String(cards.filter(c=>c.state==="on").length)} ON</span><span>${String(cards.filter(c=>c.state==="off").length)} OFF</span><span>${String(cards.filter(c=>c.state==="unknown").length)} NOT RECORDED</span>${cards.some(c=>c.state==="conflict")?'<span>CONFLICT · inspect raw configuration</span>':""}</div></div><div class="config-summary-grid">`+
  box("MODEL",[["MODEL",esc(start.model.id)],["CONTEXT WINDOW",num(start.model.context_window)],["VISION",start.model.vision?"supported":"not supported"],["THINKING",esc(start.sampling.thinking_level)],["OUTPUT TOKEN CAP",num(start.sampling.max_tokens)]])+
- box("BUDGET & GOAL",[["TIME CAP",start.budgets.max_wall_ms===undefined?missing:hms(start.budgets.max_wall_ms/1000)],["TURN CAP",start.budgets.max_turns===undefined?missing:String(start.budgets.max_turns)],["FAILURE LIMIT",evaluation===undefined?missing:String(evaluation.failure_limit)],["STOP AT MILESTONE",evaluation===undefined?missing:evaluation.target===null?"NONE · play to budget":esc(evaluation.target)]])+
- box("BUILD & PRESET",[["PRESET",esc(evaluation?.preset_id??missing)],["HARNESS SOURCE",esc(start.harness.commit)+(start.harness.dirty?" · dirty":" · clean")],["START STATE",esc(start.start_state.kind)],["VENDOR PIN",esc(start.vendor_pin)],["PI VERSION",esc(start.pi_version)]])+`</div><p class="config-provenance">Statuses come from this run’s recorded header. Missing IDs stay NOT RECORDED, not guessed OFF. Descriptions come from the viewer’s feature catalog and may be newer than a historical run. This page never edits next-run settings.</p>${sections}<section class="config-summary-card"><h4>AVAILABLE TOOLS</h4><p class="config-provenance">Tools listed by this run’s recorded header. Reference documentation reflects this viewer build; names are not recorded with historical tool schemas. Outputs and limits depend on the run’s enabled features.</p><div class="config-tool-grid">${start.tools.map(toolReference).join("")||"none recorded"}</div></section><p class="config-provenance">Model weight digest, endpoint, temperature and other serving defaults: not recorded in this run header.</p><details class="config-raw"><summary>RECORDED SYSTEM PROMPT</summary><pre>${esc(start.system_prompt)}</pre></details><details class="config-raw"><summary>RAW RUN CONFIGURATION</summary>${jsonHtml(start)}</details>`;
+ box("BUDGET & GOAL",[["TIME CAP",(view.control.maxWallMs??start.budgets.max_wall_ms)===undefined?missing:hms((view.control.maxWallMs??start.budgets.max_wall_ms??0)/1000)],...(view.control.maxWallMs===null?[]:[["ORIGINAL EVALUATION CAP",hms((start.budgets.max_wall_ms??0)/1000)]] as [string,string][]),["TURN CAP",start.budgets.max_turns===undefined?missing:String(start.budgets.max_turns)],["FAILURE LIMIT",evaluation===undefined?missing:String(evaluation.failure_limit)],["STOP AT MILESTONE",evaluation===undefined?missing:evaluation.target===null?"NONE · play to budget":esc(evaluation.target)]])+
+ box("BUILD & PRESET",[["PRESET",esc(evaluation?.preset_id??missing)],["HARNESS SOURCE",esc(start.harness.commit)+(start.harness.dirty?" · dirty":" · clean")],["START STATE",esc(start.start_state.kind)],["VENDOR PIN",esc(start.vendor_pin)],["PI VERSION",esc(start.pi_version)]])+`</div><p class="config-provenance">Statuses come from this run’s recorded header. Missing IDs stay NOT RECORDED, not guessed OFF. Descriptions come from the viewer’s feature catalog and may be newer than a historical run. This page never edits next-run settings.</p>${sections}<section class="config-summary-card"><h4>AVAILABLE TOOLS</h4><p class="config-provenance">Tools listed by this run’s recorded header. Reference documentation reflects this viewer build; names are not recorded with historical tool schemas. Outputs and limits depend on the run’s enabled features.</p><div class="config-tool-grid">${start.tools.map(name=>toolReference(name,start.harness_features.includes("automatic-running-v1"))).join("")||"none recorded"}</div></section><p class="config-provenance">Model weight digest, endpoint, temperature and other serving defaults: not recorded in this run header.</p><details class="config-raw"><summary>RECORDED SYSTEM PROMPT</summary><pre>${esc(start.system_prompt)}</pre></details><details class="config-raw"><summary>RAW RUN CONFIGURATION</summary>${jsonHtml(start)}</details>`;
 }

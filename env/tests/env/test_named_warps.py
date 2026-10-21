@@ -1,4 +1,4 @@
-"""named-warp-destinations-v1: warps name the map they lead to, from the game's map table."""
+"""named-warp-destinations-v1: warps use only game-displayed destination names."""
 
 import json
 import struct
@@ -34,16 +34,23 @@ OFF_GUIDANCE = (
     " After a transition, check the new map and position."
 )
 ON_GUIDANCE = (
-    "Warp destinations are the map you arrive on: its name when the game's map table has one,"
-    " then its group/number ID in parentheses; not warp indexes. Activation also requires"
-    " matching elevation and available field controls; W alone does not guarantee a transition."
-    " After a transition, check the new map and position."
+    "Warp destinations are the map you arrive on: a name the game displays when one is"
+    " available, then its group/number ID in parentheses; not warp indexes. Activation also"
+    " requires matching elevation and available field controls; W alone does not guarantee a"
+    " transition. After a transition, check the new map and position."
 )
 FIXTURES = Path(__file__).resolve().parent / "fixtures"
 
 
 # Switches registered after 224ee68; OFF is their previous behavior.
-LATER = ("readout-truth-v1", "birch-speech-pages-v1", "blackout-readout-v1")
+LATER = (
+    "readout-truth-v1",
+    "birch-speech-pages-v1",
+    "blackout-readout-v1",
+    "semantic-navigation-v2",
+)
+# semantic-navigation-v2 postdates the ON expectations below, which pin named-warp text only.
+NO_SEMNAV2 = frozenset({"semantic-navigation-v2"})
 
 
 def test_off_equals_the_readout_rendered_by_the_previous_commit() -> None:
@@ -60,28 +67,28 @@ def test_off_equals_the_readout_rendered_by_the_previous_commit() -> None:
         assert OFF_GUIDANCE in lines(expected) and PLAIN in lines(expected)
 
 
-def test_on_names_the_destination_in_the_warps_line_and_candidates() -> None:
+def test_on_keeps_an_internal_only_destination_unnamed() -> None:
     for state in (
         read_game_state(map_memory().read, MAPS),
         read_game_state(map_memory().read, MAPS, full_map_enabled=True),
     ):
         text = format_readout(state, named_warps=True)
-        assert NAMED in lines(text) and PLAIN not in lines(text)
+        assert PLAIN in lines(text) and NAMED not in lines(text)
         assert ON_GUIDANCE in lines(text) and OFF_GUIDANCE not in lines(text)
-        assert (
-            "warp at (0,1), elevation 0; movement; activation depends on metatile (see local map);"
-            " conditional; destination LITTLEROOT TOWN (map 0/9) warp 0" in lines(text)
-        )
         named = format_readout(state, named_warps=True, named_interactions=True)
-        assert any(
-            line.startswith("Warp to LITTLEROOT TOWN (map 0/9) at (0,1)") for line in lines(named)
-        ), named
+        assert any(line.startswith("Warp to map 0/9 at (0,1)") for line in lines(named)), named
+        world = format_readout(state, named_warps=True, world_destinations=True)
+        assert "Warp destination at (0,1): map 0/9" in lines(world), world
+        assert "Warp destination at (0,1): LITTLEROOT TOWN" not in lines(world), world
 
 
-def test_only_warp_lines_change() -> None:
-    state = read_game_state(map_memory().read, MAPS)
-    before = lines(format_readout(state, named_interactions=True))
-    after = lines(format_readout(state, named_interactions=True, named_warps=True))
+def test_on_uses_a_destination_name_the_game_displays() -> None:
+    state = replace(
+        read_game_state(map_memory().read, MAPS),
+        displayed_places=((0, 9, "LITTLEROOT TOWN"),),
+    )
+    before = lines(format_readout(state, NO_SEMNAV2, named_interactions=True))
+    after = lines(format_readout(state, NO_SEMNAV2, named_interactions=True, named_warps=True))
     candidate = (
         " at (0,1), elevation 0; movement; activation depends on metatile (see local map);"
         " conditional; destination "
@@ -94,6 +101,8 @@ def test_only_warp_lines_change() -> None:
             f"Warp to LITTLEROOT TOWN (map 0/9){candidate}LITTLEROOT TOWN (map 0/9) warp 0",
         ),
     ]
+    world = format_readout(state, named_warps=True, world_destinations=True)
+    assert "Warp destination at (0,1): LITTLEROOT TOWN" in lines(world), world
 
 
 def test_unknown_and_dynamic_destinations_are_never_named() -> None:
@@ -111,14 +120,14 @@ def test_unknown_and_dynamic_destinations_are_never_named() -> None:
     assert PLAIN in lines(format_readout(replace(state, destination_names=()), named_warps=True))
 
 
-def test_the_name_is_the_location_the_game_reports_on_arrival() -> None:
+def test_the_internal_name_is_not_enough_to_name_a_destination() -> None:
     maps = MapNames.load(VENDOR_MAPS)
     # The fixture's warp leads to map 0/9, the map the fixture stands on, so the readout's own
     # Location line is what the game reports after arriving there.
     text = format_readout(read_game_state(map_memory().read, maps), named_warps=True)
     location = next(line for line in lines(text) if line.startswith("Location: "))
     assert location == "Location: LITTLEROOT TOWN"
-    assert f"Warps: (0,1) -> {location.removeprefix('Location: ')} (map 0/9) {DOOR}" in lines(text)
+    assert f"Warps: (0,1) -> map 0/9 {DOOR}" in lines(text)
     # The 2x2 runs' doors: (14,8) -> 1/2 was recorded as LITTLEROOT TOWN MAYS HOUSE 1F on arrival.
     assert maps.name((1, 2)) == "LITTLEROOT TOWN MAYS HOUSE 1F"
     assert maps.name((1, 0)) == "LITTLEROOT TOWN BRENDANS HOUSE 1F"
@@ -133,7 +142,7 @@ def test_observation_route_applies_the_switch_from_env(monkeypatch: pytest.Monke
         install_observation(app, lambda: _Shot(), map_memory().read, MAPS)
         _, _, body = get(app, "/pokebench/observation")
         texts[off] = json.loads(body)["state_text"]
-    assert "LITTLEROOT TOWN (map 0/9)" in texts[""]
+    assert "LITTLEROOT TOWN (map 0/9)" not in texts[""]
     assert "LITTLEROOT TOWN (map 0/9)" not in texts["named-warp-destinations-v1"]
     assert "(map 0/9)" not in texts["named-warp-destinations-v1"]
 
@@ -177,22 +186,24 @@ def truck(dynamic: tuple[int, int, int] | None = (0, 9, -1), location: tuple[int
     return m
 
 
-def test_the_truck_exit_names_the_dynamic_warp_the_game_holds() -> None:
+def test_the_truck_exit_does_not_reveal_the_internal_dynamic_warp_name() -> None:
     maps = MapNames.load(VENDOR_MAPS)
     state = read_game_state(truck().read, maps)
     assert state.location == "INSIDE OF TRUCK"
     assert state.dynamic_warp == (0, 9, "LITTLEROOT TOWN")
-    text = format_readout(state, named_warps=True, world_destinations=True)
-    assert f"Warps: (0,1) -> {DYNAMIC} {EXIT}" in lines(text)
+    text = format_readout(state, NO_SEMNAV2, named_warps=True, world_destinations=True)
+    assert f"Warps: (0,1) -> dynamic destination {EXIT}" in lines(text)
     assert (
         "warp at (0,1), elevation 0; movement; activation depends on metatile (see local map);"
-        f" conditional; destination {DYNAMIC}" in lines(text)
+        " conditional; dynamic destination" in lines(text)
     )
-    assert f"Warp destination at (0,1): {DYNAMIC}" in lines(text)
+    assert "Warp destination at (0,1): dynamic destination" in lines(text)
     named = format_readout(state, named_warps=True, named_interactions=True)
-    assert any(line.startswith(f"Warp to {DYNAMIC} at (0,1)") for line in lines(named)), named
+    assert any(line.startswith("Dynamic warp at (0,1)") for line in lines(named)), named
     full = read_game_state(truck().read, maps, full_map_enabled=True)
-    assert f"Warps: (0,1) -> {DYNAMIC} {EXIT}" in lines(format_readout(full, named_warps=True))
+    assert f"Warps: (0,1) -> dynamic destination {EXIT}" in lines(
+        format_readout(full, named_warps=True)
+    )
 
 
 def test_switch_off_keeps_dynamic_destination_byte_for_byte() -> None:
@@ -213,7 +224,7 @@ def test_an_unset_or_unknown_dynamic_warp_keeps_dynamic_destination() -> None:
     for dynamic in ((-1, -1, -1), (127, 127, 127), (60, 1, 0)):
         state = read_game_state(truck(dynamic).read, maps)
         assert state.dynamic_warp is None, dynamic
-        text = format_readout(state, named_warps=True, world_destinations=True)
+        text = format_readout(state, NO_SEMNAV2, named_warps=True, world_destinations=True)
         assert f"Warps: (0,1) -> dynamic destination {EXIT}" in lines(text)
         assert "Warp destination at (0,1): dynamic destination" in lines(text)
         assert any(line.endswith("; dynamic destination") for line in lines(text)), text
@@ -251,4 +262,4 @@ def test_off_the_dynamic_warp_is_never_read_on_the_observation_route(
     app = FastAPI()
     install_observation(app, lambda: _Shot(), memory.read, maps)
     status, _, body = get(app, "/pokebench/observation")
-    assert status == 200 and DYNAMIC in json.loads(body)["state_text"]
+    assert status == 200 and DYNAMIC not in json.loads(body)["state_text"]

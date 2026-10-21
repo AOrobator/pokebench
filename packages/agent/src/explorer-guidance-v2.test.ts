@@ -1,13 +1,15 @@
+import {LEGACY_ALL_ON as LEGACY_ALL_ON_BASE} from "../test-support/legacy-features.js";
 import {createHash} from "node:crypto";
 import {readFileSync} from "node:fs";
 import {expect,it} from "vitest";
-import {ALL_ON,FEATURES,SWITCHABLE_FEATURES,dependencyProblems,featureInfo,playHarnessFeatures,serverFeatureEnv,stateOnlyProblems,type FeatureSet,type SwitchableFeature} from "./features.js";
+import {FEATURES,SWITCHABLE_FEATURES,dependencyProblems,featureInfo,playHarnessFeatures,serverFeatureEnv,stateOnlyProblems,type FeatureSet,type SwitchableFeature} from "./features.js";
 import * as config from "./play-config.js";
 import {BATTLE_TRIAGE_SECTION,EXPLORER_GUIDANCE_SECTION,EXPLORER_TALK_IS_CHEAP,TRAINER_HEAL_SECTION,UNTAKEN_EXITS_SECTION,objectiveSwitches,playSystemPrompt} from "./play-config.js";
 import {objectivePrompt} from "./objective-tools.js";
 import {flagFeatures,normalizeFeatures,parsePlayPreset,presetFeatures} from "./play-preset.js";
 
 const ID="explorer-guidance-v2" as SwitchableFeature;
+const ALL_ON:FeatureSet={...LEGACY_ALL_ON_BASE,"semantic-navigation-v1":false,"deterministic-exploration-v1":false};
 const V1="explorer-guidance-v1" as SwitchableFeature;
 const V2_TEXT="Talk to people: talking to people gives you information about the world and can move the story forward. When you are unsure where to go, or after the story has moved on, talking to the people around you is a good way to learn more. What people tell you is evidence; use it to decide where to go.";
 // Read through the module namespace so the RED run fails on the assertion, not on a missing export.
@@ -19,7 +21,9 @@ const MAIN_SWITCHES=["navigation-evidence-memory-v1","automatic-running-v1","exp
 // sha256 over every prompt main cefacbf1 built from a base and from the base with each main switch flipped,
 // for no target and for RIVAL_HOUSE_ENTERED (computed from main's build before this change; see the worklog).
 const MAIN_INCUMBENT_SHA="3ebfcf0bc4dba80703f2661f8f959baa9249393fda0d160f8621fb975da7e90f";
-const MAIN_ALL_ON_SHA="9bca870b33fecdbe7585455c55bd964d79bf1c7ead521e8014ed2b10cc3c1207";
+// named-warp-destinations-v1 now promises only game-displayed names, so the all-on prompt's
+// warp-rule sentence changed with that switch's semantics; the incumbent digest is unchanged.
+const MAIN_ALL_ON_SHA="38651cf6cd10ae86fd437819ab86391efbec4bc2b086fba1e8bbc036d79cbaf9";
 const PLAIN:FeatureSet={...INCUMBENT,"objective-tracking-v1":false,"repeat-attempt-guard-v1":false,"native-objective-completion-v1":false,"dialogue-auto-advance-v1":false,"game-evidence-priority-v1":false,"bounded-navigation-v1":false,[V1]:false,[ID]:false};
 
 function promptsDigest(base:FeatureSet):string{
@@ -30,10 +34,10 @@ function promptsDigest(base:FeatureSet):string{
 
 it("OFF builds every main prompt byte for byte, from the incumbent and from every switch on",()=>{
  expect(INCUMBENT[ID]).toBe(false);
- expect(MAIN_SWITCHES).toEqual(SWITCHABLE_FEATURES.filter(id=>id!==ID&&id!=="ineffective-loops-v1"&&id!=="people-id-cards-v1"&&id!=="open-goal-prompt-v1"&&id!=="low-hp-trainer-warning-v2"&&id!=="story-destinations-v1"&&id!=="exit-reachability-v1"&&id!=="harness-trust-v1"&&id!=="cited-destination-v1"&&id!=="harness-trust-v2"&&id!=="heal-before-trainers-v1"&&id!=="battle-move-tool-v1"&&id!=="tutorial-party-owner-v1"&&id!=="mid-frame-readout-v1"&&id!=="unset-dynamic-warp-v1"&&id!=="status-names-v1"&&id!=="surf-gated-exits-v2"&&id!=="instruction-ledger-v2"&&id!=="no-exit-here-v1"));
+ expect([...MAIN_SWITCHES,"visited-terrain-navigation-v1"]).toEqual(SWITCHABLE_FEATURES.filter(id=>id!=="pending-field-dialogue-v1"&&id!=="short-cycle-fixed-point-v1"&&id!=="navigation-tool-use-guard-v1"&&id!=="semantic-current-map-feedback-v1"&&id!=="navigation-refusal-reasons-v3"&&id!=="exit-labels-v3"&&id!=="story-battle-heal-first-v1"&&id!=="party-item-confirmation-v1"&&id!=="yes-no-answer-readout-v1"&&id!=="same-target-no-progress-v1"&&id!=="story-progress-clock-v1"&&id!=="story-battle-heal-gate-v1"&&id!=="duplicate-turn-collapse-v1"&&id!=="auto-talk-v1"&&id!=="positive-supervisor-v1"&&id!=="fixed-point-breaker-v1"&&id!=="story-character-stall-gate-v1"&&id!=="unfinished-activity-v1"&&id!=="exit-labels-v2"&&id!=="heal-before-trainers-v2"&&id!=="gym-heal-warning-v1"&&id!=="respawn-readout-v1"&&id!=="trainer-sight-check-v1"&&id!=="caught-nickname-prompt-v1"&&id!=="fail-open-input-v1"&&id!=="whiteout-healed-v1"&&id!=="field-move-gates-v1"&&id!=="gym-readiness-readout-v1"&&id!=="context-token-budget-v1"&&id!=="briefing-repeat-count-v1"&&id!=="navigate-already-here-v1"&&id!=="original-speed-pacing-v1"&&id!=="semantic-navigation-v2"&&id!=="evolution-decision-v1"&&id!=="observed-instructions-v1"&&id!=="starter-decision-salience-v1"&&id!=="safe-navigation-strides-v1"&&id!=="ineffective-navigation-v2"&&id!=="supervisor-briefing-v2"&&id!=="reachable-story-guidance-v1"&&id!=="text-only-supervisor-v2"&&id!=="battle-decision-ready-v1"&&id!=="battle-refusal-loop-v1"&&id!=="deterministic-warp-navigation-v1"&&id!=="battle-effective-damage-v1"&&id!=="scripted-place-guidance-v1"&&id!=="trigger-script-loop-v1"&&id!=="cache-aligned-window-v1"&&id!=="jit-guide-reuse-v1"&&id!=="save-state-task-truth-v1"&&id!=="faced-interaction-history-v1"&&id!==ID&&id!=="ineffective-loops-v1"&&id!=="people-id-cards-v1"&&id!=="open-goal-prompt-v1"&&id!=="low-hp-trainer-warning-v2"&&id!=="story-destinations-v1"&&id!=="exit-reachability-v1"&&id!=="harness-trust-v1"&&id!=="cited-destination-v1"&&id!=="harness-trust-v2"&&id!=="heal-before-trainers-v1"&&id!=="battle-move-tool-v1"&&id!=="tutorial-party-owner-v1"&&id!=="mid-frame-readout-v1"&&id!=="unset-dynamic-warp-v1"&&id!=="status-names-v1"&&id!=="surf-gated-exits-v2"&&id!=="instruction-ledger-v2"&&id!=="no-exit-here-v1"&&id!=="bag-healing-items-v1"&&id!=="battle-menu-loop-v1"&&id!=="clock-view-loop-v1"&&id!=="stale-story-goal-v1"&&id!=="input-cuts-v1"&&id!=="loop-guard-screen-v1"&&id!=="reopened-dialogue-loop-v1"&&id!=="dialog-button-b-v1"&&id!=="just-in-time-prompt-v1"&&id!=="just-in-time-prompt-v2"&&id!=="stale-story-goal-v2"&&id!=="semantic-navigation-v1"&&id!=="deterministic-exploration-v1"));
  expect(promptsDigest({...INCUMBENT,[ID]:false})).toBe(MAIN_INCUMBENT_SHA);
  // Later switches that add prompt text are off here, so the digest still names main's prompts before them.
- expect(promptsDigest({...ALL_ON,[ID]:false,"people-id-cards-v1":false,"open-goal-prompt-v1":false,"harness-trust-v1":false,"cited-destination-v1":false,"harness-trust-v2":false})).toBe(MAIN_ALL_ON_SHA);
+ expect(promptsDigest({...ALL_ON,"semantic-navigation-v2":false,"battle-decision-ready-v1":false,"battle-refusal-loop-v1":false,"scripted-place-guidance-v1":false,"trigger-script-loop-v1":false,[ID]:false,"people-id-cards-v1":false,"open-goal-prompt-v1":false,"harness-trust-v1":false,"cited-destination-v1":false,"harness-trust-v2":false,"dialog-button-b-v1":false,"just-in-time-prompt-v1":false,"just-in-time-prompt-v2":false,"jit-guide-reuse-v1":false,"visited-terrain-navigation-v1":false})).toBe(MAIN_ALL_ON_SHA);
  expect(promptsDigest({...INCUMBENT,[ID]:true})).not.toBe(MAIN_INCUMBENT_SHA);
 });
 
@@ -75,13 +79,13 @@ it("adds the talking-is-cheap sentence only with dialogue auto-advance, as v1 do
 });
 
 it("supersedes v1: with both on, only v2's section is shown, once",()=>{
- for(const base of [PLAIN,{...PLAIN,"dialogue-auto-advance-v1":true},{...ALL_ON,"state-only-decisions-v1":false}]){
+ for(const base of [PLAIN,{...PLAIN,"dialogue-auto-advance-v1":true},{...ALL_ON,"battle-decision-ready-v1":false,"battle-refusal-loop-v1":false,"scripted-place-guidance-v1":false,"trigger-script-loop-v1":false,"state-only-decisions-v1":false}]){
   const both=playSystemPrompt({...base,[V1]:true,[ID]:true},null);
   expect(both).toBe(playSystemPrompt({...base,[V1]:false,[ID]:true},null));
   expect(both).not.toContain(EXPLORER_GUIDANCE_SECTION);
   expect(both.split(V2_TEXT).length).toBe(2);
  }
- expect(dependencyProblems({...ALL_ON,[V1]:true,[ID]:true})).toEqual([]);
+ expect(dependencyProblems({...ALL_ON,"battle-decision-ready-v1":false,"battle-refusal-loop-v1":false,"scripted-place-guidance-v1":false,"trigger-script-loop-v1":false,[V1]:true,[ID]:true})).toEqual([]);
 });
 
 it("leaves v1 unchanged, ON and OFF, when v2 is off",()=>{
@@ -104,11 +108,11 @@ it("reaches the model through the production preset path",()=>{
 it("is a default-off standalone guidance switch, recorded third to last (before ineffective-loops-v1 and people-id-cards-v1), that state-only mode refuses",()=>{
  expect(featureInfo(ID)).toMatchObject({group:"guidance",needs:null,switchable:true,title:"TALK TO PEOPLE V2"});
  expect(featureInfo(ID).description).toContain(" Off: ");
- expect(SWITCHABLE_FEATURES.at(-19)).toBe(ID);
- expect(FEATURES.filter(f=>f.switchable).at(-19)?.id).toBe(ID);
- expect(playHarnessFeatures(ALL_ON,null).at(-19)).toBe(ID);
- expect(serverFeatureEnv({...ALL_ON,[ID]:false}).POKEBENCH_FEATURES_OFF).toBe("");
- expect(dependencyProblems({...ALL_ON,"dialogue-auto-advance-v1":false,"field-dialogue-phase-v1":false,[ID]:true})).not.toContain(expect.stringContaining(ID));
+ expect(SWITCHABLE_FEATURES.at(-80)).toBe(ID);
+ expect(FEATURES.filter(f=>f.switchable).at(-80)?.id).toBe(ID);
+ expect(playHarnessFeatures(ALL_ON,null).at(-44)).toBe(ID);
+ expect(serverFeatureEnv({...ALL_ON,"semantic-navigation-v1":true,"battle-decision-ready-v1":false,"battle-refusal-loop-v1":false,"scripted-place-guidance-v1":false,"trigger-script-loop-v1":false,[ID]:false}).POKEBENCH_FEATURES_OFF).toBe("safe-navigation-strides-v1,original-speed-pacing-v1,exit-labels-v2,heal-before-trainers-v2,respawn-readout-v1,caught-nickname-prompt-v1,party-item-confirmation-v1,yes-no-answer-readout-v1,field-move-gates-v1,exit-labels-v3");
+ expect(dependencyProblems({...ALL_ON,"battle-decision-ready-v1":false,"battle-refusal-loop-v1":false,"scripted-place-guidance-v1":false,"trigger-script-loop-v1":false,"dialogue-auto-advance-v1":false,"field-dialogue-phase-v1":false,[ID]:true})).not.toContain(expect.stringContaining(ID));
  expect(stateOnlyProblems({...INCUMBENT,"state-only-decisions-v1":true,[ID]:true})).toContain(`state-only-decisions-v1 requires ${ID} OFF`);
  expect(stateOnlyProblems({...INCUMBENT,"state-only-decisions-v1":true,[ID]:false})).not.toContain(`state-only-decisions-v1 requires ${ID} OFF`);
 });
@@ -117,6 +121,6 @@ it("defaults off in presets and the legacy flag presets",()=>{
  const {"explorer-guidance-v2":_omitted,...without}=INCUMBENT;
  expect(_omitted).toBe(false);
  expect(normalizeFeatures(without)[ID]).toBe(false);
- expect(Object.keys(normalizeFeatures(without)).at(-19)).toBe(ID);
+ expect(Object.keys(normalizeFeatures(without)).at(-80)).toBe(ID);
  for(const objectives of [true,false])expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives})[ID]).toBe(false);
 });

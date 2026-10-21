@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Respawn readout</title>
+<style>
+:root{
+ --bg:#f7f6f2; --fg:#1c1d1f; --soft:#5b5d61; --rule:#dedcd5; --panel:#ffffff;
+ --game:#1a7f5a; --game-bg:#e3f4ec; --prior:#c2432f; --prior-bg:#fbe7e2; --nav:#2a62c9; --nav-bg:#e4edfb;
+ --body:system-ui,-apple-system,"Segoe UI",sans-serif; --mono:ui-monospace,"SF Mono",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+ --bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; color-scheme:dark}}
+:root[data-theme="dark"]{
+ --bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; color-scheme:dark}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.6 var(--body);padding:0 16px}
+main{max-width:760px;margin:0 auto;padding:40px 0 64px;display:flex;flex-direction:column;gap:34px}
+h1{font-size:2.1rem;line-height:1.15;margin:0}
+h2{font-size:1.3rem;margin:0}
+p{margin:0;max-width:66ch}
+ul{margin:0;padding-left:20px}
+code{font-family:var(--mono);font-size:.88em}
+.eyebrow{font:500 .75rem var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--soft)}
+.lede{font-size:1.08rem;color:var(--soft)}
+section{display:flex;flex-direction:column;gap:12px}
+figure{margin:0;display:flex;flex-direction:column;gap:8px}
+.scroll{overflow-x:auto}
+svg{display:block;max-width:100%;height:auto}
+figcaption{font-size:.88rem;color:var(--soft)}
+svg text{font-family:var(--body);font-size:12px;fill:var(--fg)}
+svg .s{fill:var(--soft);font-size:11px}
+svg .t{font-weight:600;font-size:13px}
+svg .m{font-family:var(--mono);font-size:11px}
+.box{fill:var(--panel);stroke:var(--rule)}
+.game{fill:var(--game-bg);stroke:var(--game)}
+.prior{fill:var(--prior-bg);stroke:var(--prior)}
+.nav{fill:var(--nav-bg);stroke:var(--nav)}
+.arrow{stroke:var(--soft);fill:none;stroke-width:1.4}
+pre{margin:0;padding:12px 14px;background:var(--panel);border:1px solid var(--rule);border-radius:6px;overflow-x:auto;font:12px/1.5 var(--mono);white-space:pre}
+.off{border-left:4px solid var(--prior)}
+.on{border-left:4px solid var(--game)}
+table{border-collapse:collapse;font-size:.9rem;width:100%}
+th,td{border-bottom:1px solid var(--rule);padding:6px 8px;text-align:left;vertical-align:top}
+th{font-weight:600}
+.tw{overflow-x:auto}
+</style>
+</head>
+<body>
+<main>
+<header>
+ <p class="eyebrow">Feature switch · observation · <code>respawn-readout-v1</code> · default OFF · bundle arm only · pending experiment</p>
+ <h1>Respawn readout</h1>
+ <p class="lede">One readout line, right after <code>Money:</code>, says where the player wakes up if the party faints, how many map changes that is from here, and how much money it costs. When this map has a POKéMON CENTER that would move that point, the line names it and its door.</p>
+</header>
+
+<section>
+ <h2>Why</h2>
+ <p>Run <code>2026-10-20T13-54-28_qwen36-gpu0_b300</code> reached the Rustboro Gym and never entered a POKéMON CENTER (game stat <code>used_pokecenter 0</code>). It walked past the center door at (16,38), beat JOSH and TOMMY, lost to HIKER MARC and woke up in its bedroom in Littleroot. Nothing it read said where a blackout would send it.</p>
+ <div class="tw"><table>
+  <tr><th>Seq</th><th>What happened</th><th>Saved heal location (RAM)</th></tr>
+  <tr><td>14724</td><td>Enters RUSTBORO CITY, TORCHIC 25/33; the exits list the center at (16,38)</td><td>BRENDANS HOUSE 2F (1/1) at (4,2)</td></tr>
+  <tr><td>15195</td><td>After JOSH in the gym, TORCHIC 11/35</td><td>same</td></tr>
+  <tr><td>15755</td><td>Whited out; wakes in the bedroom (seq 15776 is its next turn)</td><td>same</td></tr>
+ </table></div>
+</section>
+
+<section>
+ <h2>What the model reads</h2>
+ <p>Re-rendered from b300's raw RAM with the run's own server switches plus this one. Lines above and below are unchanged.</p>
+ <p><strong>OFF</strong> (today), state seq 14716, the turn of seq 14724:</p>
+ <pre class="off">Money: ₽6284
+Badges: none</pre>
+ <p><strong>ON</strong>, the same state:</p>
+ <pre class="on">Money: ₽6284
+If your party faints, you wake up at your house in LITTLEROOT TOWN (8 map changes from here) and lose half your money (₽3142 of ₽6284). This town has a POKéMON CENTER you have not entered: RUSTBORO CITY POKEMON CENTER 1F at (16,38). Entering a POKéMON CENTER makes it the place you wake up if your party faints.
+Badges: none</pre>
+ <p>State seq 15196, in the gym right after JOSH (seq 15195). The gym's exits lead only to RUSTBORO CITY, so there is no second sentence:</p>
+ <pre class="on">Money: ₽6444
+If your party faints, you wake up at your house in LITTLEROOT TOWN (9 map changes from here) and lose half your money (₽3222 of ₽6444).</pre>
+ <p>State seq 15755, back in the bedroom after the blackout (seq 15776's turn):</p>
+ <pre class="on">Money: ₽3286
+If your party faints, you wake up at your house in LITTLEROOT TOWN (on this map) and lose half your money (₽1643 of ₽3286).</pre>
+</section>
+
+<section>
+ <h2>How the map changes are counted</h2>
+ <figure>
+  <div class="scroll">
+  <svg viewBox="0 0 760 170" width="760" role="img" aria-label="Fewest map changes from the Rustboro Gym to the bedroom: nine">
+   <defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="currentColor" style="color:var(--soft)"/></marker></defs>
+   <g>
+    <rect class="prior" x="4" y="20" width="70" height="44" rx="6"/><text x="39" y="40" text-anchor="middle" class="t">GYM</text><text x="39" y="56" text-anchor="middle" class="s">11/3 · 0</text>
+    <rect class="box" x="88" y="20" width="70" height="44" rx="6"/><text x="123" y="40" text-anchor="middle">RUSTBORO</text><text x="123" y="56" text-anchor="middle" class="s">0/3 · 1</text>
+    <rect class="box" x="172" y="20" width="70" height="44" rx="6"/><text x="207" y="40" text-anchor="middle">ROUTE104</text><text x="207" y="56" text-anchor="middle" class="s">0/19 · 2</text>
+    <rect class="box" x="256" y="20" width="70" height="44" rx="6"/><text x="291" y="40" text-anchor="middle">PETALBURG</text><text x="291" y="56" text-anchor="middle" class="s">0/0 · 3</text>
+    <rect class="box" x="340" y="20" width="70" height="44" rx="6"/><text x="375" y="40" text-anchor="middle">ROUTE102</text><text x="375" y="56" text-anchor="middle" class="s">0/17 · 4</text>
+    <rect class="box" x="424" y="20" width="70" height="44" rx="6"/><text x="459" y="40" text-anchor="middle">OLDALE</text><text x="459" y="56" text-anchor="middle" class="s">0/10 · 5</text>
+    <rect class="box" x="508" y="20" width="70" height="44" rx="6"/><text x="543" y="40" text-anchor="middle">ROUTE101</text><text x="543" y="56" text-anchor="middle" class="s">0/16 · 6</text>
+    <rect class="box" x="592" y="20" width="70" height="44" rx="6"/><text x="627" y="40" text-anchor="middle">LITTLEROOT</text><text x="627" y="56" text-anchor="middle" class="s">0/9 · 7</text>
+    <rect class="box" x="592" y="104" width="70" height="44" rx="6"/><text x="627" y="124" text-anchor="middle">HOUSE 1F</text><text x="627" y="140" text-anchor="middle" class="s">1/0 · 8</text>
+    <rect class="game" x="676" y="104" width="78" height="44" rx="6"/><text x="715" y="124" text-anchor="middle" class="t">HOUSE 2F</text><text x="715" y="140" text-anchor="middle" class="s">1/1 · 9</text>
+   </g>
+   <g class="arrow" marker-end="url(#a)">
+    <path d="M74,42 H86"/><path d="M158,42 H170"/><path d="M242,42 H254"/><path d="M326,42 H338"/><path d="M410,42 H422"/><path d="M494,42 H506"/><path d="M578,42 H590"/><path d="M627,64 V102"/><path d="M662,126 H674"/>
+   </g>
+   <text x="4" y="90" class="s">Each box: map, group/number, map changes from the gym.</text>
+   <text x="4" y="106" class="s">Warps and walking connections from the ROM map table,</text>
+   <text x="4" y="122" class="s">each counted both ways (breadth-first).</text>
+  </svg>
+  </div>
+  <figcaption>Fewest map changes over the game's map table, from b300's raw RAM. The respawn map is the bedroom (2F), so the gym reads 9. heal-before-trainers-v1 counts the same way but to the house 1F, where MOM is, which is why its seq 15195 warning said 8.</figcaption>
+ </figure>
+ <p>The count is a port of <code>hopsFrom</code> in <code>packages/agent/src/low-hp-trainer-warning.ts</code>: the readout is rendered by the game server, which cannot call the agent's TypeScript. It counts map changes in the table, not whether every one is walkable now. At 0 the line says <code>(on this map)</code>; when no path exists in the table the distance is left out.</p>
+</section>
+
+<section>
+ <h2>Game grounding (pret/pokeemerald 731ad5b)</h2>
+ <div class="tw"><table>
+  <tr><th>Fact</th><th>Source</th><th>Used as</th></tr>
+  <tr><td><code>SaveBlock1.lastHealLocation</code> at +0x1C: s8 mapGroup, s8 mapNum, s8 warpId, pad, s16 x, s16 y</td><td><code>include/global.h</code> (<code>struct WarpData</code>)</td><td>the map and tile you wake on</td></tr>
+  <tr><td>Every center 1F runs <code>setrespawn HEAL_LOCATION_&lt;TOWN&gt;</code> in its OnTransition (17 maps, including the POKéMON LEAGUE 1F and the BATTLE FRONTIER center); the truck and the Hall of Fame set the bedroom</td><td><code>data/maps/*/scripts.inc</code>, <code>SetLastHealLocationWarp</code> in <code>src/overworld.c</code></td><td>entering a center moves the respawn point</td></tr>
+  <tr><td>A center's heal location is the town tile below its door: RUSTBORO CITY (16,39), door (16,38); the bedroom is house 2F (4,2)</td><td><code>src/data/heal_locations.json</code></td><td>"outside the POKéMON CENTER in RUSTBORO CITY"; "at your house in LITTLEROOT TOWN"</td></tr>
+  <tr><td><code>DoWhiteOut</code>: <code>SetMoney(money / 2)</code>, <code>HealPlayerParty</code>, warp to lastHealLocation</td><td><code>src/overworld.c</code></td><td>the loss is <code>money − money / 2</code> (₽3222 of ₽6444; ₽3223 of ₽6445). Emerald has no badge or level rule.</td></tr>
+  <tr><td>After the warp no field text is shown (<code>FieldCB_WarpExitFadeFromBlack</code>); in battle the game says "is out of usable POKéMON!" and "whited out!"</td><td><code>src/overworld.c</code>, <code>sText_PlayerWhiteout</code> in <code>src/battle_message.c</code></td><td>The operator's wording "If your party faints, you wake up …"</td></tr>
+ </table></div>
+</section>
+
+<section>
+ <h2>The second sentence</h2>
+ <p>For each warp of the current map that leads to a center 1F whose heal location is not the saved one (or when the player stands in such a center), one sentence, then once: "Entering a POKéMON CENTER makes it the place you wake up if your party faints." "This town has" when the center belongs to the town the player is in, else "An exit here leads to".</p>
+ <div class="tw"><table>
+  <tr><th>What the game server saw</th><th>Sentence</th></tr>
+  <tr><td>The game from before the save existed, and never that center</td><td>This town has a POKéMON CENTER you have not entered: RUSTBORO CITY POKEMON CENTER 1F at (16,38).</td></tr>
+  <tr><td>The game from before the save existed, and that center entered earlier (the player stood in it, or a saved heal location pointed at it)</td><td>This town has a POKéMON CENTER you entered before, but it is no longer where you wake up: … at (16,38).</td></tr>
+  <tr><td>Not the whole game (a checkpoint start, or a re-render of one archive)</td><td>This town has a POKéMON CENTER that is not where you wake up: … at (16,38).</td></tr>
+  <tr><td>Standing in such a center (before its OnTransition has run)</td><td>You are in … , and it is not yet where you wake up.</td></tr>
+ </table></div>
+ <p>No RAM records which centers were entered, so "not entered" is claimed only when the server's own history covers the whole game.</p>
+</section>
+
+<section>
+ <h2>Wiring</h2>
+ <figure>
+  <div class="scroll">
+  <svg viewBox="0 0 760 120" width="760" role="img" aria-label="Switch wiring from the preset to the readout line">
+   <defs><marker id="b" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="currentColor" style="color:var(--soft)"/></marker></defs>
+   <rect class="box" x="4" y="30" width="130" height="56" rx="6"/><text x="69" y="54" text-anchor="middle" class="t">FeatureSet</text><text x="69" y="72" text-anchor="middle" class="s">respawn-readout-v1</text>
+   <rect class="box" x="160" y="30" width="140" height="56" rx="6"/><text x="230" y="54" text-anchor="middle" class="t">serverFeatureEnv</text><text x="230" y="72" text-anchor="middle" class="s">POKEBENCH_FEATURES_OFF</text>
+   <rect class="box" x="326" y="30" width="140" height="56" rx="6"/><text x="396" y="54" text-anchor="middle" class="t">observation.py</text><text x="396" y="72" text-anchor="middle" class="s">LinkCache · RespawnMemory</text>
+   <rect class="nav" x="492" y="30" width="120" height="56" rx="6"/><text x="552" y="54" text-anchor="middle" class="t">read_respawn</text><text x="552" y="72" text-anchor="middle" class="s">GameState.respawn</text>
+   <rect class="game" x="638" y="30" width="118" height="56" rx="6"/><text x="697" y="54" text-anchor="middle" class="t">format_readout</text><text x="697" y="72" text-anchor="middle" class="s">line after Money:</text>
+   <g class="arrow" marker-end="url(#b)"><path d="M134,58 H158"/><path d="M300,58 H324"/><path d="M466,58 H490"/><path d="M612,58 H636"/></g>
+   <text x="4" y="110" class="s">OFF: no LinkCache, no memory, respawn stays None; the readout and state JSON are byte for byte today's.</text>
+  </svg>
+  </div>
+  <figcaption>The game server applies the switch. The state JSON is unchanged either way; the facts reach the model only as this line. No event is recorded and the timeline is untouched: the line is an observation, recorded with the readout.</figcaption>
+ </figure>
+</section>
+
+<section>
+ <h2>Status</h2>
+ <ul>
+  <li>Branch <code>claude/respawn-readout-v1</code>; default OFF; bundle arm only; pending experiment <code>experiments/respawn-readout.json</code>, not queued.</li>
+  <li>Checks: <code>just test</code>, <code>just lint</code>, <code>just build</code>, <code>just coverage</code> (≥90 on both stacks); b300 replay above.</li>
+  <li>Not done: measured runs. Review status is in the worklog.</li>
+ </ul>
+</section>
+</main>
+</body>
+</html>

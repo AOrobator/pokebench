@@ -1,3 +1,4 @@
+import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
 // navigate-first-prompt-v1: the prompt, the navigate_to description and a press reminder steer
 // walking to navigate_to. Cook run #2 (2026-10-16T02-23-17_qwen36-gpu1_sh02) walked Route 103 by
 // press for 76 overworld turns against 56 by navigate_to; at T888 it pressed into a ledge row while
@@ -5,10 +6,10 @@
 import {readFileSync} from "node:fs";
 import {describe,expect,it} from "vitest";
 import type {AgentTool,AgentToolResult} from "@mariozechner/pi-agent-core";
-import {ALL_ON,SERVER_FEATURES,SWITCHABLE_FEATURES,dependencyProblems,featureInfo,featuresOf,playHarnessFeatures,type FeatureSet} from "./features.js";
+import {SERVER_FEATURES,SWITCHABLE_FEATURES,dependencyProblems,featureInfo,featuresOf,playHarnessFeatures,type FeatureSet} from "./features.js";
 import {flagFeatures,normalizeFeatures,parsePlayPreset,presetFeatures} from "./play-preset.js";
 import {NAVIGATE_TO_USAGE,playSystemPrompt,toolSwitches} from "./play-config.js";
-import {MOVING_AROUND_FULL,MOVING_AROUND_LOCAL,NAVIGATE_FIRST_DESCRIPTION,NAVIGATE_FIRST_TOOL_LINE,PRESS_NOT_WALKING,REMINDER,REMINDER_EVERY,navigateFirstToolList,withNavigateFirst} from "./navigate-first.js";
+import {MOVING_AROUND_FULL,MOVING_AROUND_LOCAL,MOVING_AROUND_VISITED,NAVIGATE_FIRST_DESCRIPTION,NAVIGATE_FIRST_TOOL_LINE,PRESS_NOT_WALKING,REMINDER,REMINDER_EVERY,SEMANTIC_REMINDER,navigateFirstToolList,withNavigateFirst} from "./navigate-first.js";
 import {navigationTool,type NavigationPorts} from "./navigation.js";
 import {gameTools} from "./game-tools.js";
 import {playGameTools} from "./play-wiring.js";
@@ -76,6 +77,11 @@ describe("system prompt",()=>{
   expect(full.endsWith(`\n\n${MOVING_AROUND_FULL}`)).toBe(true);
   expect(MOVING_AROUND_FULL).not.toContain("command limit");
   expect(full).not.toContain(MOVING_AROUND_LOCAL);
+  const visited=playSystemPrompt({...ON,"full-map-navigation-v1":false,"visited-terrain-navigation-v1":true},null);
+  expect(visited.endsWith(`\n\n${MOVING_AROUND_VISITED}`)).toBe(true);
+  expect(visited).not.toContain(MOVING_AROUND_LOCAL);
+  expect(visited).not.toContain(MOVING_AROUND_FULL);
+  expect(playSystemPrompt({...ON,"full-map-navigation-v1":true,"visited-terrain-navigation-v1":true},null).endsWith(`\n\n${MOVING_AROUND_FULL}`)).toBe(true);
  });
  it("ON keeps the screen-only press line when the RAM readout is off, and the objective text last",()=>{
   const screenOnly=playSystemPrompt({...ON,"ram-state-v1":false},null);
@@ -85,7 +91,7 @@ describe("system prompt",()=>{
   expect(objectives.endsWith(MOVING_AROUND_LOCAL)).toBe(false);
  });
  it("names no destination or story step",()=>{
-  for(const text of [MOVING_AROUND_LOCAL,MOVING_AROUND_FULL,NAVIGATE_FIRST_TOOL_LINE,NAVIGATE_FIRST_DESCRIPTION,REMINDER]){
+  for(const text of [MOVING_AROUND_LOCAL,MOVING_AROUND_FULL,MOVING_AROUND_VISITED,NAVIGATE_FIRST_TOOL_LINE,NAVIGATE_FIRST_DESCRIPTION,REMINDER]){
    for(const name of ["MAY","BRENDAN","BIRCH","ROUTE","Rustboro","Oldale","Littleroot"])expect(text).not.toContain(name);
   }
  });
@@ -127,6 +133,12 @@ describe("press reminder",()=>{
   expect(REMINDER_EVERY).toBe(3);
   expect(shown).toEqual([false,false,true,false,false,true]);
   expect(textOf(await press(tools,["LEFT","UP"]))).not.toContain(REMINDER);
+ });
+ it("semantic-navigation-v2: the reminder names navigate_to_target first",async()=>{
+  const tools=withNavigateFirst(fakes(()=>FIELD),{...ON,"semantic-navigation-v2":true});
+  const shown:string[]=[];
+  for(let i=0;i<REMINDER_EVERY;i++)shown.push(textOf(await press(tools,["UP"])));
+  expect(shown.at(-1)).toContain(SEMANTIC_REMINDER);expect(shown.at(-1)).not.toContain(REMINDER);
  });
  it("is reset by any other tool call (navigate_to, observe) and by any non-direction press",async()=>{
   const tools=withNavigateFirst(fakes(()=>FIELD),ON);

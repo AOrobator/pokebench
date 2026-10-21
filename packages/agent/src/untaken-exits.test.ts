@@ -1,9 +1,10 @@
+import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
 import {describe,expect,it} from "vitest";
 import {readFileSync} from "node:fs";
 import {gunzipSync} from "node:zlib";
 import {fileURLToPath} from "node:url";
 import type {AgentTool} from "@mariozechner/pi-agent-core";
-import {ALL_ON,FEATURES,dependencyProblems,featureInfo,featuresOf,playHarnessFeatures,stateOnlyProblems,type FeatureSet} from "./features.js";
+import {FEATURES,dependencyProblems,featureInfo,featuresOf,playHarnessFeatures,stateOnlyProblems,type FeatureSet} from "./features.js";
 import {flagFeatures,normalizeFeatures} from "./play-preset.js";
 import {UNTAKEN_EXITS_SECTION,playSystemPrompt} from "./play-config.js";
 import {playGameTools} from "./play-wiring.js";
@@ -68,17 +69,17 @@ describe("untaken-exits-v1 lines",()=>{
  const warp=(x:number,y:number,destination:[number,number,number])=>({kind:"warp",x,y,elevation:0,activation:"movement",availability:"conditional",facing:null,local_id:null,destination,name:"w"});
  const state=(extra:Partial<GameStateSnapshot>):GameStateSnapshot=>({...IN_GAME,started:true,screen:"overworld",location:"HALL",map_id:[3,3],position:{x:1,y:1},facing:"up",interaction_targets:[warp(1,0,[4,4,0]),warp(2,0,[4,4,0]),warp(9,9,[127,127,0]),warp(5,5,[6,6,1])],topology:{width:10,height:10,connections:[{direction:"EAST",offset:0,destination:[7,7],destination_name:"EASTSIDE"}]},...extra});
  it("groups a door pair, names only what the readout named, and keeps every exit (nothing clipped)",()=>{
-  const exits=new UntakenExits(ALL_ON);
+  const exits=new UntakenExits({...ALL_ON,"semantic-navigation-v2":false});
   expect(exits.line(state({}),"Location: HALL\nWarps: (5,5) -> SIDE ROOM (map 6/6) [door]")).toBe("Exits here you have not taken: (1,0) or (2,0) -> map 4/4; (9,9) -> dynamic destination; (5,5) -> SIDE ROOM (map 6/6); EAST edge -> map 7/7");
   expect(exits.line(state({}),"- EAST -> EASTSIDE (map 7/7), offset 0")).toBe("Exits here you have not taken: (1,0) or (2,0) -> map 4/4; (9,9) -> dynamic destination; (5,5) -> SIDE ROOM (map 6/6); EAST edge -> EASTSIDE (map 7/7)");
  });
  it("lists map connections only where the readout shows them (world destinations)",()=>{
-  const exits=new UntakenExits({...ALL_ON,"world-destinations-v1":false});
+  const exits=new UntakenExits({...ALL_ON,"semantic-navigation-v2":false,"world-destinations-v1":false});
   expect(exits.line(state({}),"")).toBe("Exits here you have not taken: (1,0) or (2,0) -> map 4/4; (9,9) -> dynamic destination; (5,5) -> map 6/6");
   expect(exits.line(state({interaction_targets:[],topology:null}),"")).toBe("Exits here you have not taken: none (no exits are listed on this map)");
  });
  it("adds nothing outside a started overworld readout with interaction targets",()=>{
-  const exits=new UntakenExits(ALL_ON);
+  const exits=new UntakenExits({...ALL_ON,"semantic-navigation-v2":false});
   for(const s of [state({started:false}),state({screen:"battle"}),state({interaction_targets:null}),state({map_id:null})])expect(exits.line(s,"")).toBeNull();
   expect(exits.annotate("Location: HALL\nScreen: battle",state({screen:"battle"}))).toBe("Location: HALL\nScreen: battle");
   expect(exits.annotate("no location line",state({}))).toBe("no location line");
@@ -88,7 +89,7 @@ describe("untaken-exits-v1 lines",()=>{
 
 describe("untaken-exits-v1 prompt",()=>{
  it("ON adds one sentence that names no character, place or story step; OFF leaves the prompt byte-identical",()=>{
-  const off={...ALL_ON,[ID]:false,"objective-tracking-v1":false,"navigate-first-prompt-v1":false,"people-id-cards-v1":false,"harness-trust-v1":false,"cited-destination-v1":false,"harness-trust-v2":false};
+  const off={...ALL_ON,"semantic-navigation-v2":false,[ID]:false,"objective-tracking-v1":false,"navigate-first-prompt-v1":false,"people-id-cards-v1":false,"harness-trust-v1":false,"cited-destination-v1":false,"harness-trust-v2":false,"dialog-button-b-v1":false,"just-in-time-prompt-v1":false,"just-in-time-prompt-v2":false,"jit-guide-reuse-v1":false};
   const on={...off,[ID]:true};
   expect(playSystemPrompt(on,null)).toBe(`${playSystemPrompt(off,null)}\n\n${UNTAKEN_EXITS_SECTION}`);
   expect(UNTAKEN_EXITS_SECTION).not.toMatch(FORBIDDEN);
@@ -105,7 +106,7 @@ describe("untaken-exits-v1 production wiring",()=>{
  const checked=():AgentTool=>({...tool("press"),executeChecked:()=>Promise.resolve({content:[{type:"text",text:readout}],details:{state:snapshot}})} as AgentTool);
  const recorder=()=>{const observers:((e:RunEvent)=>void)[]=[];return {observers,lowHpTrainerWarning:()=>undefined,peopleIdCard:()=>undefined,recordState:()=>({seq:1,turn:1}),recordDialogueAutoAdvance:()=>({seq:1,turn:1}),subscribe:(fn:(e:RunEvent)=>void)=>{observers.push(fn);}};};
  const text=async(tools:readonly AgentTool[],name:string)=>{const r=await tools.find(t=>t.name===name)?.execute("id",{});const part=r?.content[0];return part?.type==="text"?part.text:"";};
- const OFF:FeatureSet={...ALL_ON,[ID]:false,"battle-move-tool-v1":false,"people-ledger-v1":false,"story-destinations-v1":false,"instruction-ledger-v2":false,"harness-trust-v1":false,"cited-destination-v1":false,"no-exit-here-v1":false,"harness-trust-v2":false,"heal-before-trainers-v1":false,"people-id-cards-v1":false,"trainer-heal-guidance-v1":false,"low-hp-trainer-warning-v1":false,"low-hp-trainer-warning-v2":false,"dialogue-auto-advance-v1":false,"bounded-navigation-v1":false,"navigate-first-prompt-v1":false,"blocked-exit-fact-v1":false,"battle-loss-recap-v1":false};
+ const OFF:FeatureSet={...ALL_ON,"semantic-navigation-v2":false,[ID]:false,"battle-move-tool-v1":false,"people-ledger-v1":false,"story-destinations-v1":false,"instruction-ledger-v2":false,"harness-trust-v1":false,"cited-destination-v1":false,"no-exit-here-v1":false,"bag-healing-items-v1":false,"battle-menu-loop-v1":false,"clock-view-loop-v1":false,"stale-story-goal-v1":false,"stale-story-goal-v2":false,"input-cuts-v1":false,"loop-guard-screen-v1":false,"reopened-dialogue-loop-v1":false,"dialog-button-b-v1":false,"just-in-time-prompt-v1":false,"just-in-time-prompt-v2":false,"jit-guide-reuse-v1":false,"harness-trust-v2":false,"heal-before-trainers-v1":false,"people-id-cards-v1":false,"trainer-heal-guidance-v1":false,"low-hp-trainer-warning-v1":false,"low-hp-trainer-warning-v2":false,"dialogue-auto-advance-v1":false,"bounded-navigation-v1":false,"navigate-first-prompt-v1":false,"blocked-exit-fact-v1":false,"battle-loss-recap-v1":false};
 
  it("OFF hands the model the very same tools and adds no subscriber",async()=>{
   const r=recorder();const base=[tool("observe"),checked()];
@@ -115,7 +116,7 @@ describe("untaken-exits-v1 production wiring",()=>{
   expect(withUntakenExits(base,OFF,r)).toEqual(base);
  });
  it("learns the map change from the result's own state when the recorder has not delivered it yet (live order)",()=>{
-  const exits=new UntakenExits(ALL_ON);
+  const exits=new UntakenExits({...ALL_ON,"semantic-navigation-v2":false});
   const hall:GameStateSnapshot={...snapshot,interaction_targets:[{kind:"warp",x:1,y:0,elevation:0,activation:"movement",availability:"conditional",facing:null,local_id:null,destination:[4,4,0],name:"w"}]};
   const room:GameStateSnapshot={...snapshot,location:"ROOM",map_id:[4,4],position:{x:3,y:3},interaction_targets:[{kind:"warp",x:3,y:3,elevation:0,activation:"movement",availability:"conditional",facing:null,local_id:null,destination:[3,3,0],name:"w"}]};
   const e=(seq:number,s:GameStateSnapshot)=>checkEvent({v:1,run:"u",t:"2026-10-16T03:00:00.000-04:00",turn:1,seq,type:"state",...s});
@@ -135,7 +136,7 @@ describe("untaken-exits-v1 production wiring",()=>{
   expect(await text([b as AgentTool],"observe")).toBe(readout);
   expect(await text([p as AgentTool],"press")).toBe("Screen: overworld");
   expect(await text([n as AgentTool],"navigate_to")).toContain("Exits here you have not taken: (1,0) -> map 4/4");
-  expect(new UntakenExits(ALL_ON).line({...snapshot,topology:null},"")).toBe("Exits here you have not taken: (1,0) -> map 4/4");
+  expect(new UntakenExits({...ALL_ON,"semantic-navigation-v2":false}).line({...snapshot,topology:null},"")).toBe("Exits here you have not taken: (1,0) -> map 4/4");
  });
  it("ON annotates observe and press results through playGameTools and learns history from the recorder",async()=>{
   const r=recorder();
@@ -160,8 +161,8 @@ describe("untaken-exits-v1 registry and presets",()=>{
   expect(ids.indexOf(ID)).toBe(ids.indexOf("briefing-exits-v1")+1);
   const order=playHarnessFeatures(ALL_ON,null);
   expect(order.indexOf(ID)).toBe(order.indexOf("briefing-exits-v1")+1);
-  expect(dependencyProblems({...ALL_ON,"world-targets-v1":false})).toContain(`${ID} needs world-targets-v1`);
-  expect(stateOnlyProblems({...ALL_ON,"state-only-decisions-v1":true})).toContain(`state-only-decisions-v1 requires ${ID} OFF`);
+  expect(dependencyProblems({...ALL_ON,"semantic-navigation-v2":false,"world-targets-v1":false})).toContain(`${ID} needs world-targets-v1`);
+  expect(stateOnlyProblems({...ALL_ON,"semantic-navigation-v2":false,"state-only-decisions-v1":true})).toContain(`state-only-decisions-v1 requires ${ID} OFF`);
  });
  it("defaults off in presets that omit it and in legacy flag presets",()=>{
   const {[ID]:omitted,...rest}=ALL_ON;expect(omitted).toBe(true);

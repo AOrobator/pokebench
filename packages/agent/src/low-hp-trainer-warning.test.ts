@@ -1,3 +1,4 @@
+import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
 // low-hp-trainer-warning-v1: a one-time SUPERVISOR paragraph on a game-tool result when the lead Pokémon is
 // below half HP and the Route 103 rival, not yet beaten, is on the map. Round 2 bundle run
 // 2026-10-16T04-51-03_qwen36-gpu0_54a7 saw MAY at (10,3) with TORCHIC at 3/21 HP (T363), talked to her (T369),
@@ -5,7 +6,7 @@
 import {readFileSync} from "node:fs";
 import {describe,expect,it} from "vitest";
 import type {AgentTool,AgentToolResult} from "@mariozechner/pi-agent-core";
-import {ALL_ON,SERVER_FEATURES,SWITCHABLE_FEATURES,dependencyProblems,featureInfo,featuresOf,playHarnessFeatures,type FeatureSet} from "./features.js";
+import {SERVER_FEATURES,SWITCHABLE_FEATURES,dependencyProblems,featureInfo,featuresOf,playHarnessFeatures,type FeatureSet} from "./features.js";
 import {flagFeatures,normalizeFeatures,parsePlayPreset,presetFeatures} from "./play-preset.js";
 import {parseGameState,type GameStateSnapshot} from "./game-state.js";
 import {eventProblem,type RunEvent} from "./events.js";
@@ -51,7 +52,7 @@ describe("registry",()=>{
   expect(dependencyProblems({...ALL_ON,[ID]:true})).toEqual([]);
  });
  it("defaults OFF for presets that omit it and for legacy flag presets; the prompt and tool list never change",()=>{
-  const without=Object.fromEntries(Object.entries({...ALL_ON,"state-only-decisions-v1":false,"low-hp-trainer-warning-v2":false,"heal-before-trainers-v1":false}).filter(([id])=>id!==ID)) as Omit<FeatureSet,typeof ID>;
+  const without=Object.fromEntries(Object.entries({...ALL_ON,"state-only-decisions-v1":false,"low-hp-trainer-warning-v2":false,"heal-before-trainers-v1":false,"bag-healing-items-v1":false,"battle-menu-loop-v1":false,"clock-view-loop-v1":false,"stale-story-goal-v1":false,"stale-story-goal-v2":false,"input-cuts-v1":false,"loop-guard-screen-v1":false,"reopened-dialogue-loop-v1":false,"dialog-button-b-v1":false,"just-in-time-prompt-v1":false,"just-in-time-prompt-v2":false,"jit-guide-reuse-v1":false}).filter(([id])=>id!==ID)) as Omit<FeatureSet,typeof ID>;
   expect(normalizeFeatures(without)[ID]).toBe(false);
   expect(normalizeFeatures({...without,[ID]:true})[ID]).toBe(true);
   expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:true})[ID]).toBe(false);

@@ -350,9 +350,9 @@ it("delivers verified named interaction text with typed names through the real o
 describe("automatic running eligibility", () => {
   const running = { permitted:true, controllable:true, reason:"permitted", shoes:true, allow_running:true, avatar_flags:1, metatile:0, elevation:3, map_type:3, callback1:0x08085E05, callback2:0x08085E5D, diagnostic:null, raw_hex:null };
   const field = {...IN_GAME,screen:"overworld",in_battle:false,field_controls_locked:false,active_ui:null,running};
-  it("requires independent opt-in and preserves deliberate walking",()=>{
+  it("requires independent opt-in and ignores model walking requests when enabled",()=>{
     expect(permitsAutomaticRunning(field,["UP"],false,true)).toBe(true);
-    expect(permitsAutomaticRunning(field,["UP"],true,true)).toBe(false);
+    expect(permitsAutomaticRunning(field,["UP"],true,true)).toBe(true);
     expect(permitsAutomaticRunning(field,["UP"],false,false)).toBe(false);
     expect(permitsAutomaticRunning(field,["UP"],false,undefined)).toBe(false);
   });
@@ -362,19 +362,21 @@ describe("automatic running eligibility", () => {
   });
 });
 
-it("requests guarded simultaneous running and records the modifier separately from sequential buttons",async()=>{
+it("requests guarded simultaneous running even for a stale walking argument and records what the harness did",async()=>{
  const running={permitted:true,controllable:true,reason:"permitted",shoes:true,allow_running:true,avatar_flags:1,metatile:0,elevation:3,map_type:3,callback1:0x08085E05,callback2:0x08085E5D,diagnostic:null,raw_hex:null};
  const before={...IN_GAME,screen:"overworld",in_battle:false,field_controls_locked:false,active_ui:null,running};
  const bodies:unknown[]=[];const beforePress=vi.fn();
  const fetchFn=routes({"/pokebench/state":before,"/action":(init:RequestInit|undefined)=>{bodies.push(JSON.parse(typeof init?.body === "string" ? init.body : "{}") as unknown);return {status:"success"};},"/pokebench/travel":(init:RequestInit|undefined)=>{bodies.push(JSON.parse(typeof init?.body === "string" ? init.body : "{}") as unknown);return {status:"success"};},"/queue_status":{queue_empty:true},"/pokebench/observation":observationBody({state:before})});
  const tool=pressTool(SERVER,{beforePress,afterPress:()=>Promise.resolve()},fetchFn,instant,{...ALL_TOOL_SWITCHES,automaticRunning:true});
+ expect(Object.hasOwn(tool.parameters.properties,"walking")).toBe(false);
  await tool.execute("run",{buttons:["UP"]});
  await tool.execute("walk",{buttons:["UP"],walking:true});
  await tool.execute("manual",{buttons:["UP","B"]});
- expect(bodies).toEqual([{buttons:["UP"],...PRESS_TIMING,automatic_running:true},{buttons:["UP"],...PRESS_TIMING},{buttons:["UP","B"],...PRESS_TIMING}]);
+ expect(bodies).toEqual([{buttons:["UP"],...PRESS_TIMING,automatic_running:true},{buttons:["UP"],...PRESS_TIMING,automatic_running:true},{buttons:["UP","B"],...PRESS_TIMING}]);
  expect(beforePress.mock.calls[0]?.[1]).toEqual(["UP"]);
- expect(beforePress.mock.calls[0]?.[4]).toEqual({automatic_running:true,walking:false,requested_held_buttons:["B"]});
- expect(beforePress.mock.calls[1]?.[4]).toEqual({automatic_running:false,walking:true});
+ expect(beforePress.mock.calls[0]?.[4]).toEqual({automatic_running:true,requested_held_buttons:["B"]});
+ expect(beforePress.mock.calls[1]?.[4]).toEqual({automatic_running:true,requested_held_buttons:["B"]});
+ expect(Object.hasOwn(pressTool(SERVER,noHooks,fetchFn,instant,{...ALL_TOOL_SWITCHES,automaticRunning:false}).parameters.properties,"walking")).toBe(true);
 });
 it.each([true,false])("records and submits actual interaction inputs with safety %s",async(safeInterfaces)=>{
  const sent:unknown[]=[];let actual:readonly string[]=[];

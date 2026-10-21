@@ -1,7 +1,8 @@
+import {readFileSync} from "node:fs";
 import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
 
-import { armPreset, controlBaseProblems, definitionProblems, dryRunDefinition, FixedDesignError, generatePlan, parseFixedDefinition, planOrder, armFeatureBits } from "./fixed-design.js";
+import { armPreset, controlBaseProblems, definitionProblems, dryRunDefinition, FixedDesignError, generatePlan, parseFixedDefinition, planOrder, armFeatureBits, soloDefinition } from "./fixed-design.js";
 import { CONTROL_BASE_SHA256, controlBaseText, definition, draftDefinition, INCUMBENT_FEATURES, CLOCK_START, MENU_START } from "../test-support/fixed.js";
 
 const sha = (text: string): string => createHash("sha256").update(text).digest("hex");
@@ -44,6 +45,12 @@ describe("armPreset", () => {
     expect("start" in armPreset(booted, "confirmatory", "control")).toBe(false);
     const differing = Object.keys(INCUMBENT_FEATURES).filter((k) => (control.features as Record<string, boolean>)[k] !== (bundle.features as Record<string, boolean>)[k]);
     expect(differing.sort()).toEqual([...def.switches].sort());
+    expect(control.features["automatic-running-v1"]).toBe(false);
+    expect(bundle.features["automatic-running-v1"]).toBe(true);
+    expect(control.features["semantic-navigation-v1"]).toBe(false);
+    expect(control.features["deterministic-exploration-v1"]).toBe(false);
+    expect(bundle.features["semantic-navigation-v1"]).toBe(true);
+    expect(bundle.features["deterministic-exploration-v1"]).toBe(true);
     expect((bundle.features as Record<string, boolean>)["milestone-stall-stop-v1"]).toBe(false);
   });
 
@@ -102,6 +109,18 @@ describe("parseFixedDefinition", () => {
     expect(() => parseFixedDefinition(JSON.stringify({ ...definition(), extra: 1 }))).toThrow(/not a fixed-run definition/);
     expect(() => parseFixedDefinition(JSON.stringify(definition({ primaryMilestone: "NOPE" })))).toThrow(/unknown primary milestone NOPE/);
   });
+
+  it("accepts a Mac lane with its own run name and refuses other lane labels or run names", () => {
+    const lane = draftDefinition().lanes[0];
+    if (lane === undefined) throw new Error("fixture lane");
+    const one = (l: object) => JSON.stringify(definition({ lanes: [{ ...lane, ...l }], phases: [{ id: "confirmatory", perArm: 1, maxWallMs: 900_000, primary: true, start: CLOCK_START }] }));
+    expect(() => parseFixedDefinition(one({ gpu: "MAC", runName: "glm53-mac" }))).not.toThrow();
+    expect(() => parseFixedDefinition(one({ gpu: "CPU" }))).toThrow(/not a fixed-run definition/);
+    expect(() => parseFixedDefinition(one({ gpu: "MAC", runName: "GLM 5.3" }))).toThrow(/not a fixed-run definition/);
+    for (const bad of ["glm53-mac-", "a--b", "-glm", "a".repeat(41)]) expect(() => parseFixedDefinition(one({ gpu: "MAC", runName: bad }))).toThrow(/not a fixed-run definition/);
+    expect(() => parseFixedDefinition(one({ gpu: "MAC", runName: "a".repeat(40) }))).not.toThrow();
+    expect(() => parseFixedDefinition(one({ gpu: "MAC" }))).toThrow(/lane A: a MAC lane must name its runs with runName/);
+  });
 });
 
 describe("on-in-both fixes", () => {
@@ -148,6 +167,31 @@ describe("dryRunDefinition", () => {
     expect(dry.plan).toHaveLength(4);
     expect(dry.replacementReserveMs).toBe(0);
     expect(definitionProblems(dry)).toEqual([]);
+  });
+});
+
+describe("soloDefinition", () => {
+  it("plans one exploratory trial of one arm on one lane at the phase's start and cap, under its own id, with no replacements", () => {
+    const def = definition();
+    const solo = soloDefinition(def, "bundle", "B", "cook", 2);
+    expect(solo).toMatchObject({ id: "bundle-v-control-solo-bundle-b-2", title: "Bundle vs fixed control (exploratory: bundle only, lane B, cook, #2)", replacementReserveMs: 0, lanes: [def.lanes[1]] });
+    expect(solo.phases).toEqual([{ id: "cook", perArm: 1, maxWallMs: 3_600_000, primary: false, start: MENU_START, singleArm: "bundle" }]);
+    expect(solo.plan).toEqual([{ slot: 1, phase: "cook", block: 1, lane: "B", arm: "bundle" }]);
+    expect(definitionProblems(solo)).toEqual([]);
+    expect(armPreset(solo, "cook", "bundle").features).toEqual(armPreset(def, "cook", "bundle").features);
+    expect(soloDefinition(def, "control", "A", "confirmatory", 1).plan).toEqual([{ slot: 1, phase: "confirmatory", block: 1, lane: "A", arm: "control" }]);
+  });
+
+  it("refuses an unknown lane or phase, an id too long to name, and a single-arm phase that is paired, primary or multi-lane", () => {
+    const def = definition();
+    expect(() => soloDefinition(def, "bundle", "C", "cook", 1)).toThrow("no lane C; lanes: A, B");
+    expect(() => soloDefinition(def, "bundle", "B", "nope", 1)).toThrow("no phase nope");
+    expect(() => soloDefinition({ ...def, id: "x".repeat(70) }, "bundle", "B", "cook", 1)).toThrow(/is not a valid experiment id/);
+    const solo = soloDefinition(def, "bundle", "B", "cook", 1);
+    const phase = solo.phases[0];
+    if (phase === undefined) throw new Error("fixture");
+    for (const bad of [{ ...phase, primary: true }, { ...phase, perArm: 2 }, { ...phase, singlePair: true }]) expect(definitionProblems({ ...solo, phases: [bad] })).toContain("phase cook: singleArm requires one exploratory trial on one lane");
+    expect(definitionProblems({ ...solo, lanes: def.lanes, plan: generatePlan({ ...solo, lanes: def.lanes }) })).toContain("phase cook: singleArm requires one exploratory trial on one lane");
   });
 });
 
@@ -198,4 +242,54 @@ describe("controlBaseProblems", () => {
     const def = definition({ controlBase: { ...definition().controlBase, sha256: sha("nope") } });
     expect(controlBaseProblems(def, "nope")[0]).toMatch(/^control base .* is not a preset/);
   });
+});
+
+it("preserves a shared native target in both diagnostic arms and rejects a misleading target",()=>{
+ const original=definition();
+ const def={...original,primaryMilestone:"STARTER_CHOSEN",base:{...original.base,target:"STARTER_CHOSEN"}};
+ expect(parseFixedDefinition(JSON.stringify(def)).definition.base.target).toBe("STARTER_CHOSEN");
+ for(const arm of ["control","bundle"] as const)expect(armPreset(def,"confirmatory",arm).target).toBe("STARTER_CHOSEN");
+ expect(definitionProblems({...def,base:{...def.base,target:"RIVAL_MET"}})).toContain("base stopping target must equal primaryMilestone");
+});
+
+it("stops the starter diagnostic without replacing its broad play goal",()=>{
+ const old=definition();const def={...old,primaryMilestone:"STARTER_CHOSEN",base:{...old.base,stopAt:"STARTER_CHOSEN"}};
+ expect(parseFixedDefinition(JSON.stringify(def)).definition.base.stopAt).toBe("STARTER_CHOSEN");
+ for(const arm of ["control","bundle"] as const)expect(armPreset(def,"confirmatory",arm)).toMatchObject({target:null,stopAt:"STARTER_CHOSEN"});
+ expect(definitionProblems({...def,base:{...def.base,stopAt:"STONE_BADGE"}})).toContain("base stopping target must equal primaryMilestone");
+});
+
+it("freezes a byte-pinned prompt-only starter diagnostic with sixteen balanced slots",()=>{
+ const def=parseFixedDefinition(readFileSync(new URL("../../../experiments/fixed/starter-decision-salience.json",import.meta.url),"utf8")).definition;
+ const base=readFileSync(new URL("../../../experiments/fixed/control-bases/starter-decision-salience-control.json",import.meta.url),"utf8");
+ expect(controlBaseProblems(def,base)).toEqual([]);expect(def.switches).toEqual(["starter-decision-salience-v1"]);expect(def.plan).toHaveLength(16);
+ expect(def.phases).toMatchObject([{perArm:8,primary:false,maxWallMs:300_000,start:{kind:"save_state",sha1:"0c34433cc305ea5de6fa69aa4a5612bf434a5714"}}]);
+ expect(def.base.target).toBeNull();expect(def.base.stopAt).toBe("STARTER_CHOSEN");
+});
+
+it("enables both navigation treatments only in evolving bundle arms, with unchanged control provenance",()=>{
+ for(const name of ["bundle-v-control","bundle-cook-1h","whole-map-cook-1h"]){
+  const def=parseFixedDefinition(readFileSync(new URL(`../../../experiments/fixed/${name}.json`,import.meta.url),"utf8")).definition;
+  expect(definitionProblems(def)).toEqual([]);
+  for(const phase of def.phases){
+   const control=armPreset(def,phase.id,"control"),bundle=armPreset(def,phase.id,"bundle");
+   for(const id of ["navigation-tool-use-guard-v1","semantic-current-map-feedback-v1"] as const){
+    expect(def.switches).toContain(id);expect(control.features[id]).toBe(false);expect(bundle.features[id]).toBe(true);
+   }
+  }
+ }
+});
+
+it("enables pending field dialogue only in each evolving bundle and preserves control provenance",()=>{
+ for(const name of ["bundle-v-control","bundle-cook-1h","whole-map-cook-1h"]){
+  const raw=readFileSync(new URL(`../../../experiments/fixed/${name}.json`,import.meta.url),"utf8");
+  const def=parseFixedDefinition(raw).definition;
+  expect(definitionProblems(def)).toEqual([]);
+  expect(def.switches).toContain("pending-field-dialogue-v1");
+  for(const phase of def.phases){
+   expect(armPreset(def,phase.id,"control").features["pending-field-dialogue-v1"]).toBe(false);
+   expect(armPreset(def,phase.id,"bundle").features["pending-field-dialogue-v1"]).toBe(true);
+  }
+  expect(controlBaseProblems(def,readFileSync(new URL(`../../../${def.controlBase.path}`,import.meta.url),"utf8"))).toEqual([]);
+ }
 });

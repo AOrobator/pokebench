@@ -206,9 +206,17 @@ def test_measurement_json_is_identical_with_every_switch_off(
     # exit-reachability-v1 adds the exit labels and the foot area.
     assert payloads[0]["state"].pop("exit_reach")["foot"]["width"] == 5
     assert "exit_reach" not in payloads[1]["state"]
+    # field-move-gates-v1 adds the map's obstacles and the capabilities (no obstacles here).
+    assert payloads[0]["state"].pop("field_obstacles")["obstacles"] == []
+    assert "field_obstacles" not in payloads[1]["state"]
     # heal-before-trainers-v1 adds the trainers on this map and the healing places (none here).
     assert payloads[0]["state"].pop("heal_before_trainers")["trainers"] == []
     assert "heal_before_trainers" not in payloads[1]["state"]
+    # semantic-navigation-v1 adds native object-slot receipts and binds listed objects to them.
+    assert payloads[0]["state"].pop("interaction_object_slots")
+    assert "interaction_object_slots" not in payloads[1]["state"]
+    for target in payloads[0]["state"]["interaction_targets"]:
+        target.pop("native_slot", None)
     assert payloads[0]["state"] == payloads[1]["state"]
     assert payloads[0]["state_text"] != "" and payloads[1]["state_text"] == ""
 
@@ -226,12 +234,25 @@ def test_env_list_is_validated() -> None:
             "named-interactions-v1",
             "world-destinations-v1",
             "bounded-navigation-v1",
+            "semantic-navigation-v1",
             "expanded-menu-battle-information-v1",
             "field-dialogue-phase-v1",
             "full-map-navigation-v1",
             "named-warp-destinations-v1",
             "character-presence-v1",
             "battle-details-v2",
+            "battle-effective-damage-v1",
+            "safe-navigation-strides-v1",
+            "evolution-decision-v1",
+            "original-speed-pacing-v1",
+            "semantic-navigation-v2",
+            "exit-labels-v2",
+            "respawn-readout-v1",
+            "caught-nickname-prompt-v1",
+            "party-item-confirmation-v1",
+            "yes-no-answer-readout-v1",
+            "field-move-gates-v1",
+            "exit-labels-v3",
             "warp-arrival-settle-v1",
             "displayed-place-names-v1",
             "battle-triage-guidance-v1",
@@ -249,6 +270,7 @@ def test_env_list_is_validated() -> None:
             "surf-gated-exits-v1",
             "exit-reachability-v1",
             "heal-before-trainers-v1",
+            "heal-before-trainers-v2",
             "tutorial-party-owner-v1",
             "mid-frame-readout-v1",
             "unset-dynamic-warp-v1",
@@ -263,7 +285,7 @@ def test_env_list_is_validated() -> None:
     for bad in ("invented-v1", "live-map-v1,,story-state-v1", "deterministic-loop-guard-v1"):
         with pytest.raises(ValueError, match="POKEBENCH_FEATURES_OFF"):
             features_off_from_env({"POKEBENCH_FEATURES_OFF": bad})
-    assert "active-ui-ownership-v1" not in SERVER_FEATURES and len(SERVER_FEATURES) == 46
+    assert "active-ui-ownership-v1" not in SERVER_FEATURES and len(SERVER_FEATURES) == 60
 
 
 def test_observation_route_applies_the_env_switches(monkeypatch: pytest.MonkeyPatch) -> None:

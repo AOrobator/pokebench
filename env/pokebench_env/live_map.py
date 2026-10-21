@@ -113,6 +113,7 @@ class LocalMap:
         edge_walls: bool = True,
         counters: bool = True,
         destinations: Mapping[tuple[int, int], str] | None = None,
+        warp_labels: Mapping[tuple[int, int], str] | None = None,
         dynamic: str | None = None,
         rules_in_prompt: bool = False,
         next_tiles: str | None = None,
@@ -143,6 +144,7 @@ class LocalMap:
                 edge_walls=edge_walls,
                 counters=counters and any("=" in row for row in cells),
                 destinations=destinations,
+                warp_labels=warp_labels,
                 dynamic=dynamic,
                 rules_in_prompt=rules_in_prompt,
             )
@@ -184,6 +186,7 @@ class FullMap:
         edge_walls: bool = True,
         counters: bool = True,
         destinations: Mapping[tuple[int, int], str] | None = None,
+        warp_labels: Mapping[tuple[int, int], str] | None = None,
         dynamic: str | None = None,
         rules_in_prompt: bool = False,
         next_tiles: str | None = None,
@@ -218,6 +221,7 @@ class FullMap:
                 edge_walls=edge_walls,
                 counters=counters and any("=" in row for row in cells),
                 destinations=destinations,
+                warp_labels=warp_labels,
                 dynamic=dynamic,
                 rules_in_prompt=rules_in_prompt,
             )
@@ -273,6 +277,7 @@ def _details(
     edge_walls: bool,
     counters: bool,
     destinations: Mapping[tuple[int, int], str] | None = None,
+    warp_labels: Mapping[tuple[int, int], str] | None = None,
     dynamic: str | None = None,
     rules_in_prompt: bool = False,
 ) -> str:
@@ -287,7 +292,9 @@ def _details(
     listed_warps = (
         ", ".join(
             (
-                f"({a},{b}) -> {dynamic or 'dynamic destination'}"
+                f"({a},{b}) -> {warp_labels[(a, b)]}"
+                if warp_labels is not None and (a, b) in warp_labels
+                else f"({a},{b}) -> {dynamic or 'dynamic destination'}"
                 if (g, n) == (127, 127)
                 else f"({a},{b}) -> {destinations[(g, n)]} (map {g}/{n})"
                 if destinations is not None and (g, n) in destinations

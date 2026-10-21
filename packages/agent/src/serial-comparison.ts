@@ -7,6 +7,7 @@ import { Value } from "typebox/value";
 import { parseEvent, RUN_END_REASONS } from "./events.js";
 import { MILESTONES } from "./milestones.js";
 import { parsePlayPresetV1 as parsePlayPreset } from "./play-preset.js";
+import { leaseName, leasePool } from "./lease-pool.js";
 
 const closed = { additionalProperties:false };
 const text=Type.String({minLength:1});
@@ -135,13 +136,13 @@ export async function verifyComparisonFiles(m:ComparisonManifest,now=Date.now(),
   }
 }
 export function filesystemComparisonHost(m:ComparisonManifest,options:{node?:string;now?:()=>string;verify?:ComparisonHost["verify"];watchdogMs?:number;interruptGraceMs?:number;killGraceMs?:number}={}):ComparisonHost{
-  const runs=join(m.repoRoot,"runs"),receipts=join(runs,"launch-receipts",m.id),ledger=join(receipts,"trials.jsonl"),lock=join(runs,".naming-gameplay.lock");
+  const runs=join(m.repoRoot,"runs"),receipts=join(runs,"launch-receipts",m.id),ledger=join(receipts,"trials.jsonl"),locks=[...new Set(m.lanes.map(lane=>leaseName(leasePool(lane.gatewayUrl))))].sort().map(name=>join(runs,name));
   return{
     verify:options.verify??(async manifest=>verifyComparisonFiles(manifest)),
     now:options.now??(()=>new Date().toISOString()),
     readLedger:async()=>{try{return (await readFile(ledger,"utf8")).split("\n").filter(l=>l!=="").map(l=>parseLedger(JSON.parse(l) as unknown));}catch(error){if((error as NodeJS.ErrnoException).code==="ENOENT")return [];throw error;}},
     append:async row=>{await mkdir(receipts,{recursive:true});const handle=await open(ledger,"a",0o600);try{await handle.writeFile(`${JSON.stringify(row)}\n`);await handle.sync();}finally{await handle.close();}},
-    acquire:async()=>{await mkdir(runs,{recursive:true});await mkdir(lock);try{await writeFile(join(lock,"owner.json"),JSON.stringify({pid:process.pid,cohort:m.id}),{flag:"wx"});}catch(error){await rm(lock,{recursive:true});throw error;}return async()=>rm(lock,{recursive:true});},
+    acquire:async()=>{await mkdir(runs,{recursive:true});const held:string[]=[];try{for(const lock of locks){await mkdir(lock);held.push(lock);await writeFile(join(lock,"owner.json"),JSON.stringify({pid:process.pid,owner:`cohort:${m.id}`,cohort:m.id}),{flag:"wx"});}}catch(error){for(const lock of held)await rm(lock,{recursive:true});throw error;}return async()=>{for(const lock of held)await rm(lock,{recursive:true});};},
     runExists:async run=>{try{await access(join(runs,run));return true;}catch(error){if((error as NodeJS.ErrnoException).code==="ENOENT")return false;throw error;}},
     launch:async command=>{
       const inherited={...process.env};delete inherited["POKEBENCH_ENDPOINT_FILE"];

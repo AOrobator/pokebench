@@ -14,6 +14,7 @@ export const INCUMBENT_FEATURES: Readonly<Record<string, boolean>> = {
   "full-map-navigation-v1": false, "elevation-transitions-v1": true, "game-evidence-priority-v1": false, "dialogue-log-v1": false,
   "loop-guard-supervisor-v1": true, "instruction-ledger-v1": false, "next-milestone-hint-v1": false, "double-context-window-v1": false,
   "fresh-retry-v1": false, "named-warp-destinations-v1": false, "milestone-stall-stop-v1": false, "text-only-supervisor-v1": true,
+  "semantic-navigation-v1": false, "deterministic-exploration-v1": false,
 };
 
 export const CONTROL_BASE_PATH = "runs/experiments/full-map-navigation/presets/finals-incumbent.json";
@@ -41,7 +42,7 @@ export function draftDefinition(overrides: Partial<Omit<FixedDefinition, "plan">
     romSha1: ROM_SHA1,
     controlBase: { path: CONTROL_BASE_PATH, presetId: CONTROL_BASE_ID, sha256: CONTROL_BASE_SHA256 },
     base: { target: null, limits: { maxTurns: 20000, failureLimit: 3, replyFailuresEndRun: false }, sampling: { thinkingLevel: "medium", maxTokens: 4096 }, features: INCUMBENT_FEATURES },
-    switches: ["world-destinations-v1", "game-evidence-priority-v1", "named-warp-destinations-v1"],
+    switches: ["automatic-running-v1", "world-destinations-v1", "game-evidence-priority-v1", "named-warp-destinations-v1", "semantic-navigation-v1", "deterministic-exploration-v1"],
     offInBoth: ["milestone-stall-stop-v1"],
     onInBoth: [],
     phases: [

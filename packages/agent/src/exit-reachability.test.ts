@@ -1,3 +1,4 @@
+import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
 // exit-reachability-v1: one walk-reachability check (the server's exit_reach) read by every exit list and navigate_to message.
 // Fixture exit-reach-states.json.gz: recorded state bodies (envelope stripped) from runs/<id>/events.jsonl, each with the
 // exit_reach the server code (env/pokebench_env/exit_reach.py) reads from that state's own raw-RAM archive, and map_grids,
@@ -10,10 +11,10 @@ import {readFileSync} from "node:fs";
 import {gunzipSync} from "node:zlib";
 import {describe,expect,it} from "vitest";
 import type {AgentTool,AgentToolResult} from "@mariozechner/pi-agent-core";
-import {ALL_ON,FEATURES,SERVER_FEATURES,featureInfo,featuresOf,playHarnessFeatures,serverFeatureEnv,type FeatureSet} from "./features.js";
+import {FEATURES,SERVER_FEATURES,featureInfo,featuresOf,playHarnessFeatures,serverFeatureEnv,type FeatureSet} from "./features.js";
 import {flagFeatures,normalizeFeatures} from "./play-preset.js";
 import {parseGameState,type GameStateSnapshot} from "./game-state.js";
-import {withNavigation} from "./navigation.js";
+import {MAX_FULL_ROUTE_COMMANDS,navigationTool,withNavigation} from "./navigation.js";
 import {exitReach} from "./surf-gate.js";
 import {loopSupervisor,playGameTools} from "./play-wiring.js";
 import {UntakenExits} from "./untaken-exits.js";
@@ -75,13 +76,21 @@ describe("exit-reachability-v1: 'call navigate_to again' stays for a goal on foo
   expect((await navigate(NAV,s,{x:11,y:0},"walk")).status).toBe(CONTINUE);
   expect((await navigate({...NAV,[ID]:true},s,{x:11,y:0},"walk")).status).toBe(CONTINUE);
  });
- it("whole map: a serpentine route longer than the 512-press bound",async()=>{
-  const rows=Array.from({length:31},(_,y)=>y%2===0?".".repeat(40):y%4===1?"#".repeat(39)+".":"."+"#".repeat(39));
-  const s=field(rows,{x:0,y:0});
-  const features={...NAV,"full-map-navigation-v1":true};
-  const off=await navigate(features,s,{x:39,y:30},"walk"),on=await navigate({...features,[ID]:true},s,{x:39,y:30},"walk");
-  expect(off.status).toMatch(/^command limit: stopped at \(\d+,\d+\) after 512 ordinary button attempts, the most one navigate_to call makes; call navigate_to again to continue to \(39,30\)$/);
-  expect(on.status).toBe(off.status);
+ it("whole map: command-limit guidance is identical ON and OFF at an injected tiny bound",async()=>{
+  expect(MAX_FULL_ROUTE_COMMANDS).toBe(512);
+  const initial=field(["............"],{x:0,y:0});
+  const statuses:string[]=[];
+  for(const enabled of [false,true]){
+   let current=initial,presses=0;
+   const tool=navigationTool({fullMap:true,truth:true,exitReach:enabled,maxCommands:3,
+    read:()=>Promise.resolve(current),observe:()=>Promise.resolve(result(current)),
+    press:(_id,params)=>{expect(params.buttons).toEqual(["RIGHT"]);presses++;current={...current,position:{x:presses,y:0}};return Promise.resolve(result(current));}});
+   const output=await tool.execute("bounded-full-map",{x:11,y:0,map_id:[0,9]});
+   expect(presses).toBe(3);
+   expect(output.details).toMatchObject({navigation:{commands:3,status:"command limit: stopped at (3,0) after 3 ordinary button attempts, the most one navigate_to call makes; call navigate_to again to continue to (11,0)"}});
+   statuses.push(output.content.flatMap(part=>part.type==="text"?[part.text]:[]).join("\n"));
+  }
+  expect(statuses[1]).toBe(statuses[0]);
  });
 });
 
@@ -308,10 +317,10 @@ describe("exit-reachability-v1 schema, registry and presets",()=>{
   expect(description).toContain(" Off: ");
   expect(description).toContain("bundle arm only");
   expect(description).not.toContain("both arms");
-  expect(FEATURES.filter(f=>f.switchable).at(-13)?.id).toBe(ID);
-  expect(playHarnessFeatures(ALL_ON,null).at(-13)).toBe(ID);
-  expect(SERVER_FEATURES.at(-7)).toBe(ID);
-  expect(serverFeatureEnv({...ALL_ON,[ID]:false}).POKEBENCH_FEATURES_OFF.split(",")).toContain(ID);
+  expect(FEATURES.filter(f=>f.switchable).at(-74)?.id).toBe(ID);
+  expect(playHarnessFeatures(ALL_ON,null).at(-38)).toBe(ID);
+  expect(SERVER_FEATURES.at(-20)).toBe(ID);
+  expect(serverFeatureEnv({...ALL_ON,"semantic-navigation-v2":false,"battle-decision-ready-v1":false,[ID]:false}).POKEBENCH_FEATURES_OFF.split(",")).toContain(ID);
   expect(serverFeatureEnv(ALL_ON).POKEBENCH_FEATURES_OFF.split(",")).not.toContain(ID);
  });
  it("defaults off in presets that omit it and in legacy flag presets",()=>{
@@ -322,7 +331,7 @@ describe("exit-reachability-v1 schema, registry and presets",()=>{
 });
 
 describe("exit-reachability-v1 production wiring (playGameTools and loopSupervisor)",()=>{
- const BASE:FeatureSet={...ALL_ON,"battle-move-tool-v1":false,"people-ledger-v1":false,"people-id-cards-v1":false,"trainer-heal-guidance-v1":false,"low-hp-trainer-warning-v1":false,"low-hp-trainer-warning-v2":false,"dialogue-auto-advance-v1":false,"bounded-navigation-v1":false,"navigate-first-prompt-v1":false,"blocked-exit-fact-v1":false,"battle-loss-recap-v1":false,"next-milestone-hint-v1":false,"story-destinations-v1":false,"harness-trust-v1":false,"cited-destination-v1":false,"harness-trust-v2":false};
+ const BASE:FeatureSet={...ALL_ON,"semantic-navigation-v2":false,"battle-decision-ready-v1":false,"battle-move-tool-v1":false,"people-ledger-v1":false,"people-id-cards-v1":false,"trainer-heal-guidance-v1":false,"low-hp-trainer-warning-v1":false,"low-hp-trainer-warning-v2":false,"dialogue-auto-advance-v1":false,"bounded-navigation-v1":false,"navigate-first-prompt-v1":false,"blocked-exit-fact-v1":false,"battle-loss-recap-v1":false,"next-milestone-hint-v1":false,"story-destinations-v1":false,"harness-trust-v1":false,"cited-destination-v1":false,"harness-trust-v2":false};
  const snapshot=recorded("0e05:22579");
  const readout="Screen: overworld\nLocation: ROUTE104\nPosition: X=18, Y=42, facing left\nMoney: 1";
  const tool=(name:string):AgentTool=>({name,label:name,description:name,parameters:{},execute:()=>Promise.resolve({content:[{type:"text",text:readout}],details:{state:snapshot}})}) as unknown as AgentTool;

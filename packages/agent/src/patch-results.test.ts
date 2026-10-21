@@ -252,3 +252,34 @@ it("grades the declared number of trials per arm and bounds the tolerance by it"
   expect(() => comparePatchResults({ ...eight, completionTolerance: 5 })).not.toThrow();
   expect(() => comparePatchResults({ ...p, trialsPerArm: 0 })).toThrow("Invalid predeclared comparison margins");
 });
+
+it("retains an intentionally extended target stop as a miss at its original horizon", () => {
+  const p = evaluationInput();
+  for (const arm of ["incumbent", "candidate"] as const) for (const t of p[arm].trials) {
+    const start = t.events[0]; if (start?.type !== "run_start") throw new Error("fixture"); start.budgets.max_wall_ms = 600000;
+  }
+  const es = first(p).events;
+  const start = es[0]; if (start?.type !== "run_start") throw new Error("fixture"); start.extend_run = true;
+  for (const event of es) if (event.type === "state" || event.type === "milestone") event.t = time(600001);
+  const end = es.at(-1); if (end?.type !== "run_end") throw new Error("fixture"); end.t = time(601000); end.wall_ms = 601000; end.target_proof = { name: target, milestone_seq: 2, state_evidence: [1] };
+  es.splice(1, 0, {v:1,run:start.run,seq:1,t:time(100),type:"operator_control",turn:0,action:"extend_30m",status:"applied",request:1,previous_max_wall_ms:600000,max_wall_ms:2400000});
+  for (let i = 2; i < es.length; i++) { const event = es[i]; if (event !== undefined) { event.seq = i; if (event.type === "milestone") event.evidence = [2]; } }
+  end.target_proof = { name: target, milestone_seq: 3, state_evidence: [2] };
+  const result = comparePatchResults(p);
+  expect(result.problems.join(" ")).not.toContain("target stop exceeds evaluation wall cap");
+  expect(result.candidate.reached).toBe(3);
+});
+
+it("excludes operator pauses from an extended trial's original evaluation horizon", () => {
+  const p = evaluationInput(); const es = first(p).events;
+  const start = es[0]; if (start?.type !== "run_start") throw new Error("fixture"); start.extend_run = true;
+  const original = es.slice(1);
+  es.splice(1, 0,
+    {v:1,run:start.run,seq:1,t:time(50),type:"operator_control",turn:0,action:"extend_30m",status:"applied",request:1,previous_max_wall_ms:3600000,max_wall_ms:5400000},
+    {v:1,run:start.run,seq:2,t:time(100),type:"operator_control",turn:0,action:"pause",status:"applied",request:2},
+    {v:1,run:start.run,seq:3,t:time(3700100),type:"operator_control",turn:0,action:"resume",status:"applied",request:3,paused_ms:3700000});
+  for (let i = 0; i < original.length; i++) { const event = original[i]; if (event !== undefined) {event.seq = i + 4; event.t = time(3700500); if(event.type === "milestone")event.evidence=[4]; if(event.type === "run_end")event.wall_ms=3700500;} }
+  const result = comparePatchResults(p);
+  expect(result.candidate.reached).toBe(4);
+  expect(result.problems).toEqual([]);
+});

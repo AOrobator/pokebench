@@ -1,10 +1,11 @@
+import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
 // trainer-heal-guidance-v1: the system prompt says trainer and rival battles cannot be fled, what a blackout
 // costs, and to heal before talking to a trainer or the rival when below half HP. Round 2 bundle run
 // 2026-10-16T04-51-03_qwen36-gpu0_54a7 talked to MAY at 3/21 HP (T369), blacked out and lost ₽1500.
 // test-support/trainer-heal-54a7.json holds its run_start.
 import {readFileSync} from "node:fs";
 import {expect,it} from "vitest";
-import {ALL_ON,SERVER_FEATURES,SWITCHABLE_FEATURES,dependencyProblems,featureInfo,featuresOf,playHarnessFeatures,type FeatureSet} from "./features.js";
+import {SERVER_FEATURES,SWITCHABLE_FEATURES,dependencyProblems,featureInfo,featuresOf,playHarnessFeatures,type FeatureSet} from "./features.js";
 import {BATTLE_TRIAGE_SECTION,TRAINER_HEAL_SECTION,objectiveSwitches,playSystemPrompt,playTools,toolSwitches} from "./play-config.js";
 import {flagFeatures,normalizeFeatures,parsePlayPreset,presetFeatures} from "./play-preset.js";
 
@@ -13,6 +14,9 @@ const PREVIOUS="people-ledger-v1";
 const RUN54A7=JSON.parse(readFileSync(new URL("../test-support/trainer-heal-54a7.json",import.meta.url),"utf8")) as {harness_features:string[];system_prompt:string};
 const BUNDLE:FeatureSet=featuresOf(RUN54A7.harness_features);
 const with_=(features:FeatureSet,value:boolean):FeatureSet=>({...features,[ID]:value});
+const OLD_WARP_RULE="Warp destinations are the map you arrive on: its name when the game's map table has one";
+const KNOWN_WARP_RULE="Warp destinations are the map you arrive on: a name the game displays when one is available";
+const currentPrompt=RUN54A7.system_prompt.replace(OLD_WARP_RULE,KNOWN_WARP_RULE);
 
 it("is a default-off agent-side guidance switch recorded right after people-ledger-v1",()=>{
  expect(featureInfo(ID)).toMatchObject({group:"guidance",needs:null,switchable:true,title:"TRAINER HEAL GUIDANCE"});
@@ -37,12 +41,12 @@ it("reads presets and legacy flags without the switch as OFF and keeps an explic
 
 it("OFF reproduces run 54a7's recorded system prompt byte for byte",()=>{
  expect(BUNDLE[ID]).toBe(false);
- expect(playSystemPrompt(BUNDLE,null)).toBe(RUN54A7.system_prompt);
+ expect(playSystemPrompt(BUNDLE,null)).toBe(currentPrompt);
 });
 
 it("ON appends exactly the section, after battle triage when that is on; tools are unchanged",()=>{
  const on=playSystemPrompt(with_(BUNDLE,true),null);
- expect(on).toBe(RUN54A7.system_prompt.replace(`\n\n${BATTLE_TRIAGE_SECTION}`,`\n\n${BATTLE_TRIAGE_SECTION}\n\n${TRAINER_HEAL_SECTION}`));
+ expect(on).toBe(currentPrompt.replace(`\n\n${BATTLE_TRIAGE_SECTION}`,`\n\n${BATTLE_TRIAGE_SECTION}\n\n${TRAINER_HEAL_SECTION}`));
  for(const base of [BUNDLE,with_(ALL_ON,false),{...BUNDLE,"battle-triage-guidance-v1":false,[ID]:false}]){
   const off=playSystemPrompt(base,null),withIt=playSystemPrompt(with_(base,true),null);
   expect(withIt.length).toBe(off.length+TRAINER_HEAL_SECTION.length+2);
@@ -76,7 +80,8 @@ it("both pending experiments list every registered switch in their raw incumbent
  for(const [file,id] of [["trainer-heal-guidance.json",ID],["low-hp-trainer-warning.json","low-hp-trainer-warning-v1"]] as const){
   const raw=JSON.parse(readFileSync(new URL(`../../../experiments/${file}`,import.meta.url),"utf8")) as {changedFeature:string;queuePosition?:number;incumbent:{features:Record<string,boolean>}};
   // Every switch registered up to and including these two (later switches are not part of these entries).
-  expect(Object.keys(raw.incumbent.features)).toEqual(SWITCHABLE_FEATURES.slice(0,SWITCHABLE_FEATURES.indexOf("low-hp-trainer-warning-v1")+1));
+  const historical=SWITCHABLE_FEATURES.filter(feature=>feature!=="scripted-place-guidance-v1"&&feature!=="trigger-script-loop-v1");
+  expect(Object.keys(raw.incumbent.features)).toEqual(historical.slice(0,historical.indexOf("low-hp-trainer-warning-v1")+1));
   expect(raw.changedFeature).toBe(id);
   expect(raw.incumbent.features[id]).toBe(false);
   expect(raw.queuePosition).toBeUndefined();

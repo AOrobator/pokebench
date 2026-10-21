@@ -2,9 +2,10 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { REQUIRED_FRONTIER_MILESTONES } from "@pokebench/agent/milestones";
 import { run } from "../test-support/frontier-run.js";
 import { frontierLegend } from "./frontier-legend.js";
-import { HUMAN_REFERENCE, FRONTIER_MILESTONES, frontierReferences, frontierPlot, frontierVersions, milestoneStatus } from "./frontier.js";
+import { HUMAN_REFERENCE, FRONTIER_MILESTONES, frontierReferences, frontierPlot, frontierSplits, frontierVersions, milestoneStatus } from "./frontier.js";
 import type { WorkbenchRun } from "./workbench-data.js";
 const referenceNames = ["PLAYER_NAME_CONFIRMED", "FIRST_TRUCK_EXIT", "CLOCK_SET", "PLAYER_HOUSE_EXITED_AFTER_CLOCK", "RIVAL_HOUSE_ENTERED", "RIVAL_BEDROOM_REACHED", "RIVAL_MET", "STARTER_CHOSEN", "RUSTBORO_CITY_GYM", "STONE_BADGE"];
 function measured(id: string, times: readonly (number | null)[], controller: "agent" | "human" = "agent"): WorkbenchRun {
@@ -16,6 +17,9 @@ function measured(id: string, times: readonly (number | null)[], controller: "ag
 const human = (): WorkbenchRun => measured(HUMAN_REFERENCE, [92246, 132921, 180979, 248863, 257446, 284511, 317885, 408081, 4194258, 6645610], "human");
 const best = (): WorkbenchRun => measured("dea1", [153477, 200600, 496944, 579200, 1301593, 1328664, 1477567]);
 describe("persistent actual native frontier", () => {
+  it("shares the exact required milestone axis with automatic checkpoint capture", () => {
+    expect(FRONTIER_MILESTONES.filter(milestone => !milestone.id.startsWith("RUSTBORO_GYM_TRAINER_")).map((milestone) => milestone.id)).toEqual(REQUIRED_FRONTIER_MILESTONES);
+  });
   it("selects progress before speed and keeps one actual run, with stable ties", () => {
     const fast = measured("early", [1000, 2000, 3000]);
     const slow = measured("later-slow", [5000, 6000, 7000, 8000, 1500000]);
@@ -23,6 +27,21 @@ describe("persistent actual native frontier", () => {
     expect(picked.human?.id).toBe(HUMAN_REFERENCE); expect(picked.best?.id).toBe("dea1");
     expect(picked.best?.splits[0]?.elapsedMs).toBe(153477);
     expect(frontierReferences([best(), measured("aaa", [153477, 200600, 496944, 579200, 1301593, 1328664, 1477567])]).best?.id).toBe("aaa");
+  });
+  it("gives a run's splits the agent frontier to race: the frontier graph's run, never itself or a screenshot-only split", () => {
+    const frontier = best();
+    const first = frontier.splits[0]; if (first === undefined) throw new Error("fixture split");
+    frontier.splits = [{ ...first, derived: true }, ...frontier.splits.slice(1), { name: "STONE_BADGE", elapsedMs: 9_999_999, segmentMs: 0, seq: 99, turn: 9, inputTokens: 0, outputTokens: 0, derived: true, screenshotEvidence: [] }];
+    const runs = [measured("slow", [5000, 6000]), frontier, human()];
+    const splits = frontierSplits(runs, "slow");
+    expect(splits?.run).toBe("dea1");
+    expect(splits?.milestones[0]).toEqual({ name: "PLAYER_NAME_CONFIRMED", offsetMs: 153477, derived: true });
+    expect(splits?.milestones[1]).toEqual({ name: "FIRST_TRUCK_EXIT", offsetMs: 200600 });
+    expect(splits?.milestones.map(m => m.name)).not.toContain("STONE_BADGE");
+    expect(frontierSplits(runs, "dea1")?.run).toBe("slow");
+    const config = frontier.config; if (config === null) throw new Error("fixture config");
+    expect(frontierSplits([...runs, { ...measured("resumed", [1]), config: { ...config, start: "save_state", resume: "ROUTE_103" } }], "resumed")).toBeNull();
+    expect(frontierSplits([], "slow")).toBeNull();
   });
   it("excludes probes, human, incomplete, infrastructure, unknown-provenance and resumed sessions from records", () => {
     const advanced = measured("advanced", [1, 2, 3, 4, 5, 6, 7, 8]);
@@ -101,19 +120,20 @@ describe("persistent actual native frontier", () => {
   it("includes the full required progression instead of skipping the human run's middle and finish", () => {
     const names = FRONTIER_MILESTONES.map(m => m.id);
     for (const name of ["NEW_GAME_CREATED", "LITTLEROOT_TOWN", "PLAYER_HOUSE_ENTERED", "MOM_CLOCK_INSTRUCTION", "PLAYER_BEDROOM", "MOM_RIVAL_INSTRUCTION", "ROUTE_101", "BIRCH_RESCUE_COMPLETE", "BIRCH_STARTER_HANDOFF_COMPLETE", "OLDALE_TOWN", "ROUTE_103", "RIVAL_BATTLE_WON", "RECEIVED_POKEDEX", "STARTER_TUTORIAL_COMPLETE", "RUNNING_SHOES_RECEIVED", "ROUTE_102", "PETALBURG_CITY", "DAD_FIRST_MEETING", "WALLY_TUTORIAL_COMPLETE", "ROUTE_104", "PETALBURG_WOODS", "TEAM_AQUA_WOODS_EVENT_COMPLETE", "RUSTBORO_CITY", "ROXANNE_DEFEATED", "RUSTBORO_GYM_COMPLETE", "ROCK_TOMB_RECEIVED"]) expect(names).toContain(name);
-    expect(names.some(name => /TRAINER|FIRST_POKEMON|EVOLUTION|HEAL|ROUTE_115|ROUTE_116|RUSTURF/.test(name))).toBe(false);
+    expect(names.some(name => /^(?!RUSTBORO_GYM_TRAINER_).*TRAINER|FIRST_POKEMON|EVOLUTION|HEAL|ROUTE_115|ROUTE_116|RUSTURF/.test(name))).toBe(false);
     const recorded = human(); recorded.splits = names.map((name, i) => ({ name, elapsedMs: i * 1000, segmentMs: 1000, seq: i, turn: 0, inputTokens: 0, outputTokens: 0 }));
     document.body.innerHTML = frontierPlot({human: recorded, best: null}, [], 340);
     expect(document.querySelectorAll(`[data-run="${HUMAN_REFERENCE}"]`)).toHaveLength(names.length);
   });
-  it("omits optional gym battles and preserves their exclusion from story rank", () => {
-    const trainer = measured("trainer", [1000]);
-    trainer.splits.push({name:"RUSTBORO_GYM_TRAINER_JOSH_DEFEATED",elapsedMs:2000,segmentMs:1000,seq:20,turn:2,inputTokens:0,outputTokens:0});
-    document.body.innerHTML=frontierPlot({human:human(),best:best()},[trainer],900);
-    expect(document.body.textContent).not.toContain("exact times");
-    expect(document.body.textContent).not.toContain("GYM TRAINER BATTLES");
-    expect(document.querySelector('.wb-gym-checkpoints')).toBeNull();
-    expect(frontierReferences([trainer,best()]).best?.id).toBe("dea1");
+  it("plots gym trainer victories and ranks the newly reached gym frontier", () => {
+    const trainer = { ...best(), id: "two-gym-wins" };
+    trainer.splits.push({name:"RUSTBORO_CITY_GYM",elapsedMs:1500,segmentMs:500,seq:19,turn:2,inputTokens:0,outputTokens:0});
+    for (const [i, name] of ["RUSTBORO_GYM_TRAINER_JOSH_DEFEATED", "RUSTBORO_GYM_TRAINER_TOMMY_DEFEATED"].entries()) trainer.splits.push({name,elapsedMs:2000+i*1000,segmentMs:1000,seq:20+i,turn:2,inputTokens:0,outputTokens:0});
+    expect(frontierReferences([trainer,best()]).best?.id).toBe("two-gym-wins");
+    document.body.innerHTML=frontierPlot({human:human(),best:trainer},[],900);
+    for (const name of ["RUSTBORO_GYM_TRAINER_JOSH_DEFEATED", "RUSTBORO_GYM_TRAINER_TOMMY_DEFEATED"]) expect(document.querySelector(`[data-run="two-gym-wins"][data-split="${name}"]`)).not.toBeNull();
+    const names = FRONTIER_MILESTONES.map(m => m.id);
+    expect(names.slice(names.indexOf("RUSTBORO_CITY_GYM"), names.indexOf("ROXANNE_DEFEATED")+1)).toEqual(["RUSTBORO_CITY_GYM", "RUSTBORO_GYM_TRAINER_JOSH_DEFEATED", "RUSTBORO_GYM_TRAINER_TOMMY_DEFEATED", "RUSTBORO_GYM_TRAINER_MARC_DEFEATED", "ROXANNE_DEFEATED"]);
   });
   it("identifies reached, unsupported, pending, censored and excluded milestone outcomes", () => {
     const failed = measured("failed", []), running = measured("running", []), interrupted = measured("interrupted", []); running.status = "live"; interrupted.status = "unresponsive";
@@ -150,6 +170,31 @@ describe("persistent actual native frontier", () => {
     expect(document.querySelector('polyline[data-series="menu"]')?.getAttribute("stroke-dasharray")).toBeNull();
     expect(document.querySelector('[data-resume="MAIN_MENU"]')).toBeNull();
   });
+  it("keeps a later save origin visible before its first post-save split arrives", () => {
+    const saved = measured("waiting", [null, null, 20]);
+    if (saved.config === null) throw new Error("config");
+    saved.config = { ...saved.config, start: "save_state", resume: "PETALBURG_CITY" };
+    saved.status = "live";
+    document.body.innerHTML = frontierPlot({ human: null, best: null }, [], 900, undefined, [saved], true);
+    expect(document.querySelector('[data-resume-origin="PETALBURG_CITY"]')).not.toBeNull();
+    expect(document.querySelector('.wb-current-key')?.textContent).toContain("waiting for first story checkpoint");
+    expect(document.querySelector('[data-run="waiting"]')).toBeNull();
+  });
+  it.each(["PETALBURG_CITY", "RUSTBORO_CITY"])("plots %s starts from their own checkpoint with explicit provenance", checkpoint => {
+    const resumed = measured("later-save", [9000000, null, 5000]);
+    if (resumed.config === null) throw new Error("config");
+    resumed.config = { ...resumed.config, start: "save_state", resume: checkpoint };
+    resumed.splits.push(...[checkpoint, checkpoint === "PETALBURG_CITY" ? "DAD_FIRST_MEETING" : "RUSTBORO_CITY_GYM"].map((name, i) => ({ name, elapsedMs: 10000 + i * 5000, segmentMs: 0, seq: 20 + i, turn: 1, inputTokens: 0, outputTokens: 0 })));
+    expect(frontierReferences([best(), resumed]).best?.id).toBe("dea1");
+    document.body.innerHTML = frontierPlot(frontierReferences([best()]), [resumed], 900);
+    expect(document.querySelector(`[data-resume="${checkpoint}"]`)).not.toBeNull();
+    expect(document.querySelector(`[data-resume-origin="${checkpoint}"]`)).not.toBeNull();
+    expect(document.querySelector("[data-resume-notice]")).toBeNull();
+    expect(document.querySelector('[data-run="later-save"][data-split="CLOCK_SET"]')).toBeNull();
+    expect(document.querySelector('[data-run="later-save"][data-split="PLAYER_NAME_CONFIRMED"]')).toBeNull();
+    expect(document.querySelector('[data-series="later-save"]')?.getAttribute("stroke-dasharray")).toBe("8 5");
+    expect(document.querySelector('[data-run="later-save"]')?.getAttribute("aria-label")).toContain("minutes since the save loaded");
+  });
   it("draws a Clock set resume as a dashed not-from-zero line and keeps it off the agent frontier", () => {
     const resumed = measured("clock", [90000, null, 5000, 120000]);
     if (resumed.config === null) throw new Error("config");
@@ -158,7 +203,7 @@ describe("persistent actual native frontier", () => {
     resumed.status = "live";
     expect(frontierReferences([human(), best(), resumed]).best?.id).toBe("dea1");
     document.body.innerHTML = frontierPlot(frontierReferences([human(), best()]), [resumed], 900, undefined, [resumed], false);
-    expect(document.querySelector('[data-resume-notice="CLOCK_SET"]')?.textContent).toContain("did not start from New game");
+    expect(document.querySelector("[data-resume-notice]")).toBeNull();
     expect(document.querySelector('[data-live-run="clock"]')?.getAttribute("data-resume")).toBe("CLOCK_SET");
     expect(document.querySelector('polyline[data-series="clock"]')?.getAttribute("stroke-dasharray")).toBe("8 5");
     expect(document.querySelector('[data-run="clock"][data-split="PLAYER_NAME_CONFIRMED"]')).toBeNull();
@@ -292,8 +337,8 @@ describe("zoom to frontier", () => {
     expect(axis()).toContain("Starter"); expect(axis()).not.toContain("Oldale"); expect(axis()).not.toContain("Badge");
     expect(axis()).toContain("30"); expect(axis()).not.toContain("120");
     expect(document.querySelector(".wb-frontier-chart")?.getAttribute("aria-label")).toBe("Story frontier zoomed to New game through Starter");
-    expect(document.body.textContent).toContain("Zoomed to the frontier: New game → Starter, 18 of 45 checkpoints");
-    expect(document.body.textContent).toContain("27 later checkpoints hidden");
+    expect(document.body.textContent).toContain("Zoomed to the frontier: New game → Starter, 18 of 48 checkpoints");
+    expect(document.body.textContent).toContain("30 later checkpoints hidden");
     document.body.innerHTML = frontierPlot(refs, [], 2000);
     expect(document.querySelectorAll(`[data-run="${HUMAN_REFERENCE}"]`)).toHaveLength(10);
     expect(axis()).toContain("120"); expect(document.body.textContent).not.toContain("Zoomed");
@@ -308,15 +353,15 @@ describe("zoom to frontier", () => {
     expect(document.body.textContent).not.toContain("Zoomed");
     document.body.innerHTML = frontierPlot({ human: human(), best: null }, [], 2000, undefined, [], true);
     expect(axis()).toContain("New game"); expect(axis()).toContain("Name"); expect(axis()).not.toContain("Truck exit");
-    expect(document.body.textContent).toContain("2 of 45 checkpoints");
+    expect(document.body.textContent).toContain("2 of 48 checkpoints");
   });
   it("ends at the next dense human checkpoint and widens for paused runs, keeping narrow labels honest", () => {
     const dense = human(); dense.splits = FRONTIER_MILESTONES.map((m, i) => ({ name: m.id, elapsedMs: (i + 1) * 1000, segmentMs: 1000, seq: i, turn: 0, inputTokens: 0, outputTokens: 0 }));
     document.body.innerHTML = frontierPlot({ human: dense, best: best() }, [], 2000, undefined, [], true);
-    expect(document.body.textContent).toContain("New game → Left rival house, 15 of 45 checkpoints");
+    expect(document.body.textContent).toContain("New game → Left rival house, 15 of 48 checkpoints");
     const paused = { ...measured("paused", [1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000]), status: "paused" as const };
     document.body.innerHTML = frontierPlot({ human: dense, best: best() }, [], 300, undefined, [paused], true);
-    expect(document.body.textContent).toContain("New game → Birch rescue, 19 of 45 checkpoints");
+    expect(document.body.textContent).toContain("New game → Birch rescue, 19 of 48 checkpoints");
     expect(document.body.textContent).toContain("all visible points remain plotted");
   });
   it("labels the checkpoint where lines stop between rival instruction and rival house", () => {
@@ -343,6 +388,8 @@ describe("zoom to frontier", () => {
     expect(document.querySelector('[data-run="older"][data-split="BIRCH_RESCUE_REQUESTED"]')).toBeNull();
     document.body.innerHTML = frontierPlot({ human: null, best: null }, [route("newer", ["birch-rescue-requested-v1"])], 900);
     expect(points("newer")).toEqual([2, 2]);
+    document.body.innerHTML = frontierPlot({ human: null, best: null }, [{ ...route("invalid-older", []), excluded: "Invalid fixed-run trial: crash" }], 900);
+    expect(points("invalid-older")).toEqual([4]);
   });
   it("connects proved Clock-set checkpoints and keeps a real missing rival house broken", () => {
     const points = (id: string): number[] => Array.from(document.querySelectorAll(`polyline[data-series="${id}"]`)).map(line => (line.getAttribute("points") ?? "").trim().split(/\s+/).filter(point => point !== "").length);
@@ -382,4 +429,91 @@ describe("zoom to frontier", () => {
     expect(axis()).toContain("Left rival house"); expect(axis()).not.toContain("Sent to Birch");
   });
 });
+describe("invalid fixed-run trials", () => {
+  const invalid = (id: string, reason: string): WorkbenchRun => {
+    const r = measured(id, [100000, 150000, 400000, 500000, 900000, 950000, 1000000, 1200000]);
+    if (r.config === null) throw new Error("config");
+    r.config = { ...r.config, start: "save_state", resume: "MAIN_MENU" };
+    return { ...r, cohort: "experiment:bundle-cook-4h@08287126ff77", excluded: `Invalid fixed-run trial: ${reason}` };
+  };
+  it("plots an invalid trial's story progress as a dotted, labelled line that never becomes the frontier", () => {
+    const crashed = invalid("2026-10-19T20-12-11_qwen36-gpu1_86ac", "emulator or game server crash");
+    const refs = frontierReferences([human(), best(), crashed]);
+    expect(refs.best?.id).toBe("dea1");
+    document.body.innerHTML = frontierPlot(refs, [crashed], 900);
+    const line = document.querySelector(`polyline[data-series="${crashed.id}"]`);
+    expect(line).not.toBeNull();
+    expect(line?.getAttribute("stroke-dasharray")).toBe("2 4");
+    const series = line?.closest(".wb-series");
+    expect(series?.classList.contains("wb-invalid-run")).toBe(true);
+    expect(series?.getAttribute("data-invalid")).toBe("emulator or game server crash");
+    expect(document.querySelector(`[data-run="${crashed.id}"][data-split="RIVAL_MET"]`)?.getAttribute("aria-label")).toContain("invalid trial: emulator or game server crash");
+    expect(document.querySelector("[data-invalid-notice]")).toBeNull();
+  });
+  it("gives invalid trials a version color and a legend count, and explains the dotted line", () => {
+    const crashed = invalid("crashed", "emulator or game server crash");
+    const versions = frontierVersions([crashed]);
+    expect(versions.byRun.has("crashed")).toBe(true);
+    document.body.innerHTML = frontierLegend({ human: null, best: null }, [crashed], versions, legendState);
+    expect(document.querySelector(".wb-ver-grid")).not.toBeNull();
+    expect(document.querySelector("[data-bar=marks]")?.textContent).toContain("Dotted line");
+  });
+  it("keeps other exclusions and a resumed invalid trial's dashes as before", () => {
+    const probe = { ...invalid("probe", "x"), excluded: "Excluded probe session" };
+    const aborted = { ...invalid("aborted", "x"), excluded: "Excluded operator-aborted run" };
+    const problem = { ...invalid("problem", "x"), problem: "invalid" };
+    document.body.innerHTML = frontierPlot(frontierReferences([human(), best()]), [probe, aborted, problem], 900);
+    expect(document.querySelector('[data-series="probe"], [data-series="problem"]')).toBeNull();
+    expect(document.querySelector("[data-invalid-notice]")).toBeNull();
+    const resumed = invalid("resumed-invalid", "model/gateway error");
+    if (resumed.config === null) throw new Error("config");
+    resumed.config = { ...resumed.config, resume: "CLOCK_SET" };
+    expect(frontierReferences([resumed]).best).toBeNull();
+    document.body.innerHTML = frontierPlot({ human: null, best: null }, [resumed], 900);
+    expect(document.querySelector('polyline[data-series="resumed-invalid"]')?.getAttribute("stroke-dasharray")).toBe("2 4");
+    expect(document.querySelector('[data-series="resumed-invalid"]')?.closest(".wb-series")?.getAttribute("data-resume")).toBe("CLOCK_SET");
+    expect(document.querySelector('[data-resume-origin="CLOCK_SET"]')).not.toBeNull();
+  });
+});
 
+describe("recorded comparison coverage", () => {
+  it.each(["Excluded operator-aborted run", "Infrastructure outcome: launcher_error", "Launcher outcome: operator stopped the run"])("retains %s with its exclusion reason and never promotes it", excluded => {
+    const stopped = { ...measured("stopped", [1000, 2000, 3000]), excluded };
+    const refs = frontierReferences([stopped]);
+    expect(refs.best).toBeNull();
+    document.body.innerHTML = frontierPlot(refs, [stopped], 900);
+    expect(document.querySelectorAll('[data-run="stopped"]')).toHaveLength(3);
+    expect(document.querySelector('polyline[data-series="stopped"]')?.getAttribute("stroke-dasharray")).toBe("2 4");
+    expect(document.querySelector('[data-run="stopped"]')?.getAttribute("aria-label")).toContain(excluded === "Excluded operator-aborted run" ? "operator-aborted" : excluded);
+  });
+  it("accounts for every selected recording, deduplicates current runs and explains unplottable progress with replay links", () => {
+    const plotted = measured("plotted", [1000]);
+    const empty = measured("empty", []);
+    const probe = { ...plotted, id: "probe", excluded: "Excluded probe session" };
+    const broken = { ...plotted, id: "broken", problem: "invalid event <schema>" };
+    const unknown = { ...plotted, id: "unknown", config: null };
+    document.body.innerHTML = frontierPlot({ human: null, best: null }, [plotted, empty, probe, broken, unknown], 900, undefined, [plotted]);
+    const coverage = document.querySelector('[data-frontier-coverage]');
+    expect(coverage?.textContent).toContain("5 selected recordings · 1 plotted · 4 unavailable");
+    expect(coverage?.textContent).toContain("No recorded story checkpoints");
+    expect(coverage?.textContent).toContain("Excluded probe session");
+    expect(coverage?.textContent).toContain("invalid event <schema>");
+    expect(coverage?.textContent).toContain("Unrecognized start provenance");
+    expect(coverage?.querySelectorAll('a[href^="/#replay="]')).toHaveLength(5);
+    expect(document.querySelectorAll('[data-run="probe"], [data-run="broken"], [data-run="unknown"]')).toHaveLength(0);
+  });
+});
+
+it("uses the complete eligible population and recorded story maxima when only an early outlier is selected", () => {
+  const normal = Array.from({length:20}, (_,i) => measured(`population-${String(i)}`,[null,null,null,null,null,null,null,null,null,120000]));
+  const extreme = measured("early-extreme",[12000000]);
+  const ignoredHuman = Array.from({length:20}, (_,i) => measured(`human-${String(i)}`,[24000000],"human"));
+  const refs = {human:null,best:null}, population = [...normal,extreme,...ignoredHuman];
+  const plot = (zoom: boolean, hide: boolean) => frontierPlot(refs,[extreme],900,null,[],zoom,null,null,hide,population);
+  for (const zoom of [true,false]) {
+    const hidden = plot(zoom,true), restored = plot(zoom,false);
+    expect(hidden).not.toContain('data-run="early-extreme"');
+    expect(hidden).toContain('data-hidden-outliers="1"');
+    expect(restored).toContain('data-run="early-extreme"');
+  }
+});

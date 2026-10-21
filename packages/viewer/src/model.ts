@@ -79,8 +79,16 @@ const KNOWN: Record<RunEvent["type"], true> = {
   text_only_supervisor: true,
   low_hp_trainer_warning: true,
   people_id_card: true,
+  loop_breaker: true,
+  stall_gate: true,
+  unfinished_activity: true,
+  trainer_sight_check: true,
+  story_battle_heal_gate: true,
+  heal_first_line: true,
+  auto_talk: true,
   story_battle_warning: true,
   heal_before_trainers_warning: true,
+  gym_heal_warning: true,
   story_goal_away: true,
   destination_citation: true,
   dialogue_auto_advance: true,
@@ -143,11 +151,20 @@ export type ControlState = "running" | "pause_pending" | "paused" | "stop_pendin
 
 // Operator control as recorded by the agent (operator_control events).
 export class ControlView {
+  maxWallMs: number | null = null;
+  lastExtensionRequest: number | null = null;
   state: ControlState = "running";
   emulatorFrozen: boolean | null = null;
   readonly pauses: { startMs: number; endMs: number | null }[] = [];
 
   apply(event: Of<"operator_control">, ms: number): void {
+    if (event.action === "extend_30m" || event.action === "extend_60m") {
+      if (event.status === "applied" && event.max_wall_ms !== undefined) {
+        this.maxWallMs = event.max_wall_ms;
+        this.lastExtensionRequest = event.request;
+      }
+      return;
+    }
     if (event.status === "ignored" || event.status === "failed") return;
     if (event.status === "pending") {
       this.state = event.action === "pause" ? "pause_pending" : "stop_pending";
@@ -178,7 +195,20 @@ export class ControlView {
   }
 }
 
+export interface RequestSample {
+  readonly seq: number;
+  readonly ms: number;
+  readonly ttftMs: number | null;
+  readonly inferenceMs: number;
+  readonly output: number;
+  readonly input: number;
+  readonly cacheRead: number;
+  readonly cacheWrite: number | null;
+  readonly failed: boolean;
+}
+
 export class RunView {
+  readonly requestSamples: RequestSample[] = [];
   readonly events: RunEvent[] = [];
   start: RunStartEvent | null = null;
   startMs: number | null = null;
@@ -236,7 +266,7 @@ export class RunView {
   }
 
   loopLabel(event: Of<"loop_guard">): string {
-    const kinds = { planning: "Planning stall", observation: "Observation stall", ineffective: "Ineffective action", cycle: "Short cycle", rejection: "Repeated rejection", map_cycle: "Map back-and-forth", milestone_drought: "Milestone drought", interface_dwell: "Interface dwell", same_plan: "Same plan repeated" } as const;
+    const kinds = { planning: "Planning stall", observation: "Observation stall", ineffective: "Ineffective action", cycle: "Short cycle", rejection: "Repeated rejection", trigger_script:"Repeated trigger script", map_cycle: "Map back-and-forth", milestone_drought: "Milestone drought", interface_dwell: "Interface dwell", same_plan: "Same plan repeated", same_target_no_progress: "Same target, no progress" } as const;
     const tool = this.events.findLast((item) => item.seq < event.seq && item.type === "tool_call");
     const elapsed = this.startMs === null ? "elapsed unavailable" : hms((eventMs(event) - this.startMs) / 1000);
     const phase = "mode" in event && event.mode === "diagnostic" ? `diagnostic: ${event.phase.replace("_", " ")}` : event.phase === "supervisor" ? "supervisor message sent to the model" : event.phase;
@@ -313,7 +343,8 @@ export class RunView {
         break;
       }
       case "loop_guard":
-        this.errors.push({ms,kind:"loop",label:this.loopLabel(event)});
+        // same-target-no-progress-v1 stays off the closed timeline (operator decision 2026-10-16).
+        if (event.kind !== "same_target_no_progress") this.errors.push({ms,kind:"loop",label:this.loopLabel(event)});
         break;
       case "text_only_supervisor":
         this.errors.push({ ms, kind: "loop", label: `Text-only supervisor ${String(event.note)}/${String(event.limit)} · turn ${String(event.turn)}: ${event.text}` });
@@ -352,11 +383,14 @@ export class RunView {
   }
 
   private onAssistant(event: Of<"assistant">, ms: number): void {
+    this.requestSamples.push({ seq: event.seq, ms, ttftMs: event.ttft_ms,
+      inferenceMs: event.latency_ms, output: event.usage.output, input: event.usage.input,
+      cacheRead: event.usage.cache_read, cacheWrite: event.usage.cache_write ?? null, failed: event.stop_reason === "error" || event.stop_reason === "aborted" });
     const span = this.thinkingSpans.at(-1);
     if (span?.endMs === null) span.endMs = ms;
     this.lastThought = { turn: event.turn, thinking: event.thinking, reply: event.text, latencyMs: event.latency_ms };
     this.tokens = { input: this.tokens.input + event.usage.input, output: this.tokens.output + event.usage.output };
-    const prompt = event.usage.input + event.usage.cache_read;
+    const prompt = event.usage.input + event.usage.cache_read + (event.usage.cache_write ?? 0);
     if (prompt > 0) this.promptTokens = prompt;
     if (event.stop_reason === "error") {
       this.modelErrors += 1;

@@ -5,7 +5,7 @@ import type { BodyOf, RunEndReason } from "./events.js";
 import type { FrameStore } from "./frames.js";
 import type { StateSource } from "./game-state.js";
 import type { MilestoneSource } from "./milestones.js";
-import { RunRecorder } from "./recorder.js";
+import { RunRecorder, type RunStartMeta } from "./recorder.js";
 import { RunLog, easternTimestamp } from "./run-log.js";
 
 type RunStart = BodyOf<"run_start">;
@@ -16,6 +16,7 @@ export function humanLeasePath(repoRoot: string, commonDir: string): string {
 }
 
 export interface RunPlan {
+  readonly extend_run?: true;
   readonly runsRoot: string;
   readonly runId: string;
   readonly port: number;
@@ -59,18 +60,22 @@ export function harnessInfo(git: (args: string[]) => string): RunStart["harness"
   };
 }
 
-async function finishRecording(recorder:RunRecorder,reason:RunEndReason,capture:boolean):Promise<void>{
-  let terminal=reason;
-  try {if(capture)await recorder.afterPress();}
-  catch(error){terminal="crash";throw error;}
-  finally {recorder.end(terminal);}
+export interface RunLifecycle {beforeRunEnd(task:()=>Promise<void>):void}
+
+async function finishRecording(recorder:RunRecorder,reason:RunEndReason,capture:boolean,tasks:readonly (()=>Promise<void>)[]):Promise<void>{
+  let terminal=reason,failure:Error|undefined;
+  const asError=(value:unknown):Error=>value instanceof Error?value:new Error(String(value));
+  try {if(capture)await recorder.afterPress();} catch(error){terminal="crash";failure=asError(error);}
+  for(const task of tasks){try {await task();} catch(error){terminal="crash";failure??=asError(error);}}
+  recorder.end(terminal);
+  if(failure!==undefined)throw failure;
 }
 
 export async function withRun(
   plan: RunPlan,
   host: RunHost,
   frames: FrameStore,
-  body: (recorder: RunRecorder, gameServerUrl: string) => Promise<RunEndReason>,
+  body: (recorder: RunRecorder, gameServerUrl: string, start:RunStartMeta, lifecycle:RunLifecycle) => Promise<RunEndReason>,
 ): Promise<RunEndReason> {
   frames.assertCanStart();
   const url = `http://127.0.0.1:${String(plan.port)}`;
@@ -81,11 +86,12 @@ export async function withRun(
   const vendorPin = host.vendorPin();
   const log = RunLog.create(plan.runsRoot, plan.runId);
   let server: ServerHandle | undefined;
+  const beforeRunEnd:(()=>Promise<void>)[]=[];
   if (plan.controller === undefined) server = await host.launchServer(log.runDir, plan.runId, plan.port);
   const recorder = new RunRecorder({ log, frames, milestones: host.milestones, gameState: host.gameState });
   let reason: RunEndReason = "crash";
   try {
-    await recorder.start({
+    const startMeta:RunStartMeta={
       ...(plan.romSha1 === undefined ? {} : {rom_sha1:plan.romSha1}),
       ...(plan.controller === undefined ? {} : {controller: plan.controller}),
       ...(plan.evaluation===undefined?{}:{evaluation:plan.evaluation}),
@@ -98,21 +104,23 @@ export async function withRun(
       pi_version: plan.piVersion,
       start_state: plan.startState,
       harness_features: [...plan.harnessFeatures],
+      ...(plan.extend_run === true ? { extend_run: true as const } : {}),
       budgets: plan.budgets,
       isolation: { server_dir: server?.serverDir ?? join(log.runDir, "server"), run_data_id: plan.runId, load_checkpoint_mode: false, port: plan.port },
-    }, plan.controller === undefined);
+    };
+    await recorder.start(startMeta, plan.controller === undefined);
     if (plan.controller !== undefined) {
       server = await host.launchServer(log.runDir, plan.runId, plan.port);
       await recorder.checkMilestones();
     }
-    reason = await body(recorder, url);
+    reason = await body(recorder,url,startMeta,{beforeRunEnd:(task)=>{beforeRunEnd.push(task);}});
     return reason;
   } finally {
     try {
       if (log.nextSeq > 0 && !log.ended) {
         // A script can commit progress after the last tool's captured frame.
         // Take one final snapshot before teardown; no inputs or polling loop.
-        await finishRecording(recorder,reason,server!==undefined);
+        await finishRecording(recorder,reason,server!==undefined,beforeRunEnd);
       }
     } finally {
       await server?.stop();

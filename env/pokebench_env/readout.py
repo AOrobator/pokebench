@@ -18,8 +18,11 @@ from pokebench_env.birch_pages import PHASE as BIRCH_PAGE
 from pokebench_env.birch_pages import SWITCH as BIRCH_PAGES
 from pokebench_env.blackout_readout import SWITCH as BLACKOUT
 from pokebench_env.blackout_readout import WHITING_OUT, Whiteout, whiteout_line
+from pokebench_env.exit_labels import SWITCH as EXIT_LABELS
 from pokebench_env.exit_reach import SWITCH as EXIT_REACH
 from pokebench_env.exit_reach import ExitReach
+from pokebench_env.field_moves import SWITCH as FIELD_MOVES
+from pokebench_env.field_moves import FieldObstacles
 from pokebench_env.game_state import GameState
 from pokebench_env.levelup_box import SWITCH as LEVELUP_BOX
 from pokebench_env.levelup_box import levelup_clause
@@ -29,13 +32,19 @@ from pokebench_env.offscreen_objects import offscreen_text
 from pokebench_env.readout_fixes import MID_FRAME, MID_FRAME_TEXT
 from pokebench_env.readout_truth import SWITCH as TRUTH
 from pokebench_env.readout_truth import lock_line, menu_line
+from pokebench_env.respawn import SWITCH as RESPAWN
+from pokebench_env.respawn import RespawnMemory, respawn_line
+from pokebench_env.semantic_targets import SWITCH as SEMANTIC_V2
+from pokebench_env.semantic_targets import interaction_suffix, listed_objects, same_tile
 from pokebench_env.status_names import SWITCH as STATUS_NAMES
 from pokebench_env.status_names import status_text
 from pokebench_env.surf_gate import SWITCH as SURF_GATE
 from pokebench_env.surf_gate import SWITCH_V2 as SURF_GATE_V2
-from pokebench_env.surf_gate import SurfGate
+from pokebench_env.surf_gate import ConnectionKey, SurfGate
 from pokebench_env.topology import Topology
 from pokebench_env.world import InteractionTarget
+from pokebench_env.yes_no_answer import SWITCH as YES_NO_ANSWER
+from pokebench_env.yes_no_answer import answer_line
 
 SERVER_FEATURES = (
     "expanded-menu-battle-information-v1",
@@ -48,6 +57,7 @@ SERVER_FEATURES = (
     "named-interactions-v1",
     "world-destinations-v1",
     "bounded-navigation-v1",
+    "semantic-navigation-v1",
     "field-dialogue-phase-v1",
     "active-field-message-buffer-v1",
     "naming-cursor-v1",
@@ -84,13 +94,26 @@ SERVER_FEATURES = (
     "unset-dynamic-warp-v1",
     "status-names-v1",
     "surf-gated-exits-v2",
+    "battle-effective-damage-v1",
+    "safe-navigation-strides-v1",
+    "evolution-decision-v1",
+    "original-speed-pacing-v1",
+    "semantic-navigation-v2",
+    "exit-labels-v2",
+    "heal-before-trainers-v2",
+    "respawn-readout-v1",
+    "caught-nickname-prompt-v1",
+    "party-item-confirmation-v1",
+    "yes-no-answer-readout-v1",
+    "field-move-gates-v1",
+    "exit-labels-v3",
 )
 
 
 def features_off_from_env(env: Mapping[str, str]) -> frozenset[str]:
     raw = env.get(
         "POKEBENCH_FEATURES_OFF",
-        "named-interactions-v1,world-destinations-v1,bounded-navigation-v1,expanded-menu-battle-information-v1,field-dialogue-phase-v1,full-map-navigation-v1,named-warp-destinations-v1,character-presence-v1,battle-details-v2,warp-arrival-settle-v1,displayed-place-names-v1,"
+        "named-interactions-v1,world-destinations-v1,bounded-navigation-v1,semantic-navigation-v1,expanded-menu-battle-information-v1,field-dialogue-phase-v1,full-map-navigation-v1,named-warp-destinations-v1,character-presence-v1,battle-details-v2,warp-arrival-settle-v1,displayed-place-names-v1,"
         "battle-triage-guidance-v1,"
         "adjacent-tiles-v1,"
         "readout-rules-in-prompt-v1,connection-edge-tiles-v1,in-game-naming-readout-v1,"
@@ -103,7 +126,10 @@ def features_off_from_env(env: Mapping[str, str]) -> frozenset[str]:
         "exit-reachability-v1,"
         "heal-before-trainers-v1,"
         "tutorial-party-owner-v1,mid-frame-readout-v1,unset-dynamic-warp-v1,status-names-v1,"
-        "surf-gated-exits-v2",
+        "surf-gated-exits-v2,battle-effective-damage-v1,safe-navigation-strides-v1,evolution-decision-v1,original-speed-pacing-v1,"
+        "semantic-navigation-v2,exit-labels-v2,heal-before-trainers-v2,respawn-readout-v1,"
+        "caught-nickname-prompt-v1,party-item-confirmation-v1,yes-no-answer-readout-v1,"
+        "field-move-gates-v1,exit-labels-v3",
     )
     if raw == "":
         return frozenset()
@@ -131,7 +157,18 @@ def _play_seconds(state: GameState) -> int | None:
     return hours * 3600 + minutes * 60 + seconds
 
 
-def _menu(state: GameState, truth: bool = False) -> str:
+def _menu(state: GameState, truth: bool = False, evolution: bool = False) -> str:
+    ui = state.active_ui
+    if (
+        evolution
+        and state.screen == "evolution"
+        and ui is not None
+        and not ui.diagnostic
+        and ui.selected is None
+    ):
+        return "Menu: no selectable menu is open" + (
+            "; use choose_evolution" if ui.phase == "evolution_decision" else ""
+        )
     if state.active_ui is not None and state.active_ui.selected is not None:
         return f"Menu: {state.active_ui.phase}; selected {state.active_ui.selected}"
     # readout-truth-v1: no menu is open, or a non-menu interface owns input.
@@ -159,6 +196,7 @@ def format_readout(
     adjacent_tiles: bool = False,
     rules_in_prompt: bool = False,
     whiteout: Whiteout | None = None,
+    respawn_memory: RespawnMemory | None = None,
 ) -> str:
     if "ram-state-v1" in off:
         return ""
@@ -171,21 +209,26 @@ def format_readout(
         if "displayed-place-names-v1" not in off
         else {}
     )
-    # Only names the game's map table resolved; the "unknown map" fallback keeps the bare ID.
+    # named-warp-destinations-v1 exposes only names the game itself displays. Internal map-table
+    # names remain in GameState for identity/navigation, but are not player-facing provenance.
     destinations = (
-        {
-            (g, n): places.get((g, n), name)
-            for g, n, name in state.destination_names
-            if name != f"unknown map {g}/{n}"
-        }
+        {(g, n): places[(g, n)] for g, n, _name in state.destination_names if (g, n) in places}
         if named_warps and "named-warp-destinations-v1" not in off
         else None
     )
+    # exit-labels-v2: every destination named as the location popup names it (a displayed
+    # place name first), plus arrival reach for warps whose destination shares its name.
+    labels = state.exit_labels if destinations is not None and EXIT_LABELS not in off else None
+    sections = state.exit_sections if "exit-labels-v3" not in off else None
+    warp_labels = {} if sections is None else {(w.x, w.y): w.label for w in sections.warps}
+    if labels is not None and destinations is not None:
+        destinations = {**labels.name_map(), **destinations}
     # The game's own dynamic warp (SaveBlock1.dynamicWarp) for MAP_DYNAMIC warps; ON side only.
     dynamic = None
     if destinations is not None and state.dynamic_warp is not None:
-        group, number, place = state.dynamic_warp
-        dynamic = f"{place} (dynamic warp; map {group}/{number})"
+        group, number, _internal_name = state.dynamic_warp
+        if (place := places.get((group, number))) is not None:
+            dynamic = f"{place} (dynamic warp; map {group}/{number})"
     expanded = "expanded-menu-battle-information-v1" not in off
     # battle-details-v2 replaces the raw battler/input lines; OFF keeps them byte for byte.
     details = state.battle_details if expanded and "battle-details-v2" not in off else None
@@ -193,6 +236,13 @@ def format_readout(
     from pokebench_env.ui_state import BIRCH_PHASES, CLOCK_PHASES
 
     incumbent_phases = {
+        *(
+            (ui.phase,)
+            if "evolution-decision-v1" not in off
+            and ui is not None
+            and ui.phase.startswith("evolution")
+            else ()
+        ),
         *BIRCH_PHASES.values(),
         *CLOCK_PHASES.values(),
         "unsupported",
@@ -212,9 +262,17 @@ def format_readout(
             lines.append(f"STATE COVERAGE ERROR: {ui.diagnostic}")
     else:
         dialog = "none" if state.dialog is None else f'"{state.dialog}"'
-        lines = [f"Screen: {state.screen}", f"Dialog: {dialog}", _menu(state, truth)]
+        lines = [
+            f"Screen: {state.screen}",
+            f"Dialog: {dialog}",
+            _menu(state, truth, "evolution-decision-v1" not in off),
+        ]
         if ui is not None:
             lines.append((ui if expanded else replace(ui, details=None)).text())
+        # yes-no-answer-readout-v1: how to answer the other option of the open YES/NO box.
+        answer = answer_line(state) if YES_NO_ANSWER not in off else None
+        if answer is not None:
+            lines.append(answer)
     if state.resources is not None:
         if expanded and state.resources.bag is not None:
             lines.append(
@@ -279,7 +337,12 @@ def format_readout(
         own_line = [] if clause is None else [f"Battle input: {clause}"]
         if details is not None:
             lines += [
-                *details.lines(battle, message_waiting=waiting, levelup_box=levelup),
+                *details.lines(
+                    battle,
+                    message_waiting=waiting,
+                    levelup_box=levelup,
+                    effective_damage="battle-effective-damage-v1" not in off,
+                ),
                 *playback,
                 *execution,
             ]
@@ -363,7 +426,10 @@ def format_readout(
         for m in state.party or ()
     )
     location = places.get(state.map_id) if state.map_id is not None else None
-    lines += [f"Player: {state.name}", f"Location: {location or state.location}"]
+    lines += [
+        f"Player: {state.name}",
+        f"Location: {sections.current if sections is not None else location or state.location}",
+    ]
     if "live-player-position-v1" not in off:
         lines.append(f"Position: X={x}, Y={y}{facing}")
     # tutorial-party-owner-v1: an owner that could not be established is None (OFF: "unknown").
@@ -376,8 +442,13 @@ def format_readout(
     )
     if triage is not None:
         lines.append(triage)
+    lines.append(f"Money: ₽{state.money}")
+    # respawn-readout-v1: where a blackout sends the player, beside the money it would halve.
+    if state.respawn is not None and RESPAWN not in off:
+        lines.append(
+            respawn_line(state.respawn, state.money, respawn_memory, places, here=state.location)
+        )
     lines += [
-        f"Money: ₽{state.money}",
         f"Badges: {', '.join(state.badges or ()) or 'none'}",
         f"In battle: {'yes' if state.in_battle else 'no'}",
         f"Play time: {_clock(_play_seconds(state) or 0)}",
@@ -433,6 +504,7 @@ def format_readout(
                 edge_walls=edge_walls,
                 counters=counters,
                 destinations=destinations,
+                warp_labels=warp_labels,
                 dynamic=dynamic,
                 next_tiles=neighbours,
                 # A local-map fallback keeps its legend: the prompt describes the whole map.
@@ -440,6 +512,12 @@ def format_readout(
             )
             if shown is not None
             else state.local_map
+        )
+    if sections is not None:
+        lines.append(
+            "Terrain sections distinguish areas of the same map; "
+            "arrows preserve one-way movement. Terrain paths do not account for "
+            "temporary objects and scripts."
         )
     if state.world_context is not None:
         context = state.world_context.text(
@@ -459,10 +537,13 @@ def format_readout(
     )
     if offscreen is not None and state.map_id is not None:
         lines.append(offscreen_text(offscreen, state.map_id))
+    # semantic-navigation-v2: listed targets carry the navigate_to_target argument.
+    semantic = SEMANTIC_V2 not in off and "world-targets-v1" not in off
     if state.story_characters is not None and "character-presence-v1" not in off:
         lines.append(
             state.story_characters.text(
-                None if offscreen is None else {o.local_id: o for o in offscreen}
+                None if offscreen is None else {o.local_id: o for o in offscreen},
+                listed_objects(state.interaction_targets) if semantic else None,
             )
         )
     # surf-gated-exits-v1: exits reachable only across water while Surf cannot be used.
@@ -472,6 +553,15 @@ def format_readout(
 
     # exit-reachability-v1: exits reachable neither on foot nor across water from here.
     reach = state.exit_reach if EXIT_REACH not in off else None
+    # field-move-gates-v1: the closed obstacles and the exits every way to which passes one.
+    field = state.field_obstacles if reach is not None and FIELD_MOVES not in off else None
+    # The names the Warp destination lines use (OFF of named-warp-destinations-v1 keeps the
+    # internal map-table names, as those lines do).
+    names = (
+        {(g, n): places.get((g, n), name) for g, n, name in state.destination_names}
+        if destinations is None
+        else destinations
+    )
 
     def across(t: InteractionTarget) -> bool:
         return gate is not None and t.kind == "warp" and gate.blocks_warp(t.x, t.y)
@@ -480,13 +570,55 @@ def format_readout(
         return reach is not None and t.kind == "warp" and reach.blocks_warp(t.x, t.y)
 
     def warp_note(t: InteractionTarget) -> str:
+        obstacle = None if field is None else field.warp_note(t.x, t.y)
         return (
             gate.warp_note(plain=plain)
             if gate is not None and across(t)
-            else reach.warp_note()
+            else (obstacle or reach.warp_note())
             if reach is not None and cut_off(t)
             else ""
         )
+
+    def warp_name(tile: tuple[int, int]) -> str:
+        target = next(
+            (
+                t
+                for t in state.interaction_targets or ()
+                if t.kind == "warp" and (t.x, t.y) == tile and t.destination is not None
+            ),
+            None,
+        )
+        at = f"({tile[0]},{tile[1]})"
+        if target is None or target.destination is None:
+            return at
+        if tile in warp_labels:
+            return f"{at} -> {warp_labels[tile]}"
+        g, n, _ = target.destination
+        if (g, n) == (127, 127):
+            return f"{at} -> {dynamic or 'dynamic destination'}"
+        return f"{at} -> {names.get((g, n), f'map {g}/{n}')} (map {g}/{n})"
+
+    def connection_name(key: ConnectionKey) -> str:
+        direction, (g, n), offset = key
+        if sections is not None:
+            label = next(
+                (
+                    c.label
+                    for c in sections.connections
+                    if (c.direction, c.offset, c.destination) == (direction, offset, (g, n))
+                ),
+                None,
+            )
+            if label is not None:
+                return f"{direction} edge -> {label}"
+        return f"{direction} edge -> {names.get((g, n), f'map {g}/{n}')} (map {g}/{n})"
+
+    if field is not None:
+        lines.extend(field.lines(warp_name, connection_name))
+
+    def distinct(t: InteractionTarget) -> bool:
+        # semantic-navigation-v2: the tool tells these apart by kind and tile only.
+        return t.kind == "object" or same_tile(state.interaction_targets, t) == 1
 
     if state.interaction_targets is not None and "world-targets-v1" not in off:
         lines.append("Map interaction candidates (world coordinates; flags/scripts may gate use):")
@@ -495,8 +627,14 @@ def format_readout(
                 named=named_interactions and "named-interactions-v1" not in off,
                 destinations=destinations,
                 dynamic=dynamic,
+                warp_label=warp_labels.get((t.x, t.y)) if t.kind == "warp" else None,
             )
             + warp_note(t)
+            + (
+                interaction_suffix(t)
+                if semantic and not cut_off(t) and not across(t) and distinct(t)
+                else ""
+            )
             for t in state.interaction_targets
         )
     if bounded_navigation and "bounded-navigation-v1" not in off and state.map_id is not None:
@@ -505,25 +643,58 @@ def format_readout(
         notes = (
             {}
             if state.topology is None
-            else connection_notes(state.topology, gate, reach, plain=plain)
+            else connection_notes(state.topology, gate, reach, plain=plain, field=field)
         )
         lines.append(
             "Map topology: unavailable"
             if state.topology is None
-            else state.topology.text(notes or None)
+            else state.topology.text(
+                notes or None,
+                targets=SEMANTIC_V2 not in off,
+                labels=None
+                if sections is None
+                else {
+                    i: label.label
+                    for i, connection in enumerate(state.topology.connections)
+                    for label in sections.connections
+                    if (label.direction, label.offset, label.destination)
+                    == (connection.direction, connection.offset, connection.destination)
+                },
+            )
         )
         if state.interaction_targets is not None:
-            names = {(g, n): places.get((g, n), name) for g, n, name in state.destination_names}
+            # ON reuses the same provenance-filtered owner as the map and interaction lines.
+            # OFF preserves the incumbent internal-map-table rendering byte for byte (names).
             for target in state.interaction_targets:
                 if target.destination is not None:
+                    if (
+                        sections is not None
+                        and (
+                            section_exit := next(
+                                (w for w in sections.warps if (w.x, w.y) == (target.x, target.y)),
+                                None,
+                            )
+                        )
+                        is not None
+                    ):
+                        lines.append(
+                            f"Warp destination at ({target.x},{target.y}): "
+                            f"{section_exit.label}{warp_note(target)}. {section_exit.detail}"
+                        )
+                        continue
                     g, n, _ = target.destination
                     name = (
                         dynamic or "dynamic destination"
                         if (g, n) == (127, 127)
-                        else names.get((g, n), f"unknown map {g}/{n}")
+                        else names.get(
+                            (g, n),
+                            f"unknown map {g}/{n}" if destinations is None else f"map {g}/{n}",
+                        )
                     )
+                    labelled = labels is not None and name == names.get((g, n))
                     lines.append(
                         f"Warp destination at ({target.x},{target.y}): {name}"
+                        + (f" (map {g}/{n})" if labelled else "")
                         + (
                             gate.destination_note(plain=plain)
                             if gate is not None and across(target)
@@ -531,23 +702,39 @@ def format_readout(
                             if reach is not None and cut_off(target)
                             else ""
                         )
+                        + (
+                            (labels.arrival(target.x, target.y) or "")
+                            if labels is not None and labelled
+                            else ""
+                        )
                     )
     return "\n".join(lines)
 
 
 def connection_notes(
-    topology: Topology, gate: SurfGate | None, reach: ExitReach | None, *, plain: bool = False
+    topology: Topology,
+    gate: SurfGate | None,
+    reach: ExitReach | None,
+    *,
+    plain: bool = False,
+    field: FieldObstacles[ConnectionKey] | None = None,
 ) -> dict[int, str]:
     """The note each map connection line carries instead of its walk-off instruction, by index.
 
-    surf-gated-exits-v1 by direction, as before; exit-reachability-v1 per connection.
+    surf-gated-exits-v1 by direction, as before; exit-reachability-v1 per connection, naming the
+    obstacles every way passes with field-move-gates-v1.
     """
     notes: dict[int, str] = {}
     for i, c in enumerate(topology.connections):
         if gate is not None and gate.blocks_connection(c.direction):
             notes[i] = gate.connection_note(plain=plain)
         elif reach is not None and reach.blocks_connection(c.direction, c.destination, c.offset):
-            notes[i] = reach.connection_note()
+            obstacle = (
+                None
+                if field is None
+                else field.connection_note((c.direction, c.destination, c.offset))
+            )
+            notes[i] = obstacle or reach.connection_note()
     return notes
 
 
@@ -592,10 +779,19 @@ def state_json(state: GameState) -> dict[str, object]:
         "interaction_targets": None
         if state.interaction_targets is None
         else [t.json() for t in state.interaction_targets],
+        # semantic-navigation-v1: absent when off, preserving incumbent state bytes.
+        **(
+            {}
+            if state.interaction_object_slots is None
+            else {
+                "interaction_object_slots": [slot.json() for slot in state.interaction_object_slots]
+            }
+        ),
         "started": state.started,
         "name": state.name,
         "location": state.location,
         **_location_display(state),
+        **({} if state.exit_sections is None else {"exit_sections": state.exit_sections.json()}),
         "map_id": None if state.map_id is None else list(state.map_id),
         "position": None
         if state.position is None
@@ -622,6 +818,12 @@ def state_json(state: GameState) -> dict[str, object]:
         **({} if state.surf_gate is None else {"surf_gate": state.surf_gate.json()}),
         # exit-reachability-v1: present only with the switch, so switch-off state is unchanged.
         **({} if state.exit_reach is None else {"exit_reach": state.exit_reach.json()}),
+        # field-move-gates-v1: present only with the switch, so switch-off state is unchanged.
+        **(
+            {}
+            if state.field_obstacles is None
+            else {"field_obstacles": state.field_obstacles.json()}
+        ),
         # heal-before-trainers-v1: present only with the switch, so switch-off state is unchanged.
         **(
             {}

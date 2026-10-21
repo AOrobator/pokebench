@@ -1,19 +1,23 @@
+import {LEGACY_ALL_ON as REGISTERED_ALL_ON} from "../../agent/test-support/legacy-features.js";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
-import { ALL_ON } from "@pokebench/agent/features";
+
 import { Log, START } from "../test-support/events.js";
 import { processGroup } from "../test-support/process-group.js";
-import { DEFAULT_NEXT_RUN, LEASE, NextRunError, RunQueue, appendControl, healthProbe, liveRuns, presetFor, readDraft, spawnLaunch, writeDraft, type LaunchSpec, type QueueHost } from "./next-run.js";
+import { leaseDir } from "./lease.js";
+import { DEFAULT_NEXT_RUN, NextRunError, RunQueue, appendControl, healthProbe, liveRuns, presetFor, readDraft, spawnLaunch, writeDraft, type LaunchSpec, type QueueHost } from "./next-run.js";
 
 const NOW = new Date("2026-10-13T16:00:00.000Z");
+const ALL_ON = { ...REGISTERED_ALL_ON, "visited-terrain-navigation-v1": false, "battle-effective-damage-v1": false, "semantic-navigation-v1":false, "deterministic-exploration-v1":false };
+Object.assign(ALL_ON,{"safe-navigation-strides-v1":false});
 function root(): string { return mkdtempSync(join(tmpdir(), "next-run-")); }
 // Game servers that answer /health in these tests.
 const UP = new Set([9001, 9003]);
 const healthy = (port: number): Promise<boolean> => Promise.resolve(UP.has(port));
-function liveRun(runsRoot: string, id: string, ended = false, port = 9001, tail: "none" | "paused" = "none"): void {
-  const log = new Log(); log.add(0, { ...START, isolation: { ...START.isolation, port } });
+function liveRun(runsRoot: string, id: string, ended = false, port = 9001, tail: "none" | "paused" = "none", startMs = 0): void {
+  const log = new Log(); log.add(startMs, { ...START, isolation: { ...START.isolation, port } });
   if (tail === "paused") log.add(1, { type: "operator_control", turn: 0, action: "pause", status: "applied", request: 1, emulator_frozen: true });
   if (ended) log.add(2, { type: "run_end", turn: 0, reason: "budget", furthest_milestone: null, turns: 0, wall_ms: 1, tokens: { input: 0, output: 0 }, frames: { saved: 0, bytes: 0 } });
   mkdirSync(join(runsRoot, id), { recursive: true });
@@ -30,16 +34,22 @@ describe("next-run draft", () => {
     expect(DEFAULT_NEXT_RUN.features["instruction-ledger-v2"]).toBe(false);
     expect(DEFAULT_NEXT_RUN.features["untaken-exits-v1"]).toBe(false);
     expect(DEFAULT_NEXT_RUN.features["no-exit-here-v1"]).toBe(false);
+    expect(DEFAULT_NEXT_RUN.features["scripted-place-guidance-v1"]).toBe(false);
+    expect(DEFAULT_NEXT_RUN.features["trigger-script-loop-v1"]).toBe(false);
+    expect(DEFAULT_NEXT_RUN.features["visited-terrain-navigation-v1"]).toBe(false);
+    expect(DEFAULT_NEXT_RUN.features["battle-effective-damage-v1"]).toBe(false);
+    expect(DEFAULT_NEXT_RUN.features["semantic-navigation-v1"]).toBe(false);
+    expect(DEFAULT_NEXT_RUN.features["deterministic-exploration-v1"]).toBe(false);
     expect(writeDraft(runsRoot, draft)).toEqual(draft);
     expect(readDraft(runsRoot)).toEqual(draft);
-    expect(() => writeDraft(runsRoot, { ...draft, features: { ...ALL_ON, "state-only-decisions-v1": false, "pushback-loop-detection-v1": false, "pushback-press-result-v1": false, "battle-observation-loop-v1": false, "explorer-guidance-v1": false, "in-game-naming-readout-v1": false, "no-nickname-guidance-v1": false, "battle-text-auto-advance-v1": false, "battle-message-waiting-v1": false, "connection-edge-tiles-v1": false, "live-map-v1": false } })).toThrow(/world-coordinate-grid-v1 needs live-map-v1/);
+    expect(() => writeDraft(runsRoot, { ...draft, features: { ...ALL_ON,"semantic-navigation-v2":false,"evolution-decision-v1":false,"starter-decision-salience-v1":false,"battle-decision-ready-v1":false,"battle-refusal-loop-v1":false, "scripted-place-guidance-v1": false, "trigger-script-loop-v1": false, "state-only-decisions-v1": false, "pushback-loop-detection-v1": false, "pushback-press-result-v1": false, "battle-observation-loop-v1": false, "explorer-guidance-v1": false, "in-game-naming-readout-v1": false, "no-nickname-guidance-v1": false, "battle-text-auto-advance-v1": false, "battle-message-waiting-v1": false, "connection-edge-tiles-v1": false, "live-map-v1": false } })).toThrow(/world-coordinate-grid-v1 needs live-map-v1/);
     expect(() => writeDraft(runsRoot, { ...draft, extra: 1 })).toThrow(NextRunError);
     writeFileSync(join(runsRoot, ".viewer", "next-run.json"), "garbage");
     expect(readDraft(runsRoot)).toEqual(DEFAULT_NEXT_RUN);
   });
 
   it("turns a draft into a v2 play preset", () => {
-    expect(presetFor({ ...draft, target: "RIVAL_MET" }, "r1")).toEqual({ version: 2, id: "viewer-r1", target: "RIVAL_MET", limits: { maxTurns: 300, maxWallMs: 1_800_000, failureLimit: 3 }, sampling: { thinkingLevel: "medium", maxTokens: 4096 }, features: { ...ALL_ON, "state-only-decisions-v1": false, "pushback-loop-detection-v1": false, "pushback-press-result-v1": false, "battle-observation-loop-v1": false, "explorer-guidance-v1": false, "in-game-naming-readout-v1": false, "no-nickname-guidance-v1": false, "battle-text-auto-advance-v1": false, "battle-message-waiting-v1": false, "connection-edge-tiles-v1": false, "named-interactions-v1": false, "world-destinations-v1": false, "bounded-navigation-v1": false, "full-map-navigation-v1": false, "grass-cost-navigation-v1": false, "game-evidence-priority-v1": false, "dialogue-log-v1": false, "loop-guard-supervisor-v1": false, "instruction-ledger-v1": false, "next-milestone-hint-v1": false, "double-context-window-v1": false, "fresh-retry-v1": false, "named-warp-destinations-v1": false, "milestone-stall-stop-v1": false, "text-only-supervisor-v1": false, "character-presence-v1": false, "navigation-refusal-reasons-v1": false, "transition-press-result-v1": false, "stall-briefing-v1": false, "battle-details-v2": false, "dialogue-auto-advance-v1": false, "warp-arrival-settle-v1": false, "dialogue-context-kept-v1": false, "displayed-place-names-v1": false, "transition-loop-detection-v1": false, "blocked-batch-result-v1": false, "adjacent-tiles-v1": false, "battle-triage-guidance-v1": false, "readout-rules-in-prompt-v1": false, "offscreen-objects-v1": false, "navigate-first-prompt-v1": false, "presence-penalty-v1": false, "levelup-box-v1": false, "disproved-beliefs-v1": false, "same-plan-breaker-v1": false, "navigation-truth-v1": false, "navigation-refusal-reasons-v2": false, "script-line-presence-v1": false, "briefing-exits-v1": false, "untaken-exits-v1": false, "people-ledger-v1": false, "people-id-cards-v1": false, "open-goal-prompt-v1": false, "transition-coherence-v1": false, "trainer-heal-guidance-v1": false, "low-hp-trainer-warning-v1": false,"low-hp-trainer-warning-v2":false, "briefing-battle-outcomes-v1": false, "blocked-exit-fact-v1": false, "battle-loss-recap-v1": false, "readout-truth-v1": false, "birch-speech-pages-v1": false, "blackout-readout-v1": false, "surf-gated-exits-v1": false, "story-destinations-v1": false, "instruction-ledger-v2": false, "harness-trust-v1": false, "cited-destination-v1": false, "harness-trust-v2": false, "battle-move-tool-v1": false, "tutorial-party-owner-v1": false, "mid-frame-readout-v1": false, "unset-dynamic-warp-v1": false, "status-names-v1": false, "surf-gated-exits-v2": false, "no-exit-here-v1": false, "exit-reachability-v1": false, "heal-before-trainers-v1": false, "cross-map-goal-v1": false, "explorer-guidance-v2": false, "ineffective-loops-v1": false } });
+    expect(presetFor({ ...draft, target: "RIVAL_MET" }, "r1")).toEqual({ version: 2, id: "viewer-r1", target: "RIVAL_MET", limits: { maxTurns: 300, maxWallMs: 1_800_000, failureLimit: 3 }, sampling: { thinkingLevel: "medium", maxTokens: 4096 }, features: { ...ALL_ON,"semantic-navigation-v2":false,"evolution-decision-v1":false,"starter-decision-salience-v1":false,"battle-decision-ready-v1":false,"battle-refusal-loop-v1":false, "scripted-place-guidance-v1": false, "trigger-script-loop-v1": false, "state-only-decisions-v1": false, "pushback-loop-detection-v1": false, "pushback-press-result-v1": false, "battle-observation-loop-v1": false, "explorer-guidance-v1": false, "in-game-naming-readout-v1": false, "no-nickname-guidance-v1": false, "battle-text-auto-advance-v1": false, "battle-message-waiting-v1": false, "connection-edge-tiles-v1": false, "named-interactions-v1": false, "world-destinations-v1": false, "bounded-navigation-v1": false, "full-map-navigation-v1": false, "grass-cost-navigation-v1": false, "game-evidence-priority-v1": false, "dialogue-log-v1": false, "loop-guard-supervisor-v1": false, "instruction-ledger-v1": false, "next-milestone-hint-v1": false, "double-context-window-v1": false, "fresh-retry-v1": false, "named-warp-destinations-v1": false, "milestone-stall-stop-v1": false, "text-only-supervisor-v1": false, "character-presence-v1": false, "navigation-refusal-reasons-v1": false, "transition-press-result-v1": false, "stall-briefing-v1": false, "battle-details-v2": false, "dialogue-auto-advance-v1": false, "warp-arrival-settle-v1": false, "dialogue-context-kept-v1": false, "displayed-place-names-v1": false, "transition-loop-detection-v1": false, "blocked-batch-result-v1": false, "adjacent-tiles-v1": false, "battle-triage-guidance-v1": false, "readout-rules-in-prompt-v1": false, "offscreen-objects-v1": false, "navigate-first-prompt-v1": false, "presence-penalty-v1": false, "levelup-box-v1": false, "disproved-beliefs-v1": false, "same-plan-breaker-v1": false, "navigation-truth-v1": false, "navigation-refusal-reasons-v2": false, "script-line-presence-v1": false, "briefing-exits-v1": false, "untaken-exits-v1": false, "people-ledger-v1": false, "people-id-cards-v1": false, "open-goal-prompt-v1": false, "transition-coherence-v1": false, "trainer-heal-guidance-v1": false, "low-hp-trainer-warning-v1": false,"low-hp-trainer-warning-v2":false, "briefing-battle-outcomes-v1": false, "blocked-exit-fact-v1": false, "battle-loss-recap-v1": false, "readout-truth-v1": false, "birch-speech-pages-v1": false, "blackout-readout-v1": false, "surf-gated-exits-v1": false, "story-destinations-v1": false, "instruction-ledger-v2": false, "harness-trust-v1": false, "cited-destination-v1": false, "harness-trust-v2": false, "battle-move-tool-v1": false, "tutorial-party-owner-v1": false, "mid-frame-readout-v1": false, "unset-dynamic-warp-v1": false, "status-names-v1": false, "surf-gated-exits-v2": false, "no-exit-here-v1": false, "bag-healing-items-v1": false, "battle-menu-loop-v1": false, "clock-view-loop-v1": false,"stale-story-goal-v1":false,"stale-story-goal-v2":false,"context-token-budget-v1":false, "briefing-repeat-count-v1":false, "navigate-already-here-v1":false, "deterministic-warp-navigation-v1":false, "input-cuts-v1": false, "loop-guard-screen-v1": false, "reopened-dialogue-loop-v1": false, "just-in-time-prompt-v1": false,"just-in-time-prompt-v2":false,"faced-interaction-history-v1":false,"save-state-task-truth-v1":false,"cache-aligned-window-v1":false,"jit-guide-reuse-v1":false,"dialog-button-b-v1": false, "exit-reachability-v1": false, "heal-before-trainers-v1": false, "cross-map-goal-v1": false, "explorer-guidance-v2": false, "ineffective-loops-v1": false } });
   });
 });
 
@@ -61,6 +71,16 @@ describe("operator control requests", () => {
     expect(await liveRuns(runsRoot, () => Promise.reject(new Error("probe failed")))).toEqual([]);
   });
 
+  it("gives a reused game-server port to the newest unended run only", async () => {
+    const runsRoot = root();
+    liveRun(runsRoot, "2026-10-18T01-29-44_abandoned", false, 9001, "none", 0);
+    liveRun(runsRoot, "2026-10-19T23-16-14_current", false, 9001, "none", 60_000);
+    liveRun(runsRoot, "2026-10-19T23-16-14_other", false, 9003, "none", 60_000);
+    liveRun(runsRoot, "2026-10-19T23-30-00_later-but-dead", false, 9002, "none", 120_000);
+    expect((await liveRuns(runsRoot, healthy)).sort()).toEqual(["2026-10-19T23-16-14_current", "2026-10-19T23-16-14_other"]);
+    await expect(appendControl(runsRoot, "2026-10-18T01-29-44_abandoned", "stop", NOW, healthy)).rejects.toThrow(/not live/);
+  });
+
   it("asks the run's game server for /health on loopback", async () => {
     const seen: string[] = [];
     const probe = healthProbe((input) => { seen.push(typeof input === "string" ? input : ""); return Promise.resolve(new Response("{}", { status: seen.length === 1 ? 200 : 503 })); });
@@ -70,15 +90,16 @@ describe("operator control requests", () => {
   });
 });
 
+const MAC = "127.0.0.1:18434";
 function host(runsRoot: string, endpointFile: string | null = "/tmp/endpoint.json") {
   const launches: LaunchSpec[] = [];
   let finish: (code: number | null) => void = () => undefined;
-  const h: QueueHost = { runsRoot, liveJs: "/repo/packages/agent/dist/live.js", endpointFile, gamePort: 8076, healthy, now: () => NOW, random: () => "ab12",
+  const h: QueueHost = { runsRoot, liveJs: "/repo/packages/agent/dist/live.js", endpointFile, leasePool: () => MAC, gamePort: 8076, healthy, now: () => NOW, random: () => "ab12",
     launch: (spec) => {
       launches.push(spec);
-      expect(existsSync(join(runsRoot, LEASE, "owner.json"))).toBe(true);
+      expect(existsSync(join(leaseDir(runsRoot, MAC), "owner.json"))).toBe(true);
       spec.started?.(777);
-      expect(JSON.parse(readFileSync(join(runsRoot, LEASE, "owner.json"), "utf8"))).toMatchObject({ owner: "viewer-queue", run: spec.runId, child: 777 });
+      expect(JSON.parse(readFileSync(join(leaseDir(runsRoot, MAC), "owner.json"), "utf8"))).toMatchObject({ owner: "viewer-queue", run: spec.runId, child: 777 });
       return new Promise((resolve) => { finish = resolve; });
     } };
   return { h, launches, finish: (code: number | null) => { finish(code); } };
@@ -94,11 +115,11 @@ describe("run queue", () => {
     await queue.tick();
     expect(queue.status()).toMatchObject({ state: "queued", waitingFor: "live run live-run" });
     liveRun(runsRoot, "live-run", true);
-    mkdirSync(join(runsRoot, LEASE));
+    mkdirSync(leaseDir(runsRoot, MAC));
     await queue.tick();
-    expect(queue.status()).toMatchObject({ state: "queued", waitingFor: "the gameplay lease (a benchmark cohort is running)" });
+    expect(queue.status()).toMatchObject({ state: "queued", waitingFor: "the gameplay lease for 127.0.0.1:18434, held by an unreadable owner" });
     expect(() => queue.enqueue(draft)).toThrow(/already queued; cancel it first/);
-    const { rmSync } = await import("node:fs"); rmSync(join(runsRoot, LEASE), { recursive: true });
+    const { rmSync } = await import("node:fs"); rmSync(leaseDir(runsRoot, MAC), { recursive: true });
     const running = queue.tick();
     await vi.waitFor(() => { expect(queue.status()).toEqual({ state: "running", runId: "2026-10-13T12-00-00_Qwen3.8-Flash_ab12" }); });
     expect(() => queue.enqueue(draft)).toThrow(/already launching or running/);
@@ -106,26 +127,26 @@ describe("run queue", () => {
     const [spec] = launches;
     expect(spec?.argv).toEqual(["/repo/packages/agent/dist/live.js", "play"]);
     expect(spec?.env).toEqual({ POKEBENCH_PLAY_PRESET: join(runsRoot, ".viewer", "presets", "2026-10-13T12-00-00_Qwen3.8-Flash_ab12.json"), POKEBENCH_RUN_ID: "2026-10-13T12-00-00_Qwen3.8-Flash_ab12", POKEBENCH_MODEL: "Qwen3.8-Flash", POKEBENCH_ENDPOINT_FILE: "/tmp/endpoint.json", POKEBENCH_GAME_SERVER_URL: "http://127.0.0.1:8076" });
-    expect(JSON.parse(readFileSync(spec?.env["POKEBENCH_PLAY_PRESET"] ?? "", "utf8"))).toMatchObject({ version: 2, features: { ...ALL_ON, "state-only-decisions-v1": false, "pushback-loop-detection-v1": false, "pushback-press-result-v1": false, "battle-observation-loop-v1": false, "explorer-guidance-v1": false, "in-game-naming-readout-v1": false, "no-nickname-guidance-v1": false, "battle-text-auto-advance-v1": false, "battle-message-waiting-v1": false, "connection-edge-tiles-v1": false, "named-interactions-v1": false, "world-destinations-v1": false, "bounded-navigation-v1": false, "full-map-navigation-v1": false, "grass-cost-navigation-v1": false, "game-evidence-priority-v1": false, "dialogue-log-v1": false, "loop-guard-supervisor-v1": false, "instruction-ledger-v1": false, "next-milestone-hint-v1": false, "double-context-window-v1": false, "fresh-retry-v1": false, "named-warp-destinations-v1": false, "milestone-stall-stop-v1": false, "text-only-supervisor-v1": false, "character-presence-v1": false, "navigation-refusal-reasons-v1": false, "transition-press-result-v1": false, "stall-briefing-v1": false, "battle-details-v2": false, "dialogue-auto-advance-v1": false, "warp-arrival-settle-v1": false, "dialogue-context-kept-v1": false, "displayed-place-names-v1": false, "transition-loop-detection-v1": false, "blocked-batch-result-v1": false, "adjacent-tiles-v1": false, "battle-triage-guidance-v1": false, "readout-rules-in-prompt-v1": false, "offscreen-objects-v1": false, "navigate-first-prompt-v1": false, "presence-penalty-v1": false, "levelup-box-v1": false, "disproved-beliefs-v1": false, "same-plan-breaker-v1": false, "navigation-truth-v1": false, "navigation-refusal-reasons-v2": false, "script-line-presence-v1": false, "briefing-exits-v1": false, "untaken-exits-v1": false, "people-ledger-v1": false, "people-id-cards-v1": false, "open-goal-prompt-v1": false, "transition-coherence-v1": false, "trainer-heal-guidance-v1": false, "low-hp-trainer-warning-v1": false,"low-hp-trainer-warning-v2":false, "briefing-battle-outcomes-v1": false, "blocked-exit-fact-v1": false, "battle-loss-recap-v1": false, "readout-truth-v1": false, "birch-speech-pages-v1": false, "blackout-readout-v1": false, "surf-gated-exits-v1": false, "story-destinations-v1": false, "instruction-ledger-v2": false, "harness-trust-v1": false, "cited-destination-v1": false, "harness-trust-v2": false, "battle-move-tool-v1": false, "tutorial-party-owner-v1": false, "mid-frame-readout-v1": false, "unset-dynamic-warp-v1": false, "status-names-v1": false, "surf-gated-exits-v2": false, "no-exit-here-v1": false, "exit-reachability-v1": false, "heal-before-trainers-v1": false, "cross-map-goal-v1": false, "explorer-guidance-v2": false, "ineffective-loops-v1": false } });
+    expect(JSON.parse(readFileSync(spec?.env["POKEBENCH_PLAY_PRESET"] ?? "", "utf8"))).toMatchObject({ version: 2, features: { ...ALL_ON,"semantic-navigation-v2":false,"evolution-decision-v1":false,"starter-decision-salience-v1":false,"battle-decision-ready-v1":false,"battle-refusal-loop-v1":false, "scripted-place-guidance-v1": false, "trigger-script-loop-v1": false, "state-only-decisions-v1": false, "pushback-loop-detection-v1": false, "pushback-press-result-v1": false, "battle-observation-loop-v1": false, "explorer-guidance-v1": false, "in-game-naming-readout-v1": false, "no-nickname-guidance-v1": false, "battle-text-auto-advance-v1": false, "battle-message-waiting-v1": false, "connection-edge-tiles-v1": false, "named-interactions-v1": false, "world-destinations-v1": false, "bounded-navigation-v1": false, "full-map-navigation-v1": false, "grass-cost-navigation-v1": false, "game-evidence-priority-v1": false, "dialogue-log-v1": false, "loop-guard-supervisor-v1": false, "instruction-ledger-v1": false, "next-milestone-hint-v1": false, "double-context-window-v1": false, "fresh-retry-v1": false, "named-warp-destinations-v1": false, "milestone-stall-stop-v1": false, "text-only-supervisor-v1": false, "character-presence-v1": false, "navigation-refusal-reasons-v1": false, "transition-press-result-v1": false, "stall-briefing-v1": false, "battle-details-v2": false, "dialogue-auto-advance-v1": false, "warp-arrival-settle-v1": false, "dialogue-context-kept-v1": false, "displayed-place-names-v1": false, "transition-loop-detection-v1": false, "blocked-batch-result-v1": false, "adjacent-tiles-v1": false, "battle-triage-guidance-v1": false, "readout-rules-in-prompt-v1": false, "offscreen-objects-v1": false, "navigate-first-prompt-v1": false, "presence-penalty-v1": false, "levelup-box-v1": false, "disproved-beliefs-v1": false, "same-plan-breaker-v1": false, "navigation-truth-v1": false, "navigation-refusal-reasons-v2": false, "script-line-presence-v1": false, "briefing-exits-v1": false, "untaken-exits-v1": false, "people-ledger-v1": false, "people-id-cards-v1": false, "open-goal-prompt-v1": false, "transition-coherence-v1": false, "trainer-heal-guidance-v1": false, "low-hp-trainer-warning-v1": false,"low-hp-trainer-warning-v2":false, "briefing-battle-outcomes-v1": false, "blocked-exit-fact-v1": false, "battle-loss-recap-v1": false, "readout-truth-v1": false, "birch-speech-pages-v1": false, "blackout-readout-v1": false, "surf-gated-exits-v1": false, "story-destinations-v1": false, "instruction-ledger-v2": false, "harness-trust-v1": false, "cited-destination-v1": false, "harness-trust-v2": false, "battle-move-tool-v1": false, "tutorial-party-owner-v1": false, "mid-frame-readout-v1": false, "unset-dynamic-warp-v1": false, "status-names-v1": false, "surf-gated-exits-v2": false, "no-exit-here-v1": false, "bag-healing-items-v1": false, "battle-menu-loop-v1": false, "clock-view-loop-v1": false,"stale-story-goal-v1":false,"stale-story-goal-v2":false,"context-token-budget-v1":false, "briefing-repeat-count-v1":false, "navigate-already-here-v1":false, "deterministic-warp-navigation-v1":false, "input-cuts-v1": false, "loop-guard-screen-v1": false, "reopened-dialogue-loop-v1": false, "just-in-time-prompt-v1": false,"just-in-time-prompt-v2":false,"faced-interaction-history-v1":false,"save-state-task-truth-v1":false,"cache-aligned-window-v1":false,"jit-guide-reuse-v1":false,"dialog-button-b-v1": false, "exit-reachability-v1": false, "heal-before-trainers-v1": false, "cross-map-goal-v1": false, "explorer-guidance-v2": false, "ineffective-loops-v1": false } });
     finish(0);
     await running;
     expect(queue.status()).toEqual({ state: "idle" });
-    expect(existsSync(join(runsRoot, LEASE))).toBe(false);
+    expect(existsSync(leaseDir(runsRoot, MAC))).toBe(false);
   });
 
   it("launches past a lease a dead viewer left once its run has ended, but never past a live owner", async () => {
     const runsRoot = root();
-    mkdirSync(join(runsRoot, LEASE));
-    writeFileSync(join(runsRoot, LEASE, "owner.json"), JSON.stringify({ pid: 300, owner: "viewer-queue", run: "older", child: 301 }));
+    mkdirSync(leaseDir(runsRoot, MAC));
+    writeFileSync(join(leaseDir(runsRoot, MAC), "owner.json"), JSON.stringify({ pid: 300, owner: "viewer-queue", run: "older", child: 301 }));
     const { h, launches, finish } = host(runsRoot);
     let living = new Set([300]);
     const queue = new RunQueue({ ...h, alive: (pid) => living.has(pid) });
     queue.enqueue(draft);
     await queue.tick();
-    expect(queue.status()).toMatchObject({ state: "queued", waitingFor: "the gameplay lease (a benchmark cohort is running)" });
+    expect(queue.status()).toMatchObject({ state: "queued", waitingFor: "the gameplay lease for 127.0.0.1:18434, held by viewer-queue (pid 300)" });
     living = new Set([301]);
     await queue.tick();
-    expect(queue.status()).toMatchObject({ state: "queued", waitingFor: "the gameplay lease (a benchmark cohort is running)" });
+    expect(queue.status()).toMatchObject({ state: "queued", waitingFor: "the gameplay lease for 127.0.0.1:18434, held by viewer-queue (pid 300)" });
     living = new Set();
     const running = queue.tick();
     await vi.waitFor(() => { expect(launches).toHaveLength(1); });
@@ -134,15 +155,48 @@ describe("run queue", () => {
     expect(queue.status()).toEqual({ state: "idle" });
   });
 
+  it("launches while another compute pool or the old single lease is held", async () => {
+    const runsRoot = root();
+    mkdirSync(leaseDir(runsRoot, "127.0.0.1:8091"));
+    writeFileSync(join(leaseDir(runsRoot, "127.0.0.1:8091"), "owner.json"), JSON.stringify({ pid: 300, owner: "fixed-run:pair" }));
+    mkdirSync(join(runsRoot, ".naming-gameplay.lock"));
+    writeFileSync(join(runsRoot, ".naming-gameplay.lock", "owner.json"), JSON.stringify({ pid: 300, owner: "qwen38-mac" }));
+    const { h, launches, finish } = host(runsRoot);
+    const queue = new RunQueue({ ...h, healthy: () => Promise.resolve(false), alive: (pid) => pid === 300 });
+    queue.enqueue(draft);
+    const running = queue.tick();
+    await vi.waitFor(() => { expect(launches).toHaveLength(1); });
+    finish(0);
+    await running;
+    expect(existsSync(leaseDir(runsRoot, "127.0.0.1:8091"))).toBe(true);
+    expect(existsSync(leaseDir(runsRoot, MAC))).toBe(false);
+  });
+
+  it("waits while the model endpoint cannot name its compute pool", async () => {
+    const runsRoot = root();
+    const { h, launches, finish } = host(runsRoot);
+    let broken = true;
+    const queue = new RunQueue({ ...h, healthy: () => Promise.resolve(false), leasePool: () => { if (broken) throw new Error("endpoint file missing"); return MAC; } });
+    queue.enqueue(draft);
+    await queue.tick();
+    expect(queue.status()).toMatchObject({ state: "queued", waitingFor: "the model endpoint: endpoint file missing" });
+    expect(launches).toEqual([]);
+    broken = false;
+    const running = queue.tick();
+    await vi.waitFor(() => { expect(launches).toHaveLength(1); });
+    finish(0);
+    await running;
+  });
+
   it("keeps waiting on an experiment lease a dead viewer left while its trial still plays", async () => {
     const runsRoot = root();
-    mkdirSync(join(runsRoot, LEASE));
-    writeFileSync(join(runsRoot, LEASE, "owner.json"), JSON.stringify({ pid: 300, owner: "experiment-queue", experiment: "full-map", run: "t0", child: 200 }));
+    mkdirSync(leaseDir(runsRoot, MAC));
+    writeFileSync(join(leaseDir(runsRoot, MAC), "owner.json"), JSON.stringify({ pid: 300, owner: "experiment-queue", experiment: "full-map", run: "t0", child: 200 }));
     const { h, launches } = host(runsRoot);
     const queue = new RunQueue({ ...h, healthy: () => Promise.resolve(false), alive: (pid) => pid === 200 });
     queue.enqueue(draft);
     await queue.tick();
-    expect(queue.status()).toMatchObject({ state: "queued", waitingFor: "the gameplay lease (a benchmark cohort is running)" });
+    expect(queue.status()).toMatchObject({ state: "queued", waitingFor: "the gameplay lease for 127.0.0.1:18434, held by experiment-queue (pid 300)" });
     expect(launches).toEqual([]);
   });
 
@@ -158,7 +212,7 @@ describe("run queue", () => {
     const status = queue.status();
     expect(status.state).toBe("failed");
     expect(status.state === "failed" ? status.error : "").toContain("play exited with code 1");
-    expect(existsSync(join(runsRoot, LEASE))).toBe(false);
+    expect(existsSync(leaseDir(runsRoot, MAC))).toBe(false);
   });
 
   it("refuses to queue without a model, an endpoint, or a valid draft, and can cancel", () => {
@@ -186,12 +240,12 @@ describe("run queue edge cases", () => {
   it("records a launch killed by a signal and a launch that throws, releasing the lease each time", async () => {
     for (const outcome of ["signal", "throw"] as const) {
       const runsRoot = root();
-      const queue = new RunQueue({ runsRoot, liveJs: "/l.js", endpointFile: "/e.json", gamePort: 8076, healthy, now: () => NOW, random: () => "ee55", launch: () => outcome === "signal" ? Promise.resolve(null) : Promise.reject(new Error("spawn failed")) });
+      const queue = new RunQueue({ runsRoot, liveJs: "/l.js", endpointFile: "/e.json", leasePool: () => MAC, gamePort: 8076, healthy, now: () => NOW, random: () => "ee55", launch: () => outcome === "signal" ? Promise.resolve(null) : Promise.reject(new Error("spawn failed")) });
       queue.enqueue(draft);
       await queue.tick();
       const status = queue.status();
       expect(status.state === "failed" ? status.error : "").toContain(outcome === "signal" ? "exited with a signal" : "spawn failed");
-      expect(existsSync(join(runsRoot, LEASE))).toBe(false);
+      expect(existsSync(leaseDir(runsRoot, MAC))).toBe(false);
       await queue.tick();
       expect(queue.status()).toEqual(status);
     }
@@ -207,7 +261,7 @@ describe("run queue edge cases", () => {
     await queue.tick();
     expect(queue.status()).toMatchObject({ state: "failed" });
     expect(launches).toEqual([]);
-    expect(existsSync(join(runsRoot, LEASE))).toBe(false);
+    expect(existsSync(leaseDir(runsRoot, MAC))).toBe(false);
   });
 });
 
@@ -216,7 +270,7 @@ describe("queue ticks that overlap", () => {
   function slowHost(runsRoot: string) {
     const probes: ((up: boolean) => void)[] = [];
     const launches: string[] = [];
-    const h: QueueHost = { runsRoot, liveJs: "/l.js", endpointFile: "/e.json", gamePort: 8076, now: () => NOW, random: () => "ff00",
+    const h: QueueHost = { runsRoot, liveJs: "/l.js", endpointFile: "/e.json", leasePool: () => MAC, gamePort: 8076, now: () => NOW, random: () => "ff00",
       healthy: () => new Promise((resolve) => { probes.push(resolve); }),
       launch: (spec) => { launches.push(spec.runId); return Promise.resolve(0); } };
     return { h, probes, launches };
@@ -235,7 +289,7 @@ describe("queue ticks that overlap", () => {
     await Promise.all([first, second]);
     expect(launches).toEqual(["2026-10-13T12-00-00_Qwen3.8-Flash_ff00"]);
     expect(queue.status()).toEqual({ state: "idle" });
-    expect(existsSync(join(runsRoot, LEASE))).toBe(false);
+    expect(existsSync(leaseDir(runsRoot, MAC))).toBe(false);
   });
 
   it("does nothing when the queued run is cancelled during a probe", async () => {

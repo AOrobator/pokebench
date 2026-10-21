@@ -1,20 +1,22 @@
+import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
 import {expect,it,vi} from "vitest";
 import type {AgentMessage} from "@mariozechner/pi-agent-core";
-import {contextTools,loopSupervisor,stallStop,textOnlySupervisor} from "./play-wiring.js";
+import {contextBudget,contextTools,loopSupervisor,stallStop,textOnlySupervisor} from "./play-wiring.js";
+import {budgetLimit} from "./context-budget.js";
 import {RunControl,STALL_STOP_MS} from "./run-control.js";
 import {Governor} from "./harness.js";
-import {ALL_ON,type FeatureSet} from "./features.js";
+import {type FeatureSet} from "./features.js";
 import {parsePlayPreset,presetFeatures} from "./play-preset.js";
 import {playTools} from "./play-config.js";
 import {checkEvent,type RunEvent} from "./events.js";
 import {DOUBLE_WINDOW,WINDOW} from "./harness.js";
 import {featureInfo,stateOnlyProblems} from "./features.js";
 
-const NEW=["game-evidence-priority-v1","dialogue-log-v1","loop-guard-supervisor-v1","instruction-ledger-v1","next-milestone-hint-v1","double-context-window-v1","fresh-retry-v1","milestone-stall-stop-v1","character-presence-v1","navigation-refusal-reasons-v1","transition-press-result-v1","stall-briefing-v1","battle-details-v2","dialogue-context-kept-v1","disproved-beliefs-v1","same-plan-breaker-v1"] as const;
-const OFF:FeatureSet={...ALL_ON,"navigation-evidence-memory-v1":false,...Object.fromEntries(NEW.map(id=>[id,false]))};
+const NEW=["game-evidence-priority-v1","dialogue-log-v1","loop-guard-supervisor-v1","instruction-ledger-v1","next-milestone-hint-v1","double-context-window-v1","fresh-retry-v1","milestone-stall-stop-v1","character-presence-v1","navigation-refusal-reasons-v1","transition-press-result-v1","stall-briefing-v1","battle-details-v2","dialogue-context-kept-v1","disproved-beliefs-v1","same-plan-breaker-v1","loop-guard-screen-v1","battle-effective-damage-v1"] as const;
+const OFF:FeatureSet={...ALL_ON,"cache-aligned-window-v1":false,"navigation-evidence-memory-v1":false,...Object.fromEntries(NEW.map(id=>[id,false]))};
 function recorder(){
  const subscribers:((e:RunEvent)=>void)[]=[];const delivered:string[]=[];
- return {subscribers,delivered,api:{subscribe:(fn:(e:RunEvent)=>void)=>{subscribers.push(fn);},recordNavigationContext:()=>{delivered.push("navigation");},recordLedgerContext:()=>{delivered.push("ledger");},recordMilestoneHint:()=>{delivered.push("hint");},recordBeliefLedger:()=>{delivered.push("beliefs");}}};
+ return {subscribers,delivered,api:{subscribe:(fn:(e:RunEvent)=>void)=>{subscribers.push(fn);},recordNavigationContext:()=>{delivered.push("navigation");},recordLedgerContext:()=>{delivered.push("ledger");},recordMilestoneHint:()=>{delivered.push("hint");},recordLoopBreaker:()=>undefined,recordBeliefLedger:()=>{delivered.push("beliefs");}}};
 }
 const base=(messages:AgentMessage[])=>Promise.resolve(messages);
 
@@ -39,7 +41,7 @@ it("wires each switch's tool, matching the recorded tool list, and chains both p
 });
 
 it("reads v2 presets written before these switches as all OFF",()=>{
- const features=Object.fromEntries(Object.entries({...ALL_ON,"state-only-decisions-v1":false}).filter(([id])=>!(NEW as readonly string[]).includes(id)));
+ const features=Object.fromEntries(Object.entries({...ALL_ON,"cache-aligned-window-v1":false,"state-only-decisions-v1":false}).filter(([id])=>!(NEW as readonly string[]).includes(id)));
  const preset=parsePlayPreset({version:2,id:"old",target:null,limits:{maxTurns:1500,maxWallMs:1800000,failureLimit:3},sampling:{thinkingLevel:"medium",maxTokens:4096},features});
  for(const id of NEW)expect(presetFeatures(preset)[id]).toBe(false);
 });
@@ -50,8 +52,8 @@ it("hands the play loop the incumbent window unless double-context-window-v1 is 
  expect(contextTools({...OFF,"double-context-window-v1":true},r.api,base).window).toBe(DOUBLE_WINDOW);
  expect(featureInfo("double-context-window-v1")).toMatchObject({group:"guidance",needs:null,switchable:true});
  expect(featureInfo("double-context-window-v1").description).toContain(" Off: ");
- expect(stateOnlyProblems({...ALL_ON,"state-only-decisions-v1":true})).toContain("state-only-decisions-v1 requires double-context-window-v1 OFF");
- const preset=parsePlayPreset({version:2,id:"old",target:null,limits:{maxTurns:1500,maxWallMs:1800000,failureLimit:3},sampling:{thinkingLevel:"medium",maxTokens:4096},features:Object.fromEntries(Object.entries({...ALL_ON,"state-only-decisions-v1":false}).filter(([id])=>id!=="double-context-window-v1"))});
+ expect(stateOnlyProblems({...ALL_ON,"cache-aligned-window-v1":false,"state-only-decisions-v1":true})).toContain("state-only-decisions-v1 requires double-context-window-v1 OFF");
+ const preset=parsePlayPreset({version:2,id:"old",target:null,limits:{maxTurns:1500,maxWallMs:1800000,failureLimit:3},sampling:{thinkingLevel:"medium",maxTokens:4096},features:Object.fromEntries(Object.entries({...ALL_ON,"cache-aligned-window-v1":false,"state-only-decisions-v1":false}).filter(([id])=>id!=="double-context-window-v1"))});
  expect(presetFeatures(preset)["double-context-window-v1"]).toBe(false);
 });
 
@@ -65,7 +67,7 @@ it("sends text-only replies back to the model only while fresh-retry-v1 is off",
  expect(out.some(m=>m.role==="assistant")).toBe(false);
  expect(out).toContainEqual(nudge);
  expect(r.delivered).toEqual(["navigation"]);
- expect(stateOnlyProblems({...ALL_ON,"state-only-decisions-v1":true})).toContain("state-only-decisions-v1 requires fresh-retry-v1 OFF");
+ expect(stateOnlyProblems({...ALL_ON,"cache-aligned-window-v1":false,"state-only-decisions-v1":true})).toContain("state-only-decisions-v1 requires fresh-retry-v1 OFF");
 });
 
 it("ends a run as stalled after ten minutes without a new milestone only while milestone-stall-stop-v1 is on",()=>{
@@ -79,7 +81,7 @@ it("ends a run as stalled after ten minutes without a new milestone only while m
   const off=recorder();
   expect(stallStop(OFF,off.api,control,()=>elapsed,()=>{governor.abort("stalled");})).toBeNull();
   expect(off.subscribers).toHaveLength(0);
-  expect(stallStop({...ALL_ON,"milestone-stall-stop-v1":false},off.api,control,()=>elapsed,()=>{governor.abort("stalled");})).toBeNull();
+  expect(stallStop({...ALL_ON,"cache-aligned-window-v1":false,"milestone-stall-stop-v1":false},off.api,control,()=>elapsed,()=>{governor.abort("stalled");})).toBeNull();
   const on=recorder();
   const stop=stallStop({...OFF,"milestone-stall-stop-v1":true},on.api,control,()=>elapsed,()=>{governor.abort("stalled");});
   expect(stop).not.toBeNull();expect(on.subscribers).toHaveLength(1);
@@ -99,7 +101,7 @@ it("ends a run as stalled after ten minutes without a new milestone only while m
 it("text-only-supervisor-v1 wires a recorded supervisor note only when on",()=>{
  const subscribers:((e:RunEvent)=>void)[]=[];const recorded:[number,number,number,string][]=[];
  const api={subscribe:(fn:(e:RunEvent)=>void)=>{subscribers.push(fn);},textOnlySupervisor:(replies:number,note:number,limit:number,text:string)=>{recorded.push([replies,note,limit,text]);}};
- expect(textOnlySupervisor({...ALL_ON,"text-only-supervisor-v1":false},api)).toBeUndefined();expect(subscribers).toHaveLength(0);
+ expect(textOnlySupervisor({...ALL_ON,"cache-aligned-window-v1":false,"text-only-supervisor-v1":false},api)).toBeUndefined();expect(subscribers).toHaveLength(0);
  const note=textOnlySupervisor(ALL_ON,api);if(note===undefined)throw new Error("missing wiring");
  expect(subscribers).toHaveLength(1);
  const text=note(3,1);
@@ -107,4 +109,16 @@ it("text-only-supervisor-v1 wires a recorded supervisor note only when on",()=>{
  expect(text).toContain("Where you are:");
  expect(text).toContain("note 1 of 3");
  expect(recorded).toEqual([[3,1,3,text]]);
+});
+
+it("context-token-budget-v1: the production factory builds a budget from the served context and records each trim as a compaction",()=>{
+ const compactions:[number,number][]=[];
+ const recorder={compaction:(from:number,to:number)=>{compactions.push([from,to]);}};
+ expect(contextBudget({...ALL_ON,"context-token-budget-v1":false},{contextWindow:65536},4096,recorder)).toEqual({});
+ const on=contextBudget({...ALL_ON,"context-token-budget-v1":true},{contextWindow:65536},4096,recorder);
+ expect(on.budget?.limit).toBe(budgetLimit(65536,4096));
+ on.onBudgetTrim?.({limit:1,from:900,predicted:400,turns:3,kept:1,basis:"estimate"});
+ expect(compactions).toEqual([[900,400]]);
+ const event:RunEvent={v:1,run:"r",seq:1,t:"2026-10-20T00:00:00.000-04:00",type:"compaction",turn:3,from_tokens:900,to_tokens:400};
+ expect(checkEvent(event)).toEqual(event);
 });

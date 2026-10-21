@@ -90,6 +90,7 @@ The operator: the HP black box still needs to move left a bit and the black bar 
 - [x] RED: party-view.test.ts expects the party bars to carry `.pv-hp` only, never `.hpbar` (existing tests now select `.pv-hp`)
 - [x] GREEN: `hpMarkup` emits `class="pv-hp"` only. Gates: lint, build; coverage agent 3281 tests 99.2/93.1/97.71, viewer 1601 tests 97.9/91.33/94.33, python 3583 tests 97.23/92.97/100.
 - [x] Review (packet fc40a11a..eec48844, sha256 f0b56dd9…12fe): Claude, Grok and GPT/Codex all LGTM. Browser: clean build eec4884 on 8796, POKéMON PARTY at 1440, 375 (scrollWidth 375) and a 5x magnified bar (eec4884-*.jpg).
+- [x] Landed: `git merge --ff-only` → main eaa2454b3 (main had not moved from fc40a11a1). `just test` on main: agent 3281, viewer 1601, python 3585 passed. `just viewer-main`: 8790 at eaa2454b3, 2 live runs kept. Live check on run 2026-10-21T08-28-28_qwen36-gpu1_8892: party bars carry `pv-hp` only, no border, no `.hpbar` inside the party screen; screenshot runs/mockups/party-menu/shots/landed/eaa2454-1440-live-hpbar.jpg.
 
 ## Closing the Loop
 

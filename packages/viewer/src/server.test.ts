@@ -10,6 +10,7 @@ import { Log, START, assistant, fullRun, state } from "../test-support/events.js
 import { rivalRam, writeArchive } from "../test-support/raw-ram.js";
 import { QUEUE_FEATURES } from "../test-support/experiments.js";
 import { BROWSER_MODULES, HOST, startViewer, validFramePng, type Viewer } from "./server.js";
+import { createWorkbenchClient } from "./workbench-sync.js";
 import { parseWorkbench } from "./workbench-data.js";
 import WebSocket, { WebSocketServer } from "ws";
 
@@ -1134,4 +1135,15 @@ it("serves the YES/NO answer readout explainer byte for byte, mapped from its ca
  expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
  const reply=await get(viewer,`/explainers/${id}.html`);
  expect(reply.status).toBe(200);expect(reply.body.equals(tracked)).toBe(true);expect(reply.body.toString()).toContain("YES/NO answer readout");
+});
+
+it("serves opted-in revisions while preserving the complete workbench endpoint", async () => {
+  const { runsRoot, viewer } = await fixture(); writeRun(runsRoot, "cached", fullRun());
+  const payloads: unknown[] = [];
+  const client = createWorkbenchClient(async path => { const reply = await get(viewer, path); expect(reply.status).toBe(200); const value: unknown = JSON.parse(reply.body.toString()); payloads.push(value); return value; });
+  const full = parseWorkbench(JSON.parse((await get(viewer, "/api/workbench")).body.toString()) as unknown);
+  expect(await client()).toEqual(full); expect(await client()).toEqual(full);
+  expect(payloads[0]).toMatchObject({ base: null, runs: full.runs });
+  expect(payloads[1]).toMatchObject({ runs: [], removed: [] });
+  expect((await get(viewer, "/api/workbench?updates=1&since=unknown")).body.toString()).toContain('"base":null');
 });

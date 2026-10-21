@@ -20,7 +20,7 @@ describe("mounted runs and comparisons workbench", () => {
     const { wb, fetch } = mount(initial); await wb.refresh();
     const graph = ui("frontier-full").firstElementChild;
     const next = structuredClone(initial); next.at += 5000; const live = must(next.runs[0]);
-    live.elapsedMs += 5000; live.turn++; if (live.measurement !== undefined) live.measurement.logSha256 = "b".repeat(64);
+    live.elapsedMs = (live.elapsedMs ?? 0) + 5000; live.turn++; if (live.measurement !== undefined) live.measurement.logSha256 = "b".repeat(64);
     fetch.mockResolvedValue(next); await wb.refresh();
     expect(ui("frontier-full").firstElementChild).toBe(graph);
     wb.resize(); expect(ui("frontier-full").firstElementChild).toBe(graph);
@@ -102,7 +102,7 @@ describe("mounted runs and comparisons workbench", () => {
   });
   it("returns focus to the same frontier point after a refresh replaced the one that opened the drawer", async () => {
     const { wb, fetch } = mount(); await wb.refresh(); const mark = ui("frontier-full").querySelector<HTMLElement>('[data-run="run_01"][data-split="PLAYER_NAME_CONFIRMED"]'); mark?.focus(); mark?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    fetch.mockResolvedValue({ ...data(), at: 2000 }); await wb.refresh(); expect(mark?.isConnected).toBe(false);
+    fetch.mockResolvedValue({ ...data(), at: 2000, runs: [run({ splits: run().splits.map(s => ({ ...s, elapsedMs: s.elapsedMs + 1000 })) })] }); await wb.refresh(); expect(mark?.isConnected).toBe(false);
     document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true })); expect(document.activeElement?.getAttribute("data-split")).toBe("PLAYER_NAME_CONFIRMED"); expect(document.activeElement?.getAttribute("data-run")).toBe("run_01");
     open(); fetch.mockResolvedValue({ ...data(), at: 3000, runs: [] }); await wb.refresh(); ui("detail").dispatchEvent(new MouseEvent("click", { bubbles: true })); expect(ui("detail").hidden).toBe(true); wb.destroy();
   });

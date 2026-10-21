@@ -138,7 +138,7 @@ describe("a run from a newer build than the viewer", () => {
     const expected = await first.load(r, "done");
     expect(expected.run.status).toBe("ended");
     let reads = 0;
-    const restarted = createWorkbenchLoader({ build: older, store, compute: async () => { reads++; throw new Error("log reread"); } });
+    const restarted = createWorkbenchLoader({ build: older, store, compute: () => { reads++; return Promise.reject(new Error("log reread")); } });
     expect((await restarted.load(r, "done")).run).toEqual(expected.run);
     expect(reads).toBe(0);
   });

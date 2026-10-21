@@ -6,7 +6,7 @@ const data = (at = 1): WorkbenchData => ({ version: 1, at, milestones: [], probl
 describe("revisioned workbench refresh", () => {
   it("transfers only changed runs, retains order, removes deleted runs and resyncs a new server", async () => {
     let snapshot = data(); let server = createWorkbenchUpdates("epoch"); const requests: string[] = [], replies: unknown[] = [];
-    const client = createWorkbenchClient(async url => { requests.push(url); const reply = server(snapshot, new URL(url, "http://viewer").searchParams.get("since")); replies.push(reply); return reply; });
+    const client = createWorkbenchClient(url => { requests.push(url); const reply = server(snapshot, new URL(url, "http://viewer").searchParams.get("since")); replies.push(reply); return Promise.resolve(reply); });
     expect(await client()).toEqual(snapshot);
     snapshot = data(2); snapshot.runs.reverse(); snapshot.runs[0] = run({ id: "second", turn: 99 });
     expect(await client()).toEqual(snapshot);

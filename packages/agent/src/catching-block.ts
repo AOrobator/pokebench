@@ -44,31 +44,33 @@ export class PartyCoverage {
  // Foe type -> species met, in the order met; and per type, per move, uses and the lines printed.
  private readonly met=new Map<string,string[]>();
  private readonly uses=new Map<string,Map<string,Use>>();
+ // A move whose effectiveness line has not been printed yet; it can arrive in a later auto-advance call.
+ private pending:{readonly turn:number;readonly use:Use}|null=null;
 
  observe(event:RunEvent):void {
   if(event.type==="state"&&"started" in event){this.state(event);return;}
   if(event.type!=="dialogue_auto_advance")return;
-  let used:{readonly turn:number;readonly use:Use}|null=null;
   for(const page of event.pages){
-   if(page.battle_turn===undefined||page.battle_message_id===undefined){used=null;continue;}
+   if(page.battle_turn===undefined||page.battle_message_id===undefined){this.pending=null;continue;}
    const text=oneLine(page.text);
    const move=/^(.+?) used (.+)!$/.exec(text);
    if(move!==null){
     const sides=page.state_seq===null?undefined:this.sides.get(page.state_seq);
-    used=null;
+    this.pending=null;
     if(sides?.foe==null||!sides.player.includes(move[1]??""))continue;
     const byMove=this.uses.get(sides.foe.types)??new Map<string,Use>();
     this.uses.set(sides.foe.types,byMove);
     const use=byMove.get(move[2]??"")??{used:0,said:new Map<string,number>()};
     byMove.set(move[2]??"",use);
     use.used+=1;
-    used={turn:page.battle_turn,use};
+    this.pending={turn:page.battle_turn,use};
     continue;
    }
+   const used=this.pending;
    if(used===null||used.turn!==page.battle_turn)continue;
    if(text!==SUPER&&text!==NOT_VERY&&!NO_EFFECT.test(text))continue;
    used.use.said.set(text,(used.use.said.get(text)??0)+1);
-   used=null;
+   this.pending=null;
   }
  }
 
@@ -78,6 +80,8 @@ export class PartyCoverage {
  }
 
  private state(s:State):void {
+  // A battle that ended leaves no move waiting for its line.
+  if(!(s.in_battle||s.screen==="battle"))this.pending=null;
   // The player's own party only: the tutorial battle uses WALLY's ZIGZAGOON.
   if(s.party_owner!=="player"){this.remember(s.seq,{player:[],foe:null});return;}
   const battlers=s.battle?.battlers??[];

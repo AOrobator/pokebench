@@ -101,6 +101,22 @@ describe("guards on what the catching folds read",()=>{
   expect(text).toContain("SCRATCH used 1");
   expect(text).not.toContain("GROWL");
  });
+ it("party coverage keeps a move's effectiveness line that arrives in the next auto-advance call",()=>{
+  const base=states.find(s=>s.seq===wildSeq);if(base===undefined)throw new Error("fixture");
+  const lead=base.battle?.battlers?.find(b=>b.position%2===0)?.species??"";
+  const page=(text:string,id:number)=>({state_seq:1,text,battle_turn:2,battle_message_id:id,map:null,map_id:null,position:null,speaker:null,speaker_source:null});
+  const split=new PartyCoverage();
+  split.observe({...base,seq:1});
+  split.observe({type:"dialogue_auto_advance",seq:2,turn:1,pages:[page(`${lead} used\nEMBER!`,1)]} as unknown as RunEvent);
+  split.observe({type:"dialogue_auto_advance",seq:3,turn:2,pages:[page("It's super effective!",2)]} as unknown as RunEvent);
+  expect(split.block(decisionState)).toContain("EMBER used 1, \"It's super effective!\" 1");
+  const ended=new PartyCoverage();
+  ended.observe({...base,seq:1});
+  ended.observe({type:"dialogue_auto_advance",seq:2,turn:1,pages:[page(`${lead} used\nEMBER!`,1)]} as unknown as RunEvent);
+  ended.observe({...base,seq:3,in_battle:false,screen:"overworld"});
+  ended.observe({type:"dialogue_auto_advance",seq:4,turn:2,pages:[page("It's super effective!",2)]} as unknown as RunEvent);
+  expect(ended.block(decisionState)).toContain("EMBER used 1 (no effectiveness line printed)");
+ });
  it("said-type matches keep field pages only, never battle text",()=>{
   const fold=new SaidTypeMatches();
   fold.observe({type:"dialogue_auto_advance",seq:1,turn:1,pages:[{state_seq:null,text:"It can't stand GRASS-type moves.",battle_turn:1,battle_message_id:1,map:"ROUTE104",map_id:[0,19],position:null,speaker:null,speaker_source:null}]} as unknown as RunEvent);

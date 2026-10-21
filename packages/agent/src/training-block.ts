@@ -24,8 +24,8 @@ type State=Extract<RunEvent,{type:"state";started:boolean}>;
 export type Snapshot=Pick<GameStateSnapshot,"started"|"in_battle"|"screen"|"location"|"map_id"|"party"|"battle"|"trainer_opponent"|"money"|"resources"|"heal_before_trainers"|"party_next_level">;
 type Party=Snapshot["party"];
 
-interface Source {readonly battle:number;readonly label:string;readonly place:string;readonly trainer:boolean}
-interface Earned {readonly battle:number;readonly label:string;readonly place:string;readonly trainer:boolean;readonly turn:number;readonly amounts:string[];readonly values:number[]}
+interface Source {readonly battle:number;readonly wild:string;readonly place:string}
+interface Earned {readonly battle:number;label:string;readonly place:string;trainer:boolean;readonly turn:number;readonly amounts:string[];readonly values:number[]}
 interface LeaderFoe {readonly species:string;readonly level:number;hp:number;maxHp:number}
 interface LeaderBattle {
  readonly turn:number;readonly party:string;readonly bag:string;readonly money:number|null;
@@ -42,11 +42,16 @@ const bagText=(s:Pick<Snapshot,"resources">):string=>{
  return bag.length===0?"BAG empty":`BAG ${bag.map(i=>`${i.name??""} ×${String(i.quantity)}`).join(", ")}`;
 };
 const partyExp=(party:Party):string=>party.filter(m=>m.species!==null&&m.is_egg!==true).map(m=>`${m.species??""} Lv${String(m.level)} EXP. POINTS ${m.experience==null?"unknown":String(m.experience)}`).join(", ");
+// pokeemerald include/constants/battle.h BATTLE_TYPE_TRAINER.
+const BATTLE_TYPE_TRAINER=1<<3;
 const leaderActive=(s:Pick<Snapshot,"trainer_opponent">)=>s.trainer_opponent?.battle_active===true&&s.trainer_opponent.trainer_class===LEADER_CLASS;
 
 export class TrainingBlock {
  // EXP pages are attributed through the state their page names; states are kept as the battle they belong to.
  private readonly sources=new Map<number,Source>();
+ // Per battle: the trainer's name once a state showed it, and battles the battle type marks as a trainer's.
+ private readonly trainerLabels=new Map<number,string>();
+ private readonly trainerBattles=new Set<number>();
  private battleCount=0;
  private wasInBattle=false;
  private readonly earned:Earned[]=[];
@@ -66,9 +71,14 @@ export class TrainingBlock {
    const source=this.sources.get(page.state_seq);
    if(source===undefined)continue;
    const amount=Number(gained[2]);
+   const named=this.trainerLabels.get(source.battle);
+   const trainer=named!==undefined||this.trainerBattles.has(source.battle);
+   // A trainer's battle whose opponent was not read stays unnamed, never a wild encounter.
+   const label=named??(trainer?"a trainer (name not read)":source.wild);
    const last=this.earned.at(-1);
-   const entry=last?.battle===source.battle?last:{...source,turn:event.turn,amounts:[],values:[]};
+   const entry=last?.battle===source.battle?last:{battle:source.battle,place:source.place,label,trainer,turn:event.turn,amounts:[],values:[]};
    if(entry!==last)this.earned.push(entry);
+   entry.label=label;entry.trainer=trainer;
    entry.amounts.push(`${gained[1]??""} ${String(amount)}`);
    entry.values.push(amount);
   }
@@ -81,6 +91,8 @@ export class TrainingBlock {
   const opponent=s.trainer_opponent;
   if(opponent?.battle_active===true&&opponent.name!==null)this.names.set(opponent.trainer_id,opponent.name);
   if(battling){
+   if(opponent?.battle_active===true)this.trainerLabels.set(this.battleCount,`${opponent.name??`trainer ${String(opponent.trainer_id)}`} (trainer)`);
+   if(((s.battle?.battle_type??0)&BATTLE_TYPE_TRAINER)!==0)this.trainerBattles.add(this.battleCount);
    this.sources.set(s.seq,this.source(s));
    if(this.sources.size>STATE_MEMORY){const first=this.sources.keys().next().value;if(first!==undefined)this.sources.delete(first);}
   }
@@ -90,10 +102,8 @@ export class TrainingBlock {
 
  private source(s:State):Source {
   const place=s.location??"an unnamed map";
-  const opponent=s.trainer_opponent;
-  if(opponent?.battle_active===true)return {battle:this.battleCount,label:`${opponent.name??`trainer ${String(opponent.trainer_id)}`} (trainer)`,place,trainer:true};
   const foes=(s.battle?.battlers??[]).filter(b=>b.position%2===1);
-  return {battle:this.battleCount,label:`wild ${foes.map(b=>`${b.species} Lv${String(b.level)}`).join(" and ")||"POKéMON"}`,place,trainer:false};
+  return {battle:this.battleCount,wild:`wild ${foes.map(b=>`${b.species} Lv${String(b.level)}`).join(" and ")||"POKéMON"}`,place};
  }
 
  private leader(s:State,battling:boolean):void {

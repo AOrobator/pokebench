@@ -99,6 +99,18 @@ describe("training block (exp-next-level-v1, exp-earned-ledger-v1, leader-attemp
   expect(text).toContain("· BRAWLY's POKéMON: GEODUDE Lv12 HP 13/33 ·");
   expect(text).not.toMatch(/\bher\b/);
  });
+ it("a trainer battle whose opponent was not read is never counted as wild",()=>{
+  const block=new TrainingBlock(only({"exp-earned-ledger-v1":true}));
+  const trainerBattle=states.find(s=>s.in_battle&&s.trainer_opponent?.name==="ROXANNE");
+  const fieldState=states.find(s=>s.screen==="overworld"&&!s.in_battle&&s.started);
+  if(trainerBattle===undefined||fieldState===undefined)throw new Error("fixture");
+  block.observe({...fieldState,seq:1});
+  block.observe({...trainerBattle,seq:2,trainer_opponent:null,battle:{...trainerBattle.battle,battle_type:8}} as RunEvent);
+  block.observe({type:"dialogue_auto_advance",seq:3,turn:7,pages:[{state_seq:2,text:"TORCHIC gained\n220 EXP. Points!",battle_turn:1,battle_message_id:1,map:null,map_id:null,position:null,speaker:null,speaker_source:null}]} as unknown as RunEvent);
+  const text=block.block(at(GYM_FIELD))??"";
+  expect(text).toContain("turn 7 · a trainer (name not read) on RUSTBORO CITY GYM: TORCHIC 220");
+  expect(text).toContain("Per page this run: trainer battles 220–220 · wild POKéMON none yet");
+ });
  it("keeps attributing pages after more battle states than it remembers",()=>{
   const block=new TrainingBlock(only({"exp-earned-ledger-v1":true}));
   const battle=states.find(s=>s.in_battle&&s.trainer_opponent?.battle_active!==true&&(s.battle?.battlers?.length??0)>1);

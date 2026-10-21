@@ -196,7 +196,7 @@ land-move *args:
 land-touch *args:
     uv run --project env python -m pokebench_env.agent_mail land-touch "$@"
 
-# LLM-free: sleeps until the number 1 holder's idle deadline and moves it back if still idle.
+# LLM-free: checks the number 1 holder each minute (a git rev-parse, no model) and moves it back once idle.
 land-keeper:
     uv run --project env python -m pokebench_env.agent_mail land-keeper
 

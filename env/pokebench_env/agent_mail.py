@@ -41,7 +41,7 @@ STALE_WAKE_SECONDS = 600.0
 # The landing slot expires when its holder shows no commit or land-touch for this long.
 SLOT_TIMEOUT_MINUTES = 45.0
 # How long land-keeper sleeps when no slot can expire (empty board or a lone holder).
-KEEPER_IDLE_SECONDS = 300.0
+KEEPER_IDLE_SECONDS = 60.0
 
 Run = Callable[[Sequence[str]], int]
 
@@ -80,6 +80,7 @@ class BoardEntry:
     codex_thread: str | None
     queued_at: datetime
     top_since: datetime | None = None
+    top_head: str | None = None
 
 
 @dataclass(frozen=True)
@@ -536,7 +537,10 @@ def read_entries(room: Mailroom) -> list[BoardEntry]:
         if not (top is None or isinstance(top, str)):
             raise ValueError("unreadable landing board")
         top_since = None if top is None else parse_time(top, "unreadable landing board")
-        entries.append(BoardEntry(who, branch, thread, when, top_since))
+        head = item.get("top_head")
+        if not (head is None or isinstance(head, str)):
+            raise ValueError("unreadable landing board")
+        entries.append(BoardEntry(who, branch, thread, when, top_since, head))
     return entries
 
 
@@ -548,6 +552,7 @@ def write_entries(room: Mailroom, entries: list[BoardEntry]) -> None:
             "codex_thread": e.codex_thread,
             "queued_at": e.queued_at.isoformat(),
             "top_since": None if e.top_since is None else e.top_since.isoformat(),
+            "top_head": e.top_head,
         }
         for e in entries
     ]
@@ -577,10 +582,20 @@ def render_board(entries: list[BoardEntry]) -> str:
 
 
 def settle(entries: list[BoardEntry], now: datetime) -> list[BoardEntry]:
-    """Stamp when the first entry reached the top; nobody else holds a stamp."""
+    """Stamp when number 1 started holding others up; nobody else holds a stamp.
+
+    The idle clock only runs while someone waits, so a holder alone on the board has no stamp
+    and gets a fresh one when the first waiter joins.
+    """
+    if len(entries) < 2:
+        return [replace(e, top_since=None, top_head=None) for e in entries]
+    top = entries[0]
+    fresh = top.top_since is None
     return [
-        replace(e, top_since=(e.top_since or now) if i == 0 else None)
-        for i, e in enumerate(entries)
+        replace(
+            top, top_since=now if fresh else top.top_since, top_head=None if fresh else top.top_head
+        ),
+        *(replace(e, top_since=None, top_head=None) for e in entries[1:]),
     ]
 
 
@@ -678,7 +693,7 @@ def board_move(
         return notify_moves(room, before, after, now=now, run=run)
 
 
-LastCommit = Callable[[str], datetime | None]
+BranchHead = Callable[[str], str | None]
 
 
 def slot_timeout() -> timedelta:
@@ -686,33 +701,29 @@ def slot_timeout() -> timedelta:
     return timedelta(minutes=minutes)
 
 
-def git_commit_times(repo: Path) -> LastCommit:
-    """Read a branch's last commit time from git; None when the branch does not exist."""
+def git_branch_heads(repo: Path) -> BranchHead:
+    """Read a branch's head commit from git; None when the branch does not exist.
 
-    def last_commit(branch: str) -> datetime | None:
+    Commit dates are not trusted for activity (a rebase or an old commit can carry any date):
+    the board counts a new head as activity at the moment it first sees it.
+    """
+
+    def head(branch: str) -> str | None:
         result = subprocess.run(
-            ["git", "-C", str(repo), "log", "-1", "--format=%ct", f"refs/heads/{branch}", "--"],
+            ["git", "-C", str(repo), "rev-parse", "--verify", "--quiet", f"refs/heads/{branch}"],
             check=False,
             capture_output=True,
             text=True,
         )
         if result.returncode != 0 or not result.stdout.strip():
             return None
-        return datetime.fromtimestamp(int(result.stdout.strip()), tz=UTC)
+        return result.stdout.strip()
 
-    return last_commit
-
-
-def last_activity(entry: BoardEntry, last_commit: LastCommit) -> datetime:
-    marks = [entry.top_since or entry.queued_at]
-    commit = last_commit(entry.branch)
-    if commit is not None:
-        marks.append(commit)
-    return max(marks)
+    return head
 
 
-def next_deadline(room: Mailroom, *, last_commit: LastCommit, now: datetime) -> datetime | None:
-    """When the current holder's slot expires; None if no one waits behind it.
+def next_deadline(room: Mailroom, *, now: datetime) -> datetime | None:
+    """When the current holder's slot expires unless it shows activity; None if no one waits.
 
     A holder with no stamp yet (a board written before expiry existed) is due for a check at
     once, which stamps it rather than expiring it.
@@ -722,26 +733,38 @@ def next_deadline(room: Mailroom, *, last_commit: LastCommit, now: datetime) -> 
         return None
     if entries[0].top_since is None:
         return now
-    return last_activity(entries[0], last_commit) + slot_timeout()
+    return entries[0].top_since + slot_timeout()
 
 
 def expire_idle_holder(
-    room: Mailroom, *, now: datetime, run: Run, last_commit: LastCommit
+    room: Mailroom, *, now: datetime, run: Run, branch_head: BranchHead
 ) -> list[Notice]:
-    """Move an idle number 1 to the back when others wait, and tell everyone whose place changed."""
+    """Move an idle number 1 to the back when others wait, and tell everyone whose place changed.
+
+    A new commit on the holder's branch since the last check counts as activity now.
+    """
     with room.locked():
         before = read_entries(room)
         if len(before) < 2:
             return []
         holder = before[0]
+        head = branch_head(holder.branch)
         if holder.top_since is None:
             # Unknown time at the top: start its clock now instead of guessing from queued_at.
-            write_entries(room, settle(before, now))
+            write_entries(room, [replace(holder, top_since=now, top_head=head), *before[1:]])
             return []
-        idle = now - last_activity(holder, last_commit)
+        since = holder.top_since
+        if head != holder.top_head:
+            # The first sighting is the baseline; a head that moved after it is activity now.
+            if holder.top_head is not None:
+                since = now
+            holder = replace(holder, top_since=since, top_head=head)
+            before = [holder, *before[1:]]
+            write_entries(room, before)
+        idle = now - since
         if idle < slot_timeout():
             return []
-        after = settle([*before[1:], replace(holder, top_since=None)], now)
+        after = settle([*before[1:], replace(holder, top_since=None, top_head=None)], now)
         write_entries(room, after)
         notices = notify_moves(room, before, after, now=now, run=run)
         why = (
@@ -770,7 +793,7 @@ def land_touch(room: Mailroom, *, branch: str, now: datetime) -> bool:
         if place != 0:
             return False
         entries[0] = replace(entries[0], top_since=now)
-        write_entries(room, entries)
+        write_entries(room, settle(entries, now))
         return True
 
 
@@ -778,26 +801,25 @@ def keep(
     room: Mailroom,
     *,
     run: Run,
-    last_commit: LastCommit,
+    branch_head: BranchHead,
     now: Callable[[], datetime],
     sleep: Callable[[float], None],
     rounds: int | None = None,
 ) -> None:
-    """Sleep until the holder's deadline, then expire it if still idle. No model runs here.
+    """Check the holder at least every KEEPER_IDLE_SECONDS and expire it once idle. No model runs.
 
-    Notices that could not be sent are printed with the command to send them by hand (the
-    keeper's output goes to its log), like every other board command.
+    The short wake keeps a new commit on the holder's branch seen within a minute, and an
+    expiry at most a minute late. Notices that could not be sent are printed with the command
+    to send them by hand (the keeper's output goes to its log), like every other board command.
     """
     done = 0
     while rounds is None or done < rounds:
-        deadline = next_deadline(room, last_commit=last_commit, now=now())
-        if deadline is None:
-            sleep(KEEPER_IDLE_SECONDS)
-        else:
-            wait = (deadline - now()).total_seconds()
-            if wait > 0:
-                sleep(wait)
-            report(expire_idle_holder(room, now=now(), run=run, last_commit=last_commit))
+        report(expire_idle_holder(room, now=now(), run=run, branch_head=branch_head))
+        wait = KEEPER_IDLE_SECONDS
+        deadline = next_deadline(room, now=now())
+        if deadline is not None:
+            wait = min(wait, max((deadline - now()).total_seconds(), 0.0))
+        sleep(wait)
         done += 1
 
 
@@ -940,15 +962,15 @@ def main(argv: Sequence[str] | None = None, *, run: Run = run_command) -> int:
             print(format_session(session))
         return 0
     board_commands = {"land-board", "land-join", "land-done", "land-move", "land-touch"}
-    commits = git_commit_times(repo_root(Path.cwd()))
+    heads = git_branch_heads(repo_root(Path.cwd()))
     expired = 0
     if args.command in board_commands:
-        expired = report(expire_idle_holder(room, now=now, run=run, last_commit=commits))
+        expired = report(expire_idle_holder(room, now=now, run=run, branch_head=heads))
     if args.command == "land-keeper":
         keep(
             room,
             run=run,
-            last_commit=commits,
+            branch_head=heads,
             now=lambda: datetime.now(UTC),
             sleep=time.sleep,
             rounds=args.rounds,
@@ -972,7 +994,7 @@ def main(argv: Sequence[str] | None = None, *, run: Run = run_command) -> int:
         else:
             print(f"You are number {position}. You will be told when it is your turn.")
         print(render_board(read_board(room)))
-        return 0
+        return expired
     if args.command == "land-move":
         notices = board_move(room, branch=args.branch, before_branch=args.before, now=now, run=run)
     else:
@@ -980,7 +1002,7 @@ def main(argv: Sequence[str] | None = None, *, run: Run = run_command) -> int:
         print("Done.")
     code = report(notices)
     print(render_board(read_board(room)))
-    return code
+    return code or expired
 
 
 if __name__ == "__main__":  # pragma: no cover

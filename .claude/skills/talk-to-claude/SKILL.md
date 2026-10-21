@@ -19,7 +19,7 @@ All state lives in the main checkout's `runs/agent-mail/` (gitignored), so it is
 
 While you wait, a message arrives each time your place changes ("you are now number N …"). You do not need to poll the board.
 
-Your slot expires if you are number 1 and show no new commit on your branch and no `just land-touch --branch <your branch>` for 45 minutes while others wait: you are moved to the back and told why. During long gates or reviews, run `just land-touch` now and then.
+Your slot expires if you are number 1 and show no new commit on your branch and no `just land-touch --branch <your branch>` for 45 minutes while others wait (the clock starts when someone queues behind you): you are moved to the back and told why. During long gates or reviews, run `just land-touch` now and then.
 
 Never merge into main while another branch is number 1 on `just land-board`. Never run `just land-move`; ask the user or Claude if you need a different place. Never edit `runs/agent-mail/` files by hand.
 

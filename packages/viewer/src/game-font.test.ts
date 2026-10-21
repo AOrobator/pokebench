@@ -36,4 +36,12 @@ describe("the game font", () => {
     paintGameText(document.body, FONT, sheet(), () => { drawn.push("again"); });
     expect(drawn).toEqual(["8x14:8"]);
   });
+  it("paints only the placeholders a selector picks, so two fonts can share a page", () => {
+    document.body.innerHTML = '<span data-gt="a" data-c="pv-slot" data-f="s">a</span><span data-gt="b" data-c="pv-dark" data-f="n">b</span>';
+    const drawn: string[] = [];
+    paintGameText(document.body, FONT, sheet(), (canvas) => { drawn.push(canvas.closest<HTMLElement>("[data-gt]")?.dataset.gt ?? canvas.parentElement?.dataset.gt ?? "?"); }, '[data-gt][data-f="s"]');
+    expect(document.querySelector('[data-f="s"]')?.getAttribute("data-painted")).toBe("1");
+    expect(document.querySelector('[data-f="n"]')?.getAttribute("data-painted")).toBeNull();
+    expect(drawn).toHaveLength(1);
+  });
 });

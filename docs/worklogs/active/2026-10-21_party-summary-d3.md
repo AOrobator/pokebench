@@ -58,9 +58,9 @@ Scope limits (from the data the runs record today):
 
 **M2 — Party view model and D3 renderer**
 - [x] (fail: module missing) Write tests: gender by ratio, nature, EXP ticks and next level per growth rate, status decode (incl. fainted), HP bar level/width, PP color states, ability shown only when unique, stats `---`, empty/egg/null species, markup for each tab and an open move, escaping
-- [ ] COMMIT: `test(viewer): party view (RED)`
-- [ ] Implement `party-view.ts` and its CSS (from the approved mockup)
-- [ ] Gates (as M1)
+- [x] COMMIT: `test(viewer): party view (RED)` (c468d8a33). Two RED expectations were my own errors and were corrected in GREEN: happy-dom serializes `<` unescaped inside attributes (now asserts no `<b>` element), and EMBER 23/25 is PP state 3, not 0.
+- [x] Implement `party-view.ts` and its CSS (from the approved mockup); `paintGameText` gains an optional selector so the small and normal fonts paint their own spans; party colors added to GAME_TEXT
+- [x] Gates: lint, build; test agent 3248 / viewer 1587 / python 3568; coverage viewer lines 97.96 branches 91.36 functions 94.53, agent 99.2/93.08/97.7, python 97.21/92.92/100
 - [ ] COMMIT: `feat(viewer): POKéMON PARTY page in the game's style (GREEN)`
 
 **M3 — Wire into the PokéNav and verify**

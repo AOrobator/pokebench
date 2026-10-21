@@ -1,5 +1,5 @@
+// @vitest-environment happy-dom
 import { describe, expect, it } from "vitest";
-import { Window } from "happy-dom";
 import {
   abilityOf,
   expProgress,
@@ -58,9 +58,8 @@ const ZIGZAGOON: PartyMon = { species: "ZIGZAGOON", nickname: "ZIG<b>", level: 7
 const FAINTED: PartyMon = { ...ZIGZAGOON, nickname: "DOWN", hp: 0, status: 0 };
 
 function dom(html: string): Document {
-  const doc = new Window().document;
-  doc.body.innerHTML = html;
-  return doc;
+  document.body.innerHTML = html;
+  return document;
 }
 
 describe("parsePartyData", () => {
@@ -167,7 +166,7 @@ describe("partyPage", () => {
     expect(doc.querySelectorAll(".pv-empty")).toHaveLength(3);
     expect(slots[2]?.className).toContain("faint");
     expect(doc.querySelector(".pv-open")?.className).toContain("sel");
-    expect(doc.body.innerHTML).not.toContain("ZIG<b>");
+    expect(doc.querySelector("b")).toBeNull();
     expect(doc.body.textContent).toContain("ZIG<b>");
   });
   it("shows the profile: OT, ID, types, ability and the trainer memo", () => {
@@ -197,7 +196,7 @@ describe("partyPage", () => {
   });
   it("lists moves with PP colors and opens one for its details", () => {
     const closed = dom(partyPage(party, DATA, { slot: 0, tab: 2, move: null }));
-    expect([...closed.querySelectorAll("[data-pv-move]")].map((m) => m.getAttribute("data-pp"))).toEqual(["3", "3", "2", "0"]);
+    expect([...closed.querySelectorAll("[data-pv-move]")].map((m) => m.getAttribute("data-pp"))).toEqual(["3", "3", "2", "3"]);
     expect(closed.querySelector(".pv-mdet")).toBeNull();
     const open = dom(partyPage(party, DATA, { slot: 0, tab: 2, move: 2 }));
     const det = open.querySelector(".pv-mdet")?.textContent ?? "";
@@ -225,6 +224,27 @@ describe("partyPage", () => {
   it("clamps a stale cursor to the party", () => {
     const doc = dom(partyPage([COMBUSKEN], DATA, { slot: 4, tab: 2, move: 3 }));
     expect(doc.querySelector('[data-pv-slot="0"]')?.getAttribute("aria-expanded")).toBe("true");
+  });
+  it("renders sparse or odd records without inventing values", () => {
+    const sparse: PartyMon = { species: "MYSTERY", nickname: null, level: null, hp: null, max_hp: null, species_id: 999, personality: 3, experience: null, ot_name: "MAY", ot_gender: "female", ball: 9, ball_name: null,
+      moves: [{ move_id: 999, name: null, pp: 5, pp_bonus: 0 }, { move_id: 52, name: "EMBER", pp: 25, max_pp: null, pp_bonus: 3 }] };
+    for (const tab of [0, 1, 2] as const) {
+      const doc = dom(partyPage([sparse], DATA, { slot: 0, tab, move: 1 }, "GREEN"));
+      const text = doc.querySelector(".pv-open")?.textContent ?? "";
+      if (tab === 0) { expect(text).toContain("MAY"); expect(doc.querySelectorAll(".pv-open .pv-type")).toHaveLength(0); expect(doc.querySelector(".pv-pball")?.getAttribute("aria-label")).toBe("BALL"); }
+      if (tab === 1) { expect(text).toContain("0/0"); expect(doc.querySelector(".pv-exp")).toBeNull(); }
+      if (tab === 2) {
+        expect(text).toContain("MOVE 999");
+        expect([...doc.querySelectorAll("[data-pv-move]")].map((m) => m.getAttribute("data-pp"))).toEqual(["3", "3"]);
+        expect(text).toContain("/40");
+      }
+    }
+    const poisoned = dom(partyPage([{ ...COMBUSKEN, status: 8 }, { ...ZIGZAGOON, is_egg: true }], DATA, { slot: 0, tab: 1, move: null }));
+    expect(poisoned.querySelector('.pv-open [aria-label="PSN"]')).not.toBeNull();
+    expect(poisoned.querySelector('[data-pv-slot="1"] .hpbar')).toBeNull();
+    const fainted = dom(partyPage([FAINTED], DATA, { slot: 0, tab: 0, move: null }));
+    expect(fainted.querySelector(".pv-open")?.className).toContain("faint");
+    expect(dom(partyPage([{ ...COMBUSKEN, moves: null }], DATA, { slot: 0, tab: 2, move: 0 })).querySelectorAll("[data-pv-move]")).toHaveLength(0);
   });
   it("says so when the party is empty", () => {
     expect(partyPage([], DATA, { slot: 0, tab: 0, move: null })).toContain("no Pokémon yet");

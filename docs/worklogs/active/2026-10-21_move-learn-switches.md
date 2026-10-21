@@ -78,8 +78,8 @@ No new inputs, subprocesses, network or file access. Reads only ROM tables and w
 - [x] Explainers ×5 (`docs/explainers/<id>.html`, README lines) + FEATURE_EXPLAINERS; panels/server tests per id; `just pages-check` clean; copied to main runs/mockups/<id>/, each 200 on 127.0.0.1:8791; question and goals pages opened in the browser. Registry copy for J2/J3 corrected to match the code (explainer agent caught the mismatch).
 - [x] Delete-the-guard receipts: 16 guards deleted one at a time, each red, each restored (serve hook 1 fail; INPUT_STATES 2; waiting-text 1; readout wiring 11; comparison gate 9; question gate 4; rerender read gate 5; settle motion 4; J2 player-only 5; J2 single-foe 1; J2 same-battle-turn 1; J2 switch 1; J3 switch 1; J3 open filter 1; J3 decision-screen gate 1; play-wiring 1). Receipt: runs/move-learn-switches/mutations.txt (ignored).
 - [x] Second sync: merged local main ec8f514b (navigation-refusal-reasons-v3, story-battle-heal-first-v1, pending-field-dialogue-v1); registry and fixed definitions re-applied on main's versions; story-battle-heal-first-v1 and pending-field-dialogue-v1 experiment incumbents declare the five ids (false). Gates: lint ok, build ok, agent 3246 (97.26/93.08/97.7/99.2), viewer 1532, pytest 3560 (97.25/92.95/100); fixed-cli check exit 0 on all three.
-- [ ] Cloud review (Claude, Grok) LGTM on frozen packet
-- [ ] Coordinator slot, ff-only merge, `just viewer-main` per coordinator
+- [x] Cloud review LGTM on the frozen packet 43da67e7..c9a77874 (sha256 c5eecbf9…): Grok (cursor-grok-4.5-high) round 2 LGTM; Claude lane as a read-only Claude subagent (Claude CLI OAuth expired, Cursor Opus usage-capped; The operator's standing rule that a Claude subagent satisfies the lane) LGTM, packet hash verified before and after, tests re-run read-only.
+- [x] Coordinator slot; landed `git merge --ff-only` at c9a77874 (main = the reviewed tree). `just viewer-main`: viewer at c9a77874, 2 live gameplay processes kept. Live: /explainers/<id>.html 200 for all five on 8790; Harness Config shows the MOVE-LEARN QUESTION card with "Read explainer" → /explainers/move-learn-question-v1.html. Pending experiments repinned to the landing commit.
 
 ## Closing the Loop
 
@@ -99,6 +99,12 @@ No new inputs, subprocesses, network or file access. Reads only ROM tables and w
 
 - Round 1 (packet ec8f514b..e9b124e2, sha256 7c4d403a…): Grok (cursor-grok-4.5-high) BLOCKING on one finding: `archived()` in test_move_learn.py reloaded and re-hashed each raw archive per call; accepted, cached with @cache (fix delta). Hardening notes: unused PARTY constant removed (accepted); a waiter that starts on move_learning keeps its 600-frame bound if a fade follows (deferred: the YES path's fade to the summary screen must not release early, so upgrading to the 146-frame fade bound would be wrong; noted); no trade-scene raw fixture (deferred: no trade evolution in any recorded run; trade pairs covered by question_kind tests). Claude CLI lane: ~/.claude-review and default login both returned "OAuth session expired"; switching to the Cursor Claude harness (standing-authorized).
 - Third sync: merged local main a38c8b72 (whole-map pair v8, card art) cleanly; gates: lint ok, build ok, agent 3246, viewer 1535, pytest 3560, coverage unchanged.
+
+## Follow-ups (from the Claude lane's hardening notes; not blocking)
+
+- F2/J1 evolution path takes the new move from active_ui details, which read gMoveToLearn at the right address only with evolution-decision-v1 on (on in both arms of every bundle). Read MOVE_TO_LEARN directly, or declare the dependency.
+- The five pending incumbents were built from the bundle arm before the second sync and miss seven newer ids; refresh when they are repinned for the queue.
+- J3 on a gym map shows the leader's seen POKéMON even when the open battle is against an ordinary gym trainer.
 
 ## Boy Scout Log
 

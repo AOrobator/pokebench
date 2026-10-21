@@ -8,7 +8,7 @@
  "primaryMilestone": "ROXANNE_DEFEATED",
  "source": {
   "checkout": "main",
-  "commit": "7345f8d0020487cccc1550f510691a9f40c4a6d6"
+  "commit": "c9a7787495ed768a546b9a7bf790afc908fcafd9"
  },
  "incumbent": {
   "version": 2,
@@ -209,5 +209,5 @@
   "window": 4,
   "minReached": 3
  },
- "notes": "Pending and not queued. The incumbent is the bundle arm of bundle-v-control with only this switch off. The candidate flips only move-learn-question-v1 (bundle arm only, default off; The operator 2026-10-21). Activation is PETALBURG_WOODS: the first replace-a-move prompt comes around PETALBURG WOODS and RUSTBORO CITY. Evidence: run 2026-10-20T20-26-22_qwen36-gpu1_97a0 pressed B for 100+ turns from turn 779 on COMBUSKEN's DOUBLE KICK prompts (every press result captured mid-print, the YES/NO box never shown; B answered NO to both questions), the same loop on PECK in battle at turns 755-769, and EMBER used on ROXANNE's GEODUDE at turns 715-716 after \"It's not very effective…\". source.commit is the branch head until landing fills the merge SHA."
+ "notes": "Pending and not queued. The incumbent is the bundle arm of bundle-v-control with only this switch off. The candidate flips only move-learn-question-v1 (bundle arm only, default off; The operator 2026-10-21). Activation is PETALBURG_WOODS: the first replace-a-move prompt comes around PETALBURG WOODS and RUSTBORO CITY. Evidence: run 2026-10-20T20-26-22_qwen36-gpu1_97a0 pressed B for 100+ turns from turn 779 on COMBUSKEN's DOUBLE KICK prompts (every press result captured mid-print, the YES/NO box never shown; B answered NO to both questions), the same loop on PECK in battle at turns 755-769, and EMBER used on ROXANNE's GEODUDE at turns 715-716 after \"It's not very effective…\". source.commit is the landing merge."
 }

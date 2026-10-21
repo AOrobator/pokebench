@@ -10,7 +10,8 @@ The operator wants every new feature and switch explained with diagrams, not pro
 ## Where it goes
 
 - One file per feature: `docs/explainers/<feature-or-switch-id>.html`, tracked in Git alongside the feature. Add it to `docs/explainers/README.md`. Do not keep the only copy in ignored `runs/` or a temporary directory.
-- Self-contained: inline CSS and inline SVG only. Zero network requests: no web fonts, CDNs, images by URL or scripts from elsewhere. Use system font stacks.
+- Self-contained: inline CSS and inline SVG only. Zero network requests: no web fonts, CDNs, images by URL or scripts from elsewhere. Use system font stacks in the page's own CSS.
+- Pokémon themed: after writing the page, run `just pages-theme docs/explainers/<id>.html`. It inlines the Emerald PokéNav theme (`docs/design/emerald-pages.css`, with the pixel font as a data URI) and pins the light palette. Use `main`, `h1`–`h4`, `.card`, `.kpi`, `table` and `details` so the theme frames them; no solid side-stripe accents.
 - Never publish it as a claude.ai artifact or any hosted link. Everything stays local.
 - Run `just pages-check docs/explainers/<id>.html`; it must print nothing.
 - Report it as a local link, never a cloud copy: `[<Feature> explainer](http://127.0.0.1:8791/explainers/<id>.html)`. `just pages` serves `docs/explainers/` of the main checkout there. Before the merge, when the page exists only in a worktree, copy it to `runs/mockups/<id>/<id>.html` in the main checkout and link `http://127.0.0.1:8791/<id>/<id>.html`. Check the link returns 200 before sending.

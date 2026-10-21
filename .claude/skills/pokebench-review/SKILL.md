@@ -75,7 +75,7 @@ Then the four persona sections, then the synthesis from step 4.
 ### Where it goes
 
 - A short review (about fifteen lines or less) can go straight in chat.
-- Anything longer is a self-contained local HTML file at `runs/reviews/<YYYY-MM-DD>-<slug>.html` in the main checkout, which is `$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")/runs/reviews/` from any worktree. `runs/` is gitignored, so nothing untracked lands in tracked directories. Use this layout: frontier tiles, a verdict box with all four verdicts, one block per persona, the disagreements, then the synthesis, with light and dark themes and no external assets. `runs/reviews/2026-10-13-perspectives.html` is an example if it exists locally.
+- Anything longer is a self-contained local HTML file at `runs/reviews/<YYYY-MM-DD>-<slug>.html` in the main checkout, which is `$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")/runs/reviews/` from any worktree. `runs/` is gitignored, so nothing untracked lands in tracked directories. Use this layout: frontier tiles, a verdict box with all four verdicts, one block per persona, the disagreements, then the synthesis, with no external assets, themed with `just pages-theme <file>` (the Emerald PokéNav theme, CLAUDE.md "Explainers"). `runs/reviews/2026-10-13-perspectives.html` is an example if it exists locally.
 - Run `just pages-check` on it, then link it as `[<Title>](http://127.0.0.1:8791/reviews/<YYYY-MM-DD>-<slug>.html)`, served by `just pages`, after checking it returns 200. Never send it with `SendUserFile`, link `/mnt/project-files` or list it in `attached_outputs`. A local `open` command may follow as a fallback, never alone. Never publish it as a claude.ai artifact.
 
 ## 6. Check yourself before sending

@@ -80,6 +80,7 @@ The operator: the green fill shows the white bar above and below it; the HP tag 
 - [x] RED: style-css.test.ts asserts tag and frame are the bar's full height, the tag ends where the frame starts, and the track fills the whole white interior
 - [x] GREEN: `.pv-hp` 7u tall; tag 15u x 7u showing art rows 2-8 and columns 0-14; frame from 15u, top 0; track inset 1u on all sides so the fill covers the 5 white rows. Gates: lint, build; coverage agent 3281 tests 99.2/93.1/97.71, viewer 1600 tests 97.9/91.33/94.33, python 3583 tests 97.23/92.97/100.
 - [x] Review round 1 (packet 28ab3218..7d9ff1a0, sha256 760a3f92…8d08): Claude LGTM (follow-up: tag column 14 is the bar's dark left border, so a frame at 15u doubles it); Grok LGTM; GPT BLOCKING: the geometry test only checked relations, so a wrong crop or uniformly wrong sizes passed. Both taken: RED pins exact numbers and the crop, frame moves to 14u under the tag's last column.
+- [x] GREEN: frame at 14u under the tag's dark last column (1u left border like the other sides), track from 15u. Gates: lint, build; coverage agent 3281 tests 99.2/93.11/97.71, viewer 1600 tests 97.9/91.32/94.33, python 3583 tests 97.23/92.97/100.
 
 ## Closing the Loop
 

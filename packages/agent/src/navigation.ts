@@ -10,7 +10,8 @@ import {edgeNote} from "./connection-edges.js";
 import {exitBlock,type ReachSwitches} from "./surf-gate.js";
 import {BlackoutCarry} from "./blackout-receipt.js";
 import {STRIDE_MAX_TILES,resultStride,type StrideCorridor} from "./stride.js";
-import {CONFIRM_ARG,CONFIRM_DESCRIPTION,SIGHT_STATUS,SIGHT_TOOL_SENTENCE,seenTrainers,sightText,type SightOutcome,type SightSeen,type TrainerSightPorts} from "./trainer-sight.js";
+import {CONFIRM_ARG,CONFIRM_DESCRIPTION,SIGHT_STATUS,SIGHT_TOOL_SENTENCE,sightText,type SightOutcome,type SightSeen,type TrainerSightPorts} from "./trainer-sight.js";
+import {GATE_CONFIRM,GATE_CONFIRM_DESCRIPTION,GATE_STATUS,GATE_TOOL_SENTENCE,askSight,harnessCall,type SightAnswer,type StoryBattleHealGate} from "./story-battle-heal-gate.js";
 
 type Point={readonly x:number;readonly y:number};
 type Tile={readonly collision:number;readonly behavior:number;readonly elevation:number};
@@ -554,7 +555,7 @@ const DeterministicRunningArgs=Type.Object({x:Args.properties.x,y:Args.propertie
 const Confirm=Type.Optional(Type.Boolean({description:CONFIRM_DESCRIPTION}));
 const SightArgs=Type.Object({...Args.properties,[CONFIRM_ARG]:Confirm},{additionalProperties:false});
 const SightRunningArgs=Type.Object({...DeterministicRunningArgs.properties,[CONFIRM_ARG]:Confirm},{additionalProperties:false});
-type Goal={readonly x:number;readonly y:number;readonly map_id:readonly [number,number];readonly walking?:boolean;readonly confirm_trainer_sight?:boolean};
+type Goal={readonly x:number;readonly y:number;readonly map_id:readonly [number,number];readonly walking?:boolean;readonly confirm_trainer_sight?:boolean;readonly confirm?:boolean};
 export type NavigationStopCheck=(state:GameStateSnapshot)=>string|null;
 export interface CheckedNavigationOptions {readonly exactTarget?:boolean;readonly multiTileRunning?:boolean}
 export type CheckedNavigationTool=AgentTool<typeof Args>&{readonly executeChecked:(id:string,goal:{readonly x:number;readonly y:number;readonly map_id:readonly [number,number];readonly walking?:boolean},check:NavigationStopCheck,signal?:AbortSignal,options?:CheckedNavigationOptions)=>Promise<AgentToolResult<unknown>>};
@@ -606,6 +607,9 @@ export interface NavigationPorts {
  readonly alreadyHere?:boolean;
  // trainer-sight-check-v1: the model's own call checks its first planned route against unbeaten trainers' sight.
  readonly trainerSight?:TrainerSightPorts|undefined;
+ // story-battle-heal-gate-v1: the model's own call is not started when its first planned route would start a trainer
+ // battle it cannot run from while the party is not at full HP.
+ readonly healGate?:StoryBattleHealGate|undefined;
 }
 function resultState(result:AgentToolResult<unknown>):GameStateSnapshot {
  const details=result.details;
@@ -648,23 +652,36 @@ export function planStride(state:GameStateSnapshot,path:readonly Direction[],opt
 }
 // trainer-sight-check-v1: asks the game server which planned tiles an unbeaten trainer can see and records the check.
 // Returns the refusal text, or null to walk (clear, confirmed, or a check the server could not make).
-async function checkSight(sight:TrainerSightPorts,id:string,goal:Goal,state:GameStateSnapshot,path:readonly Direction[],options:NavigationOptions,signal?:AbortSignal):Promise<string|null> {
+// answer: the server's reply already fetched for story-battle-heal-gate-v1 (one request serves both); gateConfirmed: the
+// model confirmed a gate refusal that listed these sightings.
+async function checkSight(sight:TrainerSightPorts,id:string,goal:Goal,state:GameStateSnapshot,path:readonly Direction[],options:NavigationOptions,signal?:AbortSignal,answer:SightAnswer|null=null,gateConfirmed=false):Promise<string|null> {
  const origin=state.position,map=state.map_id,tiles=routeTiles(state,path,options);
  if(origin===null||map===null||tiles===null)return null;
- const confirmed=goal.confirm_trainer_sight===true;
- let outcome:SightOutcome,reason:string|null=null,seen:SightSeen[]=[],text:string|null=null;
- try {
-  const reply=await sight.check(map,tiles,signal);
-  if(!reply.available){outcome="unavailable";reason=reply.reason;}
-  else if(reply.map_id[0]!==map[0]||reply.map_id[1]!==map[1]){outcome="unavailable";reason=`the check read map ${String(reply.map_id[0])}/${String(reply.map_id[1])}`;}
-  else {seen=seenTrainers(reply,state);outcome=seen.length===0?"clear":confirmed?"confirmed":"refused";}
- } catch(error){
-  signal?.throwIfAborted();
-  outcome="unavailable";const said=error instanceof Error?error.message:String(error);reason=said===""?"the trainer sight request failed with no message":said;
- }
+ const confirmed=goal.confirm_trainer_sight===true||gateConfirmed;
+ const asked=answer??await askSight(sight.check,state,map,tiles,signal);
+ const reason:string|null="reason" in asked?asked.reason:null,seen:SightSeen[]="seen" in asked?[...asked.seen]:[];
+ const outcome:SightOutcome=reason!==null?"unavailable":seen.length===0?"clear":confirmed?"confirmed":"refused";
+ let text:string|null=null;
  if(outcome==="refused")text=sightText(seen,origin,{x:goal.x,y:goal.y},tiles.length,state);
  sight.record({tool_call_id:id,map_id:[map[0],map[1]],origin:{x:origin.x,y:origin.y},goal:{x:goal.x,y:goal.y},route_tiles:tiles.length,confirmed,outcome,reason,sightings:seen,text});
  return text;
+}
+// trainer-sight-check-v1 and story-battle-heal-gate-v1 on the model's first planned route. The gate decides first when it
+// is engaged; its refusal is the only one (it lists every sighting trainer-sight would), and its confirm also confirms
+// those. Otherwise trainer-sight acts alone, as before.
+async function checkRoute(sight:TrainerSightPorts|undefined,gate:StoryBattleHealGate|undefined,id:string,goal:Goal,state:GameStateSnapshot,path:readonly Direction[],options:NavigationOptions,signal?:AbortSignal):Promise<{readonly status:string;readonly text:string}|null> {
+ const alone=async(answer:SightAnswer|null,gateConfirmed:boolean):Promise<{readonly status:string;readonly text:string}|null>=>{
+  if(sight===undefined)return null;
+  const text=await checkSight(sight,id,goal,state,path,options,signal,answer,gateConfirmed);
+  return text===null?null:{status:SIGHT_STATUS,text};
+ };
+ const origin=state.position,map=state.map_id,tiles=routeTiles(state,path,options);
+ const engaged=gate===undefined||harnessCall(id)||origin===null||map===null||tiles===null?null:await gate.engaged(state);
+ if(gate===undefined||engaged===null||origin===null||map===null||tiles===null)return alone(null,false);
+ const answer=sight!==undefined||engaged.gym?await askSight(sight?.check??gate.check,state,map,tiles,signal):null;
+ const verdict=await gate.route(id,state,engaged,goal.confirm===true,origin,path,tiles,answer,sight!==undefined);
+ if(verdict.text!==null)return {status:GATE_STATUS,text:verdict.text};
+ return alone(answer,verdict.outcome==="confirmed");
 }
 export function navigationTool(ports:NavigationPorts):CheckedNavigationTool {
  const mode:NavigationMode=ports.fullMap===true?"full":ports.visitedTerrain===true?"visited":"local",truth=ports.truth===true;
@@ -677,8 +694,9 @@ export function navigationTool(ports:NavigationPorts):CheckedNavigationTool {
  const strideDescription=ports.safeStrides===true?`${described.replace("Maximum 8 ordinary button attempts", "Maximum 8 planned route steps")} Straight plain-floor corridors use explicit strides of at most 8 tiles, validated against native movement before each step. Strides stop before turns, grass, ledges, warps, objects, script coordinates and elevation changes; special steps walk without automatic running.`:described;
  const targeted=ports.semanticTargets===true?strideDescription.replace(NAVIGATE_RULES,SEMANTIC_NAVIGATE_RULES):strideDescription;
  const navigationDescription=ports.navigateFirst===true?`${ports.semanticTargets===true?SEMANTIC_NAVIGATE_DESCRIPTION:NAVIGATE_FIRST_DESCRIPTION} ${targeted}${mode==="local"?COMMAND_LIMIT_HINT:""}`:targeted;
- const sight=ports.trainerSight;
- const description=sight===undefined?navigationDescription:`${navigationDescription} ${SIGHT_TOOL_SENTENCE}`;
+ const sight=ports.trainerSight,healGate=ports.healGate;
+ const sighted=sight===undefined?navigationDescription:`${navigationDescription} ${SIGHT_TOOL_SENTENCE}`;
+ const description=healGate===undefined?sighted:`${sighted} ${GATE_TOOL_SENTENCE}`;
  const execute=async(id:string,goal:Goal,signal?:AbortSignal,stop?:NavigationStopCheck,checkedOptions:CheckedNavigationOptions={}):Promise<AgentToolResult<unknown>>=>{
   signal?.throwIfAborted();await ports.gate?.(signal);signal?.throwIfAborted();
   let state=await ports.read(signal),commands=0,status="command limit",last:AgentToolResult<unknown>|undefined,stopRequested=false;
@@ -730,10 +748,10 @@ export function navigationTool(ports:NavigationPorts):CheckedNavigationTool {
     status=ports.alreadyHere===true&&stop===undefined&&checkedOptions.exactTarget!==true&&commands===0&&state.position!==null&&samePoint(state.position,goal)?`you are already standing on ${at(goal)}, the coordinate you asked for, so no movement was needed`:"arrived at requested coordinate";break;
    }
    // trainer-sight-check-v1: the model's own call, once, on the route it first plans.
-   if(sight!==undefined&&stop===undefined&&!sightChecked){
+   if((sight!==undefined||healGate!==undefined)&&stop===undefined&&!sightChecked){
     sightChecked=true;
-    const refused=await checkSight(sight,id,goal,state,path,options,signal);
-    if(refused!==null){status=SIGHT_STATUS;sightParts.push(refused);break;}
+    const refused=await checkRoute(sight,healGate,id,goal,state,path,options,signal);
+    if(refused!==null){status=refused.status;sightParts.push(refused.text);break;}
    }
    if(mode!=="local"){if(path.length<shortest){shortest=path.length;stalled=0;}else if(++stalled>=NO_PROGRESS_PRESSES){status="route not converging; inspect obstacles and choose another approach";break;}}
    const planned=state,previousFacing=state.facing; const before=state.position;if(before===null)throw new Error("Navigation position unavailable");
@@ -789,7 +807,8 @@ export function navigationTool(ports:NavigationPorts):CheckedNavigationTool {
   const notices=blackout.missingNotices(last.content.flatMap(part=>part.type==="text"?[part.text]:[]));
   return {content:[{type:"text",text:`Navigation: ${status}; ${String(commands)} ${ports.safeStrides===true?"bounded movement actions":"ordinary button attempts"}.`},...sightParts.map(text=>({type:"text" as const,text})),...strideReceipts.map(text=>({type:"text" as const,text})),...notices.map(text=>({type:"text" as const,text})),...last.content],details:{state,navigation:{status,commands,target:goal,...(stop===undefined?{}:{stop_requested:stopRequested,goal_entry_attempted:goalEntryAttempted,goal_entry_activation:goalEntryActivation}),...(ports.deterministicWarps===true?{selected_target:selectedTarget,...(stop===undefined?{}:{activation_attempted:directionalWarpAttempted})}:{}),unready}}};
  };
- const parameters=sight===undefined?(ports.automaticRunning===true?DeterministicRunningArgs:Args):ports.automaticRunning===true?SightRunningArgs:SightArgs;
+ const sightParameters=sight===undefined?(ports.automaticRunning===true?DeterministicRunningArgs:Args):ports.automaticRunning===true?SightRunningArgs:SightArgs;
+ const parameters=healGate===undefined?sightParameters:Type.Object({...sightParameters.properties,[GATE_CONFIRM]:Type.Optional(Type.Boolean({description:GATE_CONFIRM_DESCRIPTION}))},{additionalProperties:false});
  return {name:"navigate_to",label:"Walk to a coordinate",description,parameters:parameters as typeof Args,execute:(id,goal,signal)=>execute(id,goal,signal),executeChecked:(id,goal,check,signal,options)=>execute(id,goal,signal,check,options)};
 }
 
@@ -800,10 +819,11 @@ export function plannedArrivalElevation(state:GameStateSnapshot,goal:Point,optio
 
 
 // Reuse the actual ordinary tools, including objective guards and recorder hooks.
-export function withNavigation(base:readonly AgentTool[],features:FeatureSet,state:StateSource,gate?:NavigationPorts["gate"],sight?:TrainerSightPorts):AgentTool[] {
+export function withNavigation(base:readonly AgentTool[],features:FeatureSet,state:StateSource,gate?:NavigationPorts["gate"],sight?:TrainerSightPorts,healGate?:StoryBattleHealGate):AgentTool[] {
  const tools=[...base];if(!features["bounded-navigation-v1"])return tools;
  if(features["trainer-sight-check-v1"]&&sight===undefined)throw new Error("trainer-sight-check-v1 needs the trainer sight check and its recorder");
+ if(features["story-battle-heal-gate-v1"]&&healGate===undefined)throw new Error("story-battle-heal-gate-v1 needs the gate");
  const press=base.find(tool=>tool.name==="press"),observe=base.find(tool=>tool.name==="observe");
  if(press===undefined||observe===undefined||!isCheckedPress(press))throw new Error("Navigation requires ordinary game tools");
- tools.push(navigationTool({semanticTargets:features["semantic-navigation-v2"],safeStrides:features["safe-navigation-strides-v1"],automaticRunning:features["automatic-running-v1"],ledges:features["ledge-hops-v1"],oneWay:features["one-way-tiles-v1"],grassCost:features["grass-cost-navigation-v1"],counters:features["counter-talk-v1"],refusalReasons:features["navigation-refusal-reasons-v1"],connectionEdges:features["connection-edge-tiles-v1"],truth:features["navigation-truth-v1"],triggers:features["coordinate-script-conditions-v1"],windowReasons:features["navigation-refusal-reasons-v2"],floor:features["walkable-floor-v1"],elevation:features["elevation-transitions-v1"]?"game":"legacy",navigateFirst:features["navigate-first-prompt-v1"],crossMapGoal:features["cross-map-goal-v1"],exitReach:features["exit-reachability-v1"],surfGate:features["surf-gated-exits-v1"],fieldMoveGates:features["field-move-gates-v1"],deterministicWarps:features["deterministic-warp-navigation-v1"],alreadyHere:features["navigate-already-here-v1"],read:signal=>state.read(signal),press:(id,params,signal,check,options)=>check===undefined?press.execute(id,params,signal):press.executeChecked(id,params,check,signal,undefined,options),observe:(id,signal)=>observe.execute(id,{},signal),gate,fullMap:features["full-map-navigation-v1"],visitedTerrain:features["visited-terrain-navigation-v1"],...(features["trainer-sight-check-v1"]?{trainerSight:sight}:{})}));return tools;
+ tools.push(navigationTool({semanticTargets:features["semantic-navigation-v2"],safeStrides:features["safe-navigation-strides-v1"],automaticRunning:features["automatic-running-v1"],ledges:features["ledge-hops-v1"],oneWay:features["one-way-tiles-v1"],grassCost:features["grass-cost-navigation-v1"],counters:features["counter-talk-v1"],refusalReasons:features["navigation-refusal-reasons-v1"],connectionEdges:features["connection-edge-tiles-v1"],truth:features["navigation-truth-v1"],triggers:features["coordinate-script-conditions-v1"],windowReasons:features["navigation-refusal-reasons-v2"],floor:features["walkable-floor-v1"],elevation:features["elevation-transitions-v1"]?"game":"legacy",navigateFirst:features["navigate-first-prompt-v1"],crossMapGoal:features["cross-map-goal-v1"],exitReach:features["exit-reachability-v1"],surfGate:features["surf-gated-exits-v1"],fieldMoveGates:features["field-move-gates-v1"],deterministicWarps:features["deterministic-warp-navigation-v1"],alreadyHere:features["navigate-already-here-v1"],read:signal=>state.read(signal),press:(id,params,signal,check,options)=>check===undefined?press.execute(id,params,signal):press.executeChecked(id,params,check,signal,undefined,options),observe:(id,signal)=>observe.execute(id,{},signal),gate,fullMap:features["full-map-navigation-v1"],visitedTerrain:features["visited-terrain-navigation-v1"],...(features["trainer-sight-check-v1"]?{trainerSight:sight}:{}),...(features["story-battle-heal-gate-v1"]?{healGate}:{})}));return tools;
 }

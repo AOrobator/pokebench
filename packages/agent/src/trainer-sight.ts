@@ -69,7 +69,7 @@ const partyText=(state:GameStateSnapshot):string=>{
  return mons.length===0?"Your party: none.":`Your party: ${mons.map(m=>`${m.species??"unknown"} ${m.hp==null?"?":String(m.hp)}/${m.max_hp==null?"?":String(m.max_hp)} HP`).join(", ")}.`;
 };
 
-function trainerLine(s:SightSeen,steps:number):string {
+export function trainerLine(s:SightSeen,steps:number):string {
  const where=s.loaded?"loaded, its tile now":"not loaded; where the map places it, it may have moved";
  const pose=s.from.x===s.x&&s.from.y===s.y&&s.seen_facing===s.facing?"":` when it faces ${s.seen_facing} from ${at(s.from)}`;
  return `- object ${String(s.local_id)}, sprite ${s.sprite_kind??"unknown"} at ${at(s)} (${where}), facing ${s.facing}, sight ${String(s.sight)} tile${s.sight===1?"":"s"}: it can see ${at(s.tile)}${pose}, step ${String(s.step)} of ${String(steps)} on the route.`;

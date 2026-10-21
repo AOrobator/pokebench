@@ -5,7 +5,7 @@ import { clockParts, parseCardArt, type CardArt, type CardInput } from "./traine
 
 export interface LoadedArt { readonly art: CardArt; readonly font: GameFont | null; readonly glyphs: GlyphSheet | null }
 
-// Null when the art was never built (`just trainer-card-art`); the page then keeps its older look. A font or
+// Null when the art was never built (`just trainer-card-art`). A font or
 // glyph sheet that fails to load leaves the cards with plain text.
 export async function loadCardArt(fetchJson: (url: string) => Promise<unknown>, loadGlyphSheet?: (url: string) => Promise<GlyphSheet | null>): Promise<LoadedArt | null> {
   let art: CardArt | null;

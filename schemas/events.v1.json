@@ -3943,6 +3943,380 @@
         "t",
         "turn",
         "type",
+        "tool_call_id",
+        "tool",
+        "map_id",
+        "confirmed",
+        "outcome",
+        "reason",
+        "reached",
+        "sightings",
+        "hurt",
+        "heal",
+        "text"
+      ],
+      "properties": {
+        "v": {
+          "type": "number",
+          "const": 1
+        },
+        "run": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "t": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}-0[45]:00$"
+        },
+        "turn": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "type": {
+          "type": "string",
+          "const": "story_battle_heal_gate"
+        },
+        "tool_call_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "tool": {
+          "enum": [
+            "navigate_to",
+            "navigate_to_target",
+            "press"
+          ]
+        },
+        "map_id": {
+          "type": "array",
+          "additionalItems": false,
+          "items": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "integer"
+            }
+          ],
+          "minItems": 2
+        },
+        "confirmed": {
+          "type": "boolean"
+        },
+        "outcome": {
+          "enum": [
+            "refused",
+            "confirmed",
+            "clear",
+            "unavailable"
+          ]
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "reached": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "kind",
+              "name",
+              "local_id",
+              "sprite_kind",
+              "x",
+              "y",
+              "loaded",
+              "via",
+              "tile"
+            ],
+            "properties": {
+              "kind": {
+                "enum": [
+                  "rival",
+                  "gym_leader",
+                  "gym_trainer"
+                ]
+              },
+              "name": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "local_id": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "sprite_kind": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "x": {
+                "type": "integer"
+              },
+              "y": {
+                "type": "integer"
+              },
+              "loaded": {
+                "type": "boolean"
+              },
+              "via": {
+                "enum": [
+                  "talk",
+                  "approach"
+                ]
+              },
+              "tile": {
+                "type": "object",
+                "required": [
+                  "x",
+                  "y"
+                ],
+                "properties": {
+                  "x": {
+                    "type": "integer"
+                  },
+                  "y": {
+                    "type": "integer"
+                  }
+                },
+                "additionalProperties": false
+              }
+            },
+            "additionalProperties": false
+          },
+          "maxItems": 1
+        },
+        "sightings": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "local_id",
+              "sprite_kind",
+              "trainer_id",
+              "x",
+              "y",
+              "facing",
+              "sight",
+              "loaded",
+              "step",
+              "tile",
+              "from",
+              "seen_facing"
+            ],
+            "properties": {
+              "local_id": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "sprite_kind": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "trainer_id": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "x": {
+                "type": "integer"
+              },
+              "y": {
+                "type": "integer"
+              },
+              "facing": {
+                "enum": [
+                  "DOWN",
+                  "UP",
+                  "LEFT",
+                  "RIGHT"
+                ]
+              },
+              "sight": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "loaded": {
+                "type": "boolean"
+              },
+              "step": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "tile": {
+                "type": "object",
+                "required": [
+                  "x",
+                  "y"
+                ],
+                "properties": {
+                  "x": {
+                    "type": "integer"
+                  },
+                  "y": {
+                    "type": "integer"
+                  }
+                },
+                "additionalProperties": false
+              },
+              "from": {
+                "type": "object",
+                "required": [
+                  "x",
+                  "y"
+                ],
+                "properties": {
+                  "x": {
+                    "type": "integer"
+                  },
+                  "y": {
+                    "type": "integer"
+                  }
+                },
+                "additionalProperties": false
+              },
+              "seen_facing": {
+                "enum": [
+                  "DOWN",
+                  "UP",
+                  "LEFT",
+                  "RIGHT"
+                ]
+              }
+            },
+            "additionalProperties": false
+          },
+          "maxItems": 64
+        },
+        "hurt": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "species",
+              "hp",
+              "max_hp"
+            ],
+            "properties": {
+              "species": {
+                "type": "string",
+                "minLength": 1
+              },
+              "hp": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "max_hp": {
+                "type": "integer",
+                "minimum": 1
+              }
+            },
+            "additionalProperties": false
+          },
+          "minItems": 1,
+          "maxItems": 6
+        },
+        "heal": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "kind",
+              "town",
+              "map_id",
+              "hops",
+              "shown"
+            ],
+            "properties": {
+              "kind": {
+                "enum": [
+                  "pokemon_center",
+                  "home"
+                ]
+              },
+              "town": {
+                "type": "string",
+                "minLength": 1
+              },
+              "map_id": {
+                "type": "array",
+                "additionalItems": false,
+                "items": [
+                  {
+                    "type": "integer"
+                  },
+                  {
+                    "type": "integer"
+                  }
+                ],
+                "minItems": 2
+              },
+              "hops": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "shown": {
+                "type": "boolean"
+              }
+            },
+            "additionalProperties": false
+          },
+          "maxItems": 64
+        },
+        "text": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "v",
+        "run",
+        "seq",
+        "t",
+        "turn",
+        "type",
         "trigger",
         "repeats",
         "outcome",

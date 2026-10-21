@@ -292,6 +292,24 @@ const TrainerSightCheckEvent = event("trainer_sight_check", {
   text: Type.Union([Type.String({ minLength: 1 }), Type.Null()]),
 });
 
+// story-battle-heal-gate-v1: one checked press with A, navigate_to_target to an object or navigate_to while the gate is
+// engaged (free field, a party Pokémon below max HP, a covered unbeaten opponent on the map): what it found and the outcome.
+const GateOpponentFields = {
+  kind: Type.Enum(["rival", "gym_leader", "gym_trainer"] as const), name: Type.Union([Type.String({ minLength: 1 }), Type.Null()]), local_id: NonNegativeInt,
+  sprite_kind: Type.Union([Type.String({ minLength: 1 }), Type.Null()]), x: Type.Integer(), y: Type.Integer(), loaded: Type.Boolean(),
+};
+const StoryBattleHealGateEvent = event("story_battle_heal_gate", {
+  tool_call_id: Type.String({ minLength: 1 }), tool: Type.Enum(["navigate_to", "navigate_to_target", "press"] as const),
+  map_id: Type.Tuple([Type.Integer(), Type.Integer()]), confirmed: Type.Boolean(),
+  outcome: Type.Enum(["refused", "confirmed", "clear", "unavailable"] as const),
+  reason: Type.Union([Type.String({ minLength: 1 }), Type.Null()]),
+  reached: Type.Array(Type.Object({ ...GateOpponentFields, via: Type.Enum(["talk", "approach"] as const), tile: SightPoint }, closed), { maxItems: 1 }),
+  sightings: TrainerSightCheckEvent.properties.sightings,
+  hurt: Type.Array(Type.Object({ species: Type.String({ minLength: 1 }), hp: NonNegativeInt, max_hp: Type.Integer({ minimum: 1 }) }, closed), { minItems: 1, maxItems: 6 }),
+  heal: Type.Array(Type.Object({ kind: Type.Enum(["pokemon_center", "home"] as const), town: Type.String({ minLength: 1 }), map_id: Type.Tuple([Type.Integer(), Type.Integer()]), hops: NonNegativeInt, shown: Type.Boolean() }, closed), { maxItems: 64 }),
+  text: Type.Union([Type.String({ minLength: 1 }), Type.Null()]),
+});
+
 // low-hp-trainer-warning-v2: the story-battle SUPERVISOR paragraph a game-tool result gained, with the facts it states.
 const StoryBattleWarningEvent = event("story_battle_warning", {
   tool: Type.String({ minLength: 1 }), kind: Type.Enum(["rival", "aqua_grunt", "gym_leader"]), opponent: Type.String({ minLength: 1 }),
@@ -747,6 +765,7 @@ export const RunEventSchema = Type.Union([
   StallGate,
   UnfinishedActivityEvent,
   TrainerSightCheckEvent,
+  StoryBattleHealGateEvent,
   AutoTalk,
   StoryBattleWarningEvent,
   HealBeforeTrainersWarningEvent,

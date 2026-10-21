@@ -1,0 +1,4 @@
+interface:
+  display_name: "PokéBench Cross-Model Analysis"
+  short_description: "Compare progress, efficiency and recovery across models"
+  default_prompt: "Use $pokebench-cross-model-analysis to compare recorded model runs and produce a Pokémon-themed evidence report."

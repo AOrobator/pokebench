@@ -7,9 +7,9 @@ Scope: navigation-tool-use-guard-v1 rejects model-originated direction-only pres
 Evidence: runs/reports/navigation-tool-use-2026-10-20/ in canonical checkout, 97a0 turns262–339: 15 delivered reminders, 16 multi-direction free-field batches, wrong-map semantic refusal at333. No performance benefit established.
 
 Milestones
-- [ ] RED behavioral and production-wiring tests
-- [ ] GREEN implementation, registries/defaults, independent pending entries, bundle settings
-- [ ] Explainers and card links; delivery/zero-input receipts
+- [x] RED behavioral and production-wiring tests
+- [x] GREEN implementation, registries/defaults, independent pending entries, bundle settings
+- [x] Explainers and card links; delivery/zero-input receipts
 - [ ] Gates and mutation proof
 - [ ] Frozen independent multi-model review (two-round cap)
 - [ ] Local main landing if required cloud lanes approve; viewer-only refresh and live card proof
@@ -21,3 +21,9 @@ Open implementation choices resolved within authorized proposal: guard evaluates
 Review log: not started.
 
 RED: `red-final.log`: 3 intended failures, 75 passing tests. Guard sends input, guard wiring absent, semantic feedback absent before implementation.
+
+COMMIT: `test: capture navigation guard and current-map feedback contracts` (c8147d1d).
+GREEN: behavior tests include exact OFF bytes, default normalization, free-field exclusions, single/mixed inputs, checked navigation bypass, abort, unavailable state, semantic v1/v2 current/unknown map facts and zero inputs; production factory and pinned pi loop prove delivery before the next decision. Two independent pending entries, full explicit incumbent flags, only one candidate difference; no queue or approval.
+Mutation receipts: guard wiring deletion fails the intended test; first semantic deletion selector matched no tests (UNPROVEN, retained), attempt2 uses the exact ON test; card link deletion fails; restoration receipt retained separately.
+Explainers: tracked + mapped cards/routes, pages-check, local 8791 HTTP200; 1280/1440/375 expanded/collapsed screenshots inspected under canonical runs/mockups/navigation-tool-switches/shots. UI card/replay proof pending.
+Gates in progress. Agent/viewer coverage passed before the final delivery test (agent 99.14 lines/92.99 branches/97.59 functions; viewer 97.81/91.06/94.18). Initial Python gate failures were environment setup: worktree vendor uninitialized and POKEBENCH_ROM unset. Vendor now initialized at exact pinned bbab97ad; private venv cloned and canonical editable install restored after detecting shared-venv symlink. No Python source changes or gameplay processes restarted. Full ROM-backed test/coverage rerun pending.

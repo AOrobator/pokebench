@@ -577,3 +577,14 @@ describe("semantic current-map feedback switch",()=>{
   else expect(text).toBe("Semantic navigation: refused because the requested map is not current. Selected WEST map connection.");
  });
 });
+
+it("semantic v2 wrong-map feedback uses actual facts and explicitly unavailable values without actions",async()=>{
+ for(const unknown of [false,true]){
+  const f=fixture(undefined,{...baseFeatures(),"semantic-navigation-v1":false,"semantic-navigation-v2":true,"semantic-current-map-feedback-v1":true},undefined,{...field(),location:unknown?null:"LITTLEROOT TOWN",map_id:unknown?null:[0,9],position:unknown?null:{x:4,y:7}});
+  const tool=f.tools.find(t=>t.name==="navigate_to_target");if(tool===undefined)throw new Error("missing semantic tool");
+  const out=await tool.execute("stale",{map_id:[0,10],target:{kind:"connection",direction:"WEST"}});
+  const first=out.content[0];expect(first?.type==="text"?first.text:"").toBe(unknown?"Current map: name unavailable (map unavailable). Position: unavailable. No input was sent.":"Current map: LITTLEROOT TOWN (map 0/9). Position: (4,7). No input was sent.");
+  expect(out.details).toMatchObject({semantic_navigation:{status:"refused because the requested map is not current",activation_attempted:false}});
+  expect(f.buttons).toEqual([]);expect(f.navigations).toEqual([]);
+ }
+});

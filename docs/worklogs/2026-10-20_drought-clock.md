@@ -35,3 +35,4 @@
 - Merged main 563cbaad into the branch: conflicts were registry order and index churn only. Main's order kept; story-progress-clock-v1 appended after same-target-no-progress-v1 in SWITCHABLE_FEATURES, FEATURES, playHarnessFeatures, FeatureSetSchema, normalizeFeatures, flagFeatures, LEGACY_ALL_ON, DEFAULT_NEXT_RUN, FEATURE_EXPLAINERS, README and readiness.md; registry-position tests shifted, guard count 39, the id added to nine pending-experiment filters. OFF byte-identity tests green.
 - Gates on the merged tip: build and lint clean; agent 3030, viewer 1442, pytest 3015 (POKEBENCH_ROM=~/.roms/pokemon-emerald.gba).
 - Coordinator lands it (ff-only); this branch does not merge into main.
+- source.commit set to the pre-archive head f960f9bd1ff6ea63360119e3a796ee479b613f28; worklog archived.

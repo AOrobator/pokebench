@@ -68,10 +68,10 @@ No new inputs, subprocesses, network or file access. Reads only ROM tables and w
 **M4–M5 — agent switches: effectiveness-heard-v1 (J2), game-said-goals-v1 (J3)** (one RED/GREEN pair; both share the decision-screen helpers and the appended-part wrapper)
 - [x] Fixtures from run 97a0 events: `packages/agent/src/fixtures/move-learn-97a0.json` (turn 153 WINGULL page, turns 715-716 EMBER pages, their states, the turn-716 battle decision and the turn-781 evolution move box) and `game-said-goals-97a0.json` (turn 714-717 states slimmed to the fields the folds read, gym guide page seq 28035).
 - [x] Tests: `effectiveness-heard.test.ts` (player-only attribution, foe move ignored, other battle turn ignored, doubles skipped, no-effect wording, decision screens, wrapper on/off), `game-said-goals.test.ts` (ROXANNE block exact, evolution decision yes / battle decision and field no, a later win closes it, non-leader "sent out", empty, and a playGameTools factory test: ON appends both parts to observe and choose_evolution, OFF adds nothing).
-- [x] COMMIT RED
-- [ ] Implement
-- [ ] Gates
-- [ ] COMMIT GREEN
+- [x] COMMIT: `test: effectiveness-heard-v1 and game-said-goals-v1 on the recorded ROXANNE battle and DOUBLE KICK prompt (RED)` (de1b4c1c). RED: the modules do not exist (import failure at collection).
+- [x] Implement: `effectiveness-heard.ts` (EffectivenessHeard fold, decision-screen helpers, shared appended-part wrapper over observe/press/navigate_to/battle_action/choose_evolution and semantic walks), `game-said-goals.ts` (BattleOutcomes + GymReadiness folds, open = latest trainer battle lost or drawn), GymReadiness exposes seenLine/saidOn/isLeaderMap (its own block byte-identical, gym-readiness tests unchanged and green), play-wiring wraps both around navigate-first so choose_evolution is covered.
+- [x] Gates: `just lint` ok; `just coverage` agent 3099 tests 97.15/92.9/97.56/99.18 (both new modules 100%), viewer 1515, pytest 3546, Python lines 97.25 branches 92.96 functions 100.
+- [x] COMMIT GREEN
 
 **M6 — bundle arms, pending experiments, explainers, review, land**
 - [ ] Bundle arms (3 definitions), experiments/<id>.json ×5, readiness rows

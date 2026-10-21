@@ -12,14 +12,14 @@ import {semanticWalk} from "./semantic-targets.js";
 // pokeemerald include/constants/trainers.h TRAINER_CLASS_LEADER.
 export const LEADER_CLASS=0x20;
 
-type MapKey=string;
+export type MapKey=string;
 interface Foe {readonly species:string;readonly level:number}
 // The parts of recorded events the line reads; a full RunEvent has them.
 export type GymEvent=
  |{readonly type:"state";readonly map_id:readonly [number,number]|null;readonly trainer_opponent?:{readonly trainer_id:number;readonly trainer_class:number;readonly name:string|null;readonly battle_active:boolean}|null;readonly battlers:readonly {readonly position:number;readonly party_slot:number|null;readonly species:string|null;readonly level:number|null}[]}
  |{readonly type:"dialogue_auto_advance";readonly pages:readonly {readonly map_id:readonly [number,number]|null;readonly text:string;readonly battle_message_id?:number}[]};
 
-const key=(map:readonly [number,number]):MapKey=>map.join("/");
+export const key=(map:readonly [number,number]):MapKey=>map.join("/");
 const oneLine=(text:string)=>text.replace(/\s*\n\s*/g," ").trim();
 
 export class GymReadiness {
@@ -63,13 +63,9 @@ export class GymReadiness {
   const lines=[`Gym: ${state.location}${leader===undefined?"":` · GYM LEADER ${leader}`}`];
   const party=state.party.filter(p=>p.species!==null&&p.is_egg!==true);
   lines.push(`Your party: ${party.length===0?"none":party.map(p=>`${p.species??""} Lv${String(p.level)} HP ${String(p.hp)}/${String(p.max_hp)}`).join(", ")}`);
-  const slots=[...(this.seen.get(map)?.values()??[])];
-  const counts=new Map<string,number>();
-  for(const foe of slots){const label=`${foe.species} Lv${String(foe.level)}`;counts.set(label,(counts.get(label)??0)+1);}
-  const seen=[...counts].map(([label,n])=>n===1?label:`${label} ×${String(n)}`).join(", ");
-  lines.push(`${leader===undefined?"The GYM LEADER":leader}'s POKéMON seen in battle this run: ${seen===""?"none yet":`${seen}; any others not seen yet`}`);
-  const said=this.said.get(map);
-  if(said!==undefined)lines.push(`Said on this map: ${said.map(text=>`"${text}"`).join(" ")}`);
+  lines.push(this.seenLine(map));
+  const said=this.saidOn(map);
+  if(said.length>0)lines.push(`Said on this map: ${said.map(text=>`"${text}"`).join(" ")}`);
   const trainers=state.heal_before_trainers?.trainers;
   if(trainers!=null&&trainers.length>0){
    // The trainer flag is set only by a win; a battle this run that left it clear was a loss.
@@ -78,6 +74,18 @@ export class GymReadiness {
   }
   return lines.join("\n");
  }
+ // The GYM LEADER's POKéMON seen on this map, with the highest level seen of each party slot.
+ seenLine(map:MapKey):string {
+  const leader=this.leaders.get(map);
+  const slots=[...(this.seen.get(map)?.values()??[])];
+  const counts=new Map<string,number>();
+  for(const foe of slots){const label=`${foe.species} Lv${String(foe.level)}`;counts.set(label,(counts.get(label)??0)+1);}
+  const seen=[...counts].map(([label,n])=>n===1?label:`${label} ×${String(n)}`).join(", ");
+  return `${leader===undefined?"The GYM LEADER":leader}'s POKéMON seen in battle this run: ${seen===""?"none yet":`${seen}; any others not seen yet`}`;
+ }
+ // Field pages printed on this map that name a type, in the game's words, once each.
+ saidOn(map:MapKey):readonly string[] {return this.said.get(map)??[];}
+ isLeaderMap(map:MapKey):boolean {return this.leaders.has(map);}
  // The readout with the block after its Location/Position lines.
  annotate(text:string,state:GameStateSnapshot):string {
   const anchor=/^Location: .*$(?:\nPosition: .*$)?/m.exec(text);

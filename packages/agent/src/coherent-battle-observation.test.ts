@@ -40,11 +40,11 @@ it.each([false,true])("delivers and records exact native battle capture (repair 
  const root=mkdtempSync(join(tmpdir(),"coherent-battle-delivery-"));
  try{
   const log=RunLog.create(root,"2026-10-21T11-10-00_native-repair-test");
-  const recorder=new RunRecorder({log,frames:new FrameStore(root,1000000,()=>{}),milestones:{poll:async()=>[]},gameState:{read:async()=>native},now:()=>0});
+  const recorder=new RunRecorder({log,frames:new FrameStore(root,1000000,()=>{}),milestones:{poll:()=>Promise.resolve([])},gameState:{read:()=>Promise.resolve(native)},now:()=>0});
   await recorder.start({...RUN_START_META,harness_features:enabled?[id,"transition-coherence-v1"]:[]},false);
   await recorder.transformContext([]);
   await recorder.emit({type:"tool_execution_start",toolCallId:"native-capture",toolName:"observe",args:{}});
-  const result=await observeTool("http://127.0.0.1:1",async()=>new Response(JSON.stringify(payload),{status:200})).execute("native-capture",{});
+  const result=await observeTool("http://127.0.0.1:1",()=>Promise.resolve(new Response(JSON.stringify(payload),{status:200}))).execute("native-capture",{});
   expect(result.content.filter(part=>part.type==="text")).toEqual([{type:"text",text:payload.state_text}]);
   await recorder.emit({type:"tool_execution_end",toolCallId:"native-capture",toolName:"observe",result,isError:false});
   const context=[{role:"toolResult" as const,toolCallId:"native-capture",toolName:"observe",content:result.content,isError:false,timestamp:0}];
@@ -55,6 +55,7 @@ it.each([false,true])("delivers and records exact native battle capture (repair 
   expect(recorded).toHaveLength(1);expect(recorded[0]?.text).toBe(payload.state_text);
   expect(recorded[0]?.text.includes("Effective damage (")).toBe(enabled);
   const states=events.filter(e=>e.type==="state");expect(states).toHaveLength(1);
-  expect(states[0]?.settle).toEqual(enabled?{frames:1,reason:"coherence"}:undefined);
+  const capturedState=states[0];
+  expect(capturedState!==undefined&&"settle" in capturedState?capturedState.settle:undefined).toEqual(enabled?{frames:1,reason:"coherence"}:undefined);
  }finally{rmSync(root,{recursive:true,force:true});}
 });

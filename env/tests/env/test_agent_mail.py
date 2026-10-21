@@ -148,7 +148,7 @@ def test_done_hands_the_slot_to_a_waiting_claude_by_mail(tmp_path: Path) -> None
     am.board_join(r, who="codex", branch="codex/a", codex_thread="A", now=T)
     am.board_join(r, who="claude thread b", branch="claude/b", codex_thread=None, now=T)
     nxt = am.board_done(r, branch="codex/a", now=T, run=runs)
-    assert nxt is not None and nxt.branch == "claude/b"
+    assert nxt == am.Handoff(am.read_board(r)[0], 0) and nxt.up.branch == "claude/b"
     assert runs.calls == []
     assert am.collect(r) == [
         am.Letter(T, "land-board", "claude thread b: your turn to land claude/b")
@@ -165,7 +165,7 @@ def test_done_hands_the_slot_to_a_waiting_codex_by_queue(tmp_path: Path) -> None
     assert am.board_done(r, branch="codex/c", now=T, run=runs) is None
     assert runs.calls == []
     nxt = am.board_done(r, branch="claude/b", now=T, run=runs)
-    assert nxt is not None and nxt.who == "codex"
+    assert nxt is not None and nxt.up.who == "codex" and nxt.exit_code == 0
     assert runs.calls == [
         ["codex", "queue", "--thread", "A", "--message", "codex: your turn to land codex/a"]
     ]
@@ -299,4 +299,50 @@ def test_board_items_must_be_objects(tmp_path: Path) -> None:
     r.root.mkdir(parents=True)
     r.board.write_text("[1]")
     with pytest.raises(ValueError, match="board"):
+        am.read_board(r)
+
+
+def test_a_failed_codex_handoff_is_loud(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.setenv("POKEBENCH_AGENT_MAIL_DIR", str(tmp_path / "mail"))
+    runs = Runs(code=1)
+    am.main(["land-join", "--who", "claude", "--branch", "claude/a"], run=runs)
+    am.main(["land-join", "--who", "codex", "--branch", "codex/b", "--codex-thread", "B"], run=runs)
+    capsys.readouterr()
+    assert am.main(["land-done", "--branch", "claude/a"], run=runs) == 1
+    printed = capsys.readouterr().out
+    assert "telling codex failed (codex queue exit 1)" in printed
+    assert 'just tell-codex "B" "your turn to land codex/b"' in printed
+    assert "told" not in printed.replace("telling", "")
+    assert "1. LANDING  codex/b" in printed
+
+
+def test_rejoining_refreshes_who_and_the_codex_session(tmp_path: Path) -> None:
+    r = room(tmp_path)
+    am.board_join(r, who="codex", branch="codex/a", codex_thread=None, now=T)
+    assert am.board_join(r, who="codex: A", branch="codex/a", codex_thread="A", now=T) == 1
+    assert am.read_board(r) == [am.BoardEntry("codex: A", "codex/a", "A", T)]
+
+
+def test_an_interrupted_listener_leaves_letters_pending(tmp_path: Path) -> None:
+    r = room(tmp_path)
+
+    def interrupted() -> None:
+        am.tell_claude(r, sender="codex", text="keep me", now=T)
+        raise KeyboardInterrupt
+
+    with pytest.raises(KeyboardInterrupt):
+        am.wait_for_mail(r, ready=interrupted)
+    assert am.collect(r) == [am.Letter(T, "codex", "keep me")]
+
+
+def test_bad_timestamps_are_reported_like_other_bad_rows(tmp_path: Path) -> None:
+    r = room(tmp_path)
+    r.root.mkdir(parents=True)
+    r.pending.write_text('{"sent_at": "yesterday", "sender": "codex", "text": "x"}\n')
+    with pytest.raises(ValueError, match="unreadable letter"):
+        am.collect(r)
+    r.board.write_text('[{"who": "a", "branch": "b", "codex_thread": null, "queued_at": "x"}]')
+    with pytest.raises(ValueError, match="unreadable landing board"):
         am.read_board(r)

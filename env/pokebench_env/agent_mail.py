@@ -54,6 +54,12 @@ class BoardEntry:
 
 
 @dataclass(frozen=True)
+class Handoff:
+    up: BoardEntry
+    exit_code: int
+
+
+@dataclass(frozen=True)
 class Mailroom:
     root: Path
 
@@ -118,7 +124,7 @@ def parse_letter(line: str) -> Letter:
     sent_at, sender, text = raw.get("sent_at"), raw.get("sender"), raw.get("text")
     if not (isinstance(sent_at, str) and isinstance(sender, str) and isinstance(text, str)):
         raise ValueError(f"unreadable letter: {line!r}")
-    return Letter(datetime.fromisoformat(sent_at), sender, text)
+    return Letter(parse_time(sent_at, f"unreadable letter: {line!r}"), sender, text)
 
 
 def format_letter(letter: Letter) -> str:
@@ -179,19 +185,21 @@ def wait_for_mail(
             ready()
         select.select([reader], [], [], timeout)
     finally:
-        with room.locked():
-            os.close(keepalive)
-            os.close(reader)
-            letters = drain(room)
-    return letters
+        # Close only: an interrupted listener must leave its letters pending for the next one.
+        os.close(keepalive)
+        os.close(reader)
+    return collect(room)
 
 
 def tell_codex(thread: str, text: str, *, run: Run) -> int:
     return run(["codex", "queue", "--thread", thread, "--message", text])
 
 
-def parse_time(value: str) -> datetime:
-    return datetime.fromisoformat(value.replace("Z", "+00:00"))
+def parse_time(value: str, problem: str) -> datetime:
+    try:
+        return datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError as error:
+        raise ValueError(problem) from error
 
 
 def codex_sessions(index: Path, *, limit: int) -> list[CodexSession]:
@@ -210,7 +218,9 @@ def codex_sessions(index: Path, *, limit: int) -> list[CodexSession]:
         sid, name, updated = raw.get("id"), raw.get("thread_name"), raw.get("updated_at")
         if not (isinstance(sid, str) and isinstance(name, str) and isinstance(updated, str)):
             raise ValueError(f"unreadable Codex session: {line!r}")
-        session = CodexSession(sid, name, parse_time(updated))
+        session = CodexSession(
+            sid, name, parse_time(updated, f"unreadable Codex session: {line!r}")
+        )
         if sid not in latest or latest[sid].updated_at <= session.updated_at:
             latest[sid] = session
     newest = sorted(latest.values(), key=lambda s: s.updated_at, reverse=True)
@@ -240,7 +250,8 @@ def read_entries(room: Mailroom) -> list[BoardEntry]:
             and isinstance(queued, str)
         ):
             raise ValueError("unreadable landing board")
-        entries.append(BoardEntry(who, branch, thread, datetime.fromisoformat(queued)))
+        when = parse_time(queued, "unreadable landing board")
+        entries.append(BoardEntry(who, branch, thread, when))
     return entries
 
 
@@ -285,14 +296,19 @@ def board_join(
         entries = read_entries(room)
         for number, entry in enumerate(entries, start=1):
             if entry.branch == branch:
+                entries[number - 1] = BoardEntry(who, branch, codex_thread, entry.queued_at)
+                write_entries(room, entries)
                 return number
         entries.append(BoardEntry(who, branch, codex_thread, now))
         write_entries(room, entries)
         return len(entries)
 
 
-def board_done(room: Mailroom, *, branch: str, now: datetime, run: Run) -> BoardEntry | None:
-    """Leave the board. When the lander leaves, tell the next entry it is up and return it."""
+def board_done(room: Mailroom, *, branch: str, now: datetime, run: Run) -> Handoff | None:
+    """Leave the board. When the lander leaves, tell the next entry it is up.
+
+    The exit code is `codex queue`'s for a Codex entry; mail to Claude always lands in pending.
+    """
     with room.locked():
         entries = read_entries(room)
         place = next((i for i, e in enumerate(entries) if e.branch == branch), None)
@@ -305,10 +321,9 @@ def board_done(room: Mailroom, *, branch: str, now: datetime, run: Run) -> Board
     up = entries[0]
     text = f"{up.who}: your turn to land {up.branch}"
     if up.codex_thread is not None:
-        tell_codex(up.codex_thread, text, run=run)
-    else:
-        tell_claude(room, sender="land-board", text=text, now=now)
-    return up
+        return Handoff(up, tell_codex(up.codex_thread, text, run=run))
+    tell_claude(room, sender="land-board", text=text, now=now)
+    return Handoff(up, 0)
 
 
 def main(argv: Sequence[str] | None = None, *, run: Run = run_command) -> int:
@@ -372,10 +387,21 @@ def main(argv: Sequence[str] | None = None, *, run: Run = run_command) -> int:
             print(f"You are number {position}. You will be told when it is your turn.")
         print(render_board(read_board(room)))
         return 0
-    up = board_done(room, branch=args.branch, now=now, run=run)
-    print(f"Done. {up.branch} is up; told {up.who}." if up else "Done.")
+    handoff = board_done(room, branch=args.branch, now=now, run=run)
+    code = 0
+    if handoff is None:
+        print("Done.")
+    elif handoff.exit_code == 0:
+        print(f"Done. {handoff.up.branch} is up; told {handoff.up.who}.")
+    else:
+        code = handoff.exit_code
+        print(
+            f"Done, but telling {handoff.up.who} failed (codex queue exit {code}). "
+            f'Tell them by hand: just tell-codex "{handoff.up.codex_thread}" '
+            f'"your turn to land {handoff.up.branch}"'
+        )
     print(render_board(read_board(room)))
-    return 0
+    return code
 
 
 if __name__ == "__main__":  # pragma: no cover

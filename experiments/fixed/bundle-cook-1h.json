@@ -186,6 +186,7 @@
    "yes-no-answer-readout-v1": false,
    "field-move-gates-v1": false,
    "story-battle-heal-gate-v1": false,
+   "exit-labels-v3": false,
    "navigation-tool-use-guard-v1": false,
    "semantic-current-map-feedback-v1": false
   }
@@ -245,6 +246,7 @@
   "yes-no-answer-readout-v1",
   "field-move-gates-v1",
   "story-battle-heal-gate-v1",
+  "exit-labels-v3",
   "navigation-tool-use-guard-v1",
   "semantic-current-map-feedback-v1"
  ],

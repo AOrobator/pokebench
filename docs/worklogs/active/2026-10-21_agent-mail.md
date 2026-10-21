@@ -51,3 +51,13 @@ M3 REVIEW/LAND: Claude, Grok and GPT cloud lanes on the frozen packet; land thro
   - Accepted B1: a hung `codex queue` would hold the board lock forever now that notices go out under it. FIX: run_command has a 30 s timeout and returns 124, so land-done exits non-zero with the manual tell-codex line (test: `sleep 5` with a 0.2 s timeout returns 124 promptly).
   - Rebutted B2 ("superlinear" board setup in tests): the fixtures build fixed boards of 3-4 rows through the real board_join path; cost is constant per test, and the real path is what those tests check. Atomic replace is already covered by write_entries' staging + replace.
   - GPT has blocked eight rounds in a row, each on a new item; Claude and Grok have returned LGTM since R2. Asking the operator whether to land on Claude + Grok LGTM for the R8 fix rather than continue.
+- R9 packet d00cded5..04f306f5, SHA-256 06248394…: Claude CLI LGTM, Grok LGTM, GPT BLOCKING only on the rebutted fixture-setup point. The operator waived GPT for this landing ("land it", 12:35 PM EDT, in the project thread).
+- Board: claude/agent-mail yielded twice (11:42 AM and 12:29/1:12 PM) so time-critical landings went first; turn arrived 1:32 PM.
+
+## Landing — 2026-10-21 1:38 PM EDT
+- Synced main 4590d6814 into the branch (df5a9ccc0); the branch's changed lines are identical to the R9 packet (sorted +/- line sets equal; only hunk context moved; one justfile conflict kept both recipes).
+- Gates on df5a9ccc0: first run hit the known serial-comparison hung-child timing test (also seen by the shop landing at 1:24 PM); rerun EXIT 0: agent 3354, viewer 1632, Python 3800 passed; Python coverage 97.29 / 93.11 / 100; lint, build, verify-vendor pass.
+- Landed: `git merge --ff-only df5a9ccc0` on main (4590d6814 → df5a9ccc0). `just test` on main: agent 3354, viewer 1632, Python 3800 passed.
+- Live check from main: `just land-board` and `just codex-sessions` run from main's own env and read the live board; agent_mail loads from ~/dev/pokebench/env.
+- In use since 10:51 AM: 8 Claude and Codex branches queued and landed through the board, Codex sessions wrote to Claude by mail, and position notices reached each waiting session.
+- Open follow-ups (operator to pick): Codex coordinator with a Codex mailbox (Codex send_message_to_thread lands mid-turn, verified in rollouts) and/or a PostToolUse hook; `just status-snapshot`.

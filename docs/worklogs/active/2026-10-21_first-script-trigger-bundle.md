@@ -22,7 +22,7 @@ No new external interface, game memory write, subprocess authority or file-servi
 **M1 — Bounded trigger policy and bundle**
 - [x] RED: 3 fail / 6 pass. Safe-route preference and bundle configuration fail on landed trigger policy; no-retry and recorded rival behavior already pass. Receipt /tmp/first-trigger-red.log.
 - [x] GREEN code/config/explainer and four production wiring/policy mutations; see receipts.
-- [ ] Gates: test, lint, build, coverage >=90, vendor
+- [x] Gates: test, lint, build, coverage >=90, vendor
 - [x] Native manual probe v9 and returned frame/RAM validated. Updated explainer browser inspected at three widths. Existing card mapping unchanged; final main click pending landing.
 - [ ] Frozen independent reviews
 - [ ] Landing board, main tests, viewer and launcher handoff
@@ -95,3 +95,8 @@ Agent full coverage:3427 pass, lines99.22/branches93.28/functions97.94. Full bui
 2026-10-21: now slot1, merged current main31fdd105. Conflicts were additive preset/registry/readiness/historical fixture updates: retained milestone-memory feature and restored trigger preference/activation. Runtime navigation.ts/semantic-navigation.ts merge clean, unchanged from qualified native proof. Required synchronized gates and fresh independent reviews next.
 
 Pending experiment source repinned to synchronized implementation f742d0c8d8687c40186a1b91fe5b444dc5c20bc9 before final tests/review; source metadata only, no queue/approval.
+
+## Synchronized frozen review preparation
+All required gates pass at5e1a86488d: build, normal tests3443 agent/1663 viewer/3850 Python, lint (TS/eslint/ruff/mypy), coverage3443/1663/3850 and clean pinned vendor. Coverage lines/branches/functions: agent99.23/93.31/97.95; viewer97.95/91.34/94.35; Python97.34/93.25/100. Floor90 unchanged. Receipts runs/first-script-trigger/landing/*.log. Earlier timing failures remain retained; no retries/sleeps/serialization added to tests.
+Test-quality self-review: (1) real factory seam and generated armPreset; (2) four performed guard/wiring mutations fail and restored passes; (3) no global mutation; (4) exact local request arrays and explicit recipe identities; (5) no new concurrency/shared state; (6) no suppression; (7) exact observed payload assertions; (8) bounded two-cell/six-cell and one recorded snapshot fixtures, nine cases, one gzip read/decode per recorded case, five recipe reads and bounded existing phase loops, no external I/O or growing-prefix transactions; (9) tiny fixtures, no cap filling. PB1–13 table remains current with zero FAIL. Frozen production domains remain two existing navigation owners plus existing feature/config/docs; no new owner.
+Review policy waiver provenance: coordinator relayed direct operator words "yes dont wait for grok" to the question whether this applies everywhere until Cursor is back with Claude+GPT+fallback. Try Grok and retain outage receipt; use authorized reduced-diversity roster if unavailable, never count outage as LGTM. No benchmark-model/local-inference reviewers.

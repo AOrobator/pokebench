@@ -10,7 +10,7 @@ it("registers adjacent tiles as a default-off observation switch that needs the 
   expect(featureInfo(ID)).toMatchObject({ group: "observation", needs: "live-map-v1", switchable: true, title: "ADJACENT TILES" });
   expect(featureInfo(ID).description).toContain("Next tiles: up (8,6) ledge (v), hops down only, cannot be entered from here");
   expect(featureInfo(ID).description).toContain(" Off: ");
-  expect(SWITCHABLE_FEATURES.at(-105)).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-106)).toBe(ID);
   expect(playHarnessFeatures(ALL_ON,null).at(-78)).toBe(ID);
   expect(playHarnessFeatures(off(ID), null)).not.toContain(ID);
   expect(featuresOf(playHarnessFeatures(off(ID), null))[ID]).toBe(false);
@@ -18,9 +18,9 @@ it("registers adjacent tiles as a default-off observation switch that needs the 
 });
 
 it("hands the switch to the game server, which draws the map", () => {
-  expect(SERVER_FEATURES.at(-30)).toBe(ID);
-  expect(serverFeatureEnv(off(ID)).POKEBENCH_FEATURES_OFF).toBe(`${ID},safe-navigation-strides-v1,original-speed-pacing-v1,exit-labels-v2,heal-before-trainers-v2,respawn-readout-v1,caught-nickname-prompt-v1,party-item-confirmation-v1,field-move-gates-v1`);
-  expect(serverFeatureEnv(ALL_ON).POKEBENCH_FEATURES_OFF).toBe("safe-navigation-strides-v1,original-speed-pacing-v1,exit-labels-v2,heal-before-trainers-v2,respawn-readout-v1,caught-nickname-prompt-v1,party-item-confirmation-v1,field-move-gates-v1");
+  expect(SERVER_FEATURES.at(-31)).toBe(ID);
+  expect(serverFeatureEnv(off(ID)).POKEBENCH_FEATURES_OFF).toBe(`${ID},safe-navigation-strides-v1,original-speed-pacing-v1,exit-labels-v2,heal-before-trainers-v2,respawn-readout-v1,caught-nickname-prompt-v1,party-item-confirmation-v1,yes-no-answer-readout-v1,field-move-gates-v1`);
+  expect(serverFeatureEnv(ALL_ON).POKEBENCH_FEATURES_OFF).toBe("safe-navigation-strides-v1,original-speed-pacing-v1,exit-labels-v2,heal-before-trainers-v2,respawn-readout-v1,caught-nickname-prompt-v1,party-item-confirmation-v1,yes-no-answer-readout-v1,field-move-gates-v1");
 });
 
 it("defaults OFF for presets that omit it and for legacy flag presets", () => {

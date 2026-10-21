@@ -177,6 +177,39 @@ describe("fixed-run check, approve, run, dry-run", () => {
     expect(await main(["dry-run", "bundle-v-control", "--wall-ms", "x"], deps)).toBe(1);
   });
 
+  it("reruns one arm on one lane of an approved experiment as an exploratory sibling at the experiment's pinned commit", async () => {
+    const { deps, out, err, runs, path, runsRoot } = setup();
+    writeFileSync(path, JSON.stringify(definition()));
+    expect(await main(["rerun", "bundle-v-control", "--arm", "bundle", "--lane", "B"], deps)).toBe(1);
+    expect(err.at(-1)).toBe("bundle-v-control is not approved; run `just fixed-run approve bundle-v-control` in a terminal");
+    expect(await main(["approve", "bundle-v-control"], { ...deps, interactive: true, prompt: () => Promise.resolve("bundle-v-control") })).toBe(0);
+    expect(await main(["rerun", "bundle-v-control", "--arm", "bundle", "--lane", "B", "--phase", "cook"], deps)).toBe(0);
+    expect(runs[0]).toMatchObject({ dryRun: true, commit: "0123456789abcdef0123456789abcdef01234567", def: { id: "bundle-v-control-solo-bundle-b-1", lanes: [{ id: "B" }], plan: [{ lane: "B", arm: "bundle", phase: "cook" }] } });
+    expect(out).toContain("bundle-v-control-solo-bundle-b-1: exploratory bundle trial on lane B (GPU0), cook, commit 0123456789ab");
+    // A second rerun takes the next number; the paired experiment's first launch pins the commit.
+    mkdirSync(join(runsRoot, "experiments", "bundle-v-control-solo-bundle-b-1"), { recursive: true });
+    writeFileSync(join(runsRoot, "experiments", "bundle-v-control", "trials.jsonl"), JSON.stringify({ kind: "launch", slot: 1, lane: "A", phase: "confirmatory", arm: "bundle", run: "r", at: "x", commit: "e".repeat(40), sources: "s", presetSha256: "p", serving: "f" }) + "\n");
+    expect(await main(["rerun", "bundle-v-control", "--arm", "bundle", "--lane", "B"], deps)).toBe(0);
+    expect(runs[1]).toMatchObject({ commit: "e".repeat(40), def: { id: "bundle-v-control-solo-bundle-b-2", phases: [{ id: "confirmatory", singleArm: "bundle" }] } });
+  });
+
+  it("refuses a rerun with a bad arm, lane or phase, a changed definition, or no ROM", async () => {
+    const { deps, err, path, runs } = setup();
+    writeFileSync(path, JSON.stringify(definition()));
+    expect(await main(["approve", "bundle-v-control"], { ...deps, interactive: true, prompt: () => Promise.resolve("bundle-v-control") })).toBe(0);
+    expect(await main(["rerun", "bundle-v-control", "--arm", "both", "--lane", "B"], deps)).toBe(1);
+    expect(err.at(-1)).toBe("--arm must be one of control, bundle");
+    expect(await main(["rerun", "bundle-v-control", "--arm", "bundle"], deps)).toBe(1);
+    expect(err.at(-1)).toBe("--lane must be one of A, B");
+    expect(await main(["rerun", "bundle-v-control", "--arm", "bundle", "--lane", "B", "--phase", "nope"], deps)).toBe(1);
+    expect(err.at(-1)).toBe("no phase nope; phases: confirmatory, cook");
+    expect(await main(["rerun", "bundle-v-control", "--arm", "bundle", "--lane", "B"], { ...deps, rom: undefined })).toBe(1);
+    writeFileSync(path, JSON.stringify({ ...definition(), title: "edited" }));
+    expect(await main(["rerun", "bundle-v-control", "--arm", "bundle", "--lane", "B"], deps)).toBe(1);
+    expect(err.at(-1)).toBe("the definition changed since it was approved; approve it again");
+    expect(runs).toHaveLength(0);
+  });
+
   it("prints usage for an unknown command or a missing definition", async () => {
     const { deps, err } = setup();
     expect(await main(["launch"], deps)).toBe(2);

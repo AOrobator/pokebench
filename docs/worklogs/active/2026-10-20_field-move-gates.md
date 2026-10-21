@@ -272,6 +272,12 @@ FAIL. Local inference reviewers not used. HEAD/status verified unchanged before 
      source like the other rows. Explainer row updated.
   Kecleon sprite naming: scope expansion, left for the operator.
   Fix commit gates: just lint 0, just coverage 0 (env 3319, agent 3045, viewer 1444; same percentages).
+  COMMIT: `fix: field-move-gates-v1 quotes the Dive text and the OFF golden compares the whole state body (review round 1)` (ac6ffee6)
+  Fourth sync, main 9c9755bb (yes-no-answer-readout-v1, a server switch, plus lane-lease fixes): 30
+  conflicts, same method; field-move-gates-v1 stays last in both SERVER_FEATURES lists and the default-off
+  string. Gates on the merged tip: just lint 0, just build 0, just coverage 0, verify-vendor OK. Tests: env
+  3470; agent 3046; viewer 1459. Coverage: env 97.21 / 92.86 / 100; agent 97.13 / 92.97 / 97.59 / 99.14;
+  viewer 95.14 / 91.07 / 93.84 / 97.72.
 
 ## Session Log
 

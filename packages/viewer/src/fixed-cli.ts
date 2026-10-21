@@ -15,7 +15,7 @@ import { newRunId } from "@pokebench/agent/run";
 import { spawnDetached } from "./detached.js";
 import { mainCheckout, sourceIdentity } from "./experiment-cli.js";
 import { analyze, renderAnalysis, rescoreTrials, trialsFromLedger, type AnalysisTrial } from "./fixed-analysis.js";
-import { controlBaseProblems, dryRunDefinition, FixedDraftSchema, generatePlan, parseFixedDefinition, phaseOf, type FixedDefinition } from "./fixed-design.js";
+import { controlBaseProblems, dryRunDefinition, FIXED_ARMS, FixedDraftSchema, generatePlan, parseFixedDefinition, phaseOf, soloDefinition, type FixedArm, type FixedDefinition } from "./fixed-design.js";
 import { classifyTrial, readLedger } from "./fixed-ledger.js";
 import { fileLines, type LogLines } from "./run-log.js";
 import { runFixed, type FixedHost, type FixedRunOptions, type ServingReceipt } from "./fixed-runner.js";
@@ -49,6 +49,7 @@ const USAGE = [
   "       fixed-run approve <id>                   operator only, interactive",
   "       fixed-run run <id>                       run the approved experiment (both lanes)",
   "       fixed-run dry-run <id> [--phase <phase>] [--wall-ms <ms>]  one trial per arm per lane with that phase's start, as <id>-dryrun-<phase>",
+  "       fixed-run rerun <id> --arm <control|bundle> --lane <lane> [--phase <phase>]  one unpaired, exploratory trial on one lane at the experiment's pin, as <id>-solo-<arm>-<lane>-<n>",
   "       fixed-run status <id>",
   "       fixed-run analyze <id> [--phase <id>]",
   "       fixed-run analyze-receipt <dir> <control-arm> <treatment-arm> --cap-ms <ms> [--primary <milestone>]",
@@ -181,6 +182,31 @@ async function dryRun(argv: readonly string[], deps: FixedCliDeps, id: string): 
   deps.out(`${dry.id}: ${result}`);
 }
 
+// An unpaired trial of an approved experiment, on one lane, at the commit its paired trials play.
+async function rerun(argv: readonly string[], deps: FixedCliDeps, id: string): Promise<void> {
+  const arm = flag(argv, "--arm"), laneId = flag(argv, "--lane");
+  if (!FIXED_ARMS.some((a) => a === arm)) throw new CliError(`--arm must be one of ${FIXED_ARMS.join(", ")}`);
+  const rom = requireRom(deps);
+  const { definition: def, sha256: digest } = load(deps, id);
+  requireDefinitionRom(deps, rom, def);
+  const approval = readApproval(deps, id);
+  if (approval === null) throw new CliError(`${id} is not approved; run \`just fixed-run approve ${id}\` in a terminal`);
+  if (approval.definitionSha256 !== digest) throw new CliError("the definition changed since it was approved; approve it again");
+  const lane = def.lanes.find((l) => l.id === laneId);
+  if (lane === undefined) throw new CliError(`--lane must be one of ${def.lanes.map((l) => l.id).join(", ")}`);
+  const phase = flag(argv, "--phase") ?? def.phases.find((p) => p.primary)?.id ?? def.phases[0]?.id ?? "";
+  if (!def.phases.some((p) => p.id === phase)) throw new CliError(`no phase ${phase}; phases: ${def.phases.map((p) => p.id).join(", ")}`);
+  const launch = readLedger(join(experimentDir(deps, id), "trials.jsonl")).find((e) => e.kind === "launch");
+  const commit = launch?.kind === "launch" ? launch.commit : deps.head();
+  let n = 1;
+  const solo = (): FixedDefinition => soloDefinition(def, arm as FixedArm, lane.id, phase, n);
+  while (existsSync(experimentDir(deps, solo().id))) n += 1;
+  const single = solo();
+  deps.out(`${single.id}: exploratory ${String(arm)} trial on lane ${lane.id} (${lane.gpu}), ${phase}, commit ${commit.slice(0, 12)}`);
+  const result = await deps.run({ def: single, definitionSha256: sha256(JSON.stringify(single)), runsRoot: deps.runsRoot, host: deps.host(), stopRequested: deps.stopRequested ?? (() => false), pid: process.pid, dryRun: true, commit });
+  deps.out(`${single.id}: ${result}`);
+}
+
 function status(deps: FixedCliDeps, id: string): void {
   const path = fixedStatusPath(deps.runsRoot, id);
   if (!existsSync(path)) throw new CliError(`${id} has no status yet`);
@@ -241,6 +267,7 @@ export async function main(argv: readonly string[], deps: FixedCliDeps): Promise
     else if (command === "approve") await approve(deps, id);
     else if (command === "run") await run(deps, id);
     else if (command === "dry-run") await dryRun(rest, deps, id);
+    else if (command === "rerun") await rerun(rest, deps, id);
     else if (command === "status") status(deps, id);
     else if (command === "analyze") analyzeLedger(rest, deps, id);
     else throw new RangeError();

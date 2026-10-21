@@ -67,7 +67,7 @@ it("enables the separate switch only in fixed bundle treatment",()=>{
 
 it("semantic selection prefers a script-free edge over a shorter edge behind a script",async()=>{
  const start=field(true);
- const state={...start,topology:{width:3,height:2,connections:[{direction:"EAST" as const,offset:0,destination:[0,9] as const,destination_name:"LITTLEROOT TOWN",edges:[{x:2,y:0},{x:2,y:1}]}]}};
+ const state:GameStateSnapshot={...start,topology:{width:3,height:2,connections:[{direction:"EAST" as const,offset:0,destination:[0,9],destination_name:"LITTLEROOT TOWN",edges:[{x:2,y:0},{x:2,y:1}]}]}};
  const result=await run(state,true,true);
  expect(result.posts).toEqual(["DOWN","RIGHT","RIGHT","RIGHT"].map(d=>({buttons:[d],hold_frames:10,release_frames:8})));
  expect(result.text).not.toContain("script-trigger step attempted");

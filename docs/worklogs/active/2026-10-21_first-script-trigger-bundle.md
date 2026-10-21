@@ -73,3 +73,5 @@ RED commit 91d78817. GREEN focused 20/20; guarded safe-route preference added to
 |PB13|PASS|Worklog records distinct implementation/gates/review/landing/activation states.|
 
 GREEN commit 2eb56900. Pending experiment source repinned to that implementation; no approval/queue mutation. Four guard mutations restored and tests green. Final gate sequence running before queue join.
+
+Follow-up test typing: alternative-edge fixture now explicitly GameStateSnapshot (mutable destination tuple), no behavior change. Pending experiment parse and actual armPreset generation pass: active cook control false/bundle true, wall7200000. v7 setup raced the initial house-entry script; v8 waits then explicitly advances the setup conversation before testing. No failed setup qualifies as proof.

@@ -1,6 +1,6 @@
 // Boots the probes page: the probe and case the hash names, clicks that change the view, and a refresh every few
 // seconds while any lane of the probe is still running.
-import { defaultGroup, hashOf, pageHtml, parseHash, parseProbe, parseProbeList, type ViewState } from "./probes-view.js";
+import { defaultGroup, hashOf, keepGroup, pageHtml, parseHash, parseProbe, parseProbeList, type ViewState } from "./probes-view.js";
 import type { ProbeDetail, ProbeSummary } from "./probes.js";
 
 export const REFRESH_MS = 5000;
@@ -41,7 +41,7 @@ export async function mountProbes(doc: Document, deps: ProbesDeps): Promise<void
         try {
           const next = await load(id);
           // A probe switch while this refresh was in flight wins over the older probe's reply.
-          if (id === state.probe) { detail = next; render(); sync(); }
+          if (id === state.probe) { state = { ...state, group: keepGroup(detail, next, state.group) }; detail = next; render(); sync(); }
         } finally { busy = false; }
       }, REFRESH_MS);
     } else if (!live && stop !== null) { stop(); stop = null; }

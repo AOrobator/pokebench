@@ -65,11 +65,24 @@ export const hashOf = (probe: string, caseId: string): string => `#${encodeURICo
 export function modelGroups(p: ProbeDetail): ModelGroup[] {
   const groups = new Map<string, string[]>();
   for (const lane of p.lanes) {
-    const key = lane.model ?? lane.id;
+    // The full model id is the key: two models whose names end alike stay apart (INV-1).
+    const key = lane.model === null ? `lane:${lane.id}` : `model:${lane.model}`;
     groups.set(key, [...(groups.get(key) ?? []), lane.id]);
   }
   return [...groups].map(([key, lanes]) => ({ key, lanes }));
 }
+// The label a model id shows: its last path part without a .gguf suffix.
+export const modelLabel = (id: string | null): string => (id === null ? "unknown model" : (id.split("/").pop() ?? id).replace(/\.gguf$/i, ""));
+const groupLabel = (key: string): string => (key.startsWith("model:") ? modelLabel(key.slice("model:".length)) : "unknown model");
+
+// The group to keep after a refresh: the same key, or else the group now holding the old group's first lane.
+export function keepGroup(before: ProbeDetail, after: ProbeDetail, group: string): string {
+  const groups = modelGroups(after);
+  if (groups.some((g) => g.key === group)) return group;
+  const lane = modelGroups(before).find((g) => g.key === group)?.lanes[0];
+  return groups.find((g) => lane !== undefined && g.lanes.includes(lane))?.key ?? defaultGroup(after);
+}
+
 export function defaultGroup(p: ProbeDetail): string {
   const groups = modelGroups(p);
   const size = (g: ModelGroup): number => p.samples.filter((s) => g.lanes.includes(s.lane)).length;
@@ -137,7 +150,7 @@ function header(c: Ctx, now: number, list: readonly ProbeSummary[]): string {
     : `<span class="pr-id">${esc(c.p.id)}</span>`;
   const tile = (l: ProbeLane): string => {
     const ms = median(c.p.samples.filter((s) => s.lane === l.id).map((s) => s.elapsedMs));
-    return `<div class="pr-kpi"><div class="pr-k">${esc(l.id.toUpperCase())} · ${esc((l.model ?? "unknown model").toUpperCase())}</div><div class="pr-v">${String(l.completed)}/${String(l.planned)}</div>${hp(l.planned === 0 ? 0 : l.completed / l.planned, l.state === "complete" ? "OK" : l.state === "running" ? "RUN" : "—")}<div class="pr-tail">${esc(laneTail(l, ms, now))}</div></div>`;
+    return `<div class="pr-kpi"><div class="pr-k">${esc(l.id.toUpperCase())} · ${esc(modelLabel(l.model).toUpperCase())}</div><div class="pr-v">${String(l.completed)}/${String(l.planned)}</div>${hp(l.planned === 0 ? 0 : l.completed / l.planned, l.state === "complete" ? "OK" : l.state === "running" ? "RUN" : "—")}<div class="pr-tail">${esc(laneTail(l, ms, now))}</div></div>`;
   };
   const held = c.p.cases.some((x) => x.split === "heldout");
   const on = c.t(null, c.on, held ? "heldout" : undefined), off = c.t(null, c.off, held ? "heldout" : undefined);
@@ -148,7 +161,7 @@ function header(c: Ctx, now: number, list: readonly ProbeSummary[]): string {
 <div class="pr-kpis">${c.p.lanes.map(tile).join("")}${summary}</div>${problems}</section>`;
 }
 function tools(c: Ctx): string {
-  const groups = modelGroups(c.p).map((g) => `<button type="button" data-group="${esc(g.key)}" aria-pressed="${String(g.key === c.st.group)}">${esc(g.key.toUpperCase())} · ${esc(g.lanes.map((l) => l.toUpperCase()).join("+"))}</button>`).join("");
+  const groups = modelGroups(c.p).map((g) => `<button type="button" data-group="${esc(g.key)}" aria-pressed="${String(g.key === c.st.group)}">${esc(groupLabel(g.key).toUpperCase())} · ${esc(g.lanes.map((l) => l.toUpperCase()).join("+"))}</button>`).join("");
   return `<section class="box pr-tools">${legend(c)}<div class="pr-segs"><div class="pr-seg" role="group" aria-label="Model">${groups}</div><div class="pr-seg"><button type="button" data-blind aria-pressed="${String(c.st.blind)}">ARM-BLIND</button></div></div></section>`;
 }
 function slots(c: Ctx): string {

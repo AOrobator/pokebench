@@ -127,15 +127,12 @@ function laneIds(dir: string): string[] {
     try { return ID.test(name) && lstatSync(join(dir, name)).isDirectory(); } catch { return false; }
   }).sort();
 }
-function modelName(id: string | null): string | null {
-  return id === null ? null : (id.split("/").pop() ?? id).replace(/\.gguf$/i, "");
-}
 function lane(dir: string, id: string, ceilingMs: number | null): ProbeLane {
   const s = readJson(join(dir, id, "status.json")), p = readJson(join(dir, id, "provenance.json"));
   const status = record(s) ? s : {};
   const state = STATES.find((x) => x === status.state) ?? "unknown";
   const model = record(p) && record(p.model) ? str(p.model.id) : null;
-  return { id, model: modelName(model), state, completed: count(status.completed), planned: count(status.planned), started: str(status.started), ended: str(status.ended), current: state === "running" ? str(status.case) : null, ceilingMs };
+  return { id, model, state, completed: count(status.completed), planned: count(status.planned), started: str(status.started), ended: str(status.ended), current: state === "running" ? str(status.case) : null, ceilingMs };
 }
 
 function find(runsRoot: string, id: string): { entry: Entry; m: Manifest } {

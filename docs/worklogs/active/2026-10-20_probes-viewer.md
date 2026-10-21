@@ -158,6 +158,22 @@ The proof is /probes on the live 8790 viewer showing cited-destination-v1 with a
     - (hardening, Claude) A refresh reply for a probe the user switched away from is dropped.
   - Rebutted: PB12 wording (the evidence names the path jail; no TCC paths are touched, which is the PASS reason). turnCache growth and turn-restart speculation: follow-up.
 
+- Round 2 (packet d96e5178, head 6e54fc59, base main a2afc58a; gates on tip: agent 3030, viewer 1478, lint, build).
+  - Lanes and verdicts:
+    - Claude: subagent, LGTM.
+    - Grok: Cursor, LGTM.
+    - GPT: Codex default model gpt-6-astra, BLOCKING.
+  - GPT's two blockers, both concrete and both fixed:
+    - (1) Lane models were shortened to their basename on the server, so `original/model` and `finetuned/model` pooled into one group (INV-1). Fix: the server keeps the full model id; groups key on `model:<full id>` or `lane:<id>`; only the label is shortened (test).
+    - (2) When a lane's provenance appeared mid-run, the kept group key matched no group and its squares vanished on refresh. Fix: `keepGroup` keeps the key, or moves to the group now holding the old group's first lane (unit test plus mounted refresh test; deleting the call went red).
+  - At the two-round cap the operator was asked: fix these two, then one more round and land (recommended), land as is, or hold.
+  - Follow-ups (not this branch):
+    - leaf-file symlinks inside lanes
+    - turnCache eviction
+    - problems-fold state on refresh
+    - catch on a failed probe switch
+    - folder and pointer sharing an id
+
 ## Boy Scout Log
 
 ## Archive Milestone (user-gated)

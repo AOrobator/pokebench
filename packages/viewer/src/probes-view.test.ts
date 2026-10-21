@@ -4,7 +4,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import type { ProbeDetail, ProbeSample, ProbeSummary } from "./probes.js";
-import { hashOf, modelGroups, pageHtml, parseHash, parseProbe, parseProbeList, type ViewState } from "./probes-view.js";
+import { defaultGroup, hashOf, keepGroup, modelGroups, pageHtml, parseHash, parseProbe, parseProbeList, type ViewState } from "./probes-view.js";
 import { REFRESH_MS, bootProbes, mountProbes } from "./probes-main.js";
 
 const PAGE = readFileSync(join(import.meta.dirname, "../static/probes.html"), "utf8");
@@ -40,7 +40,7 @@ function probe(over: Partial<ProbeDetail> = {}): ProbeDetail {
     ...over,
   };
 }
-const STATE: ViewState = { probe: "cited-destination-v1", group: "Qwen3.6-35B", caseId: "case-07", sample: null, blind: false, plot: false };
+const STATE: ViewState = { probe: "cited-destination-v1", group: "model:Qwen3.6-35B", caseId: "case-07", sample: null, blind: false, plot: false };
 function dom(html: string): Document {
   return new DOMParser().parseFromString(`<body>${html}</body>`, "text/html");
 }
@@ -65,14 +65,27 @@ describe("probe JSON from the server", () => {
 });
 
 describe("lanes by model (INV-1)", () => {
+  it("keeps two models apart when their names end alike, and labels a lane with no model", () => {
+    const models: Record<string, string | null> = { gpu0: "original/model.gguf", gpu1: "finetuned/model.gguf", mac: null };
+    const names: Record<string, string> = { gpu0: "a", gpu1: "b", mac: "c" };
+    const p = probe({ lanes: probe().lanes.map((l) => ({ ...l, id: names[l.id] ?? l.id, model: models[l.id] ?? null })) });
+    expect(modelGroups(p).map((g) => g.lanes)).toEqual([["a"], ["b"], ["c"]]);
+    expect(texts(dom(pageHtml(p, { ...STATE, group: "lane:c" }, NOW, false)), "[data-group]")).toEqual(["MODEL · A", "MODEL · B", "UNKNOWN MODEL · C"]);
+  });
+  it("keeps the selected lanes when a lane's model name arrives on refresh", () => {
+    const before = probe({ lanes: probe().lanes.map((l) => (l.id === "gpu0" ? { ...l, model: null } : l)) });
+    expect(keepGroup(before, probe(), "lane:gpu0")).toBe("model:Qwen3.6-35B");
+    expect(keepGroup(probe(), probe(), "model:Qwen3.8-Flash")).toBe("model:Qwen3.8-Flash");
+    expect(keepGroup(probe(), probe(), "lane:gone")).toBe(defaultGroup(probe()));
+  });
   it("groups lanes that run the same model, and never pools models", () => {
-    expect(modelGroups(probe())).toEqual([{ key: "Qwen3.6-35B", lanes: ["gpu0", "gpu1"] }, { key: "Qwen3.8-Flash", lanes: ["mac"] }]);
+    expect(modelGroups(probe())).toEqual([{ key: "model:Qwen3.6-35B", lanes: ["gpu0", "gpu1"] }, { key: "model:Qwen3.8-Flash", lanes: ["mac"] }]);
     const gpu = dom(pageHtml(probe(), STATE, NOW, false));
-    const mac = dom(pageHtml(probe(), { ...STATE, group: "Qwen3.8-Flash" }, NOW, false));
+    const mac = dom(pageHtml(probe(), { ...STATE, group: "model:Qwen3.8-Flash" }, NOW, false));
     expect(gpu.querySelectorAll('[data-arm="on"] .pr-sq:not(.todo)')).toHaveLength(3);
     expect(mac.querySelectorAll('[data-arm="on"] .pr-sq:not(.todo)')).toHaveLength(1);
     expect(texts(gpu, "[data-group]")).toEqual(["QWEN3.6-35B · GPU0+GPU1", "QWEN3.8-FLASH · MAC"]);
-    expect(gpu.querySelector('[data-group="Qwen3.6-35B"]')?.getAttribute("aria-pressed")).toBe("true");
+    expect(gpu.querySelector('[data-group="model:Qwen3.6-35B"]')?.getAttribute("aria-pressed")).toBe("true");
   });
 });
 
@@ -180,7 +193,7 @@ describe("mounting the page", () => {
     expect(h.replaced.at(-1)).toBe("#cited-destination-v1/case-07");
     await click(h, '.pr-sq[data-sample="gpu1/case-07/on/0"]');
     expect(h.doc.querySelector(".pr-reader")?.textContent).toContain("press_buttons");
-    await click(h, '[data-group="Qwen3.8-Flash"]');
+    await click(h, '[data-group="model:Qwen3.8-Flash"]');
     expect(h.doc.querySelectorAll('.pr-main [data-arm="on"] .pr-sq:not(.todo)')).toHaveLength(1);
     await click(h, "[data-blind]");
     expect(texts(h.doc, ".pr-main .pr-type em")).toEqual(["X", "Y"]);
@@ -243,6 +256,16 @@ describe("mounting the page", () => {
 
   it("refuses a page without its mount point", async () => {
     await expect(mountProbes(new DOMParser().parseFromString("<body></body>", "text/html"), { hash: "", phone: false, now: () => NOW, fetchJson: () => Promise.resolve([]), every: () => () => undefined, setHash: () => undefined })).rejects.toThrow("data-pr");
+  });
+
+  it("keeps showing a lane's squares when its model name arrives on refresh", async () => {
+    const noModel = probe({ lanes: probe().lanes.map((l) => ({ ...l, model: null })) });
+    const h = await mount("#cited-destination-v1/case-07", [noModel, probe({ lanes: probe().lanes.map((l) => ({ ...l, state: "complete" as const })) })]);
+    const ids = (): string[] => [...h.doc.querySelectorAll('.pr-main [data-arm="on"] .pr-sq:not(.todo)')].map((e) => e.getAttribute("data-sample") ?? "");
+    expect(ids()).toEqual(["gpu0/case-07/on/0", "gpu0/case-07/on/1"]);
+    await h.ticks[0]?.();
+    expect(ids()).toEqual(["gpu0/case-07/on/0", "gpu0/case-07/on/1", "gpu1/case-07/on/0"]);
+    expect(h.doc.querySelector('[data-group][aria-pressed="true"]')).not.toBeNull();
   });
 
   it("says so when there are no probes", async () => {

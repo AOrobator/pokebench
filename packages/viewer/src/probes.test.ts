@@ -127,7 +127,7 @@ describe("one probe", () => {
     ]);
     expect(probe.lanes).toEqual([
       { id: "empty", model: null, state: "unknown", completed: 0, planned: 0, started: null, ended: null, current: null, ceilingMs: 3_600_000 },
-      { id: "gpu0", model: "Qwen3.6-35B-A3B-UD-Q4_K_M", state: "complete", completed: 64, planned: 64, started: "2026-10-20T23:21:25.439Z", ended: "2026-10-20T23:25:46.292Z", current: null, ceilingMs: 3_600_000 },
+      { id: "gpu0", model: "/models/Qwen3.6-35B-A3B-UD-Q4_K_M.gguf", state: "complete", completed: 64, planned: 64, started: "2026-10-20T23:21:25.439Z", ended: "2026-10-20T23:25:46.292Z", current: null, ceilingMs: 3_600_000 },
       { id: "mac", model: "Qwen3.8-Flash-Next-UD-IQ4_XS", state: "running", completed: 3, planned: 64, started: "2026-10-20T23:20:15.074Z", ended: null, current: "case-07", ceilingMs: 3_600_000 },
     ]);
     expect(probe.samples).toEqual([

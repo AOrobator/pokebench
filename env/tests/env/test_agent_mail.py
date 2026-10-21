@@ -151,13 +151,13 @@ def test_done_hands_the_slot_to_a_waiting_claude_by_mail(tmp_path: Path) -> None
     runs = Runs()
     am.board_join(r, who="codex", branch="codex/a", codex_thread="A", now=T)
     am.board_join(r, who="claude thread b", branch="claude/b", codex_thread=None, now=T)
-    nxt = am.board_done(r, branch="codex/a", now=T, run=runs)
-    assert nxt == am.Handoff(am.read_board(r)[0], 0) and nxt.up.branch == "claude/b"
+    up = am.read_board(r)[1]
+    notices = am.board_done(r, branch="codex/a", now=T, run=runs)
+    text = "claude thread b: your turn to land claude/b"
+    assert notices == [am.Notice(up, 1, text, 0)]
     assert runs.calls == []
-    assert am.collect(r) == [
-        am.Letter(T, "land-board", "claude thread b: your turn to land claude/b")
-    ]
-    assert am.board_done(r, branch="claude/b", now=T, run=runs) is None
+    assert am.collect(r) == [am.Letter(T, "land-board", text)]
+    assert am.board_done(r, branch="claude/b", now=T, run=runs) == []
 
 
 def test_done_hands_the_slot_to_a_waiting_codex_by_queue(tmp_path: Path) -> None:
@@ -166,10 +166,10 @@ def test_done_hands_the_slot_to_a_waiting_codex_by_queue(tmp_path: Path) -> None
     am.board_join(r, who="claude thread b", branch="claude/b", codex_thread=None, now=T)
     am.board_join(r, who="codex", branch="codex/a", codex_thread="A", now=T)
     am.board_join(r, who="codex 2", branch="codex/c", codex_thread="C", now=T)
-    assert am.board_done(r, branch="codex/c", now=T, run=runs) is None
+    assert am.board_done(r, branch="codex/c", now=T, run=runs) == []
     assert runs.calls == []
-    nxt = am.board_done(r, branch="claude/b", now=T, run=runs)
-    assert nxt is not None and nxt.up.who == "codex" and nxt.exit_code == 0
+    notices = am.board_done(r, branch="claude/b", now=T, run=runs)
+    assert [(n.entry.who, n.position, n.exit_code) for n in notices] == [("codex", 1, 0)]
     assert runs.calls == [
         ["codex", "queue", "--thread", "A", "--message", "codex: your turn to land codex/a"]
     ]
@@ -243,7 +243,7 @@ def test_cli(
     assert am.main(["land-board"], run=runs) == 0
     assert "1. LANDING  codex/a" in out()
     assert am.main(["land-done", "--branch", "codex/a"], run=runs) == 0
-    assert "claude/b is up" in out()
+    assert "Told claude: number 1." in out()
     assert am.main(["land-done", "--branch", "claude/b"], run=runs) == 0
     assert "Nobody is landing." in out()
 
@@ -316,9 +316,9 @@ def test_a_failed_codex_handoff_is_loud(
     capsys.readouterr()
     assert am.main(["land-done", "--branch", "claude/a"], run=runs) == 1
     printed = capsys.readouterr().out
-    assert "telling codex failed (codex queue exit 1)" in printed
+    assert "Telling codex failed (codex queue exit 1)" in printed
     assert "just tell-codex B 'codex: your turn to land codex/b'" in printed
-    assert "told" not in printed.replace("telling", "")
+    assert "Told" not in printed
     assert "1. LANDING  codex/b" in printed
 
 
@@ -491,3 +491,73 @@ def test_corrupt_board_and_session_files_are_reported_as_unreadable(tmp_path: Pa
     index.write_text("{not json\n")
     with pytest.raises(ValueError, match="unreadable Codex session"):
         am.codex_sessions(index, limit=5)
+
+
+def test_everyone_behind_a_leaver_hears_their_new_place(tmp_path: Path) -> None:
+    r = room(tmp_path)
+    runs = Runs()
+    am.board_join(r, who="claude a", branch="claude/a", codex_thread=None, now=T)
+    am.board_join(r, who="codex b", branch="codex/b", codex_thread="B", now=T)
+    am.board_join(r, who="claude c", branch="claude/c", codex_thread=None, now=T)
+    am.board_join(r, who="codex d", branch="codex/d", codex_thread="D", now=T)
+    notices = am.board_done(r, branch="codex/b", now=T, run=runs)
+    assert [(n.entry.branch, n.position) for n in notices] == [("claude/c", 2), ("codex/d", 3)]
+    assert runs.calls == [
+        [
+            "codex",
+            "queue",
+            "--thread",
+            "D",
+            "--message",
+            "codex d: you are now number 3 of 3 on the landing board for codex/d",
+        ]
+    ]
+    assert [x.text for x in am.collect(r)] == [
+        "claude c: you are now number 2 of 3 on the landing board for claude/c"
+    ]
+
+
+def test_land_move_puts_an_entry_above_another_and_tells_who_moved(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.setenv("POKEBENCH_AGENT_MAIL_DIR", str(tmp_path / "mail"))
+    r = am.Mailroom(tmp_path / "mail")
+    runs = Runs()
+    for who, branch, thread in [
+        ("claude a", "claude/a", None),
+        ("codex b", "codex/b", "B"),
+        ("claude c", "claude/c", None),
+    ]:
+        am.board_join(r, who=who, branch=branch, codex_thread=thread, now=T)
+    capsys.readouterr()
+    assert am.main(["land-move", "--branch", "claude/c", "--before", "codex/b"], run=runs) == 0
+    assert [e.branch for e in am.read_board(r)] == ["claude/a", "claude/c", "codex/b"]
+    printed = capsys.readouterr().out
+    assert "Told claude c: number 2." in printed and "Told codex b: number 3." in printed
+    assert (
+        runs.calls[-1][-1] == "codex b: you are now number 3 of 3 on the landing board for codex/b"
+    )
+    with pytest.raises(ValueError, match="nope is not on the landing board"):
+        am.board_move(r, branch="nope", before_branch="claude/a", now=T, run=runs)
+    with pytest.raises(ValueError, match="nope is not on the landing board"):
+        am.board_move(r, branch="claude/a", before_branch="nope", now=T, run=runs)
+
+
+def test_a_listener_leaving_between_open_and_write_saves_the_letter(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    r = room(tmp_path)
+    r.root.mkdir(parents=True)
+    os.mkfifo(r.pipe)
+    reader = os.open(r.pipe, os.O_RDONLY | os.O_NONBLOCK)
+
+    def gone(fd: int, data: bytes) -> int:
+        raise BrokenPipeError
+
+    monkeypatch.setattr(os, "write", gone)
+    try:
+        assert am.tell_claude(r, sender="codex", text="still here", now=T) is False
+    finally:
+        os.close(reader)
+    monkeypatch.undo()
+    assert am.collect(r) == [am.Letter(T, "codex", "still here")]

@@ -55,8 +55,10 @@ class BoardEntry:
 
 
 @dataclass(frozen=True)
-class Handoff:
-    up: BoardEntry
+class Notice:
+    entry: BoardEntry
+    position: int
+    text: str
     exit_code: int
 
 
@@ -158,6 +160,8 @@ def tell_claude(room: Mailroom, *, sender: str, text: str, now: datetime) -> boo
             os.write(ping, b"\n")
         except BlockingIOError:
             pass  # The pipe is full of earlier pings: the listener is already being woken.
+        except BrokenPipeError:
+            return False  # The listener left between open and write; the letter waits in pending.
         finally:
             os.close(ping)
         return True
@@ -374,26 +378,79 @@ def board_join(
         return len(entries)
 
 
-def board_done(room: Mailroom, *, branch: str, now: datetime, run: Run) -> Handoff | None:
-    """Leave the board. When the lander leaves, tell the next entry it is up.
+def notice_text(entry: BoardEntry, position: int, total: int) -> str:
+    if position == 1:
+        return text_for(entry)
+    return (
+        f"{entry.who}: you are now number {position} of {total} on the landing board "
+        f"for {entry.branch}"
+    )
 
-    The exit code is `codex queue`'s for a Codex entry; mail to Claude always lands in pending.
+
+def notify_moves(
+    room: Mailroom, before: list[BoardEntry], after: list[BoardEntry], *, now: datetime, run: Run
+) -> list[Notice]:
+    """Tell every entry whose place changed its new place: Codex by queue, Claude by mail."""
+    old = {entry.branch: number for number, entry in enumerate(before, start=1)}
+    notices = []
+    for number, entry in enumerate(after, start=1):
+        if old.get(entry.branch) == number:
+            continue
+        text = notice_text(entry, number, len(after))
+        if entry.codex_thread is not None:
+            code = tell_codex(entry.codex_thread, text, run=run)
+        else:
+            tell_claude(room, sender="land-board", text=text, now=now)
+            code = 0
+        notices.append(Notice(entry, number, text, code))
+    return notices
+
+
+def board_done(room: Mailroom, *, branch: str, now: datetime, run: Run) -> list[Notice]:
+    """Leave the board and tell everyone behind you their new place; number 1 is told to land.
+
+    A notice's exit code is `codex queue`'s for a Codex entry; mail to Claude always lands.
     """
     with room.locked():
-        entries = read_entries(room)
-        place = next((i for i, e in enumerate(entries) if e.branch == branch), None)
-        if place is None:
+        before = read_entries(room)
+        after = [e for e in before if e.branch != branch]
+        if len(after) == len(before):
             raise ValueError(f"{branch} is not on the landing board")
-        del entries[place]
-        write_entries(room, entries)
-    if place != 0 or not entries:
-        return None
-    up = entries[0]
-    text = text_for(up)
-    if up.codex_thread is not None:
-        return Handoff(up, tell_codex(up.codex_thread, text, run=run))
-    tell_claude(room, sender="land-board", text=text, now=now)
-    return Handoff(up, 0)
+        write_entries(room, after)
+    return notify_moves(room, before, after, now=now, run=run)
+
+
+def board_move(
+    room: Mailroom, *, branch: str, before_branch: str, now: datetime, run: Run
+) -> list[Notice]:
+    """Move one entry to just above another and tell every entry whose place changed."""
+    with room.locked():
+        before = read_entries(room)
+        mover = next((e for e in before if e.branch == branch), None)
+        if mover is None:
+            raise ValueError(f"{branch} is not on the landing board")
+        rest = [e for e in before if e.branch != branch]
+        target = next((i for i, e in enumerate(rest) if e.branch == before_branch), None)
+        if target is None:
+            raise ValueError(f"{before_branch} is not on the landing board")
+        after = rest[:target] + [mover] + rest[target:]
+        write_entries(room, after)
+    return notify_moves(room, before, after, now=now, run=run)
+
+
+def report(notices: list[Notice]) -> int:
+    code = 0
+    for notice in notices:
+        if notice.exit_code == 0:
+            print(f"Told {notice.entry.who}: number {notice.position}.")
+        else:
+            code = notice.exit_code
+            print(
+                f"Telling {notice.entry.who} failed (codex queue exit {notice.exit_code}). "
+                "Tell them by hand: just tell-codex "
+                + shlex.join([notice.entry.codex_thread or "", notice.text])
+            )
+    return code
 
 
 def main(argv: Sequence[str] | None = None, *, run: Run = run_command) -> int:
@@ -416,6 +473,11 @@ def main(argv: Sequence[str] | None = None, *, run: Run = run_command) -> int:
     join.add_argument("--codex-thread", default=None)
     done = commands.add_parser("land-done", help="leave the board and hand the slot on")
     done.add_argument("--branch", required=True)
+    move = commands.add_parser(
+        "land-move", help="move an entry above another (only when the operator says so)"
+    )
+    move.add_argument("--branch", required=True)
+    move.add_argument("--before", required=True)
     args = parser.parse_args(argv)
 
     room = Mailroom.for_repo(Path.cwd())
@@ -458,19 +520,12 @@ def main(argv: Sequence[str] | None = None, *, run: Run = run_command) -> int:
             print(f"You are number {position}. You will be told when it is your turn.")
         print(render_board(read_board(room)))
         return 0
-    handoff = board_done(room, branch=args.branch, now=now, run=run)
-    code = 0
-    if handoff is None:
-        print("Done.")
-    elif handoff.exit_code == 0:
-        print(f"Done. {handoff.up.branch} is up; told {handoff.up.who}.")
+    if args.command == "land-move":
+        notices = board_move(room, branch=args.branch, before_branch=args.before, now=now, run=run)
     else:
-        code = handoff.exit_code
-        print(
-            f"Done, but telling {handoff.up.who} failed (codex queue exit {code}). "
-            "Tell them by hand: just tell-codex "
-            + shlex.join([handoff.up.codex_thread or "", text_for(handoff.up)])
-        )
+        notices = board_done(room, branch=args.branch, now=now, run=run)
+        print("Done.")
+    code = report(notices)
     print(render_board(read_board(room)))
     return code
 

@@ -168,6 +168,10 @@ land-join *args:
 land-done *args:
     uv run --project env python -m pokebench_env.agent_mail land-done "$@"
 
+[positional-arguments]
+land-move *args:
+    uv run --project env python -m pokebench_env.agent_mail land-move "$@"
+
 # Experiment queue: list the queue, pending and closed experiments.
 experiments: build
     node packages/viewer/dist/experiment-cli.js list

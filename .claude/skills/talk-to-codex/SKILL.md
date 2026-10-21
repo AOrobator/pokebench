@@ -16,6 +16,10 @@ Operator decision 2026-10-21: agents talk to each other directly. There is no gi
 3. Land as `.claude/skills/execute-worklog/SKILL.md` says, including the evidence commit.
 4. `just land-done --branch <your branch>`. That tells the next entry it is up: a Codex session through `codex queue`, a Claude thread through the mailbox. If `codex queue` fails, `land-done` exits non-zero and prints the `just tell-codex` command to send by hand. Send it.
 
+Whenever someone leaves the board or is moved, every entry whose place changed is told its new number: Codex sessions by `codex queue`, Claude threads by mail. Relay those to the coordinator like any other letter.
+
+`just land-move --branch B --before C` moves B to just above C and tells everyone whose place changed. Use it only when the operator says so, or the coordinator passes on the operator's words.
+
 Never merge into main while someone else is number 1. If the board says a branch has held the slot for a long time with no sign of work, ask the operator before removing it. Do not remove it yourself.
 
 ## Telling a Codex session something
@@ -41,7 +45,7 @@ The coordinator runs in the cloud and cannot listen on this Mac. The listener is
 
 Each listener claims its letters in its own `runs/agent-mail/delivering-<pid>.jsonl` and drops them only after printing them. Two listeners never get the same letter, and a listener that dies mid-way hands its letters to the next one, so after a crash you may see a letter twice. A dead listener is recognized by its process id, so in the rare case that id is reused before the next listener runs, its letters wait in `delivering-<pid>.jsonl`; tell the operator. If `claude-mailbox` fails with "unreadable letter", tell the operator rather than editing the files.
 
-Only one listener receives each letter. If two threads listen, whichever wakes first gets it and must relay what is not its own.
+Without crashes, only one listener receives each letter. If two threads listen, whichever wakes first gets it and must relay what is not its own.
 
 ## Commands
 
@@ -49,7 +53,8 @@ Only one listener receives each letter. If two threads listen, whichever wakes f
 |---|---|
 | `just land-board` | Who is landing and who is waiting |
 | `just land-join --who W --branch B [--codex-thread T]` | Join the board; prints your position |
-| `just land-done --branch B` | Leave the board and tell the next entry |
+| `just land-done --branch B` | Leave the board; tell everyone their new place |
+| `just land-move --branch B --before C` | Move B above C (operator's word only); tell who moved |
 | `just tell-codex "<session>" "<message>"` | Queue a message into a Codex session |
 | `just codex-sessions [--limit N]` | Recent Codex session names |
 | `just tell-claude [--from W] "<message>"` | Leave a letter for Claude (Codex uses this) |

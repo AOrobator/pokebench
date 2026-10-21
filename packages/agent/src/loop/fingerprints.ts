@@ -124,3 +124,15 @@ export function waitingState(state: GameStateSnapshot): string | null {
     story: state.story ?? null,
   });
 }
+
+// Task_ShopMenu in pokeemerald src/shop.c routes MENU_B_PRESSED to Task_HandleShopMenuQuit.
+// The shop UI owner is independent of the ordinary field-message decoder.
+export function menuRefusalState(state: GameStateSnapshot): string | null {
+  if (!state.started || state.in_battle || state.screen !== "overworld" || state.map_id === null || state.position === null) return null;
+  const ui = state.active_ui;
+  if (ui != null) {
+    if (ui.ready !== true || ui.diagnostic !== null) return null;
+    return stable({map:state.map_id,position:state.position,ui:{phase:ui.phase,selected:ui.selected,value:ui.value,controls:ui.controls}});
+  }
+  return state.field_controls_locked === false ? stable({map:state.map_id,position:state.position,ui:null}) : null;
+}

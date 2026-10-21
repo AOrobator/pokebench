@@ -16,7 +16,7 @@ import {
   type NavigationLoopKind,
   type StallKind,
 } from "./types.js";
-import { semanticState } from "./fingerprints.js";
+import { semanticState, menuRefusalState } from "./fingerprints.js";
 import { SameTargetNoProgress, type SameTargetWarning } from "./same-target.js";
 import { CallTracker } from "./call-tracker.js";
 import { BASIC_MESSAGES, BasicRules } from "./rules/basic.js";
@@ -77,6 +77,7 @@ export class LoopCoordinator {
   private readonly closedDialogue: boolean;
   private readonly triggerScriptLoops: boolean;
   private readonly battleRefusals: boolean;
+  private readonly menuRefusals:boolean;
   private readonly ineffectiveNavigation:boolean;
   private readonly navigationFailures=new NavigationFailure();
   private readonly sameTarget: SameTargetNoProgress | null;
@@ -99,6 +100,7 @@ export class LoopCoordinator {
     revisit: boolean;
     menu: boolean;
     refusalAnchor: string | null;
+    menuRefusal:boolean;
     navigationFailure:boolean;
     // same-target-no-progress-v1: the warned target; such an episode closes only on that guard's resets.
     sameTarget: string | null;
@@ -127,6 +129,7 @@ export class LoopCoordinator {
       closedDialogue = false,
       triggerScriptLoops = false,
       battleRefusals = false,
+      menuRefusals = false,
       ineffectiveNavigation = false,
       sameTargetNoProgress = false,
     } = options;
@@ -143,6 +146,7 @@ export class LoopCoordinator {
     this.closedDialogue = closedDialogue;
     this.triggerScriptLoops = triggerScriptLoops;
     this.battleRefusals = battleRefusals;
+    this.menuRefusals = menuRefusals;
     this.ineffectiveNavigation=ineffectiveNavigation;
     this.sameTarget = sameTargetNoProgress ? new SameTargetNoProgress(supervisor !== undefined && mode === "enforced") : null;
     this.basic = new BasicRules(policy, interactions, battles, ineffectiveLoops, transitions);
@@ -211,7 +215,7 @@ export class LoopCoordinator {
         this.field.button(event.buttons, tracked.pending, tracked.started);
       }
     } else if (event.type === "tool_result") {
-      this.complete(this.callTracker.finish(event,this.battleRefusals));
+      this.complete(this.callTracker.finish(event,this.battleRefusals || this.menuRefusals));
     }
   }
 
@@ -240,9 +244,9 @@ export class LoopCoordinator {
     if (same?.cleared === true && this.episode?.sameTarget != null) this.recover(seq, false);
     const failure=this.ineffectiveNavigation?this.navigationFailures.observe({...call,seq}):null;
     if(failure?.active===false&&this.episode?.navigationFailure===true)this.recover(seq,true);
-    const refusal = this.basic.refusal(call,this.battleRefusals);
+    const refusal = this.basic.refusal(call,this.battleRefusals,this.menuRefusals);
     if (this.episode?.refusalAnchor != null && !call.isError && call.state !== undefined) {
-      const snapshot = refusal.native ?? semanticState(call.state,this.interactions);
+      const snapshot = this.episode.menuRefusal ? menuRefusalState(call.state) : refusal.native ?? semanticState(call.state,this.interactions);
       if (snapshot !== null && snapshot !== this.episode.refusalAnchor) this.recover(seq,true);
     }
     this.field.error(call);
@@ -357,7 +361,7 @@ export class LoopCoordinator {
       this.episode.recovery >= this.episode.window &&
       !this.episode.threshold
     ) {
-      if (this.supervisor !== undefined && this.mode === "enforced") {
+      if (this.supervisor !== undefined && this.mode === "enforced" && !this.episode.menuRefusal) {
         this.episode.briefing = this.supervisor(this.episode.kind, this.completed);
         this.episode.recovery = 0;
         this.notice("supervisor", seq);
@@ -374,7 +378,7 @@ export class LoopCoordinator {
         kind: hit,
         // Trigger execution is observed after the other checks. The legacy detector
         // always attached that evidence/message when it coincided with an earlier hit.
-        message: failure?.active===true?"Repeated navigation attempts, including different coordinates, left you in the same area without changing the game conditions. A turn or a small step is not recovery; inspect the observed alternatives.":refusal.status !== null ? `Repeated battle action refusals pressed no buttons. ${refusal.status}` : triggerLooped !== null ? TRIGGER_SCRIPT_MESSAGE(triggerLooped.dialogue) : selected.hit.message,
+        message: failure?.active===true?"Repeated navigation attempts, including different coordinates, left you in the same area without changing the game conditions. A turn or a small step is not recovery; inspect the observed alternatives.":refusal.status !== null ? `Repeated battle action refusals pressed no buttons. ${refusal.status}${refusal.menu ? ` No battle is active. Shop menu open; selected ${call.state?.active_ui?.selected ?? "unknown"}. B quits this menu.` : ""}` : triggerLooped !== null ? TRIGGER_SCRIPT_MESSAGE(triggerLooped.dialogue) : selected.hit.message,
         exposed: false,
         recovery: 0,
         threshold: false,
@@ -387,12 +391,13 @@ export class LoopCoordinator {
         revisit: selected.rule.id === "revisit",
         menu: selected.rule.id === "battle-menu",
         refusalAnchor: refusal.status === null ? null : refusal.native,
+        menuRefusal:refusal.menu,
         navigationFailure:failure?.active===true,
         sameTarget: null,
       };
       this.notice("warning", seq);
       // Speedrun: the supervisor briefs as soon as a loop is found, then again every window while it lasts.
-      if (this.supervisor !== undefined && this.mode === "enforced") {
+      if (this.supervisor !== undefined && this.mode === "enforced" && !this.episode.menuRefusal) {
         this.episode.briefing = this.supervisor(hit, this.completed);
         this.notice("supervisor", seq);
       }
@@ -446,7 +451,8 @@ export class LoopCoordinator {
     this.episode = {
       kind: "same_target_no_progress", message: warning.text, exposed: false, recovery: 0, threshold: false, evidence,
       window: this.policy.recovery, briefing: supervised ? warning.text : null, pushback: false, revisit: false, menu: false,
-      refusalAnchor: null, navigationFailure: false, sameTarget: warning.key,
+      refusalAnchor: null,
+      menuRefusal:false, navigationFailure: false, sameTarget: warning.key,
     };
     this.notice("warning", seq);
     if (supervised) this.notice("supervisor", seq);

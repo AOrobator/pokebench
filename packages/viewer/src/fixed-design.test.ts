@@ -293,3 +293,16 @@ it("enables pending field dialogue only in each evolving bundle and preserves co
   expect(controlBaseProblems(def,readFileSync(new URL(`../../../${def.controlBase.path}`,import.meta.url),"utf8"))).toEqual([]);
  }
 });
+
+it("enables menu refusal recovery only in evolving bundle arms",()=>{
+ for(const name of ["bundle-v-control","bundle-cook-1h","whole-map-cook-1h"]){
+  const def=parseFixedDefinition(readFileSync(new URL(`../../../experiments/fixed/${name}.json`,import.meta.url),"utf8")).definition;
+  expect(definitionProblems(def)).toEqual([]);
+  expect(def.switches).toContain("menu-refusal-recovery-v1");
+  for(const phase of def.phases){
+   expect(armPreset(def,phase.id,"control").features["menu-refusal-recovery-v1"]).toBe(false);
+   expect(armPreset(def,phase.id,"bundle").features["menu-refusal-recovery-v1"]).toBe(true);
+  }
+  expect(controlBaseProblems(def,readFileSync(new URL(`../../../${def.controlBase.path}`,import.meta.url),"utf8"))).toEqual([]);
+ }
+});

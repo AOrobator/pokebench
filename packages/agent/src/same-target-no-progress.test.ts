@@ -301,11 +301,11 @@ describe("same-target-no-progress-v1 on run a8f9 (RUSTURF TUNNEL, navigate_to (2
 
 describe("same-target-no-progress-v1 registry and wiring",()=>{
  it("registers a default-off guard that needs the deterministic loop guard, appended last",()=>{
-  expect(SWITCHABLE_FEATURES.at(-17)).toBe(ID);
-  expect(FEATURES.filter(f=>f.switchable).at(-17)?.id).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-18)).toBe(ID);
+  expect(FEATURES.filter(f=>f.switchable).at(-18)?.id).toBe(ID);
   expect(featureInfo(ID)).toMatchObject({group:"guard",needs:"deterministic-loop-guard-v1",switchable:true,title:"SAME TARGET, NO PROGRESS"});
   expect(featureInfo(ID).description).toContain(" Off: ");
-  expect(playHarnessFeatures(CURRENT_ON,null).at(-16)).toBe(ID);
+  expect(playHarnessFeatures(CURRENT_ON,null).at(-17)).toBe(ID);
   expect(playHarnessFeatures({...CURRENT_ON,[ID]:false},null)).not.toContain(ID);
   expect(dependencyProblems({...CURRENT_ON,"deterministic-loop-guard-v1":false})).toContain(`${ID} needs deterministic-loop-guard-v1`);
   expect(normalizeFeatures({} as Parameters<typeof normalizeFeatures>[0])[ID]).toBe(false);
@@ -329,7 +329,7 @@ describe("same-target-no-progress-v1 registry and wiring",()=>{
   for(const file of ["live.ts","decision-probe.ts"]){
    const source=readFileSync(new URL(`./${file}`,import.meta.url),"utf8");
    const call=source.slice(source.indexOf("attachLoopGuard("));
-   expect(call.slice(0,call.indexOf(");")).endsWith(`features["ineffective-navigation-v2"],features["${ID}"]`),file).toBe(true);
+   expect(call.slice(0,call.indexOf(");")).endsWith(`features["ineffective-navigation-v2"],features["${ID}"],features`),file).toBe(true);
   }
  });
  it("records a held warning as a schema-valid diagnostic loop_guard event through the production recorder path",()=>{

@@ -1,5 +1,5 @@
 import type { CompletedCall, LoopHit, LoopKind, LoopPolicy, LoopRule, LoopRuleId, RuleContext } from "../types.js";
-import { battleState, semanticState, waitingState } from "../fingerprints.js";
+import { battleState, menuRefusalState, semanticState, waitingState } from "../fingerprints.js";
 
 export const BASIC_MESSAGES = {
   planning: "Repeated objective calls without game interaction. Writing a next_decision does not execute buttons. Observe if uncertain, then use press when ready.",
@@ -156,16 +156,17 @@ export class BasicRules {
     };
   }
 
-  refusal(call: CompletedCall, enabled: boolean): {native: string | null; status: string | null} {
-    const native = enabled && call.state?.battle?.initialized === true ? battleState(call.state) : null;
+  refusal(call: CompletedCall, enabled: boolean, menus=false): {native: string | null; status: string | null; menu:boolean} {
+    const menu = menus && call.state?.active_ui?.phase === "shop_action_menu";
+    const native = menu ? menuRefusalState(call.state) : enabled && call.state?.battle?.initialized === true ? battleState(call.state) : null;
     if (native !== null && native !== this.lastRefusalSnapshot) {
       for (const key of this.refusalEvidence.keys()) this.rejections.delete(key);
       this.refusalEvidence.clear();
       this.lastRefusalSnapshot = native;
     }
-    const status = enabled && call.name === "battle_action" && !call.isError && call.acted === false && native !== null
+    const status = (enabled || menu) && call.name === "battle_action" && !call.isError && call.acted === false && native !== null
       ? call.text.split("\n").find(line => line.startsWith("Battle action: nothing pressed: "))?.slice(0, 2000) ?? null : null;
-    return {native, status};
+    return {native, status, menu:menu && status !== null};
   }
 
   refusalSequences(status: string): number[] | undefined {

@@ -1428,3 +1428,10 @@ it("links the pending field dialogue feature card to its local explainer",()=>{
  expect(html).toContain('/explainers/pending-field-dialogue-v1.html');
  expect(html).toContain('PENDING FIELD DIALOGUE');
 });
+
+it("links the recorded menu refusal guard to its explainer without changing feature status",()=>{
+ const log=new Log();log.add(0,{...START,harness_features:["menu-refusal-recovery-v1"]});
+ const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
+ const card=doc.querySelector('[data-feature="menu-refusal-recovery-v1"]');
+ expect(card?.querySelector("a")?.getAttribute("href")).toBe("/explainers/menu-refusal-recovery-v1.html");expect(card?.textContent).toContain("ON");
+});

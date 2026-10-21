@@ -182,3 +182,4 @@ The original ignored runs/explainers copies remain for existing links. Make futu
 
 
 - [Pending field dialogue](pending-field-dialogue-v1.html): finish ordinary dialogue that appears after navigation returns; leave each new choice to the model.
+- [Shop menu refusal recovery](menu-refusal-recovery-v1.html): verified shop refusal feedback and bounded stopping, default OFF and bundle ON.

@@ -15,7 +15,7 @@ import {Type} from "typebox";
 import {Value} from "typebox/value";
 import type {AgentTool,AgentToolResult} from "@mariozechner/pi-agent-core";
 import { ALL_ON as PENDING_BASE_ALL_ON,SERVER_FEATURES,SWITCHABLE_FEATURES,dependencyProblems,featureInfo,featuresOf,playHarnessFeatures,type FeatureSet} from "./features.js";
-const ALL_ON={...PENDING_BASE_ALL_ON,"pending-field-dialogue-v1":false};
+const ALL_ON={...PENDING_BASE_ALL_ON,"menu-refusal-recovery-v1":false,"pending-field-dialogue-v1":false};
 import {flagFeatures,normalizeFeatures} from "./play-preset.js";
 import {parseGameState,type GameStateSnapshot} from "./game-state.js";
 import {checkEvent,type RunEvent} from "./events.js";
@@ -431,7 +431,7 @@ describe("registry and event",()=>{
   expect(featureInfo(ID)).toMatchObject({group:"guard",needs:"heal-before-trainers-v2",switchable:true,title:"STORY BATTLE HEAL GATE"});
   expect(featureInfo(ID).description).toContain(" Off: ");
   expect(featureInfo(ID).description).toContain(TURN157_TEXT.split("\n")[0]);
-  expect(SWITCHABLE_FEATURES.at(-13)).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-14)).toBe(ID);
   expect(SERVER_FEATURES).not.toContain(ID);
   expect(playHarnessFeatures({...ALL_ON,[ID]:true},null).at(-12)).toBe(ID);
   expect(playHarnessFeatures({...ALL_ON,[ID]:false},null)).not.toContain(ID);
@@ -454,6 +454,7 @@ describe("registry and event",()=>{
   const entry=read(`experiments/${ID}.json`) as {changedFeature:string;incumbent:{features:Record<string,boolean>};queuePosition?:number};
   expect(entry.changedFeature).toBe(ID);expect(entry.queuePosition).toBeUndefined();
   delete arm["pending-field-dialogue-v1"];
+  delete arm["menu-refusal-recovery-v1"];
   delete arm["navigation-tool-use-guard-v1"];delete arm["semantic-current-map-feedback-v1"];delete arm["story-battle-heal-first-v1"];
   // exit-labels-v3 and short-cycle-fixed-point-v1 joined the bundle arm after this pending experiment was pinned.
   expect({...entry.incumbent.features,"navigation-refusal-reasons-v3":true,"exit-labels-v3":true,"short-cycle-fixed-point-v1":true}).toEqual(arm);

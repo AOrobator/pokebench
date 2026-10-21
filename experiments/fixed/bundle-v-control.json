@@ -198,7 +198,8 @@
    "move-learn-question-v1": false,
    "move-learn-comparison-v1": false,
    "effectiveness-heard-v1": false,
-   "game-said-goals-v1": false
+   "game-said-goals-v1": false,
+   "menu-refusal-recovery-v1": false
   }
  },
  "switches": [
@@ -266,7 +267,8 @@
   "move-learn-question-v1",
   "move-learn-comparison-v1",
   "effectiveness-heard-v1",
-  "game-said-goals-v1"
+  "game-said-goals-v1",
+  "menu-refusal-recovery-v1"
  ],
  "offInBoth": [
   "semantic-navigation-v1",

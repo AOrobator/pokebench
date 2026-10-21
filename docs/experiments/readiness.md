@@ -241,3 +241,7 @@ PENDING and unqueued. Boot readiness remains unproven: no matching four-run fres
 
 
 | pending-field-dialogue-v1 | FIRST_TRUCK_EXIT | PENDING, not queued | 2026-10-20: exact delayed-message failure reproduced from 97a0 turn 636 and raw RAM. No matched-arm readiness or checkpoint study for this candidate; milestone reach does not prove exposure. |
+
+## menu-refusal-recovery-v1 (2026-10-21)
+
+Pending only; no queue position or approval. Activation: OLDALE_TOWN, the earliest native milestone for shop access. Recorded shop-loop fixture qualifies the mechanism but does not establish model recovery benefit or milestone readiness across 3 of the last 4 matching runs. Before queueing, refresh readiness against the reviewed source pin and design a shop checkpoint study. Navigation recovery is excluded.

@@ -71,7 +71,7 @@ Scope limits (from the data the runs record today):
 - [x] COMMIT: `feat(viewer): wire the party page (GREEN)` (aee2b58ff)
 - [x] viewer-e2e: candidate viewer from this checkout's dist on 8796 over a scratch runs dir (symlinks to 8d39, a8f9 and a probe run `2026-10-21T03-00-00_partyprobe_d3d3` = a8f9's run_start and last state with the real decoded a8f9 TORCHIC facts plus two added Pokémon). Real clicks: ZIGZAGOON slot → STATS (12/13/15/9/11, EXP 399, NEXT 113, PSN) → MOVES → TAIL WHIP (POWER ---, ACCURACY 100, description). 1440, 1280 (8d39 recorded before the readout: stats ---) and 375 (scrollWidth 375, full move names) screenshots opened, in runs/mockups/party-menu/shots/build/. Browser module cache needed a cache-busting reload after rebuild. 8790 untouched.
 - [x] Merged main (6fbce3326) into the branch (be61525e5); gates on the merged tip: lint, build; test agent 3248 / viewer 1590 / python 3568; coverage viewer 97.96/91.35/94.51, agent 99.2/93.07/97.7, python 97.21/92.92/100. Principles self-review: 0 FAIL.
-- [ ] Multi-model review (Claude, Grok, GPT lanes) until LGTM on the frozen packet
+- [x] Multi-model review: Claude and Grok LGTM on 7b7089dd; GPT's remaining test-setup objection rebutted; The operator approved landing ("land it")
 - [ ] Land: merge main, gates, `git merge --ff-only`, `just test` on main, `just viewer-main`, live check on 8790
 
 ## Closing the Loop
@@ -113,6 +113,8 @@ Round 5 (packet 6fbce332..1e44d042, sha256 76feca35…be395): Claude (subagent) 
 - [x] GREEN: `legacyResources` strips the 15 keys from storage and daycare Pokémon for `cycleFields` and navigation-failure `conditions` (key order kept); CYCLE_STATE_EXCLUDED lists them under `resources.storage.occupied[].pokemon` and `resources.daycare[].pokemon`; the art build normalizes the output path and refuses a `.`/`..` leaf. Gates: lint, build; coverage agent 3255 tests 99.2/93.08/97.7, viewer 1592 tests 97.96/91.39/94.51, python 3582 tests 97.23/92.97/100.
 
 Round 6 (packet 6fbce332..43dde2c4, sha256 a39d976e…6a03): Claude (subagent) LGTM; Grok LGTM; GPT/Codex BLOCKING on one test-only finding: the art path tests wrote fixed paths into the live runs/ and made a tmp dir per rejection row. Fixed: each test gets a private repository root (`RUNS_ROOT` monkeypatched to tmp runs/), the rejection rows use a constant ROM path, and one test pins the real root to the repository's runs/. Gates: lint, build; agent 3255, viewer 1592, python 3583 tests, coverage unchanged (python 97.23/92.97/100). Nothing is written under runs/ by the tests.
+
+Round 7 (packet 6fbce332..7b7089dd, sha256 54f6d30a…27eb): Claude (subagent) LGTM; Grok LGTM; GPT/Codex BLOCKING only on test setup count (each of the six rejection rows gets its own tmp runs/). Rebutted per the review-pushback rule (operation-count demand on a 0.03 s test, no defect). Stopped for the operator's call: land as is, or hold. The operator (07:53 New York): "land it".
 
 ## Boy Scout Log
 

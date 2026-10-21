@@ -58,6 +58,8 @@ A post-pass over the native reader's result (like evolution-decision-v1's `decis
 
 - ~12:05 PM ET: merged main f671f35d (Emerald pages theme: explainers now go through `just pages-theme`) cleanly; explainer re-themed, dark block dropped as the skill now says, pages-check clean, opened at 8791. Viewer 1615 green.
 
+- ~12:35 PM ET: round 2 LGTM from both (packet b2074f4d). Main then gained progress-aware-cycles-v1 (agent registry) and other landings; merged main with `-X theirs`, re-applied this switch after it in the TS registry (Python side unchanged), fixed definitions and incumbent; collateral re-derived. Gates: lint ok; agent 3340, viewer 1618, pytest 3724. The resync changes the packet, so a resync-only review follows.
+
 ## Principles self-review
 
 | ID | Score | Evidence |

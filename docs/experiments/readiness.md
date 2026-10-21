@@ -266,3 +266,7 @@ an A/B-owned registration page is incorrectly read as busy. Activation milestone
 STARTER_CHOSEN is only a conservative lower bound; milestone reach alone does not
 prove catches, so no catch-specific readiness or performance claim is made. No
 measured cohort is needed to establish this decoder repair, and none is authorized.
+
+## progress-aware-cycles-v1 (2026-10-21)
+
+Pending, unqueued and unapproved. NEW_GAME_CREATED activation is reachable; healing exposure requires a separately validated pre-refusal checkpoint and operator budget before queueing. Diagnostic replays are not a gameplay-benefit claim.

@@ -214,6 +214,7 @@
    "world-destinations-v1": true,
    "world-targets-v1": true,
    "yes-no-answer-readout-v1": true,
+   "progress-aware-cycles-v1": false,
    "shop-interface-v1": false
   }
  },
@@ -229,6 +230,7 @@
   "seen-trainers-ledger-v1",
   "party-coverage-v1",
   "said-type-matches-v1",
+  "progress-aware-cycles-v1",
   "shop-interface-v1"
  ],
  "offInBoth": [

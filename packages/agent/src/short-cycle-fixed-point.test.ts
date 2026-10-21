@@ -17,7 +17,8 @@ import {assistant,toolCall,userText} from "../test-support/pi.js";
 import {decisionContext,parseRun} from "./decision-probe.js";
 import {checkEvent,type EventBody,type LoopBreakerBody,type RunEvent} from "./events.js";
 import {parseExperiment,experimentArms} from "./experiments.js";
-import {ALL_ON,FEATURES,SWITCHABLE_FEATURES,featureInfo,featuresOf,playHarnessFeatures,type FeatureSet} from "./features.js";
+import {ALL_ON as RAW_PROGRESS_ALL_ON,FEATURES,SWITCHABLE_FEATURES,featureInfo,featuresOf,playHarnessFeatures,type FeatureSet} from "./features.js";
+const ALL_ON={...RAW_PROGRESS_ALL_ON,"progress-aware-cycles-v1":false};
 import {SUMMARY_FACT_KEYS} from "./party-facts.js";
 import {BREAKER_NOTE,CYCLE_COPIES,CYCLE_STATE_EXCLUDED,FixedPointBreaker,cycleFields,cycleNote,cycleRuns,cycleState,fixedPointNote} from "./fixed-point-breaker.js";
 import type {GameStateSnapshot} from "./game-state.js";
@@ -600,8 +601,8 @@ describe("the cycle state is the whole recorded state minus a documented list",(
 
 describe("short-cycle-fixed-point-v1 registry, presets and experiments",()=>{
  it("registers a default-off guard with no dependency, appended last, with an exact OFF",()=>{
-  expect(SWITCHABLE_FEATURES.at(-21)).toBe(ID);
-  expect(FEATURES.filter(f=>f.switchable).at(-21)?.id).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-22)).toBe(ID);
+  expect(FEATURES.filter(f=>f.switchable).at(-22)?.id).toBe(ID);
   expect(featureInfo(ID)).toMatchObject({group:"guard",needs:null,switchable:true,title:"SHORT-CYCLE FIXED POINT"});
   // OFF is exactly the previous behavior: the copy says so, and the production wiring with the switch off builds the
   // same request and records the same events as with the switch absent from the preset.

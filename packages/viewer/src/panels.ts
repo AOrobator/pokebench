@@ -379,6 +379,7 @@ function toolReference(name:string,automaticRunning:boolean):string {
 }
 
 export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
+ "progress-aware-cycles-v1":"progress-aware-cycles-v1.html",
  "roxanne-first-interaction-v1":"roxanne-first-interaction-v1.html",
  "observed-instructions-v1":"observed-instructions-v1.html",
  "original-speed-pacing-v1":"original-speed-pacing-v1.html",

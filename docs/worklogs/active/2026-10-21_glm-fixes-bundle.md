@@ -10,7 +10,10 @@ Files: experiments/fixed/{bundle-v-control, bundle-v-control-2h, bundle-cook-1h,
 - [x] GREEN: definitions and source repins
 - [ ] Gates, cloud review (Claude, Grok, GPT), land ff-only
 
+COMMIT: `feat: the six GLM-run fixes on in the bundle arm of five fixed bundles; pending experiments pinned to the landing merge` (6f642e9a7). COMMIT: `test: parse each bundle definition once in the six-switch membership test` (f3d412693).
 GREEN: the six appended to base.features (false) and switches in the five definitions; source.commit be531506a1504bd5e1e21135e599861a34249545 in the six pending experiments. Three older pinned-incumbent tests (open-goal-prompt, heal-first, story-battle-heal-gate) list the six with the other later bundle additions, as every earlier addition did.
 Gates: lint pass; agent 3398, viewer 1636, Python 3806 pass; coverage agent 97.27/93.14/97.8/99.2, viewer 95.44/91.34/94.33/97.91, Python 97.29/93.11/100 (floor 90); verify-vendor, experiments-audit silent.
 
 Review round 1 (packet 7bb61a62): Claude and Grok CHANGES REQUESTED on one test-shape finding: the new test parsed the five definitions once per switch (30 parses). Fixed: each file parsed once, ids looped inside. Also noted drought-battle-heal-hold-v1 needs stall-briefing-v1, true in base in all five.
+
+Synced main 65f350865 into the branch for landing (clean merge, none of this branch's files touched by main).

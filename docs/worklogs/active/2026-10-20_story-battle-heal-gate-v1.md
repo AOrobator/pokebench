@@ -59,3 +59,9 @@ Build a gate: while any party Pokémon (not an egg) is below max HP, refuse an a
 - b300's turn-501 route runs into HIKER MARC's template tile (1,6) (he is not loaded at seq 15233), so the gate also says the walk would end next to him at (1,7). True by the planner's route; the sight at (1,9), step 12, comes first.
 - In the refusal's observation the existing warnings (story battle, heal before trainers) still fire by their own arms; in 97a0 they had already fired at 4539/4509, so a live run would not repeat them.
 ## Multi-Model Review Log
+
+### Round 1 (packet 24648e12..e24448b4, diff SHA-256 c157e041…a9e7)
+- Claude lane: Claude CLI default and ~/.claude-review logins both expired ("OAuth session expired and could not be refreshed"); Cursor Claude Opus 5.5 and Sonnet 5 at their usage limit (until 11/17). Per the operator's standing word (memory claude-review-lane, 2026-10-16) the lane ran as a read-only Claude subagent (Plan agent): VERDICT: BLOCKING. B1 (Fix): auto-talk (bundle arm) calls the wrapped press/navigate_to, so the gate refused auto-talk's own A and its walk, contradicting the declared non-goal and making auto-talk report "pressed A"/"talked". Also: principles rows PB8/PB11 mislabeled (fixed); dialogue-safe-batches note (hardening, switch off in both bundles; follow-up).
+- Grok lane (cursor-grok-4.5-high): VERDICT: LGTM. Non-blocking: pending experiment incumbent lacked yes-no-answer-readout-v1 after the merge (Fix: incumbent rebuilt from the current bundle arm, test added); target with position null fails open (rebut: a free-field state carries a position under live-player-position-v1; hardening follow-up).
+- Fix batch: auto-talk calls (AUTO_TALK_ID_PREFIX, exported from auto-talk.ts) pass through the wrapper and checkRoute; tests for auto-talk press/target/walk; bundle/experiment consistency test. 37/37.
+

@@ -29,6 +29,7 @@ import {RunRecorder} from "./recorder.js";
 import {RunLog} from "./run-log.js";
 import {FrameStore} from "./frames.js";
 import {RUN_START_META} from "../test-support/events.js";
+import {AUTO_TALK_ID_PREFIX} from "./auto-talk.js";
 import {LEGACY_ALL_ON} from "../test-support/legacy-features.js";
 
 const ID="story-battle-heal-gate-v1";
@@ -171,6 +172,20 @@ describe("press",()=>{
  it("pressReaches needs a position",()=>{
   const e=must(engagedAt(MAY_STATE,null));
   expect(pressReaches({...MAY_STATE,position:null},["A"],e.opponents)).toBeNull();
+ });
+});
+
+describe("calls auto-talk makes for itself are never gated (non-goal: harness-initiated talking)",()=>{
+ it("auto-talk's press of A facing MAY is sent and its walk to (9,3) runs, with nothing recorded",async()=>{
+  const t=wrapped97({...MAY_STATE,position:{x:10,y:4},facing:"up"});
+  await t.tool("press").execute(`${AUTO_TALK_ID_PREFIX}3-talk`,{buttons:["A"]});
+  await t.tool("navigate_to_target").execute(`${AUTO_TALK_ID_PREFIX}4-walk`,{map_id:[0,18],target:{kind:"object",local_id:2},confirm:true});
+  expect(t.calls).toEqual([{tool:"press",params:{buttons:["A"]}},{tool:"navigate_to_target",params:{map_id:[0,18],target:{kind:"object",local_id:2}}}]);
+  expect(t.reads()).toBe(0);expect(t.records).toEqual([]);
+  const {gate,records}=gateWith(healArm(F97,PLACES));
+  const walk=navTools(MAY_STATE,F97,gate,ROUTE103_CLEAR,true);
+  await walk.navigate.execute(`${AUTO_TALK_ID_PREFIX}5-walk`,{x:9,y:3,map_id:[0,18]});
+  expect(walk.pressed.length).toBeGreaterThan(0);expect(records).toEqual([]);
  });
 });
 
@@ -426,6 +441,19 @@ describe("registry and event",()=>{
   expect(LEGACY_ALL_ON[ID]).toBe(false);
   expect(playSystemPrompt(F97,null)).toBe(playSystemPrompt({...F97,[ID]:false},null));
   expect(playTools(F97)).toEqual(playTools({...F97,[ID]:false}));
+ });
+ it("is in the bundle arm only of both fixed bundles, and its pending experiment's incumbent is that arm with the switch off",()=>{
+  const read=(path:string):unknown=>JSON.parse(readFileSync(new URL(`../../../${path}`,import.meta.url),"utf8"));
+  for(const name of ["bundle-v-control","bundle-cook-1h"]){
+   const fixed=read(`experiments/fixed/${name}.json`) as {base:{features:Record<string,boolean>};switches:string[]};
+   expect(fixed.base.features[ID]).toBe(false);expect(fixed.switches).toContain(ID);
+  }
+  const fixed=read("experiments/fixed/bundle-v-control.json") as {base:{features:Record<string,boolean>};switches:string[]};
+  const arm={...fixed.base.features,...Object.fromEntries(fixed.switches.map(s=>[s,true])),[ID]:false};
+  const entry=read(`experiments/${ID}.json`) as {changedFeature:string;incumbent:{features:Record<string,boolean>};queuePosition?:number};
+  expect(entry.changedFeature).toBe(ID);expect(entry.queuePosition).toBeUndefined();
+  expect(entry.incumbent.features).toEqual(arm);
+  expect(dependencyProblems(normalizeFeatures({...entry.incumbent.features,[ID]:true} as Parameters<typeof normalizeFeatures>[0]))).toEqual([]);
  });
  it("records a valid story_battle_heal_gate event",()=>{
   const event={v:1,run:"r",seq:1,t:"2026-10-20T20:43:24.172-04:00",type:"story_battle_heal_gate",turn:157,tool_call_id:"t157",tool:"navigate_to_target",map_id:[0,18],confirmed:false,outcome:"refused",reason:null,

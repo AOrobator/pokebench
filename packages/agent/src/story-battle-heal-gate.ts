@@ -10,6 +10,7 @@
 // words: sText_NoRunningFromTrainers (src/battle_message.c). Each checked call is one story_battle_heal_gate event.
 import type {AgentTool,AgentToolResult} from "@mariozechner/pi-agent-core";
 import {Type,type TObject} from "typebox";
+import {AUTO_TALK_ID_PREFIX} from "./auto-talk.js";
 import type {GameStateSnapshot} from "./game-state.js";
 import {bagItems,blackout,healPlaceDescription,hurt,onGymMap,onMap,storyName,type HealPlace,type StoryBattleWarningFacts} from "./low-hp-trainer-warning.js";
 import type {Place} from "./story-destinations.js";
@@ -21,6 +22,9 @@ export const GATE_CONFIRM="confirm";
 export const GATE_CONFIRM_DESCRIPTION="Only after this tool said it did not start because it would start a trainer battle you cannot run from while your party is not at full HP: true starts it anyway.";
 export const GATE_TOOL_SENTENCE="If it would start a trainer battle you cannot run from while a party Pokémon is below its max HP, it does not start and says so; call it again with confirm: true to start it anyway.";
 export const GATE_STATUS="not started: it would start a trainer battle you cannot run from while your party is not at full HP";
+
+// A call the harness makes for itself through the play tools (auto-talk), not the model: never gated.
+export const harnessCall=(id:string):boolean=>id.startsWith(AUTO_TALK_ID_PREFIX);
 
 export type GateTool="navigate_to"|"navigate_to_target"|"press";
 export type GateOutcome="refused"|"confirmed"|"clear"|"unavailable";
@@ -225,6 +229,7 @@ export function withStoryBattleHealGate(tools:readonly AgentTool[],gate:StoryBat
   const execute=async(id:string,params:unknown,signal?:AbortSignal,update?:Parameters<AgentTool["execute"]>[3]):Promise<AgentToolResult<unknown>>=>{
    if(!isRecord(params))return tool.execute(id,params,signal,update);
    const {[GATE_CONFIRM]:confirm,...rest}=params;
+   if(harnessCall(id))return tool.execute(id,rest,signal,update);
    const confirmed=confirm===true;
    let text:string|null=null;
    if(tool.name==="press"){

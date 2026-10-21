@@ -11,7 +11,7 @@ import {exitBlock,type ReachSwitches} from "./surf-gate.js";
 import {BlackoutCarry} from "./blackout-receipt.js";
 import {STRIDE_MAX_TILES,resultStride,type StrideCorridor} from "./stride.js";
 import {CONFIRM_ARG,CONFIRM_DESCRIPTION,SIGHT_STATUS,SIGHT_TOOL_SENTENCE,sightText,type SightOutcome,type SightSeen,type TrainerSightPorts} from "./trainer-sight.js";
-import {GATE_CONFIRM,GATE_CONFIRM_DESCRIPTION,GATE_STATUS,GATE_TOOL_SENTENCE,askSight,type SightAnswer,type StoryBattleHealGate} from "./story-battle-heal-gate.js";
+import {GATE_CONFIRM,GATE_CONFIRM_DESCRIPTION,GATE_STATUS,GATE_TOOL_SENTENCE,askSight,harnessCall,type SightAnswer,type StoryBattleHealGate} from "./story-battle-heal-gate.js";
 
 type Point={readonly x:number;readonly y:number};
 type Tile={readonly collision:number;readonly behavior:number;readonly elevation:number};
@@ -626,7 +626,7 @@ async function checkRoute(sight:TrainerSightPorts|undefined,gate:StoryBattleHeal
   return text===null?null:{status:SIGHT_STATUS,text};
  };
  const origin=state.position,map=state.map_id,tiles=routeTiles(state,path,options);
- const engaged=gate===undefined||origin===null||map===null||tiles===null?null:await gate.engaged(state);
+ const engaged=gate===undefined||harnessCall(id)||origin===null||map===null||tiles===null?null:await gate.engaged(state);
  if(gate===undefined||engaged===null||origin===null||map===null||tiles===null)return alone(null,false);
  const answer=sight!==undefined||engaged.gym?await askSight(sight?.check??gate.check,state,map,tiles,signal):null;
  const verdict=await gate.route(id,state,engaged,goal.confirm===true,origin,path,tiles,answer,sight!==undefined);

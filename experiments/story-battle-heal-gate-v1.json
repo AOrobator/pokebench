@@ -186,6 +186,7 @@
    "party-item-confirmation-v1": true,
    "same-target-no-progress-v1": true,
    "story-progress-clock-v1": true,
+   "yes-no-answer-readout-v1": true,
    "story-battle-heal-gate-v1": false
   }
  },

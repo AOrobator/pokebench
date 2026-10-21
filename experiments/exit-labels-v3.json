@@ -8,7 +8,7 @@
   "primaryMilestone": "ROXANNE_DEFEATED",
   "source": {
     "checkout": "main",
-    "commit": "843ce9cc9ce7ed1ee1903e874d9f1ac5b859ab7a"
+    "commit": "7ea058ade8b0eda5d5d4c732ad04fadcb8652619"
   },
   "incumbent": {
     "version": 2,
@@ -173,12 +173,25 @@
       "original-speed-pacing-v1": true,
       "fixed-point-breaker-v1": false,
       "story-character-stall-gate-v1": true,
-      "positive-supervisor-v1": true,
+      "positive-supervisor-v1": false,
       "semantic-navigation-v2": true,
       "auto-talk-v1": true,
       "duplicate-turn-collapse-v1": true,
       "unfinished-activity-v1": true,
       "exit-labels-v2": true,
+      "heal-before-trainers-v2": true,
+      "gym-heal-warning-v1": true,
+      "respawn-readout-v1": true,
+      "trainer-sight-check-v1": true,
+      "caught-nickname-prompt-v1": true,
+      "fail-open-input-v1": true,
+      "whiteout-healed-v1": true,
+      "gym-readiness-readout-v1": true,
+      "party-item-confirmation-v1": true,
+      "same-target-no-progress-v1": true,
+      "story-progress-clock-v1": true,
+      "yes-no-answer-readout-v1": true,
+      "field-move-gates-v1": true,
       "exit-labels-v3": false
     }
   },

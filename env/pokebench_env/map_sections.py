@@ -40,7 +40,14 @@ class Sections:
     def landing(self, tile: Tile) -> Tile | None:
         if (region := self.section(tile)) is not None:
             return region
-        # Collision-marked door warps sit next to the floor they open onto. Ambiguous stays unknown.
+        block = self.rom.block(*tile)
+        if (
+            block is None
+            or block[3] in SURFABLE
+            or not any((x, y) == tile for x, y, *_ in self.rom.warps)
+        ):
+            return None
+        # Door warps sit next to the floor they open onto. Ambiguous stays unknown.
         found = {
             r
             for dx, dy in ((0, 1), (0, -1), (1, 0), (-1, 0))

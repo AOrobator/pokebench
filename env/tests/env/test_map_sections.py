@@ -39,6 +39,7 @@ def test_water_and_unknown_landing_do_not_invent_a_section():
     s = build_sections(layout([[0, 2, 0]]))
     assert not s.reaches((0, 0), (2, 0))
     assert s.section((1, 0)) is None
+    assert s.landing((1, 0)) is None
     assert s.section((-1, 0)) is None
 
 

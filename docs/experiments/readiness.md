@@ -219,3 +219,5 @@ PENDING, explicitly blocked and unqueued. Clock policy acts from server boot; NE
 
 ## exit-labels-v3
 Pending, not queued. Activation PLAYER_NAME_CONFIRMED; readiness computed from qualifying recorded runs. Future bundle only; no measured runs launched.
+
+V3 readiness check: ready on recent fallback, 4/4 think-fast runs reached PLAYER_NAME_CONFIRMED; too few match the incumbent. Considered Oct15 runs2f46,6684,dc0e,17a0. This is early activation readiness only, not comparable configuration evidence or gameplay benefit. Entry remains pending and unqueued.

@@ -8,8 +8,8 @@ Production owners: new env/pokebench_env/map_sections.py; existing exit-labels/g
 
 ## M1 Deliver and verify
 - [x] RED: real archived Route104/Woods observations plus small adversarial geometry cases; commit failing tests.
-- [ ] GREEN: one section/exit description owner, production wiring, exact OFF behavior.
-- [ ] Registry, default OFF, pending experiment, future bundle only, explainer.
+- [x] GREEN: one section/exit description owner, production wiring, exact OFF behavior.
+- [x] Registry, default OFF, pending experiment, future bundle only, explainer.
 - [ ] Tests, lint, build, coverage >=90%, vendor, experiment checks, raw RAM replay and wiring deletion/restoration.
 - [ ] Principles and independent cloud reviews on frozen packet; local fast-forward landing only with required approvals.
 - [ ] Main tests, viewer refresh and real explainer click, bundle configuration proof. Do not restart gameplay.
@@ -30,3 +30,11 @@ Run 97a0 state 13625 / result 13626 / turn377 identifies Woods entrances at (10,
 - Integration: current main landed field-move-gates-v1 while this feature was being built. Preserve it and reuse its existing FloodRules in v3; extract the existing destination-rule construction into exit_labels.destination_rules so both versions use one gate owner. Current-map rules use live obstacle state; destination rules retain on-load flag semantics. This prevents section labels from bypassing the newly landed obstacle truth. Section anchors are stable while moving; terrain or gate-state changes can rederive sections.
 
 - Main sync kept field-move gate corrections, gated destination rules, and all unavailable-exit warnings in v3 descriptions. Main e9584cf0 is the merge parent; initial after-sync checks identified only registry roster/count assertions and a corrected test assumption, not an OFF-output change.
+
+- Bundle definitions validate against unchanged control-base hashes: v3 OFF control / ON bundle in bundle-v-control (248 planned slots) and bundle-cook-1h (4 slots); existing field gates stay ON in bundle. New pending incumbent is normalized from that bundle with only v3 OFF. No approval or launch files were written.
+- Readiness production reader: recent fallback4/4 reached PLAYER_NAME_CONFIRMED, not enough comparable configurations; Oct15 think-fast2f46/6684/dc0e/17a0. Pending, unqueued.
+- Mutation receipts: factory disabled→3 native failures; restored13 passed. Header section operand disabled→shared-consumer failure; restored6 passed. All logs retained in worktree runs/exit-labels-v3.
+- Browser: isolated schema-valid offline UI fixture displayed the v3 ON card and its explainer text. Full-catalog preview was closed after slow loading. Explainer click-through was not confirmed: browser kernel reset and IAB became unavailable. HTTP local preview200 and tracked-card/byte-serving tests are separate evidence; no successful live click claimed. Feature explainer copied to main runs/mockups/exit-labels-v3 for a reviewable local link.
+- Earlier coverage showed live-human import timeout and resulting mock spill; focused unchanged test6/6 passed after stopping the heavy preview. Separate later viewer timeout failures retained. No test limits, retries or exclusions changed. A missed default-OFF assignment after the field-gate conflict was repaired and now has a dedicated generic-default regression test.
+
+- Full verified coverage run: agent3052, viewer1509, Python3483 pass, zero skips. Agent statement/branch/function coverage97.12/92.91/97.56; viewer95.25/91.06/94.18; Python lines97.20/branches92.82/functions100. Lint (both TS, ruff format/check, mypy104 files) passes. Logs: coverage-default-verified.log and lint-default-verified.log. Final source sync/build and frozen cloud reviews follow.

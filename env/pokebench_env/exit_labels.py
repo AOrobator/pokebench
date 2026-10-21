@@ -32,8 +32,8 @@ from pokebench_env.displayed_names import _text
 from pokebench_env.field_moves import (
     Capabilities,
     FloodRules,
-    Tiles,
     RomObject,
+    Tiles,
     map_gates,
     rom_object_obstacles,
 )

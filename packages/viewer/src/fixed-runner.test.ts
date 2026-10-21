@@ -1,3 +1,4 @@
+import {DEFAULT_NEXT_RUN,parseNextRun} from "./next-run.js";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -758,4 +759,9 @@ it("enables the YES/NO answer readout only in the bundle of the three current bu
   expect(armFeatureBits(def,"control")[id]).toBe(false);
   expect(armFeatureBits(def,"bundle")[id]).toBe(true);
  }
+});
+
+it("keeps section-aware labels OFF in the generic next-run default",()=>{
+ expect(DEFAULT_NEXT_RUN.features["exit-labels-v3"]).toBe(false);
+ expect(parseNextRun(DEFAULT_NEXT_RUN).features["exit-labels-v3"]).toBe(false);
 });

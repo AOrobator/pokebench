@@ -94,11 +94,16 @@ describe("the cycle state fingerprint",()=>{
   const battle={...IN_GAME,in_battle:true,screen:"battle",active_ui:ui("battle_action","FIGHT","")};
   expect(cycleState(state(battle))).not.toBeNull();
   expect(cycleState(state(battle))).not.toBe(cycleState(state({...battle,party:[{species:"TORCHIC",level:5,hp:9,max_hp:20}]})));
+  // Only the battle fields the fingerprint reads (the full battle readout is long); not schema-checked.
+  const fought=(turn:number)=>({...state(battle),battle:{phase:"action",turn,outcome:null,battlers:[{battler:0,species_id:255,hp:18,status1:0}]}}) as unknown as Parameters<typeof cycleState>[0];
+  expect(cycleState(fought(2))).not.toBe(cycleState(state(battle)));
+  expect(cycleState(fought(2))).not.toBe(cycleState(fought(3)));
+  expect(cycleState(fought(2))).toBe(cycleState(fought(2)));
  });
 });
 
 describe("cycleRuns",()=>{
- const items=(s:string)=>[...s].map(c=>c==="."?null:c);
+ const items=(s:string)=>Array.from(s,c=>c==="."?null:c);
  it("finds 2-, 3- and 4-turn cycles once they have 3 copies",()=>{
   expect(CYCLE_COPIES).toBe(3);
   expect(cycleRuns(items("ABABA"))).toEqual([]);
@@ -143,6 +148,12 @@ describe("stage 1 with the switch on: a short cycle collapses to its newest copy
   for(let i=0;i<9;i++){const [args,state]=legs[i%3]??legs[0];r.turn(args,state,"navigate_to_target");}
   expect(texts(await r.send())).toEqual(["Play.","assistant 7","done. turn 7","assistant 8","done. turn 8","assistant 9","done. turn 9"]);
   expect(r.recorded).toEqual([{stage:1,trigger:"short_cycle",repeats:9,collapsed:6,text:null,period:3}]);
+ });
+ it("records the longest of two cycles in one request",async()=>{
+  const r=rig(COLLAPSE);
+  bounce(r,8);doors(r,6);
+  expect(kept(await r.send())).toEqual([7,8,13,14]);
+  expect(r.recorded).toEqual([{stage:1,trigger:"short_cycle",repeats:8,collapsed:10,text:null,period:2}]);
  });
  it("records again only when new turns join the cycle",async()=>{
   const r=rig(COLLAPSE);
@@ -221,6 +232,15 @@ describe("OFF and the switches it acts through",()=>{
   const off=rig({...BREAKER,[ID]:false});doors(off,8);
   expect((await off.send()).at(-1)).toMatchObject({role:"toolResult"});
   expect(off.recorded).toEqual([]);
+ });
+ it("stage 2 counts a long cycle whole, and a 3-turn cycle from 10 turns",async()=>{
+  const r=rig(BREAKER);
+  bounce(r,41);
+  expect((await r.send()).at(-1)).toMatchObject({content:cycleNote(41,2,["press"])});
+  const legs=[[{target:"lab"},LAB],[{target:"house"},HOUSE],[{target:"town"},TOWN]] as const;
+  const three=rig(BREAKER);
+  for(let i=0;i<10;i++){const [args,state]=legs[i%3]??legs[0];three.turn(args,state,"navigate_to_target");}
+  expect((await three.send()).at(-1)).toMatchObject({content:cycleNote(10,3,["navigate_to_target"])});
  });
  it("stage 2 names every tool in the cycle, stops when the cycle breaks, and keeps today's fixed-point note",async()=>{
   const r=rig(BREAKER);

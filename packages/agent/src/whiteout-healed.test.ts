@@ -144,7 +144,7 @@ describe("whiteout-healed-v1 through playGameTools",()=>{
 
 describe("whiteout-healed-v1 registry",()=>{
  it("is the last switch: a default-off agent-side observation switch with no dependency",()=>{
-  expect(SWITCHABLE_FEATURES.at(-4)).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-5)).toBe(ID);
   expect(FEATURES.filter(f=>f.id===ID)).toHaveLength(1);
   expect(featureInfo(ID)).toMatchObject({group:"observation",needs:null,switchable:true,title:"WHITEOUT HEALED"});
   expect(featureInfo(ID).description).toContain(" Off: ");

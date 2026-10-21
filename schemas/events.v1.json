@@ -3510,7 +3510,8 @@
         "trigger": {
           "enum": [
             "fixed_point",
-            "no_tool_call"
+            "no_tool_call",
+            "short_cycle"
           ]
         },
         "repeats": {
@@ -3531,6 +3532,11 @@
               "type": "null"
             }
           ]
+        },
+        "period": {
+          "type": "integer",
+          "minimum": 2,
+          "maximum": 4
         }
       },
       "additionalProperties": false

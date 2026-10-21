@@ -242,9 +242,11 @@ const PeopleIdCard = event("people_id_card", {
 });
 
 // fixed-point-breaker-v1: duplicate turns collapsed from a request (stage 1), or the note it ended with (stage 2).
+// short_cycle: short-cycle-fixed-point-v1, turns repeating a cycle of `period` (calls, state) turns.
 const LoopBreaker = event("loop_breaker", {
-  stage: Type.Enum([1, 2] as const), trigger: Type.Enum(["fixed_point", "no_tool_call"] as const),
+  stage: Type.Enum([1, 2] as const), trigger: Type.Enum(["fixed_point", "no_tool_call", "short_cycle"] as const),
   repeats: Type.Integer({ minimum: 1 }), collapsed: NonNegativeInt, text: Type.Union([Type.String({ minLength: 1 }), Type.Null()]),
+  period: Type.Optional(Type.Integer({ minimum: 2, maximum: 4 })),
 });
 
 // fixed-point-breaker-v1 stage 3: the harness walked to the nearest untalked person (or sign) and pressed A.

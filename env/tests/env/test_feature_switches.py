@@ -264,6 +264,7 @@ def test_env_list_is_validated() -> None:
             "caught-dex-input-v1",
             "exp-next-level-v1",
             "pokedex-own-v1",
+            "shop-interface-v1",
             "warp-arrival-settle-v1",
             "displayed-place-names-v1",
             "battle-triage-guidance-v1",
@@ -296,7 +297,7 @@ def test_env_list_is_validated() -> None:
     for bad in ("invented-v1", "live-map-v1,,story-state-v1", "deterministic-loop-guard-v1"):
         with pytest.raises(ValueError, match="POKEBENCH_FEATURES_OFF"):
             features_off_from_env({"POKEBENCH_FEATURES_OFF": bad})
-    assert "active-ui-ownership-v1" not in SERVER_FEATURES and len(SERVER_FEATURES) == 68
+    assert "active-ui-ownership-v1" not in SERVER_FEATURES and len(SERVER_FEATURES) == 69
 
 
 def test_observation_route_applies_the_env_switches(monkeypatch: pytest.MonkeyPatch) -> None:

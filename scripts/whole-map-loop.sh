@@ -1,17 +1,9 @@
 #!/bin/sh
-# Detached, LLM-free whole-map loop: round after round of `just fixed-run dry-run whole-map-pair-2h`
-# (bundle + full-map-navigation-v1 vs control, 2 hour cap) on latest main, until the operator stops it.
-# A round is the dry-run plan: two pairs back to back, each GPU lane playing each arm once.
-#
-# Stopping: a viewer STOP or ABORT on any run this loop launched stops the loop, not just that run.
-# The loop writes STOP_FILE, signals the round's runner so no new trial starts (a trial already
-# playing keeps going to its cap) and exits. Touching STOP_FILE by hand does the same. While
-# STOP_FILE exists the loop refuses to start; delete it to run again. PAUSE_FILE holds the next round.
-# A trial a lane launched in the gap before the signal is aborted through its control.jsonl.
-#
-# Never collides: a round starts only when no other runner holds a gameplay lease on this
-# definition's model pools and its game ports are free. Frames are never pruned; above
-# FRAME_LIMIT percent of the cap the loop holds until the cap is raised.
+# Detached exploratory loop. Default mode captures latest main before each single-lane trial.
+# Existing trials keep their original code and configuration. STOP/ABORT blocks future starts;
+# PAUSE holds new starts. Active trials are never signalled by the default controller.
+# LATEST_MAIN_PER_TRIAL=0 explicitly selects the legacy round-pinned shell implementation below.
+# Its legacy signal/abort behavior applies only in that opt-out mode.
 #
 # Run a copy, so a merge that rewrites this file cannot change the running loop:
 #   cp scripts/whole-map-loop.sh runs/dryruns/whole-map-loop-run.sh
@@ -20,7 +12,12 @@ set -u
 
 REPO=${REPO:-$HOME/dev/pokebench}
 JUST=${JUST:-just}
-EXP_ID=${EXP_ID:-whole-map-pair-2h}
+# New exploratory mode reloads the launcher, registry and definition before each trial.
+# The old round-pinned implementation remains available only by explicit opt-out.
+if [ "${LATEST_MAIN_PER_TRIAL:-1}" = 1 ]; then
+  exec "$REPO/env/.venv/bin/python" -m pokebench_env.latest_main_loop
+fi
+EXP_ID=${EXP_ID:-bundle-v-control-2h}
 PHASE=${PHASE:-cook}
 WALL_MS=${WALL_MS:-7200000}
 RUNS=${RUNS:-$REPO/runs}

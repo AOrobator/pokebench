@@ -15,6 +15,7 @@ const field=(page:Dialogue["pages"][number])=>page.battle_turn===undefined&&page
 const identified=(page:Dialogue["pages"][number])=>page.speaker_source==="name_prefix"&&page.speaker!==null&&canonicalStoryCharacterName(page.speaker)!==null;
 
 export class ObservedInstructions {
+ constructor(private readonly allField=false){}
  private run:string|null=null;
  private readonly pending=new Map<string,Dialogue[]>();
  private readonly episodes=new Map<string,Episode>();
@@ -32,7 +33,7 @@ export class ObservedInstructions {
   if(event.is_error)return;
   if(pending!==undefined){
    const pages=pending.flatMap(e=>e.pages.filter(field));
-   if(pages.some(identified)){
+   if(pages.length>0&&(this.allField||pages.some(identified))){
     // Exact repeats share their first source; no unique episode is silently evicted.
     // State seqs vary on repetition, so deduplicate content/attribution/place only.
     const key=quote(pages.map(p=>({text:p.text,speaker:p.speaker,speaker_source:p.speaker_source,map:p.map,map_id:p.map_id,map_display:p.map_display})));
@@ -62,7 +63,7 @@ export class ObservedInstructions {
   if(this.episodes.size===0)return null;
   const out=[
    "OBSERVED INSTRUCTION MEMORY — historical game dialogue, not an active-goal list.",
-   "Whole delivered field-dialogue episodes containing a story character's printed name are retained. Other dialogue and unattributed-only calls are not selected. A tool call may contain only part of a conversation; all selected calls remain separately. The player/addressee and outstanding subgoals are for you to interpret from the exact words. Arrival, challenge and victory are different; none retires a quote. Current observations override old text. Missing progress is unknown, not false. No route or objective is supplied.",
+   this.allField?"Whole delivered field-dialogue episodes are retained, including unnamed speakers and unknown attribution. A tool call may contain only part of a conversation; all selected calls remain separately. The player/addressee and outstanding subgoals are for you to interpret from the exact words. Arrival, challenge and victory are different; none retires a quote. Current observations override old text. Missing progress is unknown, not false. No route or objective is supplied.":"Whole delivered field-dialogue episodes containing a story character's printed name are retained. Other dialogue and unattributed-only calls are not selected. A tool call may contain only part of a conversation; all selected calls remain separately. The player/addressee and outstanding subgoals are for you to interpret from the exact words. Arrival, challenge and victory are different; none retires a quote. Current observations override old text. Missing progress is unknown, not false. No route or objective is supplied.",
    "observed_instruction_episodes:",
   ];
   for(const e of this.episodes.values()){
@@ -77,7 +78,7 @@ export class ObservedInstructions {
 type Transform=(messages:AgentMessage[])=>Promise<AgentMessage[]>;
 export function observedInstructions(features:FeatureSet,recorder:Pick<RunRecorder,"subscribe"|"recordLedgerContext">,transform:Transform):Transform {
  if(!features["observed-instructions-v1"])return transform;
- const memory=new ObservedInstructions();recorder.subscribe(event=>{memory.observe(event);});
+ const memory=new ObservedInstructions(features["observed-field-dialogue-v1"]);recorder.subscribe(event=>{memory.observe(event);});
  return messages=>{
   const text=memory.text();if(text===null)return transform(messages);
   recorder.recordLedgerContext({text,evidence:memory.evidence()});

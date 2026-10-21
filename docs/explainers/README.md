@@ -171,6 +171,7 @@ The original ignored runs/explainers copies remain for existing links. Make futu
 - [Effectiveness heard](effectiveness-heard-v1.html) — bundle-only: a record of what the game printed right after the player's moves ("It's not very effective…"), by move and foe with turns, shown at battle decisions and move-learning prompts.
 - [Game-said goals](game-said-goals-v1.html) — bundle-only: at move-learning prompts and the evolution decision, the trainer battles lost and not won since, with the POKéMON seen and the type lines said on that gym map.
 - [Mart stock readout](mart-stock-readout-v1.html) — bundle-only readout block while a shop's buy list is open: every row with the price the list prints and the game's own item description, CANCEL, the highlighted row and the player's money.
+- [Shop interface](shop-interface-v1.html) — bundle-only fix of the shop's Interface line: the highlighted buy-list row with its real item id (or CANCEL), the quantity box's item, and the after-purchase page as a ready owner.
 - [EXP next level](exp-next-level-v1.html) — bundle-only server readout: the summary screen's EXP. POINTS and NEXT LV. on each Party entry, repeated in the Training block.
 - [POKéDEX own](pokedex-own-v1.html) — bundle-only server readout: the POKéDEX list's HOENN SEEN and OWN counts and party size, and whether each wild foe is in the OWN list.
 - [EXP earned ledger](exp-earned-ledger-v1.html) — bundle-only Training block part: the EXP. Points the game printed, by battle, for the last 10 battles, with the per-page range for trainers and wild POKéMON.
@@ -197,3 +198,6 @@ The original ignored runs/explainers copies remain for existing links. Make futu
 - [Caught Pokédex registration input](caught-dex-input-v1.html): battle-owned post-catch A/B page; default OFF, bundle ON.
 
 - [Progress-aware cycles](progress-aware-cycles-v1.html): bounded healing trips and milestone-turn precedence.
+
+- [rejected-movement-step-v1](rejected-movement-step-v1.html)
+- [observed-field-dialogue-v1](observed-field-dialogue-v1.html)

@@ -1005,3 +1005,139 @@ def test_hand_over_keeps_letters_codex_queue_refuses(tmp_path: Path) -> None:
     assert am.hand_over(box, run=Runs(code=2)) == (0, 1)
     assert [x.to_thread for x in am.collect(box)] == ["A"]
     assert am.hand_over(box, run=Runs()) == (0, 0)
+
+
+def board_of(r: am.Mailroom, *branches: str) -> None:
+    for branch in branches:
+        am.board_join(r, who=f"claude {branch}", branch=branch, codex_thread=None, now=T)
+
+
+def test_the_first_entry_is_stamped_when_it_reaches_the_top(tmp_path: Path) -> None:
+    r = room(tmp_path)
+    board_of(r, "a", "b")
+    entries = am.read_board(r)
+    assert entries[0].top_since == T
+    assert entries[1].top_since is None
+    later = T + timedelta(minutes=5)
+    am.board_done(r, branch="a", now=later, run=Runs())
+    assert am.read_board(r)[0].top_since == later
+
+
+def test_an_idle_holder_is_moved_back_and_told_why(tmp_path: Path) -> None:
+    r = room(tmp_path)
+    board_of(r, "a", "b", "c")
+    no_commits: dict[str, datetime] = {}
+    late = T + timedelta(minutes=am.SLOT_TIMEOUT_MINUTES + 1)
+    notices = am.expire_idle_holder(r, now=late, run=Runs(), last_commit=no_commits.get)
+    assert [e.branch for e in am.read_board(r)] == ["b", "c", "a"]
+    assert [(n.entry.branch, n.position) for n in notices] == [("b", 1), ("c", 2), ("a", 3)]
+    letters = am.collect(r.addressed("a"))
+    assert any("expired" in x.text for x in letters)
+    assert am.read_board(r)[0].top_since == late
+    assert am.read_board(r)[2].top_since is None
+
+
+def test_recent_commits_or_a_touch_keep_the_slot(tmp_path: Path) -> None:
+    r = room(tmp_path)
+    board_of(r, "a", "b")
+    late = T + timedelta(minutes=am.SLOT_TIMEOUT_MINUTES + 1)
+    recent = {"a": late - timedelta(minutes=2)}
+    assert am.expire_idle_holder(r, now=late, run=Runs(), last_commit=recent.get) == []
+    assert am.land_touch(r, branch="a", now=late) is True
+    later = late + timedelta(minutes=am.SLOT_TIMEOUT_MINUTES - 1)
+    assert am.expire_idle_holder(r, now=later, run=Runs(), last_commit={}.get) == []
+    assert am.land_touch(r, branch="b", now=late) is False
+    with pytest.raises(ValueError, match="not on the landing board"):
+        am.land_touch(r, branch="zz", now=late)
+
+
+def test_a_lone_holder_or_an_empty_board_never_expires(tmp_path: Path) -> None:
+    r = room(tmp_path)
+    late = T + timedelta(hours=5)
+    assert am.expire_idle_holder(r, now=late, run=Runs(), last_commit={}.get) == []
+    board_of(r, "a")
+    assert am.expire_idle_holder(r, now=late, run=Runs(), last_commit={}.get) == []
+    assert am.next_deadline(r, last_commit={}.get) is None
+
+
+def test_next_deadline_follows_the_latest_activity(tmp_path: Path) -> None:
+    r = room(tmp_path)
+    board_of(r, "a", "b")
+    limit = timedelta(minutes=am.SLOT_TIMEOUT_MINUTES)
+    assert am.next_deadline(r, last_commit={}.get) == T + limit
+    commit = {"a": T + timedelta(minutes=10)}
+    assert am.next_deadline(r, last_commit=commit.get) == T + timedelta(minutes=10) + limit
+
+
+def test_the_timeout_comes_from_the_environment(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("POKEBENCH_SLOT_TIMEOUT_MINUTES", "7")
+    assert am.slot_timeout() == timedelta(minutes=7)
+    monkeypatch.delenv("POKEBENCH_SLOT_TIMEOUT_MINUTES")
+    assert am.slot_timeout() == timedelta(minutes=am.SLOT_TIMEOUT_MINUTES)
+
+
+def test_branch_commit_time_reads_git(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    subprocess.run(["git", "init", "-q", "-b", "main", str(repo)], check=True)
+    env = {**os.environ, "GIT_AUTHOR_DATE": "2026-10-21T14:00:00+00:00",
+           "GIT_COMMITTER_DATE": "2026-10-21T14:00:00+00:00"}
+    subprocess.run(
+        ["git", "-C", str(repo), "-c", "user.name=t", "-c", "user.email=t@t", "commit",
+         "-q", "--allow-empty", "-m", "x"],
+        check=True,
+        env=env,
+    )
+    reader = am.git_commit_times(repo)
+    assert reader("main") == datetime(2026, 10, 21, 14, 0, tzinfo=UTC)
+    assert reader("nope") is None
+
+
+def test_board_commands_expire_an_idle_holder_first(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.setenv("POKEBENCH_AGENT_MAIL_DIR", str(tmp_path / "mail"))
+    monkeypatch.setenv("POKEBENCH_SLOT_TIMEOUT_MINUTES", "0")
+    monkeypatch.setattr(am, "git_commit_times", lambda repo: {}.get)
+    r = am.Mailroom(tmp_path / "mail")
+    board_of(r, "a", "b")
+    assert am.main(["land-board"], run=Runs()) == 0
+    out = capsys.readouterr().out
+    assert "1. LANDING  b" in out
+    assert am.main(["land-touch", "--branch", "b"], run=Runs()) == 0
+    assert "still landing" in capsys.readouterr().out
+
+
+def test_the_keeper_sleeps_until_the_deadline_then_expires(tmp_path: Path) -> None:
+    r = room(tmp_path)
+    board_of(r, "a", "b")
+    clock = [T]
+    slept: list[float] = []
+
+    def sleep(seconds: float) -> None:
+        slept.append(seconds)
+        clock[0] = clock[0] + timedelta(seconds=seconds)
+
+    am.keep(
+        r,
+        run=Runs(),
+        last_commit={}.get,
+        now=lambda: clock[0],
+        sleep=sleep,
+        rounds=2,
+    )
+    assert slept[0] == pytest.approx(am.SLOT_TIMEOUT_MINUTES * 60)
+    assert [e.branch for e in am.read_board(r)] == ["b", "a"]
+    assert slept[1] == pytest.approx(am.SLOT_TIMEOUT_MINUTES * 60)
+
+
+def test_the_keeper_naps_when_nothing_can_expire(tmp_path: Path) -> None:
+    slept: list[float] = []
+    am.keep(
+        room(tmp_path),
+        run=Runs(),
+        last_commit={}.get,
+        now=lambda: T,
+        sleep=slept.append,
+        rounds=1,
+    )
+    assert slept == [am.KEEPER_IDLE_SECONDS]

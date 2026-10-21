@@ -12,7 +12,7 @@ Operator decision 2026-10-21: agents talk to each other directly. There is no gi
 ## Before you land on main
 
 1. `just land-join --who "claude: <thread title>" --branch <your branch>`.
-2. Number 1 means you are landing now. Anything else means wait: run `just claude-mailbox --timeout 540` with `run_in_background` and stop. The board mails you "your turn to land <branch>" when the slot reaches you. If the mailbox wakes with other letters, handle them as "Being the mailbox listener" says and start it again. While waiting, `just land-board` shows the queue.
+2. Number 1 means you are landing now. Anything else means wait: run `just claude-mailbox --timeout 540` with `run_in_background` and stop. The board mails you "your turn to land <branch>" when the slot reaches you. Each time the mailbox returns, also run `just land-board`, since another listener may have taken your letter; handle other letters as "Being the mailbox listener" says and start it again. While waiting, `just land-board` shows the queue.
 3. Land as `.claude/skills/execute-worklog/SKILL.md` says, including the evidence commit.
 4. `just land-done --branch <your branch>`. That tells the next entry it is up: a Codex session through `codex queue`, a Claude thread through the mailbox. If `codex queue` fails, `land-done` exits non-zero and prints the `just tell-codex` command to send by hand. Send it.
 
@@ -36,6 +36,8 @@ The coordinator runs in the cloud and cannot listen on this Mac. The listener is
 1. Run `just claude-mailbox --timeout 540` with `run_in_background`. It returns when mail arrives, or straight away if mail is already waiting. The timeout stays under the background-command limit, so the listener is never killed mid-wait; a killed or interrupted listener leaves its letters pending.
 2. Read the letters it printed. Act on any about your own work. Relay every other letter to the coordinator with `send_message` (`session_id` `@parent`, `visibility` `sent_to_shared_agent`), quoting it whole.
 3. Start `just claude-mailbox --timeout 540` again right away. Exit code 3 means the timeout passed with no mail; restart it the same way.
+
+A letter stays in `runs/agent-mail/delivering.jsonl` until a mailbox has printed it, so a listener that dies mid-way hands it to the next one; after a crash you may see a letter twice. If `claude-mailbox` fails with "unreadable letter", tell the operator rather than editing the files.
 
 Only one listener receives each letter. If two threads listen, whichever wakes first gets it and must relay what is not its own.
 

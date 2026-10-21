@@ -12,6 +12,7 @@ import fcntl
 import json
 import os
 import select
+import shlex
 import subprocess
 import sys
 from collections.abc import Callable, Iterator, Sequence
@@ -86,6 +87,10 @@ class Mailroom:
         return self.root / "pending.jsonl"
 
     @property
+    def delivering(self) -> Path:
+        return self.root / "delivering.jsonl"
+
+    @property
     def log(self) -> Path:
         return self.root / "log.jsonl"
 
@@ -106,6 +111,11 @@ class Mailroom:
 
 def clock(when: datetime) -> str:
     return when.astimezone(NEW_YORK).strftime("%I:%M %p").lstrip("0")
+
+
+def day_and_clock(when: datetime) -> str:
+    local = when.astimezone(NEW_YORK)
+    return f"{local:%b} {local.day} {clock(when)}"
 
 
 def letter_json(letter: Letter) -> str:
@@ -135,7 +145,8 @@ def tell_claude(room: Mailroom, *, sender: str, text: str, now: datetime) -> boo
     """Leave a letter for Claude. True when a listening Claude was woken right away."""
     line = letter_json(Letter(now, sender, text)) + "\n"
     with room.locked():
-        for path in (room.pending, room.log):
+        # The log goes first, so no letter can be delivered without its record.
+        for path in (room.log, room.pending):
             with open(path, "a", encoding="utf-8") as handle:
                 handle.write(line)
         try:
@@ -154,17 +165,31 @@ def tell_claude(room: Mailroom, *, sender: str, text: str, now: datetime) -> boo
 
 
 def drain(room: Mailroom) -> list[Letter]:
-    if not room.pending.exists():
+    """Move pending letters into delivering and return everything not yet acknowledged.
+
+    Letters stay in delivering until `acknowledge`, so a listener that dies before showing them
+    hands them to the next listener again rather than losing them.
+    """
+    if room.pending.exists():
+        with open(room.delivering, "a", encoding="utf-8") as handle:
+            handle.write(room.pending.read_text(encoding="utf-8"))
+        room.pending.unlink()
+    if not room.delivering.exists():
         return []
-    lines = room.pending.read_text(encoding="utf-8").splitlines()
-    letters = [parse_letter(line) for line in lines if line.strip()]
-    room.pending.unlink()
-    return letters
+    lines = room.delivering.read_text(encoding="utf-8").splitlines()
+    return [parse_letter(line) for line in lines if line.strip()]
+
+
+def acknowledge(room: Mailroom) -> None:
+    with room.locked():
+        room.delivering.unlink(missing_ok=True)
 
 
 def collect(room: Mailroom) -> list[Letter]:
     with room.locked():
-        return drain(room)
+        letters = drain(room)
+    acknowledge(room)
+    return letters
 
 
 def wait_for_mail(
@@ -188,7 +213,8 @@ def wait_for_mail(
         # Close only: an interrupted listener must leave its letters pending for the next one.
         os.close(keepalive)
         os.close(reader)
-    return collect(room)
+    with room.locked():
+        return drain(room)
 
 
 def tell_codex(thread: str, text: str, *, run: Run) -> int:
@@ -284,8 +310,14 @@ def render_board(entries: list[BoardEntry]) -> str:
         who = entry.who
         if entry.codex_thread is not None:
             who += f" (Codex session: {entry.codex_thread})"
-        rows.append(f"{number}. {state}  {entry.branch}  {who}  since {clock(entry.queued_at)}")
+        rows.append(
+            f"{number}. {state}  {entry.branch}  {who}  since {day_and_clock(entry.queued_at)}"
+        )
     return "\n".join(rows)
+
+
+def text_for(up: BoardEntry) -> str:
+    return f"{up.who}: your turn to land {up.branch}"
 
 
 def board_join(
@@ -319,7 +351,7 @@ def board_done(room: Mailroom, *, branch: str, now: datetime, run: Run) -> Hando
     if place != 0 or not entries:
         return None
     up = entries[0]
-    text = f"{up.who}: your turn to land {up.branch}"
+    text = text_for(up)
     if up.codex_thread is not None:
         return Handoff(up, tell_codex(up.codex_thread, text, run=run))
     tell_claude(room, sender="land-board", text=text, now=now)
@@ -364,7 +396,8 @@ def main(argv: Sequence[str] | None = None, *, run: Run = run_command) -> int:
             print("No mail.")
             return NO_MAIL
         for letter in letters:
-            print(format_letter(letter))
+            print(format_letter(letter), flush=True)
+        acknowledge(room)
         return 0
     if args.command == "tell-codex":
         return tell_codex(args.thread, " ".join(args.words), run=run)
@@ -397,8 +430,8 @@ def main(argv: Sequence[str] | None = None, *, run: Run = run_command) -> int:
         code = handoff.exit_code
         print(
             f"Done, but telling {handoff.up.who} failed (codex queue exit {code}). "
-            f'Tell them by hand: just tell-codex "{handoff.up.codex_thread}" '
-            f'"your turn to land {handoff.up.branch}"'
+            "Tell them by hand: just tell-codex "
+            + shlex.join([handoff.up.codex_thread or "", text_for(handoff.up)])
         )
     print(render_board(read_board(room)))
     return code

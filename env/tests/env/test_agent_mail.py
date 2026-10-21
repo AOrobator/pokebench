@@ -79,9 +79,11 @@ def test_bad_pending_line_is_refused(tmp_path: Path) -> None:
     r.pending.write_text('{"sent_at": "2026-10-21T14:27:00+00:00", "sender": 3, "text": "x"}\n')
     with pytest.raises(ValueError, match="letter"):
         am.collect(r)
+    r.delivering.unlink()
     r.pending.write_text("not json\n")
     with pytest.raises(ValueError, match="letter"):
         am.collect(r)
+    r.delivering.unlink()
     r.pending.write_text("[1]\n")
     with pytest.raises(ValueError, match="letter"):
         am.collect(r)
@@ -137,8 +139,8 @@ def test_board_order_and_rejoin(tmp_path: Path) -> None:
         == 1
     )
     assert am.render_board(am.read_board(r)) == (
-        "1. LANDING  codex/gym-door-label  codex (Codex session: Gym door)  since 10:27 AM\n"
-        "2. waiting  claude/mart  claude thread mart  since 10:27 AM"
+        "1. LANDING  codex/gym-door-label  codex (Codex session: Gym door)  since Oct 21 10:27 AM\n"
+        "2. waiting  claude/mart  claude thread mart  since Oct 21 10:27 AM"
     )
 
 
@@ -313,7 +315,7 @@ def test_a_failed_codex_handoff_is_loud(
     assert am.main(["land-done", "--branch", "claude/a"], run=runs) == 1
     printed = capsys.readouterr().out
     assert "telling codex failed (codex queue exit 1)" in printed
-    assert 'just tell-codex "B" "your turn to land codex/b"' in printed
+    assert "just tell-codex B 'codex: your turn to land codex/b'" in printed
     assert "told" not in printed.replace("telling", "")
     assert "1. LANDING  codex/b" in printed
 
@@ -346,3 +348,50 @@ def test_bad_timestamps_are_reported_like_other_bad_rows(tmp_path: Path) -> None
     r.board.write_text('[{"who": "a", "branch": "b", "codex_thread": null, "queued_at": "x"}]')
     with pytest.raises(ValueError, match="unreadable landing board"):
         am.read_board(r)
+
+
+def test_letters_survive_a_listener_that_dies_while_printing(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.setenv("POKEBENCH_AGENT_MAIL_DIR", str(tmp_path / "mail"))
+    r = am.Mailroom(tmp_path / "mail")
+    am.tell_claude(r, sender="codex", text="first", now=T)
+    real = am.format_letter
+
+    def broken(letter: am.Letter) -> str:
+        raise BrokenPipeError
+
+    monkeypatch.setattr(am, "format_letter", broken)
+    with pytest.raises(BrokenPipeError):
+        am.main(["claude-mailbox"])
+    monkeypatch.setattr(am, "format_letter", real)
+    am.tell_claude(r, sender="codex", text="second", now=T)
+    capsys.readouterr()
+    assert am.main(["claude-mailbox"]) == 0
+    assert capsys.readouterr().out.splitlines() == [
+        "[10:27 AM] codex: first",
+        "[10:27 AM] codex: second",
+    ]
+    assert am.collect(r) == []
+
+
+def test_no_letter_is_deliverable_without_its_log_record(tmp_path: Path) -> None:
+    r = room(tmp_path)
+    r.log.mkdir(parents=True)
+    with pytest.raises(OSError):
+        am.tell_claude(r, sender="codex", text="unlogged", now=T)
+    assert not r.pending.exists()
+
+
+def test_the_manual_handoff_command_is_safe_to_paste(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.setenv("POKEBENCH_AGENT_MAIL_DIR", str(tmp_path / "mail"))
+    runs = Runs(code=2)
+    am.main(["land-join", "--who", "claude", "--branch", "claude/a"], run=runs)
+    am.main(
+        ["land-join", "--who", "x", "--branch", "codex/b", "--codex-thread", 'a "$(rm)"'], run=runs
+    )
+    capsys.readouterr()
+    assert am.main(["land-done", "--branch", "claude/a"], run=runs) == 2
+    assert "just tell-codex 'a \"$(rm)\"' 'x: your turn to land codex/b'" in capsys.readouterr().out

@@ -56,6 +56,8 @@ A post-pass over the native reader's result (like evolution-decision-v1's `decis
 
 - Gates on 7e2eb4fa: lint ok; agent 3325 (97.32/93.05/97.8/99.23); viewer 1615 (95.42/91.33/94.33/97.9); pytest 3712 (lines 97.30 branches 93.09 functions 100); verify-vendor ok; fixed-cli check exit 0 on all four, bundle switches end with shop-interface-v1.
 
+- ~12:05 PM ET: merged main f671f35d (Emerald pages theme: explainers now go through `just pages-theme`) cleanly; explainer re-themed, dark block dropped as the skill now says, pages-check clean, opened at 8791. Viewer 1615 green.
+
 ## Principles self-review
 
 | ID | Score | Evidence |

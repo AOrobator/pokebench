@@ -127,6 +127,7 @@ export interface LoopRuleFeatures {
 }
 
 export interface LoopCoordinatorOptions extends LoopRuleFeatures {
+  readonly progressAwareCycles?:boolean;
   readonly ineffectiveNavigation?: boolean;
   readonly sameTargetNoProgress?: boolean;
   readonly menuRefusals?: boolean;

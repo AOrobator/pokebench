@@ -86,8 +86,8 @@ No new subprocesses, network calls or file paths. RAM reads go through `pokebenc
 - [x] Implement: `AutoTalk.candidates` leaves out trainers `heal_before_trainers` shows as defeated when auto-talk-v2 is on (read from the FeatureSet the production `autoTalkContext` factory receives)
 - [x] Guard check: dropping the beaten filter turned the ON test red; restored
 - [x] Gates: lint clean; coverage agent 97.34/93.09/97.8/99.24, viewer 95.42/91.33/94.33/97.9, Python 3691 passed ≥90; agent 3350 tests
-- [ ] COMMIT (GREEN)
-- [ ] Multi-model review loop until clean
+- [x] COMMIT (GREEN): `feat: auto-talk-v2 leaves trainers the readout shows as defeated out of auto-talk (default off)` (acc661b8)
+- [x] Multi-model review loop until clean: round 1 on f31463bf..acc661b8 (SHA-256 f1bf44d5…) — Claude (subagent), Grok, GPT (codex) LGTM. Non-blocking: a beaten trainer who is also an untalked story character stays a story candidate (by contract).
 
 **M6 — Littleroot north stride stop and story-trigger avoidance**
 - [ ] RAM re-parse at e9ee s7116, acfa s3014, ad34 s12351; verdict recorded here
@@ -102,6 +102,9 @@ No new subprocesses, network calls or file paths. RAM reads go through `pokebenc
 Per milestone: tests, replay of the recorded seqs through production code, Activity History check for new diagnostics (agent-observability). After landing: `just viewer-main`, live check that a held briefing shows in Activity History.
 
 ## Session Log
+
+- 2026-10-21 ~12:40 PM New York: `codex/bounded-heal-cycle` (progress-aware-cycles-v1) landed on main. Merged main into this branch: the registry churn conflicted in 64 files; resolved by taking main's versions and re-applying the four switches after progress-aware-cycles-v1 (scratch register2.py) plus the same mechanical position shifts; agent 3365, viewer 1616 tests pass, lint clean.
+- M6 investigation (read-only subagent, RAM and code): (1) HARNESS BUG CONFIRMED — the readout lists coordinate triggers only within 7 tiles (`env/pokebench_env/world_context.py:376`), so `planStride` (navigation.ts) plans an 8-tile stride from (10,17) to (10,9) through a row-9 trigger, the Python stride executor (`strides.py` `_safe_next`) refuses at (10,10) once the trigger comes into range, and navigate_to_target ends the call (e9ee seq 1985→2017, 6979→7012; acfa seq 2981→3014); the same 7-tile window makes the trigger-avoidance plan flip east/west as the set changes (e9ee seq 7063→7116). (2) NOT A BUG — ad34 seq 12351: navigate_to avoids matching triggers by design (coordinate-script-conditions-v1) and said so, naming (11,2); the cost came from the model's next choices.
 
 - 2026-10-21 11:40 AM New York: worklog drafted after the superseded-work check.
 - 2026-10-21 11:37 AM New York: approved by the operator: "run it". Starting M1.

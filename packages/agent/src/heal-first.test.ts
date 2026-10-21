@@ -11,7 +11,8 @@ import {gunzipSync} from "node:zlib";
 import {describe,expect,it} from "vitest";
 import {Type} from "typebox";
 import type {AgentTool,AgentToolResult} from "@mariozechner/pi-agent-core";
-import {ALL_ON,SERVER_FEATURES,SWITCHABLE_FEATURES,dependencyProblems,featureInfo,featuresOf,playHarnessFeatures,type FeatureSet} from "./features.js";
+import {ALL_ON as RAW_PROGRESS_ALL_ON,SERVER_FEATURES,SWITCHABLE_FEATURES,dependencyProblems,featureInfo,featuresOf,playHarnessFeatures,type FeatureSet} from "./features.js";
+const ALL_ON={...RAW_PROGRESS_ALL_ON,"progress-aware-cycles-v1":false};
 import {flagFeatures,normalizeFeatures} from "./play-preset.js";
 import {parseGameState,type GameStateSnapshot} from "./game-state.js";
 import {checkEvent,type RunEvent} from "./events.js";
@@ -288,7 +289,7 @@ describe("registry, fixed bundles and event",()=>{
   expect(featureInfo(ID).description).toContain(" Off: ");
   expect(featureInfo(ID).description).toContain(PROBE);
   expect(featureInfo(ID).description).toContain(B300_LINE);
-  expect(SWITCHABLE_FEATURES.at(-22)).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-23)).toBe(ID);
   expect(SERVER_FEATURES).not.toContain(ID);
   expect(playHarnessFeatures({...ALL_ON,[ID]:true},null).at(-22)).toBe(ID);
   expect(playHarnessFeatures({...ALL_ON,[ID]:false},null)).not.toContain(ID);
@@ -309,8 +310,8 @@ describe("registry, fixed bundles and event",()=>{
   const control=(read("experiments/fixed/bundle-v-control.json") as {base:{features:Record<string,boolean>}}).base.features;
   const entry=read(`experiments/${ID}.json`) as {changedFeature:string;incumbent:{features:Record<string,boolean>};queuePosition?:number};
   expect(entry.changedFeature).toBe(ID);expect(entry.queuePosition).toBeUndefined();
-  const {"caught-dex-input-v1":dexOff,"gym-door-label-v1":gymOff,"mart-stock-readout-v1":martOff,"menu-refusal-recovery-v1":menuOff,"pending-field-dialogue-v1":pendingOff,"exp-next-level-v1":expNextOff,"pokedex-own-v1":pokedexOff,"exp-earned-ledger-v1":expEarnedOff,"leader-attempt-ledger-v1":leaderOff,"seen-trainers-ledger-v1":seenOff,"party-coverage-v1":coverageOff,"said-type-matches-v1":saidTypeOff,...historicalControl}=control;
-  expect(dexOff).toBe(false);expect(gymOff).toBe(false);expect(martOff).toBe(false);expect(pendingOff).toBe(false);expect(menuOff).toBe(false);expect([expNextOff,pokedexOff,expEarnedOff,leaderOff,seenOff,coverageOff,saidTypeOff]).toEqual([false,false,false,false,false,false,false]);
+  const {"progress-aware-cycles-v1":progressOff,"caught-dex-input-v1":dexOff,"gym-door-label-v1":gymOff,"mart-stock-readout-v1":martOff,"menu-refusal-recovery-v1":menuOff,"pending-field-dialogue-v1":pendingOff,"exp-next-level-v1":expNextOff,"pokedex-own-v1":pokedexOff,"exp-earned-ledger-v1":expEarnedOff,"leader-attempt-ledger-v1":leaderOff,"seen-trainers-ledger-v1":seenOff,"party-coverage-v1":coverageOff,"said-type-matches-v1":saidTypeOff,...historicalControl}=control;
+  expect(progressOff).toBe(false);expect(dexOff).toBe(false);expect(gymOff).toBe(false);expect(martOff).toBe(false);expect(pendingOff).toBe(false);expect(menuOff).toBe(false);expect([expNextOff,pokedexOff,expEarnedOff,leaderOff,seenOff,coverageOff,saidTypeOff]).toEqual([false,false,false,false,false,false,false]);
   expect(entry.incumbent.features).toEqual({...historicalControl,[ID]:false});
  });
  it("records a valid heal_first_line event that the tail and Activity History read",async()=>{

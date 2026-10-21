@@ -24,3 +24,10 @@ Evidence: overnight run analysis, runs/reports/run-analysis/2026-10-21_overnight
 - [x] `just fixed-run check whole-map-pair-2h` on main after the merge: definition sha256 1f30902b…, control base whole-map-bundle-fd95 (c66c2eb4…) matches
 - [x] Claude (subagent), Grok (cursor-grok-4.5-high) and Codex (gpt-5.6-sol) each VERDICT: LGTM on frozen packet d00cded5b..607954b29 (diff sha256 2ee1c85c…)
 - [x] Landed fast-forward: main = 607954b29 (11:12 AM New York). Loop round 3 launched at 11:07 AM on d00cded5b (old definition) and runs two pairs to about 3:08 PM; round 4, about 3:08 PM, is the first on the new control.
+
+## Rename to bundle-v-control-2h (the operator 2026-10-21 11:36 AM NY)
+Whole-map is now in control, so the loop's experiment is plain bundle vs control. experiments/fixed/bundle-v-control-2h.json = main's whole-map-pair-2h.json with only id and title changed (title 'Bundle vs control (2 hour pair)'); whole-map-pair-2h.json stays as is, so past runs and labels keep their names. The viewer invariant tests now cover bundle-v-control-2h too. Launcher default (scripts/whole-map-loop.sh and Codex's latest_main_loop.py) is left to the Codex launcher hand-over on codex/latest-main-before-run, so the two branches do not collide.
+- Gates: fixed-run check OK; agent 3322, viewer 1612 and pytest pass. Reviews: Claude subagent LGTM; Grok (cursor-grok-4.5-high) found no bugs in the definition, ids or dropdown labels; its one finding was a stale-base packet artifact (the diff vs a moved main showed another worklog's lines), and after rebasing the branch touches only this worklog, the new JSON and the two test lists.
+- Resynced on main af70fa34 (progress-aware-cycles-v1 in the bundle): bundle-v-control-2h re-copied from whole-map-pair-2h (only id/title differ); the new progress-aware-cycles test list covers it too.
+- Round 3 on 8b290e4b (packet runs/reviews/bundle-v-control-2h/r3): Claude subagent LGTM, Grok cursor-grok-4.5-high LGTM. Gates: fixed-run check OK, agent 3337, viewer 1615, pytest 3702 pass.
+- LANDED on main (ff-only, landing-board turn 12:12 PM NY) after a docs-only resync onto 8e279f85.

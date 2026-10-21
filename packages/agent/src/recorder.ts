@@ -524,7 +524,8 @@ export class RunRecorder {
   }
   // story-battle-heal-gate-v1: one per checked call while the gate is engaged, before it acts or refuses.
   storyBattleHealGate(decision: GateDecision): void {
-    this.append({ type: "story_battle_heal_gate", turn: this.turn, ...decision, map_id: [decision.map_id[0], decision.map_id[1]], reached: decision.reached.map((r) => ({ ...r, tile: { ...r.tile } })), sightings: decision.sightings.map((s) => ({ ...s, tile: { ...s.tile }, from: { ...s.from } })), hurt: decision.hurt.map((h) => ({ ...h })), heal: decision.heal.map((h) => ({ ...h, map_id: [h.map_id[0], h.map_id[1]] })) });
+    const {heal_routes,...body}=decision;
+    this.append({ type: "story_battle_heal_gate", turn: this.turn, ...body, ...(heal_routes===undefined?{}:{heal_routes:heal_routes.map(r=>({outward:r.outward.map(m=>[m[0],m[1]] as [number,number]),back:r.back.map(m=>[m[0],m[1]] as [number,number])}))}), map_id: [decision.map_id[0], decision.map_id[1]], reached: decision.reached.map((r) => ({ ...r, tile: { ...r.tile } })), sightings: decision.sightings.map((s) => ({ ...s, tile: { ...s.tile }, from: { ...s.from } })), hurt: decision.hurt.map((h) => ({ ...h })), heal: decision.heal.map((h) => ({ ...h, map_id: [h.map_id[0], h.map_id[1]] })) });
   }
   // story-battle-heal-first-v1: one per game-tool result that leads with the heal-first line.
   healFirstLine(tool: string, toolCallId: string, facts: HealFirstFacts, text: string): void {

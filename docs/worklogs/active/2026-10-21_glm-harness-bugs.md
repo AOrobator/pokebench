@@ -69,7 +69,7 @@ No new subprocesses, network calls or file paths. RAM reads go through `pokebenc
 - [x] Gates: lint clean; coverage agent 97.33/93.07/97.8/99.24, viewer 95.42/91.33/94.33/97.9, Python 3691 passed ≥90; agent 3338 tests
 - [x] Guard check: dropping `cutOffNotice` from the Governor deps and the `cutOff` argument from decision-probe turned the wiring tests red; restored
 - [x] COMMIT (GREEN): `feat: cut-off-reply-feedback-v1 tells the model its reply hit the output limit before any tool call (default off)` (f2f79d77)
-- [ ] Multi-model review loop until clean
+- [ ] Multi-model review loop until clean: round 1 on 32f1a1be..c37eeaf9 — Claude (subagent) LGTM, Grok LGTM, GPT (codex) CHANGES REQUESTED: the wiring tests only matched source text. Fix: `decision-probe-live.test.ts` now drives live.ts end to end with a scripted reply that stops at max_tokens, asserts the next request carries the notice (ON) or NUDGE (OFF), and that probes rebuild every turn identically and a flipped switch changes exactly that follow-up. Guard check: reversing live.ts's conditional spread, and passing undefined to followUpText, each turned it red; restored.
 
 **M4 — Trainer sight for navigate_to_target**
 - [x] Write tests (`trainer-sight-check-v2.test.ts`, b300 gym state and sight reply as the stand-in game): OFF walks without asking; ON refuses a seen route with navigate_to_target wording, records it, confirm_trainer_sight walks; the trainer the call goes to talk to is excluded from the sightings; confirm argument and description sentence only with the switch; playGameTools wiring

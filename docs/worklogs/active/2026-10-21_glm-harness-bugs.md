@@ -111,7 +111,7 @@ No new subprocesses, network calls or file paths. RAM reads go through `pokebenc
 - [x] One explainer per switch (feature-explainer): `docs/explainers/<id>.html` for all six, themed (`just pages-theme`), `just pages-check` clean, README entries, `FEATURE_EXPLAINERS` mappings in `packages/viewer/src/panels.ts` with panels/server tests (viewer 250 targeted tests pass). Written by a subagent; headless screenshots checked. The live READ EXPLAINER click waits until the viewer serves this code (after landing, `just viewer-main`).
 - [x] Pending experiment entries `experiments/<id>.json` for all six (incumbent copied from progress-aware-cycles-v1 with the six new switches off; source = each switch's green commit, repin to the merge SHA after landing) and a readiness note in `docs/experiments/readiness.md`. `just experiments-check` reports no problem for them (its 150 starter-decision-salience ledger problems are pre-existing on main).
 - [ ] Bundle-membership proposal for the operator
-- [ ] ASK USER: add the switches to the next bundle
+- [x] ASK USER: add the switches to the next bundle — the operator 2026-10-21 1:58 PM: "all six in the bundle" (follow-up config change, with the experiment sources repinned to be531506)
 
 ## Closing the Loop
 
@@ -130,6 +130,9 @@ Per milestone: tests, replay of the recorded seqs through production code, Activ
 ## Surprises
 
 ## Multi-Model Review Log
+
+- Landing review round 2 on main 2850ace6..be531506 (SHA-256 8b8b34f4…; only change since round 1 the worklog record plus a clean main merge of the cross-model skill): Claude, Grok, GPT VERDICT: LGTM. Gates on the tip: lint clean; agent 3398, viewer 1635, Python 3806 tests pass.
+- LANDED: `git merge --ff-only be531506a` on main at about 2:05 PM New York (main = be531506a1504bd5e1e21135e599861a34249545). `just test` on main after landing: agent 3398, viewer 1635, Python 3806 pass.
 
 - Landing review on main 2e944834..3f3d3df6 (SHA-256 7cdd9586…): Claude (subagent), Grok (cursor-grok-4.5-high), GPT (codex gpt-6-astra) all VERDICT: LGTM. Non-blocking: a lead_no_pp-only heal_before_trainers_warning at full HP opens and closes a trip at once (restarting the drought clock); shared 7-tile radius constant; repin experiment sources after merge.
 

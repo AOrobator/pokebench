@@ -206,3 +206,17 @@ it("keeps recording coverage expanded and its summary focused across polling", a
   expect(document.activeElement).toBe(ui("frontier-full").querySelector("[data-frontier-coverage] summary"));
   wb.destroy();
 });
+
+it("preserves the focused recording replay link across polls and falls back to the summary if it disappears", async () => {
+  const { wb, fetch } = mount(); await wb.refresh();
+  const coverage = ui("frontier-full").querySelector<HTMLDetailsElement>("[data-frontier-coverage]");
+  if (coverage === null) throw new Error("coverage missing");
+  coverage.open = true;
+  const link = coverage.querySelector("a"); if (link === null) throw new Error("replay link missing");
+  const href = link.getAttribute("href"); link.focus();
+  await wb.refresh();
+  expect(document.activeElement?.getAttribute("href")).toBe(href);
+  fetch.mockResolvedValue({ ...data(), at: 2000, runs: [] }); await wb.refresh();
+  expect(document.activeElement).toBe(ui("frontier-full").querySelector("[data-frontier-coverage] summary"));
+  wb.destroy();
+});

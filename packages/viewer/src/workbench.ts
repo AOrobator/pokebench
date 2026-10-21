@@ -177,10 +177,17 @@ export class Workbench {
     if (this.hovered !== null && host.querySelector(`[data-ver="${this.hovered}"]`) === null) this.hovered = null;
     if (this.isolated !== null && host.querySelector(`[data-ver="${this.isolated}"]`) === null) { this.isolated = null; this.renderCharts(); return; }
     const plot = this.ui("frontier-full"), coverage = plot.querySelector<HTMLDetailsElement>("[data-frontier-coverage]");
-    const coverageOpen = coverage?.open ?? false, coverageFocused = coverage?.querySelector("summary") === this.doc.activeElement;
+    const active = this.doc.activeElement, coverageOpen = coverage?.open ?? false, coverageFocused = coverage?.querySelector("summary") === active;
+    const replayHref = active?.tagName === "A" && coverage?.contains(active) === true ? active.getAttribute("href") : null;
     plot.innerHTML = frontierPlot(refs, overlays, width, this.versions, current, this.zoom, status, this.isolated ?? this.hovered, this.hideTimeOutliers);
     const nextCoverage = plot.querySelector<HTMLDetailsElement>("[data-frontier-coverage]");
-    if (nextCoverage !== null) { nextCoverage.open = coverageOpen; if (coverageFocused) nextCoverage.querySelector("summary")?.focus({ preventScroll: true }); }
+    if (nextCoverage !== null) {
+      nextCoverage.open = coverageOpen;
+      if (coverageFocused || replayHref !== null) {
+        const replay = replayHref === null ? null : [...nextCoverage.querySelectorAll("a")].find(link => link.getAttribute("href") === replayHref);
+        (replay ?? nextCoverage.querySelector("summary"))?.focus({ preventScroll: true });
+      }
+    }
     const outliers = this.doc.querySelector<HTMLButtonElement>("[data-frontier-outliers]"), chart = this.ui("frontier-full").querySelector<SVGElement>("[data-hidden-outliers]");
     if (outliers !== null) {
       const count = chart?.dataset.hiddenOutliers ?? "0";

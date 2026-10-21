@@ -355,3 +355,15 @@ The operator approved 9:42 PM ET. Test-only, plus one production fix the coordin
 - COMMIT: `Merge branch 'main' into claude/field-move-test-io` (9b511d4d), main 97046aa6, clean. Gates on the merged
   tip: test 0, lint 0, build 0, coverage 0 (env 3480, agent 3046, viewer 1494; Python 97.21 / 92.86 / 100,
   agent 97.13 / 92.97 / 97.59 / 99.14, viewer 95.24 / 90.99 / 94.17 / 97.81).
+- COMMIT: `docs: record field-move test-io round 1 and the second main sync` (7ac8c9e3)
+- Review round 2, packet 97046aa6..7ac8c9e3 (sha256 aca14b97...):
+  - Grok (cursor-grok-4.5-high): VERDICT: LGTM.
+  - Claude (read-only subagent): BLOCKING on landing identity only (main moved to 92f841ac seconds before the
+    freeze, 82 files, no overlap with the packet's 8); substance: no defects.
+  - Codex (gpt-5.6-sol, read-only): BLOCKING, audit setup still Theta(starts x tiles): per-start classify is 2
+    floods, the N vs 2N test shows 2N^2 visits; wants linear aggregate work. Fixture I/O, the 247 cases, the
+    production fix and quotations all confirmed. Non-blocking: `Kind` is a new public name in field_moves.
+  - Stopped here (two rounds with blockers). Open for the coordinator / the operator: per-start floods are what
+    "from every warp" asks; linear aggregate work needs either fewer starts (drops audit coverage), a
+    test-owned reachability reimplementation (no longer tests production floods), or a production batch API
+    (Codex itself called that scope expansion). Landing also needs one more clean sync with main.

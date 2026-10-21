@@ -427,8 +427,8 @@ describe("battle-text-auto-advance-v1 registry and production wiring",()=>{
  it("is a default-off guidance switch, recorded last, that needs dialogue auto-advance and no server switch",()=>{
   expect(featureInfo(ID)).toMatchObject({group:"guidance",needs:"dialogue-auto-advance-v1",switchable:true,title:"BATTLE TEXT AUTO-ADVANCE"});
   expect(featureInfo(ID).description).toContain(" Off: field auto-advance stops when a battle starts");
-  expect(SWITCHABLE_FEATURES.at(-137)).toBe(ID);
-  expect(FEATURES.filter(f=>f.switchable).at(-137)?.id).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-138)).toBe(ID);
+  expect(FEATURES.filter(f=>f.switchable).at(-138)?.id).toBe(ID);
   expect(playHarnessFeatures(ALL_ON,null).at(-72)).toBe(ID);
   expect(playHarnessFeatures({...ALL_ON,"battle-decision-ready-v1":false,[ID]:false},null)).not.toContain(ID);
   expect(SERVER_FEATURES).not.toContain(ID);
@@ -446,16 +446,16 @@ describe("battle-text-auto-advance-v1 registry and production wiring",()=>{
   const frozen=Object.fromEntries(Object.entries({...ALL_ON,"battle-decision-ready-v1":false,[ID]:false}).filter(([id])=>!newer.has(id)));
   const preset=parsePlayPreset({version:2,id:"frozen-base",target:null,limits:{maxTurns:10,maxWallMs:60000,failureLimit:3},sampling:{thinkingLevel:"medium",maxTokens:4096},features:{...frozen,"state-only-decisions-v1":false}});
   expect(Object.keys(presetFeatures(preset))).toEqual([...SWITCHABLE_FEATURES]);
-  expect(Object.keys(presetFeatures(preset)).slice(-137,-131)).toEqual([ID,"battle-message-waiting-v1","script-line-presence-v1","offscreen-objects-v1","navigate-first-prompt-v1","presence-penalty-v1"]);
+  expect(Object.keys(presetFeatures(preset)).slice(-138,-132)).toEqual([ID,"battle-message-waiting-v1","script-line-presence-v1","offscreen-objects-v1","navigate-first-prompt-v1","presence-penalty-v1"]);
   for(const id of ["offscreen-objects-v1","navigate-first-prompt-v1","presence-penalty-v1"] as const)expect(presetFeatures(preset)[id]).toBe(false);
  });
 
  it("is the key before battle-message-waiting-v1 wherever a preset or default lists switches, and in the registry",()=>{
   const later=new Set<string>(["battle-triage-guidance-v1","adjacent-tiles-v1","readout-rules-in-prompt-v1","explorer-guidance-v1","connection-edge-tiles-v1","in-game-naming-readout-v1","no-nickname-guidance-v1",ID,"script-line-presence-v1","offscreen-objects-v1","navigate-first-prompt-v1","presence-penalty-v1"]);
   const old=Object.fromEntries(Object.entries(ALL_ON).filter(([id])=>!later.has(id))) as Omit<FeatureSet,"battle-triage-guidance-v1"|"adjacent-tiles-v1"|"readout-rules-in-prompt-v1"|"explorer-guidance-v1"|"connection-edge-tiles-v1"|"in-game-naming-readout-v1"|"no-nickname-guidance-v1"|typeof ID|"script-line-presence-v1"|"offscreen-objects-v1"|"navigate-first-prompt-v1"|"presence-penalty-v1">;
-  expect(Object.keys(normalizeFeatures(old)).slice(-137,-131)).toEqual([ID,"battle-message-waiting-v1","script-line-presence-v1","offscreen-objects-v1","navigate-first-prompt-v1","presence-penalty-v1"]);
+  expect(Object.keys(normalizeFeatures(old)).slice(-138,-132)).toEqual([ID,"battle-message-waiting-v1","script-line-presence-v1","offscreen-objects-v1","navigate-first-prompt-v1","presence-penalty-v1"]);
   for(const id of ["offscreen-objects-v1","navigate-first-prompt-v1","presence-penalty-v1"] as const)expect(normalizeFeatures(old)[id]).toBe(false);
-  expect(Object.keys(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:true})).at(-137)).toBe(ID);
+  expect(Object.keys(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:true})).at(-138)).toBe(ID);
   expect(SWITCHABLE_FEATURES.indexOf(ID)).toBe(SWITCHABLE_FEATURES.indexOf("no-nickname-guidance-v1")+1);
  });
 
@@ -602,7 +602,7 @@ it("battle readiness never executes a queued action after a cap or battle end",a
 
 it("battle readiness is append-only, default OFF for historical presets and dependent on native text advancing",()=>{
  const id="battle-decision-ready-v1" as const;
- expect(SWITCHABLE_FEATURES.at(-71)).toBe(id);
+ expect(SWITCHABLE_FEATURES.at(-72)).toBe(id);
  expect(playHarnessFeatures(ALL_ON,null).at(-6)).toBe(id);
  expect(featureInfo(id)).toMatchObject({needs:ID,group:"guidance"});
  const flags=flagFeatures({loopGuard:false,activeUi:true,interfaceDocs:true,objectives:false});
@@ -735,8 +735,8 @@ describe("pending-field-dialogue-v1",()=>{
  });
  it("is appended, agent-only, default OFF and requires field dialogue auto advance",()=>{
   const id="pending-field-dialogue-v1";
-  expect(SWITCHABLE_FEATURES.at(-30)).toBe(id);
-  expect(FEATURES.filter(f=>f.switchable).at(-30)?.id).toBe(id);
+  expect(SWITCHABLE_FEATURES.at(-31)).toBe(id);
+  expect(FEATURES.filter(f=>f.switchable).at(-31)?.id).toBe(id);
   expect(playHarnessFeatures({...ALL_ON,[id]:true},null).at(-1)).toBe(id);
   expect(featureInfo(id)).toMatchObject({needs:"dialogue-auto-advance-v1",group:"guidance"});
   expect(SERVER_FEATURES).not.toContain(id);
@@ -759,10 +759,10 @@ describe("pending-field-dialogue-v1",()=>{
 
 it("the pending field dialogue experiment explicitly declares every current switch and flips only its treatment",()=>{
  const raw=JSON.parse(readFileSync(new URL("../../../experiments/pending-field-dialogue-v1.json",import.meta.url),"utf8")) as {incumbent:{features:Record<string,boolean>}};
- expect(Object.keys(raw.incumbent.features)).toEqual(SWITCHABLE_FEATURES.filter(id=>id!=="trigger-navigation-boundary-v1"&&id!=="gym-evidence-v1"&&id!=="rejected-movement-step-v1"&&id!=="observed-field-dialogue-v1"&&id!=="birch-intro-pages-v1"&&id!=="shop-interface-v1"&&id!=="progress-aware-cycles-v1"&&id!=="mart-stock-readout-v1"&&id!=="gym-door-label-v1"&&id!=="caught-dex-input-v1"&&id!=="menu-refusal-recovery-v1"&&id!=="story-goal-player-name-v1"&&id!=="cut-off-reply-feedback-v1"&&id!=="trainer-sight-check-v2"&&id!=="auto-talk-v2"&&id!=="map-wide-triggers-v1"&&id!=="drought-battle-heal-hold-v1"));
+ expect(Object.keys(raw.incumbent.features)).toEqual(SWITCHABLE_FEATURES.filter(id=>id!=="milestone-instruction-memory-v1"&&id!=="trigger-navigation-boundary-v1"&&id!=="gym-evidence-v1"&&id!=="rejected-movement-step-v1"&&id!=="observed-field-dialogue-v1"&&id!=="birch-intro-pages-v1"&&id!=="shop-interface-v1"&&id!=="progress-aware-cycles-v1"&&id!=="mart-stock-readout-v1"&&id!=="gym-door-label-v1"&&id!=="caught-dex-input-v1"&&id!=="menu-refusal-recovery-v1"&&id!=="story-goal-player-name-v1"&&id!=="cut-off-reply-feedback-v1"&&id!=="trainer-sight-check-v2"&&id!=="auto-talk-v2"&&id!=="map-wide-triggers-v1"&&id!=="drought-battle-heal-hold-v1"));
  const entry=parseExperiment(raw),{incumbent,candidate}=experimentArms(entry);
  expect(entry.queuePosition).toBeUndefined();
- expect(SWITCHABLE_FEATURES.filter(id=>id!=="trigger-navigation-boundary-v1"&&id!=="gym-evidence-v1"&&id!=="rejected-movement-step-v1"&&id!=="observed-field-dialogue-v1"&&id!=="progress-aware-cycles-v1"&&incumbent.features[id]!==candidate.features[id])).toEqual(["pending-field-dialogue-v1"]);
+ expect(SWITCHABLE_FEATURES.filter(id=>id!=="milestone-instruction-memory-v1"&&id!=="trigger-navigation-boundary-v1"&&id!=="gym-evidence-v1"&&id!=="rejected-movement-step-v1"&&id!=="observed-field-dialogue-v1"&&id!=="progress-aware-cycles-v1"&&incumbent.features[id]!==candidate.features[id])).toEqual(["pending-field-dialogue-v1"]);
 });
 
 describe("caught-dex-input-v1 archived registration page",()=>{
@@ -785,7 +785,7 @@ describe("caught-dex-input-v1 archived registration page",()=>{
 
 it("registers caught-dex-input-v1 default OFF and enables only the fixed bundle arms",()=>{
  const id="caught-dex-input-v1";
- expect(SWITCHABLE_FEATURES.at(-21)).toBe(id);expect(SERVER_FEATURES.at(-6)).toBe(id);
+ expect(SWITCHABLE_FEATURES.at(-22)).toBe(id);expect(SERVER_FEATURES.at(-6)).toBe(id);
  expect(normalizeFeatures({} as Parameters<typeof normalizeFeatures>[0])[id]).toBe(false);
  expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false})[id]).toBe(false);
  expect(serverFeatureEnvForDex(false)).toContain(id);expect(serverFeatureEnvForDex(true)).not.toContain(id);

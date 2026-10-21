@@ -7,7 +7,7 @@ import {IN_GAME} from "../test-support/events.js";
 import {userText} from "../test-support/pi.js";
 import {checkEvent,type EventBody,type RunEvent} from "./events.js";
 import {ALL_ON as GYM_EVIDENCE_CURRENT_ALL_ON,SWITCHABLE_FEATURES,featureInfo,type FeatureSet} from "./features.js";
-const ALL_ON={...GYM_EVIDENCE_CURRENT_ALL_ON,"gym-evidence-v1":false};
+const ALL_ON={...GYM_EVIDENCE_CURRENT_ALL_ON,"milestone-instruction-memory-v1":false,"gym-evidence-v1":false};
 import {flagFeatures,normalizeFeatures} from "./play-preset.js";
 import type {GameStateSnapshot} from "./game-state.js";
 import {AUTO_TALK_REPLIES,AUTO_TALK_TURNS,autoTalkContext} from "./auto-talk.js";

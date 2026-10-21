@@ -10,8 +10,8 @@ Evidence: ea04 turns 600–660, seq 22794–24576; 17 refusals across matching R
 - [x] GREEN production wiring and semantic stop; adversarial deletion/restoration
 - [x] Gates and read-only replay on recorded Rustboro state
 - [x] Explainer and pending experiment
-- [ ] Fresh landing review — operator approved Sol/Astra substitution; awaiting synced-packet verdicts
-- [ ] Landing and served proof, only through landing board
+- [x] Fresh landing review — Claude/GPT/Sol/Astra approve frozen c624eb77 under explicit operator substitution
+- [x] Landing and served proof, only through landing board
 
 Implementation boundary: navigation.ts and semantic-navigation.ts if required, existing feature registration/preset/default owners, focused tests, explainer mapping/docs, pending experiment. No new runtime owner or event schema.
 
@@ -98,3 +98,20 @@ Against main b79749bb: rebuilt first after detecting stale dist schemas, then ju
 navigation.ts blob d9a20c180ef81aa163395107f8c9a6fff4cd8102 and trigger-navigation.test.ts blob b9c106629c7ac4490d27269b8e56be1851156a2e are exactly identical to the previously approved e2ff1256 implementation. New review binds the cumulative synced tree, registry integration and documentation. Principles PB1-PB13 and the nine test-quality checks remain assessed as above, with no FAIL rows or added domains. The source pin b4e5fa03 has identical agent/env sources to this metadata-only closeout tip. No experiments queued, approved or launched; switch remains default OFF.
 
 Coordinator confirmed b79749bb was their late evidence-only commit and has promised no more main moves until their next turn. They confirmed no 8790 restart planned, so the single post-merge viewer refresh belongs to this landing. This refresh must preserve all live gameplay processes and sends no game inputs or control writes.
+
+
+## Landed and served proof
+
+Frozen c624eb77e77ece4ccfc264d1942e824658fd411a fast-forwarded onto local main from b79749bbdc0cb3ca4672bece197cb8475d16fce4 while this branch held slot 1. Exact reviewed binary diff SHA256 41109ab3a2a007d9a8fd7bf52623f4e994d71f01128a47464a6b38e3447db4fb; clean worktree and digest independently reproduced. No source changes after freeze.
+
+Fresh Claude CLI exit 0, empty stderr, terminal VERDICT: LGTM. Fresh normal GPT /root/trigger_land_gpt and authorized replacement Astra /root/trigger_land_astra: VERDICT: LGTM; independently verified frozen identity (GPT 293 agent +199 viewer tests; Astra all3418 agent tests). Replacement Sol /root/trigger_land_sol initially blocked on missing walking-override mutation evidence only. Removed just that operand in the isolated worktree: exact expected modifier assertion failed with undefined/undefined; restored original bytes and all11 trigger tests passed. Sol inspected both receipts and reproduced clean identity/digest/blobs, then VERDICT: LGTM. No tracked delta or additional production capability. Reduced vendor diversity remains explicit under the operator's direct authorization. Combined treatment-plus-stride regression remains a nonblocking hardening follow-up. Full packet and transcripts/explicit root-transcribed subagent synthesis retained in runs/reviews/trigger-boundary-land/.
+
+Postlanding main just build and just test passed: 3418 agent +1661 viewer +3827 Python. Logs main-build.log and main-test.log in the packet. Earlier coverage/lint/vendor gates remain green on the identical reviewed tree.
+
+Viewer refresh: first just viewer-main reported c624eb77 and all3 gameplay processes preserved, but its new child exited before follow-up; no listener remained. Recovered through a detached just viewer-main invocation, with no concurrent restart and no game controls. Stable served proof at 2026-10-21 17:27:50 America/New_York: managed /private/tmp/pokebench-viewer/packages/viewer/dist/build-stamp.json is clean c624eb77; exactly one8790 listener PID87826; /api/workbench has no newer-run build problems. Recovery and original receipts retained; this required a second invocation after the first viewer process exited, rather than claiming a single refresh succeeded.
+
+Before/after gameplay PIDs15137,40253,92421 all survived. The same live runs remain listed: 2026-10-21T16-05-15_qwen36-gpu0_927e, 2026-10-21T15-36-24_qwen36-gpu1_1fe0, 2026-10-21T13-33-37_glm53-mac_f584. No run input, control write, restart, preset change, launch or bundle enablement. prelanding-live.json and served-proof.json retain the snapshots.
+
+Real browser on8790 selected completed ea04 (ENDED), opened HARNESS CONFIG and confirmed SCRIPT TRIGGER BOUNDARIES is NOT RECORDED for that historical run, with Default off description. Read explainer opened /explainers/trigger-navigation-boundary-v1.html and the document rendered correctly; browser error log empty. Screenshot opened and inspected at runs/mockups/trigger-navigation-boundary-v1/shots/landed-explainer.jpg. Canonical8791 explainer returned200. Desktop/phone candidate screenshots were already checked above. Switch remains default OFF and the experiment pending, unqueued/unapproved. Correctness is proven through factory regressions and recorded-state planner replay; native story completion and gameplay benefit are not measured.
+
+This evidence-only main commit changes only this docs/worklogs file, under the landing exception. Worklog/worktree retained active; no archival authorized.

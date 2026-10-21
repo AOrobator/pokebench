@@ -82,6 +82,7 @@ The operator: the green fill shows the white bar above and below it; the HP tag 
 - [x] Review round 1 (packet 28ab3218..7d9ff1a0, sha256 760a3f92…8d08): Claude LGTM (follow-up: tag column 14 is the bar's dark left border, so a frame at 15u doubles it); Grok LGTM; GPT BLOCKING: the geometry test only checked relations, so a wrong crop or uniformly wrong sizes passed. Both taken: RED pins exact numbers and the crop, frame moves to 14u under the tag's last column.
 - [x] GREEN: frame at 14u under the tag's dark last column (1u left border like the other sides), track from 15u. Gates: lint, build; coverage agent 3281 tests 99.2/93.11/97.71, viewer 1600 tests 97.9/91.32/94.33, python 3583 tests 97.23/92.97/100.
 - [x] Review round 2 (packet 28ab3218..07eecdc8, sha256 e7bbb8fd…3836): Claude, Grok and GPT/Codex all LGTM. Browser: clean build 07eecdc on 8796, real clicks POKéMON PARTY → ZIGZAGOON, 1440, 375 (scrollWidth 375) and a magnified bar (07eecdc-*.jpg).
+- [x] Landed: `git merge --ff-only` → main 3f31079b4 (main had not moved from 28ab3218f; loop not mid-pin). `just test` on main: agent 3281, viewer 1600, python 3583 passed. `just viewer-main`: 8790 at 3f31079b4, 3 live runs kept. Live check on run 2026-10-21T08-28-28_qwen36-gpu1_8892: POKéMON PARTY → TORCHIC, bar 14px tall with the frame at 28px (7u/14u at u=2px); screenshot runs/mockups/party-menu/shots/landed/3f31079-1440-live-hpbar.jpg.
 
 ## Closing the Loop
 

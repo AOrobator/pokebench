@@ -83,6 +83,7 @@ const KNOWN: Record<RunEvent["type"], true> = {
   stall_gate: true,
   unfinished_activity: true,
   trainer_sight_check: true,
+  story_battle_heal_gate: true,
   auto_talk: true,
   story_battle_warning: true,
   heal_before_trainers_warning: true,

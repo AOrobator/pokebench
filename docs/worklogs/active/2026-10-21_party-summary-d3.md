@@ -47,10 +47,10 @@ Scope limits (from the data the runs record today):
 - [x] COMMIT: `test(viewer): party art paths (RED)` (d0280f08e)
 - [x] Implement `scripts/party-art/build_party_art.py`, `just party-art`, server allowlist; build into `runs/sprites/party-v1` and record the ROM proof. Built: 386 front pics, types/status/balls/HP tag/EXP bar/markings, small and normal fonts, data.json; every image raw/LZ77-verified, gSpeciesInfo/gBattleMoves/gExperienceTables read from the ROM and cross-checked against the decomp, sSpeciesToHoennPokedexNum and every move/ability/nature string found in the ROM. Font paths added to the allowlist test in the same commit.
 - [x] Gates: lint, build pass; test agent 3246 / viewer 1567 / python 3564; coverage viewer lines 97.92 branches 91.19 functions 94.41, python lines 97.25 branches 92.95 functions 100 (two unrelated timeout flakes under load 17-21 passed on rerun: serial-comparison hung child, experiment-cli production host)
-- [ ] COMMIT: `feat(viewer): build party art from the ROM (GREEN)`
+- [x] COMMIT: `feat(viewer): build party art from the ROM (GREEN)` (25a42594c)
 
 **M1b — Party readout: stats, ability, met (added 2026-10-21 02:40 at the operator's request)**
-- [ ] Write tests: party members decode ATTACK/DEFENSE/SPEED/SP. ATK/SP. DEF from the party struct (0x5A-0x63), ability slot and the species' ability ID, met location (map section and its name), met level, origin game, ball (item and name), OT name and gender; box members carry no stats; the model-facing state text is unchanged
+- [x] (4 Python tests fail on import, the TypeBox accept test fails) Write tests: party members decode ATTACK/DEFENSE/SPEED/SP. ATK/SP. DEF from the party struct (0x5A-0x63), ability slot and the species' ability ID, met location (map section and its name), met level, origin game, ball (item and name), OT name and gender; box members carry no stats; the model-facing state text is unchanged
 - [ ] COMMIT: `test(env): party readout stats, ability and met (RED)`
 - [ ] Implement in `env/pokebench_env/pokemon.py` (recorded state only; `render` untouched); TypeBox `PokemonSchema` and `just schema`
 - [ ] Gates (as M1)

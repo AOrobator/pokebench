@@ -410,3 +410,93 @@ def test_invalid_snapshot_preserves_its_bounded_atomic_cpu_evidence():
     assert decode_party_mon(body[:99], read, cpu=replace(cpu, gprs=())).cpu_context is None
     valid, read = fixture()
     assert decode_party_mon(valid, read, cpu=cpu).cpu_context is None
+
+
+def summary_fixture(*, party=True, language=2, met_level=5, met_location=16):
+    """A member with the SKILLS/INFO facts set: stats, ability bit, met data, ball, OT."""
+    from pokebench_env.pokemon import REGION_MAP_ENTRIES, SPECIES_INFO
+
+    personality, ot_id = 0x12345671, 0xCAFEBABE
+    key = personality ^ ot_id
+    growth = struct.pack("<HHIBBH", 280, 0, 125, 0, 70, 0)
+    attacks = struct.pack("<4H4B", 33, 0, 0, 0, 35, 0, 0, 0)
+    origin = met_level | (3 << 7) | (4 << 11) | (1 << 15)
+    misc = struct.pack("<BBHII", 0, met_location, origin, (1 << 31) | 0x1F, 0)
+    subs = {"G": growth, "A": attacks, "E": bytes(12), "M": misc}
+    secure = b"".join(subs[k] for k in SUBSTRUCT_ORDERS[personality % 24])
+    body = bytearray(100)
+    struct.pack_into("<II", body, 0, personality, ot_id)
+    body[8:18] = text("TORCHIC").ljust(10, b"\xff")
+    body[0x12] = language
+    body[0x13] = 2
+    body[0x14:0x1B] = text("MAY").ljust(7, b"\xff")
+    struct.pack_into("<H", body, 0x1C, sum(struct.unpack("<24H", secure)) & 0xFFFF)
+    body[0x20:0x50] = struct.pack("<12I", *(w ^ key for w in struct.unpack("<12I", secure)))
+    struct.pack_into("<IBBHH5H", body, 0x50, 0, 16, 0, 49, 50, 23, 19, 21, 24, 18)
+    memory = Memory()
+    memory.put(SPECIES_NAMES + 11 * 280, text("TORCHIC") + b"\xff")
+    memory.put(MOVE_NAMES + 13 * 33, text("TACKLE") + b"\xff")
+    memory.put(BATTLE_MOVES + 12 * 33 + 4, bytes([35]))
+    memory.put(SPECIES_INFO + 28 * 280 + 0x16, bytes([66, 77]))
+    memory.put(REGION_MAP_ENTRIES + 8 * 16 + 4, struct.pack("<I", 0x08700000))
+    memory.put(0x08700000, text("ROUTE 101") + b"\xff")
+    memory.put(
+        ITEMS + 44 * 4, (text("POKé BALL") + b"\xff").ljust(14, b"\x00") + struct.pack("<H", 4)
+    )
+    raw = bytes(body) if party else bytes(body[:80])
+    return (decode_party_mon if party else decode_box_mon)(raw, memory.read)
+
+
+def test_party_member_records_its_summary_facts():
+    mon = summary_fixture()
+    assert mon.diagnostic is None
+    assert (mon.attack, mon.defense, mon.speed, mon.sp_attack, mon.sp_defense) == (
+        23,
+        19,
+        21,
+        24,
+        18,
+    )
+    assert (mon.ability_num, mon.ability_id) == (1, 77)
+    assert (mon.met_location, mon.met_location_name, mon.met_level, mon.met_game) == (
+        16,
+        "ROUTE 101",
+        5,
+        3,
+    )
+    assert (mon.ball, mon.ball_name) == (4, "POKé BALL")
+    assert (mon.ot_name, mon.ot_gender) == ("MAY", "female")
+
+
+def test_box_member_has_no_cached_stats_but_keeps_its_summary_facts():
+    mon = summary_fixture(party=False)
+    assert (mon.attack, mon.defense, mon.speed, mon.sp_attack, mon.sp_defense) == (None,) * 5
+    assert (mon.ability_id, mon.met_location_name, mon.ot_name) == (77, "ROUTE 101", "MAY")
+
+
+def test_summary_facts_are_left_out_rather_than_guessed():
+    hatched = summary_fixture(met_level=0, met_location=213)
+    assert (hatched.met_level, hatched.met_location, hatched.met_location_name) == (0, 213, None)
+    unnamed = summary_fixture(met_location=17)
+    assert (unnamed.met_location, unnamed.met_location_name) == (17, None)
+    no_language = summary_fixture(language=0)
+    assert no_language.ot_name is None
+    plain = fixture()
+    assert decode_party_mon(*plain).ball_name is None
+
+
+def test_summary_facts_stay_out_of_the_model_readout():
+    from pokebench_env.readout import format_readout
+    from tests.env.pocket import pocket_state
+
+    mon = summary_fixture()
+    bare = replace(
+        mon, attack=None, defense=None, speed=None, sp_attack=None, sp_defense=None,
+        ability_num=None, ability_id=None, met_location=None, met_location_name=None,
+        met_level=None, met_game=None, ball=None, ball_name=None, ot_name=None, ot_gender=None,
+    )  # fmt: skip
+    for off in (frozenset(), frozenset({"status-names-v1"})):
+        with_facts = format_readout(replace(pocket_state(), party=(mon,)), off)
+        without = format_readout(replace(pocket_state(), party=(bare,)), off)
+        assert "TORCHIC Lv16 HP 49/50" in with_facts
+        assert with_facts == without

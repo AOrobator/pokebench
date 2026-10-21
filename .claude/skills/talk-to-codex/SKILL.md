@@ -20,6 +20,8 @@ Whenever someone leaves the board or is moved, every entry whose place changed i
 
 `just land-move --branch B --before C` moves B to just above C and tells everyone whose place changed. Use it only when the operator says so, or the coordinator passes on the operator's words.
 
+The slot expires: if number 1 shows no new commit on its branch and no `just land-touch --branch <branch>` for 45 minutes while others wait, it is moved to the back and told why. During long gates or reviews, run `just land-touch` now and then.
+
 Never merge into main while someone else is number 1. If the board says a branch has held the slot for a long time with no sign of work, ask the operator before removing it. Do not remove it yourself.
 
 ## Telling a Codex session something
@@ -56,6 +58,8 @@ Without crashes, only one listener receives each letter. If two threads listen, 
 | `just land-board` | Who is landing and who is waiting |
 | `just land-join --who W --branch B [--codex-thread T]` | Join the board; prints your position |
 | `just land-done --branch B` | Leave the board; tell everyone their new place |
+| `just land-touch --branch B` | Number 1 only: restart the 45-minute idle clock |
+| `just land-keeper` | Start once, detached: LLM-free; moves an idle number 1 back at its deadline |
 | `just land-move --branch B --before C` | Move B above C (operator's word only); tell who moved |
 | `just tell-codex "<session>" "<message>"` | Reach a Codex session: via the Codex coordinator mid-turn, else `codex queue` |
 | `just codex-mailbox [--timeout S]` / `just codex-mailbox-done --claim N` | The Codex coordinator's listener and acknowledgement (Codex side only) |

@@ -20,8 +20,8 @@ import sys
 import time
 from collections.abc import Callable, Iterator, Sequence
 from contextlib import contextmanager
-from dataclasses import dataclass
-from datetime import UTC, datetime
+from dataclasses import dataclass, replace
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from urllib.parse import quote
 from zoneinfo import ZoneInfo
@@ -38,6 +38,10 @@ WAKE_TEXT = (
 )
 # A wake the coordinator has not acted on for this long is sent again on the next letter.
 STALE_WAKE_SECONDS = 600.0
+# The landing slot expires when its holder shows no commit or land-touch for this long.
+SLOT_TIMEOUT_MINUTES = 45.0
+# How long land-keeper sleeps when no slot can expire (empty board or a lone holder).
+KEEPER_IDLE_SECONDS = 300.0
 
 Run = Callable[[Sequence[str]], int]
 
@@ -75,6 +79,7 @@ class BoardEntry:
     branch: str
     codex_thread: str | None
     queued_at: datetime
+    top_since: datetime | None = None
 
 
 @dataclass(frozen=True)
@@ -83,6 +88,18 @@ class Notice:
     position: int
     text: str
     exit_code: int
+
+
+def repo_root(cwd: Path) -> Path:
+    """The main checkout: the parent of the git common dir, the same from every worktree."""
+    common = subprocess.run(
+        ["git", "rev-parse", "--path-format=absolute", "--git-common-dir"],
+        cwd=cwd,
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+    return Path(common).resolve().parent
 
 
 @dataclass(frozen=True)
@@ -98,14 +115,7 @@ class Mailroom:
         override = os.environ.get("POKEBENCH_AGENT_MAIL_DIR")
         if override:
             return cls(Path(override))
-        common = subprocess.run(
-            ["git", "rev-parse", "--path-format=absolute", "--git-common-dir"],
-            cwd=cwd,
-            check=True,
-            capture_output=True,
-            text=True,
-        ).stdout.strip()
-        return cls(Path(common).resolve().parent / "runs" / "agent-mail")
+        return cls(repo_root(cwd) / "runs" / "agent-mail")
 
     @property
     def pipe(self) -> Path:
@@ -522,7 +532,11 @@ def read_entries(room: Mailroom) -> list[BoardEntry]:
         ):
             raise ValueError("unreadable landing board")
         when = parse_time(queued, "unreadable landing board")
-        entries.append(BoardEntry(who, branch, thread, when))
+        top = item.get("top_since")
+        if not (top is None or isinstance(top, str)):
+            raise ValueError("unreadable landing board")
+        top_since = None if top is None else parse_time(top, "unreadable landing board")
+        entries.append(BoardEntry(who, branch, thread, when, top_since))
     return entries
 
 
@@ -533,6 +547,7 @@ def write_entries(room: Mailroom, entries: list[BoardEntry]) -> None:
             "branch": e.branch,
             "codex_thread": e.codex_thread,
             "queued_at": e.queued_at.isoformat(),
+            "top_since": None if e.top_since is None else e.top_since.isoformat(),
         }
         for e in entries
     ]
@@ -561,6 +576,14 @@ def render_board(entries: list[BoardEntry]) -> str:
     return "\n".join(rows)
 
 
+def settle(entries: list[BoardEntry], now: datetime) -> list[BoardEntry]:
+    """Stamp when the first entry reached the top; nobody else holds a stamp."""
+    return [
+        replace(e, top_since=(e.top_since or now) if i == 0 else None)
+        for i, e in enumerate(entries)
+    ]
+
+
 def text_for(up: BoardEntry) -> str:
     return f"{up.who}: your turn to land {up.branch}"
 
@@ -573,11 +596,11 @@ def board_join(
         entries = read_entries(room)
         for number, entry in enumerate(entries, start=1):
             if entry.branch == branch:
-                entries[number - 1] = BoardEntry(who, branch, codex_thread, entry.queued_at)
-                write_entries(room, entries)
+                entries[number - 1] = replace(entry, who=who, codex_thread=codex_thread)
+                write_entries(room, settle(entries, now))
                 return number
         entries.append(BoardEntry(who, branch, codex_thread, now))
-        write_entries(room, entries)
+        write_entries(room, settle(entries, now))
         return len(entries)
 
 
@@ -630,7 +653,7 @@ def board_done(room: Mailroom, *, branch: str, now: datetime, run: Run) -> list[
     """
     with room.locked():
         before = read_entries(room)
-        after = [e for e in before if e.branch != branch]
+        after = settle([e for e in before if e.branch != branch], now)
         if len(after) == len(before):
             raise ValueError(f"{branch} is not on the landing board")
         write_entries(room, after)
@@ -650,9 +673,115 @@ def board_move(
         target = next((i for i, e in enumerate(rest) if e.branch == before_branch), None)
         if target is None:
             raise ValueError(f"{before_branch} is not on the landing board")
-        after = rest[:target] + [mover] + rest[target:]
+        after = settle(rest[:target] + [mover] + rest[target:], now)
         write_entries(room, after)
         return notify_moves(room, before, after, now=now, run=run)
+
+
+LastCommit = Callable[[str], datetime | None]
+
+
+def slot_timeout() -> timedelta:
+    minutes = float(os.environ.get("POKEBENCH_SLOT_TIMEOUT_MINUTES", SLOT_TIMEOUT_MINUTES))
+    return timedelta(minutes=minutes)
+
+
+def git_commit_times(repo: Path) -> LastCommit:
+    """Read a branch's last commit time from git; None when the branch does not exist."""
+
+    def last_commit(branch: str) -> datetime | None:
+        result = subprocess.run(
+            ["git", "-C", str(repo), "log", "-1", "--format=%ct", f"refs/heads/{branch}", "--"],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        if result.returncode != 0 or not result.stdout.strip():
+            return None
+        return datetime.fromtimestamp(int(result.stdout.strip()), tz=UTC)
+
+    return last_commit
+
+
+def last_activity(entry: BoardEntry, last_commit: LastCommit) -> datetime:
+    marks = [entry.top_since or entry.queued_at]
+    commit = last_commit(entry.branch)
+    if commit is not None:
+        marks.append(commit)
+    return max(marks)
+
+
+def next_deadline(room: Mailroom, *, last_commit: LastCommit) -> datetime | None:
+    """When the current holder's slot expires; None if no one waits behind it."""
+    entries = read_board(room)
+    if len(entries) < 2:
+        return None
+    return last_activity(entries[0], last_commit) + slot_timeout()
+
+
+def expire_idle_holder(
+    room: Mailroom, *, now: datetime, run: Run, last_commit: LastCommit
+) -> list[Notice]:
+    """Move an idle number 1 to the back when others wait, and tell everyone whose place changed."""
+    with room.locked():
+        before = read_entries(room)
+        if len(before) < 2:
+            return []
+        holder = before[0]
+        idle = now - last_activity(holder, last_commit)
+        if idle < slot_timeout():
+            return []
+        after = settle([*before[1:], replace(holder, top_since=None)], now)
+        write_entries(room, after)
+        notices = notify_moves(room, before, after, now=now, run=run)
+        why = (
+            f"{holder.who}: your landing slot for {holder.branch} expired after "
+            f"{int(idle.total_seconds() // 60)} minutes with no commit or land-touch while others "
+            f"waited. You are now number {len(after)}. Run just land-touch --branch "
+            f"{holder.branch} while you hold the slot to keep it."
+        )
+        if holder.codex_thread is not None:
+            reach_codex(room, holder.codex_thread, why, sender="land-board", now=now, run=run)
+        else:
+            tell_claude(room.addressed(holder.branch), sender="land-board", text=why, now=now)
+        return notices
+
+
+def land_touch(room: Mailroom, *, branch: str, now: datetime) -> bool:
+    """Restart the idle clock for the number 1 holder; False if the branch is not number 1."""
+    with room.locked():
+        entries = read_entries(room)
+        place = next((i for i, e in enumerate(entries) if e.branch == branch), None)
+        if place is None:
+            raise ValueError(f"{branch} is not on the landing board")
+        if place != 0:
+            return False
+        entries[0] = replace(entries[0], top_since=now)
+        write_entries(room, entries)
+        return True
+
+
+def keep(
+    room: Mailroom,
+    *,
+    run: Run,
+    last_commit: LastCommit,
+    now: Callable[[], datetime],
+    sleep: Callable[[float], None],
+    rounds: int | None = None,
+) -> None:
+    """Sleep until the holder's deadline, then expire it if still idle. No model runs here."""
+    done = 0
+    while rounds is None or done < rounds:
+        deadline = next_deadline(room, last_commit=last_commit)
+        if deadline is None:
+            sleep(KEEPER_IDLE_SECONDS)
+        else:
+            wait = (deadline - now()).total_seconds()
+            if wait > 0:
+                sleep(wait)
+            expire_idle_holder(room, now=now(), run=run, last_commit=last_commit)
+        done += 1
 
 
 def report(notices: list[Notice]) -> int:
@@ -707,6 +836,12 @@ def main(argv: Sequence[str] | None = None, *, run: Run = run_command) -> int:
     sessions = commands.add_parser("codex-sessions", help="list recent Codex sessions")
     sessions.add_argument("--limit", type=int, default=10)
     commands.add_parser("land-board", help="show who is landing and who is waiting")
+    touch = commands.add_parser("land-touch", help="number 1: say you are still landing")
+    touch.add_argument("--branch", required=True)
+    keeper = commands.add_parser(
+        "land-keeper", help="expire an idle number 1 at its deadline (no model; run detached)"
+    )
+    keeper.add_argument("--rounds", type=int, default=None, help=argparse.SUPPRESS)
     join = commands.add_parser("land-join", help="join the landing board")
     join.add_argument("--who", required=True)
     join.add_argument("--branch", required=True)
@@ -787,9 +922,30 @@ def main(argv: Sequence[str] | None = None, *, run: Run = run_command) -> int:
         for session in codex_sessions(session_index(), limit=args.limit):
             print(format_session(session))
         return 0
+    board_commands = {"land-board", "land-join", "land-done", "land-move", "land-touch"}
+    commits = git_commit_times(repo_root(Path.cwd()))
+    expired = 0
+    if args.command in board_commands:
+        expired = report(expire_idle_holder(room, now=now, run=run, last_commit=commits))
+    if args.command == "land-keeper":
+        keep(
+            room,
+            run=run,
+            last_commit=commits,
+            now=lambda: datetime.now(UTC),
+            sleep=time.sleep,
+            rounds=args.rounds,
+        )
+        return 0
+    if args.command == "land-touch":
+        if land_touch(room, branch=args.branch, now=now):
+            print("You are still landing; the slot's idle clock restarted.")
+        else:
+            print("You are not number 1, so there is no slot to keep.")
+        return expired
     if args.command == "land-board":
         print(render_board(read_board(room)))
-        return 0
+        return expired
     if args.command == "land-join":
         position = board_join(
             room, who=args.who, branch=args.branch, codex_thread=args.codex_thread, now=now

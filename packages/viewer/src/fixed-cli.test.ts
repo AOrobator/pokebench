@@ -377,11 +377,12 @@ describe("exploratory current-main feature recipe", () => {
     expect(effective?.phases).toEqual([{id:"dry-run",perArm:1,maxWallMs:14_400_000,primary:false,start:MENU_START}]);
     expect(effective?.plan.map(s=>s.arm).sort()).toEqual(["bundle","control"]);
     expect(JSON.parse(readFileSync(join(f.runsRoot,"experiments/glm-four-hour-dryrun-cook/feature-recipe.json"),"utf8"))).toMatchObject({id:"bundle-v-control",commit:f.deps.head(),definition:effective});
-    const futureBase=controlBaseText(undefined,{sampling:{thinkingLevel:"high",maxTokens:1024},limits:{maxTurns:100,failureLimit:3}});
+    const futureBase=controlBaseText(undefined,{target:"RIVAL_MET",sampling:{thinkingLevel:"high",maxTokens:1024},limits:{maxTurns:100,failureLimit:3}});
     const futurePath="runs/future-control-base.json";writeFileSync(join(f.root,futurePath),futureBase);
-    const future={...donor,controlBase:{...donor.controlBase,path:futurePath,sha256:createHash("sha256").update(futureBase).digest("hex")},base:{...donor.base,sampling:{thinkingLevel:"high",maxTokens:1024},limits:{...donor.base.limits,maxTurns:100}}};
+    const future={...donor,controlBase:{...donor.controlBase,path:futurePath,sha256:createHash("sha256").update(futureBase).digest("hex")},base:{...donor.base,target:"RIVAL_MET",sampling:{thinkingLevel:"high",maxTokens:1024},limits:{...donor.base.limits,maxTurns:100}}};
     writeFileSync(f.path,JSON.stringify(future));
     expect(await main(["dry-run","glm-four-hour","--phase","cook","--wall-ms","14400000","--feature-recipe","bundle-v-control"],f.deps)).toBe(1);
+    expect(f.err.at(-1)).toContain("base target");
     expect(f.err.at(-1)).toContain("base sampling differs from the control base");
     expect(f.err.at(-1)).toContain("base limits.maxTurns");expect(f.runs).toHaveLength(1);
 

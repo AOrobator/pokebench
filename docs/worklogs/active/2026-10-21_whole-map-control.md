@@ -21,6 +21,6 @@ Evidence: overnight run analysis, runs/reports/run-analysis/2026-10-21_overnight
 - [x] Definition and control-base check (fixed-design `definitionProblems` + `controlBaseProblems`) on this branch: none
 - [x] Control arm equals fd95's recorded features except the heal gate
 - [x] `just test`, `just lint`: TS 3292 + 1609 passed, Python 3647 passed, lint clean (after syncing main d00cded5)
-- [ ] `just fixed-run check whole-map-pair-2h` on main after the merge
-- [ ] Claude and Grok review LGTM on the frozen packet
-- [ ] Merge SHA and the loop round that first runs it
+- [x] `just fixed-run check whole-map-pair-2h` on main after the merge: definition sha256 1f30902b…, control base whole-map-bundle-fd95 (c66c2eb4…) matches
+- [x] Claude (subagent), Grok (cursor-grok-4.5-high) and Codex (gpt-5.6-sol) each VERDICT: LGTM on frozen packet d00cded5b..607954b29 (diff sha256 2ee1c85c…)
+- [x] Landed fast-forward: main = 607954b29 (11:12 AM New York). Loop round 3 launched at 11:07 AM on d00cded5b (old definition) and runs two pairs to about 3:08 PM; round 4, about 3:08 PM, is the first on the new control.

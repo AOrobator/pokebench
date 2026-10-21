@@ -70,8 +70,8 @@ block = f'<style id="pb-emerald">\n{css}</style>\n'
 old = re.compile(r'<style id="pb-emerald">.*?</style>\n?', re.S)
 wrap = "<main data-pb-emerald>\n"
 style = re.compile(r"(<style\b[^>]*>)(.*?)(</style>)", re.S | re.I)
-dark = re.compile(r"\(\s*prefers-color-scheme\s*:\s*dark\s*\)")
-light = re.compile(r"\(\s*prefers-color-scheme\s*:\s*light\s*\)")
+dark = re.compile(r"\(\s*prefers-color-scheme\s*:\s*dark\s*\)", re.I)
+light = re.compile(r"\(\s*prefers-color-scheme\s*:\s*light\s*\)", re.I)
 
 
 def pin_light(match: re.Match[str]) -> str:

@@ -196,3 +196,20 @@ def test_v3_respects_the_existing_destination_field_gate_owner(monkeypatch):
     assert "different terrain section" in woods.detail
     assert seen[(24, 11)] is not None
     assert seen[(24, 11)].walls == frozenset({(19, 10), (19, 11)})
+
+
+def test_warp_landing_does_not_cross_barred_edges_or_height_or_gate():
+    from pokebench_env.field_moves import FloodRules
+
+    # The only floor neighbor is not proof that emergence onto it is possible.
+    warp = ((1, 0, 0, 0, 0),)
+    for blocks in (
+        ((0, 0, 3, 0x30), (0, 0, 3, 0)),  # neighbor blocks entering from east
+        ((0, 0, 3, 0), (0, 0, 3, 0x31)),  # warp blocks leaving west
+        ((0, 0, 3, 0), (0, 0, 5, 0)),  # incompatible height
+    ):
+        assert build_sections(RomMap(2, 1, blocks, warp, ())).landing((1, 0)) is None
+    rom = RomMap(2, 1, ((0, 0, 3, 0), (0, 0, 3, 0)), warp, ())
+    assert build_sections(rom, FloodRules(frozenset({(1, 0)}), {})).landing((1, 0)) is None
+    assert build_sections(rom, FloodRules(frozenset(), {(1, 0): (1, 0)})).landing((1, 0)) is None
+    assert build_sections(rom).landing((1, 0)) == (0, 0)

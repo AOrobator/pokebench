@@ -129,5 +129,15 @@ Bag: …</div></div>
 </figure>
 
 <h2>Status</h2>
-<p>Branch <code>claude/move-learn-switches</code>. Tests: <code>env/tests/env/test_move_learn.py</code> (the four exact lines above, absences, trade and unknown pairs, OFF byte parity per archive, state JSON unchanged, visible harness-bug line). Gates passing. Not yet reviewed or landed. Pending experiment <code>experiments/move-learn-question-v1.json</code>. On in the bundle arm of bundle-v-control, bundle-cook-1h and whole-map-cook-1h; off in control. No measured runs.</p>
-</main></body></html>
+<p>Menu-line correction: branch <code>codex/move-learn-menu-line</code>. Tests: <code>env/tests/env/test_move_learn.py</code> (the four exact lines above, absences, trade and unknown pairs, OFF byte parity per archive, state JSON unchanged, visible harness-bug line). Gates passing. Not yet reviewed or landed. Pending experiment <code>experiments/move-learn-question-v1.json</code>. On in the bundle arm of bundle-v-control, bundle-cook-1h and whole-map-cook-1h; off in control. No measured runs.</p>
+<h2>The Menu line agrees with the battle prompt</h2>
+<figure><svg viewBox="0 0 820 105" role="img" aria-label="Switch off reports no menu choice; switch on reports the verified move-learning choice">
+<rect x="5" y="5" width="350" height="85" rx="8" fill="var(--panel)" stroke="var(--fg)"/>
+<text x="20" y="30">OFF: previous Menu line</text><text x="20" y="60">No menu choice open</text>
+<text x="380" y="55">→</text>
+<rect x="420" y="5" width="390" height="85" rx="8" fill="var(--panel)" stroke="var(--fg)"/>
+<text x="435" y="30">ON: verified battle-script prompt</text><text x="435" y="60">Menu: learn_move; selected YES</text>
+</svg><figcaption>Recorded battle-delete-box archive: a YES/NO choice is open while the battle controller is busy.</figcaption></figure>
+<p>At battle move-learning YES/NO boxes, the Menu line also names the verified question phase and highlighted YES or NO. The battle controller may still be busy; its generic interface does not override the battle-script prompt. Source: BattleScript_AskToLearnMove. With this switch OFF, the previous Menu line is retained.</p>
+</main>
+</body></html>

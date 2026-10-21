@@ -161,3 +161,4 @@ The original ignored runs/explainers copies remain for existing links. Make futu
 - [Same target, no progress](same-target-no-progress-v1.html) — bundle-only guard: after the 4th navigate_to to one target that ended within 3 tiles of where the first began (battles in between included), one factual SUPERVISOR note says so, quoting the result lines; resets on a map change, story progress, the target reached or a 4-tile move.
 
 - [party-item-confirmation-v1](party-item-confirmation-v1.html): native party item message confirmation readiness.
+- [Story progress clock](story-progress-clock-v1.html) — bundle-only correctness fix: the measurement-only story steps (the rival battle starting, the send-off, ...) restart the stall briefing's drought clock and become the briefings' "Last story progress".

@@ -301,7 +301,7 @@ describe("people-id-cards-v1 rules",()=>{
 describe("people-id-cards-v1 registration",()=>{
  const OFF:FeatureSet=Object.fromEntries(SWITCHABLE_FEATURES.map(id=>[id,false])) as Record<(typeof SWITCHABLE_FEATURES)[number],boolean>;
  it("is an observation switch that needs the people ledger, last in the registry and harness feature list, and off unless asked for",()=>{
-  expect(SWITCHABLE_FEATURES.at(-67)).toBe("people-id-cards-v1");
+  expect(SWITCHABLE_FEATURES.at(-68)).toBe("people-id-cards-v1");
   const info=featureInfo("people-id-cards-v1");
   expect(info).toMatchObject({group:"observation",title:"PEOPLE ID CARDS",needs:"people-ledger-v1",switchable:true});
   expect(info.description).toContain(" Off: no cards, no row summaries, no prompt section and no event");

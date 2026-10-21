@@ -108,7 +108,7 @@ No new network surface, subprocesses or file paths. ROM read only through existi
 - [x] COMMIT GREEN: `feat(move-learn): move-learn-tool-v1 adds learn_move, which answers the move-learning prompts one checked press at a time and verifies the party's moves` (2af9cefca). Review deferred to one branch packet before landing (coordinator: max 2 rounds).
 
 **M6 — Explainers, experiments, landing**
-- [ ] One Emerald-themed explainer per switch (`just pages-theme`, `just pages-check` clean), linked from feature cards; 127.0.0.1:8791 links verified 200.
+- [x] One Emerald-themed explainer per switch (`just pages-theme`, `just pages-check` clean), linked from feature cards; 127.0.0.1:8791 links verified 200. `docs/explainers/{tool-prompt-docs-v1,field-ownership-feedback-v1,move-learn-loop-fingerprint-v1,stale-plan-fact-v1,post-battle-readout-v1,move-learn-tool-v1}.html`, listed in `docs/explainers/README.md`, mapped in `FEATURE_EXPLAINERS` (panels.ts) with card-link and byte-for-byte serving tests. Preview copies in main's `runs/mockups/<id>/<id>.html`, all six 200 at `http://127.0.0.1:8791/<id>/<id>.html`; desktop and 375 px phone checked in the browser pane (no page-level horizontal scroll; wide figures scroll inside their box). Gates: vitest agent 4355 / viewer 1658; lint clean; build ok (Python untouched).
 - [ ] `experiments/<id>.json` pending entries; readiness verdicts in `docs/experiments/readiness.md`.
 - [ ] ASK USER: arms. Default: all six ON in the next bundle; propose `field-ownership-feedback-v1` and `tool-prompt-docs-v1` in both arms (like `evolution-decision-v1`).
 - [ ] ASK USER: land. Then `just land-join`, sync, ff-only merge, `just land-done`, `just viewer-main`, report merge SHA.

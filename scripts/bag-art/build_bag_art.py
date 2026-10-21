@@ -1,11 +1,10 @@
-"""Build the viewer's BAG page art (item icons, bag pocket sprites) from pret/pokeemerald.
+"""Build the viewer's BAG page item icons from pret/pokeemerald.
 
 Usage: build_bag_art.py OUT_DIR [--pokeemerald DIR] [--rom FILE]
 
 Same rules as scripts/trainer-card/build_art.py, whose helpers this reuses: inputs default to
 $POKEEMERALD (else ~/dev/pokeemerald) and $POKEBENCH_ROM; every asset is checked against the ROM
-(gItemIconTable's pointers must decompress to the decomp's icon and palette, and the bag sheet and
-palette must be LZ77 blocks in the ROM); the output is ROM-derived and belongs under the
+(gItemIconTable's pointers must decompress to the decomp's icon and palette); the output is ROM-derived and belongs under the
 gitignored runs/ folder only, switched into place atomically once everything verified.
 """
 
@@ -40,9 +39,6 @@ from build_art import (  # noqa: E402
     rom_colors,
     tiles4bpp,
 )
-
-# Pocket -> frame of graphics/bag/bag_male.png (sBagSpriteAnimTable: 64 tiles per frame).
-POCKET_FRAMES = {"items": 1, "key_items": 2, "poke_balls": 3, "tm_hm": 4, "berries": 5}
 
 
 def item_ids(root: Path) -> dict[str, int]:
@@ -130,40 +126,15 @@ def build_items(rom: Rom, root: Path, out: Path) -> tuple[list[int], dict[str, o
     return wanted, proof
 
 
-def build_pockets(rom: Rom, gfx: Path, out: Path) -> dict[str, str]:
-    sheet = Image.open(gfx / "bag/bag_male.png")
-    if sheet.mode != "P" or sheet.size != (64, 384):
-        raise VerifyError(
-            f"bag: expected an indexed 64x384 sheet, got {sheet.mode} {sheet.size}"
-        )
-    tiles_off = rom.lz(tiles4bpp(sheet), "bag sheet (gBagMaleTiles)")
-    pal_off = rom.lz(gbapal(jasc(gfx / "bag/bag.pal")), "bag palette (gBagPalette)")
-    tiles, pal = rom.decompress(tiles_off), rom.decompress(pal_off)
-    assert tiles is not None and pal is not None
-    frame = 64 * 64 // 2
-    for pocket, n in POCKET_FRAMES.items():
-        img = render_tiles(tiles[n * frame : (n + 1) * frame], rom_colors(pal), 64, 64)
-        img.save(out / f"{pocket}.png")
-    return {
-        "pixels": f"{hexoff(tiles_off)} (LZ77)",
-        "palette": f"{hexoff(pal_off)} (LZ77)",
-    }
-
-
 def build(out: Path, root: Path, rom_path: Path) -> int:
     rom_bytes = rom_path.read_bytes()
     rom = Rom(rom_bytes)
-    for sub in ("items", "pockets"):
-        (out / sub).mkdir(parents=True)
+    (out / "items").mkdir(parents=True)
     items, item_proof = build_items(rom, root, out / "items")
     manifest = {
         "version": 1,
         "items": items,
-        "pockets": list(POCKET_FRAMES),
-        "proof": {
-            "items": item_proof,
-            "pockets": build_pockets(rom, root / "graphics", out / "pockets"),
-        },
+        "proof": {"items": item_proof},
         "source": {
             "pokeemerald": git_sha(root),
             "rom_sha1": hashlib.sha1(rom_bytes, usedforsecurity=False).hexdigest(),
@@ -208,10 +179,7 @@ def main(argv: list[str] | None = None) -> int:
             f"build_bag_art: FAILED, previous art left as it was: {e}", file=sys.stderr
         )
         return 1
-    print(
-        f"bag art -> {out}: {n_items} item icons, {len(POCKET_FRAMES)} pocket sprites; "
-        "all verified against ROM"
-    )
+    print(f"bag art -> {out}: {n_items} item icons; all verified against ROM")
     return 0
 
 

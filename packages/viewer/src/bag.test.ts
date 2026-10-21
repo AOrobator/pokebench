@@ -49,6 +49,19 @@ describe("BagLedger", () => {
     expect(ledger.latest?.bag.has(13)).toBe(false);
   });
 
+  it("drops the swap back when the player's bag only reappears after the tutorial", () => {
+    const log = new Log();
+    log.add(0, START);
+    log.add(1, state({ turn: 1, resources: resources([[4, 5, "poke_balls", "POKé BALL"]]) }));
+    log.add(2, state({ turn: 2, in_battle: true, party_owner: "tutorial", resources: resources([[13, 1, "items", "POTION"], [4, 1, "poke_balls", "POKé BALL"]]) }));
+    log.add(3, itemChange(3, 4, "POKé BALL", 1, 5));
+    log.add(4, itemChange(3, 13, "POTION", 1, 0));
+    log.add(5, state({ turn: 3, in_battle: false, party_owner: "player", resources: resources([[4, 5, "poke_balls", "POKé BALL"]]) }));
+    log.add(6, itemChange(4, 4, "POKé BALL", 5, 4));
+    log.add(7, state({ turn: 4, resources: resources([[4, 4, "poke_balls", "POKé BALL"]]) }));
+    expect(ledgerOf(log).changes.map(brief)).toEqual(["T4 POKé BALL 5→4 used"]);
+  });
+
   it("counts a ball thrown in an ordinary battle as used, whatever is left in the bag", () => {
     const log = new Log();
     log.add(0, START);

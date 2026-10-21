@@ -45,7 +45,7 @@ backfill-route103 +runs:
 trainer-card-art out="runs/sprites/trainer-card-v1":
     uv run --project env python scripts/trainer-card/build_art.py "$1"
 
-# BAG page art for the viewer (item icons, bag pocket sprites) from ~/dev/pokeemerald, every asset
+# BAG page item icons for the viewer from ~/dev/pokeemerald, every asset
 # verified against $POKEBENCH_ROM. ROM-derived: output stays under runs/.
 [positional-arguments]
 bag-art out="runs/sprites/bag-v1":

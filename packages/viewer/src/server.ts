@@ -42,8 +42,8 @@ const FRAME_NAME = /^\d{6}_\d+\.png$/;
 const FONT_NAME = /^(press-start-2p|inter|jetbrains-mono)\.woff2$/;
 // The trainer card art `just trainer-card-art` builds from the ROM into runs/sprites (never into git).
 const SPRITE_PATH = /^(manifest\.json|card\/(wide|mini|mini-ribbon)-(green|bronze|copper|silver|gold)\.png|trainers\/[a-z]+\.png|font\/glyphs\.(png|json)|icons\/[1-9][0-9]{0,2}\.png)$/;
-// The BAG page art `just bag-art` builds from the ROM into runs/sprites/bag-v1 (never into git).
-const BAG_SPRITE_PATH = /^(manifest\.json|items\/[1-9][0-9]{0,2}\.png|pockets\/(items|poke_balls|tm_hm|berries|key_items)\.png)$/;
+// The BAG page item icons `just bag-art` builds from the ROM into runs/sprites/bag-v1 (never into git).
+const BAG_SPRITE_PATH = /^(manifest\.json|items\/[1-9][0-9]{0,2}\.png)$/;
 const PNG_SIGNATURE = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
 const SCREEN_TIMEOUT_MS = 3_000;
 const FRAME_MAX_BYTES = 1024 * 1024;

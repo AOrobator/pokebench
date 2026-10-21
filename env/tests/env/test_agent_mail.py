@@ -614,3 +614,69 @@ def test_a_hung_command_times_out_instead_of_holding_the_board() -> None:
     start = time.monotonic()
     assert am.run_command(["sleep", "5"], timeout=0.2) == am.TIMED_OUT
     assert time.monotonic() - start < 3
+
+
+def listen_in_background(r: am.Mailroom) -> tuple[threading.Thread, list[list[am.Letter]]]:
+    ready = threading.Event()
+    got: list[list[am.Letter]] = []
+    listener = threading.Thread(target=lambda: got.append(am.wait_for_mail(r, ready=ready.set)))
+    listener.start()
+    assert ready.wait(5)
+    return listener, got
+
+
+def test_tell_codex_goes_to_a_listening_codex_coordinator(tmp_path: Path) -> None:
+    r = room(tmp_path)
+    runs = Runs()
+    coordinator = r.addressed(am.CODEX_COORDINATOR)
+    listener, got = listen_in_background(coordinator)
+    assert am.tell_codex(r, "A", "main moved", sender="claude", now=T, run=runs) == 0
+    listener.join(5)
+    assert runs.calls == []
+    assert got == [[am.Letter(T, "claude", "main moved", to_thread="A")]]
+    assert am.format_letter(got[0][0]) == "[10:27 AM] claude → thread A: main moved"
+
+
+def test_tell_codex_falls_back_to_codex_queue_and_saves_nothing(tmp_path: Path) -> None:
+    r = room(tmp_path)
+    runs = Runs(code=5)
+    assert am.tell_codex(r, "A", "main moved", sender="claude", now=T, run=runs) == 5
+    assert runs.calls == [["codex", "queue", "--thread", "A", "--message", "main moved"]]
+    assert am.collect(r.addressed(am.CODEX_COORDINATOR)) == []
+
+
+def test_letters_round_trip_their_codex_thread(tmp_path: Path) -> None:
+    letter = am.Letter(T, "claude", "hi", to_thread="A")
+    assert am.parse_letter(am.letter_json(letter)) == letter
+    plain = am.Letter(T, "claude", "hi")
+    assert "to_thread" not in am.letter_json(plain)
+    assert am.parse_letter(am.letter_json(plain)) == plain
+    with pytest.raises(ValueError, match="unreadable letter"):
+        am.parse_letter('{"sent_at": "2026-10-21T14:27:00+00:00", "sender": "c", "text": "x", "to_thread": 3}')
+
+
+def test_board_turn_notices_reach_codex_through_the_coordinator(tmp_path: Path) -> None:
+    r = room(tmp_path)
+    runs = Runs()
+    am.board_join(r, who="claude a", branch="claude/a", codex_thread=None, now=T)
+    am.board_join(r, who="codex b", branch="codex/b", codex_thread="B", now=T)
+    listener, got = listen_in_background(r.addressed(am.CODEX_COORDINATOR))
+    notices = am.board_done(r, branch="claude/a", now=T, run=runs)
+    listener.join(5)
+    assert [(n.entry.branch, n.exit_code) for n in notices] == [("codex/b", 0)]
+    assert runs.calls == []
+    assert got == [[am.Letter(T, "land-board", "codex b: your turn to land codex/b", to_thread="B")]]
+
+
+def test_tell_codex_cli_reports_the_route(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.setenv("POKEBENCH_AGENT_MAIL_DIR", str(tmp_path / "mail"))
+    r = am.Mailroom(tmp_path / "mail")
+    runs = Runs()
+    listener, _ = listen_in_background(r.addressed(am.CODEX_COORDINATOR))
+    assert am.main(["tell-codex", "--from", "claude x", "A", "hi"], run=runs) == 0
+    listener.join(5)
+    assert "codex coordinator" in capsys.readouterr().out
+    assert am.main(["tell-codex", "A", "hi"], run=runs) == 0
+    assert runs.calls == [["codex", "queue", "--thread", "A", "--message", "hi"]]

@@ -11,8 +11,8 @@ All state lives in the main checkout's `runs/agent-mail/` (gitignored), so it is
 
 ## Before you land on main
 
-1. Find your session name: it is your thread's title, also listed by `just codex-sessions`.
-2. `just land-join --who "codex: <session name>" --branch <your branch> --codex-thread "<session name>"`. Joining again with the same branch keeps your place and updates `--who` and `--codex-thread`.
+1. Read this chat's actual session ID from `CODEX_THREAD_ID`. If it is unavailable, use `just codex-sessions` to identify this chat's exact ID. Never substitute the chat title, branch name, another chat's ID or an invented value.
+2. Always include the nonempty ID when joining: `just land-join --who "codex: <session name>" --branch <your branch> --codex-thread "$CODEX_THREAD_ID"` (or the exact ID verified in step 1). The title is only a human-readable label in `--who`; `--codex-thread` must be this chat's ID so turn notifications reach it directly. Joining again with the same branch keeps your place and updates `--who` and `--codex-thread`. Verify the board entry records that exact ID; repair a missing or incorrect ID by rejoining, never by editing the board.
 3. If it prints "You are landing now", land following `.claude/skills/execute-worklog/SKILL.md`.
 4. Otherwise stop and tell the user you are queued at that number. When the slot reaches you, a message arrives in this session ending "your turn to land <branch>". Then merge current `main` into your branch, rerun the gates, and land; if your branch's own diff changed, that needs a new review round first, as `execute-worklog` says.
 5. After landing and the evidence commit, run `just land-done --branch <your branch>`. That hands the slot to whoever is next.

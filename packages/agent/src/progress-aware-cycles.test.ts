@@ -46,6 +46,11 @@ describe("bounded gate-directed healing trip",()=>{
   const r=rig();r.gate();r.gate("confirmed");r.result(B,1);expect(r.tracker.hold()).toBeNull();
   const b=rig();b.gate();b.emit({type:"state",...IN_GAME,in_battle:true});b.result(B,1);expect(b.tracker.hold()).toBeNull();
  });
+ it("does not accept diagnosed HP as proof of healing",()=>{
+  const r=rig();r.gate();r.result(B,1);r.result(C,2);
+  r.emit({type:"state",...IN_GAME,party_owner:"player",map_id:C,position:{x:2,y:0},party:[{...IN_GAME.party[0],hp:20,max_hp:20,diagnostic:"unverified party"}]});
+  r.result(B,3,true);expect(r.tracker.hold()).toBeNull();
+ });
  it("does not infer a trip from low HP or from an old gate without routes",()=>{
   const r=rig();r.result(B,1);expect(r.tracker.hold()).toBeNull();
   const g=r.gate();if(g.type!=="story_battle_heal_gate")throw new Error("gate");

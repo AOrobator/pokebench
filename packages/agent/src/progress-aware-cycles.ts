@@ -8,7 +8,7 @@ export const HEAL_TRIP_CALL_LIMIT=48;
 export const HEAL_TRIP_IDLE_LIMIT=4;
 const key=(map:readonly number[]):string=>map.join("/");
 const same=(a:readonly number[]|null,b:readonly number[]):boolean=>a!==null&&key(a)===key(b);
-const full=(s:GameStateSnapshot):boolean=>s.party_owner==="player"&&s.party.some(p=>p.is_egg!==true)&&s.party.every(p=>p.is_egg===true||p.hp!=null&&p.max_hp!=null&&p.hp===p.max_hp&&p.max_hp>0);
+const full=(s:GameStateSnapshot):boolean=>s.party_owner==="player"&&s.party.some(p=>p.is_egg!==true)&&s.party.every(p=>p.is_egg===true||p.hp!=null&&p.max_hp!=null&&p.hp===p.max_hp&&p.max_hp>0&&p.diagnostic==null);
 export function healRoutes(places:readonly Place[],origin:MapId,destinations:readonly MapId[]):HealRoute[]{
  const table=new Map(places.map(p=>[key(p.map_id),p]));
  const path=(from:MapId,to:MapId):MapId[]|null=>{

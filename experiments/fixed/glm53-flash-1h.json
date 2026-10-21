@@ -184,7 +184,8 @@
    "same-target-no-progress-v1": false,
    "field-move-gates-v1": false,
    "story-progress-clock-v1": false,
-   "yes-no-answer-readout-v1": false
+   "yes-no-answer-readout-v1": false,
+   "story-battle-heal-first-v1": true
   }
  },
  "switches": [
@@ -274,7 +275,8 @@
   "exit-reachability-v1",
   "duplicate-turn-collapse-v1",
   "evolution-decision-v1",
-  "counter-talk-v1"
+  "counter-talk-v1",
+  "story-battle-heal-first-v1"
  ],
  "phases": [
   {

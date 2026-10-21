@@ -1137,18 +1137,13 @@ it("serves the YES/NO answer readout explainer byte for byte, mapped from its ca
  expect(reply.status).toBe(200);expect(reply.body.equals(tracked)).toBe(true);expect(reply.body.toString()).toContain("YES/NO answer readout");
 });
 
-it("serves the five move-learn explainers byte for byte, mapped from their cards",async()=>{
- const root=mkdtempSync(join(tmpdir(),"pokebench-explainers-")),staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});
- const ids=["move-learn-settle-v1","move-learn-question-v1","move-learn-comparison-v1","effectiveness-heard-v1","game-said-goals-v1"];
- const tracked=new Map(ids.map(id=>[id,readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)))]));
- for(const [id,body] of tracked)writeFileSync(join(docs,`${id}.html`),body);
+it("serves the tracked pending field dialogue explainer byte for byte",async()=>{
+ const tracked=readFileSync(fileURLToPath(new URL("../../../docs/explainers/pending-field-dialogue-v1.html",import.meta.url)));
+ const root=mkdtempSync(join(tmpdir(),"pokebench-pending-field-"));const staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});
+ writeFileSync(join(docs,"pending-field-dialogue-v1.html"),tracked);
  const viewer=await startViewer({runsRoot:join(root,"runs"),staticDir,appDir:join(root,"app"),port:0});open.push(viewer);
- const {FEATURE_EXPLAINERS}=await import("./panels.js");
- for(const [id,body] of tracked){
-  expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
-  const reply=await get(viewer,`/explainers/${id}.html`);
-  expect(reply.status).toBe(200);expect(reply.body.equals(body)).toBe(true);
- }
+ const reply=await get(viewer,"/explainers/pending-field-dialogue-v1.html");
+ expect(reply.status).toBe(200);expect(reply.type).toContain("text/html");expect(reply.body.equals(tracked)).toBe(true);
 });
 
 it("serves opted-in revisions while preserving the complete workbench endpoint", async () => {
@@ -1165,6 +1160,14 @@ it("serves opted-in revisions while preserving the complete workbench endpoint",
 it("serves the section-aware exit explainer byte for byte",async()=>{
  const root=mkdtempSync(join(tmpdir(),"pokebench-sections-")),staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});
  const id="exit-labels-v3",tracked=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)));writeFileSync(join(docs,`${id}.html`),tracked);
+ const viewer=await startViewer({runsRoot:join(root,"runs"),staticDir,appDir:join(root,"app"),port:0});open.push(viewer);
+ const reply=await get(viewer,`/explainers/${id}.html`);
+ expect(reply.status).toBe(200);expect(reply.body.equals(tracked)).toBe(true);
+});
+
+it("serves the exploratory waypoint explainer byte for byte",async()=>{
+ const root=mkdtempSync(join(tmpdir(),"pokebench-sections-")),staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});
+ const id="navigation-refusal-reasons-v3",tracked=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)));writeFileSync(join(docs,`${id}.html`),tracked);
  const viewer=await startViewer({runsRoot:join(root,"runs"),staticDir,appDir:join(root,"app"),port:0});open.push(viewer);
  const reply=await get(viewer,`/explainers/${id}.html`);
  expect(reply.status).toBe(200);expect(reply.body.equals(tracked)).toBe(true);

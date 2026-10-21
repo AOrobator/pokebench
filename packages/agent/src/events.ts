@@ -314,6 +314,24 @@ const StoryBattleHealGateEvent = event("story_battle_heal_gate", {
   text: Type.Union([Type.String({ minLength: 1 }), Type.Null()]),
 });
 
+// story-battle-heal-first-v1: the first line a game-tool result gained, with the facts it states.
+const HealFirstPoint = Type.Object({ x: Type.Integer(), y: Type.Integer() }, closed);
+const HealFirstLineEvent = event("heal_first_line", {
+  tool: Type.String({ minLength: 1 }), tool_call_id: Type.String({ minLength: 1 }),
+  kind: Type.Enum(["rival", "gym_leader", "aqua_grunt"] as const), opponent: Type.String({ minLength: 1 }),
+  map_id: Type.Tuple([Type.Integer(), Type.Integer()]),
+  party: Type.Array(Type.Object({ species: Type.String({ minLength: 1 }), hp: NonNegativeInt, max_hp: Type.Integer({ minimum: 1 }) }, closed), { minItems: 1, maxItems: 6 }),
+  heard: Type.Union([Type.Object({
+    turn: NonNegativeInt, speaker: Type.String({ minLength: 1 }), person: Type.Boolean(), place: Type.Union([Type.String(), Type.Null()]),
+    map_id: Type.Union([Type.Tuple([Type.Integer(), Type.Integer()]), Type.Null()]), text: Type.String({ minLength: 1 }),
+  }, closed), Type.Null()]),
+  exit: Type.Union([Type.Object({
+    to: Type.String({ minLength: 1 }), map_id: Type.Tuple([Type.Integer(), Type.Integer()]),
+    direction: Type.Union([Type.Enum(["NORTH", "SOUTH", "EAST", "WEST"] as const), Type.Null()]), tiles: Type.Array(HealFirstPoint, { maxItems: 64 }),
+  }, closed), Type.Null()]),
+  text: Type.String({ minLength: 1 }),
+});
+
 // low-hp-trainer-warning-v2: the story-battle SUPERVISOR paragraph a game-tool result gained, with the facts it states.
 const StoryBattleWarningEvent = event("story_battle_warning", {
   tool: Type.String({ minLength: 1 }), kind: Type.Enum(["rival", "aqua_grunt", "gym_leader"]), opponent: Type.String({ minLength: 1 }),
@@ -775,6 +793,7 @@ export const RunEventSchema = Type.Union([
   UnfinishedActivityEvent,
   TrainerSightCheckEvent,
   StoryBattleHealGateEvent,
+  HealFirstLineEvent,
   AutoTalk,
   StoryBattleWarningEvent,
   HealBeforeTrainersWarningEvent,

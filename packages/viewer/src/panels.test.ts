@@ -1413,3 +1413,18 @@ it("links each new navigation switch card to its exact tracked explainer without
   expect(card.textContent).toContain("NOT RECORDED");
  }
 });
+
+it("links exploratory waypoint guidance from its exact feature card",()=>{
+ const id="navigation-refusal-reasons-v3";
+ expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
+ const log=new Log();log.add(0,{...START,harness_features:["ram-state-v1",id]});
+ const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
+ const card=doc.querySelector(`[data-feature="${id}"]`);expect(card?.querySelector("a")?.getAttribute("href")).toBe(`/explainers/${id}.html`);expect(card?.textContent).toContain("ON");
+});
+
+it("links the pending field dialogue feature card to its local explainer",()=>{
+ const log=new Log();log.add(0,{...START,harness_features:["pending-field-dialogue-v1"]});
+ const html=harnessConfig(view(log),FEATURES);
+ expect(html).toContain('/explainers/pending-field-dialogue-v1.html');
+ expect(html).toContain('PENDING FIELD DIALOGUE');
+});

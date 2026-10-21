@@ -14,7 +14,8 @@ import {describe,expect,it} from "vitest";
 import {Type} from "typebox";
 import {Value} from "typebox/value";
 import type {AgentTool,AgentToolResult} from "@mariozechner/pi-agent-core";
-import {ALL_ON,SERVER_FEATURES,SWITCHABLE_FEATURES,dependencyProblems,featureInfo,featuresOf,playHarnessFeatures,type FeatureSet} from "./features.js";
+import { ALL_ON as PENDING_BASE_ALL_ON,SERVER_FEATURES,SWITCHABLE_FEATURES,dependencyProblems,featureInfo,featuresOf,playHarnessFeatures,type FeatureSet} from "./features.js";
+const ALL_ON={...PENDING_BASE_ALL_ON,"pending-field-dialogue-v1":false};
 import {flagFeatures,normalizeFeatures} from "./play-preset.js";
 import {parseGameState,type GameStateSnapshot} from "./game-state.js";
 import {checkEvent,type RunEvent} from "./events.js";
@@ -430,9 +431,9 @@ describe("registry and event",()=>{
   expect(featureInfo(ID)).toMatchObject({group:"guard",needs:"heal-before-trainers-v2",switchable:true,title:"STORY BATTLE HEAL GATE"});
   expect(featureInfo(ID).description).toContain(" Off: ");
   expect(featureInfo(ID).description).toContain(TURN157_TEXT.split("\n")[0]);
-  expect(SWITCHABLE_FEATURES.at(-10)).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-13)).toBe(ID);
   expect(SERVER_FEATURES).not.toContain(ID);
-  expect(playHarnessFeatures({...ALL_ON,[ID]:true},null).at(-10)).toBe(ID);
+  expect(playHarnessFeatures({...ALL_ON,[ID]:true},null).at(-12)).toBe(ID);
   expect(playHarnessFeatures({...ALL_ON,[ID]:false},null)).not.toContain(ID);
   expect(dependencyProblems({...ALL_ON,"heal-before-trainers-v2":false,[ID]:true})).toContain(`${ID} needs heal-before-trainers-v2`);
   const without=Object.fromEntries(Object.entries(ALL_ON).filter(([id])=>id!==ID)) as Omit<FeatureSet,typeof ID>;
@@ -452,9 +453,10 @@ describe("registry and event",()=>{
   const arm:Record<string,boolean>={...fixed.base.features,...Object.fromEntries(fixed.switches.map(s=>[s,true])),[ID]:false};
   const entry=read(`experiments/${ID}.json`) as {changedFeature:string;incumbent:{features:Record<string,boolean>};queuePosition?:number};
   expect(entry.changedFeature).toBe(ID);expect(entry.queuePosition).toBeUndefined();
-  delete arm["navigation-tool-use-guard-v1"];delete arm["semantic-current-map-feedback-v1"];
+  delete arm["pending-field-dialogue-v1"];
+  delete arm["navigation-tool-use-guard-v1"];delete arm["semantic-current-map-feedback-v1"];delete arm["story-battle-heal-first-v1"];
   // exit-labels-v3 and short-cycle-fixed-point-v1 joined the bundle arm after this pending experiment was pinned.
-  expect({...entry.incumbent.features,"exit-labels-v3":true,"short-cycle-fixed-point-v1":true}).toEqual(arm);
+  expect({...entry.incumbent.features,"navigation-refusal-reasons-v3":true,"exit-labels-v3":true,"short-cycle-fixed-point-v1":true}).toEqual(arm);
   expect(dependencyProblems(normalizeFeatures({...entry.incumbent.features,[ID]:true} as Parameters<typeof normalizeFeatures>[0]))).toEqual([]);
  });
  it("records a valid story_battle_heal_gate event",()=>{

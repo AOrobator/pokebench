@@ -364,7 +364,8 @@ export function withDialogueAutoAdvance(tools:readonly AgentTool[],features:Feat
  const truth=features["navigation-truth-v1"];
  const present=features["script-line-presence-v1"]?(s:GameStateSnapshot)=>onScreen(s,features["character-presence-v1"]):null;
  const ready=features["battle-decision-ready-v1"];
- const autoPress=(id:string,carry:BlackoutCarry)=>(signal?:AbortSignal)=>(ready?full.gate(signal):Promise.resolve()).then(()=>press.execute(id,{buttons:["B"]},signal).then(result=>{carry.remember(stateOf(result));return result;}));
+ const pendingField=features["pending-field-dialogue-v1"];
+ const autoPress=(id:string,carry:BlackoutCarry)=>(signal?:AbortSignal)=>((ready||pendingField)?full.gate(signal):Promise.resolve()).then(()=>press.execute(id,{buttons:["B"]},signal).then(result=>{carry.remember(stateOf(result));return result;}));
  // battle-text-auto-advance-v1: the server's battle wait and page journal; the journal cursor carries across calls.
  const source=features["battle-text-auto-advance-v1"]?battleTextSource(full.state):null;
  const battleSource=ready&&source!==null?{...source,battleWait:async(signal?:AbortSignal)=>{await full.gate(signal);return source.battleWait(signal);}}:source;
@@ -457,25 +458,31 @@ export function withDialogueAutoAdvance(tools:readonly AgentTool[],features:Feat
   return {result,state:done.state,stop:outcome.stop,summary};
  };
  const out=tools.map(tool=>{
-  if(ready&&tool===observe)return {...tool,description:`${tool.description} Pending ordinary battle text advances to the next decision; all messages are listed.`,execute:async(id:string,params:unknown,signal?:AbortSignal,update?:Parameters<AgentTool["execute"]>[3])=>{
+  if((ready||pendingField)&&tool===observe)return {...tool,description:`${tool.description}${ready?" Pending ordinary battle text advances to the next decision; all messages are listed.":""}${pendingField?" Pending ordinary field dialogue also advances to the next decision; all pages are listed.":""}`,execute:async(id:string,params:unknown,signal?:AbortSignal,update?:Parameters<AgentTool["execute"]>[3])=>{
    const seen=await tool.execute(id,params,signal,update);
    const state=stateOf(seen);
-   return battleEngaged(state)?(await settle(id,state,signal)).result:seen;
+   return ((ready&&battleEngaged(state))||(pendingField&&dialogueEngaged(state)))?(await settle(id,state,signal)).result:seen;
   }};
   if(tool===press)return wrappedPress;
   // battle-move-tool-v1: a battle_action result hands the turn's battle text over the way navigate_to's does.
-  const battleAction=tool.name==="battle_action"&&battleSource!==null;
+  const battleAction=tool.name==="battle_action"&&(battleSource!==null||pendingField);
   // semantic-navigation-v2: a semantic walk's activation hands its dialogue over the way navigate_to's does.
   const semanticWalk=semanticV2&&(tool.name==="navigate_to_target"||tool.name==="explore_map");
   if(tool.name!=="navigate_to"&&!battleAction&&!semanticWalk)return tool;
   const name=battleAction?"battle_action":semanticWalk?tool.name as "navigate_to_target"|"explore_map":"navigate_to";
-  return {...tool,description:battleAction?`${tool.description}${ready?" Before validating an action, pending ordinary battle text advances to a decision. Those automatic B presses are listed separately. If another choice or a bound is reached, the requested action is not executed.":""} If the battle then runs its own text, the text advances automatically to the next decision point and its pages are listed.`:`${tool.description} If it ends in dialogue${battleSource===null?"":" or a battle"}, the ${battleSource===null?"dialogue advances":"text advances"} automatically to the next decision point and its pages are listed.`,execute:async(id:string,params:unknown,signal?:AbortSignal,update?:Parameters<AgentTool["execute"]>[3])=>{
+  return {...tool,description:battleAction?`${tool.description}${pendingField?" Pending ordinary field dialogue advances first; the queued action is not executed, so choose again from the returned state.":""}${ready?" Before validating an action, pending ordinary battle text advances to a decision. Those automatic B presses are listed separately. If another choice or a bound is reached, the requested action is not executed.":""}${battleSource===null?"":" If the battle then runs its own text, the text advances automatically to the next decision point and its pages are listed."}`:`${tool.description} If it ends in dialogue${battleSource===null?"":" or a battle"}, the ${battleSource===null?"dialogue advances":"text advances"} automatically to the next decision point and its pages are listed.`,execute:async(id:string,params:unknown,signal?:AbortSignal,update?:Parameters<AgentTool["execute"]>[3])=>{
    const began=full.clock.now();
    const carry=new BlackoutCarry();
    let preflight:readonly TextContent[]|null=null;
-   if(ready&&battleAction){
+   if((ready||pendingField)&&battleAction){
     const before=await full.state.read(signal);
-    if(battleEngaged(before)){
+    // A field message may appear after navigation returns. Its A/B wait belongs to TextPrinterWait,
+    // not the battle menu; return the new boundary without applying a stale queued battle choice.
+    if(pendingField&&dialogueEngaged(before)){
+     const settled=await settle(id,before,signal,"battle_action");
+     return {content:[{type:"text",text:"Battle action: requested action not executed; inspect the decision reached after advancing field dialogue."},...settled.result.content],details:{state:settled.state,battle_action:{refused:true}}};
+    }
+    if(ready&&battleEngaged(before)){
      const settled=await settle(id,before,signal,"battle_action");preflight=settled.summary;carry.remember(settled.state);
      const inputs=settled.state.battle?.player_inputs?.filter(i=>i.ready)??[];
      if(settled.stop!=="battle_input"||!settled.state.in_battle||settled.state.battle?.text_phase!=="input"||inputs.length!==1||!inputs.every(i=>i.phase==="action"||i.phase==="move"))return {

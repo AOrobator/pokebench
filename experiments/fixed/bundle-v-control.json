@@ -191,6 +191,9 @@
    "navigation-tool-use-guard-v1": false,
    "semantic-current-map-feedback-v1": false,
    "short-cycle-fixed-point-v1": false,
+   "navigation-refusal-reasons-v3": false,
+   "story-battle-heal-first-v1": true,
+   "pending-field-dialogue-v1": false,
    "move-learn-settle-v1": false,
    "move-learn-question-v1": false,
    "move-learn-comparison-v1": false,
@@ -257,6 +260,8 @@
   "navigation-tool-use-guard-v1",
   "semantic-current-map-feedback-v1",
   "short-cycle-fixed-point-v1",
+  "navigation-refusal-reasons-v3",
+  "pending-field-dialogue-v1",
   "move-learn-settle-v1",
   "move-learn-question-v1",
   "move-learn-comparison-v1",
@@ -295,7 +300,8 @@
   "exit-reachability-v1",
   "duplicate-turn-collapse-v1",
   "evolution-decision-v1",
-  "counter-talk-v1"
+  "counter-talk-v1",
+  "story-battle-heal-first-v1"
  ],
  "phases": [
   {

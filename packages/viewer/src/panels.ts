@@ -241,6 +241,7 @@ export function eventText(event: RunEvent, view?: RunView): string | null {
     }
     case "auto_talk":return `Loop breaker stage 3 auto-talk (${event.trigger==="no_tool_call"?"replies with no tool call":"fixed point"}, ${String(event.repeats)} in a row) · ${event.outcome==="talked"?"talked to":event.outcome==="unreachable"?"could not reach":event.outcome==="none"?"no one untalked on this map":"the field was not free"}${event.target===null?"":` ${esc(event.target.name)} at (${String(event.target.x)},${String(event.target.y)})`} · ${String(event.walks)} walks, ${String(event.tried)} tried${event.text===null?"":` · ${esc(event.text)}`}`;
     case "trainer_sight_check":return `Trainer sight check (navigate_to to (${String(event.goal.x)},${String(event.goal.y)}), ${String(event.route_tiles)} route tiles${event.confirmed?", confirm_trainer_sight":""}) · ${event.outcome==="refused"?"not walked":event.outcome==="confirmed"?"walked anyway":event.outcome==="clear"?"no trainer in sight":`not checked: ${esc(event.reason??"unknown")}`}${event.sightings.length===0?"":` · ${event.sightings.map(t=>`object ${String(t.local_id)} ${esc(t.sprite_kind??"unknown")} at (${String(t.x)},${String(t.y)}) facing ${t.facing} sees (${String(t.tile.x)},${String(t.tile.y)}), step ${String(t.step)}`).join("; ")}`}`;
+    case "heal_first_line":return `Heal first line added to the ${esc(event.tool)} result · ${esc(event.opponent)} · ${event.party.map(p=>`${esc(p.species)} ${String(p.hp)}/${String(p.max_hp)}`).join(", ")} · ${event.heard===null?"no heal line heard":`heal line heard turn ${String(event.heard.turn)}`}${event.exit===null?"":` · exit to ${esc(event.exit.to)}`} · ${esc(event.text)}`;
     case "story_battle_heal_gate":return `Story battle heal gate (${event.tool}${event.confirmed?", confirm":""}) · ${event.outcome==="refused"?"not started":event.outcome==="confirmed"?"started anyway":event.outcome==="clear"?"no trainer battle ahead":`sight not checked: ${esc(event.reason??"unknown")}`}${event.reached.map(r=>` · ${r.kind==="rival"?`rival ${esc(r.name??"unknown")}`:r.kind==="gym_leader"?`Gym Leader ${esc(r.name??"unknown")}`:`object ${String(r.local_id)} ${esc(r.sprite_kind??"unknown")}`} at (${String(r.x)},${String(r.y)}) ${r.via==="talk"?"talked to":`approached from (${String(r.tile.x)},${String(r.tile.y)})`}`).join("")}${event.sightings.length===0?"":` · ${event.sightings.map(t=>`object ${String(t.local_id)} ${esc(t.sprite_kind??"unknown")} at (${String(t.x)},${String(t.y)}) sees (${String(t.tile.x)},${String(t.tile.y)})`).join("; ")}`} · ${event.hurt.map(h=>`${esc(h.species)} ${String(h.hp)}/${String(h.max_hp)}`).join(", ")}${event.text===null?"":` · ${esc(event.text)}`}`;
     case "unfinished_activity":return `Unfinished activity ${event.change} · ${esc(event.trainer)} (trainer ${String(event.trainer_id)}) · map ${String(event.map_id[0])}/${String(event.map_id[1])} · ${esc(event.text)}`;
     case "stall_gate":return `Stall briefing held (${event.kind==="map_cycle"?"map back-and-forth":"milestone drought"}, level ${String(event.level)}) · ${esc(event.character)} ${event.reason==="untalked"?"is on this map and has not been talked to since the last story milestone":"is getting closer"} · map ${String(event.map_id[0])}/${String(event.map_id[1])}`;
@@ -512,6 +513,7 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "unfinished-activity-v1":"unfinished-activity-v1.html",
  "exit-labels-v2":"exit-labels-v2.html",
  "exit-labels-v3":"exit-labels-v3.html",
+  "navigation-refusal-reasons-v3": "navigation-refusal-reasons-v3.html",
  "respawn-readout-v1":"respawn-readout-v1.html",
  "trainer-sight-check-v1":"trainer-sight-check-v1.html",
  "caught-nickname-prompt-v1":"caught-nickname-prompt-v1.html",
@@ -527,6 +529,8 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "semantic-current-map-feedback-v1":"semantic-current-map-feedback-v1.html",
  "story-battle-heal-gate-v1":"story-battle-heal-gate-v1.html",
  "short-cycle-fixed-point-v1":"short-cycle-fixed-point-v1.html",
+ "story-battle-heal-first-v1":"story-battle-heal-first-v1.html",
+ "pending-field-dialogue-v1":"pending-field-dialogue-v1.html",
  "move-learn-settle-v1":"move-learn-settle-v1.html",
  "move-learn-question-v1":"move-learn-question-v1.html",
  "move-learn-comparison-v1":"move-learn-comparison-v1.html",

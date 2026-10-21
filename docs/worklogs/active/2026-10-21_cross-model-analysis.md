@@ -17,3 +17,7 @@ Load-bearing questions: comparable cohort/start/runtime strata; incomplete recov
 Validation: renderer real-data and malformed-table/nonfinite/color/escaping boundary checks passed. No application-code modules or harness behavior changed; full app-suite/coverage gates are not a claim for these skill-only scripts. Historical report has7audited episodes,311retained result-frame references checked,8raw-RAM samples hash/layout/field checked, and a complete metric coverage map. Final page/browser receipts are pending regeneration.
 
 COMMIT: `feat: add reproducible cross-model analysis skill` (hash recorded by parent after commit).
+
+Initial frozen review5f5c04e4: Claude/Grok LGTM; fresh GPT-family reviewer BLOCKING with four performed counterexamples. Accept bounded fixes: early behavioral-stop denominators, recovery reread hash, empty-chart CSS validation, unsupported checkpoint/inherited-fact refusal; browser phone wrapping and desktop readout headers also require repair. RED:8 regression tests run against unchanged candidate,7 failing assertions/subtests reproduce all four blockers plus pre-interruption success preservation; receipt canonical runs/reviews/cross-model-skill-2026-10-21/regressions-red.txt. No new production domain. Initial13forward-test receipt retained.
+
+COMMIT: `test: expose cross-model analysis boundary failures` (follows feature5f5c04e4).

@@ -10,7 +10,7 @@ import {contextTools} from "./play-wiring.js";
 import {SWITCHABLE_FEATURES,type FeatureSet} from "./features.js";
 import {checkEvent,type RunEvent} from "./events.js";
 
-it("sends exact recorded YAML through pinned pi HTTP on every turn, with no added tools",async()=>{
+it.each([false,true])("sends exact recorded memory through pinned pi HTTP on every turn, compact=%s, with no added tools",async trim=>{
  const requests:unknown[]=[];
  const server=createServer((req,res)=>{
   if(req.url==="/v1/models"){res.writeHead(200,{"content-type":"application/json"});res.end(JSON.stringify({data:[{id:"instruction-fixture",context_window:65536,max_tokens:4096}]}));return;}
@@ -27,7 +27,7 @@ it("sends exact recorded YAML through pinned pi HTTP on every turn, with no adde
   const fixture=JSON.parse(readFileSync(new URL("./fixtures/observed-instructions-norman.json",import.meta.url),"utf8")) as {events:unknown[]};
   for(const enabled of [false,true]){
    requests.length=0;const subscribers:((event:RunEvent)=>void)[]=[],records:{text:string;evidence:number[]}[]=[];
-   const features={...Object.fromEntries(SWITCHABLE_FEATURES.map(id=>[id,false])),"observed-instructions-v1":enabled} as FeatureSet;
+   const features={...Object.fromEntries(SWITCHABLE_FEATURES.map(id=>[id,false])),"observed-instructions-v1":enabled,"milestone-instruction-memory-v1":enabled&&trim} as FeatureSet;
    const wiring=contextTools(features,{subscribe:fn=>{subscribers.push(fn);},recordLedgerContext:body=>{records.push(body);},recordNavigationContext:()=>{},recordMilestoneHint:()=>{},recordLoopBreaker:()=>undefined,recordBeliefLedger:()=>{}},messages=>Promise.resolve(messages));
    for(const e of fixture.events.map(checkEvent))for(const fn of subscribers)fn(e);
    const abort=new AbortController();const governor=new Governor({limits:{maxTurns:2,maxWallMs:10000,failureLimit:3},retry:()=>{},abort:()=>{abort.abort();},now:()=>0});
@@ -39,7 +39,7 @@ it("sends exact recorded YAML through pinned pi HTTP on every turn, with no adde
     expect(records).toHaveLength(2);
     for(const [i,record] of records.entries()){
      expect(JSON.stringify(requests[i])).toContain(JSON.stringify(record.text).slice(1,-1));
-     expect(record.text).toContain("ROXANNE");expect(record.evidence).toContain(2882);
+     expect(record.text).toContain("ROXANNE");if(trim)expect(record.text).toContain('"columns":');expect(record.evidence).toContain(2882);
     }
    }else{expect(records).toEqual([]);expect(JSON.stringify(requests)).not.toContain("OBSERVED INSTRUCTION MEMORY");}
   }

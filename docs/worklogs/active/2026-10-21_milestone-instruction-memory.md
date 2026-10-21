@@ -28,10 +28,10 @@ One integrated milestone: RED tests and trace fixtures → GREEN production wiri
 ## Checklist
 
 - [x] RED: defaults/OFF invariance, native completion vs arrival, mixed/unknown retention, production delivery, full archive and six snapshot replay.
-- [ ] GREEN: implementation and trace keep/drop manifests.
-- [ ] Registry/bundle/pending entry/explainer and schema.
-- [ ] Wiring deletion/restoration proof.
-- [ ] Gates: test, lint, build, coverage >=90 each metric, vendor, experiment/page checks.
+- [x] GREEN: implementation and trace keep/drop manifests.
+- [x] Registry/bundle/pending entry/explainer and schema.
+- [x] Wiring deletion/restoration proof.
+- [x] Gates: test, lint, build, coverage >=90 each metric, vendor, experiment/page checks.
 - [ ] Principles self-review and frozen Claude/Grok/GPT review.
 - [ ] Landing board, merge, main tests and viewer/browser proof.
 
@@ -40,3 +40,15 @@ One integrated milestone: RED tests and trace fixtures → GREEN production wiri
 Initial base: 4b70c35dd. Existing analysis snapshots: ea04 #22522; d548 #23110; 1331 #26032; fd95 #25304; 8892 #25455; acfa #10969. No benchmark benefit claim.
 
 RED: 9 new failures, 3398 existing agent tests passed; `runs/milestone-instruction-memory/red.log`. Source fixtures retain verbatim original events, per-prefix hashes and exact cutoffs.
+
+GREEN progress: RED commit 82ae0b285. Six full original prefix replays verified source hashes, identical complete archives and exact retained page text/provenance. Actual counts: ea04 27/51, 61666→17532 chars; d548 6/14, 32360→10004; 1331 5/13, 32254→9640; fd95 6/14, 32811→10194; 8892 6/14, 31783→9971; acfa 3/12, 21809→5157. Deliberate conservative difference: ea04 nurse greeting results #5006/#11212 retained as reusable service information (manual proposal had archived them).
+
+Agent full coverage suite passed 3411 tests (229 files): lines 99.20%, branches 93.14%, functions 97.81%. Additional safety/wrapper tests pass separately; final gates repeat after final source sync. Python with configured ROM: 3806 pass. Initial unconfigured direct pytest invocation failed on missing POKEBENCH_ROM; no Python source changed. Initial parallel coverage hit unrelated 5-second timeout flakes; worker-limited coverage avoids load without changing tests/thresholds. Full viewer coverage initially found one frozen-bundle comparison needing the appended switch excluded; focused fix passes. Legacy registry position/count tests and frozen historical feature helper updated for appended OFF switch.
+
+Final gates: 3414 agent tests, 1657 viewer tests, 3806 Python tests passed. Coverage: agent lines 99.20 / branches 93.17 / functions 97.81; viewer 97.95 / 91.33 / 94.35; Python 97.29 / 93.11 / 100. Build, tsc/eslint, ruff/format/mypy, vendor and page checks pass. All experiment definitions parse in the complete agent suite. `experiments-check` reports 150 malformed starter-decision-salience ledger lines, exactly identical on unchanged main (baseline captured); this branch does not edit that ledger.
+
+Wiring proof: disabling the factory switch read makes the production delivery assertion fail; disabling the companion-ledger switch reads makes the duplication assertion fail. Both restored; 17 targeted tests pass. Initial deletion harness incorrectly searched only stdout for the assertion on stderr; its captured log is preserved, and the separately named v2 attempts and receipt prove both failures/restorations.
+
+Browser proof: 1280/1440/375 collapsed/expanded explainer screenshots inspected under canonical runs/mockups/milestone-instruction-memory-v1/shots. Candidate viewer 8796 serves an isolated explicitly named offline-retention-audit-not-gameplay replay, without queue approvals/autorun. History shows 27 kept / 24 archived; opening Raw event JSON exposes retention/rules/native chapter references. Harness Config feature card says ON in the derived audit fixture and its Read Explainer link opens the tracked page. Console errors empty. No timeline marks added. Preview is not a new gameplay run or a live-main proof.
+
+Landing: joined board at number 9 on Oct 21 16:08 New York time. Coordinator confirmed no holds except for #1; withdrawn hold request. Main remains 4b70c35dd. Review packet will freeze this isolated candidate; queued landing requires main sync/re-gates/re-review of any changed packet. No main move, viewer-main restart, experiment approval or measured run has occurred.

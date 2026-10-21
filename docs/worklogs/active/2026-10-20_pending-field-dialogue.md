@@ -67,3 +67,5 @@ Full integrated agent suite first3185 pass/2 historical expectation failures. Co
 
 ## Final integration candidate
 Base e635fcbfe includes navigation-tool-use-guard-v1, semantic-current-map-feedback-v1 and short-cycle-fixed-point-v1. Retain every upstream runtime/schema/bundle change; pending dialogue appended last. Implementation pin bac6652e. Raw pending preset now has every switch explicit in registry order; arms differ only in pending-field-dialogue-v1. The three evolving bundle definitions enable it; controls and generic defaults OFF. Original measured runs and frozen definitions remain unchanged. Full Python3494 pass, lint/types/vendor pass. Final TS coverage/lint/build and exact cumulative review follow before landing.
+
+Agent full3187 pass with coverage; viewer1523 pass/1 historical pending-incumbent mismatch. Preserve old open-goal experiment while excluding the newly bundled treatment from its historical comparison; no runtime edits. Final viewer/lint/build rerun before sealing.

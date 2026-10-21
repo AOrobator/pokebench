@@ -67,3 +67,6 @@ Added as a bundle switch (base false) to bundle-v-control, bundle-cook-1h and wh
 Added both to the bundle arm of whole-map-cook-1h (base false); its switches now equal bundle-cook-1h's plus full-map-navigation-v1. sha256 262b9dedf747.
 - Rebased onto e635fcbf (short-cycle-fixed-point-v1); whole-map-cook-1h sha256 c481e9381383. Pair v7 (the operator 23:36 NY): whole-map-pair-1h-v7.json = whole-map-cook-1h arms, one pair; seed 37aa72134a9e06b1, sha256 9dfca876c47a.
 - Reviews: Grok LGTM, Claude LGTM. Landing; v7 launch waits for story-battle-heal-first-v1.
+
+## Pair v8 (the operator 00:10 NY: go after Codex's landing)
+v7 launched 00:00 and was stopped at turn 1 (the operator: wait for Codex). Codex added pending-field-dialogue-v1 to the bundle. whole-map-pair-1h-v8.json = whole-map-cook-1h arms at main ec8f514b, one pair.

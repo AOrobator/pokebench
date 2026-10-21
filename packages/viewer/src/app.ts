@@ -598,7 +598,7 @@ export class App {
   }
 
   private loadArt(): Promise<void> {
-    this.artLoad ??= loadCardArt((url) => this.deps.fetchJson(url), (url) => this.deps.loadGlyphSheet?.(url) ?? Promise.resolve(null)).then((loaded) => { this.art = loaded; });
+    this.artLoad ??= loadCardArt((url) => this.deps.fetchJson(url), (url) => this.deps.loadGlyphSheet?.(url) ?? Promise.resolve(null), (loaded) => { this.art = loaded; this.render(); }).then((loaded) => { this.art = loaded; });
     return this.artLoad;
   }
 

@@ -196,7 +196,7 @@ while :; do
   while kill -0 "$job" 2>/dev/null; do
     if [ -z "$stop_at" ]; then
       if run=$(stopped_run); then stop_loop "the operator stopped run $run in the viewer"; stop_at=$(stop_time "$run");
-      elif stopped; then stop_at=$(date -u +%Y-%m-%dT%H:%M:%S.000Z); fi
+      elif stopped; then stop_at=$(date -u -r "$(stat -f %m "$STOP_FILE")" +%Y-%m-%dT%H:%M:%S.000Z); fi
     fi
     if [ -n "$stop_at" ] && [ -z "$signalled" ]; then
       pid=$(runner_pid)

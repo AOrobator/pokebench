@@ -38,3 +38,5 @@ Integrated main bf0c3d48c in 574d0635a, preserving both new navigation switches 
 Integrated implementation 01bd2c64 is the pending experiment source pin. This follow-up changes only its source metadata; review packet includes both commits.
 
 Round1 Sol/Astra independently reproduced frozen88e8d831/diff2481a513 and blocked inaccurate straight-line wording (existing sort is Manhattan). Astra also found readiness paragraph lost during append conflict resolution. Corrected both, preserving selection and runtime policy. Added production-factory counterexample11,16 asserting true grid-distance qualification and unchanged west/south/east order. Round2 exact-tip review required; all prior review identities superseded.
+
+Corrected implementation ba3db441: focused17 tests pass. Pin metadata updated; round2 covers final corrected identity. Grok round1 was interrupted as obsolete after confirmed blockers (no verdict, no approval claimed).

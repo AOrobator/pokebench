@@ -56,10 +56,10 @@ No new network surface, subprocesses or file paths. ROM read only through existi
 ## Milestones
 
 **M0 — Tool-prompt sync skill and `tool-prompt-docs-v1`**
-- [ ] Write `.claude/skills/tool-prompt-sync/SKILL.md`: adding/renaming/removing a model tool updates its system-prompt section (and scene tool lists, contextual docs) in the same change behind the tool's switch; checklist + veto. Reference it from feature-switch step 5 and CLAUDE.md.
-- [ ] Audit `toolNames` vs `playSystemPrompt` for both arms; record which tools lack a section.
-- [ ] Tests: INV-2 property test (RED on current main with the switch ON); OFF bytes unchanged.
-- [ ] COMMIT RED; implement sections; gates; COMMIT GREEN; review.
+- [x] Write `.claude/skills/tool-prompt-sync/SKILL.md`: adding/renaming/removing a model tool updates its system-prompt section (and scene tool lists, contextual docs) in the same change behind the tool's switch; checklist + veto. Reference it from feature-switch step 5 and CLAUDE.md.
+- [x] Audit `playTools` vs `playSystemPrompt` over the default flags, both arms of all 25 `experiments/fixed/*.json`, the 7 control bases and every parseable `experiments/*.json` arm (221 feature sets). Missing with the full prompt: `choose_evolution` (evolution-decision-v1) and `battle_action` (battle-move-tool-v1: no section at all; only its tool description). Missing per just-in-time scene: `choose_evolution` in every scene; in `battle` (and `menu`) the overworld-only sections hide `get_dialogue`, `recall_dialogue`, `remember_destination`, `note_contradiction`, `get_next_milestone` while those tools stay offered.
+- [x] Tests: INV-2 property test `packages/agent/src/tool-prompt-sync.test.ts` (RED with the switch ON: 416 failing); OFF bytes pinned by sha256 of the full and per-scene prompts taken before the switch existed (default flags, control base whole-map-bundle-fd95, fd95 + evolution/battle_action).
+- [ ] COMMIT RED; implement sections; gates; COMMIT GREEN; review deferred to one branch packet before landing (coordinator: max 2 rounds).
 
 **M1 — `field-ownership-feedback-v1`**
 - [ ] Tests: evolution fixture from d548 (seq 20530 state) → navigate_to_target refuses with Interface line + controls, no press; briefing names "evolution decision; controls: choose_evolution"; auto-talk one-shot message; OFF unchanged.

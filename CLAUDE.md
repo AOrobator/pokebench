@@ -89,6 +89,8 @@ The rule never covers pushing, pull requests, approving or launching experiments
 
 Every harness behavior change ships behind a registered switch whose OFF state is the previous behavior, so it can be A/B tested. Use `.claude/skills/feature-switch/SKILL.md`.
 
+Adding, renaming, removing or re-gating a model tool updates its system-prompt section in the same change (the operator 2026-10-21). Use `.claude/skills/tool-prompt-sync/SKILL.md`.
+
 ## Explainers
 
 Every new feature or switch gets an explainer page with diagrams. Use `.claude/skills/feature-explainer/SKILL.md`. Explainers stay local: no claude.ai artifacts or hosted preview links.

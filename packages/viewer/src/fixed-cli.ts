@@ -178,10 +178,12 @@ async function dryRun(argv: readonly string[], deps: FixedCliDeps, id: string): 
   const recipe = recipeId === undefined ? null : load(deps, recipeId);
   if (recipe !== null && recipe.definition.romSha1 !== target.romSha1) throw new CliError("feature recipe ROM differs from the model definition");
   const def = recipe === null ? target : parseFixedDefinition(JSON.stringify({ ...target,
-    controlBase: recipe.definition.controlBase, base: recipe.definition.base,
+    controlBase: recipe.definition.controlBase, base: {...target.base, features: recipe.definition.base.features},
     switches: recipe.definition.switches, offInBoth: recipe.definition.offInBoth,
     onInBoth: recipe.definition.onInBoth,
   })).definition;
+  const effectiveProblems = controlBaseProblems(def, readFileSync(join(deps.root, def.controlBase.path), "utf8"));
+  if (effectiveProblems.length > 0) throw new CliError(effectiveProblems.join("\n"));
   requireDefinitionRom(deps, rom, def);
   const phase = flag(argv, "--phase") ?? def.phases[0]?.id ?? "";
   if (!def.phases.some((p) => p.id === phase)) throw new CliError(`no phase ${phase}; phases: ${def.phases.map((p) => p.id).join(", ")}`);

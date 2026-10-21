@@ -15,7 +15,6 @@ import select
 import shlex
 import subprocess
 import sys
-import time
 from collections.abc import Callable, Iterator, Sequence
 from contextlib import contextmanager
 from dataclasses import dataclass
@@ -25,9 +24,6 @@ from zoneinfo import ZoneInfo
 
 NEW_YORK = ZoneInfo("America/New_York")
 NO_MAIL = 3
-# A claim lives only between a mailbox's drain and its acknowledge, so one older than this was
-# abandoned even if its process id now belongs to some other live process.
-STALE_CLAIM_SECONDS = 60.0
 
 Run = Callable[[Sequence[str]], int]
 
@@ -177,10 +173,6 @@ def alive(pid: int) -> bool:
     return True
 
 
-def abandoned(claim: Path, pid: int) -> bool:
-    return not alive(pid) or time.time() - claim.stat().st_mtime > STALE_CLAIM_SECONDS
-
-
 def drain(room: Mailroom, owner: int) -> list[Letter]:
     """Claim pending letters for this listener and return everything it has not acknowledged.
 
@@ -193,7 +185,7 @@ def drain(room: Mailroom, owner: int) -> list[Letter]:
     sources = [
         other
         for other in sorted(room.root.glob("delivering-*.jsonl"))
-        if other != mine and abandoned(other, int(other.stem.removeprefix("delivering-")))
+        if other != mine and not alive(int(other.stem.removeprefix("delivering-")))
     ]
     if room.pending.exists():
         sources.append(room.pending)

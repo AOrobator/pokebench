@@ -444,14 +444,15 @@ def test_a_crash_while_claiming_leaves_every_letter_whole(
     assert am.collect(r) == [am.Letter(T, "codex", big)]
 
 
-def test_a_stale_claim_is_adopted_even_if_its_pid_was_reused(tmp_path: Path) -> None:
+def test_a_slow_live_listener_keeps_its_letters(tmp_path: Path) -> None:
+    # Owner 1 (launchd) stands in for a live listener that has not acknowledged yet.
     r = room(tmp_path)
-    am.tell_claude(r, sender="codex", text="stranded", now=T)
-    assert [x.text for x in am.wait_for_mail(r, owner=1)] == ["stranded"]
-    old = time.time() - am.STALE_CLAIM_SECONDS - 5
+    am.tell_claude(r, sender="codex", text="mine", now=T)
+    held = am.wait_for_mail(r, owner=1)
+    old = time.time() - 3600
     os.utime(r.claim(1), (old, old))
-    assert am.collect(r) == [am.Letter(T, "codex", "stranded")]
-    assert not r.claim(1).exists()
+    assert am.collect(r) == []
+    assert held == [am.Letter(T, "codex", "mine")]
 
 
 def test_two_listener_processes_split_letters_exactly_once(tmp_path: Path) -> None:

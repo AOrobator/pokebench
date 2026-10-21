@@ -41,3 +41,4 @@ M3 REVIEW/LAND: Claude, Grok and GPT cloud lanes on the frozen packet; land thro
   - No concurrent proof. FIX: two real mailbox processes, five letters, exact-once union; mutation check: forcing one shared claim file fails both two-listener tests 3/3, restored passes.
   - Grok hardening: corrupt board/session JSON now raise the uniform "unreadable" errors.
 - Tests: 34 agent-mail tests, module 100%.
+- R5 packet d00cded5..47e20826, SHA-256 2e7f5a43…, gates r5-gates.log EXIT 0. Claude LGTM, Grok LGTM, GPT BLOCKING (1): the R4 60-second stale-claim adoption takes letters from a live but slow listener, so both print them. Accepted; GPT's own disposition: drop time-based adoption, keep dead-pid recovery, and document pid reuse as a rare limitation (letters wait in the claim file; tell the operator). Test: a live listener's aged claim is left alone.

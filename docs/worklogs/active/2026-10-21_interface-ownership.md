@@ -79,11 +79,12 @@ No new network surface, subprocesses or file paths. ROM read only through existi
 - [x] Implement: `moveLearningState()` in loop/fingerprints.ts (evolution_move_* / summary_move_forget ready prompts; in battle the learn_move / stop_learning_move boxes and the sText_TryToLearnMove1/2 pages); `semanticState(…, moveLearning)` used only by BasicRules (prepare and action candidates); a cycle made only of move-learning entries is checked with 2 repeats (the policy's 3 still applies to everything else); threaded `attachLoopGuard` features → LoopDetector `moveLearnLoops` → coordinator option → BasicRules. Replay warns `cycle` at result seq 20676 (9th result of the window, 2nd time round; the recorded run's short-cycle collapse came at turn 559).
 - [x] Guard deletion: 2-repeat check removed → 1 red; coordinator not passing the option → 1 red; restored → 6 green.
 - [x] Gates: vitest agent 4303 / viewer 1656; pytest 3806; lint clean; build ok; coverage agent 99.2 L / 93.12 B / 97.81 F, viewer 97.95 / 91.34 / 94.35, Python 97.29 / 93.11 / 100.
-- [ ] COMMIT GREEN. Review deferred to one branch packet before landing.
+- [x] COMMIT GREEN: `feat(loop): move-learn-loop-fingerprint-v1 fingerprints move-learning prompts so the cycle rule fires after two repeats` (0c9732274). Review deferred to one branch packet before landing (coordinator: max 2 rounds).
 
 **M3 — `stale-plan-fact-v1`**
-- [ ] Tests: identical thinking + changed interface → fact appended with the game's Interface line; identical thinking + same screen → nothing (left to existing guards); OFF unchanged.
-- [ ] RED / implement / gates / GREEN / review.
+- [x] Tests `packages/agent/src/stale-plan-fact.test.ts` (readouts from ea04 results seq 20504 Delete, 20529 Stop, 20554 page), through production `playGameTools`: same thinking + different Interface line → fact; same Interface line + different game question → fact with the question; same screen and question, changed thinking or empty thinking → nothing; OFF → nothing.
+- [x] COMMIT RED (module missing). SHA recorded in the next commit.
+- [ ] Implement / gates / GREEN. Review deferred to one branch packet before landing.
 
 **M4 — `post-battle-readout-v1` (server, Python)**
 - [ ] Tests: ea04 seq 20991-like snapshot → battle block ended, party moves shown; in-battle ready learn_move → Interface line ready; OFF bytes unchanged. Python coverage ≥90.

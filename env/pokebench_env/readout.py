@@ -41,6 +41,8 @@ from pokebench_env.surf_gate import SWITCH_V2 as SURF_GATE_V2
 from pokebench_env.surf_gate import SurfGate
 from pokebench_env.topology import Topology
 from pokebench_env.world import InteractionTarget
+from pokebench_env.yes_no_answer import SWITCH as YES_NO_ANSWER
+from pokebench_env.yes_no_answer import answer_line
 
 SERVER_FEATURES = (
     "expanded-menu-battle-information-v1",
@@ -100,6 +102,7 @@ SERVER_FEATURES = (
     "respawn-readout-v1",
     "caught-nickname-prompt-v1",
     "party-item-confirmation-v1",
+    "yes-no-answer-readout-v1",
 )
 
 
@@ -121,7 +124,7 @@ def features_off_from_env(env: Mapping[str, str]) -> frozenset[str]:
         "tutorial-party-owner-v1,mid-frame-readout-v1,unset-dynamic-warp-v1,status-names-v1,"
         "surf-gated-exits-v2,battle-effective-damage-v1,safe-navigation-strides-v1,evolution-decision-v1,original-speed-pacing-v1,"
         "semantic-navigation-v2,exit-labels-v2,heal-before-trainers-v2,respawn-readout-v1,"
-        "caught-nickname-prompt-v1,party-item-confirmation-v1",
+        "caught-nickname-prompt-v1,party-item-confirmation-v1,yes-no-answer-readout-v1",
     )
     if raw == "":
         return frozenset()
@@ -259,6 +262,10 @@ def format_readout(
         ]
         if ui is not None:
             lines.append((ui if expanded else replace(ui, details=None)).text())
+        # yes-no-answer-readout-v1: how to answer the other option of the open YES/NO box.
+        answer = answer_line(state) if YES_NO_ANSWER not in off else None
+        if answer is not None:
+            lines.append(answer)
     if state.resources is not None:
         if expanded and state.resources.bag is not None:
             lines.append(

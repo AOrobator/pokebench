@@ -170,4 +170,6 @@ The original ignored runs/explainers copies remain for existing links. Make futu
 - [Distinct exits and map sections](exit-labels-v3.html): versioned terrain sections, physical exit identities and explicit same-map return relationships.
 - [Navigation tool-use guard](navigation-tool-use-guard-v1.html) — default OFF, bundle ON; benefit unmeasured.
 - [Semantic current-map feedback](semantic-current-map-feedback-v1.html) — default OFF, bundle ON; benefit unmeasured.
+
+- [Exploratory waypoint guidance](navigation-refusal-reasons-v3.html) — bounded local advice, no assumed onward route.
 - [Story battle heal first line](story-battle-heal-first-v1.html) — guard on in both arms: while an unbeaten story battle that cannot be run from is on the map and a party Pokémon is hurt, the first line of every game-tool result gives the hurt HP, says to heal first, quotes the latest heal line heard and names the exit of this map toward it.

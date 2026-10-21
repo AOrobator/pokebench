@@ -513,6 +513,7 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "unfinished-activity-v1":"unfinished-activity-v1.html",
  "exit-labels-v2":"exit-labels-v2.html",
  "exit-labels-v3":"exit-labels-v3.html",
+  "navigation-refusal-reasons-v3": "navigation-refusal-reasons-v3.html",
  "respawn-readout-v1":"respawn-readout-v1.html",
  "trainer-sight-check-v1":"trainer-sight-check-v1.html",
  "caught-nickname-prompt-v1":"caught-nickname-prompt-v1.html",

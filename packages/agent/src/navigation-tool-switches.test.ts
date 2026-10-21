@@ -69,8 +69,8 @@ describe("navigation tool-use guard at the native input boundary",()=>{
 const hooks=()=>({beforePress:vi.fn(),afterPress:()=>Promise.resolve()});
 it("registers and records two independent optional default-OFF features",()=>{
  const ids=["navigation-tool-use-guard-v1","semantic-current-map-feedback-v1"] as const;
- expect(SWITCHABLE_FEATURES.slice(-15,-13)).toEqual(ids);
- expect(playHarnessFeatures(ALL_ON,null).slice(-13,-11)).toEqual(ids);
+ expect(SWITCHABLE_FEATURES.slice(-17,-15)).toEqual(ids);
+ expect(playHarnessFeatures(ALL_ON,null).slice(-15,-13)).toEqual(ids);
  const {"navigation-tool-use-guard-v1":guard,"semantic-current-map-feedback-v1":feedback,...old}=ALL_ON;
  expect([guard,feedback]).toEqual([true,true]);
  for(const id of ids){expect(normalizeFeatures(old)[id]).toBe(false);expect(featureInfo(id).description).toContain(" Off: ");}
@@ -119,9 +119,10 @@ it("a stopped request makes no request or native input",async()=>{
 });
 
 it("registers independent unqueued experiments with one switch difference and explicit incumbent flags",()=>{
- for(const id of ["navigation-tool-use-guard-v1","semantic-current-map-feedback-v1"] as const){
+ for(const id of ["navigation-tool-use-guard-v1","semantic-current-map-feedback-v1","rejected-movement-step-v1","observed-field-dialogue-v1"] as const){
   const entry=parseExperiment(JSON.parse(readFileSync(new URL(`../../../experiments/${id}.json`,import.meta.url),"utf8")) as unknown);
   expect(entry.queuePosition).toBeUndefined();expect(entry.changedFeature).toBe(id);
+  if(id==="rejected-movement-step-v1"||id==="observed-field-dialogue-v1")expect(entry.blocked).toContain("Pending correctness candidate");
   expect(Object.keys(entry.incumbent.features)).toEqual([...SWITCHABLE_FEATURES]);
   const {incumbent,candidate}=experimentArms(entry);
   expect(SWITCHABLE_FEATURES.filter(key=>incumbent.features[key]!==candidate.features[key])).toEqual([id]);
@@ -164,7 +165,7 @@ describe("rejected-movement-step-v1 production input boundary",()=>{
  it.each(["UP","DOWN","LEFT","RIGHT"] as const)("submits only the first %s from a rejected walking batch",async direction=>{
   const s=server(field),h=hooks();
   const result=await pressTool("http://game",h,s.fetchFn,clock,toolSwitches(features())).execute("model",{buttons:[direction,direction,"LEFT"]});
-  const bodies=s.fetchFn.mock.calls.filter(([,init])=>init?.method==="POST").map(([,init])=>JSON.parse(String(init?.body)) as unknown);
+  const bodies=s.fetchFn.mock.calls.filter(([,init])=>init?.method==="POST").map(([,init])=>JSON.parse(typeof init?.body==="string"?init.body:"null") as unknown);
   expect(bodies).toEqual([{buttons:[direction],hold_frames:10,release_frames:8}]);
   expect(h.beforePress).toHaveBeenCalledWith("model",[direction],{hold_frames:10,release_frames:8},field);
   expect(text(result)).toContain("Movement batch limited to one direction press");
@@ -185,7 +186,38 @@ describe("rejected-movement-step-v1 production input boundary",()=>{
   for(const guard of [true,false]){
    const s=server(field),h=hooks();
    await pressTool("http://game",h,s.fetchFn,clock,toolSwitches({...features(),"navigation-tool-use-guard-v1":guard})).execute("model",{buttons:["UP","A"]});
-   expect(h.beforePress.mock.calls[0]?.[1]).toEqual(["UP"]); // existing safe-interface policy
+   expect(h.beforePress.mock.calls[0]?.[1]).toEqual(["UP","A"]);
   }
  });
+});
+
+it("delivers the limited movement receipt to the next pinned-pi decision and records only the submitted button",async()=>{
+ const root=mkdtempSync(join(tmpdir(),"pokebench-movement-step-delivery-")),log=RunLog.create(root,"movement-step-delivery-proof");
+ const stateSource={read:()=>Promise.resolve(field)},recorder=new RunRecorder({log,frames:new FrameStore(root),milestones:new StateMilestones(stateSource),gameState:stateSource});
+ const features={...flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false}),"navigation-tool-use-guard-v1":true,"rejected-movement-step-v1":true};
+ const s=server(field),press=pressTool("http://game",{beforePress:(id,buttons,timing,before)=>{recorder.buttonPress(id,buttons,timing,before);},afterPress:()=>recorder.afterPress()},s.fetchFn,clock,toolSwitches(features));
+ await recorder.start({...RUN_START_META,harness_features:playHarnessFeatures(features,null).filter(id=>SWITCHABLE_FEATURES.some(key=>key===id)),tools:["press"]});
+ const governor=new Governor({limits:{maxTurns:2,maxWallMs:60000,failureLimit:3},retry:()=>undefined,abort:()=>undefined,now:()=>0});
+ const model:Model<"openai-completions">={id:"fixture",name:"fixture",api:"openai-completions",provider:"fixture",baseUrl:"http://127.0.0.1:1",reasoning:false,input:["text","image"],cost:{input:0,output:0,cacheRead:0,cacheWrite:0},contextWindow:10000,maxTokens:100};
+ let decisions=0;
+ const streamFn:StreamFn=(_model,context)=>{
+  decisions++;
+  if(decisions===2){const delivered=context.messages.filter(m=>m.role==="toolResult").flatMap(m=>m.content.filter(c=>c.type==="text").map(c=>c.text)).join("\n");expect(delivered).toContain('"submitted":["UP"]');expect(delivered).toContain('"dropped":["UP","UP"]');expect(delivered).not.toContain("no input was sent");}
+  const message=decisions===1?assistant({toolCalls:[toolCall("step","press",{buttons:["UP","UP","UP"]})],stopReason:"toolUse"}):assistant({text:"fixture complete"});
+  const stream=createAssistantMessageEventStream();stream.push({type:"done",reason:message.stopReason==="toolUse"?"toolUse":"stop",message});return stream;
+ };
+ const loop=piLoop({systemPrompt:"Synthetic input and delivery proof",tools:[press],base:{model,convertToLlm:m=>m as Message[]},governor,transformContext:recorder.transformContext,emit:recorder.emit,streamFn,signal:new AbortController().signal});
+ expect(await play(userText("Fixture"),governor,loop)).toBe("budget");recorder.end("budget");
+ const events=readFileSync(log.eventsPath,"utf8").trim().split("\n").map(parseEvent);
+ expect(decisions).toBe(2);expect(s.posts).toEqual(["http://game/action"]);
+ const presses=events.filter(e=>e.type==="button_press");expect(presses).toHaveLength(1);expect(presses[0]?.buttons).toEqual(["UP"]);
+ expect(events.find(e=>e.type==="run_start")?.harness_features).toContain("rejected-movement-step-v1");
+});
+
+it("limited movement does not use automatic running and is inactive without the original guard",async()=>{
+ const base={...flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false}),"automatic-running-v1":true,"navigation-tool-use-guard-v1":true,"rejected-movement-step-v1":true};
+ const s=server(field),h=hooks();await pressTool("http://game",h,s.fetchFn,clock,toolSwitches(base)).execute("step",{buttons:["UP","UP"],walking:true});
+ expect(s.posts).toEqual(["http://game/action"]);expect(h.beforePress.mock.calls[0]?.[1]).toEqual(["UP"]);expect(h.beforePress.mock.calls[0]?.[4]).toEqual({automatic_running:false});
+ const t=server(field),j=hooks();await pressTool("http://game",j,t.fetchFn,clock,toolSwitches({...base,"automatic-running-v1":false,"navigation-tool-use-guard-v1":false})).execute("ordinary",{buttons:["UP","UP"]});
+ expect(j.beforePress.mock.calls[0]?.[1]).toEqual(["UP","UP"]);
 });

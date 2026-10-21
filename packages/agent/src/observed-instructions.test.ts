@@ -123,7 +123,7 @@ it("field dialogue selection keeps unknown speakers without inventing identity a
  deliver(h,20,[page("A direction without a name",null,null)]);
  await h.wiring.transformContext([]);const text=h.recorded.at(-1)?.text??"";
  expect(text).toContain("speaker: null");expect(text).toContain("Another line");
- expect(text.match(/text: \"A direction without a name\"/g)).toHaveLength(1);
+ expect(text.match(/text: "A direction without a name"/g)).toHaveLength(1);
 });
 it("field dialogue switch OFF preserves the previous story-only selection exactly",async()=>{
  const h=harness(true,false);deliver(h,2,[page("Our daughter is upstairs, I think.","WOMAN_4","faced_sprite")]);
@@ -132,4 +132,22 @@ it("field dialogue switch OFF preserves the previous story-only selection exactl
 it("field dialogue extension excludes failed delivery and battle-only calls",async()=>{
  const h=harness(true,true);deliver(h,2,[page("not delivered",null,null)],true);deliver(h,10,[{...page("battle",null,null),battle_turn:1}]);deliver(h,20,[]);
  expect(await h.wiring.transformContext([])).toEqual([]);
+});
+
+it("registers two independent default-OFF repairs with separate pending experiments and bundle-only enablement",()=>{
+ for(const id of ["rejected-movement-step-v1","observed-field-dialogue-v1"] as const){
+  const legacy=Object.fromEntries(Object.entries(off).filter(([key])=>key!==id));
+  expect(normalizeFeatures(legacy as typeof off)[id]).toBe(false);
+  expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false})[id]).toBe(false);
+  expect(playHarnessFeatures({...off,[id]:true},null)).toContain(id);
+  const bundle=JSON.parse(readFileSync(new URL("../../../experiments/fixed/bundle-v-control.json",import.meta.url),"utf8")) as {base:{features:Record<string,boolean>};switches:string[]};
+  expect(bundle.base.features[id]).toBe(false);expect(bundle.switches).toContain(id);
+ }
+});
+
+it("retains unnamed guidance after newer conversations and an empty context, with all source pages intact",async()=>{
+ const h=harness(true,true);const upstairs=[page("We have a daughter about the same age as you.","WOMAN_4","faced_sprite"),page("Our daughter is upstairs, I think.","WOMAN_4","faced_sprite")];
+ deliver(h,2,upstairs);deliver(h,10,norman);await h.wiring.transformContext([]);await h.wiring.transformContext([]);
+ const text=h.recorded.at(-1)?.text??"";for(const p of upstairs)expect(text).toContain(`text: ${JSON.stringify(p.text)}`);
+ expect(text).toContain("dialogue_events: [2]");expect(text).toContain("delivered_result: 4");expect(text).toContain("Current observations override old text");
 });

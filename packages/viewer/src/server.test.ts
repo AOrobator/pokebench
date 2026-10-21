@@ -1251,3 +1251,10 @@ it("serves the tracked caught Pokédex input explainer byte for byte",async()=>{
  const reply=await get(viewer,"/explainers/caught-dex-input-v1.html");
  expect(reply.status).toBe(200);expect(reply.type).toContain("text/html");expect(reply.body.equals(tracked)).toBe(true);
 });
+
+it.each(["rejected-movement-step-v1","observed-field-dialogue-v1"])("serves repair explainer %s byte for byte",async id=>{
+ const tracked=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)));
+ const root=mkdtempSync(join(tmpdir(),"pokebench-repair-explainer-")),staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});writeFileSync(join(docs,`${id}.html`),tracked);
+ const viewer=await startViewer({runsRoot:join(root,"runs"),staticDir,appDir:join(root,"app"),port:0});open.push(viewer);
+ const reply=await get(viewer,`/explainers/${id}.html`);expect(reply.status).toBe(200);expect(reply.body.equals(tracked)).toBe(true);
+});

@@ -191,6 +191,8 @@ export const SWITCHABLE_FEATURES = [
   "gym-door-label-v1",
   "mart-stock-readout-v1",
   "caught-dex-input-v1",
+  "rejected-movement-step-v1",
+  "observed-field-dialogue-v1",
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
 
@@ -495,6 +497,8 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("gym-door-label-v1", "observation", "GYM DOOR LABEL", "exit-labels-v2", "Default off; bundle only. Gym entrances keep GYM after their destination city in exit labels and terrain-section descriptions. The destination map identifies the Gym; its exterior sign names the building kind. No leader or route is revealed. Off: popup city names alone label Gym destinations, as before."),
   on("mart-stock-readout-v1", "observation", "MART STOCK READOUT", RAM, "Bundle arm only, default off (Rustboro gym strategy report 2026-10-21, proposal 4). No run of 11 that reached ROXANNE had bought anything, while holding ¥4,286-6,960; run 2026-10-21T06-28-18_qwen36-gpu0_1331 opened the RUSTBORO CITY MART buy list at turns 680-690 and the readout named only the highlighted row's name (and a coverage error past row 1), with no price or description. While a normal shop's buy screen is up (pret src/shop.c CB2_BuyMenu, sMartInfo martType 0), the game server adds a block after the Interface lines: every row of the clerk's list with the price the list prints (GetItemPrice, halved only during the Slateport sale at the Energy Guru, as BuyMenuPrintPriceInList does) and the game's own item description (GetItemDescription, the text the game shows for the highlighted row), the CANCEL row with \"Quit shopping.\", the highlighted row while the list owns input, and the player's money, for example:   3 SUPER POTION ¥700 — \"Restores the HP of a POKéMON by 50 points.\" … Highlighted: 3 SUPER POTION · Your money: ¥3412. Nothing ranks or recommends an item. No block on the BUY/SELL/QUIT menu, in a decoration shop or when the save block is not read in that snapshot; a failed read is a visible HARNESS BUG (mart stock) line. Off: no block; the readout is byte for byte as before."),
   on("caught-dex-input-v1", "observation", "CAUGHT POKÉDEX INPUT", RAM, "Default off; bundle only. Reads the caught POKéMON registration page from its battle-owned task. The page accepts A or B; battle auto-advance stops so the model can close it. Initialization and exit stay non-input transitions. Off: the page reads as a resolving battle, as before."),
+  on("rejected-movement-step-v1", "guard", "REJECTED MOVEMENT STEP", "navigation-tool-use-guard-v1", "Default off; bundle treatment only. When the navigation tool-use guard would reject a free-field direction-only batch, sends only the first direction through ordinary input and returns the new observation with requested, submitted and dropped buttons. Running is disabled for this one press. No route is inferred; collision, scripts and transitions still apply. Checked navigation and other inputs are unchanged. Off: the original guard rejects the whole batch with no input."),
+  on("observed-field-dialogue-v1", "guidance", "FIELD DIALOGUE MEMORY", "observed-instructions-v1", "Default off; bundle treatment only. Observed instruction memory retains every nonempty delivered field-dialogue episode, including unnamed and unknown speakers, with exact text, attribution and source references. No speaker identity, objective or completion is inferred. Battle-only and failed deliveries remain excluded; exact repeats share their first source. Off: only episodes containing a recognized story character's printed name are selected."),
 ];
 
 export const ALL_ON: FeatureSet = Object.fromEntries(SWITCHABLE_FEATURES.map((id) => [id, true])) as Record<SwitchableFeature, boolean>;
@@ -729,6 +733,8 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("gym-door-label-v1"),
     ...when("mart-stock-readout-v1"),
     ...when("caught-dex-input-v1"),
+    ...when("rejected-movement-step-v1"),
+    ...when("observed-field-dialogue-v1"),
   ];
 }
 
@@ -739,5 +745,5 @@ export function featuresOf(harnessFeatures: readonly string[]): FeatureSet {
 
 export function stateOnlyProblems(features:FeatureSet):string[]{
  if(!features["state-only-decisions-v1"])return [];
- return (["observed-instructions-v1","battle-decision-ready-v1","objective-tracking-v1","deterministic-loop-guard-v1","bounded-navigation-v1","press-result-v1","navigation-evidence-memory-v1","game-evidence-priority-v1","dialogue-log-v1","instruction-ledger-v1","instruction-ledger-v2","disproved-beliefs-v1","next-milestone-hint-v1","double-context-window-v1","fresh-retry-v1","text-only-supervisor-v1","dialogue-auto-advance-v1","readout-rules-in-prompt-v1","explorer-guidance-v1","untaken-exits-v1","explorer-guidance-v2","people-id-cards-v1","harness-trust-v1","cited-destination-v1","harness-trust-v2","input-cuts-v1","just-in-time-prompt-v1","just-in-time-prompt-v2","evolution-decision-v1","starter-decision-salience-v1"] as const).filter(id=>features[id]).map(id=>`state-only-decisions-v1 requires ${id} OFF`);
+ return (["observed-field-dialogue-v1","observed-instructions-v1","battle-decision-ready-v1","objective-tracking-v1","deterministic-loop-guard-v1","bounded-navigation-v1","press-result-v1","navigation-evidence-memory-v1","game-evidence-priority-v1","dialogue-log-v1","instruction-ledger-v1","instruction-ledger-v2","disproved-beliefs-v1","next-milestone-hint-v1","double-context-window-v1","fresh-retry-v1","text-only-supervisor-v1","dialogue-auto-advance-v1","readout-rules-in-prompt-v1","explorer-guidance-v1","untaken-exits-v1","explorer-guidance-v2","people-id-cards-v1","harness-trust-v1","cited-destination-v1","harness-trust-v2","input-cuts-v1","just-in-time-prompt-v1","just-in-time-prompt-v2","evolution-decision-v1","starter-decision-salience-v1"] as const).filter(id=>features[id]).map(id=>`state-only-decisions-v1 requires ${id} OFF`);
 }

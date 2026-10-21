@@ -23,10 +23,10 @@ No new external API, paths, subprocess interface or network authority. Dialogue 
 
 ## Milestones
 **M1 — Two independently switched repairs and bundle registration**
-- [x] RED: targeted production tests fail (7 failed, 45 passed); receipt /tmp/pokebench-rejected-red.log. Tests cover first-direction native input and actual unnamed upstairs recording.
-- [ ] Implementation and experiments/explainers
-- [ ] Production wiring deletion/restoration receipts
-- [ ] Gates: test, lint, build, coverage >=90%, vendor
+- [x] RED: targeted production tests fail (7 failed, 45 passed); receipt /tmp/pokebench-rejected-red.log. Commit 5cbf18fe. Tests cover first-direction native input and actual unnamed upstairs recording.
+- [x] Implementation, two default-OFF registry entries, independent blocked/pending definitions, bundle-only flags and linked tracked explainers.
+- [x] Production wiring mutations: movement factory deletion fails four direction tests; dialogue factory deletion fails actual upstairs recording test; both restored, all 56 targeted tests pass. Receipts runs/rejected-movement-instruction/*-deleted.log and wiring-restored.log.
+- [x] Coverage suite: agent 3306, viewer 1613, Python 3647 pass. Lines/branches/functions: agent 99.21/93.12/97.74; viewer 97.90/91.33/94.33; Python 97.27/93.07/100.00. Lint, build, vendor and HTML check pass. Final post-commit gates pending source freeze.
 - [ ] Frozen multi-model review
 - [ ] Land and verify viewer cards/explainers if review gate permits
 
@@ -37,10 +37,19 @@ Production-factory tests and native input seam; replay actual 9f27 dialogue with
 - 2026-10-21: isolated managed worktree from main 143966bc. Worklog created before implementation. Existing run evidence remains immutable.
 
 ## Surprises
-None yet.
+- Appended optional switches require mechanical registry-position and legacy-default fixture updates; existing tests remain enabled. No coverage excludes or thresholds changed.
+- Worktree lacked native mGBA Python binding and ROM environment. Reused canonical pinned binding in isolated venv, set POKEBENCH_ROM explicitly; initial Python failures were environment setup, not code defects. Final 3647-test Python suite passed without skips.
+- Native probe setup attempts are retained and do not count as proof: initial script import failed; initial recorder setup declared an unavailable battle journal and had unqualified metadata; next checkpoint sample was still in its door transition. Probe v4 confirmed input but inherited an experiment tag, so v5 is the qualified manual probe. No measured run was touched or started.
+- Canonical experiments-check reads main definitions/ledgers, not this worktree: it reports 150 pre-existing starter-decision-salience ledger errors. Candidate definitions validate separately with empty ledgers. Current store auto-queues an unnumbered READY entry, so both new entries explicitly use blocked to remain pending until design and reviewed pin.
+
+
+## Native and delivery proof
+Manual native probe v5 (checkpoint resume, no inference, explicit probe label): repair OFF sends zero buttons and stays (5,9); ON sends one DOWN at 10 hold/8 release frames and moves to (5,10). Two remaining directions are dropped. One bootstrap B settles the checkpoint door transition first and is recorded separately. Exact checkpoint hash, source HEAD+dirty identity, events, frames and raw RAM under runs/rejected-movement-instruction/native/. Actual upstairs source fixture includes unchanged delivered dialogue and result, not copied runtime RAM.
+Pinned-pi test proves the next decision receives the requested/submitted/dropped receipt and recorded button_press contains only UP. Production context chain preserves exact WOMAN_4 attribution and upstairs text after newer dialogue and empty/pruned history.
 
 ## Multi-Model Review Log
-Pending.
+Pending frozen packet.
+
 
 ## Boy Scout Log
 None.

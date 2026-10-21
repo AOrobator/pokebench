@@ -469,7 +469,7 @@ describe("viewer server", () => {
     expect(frames).toEqual([PNG, PNG]);
     const reply = await get(viewer, "/api/frame-metrics");
     expect(reply.status).toBe(200);
-    expect(JSON.parse(reply.body.toString())).toMatchObject({ version: 1, runs: [{ run: "live", received: 2, missingSourceFrames: 2, sourceFrame: 13, decode: { count: 2 }, upstreamGap: { count: 1 } }] });
+    expect(JSON.parse(reply.body.toString())).toMatchObject({ version: 1, runs: [{ run: "live", received: 2, offered: 2, sent: 2, send: { count: 2 }, queueWait: { count: 2 }, missingSourceFrames: 2, sourceFrame: 13, decode: { count: 2 }, upstreamGap: { count: 1 } }] });
     expect((await get(viewer, "/api/frame-metrics", {host:"evil.example"})).status).toBe(403);
   });
 

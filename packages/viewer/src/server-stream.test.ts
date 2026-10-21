@@ -5,9 +5,11 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, expect, it, vi } from "vitest";
 import { Log, START, assistant } from "../test-support/events.js";
+import * as runs from "./runs.js";
 import { LogReader } from "./runs.js";
 import { startViewer, type Viewer } from "./server.js";
 
+vi.mock("./runs.js", async (original) => ({ ...await original<typeof import("./runs.js")>() }));
 vi.mock("node:fs", async (original) => ({ ...await original<typeof import("node:fs")>() }));
 
 const viewers: Viewer[] = [], roots: string[] = [];
@@ -453,4 +455,24 @@ it("abandons a backpressured head response when its reader disconnects", async (
   await new Promise<void>(resolve => { setImmediate(resolve); });
   expect(writes).toBe(1);
   expect((await fetch(new URL("api/frame-metrics",viewer.url))).status).toBe(200);
+});
+
+it("does not start SSE after a client disconnects during its asynchronous head read", async () => {
+  const viewer = await serve("abandoned",longRun(1),64);
+  let enter!: () => void, release!: (events: Awaited<ReturnType<typeof runs.readHeadEvents>>) => void;
+  const entered = new Promise<void>(resolve => { enter = resolve; });
+  const pending = new Promise<Awaited<ReturnType<typeof runs.readHeadEvents>>>(resolve => { release = resolve; });
+  vi.spyOn(runs,"readHeadEvents").mockImplementation(() => { enter(); return pending; });
+  let closed!: () => void;
+  const didClose = new Promise<void>(resolve => { closed = resolve; });
+  let headers: ReturnType<typeof vi.spyOn> | undefined;
+  viewer.server.on("request", (_req,res) => { headers = vi.spyOn(res,"writeHead"); res.once("close",closed); });
+  const req = get(new URL("api/runs/abandoned/events?head=1",viewer.url));
+  req.on("error", () => undefined);
+  await entered;
+  req.destroy();
+  await didClose;
+  release([]);
+  await new Promise<void>(resolve => setImmediate(resolve));
+  expect(headers).not.toHaveBeenCalled();
 });

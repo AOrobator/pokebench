@@ -336,6 +336,7 @@ function segments(rawUrl: string): string[] | null {
 // yielding to the event loop between chunks and waiting for the socket to drain, so opening one
 // run never stalls every other request.
 function streamEvents(req: IncomingMessage, res: ServerResponse, path: string, pollMs: number, skew: Skew | null, chunkBytes: number, head?: readonly RunEvent[], offset = 0): void {
+  if (res.destroyed) return;
   res.writeHead(200, { ...SECURITY_HEADERS, "content-type": "text/event-stream; charset=utf-8", connection: "keep-alive" });
   let closed = false, timer: NodeJS.Timeout | null = null;
   const reader = new LogReader(path, chunkBytes, offset);
@@ -582,7 +583,7 @@ async function route(req: IncomingMessage, res: ServerResponse, options: ViewerO
     if (id === undefined) throw new RunsError("no run id");
     const dir = runDir(options.runsRoot, id);
     if(parts.length===4 && leaf==="start") {sendJson(res,200,readStart(options.runsRoot,id));return;}
-    if (parts.length === 4 && leaf === "head") { await sendEventArray(res, await readRecentEventsAsync(options.runsRoot, id), options.streamChunkBytes); return; }
+    if (parts.length === 4 && leaf === "head") { await sendEventArray(res, await readRecentEventsAsync(options.runsRoot, id, undefined, undefined, undefined, undefined, () => res.destroyed), options.streamChunkBytes); return; }
     if (parts.length === 4 && leaf === "events") {
       const path = eventsPath(options.runsRoot, id);
       if (!existsSync(path)) throw new RunsError(`run ${id} has no events.jsonl`);
@@ -592,7 +593,7 @@ async function route(req: IncomingMessage, res: ServerResponse, options: ViewerO
       const cursor = { offset: 0 };
       let head: RunEvent[] | undefined;
       if (new URL(req.url ?? "/", "http://viewer.invalid").searchParams.has("head")) {
-        try { head = await readHeadEvents(options.runsRoot, id, cursor); }
+        try { head = await readHeadEvents(options.runsRoot, id, cursor, undefined, undefined, () => res.destroyed); }
         catch { cursor.offset = 0; } // The diagnostic stream still reports malformed/skewed lines.
       }
       if (res.destroyed) return;
@@ -727,7 +728,9 @@ export async function startViewer(given: ViewerOptions): Promise<Viewer> {
       if (res.headersSent || res.destroyed) res.destroy();
       else sendJson(res, 500, { error: error instanceof Error ? error.message : String(error) });
     });
-    const parts = segments(req.url ?? "/");
+    // Classification must not escape the async route's malformed-URL boundary.
+    let parts: string[] | null;
+    try { parts = segments(req.url ?? "/"); } catch { parts = null; }
     const key = parts?.[0] === "api" ? parts[1] === "runs" ? `runs/${parts.length === 2 ? "list" : parts[3] === "head" ? "head" : parts[3] === "events" ? "events" : "other"}` : parts[1] === "cards" ? "cards" : "other-api" : "static";
     let timing = dispatchTimings.get(key);
     if (timing === undefined) { timing = new Timing(); dispatchTimings.set(key, timing); }

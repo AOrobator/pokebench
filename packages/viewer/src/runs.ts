@@ -469,32 +469,37 @@ export function readRecentEvents(runsRoot: string, runId: string, maxTurns = REC
 }
 
 export const RECENT_SLICE_LINES = 16;
-export async function readRecentEventsAsync(runsRoot: string, runId: string, maxTurns = RECENT_EVENT_TURNS, maxBytes = RECENT_EVENT_BYTES, cursor?: { offset: number }, sliceLines = RECENT_SLICE_LINES): Promise<RunEvent[]> {
+export async function readRecentEventsAsync(runsRoot: string, runId: string, maxTurns = RECENT_EVENT_TURNS, maxBytes = RECENT_EVENT_BYTES, cursor?: { offset: number }, sliceLines = RECENT_SLICE_LINES, cancelled: () => boolean = () => false): Promise<RunEvent[]> {
   if (!Number.isSafeInteger(sliceLines) || sliceLines <= 0) throw new RunsError("recent slice limit must be a positive integer");
   const steps = recentEventSteps(runsRoot, runId, maxTurns, maxBytes, cursor);
   let lines = 0, started = performance.now();
-  for (;;) {
-    const step = steps.next();
-    if (step.done) return step.value;
-    lines += 1;
-    if (lines >= sliceLines || performance.now() - started >= 4) {
-      await yieldImmediate(); lines = 0; started = performance.now();
+  try {
+    for (;;) {
+      if (cancelled()) return [];
+      const step = steps.next();
+      if (step.done) return step.value;
+      lines += 1;
+      if (lines >= sliceLines || performance.now() - started >= 4) {
+        await yieldImmediate(); lines = 0; started = performance.now();
+      }
     }
-  }
+  } finally { steps.return([]); }
 }
 
 // Operator requests are sparse but their acknowledgements can predate the recent
 // turns (notably an extension). When this run has received controls, recover only
 // that metadata asynchronously, without validating/replaying its gameplay prefix.
 // The sidecar's existence is owned by appendControl; absence means no viewer requests.
-export async function readHeadEvents(runsRoot: string, runId: string, cursor: { offset: number }, maxTurns = RECENT_EVENT_TURNS, maxBytes = RECENT_EVENT_BYTES): Promise<RunEvent[]> {
-  const recent = await readRecentEventsAsync(runsRoot, runId, maxTurns, maxBytes, cursor);
+export async function readHeadEvents(runsRoot: string, runId: string, cursor: { offset: number }, maxTurns = RECENT_EVENT_TURNS, maxBytes = RECENT_EVENT_BYTES, cancelled: () => boolean = () => false): Promise<RunEvent[]> {
+  const recent = await readRecentEventsAsync(runsRoot, runId, maxTurns, maxBytes, cursor, RECENT_SLICE_LINES, cancelled);
+  if (cancelled()) return [];
   if (cursor.offset === 0 || !existsSync(join(runDir(runsRoot, runId), "control.jsonl"))) return recent;
   const input = createReadStream(eventsPath(runsRoot, runId), { encoding: "utf8", end: cursor.offset - 1 });
   const lines = createInterface({ input, crlfDelay: Infinity });
   const controls: RunEvent[] = [];
   try {
     for await (const line of lines) {
+      if (cancelled()) return [];
       if (!/"type"\s*:\s*"operator_control"/.test(line)) continue;
       const parsed = parseLine(line, 0);
       if (!parsed.ok) throw new RunsError(`run ${runId} control metadata: ${parsed.problem}`);

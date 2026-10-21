@@ -58,3 +58,7 @@ whole-map-pair-1h-v5.json from main ba71c60f bundle-cook-1h with the whole-map r
 
 ## Pair v6 and the redesign off everywhere (the operator 20:14 NY restart both; 20:21 NY positive-supervisor off everywhere)
 v5 stopped 20:15 (both operator_abort; bundle ef9f stuck at the clock YES/NO box since 20:02). whole-map-pair-1h-v6.json from main dc7d0293 bundle-cook-1h (includes same-target-no-progress-v1 and party-item-confirmation-v1) + full-map-navigation-v1. positive-supervisor-v1 moved to offInBoth in bundle-v-control and bundle-cook-1h (whole-map-cook-1h already off); fixed-runner test updated. Hashes: v6 21470a7f749d (seed 783798b95caaa403), bundle-v-control c70f063ec831, bundle-cook-1h eb377e15ffc4. pnpm -r test: agent 3013, viewer 1440 pass.
+
+## story-progress-clock-v1 in the bundle arms (coordinator relay of the operator's call, 20:42 NY)
+Added as a bundle switch (base false) to bundle-v-control, bundle-cook-1h and whole-map-cook-1h; running v6 untouched. Tests updated: same-target-no-progress.test no longer pins its switch as the last entry; open-goal-prompt.test lists story-progress-clock-v1 among bundle-only extras. Hashes: bundle-v-control 2668ce57c1b8, bundle-cook-1h b384d78a190c, whole-map-cook-1h 972f446b0f91. pnpm -r test: agent 3030, viewer 1442 pass.
+- Reviews: Grok LGTM, Claude LGTM. Landing.

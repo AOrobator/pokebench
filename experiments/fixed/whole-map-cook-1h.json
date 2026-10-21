@@ -180,7 +180,8 @@
    "fail-open-input-v1": false,
    "whiteout-healed-v1": false,
    "gym-readiness-readout-v1": false,
-   "same-target-no-progress-v1": false
+   "same-target-no-progress-v1": false,
+   "story-progress-clock-v1": false
   }
  },
  "switches": [
@@ -233,6 +234,7 @@
   "whiteout-healed-v1",
   "gym-readiness-readout-v1",
   "same-target-no-progress-v1",
+  "story-progress-clock-v1",
   "full-map-navigation-v1"
  ],
  "offInBoth": [

@@ -28,3 +28,5 @@ Source commit94c970f7d03065581b01632a51d9bb651dc15d2c; base24648e12730d02f829675
 ## Operator-authorized landing
 
 The operator replied "yes" to the explicit request to land using the two independent fallback approvals, after disclosure that Claude is unavailable and Grok could not independently verify source identity. This authorizes the review exception. Syncing current main35e152ca; only textual conflict was two independent CSS blocks appended at EOF, both retained. Date-range logic and tests are unchanged; upstream frontier coverage repair is preserved. Integration gates and live proof follow.
+
+Integration at83b85b17:3046 agent/1508 viewer/3470 Python tests pass; coverage agent99.14/92.97/97.59, viewer97.82/91.07/94.19, Python97.21/92.86/100. Full lint/build/vendor pass, real-run experiment audit silent. Reviewed source delta is identical after excluding one blank CSS separator line; both upstream coverage CSS rules preserved. Main advanced to90fa7789 only by adding a fixed experiment definition and its worklog, so these are synced before fast-forward landing; no launch is performed.

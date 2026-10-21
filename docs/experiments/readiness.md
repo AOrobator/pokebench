@@ -250,3 +250,11 @@ Pending only; no queue position or approval. Activation: OLDALE_TOWN, the earlie
 Production readinessOf refresh: NOT READY, recent basis, 0/4 reached OLDALE_TOWN (minimum 3/4). Considered think-fast boot runs 2026-10-15T13-36-02_think-fast_2f46, 14-21-06_think-fast_6684, 15-06-08_think-fast_dc0e and 15-51-18_think-fast_17a0. The current GPU cook runs use a different recorded model identifier/start and do not qualify for this standalone entry's lane. Saved receipt: runs/menu-refusal-recovery/readiness.json. Pending only; no queue/approval/launch.
 
 - `gym-door-label-v1`: pending only. First activation PETALBURG_CITY. Native retained-state label check complete; no experiment queued or approved. Diagnostic design and readiness evaluation required before queueing.
+
+## caught-dex-input-v1 (2026-10-21)
+
+Pending, not queued. Correctness tier: c6c2 event 12066 / native archive 5393 proves
+an A/B-owned registration page is incorrectly read as busy. Activation milestone
+STARTER_CHOSEN is only a conservative lower bound; milestone reach alone does not
+prove catches, so no catch-specific readiness or performance claim is made. No
+measured cohort is needed to establish this decoder repair, and none is authorized.

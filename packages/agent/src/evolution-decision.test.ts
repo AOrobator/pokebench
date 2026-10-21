@@ -4,7 +4,7 @@ import {Value} from 'typebox/value';
 import {readFileSync} from 'node:fs';
 import {gameTools} from './game-tools.js';
 import {ALL_ON as GYM_EVIDENCE_CURRENT_ALL_ON,playHarnessFeatures,SWITCHABLE_FEATURES,stateOnlyProblems} from './features.js';
-const ALL_ON={...GYM_EVIDENCE_CURRENT_ALL_ON,"gym-evidence-v1":false};
+const ALL_ON={...GYM_EVIDENCE_CURRENT_ALL_ON,"milestone-instruction-memory-v1":false,"gym-evidence-v1":false};
 import {flagFeatures} from './play-preset.js';
 import {playTools,toolSwitches,jitTools,playSystemPrompt} from './play-config.js';
 import {parseGameState,type GameStateSnapshot} from './game-state.js';

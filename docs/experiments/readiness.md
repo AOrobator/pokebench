@@ -286,3 +286,9 @@ Pending, unqueued and unapproved. NEW_GAME_CREATED activation is reachable; heal
 Pending, unqueued and unapproved. WALLY_TUTORIAL_COMPLETE is the conservative activation lower bound: Dad names the Gym immediately afterwards. Gym false-completion exposure requires a qualified post-trainer/pre-heal checkpoint; milestone reach alone is insufficient. Deterministic recorded-data proof is not gameplay-benefit evidence. Source will name the reviewed code checkpoint; repin before any future measured use.
 
 Gym-evidence readiness receipt: 0/4 WALLY_TUTORIAL_COMPLETE in recent think-fast fallback runs (2026-10-15T13-36-02_think-fast_2f46, 14-21-06_think-fast_6684, 15-06-08_think-fast_dc0e, 15-51-18_think-fast_17a0); no candidate schema/unknown-switch problems. These historical boot runs are not the current Qwen checkpoint lane. Keep pending. The global checker reports 150 pre-existing starter-decision-salience trial-ledger errors; originals unchanged.
+
+## trigger-navigation-boundary-v1
+
+Pending; not queued or approved. The recorded ea04 run reaches Rustboro var 0x405A=1 after Roxanne, proving this failure is reachable. Formal lane readiness and checkpoint experiment design have not been qualified. Source pins synchronized implementation commit b4e5fa03; no trials launched.
+
+- `milestone-instruction-memory-v1`: pending only, blocked on reviewed landing pin and checkpoint cohort design. Activates at first delivered field dialogue (FIRST_TRUCK_EXIT readiness proxy); verified native scene completion gates retirement. Six historical prefix replays test retention, not gameplay benefit. No queue position or approval.

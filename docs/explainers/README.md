@@ -209,3 +209,7 @@ The original ignored runs/explainers copies remain for existing links. Make futu
 - [Drought hold in battles and heals](drought-battle-heal-hold-v1.html) — default OFF, bundle arm only: milestone-drought briefings are held (recorded as diagnostics) during battles, trainer sight scripts and harness-ordered heal trips; the drought clock restarts when a hold that kept a briefing back ends, or when the asked-for heal is done.
 
 - [Gym evidence](gym-evidence-v1.html): current native completion, compound Gym identity and citation delivery; no next-action guidance.
+
+- [Script trigger boundaries](trigger-navigation-boundary-v1.html) — matching scripts interrupt navigation instead of blocking the route.
+
+- [Milestone instruction memory](milestone-instruction-memory-v1.html): conservative native-scene retirement, compact whole-episode memory and six frozen trace keep/drop audits.

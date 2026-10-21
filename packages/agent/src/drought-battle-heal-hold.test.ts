@@ -7,7 +7,7 @@ import {readFileSync} from "node:fs";
 import {IN_GAME} from "../test-support/events.js";
 import {checkEvent,type RunEvent} from "./events.js";
 import {ALL_ON as GYM_EVIDENCE_CURRENT_ALL_ON,FEATURES,SWITCHABLE_FEATURES,featureInfo,playHarnessFeatures,type FeatureSet} from "./features.js";
-const ALL_ON={...GYM_EVIDENCE_CURRENT_ALL_ON,"gym-evidence-v1":false};
+const ALL_ON={...GYM_EVIDENCE_CURRENT_ALL_ON,"milestone-instruction-memory-v1":false,"gym-evidence-v1":false};
 import {flagFeatures,normalizeFeatures} from "./play-preset.js";
 import {STALL_DROUGHT_MS,StallBriefing} from "./stall-briefing.js";
 import {stallBriefing} from "./play-wiring.js";
@@ -182,9 +182,9 @@ describe("production factory",()=>{
 
 describe("registry",()=>{
  it("is the last switch: a default-off guard that needs stall-briefing-v1, with OFF copy",()=>{
-  expect(SWITCHABLE_FEATURES.at(-2)).toBe(ID);
-  expect(FEATURES.filter(f=>f.switchable).at(-2)?.id).toBe(ID);
-  expect(playHarnessFeatures(ALL_ON,null).at(-1)).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-4)).toBe(ID);
+  expect(FEATURES.filter(f=>f.switchable).at(-4)?.id).toBe(ID);
+  expect(playHarnessFeatures(ALL_ON,null).at(-2)).toBe(ID);
   expect(playHarnessFeatures(LEGACY_ALL_ON,null)).not.toContain(ID);
   expect(featureInfo(ID)).toMatchObject({group:"guard",needs:"stall-briefing-v1",switchable:true});
   expect(featureInfo(ID).description).toContain(" Off: ");

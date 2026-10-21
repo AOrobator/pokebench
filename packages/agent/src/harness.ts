@@ -248,11 +248,11 @@ function firstText(result: ToolResultMessage | undefined): string {
   return part?.type === "text" ? part.text : "";
 }
 
-export function attachLoopGuard(recorder: Pick<RunRecorder, "subscribe" | "recordLoopGuard">, governor: Governor, policy?: LoopPolicy, mode:LoopMode="enforced", interactions=false, supervisor?: (kind: LoopKind, calls: number) => string, transitions=false, pushback=false, battles=false, messageTruth=false, ineffectiveLoops=false, menuLoop=false, clockViews=false, closedDialogue=false,triggerScriptLoops=false,battleRefusals=false,ineffectiveNavigation=false,sameTargetNoProgress=false,features?:Pick<FeatureSet,"menu-refusal-recovery-v1">): LoopDetector {
+export function attachLoopGuard(recorder: Pick<RunRecorder, "subscribe" | "recordLoopGuard">, governor: Governor, policy?: LoopPolicy, mode:LoopMode="enforced", interactions=false, supervisor?: (kind: LoopKind, calls: number) => string, transitions=false, pushback=false, battles=false, messageTruth=false, ineffectiveLoops=false, menuLoop=false, clockViews=false, closedDialogue=false,triggerScriptLoops=false,battleRefusals=false,ineffectiveNavigation=false,sameTargetNoProgress=false,features?:Pick<FeatureSet,"menu-refusal-recovery-v1"> & Partial<Pick<FeatureSet,"progress-aware-cycles-v1">>): LoopDetector {
   const detector = new LoopDetector((notice) => {
     recorder.recordLoopGuard({...notice,evidence:[...notice.evidence]});
     if (notice.phase === "stop") governor.abort("stuck");
-  }, policy, mode, interactions, supervisor, transitions, pushback, battles, messageTruth, ineffectiveLoops, menuLoop, clockViews, closedDialogue,triggerScriptLoops,battleRefusals,ineffectiveNavigation,sameTargetNoProgress,features?.["menu-refusal-recovery-v1"]??false);
+  }, policy, mode, interactions, supervisor, transitions, pushback, battles, messageTruth, ineffectiveLoops, menuLoop, clockViews, closedDialogue,triggerScriptLoops,battleRefusals,ineffectiveNavigation,sameTargetNoProgress,features?.["menu-refusal-recovery-v1"]??false,features?.["progress-aware-cycles-v1"]??false);
   recorder.subscribe((event) => { detector.observe(event); });
   return detector;
 }

@@ -821,7 +821,7 @@ it("keeps section-aware labels OFF in the generic next-run default",()=>{
 it.each([false,true])("rehearses the four-hour GLM pair serially and retains its stop boundary (stop after first: %s)", async stopAfterFirst=>{
  const source=parseFixedDefinition(readFileSync(new URL("../../../experiments/fixed/glm53-flash-4h.json",import.meta.url),"utf8")).definition;
  const canonical=parseFixedDefinition(readFileSync(new URL("../../../experiments/fixed/bundle-v-control.json",import.meta.url),"utf8")).definition;
- const def=dryRunDefinition(source,14_400_000,"cook");
+ const def=dryRunDefinition({...source,base:{...source.base,features:canonical.base.features},controlBase:canonical.controlBase,switches:canonical.switches,offInBoth:canonical.offInBoth,onInBoth:canonical.onInBoth},14_400_000,"cook");
  for(const arm of ["bundle","control"] as const)expect(armFeatureBits(def,arm)).toEqual(armFeatureBits(canonical,arm));
  const {runsRoot,dir}=setup(def);let stop=false;
  class GlmFake extends Fake {
@@ -851,5 +851,14 @@ it.each([false,true])("rehearses the four-hour GLM pair serially and retains its
   const preset=JSON.parse(readFileSync(launch.presetPath,"utf8")) as {target:null;limits:{maxWallMs:number};features:Record<string,boolean>;start:{sha1:string}};
   expect(preset.target).toBeNull();expect(preset.limits.maxWallMs).toBe(14_400_000);expect(preset.start.sha1).toBe("b3a6cc1c19836600a15febf41b8f8b19661ce5d4");
   expect(preset.features).toEqual(armFeatures(canonical,launch.arm));
+ }
+});
+
+it("adds progress-aware cycles only to the bundle in canonical and current whole-map definitions",()=>{
+ for(const name of ["bundle-v-control","bundle-cook-1h","whole-map-pair-2h","whole-map-cook-1h"]){
+  const {definition:def}=parseFixedDefinition(readFileSync(new URL(`../../../experiments/fixed/${name}.json`,import.meta.url),"utf8"));
+  expect(def.switches).toContain("progress-aware-cycles-v1");
+  expect(armFeatures(def,"control")["progress-aware-cycles-v1"]).toBe(false);
+  expect(armFeatures(def,"bundle")["progress-aware-cycles-v1"]).toBe(true);
  }
 });

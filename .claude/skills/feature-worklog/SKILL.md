@@ -11,7 +11,15 @@ This is the PokeBench variant of the canonical pattern in `~/dev/local-inference
 
 - The body is tracked at `docs/worklogs/active/<YYYY-MM-DD>_<slug>.md`.
 - The root `WORKLOG.md` is a gitignored one-line pointer to the body. Read the pointer first, then the body.
-- To archive (only with operator approval): move the body to `docs/worklogs/<YYYY-MM-DD>_<slug>.md` and delete the pointer.
+- To archive (only with operator approval): move the body to `docs/worklogs/<YYYY-MM-DD>_<slug>.md` and delete the pointer only if it points to this worklog; preserve pointers belonging to other tasks.
+
+## Commit without waiting for landing
+
+Once the operator authorizes archival, move and update the worklog and commit it
+on the owned branch immediately. Do not leave an unapplied patch waiting for the
+coordinator. Coordinator approval and the landing board govern moving `main`,
+not committing on an isolated branch. A merge pause leaves branch commits
+available; report an archive as committed on its branch until it actually lands.
 
 ## Start gate
 

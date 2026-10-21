@@ -4187,6 +4187,54 @@
           },
           "maxItems": 1
         },
+        "heal_routes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "outward",
+              "back"
+            ],
+            "properties": {
+              "outward": {
+                "type": "array",
+                "items": {
+                  "type": "array",
+                  "additionalItems": false,
+                  "items": [
+                    {
+                      "type": "integer"
+                    },
+                    {
+                      "type": "integer"
+                    }
+                  ],
+                  "minItems": 2
+                },
+                "minItems": 2
+              },
+              "back": {
+                "type": "array",
+                "items": {
+                  "type": "array",
+                  "additionalItems": false,
+                  "items": [
+                    {
+                      "type": "integer"
+                    },
+                    {
+                      "type": "integer"
+                    }
+                  ],
+                  "minItems": 2
+                },
+                "minItems": 2
+              }
+            },
+            "additionalProperties": false
+          },
+          "maxItems": 64
+        },
         "sightings": {
           "type": "array",
           "items": {

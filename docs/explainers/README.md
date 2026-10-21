@@ -195,3 +195,5 @@ The original ignored runs/explainers copies remain for existing links. Make futu
 - [First Roxanne interaction](roxanne-first-interaction-v1.html) — measurement and historical evidence.
 
 - [Caught Pokédex registration input](caught-dex-input-v1.html): battle-owned post-catch A/B page; default OFF, bundle ON.
+
+- [Progress-aware cycles](progress-aware-cycles-v1.html): bounded healing trips and milestone-turn precedence.

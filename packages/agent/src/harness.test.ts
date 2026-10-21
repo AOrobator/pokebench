@@ -1030,3 +1030,29 @@ for(const recover of [false,true])it(`delivers shop refusal feedback through pin
   expect(events.filter(e=>e.type==="button_press").map(e=>e.buttons)).toEqual(recover?[["B"]]:[]);
  }finally{rmSync(root,{recursive:true,force:true});}
 });
+
+it("progress-aware cycles retire a milestone-turn note before the next real pi decision, preserving unrelated guards",async()=>{
+ const {RunRecorder}=await import("./recorder.js");const {RunLog}=await import("./run-log.js");const {FrameStore}=await import("./frames.js");
+ const {RUN_START_META,IN_GAME}=await import("../test-support/events.js");
+ const root=mkdtempSync(join(tmpdir(),"pokebench-progress-pi-"));
+ try{
+  for(const on of [false,true]){
+   const log=RunLog.create(root,on?"on":"off");
+   let advanced=false;
+   const recorder=new RunRecorder({log,frames:new FrameStore(root),milestones:{poll:()=>Promise.resolve([]),observe:()=>advanced?[{name:"ROUTE_103" as const,kind:"navigation" as const,origin:"observed" as const,serverTimestamp:0}]:[]},gameState:{read:()=>Promise.resolve(IN_GAME)}});
+   await recorder.start(RUN_START_META,false);
+   const {g}=governor({maxTurns:2});
+   const detector=attachLoopGuard(recorder,g,undefined,"enforced",false,undefined,false,false,false,false,false,false,false,false,false,false,false,false,{"menu-refusal-recovery-v1":false,"progress-aware-cycles-v1":on});
+   const stale="SUPERVISOR: do not try the healing trip again";
+   const tool:AgentTool={name:"press",label:"press",description:"press",parameters:Type.Object({}),execute:()=>{
+    detector.stall("map_cycle",()=>stale,[1]);
+    advanced=true;
+    return Promise.resolve({content:[{type:"text" as const,text:"game advanced"}],details:{state:IN_GAME}});
+   }};
+   const seen:Message[][]=[];const controller=new AbortController();
+   const loop=piLoop({systemPrompt:"play",tools:[tool],base:{model:MODEL,convertToLlm:m=>m as Message[]},governor:g,transformContext:recorder.transformContext,emit:recorder.emit,signal:controller.signal,loopDetector:detector,streamFn:scriptedModel([reply(),reply()],seen)});
+   await play(TASK,g,loop);
+   expect(JSON.stringify(seen[1]).includes(stale)).toBe(!on);
+  }
+ }finally{rmSync(root,{recursive:true,force:true});}
+});

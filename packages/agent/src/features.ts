@@ -198,6 +198,7 @@ export const SWITCHABLE_FEATURES = [
   "seen-trainers-ledger-v1",
   "party-coverage-v1",
   "said-type-matches-v1",
+  "progress-aware-cycles-v1",
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
 
@@ -509,6 +510,7 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("seen-trainers-ledger-v1", "observation", "SEEN TRAINERS LEDGER", "heal-before-trainers-v2", "Bundle arm only, default off (the operator 2026-10-21: \"both sets\", after the Rustboro strategy report: 11 runs reached the RUSTBORO CITY GYM between Oct 19 and Oct 21, 8 fought ROXANNE 17 times and lost every time with a lone TORCHIC at Lv13-15). After losing, the 4 control runs never fought TOMMY or MARC in the same gym. In the Training block: the trainers the readout listed (heal-before-trainers-v2) on each map the player stood on this run, by map, each beaten, battled and not beaten, or not beaten, by the trainer's name once a battle showed it, else the sprite kind. Only maps visited and trainers listed there; nothing says where to go. Needs heal-before-trainers-v2. Off: no lines."),
   on("party-coverage-v1", "observation", "PARTY COVERAGE", "battle-text-auto-advance-v1", "Bundle arm only, default off (the operator 2026-10-21: \"both sets\", after the Rustboro strategy report: 11 runs reached the RUSTBORO CITY GYM between Oct 19 and Oct 21, 8 fought ROXANNE 17 times and lost every time with a lone TORCHIC at Lv13-15). At battle decisions: for each party move, what the game printed right after it hit each foe type this run (\"It's super effective!\", \"It's not very effective…\", \"It doesn't affect …\", or nothing printed), grouped by the foe's types from the battle state, then the foe types met this run that no party move has drawn \"It's super effective!\" against. Only what the game printed; no type chart. Off: no block."),
   on("said-type-matches-v1", "observation", "SAID TYPE MATCHES", null, "Bundle arm only, default off (the operator 2026-10-21: \"both sets\", after the Rustboro strategy report: 11 runs reached the RUSTBORO CITY GYM between Oct 19 and Oct 21, 8 fought ROXANNE 17 times and lost every time with a lone TORCHIC at Lv13-15). The RUSTBORO GYM GUIDE says the ROCK type \"can't stand WATER-type and GRASS-type moves\", but nothing linked that to the WINGULL with WATER GUN in front of the model. Every field page that names a type (\"X-type\") is kept with its map; at battle decisions each foe move and party move whose type a kept line names gets that line and the map: Said on RUSTBORO CITY GYM: \"…can't stand WATER-type and GRASS-type moves.\" — WATER GUN is WATER-type. Only lines the game printed this run. Off: no lines."),
+  on("progress-aware-cycles-v1", "guard", "PROGRESS-AWARE CYCLES", null, "Default off; bundle only. Newly observed milestone turns retire stale cycle feedback. After a healing-gate refusal, cycle checks exempt travel along recorded game-map routes to an offered healing place and back to the refusal position or opponent, with full party HP verified at the destination. A deviation, confirmed override or battle ends the exemption; at most 48 completed calls and fewer than 4 consecutive calls without a new position or HP state. Repeated refusals cannot renew it. Other guards stay active. Suppressions are recorded in Activity History. Off: cycle guards, map-cycle history, gate records and model feedback retain their previous behavior."),
 ];
 
 export const ALL_ON: FeatureSet = Object.fromEntries(SWITCHABLE_FEATURES.map((id) => [id, true])) as Record<SwitchableFeature, boolean>;
@@ -752,6 +754,7 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("seen-trainers-ledger-v1"),
     ...when("party-coverage-v1"),
     ...when("said-type-matches-v1"),
+    ...when("progress-aware-cycles-v1"),
   ];
 }
 

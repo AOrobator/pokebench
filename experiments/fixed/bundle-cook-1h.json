@@ -208,7 +208,8 @@
    "leader-attempt-ledger-v1": false,
    "seen-trainers-ledger-v1": false,
    "party-coverage-v1": false,
-   "said-type-matches-v1": false
+   "said-type-matches-v1": false,
+   "progress-aware-cycles-v1": false
   }
  },
  "switches": [
@@ -287,7 +288,8 @@
   "leader-attempt-ledger-v1",
   "seen-trainers-ledger-v1",
   "party-coverage-v1",
-  "said-type-matches-v1"
+  "said-type-matches-v1",
+  "progress-aware-cycles-v1"
  ],
  "offInBoth": [
   "semantic-navigation-v1",

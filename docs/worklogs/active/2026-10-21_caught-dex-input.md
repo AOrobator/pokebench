@@ -154,3 +154,11 @@ Mart integration native suite:3647 passed. Registry expectation updates append
 caught-dex after gym-door and mart-stock without changing their existing order.
 Earlier stale expectation failures were retained in logs and corrected; no
 assertion or test was removed. Final frozen review follows clean combined gates.
+
+Final integration gates: agent3287 and Python3647 pass. The card-projection
+fixture's fixed 5000 tiny historical rows missed its 20× reduction assertion
+by8 serialized bytes after one registered feature increased fixed header cost.
+Preserved the 20× assertion and production code; raised the bounded historical
+fixture to6000 rows so the test measures omitted history rather than a marginal
+header-size boundary. Both explainers remain sibling tests. Viewer full suite
+and final lint rechecked before freezing the operator-approved landing packet.

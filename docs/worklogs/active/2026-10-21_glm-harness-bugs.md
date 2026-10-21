@@ -55,7 +55,7 @@ No new subprocesses, network calls or file paths. RAM reads go through `pokebenc
 - [x] Implement: `StoryDestinations(…, playerName)` drops the readout's player name from the "He/She lives" candidates at resolve time; wired in `withStoryDestinations` and, through `TrustOptions.playerName`, in `play-wiring.ts` for the harness-trust Story goal line
 - [x] Guard check: removing the play-wiring option turned "playGameTools passes the switch…" red; removing the withStoryDestinations argument turned "withStoryDestinations reads the switch…" red; both restored
 - [x] Gates: lint clean (tsc, eslint, ruff, mypy); build; coverage agent 97.33/93.06/97.8/99.24 (stmts/branches/funcs/lines), viewer 95.41/91.33/94.33/97.9, Python gate ≥90; agent 3330 tests, viewer 1613, Python 3691. (The worktree's env venv needed the main checkout's mgba binding symlinked; test_view failed without it.)
-- [ ] COMMIT (GREEN)
+- [x] COMMIT (GREEN): `feat: story-goal-player-name-v1 leaves the player's own name out of He/She lives (default off)` (bc5565aaf)
 - [ ] Multi-model review loop until clean
 
 **M2 — Drought briefings held during battles and ordered heals** (after `codex/bounded-heal-cycle` lands)

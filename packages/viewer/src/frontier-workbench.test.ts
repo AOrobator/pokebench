@@ -313,3 +313,24 @@ it("retains extreme frontier and live runs, and leaves small cohorts unfiltered"
   expect(plotted("ended-extreme")).not.toBeNull();
   wb.destroy();
 });
+
+it("keeps outliers hidden when experiment, model, configuration, date or overlay filters leave one run", async () => {
+  const measurement = { controller: "agent" as const, features: ["story-milestones-v2"], logSha256: "a".repeat(64), pausedMs: 0, rawSplits: [] };
+  const normal = Array.from({length:20}, (_, i) => Object.assign(run({id:`normal-${String(i)}`, started:"2026-10-19T12:00:00Z"}), {measurement}));
+  const config = run().config; if (config === null) throw Error("fixture config");
+  const extreme = Object.assign(run({id:"extreme", cohort:"six-hour", model:"outlier-model", started:"2026-10-20T12:00:00Z", config:{...config,preset:"long-config"}, splits:run().splits.map(s=>({...s,elapsedMs:s.elapsedMs*100}))}), {measurement});
+  const wb = new Workbench(document,{fetchSnapshot:()=>Promise.resolve({version:1,at:1000,milestones:[],runs:[...normal,extreme],problems:[]}),now:()=>1000,width:()=>900});
+  await wb.refresh();
+  const points = () => ui("frontier-full").querySelectorAll('[data-run="extreme"]');
+  const button = document.querySelector<HTMLButtonElement>("[data-frontier-outliers]"); if (button === null) throw Error("outlier button");
+  for (const [name,value] of [["cohort","six-hour"],["model","outlier-model"],["preset","long-config"],["date-from","2026-10-20"],["date-through","2026-10-20"],["overlay","extreme"]] as const) {
+    if (name === "date-through") change("date-from","2026-10-20");
+    change(name,value);
+    expect(points(),name).toHaveLength(0); expect(button.textContent,name).toContain("(1)");
+    button.click(); expect(points(),name).toHaveLength(2); button.click(); expect(points(),name).toHaveLength(0);
+    if (name === "date-from" || name === "date-through") { change("date-from",""); change("date-through",""); } else change(name,"all");
+  }
+  change("cohort","six-hour"); await wb.refresh();
+  expect(points()).toHaveLength(0); document.querySelector<HTMLButtonElement>('[data-frontier-view="full"]')?.click(); expect(points()).toHaveLength(0);
+  button.click(); expect(points()).toHaveLength(2); wb.destroy();
+});

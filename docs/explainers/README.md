@@ -164,6 +164,7 @@ The original ignored runs/explainers copies remain for existing links. Make futu
 - [party-item-confirmation-v1](party-item-confirmation-v1.html): native party item message confirmation readiness.
 - [Story progress clock](story-progress-clock-v1.html) — bundle-only correctness fix: the measurement-only story steps (the rival battle starting, the send-off, ...) restart the stall briefing's drought clock and become the briefings' "Last story progress".
 - [YES/NO answer readout](yes-no-answer-readout-v1.html) — bundle-only readout line under the Interface line of an open YES/NO box: how to answer the other option and what A answers now, from the highlighted option in RAM.
+- [Story battle heal gate](story-battle-heal-gate-v1.html) — bundle-only guard: while a party Pokémon is below max HP, a press of A, navigate_to_target or navigate_to that would start the Route 103 rival battle or a gym trainer battle (in gyms also a route a trainer can see) is not started; it says so in the game's words with the hurt party and known heal places, and confirm: true goes ahead.
 
 - [Navigation tool-use guard](navigation-tool-use-guard-v1.html) — default OFF, bundle ON; benefit unmeasured.
 - [Semantic current-map feedback](semantic-current-map-feedback-v1.html) — default OFF, bundle ON; benefit unmeasured.

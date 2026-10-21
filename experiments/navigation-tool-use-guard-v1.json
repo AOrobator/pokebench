@@ -192,6 +192,7 @@
    "story-progress-clock-v1": false,
    "yes-no-answer-readout-v1": false,
    "field-move-gates-v1": false,
+   "story-battle-heal-gate-v1": false,
    "navigation-tool-use-guard-v1": false,
    "semantic-current-map-feedback-v1": false
   }

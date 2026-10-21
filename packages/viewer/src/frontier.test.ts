@@ -503,3 +503,17 @@ describe("recorded comparison coverage", () => {
     expect(document.querySelectorAll('[data-run="probe"], [data-run="broken"], [data-run="unknown"]')).toHaveLength(0);
   });
 });
+
+it("uses the complete eligible population and recorded story maxima when only an early outlier is selected", () => {
+  const normal = Array.from({length:20}, (_,i) => measured(`population-${String(i)}`,[null,null,null,null,null,null,null,null,null,120000]));
+  const extreme = measured("early-extreme",[12000000]);
+  const ignoredHuman = Array.from({length:20}, (_,i) => measured(`human-${String(i)}`,[24000000],"human"));
+  const refs = {human:null,best:null}, population = [...normal,extreme,...ignoredHuman];
+  const plot = (zoom: boolean, hide: boolean) => frontierPlot(refs,[extreme],900,null,[],zoom,null,null,hide,population);
+  for (const zoom of [true,false]) {
+    const hidden = plot(zoom,true), restored = plot(zoom,false);
+    expect(hidden).not.toContain('data-run="early-extreme"');
+    expect(hidden).toContain('data-hidden-outliers="1"');
+    expect(restored).toContain('data-run="early-extreme"');
+  }
+});

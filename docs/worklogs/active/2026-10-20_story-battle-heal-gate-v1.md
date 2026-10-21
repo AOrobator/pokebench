@@ -58,6 +58,9 @@ Build a gate: while any party Pokémon (not an egg) is below max HP, refuse an a
 - COMMIT: `fix: story-battle-heal-gate-v1 leaves auto-talk's own calls ungated; pending experiment matches the current bundle arm (review round 1)`
 - Sync 2: `git merge main` (912a6954: field-move-gates-v1, frontier recordings). navigation.ts conflict resolved by keeping main's withNavigation options and adding the healGate spread; registry collateral as before; experiment incumbent rebuilt from the current bundle arm. Gates on the merged tip: lint 0, build 0, coverage 0: agent 3083 (97.18 / 93.00 / 97.60 / 99.17), viewer 1510 (95.25 / 91.09 / 94.19 / 97.81), Python 3470 (lines 97.21, branches 92.86, functions 100); gate module 98.88 / 93.71 / 100 / 99.23. Schema unchanged by regeneration.
 
+- COMMIT: `merge: main (field-move-gates-v1, frontier recordings) into story-battle-heal-gate-v1; registry collateral` (b2fe1f25)
+- Sync 3: `git merge main` (95498e57: frontier date range, GLM Mac-lane config) merged cleanly. On the tip: lint 0, build 0; agent 3083 with 3 timing failures under load average 54 (live-human, serial-comparison; untouched files) that pass alone (50/50); viewer 1511/1512 with the known experiment-cli build-stamp flake passing alone (11/11); pytest 3470 passed with .env loaded.
+
 ## Surprises
 - b300's turn-501 route runs into HIKER MARC's template tile (1,6) (he is not loaded at seq 15233), so the gate also says the walk would end next to him at (1,7). True by the planner's route; the sight at (1,9), step 12, comes first.
 - In the refusal's observation the existing warnings (story battle, heal before trainers) still fire by their own arms; in 97a0 they had already fired at 4539/4509, so a live run would not repeat them.

@@ -105,7 +105,7 @@ No new network surface, subprocesses or file paths. ROM read only through existi
 - [x] Emulator check: no save state at a move-learn prompt exists (ea04 and 97a0 have raw-RAM archives only) and the worktree venv has no mgba binding, so fixtures only: recorded TS states through the fake game, and the production `learn_step` / `battle_learner` on the nine 97a0 raw-RAM archives.
 - [x] Guard deletion: withLearnMove unwired in play-wiring → 1 red; before-press screen check removed → 1 red; cursor index check removed → 1 red; `install_learn_wait` removed → route test red; restored → 23 + 24 green.
 - [x] Gates: vitest agent 4331 / viewer 1656; pytest 3836; lint clean (tsc, eslint, ruff, ruff format, mypy); build ok; coverage agent 99.2 L / 93.12 B / 97.8 F, viewer 97.95 / 91.34 / 94.35, Python 97.29 / 93.18 / 100 (learn-move.ts 98.6 L / 92.8 B; learn_move_wait.py 100).
-- [ ] COMMIT GREEN. Review deferred to one branch packet before landing (coordinator: max 2 rounds).
+- [x] COMMIT GREEN: `feat(move-learn): move-learn-tool-v1 adds learn_move, which answers the move-learning prompts one checked press at a time and verifies the party's moves` (2af9cefca). Review deferred to one branch packet before landing (coordinator: max 2 rounds).
 
 **M6 — Explainers, experiments, landing**
 - [ ] One Emerald-themed explainer per switch (`just pages-theme`, `just pages-check` clean), linked from feature cards; 127.0.0.1:8791 links verified 200.
@@ -123,6 +123,8 @@ Tests per switch; fake-state executor rehearsal for `learn_move`; viewer check t
 - 2026-10-21 3:43 PM ET: The operator approved building the fixes and asked for the tool-prompt skill. Worklog written; coordinator relayed that this yes covers building; M0 started 3:47 PM ET. Arms and landing stay ASK USER.
 
 - 2026-10-21 (implementer subagent): M0–M4 built RED → GREEN on this branch, each switch default off with OFF pinned (prompt hashes, golden readout, OFF-path tests). Multi-model review deferred to one branch packet before landing (coordinator: max 2 rounds). M5 (`move-learn-tool-v1`) and M6 (explainers, experiments, landing) not started; no `experiments/*.json` entries added (no registry test demanded them).
+
+- 2026-10-21 (implementer subagent): M5 (`move-learn-tool-v1`) built RED → GREEN (0dcfc846c, 2af9cefca); fixtures only (no save state at a move-learn prompt). Deferred: the server readout's learn_move pointer (needs a server switch).
 
 ## Surprises
 

@@ -188,10 +188,14 @@ class Runner {
         const running = state.slots.find((s) => s.lane === lane.id && state.launches.has(s.slot) && !state.outcomes.has(s.slot));
         if (running !== undefined) {
           if (!this.holdLease(lane)) {
+            if (this.o.stopRequested()) {
+              this.setLane(lane.id, { state: "stopped", reason: "stopped by the operator: no new trials start", slot: null, arm: null, phase: null, run: null, retryAt: null });
+              return false;
+            }
             await this.o.host.sleep(POLL_MS);
             continue;
           }
-          await this.adopt(lane, running, state.started.get(running.slot)?.pid ?? null);
+          await this.adopt(lane, running, state.launches.get(running.slot)?.run ?? "", state.started.get(running.slot)?.pid ?? null);
           continue;
         }
         if (this.o.stopRequested()) {
@@ -238,7 +242,8 @@ class Runner {
 
   private async pause(lane: FixedLane, reason: string, failures: number, error = reason): Promise<void> {
     const wait = BACKOFF_MS[Math.min(failures, BACKOFF_MS.length) - 1] ?? POLL_MS;
-    this.releaseLease(lane);
+    // A lane whose adopted trial still plays keeps its lease through the backoff.
+    if (!this.children.has(lane.id)) this.releaseLease(lane);
     this.lastError = `lane ${lane.id}: ${error}`;
     this.say(`${this.o.def.id} lane ${lane.id} paused: ${reason}`);
     this.setLane(lane.id, { state: "paused", reason, slot: null, arm: null, phase: null, run: null, lastError: error, retryAt: new Date(this.o.host.now().getTime() + wait).toISOString() });
@@ -353,9 +358,9 @@ class Runner {
     return this.record(lane, slot, run, launchError === null ? outcome : { ...outcome, valid: false, reason: `launch failed: ${launchError}` });
   }
 
-  private async adopt(lane: FixedLane, slot: QueueSlot, pid: number | null): Promise<void> {
-    const launch = queueState(this.o.def, this.ledger()).launches.get(slot.slot);
-    const run = launch?.run ?? "";
+  // The child is recorded before anything that can throw and cleared only once it has exited, so a
+  // pause on the way keeps the lane's lease while the adopted trial still plays.
+  private async adopt(lane: FixedLane, slot: QueueSlot, run: string, pid: number | null): Promise<void> {
     if (pid !== null && this.o.host.alive(pid)) {
       this.children.set(lane.id, { slot: slot.slot, run, pid });
       this.writeRunner();
@@ -364,6 +369,7 @@ class Runner {
       this.children.delete(lane.id);
       this.writeRunner();
     }
+    this.children.delete(lane.id);
     this.record(lane, slot, run, classifyTrial(this.events(run), this.expectation(lane, slot), undefined));
   }
 

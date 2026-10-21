@@ -184,6 +184,7 @@
    "same-target-no-progress-v1": false,
    "story-progress-clock-v1": false,
    "yes-no-answer-readout-v1": false,
+   "field-move-gates-v1": false,
    "story-battle-heal-gate-v1": false
   }
  },
@@ -240,6 +241,7 @@
   "same-target-no-progress-v1",
   "story-progress-clock-v1",
   "yes-no-answer-readout-v1",
+  "field-move-gates-v1",
   "story-battle-heal-gate-v1"
  ],
  "offInBoth": [

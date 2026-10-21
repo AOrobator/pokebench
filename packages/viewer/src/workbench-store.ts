@@ -544,7 +544,22 @@ export async function workbenchSnapshot(root: string, healthy: HealthProbe, now:
   const found = mode.partial === true
     ? await Promise.all(reduced.map(async s => s.id === mode.cards?.selected ? loader.load(root, s.id) : loader.current(root, s.id)))
     : await Promise.all(reduced.map(s => loader.load(root, s.id)));
-  const loadedRuns = found.filter((l): l is Loaded => l !== null), waiting = found.length - loadedRuns.length, definitions = experimentDefinitions(experimentsDir, root);
+  const waiting = found.filter(l => l === null).length, definitions = experimentDefinitions(experimentsDir, root);
+  const loadedRuns = found.flatMap((loaded, index): LoadedRun[] => {
+    if (loaded !== null) return [loaded];
+    // Keep cold recordings in their experiment while the worker validates their log. Header-only
+    // placeholders carry no measurement or splits and cannot compete for the frontier or appear live.
+    const summary = reduced[index];
+    if (mode.cards !== undefined || summary === undefined) return [];
+    const pending: LoadedRun = { run: { ...invalidRun(summary.id, "Recording is still loading; story progress has not been validated yet"), model: summary.model, started: summary.started }, port: null, tag: null, timing: null, skew: null };
+    try {
+      const start = startOf(root, summary.id), experiment = start.evaluation?.experiment;
+      pending.run.config = configuration(start); pending.run.arm = experiment?.arm ?? null;
+      pending.run.experiment = experiment === undefined ? null : { ...experiment };
+      pending.tag = experiment === undefined ? null : { experiment: experiment.id, commit: start.harness.commit };
+    } catch (error) { pending.run.problem = errorText(error); }
+    return [pending];
+  });
   const tagged = taggedCohorts(loadedRuns.flatMap(l => l.tag === null ? [] : [{ run: l.run.id, experiment: l.tag.experiment, commit: l.tag.commit, started: l.run.started }]), definitions);
   const newest = new Map<number, { id: string; at: number }>();
   for (const loaded of loadedRuns) if (loaded.port !== null && loaded.run.status === "unresponsive") {

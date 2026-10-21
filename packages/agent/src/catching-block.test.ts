@@ -14,7 +14,7 @@ import { playGameTools } from "./play-wiring.js";
 const EVENTS=gunzipSync(readFileSync(new URL("./fixtures/catching-6abf.jsonl.gz",import.meta.url))).toString("utf8").trim().split("\n").map(l=>JSON.parse(l) as RunEvent);
 type State=Extract<RunEvent,{type:"state";started:boolean}>;
 const states=EVENTS.filter((e):e is State=>e.type==="state"&&"started" in e);
-const at=(seq:number):GameStateSnapshot=>{const s=states.find(x=>x.seq===seq);if(s===undefined)throw new Error(String(seq));return s as unknown as GameStateSnapshot;};
+const at=(seq:number):GameStateSnapshot=>{const s=states.find(x=>x.seq===seq);if(s===undefined)throw new Error(String(seq));return s;};
 const SHROOMISH=30081;
 const GUIDE='"The ROCK type is very durable, but it can\'t stand WATER-type and GRASS-type moves."';
 function feed<T extends {observe(e:RunEvent):void}>(fold:T,upTo:number):T{for(const e of EVENTS)if(e.seq<=upTo)fold.observe(e);return fold;}

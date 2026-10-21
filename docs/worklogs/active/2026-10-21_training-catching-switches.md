@@ -91,7 +91,10 @@ There are no new inputs, subprocesses, network or file access. The server reads 
 **M3 — agent catching set: party-coverage-v1, said-type-matches-v1**
 - [x] Fixture: one run has the guide line, then ROXANNE and a wild GRASS foe, so one fixture: `packages/agent/src/fixtures/catching-6abf.jsonl.gz` (run 2026-10-21T02-26-37_qwen36-gpu1_6abf, control arm, slimmed the same way as training-fd95; GYM GUIDE lines at turn 689, four ROXANNE losses, wild SHROOMISH with ABSORB and STUN SPORE at seq 30081).
 - [x] Tests: `catching-block.test.ts` (coverage rows by foe type with uses and printed lines, the no-"super effective" type list; decisions only; tutorial party excluded; type names; said-type marks on SHROOMISH and on ROXANNE's GEODUDE; nothing before the guide line, and the earlier WINGULL's WATER GUN once it was said; decisions only; banned words; playGameTools factory ON/OFF per switch).
-- [ ] COMMIT RED, implement, gates, COMMIT GREEN
+- [x] COMMIT: `test: party-coverage-v1 and said-type-matches-v1 on recorded run 6abf (RED)` (b3a3e65c). RED: `./catching-block.js` missing.
+- [x] Implement: `catching-block.ts` (PartyCoverage: uses attributed through the page's state, player's own party only, single battles; rows for types with a printed line plus the current foe's; the no-"super effective" list over every type met. SaidTypeMatches: field pages with an "X-type" word kept once with their map; foe then player battlers' type and move types matched; TYPE_NAMES as battle_details.py names them) and `withCatchingBlocks` in play-wiring around the Training block.
+- [x] Gates: lint ok, build ok; coverage agent 3303 (97.31/93.03/97.76/99.22), viewer 1601 (95.42/91.33/94.33/97.9), pytest 3630 (97.25/92.96/100).
+- [ ] COMMIT GREEN
 
 **M4 — bundle arms, pending experiments, explainers, review, land**
 - [ ] Add the 7 ids to the bundle arms of bundle-v-control, bundle-cook-1h and whole-map-cook-1h; control OFF

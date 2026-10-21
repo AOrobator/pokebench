@@ -573,6 +573,7 @@ describe("semantic current-map feedback switch",()=>{
   expect(f.buttons).toEqual([]);expect(f.navigations).toEqual([]);
   const text=result.content.flatMap(c=>c.type==="text"?[c.text]:[]).join("\n");
   expect(text).toContain("refused because the requested map is not current");
+  expect(result.details).toMatchObject({semantic_navigation:{target:{kind:"connection",direction:"WEST"},status:"refused because the requested map is not current",activation_attempted:false}});
   if(on){expect(text).toContain("map 0/9");expect(text).toContain("Position: (0,0)");expect(text).toContain("No input was sent");}
   else expect(text).toBe("Semantic navigation: refused because the requested map is not current. Selected WEST map connection.");
  });

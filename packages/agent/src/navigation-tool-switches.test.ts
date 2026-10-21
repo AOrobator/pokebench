@@ -39,6 +39,12 @@ function server(state:GameStateSnapshot){
  });return {fetchFn,posts};
 }
 describe("navigation tool-use guard at the native input boundary",()=>{
+ for(const direction of ["UP","DOWN","LEFT","RIGHT"] as const)it(`rejects ${direction} walking batches with zero input`,async()=>{
+  const s=server(field),h=hooks();
+  const result=await pressTool("http://game",h,s.fetchFn,clock,{...ALL_TOOL_SWITCHES,navigationToolUseGuard:true}).execute("model",{buttons:[direction,direction]});
+  expect(s.posts).toEqual([]);expect(h.beforePress).not.toHaveBeenCalled();
+  expect(text(result)).toContain('"submitted":[]');expect(text(result)).toContain(JSON.stringify({requested:[direction,direction],submitted:[],map_id:[0,16],position:{x:10,y:7}}));
+ });
  it("rejects a model walking batch before native input, with state and requested/zero-submitted receipt",async()=>{
   const s=server(field),before=vi.fn();
   const tool=pressTool("http://game",{beforePress:before,afterPress:()=>Promise.resolve()},s.fetchFn,clock,{...ALL_TOOL_SWITCHES,navigationToolUseGuard:true});
@@ -90,6 +96,11 @@ it("OFF is byte-identical to the previous default for walking batches",async()=>
  const run=async(switches:typeof ALL_TOOL_SWITCHES)=>{
   const s=server(field),h=hooks(),tool=pressTool("http://game",h,s.fetchFn,clock,switches);
   const result=await tool.execute("model",{buttons:["UP","UP"]});
+  expect(s.posts).toEqual(["http://game/action"]);
+  const posts=s.fetchFn.mock.calls.filter(([,init])=>init?.method==="POST");
+  expect(posts.map(([url,init])=>[urlOf(url),init?.body])).toEqual([["http://game/action",JSON.stringify({buttons:["UP","UP"],hold_frames:10,release_frames:8})]]);
+  expect(h.beforePress).toHaveBeenCalledOnce();expect(h.beforePress).toHaveBeenCalledWith("model",["UP","UP"],{hold_frames:10,release_frames:8},field);
+  expect(text(result)).not.toContain("Navigation tool-use guard");
   return {result,description:tool.description,calls:s.fetchFn.mock.calls.map(([url,init])=>[urlOf(url),init?.method,init?.body]),hooks:h.beforePress.mock.calls};
  };
  expect(await run({...ALL_TOOL_SWITCHES,navigationToolUseGuard:false})).toEqual(await run(ALL_TOOL_SWITCHES));

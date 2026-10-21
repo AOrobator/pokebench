@@ -61,3 +61,6 @@ Default off; ON in the bundle arm of bundle-cook-1h, bundle-v-control, whole-map
 ## Multi-Model Review Log
 
 ## Session Log
+
+- 2026-10-21 9:45 AM ET: merged local main 8f98367d (party HP bar class fix, viewer only) cleanly. Full coverage then caught two pending-incumbent tests (heal-first, story-battle-heal-gate) that compare their incumbents with the current bundle arm; they now drop mart-stock-readout-v1 the way they drop menu-refusal-recovery-v1 (a switch added after the incumbent was pinned).
+- 9:48 AM ET: The operator asked for Pokémon-themed explainers (coordinator relay); the explainer now uses the summary screen's INFO palette, Press Start 2P (inlined), the game's text-window frame and a laid-out buy screen from raw RAM 9913. pages-check clean; desktop and phone (dark) screenshots checked at 127.0.0.1:8791, no horizontal scroll at 375 px.

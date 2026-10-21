@@ -455,6 +455,7 @@ describe("registry and event",()=>{
   expect(entry.changedFeature).toBe(ID);expect(entry.queuePosition).toBeUndefined();
   delete arm["pending-field-dialogue-v1"];
   delete arm["menu-refusal-recovery-v1"];
+  delete arm["mart-stock-readout-v1"];
   delete arm["navigation-tool-use-guard-v1"];delete arm["semantic-current-map-feedback-v1"];delete arm["story-battle-heal-first-v1"];
   // exit-labels-v3 and short-cycle-fixed-point-v1 joined the bundle arm after this pending experiment was pinned.
   expect({...entry.incumbent.features,"navigation-refusal-reasons-v3":true,"exit-labels-v3":true,"short-cycle-fixed-point-v1":true}).toEqual(arm);

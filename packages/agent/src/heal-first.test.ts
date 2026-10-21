@@ -309,8 +309,8 @@ describe("registry, fixed bundles and event",()=>{
   const control=(read("experiments/fixed/bundle-v-control.json") as {base:{features:Record<string,boolean>}}).base.features;
   const entry=read(`experiments/${ID}.json`) as {changedFeature:string;incumbent:{features:Record<string,boolean>};queuePosition?:number};
   expect(entry.changedFeature).toBe(ID);expect(entry.queuePosition).toBeUndefined();
-  const {"menu-refusal-recovery-v1":menuOff,"pending-field-dialogue-v1":pendingOff,...historicalControl}=control;
-  expect(pendingOff).toBe(false);expect(menuOff).toBe(false);
+  const {"mart-stock-readout-v1":martOff,"menu-refusal-recovery-v1":menuOff,"pending-field-dialogue-v1":pendingOff,...historicalControl}=control;
+  expect(pendingOff).toBe(false);expect(menuOff).toBe(false);expect(martOff).toBe(false);
   expect(entry.incumbent.features).toEqual({...historicalControl,[ID]:false});
  });
  it("records a valid heal_first_line event that the tail and Activity History read",async()=>{

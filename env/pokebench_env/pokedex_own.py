@@ -35,6 +35,7 @@ SEEN = 0x44
 SAVE1_SEEN1 = 0x988
 SAVE1_SEEN2 = 0x3B24
 PARTY_SIZE = 6
+BATTLE_TYPE_TRAINER = 1 << 3
 
 
 @dataclass(frozen=True)
@@ -91,10 +92,20 @@ def national_number(read: ReadMemory, species: int) -> int | None:
 def wild_foes(
     read: ReadMemory, owned: frozenset[int], state: "GameState"
 ) -> tuple[tuple[str, bool], ...]:
-    """Foes on the field in a wild battle (no trainer battle is active), with ownership."""
+    """Foes on the field in a wild battle, with ownership.
+
+    A trainer battle is one whose battle type has BATTLE_TYPE_TRAINER (include/constants/battle.h)
+    or whose opponent the trainer reader names; a Secret Base battle (opponent 1024) has only
+    the bit.
+    """
     battle = state.battle
     opponent = state.trainer_opponent
-    if not state.in_battle or battle is None or (opponent is not None and opponent.battle_active):
+    if (
+        not state.in_battle
+        or battle is None
+        or (battle.battle_type or 0) & BATTLE_TYPE_TRAINER
+        or (opponent is not None and opponent.battle_active)
+    ):
         return ()
     foes = []
     for foe in battle.battlers or ():

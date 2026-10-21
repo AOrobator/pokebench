@@ -30,6 +30,7 @@ from pokebench_env.pokedex_own import (
     Pokedex,
     dex_lines,
     read_pokedex,
+    wild_foes,
 )
 from pokebench_env.raw_ram import load_raw_ram
 from pokebench_env.readout import SERVER_FEATURES, features_off_from_env, state_json
@@ -185,6 +186,18 @@ def test_wild_foe_not_owned_is_marked() -> None:
 
 def test_trainer_battle_has_no_ownership_line() -> None:
     assert "POKéDEX OWN list" not in text("training-1331-roxanne-battle")
+
+
+def test_a_trainer_battle_the_opponent_reader_cannot_name_is_not_wild() -> None:
+    # A Secret Base battle: opponent 1024, so no trainer_opponent, but BATTLE_TYPE_TRAINER is set.
+    wild = state("training-1331-wild-wurmple")
+    assert wild.battle is not None
+    assert wild.trainer_opponent is None or not wild.trainer_opponent.battle_active
+    secret = replace(wild, battle=replace(wild.battle, battle_type=0x08000008))
+    assert wild_foes(archived("training-1331-wild-wurmple"), frozenset(), secret) == ()
+    assert wild_foes(archived("training-1331-wild-wurmple"), frozenset(), wild) == (
+        ("WURMPLE", False),
+    )
 
 
 def test_owned_wild_foe_says_so() -> None:

@@ -79,7 +79,9 @@ main hr{border:0;border-top:4px double #9fb2c8}
   body{--pb-gut:22px;--pb-ring:8px}
   main{padding:20px 14px 28px!important;margin-top:58px!important}
   main h2{font-size:11px!important}
-  main :is(.card,.box,.tile,.chartbox,details):not(svg *){padding:16px 15px!important}
+  main :is(.card,.box,.tile,.chartbox,details):not(svg *){padding:16px 15px!important;min-width:0;max-width:100%}
+  main table:not(svg *){display:block;overflow-x:auto;max-width:100%}
+  main code:not(pre code){overflow-wrap:anywhere}
 }
 </style>
 <main><p class="tag">POKÉBENCH · HARNESS LAB</p><h1>JIT v2 · stable core, timely guidance</h1><p><code>just-in-time-prompt-v2</code> keeps a fixed system core and the full tool catalog, then appends instructions for the verified interface beside observations.</p><section class="note"><strong>Prepared treatment, not a measured improvement.</strong> Default OFF. No v2 runs, new GPU allocation or launch approval. V1’s experiment stays frozen. V2 supersedes v1 if both are selected; the proposed experiment disables v1 in both arms.</section>

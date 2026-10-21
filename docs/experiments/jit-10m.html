@@ -79,7 +79,9 @@ main hr{border:0;border-top:4px double #9fb2c8}
   body{--pb-gut:22px;--pb-ring:8px}
   main{padding:20px 14px 28px!important;margin-top:58px!important}
   main h2{font-size:11px!important}
-  main :is(.card,.box,.tile,.chartbox,details):not(svg *){padding:16px 15px!important}
+  main :is(.card,.box,.tile,.chartbox,details):not(svg *){padding:16px 15px!important;min-width:0;max-width:100%}
+  main table:not(svg *){display:block;overflow-x:auto;max-width:100%}
+  main code:not(pre code){overflow-wrap:anywhere}
 }
 </style>
 <main><p class="muted">EXPERIMENT PREPARATION · 18 OCT 2026</p><h1>Can JIT prompting buy more progress in ten minutes?</h1><p class="hold"><strong>Conditional launch authorized by the operator.</strong> The operator made this P0 after readiness checks. Required cloud code reviews, landing and live-viewer checks must pass before measured trials. This is not a results report. No treatment values have been invented.</p><div class="cards"><div class="card"><small>Trial cap</small><strong>10 min</strong>no milestone early stop</div><div class="card"><small>Fixed sample</small><strong>24 runs</strong>12 full prompt · 12 JIT</div><div class="card"><small>Executors</small><strong>2 GPUs</strong>6 runs per arm per GPU</div><div class="card"><small>Trial allocation</small><strong>4 GPU h</strong>about 2 h parallel gameplay</div></div>

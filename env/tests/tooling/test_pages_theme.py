@@ -154,3 +154,13 @@ def test_crlf_and_utf8_survive(tmp_path: Path) -> None:
     data = page.read_bytes()
     assert "<h1>POKéMON</h1>".encode() in data
     assert b"<!doctype html>\r\n<html>" in data and data.endswith(b"</html>\r\n")
+
+
+def test_orphan_wrap_marker_never_cuts_the_page(tmp_path: Path) -> None:
+    source = (
+        "<!doctype html><html><head></head><body><main data-pb-emerald>\n<h1>T</h1></body></html>"
+    )
+    page = tmp_path / "orphan.html"
+    page.write_text(source)
+    theme(page)
+    assert BLOCK.sub("", page.read_text()) == source

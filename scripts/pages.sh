@@ -94,10 +94,10 @@ for name in sys.argv[2:]:
     page = pathlib.Path(name)
     with page.open(encoding="utf-8", newline="") as handle:
         text = old.sub("", handle.read())
-    if wrap in text:
-        text = text.replace(wrap, "", 1)
-        closing = text.rfind("</main>\n")
+    closing = text.rfind("</main>\n")
+    if wrap in text and closing > text.find(wrap):
         text = text[:closing] + text[closing + len("</main>\n"):]
+        text = text.replace(wrap, "", 1)
     text = style.sub(pin_light, text)
     if (head := first(r"</head\s*>", text)) is not None:
         at = head.start()

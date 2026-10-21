@@ -81,7 +81,9 @@ main hr{border:0;border-top:4px double #9fb2c8}
   body{--pb-gut:22px;--pb-ring:8px}
   main{padding:20px 14px 28px!important;margin-top:58px!important}
   main h2{font-size:11px!important}
-  main :is(.card,.box,.tile,.chartbox,details):not(svg *){padding:16px 15px!important}
+  main :is(.card,.box,.tile,.chartbox,details):not(svg *){padding:16px 15px!important;min-width:0;max-width:100%}
+  main table:not(svg *){display:block;overflow-x:auto;max-width:100%}
+  main code:not(pre code){overflow-wrap:anywhere}
 }
 </style>
 <main><small>POKÉBENCH • EXIT-LABELS-V3 • VERSIONED OBSERVATION TREATMENT</small><h1>Same map. Different section.</h1><p class="intro">Every physical exit keeps a distinct identity. A return to the same map says whether it reaches your current terrain section or another one.</p><div class="card scroll"><svg viewBox="0 0 850 310" role="img" aria-label="Woods connect two distinct sections of Route 104"><defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto-start-reverse"><path d="M0 0 L7 3 L0 6"/></marker></defs><rect x="15" y="80" width="250" height="120" rx="12"/><text x="35" y="112" font-size="21">ROUTE 104</text><text x="35" y="143">Southern terrain section</text><text x="35" y="173">Entrance (10,38)/(11,38)</text><rect x="315" y="80" width="210" height="120" rx="12"/><text x="335" y="119" font-size="20">PETALBURG WOODS</text><text x="335" y="154">Distinct entrance / exit</text><rect x="575" y="80" width="260" height="120" rx="12"/><text x="595" y="112" font-size="21">ROUTE 104</text><text x="595" y="143">Northern terrain section</text><text x="595" y="173">Return (10,30)/(11,30)</text><path d="M265 140 H315 M525 140 H575" marker-end="url(#arrow)"/><text x="25" y="250">Both Route 104 sections have map ID 0/19.</text><text x="25" y="280">The section and landing coordinates distinguish the return.</text></svg></div><p><small>The diagram illustrates the verified Route104/Woods terrain connections. It is explanatory; no route is chosen or executed for the gameplay model.</small></p><div class="cols"><div class="card"><h2>V3 off: existing v2</h2><pre>Warp to PETALBURG WOODS (map 24/11)

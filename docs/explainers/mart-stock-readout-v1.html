@@ -119,7 +119,9 @@ main hr{border:0;border-top:4px double #9fb2c8}
   body{--pb-gut:22px;--pb-ring:8px}
   main{padding:20px 14px 28px!important;margin-top:58px!important}
   main h2{font-size:11px!important}
-  main :is(.card,.box,.tile,.chartbox,details):not(svg *){padding:16px 15px!important}
+  main :is(.card,.box,.tile,.chartbox,details):not(svg *){padding:16px 15px!important;min-width:0;max-width:100%}
+  main table:not(svg *){display:block;overflow-x:auto;max-width:100%}
+  main code:not(pre code){overflow-wrap:anywhere}
 }
 </style>
 </head>

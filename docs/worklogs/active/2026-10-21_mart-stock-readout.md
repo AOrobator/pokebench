@@ -52,7 +52,11 @@ Default off; ON in the bundle arm of bundle-cook-1h, bundle-v-control, whole-map
 - [x] Explainer `docs/explainers/mart-stock-readout-v1.html` + FEATURE_EXPLAINERS + README line + panels/server/fixed-runner tests; `just pages-check` clean; copied to main runs/mockups/mart-stock-readout-v1/, 200 on 8791.
 - [x] fixed-run check through `fixed-cli main(["check", id])` with root = this worktree: all four exit 0, bundle switches end with mart-stock-readout-v1, control base unchanged.
 - [x] Gates on the synced tip: `just lint` ok; `just build` ok; `just coverage` agent 3284 (97.26/93.11/97.71/99.2), viewer 1604 (95.42/91.33/94.33/97.9), pytest 3621 (lines 97.26 branches 93.04 functions 100); `just verify-vendor` ok. open-goal-prompt's incumbent test drops the new bundle switch like the other later ids.
-- [ ] Claude + Grok LGTM on the frozen packet; coordinator slot; ff-only merge; `just viewer-main`; live check.
+- [x] Claude + Grok LGTM on the frozen packet; coordinator slot; ff-only merge; `just viewer-main`; live check.
+  - Landed 2026-10-21 10:18 AM ET: `git merge --ff-only` to ad0209b3 (main = the reviewed tree, packet c99043e1… over base 29da3cb0).
+  - `just viewer-main`: viewer at ad0209b3, 2 live gameplay processes kept. Live: /explainers/mart-stock-readout-v1.html 200 on 8790 and 8791; Harness Config shows the MART STOCK READOUT card (NOT RECORDED on an older run) with READ EXPLAINER → /explainers/mart-stock-readout-v1.html.
+  - `just test` on the landed tree (built worktree at ad0209b3): agent 3285, viewer 1607, pytest 3638, all pass. (In the primary checkout `just test` fails the viewer suite only because that checkout's agent dist is never rebuilt there; not a code failure.)
+  - Overnight loop: round 3 pins main at about 10:28 AM ET, so whole-map-pair-2h's bundle arm carries the switch from that round.
 
 ## Follow-ups
 
@@ -61,6 +65,8 @@ Default off; ON in the bundle arm of bundle-cook-1h, bundle-v-control, whole-map
 - 2026-10-21 ~10:05 AM ET: merged local main 4e6d5bb3 (move-learning menu line fix: readout.py, test_move_learn.py) cleanly. Gates on the merged tip: lint ok; agent 3284 (97.26/93.1/97.71/99.2); viewer 1604 (95.42/91.33/94.33/97.9; server-stream's event-loop timing test failed once under parallel load and passed alone and in a rerun of the whole viewer suite); pytest 3627 (lines 97.26 branches 93.04 functions 100).
 
 - 2026-10-21 10:03 AM ET: Claude (read-only subagent) and Grok round 1 both LGTM on packet 69f66ebd; the resync to 52b086ac kept the packet byte-identical. Before the merge, main moved to 5534f285 (codex/gym-door-label, landed outside the coordinator's queue): 34 conflicts, all registry order. Resolved by putting gym-door-label-v1 first and this switch after it (the incumbent was refreshed to the current bundle arm). Conflicted collateral tests were taken from main and their offsets re-derived. The new packet needs review round 2. Gates on 26aa4381: lint ok; agent 3285 (97.26/93.11/97.71/99.2); viewer 1607 (95.42/91.33/94.33/97.9); pytest 3638 (lines 97.27 branches 93.04 functions 100); verify-vendor ok; fixed-cli check exit 0 on all four (bundle switches end gym-door-label-v1, mart-stock-readout-v1; whole-map-pair-2h has no gym-door switch on main).
+
+- Round 2 (packet c99043e1…, base 29da3cb0, head ad0209b3): Grok (cursor-grok-4.5-high) VERDICT: LGTM; Claude lane as a read-only Claude subagent (Cursor Opus and Sonnet usage-capped, CLI OAuth expired) VERDICT: LGTM, packet verified start and end. Receipts runs/reviews/mart-stock-readout-v1/ (ignored).
 
 ## Principles self-review (docs/agent-principles.md)
 
@@ -85,6 +91,9 @@ Default off; ON in the bundle arm of bundle-cook-1h, bundle-v-control, whole-map
 In scope: `env/pokebench_env/mart_stock.py` (new), its wiring in `game_state.py`, `readout.py`, `rerender.py`; the registry (`features.ts`, `play-preset.ts`, `next-run.ts`, `legacy-features.ts`); four fixed definitions (bundle arm only); `experiments/mart-stock-readout-v1.json`; readiness row; explainer + README + `FEATURE_EXPLAINERS`; tests (new and registry collateral). Out of scope: the shop Interface line in `menus.py` (pre-existing bug, follow-up with its own switch), decoration shops, SELL screen, any change to control arms or other switches.
 
 ## Multi-Model Review Log
+
+- Round 1 (packet 69f66ebd…, base 4e6d5bb3, head 66914b64): Grok LGTM; Claude (read-only subagent) LGTM. Non-blocking notes kept as-is: hyphenated line ends join as "critical- hit" in some hold-item descriptions; the harness-bug line repeats its prefix.
+- Round 2: see the session log (LGTM from both after the gym-door resync).
 
 ## Session Log
 

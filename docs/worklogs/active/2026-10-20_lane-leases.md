@@ -15,6 +15,12 @@
 - [x] RED: lane lease release on reserve block and on done; per-lane lease waiting; lease names its lane's run; runner `commit`; soloDefinition; `rerun` CLI; dropdown label
 - [x] GREEN: per-lane `holdLease`/`releaseLease` in the fixed runner; `commit` option; `singleArm` phase + `soloDefinition`; `fixed-run rerun`; dropdown SOLO label. Viewer 1450, agent 3013 pass.
 - [x] Gates: lint clean (pnpm + ruff/mypy via main's venv); viewer coverage 95.14/91.06/93.84 lines/branches/functions; pytest 2767 pass, 1 needs POKEBENCH_ROM from .env (no Python changed)
-- [ ] Fake-data rehearsal of lease behavior
-- [ ] Review: Claude + Grok LGTM
+- [x] Fake-data rehearsal: two real processes on a temp runs root with the v5 definition (reserve 0). Parent lane B blocked on reserve with its lease free; the rerun `rehearsal-v5-solo-bundle-b-1` took lane B's lease and played valid while the parent held lane A; after stop no lease dirs remained. Evidence: runs/reviews/lane-leases/rehearsal-evidence.log.
+- [ ] Review: Claude + Grok LGTM — running on packet 3454a7dd1201 (runs/reviews/lane-leases/)
 - [ ] Land ff-only after coordinator slot
+
+## Review round 1 (packet 3454a7dd)
+
+- Grok `VERDICT: LGTM`; hardening note: stop is not polled while a lane waits on a held lease to adopt (the old all-lane wait did poll it).
+- Claude `VERDICT: BLOCKING` B1: an I/O error inside `adopt` (writeRunner, or adopt's own ledger read) reached `pause`, which released the lease while the adopted child still played; a second runner could take that GPU. Real regression. Fix: `pause` keeps the lease while the lane has a recorded child; `adopt` takes the run from the loop's state (no second ledger read before the child is recorded) and clears the child only once it has exited; stop is honored while waiting to adopt.
+- [x] RED: 2 tests (adopt I/O error keeps the lease and a foreign take throws; stop while waiting to adopt)

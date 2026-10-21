@@ -9,7 +9,7 @@ import {cohortIndex} from "./workbench-store.js";
 import {experimentsAudit} from "./experiments-audit.js";
 import {fileURLToPath} from "node:url";
 import {REQUIRED_FRONTIER_MILESTONES} from "@pokebench/agent/milestones";
-import { LEGACY_LEASE, leaseDir, leasePool, readLeaseOwner, takeLease } from "./lease.js";
+import { LEGACY_LEASE, LeaseHeldError, leaseDir, leasePool, readLeaseOwner, takeLease } from "./lease.js";
 import { parseFixedStatus, type FixedStatus } from "./fixed-status.js";
 import { definition, MODEL_PATH, ROM_SHA1 } from "../test-support/fixed.js";
 import { Log, START } from "../test-support/events.js";
@@ -467,6 +467,49 @@ describe("runFixed", () => {
     expect(readLeaseOwner(runsRoot, pool)).toMatchObject({ pid: 77, run, child: 4242 });
     ended = true;
     expect(await done).toBe("stopped");
+  });
+
+  it("keeps a lane's lease through an I/O error while it adopts a trial that still plays", async () => {
+    const { def, runsRoot, dir } = setup(soloDefinition(definition(), "bundle", "B", "cook", 1));
+    const run = "2026-10-15T23-00-00_qwen36-gpu0_old2";
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(join(dir, "trials.jsonl"), [
+      { kind: "launch", slot: 1, lane: "B", phase: "cook", arm: "bundle", run, at: "2026-10-15T23:00:00.000Z", commit: COMMIT, sources: "sources-identity", presetSha256: "p", serving: "f" },
+      { kind: "started", slot: 1, run, pid: 4242, at: "2026-10-15T23:00:01.000Z" },
+    ].map((e) => JSON.stringify(e)).join("\n") + "\n");
+    mkdirSync(join(runsRoot, "experiments", "runner.json"), { recursive: true });
+    const pool = leasePool(def.lanes[0]?.modelUrl ?? "");
+    let ended = false;
+    const host: Fake = new Fake(runsRoot, { alive: (pid) => pid === 4242 && !ended }, def.id);
+    const done = runFixed({ def, definitionSha256: "d".repeat(64), runsRoot, host, stopRequested: () => false, pid: 77, dryRun: true });
+    while (!host.statuses.some((s) => s.lanes[0]?.reason.includes("EISDIR") === true)) await new Promise((r) => setImmediate(r));
+    expect(existsSync(leaseDir(runsRoot, pool))).toBe(true);
+    expect(() => takeLease(runsRoot, pool, { pid: 5555, owner: "fixed-run:other" }, (pid) => pid === 4242 || pid === 77)).toThrow(LeaseHeldError);
+    ended = true;
+    expect(await done).toBe("finished");
+    expect(outcomes(readLedger(join(dir, "trials.jsonl")))).toEqual([expect.objectContaining({ slot: 1, run })]);
+    expect(host.launches).toHaveLength(0);
+    expect(existsSync(leaseDir(runsRoot, pool))).toBe(false);
+  });
+
+  it("stops while waiting for the lease of a lane with an earlier runner's trial", async () => {
+    const { def, runsRoot, dir } = setup();
+    const slot = def.plan.find((s) => s.lane === "A");
+    if (slot === undefined) throw new Error("fixture");
+    const run = "2026-10-15T23-00-00_qwen36-gpu1_old3";
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(join(dir, "trials.jsonl"), JSON.stringify({ kind: "launch", slot: slot.slot, lane: "A", phase: slot.phase, arm: slot.arm, run, at: "2026-10-15T23:00:00.000Z", commit: COMMIT, sources: "sources-identity", presetSha256: "p", serving: "f" }) + "\n");
+    const pool = leasePool(def.lanes[0]?.modelUrl ?? "");
+    mkdirSync(leaseDir(runsRoot, pool), { recursive: true });
+    writeFileSync(join(leaseDir(runsRoot, pool), "owner.json"), JSON.stringify({ pid: 999, owner: "next-run" }));
+    let stop = false;
+    const host = new Fake(runsRoot, { alive: (pid) => pid === 999 });
+    const done = runFixed({ def, definitionSha256: "d".repeat(64), runsRoot, host, stopRequested: () => stop, pid: 77 });
+    while (!host.statuses.some((s) => s.lanes[0]?.state === "waiting" && s.lanes[0].reason.startsWith("waiting for the gameplay lease"))) await new Promise((r) => setImmediate(r));
+    stop = true;
+    expect(await done).toBe("stopped");
+    expect(parseFixedStatus(JSON.parse(readFileSync(join(dir, "status.json"), "utf8"))).lanes[0]?.state).toBe("stopped");
+    expect(readLeaseOwner(runsRoot, pool)?.pid).toBe(999);
   });
 
   it("runs while another compute pool or the old single lease is held", async () => {

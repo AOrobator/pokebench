@@ -31,6 +31,7 @@ MAIN_WT=${MAIN_WT:-/private/tmp/pokebench-whole-map-loop-main}  # its own clone 
 MAX_FAILS=${MAX_FAILS:-6}           # consecutive failed rounds before giving up
 RETRY_SLEEP=${RETRY_SLEEP:-300}
 POLL=${POLL:-10}
+STOP_POLL=${STOP_POLL:-2}       # in-round stop check; a stopped trial is invalid, so its lane backs off 30 s before the next
 MIN_ROUND_S=${MIN_ROUND_S:-600}     # a round shorter than this did not really run
 FRAME_LIMIT=${FRAME_LIMIT:-75}      # runs may start at or below this frame-cap percent
 VIEWER_CMD=${VIEWER_CMD:-just viewer-main}  # a viewer older than the pin cannot read the new runs
@@ -56,14 +57,14 @@ valid_count() {
   if [ -f "$LEDGER_DIR/trials.jsonl" ]; then grep '"kind":"outcome"' "$LEDGER_DIR/trials.jsonl" | grep -c '"valid":true' || true; else echo 0; fi
 }
 
-# The operator stopped this run from the viewer: an abort, a stop not cancelled, or an operator run_end.
+# The operator stopped this run from the viewer: an abort request (it cannot be withdrawn), an applied
+# stop or abort, or an operator run_end. A pending STOP the operator may still cancel does not count.
 operator_stopped() {
   dir=$RUNS/$1
-  if [ -f "$dir/control.jsonl" ]; then
-    grep -q '"action":"abort"' "$dir/control.jsonl" && return 0
-    grep -E '"action":"(stop|cancel_stop)"' "$dir/control.jsonl" | tail -1 | grep -q '"action":"stop"' && return 0
-  fi
-  [ -f "$dir/events.jsonl" ] && grep '"type":"run_end"' "$dir/events.jsonl" | grep -qE '"reason":"operator_(stop|abort)"'
+  [ -f "$dir/control.jsonl" ] && grep -q '"action":"abort"' "$dir/control.jsonl" && return 0
+  [ -f "$dir/events.jsonl" ] || return 1
+  grep '"type":"operator_control"' "$dir/events.jsonl" | grep '"status":"applied"' | grep -qE '"action":"(stop|abort)"' && return 0
+  grep '"type":"run_end"' "$dir/events.jsonl" | grep -qE '"reason":"operator_(stop|abort)"'
 }
 stopped_run() {
   for run in $(launched_runs); do
@@ -91,12 +92,14 @@ lanes_busy() {
   return 1
 }
 
-frame_percent() { "$JUST" runs-disk 2>/dev/null | sed -n 's/.*cap (\([0-9]*\)%).*/\1/p' | tail -1; }
+# Read in the loop's own clone, never building the operator's checkout; its runs/ is the shared store.
+frame_percent() { ( cd "$MAIN_WT" && "$JUST" runs-disk ) 2>/dev/null | sed -n 's/.*cap (\([0-9]*\)%).*/\1/p' | tail -1; }
 
 # Wait while $1 is true; give up the wait (status 1) as soon as the loop is stopped.
 hold() {
   said=
   while why=$("$@"); do
+    if run=$(stopped_run); then stop_loop "the operator stopped run $run in the viewer"; fi
     if stopped; then return 1; fi
     if [ "$said" != "$why" ]; then log "holding: $why"; said=$why; fi
     sleep "$POLL"
@@ -107,7 +110,8 @@ hold() {
 paused() { [ -e "$PAUSE_FILE" ] && echo "$PAUSE_FILE exists"; }
 frames_full() {
   pct=$(frame_percent)
-  [ -n "$pct" ] && [ "$pct" -gt "$FRAME_LIMIT" ] && echo "frames at ${pct}% of the cap, above the ${FRAME_LIMIT}% start limit (never pruned: raise the cap)"
+  if [ -z "$pct" ]; then echo "cannot read frame usage from just runs-disk in $MAIN_WT"; return 0; fi
+  [ "$pct" -gt "$FRAME_LIMIT" ] && echo "frames at ${pct}% of the cap, above the ${FRAME_LIMIT}% start limit (never pruned: raise the cap)"
 }
 
 runner_pid() {
@@ -116,6 +120,7 @@ runner_pid() {
 }
 
 cd "$REPO" || { log "cannot cd $REPO"; exit 1; }
+mkdir -p "$ARCHIVE" "$(dirname "$STOP_FILE")" || { log "cannot create $ARCHIVE"; exit 1; }
 if stopped; then log "$STOP_FILE exists ($(cat "$STOP_FILE")); delete it to run the loop"; exit 0; fi
 [ -f "$(definition)" ] || { log "no definition $(definition) on this checkout"; exit 1; }
 log "started (pid $$): $EXP_ID, phase $PHASE, ${WALL_MS} ms cap; stop with a viewer STOP/ABORT on any loop run or touch $STOP_FILE"
@@ -127,7 +132,6 @@ while :; do
   if [ "$fails" -ge "$MAX_FAILS" ]; then log "$fails rounds in a row failed; giving up"; exit 1; fi
   hold paused || break
   hold lanes_busy || break
-  hold frames_full || break
   round=$((round + 1))
 
   if [ -d "$LEDGER_DIR" ]; then
@@ -153,6 +157,9 @@ while :; do
     printf '%s\n' "$pin" > "$MAIN_WT/.loop-pin"
   fi
 
+  hold frames_full || break
+  if run=$(stopped_run); then stop_loop "the operator stopped run $run in the viewer"; fi
+  if stopped || [ -e "$PAUSE_FILE" ] || lanes_busy >/dev/null; then round=$((round - 1)); continue; fi
   log "round $round: launching on main $(git rev-parse --short "$pin")"
   t0=$(date +%s)
   ( cd "$MAIN_WT" && exec "$JUST" fixed-run dry-run "$EXP_ID" --phase "$PHASE" --wall-ms "$WALL_MS" ) &
@@ -166,7 +173,7 @@ while :; do
         if [ -n "$pid" ]; then kill -TERM "$pid" && log "round $round: asked runner $pid to start no new trials" && signalled=1; fi
       fi
     fi
-    sleep "$POLL"
+    sleep "$STOP_POLL"
   done
   wait "$job"
   rc=$?
@@ -181,7 +188,7 @@ while :; do
   else
     fails=$((fails + 1))
     log "round $round did not produce four valid trials (failure $fails of $MAX_FAILS); retrying in ${RETRY_SLEEP}s"
-    sleep "$RETRY_SLEEP"
+    i=0; while [ "$i" -lt "$RETRY_SLEEP" ] && ! stopped; do sleep 1; i=$((i + 1)); done
   fi
 done
 log "stopped after $round round(s): $(cat "$STOP_FILE" 2>/dev/null)"

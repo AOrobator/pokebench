@@ -18,7 +18,7 @@ it("reports measured dispatch and event-loop units and owns monitor lifecycle", 
   viewer.server.prependOnceListener("request", () => { now.mockReturnValueOnce(10).mockReturnValueOnce(19); });
   expect((await fetch(new URL("style.css",viewer.url))).status).toBe(200);
   now.mockRestore();
-  const metrics = await (await fetch(new URL("api/frame-metrics",viewer.url))).json();
+  const metrics: unknown = await (await fetch(new URL("api/frame-metrics",viewer.url))).json();
   expect(metrics).toMatchObject({eventLoop:{meanMs:3,p99Ms:7,maxMs:11},dispatch:{static:{count:1,meanMs:9,maxMs:9}}});
   expect(perf.monitorEventLoopDelay).toHaveBeenCalledWith({resolution:10});
   expect(percentile).toHaveBeenCalledWith(99); expect(enable).toHaveBeenCalledOnce();

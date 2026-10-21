@@ -1328,7 +1328,7 @@ it.each(["rejected-movement-step-v1","observed-field-dialogue-v1"])("serves repa
 it("keeps malformed URL failures inside the request boundary and continues serving", async () => {
   const {viewer} = await fixture();
   const req = new IncomingMessage(new Socket());
-  req.method = "GET"; req.url = "//["; req.headers.host = `${HOST}:${viewer.port}`;
+  req.method = "GET"; req.url = "//["; req.headers.host = `${HOST}:${String(viewer.port)}`;
   const res = new ServerResponse(req);
   expect(() => viewer.server.emit("request",req,res)).not.toThrow();
   await new Promise<void>(resolve => setImmediate(resolve));

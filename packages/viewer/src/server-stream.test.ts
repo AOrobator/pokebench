@@ -465,8 +465,8 @@ it("does not start SSE after a client disconnects during its asynchronous head r
   vi.spyOn(runs,"readHeadEvents").mockImplementation(() => { enter(); return pending; });
   let closed!: () => void;
   const didClose = new Promise<void>(resolve => { closed = resolve; });
-  let headers: ReturnType<typeof vi.spyOn> | undefined;
-  viewer.server.on("request", (_req,res) => { headers = vi.spyOn(res,"writeHead"); res.once("close",closed); });
+  let headerCalls: (() => number) | undefined;
+  viewer.server.on("request", (_req,res) => { const headers = vi.spyOn(res,"writeHead"); headerCalls = () => headers.mock.calls.length; res.once("close",closed); });
   const req = get(new URL("api/runs/abandoned/events?head=1",viewer.url));
   req.on("error", () => undefined);
   await entered;
@@ -474,5 +474,5 @@ it("does not start SSE after a client disconnects during its asynchronous head r
   await didClose;
   release([]);
   await new Promise<void>(resolve => setImmediate(resolve));
-  expect(headers).not.toHaveBeenCalled();
+  expect(headerCalls?.()).toBe(0);
 });

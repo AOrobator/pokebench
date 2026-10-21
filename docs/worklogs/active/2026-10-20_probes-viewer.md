@@ -98,7 +98,7 @@ No harness behavior changes, so no feature switch. The TIMELINE is untouched.
 - [x] COMMIT: `test(viewer): probe ledger reader and routes` (RED) fe14b879 — fails: no `probes.js`, no routes
 - [x] Implement `probes.ts`, the server routes and a stub `static/probes.html`. The RED route test also expected the four browser modules; that one assertion moved to M2 (the modules do not exist until then)
 - [x] Gates: agent 2989 pass; viewer 1447 (one pre-existing git-heavy experiment-cli test timed out under load, passes alone 11/11); lint TS clean, ruff clean, mypy clean with the main venv (fresh worktree venv has no mGBA binding); build OK; coverage viewer 95.08/91.02/93.9 (probes.ts 94.5/89.2/96.9), agent 97.19/92.97/97.55; Python 96.92/92.22/99.55 (1 test needs POKEBENCH_ROM in the shell, fails the same on main)
-- [x] COMMIT: `feat(viewer): probe ledger reader and routes` (GREEN)
+- [x] COMMIT: `feat(viewer): probe ledger reader and routes` (GREEN) ff1093d7
 
 **M2: probe stats and the page (design N)**
 - [ ] Write tests:
@@ -113,7 +113,8 @@ No harness behavior changes, so no feature switch. The TIMELINE is untouched.
   - hash selection
   - polling stops when complete
   - nav chips
-- [ ] COMMIT: `test(viewer): probes page` (RED)
+- [x] Tests: `probe-stats.test.ts`, `probes-view.test.ts` (parsing, hash, INV-1 groups, header, slots, scene, squares, verdict, reader escaping, arm-blind, folded plot and guide, ungraded case, problems, nav chips on all three pages, mount/clicks/polling/empty); the reports header test now expects three chips; the server test again expects the four browser modules
+- [x] COMMIT: `test(viewer): probes page` (RED)
 - [ ] Implement `probe-stats.ts`, `probes-view.ts`, `probes-main.ts`, `probes-boot.ts`, CSS and nav chips
 - [ ] Gates
 - [ ] COMMIT: `feat(viewer): probes page (design N)` (GREEN)

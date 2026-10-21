@@ -1055,6 +1055,7 @@ it("serves the probes page, the probe list and one probe, and refuses unsafe pro
   expect((JSON.parse(one.body.toString()) as { samples: unknown[] }).samples).toHaveLength(1);
   for (const path of ["/api/probes/nope", "/api/probes/..", "/api/probes/%2e%2e", "/api/probes/a%2Fb"]) expect((await get(viewer, path)).status, path).toBe(404);
   expect((await get(viewer, "/api/probes", { host: "elsewhere.invalid" })).status).toBe(403);
+  expect(BROWSER_MODULES).toEqual(expect.arrayContaining(["probes-view", "probes-main", "probes-boot", "probe-stats"]));
 });
 
 function getWithHeaders(viewer: Viewer, path: string): Promise<{ body: string; csp: string }> {

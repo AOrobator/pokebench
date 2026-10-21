@@ -78,6 +78,7 @@ Scope limits (from the data the runs record today):
 
 The operator: the green fill shows the white bar above and below it; the HP tag should be full height and line up with the bar's left edge. Cause: `.pv-hp` was 9u tall with the tag drawn 9u (its art has two transparent top rows, so it sat a row low) and 16u wide over a frame starting at 14u (2u overlap); the track covered only 3 of the 5 white interior rows (the game leaves those white rows; The operator wants them filled). The EXP bar is the ROM strip itself and is unchanged.
 - [x] RED: style-css.test.ts asserts tag and frame are the bar's full height, the tag ends where the frame starts, and the track fills the whole white interior
+- [x] GREEN: `.pv-hp` 7u tall; tag 15u x 7u showing art rows 2-8 and columns 0-14; frame from 15u, top 0; track inset 1u on all sides so the fill covers the 5 white rows. Gates: lint, build; coverage agent 3281 tests 99.2/93.1/97.71, viewer 1600 tests 97.9/91.33/94.33, python 3583 tests 97.23/92.97/100.
 
 ## Closing the Loop
 

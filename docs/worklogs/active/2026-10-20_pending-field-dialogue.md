@@ -53,3 +53,7 @@ R2 implementation commit431e7ecfb. Pending definition repins to it; remains unqu
 
 ## Concurrent registry integration
 After all r2 reviewers approved and the reviewed patch synced byte-identically with d004be2dd, main landed exit-labels-v3. Integrated it on the candidate branch. Pending field dialogue appends after the now-landed switch; both defaults remain OFF and independent. Rebased historical registry-offset/feature fixtures on current main and kept the current-registry round-trip test genuinely ALL_ON. Pending definition explicitly holds exit-labels-v3 OFF. No pending-dialogue runtime/prompt behavior changed from reviewed r2. A third integration-only cumulative review follows. The operator was asked for explicit permission to coordinate a merge hold and waive the unavailable Claude lane; neither permission is inferred from silence.
+
+Integration focused tests98 pass. Pending source repins to8d89a155; full gates and cumulative integration review follow. Current-registry ALL_ON invariance is retained; historical fixtures explicitly keep the new flag OFF.
+
+Frozen integration evidence: registry integration8d89a155 and upstream evidence sync58f3fb882; pending definition pins8d89a155.84 narrow factory/registry tests pass after98 broader focused tests.

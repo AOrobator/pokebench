@@ -24,3 +24,4 @@ Design:
   - GPT 1 (lateness): the keeper now checks every 60 s (`KEEPER_IDLE_SECONDS`, one `git rev-parse`, no model) or sooner at the deadline, so a new commit is seen within a minute and expiry is at most a minute late.
   - GPT 3 (fixture runtime): rebutted. Each test seeds 1–3 fixed rows; Claude and Grok both audited it as bounded.
   - 82 agent-mail tests, module 100% lines and branches; ruff and mypy clean.
+- LANDED 2026-10-21 6:40 PM EDT (the operator "land it", 5:16 PM, no round 3): main fast-forwarded f94e361d5 → e0f7bfeb5. Full gates passed on 8a6974141 (main 384a87f92 merged; try 3 after viewer timing flakes in untouched TS). The final sync with f94e361d5 brought in docs only (execute-worklog, talk-to-claude, a caught-dex worklog); after it, 82 agent-mail tests and verify-vendor pass. 82 tests pass on main. Keeper started detached from main after land-done (`just land-keeper`, log runs/agent-mail/land-keeper.log).

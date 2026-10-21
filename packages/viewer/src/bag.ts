@@ -94,12 +94,23 @@ export class BagLedger {
   private readonly pockets = new Map<number, Pocket>();
   private pending: Pending[] = [];
   private inTutorial = false;
+  // The player-bag snapshot before `latest`, for actions recorded after the state that shows them.
+  private beforeLatest: Snapshot | null = null;
 
   add(event: RunEvent): void {
     this.lastTurn = Math.max(this.lastTurn, event.turn);
     if (event.type === "native_action" && event.kind === "item_quantity_changed") {
       const pending = pendingOf(event);
-      if (pending !== null) this.pending.push(pending);
+      if (pending === null) return;
+      // Human runs record the state first and poll the game's actions after it: when the latest
+      // player state already shows `after` and the one before it `before`, that state confirms it.
+      const qty = (snapshot: Snapshot | null): number => snapshot?.bag.get(pending.itemId)?.quantity ?? 0;
+      if (this.latest !== null && !this.inTutorial && this.pending.length === 0 && qty(this.latest) === pending.after && qty(this.beforeLatest) === pending.before) {
+        this.resolve([pending], this.beforeLatest, this.latest);
+        this.version += 1;
+        return;
+      }
+      this.pending.push(pending);
       return;
     }
     if (event.type !== "state" || !("started" in event)) return;
@@ -119,6 +130,7 @@ export class BagLedger {
     this.inTutorial = false;
     for (const [id, held] of snapshot.bag) this.pockets.set(id, held.pocket);
     this.recorded = true;
+    this.beforeLatest = previous;
     this.latest = snapshot;
     if (previous?.key !== snapshot.key || this.pending.length > 0) this.version += 1;
     if (this.pending.length === 0) return;
@@ -192,7 +204,11 @@ interface Series {
 
 function seriesOf(ledger: BagLedger, changes: readonly BagChange[]): Series[] {
   const byItem = new Map<number, BagChange[]>();
-  for (const change of changes) byItem.set(change.itemId, [...(byItem.get(change.itemId) ?? []), change]);
+  for (const change of changes) {
+    const list = byItem.get(change.itemId);
+    if (list === undefined) byItem.set(change.itemId, [change]);
+    else list.push(change);
+  }
   for (const [id] of ledger.latest?.bag ?? new Map<number, Held>()) if (!byItem.has(id)) byItem.set(id, []);
   return [...byItem].map(([itemId, list]) => {
     const held = ledger.latest?.bag.get(itemId);

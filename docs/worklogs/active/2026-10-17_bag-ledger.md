@@ -79,3 +79,12 @@ The approved mockup changed: runs/mockups/bag-inventory/variant-c.html, v3.
 
 - Round 1 (old design, packet 8e0e0c34..18760f81): Grok LGTM. GPT BLOCKING: tutorial heuristic false positive, pc null read as empty, empty-with-history pockets not faded (all fixed in M2), and the real-ROM art receipt (rebutted: ROM reads are denied in the session). Claude CLI was at its weekly limit.
 - Round 2: see M2 above.
+- Round 3 on packet 772a4614..8431c4ec (sha256 aa633171f7feda91e5038524ae3aadc7f1e6c626bdf11087d613b027b39d6418):
+  - Claude (read-only subagent; Cursor Opus and the Claude CLI were both at usage limits): LGTM.
+  - Grok (Cursor cursor-grok-4.5-high): LGTM.
+  - GPT (isolated Codex gpt-5.6-sol xhigh): BLOCKING. Human recordings write the state before the game's native actions (packages/agent/src/human.ts), so a purchase confirmed by the preceding state stayed waiting forever, or resolved as found.
+- [x] Fix after round 3:
+  - An action whose item quantity the latest player state already shows as `after`, while the state before it shows `before`, resolves against that pair. Agent runs still wait for the next state, since there the latest state still shows `before`.
+  - `seriesOf` groups changes in linear time (GPT follow-up).
+  - Test: a state before its action resolves as bought with ¥200 spent, and a PC withdrawal as from_pc.
+  - Viewer 1557 (95.42/91.18/94.41). Not re-reviewed.

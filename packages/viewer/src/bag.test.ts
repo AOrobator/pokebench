@@ -76,6 +76,22 @@ describe("BagLedger", () => {
     expect(ledgerOf(log).changes.map(brief)).toEqual(["T4 POKé BALL 5→4 used"]);
   });
 
+  it("takes a state recorded before its action as the one that confirms it (human runs)", () => {
+    const log = new Log();
+    log.add(0, START);
+    log.add(1, state({ turn: 1, money: 1000, resources: resources([], [[3, 1, "poke_balls", "GREAT BALL"]]) }));
+    log.add(2, state({ turn: 2, money: 800, resources: resources([[13, 1, "items", "POTION"]], [[3, 1, "poke_balls", "GREAT BALL"]]) }));
+    log.add(3, itemChange(2, 13, "POTION", 0, 1));
+    const ledger = ledgerOf(log);
+    expect(ledger.changes.map(brief)).toEqual(["T2 POTION 0→1 bought"]);
+    expect(ledger.waiting).toBe(0);
+    expect(headline(ledger)).toEqual({ gained: 1, used: 0, spent: 200, buys: 1 });
+    log.add(4, state({ turn: 3, money: 800, resources: resources([[13, 1, "items", "POTION"], [3, 1, "poke_balls", "GREAT BALL"]], []) }));
+    log.add(5, itemChange(3, 3, "GREAT BALL", 0, 1));
+    log.add(6, state({ turn: 4, money: 800, resources: resources([[13, 1, "items", "POTION"], [3, 1, "poke_balls", "GREAT BALL"]], []) }));
+    expect(ledgerOf(log).changes.map(brief)).toEqual(["T2 POTION 0→1 bought", "T3 GREAT BALL 0→1 from_pc"]);
+  });
+
   it("counts a ball thrown in an ordinary battle as used, whatever is left in the bag", () => {
     const log = new Log();
     log.add(0, START);

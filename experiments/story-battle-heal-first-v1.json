@@ -189,6 +189,7 @@
    "yes-no-answer-readout-v1": false,
    "field-move-gates-v1": false,
    "story-battle-heal-gate-v1": false,
+   "exit-labels-v3": false,
    "story-battle-heal-first-v1": false
   }
  },

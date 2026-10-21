@@ -1147,3 +1147,11 @@ it("serves opted-in revisions while preserving the complete workbench endpoint",
   expect(payloads[1]).toMatchObject({ runs: [], removed: [] });
   expect((await get(viewer, "/api/workbench?updates=1&since=unknown")).body.toString()).toContain('"base":null');
 });
+
+it("serves the section-aware exit explainer byte for byte",async()=>{
+ const root=mkdtempSync(join(tmpdir(),"pokebench-sections-")),staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});
+ const id="exit-labels-v3",tracked=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)));writeFileSync(join(docs,`${id}.html`),tracked);
+ const viewer=await startViewer({runsRoot:join(root,"runs"),staticDir,appDir:join(root,"app"),port:0});open.push(viewer);
+ const reply=await get(viewer,`/explainers/${id}.html`);
+ expect(reply.status).toBe(200);expect(reply.body.equals(tracked)).toBe(true);
+});

@@ -1,3 +1,4 @@
+import {DEFAULT_NEXT_RUN,parseNextRun} from "./next-run.js";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -55,7 +56,7 @@ it("the next bundle: control gains the battle tools and exit reachability, the b
   for(const id of ["battle-move-tool-v1","battle-menu-loop-v1","tutorial-party-owner-v1","context-token-budget-v1","exit-reachability-v1"])for(const arm of ["control","bundle"] as const){
    expect(def.onInBoth).toContain(id);expect(def.switches).not.toContain(id);expect(armFeatureBits(def,arm)[id]).toBe(true);
   }
-  for(const id of ["stale-story-goal-v1","stale-story-goal-v2","harness-trust-v1","semantic-navigation-v2","deterministic-exploration-v1","briefing-repeat-count-v1","navigate-already-here-v1","auto-talk-v1","story-character-stall-gate-v1","heal-before-trainers-v1","unfinished-activity-v1"]){
+  for(const id of ["stale-story-goal-v1","stale-story-goal-v2","harness-trust-v1","semantic-navigation-v2","deterministic-exploration-v1","briefing-repeat-count-v1","navigate-already-here-v1","auto-talk-v1","story-character-stall-gate-v1","heal-before-trainers-v1","unfinished-activity-v1","exit-labels-v3"]){
    expect(armFeatureBits(def,"control")[id]).toBe(false);expect(armFeatureBits(def,"bundle")[id]).toBe(true);
   }
   expect(def.offInBoth).toContain("positive-supervisor-v1");expect(armFeatureBits(def,"control")["positive-supervisor-v1"]).toBe(false);expect(armFeatureBits(def,"bundle")["positive-supervisor-v1"]).toBe(false);
@@ -760,4 +761,9 @@ it("enables the YES/NO answer readout only in the bundle of the three current bu
   expect(armFeatureBits(def,"control")[id]).toBe(false);
   expect(armFeatureBits(def,"bundle")[id]).toBe(true);
  }
+});
+
+it("keeps section-aware labels OFF in the generic next-run default",()=>{
+ expect(DEFAULT_NEXT_RUN.features["exit-labels-v3"]).toBe(false);
+ expect(parseNextRun(DEFAULT_NEXT_RUN).features["exit-labels-v3"]).toBe(false);
 });

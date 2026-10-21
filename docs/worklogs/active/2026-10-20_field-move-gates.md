@@ -309,4 +309,67 @@ FAIL. Local inference reviewers not used. HEAD/status verified unchanged before 
 - Round 2 on packet 24648e12..85f64812 (sha256 d07e109e…): Claude (read-only subagent) LGTM, Grok LGTM, Codex BLOCKING on test-fixture I/O and flood counts only. The operator 9:42 PM ET: land it and speed up the tests in a follow-up ("yes and yes").
 - Added the switch to the bundle arm of bundle-v-control, bundle-cook-1h and whole-map-cook-1h (false in base); open-goal-prompt.test.ts excludes it like the other newer bundle switches. Pending experiment source.commit pinned to 85f64812.
 - Gates: lint and build clean; agent 3046/3046, viewer 1499/1499, pytest 3470; coverage agent 97.13/92.97/97.59/99.14, viewer 95.23/91.05/94.14/97.8, Python lines 97.21 branches 92.86 functions 100.
-- DEFERRED (follow-up, the operator): bound the audit tests' fixture I/O and per-warp floods (Codex round 2). Open questions from review: Kecleon named by sprite kind; "every way to" wording for water-only cut-offs.
+- [x] ~~DEFERRED~~ (follow-up, the operator): bound the audit tests' fixture I/O and per-warp floods (Codex round 2). Done on claude/field-move-test-io, below. Open questions from review: Kecleon named by sprite kind; "every way to" wording for water-only cut-offs.
+
+## Follow-up: test I/O and flood bounds (claude/field-move-test-io, 2026-10-20)
+
+The operator approved 9:42 PM ET. Test-only, plus one production fix the coordinator added (Group.line overclaim).
+
+- [x] conftest.py session fixture `porymap_names` (one MapNames.load, read count recorded); audit uses an
+  in-memory MapNames from the audit JSON plus one real-adapter test; flood uses the fixture.
+- [x] test_field_moves: each pokeemerald source file read once (functools.cache) with a read-count test.
+- [x] audit: one analysis per map (one ROM parse per map and destination, tiles and edges once, one
+  classify per start and closed gate set, empty rule sets share the ungated flood); bounded-work and
+  N vs 2N synthetic tests.
+- Before (3 suites, warm): 304 passed, 1.29s / 1.19s pytest; Path.read_text 1144 (map.json 1036);
+  read_rom_map 127; _spread 5190 (audit alone 2582, flood 2608); quotation reads 7.
+- After: 309 passed, 0.58s pytest (0.97s wall with the spy plugin); read_text 624 (map.json 518, one load);
+  read_rom_map 91 (audit 85 = one per distinct map); _spread 3360 (audit 752, of which 96 synthetic, so
+  656 real vs 2582; flood file unchanged, its random unit cases); quotation reads = distinct files.
+- COMMIT: `test: field-move-gates-v1 tests load map names once and flood once per start` (c86de73a). env pytest 3475 passed.
+- [x] RED (coordinator scope addition, second Claude review): Group.line overclaims "close(s) every way on foot
+  to X" when X's blocker set spans kinds or more obstacles than the line names. test_field_move_claims.py:
+  VICTORY ROAD B1F from (30,25) (eight badges, no field moves), SEAFLOOR CAVERN ROOM1 from (5,18), and a
+  ROM sweep property (every printed claim holds with exactly its obstacles closed). 3 failed.
+- COMMIT: `test(red): field-move-gates-v1 close-every-way lines must name the whole blocker set` (a016c68f)
+- [x] GREEN: FieldObstacles.lines groups cut-off exits by their whole blocker set (all closed); one kind keeps
+  the old wording (Rusturf golden and the 81 audit maps unchanged), several kinds print "A at .. and B at ..
+  together close every way on foot to X: they need ..." with each kind's game text; other closed objects
+  get a kind line with no exits. Explainer gains the Victory Road example. Sweep: every porymap map, every
+  warp start, CLOSED caps, 0.6s.
+  Gates: just lint 0, just build 0, just coverage 0 (env 3480, agent 3046, viewer 1499; Python 97.21 /
+  92.86 / 100, agent 97.13 / 92.97 / 97.59 / 99.14, viewer 95.22 / 91.04 / 94.14 / 97.8). just test: one
+  viewer timeout flake (experiment-cli 5s, unrelated, passes alone and under coverage).
+- COMMIT: `fix: field-move-gates-v1 says obstacles close every way only for an exit's whole blocker set` (8fd2c9f6)
+- COMMIT: `Merge branch 'main' into claude/field-move-test-io` (71c967a2), main 537c0a99, clean. Gates on the merged
+  tip: just test 0, just lint 0, just build 0, just coverage 0 (env 3480, agent 3046, viewer 1508; Python
+  97.21 / 92.86 / 100, agent 97.13 / 92.97 / 97.59 / 99.14, viewer 95.25 / 91.06 / 94.19 / 97.82).
+- [ ] Review loop (cloud lanes only): Claude, Grok, Codex on packet e9584cf0..HEAD.
+- COMMIT: `docs: record field-move test-io gates on the merged tip` (84316d89)
+- Review round 1 (Claude lane, read-only subagent; claude -p OAuth expired): BLOCKING on packet identity only,
+  my packet was cut against main 97046aa6 (moved past the frozen base 537c0a99) so its checksum did not
+  reproduce. Grok and Codex stopped before verdicts, packet void. Substance: no defects. Hardening taken: the
+  sweep reuses survey.open (no extra ungated classify) and asserts its floods (<= 4 + 2 x closed per survey,
+  exactly 2 per checked claim). Next: merge main 97046aa6, gates, refreeze with explicit SHAs.
+- COMMIT: `test: the field-move claim sweep reuses the survey's open flood and bounds its floods` (47c9ebab)
+- COMMIT: `Merge branch 'main' into claude/field-move-test-io` (9b511d4d), main 97046aa6, clean. Gates on the merged
+  tip: test 0, lint 0, build 0, coverage 0 (env 3480, agent 3046, viewer 1494; Python 97.21 / 92.86 / 100,
+  agent 97.13 / 92.97 / 97.59 / 99.14, viewer 95.24 / 90.99 / 94.17 / 97.81).
+- COMMIT: `docs: record field-move test-io round 1 and the second main sync` (7ac8c9e3)
+- Review round 2, packet 97046aa6..7ac8c9e3 (sha256 aca14b97...):
+  - Grok (cursor-grok-4.5-high): VERDICT: LGTM.
+  - Claude (read-only subagent): BLOCKING on landing identity only (main moved to 92f841ac seconds before the
+    freeze, 82 files, no overlap with the packet's 8); substance: no defects.
+  - Codex (gpt-5.6-sol, read-only): BLOCKING, audit setup still Theta(starts x tiles): per-start classify is 2
+    floods, the N vs 2N test shows 2N^2 visits; wants linear aggregate work. Fixture I/O, the 247 cases, the
+    production fix and quotations all confirmed. Non-blocking: `Kind` is a new public name in field_moves.
+  - Stopped here (two rounds with blockers). Open for the coordinator / the operator: per-start floods are what
+    "from every warp" asks; linear aggregate work needs either fewer starts (drops audit coverage), a
+    test-owned reachability reimplementation (no longer tests production floods), or a production batch API
+    (Codex itself called that scope expansion). Landing also needs one more clean sync with main.
+
+## Follow-up landing (2026-10-20, 10:55 PM ET)
+
+- The operator 10:48 PM ET: "land the field move follow up". Review round 2 on packet 97046aa6..7ac8c9e3: Grok LGTM; Claude found no code defects (blocked only on the main sync, done here); Codex BLOCKING on per-start audit floods, rebutted (each start must be flooded to check every warp).
+- Merged main 52e04dd1 (viewer-only, clean). Lint and build clean; viewer 1515/1515. Full gates on the previous sync: agent 3083, viewer 1500, pytest 3480, coverage above 90 on both stacks.
+- Pending experiment field-move-gates-v1 source.commit repinned to the landing merge, since the ON text changed for multi-kind blocker sets.

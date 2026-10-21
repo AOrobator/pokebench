@@ -748,28 +748,59 @@ def _tiles_text(tiles: Sequence[Tile], joiner: str) -> str:
 
 
 @dataclass(frozen=True)
-class Group:
-    """Closed obstacles of one kind that cut off the same exits, as one readout line."""
+class Kind:
+    """Closed obstacles of one kind (same name and gate) named together on a readout line."""
 
     name: str
     gate: str
     tiles: tuple[Tile, ...]
+
+    def what(self, *, joint: bool) -> str:
+        how = HOW.get(self.name)
+        tiles = f"{self.name} at {_tiles_text(self.tiles, 'and')}"
+        if how is None:
+            return tiles
+        return f"{tiles} ({how})" if joint else f"{tiles}, {how},"
+
+
+@dataclass(frozen=True)
+class Group:
+    """One readout line: closed obstacles and the exits every way on foot to which they close.
+
+    With exits, the kinds are those exits' whole blocker set: every way to them passes one of
+    these obstacles, so closing exactly these cuts them off. Without, it only names the kind.
+    """
+
+    kinds: tuple[Kind, ...]
     exits: tuple[str, ...]
 
     def line(self) -> str:
-        gate = GATE[self.gate]
-        how = HOW.get(self.name)
-        what = f"{self.name} at {_tiles_text(self.tiles, 'and')}" + (
-            "" if how is None else f", {how},"
-        )
+        if len(self.kinds) > 1:
+            return self._joint()
+        kind = self.kinds[0]
+        gate = GATE[kind.gate]
         said = (
             "the game shows no message there"
             if gate.text is None
             else f'the game says: "{gate.text}"'
         )
-        verb = "closes" if len(self.tiles) == 1 else "close"
+        verb = "closes" if len(kind.tiles) == 1 else "close"
         cut = f" {verb} every way on foot to {_join(self.exits, 'and')}" if self.exits else ""
-        return f"- {what}{cut}: it needs {gate.needs}; {said}"
+        return f"- {kind.what(joint=False)}{cut}: it needs {gate.needs}; {said}"
+
+    def _joint(self) -> str:
+        needs = {GATE[k.gate].needs for k in self.kinds}
+        need = needs.pop() if len(needs) == 1 else "a field move or an item you cannot use yet"
+        quoted = [f'"{GATE[k.gate].text}" at the {k.name}' for k in self.kinds if GATE[k.gate].text]
+        silent = [k.name for k in self.kinds if GATE[k.gate].text is None]
+        said = [f"the game says: {_join(quoted, 'and')}"] if quoted else []
+        if silent:
+            said.append(f"the game shows no message at the {_join(silent, 'or')}")
+        what = " and ".join(k.what(joint=True) for k in self.kinds)
+        return (
+            f"- {what} together close every way on foot to {_join(self.exits, 'and')}:"
+            f" they need {need}; {'; '.join(said)}"
+        )
 
 
 HEADER = "Field obstacles on this map (from the map's own object list and its tiles):"
@@ -812,40 +843,42 @@ class FieldObstacles(Generic[K]):
             "obstacles": [entry(i, o) for i, o in enumerate(self.gates.obstacles)],
         }
 
-    def _cuts(
-        self, warp_name: Callable[[Tile], str], connection_name: Callable[[K], str]
-    ) -> dict[int, list[str]]:
-        cuts: dict[int, list[str]] = {}
-        for w, ids in self.survey.warp_blocks.items():
-            for i in ids:
-                cuts.setdefault(i, []).append(warp_name(w))
-        for key, ids in self.survey.connection_blocks.items():
-            for i in ids:
-                cuts.setdefault(i, []).append(connection_name(key))
-        return cuts
+    def _kinds(self, ids: Iterable[int]) -> tuple[Kind, ...]:
+        tiles: dict[tuple[str, str], list[Tile]] = {}
+        for i in ids:
+            o = self.gates.obstacles[i]
+            tiles.setdefault((o.name, o.gate), []).extend(o.tiles)
+        return tuple(
+            Kind(name, gate, tuple(sorted(found, key=_reading)))
+            for (name, gate), found in tiles.items()
+        )
 
     def lines(
         self, warp_name: Callable[[Tile], str], connection_name: Callable[[K], str]
     ) -> list[str]:
-        """One line per kind of closed obstacle and the exits it cuts off; none when all open.
+        """The cut-off exits by blocker set, then the other closed obstacle objects by kind.
 
-        An obstacle object is always named; terrain only when it cuts off an exit.
+        A line says its obstacles close every way on foot to an exit only when they are that
+        exit's whole blocker set. Terrain is named only when it cuts off an exit.
         """
-        cuts = self._cuts(warp_name, connection_name)
-        groups: dict[tuple[str, str, tuple[str, ...]], list[Tile]] = {}
-        for i, o in enumerate(self.gates.obstacles):
-            exits = tuple(cuts.get(i, ()))
-            if self.gates.closed(o) and (o.local_id is not None or exits):
-                groups.setdefault((o.name, o.gate, exits), []).extend(o.tiles)
+        cuts: dict[tuple[int, ...], list[str]] = {}
+        named = [(ids, warp_name(w)) for w, ids in self.survey.warp_blocks.items()] + [
+            (ids, connection_name(key)) for key, ids in self.survey.connection_blocks.items()
+        ]
+        for ids, exit_name in named:
+            if all(self.gates.closed(self.gates.obstacles[i]) for i in ids):
+                cuts.setdefault(tuple(sorted(ids)), []).append(exit_name)
+        cutting = {i for ids in cuts for i in ids}
+        rest = [
+            i
+            for i, o in enumerate(self.gates.obstacles)
+            if self.gates.closed(o) and o.local_id is not None and i not in cutting
+        ]
+        groups = [Group(self._kinds(ids), tuple(exits)) for ids, exits in cuts.items()]
+        groups += [Group((kind,), ()) for kind in self._kinds(rest)]
         if not groups:
             return []
-        return [
-            HEADER,
-            *(
-                Group(name, gate, tuple(sorted(tiles, key=_reading)), exits).line()
-                for (name, gate, exits), tiles in groups.items()
-            ),
-        ]
+        return [HEADER, *(g.line() for g in groups)]
 
     def _passes(self, ids: Iterable[int]) -> str:
         named: dict[str, list[Tile]] = {}

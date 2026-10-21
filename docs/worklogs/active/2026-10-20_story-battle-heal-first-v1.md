@@ -42,3 +42,4 @@ Status: M1 in progress. Worktree `~/dev/pokebench-worktrees/heal-first-line-v1`,
 - Replay (scratch replay.mjs over the real events): 97a0 result 4541 gives the probed line exactly (first fires at result 4275, turn 149); b300 result 14882 gives the ROXANNE line; b300 15222 (turn 500) gives it at 11/35.
 - Explainer checked in a real browser (desktop and phone width); map figure widened so its notes are not clipped.
 
+- Synced with main 13380470 (exit-labels-v3 landed: registered before this switch; conflicts resolved by taking main and reapplying this switch's additions; index/filter test updates redone). Tests: agent 3115, viewer 1521, python 3494 passed. Coverage: agent 97.21/92.99/97.65/99.18, viewer 95.26/91.07/94.24/97.83, python lines 97.21 branches 92.85 functions 100. Lint, build, schema fresh, fixed-run check passes for all three. Replay unchanged.

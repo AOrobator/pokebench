@@ -8,7 +8,7 @@
  "primaryMilestone": "ROXANNE_DEFEATED",
  "source": {
   "checkout": "main",
-  "commit": "e52a65920fa4e1cc8cc3c5e9f5d0eae696d3bd2b"
+  "commit": "1395c244d7394eca700efb5d3a2bf23c26f0e126"
  },
  "incumbent": {
   "version": 2,
@@ -221,5 +221,5 @@
   "window": 4,
   "minReached": 3
  },
- "notes": "Pending, unqueued, unapproved. Recorded-loop replay verifies warning/delivery/stop and B recovery, not model escape rate or gameplay benefit. OLDALE_TOWN reach does not prove shop-menu exposure. Design a separate shop checkpoint study before queueing; keep navigation recovery separate. Source pin is the preparation base until reviewed landing and repinning."
+ "notes": "Pending, unqueued, unapproved. Recorded-loop replay verifies warning/delivery/stop and B recovery, not model escape rate or gameplay benefit. OLDALE_TOWN reach does not prove shop-menu exposure. Design a separate shop checkpoint study before queueing; keep navigation recovery separate. Source pin is the implementation commit until reviewed landing and repinning."
 }

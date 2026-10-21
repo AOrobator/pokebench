@@ -295,7 +295,7 @@ it("enables pending field dialogue only in each evolving bundle and preserves co
 });
 
 it("enables menu refusal recovery only in evolving bundle arms",()=>{
- for(const name of ["bundle-v-control","bundle-cook-1h","whole-map-cook-1h"]){
+ for(const name of ["bundle-v-control","bundle-cook-1h","whole-map-cook-1h","whole-map-pair-2h"]){
   const def=parseFixedDefinition(readFileSync(new URL(`../../../experiments/fixed/${name}.json`,import.meta.url),"utf8")).definition;
   expect(definitionProblems(def)).toEqual([]);
   expect(def.switches).toContain("menu-refusal-recovery-v1");

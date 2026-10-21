@@ -35,3 +35,12 @@ Browser: isolated server 8793, scratch-only transformed replay (never a measured
 Experiments check: the standard CLI resolves the canonical root, where pre-existing starter-decision-salience ledger rows fail validation. No ledger edits. New pending definition parsed and its ON/OFF arm delta tested in isolation. No queue position, approval or measured launch.
 
 Main advanced to 6fbce3326 (only script/config/worklog changes); sync next, then freeze final candidate and review. Current whole-map-pair-2h bundle newly appeared on main; include this evolving definition alongside the prior three so future bundle picks inherit the switch, keeping control OFF and all historical run headers unchanged.
+
+Synced main 6fbce3326 via e24b90eb2; no production conflicts. Added menu switch to the fourth evolving bundle, whole-map-pair-2h; control stays OFF. Source pin names implementation1395c244 pending reviewed landing/repin. Production readinessOf: NOT READY, recent boot lane basis, 0/4 OLDALE_TOWN; current GPU save-state cooks do not qualify as think-fast boots.
+
+Final gates on synchronized tree: just coverage passes 3266 agent + 1569 viewer + 3564 Python = 8399 tests, zero skips. Agent branches93.09/functions97.70/lines99.20; viewer branches91.19/functions94.41/lines97.92; Python branches92.95/functions100/lines97.25. just lint passes both TS and all Python lint/type checks. just build and pages-check pass (logs /tmp/menu-refusal-final-*.log). Earlier direct Python coverage attempts without the just-loaded environment failed and are retained; final just coverage uses external ROM and installed mGBA binding, with no exclusions or gate changes.
+
+- [x] RED regression committed f81223bd.
+- [x] GREEN implementation committed 1395c244; existing default/OFF behavior tests preserved.
+- [x] Full gates, six deletion/restoration checks and browser feature-card/explainer proof.
+- [ ] Frozen independent review and permitted landing. Claude dedicated CLI profile currently logged out; try Cursor Claude on the sealed packet. No experiment or runtime start requested.

@@ -245,3 +245,5 @@ PENDING and unqueued. Boot readiness remains unproven: no matching four-run fres
 ## menu-refusal-recovery-v1 (2026-10-21)
 
 Pending only; no queue position or approval. Activation: OLDALE_TOWN, the earliest native milestone for shop access. Recorded shop-loop fixture qualifies the mechanism but does not establish model recovery benefit or milestone readiness across 3 of the last 4 matching runs. Before queueing, refresh readiness against the reviewed source pin and design a shop checkpoint study. Navigation recovery is excluded.
+
+Production readinessOf refresh: NOT READY, recent basis, 0/4 reached OLDALE_TOWN (minimum 3/4). Considered think-fast boot runs 2026-10-15T13-36-02_think-fast_2f46, 14-21-06_think-fast_6684, 15-06-08_think-fast_dc0e and 15-51-18_think-fast_17a0. The current GPU cook runs use a different recorded model identifier/start and do not qualify for this standalone entry's lane. Saved receipt: runs/menu-refusal-recovery/readiness.json. Pending only; no queue/approval/launch.

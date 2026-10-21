@@ -608,3 +608,9 @@ def test_a_later_board_change_waits_for_earlier_notices(tmp_path: Path) -> None:
     assert [e.branch for e in am.read_board(r)] == ["codex/c"]
     last_to_c = [text for thread, text in delivered if thread == "c"][-1]
     assert last_to_c == "codex c: your turn to land codex/c"
+
+
+def test_a_hung_command_times_out_instead_of_holding_the_board() -> None:
+    start = time.monotonic()
+    assert am.run_command(["sleep", "5"], timeout=0.2) == am.TIMED_OUT
+    assert time.monotonic() - start < 3

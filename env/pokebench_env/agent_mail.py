@@ -29,8 +29,16 @@ NO_MAIL = 3
 Run = Callable[[Sequence[str]], int]
 
 
-def run_command(argv: Sequence[str]) -> int:
-    return subprocess.run(list(argv), check=False).returncode
+# `codex queue` returns in about a second; a hung one must not hold the board lock for long.
+COMMAND_TIMEOUT_SECONDS = 30.0
+TIMED_OUT = 124
+
+
+def run_command(argv: Sequence[str], timeout: float = COMMAND_TIMEOUT_SECONDS) -> int:
+    try:
+        return subprocess.run(list(argv), check=False, timeout=timeout).returncode
+    except subprocess.TimeoutExpired:
+        return TIMED_OUT
 
 
 @dataclass(frozen=True)

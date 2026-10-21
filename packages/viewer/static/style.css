@@ -1086,9 +1086,10 @@ b.wb-add, b.wb-rem { white-space:nowrap; }
 .pv-hpn { justify-self: end; }
 .pv-status { display: inline-block; width: calc(var(--u) * 32); height: calc(var(--u) * 8); background: url(/sprites/party/parts/status.png) 0 calc(var(--u) * -8 * var(--row)) / calc(var(--u) * 32) calc(var(--u) * 64); }
 .pv-hp { position: relative; display: block; height: calc(var(--u) * 7); min-width: calc(var(--u) * 66); }
-.pv-hp .frame { position: absolute; left: calc(var(--u) * 14); right: 0; top: 0; height: calc(var(--u) * 7); background: #525252; }
-.pv-hp .frame::before { content: ""; position: absolute; inset: var(--u); background: #fff; }
-.pv-hp .track { position: absolute; left: calc(var(--u) * 15); right: var(--u); top: var(--u); height: calc(var(--u) * 5); background: #737373; }
+/* The game's bar end (sSlotTilemap_Wide) is rounded: the frame and track drop their right corner pixels and four gray pixels soften the steps. */
+.pv-hp .frame { position: absolute; left: calc(var(--u) * 14); right: 0; top: 0; height: calc(var(--u) * 7); background: #525252; clip-path: polygon(0 0, calc(100% - var(--u)) 0, calc(100% - var(--u)) var(--u), 100% var(--u), 100% calc(100% - var(--u)), calc(100% - var(--u)) calc(100% - var(--u)), calc(100% - var(--u)) 100%, 0 100%); }
+.pv-hp .frame::after { content: ""; position: absolute; right: var(--u); top: 0; width: var(--u); height: var(--u); background: #737373; box-shadow: var(--u) var(--u) #737373, var(--u) calc(var(--u) * 5) #737373, 0 calc(var(--u) * 6) #737373; }
+.pv-hp .track { position: absolute; left: calc(var(--u) * 15); right: var(--u); top: var(--u); height: calc(var(--u) * 5); background: #737373; clip-path: polygon(0 0, calc(100% - var(--u)) 0, calc(100% - var(--u)) var(--u), 100% var(--u), 100% calc(100% - var(--u)), calc(100% - var(--u)) calc(100% - var(--u)), calc(100% - var(--u)) 100%, 0 100%); }
 .pv-hp .fill { position: absolute; left: 0; top: 0; height: 100%; }
 .pv-hp .fill.g { background: linear-gradient(#5ad583 0 var(--u), #73ffac var(--u)); }
 .pv-hp .fill.y { background: linear-gradient(#cdac08 0 var(--u), #ffe639 var(--u)); }

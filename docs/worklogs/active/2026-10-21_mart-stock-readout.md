@@ -51,7 +51,7 @@ Default off; ON in the bundle arm of bundle-cook-1h, bundle-v-control, whole-map
 - [x] Fixed definitions (bundle arm only: `switches` + `base.features: false`) in bundle-cook-1h, bundle-v-control, whole-map-cook-1h, whole-map-pair-2h; `experiments/mart-stock-readout-v1.json` (incumbent = bundle-v-control bundle arm with only this switch off, activation OLDALE_TOWN, primary ROXANNE_DEFEATED, source.commit d778a741), readiness row. `experiment-cli check`: no problem for this entry (its only problems are 150 pre-existing starter-decision-salience ledger lines).
 - [x] Explainer `docs/explainers/mart-stock-readout-v1.html` + FEATURE_EXPLAINERS + README line + panels/server/fixed-runner tests; `just pages-check` clean; copied to main runs/mockups/mart-stock-readout-v1/, 200 on 8791.
 - [x] fixed-run check through `fixed-cli main(["check", id])` with root = this worktree: all four exit 0, bundle switches end with mart-stock-readout-v1, control base unchanged.
-- [ ] agent/viewer/pytest suites on the synced tip.
+- [x] Gates on the synced tip: `just lint` ok; `just build` ok; `just coverage` agent 3284 (97.26/93.11/97.71/99.2), viewer 1604 (95.42/91.33/94.33/97.9), pytest 3621 (lines 97.26 branches 93.04 functions 100); `just verify-vendor` ok. open-goal-prompt's incumbent test drops the new bundle switch like the other later ids.
 - [ ] Claude + Grok LGTM on the frozen packet; coordinator slot; ff-only merge; `just viewer-main`; live check.
 
 ## Follow-ups

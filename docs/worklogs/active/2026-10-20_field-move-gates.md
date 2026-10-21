@@ -340,3 +340,8 @@ The operator approved 9:42 PM ET. Test-only, plus one production fix the coordin
   Gates: just lint 0, just build 0, just coverage 0 (env 3480, agent 3046, viewer 1499; Python 97.21 /
   92.86 / 100, agent 97.13 / 92.97 / 97.59 / 99.14, viewer 95.22 / 91.04 / 94.14 / 97.8). just test: one
   viewer timeout flake (experiment-cli 5s, unrelated, passes alone and under coverage).
+- COMMIT: `fix: field-move-gates-v1 says obstacles close every way only for an exit's whole blocker set` (8fd2c9f6)
+- COMMIT: `Merge branch 'main' into claude/field-move-test-io` (71c967a2), main 537c0a99, clean. Gates on the merged
+  tip: just test 0, just lint 0, just build 0, just coverage 0 (env 3480, agent 3046, viewer 1508; Python
+  97.21 / 92.86 / 100, agent 97.13 / 92.97 / 97.59 / 99.14, viewer 95.25 / 91.06 / 94.19 / 97.82).
+- [ ] Review loop (cloud lanes only): Claude, Grok, Codex on packet e9584cf0..HEAD.

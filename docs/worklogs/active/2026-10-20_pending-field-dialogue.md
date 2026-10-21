@@ -15,11 +15,23 @@ When ON, observe settles an already owned ordinary field message. battle_action 
 ## Checklist
 
 - [x] RED: observed pending field dialogue and queued battle action boundary regressions
-- [ ] GREEN: production wiring and metadata
-- [ ] Gates and mutation proof
+- [x] GREEN: production wiring and metadata
+- [x] Gates and mutation proof
 - [ ] Independent review; landing only with required approvals
 - [ ] Isolated/native evidence and local explainer delivery
 
 Not authorized: changing current measured run's config or injecting game input. Gameplay improvement remains unmeasured.
 
 RED receipt: focused production-wrapper suite: 3 expected failures / 47 passing; observe sent no B; battle_action executed the stale choice. Log /tmp/pending-field-red.log.
+
+
+## GREEN receipts
+- RED commit 386b57f4; focused restored suite 56/56 passing.
+- Production-factory mutation (pendingField=false) fails its B-input assertion; restored focused suite passes. /tmp/pending-field-mutation.log and /tmp/pending-field-restored.log.
+- TypeScript coverage suites: 3093 agent and 1502 viewer tests; no skips. Agent lines/branches/functions 99.17/93.05/97.60%; viewer 97.81/91.02/94.23%.
+- Python with explicit external ROM: 3470 passed, no skips; lines/branches/functions 97.21/92.86/100%. Initial missing-ROM run (504 skips, two failures including a timing-sensitive screen-settle test) retained; configured rerun passes without code changes.
+- TypeScript lint/build and Python ruff/format/mypy pass. Vendor exact clean pin verified.
+- Raw RAM 10940 archive verified with SHA256 717af3d15afd0addb4a24ab606c93cedc0b46dd0ae6b532cfec34ea00a8c0323 and external ROM; production re-render confirms dismiss_wait cursor64, A/B input, no battle.
+- Full experiments checker reports 150 pre-existing malformed starter-decision-salience trials.jsonl lines in shared runtime data; no definition error reported for the new pending entry. No logs altered.
+- Explainer pages-check passes; candidate default remains OFF. Registry append requires updating historical tests' relative offsets and keeping this treatment OFF in frozen historical fixtures.
+- Current-run input, configuration and frozen source untouched. Positive prompt config and no-battle refusal detection remain separate findings; no performance benefit asserted.

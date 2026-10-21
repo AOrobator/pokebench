@@ -1379,3 +1379,10 @@ it("links the YES/NO answer readout from its recorded feature card",()=>{
  expect(html).toContain(id);
  expect(html).toContain("To answer YES, press UP, then A. Pressing A now answers NO.");
 });
+
+it("links the pending field dialogue feature card to its local explainer",()=>{
+ const log=new Log();log.add(0,{...START,harness_features:["pending-field-dialogue-v1"]});
+ const html=harnessConfig(view(log),FEATURES);
+ expect(html).toContain('/explainers/pending-field-dialogue-v1.html');
+ expect(html).toContain('PENDING FIELD DIALOGUE');
+});

@@ -520,6 +520,7 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "yes-no-answer-readout-v1":"yes-no-answer-readout-v1.html",
  "field-move-gates-v1":"field-move-gates-v1.html",
  "story-battle-heal-gate-v1":"story-battle-heal-gate-v1.html",
+ "pending-field-dialogue-v1":"pending-field-dialogue-v1.html",
 });
 
 export function harnessConfig(view:RunView,registry:readonly FeatureInfo[]=[]):string {

@@ -50,6 +50,7 @@ class FakeHost(Host):
         self.exit = 0
         self.sleeps: list[float] = []
         self.port_busy = False
+        self.runner_identity = "node fixed-cli.js"
         self.viewer_stays_stale = False
 
     def run(self, args: list[str], cwd: Path) -> str:
@@ -83,6 +84,8 @@ class FakeHost(Host):
             self.c.viewer_stamp.write_text(json.dumps({"commit": self.pin, "dirty": False}))
         if args == ["just", "runs-disk"]:
             return self.usage
+        if args[0] == "ps":
+            return self.runner_identity
         if args[0] == "lsof":
             if self.port_busy:
                 return "99"
@@ -505,3 +508,99 @@ def test_a_later_lane_picks_new_main_while_the_first_trial_stays_frozen(
         thread.join(10)
     assert not thread.is_alive()
     assert errors == []
+
+
+@pytest.mark.parametrize("action", ["stop", "abort"])
+def test_applied_viewer_control_globally_holds_before_run_end(
+    rig: tuple[Config, FakeHost, Controller], action: str
+) -> None:
+    c, h, controller = rig
+    ledger = next(iter(controller.ledgers))
+    ledger.parent.mkdir(parents=True)
+    ledger.write_text('{"kind":"launch","run":"run-old"}\n')
+    directory = c.runs / "run-old"
+    directory.mkdir()
+    events = directory / "events.jsonl"
+    events.write_text(
+        json.dumps({"type": "operator_control", "action": action, "status": "pending"}) + "\n"
+    )
+    assert controller.observe_stop() is False
+    events.write_text(
+        json.dumps({"type": "operator_control", "action": action, "status": "applied"}) + "\n"
+    )
+    assert controller.observe_stop() is True
+    assert c.stop.exists()
+    assert controller.trial(Lane("B", 8076, "http://pool:8098", "control"), "control") is False
+    assert h.children == []
+
+
+def test_partial_control_tail_is_a_pending_append_not_a_worker_failure(
+    rig: tuple[Config, FakeHost, Controller],
+) -> None:
+    c, _, controller = rig
+    ledger = next(iter(controller.ledgers))
+    ledger.parent.mkdir(parents=True)
+    ledger.write_text('{"kind":"launch","run":"run-old"}\n')
+    directory = c.runs / "run-old"
+    directory.mkdir()
+    (directory / "control.jsonl").write_text('{"action":')
+    assert controller.observe_stop() is False
+
+
+def test_real_clone_runtime_links_are_ignored_but_stray_sources_are_not(
+    rig: tuple[Config, FakeHost, Controller],
+) -> None:
+    c, _, _ = rig
+    (c.repo / ".gitignore").write_text("/runs/\n.venv/\n.env\npackages/*/dist/\n")
+    (c.repo / "env/README").write_text("test-owned fixture\n")
+    host = Host()
+    host.run(["git", "init", "-b", "main"], c.repo)
+    host.run(["git", "add", "."], c.repo)
+    host.run(
+        [
+            "git",
+            "-c",
+            "user.name=Test",
+            "-c",
+            "user.email=test@example.invalid",
+            "commit",
+            "-m",
+            "fixture",
+        ],
+        c.repo,
+    )
+    pin = host.run(["git", "rev-parse", "HEAD"], c.repo).strip()
+
+    class RealGit(Host):
+        def run(self, args: list[str], cwd: Path) -> str:
+            if args[0] == "git":
+                return super().run(args, cwd)
+            if args == ["pnpm", "-r", "build"]:
+                (cwd / "packages/viewer/dist").mkdir(parents=True)
+            if args == ["just", "viewer-main"]:
+                c.viewer_stamp.write_text(json.dumps({"commit": pin, "dirty": False}))
+            return ""
+
+    controller = Controller(c, RealGit())
+    tree = controller.prepare(pin)
+    assert host.run(["git", "status", "--porcelain"], tree) == ""
+    assert (tree / "runs").is_symlink()
+    assert (tree / "env/.venv").is_symlink()
+    (tree / "unexpected.tmp").write_text("must stay visible")
+    with pytest.raises(ValueError, match="not the clean"):
+        controller.prepare(pin)
+
+
+def test_unrelated_reused_pid_does_not_own_a_game_lane(
+    rig: tuple[Config, FakeHost, Controller],
+) -> None:
+    c, h, controller = rig
+    directory = c.runs / "experiments/old"
+    directory.mkdir()
+    (directory / "status.json").write_text(
+        json.dumps({"pid": 88, "state": "running", "lanes": [{"port": 8075}]})
+    )
+    h.live.add(88)
+    h.runner_identity = "unrelated application"
+    assert controller.trial(LANE, "bundle")
+    assert len(h.children) == 1

@@ -19,17 +19,21 @@ describe("static/style.css", () => {
     expect(css).toMatch(/\.wb-fgx details\.wb-bar \{[^}]*flex:0 0 100%/);
     expect(css).toMatch(/\.wb-fgx \{[^}]*margin-top:14px/);
   });
-  it("draws the party HP bar flush: the tag as tall as the bar and ending where it starts, the fill over the whole white interior", () => {
+  it("draws the party HP bar flush: the tag as tall as the bar and sharing its left border, the fill over the whole white interior", () => {
     const css = readFileSync(join(import.meta.dirname, "../static/style.css"), "utf8");
+    const body = (selector: string): string => new RegExp(`^${selector.replace(/[.*]/g, "\\$&")} \\{([^}]*)\\}`, "m").exec(css)?.[1] ?? "";
     const rule = (selector: string): Record<string, number> => {
-      const body = new RegExp(`^${selector.replace(/[.*]/g, "\\$&")} \\{([^}]*)\\}`, "m").exec(css)?.[1] ?? "";
       const units = (value: string): number => value.trim() === "0" ? 0 : value.trim() === "var(--u)" ? 1 : Number(/^calc\(var\(--u\) \* (\d+)\)$/.exec(value.trim())?.[1] ?? NaN);
-      return Object.fromEntries(body.split(";").map((d) => d.split(":")).filter(([k, v]) => k !== undefined && v !== undefined && ["left", "right", "top", "width", "height"].includes(k.trim())).map(([k, v]) => [(k ?? "").trim(), units(v ?? "")]));
+      return Object.fromEntries(body(selector).split(";").map((d) => d.split(":")).filter(([k, v]) => k !== undefined && v !== undefined && ["left", "right", "top", "width", "height"].includes(k.trim())).map(([k, v]) => [(k ?? "").trim(), units(v ?? "")]));
     };
-    const bar = rule(".pv-hp"), tag = rule(".pv-hp .tag"), frame = rule(".pv-hp .frame"), track = rule(".pv-hp .track");
-    expect([tag.top, tag.height, frame.top, frame.height]).toEqual([0, bar.height, 0, bar.height]);
-    expect(tag.width).toBe(frame.left);
-    expect(track).toEqual({ left: (frame.left ?? 0) + 1, right: 1, top: 1, height: (frame.height ?? 0) - 2 });
+    // hp-tag.png is 16x9: rows 0-1 are empty and column 14 is the bar's dark left border, so the tag
+    // shows rows 2-8 and columns 0-14 and the frame starts under its last column.
+    expect(rule(".pv-hp")).toEqual({ height: 7 });
+    expect(rule(".pv-hp .tag")).toEqual({ left: 0, top: 0, width: 15, height: 7 });
+    expect(body(".pv-hp .tag")).toContain("url(/sprites/party/parts/hp-tag.png) 0 calc(var(--u) * -2) / calc(var(--u) * 16) calc(var(--u) * 9)");
+    expect(rule(".pv-hp .frame")).toEqual({ left: 14, right: 0, top: 0, height: 7 });
+    expect(body(".pv-hp .frame::before")).toContain("inset: var(--u)");
+    expect(rule(".pv-hp .track")).toEqual({ left: 15, right: 1, top: 1, height: 5 });
   });
   it("finds an unclosed media block and a stray close", () => {
     expect(unclosed("@media(x){\n.a{b:c}\n.d{e:f}")).toEqual([1]);

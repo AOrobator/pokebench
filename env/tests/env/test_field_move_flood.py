@@ -10,7 +10,6 @@ Real RAM: field-moves-a8f9.json.gz (see test_field_moves.py). ROM layouts: GRANI
 (24/8), ROUTE115 (0/30), RUSTURF TUNNEL (24/4), read with exit_labels.read_rom_map.
 """
 
-import functools
 import gzip
 import json
 import random
@@ -18,6 +17,7 @@ from dataclasses import replace
 from pathlib import Path
 
 import pytest
+from conftest import PORYMAP_LOADS
 from test_field_moves import a8f9, fixture, operator_rom
 
 from pokebench_env import rerender
@@ -268,7 +268,7 @@ def test_route115_slope_lets_a_walker_down_but_not_back_up() -> None:
     assert (28, 7) in reachable(tiles, (28, 10), water=False)
 
 
-def test_destination_templates_close_the_rusturf_rocks_on_arrival() -> None:
+def test_destination_templates_close_the_rusturf_rocks_on_arrival(porymap_names: MapNames) -> None:
     read = a8f9()
     save1 = int.from_bytes(read(0x03005D8C, 4), "little")
     rusturf = read_rom_map(read, (24, 4))
@@ -281,7 +281,7 @@ def test_destination_templates_close_the_rusturf_rocks_on_arrival() -> None:
     assert sorted(o.tiles for o in rocks) == [((24, 4),), ((24, 5),)]
     here = read_rom_map(read, (0, 31))
     assert here is not None
-    maps = names()
+    maps = porymap_names
 
     def shown(m: tuple[int, int]) -> str | None:
         return section_name(read, m)
@@ -301,24 +301,25 @@ def run_off(*, gates: bool) -> frozenset[str]:
     return frozenset(f for f in SERVER_FEATURES if f not in on)
 
 
-@functools.cache
-def names() -> MapNames:
-    return MapNames.load(rerender.PORYMAP_MAPS)
-
-
-def a8f9_state(*, gates: bool):
-    maps = names()
+def a8f9_state(maps: MapNames, *, gates: bool):
     return rerender.read_state(a8f9(), maps, active_ui=True, off=run_off(gates=gates))
 
 
-def a8f9_readout(*, gates: bool) -> str:
+def a8f9_readout(maps: MapNames, *, gates: bool) -> str:
     off = run_off(gates=gates)
     env = {"POKEBENCH_FEATURES_OFF": ",".join(sorted(off)), "POKEBENCH_ACTIVE_UI": "1"}
     read = a8f9()
-    maps = names()
     return rerender.rerender(
         Path("/run"), [rerender.RawRef("a", "s")], lambda _p, _s: read, maps, env
     )[0]
+
+
+def test_the_porymap_names_load_once_per_session_one_read_per_file(
+    porymap_names: MapNames,
+) -> None:
+    # map_groups.json plus each map.json once, in the one load the whole session shares.
+    assert PORYMAP_LOADS == [1 + len(porymap_names.ids())]
+    assert len(porymap_names.ids()) == 518
 
 
 def test_switch_is_a_default_off_server_feature() -> None:
@@ -326,15 +327,15 @@ def test_switch_is_a_default_off_server_feature() -> None:
     assert SWITCH in features_off_from_env({})
 
 
-def test_off_is_the_recorded_a8f9_readout_and_state_byte_for_byte() -> None:
+def test_off_is_the_recorded_a8f9_readout_and_state_byte_for_byte(porymap_names: MapNames) -> None:
     recorded = fixture()["cases"][0]["readout"].split("\n")
     # The agent adds the untaken-exits, people-ledger and story-character lines after Position.
     added = recorded[8:12]
     assert added[0].startswith("Exits here you have not taken:")
     assert added[1].startswith("People and objects here")
     assert added[3].startswith("Story characters here: none.")
-    assert a8f9_readout(gates=False) == "\n".join(recorded[:8] + recorded[12:])
-    body = state_json(a8f9_state(gates=False))
+    assert a8f9_readout(porymap_names, gates=False) == "\n".join(recorded[:8] + recorded[12:])
+    body = state_json(a8f9_state(porymap_names, gates=False))
     assert "field_obstacles" not in body
     assert body["exit_reach"] == fixture()["cases"][0]["exit_reach"]
     # The whole state body, against the recorded state event of seq 41177 (envelope stripped).
@@ -342,8 +343,8 @@ def test_off_is_the_recorded_a8f9_readout_and_state_byte_for_byte() -> None:
     assert json.loads(json.dumps(body)) == recorded_body
 
 
-def test_on_the_rocks_cut_off_verdanturf_and_the_route116_pocket() -> None:
-    body = state_json(a8f9_state(gates=True))
+def test_on_the_rocks_cut_off_verdanturf_and_the_route116_pocket(porymap_names: MapNames) -> None:
+    body = state_json(a8f9_state(porymap_names, gates=True))
     reach = body["exit_reach"]
     assert isinstance(reach, dict)
     assert reach["warps"] == [
@@ -370,9 +371,11 @@ def test_on_the_rocks_cut_off_verdanturf_and_the_route116_pocket() -> None:
         assert o["loaded"] is False and o["beyond"]["width"] == 36 and o["beyond"]["height"] == 24
 
 
-def test_on_the_readout_names_the_rocks_and_notes_the_cut_off_warps() -> None:
-    off = a8f9_readout(gates=False).split("\n")
-    on = a8f9_readout(gates=True).split("\n")
+def test_on_the_readout_names_the_rocks_and_notes_the_cut_off_warps(
+    porymap_names: MapNames,
+) -> None:
+    off = a8f9_readout(porymap_names, gates=False).split("\n")
+    on = a8f9_readout(porymap_names, gates=True).split("\n")
     added = [line for line in on if line not in off]
     assert added == [
         HEADER,
@@ -391,8 +394,8 @@ def test_on_the_readout_names_the_rocks_and_notes_the_cut_off_warps() -> None:
     )
 
 
-def test_without_exit_reachability_the_switch_adds_nothing() -> None:
-    maps = names()
+def test_without_exit_reachability_the_switch_adds_nothing(porymap_names: MapNames) -> None:
+    maps = porymap_names
     off = run_off(gates=True) | {"exit-reachability-v1"}
     state = rerender.read_state(a8f9(), maps, active_ui=True, off=off)
     assert state.field_obstacles is None and state.exit_reach is None
@@ -521,8 +524,10 @@ def test_rom_templates_skip_hidden_flags_other_sprites_and_the_bridge_kecleon() 
     ]
 
 
-def test_readout_names_unknown_dynamic_warps_and_connections_it_cuts_off() -> None:
-    state = a8f9_state(gates=True)
+def test_readout_names_unknown_dynamic_warps_and_connections_it_cuts_off(
+    porymap_names: MapNames,
+) -> None:
+    state = a8f9_state(porymap_names, gates=True)
     field = state.field_obstacles
     assert field is not None
     dynamic = InteractionTarget("warp", 7, 7, 3, "movement", destination=(127, 127, 0))
@@ -548,8 +553,8 @@ def test_readout_names_unknown_dynamic_warps_and_connections_it_cuts_off() -> No
     )
 
 
-def test_unreadable_templates_leave_the_flood_ungated() -> None:
-    maps = names()
+def test_unreadable_templates_leave_the_flood_ungated(porymap_names: MapNames) -> None:
+    maps = porymap_names
     read = a8f9()
     save1 = int.from_bytes(read(0x03005D8C, 4), "little")
 

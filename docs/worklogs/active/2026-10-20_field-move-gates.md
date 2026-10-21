@@ -309,4 +309,20 @@ FAIL. Local inference reviewers not used. HEAD/status verified unchanged before 
 - Round 2 on packet 24648e12..85f64812 (sha256 d07e109e…): Claude (read-only subagent) LGTM, Grok LGTM, Codex BLOCKING on test-fixture I/O and flood counts only. The operator 9:42 PM ET: land it and speed up the tests in a follow-up ("yes and yes").
 - Added the switch to the bundle arm of bundle-v-control, bundle-cook-1h and whole-map-cook-1h (false in base); open-goal-prompt.test.ts excludes it like the other newer bundle switches. Pending experiment source.commit pinned to 85f64812.
 - Gates: lint and build clean; agent 3046/3046, viewer 1499/1499, pytest 3470; coverage agent 97.13/92.97/97.59/99.14, viewer 95.23/91.05/94.14/97.8, Python lines 97.21 branches 92.86 functions 100.
-- DEFERRED (follow-up, the operator): bound the audit tests' fixture I/O and per-warp floods (Codex round 2). Open questions from review: Kecleon named by sprite kind; "every way to" wording for water-only cut-offs.
+- [x] ~~DEFERRED~~ (follow-up, the operator): bound the audit tests' fixture I/O and per-warp floods (Codex round 2). Done on claude/field-move-test-io, below. Open questions from review: Kecleon named by sprite kind; "every way to" wording for water-only cut-offs.
+
+## Follow-up: test I/O and flood bounds (claude/field-move-test-io, 2026-10-20)
+
+The operator approved 9:42 PM ET. Test-only, plus one production fix the coordinator added (Group.line overclaim).
+
+- [x] conftest.py session fixture `porymap_names` (one MapNames.load, read count recorded); audit uses an
+  in-memory MapNames from the audit JSON plus one real-adapter test; flood uses the fixture.
+- [x] test_field_moves: each pokeemerald source file read once (functools.cache) with a read-count test.
+- [x] audit: one analysis per map (one ROM parse per map and destination, tiles and edges once, one
+  classify per start and closed gate set, empty rule sets share the ungated flood); bounded-work and
+  N vs 2N synthetic tests.
+- Before (3 suites, warm): 304 passed, 1.29s / 1.19s pytest; Path.read_text 1144 (map.json 1036);
+  read_rom_map 127; _spread 5190 (audit alone 2582, flood 2608); quotation reads 7.
+- After: 309 passed, 0.58s pytest (0.97s wall with the spy plugin); read_text 624 (map.json 518, one load);
+  read_rom_map 91 (audit 85 = one per distinct map); _spread 3360 (audit 752, of which 96 synthetic, so
+  656 real vs 2582; flood file unchanged, its random unit cases); quotation reads = distinct files.

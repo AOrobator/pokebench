@@ -326,3 +326,8 @@ The operator approved 9:42 PM ET. Test-only, plus one production fix the coordin
 - After: 309 passed, 0.58s pytest (0.97s wall with the spy plugin); read_text 624 (map.json 518, one load);
   read_rom_map 91 (audit 85 = one per distinct map); _spread 3360 (audit 752, of which 96 synthetic, so
   656 real vs 2582; flood file unchanged, its random unit cases); quotation reads = distinct files.
+- COMMIT: `test: field-move-gates-v1 tests load map names once and flood once per start` (c86de73a). env pytest 3475 passed.
+- [x] RED (coordinator scope addition, second Claude review): Group.line overclaims "close(s) every way on foot
+  to X" when X's blocker set spans kinds or more obstacles than the line names. test_field_move_claims.py:
+  VICTORY ROAD B1F from (30,25) (eight badges, no field moves), SEAFLOOR CAVERN ROOM1 from (5,18), and a
+  ROM sweep property (every printed claim holds with exactly its obstacles closed). 3 failed.

@@ -153,8 +153,13 @@ tell-claude *args:
 claude-mailbox *args:
     uv run --project env python -m pokebench_env.agent_mail claude-mailbox "$@"
 
+# The Codex coordinator thread listens here and forwards letters to Codex threads mid-turn.
 [positional-arguments]
-tell-codex thread *words:
+codex-mailbox *args:
+    uv run --project env python -m pokebench_env.agent_mail claude-mailbox --for codex-coordinator "$@"
+
+[positional-arguments]
+tell-codex *words:
     uv run --project env python -m pokebench_env.agent_mail tell-codex "$@"
 
 [positional-arguments]

@@ -25,6 +25,9 @@ from zoneinfo import ZoneInfo
 
 NEW_YORK = ZoneInfo("America/New_York")
 NO_MAIL = 3
+# The mailbox a Codex coordinator thread listens on; it forwards each letter to its Codex thread
+# with Codex's own send_message_to_thread, which reaches a busy thread mid-turn.
+CODEX_COORDINATOR = "codex-coordinator"
 
 Run = Callable[[Sequence[str]], int]
 
@@ -46,6 +49,7 @@ class Letter:
     sent_at: datetime
     sender: str
     text: str
+    to_thread: str | None = None
 
 
 @dataclass(frozen=True)
@@ -133,9 +137,10 @@ def day_and_clock(when: datetime) -> str:
 
 
 def letter_json(letter: Letter) -> str:
-    return json.dumps(
-        {"sent_at": letter.sent_at.isoformat(), "sender": letter.sender, "text": letter.text}
-    )
+    body = {"sent_at": letter.sent_at.isoformat(), "sender": letter.sender, "text": letter.text}
+    if letter.to_thread is not None:
+        body["to_thread"] = letter.to_thread
+    return json.dumps(body)
 
 
 def parse_letter(line: str) -> Letter:
@@ -146,38 +151,60 @@ def parse_letter(line: str) -> Letter:
     if not isinstance(raw, dict):
         raise ValueError(f"unreadable letter: {line!r}")
     sent_at, sender, text = raw.get("sent_at"), raw.get("sender"), raw.get("text")
-    if not (isinstance(sent_at, str) and isinstance(sender, str) and isinstance(text, str)):
+    to_thread = raw.get("to_thread")
+    if not (
+        isinstance(sent_at, str)
+        and isinstance(sender, str)
+        and isinstance(text, str)
+        and (to_thread is None or isinstance(to_thread, str))
+    ):
         raise ValueError(f"unreadable letter: {line!r}")
-    return Letter(parse_time(sent_at, f"unreadable letter: {line!r}"), sender, text)
+    return Letter(parse_time(sent_at, f"unreadable letter: {line!r}"), sender, text, to_thread)
 
 
 def format_letter(letter: Letter) -> str:
-    return f"[{clock(letter.sent_at)}] {letter.sender}: {letter.text}"
+    to = "" if letter.to_thread is None else f" → thread {letter.to_thread}"
+    return f"[{clock(letter.sent_at)}] {letter.sender}{to}: {letter.text}"
+
+
+def deliver(room: Mailroom, letter: Letter, *, only_if_listening: bool) -> bool:
+    """Leave a letter and wake the listener. True when a listener was woken right away.
+
+    With only_if_listening, nothing is saved unless a listener holds the pipe, so the caller
+    can fall back to another route without the letter arriving twice.
+    """
+    line = letter_json(letter) + "\n"
+    with room.locked():
+        try:
+            ping: int | None = os.open(room.pipe, os.O_WRONLY | os.O_NONBLOCK)
+        except OSError as error:
+            if error.errno not in (errno.ENXIO, errno.ENOENT):
+                raise
+            ping = None
+        if ping is None and only_if_listening:
+            return False
+        try:
+            # The log goes first, so no letter can be delivered without its record.
+            for path in (room.log, room.pending):
+                with open(path, "a", encoding="utf-8") as handle:
+                    handle.write(line)
+            if ping is None:
+                return False
+            try:
+                os.write(ping, b"\n")
+            except BlockingIOError:
+                pass  # The pipe is full of earlier pings: the listener is already being woken.
+            except BrokenPipeError:
+                return False  # The listener left after open; the letter waits in pending.
+            return True
+        finally:
+            if ping is not None:
+                os.close(ping)
 
 
 def tell_claude(room: Mailroom, *, sender: str, text: str, now: datetime) -> bool:
     """Leave a letter for Claude. True when a listening Claude was woken right away."""
-    line = letter_json(Letter(now, sender, text)) + "\n"
-    with room.locked():
-        # The log goes first, so no letter can be delivered without its record.
-        for path in (room.log, room.pending):
-            with open(path, "a", encoding="utf-8") as handle:
-                handle.write(line)
-        try:
-            ping = os.open(room.pipe, os.O_WRONLY | os.O_NONBLOCK)
-        except OSError as error:
-            if error.errno in (errno.ENXIO, errno.ENOENT):
-                return False
-            raise
-        try:
-            os.write(ping, b"\n")
-        except BlockingIOError:
-            pass  # The pipe is full of earlier pings: the listener is already being woken.
-        except BrokenPipeError:
-            return False  # The listener left between open and write; the letter waits in pending.
-        finally:
-            os.close(ping)
-        return True
+    return deliver(room, Letter(now, sender, text), only_if_listening=False)
 
 
 def alive(pid: int) -> bool:
@@ -266,8 +293,23 @@ def wait_for_mail(
         return drain(room, who)
 
 
-def tell_codex(thread: str, text: str, *, run: Run) -> int:
-    return run(["codex", "queue", "--thread", thread, "--message", text])
+def reach_codex(
+    room: Mailroom, thread: str, text: str, *, sender: str, now: datetime, run: Run
+) -> tuple[int, bool]:
+    """Reach a Codex thread: through a listening Codex coordinator, else `codex queue`.
+
+    Returns the exit code and whether the coordinator took it.
+    """
+    letter = Letter(now, sender, text, to_thread=thread)
+    if deliver(room.addressed(CODEX_COORDINATOR), letter, only_if_listening=True):
+        return 0, True
+    return run(["codex", "queue", "--thread", thread, "--message", text]), False
+
+
+def tell_codex(
+    room: Mailroom, thread: str, text: str, *, sender: str, now: datetime, run: Run
+) -> int:
+    return reach_codex(room, thread, text, sender=sender, now=now, run=run)[0]
 
 
 def parse_time(value: str, problem: str) -> datetime:
@@ -411,7 +453,7 @@ def notify_moves(
             continue
         text = notice_text(entry, number, len(after))
         if entry.codex_thread is not None:
-            code = tell_codex(entry.codex_thread, text, run=run)
+            code = tell_codex(room, entry.codex_thread, text, sender="land-board", now=now, run=run)
         else:
             tell_claude(room.addressed(entry.branch), sender="land-board", text=text, now=now)
             code = 0
@@ -478,7 +520,10 @@ def main(argv: Sequence[str] | None = None, *, run: Run = run_command) -> int:
     box = commands.add_parser("claude-mailbox", help="wait for letters (run in the background)")
     box.add_argument("--timeout", type=float, default=None)
     box.add_argument("--for", dest="address", default=None, help="your branch's own mailbox")
-    codex = commands.add_parser("tell-codex", help="queue a message into a Codex session")
+    codex = commands.add_parser(
+        "tell-codex", help="reach a Codex thread: the Codex coordinator if listening, else queue"
+    )
+    codex.add_argument("--from", dest="sender", default="claude")
     codex.add_argument("thread")
     codex.add_argument("words", nargs="+")
     sessions = commands.add_parser("codex-sessions", help="list recent Codex sessions")
@@ -519,7 +564,15 @@ def main(argv: Sequence[str] | None = None, *, run: Run = run_command) -> int:
         acknowledge(box_room, os.getpid())
         return 0
     if args.command == "tell-codex":
-        return tell_codex(args.thread, " ".join(args.words), run=run)
+        code, via_coordinator = reach_codex(
+            room, args.thread, " ".join(args.words), sender=args.sender, now=now, run=run
+        )
+        print(
+            "Delivered to the Codex coordinator, which forwards it mid-turn."
+            if via_coordinator
+            else "No Codex coordinator is listening; sent with codex queue (read at turn end)."
+        )
+        return code
     if args.command == "codex-sessions":
         default_index = Path.home() / ".codex" / "session_index.jsonl"
         index = Path(os.environ.get("CODEX_SESSION_INDEX", default_index))

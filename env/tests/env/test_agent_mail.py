@@ -95,9 +95,12 @@ def test_letters_print_in_new_york_time() -> None:
     assert am.format_letter(am.Letter(T, "codex", "hi")) == "[10:27 AM] codex: hi"
 
 
-def test_tell_codex_queues_into_the_named_session() -> None:
+def test_tell_codex_queues_into_the_named_session(tmp_path: Path) -> None:
     runs = Runs(code=7)
-    assert am.tell_codex("Restore gym door label", "main moved", run=runs) == 7
+    r = room(tmp_path)
+    assert (
+        am.tell_codex(r, "Restore gym door label", "main moved", sender="c", now=T, run=runs) == 7
+    )
     assert runs.calls == [
         ["codex", "queue", "--thread", "Restore gym door label", "--message", "main moved"]
     ]
@@ -652,7 +655,9 @@ def test_letters_round_trip_their_codex_thread(tmp_path: Path) -> None:
     assert "to_thread" not in am.letter_json(plain)
     assert am.parse_letter(am.letter_json(plain)) == plain
     with pytest.raises(ValueError, match="unreadable letter"):
-        am.parse_letter('{"sent_at": "2026-10-21T14:27:00+00:00", "sender": "c", "text": "x", "to_thread": 3}')
+        am.parse_letter(
+            '{"sent_at": "2026-10-21T14:27:00+00:00", "sender": "c", "text": "x", "to_thread": 3}'
+        )
 
 
 def test_board_turn_notices_reach_codex_through_the_coordinator(tmp_path: Path) -> None:
@@ -665,7 +670,9 @@ def test_board_turn_notices_reach_codex_through_the_coordinator(tmp_path: Path) 
     listener.join(5)
     assert [(n.entry.branch, n.exit_code) for n in notices] == [("codex/b", 0)]
     assert runs.calls == []
-    assert got == [[am.Letter(T, "land-board", "codex b: your turn to land codex/b", to_thread="B")]]
+    assert got == [
+        [am.Letter(T, "land-board", "codex b: your turn to land codex/b", to_thread="B")]
+    ]
 
 
 def test_tell_codex_cli_reports_the_route(
@@ -677,6 +684,6 @@ def test_tell_codex_cli_reports_the_route(
     listener, _ = listen_in_background(r.addressed(am.CODEX_COORDINATOR))
     assert am.main(["tell-codex", "--from", "claude x", "A", "hi"], run=runs) == 0
     listener.join(5)
-    assert "codex coordinator" in capsys.readouterr().out
+    assert "Codex coordinator, which forwards" in capsys.readouterr().out
     assert am.main(["tell-codex", "A", "hi"], run=runs) == 0
     assert runs.calls == [["codex", "queue", "--thread", "A", "--message", "hi"]]

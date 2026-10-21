@@ -17,3 +17,4 @@ M3 REVIEW/LAND: Claude, Grok, GPT lanes; land through the board.
 
 ## Progress
 - RED: 5 new agent-mail tests fail (no CODEX_COORDINATOR, no to_thread, tell_codex signature); 40 existing pass.
+- GREEN: Letter.to_thread; deliver(only_if_listening) shared by tell_claude and the coordinator route; reach_codex/tell_codex use the codex-coordinator mailbox when a listener holds it, else codex queue with nothing saved; board notices to Codex go the same way. `just codex-mailbox`; codex-coordinator skill (Codex side, linked under .agents/skills); talk-to-codex, talk-to-claude and CLAUDE.md updated. 45 agent-mail tests, module 100%.

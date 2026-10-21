@@ -1,8 +1,8 @@
 import { afterEach, expect, it } from "vitest";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { appendFileSync, mkdirSync, mkdtempSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { START, Log, state } from "../test-support/events.js";
+import { START, Log, state, assistant, tAt } from "../test-support/events.js";
 import { readRecentEvents, readRecentEventsAsync, RECENT_SLICE_LINES } from "./runs.js";
 
 const roots: string[] = [];
@@ -39,4 +39,21 @@ it("keeps strict malformed-line and foreign-run rejection before sending a head"
   await expect(readRecentEventsAsync(a.root,"sample",30,1<<20,undefined,2)).rejects.toThrow(/recent event/);
   const b = fixture(JSON.stringify({...START,run:"foreign",v:1,seq:99,t:"2026-10-21T12:00:00.000-04:00",turn:3})+"\n");
   await expect(readRecentEventsAsync(b.root,"sample",30,1<<20,undefined,2)).rejects.toThrow(/foreign/);
+});
+
+
+it("keeps a UTF-8 line spanning read chunks and excludes appends/replacement after the frozen snapshot", async () => {
+  // One valid event crosses the 64 KiB read quantum; the 8 MiB history cap is not filled.
+  const large = {...assistant({thinking:"é".repeat(40_000),turn:2}),v:1,run:"sample",seq:5,t:tAt(3)};
+  const {root,path} = fixture(`${JSON.stringify(large)}\n`);
+  const expected = readRecentEvents(root,"sample");
+  const size = Buffer.byteLength(readFileSync(path,"utf8"));
+  setImmediate(() => {
+    appendFileSync(path, `${JSON.stringify({...large,seq:6})}\n`);
+    renameSync(path,`${path}.old`);
+    writeFileSync(path,"replaced with invalid input\n");
+  });
+  const cursor = {offset:0};
+  expect(await readRecentEventsAsync(root,"sample",30,1<<20,cursor,2)).toEqual(expected);
+  expect(cursor.offset).toBe(size);
 });

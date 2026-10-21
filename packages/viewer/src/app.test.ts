@@ -1935,3 +1935,80 @@ describe("BAG page", () => {
     expect(ui("bag").querySelectorAll(".bg-noicon")).toHaveLength(3);
   });
 });
+
+describe("POKéMON PARTY page", () => {
+  const flush = async (): Promise<void> => { for (let i = 0; i < 5; i += 1) await Promise.resolve(); };
+  const RATES = Array.from({ length: 101 }, (_, n) => (n <= 1 ? n : n ** 3));
+  const DATA = {
+    version: 1,
+    types: "normal fight flying poison ground rock bug ghost steel mystery fire water grass electric psychic ice dragon dark".split(" "),
+    species: { "280": { types: [10, 10], gender: 31, growth: 0, abilities: [66, 0], dex: 4 }, "288": { types: [0, 0], gender: 127, growth: 0, abilities: [53, 0], dex: 12 } },
+    moves: { "10": { type: 0, power: 40, accuracy: 100, pp: 35, description: "Scratches the foe with\nsharp claws." } },
+    abilities: { "66": { name: "BLAZE", description: "Ups FIRE moves in a pinch." }, "53": { name: "PICKUP", description: "May pick up items." } },
+    natures: "HARDY LONELY BRAVE ADAMANT NAUGHTY BOLD DOCILE RELAXED IMPISH LAX TIMID HASTY SERIOUS JOLLY NAIVE MODEST MILD QUIET BASHFUL RASH CALM GENTLE SASSY CAREFUL QUIRKY".split(" "),
+    experience: [RATES, RATES, RATES, RATES, RATES, RATES],
+  };
+  const MOVES = [{ move_id: 10, name: "SCRATCH", pp: 30, max_pp: 35, pp_bonus: 0 }];
+  const TORCHIC = { species: "TORCHIC", nickname: "TORCHIC", level: 5, hp: 18, max_hp: 20, species_id: 280, personality: 11, ot_id: 1, moves: MOVES };
+  const ZIGZAGOON = { species: "ZIGZAGOON", nickname: "ZIGZAGOON", level: 3, hp: 12, max_hp: 14, species_id: 288, personality: 200, ot_id: 1, moves: MOVES };
+  const ART = { "/sprites/party/data.json": DATA, "/sprites/party/font/small.json": { widths: [], cmap: {} }, "/sprites/party/font/normal.json": { widths: [], cmap: {} } };
+
+  function partyRun(hp = 12): RunEvent[] {
+    const log = new Log();
+    log.add(0, START);
+    log.add(1000, state({ party: [TORCHIC, { ...ZIGZAGOON, hp }] }));
+    return log.events;
+  }
+
+  it("draws the game's party screen and keeps the chosen slot, tab and move across updates", async () => {
+    const { app, streams, fetched } = await harness("", RUNS, null, {}, undefined, false, ART);
+    const stream = must(streams[0]);
+    feed(stream, partyRun());
+    must(document.querySelector<HTMLButtonElement>('[data-page="party"]')).click();
+    await flush();
+    expect(fetched).toContain("/sprites/party/data.json");
+    app.render();
+    const party = ui("party");
+    expect(party.querySelector(".pv")).not.toBeNull();
+    expect(party.querySelector('[data-pv-slot="0"]')?.getAttribute("aria-expanded")).toBe("true");
+    must(party.querySelector<HTMLElement>('[data-pv-slot="1"]')).click();
+    expect(ui("party").querySelector('[data-pv-slot="1"]')?.getAttribute("aria-expanded")).toBe("true");
+    must(ui("party").querySelector<HTMLElement>('[data-pv-tab="2"]')).click();
+    must(ui("party").querySelector<HTMLElement>('[data-pv-move="0"]')).click();
+    expect(ui("party").querySelector(".pv-mdet")?.textContent).toContain("sharp claws.");
+    // A live update redraws the page without losing the cursor, the page or the open move.
+    must(ui("party").querySelector<HTMLElement>('[data-pv-move="0"]')).focus();
+    stream.send("ev", { ...must(partyRun(3)[1]), run: must(RUNS[0]).id, seq: 9, turn: 2 });
+    app.render();
+    expect(ui("party").querySelector('[data-pv-slot="1"]')?.getAttribute("aria-expanded")).toBe("true");
+    expect(ui("party").querySelector('[data-pv-tab="2"]')?.getAttribute("aria-selected")).toBe("true");
+    expect(ui("party").querySelector(".pv-mdet")).not.toBeNull();
+    expect(ui("party").querySelector('[data-pv-slot="1"] [aria-label="HP 3 of 14"]')).not.toBeNull();
+    expect((document.activeElement as HTMLElement | null)?.dataset.pvMove).toBe("0");
+    // A second click closes the move; arrow keys walk the tabs and keep focus on the chosen one.
+    must(ui("party").querySelector<HTMLElement>('[data-pv-move="0"]')).click();
+    expect(ui("party").querySelector(".pv-mdet")).toBeNull();
+    const tab = must(ui("party").querySelector<HTMLElement>('[data-pv-tab="2"]'));
+    tab.focus();
+    tab.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true }));
+    expect(ui("party").querySelector('[data-pv-tab="0"]')?.getAttribute("aria-selected")).toBe("true");
+    expect((document.activeElement as HTMLElement | null)?.dataset.pvTab).toBe("0");
+    must(ui("party").querySelector<HTMLElement>('[data-pv-tab="0"]')).dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowLeft", bubbles: true }));
+    expect(ui("party").querySelector('[data-pv-tab="2"]')?.getAttribute("aria-selected")).toBe("true");
+    must(ui("party").querySelector<HTMLElement>('[data-pv-tab="2"]')).dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+    expect(ui("party").querySelector('[data-pv-tab="2"]')?.getAttribute("aria-selected")).toBe("true");
+    ui("party").querySelector(".pv-list")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    expect(ui("party").querySelector('[data-pv-slot="1"]')?.getAttribute("aria-expanded")).toBe("true");
+  });
+
+  it("shows the plain list when the party art was never built", async () => {
+    const { app, streams, fetched } = await harness("", RUNS, null, {}, undefined, false);
+    feed(must(streams[0]), partyRun());
+    must(document.querySelector<HTMLButtonElement>('[data-page="party"]')).click();
+    await flush();
+    app.render();
+    expect(fetched).toContain("/sprites/party/data.json");
+    expect(ui("party").querySelector(".pv")).toBeNull();
+    expect(ui("party").textContent).toContain("ZIGZAGOON");
+  });
+});

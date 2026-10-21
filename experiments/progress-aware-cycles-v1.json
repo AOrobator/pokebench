@@ -8,7 +8,7 @@
  "primaryMilestone": "RIVAL_BATTLE_WON",
  "source": {
   "checkout": "main",
-  "commit": "460f5813f335823135694296cab86f00d8c30bb4"
+  "commit": "8c9f9571eae4cfb94d519b014ea4eaebf4fe5982"
  },
  "incumbent": {
   "version": 2,
@@ -194,7 +194,8 @@
    "move-learn-comparison-v1": true,
    "effectiveness-heard-v1": true,
    "game-said-goals-v1": true,
-   "progress-aware-cycles-v1": false
+   "progress-aware-cycles-v1": false,
+   "mart-stock-readout-v1": false
   }
  },
  "trialsPerArm": 8,

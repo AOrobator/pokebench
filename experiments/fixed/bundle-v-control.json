@@ -201,6 +201,7 @@
    "game-said-goals-v1": false,
    "menu-refusal-recovery-v1": false,
    "gym-door-label-v1": false,
+   "mart-stock-readout-v1": false,
    "progress-aware-cycles-v1": false
   }
  },
@@ -272,6 +273,7 @@
   "game-said-goals-v1",
   "menu-refusal-recovery-v1",
   "gym-door-label-v1",
+  "mart-stock-readout-v1",
   "progress-aware-cycles-v1"
  ],
  "offInBoth": [

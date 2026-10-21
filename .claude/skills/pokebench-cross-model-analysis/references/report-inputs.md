@@ -17,7 +17,7 @@ Create a manifest before ranking:
 }
 ```
 
-Replace example IDs and cutoff with the actual declared pool. Every included run belongs to exactly one model group; roles are `primary_census` or separately labelled `qualitative_context`. The current extractor requires ended, hash-matching logs at or before the cutoff; inventory live runs as excluded from immutable ended-run metrics with their observed status, not as failures. It does not manufacture a historical live-prefix hash.
+Replace example IDs and cutoff with the actual declared pool. Every included run belongs to exactly one model group; roles are `primary_census` or separately labelled `qualitative_context`. The current extractor accepts only boot and verified unstarted MAIN_MENU starts, with no present-at-start milestone facts. Checkpoint/other-save recordings are refused before earned-reach aggregation. It requires ended, hash-matching logs at or before the cutoff; inventory live runs as excluded from immutable ended-run metrics with their observed status, not as failures. It does not manufacture a historical live-prefix hash.
 
 Run with argv paths:
 
@@ -56,3 +56,13 @@ just pages-check <report>/index.html
 ```
 
 The inline SVG/JavaScript chart switches between cumulative decision turns and elapsed active minutes. The companion table is the accessible precise source. This toggle makes no network request. A point's `n/total` is earned reach, not a failure denominator at an earlier budget. Detailed S/F/U/N common-budget tables belong in `sections`.
+
+## Boundary regression checks
+
+Run the bundled tests on an explicit, unchanged MAIN_MENU fixture run (not an arbitrary global first row):
+
+```
+python3 <skill>/scripts/test_analysis.py --repo <repo> --workbench <snapshot.json> --frontier-source <served-source/frontier.ts> --fixture-run <owned-MAIN_MENU-run-id>
+```
+
+They exercise actual aggregation, renderer and CLI paths, using isolated temporary roots for changed-log and checkpoint/inherited-fact cases. The recovery wrapper re-hashes each replay input and refuses a changed log before publishing combined outcomes.

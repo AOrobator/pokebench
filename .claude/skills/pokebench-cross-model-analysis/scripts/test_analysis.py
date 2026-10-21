@@ -108,7 +108,7 @@ class AnalysisBoundaries(unittest.TestCase):
                 new_start['start_state']['path']='CLOCK_SET.state' if case=='checkpoint' else 'MAIN_MENU.state'
                 new_initial['started']=True if case=='checkpoint' else False
                 inherited={'v':1,'type':'milestone','run':rid,'seq':2,'turn':0,'t':start['t'],'name':'RIVAL_MET','kind':'story','origin':'present_at_start','evidence':[]}
-                raw='\n'.join(json.dumps(e) for e in [new_start,new_initial,inherited,end])+'\n'
+                raw='\n'.join(json.dumps(e) for e in ([new_start,new_initial,inherited,end] if case=='present_at_start' else [new_start,new_initial,end]))+'\n'
                 log=root/'runs'/rid/'events.jsonl';log.parent.mkdir(parents=True);log.write_text(raw)
                 row['measurement']['logSha256']=hashlib.sha256(raw.encode()).hexdigest();wb=copy.deepcopy(workbench);wb['runs']=[row]
                 (root/'workbench.json').write_text(json.dumps(wb));(root/'manifest.json').write_text(json.dumps({'runIds':[rid],'groups':{'Model':[rid]}}))

@@ -11,10 +11,12 @@ const data=JSON.parse(readFileSync(out+'/metrics.json','utf8'));
 const rows=[];
 for(const r of data.runs){
  const col=recoveryCollector();const fireMeta=new Map();let n=0;
- for await(const l of createInterface({input:createReadStream(root+'/runs/'+r.id+'/events.jsonl'),crlfDelay:Infinity})){
+ const logHash=createHash('sha256'),input=createReadStream(root+'/runs/'+r.id+'/events.jsonl');input.on('data',chunk=>logHash.update(chunk));
+ for await(const l of createInterface({input,crlfDelay:Infinity})){
   if(!l.trim())continue;const e=JSON.parse(l);col.observe(e);n++;
   if(e.type==='loop_guard')fireMeta.set(e.seq,{phase:e.phase,mode:e.mode,kind:e.kind});
  }
+ if(logHash.digest('hex')!==r.provenance.logSha256)throw Error('recovery log hash mismatch: '+r.id);
  const v=col.result();const ints=v.interventions.map(x=>({...x,...(fireMeta.get(x.seq)||{}),fullWindowObserved:r.turns>=x.turn+30,taskProgressWithin30:data.runs.find(q=>q.id===r.id).milestones.some(m=>data.requiredStoryOrder.includes(m.name)&&m.turn>x.turn&&m.turn<=x.turn+30),sameSourceReappearanceWithin30:x.relapsed}));
  const groups=[];
  for(const type of [...new Set(ints.map(x=>x.type))]){

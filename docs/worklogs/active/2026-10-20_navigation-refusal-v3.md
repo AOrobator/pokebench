@@ -40,3 +40,5 @@ Integrated implementation 01bd2c64 is the pending experiment source pin. This fo
 Round1 Sol/Astra independently reproduced frozen88e8d831/diff2481a513 and blocked inaccurate straight-line wording (existing sort is Manhattan). Astra also found readiness paragraph lost during append conflict resolution. Corrected both, preserving selection and runtime policy. Added production-factory counterexample11,16 asserting true grid-distance qualification and unchanged west/south/east order. Round2 exact-tip review required; all prior review identities superseded.
 
 Corrected implementation ba3db441: focused17 tests pass. Pin metadata updated; round2 covers final corrected identity. Grok round1 was interrupted as obsolete after confirmed blockers (no verdict, no approval claimed).
+
+Synced main e635fcbfe after short-cycle switch landed. Preserved upstream runtime/event changes; waypoint runtime/test fixture unchanged from approved0624a8d7. Restored own append-only feature registration and future bundle switch after upstream append. Updated legacy rosters, pending incumbent and full readiness paragraph. Resealing integration before exact-tip review; no new behavior domain.

@@ -196,7 +196,8 @@
       "exit-labels-v3": true,
       "navigation-refusal-reasons-v3": false,
       "navigation-tool-use-guard-v1": true,
-      "semantic-current-map-feedback-v1": true
+      "semantic-current-map-feedback-v1": true,
+      "short-cycle-fixed-point-v1": true
     }
   },
   "trialsPerArm": 8,

@@ -288,6 +288,7 @@ def read_game_state(
     evolution_decision_enabled: bool = False,
     exit_labels_enabled: bool = False,
     caught_nickname_enabled: bool = False,
+    party_item_confirmation_enabled: bool = False,
     field_moves_enabled: bool = False,
     respawn_links: LinkCache | None = None,
 ) -> GameState:
@@ -315,6 +316,7 @@ def read_game_state(
         read,
         screen,
         truth=readout_truth_enabled,
+        party_item_confirmation=party_item_confirmation_enabled,
         evolution_decision=evolution_decision_enabled,
         birch_pages=birch_pages_enabled,
         transition_coherence=coherent,

@@ -18,7 +18,7 @@ const closed = { additionalProperties: false } as const;
 const positive = Type.Integer({ minimum: 1 });
 const Name = Type.String({ pattern: "^[a-z0-9][a-z0-9-]{0,79}$" });
 
-const LaneSchema = Type.Object({ id: Type.String({ pattern: "^[A-Z]$" }), gpu: Type.String({ pattern: "^GPU[0-9]$" }), gamePort: Type.Integer({ minimum: 1024, maximum: 65535 }), modelUrl: Type.String({ minLength: 1 }) }, closed);
+const LaneSchema = Type.Object({ id: Type.String({ pattern: "^[A-Z]$" }), gpu: Type.String({ pattern: "^(GPU[0-9]|MAC)$" }), gamePort: Type.Integer({ minimum: 1024, maximum: 65535 }), modelUrl: Type.String({ minLength: 1 }), runName: Type.Optional(Type.String({ pattern: "^[a-z0-9]+(-[a-z0-9]+)*$", maxLength: 40 })) }, closed);
 // A phase loads its own pinned save, or powers on.
 const SaveStart = Type.Object({ kind: Type.Literal("save_state"), path: Type.String({ minLength: 1 }), sha1: Type.String({ pattern: "^[0-9a-f]{40}$" }) }, closed);
 const PhaseStart = Type.Union([SaveStart, Type.Object({ kind: Type.Literal("boot") }, closed)]);
@@ -138,6 +138,7 @@ function laneProblems(def: FixedDefinition): string[] {
   if (!distinct(def.lanes.map((l) => l.gamePort))) problems.push("lanes must use distinct game ports");
   if (!distinct(def.lanes.map((l) => l.modelUrl))) problems.push("lanes must use distinct model URLs");
   for (const lane of def.lanes) if (!/^http:\/\/127\.0\.0\.1:[0-9]{2,5}$/.test(lane.modelUrl)) problems.push(`lane ${lane.id}: modelUrl must be http://127.0.0.1:<port> with no path`);
+  for (const lane of def.lanes) if (lane.gpu === "MAC" && lane.runName === undefined) problems.push(`lane ${lane.id}: a MAC lane must name its runs with runName`);
   return problems;
 }
 

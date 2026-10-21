@@ -46,7 +46,7 @@
    "connection-edge-tiles-v1": true,
    "contextual-interface-docs-v1": true,
    "coordinate-script-conditions-v1": true,
-   "counter-talk-v1": false,
+   "counter-talk-v1": true,
    "deterministic-loop-guard-v1": true,
    "dialogue-auto-advance-v1": true,
    "dialogue-context-kept-v1": true,
@@ -179,14 +179,16 @@
    "trainer-sight-check-v1": false,
    "caught-nickname-prompt-v1": false,
    "fail-open-input-v1": false,
-   "whiteout-healed-v1": false
+   "whiteout-healed-v1": false,
+   "gym-readiness-readout-v1": false,
+   "party-item-confirmation-v1": false,
+   "same-target-no-progress-v1": false
   }
  },
  "switches": [
   "automatic-running-v1",
   "blackout-readout-v1",
   "low-hp-trainer-warning-v2",
-  "counter-talk-v1",
   "grass-cost-navigation-v1",
   "heal-before-trainers-v1",
   "harness-trust-v1",
@@ -222,7 +224,6 @@
   "navigate-already-here-v1",
   "auto-talk-v1",
   "story-character-stall-gate-v1",
-  "positive-supervisor-v1",
   "unfinished-activity-v1",
   "exit-labels-v2",
   "heal-before-trainers-v2",
@@ -231,7 +232,10 @@
   "trainer-sight-check-v1",
   "caught-nickname-prompt-v1",
   "fail-open-input-v1",
-  "whiteout-healed-v1"
+  "whiteout-healed-v1",
+  "gym-readiness-readout-v1",
+  "party-item-confirmation-v1",
+  "same-target-no-progress-v1"
  ],
  "offInBoth": [
   "semantic-navigation-v1",
@@ -245,7 +249,8 @@
   "jit-guide-reuse-v1",
   "supervisor-briefing-v2",
   "ineffective-navigation-v2",
-  "fixed-point-breaker-v1"
+  "fixed-point-breaker-v1",
+  "positive-supervisor-v1"
  ],
  "onInBoth": [
   "original-speed-pacing-v1",
@@ -263,7 +268,8 @@
   "context-token-budget-v1",
   "exit-reachability-v1",
   "duplicate-turn-collapse-v1",
-  "evolution-decision-v1"
+  "evolution-decision-v1",
+  "counter-talk-v1"
  ],
  "phases": [
   {

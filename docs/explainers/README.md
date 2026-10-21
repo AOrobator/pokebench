@@ -158,3 +158,7 @@ The original ignored runs/explainers copies remain for existing links. Make futu
 - [Fail-open input](fail-open-input-v1.html) — bundle-only: after a hold the harness does not recognize, the rest of the model's batch is sent (B included) instead of dropped.
 - [Field move gates](field-move-gates-v1.html) — bundle-only: one module owns every field-move and item gate; closed obstacles (the Rusturf Tunnel rocks, Cut trees, slopes) close exit-reachability-v1's flood, the readout names them with the game's text, and navigate_to plans around them and refuses goals they cut off.
 - [Whiteout healed](whiteout-healed-v1.html) — bundle-only: a whiteout recap names the party the state after the warp read ("Whiting out restored your whole party: TORCHIC 20/20 HP."), and the trainer-heal prompt sentence adds ", with your whole party healed".
+- [Gym readiness readout](gym-readiness-readout-v1.html) — bundle-only: on a gym map, the party's levels next to the leader's POKéMON seen in battle, the type words said there and the map's trainers; seen-only, no advice.
+- [Same target, no progress](same-target-no-progress-v1.html) — bundle-only guard: after the 4th navigate_to to one target that ended within 3 tiles of where the first began (battles in between included), one factual SUPERVISOR note says so, quoting the result lines; resets on a map change, story progress, the target reached or a 4-tile move.
+
+- [party-item-confirmation-v1](party-item-confirmation-v1.html): native party item message confirmation readiness.

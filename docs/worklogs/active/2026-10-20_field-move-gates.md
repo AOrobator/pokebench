@@ -210,6 +210,13 @@ Review cadence: the worklog runs the multi-model review once, in M4, on the whol
   Gates: just lint 0, just coverage 0. Tests: env 3301; agent 2992; viewer 1438. Coverage: env 97.19
   / 92.79 / 100; agent 97.11 / 92.89 / 97.62 / 99.15; viewer 95.09 / 91.07 / 93.85 / 97.7.
 - [ ] Review loop: principles, Claude, Grok, GPT/Codex; then ask the coordinator for the merge slot.
+  COMMIT: `test: field-move-gates-v1 audit of 81 maps; explainer linked from the feature card` (0b6826d0)
+  Sync with main 563cbaad (gym-readiness-readout-v1, party-item-confirmation-v1, same-target-no-progress-v1
+  landed meanwhile): field-move-gates-v1 stays last in every registry list, after main's three; the 48
+  conflicted agent registry tests take main's side and are re-indexed by one (same scripted method),
+  plus the Python index tests main and this branch had both bumped. Gates on the merged tip: just lint 0,
+  just build 0, just coverage 0. Tests: env 3318; agent 3028; viewer 1443. Coverage: env 97.20 / 92.84 /
+  100; agent 97.12 / 92.93 / 97.59 / 99.14; viewer 95.09 / 91.06 / 93.85 / 97.7.
 
 ## Deferred
 

@@ -157,7 +157,7 @@ def test_each_switch_is_a_registered_default_off_server_feature(switch: str) -> 
 
 
 def test_registered_last_in_order() -> None:
-    assert SERVER_FEATURES[-15:-10] == (
+    assert SERVER_FEATURES[-16:-11] == (
         OWNER,
         MID_FRAME,
         UNSET_WARP,

@@ -42,3 +42,19 @@ The control model cancelled Torchic's Lv16 evolution in a8f9 (turn 1170, B in th
 - Current definition sha256 after both edits: whole-map-pair-1h-v4 4632a7a61a7e, whole-map-cook-1h 7c12ca8d7dbd. Round-2 review fixes: explainer and overview text, worklog hashes, bundle-v-control title arrow restored.
 - 18:57 NY: rebased on main 5c26dc62 (whiteout-healed-v1 in the bundle). Regenerated whole-map defs from bundle-cook-1h with seeds/plans kept: whole-map-pair-1h-v4 sha256 ddedef847c1d, whole-map-cook-1h eda3fa2969a8. Round-3 reviews of the earlier changes: Grok LGTM, Claude LGTM.
 - Round 4: Grok LGTM, Claude LGTM. Landing.
+
+## counter-talk-v1 on in both arms (the operator 2026-10-20 19:17 NY)
+Moved from bundle switches to onInBoth (base true) in bundle-v-control.json and whole-map-cook-1h.json; evidence in the 'Counter-talk effect in control' thread (stalled 1/45 with it on vs 23/47 off). Running pair v4 unchanged. New sha256: bundle-v-control b1e24b405b6b, whole-map-cook-1h d5ceed05b7f8. pnpm -r test: agent 2977, viewer 1436 pass.
+- Overview updated for counter-talk in both arms (Grok round-1 finding).
+- Reviews: Grok LGTM (round 2), Claude LGTM. Landing.
+
+## counter-talk everywhere + gym readiness (the operator 19:25 NY: counter talk in every run)
+bundle-cook-1h: counter-talk-v1 to onInBoth (sha256 1dae5952af02). whole-map-cook-1h regenerated from it with gym-readiness-readout-v1 in the bundle (sha256 b0f0ac8fe1e3). whole-map-pair-1h-v4 left as is (paused in-flight pair; a relaunch would be v5). jit-* and starter-decision-salience already have counter-talk on in both via base.
+- Reviews: Grok LGTM, Claude LGTM (nit fixed: overview cites main d53baa1e). Landing.
+
+## Pair v5 (the operator 19:53 NY: launch another 1hr bundle v control now; test whole map + sem nav)
+whole-map-pair-1h-v5.json from main ba71c60f bundle-cook-1h with the whole-map recipe (full-map-navigation-v1 in the bundle; positive-supervisor-v1 off in both; counter-talk-v1 and evolution-decision-v1 on in both; semantic-navigation-v2 and gym-readiness-readout-v1 in the bundle). Seed 296ec5f2910b4a71, sha256 de6de4d91c20. v4 had already ended operator_abort after ~3 min.
+- Reviews: Grok LGTM, Claude LGTM. Landing.
+
+## Pair v6 and the redesign off everywhere (the operator 20:14 NY restart both; 20:21 NY positive-supervisor off everywhere)
+v5 stopped 20:15 (both operator_abort; bundle ef9f stuck at the clock YES/NO box since 20:02). whole-map-pair-1h-v6.json from main dc7d0293 bundle-cook-1h (includes same-target-no-progress-v1 and party-item-confirmation-v1) + full-map-navigation-v1. positive-supervisor-v1 moved to offInBoth in bundle-v-control and bundle-cook-1h (whole-map-cook-1h already off); fixed-runner test updated. Hashes: v6 21470a7f749d (seed 783798b95caaa403), bundle-v-control c70f063ec831, bundle-cook-1h eb377e15ffc4. pnpm -r test: agent 3013, viewer 1440 pass.

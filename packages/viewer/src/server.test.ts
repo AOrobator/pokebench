@@ -1050,7 +1050,7 @@ function getWithHeaders(viewer: Viewer, path: string): Promise<{ body: string; c
 
 it("serves the caught nickname and fail-open explainers byte for byte, mapped from their cards",async()=>{
  const root=mkdtempSync(join(tmpdir(),"pokebench-explainers-")),staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});
- const pages=[["caught-nickname-prompt-v1","Caught nickname question"],["fail-open-input-v1","Fail-open input"]] as const;
+ const pages=[["party-item-confirmation-v1","Party item confirmation"],["caught-nickname-prompt-v1","Caught nickname question"],["fail-open-input-v1","Fail-open input"]] as const;
  for(const [id] of pages)writeFileSync(join(docs,`${id}.html`),readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url))));
  const viewer=await startViewer({runsRoot:join(root,"runs"),staticDir,appDir:join(root,"app"),port:0});open.push(viewer);
  const {FEATURE_EXPLAINERS}=await import("./panels.js");
@@ -1074,7 +1074,7 @@ it("serves the field move gates explainer byte for byte, mapped from its card",a
 
 it("serves the whiteout healed explainer byte for byte, mapped from its card",async()=>{
  const root=mkdtempSync(join(tmpdir(),"pokebench-explainers-")),staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});
- const pages=[["whiteout-healed-v1","Whiteout healed"]] as const;
+ const pages=[["whiteout-healed-v1","Whiteout healed"],["same-target-no-progress-v1","Same target, no progress"]] as const;
  for(const [id] of pages)writeFileSync(join(docs,`${id}.html`),readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url))));
  const viewer=await startViewer({runsRoot:join(root,"runs"),staticDir,appDir:join(root,"app"),port:0});open.push(viewer);
  const {FEATURE_EXPLAINERS}=await import("./panels.js");
@@ -1083,4 +1083,14 @@ it("serves the whiteout healed explainer byte for byte, mapped from its card",as
   const reply=await get(viewer,`/explainers/${id}.html`);
   expect(reply.status).toBe(200);expect(reply.body.toString()).toContain(title);
  }
+});
+
+it("serves the gym readiness readout explainer byte for byte, mapped from its card",async()=>{
+ const root=mkdtempSync(join(tmpdir(),"pokebench-explainers-")),staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});
+ const id="gym-readiness-readout-v1",tracked=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)));writeFileSync(join(docs,`${id}.html`),tracked);
+ const viewer=await startViewer({runsRoot:join(root,"runs"),staticDir,appDir:join(root,"app"),port:0});open.push(viewer);
+ const {FEATURE_EXPLAINERS}=await import("./panels.js");
+ expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
+ const reply=await get(viewer,`/explainers/${id}.html`);
+ expect(reply.status).toBe(200);expect(reply.body.equals(tracked)).toBe(true);expect(reply.body.toString()).toContain("Gym readiness readout");
 });

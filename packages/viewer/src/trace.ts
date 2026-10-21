@@ -144,7 +144,7 @@ const chip = (button: string): string => `<span class="chipb">${ARROW[button] ??
 // One-line summaries are clipped by CSS anyway; the full text stays in the body and the inspector.
 const firstLine = (text: string): string => (text.trim().split("\n")[0] ?? "").slice(0, 300);
 const secs = (ms: number): string => `${(ms / 1000).toFixed(1)}s`;
-const LOOP_KIND = { planning: "planning", observation: "observation", ineffective: "ineffective", cycle: "cycle", rejection: "rejection", trigger_script:"repeated trigger script", map_cycle: "map back-and-forth", milestone_drought: "milestone drought", interface_dwell: "interface dwell", same_plan: "same plan repeated" } as const;
+const LOOP_KIND = { planning: "planning", observation: "observation", ineffective: "ineffective", cycle: "cycle", rejection: "rejection", trigger_script:"repeated trigger script", map_cycle: "map back-and-forth", milestone_drought: "milestone drought", interface_dwell: "interface dwell", same_plan: "same plan repeated", same_target_no_progress: "same target, no progress" } as const;
 const NATIVE_ICON: Readonly<Record<string, readonly [string, string]>> = {
   native_input: ["IN", "engine"], menu_changed: ["MNU", "engine"], harness_bug: ["BUG", "error"],
   battle_signal: ["VS", "battle"], battle_started: ["VS", "battle"], battle_ended: ["VS", "battle"], battle_outcome: ["VS", "battle"],

@@ -246,11 +246,15 @@ const PeopleIdCard = event("people_id_card", {
 
 // fixed-point-breaker-v1: duplicate turns collapsed from a request (stage 1), or the note it ended with (stage 2).
 // short_cycle: short-cycle-fixed-point-v1, turns repeating a cycle of `period` (calls, state) turns.
-const LoopBreaker = event("loop_breaker", {
-  stage: Type.Enum([1, 2] as const), trigger: Type.Enum(["fixed_point", "no_tool_call", "short_cycle"] as const),
-  repeats: Type.Integer({ minimum: 1 }), collapsed: NonNegativeInt, text: Type.Union([Type.String({ minLength: 1 }), Type.Null()]),
-  period: Type.Optional(Type.Integer({ minimum: 2, maximum: 4 })),
-});
+const LoopBreakerFields = {
+  stage: Type.Enum([1, 2] as const), repeats: Type.Integer({ minimum: 1 }), collapsed: NonNegativeInt,
+  text: Type.Union([Type.String({ minLength: 1 }), Type.Null()]),
+};
+// A short_cycle record always names its cycle's period; the other triggers have none.
+const LoopBreaker = Type.Union([
+  event("loop_breaker", { ...LoopBreakerFields, trigger: Type.Enum(["fixed_point", "no_tool_call"] as const) }),
+  event("loop_breaker", { ...LoopBreakerFields, trigger: Type.Literal("short_cycle"), period: Type.Integer({ minimum: 2, maximum: 4 }) }),
+]);
 
 // fixed-point-breaker-v1 stage 3: the harness walked to the nearest untalked person (or sign) and pressed A.
 const AutoTalk = event("auto_talk", {
@@ -787,6 +791,8 @@ export type RunEvent = Static<typeof RunEventSchema>;
 type EnvelopeKey = "v" | "run" | "seq" | "t";
 export type EventBody = RunEvent extends infer E ? (E extends RunEvent ? Omit<E, EnvelopeKey> : never) : never;
 export type BodyOf<T extends RunEvent["type"]> = Omit<Extract<RunEvent, { type: T }>, EnvelopeKey>;
+// A loop_breaker body as its producers write it: one variant per trigger, so a short_cycle body carries its period.
+export type LoopBreakerBody = Extract<RunEvent, { type: "loop_breaker" }> extends infer E ? E extends unknown ? Omit<E, EnvelopeKey | "type" | "turn"> : never : never;
 
 // The union members for each event type, so a problem is reported against the event's own schema.
 const MEMBERS = new Map<string, TSchema[]>();

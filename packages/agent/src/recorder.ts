@@ -12,7 +12,7 @@ import type { AgentEvent, AgentMessage } from "@mariozechner/pi-agent-core";
 import type { AssistantMessage, AssistantMessageEvent, ImageContent, TextContent } from "@mariozechner/pi-ai";
 import type { TargetProof } from "./target-stop.js";
 import type { LoopNotice } from "./loop-detection.js";
-import { SemanticReceiptSchema, type BodyOf, type Button, type RunEndReason, type RunEvent, type EventBody, type SemanticReceipt } from "./events.js";
+import { SemanticReceiptSchema, type BodyOf, type Button, type LoopBreakerBody, type RunEndReason, type RunEvent, type EventBody, type SemanticReceipt } from "./events.js";
 import { Value } from "typebox/value";
 import type { FrameRef, FrameStore } from "./frames.js";
 import { parseGameState, type GameStateSnapshot, type StateSource } from "./game-state.js";
@@ -506,7 +506,7 @@ export class RunRecorder {
   }
 
   // fixed-point-breaker-v1: recorded as the request is built.
-  recordLoopBreaker(body: Omit<BodyOf<"loop_breaker">, "type" | "turn">): void {
+  recordLoopBreaker(body: LoopBreakerBody): void {
     this.append({ type: "loop_breaker", turn: this.turn + 1, ...body });
   }
   // fixed-point-breaker-v1 stage 3: recorded as the request is built.

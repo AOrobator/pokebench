@@ -5,20 +5,20 @@
 // navigate_to_target calls in turn. duplicate-turn-collapse-v1 acted on neither.
 // short-cycle-ef9f.jsonl.gz (turns 125-140) and short-cycle-97a0.jsonl.gz (turns 104-136) are those runs' run_start plus
 // every turn_start, assistant, tool_call, button_press, state, tool_result, milestone and dialogue_auto_advance event of
-// those turns, made by the test author; tool results drop `frames`, states drop `raw_ram` and `resources.berry_trees`;
-// other event types are dropped.
+// those turns, made by the test author; tool results drop `frames` and states drop the optional `raw_ram` reference;
+// other event types are dropped. Both are schema-valid and are read through parseRun (checkEvent) below.
 import {readFileSync} from "node:fs";
 import type {AgentMessage} from "@mariozechner/pi-agent-core";
 import {describe,expect,it} from "vitest";
 import {LEGACY_ALL_ON} from "../test-support/legacy-features.js";
-import {recorded} from "../test-support/battle-facts.js";
+import {gunzipSync} from "node:zlib";
 import {IN_GAME} from "../test-support/events.js";
 import {assistant,toolCall,userText} from "../test-support/pi.js";
-import {decisionContext} from "./decision-probe.js";
-import {checkEvent,type EventBody,type RunEvent} from "./events.js";
+import {decisionContext,parseRun} from "./decision-probe.js";
+import {checkEvent,type EventBody,type LoopBreakerBody,type RunEvent} from "./events.js";
 import {parseExperiment,experimentArms} from "./experiments.js";
 import {ALL_ON,FEATURES,SWITCHABLE_FEATURES,featureInfo,featuresOf,playHarnessFeatures,type FeatureSet} from "./features.js";
-import {BREAKER_NOTE,CYCLE_COPIES,FixedPointBreaker,cycleNote,cycleRuns,cycleState,fixedPointNote} from "./fixed-point-breaker.js";
+import {BREAKER_NOTE,CYCLE_COPIES,CYCLE_STATE_EXCLUDED,FixedPointBreaker,cycleFields,cycleNote,cycleRuns,cycleState,fixedPointNote} from "./fixed-point-breaker.js";
 import type {GameStateSnapshot} from "./game-state.js";
 import {flagFeatures,normalizeFeatures} from "./play-preset.js";
 import {contextTools} from "./play-wiring.js";
@@ -27,8 +27,7 @@ const ID="short-cycle-fixed-point-v1";
 const NONE=Object.fromEntries(SWITCHABLE_FEATURES.map(id=>[id,false])) as FeatureSet;
 const COLLAPSE:FeatureSet={...NONE,"duplicate-turn-collapse-v1":true,[ID]:true};
 const BREAKER:FeatureSet={...NONE,"fixed-point-breaker-v1":true,[ID]:true};
-type Breaker=Extract<RunEvent,{type:"loop_breaker"}>;
-type Body=Omit<Breaker,"v"|"run"|"seq"|"t"|"turn"|"type">;
+type Body=LoopBreakerBody;
 
 // The two clock interfaces of ef9f, as the readout reports them on the clock screen.
 const ui=(phase:string,selected:string|null,value:string)=>({phase,selected,ready:true,controls:"",diagnostic:null,value});
@@ -107,10 +106,22 @@ describe("the cycle state fingerprint",()=>{
   expect(cycleState(state(quantity(9)))).not.toBe(cycleState(state(quantity(8))));
   const tree=(watered:boolean,minutes:number,stage=2)=>({tree_id:1,berry:3,item_id:135,stage,stop_growth:false,minutes_until_next_stage:minutes,yield_count:0,regrowth_count:0,watered:[watered,false,false,false]});
   const garden=(t:ReturnType<typeof tree>,diagnostics:{owner:string;message:string;raw_hex:string|null}[]=[])=>({...IN_GAME,resources:{bag:[],pc_items:[],storage:{current_box:0,occupied:[]},berry_trees:[t],planted_berries:1,diagnostics,script_pc:1,script_mode:1,script_status:1,selected_tree_id:null,berry_script_owner:null,daycare:[]}}) as unknown as GameStateSnapshot;
-  // Watering and growth are the player's doing; only the growth timer runs on its own.
+  // Watering, the berry, its stage and yield stay in the state; only the growth timer is left out.
   expect(cycleState(state(garden(tree(false,60))))).not.toBe(cycleState(state(garden(tree(true,60)))));
   expect(cycleState(state(garden(tree(false,60))))).not.toBe(cycleState(state(garden(tree(false,60,3)))));
   expect(cycleState(state(garden(tree(false,60))))).toBe(cycleState(state(garden(tree(false,59)))));
+  // The party and battle records are whole: PP and experience are progress.
+  const moves=(pp:number,exp:number)=>({...IN_GAME,party:[{species:"TORCHIC",level:5,hp:18,max_hp:20,experience:exp,moves:[{move_id:10,name:"SCRATCH",pp,pp_bonus:0}]}]}) as unknown as GameStateSnapshot;
+  expect(cycleFields(state(moves(35,100)))).not.toBeNull();
+  expect(cycleState(state(moves(35,100)))).not.toBe(cycleState(state(moves(34,100))));
+  expect(cycleState(state(moves(35,100)))).not.toBe(cycleState(state(moves(35,120))));
+  // Fields that change on their own do not count.
+  const base=state(IN_GAME);
+  expect(cycleState({...base,seq:99,turn:7,t:"2026-10-20T21:00:00.000-04:00",play_time_s:9999,settle:{frames:12,reason:"fade"},raw_ram:{path:"raw-ram/x.gz",sha256:"0".repeat(64),frame:5,sequence:3}} as typeof base)).toBe(cycleState(base));
+  // Any diagnostic anywhere qualifies nothing: party, battle, interface, resources.
+  expect(cycleState(state({...IN_GAME,party:[{species:"TORCHIC",level:5,hp:18,max_hp:20,diagnostic:"checksum mismatch"}]}))).toBeNull();
+  expect(cycleState({...state({...IN_GAME,in_battle:true,screen:"battle",active_ui:ui("battle_action","FIGHT","")}),battle:{phase:"action",turn:2,outcome:null,battlers:[],diagnostic:"battle struct unreadable"}} as unknown as Parameters<typeof cycleState>[0])).toBeNull();
+  expect(cycleState(state({...ADJUST(),active_ui:{...ui("clock_adjustment",null,"x"),diagnostic:"unknown task"}}))).toBeNull();
   // A resource the readout failed to decode qualifies nothing.
   expect(cycleState(state(garden(tree(false,60),[{owner:"bag",message:"pocket pointer out of range",raw_hex:null}])))).toBeNull();
   expect(cycleState(state(ADJUST()))).not.toBeNull();
@@ -312,11 +323,11 @@ describe("OFF and the switches it acts through",()=>{
  it("taking one item at a time out of the PC is progress, not a cycle",async()=>{
   const r=rig(COLLAPSE);
   // The quantity box shows the same maximum each time, so only the inventory says an item was taken out.
-  const pc=(left:number,phase:string,tick=0)=>({...IN_GAME,screen:"pc",active_ui:{...ui(phase,phase==="pc_quantity"?null:"POTION","x1"),details:{kind:"quantity",maximum:9}},resources:{bag:[{slot:0,pocket:"items",item_id:13,quantity:10-left,name:"POTION"}],pc_items:[{slot:0,pocket:null,item_id:13,quantity:left,name:"POTION"}],storage:{current_box:0,occupied:[]},berry_trees:[{tree_id:1,berry:3,item_id:135,stage:5,stop_growth:true,minutes_until_next_stage:720-tick,yield_count:0,regrowth_count:0,watered:[false,false,false,false]}],planted_berries:0,diagnostics:[],script_pc:1000+tick,script_mode:1,script_status:1,selected_tree_id:null,berry_script_owner:null,daycare:[]}}) as unknown as GameStateSnapshot;
+  const pc=(left:number,phase:string,tick=0)=>({...IN_GAME,play_time_s:3723+tick,screen:"pc",active_ui:{...ui(phase,phase==="pc_quantity"?null:"POTION","x1"),details:{kind:"quantity",maximum:9}},resources:{bag:[{slot:0,pocket:"items",item_id:13,quantity:10-left,name:"POTION"}],pc_items:[{slot:0,pocket:null,item_id:13,quantity:left,name:"POTION"}],storage:{current_box:0,occupied:[]},berry_trees:[{tree_id:1,berry:3,item_id:135,stage:5,stop_growth:true,minutes_until_next_stage:720-tick,yield_count:0,regrowth_count:0,watered:[false,false,false,false]}],planted_berries:0,diagnostics:[],script_pc:1000,script_mode:1,script_status:1,selected_tree_id:null,berry_script_owner:null,daycare:[]}}) as unknown as GameStateSnapshot;
   for(let i=0;i<8;i++){const left=9-Math.floor(i/2);r.turn({buttons:["A"]},i%2===0?pc(left,"pc_quantity"):pc(left,"pc_item_list"));}
   expect(texts(await r.send()).filter(t=>t.startsWith("assistant"))).toHaveLength(8);
   expect(r.recorded).toEqual([]);
-  // The same screens with nothing taken out are a cycle (berry timers and script registers do not count).
+  // The same screens with nothing taken out are a cycle while only the berry timer and the play clock move.
   const still=rig(COLLAPSE);
   for(let i=0;i<6;i++)still.turn({buttons:["A"]},i%2===0?pc(9,"pc_quantity",i):pc(9,"pc_item_list",i));
   expect(kept(await still.send())).toEqual([5,6]);
@@ -381,8 +392,15 @@ describe("OFF and the switches it acts through",()=>{
 });
 
 // Each recorded run's requests as the production wiring builds them before each turn's model call.
+// Each fixture is parsed once, through checkEvent like any recorded run (parseRun), so the replay reads schema-valid events.
+const parsed=new Map<string,readonly RunEvent[]>();
+const fixture=(name:string):readonly RunEvent[]=>{
+ const hit=parsed.get(name);if(hit!==undefined)return hit;
+ const events=parseRun(gunzipSync(readFileSync(new URL(`./fixtures/${name}`,import.meta.url))).toString("utf8")).events;
+ parsed.set(name,events);return events;
+};
 function recordedRun(name:string){
- const events=():readonly RunEvent[]=>recorded(name);
+ const events=():readonly RunEvent[]=>fixture(name);
  const start=()=>{const s=events().find(e=>e.type==="run_start");if(s?.type!=="run_start")throw new Error("no run_start");return s;};
  const features=():FeatureSet=>featuresOf(start().harness_features);
  const ids=(turn:number):string[]=>events().flatMap(e=>e.type==="assistant"&&e.turn===turn?e.tool_calls.map(c=>c.id):[]);
@@ -463,22 +481,67 @@ describe("short-cycle-fixed-point-v1 on run 97a0 (in and out of PROF. BIRCH'S HO
   // Turn 123 repeated 122's call but stayed in the house, so the 2-turn cycle ended; its newest copy stays.
   expect(run.turnsIn(requests.get(124)??[])).toEqual([104,105,106,107,108,109,110,111,112,113,114,115,121,122,123]);
  });
- it("then catches the 3-turn rotation from turn 120 (in, in again and staying, out) on the request for turn 129, keeping 126-128",async()=>{
+ it("does not take the 3-turn rotation from turn 120 for a cycle: the NINJA_BOY in the house at turn 120 is gone at turn 123",async()=>{
   const {records,requests}=await run.replay({...run.features(),[ID]:true});
   const legs=[120,121,122].map(t=>run.events().flatMap(e=>e.type==="assistant"&&e.turn===t?e.tool_calls.map(c=>JSON.stringify(c.args)):[]).join());
   for(let t=123;t<=132;t++)expect(run.events().flatMap(e=>e.type==="assistant"&&e.turn===t?e.tool_calls.map(c=>JSON.stringify(c.args)):[]).join(),String(t)).toBe(legs[(t-120)%3]);
-  expect(records.find(r=>r.period===3)).toEqual({stage:1,trigger:"short_cycle",repeats:9,collapsed:10,text:null,period:3,turn:129});
-  expect(run.turnsIn(requests.get(129)??[])).toEqual([104,105,106,107,108,109,110,111,112,113,114,115,126,127,128]);
-  // collapsed counts every turn the cycle pass left out of the request: 116-125, both runs together.
-  expect(records.map(r=>[r.turn,r.repeats,r.collapsed,r.period])).toEqual([[122,6,4,2],[123,7,5,2],[129,9,10,3],[130,10,11,3],[131,11,12,3],[132,12,13,3],[133,13,14,3]]);
-  // Turn 133 stayed in the house where the rotation went out, so the cycle ended at 132; one turn repeating with new
-  // thinking each time (133-136) is not a cycle.
-  expect(run.turnsIn(requests.get(136)??[])).toEqual([104,105,106,107,108,109,110,111,112,113,114,115,130,131,132,133,134,135]);
+  // The calls rotate, but the house the first leg walks into is not the same house each time round.
+  const left=(turn:number)=>{const r=run.events().find(e=>e.type==="tool_result"&&e.turn===turn);const s=r?.type==="tool_result"?run.events().find(e=>e.seq===r.state_seq):undefined;if(s?.type!=="state"||!("started"in s))throw new Error(`no state for ${String(turn)}`);return s;};
+  const differ=(a:number,b:number)=>{const x=cycleFields(left(a))??{},y=cycleFields(left(b))??{};return Object.keys(x).filter(k=>JSON.stringify(x[k])!==JSON.stringify(y[k]));};
+  expect(differ(120,123).sort()).toEqual(["interaction_object_slots","interaction_targets","local_map","map_grid","navigation_grid","world_context"]);
+  const objects=(turn:number)=>{const s=left(turn);return (s.world_context?.objects??[]).map(o=>`${o.sprite_kind??"?"} (${String(o.x)},${String(o.y)})`);};
+  expect(objects(120)).toEqual(["WOMAN_4 (8,7)","NINJA_BOY (9,5)"]);
+  expect(objects(123)).toEqual(["WOMAN_4 (8,7)"]);
+  expect(differ(121,124)).toEqual([]);
+  expect(differ(122,125)).toEqual([]);
+  expect(records.some(r=>"period"in r&&r.period===3)).toBe(false);
+  expect(records.map(r=>[r.turn,r.repeats,r.collapsed,"period"in r?r.period:null])).toEqual([[122,6,4,2],[123,7,5,2]]);
+  expect(run.turnsIn(requests.get(136)??[])).toEqual([104,105,106,107,108,109,110,111,112,113,114,115,121,122,123,124,125,126,127,128,129,130,131,132,133,134,135]);
  });
  it("the decision probe rebuilds the turn 122 request without turns 116-119 with the switch on",async()=>{
   const on=await run.probe(122,true),off=await run.probe(122,false);
   for(const t of [116,117,118,119])for(const id of run.ids(t)){expect(on.has(id)).toBe(false);expect(off.has(id)).toBe(true);}
   for(const t of [115,120,121])for(const id of run.ids(t))expect(on.has(id)).toBe(true);
+ });
+});
+
+describe("the cycle state is the whole recorded state minus a documented list",()=>{
+ // Every path of a real recorded state is either in the fingerprint or on CYCLE_STATE_EXCLUDED, so a field the
+ // readout adds later is fingerprinted unless someone lists it.
+ const paths=(value:unknown,prefix:string,out:Set<string>):Set<string>=>{
+  if(Array.isArray(value)){for(const v of value)paths(v,`${prefix}[]`,out);if(value.length===0)out.add(prefix);return out;}
+  if(value!==null&&typeof value==="object"){const entries=Object.entries(value);for(const [k,v] of entries)paths(v,prefix===""?k:`${prefix}.${k}`,out);if(entries.length===0)out.add(prefix);return out;}
+  out.add(prefix);return out;
+ };
+ const excluded=(path:string):boolean=>CYCLE_STATE_EXCLUDED.some(x=>path===x.path||path.startsWith(`${x.path}.`)||path.startsWith(`${x.path}[]`));
+ for(const [name,turn] of [["short-cycle-ef9f.jsonl.gz",133],["short-cycle-97a0.jsonl.gz",120],["short-cycle-97a0.jsonl.gz",121]] as const){
+  it(`covers every key of the recorded state ${name} left at turn ${String(turn)}`,()=>{
+   const events=fixture(name);
+   const result=events.find(e=>e.type==="tool_result"&&e.turn===turn);
+   const s=result?.type==="tool_result"?events.find(e=>e.seq===result.state_seq):undefined;
+   if(s?.type!=="state"||!("started"in s))throw new Error("no state");
+   const fields=cycleFields(s);
+   if(fields===null)throw new Error("the recorded state does not qualify");
+   const kept=paths(fields,"",new Set());
+   const all=paths(s,"",new Set());
+   const missing=[...all].filter(path=>!kept.has(path)&&!excluded(path));
+   expect(missing).toEqual([]);
+   const unexplained=[...all].filter(path=>excluded(path)&&kept.has(path));
+   expect(unexplained).toEqual([]);
+   expect(all.size).toBeGreaterThan(100);
+  });
+ }
+ it("requires a period on every short_cycle record, and none on the other triggers",()=>{
+  const body={v:1,run:"r",seq:1,t:"2026-10-20T22:00:00.000-04:00",turn:5,type:"loop_breaker",stage:1,repeats:6,collapsed:4,text:null};
+  expect(()=>checkEvent({...body,trigger:"short_cycle",period:2})).not.toThrow();
+  expect(()=>checkEvent({...body,trigger:"short_cycle"})).toThrow();
+  expect(()=>checkEvent({...body,trigger:"short_cycle",period:5})).toThrow();
+  expect(()=>checkEvent({...body,trigger:"fixed_point"})).not.toThrow();
+  expect(()=>checkEvent({...body,trigger:"fixed_point",period:2})).toThrow();
+ });
+ it("documents why each excluded field is left out",()=>{
+  for(const x of CYCLE_STATE_EXCLUDED)expect(x.why.length,x.path).toBeGreaterThan(5);
+  expect(CYCLE_STATE_EXCLUDED.map(x=>x.path)).toEqual(["v","run","type","seq","turn","t","raw_ram","settle","play_time_s","active_ui.value","resources.berry_trees[].minutes_until_next_stage"]);
  });
 });
 

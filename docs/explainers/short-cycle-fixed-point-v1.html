@@ -27,7 +27,7 @@ svg .small{font-size:11px;fill:var(--muted)}
 <p><code>duplicate-turn-collapse-v1</code> leaves out of each request a run of 3 or more identical turns: the same thinking, text and tool calls, each leaving the same game state. Two bundle runs looped without ever producing such a run:</p>
 <ul>
 <li><code>2026-10-20T19-58-04_qwen36-gpu0_ef9f</code>, from turn 131 (8:06 PM New York): <code>press RIGHT,A</code> every turn while the clock bounced between its confirmation (NO highlighted) and its adjustment.</li>
-<li><code>2026-10-20T20-26-22_qwen36-gpu1_97a0</code>, from turn 116 (8:35 PM New York): <code>navigate_to_target</code> to PROF. BIRCH'S HOUSE's door from LITTLEROOT TOWN, then to the house's door back out, turns 116–122; then from turn 120 a 3-turn rotation through turn 132: in, the same call again (staying in the house), out.</li>
+<li><code>2026-10-20T20-26-22_qwen36-gpu1_97a0</code>, from turn 116 (8:35 PM New York): <code>navigate_to_target</code> to PROF. BIRCH'S HOUSE's door from LITTLEROOT TOWN, then to the house's door back out, turns 116–122; then from turn 120 the calls rotate in threes through turn 132 (in, the same call again, out), but that is not a cycle of the game state: the NINJA_BOY standing in the house at (9,5) when turn 120 walked in was gone when turn 123 did.</li>
 </ul>
 
 <h2>The two loops</h2>
@@ -62,7 +62,7 @@ svg .small{font-size:11px;fill:var(--muted)}
 <tr><td>every turn to leave the <em>same</em> state</td><td>A, B, A, B in both</td><td>a turn may repeat the one 2, 3 or 4 turns before it</td></tr>
 <tr><td>identical thinking and text</td><td>drafts that differ every turn or every other turn</td><td>only the tool calls (names and arguments) and the states must repeat</td></tr>
 <tr><td>a state it can qualify: the field or a ready battle</td><td>ef9f: screen <code>clock</code>, so no state at all</td><td>any screen whose readout shows a ready interface with no diagnostic</td></tr>
-<tr><td>the interface's value to match</td><td>ef9f: the clock moved 2 minutes each cycle</td><td>the clock's time is left out; phase and highlighted choice stay, and every other interface keeps its value (a name being typed, a quantity)</td></tr>
+<tr><td>the interface's value to match</td><td>ef9f: the clock moved 2 minutes each cycle</td><td>the clock's time is left out; everything else in the recorded state stays, including every other interface's value (a name being typed, a quantity)</td></tr>
 </table></div>
 
 <h2>The rule</h2>
@@ -108,7 +108,7 @@ svg .small{font-size:11px;fill:var(--muted)}
 <text x="310" y="180" class="small">5 turns: fewer than 3 copies</text>
 </g>
 </svg>
-<figcaption>Each box is one turn: its tool calls and the state its result left. A run counts when every turn equals the one 2, 3 or 4 turns before it and the run holds 3 copies of the cycle, as identical turns need 3 copies. A cycle that is really shorter counts as the shorter one (A,B,A,B is 2 turns, not 4); identical turns (a 1-turn cycle) stay the identical-turn rule's. The state is the fixed point's own fingerprint (screen, map, position, facing, field lock, story, party, dialogue, open interface and its highlighted choice, battle) plus the money, the open interface's details and the inventory (bag, PC items, boxes, daycare, planted berries, and berry trees without their growth timer), without the clock's time; every other interface keeps its value. A state whose resource read reports a diagnostic never joins a cycle.</figcaption>
+<figcaption>Each box is one turn: its tool calls and the state its result left. A run counts when every turn equals the one 2, 3 or 4 turns before it and the run holds 3 copies of the cycle, as identical turns need 3 copies. A cycle that is really shorter counts as the shorter one (A,B,A,B is 2 turns, not 4); identical turns (a 1-turn cycle) stay the identical-turn rule's. The state is the whole recorded state event minus a documented list of fields that change on their own: the event envelope and counters (<code>v</code>, <code>run</code>, <code>type</code>, <code>seq</code>, <code>turn</code>, <code>t</code>), the raw RAM reference, the observation's settle frames, <code>play_time_s</code>, the clock's time on the two clock-setting interfaces and the berry growth timer. Everything else counts, including the whole party and battle records (PP, experience), the inventory, berry trees, objects and maps. A state with any diagnostic (party, battle, interface or resources) never joins a cycle. A test walks every key of real recorded states and fails if one is neither fingerprinted nor on the list.</figcaption>
 </figure>
 
 <div class="tablewrap"><table>
@@ -132,7 +132,7 @@ svg .small{font-size:11px;fill:var(--muted)}
 <rect x="308" width="60" height="30" rx="4" fill="var(--fill)" stroke="var(--keep)" stroke-width="2"/><text x="338" y="20" text-anchor="middle">136</text>
 <text x="380" y="20" class="small">repeats 6 · collapsed 4 · period 2</text>
 </g>
-<text x="10" y="102" class="small">97a0, request for turn 122 (and for turn 129: 116–125 left out, 126–128 kept, period 3)</text>
+<text x="10" y="102" class="small">97a0, request for turn 122</text>
 <g transform="translate(10,112)">
 <rect x="0" width="70" height="30" rx="4" fill="var(--fill)" stroke="var(--line)"/><text x="35" y="20" text-anchor="middle">104–115</text>
 <rect x="76" width="160" height="30" rx="4" fill="none" stroke="var(--drop)" stroke-dasharray="4 3"/><text x="156" y="20" text-anchor="middle" class="small">116–119 left out</text>
@@ -142,7 +142,7 @@ svg .small{font-size:11px;fill:var(--muted)}
 </g>
 </g>
 </svg>
-<figcaption>Recorded events replayed through the production context wiring and the decision probe (test <code>short-cycle-fixed-point.test.ts</code>; fixtures hold ef9f turns 125–140 and 97a0 turns 104–136). In ef9f the cycle keeps growing: by turn 140 the request keeps 125–130, 138 and 139. In 97a0 turn 123 repeated 122's call but stayed in the house, so the 2-turn cycle ended at 122 (the request for 124 keeps 104–115 and 121–123); the 3-turn rotation that began at 120 reaches 3 copies at 128, so the request for 129 keeps 104–115 and 126–128 (repeats 9, collapsed 10: <code>collapsed</code> counts every turn the cycle pass left out of that request). It ended at 132, when turn 133 stayed in the house where the rotation went out. Nothing inside a kept message changes.</figcaption>
+<figcaption>Recorded events replayed through the production context wiring and the decision probe (test <code>short-cycle-fixed-point.test.ts</code>; fixtures hold ef9f turns 125–140 and 97a0 turns 104–136). In ef9f the cycle keeps growing: by turn 140 the request keeps 125–130, 138 and 139. In 97a0 turn 123 repeated 122's call but stayed in the house, so the 2-turn cycle ended at 122 (the request for 124 keeps 104–115 and 121–123); the 3-turn rotation of calls from turn 120 is not collapsed, because the house's objects differ between its turns 120 and 123 (a NINJA_BOY left).</figcaption>
 </figure>
 
 <h2>Wiring</h2>

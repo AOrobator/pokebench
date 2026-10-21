@@ -1,7 +1,8 @@
 import type {AgentMessage} from "@mariozechner/pi-agent-core";
 import type {AssistantMessage} from "@mariozechner/pi-ai";
-import type {BodyOf,RunEvent} from "./events.js";
+import type {LoopBreakerBody,RunEvent} from "./events.js";
 import type {FeatureSet} from "./features.js";
+import {createHash} from "node:crypto";
 import {NUDGE,TEXT_ONLY_REMINDER} from "./harness.js";
 import {planState} from "./same-plan.js";
 
@@ -16,7 +17,7 @@ export const CYCLE_PERIODS=[2,3,4] as const;
 export const CYCLE_COPIES=FIXED_POINT_TURNS;
 
 type State=Extract<RunEvent,{type:"state";started:boolean}>;
-type Body=Omit<BodyOf<"loop_breaker">,"type"|"turn">;
+type Body=LoopBreakerBody;
 export interface BreakerRecorder {recordLoopBreaker(body:Body):void}
 interface Turn {readonly calls:string;readonly ids:Set<string>;readonly states:Map<string,string|null>;readonly cycle:Map<string,string|null>;done:boolean}
 interface Group {readonly id:string;readonly key:string|null;readonly item:string|null;readonly silent:boolean;readonly members:number[]}
@@ -34,33 +35,49 @@ export function cycleNote(turns:number,period:number,names:readonly string[]):st
  return `${BREAKER_NOTE} Your last ${String(turns)} turns repeated the same ${String(period)} turns of ${names.join(", ")} calls, and each time round the game came back to the same sequence of screens, positions and highlighted choices.`;
 }
 
-// short-cycle-fixed-point-v1: planState's fields plus the money, the open interface's details and the inventory
-// (bag, PC items, boxes, daycare, planted berries, berry trees; berry growth timers and script registers move on their
-// own and are left out), null while a resource read reports a diagnostic, without
-// the clock's time (ef9f's clock moved two minutes each cycle; every other interface keeps its value, such as a name
-// being typed or a quantity), on any screen
-// whose readout shows a ready interface it can qualify (ef9f's clock screen), and on the field and in battle under
-// planState's own rules. Null where the readout cannot qualify the state.
+// short-cycle-fixed-point-v1: the state a turn left, as the whole recorded state event minus the fields that change on
+// their own, listed here. Evidence: between repeats of ef9f's bounce (turns 131-136) and 97a0's walk (116-122) only these
+// differ. Anything else the state records (party with PP and experience, battle, inventory, berry trees, objects, maps,
+// menus) is part of it, so a field added later is in the fingerprint unless it is added to this list.
+export const CYCLE_STATE_EXCLUDED:readonly {readonly path:string;readonly why:string}[]=[
+ {path:"v",why:"event envelope"},{path:"run",why:"event envelope"},{path:"type",why:"event envelope"},
+ {path:"seq",why:"event counter"},{path:"turn",why:"turn counter"},{path:"t",why:"wall-clock time"},
+ {path:"raw_ram",why:"raw RAM archive reference: frame, path, sequence and hash change with every observation"},
+ {path:"settle",why:"how many emulated frames the observation waited"},
+ {path:"play_time_s",why:"the play clock"},
+ {path:"active_ui.value",why:"clock_adjustment and clock_confirmation only: the clock's time (ef9f moved it two minutes each cycle); every other interface keeps its value"},
+ {path:"resources.berry_trees[].minutes_until_next_stage",why:"the berry growth timer"},
+];
 const CLOCK_PHASES=new Set(["clock_adjustment","clock_confirmation"]);
-// Berry trees keep what the player did (watering, berry, stage, yield) without the growth timer, which runs on its own.
-const inventory=(state:State)=>{const r=state.resources??null;return r===null?null:[r.bag,r.pc_items,r.storage,r.daycare,r.planted_berries,(r.berry_trees??null)?.map(tree=>({...tree,minutes_until_next_stage:null}))??null];};
-export function cycleState(state:State):string|null {
- if(!state.started)return null;
- const ui=state.active_ui??null;
- if(ui!==null&&(ui.diagnostic!==null||ui.ready!==true))return null;
- // A resource the readout failed to decode is not evidence that nothing changed.
- if((state.resources?.diagnostics.length??0)>0)return null;
- const party=state.party.map(p=>[p.species_id??p.species,p.level,p.hp,p.status??null]);
- const value=ui===null||CLOCK_PHASES.has(ui.phase)?null:ui.value??null;
- const common={screen:state.screen,map:state.map_id,position:state.position,facing:state.facing,locked:state.field_controls_locked??null,story:state.story??null,party,money:state.money,inventory:inventory(state),dialogue:state.world_context?.dialogue??null,ui:ui===null?null:[ui.phase,ui.selected,value,ui.details??null]};
- if(state.in_battle){
-  if(ui===null)return null;
-  const battle=state.battle??null;
-  const fight=battle===null?null:[battle.phase,battle.turn,battle.outcome,(battle.battlers??[]).map(b=>[b.battler,b.species_id,b.hp,b.status1])];
-  return JSON.stringify({...common,battle:fight});
+// Any diagnostic anywhere (party, battle, resources, menus): a value the readout failed to decode is not evidence that
+// nothing changed.
+function diagnosed(value:unknown):boolean {
+ if(Array.isArray(value))return value.some(diagnosed);
+ if(value===null||typeof value!=="object")return false;
+ for(const [key,inner] of Object.entries(value)){
+  if(key==="diagnostic"&&inner!==null&&inner!==undefined)return true;
+  if(key==="diagnostics"&&Array.isArray(inner)&&inner.length>0)return true;
+  if(diagnosed(inner))return true;
  }
- if(state.screen==="overworld")return state.map_id===null||state.position===null||state.facing===null?null:JSON.stringify(common);
- return ui===null?null:JSON.stringify(common);
+ return false;
+}
+// The fingerprinted fields of a state, or null where the readout cannot qualify it: before the game starts, an
+// interface that is not ready, any diagnostic, the field without a map, position or facing, a battle without its
+// interface, or another screen without a ready interface.
+export function cycleFields(state:State):Record<string,unknown>|null {
+ if(!state.started||diagnosed(state))return null;
+ const ui=state.active_ui??null;
+ if(ui!==null&&ui.ready!==true)return null;
+ if(state.in_battle?ui===null:state.screen==="overworld"?state.map_id===null||state.position===null||state.facing===null:ui===null)return null;
+ const fields=structuredClone(state) as Record<string,unknown>&{active_ui?:{phase:string;value?:unknown}|null;resources?:{berry_trees?:Record<string,unknown>[]|null}|null};
+ for(const key of ["v","run","type","seq","turn","t","raw_ram","settle","play_time_s"])Reflect.deleteProperty(fields,key);
+ if(fields.active_ui!=null&&CLOCK_PHASES.has(fields.active_ui.phase))Reflect.deleteProperty(fields.active_ui,"value");
+ for(const tree of fields.resources?.berry_trees??[])Reflect.deleteProperty(tree,"minutes_until_next_stage");
+ return fields;
+}
+export function cycleState(state:State):string|null {
+ const fields=cycleFields(state);
+ return fields===null?null:createHash("sha256").update(JSON.stringify(fields)).digest("hex");
 }
 
 // A block is primitive when no shorter period repeats it (A,B,A,B is period 2, not 4; A,A is a fixed point, not a cycle).

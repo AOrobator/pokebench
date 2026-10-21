@@ -89,7 +89,12 @@ stopped_run() {
   return 1
 }
 
-definition() { echo "$REPO/experiments/fixed/$EXP_ID.json"; }
+# Read from main, not the operator's working tree, which may be on any branch; keep the last good copy.
+definition() {
+  f=$ARCHIVE/whole-map-loop-definition.json
+  git -C "$REPO" show "main:experiments/fixed/$EXP_ID.json" > "$f.tmp" 2>/dev/null && mv "$f.tmp" "$f"
+  rm -f "$f.tmp"; echo "$f"
+}
 lease_pools() { jq -r '.lanes[].modelUrl' "$(definition)" | sed -e 's#^[a-z]*://##' -e 's#/.*##' | tr 'A-Z' 'a-z' | sed 's/[^a-z0-9.][^a-z0-9.]*/-/g'; }
 game_ports() { jq -r '.lanes[].gamePort' "$(definition)"; }
 alive() { [ -n "$1" ] && [ "$1" != null ] && kill -0 "$1" 2>/dev/null; }

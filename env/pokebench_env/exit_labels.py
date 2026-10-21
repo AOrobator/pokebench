@@ -31,7 +31,9 @@ from pokebench_env.character_presence import _flag
 from pokebench_env.displayed_names import _text
 from pokebench_env.field_moves import (
     Capabilities,
+    FloodRules,
     RomObject,
+    Tiles,
     map_gates,
     rom_object_obstacles,
 )
@@ -208,6 +210,27 @@ def _doorways(warps: list[tuple[int, int, MapId]]) -> list[tuple[MapId, list[Til
     return groups
 
 
+def destination_rules(
+    read: ReadMemory,
+    rom: RomMap,
+    target: MapId,
+    tiles: Tiles,
+    gates: DestinationGates | None,
+) -> FloodRules | None:
+    """The existing field-move owner supplies the same arrival rules to both label versions."""
+    rules = None
+    if gates is not None:
+        caps, save1, names = gates
+        location = names(target)
+
+        def hidden(flag: int) -> bool:
+            return flag not in TEMP_FLAGS and _flag(read, save1, flag)
+
+        objects = rom_object_obstacles(rom.objects, hidden, location)
+        rules = map_gates(caps, objects, tiles, location).rules()
+    return rules
+
+
 def arrival_text(
     read: ReadMemory,
     here_id: MapId,
@@ -242,16 +265,7 @@ def arrival_text(
         if beyond is not None:
             dry = _edge(rom, direction, offset, beyond)
             edges[(direction, to, offset)] = (dry, dry)
-    rules = None
-    if gates is not None:
-        caps, save1, names = gates
-        location = names(target)
-
-        def hidden(flag: int) -> bool:
-            return flag not in TEMP_FLAGS and _flag(read, save1, flag)
-
-        objects = rom_object_obstacles(rom.objects, hidden, location)
-        rules = map_gates(caps, objects, tiles, location).rules()
+    rules = destination_rules(read, rom, target, tiles, gates)
     reached = classify(
         tiles, start, warps=[(x, y) for x, y, *_ in rom.warps], connections=edges, rules=rules
     )

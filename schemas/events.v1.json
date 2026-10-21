@@ -6213,6 +6213,90 @@
           "type": "string",
           "const": "state"
         },
+        "exit_sections": {
+          "type": "object",
+          "required": [
+            "current",
+            "warps",
+            "connections"
+          ],
+          "properties": {
+            "current": {
+              "type": "string"
+            },
+            "warps": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "x",
+                  "y",
+                  "label",
+                  "detail"
+                ],
+                "properties": {
+                  "x": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "y": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "label": {
+                    "type": "string"
+                  },
+                  "detail": {
+                    "type": "string"
+                  }
+                },
+                "additionalProperties": false
+              },
+              "maxItems": 64
+            },
+            "connections": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "direction",
+                  "offset",
+                  "destination",
+                  "label"
+                ],
+                "properties": {
+                  "direction": {
+                    "type": "string"
+                  },
+                  "offset": {
+                    "type": "integer"
+                  },
+                  "destination": {
+                    "type": "array",
+                    "additionalItems": false,
+                    "items": [
+                      {
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      {
+                        "type": "integer",
+                        "minimum": 0
+                      }
+                    ],
+                    "minItems": 2
+                  },
+                  "label": {
+                    "type": "string"
+                  }
+                },
+                "additionalProperties": false
+              },
+              "maxItems": 16
+            }
+          },
+          "additionalProperties": false
+        },
         "raw_ram": {
           "type": "object",
           "required": [

@@ -175,6 +175,7 @@ export const SWITCHABLE_FEATURES = [
   "yes-no-answer-readout-v1",
   "field-move-gates-v1",
   "story-battle-heal-gate-v1",
+  "exit-labels-v3",
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
 
@@ -461,6 +462,7 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("yes-no-answer-readout-v1", "observation", "YES/NO ANSWER READOUT", RAM, "Bundle arm only, default off (the operator 2026-10-21: \"lets do those fixes and put them in the bundle\"). Run 2026-10-20T19-58-04_qwen36-gpu0_ef9f read the clock confirmation with NO highlighted (\"clock_confirmation; selected NO; UP/DOWN selects; A accepts selection\") for turns ~100-156 and kept pressing A, answering NO; in a turn-156 decision probe 0/16 samples pressed UP then A as recorded and 8/16 with the line below. While a YES/NO box is ready and the highlighted option was read from RAM, the game server adds one line right after the Interface line of every observe, press and navigate_to result: with NO highlighted \"To answer YES, press UP, then A. Pressing A now answers NO.\", with YES highlighted \"To answer NO, press DOWN, then A. Pressing A now answers YES.\", each followed by \" B also answers NO.\" where the game's handler sends B down the NO branch (pret pokeemerald: every listed field, menu and battle-script box). Covered: name, clock and starter confirmations, the party menu, bag, shop, PC, save, evolution move, egg nickname, Pokéblock, move relearner, decoration, minigame, trade, Union Room and Battle Factory boxes, the script YES/NO box (field_yes_no), the battle-script boxes (learn a move, stop learning, use next POKéMON, nickname a catch) and the battle forfeit box (no B clause: B closes it without choosing). No line when the box is not ready, the highlighted option is unknown, a coverage error is reported, or the box is not one of these. Off: no line; the readout is byte for byte as before."),
   on("field-move-gates-v1", "observation", "FIELD MOVE GATES", "exit-reachability-v1", "Bundle arm only, default off (the operator 2026-10-20: treat every field-move gate the way Surf is treated, in one place; control run a8f9 looped in RUSTURF TUNNEL toward exits behind two BREAKABLE_ROCK objects that exit-reachability-v1 called reachable on foot). One game-server module (env/pokebench_env/field_moves.py) owns every gate: Cut, Rock Smash and Strength objects (CUTTABLE_TREE, BREAKABLE_ROCK, PUSHABLE_BOULDER), Surf, Waterfall and Dive, Mach Bike terrain (slopes that slide a walker south, cracked floor a walker falls through), Acro Bike terrain (rails and bumpy slopes), the Route 111 sandstorm (GO GOGGLES) and the Devon Scope KECLEON. It reads the map's obstacle objects from the map's own object list whether or not they are loaded (a cut tree or smashed rock is gone while its hide flag is set), the gated terrain from the map's tiles, and whether each gate is open now: the badge and a non-egg party Pokémon that knows the move (the game's checkpartymove), the item in the bag or the bike being ridden. exit-reachability-v1's flood (and surf-gated-exits-v1's, and exit-labels-v2's arrival reach, which reads the destination map's own object list) then treats a closed obstacle as a wall and a slope or sandstorm tile as one you can leave only the way it pushes you; a gate that is not known to be closed stays open, so the flood can still only include too much. An exit cut off this way is labelled none with blocked_by, the state gains field_obstacles (each obstacle, its tiles, open or not, what it needs, the game's text and what lies past it), and the readout adds \"Field obstacles on this map (from the map's own object list and its tiles):\" with one line per kind, naming no badge, move or item: \"- BREAKABLE_ROCK at (24,4) and (24,5) close every way on foot to (29,16) -> VERDANTURF TOWN (map 0/14) and (18,20) -> ROUTE116 (map 0/31): it needs a field move you cannot use yet; the game says: \"It's a rugged rock, but a POKéMON may be able to smash it.\"\". A cut-off warp's interaction-candidate line ends \"; not reachable on foot from where you stand: every way to it on this map passes BREAKABLE_ROCK at (24,4) or (24,5), which needs a field move you cannot use yet\". navigate_to treats closed obstacle tiles as occupied even when the object is not loaded, steps onto a slope only moving down and slides to its foot, still never steps onto cracked floor, and refuses before walking a goal that only closed obstacles cut off, naming them and quoting the game's text. Needs exit-reachability-v1. Off: obstacles are ignored by the flood, the exit labels, the readout and navigate_to, as before, and the state has no field_obstacles."),
   on("story-battle-heal-gate-v1", "guard", "STORY BATTLE HEAL GATE", "heal-before-trainers-v2", GATE_DESCRIPTION),
+  on("exit-labels-v3", "observation", "DISTINCT EXITS AND MAP SECTIONS", "exit-labels-v2", "Default off; bundle only. Physical entrances keep distinct labels, including the destination terrain section. Same-map returns say whether they reach your current section or a different one. One-way ledges remain directed; summaries share the same typed descriptions. Sections are ROM terrain facts; temporary objects and scripts may block paths. No objective or route is chosen. Off: exit-labels-v2 output and state are unchanged."),
 ];
 
 export const ALL_ON: FeatureSet = Object.fromEntries(SWITCHABLE_FEATURES.map((id) => [id, true])) as Record<SwitchableFeature, boolean>;
@@ -516,6 +518,7 @@ export const SERVER_FEATURES: readonly SwitchableFeature[] = [
   "party-item-confirmation-v1",
   "yes-no-answer-readout-v1",
   "field-move-gates-v1",
+  "exit-labels-v3",
 ];
 
 export function serverFeatureEnv(features: FeatureSet): { POKEBENCH_ACTIVE_UI: "0" | "1"; POKEBENCH_FEATURES_OFF: string } {
@@ -672,6 +675,7 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("yes-no-answer-readout-v1"),
     ...when("field-move-gates-v1"),
     ...when("story-battle-heal-gate-v1"),
+    ...when("exit-labels-v3"),
   ];
 }
 

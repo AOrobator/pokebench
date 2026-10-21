@@ -257,7 +257,7 @@ describe("durable cohort membership and metadata boundaries", () => {
     expect(snapshot.runs[0]?.reason).toBe(endReason); expect(snapshot.runs[0]?.excluded).toBeNull();
     expect(frontierReferences(snapshot.runs).best?.id).toBe(id); expect(readFileSync(ledger, "utf8")).toBe(text);
     // A separate plan mismatch remains excluded even when the recording ended at an operator stop.
-    writeFileSync(ledger, [launch, { ...outcome, reason: "run_start does not match the plan: source", endReason: null }].map(e => JSON.stringify(e)).join("\n") + "\n");
+    writeFileSync(ledger, [launch, { ...outcome, reason: "run_start does not match the plan: source", endReason }].map(e => JSON.stringify(e)).join("\n") + "\n");
     const mismatch = await workbenchSnapshot(r, () => Promise.resolve(false), 42);
     expect(mismatch.runs[0]?.excluded).toContain("does not match the plan"); expect(frontierReferences(mismatch.runs).best).toBeNull();
   });

@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 import { REQUIRED_FRONTIER_MILESTONES } from "@pokebench/agent/milestones";
 import { run } from "../test-support/frontier-run.js";
 import { frontierLegend } from "./frontier-legend.js";
-import { HUMAN_REFERENCE, FRONTIER_MILESTONES, frontierReferences, frontierPlot, frontierSplits, frontierVersions, milestoneStatus } from "./frontier.js";
+import { HUMAN_REFERENCE, FRONTIER_MILESTONES, frontierReferences, frontierLabel, frontierPlot, frontierSplits, frontierVersions, milestoneStatus } from "./frontier.js";
 import type { WorkbenchRun } from "./workbench-data.js";
 const referenceNames = ["PLAYER_NAME_CONFIRMED", "FIRST_TRUCK_EXIT", "CLOCK_SET", "PLAYER_HOUSE_EXITED_AFTER_CLOCK", "RIVAL_HOUSE_ENTERED", "RIVAL_BEDROOM_REACHED", "RIVAL_MET", "STARTER_CHOSEN", "RUSTBORO_CITY_GYM", "STONE_BADGE"];
 function measured(id: string, times: readonly (number | null)[], controller: "agent" | "human" = "agent"): WorkbenchRun {
@@ -477,14 +477,14 @@ describe("invalid fixed-run trials", () => {
 });
 
 describe("recorded comparison coverage", () => {
-  it.each(["Excluded operator-aborted run", "Infrastructure outcome: launcher_error", "Launcher outcome: operator stopped the run"])("retains %s with its exclusion reason and never promotes it", excluded => {
+  it.each(["Infrastructure outcome: launcher_error", "Launcher outcome: operator stopped the run"])("retains %s with its exclusion reason and never promotes it", excluded => {
     const stopped = { ...measured("stopped", [1000, 2000, 3000]), excluded };
     const refs = frontierReferences([stopped]);
     expect(refs.best).toBeNull();
     document.body.innerHTML = frontierPlot(refs, [stopped], 900);
     expect(document.querySelectorAll('[data-run="stopped"]')).toHaveLength(3);
     expect(document.querySelector('polyline[data-series="stopped"]')?.getAttribute("stroke-dasharray")).toBe("2 4");
-    expect(document.querySelector('[data-run="stopped"]')?.getAttribute("aria-label")).toContain(excluded === "Excluded operator-aborted run" ? "operator-aborted" : excluded);
+    expect(document.querySelector('[data-run="stopped"]')?.getAttribute("aria-label")).toContain(excluded);
   });
   it("accounts for every selected recording, deduplicates current runs and explains unplottable progress with replay links", () => {
     const plotted = measured("plotted", [1000]);
@@ -516,4 +516,14 @@ it("uses the complete eligible population and recorded story maxima when only an
     expect(hidden).toContain('data-hidden-outliers="1"');
     expect(restored).toContain('data-run="early-extreme"');
   }
+});
+
+describe("operator-stopped frontier", () => {
+  it.each(["operator_abort", "operator_stop"])("keeps %s earned splits, labels the frontier and censors missing milestones", reason => {
+    const stopped = { ...best(), reason };
+    expect(frontierReferences([stopped]).best?.id).toBe(stopped.id);
+    expect(milestoneStatus(stopped, "RIVAL_MET")).toBe("reached");
+    expect(milestoneStatus(stopped, "STARTER_CHOSEN")).toBe("censored");
+    expect(frontierLabel(stopped, null, frontierVersions([stopped]))).toContain("stopped early");
+  });
 });

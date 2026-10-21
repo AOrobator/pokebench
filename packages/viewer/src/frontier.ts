@@ -91,6 +91,7 @@ export function milestoneStatus(run: WorkbenchRun, name: string): "reached" | "u
   const features = run.measurement?.features;
   const required = name === "BIRCH_RESCUE_REQUESTED" ? "birch-rescue-requested-v1" : name === "RIVAL_HOUSE_EXITED" ? "rival-house-exit-v1" : name === "ROUTE_101_AFTER_HANDOFF" ? "route-101-after-handoff-v1" : name === "PLAYER_BEDROOM_EXITED_AFTER_CLOCK" ? "bedroom-exit-v1" : ROUTE103_RIVAL_SPLITS.has(name) ? "route103-rival-splits-v1" : name.startsWith("RUSTBORO_GYM_TRAINER_") ? "rustboro-gym-trainer-milestones-v1" : name === "NEW_GAME_CREATED" ? "new-game-created-v1" : name === "ROXANNE_DEFEATED" ? "native-progress-activity-v1" : ["PLAYER_HOUSE_EXITED_AFTER_CLOCK", "RIVAL_HOUSE_ENTERED", "RIVAL_BEDROOM_REACHED"].includes(name) ? "post-clock-navigation-milestones-v1" : name === "CLOCK_SET" ? "clock-milestone-v1" : ["LITTLEROOT_TOWN", "PLAYER_HOUSE_ENTERED", "PLAYER_BEDROOM", "ROUTE_101", "OLDALE_TOWN", "ROUTE_103", "ROUTE_102", "PETALBURG_CITY", "ROUTE_104", "PETALBURG_WOODS", "RUSTBORO_CITY", "RUSTBORO_CITY_GYM", "STONE_BADGE"].includes(name) ? "ram-state-v1" : "story-milestones-v2";
   if (features === undefined || !features.includes(required)) return "unsupported";
+  if (run.reason === "operator_abort" || run.reason === "operator_stop") return "censored";
   return run.status === "ended" ? "not reached" : run.status === "live" || run.status === "paused" ? "pending" : "censored";
 }
 export function markerShape(shape: "human" | "best" | "overlay" | "resumed", x: number, y: number, color = "currentColor"): string {
@@ -107,7 +108,8 @@ function mark(run: WorkbenchRun, name: string, x: number, y: number, color: stri
 export function frontierLabel(run: WorkbenchRun, status: FrontierStatus, versions: VersionIndex): string {
   const state = status === "live" ? " · LIVE" : status === "paused" ? " · PAUSED" : "";
   const start = run.config?.resume === "MAIN_MENU" ? " · from main-menu save" : "";
-  return `Agent frontier${state} · ${esc(versionLabel(run, versions))} · ${esc(run.id)}${start}`;
+  const stopped = run.reason === "operator_abort" || run.reason === "operator_stop" ? " · stopped early" : "";
+  return `Agent frontier${state}${stopped} · ${esc(versionLabel(run, versions))} · ${esc(run.id)}${start}`;
 }
 function zoomEnd(agents: readonly WorkbenchRun[], human: WorkbenchRun | null): number {
   const reached = (run: WorkbenchRun, i: number): boolean => run.splits.some(s => s.name === RECORD_ORDER[i]);

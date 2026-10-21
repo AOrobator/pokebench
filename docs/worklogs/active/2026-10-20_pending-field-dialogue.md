@@ -37,3 +37,7 @@ RED receipt: focused production-wrapper suite: 3 expected failures / 47 passing;
 - Current-run input, configuration and frozen source untouched. Positive prompt config and no-battle refusal detection remain separate findings; no performance benefit asserted.
 
 Synced concurrent frontier-cache main changes; resolved append-only server test conflict by retaining both tests. No dialogue implementation conflict.
+
+Pending experiment now pins runtime implementation 8e9f36da; remains unqueued. Final cumulative review includes concurrent-main sync.
+
+Final sync commits b43cd52a and 813a42d4 retain both appended tests; pending definition pins implementation 8e9f36da.

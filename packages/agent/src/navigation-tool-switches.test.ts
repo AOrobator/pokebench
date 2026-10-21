@@ -69,8 +69,8 @@ describe("navigation tool-use guard at the native input boundary",()=>{
 const hooks=()=>({beforePress:vi.fn(),afterPress:()=>Promise.resolve()});
 it("registers and records two independent optional default-OFF features",()=>{
  const ids=["navigation-tool-use-guard-v1","semantic-current-map-feedback-v1"] as const;
- expect(SWITCHABLE_FEATURES.slice(-17,-15)).toEqual(ids);
- expect(playHarnessFeatures(ALL_ON,null).slice(-15,-13)).toEqual(ids);
+ expect(SWITCHABLE_FEATURES.slice(-24,-22)).toEqual(ids);
+ expect(playHarnessFeatures(ALL_ON,null).slice(-22,-20)).toEqual(ids);
  const {"navigation-tool-use-guard-v1":guard,"semantic-current-map-feedback-v1":feedback,...old}=ALL_ON;
  expect([guard,feedback]).toEqual([true,true]);
  for(const id of ids){expect(normalizeFeatures(old)[id]).toBe(false);expect(featureInfo(id).description).toContain(" Off: ");}
@@ -122,7 +122,6 @@ it("registers independent unqueued experiments with one switch difference and ex
  for(const id of ["navigation-tool-use-guard-v1","semantic-current-map-feedback-v1","rejected-movement-step-v1","observed-field-dialogue-v1"] as const){
   const entry=parseExperiment(JSON.parse(readFileSync(new URL(`../../../experiments/${id}.json`,import.meta.url),"utf8")) as unknown);
   expect(entry.queuePosition).toBeUndefined();expect(entry.changedFeature).toBe(id);
-  if(id==="rejected-movement-step-v1"||id==="observed-field-dialogue-v1")expect(entry.blocked).toContain("Pending correctness candidate");
   expect(Object.keys(entry.incumbent.features)).toEqual([...SWITCHABLE_FEATURES]);
   const {incumbent,candidate}=experimentArms(entry);
   expect(SWITCHABLE_FEATURES.filter(key=>incumbent.features[key]!==candidate.features[key])).toEqual([id]);

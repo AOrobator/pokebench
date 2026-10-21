@@ -14,7 +14,7 @@ import { LEGACY_LEASE, LeaseHeldError, leaseDir, leasePool, readLeaseOwner, take
 import { parseFixedStatus, type FixedStatus } from "./fixed-status.js";
 import { definition, MODEL_PATH, ROM_SHA1 } from "../test-support/fixed.js";
 import { Log, START } from "../test-support/events.js";
-import { armFeatures, armFeatureBits, parseFixedDefinition, controlBaseProblems, dryRunDefinition, soloDefinition, type FixedDefinition, type FixedLane } from "./fixed-design.js";
+import { armFeatures, armFeatureBits, armPreset, parseFixedDefinition, controlBaseProblems, dryRunDefinition, soloDefinition, type FixedDefinition, type FixedLane } from "./fixed-design.js";
 
 const COMMIT = "0123456789abcdef0123456789abcdef01234567";
 const RECEIPT: ServingReceipt = { model: MODEL_PATH, build: "b10236-1464c62d8", contextTokens: 65536, slots: 1, vision: true, fingerprint: "f".repeat(64) };
@@ -796,7 +796,33 @@ it("enables the mart stock readout only in the bundle of the four current bundle
  }
 });
 
+it("enables the seven training and catching switches only in the bundle of the four current bundle definitions, and keeps them OFF in the next-run default",()=>{
+ const ids=["exp-next-level-v1","pokedex-own-v1","exp-earned-ledger-v1","leader-attempt-ledger-v1","seen-trainers-ledger-v1","party-coverage-v1","said-type-matches-v1"] as const;
+ for(const id of ids)expect(DEFAULT_NEXT_RUN.features[id]).toBe(false);
+ for(const file of ["bundle-v-control","bundle-cook-1h","whole-map-cook-1h","whole-map-pair-2h"]){
+  const {definition:def}=parseFixedDefinition(readFileSync(new URL(`../../../experiments/fixed/${file}.json`,import.meta.url),"utf8"));
+  for(const id of ids){
+   expect(def.switches.filter(s=>s===id)).toEqual([id]);
+   expect(def.onInBoth).not.toContain(id);
+   expect(def.base.features[id]).toBe(false);
+   expect(armFeatures(def,"control")[id]).toBe(false);
+   expect(armFeatures(def,"bundle")[id]).toBe(true);
+   expect(armFeatureBits(def,"control")[id]).toBe(false);
+   expect(armFeatureBits(def,"bundle")[id]).toBe(true);
+  }
+ }
+});
+
 it("keeps section-aware labels OFF in the generic next-run default",()=>{
  expect(DEFAULT_NEXT_RUN.features["exit-labels-v3"]).toBe(false);
  expect(parseNextRun(DEFAULT_NEXT_RUN).features["exit-labels-v3"]).toBe(false);
+});
+
+it.each(["bundle-v-control","bundle-cook-1h","whole-map-cook-1h","whole-map-pair-2h"])("enables the movement and dialogue repairs in %s bundle only",file=>{
+ const {definition:def}=parseFixedDefinition(readFileSync(new URL(`../../../experiments/fixed/${file}.json`,import.meta.url),"utf8"));
+ for(const id of ["rejected-movement-step-v1","observed-field-dialogue-v1"] as const){
+  expect(def.base.features[id]).toBe(false);expect(def.switches).toContain(id);
+  expect(armPreset(def,def.phases[0]!.id,"control").features[id]).toBe(false);
+  expect(armPreset(def,def.phases[0]!.id,"bundle").features[id]).toBe(true);
+ }
 });

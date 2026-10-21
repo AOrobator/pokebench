@@ -56,3 +56,9 @@ None.
 
 ## Archive Milestone (user-gated)
 - [ ] ASK USER before archiving.
+
+- GREEN implementation commit c9dc7d53d. Synced main fe4ed9c70 (training/catching switches); kept its seven appended switches and re-applied these two at the end. Shared test registry offsets and legacy fixtures revalidated. Earlier lint overlapping the merge is invalidated; gates rerun after conflict resolution.
+
+- Bundle inclusion covers canonical bundle-v-control, bundle-cook-1h, whole-map-cook-1h and the active whole-map-pair-2h definition. Each base/control explicitly OFF; each bundle treatment ON. Existing running pins remain unchanged.
+
+- Browser candidate proof: 8798, actual Harness Config search → READ EXPLAINER for rejected-movement-step-v1 and observed-field-dialogue-v1 opened the matching documents. Desktop layout inspected. Phone viewport was not exposed by the current browser control API; no phone-layout claim. Native probe v5 has no inherited experiment tag; earlier v4 remains an invalid metadata attempt outside benchmark runs.

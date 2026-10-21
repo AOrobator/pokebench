@@ -15,13 +15,14 @@ import json
 import os
 import re
 import struct
+from dataclasses import replace
 from functools import cache
 from pathlib import Path
 
 import pytest
 
 from pokebench_env.game_screen import ReadMemory
-from pokebench_env.game_state import GameState, MapNames
+from pokebench_env.game_state import GameState, MapNames, _with_training
 from pokebench_env.pokedex_own import (
     SWITCH as DEX_SWITCH,
 )
@@ -95,12 +96,28 @@ def test_next_level_is_the_summary_screens_number(growth: int, level: int) -> No
     # A species with this growth rate, found in the game's own species table.
     species = next(s for s in range(1, 412) if rom_read(SPECIES_INFO + 28 * s + 19, 1)[0] == growth)
     levels = table(growth)
-    exp = levels[level] + 7
+    exp = levels[level]
     assert next_level_exp(rom_read, species, level, exp) == levels[level + 1] - exp
 
 
 def test_max_level_shows_zero() -> None:
     assert next_level_exp(rom_read, 280, 100, 1_059_860) == 0
+
+
+def test_no_number_while_a_level_up_is_pending() -> None:
+    # EXP. Points at or past the next level's total: the level has not risen yet.
+    levels = table(3)
+    assert next_level_exp(rom_read, 280, 15, levels[16]) is None
+    assert next_level_exp(rom_read, 280, 15, levels[16] + 5) is None
+
+
+def test_an_egg_has_no_exp_clause() -> None:
+    gym = state("training-1331-gym-field")
+    assert gym.party is not None
+    egg = replace(gym, party=(replace(gym.party[0], is_egg=True), *gym.party[1:]))
+    assert _with_training(
+        archived("training-1331-gym-field"), egg, exp_next_enabled=True, pokedex_enabled=False
+    ).party_next_level == (None, 25)
 
 
 def test_an_unknown_species_has_no_number() -> None:

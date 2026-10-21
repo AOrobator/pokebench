@@ -301,7 +301,7 @@ def _with_training(
     next_level = (
         tuple(
             None
-            if m.species_id is None or m.level is None or m.experience is None
+            if m.is_egg or m.species_id is None or m.level is None or m.experience is None
             else next_level_exp(read, m.species_id, m.level, m.experience)
             for m in state.party or ()
         )

@@ -31,7 +31,9 @@ def next_level_exp(read: ReadMemory, species: int, level: int, exp: int) -> int 
     if growth >= GROWTH_RATES:
         return None
     (needed,) = struct.unpack("<I", read(EXPERIENCE_TABLES + 404 * growth + 4 * (level + 1), 4))
-    return int(needed) - exp
+    # Between the EXP. Points being added and the level rising (battle_script_commands.c
+    # Cmd_getexp, then the level-up check) the summary screen is never shown; no number then.
+    return int(needed) - exp if exp < needed else None
 
 
 def exp_clause(exp: int | None, next_level: int | None) -> str:

@@ -20,6 +20,8 @@ const SUPER="It's super effective!";
 const NOT_VERY="It's not very effective…";
 const NO_EFFECT=/^It doesn't affect .+…$/;
 const TYPE_WORD=/\b([A-Z]+)-type\b/g;
+// The states a page's state_seq may name; pages always name a recent one.
+const STATE_MEMORY=512;
 
 type Snapshot=Pick<GameStateSnapshot,"started"|"in_battle"|"screen"|"battle"|"party"|"party_owner">;
 type State=Extract<RunEvent,{type:"state";started:boolean}>;
@@ -70,15 +72,20 @@ export class PartyCoverage {
   }
  }
 
+ private remember(seq:number,sides:Sides):void {
+  this.sides.set(seq,sides);
+  if(this.sides.size>STATE_MEMORY){const first=this.sides.keys().next().value;if(first!==undefined)this.sides.delete(first);}
+ }
+
  private state(s:State):void {
   // The player's own party only: the tutorial battle uses WALLY's ZIGZAGOON.
-  if(s.party_owner!=="player"){this.sides.set(s.seq,{player:[],foe:null});return;}
+  if(s.party_owner!=="player"){this.remember(s.seq,{player:[],foe:null});return;}
   const battlers=s.battle?.battlers??[];
   const player=battlers.filter(b=>b.position%2===0).flatMap(b=>[b.species,s.party[b.party_slot]?.nickname??b.species]);
   const foes=battlers.filter(b=>b.position%2===1);
   const only=foes.length===1?foes[0]:undefined;
   const foe=only===undefined?null:{species:only.species,types:typesOf(only)};
-  this.sides.set(s.seq,{player,foe});
+  this.remember(s.seq,{player,foe});
   if(foe!==null&&foe.types!==""&&s.started&&(s.in_battle||s.screen==="battle")){
    const species=this.met.get(foe.types)??[];
    if(!species.includes(foe.species))species.push(foe.species);

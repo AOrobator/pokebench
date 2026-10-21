@@ -31,8 +31,8 @@ const PARTY="- Party: TORCHIC Lv15 · EXP. POINTS 2180 · NEXT LV. 355; POOCHYEN
 const EXP_HEAD="- EXP. Points the game printed (its \"… gained … EXP. Points!\" pages), the last 10 battles that printed any, oldest first:";
 const LEADER=[
  "- Battles with GYM LEADER ROXANNE this run:",
- "  1. turn 501: TORCHIC Lv13 EXP. POINTS 1592, POOCHYENA Lv4 EXP. POINTS 119 · BAG POKé BALL ×4, GREAT BALL ×1 · her POKéMON: GEODUDE Lv12 HP 13/33 · you lost · money ₽6920 → ₽3460",
- "  2. turn 538: TORCHIC Lv15 EXP. POINTS 2180, POOCHYENA Lv4 EXP. POINTS 119 · BAG POKé BALL ×4, GREAT BALL ×1 · her POKéMON: GEODUDE Lv12 HP 2/33 · you lost · money ₽3908 → ₽1954",
+ "  1. turn 501: TORCHIC Lv13 EXP. POINTS 1592, POOCHYENA Lv4 EXP. POINTS 119 · BAG POKé BALL ×4, GREAT BALL ×1 · ROXANNE's POKéMON: GEODUDE Lv12 HP 13/33 · you lost · money ₽6920 → ₽3460",
+ "  2. turn 538: TORCHIC Lv15 EXP. POINTS 2180, POOCHYENA Lv4 EXP. POINTS 119 · BAG POKé BALL ×4, GREAT BALL ×1 · ROXANNE's POKéMON: GEODUDE Lv12 HP 2/33 · you lost · money ₽3908 → ₽1954",
  "  Now: TORCHIC Lv15 EXP. POINTS 2180, POOCHYENA Lv4 EXP. POINTS 119 · BAG WAILMER PAIL ×1, POKé BALL ×4, GREAT BALL ×1 · money ₽1954",
 ];
 
@@ -89,6 +89,26 @@ describe("training block (exp-next-level-v1, exp-earned-ledger-v1, leader-attemp
   if(wild===undefined)throw new Error("fixture");
   expect(block.block(wild as unknown as GameStateSnapshot)).toBeNull();
   expect(block.block({...at(GYM_FIELD),started:false})).toBeNull();
+ });
+ it("names the leader by name, whoever the leader is",()=>{
+  const renamed=EVENTS.map<RunEvent>(e=>e.type==="state"&&"started" in e&&e.trainer_opponent?.name==="ROXANNE"?{...e,trainer_opponent:{...e.trainer_opponent,name:"BRAWLY"}}:e);
+  const block=new TrainingBlock(only({"leader-attempt-ledger-v1":true}));
+  for(const e of renamed)if(e.seq<=GYM_FIELD)block.observe(e);
+  const text=block.block(at(GYM_FIELD))??"";
+  expect(text).toContain("- Battles with GYM LEADER BRAWLY this run:");
+  expect(text).toContain("· BRAWLY's POKéMON: GEODUDE Lv12 HP 13/33 ·");
+  expect(text).not.toMatch(/\bher\b/);
+ });
+ it("keeps attributing pages after more battle states than it remembers",()=>{
+  const block=new TrainingBlock(only({"exp-earned-ledger-v1":true}));
+  const battle=states.find(s=>s.in_battle&&s.trainer_opponent?.battle_active!==true&&(s.battle?.battlers?.length??0)>1);
+  if(battle===undefined)throw new Error("fixture");
+  for(let i=0;i<600;i+=1)block.observe({...battle,seq:1_000_000+i});
+  block.observe({type:"dialogue_auto_advance",seq:2_000_000,turn:900,pages:[{state_seq:1_000_599,text:"TORCHIC gained\n41 EXP. Points!",battle_turn:1,battle_message_id:1,map:null,map_id:null,position:null,speaker:null,speaker_source:null}]} as unknown as RunEvent);
+  block.observe({type:"dialogue_auto_advance",seq:2_000_001,turn:900,pages:[{state_seq:1_000_000,text:"TORCHIC gained\n99 EXP. Points!",battle_turn:1,battle_message_id:2,map:null,map_id:null,position:null,speaker:null,speaker_source:null}]} as unknown as RunEvent);
+  const text=block.block(at(GYM_FIELD))??"";
+  expect(text).toContain("TORCHIC 41");
+  expect(text).not.toContain("TORCHIC 99");
  });
  it("off the gym, the leader part is left out",()=>{
   const route=states.find(s=>s.seq<GYM_FIELD&&s.location==="ROUTE104"&&s.screen==="overworld"&&!s.in_battle);

@@ -124,6 +124,9 @@ Tests prove the readouts on recorded RAM and events. No live probe (long runs on
 
 ## Multi-Model Review Log
 
+- Round 1 started 2026-10-21 ~10:55 AM ET on packet 54640622..37dd47e1 (sha256 46faa733…), lanes Claude CLI (~/.claude-review, plan mode), Grok cursor-grok-4.5-high (ask mode), GPT gpt-5.6-sol-xhigh (ask mode). Main had already moved again (caught-dex-input-v1, battle-refusal-field) and the coordinator's queue lands the control promotion first; this round reviews the change itself, and a later round reviews the resync delta.
+- Round 1 results: Grok `VERDICT: LGTM`. Claude `VERDICT: BLOCKING` on one finding, accepted (Fix): the leader ledger said "her POKéMON" for every leader (false for BRAWLY, WATTSON, NORMAN, JUAN); now "<leader>'s POKéMON", with a renamed-leader test. Non-blocking notes from both, triaged: eggs got an EXP clause on the Party line (Fix: eggs skipped, test); NEXT LV. could go negative while a level-up is pending and break the NonNegativeInt schema (Fix: no number when EXP. Points reach the next level's total, test); fold state maps unbounded (Fix: bounded at 512 like effectiveness-heard, tests); seen-trainers tile coordinates near INV-2 (Rebut: coordinates are what the readout already lists for those trainers, no place named); banned-word list in tests omits "train" because the header is "Training" (Rebut: the header is the switch set's name; the other words stay banned); POKéDEX screenshot check still open (Follow-up, recorded). GPT lane (Cursor gpt-5.6-sol-xhigh) refused: Cursor API usage cap until 11/17; round 2 uses isolated Codex CLI for the GPT lane, as the review contract allows.
+
 ## Boy Scout Log
 
 ## Archive Milestone (user-gated)

@@ -17,6 +17,8 @@ import {LEADER_CLASS} from "./gym-readiness.js";
 export const TRAINING_HEADER="Training (game numbers and game words from this run; not advice):";
 const GAINED=/^(.+) gained(?: a boosted)? (\d+) EXP\. Points!$/;
 const LAST_BATTLES=10;
+// The battle states a page's state_seq may name; pages always name a recent one.
+const STATE_MEMORY=512;
 
 type State=Extract<RunEvent,{type:"state";started:boolean}>;
 export type Snapshot=Pick<GameStateSnapshot,"started"|"in_battle"|"screen"|"location"|"map_id"|"party"|"battle"|"trainer_opponent"|"money"|"resources"|"heal_before_trainers"|"party_next_level">;
@@ -78,7 +80,10 @@ export class TrainingBlock {
   this.wasInBattle=battling;
   const opponent=s.trainer_opponent;
   if(opponent?.battle_active===true&&opponent.name!==null)this.names.set(opponent.trainer_id,opponent.name);
-  if(battling)this.sources.set(s.seq,this.source(s));
+  if(battling){
+   this.sources.set(s.seq,this.source(s));
+   if(this.sources.size>STATE_MEMORY){const first=this.sources.keys().next().value;if(first!==undefined)this.sources.delete(first);}
+  }
   if(this.features["leader-attempt-ledger-v1"])this.leader(s,battling);
   if(this.features["seen-trainers-ledger-v1"]&&field(s)&&s.location!==null)this.seen(s,s.location);
  }
@@ -154,7 +159,7 @@ export class TrainingBlock {
     `- Battles with GYM LEADER ${n} this run:`,
     ...battles.map((b,i)=>{
      const foes=[...b.foes.entries()].sort(([a],[c])=>a-c).map(([,f])=>`${f.species} Lv${String(f.level)} ${f.hp===0?"fainted":`HP ${String(f.hp)}/${String(f.maxHp)}`}`).join(", ");
-     return `  ${String(i+1)}. turn ${String(b.turn)}: ${b.party} · ${b.bag} · her POKéMON: ${foes||"none seen"} · ${b.outcome===null?"no outcome recorded":`you ${b.outcome}`} · money ${money(b.money)} → ${money(b.moneyAfter)}`;
+     return `  ${String(i+1)}. turn ${String(b.turn)}: ${b.party} · ${b.bag} · ${n}'s POKéMON: ${foes||"none seen"} · ${b.outcome===null?"no outcome recorded":`you ${b.outcome}`} · money ${money(b.money)} → ${money(b.moneyAfter)}`;
     }),
     `  Now: ${partyExp(s.party)} · ${bagText(s)} · money ${money(s.money)}`,
    ];

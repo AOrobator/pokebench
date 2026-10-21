@@ -91,6 +91,16 @@ describe("guards on what the catching folds read",()=>{
   own.observe({type:"dialogue_auto_advance",seq:2,turn:1,pages:[{state_seq:1,text:`${lead} used\nSCRATCH!`,battle_turn:1,battle_message_id:1,map:null,map_id:null,position:null,speaker:null,speaker_source:null}]} as unknown as RunEvent);
   expect(own.block(decisionState)).toContain("SCRATCH used 1");
  });
+ it("party coverage keeps attributing after more states than it remembers",()=>{
+  const fold=new PartyCoverage();
+  const base=states.find(s=>s.seq===wildSeq);if(base===undefined)throw new Error("fixture");
+  for(let i=0;i<600;i+=1)fold.observe({...base,seq:1_000_000+i});
+  const lead=base.battle?.battlers?.find(b=>b.position%2===0)?.species??"";
+  fold.observe({type:"dialogue_auto_advance",seq:3_000_000,turn:1,pages:[{state_seq:1_000_000,text:`${lead} used\nGROWL!`,battle_turn:1,battle_message_id:1,map:null,map_id:null,position:null,speaker:null,speaker_source:null},{state_seq:1_000_599,text:`${lead} used\nSCRATCH!`,battle_turn:1,battle_message_id:2,map:null,map_id:null,position:null,speaker:null,speaker_source:null}]} as unknown as RunEvent);
+  const text=fold.block(decisionState)??"";
+  expect(text).toContain("SCRATCH used 1");
+  expect(text).not.toContain("GROWL");
+ });
  it("said-type matches keep field pages only, never battle text",()=>{
   const fold=new SaidTypeMatches();
   fold.observe({type:"dialogue_auto_advance",seq:1,turn:1,pages:[{state_seq:null,text:"It can't stand GRASS-type moves.",battle_turn:1,battle_message_id:1,map:"ROUTE104",map_id:[0,19],position:null,speaker:null,speaker_source:null}]} as unknown as RunEvent);

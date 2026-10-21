@@ -167,5 +167,8 @@ The original ignored runs/explainers copies remain for existing links. Make futu
 - [Story battle heal gate](story-battle-heal-gate-v1.html) — bundle-only guard: while a party Pokémon is below max HP, a press of A, navigate_to_target or navigate_to that would start the Route 103 rival battle or a gym trainer battle (in gyms also a route a trainer can see) is not started; it says so in the game's words with the hurt party and known heal places, and confirm: true goes ahead.
 
 - [Distinct exits and map sections](exit-labels-v3.html): versioned terrain sections, physical exit identities and explicit same-map return relationships.
+- [Navigation tool-use guard](navigation-tool-use-guard-v1.html) — default OFF, bundle ON; benefit unmeasured.
+- [Semantic current-map feedback](semantic-current-map-feedback-v1.html) — default OFF, bundle ON; benefit unmeasured.
+
 
 - [Pending field dialogue](pending-field-dialogue-v1.html): finish ordinary dialogue that appears after navigation returns; leave each new choice to the model.

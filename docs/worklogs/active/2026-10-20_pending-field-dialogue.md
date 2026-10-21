@@ -57,3 +57,6 @@ After all r2 reviewers approved and the reviewed patch synced byte-identically w
 Integration focused tests98 pass. Pending source repins to8d89a155; full gates and cumulative integration review follow. Current-registry ALL_ON invariance is retained; historical fixtures explicitly keep the new flag OFF.
 
 Frozen integration evidence: registry integration8d89a155 and upstream evidence sync58f3fb882; pending definition pins8d89a155.84 narrow factory/registry tests pass after98 broader focused tests.
+
+## Authorized integration and bundle inclusion
+Operator explicitly requests integration, review, local-main landing and bundle inclusion. This resumes the listed metadata fix after the round-cap hold and authorizes proceeding with the disclosed unavailable Claude lane. Scope: integrate current main, complete the raw incumbent, append pending after the navigation switches, enable it only in three evolving bundle arms; controls/defaults remain OFF. Frozen histories and active runs remain unchanged, no gameplay launch. Re-review the cumulative frozen result with retained Grok/GPT and model-diverse outage fallbacks.

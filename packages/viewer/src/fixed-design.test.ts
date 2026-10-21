@@ -266,3 +266,16 @@ it("freezes a byte-pinned prompt-only starter diagnostic with sixteen balanced s
  expect(def.phases).toMatchObject([{perArm:8,primary:false,maxWallMs:300_000,start:{kind:"save_state",sha1:"0c34433cc305ea5de6fa69aa4a5612bf434a5714"}}]);
  expect(def.base.target).toBeNull();expect(def.base.stopAt).toBe("STARTER_CHOSEN");
 });
+
+it("enables both navigation treatments only in evolving bundle arms, with unchanged control provenance",()=>{
+ for(const name of ["bundle-v-control","bundle-cook-1h","whole-map-cook-1h"]){
+  const def=parseFixedDefinition(readFileSync(new URL(`../../../experiments/fixed/${name}.json`,import.meta.url),"utf8")).definition;
+  expect(definitionProblems(def)).toEqual([]);
+  for(const phase of def.phases){
+   const control=armPreset(def,phase.id,"control"),bundle=armPreset(def,phase.id,"bundle");
+   for(const id of ["navigation-tool-use-guard-v1","semantic-current-map-feedback-v1"] as const){
+    expect(def.switches).toContain(id);expect(control.features[id]).toBe(false);expect(bundle.features[id]).toBe(true);
+   }
+  }
+ }
+});

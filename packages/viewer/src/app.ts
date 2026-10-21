@@ -19,6 +19,7 @@ import { cardHtml, cardInputFor, type CardInput } from "./trainer-card.js";
 import type { GlyphPixels, GlyphSheet } from "./game-font.js";
 import { browserGlyphSheet, drawGlyphs, fillCards, loadCardArt, syncCards, type LoadedArt } from "./card-dom.js";
 import { WORKBENCH_POLL_MS, parseWorkbench, type WorkbenchData } from "./workbench-data.js";
+import { BagLedger, NO_ART, bagPage, bagRange, parseBagArt, type BagArt } from "./bag.js";
 
 export interface StreamLike {
   addEventListener(type: string, listener: (message: { data: string }) => void): void;
@@ -237,6 +238,14 @@ export class App {
   // Lists under the pointer hold still while newer turns arrive, so a click lands where aimed.
   private readonly held = new Set<HTMLElement>();
   private readonly heldAtTop = new Set<HTMLElement>();
+  // The BAG page: folded from every recorded event of the view (not the replay cursor), drawn only while open.
+  private bag = new BagLedger();
+  private bagView: RunView | null = null;
+  private bagged = 0;
+  private bagFolds = 0;
+  private bagKey = "";
+  private bagArt: BagArt | null = null;
+  private bagArtLoad: Promise<void> | null = null;
   private readonly autoScroll = new WeakMap<HTMLElement, number>();
   private rows: RowState = { open: new Set(), folded: new Set(), selected: null };
   private frameStream: FrameStreamLike | null = null;
@@ -821,9 +830,35 @@ export class App {
   private showPage(name: string): void {
     if (name === "splits" && this.runId !== null && this.comparisonsRun !== this.runId) void this.loadComparisons(this.runId);
     if (name === "queue") void this.experiments?.load();
+    if (name === "bag") void this.loadBagArt();
     for (const panel of this.doc.querySelectorAll<HTMLElement>("[data-nav-page]")) panel.hidden = panel.dataset.navPage !== name;
     for (const button of this.doc.querySelectorAll<HTMLButtonElement>("[data-page]")) button.setAttribute("aria-pressed", String(button.dataset.page === name));
     (this.ui("page-select") as HTMLSelectElement).value = name;
+  }
+
+  // The item icons `just bag-art` builds; without them the page shows names only.
+  loadBagArt(): Promise<void> {
+    this.bagArtLoad ??= this.deps.fetchJson("/sprites/bag/manifest.json").then((value) => { this.bagArt = parseBagArt(value); }, () => { this.bagArt = NO_ART; }).then(() => { this.render(); });
+    return this.bagArtLoad;
+  }
+
+  private renderBag(): void {
+    // The head and the full history arrive as separate views; a new view refolds from its first event.
+    if (this.bagView !== this.view) {
+      this.bagView = this.view;
+      this.bag = new BagLedger();
+      this.bagged = 0;
+      this.bagFolds += 1;
+    }
+    const events = this.view.events;
+    for (; this.bagged < events.length; this.bagged += 1) this.bag.add(events[this.bagged] as RunEvent);
+    if (this.ui("bag").closest<HTMLElement>("[data-nav-page]")?.hidden !== false) return;
+    const input = { ledger: this.bag, run: this.runId, art: this.bagArt ?? NO_ART };
+    const key = `${this.runId ?? ""}|${String(this.bagFolds)}|${String(this.bag.version)}|${String(this.bag.lastTurn)}|${String(this.bagArt !== null)}`;
+    if (key === this.bagKey) return;
+    this.bagKey = key;
+    this.setHtml("bag-range", bagRange(input));
+    this.setHtml("bag", bagPage(input));
   }
 
   private async pickBaseline(runId: string): Promise<void> {
@@ -936,6 +971,8 @@ export class App {
     this.wasLive = false;
     this.ui("follow-thinking").setAttribute("aria-pressed", "true");
     this.liveFailedAt = null;
+    this.bagView = null;
+    this.bagKey = "";
     this.setHtml("inspector", inspector(undefined));
     this.picker("run").value = runId;
     // References are eligible only after the owned server validates their logs.
@@ -1308,6 +1345,7 @@ export class App {
     this.setHtml("splits", split.table);
     this.setHtml("lanes", lanesSvg(view, nowMs));
     this.renderTrace(nowMs);
+    this.renderBag();
     this.renderScreen(nowMs);
     const lit = litButtons(view.presses, nowMs);
     for (const button of this.ui("gba").querySelectorAll<SVGElement>("[data-btn]")) {

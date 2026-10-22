@@ -12,6 +12,7 @@ it.each(["bundle-v-control","bundle-cook-1h","whole-map-cook-1h","whole-map-pair
   const features=presetFeatures(parsePlayPreset(armPreset(definition,phase.id,arm)));
   for(const id of IDS){expect(features[id],`${name}/${phase.id}/${arm}/${id}`).toBe(arm==="bundle");expect(definition.base.features[id]).toBe(false);}
   expect(features["fixed-point-breaker-v1"]).toBe(arm==="bundle");
+  expect(features["story-battle-heal-gate-v1"],`${name}/${arm}: approved factual policy leaves the action gate OFF`).toBe(false);
  }
 });
 it.each(IDS)("%s has an unqueued one-switch pending comparison",id=>{

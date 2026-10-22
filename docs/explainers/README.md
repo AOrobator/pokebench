@@ -253,4 +253,5 @@ The original ignored runs/explainers copies remain for existing links. Make futu
 
 ## [static-npc-template-approach-v1](static-npc-template-approach-v1.html)
 Qualified static placement approach only. Activation PLAYER_HOUSE_ENTERED / primary STONE_BADGE. Pending blocked: no approved start/load, exposure readiness, budget or power. No queue, approval or launch.
+- [Coherent battle observation](coherent-battle-observation-v1.html): bounded safe battle capture; default OFF.
 - [Turn drought clock](turn-drought-clock-v1.html): default OFF, bundle arm: the milestone-drought briefing counts 30 actions with no story milestone, level-up, trainer win or full heal, and states only those facts.

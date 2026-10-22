@@ -50,8 +50,8 @@ function cohortRun(): RunEvent[] {
 }
 
 let workbenchDown = false;
-async function mount(width: number, options: { art?: boolean; fresh?: boolean; glyphs?: boolean; pendingGlyphs?: Promise<GlyphSheet | null>; runs?: typeof RUNS; replayStatus?: "ended" | "live"; missingLiveCards?: boolean; snapshotExtension?: number } = {}): Promise<{ app: App; streams: FakeStream[]; drawn: number[] }> {
-  nowMs = BASE_MS + 3_500; setWidth(width); fetched.length = 0; workbenchDown = false;
+async function mount(width: number, options: { art?: boolean; fresh?: boolean; glyphs?: boolean; pendingGlyphs?: Promise<GlyphSheet | null>; runs?: typeof RUNS; replayStatus?: "ended" | "live"; missingLiveCards?: boolean; snapshotExtension?: number; cardsDown?: boolean; font?: Promise<unknown> } = {}): Promise<{ app: App; streams: FakeStream[]; drawn: number[] }> {
+  nowMs = BASE_MS + 3_500; setWidth(width); fetched.length = 0; workbenchDown = options.cardsDown === true;
   document.body.innerHTML = PAGE.slice(PAGE.indexOf("<body>") + 6, PAGE.indexOf("</body>"));
   const streams: FakeStream[] = [], drawn: number[] = [];
   const replayStatus = options.replayStatus ?? "ended";
@@ -64,7 +64,7 @@ async function mount(width: number, options: { art?: boolean; fresh?: boolean; g
       fetched.push(url);
       if (url === "/api/runs") return Promise.resolve(options.runs ?? RUNS);
       if (url === "/sprites/manifest.json") return options.art === false ? Promise.reject(new Error("GET /sprites/manifest.json returned HTTP 404")) : Promise.resolve(MANIFEST);
-      if (url === "/sprites/font/glyphs.json") return Promise.resolve(FONT);
+      if (url === "/sprites/font/glyphs.json") return options.font ?? Promise.resolve(FONT);
       if (url.startsWith("/api/cards")) return workbenchDown ? Promise.reject(new Error("GET /api/cards returned HTTP 500")) : Promise.resolve(workbench);
       if (url === "/api/features") return Promise.resolve({ features: [], milestones: [] });
       if (url === "/api/next-run") return Promise.resolve({ draft: { model: "", thinking: "medium", maxTurns: 300, maxWallMs: 1_800_000, failureLimit: 3, maxTokens: 4096, target: null, features: {} }, queue: { state: "idle" } });
@@ -84,7 +84,7 @@ async function mount(width: number, options: { art?: boolean; fresh?: boolean; g
   const stream = must(streams[0]);
   for (const event of cohortRun()) stream.send("ev", { ...event, run: LIVE_ID });
   stream.send("caught_up", {});
-  if (options.pendingGlyphs === undefined) await app.pollCards();
+  if (options.pendingGlyphs === undefined && options.font === undefined) await app.pollCards();
   else { await Promise.resolve(); await Promise.resolve(); }
   app.tick(0);
   return { app, streams, drawn };
@@ -104,6 +104,42 @@ describe("trainer cards in the viewer", () => {
     expect(mine.innerHTML).toContain(milestone.label); expect(mine.innerHTML).toContain("Oldale Town"); expect(mine.innerHTML).toContain("trial 2/4"); expect(mine.textContent).toContain("RED");
   });
 
+  it("shows header and phone cards before the optional font resolves through App", async () => {
+    const font = Promise.withResolvers<unknown>();
+    const { app } = await mount(1280, { font: font.promise });
+    const headerCards = ui("run-cards").querySelectorAll(".tc").length;
+    setWidth(375); app.tick(0);
+    const phoneCards = ui("run-sheet-body").querySelectorAll(".tc").length;
+    font.resolve(FONT);
+    await app.pollCards();
+    expect(headerCards).toBe(2);
+    expect(phoneCards).toBe(2);
+    expect(ui("card-status").hidden).toBe(true);
+  });
+
+  it("retries missing artwork on the next card poll and clears the retry notice", async () => {
+    const options = { art: false };
+    const { app } = await mount(1280, options);
+    expect(ui("run-cards").hidden).toBe(true);
+    expect(ui("card-status").textContent).toContain("artwork unavailable");
+    const attempts = fetched.filter(url => url === "/sprites/manifest.json").length;
+    options.art = true;
+    await app.pollCards();
+    expect(ui("run-cards").querySelectorAll(".tc")).toHaveLength(2);
+    expect(ui("card-status").hidden).toBe(true);
+    expect(fetched.filter(url => url === "/sprites/manifest.json")).toHaveLength(attempts + 1);
+  });
+
+  it("shows an initial card-data failure and recovers on the existing polling cadence", async () => {
+    const { app } = await mount(1280, { cardsDown: true });
+    expect(ui("card-status").textContent).toContain("Trainer cards unavailable");
+    expect(ui("card-status").hidden).toBe(false);
+    workbenchDown = false;
+    await app.pollCards();
+    expect(ui("run-cards").querySelectorAll(".tc")).toHaveLength(2);
+    expect(ui("card-status").hidden).toBe(true);
+  });
+
   it("never recreates the legacy live-run bars when the run list refreshes", async () => {
     const { app } = await mount(1280);
     await app.refreshRuns();
@@ -114,8 +150,10 @@ describe("trainer cards in the viewer", () => {
     const { app } = await mount(1280);
     const before = card(ui("run-cards"), LIVE_ID);
     workbenchDown = true; await app.pollCards(); app.tick(0);
+    expect(ui("card-status").textContent).toBe("Trainer card updates unavailable. Retrying…");
     expect(card(ui("run-cards"), LIVE_ID)).toBe(before); expect(ui("run-cards").hidden).toBe(false);
     workbenchDown = false; await app.pollCards(); app.tick(0);
+    expect(ui("card-status").hidden).toBe(true);
     expect(card(ui("run-cards"), LIVE_ID)).toBe(before);
   });
 
@@ -245,7 +283,7 @@ describe("trainer cards in the viewer", () => {
     expect(fetched).toContain(`/api/cards?run=${encodeURIComponent(LIVE_ID)}`);
     setWidth(375); app.tick(0);
     expect(ui("run-sheet-body").querySelector(".rs-now, .rs-other")).toBeNull();
-    expect(ui("run-sheet-body").textContent).toContain("Loading trainer cards");
+    expect(ui("run-sheet-body").textContent).toContain("Trainer card artwork unavailable. Retrying");
   });
 
   it("shows bottom-sheet card backgrounds before the optional glyph sheet resolves", async () => {

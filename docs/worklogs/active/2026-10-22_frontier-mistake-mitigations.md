@@ -140,9 +140,9 @@ Use existing typed event/readout contracts and verified ROM/RAM access. No new e
 - [x] Delete guarded behavior/wiring once; observe the named regression fail, restore it and record both receipts.
 - [x] Run `just test`, `just lint`, `just build`, `just coverage` (at least 90% lines/branches/functions per stack), and `just verify-vendor`; record counts and receipts.
 - [x] COMMIT GREEN; record SHA and gate results. Update tracked explainer/card link, pending experiment and current readiness before landing; keep experiment unapproved.
-- [ ] Complete PB1–PB13 self-review and repository-required cloud review on the frozen packet. Do not treat this checklist as authority to replace a missing lane.
-- [ ] Prove delivery through replay/model input and browser surfaces as applicable. Synthetic rehearsals are labeled and do not establish gameplay benefit.
-- [ ] Land only through the shared board and reviewed-tree rules; record merge SHA, coordinated viewer proof and actual later activation separately.
+- [x] Complete PB1–PB13 self-review and repository-required cloud review on the frozen packet. Do not treat this checklist as authority to replace a missing lane.
+- [x] Prove delivery through replay/model input and browser surfaces as applicable. Synthetic rehearsals are labeled and do not establish gameplay benefit.
+- [x] Land only through the shared board and reviewed-tree rules; record merge SHA, coordinated viewer proof and actual later activation separately.
 
 **M1 — Interface correctness before menu benefit claims (P0)**
 
@@ -192,7 +192,7 @@ Use existing typed event/readout contracts and verified ROM/RAM access. No new e
 - [x] For each candidate, resolve activation milestone from the pinned native catalog and assess readiness using current qualifying evidence. No READY claim is made by this document.
 - [ ] Prefer validated checkpoint designs for late-game mechanisms; require save provenance/hash/load proof. Boot designs need the documented 3-of-last-4 activation criterion. A named milestone is not a restorable checkpoint.
 - [ ] Freeze primary outcomes, regressions, start, complete effective flags, source/model/serving identity, caps, power/budget and balanced order with experiment-design. Screens use eight trials per arm/model; confirmation size follows the design skill and approved budget.
-- [x] Measure target reliability first, then turns/tokens/time, interface failures, invalid calls, unchanged rematches and heal trips. Preserve all outcomes and separate infrastructure losses.
+- [ ] Deferred until a separately approved run: measure target reliability first, then turns/tokens/time, interface failures, invalid calls, unchanged rematches and heal trips. Metric order is prepared; no trial has measured these outcomes.
 - [ ] Specify regression checks preserving useful healing, no softlocks, no premature guard stops and downstream progress. Fix numerical acceptance margins before execution; do not select them after results.
 - [x] Present concrete experiment artifacts for operator approval. No probes/cohorts launched, no queue approvals, no incumbent promotion or defaults changed by plan approval alone.
 
@@ -216,7 +216,7 @@ Implementation delivery: source and test receipts, independent reviews, exact me
 
 ## Multi-Model Review Log
 
-Implementation exists on the owned integration branch. Child self-reviews and local tests do not replace the frozen Claude/Grok/GPT cloud review. No final review verdict is claimed until the packet identity and actual lane receipts are recorded below.
+Implementation landed locally at the exact reviewed source `4b3a9e37a7a7115ef301d4d6495abc5b8baca94f`. Final reviews, operator Grok-outage waiver, main gates and live proof are recorded below. Child self-reviews and isolated tests were not substituted for the final independent roster.
 
 ## Boy Scout Log
 
@@ -377,3 +377,17 @@ R3partialroster: ClaudeLGTM,SolLGTM,GPTBLOCKING;Astra notdispatched aftermainmov
 R3b226 allfivegatesPASS4723agent+1774viewer+3975Python=10472 zero skips;coverage agentlines99.20branches93.29functions97.79,viewer97.97/91.44/94.44,Python97.40/93.46/100. Initial unchanged existingwebsocketcadencetest2/3failure preserved; same-sourcefullcoverage rerunPASS is not flakerepair. No thresholds/assertions/timeouts/retries/skips changed. Prior3d676 browserproof qualified by finalassetcontinuity; one healing1280capture obstruction and sharedfontCSPfallback remain disclosed.
 
 - Final narrow sync repair: promptRED1fail3pass16unselected, exact !prefixoperand deletion sameRED; restore41/41stride+prefix. Productionprompt asserts prefixON exactgenericparity, prefixOFF strideclaim, guardOFF andstrideOFF invariance. Focusedagent107/viewer44 allPASS, targetedlint0. SixfutureJSONs appendprefixlast/basefalse retainingall11ours/controlOFF; frozenlegacyexceptions reconciled, historicalbytes untouched. Noindex/commit performedbychild. Parentinspected exactsource/testdiff and receipts; fullcleanpingatesfollow.
+
+### Final R4 approval, local landing and live operator proof
+
+Frozenbase15a421104d2ee54f4af151bf213456a32036a2d9→head4b3a9e37a7a7115ef301d4d6495abc5b8baca94f; canonicalbinarydiffSHA2562cd42b7454f77582c1c1b7e0d870294b7bb29ac87439ff240f90e0b685a92832. ClaudeCLI(rc0success/empty stderr), fresh normalGPT5.6-sol/xhigh, freshdistinctSol6.1/high andAstra6/high each emitted exactlyone terminal VERDICT: LGTM. Root reverified frozenHEAD/clean/digest/currentmainbase andall5gatehashes. AuthenticatedoperatorGrokoutagewaiver retained; reducedvendordiversity, noGrokapproval. Fullmandatorysynthesis and reports canonicalignored runs/reviews/2026-10-22_frontier-mitigations-r4/. Same27productionpaths, zero newdomains, zero remainingblockers, PB1–PB13 PASS. No extra reviewer-followup implementation. Precise!prefixmutationfailed1case/3passed, notallfour; sixbuilt/staticviewerassets pluscatalogue aresevencontinuityassets, notsevenJSmodules.
+
+Boardjoinedwith actual CODEX_THREAD_ID 00000000-0000-4000-8000-f726b57450b8, verified#1. Canonicalmain fast-forwarded exactly4b3a9e37a. RequiredcanonicalbuildBEFOREtest passes; main4727agent+1780viewer+3975Python=10482passing/zero skips. Cleanexactsourcebranchgates build/test/lint/coverage/vendor allPASS; lines/branches/functions agent99.20/93.29/97.79,viewer97.97/91.44/94.44,Python97.40/93.46/100. Vendorcleanbbab97ad73e460b7cd7c08527d10ced30cc03fbe, sourcegrounding cleanpokeemerald731ad5bfd6e6f265508d0efcca0ba42f9dcf5881. No thresholds/exclusions/tests weakened.
+
+All11new switches globallydefault/controlOFF andON in sixcurrentfuturebundles: bundle-v-control,bundle-cook-1h,whole-map-cook-1h,whole-map-pair-2h,bundle-v-control-2h,glm53-flash-4h. Existingfixed-point-breaker bundleON andstory-battle-heal-gate explicitlyOFFbotharms. SeparatelyauthorizedprefixbundleON preserved; prefixowns movement whenbothprefix/strideON, strideindependentlyavailablewhenprefixOFF. Historical4h/6h/6h-v2/controlbasebytes unchanged. All11onebitpendingentries remain unapproved/unqueued/designblocked, requiringfinalrepin/checkpoint/hash/load/context/exposure/start/caps/primary/budget/power/N/margins before runnable studies. M7 implementation deliverable is preparation, notanapprovedorcompletedtrial.
+
+Liveviewer source/stamp4b3a9e37a independentlyboundto `/private/tmp/pokebench-viewer`, sole8790listenerPID79878/PPID1, HTTP/APIanswered, allfourbefore-refreshgameplayPIDsindependentlysurvived. Initialviewercommandreturned0butpost-sessionlistenerwasmissing; firstheadlessdriverfailedbeforebrowserlaunch, receiptsretained. Ownerackarrivedafterourdetachedexisting-command recovery; overlappingrestart timing/cause isnotproved. Sameexistingjustviewer-main command withownsessiondetachment recoveredpersistentlistener; no newservice,launchagent,permissiondomain,scriptchange,foreground/GPU/gameplayinputs. Finalactualbrowserproof completedafterindependent postparentexitPID/PPID/HTTP/stampcheck.
+
+Finalactual8790proof canonicalignored `runs/mockups/frontier-mitigations-r4-final/live8790-4b3a9e37a-detached-recovery/`: sixactualservedviewerasset hashes equalcleanmainbuild;11explainersservedexacttrackedbytes;22cardassertions at1280/375; realendedrun2026-10-22T14-43-08_qwen36-gpu0_597a remainshistoricalsource3d5, all11newbitscorrectlyNOTRECORDED, notretroactiveOFF/ON. Realpointerdesktop+Enterphone explainerpopups, no pageoverflow, sixrawscreenshots independentlyopenedbyparent. ZeroJSpageerrors;3consoleerrors classifiedoneintentionallyblockedoptionalmodelsGET +twopreexistingfontCSPblocks/readablefallback. No cleanconsoleclaim/CSPwidening. OriginalR3oneobscuredhealing1280capturestillqualified; newactualhealingcardshotreadablewithoutrelabelingoldproof. FreshstrideHTML375/1280/1440proof current4b3andall10otherexplainers unchanged. Prelanding andpostlandingread-onlyexperiments-audit bothrc0empty; immutablepostlanding-experiments-audit.log retained inR4packet.
+
+This single postlanding evidence commit touches onlythisworklog underdocs/worklogs; runtimeviewer remains exactreviewed/gated4b3applicationcode. The evidence-onlydocumentation commit isnotanewharnessbuildoractualrunactivation. Main/servedstatus is separatefromfuturemeasuredbenefit. No experiments, decisionprobes, queueapprovals, GPU/model changes, activegameplay restart orincumbentpromotion launchedbythiswork. No worklogarchive.

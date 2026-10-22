@@ -156,7 +156,7 @@ main hr{border:0;border-top:4px double #9fb2c8}
 <g><rect x="360" y="236" width="160" height="44" rx="8" fill="var(--map)" stroke="#5a6878"/><text x="370" y="254">map 8/1 (door)</text><text x="370" y="272">1 visit</text></g>
 <g><rect x="650" y="236" width="160" height="44" rx="8" fill="var(--map)" stroke="#5a6878"/><text x="660" y="254">map 0/17 (EAST edge)</text><text x="660" y="272">1 visit</text></g>
 </svg>
-<figcaption>The eight walkable exits of PETALBURG CITY at the stop (exit_reach, foot) and the visits recorded since the last native story progress (Rustboro Gym TOMMY defeated, turn 19). Every line is an exit already taken, so the briefing's untaken-exits line says none. Not drawn: map 8/5 (upstairs of 8/4) and RUSTBORO CITY GYM 11/3, one visit each.</figcaption>
+<figcaption>The eight walkable exits of PETALBURG CITY at the stop (exit_reach, foot) and the visits recorded since the last native story progress (Rustboro Gym TOMMY defeated, turn 19). Every line is an exit the player left by: its last recorded position on PETALBURG CITY was that door tile, (0,12) on the WEST edge or (29,16) on the EAST edge. So the briefing's exits line says none. Not drawn: map 8/5 (upstairs of 8/4) and RUSTBORO CITY GYM 11/3, one visit each.</figcaption>
 </figure>
 
 <h2>The exact briefing 7c9f would have received</h2>
@@ -164,7 +164,7 @@ main hr{border:0;border-top:4px double #9fb2c8}
 <pre>NAVIGATION RECOVERY BRIEFING: The repeated map cycle was not resolved within 12 calls. The run continues instead of stopping, and the map-cycle count starts again from here. Backtracking is allowed. No destination is selected for you.
 Where you are: PETALBURG CITY (map 0/0) — southeast terrain section [4,5], position 17,20.
 Maps visited since your last native story progress (visits): PETALBURG CITY (map 0/0) 10; PETALBURG CITY (map 8/4) 3; RUSTBORO CITY GYM (map 11/3) 1; ROUTE 104 (map 0/19) 1; ROUTE 102 (map 0/17) 1; PETALBURG CITY (map 8/2) 1; PETALBURG CITY (map 8/0) 1; PETALBURG CITY (map 8/3) 1; PETALBURG CITY (map 8/6) 1; PETALBURG CITY GYM (map 8/1) 1; PETALBURG CITY (map 8/5) 1.
-Walking exits of this map not taken since your last native story progress: none (since then you have left this map toward the destination of every exit you can walk to from here).
+Walking exits of this map you have not left by since your last native story progress: none (since then you have left this map by every exit you can walk to from here).
 If the maps cycle again before new story progress, the NAVIGATION RECOVERY note returns, and the run ends if that cycle is not resolved within 12 calls.</pre>
 
 <h2>Where each fact comes from</h2>
@@ -172,7 +172,7 @@ If the maps cycle again before new story progress, the NAVIGATION RECOVERY note 
 <tr><th>Line</th><th>Source</th><th>Rule</th></tr>
 <tr><td>Where you are</td><td>latest state: <code>exit_sections.current</code> (the readout's own Location label) and <code>position</code></td><td>Map id only when the label was not read; "unavailable" with no state.</td></tr>
 <tr><td>Maps visited (visits)</td><td>every started state with a map id: a visit is a change of map id</td><td>Counted since the last native story progress (not measurement-only, not present at start). Most visits first, ties in first-visit order. A map is named only by the readout label read while standing on it, otherwise <code>map g/n</code>.</td></tr>
-<tr><td>Walking exits not taken</td><td><code>exit_reach</code> warps and connections labelled <code>foot</code>; warp destinations from <code>interaction_targets</code></td><td>Taken means the run left this map for that exit's destination map since the last story progress. Unvisited destinations are map ids only. Semantic target arguments are added only when navigate_to_target is offered. "unknown" without exit reachability.</td></tr>
+<tr><td>Walking exits not left by</td><td><code>exit_reach</code> warps and connections labelled <code>foot</code>; warp destinations from <code>interaction_targets</code></td><td>An exit counts as used only when the player left this map by that exact exit: the last position recorded on the map before the map change was the warp tile, a connection edge tile, or the one map border with a connection. Two doors to the same map are two exits. A door whose destination was not read is listed as "destination not read", and is left out once the player has left by that tile. A departure that matches no exit is counted and the line says so ("an exit listed here may have been used"). Unvisited destinations are map ids only. Semantic target arguments are added only when navigate_to_target is offered. "unknown" without exit reachability.</td></tr>
 </table>
 <p>No walkthrough hint, destination or story place the game has not shown. No input is sent.</p>
 
@@ -181,6 +181,7 @@ If the maps cycle again before new story progress, the NAVIGATION RECOVERY note 
 <tr><th>Value</th><th>Setting</th></tr>
 <tr><td>Map cycle</td><td>stall-briefing-v1: 2 round trips (4 moves) between the same two maps (<code>STALL_ROUND_TRIPS</code>)</td></tr>
 <tr><td>Episode budget</td><td>12 field calls after the warning is delivered (<code>NAVIGATION_RECOVERY_CALLS</code>); battle and menu calls are not charged</td></tr>
+<tr><td>History size</td><td>Collected only with the switch on, one entry per map or per exit: bounded by the game's map table (518 maps in 34 groups, at most 64 warps each plus four directions). Nothing sent to the model is clipped.</td></tr>
 <tr><td>Briefings</td><td>one per story-progress window; shown at the next model call until one call completes</td></tr>
 <tr><td>Reset</td><td>stall-briefing-v1 clears its map-pair counts at the briefing, so a new cycle needs 4 fresh moves between one pair</td></tr>
 </table>

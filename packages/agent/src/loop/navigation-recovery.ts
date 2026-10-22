@@ -9,13 +9,32 @@ function qualified(s:GameStateSnapshot|undefined):s is GameStateSnapshot {
 }
 interface Episode {kind:"map_cycle"|"rejection";text:string;evidence:number[];exposed:boolean;calls:number;maps:Set<string>}
 const name=(label:string):string=>label.split(" — ")[0]??label;
+const at=(p:{x:number;y:number},q:{x:number;y:number}):boolean=>p.x===q.x&&p.y===q.y;
+// map-cycle-recovery-v1: the exit a departure used, from the last position recorded on the map it left: a warp tile the
+// player stood on, else a connection edge tile (connection-edge-tiles-v1), else the single map border the player stood on.
+function exitUsed(s:GameStateSnapshot|null):string|null {
+ const p=s?.position;if(s==null||p==null)return null;
+ const warp=[...(s.interaction_targets??[]).filter(t=>t.kind==="warp"),...(s.exit_reach?.warps??[])].find(w=>at(w,p));
+ if(warp!==undefined)return `warp:${String(warp.x)},${String(warp.y)}`;
+ const connections=s.topology?.connections??[];
+ const edge=connections.find(c=>c.edges?.some(e=>at(e,p))===true);
+ if(edge!==undefined)return `edge:${edge.direction}`;
+ const t=s.topology;if(t==null)return null;
+ const sides=[p.x===0?"WEST":null,p.x===t.width-1?"EAST":null,p.y===0?"NORTH":null,p.y===t.height-1?"SOUTH":null].filter((d):d is string=>d!==null&&connections.some(c=>c.direction===d));
+ return sides.length===1&&sides[0]!==undefined?`edge:${sides[0]}`:null;
+}
 export class NavigationRecovery {
  stopped=false;
- // map-cycle-recovery-v1: map visits and departures since the last native story progress, the readout's label for each
- // map the run has stood on, the one briefing a story-progress window allows and the cycle-window generation.
+ // map-cycle-recovery-v1 (collected only with the switch on): map visits since the last native story progress, the exits
+ // the player left each map by (warp tile or connection direction, from the last position recorded on that map), departures
+ // whose exit could not be identified, and the readout's label for each map the run has stood on. Each is keyed per map or
+ // per exit, so it is bounded by the game's map table: 518 maps in 34 groups (MAP_GROUP_SIZES, env/pokebench_env/menu_prelude.py),
+ // each with at most 64 warps (MAX_WARPS, env/pokebench_env/places.py) and four walking directions. Nothing is clipped.
  private here:string|null=null;
+ private lastOnMap:GameStateSnapshot|null=null;
  private readonly visits=new Map<string,number>();
- private readonly departures=new Set<string>();
+ private readonly used=new Set<string>();
+ private readonly unmatched=new Map<string,number>();
  private readonly labels=new Map<string,string>();
  private briefing:{text:string;exposed:boolean}|null=null;
  private briefed=false;
@@ -28,12 +47,23 @@ export class NavigationRecovery {
  constructor(private readonly notify:(n:LoopNotice)=>void,private readonly mode:LoopMode,private readonly semanticTargets=false,private readonly mapCycleRecovery=false){}
  state(state:GameStateSnapshot):void {
   this.latest=state;
-  const at=mapKey(state);
-  if(at!==null&&at!==this.here){if(this.here!==null)this.departures.add(`${this.here}>${at}`);this.visits.set(at,(this.visits.get(at)??0)+1);this.here=at;}
-  if(qualified(state)){const key=mapKey(state);if(key!==null){this.seen.add(key);const label=state.exit_sections?.current;if(label!==undefined)this.labels.set(key,label);}}
+  if(this.mapCycleRecovery)this.track(state);
+  if(qualified(state)){const key=mapKey(state);if(key!==null)this.seen.add(key);}
+ }
+ // map-cycle-recovery-v1: sizes of the switch's history, for the bound tests.
+ historySize():{visits:number;exits:number;unmatched:number;labels:number} {return {visits:this.visits.size,exits:this.used.size,unmatched:this.unmatched.size,labels:this.labels.size};}
+ private track(state:GameStateSnapshot):void {
+  const at=mapKey(state);if(at===null)return;
+  if(at!==this.here){
+   if(this.here!==null){const exit=exitUsed(this.lastOnMap);if(exit===null)this.unmatched.set(this.here,(this.unmatched.get(this.here)??0)+1);else this.used.add(`${this.here}|${exit}`);}
+   this.visits.set(at,(this.visits.get(at)??0)+1);this.here=at;this.lastOnMap=null;
+  }
+  if(state.position!==null)this.lastOnMap=state;
+  const label=state.exit_sections?.current;
+  if(qualified(state)&&label!==undefined)this.labels.set(at,label);
  }
  unavailable():void {this.latest=undefined;}
- progress(seq:number,calls:number):void {if(this.episode!==null)this.notice("recovered",seq,calls);this.episode=null;this.stale=[];this.seen.clear();this.visits.clear();this.departures.clear();this.here=null;this.briefing=null;this.briefed=false;if(this.latest!==undefined)this.state(this.latest);}
+ progress(seq:number,calls:number):void {if(this.episode!==null)this.notice("recovered",seq,calls);this.episode=null;this.stale=[];this.seen.clear();this.visits.clear();this.used.clear();this.unmatched.clear();this.here=null;this.lastOnMap=null;this.briefing=null;this.briefed=false;if(this.latest!==undefined)this.state(this.latest);}
  // map-cycle-recovery-v1: advances each time a briefing replaces a stop; stall-briefing-v1 restarts its map-pair counts.
  mapCycleWindow():number {return this.window;}
  cycle(_text:string,evidence:readonly number[],calls:number):boolean {
@@ -91,21 +121,24 @@ export class NavigationRecovery {
   const where=s===undefined||here===null?"unavailable":`${s.exit_sections?.current??this.label(here)}, position ${String(s.position?.x??"unavailable")},${String(s.position?.y??"unavailable")}`;
   const visits=[...this.visits].sort((a,b)=>b[1]-a[1]).map(([key,count])=>`${this.label(key)} ${String(count)}`).join("; ");
   const target=(t:object):string=>this.semanticTargets&&s!==undefined?` [navigate_to_target ${JSON.stringify({map_id:s.map_id,target:t})}]`:"";
-  const taken=(dest:string|null):boolean=>dest!==null&&this.departures.has(`${here??""}>${dest}`);
+  // An exit is taken only when the player left this map by that exact warp tile or edge.
+  const taken=(exit:string):boolean=>this.used.has(`${here??""}|${exit}`);
   const reach=s?.exit_reach;
   const exits=reach===undefined||here===null?null:[
    ...reach.warps.filter(w=>w.reach==="foot").map(w=>{
     const d=s?.interaction_targets?.find(t=>t.kind==="warp"&&t.x===w.x&&t.y===w.y)?.destination;
     const dest=d==null?null:`${String(d[0])}/${String(d[1])}`;
-    return {dest,text:`(${String(w.x)},${String(w.y)}) -> ${dest===null?"destination not read":this.label(dest)}${target({kind:"warp",x:w.x,y:w.y})}`};
+    return {exit:`warp:${String(w.x)},${String(w.y)}`,text:`(${String(w.x)},${String(w.y)}) -> ${dest===null?"destination not read":this.label(dest)}${target({kind:"warp",x:w.x,y:w.y})}`};
    }),
-   ...reach.connections.filter(c=>c.reach==="foot").map(c=>{const dest=c.destination.join("/");return {dest,text:`${c.direction} edge -> ${this.label(dest)}${target({kind:"connection",direction:c.direction})}`};}),
-  ].filter(e=>!taken(e.dest)).map(e=>e.text);
+   ...reach.connections.filter(c=>c.reach==="foot").map(c=>({exit:`edge:${c.direction}`,text:`${c.direction} edge -> ${this.label(c.destination.join("/"))}${target({kind:"connection",direction:c.direction})}`})),
+  ].filter(e=>!taken(e.exit)).map(e=>e.text);
+  const unknown=here===null?0:this.unmatched.get(here)??0;
+  const caveat=unknown===0?"":` ${unknown===1?"One departure":`${String(unknown)} departures`} from this map since then ${unknown===1?"was":"were"} not matched to an exit, so an exit listed here may have been used.`;
   return [
    `NAVIGATION RECOVERY BRIEFING: The repeated map cycle was not resolved within ${String(NAVIGATION_RECOVERY_CALLS)} calls. The run continues instead of stopping, and the map-cycle count starts again from here. Backtracking is allowed. No destination is selected for you.`,
    `Where you are: ${where}.`,
    `Maps visited since your last native story progress (visits): ${visits||"none recorded"}.`,
-   `Walking exits of this map not taken since your last native story progress: ${exits===null?"unknown (exit reachability was not read for this map)":exits.length===0?"none (since then you have left this map toward the destination of every exit you can walk to from here)":exits.join("; ")}.`,
+   `Walking exits of this map you have not left by since your last native story progress: ${exits===null?"unknown (exit reachability was not read for this map)":exits.length===0?"none (since then you have left this map by every exit you can walk to from here)":exits.join("; ")}.${caveat}`,
    `If the maps cycle again before new story progress, the NAVIGATION RECOVERY note returns, and the run ends if that cycle is not resolved within ${String(NAVIGATION_RECOVERY_CALLS)} calls.`,
   ].join("\n");
  }

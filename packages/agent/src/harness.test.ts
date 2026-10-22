@@ -1057,12 +1057,22 @@ it("progress-aware cycles retire a milestone-turn note before the next real pi d
  }finally{rmSync(root,{recursive:true,force:true});}
 });
 
+// The navigation recovery fixture's recorded OLDALE TOWN state (#6857), gunzipped, validated and parsed once for the pinned-pi cases below.
+let oldaleState:Promise<import("./game-state.js").GameStateSnapshot>|null=null;
+function navigationRecoveryState():Promise<import("./game-state.js").GameStateSnapshot> {
+ oldaleState??=(async()=>{
+  const {checkEvent}=await import("./events.js");const {parseGameState}=await import("./game-state.js");
+  const fixture=JSON.parse(gunzipSync(readFileSync(new URL("../test-support/navigation-recovery-loop.json.gz",import.meta.url))).toString("utf8")) as {events:unknown[]};
+  const event=fixture.events.map(checkEvent).find(e=>e.type==="state"&&e.seq===6857);
+  return parseGameState(Object.fromEntries(Object.entries(event as Record<string,unknown>).filter(([key])=>!["v","run","seq","t","type","turn"].includes(key))));
+ })();
+ return oldaleState;
+}
+
 for(const cycle of [false,true])it(`delivers ${cycle?"persistent map-cycle":"stale-map"} recovery through pinned pi and stops boundedly`,async()=>{
  const {RunRecorder}=await import("./recorder.js");const {RunLog}=await import("./run-log.js");const {FrameStore}=await import("./frames.js");
- const {RUN_START_META,IN_GAME}=await import("../test-support/events.js");const {checkEvent}=await import("./events.js");const {parseGameState}=await import("./game-state.js");
- const fixture=JSON.parse(gunzipSync(readFileSync(new URL("../test-support/navigation-recovery-loop.json.gz",import.meta.url))).toString("utf8")) as {events:unknown[]};
- const recorded=fixture.events.map(checkEvent);const event=recorded.find(e=>e.type==="state"&&e.seq===6857);
- const state=parseGameState(Object.fromEntries(Object.entries(event as Record<string,unknown>).filter(([key])=>!["v","run","seq","t","type","turn"].includes(key))));
+ const {RUN_START_META,IN_GAME}=await import("../test-support/events.js");const {checkEvent}=await import("./events.js");
+ const state=await navigationRecoveryState();
  const root=mkdtempSync(join(tmpdir(),"pokebench-navigation-pi-"));
  try{
   const log=RunLog.create(root,"2026-10-21T00-00-00_navigation-delivery");
@@ -1086,10 +1096,8 @@ for(const cycle of [false,true])it(`delivers ${cycle?"persistent map-cycle":"sta
 
 it("map-cycle-recovery-v1 delivers the recovery briefing through pinned pi instead of stopping, then stops on a second cycle",async()=>{
  const {RunRecorder}=await import("./recorder.js");const {RunLog}=await import("./run-log.js");const {FrameStore}=await import("./frames.js");
- const {RUN_START_META,IN_GAME}=await import("../test-support/events.js");const {checkEvent}=await import("./events.js");const {parseGameState}=await import("./game-state.js");
- const fixture=JSON.parse(gunzipSync(readFileSync(new URL("../test-support/navigation-recovery-loop.json.gz",import.meta.url))).toString("utf8")) as {events:unknown[]};
- const event=fixture.events.map(checkEvent).find(e=>e.type==="state"&&e.seq===6857);
- const state=parseGameState(Object.fromEntries(Object.entries(event as Record<string,unknown>).filter(([key])=>!["v","run","seq","t","type","turn"].includes(key))));
+ const {RUN_START_META,IN_GAME}=await import("../test-support/events.js");const {checkEvent}=await import("./events.js");
+ const state=await navigationRecoveryState();
  const root=mkdtempSync(join(tmpdir(),"pokebench-map-cycle-recovery-pi-"));
  try{
   const log=RunLog.create(root,"2026-10-22T00-00-00_map-cycle-recovery");

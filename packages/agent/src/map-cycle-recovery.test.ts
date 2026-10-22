@@ -26,7 +26,7 @@ export const BRIEFING_7C9F=[
  "NAVIGATION RECOVERY BRIEFING: The repeated map cycle was not resolved within 12 calls. The run continues instead of stopping, and the map-cycle count starts again from here. Backtracking is allowed. No destination is selected for you.",
  "Where you are: PETALBURG CITY (map 0/0) — southeast terrain section [4,5], position 17,20.",
  "Maps visited since your last native story progress (visits): PETALBURG CITY (map 0/0) 10; PETALBURG CITY (map 8/4) 3; RUSTBORO CITY GYM (map 11/3) 1; ROUTE 104 (map 0/19) 1; ROUTE 102 (map 0/17) 1; PETALBURG CITY (map 8/2) 1; PETALBURG CITY (map 8/0) 1; PETALBURG CITY (map 8/3) 1; PETALBURG CITY (map 8/6) 1; PETALBURG CITY GYM (map 8/1) 1; PETALBURG CITY (map 8/5) 1.",
- "Walking exits of this map not taken since your last native story progress: none (since then you have left this map toward the destination of every exit you can walk to from here).",
+ "Walking exits of this map you have not left by since your last native story progress: none (since then you have left this map by every exit you can walk to from here).",
  "If the maps cycle again before new story progress, the NAVIGATION RECOVERY note returns, and the run ends if that cycle is not resolved within 12 calls.",
 ].join("\n");
 
@@ -116,23 +116,60 @@ describe("NavigationRecovery map-cycle briefing",()=>{
   const text=r.recovery.context();expect(text).toBe(r.notices[1]?.message);expect(r.recovery.context()).toBe(text);
   r.recovery.complete(call(s),50);expect(r.recovery.context()).toBe(null);expect(r.recovery.active).toBe(false);
  });
- it("ON lists visits, untaken exits with targets and names only visited maps",()=>{
+ const warpTarget=(x:number,y:number,map:[number,number])=>({kind:"warp",x,y,elevation:0,activation:"movement",availability:"conditional",facing:null,local_id:null,destination:[map[0],map[1],0] as [number,number,number],name:`Warp to map ${String(map[0])}/${String(map[1])}`});
+ const foot={width:1,height:1,rows:["8"]};
+ // TOWN 0/0, 10x10: doors (2,3) and (6,3) both lead to 8/2; doors (9,9) and (1,8) have no destination read; (4,4) is not on foot.
+ function town(x:number,y:number,edges=true):GameStateSnapshot {
+  return at([0,0],{position:{x,y},
+   exit_reach:{warps:[{x:2,y:3,reach:"foot"},{x:4,y:4,reach:"none"},{x:6,y:3,reach:"foot"},{x:9,y:9,reach:"foot"},{x:1,y:8,reach:"foot"}],connections:[{direction:"WEST",destination:[0,19],offset:0,reach:"foot"},{direction:"EAST",destination:[0,17],offset:0,reach:"foot"}],foot},
+   interaction_targets:[warpTarget(2,3,[8,2]),warpTarget(6,3,[8,2])],
+   topology:{width:10,height:10,connections:[{direction:"WEST",offset:0,destination:[0,19],destination_name:"ROUTE",...(edges?{edges:[{x:0,y:5}]}:{})},{direction:"EAST",offset:0,destination:[0,17],destination_name:"ROUTE",...(edges?{edges:[{x:9,y:5}]}:{})}]},
+   exit_sections:{current:"TOWN (map 0/0) — west terrain section [1,1]",warps:[],connections:[]}});
+ }
+ it("ON lists visits and the exact exits not left by, naming only visited maps",()=>{
   const r=direct(true,true);
-  const reach={warps:[{x:2,y:3,reach:"foot" as const},{x:4,y:4,reach:"none" as const},{x:9,y:9,reach:"foot" as const}],connections:[{direction:"WEST" as const,destination:[0,19] as [number,number],offset:0,reach:"foot" as const},{direction:"EAST" as const,destination:[0,17] as [number,number],offset:0,reach:"foot" as const}],foot:latestField().exit_reach?.foot??{width:1,height:1,rows:["8"]}};
-  const targets=[{kind:"warp",x:2,y:3,elevation:0,activation:"movement",availability:"conditional",facing:null,local_id:null,destination:[8,2,0] as [number,number,number],name:"Warp to map 8/2"}];
-  const town=at([0,0],{exit_reach:reach,interaction_targets:targets,exit_sections:{current:"TOWN (map 0/0) — west terrain section [1,1]",warps:[],connections:[]},position:{x:5,y:6}});
-  r.recovery.state(town);r.recovery.state(at([0,17],{exit_sections:{current:"ROUTE 102 (map 0/17) — east terrain section [2,2]",warps:[],connections:[]}}));r.recovery.state(town);
-  r.recovery.state(at([8,2]));r.recovery.state(town);
-  exhaust(r,town);
+  r.recovery.state(town(5,6));
+  r.recovery.state(town(9,5));r.recovery.state(at([0,17],{exit_sections:{current:"ROUTE 102 (map 0/17) — east terrain section [2,2]",warps:[],connections:[]}}));
+  r.recovery.state(town(5,6));r.recovery.state(town(2,3));r.recovery.state(at([8,2]));
+  r.recovery.state(town(5,6));r.recovery.state(town(9,9));r.recovery.state(at([8,9]));
+  const here=town(5,6);r.recovery.state(here);
+  exhaust(r,here);
   const text=r.notices.at(-1)?.message??"";
   expect(text).toContain("Where you are: TOWN (map 0/0) — west terrain section [1,1], position 5,6.");
-  expect(text).toContain("(visits): TOWN (map 0/0) 3; ROUTE 102 (map 0/17) 1; map 8/2 1.");
-  expect(text).toContain(`Walking exits of this map not taken since your last native story progress: (9,9) -> destination not read [navigate_to_target {"map_id":[0,0],"target":{"kind":"warp","x":9,"y":9}}]; WEST edge -> map 0/19 [navigate_to_target {"map_id":[0,0],"target":{"kind":"connection","direction":"WEST"}}].`);
-  expect(text).not.toContain("EAST edge");expect(text).not.toContain("(4,4)");expect(text).not.toContain("(2,3)");
+  expect(text).toContain("(visits): TOWN (map 0/0) 4; ROUTE 102 (map 0/17) 1; map 8/2 1; map 8/9 1.");
+  // Two doors to 8/2, one used: the other is still listed. A used door whose destination was never read is not listed.
+  expect(text).toContain(`Walking exits of this map you have not left by since your last native story progress: (6,3) -> map 8/2 [navigate_to_target {"map_id":[0,0],"target":{"kind":"warp","x":6,"y":3}}]; (1,8) -> destination not read [navigate_to_target {"map_id":[0,0],"target":{"kind":"warp","x":1,"y":8}}]; WEST edge -> map 0/19 [navigate_to_target {"map_id":[0,0],"target":{"kind":"connection","direction":"WEST"}}].\n`);
+  expect(text).not.toContain("EAST edge");expect(text).not.toContain("(4,4)");expect(text).not.toContain("(2,3)");expect(text).not.toContain("(9,9)");
+  expect(text).not.toContain("were not matched");
+ });
+ it("ON matches a border departure without edge tiles and says when a departure matched no exit",()=>{
+  const r=direct(true);
+  r.recovery.state(town(5,6,false));r.recovery.state(town(0,4,false));r.recovery.state(at([0,19]));
+  r.recovery.state(town(5,6,false));r.recovery.state(at([7,7]));
+  r.recovery.state(town(0,0,false));r.recovery.state(at([7,8]));
+  for(let i=0;i<2;i++){r.recovery.state(town(5,5,false));r.recovery.state(at([7,9]));}
+  const here=town(5,6,false);r.recovery.state(here);exhaust(r,here);
+  const text=r.notices.at(-1)?.message??"";
+  expect(text).not.toContain("WEST edge");expect(text).toContain("EAST edge -> map 0/17");
+  expect(text).toContain(". 3 departures from this map since then were not matched to an exit, so an exit listed here may have been used.");
+  const one=direct(true);one.recovery.state(town(5,6,false));one.recovery.state(at([7,7]));const back=town(5,6,false);one.recovery.state(back);exhaust(one,back);
+  expect(one.notices.at(-1)?.message).toContain(". One departure from this map since then was not matched to an exit, so an exit listed here may have been used.");
+  // One entry per map: TOWN plus the four maps returned from at a position that is not an exit there.
+  expect(r.recovery.historySize()).toMatchObject({exits:1,unmatched:5});expect(r.recovery.historySize().visits).toBe(5);
+ });
+ it("keeps no history OFF, and ON keeps one entry per map however many states arrive",()=>{
+  const ids=Array.from({length:150},(_,i)=>[Math.floor(i/50),i%50] as [number,number]);
+  for(const on of [false,true]){
+   const r=direct(on);
+   for(let lap=0;lap<2;lap++)for(const id of ids)r.recovery.state(at(id,{position:{x:3,y:3},exit_sections:{current:`MAP (map ${id.join("/")})`,warps:[],connections:[]}}));
+   const size=r.recovery.historySize();
+   if(!on)expect(size).toEqual({visits:0,exits:0,unmatched:0,labels:0});
+   else{expect(size.visits).toBe(150);expect(size.labels).toBe(150);expect(size.unmatched).toBeLessThanOrEqual(150);expect(size.exits).toBe(0);}
+  }
  });
  it("ON without exit reachability or a map says what is unknown",()=>{
   const r=direct(true);const s=at([0,0]);r.recovery.state(s);exhaust(r,s);
-  expect(r.notices.at(-1)?.message).toContain("Walking exits of this map not taken since your last native story progress: unknown (exit reachability was not read for this map).");
+  expect(r.notices.at(-1)?.message).toContain("Walking exits of this map you have not left by since your last native story progress: unknown (exit reachability was not read for this map).");
   expect(r.notices.at(-1)?.message).toContain("Where you are: map 0/0, position");
   const u=direct(true);u.recovery.state(s);u.recovery.cycle("cycle",[1],1);u.recovery.context();u.recovery.unavailable();
   for(let i=0;i<NAVIGATION_RECOVERY_CALLS;i++)u.recovery.complete(call(undefined,{seq:i}),i);

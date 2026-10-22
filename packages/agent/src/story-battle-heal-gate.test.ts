@@ -16,7 +16,7 @@ import {Type} from "typebox";
 import {Value} from "typebox/value";
 import type {AgentTool,AgentToolResult} from "@mariozechner/pi-agent-core";
 import { ALL_ON as GYM_EVIDENCE_CURRENT_ALL_ON,SERVER_FEATURES,SWITCHABLE_FEATURES,dependencyProblems,featureInfo,featuresOf,playHarnessFeatures,type FeatureSet} from "./features.js";
-const PENDING_BASE_ALL_ON={...GYM_EVIDENCE_CURRENT_ALL_ON,"milestone-drought-suppression-v1":false,"milestone-instruction-memory-v1":false,"gym-evidence-v1":false};
+const PENDING_BASE_ALL_ON={...GYM_EVIDENCE_CURRENT_ALL_ON,"coherent-battle-observation-v1":false,"milestone-drought-suppression-v1":false,"milestone-instruction-memory-v1":false,"gym-evidence-v1":false};
 const ALL_ON={...PENDING_BASE_ALL_ON,"progress-aware-cycles-v1":false,"caught-dex-input-v1":false,"menu-refusal-recovery-v1":false,"pending-field-dialogue-v1":false};
 import {flagFeatures,normalizeFeatures} from "./play-preset.js";
 import {parseGameState,type GameStateSnapshot} from "./game-state.js";
@@ -238,7 +238,7 @@ function navTools(state:GameStateSnapshot,features:FeatureSet,gate:StoryBattleHe
   executeChecked:(_id:string,params:{buttons:string[]},check:(s:GameStateSnapshot)=>void)=>{check(current);pressed.push([...params.buttons]);step(params.buttons[0]??"");return Promise.resolve(result(current,"pressed"));}} as unknown as AgentTool;
  const observe={name:"observe",label:"observe",description:"observe",parameters:{} as never,execute:()=>Promise.resolve(result(current))} as unknown as AgentTool;
  const trainerSight=sight===undefined?undefined:{check:()=>sight instanceof Error?Promise.reject(sight):Promise.resolve(sight),record:(c:TrainerSightCheck)=>{sightRecords.push(c);}};
- const navigate=must(withNavigation([press,observe],walk?{...features,"safe-navigation-strides-v1":false}:features,{read:()=>Promise.resolve(current)},undefined,trainerSight,gate).find(t=>t.name==="navigate_to"));
+ const navigate=must(withNavigation([press,observe],walk?{...features,"coherent-battle-observation-v1":false,"safe-navigation-strides-v1":false}:features,{read:()=>Promise.resolve(current)},undefined,trainerSight,gate).find(t=>t.name==="navigate_to"));
  return {navigate,pressed,sightRecords};
 }
 
@@ -435,7 +435,7 @@ describe("registry and event",()=>{
   expect(featureInfo(ID)).toMatchObject({group:"guard",needs:"heal-before-trainers-v2",switchable:true,title:"STORY BATTLE HEAL GATE"});
   expect(featureInfo(ID).description).toContain(" Off: ");
   expect(featureInfo(ID).description).toContain(TURN157_TEXT.split("\n")[0]);
-  expect(SWITCHABLE_FEATURES.at(-69)).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-70)).toBe(ID);
   expect(SERVER_FEATURES).not.toContain(ID);
   expect(playHarnessFeatures(withoutFrontierTreatments({...ALL_ON,[ID]:true}),null).at(-44)).toBe(ID);
   expect(playHarnessFeatures({...ALL_ON,[ID]:false},null)).not.toContain(ID);

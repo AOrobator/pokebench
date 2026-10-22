@@ -1437,3 +1437,15 @@ it("serves the rejected movement prefix explainer byte for byte",async()=>{
  const reply=await get(viewer,`/explainers/${id}.html`);
  expect(reply.status).toBe(200);expect(reply.body.equals(source)).toBe(true);
 });
+
+it("serves the coherent battle observation explainer byte for byte, mapped from its card",async()=>{
+ const root=mkdtempSync(join(tmpdir(),"pokebench-explainers-")),staticDir=join(root,"packages/viewer/static"),docs=join(root,"docs/explainers");mkdirSync(staticDir,{recursive:true});mkdirSync(docs,{recursive:true});
+ const id="coherent-battle-observation-v1";
+ const tracked=readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${id}.html`,import.meta.url)));
+ writeFileSync(join(docs,`${id}.html`),tracked);
+ const viewer=await startViewer({runsRoot:join(root,"runs"),staticDir,appDir:join(root,"app"),port:0});open.push(viewer);
+ const {FEATURE_EXPLAINERS}=await import("./panels.js");
+ expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
+ const reply=await get(viewer,`/explainers/${id}.html`);
+ expect(reply.status).toBe(200);expect(reply.body.equals(tracked)).toBe(true);expect(reply.body.toString()).toContain("Coherent battle observation");
+});

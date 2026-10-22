@@ -11,6 +11,7 @@ from contextlib import AbstractContextManager, nullcontext
 from fastapi import FastAPI, HTTPException, Query
 from pydantic import BaseModel, Field
 
+from pokebench_env.battle_choices import IN_BATTLE
 from pokebench_env.battle_text import WAIT_BOUND_FRAMES, BattleWait
 from pokebench_env.blackout_readout import Whiteout, WhiteoutLatch, whiteout_line
 from pokebench_env.game_screen import ReadMemory
@@ -24,6 +25,8 @@ from pokebench_env.rerender import read_state, render
 from pokebench_env.respawn import SWITCH as RESPAWN
 from pokebench_env.respawn import LinkCache, RespawnMemory
 from pokebench_env.screen_settle import (
+    COHERENCE_NOTE,
+    COHERENT_BATTLE_FEATURE,
     WARP_FEATURE,
     FrameSettle,
     Settled,
@@ -33,6 +36,7 @@ from pokebench_env.screen_settle import (
     warp_animating,
 )
 from pokebench_env.trainer_sight import MAX_ROUTE_TILES, sight_report
+from pokebench_env.transition_coherence import main_loop_idle
 from pokebench_env.ui_state import active_ui_enabled_from_env
 
 ScreenshotFn = Callable[[], BaseModel | Callable[[], BaseModel]]
@@ -72,6 +76,12 @@ def install_observation(
     memory = RespawnMemory() if RESPAWN not in off else None
 
     def decode(read: ReadMemory) -> GameState:
+        if (
+            COHERENT_BATTLE_FEATURE not in off
+            and bool(read(IN_BATTLE, 1)[0] & 2)
+            and main_loop_idle(read) is None
+        ):
+            raise HTTPException(status_code=503, detail="native battle CPU coherence unavailable")
         state = read_state(read, maps, active_ui=enabled, off=off, links=links)
         if memory is not None:
             memory.note(state)
@@ -214,9 +224,21 @@ def install_observation(
         if not isinstance(screenshot, str) or screenshot == "":
             raise HTTPException(status_code=503, detail="no screenshot available")
         # move-learn-settle-v1 records its waits the way warp-arrival-settle-v1 does.
-        if (warp or MOVE_LEARN_SETTLE not in off) and settled is not None:
+        if (
+            warp or MOVE_LEARN_SETTLE not in off or COHERENT_BATTLE_FEATURE not in off
+        ) and settled is not None:
             serialized["settle"] = {"frames": settled.frames, "reason": settled.reason}
         note = screen_note(fading=fading, black=frame_is_black(screenshot))
+        if (
+            COHERENT_BATTLE_FEATURE not in off
+            and settled is not None
+            and settled.reason
+            in {
+                "coherence_bound",
+                "coherence_timeout",
+            }
+        ):
+            note = (note + "\n" if note else "") + COHERENCE_NOTE
         # blackout-readout-v1: taken only once this observation will be delivered, and
         # rendered before another observation may take one (put back if rendering fails).
         with whiteout.delivering if whiteout is not None else nullcontext():

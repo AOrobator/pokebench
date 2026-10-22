@@ -363,6 +363,8 @@ Qualified static placement approach only. Activation PLAYER_HOUSE_ENTERED / prim
 | Switch | Activation milestone | Verdict | Evidence |
 | --- | --- | --- | --- |
 | `rejected-movement-prefix-v1` | `PLAYER_NAME_CONFIRMED` (the guard can intercept a walking batch from the truck on) | PENDING until `just experiments` runs after landing | Pending, unqueued, unapproved; bundle treatment. Incumbent keeps `navigation-tool-use-guard-v1` and `rejected-movement-step-v1` ON. Evidence: 1fe0 seq 8033/8041, 108 one-tile cuts, 53 under Route 101's south ledges. No measured benefit claimed. |
+### coherent-battle-observation (2026-10-21)
+Pending, not queued. Correctness repair: native proof and regression coverage before measured evaluation. Current-build cloud review and landed source pin required. No model sampling/experiment launch authorized. Strategy experiment remains held and must use identical reviewed repair settings in both arms.
 
 ## Frontier report fixes (2026-10-22)
 

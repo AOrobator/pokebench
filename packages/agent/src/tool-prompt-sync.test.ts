@@ -42,12 +42,12 @@ describe("tool-prompt-docs-v1",()=>{
   expect(sets.some(([name])=>name.startsWith("experiment "))).toBe(true);
  });
  it.each(sets)("names every tool from playTools in playSystemPrompt: %s",(_name,features)=>{
-  const on={...features,[ID]:true};
+  const on={...features,"coherent-battle-observation-v1":false,[ID]:true};
   const prompt=playSystemPrompt(on,null);
   expect(playTools(on).filter(tool=>!named(prompt,tool))).toEqual([]);
  });
  it.each(sets)("names every tool kept for a just-in-time scene in that scene's prompt: %s",(_name,features)=>{
-  const on={...features,[ID]:true,"just-in-time-prompt-v1":true};
+  const on={...features,"coherent-battle-observation-v1":false,[ID]:true,"just-in-time-prompt-v1":true};
   expect(SCENES.flatMap(scene=>{
    const prompt=playSystemPrompt(on,null,scene);
    return jitTools(playTools(on).map(name=>({name})),scene).map(tool=>tool.name).filter(tool=>!named(prompt,tool)).map(tool=>`${scene}:${tool}`);
@@ -85,18 +85,18 @@ describe("tool-prompt-docs-v1",()=>{
   const base=presetFeatures(parsePlayPreset(json("experiments/fixed/control-bases/whole-map-bundle-fd95.json")));
   const hash=(features:FeatureSet):string=>{
    const h=createHash("sha256");h.update(playSystemPrompt(features,null));
-   for(const scene of SCENES)h.update("\0"+playSystemPrompt({...features,"just-in-time-prompt-v1":true},null,scene));
+   for(const scene of SCENES)h.update("\0"+playSystemPrompt({...features,"coherent-battle-observation-v1":false,"just-in-time-prompt-v1":true},null,scene));
    return h.digest("hex");
   };
   expect(hash({...flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:true}),[ID]:false})).toBe("5afd9eb7df56df30a50292e9daabe32b64924d9e699e5078e5e9b2db603853fe");
   expect(hash({...base,[ID]:false})).toBe("9bd07f021405af736767be7147528159f7192c60f59e6c934729422fe232232c");
   expect(hash({...base,[ID]:false,"evolution-decision-v1":true,"battle-move-tool-v1":true})).toBe("9bd07f021405af736767be7147528159f7192c60f59e6c934729422fe232232c");
-  for(const [,features] of sets)expect(playSystemPrompt({...features,[ID]:false},null)).not.toContain("- choose_evolution:");
+  for(const [,features] of sets)expect(playSystemPrompt({...features,"coherent-battle-observation-v1":false,[ID]:false},null)).not.toContain("- choose_evolution:");
  });
  it("is a default-off agent-only guidance switch, recorded last",()=>{
   expect(featureInfo(ID)).toMatchObject({group:"guidance",needs:null,switchable:true});
   expect(featureInfo(ID).description).toContain(" Off: ");
-  expect(SWITCHABLE_FEATURES.at(-31)).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-32)).toBe(ID);
   expect(playHarnessFeatures(withoutFrontierTreatments(ALL_ON),null).at(-13)).toBe(ID);
   expect(SERVER_FEATURES).not.toContain(ID);
   expect(normalizeFeatures({} as Parameters<typeof normalizeFeatures>[0])[ID]).toBe(false);

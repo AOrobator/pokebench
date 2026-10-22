@@ -593,6 +593,7 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "berry-readout-v1":"berry-readout-v1.html",
  "battle-move-learn-input-v1":"battle-move-learn-input-v1.html",
  "delivered-place-evidence-v1":"delivered-place-evidence-v1.html",
+ "coherent-battle-observation-v1":"coherent-battle-observation-v1.html",
 });
 
 export function harnessConfig(view:RunView,registry:readonly FeatureInfo[]=[]):string {

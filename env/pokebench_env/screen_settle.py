@@ -28,9 +28,11 @@ from typing import Generic, Literal, Protocol, TypeVar
 
 from PIL import Image, UnidentifiedImageError
 
+from pokebench_env.battle_choices import IN_BATTLE
 from pokebench_env.game_screen import ReadMemory
 from pokebench_env.game_state import FIELD_CONTROLS_LOCK
 from pokebench_env.menus import PALETTE_FADE, task_snapshot
+from pokebench_env.transition_coherence import main_loop_idle
 
 PALETTE_RAM = 0x05000000
 PALETTE_SIZE = 0x400
@@ -39,6 +41,14 @@ PALETTE_SIZE = 0x400
 # Bound: a full fade at delay 15. Longer fades (delayCounter is 6 bits) hit
 # the bound and the readout says the capture was still fading.
 SETTLE_BOUND_FRAMES = (15 + 1) * 9 + 2
+
+COHERENT_BATTLE_FEATURE = "coherent-battle-observation-v1"
+COHERENCE_BOUND_FRAMES = 60
+COHERENCE_TIMEOUT_SECONDS = 2.0
+COHERENCE_NOTE = (
+    "Frame: a coherent battle snapshot was not available within the capture wait; "
+    "some readouts may be unavailable. Observe again before deciding."
+)
 
 WARP_FEATURE = "warp-arrival-settle-v1"
 # Thumb task functions, US ROM f3ae0881 (ROM literal pools + live probe).
@@ -65,8 +75,11 @@ SettleReason = Literal[
     "input_hold",
     "move_learning",
     "move_learning_bound",
+    "coherence",
+    "coherence_bound",
+    "coherence_timeout",
 ]
-Motion = Literal["warp", "fade", "move_learning"]
+Motion = Literal["warp", "fade", "move_learning", "coherence"]
 
 FADING_NOTE = (
     "Frame: captured while the screen was still fading (palette fade active); "
@@ -79,6 +92,7 @@ BLACK_NOTE = (
 
 T = TypeVar("T")
 BOUND_REASONS: dict[Motion, SettleReason] = {
+    "coherence": "coherence_bound",
     "fade": "fade_bound",
     "warp": "warp_bound",
     "move_learning": "move_learning_bound",
@@ -148,7 +162,15 @@ class FrameSettle:
         *,
         warp: bool = False,
         warp_bound_frames: int = WARP_SETTLE_BOUND_FRAMES,
+        coherent_battle: bool = False,
+        coherence_bound_frames: int = COHERENCE_BOUND_FRAMES,
+        coherence_timeout_seconds: float = COHERENCE_TIMEOUT_SECONDS,
     ) -> None:
+        if coherence_bound_frames < 1 or not 0 < coherence_timeout_seconds < float("inf"):
+            raise ValueError("coherence bounds must be positive and finite")
+        self.coherent_battle = coherent_battle
+        self.coherence_bound_frames = coherence_bound_frames
+        self.coherence_timeout_seconds = coherence_timeout_seconds
         self.read = read
         self.bound_frames = bound_frames
         self.warp = warp
@@ -180,7 +202,13 @@ class FrameSettle:
             waiting: list[_Waiter[object]] = []
             for waiter in self._waiters:
                 waiter.frames += 1
-                if waiter.kind == "fade" and motion is not None:
+                if (
+                    self.coherent_battle
+                    and motion is not None
+                    and (motion == "coherence" or waiter.kind == "coherence")
+                ):
+                    waiter.kind = motion
+                elif waiter.kind == "fade" and motion is not None:
                     waiter.kind = motion
                 elif waiter.kind == "move_learning" and motion == "warp":
                     waiter.kind = motion
@@ -201,6 +229,8 @@ class FrameSettle:
             self._waiters = waiting
 
     def _bound(self, kind: Motion) -> int:
+        if kind == "coherence":
+            return self.coherence_bound_frames
         if kind == "warp":
             return self.warp_bound_frames
         return self.move_learning_bound_frames if kind == "move_learning" else self.bound_frames
@@ -210,7 +240,20 @@ class FrameSettle:
             return "warp"
         if transitioning(self.read):
             return "fade"
-        return "move_learning" if self.move_learning is not None and self.move_learning() else None
+        if self.move_learning is not None and self.move_learning():
+            return "move_learning"
+        # AgbMain may still be inside a callback at an emulator frame boundary.
+        # Keep game_state's guard; wait for its existing predicate, never override it.
+        if (
+            self.coherent_battle
+            and (
+                bool(self.read(IN_BATTLE, 1)[0] & 2)
+                or any(waiter.kind == "coherence" for waiter in self._waiters)
+            )
+            and main_loop_idle(self.read) is False
+        ):
+            return "coherence"
+        return None
 
     def park(self) -> None:
         """The frame loop is parking (operator pause): no frames will come."""
@@ -257,13 +300,32 @@ class FrameSettle:
                 self._waiters.append(waiter)  # type: ignore[arg-type]
         if on_wait is not None:
             on_wait()
-        waiter.done.wait()
+        self._await_capture(waiter, memory_lock)
         if waiter.released:
             with memory_lock:
                 return capture(), Settled(waiter.frames, "paused")
         if waiter.error is not None:
             raise waiter.error
         return waiter.result, Settled(waiter.frames, waiter.reason)  # type: ignore[return-value]
+
+    def _await_capture(
+        self, waiter: _Waiter[T], memory_lock: AbstractContextManager[object]
+    ) -> None:
+        # OFF keeps the original blocking Event wait exactly. ON only terminates
+        # the newly added coherence wait; existing fade/warp bounds are unchanged.
+        timeout = self.coherence_timeout_seconds if self.coherent_battle else None
+        while not waiter.done.wait(timeout):
+            with memory_lock:
+                with self._lock:
+                    if waiter.done.is_set() or waiter.kind != "coherence":
+                        continue
+                    self._waiters.remove(waiter)  # type: ignore[arg-type]
+                    waiter.reason = "coherence_timeout"
+                    try:
+                        waiter.result = waiter.capture()
+                    except Exception as error:  # noqa: BLE001 - delivered to requesting thread
+                        waiter.error = error
+                    waiter.done.set()
 
 
 class SteppedEmulator(Protocol):

@@ -182,7 +182,7 @@ describe("deterministic-warp-navigation-v1",()=>{
   const base=[observeTool("http://127.0.0.1",fetchFn),pressTool("http://127.0.0.1",{beforePress:()=>undefined,afterPress:()=>Promise.resolve()},fetchFn)];
   const features={...flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false}),"bounded-navigation-v1":true,[ID]:true};
   const on=withNavigation(base,features as FeatureSet,{read:()=>Promise.reject(new Error("unused"))}).find(t=>t.name==="navigate_to");
-  const off=withNavigation(base,{...features,[ID]:false},{read:()=>Promise.reject(new Error("unused"))}).find(t=>t.name==="navigate_to");
+  const off=withNavigation(base,{...features,"coherent-battle-observation-v1":false,[ID]:false},{read:()=>Promise.reject(new Error("unused"))}).find(t=>t.name==="navigate_to");
   expect(on?.description).toContain("equivalent warp");expect(off?.description).not.toContain("equivalent warp");
 
   const start=room({position:{x:3,y:2}});let current=start;const buttons:string[][]=[];const running:(boolean|undefined)[]=[];
@@ -204,7 +204,7 @@ describe("deterministic-warp-navigation-v1",()=>{
    check(live);visitedButtons.push([...params.buttons]);live={...live,map_id:[0,9]};return Promise.resolve(result(live));
   }} as unknown as CheckedPressTool;
   const observe={name:"observe",execute:()=>Promise.resolve(result(live))} as unknown as AgentTool;
-  const visitedFeatures={...features,"visited-terrain-navigation-v1":true};
+  const visitedFeatures={...features,"coherent-battle-observation-v1":false,"visited-terrain-navigation-v1":true};
   const visited=withNavigation([checkedPress,observe],visitedFeatures as FeatureSet,{read:()=>Promise.resolve(remembered)}).find(t=>t.name==="navigate_to");
   if(visited===undefined)throw new Error("missing visited navigate_to");
   const visitedOutcome=await visited.execute("nav",{x:17,y:2,map_id:MAP},new AbortController().signal);
@@ -219,7 +219,7 @@ describe("deterministic-warp-navigation-v1",()=>{
    else if(url.endsWith("/pokebench/observation"))body={state:automaticCurrent,state_text:"warped",screenshot_base64:png.toString("base64")};
    return Promise.resolve(new Response(JSON.stringify(body)));};
   const realPress=pressTool("http://127.0.0.1",{beforePress:(_id,_buttons,_timing,_before,actual)=>{modifiers.push(actual);},afterPress:()=>Promise.resolve()},automaticFetch,{now:()=>0,sleep:()=>Promise.resolve()},{...ALL_TOOL_SWITCHES,automaticRunning:true});
-  const combined=withNavigation([realPress,observeTool("http://127.0.0.1",automaticFetch)],{...features,"automatic-running-v1":true},{read:()=>Promise.resolve(automaticCurrent)}).find(t=>t.name==="navigate_to");
+  const combined=withNavigation([realPress,observeTool("http://127.0.0.1",automaticFetch)],{...features,"coherent-battle-observation-v1":false,"automatic-running-v1":true},{read:()=>Promise.resolve(automaticCurrent)}).find(t=>t.name==="navigate_to");
   if(combined===undefined)throw new Error("missing combined navigate_to");
   await combined.execute("nav",{x:3,y:2,map_id:MAP},new AbortController().signal);
   expect(posted).toEqual([{url:"http://127.0.0.1/action",body:{buttons:["DOWN"],...PRESS_TIMING}}]);expect(modifiers).toEqual([{automatic_running:false}]);
@@ -227,7 +227,7 @@ describe("deterministic-warp-navigation-v1",()=>{
 
  it("is appended, default OFF, bundle-only, and registered as a pending one-switch experiment",()=>{
   const id=ID as SwitchableFeature;
-  expect(SWITCHABLE_FEATURES.at(-105)).toBe(ID);expect(playHarnessFeatures(withoutFrontierTreatments(ALL_ON),null).at(-8)).toBe(ID);
+  expect(SWITCHABLE_FEATURES.at(-106)).toBe(ID);expect(playHarnessFeatures(withoutFrontierTreatments(ALL_ON),null).at(-8)).toBe(ID);
   expect(featureInfo(id)).toMatchObject({group:"guidance",needs:"bounded-navigation-v1",switchable:true,title:"DETERMINISTIC WARP NAVIGATION"});expect(featureInfo(id).description).toContain(" Off: ");
   expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false})[id]).toBe(false);expect(normalizeFeatures({} as Parameters<typeof normalizeFeatures>[0])[id]).toBe(false);
   const legacy=flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false});

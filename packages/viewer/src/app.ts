@@ -208,6 +208,8 @@ export class App {
   // Trainer cards: the ROM art (null until `just trainer-card-art` has built it) and the latest workbench snapshot.
   private art: LoadedArt | null = null;
   private artLoad: Promise<void> | null = null;
+  private artProblem = false;
+  private cardsProblem = false;
   private workbench: WorkbenchData | null = null;
   private workbenchLoad: Promise<void> | null = null;
   private workbenchSelection: string | null = null;
@@ -605,7 +607,14 @@ export class App {
   }
 
   private loadArt(): Promise<void> {
-    this.artLoad ??= loadCardArt((url) => this.deps.fetchJson(url), (url) => this.deps.loadGlyphSheet?.(url) ?? Promise.resolve(null), (loaded) => { this.art = loaded; this.render(); }).then((loaded) => { this.art = loaded; });
+    if (this.artLoad !== null) return this.artLoad;
+    if (this.art !== null) return Promise.resolve();
+    const publish = (loaded: LoadedArt): void => { this.art = loaded; this.artProblem = false; this.render(); };
+    this.artLoad = loadCardArt((url) => this.deps.fetchJson(url), (url) => this.deps.loadGlyphSheet?.(url) ?? Promise.resolve(null), publish)
+      .then(loaded => {
+        if (loaded === null) { this.artProblem = true; this.artLoad = null; this.render(); }
+        else publish(loaded);
+      });
     return this.artLoad;
   }
 
@@ -614,8 +623,8 @@ export class App {
     if (this.workbenchLoad !== null && this.workbenchSelection === selected) return this.workbenchLoad;
     this.workbenchSelection = selected;
     const load = this.deps.fetchJson(`/api/cards${selected === null ? "" : `?run=${encodeURIComponent(selected)}`}`)
-      .then((value) => { if (this.runId === selected && this.workbenchLoad === load) { this.workbench = parseWorkbench(value); this.render(); } })
-      .catch(() => { /* keep the last snapshot; the comparisons page reports workbench problems */ })
+      .then((value) => { if (this.runId === selected && this.workbenchLoad === load) { this.workbench = parseWorkbench(value); this.cardsProblem = false; this.render(); } })
+      .catch(() => { if (this.runId === selected && this.workbenchLoad === load) { this.cardsProblem = true; this.render(); } })
       .finally(() => { if (this.workbenchLoad === load) this.workbenchLoad = null; });
     this.workbenchLoad = load;
     return load;
@@ -1430,7 +1439,12 @@ export class App {
     const sheetBody = this.ui("run-sheet-body");
     const sheetCards = sheetBody.querySelector(".rs-cards");
     if (sheetCards !== null) syncCards(sheetCards, sheetCardHtml, this.cardHtml);
-    sheetBody.querySelector<HTMLElement>("[data-card-loading]")?.toggleAttribute("hidden", sheetCardHtml.length > 0);
+    const cardStatus = this.artProblem ? "Trainer card artwork unavailable. Retrying…" : this.cardsProblem ? (cards.length > 0 ? "Trainer card updates unavailable. Retrying…" : "Trainer cards unavailable. Retrying…") : cards.length === 0 && this.runId !== null ? "Loading trainer cards…" : "";
+    for (const status of [this.doc.querySelector<HTMLElement>('[data-ui="card-status"]'), sheetBody.querySelector<HTMLElement>("[data-card-loading]")]) {
+      if (status === null) continue;
+      status.textContent = cardStatus;
+      status.hidden = cardStatus === "";
+    }
     syncCards(this.ui("run-cards"), art === null ? [] : cards.map((c) => cardHtml(c, art, "wide")), this.cardHtml);
     this.ui("run-cards").hidden = cards.length === 0;
     fillCards([this.ui("run-cards"), this.ui("run-sheet-body")], cards, this.art, (canvas, pixels) => { this.deps.drawGlyphs?.(canvas, pixels); });

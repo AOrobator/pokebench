@@ -59,3 +59,17 @@ OFF: today's readout bytes.
 - Repin commit follows the fix commit.
 - Round-1 Grok stand-in (`gpt-6-astra` xhigh) finished on packet 37225c00e: `VERDICT: BLOCKING`, the same ownership-before-read finding as GPT #1 (already fixed in ae1b0b9c3); PB8/PB13 wording tightened.
 - Gates on 0d5359cf9 + this worklog edit: just coverage pass (agent 4432, viewer 1669; Python lines 97.38% branches 93.40% functions 100%), just lint pass, verify-vendor OK.
+
+## Review round 2 (packet a637f683c..6b1e92d63, diff sha256 05f76afd…1427)
+
+- **Claude** (Claude CLI, plan mode): `VERDICT: LGTM`.
+- **Grok stand-in** (isolated Codex `gpt-6-astra` xhigh; The operator "yes" 2026-10-22 2:14 AM ET while Cursor is out of usage): `VERDICT: LGTM`.
+- **GPT** (isolated Codex `gpt-5.6-sol` xhigh): `VERDICT: BLOCKING`, test-evidence asks only: a production-shaped trade-scene fixture (the trade path shares the reader and step numbers; flag-only test today) and batching the panels.test explainer loop (existing pattern). Confirmed both round-1 bugs fixed and OFF parity; no code defect.
+- The operator 2026-10-22 9:35 AM ET: "land now". Landing board: Codex milestone-drought-suppression held LANDING since 2:17 AM with no reply; The operator 9:54 AM ET: "move ahead" (land-move used).
+
+## Landing
+
+- `git merge --ff-only 6b1e92d63` on main (main was a637f683c, the reviewed base). Merge SHA 6b1e92d63.
+- `just build` then `just test` on main: agent 4432, viewer 1669, env 3947 passed (viewer tests need the fresh agent dist).
+- `just viewer-main`: 8790 at 6b1e92d63, 3 live runs kept (d51d GLM, 704c gpu0, 2aca gpu1), all live with no problem. Explainer served 200 at /explainers/move-learn-early-comparison-v1.html; the live Harness Config has the MOVE-LEARN EARLY COMPARISON card with "Read explainer" linking it.
+- Live model check: next bundle-arm launch from this pin will carry the switch; not yet observed in a run.

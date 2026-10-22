@@ -22,3 +22,4 @@ Design:
   - Accepted: the talk-to-codex and execute-worklog "land-done" instructions lacked `--branch`. FIX: both say `just land-done --branch <branch>`.
   - Accepted: the review artifacts were stale. The boundary's file list omitted the superseded 2026-10-21 worklog, and PB10 said 82 tests; both are corrected.
   - Rebutted: fixture runtime. board_of seeds 1–3 fixed rows per test (Claude and the fallback both audited it as bounded; the same point was rebutted on 2026-10-21).
+- LANDED 2026-10-22 11:11 AM EDT (the operator "land now", 10:37 AM, after round 2): main fast-forwarded 60edf6150 → 6b2507e87. Branch diff byte-identical to the a4cd24c6d tree after syncing (SHA-256 9a5afada…). Gates EXIT 0 first try on 6b2507e87. Main `just test`: 4445 agent, 1677 viewer, 3960 Python pass. Keeper restarted from main on the new code (pid 59295).

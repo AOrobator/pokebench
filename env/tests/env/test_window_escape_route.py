@@ -6,7 +6,7 @@ from tests.env.test_feature_switches import map_memory
 from tests.env.test_game_state import MAPS
 
 ID = "window-escape-route-v1"
-BASE = ("live-map-v1", "bounded-navigation-v1")
+BASE = ("ram-state-v1", "live-map-v1", "live-player-position-v1", "bounded-navigation-v1")
 
 
 def only(*on: str) -> frozenset[str]:

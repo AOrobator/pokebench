@@ -243,7 +243,7 @@ function semanticTool(navigate:CheckedNavigationTool,press:CheckedPressTool,feat
     if(!features["semantic-current-map-feedback-v1"])return result;
     const map=before.map_id===null?"map unavailable":`map ${String(before.map_id[0])}/${String(before.map_id[1])}`;
     const position=before.position===null?"unavailable":`(${String(before.position.x)},${String(before.position.y)})`;
-    return {...result,content:[{type:"text",text:`Current map: ${before.location??"name unavailable"} (${map}). Position: ${position}. No input was sent.`},...result.content]};
+    return {...result,content:[{type:"text",text:`Current map: ${(features["current-map-display-name-v1"]?before.location_display:undefined)??before.location??"name unavailable"} (${map}). Position: ${position}. No input was sent.`},...result.content]};
    }
    let options:NavigationOptions=features["trigger-navigation-boundary-v1"]?{...baseOptions,triggers:matchingTriggers(before)}:baseOptions;
    const listed=request.target.kind==="connection"?null:resolve(before,request.target,options);

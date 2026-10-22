@@ -921,7 +921,7 @@ def _location_display(state: GameState) -> dict[str, str]:
 
 
 def state_json(state: GameState) -> dict[str, object]:
-    # map_grid exists only with full-map-navigation-v1, so switch-off state is unchanged.
+    # map_grid exists only with full-map-navigation-v1 or window-escape-route-v1, so switch-off state is unchanged.
     full: dict[str, object] = (
         {} if state.full_map is None else {"map_grid": state.full_map.json(state.player_elevation)}
     )

@@ -62,7 +62,7 @@ it("registers default OFF with an unqueued single-feature experiment",async()=>{
  const {"rejected-movement-stride-v1":_enabled,...old}=ALL_ON;expect(_enabled).toBe(true);expect(normalizeFeatures(old)["rejected-movement-stride-v1"]).toBe(false);
  expect(featureInfo("rejected-movement-stride-v1").needs).toBe("safe-navigation-strides-v1");
  const entry=parseExperiment(JSON.parse(readFileSync(new URL("../../../experiments/rejected-movement-stride-v1.json",import.meta.url),"utf8")) as unknown);expect(entry.queuePosition).toBeUndefined();
- const arms=experimentArms(entry);expect(SWITCHABLE_FEATURES.filter(id=>id!=="rejected-movement-prefix-v1"&&id!=="auto-talk-field-only-v1"&&id!=="auto-talk-v3"&&id!=="untalked-people-header-v1"&&id!=="static-npc-template-approach-v1"&&id!=="owned-battle-context-v1"&&id!=="reachable-section-alternatives-v1"&&id!=="delivered-place-evidence-v1"&&arms.incumbent.features[id]!==arms.candidate.features[id])).toEqual(["rejected-movement-stride-v1"]);
+ const arms=experimentArms(entry);expect(SWITCHABLE_FEATURES.filter(id=>id!=="rejected-movement-prefix-v1"&&id!=="away-note-buildings-v1"&&id!=="current-map-display-name-v1"&&id!=="window-escape-route-v1"&&id!=="auto-talk-field-only-v1"&&id!=="auto-talk-v3"&&id!=="untalked-people-header-v1"&&id!=="static-npc-template-approach-v1"&&id!=="owned-battle-context-v1"&&id!=="reachable-section-alternatives-v1"&&id!=="delivered-place-evidence-v1"&&arms.incumbent.features[id]!==arms.candidate.features[id])).toEqual(["rejected-movement-stride-v1"]);
 });
 
 

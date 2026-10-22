@@ -28,17 +28,18 @@ Each: default off; on in the bundle arm (`switches`) of the current recipes; pen
 
 ## Milestones
 
-**M1 — away-note-buildings-v1**
+**M1 — away-note-buildings-v1** (RED commit 263f1e644)
 - [x] RED tests (house 1F/2F with Littleroot goal, gym with Rustboro goal, Mr. Briney's house with a Rustboro goal still fires, OFF parity, wiring): 5 failing, OFF cases passing
-- [ ] GREEN
+- [x] GREEN: `buildingOf` in harness-trust.ts, WalkAway(reachable, buildings), TrustOptions.buildings wired in play-wiring.ts; wiring deletion turned 1 test red, restored
 
 **M2 — current-map-display-name-v1**
 - [x] RED tests (display name used; OFF parity against 47c3 result 4776; fallback; registry): 1 failing
-- [ ] GREEN
+- [x] GREEN: semantic-navigation.ts Current map line reads location_display when ON
 
 **M3 — window-escape-route-v1**
 - [x] RED tests (server map_grid with readout unchanged; f3b2 pocket state escapes; OFF parity against f3b2 result 3217; description; wiring): agent 4 failing, Python 1 failing
-- [ ] GREEN
+- [x] GREEN: rerender full_map_enabled when either switch is on; navigationTool `windowEscape` port switches the call to whole-map planning when the local plan is null; WINDOW_ESCAPE_SENTENCE in the description; wiring deletion turned 4 tests red, restored. Registry-tail indexes shifted in 72 test files (+3 switchable, +1 server); group counts observation 89, guidance 87
+- Tests after GREEN: agent 4749 passed (serial-comparison hung-child timing test flaked once under load, passed alone), viewer 1780 passed, Python new + rerender 15 passed
 
 **M4 — Explainers, recipes, experiments, gates, review, landing**
 - [ ] Explainers (3), FEATURE_EXPLAINERS, pending experiments, readiness entries

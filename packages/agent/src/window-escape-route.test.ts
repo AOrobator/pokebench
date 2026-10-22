@@ -12,7 +12,7 @@ import {normalizeFeatures} from "./play-preset.js";
 import {parseGameState,type GameStateSnapshot} from "./game-state.js";
 import {MAX_NAVIGATION_COMMANDS,navigationTool,routeTiles,withNavigation,type NavigationOptions} from "./navigation.js";
 import type {CheckedPressOptions,CheckedPressTool} from "./game-tools.js";
-import type {Direction} from "./navigation.js";
+import type {Direction} from "./tile-rules.js";
 
 const ID="window-escape-route-v1";
 interface Fixture {readonly state:unknown;readonly map_grid:NonNullable<GameStateSnapshot["map_grid"]>;readonly harness_features:string[];readonly result_3217:string[]}

@@ -244,6 +244,28 @@ Scored against the full docs/agent-principles.md (PB1–PB13). Zero FAIL. Round-
 | PB12 | N/A | No ROM/path access change. |
 | PB13 | PASS | RED 119e85316 → GREEN 1262fc2b1 (the RED tree is the guard deletion: both new tests fail there); SYNC 3 2068d9af8 and the arms commit gated (agent 4423, viewer 1667, pytest 3889; coverage ≥90 L/B/F both stacks; lint, build, verify-vendor OK); live-run safety of the definition edit checked against the running loops' pinned clones. |
 
+### Round 3 (packet base main 640f01e12, head 5ef998048, diff SHA-256 2eaaae1f4c742b64f4e56174185f1745f09f8de30b24c596ff64e9f50340967f; fix delta 1ffb613a3..1262fc2b1 SHA-256 365c253fe1f90c0961fc57e3af82ffe0bbafdc4ed58fff18cfbdf7583a7cfddc; post-sync delta 2068d9af8..5ef998048 SHA-256 4efe88a97aee288b764baa8da41b9482a6e50c2e04bb4ead3ce37acfeb81d585)
+
+Operator the operator approved round 3, the arms and landing once clean (2026-10-21 10:44 PM ET, "sgtm"), and earlier "yes dont wait for grok" (Claude + GPT/Codex + the Codex gpt-6-astra fallback count while Cursor Grok is out of usage). HEAD, clean tree and diff digest re-verified after every lane.
+
+- **Claude** (Claude CLI, `CLAUDE_CONFIG_DIR=~/.claude-review`, plan mode): `VERDICT: LGTM`. Non-blocking: an unmatched absent battler is omitted silently (a present one gets a HARNESS BUG line); recorder tests leave temp dirs; the six-ID exemption list is repeated in four pinning tests; PB10 row should say the exemptions loosen four older pinning tests.
+- **Grok**: Cursor `cursor-grok-4.5-high` and `grok-4.7-high` probed 2026-10-21 ~11:04 PM ET: `ActionRequiredError: … You're out of usage` (`cursor-grok-4.5-fast` not offered). Fallback per the operator's waiver: isolated Codex CLI `gpt-6-astra` xhigh: `VERDICT: LGTM` (in-memory break/restore of both fixes, OFF goldens vs frozen base, 1003 TS + 46 Python tests). Non-blocking: learn_move still fixtures-only (disclosed); stale doc wording (worklog "No new network surface"; move-learn-tool-v1 explainer line about review); choose_evolution gap out of scope.
+- **GPT**: Cursor `gpt-5.6-sol-xhigh` out of usage (same error). Isolated Codex CLI `gpt-5.6-sol` xhigh: `VERDICT: LGTM`. Non-blocking: SCOPE EXPANSION — the ON ended block still shows the Party line and `In battle: yes` (native flag) after "the battle has ended"; HARDENING — no live-emulator learn_move proof; choose_evolution recorder gap.
+
+## Landing (2026-10-21 11:24 PM ET)
+
+- `just land-join` → number 1. Main had not moved since the packet (640f01e12), so `git merge --ff-only 5ef99804826bba0482d11da630c8a83d233fe3d8` from the main checkout made main exactly the reviewed tree. **Merge SHA (ff): 5ef998048.**
+- `just build` then `just test` on main: agent 4423/4423, viewer 1667/1667, pytest 3889 passed.
+- `just viewer-main`: "viewer on 127.0.0.1:8790; 3 live gameplay process(es) kept running", "viewer at 5ef998048"; build stamp 5ef998048, clean. Live runs still adopted afterwards with no problem: 2026-10-21T23-06-10_qwen36-gpu1_83d7, 2026-10-21T22-20-12_qwen36-gpu0_90ae, 2026-10-21T22-35-12_glm53-mac_557c (all launched from 640f01e12 clones, untouched).
+- Live check (real browser, viewer 8790, run 90ae, HARNESS CONFIG tab): all six cards render (EVERY TOOL IN THE SYSTEM PROMPT, FIELD OWNERSHIP FEEDBACK, MOVE-LEARNING LOOP FINGERPRINT, STALE PLAN FACT, POST-BATTLE READOUT, LEARN MOVE TOOL; NOT RECORDED, as that run predates them) each with an explainer link; clicking POST-BATTLE READOUT's link opened the page. Explainers: http://127.0.0.1:8791/explainers/<id>.html 200 for all six; http://127.0.0.1:8790/explainers/<id>.html 200 for all six.
+- `just experiments`: tool-prompt-docs-v1, field-ownership-feedback-v1, stale-plan-fact-v1 → draft, "queued; needs the operator's approval"; move-learn-loop-fingerprint-v1, move-learn-tool-v1, post-battle-readout-v1 → pending, "not ready: 0 of the last 4 runs of any configuration reached PETALBURG_WOODS (needs 3 of 4; too few runs match the incumbent)".
+
+## Open after landing
+
+- The six experiments' `source.commit` still names 8b6439695 (now an ancestor of main); not repinned here because the landing evidence commit may touch only docs/worklogs. Repin with `just experiment-pin <id>` (and repin each incumbent to the current bundle arm with only its switch off) before the operator approves any of them.
+- choose_evolution tool_result has the same recorder state-link gap as learn_move had (evolution-decision-v1 is ON in live fixed arms): follow-up branch.
+- Review hardening notes above (silent omission of an unmatched absent battler, Party/`In battle` lines after the ended label, stale doc wording, shared exemption constant) are not fixed.
+
 ## Boy Scout Log
 
 (none yet)

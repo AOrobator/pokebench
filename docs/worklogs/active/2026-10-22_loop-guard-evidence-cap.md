@@ -27,6 +27,25 @@ agent exception "emulator or game server crash"; the emulator was fine.
 - [x] RED: recorded heal-trip hold validates as a loop_guard event
   COMMIT: `test: heal-trip drought hold must record a valid loop_guard event (RED)` (9b3dced3c)
 - [x] GREEN: evidence cap and typed emitters
-- [ ] Gates: lint, test, coverage ≥90
+  COMMIT: `fix: cap loop_guard evidence at two ids so a heal-trip drought hold cannot end the run` (059d09ef3)
+- [x] Gates on 059d09ef3: `just lint` clean; `just coverage` agent 4425/4425 (lines 97.39, branches 93.3, functions 97.98), viewer 1667/1667 (95.45 / 91.33 / 94.35), Python 3889 passed, gate ≥90 OK
 - [ ] Review: Claude, GPT/Codex, fallback lane (Grok waived by the operator while Cursor is out)
 - [ ] Land via the landing board (ff-only)
+
+## Principles self-review (docs/agent-principles.md)
+
+| ID | Verdict | Evidence |
+|---|---|---|
+| PB1 Game grades the run | PASS | No grading or milestone change; only diagnostic loop_guard records. |
+| PB2 Failed runs count | PASS | The five crashed runs stay in their ledgers as invalid; nothing is deleted or relabelled. |
+| PB3 One run is an anecdote | PASS | Cause shown in all five crashes (same stderr line, same 5-minute drought step) and absent from every surviving bundle run's recorded holds. |
+| PB4 Declare harness advantages | N/A | Model-facing text and tools unchanged; held drought notes are never sent. |
+| PB5 Change one thing | PASS | One defect class (loop_guard evidence > 2) fixed; switch OFF paths byte-identical. Exempt from a new switch: crash fix inside drought-battle-heal-hold-v1's ON path. |
+| PB6 Long runs fail where short can't | PASS | Found from 75-minute runs; the RED test reproduces the exact recorder error. |
+| PB7 No event log, didn't happen | PASS | The heal-trip hold is now actually recorded (before: never, the record threw). |
+| PB8 Misbehavior loud, bounded | PASS | `loopEvidence` throws on empty input; tsc rejects a third id at every emitter. |
+| PB9 Rock-solid-or-ask | PASS | Evidence choice (first and last) matches the existing drought notes; heal warning id kept in the text. |
+| PB10 No carve-outs | PASS | No skipped tests, excludes or threshold changes; one existing expected string updated for the added `(#N)`. |
+| PB11 Verify pinned dependency | N/A | No dependency or vendor change. |
+| PB12 macOS privacy prompts | N/A | No file-system or device access added. |
+| PB13 Close the loop | PASS | RED test fails with the production error string; GREEN passes; gates below; live check after landing is the next bundle run reaching a heal-trip hold without `crash`. |

@@ -13,3 +13,4 @@ RED/GREEN, production wiring deletion, typed schema, pending blocked definition,
 
 ## RED
 Added independent reader/source-guard and production read_state/state_json/render OFF parity tests before module implementation. No service or gameplay execution.
+- RED Python import regression recorded before implementation. Added TS production semantic factory tests before static treatment wiring, including schema rejection and synchronized tool/prompt exception. Reader skeleton now passes direct guards; production render requires ram-state enabled in the test (OFF parity remains exact).

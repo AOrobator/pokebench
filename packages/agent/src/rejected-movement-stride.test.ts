@@ -2,7 +2,7 @@ import {expect,it,vi} from "vitest";
 import {IN_GAME} from "../test-support/events.js";
 import {pressTool} from "./game-tools.js";
 import {flagFeatures} from "./play-preset.js";
-import {toolSwitches} from "./play-config.js";
+import {playSystemPrompt,toolSwitches} from "./play-config.js";
 import type {GameStateSnapshot} from "./game-state.js";
 import type {StridePlan} from "./stride.js";
 const tiles=Array.from({length:9},(_,x)=>({x,y:0,collision:0,behavior:0,elevation:3}));
@@ -82,4 +82,22 @@ it.each([
  }else if(owner==="step"){
   expect(s.posts()).toMatchObject([{url:"http://game/action",body:{buttons:["RIGHT"]}}]);expect(text(out)).toContain("Movement batch limited to one direction press");
  }else{expect(s.posts()).toEqual([]);expect(text(out)).toContain("Navigation tool-use guard: no input was sent");}
+});
+
+
+it("production prompt describes native stride only when prefix is OFF and stride owns guarded movement",()=>{
+ const prompt=playSystemPrompt({...features(),"rejected-movement-prefix-v1":false},null);
+ expect(prompt).toContain("one checked straight plain-floor prefix");expect(prompt).toContain("A terminal native receipt reports actual completed tiles.");
+});
+it("production prefix-ON prompt retains exact generic wording regardless of stride bit",()=>{
+ const f={...features(),"rejected-movement-prefix-v1":true};
+ const actual=playSystemPrompt(f,null);expect(actual).not.toContain("one checked straight plain-floor prefix");expect(actual).not.toContain("A terminal native receipt");expect(actual).toBe(playSystemPrompt({...f,"rejected-movement-stride-v1":false},null));
+});
+it("production guard-OFF prompt is invariant to stride and prefix bits",()=>{
+ const f={...features(),"navigation-tool-use-guard-v1":false,"rejected-movement-stride-v1":false,"rejected-movement-prefix-v1":false},prior=playSystemPrompt(f,null);
+ for(const prefix of [false,true])for(const stride of [false,true])expect(playSystemPrompt({...f,"rejected-movement-prefix-v1":prefix,"rejected-movement-stride-v1":stride},null)).toBe(prior);
+});
+it("production stride-OFF prompt retains generic wording with either prefix state",()=>{
+ const f={...features(),"rejected-movement-stride-v1":false,"rejected-movement-prefix-v1":false},prior=playSystemPrompt(f,null);
+ expect(prior).not.toContain("one checked straight plain-floor prefix");expect(prior).not.toContain("A terminal native receipt");expect(playSystemPrompt({...f,"rejected-movement-prefix-v1":true},null)).toBe(prior);
 });
